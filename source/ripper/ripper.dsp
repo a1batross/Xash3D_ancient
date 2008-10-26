@@ -125,10 +125,6 @@ SOURCE=.\conv_main.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\conv_palette.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\conv_pcximage.c
 # End Source File
 # Begin Source File

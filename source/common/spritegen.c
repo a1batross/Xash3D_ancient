@@ -42,9 +42,9 @@ WriteFrame
 */
 void WriteFrame( file_t *f, int framenum )
 {
-	dframe_t		*pframe;
+	dspriteframe_t		*pframe;
 
-	pframe = (dframe_t *)frames[framenum].pdata;
+	pframe = (dspriteframe_t *)frames[framenum].pdata;
 	pframe->origin[0] = LittleLong( pframe->origin[0] );
 	pframe->origin[1] = LittleLong( pframe->origin[1] );
 	pframe->width = LittleLong (pframe->width);
@@ -312,7 +312,7 @@ void Cmd_Frame( void )
 	int		org_x, org_y;
 	int		pixels, linedelta;
 	bool		resampled = false;
-	dframe_t		*pframe;
+	dspriteframe_t		*pframe;
 	byte		*fin, *plump;
 
 	if( !frame || !frame->buffer ) Sys_Break( "frame not loaded\n" );
@@ -386,8 +386,8 @@ void Cmd_Frame( void )
 	xh = xl + w;
 	yh = yl + h;
 
-	plump = (byte *)Mem_Alloc( spritepool, sizeof(dframe_t) + (w * h));
-	pframe = (dframe_t *)plump;
+	plump = (byte *)Mem_Alloc( spritepool, sizeof(dspriteframe_t) + (w * h));
+	pframe = (dspriteframe_t *)plump;
 	frames[framecount].pdata = plump;
 	frames[framecount].type = SPR_SINGLE;
 

@@ -7,6 +7,7 @@
 #include "mathlib.h"
 
 cvar_t *image_profile;
+cvar_t *fs_textures;
 
 #define LERPBYTE(i)		r = resamplerow1[i];out[i] = (byte)((((resamplerow2[i] - r) * lerp)>>16) + r)
 
@@ -181,7 +182,6 @@ static const loadformat_t load_hl1[] =
 static const loadformat_t load_hl2[] =
 {
 { "materials/%s%s.%s", "vtf", Image_LoadVTF, IL_HINT_NO },	// hl2 dds wrapper
-{ "%s%s.%s", "vtf", Image_LoadVTF, IL_HINT_NO },
 { NULL, NULL, NULL, IL_HINT_NO }
 };
 
@@ -261,9 +261,11 @@ static const saveformat_t save_null[] =
 // version0 - extragen save formats
 static const saveformat_t save_extragen[] =
 {
-{ "%s%s.%s", "bmp", Image_SaveBMP },
-{ "%s%s.%s", "pcx", Image_SavePCX },
-{ "%s%s.%s", "tga", Image_SaveTGA },		// for 32-bit images
+{ "%s%s.%s", "tga", Image_SaveTGA },		// tga screenshots
+{ "%s%s.%s", "png", Image_SavePNG },		// png levelshots
+{ "%s%s.%s", "dds", Image_SaveDDS },		// vtf use this
+{ "%s%s.%s", "pcx", Image_SavePCX },		// just in case
+{ "%s%s.%s", "bmp", Image_SaveBMP },		// all 8-bit images
 { NULL, NULL, NULL }
 };
 
@@ -289,6 +291,7 @@ void Image_Init( void )
 	// init pools
 	Sys.imagepool = Mem_AllocPool( "ImageLib Pool" );
 	image_profile = Cvar_Get( "image_profile", "Xash3D", CVAR_SYSTEMINFO, "set imagelib profile: e.g. Doom1, Quake1, Xash3D etc" );
+	fs_textures = Cvar_Get( "fs_textures_path", "textures", CVAR_SYSTEMINFO, "textures default folder" );
 
 	// install image formats (can be re-install later by Image_Setup)
 	switch( Sys.app_name )
@@ -307,10 +310,12 @@ void Image_Init( void )
 		Image_Setup( image_profile->string, image.cmd_flags ); // same as image_profile		
 		break;
 	case HOST_RIPPER:
+		image.loadformats = load_null;
 		image.saveformats = save_extragen;
-		// intentional fallthrough
+		break;
 	default:	// all other instances not using imagelib or will be reinstalling later
 		image.loadformats = load_null;
+		image.saveformats = save_xash051;
 		break;
 	}
 	image.tempbuffer = NULL;
@@ -341,10 +346,6 @@ void Image_Setup( const char *formats, const uint flags )
 	else if( !com.stricmp( formats, "hl2" ) || !com.stricmp( formats, "Half-Life 2" ))
 		image.loadformats = load_hl2;
 	else image.loadformats = load_xash048;	// unrecognized version, use default
-
-	if( !com.stricmp( formats, "Xash3D" ))
-		image.saveformats = save_xash051;
-	else image.saveformats = save_xash048;
 }
 
 void Image_Shutdown( void )

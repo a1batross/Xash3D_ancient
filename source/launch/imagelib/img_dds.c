@@ -922,6 +922,162 @@ void Image_GetBitsFromMask( uint Mask, uint *ShiftLeft, uint *ShiftRight )
 	*ShiftLeft = 8 - i;
 }
 
+bool Image_DXTWriteHeader( vfile_t *f, rgbdata_t *pix )
+{
+	uint	dwFourCC = 0, dwFlags1 = 0, dwFlags2 = 0, dwCaps1 = 0, dwCaps2 = 0;
+	uint	dwLinearSize, dwBlockSize, dwSize = 124, dwSize2 = sizeof( dds_pixf_t );
+	uint	dwRBitMask = 0, dwGBitMask = 0, dwBBitMask = 0, dwABitMask = 0;
+	uint	dwWidth, dwHeight, dwDepth, dwMipCount;
+	uint	dwIdent = DDSHEADER;
+	uint	dwRGBBitCount = 0;
+
+	if( !pix || !pix->buffer ) return false;
+
+	// setup flags
+	dwFlags1 |= DDS_LINEARSIZE|DDS_WIDTH|DDS_HEIGHT|DDS_CAPS|DDS_PIXELFORMAT|DDS_PITCH;
+	dwFlags2 |= DDS_FOURCC;
+	dwMipCount = pix->numMips;
+	if( dwMipCount > 1 ) dwFlags1 |= DDS_MIPMAPCOUNT;
+	if( pix->numLayers > 1 ) dwFlags1 |= DDS_DEPTH;
+
+	switch( pix->type )
+	{
+	case PF_DXT1:
+		dwFourCC = TYPE_DXT1;
+		break;
+	case PF_DXT2:
+		dwFourCC = TYPE_DXT2;
+		break;
+	case PF_DXT3:
+		dwFourCC = TYPE_DXT3;
+		break;
+	case PF_DXT4:
+		dwFourCC = TYPE_DXT4;
+		break;
+	case PF_DXT5:
+		dwFourCC = TYPE_DXT5;
+		break;
+	case PF_ABGR_64:
+		dwFourCC = TYPE_$;
+		break;
+	case PF_R_16F:
+		dwFourCC = TYPE_o;
+		break;
+	case PF_GR_32F:
+		dwFourCC = TYPE_p;
+		break;
+	case PF_ABGR_64F:
+		dwFourCC = TYPE_q;
+		break;
+	case PF_R_32F:
+		dwFourCC = TYPE_r;
+		break;
+	case PF_GR_64F:
+		dwFourCC = TYPE_s;
+		break;
+	case PF_ABGR_128F:
+		dwFourCC = TYPE_t;
+		break;
+	default:
+		dwFlags2 &= ~DDS_FOURCC;
+		break;
+	}
+
+	// continue choosing format
+	if(!(dwFlags2 & DDS_FOURCC ))
+	{
+		switch( pix->type )
+		{
+		case PF_LUMINANCE:
+			dwABitMask = 0x00FFFFFF;
+			dwFlags2 |= DDS_LUMINANCE;
+			dwRGBBitCount = 8; 
+			break;
+		case PF_LUMINANCE_ALPHA:
+			dwRBitMask = 0x00FF0000;
+			dwABitMask = 0xFF000000;
+			dwFlags2 |= DDS_LUMINANCE;
+			dwFlags2 |= DDS_ALPHAPIXELS;
+			dwRGBBitCount = 16; 
+			break;
+		case PF_BGR_24:
+			dwRBitMask = 0x000000FF;
+			dwGBitMask = 0x0000FF00;
+			dwBBitMask = 0x00FF0000;
+			dwFlags2 |= DDS_RGB;
+			dwRGBBitCount = 24; 
+			break;
+		case PF_BGRA_32:
+			dwRBitMask = 0x000000FF;
+			dwGBitMask = 0x0000FF00;
+			dwBBitMask = 0x00FF0000;
+			dwABitMask = 0xFF000000;
+			dwFlags2 |= DDS_RGBA;
+			dwRGBBitCount = 32; 
+			break;
+		case PF_RGBA_32:
+			dwRBitMask = 0x00FF0000;
+			dwGBitMask = 0x0000FF00;
+			dwBBitMask = 0x000000FF;
+			dwABitMask = 0xFF000000;
+			dwFlags2 |= DDS_RGBA;
+			dwRGBBitCount = 32; 
+			break;
+		default:
+			MsgDev( D_ERROR, "Image_DXTWriteHeader: unsupported type %s\n", PFDesc[pix->type].name );	
+			return false;
+		}
+	}
+
+	dwWidth = pix->width;
+	dwHeight = pix->height;
+
+	VFS_Write( f, &dwIdent, sizeof(uint));
+	VFS_Write( f, &dwSize, sizeof(uint));
+	VFS_Write( f, &dwFlags1, sizeof(uint));
+	VFS_Write( f, &dwHeight, sizeof(uint));
+	VFS_Write( f, &dwWidth, sizeof(uint));
+
+	dwBlockSize = PFDesc[pix->type].block;
+	dwLinearSize = Image_DXTGetLinearSize( pix->type, pix->width, pix->height, 1, pix->bitsCount / 8 );
+	VFS_Write( f, &dwLinearSize, sizeof( uint ));
+
+	if( pix->numLayers > 1 )
+	{
+		dwDepth = pix->numLayers;
+		VFS_Write( f, &dwDepth, sizeof( uint ));
+		dwCaps2 |= DDS_VOLUME;
+	}
+	else VFS_Write( f, 0, sizeof( uint ));
+	VFS_Write( f, &dwMipCount, sizeof( uint ));
+	VFS_Write( f, 0, sizeof(uint));
+	VFS_Write( f, 0, sizeof(uint) * 10 ); // reserved fields
+
+	VFS_Write( f, &dwSize2, sizeof( uint ));
+	VFS_Write( f, &dwFlags2, sizeof( uint ));
+	VFS_Write( f, &dwFourCC, sizeof( uint ));
+	VFS_Write( f, &dwRGBBitCount, sizeof( uint ));
+	VFS_Write( f, &dwRBitMask, sizeof( uint ));
+	VFS_Write( f, &dwGBitMask, sizeof( uint ));
+	VFS_Write( f, &dwBBitMask, sizeof( uint ));
+	VFS_Write( f, &dwABitMask, sizeof( uint ));
+
+	dwCaps1 |= DDS_TEXTURE;
+	if( pix->numMips > 1 ) dwCaps1 |= DDS_MIPMAP|DDS_COMPLEX;
+	if( pix->flags & IMAGE_CUBEMAP )
+	{
+		dwCaps1 |= DDS_COMPLEX;
+		dwCaps2 |= DDS_CUBEMAP;
+		dwCaps2 |= DDS_CUBEMAP_ALL_SIDES;
+	}
+
+	VFS_Write( f, &dwCaps1, sizeof( uint ));
+	VFS_Write( f, &dwCaps2, sizeof( uint ));
+	VFS_Write( f, 0, sizeof( uint ) * 3 ); // other caps and TextureStage
+
+	return true;
+}
+
 size_t Image_DXTGetLinearSize( int type, int width, int height, int depth, int rgbcount )
 {
 	size_t BlockSize = 0;
@@ -939,93 +1095,13 @@ size_t Image_DXTGetLinearSize( int type, int width, int height, int depth, int r
 	return BlockSize;
 }
 
-bool Image_DXTWriteHeader( vfile_t *f, rgbdata_t *pix, uint cubemap_flags, uint savetype )
-{
-	uint	dwFourCC, dwFlags1 = 0, dwFlags2 = 0, dwCaps1 = 0;
-	uint	dwLinearSize, dwBlockSize, dwCaps2 = 0;
-	uint	dwIdent = DDSHEADER, dwSize = 124, dwSize2 = 32;
-	uint	dwWidth, dwHeight, dwDepth, dwMipCount = 1;
-
-	if(!pix || !pix->buffer ) return false;
-
-	// setup flags
-	dwFlags1 |= DDS_LINEARSIZE|DDS_WIDTH|DDS_HEIGHT|DDS_CAPS|DDS_PIXELFORMAT;
-	dwFlags2 |= DDS_FOURCC;
-	if( pix->numLayers > 1) dwFlags1 |= DDS_DEPTH;
-
-	switch( savetype )
-	{
-	case PF_DXT1:
-		dwFourCC = TYPE_DXT1;
-		break;
-	case PF_DXT2:
-		dwFourCC = TYPE_DXT2;
-		break;
-	case PF_DXT3:
-		dwFourCC = TYPE_DXT3;
-		break;
-	case PF_DXT4:
-		dwFourCC = TYPE_DXT4;
-		break;
-	case PF_DXT5:
-		dwFourCC = TYPE_DXT5;
-		break;
-	default:
-		MsgDev( D_ERROR, "Image_DXTWriteHeader: unsupported type %s\n", PFDesc[pix->type].name );	
-		return false;
-	}
-	dwWidth = pix->width;
-	dwHeight = pix->height;
-
-	VFS_Write( f, &dwIdent, sizeof(uint));
-	VFS_Write( f, &dwSize, sizeof(uint));
-	VFS_Write( f, &dwFlags1, sizeof(uint));
-	VFS_Write( f, &dwHeight, sizeof(uint));
-	VFS_Write( f, &dwWidth, sizeof(uint));
-
-	dwBlockSize = PFDesc[savetype].block;
-	dwLinearSize = Image_DXTGetLinearSize( savetype, pix->width, pix->height, pix->numLayers, pix->bitsCount / 8 );
-	VFS_Write( f, &dwLinearSize, sizeof(uint));
-
-	if( pix->numLayers > 1 )
-	{
-		dwDepth = pix->numLayers;
-		VFS_Write( f, &dwDepth, sizeof( uint ));
-		dwCaps2 |= DDS_VOLUME;
-	}
-	else VFS_Write(f, 0, sizeof(uint));
-
-	VFS_Write( f, &dwMipCount, sizeof(uint));
-	VFS_Write( f, 0, sizeof(uint));
-	VFS_Write( f, 0, sizeof(uint) * 10 ); // reserved fields
-
-	VFS_Write( f, &dwSize2, sizeof( uint ));
-	VFS_Write( f, &dwFlags2, sizeof( uint ));
-	VFS_Write( f, &dwFourCC, sizeof( uint ));
-	VFS_Write( f, 0, sizeof(uint) * 5 ); // bit masks
-
-	dwCaps1 |= DDS_TEXTURE;
-	if( pix->numMips > 1 ) dwCaps1 |= DDS_MIPMAP|DDS_COMPLEX;
-	if( cubemap_flags )
-	{
-		dwCaps1 |= DDS_COMPLEX;
-		dwCaps2 |= cubemap_flags;
-	}
-
-	VFS_Write( f, &dwCaps1, sizeof( uint ));
-	VFS_Write( f, &dwCaps2, sizeof( uint ));
-	VFS_Write( f, 0, sizeof( uint ) * 3 ); // other caps and TextureStage
-
-	return true;
-}
-
 size_t Image_CompressDXT( vfile_t *f, int saveformat, rgbdata_t *pix )
 {
 	byte	srcpixels[4][4][4];
 	int	numxpixels, numypixels;
-	byte	*blkaddr, *dest, *flip = NULL;
 	int	i, j, width, height;
 	const byte *srcaddr;
+	byte	*blkaddr;	
 	size_t	dst_size;
 	int	srccomps;
 
@@ -1036,7 +1112,7 @@ size_t Image_CompressDXT( vfile_t *f, int saveformat, rgbdata_t *pix )
 	height = pix->height;
 	dst_size = Image_DXTGetLinearSize( saveformat, width, height, 1, 0 );
 	srccomps = PFDesc[pix->type].bpp;
-	blkaddr = dest = Mem_Alloc( Sys.imagepool, dst_size ); // alloc dst image size
+	blkaddr = image.tempbuffer = Mem_Realloc( Sys.imagepool, image.tempbuffer, dst_size ); // alloc dst image size
 
 	switch( saveformat )
 	{
@@ -1104,15 +1180,52 @@ size_t Image_CompressDXT( vfile_t *f, int saveformat, rgbdata_t *pix )
 		}
 		break;
 	default:
-      		MsgDev( D_ERROR, "Image_CompressDXT: bad destination format %d\n", saveformat );
-		if( dest ) Mem_Free( dest );
+      		MsgDev( D_ERROR, "Image_CompressDXT: bad destination format %s\n", PFDesc[saveformat].name );
 		return 0;
 	}
-	dst_size = VFS_Write( f, dest, dst_size );
-	if( dest ) Mem_Free( dest );
-	if( flip ) Mem_Free( flip );
+	dst_size = VFS_Write( f, image.tempbuffer, dst_size );
 
 	return dst_size;
+}
+
+void Image_CompressDDS( vfile_t *f, byte *buffer )
+{
+#if 0
+	int i, size = 0;
+	int w = image.curwidth;
+	int h = image.curheight;
+	int d = image.curdepth;
+
+	for( i = 0; i < image.cur_mips; i++, buffer += size )
+	{
+		Image_SetPixelFormat( w, h, d );
+		size = image.SizeOfFile;
+
+		if(!image.decompress( target, i, image.type, w, h, size, buffer ))
+			break; // there were errors
+		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; // calc size of next mip
+	}
+#endif
+}
+
+bool Image_DXTWriteImage( vfile_t *f, rgbdata_t *pix )
+{
+	// just write input buffer as valid
+	switch( pix->type )
+	{
+	case PF_BGR_24:
+	case PF_BGRA_32:
+	case PF_RGBA_32:
+	case PF_LUMINANCE:
+	case PF_LUMINANCE_ALPHA:
+	case PF_DXT1:
+	case PF_DXT3:
+	case PF_DXT5:
+	case PF_ABGR_64F:
+		VFS_Write( f, pix->buffer, pix->size );
+		return true;
+	}
+	return false;
 }
 
 void Image_DXTGetPixelFormat( dds_t *hdr )
@@ -1140,6 +1253,11 @@ void Image_DXTGetPixelFormat( dds_t *hdr )
 		case TYPE_ATI2: image.type = PF_ATI2N; break;
 		case TYPE_RXGB: image.type = PF_RXGB; break;
 		case TYPE_$: image.type = PF_ABGR_64; break;
+		case TYPE_o: image.type = PF_R_16F; break;
+		case TYPE_p: image.type = PF_GR_32F; break;
+		case TYPE_q: image.type = PF_ABGR_64F; break;
+		case TYPE_r: image.type = PF_R_32F;
+		case TYPE_s: image.type = PF_GR_64F;
 		case TYPE_t: image.type = PF_ABGR_128F; break;
 		default: image.type = PF_UNKNOWN; break;
 		}
@@ -1188,7 +1306,7 @@ void Image_DXTAdjustVolume( dds_t *hdr )
 {
 	uint bits;
 	
-	if (hdr->dwDepth <= 1) return;
+	if( hdr->dwDepth <= 1 ) return;
 	bits = hdr->dsPixelFormat.dwRGBBitCount / 8;
 	hdr->dwFlags |= DDS_LINEARSIZE;
 	hdr->dwLinearSize = Image_DXTGetLinearSize( image.type, hdr->dwWidth, hdr->dwHeight, hdr->dwDepth, bits );
@@ -1300,7 +1418,8 @@ bool Image_DecompressFloat( uint target, int level, int intformat, uint width, u
 	case PF_GR_32F:
 	case PF_ABGR_64F:
 		size = width * height * image.curdepth * image.bpp;
-		dest = (uint *)Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
+		image.tempbuffer = Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
+		dest = (uint *)image.tempbuffer;
 		for( i = 0; i < size; i++, dest++, src++ )
 			*dest = Image_ShortToFloat( *src );
 		break;
@@ -1308,7 +1427,8 @@ bool Image_DecompressFloat( uint target, int level, int intformat, uint width, u
 	case PF_GR_64F:
 	case PF_ABGR_128F:
 		size = image.SizeOfData;
-		dest = (uint *)Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
+		image.tempbuffer = Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
+		dest = (uint *)image.tempbuffer;
 		Mem_Copy( dest, data, image.SizeOfData );
 		break;
 	default: return false;
@@ -1330,7 +1450,8 @@ bool Image_DecompressATI( uint target, int level, int intformat, uint width, uin
 	w = width;
 	h = height;
 	size = width * height * image.curdepth * 4;
-	fout = Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
+	image.tempbuffer = Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
+	fout = image.tempbuffer;
 
 	switch( PFDesc[intformat].format )
 	{
@@ -1506,7 +1627,8 @@ bool Image_DecompressDXT( uint target, int level, int intformat, uint width, uin
 	h = height;
 
 	size = width * height * image.curdepth * 4;
-	fout = Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
+	image.tempbuffer = Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
+	fout = image.tempbuffer;
 	
 	switch( PFDesc[intformat].format )
 	{
@@ -1907,7 +2029,8 @@ bool Image_DecompressARGB( uint target, int level, int intformat, uint width, ui
 	h = height;
 	fin = (byte *)data;
 	size = width * height * image.curdepth * 4;
-	fout = Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
+	image.tempbuffer = Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
+	fout = image.tempbuffer;
 
 	if( PFDesc[intformat].format == PF_LUMINANCE_16 )
 	{
@@ -1980,7 +2103,8 @@ bool Image_DecompressRGBA( uint target, int level, int intformat, uint width, ui
 	fin = (byte *)data;
 
 	size = width * height * image.curdepth * 4;
-	fout = Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
+	image.tempbuffer = Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
+	fout = image.tempbuffer;
 
 	switch( PFDesc[intformat].format )
 	{
@@ -2039,7 +2163,7 @@ void Image_DecompressDDS( const byte *buffer, uint target )
 	int d = image.curdepth;
 
 	// filter by cubemap side
-	if( image.hint != IL_HINT_NO && image.hint != target ) return;
+	if( image.filter != CB_HINT_NO && image.filter != target ) return;
 
 	switch( image.type )
 	{
@@ -2094,7 +2218,7 @@ bool Image_ForceDecompress( void )
 		return true;
 
 	// extract cubemap side from complex image
-	if( image.hint != IL_HINT_NO )
+	if( image.filter != CB_HINT_NO )
 		return true;
 
 	// FIXME: load it properly with gl loader
@@ -2183,7 +2307,7 @@ bool Image_LoadDDS( const char *name, const byte *buffer, size_t filesize )
 			Image_DecompressDDS( buf, target + i );
 		}
 		// now we can change type to RGBA
-		if( image.hint != IL_HINT_NO ) image.flags &= ~IMAGE_CUBEMAP; // side extracted
+		if( image.filter != CB_HINT_NO ) image.flags &= ~IMAGE_CUBEMAP; // side extracted
 		image.type = PF_RGBA_32;
 	}
 	else
@@ -2195,7 +2319,7 @@ bool Image_LoadDDS( const char *name, const byte *buffer, size_t filesize )
 	return true;
 }
 
-bool Image_SaveDDS( const char *name, rgbdata_t *pix, int saveformat )
+bool Image_SaveDDS( const char *name, rgbdata_t *pix )
 {
 	vfile_t	*file;	// virtual file
 
@@ -2204,9 +2328,13 @@ bool Image_SaveDDS( const char *name, rgbdata_t *pix, int saveformat )
 
 	file = VFS_Open( NULL, "w" );
 	if( !file ) return false;
-
-	Image_DXTWriteHeader( file, pix, 0, saveformat );
-	if(!Image_CompressDXT( file, saveformat, pix ))
+	if(!Image_DXTWriteHeader( file, pix ))
+	{
+		MsgDev( D_ERROR, "Image_SaveDDS: unsupported format %s\n", PFDesc[pix->type].name );
+		VFS_Close( file );
+		return false;
+	}
+	if(!Image_DXTWriteImage( file, pix ))
 	{
 		MsgDev( D_ERROR, "Image_SaveDDS: can't create dds file\n" );
 		VFS_Close( file );

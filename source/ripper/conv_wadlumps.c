@@ -12,7 +12,7 @@
 ConvSKN
 ============
 */
-bool ConvSKN( const char *name, char *buffer, int filesize )
+bool ConvSKN( const char *name, byte *buffer, size_t filesize, const char *ext )
 {
 	rgbdata_t *pic = FS_LoadImage( "#internal.flt", buffer, filesize );
 	string	savedname, skinname, wad;
@@ -24,10 +24,10 @@ bool ConvSKN( const char *name, char *buffer, int filesize )
 		FS_StripExtension( savedname );
 		FS_FileBase( savedname, skinname );
 
-		FS_SaveImage( va("%s/sprites/%s.bmp", gs_gamedir, savedname ), PF_INDEXED_32, pic );
+		FS_SaveImage( va("%s/sprites/%s.%s", gs_gamedir, savedname, ext ), pic );
 		Skin_CreateScript( wad, skinname, pic );
 		FS_FreeImage( pic ); // release buffer
-		Msg("%s/%s.bmp\n", wad, skinname ); // echo to console about current skin
+		Msg("%s/%s.flat\n", wad, skinname ); // echo to console about current skin
 		return true;
 	}
 	return false;
@@ -38,7 +38,7 @@ bool ConvSKN( const char *name, char *buffer, int filesize )
 ConvFLT
 ============
 */
-bool ConvFLT( const char *name, char *buffer, int filesize )
+bool ConvFLT( const char *name, byte *buffer, size_t filesize, const char *ext )
 {
 	rgbdata_t *pic = FS_LoadImage( "#internal.flt", buffer, filesize );
 	string	savedname, tempname, path;
@@ -54,10 +54,10 @@ bool ConvFLT( const char *name, char *buffer, int filesize )
 		}
 		else FS_StripExtension( savedname );
 
-		FS_SaveImage(va("%s/textures/%s.bmp", gs_gamedir, savedname ), PF_INDEXED_32, pic );
+		FS_SaveImage(va("%s/textures/%s.%s", gs_gamedir, savedname, ext ), pic );
 		Conv_CreateShader( savedname, pic, "flt", NULL, 0, 0 );
 		FS_FreeImage( pic ); // release buffer
-		Msg("%s.bmp\n", savedname ); // echo to console about current texture
+		Msg("%s.flat\n", savedname ); // echo to console about current texture
 		return true;
 	}
 	return false;
@@ -68,16 +68,16 @@ bool ConvFLT( const char *name, char *buffer, int filesize )
 ConvFLP
 ============
 */
-bool ConvFLP( const char *name, char *buffer, int filesize )
+bool ConvFLP( const char *name, byte *buffer, size_t filesize, const char *ext )
 {
 	rgbdata_t *pic = FS_LoadImage( "#internal.flt", buffer, filesize );
 
 	if( pic )
 	{
 		FS_StripExtension( (char *)name );
-		FS_SaveImage(va("%s/gfx/%s.bmp", gs_gamedir, name ), PF_INDEXED_32, pic );
+		FS_SaveImage(va("%s/gfx/%s.%s", gs_gamedir, name, ext ), pic );
 		FS_FreeImage( pic ); // release buffer
-		Msg("%s.bmp\n", name ); // echo to console about current pic
+		Msg("%s.flat\n", name ); // echo to console about current pic
 		return true;
 	}
 	return false;
@@ -88,34 +88,20 @@ bool ConvFLP( const char *name, char *buffer, int filesize )
 ConvMIP
 ============
 */
-bool ConvMIP( const char *name, char *buffer, int filesize )
+bool ConvMIP( const char *name, byte *buffer, size_t filesize, const char *ext )
 {
-	rgbdata_t *pic;
+	rgbdata_t *pic = FS_LoadImage( "#internal.mip", buffer, filesize );
 	string	savedname, path;
-
-	if(com.stristr( name, "gfx/conchars" )) // AGRHHHHHHH!!!!!!!!!!!!!!!!111
-		pic = FS_LoadImage( "conchars", buffer, filesize );
-	else if(com.stristr( name, "colormap" ))
-		return true; // colormap not needs anywhere		 
-	else if(com.stristr( name, "palette" ))
-		return ConvPAL( name, buffer, filesize );
-	else pic = FS_LoadImage( "#internal.mip", buffer, filesize );
 	
 	if( pic )
 	{
 		com.strncpy( savedname, name, MAX_STRING );
 		FS_StripExtension( savedname );
-
-		if(com.stristr( name, "gfx/conchars" ))
-			com.snprintf( path, MAX_STRING, "%s/%s.bmp", gs_gamedir, savedname );
-		else
-		{
-			com.snprintf( path, MAX_STRING, "%s/textures/%s.bmp", gs_gamedir, savedname );
-			Conv_CreateShader( savedname, pic, "mip", NULL, 0, 0 ); // replace * with ! in shader too
-		}
-		FS_SaveImage( path, PF_INDEXED_32, pic );
+		com.snprintf( path, MAX_STRING, "%s/textures/%s.%s", gs_gamedir, savedname, ext );
+		Conv_CreateShader( savedname, pic, "mip", NULL, 0, 0 ); // replace * with ! in shader too
+		FS_SaveImage( path, pic );
 		FS_FreeImage( pic ); // release buffer
-		Msg("%s.bmp\n", savedname ); // echo to console about current pic
+		Msg("%s.mip\n", savedname ); // echo to console about current pic
 		return true;
 	}
 	return false;
@@ -126,22 +112,16 @@ bool ConvMIP( const char *name, char *buffer, int filesize )
 ConvLMP
 ============
 */
-bool ConvLMP( const char *name, char *buffer, int filesize )
+bool ConvLMP( const char *name, byte *buffer, size_t filesize, const char *ext )
 {
-	rgbdata_t *pic;
-
-	if(com.stristr( name, "colormap" ))
-		return true;  // colormap not needs anywhere		 
-	else if(com.stristr( name, "palette" ))
-		return ConvPAL( name, buffer, filesize );
-	else pic = FS_LoadImage( "#internal.lmp", buffer, filesize );
+	rgbdata_t *pic = FS_LoadImage( va( "#%s.lmp", name ), buffer, filesize );
 
 	if( pic )
 	{
 		FS_StripExtension( (char *)name );
-		FS_SaveImage(va("%s/%s.bmp", gs_gamedir, name ), PF_INDEXED_32, pic );
+		FS_SaveImage(va("%s/%s.%s", gs_gamedir, name, ext ), pic );
 		FS_FreeImage( pic ); // release buffer
-		Msg("%s.bmp\n", name ); // echo to console about current pic
+		Msg("%s.lmp\n", name ); // echo to console about current pic
 		return true;
 	}
 	return false;

@@ -215,7 +215,7 @@ bool Image_LoadPNG( const char *name, const byte *buffer, size_t filesize )
 Image_SavePNG
 =============
 */
-bool Image_SavePNG( const char *name, rgbdata_t *pix, int saveformat )
+bool Image_SavePNG( const char *name, rgbdata_t *pix )
 {
 	void	*fin;
 	void	*info;

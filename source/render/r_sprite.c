@@ -26,7 +26,7 @@ Sprite model loader
 */
 dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppframe, int framenum )
 {
-	dframe_t		*pinframe;
+	dspriteframe_t		*pinframe;
 	mspriteframe_t	*pspriteframe;
 	string		name;
 	mipTex_t		*out;
@@ -35,8 +35,8 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	FS_FileBase( mod->name, mod->name );
 	com.snprintf( name, MAX_STRING, "#%s_%s_%i%i.spr", mod->name, frame_prefix, framenum/10, framenum%10 );
 	
-	pinframe = (dframe_t *)pin;
-	SwapBlock((int *)pinframe, sizeof( dframe_t ));
+	pinframe = (dspriteframe_t *)pin;
+	SwapBlock((int *)pinframe, sizeof( dspriteframe_t ));
 
 	// setup frame description
 	pspriteframe = Mem_Alloc( mod->mempool, sizeof( mspriteframe_t ));

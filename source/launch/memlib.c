@@ -313,6 +313,8 @@ choseclump:
 	if (mem->next) mem->next->prev = mem;
 	memset((void *)((byte *) mem + sizeof(memheader_t)), 0, mem->size);
 
+	MsgDev(D_MEMORY, "Mem_Alloc: \"%s\"[%s], at (%s:%i)\n", pool->name, com_pretifymem( size, 1 ), filename, fileline );
+
 	return (void *)((byte *) mem + sizeof(memheader_t));
 }
 
@@ -335,6 +337,7 @@ static void _mem_freeblock(memheader_t *mem, const char *filename, int fileline)
 	// memheader has been unlinked, do the actual free now
 	pool->totalsize -= mem->size;
 
+	MsgDev(D_MEMORY, "Mem_Free: \"%s\"[%s], at (%s:%i)\n", pool->name, com_pretifymem( mem->size, 1 ), filename, fileline );
 	if((clump = mem->clump))
 	{
 		if (clump->sentinel1 != MEMCLUMP_SENTINEL)

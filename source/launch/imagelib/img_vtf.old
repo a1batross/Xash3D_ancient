@@ -172,9 +172,8 @@ void Image_VTFSwapBuffer( vtf_t *hdr, const byte *input, size_t input_size, bool
 	// write to DXT buffer
 	for( i = 0; i < texture->numSides; i++ )
 	{
-		// NOTE: we needs to swap sides order
-		vside_t *side = &texture->sides[texture->numSides-i-1];
-		if( !oldformat && texture->numSides > 1 && i == 6 )
+		vside_t *side = &texture->sides[i];
+		if( !oldformat && texture->numSides > 1 && i == 0 )
 			continue; // skip envmap if needed
 		for( j = 0; j < side->nummips; j++ )
 		{
@@ -182,8 +181,7 @@ void Image_VTFSwapBuffer( vtf_t *hdr, const byte *input, size_t input_size, bool
 			if( ignore_mips && j > 0 ) continue;
 			for( k = 0; k < mip->numlayers; k++ )
 			{
-				// NOTE: we needs to swap frames order
-				vlayer_t	*layer = &mip->layers[mip->numlayers-k-1];
+				vlayer_t	*layer = &mip->layers[k];
 				Mem_Copy( dst, input + layer->ofs, layer->size );
 				out_size += layer->size;
 				dst += layer->size;
@@ -196,7 +194,7 @@ void Image_VTFSwapBuffer( vtf_t *hdr, const byte *input, size_t input_size, bool
 	Mem_Copy((byte *)input, image.tempbuffer, out_size );
 	if( ignore_mips ) image.num_mips = 1;
 	if( texture ) Mem_Free( texture );
-	image.size = out_size; // merge out size
+	image.size = out_size;		// merge out size
 }
 
 /*
@@ -211,12 +209,11 @@ bool Image_LoadVTF( const char *name, const byte *buffer, size_t filesize )
 	string	shortname;
 	bool	oldformat = false;
 	int	i, flags, vtfFormat;
-	uint	hdrSize, biasSize, resSize, lowResSize;
+	uint	hdrSize, resSize, lowResSize;
 
 	fin = (byte *)buffer;
 	Mem_Copy( &vtf, fin, sizeof( vtf ));
 	hdrSize = LittleLong( vtf.hdr_size );
-	biasSize = 0;
 
 	if( LittleLong( vtf.ident ) != VTFHEADER ) return false; // it's not a dds file, just skip it
 	FS_FileBase( name, shortname );
@@ -230,8 +227,20 @@ bool Image_LoadVTF( const char *name, const byte *buffer, size_t filesize )
 	}
 
 	i = LittleLong( vtf.ver_minor );
-	if( i == VTF_SUBVERSION0 && vtf.hdr_size == 64 ) oldformat = true; // missing envmap for cubemap images
-	// all other subversions are valid
+	if( i == VTF_SUBVERSION0 && vtf.hdr_size == 64 )
+	{
+		MsgDev( D_NOTE, "Image_LoadVTF: ver 7.0 from hl2 beta\n" ); 
+		oldformat = true; // missing envmap for cubemap images
+	}
+	else if( i == VTF_SUBVERSION1 && vtf.hdr_size == 64 )
+		MsgDev( D_NOTE, "Image_LoadVTF: ver 7.1 without HDR\n" );
+	else if( i == VTF_SUBVERSION2 && vtf.hdr_size == sizeof( vtf_t ))
+		MsgDev( D_NOTE, "Image_LoadVTF: ver 7.2 with HDR\n" );
+	else
+	{
+		MsgDev( D_ERROR, "Image_LoadVTF: file (%s) has wrong subversion %i\n", shortname, i );
+		return false;
+	}
 
 	image.width = LittleShort( vtf.width );
 	image.height = LittleShort( vtf.height );
@@ -258,15 +267,13 @@ bool Image_LoadVTF( const char *name, const byte *buffer, size_t filesize )
 	resSize = Image_VTFCalcImageSize( &vtf, (i == 0));
 	i = hdrSize + lowResSize + resSize;
 
-	if( filesize > i )
+	if( filesize != i )
 	{
-		// Valve changed format after subversion 3 and higher...
-		MsgDev( D_WARN, "Image_LoadVTF: %s have invalid size\n", name );
-		biasSize = filesize - i;
+		MsgDev( D_ERROR, "Image_LoadVTF: %s have invalid size (%i, should be %i)\n", name, filesize, i );
+		return false;
 	}
-	else if( filesize < i ) return false; // corrupted texture or somewhat
-
-	fin += hdrSize + biasSize + lowResSize; // skip lowRes image
+	if( image.type == PF_RGBA_32 ) Msg("image PF_RGBA_32\n" );
+	fin += hdrSize + lowResSize; // skip lowRes image
 	image.size = resSize;
 
 	// convert VTF to DXT

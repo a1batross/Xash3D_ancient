@@ -11,22 +11,31 @@
 // skyorder_q2[6] = { 2, 3, 1, 0, 4, 5, }; // Quake, Half-Life skybox ordering
 // skyorder_ms[6] = { 4, 5, 1, 0, 2, 3  }; // Microsoft DDS ordering (reverse)
 
+// cubemap hints
 typedef enum
 {
-	IL_HINT_NO	= 0,
+	CB_HINT_NO = 0,
 
 	// dds cubemap hints ( Microsoft sides order )
-	IL_HINT_POSX,
-	IL_HINT_NEGX,
-	IL_HINT_POSZ,
-	IL_HINT_NEGZ,
-	IL_HINT_POSY,
-	IL_HINT_NEGY,
+	CB_HINT_POSX,
+	CB_HINT_NEGX,
+	CB_HINT_POSZ,
+	CB_HINT_NEGZ,
+	CB_HINT_POSY,
+	CB_HINT_NEGY,
 
-	// palette choosing
-	IL_HINT_Q1,
+	// vtf format can have 7th cubemap side who called as "spheremap"
+	CB_HINT_ENVMAP,	// same as sides count
+	CB_FACECOUNT = CB_HINT_ENVMAP,
+} side_hint_t;
+
+typedef enum
+{
+	IL_HINT_NO = 0,
+	IL_HINT_Q1,	// palette choosing
 	IL_HINT_Q2,
 	IL_HINT_HL,
+	IL_HINT_FORCE_RGBA,	// force to unpack any image
 } image_hint_t;
 
 typedef struct loadformat_s
@@ -41,7 +50,7 @@ typedef struct saveformat_s
 {
 	const char *formatstring;
 	const char *ext;
-	bool (*savefunc)( const char *name, rgbdata_t *pix, int saveformat );
+	bool (*savefunc)( const char *name, rgbdata_t *pix );
 } saveformat_t;
 
 typedef struct imglib_s
@@ -67,6 +76,7 @@ typedef struct imglib_s
 	uint		source_type;	// shared image type for all mipmaps or cubemap sides
 	int		num_sides;	// how much sides is loaded 
 	byte		*cubemap;		// cubemap pack
+	side_hint_t	filter;		// filtering side
 
 	// indexed images state
 	uint		*d_currentpal;	// installed version of internal palette
@@ -268,41 +278,50 @@ typedef struct jpg_s
 #define TYPE_DXT3	(('3'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT3"
 #define TYPE_DXT4	(('4'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT4"
 #define TYPE_DXT5	(('5'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT5"
-
 #define TYPE_ATI1	(('1'<<24)+('I'<<16)+('T'<<8)+'A') // little-endian "ATI1"
 #define TYPE_ATI2	(('2'<<24)+('I'<<16)+('T'<<8)+'A') // little-endian "ATI2"
-
 #define TYPE_RXGB	(('B'<<24)+('G'<<16)+('X'<<8)+'R') // little-endian "RXGB" doom3 normalmaps
 #define TYPE_$	(('\0'<<24)+('\0'<<16)+('\0'<<8)+'$') // little-endian "$"
+#define TYPE_o	(('\0'<<24)+('\0'<<16)+('\0'<<8)+'o') // little-endian "o"
+#define TYPE_p	(('\0'<<24)+('\0'<<16)+('\0'<<8)+'p') // little-endian "p"
+#define TYPE_q	(('\0'<<24)+('\0'<<16)+('\0'<<8)+'q') // little-endian "q"
+#define TYPE_r	(('\0'<<24)+('\0'<<16)+('\0'<<8)+'r') // little-endian "r"
+#define TYPE_s	(('\0'<<24)+('\0'<<16)+('\0'<<8)+'s') // little-endian "s"
 #define TYPE_t	(('\0'<<24)+('\0'<<16)+('\0'<<8)+'t') // little-endian "t"
 
+// dwFlags1
 #define DDS_CAPS				0x00000001L
 #define DDS_HEIGHT				0x00000002L
 #define DDS_WIDTH				0x00000004L
-
-#define DDS_RGB				0x00000040L
+#define DDS_PITCH				0x00000008L
 #define DDS_PIXELFORMAT			0x00001000L
-#define DDS_LUMINANCE			0x00020000L
+#define DDS_MIPMAPCOUNT			0x00020000L
+#define DDS_LINEARSIZE			0x00080000L
+#define DDS_DEPTH				0x00800000L
 
+// dwFlags2
 #define DDS_ALPHAPIXELS			0x00000001L
 #define DDS_ALPHA				0x00000002L
 #define DDS_FOURCC				0x00000004L
-#define DDS_PITCH				0x00000008L
-#define DDS_COMPLEX				0x00000008L
-#define DDS_CUBEMAP				0x00000200L
-#define DDS_TEXTURE				0x00001000L
-#define DDS_MIPMAPCOUNT			0x00020000L
-#define DDS_LINEARSIZE			0x00080000L
-#define DDS_VOLUME				0x00200000L
-#define DDS_MIPMAP				0x00400000L
-#define DDS_DEPTH				0x00800000L
+#define DDS_RGB				0x00000040L
+#define DDS_RGBA				0x00000041L	// (DDS_RGB|DDS_ALPHAPIXELS)
+#define DDS_LUMINANCE			0x00020000L
 
+// dwCaps1
+#define DDS_COMPLEX				0x00000008L
+#define DDS_TEXTURE				0x00001000L
+#define DDS_MIPMAP				0x00400000L
+
+// dwCaps2
+#define DDS_CUBEMAP				0x00000200L
 #define DDS_CUBEMAP_POSITIVEX			0x00000400L
 #define DDS_CUBEMAP_NEGATIVEX			0x00000800L
 #define DDS_CUBEMAP_POSITIVEY			0x00001000L
 #define DDS_CUBEMAP_NEGATIVEY			0x00002000L
 #define DDS_CUBEMAP_POSITIVEZ			0x00004000L
 #define DDS_CUBEMAP_NEGATIVEZ			0x00008000L
+#define DDS_CUBEMAP_ALL_SIDES			0x0000FC00L
+#define DDS_VOLUME				0x00200000L
 
 typedef struct dds_pf_s
 {
@@ -321,8 +340,8 @@ typedef struct dds_caps_s
 {
 	uint	dwCaps1;
 	uint	dwCaps2;
-	uint	dwCaps3;
-	uint	dwCaps4;
+	uint	dwCaps3;			// currently unused
+	uint	dwCaps4;			// currently unused
 } dds_caps_t;
 
 typedef struct dds_s
@@ -351,8 +370,7 @@ typedef struct dds_s
 */
 #define VTFHEADER		(('\0'<<24)+('F'<<16)+('T'<<8)+'V')
 #define VTF_VERSION		7
-#define VTF_SUBVERSION1	1	// some old textures from beta
-#define VTF_SUBVERSION2	2	// current subversion
+#define VTF_SUBVERSION0	0	// oldest textures from beta
 	
 typedef enum 
 { 
@@ -360,7 +378,7 @@ typedef enum
 	VTF_RGBA8888 = 0,		// PF_RGBA_32
 	VTF_ABGR8888,		// unsupported
 	VTF_RGB888,		// PF_RGB_24 
-	VTF_BGR888,		// unsupported
+	VTF_BGR888,		// PF_BGR_24
 	VTF_RGB565,		// unsupported 
 	VTF_I8,			// PF_LUMINANCE
 	VTF_IA88,			// PF_LUMINANCE_ALPHA
@@ -379,8 +397,8 @@ typedef enum
 	VTF_BGRA4444,		// unsupported
 	VTF_DXT1_ONEBITALPHA,	// PF_DXT1 - loader automatically detected alpha bits
 	VTF_BGRA5551,		// unsupported
-	VTF_UV88,			// unsupported
-	VTF_UVWQ8888,		// unsupported
+	VTF_UV88,			// PF_LUMINANCE_ALPHA
+	VTF_UVWQ8888,		// PF_RGBA_32
 	VTF_RGBA16161616F,		// PF_ABGR_64_F ??
 	VTF_RGBA16161616,		// unsupported
 	VTF_UVLX8888,		// unsupported
@@ -487,6 +505,7 @@ void Image_GetPaletteLMP( const byte *pal, int rendermode );
 void Image_GetPalettePCX( const byte *pal );
 void Image_CopyPalette24bit( void );
 void Image_CopyPalette32bit( void );
+bool Image_ForceDecompress( void );
 uint Image_ShortToFloat( word y );
 void Image_GetPaletteQ2( void );
 void Image_GetPaletteQ1( void );
@@ -514,11 +533,11 @@ bool Image_LoadPAL( const char *name, const byte *buffer, size_t filesize );
 //
 // formats save
 //
-bool Image_SaveTGA( const char *name, rgbdata_t *pix, int saveformat );
-bool Image_SaveDDS( const char *name, rgbdata_t *pix, int saveformat );
-bool Image_SaveBMP( const char *name, rgbdata_t *pix, int saveformat );
-bool Image_SavePNG( const char *name, rgbdata_t *pix, int saveformat );
-bool Image_SavePCX( const char *name, rgbdata_t *pix, int saveformat );
+bool Image_SaveTGA( const char *name, rgbdata_t *pix );
+bool Image_SaveDDS( const char *name, rgbdata_t *pix );
+bool Image_SaveBMP( const char *name, rgbdata_t *pix );
+bool Image_SavePNG( const char *name, rgbdata_t *pix );
+bool Image_SavePCX( const char *name, rgbdata_t *pix );
 
 //
 // img_utils.c

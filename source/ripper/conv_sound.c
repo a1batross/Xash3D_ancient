@@ -396,17 +396,17 @@ bool Conv_Mus2Mid( const char *musicname, byte *buffer, int bufsize )
 ConvMID
 ============
 */
-bool ConvMID( const char *name, char *buffer, int filesize )
+bool ConvMID( const char *name, byte *buffer, size_t filesize, const char *ext )
 {
 	string	musicname;
 
-	if(FS_FileExists(va("%s/music/%s.mid", gs_gamedir, musicname )))
+	if(FS_FileExists( va("%s/music/%s.%s", gs_gamedir, musicname, ext )))
 		return true; // already existed
 
 	FS_FileBase( name, musicname );
 	if(Conv_Mus2Mid( musicname, buffer, filesize ))
 	{
-		Msg("%s.mid\n", musicname ); // echo to console about current music
+		Msg("%s.%s\n", musicname, ext ); // echo to console about current music
 		return true;
 	}
 	return false;
@@ -417,7 +417,7 @@ bool ConvMID( const char *name, char *buffer, int filesize )
 ConvSND
 ============
 */
-bool ConvSND( const char *name, char *buffer, int filesize )
+bool ConvSND( const char *name, byte *buffer, size_t filesize, const char *ext )
 {
 	string	soundname;
 

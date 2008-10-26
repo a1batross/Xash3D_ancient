@@ -11,7 +11,7 @@
 ConvVTF
 =============
 */
-bool ConvVTF( const char *name, char *buffer, int filesize )
+bool ConvVTF( const char *name, byte *buffer, size_t filesize, const char *ext )
 {
 	rgbdata_t	*pic;
 
@@ -20,7 +20,9 @@ bool ConvVTF( const char *name, char *buffer, int filesize )
 
 	if( pic )
 	{
-		FS_SaveImage( va("%s/%s.tga", gs_gamedir, name ), PF_RGBA_32, pic ); // save converted image
+		// NOTE: save vtf textures into dds for speedup reson
+		// also avoid unneeded convertations DXT->RGBA->DXT
+		FS_SaveImage( va("%s/%s.%s", gs_gamedir, name, ext ), pic ); // save converted image
 		Conv_CreateShader( name, pic, "vtf", NULL, 0, 0 );
 		FS_FreeImage( pic ); // release buffer
 		Msg( "%s.vtf\n", name ); // echo to console about current pic

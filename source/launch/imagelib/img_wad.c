@@ -103,7 +103,7 @@ Image_LoadSPR
 */
 bool Image_LoadSPR( const char *name, const byte *buffer, size_t filesize )
 {
-	dframe_t	*pin;	// indetical for q1\hl sprites
+	dspriteframe_t	*pin;	// indetical for q1\hl sprites
 	
 	if( image.hint == IL_HINT_HL )
 	{
@@ -119,7 +119,7 @@ bool Image_LoadSPR( const char *name, const byte *buffer, size_t filesize )
 	}
 	else return false; // unknown mode rejected
 
-	pin = (dframe_t *)buffer;
+	pin = (dspriteframe_t *)buffer;
 	image.width = LittleLong( pin->width );
 	image.height = LittleLong( pin->height );
 
@@ -294,25 +294,40 @@ bool Image_LoadLMP( const char *name, const byte *buffer, size_t filesize )
 {
 	lmp_t	lmp;
 	byte	*fin, *pal;
+	int	rendermode;
 	int	pixels;
 
 	// wadsupport disabled, so nothing to load
 	if( Sys.app_name == HOST_NORMAL && !fs_wadsupport->integer )
 		return false;
 
-	if( filesize < (int)sizeof(lmp))
+	if( filesize < sizeof( lmp ))
 	{
 		MsgDev( D_ERROR, "Image_LoadLMP: file (%s) have invalid size\n", name );
 		return false;
 	}
-	fin = (byte *)buffer;
-	Mem_Copy(&lmp, fin, sizeof(lmp));
-	image.width = LittleLong(lmp.width);
-	image.height = LittleLong(lmp.height);
-	fin += sizeof(lmp);
+
+	// greatest hack from id software
+	if( image.hint != IL_HINT_HL && com.stristr( name, "conchars" ))
+	{
+		image.width = image.height = 128;
+		image.flags |= IMAGE_HAVE_ALPHA;
+		rendermode = LUMP_QFONT;
+		filesize += sizeof(lmp);
+		fin = (byte *)buffer;
+	}
+	else
+	{
+		fin = (byte *)buffer;
+		Mem_Copy(&lmp, fin, sizeof(lmp));
+		image.width = LittleLong( lmp.width );
+		image.height = LittleLong( lmp.height );
+		rendermode = LUMP_NORMAL;
+		fin += sizeof(lmp);
+	}
 	pixels = image.width * image.height;
 
-	if( filesize < (int)sizeof(lmp) + pixels )
+	if( filesize < sizeof( lmp ) + pixels )
 	{
 		MsgDev( D_ERROR, "Image_LoadLMP: file (%s) have invalid size %d\n", name, filesize );
 		return false;
@@ -322,7 +337,6 @@ bool Image_LoadLMP( const char *name, const byte *buffer, size_t filesize )
 	image.num_mips = 1;
 	image.num_layers = 1;
 
-	// half-life 1.0.0.1 lmp version with palette
 	if( image.hint != IL_HINT_Q1 && filesize > (int)sizeof(lmp) + pixels )
 	{
 		int	numcolors;
@@ -336,7 +350,7 @@ bool Image_LoadLMP( const char *name, const byte *buffer, size_t filesize )
 	else return false; // unknown mode rejected
 	if( fin[0] == 255 ) image.flags |= IMAGE_HAVE_ALPHA;
 
-	Image_GetPaletteLMP( pal, LUMP_NORMAL );
+	Image_GetPaletteLMP( pal, rendermode );
 	image.type = PF_INDEXED_32;	// 32-bit palete
 	return FS_AddMipmapToPack( fin, image.width, image.height );
 }
@@ -370,16 +384,7 @@ bool Image_LoadMIP( const char *name, const byte *buffer, size_t filesize )
 	pixels = image.width * image.height;
 	image.num_layers = 1;
 
-	if( image.hint != IL_HINT_HL && !com_stricmp( name, "conchars" ))
-	{
-		// greatest hack from id software
-		image.width = image.height = 128;
-		image.flags |= IMAGE_HAVE_ALPHA;
-		rendermode = LUMP_QFONT;
-		pal = NULL; // clear palette
-		fin = (byte *)buffer;
-	}
-	else if(image.hint != IL_HINT_Q1 && filesize >= (int)sizeof(mip) + ((pixels * 85)>>6) + sizeof(short) + 768)
+	if(image.hint != IL_HINT_Q1 && filesize >= (int)sizeof(mip) + ((pixels * 85)>>6) + sizeof(short) + 768)
 	{
 		// half-life 1.0.0.1 mip version with palette
 		fin = (byte *)buffer + mip.offsets[0];

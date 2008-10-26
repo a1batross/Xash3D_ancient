@@ -153,6 +153,7 @@ typedef struct gameinfo_s
 
 	string	vprogs_dir;	// default progs directory 
 	string	source_dir;	// default source directory
+	string	imglib_mode;	// formats to using
 
 	string	gamedirs[128];	// environment folders (for change game from menu)
 	int	numgamedirs;
@@ -268,18 +269,17 @@ typedef enum
 	IMAGE_ROUND	= BIT(19),	// round image to nearest Pow2
 	IMAGE_RESAMPLE	= BIT(20),	// resample image to specified dims
 	IMAGE_PALTO24	= BIT(21),	// turn 32-bit palette into 24-bit mode (only for indexed images)
-	IMAGE_DXTTO32	= BIT(22),	// force to use software dds loader (render requires for some reasons)
+	IMAGE_COMP_DXT	= BIT(22),	// compress image to DXT format
 } imgFlags_t;
 
 typedef struct rgbdata_s
 {
 	int	width;		// image width
 	int	height;		// image height
-	byte	numLayers;	// multi-layer volume
+	word	numLayers;	// multi-layer volume
 	byte	numMips;		// mipmap count
 	byte	bitsCount;	// RGB bits count
-	word	numFrames;	// SPR or VTF framecount
-	byte	type;		// compression type
+	word	type;		// compression type
 	uint	flags;		// misc image flags
 	byte	*palette;		// palette if present
 	byte	*buffer;		// image buffer
@@ -461,7 +461,7 @@ typedef struct stdilib_api_s
 	// built-in imagelib functions
 	void (*ImglibSetup)( const char *formats, const uint flags );	// set main attributes
 	rgbdata_t *(*ImageLoad)( const char *, const byte *, size_t );	// load image from disk or buffer
-	void (*ImageSave)( const char *name, int format, rgbdata_t *image );	// save image into specified format
+	bool (*ImageSave)( const char *name, rgbdata_t *image );		// save image into specified format
 	void (*ImageConvert)( rgbdata_t **pix, int w, int h, uint flags );	// image manipulations
 	bpc_desc_t *(*ImagePFDesc)( pixformat_t imagetype );		// get const info about specified fmt
  	void (*ImageFree)( rgbdata_t *pack );				// release image buffer

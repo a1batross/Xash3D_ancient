@@ -40,7 +40,7 @@ typedef struct
 byte*	bsp_base;
 bool	bsp_halflife = false;
 
-void Conv_BspTextures( const char *name, lump_t *l )
+void Conv_BspTextures( const char *name, lump_t *l, const char *ext )
 {
 	dmiptexlump_t	*m;
 	string		genericname;
@@ -74,7 +74,7 @@ void Conv_BspTextures( const char *name, lump_t *l )
 		if( k ) mip->name[com.strlen(mip->name)-k] = '!'; // quake1 issues
 		// some Q1 mods contains blank names (e.g. "after the fall")
 		if(!com.strlen( mip->name )) com.snprintf( mip->name, 16, "%s_%d", genericname, i );
-		ConvMIP(va("miptex/%s", mip->name ), buffer, size ); // convert it
+		ConvMIP(va("miptex/%s", mip->name ), buffer, size, ext ); // convert it
 	}
 }
 
@@ -83,7 +83,7 @@ void Conv_BspTextures( const char *name, lump_t *l )
 ConvBSP
 ============
 */
-bool ConvBSP( const char *name, char *buffer, int filesize )
+bool ConvBSP( const char *name, byte *buffer, size_t filesize, const char *ext )
 {
 	dbspheader_t *header = (dbspheader_t *)buffer;
 	int i = LittleLong( header->version );
@@ -102,12 +102,12 @@ bool ConvBSP( const char *name, char *buffer, int filesize )
 	}
 	bsp_base = (byte*)buffer;
 
-	for (i = 0; i < 15; i++)
+	for( i = 0; i < 15; i++ )
 	{
 		header->lumps[i].fileofs = LittleLong(header->lumps[i].fileofs);
 		header->lumps[i].filelen = LittleLong(header->lumps[i].filelen);
 	}
-	Conv_BspTextures( name, &header->lumps[2]); // LUMP_TEXTURES
+	Conv_BspTextures( name, &header->lumps[2], ext ); // LUMP_TEXTURES
 
 	return true;
 }
@@ -125,7 +125,7 @@ bool Conv_CheckMap( const char *mapname )
 		return false;
 	}
 	// detect game type
-	switch( hdr.ident )
+	switch( LittleLong( hdr.ident ))
 	{
 	case 28:	// quake 1 beta
 	case 29:	// quake 1 release
@@ -137,7 +137,7 @@ bool Conv_CheckMap( const char *mapname )
 		FS_Close( f );
 		return true;
 	case IDBSPMODHEADER: // continue checking
-		switch( hdr.version )
+		switch( LittleLong( hdr.version ))
 		{
 		case 38:
 			game_family = GAME_QUAKE2;
@@ -157,7 +157,7 @@ bool Conv_CheckMap( const char *mapname )
 			return true;
 		}
 	case VDBSPMODHEADER: // continue checking
-		switch( hdr.version )
+		switch( LittleLong( hdr.version ))
 		{
 		case 18:
 			game_family = GAME_HALFLIFE2_BETA;

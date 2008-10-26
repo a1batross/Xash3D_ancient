@@ -1,6 +1,6 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//		       conv_wadlumps.c - convert wad lumps
+//		       conv_raw.c - extract hidden lumps
 //=======================================================================
 
 #include "ripper.h"
@@ -10,9 +10,9 @@
 ConvRAW
 ============
 */
-bool ConvRAW( const char *name, char *buffer, int filesize )
+bool ConvRAW( const char *name, byte *buffer, size_t filesize, const char *ext )
 {
-	FS_WriteFile(va("%s/other/%s", gs_gamedir, name ), buffer, filesize );
-	Msg("%s\n", name ); // echo to console aboutfile
+	FS_WriteFile(va("%s/other/%s.ext", gs_gamedir, name, ext ), buffer, filesize );
+	Msg("%s.%s\n", name, ext ); // echo to console aboutfile
 	return true;
 }

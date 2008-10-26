@@ -13,7 +13,7 @@ static double start, end;
 string gs_gamedir;
 string gs_searchmask;
 
-#define	MAX_SEARCHMASK	128
+#define	MAX_SEARCHMASK	256
 string	searchmask[MAX_SEARCHMASK];
 int	num_searchmask = 0;
 bool	write_qscsript;
@@ -21,33 +21,38 @@ int	game_family;
 
 typedef struct convformat_s
 {
-	char *formatstring;
-	char *ext;
-	bool (*convfunc)( const char *name, char *buffer, int filesize );
+	const char *path;
+	const char *ext;
+	bool (*convfunc)( const char *name, byte *buffer, size_t filesize, const char *ext );
+	const char *ext2;	// save format
 } convformat_t;
 
 convformat_t convert_formats[] =
 {
-	{"%s.%s", "spr", ConvSPR},	// quake1/half-life sprite
-	{"%s.%s","spr32",ConvSPR},	// spr32 sprite
-	{"%s.%s", "sp2", ConvSP2},	// quake2 sprite
-	{"%s.%s", "jpg", ConvJPG},	// quake3 textures
-	{"%s.%s", "pcx", ConvPCX},	// quake2 pics
-	{"%s.%s", "pal", ConvPAL},	// q1\q2\hl\d1 palette
-	{"%s.%s", "flt", ConvFLT},	// doom1 textures
-	{"%s.%s", "flp", ConvFLP},	// doom1 menu pics
-	{"%s.%s", "mip", ConvMIP},	// Quake1/Half-Life textures
-	{"%s.%s", "lmp", ConvLMP},	// Quake1/Half-Life gfx
-	{"%s.%s", "wal", ConvWAL},	// Quake2 textures
-	{"%s.%s", "vtf", ConvVTF},	// Half-Life 2 materials
-	{"%s.%s", "skn", ConvSKN},	// doom1 sprite models
-	{"%s.%s", "bsp", ConvBSP},	// Quake1\Half-Life map textures
-	{"%s.%s", "mus", ConvMID},	// Quake1\Half-Life map textures
-	{"%s.%s", "snd", ConvSND},	// Quake1\Half-Life map textures
-	{"%s.%s", "txt", ConvRAW},	// (hidden) Xash-extract scripts
-	{"%s.%s", "dat", ConvRAW},	// (hidden) Xash-extract progs
-	{NULL, NULL }		// list terminator
+	{"%s.%s", "spr", ConvSPR, "bmp" },	// quake1/half-life sprite
+	{"%s.%s","spr32",ConvSPR, "tga" },	// spr32 sprite
+	{"%s.%s", "sp2", ConvSP2, "bmp" },	// quake2 sprite
+	{"%s.%s", "jpg", ConvJPG, "tga" },	// quake3 textures
+	{"%s.%s", "pcx", ConvPCX, "bmp" },	// quake2 pics
+	{"%s.%s", "flt", ConvFLT, "bmp" },	// doom1 textures
+	{"%s.%s", "flp", ConvFLP, "bmp" },	// doom1 menu pics
+	{"%s.%s", "mip", ConvMIP, "bmp" },	// Quake1/Half-Life textures
+	{"%s.%s", "lmp", ConvLMP, "bmp" },	// Quake1/Half-Life gfx
+	{"%s.%s", "wal", ConvWAL, "bmp" },	// Quake2 textures
+	{"%s.%s", "vtf", ConvVTF, "dds" },	// Half-Life 2 materials
+	{"%s.%s", "skn", ConvSKN, "bmp" },	// doom1 sprite models
+	{"%s.%s", "bsp", ConvBSP, "bmp" },	// Quake1\Half-Life map textures
+	{"%s.%s", "mus", ConvMID, "mid" },	// Quake1\Half-Life map textures
+	{"%s.%s", "snd", ConvSND, "wav" },	// Quake1\Half-Life map textures
+	{"%s.%s", "txt", ConvRAW, "txt" },	// (hidden) Xash-extract scripts
+	{"%s.%s", "dat", ConvRAW, "dat" },	// (hidden) Xash-extract progs
+	{NULL, NULL, NULL, NULL }		// list terminator
 };
+
+bool CheckForExist( const char *path, const char *ext )
+{
+	return FS_FileExists( va( "%s/%s.%s", gs_gamedir, path, ext ));
+}
 
 bool ConvertResource( const char *filename )
 {
@@ -62,16 +67,17 @@ bool ConvertResource( const char *filename )
 	FS_StripExtension( convname ); // remove extension if needed
 
 	// now try all the formats in the selected list
-	for( format = convert_formats; format->formatstring; format++ )
+	for( format = convert_formats; format->convfunc; format++ )
 	{
 		if( anyformat || !com.stricmp( ext, format->ext ))
 		{
-			com.sprintf( path, format->formatstring, convname, format->ext );
+			if( CheckForExist( convname, format->ext2 )) return true;	// already exist
+			com.sprintf( path, format->path, convname, format->ext );
 			buffer = FS_LoadFile( path, &filesize );
 			if( buffer && filesize > 0 )
 			{
 				// this path may contains wadname: wadfile/lumpname
-				if( format->convfunc( path, buffer, filesize ))
+				if( format->convfunc( path, buffer, filesize, format->ext2 ))
 				{
 					Mem_Free( buffer );	// release buffer
 					return true;	// converted ok
@@ -81,7 +87,7 @@ bool ConvertResource( const char *filename )
 		}
 	}
 	FS_FileBase( convname, basename );
-	MsgDev(D_WARN, "ConvertResource: couldn't load \"%s\"\n", basename );
+	MsgDev( D_WARN, "ConvertResource: couldn't load \"%s\"\n", basename );
 	return false;
 }
 
@@ -95,7 +101,7 @@ void AddMask( const char *mask )
 {
 	if( num_searchmask >= MAX_SEARCHMASK )
 	{
-		MsgDev(D_WARN, "AddMask: searchlist is full\n");
+		MsgDev( D_WARN, "AddMask: searchlist is full\n" );
 		return;
 	}
 	com.strncpy( searchmask[num_searchmask], mask, MAX_STRING );
@@ -162,7 +168,7 @@ void RunConvertor( void )
 {
 	search_t	*search;
 	string	errorstring;
-	int	i, j, imageflags, numConvertedRes = 0;
+	int	i, j, k, imageflags, numConvertedRes = 0;
 	cvar_t	*fs_defaultdir = Cvar_Get( "fs_defaultdir", "tmpQuArK", CVAR_SYSTEMINFO, NULL );
 
 	memset( errorstring, 0, MAX_STRING ); 
@@ -170,7 +176,7 @@ void RunConvertor( void )
 	Conv_DetectGameType();
           
 	if( game_family ) Msg("Game: %s family\n", game_names[game_family] );
-	imageflags = IL_USE_LERPING|IL_IGNORE_MIPS;
+	imageflags = IL_USE_LERPING;
 	write_qscsript = false;
 
 	switch( game_family )
@@ -223,13 +229,17 @@ void RunConvertor( void )
 		break;
 	case GAME_QUAKE2:
 		search = FS_Search("textures/*", true );
-		if( search )
+
+		// find subdirectories
+		for( i = 0; search && i < search->numfilenames; i++ )
 		{
-			// find subdirectories
-			for( i = 0; i < search->numfilenames; i++ )
-				AddMask(va("%s/*.wal", search->filenames[i]));
-			Mem_Free( search );
+			if( com.strstr( search->filenames[i], "/." )) continue;
+			if( com.strstr( search->filenames[i], "/.." )) continue;
+			if( com.stricmp(FS_FileExtension( search->filenames[i] ), "" ))
+				continue;
+			AddMask( va("%s/*.wal", search->filenames[i]));
 		}
+		if( search ) Mem_Free( search );
 		else AddMask( "*.wal" );	// Quake2 textures
 		AddMask( "*.sp2" );		// Quake2 sprites
 		AddMask( "*.pcx" );		// Quake2 sprites
@@ -243,13 +253,16 @@ void RunConvertor( void )
 	case GAME_RTCW:
 	case GAME_QUAKE3:
 		search = FS_Search("textures/*", true );
-		if( search )
+		// find subdirectories
+		for( i = 0; search && i < search->numfilenames; i++ )
 		{
-			// find subdirectories
-			for( i = 0; i < search->numfilenames; i++ )
-				AddMask(va("%s/*.jpg", search->filenames[i]));
-			Mem_Free( search );
+			if( com.strstr( search->filenames[i], "/." )) continue;
+			if( com.strstr( search->filenames[i], "/.." )) continue;
+			if( com.stricmp(FS_FileExtension( search->filenames[i] ), "" ))
+				continue;
+			AddMask(va("%s/*.jpg", search->filenames[i]));
 		}
+		if( search ) Mem_Free( search );
 		else AddMask( "*.jpg" );	// Quake3 textures
 		search = FS_Search("gfx/*", true );
 		if( search )
@@ -267,16 +280,40 @@ void RunConvertor( void )
 	case GAME_HALFLIFE2_BETA:
 		search = FS_Search("materials/*", true );
 
-		// hl2 like using double included sub-dirs
+		// hl2 like using multiple included sub-dirs
 		for( i = 0; search && i < search->numfilenames; i++ )
 		{
-			search_t *search2 = FS_Search( va("%s/*", search->filenames[i] ), true );
+			search_t	*search2;
+			if( com.strstr( search->filenames[i], "/." )) continue;
+			if( com.strstr( search->filenames[i], "/.." )) continue;
+			if( com.stricmp(FS_FileExtension( search->filenames[i] ), "" ))
+				continue;
+			search2 = FS_Search( va("%s/*", search->filenames[i] ), true );
+			AddMask(va("%s/*.vtf", search->filenames[i]));
 			for( j = 0; search2 && j < search2->numfilenames; j++ )
+			{
+				search_t	*search3;
+				if( com.strstr( search2->filenames[j], "/." )) continue;
+				if( com.strstr( search2->filenames[j], "/.." )) continue;
+				if( com.stricmp(FS_FileExtension( search2->filenames[j] ), "" ))
+					continue;
+				search3 = FS_Search( va("%s/*", search2->filenames[j] ), true );
 				AddMask(va("%s/*.vtf", search2->filenames[j]));
+				for( k = 0; search3 && k < search3->numfilenames; k++ )
+				{
+					if( com.strstr( search3->filenames[k], "/." )) continue;
+					if( com.strstr( search3->filenames[k], "/.." )) continue;
+					if( com.stricmp(FS_FileExtension( search3->filenames[k] ), "" ))
+						continue;
+					AddMask(va("%s/*.vtf", search3->filenames[k]));
+				}
+				if( search3 ) Mem_Free( search3 );
+			}
 			if( search2 ) Mem_Free( search2 );
 		}
 		if( search ) Mem_Free( search );
 		else AddMask( "*.jpg" );	// Quake3 textures
+		imageflags |= IL_DDS_HARDWARE; // because we want save textures into original DXT format
 		Image_Init( "Half-Life 2", imageflags );
 		break;
 	case GAME_QUAKE4:
@@ -318,7 +355,7 @@ void RunConvertor( void )
 	}
 
 	// using custom mask
-	if(FS_GetParmFromCmdLine("-file", gs_searchmask ))
+	if(FS_GetParmFromCmdLine( "-file", gs_searchmask ))
 	{
 		ClrMask(); // clear all previous masks
 		AddMask( gs_searchmask ); // custom mask
@@ -335,7 +372,7 @@ void RunConvertor( void )
 		// skip blank mask
 		if(!com.strlen(searchmask[i])) continue;
 		search = FS_Search( searchmask[i], true );
-		if(!search) continue; // try next mask
+		if( !search ) continue; // try next mask
 
 		for( j = 0; j < search->numfilenames; j++ )
 		{

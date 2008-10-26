@@ -994,6 +994,7 @@ static bool FS_AddWad_Fullpath( const char *wadfile, bool *already_loaded, bool 
 			search->next = fs_searchpaths;
 			fs_searchpaths = search;
 		}
+		MsgDev( D_INFO, "Adding wadfile %s (%i files)\n", wadfile, wad->numlumps );
 		return true;
 	}
 	else
@@ -1028,13 +1029,13 @@ bool FS_AddPack( const char *pakfile, bool *already_loaded, bool keep_plain_dirs
 
 	// then find the real name...
 	search = FS_FindFile( pakfile, &index, true );
-	if(!search || search->pack)
+	if( !search || search->pack )
 	{
 		MsgDev( D_WARN, "FS_AddPack: could not find pak \"%s\"\n", pakfile);
 		return false;
 	}
 	com_sprintf(fullpath, "%s%s", search->filename, pakfile);
-	return FS_AddPack_Fullpath(fullpath, already_loaded, keep_plain_dirs);
+	return FS_AddPack_Fullpath( fullpath, already_loaded, keep_plain_dirs );
 }
 
 /*
@@ -1091,7 +1092,7 @@ void FS_AddGameDirectory( const char *dir, int flags )
 	// Add the directory to the search path
 	// (unpacked files have the priority over packed files)
 	search = (searchpath_t *)Mem_Alloc(fs_mempool, sizeof(searchpath_t));
-	com_strncpy( search->filename, dir, sizeof ( search->filename ));
+	com.strncpy( search->filename, dir, sizeof ( search->filename ));
 	search->next = fs_searchpaths;
 	search->flags = flags;
 	fs_searchpaths = search;
@@ -1101,7 +1102,7 @@ void FS_AddGameDirectory( const char *dir, int flags )
 	// but any pack file it's readonly!
 	for( i = 0; i < list.numstrings; i++ )
 	{
-		if (!com_stricmp(FS_FileExtension(list.strings[i]), "wad" ))
+		if (!com.stricmp(FS_FileExtension(list.strings[i]), "wad" ))
 		{
 			FS_AddWad_Fullpath( list.strings[i], NULL, false );
 		}
@@ -1903,12 +1904,14 @@ FS_Write
 Write "datasize" bytes into a file
 ====================
 */
-fs_offset_t FS_Write (file_t* file, const void* data, size_t datasize)
+fs_offset_t FS_Write( file_t* file, const void* data, size_t datasize )
 {
 	fs_offset_t result;
 
-	// If necessary, seek to the exact file position we're supposed to be
-	if (file->buff_ind != file->buff_len)
+	if( !file ) return 0;
+
+	// if necessary, seek to the exact file position we're supposed to be
+	if( file->buff_ind != file->buff_len )
 		lseek (file->handle, file->buff_ind - file->buff_len, SEEK_CUR);
 
 	// Purge cached data
@@ -1920,7 +1923,7 @@ fs_offset_t FS_Write (file_t* file, const void* data, size_t datasize)
 	if (file->real_length < file->position)
 		file->real_length = file->position;
 
-	if (result < 0) return 0;
+	if( result < 0 ) return 0;
 	return result;
 }
 
@@ -2132,13 +2135,15 @@ FS_VPrintf
 Print a string into a file
 ====================
 */
-int FS_VPrintf (file_t* file, const char* format, va_list ap)
+int FS_VPrintf( file_t* file, const char* format, va_list ap )
 {
-	int len;
-	fs_offset_t buff_size = MAX_MSGLEN;
-	char *tempbuff;
+	int		len;
+	fs_offset_t	buff_size = MAX_MSGLEN;
+	char		*tempbuff;
 
-	while( true )
+	if( !file ) return 0;
+
+	while( 1 )
 	{
 		tempbuff = (char *)Mem_Alloc( fs_mempool, buff_size);
 		len = com_vsprintf(tempbuff, format, ap);
@@ -3211,7 +3216,7 @@ static const char *W_ExtFromType( char lumptype )
 static dlumpinfo_t *W_FindLump( wfile_t *wad, const char *name, const char matchtype )
 {
 	int	i;
-		
+
 	if( !wad || !wad->lumps || matchtype == TYPE_NONE )
 		return NULL;
 
@@ -3365,11 +3370,14 @@ static bool W_ReadLumpTable( wfile_t *wad )
 		wad->lumps[i].size = LittleLong( wad->lumps[i].size );
 
 		// cleanup lumpname
-		com_strnlwr( wad->lumps[i].name, wad->lumps[i].name, sizeof(wad->lumps[i].name));
+		com.strnlwr( wad->lumps[i].name, wad->lumps[i].name, sizeof(wad->lumps[i].name));
 
 		// check for '*' symbol issues
 		k = com_strlen( com_strrchr( wad->lumps[i].name, '*' ));
 		if( k ) wad->lumps[i].name[com_strlen(wad->lumps[i].name)-k] = '!'; // quake1 issues
+
+		// check for 'conchars' issues
+		if( !com.strcmp( wad->lumps[i].name, "conchars" )) wad->lumps[i].type = TYPE_QPIC; 
 	}
 	return true;
 }

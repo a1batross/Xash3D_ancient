@@ -38,7 +38,7 @@ typedef struct
 //
 // sprite2_decompiler.c
 //
-void SP2_ConvertFrame( const char *name, int framenum )
+void SP2_ConvertFrame( const char *name, const char *ext, int framenum )
 {
 	byte		*fin;
 	int		filesize;
@@ -47,8 +47,8 @@ void SP2_ConvertFrame( const char *name, int framenum )
 	FS_FileBase( name, spr.frame[framenum].name ); 
 
 	fin = FS_LoadFile( name, &filesize );
-	PCX_ConvertImage( name, fin, filesize );
-	Mem_Free( fin ); // release buffer
+	ConvPCX( name, fin, filesize, ext );
+	if( fin ) Mem_Free( fin ); // release buffer
 }
 
 bool SP2_WriteScript( const char *name )
@@ -92,7 +92,7 @@ bool SP2_WriteScript( const char *name )
 ConvSP2
 ============
 */
-bool ConvSP2( const char *name, char *buffer, int filesize )
+bool ConvSP2( const char *name, byte *buffer, size_t filesize, const char *ext )
 {
 	dspriteq2_t	*pin;
 	string		scriptname;
@@ -106,7 +106,7 @@ bool ConvSP2( const char *name, char *buffer, int filesize )
 		Msg("\"%s.spr\" it's not a Quake2 sprite\n", name );
 		return false;
 	}
-	spr.totalframes = LittleLong (pin->numframes);
+	spr.totalframes = LittleLong( pin->numframes );
 	spr.texFormat = SPR_ALPHTEST; // constant
 	spr.type = SPR_VP_PARALLEL;
 
@@ -117,7 +117,7 @@ bool ConvSP2( const char *name, char *buffer, int filesize )
 		spr.frame[i].height = LittleLong(pin->frames[i].height);
 		spr.frame[i].origin[0] = LittleLong(pin->frames[i].origin_x);
 		spr.frame[i].origin[1] = LittleLong(pin->frames[i].origin_y);
-		SP2_ConvertFrame( pin->frames[i].name, i );
+		SP2_ConvertFrame( pin->frames[i].name, ext, i );
 	}
 
 	// write script file and out

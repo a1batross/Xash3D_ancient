@@ -47,62 +47,55 @@ typedef struct
 	synctype_t	synctype;
 } dspritehl_t;
 
-typedef struct
-{
-	int		origin[2];
-	int		width;
-	int		height;
-} dspriteframe_t;
-
 //
 // sprite_decompiler.c
 //
-const char *SPR_Ext( void )
-{
-	if( spr.truecolor )
-		return "tga";
-	return "bmp";
-}
-
-void *SPR_ConvertFrame( const char *name, void *pin, int framenum, int groupframenum )
+void *SPR_ConvertFrame( const char *name, const char *ext, void *pin, int framenum, int groupframenum )
 {
 	rgbdata_t		*pix;
 	dspriteframe_t	*pinframe;
-	char		framename[256];
+	string		framename;
 	byte		*fin, *fout;
 	int		i, pixels, width, height;
 
 	pinframe = (dspriteframe_t *)pin;
-	width = LittleLong (pinframe->width);
-	height = LittleLong (pinframe->height);
+	width = LittleLong( pinframe->width );
+	height = LittleLong( pinframe->height );
 	fin =  (byte *)(pinframe + 1);
 	if( width <= 0 || height <= 0 )
 	{
-		// Note: in Q1 existing sprites with blank frames
+		// NOTE: in Q1 existing sprites with blank frames
 		spr.totalframes--;
 		return (void *)((byte *)(pinframe + 1));
 	}
-	fout = Mem_Alloc( zonepool, width * height * 4 );
+
 	// extract sprite name from path
 	FS_FileBase( name, framename );
 	com.strcat( framename, va("_%i", framenum ));
-	pix = Mem_Alloc( zonepool, sizeof( pix ));
+	pixels = width * height;
 
 	if( spr.truecolor )
 	{
-		pixels = width * height * 4;
+		// HACKHACK: manually create rgbdata_t
+		pixels *= 4;
+		pix = Mem_Alloc( zonepool, sizeof( *pix ));
+		fout = Mem_Alloc( zonepool, pixels );
 		Mem_Copy( fout, fin, pixels );
+		if( spr.texFormat >= SPR_INDEXALPHA )
+			pix->flags |= IMAGE_HAVE_ALPHA;
 		pix->type = PF_RGBA_32;
+		pix->width = width;
+		pix->height = height;
+		pix->size = pixels; 
+		pix->numLayers = 1;
+		pix->numMips = 1;
+		pix->buffer = fout;
 	}
 	else
 	{
-		pixels = width * height;
-		pix->palette = (byte *)Mem_Alloc( zonepool, 1024 );
-		Mem_Copy( pix->palette, &spr.palette, 1024 );
-		pix->type = PF_INDEXED_32;
-		Mem_Copy( fout, fin, pixels );
+		pix = FS_LoadImage( va( "#%s.spr", framename ), pin, pixels );
+		Image_Process( &pix, 0, 0, IMAGE_PALTO24 );
 	}
-
 
 	if( groupframenum )
 	{
@@ -122,24 +115,14 @@ void *SPR_ConvertFrame( const char *name, void *pin, int framenum, int groupfram
 		spr.frame[framenum].height = (float)LittleLong(pinframe->height);
 	}
 
-	// preparing for write
-	pix->width = width;
-	pix->height = height;
-	pix->size = pixels; 
-	pix->numLayers = 1;
-	pix->numMips = 1;
-	pix->buffer = fout;
-	if( spr.texFormat >= SPR_INDEXALPHA ) pix->flags |= IMAGE_HAVE_ALPHA;
-	if( !spr.truecolor ) Image_Process( &pix, 0, 0, IMAGE_PALTO24 );
-		
-	FS_SaveImage( va("%s/sprites/%s.%s", gs_gamedir, framename, SPR_Ext()), PF_RGBA_32, pix );
+	FS_SaveImage( va("%s/sprites/%s.%s", gs_gamedir, framename, ext ), pix );
 	FS_FreeImage( pix ); // free image
 
 	// jump to next frame
 	return (void *)((byte *)(pinframe + 1) + pixels ); // no mipmap stored
 }
 
-void *SPR_ConvertGroup( const char *name, void *pin, int framenum )
+void *SPR_ConvertGroup( const char *name, const char *ext, void *pin, int framenum )
 {
 	dspritegroup_t	*pingroup;
 	int		i, numframes;
@@ -162,13 +145,13 @@ void *SPR_ConvertGroup( const char *name, void *pin, int framenum )
 
 	for (i = 0; i < numframes; i++ )
 	{
-		ptemp = SPR_ConvertFrame( name, ptemp, framenum + i, i + 1 );
+		ptemp = SPR_ConvertFrame( name, ext, ptemp, framenum + i, i + 1 );
 	}
 	spr.numgroup++;
 	return ptemp;
 }
 
-bool SPR_WriteScript( const char *name )
+bool SPR_WriteScript( const char *name, const char *ext )
 {
 	int	i, j;
 	file_t	*f = FS_Open( va("%s/sprites/%s.qc", gs_gamedir, name ), "w" );
@@ -193,7 +176,7 @@ bool SPR_WriteScript( const char *name )
 	// frames description
 	for( i = 0; i < spr.totalframes - spr.numgroup; i++)
 	{
-		FS_Printf(f,"$load\t\t%s.%s\n", spr.frame[i].name, SPR_Ext());
+		FS_Printf(f,"$load\t\t%s.%s\n", spr.frame[i].name, ext );
 		FS_Printf(f,"$frame\t\t0 0 %d %d", spr.frame[i].width, spr.frame[i].height );
 		if(!spr.frame[i].origin[0] && !spr.frame[i].origin[1]) FS_Print(f, "\n" ); 
 		else FS_Printf(f, " %.1f %d %d\n", 0.1f, spr.frame[i].origin[0],spr.frame[i].origin[1]);
@@ -204,7 +187,7 @@ bool SPR_WriteScript( const char *name )
 		FS_Print(f, "$group\n{\n" );
 		for( j = 0; j < spr.group[i].numframes; j++)
 		{
-			FS_Printf(f,"\t$load\t\t%s.%s\n", spr.group[i].frame[j].name, SPR_Ext());
+			FS_Printf(f,"\t$load\t\t%s.%s\n", spr.group[i].frame[j].name, ext );
 			FS_Printf(f,"\t$frame\t\t0 0 %d %d", spr.group[i].frame[j].width, spr.group[i].frame[j].height );
 			if( spr.group[i].interval[j] ) FS_Printf(f, " %g", spr.group[i].interval[j] );
 			if(!spr.group[i].frame[j].origin[0] && !spr.group[i].frame[j].origin[1]) FS_Print(f, "\n" ); 
@@ -224,12 +207,13 @@ bool SPR_WriteScript( const char *name )
 ConvSPR
 ============
 */
-bool ConvSPR( const char *name, char *buffer, int filesize )
+bool ConvSPR( const char *name, byte *buffer, size_t filesize, const char *ext )
 {
 	int		i, version;
 	dframetype_t	*pframetype;
 	string		scriptname;
-	dspriteq1_t		*pin;
+	rgbdata_t		*pal = NULL;
+	dspriteq1_t	*pin;
 	dspritehl_t	*pinhl;
 	short		*numi;
 
@@ -248,11 +232,6 @@ bool ConvSPR( const char *name, char *buffer, int filesize )
 		spr.totalframes = LittleLong( pin->numframes );
 		spr.texFormat = SPR_ALPHTEST; // constant
 		spr.type = LittleLong( pin->type );
-
-		// palette setup
-		Conv_GetPaletteQ1(); // setup palette
-		Mem_Copy( spr.palette, d_currentpal, 1024 );
-
 		pframetype = (dframetype_t *)(pin + 1);
 		spr.truecolor = false;
 		break;
@@ -272,54 +251,30 @@ bool ConvSPR( const char *name, char *buffer, int filesize )
 		numi = (short *)(pinhl + 1);
 		spr.truecolor = false;
 
-		if( LittleShort(*numi) == 256 )
+		if( LittleShort( *numi ) == 256 )
 		{
 			byte *src = (byte *)(numi + 1);	
 
+			// install palette
 			switch( spr.texFormat )
 			{
-			case SPR_ADDGLOW:
-			case SPR_ADDITIVE:
-				for (i = 0; i < 256; i++)
-				{
-					spr.palette[i][0] = *src++;
-					spr.palette[i][1] = *src++;
-					spr.palette[i][2] = *src++;
-					spr.palette[i][3] = 255;
-				}
-				break;
-			case SPR_INDEXALPHA:
-				for (i = 0; i < 256; i++)
-				{
-					spr.palette[i][0] = *src++;
-					spr.palette[i][1] = *src++;
-					spr.palette[i][2] = *src++;
-					spr.palette[i][3] = i;
-				}
+                    	case SPR_INDEXALPHA:
+				pal = FS_LoadImage( "#decal.pal", src, 768 );
 				break;
 			case SPR_ALPHTEST:		
-				for (i = 0; i < 256; i++)
-				{
-					spr.palette[i][0] = *src++;
-					spr.palette[i][1] = *src++;
-					spr.palette[i][2] = *src++;
-					spr.palette[i][3] = 255;
-				}
-				memset( spr.palette[255], 0, sizeof(uint)); // last entry
+				pal = FS_LoadImage( "#transparent.pal", src, 768 );
 				break;
-			default: Msg("Warning: %s.spr have unknown texFormat %i\n", name, spr.texFormat );
 			case SPR_NORMAL:
-				for (i = 0; i < 256; i++)
-				{
-					spr.palette[i][0] = *src++;
-					spr.palette[i][1] = *src++;
-					spr.palette[i][2] = *src++;
-					spr.palette[i][3] = 0;
-				}
+			case SPR_ADDGLOW:
+			case SPR_ADDITIVE:
+			default:
+				pal = FS_LoadImage( "#normal.pal", src, 768 );
 				break;
 			}
+
 			// get frametype for first frame
-			pframetype = (dframetype_t *)(src);
+			pframetype = (dframetype_t *)(src + 768);
+			FS_FreeImage( pal ); // palette installed, no reason to keep this data
 		}
 		else
 		{
@@ -339,16 +294,16 @@ bool ConvSPR( const char *name, char *buffer, int filesize )
 
 		if( frametype == SPR_SINGLE )
 		{
-			pframetype = (dframetype_t *)SPR_ConvertFrame( name, (pframetype + 1), i, 0 );
+			pframetype = (dframetype_t *)SPR_ConvertFrame( name, ext, (pframetype + 1), i, 0 );
 		}
 		else if( frametype == SPR_GROUP )
 		{
-			pframetype = (dframetype_t *)SPR_ConvertGroup( name, (pframetype + 1), i );
+			pframetype = (dframetype_t *)SPR_ConvertGroup( name, ext, (pframetype + 1), i );
 		}
 		if( pframetype == NULL ) break; // technically an error
 	}
 
 	// write script file and out
 	FS_FileBase( name, scriptname );
-	return SPR_WriteScript( scriptname );
+	return SPR_WriteScript( scriptname, ext );
 }

@@ -102,7 +102,7 @@ bool Image_LoadPCX( const char *name, const byte *buffer, size_t filesize )
 Image_SavePCX
 ============== 
 */ 
-bool Image_SavePCX( const char *name, rgbdata_t *pix, int saveformat )
+bool Image_SavePCX( const char *name, rgbdata_t *pix )
 {
 	byte	*data, *out, *pack;
 	byte	*palette;

@@ -144,7 +144,7 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 	return result;
 }
 
-bool Image_SaveBMP( const char *name, rgbdata_t *pix, int saveformat )
+bool Image_SaveBMP( const char *name, rgbdata_t *pix )
 {
 	file_t		*pfile = NULL;
 	BITMAPFILEHEADER	bmfh;
@@ -251,7 +251,6 @@ bool Image_SaveBMP( const char *name, rgbdata_t *pix, int saveformat )
 	// write bitmap bits (remainder of file)
 	FS_Write( pfile, pbBmpBits, cbBmpBits );
 	FS_Close( pfile );
-	MsgDev( D_NOTE, "Writing %s[8]\n", name );
 	Mem_Free( pbBmpBits );
 
 	return true;

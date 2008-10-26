@@ -1322,7 +1322,7 @@ bool VID_ScreenShot( const char *filename, bool levelshot )
 	Image_Process( &r_shot, 512, 384, flags );
 
 	// write image
-	FS_SaveImage( filename, PF_RGB_24, r_shot );
+	FS_SaveImage( filename, r_shot );
 	FS_FreeImage( r_shot );
 	return true;
 }
@@ -1387,7 +1387,7 @@ bool VID_CubemapShot( const char *base, uint size, bool skyshot )
 		r_shot->buffer = r_framebuffer;
 
 		// write image
-		FS_SaveImage( name, PF_RGB_24, r_shot );
+		FS_SaveImage( name, r_shot );
 		Mem_Free( r_shot ); // don't touch framebuffer!
 	}
 	return true;

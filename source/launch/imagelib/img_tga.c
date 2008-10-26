@@ -362,7 +362,7 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 Image_SaveTGA
 =============
 */
-bool Image_SaveTGA( const char *name, rgbdata_t *pix, int saveformat )
+bool Image_SaveTGA( const char *name, rgbdata_t *pix )
 {
 	int		y, outsize, pixel_size;
 	const byte	*bufend, *in;
@@ -394,24 +394,25 @@ bool Image_SaveTGA( const char *name, rgbdata_t *pix, int saveformat )
 	// get image description
 	switch( pix->type )
 	{
-	case PF_RGB_24: pixel_size = 3; break;
-	case PF_RGBA_32: pixel_size = 4; break;	
+	case PF_RGB_24:
+	case PF_BGR_24: pixel_size = 3; break;
+	case PF_RGBA_32:
+	case PF_BGRA_32: pixel_size = 4; break;	
 	default:
 		MsgDev( D_ERROR, "Image_SaveTGA: unsupported image type %s\n", PFDesc[pix->type].name );
 		return false;
 	}
 
-	// flip buffer
 	switch( pix->type )
 	{
 	case PF_RGB_24:
 	case PF_RGBA_32:
 		// swap rgba to bgra and flip upside down
-		for (y = pix->height - 1; y >= 0; y--)
+		for( y = pix->height - 1; y >= 0; y-- )
 		{
 			in = pix->buffer + y * pix->width * pixel_size;
 			bufend = in + pix->width * pixel_size;
-			for ( ;in < bufend; in += pixel_size)
+			for( ; in < bufend; in += pixel_size )
 			{
 				*out++ = in[2];
 				*out++ = in[1];
@@ -420,9 +421,25 @@ bool Image_SaveTGA( const char *name, rgbdata_t *pix, int saveformat )
 					*out++ = in[3];
 			}
 		}
+		break;
+	case PF_BGR_24:
+	case PF_BGRA_32:
+		// flip upside down
+		for( y = pix->height - 1; y >= 0; y-- )
+		{
+			in = pix->buffer + y * pix->width * pixel_size;
+			bufend = in + pix->width * pixel_size;
+			for( ; in < bufend; in += pixel_size )
+			{
+				*out++ = in[0];
+				*out++ = in[1];
+				*out++ = in[2];
+				if( pix->flags & IMAGE_HAVE_ALPHA )
+					*out++ = in[3];
+			}
+		}
+		break;
 	}	
-
-	MsgDev( D_NOTE, "Writing %s[%d]\n", name, (pix->flags & IMAGE_HAVE_ALPHA) ? 32 : 24 );
 	FS_WriteFile( name, buffer, outsize );
 
 	Mem_Free( buffer );

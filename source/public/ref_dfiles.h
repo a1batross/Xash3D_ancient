@@ -73,7 +73,7 @@ typedef struct
 	int		origin[2];
 	int		width;
 	int		height;
-} dframe_t;
+} dspriteframe_t;
 
 typedef struct
 {

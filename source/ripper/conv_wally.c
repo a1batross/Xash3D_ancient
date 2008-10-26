@@ -29,7 +29,7 @@ typedef struct wal_s
 ConvWAL
 ============
 */
-bool ConvWAL( const char *name, char *buffer, int filesize )
+bool ConvWAL( const char *name, byte *buffer, size_t filesize, const char *ext )
 {
 	wal_t 	*wal;
 	string	shadername;
@@ -44,7 +44,7 @@ bool ConvWAL( const char *name, char *buffer, int filesize )
 	if( pic )
 	{
 		FS_StripExtension((char *)name );
-		FS_SaveImage( va("%s/%s.bmp", gs_gamedir, name ), PF_INDEXED_32, pic ); // save converted image
+		FS_SaveImage( va("%s/%s.%s", gs_gamedir, name, ext ), pic ); // save converted image
 		FS_FileBase( name, shadername );
 		Conv_CreateShader( name, pic, "wal", wal->animname, flags, contents );
 		FS_FreeImage( pic ); // release buffer

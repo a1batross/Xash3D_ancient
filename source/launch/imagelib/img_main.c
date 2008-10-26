@@ -18,32 +18,32 @@ typedef struct suffix_s
 
 static const suffix_t skybox_3ds[6] =
 {
-{ "ft", IMAGE_FLIP_X, IL_HINT_POSX },
-{ "bk", IMAGE_FLIP_Y, IL_HINT_NEGX },
-{ "rt", IMAGE_ROT_90, IL_HINT_POSY },
-{ "lf", IMAGE_ROT270, IL_HINT_NEGY },
-{ "up", IMAGE_ROT_90, IL_HINT_POSZ },
-{ "dn", IMAGE_ROT_90, IL_HINT_NEGZ },
+{ "ft", IMAGE_FLIP_X, CB_HINT_POSX },
+{ "bk", IMAGE_FLIP_Y, CB_HINT_NEGX },
+{ "rt", IMAGE_ROT_90, CB_HINT_POSY },
+{ "lf", IMAGE_ROT270, CB_HINT_NEGY },
+{ "up", IMAGE_ROT_90, CB_HINT_POSZ },
+{ "dn", IMAGE_ROT_90, CB_HINT_NEGZ },
 };
 
 static const suffix_t cubemap_v1[6] =
 {
-{ "posx", 0, IL_HINT_POSX },
-{ "negx", 0, IL_HINT_NEGX },
-{ "posy", 0, IL_HINT_POSY },
-{ "negy", 0, IL_HINT_NEGY },
-{ "posz", 0, IL_HINT_POSZ },
-{ "negz", 0, IL_HINT_NEGZ },
+{ "posx", 0, CB_HINT_POSX },
+{ "negx", 0, CB_HINT_NEGX },
+{ "posy", 0, CB_HINT_POSY },
+{ "negy", 0, CB_HINT_NEGY },
+{ "posz", 0, CB_HINT_POSZ },
+{ "negz", 0, CB_HINT_NEGZ },
 };
 
 static const suffix_t cubemap_v2[6] =
 {
-{ "px", 0, IL_HINT_POSX },
-{ "nx", 0, IL_HINT_NEGX },
-{ "py", 0, IL_HINT_POSY },
-{ "ny", 0, IL_HINT_NEGY },
-{ "pz", 0, IL_HINT_POSZ },
-{ "nz", 0, IL_HINT_NEGZ },
+{ "px", 0, CB_HINT_POSX },
+{ "nx", 0, CB_HINT_NEGX },
+{ "py", 0, CB_HINT_POSY },
+{ "ny", 0, CB_HINT_NEGY },
+{ "pz", 0, CB_HINT_POSZ },
+{ "nz", 0, CB_HINT_NEGZ },
 };
 
 typedef struct cubepack_s
@@ -294,7 +294,7 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 				{
 					com.strncpy( path, loadname, com.strlen( loadname ) - suflen + 1 );
 					FS_DefaultExtension( path, ".dds" );
-					image.hint = cmap->type[i].hint;	// install side hint
+					image.filter = cmap->type[i].hint;	// install side hint
 					f = FS_LoadFile( path, &filesize );
 					if( f && filesize > 0 )
 					{
@@ -396,29 +396,27 @@ Image_Save
 writes image as any known format
 ================
 */
-void FS_SaveImage( const char *filename, int type, rgbdata_t *pix )
+bool FS_SaveImage( const char *filename, rgbdata_t *pix )
 {
           const char	*ext = FS_FileExtension( filename );
 	bool		anyformat = !com_stricmp(ext, "") ? true : false;
 	string		path, savename;
 	const saveformat_t	*format;
 
-	if( !pix || !pix->buffer ) return;
+	if( !pix || !pix->buffer || anyformat ) return false;
 	com.strncpy( savename, filename, sizeof( savename ));
 	FS_StripExtension( savename ); // remove extension if needed
-
-	// developer warning
-	if( !anyformat ) MsgDev( D_NOTE, "Note: %s will be saving only with ext .%s\n", savename, ext );
 
 	// now try all the formats in the selected list
 	for( format = image.saveformats; format->formatstring; format++ )
 	{
-		if( anyformat || !com.stricmp( ext, format->ext ))
+		if( !com.stricmp( ext, format->ext ))
 		{
 			com.sprintf( path, format->formatstring, savename, "", format->ext );
-			if( format->savefunc( path, pix, type )) break; // saved
+			if( format->savefunc( path, pix )) return true; // saved
 		}
 	}
+	return false;	
 }
 
 /*
