@@ -434,7 +434,7 @@ int matchpattern(const char *in, const char *pattern, bool caseinsensitive)
 
 void stringlistinit( stringlist_t *list )
 {
-	memset(list, 0, sizeof(*list));
+	Mem_Set( list, 0, sizeof( *list ));
 }
 
 void stringlistfreecontents(stringlist_t *list)
@@ -1606,8 +1606,8 @@ static file_t* FS_SysOpen( const char* filepath, const char* mode )
 		}
 	}
 
-	file = (file_t *)Mem_Alloc (fs_mempool, sizeof (*file));
-	memset (file, 0, sizeof (*file));
+	file = (file_t *)Mem_Alloc( fs_mempool, sizeof( *file ));
+	Mem_Set( file, 0, sizeof( *file ));
 	file->ungetc = EOF;
 
 	file->handle = open (filepath, mod | opt, 0666);
@@ -1660,7 +1660,7 @@ file_t *FS_OpenPackedFile( pack_t* pack, int pack_ind )
 	}
 
 	file = (file_t *)Mem_Alloc (fs_mempool, sizeof (*file));
-	memset (file, 0, sizeof (*file));
+	Mem_Set( file, 0, sizeof( *file ));
 	file->handle = dup_handle;
 	file->flags = FILE_FLAG_PACKED;
 	file->real_length = pfile->realsize;
@@ -2413,16 +2413,16 @@ FS_StripExtension
 */
 void FS_StripExtension (char *path)
 {
-	int	length;
+	size_t	length;
 
-	length = com_strlen(path)-1;
-	while (length > 0 && path[length] != '.')
+	length = com.strlen( path ) - 1;
+	while( length > 0 && path[length] != '.' )
 	{
 		length--;
-		if (path[length] == '/' || path[length] == '\\' || path[length] == ':')
+		if( path[length] == '/' || path[length] == '\\' || path[length] == ':' )
 			return; // no extension
 	}
-	if (length) path[length] = 0;
+	if( length ) path[length] = 0;
 }
 
 
@@ -3283,7 +3283,7 @@ static bool W_ConvertIWADLumps( wfile_t *wad )
 		// W_Open will be swap lump later
 		wad->lumps[i].filepos = doomlumps[i].filepos;
 		wad->lumps[i].size = wad->lumps[i].disksize = doomlumps[i].size;
-		com_strnlwr( doomlumps[i].name, wad->lumps[i].name, 9 );
+		com.strnlwr( doomlumps[i].name, wad->lumps[i].name, 9 );
 		wad->lumps[i].compression = CMP_NONE;
 		wad->lumps[i].type = TYPE_NONE;
 
@@ -3340,6 +3340,11 @@ static bool W_ConvertIWADLumps( wfile_t *wad )
 		if( skin_images ) wad->lumps[i].type = TYPE_SKIN; // mark as skin (sprite model)
 		if(!com_strnicmp( wad->lumps[i].name, "D_", 2 )) wad->lumps[i].type = TYPE_MUS;
 		if(!com_strnicmp( wad->lumps[i].name, "DS", 2 )) wad->lumps[i].type = TYPE_SND;
+
+		// remove invalid resources
+		if(!com_strnicmp( wad->lumps[i].name, "ENDOOM", 6 )) wad->lumps[i].type = TYPE_NONE;
+		if(!com_strnicmp( wad->lumps[i].name, "STEP1", 5 )) wad->lumps[i].type = TYPE_NONE;
+		if(!com_strnicmp( wad->lumps[i].name, "STEP2", 5 )) wad->lumps[i].type = TYPE_NONE;
 	}
 
 	Mem_Free( doomlumps ); // no need anymore
@@ -3616,9 +3621,7 @@ wfile_t *W_Open( const char *filename, const char *mode )
 		}
 
 	}
-
 	// and leaves the file open
-	MsgDev( D_LOAD, "W_Open: %s (%i lumps)\n", wad->filename, wad->numlumps );
 	return wad;
 }
 

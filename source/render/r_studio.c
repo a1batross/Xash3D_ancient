@@ -93,9 +93,11 @@ MISC STUDIO UTILS
 // extract texture filename from modelname
 char *R_ExtName( rmodel_t *mod )
 {
-	static char texname[MAX_QPATH];
-	com.strcpy( texname, mod->name );
-	com.strcpy( &texname[com.strlen(texname) - 4], "T.mdl" );
+	static string	texname;
+
+	com.strncpy( texname, mod->name, MAX_STRING );
+	FS_StripExtension( texname );
+	com.strncat( texname, "T.mdl", MAX_STRING );
 	return texname;
 }
 

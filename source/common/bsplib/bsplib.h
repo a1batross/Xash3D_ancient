@@ -5,6 +5,7 @@
 #ifndef BSPLIB_H
 #define BSPLIB_H
 
+#include <stdio.h>
 #include "platform.h"
 #include "utils.h"
 #include "mathlib.h"

@@ -234,7 +234,7 @@ void R_LoadShaders( const byte *base, const lump_t *l )
 
 	for ( i = 0; i < count; i++, in++, out++ )
 	{
-		com.strncpy( out->name, in->name, MAX_QPATH );
+		com.strncpy( out->name, in->name, MAX_SHADERPATH );
 		out->shader = r_defaultShader; // real shaders will load later
 		out->contents = LittleLong( in->contents );
 		out->flags = LittleLong( in->flags );

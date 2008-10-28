@@ -288,7 +288,7 @@ void WriteSequenceInfo( void )
 		{
 			pevent[j].frame = sequence[i]->event[j].frame - sequence[i]->frameoffset;
 			pevent[j].event = sequence[i]->event[j].event;
-			memcpy( pevent[j].options, sequence[i]->event[j].options, sizeof( pevent[j].options ));
+			Mem_Copy( pevent[j].options, sequence[i]->event[j].options, sizeof( pevent[j].options ));
 		}
 
 		ALIGN( pData );
@@ -571,7 +571,7 @@ void WriteModel( void )
 			numCmdBytes = BuildTris( model[i]->pmesh[j]->triangle, model[i]->pmesh[j], &pCmdSrc );
 
 			pmesh[j].triindex = (pData - pStart);
-			memcpy( pData, pCmdSrc, numCmdBytes );
+			Mem_Copy( pData, pCmdSrc, numCmdBytes );
 			pData += numCmdBytes;
 			
 			ALIGN( pData );

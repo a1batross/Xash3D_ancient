@@ -15,68 +15,6 @@ char **com_argv;
 char gs_basedir[ MAX_SYSPATH ]; // initial dir before loading gameinfo.txt (used for compilers too)
 string	gs_filename; // used for compilers only
 
-unsigned __int64 __g_ProfilerStart;
-unsigned __int64 __g_ProfilerEnd;
-unsigned __int64 __g_ProfilerEnd2;
-unsigned __int64 __g_ProfilerSpare;
-unsigned __int64 __g_ProfilerTotalTicks;
-double __g_ProfilerTotalMsec;
-
-void Profile_Store( void )
-{
-	if (com.GameInfo->rdtsc)
-	{
-		__g_ProfilerSpare = __g_ProfilerEnd - __g_ProfilerStart - (__g_ProfilerEnd2 - __g_ProfilerEnd);
-	}
-}
-
-void Profile_RatioResults( void )
-{
-	if (com.GameInfo->rdtsc)
-	{
-		unsigned __int64 total = __g_ProfilerEnd - __g_ProfilerStart - (__g_ProfilerEnd2 - __g_ProfilerEnd);
- 		double ratio;
-            
-		if (total >= __g_ProfilerSpare)
-		{
-			ratio = (double)(total-__g_ProfilerSpare)/total;
-			Msg("First code is %.2f%% faster\n", ratio * 100);
-		}
-		else
-		{
-			ratio = (double)(__g_ProfilerSpare-total)/__g_ProfilerSpare;
-			Msg("Second code is %.2f%% faster\n", ratio * 100);
-		}
-	}
-	else MsgDev( D_ERROR, "--- Profiler not supported ---\n");
-}
-
-void _Profile_Results( const char *function )
-{
-	if (com.GameInfo->rdtsc)
-	{
-		unsigned __int64 total = __g_ProfilerEnd - __g_ProfilerStart - (__g_ProfilerEnd2 - __g_ProfilerEnd);
-		double msec = (double)total / com.GameInfo->tickcount; 
-		Msg("Profiling stats for %s()\n", function );
-		Msg("----- ticks: %I64d -----\n", total);
-		Msg("----- secs %f ----- \n", msec );
-		__g_ProfilerTotalTicks += total;
-		__g_ProfilerTotalMsec += msec;
-	}
-	else MsgDev( D_ERROR, "--- Profiler not supported ---\n");
-}
-
-void Profile_Time( void )
-{
-	if (com.GameInfo->rdtsc)
-	{
-		Msg("Profiling results:\n");
-		Msg("----- total ticks: %I64d -----\n", __g_ProfilerTotalTicks);
-		Msg("----- total secs %f ----- \n", __g_ProfilerTotalMsec  );
-	}
-	else MsgDev( D_ERROR, "--- Profiler not supported ---\n");
-}
-
 /*
 ================
 Com_ValidScript

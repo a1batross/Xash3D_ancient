@@ -5,6 +5,52 @@
 #ifndef LAUNCH_APH_H
 #define LAUNCH_APH_H
 
+// disable some warnings
+#pragma warning(disable : 4244)	// MIPS
+#pragma warning(disable : 4018)	// signed/unsigned mismatch
+#pragma warning(disable : 4305)	// truncation from const double to float
+
+#define STRING_COLOR_TAG	'^'
+#define MAX_STRING		256	// generic string
+#define MAX_SYSPATH		1024	// system filepath
+#define MAX_MSGLEN		32768	// max length of network message
+#define IsColorString(p)	( p && *(p) == STRING_COLOR_TAG && *((p)+1) && *((p)+1) != STRING_COLOR_TAG )
+#define bound(min, num, max)	((num) >= (min) ? ((num) < (max) ? (num) : (max)) : (min))
+#define DLLEXPORT		__declspec( dllexport )
+
+// generic engine types
+typedef enum { false, true }	bool;
+typedef unsigned char 	byte;
+typedef unsigned short	word;
+typedef unsigned long	dword;
+typedef unsigned int	uint;
+typedef int		func_t;
+typedef int		sound_t;
+typedef int		model_t;
+typedef int		video_t;
+typedef int		string_t;
+typedef int		shader_t;
+typedef float		vec_t;
+typedef vec_t		vec2_t[2];
+typedef vec_t		vec3_t[3];
+typedef vec_t		vec4_t[4];
+typedef vec_t		matrix3x3[3][3];
+typedef vec_t		matrix4x4[4][4];
+typedef char		string[MAX_STRING];
+
+// FIXME: get rid of this
+typedef vec_t		matrix3x4[3][4];
+typedef vec_t		matrix4x3[4][3];
+typedef vec_t		gl_matrix[16];
+
+#ifndef NULL
+#define NULL		((void *)0)
+#endif
+
+#ifndef BIT
+#define BIT( n )		(1<<( n ))
+#endif
+
 // platform instances
 typedef enum
 {	
@@ -147,9 +193,7 @@ typedef struct gameinfo_s
 
 	// shared system info
 	int	cpunum;		// count of cpu's
-	int64	tickcount;	// cpu frequency in 'ticks'
 	float	cpufreq;		// cpu frequency in MHz
-	bool	rdtsc;		// rdtsc support (profiler stuff)
 
 	string	vprogs_dir;	// default progs directory 
 	string	source_dir;	// default source directory
@@ -192,8 +236,10 @@ typedef struct dll_info_s
 internal image format
 
 typically expanded to rgba buffer
+NOTE: number at end of pixelformat name it's a total bitscount e.g. PF_RGB_24 == PF_RGB_888
 ========================================================================
 */
+
 typedef enum
 {
 	PF_UNKNOWN = 0,
@@ -217,6 +263,8 @@ typedef enum
 	PF_LUMINANCE,	// b&w dds image
 	PF_LUMINANCE_16,	// b&w hi-res image
 	PF_LUMINANCE_ALPHA, // b&w dds image with alpha channel
+	PF_UV_16,		// EMBM two signed 8bit components
+	PF_UV_32,		// EMBM two signed 16bit components
 	PF_R_16F,		// red channel half-float image
 	PF_R_32F,		// red channel float image
 	PF_GR_32F,	// Green-Red channels half-float image (dudv maps)
@@ -270,6 +318,7 @@ typedef enum
 	IMAGE_RESAMPLE	= BIT(20),	// resample image to specified dims
 	IMAGE_PALTO24	= BIT(21),	// turn 32-bit palette into 24-bit mode (only for indexed images)
 	IMAGE_COMP_DXT	= BIT(22),	// compress image to DXT format
+	IMAGE_ROUNDFILLER	= BIT(23),	// round image to nearest Pow2 and fill unused entries with single color	
 } imgFlags_t;
 
 typedef struct rgbdata_s
@@ -470,6 +519,16 @@ typedef struct stdilib_api_s
 	long (*Com_RandomLong)( long lMin, long lMax );			// returns random integer
 	float (*Com_RandomFloat)( float fMin, float fMax );		// returns random float
 
+	// mathlib.c funcs
+	void (*sincos)( float x, float *sin, float *cos );		// fast sincos
+	float (*atan2)( float x, float y );				// fast arctan
+	float (*acos)( float x );					// fast arccos
+	float (*asin)( float x );					// fast arcsin
+	float (*sqrt)( float x );					// fast sqrt
+	float (*sin)( float x );					// fast sine
+	float (*cos)( float x );					// fast cosine
+	float (*tan)( float x );					// fast tan
+	
 	// stdlib.c funcs
 	void (*strnupr)(const char *in, char *out, size_t size_out);	// convert string to upper case
 	void (*strnlwr)(const char *in, char *out, size_t size_out);	// convert string to lower case
@@ -548,7 +607,7 @@ typedef struct cvar_s
 #define Mem_FreePool(pool)		com.freepool(pool, __FILE__, __LINE__)
 #define Mem_EmptyPool(pool)		com.clearpool(pool, __FILE__, __LINE__)
 #define Mem_Copy(dest, src, size )	com.memcpy(dest, src, size, __FILE__, __LINE__)
-#define Mem_Set(dest, val, size )	com.memcpy(dest, val, size, __FILE__, __LINE__)
+#define Mem_Set(dest, val, size )	com.memset(dest, val, size, __FILE__, __LINE__)
 #define Mem_Check()			com.memcheck(__FILE__, __LINE__)
 #define Mem_CreateArray( p, s, n )	com.newarray( p, s, n, __FILE__, __LINE__)
 #define Mem_RemoveArray( array )	com.delarray( array, __FILE__, __LINE__)
@@ -754,6 +813,7 @@ misc utils
 #define StringTable_SetString		com.st_setstring
 #define StringTable_Load		com.st_load
 #define StringTable_Save		com.st_save
+#define Com_Assert( x )		if( x ) com.abort( "assert failed at %s:%i\n", __FILE__, __LINE__ );
 
 /*
 ===========================================

@@ -384,25 +384,22 @@ bool Image_LoadMIP( const char *name, const byte *buffer, size_t filesize )
 	pixels = image.width * image.height;
 	image.num_layers = 1;
 
-	if(image.hint != IL_HINT_Q1 && filesize >= (int)sizeof(mip) + ((pixels * 85)>>6) + sizeof(short) + 768)
+	if( image.hint != IL_HINT_Q1 && filesize >= (int)sizeof(mip) + ((pixels * 85)>>6) + sizeof(short) + 768)
 	{
 		// half-life 1.0.0.1 mip version with palette
 		fin = (byte *)buffer + mip.offsets[0];
 		pal = (byte *)buffer + mip.offsets[0] + (((image.width * image.height) * 85)>>6);
 		numcolors = BuffLittleShort( pal );
-		if(numcolors != 256) pal = NULL; // corrupted mip ?
+		if( numcolors != 256 ) pal = NULL; // corrupted mip ?
 		else  pal += sizeof(short); // skip colorsize 
 		// detect rendermode
-		if( name[0] == '{' )
+		if( com.strchr( name, '{' ))
 		{
+			rendermode = LUMP_TRANSPARENT;
+
 			// qlumpy used this color for transparent textures, otherwise it's decals
- 			if(pal[255*3+0] == 0 && pal[255*3+1] == 0 && pal[255*3+2] == 255)
-				rendermode = LUMP_TRANSPARENT;
-			else
-			{
-				rendermode = LUMP_DECAL;
-				image.flags |= IMAGE_COLORINDEX;
-			}
+ 			if( pal[255*3+0] == 0 && pal[255*3+1] == 0 && pal[255*3+2] == 255 );
+			else image.flags |= IMAGE_COLORINDEX;
 			image.flags |= IMAGE_HAVE_ALPHA;
 		}
 		else rendermode = LUMP_NORMAL;

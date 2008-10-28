@@ -281,7 +281,7 @@ void Cmd_Load( void )
 	if( frame ) FS_FreeImage( frame );
 	frame = FS_LoadImage( framename, error_bmp, error_bmp_size );
 	if( !frame ) Sys_Break( "unable to load %s\n", framename ); // no error.bmp, missing frame...
-	flags |= IMAGE_PALTO24; // get 24-bit palettes
+	Image_Process( &frame, 0, 0, IMAGE_PALTO24 ); 
 	if( sprite.numframes == 0 ) Mem_Copy( base_pal, frame->palette, sizeof( base_pal ));
 	else if( memcmp( base_pal, frame->palette, sizeof( base_pal )))
 		MsgDev( D_WARN, "Cmd_Load: %s doesn't share a pallette with the previous frame\n", framename );

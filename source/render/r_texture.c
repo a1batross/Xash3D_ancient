@@ -1183,12 +1183,13 @@ texture_t	*R_LoadTexture( const char *name, rgbdata_t *pic, uint flags, float bu
 	}
 
 	image = &r_textures[r_numTextures++];
-	if( com.strlen( name ) >= sizeof(image->name)) MsgDev( D_WARN, "R_LoadImage: \"%s\" is too long", name);
+	if( com.strlen( name ) >= sizeof(image->name)) MsgDev( D_WARN, "R_LoadTexture: \"%s\" is too long", name);
 
 	// nothing to load
 	if( !pic || !pic->buffer )
 	{
 		// create notexture with another name
+		MsgDev( D_WARN, "R_LoadTexture: can't loading %s\n", name ); 
 		Mem_Copy( image, r_defaultTexture, sizeof( texture_t ));
 		com.strncpy( image->name, name, sizeof( image->name ));
 		image->registration_sequence = registration_sequence;

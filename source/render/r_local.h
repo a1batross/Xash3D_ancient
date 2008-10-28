@@ -7,7 +7,7 @@
 #define R_LOCAL_H
 
 #include <windows.h>
-#include "basetypes.h"
+#include "launch_api.h"
 #include "ref_dllapi.h"
 #include "r_opengl.h"
 

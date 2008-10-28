@@ -4,7 +4,7 @@
 //=======================================================================
 
 #include "ripper.h"
-#include "qc_gen.h"
+#include "byteorder.h"
 
 #define VDBSPMODHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'V')	// little-endian "VBSP" hl2 bsp's
 #define IDIWADHEADER	(('D'<<24)+('A'<<16)+('W'<<8)+'I')	// little-endian "IWAD" doom1 game wad
@@ -34,7 +34,7 @@ typedef struct
 typedef struct
 {
 	int		nummiptex;
-	int		dataofs[4]; // [nummiptex]
+	int		dataofs[4];	// [nummiptex]
 } dmiptexlump_t;
 
 byte*	bsp_base;
@@ -49,7 +49,7 @@ void Conv_BspTextures( const char *name, lump_t *l, const char *ext )
 	int		*dofs, size;
 	byte		*buffer;
 
-	if(!l->filelen) return; // no textures stored
+	if( !l->filelen ) return; // no textures stored
 	FS_FileBase( name, genericname );
 
 	m = (dmiptexlump_t *)(bsp_base + l->fileofs);
@@ -58,8 +58,8 @@ void Conv_BspTextures( const char *name, lump_t *l, const char *ext )
 
 	for (i = 0; i < m->nummiptex; i++)
 	{
-		dofs[i] = LittleLong(dofs[i]);
-		if (dofs[i] == -1) continue;
+		dofs[i] = LittleLong( dofs[i] );
+		if( dofs[i] == -1 ) continue;
 
 		// needs to simulate directly loading
 		mip = (mip_t *)((byte *)m + dofs[i]);
@@ -74,7 +74,8 @@ void Conv_BspTextures( const char *name, lump_t *l, const char *ext )
 		if( k ) mip->name[com.strlen(mip->name)-k] = '!'; // quake1 issues
 		// some Q1 mods contains blank names (e.g. "after the fall")
 		if(!com.strlen( mip->name )) com.snprintf( mip->name, 16, "%s_%d", genericname, i );
-		ConvMIP(va("miptex/%s", mip->name ), buffer, size, ext ); // convert it
+		if(!FS_FileExists( va( "%s/%s/%s.%s", gs_gamedir, name, mip->name, ext )))
+			ConvMIP( va("%s/%s", name, mip->name ), buffer, size, ext ); // convert it
 	}
 }
 

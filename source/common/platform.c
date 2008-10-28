@@ -11,12 +11,35 @@
 dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(vprogs_exp_t) };
 vprogs_exp_t *PRVM;
 stdlib_api_t com;
-byte *basepool;
-byte *zonepool;
-byte *error_bmp;
-size_t error_bmp_size;
-static double start, end;
-uint app_name = 0;
+
+#define	MAX_SEARCHMASK	256
+string	searchmask[MAX_SEARCHMASK];
+int	num_searchmask = 0;
+string	gs_searchmask;
+string	gs_gamedir;
+byte	*basepool;
+byte	*zonepool;
+byte	*error_bmp;
+size_t	error_bmp_size;
+static	double start, end;
+uint	app_name = HOST_OFFLINE;
+
+void ClrMask( void )
+{
+	num_searchmask = 0;
+	memset( searchmask, 0,  MAX_STRING * MAX_SEARCHMASK ); 
+}
+
+void AddMask( const char *mask )
+{
+	if( num_searchmask >= MAX_SEARCHMASK )
+	{
+		MsgDev( D_WARN, "AddMask: searchlist is full\n" );
+		return;
+	}
+	com.strncpy( searchmask[num_searchmask], mask, MAX_STRING );
+	num_searchmask++;
+}
 
 /*
 ==================
@@ -29,7 +52,7 @@ so do it manually
 void InitPlatform ( int argc, char **argv )
 {
 	byte	bspflags = 0, qccflags = 0, roqflags = 0;
-	char	source[64], gamedir[64];
+	string	source, gamedir;
 	launch_t	CreateVprogs;
 
 	basepool = Mem_AllocPool( "Temp" );
@@ -76,11 +99,13 @@ void InitPlatform ( int argc, char **argv )
 	case HOST_SPRITE:
 	case HOST_STUDIO:
 	case HOST_WADLIB:
+	case HOST_RIPPER:
 		FS_InitRootDir(".");
 
 		// initialize ImageLibrary
 		Image_Init( NULL, IL_KEEP_8BIT );
 		start = Sys_DoubleTime();
+		Msg( "\n\n" ); // tabulation
 		break;
 	case HOST_OFFLINE:
 		break;
@@ -91,80 +116,85 @@ void RunPlatform( void )
 {
 	search_t	*search;
 	bool	(*CompileMod)( byte *mempool, const char *name, byte parms ) = NULL;
-	char	filename[MAX_QPATH], typemod[16], searchmask[8][16], errorstring[256];
+	cvar_t	*fs_defaultdir = Cvar_Get( "fs_defaultdir", "tmpQuArK", CVAR_SYSTEMINFO, NULL );
 	byte	parms = 0; // future expansion
 	int	i, j, numCompiledMods = 0;
+	string	errorstring;
 
-	memset( searchmask, 0, 8 * 16 ); 
-	memset( errorstring, 0, 256 ); 
+	// directory to extract
+	com.strncpy( gs_gamedir, fs_defaultdir->string, sizeof( gs_gamedir ));
+	memset( errorstring, 0, MAX_STRING ); 
+	ClrMask();
 
-	switch(app_name)
+	switch( app_name )
 	{
 	case HOST_SPRITE: 
 		CompileMod = CompileSpriteModel;
-		com.strcpy(typemod, "sprites" );
-		com.strcpy(searchmask[0], "*.qc" );
+		AddMask( "*.qc" );
 		break;
 	case HOST_STUDIO:
 		CompileMod = CompileStudioModel;
-		com.strcpy(typemod, "models" );
-		com.strcpy(searchmask[0], "*.qc" );
+		AddMask( "*.qc" );
 		break;
 	case HOST_BSPLIB: 
-		com.strcpy(typemod, "maps" );
-		com.strcpy(searchmask[0], "*.map" );
+		AddMask( "*.map" );
 		CompileBSPModel(); 
 		break;
 	case HOST_WADLIB:
 		CompileMod = CompileWad3Archive;
-		com.strcpy(typemod, "wads" );
-		com.strcpy(searchmask[0], "*.qc" );
+		AddMask( "*.qc" );
+		break;
+	case HOST_RIPPER:
+		CompileMod = ConvertResource;
+		Conv_RunSearch();
 		break;
 	case HOST_QCCLIB: 
-		com.strcpy(typemod, "progs" );
-		com.strcpy(searchmask[0], "*.src" );
+		AddMask( "*.src" );
 		PRVM->CompileDAT(); 
 		break;
 	case HOST_OFFLINE:
-		com.strcpy(typemod, "things" );
-		com.strcpy(searchmask[0], "*.*" );
 		break;
 	}
-	if(!CompileMod) goto elapced_time; // jump to shutdown
+	if( !CompileMod ) goto elapced_time; // jump to shutdown
 
-	zonepool = Mem_AllocPool( "compiler" );
-	if(!FS_GetParmFromCmdLine( "-file", filename ))
+	// using custom mask
+	if(FS_GetParmFromCmdLine( "-file", gs_searchmask ))
 	{
-		// search by mask		
-		for( i = 0; i < 8; i++)
-		{
-			// skip blank mask
-			if(!com.strlen(searchmask[i])) continue;
-			search = FS_Search( searchmask[i], true );
-			if(!search) continue; // try next mask
-
-			for( j = 0; j < search->numfilenames; j++ )
-			{
-				if(CompileMod( zonepool, search->filenames[j], parms ))
-					numCompiledMods++;
-			}
-		}
-		if(numCompiledMods == 0) 
-		{
-			for(j = 0; j < 8; j++) 
-			{
-				if(!strlen(searchmask[j])) continue;
-				strcat(errorstring, va("%s ", searchmask[j]));
-			}
-			Sys_Break("no %sfound in this folder!\n", errorstring );
-		}
+		ClrMask(); // clear all previous masks
+		AddMask( gs_searchmask ); // custom mask
 	}
-	else CompileMod( zonepool, filename, parms );
+	zonepool = Mem_AllocPool( "compiler" );
+	Msg( "Converting ...\n\n" );
 
+	// search by mask		
+	for( i = 0; i < num_searchmask; i++ )
+	{
+		// skip blank mask
+		if(!com.strlen( searchmask[i] )) continue;
+		search = FS_Search( searchmask[i], true );
+		if( !search ) continue; // try next mask
+
+		for( j = 0; j < search->numfilenames; j++ )
+		{
+			if(CompileMod( zonepool, search->filenames[j], parms ))
+				numCompiledMods++;
+		}
+		Mem_Free( search );
+	}
+	if( numCompiledMods == 0 ) 
+	{
+		if( !num_searchmask ) com.strncpy( errorstring, "files", MAX_STRING );
+		for( j = 0; j < num_searchmask; j++ ) 
+		{
+			if(!com.strlen( searchmask[j] )) continue;
+			com.strncat( errorstring, va("%s ", searchmask[j]), MAX_STRING );
+		}
+		Sys_Break( "no %s found in this folder!\n", errorstring );
+	}
 elapced_time:
 	end = Sys_DoubleTime();
-	Msg ("%5.3f seconds elapsed\n", end - start);
-	if(numCompiledMods > 1) Msg("total %d %s compiled\n", numCompiledMods, typemod );
+	Msg( "%5.3f seconds elapsed\n", end - start );
+	if( numCompiledMods > 1) Msg("total %d files proceed\n", numCompiledMods );
 }
 
 void FreePlatform ( void )
@@ -173,6 +203,11 @@ void FreePlatform ( void )
 	{
 		PRVM->Free();
 		Sys_FreeLibrary( &vprogs_dll ); // free qcclib
+	}
+	else if( app_name == HOST_RIPPER )
+	{
+		// finalize qc-script
+		Skin_FinalizeScript();
 	}
 
 	Mem_Check(); // check for leaks

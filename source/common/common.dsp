@@ -125,6 +125,30 @@ SOURCE=.\bsplib\bsplib.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\ripper\conv_bsplumps.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ripper\conv_doom.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ripper\conv_image.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ripper\conv_main.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ripper\conv_shader.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ripper\conv_sprite.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\bsplib\facebsp.c
 # End Source File
 # Begin Source File
@@ -234,6 +258,10 @@ SOURCE=.\mdllib.h
 # Begin Source File
 
 SOURCE=.\platform.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\ripper\ripper.h
 # End Source File
 # Begin Source File
 

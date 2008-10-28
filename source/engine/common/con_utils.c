@@ -49,7 +49,7 @@ bool Cmd_GetMapList( const char *s, char *completedname, int length )
 	{
 		const char	*data = NULL;
 		char		*entities = NULL;
-		char		entfilename[MAX_QPATH];
+		string		entfilename;
 		int		ver = -1, lumpofs = 0, lumplen = 0;
 		const char	*ext = FS_FileExtension( t->filenames[i] ); 
 
@@ -525,25 +525,25 @@ bool Cmd_GetGamesList( const char *s, char *completedname, int length )
 bool Cmd_CheckMapsList( void )
 {
 	byte	buf[MAX_SYSPATH]; // 1 kb
-	char	*buffer, string[MAX_STRING];
+	char	*buffer;
+	string	result;
 	search_t	*t;
 	file_t	*f;
 	int	i;
 
-	if(FS_FileExists("scripts/maps.lst"))
+	if(FS_FileExists( "scripts/maps.lst" ))
 		return true; // exist 
 
 	t = FS_Search( "maps/*.bsp", false );
 	if(!t) return false;
 
-	buffer = Z_Malloc( t->numfilenames * 2 * sizeof(string));
+	buffer = Z_Malloc( t->numfilenames * 2 * sizeof( result ));
 	for( i = 0; i < t->numfilenames; i++ )
 	{
 		const char	*data = NULL;
 		char		*entities = NULL;
-		char		entfilename[MAX_QPATH];
 		int		ver = -1, lumpofs = 0, lumplen = 0;
-		char		mapname[MAX_QPATH], message[MAX_QPATH];
+		string		mapname, message, entfilename;
 
 		f = FS_Open(t->filenames[i], "rb");
 		FS_FileBase( t->filenames[i], mapname );
@@ -605,7 +605,7 @@ bool Cmd_CheckMapsList( void )
 				// means there is no title, so clear the message string now
 				message[0] = 0;
 				data = entities;
-				com.strncpy(message, "No Title", MAX_QPATH);
+				com.strncpy( message, "No Title", MAX_STRING );
 
 				while(Com_ParseToken( &data, true ))
 				{
@@ -634,8 +634,8 @@ bool Cmd_CheckMapsList( void )
 			if( f ) FS_Close(f);
 
 			// format: mapname "maptitle"\n
-			com.sprintf(string, "%s \"%s\"\n", mapname, message );
-			com.strcat(buffer, string); // add new string
+			com.sprintf( result, "%s \"%s\"\n", mapname, message );
+			com.strcat( buffer, result ); // add new string
 		}
 	}
 	if( t ) Mem_Free(t); // free search result

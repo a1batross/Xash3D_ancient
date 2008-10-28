@@ -141,7 +141,7 @@ static const loadformat_t load_quake2[] =
 {
 { "textures/%s%s.%s", "wal", Image_LoadWAL, IL_HINT_Q2 },	// map textures
 { "%s%s.%s", "wal", Image_LoadWAL, IL_HINT_Q2 },	// map textures
-{ "%s%s.%s", "pcx", Image_LoadPCX, IL_HINT_Q2 },	// pics, skins, skies (force to ignore internal pcx-palette)
+{ "%s%s.%s", "pcx", Image_LoadPCX, IL_HINT_NO },	// pics, skins, skies (q2 palette does wrong result for some images)
 { "%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// skies (indexed TGA's? never see in Q2)
 { NULL, NULL, NULL, IL_HINT_NO }
 };
@@ -1079,6 +1079,51 @@ byte *Image_ResampleInternal( const void *indata, int inwidth, int inheight, int
 
 /*
 ================
+Image_Flood
+================
+*/
+byte *Image_FloodInternal( const byte *indata, int inwidth, int inheight, int outwidth, int outheight, int type )
+{
+	bool	quality = (image.cmd_flags & IL_USE_LERPING);
+	int	samples = PFDesc[type].bpp;
+	int	newsize, x, y, i;
+	byte	*in, *out;
+
+	// nothing to reflood ?
+	if( inwidth == outwidth && inheight == outheight )
+		return (byte *)indata;
+
+	// alloc new buffer
+	switch( type )
+	{
+	case PF_INDEXED_24:
+	case PF_INDEXED_32:
+	case PF_RGB_24:
+	case PF_BGR_24:
+	case PF_BGRA_32:
+	case PF_RGBA_32:
+		in = ( byte *)indata;
+		newsize = outwidth * outheight * samples;
+		out = image.tempbuffer = (byte *)Mem_Realloc( Sys.imagepool, image.tempbuffer, newsize );
+		break;
+	default:
+		MsgDev( D_WARN, "Image_Flood: unsupported format %s\n", PFDesc[type].name );
+		return (byte *)indata;	
+	}
+
+	if( samples == 1 ) memset( out, 0xFF, newsize );	// last palette color
+	else  memset( out, 0x00808080, newsize );	// gray (alpha leaved 0x00)
+
+	for( y = 0; y < outheight; y++ )
+		for( x = 0; y < inheight && x < outwidth; x++ )
+			for( i = 0; i < samples; i++ )
+				if( x < inwidth ) *out++ = *in++;
+				else *out++;
+	return image.tempbuffer;
+}
+
+/*
+================
 Image_Flip
 ================
 */
@@ -1163,32 +1208,37 @@ void Image_Process( rgbdata_t **pix, int width, int height, uint flags )
 	out = Image_FlipInternal( pic->buffer, &pic->width, &pic->height, pic->type, flags );
 	if( pic->buffer != out ) Mem_Copy( pic->buffer, image.tempbuffer, pic->size );
 
-	if(( flags & IMAGE_RESAMPLE && width > 0 && height > 0 ) || flags & IMAGE_ROUND )
+	if(( flags & IMAGE_RESAMPLE && width > 0 && height > 0 ) || flags & IMAGE_ROUND || flags & IMAGE_ROUNDFILLER )
 	{
 		int	w, h;
 
-		if( flags & IMAGE_ROUND )
+		if( flags & IMAGE_ROUND || flags & IMAGE_ROUNDFILLER )
 		{
 			w = pic->width;
 			h = pic->height;
 
 			// round to nearest pow
+			// NOTE: images with dims less than 8x8 may causing problems
 			Image_RoundDimensions( &w, &h );
+			w = bound( 8, w, IMAGE_MAXWIDTH );	// 8 - 4096
+			h = bound( 8, h, IMAGE_MAXHEIGHT);	// 8 - 4096
 		}
 		else
 		{
-			// custom size
-			w = bound( 1, width, IMAGE_MAXWIDTH );	// maxwidth 4096
-			h = bound( 1, height, IMAGE_MAXHEIGHT);	// maxheight 4096
+			// custom size (user choise without limitations)
+			w = bound( 1, width, IMAGE_MAXWIDTH );	// 1 - 4096
+			h = bound( 1, height, IMAGE_MAXHEIGHT);	// 1 - 4096
 		}
-		out = Image_ResampleInternal((uint *)pic->buffer, pic->width, pic->height, w, h, pic->type );
+		if( flags & IMAGE_ROUNDFILLER )
+	         		out = Image_FloodInternal( pic->buffer, pic->width, pic->height, w, h, pic->type );
+		else out = Image_ResampleInternal((uint *)pic->buffer, pic->width, pic->height, w, h, pic->type );
 
-		if( out != pic->buffer ) // resampled
+		if( out != pic->buffer ) // resampled or filled
 		{
+			MsgDev( D_NOTE, "Image_Resample: from[%d x %d] to [%d x %d]\n", pic->width, pic->height, w, h );
 			pic->width = w, pic->height = h;
 			pic->size = w * h * PFDesc[pic->type].bpp;
-			MsgDev( D_NOTE, "Image_Resample: from[%d x %d] to [%d x %d]\n", pic->width, pic->height, w, h );
-			Mem_Free( pic->buffer );		// free original image buffer if allowed
+			Mem_Free( pic->buffer );		// free original image buffer
 			pic->buffer = Image_Copy( pic->size );	// unzone buffer (don't touch image.tempbuffer)
 		}
 	}

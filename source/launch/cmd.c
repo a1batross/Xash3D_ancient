@@ -260,16 +260,17 @@ Cmd_Exec_f
 */
 void Cmd_Exec_f (void)
 {
-	char	*f, rcpath[MAX_QPATH];
-	int	len;
+	string	rcpath;
+	size_t	len;
 
-	if (Cmd_Argc () != 2)
+	char	*f; 
+	if( Cmd_Argc() != 2 )
 	{
-		Msg("exec <filename> : execute a script file\n");
+		Msg( "exec <filename> : execute a script file\n" );
 		return;
 	}
 
-	com_sprintf(rcpath, "scripts/config/%s", Cmd_Argv(1)); 
+	com.snprintf( rcpath, MAX_STRING, "scripts/config/%s", Cmd_Argv(1)); 
 	FS_DefaultExtension(rcpath, ".rc" ); // append as default
 
 	f = FS_LoadFile(rcpath, &len );

@@ -380,8 +380,7 @@ write advanced progdefs.h into disk
 word PR_WriteProgdefs( void )
 {
 	char		file[PROGDEFS_MAX_SIZE];
-	char		header_name[MAX_QPATH];
-	char		lwr_header[MAX_QPATH];
+	string		header_name, lwr_header;
 	char		lwr_prefix[8], upr_prefix[8];
 	char		array_size[8]; // g-cont: mega name!
 	int		f = 0, k = 1;
@@ -934,32 +933,32 @@ byte *PR_CreateProgsSRC( void )
 	search_t		*qc = FS_Search( "*", true );
 	const char	*datname = "unknown.dat\n";	// outname will be set by PR_WriteProgdefs
 	byte		*newprogs_src = NULL;
-	char		headers[2][MAX_QPATH];	// contains filename with struct description
 	char		searchmask[8][16];
-	int		i, k, j = 0;
+	string		headers[2];		// contains filename with struct description
 	bool		have_entvars = 0;
 	bool		have_globals = 0;
+	int		i, k, j = 0;
 
-	// hard-coded table! don't change!
-	com.strcpy(searchmask[0], "qh" );	// quakec header
-	com.strcpy(searchmask[1], "h" );	// c-style header
-	com.strcpy(searchmask[2], "qc" );	// quakec sources
-	com.strcpy(searchmask[3], "c" );	// c-style sources
+	// hardcoded table! don't change!
+	com.strcpy( searchmask[0], "qh" );	// quakec header
+	com.strcpy( searchmask[1], "h" );	// c-style header
+	com.strcpy( searchmask[2], "qc" );	// quakec sources
+	com.strcpy( searchmask[3], "c" );	// c-style sources
 
 	if(!qc)
 	{
 		PR_ParseError(ERR_INTERNAL, "Couldn't open file progs.src" );
 		return NULL;
 	}
-	memset(headers, '/0', 2 * MAX_QPATH);
+	memset( headers, '/0', MAX_STRING * 2 );
 
-	for(i = 0; i < qc->numfilenames; i++)
+	for( i = 0; i < qc->numfilenames; i++ )
 	{
 		// search by mask		
 		for( k = 0; k < 8; k++)
 		{
 			// skip blank mask
-			if(!com.strlen(searchmask[k])) continue;
+			if(!com.strlen( searchmask[k] )) continue;
 			if(!com.stricmp(searchmask[k], FS_FileExtension(qc->filenames[i]))) // validate ext
 			{
 				if(Com_LoadScript( qc->filenames[i], NULL, 0 ))
@@ -970,15 +969,15 @@ byte *PR_CreateProgsSRC( void )
 						if(!Com_GetToken( true )) break; //EOF
 						if(Com_MatchToken( "end_sys_globals" ))
 						{
-							com.strncpy(headers[0], qc->filenames[i], MAX_QPATH );
+							com.strncpy( headers[0], qc->filenames[i], MAX_STRING );
 							have_globals = true;
 						}
 						else if(Com_MatchToken( "end_sys_fields" ))
 						{
-							com.strncpy(headers[1], qc->filenames[i], MAX_QPATH );
+							com.strncpy( headers[1], qc->filenames[i], MAX_STRING );
 							have_entvars = true;
 						}
-						if(have_globals && have_entvars)
+						if( have_globals && have_entvars )
 							goto buildnewlist; // end of parsing
 					}
 				}
@@ -987,12 +986,12 @@ byte *PR_CreateProgsSRC( void )
 	}
 
 	// globals and locals not declared
-	PR_ParseError(ERR_INTERNAL, "Couldn't open file progs.src" );
+	PR_ParseError( ERR_INTERNAL, "Couldn't open file progs.src" );
 	return NULL;
 buildnewlist:
 
-	newprogs_src = Qrealloc(newprogs_src, j + com.strlen(datname) + 1); // outfile name
-	Mem_Copy(newprogs_src + j, (char *)datname, com.strlen(datname));
+	newprogs_src = Qrealloc( newprogs_src, j + com.strlen( datname ) + 1 ); // outfile name
+	Mem_Copy( newprogs_src + j, (char *)datname, com.strlen( datname ));
 	j += com.strlen(datname) + 1; // null term
 
 	// file contains "sys_globals" and possible "sys_fields"
@@ -1000,16 +999,16 @@ buildnewlist:
 	com.strncat(newprogs_src, va("%s\n", headers[0]), com.strlen(headers[0]) + 1);
 	j += com.strlen(headers[0]) + 2; //null term
 
-	if(STRCMP(headers[0], headers[1] ))
+	if(STRCMP( headers[0], headers[1] ))
 	{
 		// file contains sys_fields description
-		newprogs_src = Qrealloc(newprogs_src, j + com.strlen(headers[1]) + 2); // second file (option)
-		com.strncat(newprogs_src, va("%s\n", headers[1]), com.strlen(headers[1]) + 1);
+		newprogs_src = Qrealloc( newprogs_src, j + com.strlen( headers[1] ) + 2 ); // second file (option)
+		com.strncat( newprogs_src, va("%s\n", headers[1]), com.strlen(headers[1]) + 1);
 		j += com.strlen(headers[1]) + 2; //null term
 	}
 
 	// add headers
-	for(i = 0; i < qc->numfilenames; i++)
+	for( i = 0; i < qc->numfilenames; i++ )
 	{
 		for( k = 0; k < 2; k++)
 		{
@@ -1044,7 +1043,7 @@ buildnewlist:
 		}
 	}
 	Mem_Free( qc ); // free search
-	FS_WriteFile("progs.src", newprogs_src, j );
+	FS_WriteFile( "progs.src", newprogs_src, j );
 
 	return newprogs_src;
 }

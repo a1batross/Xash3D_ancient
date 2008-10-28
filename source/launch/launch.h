@@ -14,9 +14,10 @@
 #include <io.h>
 #include <time.h>
 #include <winreg.h>
+#include <math.h>
 
-#define LAUNCH_DLL		// skip alias names
-#include "basetypes.h"
+#define LAUNCH_DLL			// ignore alias names
+#include "launch_api.h"
 #include "ref_dllapi.h"
 
 #define XASH_VERSION		0.51f // current version will be shared across gameinfo struct
@@ -233,6 +234,25 @@ long Com_RandomLong( long lMin, long lMax );
 float Com_RandomFloat( float fMin, float fMax );
 
 //
+// math.c
+//
+void Com_BuildSqrtTable( void );
+void Com_BuildSinCosTable( void );
+
+float com_sqrt( float x );
+float amd_sqrt( float x );
+float sse_sqrt( float x );
+
+_inline float sqrtf( float x ) { return ((float)sqrt((double)x)); }
+_inline float sinf( float x ) { return ((float)sin((double)x)); }
+_inline float asinf( float x ) { return ((float)asin((double)x)); }
+_inline float cosf( float x ) { return ((float)cos((double)x)); }
+_inline float acosf( float x ) { return ((float)acos((double)x)); }
+_inline float tanf( float x ) { return ((float)tan((double)x)); }
+_inline float atan2f( float x, float y ) { return ((float)atan2((double)x,(double)y)); }
+void SinCos( float radians, float *sine, float *cosine );
+
+//
 // memlib.c
 //
 void Memory_Init( void );
@@ -240,8 +260,15 @@ void Memory_Shutdown( void );
 void Memory_Init_Commands( void );
 void _mem_move(byte *poolptr, void **dest, void *src, size_t size, const char *filename, int fileline);
 void *_mem_realloc(byte *poolptr, void *memptr, size_t size, const char *filename, int fileline);
-void _mem_copy(void *dest, const void *src, size_t size, const char *filename, int fileline);
-void _mem_set(void *dest, int set, size_t size, const char *filename, int fileline);
+void _com_mem_copy(void *dest, const void *src, size_t size, const char *filename, int fileline);
+void _crt_mem_copy(void *dest, const void *src, size_t size, const char *filename, int fileline);
+void _asm_mem_copy(void *dest, const void *src, size_t size, const char *filename, int fileline);
+void _mmx_mem_copy(void *dest, const void *src, size_t size, const char *filename, int fileline);
+void _amd_mem_copy(void *dest, const void *src, size_t size, const char *filename, int fileline);
+void _com_mem_set(void *dest, int set, size_t size, const char *filename, int fileline);
+void _crt_mem_set(void *dest, int set, size_t size, const char *filename, int fileline);
+void _asm_mem_set(void* dest, int set, size_t size, const char *filename, int fileline);
+void _mmx_mem_set(void* dest, int set, size_t size, const char *filename, int fileline);
 void *_mem_alloc(byte *poolptr, size_t size, const char *filename, int fileline);
 byte *_mem_allocpool(const char *name, const char *filename, int fileline);
 void _mem_freepool(byte **poolptr, const char *filename, int fileline);
@@ -263,8 +290,8 @@ bool _is_allocated( byte *poolptr, void *data );
 #define Mem_FreePool(pool) _mem_freepool(pool, __FILE__, __LINE__)
 #define Mem_EmptyPool(pool) _mem_emptypool(pool, __FILE__, __LINE__)
 #define Mem_Move(pool, dest, src, size ) _mem_move(pool, dest, src, size, __FILE__, __LINE__)
-#define Mem_Copy(dest, src, size ) _mem_copy(dest, src, size, __FILE__, __LINE__)
-#define Mem_Set(dest, val, size ) _mem_set(dest, val, size, __FILE__, __LINE__)
+#define Mem_Copy(dest, src, size ) com.memcpy(dest, src, size, __FILE__, __LINE__)
+#define Mem_Set(dest, val, size ) com.memset(dest, val, size, __FILE__, __LINE__)
 #define Mem_CreateArray( p, s, n ) _mem_alloc_array( p, s, n, __FILE__, __LINE__)
 #define Mem_RemoveArray( array ) _mem_free_array( array, __FILE__, __LINE__)
 #define Mem_AllocElement( array ) _mem_alloc_array_element( array, __FILE__, __LINE__)

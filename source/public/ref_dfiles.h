@@ -157,6 +157,7 @@ BRUSH MODELS
 // other limits
 #define DVIS_PVS			0
 #define DVIS_PHS			1
+#define MAX_SHADERPATH		64
 #define MAX_KEY			128
 #define MAX_VALUE			512
 #define MAX_WORLD_COORD		( 128 * 1024 )
@@ -215,7 +216,7 @@ typedef struct
 
 typedef struct
 {
-	char	name[64];		// shader name
+	char	name[MAX_SHADERPATH];// shader name
 	int	contents;		// texture contents (can be replaced by shader)
 	int	flags;		// surface flags (can be replaced by shader)
 } dshader_t;

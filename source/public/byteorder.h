@@ -21,9 +21,9 @@ _inline word WordSwap( word swap )
 
 #define ShortSwap(x) WordSwap((short)x)
 
-_inline uint UintSwap( uint swap )
+_inline uint UintSwap( uint *swap )
 {
-	uint *i = &swap;
+	uint *i = swap;
 
 	__asm {
 		mov ebx, i
@@ -34,9 +34,8 @@ _inline uint UintSwap( uint swap )
 	return *i;
 }
 
-#define LongSwap(x) UintSwap((uint)x)
-
-#define FloatSwap(x) UintSwap((uint)x)
+#define LongSwap(x) UintSwap((uint *)&x)
+#define FloatSwap(x) UintSwap((uint *)&x)
 
 _inline double DoubleSwap( double swap )
 {
@@ -109,47 +108,45 @@ _inline double DoubleSwap( double swap )
 #define LittleDouble(l) DoubleSwap(l)
 #endif
 
-//extract from buffer
-_inline dword BuffBigLong (const byte *buffer)
+// extract from buffer
+_inline dword BuffBigLong( const byte *buf )
 {
-	return (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
+	return (buf[0]<<24)|(buf[1]<<16)|(buf[2]<<8)|buf[3];
 }
 
-_inline word BuffBigShort (const byte *buffer)
+_inline word BuffBigShort( const byte *buf )
 {
-	return (buffer[0] << 8) | buffer[1];
+	return (buf[0]<<8)|buf[1];
 }
 
-_inline float BuffBigFloat (const byte *buffer)
+_inline float BuffBigFloat( const byte *buf )
 {
-	return BuffBigLong( buffer );//same as integer
+	return BuffBigLong( buf );
 } 
 
-_inline double BuffBigDouble (const byte *buffer)
+_inline double BuffBigDouble( const byte *buf )
 {
-	return (buffer[0] << 64) | (buffer[1] << 56) | (buffer[2] << 40) | (buffer[3] << 32)
-	| (buffer[4] << 24) | (buffer[5] << 16) | (buffer[6] << 8) | buffer[7];
+	return (buf[0]<<64)|(buf[1]<<56)|(buf[2]<<40)|(buf[3]<<32)|(buf[4]<<24)|(buf[5]<<16)|(buf[6]<<8)|buf[7];
 }
 
-_inline dword BuffLittleLong (const byte *buffer)
+_inline dword BuffLittleLong( const byte *buf )
 {
-	return (buffer[3] << 24) | (buffer[2] << 16) | (buffer[1] << 8) | buffer[0];
+	return (buf[3]<<24)|(buf[2]<<16)|(buf[1]<<8)|buf[0];
 }
 
-_inline word BuffLittleShort (const byte *buffer)
+_inline word BuffLittleShort( const byte *buf )
 {
-	return (buffer[1] << 8) | buffer[0];
+	return (buf[1]<<8)|buf[0];
 }
 
-_inline float BuffLittleFloat (const byte *buffer)
+_inline float BuffLittleFloat( const byte *buf )
 {
-	return BuffLittleLong( buffer );
+	return BuffLittleLong( buf );
 }
 
-_inline double BuffLittleDouble (const byte *buffer)
+_inline double BuffLittleDouble( const byte *buf )
 {
-	return (buffer[7] << 64) | (buffer[6] << 56) | (buffer[5] << 40) | (buffer[4] << 32)
-	| (buffer[3] << 24) | (buffer[2] << 16) | (buffer[1] << 8) | buffer[0];
+	return (buf[7]<<64)|(buf[6]<<56)|(buf[5]<<40)|(buf[4]<<32)|(buf[3]<<24)|(buf[2]<<16)|(buf[1]<<8)|buf[0];
 }
 
 /*

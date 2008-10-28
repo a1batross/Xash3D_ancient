@@ -687,7 +687,7 @@ void RecursivePassagePortalFlow( vportal_t *portal, threaddata_t *thread, pstack
 		prevmight = (long *)prevstack->mightsee;
 		cansee = (long *)passage->cansee;
 		might = (long *)stack.mightsee;
-		memcpy(might, prevmight, portalbytes);
+		Mem_Copy(might, prevmight, portalbytes);
 		if( p->status == stat_done )
 			portalvis = (long *)p->portalvis;
 		else portalvis = (long *)p->portalflood;

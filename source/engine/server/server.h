@@ -92,7 +92,7 @@ typedef struct server_s
 	cmodel_t		*models[MAX_MODELS];
 	cmodel_t		*worldmodel;
 
-	char		configstrings[MAX_CONFIGSTRINGS][MAX_QPATH];
+	char		configstrings[MAX_CONFIGSTRINGS][CS_SIZE];
 
 	// the multicast buffer is used to send a message to a set of clients
 	// it is only used to marshall data until SV_Message is called

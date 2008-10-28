@@ -118,7 +118,8 @@ static const net_desc_t NWDesc[] =
 
 // config strings are a general means of communication from
 // the server to all connected clients.
-// each config string can be at most MAX_QPATH characters.
+// each config string can be at most CS_SIZE characters.
+#define CS_SIZE			64	// size of one config string
 #define CS_NAME			0	// map name
 #define CS_MAPCHECKSUM		1	// level checksum (for catching cheater maps)
 #define CS_SKYNAME			2	// skybox name

@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "launch.h"
+#include "baserc_api.h"
 #include "mathlib.h"
 
 #define MAX_QUED_EVENTS		256
@@ -21,7 +22,6 @@ int		event_head, event_tail;
 dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t viewer_dll = { "viewer.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
-dll_info_t ripper_dll = { "ripper.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t baserc_dll = { "baserc.dll", NULL, "CreateAPI", NULL, NULL, false, sizeof(baserc_exp_t)};
 
 static const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t\
@@ -59,8 +59,8 @@ void Sys_GetStdAPI( void )
 	com.crc_blockchecksumkey = Com_BlockChecksumKey;
 
 	// memlib.c
-	com.memcpy = _mem_copy;
-	com.memset = _mem_set;
+	com.memcpy = _crt_mem_copy;			// first time using
+	com.memset = _crt_mem_set;			// first time using
 	com.realloc = _mem_realloc;
 	com.move = _mem_move;
 	com.malloc = _mem_alloc;
@@ -200,6 +200,16 @@ void Sys_GetStdAPI( void )
 
 	com.Com_RandomLong = Com_RandomLong;
 	com.Com_RandomFloat = Com_RandomFloat;
+
+	// changed after called Sys_InitCPU
+	com.sincos = SinCos;			// fast sincos
+	com.atan2 = atan2f;				// fast arctan
+	com.acos = acosf;				// fast arccos
+	com.asin = asinf;				// fast arcsin
+	com.sqrt = sqrtf;				// fast sqrt
+	com.sin = sinf;				// fast sine
+	com.cos = cosf;				// fast cosine
+	com.tan = tanf;				// fast tan
 
 	// stdlib.c funcs
 	com.strnupr = com_strnupr;
@@ -353,7 +363,7 @@ void Sys_LookupInstance( void )
 		Sys.app_name = HOST_RIPPER;
 		Sys.con_readonly = true;
 		Sys.log_active = true;	// always create log
-		Sys.linked_dll = &ripper_dll;	// pointer to wdclib.dll info
+		Sys.linked_dll = &common_dll;	// pointer to wdclib.dll info
 		com_sprintf(Sys.log_path, "%s/decompile.log", sys_rootdir ); // default
 		com_strcpy(Sys.caption, va("Quake Recource Extractor ver.%g", XASH_VERSION ));
 	}
@@ -750,24 +760,24 @@ void Sys_Sleep( int msec)
 
 void Sys_WaitForQuit( void )
 {
-	MSG		msg;
+	MSG	msg;
 
-	if(Sys.hooked_out)
+	if( Sys.hooked_out )
 	{
 		// in-pipeline mode we don't want to wait for press any key
-		if(abs((int)GetStdHandle(STD_OUTPUT_HANDLE)) <= 100)
+		if(abs((int)GetStdHandle(STD_OUTPUT_HANDLE)) <= 100 )
 		{
-			Sys_Print("press any key to quit\n");
-			system("@pause>nul\n"); // wait for quit
+			Sys_Print( "press any key to quit\n" );
+			system( "@pause>nul\n" ); // wait for quit
 		}
 	}
 	else
 	{
 		Con_RegisterHotkeys();		
-		memset(&msg, 0, sizeof(msg));
+		Mem_Set( &msg, 0, sizeof( msg ));
 
 		// wait for the user to quit
-		while(msg.message != WM_QUIT)
+		while( msg.message != WM_QUIT )
 		{
 			if(PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
         			{
@@ -845,10 +855,11 @@ void Sys_Init( void )
 
 	lpBuffer.dwLength = sizeof(MEMORYSTATUS);
 	GlobalMemoryStatus( &lpBuffer );
-	ZeroMemory( &Msec, sizeof(Msec));
+	ZeroMemory( &Msec, sizeof( Msec ));		// can't use memset - not init
 	Sys.logfile = NULL;
 
-	Sys.hInstance = (HINSTANCE)GetModuleHandle( NULL ); // get current hInstance first
+	// get current hInstance
+	Sys.hInstance = (HINSTANCE)GetModuleHandle( NULL );
 
 	Sys_GetStdAPI();
 	Sys.MSG_Init = NULL;
@@ -858,7 +869,7 @@ void Sys_Init( void )
 	Sys.CPrint = NullPrint;
 	Sys.Con_Print = NullPrint;
 
-	// some commands can turn engine into infinity loop,
+	// some commands may turn engine into infinity loop,
 	// e.g. xash.exe +game xash -game xash
 	// so we clearing all cmd_args, but leave dbg states as well
 	if( Sys.app_state != SYS_RESTART )
@@ -870,30 +881,28 @@ void Sys_Init( void )
 	if(FS_CheckParm( "-log" )) Sys.log_active = true;
 	if(FS_GetParmFromCmdLine( "-dev", dev_level )) Sys.developer = com_atoi(dev_level);
           
-	FS_UpdateEnvironmentVariables(); // set working directory
+	FS_UpdateEnvironmentVariables();	// set working directory
 	SetErrorMode( SEM_FAILCRITICALERRORS );	// no abort/retry/fail errors
 	if( Sys.hooked_out ) atexit( Sys_Abort );
 
-	Sys.con_showalways = true;
-	Sys.con_readonly = true;
-	Sys.con_showcredits = false;
-	Sys.con_silentmode = false;
-	Sys.stuffcmdsrun = false;
+	// set default state 
+	Sys.con_showalways = Sys.con_readonly = true;
+	Sys.con_showcredits = Sys.con_silentmode = Sys.stuffcmdsrun = false;
 
-	Sys_LookupInstance(); // init launcher
+	Sys_LookupInstance();		// init launcher
 	Con_CreateConsole();
 
 	// first text message into console or log 
 	MsgDev( D_NOTE, "Sys_LoadLibrary: Loading launch.dll - ok\n" );
 
-	if(com_strlen( Sys.fmessage ) && !Sys.con_showcredits)
+	if( com.strlen( Sys.fmessage ) && !Sys.con_showcredits )
 	{
 		Sys_Print( Sys.fmessage );
 		Sys.fmessage[0] = '\0';
 	}
 
-	Sys_InitCPU();
 	Memory_Init();
+	Sys_InitCPU();
 	Cmd_Init();
 	Cvar_Init();
 	FS_Init();
@@ -1296,7 +1305,7 @@ sys_event_t Sys_GetEvent( void )
 	}
 
 	// create an empty event to return
-	memset( &ev, 0, sizeof(ev));
+	Mem_Set( &ev, 0, sizeof( ev ));
 	ev.time = timeGetTime();
 
 	return ev;
@@ -1304,10 +1313,10 @@ sys_event_t Sys_GetEvent( void )
 
 bool Sys_GetModuleName( char *buffer, size_t length )
 {
-	if(Sys.ModuleName[0] == '\0' )
+	if( Sys.ModuleName[0] == '\0' )
 		return false;
 
-	com_strncpy( buffer, Sys.ModuleName, length + 1 );
+	com.strncpy( buffer, Sys.ModuleName, length + 1 );
 	return true;
 }
 

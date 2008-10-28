@@ -7,7 +7,7 @@
 
 #include <stdio.h>
 #include <windows.h>
-#include "basetypes.h"
+#include "launch_api.h"
 #include "ref_dllapi.h"
 
 typedef struct physbody_s	NewtonBody;

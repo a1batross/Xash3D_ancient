@@ -120,7 +120,7 @@ typedef struct
 	//
 	int		servercount;		// server identification for prespawns
 	int		playernum;
-	char		configstrings[MAX_CONFIGSTRINGS][MAX_QPATH];
+	char		configstrings[MAX_CONFIGSTRINGS][CS_SIZE];
 
 	//
 	// locally derived information from server state

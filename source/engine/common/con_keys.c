@@ -211,7 +211,7 @@ perform Tab expansion
 void Field_CompleteCommand( field_t *field )
 {
 	field_t		temp;
-	char		filename[MAX_QPATH];
+	string		filename;
 	autocomplete_list_t	*list;
 
 	completionField = field;

@@ -158,12 +158,12 @@ $mipmap filename x y width height
 void Cmd_GrabMip( void )
 {
 	int	i, j, x, y, xl, yl, xh, yh, w, h;
-	byte	*plump, *screen_p, *source, testpixel;
+	byte	*plump, *plump_end, *screen_p, *source;
 	int	miplevel,	mipstep, flags = 0;
+	byte	*lump, testpixel;
 	int	xx, yy, count;
 	int	linedelta;
 	size_t	plump_size;
-	byte	*lump;
 	mip_t	*mip;
 
 	Com_GetToken( false );
@@ -194,11 +194,11 @@ void Cmd_GrabMip( void )
 		h = image->height;
 	}
 
-	// just resample image if need
-	if(( w & 15) || (h & 15)) flags |= IMAGE_ROUND;
+	// reflood image with new size
+	if(( w & 15) || (h & 15)) flags |= IMAGE_ROUNDFILLER;
 	Image_Process( &image, 0, 0, flags );
 
-	if( flags & IMAGE_ROUND )
+	if( flags & IMAGE_ROUNDFILLER )
 	{
 		// updates image size
 		w = image->width;
@@ -212,6 +212,7 @@ void Cmd_GrabMip( void )
 	// + numolors[short] + palette[768];
 	plump_size = (int)sizeof(*mip) + ((w * h * 85)>>6) + sizeof(short) + 768;
 	plump = lump = (byte *)Mem_Alloc( wadpool, plump_size );
+	plump_end = plump + plump_size; // sentinel
 
 	mip = (mip_t *)plump;
 	mip->width = LittleLong( w );
@@ -309,13 +310,18 @@ void Cmd_GrabMip( void )
 	}
 
 	*(word*)plump = 256;	// palette size
-	plump += sizeof(short);
+	plump += sizeof( short );
 
-	Mem_Copy( plump, image->palette, 768 );
-	plump += 768;
+	// bounds checker
+	if( plump + 768 == plump_end )
+	{
+		Mem_Copy( plump, image->palette, 768 );
+		plump += 768;
 
-	// write out and release intermediate buffers
-	Wad3_AddLump( lump, plump_size, TYPE_MIPTEX2, false );
+		// write out and release intermediate buffers
+		Wad3_AddLump( lump, plump_size, TYPE_MIPTEX2, false );
+	}
+	else MsgDev( D_WARN, "lump %s have invalid size, ignore\n", lumpname ); 
 	FS_FreeImage( image );
 	Mem_Free( lump );
 }

@@ -468,7 +468,7 @@ void Con_DrawSolidConsole (float frac)
 	int	lines;
 	int	currentColor;
 	vec4_t	color;
-	char	curtime[MAX_QPATH];
+	string	curtime;
 
 	lines = scr_height->integer * frac;
 	if( lines <= 0 ) return;
@@ -487,7 +487,7 @@ void Con_DrawSolidConsole (float frac)
 
 	// draw current time
 	re->SetColor(g_color_table[ColorIndex(COLOR_YELLOW)]);
-	com.snprintf( curtime, MAX_QPATH, "%s ", timestamp( TIME_TIME_ONLY));
+	com.snprintf( curtime, MAX_STRING, "%s ", timestamp( TIME_TIME_ONLY));
 	i = com.strlen( curtime );
 	for (x = 0; x < i; x++)
 		SCR_DrawSmallChar(scr_width->integer - ( i - x ) * SMALLCHAR_WIDTH, (lines - (SMALLCHAR_HEIGHT+SMALLCHAR_HEIGHT/2)), curtime[x]);

@@ -164,9 +164,6 @@ bool Image_SaveBMP( const char *name, rgbdata_t *pix )
 	if( !pix->palette || !pix->buffer )
 		return false;
 
-	pfile = FS_Open( name, "wb");
-	if(!pfile) return false;
-
 	switch( pix->type )
 	{
 	case PF_INDEXED_24:
@@ -177,7 +174,10 @@ bool Image_SaveBMP( const char *name, rgbdata_t *pix )
 		return false;
 	}
 
-	// NOTE: alig transparency column will sucessfully removed
+	pfile = FS_Open( name, "wb");
+	if( !pfile ) return false;
+
+	// NOTE: align transparency column will sucessfully removed
 	// after create sprite or lump image, it's just standard requiriments 
 	biTrueWidth = ((pix->width + 3) & ~3);
 	cbBmpBits = biTrueWidth * pix->height;
@@ -224,8 +224,8 @@ bool Image_SaveBMP( const char *name, rgbdata_t *pix )
 		else rgrgbPalette[i].rgbReserved = 0;
 	}
 
-	// make last color is 0 0 255, xwad expect this
-	if( pix->flags & IMAGE_HAVE_ALPHA )
+	// make last color is 0 0 255, xwad expect this (but ignore decals)
+	if( com.strchr( name, '{' ) && pix->flags & IMAGE_HAVE_ALPHA && !(pix->flags & IMAGE_COLORINDEX))
 	{
 		rgrgbPalette[255].rgbRed = 0x00;
 		rgrgbPalette[255].rgbGreen = 0x00;

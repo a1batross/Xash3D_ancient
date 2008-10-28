@@ -6,7 +6,7 @@
 #define VPROGS_H
 
 #include <windows.h>
-#include "basetypes.h"
+#include "launch_api.h"
 #include "ref_dllapi.h"
 #include "pr_local.h"
 

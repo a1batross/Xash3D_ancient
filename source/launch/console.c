@@ -224,11 +224,11 @@ void Con_CreateConsole( void )
 	HDC hDC;
 	WNDCLASS wc;
 	RECT rect;
-	int nHeight;
-	int swidth, sheight, fontsize;
-	int DEDSTYLE = WS_POPUPWINDOW | WS_CAPTION;
-	int CONSTYLE = WS_CHILD|WS_VISIBLE|WS_VSCROLL|WS_BORDER|WS_EX_CLIENTEDGE|ES_LEFT|ES_MULTILINE|ES_AUTOVSCROLL|ES_READONLY;
-	char Title[MAX_QPATH], FontName[MAX_QPATH];
+	int	nHeight;
+	int	swidth, sheight, fontsize;
+	string	Title, FontName;
+	int	DEDSTYLE = WS_POPUPWINDOW | WS_CAPTION;
+	int	CONSTYLE = WS_CHILD|WS_VISIBLE|WS_VSCROLL|WS_BORDER|WS_EX_CLIENTEDGE|ES_LEFT|ES_MULTILINE|ES_AUTOVSCROLL|ES_READONLY;
 
 	if( Sys.con_silentmode ) return;
 	Sys_InitLog();
@@ -241,7 +241,7 @@ void Con_CreateConsole( void )
 	}
 	Sys.Con_Print = Con_PrintW;
 
-	memset( &wc, 0, sizeof( wc ));
+	Mem_Set( &wc, 0, sizeof( wc ));
 	wc.style         = 0;
 	wc.lpfnWndProc   = (WNDPROC)Con_WndProc;
 	wc.cbClsExtra    = 0;
@@ -267,7 +267,7 @@ void Con_CreateConsole( void )
 		rect.right = 536;
 		rect.top = 0;
 		rect.bottom = 280;
-		com_strncpy(FontName, "Arial", MAX_QPATH );
+		com.strncpy( FontName, "Arial", MAX_STRING );
 		fontsize = 16;
 	}
 	else if( Sys.con_readonly )
@@ -276,7 +276,7 @@ void Con_CreateConsole( void )
 		rect.right = 536;
 		rect.top = 0;
 		rect.bottom = 364;
-		com_strncpy(FontName, "Fixedsys", MAX_QPATH );
+		com.strncpy( FontName, "Fixedsys", MAX_STRING );
 		fontsize = 8;
 	}
 	else // dedicated console
@@ -285,11 +285,11 @@ void Con_CreateConsole( void )
 		rect.right = 540;
 		rect.top = 0;
 		rect.bottom = 392;
-		com_strncpy(FontName, "System", MAX_QPATH );
+		com.strncpy( FontName, "System", MAX_STRING );
 		fontsize = 14;
 	}
 
-	com_strncpy( Title, Sys.caption, MAX_QPATH );
+	com.strncpy( Title, Sys.caption, MAX_STRING );
 	AdjustWindowRect( &rect, DEDSTYLE, FALSE );
 
 	hDC = GetDC( GetDesktopWindow() );

@@ -151,7 +151,7 @@ void SV_SpawnServer( const char *server, const char *savename )
 	svs.timeleft = 0;
 
 	// save name for levels that don't set message
-	com.strncpy( sv.configstrings[CS_NAME], server, MAX_QPATH );
+	com.strncpy( sv.configstrings[CS_NAME], server, CS_SIZE );
 	MSG_Init( &sv.multicast, sv.multicast_buf, sizeof(sv.multicast_buf));
 	com.strcpy( sv.name, server );
 

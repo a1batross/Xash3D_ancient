@@ -7,8 +7,7 @@
 #define SOUND_H
 
 #include <windows.h>
-#include <dsound.h>
-#include "basetypes.h"
+#include "launch_api.h"
 #include "ref_dllapi.h"
 #include "s_openal.h"
 

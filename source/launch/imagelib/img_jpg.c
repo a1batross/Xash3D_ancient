@@ -78,7 +78,7 @@ int jpeg_huffmancode( huffman_table_t *table )
 		code |= jpeg_read_bit();
 		while(table->size[i] <= size)
 		{
-			if(table->code[i] == code)
+			if( table->code[i] == code )
 				return table->hval[i];
 			i++;
 		}
@@ -193,17 +193,17 @@ int jpeg_readmarkers( void )
 	while( 1 )
 	{
 		marker = jpeg_read_byte();
-		if(marker != 0xFF) return 0;
+		if( marker != 0xFF ) return 0;
 
 		marker = jpeg_read_byte();
-		if(marker != 0xD8)
+		if( marker != 0xD8 )
 		{
 			length = jpeg_read_word();
 			length -= 2;
 
-			switch(marker)
+			switch( marker )
 			{
-			case 0xC0:  // Baseline
+			case 0xC0:  // baseline
 				jpg_file.data_precision = jpeg_read_byte();
 				jpg_file.height = jpeg_read_word();
 				jpg_file.width = jpeg_read_word();
@@ -219,22 +219,22 @@ int jpeg_readmarkers( void )
 					jpg_file.component_info[i].t = jpeg_read_byte();
 				}
 				break;
-			case 0xC1:  // Extended sequetial, Huffman
-			case 0xC2:  // Progressive, Huffman            
-			case 0xC3:  // Lossless, Huffman
-			case 0xC5:  // Differential sequential, Huffman
-			case 0xC6:  // Differential progressive, Huffman
-			case 0xC7:  // Differential lossless, Huffman
-			case 0xC8:  // Reserved for JPEG extensions
-			case 0xC9:  // Extended sequential, arithmetic
-			case 0xCA:  // Progressive, arithmetic
-			case 0xCB:  // Lossless, arithmetic
-			case 0xCD:  // Differential sequential, arithmetic
-			case 0xCE:  // Differential progressive, arithmetic
-			case 0xCF:  // Differential lossless, arithmetic
-				return 0;
-			case 0xC4:  // Huffman table
-				while(length > 0)
+			case 0xC1:  // extended sequetial, Huffman
+			case 0xC2:  // progressive, Huffman            
+			case 0xC3:  // lossless, Huffman
+			case 0xC5:  // differential sequential, Huffman
+			case 0xC6:  // differential progressive, Huffman
+			case 0xC7:  // differential lossless, Huffman
+			case 0xC8:  // reserved for JPEG extensions
+			case 0xC9:  // extended sequential, arithmetic
+			case 0xCA:  // progressive, arithmetic
+			case 0xCB:  // lossless, arithmetic
+			case 0xCD:  // differential sequential, arithmetic
+			case 0xCE:  // differential progressive, arithmetic
+			case 0xCF:  // differential lossless, arithmetic
+				return 0;	// not supported yet
+			case 0xC4:  // huffman table
+				while( length > 0 )
 				{
 					k = jpeg_read_byte();
 					if(k & 0x10) hptr = &jpg_file.hac[k & 0x0F];
@@ -259,8 +259,8 @@ int jpeg_readmarkers( void )
 					}
 				}
 				break;
-			case 0xDB:  // Quantization table
-				while(length > 0)
+			case 0xDB:  // quantization table
+				while( length > 0 )
 				{
 					j = jpeg_read_byte();
 					k = (j >> 4) & 0x0F;
@@ -273,17 +273,17 @@ int jpeg_readmarkers( void )
 					if( k )length -= 64;
 				}
 				break;
-			case 0xD9:  // End of image (EOI)
+			case 0xD9:  // end of image (EOI)
 				return 0;
-			case 0xDA:  // Start of scan (SOS)
+			case 0xDA:  // start of scan (SOS)
 				j = jpeg_read_byte();
 				for(i = 0; i < j; i++)
 				{
 					k = jpeg_read_byte();
 					m = jpeg_read_byte();
-					for(l = 0; l < jpg_file.num_components; l++)
+					for( l = 0; l < jpg_file.num_components; l++ )
 					{
-						if(jpg_file.component_info[l].id == k)
+						if( jpg_file.component_info[l].id == k )
 						{
 							jpg_file.component_info[l].td = (m >> 4) & 0x0F;
 							jpg_file.component_info[l].ta = m & 0x0F;
@@ -296,11 +296,11 @@ int jpeg_readmarkers( void )
 				jpg_file.scan.ah = (k >> 4) & 0x0F;
 				jpg_file.scan.al = k & 0x0F;
 				return 1;
-			case 0xDD:  // Restart interval
+			case 0xDD:  // restart interval
 				jpg_file.restart_interval = jpeg_read_word();
 				break;
 			default:
-				jpg_file.buffer += length; //move ptr
+				jpg_file.buffer += length; // move ptr
 				break;
 			}
 		}
@@ -344,12 +344,12 @@ void jpeg_decompress( void )
 		scaleh[2] = jpg_file.component_info[0].h / jpg_file.component_info[2].h;
 		scalev[2] = jpg_file.component_info[0].v / jpg_file.component_info[2].v;
 	}
-	memset(jpg_file.dc,0,sizeof(int) * 3);
+	memset( jpg_file.dc, 0, sizeof(int) * 3);
 
-	for(Y = 0; Y < jpg_file.height; Y += jpg_file.component_info[0].v << 3)
+	for( Y = 0; Y < jpg_file.height; Y += jpg_file.component_info[0].v << 3 )
 	{
-		if(jpg_file.restart_interval > 0) jpg_file.curbit = 0;
-		for(X = 0; X < jpg_file.width; X += jpg_file.component_info[0].h << 3)
+		if( jpg_file.restart_interval > 0 ) jpg_file.curbit = 0;
+		for( X = 0; X < jpg_file.width; X += jpg_file.component_info[0].h << 3 )
 		{
 			for(plane = 0; plane < jpg_file.num_components; plane++)
 			{
@@ -428,7 +428,7 @@ void jpeg_ycbcr2rgba( void )
 	// convert YCbCr image to RGBA
 	for(i = 0; i < jpg_file.width * jpg_file.height << 2; i += 4)
 	{
-		Y = jpg_file.data[i];
+		Y  = jpg_file.data[i + 0];
 		Cb = jpg_file.data[i + 1] - 128;
 		Cr = jpg_file.data[i + 2] - 128;
 
@@ -447,7 +447,7 @@ void jpeg_ycbcr2rgba( void )
 		jpg_file.data[i + 0] = R;
 		jpg_file.data[i + 1] = G;
 		jpg_file.data[i + 2] = B;
-		jpg_file.data[i + 3] = 0xff;//alpha channel
+		jpg_file.data[i + 3] = 0xff;	// no alpha channel
 	}
 }
 
@@ -474,7 +474,7 @@ Image_LoadJPG
 */
 bool Image_LoadJPG( const char *name, const byte *buffer, size_t filesize )
 {
-	memset(&jpg_file, 0, sizeof(jpg_file));
+	memset( &jpg_file, 0, sizeof( jpg_file ));
 	jpg_file.buffer = (byte *)buffer;
 
 	if(!jpeg_readmarkers()) 
@@ -482,7 +482,6 @@ bool Image_LoadJPG( const char *name, const byte *buffer, size_t filesize )
 
 	image.width = jpg_file.width;
 	image.height = jpg_file.height;
-	image.type = PF_RGBA_32;
 	if(!Image_ValidSize( name )) return false;
 
 	image.size = jpg_file.width * jpg_file.height * 4;
@@ -492,9 +491,10 @@ bool Image_LoadJPG( const char *name, const byte *buffer, size_t filesize )
 	if( jpg_file.num_components == 1 ) jpeg_gray2rgba();        
 	if( jpg_file.num_components == 3 ) jpeg_ycbcr2rgba();
 
+	image.rgba = jpg_file.data;
+	image.type = PF_RGBA_32;
 	image.num_layers = 1;
 	image.num_mips = 1;
-	image.rgba = jpg_file.data;
 
 	return true;
 }

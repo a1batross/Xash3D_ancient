@@ -155,8 +155,8 @@ byte CRC_BlockSequence(byte *base, int length, int sequence)
 	if (sequence < 0) sequence = abs(sequence);
 	p = chktbl + (sequence % (sizeof(chktbl) - 4));
 
-	if (length > 60) length = 60;
-	memcpy(chkb, base, length);
+	if( length > 60 ) length = 60;
+	Mem_Copy( chkb, base, length );
 
 	chkb[length] = p[0];
 	chkb[length + 1] = p[1];
@@ -285,7 +285,7 @@ void MD4Final( byte digest[16], MD4_CTX *context )
 	MD4Update (context, PADDING, padLen);
 	MD4Update (context, bits, 8);
 	Encode (digest, context->state, 16);
-	memset((POINTER)context, 0, sizeof (*context));
+	Mem_Set((POINTER)context, 0, sizeof (*context));
 }
 
 static void MD4Transform (UINT4 state[4], const byte block[64])
@@ -352,7 +352,7 @@ static void MD4Transform (UINT4 state[4], const byte block[64])
 	state[1] += b;
 	state[2] += c;
 	state[3] += d;
-	memset((POINTER)x, 0, sizeof (x));
+	Mem_Set((POINTER)x, 0, sizeof (x));
 }
 
 static void Encode(byte *output, UINT4 *input, uint len)

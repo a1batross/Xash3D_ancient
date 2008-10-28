@@ -5,10 +5,8 @@
 #ifndef BASEPLATFORM_H
 #define BASEPLATFORM_H
 
-#include <stdio.h>
-#include <setjmp.h>
 #include <windows.h>
-#include "basetypes.h"
+#include "launch_api.h"
 #include "ref_dllapi.h"
 
 //=====================================
@@ -18,5 +16,18 @@
 void InitPlatform ( int argc, char **argv ); // init host
 void RunPlatform ( void ); // host frame
 void ClosePlatform ( void ); // close host
+
+//=====================================
+//	extragen export
+//=====================================
+bool ConvertResource( byte *mempool, const char *filename, byte parms );
+void Skin_FinalizeScript( void );
+void Conv_RunSearch( void );
+
+// shared tools
+void ClrMask( void );
+void AddMask( const char *mask );
+extern string searchmask[];
+extern int num_searchmask;
 
 #endif//BASEPLATFORM_H

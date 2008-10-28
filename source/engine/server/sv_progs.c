@@ -428,7 +428,7 @@ void Sav_LoadCfgString( wfile_t *l )
 
 	// unpack the cfg string data
 	for( i = 0; i < numstrings; i++ )
-		com.strncpy( sv.configstrings[i], StringTable_GetString( s_table, in[i] ), MAX_QPATH );  
+		com.strncpy( sv.configstrings[i], StringTable_GetString( s_table, in[i] ), CS_SIZE );  
 }
 
 void Sav_LoadAreaPortals( wfile_t *l )

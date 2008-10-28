@@ -780,7 +780,7 @@ static bool R_ParseStageBumpMap( ref_shader_t *shader, shaderStage_t *stage, cha
 {
 	stageBundle_t	*bundle = stage->bundles[stage->numBundles - 1];
 	uint		flags = TF_NORMALMAP;
-	char		heightMap[MAX_QPATH];
+	string		heightMap;
 	float		bumpScale;
 	char		*tok;
 

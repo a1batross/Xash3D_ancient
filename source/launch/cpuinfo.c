@@ -5,6 +5,8 @@
 
 #include "launch.h"
 
+typedef signed __int64	int64;
+
 // Processor Information:
 typedef struct cpuinfo_s
 {
@@ -137,7 +139,7 @@ const char* GetProcessorVendorId()
 	static char VendorID[13];
 	register_t vendor = cpuid(0);
 	
-	memset( VendorID, 0, sizeof(VendorID) );
+	Mem_Set( VendorID, 0, sizeof( VendorID ));
 	if( !vendor.retval )
 	{
 		com_strcpy( VendorID, "Generic_x86" ); 
@@ -245,19 +247,22 @@ cpuinfo_t GetCPUInfo( void )
 	SYSTEM_INFO	si;
 	
 
-	if( pi.m_size == sizeof(pi) ) return pi;// Has the structure already been initialized and filled out?
-	memset(&pi, 0, sizeof(pi));		// Redundant, but just in case the user somehow messes with the size.
-	pi.m_size = sizeof(pi);		// Fill out the structure, and return it:
-	pi.m_speed = CalculateClockSpeed();	// Grab the processor frequency:
-	pi.m_usNumLogicCore = LogicalProcessorsPerPackage();// Get the logical and physical processor counts:
+	if( pi.m_size == sizeof( pi ))
+		return pi;		// has the structure already been initialized and filled out?
+	Mem_Set( &pi, 0, sizeof( pi ));	// redundant, but just in case the user somehow messes with the size.
+	pi.m_size = sizeof(pi);		// fill out the structure, and return it:
+	pi.m_speed = CalculateClockSpeed();	// grab the processor frequency:
 
-	memset( &si, 0, sizeof(si) );
+	// get the logical and physical processor counts:
+	pi.m_usNumLogicCore = LogicalProcessorsPerPackage();
+
+	Mem_Set( &si, 0, sizeof( si ));
 	GetSystemInfo( &si );
 
 	pi.m_usNumPhysCore = si.dwNumberOfProcessors / pi.m_usNumLogicCore;
 	pi.m_usNumLogicCore *= pi.m_usNumPhysCore;
 
-	// Make sure I always report at least one, when running WinXP with the /ONECPU switch, 
+	// make sure I always report at least one, when running WinXP with the /ONECPU switch, 
 	// it likes to report 0 processors for some reason.
 	if( pi.m_usNumPhysCore == 0 && pi.m_usNumLogicCore == 0 )
 	{
@@ -278,6 +283,202 @@ cpuinfo_t GetCPUInfo( void )
 	return pi;
 }
 
+void Sys_InitMathlib( cpuinfo_t *cpu )
+{
+	size_t	size = 1024 * 1024;
+	int	i, start, min, result[8];
+	void	*buf0 = Malloc( size );
+	void	*buf1 = Malloc( size );
+	int	numchecks = 16; // iterations
+	float	a;
+
+	// testing sqrt
+	start = Sys_Milliseconds();
+	for( i = 1; i < 800000; i++ ) a = sqrtf( i );
+	a *= 0.00000001;
+	result[(int)a] = Sys_Milliseconds() - start;
+	MsgDev( D_NOTE, "crt_sqrt %i ms\n", result[0] );
+
+	start = Sys_Milliseconds();
+	for( i = 1; i < 800000; i++ ) a = com_sqrt( i );
+	a *= 0.00000001;
+	result[(int)a+1] = Sys_Milliseconds() - start;
+	MsgDev( D_NOTE, "com_sqrt %i ms\n", result[1] );
+
+	if( cpu->m_b3DNow )
+	{
+		start = Sys_Milliseconds();
+		for( i = 0; i < 800000; i++ ) a = amd_sqrt( i );
+		a *= 0.00000001;
+		result[(int)a+2] = Sys_Milliseconds() - start;
+		MsgDev( D_NOTE, "amd_sqrt %i ms\n", result[2] );
+	}
+	else
+	{
+		result[2] = 0x7fffffff;
+		MsgDev( D_NOTE, "amd_sqrt not supported\n" );
+	}
+
+	if( cpu->m_bSSE )
+	{
+		start = Sys_Milliseconds();
+		for( i = 0; i < 800000; i++ ) a = sse_sqrt( i );
+		a *= 0.00000001;
+		result[(int)a+3] = Sys_Milliseconds() - start;
+		MsgDev( D_NOTE, "sse_sqrt %i ms\n", result[3] );
+	}
+	else
+	{
+		result[3] = 0x7fffffff;
+		MsgDev( D_NOTE, "sse_sqrt not supported\n" );
+	}
+
+	min = min( result[0], min( result[1], min( result[2], result[3] )));
+	if( min == result[0] )
+	{
+		MsgDev( D_NOTE, "Sys_InitMathlib: using crt_sqrt\n");
+		com.sqrt = sqrtf;
+	}
+	else if( min == result[1] )
+	{
+		MsgDev( D_NOTE, "Sys_InitMathlib: using com_sqrt\n");
+		com.sqrt = com_sqrt;
+	}
+	else if( min == result[2] )
+	{
+		MsgDev( D_NOTE, "Sys_InitMathlib: using amd_sqrt\n");
+		com.sqrt = amd_sqrt;
+	}
+	else if( min == result[3] )
+	{
+		MsgDev( D_NOTE, "Sys_InitMathlib: using sse_sqrt\n");
+		com.sqrt = sse_sqrt;
+	}
+
+	start = Sys_Milliseconds();
+	for( i = 0; i < numchecks; i++ ) _crt_mem_copy( buf0, buf1, size, __FILE__, __LINE__ );
+	result[0] = Sys_Milliseconds() - start;
+	MsgDev( D_NOTE, "crt_memcpy %i ms\n", result[0] );
+
+	start = Sys_Milliseconds();
+	for( i = 0; i < numchecks; i++ ) _asm_mem_copy( buf0, buf1, size, __FILE__, __LINE__ );
+	result[1] = Sys_Milliseconds() - start;
+	MsgDev( D_NOTE, "asm_memcpy %i ms\n", result[1] );
+
+	start = Sys_Milliseconds();
+	for( i = 0; i < numchecks; i++ ) _com_mem_copy( buf0, buf1, size, __FILE__, __LINE__ );
+	result[2] = Sys_Milliseconds() - start;
+	MsgDev( D_NOTE, "com_memcpy %i ms\n", result[2] );
+
+	if( cpu->m_bMMX )
+	{
+		start = Sys_Milliseconds();
+		for( i = 0; i < numchecks; i++ ) _mmx_mem_copy( buf0, buf1, size, __FILE__, __LINE__ );
+		result[3] = Sys_Milliseconds() - start;
+		MsgDev( D_NOTE, "mmx_memcpy %i ms\n", result[3] );
+	}
+	else
+	{
+		result[3] = 0x7fffffff;
+		MsgDev( D_NOTE, "mmx_memcpy not supported\n" );
+	}
+
+	if( cpu->m_b3DNow )
+	{
+		start = Sys_Milliseconds();
+		for( i = 0; i < numchecks; i++ ) _amd_mem_copy( buf0, buf1, size, __FILE__, __LINE__ );
+		result[4] = Sys_Milliseconds() - start;
+		MsgDev( D_NOTE, "amd_memcpy %i ms\n", result[4] );
+	}
+	else
+	{
+		result[4] = 0x7fffffff;
+		MsgDev( D_NOTE, "amd_memcpy not supported\n" );
+	}
+
+	min = min( result[0], min( result[1], min( result[2], min( result[3], result[4] ))));
+	if( min == result[0] )
+	{
+		MsgDev( D_NOTE, "Sys_InitMathlib: using crt_memcpy\n" );
+		com.memcpy = _crt_mem_copy;
+	}
+	else if( min == result[1] )
+	{
+		MsgDev( D_NOTE, "Sys_InitMathlib: using asm_memcpy\n" );
+		com.memcpy = _asm_mem_copy;
+	}
+	else if( min == result[2] )
+	{
+		MsgDev( D_NOTE, "Sys_InitMathlib: using com_memcpy\n" );
+		com.memcpy = _com_mem_copy;
+	}
+	else if( min == result[3] )
+	{
+		MsgDev( D_NOTE, "Sys_InitMathlib: using mmx_memcpy\n" );
+		com.memcpy = _mmx_mem_copy;
+	}
+	else if( min == result[4] )
+	{
+		MsgDev( D_NOTE, "Sys_InitMathlib: using amd_memcpy\n" );
+		com.memcpy = _amd_mem_copy;
+	}
+
+	// memset
+	start = Sys_Milliseconds();
+	for( i = 0; i < numchecks; i++ ) _crt_mem_set( buf0, 0, size, __FILE__, __LINE__ );
+	result[0] = Sys_Milliseconds() - start;
+	MsgDev( D_NOTE, "crt_memset %i ms\n", result[0] );
+
+	start = Sys_Milliseconds();
+	for( i = 0; i < numchecks; i++ ) _asm_mem_set( buf0, 0, size, __FILE__, __LINE__ );
+	result[1] = Sys_Milliseconds() - start;
+	MsgDev( D_NOTE, "asm_memset %i ms\n", result[1] );
+
+	start = Sys_Milliseconds();
+	for( i = 0; i < numchecks; i++ ) _com_mem_set( buf0, 0, size, __FILE__, __LINE__ );
+	result[2] = Sys_Milliseconds() - start;
+	MsgDev( D_NOTE, "com_memset %i ms\n", result[2] );
+
+	if( cpu->m_bMMX )
+	{
+		start = Sys_Milliseconds();
+		for( i = 0; i < numchecks; i++ ) _mmx_mem_set( buf0, 0, size, __FILE__, __LINE__ );
+		result[3] = Sys_Milliseconds() - start;
+		MsgDev( D_NOTE, "mmx_memset %i ms\n", result[3] );
+	}
+	else
+	{
+		result[3] = 0x7fffffff;
+		MsgDev( D_NOTE, "mmx_memset not supported\n" );
+	}
+
+	min = min( result[0], min( result[1], min( result[2], result[3] )));
+	if( min == result[0] )
+	{
+		MsgDev( D_NOTE, "Sys_InitMathlib: using crt_memset\n" );
+		com.memset = _crt_mem_set;
+	}
+	else if( min == result[1] )
+	{
+		MsgDev( D_NOTE, "Sys_InitMathlib: using asm_memset\n" );
+		com.memset = _asm_mem_set;
+	}
+	else if( min == result[2] )
+	{
+		MsgDev( D_NOTE, "Sys_InitMathlib: using com_memset\n" );
+		com.memset = _com_mem_set;
+	}
+	else if( min == result[3] )
+	{
+		MsgDev( D_NOTE, "Sys_InitMathlib: using mmx_memset\n" );
+		com.memset = _mmx_mem_set;
+	}
+
+	// release test memory
+	if( buf0 ) Mem_Free( buf0 );
+	if( buf1 ) Mem_Free( buf1 );
+}
+
 void Sys_InitCPU( void )
 {
 	cpuinfo_t	cpu = GetCPUInfo();
@@ -288,10 +489,8 @@ void Sys_InitCPU( void )
 	double fFrequency = cpu.m_speed / 1000000.0;
 
 	// copy shared info
-	GI.tickcount = cpu.m_speed; // used for profiling
 	GI.cpufreq = (float)fFrequency;
           GI.cpunum = cpu.m_usNumLogicCore;
-          GI.rdtsc = cpu.m_bRDTSC;
           
 	// Adjust to Ghz if nessecary:
 	if( fFrequency > 1000.0 )
@@ -322,4 +521,9 @@ void Sys_InitCPU( void )
 		MsgDev(D_INFO, "CPU: %s [%i core's %s]. Frequency: %.01f %s\n ", cpu.m_szCPUID, (int)cpu.m_usNumLogicCore, buffer, fFrequency, szFrequencyDenomination );
 	}
 	MsgDev(D_NOTE, "CPU Features: %s\n", szFeatureString );
+
+	Com_BuildSqrtTable();
+	Com_BuildSinCosTable();
+	Sys_InitMathlib( &cpu );
 }
+

@@ -196,7 +196,7 @@ void BSP_LoadShaders( lump_t *l )
 
 	for( i = 0; i < cm.numshaders; i++, in++, out++)
 	{
-		com.strncpy( out->name, in->name, MAX_QPATH );
+		com.strncpy( out->name, in->name, MAX_SHADERPATH );
 		out->contentflags = LittleLong( in->contents );
 		out->surfaceflags = LittleLong( in->flags );
 	}

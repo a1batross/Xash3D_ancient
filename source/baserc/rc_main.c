@@ -4,8 +4,8 @@
 //=======================================================================
 
 #include <windows.h>
-#include "basetypes.h"
-#include "ref_dllapi.h"
+#include "launch_api.h"
+#include "baserc_api.h"
 
 // resources
 #include "images.h"

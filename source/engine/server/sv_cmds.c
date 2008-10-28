@@ -189,7 +189,7 @@ For development work
 */
 void SV_Map_f( void )
 {
-	char	filename[MAX_QPATH];
+	string	filename;
 
 	if( Cmd_Argc() != 2 )
 	{
@@ -197,7 +197,7 @@ void SV_Map_f( void )
 		return;
 	}
 
-	com.snprintf( filename, MAX_QPATH, "%s.bsp", Cmd_Argv(1));
+	com.snprintf( filename, MAX_STRING, "%s.bsp", Cmd_Argv(1));
 	if(!FS_FileExists(va("maps/%s", filename )))
 	{
 		Msg("Can't loading %s\n", filename );
@@ -230,7 +230,7 @@ SV_Load_f
 */
 void SV_Load_f( void )
 {
-	char	filename[MAX_QPATH];
+	string	filename;
 
 	if(Cmd_Argc() != 2)
 	{
@@ -238,7 +238,7 @@ void SV_Load_f( void )
 		return;
 	}
 
-	com.snprintf( filename, MAX_QPATH, "%s.bin", Cmd_Argv(1));
+	com.snprintf( filename, MAX_STRING, "%s.bin", Cmd_Argv(1));
 	if(!FS_FileExists(va("save/%s", filename )))
 	{
 		Msg("Can't loading %s\n", filename );
@@ -259,7 +259,7 @@ SV_Save_f
 */
 void SV_Save_f( void )
 {
-	char	filename[MAX_QPATH];
+	string	filename;
 
 	if(Cmd_Argc() != 2)
 	{
@@ -267,7 +267,7 @@ void SV_Save_f( void )
 		return;
 	}
 
-	com.snprintf( filename, MAX_QPATH, "%s.bin", Cmd_Argv(1));
+	com.snprintf( filename, MAX_STRING, "%s.bin", Cmd_Argv(1));
 	SV_WriteSaveFile( filename );
 }
 
@@ -280,7 +280,7 @@ Saves the state of the map just being exited and goes to a new map.
 */
 void SV_ChangeLevel_f( void )
 {
-	char	filename[MAX_QPATH];
+	string	filename;
 	int	c = Cmd_Argc();
 
 	if( c != 2 && c != 3 )
@@ -289,7 +289,7 @@ void SV_ChangeLevel_f( void )
 		return;
 	}
 
-	com.snprintf( filename, MAX_QPATH, "%s.bsp", Cmd_Argv(1));
+	com.snprintf( filename, MAX_STRING, "%s.bsp", Cmd_Argv(1));
 	if(!FS_FileExists(va("maps/%s", filename )))
 	{
 		Msg("Can't loading %s\n", filename );
@@ -337,11 +337,11 @@ restarts current level
 */
 void SV_Restart_f( void )
 {
-	char	filename[MAX_QPATH];
+	string	filename;
 	
 	if(sv.state != ss_active) return;
 
-	com.strncpy( filename, svs.mapcmd, MAX_QPATH );
+	com.strncpy( filename, svs.mapcmd, MAX_STRING );
 	FS_StripExtension( filename );
 
 	// just sending console command

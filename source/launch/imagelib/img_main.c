@@ -84,6 +84,8 @@ const bpc_desc_t PFDesc[] =
 {PF_LUMINANCE,	"LUM 8",	0x1909,	0x1401, 1,  1, -1 },
 {PF_LUMINANCE_16,	"LUM 16", 0x1909,	0x1401, 2,  2, -2 },
 {PF_LUMINANCE_ALPHA,"LUM A",	0x190A,	0x1401, 2,  1, -2 },
+{PF_UV_16,	"UV 16",	0x190A,	0x1401, 2,  1, -2 },
+{PF_UV_16,	"UV 16",	0x190A,	0x1401, 2,  1, -4 },
 {PF_R_16F,	"R 16f",	0x8884,	0x1406, 1,  4, -2 }, // FIXME: these NV extension, reinstall for ATI
 {PF_R_32F,	"R 32f",	0x8885,	0x1406, 1,  4, -4 },
 {PF_GR_32F,	"GR 32f",	0x8886,	0x1406, 2,  4, -4 },
@@ -109,6 +111,7 @@ void Image_Reset( void )
 	image.num_layers = 1;
 	image.source_type = 0;
 	image.num_mips = 0;
+	image.filter = CB_HINT_NO;
 	image.type = PF_UNKNOWN;
 
 	// pointers will be saved with prevoius picture struct
@@ -383,7 +386,7 @@ load_internal:
 
 	if( !image.loadformats || image.loadformats->ext == NULL )
 		MsgDev( D_NOTE, "FS_LoadImage: imagelib offline\n" );
-	else if(!com_stristr( filename, "#internal" ))
+	else if( filename[0] != '#' )
 		MsgDev( D_WARN, "FS_LoadImage: couldn't load \"%s\"\n", loadname );
 
 	return NULL;

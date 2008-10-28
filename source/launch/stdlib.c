@@ -300,11 +300,12 @@ float com_atof(const char *str)
 
 void com_atov( float *vec, const char *str, size_t siz )
 {
-	char	*pstr, *pfront, buffer[MAX_QPATH];
+	string	buffer;
+	char	*pstr, *pfront;
 	int	j;
 
-	com_strncpy( buffer, str, MAX_QPATH );
-	memset( vec, 0, sizeof(vec_t) * siz);
+	com.strncpy( buffer, str, MAX_STRING );
+	Mem_Set( vec, 0, sizeof(vec_t) * siz );
 	pstr = pfront = buffer;
 
 	for ( j = 0; j < siz; j++ )
@@ -422,13 +423,13 @@ timestamp
 */
 const char* com_timestamp( int format )
 {
-	static char timestamp [128];
-	time_t crt_time;
-	const struct tm *crt_tm;
-	char timestring [64];
+	static string	timestamp;
+	time_t		crt_time;
+	const struct tm	*crt_tm;
+	string		timestring;
 
-	time (&crt_time);
-	crt_tm = localtime (&crt_time);
+	time( &crt_time );
+	crt_tm = localtime( &crt_time );
 	switch( format )
 	{
 	case TIME_FULL:
@@ -447,10 +448,14 @@ const char* com_timestamp( int format )
 		// Build a timestamp that can use for filename (ex: "Nov2006-26 (19.14)");
 		strftime(timestring, sizeof (timestring), "%b%Y-%d (%H.%M)", crt_tm);
 		break;
+	case TIME_YEAR_ONLY:
+		// Build the date stamp year only (ex: "2006");
+		strftime(timestring, sizeof (timestring), "%Y", crt_tm);
+		break;
 	default: return NULL;
 	}
 
-	com_strcpy( timestamp, timestring );
+	com.strncpy( timestamp, timestring, MAX_STRING );
 	return timestamp;
 }
 

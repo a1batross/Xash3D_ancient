@@ -5,23 +5,7 @@
 #ifndef REF_DLLAPI_H
 #define REF_DLLAPI_H
 
-#ifndef NULL
-#define NULL		((void *)0)
-#endif
-
-#ifndef BIT
-#define BIT( n )		(1<<( n ))
-#endif
-
 #include "ref_dfiles.h"
-#include "launch_api.h"
-
-#define STRING_COLOR_TAG	'^'
-#define IsColorString(p)	( p && *(p) == STRING_COLOR_TAG && *((p)+1) && *((p)+1) != STRING_COLOR_TAG )
-#define bound(min, num, max)	((num) >= (min) ? ((num) < (max) ? (num) : (max)) : (min))
-#define DLLEXPORT		__declspec(dllexport)
-
-
 
 typedef struct { uint b:5; uint g:6; uint r:5; } color16;
 typedef struct { byte r:8; byte g:8; byte b:8; } color24;
@@ -427,23 +411,6 @@ typedef struct launch_exp_s
 	void (*CPrint) ( const char *msg );			// host print
 	void (*MSG_Init)( sizebuf_t *buf, byte *data, size_t len );	// MSG init network buffer
 } launch_exp_t;
-
-
-/*
-==============================================================================
-
-BASERC.DLL INTERFACE
-
-just a resource package library
-==============================================================================
-*/
-typedef struct baserc_exp_s
-{
-	// interface validator
-	size_t	api_size;		// must matched with sizeof(imglib_api_t)
-
-	byte *(*LoadFile)( const char *filename, fs_offset_t *size );
-} baserc_exp_t;
 
 /*
 ==============================================================================

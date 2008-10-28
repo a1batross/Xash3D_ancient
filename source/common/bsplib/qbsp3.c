@@ -35,7 +35,7 @@ int EmitShader( const char *shader )
 
 	if( i == MAX_MAP_SHADERS ) Sys_Break( "MAX_MAP_SHADERS limit exceeded\n" );
 	numshaders++;
-	com.strncpy( dshaders[i].name, shader, MAX_QPATH );
+	com.strncpy( dshaders[i].name, shader, MAX_SHADERPATH );
 
 	si = FindShader( shader );
 	dshaders[i].flags = si->surfaceFlags;
@@ -195,7 +195,7 @@ void SetLightStyles( void )
 	char		*t;
 	bsp_entity_t	*e;
 	int		i, j, k, stylenum = 0;
-	char		lighttargets[64][MAX_QPATH];
+	char		lighttargets[64][64];
 
 
 	// any light that is controlled (has a targetname)
@@ -247,7 +247,7 @@ void SetLightStyles( void )
 				Msg( "switchable lightstyles limit (%i) exceeded at entity #%i\n", 64, i );
 				break; // nothing to process
 			}
-			com.strncpy( lighttargets[j], t, MAX_QPATH );
+			com.strncpy( lighttargets[j], t, 64 );
 			stylenum++;
 		}
 		SetKeyValue( e, "style", va( "%i", 32 + j ));

@@ -5,10 +5,10 @@
 
 #include "imagelib.h"
 
-// VTF->DXT conversion supply structures
+// VTF->DXT supply conversion structures
 typedef struct
 {
-	long	ofs;		// offset at start
+	long	ofs;		// buffer + ofs
 	size_t	size;		// map size
 } vlayer_t;
 
@@ -30,12 +30,11 @@ typedef struct
 	int	numSides;		// must be equal 1 or 7
 } vtex_t;
 
+// NOTE: other VTF formats never used in games based on Source Engine
 pixformat_t Image_VTFFormat( vtf_format_t srcFormat )
 {
 	switch( srcFormat )
 	{
-	case VTF_UNKNOWN:
-		return VTF_UNKNOWN;
 	case VTF_DXT1:
 	case VTF_DXT1_ONEBITALPHA:
 		return PF_DXT1;
@@ -48,37 +47,27 @@ pixformat_t Image_VTFFormat( vtf_format_t srcFormat )
 	case VTF_BGR888:
 		return PF_BGR_24;
 	case VTF_UVWQ8888:
-		return PF_RGBA_32;
+		return PF_UV_32;
 	case VTF_BGRA8888:
 		return PF_BGRA_32;
 	case VTF_UV88:
-		return PF_LUMINANCE_ALPHA;
-#if 0
+		return PF_UV_16;
 	case VTF_RGBA8888:
 		return PF_RGBA_32;
 	case VTF_RGB888:
 		return PF_RGB_24;
-	case VTF_RGB565:
-		return PF_RGB_16;
-	case VTF_I8:
-		return PF_LUMINANCE;
-	case VTF_IA88:
-		return PF_LUMINANCE_ALPHA;
-	case VTF_P8:
-		return PF_INDEXED_24;
-	case VTF_ARGB8888:
-		return PF_ARGB_32;
-#endif
+	case VTF_UNKNOWN:
+		return VTF_UNKNOWN;
 	default: return PF_UNKNOWN;
 	}
 } 
 
 /*
 ================
-Image_VTFCalcMipmapSize
+Image_VTFCalcLowResSize
 
-stupid idea - last miplevel (1x1) put at begin of buffer
-or DX8 format requries it, i'm don't know...
+lowres image hasn't mip-levels, frames or cubemap sides
+typically params: 16x16 DXT1 but can be missing
 ================
 */
 size_t Image_VTFCalcLowResSize( vtf_t *hdr )
@@ -91,24 +80,40 @@ size_t Image_VTFCalcLowResSize( vtf_t *hdr )
 	// missing lowRes image for -1 value
 	if( format != VTF_UNKNOWN )
 	{
-		w = hdr->lowResImageWidth;
-		h = hdr->lowResImageHeight;
+		w = LittleShort( hdr->lowResImageWidth );
+		h = LittleShort( hdr->lowResImageHeight );
 		buffsize = Image_DXTGetLinearSize( format, w, h, 1, 0 );
 	}
 	return buffsize;
 }
 
+/*
+================
+Image_VTFCalcMipmapSize
+
+stupid idea - last miplevel (1x1) put at begin of buffer
+or DX8 format requries it, i'm don't know...
+================
+*/
 size_t Image_VTFCalcMipmapSize( vtf_t *hdr, int mipNum ) 
 {
 	size_t	buffsize = 0;
 	int	w, h, mipsize;
 
-	w = max( 1, (hdr->width)>>mipNum);
-	h = max( 1, (hdr->height)>>mipNum);
+	w = max( 1, LittleShort(hdr->width)>>mipNum );
+	h = max( 1, LittleShort(hdr->height)>>mipNum );
 	mipsize = Image_DXTGetLinearSize( image.type, w, h, 1, 0 );
 	return mipsize;
 }
 
+
+/*
+================
+Image_VTFCalcImageSize
+
+main image size not included header or lowres
+================
+*/
 size_t Image_VTFCalcImageSize( vtf_t *hdr, bool oldformat ) 
 {
 	size_t	buffsize = 0;
@@ -175,7 +180,7 @@ void Image_VTFSwapBuffer( vtf_t *hdr, const byte *input, size_t input_size, bool
 		// NOTE: we needs to swap sides order
 		vside_t *side = &texture->sides[texture->numSides-i-1];
 		if( !oldformat && texture->numSides > 1 && i == 6 )
-			continue; // skip envmap if needed
+			continue; // skip envmap if present
 		for( j = 0; j < side->nummips; j++ )
 		{
 			vmip_t	*mip = &side->mips[j];
@@ -218,7 +223,7 @@ bool Image_LoadVTF( const char *name, const byte *buffer, size_t filesize )
 	hdrSize = LittleLong( vtf.hdr_size );
 	biasSize = 0;
 
-	if( LittleLong( vtf.ident ) != VTFHEADER ) return false; // it's not a dds file, just skip it
+	if( LittleLong( vtf.ident ) != VTFHEADER ) return false; // it's not a vtf file, just skip it
 	FS_FileBase( name, shortname );
 
 	// bounds check
@@ -230,7 +235,7 @@ bool Image_LoadVTF( const char *name, const byte *buffer, size_t filesize )
 	}
 
 	i = LittleLong( vtf.ver_minor );
-	if( i == VTF_SUBVERSION0 && vtf.hdr_size == 64 ) oldformat = true; // missing envmap for cubemap images
+	if( i == VTF_SUBVERSION0 && vtf.hdr_size == 64 ) oldformat = true; // 7.0 hasn't envmap for cubemap images
 	// all other subversions are valid
 
 	image.width = LittleShort( vtf.width );
@@ -244,8 +249,8 @@ bool Image_LoadVTF( const char *name, const byte *buffer, size_t filesize )
 	if( flags & VF_ENVMAP ) image.flags |= IMAGE_CUBEMAP;
 
 	vtfFormat = LittleLong( vtf.imageFormat );
-	image.num_layers = LittleLong( vtf.num_frames );
 	image.type = Image_VTFFormat( vtfFormat );
+	image.num_layers = LittleLong( vtf.num_frames );
 	image.num_mips = LittleLong( vtf.numMipLevels );
 
 	if( image.type == PF_UNKNOWN )
@@ -266,8 +271,8 @@ bool Image_LoadVTF( const char *name, const byte *buffer, size_t filesize )
 	}
 	else if( filesize < i ) return false; // corrupted texture or somewhat
 
-	fin += hdrSize + biasSize + lowResSize; // skip lowRes image
-	image.size = resSize;
+	fin += hdrSize + biasSize + lowResSize; // go to main image
+	image.size = resSize; // base size can be merged after swapping
 
 	// convert VTF to DXT
 	Image_VTFSwapBuffer( &vtf, fin, resSize, oldformat );
@@ -283,10 +288,8 @@ bool Image_LoadVTF( const char *name, const byte *buffer, size_t filesize )
 		if( image.flags & IMAGE_CUBEMAP ) numsides = 6;
 		Image_SetPixelFormat( image.width, image.height, image.num_layers ); // setup
 		image.size = image.ptr = 0;
-		if( image.cmd_flags & IL_IGNORE_MIPS )
-			image.cur_mips = 1;
-		else image.cur_mips = image.num_mips;
-		image.num_mips = 1; // defaulting to one mip
+		image.cur_mips = image.num_mips;
+		image.num_mips = 0; // clear mipcount
 
 		for( i = 0, offset = 0; i < numsides; i++, buf += offset )
 		{

@@ -306,6 +306,7 @@ typedef struct jpg_s
 #define DDS_RGB				0x00000040L
 #define DDS_RGBA				0x00000041L	// (DDS_RGB|DDS_ALPHAPIXELS)
 #define DDS_LUMINANCE			0x00020000L
+#define DDS_DUDV				0x00080000L
 
 // dwCaps1
 #define DDS_COMPLEX				0x00000008L

@@ -4,20 +4,9 @@
 //=======================================================================
 
 #include "ripper.h"
-#include "qc_gen.h"
 
-stdlib_api_t com;
-byte *basepool;
-byte *zonepool;
-static double start, end;
-string gs_gamedir;
-string gs_searchmask;
-
-#define	MAX_SEARCHMASK	256
-string	searchmask[MAX_SEARCHMASK];
-int	num_searchmask = 0;
-bool	write_qscsript;
-int	game_family;
+bool write_qscsript;
+int game_family;
 
 typedef struct convformat_s
 {
@@ -31,7 +20,7 @@ convformat_t convert_formats[] =
 {
 	{"%s.%s", "spr", ConvSPR, "bmp" },	// quake1/half-life sprite
 	{"%s.%s","spr32",ConvSPR, "tga" },	// spr32 sprite
-	{"%s.%s", "sp2", ConvSP2, "bmp" },	// quake2 sprite
+	{"%s.%s", "sp2", ConvSPR, "bmp" },	// quake2 sprite
 	{"%s.%s", "jpg", ConvJPG, "tga" },	// quake3 textures
 	{"%s.%s", "pcx", ConvPCX, "bmp" },	// quake2 pics
 	{"%s.%s", "flt", ConvFLT, "bmp" },	// doom1 textures
@@ -42,8 +31,7 @@ convformat_t convert_formats[] =
 	{"%s.%s", "vtf", ConvVTF, "dds" },	// Half-Life 2 materials
 	{"%s.%s", "skn", ConvSKN, "bmp" },	// doom1 sprite models
 	{"%s.%s", "bsp", ConvBSP, "bmp" },	// Quake1\Half-Life map textures
-	{"%s.%s", "mus", ConvMID, "mid" },	// Quake1\Half-Life map textures
-	{"%s.%s", "snd", ConvSND, "wav" },	// Quake1\Half-Life map textures
+	{"%s.%s", "mus", ConvMID, "mid" },	// doom1\2 music files
 	{"%s.%s", "txt", ConvRAW, "txt" },	// (hidden) Xash-extract scripts
 	{"%s.%s", "dat", ConvRAW, "dat" },	// (hidden) Xash-extract progs
 	{NULL, NULL, NULL, NULL }		// list terminator
@@ -51,10 +39,21 @@ convformat_t convert_formats[] =
 
 bool CheckForExist( const char *path, const char *ext )
 {
+	if( game_family == GAME_DOOM1 )
+	{
+		string	name, wad;
+
+		// HACK: additional check for { symbol
+		FS_ExtractFilePath( path, wad );
+		FS_FileBase( path, name );
+		if(FS_FileExists( va( "%s/%s/{%s.%s", gs_gamedir, wad, name, ext )))
+			return true;
+		// fallback to normal checking
+	}
 	return FS_FileExists( va( "%s/%s.%s", gs_gamedir, path, ext ));
 }
 
-bool ConvertResource( const char *filename )
+bool ConvertResource( byte *mempool, const char *filename, byte parms )
 {
 	convformat_t	*format;
           const char	*ext = FS_FileExtension( filename );
@@ -77,7 +76,7 @@ bool ConvertResource( const char *filename )
 			if( buffer && filesize > 0 )
 			{
 				// this path may contains wadname: wadfile/lumpname
-				if( format->convfunc( path, buffer, filesize, format->ext2 ))
+				if( format->convfunc( convname, buffer, filesize, format->ext2 ))
 				{
 					Mem_Free( buffer );	// release buffer
 					return true;	// converted ok
@@ -89,23 +88,6 @@ bool ConvertResource( const char *filename )
 	FS_FileBase( convname, basename );
 	MsgDev( D_WARN, "ConvertResource: couldn't load \"%s\"\n", basename );
 	return false;
-}
-
-void ClrMask( void )
-{
-	num_searchmask = 0;
-	memset( searchmask, 0,  MAX_STRING * MAX_SEARCHMASK ); 
-}
-
-void AddMask( const char *mask )
-{
-	if( num_searchmask >= MAX_SEARCHMASK )
-	{
-		MsgDev( D_WARN, "AddMask: searchlist is full\n" );
-		return;
-	}
-	com.strncpy( searchmask[num_searchmask], mask, MAX_STRING );
-	num_searchmask++;
 }
 
 void Conv_DetectGameType( void )
@@ -144,38 +126,14 @@ void Conv_DetectGameType( void )
 	ClrMask();
 }
 
-/*
-==================
-CommonInit
-
-idconv.dll needs for some setup operations
-so do it manually
-==================
-*/
-void InitConvertor ( int argc, char **argv )
-{
-	
-	// init pools
-	basepool = Mem_AllocPool( "Ripper Temp" );
-	zonepool = Mem_AllocPool( "Ripper Zone" );
-	FS_InitRootDir(".");
-
-	start = Sys_DoubleTime();
-	Msg("\n\n");
-}
-
-void RunConvertor( void )
+void Conv_RunSearch( void )
 {
 	search_t	*search;
-	string	errorstring;
-	int	i, j, k, imageflags, numConvertedRes = 0;
-	cvar_t	*fs_defaultdir = Cvar_Get( "fs_defaultdir", "tmpQuArK", CVAR_SYSTEMINFO, NULL );
+	int	i, j, k, imageflags;
 
-	memset( errorstring, 0, MAX_STRING ); 
-	ClrMask();
 	Conv_DetectGameType();
           
-	if( game_family ) Msg("Game: %s family\n", game_names[game_family] );
+	if( game_family ) Msg( "Game: %s family\n", game_names[game_family] );
 	imageflags = IL_USE_LERPING;
 	write_qscsript = false;
 
@@ -191,7 +149,6 @@ void RunConvertor( void )
 				AddMask(va("%s/*.flt", search->filenames[i]));
 				AddMask(va("%s/*.flp", search->filenames[i]));
 				AddMask(va("%s/*.skn", search->filenames[i]));
-				AddMask(va("%s/*.snd", search->filenames[i]));
 				AddMask(va("%s/*.mus", search->filenames[i]));
 			}
 			Mem_Free( search );
@@ -202,7 +159,6 @@ void RunConvertor( void )
 			AddMask( "*.skn" );		// Doom1 sprite models	
 			AddMask( "*.flp" );		// Doom1 pics
 			AddMask( "*.flt" );		// Doom1 textures
-			AddMask( "*.snd" );		// Doom1 sounds
 			AddMask( "*.mus" );		// Doom1 music
 		}
 		imageflags |= IL_KEEP_8BIT;
@@ -322,7 +278,7 @@ void RunConvertor( void )
 		Image_Init( "Quake4", imageflags );
 		break;
 	case GAME_HALFLIFE:
-		search = FS_Search("*.wad", true );
+		search = FS_Search( "*.wad", true );
 		if( search )
 		{
 			// find subdirectories
@@ -353,71 +309,4 @@ void RunConvertor( void )
 		Image_Init( "Generic", imageflags );	// everything else
 		break;
 	}
-
-	// using custom mask
-	if(FS_GetParmFromCmdLine( "-file", gs_searchmask ))
-	{
-		ClrMask(); // clear all previous masks
-		AddMask( gs_searchmask ); // custom mask
-	}
-	else if( !game_family ) Sys_Break( "Sorry, game family not recognized\n" );
-
-	// directory to extract
-	com.strncpy( gs_gamedir, fs_defaultdir->string, sizeof(gs_gamedir));
-	Msg( "Converting ...\n\n" );
-
-	// search by mask		
-	for( i = 0; i < num_searchmask; i++ )
-	{
-		// skip blank mask
-		if(!com.strlen(searchmask[i])) continue;
-		search = FS_Search( searchmask[i], true );
-		if( !search ) continue; // try next mask
-
-		for( j = 0; j < search->numfilenames; j++ )
-		{
-			if(ConvertResource( search->filenames[j] ))
-				numConvertedRes++;
-		}
-		Mem_Free( search );
-	}
-	if( numConvertedRes == 0 ) 
-	{
-		for(j = 0; j < MAX_SEARCHMASK; j++) 
-		{
-			if(!com.strlen(searchmask[j])) continue;
-			com.strncat(errorstring, va("%s ", searchmask[j]), MAX_STRING );
-		}
-		Sys_Break("no %s found in this folder!\n", errorstring );
-	}
-
-	end = Sys_DoubleTime();
-	Msg ("%5.3f seconds elapsed\n", end - start);
-	if(numConvertedRes > 1) Msg("total %d files compiled\n", numConvertedRes );
-}
-
-void CloseConvertor( void )
-{
-	// finalize qc-script
-	Skin_FinalizeScript();
-
-	Mem_Check(); // check for leaks
-	Mem_FreePool( &basepool );
-	Mem_FreePool( &zonepool );
-}
-
-launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
-{
-	static launch_exp_t		Com;
-
-	com = *input;
-
-	// generic functions
-	Com.api_size = sizeof(launch_exp_t);
-
-	Com.Init = InitConvertor;
-	Com.Main = RunConvertor;
-	Com.Free = CloseConvertor;
-
-	return &Com;
 }

@@ -1,22 +1,25 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//		idconv.h - Doom1\Quake\Hl convertor into Xash Formats
+//			ripper.h - Xash Miptex Decompiler
 //=======================================================================
 #ifndef BASECONVERTOR_H
 #define BASECONVERTOR_H
 
-#include <windows.h>
-#include "basetypes.h"
-#include "ref_dllapi.h"
+#include "platform.h"
 
 extern stdlib_api_t com;
-extern byte *zonepool;
+extern byte *basepool;
 extern string gs_gamedir;
 #define Sys_Error com.error
 extern vprogs_exp_t *PRVM;
 extern uint app_name;
 extern bool write_qscsript;
 extern int game_family;
+
+// common tools
+bool Conv_CreateShader( const char *name, rgbdata_t *pic, const char *ext, const char *anim, int surf, int cnt );
+bool Conv_CheckMap( const char *mapname ); // for detect gametype
+bool Conv_CheckWad( const char *wadname ); // for detect gametype
 
 typedef enum
 {
@@ -55,8 +58,7 @@ static const char *game_names[] =
 //=====================================
 //	convertor modules
 //=====================================
-bool ConvSPR( const char *name, byte *buffer, size_t filesize, const char *ext );// quake1, half-life and spr32 sprites
-bool ConvSP2( const char *name, byte *buffer, size_t filesize, const char *ext );// quake2 sprites
+bool ConvSPR( const char *name, byte *buffer, size_t filesize, const char *ext );// q1, q2, half-life and spr32 sprites
 bool ConvPCX( const char *name, byte *buffer, size_t filesize, const char *ext );// pcx images (can use custom palette)
 bool ConvFLT( const char *name, byte *buffer, size_t filesize, const char *ext );// Doom1 flat images (textures)
 bool ConvFLP( const char *name, byte *buffer, size_t filesize, const char *ext );// Doom1 flat images (menu pics)
@@ -68,7 +70,6 @@ bool ConvWAL( const char *name, byte *buffer, size_t filesize, const char *ext )
 bool ConvVTF( const char *name, byte *buffer, size_t filesize, const char *ext );// Quake2 textures
 bool ConvSKN( const char *name, byte *buffer, size_t filesize, const char *ext );// Doom1 sprite models
 bool ConvBSP( const char *name, byte *buffer, size_t filesize, const char *ext );// Extract textures from bsp (q1\hl)
-bool ConvSND( const char *name, byte *buffer, size_t filesize, const char *ext );// not implemented
 bool ConvMID( const char *name, byte *buffer, size_t filesize, const char *ext );// Doom1 music files (midi)
 bool ConvRAW( const char *name, byte *buffer, size_t filesize, const char *ext );// write file without converting
 bool ConvDAT( const char *name, byte *buffer, size_t filesize, const char *ext );// quakec progs into source.qc

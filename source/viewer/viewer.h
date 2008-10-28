@@ -11,7 +11,7 @@
 #include <commctrl.h>
 #include <stdlib.h>
 #include <string.h>
-#include "basetypes.h"
+#include "launch_api.h"
 #include "ref_dllapi.h"
 
 #include "mxtk.h"

@@ -989,12 +989,24 @@ bool Image_DXTWriteHeader( vfile_t *f, rgbdata_t *pix )
 		switch( pix->type )
 		{
 		case PF_LUMINANCE:
-			dwABitMask = 0x00FFFFFF;
+			dwABitMask = 0x000000FF;
 			dwFlags2 |= DDS_LUMINANCE;
 			dwRGBBitCount = 8; 
 			break;
+		case PF_UV_16:
+			dwRBitMask = 0x000000FF;
+			dwGBitMask = 0x0000FF00;
+			dwFlags2 |= DDS_DUDV;
+			dwRGBBitCount = 16;
+			break;
+		case PF_UV_32:
+			dwRBitMask = 0x0000FFFF;
+			dwGBitMask = 0xFFFF0000;
+			dwFlags2 |= DDS_DUDV;
+			dwRGBBitCount = 32;
+			break;
 		case PF_LUMINANCE_ALPHA:
-			dwRBitMask = 0x00FF0000;
+			dwRBitMask = 0x000000FF;
 			dwABitMask = 0xFF000000;
 			dwFlags2 |= DDS_LUMINANCE;
 			dwFlags2 |= DDS_ALPHAPIXELS;
@@ -1004,6 +1016,13 @@ bool Image_DXTWriteHeader( vfile_t *f, rgbdata_t *pix )
 			dwRBitMask = 0x000000FF;
 			dwGBitMask = 0x0000FF00;
 			dwBBitMask = 0x00FF0000;
+			dwFlags2 |= DDS_RGB;
+			dwRGBBitCount = 24; 
+			break;
+		case PF_RGB_24:
+			dwRBitMask = 0x00FF0000;
+			dwGBitMask = 0x0000FF00;
+			dwBBitMask = 0x000000FF;
 			dwFlags2 |= DDS_RGB;
 			dwRGBBitCount = 24; 
 			break;
@@ -1214,10 +1233,13 @@ bool Image_DXTWriteImage( vfile_t *f, rgbdata_t *pix )
 	switch( pix->type )
 	{
 	case PF_BGR_24:
+	case PF_RGB_24:
 	case PF_BGRA_32:
 	case PF_RGBA_32:
 	case PF_LUMINANCE:
 	case PF_LUMINANCE_ALPHA:
+	case PF_UV_16:
+	case PF_UV_32:
 	case PF_DXT1:
 	case PF_DXT3:
 	case PF_DXT5:
@@ -1265,7 +1287,14 @@ void Image_DXTGetPixelFormat( dds_t *hdr )
 	else
 	{
 		// this dds texture isn't compressed so write out ARGB or luminance format
-		if( hdr->dsPixelFormat.dwFlags & DDS_LUMINANCE )
+		if( hdr->dsPixelFormat.dwFlags & DDS_DUDV )
+		{
+			if( hdr->dsPixelFormat.dwRGBBitCount == 16 )
+				image.type = PF_UV_16;
+			else if( hdr->dsPixelFormat.dwRGBBitCount == 32 )
+				image.type = PF_UV_32;
+		}
+		else if( hdr->dsPixelFormat.dwFlags & DDS_LUMINANCE )
 		{
 			if( hdr->dsPixelFormat.dwFlags & DDS_ALPHAPIXELS )
 				image.type = PF_LUMINANCE_ALPHA;
@@ -1369,13 +1398,13 @@ uint Image_DXTCalcSize( const char *name, dds_t *hdr, size_t filesize )
 
 void Image_AddRGBAToPack( uint target, int level, uint imageSize, const void* data )
 {
-	// NOTE: just update bufer without checking for type
+	// NOTE: just update bufer without checking for a type
 	image.rgba = Mem_Realloc( Sys.imagepool, image.rgba, image.ptr + imageSize );
 	Mem_Copy( image.rgba + image.ptr, data, imageSize ); // add mipmap or cubemapside
 
 	image.size += imageSize;	// update image size
 	image.ptr += imageSize;
-	if( level ) image.num_mips++;
+	image.num_mips++;
 }
 
 /*
@@ -2297,7 +2326,7 @@ bool Image_LoadDDS( const char *name, const byte *buffer, size_t filesize )
 		if( image.cmd_flags & IL_IGNORE_MIPS )
 			image.cur_mips = 1;
 		else image.cur_mips = image.num_mips;
-		image.num_mips = 1;
+		image.num_mips = 0; // clear mipcount
 
 		for( i = 0, offset = 0; i < numsides; i++, buf += offset )
 		{

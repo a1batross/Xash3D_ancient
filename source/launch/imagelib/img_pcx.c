@@ -43,7 +43,7 @@ bool Image_LoadPCX( const char *name, const byte *buffer, size_t filesize )
 
 	if( pcx.bits_per_pixel != 8 || pcx.manufacturer != 0x0a || pcx.version != 5 || pcx.encoding != 1)
 	{
-		MsgDev( D_ERROR, "Image_LoadPCX: (%s) have illegal pixel size '%d'\n", name, pcx.bits_per_pixel );
+		MsgDev( D_ERROR, "Image_LoadPCX: (%s) have unknown version '%d'\n", name, pcx.version );
 		return false;
 	}
 	if(!Image_ValidSize( name )) return false;
@@ -77,8 +77,8 @@ bool Image_LoadPCX( const char *name, const byte *buffer, size_t filesize )
 		while(x < image.width) pix[x++] = 0;
 	}
 
-	if( image.hint == IL_HINT_Q2 )
-		Image_GetPaletteQ2();
+	// NOTE: IL_HINT_Q2 does wrong result for sprite frames. use with caution
+	if( image.hint == IL_HINT_Q2 ) Image_GetPaletteQ2();
 	else Image_GetPalettePCX( palette );
 
 	// check for transparency
