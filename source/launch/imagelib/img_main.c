@@ -411,7 +411,7 @@ bool FS_SaveImage( const char *filename, rgbdata_t *pix )
 	FS_StripExtension( savename ); // remove extension if needed
 
 	// now try all the formats in the selected list
-	for( format = image.saveformats; format->formatstring; format++ )
+	for( format = image.saveformats; format && format->formatstring; format++ )
 	{
 		if( !com.stricmp( ext, format->ext ))
 		{

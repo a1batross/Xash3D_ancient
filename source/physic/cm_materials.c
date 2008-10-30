@@ -76,7 +76,7 @@ void CM_InitMaterials( void )
 		return;
 	}
 	cm.num_materials = 0;
-	memset( cm.mat, 0, sizeof(material_info_t) * MAX_MATERIALS );
+	Mem_Set( cm.mat, 0, sizeof(material_info_t) * MAX_MATERIALS );
 
 	while( Com_GetToken( true ))
 		CM_ParseMaterial();

@@ -410,7 +410,7 @@ static void R_LoadVisibility( const byte *base, const lump_t *l )
 
 	vis_length = ( m_pLoadModel->numClusters + 63 ) & ~63;
 	m_pLoadModel->novis = Mem_Alloc( m_pLoadModel->mempool, vis_length );
-	memset( m_pLoadModel->novis, 0xFF, vis_length );
+	Mem_Set( m_pLoadModel->novis, 0xFF, vis_length );
 
 	if( !l->filelen ) return;
 	m_pLoadModel->vis = Mem_Alloc( m_pLoadModel->mempool, l->filelen );
@@ -711,7 +711,7 @@ rmodel_t *Mod_ForName( const char *name, bool crash )
 	if( !buf )
 	{
 		if( crash ) Host_Error( "Mod_NumForName: %s not found\n", mod->name );
-		memset( mod->name, 0, sizeof( mod->name ));
+		Mem_Set( mod->name, 0, sizeof( mod->name ));
 		return NULL;
 	}
 
@@ -840,7 +840,7 @@ Mod_Free
 void Mod_Free( rmodel_t *mod )
 {
 	Mem_FreePool( &mod->mempool );
-	memset( mod, 0, sizeof( *mod ));
+	Mem_Set( mod, 0, sizeof( *mod ));
 	mod = NULL;
 }
 
@@ -867,7 +867,7 @@ R_InitModels
 */
 void R_InitModels( void )
 {
-	memset( r_fullvis, 255, sizeof( r_fullvis ));
+	Mem_Set( r_fullvis, 255, sizeof( r_fullvis ));
 
 	r_worldModel = NULL;
 	r_frameCount = 1;				// no dlight cache
@@ -875,7 +875,7 @@ void R_InitModels( void )
 	r_viewCluster = -1;				// force markleafs
 
 	r_worldEntity = &r_entities[0];		// First entity is the world
-	memset( r_worldEntity, 0, sizeof( ref_entity_t ));
+	Mem_Set( r_worldEntity, 0, sizeof( ref_entity_t ));
 	r_worldEntity->ent_type = ED_NORMAL;
 	r_worldEntity->model = r_worldModel;
 	AxisClear( r_worldEntity->axis );
@@ -898,6 +898,6 @@ void R_ShutdownModels( void )
 	r_worldEntity = NULL;
 
 	Mod_FreeAll();
-	memset( r_models, 0, sizeof( r_models ));
+	Mem_Set( r_models, 0, sizeof( r_models ));
 	r_nummodels = 0;
 }

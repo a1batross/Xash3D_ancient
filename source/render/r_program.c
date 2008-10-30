@@ -225,7 +225,7 @@ void R_ShutdownPrograms( void )
 		pglDeleteProgramsARB( 1, &program->progNum );
 	}
 
-	memset( r_programsHash, 0, sizeof(r_programsHash));
-	memset( r_programs, 0, sizeof(r_programs));
+	Mem_Set( r_programsHash, 0, sizeof(r_programsHash));
+	Mem_Set( r_programs, 0, sizeof(r_programs));
 	r_numPrograms = 0;
 }

@@ -601,7 +601,7 @@ sfx_t *S_FindSound( const char *name )
 	}
 
 	sfx = &s_knownSfx[i];
-	memset( sfx, 0, sizeof(*sfx));
+	Mem_Set( sfx, 0, sizeof(*sfx));
 	com.strncpy( sfx->name, name, MAX_STRING );
 	sfx->registration_sequence = s_registration_sequence;
 
@@ -703,6 +703,6 @@ void S_FreeSounds( void )
 		palDeleteBuffers(1, &sfx->bufferNum);
 	}
 
-	memset( s_knownSfx, 0, sizeof(s_knownSfx));
+	Mem_Set( s_knownSfx, 0, sizeof(s_knownSfx));
 	s_numSfx = 0;
 }

@@ -48,7 +48,7 @@ void GUI_AddToolTip( HWND hwnd, const char *text )
 {
 	TOOLINFO ti;
 
-	memset (&ti, 0, sizeof (TOOLINFO));
+	Mem_Set (&ti, 0, sizeof (TOOLINFO));
 	ti.cbSize = sizeof (TOOLINFO);
 	ti.uFlags = TTF_IDISHWND | TTF_SUBCLASS;
 	ti.uId = (UINT)hwnd;
@@ -314,7 +314,7 @@ void GUI_UpdateOptions( WPARAM wParam )
 		if(ChooseFont(&cf))
 		{
 			Msg("apply font %s\n", cf.lpLogFont->lfFaceName);
-			strcpy(w_opts.fontname, cf.lpLogFont->lfFaceName);
+			com.strcpy(w_opts.fontname, cf.lpLogFont->lfFaceName);
 			//Msg("apply font %d\n", cf.lpLogFont->lfHeight -MulDiv(cf.iPointSize, GetDeviceCaps(hDC, LOGPIXELSY), 72));		
 		}
 		break;
@@ -368,7 +368,7 @@ void GUI_CreateOptionsWindow( void )
 	int TABSTYLE = WS_CHILD | WS_VISIBLE | WS_TABSTOP | TCS_TOOLTIPS;
           int bpos_x, bpos_y;
 	
-	memset( &wc, 0, sizeof( wc ));
+	Mem_Set( &wc, 0, sizeof( wc ));
 	
 	wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
 	wc.lpfnWndProc = OptWndProc;
@@ -432,7 +432,7 @@ void GUI_ResetWndOptions( void )
 	w_opts.exp_scale = 5L;
 
 	w_opts.font_size = 7;
-	strcpy(w_opts.fontname, "Courier");
+	com.strcpy(w_opts.fontname, "Courier");
 	w_opts.font_type = CFM_BOLD | CFM_FACE | CFM_COLOR;
 	w_opts.font_color = RGB(0, 0, 0);
 
@@ -442,7 +442,7 @@ void GUI_ResetWndOptions( void )
 
 void GUI_LoadWndOptions( wnd_options_t *settings )
 {
-	memcpy( &w_opts, settings, sizeof(w_opts));
+	Mem_Copy( &w_opts, settings, sizeof( w_opts ));
 
 	s_gui.width = w_opts.width;
 	s_gui.height = w_opts.height;
@@ -509,7 +509,7 @@ GUI Console System
 */
 void GUI_PrintIntoBuffer(const char *pMsg)
 {
-	strcat(textbuffer, pMsg );
+	com.strcat(textbuffer, pMsg );
 }
 
 void GUI_ExecuteBuffer(void)
@@ -588,7 +588,7 @@ void GUI_Print(const char *pMsg)
 	s_totalChars += bufLen;
 
 	//Edit_SetSel(s_gui.hConsole, 0, s_totalChars);
-	memset(&cf, 0, sizeof(cf));
+	Mem_Set(&cf, 0, sizeof(cf));
 	cf.cbSize = sizeof(cf);
 	cf.dwMask = CFM_COLOR;
 	cf.crTextColor = color;
@@ -857,7 +857,7 @@ void InitViewer ( int argc, char **argv )
           int WNDSTYLE = WS_OVERLAPPEDWINDOW;
 	int iErrors = 0;
 	
-	memset( &wc, 0, sizeof( wc ));
+	Mem_Set( &wc, 0, sizeof( wc ));
 	s_gui.gHinst = (HINSTANCE)GetModuleHandle( NULL );
 
 	wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;

@@ -36,7 +36,7 @@ int jpeg_read_bit( void )
 		{
 			while(jpg_file.curbyte == 0xFF) jpeg_read_byte();
 			if(jpg_file.curbyte >= 0xD0 && jpg_file.curbyte <= 0xD7)
-				memset(jpg_file.dc, 0, sizeof(int) * 3);
+				Mem_Set(jpg_file.dc, 0, sizeof(int) * 3);
 			if(jpg_file.curbyte == 0) jpg_file.curbyte = 0xFF;
 			else jpeg_read_byte();
 		}
@@ -344,7 +344,7 @@ void jpeg_decompress( void )
 		scaleh[2] = jpg_file.component_info[0].h / jpg_file.component_info[2].h;
 		scalev[2] = jpg_file.component_info[0].v / jpg_file.component_info[2].v;
 	}
-	memset( jpg_file.dc, 0, sizeof(int) * 3);
+	Mem_Set( jpg_file.dc, 0, sizeof(int) * 3);
 
 	for( Y = 0; Y < jpg_file.height; Y += jpg_file.component_info[0].v << 3 )
 	{
@@ -474,7 +474,7 @@ Image_LoadJPG
 */
 bool Image_LoadJPG( const char *name, const byte *buffer, size_t filesize )
 {
-	memset( &jpg_file, 0, sizeof( jpg_file ));
+	Mem_Set( &jpg_file, 0, sizeof( jpg_file ));
 	jpg_file.buffer = (byte *)buffer;
 
 	if(!jpeg_readmarkers()) 

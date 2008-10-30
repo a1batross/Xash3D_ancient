@@ -102,7 +102,7 @@ void R_Bloom_InitBackUpTexture( int width, int height )
 {
 	rgbdata_t	r_bloom;
 
-	memset(&r_bloom, 0, sizeof(rgbdata_t));
+	Mem_Set(&r_bloom, 0, sizeof(rgbdata_t));
 	r_bloom.width = width;
 	r_bloom.height = height;
 	r_bloom.type = PF_RGBA_GN;
@@ -126,7 +126,7 @@ void R_Bloom_InitEffectTexture( void )
 	float	bloomsizecheck;
 	rgbdata_t	r_bloomfx;
 
-	memset(&r_bloomfx, 0, sizeof(rgbdata_t));
+	Mem_Set(&r_bloomfx, 0, sizeof(rgbdata_t));
 	
 	if( (int)r_bloom_sample_size->value < 32 )
 		Cvar_SetValue ("r_bloom_sample_size", 32);
@@ -170,8 +170,8 @@ void R_Bloom_InitTextures( void )
 	int	size;
 	rgbdata_t	r_bloomscr, r_downsample;
 
-	memset(&r_bloomscr, 0, sizeof(rgbdata_t));
-	memset(&r_downsample, 0, sizeof(rgbdata_t));
+	Mem_Set(&r_bloomscr, 0, sizeof(rgbdata_t));
+	Mem_Set(&r_downsample, 0, sizeof(rgbdata_t));
 
 	// find closer power of 2 to screen size 
 	for( screen_texture_width = 1; screen_texture_width < r_width->integer; screen_texture_width *= 2 );
@@ -179,7 +179,7 @@ void R_Bloom_InitTextures( void )
 
 	// init the screen texture
 	size = screen_texture_width * screen_texture_height * 4;
-	memset( r_framebuffer, 255, size );
+	Mem_Set( r_framebuffer, 255, size );
 
 	r_bloomscr.width = screen_texture_width;
 	r_bloomscr.height = screen_texture_height;

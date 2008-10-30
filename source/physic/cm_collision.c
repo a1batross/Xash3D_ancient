@@ -154,11 +154,11 @@ cbrushf_t *CM_CollisionNewBrushFromPlanes( byte *mempool, int numoriginalplanes,
 
 #if 0
 	// enable these if debugging to avoid seeing garbage in unused data
-	memset(pointsbuf, 0, sizeof(pointsbuf));
-	memset(planesbuf, 0, sizeof(planesbuf));
-	memset(elementsbuf, 0, sizeof(elementsbuf));
-	memset(polypointbuf, 0, sizeof(polypointbuf));
-	memset(p, 0, sizeof(p));
+	Mem_Set(pointsbuf, 0, sizeof(pointsbuf));
+	Mem_Set(planesbuf, 0, sizeof(planesbuf));
+	Mem_Set(elementsbuf, 0, sizeof(elementsbuf));
+	Mem_Set(polypointbuf, 0, sizeof(polypointbuf));
+	Mem_Set(p, 0, sizeof(p));
 #endif
 
 	// figure out how large a bounding box we need to properly compute this brush
@@ -1072,7 +1072,7 @@ void CM_CollisionClipTrace_BrushBox( trace_t *trace, const vec3_t cmins, const v
 	thisbrush_start = CM_CollisionBrushForBox( identitymatrix, startmins, startmaxs, 0, 0, NULL );
 	thisbrush_end = CM_CollisionBrushForBox( identitymatrix, endmins, endmaxs, 0, 0, NULL );
 
-	memset( trace, 0, sizeof(trace_t));
+	Mem_Set( trace, 0, sizeof(trace_t));
 	trace->contentsmask = hitsupercontentsmask;
 	trace->fraction = 1;
 	trace->realfraction = 1;
@@ -1352,7 +1352,7 @@ void CM_CollisionClipTrace_Box( trace_t *trace, const vec3_t cmins, const vec3_t
 	cbox_planes[5].surfaceflags = surfaceflags;
 	cbox_planes[5].surface = surface;
 
-	memset(trace, 0, sizeof(trace_t));
+	Mem_Set(trace, 0, sizeof(trace_t));
 	trace->contentsmask = contentsmask;
 	trace->fraction = 1;
 	trace->realfraction = 1;
@@ -1367,7 +1367,7 @@ void CM_CollisionClipToGenericEntity( trace_t *trace, cmodel_t *model, const vec
 	float	starttransformed[3];
 	float	endtransformed[3];
 
-	memset( trace, 0, sizeof(*trace));
+	Mem_Set( trace, 0, sizeof(*trace));
 	trace->fraction = trace->realfraction = 1;
 	VectorCopy( end, trace->endpos );
 
@@ -1391,7 +1391,7 @@ void CM_CollisionClipToGenericEntity( trace_t *trace, cmodel_t *model, const vec
 
 void CM_CollisionClipToWorld( trace_t *trace, cmodel_t *model, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int contents )
 {
-	memset( trace, 0, sizeof(*trace));
+	Mem_Set( trace, 0, sizeof(*trace));
 	trace->fraction = trace->realfraction = 1;
 
 	if( model && model->TraceBox )

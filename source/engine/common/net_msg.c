@@ -146,7 +146,7 @@ init new buffer
 */
 void MSG_Init( sizebuf_t *buf, byte *data, size_t length )
 {
-	memset( buf, 0, sizeof(*buf));
+	Mem_Set( buf, 0, sizeof(*buf));
 	buf->data = data;
 	buf->maxsize = length;
 	Huff_Init();
@@ -662,7 +662,7 @@ void MSG_ReadDeltaEntity( sizebuf_t *msg, entity_state_t *from, entity_state_t *
 	{
 		// check for a remove
 		MSG_ReadLong( msg );
-		memset( to, 0, sizeof(*to));	
+		Mem_Set( to, 0, sizeof(*to));	
 		to->number = -1;
 		return;
 	}
@@ -698,14 +698,14 @@ entity_state_t MSG_ParseDeltaPlayer( entity_state_t *from, entity_state_t *to )
 	uint		i;
 
 	// alloc space to copy state
-	memset( &result, 0, sizeof( result ));
+	Mem_Set( &result, 0, sizeof( result ));
 	out = &result;
 
 	// clear to old value before delta parsing
 	if( !from )
 	{
 		from = &dummy;
-		memset( &dummy, 0, sizeof( dummy ));
+		Mem_Set( &dummy, 0, sizeof( dummy ));
 	}
 	*out = *from;
 	
@@ -744,7 +744,7 @@ void MSG_WriteDeltaPlayerstate( entity_state_t *from, entity_state_t *to, sizebu
 	
 	if( !from )
 	{
-		memset (&dummy, 0, sizeof(dummy));
+		Mem_Set (&dummy, 0, sizeof(dummy));
 		ops = &dummy;
 	}
 	else ops = from;
@@ -788,7 +788,7 @@ void MSG_ReadDeltaPlayerstate( sizebuf_t *msg, entity_state_t *from, entity_stat
 	if( !from )
 	{
 		from = &dummy;
-		memset( &dummy, 0, sizeof( dummy ));
+		Mem_Set( &dummy, 0, sizeof( dummy ));
 	}
 	*to = *from;
 	

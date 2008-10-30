@@ -241,7 +241,7 @@ void S_StopBackgroundTrack( void )
 
 	S_StopStreaming();
 	S_CloseBackgroundTrack(&s_bgTrack);
-	memset(&s_bgTrack, 0, sizeof(bg_track_t));
+	Mem_Set(&s_bgTrack, 0, sizeof(bg_track_t));
 }
 
 /*

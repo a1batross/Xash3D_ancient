@@ -1828,7 +1828,7 @@ void RB_ShutdownBackend( void )
 		for( i = 0; i < rb_numVertexBuffers; i++ )
 			pglDeleteBuffersARB( 1, &rb_vertexBuffers[i] );
 
-		memset( rb_vertexBuffers, 0, sizeof( rb_vertexBuffers ));
+		Mem_Set( rb_vertexBuffers, 0, sizeof( rb_vertexBuffers ));
 
 		rb_numVertexBuffers = 0;
 		rb_staticBytes = 0;

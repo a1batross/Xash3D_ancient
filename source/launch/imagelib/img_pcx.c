@@ -130,7 +130,7 @@ bool Image_SavePCX( const char *name, rgbdata_t *pix )
 	}
 	  
 	out = Mem_Alloc( Sys.imagepool, ( pix->size * 2 ) + 768 ); 
-	memset( &pcx, 0, sizeof( pcx ));
+	Mem_Set( &pcx, 0, sizeof( pcx ));
 	
 	pcx.manufacturer = 0x0a;		// PCX id
 	pcx.version = 5;			// 256 color

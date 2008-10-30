@@ -250,7 +250,7 @@ void Cmd_GrabMip( void )
 	{
 		// figure out what palette entries are actually used
 		colors_used = 0;
-		memset( color_used, 0, sizeof(int) * 256 );
+		Mem_Set( color_used, 0, sizeof(int) * 256 );
 
 		for( x = 0; x < w; x++ )
 		{
@@ -268,7 +268,7 @@ void Cmd_GrabMip( void )
 	{
 		// assume palette full if it's a transparent texture
 		colors_used = 256;
-		memset( color_used, 1, sizeof(int) * 256 );
+		Mem_Set( color_used, 1, sizeof(int) * 256 );
 	}
 
 	// subsample for greater mip levels

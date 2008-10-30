@@ -160,8 +160,8 @@ failed:
 
 	// release openal at all
 	Sys_FreeLibrary( &openal_dll );
-	memset(&al_config, 0, sizeof(alconfig_t));
-	memset(&al_state, 0, sizeof(alstate_t));
+	Mem_Set(&al_config, 0, sizeof(alconfig_t));
+	Mem_Set(&al_state, 0, sizeof(alstate_t));
 	
 	return false;
 }
@@ -394,6 +394,6 @@ void S_Free_OpenAL( void )
 	}
 
 	Sys_FreeLibrary( &openal_dll );
-	memset(&al_config, 0, sizeof(alconfig_t));
-	memset(&al_state, 0, sizeof(alstate_t));
+	Mem_Set(&al_config, 0, sizeof(alconfig_t));
+	Mem_Set(&al_state, 0, sizeof(alstate_t));
 }

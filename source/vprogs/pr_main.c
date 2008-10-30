@@ -61,7 +61,7 @@ void PR_SetDefaultProperties( void )
 	
 	ForcedCRC = 0;
 	// enable all warnings
-	memset(pr_warning, 0, sizeof(pr_warning));
+	Mem_Set(pr_warning, 0, sizeof(pr_warning));
 
 	// reset all optimizarions
 	for( i = 0; pr_optimisations[i].enabled; i++ ) 
@@ -189,9 +189,9 @@ void PR_InitCompile( const char *name )
 	numtypeinfos = 0;
 	bodylessfuncs = 0;
 
-	memset(&pr, 0, sizeof(pr));
-	memset(&ret_temp, 0, sizeof(ret_temp));
-	memset(pr_immediate_string, 0, sizeof(pr_immediate_string));
+	Mem_Set(&pr, 0, sizeof(pr));
+	Mem_Set(&ret_temp, 0, sizeof(ret_temp));
+	Mem_Set(pr_immediate_string, 0, sizeof(pr_immediate_string));
 
 	if (opt_locals_marshalling) MsgDev( D_INFO, "Locals marshalling might be buggy. Use with caution\n");
 	com.strncpy( sourcefilename, name, sizeof(sourcefilename));

@@ -1229,13 +1229,27 @@ void Image_CompressDDS( vfile_t *f, byte *buffer )
 
 bool Image_DXTWriteImage( vfile_t *f, rgbdata_t *pix )
 {
+	byte	*in, *out, *buffer;
+	int	i, bpp = PFDesc[pix->type].bpp;
+
 	// just write input buffer as valid
 	switch( pix->type )
 	{
-	case PF_BGR_24:
 	case PF_RGB_24:
-	case PF_BGRA_32:
 	case PF_RGBA_32:
+		in = pix->buffer;	// filp to BGRA
+		buffer = image.tempbuffer = Mem_Realloc( Sys.imagepool, image.tempbuffer, pix->size ); 
+		for( i = 0, out = image.tempbuffer; i < pix->size; i += bpp, in += bpp )
+		{
+			*out++ = in[2];
+			*out++ = in[1];
+			*out++ = in[0];
+			if( pix->type == PF_RGBA_32 )
+				*out++ = in[3];
+		}
+		break;
+	case PF_BGR_24:
+	case PF_BGRA_32:
 	case PF_LUMINANCE:
 	case PF_LUMINANCE_ALPHA:
 	case PF_UV_16:
@@ -1244,10 +1258,13 @@ bool Image_DXTWriteImage( vfile_t *f, rgbdata_t *pix )
 	case PF_DXT3:
 	case PF_DXT5:
 	case PF_ABGR_64F:
-		VFS_Write( f, pix->buffer, pix->size );
-		return true;
+		buffer = pix->buffer;
+		break;
+	default: return false;
 	}
-	return false;
+
+	VFS_Write( f, buffer, pix->size );
+	return true;
 }
 
 void Image_DXTGetPixelFormat( dds_t *hdr )

@@ -1420,12 +1420,14 @@ void Memory_Init( void )
 	poolchain = NULL; // init mem chain
 	Sys.basepool = Mem_AllocPool( "Main pool" );
 	Sys.stringpool = Mem_AllocPool( "New string" );
+	Sys.scriptpool = Mem_AllocPool( "Parse Lib" );
 }
 
 void Memory_Shutdown( void )
 {
 	Mem_FreePool( &Sys.basepool );
 	Mem_FreePool( &Sys.stringpool );
+	Mem_FreePool( &Sys.scriptpool );
 }
 
 void Memory_Init_Commands( void )

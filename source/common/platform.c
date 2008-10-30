@@ -27,7 +27,7 @@ uint	app_name = HOST_OFFLINE;
 void ClrMask( void )
 {
 	num_searchmask = 0;
-	memset( searchmask, 0,  MAX_STRING * MAX_SEARCHMASK ); 
+	Mem_Set( searchmask, 0,  MAX_STRING * MAX_SEARCHMASK ); 
 }
 
 void AddMask( const char *mask )
@@ -123,7 +123,7 @@ void RunPlatform( void )
 
 	// directory to extract
 	com.strncpy( gs_gamedir, fs_defaultdir->string, sizeof( gs_gamedir ));
-	memset( errorstring, 0, MAX_STRING ); 
+	Mem_Set( errorstring, 0, MAX_STRING ); 
 	ClrMask();
 
 	switch( app_name )

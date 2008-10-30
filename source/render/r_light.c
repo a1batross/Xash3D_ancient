@@ -642,7 +642,7 @@ static void R_UploadLightmap( void )
 		Host_Error( "R_UploadLightmap: MAX_LIGHTMAPS limit exceeded\n" );
 
 	com.snprintf( name, sizeof(name), "*lightmap%i", r_lmState.currentNum );
-	memset( &r_generic, 0, sizeof( r_generic ));
+	Mem_Set( &r_generic, 0, sizeof( r_generic ));
 	r_generic.width = LIGHTMAP_WIDTH;
 	r_generic.height = LIGHTMAP_HEIGHT;
 	r_generic.type = PF_RGBA_GN; // generated
@@ -652,8 +652,8 @@ static void R_UploadLightmap( void )
 	r_lightmapTextures[r_lmState.currentNum++] = R_LoadTexture( name, &r_generic, TF_CLAMP, 0 );
 
 	// reset
-	memset( r_lmState.allocated, 0, sizeof( r_lmState.allocated ));
-	memset( r_lmState.buffer, 255, sizeof( r_lmState.buffer ));
+	Mem_Set( r_lmState.allocated, 0, sizeof( r_lmState.allocated ));
+	Mem_Set( r_lmState.buffer, 255, sizeof( r_lmState.buffer ));
 }
 
 /*
@@ -716,8 +716,8 @@ void R_BeginBuildingLightmaps( void )
 	}
 	
 	r_lmState.currentNum = -1;
-	memset( r_lmState.allocated, 0, sizeof( r_lmState.allocated ));
-	memset( r_lmState.buffer, 255, sizeof( r_lmState.buffer ));
+	Mem_Set( r_lmState.allocated, 0, sizeof( r_lmState.allocated ));
+	Mem_Set( r_lmState.buffer, 255, sizeof( r_lmState.buffer ));
 }
 
 /*

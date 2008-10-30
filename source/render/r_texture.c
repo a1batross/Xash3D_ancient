@@ -64,8 +64,8 @@ typedef struct
 static PixFormatDesc image_desc;
 static int r_textureFilterMin = GL_LINEAR_MIPMAP_LINEAR;
 static int r_textureFilterMag = GL_LINEAR;
+static vec3_t r_luminanceTable[256];
 static byte r_intensityTable[256];
-static byte r_lumaTable[256];
 static byte r_gammaTable[256];
 
 const char *r_skyBoxSuffix[6] = {"rt", "lf", "bk", "ft", "up", "dn"};
@@ -102,6 +102,426 @@ texture_t	*r_lightmapTextures[MAX_LIGHTMAPS];
 texture_t	*r_normalizeTexture;
 texture_t *r_radarMap;
 texture_t *r_aroundMap;
+
+/*
+=================
+R_AddImages
+
+Adds the given images together
+=================
+*/
+static byte *R_AddImages( byte *in1, byte *in2, int width, int height )
+{
+	byte	*out = in1;
+	int	r, g, b, a;
+	int	x, y;
+
+	for( y = 0; y < height; y++ )
+	{
+		for( x = 0; x < width; x++ )
+		{
+			r = in1[4*(y*width+x)+0] + in2[4*(y*width+x)+0];
+			g = in1[4*(y*width+x)+1] + in2[4*(y*width+x)+1];
+			b = in1[4*(y*width+x)+2] + in2[4*(y*width+x)+2];
+			a = in1[4*(y*width+x)+3] + in2[4*(y*width+x)+3];
+			out[4*(y*width+x)+0] = bound( 0, r, 255 );
+			out[4*(y*width+x)+1] = bound( 0, g, 255 );
+			out[4*(y*width+x)+2] = bound( 0, b, 255 );
+			out[4*(y*width+x)+3] = bound( 0, a, 255 );
+		}
+	}
+	Mem_Free( in2 );
+
+	return out;
+}
+
+/*
+=================
+R_MultiplyImages
+
+Multiplies the given images
+=================
+*/
+static byte *R_MultiplyImages( byte *in1, byte *in2, int width, int height )
+{
+	byte	*out = in1;
+	int	r, g, b, a;
+	int	x, y;
+
+	for( y = 0; y < height; y++ )
+	{
+		for( x = 0; x < width; x++ )
+		{
+			r = in1[4*(y*width+x)+0] * (in2[4*(y*width+x)+0] * (1.0/255));
+			g = in1[4*(y*width+x)+1] * (in2[4*(y*width+x)+1] * (1.0/255));
+			b = in1[4*(y*width+x)+2] * (in2[4*(y*width+x)+2] * (1.0/255));
+			a = in1[4*(y*width+x)+3] * (in2[4*(y*width+x)+3] * (1.0/255));
+			out[4*(y*width+x)+0] = bound( 0, r, 255 );
+			out[4*(y*width+x)+1] = bound( 0, g, 255 );
+			out[4*(y*width+x)+2] = bound( 0, b, 255 );
+			out[4*(y*width+x)+3] = bound( 0, a, 255 );
+		}
+	}
+	Mem_Free( in2 );
+
+	return out;
+}
+
+/*
+=================
+R_BiasImage
+
+Biases the given image
+=================
+*/
+static byte *R_BiasImage( byte *in, int width, int height, const vec4_t bias )
+{
+	int	x, y;
+	byte	*out = in;
+	int	r, g, b, a;
+
+	for( y = 0; y < height; y++ )
+	{
+		for( x = 0; x < width; x++ )
+		{
+			r = in[4*(y*width+x)+0] + (255 * bias[0]);
+			g = in[4*(y*width+x)+1] + (255 * bias[1]);
+			b = in[4*(y*width+x)+2] + (255 * bias[2]);
+			a = in[4*(y*width+x)+3] + (255 * bias[3]);
+			out[4*(y*width+x)+0] = bound( 0, r, 255 );
+			out[4*(y*width+x)+1] = bound( 0, g, 255 );
+			out[4*(y*width+x)+2] = bound( 0, b, 255 );
+			out[4*(y*width+x)+3] = bound( 0, a, 255 );
+		}
+	}
+	return out;
+}
+
+/*
+=================
+R_ScaleImage
+
+Scales the given image
+=================
+*/
+static byte *R_ScaleImage( byte *in, int width, int height, const vec4_t scale )
+{
+	byte	*out = in;
+	int	r, g, b, a;
+	int	x, y;
+
+	for( y = 0; y < height; y++ )
+	{
+		for( x = 0; x < width; x++ )
+		{
+			r = in[4*(y*width+x)+0] * scale[0];
+			g = in[4*(y*width+x)+1] * scale[1];
+			b = in[4*(y*width+x)+2] * scale[2];
+			a = in[4*(y*width+x)+3] * scale[3];
+			out[4*(y*width+x)+0] = bound( 0, r, 255 );
+			out[4*(y*width+x)+1] = bound( 0, g, 255 );
+			out[4*(y*width+x)+2] = bound( 0, b, 255 );
+			out[4*(y*width+x)+3] = bound( 0, a, 255 );
+		}
+	}
+	return out;
+}
+
+/*
+=================
+R_InvertColor
+
+Inverts the color channels of the given image
+=================
+*/
+static byte *R_InvertColor( byte *in, int width, int height )
+{
+	byte	*out = in;
+	int	x, y;
+
+	for( y = 0; y < height; y++ )
+	{
+		for( x = 0; x < width; x++ )
+		{
+			out[4*(y*width+x)+0] = 255 - in[4*(y*width+x)+0];
+			out[4*(y*width+x)+1] = 255 - in[4*(y*width+x)+1];
+			out[4*(y*width+x)+2] = 255 - in[4*(y*width+x)+2];
+		}
+	}
+	return out;
+}
+
+/*
+=================
+R_InvertAlpha
+
+Inverts the alpha channel of the given image
+=================
+*/
+static byte *R_InvertAlpha( byte *in, int width, int height )
+{
+	byte	*out = in;
+	int	x, y;
+
+	for( y = 0; y < height; y++ )
+	{
+		for( x = 0; x < width; x++ )
+			out[4*(y*width+x)+3] = 255 - in[4*(y*width+x)+3];
+	}
+	return out;
+}
+
+/*
+=================
+R_MakeIntensity
+
+Converts the given image to intensity
+=================
+*/
+static byte *R_MakeIntensity( byte *in, int width, int height )
+{
+	byte	*out = in;
+	byte	intensity;
+	float	r, g, b;
+	int	x, y;
+
+	for( y = 0; y < height; y++ )
+	{
+		for( x = 0; x < width; x++ )
+		{
+			r = r_luminanceTable[in[4*(y*width+x)+0]][0];
+			g = r_luminanceTable[in[4*(y*width+x)+1]][1];
+			b = r_luminanceTable[in[4*(y*width+x)+2]][2];
+
+			intensity = (byte)(r + g + b);
+
+			out[4*(y*width+x)+0] = intensity;
+			out[4*(y*width+x)+1] = intensity;
+			out[4*(y*width+x)+2] = intensity;
+			out[4*(y*width+x)+3] = intensity;
+		}
+	}
+	return out;
+}
+
+/*
+=================
+R_MakeLuminance
+
+Converts the given image to luminance
+=================
+*/
+static byte *R_MakeLuminance( byte *in, int width, int height )
+{
+	byte	*out = in;
+	byte	luminance;
+	float	r, g, b;
+	int	x, y;
+
+	for( y = 0; y < height; y++ )
+	{
+		for( x = 0; x < width; x++ )
+		{
+			r = r_luminanceTable[in[4*(y*width+x)+0]][0];
+			g = r_luminanceTable[in[4*(y*width+x)+1]][1];
+			b = r_luminanceTable[in[4*(y*width+x)+2]][2];
+
+			luminance = (byte)(r + g + b);
+
+			out[4*(y*width+x)+0] = luminance;
+			out[4*(y*width+x)+1] = luminance;
+			out[4*(y*width+x)+2] = luminance;
+			out[4*(y*width+x)+3] = 255;
+		}
+	}
+	return out;
+}
+
+/*
+=================
+R_MakeAlpha
+
+Converts the given image to alpha
+=================
+*/
+static byte *R_MakeAlpha( byte *in, int width, int height )
+{
+	byte	*out = in;
+	byte	alpha;
+	float	r, g, b;
+	int	x, y;
+
+	for( y = 0; y < height; y++ )
+	{
+		for( x = 0; x < width; x++ )
+		{
+			r = r_luminanceTable[in[4*(y*width+x)+0]][0];
+			g = r_luminanceTable[in[4*(y*width+x)+1]][1];
+			b = r_luminanceTable[in[4*(y*width+x)+2]][2];
+
+			alpha = (byte)(r + g + b);
+
+			out[4*(y*width+x)+0] = 255;
+			out[4*(y*width+x)+1] = 255;
+			out[4*(y*width+x)+2] = 255;
+			out[4*(y*width+x)+3] = alpha;
+		}
+	}
+	return out;
+}
+
+/*
+=================
+R_HeightMap
+
+Converts the given height map to a normal map
+=================
+*/
+static byte *R_HeightMap( byte *in, int width, int height, float scale )
+{
+	byte	*out;
+	vec3_t	normal;
+	float	r, g, b;
+	float	c, cx, cy;
+	int	x, y;
+
+	out = image_desc.source;
+
+	for( y = 0; y < height; y++ )
+	{
+		for( x = 0; x < width; x++ )
+		{
+			r = r_luminanceTable[in[4*(y*width+x)+0]][0];
+			g = r_luminanceTable[in[4*(y*width+x)+1]][1];
+			b = r_luminanceTable[in[4*(y*width+x)+2]][2];
+
+			c = (r + g + b) * (1.0/255);
+
+			r = r_luminanceTable[in[4*(y*width+((x+1)%width))+0]][0];
+			g = r_luminanceTable[in[4*(y*width+((x+1)%width))+1]][1];
+			b = r_luminanceTable[in[4*(y*width+((x+1)%width))+2]][2];
+
+			cx = (r + g + b) * (1.0/255);
+
+			r = r_luminanceTable[in[4*(((y+1)%height)*width+x)+0]][0];
+			g = r_luminanceTable[in[4*(((y+1)%height)*width+x)+1]][1];
+			b = r_luminanceTable[in[4*(((y+1)%height)*width+x)+2]][2];
+
+			cy = (r + g + b) * (1.0/255);
+
+			normal[0] = (c - cx) * scale;
+			normal[1] = (c - cy) * scale;
+			normal[2] = 1.0;
+
+			if(!VectorNormalizeLength( normal )) VectorSet( normal, 0.0f, 0.0f, 1.0f );
+			out[4*(y*width+x)+0] = (byte)(128 + 127 * normal[0]);
+			out[4*(y*width+x)+1] = (byte)(128 + 127 * normal[1]);
+			out[4*(y*width+x)+2] = (byte)(128 + 127 * normal[2]);
+			out[4*(y*width+x)+3] = 255;
+		}
+	}
+	return out;
+}
+
+/*
+ =================
+ R_AddNormals
+
+ Adds the given normal maps together
+ =================
+*/
+static byte *R_AddNormals (byte *in1, byte *in2, int width, int height){
+
+	byte	*out;
+	vec3_t	normal;
+	int	x, y;
+
+	out = image_desc.source;
+
+	for( y = 0; y < height; y++ )
+	{
+		for( x = 0; x < width; x++ )
+		{
+			normal[0] = (in1[4*(y*width+x)+0] * (1.0/127) - 1.0) + (in2[4*(y*width+x)+0] * (1.0/127) - 1.0);
+			normal[1] = (in1[4*(y*width+x)+1] * (1.0/127) - 1.0) + (in2[4*(y*width+x)+1] * (1.0/127) - 1.0);
+			normal[2] = (in1[4*(y*width+x)+2] * (1.0/127) - 1.0) + (in2[4*(y*width+x)+2] * (1.0/127) - 1.0);
+
+			if(!VectorNormalizeLength( normal )) VectorSet( normal, 0.0f, 0.0f, 1.0f );
+
+			out[4*(y*width+x)+0] = (byte)(128 + 127 * normal[0]);
+			out[4*(y*width+x)+1] = (byte)(128 + 127 * normal[1]);
+			out[4*(y*width+x)+2] = (byte)(128 + 127 * normal[2]);
+			out[4*(y*width+x)+3] = 255;
+		}
+	}
+
+	Mem_Free( in1 );
+	Mem_Free( in2 );
+
+	return out;
+}
+
+/*
+ =================
+ R_SmoothNormals
+
+ Smoothes the given normal map
+ =================
+*/
+static byte *R_SmoothNormals( byte *in, int width, int height )
+{
+	byte	*out;
+	uint	frac, fracStep;
+	uint	p1[0x1000], p2[0x1000];
+	byte	*pix1, *pix2, *pix3, *pix4;
+	uint	*inRow1, *inRow2;
+	vec3_t	normal;
+	int	i, x, y;
+
+	out = image_desc.source;
+
+	fracStep = 0x10000;
+	frac = fracStep>>2;
+	for( i = 0; i < width; i++ )
+	{
+		p1[i] = 4 * (frac>>16);
+		frac += fracStep;
+	}
+
+	frac = (fracStep>>2) * 3;
+	for( i = 0; i < width; i++ )
+	{
+		p2[i] = 4 * (frac>>16);
+		frac += fracStep;
+	}
+
+	for( y = 0; y < height; y++ )
+	{
+		inRow1 = (uint *)in + width * (int)((float)y + 0.25);
+		inRow2 = (uint *)in + width * (int)((float)y + 0.75);
+
+		for( x = 0; x < width; x++ )
+		{
+			pix1 = (byte *)inRow1 + p1[x];
+			pix2 = (byte *)inRow1 + p2[x];
+			pix3 = (byte *)inRow2 + p1[x];
+			pix4 = (byte *)inRow2 + p2[x];
+
+			normal[0] = (pix1[0] * (1.0/127) - 1.0) + (pix2[0] * (1.0/127) - 1.0) + (pix3[0] * (1.0/127) - 1.0) + (pix4[0] * (1.0/127) - 1.0);
+			normal[1] = (pix1[1] * (1.0/127) - 1.0) + (pix2[1] * (1.0/127) - 1.0) + (pix3[1] * (1.0/127) - 1.0) + (pix4[1] * (1.0/127) - 1.0);
+			normal[2] = (pix1[2] * (1.0/127) - 1.0) + (pix2[2] * (1.0/127) - 1.0) + (pix3[2] * (1.0/127) - 1.0) + (pix4[2] * (1.0/127) - 1.0);
+
+			if (!VectorNormalizeLength( normal )) VectorSet( normal, 0.0f, 0.0f, 1.0f );
+			out[4*(y*width+x)+0] = (byte)(128 + 127 * normal[0]);
+			out[4*(y*width+x)+1] = (byte)(128 + 127 * normal[1]);
+			out[4*(y*width+x)+2] = (byte)(128 + 127 * normal[2]);
+			out[4*(y*width+x)+3] = 255;
+		}
+	}
+	Mem_Free( in );
+
+	return out;
+}
 
 /*
 =================
@@ -442,7 +862,7 @@ bool R_GetPixelFormat( rgbdata_t *pic, uint tex_flags, float bumpScale )
 
 	if( !pic || !pic->buffer ) return false;
 	Mem_EmptyPool( r_imagepool ); // flush buffers		
-	memset( &image_desc + MAX_STRING, 0, sizeof(image_desc) - MAX_STRING );	// FIXME
+	Mem_Set( &image_desc + MAX_STRING, 0, sizeof(image_desc) - MAX_STRING );	// FIXME
 
 	BlockSize = PFDesc( pic->type )->block;
 	image_desc.bpp = PFDesc( pic->type )->bpp;
@@ -611,7 +1031,7 @@ void R_ShutdownTextures( void )
 		texture = &r_textures[i];
 		pglDeleteTextures( 1, &texture->texnum );
 	}
-	memset( r_textures, 0, sizeof( r_textures ));
+	Mem_Set( r_textures, 0, sizeof( r_textures ));
 	r_numTextures = 0;
 }
 
@@ -631,7 +1051,7 @@ static void R_CreateBuiltInTextures( void )
 	// FIXME: too many hardcoded values in this function
 
 	// default texture
-	memset( &r_generic, 0, sizeof( r_generic ));
+	Mem_Set( &r_generic, 0, sizeof( r_generic ));
 	for( i = x = 0; x < 16; x++ )
 	{
 		for( y = 0; y < 16; y++ )
@@ -663,14 +1083,14 @@ static void R_CreateBuiltInTextures( void )
 	r_blackTexture = R_LoadTexture( "*black", &r_generic, 0, 0 );
 
 	// raw texture
-	memset( data2D, 255, 256*256*4 );
+	Mem_Set( data2D, 255, 256*256*4 );
 	r_generic.width = 256;
 	r_generic.height = 256;
 	r_generic.size = r_generic.width * r_generic.height * 4;
 	r_rawTexture = R_LoadTexture( "*raw", &r_generic, 0, 0 );
 
 	// dynamic light texture
-	memset( data2D, 255, 128*128*4 );
+	Mem_Set( data2D, 255, 128*128*4 );
 	r_generic.width = 128;
 	r_generic.height = 128;
 	r_generic.size = r_generic.width * r_generic.height * 4;
@@ -750,7 +1170,7 @@ void R_InitTextures( void )
 
 	r_numTextures = 0;
 	registration_sequence = 1;
-	memset( &r_textures, 0, sizeof( r_textures ));
+	Mem_Set( &r_textures, 0, sizeof( r_textures ));
 
 	// init intensity conversions
 	r_intensity = Cvar_Get( "r_intensity", "2", 0, "gamma intensity value" );
@@ -762,16 +1182,13 @@ void R_InitTextures( void )
 		r_intensityTable[i] = bound( 0, j, 255 );
 	}
 
-	// make a luma table by squaring the intensity twice
+	// build luminance table
 	for( i = 0; i < 256; i++ )
 	{
-		f = ( float )i/255.0f;
-
-		f *= f;
-		f *= 2;
-		f *= f;
-		f *= 2;
-		r_lumaTable[i] = ( byte )(bound(0,f,1) * 255.0f);
+		f = (float)i;
+		r_luminanceTable[i][0] = f * 0.299;	// red weight
+		r_luminanceTable[i][1] = f * 0.587;	// green weight
+		r_luminanceTable[i][2] = f * 0.114;	// blue weight
 	}
 
 	// create built-in textures
@@ -799,9 +1216,9 @@ bool R_ResampleTexture( uint *in, int inwidth, int inheight, uint *out, int outw
 		// apply the double-squared luminescent version
 		for( i = 0, pix1 = (byte *)in; i < inwidth * inheight; i++, pix1 += 4 ) 
 		{
-			pix1[0] = r_lumaTable[pix1[0]];
-			pix1[1] = r_lumaTable[pix1[1]];
-			pix1[2] = r_lumaTable[pix1[2]];
+			pix1[0] = r_luminanceTable[pix1[0]][0];
+			pix1[1] = r_luminanceTable[pix1[1]][1];
+			pix1[2] = r_luminanceTable[pix1[2]][2];
 		}
 	}
 
@@ -1271,7 +1688,7 @@ void R_ImageFreeUnused( void )
 			continue;
 		Msg("release texture %s\n", image->name );
 		pglDeleteTextures( 1, &image->texnum );
-		memset( image, 0, sizeof( *image ));
+		Mem_Set( image, 0, sizeof( *image ));
 	}
 }
 

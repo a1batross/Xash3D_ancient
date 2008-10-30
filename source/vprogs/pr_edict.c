@@ -179,7 +179,7 @@ Sets everything to NULL
 */
 void PRVM_ED_ClearEdict (edict_t *e)
 {
-	memset (e->progs.vp, 0, vm.prog->progs->entityfields * 4);
+	Mem_Set (e->progs.vp, 0, vm.prog->progs->entityfields * 4);
 	e->priv.ed->free = false;
 
 	// AK: Let the init_edict function determine if something needs to be initialized
@@ -1134,7 +1134,7 @@ void PRVM_ED_LoadFromFile (const char *data)
 		else ent = PRVM_ED_Alloc();
 
 		// HACKHACK: clear it 
-		if (ent != vm.prog->edicts) memset(ent->progs.vp, 0, vm.prog->progs->entityfields * 4);
+		if (ent != vm.prog->edicts) Mem_Set(ent->progs.vp, 0, vm.prog->progs->entityfields * 4);
 
 		data = PRVM_ED_ParseEdict (data, ent);
 		parsed++;
@@ -1197,7 +1197,7 @@ void PRVM_ResetProg( void )
 {
 	PRVM_GCALL(reset_cmd)();
 	Mem_FreePool(&vm.prog->progs_mempool);
-	memset(vm.prog, 0, sizeof(prvm_prog_t));
+	Mem_Set(vm.prog, 0, sizeof(prvm_prog_t));
 }
 
 /*
@@ -1838,7 +1838,7 @@ void PRVM_InitProg( int prognr )
 
 	if(vm.prog->loaded) PRVM_ResetProg();
 
-	memset(vm.prog, 0, sizeof(prvm_prog_t));
+	Mem_Set(vm.prog, 0, sizeof(prvm_prog_t));
 
 	vm.prog->time = &vm.prog->_time;
 	vm.prog->error_cmd = VM_Error;

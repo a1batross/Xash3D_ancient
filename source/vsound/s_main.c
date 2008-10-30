@@ -102,7 +102,7 @@ static void S_FreeChannels( void )
 	for( i = 0, ch = s_channels; i < al_state.num_channels; i++, ch++ )
 	{
 		palDeleteSources(1, &ch->sourceNum);
-		memset(ch, 0, sizeof(*ch));
+		Mem_Set(ch, 0, sizeof(*ch));
 	}
 	al_state.num_channels = 0;
 }
@@ -507,7 +507,7 @@ void S_StopAllSounds( void )
 		return;
 
 	// Clear all the playSounds
-	memset( s_playSounds, 0, sizeof(s_playSounds));
+	Mem_Set( s_playSounds, 0, sizeof(s_playSounds));
 
 	s_freePlaySounds.next = s_freePlaySounds.prev = &s_freePlaySounds;
 	s_pendingPlaySounds.next = s_pendingPlaySounds.prev = &s_pendingPlaySounds;

@@ -82,7 +82,7 @@ void png_fread( void *unused, byte *data, size_t length )
 		MsgDev( D_WARN, "png_fread: overrun by %i bytes\n", length - l );
 		// a read going past the end of the file, fill in the remaining bytes
 		// with 0 just to be consistent
-		memset( data + l, 0, length - l );
+		Mem_Set( data + l, 0, length - l );
 		length = l;
 	}
 	Mem_Copy( data, png.tmpBuf + png.tmpi, length );
@@ -135,7 +135,7 @@ bool Image_LoadPNG( const char *name, const byte *buffer, size_t filesize )
 	}
 	png_set_sig_bytes( fin, 0);
 
-	memset(&png, 0, sizeof( png ));
+	Mem_Set(&png, 0, sizeof( png ));
 	png.tmpBuf = buffer;
 	png.tmpBuflength = filesize;
 	png.tmpi = 0;

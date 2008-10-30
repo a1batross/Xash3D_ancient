@@ -617,7 +617,7 @@ void WriteMDLFile( void )
 
 		FS_WriteFile( texname, pStart, phdr->length );
 
-		memset( pStart, 0, phdr->length );
+		Mem_Set( pStart, 0, phdr->length );
 		pData = pStart;
 	}
 
@@ -732,7 +732,7 @@ void SimplifyModel( void )
 				{
 					// create new bone
 					k = numbones;
-					strncpy( bonetable[k].name, model[i]->node[j].name, sizeof(bonetable[k].name));
+					com.strncpy( bonetable[k].name, model[i]->node[j].name, sizeof(bonetable[k].name));
 					if ((n = model[i]->node[j].parent) != -1)
 						bonetable[k].parent	= findNode( model[i]->node[n].name );
 					else bonetable[k].parent = -1;
@@ -1175,7 +1175,7 @@ void SimplifyModel( void )
 						if( n == 0 ) Sys_Break("no animation frames: \"%s\"\n", sequence[i]->name );
 
 						sequence[i]->panim[q]->numanim[j][k] = 0;
-						memset( data, 0, sizeof( data ) ); 
+						Mem_Set( data, 0, sizeof( data ) ); 
 						pcount = data; 
 						pvalue = pcount + 1;
 
@@ -1550,10 +1550,10 @@ int Grab_Nodes( s_node_t *pnodes )
 		if(Com_MatchToken( "end" )) return numbones + 1;
 		
 		index = atoi(com_token); //read bone index (we already have filled token)
-		strcpy( name, Com_GetToken( false ));
-		parent = atoi(Com_GetToken( false )); //read bone parent
+		com.strcpy( name, Com_GetToken( false ));
+		parent = com.atoi(Com_GetToken( false )); //read bone parent
 
-		strncpy( pnodes[index].name, name, sizeof(pnodes[index].name));
+		com.strncpy( pnodes[index].name, name, sizeof(pnodes[index].name));
 		pnodes[index].parent = parent;
 		numbones = index;
 
@@ -1640,7 +1640,7 @@ void Option_Studio( void )
 	model[nummodels] = Kalloc( sizeof( s_model_t ));
 	bodypart[numbodyparts].pmodel[bodypart[numbodyparts].nummodels] = model[nummodels];
 
-	strncpy( model[nummodels]->name, com_token, sizeof(model[nummodels]->name));
+	com.strncpy( model[nummodels]->name, com_token, sizeof(model[nummodels]->name));
 
 	flip_triangles = 1;
 	scale_up = default_scale;
@@ -1671,7 +1671,7 @@ int Option_Blank( void )
 	model[nummodels] = Kalloc( sizeof( s_model_t ));
 	bodypart[numbodyparts].pmodel[bodypart[numbodyparts].nummodels] = model[nummodels];
 
-	strncpy( model[nummodels]->name, "blank", sizeof(model[nummodels]->name));
+	com.strncpy( model[nummodels]->name, "blank", sizeof(model[nummodels]->name));
 
 	bodypart[numbodyparts].nummodels++;
 	nummodels++;
@@ -1697,7 +1697,7 @@ void Cmd_Bodygroup( void )
 
 	if (numbodyparts == 0) bodypart[numbodyparts].base = 1;
 	else bodypart[numbodyparts].base = bodypart[numbodyparts-1].base * bodypart[numbodyparts-1].nummodels;
-	strncpy( bodypart[numbodyparts].name, com_token, sizeof(bodypart[numbodyparts].name));
+	com.strncpy( bodypart[numbodyparts].name, com_token, sizeof(bodypart[numbodyparts].name));
 
 	while( 1 )
 	{
@@ -1728,7 +1728,7 @@ void Cmd_Body( void )
 	if (numbodyparts == 0) bodypart[numbodyparts].base = 1;
 	else bodypart[numbodyparts].base = bodypart[numbodyparts-1].base * bodypart[numbodyparts-1].nummodels;
 
-	strncpy(bodypart[numbodyparts].name, com_token, sizeof(bodypart[numbodyparts].name));
+	com.strncpy(bodypart[numbodyparts].name, com_token, sizeof(bodypart[numbodyparts].name));
 	Option_Studio();
 
 	numbodyparts++;
@@ -1892,7 +1892,7 @@ int Option_Event( s_sequence_t *psequence )
 	if (Com_TryToken())
 	{
 		if (Com_MatchToken( "}" )) return 1; // opps, hit the end
-		strcpy( psequence->event[psequence->numevents-1].options, com_token);// found an option
+		com.strcpy( psequence->event[psequence->numevents-1].options, com_token);// found an option
 	}
 	return 0;
 }
@@ -2078,7 +2078,7 @@ static int Cmd_Sequence( void )
 		}
 		else if (Com_MatchToken( "animation" ))
 		{
-			strncpy( smdfilename[numblends], Com_GetToken( false ), sizeof(smdfilename[numblends]));
+			com.strncpy( smdfilename[numblends], Com_GetToken( false ), sizeof(smdfilename[numblends]));
 			numblends++;
 		}
 		else if (i = lookupActivity( com_token))
@@ -2135,7 +2135,7 @@ int Cmd_Root (void)
 {
 	if (Com_GetToken(false))
 	{
-		strncpy( pivotname[0], com_token, sizeof(pivotname));
+		com.strncpy( pivotname[0], com_token, sizeof(pivotname));
 		return 0;
 	}
 	return 1;
@@ -2155,7 +2155,7 @@ int Cmd_Pivot (void)
 		int index = atoi(com_token);
 		if (Com_GetToken(false))
 		{
-			strncpy( pivotname[index], com_token, sizeof(pivotname[index]));
+			com.strncpy( pivotname[index], com_token, sizeof(pivotname[index]));
 			return 0;
 		}
 	}
@@ -2245,7 +2245,7 @@ syntax: $mirrorbone "name"
 */
 void Cmd_Mirror ( void )
 {
-	strncpy( mirrored[nummirrored], Com_GetToken(false), sizeof(mirrored[nummirrored]));
+	com.strncpy( mirrored[nummirrored], Com_GetToken(false), sizeof(mirrored[nummirrored]));
 	nummirrored++;
 }
 
@@ -2330,7 +2330,7 @@ syntax: $hitgroup <index> <name>
 int Cmd_Hitgroup( void )
 {
 	hitgroup[numhitgroups].group = atoi(Com_GetToken(false));
-	strncpy( hitgroup[numhitgroups].name, Com_GetToken(false), sizeof(hitgroup[numhitgroups].name));
+	com.strncpy( hitgroup[numhitgroups].name, Com_GetToken(false), sizeof(hitgroup[numhitgroups].name));
 	numhitgroups++;
 
 	return 0;
@@ -2346,7 +2346,7 @@ syntax: $hbox <index> <name> <mins0> <mins1> <mins2> <maxs0> <maxs1> <maxs2>
 int Cmd_Hitbox( void )
 {
 	hitbox[numhitboxes].group = atoi(Com_GetToken(false));
-	strncpy( hitbox[numhitboxes].name, Com_GetToken(false), sizeof(hitbox[numhitboxes].name));
+	com.strncpy( hitbox[numhitboxes].name, Com_GetToken(false), sizeof(hitbox[numhitboxes].name));
 	hitbox[numhitboxes].bmin[0] = atof( Com_GetToken(false));
 	hitbox[numhitboxes].bmin[1] = atof(Com_GetToken(false));
 	hitbox[numhitboxes].bmin[2] = atof(Com_GetToken(false));
@@ -2409,7 +2409,7 @@ void Cmd_TexRenderMode( void )
 {
 	char tex_name[64];
 
-	strcpy(tex_name, Com_GetToken(false));
+	com.strcpy( tex_name, Com_GetToken( false ));
 	Com_GetToken(false);
 
 	if(Com_MatchToken( "additive" ))
@@ -2501,8 +2501,8 @@ void ResetModelInfo( void )
 	//make an option
 	dump_hboxes = 0;
 
-	strcpy( gs_filename, "model" );
-	strcpy( sequencegroup.label, "default" );
+	com.strcpy( gs_filename, "model" );
+	com.strcpy( sequencegroup.label, "default" );
 	FS_ClearSearchPath( ); //clear all $cd and $cdtexture
 
 	//set default model parms
@@ -2613,9 +2613,9 @@ void ClearModel( void )
 	stripcount = numcommands = linecount = allverts = alltris = totalseconds = 0;
 	nummodels = numani = split_textures = 0;
 
-	memset(numtexturelayers, 0, sizeof(int) * 32);
-	memset(numtexturereps, 0, sizeof(int) * 32);
-	memset(bodypart, 0, sizeof(s_bodypart_t) * MAXSTUDIOBODYPARTS);
+	Mem_Set(numtexturelayers, 0, sizeof(int) * 32);
+	Mem_Set(numtexturereps, 0, sizeof(int) * 32);
+	Mem_Set(bodypart, 0, sizeof(s_bodypart_t) * MAXSTUDIOBODYPARTS);
 	Mem_EmptyPool( studiopool );	// free all memory
 }
 

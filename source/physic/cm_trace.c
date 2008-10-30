@@ -210,7 +210,7 @@ void CM_TraceBmodel( const vec3_t start, const vec3_t end, const vec3_t mins, co
 	csurface_t	*surface;
 	cbrush_t		*brush;
 
-	memset( trace, 0, sizeof(*trace));
+	Mem_Set( trace, 0, sizeof(*trace));
 	trace->fraction = 1;
 	trace->realfraction = 1;
 	trace->contentsmask = contentsmask;
@@ -289,7 +289,7 @@ void CM_TraceStudio( const vec3_t start, const vec3_t end, const vec3_t mins, co
 	vec3_t		segmentmins;
 	vec3_t		segmentmaxs;
 	
-	memset(trace, 0, sizeof(*trace));
+	Mem_Set(trace, 0, sizeof(*trace));
 	trace->fraction = 1;
 	trace->realfraction = 1;
 	trace->contentsmask = contentsmask;

@@ -146,7 +146,7 @@ void SV_SpawnServer( const char *server, const char *savename )
 	Host_SetServerState( sv.state );
 
 	// wipe the entire per-level structure
-	memset( &sv, 0, sizeof( sv ));
+	Mem_Set( &sv, 0, sizeof( sv ));
 	svs.realtime = 0;
 	svs.timeleft = 0;
 
@@ -300,7 +300,7 @@ void SV_InitGame( void )
 		ent = PRVM_EDICT_NUM(i + 1);
 		ent->priv.sv->serialnumber = i + 1;
 		svs.clients[i].edict = ent;
-		memset (&svs.clients[i].lastcmd, 0, sizeof(svs.clients[i].lastcmd));
+		Mem_Set (&svs.clients[i].lastcmd, 0, sizeof(svs.clients[i].lastcmd));
 	}
 
 	SV_VM_End();

@@ -59,7 +59,7 @@ CM_FreeModel
 void CM_FreeModel( cmodel_t *mod )
 {
 	Mem_FreePool( &mod->mempool );
-	memset( mod, 0, sizeof(*mod));
+	Mem_Set( mod, 0, sizeof(*mod));
 	mod = NULL;
 }
 
@@ -787,7 +787,7 @@ void CM_FreeWorld( void )
 	cm.vis = NULL;
 
 	cm.name[0] = 0;
-	memset( cm.matrix, 0, sizeof(matrix4x4));
+	Mem_Set( cm.matrix, 0, sizeof(matrix4x4));
 	
 	// free bmodels too
 	for (i = 0, mod = &cm.bmodels[0]; i < cm.numbmodels; i++, mod++)
@@ -836,7 +836,7 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 		if( !clientload )
 		{
 			// rebuild portals for server
-			memset( cm.areaportals, 0, cm.areaportals_size );
+			Mem_Set( cm.areaportals, 0, cm.areaportals_size );
 			CM_FloodAreaConnections();
 		}
 		// still have the right version
@@ -1279,7 +1279,7 @@ cmodel_t *CM_RegisterModel( const char *name )
 	if(!buf)
 	{
 		MsgDev( D_ERROR, "CM_LoadModel: %s not found\n", name );
-		memset(mod->name, 0, sizeof(mod->name));
+		Mem_Set(mod->name, 0, sizeof(mod->name));
 		return NULL;
 	}
 

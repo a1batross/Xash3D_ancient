@@ -672,7 +672,7 @@ dstudioanim_t *R_StudioGetAnim( rmodel_t *m_pSubModel, dstudioseqdesc_t *pseqdes
 		if( !buf || !filesize )
 		{
 			MsgDev( D_ERROR, "R_StudioGetAnim: %s not found", pseqgroup->name );
-			memset( pseqgroup->name, 0, sizeof(pseqgroup->name));
+			Mem_Set( pseqgroup->name, 0, sizeof(pseqgroup->name));
 			return NULL;
 		}
                     if( IDSEQGRPHEADER == LittleLong(*(uint *)buf))  //it's sequence group

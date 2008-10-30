@@ -345,7 +345,7 @@ bool ConvSPR( const char *name, byte *buffer, size_t filesize, const char *ext )
 
 	// defaulting to q1
 	pin = (dspriteq1_t *)buffer;
-	memset( &spr, 0, sizeof( spr ));
+	Mem_Set( &spr, 0, sizeof( spr ));
 
 	switch( LittleLong( pin->ident ))
 	{

@@ -219,7 +219,7 @@ bool Image_LoadFLT( const char *name, const byte *buffer, size_t filesize )
 	flat.desc[1] = LittleShort( flat.desc[1] );
 	if(!Image_LumpValidSize( name )) return false;
 	Data = (byte *)Mem_Alloc( Sys.imagepool, image.width * image.height );
-	memset( Data, 247, image.width * image.height ); // set default transparency
+	Mem_Set( Data, 247, image.width * image.height ); // set default transparency
 	image.num_layers = 1;
 
 	for( column_loop = 0; column_loop < image.width; column_loop++ )

@@ -2989,17 +2989,17 @@ static ref_shader_t *R_NewShader( void )
 	int	i, j;
 
 	shader = &r_parseShader;
-	memset( shader, 0, sizeof( ref_shader_t ));
+	Mem_Set( shader, 0, sizeof( ref_shader_t ));
 
 	for( i = 0; i < SHADER_MAX_STAGES; i++ )
 	{
 		shader->stages[i] = &r_parseShaderStages[i];
-		memset( shader->stages[i], 0, sizeof( shaderStage_t ));
+		Mem_Set( shader->stages[i], 0, sizeof( shaderStage_t ));
 
 		for( j = 0; j < MAX_TEXTURE_UNITS; j++ )
 		{
 			shader->stages[i]->bundles[j] = &r_parseStageTMU[i][j];
-			memset( shader->stages[i]->bundles[j], 0, sizeof( stageBundle_t ));
+			Mem_Set( shader->stages[i]->bundles[j], 0, sizeof( stageBundle_t ));
 		}
 	}
 	return shader;
@@ -3303,7 +3303,7 @@ static void R_FinishShader( ref_shader_t *shader )
 		{
 			shader->flags &= ~SHADER_DEFORMVERTEXES;
 			for( i = 0; i < shader->deformVertexesNum; i++ )
-				memset( &shader->deformVertexes[i], 0, sizeof( deformVerts_t ));
+				Mem_Set( &shader->deformVertexes[i], 0, sizeof( deformVerts_t ));
 			shader->deformVertexesNum = 0;
 		}
 	}
@@ -4007,8 +4007,8 @@ void R_ShutdownShaders( void )
 	}
 
 	Mem_FreePool( &r_shaderpool ); // free all data allocated by shaders
-	memset( r_shaderScriptsHash, 0, sizeof( r_shaderScriptsHash ));
-	memset( r_shadersHash, 0, sizeof( r_shadersHash ));
-	memset( r_shaders, 0, sizeof( r_shaders ));
+	Mem_Set( r_shaderScriptsHash, 0, sizeof( r_shaderScriptsHash ));
+	Mem_Set( r_shadersHash, 0, sizeof( r_shadersHash ));
+	Mem_Set( r_shaders, 0, sizeof( r_shaders ));
 	r_numShaders = 0;
 }

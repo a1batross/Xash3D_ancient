@@ -346,6 +346,7 @@ void Image_Setup( const char *formats, const uint flags )
 	else if( !com.stricmp( formats, "hl2" ) || !com.stricmp( formats, "Half-Life 2" ))
 		image.loadformats = load_hl2;
 	else image.loadformats = load_xash048;	// unrecognized version, use default
+	image.saveformats = save_xash051;
 }
 
 void Image_Shutdown( void )
@@ -1111,8 +1112,8 @@ byte *Image_FloodInternal( const byte *indata, int inwidth, int inheight, int ou
 		return (byte *)indata;	
 	}
 
-	if( samples == 1 ) memset( out, 0xFF, newsize );	// last palette color
-	else  memset( out, 0x00808080, newsize );	// gray (alpha leaved 0x00)
+	if( samples == 1 ) Mem_Set( out, 0xFF, newsize );	// last palette color
+	else  Mem_Set( out, 0x00808080, newsize );	// gray (alpha leaved 0x00)
 
 	for( y = 0; y < outheight; y++ )
 		for( x = 0; y < inheight && x < outwidth; x++ )

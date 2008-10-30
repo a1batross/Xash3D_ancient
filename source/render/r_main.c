@@ -1171,7 +1171,7 @@ R_BeginFrame
 void R_BeginFrame( void )
 {
 	// clear r_speeds statistics
-	memset(&r_stats, 0, sizeof(refstats_t));
+	Mem_Set(&r_stats, 0, sizeof(refstats_t));
 
 	if( vid_gamma->modified )
 	{

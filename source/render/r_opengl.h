@@ -171,6 +171,8 @@ extern int gl_max_anisotropy;
 #define GL_DITHER				0x0BD0
 #define GL_RGB				0x1907
 #define GL_RGBA				0x1908
+#define GL_BGR				0x80E0
+#define GL_BGRA				0x80E1
 #define GL_ALPHA4                         	0x803B
 #define GL_ALPHA8                         	0x803C
 #define GL_ALPHA12                        	0x803D

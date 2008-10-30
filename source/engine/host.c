@@ -63,7 +63,7 @@ void Host_FreePhysic( void )
 	if(physic_dll.link)
 	{
 		pe->Shutdown();
-		memset( &pe, 0, sizeof(pe));
+		Mem_Set( &pe, 0, sizeof(pe));
 	}
 	Sys_FreeLibrary( &physic_dll );
 }
@@ -103,7 +103,7 @@ void Host_FreeRender( void )
 	if(render_dll.link)
 	{
 		re->Shutdown();
-		memset( &re, 0, sizeof(re));
+		Mem_Set( &re, 0, sizeof(re));
 	}
 	Sys_FreeLibrary( &render_dll );
 }
@@ -125,7 +125,7 @@ void Host_FreeVprogs( void )
 	if(vprogs_dll.link)
 	{
 		vm->Free();
-		memset( &vm, 0, sizeof(vm));
+		Mem_Set( &vm, 0, sizeof(vm));
 	}
 	Sys_FreeLibrary( &vprogs_dll );
 }
@@ -154,7 +154,7 @@ void Host_FreeSound( void )
 	if(vsound_dll.link)
 	{
 		se->Shutdown();
-		memset( &se, 0, sizeof(se));
+		Mem_Set( &se, 0, sizeof(se));
 	}
 	Sys_FreeLibrary( &vsound_dll );
 }
@@ -269,7 +269,7 @@ Host_InitEvents
 */
 void Host_InitEvents( void )
 {
-	memset( host.events, 0, sizeof(host.events));
+	Mem_Set( host.events, 0, sizeof(host.events));
 	host.events_head = 0;
 	host.events_tail = 0;
 }

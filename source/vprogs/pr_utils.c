@@ -389,7 +389,7 @@ word PR_WriteProgdefs( void )
 	word		crc;
 
 	CRC_Init( &crc );
-	memset( file, 0, PROGDEFS_MAX_SIZE );
+	Mem_Set( file, 0, PROGDEFS_MAX_SIZE );
 	FS_FileBase( progsoutname, header_name );
 	com.strupr( header_name, header_name ); // as part of define name
 	com.strlwr( header_name, lwr_header ); // as part of head comment
@@ -950,7 +950,7 @@ byte *PR_CreateProgsSRC( void )
 		PR_ParseError(ERR_INTERNAL, "Couldn't open file progs.src" );
 		return NULL;
 	}
-	memset( headers, '/0', MAX_STRING * 2 );
+	Mem_Set( headers, '/0', MAX_STRING * 2 );
 
 	for( i = 0; i < qc->numfilenames; i++ )
 	{

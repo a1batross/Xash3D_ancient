@@ -6,7 +6,6 @@
 #include "launch.h"
 #include "mathlib.h"
 #include "const.h"
-#include "amd3dx.h"
 
 #pragma warning( disable:4730 )	// "mixing _m64 and floating point expressions may result in incorrect code"
 #define SIN_TABLE_SIZE	256
@@ -175,13 +174,21 @@ float amd_sqrt( float x )
 	float	root = 0.f;
 	_asm
 	{
-		femms
+		_emit	0x0f
+		_emit	0x0e
 		movd	mm0, x
-		PFRSQRT	(mm1,mm0)
+		_emit	0x0f
+		_emit	0x0f
+		_emit	((0xc1 & 0x3f)<<3)|0xc0
+		_emit	0x97  
 		punpckldq	mm0, mm0
-		PFMUL	(mm0, mm1)
+		_emit	0x0f
+		_emit	0x0f
+		_emit	((0xc0 & 0x3f)<<3)|0xc1
+		_emit	0xb4  
 		movd	root, mm0
-		femms
+		_emit	0x0f
+		_emit	0x0e
 	}
 	return root;
 }
@@ -202,7 +209,7 @@ float sse_sqrt( float x )
 
 typedef struct stringtable_s
 {
-	string	name;		// system name (for debug targets)
+	string	name;		// system name (for debug purposes)
 	char	*data;		// buffer with strings
 	size_t	datasize;		// current buffsize
 	size_t	maxdatasize;	// dynamically resized
@@ -252,8 +259,8 @@ int StringTable_CreateNewSystem( const char *name, size_t max_strings )
 		if( !dstring[i] )
 		{
 			// found free slot
-			dstring[i] = Mem_Alloc( Sys.stringpool, sizeof(stringtable_t));
-			com_strncpy( dstring[i]->name, name, MAX_STRING );
+			dstring[i] = Mem_Alloc( Sys.stringpool, sizeof( stringtable_t ));
+			com.strncpy( dstring[i]->name, name, MAX_STRING );
 			dstring[i]->maxstrings = max_strings;
 			return i;
 		}
@@ -272,13 +279,12 @@ void StringTable_DeleteSystem( int handle )
 	Mem_Free( dstring[handle]->data );	// free strings
 	Mem_Free( dstring[handle]->table);	// free indices
 	Mem_Free( dstring[handle] );		// free himself
-	memset( &dstring[handle], 0, sizeof(stringtable_t)); 
+	Mem_Set( &dstring[handle], 0, sizeof( stringtable_t )); 
 }
 
 const char *StringTable_GetString( int handle, string_t index )
 {
-	if(!StringTable_CheckString( handle, index ))
-		return "";
+	if(!StringTable_CheckString( handle, index )) return "";
 	return &dstring[handle]->data[dstring[handle]->table[index]];
 }
 
@@ -325,7 +331,7 @@ bool StringTable_SaveSystem( int h, wfile_t *wad )
 		return false;
 	if(!W_SaveLump( wad, "stringdata", dstring[h]->data, dstring[h]->datasize, TYPE_STRDATA, CMP_ZLIB ))
 		return false;
-	table_size = dstring[h]->numstrings * sizeof(string_t);
+	table_size = dstring[h]->numstrings * sizeof( string_t );
 	if(!W_SaveLump( wad, "stringtable", dstring[h]->table, table_size, TYPE_STRDATA, CMP_ZLIB ))
 		return false;
 

@@ -237,7 +237,7 @@ bool Image_SaveBMP( const char *name, rgbdata_t *pix )
 	cbPalBytes = bmih.biClrUsed * sizeof( RGBQUAD );
 	FS_Write( pfile, rgrgbPalette, cbPalBytes );
 	pbBmpBits = Mem_Alloc( Sys.imagepool, cbBmpBits );
-	memset( pbBmpBits, 0xFF, cbBmpBits );	// fill buffer with black color
+	Mem_Set( pbBmpBits, 0xFF, cbBmpBits );	// fill buffer with last palette color
 
 	pb = pix->buffer;
 	pb += (pix->height - 1) * pix->width;

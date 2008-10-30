@@ -537,8 +537,8 @@ void ResetSpriteInfo( void )
 	FS_FileBase(gs_filename, spriteoutname );
 	FS_DefaultExtension( spriteoutname, ".spr" );
 
-	memset (&sprite, 0, sizeof(sprite));
-	memset(frames, 0, sizeof(frames));
+	Mem_Set (&sprite, 0, sizeof(sprite));
+	Mem_Set(frames, 0, sizeof(frames));
 	framecount = origin_x = origin_y = 0;
 	frameinterval = 0.0f;
 
@@ -597,7 +597,7 @@ bool CompileCurrentSprite( const char *name )
 {
 	bool load = false;
 	
-	if(name) strcpy( gs_filename, name );
+	if( name ) com.strcpy( gs_filename, name );
 	FS_DefaultExtension( gs_filename, ".qc" );
 	load = Com_LoadScript( gs_filename, NULL, 0 );
 	

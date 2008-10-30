@@ -485,7 +485,7 @@ void Skin_WriteSequence( void )
 	}
 
 	flat.bounds[0] = flat.bounds[1] = 0;
-	memset( &flat.frame, 0, sizeof( flat.frame )); 
+	Mem_Set( &flat.frame, 0, sizeof( flat.frame )); 
 	flat.angledframes = flat.normalframes = flat.mirrorframes = 0; // clear all
 }
 

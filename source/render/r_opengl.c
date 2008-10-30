@@ -240,7 +240,7 @@ void R_Free_OpenGL( void )
 	Sys_FreeLibrary( &opengl_dll );
 
 	// now all extensions are disabled
-	memset( gl_config.extension, 0, sizeof(gl_config.extension[0]) * R_EXTCOUNT);
+	Mem_Set( gl_config.extension, 0, sizeof(gl_config.extension[0]) * R_EXTCOUNT);
 }
 
 void R_SaveVideoMode( int vid_mode )

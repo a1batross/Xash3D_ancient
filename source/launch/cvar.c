@@ -528,8 +528,8 @@ void Cvar_Set_f( void )
 		len = strlen( Cmd_Argv(i) + 1 );
 		if ( l + len >= MAX_STRING_TOKENS - 2 )
 			break;
-		strcat( combined, Cmd_Argv(i));
-		if ( i != c-1 ) strcat( combined, " " );
+		com.strcat( combined, Cmd_Argv(i));
+		if ( i != c-1 ) com.strcat( combined, " " );
 		l += len;
 	}
 	Cvar_Set2 (Cmd_Argv(1), combined, false);

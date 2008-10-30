@@ -523,7 +523,7 @@ char *PR_NameFromType( etype_t type )
 {
 	static char typeinfo[32];
 
-	memset( typeinfo, 0, 32 );
+	Mem_Set( typeinfo, 0, 32 );
 	switch( type )
 	{
 	case ev_float: com.strncpy(typeinfo, "float", 32 ); break;
@@ -2040,7 +2040,7 @@ void PR_EmitClassFromFunction(def_t *scope, char *tname)
 	if (!basetype) PR_ParseError(ERR_INTERNAL, "Type %s was not defined...", tname);
 
 	pr_scope = NULL;
-	memset(basictypefield, 0, sizeof(basictypefield));
+	Mem_Set(basictypefield, 0, sizeof(basictypefield));
 	PR_EmitFieldsForMembers(basetype);
 
 	pr_scope = scope;

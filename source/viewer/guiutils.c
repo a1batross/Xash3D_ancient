@@ -24,10 +24,10 @@ Must call once at start application
 void GUI_SetFont( HWND hwnd )
 {
 	CHARFORMAT cf;
-	memset(&cf, 0, sizeof(cf));
+	Mem_Set(&cf, 0, sizeof(cf));
 	cf.cbSize = sizeof(cf);
 	cf.dwMask = w_opts.font_type;
-	strcpy(cf.szFaceName, w_opts.fontname);
+	com.strcpy(cf.szFaceName, w_opts.fontname);
 	cf.yHeight = w_opts.font_size;
 	cf.crTextColor = w_opts.font_color;
 

@@ -17,22 +17,46 @@ fopen завешивает приложение, даже если перепутать местами + и a, при установке р
 GLOBAL: Достигнуть уровня xash 0.45 к очередному релизу
 
 0. Откат версии до 13 сентября		OK
-1. запрос для принудительной распаковки DXT
-2. упаковщик DXT1-3-5 для Image_Process
-3. Полная отладка ImageLib
+1. переписать менеджер текстур на рендере
+2. раз и навсегда пофиксить R_ImageFreeUnused
+3. Com_Filter убрать внутрь launch.dll ??
+4. Новый интерфейс для parselib.c
+
+script_t *(*PS_LoadScript)( const char *name, char *buf, size_t size );	// load script
+void (*PS_FreeScript)( script_t *script );				// release script
+void (*PS_ResetScript)( script_t *script );				// reset script state
+bool (*PS_EndOfScript)( script_t *script );				// EOS
+void (*PS_SkipBracedSection)( script_t *script, int depth );		// skip braced section
+void (*PS_SkipRestOfLine)( script_t *script );				// same as while(Com_TryToken());
+
+bool PS_ReadToken( script_t *script, scFlags_t flags, token_t *token )
+void PS_FreeToken( script_t *script, token_t *token )
+bool PS_ReadDouble( script_t *script, scFlags_t flags, double *value )
+bool PS_ReadFloat( script_t *script, scFlags_t flags, float *value )
+bool PS_ReadUnsigned( script_t *script, scFlags_t flags, uint *value )
+bool PS_ReadInteger( script_t *script, scFlags_t flags, int *value )
+
+bool (*Com_LoadScript)(const char *name,char *buf,int size);// load script into stack from file or bufer
+bool (*Com_AddScript)(const char *name,char *buf, int size);// include script from file or buffer
+void (*Com_ResetScript)( void );			// reset current script state
+void (*Com_PushScript)( const char **data_p );		// save script to stack
+void (*Com_PopScript)( const char **data_p );		// restore script from stack
+void (*Com_SkipBracedSection)( char **data_p, int depth );	// skip braced section
+char *(*Com_ReadToken)( bool newline );			// get next token on a line or newline
+bool (*Com_TryToken)( void );				// return 1 if have token on a line 
+void (*Com_FreeToken)( void );			// free current token to may get it again
+void (*Com_SkipToken)( void );			// skip current token and jump into newline
+bool (*Com_MatchToken)( const char *match );		// compare current token with user keyword
+bool (*Com_ParseToken_Simple)(const char **data_p);	// basic parse (can't handle single characters)
+char *(*Com_ParseToken)(const char **data, bool newline );	// parse token from char buffer
+char *(*Com_ParseWord)( const char **data, bool newline );	// parse word from char buffer
 
 операция "Имплементация рендера от q2e_068"
 
 операция "Отладка: bsp 48
 0. отладка qbsp3
-1. починить подсчет строк для Com_GetToken	OK
 2. подправить рендер с учетом новых констант
-3. переписать менеджер текстур на рендере
-4. раз и навсегда пофиксить R_ImageFreeUnused
-5. создать Com_Assert в виде дефайна Sys_Break	OK
-6. Заюзать матрицы 3x3 на сервере
-7. быстрые memset, memcpy, sqrt		OK
-8. создать fast mathlib			OK
+3. Заюзать матрицы 3x3 на сервере
 
 Новый загрузчик текстур:
 1. Расширение matrixlib - Matrix3x3

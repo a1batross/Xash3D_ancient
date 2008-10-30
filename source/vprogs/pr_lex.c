@@ -149,7 +149,7 @@ bool PR_UnInclude(void)
 type_t *PR_NewType( char *name, int basictype )
 {
 	if( numtypeinfos >= maxtypeinfos ) PR_ParseError(ERR_INTERNAL, "Too many types");
-	memset(&qcc_typeinfo[numtypeinfos], 0, sizeof(type_t));
+	Mem_Set(&qcc_typeinfo[numtypeinfos], 0, sizeof(type_t));
 	qcc_typeinfo[numtypeinfos].type = basictype;
 	qcc_typeinfo[numtypeinfos].name = name;
 	qcc_typeinfo[numtypeinfos].num_parms = 0;

@@ -84,6 +84,7 @@ typedef struct cvar_s cvar_t;
 typedef struct file_s file_t;		// normal file
 typedef struct vfile_s vfile_t;	// virtual file
 typedef struct wfile_s wfile_t;	// wad file
+typedef struct script_s script_t;	// script machine
 typedef struct { const char *name; void **func; } dllfunc_t; // Sys_LoadLibrary stuff
 typedef struct { int numfilenames; char **filenames; char *filenamesbuffer; } search_t;
 typedef void ( *setpair_t )( const char *key, const char *value, void *buffer, void *numpairs );
@@ -142,6 +143,26 @@ typedef struct sizebuf_s		// FIXME: rename to netbuf
 	int	cursize;
 	int	readcount;
 } sizebuf_t;
+
+/*
+========================================================================
+
+TEXT PARSER
+
+all engine parts using it
+========================================================================
+*/
+typedef enum
+{
+	SC_ALLOW_NEWLINES	 	= BIT(0),
+	SC_ALLOW_STRINGCONCAT	= BIT(1),
+	SC_ALLOW_ESCAPECHARS 	= BIT(2),
+	SC_ALLOW_PATHNAMES		= BIT(3),
+	SC_PARSE_GENERIC		= BIT(4),
+	SC_PRINT_ERRORS		= BIT(5),
+	SC_PRINT_WARNINGS	 	= BIT(6),
+	SC_QUARK_COMMAND		= BIT(7),		// read QuArK TX# command after comments
+} scFlags_t;
 
 /*
 ========================================================================

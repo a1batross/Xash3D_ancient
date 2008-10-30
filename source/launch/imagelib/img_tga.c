@@ -377,7 +377,7 @@ bool Image_SaveTGA( const char *name, rgbdata_t *pix )
 	else outsize = pix->width * pix->height * 3 + 18 + com_strlen( comment );
 
 	buffer = (byte *)Mem_Alloc( Sys.imagepool, outsize );
-	memset( buffer, 0, 18 );
+	Mem_Set( buffer, 0, 18 );
 
 	// prepare header
 	buffer[0] = com_strlen( comment ); // tga comment length
@@ -417,7 +417,7 @@ bool Image_SaveTGA( const char *name, rgbdata_t *pix )
 				*out++ = in[2];
 				*out++ = in[1];
 				*out++ = in[0];
-				if( pix->flags & IMAGE_HAVE_ALPHA )
+				if( pix->type == PF_RGBA_32 )
 					*out++ = in[3];
 			}
 		}

@@ -134,7 +134,7 @@ void SV_DirectConnect( netadr_t from )
 	}
 
 	newcl = &temp;
-	memset( newcl, 0, sizeof(sv_client_t));
+	Mem_Set( newcl, 0, sizeof(sv_client_t));
 
 	// if there is already a slot for this ip, reuse it
 	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
@@ -583,7 +583,7 @@ void SV_New_f( sv_client_t *cl )
 		ent = PRVM_EDICT_NUM( playernum + 1 );
 		ent->priv.sv->serialnumber = playernum + 1;
 		cl->edict = ent;
-		memset( &cl->lastcmd, 0, sizeof(cl->lastcmd));
+		Mem_Set( &cl->lastcmd, 0, sizeof(cl->lastcmd));
 
 		// begin fetching configstrings
 		MSG_WriteByte( &cl->netchan.message, svc_stufftext );
@@ -663,7 +663,7 @@ void SV_Baselines_f( sv_client_t *cl )
 	
 	start = com.atoi(Cmd_Argv(2));
 
-	memset( &nullstate, 0, sizeof(nullstate));
+	Mem_Set( &nullstate, 0, sizeof(nullstate));
 
 	// write a packet full of data
 	while( cl->netchan.message.cursize < MAX_MSGLEN/2 && start < host.max_edicts )
@@ -1409,7 +1409,7 @@ static void SV_UserMove( sv_client_t *cl, sizebuf_t *msg )
 		}
 	}
 
-	memset( &nullcmd, 0, sizeof(nullcmd));
+	Mem_Set( &nullcmd, 0, sizeof(nullcmd));
 	MSG_ReadDeltaUsercmd( msg, &nullcmd, &oldest);
 	MSG_ReadDeltaUsercmd( msg, &oldest, &oldcmd );
 	MSG_ReadDeltaUsercmd( msg, &oldcmd, &newcmd );

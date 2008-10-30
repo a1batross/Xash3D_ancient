@@ -71,6 +71,7 @@ typedef struct system_s
 	byte			*basepool;
 	byte			*zonepool;
 	byte			*imagepool;
+	byte			*scriptpool;
 	byte			*stringpool;
 	bool			shutdown_issued;
 	bool			error;
@@ -226,6 +227,7 @@ int com_sprintf(char *buffer, const char *format, ...);
 char *com_pretifymem( float value, int digitsafterdecimal );
 char *va(const char *format, ...);
 #define copystring( str ) com_stralloc( NULL, str, __FILE__, __LINE__)
+#define copystring2( pool, str ) com_stralloc( pool, str, __FILE__, __LINE__)
 
 //
 // random.c

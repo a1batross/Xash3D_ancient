@@ -61,7 +61,7 @@ void CM_DecompressVis( byte *in, byte *out )
 byte *CM_ClusterPVS( int cluster )
 {
 	if( cluster < 0 || cluster >= cm.numclusters || !cm.vis )
-		memset( cm.pvsrow, 0xFF, (cm.numclusters + 31) & ~31 );
+		Mem_Set( cm.pvsrow, 0xFF, (cm.numclusters + 31) & ~31 );
 	else CM_DecompressVis( cm.visbase + cm.vis->bitofs[cluster][DVIS_PVS], cm.pvsrow );
 	return cm.pvsrow;
 }
@@ -69,7 +69,7 @@ byte *CM_ClusterPVS( int cluster )
 byte *CM_ClusterPHS( int cluster )
 {
 	if( cluster < 0 || cluster >= cm.numclusters || !cm.vis )
-		memset( cm.phsrow, 0xFF, (cm.numclusters + 31) & ~31 );
+		Mem_Set( cm.phsrow, 0xFF, (cm.numclusters + 31) & ~31 );
 	else CM_DecompressVis( cm.visbase + cm.vis->bitofs[cluster][DVIS_PHS], cm.phsrow );
 	return cm.phsrow;
 }
@@ -196,7 +196,7 @@ int CM_WriteAreaBits( byte *buffer, int area )
 
 	if( cm_noareas->integer || area == -1 )
 	{
-		memset( buffer, 0xFF, size );
+		Mem_Set( buffer, 0xFF, size );
 	}
 	else		
 	{
