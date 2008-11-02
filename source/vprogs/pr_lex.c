@@ -110,6 +110,263 @@ char pr_parm_names[MAX_PARMS + MAX_PARMS_EXTRA][MAX_NAME];
 def_t def_ret, def_parms[MAX_PARMS];
 includechunk_t *currentchunk;
 
+/*
+=================
+PR_SkipWhiteSpace
+=================
+*/
+const char *PR_SkipWhiteSpace( const char *data_p, bool *newline )
+{
+	int	c;
+
+	while((c = *data_p) <= ' ')
+	{
+		if( !c ) return NULL;
+		if( c == '\n' )
+			*newline = true;
+		data_p++;
+	}
+	return data_p;
+}
+
+/*
+==============
+PR_ParseToken
+
+Parse a token out of a string
+==============
+*/
+char *PR_ParseToken( const char **data_p, bool allow_newline )
+{
+	int		c;
+	int		len = 0;
+	const char	*data;
+	bool		newline = false;
+		
+	pr_token[0] = 0;
+	data = *data_p;
+	
+	if( !data ) 
+	{
+		*data_p = NULL;
+		return pr_token;
+	}		
+
+	while( 1 )
+	{
+		data = PR_SkipWhiteSpace( data, &newline );
+		if( !data )
+		{
+			*data_p = NULL;
+			return pr_token;
+		}
+		if( newline && !allow_newline )
+		{
+			*data_p = data;
+			return pr_token;
+		}
+		
+		c = *data;
+	
+		if( c=='/' && data[1] == '/' )
+		{
+			// skip // comments
+			while( *data && *data != '\n' )
+				data++;
+		}
+		else if( c=='/' && data[1] == '*' )
+		{
+			// skip /* comments
+			while( data[1] && (data[0] != '*' || data[1] != '/'))
+				data++;
+			if( *data ) data += 2;
+		}
+		else break; // an actual token
+	}	
+
+	// handle quoted strings specially
+	if (*data == '\"' || *data == '\'')
+	{
+		data++;
+		while( 1 )
+		{
+			c = *data++;
+			if( c=='\"' || c=='\0' )
+			{
+				pr_token[len] = 0;
+				*data_p = data;
+				return pr_token;
+			}
+			pr_token[len++] = c;
+		}
+	}
+
+	// parse single characters
+	if( c == '{' || c == '}'|| c == ')' || c == '(' || c == '\'' || c == ':' || c == ',' )
+	{
+		pr_token[len] = c;
+		data++;
+		len++;
+		pr_token[len] = 0;
+		*data_p = data;
+		return pr_token;
+	}
+
+	// parse a regular word
+	do
+	{
+		pr_token[len] = c;
+		data++;
+		len++;
+		c = *data;
+		if( c == '{' || c == '}'|| c == ')'|| c == '(' || c == '\'' || c == ':' || c == ',' )
+			break;
+	} while( c > 32 );
+	
+	pr_token[len] = 0;
+	*data_p = data;
+	return pr_token;
+}
+
+/*
+==============
+PR_ParseWord
+
+Parse a word out of a string
+==============
+*/
+char *PR_ParseWord( const char **data_p, bool allow_newline )
+{
+	int		c;
+	const char	*data;
+	int		len = 0;
+	bool		newline = false;
+	
+	pr_token[0] = 0;
+	data = *data_p;
+	
+	if( !data )
+	{
+		*data_p = NULL;
+		return NULL;
+	}
+		
+	while( 1 )
+	{
+		data = PR_SkipWhiteSpace( data, &newline );
+		if( !data )
+		{
+			*data_p = NULL;
+			return NULL;
+		}
+		if( newline && !allow_newline )
+		{
+			*data_p = data;
+			return pr_token;
+		}
+		
+		c = *data;
+	
+		if( c=='/' && data[1] == '/' )
+		{
+			// skip // comments
+			while( *data && *data != '\n' )
+				data++;
+		}
+		else if( c=='/' && data[1] == '*' )
+		{
+			// skip /* comments
+			while( data[1] && (data[0] != '*' || data[1] != '/'))
+				data++;
+			if( *data ) data += 2;
+		}
+		else break; // an actual token
+	}	
+
+	// handle quoted strings specially
+	if( c == '\"' )
+	{
+		data++;
+		do
+		{
+			c = *data++;
+			if( c=='\"' || c=='\0' )
+			{
+				pr_token[len] = 0;
+				*data_p = data;
+				return pr_token;
+			}
+			pr_token[len] = c;
+			len++;
+		} while( 1 );
+	}
+
+	// parse numbers
+	if( c >= '0' && c <= '9' )
+	{
+		if( c == '0' && data[1] == 'x' )
+		{
+			// parse hex
+			pr_token[0] = '0';
+			c = 'x';
+			len = 1;
+			data++;
+			while( 1 )
+			{
+				// parse regular number
+				pr_token[len] = c;
+				data++;
+				len++;
+				c = *data;
+				if ((c < '0'|| c > '9') && (c < 'a'||c > 'f') && (c < 'A'|| c > 'F') && c != '.')
+					break;
+			}
+
+		}
+		else
+		{
+			while( 1 )
+			{
+				// parse regular number
+				pr_token[len] = c;
+				data++;
+				len++;
+				c = *data;
+				if ((c < '0'|| c > '9') && c != '.')
+					break;
+			}
+		}
+		
+		pr_token[len] = 0;
+		*data_p = data;
+		return pr_token;
+	}
+
+	// parse words
+	else if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_')
+	{
+		do
+		{
+			pr_token[len] = c;
+			data++;
+			len++;
+			c = *data;
+		} while ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_');
+		
+		pr_token[len] = 0;
+		*data_p = data;
+		return pr_token;
+	}
+	else
+	{
+		pr_token[len] = c;
+		len++;
+		pr_token[len] = 0;
+		*data_p = data;
+		return pr_token;
+	}
+}
+
 void PR_IncludeChunkEx( char *data, bool duplicate, char *filename, const_t *cnst )
 {
 	includechunk_t *chunk = Qalloc( sizeof(includechunk_t));
@@ -183,7 +440,7 @@ void PR_FindBestInclude( char *newfile, char *currentfile, char *rootpath )
 	com.strcpy( end, rootpath ); 
 	end = end + com.strlen(end);
 
-	if(*fullname && end[-1] != '/')
+	if( *fullname && end[-1] != '/' )
 	{
 		com.strcpy( end, "/" );
 		end = end + com.strlen(end);
@@ -191,7 +448,10 @@ void PR_FindBestInclude( char *newfile, char *currentfile, char *rootpath )
 
 	com.strncpy( end, currentfile, stripfrom - currentfile ); 
 	end += stripfrom - currentfile; *end = '\0';
-	com.strcpy( end, newfile );
+
+	// FIXME: clean code
+	com.strcpy( fullname, newfile );
+
 	PR_Include( fullname );
 }
 
@@ -491,7 +751,7 @@ bool PR_Precompiler(void)
 				pr_file_p++;
 			}
 			msg[a] = 0;
-
+                              
 			PR_FindBestInclude(msg, compilingfile, sourcedir);
 			pr_file_p++;
 
@@ -540,13 +800,13 @@ bool PR_Precompiler(void)
 			pr_file_p = directive+6;
 			while(*pr_file_p <= ' ') pr_file_p++;
 
-			com_token[0] = '\0';
+			pr_token[0] = '\0';
 			for(a = 0; *pr_file_p != '\n' && *pr_file_p != '\0'; pr_file_p++) // read on until the end of the line
 			{
-				if ((*pr_file_p == ' ' || *pr_file_p == '\t'|| *pr_file_p == '(') && !*com_token)
+				if ((*pr_file_p == ' ' || *pr_file_p == '\t'|| *pr_file_p == '(') && !*pr_token)
 				{
 					msg[a] = '\0';
-					com.strcpy(com_token, msg);
+					com.strcpy(pr_token, msg);
 					a=0;
 					continue;
 				}
@@ -560,9 +820,9 @@ bool PR_Precompiler(void)
 					*end = '\0';
 			}
 
-			if (!*com_token)
+			if (!*pr_token)
 			{
-				com.strcpy(com_token, msg);
+				com.strcpy(pr_token, msg);
 				msg[0] = '\0';
 			}
 
@@ -572,7 +832,7 @@ bool PR_Precompiler(void)
 					*end = '\0';
 			}
 
-			if (!com.stricmp(com_token, "DONT_COMPILE_THIS_FILE"))
+			if (!com.stricmp( pr_token, "DONT_COMPILE_THIS_FILE" ))
 			{
 				while (*pr_file_p)
 				{
@@ -584,7 +844,7 @@ bool PR_Precompiler(void)
 					}
 				}
 			}
-			else if (!com.stricmp(com_token, "COPYRIGHT"))
+			else if (!com.stricmp( pr_token, "COPYRIGHT" ))
 			{
 				if (com.strlen(msg) >= sizeof(v_copyright))
 					PR_ParseWarning(WARN_STRINGTOOLONG, "Copyright message is too long\n");
@@ -594,14 +854,14 @@ bool PR_Precompiler(void)
 			{
 				ForcedCRC = com.atoi(msg);
 			}
-			else if (!com.stricmp(com_token, "warning"))
+			else if (!com.stricmp( pr_token, "warning" ))
 			{
 				int st;
 
-				Com_ParseToken( &msg, true );
-				if (!com.stricmp(com_token, "enable") || !com.stricmp(com_token, "on")) st = 0;
-				else if (!com.stricmp(com_token, "disable") || !com.stricmp(com_token, "off")) st = 1;
-				else if (!com.stricmp(com_token, "toggle")) st = 2;
+				PR_ParseToken( &msg, true );
+				if (!com.stricmp(pr_token, "enable") || !com.stricmp(pr_token, "on")) st = 0;
+				else if (!com.stricmp(pr_token, "disable") || !com.stricmp(pr_token, "off")) st = 1;
+				else if (!com.stricmp(pr_token, "toggle")) st = 2;
 				else
 				{
 					PR_ParseWarning(WARN_BADPRAGMA, "warning state not recognized");
@@ -610,8 +870,8 @@ bool PR_Precompiler(void)
 				if (st >= 0)
 				{
 					int wn;
-					Com_ParseToken( &msg, true ); // just a number of warning
-					wn = com.atoi( com_token );
+					PR_ParseToken( &msg, true ); // just a number of warning
+					wn = com.atoi( pr_token );
 					if( wn < 0 || wn > WARN_CONSTANTCOMPARISON )
 					{
 						PR_ParseWarning(WARN_BADPRAGMA, "warning id not recognized");
@@ -623,7 +883,7 @@ bool PR_Precompiler(void)
 					}
 				}
 			}
-			else PR_ParseWarning(WARN_BADPRAGMA, "Unknown pragma \'%s\'", com_token);
+			else PR_ParseWarning(WARN_BADPRAGMA, "Unknown pragma \'%s\'", pr_token);
 		}
 		return true;
 	}
@@ -1664,12 +1924,12 @@ int PR_CheakCompConst( void )
 						else
 						{	// stringify
 							pr_file_p++;
-							Com_ParseWord( &pr_file_p, true );
+							PR_ParseWord( &pr_file_p, true );
 							if (!pr_file_p) break;
 
 							for (p = 0; p < param; p++)
 							{
-								if (!STRCMP(com_token, c->params[p]))
+								if (!STRCMP(pr_token, c->params[p]))
 								{
 									com.strcat(buffer, "\"");
 									com.strcat(buffer, paramoffset[p]);
@@ -1680,24 +1940,24 @@ int PR_CheakCompConst( void )
 							if (p == param)
 							{
 								com.strcat(buffer, "#");
-								com.strcat(buffer, com_token);
+								com.strcat(buffer, pr_token);
 								PR_ParseWarning(0, "Stringification ignored");
 							}
 							continue;// already did this one
 						}
 					}
-					Com_ParseWord( &pr_file_p, true );
+					PR_ParseWord( &pr_file_p, true );
 					if (!pr_file_p) break;
 
 					for (p = 0; p < param; p++)
 					{
-						if (!STRCMP(com_token, c->params[p]))
+						if (!STRCMP(pr_token, c->params[p]))
 						{
 							com.strcat(buffer, paramoffset[p]);
 							break;
 						}
 					}
-					if (p == param) com.strcat(buffer, com_token);
+					if (p == param) com.strcat(buffer, pr_token);
 				}
 
 				for (p = 0; p < param-1; p++)

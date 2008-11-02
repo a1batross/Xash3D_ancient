@@ -74,7 +74,25 @@ bool Conv_WriteShader( const char *shaderpath, const char *imagepath, rgbdata_t 
 	{	
 		if(FS_FileExists( qcpath ))
 		{
+			script_t	*test;
+			token_t	token;
+
 			// already exist, search for current name
+			test = Com_OpenScript( qcpath, NULL, 0 );
+			while( Com_ReadToken( test, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &token ))
+			{
+				if( !com.stricmp( token.string, "$mipmap" ))
+				{
+					Com_ReadToken( test, SC_PARSE_GENERIC, &token );
+					if( !com.stricmp( token.string, lumpname ))
+					{
+						Com_CloseScript( test );
+						goto check_shader;	// already exist
+					}
+				}
+				Com_SkipRestOfLine( test );
+			}
+			Com_CloseScript( test );
 			f = FS_Open( qcpath, "a" );	// append
 		}
 		else
@@ -92,23 +110,33 @@ bool Conv_WriteShader( const char *shaderpath, const char *imagepath, rgbdata_t 
 
 	if( f && p )
 	{
-		FS_Printf(f,"$mipmap\t%s\t0 0 %d %d\n", lumpname, p->width, p->height );
+		FS_Printf( f,"$mipmap\t%s\t0 0 %d %d\n", lumpname, p->width, p->height );
 		FS_Close( f ); // all done		
 	}
 
+check_shader:
 	// nothing to write
 	if(!flags && !contents && !com.strlen(nextanimchain))
 		return false;
 
 	if(FS_FileExists( shaderpath ))
 	{
+		script_t	*test;
+		token_t	token;
+
 		// already exist, search for current shader
-		Com_LoadScript( shaderpath, NULL, 0 );
-		while(Com_GetToken( true ))
+		test = Com_OpenScript( shaderpath, NULL, 0 );
+		while( Com_ReadToken( test, SC_ALLOW_NEWLINES, &token ))
 		{
-			if(Com_MatchToken( imagepath ))
+			if( !com.stricmp( token.string, imagepath ))
+			{
+				Msg("%s already exist\n", imagepath );
+				Com_CloseScript( test );
 				return false;	// already exist
+			}
+			Com_SkipRestOfLine( test );
 		}
+		Com_CloseScript( test );
 		f = FS_Open( shaderpath, "a" );	// append
 	}
 	else

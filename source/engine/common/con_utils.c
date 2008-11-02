@@ -47,22 +47,21 @@ bool Cmd_GetMapList( const char *s, char *completedname, int length )
 
 	for(i = 0, nummaps = 0; i < t->numfilenames; i++)
 	{
-		const char	*data = NULL;
-		char		*entities = NULL;
 		string		entfilename;
 		int		ver = -1, lumpofs = 0, lumplen = 0;
 		const char	*ext = FS_FileExtension( t->filenames[i] ); 
+		script_t		*ents = NULL;
 
-		if( com.stricmp(ext, "bsp" )) continue;
+		if( com.stricmp( ext, "bsp" )) continue;
 
-		com.strncpy(message, "^1error^7", sizeof(message));
-		f = FS_Open(t->filenames[i], "rb" );
+		com.strncpy( message, "^1error^7", sizeof( message ));
+		f = FS_Open( t->filenames[i], "rb" );
 	
 		if( f )
 		{
-			memset(buf, 0, 1024);
-			FS_Read(f, buf, 1024);
-			if(!memcmp(buf, "IBSP", 4))
+			Mem_Set( buf, 0, MAX_SYSPATH );
+			FS_Read( f, buf, MAX_SYSPATH );
+			if(!memcmp( buf, "IBSP", 4 ))
 			{
 				dheader_t *header = (dheader_t *)buf;
 				ver = LittleLong(((int *)buf)[1]);
@@ -73,15 +72,15 @@ bool Cmd_GetMapList( const char *s, char *completedname, int length )
 				case 39:	// xash3d
 				case 46:	// quake3
 				case 47:	// return to castle wolfenstein
-					lumpofs = LittleLong(header->lumps[LUMP_ENTITIES].fileofs);
-					lumplen = LittleLong(header->lumps[LUMP_ENTITIES].filelen);
+					lumpofs = LittleLong( header->lumps[LUMP_ENTITIES].fileofs );
+					lumplen = LittleLong( header->lumps[LUMP_ENTITIES].filelen );
 					break;
 				}
 			}
 			else
 			{
 				lump_t	ents; // quake1 entity lump
-				Mem_Copy(&ents, buf + 4, sizeof(lump_t)); // skip first four bytes (version)
+				Mem_Copy( &ents, buf + 4, sizeof( lump_t )); // skip first four bytes (version)
 				ver = LittleLong(((int *)buf)[0]);
 
 				switch( ver )
@@ -98,42 +97,48 @@ bool Cmd_GetMapList( const char *s, char *completedname, int length )
 				}
 			}
 
-			com.strncpy(entfilename, t->filenames[i], sizeof(entfilename));
+			com.strncpy( entfilename, t->filenames[i], sizeof( entfilename ));
 			FS_StripExtension( entfilename );
 			FS_DefaultExtension( entfilename, ".ent" );
-			entities = (char *)FS_LoadFile(entfilename, NULL);
+			ents = Com_OpenScript( entfilename, NULL, 0 );
 
-			if( !entities && lumplen >= 10 )
+			if( !ents && lumplen >= 10 )
 			{
-				FS_Seek(f, lumpofs, SEEK_SET);
-				entities = (char *)Z_Malloc(lumplen + 1);
-				FS_Read(f, entities, lumplen);
+				char *entities = NULL;
+		
+				FS_Seek( f, lumpofs, SEEK_SET );
+				entities = (char *)Z_Malloc( lumplen + 1 );
+				FS_Read( f, entities, lumplen );
+				ents = Com_OpenScript( "ents", entities, lumplen + 1 );
+				Mem_Free( entities ); // no reason to keep it
 			}
 
-			if( entities )
+			if( ents )
 			{
 				// if there are entities to parse, a missing message key just
 				// means there is no title, so clear the message string now
+				token_t	token;
+
 				message[0] = 0;
-				data = entities;
-				while(Com_ParseToken( &data, true ))
+				while( Com_ReadToken( ents, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &token ))
 				{
-					if(!com.strcmp(com_token, "{" )) continue;
-					else if(!com.strcmp(com_token, "}" )) break;
-					else if(!com.strcmp(com_token, "message" ))
+					if( !com.strcmp( token.string, "{" )) continue;
+					else if(!com.strcmp( token.string, "}" )) break;
+					else if(!com.strcmp( token.string, "message" ))
 					{
 						// get the message contents
-						Com_ParseToken( &data, true );
-						com.strncpy(message, com_token, sizeof(message));
+						Com_ReadString( ents, false, message );
 					}
 				}
+				Com_CloseScript( ents );
 			}
 		}
-		if( entities )Mem_Free(entities);
-		if( f )FS_Close(f);
-		FS_FileBase(t->filenames[i], matchbuf );
 
-		switch(ver)
+
+		if( f ) FS_Close(f);
+		FS_FileBase( t->filenames[i], matchbuf );
+
+		switch( ver )
 		{
 		case 28:  com.strncpy((char *)buf, "Quake1 beta", sizeof(buf)); break;
 		case 29:  com.strncpy((char *)buf, "Quake1", sizeof(buf)); break;
@@ -540,21 +545,20 @@ bool Cmd_CheckMapsList( void )
 	buffer = Z_Malloc( t->numfilenames * 2 * sizeof( result ));
 	for( i = 0; i < t->numfilenames; i++ )
 	{
-		const char	*data = NULL;
-		char		*entities = NULL;
+		script_t		*ents = NULL;
 		int		ver = -1, lumpofs = 0, lumplen = 0;
 		string		mapname, message, entfilename;
 
-		f = FS_Open(t->filenames[i], "rb");
+		f = FS_Open( t->filenames[i], "rb" );
 		FS_FileBase( t->filenames[i], mapname );
 
 		if( f )
 		{
 			int num_spawnpoints = 0;
 
-			memset(buf, 0, 1024);
-			FS_Read(f, buf, 1024);
-			if(!memcmp(buf, "IBSP", 4))
+			Mem_Set( buf, 0, MAX_SYSPATH );
+			FS_Read( f, buf, MAX_SYSPATH );
+			if(!memcmp( buf, "IBSP", 4 ))
 			{
 				dheader_t *header = (dheader_t *)buf;
 				ver = LittleLong(((int *)buf)[1]);
@@ -588,49 +592,52 @@ bool Cmd_CheckMapsList( void )
 					break;
 				}
 			}
-			com.strncpy(entfilename, t->filenames[i], sizeof(entfilename));
+			com.strncpy( entfilename, t->filenames[i], sizeof( entfilename ));
 			FS_StripExtension( entfilename );
 			FS_DefaultExtension( entfilename, ".ent" );
-			entities = (char *)FS_LoadFile(entfilename, NULL);
+			ents = Com_OpenScript( entfilename, NULL, 0 );
 
-			if( !entities && lumplen >= 10 )
+			if( !ents && lumplen >= 10 )
 			{
-				FS_Seek(f, lumpofs, SEEK_SET);
-				entities = (char *)Z_Malloc(lumplen + 1);
-				FS_Read(f, entities, lumplen);
+				char *entities = NULL;
+		
+				FS_Seek( f, lumpofs, SEEK_SET );
+				entities = (char *)Z_Malloc( lumplen + 1 );
+				FS_Read( f, entities, lumplen );
+				ents = Com_OpenScript( "ents", entities, lumplen + 1 );
+				Mem_Free( entities ); // no reason to keep it
 			}
-			if(entities)
+			if( ents )
 			{
 				// if there are entities to parse, a missing message key just
 				// means there is no title, so clear the message string now
+				token_t	token;
+
 				message[0] = 0;
-				data = entities;
 				com.strncpy( message, "No Title", MAX_STRING );
 
-				while(Com_ParseToken( &data, true ))
+				while( Com_ReadToken( ents, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &token ))
 				{
-					if(!com.strcmp(com_token, "{" )) continue;
-					else if(!com.strcmp(com_token, "}" )) break;
-					else if(!com.strcmp(com_token, "message" ))
+					if( !com.strcmp( token.string, "{" )) continue;
+					else if( !com.strcmp( token.string, "}" )) break;
+					else if( !com.strcmp( token.string, "message" ))
 					{
 						// get the message contents
-						Com_ParseToken( &data, true );
-						if(!com.strcmp(com_token, "" )) continue;
-						com.strncpy(message, com_token, sizeof(message));
+						Com_ReadString( ents, 0, message );
 					}
-					else if(!com.strcmp(com_token, "classname" ))
+					else if( !com.strcmp( token.string, "classname" ))
 					{
-						Com_ParseToken( &data, true );
-						if(!com.strcmp(com_token, "info_player_deatchmatch"))
+						Com_ReadToken( ents, 0, &token );
+						if(!com.strcmp( token.string, "info_player_deatchmatch" ))
 							num_spawnpoints++;
-						else if(!com.strcmp(com_token, "info_player_start"))
+						else if(!com.strcmp( token.string, "info_player_start" ))
 							num_spawnpoints++;
 					}
-					if(num_spawnpoints > 0) break; // valid map
+					if( num_spawnpoints > 0 ) break; // valid map
 				}
+				Com_CloseScript( ents );
 			}
 
-			if( entities) Mem_Free(entities);
 			if( f ) FS_Close(f);
 
 			// format: mapname "maptitle"\n
@@ -638,12 +645,12 @@ bool Cmd_CheckMapsList( void )
 			com.strcat( buffer, result ); // add new string
 		}
 	}
-	if( t ) Mem_Free(t); // free search result
+	if( t ) Mem_Free( t ); // free search result
 
 	// write generated maps.lst
-	if(FS_WriteFile("scripts/maps.lst", buffer, com.strlen(buffer)))
+	if( FS_WriteFile( "scripts/maps.lst", buffer, com.strlen( buffer )))
 	{
-          	if( buffer ) Mem_Free(buffer);
+          	if( buffer ) Mem_Free( buffer );
 		return true;
 	}
 	return false;

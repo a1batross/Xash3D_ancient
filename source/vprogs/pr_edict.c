@@ -1009,7 +1009,7 @@ ed should be a properly initialized empty edict.
 Used for initial level load and for savegames.
 ====================
 */
-const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
+const char *PRVM_ED_ParseEdict( const char *data, edict_t *ent )
 {
 	ddef_t	*key;
 	bool	init, newline, anglehack;
@@ -1019,15 +1019,18 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 	init = false;
 
 	// go through all the dictionary pairs
-	MsgDev( D_NOTE, "{\n");
+	MsgDev( D_NOTE, "{\n" );
 	while( 1 )
 	{
 		// parse key
-		if(!Com_SimpleGetToken(&data)) PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
+		PR_ParseToken( &data, true );
+
+		if( pr_token[0] == '\0')
+			PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
 
 		// just format console messages
-		newline = (com_token[0] == '}') ? true : false;
-		if(!newline) MsgDev(D_NOTE, "\"%s\"", com_token);
+		newline = (pr_token[0] == '}') ? true : false;
+		if(!newline) MsgDev(D_NOTE, "\"%s\"", pr_token);
 		else 
 		{
 			MsgDev( D_NOTE, "}\n");
@@ -1036,7 +1039,7 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 
 		// anglehack is to allow QuakeEd to write single scalar angles
 		// and allow them to be turned into vectors. (FIXME...)
-		if( !com.strcmp( com_token, "angle" ))
+		if( !com.strcmp( pr_token, "angle" ))
 		{
 			com.strncpy( keyname, "angles", sizeof(keyname));
 			anglehack = true;
@@ -1044,7 +1047,7 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 		else 
 		{
 			anglehack = false;
-			com.strncpy( keyname, com_token, sizeof(keyname));
+			com.strncpy( keyname, pr_token, sizeof(keyname));
 		}
 		// another hack to fix keynames with trailing spaces
 		n = com.strlen( keyname );
@@ -1055,9 +1058,10 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 		}
 
 		// parse value
-		if (!Com_SimpleGetToken(&data)) PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
-		MsgDev(D_NOTE, " \"%s\"\n", com_token);
-		if( com_token[0] == '}' ) PRVM_ERROR( "PRVM_ED_ParseEdict: closing brace without data" );
+		if (!PR_ParseToken( &data, true ))
+			PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
+		MsgDev(D_NOTE, " \"%s\"\n", pr_token);
+		if( pr_token[0] == '}' ) PRVM_ERROR( "PRVM_ED_ParseEdict: closing brace without data" );
 		init = true;
 
 		// ignore attempts to set key "" (this problem occurs in nehahra neh1m8.bsp)
@@ -1079,10 +1083,10 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 		{
 			char	temp[32];
 			
-			com.strncpy( temp, com_token, sizeof(temp));
-			com.sprintf( com_token, "0 %s 0", temp );
+			com.strncpy( temp, pr_token, sizeof(temp));
+			com.sprintf( pr_token, "0 %s 0", temp );
 		}
-		if(!PRVM_ED_ParseEpair( ent, key, com_token )) PRVM_ERROR ("PRVM_ED_ParseEdict: parse error");
+		if(!PRVM_ED_ParseEpair( ent, key, pr_token )) PRVM_ERROR ("PRVM_ED_ParseEdict: parse error");
 	}
 	if(!init) ent->priv.ed->free = true;
 
@@ -1105,7 +1109,7 @@ Used for both fresh maps and savegame loads.  A fresh map would also need
 to call PRVM_ED_CallSpawnFunctions () to let the objects initialize themselves.
 ================
 */
-void PRVM_ED_LoadFromFile (const char *data)
+void PRVM_ED_LoadFromFile( const char *data )
 {
 	edict_t *ent;
 	int parsed, inhibited, spawned, died;
@@ -1116,14 +1120,15 @@ void PRVM_ED_LoadFromFile (const char *data)
 	spawned = 0;
 	died = 0;
 
-
 	// parse ents
-	while (1)
+	while( 1 )
 	{
 		// parse the opening brace
-		if (!Com_SimpleGetToken(&data)) break;
-		if (com_token[0] != '{')
-			PRVM_ERROR ("PRVM_ED_LoadFromFile: %s: found %s when expecting {", PRVM_NAME, com_token);
+		PR_ParseToken( &data, true );
+
+		if( pr_token[0] == '\0') break;
+		if( pr_token[0] != '{' )
+			PRVM_ERROR ("PRVM_ED_LoadFromFile: %s: found %s when expecting {", PRVM_NAME, pr_token );
 
 		// CHANGED: this is not conform to PR_LoadFromFile
 		if(vm.prog->loadintoworld)
@@ -1134,9 +1139,9 @@ void PRVM_ED_LoadFromFile (const char *data)
 		else ent = PRVM_ED_Alloc();
 
 		// HACKHACK: clear it 
-		if (ent != vm.prog->edicts) Mem_Set(ent->progs.vp, 0, vm.prog->progs->entityfields * 4);
+		if( ent != vm.prog->edicts ) Mem_Set( ent->progs.vp, 0, vm.prog->progs->entityfields * 4 );
 
-		data = PRVM_ED_ParseEdict (data, ent);
+		data = PRVM_ED_ParseEdict( data, ent );
 		parsed++;
 
 		// remove the entity ?

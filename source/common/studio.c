@@ -12,7 +12,7 @@ bool		ignore_errors;
 byte		*studiopool;
 byte		*pData;
 byte		*pStart;
-char		modeloutname[MAX_SYSPATH];
+string		modeloutname;
 
 int		numrep;
 int		flip_triangles;
@@ -53,7 +53,6 @@ int		nummodels;
 int		numbodyparts;
 int		stripcount;
 int		numcommands;
-int		linecount;
 int		allverts;
 int		alltris;
 
@@ -79,8 +78,10 @@ string		sourcetexture[64];
 string		mirrored[MAXSTUDIOSRCBONES];
 
 s_mesh_t		*pmesh;
+token_t		token;
 dstudiohdr_t	*phdr;
 dstudioseqhdr_t	*pseqhdr;
+script_t		*studioqc;
 s_sequencegroup_t	sequencegroup;
 s_trianglevert_t	(*triangles)[3];
 s_model_t		*model[MAXSTUDIOMODELS];
@@ -93,7 +94,7 @@ s_bonefixup_t	bonefixup[MAXSTUDIOSRCBONES];
 s_bonetable_t	bonetable[MAXSTUDIOSRCBONES];
 s_attachment_t	attachment[MAXSTUDIOSRCBONES];
 s_renamebone_t	renamedbone[MAXSTUDIOSRCBONES];
-s_animation_t	*panimation[MAXSTUDIOANIMATIONS];
+s_animation_t	*panimation[MAXSTUDIOSEQUENCES*MAXSTUDIOBLENDS];	// each sequence can have 16 blends
 s_bonecontroller_t	bonecontroller[MAXSTUDIOSRCBONES];
 
 /*
@@ -166,7 +167,7 @@ void WriteBoneInfo( void )
 			pbone[j].bonecontroller[5] = i;
 			break;
 		default: 
-			Msg("Warning: unknown bonecontroller type %i\n", bonecontroller[i].type );
+			MsgDev( D_WARN, "unknown bonecontroller type %i\n", bonecontroller[i].type );
 			pbone[j].bonecontroller[0] = i; //default
 			break;
 		}
@@ -478,7 +479,7 @@ void WriteModel( void )
 	ALIGN( pData );
 	cur = (int)pData;
 
-	for (i = 0; i < nummodels; i++) 
+	for( i = 0; i < nummodels; i++ ) 
 	{
 		int normmap[MAXSTUDIOVERTS];
 		int normimap[MAXSTUDIOVERTS];
@@ -539,7 +540,7 @@ void WriteModel( void )
 			VectorCopy( model[i]->normal[normimap[j]].org, pnorm[j] );
 		}
 		
-		Msg("vertices  %6d bytes (%d vertices, %d normals)\n", pData - cur, model[i]->numverts, model[i]->numnorms);
+		Msg( "vertices  %6s (%d vertices, %d normals)\n", memprint( pData - (char *)cur ), model[i]->numverts, model[i]->numnorms);
 		cur = (int)pData;
 
 		// save mesh info
@@ -578,7 +579,7 @@ void WriteModel( void )
 			total_tris += pmesh[j].numtris;
 			total_strips += numcommandnodes;
 		}
-		Msg("mesh      %6d bytes (%d tris, %d strips)\n", pData - cur, total_tris, total_strips);
+		Msg("mesh      %6s (%d tris, %d strips)\n", memprint( pData - ( char *)cur ), total_tris, total_strips );
 		cur = (int)pData;
 	}	
 }
@@ -613,7 +614,7 @@ void WriteMDLFile( void )
 		WriteTextures( );
 
 		phdr->length = pData - pStart;
-		Msg( "textures  %6d bytes\n", phdr->length );
+		Msg( "textures  %6s\n", memprint( phdr->length ));
 
 		FS_WriteFile( texname, pStart, phdr->length );
 
@@ -642,27 +643,27 @@ void WriteMDLFile( void )
 	pData = (byte *)phdr + sizeof( dstudiohdr_t );
 
 	WriteBoneInfo();
-	Msg("bones     %6d bytes (%d)\n", pData - pStart - total, numbones );
+	Msg("bones     %6s (%d)\n", memprint( pData - pStart - total ), numbones );
 	total = pData - pStart;
 	pData = WriteAnimations( pData, pStart, 0 );
 
 	WriteSequenceInfo( );
-	Msg("sequences %6d bytes (%d frames) [%d:%02d]\n", pData - pStart - total, totalframes, (int)totalseconds / 60, (int)totalseconds % 60 );
+	Msg("sequences %6s (%d frames) [%d:%02d]\n", memprint( pData - pStart - total ), totalframes, (int)totalseconds / 60, (int)totalseconds % 60 );
 	total  = pData - pStart;
 
 	WriteModel();
-	Msg("models    %6d bytes\n", pData - pStart - total );
+	Msg("models    %6s\n", memprint( pData - pStart - total ));
 	total  = pData - pStart;
 
 	if( !split_textures )
 	{
 		WriteTextures();
-		Msg("textures  %6d bytes\n", pData - pStart - total );
+		Msg("textures  %6s\n", memprint( pData - pStart - total ));
 	}
 
 	phdr->length = pData - pStart;
 	FS_WriteFile( modeloutname, pStart, phdr->length );
-	Msg("total     %6d\n", phdr->length );
+	Msg("total     %6s\n", memprint( phdr->length ));
 }
 
 /*
@@ -743,7 +744,7 @@ void SimplifyModel( void )
 					defaultpos[k] = Kalloc( MAXSTUDIOANIMATIONS * sizeof( vec3_t ));
 					defaultrot[k] = Kalloc( MAXSTUDIOANIMATIONS * sizeof( vec3_t ));
 
-					for (n = 0; n < MAXSTUDIOANIMATIONS; n++)
+					for( n = 0; n < MAXSTUDIOANIMATIONS; n++ )
 					{
 						VectorCopy( model[i]->skeleton[j].pos, defaultpos[k][n] );
 						VectorCopy( model[i]->skeleton[j].rot, defaultrot[k][n] );
@@ -945,9 +946,9 @@ void SimplifyModel( void )
 				VectorCopy( bonetable[k].bmin, hitbox[numhitboxes].bmin );
 				VectorCopy( bonetable[k].bmax, hitbox[numhitboxes].bmax );
 
-				if( dump_hboxes )//remove this??
+				if( dump_hboxes ) // remove this??
 				{
-					Msg("$hbox %d \"%s\" %.2f %.2f %.2f  %.2f %.2f %.2f\n", hitbox[numhitboxes].group, bonetable[hitbox[numhitboxes].bone].name, hitbox[numhitboxes].bmin[0], hitbox[numhitboxes].bmin[1], hitbox[numhitboxes].bmin[2], hitbox[numhitboxes].bmax[0], hitbox[numhitboxes].bmax[1], hitbox[numhitboxes].bmax[2] );
+					Msg( "$hbox %d \"%s\" %.2f %.2f %.2f  %.2f %.2f %.2f\n", hitbox[numhitboxes].group, bonetable[hitbox[numhitboxes].bone].name, hitbox[numhitboxes].bmin[0], hitbox[numhitboxes].bmin[1], hitbox[numhitboxes].bmin[2], hitbox[numhitboxes].bmax[0], hitbox[numhitboxes].bmax[1], hitbox[numhitboxes].bmax[2] );
 				}
 				numhitboxes++;
 			}
@@ -1149,8 +1150,8 @@ void SimplifyModel( void )
 					for (k = 0; k < 6; k++)
 					{
 						dstudioanimvalue_t	*pcount, *pvalue;
-						short value[MAXSTUDIOANIMATIONS];
-						dstudioanimvalue_t data[MAXSTUDIOANIMATIONS];
+						short		value[MAXSTUDIOANIMATIONS];
+						dstudioanimvalue_t	data[MAXSTUDIOANIMATIONS];
 						float v;
 						
 						for (n = 0; n < sequence[i]->numframes; n++)
@@ -1363,7 +1364,7 @@ void Build_Reference( s_model_t *pmodel)
 	}
 }
 
-void Grab_Triangles( s_model_t *pmodel )
+void Grab_Triangles( script_t *script, s_model_t *pmodel )
 {
 	int	i, j;
 	int	tcount = 0;	
@@ -1377,81 +1378,74 @@ void Grab_Triangles( s_model_t *pmodel )
 	// load the base triangles
 	while ( 1 ) 
 	{
-		s_mesh_t		*pmesh;
-		char		texturename[64];
-		s_trianglevert_t	*ptriv;
-		int		bone;
+		if( Com_ReadToken( script, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC|SC_PARSE_LINE, &token ))
+		{		
+			s_mesh_t		*pmesh;
+			char		texturename[64];
+			s_trianglevert_t	*ptriv;
+			int		bone;
+			vec3_t		vert[3];
+			vec3_t		norm[3];
 
-		vec3_t vert[3];
-		vec3_t norm[3];
+			// strip off trailing smag
+			com.strncpy( texturename, token.string, 64 );
+			for( i = com.strlen( texturename ) - 1; i >= 0 && !isgraph( texturename[i] ); i-- );
+			texturename[i+1] = '\0';
 
-		if(!Com_GetToken( true )) break;
-		linecount++;
-		
-		if(Com_MatchToken( "end" )) break;//triangles end
-		else if(!stricmp( ".bmp", &com_token[strlen(com_token)-4]))
-		{
-			// probably is texture name
-			com.strncpy( texturename, com_token, 64 );
+			if( !com.stricmp( texturename, "end" )) return; // triangles end
 
 			// funky texture overrides
 			for( i = 0; i < numrep; i++ )  
 			{
-				if( sourcetexture[i][0] == '\0') 
+				if( sourcetexture[i][0] == '\0' ) 
 				{
 					com.strncpy( texturename, defaulttexture[i], 64 );
 					break;
 				}
-				if(!com.stricmp( texturename, sourcetexture[i])) 
+				if( !com.stricmp( texturename, sourcetexture[i] )) 
 				{
 					com.strncpy( texturename, defaulttexture[i], 64 );
 					break;
 				}
 			}
-			if( com.strlen( texturename ) < 5 )//invalid name
+			if( texturename[0] == '\0' ) // invalid name
 			{
 				// weird model problem, skip them
 				MsgDev( D_ERROR, "Grab_Triangles: triangle with invalid texname\n" );
-				for(i = 0; i < 3; i++)
-				{
-					if(!Com_GetToken( true ))
-						Sys_Break( "Unexpected EOF %s at line %d\n", filename, linecount );
-					while(Com_TryToken());
-					linecount++;
-				}
+				Com_ReadToken( script, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC|SC_PARSE_LINE, &token );
+				Com_ReadToken( script, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC|SC_PARSE_LINE, &token );
+				Com_ReadToken( script, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC|SC_PARSE_LINE, &token );
 				continue;
 			}
-		}
-                    else //triangles description
-                    {
+
 			pmesh = lookup_mesh( pmodel, texturename );
 
-			for (j = 0; j < 3; j++) 
+			for( j = 0; j < 3; j++ ) 
 			{
-				s_vertex_t p;
-				vec3_t tmp;
-				s_normal_t normal;
+				s_vertex_t	p;
+				vec3_t		tmp;
+				s_normal_t	normal;
 
-				if (flip_triangles) ptriv = lookup_triangle( pmesh, pmesh->numtris ) + 2 - j;
+				if( flip_triangles ) ptriv = lookup_triangle( pmesh, pmesh->numtris ) + 2 - j;
 				else ptriv = lookup_triangle( pmesh, pmesh->numtris ) + j;
 
 				// grab triangle info
-				bone = com.atoi(com_token);
-				p.org[0] = com.atof(Com_GetToken( false ));
-				p.org[1] = com.atof(Com_GetToken( false ));
-				p.org[2] = com.atof(Com_GetToken( false ));
-				normal.org[0] = atof(Com_GetToken( false ));
-				normal.org[1] = atof(Com_GetToken( false ));
-				normal.org[2] = atof(Com_GetToken( false ));
-				ptriv->u = atof(Com_GetToken( false ));
-				ptriv->v = atof(Com_GetToken( false ));
+				Com_ReadLong( script, true, &bone );
+				Com_ReadFloat( script, false, &p.org[0] );
+				Com_ReadFloat( script, false, &p.org[1] );
+				Com_ReadFloat( script, false, &p.org[2] );
+				Com_ReadFloat( script, false, &normal.org[0] );
+				Com_ReadFloat( script, false, &normal.org[1] );
+				Com_ReadFloat( script, false, &normal.org[2] );
+				Com_ReadFloat( script, false, &ptriv->u );
+				Com_ReadFloat( script, false, &ptriv->v );
 
 				// skip MilkShape additional info
-				while(Com_TryToken()); 
+				Com_SkipRestOfLine( script );
 		                                        
-				//translate triangles
+				// translate triangles
 				if( bone < 0 || bone >= pmodel->numbones ) 
-					Sys_Break("bogus bone index %d \n%s line %d", bone, filename, linecount );
+					Sys_Break( "bogus bone index %d \n%s line %d", bone, filename, token.line );
 				VectorCopy( p.org, vert[j] );
 				VectorCopy( normal.org, norm[j] );
 
@@ -1459,7 +1453,7 @@ void Grab_Triangles( s_model_t *pmodel )
 				normal.bone = bone;
 				normal.skinref = pmesh->skinref;
 
-				if (p.org[2] < vmin[2]) vmin[2] = p.org[2];
+				if( p.org[2] < vmin[2] ) vmin[2] = p.org[2];
 
 				adjust_vertex( p.org );
 				scale_vertex( p.org );
@@ -1478,132 +1472,128 @@ void Grab_Triangles( s_model_t *pmodel )
                                         
 				// tag bone as being used
 				// pmodel->bone[bone].ref = 1;
-
-				if( j < 2 )
-				{
-					Com_GetToken( true );
-					linecount++;
-				}
 			}
-
 			pmodel->trimesh[tcount] = pmesh;
 			pmodel->trimap[tcount] = pmesh->numtris++;
 			tcount++;
 		}
+		else break;
 	}
 	if( vmin[2] != 0.0 ) MsgDev( D_NOTE, "Grab_Triangles: lowest vector at %f\n", vmin[2] );
 }
 
-void Grab_Skeleton( s_node_t *pnodes, s_bone_t *pbones )
+void Grab_Skeleton( script_t *script, s_node_t *pnodes, s_bone_t *pbones )
 {
-	int index;
-          int time = 0;
+	int	index;
+          int	time = 0;
 	
 	while ( 1 ) 
 	{
-		if(!Com_GetToken( true )) break;
-		linecount++;
+		if( !Com_ReadToken( script, SC_ALLOW_NEWLINES, &token ))
+			break;
 		
-		if(Com_MatchToken( "end" )) return;//skeleton end
-		else if(Com_MatchToken( "time" ))
+		if( !com.stricmp( token.string, "end" )) return; // skeleton end
+		else if( !com.stricmp( token.string, "time" ))
 		{
-			//check time
-			time += atoi(Com_GetToken( false ));
-			if(time > 0) MsgDev( D_WARN, "Grab_Skeleton: Warning! An animation file is probably used as a reference\n"); 
+			// check time
+			Com_ReadToken( script, 0, &token );
+			time += token.integerValue;
+			if( time > 0 ) MsgDev( D_WARN, "Grab_Skeleton: Warning! An animation file is probably used as a reference\n" ); 
 			continue;
 		}
                     else
                     {
-			//grab skeleton info
-			index = atoi( com_token);
-			pbones[index].pos[0] = atof(Com_GetToken( false ));
-			pbones[index].pos[1] = atof(Com_GetToken( false ));
-			pbones[index].pos[2] = atof(Com_GetToken( false ));
+			// grab skeleton info
+			index = com.atoi( token.string );
+			Com_ReadFloat( script, false, &pbones[index].pos[0] );
+			Com_ReadFloat( script, false, &pbones[index].pos[1] );
+			Com_ReadFloat( script, false, &pbones[index].pos[2] );
 
 			scale_vertex( pbones[index].pos );
-			if (pnodes[index].mirrored) VectorScale( pbones[index].pos, -1.0, pbones[index].pos );
+			if( pnodes[index].mirrored ) VectorScale( pbones[index].pos, -1.0, pbones[index].pos );
 			
-			pbones[index].rot[0] = atof(Com_GetToken( false ));			
-			pbones[index].rot[1] = atof(Com_GetToken( false ));
-			pbones[index].rot[2] = atof(Com_GetToken( false ));
+			Com_ReadFloat( script, false, &pbones[index].rot[0] );			
+			Com_ReadFloat( script, false, &pbones[index].rot[1] );
+			Com_ReadFloat( script, false, &pbones[index].rot[2] );
 
 			clip_rotations( pbones[index].rot ); 
 		}
 	}
-	Sys_Break( "Unexpected EOF %s at line %d\n", filename, linecount );
+	Sys_Break( "Unexpected EOF %s at line %d\n", filename, token.line );
 }
 
-int Grab_Nodes( s_node_t *pnodes )
+int Grab_Nodes( script_t *script, s_node_t *pnodes )
 {
-	int index;
-	char name[MAX_SYSPATH];
-	int parent;
-	int numbones = 0;
-	int i;
+	int	i, index;
+	int	parent;
+	int	numbones = 0;
+	string	name;
 
 	while( 1 ) 
 	{
-		if(!Com_GetToken( true )) break;
-		linecount++;
+		if(!Com_ReadToken( script, SC_ALLOW_NEWLINES, &token )) break;
 
-		//end of nodes description
-		if(Com_MatchToken( "end" )) return numbones + 1;
+		// end of nodes description
+		if( !com.stricmp( token.string, "end" )) return numbones + 1;
 		
-		index = atoi(com_token); //read bone index (we already have filled token)
-		com.strcpy( name, Com_GetToken( false ));
-		parent = com.atoi(Com_GetToken( false )); //read bone parent
+		index = com.atoi( token.string );	// read bone index (we already have filled token)
+		Com_ReadString( script, false, name );
+		Com_ReadLong( script, false, &parent);	// read bone parent
 
 		com.strncpy( pnodes[index].name, name, sizeof(pnodes[index].name));
 		pnodes[index].parent = parent;
 		numbones = index;
 
 		// check for mirrored bones;
-		for (i = 0; i < nummirrored; i++) if (strcmp( name, mirrored[i] ) == 0) pnodes[index].mirrored = 1;
-		if ((! pnodes[index].mirrored) && parent != -1)
+		for( i = 0; i < nummirrored; i++ )
+		{
+			if( !com.strcmp( name, mirrored[i] ))
+				pnodes[index].mirrored = 1;
+		}
+		if((!pnodes[index].mirrored) && parent != -1 )
 			pnodes[index].mirrored = pnodes[pnodes[index].parent].mirrored;
 	}
 
-	Sys_Break( "Unexpected EOF %s at line %d\n", filename, linecount );
+	Sys_Break( "Unexpected EOF %s at line %d\n", filename, token.line );
 	return 0;
 }
 
 void Grab_Studio( s_model_t *pmodel )
 {
-          bool	load;
+          script_t	*studio;
 
-	com.strncpy( filename, pmodel->name, sizeof(filename));
+	com.strncpy( filename, pmodel->name, sizeof( filename ));
 
 	FS_DefaultExtension( filename, ".smd" );
-	load = Com_IncludeScript( filename, NULL, 0 );
-	if(!load) Sys_Break("unable to open %s\n", filename );
-	Msg("grabbing %s\n", filename);
-	
-	linecount = 0;
+	studio = Com_OpenScript( filename, NULL, 0 );
+	if( !studio ) Sys_Break( "unable to open %s\n", filename );
+	Msg( "grabbing %s\n", filename );
 
-	while ( 1 )
+	while( 1 )
 	{
-		if(!Com_GetToken( true )) break;
-		linecount++;
+		if( !Com_ReadToken( studio, SC_ALLOW_NEWLINES, &token )) break;
 
-		if (Com_MatchToken( "version" ))
+		if( !com.stricmp( token.string, "version" ))
 		{
-			int option = atoi(Com_GetToken( false ));
-			if (option != 1) MsgDev( D_ERROR, "Grab_Studio: %s bad version file\n", filename );
+			int	option;
+			bool	result = Com_ReadLong( studio, false, &option );
+			if( option != 1 ) Sys_Break( "Grab_Studio: %s bad version file %i, %i\n", filename, option, result );
 		}
-		else if (Com_MatchToken( "nodes" ))
+		else if( !com.stricmp( token.string, "nodes" ))
 		{
-			pmodel->numbones = Grab_Nodes( pmodel->node );
+			pmodel->numbones = Grab_Nodes( studio, pmodel->node );
 		}
-		else if (Com_MatchToken( "skeleton" ))
+		else if( !com.stricmp( token.string, "skeleton" ))
 		{
-			Grab_Skeleton( pmodel->node, pmodel->skeleton );
+			Grab_Skeleton( studio, pmodel->node, pmodel->skeleton );
 		}
-		else if (Com_MatchToken( "triangles" ))
+		else if( !com.stricmp( token.string, "triangles" ))
 		{
-			Grab_Triangles( pmodel );
+			Grab_Triangles( studio, pmodel );
 		}
-		else MsgDev( D_WARN, "Grab_Studio: unknown studio command %s at line %d\n", com_token, linecount );
+		else MsgDev( D_WARN, "Grab_Studio: unknown studio command %s at line %d\n", token.string, token.line );
 	}
+	Com_CloseScript( studio );
 }
 
 /*
@@ -1613,12 +1603,14 @@ Cmd_Eyeposition
 syntax: $eyeposition <x> <y> <z>
 ==============
 */
-void Cmd_Eyeposition (void)
+void Cmd_Eyeposition( void )
 {
 	// rotate points into frame of reference so model points down the positive x axis
-	eyeposition[1] = com.atof (Com_GetToken (false));
-	eyeposition[0] = -com.atof (Com_GetToken (false));
-	eyeposition[2] = com.atof (Com_GetToken (false));
+	Com_ReadFloat( studioqc, false, &eyeposition[1] );
+	Com_ReadFloat( studioqc, false, &eyeposition[0] );
+	Com_ReadFloat( studioqc, false, &eyeposition[2] );
+
+	eyeposition[0] = -eyeposition[0];	// stupid Quake bug
 }
 
 /*
@@ -1628,41 +1620,35 @@ Cmd_Modelname
 syntax: $modelname "outname"
 ==============
 */
-void Cmd_Modelname (void)
+void Cmd_Modelname( void )
 {
-	com.strcpy( modeloutname, Com_GetToken( false ));
+	Com_ReadString( studioqc, false, modeloutname );
 }
 
 void Option_Studio( void )
 {
-	if(!Com_GetToken (false)) return;
+	if(!Com_ReadToken( studioqc, 0, &token )) return;
 
 	model[nummodels] = Kalloc( sizeof( s_model_t ));
 	bodypart[numbodyparts].pmodel[bodypart[numbodyparts].nummodels] = model[nummodels];
-
-	com.strncpy( model[nummodels]->name, com_token, sizeof(model[nummodels]->name));
+	com.strncpy( model[nummodels]->name, token.string, sizeof(model[nummodels]->name));
 
 	flip_triangles = 1;
 	scale_up = default_scale;
 
-	while(Com_TryToken())
+	while(Com_ReadToken( studioqc, 0, &token ))
 	{
-		if (Com_MatchToken( "reverse" ))
-		{
+		if( !com.stricmp( token.string, "reverse" ))
 			flip_triangles = 0;
-		}
-		else if (Com_MatchToken( "scale" ))
-		{
-			scale_up = atof( Com_GetToken(false));
-		}
+		else if( !com.stricmp( token.string, "scale" ))
+			Com_ReadFloat( studioqc, false, &scale_up );
 	}
 
 	Grab_Studio( model[nummodels] );
 
+	scale_up = default_scale;		// reset to default
 	bodypart[numbodyparts].nummodels++;
 	nummodels++;
-
-	scale_up = default_scale;
 }
 
 
@@ -1675,6 +1661,7 @@ int Option_Blank( void )
 
 	bodypart[numbodyparts].nummodels++;
 	nummodels++;
+
 	return 0;
 }
 
@@ -1691,26 +1678,23 @@ syntax: $bodygroup "name"
 */
 void Cmd_Bodygroup( void )
 {
-	int is_started = 0;
+	int	is_started = 0;
 
-	if(!Com_TryToken()) return;
+	if(!Com_ReadToken( studioqc, 0, &token )) return;
 
 	if (numbodyparts == 0) bodypart[numbodyparts].base = 1;
 	else bodypart[numbodyparts].base = bodypart[numbodyparts-1].base * bodypart[numbodyparts-1].nummodels;
-	com.strncpy( bodypart[numbodyparts].name, com_token, sizeof(bodypart[numbodyparts].name));
+	com.strncpy( bodypart[numbodyparts].name, token.string, sizeof( bodypart[numbodyparts].name ));
 
 	while( 1 )
 	{
-		if(!Com_GetToken(true)) return;
-
-		if(Com_MatchToken( "{" )) is_started = 1;
-		else if (Com_MatchToken( "}" )) break;
-		else if (Com_MatchToken("studio" )) Option_Studio();
-		else if (Com_MatchToken("blank" )) Option_Blank();
+		if( !Com_ReadToken( studioqc, SC_ALLOW_NEWLINES, &token )) return;
+		if( !com.stricmp( token.string, "{" )) is_started = 1;
+		else if( !com.stricmp( token.string, "}" )) break;
+		else if( !com.stricmp( token.string, "studio" )) Option_Studio();
+		else if( !com.stricmp( token.string, "blank" )) Option_Blank();
 	}
-
 	numbodyparts++;
-	return;
 }
 
 /*
@@ -1722,63 +1706,62 @@ syntax: $body "name" "mainref.smd"
 */
 void Cmd_Body( void )
 {
-	int is_started = 0;
-	if (!Com_GetToken(false)) return;
+	int	is_started = 0;
 
-	if (numbodyparts == 0) bodypart[numbodyparts].base = 1;
+	if( !Com_ReadToken( studioqc, 0, &token )) return;
+	if( numbodyparts == 0 ) bodypart[numbodyparts].base = 1;
 	else bodypart[numbodyparts].base = bodypart[numbodyparts-1].base * bodypart[numbodyparts-1].nummodels;
+	com.strncpy( bodypart[numbodyparts].name, token.string, sizeof( bodypart[numbodyparts].name ));
 
-	com.strncpy(bodypart[numbodyparts].name, com_token, sizeof(bodypart[numbodyparts].name));
 	Option_Studio();
-
 	numbodyparts++;
 }
 
-void Grab_Animation( s_animation_t *panim )
+void Grab_Animation( script_t *script, s_animation_t *panim )
 {
-	vec3_t pos;
-	vec3_t rot;
-	int index;
-	int t = -99999999;
-	float cz, sz;
-	int start = 99999;
-	int end = 0;
+	vec3_t	pos;
+	vec3_t	rot;
+	int	index;
+	int	t = -99999999;
+	int	start = 99999;
+	float	cz, sz;
+	int	end = 0;
 
-	for (index = 0; index < panim->numbones; index++) 
+	for( index = 0; index < panim->numbones; index++ ) 
 	{
 		panim->pos[index] = Kalloc( MAXSTUDIOANIMATIONS * sizeof( vec3_t ));
 		panim->rot[index] = Kalloc( MAXSTUDIOANIMATIONS * sizeof( vec3_t ));
 	}
 
-	cz = cos( zrotation );
-	sz = sin( zrotation );
+	cz = com.cos( zrotation );
+	sz = com.sin( zrotation );
 
-	while ( 1 ) 
+	while( 1 ) 
 	{
-		if(!Com_GetToken( true )) break;
-		linecount++;
+		if(!Com_ReadToken( script, SC_ALLOW_NEWLINES, &token ))
+			break;
 
-		if(Com_MatchToken( "end" ))
+		if( !com.stricmp( token.string, "end" ))
 		{
 			panim->startframe = start;
 			panim->endframe = end;
 			return;
 		}
-		else if(Com_MatchToken( "time" ))
+		else if( !com.stricmp( token.string, "time" ))
 		{
-			t = atoi(Com_GetToken(false));
+			Com_ReadLong( script, false, &t );
 		}
                     else
                     {
-			index = atoi(com_token);
-			pos[0] = atof(Com_GetToken( false ));
-			pos[1] = atof(Com_GetToken( false ));
-			pos[2] = atof(Com_GetToken( false ));
-			rot[0] = atof(Com_GetToken( false ));
-			rot[1] = atof(Com_GetToken( false ));
-			rot[2] = atof(Com_GetToken( false ));
+			index = com.atoi( token.string );
+			Com_ReadFloat( script, false, &pos[0] );
+			Com_ReadFloat( script, false, &pos[1] );
+			Com_ReadFloat( script, false, &pos[2] );
+			Com_ReadFloat( script, false, &rot[0] );
+			Com_ReadFloat( script, false, &rot[1] );
+			Com_ReadFloat( script, false, &rot[2] );
 
-			if (t >= panim->startframe && t <= panim->endframe)
+			if( t >= panim->startframe && t <= panim->endframe )
 			{
 				if (panim->node[index].parent == -1)
 				{
@@ -1788,15 +1771,12 @@ void Grab_Animation( s_animation_t *panim )
 					panim->pos[index][t][2] = pos[2];
 					rot[2] += zrotation; // rotate model
 				}
-				else
-				{
-					VectorCopy( pos, panim->pos[index][t] );
-				}
+				else VectorCopy( pos, panim->pos[index][t] );
 
-				if (t > end) end = t;
-				if (t < start) start = t;
+				if( t > end ) end = t;
+				if( t < start ) start = t;
 
-				if (panim->node[index].mirrored)
+				if( panim->node[index].mirrored )
 					VectorScale( panim->pos[index][t], -1.0, panim->pos[index][t] );
 
 				scale_vertex( panim->pos[index][t] );
@@ -1805,8 +1785,7 @@ void Grab_Animation( s_animation_t *panim )
 			}
 		}
 	}
-
-	Sys_Break( "unexpected EOF: %s\n", panim->name );
+	Sys_Break( "unexpected EOF: %s.smd line %i\n", panim->name, token.line );
 }
 
 void Shift_Animation( s_animation_t *panim )
@@ -1830,91 +1809,96 @@ void Shift_Animation( s_animation_t *panim )
 	}
 }
 
-void Option_Animation( char *name, s_animation_t *panim )
+void Option_Animation( const char *name, s_animation_t *panim )
 {
-	bool	load;
+	script_t	*anim;
 	
-	com.strncpy( panim->name, name, sizeof(panim->name));
-	com.strncpy( filename, panim->name, sizeof(filename));
+	com.strncpy( panim->name, name, sizeof( panim->name ));
+	com.strncpy( filename, panim->name, sizeof( filename ));
 
-	FS_DefaultExtension(filename, ".smd" );
-	load = Com_IncludeScript( filename, NULL, 0 );
-	if(!load) Sys_Break("unable to open %s\n", filename );
-	linecount = 0;
+	FS_DefaultExtension( filename, ".smd" );
+	anim = Com_OpenScript( filename, NULL, 0 );
+	if( !anim ) Sys_Break( "unable to open %s\n", filename );
 
 	while ( 1 )
 	{
-		if(!Com_GetToken( true )) break;
-		linecount++;
+		if( !Com_ReadToken( anim, SC_ALLOW_NEWLINES, &token ))
+			break;
 
-		if(Com_MatchToken( "end" )) break;
-		else if (Com_MatchToken( "version" ))
+		if( !com.stricmp( token.string, "end" )) break;
+		else if( !com.stricmp( token.string, "version" ))
 		{
-			int option = atoi(Com_GetToken( false ));
-			if (option != 1) Msg("Warning: %s bad version file\n", filename );
+			int	option;
+			Com_ReadLong( anim, false, &option );
+			if( option != 1 ) MsgDev( D_ERROR, "Grab_Animation: %s bad version file\n", filename );
 		}
-		else if (Com_MatchToken( "nodes" ))
+		else if( !com.stricmp( token.string, "nodes" ))
 		{
-			panim->numbones = Grab_Nodes( panim->node );
+			panim->numbones = Grab_Nodes( anim, panim->node );
 		}
-		else if (Com_MatchToken( "skeleton" ))
+		else if( !com.stricmp( token.string, "skeleton" ))
 		{
-			Grab_Animation( panim );
+			Grab_Animation( anim, panim );
 			Shift_Animation( panim );
 		}
 		else 
 		{
-			MsgDev( D_WARN, "Option_Animation: unknown studio command : %s\n", com_token );
-			while(Com_TryToken()); // skip other tokens at line
+			MsgDev( D_WARN, "Option_Animation: unknown studio command : %s\n", token.string );
+			Com_SkipRestOfLine( anim ); // skip other tokens at line
 		}
 	}
+	Com_CloseScript( anim );
 }
 
-int Option_Motion ( s_sequence_t *psequence )
+int Option_Motion( s_sequence_t *psequence )
 {
-	while (Com_TryToken()) psequence->motiontype |= lookupControl( com_token);
+	string	motion;
+
+	while( Com_ReadString( studioqc, false, motion ))
+		psequence->motiontype |= lookupControl( motion );
 	return 0;
 }
 
 int Option_Event( s_sequence_t *psequence )
 {
-	if (psequence->numevents + 1 >= MAXSTUDIOEVENTS)
+	if( psequence->numevents + 1 >= MAXSTUDIOEVENTS )
 	{
 		MsgDev( D_ERROR, "Option_Event: MAXSTUDIOEVENTS limit excedeed.\n");
 		return 0;
 	}
 
-	psequence->event[psequence->numevents].event = atoi( Com_GetToken (false));
-	psequence->event[psequence->numevents].frame = atoi(Com_GetToken (false));
+	Com_ReadLong( studioqc, false, &psequence->event[psequence->numevents].event );
+	Com_ReadLong( studioqc, false, &psequence->event[psequence->numevents].frame );
 	psequence->numevents++;
 
 	// option token
-	if (Com_TryToken())
+	if( Com_ReadToken( studioqc, 0, &token ))
 	{
-		if (Com_MatchToken( "}" )) return 1; // opps, hit the end
-		com.strcpy( psequence->event[psequence->numevents-1].options, com_token);// found an option
+		if( !com.stricmp( token.string, "}" )) return 1; // opps, hit the end
+
+		// found an option
+		com.strncpy( psequence->event[psequence->numevents-1].options, token.string, 64 );
 	}
 	return 0;
 }
-
 
 int Option_Fps( s_sequence_t *psequence )
 {
-	psequence->fps = atof(Com_GetToken (false));
+	Com_ReadFloat( studioqc, false, &psequence->fps );
 	return 0;
 }
 
-int Option_AddPivot ( s_sequence_t *psequence )
+int Option_AddPivot( s_sequence_t *psequence )
 {
 	if( psequence->numpivots + 1 >= MAXSTUDIOPIVOTS )
 	{
-		Msg("Warning: MAXSTUDIOPIVOTS limit excedeed.\n");
+		MsgDev( D_ERROR, "MAXSTUDIOPIVOTS limit excedeed.\n" );
 		return 0;
 	}
 	
-	psequence->pivot[psequence->numpivots].index = atoi(Com_GetToken (false));
-	psequence->pivot[psequence->numpivots].start = atoi(Com_GetToken (false));
-	psequence->pivot[psequence->numpivots].end = atoi(Com_GetToken (false));
+	Com_ReadLong( studioqc, false, &psequence->pivot[psequence->numpivots].index );
+	Com_ReadLong( studioqc, false, &psequence->pivot[psequence->numpivots].start );
+	Com_ReadLong( studioqc, false, &psequence->pivot[psequence->numpivots].end );
 	psequence->numpivots++;
 
 	return 0;
@@ -1927,26 +1911,28 @@ Cmd_Origin
 syntax: $origin <x> <y> <z> (z rotate)
 ==============
 */
-void Cmd_Origin (void)
+void Cmd_Origin( void )
 {
-	defaultadjust[0] = atof (Com_GetToken (false));
-	defaultadjust[1] = atof (Com_GetToken (false));
-	defaultadjust[2] = atof (Com_GetToken (false));
+	Com_ReadFloat( studioqc, false, &defaultadjust[0] );
+	Com_ReadFloat( studioqc, false, &defaultadjust[1] );
+	Com_ReadFloat( studioqc, false, &defaultadjust[2] );
 
-	if (Com_TryToken()) defaultzrotation = (atof( com_token) + 90) * (M_PI / 180.0);
+	if( Com_ReadToken( studioqc, 0, &token ))
+		defaultzrotation = DEG2RAD( com.atof( token.string ) + 90 );
 }
 
 
-void Option_Origin (void)
+void Option_Origin( void )
 {
-	adjust[0] = atof (Com_GetToken (false));
-	adjust[1] = atof (Com_GetToken (false));
-	adjust[2] = atof (Com_GetToken (false));
+	Com_ReadFloat( studioqc, false, &adjust[0] );
+	Com_ReadFloat( studioqc, false, &adjust[1] );
+	Com_ReadFloat( studioqc, false, &adjust[2] );
 }
 
-void Option_Rotate(void )
+void Option_Rotate( void )
 {
-	zrotation = (atof(Com_GetToken (false)) + 90) * (M_PI / 180.0);
+	Com_ReadToken( studioqc, 0, &token );
+	zrotation = DEG2RAD( com.atof( token.string ) + 90 );
 }
 
 /*
@@ -1956,9 +1942,10 @@ Cmd_ScaleUp
 syntax: $scale <value>
 ==============
 */
-void Cmd_ScaleUp (void)
+void Cmd_ScaleUp( void )
 {
-	default_scale = scale_up = com.atof (Com_GetToken (false));
+	Com_ReadFloat( studioqc, false, &scale_up );
+	default_scale = scale_up;
 }
 
 /*
@@ -1968,15 +1955,15 @@ Cmd_Rotate
 syntax: $rotate <value>
 ==============
 */
-void Cmd_Rotate(void)
+void Cmd_Rotate( void )
 {
-	if (!Com_GetToken(false)) return;
-	zrotation = (atof(com_token) + 90) * (M_PI / 180.0);
+	if(!Com_ReadToken( studioqc, 0, &token )) return;
+	zrotation = DEG2RAD( com.atof( token.string ) + 90 );
 }
 
 void Option_ScaleUp (void)
 {
-	scale_up = atof (Com_GetToken (false));
+	Com_ReadFloat( studioqc, false, &scale_up );
 }
 
 /*
@@ -1998,7 +1985,7 @@ syntax: $sequence "seqname"
 	node <number>			// link animation with node
 	transition <startnode> <endnode>	// move from start to end node
 	rtransition <startnode> <endnode>	// rotate from start to end node
-	LX				// movement flag (may be X, Y, Z, LX, LY, LZ, XR, YR, e.t.c.)
+	LX				// movement flag (may be X, Y, Z, LX, LY, LZ, XR, YR, etc )
 	ACT_WALK | ACT_32 (actweight)		// act name or act number and actweight (optionally)	
 }
 ==============
@@ -2007,16 +1994,16 @@ static int Cmd_Sequence( void )
 {
 	int	i, depth = 0;
 	string	smdfilename[MAXSTUDIOBLENDS];
+	int	end = MAXSTUDIOANIMATIONS - 1;
 	int	numblends = 0;
 	int	start = 0;
-	int	end = MAXSTUDIOANIMATIONS - 1;
 
-	if(!Com_GetToken( false )) return 0;
+	if( !Com_ReadToken( studioqc, 0, &token )) return 0;
 
 	// allocate new sequence
-	if( numseq >= MAXSTUDIOSEQUENCES ) Sys_Break("Too many sequences in model\n" );
+	if( numseq >= MAXSTUDIOSEQUENCES ) Sys_Break( "Too many sequences in model\n" );
 	sequence[numseq] = Mem_Alloc( studiopool, sizeof(s_sequence_t));
-	com.strncpy( sequence[numseq]->name, com_token, sizeof(sequence[numseq]->name));
+	com.strncpy( sequence[numseq]->name, token.string, sizeof( sequence[numseq]->name ));
 	
 	VectorCopy( defaultadjust, adjust );
 	scale_up = default_scale;
@@ -2032,70 +2019,66 @@ static int Cmd_Sequence( void )
 	{
 		if( depth > 0 )
 		{
-			if(!Com_GetToken( true ))
+			if(!Com_ReadToken( studioqc, SC_ALLOW_NEWLINES|SC_ALLOW_PATHNAMES, &token ))
 				break;
 		}
-		else if(!Com_TryToken()) break;
+		else if(!Com_ReadToken( studioqc, SC_ALLOW_PATHNAMES, &token )) break;
 		
-		if (Com_MatchToken( "{" )) depth++;
-		else if (Com_MatchToken( "}" )) depth--;
-		else if (Com_MatchToken( "event" )) depth -= Option_Event( sequence[numseq] );
-		else if (Com_MatchToken( "pivot" )) Option_AddPivot( sequence[numseq] );
-		else if (Com_MatchToken( "fps" )) Option_Fps( sequence[numseq] );
-		else if (Com_MatchToken( "origin" )) Option_Origin();
-		else if (Com_MatchToken( "rotate" )) Option_Rotate();
-		else if (Com_MatchToken( "scale" )) Option_ScaleUp();
-		else if (Com_MatchToken( "loop" )) sequence[numseq]->flags |= STUDIO_LOOPING;
-		else if (Com_MatchToken( "frame" ))
+		if( !com.stricmp( token.string, "{" )) depth++;
+		else if( !com.stricmp( token.string, "}" )) depth--;
+		else if( !com.stricmp( token.string, "event" )) depth -= Option_Event( sequence[numseq] );
+		else if( !com.stricmp( token.string, "pivot" )) Option_AddPivot( sequence[numseq] );
+		else if( !com.stricmp( token.string, "fps" )) Option_Fps( sequence[numseq] );
+		else if( !com.stricmp( token.string, "origin" )) Option_Origin();
+		else if( !com.stricmp( token.string, "rotate" )) Option_Rotate();
+		else if( !com.stricmp( token.string, "scale" )) Option_ScaleUp();
+		else if( !com.stricmp( token.string, "loop" )) sequence[numseq]->flags |= STUDIO_LOOPING;
+		else if( !com.stricmp( token.string, "frame" ))
 		{
-			start = com.atoi(Com_GetToken( false ));
-			end = com.atoi(Com_GetToken( false ));
+			Com_ReadLong( studioqc, false, &start );
+			Com_ReadLong( studioqc, false, &end );
 		}
-		else if (Com_MatchToken( "blend" ))
+		else if( !com.stricmp( token.string, "blend" ))
 		{
-			sequence[numseq]->blendtype[0] = lookupControl(Com_GetToken( false ));
-			sequence[numseq]->blendstart[0] = com.atof(Com_GetToken( false ));
-			sequence[numseq]->blendend[0] = com.atof(Com_GetToken( false ));
+			Com_ReadToken( studioqc, 0, &token );
+			sequence[numseq]->blendtype[0] = lookupControl( token.string );
+			Com_ReadFloat( studioqc, false, &sequence[numseq]->blendstart[0] );
+			Com_ReadFloat( studioqc, false, &sequence[numseq]->blendend[0] );
 		}
-		else if (Com_MatchToken( "node" ))
+		else if( !com.stricmp( token.string, "node" ))
 		{
-			sequence[numseq]->entrynode = sequence[numseq]->exitnode = com.atoi(Com_GetToken( false ));
+			Com_ReadLong( studioqc, false, &sequence[numseq]->entrynode );
+			sequence[numseq]->exitnode = sequence[numseq]->entrynode;
 		}
-		else if (Com_MatchToken( "transition" ))
+		else if( !com.stricmp( token.string, "transition" ))
 		{
-			sequence[numseq]->entrynode = com.atoi(Com_GetToken( false ));
-			sequence[numseq]->exitnode = com.atoi(Com_GetToken( false ));
+			Com_ReadLong( studioqc, false, &sequence[numseq]->entrynode );
+			Com_ReadLong( studioqc, false, &sequence[numseq]->exitnode );
 		}
-		else if (Com_MatchToken( "rtransition" ))
+		else if( !com.stricmp( token.string, "rtransition" ))
 		{
-			sequence[numseq]->entrynode = com.atoi(Com_GetToken( false ));
-			sequence[numseq]->exitnode = com.atoi(Com_GetToken( false ));
+			Com_ReadLong( studioqc, false, &sequence[numseq]->entrynode );
+			Com_ReadLong( studioqc, false, &sequence[numseq]->exitnode );
 			sequence[numseq]->nodeflags |= 1;
 		}
-		else if (lookupControl( com_token) != -1)
+		else if( lookupControl( token.string ) != -1 )
 		{
-			sequence[numseq]->motiontype |= lookupControl( com_token);
+			sequence[numseq]->motiontype |= lookupControl( token.string );
 		}
-		else if (Com_MatchToken( "animation" ))
+		else if( !com.stricmp( token.string, "animation" ))
 		{
-			com.strncpy( smdfilename[numblends], Com_GetToken( false ), sizeof(smdfilename[numblends]));
+			Com_ReadString( studioqc, false, smdfilename[numblends] );
 			numblends++;
 		}
-		else if (i = lookupActivity( com_token))
+		else if( i = lookupActivity( token.string ))
 		{
 			sequence[numseq]->activity = i;
-			sequence[numseq]->actweight = 1;//default weight
-			if(Com_TryToken())
-			{
-				// make sure what is really actweight
-				if(!Com_MatchToken("{") && !Com_MatchToken("}") && strlen(com_token) < 3 && atoi(com_token) <= 100)
-					sequence[numseq]->actweight = com.atoi(com_token);
-				else Com_FreeToken(); // release token
-			}
+			sequence[numseq]->actweight = 1; // default weight
+			Com_ReadLong( studioqc, false, &sequence[numseq]->actweight );
 		}
 		else
 		{
-			com.strncpy( smdfilename[numblends], com_token, sizeof(smdfilename[numblends]));
+			com.strncpy( smdfilename[numblends], token.string, sizeof( smdfilename[numblends] ));
 			numblends++;
 		}
 	}
@@ -2108,6 +2091,8 @@ static int Cmd_Sequence( void )
 	}
 	for( i = 0; i < numblends; i++ )
 	{
+		if( numani >= ( MAXSTUDIOSEQUENCES * MAXSTUDIOBLENDS ))
+			Sys_Break( "Too many blends in model\n" );
 		panimation[numani] = Kalloc( sizeof( s_animation_t ));
 		sequence[numseq]->panim[i] = panimation[numani];
 		sequence[numseq]->panim[i]->startframe = start;
@@ -2131,11 +2116,11 @@ Cmd_Root
 syntax: $root "pivotname"
 ==============
 */
-int Cmd_Root (void)
+int Cmd_Root( void )
 {
-	if (Com_GetToken(false))
+	if( Com_ReadToken( studioqc, 0, &token ))
 	{
-		com.strncpy( pivotname[0], com_token, sizeof(pivotname));
+		com.strncpy( pivotname[0], token.string, sizeof( pivotname ));
 		return 0;
 	}
 	return 1;
@@ -2148,14 +2133,15 @@ Cmd_Pivot
 syntax: $pivot (<index>) ("pivotname")
 ==============
 */
-int Cmd_Pivot (void)
+int Cmd_Pivot( void )
 {
-	if (Com_GetToken (false))
+	int	index;
+
+	if( Com_ReadLong( studioqc, false, &index ))
 	{
-		int index = atoi(com_token);
-		if (Com_GetToken(false))
+		if( Com_ReadToken( studioqc, 0, &token ))
 		{
-			com.strncpy( pivotname[index], com_token, sizeof(pivotname[index]));
+			com.strncpy( pivotname[index], token.string, sizeof( pivotname[index] ));
 			return 0;
 		}
 	}
@@ -2171,29 +2157,32 @@ syntax: $controller "mouth"|<number> ("name") <type> <start> <end>
 */
 int Cmd_Controller( void )
 {
-	if (Com_GetToken (false))
+	if( Com_ReadToken( studioqc, 0, &token ))
 	{
-		//mouth is hardcoded at four controller
-		if (Com_MatchToken( "mouth" )) bonecontroller[numbonecontrollers].index = 4;
-		else bonecontroller[numbonecontrollers].index = com.atoi(com_token);
+		// mouth is hardcoded at four controller
+		if( !com.stricmp( token.string, "mouth" ))
+			bonecontroller[numbonecontrollers].index = 4;
+		else bonecontroller[numbonecontrollers].index = com.atoi( token.string );
 
-		if (Com_GetToken(false))
+		if( Com_ReadToken( studioqc, 0, &token ))
 		{
-			com.strncpy( bonecontroller[numbonecontrollers].name, com_token, sizeof(bonecontroller[numbonecontrollers].name));
+			com.strncpy( bonecontroller[numbonecontrollers].name, token.string, sizeof(bonecontroller[numbonecontrollers].name ));
 
-			Com_GetToken(false);
-			if ((bonecontroller[numbonecontrollers].type = lookupControl(com_token)) == -1) 
+			Com_ReadToken( studioqc, 0, &token );
+			if((bonecontroller[numbonecontrollers].type = lookupControl( token.string )) == -1 ) 
 			{
-				MsgDev( D_ERROR, "Cmd_Controller: unknown bonecontroller type '%s'\n", com_token );
+				MsgDev( D_ERROR, "Cmd_Controller: unknown bonecontroller type '%s'\n", token.string );
+				Com_SkipRestOfLine( studioqc );
 				return 0;
 			}
 
-			bonecontroller[numbonecontrollers].start = atof(Com_GetToken(false));
-			bonecontroller[numbonecontrollers].end = atof(Com_GetToken(false));
+			Com_ReadFloat( studioqc, false, &bonecontroller[numbonecontrollers].start );
+			Com_ReadFloat( studioqc, false, &bonecontroller[numbonecontrollers].end );
 
-			if (bonecontroller[numbonecontrollers].type & (STUDIO_XR | STUDIO_YR | STUDIO_ZR))
+			if( bonecontroller[numbonecontrollers].type & (STUDIO_XR|STUDIO_YR|STUDIO_ZR))
 			{
-				if (((int)(bonecontroller[numbonecontrollers].start + 360) % 360) == ((int)(bonecontroller[numbonecontrollers].end + 360) % 360))
+				// check for infinity loop
+				if(((int)(bonecontroller[numbonecontrollers].start + 360) % 360) == ((int)(bonecontroller[numbonecontrollers].end + 360) % 360))
 					bonecontroller[numbonecontrollers].type |= STUDIO_RLOOP;
 			}
 			numbonecontrollers++;
@@ -2209,14 +2198,14 @@ Cmd_BBox
 syntax: $bbox <mins0> <mins1> <mins2> <maxs0> <maxs1> <maxs2>
 ==============
 */
-void Cmd_BBox (void)
+void Cmd_BBox( void )
 {
-	bbox[0][0] = atof(Com_GetToken(false));
-	bbox[0][1] = atof(Com_GetToken(false));
-	bbox[0][2] = atof(Com_GetToken(false));
-	bbox[1][0] = atof(Com_GetToken(false));
-	bbox[1][1] = atof(Com_GetToken(false));
-	bbox[1][2] = atof(Com_GetToken(false));
+	Com_ReadFloat( studioqc, false, &bbox[0][0] );
+	Com_ReadFloat( studioqc, false, &bbox[0][1] );
+	Com_ReadFloat( studioqc, false, &bbox[0][2] );
+	Com_ReadFloat( studioqc, false, &bbox[1][0] );
+	Com_ReadFloat( studioqc, false, &bbox[1][1] );
+	Com_ReadFloat( studioqc, false, &bbox[1][2] );
 }
 
 /*
@@ -2226,14 +2215,14 @@ Cmd_CBox
 syntax: $cbox <mins0> <mins1> <mins2> <maxs0> <maxs1> <maxs2>
 ==============
 */
-void Cmd_CBox (void)
+void Cmd_CBox( void )
 {
-	cbox[0][0] = atof(Com_GetToken(false));
-	cbox[0][1] = atof(Com_GetToken(false));
-	cbox[0][2] = atof(Com_GetToken(false));
-	cbox[1][0] = atof(Com_GetToken(false));
-	cbox[1][1] = atof(Com_GetToken(false));
-	cbox[1][2] = atof(Com_GetToken(false));
+	Com_ReadFloat( studioqc, false, &cbox[0][0] );
+	Com_ReadFloat( studioqc, false, &cbox[0][1] );
+	Com_ReadFloat( studioqc, false, &cbox[0][2] );
+	Com_ReadFloat( studioqc, false, &cbox[1][0] );
+	Com_ReadFloat( studioqc, false, &cbox[1][1] );
+	Com_ReadFloat( studioqc, false, &cbox[1][2] );
 }
 
 /*
@@ -2243,9 +2232,9 @@ Cmd_Mirror
 syntax: $mirrorbone "name"
 ==============
 */
-void Cmd_Mirror ( void )
+void Cmd_Mirror( void )
 {
-	com.strncpy( mirrored[nummirrored], Com_GetToken(false), sizeof(mirrored[nummirrored]));
+	Com_ReadString( studioqc, false, mirrored[nummirrored] );
 	nummirrored++;
 }
 
@@ -2256,9 +2245,9 @@ Cmd_Gamma
 syntax: $gamma <value>
 ==============
 */
-void Cmd_Gamma ( void )
+void Cmd_Gamma( void )
 {
-	gamma = atof(Com_GetToken(false));
+	Com_ReadFloat( studioqc, false, &gamma );
 }
 
 /*
@@ -2275,47 +2264,43 @@ syntax: $texturegroup
 */
 int Cmd_TextureGroup( void )
 {
-	int i;
-	int depth = 0;
-	int index = 0;
-	int group = 0;
+	int	i, depth = 0;
+	int	index = 0, group = 0;
 
-	if (numtextures == 0) 
+	if( numtextures == 0 ) 
 	{
 		MsgDev( D_ERROR, "Cmd_TextureGroup: texturegroups must follow model loading\n");
 		return 0;
 	}
           
-	if (!Com_GetToken(false)) return 0;
-	if (numskinref == 0) numskinref = numtextures;
+	if( !Com_ReadToken( studioqc, 0, &token )) return 0;
+	if( numskinref == 0 ) numskinref = numtextures;
 
-	while (1)
+	while( 1 )
 	{
-		if(!Com_GetToken(true))
+		if( !Com_ReadToken( studioqc, SC_ALLOW_NEWLINES, &token ))
 		{
-                              if (depth)MsgDev( D_ERROR, "missing }\n");
+                              if( depth ) MsgDev( D_ERROR, "missing }\n" );
 			break;
                     }
 
-		if (Com_MatchToken( "{" )) depth++;
-		else if (Com_MatchToken( "}" ))
+		if( !com.stricmp( token.string, "{" )) depth++;
+		else if( !com.stricmp( token.string, "}" ))
 		{
-			depth--;
-			if (depth == 0) break;
+			if( --depth == 0 ) break;
 			group++;
 			index = 0;
 		}
-		else if (depth == 2)
+		else if( depth == 2 )
 		{
-			i = lookup_texture( com_token);
+			i = lookup_texture( token.string );
 			texturegroup[numtexturegroups][group][index] = i;
-			if (group != 0) texture[i]->parent = texturegroup[numtexturegroups][0][index];
+			if( group != 0 ) texture[i]->parent = texturegroup[numtexturegroups][0][index];
 			index++;
 			numtexturereps[numtexturegroups] = index;
 			numtexturelayers[numtexturegroups] = group + 1;
 		}
 	}
-
 	numtexturegroups++;
 	return 0;
 }
@@ -2329,8 +2314,8 @@ syntax: $hitgroup <index> <name>
 */
 int Cmd_Hitgroup( void )
 {
-	hitgroup[numhitgroups].group = atoi(Com_GetToken(false));
-	com.strncpy( hitgroup[numhitgroups].name, Com_GetToken(false), sizeof(hitgroup[numhitgroups].name));
+	Com_ReadLong( studioqc, false, &hitgroup[numhitgroups].group );
+	Com_ReadString( studioqc, false, hitgroup[numhitgroups].name );
 	numhitgroups++;
 
 	return 0;
@@ -2345,14 +2330,14 @@ syntax: $hbox <index> <name> <mins0> <mins1> <mins2> <maxs0> <maxs1> <maxs2>
 */
 int Cmd_Hitbox( void )
 {
-	hitbox[numhitboxes].group = atoi(Com_GetToken(false));
-	com.strncpy( hitbox[numhitboxes].name, Com_GetToken(false), sizeof(hitbox[numhitboxes].name));
-	hitbox[numhitboxes].bmin[0] = atof( Com_GetToken(false));
-	hitbox[numhitboxes].bmin[1] = atof(Com_GetToken(false));
-	hitbox[numhitboxes].bmin[2] = atof(Com_GetToken(false));
-	hitbox[numhitboxes].bmax[0] = atof(Com_GetToken(false));
-	hitbox[numhitboxes].bmax[1] = atof(Com_GetToken(false));
-	hitbox[numhitboxes].bmax[2] = atof(Com_GetToken(false));
+	Com_ReadLong( studioqc, false, &hitbox[numhitboxes].group );
+	Com_ReadString( studioqc, false, hitbox[numhitboxes].name );
+	Com_ReadFloat( studioqc, false, &hitbox[numhitboxes].bmin[0] );
+	Com_ReadFloat( studioqc, false, &hitbox[numhitboxes].bmin[1] );
+	Com_ReadFloat( studioqc, false, &hitbox[numhitboxes].bmin[2] );
+	Com_ReadFloat( studioqc, false, &hitbox[numhitboxes].bmax[0] );
+	Com_ReadFloat( studioqc, false, &hitbox[numhitboxes].bmax[1] );
+	Com_ReadFloat( studioqc, false, &hitbox[numhitboxes].bmax[2] );
 	numhitboxes++;
 
 	return 0;
@@ -2367,17 +2352,14 @@ syntax: $attachment <index> <bonename> <x> <y> <z> (old stuff)
 */
 int Cmd_Attachment( void )
 {
-	// index
-	attachment[numattachments].index = atoi(Com_GetToken(false));
-	// bone name
-	com.strncpy( attachment[numattachments].bonename, Com_GetToken(false), sizeof(attachment[numattachments].bonename));
-	// position
-	attachment[numattachments].org[0] = atof(Com_GetToken(false));
-	attachment[numattachments].org[1] = atof(Com_GetToken(false));
-	attachment[numattachments].org[2] = atof(Com_GetToken(false));
+	Com_ReadLong( studioqc, false, &attachment[numattachments].index );		// index
+	Com_ReadString( studioqc, false, attachment[numattachments].bonename );	// bone name
+	Com_ReadFloat( studioqc, false, &attachment[numattachments].org[0] );		// position
+	Com_ReadFloat( studioqc, false, &attachment[numattachments].org[1] );
+	Com_ReadFloat( studioqc, false, &attachment[numattachments].org[2] );
 
 	// skip old stuff
-	while(Com_TryToken());
+	Com_SkipRestOfLine( studioqc );
 
 	numattachments++;
 	return 0;
@@ -2392,8 +2374,8 @@ syntax: $renamebone <oldname> <newname>
 */
 void Cmd_Renamebone( void )
 {
-	com.strncpy( renamedbone[numrenamedbones].from, Com_GetToken(false), 32 );
-	com.strncpy( renamedbone[numrenamedbones].to, Com_GetToken(false), 32 );
+	Com_ReadString( studioqc, false, renamedbone[numrenamedbones].from );
+	Com_ReadString( studioqc, false, renamedbone[numrenamedbones].to );
 	numrenamedbones++;
 }
 
@@ -2407,24 +2389,18 @@ syntax: $texrendermode "texture.bmp" "rendermode"
 */
 void Cmd_TexRenderMode( void )
 {
-	char tex_name[64];
+	char	tex_name[64];
 
-	com.strcpy( tex_name, Com_GetToken( false ));
-	Com_GetToken(false);
+	Com_ReadString( studioqc, false, tex_name );
+	Com_ReadToken( studioqc, 0, &token );
 
-	if(Com_MatchToken( "additive" ))
-	{
+	if( !com.stricmp( token.string, "additive" ))
 		texture[lookup_texture(tex_name)]->flags |= STUDIO_NF_ADDITIVE;
-	}
-	else if(Com_MatchToken( "masked" ))
-	{
+	else if( !com.stricmp( token.string, "masked" ))
 		texture[lookup_texture(tex_name)]->flags |= STUDIO_NF_TRANSPARENT;
-	}
-	else if(Com_MatchToken( "blended" ))
-	{
+	else if( !com.stricmp( token.string, "blended" ))
 		texture[lookup_texture(tex_name)]->flags |= STUDIO_NF_BLENDED;
-	}
-	else MsgDev( D_WARN, "Cmd_TexRenderMode: texture '%s' have unknown render mode '%s'!\n", tex_name, com_token);
+	else MsgDev( D_WARN, "Cmd_TexRenderMode: texture '%s' have unknown render mode '%s'!\n", tex_name, token.string );
 
 }
 
@@ -2437,8 +2413,8 @@ syntax: $replacetexture "oldname.bmp" "newname.bmp"
 */
 void Cmd_Replace( void )
 {
-	com.strcpy ( sourcetexture[numrep], Com_GetToken(false));
-	com.strcpy ( defaulttexture[numrep], Com_GetToken(false));
+	Com_ReadString( studioqc, false, sourcetexture[numrep] );
+	Com_ReadString( studioqc, false, defaulttexture[numrep]);
 	numrep++;
 }
 
@@ -2451,12 +2427,15 @@ syntax: $cd "path"
 */
 void Cmd_CdSet( void )
 {
-	if(!cdset)
+	if( !cdset )
 	{
+		string	path;
+
 		cdset = true;
-		FS_AddGameHierarchy(Com_GetToken (false));
+		Com_ReadString( studioqc, false, path );		
+		FS_AddGameHierarchy( path );
 	}
-	else  Msg("Warning: $cd already set\n");
+	else MsgDev( D_WARN, "$cd already set\n" );
 }
 
 /*
@@ -2468,12 +2447,15 @@ syntax: $cdtexture "path"
 */
 void Cmd_CdTextureSet( void )
 {
-	if(cdtextureset < 16) 
+	if( cdtextureset < 16 ) 
 	{
+		string	path;
+
 		cdtextureset++;
-		FS_AddGameHierarchy( Com_GetToken (false));
+		Com_ReadString( studioqc, false, path );
+		FS_AddGameHierarchy( path );
 	}
-	else Msg("Warning: $cdtexture already set\n");
+	else MsgDev( D_WARN, "$cdtexture already set\n" );
 }
 
 /*
@@ -2496,18 +2478,16 @@ void ResetModelInfo( void )
 	numrep = 0;
 	gamma = 1.8f;
 	flip_triangles = 1;
-	normal_blend = cos( 2.0 * (M_PI / 180.0));
-
-	//make an option
-	dump_hboxes = 0;
+	normal_blend = com.cos( DEG2RAD( 2.0f ));
+	dump_hboxes = 0;	// FIXME: make an option
 
 	com.strcpy( gs_filename, "model" );
 	com.strcpy( sequencegroup.label, "default" );
-	FS_ClearSearchPath( ); //clear all $cd and $cdtexture
+	FS_ClearSearchPath( ); // clear all $cd and $cdtexture
 
-	//set default model parms
-	FS_FileBase( gs_filename, modeloutname );//kill path and ext
-	FS_DefaultExtension( modeloutname, ".mdl" );//set new ext
+	// set default model parms
+	FS_FileBase( gs_filename, modeloutname );	// kill path and ext
+	FS_DefaultExtension( modeloutname, ".mdl" );	// set new ext
 }
 
 /*
@@ -2517,10 +2497,10 @@ Cmd_StudioUnknown
 syntax: "blabla"
 ==============
 */
-void Cmd_StudioUnknown( void )
+void Cmd_StudioUnknown( const char *token )
 {
-	MsgDev( D_WARN, "Cmd_StudioUnknown: skip command \"%s\"\n", com_token);
-	while(Com_TryToken());
+	MsgDev( D_WARN, "Cmd_StudioUnknown: skip command \"%s\"\n", token );
+	Com_SkipRestOfLine( studioqc );
 }
 
 bool ParseModelScript( void )
@@ -2529,38 +2509,41 @@ bool ParseModelScript( void )
 
 	while( 1 )
 	{
-		if(!Com_GetToken (true)) break;
+		if( !Com_ReadToken( studioqc, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &token ))
+			break;
 
-		if (Com_MatchToken("$modelname")) Cmd_Modelname ();
-		else if (Com_MatchToken("$cd")) Cmd_CdSet();
-		else if (Com_MatchToken("$debug")) Cmd_DebugBuild();
-		else if (Com_MatchToken("$cdtexture")) Cmd_CdTextureSet();
-		else if (Com_MatchToken("$scale")) Cmd_ScaleUp ();
-		else if (Com_MatchToken("$rotate")) Cmd_Rotate();
-		else if (Com_MatchToken("$root")) Cmd_Root ();
-		else if (Com_MatchToken("$pivot")) Cmd_Pivot ();
-		else if (Com_MatchToken("$controller")) Cmd_Controller ();
-		else if (Com_MatchToken("$body")) Cmd_Body();
-		else if (Com_MatchToken("$bodygroup")) Cmd_Bodygroup();
-		else if (Com_MatchToken("$sequence")) Cmd_Sequence ();
-		else if (Com_MatchToken("$eyeposition")) Cmd_Eyeposition ();
-		else if (Com_MatchToken("$origin")) Cmd_Origin ();
-		else if (Com_MatchToken("$bbox")) Cmd_BBox ();
-		else if (Com_MatchToken("$cbox")) Cmd_CBox ();
-		else if (Com_MatchToken("$mirrorbone")) Cmd_Mirror ();
-		else if (Com_MatchToken("$gamma")) Cmd_Gamma ();
-		else if (Com_MatchToken("$texturegroup")) Cmd_TextureGroup ();
-		else if (Com_MatchToken("$hgroup")) Cmd_Hitgroup ();
-		else if (Com_MatchToken("$hbox")) Cmd_Hitbox ();
-		else if (Com_MatchToken("$attachment")) Cmd_Attachment ();
-		else if (Com_MatchToken("$externaltextures")) split_textures = 1;
-		else if (Com_MatchToken("$cliptotextures")) clip_texcoords = 1;
-		else if (Com_MatchToken("$renamebone")) Cmd_Renamebone ();
-		else if (Com_MatchToken("$texrendermode")) Cmd_TexRenderMode();
-		else if (Com_MatchToken("$replacetexture")) Cmd_Replace();
-		else if (!Com_ValidScript( QC_STUDIOMDL )) return false;
-		else Cmd_StudioUnknown();
+		if( !com.stricmp( token.string, "$modelname" )) Cmd_Modelname ();
+		else if( !com.stricmp( token.string, "$cd")) Cmd_CdSet();
+		else if( !com.stricmp( token.string, "$debug")) Cmd_DebugBuild();
+		else if( !com.stricmp( token.string, "$cdtexture")) Cmd_CdTextureSet();
+		else if( !com.stricmp( token.string, "$scale")) Cmd_ScaleUp ();
+		else if( !com.stricmp( token.string, "$rotate")) Cmd_Rotate();
+		else if( !com.stricmp( token.string, "$root")) Cmd_Root ();
+		else if( !com.stricmp( token.string, "$pivot")) Cmd_Pivot ();
+		else if( !com.stricmp( token.string, "$controller")) Cmd_Controller ();
+		else if( !com.stricmp( token.string, "$body")) Cmd_Body();
+		else if( !com.stricmp( token.string, "$bodygroup")) Cmd_Bodygroup();
+		else if( !com.stricmp( token.string, "$sequence")) Cmd_Sequence ();
+		else if( !com.stricmp( token.string, "$eyeposition")) Cmd_Eyeposition ();
+		else if( !com.stricmp( token.string, "$origin")) Cmd_Origin ();
+		else if( !com.stricmp( token.string, "$bbox")) Cmd_BBox ();
+		else if( !com.stricmp( token.string, "$cbox")) Cmd_CBox ();
+		else if( !com.stricmp( token.string, "$mirrorbone")) Cmd_Mirror ();
+		else if( !com.stricmp( token.string, "$gamma")) Cmd_Gamma ();
+		else if( !com.stricmp( token.string, "$texturegroup")) Cmd_TextureGroup ();
+		else if( !com.stricmp( token.string, "$hgroup")) Cmd_Hitgroup ();
+		else if( !com.stricmp( token.string, "$hbox")) Cmd_Hitbox ();
+		else if( !com.stricmp( token.string, "$attachment")) Cmd_Attachment ();
+		else if( !com.stricmp( token.string, "$externaltextures")) split_textures = 1;
+		else if( !com.stricmp( token.string, "$cliptotextures")) clip_texcoords = 1;
+		else if( !com.stricmp( token.string, "$renamebone")) Cmd_Renamebone ();
+		else if( !com.stricmp( token.string, "$texrendermode")) Cmd_TexRenderMode();
+		else if( !com.stricmp( token.string, "$replacetexture")) Cmd_Replace();
+		else if( !Com_ValidScript( token.string, QC_STUDIOMDL )) return false;
+		else Cmd_StudioUnknown( token.string );
 	}
+
+	Com_CloseScript( studioqc );
 
 	// process model
 	SetSkinValues();
@@ -2610,34 +2593,32 @@ void ClearModel( void )
 	numxnodes = numrenamedbones = totalframes = numbones = numhitboxes = 0;
 	numhitgroups = numattachments = numtextures = numskinref = numskinfamilies = 0;
 	numbonecontrollers = numtexturegroups = numcommandnodes = numbodyparts = 0;
-	stripcount = numcommands = linecount = allverts = alltris = totalseconds = 0;
-	nummodels = numani = split_textures = 0;
+	stripcount = numcommands = numani = allverts = alltris = totalseconds = 0;
+	nummodels = split_textures = 0;
 
-	Mem_Set(numtexturelayers, 0, sizeof(int) * 32);
-	Mem_Set(numtexturereps, 0, sizeof(int) * 32);
-	Mem_Set(bodypart, 0, sizeof(s_bodypart_t) * MAXSTUDIOBODYPARTS);
+	Mem_Set( numtexturelayers, 0, sizeof(int) * 32 );
+	Mem_Set( numtexturereps, 0, sizeof(int) * 32 );
+	Mem_Set( bodypart, 0, sizeof(s_bodypart_t) * MAXSTUDIOBODYPARTS );
 	Mem_EmptyPool( studiopool );	// free all memory
 }
 
 bool CompileCurrentModel( const char *name )
 {
-	bool load = false;
-
 	cdset = false;
 	cdtextureset = 0;
 	
 	if( name ) com.strcpy( gs_filename, name );
 	FS_DefaultExtension( gs_filename, ".qc" );
-	if(!FS_FileExists( gs_filename ))
+	if( !FS_FileExists( gs_filename ))
 	{
 		// try to create qc-file
 		CreateModelScript();
 	}
 
-	load = Com_LoadScript( gs_filename, NULL, 0 );
-	if( load )
+	studioqc = Com_OpenScript( gs_filename, NULL, 0 );
+	if( studioqc )
 	{
-		if(!ParseModelScript())
+		if( !ParseModelScript())
 			return false;
 		WriteMDLFile();
 		ClearModel();

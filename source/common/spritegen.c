@@ -17,7 +17,8 @@ dsprite_t	sprite;
 byte	*spritepool;
 byte	*sprite_pal;
 rgbdata_t	*frame = NULL;
-char	spriteoutname[MAX_SYSPATH];
+script_t	*spriteqc = NULL;
+string	spriteoutname;
 float	frameinterval;
 int	framecount;
 int	origin_x;
@@ -130,13 +131,15 @@ bool WriteSPRFile( void )
 	file_t	*f;
 	uint	i, groups = 0, grpframes = 0, sngframes = framecount;
 
+	Com_CloseScript( spriteqc );
 	if( sprite.numframes == 0 ) 
 	{
 		MsgDev(D_WARN, "WriteSPRFile: ignoring blank sprite %s\n", spriteoutname );
 		return false;
 	}
+
 	f = FS_Open( spriteoutname, "wb" );
-	Msg("writing %s\n", spriteoutname );
+	Msg( "writing %s\n", spriteoutname );
 	WriteSprite( f );
 	FS_Close( f );
 
@@ -172,13 +175,15 @@ syntax: "$type preset"
 */
 void Cmd_Type( void )
 {
-	Com_GetToken (false);
+	token_t	token;
 
-	if (Com_MatchToken( "vp_parallel_upright" )) sprite.type = SPR_FWD_PARALLEL_UPRIGHT;
-	else if (Com_MatchToken( "facing_upright" )) sprite.type = SPR_FACING_UPRIGHT;
-	else if (Com_MatchToken( "vp_parallel" )) sprite.type = SPR_FWD_PARALLEL;
-	else if (Com_MatchToken( "oriented" )) sprite.type = SPR_ORIENTED;
-	else if (Com_MatchToken( "vp_parallel_oriented")) sprite.type = SPR_FWD_PARALLEL_ORIENTED;
+	Com_ReadToken( spriteqc, 0, &token );
+
+	if( !com.stricmp( token.string, "vp_parallel_upright" )) sprite.type = SPR_FWD_PARALLEL_UPRIGHT;
+	else if( !com.stricmp( token.string, "facing_upright" )) sprite.type = SPR_FACING_UPRIGHT;
+	else if( !com.stricmp( token.string, "vp_parallel" )) sprite.type = SPR_FWD_PARALLEL;
+	else if( !com.stricmp( token.string, "oriented" )) sprite.type = SPR_ORIENTED;
+	else if( !com.stricmp( token.string, "vp_parallel_oriented")) sprite.type = SPR_FWD_PARALLEL_ORIENTED;
 	else sprite.type = SPR_FWD_PARALLEL; // default
 }
 
@@ -191,13 +196,15 @@ syntax: "$rendermode preset"
 */
 void Cmd_RenderMode( void )
 {
-	Com_GetToken( false );
+	token_t	token;
 
-	if (Com_MatchToken( "additive")) sprite.texFormat = SPR_ADDITIVE;
-	else if (Com_MatchToken( "normal")) sprite.texFormat = SPR_NORMAL;
-	else if (Com_MatchToken( "indexalpha")) sprite.texFormat = SPR_INDEXALPHA;
-	else if (Com_MatchToken( "alphatest")) sprite.texFormat = SPR_ALPHTEST;
-	else if (Com_MatchToken( "glow")) sprite.texFormat = SPR_ADDGLOW;
+	Com_ReadToken( spriteqc, 0, &token );
+
+	if( !com.stricmp( token.string, "additive")) sprite.texFormat = SPR_ADDITIVE;
+	else if( !com.stricmp( token.string, "normal")) sprite.texFormat = SPR_NORMAL;
+	else if( !com.stricmp( token.string, "indexalpha")) sprite.texFormat = SPR_INDEXALPHA;
+	else if( !com.stricmp( token.string, "alphatest")) sprite.texFormat = SPR_ALPHTEST;
+	else if( !com.stricmp( token.string, "glow")) sprite.texFormat = SPR_ADDGLOW;
 	else sprite.texFormat = SPR_ADDITIVE; // default
 }
 
@@ -210,11 +217,13 @@ syntax: "$facetype"
 */
 void Cmd_FaceType( void )
 {
-	Com_GetToken( false );
+	token_t	token;
 
-	if (Com_MatchToken( "normal")) sprite.facetype = SPR_SINGLE_FACE;
-	else if (Com_MatchToken( "twoside")) sprite.facetype = SPR_DOUBLE_FACE;
-	else if (Com_MatchToken( "xcross")) sprite.facetype = SPR_XCROSS_FACE;
+	Com_ReadToken( spriteqc, 0, &token );
+
+	if( !com.stricmp( token.string, "normal")) sprite.facetype = SPR_SINGLE_FACE;
+	else if( !com.stricmp( token.string, "twoside")) sprite.facetype = SPR_DOUBLE_FACE;
+	else if( !com.stricmp( token.string, "xcross")) sprite.facetype = SPR_XCROSS_FACE;
 	else sprite.facetype = SPR_SINGLE_FACE; // default
 }
 
@@ -228,8 +237,10 @@ syntax: "$framerate value"
 */
 void Cmd_Framerate( void )
 {
-	float framerate = com.atof(Com_GetToken(false));
-	if(framerate <= 0.0f) return; // negative framerate not allowed
+	float	framerate;
+
+	Com_ReadFloat( spriteqc, false, &framerate );
+	if( framerate <= 0.0f ) return; // negative framerate not allowed
 	frameinterval = bound( MIN_INTERVAL, (1.0f/framerate), MAX_INTERVAL );	
 }
 
@@ -242,13 +253,10 @@ syntax: "$resample <w h>"
 */
 void Cmd_Resample( void )
 {
-	if(Com_TryToken())
-	{
-		resample_w = com.atoi( com_token );
-		resample_h = com.atoi(Com_GetToken( false ));
-	}
+	if(Com_ReadUlong( spriteqc, false, &resample_w ))
+		Com_ReadUlong( spriteqc, false, &resample_h );
 	else resample_w = resample_h = 0; // Image_Resample will be found nearest pow2
-	if(!ignore_resample ) need_resample = true;
+	if( !ignore_resample ) need_resample = true;
 }
 
 /*
@@ -272,11 +280,12 @@ syntax "$load fire01.bmp"
 */
 void Cmd_Load( void )
 {
-	char		*framename;
+	string		framename;
 	static byte	base_pal[256*3];
 	int		flags = 0;
+	token_t		token;
 
-	framename = Com_GetToken( false );
+	Com_ReadString( spriteqc, false, framename );
 
 	if( frame ) FS_FreeImage( frame );
 	frame = FS_LoadImage( framename, error_bmp, error_bmp_size );
@@ -288,11 +297,11 @@ void Cmd_Load( void )
 	sprite_pal = (byte *)(&base_pal[0]);
 
 	Msg( "grabbing %s\n", framename );
-	while(Com_TryToken())
+	while( Com_ReadToken( spriteqc, 0, &token ))
 	{
-		if(Com_MatchToken("flip_diagonal")) flags |= IMAGE_ROT_90;
-		else if(Com_MatchToken( "flip_y" )) flags |= IMAGE_FLIP_Y;
-		else if(Com_MatchToken( "flip_x" )) flags |= IMAGE_FLIP_X;
+		if( !com.stricmp(token.string, "flip_diagonal")) flags |= IMAGE_ROT_90;
+		else if( !com.stricmp( token.string, "flip_y" )) flags |= IMAGE_FLIP_Y;
+		else if( !com.stricmp( token.string, "flip_x" )) flags |= IMAGE_FLIP_X;
 	}
 
 	// apply changes
@@ -318,10 +327,11 @@ void Cmd_Frame( void )
 	if( !frame || !frame->buffer ) Sys_Break( "frame not loaded\n" );
 	if( framecount >= MAX_FRAMES ) Sys_Break( "too many frames in package\n" );
 	pixels = frame->width * frame->height;
-	xl = com.atoi(Com_GetToken(false));
-	yl = com.atoi(Com_GetToken(false));
-	w  = com.atoi(Com_GetToken(false));
-	h  = com.atoi(Com_GetToken(false));
+
+	Com_ReadLong( spriteqc, false, &xl );
+	Com_ReadLong( spriteqc, false, &yl );
+	Com_ReadLong( spriteqc, false, &w );
+	Com_ReadLong( spriteqc, false, &h );
 
 	if((xl & 0x07)||(yl & 0x07)||(w & 0x07)||(h & 0x07))
 	{
@@ -337,9 +347,9 @@ void Cmd_Frame( void )
 		Sys_Break( "sprite has a dimension longer than %d\n", MAX_FRAME_DIM );
 
 	// get interval
-	if( Com_TryToken()) 
+	if( Com_ReadFloat( spriteqc, false, &frames[framecount].interval )) 
 	{
-		frames[framecount].interval = bound(MIN_INTERVAL, com.atof(com_token), MAX_INTERVAL );
+		frames[framecount].interval = bound( MIN_INTERVAL, frames[framecount].interval, MAX_INTERVAL );
 
 	}
 	else if( frameinterval != 0 )
@@ -352,10 +362,10 @@ void Cmd_Frame( void )
 		frames[framecount].interval = (float)0.05f;
 	} 
 
-	if(Com_TryToken())
+	if(Com_ReadLong( spriteqc, false, &org_x ))
 	{
-		org_x = -com.atoi(com_token);
-		org_y = com.atoi(Com_GetToken(false));
+		org_x = -org_x; // inverse x coord
+		Com_ReadLong( spriteqc, false, &org_y );
 	}
 	else if((origin_x != 0) && (origin_y != 0))
 	{
@@ -421,10 +431,10 @@ Cmd_SpriteUnknown
 syntax: "blabla"
 ==============
 */
-void Cmd_SpriteUnknown( void )
+void Cmd_SpriteUnknown( const char *token )
 {
-	MsgDev( D_WARN, "Cmd_SpriteUnknown: bad command %s\n", com_token);
-	while(Com_TryToken());
+	MsgDev( D_WARN, "Cmd_SpriteUnknown: bad command %s\n", token );
+	Com_SkipRestOfLine( spriteqc );
 }
 
 /*
@@ -447,6 +457,7 @@ void Cmd_Group( bool angled )
 {
 	int	groupframe;
 	int	is_started = 0;
+	token_t	token;
 
 	groupframe = framecount++;
 
@@ -456,23 +467,24 @@ void Cmd_Group( bool angled )
 
 	while( 1 )
 	{
-		if(!Com_GetToken(true)) 
+		if( !Com_ReadToken( spriteqc, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &token )) 
 		{
-			if( is_started ) Sys_Break("missing }\n");
+			if( is_started ) Sys_Break( "missing }\n" );
 			break;
                     }
-		if(Com_MatchToken( "{" )) is_started = 1;
-		else if(Com_MatchToken( "}" )) break; // end of group
-		else if(Com_MatchToken( "$framerate" )) Cmd_Framerate();
-		else if(Com_MatchToken( "$resample" )) Cmd_Resample();
-		else if(Com_MatchToken( "$frame" ))
+
+		if( !com.stricmp( token.string, "{" )) is_started = 1;
+		else if( !com.stricmp( token.string, "}" )) break; // end of group
+		else if( !com.stricmp( token.string, "$framerate" )) Cmd_Framerate();
+		else if( !com.stricmp( token.string, "$resample" )) Cmd_Resample();
+		else if( !com.stricmp( token.string, "$frame" ))
 		{
 			Cmd_Frame();
 			frames[groupframe].numgroupframes++;
 		}
-		else if(Com_MatchToken("$load" )) Cmd_Load();
-		else if(is_started) Sys_Break("missing }\n");
-		else Cmd_SpriteUnknown(); // skip unknown commands
+		else if( !com.stricmp( token.string, "$load" )) Cmd_Load();
+		else if( is_started ) Sys_Break( "missing }\n" );
+		else Cmd_SpriteUnknown( token.string ); // skip unknown commands
 	}
 	if( frames[groupframe].numgroupframes == 0 ) 
 	{
@@ -500,8 +512,8 @@ syntax: $origin "x_pos y_pos"
 */
 static void Cmd_Origin( void )
 {
-	origin_x = com.atoi(Com_GetToken (false));
-	origin_y = com.atoi(Com_GetToken (false));
+	Com_ReadLong( spriteqc, false, &origin_x );
+	Com_ReadLong( spriteqc, false, &origin_y );
 }
 
 
@@ -524,9 +536,9 @@ Cmd_Spritename
 syntax: "$spritename outname"
 ==============
 */
-void Cmd_Spritename (void)
+void Cmd_Spritename( void )
 {
-	com.strcpy( spriteoutname, Com_GetToken(false));
+	Com_ReadString( spriteqc, false, spriteoutname );
 	FS_DefaultExtension( spriteoutname, ".spr" );
 }
 
@@ -534,11 +546,11 @@ void ResetSpriteInfo( void )
 {
 	// set default sprite parms
 	spriteoutname[0] = 0;
-	FS_FileBase(gs_filename, spriteoutname );
+	FS_FileBase( gs_filename, spriteoutname );
 	FS_DefaultExtension( spriteoutname, ".spr" );
 
-	Mem_Set (&sprite, 0, sizeof(sprite));
-	Mem_Set(frames, 0, sizeof(frames));
+	Mem_Set( &sprite, 0, sizeof( sprite ));
+	Mem_Set( frames, 0, sizeof( frames ));
 	framecount = origin_x = origin_y = 0;
 	frameinterval = 0.0f;
 
@@ -556,63 +568,63 @@ void ResetSpriteInfo( void )
 ParseScript	
 ===============
 */
-bool ParseSpriteScript (void)
+bool ParseSpriteScript( void )
 {
+	token_t	token;
+
 	ResetSpriteInfo();
 	
 	while( 1 )
 	{
-		if(!Com_GetToken (true)) break;
-		if (Com_MatchToken( "$spritename" )) Cmd_Spritename();
-		else if (Com_MatchToken( "$noresample" )) Cmd_NoResample();
-		else if (Com_MatchToken( "$resample" )) Cmd_Resample();
-		else if (Com_MatchToken( "$texture" )) Cmd_RenderMode();
-		else if (Com_MatchToken( "$facetype" )) Cmd_FaceType();
-		else if (Com_MatchToken( "$origin" )) Cmd_Origin();
-		else if (Com_MatchToken( "$rand" )) Cmd_Rand();
-		else if (Com_MatchToken( "$load" )) Cmd_Load();
-		else if (Com_MatchToken( "$type" )) Cmd_Type();
-		else if (Com_MatchToken( "$frame" ))
+		if( !Com_ReadToken( spriteqc, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &token )) break;
+		if( !com.stricmp( token.string, "$spritename" )) Cmd_Spritename();
+		else if( !com.stricmp( token.string, "$noresample" )) Cmd_NoResample();
+		else if( !com.stricmp( token.string, "$resample" )) Cmd_Resample();
+		else if( !com.stricmp( token.string, "$texture" )) Cmd_RenderMode();
+		else if( !com.stricmp( token.string, "$facetype" )) Cmd_FaceType();
+		else if( !com.stricmp( token.string, "$origin" )) Cmd_Origin();
+		else if( !com.stricmp( token.string, "$rand" )) Cmd_Rand();
+		else if( !com.stricmp( token.string, "$load" )) Cmd_Load();
+		else if( !com.stricmp( token.string, "$type" )) Cmd_Type();
+		else if( !com.stricmp( token.string, "$frame" ))
 		{
 			Cmd_Frame();
 			sprite.numframes++;
 		}
-		else if (Com_MatchToken( "$group" )) 
+		else if( !com.stricmp( token.string, "$group" )) 
 		{
 			Cmd_Group( false );
 			sprite.numframes++;
 		}
-		else if (Com_MatchToken( "$angled" )) 
+		else if( !com.stricmp( token.string, "$angled" )) 
 		{
 			Cmd_Group( true );
 			sprite.numframes++;
 		}
-		else if (!Com_ValidScript( QC_SPRITEGEN )) return false;
-		else Cmd_SpriteUnknown();
+		else if( !Com_ValidScript( token.string, QC_SPRITEGEN )) return false;
+		else Cmd_SpriteUnknown( token.string );
 	}
 	return true;
 }
 
 bool CompileCurrentSprite( const char *name )
 {
-	bool load = false;
-	
 	if( name ) com.strcpy( gs_filename, name );
 	FS_DefaultExtension( gs_filename, ".qc" );
-	load = Com_LoadScript( gs_filename, NULL, 0 );
+	spriteqc = Com_OpenScript( gs_filename, NULL, 0 );
 	
-	if( load )
+	if( spriteqc )
 	{
 		if(!ParseSpriteScript())
 			return false;
 		return WriteSPRFile();
 	}
 
-	Msg("%s not found\n", gs_filename );
+	Msg( "%s not found\n", gs_filename );
 	return false;
 }
 
-bool CompileSpriteModel ( byte *mempool, const char *name, byte parms )
+bool CompileSpriteModel( byte *mempool, const char *name, byte parms )
 {
 	if( mempool ) spritepool = mempool;
 	else

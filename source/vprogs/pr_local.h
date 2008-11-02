@@ -643,6 +643,7 @@ void PR_ConditionCompilation(void);
 char *PR_CheakCompConstString(char *def);
 const_t *PR_CheckCompConstDefined(char *def);
 type_t *PR_NewType (char *name, int basictype);
+char *PR_ParseToken( const char **data_p, bool allow_newline );
 
 //
 // pr_comp.c

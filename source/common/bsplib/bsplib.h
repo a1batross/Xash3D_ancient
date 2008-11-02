@@ -353,6 +353,7 @@ typedef struct
 
 extern	int		num_entities;
 extern	bsp_entity_t	entities[MAX_MAP_ENTITIES];
+extern	script_t		*mapfile;
 
 void	ParseEntities( void );
 void	UnparseEntities( void );
@@ -364,7 +365,7 @@ void	SetKeyValue( bsp_entity_t *ent, const char *key, const char *value );
 char	*ValueForKey( bsp_entity_t *ent, const char *key ); // will return "" if not present
 vec_t	FloatForKey( bsp_entity_t *ent, const char *key );
 void	GetVectorForKey( bsp_entity_t *ent, const char *key, vec3_t vec );
-epair_t	*ParseEpair( void );
+epair_t	*ParseEpair( token_t *token );
 
 
 extern	int entity_num;

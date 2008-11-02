@@ -78,6 +78,7 @@ void InitPlatform ( int argc, char **argv )
 		if(FS_CheckParm("-notjunc")) notjunc = true;
 
 		// initialize ImageLibrary
+		start = Sys_DoubleTime();
 		Image_Init( NULL, IL_ALLOW_OVERWRITE );
 		PrepareBSPModel( gamedir, source, bspflags );
 		break;

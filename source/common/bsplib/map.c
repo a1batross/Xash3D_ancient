@@ -19,6 +19,7 @@ int		nummapplanes;
 plane_t		mapplanes[MAX_MAP_PLANES];
 plane_t		*planehash[PLANE_HASHES];
 vec3_t		map_mins, map_maxs, map_size;
+script_t		*mapfile;
 bsp_entity_t	*mapent;
 
 int		c_boxbevels;
@@ -473,6 +474,7 @@ void ParseRawBrush( void )
 	vec3_t		vecs[2];
 	int		sv, tv;
 	vec_t		ns, nt;
+	token_t		token;
 	vects_t		vects;
 	side_t		*side;
 	bsp_shader_t	*si;
@@ -484,26 +486,27 @@ void ParseRawBrush( void )
 
 	while( 1 )
 	{
-		g_TXcommand = 0;
-		if( !Com_GetToken( true )) break;
-		if( Com_MatchToken( "}" )) break;
+		if( !Com_ReadToken( mapfile, SC_ALLOW_NEWLINES|SC_COMMENT_SEMICOLON, &token ))
+			break;
+
+		if( !com.stricmp( token.string, "}" )) break;
 		if( g_brushtype == BRUSH_RADIANT )
 		{
 			while( 1 )
 			{
-				if( Com_MatchToken( "(" ))
-					Com_GetToken( false );
+				if( com.strcmp( token.string, "(" ))
+					Com_ReadToken( mapfile, 0, &token );
 				else break;
-				Com_GetToken( true );
+				Com_ReadToken( mapfile, SC_ALLOW_NEWLINES, &token );
 			}
 		}
 
 		if( buildBrush->numsides == MAX_BUILD_SIDES )
 			Sys_Break( "MAX_BUILD_SIDES brush limit exceeded\n" );
-		Com_FreeToken();
+		Com_SaveToken( mapfile, &token );
 
 		side = &buildBrush->sides[buildBrush->numsides];
-		memset( side, 0, sizeof( *side ) );
+		Mem_Set( side, 0, sizeof( *side ) );
 		buildBrush->numsides++;
 
 		// read the three point plane definition
@@ -511,11 +514,12 @@ void ParseRawBrush( void )
 		Com_Parse1DMatrix( 3, planepts[1] );
 		Com_Parse1DMatrix( 3, planepts[2] );
 
-		if( g_brushtype == BRUSH_RADIANT ) Com_Parse2DMatrix( 2, 3, (float *)side->matrix );
+		if( g_brushtype == BRUSH_RADIANT )
+			Com_Parse2DMatrix( 2, 3, (float *)side->matrix );
 
 		// read the texturedef
-		Com_GetToken( false );
-		si = FindShader( com_token );	// register shader
+		Com_ReadToken( mapfile, SC_ALLOW_PATHNAMES|SC_PARSE_GENERIC, &token );
+		si = FindShader( token.string );	// register shader
 		side->shader = si;
 		side->contents = si->contents;
 		side->surfaceFlags = si->surfaceFlags;
@@ -524,68 +528,50 @@ void ParseRawBrush( void )
 		if( g_brushtype == BRUSH_WORLDCRAFT_22 ) // Worldcraft 2.2+
                     {
 			// texture U axis
-			Com_GetToken( false );
-			if(!Com_MatchToken("[")) Sys_Break( "missing '[' in texturedef (U)\n" );
-			Com_GetToken( false );
-			vects.valve.UAxis[0] = com.atof(com_token);
-			Com_GetToken( false );
-			vects.valve.UAxis[1] = com.atof(com_token);
-			Com_GetToken( false );
-			vects.valve.UAxis[2] = com.atof(com_token);
-			Com_GetToken( false );
-			vects.valve.shift[0] = com.atof(com_token);
-			Com_GetToken( false );
-			if(!Com_MatchToken("]")) Sys_Break( "missing ']' in texturedef (U)\n" );
+			Com_ReadToken( mapfile, 0, &token );
+			if( com.strcmp( token.string, "[")) Sys_Break( "missing '[' in texturedef (U)\n" );
+			Com_ReadFloat( mapfile, false, &vects.valve.UAxis[0] );
+			Com_ReadFloat( mapfile, false, &vects.valve.UAxis[1] );
+			Com_ReadFloat( mapfile, false, &vects.valve.UAxis[2] );
+			Com_ReadFloat( mapfile, false, &vects.valve.shift[0] );
+			Com_ReadToken( mapfile, 0, &token );
+			if( com.strcmp( token.string, "]")) Sys_Break( "missing ']' in texturedef (U)\n" );
 
 			// texture V axis
-			Com_GetToken( false );
-			if(!Com_MatchToken("[")) Sys_Break( "missing '[' in texturedef (V)\n" );
-			Com_GetToken( false );
-			vects.valve.VAxis[0] = com.atof( com_token );
-			Com_GetToken( false );
-			vects.valve.VAxis[1] = com.atof( com_token );
-			Com_GetToken( false );
-			vects.valve.VAxis[2] = com.atof( com_token );
-			Com_GetToken( false );
-			vects.valve.shift[1] = com.atof( com_token );
-			Com_GetToken( false );
-			if(!Com_MatchToken("]")) Sys_Break( "missing ']' in texturedef (V)\n");
+			Com_ReadToken( mapfile, 0, &token );
+			if( com.strcmp( token.string, "[")) Sys_Break( "missing '[' in texturedef (V)\n" );
+			Com_ReadFloat( mapfile, false, &vects.valve.VAxis[0] );
+			Com_ReadFloat( mapfile, false, &vects.valve.VAxis[1] );
+			Com_ReadFloat( mapfile, false, &vects.valve.VAxis[2] );
+			Com_ReadFloat( mapfile, false, &vects.valve.shift[1] );
+			Com_ReadToken( mapfile, 0, &token );
+			if( com.strcmp( token.string, "]")) Sys_Break( "missing ']' in texturedef (V)\n");
 
 			// texture rotation is implicit in U/V axes.
-			Com_GetToken( false );
+			Com_ReadToken( mapfile, 0, &token );
 			vects.valve.rotate = 0;
 
 			// texure scale
-			Com_GetToken( false );
-			vects.valve.scale[0] = com.atof( com_token );
-			Com_GetToken( false );
-			vects.valve.scale[1] = com.atof( com_token );
+			Com_ReadFloat( mapfile, false, &vects.valve.scale[0] );
+			Com_ReadFloat( mapfile, false, &vects.valve.scale[1] );
                     }
 		else if( g_brushtype == BRUSH_WORLDCRAFT_21 || g_brushtype == BRUSH_QUARK )
 		{
 			// worldcraft 2.1-, old Radiant, QuArK
-			Com_GetToken( false );
-			vects.valve.shift[0] = com.atof( com_token );
-			Com_GetToken( false );
-			vects.valve.shift[1] = com.atof( com_token );
-			Com_GetToken( false );
-			vects.valve.rotate = com.atof( com_token );	
-			Com_GetToken( false );
-			vects.valve.scale[0] = com.atof( com_token );
-			Com_GetToken( false );
-			vects.valve.scale[1] = com.atof( com_token );
+			Com_ReadFloat( mapfile, false, &vects.valve.shift[0] );
+			Com_ReadFloat( mapfile, false, &vects.valve.shift[1] );
+			Com_ReadFloat( mapfile, false, &vects.valve.rotate );
+			Com_ReadFloat( mapfile, false, &vects.valve.scale[0] );
+			Com_ReadFloat( mapfile, SC_COMMENT_SEMICOLON, &vects.valve.scale[1] );
                     }
 
-		if( g_brushtype != BRUSH_QUARK && Com_TryToken()) // hidden q2/q3 legacy, but can be used
+		// hidden q2/q3 legacy, but may be used
+		if( g_brushtype != BRUSH_QUARK && Com_ReadLong( mapfile, SC_COMMENT_SEMICOLON, &side->contents ))
 		{
 			// overwrite shader values directly from .map file
-			side->contents = com.atoi( com_token );
-			Com_GetToken( false );
-			side->surfaceFlags = com.atoi( com_token );
-			Com_GetToken( false );
-			side->value = com.atoi( com_token );
+			Com_ReadLong( mapfile, false, &side->surfaceFlags );
+			Com_ReadLong( mapfile, false, &side->value );
 		}
-
 		if(( g_TXcommand == '1' || g_TXcommand == '2' ))
 		{
 			// We are QuArK mode and need to translate some numbers to align textures its way
@@ -674,8 +660,8 @@ void ParseRawBrush( void )
 				else
 				{
 					ang = vects.valve.rotate / 180 * M_PI;
-					sinv = sin( ang );
-					cosv = cos( ang );
+					sinv = com.sin( ang );
+					cosv = com.cos( ang );
 				}
 				if( vecs[0][0] ) sv = 0;
 				else if( vecs[0][1] ) sv = 1;
@@ -699,12 +685,12 @@ void ParseRawBrush( void )
 			}
 			else if( g_brushtype == BRUSH_WORLDCRAFT_22 )
 			{
-				vec_t scale;
+				vec_t	scale;
 
-				scale = 1 / vects.valve.scale[0];
-				VectorScale(vects.valve.UAxis, scale, side->vecs[0]);
-				scale = 1 / vects.valve.scale[1];
-				VectorScale(vects.valve.VAxis, scale, side->vecs[1]);
+				scale = 1.0f / vects.valve.scale[0];
+				VectorScale( vects.valve.UAxis, scale, side->vecs[0] );
+				scale = 1.0f / vects.valve.scale[1];
+				VectorScale( vects.valve.VAxis, scale, side->vecs[1] );
 			}
 
 			side->vecs[0][3] = vects.valve.shift[0];
@@ -719,7 +705,7 @@ void ParseRawBrush( void )
 	}
 	if( g_brushtype == BRUSH_RADIANT )
 	{
-		Com_FreeToken();
+		Com_SaveToken( mapfile, &token );
 		Com_CheckToken( "}" );
 		Com_CheckToken( "}" );
 	}
@@ -959,36 +945,39 @@ ParseMapEntity
 */
 bool ParseMapEntity( void )
 {
-	epair_t		*e;
+	epair_t	*e;
+	token_t	token;
 
-	if(!Com_GetToken( true )) return false;	// end of .map file
-	if(!Com_MatchToken( "{" )) Sys_Break( "ParseEntity: found %s instead {\n", com_token );
+	if( !Com_ReadToken( mapfile, SC_ALLOW_NEWLINES|SC_COMMENT_SEMICOLON, &token ))
+		return false; // end of .map file
+	if( com.stricmp( token.string, "{" )) Sys_Break( "ParseEntity: found %s instead {\n", token.string );
 	if( num_entities == MAX_MAP_ENTITIES ) Sys_Break( "MAX_MAP_ENTITIES limit exceeded\n");
 
 	mapent = &entities[num_entities];
 	num_entities++;
-	memset( mapent, 0, sizeof( *mapent ));
+	Mem_Set( mapent, 0, sizeof( *mapent ));
 	entity_numbrushes = 0;
 
 	while( 1 )
 	{
-		if( !Com_GetToken( true )) Sys_Break( "ParseEntity: EOF without closing brace\n" );
-		if( Com_MatchToken( "}" )) break;
-		if( Com_MatchToken( "{" ))
+		if( !Com_ReadToken( mapfile, SC_ALLOW_NEWLINES|SC_COMMENT_SEMICOLON, &token ))
+			Sys_Break( "ParseEntity: EOF without closing brace\n" );
+		if( !com.stricmp( token.string, "}" )) break;
+		if( !com.stricmp( token.string, "{" ))
 		{
 			// parse a brush or patch
-			if( !Com_GetToken( true )) break;
-			if( Com_MatchToken( "patchDef2" ))
+			if( !Com_ReadToken( mapfile, SC_ALLOW_NEWLINES, &token )) break;
+			if( !com.stricmp( token.string, "patchDef2" ))
 			{
 				g_brushtype = BRUSH_RADIANT;
-				while( Com_TryToken()); // Xash3D not supported patches
+				Com_SkipRestOfLine( mapfile );	// Xash3D not supported patches
 			}
-			else if( Com_MatchToken( "terrainDef" ))
+			else if( !com.stricmp( token.string, "terrainDef" ))
 			{
 				g_brushtype = BRUSH_RADIANT;
 				ParseTerrain();
 			}
-			else if( Com_MatchToken( "brushDef" ))
+			else if( !com.stricmp( token.string, "brushDef" ))
 			{
 				g_brushtype = BRUSH_RADIANT;
 				if(ParseBrush( mapent )) // parse brush primitive
@@ -999,18 +988,17 @@ bool ParseMapEntity( void )
 				if( g_brushtype == BRUSH_UNKNOWN )
 					g_brushtype = BRUSH_WORLDCRAFT_21;
 				// QuArK or Worldcraft map
-				Com_FreeToken();
-				if(ParseBrush( mapent ))
-					entity_numbrushes++;
+				Com_SaveToken( mapfile, &token );
+				if( ParseBrush( mapent )) entity_numbrushes++;
 			}
 		}
 		else
 		{
 			// parse a key / value pair
-			e = ParseEpair();
+			e = ParseEpair( &token );
 			if( !com.strcmp( e->key, "mapversion" ))
 			{
-				if( com.atoi(e->value) == VALVE_FORMAT )
+				if( com.atoi( e->value ) == VALVE_FORMAT )
 					g_brushtype = BRUSH_WORLDCRAFT_22;
 				else g_brushtype = BRUSH_WORLDCRAFT_21;
 			}
@@ -1053,8 +1041,8 @@ void LoadMapFile( void )
 	c_detail = 0;
 	g_brushtype = BRUSH_UNKNOWN;
 	
-	if(!Com_LoadScript( va( "maps/%s.map", gs_filename ), NULL, 0 ))
-		Sys_Break( "can't loading map file %s.map\n", gs_filename );
+	mapfile = Com_OpenScript( va( "maps/%s.map", gs_filename ), NULL, 0 );
+	if( !mapfile ) Sys_Break( "can't loading map file %s.map\n", gs_filename );
 
 	// allocate a very large temporary brush for building
 	// the brushes as they are loaded
@@ -1062,6 +1050,7 @@ void LoadMapFile( void )
 	
 	while(ParseMapEntity( ));
 
+	Com_CloseScript( mapfile );
 	ClearBounds( map_mins, map_maxs );
 	for( b = entities[0].brushes; b; b = b->next )
 	{

@@ -7,41 +7,6 @@
 
 #include <time.h>
 
-/*
-========================================================================
-
-wavefile in memory representation
-
-using with darkplaces video encoder-decoder
-========================================================================
-*/
-
-typedef struct wavefile_s
-{
-	file_t *file;	// file this is reading from
-	
-	uint info_format;	// these settings are read directly from the wave format (1 is uncompressed PCM)
-	uint info_rate;	// how many samples per second
-	uint info_channels;	// how many channels (1 = mono, 2 = stereo, 6 = 5.1 audio?)
-	uint info_bits;	// how many bits per channel (8 or 16)
-
-			// these settings are generated from the wave format
-			// how many bytes in a sample (which may be one or two channels, 
-			// thus 1 or 2 or 2 or 4, depending on info_bytesperchannel)
-	uint info_bytespersample;
-
-			// how many bytes in channel (1 for 8bit, or 2 for 16bit)
-	uint info_bytesperchannel;
-	
-	uint length;	// how many samples in the wave file
-	uint datalength;	// how large the data chunk is
-	uint dataposition;	// beginning of data in data chunk
-	uint position;	// current position in stream (in samples)
-	uint bufferlength;	// these are private to the wave file functions, just used for processing size of *buffer
-
-	void *buffer;	// buffer is reallocated if caller asks for more than fits
-} wavefile_t;
-
 // bsplib compile flags
 #define BSP_ONLYENTS	0x01
 #define BSP_ONLYVIS		0x02
@@ -78,7 +43,7 @@ enum
 	QC_WADLIB
 };
 
-bool Com_ValidScript( int scripttype );
+bool Com_ValidScript( const char *token, int scripttype );
 
 // misc
 bool CompileStudioModel ( byte *mempool, const char *name, byte parms );

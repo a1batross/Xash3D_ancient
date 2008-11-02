@@ -283,6 +283,8 @@ int mapcount = 0;
 void PF_getmapslist( void )
 {
 	char	mapstring[MAX_MSGLEN];
+	string	mapname;
+	script_t	*script;
 
 	if(!VM_ValidateArgs( "GetMapsList", 0 ))
 		return;
@@ -298,16 +300,16 @@ void PF_getmapslist( void )
 		return;
 	}
 
-	// paranoid mode :-)
-	if(!Com_LoadScript( "scripts/maps.lst", NULL, 0 ))
-		return;
+	script = Com_OpenScript( "scripts/maps.lst", NULL, 0 );
+	if( !script) return; // paranoid mode :-)
 
-	while(Com_GetToken( true ))
+	while( Com_ReadString( script, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, mapname ))
 	{
-		com.strcat( mapstring, va("'%s'", com_token ));
-		while(Com_TryToken()); // skip other stuff
+		com.strcat( mapstring, va("'%s'", mapname ));
+		Com_SkipRestOfLine( script ); // skip other stuff
 		mapcount++;
 	}
+	Com_CloseScript( script );
 	PRVM_G_INT(OFS_RETURN) = PRVM_SetTempString( mapstring );
 }
 

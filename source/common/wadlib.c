@@ -9,7 +9,8 @@
 #include "const.h"
 #include "utils.h"
 
-char		wadoutname[MAX_SYSPATH];
+string		wadoutname;
+script_t		*wadqc = NULL;
 wfile_t		*handle = NULL;
 string		lumpname;
 byte		*wadpool;
@@ -130,7 +131,7 @@ byte Mip_AveragePixels( int count )
 void Wad3_NewWad( void )
 {
 	handle = WAD_Open( wadoutname, "wb" );
-	if( !handle ) Sys_Break("Wad3_NewWad: can't create %s\n", wadoutname );
+	if( !handle ) Sys_Break( "Wad3_NewWad: can't create %s\n", wadoutname );
 }
 
 /*
@@ -166,8 +167,7 @@ void Cmd_GrabMip( void )
 	size_t	plump_size;
 	mip_t	*mip;
 
-	Com_GetToken( false );
-	com.strncpy( lumpname, com_token, MAX_STRING );
+	Com_ReadString( wadqc, SC_PARSE_GENERIC, lumpname );
 
 	// load mip image or replaced with error.bmp
 	image = FS_LoadImage( lumpname, error_bmp, error_bmp_size );	
@@ -180,12 +180,11 @@ void Cmd_GrabMip( void )
           
 	flags |= IMAGE_PALTO24;
 
-	if(Com_TryToken())
+	if(Com_ReadUlong( wadqc, false, &xl ))
 	{
-		xl = com.atoi( com_token );
-		yl = com.atoi(Com_GetToken( false ));
-		w  = com.atoi(Com_GetToken( false ));
-		h  = com.atoi(Com_GetToken( false ));
+		Com_ReadUlong( wadqc, false, &yl);
+		Com_ReadUlong( wadqc, false, &w );
+		Com_ReadUlong( wadqc, false, &h );
 	}
 	else
 	{
@@ -340,8 +339,7 @@ void Cmd_GrabPic( void )
 	size_t	plump_size;
 	lmp_t 	*pic;
 
-	Com_GetToken( false );
-	com.strncpy( lumpname, com_token, MAX_STRING );
+	Com_ReadString( wadqc, SC_PARSE_GENERIC, lumpname );
 
 	// load mip image or replaced with error.bmp
 	image = FS_LoadImage( lumpname, error_bmp, error_bmp_size );	
@@ -354,12 +352,13 @@ void Cmd_GrabPic( void )
 
 	Image_Process( &image, 0, 0, IMAGE_PALTO24 );	// turn into 24-bit mode
 
-	if(Com_TryToken())
+	if(Com_ReadUlong( wadqc, false, &xl ))
 	{
-		xl = com.atoi(Com_GetToken( false ));
-		yl = com.atoi(Com_GetToken( false ));
-		xh = xl + com.atoi(Com_GetToken( false ));
-		yh = yl + com.atoi(Com_GetToken( false ));
+		Com_ReadUlong( wadqc, false, &yl);
+		Com_ReadUlong( wadqc, false, &x );
+		Com_ReadUlong( wadqc, false, &y );
+		xh = xl + x;
+		yh = yl + y;
 	}
 	else
 	{
@@ -403,7 +402,7 @@ void Cmd_GrabPic( void )
 ==============
 Cmd_GrabScript
 
-$script filename
+$wadqc filename
 ==============
 */
 void Cmd_GrabScript( void )
@@ -411,8 +410,7 @@ void Cmd_GrabScript( void )
 	byte	*lump;
 	size_t	plump_size;
 
-	Com_GetToken( false );
-	com.strncpy( lumpname, com_token, MAX_STRING );
+	Com_ReadString( wadqc, SC_PARSE_GENERIC, lumpname );
 
 	// load mip image or replaced with error.bmp
 	lump = FS_LoadFile( lumpname, &plump_size );
@@ -442,8 +440,7 @@ void Cmd_GrabProgs( void )
 	size_t		plump_size;
 	dprograms_t	*hdr;
 
-	Com_GetToken( false );
-	com.strncpy( lumpname, com_token, MAX_STRING );
+	Com_ReadString( wadqc, SC_PARSE_GENERIC, lumpname );
 
 	// load mip image or replaced with error.bmp
 	lump = FS_LoadFile( lumpname, &plump_size );
@@ -472,7 +469,8 @@ void Cmd_GrabProgs( void )
 
 void Cmd_WadName( void )
 {
-	com.strncpy( wadoutname, Com_GetToken(false), sizeof(wadoutname));
+	Com_ReadString( wadqc, SC_PARSE_GENERIC, wadoutname );
+
 	FS_StripExtension( wadoutname );
 	FS_DefaultExtension( wadoutname, ".wad" );
 }
@@ -484,10 +482,10 @@ Cmd_WadUnknown
 syntax: "blabla"
 ==============
 */
-void Cmd_WadUnknown( void )
+void Cmd_WadUnknown( const char *token )
 {
-	MsgDev( D_WARN, "Cmd_WadUnknown: skip command \"%s\"\n", com_token);
-	while(Com_TryToken());
+	MsgDev( D_WARN, "Cmd_WadUnknown: skip command \"%s\"\n", token );
+	Com_SkipRestOfLine( wadqc );
 }
 
 void ResetWADInfo( void )
@@ -504,19 +502,22 @@ ParseScript
 */
 bool ParseWADfileScript( void )
 {
+	token_t	token;
+
 	ResetWADInfo();
 
 	while( 1 )
 	{
-		if(!Com_GetToken (true))break;
+		if(!Com_ReadToken( wadqc, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &token ))
+			break;
 
-		if (Com_MatchToken( "$wadname" )) Cmd_WadName();
-		else if (Com_MatchToken( "$mipmap" )) Cmd_GrabMip();
-		else if (Com_MatchToken( "$gfxpic" )) Cmd_GrabPic();
-		else if (Com_MatchToken( "$script" )) Cmd_GrabScript();
-		else if (Com_MatchToken( "$vprogs" )) Cmd_GrabProgs();
-		else if (!Com_ValidScript( QC_WADLIB )) return false;
-		else Cmd_WadUnknown();
+		if( !com.stricmp( token.string, "$wadname" )) Cmd_WadName();
+		else if( !com.stricmp( token.string, "$mipmap" )) Cmd_GrabMip();
+		else if( !com.stricmp( token.string, "$gfxpic" )) Cmd_GrabPic();
+		else if( !com.stricmp( token.string, "$wadqc" )) Cmd_GrabScript();
+		else if( !com.stricmp( token.string, "$vprogs" )) Cmd_GrabProgs();
+		else if( !Com_ValidScript( token.string, QC_WADLIB )) return false;
+		else Cmd_WadUnknown( token.string );
 	}
 	return true;
 }
@@ -525,25 +526,24 @@ bool WriteWADFile( void )
 {
 	if( !handle ) return false;
 	WAD_Close( handle );
+	Com_CloseScript( wadqc );
 	return true;
 }
 
 bool BuildCurrentWAD( const char *name )
 {
-	bool load = false;
-	
-	if( name ) com.strncpy( gs_filename, name, sizeof(gs_filename));
+	if( name ) com.strncpy( gs_filename, name, sizeof( gs_filename ));
 	FS_DefaultExtension( gs_filename, ".qc" );
-	load = Com_LoadScript( gs_filename, NULL, 0 );
+	wadqc = Com_OpenScript( gs_filename, NULL, 0 );
 	
-	if( load )
+	if( wadqc )
 	{
 		if(!ParseWADfileScript())
 			return false;
 		return WriteWADFile();
 	}
 
-	Msg("%s not found\n", gs_filename );
+	Msg( "%s not found\n", gs_filename );
 	return false;
 }
 
@@ -552,7 +552,7 @@ bool CompileWad3Archive( byte *mempool, const char *name, byte parms )
 	if( mempool ) wadpool = mempool;
 	else
 	{
-		Msg("Wadlib: can't allocate memory pool.\nAbort compilation\n");
+		Msg( "Wadlib: can't allocate memory pool.\nAbort compilation\n" );
 		return false;
 	}
 	return BuildCurrentWAD( name );	

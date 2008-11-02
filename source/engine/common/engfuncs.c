@@ -366,19 +366,16 @@ float Com_LoadScript( string filename )
 */
 void VM_ComLoadScript( void )
 {
-	static byte	*script;
-	static size_t	length;
-
 	if(!VM_ValidateArgs( "Com_LoadScript", 1 ))
 		return;
 
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM0)); 
 
 	// place script into memory
-	if( script && length ) Mem_Free( script );
-	script = FS_LoadFile( PRVM_G_STRING(OFS_PARM0), &length );	
+	if( prog->script ) Com_CloseScript( prog->script );
+	prog->script = Com_OpenScript( PRVM_G_STRING(OFS_PARM0), NULL, 0 );	
 
-	PRVM_G_FLOAT(OFS_RETURN) = (float)Com_LoadScript( "VM script", script, length );
+	PRVM_G_FLOAT(OFS_RETURN) = (float)(prog->script != NULL);
 }
 
 /*
@@ -393,7 +390,7 @@ void VM_ComResetScript( void )
 	if(!VM_ValidateArgs( "Com_ResetScript", 0 ))
 		return;
 
-	Com_ResetScript();
+	Com_ResetScript( prog->script );
 }
 
 /*
@@ -405,21 +402,18 @@ string Com_ReadToken( float newline )
 */
 void VM_ComReadToken( void )
 {
+	token_t	token;
+	int	flags = 0;
+
 	if(!VM_ValidateArgs( "Com_ReadToken", 1 ))
 		return;
 
 	// using slow, but safe parsing method
-	if( PRVM_G_FLOAT(OFS_PARM0) )
-	{
-		Com_GetToken( true ); // newline token is always safe
-		PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( com_token );
-	}
-	else
-	{
-		if(Com_TryToken()) // token available
-			PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( com_token );
-		else PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( NULL );
-	}
+	if( PRVM_G_FLOAT(OFS_PARM0) ) flags |= SC_ALLOW_NEWLINES;
+
+	if( Com_ReadToken( prog->script, flags, &token ))
+		PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( token.string );
+	else PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( NULL );
 }
 
 /*

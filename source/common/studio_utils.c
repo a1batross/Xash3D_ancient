@@ -1043,6 +1043,7 @@ void ResizeTexture( s_texture_t *ptexture )
 	int	i, j, s, t;
 	byte	*pdest;
 	int	srcadjwidth;
+	float	percent;
 
 	// make the width a multiple of 4; some hardware requires this, and it ensures
 	// dword alignment for each scan
@@ -1051,8 +1052,9 @@ void ResizeTexture( s_texture_t *ptexture )
 	ptexture->skinwidth = (int)((ptexture->max_s - ptexture->min_s) + 1 + 3) & ~3;
 	ptexture->skinheight = (int)(ptexture->max_t - ptexture->min_t) + 1;
 	ptexture->size = ptexture->skinwidth * ptexture->skinheight + 256 * 3;
+	percent = ((ptexture->skinwidth * ptexture->skinheight) / (float)(ptexture->srcwidth * ptexture->srcheight)) * 100.0f;
 
-	Msg("BMP %s [%d %d] (%.0f%%)  %6d bytes\n", ptexture->name,  ptexture->skinwidth, ptexture->skinheight, ((ptexture->skinwidth * ptexture->skinheight) / (float)(ptexture->srcwidth * ptexture->srcheight)) * 100.0f, ptexture->size );
+	Msg("BMP %s [%d %d] (%.0f%%)  %6s\n", ptexture->name,  ptexture->skinwidth, ptexture->skinheight, percent, memprint( ptexture->size ));
 	
 	if( ptexture->size > 1536 * 1536)
 	{

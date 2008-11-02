@@ -323,7 +323,7 @@ extern s_bonefixup_t bonefixup[MAXSTUDIOSRCBONES];
 extern s_bonetable_t bonetable[MAXSTUDIOSRCBONES];
 extern s_attachment_t attachment[MAXSTUDIOSRCBONES];
 extern s_renamebone_t renamedbone[MAXSTUDIOSRCBONES];
-extern s_animation_t *panimation[MAXSTUDIOANIMATIONS];
+extern s_animation_t *panimation[MAXSTUDIOSEQUENCES*MAXSTUDIOBLENDS];
 extern s_bonecontroller_t bonecontroller[MAXSTUDIOSRCBONES];
 
 extern float normal_blend;

@@ -671,6 +671,7 @@ typedef struct prvm_prog_s
 	word		filecrc;
 	int		intsize;
 	vfile_t		*file[PRVM_MAX_OPENFILES];
+	script_t		*script;
 	search_t		*search;
 	int		num_edicts;
 	int		max_edicts;

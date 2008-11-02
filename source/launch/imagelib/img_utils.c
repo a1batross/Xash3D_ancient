@@ -308,6 +308,7 @@ void Image_Init( void )
 	case HOST_NORMAL:
 	case HOST_BSPLIB:
 		Image_Setup( image_profile->string, image.cmd_flags ); // same as image_profile		
+		image.saveformats = save_xash051;
 		break;
 	case HOST_RIPPER:
 		image.loadformats = load_null;
@@ -315,7 +316,7 @@ void Image_Init( void )
 		break;
 	default:	// all other instances not using imagelib or will be reinstalling later
 		image.loadformats = load_null;
-		image.saveformats = save_xash051;
+		image.saveformats = save_null;
 		break;
 	}
 	image.tempbuffer = NULL;
@@ -346,7 +347,6 @@ void Image_Setup( const char *formats, const uint flags )
 	else if( !com.stricmp( formats, "hl2" ) || !com.stricmp( formats, "Half-Life 2" ))
 		image.loadformats = load_hl2;
 	else image.loadformats = load_xash048;	// unrecognized version, use default
-	image.saveformats = save_xash051;
 }
 
 void Image_Shutdown( void )

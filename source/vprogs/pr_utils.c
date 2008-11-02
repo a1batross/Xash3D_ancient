@@ -844,11 +844,11 @@ byte *PR_LoadFile( char *filename, bool crash, int type )
 	char		*path;
 
 	// NOTE: in-game we can't use ../pathes, but root directory always
-	// ahead over ../pathes, so tranlate path from
+	// ahead over ../pathes, so translate path from
 	// ../common/svc_user.h to source/common/svc_user.h
 	if( host_instance == HOST_NORMAL || host_instance == HOST_DEDICATED )
 	{
-		if((path = strstr( filename, ".." )))
+		if((path = com.strstr( filename, ".." )))
 		{
 			path += 2; // skip ..
 			com.snprintf( fullname, MAX_STRING, "%s%s", GI->source_dir, path );
@@ -861,7 +861,7 @@ byte *PR_LoadFile( char *filename, bool crash, int type )
 	
 	if( !file || !length ) 
 	{
-		if( crash ) PR_ParseError(ERR_INTERNAL, "Couldn't open file %s", filename);
+		if( crash ) PR_ParseError( ERR_INTERNAL, "Couldn't open file %s", fullname );
 		else return NULL;
 	}
 	newfile = (cachedsourcefile_t*)Qalloc(sizeof(cachedsourcefile_t));
@@ -959,27 +959,33 @@ byte *PR_CreateProgsSRC( void )
 		{
 			// skip blank mask
 			if(!com.strlen( searchmask[k] )) continue;
-			if(!com.stricmp(searchmask[k], FS_FileExtension(qc->filenames[i]))) // validate ext
+			if(!com.stricmp( searchmask[k], FS_FileExtension( qc->filenames[i] ))) // validate ext
 			{
-				if(Com_LoadScript( qc->filenames[i], NULL, 0 ))
+				script_t	*source = Com_OpenScript( qc->filenames[i], NULL, 0 );
+				token_t	token;
+
+				if( source )
 				{
-					while ( 1 )
+					while( Com_ReadToken( source, SC_ALLOW_NEWLINES, &token ))
 					{
 						// parse all sources for "end_sys_globals"
-						if(!Com_GetToken( true )) break; //EOF
-						if(Com_MatchToken( "end_sys_globals" ))
+						if( !com.strcmp( token.string, "end_sys_globals" ))
 						{
 							com.strncpy( headers[0], qc->filenames[i], MAX_STRING );
 							have_globals = true;
 						}
-						else if(Com_MatchToken( "end_sys_fields" ))
+						else if( !com.strcmp( token.string, "end_sys_fields" ))
 						{
 							com.strncpy( headers[1], qc->filenames[i], MAX_STRING );
 							have_entvars = true;
 						}
 						if( have_globals && have_entvars )
+						{
+							Com_CloseScript( source );
 							goto buildnewlist; // end of parsing
+						}
 					}
+					Com_CloseScript( source );
 				}
 			}	
 		}

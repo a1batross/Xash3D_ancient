@@ -6107,9 +6107,9 @@ bool PR_ContinueCompile( void )
 {
 	char	*qc_file;
 
-	if(!progs_src) return false;
+	if( !progs_src ) return false;
 	currentchunk = NULL;
-	Com_ParseToken( &progs_src, true );
+	PR_ParseToken( &progs_src, true );
 
 	if(!progs_src)
 	{
@@ -6124,11 +6124,11 @@ bool PR_ContinueCompile( void )
 		return false; // end of compile
 	}
 
-	PR_Message( "%s\n", com_token );
-	qc_file = QCC_LoadFile( com_token, true );
+	PR_Message( "%s\n", pr_token );
+	qc_file = QCC_LoadFile( pr_token, true );
 	if( prvm_state == comp_error )
 		return false;
-	PR_CompileFile( qc_file, com_token );
+	PR_CompileFile( qc_file, pr_token );
 
 	return true;
 }
@@ -6178,8 +6178,8 @@ void PR_BeginCompilation ( void )
 
 	while(*progs_src && *progs_src < ' ') progs_src++;
 
-	pr_file_p = Com_ParseToken( &progs_src, true );
-	com.strcpy( progsoutname, com_token );
+	pr_file_p = PR_ParseToken( &progs_src, true );
+	com.strcpy( progsoutname, pr_token );
 
 	// this progs.src was written by qcclib without sorting
 	if(!com.stricmp(progsoutname, "unknown.dat" ))
@@ -6187,9 +6187,9 @@ void PR_BeginCompilation ( void )
 		// ready to compile any version
 		autoprototype = true;
 	}
-	FS_FileBase( com_token, compilename );
+	FS_FileBase( pr_token, compilename );
 
-	if (FS_CheckParm("-asm")) asmfile = FS_Open(va("%s.asm", com_token), "wb" );
+	if (FS_CheckParm("-asm")) asmfile = FS_Open(va("%s.asm", pr_token), "wb" );
 
 	// msvc6.0 style message
 	PR_Message("------------Configuration: %s - Vm32 %s------------\n", compilename, opt_writelinenums ? "Debug" : "Release" ); 

@@ -81,28 +81,6 @@ enum
 	PT_MAXCOUNT,
 };
 
-typedef enum
-{
-	TT_EMPTY = 0,		// empty (invalid or whitespace)
-	TT_GENERIC,		// generic string separated by spaces
-	TT_STRING,		// string (enclosed with double quotes)
-	TT_LITERAL,		// literal (enclosed with single quotes)
-	TT_NUMBER,		// number
-	TT_NAME,			// name
-	TT_PUNCTUATION		// punctuation
-} tokenType_t;
-
-typedef struct
-{
-	tokenType_t	type;
-	uint		subType;
-	int		line;
-	char		string[MAX_TOKEN_LENGTH];
-	int		length;
-	double		floatValue;
-	uint		integerValue;
-} token_t;
-
 typedef struct
 {
 	const char	*name;
@@ -120,23 +98,26 @@ typedef struct script_s
 	punctuation_t	*punctuations;
 	bool		tokenAvailable;
 	token_t		token;
+	char		TXcommand;		// (quark .map comment)
 } script_t;
 
 bool PS_ReadToken( script_t *script, scFlags_t flags, token_t *token );
-void PS_FreeToken( script_t *script, token_t *token );
-bool PS_ReadDouble( script_t *script, scFlags_t flags, double *value );
-bool PS_ReadFloat( script_t *script, scFlags_t flags, float *value );
-bool PS_ReadUnsigned( script_t *script, scFlags_t flags, uint *value );
-bool PS_ReadInteger( script_t *script, scFlags_t flags, int *value );
+void PS_SaveToken( script_t *script, token_t *token );
+bool PS_GetString( script_t *script, int flags, char *value, size_t size );
+bool PS_GetDouble( script_t *script, int flags, double *value );
+bool PS_GetFloat( script_t *script, int flags, float *value );
+bool PS_GetUnsigned( script_t *script, int flags, uint *value );
+bool PS_GetInteger( script_t *script, int flags, int *value );
 
 void PS_SkipWhiteSpace( script_t *script );
 void PS_SkipRestOfLine( script_t *script );
 void PS_SkipBracedSection( script_t *script, int depth );
+char PS_TXCommand( script_t *script );
 
 void PS_ScriptError( script_t *script, scFlags_t flags, const char *fmt, ... );
 void PS_ScriptWarning( script_t *script, scFlags_t flags, const char *fmt, ... );
 
-bool PS_MatchToken( script_t *script, token_t *token );
+bool PS_MatchToken( token_t *token, const char *keyword );
 void PS_SetPunctuationsTable( script_t *script, punctuation_t *punctuationsTable );
 void PS_ResetScript( script_t *script );
 bool PS_EndOfScript( script_t *script );

@@ -350,19 +350,19 @@ void StripTrailing( char *e )
 ParseEpair
 =================
 */
-epair_t *ParseEpair( void )
+epair_t *ParseEpair( token_t *token )
 {
 	epair_t	*e;
 
 	e = BSP_Malloc( sizeof( epair_t ));
 	
-	if( com.strlen( com_token ) >= MAX_KEY - 1 )
+	if( com.strlen( token->string ) >= MAX_KEY - 1 )
 		Sys_Break( "ParseEpair: token too long\n" );
-	e->key = copystring( com_token );
-	Com_GetToken( false );
-	if( com.strlen( com_token ) >= MAX_VALUE - 1 )
+	e->key = copystring( token->string );
+	Com_ReadToken( mapfile, 0, token );
+	if( com.strlen( token->string ) >= MAX_VALUE - 1 )
 		Sys_Break( "ParseEpair: token too long\n" );
-	e->value = copystring( com_token );
+	e->value = copystring( token->string );
 
 	// strip trailing spaces
 	StripTrailing( e->key );
@@ -379,25 +379,24 @@ ParseEntity
 bool ParseEntity( void )
 {
 	epair_t		*e;
+	token_t		token;
 	bsp_entity_t	*mapent;
 
-	if( !Com_GetToken( true ))
+	if( !Com_ReadToken( mapfile, SC_ALLOW_NEWLINES, &token ))
 		return false;
 
-	if( !Com_MatchToken( "{" ))
-		Sys_Break( "ParseEntity: '{' not found\n" );
-	if( num_entities == MAX_MAP_ENTITIES )
-		Sys_Break( "MAX_MAP_ENTITIES limit excceded\n" );
+	if( com.stricmp( token.string, "{" )) Sys_Break( "ParseEntity: '{' not found\n" );
+	if( num_entities == MAX_MAP_ENTITIES ) Sys_Break( "MAX_MAP_ENTITIES limit excceded\n" );
 
 	mapent = &entities[num_entities];
 	num_entities++;
 
 	while( 1 )
 	{
-		if( !Com_GetToken( true ))
+		if( !Com_ReadToken( mapfile, SC_ALLOW_NEWLINES, &token ))
 			Sys_Break( "ParseEntity: EOF without closing brace\n" );
-		if( Com_MatchToken( "}" )) break;
-		e = ParseEpair();
+		if( !com.stricmp( token.string, "}" )) break;
+		e = ParseEpair( &token );
 		e->next = mapent->epairs;
 		mapent->epairs = e;
 	}
@@ -414,8 +413,9 @@ Parses the dentdata string into entities
 void ParseEntities( void )
 {
 	num_entities = 0;
-	if( Com_LoadScript( "entities", dentdata, entdatasize ))
-		while( ParseEntity( ));
+	mapfile = Com_OpenScript( "entities", dentdata, entdatasize );
+	if( mapfile ) while( ParseEntity( ));
+	Com_CloseScript( mapfile );
 }
 
 
@@ -511,7 +511,7 @@ void GetVectorForKey( bsp_entity_t *ent, const char *key, vec3_t vec )
 	char	*k;
 	double	v1, v2, v3;
 
-	k = ValueForKey (ent, key);
+	k = ValueForKey( ent, key );
 
 	// scanf into doubles, then assign, so it is vec_t size independent
 	v1 = v2 = v3 = 0;
@@ -521,9 +521,11 @@ void GetVectorForKey( bsp_entity_t *ent, const char *key, vec3_t vec )
 
 void Com_CheckToken( const char *match )
 {
-	Com_GetToken( true );
+	token_t	token;
+	
+	Com_ReadToken( mapfile, SC_ALLOW_NEWLINES, &token );
 
-	if(!Com_MatchToken( match ))
+	if( com.stricmp( token.string, match ))
 	{
 		Sys_Break( "Com_CheckToken: \"%s\" not found\n", match );
 	}
@@ -536,10 +538,7 @@ void Com_Parse1DMatrix( int x, vec_t *m )
 	Com_CheckToken( "(" );
 
 	for( i = 0; i < x; i++ )
-	{
-		Com_GetToken( false );
-		m[i] = com.atof( com_token );
-	}
+		Com_ReadFloat( mapfile, false, &m[i] );
 	Com_CheckToken( ")" );
 }
 

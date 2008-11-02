@@ -663,25 +663,25 @@ LoadPortals
 void LoadPortals( void )
 {
 	int		i, j, hint;
-	bool		load;
 	vportal_t		*p;
 	leaf_t		*l;
 	char		magic[80];
 	char		path[MAX_SYSPATH];
 	int		numpoints;
-	winding_t	*w;
+	script_t		*prtfile;
 	int		leafnums[2];
 	vplane_t		plane;
+	winding_t		*w;	
+
+	com.sprintf( path, "maps/%s.prt", gs_filename );
+	prtfile = Com_OpenScript( path, NULL, 0 );
+	if( !prtfile ) Sys_Break( "LoadPortals: couldn't read %s\n", path );
+	Msg( "reading %s\n", path );
 	
-	sprintf( path, "maps/%s.prt", gs_filename );
-	load = Com_LoadScript( path, NULL, 0 );
-	if (!load) Sys_Error ("LoadPortals: couldn't read %s\n", path);
-	Msg ("reading %s\n", path);
-	
-	com.strcpy( magic, Com_GetToken( true ));
-          portalclusters = com.atoi(Com_GetToken( true ));
-          numportals = com.atoi(Com_GetToken( true ));
-          numvisfaces = com.atoi(Com_GetToken( true ));
+	Com_ReadString( prtfile, true, magic );
+          Com_ReadLong( prtfile, true, &portalclusters );
+          Com_ReadLong( prtfile, true, &numportals );
+          Com_ReadLong( prtfile, true, &numvisfaces );
           
           if( !portalclusters && !numportals ) Sys_Break( "LoadPortals: failed to read header\n" );
 	if( com.strcmp( magic, PORTALFILE )) Sys_Break( "LoadPortals: not a portal file\n" );
@@ -713,34 +713,38 @@ void LoadPortals( void )
 			
 	for( i = 0, p = portals; i < numportals; i++ )
 	{
-		numpoints = com.atoi(Com_GetToken( true )); // newline
-		leafnums[0] = com.atoi(Com_GetToken( false ));
-		leafnums[1] = com.atoi(Com_GetToken( false ));		
+		Com_ReadLong( prtfile, true, &numpoints );
+		Com_ReadLong( prtfile, false, &leafnums[0] );
+		Com_ReadLong( prtfile, false, &leafnums[1] );		
 
 		if( numpoints > MAX_POINTS_ON_WINDING )
 			Sys_Break( "LoadPortals: portal %i has too many points\n", i );
 		if(( uint )leafnums[0] > portalclusters || (uint)leafnums[1] > portalclusters )
 			Sys_Break( "LoadPortals: reading portal %i\n", i );
 
-		hint = com.atoi(Com_GetToken( false ));		
+		Com_ReadLong( prtfile, false, &hint );		
 		w = p->winding = NewWinding( numpoints );
 		w->numpoints = numpoints;
 
 		for (j = 0; j < numpoints; j++)
 		{
-			double	v[3];
+			token_t	token;
+			vec3_t	v;
 			int	k;
 
 			// scanf into double, then assign to float
 			// so we don't care what size float is
-			Com_GetToken( false ); //get '(' symbol
-			if(!Com_MatchToken( "(" )) Sys_Break( "LoadPortals: not found ( reading portal %i\n", i );
-			v[0] = com.atof(Com_GetToken( false ));
-			v[1] = com.atof(Com_GetToken( false ));
-			v[2] = com.atof(Com_GetToken( false ));			
+			Com_ReadToken( prtfile, 0, &token );	// get '(' symbol
+			if( com.stricmp( token.string, "(" ))
+				Sys_Break( "LoadPortals: not found ( reading portal %i\n", i );
+
+			Com_ReadFloat( prtfile, false, &v[0] );
+			Com_ReadFloat( prtfile, false, &v[1] );
+			Com_ReadFloat( prtfile, false, &v[2] );			
 				
-			Com_GetToken( false );
-			if(!Com_MatchToken( ")" )) Sys_Error ("LoadPortals: not found ) reading portal %i", i );
+			Com_ReadToken( prtfile, 0, &token );
+			if( com.stricmp( token.string, ")" ))
+				Sys_Error( "LoadPortals: not found ) reading portal %i", i );
 		          
 			for( k = 0; k < 3; k++ ) w->p[j][k] = v[k];
 		}
@@ -789,26 +793,31 @@ void LoadPortals( void )
 
 	for( i = 0, p = faces; i < numvisfaces; i++ )
 	{
-		numpoints = com.atoi(Com_GetToken( true )); // newline
-		leafnums[0] = com.atoi(Com_GetToken( false ));
+		Com_ReadLong( prtfile, true, &numpoints ); // newline
+		Com_ReadLong( prtfile, false, &leafnums[0] );
 
 		w = p->winding = NewWinding( numpoints );
 		w->numpoints = numpoints;
 		
 		for( j = 0; j < numpoints; j++ )
 		{
-			double	v[3];
+			token_t	token;
+			vec3_t	v;
 			int	k;
 
 			// scanf into double, then assign to vec_t
 			// so we don't care what size vec_t is
-			Com_GetToken( false ); //get '(' symbol
-			if(!Com_MatchToken( "(" )) Sys_Break( "LoadPortals: not found ( reading surface %i\n", i );
-			v[0] = com.atof(Com_GetToken( false ));
-			v[1] = com.atof(Com_GetToken( false ));
-			v[2] = com.atof(Com_GetToken( false ));	
-			Com_GetToken( false );
-			if(!Com_MatchToken( ")" )) Sys_Break( "LoadPortals: not found ) reading surface %i", i );
+			Com_ReadToken( prtfile, 0, &token );	// get '(' symbol
+			if( com.stricmp( token.string, "(" ))
+				Sys_Break( "LoadPortals: not found ( reading surface %i\n", i );
+
+			Com_ReadFloat( prtfile, false, &v[0] );
+			Com_ReadFloat( prtfile, false, &v[1] );
+			Com_ReadFloat( prtfile, false, &v[2] );
+			
+			Com_ReadToken( prtfile, 0, &token );
+			if( com.stricmp( token.string, ")" ))
+				Sys_Break( "LoadPortals: not found ) reading surface %i", i );
 			for( k = 0; k < 3; k++ ) w->p[j][k] = v[k];
 		}
 		// calc plane
@@ -830,6 +839,7 @@ void LoadPortals( void )
 		SetPortalSphere( p );
 		p++;
 	}
+	Com_CloseScript( prtfile );
 }
 
 void MergePortals( void )

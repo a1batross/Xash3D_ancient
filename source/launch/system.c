@@ -6,6 +6,7 @@
 #include "launch.h"
 #include "baserc_api.h"
 #include "mathlib.h"
+#include "parselib.h"
 
 #define MAX_QUED_EVENTS		256
 #define MASK_QUED_EVENTS		(MAX_QUED_EVENTS - 1)
@@ -106,25 +107,27 @@ void Sys_GetStdAPI( void )
 	com.Com_ThreadLock = Sys_ThreadLock;		// lock current thread
 	com.Com_ThreadUnlock = Sys_ThreadUnlock;	// unlock numthreads
 	com.Com_NumThreads = Sys_GetNumThreads;		// returns count of active threads
-	com.Com_LoadScript = SC_LoadScript;		// load script into stack from file or bufer
-	com.Com_AddScript = SC_AddScript;		// include script from file or buffer
-	com.Com_ResetScript = SC_ResetScript;		// reset current script state
-	com.Com_PushScript = SC_PushScript;		// save script into stack
-	com.Com_PopScript = SC_PopScript;		// restore script from stack
-	com.Com_SkipBracedSection = SC_SkipBracedSection;	// skip braced section in script
-	com.Com_ReadToken = SC_GetToken;		// get next token on a line or newline
-	com.Com_TryToken = SC_TryToken;		// return 1 if have token on a line 
-	com.Com_FreeToken = SC_FreeToken;		// free current token to may get it again
-	com.Com_SkipToken = SC_SkipToken;		// skip current token and jump into newline
-	com.Com_MatchToken = SC_MatchToken;		// compare current token with user keyword
-	com.Com_ParseToken_Simple = SC_ParseToken_Simple;	// basic parse (can't handle single characters)
-	com.Com_ParseToken = SC_ParseToken;		// parse token from char buffer
-	com.Com_ParseWord = SC_ParseWord;		// parse word from char buffer
+
+	com.Com_OpenScript = PS_LoadScript;		// loading script into buffer
+	com.Com_CloseScript = PS_FreeScript;		// release current script
+	com.Com_ResetScript = PS_ResetScript;		// jump to start of scriptfile 
+	com.Com_EndOfScript = PS_EndOfScript;		// returns true if end of script reached
+	com.Com_SkipBracedSection = PS_SkipBracedSection;	// skip braced section with specified depth
+	com.Com_SkipRestOfLine = PS_SkipRestOfLine;	// skip all tokene the rest of line
+	com.Com_ReadToken = PS_ReadToken;		// generic reading
+	com.Com_SaveToken = PS_SaveToken;		// save current token to get it again
+	com.Com_TXCommand = PS_TXCommand;
+
+	// script machine simple user interface
+	com.Com_ReadString = PS_GetString;		// string
+	com.Com_ReadFloat = PS_GetFloat;		// float value
+	com.Com_ReadDword = PS_GetUnsigned;		// unsigned integer
+	com.Com_ReadLong = PS_GetInteger;		// signed integer
+
 	com.Com_Search = FS_Search;			// returned list of founded files
 	com.Com_Filter = SC_FilterToken;		// compare keyword by mask with filter
 	com.Com_HashKey = SC_HashKey;			// returns hash key for a string (generic fucntion)
 	com.Com_LoadRes = Sys_LoadRes;		// get internal resource by name
-	com.com_token = token;			// contains current token
 
 	// console variables
 	com.Cvar_Get = Cvar_Get;
@@ -243,6 +246,7 @@ void Sys_GetStdAPI( void )
 	com.va = va;
 	com.vsnprintf = com_vsnprintf;
 	com.snprintf = com_snprintf;
+	com.pretifymem = com_pretifymem;
 	com.timestamp = com_timestamp;
 
 	// stringtable.c system

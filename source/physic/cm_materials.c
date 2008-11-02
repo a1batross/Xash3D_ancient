@@ -5,7 +5,9 @@
 
 #include "cm_local.h"
 
-bool CM_ParseMaterial( void )
+static script_t	*materials = NULL;
+
+bool CM_ParseMaterial( token_t *token )
 {
 	uint	num = cm.num_materials;
 
@@ -15,40 +17,36 @@ bool CM_ParseMaterial( void )
 		return false;
 	}
 
-	if(!Com_MatchToken( "materialgroup" ))
+	if( com.stricmp( token->string, "materialgroup" ))
 		return false; // not a material description
 
-	Com_GetToken( false );
-	if(Com_MatchToken( "default" ))
+	Com_ReadToken( materials, 0, token );
+	if( !com.stricmp( token->string, "default" ))
 		num = 0; // write default material first
 
 	// member material name	
-	com.strncpy( cm.mat[num].name, com_token, MAX_STRING );
+	com.strncpy( cm.mat[num].name, token->string, MAX_STRING );
 
 	// setup default values
-	while(!Com_MatchToken( "}" ))
+	while( com.stricmp( token->string, "}" ))
 	{
-		if(!Com_GetToken( true ))
+		if(!Com_ReadToken( materials, SC_ALLOW_NEWLINES, token ))
 			return false; // unfinished material description
 
-		if( Com_MatchToken( "elasticity" ))
+		if( !com.stricmp( token->string, "elasticity" ))
 		{
-			Com_GetToken( false );		
-			cm.mat[num].elasticity = com.atof( com_token );
+			Com_ReadFloat( materials, false, &cm.mat[num].elasticity );
 		}
-		else if( Com_MatchToken( "softness" ))
+		else if( !com.stricmp( token->string, "softness" ))
 		{
-			Com_GetToken( false );		
-			cm.mat[num].softness = com.atof( com_token );
+			Com_ReadFloat( materials, false, &cm.mat[num].softness );
 		}
-		else if( Com_MatchToken( "friction" ))
+		else if( !com.stricmp( token->string, "friction" ))
 		{
-			Com_GetToken( false );		
-			cm.mat[num].friction_static = com.atof( com_token );
+			Com_ReadFloat( materials, false, &cm.mat[num].friction_static );
 
-			if(Com_TryToken())
-				cm.mat[num].friction_kinetic = com.atof( com_token );
-			else cm.mat[num].friction_kinetic = cm.mat[num].friction_static; // same as static friction
+			if(!Com_ReadFloat( materials, false, &cm.mat[num].friction_kinetic ))
+				cm.mat[num].friction_kinetic = cm.mat[num].friction_static; // same as static friction
 		}
 	}
 
@@ -66,10 +64,12 @@ bool CM_ParseMaterial( void )
 
 void CM_InitMaterials( void )
 {
-	bool	load = Com_LoadScript( "scripts/materials.txt", NULL, 0 );
 	int	i, j;
+	token_t	token;
 
-	if( !load )
+	materials = Com_OpenScript( "scripts/materials.txt", NULL, 0 );
+
+	if( !materials )
 	{
 		// nothing to parse
 		MsgDev( D_WARN, "scripts/materials.txt not found!\n" );
@@ -78,8 +78,8 @@ void CM_InitMaterials( void )
 	cm.num_materials = 0;
 	Mem_Set( cm.mat, 0, sizeof(material_info_t) * MAX_MATERIALS );
 
-	while( Com_GetToken( true ))
-		CM_ParseMaterial();
+	while( Com_ReadToken( materials, SC_ALLOW_NEWLINES, &token ))
+		CM_ParseMaterial( &token );
 
 	// assume IDs are in order and we don't need to remember them
 	for ( i = 1; i < cm.num_materials; i++ )

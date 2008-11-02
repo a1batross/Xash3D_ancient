@@ -6,6 +6,7 @@
 #include "launch.h"
 #include "filesystem.h"
 #include "byteorder.h"
+#include "parselib.h"
 
 #define ZIP_END_CDIR_SIZE		22
 #define ZIP_CDIR_CHUNK_BASE_SIZE	46
@@ -1316,9 +1317,10 @@ void FS_CreateGameInfo( const char *filename )
 
 void FS_LoadGameInfo( const char *filename )
 {
-          bool fs_modified = false;
-	bool load = false;
-	char *fs_path;
+          bool	fs_modified = false;
+	script_t	*script = NULL;
+	string	fs_path;
+	token_t	token;
 
 	// lock uplevel of gamedir for read\write
 	fs_ext_path = false;
@@ -1329,68 +1331,71 @@ void FS_LoadGameInfo( const char *filename )
 
 	// create default gameinfo
 	if(!FS_FileExists( filename )) FS_CreateGameInfo( filename );
-	// now we have use search path and can load gameinfo.txt
-	load = SC_LoadScript( filename, NULL, 0 );
+	// now we have search path and can load gameinfo.txt
+	script = PS_LoadScript( filename, NULL, 0 );
 
-	while( load )
+	while( script )
 	{
-		if(!SC_GetToken( true )) break;
-		if(SC_MatchToken( "basedir"))
-		{
-			fs_path = SC_GetToken( false );
+		if(!PS_ReadToken( script, SC_ALLOW_NEWLINES, &token ))
+			break;
 
-			if(!SC_MatchToken(GI.basedir) && !SC_MatchToken(GI.gamedir))
+		if( !com.stricmp( token.string, "basedir" ))
+		{
+			PS_GetString( script, false, fs_path, MAX_STRING );
+			if( com.stricmp( fs_path, GI.basedir ) || com.stricmp( fs_path, GI.gamedir ))
 			{
-				com_strcpy(GI.basedir, fs_path);
+				com.strncpy( GI.basedir, fs_path, MAX_STRING );
 				fs_modified = true;
 			}
 		}
-		else if(SC_MatchToken( "gamedir"))
+		else if( !com.stricmp( token.string, "gamedir" ))
 		{
-			fs_path = SC_GetToken( false );
-			if(!SC_MatchToken(GI.basedir) && !SC_MatchToken(GI.gamedir))
+			PS_GetString( script, false, fs_path, MAX_STRING );
+			if( com.stricmp( fs_path, GI.basedir ) || com.stricmp( fs_path, GI.gamedir ))
 			{
-				com_strcpy(GI.gamedir, fs_path);
+				com.strncpy( GI.gamedir, fs_path, MAX_STRING );
 				fs_modified = true;
 			}
 		}
-		else if(SC_MatchToken( "title"))
+		else if( !com.stricmp( token.string, "title" ))
 		{
-			com_strcpy(GI.title, SC_GetToken( false ));
+			PS_GetString( script, false, GI.title, sizeof( GI.title ));
 		}
-		else if(SC_MatchToken( "startmap"))
+		else if( !com.stricmp( token.string, "startmap" ))
 		{
-			com_strcpy(GI.startmap, SC_GetToken( false ));
+			PS_GetString( script, false, GI.startmap, sizeof( GI.startmap ));
 		}
-		else if(SC_MatchToken( "version"))
+		else if( !com.stricmp( token.string, "version" ))
 		{
-			GI.version = com_atof(SC_GetToken( false ));
+			PS_GetFloat( script, false, &GI.version );
 		}
-		else if(SC_MatchToken( "viewmode"))
+		else if( !com.stricmp( token.string, "viewmode" ))
 		{
-			SC_GetToken( false );
-			if(SC_MatchToken( "firstperson")) GI.viewmode = 1;
-			if(SC_MatchToken( "thirdperson")) GI.viewmode = 2;
+			PS_ReadToken( script, 0, &token );
+			if( !com.stricmp( token.string, "firstperson" ))
+				GI.viewmode = 1;
+			else if( !com.stricmp( token.string, "thirdperson" ))
+				GI.viewmode = 2;
 		}
-		else if(SC_MatchToken( "gamemode"))								
+		else if( !com.stricmp( token.string, "gamemode" ))								
 		{
-			SC_GetToken( false );
-			if(SC_MatchToken( "singleplayer")) GI.gamemode = 1;
-			if(SC_MatchToken( "multiplayer")) GI.gamemode = 2;
+			PS_ReadToken( script, 0, &token );
+			if( !com.stricmp( token.string, "singleplayer" ))
+				GI.gamemode = 1;
+			else if( !com.stricmp( token.string, "multiplayer" ))
+				GI.gamemode = 2;
 		}
-		else if(SC_MatchToken( "vprogsdir"))
+		else if( !com.stricmp( token.string, "vprogsdir" ))
 		{
-			com_strcpy(GI.vprogs_dir, SC_GetToken( false ));
+			PS_GetString( script, false, GI.vprogs_dir, sizeof( GI.vprogs_dir ));
 		}
-		else if(SC_MatchToken( "sourcedir"))
+		else if( !com.stricmp( token.string, "sourcedir" ))
 		{
-			com_strcpy(GI.source_dir, SC_GetToken( false ));
+			PS_GetString( script, false, GI.source_dir, sizeof( GI.source_dir ));
 		}
 	}
-	if( fs_modified ) 
-	{
-		FS_Rescan(); // create new filesystem
-	}
+	if( fs_modified ) FS_Rescan(); // create new filesystem
+	PS_FreeScript( script );
 }
 
 /*

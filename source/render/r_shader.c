@@ -22,7 +22,7 @@ typedef struct shaderScript_s
 	shaderType_t		shaderType;
 	uint			surfaceParm;
 	int			contents;
-	char			script[1];	// variable sized
+	script_t			*script;
 } shaderScript_t;
 
 static ref_shader_t		r_parseShader;
@@ -101,32 +101,30 @@ SHADER PARSING
 R_ParseWaveFunc
 =================
 */
-static bool R_ParseWaveFunc( ref_shader_t *shader, waveFunc_t *func, char **script )
+static bool R_ParseWaveFunc( ref_shader_t *shader, waveFunc_t *func, script_t *script )
 {
-	char	*tok;
+	token_t	tok;
 	int	i;
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if(!Com_ReadToken( script, false, &tok ))
 		return false;
 
-	if(Com_MatchToken( "sin" )) func->type = WAVEFORM_SIN;
-	else if(Com_MatchToken( "triangle" )) func->type = WAVEFORM_TRIANGLE;
-	else if(Com_MatchToken( "square" )) func->type = WAVEFORM_SQUARE;
-	else if(Com_MatchToken( "sawtooth" )) func->type = WAVEFORM_SAWTOOTH;
-	else if(Com_MatchToken( "inverseSawtooth" )) func->type = WAVEFORM_INVERSESAWTOOTH;
-	else if(Com_MatchToken( "noise" )) func->type = WAVEFORM_NOISE;
+	if( !com.stricmp( tok.string, "sin" )) func->type = WAVEFORM_SIN;
+	else if( !com.stricmp( tok.string, "triangle" )) func->type = WAVEFORM_TRIANGLE;
+	else if( !com.stricmp( tok.string, "square" )) func->type = WAVEFORM_SQUARE;
+	else if( !com.stricmp( tok.string, "sawtooth" )) func->type = WAVEFORM_SAWTOOTH;
+	else if( !com.stricmp( tok.string, "inverseSawtooth" )) func->type = WAVEFORM_INVERSESAWTOOTH;
+	else if( !com.stricmp( tok.string, "noise" )) func->type = WAVEFORM_NOISE;
 	else
 	{
-		MsgDev( D_WARN, "unknown waveform '%s' in shader '%s', defaulting to sin\n", tok, shader->name );
+		MsgDev( D_WARN, "unknown waveform '%s' in shader '%s', defaulting to sin\n", tok.string, shader->name );
 		func->type = WAVEFORM_SIN;
 	}
 
 	for( i = 0; i < 4; i++ )
 	{
-		tok = Com_ParseToken(script, false);
-		if( !tok[0] ) return false;
-		func->params[i] = com.atof( tok );
+		if( !Com_ReadFloat( script, false, &func->params[i] ))
+			return false;
 	}
 	return true;
 }
@@ -136,42 +134,40 @@ static bool R_ParseWaveFunc( ref_shader_t *shader, waveFunc_t *func, char **scri
 R_ParseHeightToNormal
 =================
 */
-static bool R_ParseHeightToNormal( ref_shader_t *shader, char *heightMap, int heightMapLen, float *bumpScale, char **script )
+static bool R_ParseHeightToNormal( ref_shader_t *shader, char *heightMap, int heightMapLen, float *bumpScale, script_t *script )
 {
-	char	*tok;
+	token_t	tok;
 
-	tok = Com_ParseToken( script, false );
-	if(!Com_MatchToken( "(" ))
+	Com_ReadToken( script, false, &tok );
+	if( com.stricmp( tok.string, "(" ))
 	{
 		MsgDev( D_WARN, "missing '(' for 'heightToNormal' in shader '%s'\n", shader->name );
 		return false;
 	}
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'heightToNormal' in shader '%s'\n", shader->name );
 		return false;
 	}
-	com.strncpy( heightMap, tok, heightMapLen );
+	com.strncpy( heightMap, tok.string, heightMapLen );
 
-	tok = Com_ParseToken( script, false );
-	if(!Com_MatchToken( "," ))
+	Com_ReadToken( script, false, &tok );
+	if( !com.stricmp( tok.string, "," ))
 	{
-		MsgDev( D_WARN, "expected ',', found '%s' instead in 'heightToNormal' in shader '%s'\n", tok, shader->name );
+		MsgDev( D_WARN, "expected ',', found '%s' instead in 'heightToNormal' in shader '%s'\n", tok.string, shader->name );
 		return false;
 	}
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'heightToNormal' in shader '%s'\n", shader->name );
 		return false;
 	}
-	*bumpScale = com.atof( tok );
+	*bumpScale = com.atof( tok.string );
 
-	tok = Com_ParseToken( script, false );
-	if(!Com_MatchToken( ")" ))
+	Com_ReadToken( script, false, &tok );
+	if( !com.stricmp( tok.string, ")" ))
 	{
 		MsgDev( D_WARN, "missing ')' for 'heightToNormal' in shader '%s'\n", shader->name );
 		return false;
@@ -184,9 +180,9 @@ static bool R_ParseHeightToNormal( ref_shader_t *shader, char *heightMap, int he
 R_ParseGeneralSurfaceParm
 =================
 */
-static bool R_ParseGeneralSurfaceParm( ref_shader_t *shader, char **script )
+static bool R_ParseGeneralSurfaceParm( ref_shader_t *shader, script_t *script )
 {
-	char	*tok;
+	token_t	tok;
 	int	i, numInfoParms = sizeof(infoParms) / sizeof(infoParms[0]);
 	
 	switch( shader->shaderType )
@@ -200,8 +196,7 @@ static bool R_ParseGeneralSurfaceParm( ref_shader_t *shader, char **script )
 		return false;
 	}
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'surfaceParm' in shader '%s'\n", shader->name );
 		return false;
@@ -209,7 +204,7 @@ static bool R_ParseGeneralSurfaceParm( ref_shader_t *shader, char **script )
 
 	for( i = 0; i < numInfoParms; i++ )
 	{
-		if(Com_MatchToken( infoParms[i].name ))
+		if( !com.stricmp( tok.string, infoParms[i].name ))
 		{
 			shader->surfaceParm |= infoParms[i].surfaceFlags;
 			shader->contentFlags |= infoParms[i].contents;
@@ -219,7 +214,7 @@ static bool R_ParseGeneralSurfaceParm( ref_shader_t *shader, char **script )
 
 	if( i == numInfoParms )
 	{
-		MsgDev( D_WARN, "unknown 'surfaceParm' parameter '%s' in shader '%s'\n", tok, shader->name );
+		MsgDev( D_WARN, "unknown 'surfaceParm' parameter '%s' in shader '%s'\n", tok.string, shader->name );
 		return false;
 	}
 
@@ -232,7 +227,7 @@ static bool R_ParseGeneralSurfaceParm( ref_shader_t *shader, char **script )
 R_ParseGeneralNoMipmaps
 =================
 */
-static bool R_ParseGeneralNoMipmaps( ref_shader_t *shader, char **script )
+static bool R_ParseGeneralNoMipmaps( ref_shader_t *shader, script_t *script )
 {
 	shader->flags |= (SHADER_NOMIPMAPS|SHADER_NOPICMIP);
 	return true;
@@ -243,7 +238,7 @@ static bool R_ParseGeneralNoMipmaps( ref_shader_t *shader, char **script )
 R_ParseGeneralNoPicmip
 =================
 */
-static bool R_ParseGeneralNoPicmip( ref_shader_t *shader, char **script )
+static bool R_ParseGeneralNoPicmip( ref_shader_t *shader, script_t *script )
 {
 	shader->flags |= SHADER_NOPICMIP;
 	return true;
@@ -254,7 +249,7 @@ static bool R_ParseGeneralNoPicmip( ref_shader_t *shader, char **script )
 R_ParseGeneralNoCompress
 =================
 */
-static bool R_ParseGeneralNoCompress( ref_shader_t *shader, char **script )
+static bool R_ParseGeneralNoCompress( ref_shader_t *shader, script_t *script )
 {
 	shader->flags |= SHADER_NOCOMPRESS;
 	return true;
@@ -265,7 +260,7 @@ static bool R_ParseGeneralNoCompress( ref_shader_t *shader, char **script )
 R_ParseGeneralNoShadows
 =================
 */
-static bool R_ParseGeneralNoShadows( ref_shader_t *shader, char **script )
+static bool R_ParseGeneralNoShadows( ref_shader_t *shader, script_t *script )
 {
 	shader->flags |= SHADER_NOSHADOWS;
 	return true;
@@ -276,7 +271,7 @@ static bool R_ParseGeneralNoShadows( ref_shader_t *shader, char **script )
 R_ParseGeneralNoFragments
 =================
 */
-static bool R_ParseGeneralNoFragments( ref_shader_t *shader, char **script )
+static bool R_ParseGeneralNoFragments( ref_shader_t *shader, script_t *script )
 {
 	shader->flags |= SHADER_NOFRAGMENTS;
 	return true;
@@ -287,7 +282,7 @@ static bool R_ParseGeneralNoFragments( ref_shader_t *shader, char **script )
 R_ParseGeneralEntityMergable
 =================
 */
-static bool R_ParseGeneralEntityMergable( ref_shader_t *shader, char **script )
+static bool R_ParseGeneralEntityMergable( ref_shader_t *shader, script_t *script )
 {
 	shader->flags |= SHADER_ENTITYMERGABLE;
 	return true;
@@ -298,7 +293,7 @@ static bool R_ParseGeneralEntityMergable( ref_shader_t *shader, char **script )
 R_ParseGeneralPolygonOffset
 =================
 */
-static bool R_ParseGeneralPolygonOffset( ref_shader_t *shader, char **script )
+static bool R_ParseGeneralPolygonOffset( ref_shader_t *shader, script_t *script )
 {
 	shader->flags |= SHADER_POLYGONOFFSET;
 	return true;
@@ -309,22 +304,21 @@ static bool R_ParseGeneralPolygonOffset( ref_shader_t *shader, char **script )
 R_ParseGeneralCull
 =================
 */
-static bool R_ParseGeneralCull( ref_shader_t *shader, char **script )
+static bool R_ParseGeneralCull( ref_shader_t *shader, script_t *script )
 {
-	char	*tok;
+	token_t	tok;
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] ) shader->cull.mode = GL_FRONT;
+	if( !Com_ReadToken( script, false, &tok )) shader->cull.mode = GL_FRONT;
 	else
 	{
-		if(Com_MatchToken( "front")) shader->cull.mode = GL_FRONT;
-		else if(Com_MatchToken( "back") || Com_MatchToken( "backSide") || Com_MatchToken( "backSided"))
+		if( !com.stricmp( tok.string, "front")) shader->cull.mode = GL_FRONT;
+		else if( !com.stricmp( tok.string, "back" ) || !com.stricmp( tok.string, "backSide" ) || !com.stricmp( tok.string, "backSided" ))
 			shader->cull.mode = GL_BACK;
-		else if(Com_MatchToken( "disable") || Com_MatchToken( "none") || Com_MatchToken( "twoSided"))
+		else if( !com.stricmp( tok.string, "disable" ) || !com.stricmp( tok.string, "none" ) ||  !com.stricmp( tok.string, "twoSided" ))
 			shader->cull.mode = 0;
 		else
 		{
-			MsgDev( D_WARN, "unknown 'cull' parameter '%s' in shader '%s'\n", tok, shader->name );
+			MsgDev( D_WARN, "unknown 'cull' parameter '%s' in shader '%s'\n", tok.string, shader->name );
 			return false;
 		}
 	}
@@ -337,39 +331,38 @@ static bool R_ParseGeneralCull( ref_shader_t *shader, char **script )
 R_ParseGeneralSort
 =================
 */
-static bool R_ParseGeneralSort( ref_shader_t *shader, char **script )
+static bool R_ParseGeneralSort( ref_shader_t *shader, script_t *script )
 {
-	char	*tok;
+	token_t	tok;
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'sort' in shader '%s'\n", shader->name );
 		return false;
 	}
 
-	if(Com_MatchToken( "sky" )) shader->sort = SORT_SKY;
-	else if(Com_MatchToken( "opaque")) shader->sort = SORT_OPAQUE;
-	else if(Com_MatchToken( "decal")) shader->sort = SORT_DECAL;
-	else if(Com_MatchToken( "seeThrough")) shader->sort = SORT_SEETHROUGH;
-	else if(Com_MatchToken( "banner")) shader->sort = SORT_BANNER;
-	else if(Com_MatchToken( "underwater")) shader->sort = SORT_UNDERWATER;
-	else if(Com_MatchToken( "water")) shader->sort = SORT_WATER;
-	else if(Com_MatchToken( "innerBlend")) shader->sort = SORT_INNERBLEND;
-	else if(Com_MatchToken( "blend")) shader->sort = SORT_BLEND;
-	else if(Com_MatchToken( "blend2")) shader->sort = SORT_BLEND2;
-	else if(Com_MatchToken( "blend3")) shader->sort = SORT_BLEND3;
-	else if(Com_MatchToken( "blend4")) shader->sort = SORT_BLEND4;
-	else if(Com_MatchToken( "outerBlend")) shader->sort = SORT_OUTERBLEND;
-	else if(Com_MatchToken( "additive")) shader->sort = SORT_ADDITIVE;
-	else if(Com_MatchToken( "nearest")) shader->sort = SORT_NEAREST;
+	if( !com.stricmp( tok.string, "sky" )) shader->sort = SORT_SKY;
+	else if( !com.stricmp( tok.string, "opaque")) shader->sort = SORT_OPAQUE;
+	else if( !com.stricmp( tok.string, "decal")) shader->sort = SORT_DECAL;
+	else if( !com.stricmp( tok.string, "seeThrough")) shader->sort = SORT_SEETHROUGH;
+	else if( !com.stricmp( tok.string, "banner")) shader->sort = SORT_BANNER;
+	else if( !com.stricmp( tok.string, "underwater")) shader->sort = SORT_UNDERWATER;
+	else if( !com.stricmp( tok.string, "water")) shader->sort = SORT_WATER;
+	else if( !com.stricmp( tok.string, "innerBlend")) shader->sort = SORT_INNERBLEND;
+	else if( !com.stricmp( tok.string, "blend")) shader->sort = SORT_BLEND;
+	else if( !com.stricmp( tok.string, "blend2")) shader->sort = SORT_BLEND2;
+	else if( !com.stricmp( tok.string, "blend3")) shader->sort = SORT_BLEND3;
+	else if( !com.stricmp( tok.string, "blend4")) shader->sort = SORT_BLEND4;
+	else if( !com.stricmp( tok.string, "outerBlend")) shader->sort = SORT_OUTERBLEND;
+	else if( !com.stricmp( tok.string, "additive")) shader->sort = SORT_ADDITIVE;
+	else if( !com.stricmp( tok.string, "nearest")) shader->sort = SORT_NEAREST;
 	else
 	{
-		shader->sort = com.atoi( tok );
+		shader->sort = com.atoi( tok.string );
 
 		if( shader->sort < 1 || shader->sort > 15 )
 		{
-			MsgDev( D_WARN, "unknown 'sort' parameter '%s' in shader '%s'\n", tok, shader->name );
+			MsgDev( D_WARN, "unknown 'sort' parameter '%s' in shader '%s'\n", tok.string, shader->name );
 			return false;
 		}
 	}
@@ -382,9 +375,9 @@ static bool R_ParseGeneralSort( ref_shader_t *shader, char **script )
 R_ParseGeneralTessSize
 =================
 */
-static bool R_ParseGeneralTessSize( ref_shader_t *shader, char **script )
+static bool R_ParseGeneralTessSize( ref_shader_t *shader, script_t *script )
 {
-	char	*tok;
+	token_t	tok;
 	int	i = 8;
 
 	if( shader->shaderType != SHADER_TEXTURE )
@@ -393,14 +386,13 @@ static bool R_ParseGeneralTessSize( ref_shader_t *shader, char **script )
 		return false;
 	}
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'tessSize' in shader '%s'\n", shader->name );
 		return false;
 	}
 
-	shader->tessSize = com.atoi( tok );
+	shader->tessSize = com.atoi( tok.string );
 
 	if( shader->tessSize < 8 || shader->tessSize > 256 )
 	{
@@ -422,10 +414,10 @@ static bool R_ParseGeneralTessSize( ref_shader_t *shader, char **script )
 R_ParseGeneralSkyParms
 =================
 */
-static bool R_ParseGeneralSkyParms( ref_shader_t *shader, char **script )
+static bool R_ParseGeneralSkyParms( ref_shader_t *shader, script_t *script )
 {
 	string	name;
-	char	*tok;
+	token_t	tok;
 	int	i;
 
 	if( shader->shaderType != SHADER_SKY )
@@ -434,20 +426,19 @@ static bool R_ParseGeneralSkyParms( ref_shader_t *shader, char **script )
 		return false;
 	}
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'skyParms' in shader '%s'\n", shader->name );
 		return false;
 	}
 
-	if(!Com_MatchToken( "-"))
+	if( com.stricmp( tok.string, "-" ))
 	{
 		for( i = 0; i < 6; i++ )
 		{
 			if( shader->skyParms.farBox[i] )
 				shader->skyParms.farBox[i]->flags &= ~TF_STATIC; // old skybox will be removed on next loading
-			com.snprintf( name, sizeof(name), "%s%s", tok, r_skyBoxSuffix[i] );
+			com.snprintf( name, sizeof( name ), "%s%s", tok.string, r_skyBoxSuffix[i] );
 			shader->skyParms.farBox[i] = R_FindTexture( name, NULL, 0, TF_CLAMP|TF_SKYSIDE|TF_STATIC, 0 );
 			if( !shader->skyParms.farBox[i] )
 			{
@@ -457,16 +448,15 @@ static bool R_ParseGeneralSkyParms( ref_shader_t *shader, char **script )
 		}
 	}
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'skyParms' in shader '%s'\n", shader->name );
 		return false;
 	}
 
-	if(!Com_MatchToken( "-"))
+	if( com.stricmp( tok.string, "-" ))
 	{
-		shader->skyParms.cloudHeight = com.atof(tok);
+		shader->skyParms.cloudHeight = com.atof( tok.string );
 		if( shader->skyParms.cloudHeight < 8.0 || shader->skyParms.cloudHeight > 1024.0 )
 		{
 			MsgDev( D_WARN, "out of range cloudHeight value of %f for 'skyParms' in shader '%s', defaulting to 128\n", shader->skyParms.cloudHeight, shader->name );
@@ -475,20 +465,19 @@ static bool R_ParseGeneralSkyParms( ref_shader_t *shader, char **script )
 	}
 	else shader->skyParms.cloudHeight = 128.0;
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'skyParms' in shader '%s'\n", shader->name );
 		return false;
 	}
 
-	if(!Com_MatchToken( "-"))
+	if( com.stricmp( tok.string, "-" ))
 	{
 		for( i = 0; i < 6; i++ )
 		{
 			if( shader->skyParms.nearBox[i] )
 				shader->skyParms.nearBox[i]->flags &= ~TF_STATIC; // old skybox will be removed on next loading
-			com.snprintf( name, sizeof(name), "%s%s", tok, r_skyBoxSuffix[i] );
+			com.snprintf( name, sizeof(name), "%s%s", tok.string, r_skyBoxSuffix[i] );
 			shader->skyParms.nearBox[i] = R_FindTexture( name, NULL, 0, TF_CLAMP|TF_SKYSIDE|TF_STATIC, 0 );
 			if( !shader->skyParms.nearBox[i] )
 			{
@@ -506,10 +495,10 @@ static bool R_ParseGeneralSkyParms( ref_shader_t *shader, char **script )
 R_ParseGeneralDeformVertexes
 =================
 */
-static bool R_ParseGeneralDeformVertexes( ref_shader_t *shader, char **script )
+static bool R_ParseGeneralDeformVertexes( ref_shader_t *shader, script_t *script )
 {
 	deformVerts_t	*deformVertexes;
-	char		*tok;
+	token_t		tok;
 	int		i;
 
 	if( shader->deformVertexesNum == SHADER_MAX_DEFORMVERTEXES )
@@ -519,23 +508,21 @@ static bool R_ParseGeneralDeformVertexes( ref_shader_t *shader, char **script )
 	}
 	deformVertexes = &shader->deformVertexes[shader->deformVertexesNum++];
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'deformVertexes' in shader '%s'\n", shader->name );
 		return false;
 	}
 
-	if(Com_MatchToken( "wave" ))
+	if( !com.stricmp( tok.string, "wave" ))
 	{
-		tok = Com_ParseToken( script, false );
-		if( !tok[0] )
+		if( !Com_ReadToken( script, false, &tok ))
 		{
 			MsgDev( D_WARN, "missing parameters for 'deformVertexes wave' in shader '%s'\n", shader->name );
 			return false;
 		}
 
-		deformVertexes->params[0] = com.atof( tok );
+		deformVertexes->params[0] = com.atof( tok.string );
 		if( deformVertexes->params[0] == 0.0 )
 		{
 			MsgDev( D_WARN, "illegal div value of 0 for 'deformVertexes wave' in shader '%s', defaulting to 100\n", shader->name );
@@ -550,18 +537,15 @@ static bool R_ParseGeneralDeformVertexes( ref_shader_t *shader, char **script )
 		}
 		deformVertexes->type = DEFORMVERTEXES_WAVE;
 	}
-	else if( Com_MatchToken( "move" ))
+	else if( !com.stricmp( tok.string, "move" ))
 	{
-		// g-cont. replace this stuff with com.atov ?
 		for( i = 0; i < 3; i++ )
 		{
-			tok = Com_ParseToken( script, false );
-			if( !tok[0] )
+			if( !Com_ReadFloat( script, false, &deformVertexes->params[i] ))
 			{
 				MsgDev( D_WARN, "missing parameters for 'deformVertexes move' in shader '%s'\n", shader->name );
 				return false;
 			}
-			deformVertexes->params[i] = com.atof( tok );
 		}
 
 		if(!R_ParseWaveFunc( shader, &deformVertexes->func, script ))
@@ -571,23 +555,21 @@ static bool R_ParseGeneralDeformVertexes( ref_shader_t *shader, char **script )
 		}
 		deformVertexes->type = DEFORMVERTEXES_MOVE;
 	}
-	else if(Com_MatchToken( "normal" ))
+	else if( !com.stricmp( tok.string, "normal" ))
 	{
 		for( i = 0; i < 2; i++ )
 		{
-			tok = Com_ParseToken( script, false );
-			if( !tok[0] )
+			if( !Com_ReadFloat( script, false, &deformVertexes->params[i] ))
 			{
 				MsgDev( D_WARN, "missing parameters for 'deformVertexes normal' in shader '%s'\n", shader->name );
 				return false;
 			}
-			deformVertexes->params[i] = atof(tok);
 		}
 		deformVertexes->type = DEFORMVERTEXES_NORMAL;
 	}
 	else
 	{
-		MsgDev( D_WARN, "unknown 'deformVertexes' parameter '%s' in shader '%s'\n", tok, shader->name );
+		MsgDev( D_WARN, "unknown 'deformVertexes' parameter '%s' in shader '%s'\n", tok.string, shader->name );
 		return false;
 	}
 	shader->flags |= SHADER_DEFORMVERTEXES;
@@ -599,7 +581,7 @@ static bool R_ParseGeneralDeformVertexes( ref_shader_t *shader, char **script )
 R_ParseStageRequires
 =================
 */
-static bool R_ParseStageRequires( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageRequires( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	MsgDev( D_WARN, "'requires' is not the first command in the stage in shader '%s'\n", shader->name );
 	return false;
@@ -610,7 +592,7 @@ static bool R_ParseStageRequires( ref_shader_t *shader, shaderStage_t *stage, ch
 R_ParseStageNoMipmaps
 =================
 */
-static bool R_ParseStageNoMipmaps( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageNoMipmaps( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t *bundle = stage->bundles[stage->numBundles - 1];
 	bundle->flags |= (STAGEBUNDLE_NOMIPMAPS|STAGEBUNDLE_NOPICMIP);
@@ -622,7 +604,7 @@ static bool R_ParseStageNoMipmaps( ref_shader_t *shader, shaderStage_t *stage, c
 R_ParseStageNoPicmip
 =================
 */
-static bool R_ParseStageNoPicmip( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageNoPicmip( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t *bundle = stage->bundles[stage->numBundles - 1];
 	bundle->flags |= STAGEBUNDLE_NOPICMIP;
@@ -634,7 +616,7 @@ static bool R_ParseStageNoPicmip( ref_shader_t *shader, shaderStage_t *stage, ch
 R_ParseStageNoCompress
 =================
 */
-static bool R_ParseStageNoCompress( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageNoCompress( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t *bundle = stage->bundles[stage->numBundles - 1];
 	bundle->flags |= STAGEBUNDLE_NOCOMPRESS;
@@ -646,7 +628,7 @@ static bool R_ParseStageNoCompress( ref_shader_t *shader, shaderStage_t *stage, 
 R_ParseStageClampTexCoords
 =================
 */
-static bool R_ParseStageClampTexCoords( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageClampTexCoords( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t *bundle = stage->bundles[stage->numBundles - 1];
 	bundle->flags |= STAGEBUNDLE_CLAMPTEXCOORDS;
@@ -658,19 +640,18 @@ static bool R_ParseStageClampTexCoords( ref_shader_t *shader, shaderStage_t *sta
 R_ParseStageAnimFrequency
 =================
 */
-static bool R_ParseStageAnimFrequency( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageAnimFrequency( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t	*bundle = stage->bundles[stage->numBundles - 1];
-	char		*tok;
+	token_t		tok;
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'animFrequency' in shader '%s\n", shader->name );
 		return false;
 	}
 
-	bundle->animFrequency = com.atof( tok );
+	bundle->animFrequency = com.atof( tok.string );
 	bundle->flags |= STAGEBUNDLE_ANIMFREQUENCY;
 
 	return true;
@@ -681,11 +662,11 @@ static bool R_ParseStageAnimFrequency( ref_shader_t *shader, shaderStage_t *stag
 R_ParseStageMap
 =================
 */
-static bool R_ParseStageMap( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageMap( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t	*bundle = stage->bundles[stage->numBundles - 1];
-	unsigned		flags = 0;
-	char		*tok;
+	uint		flags = 0;
+	token_t		tok;
 
 	if( bundle->numTextures )
 	{
@@ -714,14 +695,13 @@ static bool R_ParseStageMap( ref_shader_t *shader, shaderStage_t *stage, char **
 		return false;
 	}
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'map' in shader '%s'\n", shader->name );
 		return false;
 	}
 
-	if(Com_MatchToken( "$lightmap"))
+	if( !com.stricmp( tok.string, "$lightmap"))
 	{
 		if( shader->shaderType != SHADER_TEXTURE )
 		{
@@ -742,9 +722,9 @@ static bool R_ParseStageMap( ref_shader_t *shader, shaderStage_t *stage, char **
 		return true;
 	}
 
-	if( Com_MatchToken( "$whiteImage" )) bundle->textures[bundle->numTextures++] = r_whiteTexture;
-	else if( Com_MatchToken( "$blackImage")) bundle->textures[bundle->numTextures++] = r_blackTexture;
-	else if( Com_MatchToken( "$internal")) bundle->textures[bundle->numTextures++] = r_internalMiptex;
+	if( !com.stricmp( tok.string, "$whiteImage" )) bundle->textures[bundle->numTextures++] = r_whiteTexture;
+	else if( !com.stricmp( tok.string, "$blackImage")) bundle->textures[bundle->numTextures++] = r_blackTexture;
+	else if( !com.stricmp( tok.string, "$internal")) bundle->textures[bundle->numTextures++] = r_internalMiptex;
 	else
 	{
 		if(!(shader->flags & SHADER_NOMIPMAPS) && !(bundle->flags & STAGEBUNDLE_NOMIPMAPS))
@@ -757,10 +737,10 @@ static bool R_ParseStageMap( ref_shader_t *shader, shaderStage_t *stage, char **
 		if( bundle->flags & STAGEBUNDLE_CLAMPTEXCOORDS)
 			flags |= TF_CLAMP;
 
-		bundle->textures[bundle->numTextures] = R_FindTexture( tok, NULL, 0, flags, 0 );
-		if( !bundle->textures[bundle->numTextures])
+		bundle->textures[bundle->numTextures] = R_FindTexture( tok.string, NULL, 0, flags, 0 );
+		if( !bundle->textures[bundle->numTextures] )
 		{
-			MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", tok, shader->name );
+			MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", tok.string, shader->name );
 			return false;
 		}
 		bundle->numTextures++;
@@ -776,13 +756,13 @@ static bool R_ParseStageMap( ref_shader_t *shader, shaderStage_t *stage, char **
 R_ParseStageBumpMap
 =================
 */
-static bool R_ParseStageBumpMap( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageBumpMap( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t	*bundle = stage->bundles[stage->numBundles - 1];
 	uint		flags = TF_NORMALMAP;
 	string		heightMap;
 	float		bumpScale;
-	char		*tok;
+	token_t		tok;
 
 	if( bundle->numTextures )
 	{
@@ -809,8 +789,7 @@ static bool R_ParseStageBumpMap( ref_shader_t *shader, shaderStage_t *stage, cha
 		return false;
 	}
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'bumpMap' in shader '%s'\n", shader->name );
 		return false;
@@ -826,12 +805,12 @@ static bool R_ParseStageBumpMap( ref_shader_t *shader, shaderStage_t *stage, cha
 	if(bundle->flags & STAGEBUNDLE_CLAMPTEXCOORDS)
 		flags |= TF_CLAMP;
 
-	if(Com_MatchToken( "heightToNormal"))
+	if( !com.stricmp( tok.string, "heightToNormal"))
 	{
 		if(!R_ParseHeightToNormal( shader, heightMap, sizeof(heightMap), &bumpScale, script ))
 			return false;
 
-		bundle->textures[bundle->numTextures] = R_FindTexture(heightMap, NULL, 0, flags|TF_HEIGHTMAP, bumpScale );
+		bundle->textures[bundle->numTextures] = R_FindTexture( heightMap, NULL, 0, flags|TF_HEIGHTMAP, bumpScale );
 		if( !bundle->textures[bundle->numTextures] )
 		{
 			MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", heightMap, shader->name );
@@ -841,10 +820,10 @@ static bool R_ParseStageBumpMap( ref_shader_t *shader, shaderStage_t *stage, cha
 	}
 	else
 	{
-		bundle->textures[bundle->numTextures] = R_FindTexture( tok, NULL, 0, flags, 0 );
+		bundle->textures[bundle->numTextures] = R_FindTexture( tok.string, NULL, 0, flags, 0 );
 		if( !bundle->textures[bundle->numTextures] )
 		{
-			MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", tok, shader->name );
+			MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", tok.string, shader->name );
 			return false;
 		}
 		bundle->numTextures++;
@@ -860,11 +839,11 @@ static bool R_ParseStageBumpMap( ref_shader_t *shader, shaderStage_t *stage, cha
 R_ParseStageCubeMap
 =================
 */
-static bool R_ParseStageCubeMap( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageCubeMap( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t	*bundle = stage->bundles[stage->numBundles - 1];
-	unsigned		flags = TF_CLAMP | TF_CUBEMAP;
-	char			*tok;
+	uint		flags = TF_CLAMP | TF_CUBEMAP;
+	token_t		tok;
 
 	if( !GL_Support( R_TEXTURECUBEMAP_EXT ))
 	{
@@ -898,14 +877,13 @@ static bool R_ParseStageCubeMap( ref_shader_t *shader, shaderStage_t *stage, cha
 		return false;
 	}
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'cubeMap' in shader '%s'\n", shader->name );
 		return false;
 	}
 
-	if( Com_MatchToken( "$normalize" ))
+	if( !com.stricmp( tok.string, "$normalize" ))
 	{
 		if( bundle->flags & STAGEBUNDLE_ANIMFREQUENCY )
 		{
@@ -926,10 +904,10 @@ static bool R_ParseStageCubeMap( ref_shader_t *shader, shaderStage_t *stage, cha
 		if(bundle->flags & STAGEBUNDLE_CLAMPTEXCOORDS)
 			flags |= TF_CLAMP;
 
-		bundle->textures[bundle->numTextures] = R_FindCubeMapTexture( tok, flags, 0 );
+		bundle->textures[bundle->numTextures] = R_FindCubeMapTexture( tok.string, flags, 0 );
 		if( !bundle->textures[bundle->numTextures] )
 		{
-			MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", tok, shader->name );
+			MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", tok.string, shader->name );
 			return false;
 		}
 		bundle->numTextures++;
@@ -945,10 +923,10 @@ static bool R_ParseStageCubeMap( ref_shader_t *shader, shaderStage_t *stage, cha
 R_ParseStageVideoMap
 =================
 */
-static bool R_ParseStageVideoMap( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageVideoMap( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t	*bundle = stage->bundles[stage->numBundles - 1];
-	char		*tok;
+	token_t		tok;
 
 	if( bundle->numTextures )
 	{
@@ -962,18 +940,17 @@ static bool R_ParseStageVideoMap( ref_shader_t *shader, shaderStage_t *stage, ch
 		return false;
 	}
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'videoMap' in shader '%s'\n", shader->name );
 		return false;
 	}
 
 	//FIXME: implement
-	//bundle->cinematicHandle = CIN_PlayCinematic(tok, 0, 0, 0, 0, CIN_LOOPED|CIN_SILENT|CIN_SHADER);
+	//bundle->cinematicHandle = CIN_PlayCinematic( tok.string, 0, 0, 0, 0, CIN_LOOPED|CIN_SILENT|CIN_SHADER );
 	if( !bundle->cinematicHandle )
 	{
-		MsgDev( D_WARN, "couldn't find video '%s' in shader '%s'\n", tok, shader->name );
+		MsgDev( D_WARN, "couldn't find video '%s' in shader '%s'\n", tok.string, shader->name );
 		return false;
 	}
 	bundle->texType = TEX_CINEMATIC;
@@ -987,11 +964,11 @@ static bool R_ParseStageVideoMap( ref_shader_t *shader, shaderStage_t *stage, ch
 R_ParseStageTexEnvCombine
 =================
 */
-static bool R_ParseStageTexEnvCombine( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageTexEnvCombine( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t	*bundle = stage->bundles[stage->numBundles - 1];
 	int		numArgs;
-	char		*tok;
+	token_t		tok;
 	int		i;
 
 	if(!GL_Support( R_COMBINE_EXT ))
@@ -1032,73 +1009,70 @@ static bool R_ParseStageTexEnvCombine( ref_shader_t *shader, shaderStage_t *stag
 	bundle->texEnvCombine.constColor[2] = 1.0;
 	bundle->texEnvCombine.constColor[3] = 1.0;
 
-	tok = Com_ParseToken( script, true );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, true, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'texEnvCombine' in shader '%s'\n", shader->name );
 		return false;
 	}
 
-	if( Com_MatchToken( "{"))
+	if( !com.stricmp( tok.string, "{"))
 	{
 		while( 1 )
 		{
-			tok = Com_ParseToken( script, true );
-			if( !tok[0] )
+			if( !Com_ReadToken( script, SC_ALLOW_NEWLINES, &tok ))
 			{
 				MsgDev( D_WARN, "no concluding '}' in 'texEnvCombine' in shader '%s'\n", shader->name );
 				return false;
 			}
 
-			if(Com_MatchToken( "}")) break;
+			if( !com.stricmp( tok.string, "}")) break;
 
-			if(Com_MatchToken( "rgb"))
+			if( !com.stricmp( tok.string, "rgb"))
 			{
-				tok = Com_ParseToken( script, false );
-				if(!Com_MatchToken( "="))
+				Com_ReadToken( script, false, &tok );
+				if( com.stricmp( tok.string, "="))
 				{
-					MsgDev( D_WARN, "expected '=', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok, shader->name );
+					MsgDev( D_WARN, "expected '=', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok.string, shader->name );
 					return false;
 				}
 
-				tok = Com_ParseToken( script, false );
-				if( !tok[0] )
+				if( !Com_ReadToken( script, false, &tok ))
 				{
 					MsgDev( D_WARN, "missing 'rgb' equation name for 'texEnvCombine' in shader '%s'\n", shader->name );
 					return false;
 				}
 
-				if(Com_MatchToken( "REPLACE"))
+				if( !com.stricmp( tok.string, "REPLACE"))
 				{
 					bundle->texEnvCombine.rgbCombine = GL_REPLACE;
 					numArgs = 1;
 				}
-				else if (Com_MatchToken( "MODULATE"))
+				else if( !com.stricmp( tok.string, "MODULATE"))
 				{
 					bundle->texEnvCombine.rgbCombine = GL_MODULATE;
 					numArgs = 2;
 				}
-				else if (Com_MatchToken( "ADD"))
+				else if( !com.stricmp( tok.string, "ADD"))
 				{
 					bundle->texEnvCombine.rgbCombine = GL_ADD;
 					numArgs = 2;
 				}
-				else if (Com_MatchToken( "ADD_SIGNED"))
+				else if( !com.stricmp( tok.string, "ADD_SIGNED"))
 				{
 					bundle->texEnvCombine.rgbCombine = GL_ADD_SIGNED_ARB;
 					numArgs = 2;
 				}
-				else if (Com_MatchToken( "INTERPOLATE"))
+				else if( !com.stricmp( tok.string, "INTERPOLATE"))
 				{
 					bundle->texEnvCombine.rgbCombine = GL_INTERPOLATE_ARB;
 					numArgs = 3;
 				}
-				else if (Com_MatchToken( "SUBTRACT"))
+				else if( !com.stricmp( tok.string, "SUBTRACT"))
 				{
 					bundle->texEnvCombine.rgbCombine = GL_SUBTRACT_ARB;
 					numArgs = 2;
 				}
-				else if (Com_MatchToken( "DOT3_RGB"))
+				else if( !com.stricmp( tok.string, "DOT3_RGB"))
 				{
 					if(!GL_Support( R_DOT3_ARB_EXT ))
 					{
@@ -1108,7 +1082,7 @@ static bool R_ParseStageTexEnvCombine( ref_shader_t *shader, shaderStage_t *stag
 					bundle->texEnvCombine.rgbCombine = GL_DOT3_RGB_ARB;
 					numArgs = 2;
 				}
-				else if (Com_MatchToken( "DOT3_RGBA"))
+				else if( !com.stricmp( tok.string, "DOT3_RGBA"))
 				{
 					if(!GL_Support( R_DOT3_ARB_EXT ))
 					{
@@ -1120,146 +1094,143 @@ static bool R_ParseStageTexEnvCombine( ref_shader_t *shader, shaderStage_t *stag
 				}
 				else
 				{
-					MsgDev( D_WARN, "unknown 'rgb' equation name '%s' for 'texEnvCombine' in shader '%s'\n", tok, shader->name );
+					MsgDev( D_WARN, "unknown 'rgb' equation name '%s' for 'texEnvCombine' in shader '%s'\n", tok.string, shader->name );
 					return false;
 				}
 
-				tok = Com_ParseToken( script, false );
-				if(!Com_MatchToken( "("))
+				Com_ReadToken( script, false, &tok );
+				if( com.stricmp( tok.string, "(" ))
 				{
-					MsgDev( D_WARN, "expected '(', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok, shader->name );
+					MsgDev( D_WARN, "expected '(', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok.string, shader->name );
 					return false;
 				}
 
 				for( i = 0; i < numArgs; i++ )
 				{
-					tok = Com_ParseToken( script, false );
-					if( !tok[0] )
+					if( !Com_ReadToken( script, false, &tok ))
 					{
 						MsgDev( D_WARN, "missing 'rgb' equation arguments for 'texEnvCombine' in shader '%s'\n", shader->name );
 						return false;
 					}
 
-					if (Com_MatchToken( "Ct"))
+					if( !com.stricmp( tok.string, "Ct"))
 					{
 						bundle->texEnvCombine.rgbSource[i] = GL_TEXTURE;
 						bundle->texEnvCombine.rgbOperand[i] = GL_SRC_COLOR;
 					}
-					else if (Com_MatchToken( "1-Ct"))
+					else if( !com.stricmp( tok.string, "1-Ct"))
 					{
 						bundle->texEnvCombine.rgbSource[i] = GL_TEXTURE;
 						bundle->texEnvCombine.rgbOperand[i] = GL_ONE_MINUS_SRC_COLOR;
 					}
-					else if (Com_MatchToken( "At"))
+					else if( !com.stricmp( tok.string, "At"))
 					{
 						bundle->texEnvCombine.rgbSource[i] = GL_TEXTURE;
 						bundle->texEnvCombine.rgbOperand[i] = GL_SRC_ALPHA;
 					}
-					else if (Com_MatchToken( "1-At"))
+					else if( !com.stricmp( tok.string, "1-At"))
 					{
 						bundle->texEnvCombine.rgbSource[i] = GL_TEXTURE;
 						bundle->texEnvCombine.rgbOperand[i] = GL_ONE_MINUS_SRC_ALPHA;
 					}
-					else if (Com_MatchToken( "Cc"))
+					else if( !com.stricmp( tok.string, "Cc"))
 					{
 						bundle->texEnvCombine.rgbSource[i] = GL_CONSTANT_ARB;
 						bundle->texEnvCombine.rgbOperand[i] = GL_SRC_COLOR;
 					}
-					else if (Com_MatchToken( "1-Cc"))
+					else if( !com.stricmp( tok.string, "1-Cc"))
 					{
 						bundle->texEnvCombine.rgbSource[i] = GL_CONSTANT_ARB;
 						bundle->texEnvCombine.rgbOperand[i] = GL_ONE_MINUS_SRC_COLOR;
 					}
-					else if (Com_MatchToken( "Ac"))
+					else if( !com.stricmp( tok.string, "Ac"))
 					{
 						bundle->texEnvCombine.rgbSource[i] = GL_CONSTANT_ARB;
 						bundle->texEnvCombine.rgbOperand[i] = GL_SRC_ALPHA;
 					}
-					else if (Com_MatchToken( "1-Ac"))
+					else if( !com.stricmp( tok.string, "1-Ac"))
 					{
 						bundle->texEnvCombine.rgbSource[i] = GL_CONSTANT_ARB;
 						bundle->texEnvCombine.rgbOperand[i] = GL_ONE_MINUS_SRC_ALPHA;
 					}
-					else if (Com_MatchToken( "Cf"))
+					else if( !com.stricmp( tok.string, "Cf"))
 					{
 						bundle->texEnvCombine.rgbSource[i] = GL_PRIMARY_COLOR_ARB;
 						bundle->texEnvCombine.rgbOperand[i] = GL_SRC_COLOR;
 					}
-					else if (Com_MatchToken( "1-Cf"))
+					else if( !com.stricmp( tok.string, "1-Cf"))
 					{
 						bundle->texEnvCombine.rgbSource[i] = GL_PRIMARY_COLOR_ARB;
 						bundle->texEnvCombine.rgbOperand[i] = GL_ONE_MINUS_SRC_COLOR;
 					}
-					else if (Com_MatchToken( "Af"))
+					else if( !com.stricmp( tok.string, "Af"))
 					{
 						bundle->texEnvCombine.rgbSource[i] = GL_PRIMARY_COLOR_ARB;
 						bundle->texEnvCombine.rgbOperand[i] = GL_SRC_ALPHA;
 					}
-					else if (Com_MatchToken( "1-Af"))
+					else if( !com.stricmp( tok.string, "1-Af"))
 					{
 						bundle->texEnvCombine.rgbSource[i] = GL_PRIMARY_COLOR_ARB;
 						bundle->texEnvCombine.rgbOperand[i] = GL_ONE_MINUS_SRC_ALPHA;
 					}
-					else if (Com_MatchToken( "Cp"))
+					else if( !com.stricmp( tok.string, "Cp"))
 					{
 						bundle->texEnvCombine.rgbSource[i] = GL_PREVIOUS_ARB;
 						bundle->texEnvCombine.rgbOperand[i] = GL_SRC_COLOR;
 					}
-					else if (Com_MatchToken( "1-Cp"))
+					else if( !com.stricmp( tok.string, "1-Cp"))
 					{
 						bundle->texEnvCombine.rgbSource[i] = GL_PREVIOUS_ARB;
 						bundle->texEnvCombine.rgbOperand[i] = GL_ONE_MINUS_SRC_COLOR;
 					}
-					else if (Com_MatchToken( "Ap"))
+					else if( !com.stricmp( tok.string, "Ap"))
 					{
 						bundle->texEnvCombine.rgbSource[i] = GL_PREVIOUS_ARB;
 						bundle->texEnvCombine.rgbOperand[i] = GL_SRC_ALPHA;
 					}
-					else if (Com_MatchToken( "1-Ap"))
+					else if( !com.stricmp( tok.string, "1-Ap"))
 					{
 						bundle->texEnvCombine.rgbSource[i] = GL_PREVIOUS_ARB;
 						bundle->texEnvCombine.rgbOperand[i] = GL_ONE_MINUS_SRC_ALPHA;
 					}
 					else
 					{
-						MsgDev( D_WARN, "unknown 'rgb' equation argument '%s' for 'texEnvCombine' in shader '%s'\n", tok, shader->name );
+						MsgDev( D_WARN, "unknown 'rgb' equation argument '%s' for 'texEnvCombine' in shader '%s'\n", tok.string, shader->name );
 						return false;
 					}
 
 					if( i < numArgs - 1 )
 					{
-						tok = Com_ParseToken(script, false);
-						if(!Com_MatchToken( ","))
+						Com_ReadToken( script, false, &tok );
+						if( com.stricmp( tok.string, "," ))
 						{
-							MsgDev( D_WARN, "expected ',', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok, shader->name );
+							MsgDev( D_WARN, "expected ',', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok.string, shader->name );
 							return false;
 						}
 					}
 				}
 
-				tok = Com_ParseToken( script, false );
-				if(Com_MatchToken( ")"))
+				Com_ReadToken( script, false, &tok );
+				if( com.stricmp( tok.string, ")" ))
 				{
-					MsgDev( D_WARN, "expected ')', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok, shader->name );
+					MsgDev( D_WARN, "expected ')', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok.string, shader->name );
 					return false;
 				}
 
-				tok = Com_ParseToken( script, false );
-				if( tok[0] )
+				if( Com_ReadToken( script, false, &tok ))
 				{
-					if(!Com_MatchToken( "*"))
+					if( com.stricmp( tok.string, "*"))
 					{
-						MsgDev( D_WARN, "expected '*', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok, shader->name );
+						MsgDev( D_WARN, "expected '*', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok.string, shader->name );
 						return false;
 					}
 
-					tok = Com_ParseToken( script, false );
-					if( !tok[0] )
+					if( !Com_ReadToken( script, false, &tok ))
 					{
 						MsgDev( D_WARN, "missing scale value for 'texEnvCombine' equation in shader '%s'\n", shader->name );
 						return false;
 					}
-					bundle->texEnvCombine.rgbScale = com.atoi( tok );
+					bundle->texEnvCombine.rgbScale = com.atoi( tok.string );
 
 					if( bundle->texEnvCombine.rgbScale != 1 && bundle->texEnvCombine.rgbScale != 2 && bundle->texEnvCombine.rgbScale != 4 )
 					{
@@ -1268,55 +1239,54 @@ static bool R_ParseStageTexEnvCombine( ref_shader_t *shader, shaderStage_t *stag
 					}
 				}
 			}
-			else if (Com_MatchToken( "alpha"))
+			else if( !com.stricmp( tok.string, "alpha"))
 			{
-				tok = Com_ParseToken( script, false );
-				if (!Com_MatchToken( "="))
+				Com_ReadToken( script, false, &tok );
+				if( com.stricmp( tok.string, "=" ))
 				{
-					MsgDev( D_WARN, "expected '=', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok, shader->name );
+					MsgDev( D_WARN, "expected '=', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok.string, shader->name );
 					return false;
 				}
 
-				tok = Com_ParseToken( script, false );
-				if( !tok[0] )
+				if( !Com_ReadToken( script, false, &tok ))
 				{
 					MsgDev( D_WARN, "missing 'alpha' equation name for 'texEnvCombine' in shader '%s'\n", shader->name );
 					return false;
 				}
 
-				if (Com_MatchToken( "REPLACE"))
+				if( !com.stricmp( tok.string, "REPLACE"))
 				{
 					bundle->texEnvCombine.alphaCombine = GL_REPLACE;
 					numArgs = 1;
 				}
-				else if (Com_MatchToken( "MODULATE"))
+				else if( !com.stricmp( tok.string, "MODULATE"))
 				{
 					bundle->texEnvCombine.alphaCombine = GL_MODULATE;
 					numArgs = 2;
 				}
-				else if (Com_MatchToken( "ADD"))
+				else if( !com.stricmp( tok.string, "ADD"))
 				{
 					bundle->texEnvCombine.alphaCombine = GL_ADD;
 					numArgs = 2;
 				}
-				else if (Com_MatchToken( "ADD_SIGNED"))
+				else if( !com.stricmp( tok.string, "ADD_SIGNED"))
 				{
 					bundle->texEnvCombine.alphaCombine = GL_ADD_SIGNED_ARB;
 					numArgs = 2;
 				}
-				else if (Com_MatchToken( "INTERPOLATE"))
+				else if( !com.stricmp( tok.string, "INTERPOLATE"))
 				{
 					bundle->texEnvCombine.alphaCombine = GL_INTERPOLATE_ARB;
 					numArgs = 3;
 				}
-				else if (Com_MatchToken( "SUBTRACT"))
+				else if( !com.stricmp( tok.string, "SUBTRACT"))
 				{
 					bundle->texEnvCombine.alphaCombine = GL_SUBTRACT_ARB;
 					numArgs = 2;
 				}
-				else if (Com_MatchToken( "DOT3_RGB"))
+				else if( !com.stricmp( tok.string, "DOT3_RGB"))
 				{
-					if (!GL_Support( R_DOT3_ARB_EXT ))
+					if( !GL_Support( R_DOT3_ARB_EXT ))
 					{
 						MsgDev( D_WARN, "shader '%s' uses 'DOT3_RGB' in 'texEnvCombine' without 'requires GL_ARB_texture_env_dot3'\n", shader->name );
 						return false;
@@ -1324,9 +1294,9 @@ static bool R_ParseStageTexEnvCombine( ref_shader_t *shader, shaderStage_t *stag
 					MsgDev( D_WARN, "'DOT3_RGB' is not a valid 'alpha' equation for 'texEnvCombine' in shader '%s'\n", shader->name );
 					return false;
 				}
-				else if (Com_MatchToken( "DOT3_RGBA"))
+				else if( !com.stricmp( tok.string, "DOT3_RGBA"))
 				{
-					if (!GL_Support( R_DOT3_ARB_EXT ))
+					if( !GL_Support( R_DOT3_ARB_EXT ))
 					{
 						MsgDev( D_WARN, "shader '%s' uses 'DOT3_RGBA' in 'texEnvCombine' without 'requires GL_ARB_texture_env_dot3'\n", shader->name );
 						return false;
@@ -1336,106 +1306,103 @@ static bool R_ParseStageTexEnvCombine( ref_shader_t *shader, shaderStage_t *stag
 				}
 				else
 				{
-					MsgDev( D_WARN, "unknown 'alpha' equation name '%s' for 'texEnvCombine' in shader '%s'\n", tok, shader->name );
+					MsgDev( D_WARN, "unknown 'alpha' equation name '%s' for 'texEnvCombine' in shader '%s'\n", tok.string, shader->name );
 					return false;
 				}
 
-				tok = Com_ParseToken( script, false );
-				if (!Com_MatchToken( "("))
+				Com_ReadToken( script, false, &tok );
+				if( com.stricmp( tok.string, "(" ))
 				{
-					MsgDev( D_WARN, "expected '(', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok, shader->name );
+					MsgDev( D_WARN, "expected '(', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok.string, shader->name );
 					return false;
 				}
 
 				for( i = 0; i < numArgs; i++ )
 				{
-					tok = Com_ParseToken( script, false );
-					if (!tok[0])
+					if( !Com_ReadToken( script, false, &tok ))
 					{
 						MsgDev( D_WARN, "missing 'alpha' equation arguments for 'texEnvCombine' in shader '%s'\n", shader->name );
 						return false;
 					}
 
-					if (Com_MatchToken( "At"))
+					if( !com.stricmp( tok.string, "At"))
 					{
 						bundle->texEnvCombine.alphaSource[i] = GL_TEXTURE;
 						bundle->texEnvCombine.alphaOperand[i] = GL_SRC_ALPHA;
 					}
-					else if (Com_MatchToken( "1-At"))
+					else if( !com.stricmp( tok.string, "1-At"))
 					{
 						bundle->texEnvCombine.alphaSource[i] = GL_TEXTURE;
 						bundle->texEnvCombine.alphaOperand[i] = GL_ONE_MINUS_SRC_ALPHA;
 					}
-					else if (Com_MatchToken( "Ac"))
+					else if( !com.stricmp( tok.string, "Ac"))
 					{
 						bundle->texEnvCombine.alphaSource[i] = GL_CONSTANT_ARB;
 						bundle->texEnvCombine.alphaOperand[i] = GL_SRC_ALPHA;
 					}
-					else if (Com_MatchToken( "1-Ac"))
+					else if( !com.stricmp( tok.string, "1-Ac"))
 					{
 						bundle->texEnvCombine.alphaSource[i] = GL_CONSTANT_ARB;
 						bundle->texEnvCombine.alphaOperand[i] = GL_ONE_MINUS_SRC_ALPHA;
 					}
-					else if (Com_MatchToken( "Af"))
+					else if( !com.stricmp( tok.string, "Af"))
 					{
 						bundle->texEnvCombine.alphaSource[i] = GL_PRIMARY_COLOR_ARB;
 						bundle->texEnvCombine.alphaOperand[i] = GL_SRC_ALPHA;
 					}
-					else if (Com_MatchToken( "1-Af"))
+					else if( !com.stricmp( tok.string, "1-Af"))
 					{
 						bundle->texEnvCombine.alphaSource[i] = GL_PRIMARY_COLOR_ARB;
 						bundle->texEnvCombine.alphaOperand[i] = GL_ONE_MINUS_SRC_ALPHA;
 					}
-					else if (Com_MatchToken( "Ap"))
+					else if( !com.stricmp( tok.string, "Ap"))
 					{
 						bundle->texEnvCombine.alphaSource[i] = GL_PREVIOUS_ARB;
 						bundle->texEnvCombine.alphaOperand[i] = GL_SRC_ALPHA;
 					}
-					else if (Com_MatchToken( "1-Ap"))
+					else if( !com.stricmp( tok.string, "1-Ap"))
 					{
 						bundle->texEnvCombine.alphaSource[i] = GL_PREVIOUS_ARB;
 						bundle->texEnvCombine.alphaOperand[i] = GL_ONE_MINUS_SRC_ALPHA;
 					}
 					else
 					{
-						MsgDev( D_WARN, "unknown 'alpha' equation argument '%s' for 'texEnvCombine' in shader '%s'\n", tok, shader->name );
+						MsgDev( D_WARN, "unknown 'alpha' equation argument '%s' for 'texEnvCombine' in shader '%s'\n", tok.string, shader->name );
 						return false;
 					}
 
 					if( i < numArgs - 1 )
 					{
-						tok = Com_ParseToken( script, false );
-						if (!Com_MatchToken( ","))
+						Com_ReadToken( script, false, &tok );
+						if( com.stricmp( tok.string, "," ))
 						{
-							MsgDev( D_WARN, "expected ',', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok, shader->name );
+							MsgDev( D_WARN, "expected ',', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok.string, shader->name );
 							return false;
 						}
 					}
 				}
 
-				tok = Com_ParseToken( script, false );
-				if (!Com_MatchToken( ")"))
+				Com_ReadToken( script, false, &tok );
+				if( com.stricmp( tok.string, ")" ))
 				{
-					MsgDev( D_WARN, "expected ')', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok, shader->name );
+					MsgDev( D_WARN, "expected ')', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok.string, shader->name );
 					return false;
 				}
 
-				tok = Com_ParseToken( script, false );
-				if( tok[0] )
+				if( Com_ReadToken( script, false, &tok ))
 				{
-					if (!Com_MatchToken( "*"))
+					if( com.stricmp( tok.string, "*" ))
 					{
-						MsgDev( D_WARN, "expected '*', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok, shader->name );
+						MsgDev( D_WARN, "expected '*', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok.string, shader->name );
 						return false;
 					}
 
-					tok = Com_ParseToken( script, false );
-					if( !tok[0] )
+					if( !Com_ReadToken( script, false, &tok ))
 					{
 						MsgDev( D_WARN, "missing scale value for 'texEnvCombine' equation in shader '%s'\n", shader->name );
 						return false;
 					}
-					bundle->texEnvCombine.alphaScale = com.atoi( tok );
+					bundle->texEnvCombine.alphaScale = com.atoi( tok.string );
 
 					if( bundle->texEnvCombine.alphaScale != 1 && bundle->texEnvCombine.alphaScale != 2 && bundle->texEnvCombine.alphaScale != 4 )
 					{
@@ -1444,51 +1411,49 @@ static bool R_ParseStageTexEnvCombine( ref_shader_t *shader, shaderStage_t *stag
 					}
 				}
 			}
-			else if (Com_MatchToken( "const"))
+			else if( !com.stricmp( tok.string, "const"))
 			{
-				tok = Com_ParseToken( script, false );
-				if(!Com_MatchToken( "="))
+				Com_ReadToken( script, false, &tok );
+				if( com.stricmp( tok.string, "=" ))
 				{
-					MsgDev( D_WARN, "expected '=', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok, shader->name );
+					MsgDev( D_WARN, "expected '=', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok.string, shader->name );
 					return false;
 				}
 
-				tok = Com_ParseToken( script, false );
-				if (!Com_MatchToken( "("))
+				Com_ReadToken( script, false, &tok );
+				if( com.stricmp( tok.string, "(" ))
 				{
-					MsgDev( D_WARN, "expected '(', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok, shader->name );
+					MsgDev( D_WARN, "expected '(', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok.string, shader->name );
 					return false;
 				}
 
 				for( i = 0; i < 4; i++ )
 				{
-					tok = Com_ParseToken( script, false );
-					if( !tok[0] )
+					if( !Com_ReadToken( script, false, &tok ))
 					{
 						MsgDev( D_WARN, "missing 'const' color value for 'texEnvCombine' in shader '%s'\n", shader->name );
 						return false;
 					}
-					bundle->texEnvCombine.constColor[i] = bound( 0.0, com.atof( tok ), 1.0 );
+					bundle->texEnvCombine.constColor[i] = bound( 0.0, com.atof( tok.string ), 1.0 );
 				}
 
-				tok = Com_ParseToken( script, false );
-				if (!Com_MatchToken( ")"))
+				Com_ReadToken( script, false, &tok );
+				if( com.stricmp( tok.string, ")" ))
 				{
-					MsgDev( D_WARN, "expected ')', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok, shader->name );
+					MsgDev( D_WARN, "expected ')', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok.string, shader->name );
 					return false;
 				}
 
-				tok = Com_ParseToken( script, false );
-				if( tok[0] )
+				if( Com_ReadToken( script, false, &tok ))
 				{
-					if (!Com_MatchToken( "*"))
+					if( com.stricmp( tok.string, "*" ))
 					{
-						MsgDev( D_WARN, "expected '*', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok, shader->name );
+						MsgDev( D_WARN, "expected '*', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok.string, shader->name );
 						return false;
 					}
 
-					tok = Com_ParseToken( script, false );
-					if (!Com_MatchToken( "identityLighting"))
+					Com_ReadToken( script, false, &tok );
+					if( com.stricmp( tok.string, "identityLighting" ))
 					{
 						MsgDev( D_WARN, "'const' color for 'texEnvCombine' can only be scaled by 'identityLighting' in shader '%s'\n", shader->name );
 						return false;
@@ -1503,14 +1468,14 @@ static bool R_ParseStageTexEnvCombine( ref_shader_t *shader, shaderStage_t *stag
 			}
 			else
 			{
-				MsgDev( D_WARN, "unknown 'texEnvCombine' parameter '%s' in shader '%s'\n", tok, shader->name );
+				MsgDev( D_WARN, "unknown 'texEnvCombine' parameter '%s' in shader '%s'\n", tok.string, shader->name );
 				return false;
 			}
 		}
 	}
 	else
 	{
-		MsgDev( D_WARN, "expected '{', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok, shader->name );
+		MsgDev( D_WARN, "expected '{', found '%s' instead in 'texEnvCombine' in shader '%s'\n", tok.string, shader->name );
 		return false;
 	}
 	bundle->flags |= STAGEBUNDLE_TEXENVCOMBINE;
@@ -1523,31 +1488,30 @@ static bool R_ParseStageTexEnvCombine( ref_shader_t *shader, shaderStage_t *stag
 R_ParseStageTcGen
 =================
 */
-static bool R_ParseStageTcGen( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageTcGen( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t	*bundle = stage->bundles[stage->numBundles - 1];
-	char		*tok;
+	token_t		tok;
 	int		i, j;
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'tcGen' in shader '%s'\n", shader->name );
 		return false;
 	}
 
-	if( Com_MatchToken( "base" ) || Com_MatchToken( "texture" ))
+	if( !com.stricmp( tok.string, "base" ) || !com.stricmp( tok.string, "texture" ))
 		bundle->tcGen.type = TCGEN_BASE;
-	else if( Com_MatchToken( "lightmap"))
+	else if( !com.stricmp( tok.string, "lightmap" ))
 		bundle->tcGen.type = TCGEN_LIGHTMAP;
-	else if( Com_MatchToken( "environment"))
+	else if( !com.stricmp( tok.string, "environment" ))
 		bundle->tcGen.type = TCGEN_ENVIRONMENT;
-	else if( Com_MatchToken( "vector"))
+	else if( !com.stricmp( tok.string, "vector" ))
 	{
 		for( i = 0; i < 2; i++ )
 		{
-			tok = Com_ParseToken( script, false );
-			if(!Com_MatchToken( "("))
+			Com_ReadToken( script, false, &tok );
+			if( com.stricmp( tok.string, "(" ))
 			{
 				MsgDev( D_WARN, "missing '(' for 'tcGen vector' in shader '%s'\n", shader->name );
 				return false;
@@ -1555,17 +1519,16 @@ static bool R_ParseStageTcGen( ref_shader_t *shader, shaderStage_t *stage, char 
 
 			for( j = 0; j < 3; j++ )
 			{
-				tok = Com_ParseToken( script, false );
-				if( !tok[0] )
+				if( !Com_ReadToken( script, false, &tok ))
 				{
 					MsgDev( D_WARN, "missing parameters for 'tcGen vector' in shader '%s'\n", shader->name );
 					return false;
 				}
-				bundle->tcGen.params[i*3+j] = com.atof( tok );
+				bundle->tcGen.params[i*3+j] = com.atof( tok.string );
 			}
 
-			tok = Com_ParseToken( script, false );
-			if (!Com_MatchToken( ")"))
+			Com_ReadToken( script, false, &tok );
+			if( com.stricmp( tok.string, ")" ))
 			{
 				MsgDev( D_WARN, "missing ')' for 'tcGen vector' in shader '%s'\n", shader->name );
 				return false;
@@ -1573,10 +1536,10 @@ static bool R_ParseStageTcGen( ref_shader_t *shader, shaderStage_t *stage, char 
 		}
 		bundle->tcGen.type = TCGEN_VECTOR;
 	}
-	else if (Com_MatchToken( "warp")) bundle->tcGen.type = TCGEN_WARP;
-	else if (Com_MatchToken( "lightVector")) bundle->tcGen.type = TCGEN_LIGHTVECTOR;
-	else if (Com_MatchToken( "halfAngle")) bundle->tcGen.type = TCGEN_HALFANGLE;
-	else if (Com_MatchToken( "reflection"))
+	else if( !com.stricmp( tok.string, "warp" )) bundle->tcGen.type = TCGEN_WARP;
+	else if( !com.stricmp( tok.string, "lightVector" )) bundle->tcGen.type = TCGEN_LIGHTVECTOR;
+	else if( !com.stricmp( tok.string, "halfAngle" )) bundle->tcGen.type = TCGEN_HALFANGLE;
+	else if( !com.stricmp( tok.string, "reflection" ))
 	{
 		if( !GL_Support( R_TEXTURECUBEMAP_EXT ))
 		{
@@ -1585,7 +1548,7 @@ static bool R_ParseStageTcGen( ref_shader_t *shader, shaderStage_t *stage, char 
 		}
 		bundle->tcGen.type = TCGEN_REFLECTION;
 	}
-	else if (Com_MatchToken( "normal"))
+	else if( !com.stricmp( tok.string, "normal"))
 	{
 		if( !GL_Support( R_TEXTURECUBEMAP_EXT ))
 		{
@@ -1596,7 +1559,7 @@ static bool R_ParseStageTcGen( ref_shader_t *shader, shaderStage_t *stage, char 
 	}
 	else
 	{
-		MsgDev( D_WARN, "unknown 'tcGen' parameter '%s' in shader '%s'\n", tok, shader->name );
+		MsgDev( D_WARN, "unknown 'tcGen' parameter '%s' in shader '%s'\n", tok.string, shader->name );
 		return false;
 	}
 	bundle->flags |= STAGEBUNDLE_TCGEN;
@@ -1608,11 +1571,11 @@ static bool R_ParseStageTcGen( ref_shader_t *shader, shaderStage_t *stage, char 
 R_ParseStageTcMod
 =================
 */
-static bool R_ParseStageTcMod( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageTcMod( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t	*bundle = stage->bundles[stage->numBundles - 1];
 	tcMod_t		*tcMod;
-	char		*tok;
+	token_t		tok;
 	int		i;
 
 	if( bundle->tcModNum == SHADER_MAX_TCMOD )
@@ -1622,67 +1585,62 @@ static bool R_ParseStageTcMod( ref_shader_t *shader, shaderStage_t *stage, char 
 	}
 	tcMod = &bundle->tcMod[bundle->tcModNum++];
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'tcMod' in shader '%s'\n", shader->name );
 		return false;
 	}
 
-	if( Com_MatchToken( "translate" ))
+	if( !com.stricmp( tok.string, "translate" ))
 	{
 		for( i = 0; i < 2; i++ )
 		{
-			tok = Com_ParseToken( script, false );
-			if( !tok[0] )
+			if( !Com_ReadToken( script, false, &tok ))
 			{
 				MsgDev( D_WARN, "missing parameters for 'tcMod translate' in shader '%s'\n", shader->name );
 				return false;
 			}
-			tcMod->params[i] = com.atof( tok );
+			tcMod->params[i] = com.atof( tok.string );
 		}
 		tcMod->type = TCMOD_TRANSLATE;
 	}
-	else if (Com_MatchToken( "scale" ))
+	else if( !com.stricmp( tok.string, "scale" ))
 	{
 		for( i = 0; i < 2; i++ )
 		{
-			tok = Com_ParseToken( script, false );
-			if( !tok[0] )
+			if( !Com_ReadToken( script, false, &tok ))
 			{
 				MsgDev( D_WARN, "missing parameters for 'tcMod scale' in shader '%s'\n", shader->name );
 				return false;
 			}
-			tcMod->params[i] = com.atof( tok );
+			tcMod->params[i] = com.atof( tok.string );
 		}
 		tcMod->type = TCMOD_SCALE;
 	}
-	else if (Com_MatchToken( "scroll"))
+	else if( !com.stricmp( tok.string, "scroll" ))
 	{
 		for( i = 0; i < 2; i++ )
 		{
-			tok = Com_ParseToken( script, false );
-			if( !tok[0] )
+			if( !Com_ReadToken( script, false, &tok ))
 			{
 				MsgDev( D_WARN, "missing parameters for 'tcMod scroll' in shader '%s'\n", shader->name );
 				return false;
 			}
-			tcMod->params[i] = com.atof( tok );
+			tcMod->params[i] = com.atof( tok.string );
 		}
 		tcMod->type = TCMOD_SCROLL;
 	}
-	else if (Com_MatchToken( "rotate" ))
+	else if( !com.stricmp( tok.string, "rotate" ))
 	{
-		tok = Com_ParseToken( script, false );
-		if( !tok[0] )
+		if( !Com_ReadToken( script, false, &tok ))
 		{
 			MsgDev( D_WARN, "missing parameters for 'tcMod rotate' in shader '%s'\n", shader->name );
 			return false;
 		}
-		tcMod->params[0] = com.atof( tok );
+		tcMod->params[0] = com.atof( tok.string );
 		tcMod->type = TCMOD_ROTATE;
 	}
-	else if (Com_MatchToken( "stretch" ))
+	else if( !com.stricmp( tok.string, "stretch" ))
 	{
 		if(!R_ParseWaveFunc( shader, &tcMod->func, script ))
 		{
@@ -1691,39 +1649,37 @@ static bool R_ParseStageTcMod( ref_shader_t *shader, shaderStage_t *stage, char 
 		}
 		tcMod->type = TCMOD_STRETCH;
 	}
-	else if (Com_MatchToken( "turb" ))
+	else if( !com.stricmp( tok.string, "turb" ))
 	{
 		tcMod->func.type = WAVEFORM_SIN;
 
 		for( i = 0; i < 4; i++ )
 		{
-			tok = Com_ParseToken( script, false );
-			if( !tok[0] )
+			if( !Com_ReadToken( script, false, &tok ))
 			{
 				MsgDev( D_WARN, "missing parameters for 'tcMod turb' in shader '%s'\n", shader->name );
 				return false;
 			}
-			tcMod->func.params[i] = com.atof( tok );
+			tcMod->func.params[i] = com.atof( tok.string );
 		}
 		tcMod->type = TCMOD_TURB;
 	}
-	else if (Com_MatchToken( "transform" ))
+	else if( !com.stricmp( tok.string, "transform" ))
 	{
 		for( i = 0; i < 6; i++ )
 		{
-			tok = Com_ParseToken( script, false );
-			if( !tok[0] )
+			if( !Com_ReadToken( script, false, &tok ))
 			{
 				MsgDev( D_WARN, "missing parameters for 'tcMod transform' in shader '%s'\n", shader->name );
 				return false;
 			}
-			tcMod->params[i] = com.atof( tok );
+			tcMod->params[i] = com.atof( tok.string );
 		}
 		tcMod->type = TCMOD_TRANSFORM;
 	}
 	else
 	{	
-		MsgDev( D_WARN, "unknown 'tcMod' parameter '%s' in shader '%s'\n", tok, shader->name );
+		MsgDev( D_WARN, "unknown 'tcMod' parameter '%s' in shader '%s'\n", tok.string, shader->name );
 		return false;
 	}
 	bundle->flags |= STAGEBUNDLE_TCMOD;
@@ -1736,10 +1692,10 @@ static bool R_ParseStageTcMod( ref_shader_t *shader, shaderStage_t *stage, char 
 R_ParseStageNextBundle
 =================
 */
-static bool R_ParseStageNextBundle( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageNextBundle( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t	*bundle;
-	char		*tok;
+	token_t		tok;
 
 	if( !GL_Support( R_ARB_MULTITEXTURE ))
 	{
@@ -1777,8 +1733,7 @@ static bool R_ParseStageNextBundle( ref_shader_t *shader, shaderStage_t *stage, 
 	}
 	bundle = stage->bundles[stage->numBundles++];
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		if(!(stage->bundles[0]->flags & STAGEBUNDLE_TEXENVCOMBINE))
 		{
@@ -1842,8 +1797,8 @@ static bool R_ParseStageNextBundle( ref_shader_t *shader, shaderStage_t *stage, 
 	}
 	else
 	{
-		if (Com_MatchToken( "modulate" )) bundle->texEnv = GL_MODULATE;
-		else if (Com_MatchToken( "add" ))
+		if( !com.stricmp( tok.string, "modulate" )) bundle->texEnv = GL_MODULATE;
+		else if( !com.stricmp( tok.string, "add" ))
 		{
 			if( !GL_Support( R_TEXTURE_ENV_ADD_EXT ))
 			{
@@ -1852,7 +1807,7 @@ static bool R_ParseStageNextBundle( ref_shader_t *shader, shaderStage_t *stage, 
 			}
 			bundle->texEnv = GL_ADD;
 		}
-		else if (Com_MatchToken( "combine"))
+		else if( !com.stricmp( tok.string, "combine" ))
 		{
 			if (!GL_Support( R_COMBINE_EXT ))
 			{
@@ -1885,7 +1840,7 @@ static bool R_ParseStageNextBundle( ref_shader_t *shader, shaderStage_t *stage, 
 		}
 		else
 		{
-			MsgDev( D_WARN, "unknown 'nextBundle' parameter '%s' in shader '%s'\n", tok, shader->name );
+			MsgDev( D_WARN, "unknown 'nextBundle' parameter '%s' in shader '%s'\n", tok.string, shader->name );
 			return false;
 		}
 	}
@@ -1898,9 +1853,9 @@ static bool R_ParseStageNextBundle( ref_shader_t *shader, shaderStage_t *stage, 
 R_ParseStageVertexProgram
 =================
 */
-static bool R_ParseStageVertexProgram( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageVertexProgram( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
-	char	*tok;
+	token_t	tok;
 
 	if( !GL_Support( R_VERTEX_PROGRAM_EXT ))
 	{
@@ -1920,17 +1875,16 @@ static bool R_ParseStageVertexProgram( ref_shader_t *shader, shaderStage_t *stag
 		return false;
 	}
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'vertexProgram' in shader '%s'\n", shader->name );
 		return false;
 	}
 
-	stage->vertexProgram = R_FindProgram( tok, GL_VERTEX_PROGRAM_ARB );
+	stage->vertexProgram = R_FindProgram( tok.string, GL_VERTEX_PROGRAM_ARB );
 	if( !stage->vertexProgram )
 	{
-		MsgDev( D_WARN, "couldn't find vertex program '%s' in shader '%s'\n", tok, shader->name );
+		MsgDev( D_WARN, "couldn't find vertex program '%s' in shader '%s'\n", tok.string, shader->name );
 		return false;
 	}
 	stage->flags |= SHADERSTAGE_VERTEXPROGRAM;
@@ -1943,9 +1897,9 @@ static bool R_ParseStageVertexProgram( ref_shader_t *shader, shaderStage_t *stag
 R_ParseStageFragmentProgram
 =================
 */
-static bool R_ParseStageFragmentProgram( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageFragmentProgram( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
-	char	*tok;
+	token_t	tok;
 
 	if (!GL_Support( R_FRAGMENT_PROGRAM_EXT ))
 	{
@@ -1965,17 +1919,16 @@ static bool R_ParseStageFragmentProgram( ref_shader_t *shader, shaderStage_t *st
 		return false;
 	}
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'fragmentProgram' in shader '%s'\n", shader->name );
 		return false;
 	}
 
-	stage->fragmentProgram = R_FindProgram( tok, GL_FRAGMENT_PROGRAM_ARB );
+	stage->fragmentProgram = R_FindProgram( tok.string, GL_FRAGMENT_PROGRAM_ARB );
 	if( !stage->fragmentProgram )
 	{
-		MsgDev( D_WARN, "couldn't find fragment program '%s' in shader '%s'\n", tok, shader->name );
+		MsgDev( D_WARN, "couldn't find fragment program '%s' in shader '%s'\n", tok.string, shader->name );
 		return false;
 	}
 	stage->flags |= SHADERSTAGE_FRAGMENTPROGRAM;
@@ -1988,9 +1941,9 @@ static bool R_ParseStageFragmentProgram( ref_shader_t *shader, shaderStage_t *st
 R_ParseStageAlphaFunc
 =================
 */
-static bool R_ParseStageAlphaFunc( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageAlphaFunc( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
-	char	*tok;
+	token_t	tok;
 
 	if( stage->flags & SHADERSTAGE_NEXTBUNDLE )
 	{
@@ -1998,59 +1951,57 @@ static bool R_ParseStageAlphaFunc( ref_shader_t *shader, shaderStage_t *stage, c
 		return false;
 	}
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'alphaFunc' in shader '%s'\n", shader->name );
 		return false;
 	}
 
-	if( Com_MatchToken( "GT0" ))
+	if( !com.stricmp( tok.string, "GT0" ))
 	{
 		stage->alphaFunc.func = GL_GREATER;
 		stage->alphaFunc.ref = 0.0;
 	}
-	else if (Com_MatchToken( "LT128"))
+	else if( !com.stricmp( tok.string, "LT128"))
 	{
 		stage->alphaFunc.func = GL_LESS;
 		stage->alphaFunc.ref = 0.5;
 	}
-	else if (Com_MatchToken( "GE128"))
+	else if( !com.stricmp( tok.string, "GE128"))
 	{
 		stage->alphaFunc.func = GL_GEQUAL;
 		stage->alphaFunc.ref = 0.5;
 	}
 	else
 	{
-		if (Com_MatchToken( "GL_NEVER"))
+		if( !com.stricmp( tok.string, "GL_NEVER" ))
 			stage->alphaFunc.func = GL_NEVER;
-		else if (Com_MatchToken( "GL_ALWAYS"))
+		else if( !com.stricmp( tok.string, "GL_ALWAYS" ))
 			stage->alphaFunc.func = GL_ALWAYS;
-		else if (Com_MatchToken( "GL_EQUAL"))
+		else if( !com.stricmp( tok.string, "GL_EQUAL" ))
 			stage->alphaFunc.func = GL_EQUAL;
-		else if (Com_MatchToken( "GL_NOTEQUAL"))
+		else if( !com.stricmp( tok.string, "GL_NOTEQUAL" ))
 			stage->alphaFunc.func = GL_NOTEQUAL;
-		else if (Com_MatchToken( "GL_LEQUAL"))
+		else if( !com.stricmp( tok.string, "GL_LEQUAL" ))
 			stage->alphaFunc.func = GL_LEQUAL;
-		else if (Com_MatchToken( "GL_GEQUAL"))
+		else if( !com.stricmp( tok.string, "GL_GEQUAL" ))
 			stage->alphaFunc.func = GL_GEQUAL;
-		else if (Com_MatchToken( "GL_LESS"))
+		else if( !com.stricmp( tok.string, "GL_LESS" ))
 			stage->alphaFunc.func = GL_LESS;
-		else if (Com_MatchToken( "GL_GREATER"))
+		else if( !com.stricmp( tok.string, "GL_GREATER" ))
 			stage->alphaFunc.func = GL_GREATER;
 		else
 		{
-			MsgDev( D_WARN, "unknown 'alphaFunc' parameter '%s' in shader '%s', defaulting to GL_GREATER\n", tok, shader->name );
+			MsgDev( D_WARN, "unknown 'alphaFunc' parameter '%s' in shader '%s', defaulting to GL_GREATER\n", tok.string, shader->name );
 			stage->alphaFunc.func = GL_GREATER;
 		}
 
-		tok = Com_ParseToken( script, false );
-		if( !tok[0] )
+		if( !Com_ReadToken( script, false, &tok ))
 		{
 			MsgDev( D_WARN, "missing parameters for 'alphaFunc' in shader '%s'\n", shader->name );
 			return false;
 		}
-		stage->alphaFunc.ref = bound( 0.0, com.atof( tok ), 1.0 );
+		stage->alphaFunc.ref = bound( 0.0, com.atof( tok.string ), 1.0 );
 	}
 	stage->flags |= SHADERSTAGE_ALPHAFUNC;
 
@@ -2062,9 +2013,9 @@ static bool R_ParseStageAlphaFunc( ref_shader_t *shader, shaderStage_t *stage, c
 R_ParseStageBlendFunc
 =================
 */
-static bool R_ParseStageBlendFunc( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageBlendFunc( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
-	char	*tok;
+	token_t	tok;
 
 	if( stage->flags & SHADERSTAGE_NEXTBUNDLE )
 	{
@@ -2072,80 +2023,78 @@ static bool R_ParseStageBlendFunc( ref_shader_t *shader, shaderStage_t *stage, c
 		return false;
 	}
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'blendFunc' in shader '%s'\n", shader->name );
 		return false;
 	}
 
-	if (Com_MatchToken( "add"))
+	if( !com.stricmp( tok.string, "add" ))
 	{
 		stage->blendFunc.src = GL_ONE;
 		stage->blendFunc.dst = GL_ONE;
 	}
-	else if (Com_MatchToken( "filter"))
+	else if( !com.stricmp( tok.string, "filter" ))
 	{
 		stage->blendFunc.src = GL_DST_COLOR;
 		stage->blendFunc.dst = GL_ZERO;
 	}
-	else if (Com_MatchToken( "blend"))
+	else if( !com.stricmp( tok.string, "blend" ))
 	{
 		stage->blendFunc.src = GL_SRC_ALPHA;
 		stage->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 	}
 	else
 	{
-		if (Com_MatchToken( "GL_ZERO"))
+		if ( !com.stricmp( tok.string, "GL_ZERO"))
 			stage->blendFunc.src = GL_ZERO;
-		else if (Com_MatchToken( "GL_ONE"))
+		else if ( !com.stricmp( tok.string, "GL_ONE"))
 			stage->blendFunc.src = GL_ONE;
-		else if (Com_MatchToken( "GL_DST_COLOR"))
+		else if ( !com.stricmp( tok.string, "GL_DST_COLOR"))
 			stage->blendFunc.src = GL_DST_COLOR;
-		else if (Com_MatchToken( "GL_ONE_MINUS_DST_COLOR"))
+		else if ( !com.stricmp( tok.string, "GL_ONE_MINUS_DST_COLOR"))
 			stage->blendFunc.src = GL_ONE_MINUS_DST_COLOR;
-		else if (Com_MatchToken( "GL_SRC_ALPHA"))
+		else if ( !com.stricmp( tok.string, "GL_SRC_ALPHA"))
 			stage->blendFunc.src = GL_SRC_ALPHA;
-		else if (Com_MatchToken( "GL_ONE_MINUS_SRC_ALPHA"))
+		else if ( !com.stricmp( tok.string, "GL_ONE_MINUS_SRC_ALPHA"))
 			stage->blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
-		else if (Com_MatchToken( "GL_DST_ALPHA"))
+		else if ( !com.stricmp( tok.string, "GL_DST_ALPHA"))
 			stage->blendFunc.src = GL_DST_ALPHA;
-		else if (Com_MatchToken( "GL_ONE_MINUS_DST_ALPHA"))
+		else if ( !com.stricmp( tok.string, "GL_ONE_MINUS_DST_ALPHA"))
 			stage->blendFunc.src = GL_ONE_MINUS_DST_ALPHA;
-		else if (Com_MatchToken( "GL_SRC_ALPHA_SATURATE"))
+		else if ( !com.stricmp( tok.string, "GL_SRC_ALPHA_SATURATE"))
 			stage->blendFunc.src = GL_SRC_ALPHA_SATURATE;
 		else
 		{
-			MsgDev( D_WARN, "unknown 'blendFunc' parameter '%s' in shader '%s', defaulting to GL_ONE\n", tok, shader->name );
+			MsgDev( D_WARN, "unknown 'blendFunc' parameter '%s' in shader '%s', defaulting to GL_ONE\n", tok.string, shader->name );
 			stage->blendFunc.src = GL_ONE;
 		}
 
-		tok = Com_ParseToken( script, false );
-		if( !tok[0] )
+		if( !Com_ReadToken( script, false, &tok ))
 		{
 			MsgDev( D_WARN, "missing parameters for 'blendFunc' in shader '%s'\n", shader->name );
 			return false;
 		}
 
-		if (Com_MatchToken( "GL_ZERO"))
+		if( !com.stricmp( tok.string, "GL_ZERO" ))
 			stage->blendFunc.dst = GL_ZERO;
-		else if (Com_MatchToken( "GL_ONE"))
+		else if( !com.stricmp( tok.string, "GL_ONE" ))
 			stage->blendFunc.dst = GL_ONE;
-		else if (Com_MatchToken( "GL_SRC_COLOR"))
+		else if( !com.stricmp( tok.string, "GL_SRC_COLOR" ))
 			stage->blendFunc.dst = GL_SRC_COLOR;
-		else if (Com_MatchToken( "GL_ONE_MINUS_SRC_COLOR"))
+		else if( !com.stricmp( tok.string, "GL_ONE_MINUS_SRC_COLOR" ))
 			stage->blendFunc.dst = GL_ONE_MINUS_SRC_COLOR;
-		else if (Com_MatchToken( "GL_SRC_ALPHA"))
+		else if( !com.stricmp( tok.string, "GL_SRC_ALPHA" ))
 			stage->blendFunc.dst = GL_SRC_ALPHA;
-		else if (Com_MatchToken( "GL_ONE_MINUS_SRC_ALPHA"))
+		else if( !com.stricmp( tok.string, "GL_ONE_MINUS_SRC_ALPHA" ))
 			stage->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
-		else if (Com_MatchToken( "GL_DST_ALPHA"))
+		else if( !com.stricmp( tok.string, "GL_DST_ALPHA" ))
 			stage->blendFunc.dst = GL_DST_ALPHA;
-		else if (Com_MatchToken( "GL_ONE_MINUS_DST_ALPHA"))
+		else if( !com.stricmp( tok.string, "GL_ONE_MINUS_DST_ALPHA" ))
 			stage->blendFunc.dst = GL_ONE_MINUS_DST_ALPHA;
 		else
 		{
-			MsgDev( D_WARN, "unknown 'blendFunc' parameter '%s' in shader '%s', defaulting to GL_ONE\n", tok, shader->name );
+			MsgDev( D_WARN, "unknown 'blendFunc' parameter '%s' in shader '%s', defaulting to GL_ONE\n", tok.string, shader->name );
 			stage->blendFunc.dst = GL_ONE;
 		}
 	}
@@ -2159,9 +2108,9 @@ static bool R_ParseStageBlendFunc( ref_shader_t *shader, shaderStage_t *stage, c
  R_ParseStageDepthFunc
  =================
 */
-static bool R_ParseStageDepthFunc( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageDepthFunc( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
-	char	*tok;
+	token_t	tok;
 
 	if( stage->flags & SHADERSTAGE_NEXTBUNDLE )
 	{
@@ -2169,20 +2118,19 @@ static bool R_ParseStageDepthFunc( ref_shader_t *shader, shaderStage_t *stage, c
 		return false;
 	}
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'depthFunc' in shader '%s'\n", shader->name );
 		return false;
 	}
 
-	if (Com_MatchToken( "lequal" ))
+	if( !com.stricmp( tok.string, "lequal" ))
 		stage->depthFunc.func = GL_LEQUAL;
-	else if (Com_MatchToken( "equal" ))
+	else if( !com.stricmp( tok.string, "equal" ))
 		stage->depthFunc.func = GL_EQUAL;
 	else
 	{
-		MsgDev( D_WARN, "unknown 'depthFunc' parameter '%s' in shader '%s'\n", tok, shader->name );
+		MsgDev( D_WARN, "unknown 'depthFunc' parameter '%s' in shader '%s'\n", tok.string, shader->name );
 		return false;
 	}
 	stage->flags |= SHADERSTAGE_DEPTHFUNC;
@@ -2195,7 +2143,7 @@ static bool R_ParseStageDepthFunc( ref_shader_t *shader, shaderStage_t *stage, c
 R_ParseStageDepthWrite
 =================
 */
-static bool R_ParseStageDepthWrite( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageDepthWrite( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	if( stage->flags & SHADERSTAGE_NEXTBUNDLE )
 	{
@@ -2211,7 +2159,7 @@ static bool R_ParseStageDepthWrite( ref_shader_t *shader, shaderStage_t *stage, 
 R_ParseStageDetail
 =================
 */
-static bool R_ParseStageDetail( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageDetail( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	if( stage->flags & SHADERSTAGE_NEXTBUNDLE )
 	{
@@ -2228,9 +2176,9 @@ static bool R_ParseStageDetail( ref_shader_t *shader, shaderStage_t *stage, char
 R_ParseStageRgbGen
 =================
 */
-static bool R_ParseStageRgbGen( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageRgbGen( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
-	char	*tok;
+	token_t	tok;
 	int	i;
 
 	if( stage->flags & SHADERSTAGE_NEXTBUNDLE )
@@ -2239,37 +2187,35 @@ static bool R_ParseStageRgbGen( ref_shader_t *shader, shaderStage_t *stage, char
 		return false;
 	}
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'rgbGen' in shader '%s'\n", shader->name );
 		return false;
 	}
 
-	if (Com_MatchToken( "identity" ))
+	if( !com.stricmp( tok.string, "identity" ))
 		stage->rgbGen.type = RGBGEN_IDENTITY;
-	else if (Com_MatchToken( "identityLighting" ))
+	else if( !com.stricmp( tok.string, "identityLighting" ))
 		stage->rgbGen.type = RGBGEN_IDENTITYLIGHTING;
-	else if (Com_MatchToken( "wave" ))
+	else if( !com.stricmp( tok.string, "wave" ))
 	{
-		if(!R_ParseWaveFunc( shader, &stage->rgbGen.func, script ))
+		if( !R_ParseWaveFunc( shader, &stage->rgbGen.func, script ))
 		{
 			MsgDev( D_WARN, "missing waveform parameters for 'rgbGen wave' in shader '%s'\n", shader->name );
 			return false;
 		}
 		stage->rgbGen.type = RGBGEN_WAVE;
 	}
-	else if (Com_MatchToken( "colorWave"))
+	else if( !com.stricmp( tok.string, "colorWave"))
 	{
 		for( i = 0; i < 3; i++ )
 		{
-			tok = Com_ParseToken( script, false );
-			if( !tok[0] )
+			if( !Com_ReadToken( script, false, &tok ))
 			{
 				MsgDev( D_WARN, "missing parameters for 'rgbGen colorWave' in shader '%s'\n", shader->name );
 				return false;
 			}
-			stage->rgbGen.params[i] = bound( 0.0, com.atof( tok ), 1.0 );
+			stage->rgbGen.params[i] = bound( 0.0, com.atof( tok.string ), 1.0 );
 		}
 
 		if( !R_ParseWaveFunc(shader, &stage->rgbGen.func, script ))
@@ -2279,35 +2225,34 @@ static bool R_ParseStageRgbGen( ref_shader_t *shader, shaderStage_t *stage, char
 		}
 		stage->rgbGen.type = RGBGEN_COLORWAVE;
 	}
-	else if (Com_MatchToken( "vertex"))
+	else if( !com.stricmp( tok.string, "vertex" ))
 		stage->rgbGen.type = RGBGEN_VERTEX;
-	else if (Com_MatchToken( "oneMinusVertex"))
+	else if( !com.stricmp( tok.string, "oneMinusVertex" ))
 		stage->rgbGen.type = RGBGEN_ONEMINUSVERTEX;
-	else if (Com_MatchToken( "entity"))
+	else if( !com.stricmp( tok.string, "entity" ))
 		stage->rgbGen.type = RGBGEN_ENTITY;
-	else if (Com_MatchToken( "oneMinusEntity"))
+	else if( !com.stricmp( tok.string, "oneMinusEntity" ))
 		stage->rgbGen.type = RGBGEN_ONEMINUSENTITY;
-	else if (Com_MatchToken( "lightingAmbient"))
+	else if( !com.stricmp( tok.string, "lightingAmbient" ))
 		stage->rgbGen.type = RGBGEN_LIGHTINGAMBIENT;
-	else if (Com_MatchToken( "lightingDiffuse"))
+	else if( !com.stricmp( tok.string, "lightingDiffuse" ))
 		stage->rgbGen.type = RGBGEN_LIGHTINGDIFFUSE;
-	else if (Com_MatchToken( "const") || Com_MatchToken( "constant"))
+	else if( !com.stricmp( tok.string, "const" ) || !com.stricmp( tok.string, "constant" ))
 	{
 		for( i = 0; i < 3; i++ )
 		{
-			tok = Com_ParseToken( script, false );
-			if( !tok[0] )
+			if( !Com_ReadToken( script, false, &tok ))
 			{
 				MsgDev( D_WARN, "missing parameters for 'rgbGen const' in shader '%s'\n", shader->name );
 				return false;
 			}
-			stage->rgbGen.params[i] = bound( 0.0, com.atof( tok ), 1.0 );
+			stage->rgbGen.params[i] = bound( 0.0, com.atof( tok.string ), 1.0 );
 		}
 		stage->rgbGen.type = RGBGEN_CONST;
 	}
 	else
 	{
-		MsgDev( D_WARN, "unknown 'rgbGen' parameter '%s' in shader '%s'\n", tok, shader->name );
+		MsgDev( D_WARN, "unknown 'rgbGen' parameter '%s' in shader '%s'\n", tok.string, shader->name );
 		return false;
 	}
 	stage->flags |= SHADERSTAGE_RGBGEN;
@@ -2320,9 +2265,9 @@ static bool R_ParseStageRgbGen( ref_shader_t *shader, shaderStage_t *stage, char
 R_ParseStageAlphaGen
 =================
 */
-static bool R_ParseStageAlphaGen( ref_shader_t *shader, shaderStage_t *stage, char **script )
+static bool R_ParseStageAlphaGen( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
-	char	*tok;
+	token_t	tok;
 
 	if( stage->flags & SHADERSTAGE_NEXTBUNDLE )
 	{
@@ -2330,34 +2275,32 @@ static bool R_ParseStageAlphaGen( ref_shader_t *shader, shaderStage_t *stage, ch
 		return false;
 	}
 
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, false, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'alphaGen' in shader '%s'\n", shader->name );
 		return false;
 	}
 
-	if (Com_MatchToken( "identity" ))
+	if( !com.stricmp( tok.string, "identity" ))
 		stage->alphaGen.type = ALPHAGEN_IDENTITY;
-	else if (Com_MatchToken( "wave" ))
+	else if( !com.stricmp( tok.string, "wave" ))
 	{
-		if(!R_ParseWaveFunc( shader, &stage->alphaGen.func, script ))
+		if( !R_ParseWaveFunc( shader, &stage->alphaGen.func, script ))
 		{
 			MsgDev( D_WARN, "missing waveform parameters for 'alphaGen wave' in shader '%s'\n", shader->name );
 			return false;
 		}
 		stage->alphaGen.type = ALPHAGEN_WAVE;
 	}
-	else if (Com_MatchToken( "alphaWave"))
+	else if( !com.stricmp( tok.string, "alphaWave" ))
 	{
-		tok = Com_ParseToken( script, false );
-		if( !tok[0] )
+		if( !Com_ReadToken( script, false, &tok ))
 		{
 			MsgDev( D_WARN, "missing parameters for 'alphaGen alphaWave' in shader '%s'\n", shader->name );
 			return false;
 		}
 
-		stage->alphaGen.params[0] = bound( 0.0, com.atof( tok ), 1.0 );
+		stage->alphaGen.params[0] = bound( 0.0, com.atof( tok.string ), 1.0 );
 
 		if(!R_ParseWaveFunc( shader, &stage->alphaGen.func, script ))
 		{
@@ -2366,62 +2309,57 @@ static bool R_ParseStageAlphaGen( ref_shader_t *shader, shaderStage_t *stage, ch
 		}
 		stage->alphaGen.type = ALPHAGEN_ALPHAWAVE;
 	}
-	else if (Com_MatchToken( "vertex"))
+	else if( !com.stricmp( tok.string, "vertex" ))
 		stage->alphaGen.type = ALPHAGEN_VERTEX;
-	else if (Com_MatchToken( "oneMinusVertex"))
+	else if( !com.stricmp( tok.string, "oneMinusVertex" ))
 		stage->alphaGen.type = ALPHAGEN_ONEMINUSVERTEX;
-	else if (Com_MatchToken( "entity"))
+	else if( !com.stricmp( tok.string, "entity" ))
 		stage->alphaGen.type = ALPHAGEN_ENTITY;
-	else if (Com_MatchToken( "oneMinusEntity"))
+	else if( !com.stricmp( tok.string, "oneMinusEntity" ))
 		stage->alphaGen.type = ALPHAGEN_ONEMINUSENTITY;
-	else if (Com_MatchToken( "dot"))
+	else if( !com.stricmp( tok.string, "dot" ))
 	{
-		tok = Com_ParseToken( script, false );
-		if( !tok[0] )
+		if( !Com_ReadToken( script, false, &tok ))
 		{
 			stage->alphaGen.params[0] = 0.0;
 			stage->alphaGen.params[1] = 1.0;
 		}
 		else
 		{
-			stage->alphaGen.params[0] = bound( 0.0, com.atof(tok), 1.0 );
-			tok = Com_ParseToken( script, false );
+			stage->alphaGen.params[0] = bound( 0.0, com.atof( tok.string ), 1.0 );
 
-			if( !tok[0] )
+			if( !Com_ReadToken( script, false, &tok ))
 			{
 				MsgDev( D_WARN, "missing parameters for 'alphaGen dot' in shader '%s'\n", shader->name );
 				return false;
 			}
-			stage->alphaGen.params[1] = bound( 0.0, com.atof(tok), 1.0 );
+			stage->alphaGen.params[1] = bound( 0.0, com.atof( tok.string ), 1.0 );
 		}
 		stage->alphaGen.type = ALPHAGEN_DOT;
 	}
-	else if (Com_MatchToken( "oneMinusDot" ))
+	else if( !com.stricmp( tok.string, "oneMinusDot" ))
 	{
-		tok = Com_ParseToken( script, false );
-		if( !tok[0] )
+		if( !Com_ReadToken( script, false, &tok ))
 		{
 			stage->alphaGen.params[0] = 0.0;
 			stage->alphaGen.params[1] = 1.0;
 		}
 		else
 		{
-			stage->alphaGen.params[0] = bound( 0.0, com.atof(tok), 1.0 );
+			stage->alphaGen.params[0] = bound( 0.0, com.atof( tok.string ), 1.0 );
 
-			tok = Com_ParseToken( script, false );
-			if( !tok[0] )
+			if( !Com_ReadToken( script, false, &tok ))
 			{
 				MsgDev( D_WARN, "missing parameters for 'alphaGen oneMinusDot' in shader '%s'\n", shader->name );
 				return false;
 			}
-			stage->alphaGen.params[1] = bound( 0.0, com.atof(tok), 1.0 );
+			stage->alphaGen.params[1] = bound( 0.0, com.atof( tok.string ), 1.0 );
 		}
 		stage->alphaGen.type = ALPHAGEN_ONEMINUSDOT;
 	}
-	else if (Com_MatchToken( "fade" ))
+	else if( !com.stricmp( tok.string, "fade" ))
 	{
-		tok = Com_ParseToken( script, false );
-		if( !tok[0] )
+		if( !Com_ReadToken( script, false, &tok ))
 		{
 			stage->alphaGen.params[0] = 0.0;
 			stage->alphaGen.params[1] = 256.0;
@@ -2429,53 +2367,51 @@ static bool R_ParseStageAlphaGen( ref_shader_t *shader, shaderStage_t *stage, ch
 		}
 		else
 		{
-			stage->alphaGen.params[0] = com.atof( tok );
-			tok = Com_ParseToken( script, false );
+			stage->alphaGen.params[0] = com.atof( tok.string );
 
-			if( !tok[0] )
+			if( !Com_ReadToken( script, false, &tok ))
 			{
 				MsgDev( D_WARN, "missing parameters for 'alphaGen fade' in shader '%s'\n", shader->name );
 				return false;
 			}
 
-			stage->alphaGen.params[1] = com.atof( tok );
+			stage->alphaGen.params[1] = com.atof( tok.string );
 			stage->alphaGen.params[2] = stage->alphaGen.params[1] - stage->alphaGen.params[0];
 			if( stage->alphaGen.params[2] ) stage->alphaGen.params[2] = 1.0 / stage->alphaGen.params[2];
 		}
 		stage->alphaGen.type = ALPHAGEN_FADE;
 	}
-	else if (Com_MatchToken( "oneMinusFade" ))
+	else if( !com.stricmp( tok.string, "oneMinusFade" ))
 	{
-		tok = Com_ParseToken( script, false );
-		if( !tok[0] )
+		if( !Com_ReadToken( script, false, &tok ))
 		{
 			stage->alphaGen.params[0] = 0.0;
 			stage->alphaGen.params[1] = 256.0;
 			stage->alphaGen.params[2] = 1.0 / 256.0;
 		}
-		else {
-			stage->alphaGen.params[0] = com.atof( tok );
+		else
+		{
+			stage->alphaGen.params[0] = com.atof( tok.string );
 
-			tok = Com_ParseToken( script, false );
-			if( !tok[0] )
+			if( !Com_ReadToken( script, false, &tok ))
 			{
 				MsgDev( D_WARN, "missing parameters for 'alphaGen oneMinusFade' in shader '%s'\n", shader->name );
 				return false;
 			}
 
-			stage->alphaGen.params[1] = com.atof( tok );
+			stage->alphaGen.params[1] = com.atof( tok.string );
 			stage->alphaGen.params[2] = stage->alphaGen.params[1] - stage->alphaGen.params[0];
 			if( stage->alphaGen.params[2] ) stage->alphaGen.params[2] = 1.0 / stage->alphaGen.params[2];
 		}
 		stage->alphaGen.type = ALPHAGEN_ONEMINUSFADE;
 	}
-	else if (Com_MatchToken( "lightingSpecular" ))
+	else if( !com.stricmp( tok.string, "lightingSpecular" ))
 	{
-		tok = Com_ParseToken( script, false );
-		if( !tok[0] ) stage->alphaGen.params[0] = 5.0;
+		if( !Com_ReadToken( script, false, &tok ))
+			stage->alphaGen.params[0] = 5.0;
 		else
 		{
-			stage->alphaGen.params[0] = com.atof( tok );
+			stage->alphaGen.params[0] = com.atof( tok.string );
 			if( stage->alphaGen.params[0] <= 0.0 )
 			{
 				MsgDev( D_WARN, "invalid exponent value of %f for 'alphaGen lightingSpecular' in shader '%s', defaulting to 5\n", stage->alphaGen.params[0], shader->name );
@@ -2484,20 +2420,19 @@ static bool R_ParseStageAlphaGen( ref_shader_t *shader, shaderStage_t *stage, ch
 		}
 		stage->alphaGen.type = ALPHAGEN_LIGHTINGSPECULAR;
 	}
-	else if (Com_MatchToken( "const" ) || Com_MatchToken( "constant" ))
+	else if( !com.stricmp( tok.string, "const" ) || !com.stricmp( tok.string, "constant" ))
 	{
-		tok = Com_ParseToken( script, false );
-		if( !tok[0] )
+		if( !Com_ReadToken( script, false, &tok ))
 		{
 			MsgDev( D_WARN, "missing parameters for 'alphaGen const' in shader '%s'\n", shader->name );
 			return false;
 		}
-		stage->alphaGen.params[0] = bound( 0.0, com.atof(tok), 1.0 );
+		stage->alphaGen.params[0] = bound( 0.0, com.atof( tok.string ), 1.0 );
 		stage->alphaGen.type = ALPHAGEN_CONST;
 	}
 	else
 	{
-		MsgDev( D_WARN, "unknown 'alphaGen' parameter '%s' in shader '%s'\n", tok, shader->name );
+		MsgDev( D_WARN, "unknown 'alphaGen' parameter '%s' in shader '%s'\n", tok.string, shader->name );
 		return false;
 	}
 	stage->flags |= SHADERSTAGE_ALPHAGEN;
@@ -2511,13 +2446,13 @@ static bool R_ParseStageAlphaGen( ref_shader_t *shader, shaderStage_t *stage, ch
 typedef struct
 {
 	const char	*name;
-	bool		(*parseFunc)( ref_shader_t *shader, char **script );
+	bool		(*parseFunc)( ref_shader_t *shader, script_t *script );
 } shaderGeneralCmd_t;
 
 typedef struct
 {
 	const char	*name;
-	bool		(*parseFunc)( ref_shader_t *shader, shaderStage_t *stage, char **script );
+	bool		(*parseFunc)( ref_shader_t *shader, shaderStage_t *stage, script_t *script );
 } shaderStageCmd_t;
 
 static shaderGeneralCmd_t r_shaderGeneralCmds[] =
@@ -2571,7 +2506,7 @@ static shaderStageCmd_t r_shaderStageCmds[] =
 R_ParseShaderCommand
 =================
 */
-static bool R_ParseShaderCommand( ref_shader_t *shader, char **script, char *command )
+static bool R_ParseShaderCommand( ref_shader_t *shader, script_t *script, char *command )
 {
 	shaderGeneralCmd_t	*cmd;
 
@@ -2592,7 +2527,7 @@ static bool R_ParseShaderCommand( ref_shader_t *shader, char **script, char *com
 R_ParseShaderStageCommand
 =================
 */
-static bool R_ParseShaderStageCommand( ref_shader_t *shader, shaderStage_t *stage, char **script, char *command )
+static bool R_ParseShaderStageCommand( ref_shader_t *shader, shaderStage_t *stage, script_t *script, char *command )
 {
 	shaderStageCmd_t	*cmd;
 
@@ -2610,21 +2545,20 @@ static bool R_ParseShaderStageCommand( ref_shader_t *shader, shaderStage_t *stag
 R_EvaluateRequires
 =================
 */
-static bool R_EvaluateRequires( ref_shader_t *shader, char **script )
+static bool R_EvaluateRequires( ref_shader_t *shader, script_t *script )
 {
 	bool	results[SHADER_MAX_EXPRESSIONS];
 	bool	logicAnd = false, logicOr = false;
 	bool	negate, expectingExpression = false;
-	char	*tok;
 	char	cmpOperator[8];
 	int	cmpOperand1, cmpOperand2;
 	int	i, count = 0;
+	token_t	tok;
 
-	// Parse the expressions
+	// parse the expressions
 	while( 1 )
 	{
-		tok = Com_ParseToken( script, false );
-		if( !tok[0] )
+		if( !Com_ReadToken( script, false, &tok ))
 		{
 			if( count == 0 || expectingExpression )
 			{
@@ -2634,7 +2568,7 @@ static bool R_EvaluateRequires( ref_shader_t *shader, char **script )
 			break; // end of data
 		}
 
-		if( Com_MatchToken( "&&" ))
+		if( !com.stricmp( tok.string, "&&" ))
 		{
 			if( count == 0 || expectingExpression )
 			{
@@ -2645,7 +2579,7 @@ static bool R_EvaluateRequires( ref_shader_t *shader, char **script )
 			expectingExpression = true;
 			continue;
 		}
-		if( Com_MatchToken( "||" ))
+		if( !com.stricmp( tok.string, "||" ))
 		{
 			if( count == 0 || expectingExpression )
 			{
@@ -2664,42 +2598,40 @@ static bool R_EvaluateRequires( ref_shader_t *shader, char **script )
 			return false;
 		}
 
-		if( Com_MatchToken( "GL_MAX_TEXTURE_UNITS_ARB") || Com_MatchToken( "GL_MAX_TEXTURE_COORDS_ARB") || Com_MatchToken( "GL_MAX_TEXTURE_IMAGE_UNITS_ARB"))
+		if( !com.stricmp( tok.string, "GL_MAX_TEXTURE_UNITS_ARB" ) || !com.stricmp( tok.string, "GL_MAX_TEXTURE_COORDS_ARB" ) || !com.stricmp( tok.string, "GL_MAX_TEXTURE_IMAGE_UNITS_ARB" ))
 		{
-			if( Com_MatchToken( "GL_MAX_TEXTURE_UNITS_ARB" ))
+			if( !com.stricmp( tok.string, "GL_MAX_TEXTURE_UNITS_ARB" ))
 				cmpOperand1 = gl_config.textureunits;
-			else if( Com_MatchToken( "GL_MAX_TEXTURE_COORDS_ARB"))
+			else if( !com.stricmp( tok.string, "GL_MAX_TEXTURE_COORDS_ARB" ))
 				cmpOperand1 = gl_config.texturecoords;
-			else if (Com_MatchToken( "GL_MAX_TEXTURE_IMAGE_UNITS_ARB" ))
+			else if( !com.stricmp( tok.string, "GL_MAX_TEXTURE_IMAGE_UNITS_ARB" ))
 				cmpOperand1 = gl_config.imageunits;
 
-			tok = Com_ParseToken( script, false );
-			if( !tok[0] )
+			if( !Com_ReadToken( script, false, &tok ))
 			{
 				MsgDev( D_WARN, "missing operator for 'requires' expression in shader '%s', discarded stage\n", shader->name );
 				return false;
 			}
-			com.strncpy( cmpOperator, tok, sizeof( cmpOperator ));
+			com.strncpy( cmpOperator, tok.string, sizeof( cmpOperator ));
 
-			tok = Com_ParseToken( script, false );
-			if( !tok[0] )
+			if( !Com_ReadToken( script, false, &tok ))
 			{
 				MsgDev( D_WARN, "missing operand for 'requires' expression in shader '%s', discarded stage\n", shader->name );
 				return false;
 			}
-			cmpOperand2 = com.atoi( tok );
+			cmpOperand2 = com.atoi( tok.string );
 
 			if( !com.stricmp( cmpOperator, "==" ))
 				results[count] = (cmpOperand1 == cmpOperand2);
-			else if (!com.stricmp( cmpOperator, "!=" ))
+			else if( !com.stricmp( cmpOperator, "!=" ))
 				results[count] = (cmpOperand1 != cmpOperand2);
-			else if (!com.stricmp( cmpOperator, ">=" ))
+			else if( !com.stricmp( cmpOperator, ">=" ))
 				results[count] = (cmpOperand1 >= cmpOperand2);
-			else if (!com.stricmp( cmpOperator, "<=" ))
+			else if( !com.stricmp( cmpOperator, "<=" ))
 				results[count] = (cmpOperand1 <= cmpOperand2);
-			else if (!com.stricmp( cmpOperator, ">" ))
+			else if( !com.stricmp( cmpOperator, ">" ))
 				results[count] = (cmpOperand1 > cmpOperand2);
-			else if (!com.stricmp( cmpOperator, "<" ))
+			else if( !com.stricmp( cmpOperator, "<" ))
 				results[count] = (cmpOperand1 < cmpOperand2);
 			else
 			{
@@ -2709,43 +2641,33 @@ static bool R_EvaluateRequires( ref_shader_t *shader, char **script )
 		}
 		else
 		{
-			if( Com_MatchToken( "!" ))
+			if( !com.stricmp( tok.string, "!" ))
 			{
 				negate = true;
-				tok = Com_ParseToken( script, false );
-				if( !tok[0] )
+				if( !Com_ReadToken( script, false, &tok ))
 				{
 					MsgDev( D_WARN, "missing expression for 'requires' in shader '%s', discarded stage\n", shader->name );
 					return false;
 				}
 			}
-			else
-			{
-				if( tok[0] == '!' )
-				{
-					tok++;
-					negate = true;
-				}
-				else negate = false;
-			}
 
-			if(Com_MatchToken( "GL_ARB_multitexture" ))
+			if( !com.stricmp( tok.string, "GL_ARB_multitexture" ))
 				results[count] = GL_Support( R_ARB_MULTITEXTURE );
-			else if (Com_MatchToken( "GL_ARB_texture_env_add"))
+			else if( !com.stricmp( tok.string, "GL_ARB_texture_env_add" ))
 				results[count] = GL_Support( R_TEXTURE_ENV_ADD_EXT );
-			else if (Com_MatchToken( "GL_ARB_texture_env_combine"))
+			else if( !com.stricmp( tok.string, "GL_ARB_texture_env_combine" ))
 				results[count] = GL_Support( R_COMBINE_EXT );
-			else if (Com_MatchToken( "GL_ARB_texture_env_dot3"))
+			else if( !com.stricmp( tok.string, "GL_ARB_texture_env_dot3" ))
 				results[count] = GL_Support( R_DOT3_ARB_EXT );
-			else if (Com_MatchToken( "GL_ARB_texture_cube_map"))
+			else if( !com.stricmp( tok.string, "GL_ARB_texture_cube_map" ))
 				results[count] = GL_Support( R_TEXTURECUBEMAP_EXT );
-			else if (Com_MatchToken( "GL_ARB_vertex_program"))
+			else if( !com.stricmp( tok.string, "GL_ARB_vertex_program" ))
 				results[count] = GL_Support( R_VERTEX_PROGRAM_EXT );
-			else if (Com_MatchToken( "GL_ARB_fragment_program"))
+			else if( !com.stricmp( tok.string, "GL_ARB_fragment_program" ))
 				results[count] = GL_Support( R_FRAGMENT_PROGRAM_EXT );
 			else
 			{
-				MsgDev( D_WARN, "unknown 'requires' expression '%s' in shader '%s', discarded stage\n", tok, shader->name );
+				MsgDev( D_WARN, "unknown 'requires' expression '%s' in shader '%s', discarded stage\n", tok.string, shader->name );
 				return false;
 			}
 			if( negate ) results[count] = !results[count];
@@ -2788,16 +2710,15 @@ static bool R_EvaluateRequires( ref_shader_t *shader, char **script )
 R_SkipShaderStage
 =================
 */
-static bool R_SkipShaderStage( ref_shader_t *shader, char **script )
+static bool R_SkipShaderStage( ref_shader_t *shader, script_t *script )
 {
-	char	*tok;
+	token_t	tok;
 
 	while( 1 )
 	{
-		Com_PushScript( script );
-
-		tok = Com_ParseToken( script, true );
-		if( Com_MatchToken( "requires" ))
+		Com_ReadToken( script, true, &tok );
+		Com_SaveToken( script, &tok );
+		if( !com.stricmp( tok.string, "requires" ))
 		{
 			if( !R_EvaluateRequires( shader, script ))
 			{
@@ -2806,7 +2727,6 @@ static bool R_SkipShaderStage( ref_shader_t *shader, char **script )
 			}
 			continue;
 		}
-		Com_PopScript( script );
 		break;
 	}
 	return false;
@@ -2817,37 +2737,35 @@ static bool R_SkipShaderStage( ref_shader_t *shader, char **script )
 R_ParseShader
 =================
 */
-static bool R_ParseShader( ref_shader_t *shader, char *script )
+static bool R_ParseShader( ref_shader_t *shader, script_t *script )
 {
 	shaderStage_t	*stage;
-	char		*tok;
+	token_t		tok;
 
-	tok = Com_ParseToken( &script, true );
-	if( !tok[0] )
+	if( !Com_ReadToken( script, SC_ALLOW_NEWLINES, &tok ))
 	{
 		MsgDev( D_WARN, "shader '%s' has an empty script\n", shader->name );
 		return false;
 	}
 
 	// parse the shader
-	if( Com_MatchToken( "{" ))
+	if( !com.stricmp( tok.string, "{" ))
 	{
 		while( 1 )
 		{
-			tok = Com_ParseToken( &script, true );
-			if( !tok[0] )
+			if( !Com_ReadToken( script, SC_ALLOW_NEWLINES, &tok ))
 			{
 				MsgDev( D_WARN, "no concluding '}' in shader '%s'\n", shader->name );
 				return false;	// End of data
 			}
 
-			if( Com_MatchToken( "}" )) break; // end of shader
+			if( !com.stricmp( tok.string, "}" )) break; // end of shader
 
 			// parse a stage
-			if( Com_MatchToken( "{" ))
+			if( !com.stricmp( tok.string, "{" ))
 			{
 				// check if we need to skip this stage
-				if( R_SkipShaderStage( shader, &script ))
+				if( R_SkipShaderStage( shader, script ))
 					continue;
 
 				// create a new stage
@@ -2862,24 +2780,23 @@ static bool R_ParseShader( ref_shader_t *shader, char *script )
 				// parse it
 				while( 1 )
 				{
-					tok = Com_ParseToken( &script, true );
-					if( !tok[0] )
+					if( !Com_ReadToken( script, SC_ALLOW_NEWLINES, &tok ))
 					{
 						MsgDev( D_WARN, "no matching '}' in shader '%s'\n", shader->name );
 						return false; // end of data
 					}
 
-					if( Com_MatchToken( "}" )) break; // end of stage
+					if( !com.stricmp( tok.string, "}" )) break; // end of stage
 
 					// parse the command
-					if( !R_ParseShaderStageCommand( shader, stage, &script, tok ))
+					if( !R_ParseShaderStageCommand( shader, stage, script, tok.string ))
 						return false;
 				}
 				continue;
 			}
 
 			// parse the command
-			if( !R_ParseShaderCommand( shader, &script, tok ))
+			if( !R_ParseShaderCommand( shader, script, tok.string ))
 				return false;
 		}
 		return true;
@@ -2900,31 +2817,26 @@ static void R_ParseShaderFile( char *buffer, int size )
 {
 	shaderScript_t	*shaderScript;
 	int		numInfoParms = sizeof(infoParms) / sizeof(infoParms[0]);
-	char		*buf, *tok;
-	char		*ptr1, *ptr2;
-	char		*script;
+	script_t		*script;
 	shaderType_t	shaderType;
 	uint		surfaceParm;
 	uint		contentFlags;
-	uint		i, hashKey;
+	uint		hashKey;
 	string		name;
+	token_t		tok;
 
-	buf = buffer;
+	script = Com_OpenScript( "shader", buffer, size );
+
 	while( 1 )
 	{
 		// parse the name
-		tok = Com_ParseToken( &buf, true );
-		if( !tok[0] ) break; // end of data
+		if( !Com_ReadToken( script, SC_ALLOW_NEWLINES, &tok ))
+			break; // end of data
 
-		com.strncpy( name, tok, sizeof( name ));
+		com.strncpy( name, tok.string, sizeof( name ));
 
 		// parse the script
-		ptr1 = buf;
-		Com_SkipBracedSection( &buf, 0 );
-		ptr2 = buf;
-
-		if( !ptr1 ) ptr1 = buffer;
-		if( !ptr2 ) ptr2 = buffer + size;
+		Com_SkipBracedSection( script, 0 );
 
 		// we must parse surfaceParm commands here, because R_FindShader
 		// needs this for correct shader loading.
@@ -2932,36 +2844,13 @@ static void R_ParseShaderFile( char *buffer, int size )
 		shaderType = -1;
 		surfaceParm = contentFlags = 0;
 
-		script = ptr1;
-		while( script < ptr2 )
-		{
-			tok = Com_ParseToken( &script, true );
-			if( !tok[0] ) break; // end of data
-
-			if( Com_MatchToken( "surfaceparm" ))
-			{
-				tok = Com_ParseToken( &script, false );
-				if( !tok[0] ) continue;
-
-				for( i = 0; i < numInfoParms; i++ )
-				{
-					if(Com_MatchToken( infoParms[i].name ))
-					{
-						surfaceParm |= infoParms[i].surfaceFlags;
-						contentFlags |= infoParms[i].contents;
-						break;
-					}
-				}
-			}
-		}
-
 		// store the script
-		shaderScript = Mem_Alloc( r_shaderpool, sizeof(shaderScript_t) + (ptr2 - ptr1) + 1 );
+		shaderScript = Mem_Alloc( r_shaderpool, sizeof(shaderScript_t));
 		com.strncpy( shaderScript->name, name, sizeof( shaderScript->name ));
 		shaderScript->shaderType = shaderType;
+		shaderScript->script = script;
 		shaderScript->surfaceParm = surfaceParm;
 		shaderScript->contents = contentFlags;
-		Mem_Copy( shaderScript->script, ptr1, (ptr2 - ptr1));
 
 		// add to hash table
 		hashKey = Com_HashKey( shaderScript->name, SHADERS_HASHSIZE );
@@ -3010,9 +2899,9 @@ static ref_shader_t *R_NewShader( void )
 R_CreateShader
 =================
 */
-static ref_shader_t *R_CreateShader( const char *name, shaderType_t shaderType, uint surfaceParm, char *script )
+static ref_shader_t *R_CreateShader( const char *name, shaderType_t shaderType, uint surfaceParm, script_t *script )
 {
-	ref_shader_t		*shader;
+	ref_shader_t	*shader;
 	shaderStage_t	*stage;
 	stageBundle_t	*bundle;
 	int		i, j;
@@ -3728,7 +3617,7 @@ shader_t R_FindShader( const char *name, shaderType_t shaderType, uint surfacePa
 {
 	ref_shader_t	*shader;
 	shaderScript_t	*shaderScript;
-	char		*script = NULL;
+	script_t		*script = NULL;
 	uint		hashKey;
 
 	if( !name || !name[0] ) Host_Error( "R_FindShader: NULL shader name\n" );

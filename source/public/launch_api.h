@@ -154,15 +154,38 @@ all engine parts using it
 */
 typedef enum
 {
-	SC_ALLOW_NEWLINES	 	= BIT(0),
+	TT_EMPTY = 0,		// empty (invalid or whitespace)
+	TT_GENERIC,		// generic string separated by spaces
+	TT_STRING,		// string (enclosed with double quotes)
+	TT_LITERAL,		// literal (enclosed with single quotes)
+	TT_NUMBER,		// number
+	TT_NAME,			// name
+	TT_PUNCTUATION		// punctuation
+} tokenType_t;
+
+typedef enum
+{
+	SC_ALLOW_NEWLINES	 	= BIT(0),	// same as 'true'
 	SC_ALLOW_STRINGCONCAT	= BIT(1),
 	SC_ALLOW_ESCAPECHARS 	= BIT(2),
 	SC_ALLOW_PATHNAMES		= BIT(3),
 	SC_PARSE_GENERIC		= BIT(4),
 	SC_PRINT_ERRORS		= BIT(5),
 	SC_PRINT_WARNINGS	 	= BIT(6),
-	SC_QUARK_COMMAND		= BIT(7),		// read QuArK TX# command after comments
+	SC_PARSE_LINE		= BIT(7),	// read line, ignore whitespaces
+	SC_COMMENT_SEMICOLON	= BIT(8),	// using semicolon as mark or begin comment (q2 oldstyle)
 } scFlags_t;
+
+typedef struct
+{
+	tokenType_t	type;
+	uint		subType;
+	int		line;
+	char		string[MAX_SYSPATH];
+	int		length;
+	double		floatValue;
+	uint		integerValue;
+} token_t;
 
 /*
 ========================================================================
@@ -222,8 +245,6 @@ typedef struct gameinfo_s
 
 	string	gamedirs[128];	// environment folders (for change game from menu)
 	int	numgamedirs;
-	
-	char	TXcommand;	// FIXME: quark .map comment
 	char	instance;		// global engine instance
 } gameinfo_t;
 
@@ -442,26 +463,28 @@ typedef struct stdilib_api_s
 	void (*Com_ThreadLock)( void );			// lock current thread
 	void (*Com_ThreadUnlock)( void );			// unlock numthreads
 	int (*Com_NumThreads)( void );			// returns count of active threads
-	bool (*Com_LoadScript)(const char *name,char *buf,int size);// load script into stack from file or bufer
-	bool (*Com_AddScript)(const char *name,char *buf, int size);// include script from file or buffer
-	void (*Com_ResetScript)( void );			// reset current script state
-	void (*Com_PushScript)( const char **data_p );		// save script to stack
-	void (*Com_PopScript)( const char **data_p );		// restore script from stack
-	void (*Com_SkipBracedSection)( char **data_p, int depth );	// skip braced section
-	char *(*Com_ReadToken)( bool newline );			// get next token on a line or newline
-	bool (*Com_TryToken)( void );				// return 1 if have token on a line 
-	void (*Com_FreeToken)( void );			// free current token to may get it again
-	void (*Com_SkipToken)( void );			// skip current token and jump into newline
-	bool (*Com_MatchToken)( const char *match );		// compare current token with user keyword
-	bool (*Com_ParseToken_Simple)(const char **data_p);	// basic parse (can't handle single characters)
-	char *(*Com_ParseToken)(const char **data, bool newline );	// parse token from char buffer
-	char *(*Com_ParseWord)( const char **data, bool newline );	// parse word from char buffer
+
+	// script machine base functions
+	script_t *(*Com_OpenScript)( const char *filename, const char *buf, size_t size );
+	void (*Com_CloseScript)( script_t *script );		// release current script
+	void (*Com_ResetScript)( script_t *script );		// jump to start of scriptfile 
+	bool (*Com_EndOfScript)( script_t *script );		// returns true if end of script reached
+	void (*Com_SkipBracedSection)(script_t *script, int depth);	// skip braced section with specified depth
+	void (*Com_SkipRestOfLine)( script_t *script );		// skip all tokene the rest of line
+	bool (*Com_ReadToken)( script_t *script, scFlags_t flags, token_t *token ); // generic reading
+	void (*Com_SaveToken)( script_t *script, token_t *token );	// save current token to get it again
+	char (*Com_TXCommand)( script_t *script );		// returns QuArK TX command
+
+	// script machine simple user interface
+	bool (*Com_ReadString)( script_t *script, int flags, char *value, size_t size );// string
+	bool (*Com_ReadFloat)( script_t *script, int flags, float *value );		// float value
+	bool (*Com_ReadDword)( script_t *script, int flags, uint *value );		// unsigned integer
+	bool (*Com_ReadLong)( script_t *script, int flags, int *value );		// signed integer
+
 	search_t *(*Com_Search)(const char *pattern, int casecmp );	// returned list of found files
 	bool (*Com_Filter)(char *filter, char *name, int casecmp ); // compare keyword by mask with filter
 	uint (*Com_HashKey)( const char *string, uint hashSize );	// returns hash key for a string
 	byte *(*Com_LoadRes)( const char *filename, size_t *size );	// find internal resource in baserc.dll 
-	long com_scriptline;				// contains current scriptline
-	char *com_token;					// contains current token
 
 	// console variables
 	cvar_t *(*Cvar_Get)(const char *name, const char *value, int flags, const char *desc);
@@ -582,6 +605,7 @@ typedef struct stdilib_api_s
 	char *(*va)(const char *format, ...);				// print into temp buffer
 	int (*vsnprintf)(char *buf, size_t size, const char *fmt, va_list args);	// format message
 	int (*snprintf)(char *buffer, size_t buffersize, const char *format, ...);	// print into buffer
+	char *(*pretifymem)( float value, int digitsafterdecimal );		// pretify memory string
 	const char* (*timestamp)( int format );				// returns current time stamp
 
 	// stringtable system
@@ -642,26 +666,23 @@ typedef struct cvar_s
 	parsing manager funcs
 ==========================================
 */
-#define Com_ParseToken		com.Com_ParseToken
-#define Com_ParseWord		com.Com_ParseWord
-#define Com_SimpleGetToken		com.Com_ParseToken_Simple
+#define Com_OpenScript		com.Com_OpenScript
+#define Com_CloseScript		com.Com_CloseScript
+#define Com_ResetScript		com.Com_ResetScript
 #define Com_SkipBracedSection		com.Com_SkipBracedSection
+#define Com_SkipRestOfLine		com.Com_SkipRestOfLine
+#define Com_ReadToken		com.Com_ReadToken
+#define Com_SaveToken		com.Com_SaveToken
+#define Com_FreeToken		com.Com_FreeToken
+#define g_TXcommand			com.Com_TXCommand( mapfile )		// only for bsplib
+
+#define Com_ReadString( x, y, z )	com.Com_ReadString( x, y, z, sizeof( z ))
+#define Com_ReadFloat		com.Com_ReadFloat
+#define Com_ReadUlong		com.Com_ReadDword
+#define Com_ReadLong		com.Com_ReadLong
+
 #define Com_Filter			com.Com_Filter
 #define Com_HashKey			com.Com_HashKey
-#define Com_LoadScript		com.Com_LoadScript
-#define Com_IncludeScript		com.Com_AddScript
-#define Com_ResetScript		com.Com_ResetScript
-#define Com_GetToken		com.Com_ReadToken
-#define Com_TryToken		com.Com_TryToken
-#define Com_FreeToken		com.Com_FreeToken
-#define Com_SkipToken		com.Com_SkipToken
-#define Com_MatchToken		com.Com_MatchToken
-#define Com_PushScript		com.Com_PushScript
-#define Com_PopScript		com.Com_PopScript
-#define com_token			com.com_token
-#define scriptline			com.com_scriptline
-#define g_TXcommand			com.GameInfo->TXcommand
-#define g_Instance			com.GameInfo->instance
 
 /*
 ===========================================
@@ -694,6 +715,7 @@ filesystem manager
 #define FS_Gets			com.fgets
 #define FS_Gamedir			com.GameInfo->gamedir
 #define FS_Title			com.GameInfo->title
+#define g_Instance			com.GameInfo->instance
 #define FS_ClearSearchPath		com.Com_ClearSearchPath
 #define FS_CheckParm		com.Com_CheckParm
 #define FS_GetParmFromCmdLine		com.Com_GetParm
@@ -843,6 +865,7 @@ stdlib function names that not across with windows stdlib
 */
 #define timestamp			com.timestamp
 #define copystring( str )		com.stralloc( NULL, str, __FILE__, __LINE__ )
+#define memprint( x )		com.pretifymem( x, 2 )
 #define va			com.va
 
 #endif//LAUNCH_DLL

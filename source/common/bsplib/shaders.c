@@ -141,54 +141,53 @@ ParseShaderFile
 static void ParseShaderFile( char *filename )
 {
 	int		i, numInfoParms = sizeof(infoParms) / sizeof(infoParms[0]);
+	script_t		*shader;
+	token_t		token;
 	string		name;
 	bsp_shader_t	*si;
 
-	bool load = Com_LoadScript( filename, NULL, 0 );
+	shader = Com_OpenScript( filename, NULL, 0 );
 
-	if( load )
+	if( shader )
 	{
 		FS_FileBase( filename, name );
-		MsgDev(D_INFO, "Adding shader: %s.txt\n", name );
+		MsgDev( D_INFO, "Adding shader: %s.txt\n", name );
           }
           
-	while( load )
+	while( shader )
 	{
-		if ( !Com_GetToken( true )) break;
+		if ( !Com_ReadToken( shader, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &token ))
+			break;
 
 		si = AllocShaderInfo();
-		com.strcpy( si->name, com_token );
-		Com_GetToken( true );
+		com.strncpy( si->name, token.string, sizeof( si->name ));
+		Com_ReadToken( shader, SC_ALLOW_NEWLINES, &token );
 		
-		if(!Com_MatchToken( "{" ))
+		if( com.strcmp( token.string, "{" ))
 		{
-			Msg("ParseShaderFile: shader %s without opening brace!\n", si->name );
+			Msg( "ParseShaderFile: shader %s without opening brace!\n", si->name );
 			continue;
                     }
                     
 		while ( 1 )
 		{
-			if ( !Com_GetToken( true ) )break;
-			if ( !strcmp( com_token, "}" ) ) break;
+			if ( !Com_ReadToken( shader, SC_ALLOW_NEWLINES, &token )) break;
+			if ( !com.strcmp( token.string, "}" )) break;
 
 			// skip internal braced sections
-			if ( !strcmp( com_token, "{" ) )
+			if ( !com.strcmp( token.string, "{" ))
 			{
 				si->hasStages = true;
-				while ( 1 )
-				{
-					if ( !Com_GetToken( true )) break;
-					if ( !strcmp( com_token, "}" )) break;
-				}
+				Com_SkipBracedSection( shader, 1 );
 				continue;
 			}
 
-			if( Com_MatchToken( "surfaceparm" ))
+			if( !com.stricmp( token.string, "surfaceparm" ))
 			{
-				Com_GetToken( false );
-				for ( i = 0; i < numInfoParms; i++ )
+				Com_ReadToken( shader, 0, &token );
+				for( i = 0; i < numInfoParms; i++ )
 				{
-					if( Com_MatchToken( infoParms[i].name ))
+					if( !com.stricmp( token.string, infoParms[i].name ))
 					{
 						si->surfaceFlags |= infoParms[i].surfaceFlags;
 						si->contents |= infoParms[i].contents;
@@ -201,119 +200,110 @@ static void ParseShaderFile( char *filename )
 			}
 
 			// qer_editorimage <image>
-			if( Com_MatchToken( "qer_editorimage" ))
+			if( !com.stricmp( token.string, "qer_editorimage" ))
 			{
-				Com_GetToken( false );
-				com.strncpy( si->editorimage, com_token, MAX_STRING );
+				Com_ReadString( shader, false, si->editorimage );
 				continue;
 			}
 
 			// q3map_lightimage <image>
-			if( Com_MatchToken( "q3map_lightimage" ))
+			if( !com.stricmp( token.string, "q3map_lightimage" ))
 			{
-				Com_GetToken( false );
-				com.strncpy( si->lightimage, com_token, MAX_STRING );
+				Com_ReadString( shader, false, si->lightimage );
 				continue;
 			}
 
 			// q3map_surfacelight <value>
-			if( Com_MatchToken( "q3map_surfacelight" ))
+			if( !com.stricmp( token.string, "q3map_surfacelight" ))
 			{
-				Com_GetToken( false );
-				si->value = com.atoi( com_token );
+				Com_ReadLong( shader, false, &si->value );
 				continue;
 			}
 
 			// q3map_lightsubdivide <value>
-			if( Com_MatchToken( "q3map_lightsubdivide" ))
+			if( !com.stricmp( token.string, "q3map_lightsubdivide" ))
 			{
-				Com_GetToken( false );
-				si->lightSubdivide = com.atoi( com_token );
+				Com_ReadFloat( shader, false, &si->lightSubdivide );
 				continue;
 			}
 
 			// q3map_lightmapsamplesize <value>
-			if( Com_MatchToken( "q3map_lightmapsamplesize" ))
+			if( !com.stricmp( token.string, "q3map_lightmapsamplesize" ))
 			{
-				Com_GetToken( false );
-				si->lightmapSampleSize = com.atoi( com_token );
+				Com_ReadLong( shader, false, &si->lightmapSampleSize );
 				continue;
 			}
 
 			// q3map_tracelight
-			if( Com_MatchToken( "q3map_tracelight" ))
+			if( !com.stricmp( token.string, "q3map_tracelight" ))
 			{
 				si->forceTraceLight = true;
 				continue;
 			}
 
 			// q3map_vlight
-			if ( Com_MatchToken( "q3map_vlight" ))
+			if ( !com.stricmp( token.string, "q3map_vlight" ))
 			{
 				si->forceVLight = true;
 				continue;
 			}
 
 			// q3map_forcesunlight
-			if( Com_MatchToken( "q3map_forcesunlight" ))
+			if( !com.stricmp( token.string, "q3map_forcesunlight" ))
 			{
 				si->forceSunLight = true;
 				continue;
 			}
 
 			// q3map_vertexscale
-			if( Com_MatchToken( "q3map_vertexscale" ))
+			if( !com.stricmp( token.string, "q3map_vertexscale" ))
 			{
-				Com_GetToken( false );
-				si->vertexScale = com.atof( com_token );
+				Com_ReadFloat( shader, false, &si->vertexScale );
 				continue;
 			}
 
 			// q3map_notjunc
-			if( Com_MatchToken( "q3map_notjunc" ))
+			if( !com.stricmp( token.string, "q3map_notjunc" ))
 			{
 				si->notjunc = true;
 				continue;
 			}
 
 			// q3map_globaltexture
-			if( Com_MatchToken( "q3map_globaltexture" ))
+			if( !com.stricmp( token.string, "q3map_globaltexture" ))
 			{
 				si->globalTexture = true;
 				continue;
 			}
 
 			// q3map_backsplash <percent> <distance>
-			if( Com_MatchToken( "q3map_backsplash" ))
+			if( !com.stricmp( token.string, "q3map_backsplash" ))
 			{
-				Com_GetToken( false );
-				si->backsplashFraction = com.atof( com_token ) * 0.01f;
-				Com_GetToken( false );
-				si->backsplashDistance = com.atof( com_token );
+				Com_ReadFloat( shader, false, &si->backsplashFraction );
+				si->backsplashFraction *= 0.01f;
+				Com_ReadFloat( shader, false, &si->backsplashDistance );
 				continue;
 			}
 
 			// q3map_backshader <shader>
-			if( Com_MatchToken( "q3map_backshader" ))
+			if( !com.stricmp( token.string, "q3map_backshader" ))
 			{
-				Com_GetToken( false );
-				com.strncpy( si->backShader, com_token, MAX_STRING );
+				Com_ReadString( shader, false, si->backShader );
 				continue;
 			}
 
 			// q3map_flare <shader>
-			if( Com_MatchToken( "q3map_flare" ))
+			if( !com.stricmp( token.string, "q3map_flare" ))
 			{
-				Com_GetToken( false );
-				com.strncpy( si->flareShader, com_token, MAX_STRING );
+				Com_ReadString( shader, false, si->flareShader );
 				continue;
 			}
 
 			// light <value> 
 			// old style flare specification
-			if( Com_MatchToken( "light" ))
+			if( !com.stricmp( token.string, "light" ))
 			{
-				Com_GetToken( false );
+				Com_ReadToken( shader, 0, NULL );	// old-style declared
 				com.strncpy( si->flareShader, "flareshader", MAX_STRING );
 				continue;
 			}
@@ -322,52 +312,45 @@ static void ParseShaderFile( char *filename )
 			// color will be normalized, so it doesn't matter what range you use
 			// intensity falls off with angle but not distance 100 is a fairly bright sun
 			// degree of 0 = from the east, 90 = north, etc.  altitude of 0 = sunrise/set, 90 = noon
-			if( Com_MatchToken( "q3map_sun" ))
+			if( !com.stricmp( token.string, "q3map_sun" ))
 			{
 				float	a, b;
 
-				Com_GetToken( false );
-				si->sunLight[0] = com.atof( com_token );
-				Com_GetToken( false );
-				si->sunLight[1] = com.atof( com_token );
-				Com_GetToken( false );
-				si->sunLight[2] = com.atof( com_token );
+				Com_ReadFloat( shader, false, &si->sunLight[0] );
+				Com_ReadFloat( shader, false, &si->sunLight[1] );
+				Com_ReadFloat( shader, false, &si->sunLight[2] );
 				VectorNormalize( si->sunLight );
 
-				Com_GetToken( false );
-				a = com.atof( com_token );
+				Com_ReadFloat( shader, false, &a );
 				VectorScale( si->sunLight, a, si->sunLight );
 
-				Com_GetToken( false );
-				a = com.atof( com_token );
+				Com_ReadFloat( shader, false, &a );
 				a = a / 180 * M_PI;
 
-				Com_GetToken( false );
-				b = com.atof( com_token );
+				Com_ReadFloat( shader, false, &b );
 				b = b / 180 * M_PI;
 
-				si->sunDirection[0] = cos( a ) * cos( b );
-				si->sunDirection[1] = sin( a ) * cos( b );
-				si->sunDirection[2] = sin( b );
+				si->sunDirection[0] = com.cos( a ) * com.cos( b );
+				si->sunDirection[1] = com.sin( a ) * com.cos( b );
+				si->sunDirection[2] = com.sin( b );
 				si->surfaceFlags |= SURF_SKY;
 				continue;
 			}
 
 			// tesssize is used to force liquid surfaces to subdivide
-			if( Com_MatchToken( "tesssize" ))
+			if( !com.stricmp( token.string, "tessSize" ))
 			{
-				Com_GetToken( false );
-				si->subdivisions = com.atof( com_token );
+				Com_ReadFloat( shader, false, &si->subdivisions );
 				continue;
 			}
 
 			// cull none will set twoSided
-			if( Com_MatchToken( "cull" ))
+			if( !com.stricmp( token.string, "cull" ))
 			{
-				Com_GetToken( false );
-				if(Com_MatchToken( "twoSided" )) si->twoSided = true;
-				if(Com_MatchToken( "disable" )) si->twoSided = true;
-				if(Com_MatchToken( "none" )) si->twoSided = true;
+				Com_ReadToken( shader, 0, &token );
+				if( !com.stricmp( token.string, "twoSided" )) si->twoSided = true;
+				if( !com.stricmp( token.string, "disable" )) si->twoSided = true;
+				if( !com.stricmp( token.string, "none" )) si->twoSided = true;
 				continue;
 			}
 
@@ -375,10 +358,10 @@ static void ParseShaderFile( char *filename )
 			// deformVertexes autosprite[2]
 			// we catch this so autosprited surfaces become point
 			// lights instead of area lights
-			if( Com_MatchToken( "deformVertexes" ))
+			if( !com.stricmp( token.string, "deformVertexes" ))
 			{
-				Com_GetToken( false );
-				if( !strnicmp( com_token, "autosprite", 10 ))
+				Com_ReadToken( shader, 0, &token );
+				if( !strnicmp( token.string, "autosprite", 10 ))
 				{
 					si->autosprite = true;
 					si->contents = CONTENTS_DETAIL;
@@ -386,16 +369,11 @@ static void ParseShaderFile( char *filename )
 				continue;
 			}
 
-			if( Com_MatchToken( "sort" ))
-			{
-				Com_GetToken( false );
-				continue;
-			}
-
 			// ignore all other com_tokens on the line
-			while( Com_TryToken());
+			Com_SkipRestOfLine( shader );
 		}			
 	}
+	Com_CloseScript( shader );
 }
 
 /*
@@ -445,7 +423,7 @@ int LoadShaderInfo( void )
 	int	i, numShaderFiles;
 
 	numShaderFiles = 0;
-	search = FS_Search("scripts/shaders/*.txt", true );
+	search = FS_Search( "scripts/shaders/*.txt", true );
 	if (!search) return 0;
 	
 	for( i = 0; i < search->numfilenames; i++ )
