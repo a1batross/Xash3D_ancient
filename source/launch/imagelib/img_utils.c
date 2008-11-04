@@ -563,7 +563,8 @@ NOTE: must call Image_GetPaletteXXX before used
 */
 bool Image_Copy8bitRGBA( const byte *in, byte *out, int pixels )
 {
-	int *iout = (int *)out;
+	int	*iout = (int *)out;
+	color32	*col;
 
 	if( !image.d_currentpal )
 	{
@@ -586,6 +587,11 @@ bool Image_Copy8bitRGBA( const byte *in, byte *out, int pixels )
 		iout[5] = image.d_currentpal[in[5]];
 		iout[6] = image.d_currentpal[in[6]];
 		iout[7] = image.d_currentpal[in[7]];
+
+		col = (color32 *)iout;
+		if( col->r != col->g || col->g != col->b )
+			image.flags |= IMAGE_HAS_COLOR;
+
 		in += 8;
 		iout += 8;
 		pixels -= 8;
@@ -1203,6 +1209,8 @@ void Image_Process( rgbdata_t **pix, int width, int height, uint flags )
 		MsgDev( D_WARN, "Image_Process: NULL image\n" );
 		return;
 	}
+
+	if( flags & IMAGE_FORCE_RGBA ) Sys_Error( "Image_Process: Image_ForceRGBA not implemented\n" );
 
 	// NOTE: flip and resample algorythms can't different palette size
 	if( flags & IMAGE_PALTO24 ) Image_ConvertPalTo24bit( pic );

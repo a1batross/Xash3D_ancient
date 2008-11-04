@@ -321,8 +321,8 @@ typedef struct bpc_desc_s
 {
 	int	format;	// pixelformat
 	char	name[16];	// used for debug
-	uint	glmask;	// RGBA mask
-	uint	gltype;	// pixel size (byte, short etc)
+	uint	glFormat;	// RGBA format
+	uint	glType;	// pixel size (byte, short etc)
 	int	bpp;	// channels (e.g. rgb = 3, rgba = 4)
 	int	bpc;	// sizebytes (byte, short, float)
 	int	block;	// blocksize < 0 needs alternate calc
@@ -345,10 +345,11 @@ typedef enum
 {
 	// rgbdata->flags
 	IMAGE_CUBEMAP	= BIT(0),		// it's 6-sides cubemap buffer
-	IMAGE_HAVE_ALPHA	= BIT(1),		// image contain alpha-channel
-	IMAGE_COLORINDEX	= BIT(2),		// all colors in palette is gradients of last color (decals)
-	IMAGE_PREMULT	= BIT(3),		// need to premultiply alpha (DXT2, DXT4)
-	IMAGE_S3		= BIT(4),		// s&3 image
+	IMAGE_HAS_ALPHA	= BIT(1),		// image contain alpha-channel
+	IMAGE_HAS_COLOR	= BIT(2),		// image contain RGB-channel
+	IMAGE_COLORINDEX	= BIT(3),		// all colors in palette is gradients of last color (decals)
+	IMAGE_PREMULT	= BIT(4),		// need to premultiply alpha (DXT2, DXT4)
+	IMAGE_S3		= BIT(5),		// s&3 image
 
 	// Image_Process manipulation flags
 	IMAGE_FLIP_X	= BIT(16),	// flip the image by width
@@ -361,6 +362,7 @@ typedef enum
 	IMAGE_PALTO24	= BIT(21),	// turn 32-bit palette into 24-bit mode (only for indexed images)
 	IMAGE_COMP_DXT	= BIT(22),	// compress image to DXT format
 	IMAGE_ROUNDFILLER	= BIT(23),	// round image to nearest Pow2 and fill unused entries with single color	
+	IMAGE_FORCE_RGBA	= BIT(24),	// force image to RGBA buffer
 } imgFlags_t;
 
 typedef struct rgbdata_s

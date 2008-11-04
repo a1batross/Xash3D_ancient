@@ -68,7 +68,7 @@ const bpc_desc_t PFDesc[] =
 {PF_INDEXED_32,	"pal 32",	0x1908,	0x1401, 1,  1,  0 },
 {PF_RGBA_32,	"RGBA 32",0x1908,	0x1401, 4,  1, -4 },
 {PF_BGRA_32,	"BGRA 32",0x80E1,	0x1401, 4,  1, -4 },
-{PF_ARGB_32,	"ARGB 32",0x1908,	0x1401, 4,  1, -4 },
+{PF_ARGB_32,	"ARGB 32",0x1908,	0x8366, 4,  1, -4 },
 {PF_ABGR_64,	"ABGR 64",0x80E1,	0x1401, 4,  2, -8 },
 {PF_RGB_24,	"RGB 24",	0x1908,	0x1401, 3,  1, -3 },
 {PF_BGR_24,	"BGR 24",	0x80E0,	0x1401, 3,  1, -3 },

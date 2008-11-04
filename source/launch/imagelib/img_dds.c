@@ -416,7 +416,7 @@ static void Image_EncodeColorBlock( byte *blkaddr, byte srccolors[4][4][4], int 
 	if( type != PF_DXT1 )
 	{	
 		// manually set alpha for DXT3 or DXT5
-		if( flags & IMAGE_HAVE_ALPHA ) haveAlpha = true;
+		if( flags & IMAGE_HAS_ALPHA ) haveAlpha = true;
 		else haveAlpha = false;
 	}
 
@@ -1276,8 +1276,11 @@ void Image_DXTGetPixelFormat( dds_t *hdr )
 	// also read images without it (TODO: check file size for 3d texture?)
 	if (!(hdr->dsCaps.dwCaps2 & DDS_VOLUME)) hdr->dwDepth = 1;
 
+	image.flags |= IMAGE_HAS_COLOR; // predict state
 	if( hdr->dsPixelFormat.dwFlags & DDS_ALPHA )
-		image.flags |= IMAGE_HAVE_ALPHA;
+		image.flags |= IMAGE_HAS_ALPHA;
+	if( hdr->dsPixelFormat.dwFlags & DDS_LUMINANCE )
+		image.flags &= ~IMAGE_HAS_COLOR;
 
 	if( hdr->dsPixelFormat.dwFlags & DDS_FOURCC )
 	{
@@ -1321,7 +1324,7 @@ void Image_DXTGetPixelFormat( dds_t *hdr )
 		}
 		else 
 		{
-			if( bits == 32) image.type = PF_ABGR_64;
+			if( bits == 32 ) image.type = PF_ABGR_64;
 			else image.type = PF_ARGB_32;
 		}
 	}
@@ -1331,7 +1334,7 @@ void Image_DXTGetPixelFormat( dds_t *hdr )
 		image.flags |= IMAGE_CUBEMAP;
 
 	if( hdr->dsPixelFormat.dwFlags & DDS_ALPHAPIXELS )
-		image.flags |= IMAGE_HAVE_ALPHA;
+		image.flags |= IMAGE_HAS_ALPHA;
 
 	if( hdr->dwFlags & DDS_MIPMAPCOUNT )
 		image.num_mips = hdr->dwMipMapCount;
@@ -2050,7 +2053,7 @@ bool Image_DecompressDXT( uint target, int level, int intformat, uint width, uin
 	}
 
 	// make some post operations
-	if( has_alpha ) image.flags |= IMAGE_HAVE_ALPHA;
+	if( has_alpha ) image.flags |= IMAGE_HAS_ALPHA;
 	if( image.flags & IMAGE_PREMULT )
 	{
 		Image_CorrectPreMult((uint *)fout, size );

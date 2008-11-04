@@ -245,7 +245,7 @@ void Cmd_GrabMip( void )
 	}
 
 	maxdistortion = 0;
-	if(!(image->flags & IMAGE_HAVE_ALPHA ))
+	if(!(image->flags & IMAGE_HAS_ALPHA ))
 	{
 		// figure out what palette entries are actually used
 		colors_used = 0;
@@ -294,7 +294,7 @@ void Cmd_GrabMip( void )
 						
 						// if 255 is not transparent, or this isn't
 						// a transparent pixel add it in to the image filter
-						if(!(image->flags & IMAGE_HAVE_ALPHA ) || testpixel != 255)
+						if(!(image->flags & IMAGE_HAS_ALPHA ) || testpixel != 255)
 						{
 							pixdata[count] = testpixel;
 							count++;

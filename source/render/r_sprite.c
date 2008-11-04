@@ -26,7 +26,7 @@ Sprite model loader
 */
 dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppframe, int framenum )
 {
-	dspriteframe_t		*pinframe;
+	dspriteframe_t	*pinframe;
 	mspriteframe_t	*pspriteframe;
 	string		name;
 	mipTex_t		*out;
@@ -46,8 +46,8 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	pspriteframe->left = pinframe->origin[0];
 	pspriteframe->down = pinframe->origin[1] - pinframe->height;
 	pspriteframe->right = pinframe->width + pinframe->origin[0];
-	pspriteframe->radius = sqrt((pinframe->width * pinframe->width) + (pinframe->height * pinframe->height));
-	pspriteframe->texture = R_FindTexture( name, pin, pinframe->width * pinframe->height, 0, 0 );
+	pspriteframe->radius = com.sqrt((pinframe->width * pinframe->width) + (pinframe->height * pinframe->height));
+	pspriteframe->texture = R_FindTexture( name, (byte *)pin, pinframe->width * pinframe->height, TF_GEN_MIPS, 0, 0 );
 	*ppframe = pspriteframe;
 
 	R_SetInternalMap( pspriteframe->texture );

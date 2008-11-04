@@ -134,7 +134,7 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 	{
 		if( pbBmpBits[i] == 255 )
 		{
-			image.flags |= IMAGE_HAVE_ALPHA;
+			image.flags |= IMAGE_HAS_ALPHA;
 			break;
 		}
 	}
@@ -225,7 +225,7 @@ bool Image_SaveBMP( const char *name, rgbdata_t *pix )
 	}
 
 	// make last color is 0 0 255, xwad expect this (but ignore decals)
-	if( com.strchr( name, '{' ) && pix->flags & IMAGE_HAVE_ALPHA && !(pix->flags & IMAGE_COLORINDEX))
+	if( com.strchr( name, '{' ) && pix->flags & IMAGE_HAS_ALPHA && !(pix->flags & IMAGE_COLORINDEX))
 	{
 		rgrgbPalette[255].rgbRed = 0x00;
 		rgrgbPalette[255].rgbGreen = 0x00;

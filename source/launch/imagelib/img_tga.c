@@ -20,7 +20,7 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 	byte	palette[256*4];
 	tga_t	targa_header;
 
-	if(filesize < sizeof(tga_t))
+	if( filesize < sizeof( tga_t ))
 		return false;
 
 	fin = buffer;
@@ -140,7 +140,7 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 		return false;
 	}
 
-	image.flags |= alphabits ? IMAGE_HAVE_ALPHA : 0;
+	image.flags |= alphabits ? IMAGE_HAS_ALPHA : 0;
 	image.size = image.width * image.height * 4;
 	image.rgba = Mem_Alloc( Sys.imagepool, image.size );
 
@@ -181,31 +181,37 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 		break;
 	case 2:
 		// BGR or BGRA, uncompressed
-		if(fin + image.width * image.height * pix_inc > enddata)
+		if( fin + image.width * image.height * pix_inc > enddata )
 			break;
-		if(targa_header.pixel_size == 32 && alphabits)
+		if( targa_header.pixel_size == 32 && alphabits )
 		{
-			for (y = 0;y < image.height;y++, pixbuf += row_inc)
+			for( y = 0;y < image.height;y++, pixbuf += row_inc )
 			{
-				for (x = 0;x < image.width;x++, fin += pix_inc)
+				for( x = 0;x < image.width;x++, fin += pix_inc )
 				{
 					*pixbuf++ = fin[2];
 					*pixbuf++ = fin[1];
 					*pixbuf++ = fin[0];
 					*pixbuf++ = fin[3];
+
+					if( fin[2] != fin[1] || fin[1] != fin[0] )
+						image.flags |= IMAGE_HAS_COLOR;
 				}
 			}
 		}
 		else // 24 bits
 		{
-			for (y = 0;y < image.height; y++, pixbuf += row_inc)
+			for( y = 0; y < image.height; y++, pixbuf += row_inc )
 			{
-				for (x = 0;x < image.width; x++, fin += pix_inc)
+				for( x = 0;x < image.width; x++, fin += pix_inc )
 				{
 					*pixbuf++ = fin[2];
 					*pixbuf++ = fin[1];
 					*pixbuf++ = fin[0];
 					*pixbuf++ = 255;
+
+					if( fin[2] != fin[1] || fin[1] != fin[0] )
+						image.flags |= IMAGE_HAS_COLOR;
 				}
 			}
 		}
@@ -231,7 +237,7 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 					green = p[1];
 					blue = p[2];
 					alpha = p[3];
-					for( ;runlen--; x++ )
+					for( ; runlen--; x++ )
 					{
 						*pixbuf++ = red;
 						*pixbuf++ = green;
@@ -247,13 +253,16 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 						break; // error - truncated file
 					if( x + runlen > image.width )
 						break; // error - line exceeds width
-					for( ;runlen--; x++ )
+					for( ; runlen--; x++ )
 					{
 						p = palette + *fin++ * 4;
 						*pixbuf++ = p[0];
 						*pixbuf++ = p[1];
 						*pixbuf++ = p[2];
 						*pixbuf++ = p[3];
+
+						if( p[0] != p[1] || p[1] != p[2] )
+							image.flags |= IMAGE_HAS_COLOR;
 					}
 				}
 			}
@@ -300,6 +309,9 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 							*pixbuf++ = fin[1];
 							*pixbuf++ = fin[0];
 							*pixbuf++ = fin[3];
+
+							if( fin[2] != fin[1] || fin[1] != fin[0] )
+								image.flags |= IMAGE_HAS_COLOR;
 						}
 					}
 				}
@@ -344,6 +356,9 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 							*pixbuf++ = fin[1];
 							*pixbuf++ = fin[0];
 							*pixbuf++ = 255;
+
+							if( fin[2] != fin[1] || fin[1] != fin[0] )
+								image.flags |= IMAGE_HAS_COLOR;
 						}
 					}
 				}
@@ -353,7 +368,6 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 	// unknown image_type
 	default:  return false;
 	}
-
 	return true;
 }
 
@@ -372,7 +386,7 @@ bool Image_SaveTGA( const char *name, rgbdata_t *pix )
 	if(FS_FileExists( name ) && !(image.cmd_flags & IL_ALLOW_OVERWRITE ))
 		return false; // already existed
 
-	if( pix->flags & IMAGE_HAVE_ALPHA )
+	if( pix->flags & IMAGE_HAS_ALPHA )
 		outsize = pix->width * pix->height * 4 + 18 + com_strlen( comment );
 	else outsize = pix->width * pix->height * 3 + 18 + com_strlen( comment );
 
@@ -386,8 +400,8 @@ bool Image_SaveTGA( const char *name, rgbdata_t *pix )
 	buffer[13] = (pix->width >> 8) & 0xFF;
 	buffer[14] = (pix->height >> 0) & 0xFF;
 	buffer[15] = (pix->height >> 8) & 0xFF;
-	buffer[16] = ( pix->flags & IMAGE_HAVE_ALPHA ) ? 32 : 24;
-	buffer[17] = ( pix->flags & IMAGE_HAVE_ALPHA ) ? 8 : 0; // 8 bits of alpha
+	buffer[16] = ( pix->flags & IMAGE_HAS_ALPHA ) ? 32 : 24;
+	buffer[17] = ( pix->flags & IMAGE_HAS_ALPHA ) ? 8 : 0; // 8 bits of alpha
 	com_strncpy( buffer + 18, comment, com_strlen( comment )); 
 	out = buffer + 18 + com_strlen( comment );
 
@@ -434,7 +448,7 @@ bool Image_SaveTGA( const char *name, rgbdata_t *pix )
 				*out++ = in[0];
 				*out++ = in[1];
 				*out++ = in[2];
-				if( pix->flags & IMAGE_HAVE_ALPHA )
+				if( pix->flags & IMAGE_HAS_ALPHA )
 					*out++ = in[3];
 			}
 		}

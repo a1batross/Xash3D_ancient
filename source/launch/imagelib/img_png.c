@@ -165,11 +165,14 @@ bool Image_LoadPNG( const char *name, const byte *buffer, size_t filesize )
 		png_set_tRNS_to_alpha( fin ); 
           
           if( png.color & PNG_COLOR_MASK_ALPHA )
-		image.flags |= IMAGE_HAVE_ALPHA;
-	
-	if( png.BitDepth >= 8 && png.color == PNG_COLOR_TYPE_RGB )	
+		image.flags |= IMAGE_HAS_ALPHA;
+
+	if( png.color & PNG_COLOR_MASK_COLOR )
+		image.flags |= IMAGE_HAS_COLOR;
+
+	if( png.color == PNG_COLOR_TYPE_RGB && png.BitDepth >= 8 )
 		png_set_filler( fin, 255, 1 );
-	
+
 	if( png.color == PNG_COLOR_TYPE_GRAY || png.color == PNG_COLOR_TYPE_GRAY_ALPHA )
 	{
 		png_set_gray_to_rgb( fin );

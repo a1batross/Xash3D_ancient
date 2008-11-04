@@ -102,7 +102,7 @@ void R_Bloom_InitBackUpTexture( int width, int height )
 {
 	rgbdata_t	r_bloom;
 
-	Mem_Set(&r_bloom, 0, sizeof(rgbdata_t));
+	Mem_Set( &r_bloom, 0, sizeof( rgbdata_t ));
 	r_bloom.width = width;
 	r_bloom.height = height;
 	r_bloom.type = PF_RGBA_GN;
@@ -113,7 +113,7 @@ void R_Bloom_InitBackUpTexture( int width, int height )
 	r_bloom.buffer = r_framebuffer;
 
 	r_screenbackuptexture_size = width;
-	r_bloombackuptexture = R_LoadTexture( "*r_bloombackuptexture", &r_bloom, 0, 0 );
+	r_bloombackuptexture = R_LoadTexture( "*r_bloombackuptexture", &r_bloom, 3, TF_STATIC|TF_NOPICMIP, TF_LINEAR, TW_CLAMP );
 }
 
 /*
@@ -157,7 +157,7 @@ void R_Bloom_InitEffectTexture( void )
 	r_bloomfx.numMips = 1;
 	r_bloomfx.palette = NULL;
 	r_bloomfx.buffer = r_framebuffer;
-	r_bloomeffecttexture = R_LoadTexture( "*r_bloomeffecttexture", &r_bloomfx, 0, 0 );
+	r_bloomeffecttexture = R_LoadTexture( "*r_bloomeffecttexture", &r_bloomfx, 3, TF_STATIC|TF_NOPICMIP, TF_LINEAR, TW_REPEAT );
 }
 
 /*
@@ -189,7 +189,7 @@ void R_Bloom_InitTextures( void )
 	r_bloomscr.buffer = r_framebuffer;
 	r_bloomscr.numMips = 1;
 	r_bloomscr.size = screen_texture_width * screen_texture_height * 4;
-	r_bloomscreentexture = R_LoadTexture( "*r_bloomscreentexture", &r_bloomscr, 0, 0 );
+	r_bloomscreentexture = R_LoadTexture( "*r_bloomscreentexture", &r_bloomscr, 3, TF_STATIC|TF_NOPICMIP, TF_LINEAR, TW_CLAMP );
 
 	//validate bloom size and init the bloom effect texture
 	R_Bloom_InitEffectTexture ();
@@ -208,7 +208,7 @@ void R_Bloom_InitTextures( void )
 		r_downsample.palette = NULL;
 		r_downsample.buffer = r_framebuffer;
 		r_downsample.numMips = 1;
-		r_bloomdownsamplingtexture = R_LoadTexture( "*r_bloomdownsampetexture", &r_downsample, 0, 0 );
+		r_bloomdownsamplingtexture = R_LoadTexture( "*r_bloomdownsampetexture", &r_downsample, 3, TF_STATIC|TF_NOPICMIP, TF_LINEAR, TW_CLAMP );
 	}
 
 	// Init the screen backup texture

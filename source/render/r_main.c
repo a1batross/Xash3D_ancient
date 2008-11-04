@@ -102,7 +102,13 @@ cvar_t	*r_intensity;
 cvar_t	*r_texturebits;
 cvar_t	*r_texturefilter;
 cvar_t	*r_texturefilteranisotropy;
+cvar_t	*r_texturelodbias;
+cvar_t	*r_max_normal_texsize;
+cvar_t	*r_max_texsize;
+cvar_t	*r_round_down;
 cvar_t	*r_detailtextures;
+cvar_t	*r_compress_normal_textures;
+cvar_t	*r_compress_textures;
 cvar_t	*r_lefthand;
 cvar_t	*r_bloom;
 cvar_t	*r_bloom_alpha;
@@ -1179,13 +1185,9 @@ void R_BeginFrame( void )
 		GL_UpdateGammaRamp();
 	}
 
-	// update texture filtering
-	if( r_texturefilter->modified || r_texturefilteranisotropy->modified )
-	{
-		R_TextureFilter();
-		r_texturefilter->modified = false;
-		r_texturefilteranisotropy->modified = false;
-	}
+	// update texture parameters
+	if( r_texturefilter->modified || r_texturefilteranisotropy->modified || r_texturelodbias->modified )
+		R_SetTextureParameters();
 
 	// Set draw buffer
 	if( r_frontbuffer->integer )
@@ -1284,11 +1286,9 @@ prefetching 2d graphics
 */
 bool R_PrecachePic( const char *name )
 {
-	texture_t *pic = R_FindTexture(va( "gfx/%s", name ), NULL, 0, TF_IMAGE2D, 0 );
-
-	if( !pic || pic == r_defaultTexture )
-		return false;
-	return true;	
+	if( R_FindTexture(va( "gfx/%s", name ), NULL, 0, TF_STATIC|TF_NOPICMIP, TF_LINEAR, TW_REPEAT ))
+		return true;
+	return false;	
 }
 
 /*

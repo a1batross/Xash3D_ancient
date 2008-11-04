@@ -695,6 +695,28 @@ _inline float LerpPoint( float oldpoint, float curpoint, float frac )
 	return oldpoint + frac * (curpoint - oldpoint);
 }
 
+/*
+=================
+NearestPOW
+=================
+*/
+_inline int NearestPOW( int value, bool roundDown )
+{
+	int	n = 1;
+
+	if( value <= 0 )
+		return 1;
+	while( n < value )
+		n <<= 1;
+
+	if( roundDown )
+	{
+		if( n > value )
+			n >>= 1;
+	}
+	return n;
+}
+
 static vec3_t vec3_origin = { 0, 0, 0 };
 static vec3_t vec3_angles = { 0, 0, 0 };
 static vec4_t vec4_origin = { 0, 0, 0, 0 };

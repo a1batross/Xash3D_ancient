@@ -668,7 +668,7 @@ bool ConvFLT( const char *name, byte *buffer, size_t filesize, const char *ext )
 	{
 		string	savedname, tempname, path;
 	
-		if( pic->flags & IMAGE_HAVE_ALPHA )
+		if( pic->flags & IMAGE_HAS_ALPHA )
 		{
 			// insert '{' symbol for transparency textures
 			FS_ExtractFilePath( name, path );

@@ -25,6 +25,7 @@ typedef struct shaderScript_s
 	script_t			*script;
 } shaderScript_t;
 
+const char *r_skyBoxSuffix[6] = {"rt", "lf", "bk", "ft", "up", "dn"};
 static ref_shader_t		r_parseShader;
 static shaderStage_t	r_parseShaderStages[SHADER_MAX_STAGES];
 static stageBundle_t	r_parseStageTMU[SHADER_MAX_STAGES][MAX_TEXTURE_UNITS];
@@ -439,7 +440,7 @@ static bool R_ParseGeneralSkyParms( ref_shader_t *shader, script_t *script )
 			if( shader->skyParms.farBox[i] )
 				shader->skyParms.farBox[i]->flags &= ~TF_STATIC; // old skybox will be removed on next loading
 			com.snprintf( name, sizeof( name ), "%s%s", tok.string, r_skyBoxSuffix[i] );
-			shader->skyParms.farBox[i] = R_FindTexture( name, NULL, 0, TF_CLAMP|TF_SKYSIDE|TF_STATIC, 0 );
+			shader->skyParms.farBox[i] = R_FindTexture( name, NULL, 0, TF_STATIC, TF_LINEAR, TW_CLAMP );
 			if( !shader->skyParms.farBox[i] )
 			{
 				MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", name, shader->name );
@@ -478,7 +479,7 @@ static bool R_ParseGeneralSkyParms( ref_shader_t *shader, script_t *script )
 			if( shader->skyParms.nearBox[i] )
 				shader->skyParms.nearBox[i]->flags &= ~TF_STATIC; // old skybox will be removed on next loading
 			com.snprintf( name, sizeof(name), "%s%s", tok.string, r_skyBoxSuffix[i] );
-			shader->skyParms.nearBox[i] = R_FindTexture( name, NULL, 0, TF_CLAMP|TF_SKYSIDE|TF_STATIC, 0 );
+			shader->skyParms.nearBox[i] = R_FindTexture( name, NULL, 0, TF_STATIC, TF_LINEAR, TW_CLAMP );
 			if( !shader->skyParms.nearBox[i] )
 			{
 				MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", name, shader->name );
@@ -665,7 +666,7 @@ R_ParseStageMap
 static bool R_ParseStageMap( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t	*bundle = stage->bundles[stage->numBundles - 1];
-	uint		flags = 0;
+	uint		wrap = 0, filter = 0, flags = 0;
 	token_t		tok;
 
 	if( bundle->numTextures )
@@ -727,17 +728,17 @@ static bool R_ParseStageMap( ref_shader_t *shader, shaderStage_t *stage, script_
 	else if( !com.stricmp( tok.string, "$internal")) bundle->textures[bundle->numTextures++] = r_internalMiptex;
 	else
 	{
-		if(!(shader->flags & SHADER_NOMIPMAPS) && !(bundle->flags & STAGEBUNDLE_NOMIPMAPS))
-			flags |= TF_MIPMAPS;
-		if(!(shader->flags & SHADER_NOPICMIP) && !(bundle->flags & STAGEBUNDLE_NOPICMIP))
-			flags |= TF_IMAGE2D;
-		if(!(shader->flags & SHADER_NOCOMPRESS) && !(bundle->flags & STAGEBUNDLE_NOCOMPRESS))
-			flags |= TF_COMPRESS;
+		if( shader->flags & SHADER_NOMIPMAPS || bundle->flags & STAGEBUNDLE_NOMIPMAPS )
+			filter = TF_LINEAR;
+		if( shader->flags & SHADER_NOPICMIP || bundle->flags & STAGEBUNDLE_NOPICMIP )
+			flags |= TF_NOPICMIP;
+		if( shader->flags & SHADER_NOCOMPRESS || bundle->flags & STAGEBUNDLE_NOCOMPRESS )
+			flags |= TF_UNCOMPRESSED;
 
 		if( bundle->flags & STAGEBUNDLE_CLAMPTEXCOORDS)
-			flags |= TF_CLAMP;
+			wrap = TW_CLAMP;
 
-		bundle->textures[bundle->numTextures] = R_FindTexture( tok.string, NULL, 0, flags, 0 );
+		bundle->textures[bundle->numTextures] = R_FindTexture( tok.string, NULL, 0, flags, filter, wrap );
 		if( !bundle->textures[bundle->numTextures] )
 		{
 			MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", tok.string, shader->name );
@@ -759,9 +760,7 @@ R_ParseStageBumpMap
 static bool R_ParseStageBumpMap( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t	*bundle = stage->bundles[stage->numBundles - 1];
-	uint		flags = TF_NORMALMAP;
-	string		heightMap;
-	float		bumpScale;
+	uint		wrap = 0, filter = 0, flags = TF_NORMALMAP;
 	token_t		tok;
 
 	if( bundle->numTextures )
@@ -795,39 +794,24 @@ static bool R_ParseStageBumpMap( ref_shader_t *shader, shaderStage_t *stage, scr
 		return false;
 	}
 
-	if(!(shader->flags & SHADER_NOMIPMAPS) && !(bundle->flags & STAGEBUNDLE_NOMIPMAPS))
-		flags |= TF_MIPMAPS;
-	if(!(shader->flags & SHADER_NOPICMIP) && !(bundle->flags & STAGEBUNDLE_NOPICMIP))
-		flags |= TF_IMAGE2D;
-	if(!(shader->flags & SHADER_NOCOMPRESS) && !(bundle->flags & STAGEBUNDLE_NOCOMPRESS))
-		flags |= TF_COMPRESS;
+	if( shader->flags & SHADER_NOMIPMAPS || bundle->flags & STAGEBUNDLE_NOMIPMAPS )
+		filter = TF_LINEAR;
+	if( shader->flags & SHADER_NOPICMIP || bundle->flags & STAGEBUNDLE_NOPICMIP )
+		flags |= TF_NOPICMIP;
+	if( shader->flags & SHADER_NOCOMPRESS || bundle->flags & STAGEBUNDLE_NOCOMPRESS )
+		flags |= TF_UNCOMPRESSED;
 
-	if(bundle->flags & STAGEBUNDLE_CLAMPTEXCOORDS)
-		flags |= TF_CLAMP;
+	if( bundle->flags & STAGEBUNDLE_CLAMPTEXCOORDS)
+		wrap = TW_CLAMP;
 
-	if( !com.stricmp( tok.string, "heightToNormal"))
+	bundle->textures[bundle->numTextures] = R_FindTexture( tok.string, NULL, 0, flags, filter, wrap );
+	if( !bundle->textures[bundle->numTextures] )
 	{
-		if(!R_ParseHeightToNormal( shader, heightMap, sizeof(heightMap), &bumpScale, script ))
-			return false;
+		MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", tok.string, shader->name );
+		return false;
+	}
 
-		bundle->textures[bundle->numTextures] = R_FindTexture( heightMap, NULL, 0, flags|TF_HEIGHTMAP, bumpScale );
-		if( !bundle->textures[bundle->numTextures] )
-		{
-			MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", heightMap, shader->name );
-			return false;
-		}
-		bundle->numTextures++;
-	}
-	else
-	{
-		bundle->textures[bundle->numTextures] = R_FindTexture( tok.string, NULL, 0, flags, 0 );
-		if( !bundle->textures[bundle->numTextures] )
-		{
-			MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", tok.string, shader->name );
-			return false;
-		}
-		bundle->numTextures++;
-	}
+	bundle->numTextures++;
 	bundle->texType = TEX_GENERIC;
 	bundle->flags |= STAGEBUNDLE_BUMPMAP;
 
@@ -842,7 +826,7 @@ R_ParseStageCubeMap
 static bool R_ParseStageCubeMap( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t	*bundle = stage->bundles[stage->numBundles - 1];
-	uint		flags = TF_CLAMP | TF_CUBEMAP;
+	uint		wrap = TW_CLAMP, filter = 0, flags = 0;
 	token_t		tok;
 
 	if( !GL_Support( R_TEXTURECUBEMAP_EXT ))
@@ -894,17 +878,17 @@ static bool R_ParseStageCubeMap( ref_shader_t *shader, shaderStage_t *stage, scr
 	}
 	else
 	{
-		if(!(shader->flags & SHADER_NOMIPMAPS) && !(bundle->flags & STAGEBUNDLE_NOMIPMAPS))
-			flags |= TF_MIPMAPS;
-		if(!(shader->flags & SHADER_NOPICMIP) && !(bundle->flags & STAGEBUNDLE_NOPICMIP))
-			flags |= TF_IMAGE2D;
-		if(!(shader->flags & SHADER_NOCOMPRESS) && !(bundle->flags & STAGEBUNDLE_NOCOMPRESS))
-			flags |= TF_COMPRESS;
+		if( shader->flags & SHADER_NOMIPMAPS || bundle->flags & STAGEBUNDLE_NOMIPMAPS )
+			filter = TF_LINEAR;
+		if( shader->flags & SHADER_NOPICMIP || bundle->flags & STAGEBUNDLE_NOPICMIP )
+			flags |= TF_NOPICMIP;
+		if( shader->flags & SHADER_NOCOMPRESS || bundle->flags & STAGEBUNDLE_NOCOMPRESS )
+			flags |= TF_UNCOMPRESSED;
 
-		if(bundle->flags & STAGEBUNDLE_CLAMPTEXCOORDS)
-			flags |= TF_CLAMP;
+		if( bundle->flags & STAGEBUNDLE_CLAMPTEXCOORDS)
+			wrap = TW_CLAMP;
 
-		bundle->textures[bundle->numTextures] = R_FindCubeMapTexture( tok.string, flags, 0 );
+		bundle->textures[bundle->numTextures] = R_FindCubeMapTexture( tok.string, NULL, 0, flags, filter, wrap, false );
 		if( !bundle->textures[bundle->numTextures] )
 		{
 			MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", tok.string, shader->name );
@@ -2958,7 +2942,7 @@ R_CreateDefaultShader
 */
 static ref_shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderType, uint surfaceParm )
 {
-	ref_shader_t		*shader;
+	ref_shader_t	*shader;
 	const byte	*buffer = NULL; // default image buffer
 	size_t		bufsize = 0;
 	int		i;
@@ -2981,7 +2965,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, shaderType_t shade
 		{
 			if( shader->skyParms.farBox[i] )
 				shader->skyParms.farBox[i]->flags &= ~TF_STATIC; // old skybox will be removed on next loading
-			shader->skyParms.farBox[i] = R_FindTexture(va("gfx/env/%s%s", shader->name, r_skyBoxSuffix[i]), NULL, 0, TF_CLAMP|TF_SKYSIDE|TF_STATIC, 0 );
+			shader->skyParms.farBox[i] = R_FindTexture(va("gfx/env/%s%s", shader->name, r_skyBoxSuffix[i]), NULL, 0, TF_STATIC, TF_LINEAR, TW_CLAMP );
 			if( !shader->skyParms.farBox[i] )
 			{
 				MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
@@ -2992,7 +2976,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, shaderType_t shade
 		break;
 	case SHADER_TEXTURE:
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
-		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_MIPMAPS|TF_COMPRESS, 0 );
+		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, 0, 0, 0 );
 		if( !shader->stages[0]->bundles[0]->textures[0] )
 		{
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
@@ -3107,7 +3091,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, shaderType_t shade
 		// FIXME: make case SHADER_FONT and func RegisterShaderFont
 		if(com.stristr( shader->name, "fonts/" )) buffer = FS_LoadInternal( "default.dds", &bufsize );
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
-		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_COMPRESS|TF_IMAGE2D, 0 );
+		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_NOPICMIP, TF_LINEAR, 0 );
 		if( !shader->stages[0]->bundles[0]->textures[0] )
 		{
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
@@ -3122,7 +3106,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, shaderType_t shade
 		break;
 	case SHADER_GENERIC:
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
-		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_MIPMAPS|TF_COMPRESS, 0 );
+		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, 0, 0, 0 );
 		if( !shader->stages[0]->bundles[0]->textures[0] )
 		{
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
@@ -3702,7 +3686,7 @@ void R_ShaderRegisterImages( rmodel_t *mod )
 {
 	int		i, j, k, l;
 	int		c_total = 0;
-	ref_shader_t		*shader;
+	ref_shader_t	*shader;
 	shaderStage_t	*stage;
 	stageBundle_t	*bundle;
 	texture_t		*texture;
@@ -3721,7 +3705,7 @@ void R_ShaderRegisterImages( rmodel_t *mod )
 				{
 					// prolonge registration for all shader textures
 					texture = bundle->textures[l];
-					texture->registration_sequence = registration_sequence;
+					texture->touchFrame = registration_sequence;
 					c_total++; // just for debug
 				}
 			}

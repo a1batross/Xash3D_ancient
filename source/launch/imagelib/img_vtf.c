@@ -30,7 +30,7 @@ typedef struct
 	int	numSides;		// must be equal 1 or 7
 } vtex_t;
 
-// NOTE: other VTF formats never used in games based on Source Engine
+// NOTE: not-in list VTF formats never used in games based on Source Engine
 pixformat_t Image_VTFFormat( vtf_format_t srcFormat )
 {
 	switch( srcFormat )
@@ -245,7 +245,7 @@ bool Image_LoadVTF( const char *name, const byte *buffer, size_t filesize )
 	// translate VF_flags into IMAGE_flags
 	flags = LittleLong( vtf.flags );
 	if((flags & VF_ONEBITALPHA) || (flags & VF_EIGHTBITALPHA))
-		image.flags |= IMAGE_HAVE_ALPHA;
+		image.flags |= IMAGE_HAS_ALPHA;
 	if( flags & VF_ENVMAP ) image.flags |= IMAGE_CUBEMAP;
 
 	vtfFormat = LittleLong( vtf.imageFormat );
@@ -276,6 +276,9 @@ bool Image_LoadVTF( const char *name, const byte *buffer, size_t filesize )
 
 	// convert VTF to DXT
 	Image_VTFSwapBuffer( &vtf, fin, resSize, oldformat );
+
+	// FIXME: set IMAGE_HAS_ALPHA and IMAGE_HAS_COLOR properly
+	image.flags |= IMAGE_HAS_COLOR;
 
 	if( Image_ForceDecompress())
 	{

@@ -95,10 +95,14 @@ typedef uint GLhandleARB;
 #define GL_LINE				0x1B01
 #define GL_FILL				0x1B02
 
-extern int gl_support_anisotropy;
-extern int gl_max_anisotropy;
 #define GL_TEXTURE_MAX_ANISOTROPY_EXT		0x84FE
 #define GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT	0x84FF
+
+#define GL_MAX_TEXTURE_LOD_BIAS_EXT		0x84FD
+#define GL_TEXTURE_FILTER_CONTROL_EXT		0x8500
+#define GL_TEXTURE_LOD_BIAS_EXT		0x8501
+
+#define GL_CLAMP_TO_BORDER_ARB		0x812D
 
 #define GL_ADD				0x0104
 #define GL_DECAL				0x2101

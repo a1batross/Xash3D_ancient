@@ -169,8 +169,7 @@ Studio model loader
 */
 texture_t *R_StudioLoadTexture( rmodel_t *mod, dstudiotexture_t *tex, byte *pin )
 {
-	rgbdata_t	*pal, *r_skin;
-	texture_t	*image;
+	rgbdata_t	*pal;
 	size_t	size;
 
 	surfaceParm = 0;
@@ -194,13 +193,9 @@ texture_t *R_StudioLoadTexture( rmodel_t *mod, dstudiotexture_t *tex, byte *pin 
 	tex->index = (int)pin + tex->index;
 	size = sizeof( dstudiotexture_t ) + tex->width * tex->height + 768;
 
-	FS_FileBase( tex->name, tex->name );
-	r_skin = FS_LoadImage( va( "#%s.mdl", tex->name ), (byte *)tex, size );
-
 	// load studio texture and bind it
-	image = R_LoadTexture( tex->name, r_skin, 0, 0 );
-
-	return image;
+	FS_FileBase( tex->name, tex->name );
+	return R_FindTexture( va( "#%s.mdl", tex->name ), (byte *)tex, size, TF_GEN_MIPS, 0, 0 );
 }
 
 dstudiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
@@ -209,8 +204,8 @@ dstudiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
 	byte		*pin;
 	dstudiohdr_t	*phdr;
 	dstudiotexture_t	*ptexture;
-	texture_t		*in;
 	mipTex_t		*out;
+	texture_t		*in;
 	
 	pin = (byte *)buffer;
 	phdr = (dstudiohdr_t *)pin;
@@ -224,13 +219,17 @@ dstudiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
 	ptexture = (dstudiotexture_t *)(pin + phdr->textureindex);
 	if( phdr->textureindex > 0 && phdr->numtextures <= MAXSTUDIOSKINS )
 	{
-		out = mod->shaders = (mipTex_t *)Mem_Alloc( mod->mempool, phdr->numtextures * sizeof(*out));
-		for( i = 0; i < phdr->numtextures; i++, out++ )
+		mod->numShaders = phdr->numtextures;
+		mod->shaders = (mipTex_t *)Mem_Alloc( mod->mempool, sizeof( mipTex_t ) * mod->numShaders );
+
+		for( i = 0; i < phdr->numtextures; i++ )
 		{
 			in = R_StudioLoadTexture( mod, &ptexture[i], pin );
 			R_SetInternalMap( in );
-			com.strncpy( out->name, ptexture->name, 64 );
 			ptexture[i].shader = R_FindShader( ptexture->name, SHADER_STUDIO, surfaceParm );
+
+			out = mod->shaders + i;
+			com.strncpy( out->name, ptexture->name, 64 );
 			out->shader = r_shaders[ptexture[i].shader];
 			out->flags = surfaceParm;
 		}

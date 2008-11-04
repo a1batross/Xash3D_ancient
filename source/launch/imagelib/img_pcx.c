@@ -86,7 +86,7 @@ bool Image_LoadPCX( const char *name, const byte *buffer, size_t filesize )
 	{
 		if( pbuf[i] == 255 )
 		{
-			image.flags |= IMAGE_HAVE_ALPHA; // found alpha channel
+			image.flags |= IMAGE_HAS_ALPHA; // found alpha channel
 			break;
 		}
 	}

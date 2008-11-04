@@ -780,9 +780,12 @@ R_RegisterModel
 */
 rmodel_t *R_RegisterModel( const char *name )
 {
-	rmodel_t	*mod;
+	rmodel_t		*mod;
+	ref_shader_t	*shader;
+	int		i;
 	
 	mod = Mod_ForName( name, false );
+
 	R_ShaderRegisterImages( mod );
 	return mod;
 }

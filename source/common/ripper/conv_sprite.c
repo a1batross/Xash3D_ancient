@@ -179,7 +179,7 @@ void *SPR_ConvertFrame( const char *name, const char *ext, void *pin, int framen
 		fout = Mem_Alloc( basepool, pixels );
 		Mem_Copy( fout, fin, pixels );
 		if( spr.texFormat >= SPR_INDEXALPHA )
-			pix->flags |= IMAGE_HAVE_ALPHA;
+			pix->flags |= IMAGE_HAS_ALPHA;
 		pix->type = PF_RGBA_32;
 		pix->width = width;
 		pix->height = height;

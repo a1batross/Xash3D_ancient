@@ -394,6 +394,12 @@ void GL_InitCommands( void )
 	r_intensity = Cvar_Get( "r_intensity", "1.0", CVAR_ARCHIVE|CVAR_LATCH, "textures upload intentsity" );
 	r_texturefilter = Cvar_Get( "gl_texturefilter", "GL_LINEAR_MIPMAP_LINEAR", CVAR_ARCHIVE, "texture filter" );
 	r_texturefilteranisotropy = Cvar_Get( "r_anisotropy", "2.0", CVAR_ARCHIVE, "textures anisotropic filter" );
+	r_texturelodbias = Cvar_Get( "r_texture_lodbias", "0.0", CVAR_ARCHIVE, "LOD bias for mipmapped textures" );
+	r_max_texsize = Cvar_Get( "r_max_texsize", "512", CVAR_ARCHIVE|CVAR_LATCH, "maximum size for down sized textures" );
+	r_max_normal_texsize = Cvar_Get( "r_max_normal_texsize", "256", CVAR_ARCHIVE|CVAR_LATCH, "maximum size for down sized normal map textures" );
+	r_compress_textures = Cvar_Get( "r_compress_textures", "0", CVAR_ARCHIVE|CVAR_LATCH, "compress textures" );
+	r_compress_normal_textures = Cvar_Get( "r_compress_normal_textures", "0", CVAR_ARCHIVE|CVAR_LATCH, "compress normal map textures" );
+	r_round_down = Cvar_Get( "r_round_down", "0", CVAR_ARCHIVE|CVAR_LATCH, "down size non-power of two textures" );
 	r_detailtextures = Cvar_Get( "r_detailtextures", "0", CVAR_ARCHIVE|CVAR_LATCH, "allow detail textures" );
 
 	r_swapInterval = Cvar_Get ("gl_swapinterval", "0", CVAR_ARCHIVE, "time beetween frames (in msec)" );
@@ -611,7 +617,12 @@ void GL_InitExtensions( void )
 	if(!GL_Support( R_CLAMPTOEDGE_EXT )) GL_CheckExtension("GL_SGIS_texture_edge_clamp", NULL, "gl_clamp_to_edge", R_CLAMPTOEDGE_EXT );
 
 	GL_CheckExtension( "GL_EXT_texture_filter_anisotropic", NULL, "gl_texture_anisotropy", R_ANISOTROPY_EXT );
-	if(GL_Support( R_ANISOTROPY_EXT )) pglGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &gl_config.max_anisotropy );
+	if(GL_Support( R_ANISOTROPY_EXT )) pglGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &gl_config.max_anisotropy );
+
+	GL_CheckExtension( "GL_EXT_texture_lod_bias", NULL, "gl_ext_texture_lodbias", R_TEXTURE_LODBIAS );
+	if(GL_Support( R_TEXTURE_LODBIAS )) pglGetFloatv( GL_MAX_TEXTURE_LOD_BIAS_EXT, &gl_config.max_lodbias );
+
+	GL_CheckExtension( "GL_ARB_texture_border_clamp", NULL, "gl_ext_texborder_clamp", R_CLAMP_TEXBORDER_EXT );
 
 	GL_CheckExtension( "GL_EXT_blend_minmax", blendequationfuncs, "gl_ext_customblend", R_BLEND_MINMAX_EXT );
 	GL_CheckExtension( "GL_EXT_blend_subtract", blendequationfuncs, "gl_ext_customblend", R_BLEND_SUBTRACT_EXT );

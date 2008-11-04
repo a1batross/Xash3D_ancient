@@ -649,7 +649,7 @@ static void R_UploadLightmap( void )
 	r_generic.size = r_generic.width * r_generic.height * 4;
 	r_generic.numMips = 1;
 	r_generic.buffer = (byte *)r_lmState.buffer;
-	r_lightmapTextures[r_lmState.currentNum++] = R_LoadTexture( name, &r_generic, TF_CLAMP, 0 );
+	r_lightmapTextures[r_lmState.currentNum++] = R_LoadTexture( name, &r_generic, 3, 0, 0, TW_CLAMP );
 
 	// reset
 	Mem_Set( r_lmState.allocated, 0, sizeof( r_lmState.allocated ));

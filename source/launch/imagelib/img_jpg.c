@@ -426,29 +426,27 @@ void jpeg_ycbcr2rgba( void )
 	int i, Y, Cb, Cr, R, G, B;
 
 	// convert YCbCr image to RGBA
-	for(i = 0; i < jpg_file.width * jpg_file.height << 2; i += 4)
+	for( i = 0; i < jpg_file.width * jpg_file.height << 2; i += 4 )
 	{
-		Y  = jpg_file.data[i + 0];
-		Cb = jpg_file.data[i + 1] - 128;
-		Cr = jpg_file.data[i + 2] - 128;
+		Y  = jpg_file.data[i+0];
+		Cb = jpg_file.data[i+1] - 128;
+		Cr = jpg_file.data[i+2] - 128;
 
 		R = Y + 1.40200 * Cr;
 		G = Y - 0.34414 * Cb - 0.71414 * Cr;
 		B = Y + 1.77200 * Cb;
 
 		// bound colors
-		if(R < 0) R = 0;
-		else if(R > 255) R = 255;
-		if(G < 0) G = 0;
-		else if(G > 255) G = 255;
-		if(B < 0) B = 0;
-		else if(B > 255) B = 255;
+		R = bound( 0, R, 255 );
+		G = bound( 0, G, 255 );
+		B = bound( 0, B, 255 );
 
-		jpg_file.data[i + 0] = R;
-		jpg_file.data[i + 1] = G;
-		jpg_file.data[i + 2] = B;
-		jpg_file.data[i + 3] = 0xff;	// no alpha channel
+		jpg_file.data[i+0] = R;
+		jpg_file.data[i+1] = G;
+		jpg_file.data[i+2] = B;
+		jpg_file.data[i+3] = 0xff;	// no alpha channel
 	}
+	image.flags |= IMAGE_HAS_COLOR;
 }
 
 void jpeg_gray2rgba( void )
@@ -459,10 +457,10 @@ void jpeg_gray2rgba( void )
 	for(i = 0; i < jpg_file.width * jpg_file.height << 2; i += 4)
 	{
 		j = jpg_file.data[i];
-		jpg_file.data[i + 0] = j;
-		jpg_file.data[i + 1] = j;
-		jpg_file.data[i + 2] = j;
-		jpg_file.data[i + 3] = 0xff;
+		jpg_file.data[i+0] = j;
+		jpg_file.data[i+1] = j;
+		jpg_file.data[i+2] = j;
+		jpg_file.data[i+3] = 0xff;
 	}
 }
 

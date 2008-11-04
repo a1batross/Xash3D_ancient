@@ -130,11 +130,19 @@ SOURCE=.\r_draw.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\r_image.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\r_light.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\r_main.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_misc.c
 # End Source File
 # Begin Source File
 
@@ -167,10 +175,6 @@ SOURCE=.\r_studio.c
 # Begin Source File
 
 SOURCE=.\r_surface.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\r_texture.c
 # End Source File
 # Begin Source File
 

@@ -85,7 +85,7 @@ bool Image_LoadMDL( const char *name, const byte *buffer, size_t filesize )
 	{
 		if( image.d_rendermode != LUMP_TRANSPARENT )
 			MsgDev( D_WARN, "Image_LoadMDL: (%s) using normal palette for alpha-skin\n", pin->name );
-		image.flags |= IMAGE_HAVE_ALPHA;
+		image.flags |= IMAGE_HAS_ALPHA;
 	}
 	fin = (byte *)pin->index;	// setup buffer
 
@@ -104,7 +104,7 @@ Image_LoadSPR
 bool Image_LoadSPR( const char *name, const byte *buffer, size_t filesize )
 {
 	dspriteframe_t	*pin;	// indetical for q1\hl sprites
-	
+
 	if( image.hint == IL_HINT_HL )
 	{
 		if( !image.d_currentpal )
@@ -136,7 +136,7 @@ bool Image_LoadSPR( const char *name, const byte *buffer, size_t filesize )
 
 	// detect alpha-channel by palette type
 	if( image.d_rendermode == LUMP_DECAL || image.d_rendermode == LUMP_TRANSPARENT )
-		image.flags |= IMAGE_HAVE_ALPHA;
+		image.flags |= IMAGE_HAS_ALPHA;
 
 	return FS_AddMipmapToPack( (byte *)(pin + 1), image.width, image.height );
 }
@@ -259,13 +259,13 @@ bool Image_LoadFLT( const char *name, const byte *buffer, size_t filesize )
 	}
 
 	// yes it's really transparent texture
-	// otherwise transparency it's product of lazy designers (or painters ?)
-	if( trans_pixels > TRANS_THRESHOLD ) image.flags |= IMAGE_HAVE_ALPHA;
+	// otherwise transparency it's a product of lazy designers (or painters ?)
+	if( trans_pixels > TRANS_THRESHOLD ) image.flags |= IMAGE_HAS_ALPHA;
 
 	image.type = PF_INDEXED_32;	// 32-bit palete
 	Image_GetPaletteD1();
 
-	// move 247 color to 255 position
+	// also swap palette colors: from 247 to 255
 	if( image.d_currentpal )
 	{
 		byte	temp[4];
@@ -311,7 +311,7 @@ bool Image_LoadLMP( const char *name, const byte *buffer, size_t filesize )
 	if( image.hint != IL_HINT_HL && com.stristr( name, "conchars" ))
 	{
 		image.width = image.height = 128;
-		image.flags |= IMAGE_HAVE_ALPHA;
+		image.flags |= IMAGE_HAS_ALPHA;
 		rendermode = LUMP_QFONT;
 		filesize += sizeof(lmp);
 		fin = (byte *)buffer;
@@ -348,7 +348,7 @@ bool Image_LoadLMP( const char *name, const byte *buffer, size_t filesize )
 	}
 	else if( image.hint != IL_HINT_HL ) pal = NULL;
 	else return false; // unknown mode rejected
-	if( fin[0] == 255 ) image.flags |= IMAGE_HAVE_ALPHA;
+	if( fin[0] == 255 ) image.flags |= IMAGE_HAS_ALPHA;
 
 	Image_GetPaletteLMP( pal, rendermode );
 	image.type = PF_INDEXED_32;	// 32-bit palete
@@ -380,6 +380,7 @@ bool Image_LoadMIP( const char *name, const byte *buffer, size_t filesize )
 	Mem_Copy( &mip, buffer, sizeof(mip));
 	image.width = LittleLong(mip.width);
 	image.height = LittleLong(mip.height);
+	if(!Image_ValidSize( name )) return false;
 	for(i = 0; i < 4; i++) ofs[i] = LittleLong(mip.offsets[i]);
 	pixels = image.width * image.height;
 	image.num_layers = 1;
@@ -400,7 +401,7 @@ bool Image_LoadMIP( const char *name, const byte *buffer, size_t filesize )
 			// qlumpy used this color for transparent textures, otherwise it's decals
  			if( pal[255*3+0] == 0 && pal[255*3+1] == 0 && pal[255*3+2] == 255 );
 			else image.flags |= IMAGE_COLORINDEX;
-			image.flags |= IMAGE_HAVE_ALPHA;
+			image.flags |= IMAGE_HAS_ALPHA;
 		}
 		else rendermode = LUMP_NORMAL;
 	}
@@ -418,7 +419,6 @@ bool Image_LoadMIP( const char *name, const byte *buffer, size_t filesize )
 		return false; // unknown or unsupported mode rejected
 	} 
 
-	if(!Image_ValidSize( name )) return false;
 	Image_GetPaletteLMP( pal, rendermode );
 	image.type = PF_INDEXED_32;	// 32-bit palete
 	return FS_AddMipmapToPack( fin, image.width, image.height );

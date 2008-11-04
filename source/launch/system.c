@@ -25,7 +25,7 @@ dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, true, siz
 dll_info_t viewer_dll = { "viewer.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t baserc_dll = { "baserc.dll", NULL, "CreateAPI", NULL, NULL, false, sizeof(baserc_exp_t)};
 
-static const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t\
+static const char *show_credits = "\n\n\n\n\tCopyright XashXT Group %s ©\n\t\
           All Rights Reserved\n\n\t           Visit www.xash.ru\n";
 
 // stubs
@@ -425,7 +425,7 @@ void Sys_CreateInstance( void )
 		}
 		break;
 	case HOST_CREDITS:
-		Sys_Break( show_credits );
+		Sys_Break( show_credits, com_timestamp( TIME_YEAR_ONLY ));
 		break;
 	case HOST_OFFLINE:
 		Sys_Break( "Host offline\n" );		
