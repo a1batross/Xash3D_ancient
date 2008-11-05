@@ -572,7 +572,7 @@ void ParseRawBrush( void )
 			Com_ReadLong( mapfile, false, &side->surfaceFlags );
 			Com_ReadLong( mapfile, false, &side->value );
 		}
-		if(( g_TXcommand == '1' || g_TXcommand == '2' ))
+		if(( mapfile->TXcommand == '1' || mapfile->TXcommand == '2' ))
 		{
 			// We are QuArK mode and need to translate some numbers to align textures its way
 			// from QuArK, the texture vectors are given directly from the three points
@@ -581,7 +581,7 @@ void ParseRawBrush( void )
 			int             k;
 
 			g_brushtype = BRUSH_QUARK;
-			k = g_TXcommand - '0';
+			k = mapfile->TXcommand - '0';
 			for( j = 0; j < 3; j++ )
 			{
 				TexPt[1][j] = (planepts[k][j] - planepts[0][j]) * (1.0/128.0);

@@ -4,46 +4,47 @@
 //=======================================================================
 
 #include "r_local.h"
+#include "mathlib.h"
 #include "const.h"
 
-#define SHADERS_HASHSIZE		256
+// FIXME: remove it
+const char *r_skyBoxSuffix[6] = { "rt", "lf", "bk", "ft", "up", "dn" };
+static texture_t		*r_internalMiptex;
+
 
 typedef struct
 {
-	const char		*name;
-	int			surfaceFlags;
-	int			contents;
+	const char	*name;
+	int		surfaceFlags;
+	int		contents;
 } shaderParm_t;
 
-typedef struct shaderScript_s
+typedef struct ref_script_s
 {
-	struct shaderScript_s	*nextHash;
-	string			name;
-	shaderType_t		shaderType;
-	uint			surfaceParm;
-	int			contents;
-	script_t			*script;
-} shaderScript_t;
+	string		name;
+	shaderType_t	type;
+	uint		surfaceParm;
+	string		source;
+	int		line;
+	char		*buffer;
+	size_t		size;
+	struct ref_script_s	*nextHash;
+} ref_script_t;
 
-const char *r_skyBoxSuffix[6] = {"rt", "lf", "bk", "ft", "up", "dn"};
+static byte		*r_shaderpool;
 static ref_shader_t		r_parseShader;
 static shaderStage_t	r_parseShaderStages[SHADER_MAX_STAGES];
+static statement_t		r_parseShaderOps[MAX_EXPRESSION_OPS];
+static float		r_parseShaderExpressionRegisters[MAX_EXPRESSION_REGISTERS];
 static stageBundle_t	r_parseStageTMU[SHADER_MAX_STAGES][MAX_TEXTURE_UNITS];
 
-static shaderScript_t	*r_shaderScriptsHash[SHADERS_HASHSIZE];
-static ref_shader_t		*r_shadersHash[SHADERS_HASHSIZE];
-static texture_t		*r_internalMiptex;
-
-ref_shader_t			*r_shaders[MAX_SHADERS];
+static table_t		*r_tablesHashTable[TABLES_HASH_SIZE];
+static ref_script_t		*r_shaderScriptsHash[SHADERS_HASH_SIZE];
+static ref_shader_t		*r_shadersHash[SHADERS_HASH_SIZE];
+static table_t		*r_tables[MAX_TABLES];
+static int		r_numTables;
+ref_shader_t		*r_shaders[MAX_SHADERS];
 int			r_numShaders = 0;
-byte			*r_shaderpool;
-
-// builtin shaders
-ref_shader_t *r_defaultShader;
-ref_shader_t *r_lightmapShader;
-ref_shader_t *r_waterCausticsShader;
-ref_shader_t *r_slimeCausticsShader;
-ref_shader_t *r_lavaCausticsShader;
 
 shaderParm_t infoParms[] =
 {
@@ -93,7 +94,929 @@ shaderParm_t infoParms[] =
 /*
 =======================================================================
 
-SHADER PARSING
+ TABLE PARSING
+
+=======================================================================
+*/
+/*
+=================
+R_LoadTable
+=================
+*/
+static void R_LoadTable( const char *name, bool clamp, bool snap, size_t size, float *values )
+{
+	table_t	*table;
+	uint	hash;
+
+	if( r_numTables == MAX_TABLES )
+		Host_Error( "R_LoadTable: MAX_TABLES limit exceeds\n" );
+
+	// fill it in
+	r_tables[r_numTables++] = table = Mem_Alloc( r_shaderpool, sizeof( table_t ));
+	com.strncpy( table->name, name, sizeof( table->name ));
+	table->index = r_numTables - 1;
+	table->clamp = clamp;
+	table->snap = snap;
+	table->size = size;
+
+	table->values = Mem_Alloc( r_shaderpool, size * sizeof( float ));
+	Mem_Copy( table->values, values, size * sizeof( float ));
+
+	// add to hash table
+	hash = Com_HashKey( table->name, TABLES_HASH_SIZE );
+	table->nextHash = r_tablesHashTable[hash];
+	r_tablesHashTable[hash] = table;
+}
+
+/*
+=================
+R_FindTable
+=================
+*/
+static table_t *R_FindTable( const char *name )
+{
+	table_t	*table;
+	uint	hash;
+
+	if( !name || !name[0] ) return NULL;
+	if( com.strlen( name ) >= MAX_STRING )
+		Host_Error( "R_FindTable: table name exceeds %i symbols\n", MAX_STRING );
+
+	// see if already loaded
+	hash = Com_HashKey( name, TABLES_HASH_SIZE );
+
+	for( table = r_tablesHashTable[hash]; table; table = table->nextHash )
+	{
+		if( !com.stricmp( table->name, name ))
+			return table;
+	}
+	return NULL;
+}
+
+/*
+=================
+R_ParseTable
+=================
+*/
+static bool R_ParseTable( script_t *script, bool clamp, bool snap )
+{
+	token_t	token;
+	string	name;
+	size_t	size = 0, bufsize = 0;
+	bool	variable = false;
+	float	*values = NULL;
+
+	if( !Com_ReadToken( script, SC_ALLOW_NEWLINES, &token ))
+	{
+		MsgDev( D_WARN, "missing table name\n" );
+		return false;
+	}
+
+	com.strncpy( name, token.string, sizeof( name ));
+
+	Com_ReadToken( script, false, &token );
+	if( com.stricmp( token.string, "[" ))
+	{
+		MsgDev( D_WARN, "expected '[', found '%s' instead in table '%s'\n", token.string, name );
+		return false;
+	}
+
+	Com_ReadToken( script, false, &token );
+	if( com.stricmp( token.string, "]" ))
+	{
+		bufsize = com.atoi( token.string );
+		if( bufsize <= 0 )
+		{
+			MsgDev( D_WARN, "'%s' have invalid size\n", name );
+			return false;
+		}
+
+		// reserve one slot to avoid corrupt memory
+		values = Mem_Alloc( r_shaderpool, sizeof( float ) * (bufsize + 1)); 
+		Com_ReadToken( script, false, &token );
+		if( com.stricmp( token.string, "]" ))
+		{
+			MsgDev( D_WARN, "expected ']', found '%s' instead in table '%s'\n", token.string, name );
+			return false;
+		}
+	}
+	else variable = true; // variable sized
+
+	Com_ReadToken( script, false, &token );
+	if( com.stricmp( token.string, "=" ))
+	{
+		MsgDev( D_WARN, "expected '=', found '%s' instead in table '%s'\n", token.string, name );
+		return false;
+	}
+
+	// parse values now
+	while( 1 )
+	{
+		if( !Com_ReadToken( script, SC_ALLOW_NEWLINES, &token ))
+		{
+			MsgDev( D_WARN, "missing parameters for table '%s'\n", name );
+			return false;
+		}
+
+		if( com.stricmp( token.string, "{" ))
+		{
+			MsgDev( D_WARN, "expected '{', found '%s' instead in table '%s'\n", token.string, name );
+			return false;
+		}
+
+		while( 1 )
+		{
+			if( size >= bufsize )
+			{
+				if( variable )
+				{
+					bufsize = size + 8;
+					values = Mem_Realloc( r_shaderpool, values, sizeof(float) * bufsize );
+				}
+				else if( size > bufsize )
+				{
+					MsgDev( D_WARN, "'%s' too many initializers\n", name );
+					if( values ) Mem_Free( values );
+					return false;
+				}
+			}
+
+			if( size != 0 )
+			{
+				Com_ReadToken( script, SC_ALLOW_NEWLINES, &token );
+				if( !com.stricmp( token.string, "}" )) break; // end
+				else if( !com.stricmp( token.string, ";" ))
+				{
+					// save token, to let grab semicolon properly
+					Com_SaveToken( script, &token );
+					break;
+				}
+				else if( com.stricmp( token.string, "," ))
+				{
+					MsgDev( D_WARN, "expected ',', found '%s' instead in table '%s'\n", token.string, name );
+					if( values ) Mem_Free( values );
+					return false;
+				}
+			}
+
+			if( !Com_ReadFloat( script, SC_ALLOW_NEWLINES, &values[size] ))
+			{
+				if( size != 0 ) continue; // probably end of the table
+				else
+				{
+					MsgDev( D_WARN, "'%s' is empty table\n", name );
+					if( values ) Mem_Free( values );
+					return false; // empty table ?
+				}
+			}
+			size++;
+		}
+		break;
+	}
+
+	// check sizes
+	if( !variable && size < bufsize )
+		MsgDev( D_WARN, "'%s' have explicit size %i, but real size is %i\n", name, bufsize, size );
+
+	Com_ReadToken( script, SC_ALLOW_NEWLINES, &token );
+	if( com.stricmp( token.string, ";" ))
+	{
+		MsgDev( D_WARN, "'%s' missing seimcolon at end of table definition\n", name );
+		Com_SaveToken( script, &token );
+	}
+
+	// register new table
+	R_LoadTable( name, clamp, snap, size, values );
+	return true;
+}
+
+/*
+=================
+R_LookupTable
+=================
+*/
+static float R_LookupTable( int tableIndex, float index )
+{
+	table_t	*table;
+	float	frac, value;
+	uint	curIndex, oldIndex;
+
+	if( tableIndex < 0 || tableIndex >= r_numTables )
+		Host_Error( "R_LookupTable: out of range\n" );
+
+	table = r_tables[tableIndex];
+
+	index *= table->size;
+	frac = index - floor(index);
+
+	curIndex = (uint)index + 1;
+	oldIndex = (uint)index;
+
+	if( table->clamp )
+	{
+		curIndex = bound( 0, curIndex, table->size - 1 );
+		oldIndex = bound( 0, oldIndex, table->size - 1 );
+	}
+	else
+	{
+		curIndex %= table->size;
+		oldIndex %= table->size;
+	}
+
+	if( table->snap ) value = table->values[oldIndex];
+	else value = table->values[oldIndex] + (table->values[curIndex] - table->values[oldIndex]) * frac;
+
+	return value;
+}
+
+/*
+=======================================================================
+
+SHADER EXPRESSION PARSING
+
+=======================================================================
+*/
+#define MAX_EXPRESSION_VALUES			64
+#define MAX_EXPRESSION_OPERATORS		64
+
+typedef struct expValue_s
+{
+	int		expressionRegister;
+
+	int		brackets;
+	int		parentheses;
+
+	struct expValue_s	*prev;
+	struct expValue_s	*next;
+} expValue_t;
+
+typedef struct expOperator_s
+{
+	opType_t		opType;
+	int		priority;
+
+	int		brackets;
+	int		parentheses;
+
+	struct expOperator_s *prev;
+	struct expOperator_s *next;
+} expOperator_t;
+
+typedef struct
+{
+	int		numValues;
+	expValue_t	values[MAX_EXPRESSION_VALUES];
+	expValue_t	*firstValue;
+	expValue_t	*lastValue;
+
+	int		numOperators;
+	expOperator_t	operators[MAX_EXPRESSION_OPERATORS];
+	expOperator_t	*firstOperator;
+	expOperator_t	*lastOperator;
+
+	int		brackets;
+	int		parentheses[MAX_EXPRESSION_VALUES + MAX_EXPRESSION_OPERATORS];
+
+	int		resultRegister;
+} shaderExpression_t;
+
+static shaderExpression_t	r_shaderExpression;
+
+static bool R_ParseExpressionValue( script_t *script, ref_shader_t *shader );
+static bool R_ParseExpressionOperator( script_t *script, ref_shader_t *shader );
+
+/*
+=================
+R_GetExpressionConstant
+=================
+*/
+static bool R_GetExpressionConstant( float value, ref_shader_t *shader, int *expressionRegister )
+{
+	if( shader->numRegisters == MAX_EXPRESSION_REGISTERS )
+	{
+		MsgDev( D_WARN, "MAX_EXPRESSION_REGISTERS hit in shader '%s'\n", shader->name );
+		return false;
+	}
+
+	shader->expressions[shader->numRegisters] = value;
+	*expressionRegister = r_shaderExpression.resultRegister = shader->numRegisters++;
+
+	return true;
+}
+
+/*
+=================
+R_GetExpressionTemporary
+=================
+*/
+static bool R_GetExpressionTemporary( ref_shader_t *shader, int *expressionRegister )
+{
+	if( shader->numRegisters == MAX_EXPRESSION_REGISTERS )
+	{
+		MsgDev( D_WARN, "MAX_EXPRESSION_REGISTERS hit in shader '%s'\n", shader->name );
+		return false;
+	}
+
+	shader->expressions[shader->numRegisters] = 0.0;
+	*expressionRegister = r_shaderExpression.resultRegister = shader->numRegisters++;
+
+	return true;
+}
+
+/*
+=================
+R_EmitExpressionOp
+=================
+*/
+static bool R_EmitExpressionOp( opType_t opType, int a, int b, int c, ref_shader_t *shader )
+{
+	statement_t	*op;
+
+	if( shader->numstatements == MAX_EXPRESSION_OPS )
+	{
+		MsgDev( D_WARN, "MAX_EXPRESSION_OPS hit in shader '%s'\n", shader->name );
+		return false;
+	}
+
+	op = &shader->statements[shader->numstatements++];
+	op->opType = opType;
+	op->a = a;
+	op->b = b;
+	op->c = c;
+
+	return true;
+}
+
+/*
+=================
+R_AddExpressionValue
+=================
+*/
+static bool R_AddExpressionValue( int expressionRegister, ref_shader_t *shader )
+{
+	expValue_t	*v;
+
+	if( r_shaderExpression.numValues == MAX_EXPRESSION_VALUES )
+	{
+		MsgDev( D_WARN, "MAX_EXPRESSION_VALUES hit for expression in material '%s'\n", shader->name );
+		return false;
+	}
+
+	v = &r_shaderExpression.values[r_shaderExpression.numValues++];
+	v->expressionRegister = expressionRegister;
+	v->brackets = r_shaderExpression.brackets;
+	v->parentheses = r_shaderExpression.parentheses[r_shaderExpression.brackets];
+	v->next = NULL;
+	v->prev = r_shaderExpression.lastValue;
+
+	if (r_shaderExpression.lastValue)
+		r_shaderExpression.lastValue->next = v;
+	else
+		r_shaderExpression.firstValue = v;
+
+	r_shaderExpression.lastValue = v;
+
+	return true;
+}
+
+/*
+=================
+R_AddExpressionOperator
+=================
+*/
+static bool R_AddExpressionOperator (opType_t opType, int priority, ref_shader_t *shader){
+
+	expOperator_t	*o;
+
+	if (r_shaderExpression.numOperators == MAX_EXPRESSION_OPERATORS){
+		MsgDev( D_WARN, "MAX_EXPRESSION_OPERATORS hit for expression in material '%s'\n", shader->name);
+		return false;
+	}
+
+	o = &r_shaderExpression.operators[r_shaderExpression.numOperators++];
+
+	o->opType = opType;
+	o->priority = priority;
+	o->brackets = r_shaderExpression.brackets;
+	o->parentheses = r_shaderExpression.parentheses[r_shaderExpression.brackets];
+	o->next = NULL;
+	o->prev = r_shaderExpression.lastOperator;
+
+	if (r_shaderExpression.lastOperator)
+		r_shaderExpression.lastOperator->next = o;
+	else
+		r_shaderExpression.firstOperator = o;
+
+	r_shaderExpression.lastOperator = o;
+
+	return true;
+}
+
+/*
+=================
+R_ParseExpressionValue
+=================
+*/
+static bool R_ParseExpressionValue( script_t *script, ref_shader_t *shader )
+{
+	token_t	token;
+	table_t	*table;
+	int	expressionRegister;
+
+	// a newline separates commands
+	if( !Com_ReadToken( script, 0, &token ))
+	{
+		MsgDev( D_WARN, "unexpected end of expression in material '%s'\n", shader->name );
+		return false;
+	}
+
+	// a comma separates arguments
+	if( !com.stricmp( token.string, "," ))
+	{
+		MsgDev( D_WARN, "unexpected end of expression in material '%s'\n", shader->name );
+		return false;
+	}
+
+	// add a new value
+	if( token.type != TT_NUMBER && token.type != TT_NAME && token.type != TT_PUNCTUATION )
+	{
+		MsgDev( D_WARN, "invalid value '%s' for expression in shader '%s'\n", token.string, shader->name );
+		return false;
+	}
+
+	switch( token.type )
+	{
+	case TT_NUMBER:
+		// it's a constant
+		if( !R_GetExpressionConstant( token.floatValue, shader, &expressionRegister ))
+			return false;
+		if( !R_AddExpressionValue( expressionRegister, shader ))
+			return false;
+		break;
+	case TT_NAME:
+		// check for a table
+		table = R_FindTable( token.string );
+		if( table )
+		{
+			// the next token should be an opening bracket
+			Com_ReadToken( script, 0, &token);
+			if( com.stricmp( token.string, "[" ))
+			{
+				MsgDev( D_WARN, "expected '[', found '%s' instead for expression in shader '%s'\n", token.string, shader->name );
+				return false;
+			}
+
+			r_shaderExpression.brackets++;
+
+			if( !R_AddExpressionValue( table->index, shader ))
+				return false;
+			if( !R_AddExpressionOperator( OP_TYPE_TABLE, 0, shader ))
+				return false;
+
+			// we still expect a value
+			return R_ParseExpressionValue( script, shader );
+		}
+
+		// check for a variable
+		if( !com.stricmp( token.string, "glPrograms" ))
+		{
+			if( GL_Support( R_VERTEX_PROGRAM_EXT ) && GL_Support( R_FRAGMENT_PROGRAM_EXT ))
+			{
+				r_shaderExpression.resultRegister = EXP_REGISTER_ONE;
+
+				if( !R_AddExpressionValue(EXP_REGISTER_ONE, shader ))
+					return false;
+			}
+			else
+			{
+				r_shaderExpression.resultRegister = EXP_REGISTER_ZERO;
+
+				if( !R_AddExpressionValue(EXP_REGISTER_ZERO, shader ))
+					return false;
+			}
+		}
+		else if( !com.stricmp( token.string, "time" ))
+		{
+			r_shaderExpression.resultRegister = EXP_REGISTER_TIME;
+
+			if( !R_AddExpressionValue( EXP_REGISTER_TIME, shader ))
+				return false;
+		}
+		else if( !com.stricmp( token.string, "parm0" ))
+		{
+			r_shaderExpression.resultRegister = EXP_REGISTER_PARM0;
+
+			if( !R_AddExpressionValue( EXP_REGISTER_PARM0, shader ))
+				return false;
+		}
+		else if( !com.stricmp( token.string, "parm1" ))
+		{
+			r_shaderExpression.resultRegister = EXP_REGISTER_PARM1;
+
+			if( !R_AddExpressionValue( EXP_REGISTER_PARM1, shader ))
+				return false;
+		}
+		else if( !com.stricmp( token.string, "parm2" ))
+		{
+			r_shaderExpression.resultRegister = EXP_REGISTER_PARM2;
+
+			if( !R_AddExpressionValue(EXP_REGISTER_PARM2, shader ))
+				return false;
+		}
+		else if( !com.stricmp( token.string, "parm3" ))
+		{
+			r_shaderExpression.resultRegister = EXP_REGISTER_PARM3;
+
+			if( !R_AddExpressionValue(EXP_REGISTER_PARM3, shader ))
+				return false;
+		}
+		else if( !com.stricmp( token.string, "parm4"))
+		{
+			r_shaderExpression.resultRegister = EXP_REGISTER_PARM4;
+
+			if( !R_AddExpressionValue(EXP_REGISTER_PARM4, shader ))
+				return false;
+		}
+		else if( !com.stricmp( token.string, "parm5"))
+		{
+			r_shaderExpression.resultRegister = EXP_REGISTER_PARM5;
+
+			if( !R_AddExpressionValue(EXP_REGISTER_PARM5, shader ))
+				return false;
+		}
+		else if( !com.stricmp( token.string, "parm6"))
+		{
+			r_shaderExpression.resultRegister = EXP_REGISTER_PARM6;
+
+			if( !R_AddExpressionValue(EXP_REGISTER_PARM6, shader ))
+				return false;
+		}
+		else if( !com.stricmp( token.string, "parm7"))
+		{
+			r_shaderExpression.resultRegister = EXP_REGISTER_PARM7;
+
+			if( !R_AddExpressionValue(EXP_REGISTER_PARM7, shader ))
+				return false;
+		}
+		else if( !com.stricmp( token.string, "global0"))
+		{
+			r_shaderExpression.resultRegister = EXP_REGISTER_GLOBAL0;
+
+			if( !R_AddExpressionValue(EXP_REGISTER_GLOBAL0, shader ))
+				return false;
+		}
+		else if( !com.stricmp( token.string, "global1"))
+		{
+			r_shaderExpression.resultRegister = EXP_REGISTER_GLOBAL1;
+
+			if( !R_AddExpressionValue(EXP_REGISTER_GLOBAL1, shader ))
+				return false;
+		}
+		else if( !com.stricmp( token.string, "global2"))
+		{
+			r_shaderExpression.resultRegister = EXP_REGISTER_GLOBAL2;
+
+			if( !R_AddExpressionValue(EXP_REGISTER_GLOBAL2, shader ))
+				return false;
+		}
+		else if( !com.stricmp( token.string, "global3"))
+		{
+			r_shaderExpression.resultRegister = EXP_REGISTER_GLOBAL3;
+
+			if( !R_AddExpressionValue(EXP_REGISTER_GLOBAL3, shader ))
+				return false;
+		}
+		else if( !com.stricmp( token.string, "global4"))
+		{
+			r_shaderExpression.resultRegister = EXP_REGISTER_GLOBAL4;
+
+			if( !R_AddExpressionValue(EXP_REGISTER_GLOBAL4, shader ))
+				return false;
+		}
+		else if( !com.stricmp( token.string, "global5"))
+		{
+			r_shaderExpression.resultRegister = EXP_REGISTER_GLOBAL5;
+
+			if( !R_AddExpressionValue(EXP_REGISTER_GLOBAL5, shader ))
+				return false;
+		}
+		else if( !com.stricmp( token.string, "global6"))
+		{
+			r_shaderExpression.resultRegister = EXP_REGISTER_GLOBAL6;
+
+			if( !R_AddExpressionValue(EXP_REGISTER_GLOBAL6, shader ))
+				return false;
+		}
+		else if( !com.stricmp( token.string, "global7"))
+		{
+			r_shaderExpression.resultRegister = EXP_REGISTER_GLOBAL7;
+
+			if( !R_AddExpressionValue(EXP_REGISTER_GLOBAL7, shader ))
+				return false;
+		}
+		else
+		{
+			MsgDev( D_WARN, "invalid value '%s' for expression in shader '%s'\n", token.string, shader->name );
+			return false;
+		}
+		break;
+	case TT_PUNCTUATION:
+		// check for an opening parenthesis
+		if( !com.stricmp( token.string, "("))
+		{
+			r_shaderExpression.parentheses[r_shaderExpression.brackets]++;
+
+			// We still expect a value
+			return R_ParseExpressionValue(script, shader);
+		}
+
+		// check for a minus operator before a constant
+		if( !com.stricmp( token.string, "-"))
+		{
+			if( !Com_ReadToken( script, 0, &token))
+			{
+				MsgDev( D_WARN, "unexpected end of expression in shader '%s'\n", shader->name );
+				return false;
+			}
+			if( token.type != TT_NUMBER )
+			{
+				MsgDev( D_WARN, "invalid value '%s' for expression in shader '%s'\n", token.string, shader->name );
+				return false;
+			}
+			if( !R_GetExpressionConstant(-token.floatValue, shader, &expressionRegister ))
+				return false;
+
+			if( !R_AddExpressionValue(expressionRegister, shader ))
+				return false;
+		}
+		else
+		{
+			MsgDev( D_WARN, "invalid value '%s' for expression in shader '%s'\n", token.string, shader->name );
+			return false;
+		}
+		break;
+	}
+
+	// we now expect an operator
+	return R_ParseExpressionOperator( script, shader );
+}
+
+/*
+=================
+R_ParseExpressionOperator
+=================
+*/
+static bool R_ParseExpressionOperator( script_t *script, ref_shader_t *shader )
+{
+	token_t	token;
+
+	// a newline separates commands
+	if( !Com_ReadToken( script, 0, &token ))
+	{
+		if( r_shaderExpression.brackets )
+		{
+			MsgDev( D_WARN, "no matching ']' for expression in shader '%s'\n", shader->name );
+			return false;
+		}
+
+		if( r_shaderExpression.parentheses[r_shaderExpression.brackets] )
+		{
+			MsgDev( D_WARN, "no matching ')' for expression in shader '%s'\n", shader->name );
+			return false;
+		}
+
+		return true;
+	}
+
+	// a comma separates arguments
+	if( !com.stricmp( token.string, "," ))
+	{
+		if( r_shaderExpression.brackets )
+		{
+			MsgDev( D_WARN, "no matching ']' for expression in shader '%s'\n", shader->name );
+			return false;
+		}
+		if(r_shaderExpression.parentheses[r_shaderExpression.brackets] )
+		{
+			MsgDev( D_WARN, "no matching ')' for expression in shader '%s'\n", shader->name );
+			return false;
+		}
+
+		// save the token, because we'll expect a comma later
+		Com_SaveToken(script, &token);
+		return true;
+	}
+
+	// add a new operator
+	if( token.type != TT_PUNCTUATION )
+	{
+		MsgDev( D_WARN, "invalid operator '%s' for expression in shader '%s'\n", token.string, shader->name );
+		return false;
+	}
+
+	// Check for a closing bracket
+	if( !com.stricmp( token.string, "]" ))
+	{
+		if( r_shaderExpression.parentheses[r_shaderExpression.brackets] )
+		{
+			MsgDev( D_WARN, "no matching ')' for expression in shader '%s'\n", shader->name );
+			return false;
+		}
+
+		r_shaderExpression.brackets--;
+		if( r_shaderExpression.brackets < 0 )
+		{
+			MsgDev( D_WARN, "no matching '[' for expression in shader '%s'\n", shader->name );
+			return false;
+		}
+
+		// we still expect an operator
+		return R_ParseExpressionOperator( script, shader );
+	}
+
+	// check for a closing parenthesis
+	if( !com.stricmp( token.string, ")" ))
+	{
+		r_shaderExpression.parentheses[r_shaderExpression.brackets]--;
+		if( r_shaderExpression.parentheses[r_shaderExpression.brackets] < 0 )
+		{
+			MsgDev( D_WARN, "no matching '(' for expression in shader '%s'\n", shader->name );
+			return false;
+		}
+
+		// we still expect an operator
+		return R_ParseExpressionOperator( script, shader );
+	}
+
+	// Check for an operator
+	if( !com.stricmp( token.string, "*" ))
+	{
+		if( !R_AddExpressionOperator(OP_TYPE_MULTIPLY, 7, shader ))
+			return false;
+	}
+	else if( !com.stricmp( token.string, "/" ))
+	{
+		if( !R_AddExpressionOperator(OP_TYPE_DIVIDE, 7, shader ))
+			return false;
+	}
+	else if( !com.stricmp( token.string, "%" ))
+	{
+		if( !R_AddExpressionOperator(OP_TYPE_MOD, 6, shader ))
+			return false;
+	}
+	else if( !com.stricmp( token.string, "+" ))
+	{
+		if( !R_AddExpressionOperator(OP_TYPE_ADD, 5, shader ))
+			return false;
+	}
+	else if( !com.stricmp( token.string, "-")){
+		if( !R_AddExpressionOperator(OP_TYPE_SUBTRACT, 5, shader ))
+			return false;
+	}
+	else if( !com.stricmp( token.string, ">" ))
+	{
+		if( !R_AddExpressionOperator(OP_TYPE_GREATER, 4, shader ))
+			return false;
+	}
+	else if( !com.stricmp( token.string, "<" ))
+	{
+		if( !R_AddExpressionOperator(OP_TYPE_LESS, 4, shader ))
+			return false;
+	}
+	else if( !com.stricmp( token.string, ">=" ))
+	{
+		if( !R_AddExpressionOperator(OP_TYPE_GEQUAL, 4, shader ))
+			return false;
+	}
+	else if( !com.stricmp( token.string, "<=" ))
+	{
+		if( !R_AddExpressionOperator(OP_TYPE_LEQUAL, 4, shader ))
+			return false;
+	}
+	else if( !com.stricmp( token.string, "==" ))
+	{
+		if( !R_AddExpressionOperator(OP_TYPE_EQUAL, 3, shader ))
+			return false;
+	}
+	else if( !com.stricmp( token.string, "!=" ))
+	{
+		if( !R_AddExpressionOperator(OP_TYPE_NOTEQUAL, 3, shader ))
+			return false;
+	}
+	else if( !com.stricmp( token.string, "&&" ))
+	{
+		if( !R_AddExpressionOperator(OP_TYPE_AND, 2, shader ))
+			return false;
+	}
+	else if( !com.stricmp( token.string, "||" ))
+	{
+		if( !R_AddExpressionOperator(OP_TYPE_OR, 1, shader ))
+			return false;
+	}
+	else
+	{
+		MsgDev( D_WARN, "invalid operator '%s' for expression in shader '%s'\n", token.string, shader->name );
+		return false;
+	}
+
+	// we now expect a value
+	return R_ParseExpressionValue( script, shader );
+}
+
+/*
+=================
+R_ParseExpression
+=================
+*/
+static bool R_ParseExpression( script_t *script, ref_shader_t *shader, int *expressionRegister )
+{
+	expValue_t	*v;
+	expOperator_t	*o;
+	int		a, b, c;
+
+	// clear the previous expression data
+	Mem_Set( &r_shaderExpression, 0, sizeof( shaderExpression_t ));
+
+	// parse the expression, starting with a value
+	if( !R_ParseExpressionValue( script, shader ))
+		return false;
+
+	// emit the expression ops, if any
+	while( r_shaderExpression.firstOperator )
+	{
+		v = r_shaderExpression.firstValue;
+
+		for( o = r_shaderExpression.firstOperator; o->next; o = o->next )
+		{
+			// if the current operator is nested deeper in brackets than
+			// the next operator
+			if( o->brackets > o->next->brackets )
+				break;
+
+			// if the current and next operators are nested equally deep
+			// in brackets
+			if( o->brackets == o->next->brackets )
+			{
+				// if the current operator is nested deeper in
+				// parentheses than the next operator
+				if( o->parentheses > o->next->parentheses )
+					break;
+
+				// if the current and next operators are nested equally
+				// deep in parentheses
+				if( o->parentheses == o->next->parentheses )
+				{
+					// if the priority of the current operator is equal
+					// or higher than the priority of the next operator
+					if( o->priority >= o->next->priority )
+						break;
+				}
+			}
+			v = v->next;
+		}
+
+		// get the source registers
+		a = v->expressionRegister;
+		b = v->next->expressionRegister;
+
+		// get the temporary register
+		if( !R_GetExpressionTemporary( shader, &c ))
+			return false;
+
+		// emit the expression op
+		if( !R_EmitExpressionOp( o->opType, a, b, c, shader ))
+			return false;
+
+		// the temporary register for the current operation will be used
+		// as a source for the next operation
+		v->expressionRegister = c;
+
+		// remove the second value
+		v = v->next;
+
+		if( v->prev ) v->prev->next = v->next;
+		else r_shaderExpression.firstValue = v->next;
+
+		if( v->next ) v->next->prev = v->prev;
+		else r_shaderExpression.lastValue = v->prev;
+
+		// remove the operator
+		if( o->prev ) o->prev->next = o->next;
+		else r_shaderExpression.firstOperator = o->next;
+
+		if( o->next ) o->next->prev = o->prev;
+		else r_shaderExpression.lastOperator = o->prev;
+	}
+
+	// the last temporary register will contain the result after evaluation
+	*expressionRegister = r_shaderExpression.resultRegister;
+	return true;
+}
+
+/*
+=======================================================================
+
+ SHADER PARSING
 
 =======================================================================
 */
@@ -186,7 +1109,7 @@ static bool R_ParseGeneralSurfaceParm( ref_shader_t *shader, script_t *script )
 	token_t	tok;
 	int	i, numInfoParms = sizeof(infoParms) / sizeof(infoParms[0]);
 	
-	switch( shader->shaderType )
+	switch( shader->type )
 	{
 	case SHADER_TEXTURE:
 	case SHADER_STUDIO:
@@ -208,7 +1131,6 @@ static bool R_ParseGeneralSurfaceParm( ref_shader_t *shader, script_t *script )
 		if( !com.stricmp( tok.string, infoParms[i].name ))
 		{
 			shader->surfaceParm |= infoParms[i].surfaceFlags;
-			shader->contentFlags |= infoParms[i].contents;
 			break;
 		}
 	}
@@ -381,7 +1303,7 @@ static bool R_ParseGeneralTessSize( ref_shader_t *shader, script_t *script )
 	token_t	tok;
 	int	i = 8;
 
-	if( shader->shaderType != SHADER_TEXTURE )
+	if( shader->type != SHADER_TEXTURE )
 	{
 		MsgDev( D_WARN, "'tessSize' not allowed in shader '%s'\n", shader->name );
 		return false;
@@ -421,13 +1343,13 @@ static bool R_ParseGeneralSkyParms( ref_shader_t *shader, script_t *script )
 	token_t	tok;
 	int	i;
 
-	if( shader->shaderType != SHADER_SKY )
+	if( shader->type != SHADER_SKY )
 	{
 		MsgDev( D_WARN, "'skyParms' not allowed in shader '%s'\n", shader->name );
 		return false;
 	}
 
-	if( !Com_ReadToken( script, false, &tok ))
+	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'skyParms' in shader '%s'\n", shader->name );
 		return false;
@@ -498,16 +1420,16 @@ R_ParseGeneralDeformVertexes
 */
 static bool R_ParseGeneralDeformVertexes( ref_shader_t *shader, script_t *script )
 {
-	deformVerts_t	*deformVertexes;
-	token_t		tok;
-	int		i;
+	deform_t	*deformVertexes;
+	token_t	tok;
+	int	i;
 
-	if( shader->deformVertexesNum == SHADER_MAX_DEFORMVERTEXES )
+	if( shader->numDeforms == SHADER_MAX_TRANSFORMS )
 	{
-		MsgDev( D_WARN, "SHADER_MAX_DEFORMVERTEXES hit in shader '%s'\n", shader->name );
+		MsgDev( D_WARN, "SHADER_MAX_TRANSFORMS hit in shader '%s'\n", shader->name );
 		return false;
 	}
-	deformVertexes = &shader->deformVertexes[shader->deformVertexesNum++];
+	deformVertexes = &shader->deform[shader->numDeforms++];
 
 	if( !Com_ReadToken( script, false, &tok ))
 	{
@@ -536,7 +1458,7 @@ static bool R_ParseGeneralDeformVertexes( ref_shader_t *shader, script_t *script
 			MsgDev( D_WARN, "missing waveform parameters for 'deformVertexes wave' in shader '%s'\n", shader->name );
 			return false;
 		}
-		deformVertexes->type = DEFORMVERTEXES_WAVE;
+		deformVertexes->type = DEFORM_WAVE;
 	}
 	else if( !com.stricmp( tok.string, "move" ))
 	{
@@ -554,7 +1476,7 @@ static bool R_ParseGeneralDeformVertexes( ref_shader_t *shader, script_t *script
 			MsgDev( D_WARN, "missing waveform parameters for 'deformVertexes move' in shader '%s'\n", shader->name );
 			return false;
 		}
-		deformVertexes->type = DEFORMVERTEXES_MOVE;
+		deformVertexes->type = DEFORM_MOVE;
 	}
 	else if( !com.stricmp( tok.string, "normal" ))
 	{
@@ -566,7 +1488,7 @@ static bool R_ParseGeneralDeformVertexes( ref_shader_t *shader, script_t *script
 				return false;
 			}
 		}
-		deformVertexes->type = DEFORMVERTEXES_NORMAL;
+		deformVertexes->type = DEFORM_NORMAL;
 	}
 	else
 	{
@@ -696,7 +1618,7 @@ static bool R_ParseStageMap( ref_shader_t *shader, shaderStage_t *stage, script_
 		return false;
 	}
 
-	if( !Com_ReadToken( script, false, &tok ))
+	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'map' in shader '%s'\n", shader->name );
 		return false;
@@ -704,7 +1626,7 @@ static bool R_ParseStageMap( ref_shader_t *shader, shaderStage_t *stage, script_
 
 	if( !com.stricmp( tok.string, "$lightmap"))
 	{
-		if( shader->shaderType != SHADER_TEXTURE )
+		if( shader->type != SHADER_TEXTURE )
 		{
 			MsgDev( D_WARN, "'map $lightmap' not allowed in shader '%s'\n", shader->name );
 			return false;
@@ -1695,7 +2617,7 @@ static bool R_ParseStageNextBundle( ref_shader_t *shader, shaderStage_t *stage, 
 			return false;
 		}
 
-		if( stage->numBundles == gl_config.imageunits )
+		if( stage->numBundles == gl_config.teximageunits )
 		{
 			MsgDev( D_WARN, "shader '%s' has %i or more bundles without suitable 'requires GL_MAX_TEXTURE_IMAGE_UNITS_ARB'\n", shader->name, stage->numBundles + 1);
 			return false;
@@ -1793,7 +2715,7 @@ static bool R_ParseStageNextBundle( ref_shader_t *shader, shaderStage_t *stage, 
 		}
 		else if( !com.stricmp( tok.string, "combine" ))
 		{
-			if (!GL_Support( R_COMBINE_EXT ))
+			if( !GL_Support( R_COMBINE_EXT ))
 			{
 				MsgDev( D_WARN, "shader '%s' uses 'nextBundle combine' without 'requires GL_ARB_texture_env_combine'\n", shader->name );
 				return false;
@@ -1847,7 +2769,7 @@ static bool R_ParseStageVertexProgram( ref_shader_t *shader, shaderStage_t *stag
 		return false;
 	}
 
-	if( shader->shaderType == SHADER_NOMIP )
+	if( shader->type == SHADER_NOMIP )
 	{
 		MsgDev( D_WARN, "'vertexProgram' not allowed in shader '%s'\n", shader->name );
 		return false;
@@ -1885,13 +2807,13 @@ static bool R_ParseStageFragmentProgram( ref_shader_t *shader, shaderStage_t *st
 {
 	token_t	tok;
 
-	if (!GL_Support( R_FRAGMENT_PROGRAM_EXT ))
+	if( !GL_Support( R_FRAGMENT_PROGRAM_EXT ))
 	{
 		MsgDev( D_WARN, "shader '%s' uses 'fragmentProgram' without 'requires GL_ARB_fragment_program'\n", shader->name );
 		return false;
 	}
 
-	if( shader->shaderType == SHADER_NOMIP )
+	if( shader->type == SHADER_NOMIP )
 	{
 		MsgDev( D_WARN, "'fragmentProgram' not allowed in shader '%s'\n", shader->name );
 		return false;
@@ -2030,23 +2952,23 @@ static bool R_ParseStageBlendFunc( ref_shader_t *shader, shaderStage_t *stage, s
 	}
 	else
 	{
-		if ( !com.stricmp( tok.string, "GL_ZERO"))
+		if( !com.stricmp( tok.string, "GL_ZERO"))
 			stage->blendFunc.src = GL_ZERO;
-		else if ( !com.stricmp( tok.string, "GL_ONE"))
+		else if( !com.stricmp( tok.string, "GL_ONE"))
 			stage->blendFunc.src = GL_ONE;
-		else if ( !com.stricmp( tok.string, "GL_DST_COLOR"))
+		else if( !com.stricmp( tok.string, "GL_DST_COLOR"))
 			stage->blendFunc.src = GL_DST_COLOR;
-		else if ( !com.stricmp( tok.string, "GL_ONE_MINUS_DST_COLOR"))
+		else if( !com.stricmp( tok.string, "GL_ONE_MINUS_DST_COLOR"))
 			stage->blendFunc.src = GL_ONE_MINUS_DST_COLOR;
-		else if ( !com.stricmp( tok.string, "GL_SRC_ALPHA"))
+		else if( !com.stricmp( tok.string, "GL_SRC_ALPHA"))
 			stage->blendFunc.src = GL_SRC_ALPHA;
-		else if ( !com.stricmp( tok.string, "GL_ONE_MINUS_SRC_ALPHA"))
+		else if( !com.stricmp( tok.string, "GL_ONE_MINUS_SRC_ALPHA"))
 			stage->blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
-		else if ( !com.stricmp( tok.string, "GL_DST_ALPHA"))
+		else if( !com.stricmp( tok.string, "GL_DST_ALPHA"))
 			stage->blendFunc.src = GL_DST_ALPHA;
-		else if ( !com.stricmp( tok.string, "GL_ONE_MINUS_DST_ALPHA"))
+		else if( !com.stricmp( tok.string, "GL_ONE_MINUS_DST_ALPHA"))
 			stage->blendFunc.src = GL_ONE_MINUS_DST_ALPHA;
-		else if ( !com.stricmp( tok.string, "GL_SRC_ALPHA_SATURATE"))
+		else if( !com.stricmp( tok.string, "GL_SRC_ALPHA_SATURATE"))
 			stage->blendFunc.src = GL_SRC_ALPHA_SATURATE;
 		else
 		{
@@ -2501,7 +3423,11 @@ static bool R_ParseShaderCommand( ref_shader_t *shader, script_t *script, char *
 	}
 
 	// compiler commands ignored silently
-	if( !com.strnicmp( "q3map_", command, 6 )) return true;
+	if( !com.strnicmp( "q3map_", command, 6 ))
+	{
+		Com_SkipRestOfLine( script );
+		return true;
+	}
 	MsgDev( D_WARN, "unknown general command '%s' in shader '%s'\n", command, shader->name );
 	return false;
 }
@@ -2589,7 +3515,7 @@ static bool R_EvaluateRequires( ref_shader_t *shader, script_t *script )
 			else if( !com.stricmp( tok.string, "GL_MAX_TEXTURE_COORDS_ARB" ))
 				cmpOperand1 = gl_config.texturecoords;
 			else if( !com.stricmp( tok.string, "GL_MAX_TEXTURE_IMAGE_UNITS_ARB" ))
-				cmpOperand1 = gl_config.imageunits;
+				cmpOperand1 = gl_config.teximageunits;
 
 			if( !Com_ReadToken( script, false, &tok ))
 			{
@@ -2797,50 +3723,109 @@ static bool R_ParseShader( ref_shader_t *shader, script_t *script )
 R_ParseShaderFile
 =================
 */
-static void R_ParseShaderFile( char *buffer, int size )
+static void R_ParseShaderFile( script_t *script, const char *name )
 {
-	shaderScript_t	*shaderScript;
+	ref_script_t	*shaderScript;
 	int		numInfoParms = sizeof(infoParms) / sizeof(infoParms[0]);
-	script_t		*script;
-	shaderType_t	shaderType;
-	uint		surfaceParm;
-	uint		contentFlags;
-	uint		hashKey;
-	string		name;
-	token_t		tok;
-
-	script = Com_OpenScript( "shader", buffer, size );
+	script_t		*scriptBlock;
+	bool		clamp = false;
+	bool		snap = false;
+	char		*buffer, *end;
+	uint		i, hashKey;
+	int		tableStatus = 0;
+	token_t		token;
+	size_t		size;
 
 	while( 1 )
 	{
 		// parse the name
-		if( !Com_ReadToken( script, SC_ALLOW_NEWLINES, &tok ))
+		if( !Com_ReadToken( script, SC_ALLOW_NEWLINES|SC_ALLOW_PATHNAMES, &token ))
 			break; // end of data
 
-		com.strncpy( name, tok.string, sizeof( name ));
+
+		// check for table parms
+		while( 1 )
+		{
+			if( !com.stricmp( token.string, "clamp" )) clamp = true;
+			else if( !com.stricmp( token.string, "snap" )) snap = true;
+			else if( !com.stricmp( token.string, "table" ))
+			{
+				if( !R_ParseTable( script, clamp, snap ))
+					tableStatus = -1; // parsing failed
+				else tableStatus = 1;
+				break;
+			} 
+			else
+			{
+				tableStatus = 0;  // not a table
+				break;
+			}
+			Com_ReadToken( script, false, &token );
+		}
+
+		if( tableStatus != 0 )
+		{
+			if( tableStatus == -1 )
+				Com_SkipRestOfLine( script );
+			continue; // table status will be reset on a next loop
+		}
 
 		// parse the script
+		buffer = script->text;
 		Com_SkipBracedSection( script, 0 );
+		end = script->text;
+
+		if( !buffer ) buffer = script->buffer; // missing body ?
+		if( !end ) end = script->buffer + script->size;	// EOF ?
+		size = end - buffer;
+
+		// store the script
+		shaderScript = Mem_Alloc( r_shaderpool, sizeof( ref_script_t ));
+		com.strncpy( shaderScript->name, token.string, sizeof( shaderScript->name ));
+		shaderScript->surfaceParm = 0;
+		shaderScript->type = -1;
+
+		com.strncpy( shaderScript->source, name, sizeof( shaderScript->source ));
+		shaderScript->line = token.line;
+		shaderScript->buffer = Mem_Alloc( r_shaderpool, size + 1 );
+		Mem_Copy( shaderScript->buffer, buffer, size );
+		shaderScript->buffer[size] = 0; // terminator
+		shaderScript->size = size;
+
+		// add to hash table
+		hashKey = Com_HashKey( shaderScript->name, SHADERS_HASH_SIZE );
+		shaderScript->nextHash = r_shaderScriptsHash[hashKey];
+		r_shaderScriptsHash[hashKey] = shaderScript;
 
 		// we must parse surfaceParm commands here, because R_FindShader
 		// needs this for correct shader loading.
 		// proper syntax checking is done when the shader is loaded.
-		shaderType = -1;
-		surfaceParm = contentFlags = 0;
+		scriptBlock = Com_OpenScript( shaderScript->name, shaderScript->buffer, shaderScript->size );
+		if( scriptBlock )
+		{
+			while( 1 )
+			{
+				if( !Com_ReadToken( scriptBlock, SC_ALLOW_NEWLINES, &token ))
+					break; // end of data
 
-		// store the script
-		shaderScript = Mem_Alloc( r_shaderpool, sizeof(shaderScript_t));
-		com.strncpy( shaderScript->name, name, sizeof( shaderScript->name ));
-		shaderScript->shaderType = shaderType;
-		shaderScript->script = script;
-		shaderScript->surfaceParm = surfaceParm;
-		shaderScript->contents = contentFlags;
+				if( !com.stricmp( token.string, "surfaceParm" ))
+				{
+					if( !Com_ReadToken( scriptBlock, 0, &token ))
+						continue;
 
-		// add to hash table
-		hashKey = Com_HashKey( shaderScript->name, SHADERS_HASHSIZE );
-
-		shaderScript->nextHash = r_shaderScriptsHash[hashKey];
-		r_shaderScriptsHash[hashKey] = shaderScript;
+					for( i = 0; i < numInfoParms; i++ )
+					{
+						if( !com.stricmp(token.string, infoParms[i].name ))
+						{
+							shaderScript->surfaceParm |= infoParms[i].surfaceFlags;
+							break;
+						}
+					}
+					shaderScript->type = SHADER_TEXTURE;
+				}
+			}
+			Com_CloseScript( scriptBlock );
+		}
 	}
 }
 
@@ -2880,63 +3865,6 @@ static ref_shader_t *R_NewShader( void )
 
 /*
 =================
-R_CreateShader
-=================
-*/
-static ref_shader_t *R_CreateShader( const char *name, shaderType_t shaderType, uint surfaceParm, script_t *script )
-{
-	ref_shader_t	*shader;
-	shaderStage_t	*stage;
-	stageBundle_t	*bundle;
-	int		i, j;
-
-	// clear static shader
-	shader = R_NewShader();
-
-	// fill it in
-	com.strncpy( shader->name, name, sizeof( shader->name ));
-	shader->shaderNum = r_numShaders;
-	shader->shaderType = shaderType;
-	shader->surfaceParm = surfaceParm;
-	shader->flags = SHADER_EXTERNAL;
-
-	if( shaderType == SHADER_NOMIP ) shader->flags |= (SHADER_NOMIPMAPS | SHADER_NOPICMIP);
-
-	if( !R_ParseShader( shader, script ))
-	{
-		// invalid script, so make sure we stop cinematics
-		for( i = 0; i < shader->numStages; i++ )
-		{
-			stage = shader->stages[i];
-
-			for( j = 0; j < stage->numBundles; j++ )
-			{
-				bundle = stage->bundles[j];
-
-				//FIXME: implement
-				//if( bundle->flags & STAGEBUNDLE_VIDEOMAP )
-				//	CIN_StopCinematic( bundle->cinematicHandle );
-			}
-		}
-
-		// use a default shader instead
-		shader = R_NewShader();
-
-		com.strncpy( shader->name, name, sizeof( shader->name ));
-		shader->shaderNum = r_numShaders;
-		shader->shaderType = shaderType;
-		shader->surfaceParm = surfaceParm;
-		shader->flags = SHADER_EXTERNAL|SHADER_DEFAULTED;
-		shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
-		shader->stages[0]->bundles[0]->numTextures++;
-		shader->stages[0]->numBundles++;
-		shader->numStages++;
-	}
-	return shader;
-}
-
-/*
-=================
 R_CreateDefaultShader
 =================
 */
@@ -2952,11 +3880,11 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, shaderType_t shade
 
 	// fill it in
 	com.strncpy( shader->name, name, sizeof( shader->name ));
-	shader->shaderNum = r_numShaders;
-	shader->shaderType = shaderType;
+	shader->index = r_numShaders;
+	shader->type = shaderType;
 	shader->surfaceParm = surfaceParm;
 
-	switch( shader->shaderType )
+	switch( shader->type )
 	{
 	case SHADER_SKY:
 		shader->flags |= SHADER_SKYPARMS;
@@ -3122,6 +4050,79 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, shaderType_t shade
 
 /*
 =================
+R_CreateShader
+=================
+*/
+static ref_shader_t *R_CreateShader( const char *name, shaderType_t shaderType, uint surfaceParm, ref_script_t *shaderScript )
+{
+	ref_shader_t	*shader;
+	shaderStage_t	*stage;
+	stageBundle_t	*bundle;
+	script_t		*script;
+	int		i, j;
+
+	// clear static shader
+	shader = R_NewShader();
+
+	// fill it in
+	com.strncpy( shader->name, name, sizeof( shader->name ));
+	shader->index = r_numShaders;
+	shader->type = shaderType;
+	shader->surfaceParm = surfaceParm;
+	shader->flags = SHADER_EXTERNAL;
+
+	if( shaderType == SHADER_NOMIP ) shader->flags |= (SHADER_NOMIPMAPS | SHADER_NOPICMIP);
+
+	// If we have a script, create an external shader
+	if( shaderScript )
+	{
+		shader->shaderScript = shaderScript;
+
+		// load the script text
+		script = Com_OpenScript( shaderScript->name, shaderScript->buffer, shaderScript->size );
+		if( !script ) return R_CreateDefaultShader( name, shaderType, surfaceParm );
+
+		// parse it
+		if( !R_ParseShader( shader, script ))
+		{
+			// invalid script, so make sure we stop cinematics
+			for( i = 0; i < shader->numStages; i++ )
+			{
+				stage = shader->stages[i];
+
+				for( j = 0; j < stage->numBundles; j++ )
+				{
+					bundle = stage->bundles[j];
+
+					// FIXME: implement
+					// if( bundle->flags & STAGEBUNDLE_VIDEOMAP )
+					//	CIN_StopCinematic( bundle->cinematicHandle );
+				}
+			}
+
+			// use a default shader instead
+			shader = R_NewShader();
+
+			com.strncpy( shader->name, name, sizeof( shader->name ));
+			shader->index = r_numShaders;
+			shader->type = shaderType;
+			shader->surfaceParm = surfaceParm;
+			shader->flags = SHADER_EXTERNAL|SHADER_DEFAULTED;
+			shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
+			shader->stages[0]->bundles[0]->numTextures++;
+			shader->stages[0]->numBundles++;
+			shader->numStages++;
+		}
+
+		Com_CloseScript( script );
+		return shader;
+	}
+
+	return R_CreateDefaultShader( name, shaderType, surfaceParm );
+}
+
+/*
+=================
 R_FinishShader
 =================
 */
@@ -3132,11 +4133,11 @@ static void R_FinishShader( ref_shader_t *shader )
 	int		i, j;
 
 	// remove entityMergable from 2D shaders
-	if( shader->shaderType == SHADER_NOMIP )
+	if( shader->type == SHADER_NOMIP )
 		shader->flags &= ~SHADER_ENTITYMERGABLE;
 
 	// remove polygonOffset from 2D shaders
-	if( shader->shaderType == SHADER_NOMIP )
+	if( shader->type == SHADER_NOMIP )
 		shader->flags &= ~SHADER_POLYGONOFFSET;
 
 	// set cull if unset
@@ -3153,14 +4154,14 @@ static void R_FinishShader( ref_shader_t *shader )
 	}
 
 	// remove cull from 2D shaders
-	if( shader->shaderType == SHADER_NOMIP )
+	if( shader->type == SHADER_NOMIP )
 	{
 		shader->flags &= ~SHADER_CULL;
 		shader->cull.mode = 0;
 	}
 
 	// make sure sky shaders have a cloudHeight value
-	if( shader->shaderType == SHADER_SKY )
+	if( shader->type == SHADER_SKY )
 	{
 		if(!(shader->flags & SHADER_SKYPARMS))
 		{
@@ -3170,19 +4171,19 @@ static void R_FinishShader( ref_shader_t *shader )
 	}
 
 	// remove deformVertexes from 2D shaders
-	if( shader->shaderType == SHADER_NOMIP )
+	if( shader->type == SHADER_NOMIP )
 	{
 		if( shader->flags & SHADER_DEFORMVERTEXES )
 		{
 			shader->flags &= ~SHADER_DEFORMVERTEXES;
-			for( i = 0; i < shader->deformVertexesNum; i++ )
-				Mem_Set( &shader->deformVertexes[i], 0, sizeof( deformVerts_t ));
-			shader->deformVertexesNum = 0;
+			for( i = 0; i < shader->numDeforms; i++ )
+				Mem_Set( &shader->deform[i], 0, sizeof( deform_t ));
+			shader->numDeforms = 0;
 		}
 	}
 
 	// lightmap but no lightmap stage?
-	if( shader->shaderType == SHADER_TEXTURE && !(shader->surfaceParm & SURF_NOLIGHTMAP ))
+	if( shader->type == SHADER_TEXTURE && !(shader->surfaceParm & SURF_NOLIGHTMAP ))
 	{
 		if(!(shader->flags & SHADER_DEFAULTED) && !(shader->flags & SHADER_HASLIGHTMAP))
 			MsgDev( D_WARN, "shader '%s' has lightmap but no lightmap stage!\n", shader->name );
@@ -3219,7 +4220,7 @@ static void R_FinishShader( ref_shader_t *shader )
 				// only allow tcGen lightmap on world surfaces
 				if( bundle->tcGen.type == TCGEN_LIGHTMAP )
 				{
-					if( shader->shaderType != SHADER_TEXTURE )
+					if( shader->type != SHADER_TEXTURE )
 						bundle->tcGen.type = TCGEN_BASE;
 				}
 			}
@@ -3232,7 +4233,7 @@ static void R_FinishShader( ref_shader_t *shader )
 				case TCGEN_ENVIRONMENT:
 				case TCGEN_LIGHTVECTOR:
 				case TCGEN_HALFANGLE:
-					if( shader->shaderType == SHADER_NOMIP )
+					if( shader->type == SHADER_NOMIP )
 						bundle->tcGen.type = TCGEN_BASE;
 					shader->flags &= ~SHADER_ENTITYMERGABLE;
 					break;
@@ -3256,7 +4257,7 @@ static void R_FinishShader( ref_shader_t *shader )
 		}
 
 		// Remove depthFunc from 2D shaders
-		if( shader->shaderType == SHADER_NOMIP )
+		if( shader->type == SHADER_NOMIP )
 		{
 			stage->flags &= ~SHADERSTAGE_DEPTHFUNC;
 			stage->depthFunc.func = 0;
@@ -3267,7 +4268,7 @@ static void R_FinishShader( ref_shader_t *shader )
 			stage->flags |= SHADERSTAGE_DEPTHWRITE;
 
 		// remove depthWrite from sky and 2D shaders
-		if( shader->shaderType == SHADER_SKY || shader->shaderType == SHADER_NOMIP )
+		if( shader->type == SHADER_SKY || shader->type == SHADER_NOMIP )
 			stage->flags &= ~SHADERSTAGE_DEPTHWRITE;
 
 		// ignore detail stages if detail textures are disabled
@@ -3280,7 +4281,7 @@ static void R_FinishShader( ref_shader_t *shader )
 		// set rgbGen if unset
 		if(!(stage->flags & SHADERSTAGE_RGBGEN))
 		{
-			switch( shader->shaderType )
+			switch( shader->type )
 			{
 			case SHADER_SKY:
 				stage->rgbGen.type = RGBGEN_IDENTITY;
@@ -3292,14 +4293,14 @@ static void R_FinishShader( ref_shader_t *shader )
 				break;
 			case SHADER_STUDIO:
 				if( shader->surfaceParm & SURF_ADDITIVE )
-					stage->rgbGen.type = RGBGEN_IDENTITY;
-				else stage->rgbGen.type = RGBGEN_IDENTITYLIGHTING;
+					stage->rgbGen.type = RGBGEN_IDENTITYLIGHTING;
+				else stage->rgbGen.type = RGBGEN_LIGHTINGAMBIENT;
 				break;
 			case SHADER_SPRITE:
 				if( shader->surfaceParm & SURF_ALPHA|SURF_BLEND )
-					stage->rgbGen.type = RGBGEN_IDENTITYLIGHTING; // sprite colormod
+					stage->rgbGen.type = RGBGEN_LIGHTINGAMBIENT; // sprite colormod
 				else if( shader->surfaceParm & SURF_ADDITIVE )
-					stage->rgbGen.type = RGBGEN_IDENTITY;
+					stage->rgbGen.type = RGBGEN_IDENTITYLIGHTING;
 				break;
 			case SHADER_NOMIP:
 			case SHADER_GENERIC:
@@ -3312,7 +4313,7 @@ static void R_FinishShader( ref_shader_t *shader )
 		// set alphaGen if unset
 		if(!(stage->flags & SHADERSTAGE_ALPHAGEN))
 		{
-			switch( shader->shaderType )
+			switch( shader->type )
 			{
 			case SHADER_SKY:
 				stage->alphaGen.type = ALPHAGEN_IDENTITY;
@@ -3349,7 +4350,7 @@ static void R_FinishShader( ref_shader_t *shader )
 			case RGBGEN_ONEMINUSENTITY:
 			case RGBGEN_LIGHTINGAMBIENT:
 			case RGBGEN_LIGHTINGDIFFUSE:
-				if( shader->shaderType == SHADER_NOMIP )
+				if( shader->type == SHADER_NOMIP )
 					stage->rgbGen.type = RGBGEN_VERTEX;
 				shader->flags &= ~SHADER_ENTITYMERGABLE;
 				break;
@@ -3366,7 +4367,7 @@ static void R_FinishShader( ref_shader_t *shader )
 			case ALPHAGEN_FADE:
 			case ALPHAGEN_ONEMINUSFADE:
 			case ALPHAGEN_LIGHTINGSPECULAR:
-				if( shader->shaderType == SHADER_NOMIP )
+				if( shader->type == SHADER_NOMIP )
 					stage->alphaGen.type = ALPHAGEN_VERTEX;
 				shader->flags &= ~SHADER_ENTITYMERGABLE;
 				break;
@@ -3408,7 +4409,7 @@ static void R_FinishShader( ref_shader_t *shader )
 	// set sort if unset
 	if( !(shader->flags & SHADER_SORT ))
 	{
-		if( shader->shaderType == SHADER_SKY )
+		if( shader->type == SHADER_SKY )
 			shader->sort = SORT_SKY;
 		else
 		{
@@ -3585,7 +4586,7 @@ ref_shader_t *R_LoadShader( ref_shader_t *newShader )
 	}
 
 	// add to hash table
-	hashKey = Com_HashKey( shader->name, SHADERS_HASHSIZE );
+	hashKey = Com_HashKey( shader->name, SHADERS_HASH_SIZE );
 	shader->nextHash = r_shadersHash[hashKey];
 	r_shadersHash[hashKey] = shader;
 
@@ -3600,43 +4601,40 @@ R_FindShader
 shader_t R_FindShader( const char *name, shaderType_t shaderType, uint surfaceParm )
 {
 	ref_shader_t	*shader;
-	shaderScript_t	*shaderScript;
-	script_t		*script = NULL;
+	ref_script_t	*shaderScript;
 	uint		hashKey;
 
 	if( !name || !name[0] ) Host_Error( "R_FindShader: NULL shader name\n" );
 
 	// see if already loaded
-	hashKey = Com_HashKey( name, SHADERS_HASHSIZE );
+	hashKey = Com_HashKey( name, SHADERS_HASH_SIZE );
 
 	for( shader = r_shadersHash[hashKey]; shader; shader = shader->nextHash )
 	{
+		if( shader->type != shaderType || shader->surfaceParm != surfaceParm )
+			continue;
+
 		if(!com.stricmp( shader->name, name ))
-		{
-			if((shader->shaderType == shaderType) && (shader->surfaceParm == surfaceParm))
-				return shader->shaderNum;
-		}
+			return shader->index;
 	}
 
 	// see if there's a script for this shader
 	for( shaderScript = r_shaderScriptsHash[hashKey]; shaderScript; shaderScript = shaderScript->nextHash )
 	{
-		if(!com.stricmp( shaderScript->name, name ))
+		if( !com.stricmp( shaderScript->name, name ))
 		{
-			if((shaderScript->shaderType == shaderType && shaderScript->surfaceParm == surfaceParm) || (shaderScript->shaderType == -1))
-			{
-				script = shaderScript->script;
+			if( shaderScript->type == -1 ) // not initialized
 				break;
-			}
+			if( shaderScript->type == shaderType && shaderScript->surfaceParm == surfaceParm )
+				break;
 		}
 	}
  
  	// create the shader
-	if( script ) shader = R_CreateShader( name, shaderType, surfaceParm, script );
-	else shader = R_CreateDefaultShader( name, shaderType, surfaceParm );
+	shader = R_CreateShader( name, shaderType, surfaceParm, shaderScript );
 
 	// load it in
-	return R_LoadShader( shader )->shaderNum;
+	return R_LoadShader( shader )->index;
 }
 
 void R_SetInternalMap( texture_t *mipTex )
@@ -3726,28 +4724,28 @@ static void R_CreateBuiltInShaders( void )
 	shader = R_NewShader();
 
 	com.strncpy( shader->name, "<default>", sizeof( shader->name ));
-	shader->shaderNum = r_numShaders;
-	shader->shaderType = SHADER_TEXTURE;
+	shader->index = r_numShaders;
+	shader->type = SHADER_TEXTURE;
 	shader->surfaceParm = 0;
 	shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
 	shader->stages[0]->bundles[0]->numTextures++;
 	shader->stages[0]->numBundles++;
 	shader->numStages++;
 
-	r_defaultShader = R_LoadShader( shader );
+	tr.defaultShader = R_LoadShader( shader );
 
 	// lightmap shader
 	shader = R_NewShader();
 
 	com.strncpy( shader->name, "<lightmap>", sizeof( shader->name ));
-	shader->shaderNum = r_numShaders;
-	shader->shaderType = SHADER_TEXTURE;
+	shader->index = r_numShaders;
+	shader->type = SHADER_TEXTURE;
 	shader->flags = SHADER_HASLIGHTMAP;
 	shader->stages[0]->bundles[0]->texType = TEX_LIGHTMAP;
 	shader->stages[0]->numBundles++;
 	shader->numStages++;
 
-	r_lightmapShader = R_LoadShader( shader );
+	tr.lightmapShader = R_LoadShader( shader );
 }
 
 /*
@@ -3776,7 +4774,7 @@ void R_ShaderList_f( void )
 			Msg("E ");
 		else Msg("  ");
 
-		switch( shader->shaderType )
+		switch( shader->type )
 		{
 		case SHADER_SKY:
 			Msg( "sky " );
@@ -3818,8 +4816,7 @@ R_InitShaders
 */
 void R_InitShaders( void )
 {
-	byte	*buffer;
-	size_t	size;
+	script_t	*script;
 	search_t	*t;
 	int	i;
 
@@ -3832,16 +4829,16 @@ void R_InitShaders( void )
 	// Load them
 	for( i = 0; t && i < t->numfilenames; i++ )
 	{
-		buffer = FS_LoadFile( t->filenames[i], &size );
-		if( !buffer )
+		script = Com_OpenScript( t->filenames[i], NULL, 0 );
+		if( !script )
 		{
 			MsgDev( D_ERROR, "Couldn't load '%s'\n", t->filenames[i] );
 			continue;
 		}
 
 		// parse this file
-		R_ParseShaderFile( buffer, size );
-		Mem_Free( buffer );
+		R_ParseShaderFile( script, t->filenames[i] );
+		Com_CloseScript( script );
 	}
 	if( t ) Mem_Free( t ); // free search
 

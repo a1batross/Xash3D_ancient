@@ -89,17 +89,20 @@ typedef struct
 
 typedef struct script_s
 {
-	string		name;
+	// shared part of script
 	char		*buffer;
-	int		size;
-	bool		allocated;
 	char		*text;
+	size_t		size;
+	char		TXcommand;	// (quark .map comment)
+
+	// private part of script
+	string		name;
 	int		line;
+	bool		allocated;
 	punctuation_t	*punctuations;
 	bool		tokenAvailable;
 	token_t		token;
-	char		TXcommand;		// (quark .map comment)
-} script_t;
+};
 
 bool PS_ReadToken( script_t *script, scFlags_t flags, token_t *token );
 void PS_SaveToken( script_t *script, token_t *token );
@@ -112,7 +115,6 @@ bool PS_GetInteger( script_t *script, int flags, int *value );
 void PS_SkipWhiteSpace( script_t *script );
 void PS_SkipRestOfLine( script_t *script );
 void PS_SkipBracedSection( script_t *script, int depth );
-char PS_TXCommand( script_t *script );
 
 void PS_ScriptError( script_t *script, scFlags_t flags, const char *fmt, ... );
 void PS_ScriptWarning( script_t *script, scFlags_t flags, const char *fmt, ... );

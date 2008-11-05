@@ -122,6 +122,10 @@ SOURCE=.\r_backend.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\r_backend2.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\r_bloom.c
 # End Source File
 # Begin Source File

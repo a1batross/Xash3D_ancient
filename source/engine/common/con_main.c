@@ -175,7 +175,7 @@ void Con_CheckResize (void)
 	int	i, j, width, oldwidth, oldtotallines, numlines, numchars;
 	short	tbuf[CON_TEXTSIZE];
 
-	width = ((int)Cvar_VariableValue("width")/ SMALLCHAR_WIDTH) - 2;
+	width = ((int)Cvar_VariableValue( "width" ) / SMALLCHAR_WIDTH) - 2;
 
 	if( width == con.linewidth )
 		return;
@@ -204,8 +204,8 @@ void Con_CheckResize (void)
 		if (con.linewidth < numchars)
 			numchars = con.linewidth;
 
-		Mem_Copy(tbuf, con.text, CON_TEXTSIZE * sizeof(short));
-		for(i = 0; i < CON_TEXTSIZE; i++)
+		Mem_Copy( tbuf, con.text, CON_TEXTSIZE * sizeof( short ));
+		for( i = 0; i < CON_TEXTSIZE; i++ )
 			con.text[i] = (ColorIndex(COLOR_WHITE)<<8) | ' ';
 
 		for (i = 0; i < numlines; i++)
@@ -216,7 +216,6 @@ void Con_CheckResize (void)
 						tbuf[((con.current - i + oldtotallines) % oldtotallines) * oldwidth + j];
 			}
 		}
-
 		Con_ClearNotify ();
 	}
 

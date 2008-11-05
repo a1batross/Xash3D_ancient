@@ -1298,7 +1298,7 @@ void R_StudioSetupLighting( void )
 		pbone = (dstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex + i);
 		//if(pbone->flags & STUDIO_HAS_CHROME)
 		{
-			Matrix4x4_TransposeRotate( m_pbonestransform[i], m_plightvec, m_blightvec[i] );
+			Matrix4x4_Rotate3x3( m_pbonestransform[i], m_plightvec, m_blightvec[i] );
 		}
 	}
 }
@@ -1349,8 +1349,8 @@ void R_StudioSetupChrome( float *pchrome, int bone, vec3_t normal )
 		CrossProduct( tmp, chromeupvec, chromerightvec );
 		VectorNormalize( chromerightvec );
 
-		Matrix4x4_TransposeRotate( m_pbonestransform[bone], chromeupvec, g_chromeup[bone] );
-		Matrix4x4_TransposeRotate( m_pbonestransform[bone], chromerightvec, g_chromeright[bone] );
+		Matrix4x4_Rotate3x3( m_pbonestransform[bone], chromeupvec, g_chromeup[bone] );
+		Matrix4x4_Rotate3x3( m_pbonestransform[bone], chromerightvec, g_chromeright[bone] );
 		g_chromeage[bone] = m_pStudioModelCount;
 	}
 

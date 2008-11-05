@@ -144,9 +144,7 @@ void Wad3_AddLump( const byte *buffer, size_t lumpsize, int lump_type, bool comp
 	int result;
 	if( !handle ) Wad3_NewWad(); 	// create wad file
 	result = WAD_Write( handle, lumpname, buffer, lumpsize, lump_type, ( compress ? CMP_ZLIB : CMP_NONE ));
-
-	if( result == -1 ) MsgDev( D_ERROR, "Wad3_AddLump: can't write lump %s\n", lumpname );
-	else Msg("Add %s\t#%i\n", lumpname, result ); //FIXME: align message
+	if( result != -1 ) Msg("Add %s\t#%i\n", lumpname, result ); // FIXME: align message
 }
 
 /*

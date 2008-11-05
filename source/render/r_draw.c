@@ -12,9 +12,9 @@ R_GetPicSize
 this is needed by some client drawing functions
 =================
 */
-void R_GetPicSize( int *w, int *h, const char *pic )
+void R_GetPicSize( int *w, int *h, const char *name )
 {
-	ref_shader_t	*shader = R_RegisterShaderNoMip( pic );
+	ref_shader_t	*shader = R_RegisterShaderNoMip(va( "gfx/%s", name ));
 	*w = (int)shader->stages[0]->bundles[0]->textures[0]->width;
 	*h = (int)shader->stages[0]->bundles[0]->textures[0]->height;
 }

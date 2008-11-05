@@ -235,7 +235,7 @@ void R_LoadShaders( const byte *base, const lump_t *l )
 	for ( i = 0; i < count; i++, in++, out++ )
 	{
 		com.strncpy( out->name, in->name, MAX_SHADERPATH );
-		out->shader = r_defaultShader; // real shaders will load later
+		out->shader = tr.defaultShader; // real shaders will load later
 		out->contents = LittleLong( in->contents );
 		out->flags = LittleLong( in->flags );
 	}
@@ -764,11 +764,6 @@ void R_BeginRegistration( const char *mapname )
 		Mod_Free( &r_models[0] );
 	r_worldModel = Mod_ForName( fullname, true );
 	r_viewCluster = -1;
-
-	// load some needed shaders
-	r_waterCausticsShader = r_shaders[R_FindShader( "waterCaustics", SHADER_TEXTURE, 0 )];
-	r_slimeCausticsShader = r_shaders[R_FindShader( "slimeCaustics", SHADER_TEXTURE, 0 )];
-	r_lavaCausticsShader = r_shaders[R_FindShader( "lavaCaustics", SHADER_TEXTURE, 0 )];
 }
 
 
@@ -781,11 +776,8 @@ R_RegisterModel
 rmodel_t *R_RegisterModel( const char *name )
 {
 	rmodel_t		*mod;
-	ref_shader_t	*shader;
-	int		i;
 	
 	mod = Mod_ForName( name, false );
-
 	R_ShaderRegisterImages( mod );
 	return mod;
 }

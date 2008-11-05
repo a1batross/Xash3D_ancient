@@ -1304,11 +1304,6 @@ bool PS_EndOfScript( script_t *script )
 	return false;
 }
 
-char PS_TXCommand( script_t *script )
-{
-	return (script) ? script->TXcommand : '\0';
-}
-
 static script_t *PS_NewScript( const char *filename, const char *buffer, size_t size )
 {
 	script_t	*script;

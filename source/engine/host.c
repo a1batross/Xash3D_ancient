@@ -518,8 +518,16 @@ void Host_Error( const char *error, ... )
 	com.vsprintf( hosterror1, error, argptr );
 	va_end( argptr );
 
-	if( host.framecount < 3 || host.state == HOST_SHUTDOWN )
+	if( host.framecount == host.errorframe )
+	{
+		com.error( "Host_MultiFrameError: %s", hosterror2 );
+		return;
+	}
+	else if( host.framecount < 3 || host.state == HOST_SHUTDOWN )
+	{
+		Msg( "Host_InitError:" );
 		com.error( hosterror1 );
+	}
 	else Msg( "Host_Error: %s", hosterror1 );
 
 	if( recursive )
@@ -530,6 +538,8 @@ void Host_Error( const char *error, ... )
 	}
 
 	recursive = true;
+	com.strncpy( hosterror2, hosterror1, MAX_MSGLEN );
+	host.framecount = host.errorframe; // to avoid multply calls per frame
 	com.sprintf( host.finalmsg, "Server crashed: %s\n", hosterror1 );
 
 	SV_Shutdown( false );
@@ -640,6 +650,7 @@ void Host_Init( int argc, char **argv)
 
 	if( host.type == HOST_DEDICATED ) Cmd_AddCommand ("quit", Sys_Quit, "quit the game" );
 	host.frametime[0] = Host_Milliseconds();
+	host.errorframe = 0;
 }
 
 /*

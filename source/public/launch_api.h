@@ -475,7 +475,6 @@ typedef struct stdilib_api_s
 	void (*Com_SkipRestOfLine)( script_t *script );		// skip all tokene the rest of line
 	bool (*Com_ReadToken)( script_t *script, scFlags_t flags, token_t *token ); // generic reading
 	void (*Com_SaveToken)( script_t *script, token_t *token );	// save current token to get it again
-	char (*Com_TXCommand)( script_t *script );		// returns QuArK TX command
 
 	// script machine simple user interface
 	bool (*Com_ReadString)( script_t *script, int flags, char *value, size_t size );// string
@@ -628,6 +627,20 @@ don't add aliases for launch.dll because it may be conflicted with real names
 */
 /*
 ========================================================================
+script shared declaration
+external and internal script_t struct have some differences
+========================================================================
+*/
+typedef struct script_s
+{
+	char	*buffer;
+	char	*text;
+	size_t	size;
+	char	TXcommand;
+};
+
+/*
+========================================================================
 console variables
 external and internal cvars struct have some differences
 ========================================================================
@@ -639,7 +652,7 @@ typedef struct cvar_s
 	float	value;		// com.atof( string )
 	int	integer;		// com.atoi( string )
 	bool	modified;		// set each time the cvar is changed
-} cvar_t;
+};
 
 /*
 ==========================================
@@ -676,7 +689,6 @@ typedef struct cvar_s
 #define Com_ReadToken		com.Com_ReadToken
 #define Com_SaveToken		com.Com_SaveToken
 #define Com_FreeToken		com.Com_FreeToken
-#define g_TXcommand			com.Com_TXCommand( mapfile )		// only for bsplib
 
 #define Com_ReadString( x, y, z )	com.Com_ReadString( x, y, z, sizeof( z ))
 #define Com_ReadFloat		com.Com_ReadFloat

@@ -116,7 +116,6 @@ void Sys_GetStdAPI( void )
 	com.Com_SkipRestOfLine = PS_SkipRestOfLine;	// skip all tokene the rest of line
 	com.Com_ReadToken = PS_ReadToken;		// generic reading
 	com.Com_SaveToken = PS_SaveToken;		// save current token to get it again
-	com.Com_TXCommand = PS_TXCommand;
 
 	// script machine simple user interface
 	com.Com_ReadString = PS_GetString;		// string

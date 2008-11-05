@@ -3674,10 +3674,15 @@ fs_offset_t W_SaveLump( wfile_t *wad, const char *lump, const void* data, size_t
 		MsgDev( D_ERROR, "W_SaveLump: %s opened in readonly mode\n", wad->filename ); 
 		return -1;
 	}
-
 	if( wad->numlumps >= MAX_FILES_IN_WAD )
 	{
 		MsgDev( D_ERROR, "W_SaveLump: %s is full\n", wad->filename ); 
+		return -1;
+	}
+	if( W_FindLump( wad, lump, type ))
+	{
+		// don't make mirror lumps
+		MsgDev( D_ERROR, "W_SaveLump: %s already exist\n", lump ); 
 		return -1;
 	}
 

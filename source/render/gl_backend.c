@@ -306,7 +306,7 @@ void R_RenderInfo_f( void )
 	if( GL_Support( R_FRAGMENT_PROGRAM_EXT ))
 	{
 		Msg("GL_MAX_TEXTURE_COORDS_ARB: %i\n", gl_config.texturecoords );
-		Msg("GL_MAX_TEXTURE_IMAGE_UNITS_ARB: %i\n", gl_config.imageunits );
+		Msg("GL_MAX_TEXTURE_IMAGE_UNITS_ARB: %i\n", gl_config.teximageunits );
 	}
 	if( GL_Support( R_ANISOTROPY_EXT ))
 		Msg("GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT: %.1f\n", gl_config.max_anisotropy );
@@ -401,6 +401,7 @@ void GL_InitCommands( void )
 	r_compress_normal_textures = Cvar_Get( "r_compress_normal_textures", "0", CVAR_ARCHIVE|CVAR_LATCH, "compress normal map textures" );
 	r_round_down = Cvar_Get( "r_round_down", "0", CVAR_ARCHIVE|CVAR_LATCH, "down size non-power of two textures" );
 	r_detailtextures = Cvar_Get( "r_detailtextures", "0", CVAR_ARCHIVE|CVAR_LATCH, "allow detail textures" );
+	r_vertexbuffers = Cvar_Get( "r_vertexbuffers", "1", CVAR_ARCHIVE, "store vertex data in VBOs" );
 
 	r_swapInterval = Cvar_Get ("gl_swapinterval", "0", CVAR_ARCHIVE, "time beetween frames (in msec)" );
 	gl_finish = Cvar_Get ("gl_finish", "0", CVAR_ARCHIVE, "no description" );
@@ -411,7 +412,6 @@ void GL_InitCommands( void )
 	Cmd_AddCommand( "shaderlist", R_ShaderList_f, "display loaded shaders list" );
 	Cmd_AddCommand( "programlist", R_ProgramList_f, "display loaded glsl programs list" );
 	Cmd_AddCommand( "texturelist", R_TextureList_f, "display loaded textures list" );
-	Cmd_AddCommand( "r_vboinfo", RB_VBOInfo_f, "display information about VBO state" );
 	Cmd_AddCommand( "r_info", R_RenderInfo_f, "display openGL supported extensions" );
 
 	// range check some cvars
@@ -643,7 +643,7 @@ void GL_InitExtensions( void )
 	if(GL_Support( R_FRAGMENT_PROGRAM_EXT ))
 	{
 		pglGetIntegerv( GL_MAX_TEXTURE_COORDS_ARB, &gl_config.texturecoords );
-		pglGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS_ARB, &gl_config.imageunits );
+		pglGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS_ARB, &gl_config.teximageunits );
 	}
 
 	// vp and fp shaders

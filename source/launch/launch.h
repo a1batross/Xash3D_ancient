@@ -97,12 +97,14 @@ typedef struct timer_s
 
 typedef struct cvar_s
 {
+	// shared part
 	char	*name;
 	char	*string;		// normal string
 	float	value;		// atof( string )
 	int	integer;		// atoi( string )
 	bool	modified;		// set each time the cvar is changed
 
+	// private to launch.dll
 	char	*reset_string;	// cvar_restart will reset to this value
 	char	*latched_string;	// for CVAR_LATCH vars
 	char	*description;	// variable descrition info

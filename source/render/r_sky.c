@@ -361,17 +361,18 @@ static void R_DrawSkyBox( texture_t *textures[6], bool blended )
 
 		if( GL_Support( R_ARB_VERTEX_BUFFER_OBJECT_EXT ))
 		{
-			pglBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB, rb_vbo.indexBuffer );
-			pglBufferDataARB( GL_ELEMENT_ARRAY_BUFFER_ARB, skySide->numIndices * sizeof(uint), skySide->indices, GL_STREAM_DRAW_ARB );
-			pglBindBufferARB( GL_ARRAY_BUFFER_ARB, sky->vbo[i] );
+			//pglBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB, rb_vbo.indexBuffer );
+			//pglBufferDataARB( GL_ELEMENT_ARRAY_BUFFER_ARB, skySide->numIndices * sizeof(uint), skySide->indices, GL_STREAM_DRAW_ARB );
+			RB_UpdateVertexBuffer( sky->vbo[i], skySide->vertices, skySide->numVertices * sizeof(skySideVert_t));
+
 			pglEnableClientState( GL_VERTEX_ARRAY );
-			pglVertexPointer( 3, GL_FLOAT, 20, VBO_OFFSET(0));
+			pglVertexPointer( 3, GL_FLOAT, sizeof(skySideVert_t), sky->vbo[i]->pointer );
 			pglEnableClientState( GL_TEXTURE_COORD_ARRAY );
-			pglTexCoordPointer( 2, GL_FLOAT, 20, VBO_OFFSET(12));
+			pglTexCoordPointer( 2, GL_FLOAT, sizeof(skySideVert_t), sky->vbo[i]->pointer + 12 );
 
 			if( GL_Support( R_DRAW_RANGEELEMENTS_EXT ))
-				pglDrawRangeElementsEXT( GL_TRIANGLES, 0, skySide->numVertices, skySide->numIndices, GL_UNSIGNED_INT, VBO_OFFSET(0));
-			else pglDrawElements( GL_TRIANGLES, skySide->numIndices, GL_UNSIGNED_INT, VBO_OFFSET(0));
+				pglDrawRangeElementsEXT( GL_TRIANGLES, 0, skySide->numVertices, skySide->numIndices, GL_UNSIGNED_INT, skySide->indices );
+			else pglDrawElements( GL_TRIANGLES, skySide->numIndices, GL_UNSIGNED_INT, skySide->indices );
 		}
 		else
 		{
@@ -385,7 +386,7 @@ static void R_DrawSkyBox( texture_t *textures[6], bool blended )
 
 			if( GL_Support( R_DRAW_RANGEELEMENTS_EXT ))
 				pglDrawRangeElementsEXT( GL_TRIANGLES, 0, skySide->numVertices, skySide->numIndices, GL_UNSIGNED_INT, skySide->indices );
-			else pglDrawElements( GL_TRIANGLES, skySide->numIndices, GL_UNSIGNED_INT, skySide->indices);
+			else pglDrawElements( GL_TRIANGLES, skySide->numIndices, GL_UNSIGNED_INT, skySide->indices );
 
 			if( GL_Support( R_CUSTOM_VERTEX_ARRAY_EXT )) pglUnlockArraysEXT();
 		}
@@ -467,26 +468,26 @@ void R_DrawSky( void )
 
 			for( j = 0; j < skySide->numIndices; j += 3 )
 			{
-				indexArray[numIndex++] = numVertex + skySide->indices[j+0];
-				indexArray[numIndex++] = numVertex + skySide->indices[j+1];
-				indexArray[numIndex++] = numVertex + skySide->indices[j+2];
+				ref.indexArray[ref.numIndex++] = ref.numVertex + skySide->indices[j+0];
+				ref.indexArray[ref.numIndex++] = ref.numVertex + skySide->indices[j+1];
+				ref.indexArray[ref.numIndex++] = ref.numVertex + skySide->indices[j+2];
 			}
 
 			for( j = 0, v = skySide->vertices; j < skySide->numVertices; j++, v++ )
 			{
-				vertexArray[numVertex][0] = v->xyz[0];
-				vertexArray[numVertex][1] = v->xyz[1];
-				vertexArray[numVertex][2] = v->xyz[2];
-				normalArray[numVertex][0] = v->normal[0];
-				normalArray[numVertex][1] = v->normal[1];
-				normalArray[numVertex][2] = v->normal[2];
-				inTexCoordArray[numVertex][0] = v->sphere[0];
-				inTexCoordArray[numVertex][1] = v->sphere[1];
-				inColorArray[numVertex][0] = 1.0f;
-				inColorArray[numVertex][1] = 1.0f;
-				inColorArray[numVertex][2] = 1.0f;
-				inColorArray[numVertex][3] = 1.0f;
-				numVertex++;
+				ref.vertsArray[ref.numVertex].point[0] = v->xyz[0];
+				ref.vertsArray[ref.numVertex].point[1] = v->xyz[1];
+				ref.vertsArray[ref.numVertex].point[2] = v->xyz[2];
+				ref.vertsArray[ref.numVertex].normal[0] = v->normal[0];
+				ref.vertsArray[ref.numVertex].normal[1] = v->normal[1];
+				ref.vertsArray[ref.numVertex].normal[2] = v->normal[2];
+				ref.vertsArray[ref.numVertex].stcoord[0] = v->sphere[0];
+				ref.vertsArray[ref.numVertex].stcoord[1] = v->sphere[1];
+				ref.vertsArray[ref.numVertex].color[0] = 1.0f;
+				ref.vertsArray[ref.numVertex].color[1] = 1.0f;
+				ref.vertsArray[ref.numVertex].color[2] = 1.0f;
+				ref.vertsArray[ref.numVertex].color[3] = 1.0f;
+				ref.numVertex++;
 			}
 		}
 		// flush
@@ -608,7 +609,7 @@ void R_SetupSky( const char *name, float rotate, const vec3_t axis )
 		// If VBO is enabled, put the sky box arrays in a static buffer
 		if( GL_Support( R_ARB_VERTEX_BUFFER_OBJECT_EXT ))
 		{
-			sky->vbo[i] = RB_AllocStaticBuffer( GL_ARRAY_BUFFER_ARB, skySide->numVertices * (sizeof(vec3_t) + sizeof(vec2_t)));
+			sky->vbo[i] = RB_AllocVertexBuffer( skySide->numVertices * sizeof(skySideVert_t), GL_STATIC_DRAW_ARB );
 
 			// fill it in with vertices and texture coordinates
 			map = pglMapBufferARB( GL_ARRAY_BUFFER_ARB, GL_WRITE_ONLY_ARB );

@@ -38,31 +38,31 @@ void R_DrawSurface( void )
 
 		for( i = 0; i < p->numIndices; i += 3 )
 		{
-			indexArray[numIndex++] = numVertex + p->indices[i+0];
-			indexArray[numIndex++] = numVertex + p->indices[i+1];
-			indexArray[numIndex++] = numVertex + p->indices[i+2];
+			ref.indexArray[ref.numIndex++] = ref.numVertex + p->indices[i+0];
+			ref.indexArray[ref.numIndex++] = ref.numVertex + p->indices[i+1];
+			ref.indexArray[ref.numIndex++] = ref.numVertex + p->indices[i+2];
 		}
 
 		for( i = 0, v = p->vertices; i < p->numVertices; i++, v++ )
 		{
-			vertexArray[numVertex][0] = v->xyz[0];
-			vertexArray[numVertex][1] = v->xyz[1];
-			vertexArray[numVertex][2] = v->xyz[2];
-			tangentArray[numVertex][0] = surf->tangent[0];
-			tangentArray[numVertex][1] = surf->tangent[1];
-			tangentArray[numVertex][2] = surf->tangent[2];
-			binormalArray[numVertex][0] = surf->binormal[0];
-			binormalArray[numVertex][1] = surf->binormal[1];
-			binormalArray[numVertex][2] = surf->binormal[2];
-			normalArray[numVertex][0] = surf->normal[0];
-			normalArray[numVertex][1] = surf->normal[1];
-			normalArray[numVertex][2] = surf->normal[2];
-			inTexCoordArray[numVertex][0] = v->st[0];
-			inTexCoordArray[numVertex][1] = v->st[1];
-			inTexCoordArray[numVertex][2] = v->lightmap[0];
-			inTexCoordArray[numVertex][3] = v->lightmap[1];
-			Vector4Copy(v->color, inColorArray[numVertex]);
-			numVertex++;
+			ref.vertsArray[ref.numVertex].point[0] = v->xyz[0];
+			ref.vertsArray[ref.numVertex].point[1] = v->xyz[1];
+			ref.vertsArray[ref.numVertex].point[2] = v->xyz[2];
+			ref.vertsArray[ref.numVertex].tangent[0] = surf->tangent[0];
+			ref.vertsArray[ref.numVertex].tangent[1] = surf->tangent[1];
+			ref.vertsArray[ref.numVertex].tangent[2] = surf->tangent[2];
+			ref.vertsArray[ref.numVertex].binormal[0] = surf->binormal[0];
+			ref.vertsArray[ref.numVertex].binormal[1] = surf->binormal[1];
+			ref.vertsArray[ref.numVertex].binormal[2] = surf->binormal[2];
+			ref.vertsArray[ref.numVertex].normal[0] = surf->normal[0];
+			ref.vertsArray[ref.numVertex].normal[1] = surf->normal[1];
+			ref.vertsArray[ref.numVertex].normal[2] = surf->normal[2];
+			ref.vertsArray[ref.numVertex].stcoord[0] = v->st[0];
+			ref.vertsArray[ref.numVertex].stcoord[1] = v->st[1];
+			ref.vertsArray[ref.numVertex].lmcoord[0] = v->lightmap[0];
+			ref.vertsArray[ref.numVertex].lmcoord[1] = v->lightmap[1];
+			Vector4Copy( v->color, ref.vertsArray[ref.numVertex].color );
+			ref.numVertex++;
 		}
 	}
 }
@@ -140,17 +140,6 @@ static void R_AddSurfaceToList( surface_t *surf, ref_entity_t *entity )
 
 	// add it
 	R_AddMeshToList( MESH_SURFACE, surf, shader, entity, lmNum );
-
-	// Also add caustics
-	if( r_caustics->integer )
-	{
-		if( surf->flags & SURF_WATERCAUSTICS )
-			R_AddMeshToList( MESH_SURFACE, surf, r_waterCausticsShader, entity, 0 );
-		if( surf->flags & SURF_SLIMECAUSTICS )
-			R_AddMeshToList( MESH_SURFACE, surf, r_slimeCausticsShader, entity, 0 );
-		if( surf->flags & SURF_LAVACAUSTICS )
-			R_AddMeshToList( MESH_SURFACE, surf, r_lavaCausticsShader, entity, 0 );
-	}
 }
 
 

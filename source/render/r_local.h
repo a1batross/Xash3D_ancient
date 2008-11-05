@@ -20,7 +20,6 @@ extern byte *r_temppool;
 #define MAX_TEXTURE_UNITS		8
 #define MAX_LIGHTMAPS		128
 #define MAX_PROGRAMS		512
-#define MAX_SHADERS			1024
 #define MAX_ENTITIES		1024
 #define MAX_VERTEX_BUFFERS		2048
 #define MAX_POLYS			4096
@@ -137,323 +136,10 @@ program_t		*R_FindProgram( const char *name, uint target );
 void		R_InitPrograms( void );
 void		R_ShutdownPrograms( void );
 
-/*
- =======================================================================
-
- SHADERS
-
- =======================================================================
-*/
-#define SHADER_MAX_EXPRESSIONS		16
-#define SHADER_MAX_STAGES			8
-#define SHADER_MAX_DEFORMVERTEXES		8
-#define SHADER_MAX_TEXTURES			16
-#define SHADER_MAX_TCMOD			8
-
-// Shader types used for shader loading
-typedef enum
-{
-	SHADER_SKY,			// sky box shader
-	SHADER_FONT,			// speical case for displayed fonts
-	SHADER_NOMIP,			// 2d images
-	SHADER_TEXTURE,			// bsp polygon
-	SHADER_STUDIO,			// studio skins
-	SHADER_SPRITE,			// sprite frames
-	SHADER_GENERIC			// generic shader
-} shaderType_t;
-
-// shader flags
-#define SHADER_EXTERNAL			0x00000001
-#define SHADER_DEFAULTED			0x00000002
-#define SHADER_HASLIGHTMAP			0x00000004
-#define SHADER_SURFACEPARM			0x00000008
-#define SHADER_NOMIPMAPS			0x00000010
-#define SHADER_NOPICMIP			0x00000020
-#define SHADER_NOCOMPRESS			0x00000040
-#define SHADER_NOSHADOWS			0x00000080
-#define SHADER_NOFRAGMENTS			0x00000100
-#define SHADER_ENTITYMERGABLE			0x00000200
-#define SHADER_POLYGONOFFSET			0x00000400
-#define SHADER_CULL				0x00000800
-#define SHADER_SORT				0x00001000
-#define SHADER_TESSSIZE			0x00002000
-#define SHADER_SKYPARMS			0x00004000
-#define SHADER_DEFORMVERTEXES			0x00008000
-
-// shader stage flags
-#define SHADERSTAGE_NEXTBUNDLE		0x00000001
-#define SHADERSTAGE_VERTEXPROGRAM		0x00000002
-#define SHADERSTAGE_FRAGMENTPROGRAM		0x00000004
-#define SHADERSTAGE_ALPHAFUNC			0x00000008
-#define SHADERSTAGE_BLENDFUNC			0x00000010
-#define SHADERSTAGE_DEPTHFUNC			0x00000020
-#define SHADERSTAGE_DEPTHWRITE		0x00000040
-#define SHADERSTAGE_DETAIL			0x00000080
-#define SHADERSTAGE_RGBGEN			0x00000100
-#define SHADERSTAGE_ALPHAGEN			0x00000200
-
-// stage bundle flags
-#define STAGEBUNDLE_NOMIPMAPS			0x00000001
-#define STAGEBUNDLE_NOPICMIP			0x00000002
-#define STAGEBUNDLE_NOCOMPRESS		0x00000004
-#define STAGEBUNDLE_CLAMPTEXCOORDS		0x00000008
-#define STAGEBUNDLE_ANIMFREQUENCY		0x00000010
-#define STAGEBUNDLE_MAP			0x00000020
-#define STAGEBUNDLE_BUMPMAP			0x00000040
-#define STAGEBUNDLE_CUBEMAP			0x00000080
-#define STAGEBUNDLE_VIDEOMAP			0x00000100
-#define STAGEBUNDLE_TEXENVCOMBINE		0x00000200
-#define STAGEBUNDLE_TCGEN			0x00000400
-#define STAGEBUNDLE_TCMOD			0x00000800
-
-typedef enum
-{
-	WAVEFORM_SIN,
-	WAVEFORM_TRIANGLE,
-	WAVEFORM_SQUARE,
-	WAVEFORM_SAWTOOTH,
-	WAVEFORM_INVERSESAWTOOTH,
-	WAVEFORM_NOISE
-} waveForm_t;
-
-typedef enum
-{
-	SORT_SKY			= 1,
-	SORT_OPAQUE,
-	SORT_DECAL,
-	SORT_SEETHROUGH,
-	SORT_BANNER,
-	SORT_UNDERWATER,
-	SORT_WATER,
-	SORT_INNERBLEND,
-	SORT_BLEND,
-	SORT_BLEND2,
-	SORT_BLEND3,
-	SORT_BLEND4,
-	SORT_OUTERBLEND,
-	SORT_ADDITIVE,
-	SORT_NEAREST
-} sort_t;
-
-typedef enum
-{
-	DEFORMVERTEXES_WAVE,
-	DEFORMVERTEXES_MOVE,
-	DEFORMVERTEXES_NORMAL,
-} deformVertsType_t;
-
-typedef enum
-{
-	TCGEN_BASE,
-	TCGEN_LIGHTMAP,
-	TCGEN_ENVIRONMENT,
-	TCGEN_VECTOR,
-	TCGEN_WARP,
-	TCGEN_LIGHTVECTOR,
-	TCGEN_HALFANGLE,
-	TCGEN_REFLECTION,
-	TCGEN_NORMAL
-} tcGenType_t;
-
-typedef enum
-{
-	TCMOD_TRANSLATE,
-	TCMOD_SCALE,
-	TCMOD_SCROLL,
-	TCMOD_ROTATE,
-	TCMOD_STRETCH,
-	TCMOD_TURB,
-	TCMOD_TRANSFORM
-} tcModType_t;
-
-typedef enum
-{
-	RGBGEN_IDENTITY,
-	RGBGEN_IDENTITYLIGHTING,
-	RGBGEN_WAVE,
-	RGBGEN_COLORWAVE,
-	RGBGEN_VERTEX,
-	RGBGEN_ONEMINUSVERTEX,
-	RGBGEN_ENTITY,
-	RGBGEN_ONEMINUSENTITY,
-	RGBGEN_LIGHTINGAMBIENT,
-	RGBGEN_LIGHTINGDIFFUSE,
-	RGBGEN_CONST
-} rgbGenType_t;
-
-typedef enum
-{
-	ALPHAGEN_IDENTITY,
-	ALPHAGEN_WAVE,
-	ALPHAGEN_ALPHAWAVE,
-	ALPHAGEN_VERTEX,
-	ALPHAGEN_ONEMINUSVERTEX,
-	ALPHAGEN_ENTITY,
-	ALPHAGEN_ONEMINUSENTITY,
-	ALPHAGEN_DOT,
-	ALPHAGEN_ONEMINUSDOT,
-	ALPHAGEN_FADE,
-	ALPHAGEN_ONEMINUSFADE,
-	ALPHAGEN_LIGHTINGSPECULAR,
-	ALPHAGEN_CONST
-} alphaGenType_t;
-
-typedef enum
-{
-	TEX_GENERIC,
-	TEX_LIGHTMAP,
-	TEX_CINEMATIC
-} texType_t;
-
-typedef struct
-{
-	waveForm_t	type;
-	float		params[4];
-} waveFunc_t;
-
-typedef struct
-{
-	GLenum		mode;
-} cull_t;
-
-typedef struct
-{
-	texture_t		*farBox[6];
-	float		cloudHeight;
-	texture_t		*nearBox[6];
-} skyParms_t;
-
-typedef struct
-{
-	deformVertsType_t	type;
-	waveFunc_t	func;
-	float		params[3];
-} deformVerts_t;
-
-typedef struct
-{
-	GLint		rgbCombine;
-	GLint		rgbSource[3];
-	GLint		rgbOperand[3];
-	GLint		rgbScale;
-
-	GLint		alphaCombine;
-	GLint		alphaSource[3];
-	GLint		alphaOperand[3];
-	GLint		alphaScale;
-
-	GLfloat		constColor[4];
-} texEnvCombine_t;
-
-typedef struct
-{
-	tcGenType_t	type;
-	float		params[6];
-} tcGen_t;
-
-typedef struct
-{
-	tcModType_t	type;
-	waveFunc_t	func;
-	float		params[6];
-} tcMod_t;
-
-typedef struct
-{
-	GLenum		func;
-	GLclampf		ref;
-} alphaFunc_t;
-
-typedef struct
-{
-	GLenum		src;
-	GLenum		dst;
-} blendFunc_t;
-
-typedef struct
-{
-	GLenum		func;
-} depthFunc_t;
-
-typedef struct
-{
-	rgbGenType_t	type;
-	waveFunc_t	func;
-	float		params[3];
-} rgbGen_t;
-
-typedef struct
-{
-	alphaGenType_t	type;
-	waveFunc_t	func;
-	float		params[3];
-} alphaGen_t;
-
-typedef struct
-{
-	texType_t		texType;
-	uint		flags;
-
-	texture_t		*textures[SHADER_MAX_TEXTURES];
-	uint		numTextures;
-
-	float		animFrequency;
-	video_t		cinematicHandle;
-
-	GLint		texEnv;
-	texEnvCombine_t	texEnvCombine;
-
-	tcGen_t		tcGen;
-	tcMod_t		tcMod[SHADER_MAX_TCMOD];
-	uint		tcModNum;
-} stageBundle_t;
-
-typedef struct
-{
-	bool		ignore;
-	uint		flags;
-
-	stageBundle_t	*bundles[MAX_TEXTURE_UNITS];
-	uint		numBundles;
-
-	program_t		*vertexProgram;
-	program_t		*fragmentProgram;
-
-	alphaFunc_t	alphaFunc;
-	blendFunc_t	blendFunc;
-	depthFunc_t	depthFunc;
-
-	rgbGen_t		rgbGen;
-	alphaGen_t	alphaGen;
-} shaderStage_t;
-
-typedef struct ref_shader_s
-{
-	string		name;
-	int		shaderNum;
-	shaderType_t	shaderType;
-	uint		surfaceParm;
-	uint		contentFlags;
-	uint		flags;
-
-	cull_t		cull;
-	sort_t		sort;
-	uint		tessSize;
-	skyParms_t	skyParms;
-	deformVerts_t	deformVertexes[SHADER_MAX_DEFORMVERTEXES];
-	uint		deformVertexesNum;
-	shaderStage_t	*stages[SHADER_MAX_STAGES];
-	uint	   	numStages;
-	struct ref_shader_s	*nextHash;
-} ref_shader_t;
+#include "r_shader.h"
 
 extern ref_shader_t	*r_shaders[MAX_SHADERS];
 extern int	r_numShaders;
-extern ref_shader_t	*r_defaultShader;
-extern ref_shader_t	*r_lightmapShader;
-extern ref_shader_t	*r_waterCausticsShader;
-extern ref_shader_t	*r_slimeCausticsShader;
-extern ref_shader_t	*r_lavaCausticsShader;
 
 shader_t	R_FindShader( const char *name, shaderType_t shaderType, uint surfaceParm );
 void	R_SetInternalMap( texture_t *mipTex );		// internal textures (skins, spriteframes, etc)
@@ -634,8 +320,8 @@ typedef struct
 typedef struct
 {
 	vec3_t		xyz;
-	vec3_t		normal;
 	vec2_t		st;
+	vec3_t		normal;
 	vec2_t		sphere;
 } skySideVert_t;
 
@@ -654,7 +340,7 @@ typedef struct
 	vec3_t		axis;
 	float		mins[2][6];
 	float		maxs[2][6];
-	uint		vbo[6];
+	struct ref_buffer_s	*vbo[6];
 	skySide_t		skySides[6];
 } sky_t;
 
@@ -926,115 +612,6 @@ typedef struct radar_ent_s
 extern int numRadarEnts;
 extern radar_ent_t RadarEnts[MAX_RADAR_ENTS];
 
-/*
- =======================================================================
-
- GL STATE MANAGER
-
- =======================================================================
-*/
-
-typedef enum
-{
-	R_OPENGL_110 = 0,		// base
-	R_SGIS_MIPMAPS_EXT,
-	R_WGL_SWAPCONTROL,
-	R_COMBINE_EXT,
-	R_DRAW_RANGEELEMENTS_EXT,
-	R_ARB_MULTITEXTURE,
-	R_LOCKARRAYS_EXT,
-	R_TEXTURE_3D_EXT,
-	R_TEXTURECUBEMAP_EXT,
-	R_DOT3_ARB_EXT,
-	R_CLAMPTOEDGE_EXT,
-	R_ANISOTROPY_EXT,
-	R_BLEND_MINMAX_EXT,
-	R_STENCILTWOSIDE_EXT,
-	R_BLEND_SUBTRACT_EXT,
-	R_SHADER_OBJECTS_EXT,
-	R_SHADER_GLSL100_EXT,
-	R_VERTEX_SHADER_EXT,	// glsl vertex program
-	R_FRAGMENT_SHADER_EXT,	// glsl fragment program	
-	R_VERTEX_PROGRAM_EXT,	// cg vertex program
-	R_FRAGMENT_PROGRAM_EXT,	// cg fragment program
-	R_EXT_POINTPARAMETERS,
-	R_SEPARATESTENCIL_EXT,
-	R_ARB_TEXTURE_NPOT_EXT,
-	R_ARB_VERTEX_BUFFER_OBJECT_EXT,
-	R_CUSTOM_VERTEX_ARRAY_EXT,
-	R_TEXTURE_COMPRESSION_EXT,
-	R_TEXTURE_ENV_ADD_EXT,
-	R_CLAMP_TEXBORDER_EXT,
-	R_TEXTURE_LODBIAS,
-	R_EXTCOUNT
-} r_opengl_extensions;
-
-typedef struct glstate_s
-{
-	bool		orthogonal;
-	word		gammaRamp[768];		// current gamma ramp
-	word		stateRamp[768];		// original gamma ramp
-	uint		screenTexture;
-
-	vec4_t		draw_color;		// current color
-	uint		activeTMU;
-	int		texNum[MAX_TEXTURE_UNITS];
-	int		texEnv[MAX_TEXTURE_UNITS];
-
-	// render current state
-	bool		cullFace;
-	bool		polygonOffsetFill;
-	bool		vertexProgram;
-	bool		fragmentProgram;
-	bool		alpha_test;
-	bool		depth_test;
-	bool		blend;
-
-	// OpenGL current state
-	GLenum		cullMode;
-	GLfloat		offsetFactor;
-	GLfloat		offsetUnits;
-	GLenum		alphaFunc;
-	GLclampf		alphaRef;
-	GLenum		blendSrc;
-	GLenum		blendDst;
-	GLenum		depthFunc;
-	GLboolean		depthMask;
-	GLfloat		polygonoffset[2];
-} glstate_t;
-
-// contains constant values that are always
-// setting by R_Init and using as read-only
-typedef struct glconfig_s
-{
-	const char	*renderer_string;
-	const char	*vendor_string;
-	const char	*version_string;
-
-	// list of supported extensions
-	const char	*extensions_string;
-	byte		extension[R_EXTCOUNT];
-	uint		max_entities;
-
-	int		textureunits;
-	int		texturecoords;
-	int		imageunits;
-	GLint		max_2d_texture_size;
-	GLint		max_2d_rectangle_size;
-	GLint		max_3d_texture_size;
-	GLint		max_cubemap_texture_size;
-	GLfloat		max_anisotropy;
-	GLfloat		max_lodbias;
-	GLint		texRectangle;
-
-	bool		deviceSupportsGamma;
-	bool		fullscreen;
-	int		prev_mode;
-} glconfig_t;
-
-extern glconfig_t  gl_config;
-extern glstate_t   gl_state;
-
 void		GL_InitBackend( void );
 bool		GL_Support( int r_ext );
 void		GL_InitExtensions( void );
@@ -1092,19 +669,9 @@ void		R_CheckForErrors( void );
  =======================================================================
 */
 
-#define VBO_OFFSET(i)		((char *)NULL + (i))
 #define MAX_INDICES			16384 * 3
 #define MAX_VERTICES		8192
 #define MAX_MESHES			32768
-
-typedef struct
-{
-	uint		indexBuffer;
-	uint		vertexBuffer;
-	uint		normalBuffer;
-	uint		colorBuffer;
-	uint		texCoordBuffer[MAX_TEXTURE_UNITS];
-} vbo_t;
 
 typedef enum
 {
@@ -1124,7 +691,6 @@ typedef struct
 	void		*mesh;
 } mesh_t;
 
-extern vbo_t	rb_vbo;
 extern int	m_iInfoKey;
 extern float	m_fShaderTime;
 extern rmodel_t	*m_pLoadModel;
@@ -1135,29 +701,16 @@ extern ref_entity_t *m_pCurrentEntity;
 extern int	m_iStudioModelCount;
 extern int	registration_sequence;
 
-extern uint	indexArray[MAX_INDICES * 4];
-extern vec3_t	vertexArray[MAX_VERTICES * 2];
-extern vec3_t	tangentArray[MAX_VERTICES];
-extern vec3_t	binormalArray[MAX_VERTICES];
-extern vec3_t	normalArray[MAX_VERTICES];
-extern vec4_t	colorArray[MAX_VERTICES];
-extern vec3_t	texCoordArray[MAX_TEXTURE_UNITS][MAX_VERTICES];
-extern vec4_t	inColorArray[MAX_VERTICES];
-extern vec4_t	inTexCoordArray[MAX_VERTICES];
-extern int	numIndex;
-extern int	numVertex;
-
 void		RB_DebugGraphics( void );
 void		RB_CheckMeshOverflow( int numIndices, int numVertices );
 void		RB_RenderMesh( void );
 void		RB_RenderMeshes( mesh_t *meshes, int numMeshes );
 void		RB_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, float sh, float th, ref_shader_t *shader );
 
-void		RB_VBOInfo_f( void );
-uint		RB_AllocStaticBuffer( uint target, int size );
-uint		RB_AllocStreamBuffer( uint target, int size );
 void		RB_InitBackend( void );
 void		RB_ShutdownBackend( void );
+
+#include "r_backend.h"
 
 typedef struct
 {
@@ -1311,6 +864,7 @@ extern cvar_t	*r_showmodelbounds;
 extern cvar_t	*r_showshadowvolumes;
 extern cvar_t	*r_offsetfactor;
 extern cvar_t	*r_offsetunits;
+extern cvar_t	*r_vertexbuffers;
 extern cvar_t	*r_debugsort;
 extern cvar_t	*r_speeds;
 extern cvar_t	*r_singleshader;

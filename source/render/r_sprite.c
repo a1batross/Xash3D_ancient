@@ -295,7 +295,6 @@ void R_DrawSpriteModel( void )
 	vec3_t		forward, right, up;
 	vec3_t		point;
 	ref_entity_t	*e;
-	int		i;
 
 	e = m_pCurrentEntity;
 	frame = R_GetSpriteFrame( e );
@@ -340,38 +339,27 @@ void R_DrawSpriteModel( void )
 
 	// draw it
 	RB_CheckMeshOverflow( 6, 4 );
-	
-	for( i = 2; i < 4; i++ )
-	{
-		indexArray[numIndex++] = numVertex + 0;
-		indexArray[numIndex++] = numVertex + i-1;
-		indexArray[numIndex++] = numVertex + i;
-	}
 
 	GL_Begin( GL_QUADS );
 		GL_TexCoord2f( 0, 0 );
-		GL_Color4f( e->rendercolor[0], e->rendercolor[1], e->rendercolor[2], e->renderamt );
 		VectorMA( e->origin, frame->up * e->scale, up, point );
 		VectorMA( point, frame->left * e->scale, right, point );
 		GL_Normal3fv( forward );
 		GL_Vertex3fv( point );
 
 		GL_TexCoord2f( 1, 0 );		
-		GL_Color4f( e->rendercolor[0], e->rendercolor[1], e->rendercolor[2], e->renderamt );
 		VectorMA( e->origin, frame->up * e->scale, up, point );
 		VectorMA( point, frame->right * e->scale, right, point );
 		GL_Normal3fv( forward );
 		GL_Vertex3fv( point );
 
 		GL_TexCoord2f( 1, 1 );
-		GL_Color4f( e->rendercolor[0], e->rendercolor[1], e->rendercolor[2], e->renderamt );
 		VectorMA( e->origin, frame->down * e->scale, up, point );
 		VectorMA( point, frame->right * e->scale, right, point );
 		GL_Normal3fv( forward );
 		GL_Vertex3fv( point );
 
           	GL_TexCoord2f( 0, 1 );
-		GL_Color4f( e->rendercolor[0], e->rendercolor[1], e->rendercolor[2], e->renderamt );
 		VectorMA( e->origin, frame->down * e->scale, up, point );
 		VectorMA( point, frame->left * e->scale, right, point );
 		GL_Normal3fv( forward );

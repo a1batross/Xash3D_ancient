@@ -266,12 +266,12 @@ void R_LightingAmbient( void )
 	// Set to full bright if no light data
 	if(( r_refdef.rdflags & RDF_NOWORLDMODEL) || !r_worldModel->lightMaps )
 	{
-		for( i = 0; i < numVertex; i++ )
+		for( i = 0; i < ref.numVertex; i++ )
 		{
-			colorArray[i][0] = 1.0f;
-			colorArray[i][1] = 1.0f;
-			colorArray[i][2] = 1.0f;
-			colorArray[i][3] = 1.0f;
+			ref.vertsArray[i].color[0] = 1.0f;
+			ref.vertsArray[i].color[1] = 1.0f;
+			ref.vertsArray[i].color[2] = 1.0f;
+			ref.vertsArray[i].color[3] = 1.0f;
 		}
 		return;
 	}
@@ -317,12 +317,12 @@ void R_LightingAmbient( void )
 	// normalize and convert to byte
 	ColorNormalize( ambientLight, ambientLight );
 
-	for( i = 0; i < numVertex; i++ )
+	for( i = 0; i < ref.numVertex; i++ )
 	{
-		colorArray[i][0] = ambientLight[0];
-		colorArray[i][1] = ambientLight[1];
-		colorArray[i][2] = ambientLight[2];
-		colorArray[i][3] = 1.0f;
+		ref.vertsArray[i].color[0] = ambientLight[0];
+		ref.vertsArray[i].color[1] = ambientLight[1];
+		ref.vertsArray[i].color[2] = ambientLight[2];
+		ref.vertsArray[i].color[3] = 1.0f;
 	}
 }
 
@@ -342,12 +342,12 @@ void R_LightingDiffuse( void )
 	// Set to full bright if no light data
 	if((r_refdef.rdflags & RDF_NOWORLDMODEL) || !r_worldModel->lightMaps )
 	{
-		for( i = 0; i < numVertex; i++ )
+		for( i = 0; i < ref.numVertex; i++ )
 		{
-			colorArray[i][0] = 1.0f;
-			colorArray[i][1] = 1.0f;
-			colorArray[i][2] = 1.0f;
-			colorArray[i][3] = 1.0f;
+			ref.vertsArray[i].color[0] = 1.0f;
+			ref.vertsArray[i].color[1] = 1.0f;
+			ref.vertsArray[i].color[2] = 1.0f;
+			ref.vertsArray[i].color[3] = 1.0f;
 		}
 		return;
 	}
@@ -379,9 +379,9 @@ void R_LightingDiffuse( void )
 	VectorRotate( lightDir, m_pCurrentEntity->axis, dir );
 	VectorNormalizeFast( dir );
 
-	for( i = 0; i < numVertex; i++ )
+	for( i = 0; i < ref.numVertex; i++ )
 	{
-		dot = DotProduct( normalArray[i], dir );
+		dot = DotProduct( ref.vertsArray[i].normal, dir );
 		if( dot <= 0 )
 		{
 			VectorCopy( ambientLight, r_lightColors[i] );
@@ -408,10 +408,10 @@ void R_LightingDiffuse( void )
 			intensity = dl->intensity * 8;
 
 			// compute lighting at each vertex
-			for( i = 0; i < numVertex; i++ )
+			for( i = 0; i < ref.numVertex; i++ )
 			{
-				VectorSubtract( lightDir, vertexArray[i], dir );
-				add = DotProduct( normalArray[i], dir );
+				VectorSubtract( lightDir, ref.vertsArray[i].point, dir );
+				add = DotProduct( ref.vertsArray[i].normal, dir );
 				if( add <= 0 ) continue;
 
 				dot = DotProduct( dir, dir );
@@ -422,14 +422,13 @@ void R_LightingDiffuse( void )
 	}
 
 	// Normalize and convert to byte
-	for (i = 0; i < numVertex; i++)
+	for (i = 0; i < ref.numVertex; i++)
 	{
-
 		ColorNormalize( r_lightColors[i], r_lightColors[i] );
-		colorArray[i][0] = r_lightColors[i][0];
-		colorArray[i][1] = r_lightColors[i][1];
-		colorArray[i][2] = r_lightColors[i][2];
-		colorArray[i][3] = 1.0f;
+		ref.vertsArray[i].color[0] = r_lightColors[i][0];
+		ref.vertsArray[i].color[1] = r_lightColors[i][1];
+		ref.vertsArray[i].color[2] = r_lightColors[i][2];
+		ref.vertsArray[i].color[3] = 1.0f;
 	}
 }
 

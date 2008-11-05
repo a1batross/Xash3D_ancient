@@ -2610,7 +2610,7 @@ void R_ShutdownTextures( void )
 	{
 		if( GL_Support( R_FRAGMENT_PROGRAM_EXT ))
 		{
-			if( i >= gl_config.texturecoords || i >= gl_config.imageunits )
+			if( i >= gl_config.texturecoords || i >= gl_config.teximageunits )
 				continue;
 		}
 		else
