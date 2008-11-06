@@ -67,7 +67,7 @@ static void R_FillSkySide( skySide_t *skySide, float skyHeight, vec3_t org, vec3
 	skySide->numIndices = SKY_INDICES;
 	skySide->numVertices = SKY_VERTICES;
 
-	// find normal
+	// Find normal
 	CrossProduct( col, row, normal );
 	VectorNormalize( normal );
 
@@ -92,7 +92,7 @@ static void R_FillSkySide( skySide_t *skySide, float skyHeight, vec3_t org, vec3
 			VectorNormalize2( xyz, w );
 
 			// find distance along w to sphere
-			dist = com.sqrt(EYE_RAD2 * (w[2] * w[2] - 1.0) + SPHERE_RAD2) - EYE_RAD * w[2];
+			dist = sqrt(EYE_RAD2 * (w[2] * w[2] - 1.0) + SPHERE_RAD2) - EYE_RAD * w[2];
 
 			// use x and y on sphere as s and t
 			// minus is here so skies scroll in correct (Q3's) direction

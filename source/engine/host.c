@@ -518,15 +518,15 @@ void Host_Error( const char *error, ... )
 	com.vsprintf( hosterror1, error, argptr );
 	va_end( argptr );
 
-	if( host.framecount == host.errorframe )
-	{
-		com.error( "Host_MultiFrameError: %s", hosterror2 );
-		return;
-	}
-	else if( host.framecount < 3 || host.state == HOST_SHUTDOWN )
+	if( host.framecount < 3 || host.state == HOST_SHUTDOWN )
 	{
 		Msg( "Host_InitError:" );
 		com.error( hosterror1 );
+	}
+	else if( host.framecount == host.errorframe )
+	{
+		com.error( "Host_MultiError: %s", hosterror2 );
+		return;
 	}
 	else Msg( "Host_Error: %s", hosterror1 );
 

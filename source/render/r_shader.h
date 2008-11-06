@@ -17,7 +17,6 @@
 #define MAX_TABLES			4096
 
 #define MAX_SHADERS			1024
-#define MAX_STAGES			256
 #define SHADERS_HASH_SIZE		256
 #define MAX_EXPRESSION_OPS		4096
 #define MAX_EXPRESSION_REGISTERS	4096
@@ -48,30 +47,32 @@
 #define SHADER_DEFORMVERTEXES			0x00008000
 
 // shader stage flags
-#define SHADERSTAGE_NEXTBUNDLE		0x00000001
-#define SHADERSTAGE_VERTEXPROGRAM		0x00000002
-#define SHADERSTAGE_FRAGMENTPROGRAM		0x00000004
-#define SHADERSTAGE_ALPHAFUNC			0x00000008
-#define SHADERSTAGE_BLENDFUNC			0x00000010
-#define SHADERSTAGE_DEPTHFUNC			0x00000020
-#define SHADERSTAGE_DEPTHWRITE		0x00000040
-#define SHADERSTAGE_DETAIL			0x00000080
-#define SHADERSTAGE_RGBGEN			0x00000100
-#define SHADERSTAGE_ALPHAGEN			0x00000200
+typedef enum
+{
+	SHADERSTAGE_NEXTBUNDLE	= BIT(0),
+	SHADERSTAGE_VERTEXPROGRAM	= BIT(1),
+	SHADERSTAGE_FRAGMENTPROGRAM	= BIT(2),
+	SHADERSTAGE_ALPHAFUNC	= BIT(3),
+	SHADERSTAGE_BLENDFUNC	= BIT(4),
+	SHADERSTAGE_DEPTHFUNC	= BIT(5),
+	SHADERSTAGE_DEPTHWRITE	= BIT(6),
+	SHADERSTAGE_DETAIL		= BIT(7),
+	SHADERSTAGE_RGBGEN		= BIT(8),
+	SHADERSTAGE_ALPHAGEN	= BIT(10),
+} stageFlags_t;
 
 // stage bundle flags
-#define STAGEBUNDLE_NOMIPMAPS			0x00000001
-#define STAGEBUNDLE_NOPICMIP			0x00000002
-#define STAGEBUNDLE_NOCOMPRESS		0x00000004
-#define STAGEBUNDLE_CLAMPTEXCOORDS		0x00000008
-#define STAGEBUNDLE_ANIMFREQUENCY		0x00000010
-#define STAGEBUNDLE_MAP			0x00000020
-#define STAGEBUNDLE_BUMPMAP			0x00000040
-#define STAGEBUNDLE_CUBEMAP			0x00000080
-#define STAGEBUNDLE_VIDEOMAP			0x00000100
-#define STAGEBUNDLE_TEXENVCOMBINE		0x00000200
-#define STAGEBUNDLE_TCGEN			0x00000400
-#define STAGEBUNDLE_TCMOD			0x00000800
+typedef enum
+{
+	STAGEBUNDLE_ANIMFREQUENCY	= BIT(0),
+	STAGEBUNDLE_MAP		= BIT(1),
+	STAGEBUNDLE_BUMPMAP		= BIT(2),
+	STAGEBUNDLE_CUBEMAP		= BIT(3),
+	STAGEBUNDLE_VIDEOMAP	= BIT(4),
+	STAGEBUNDLE_TEXENVCOMBINE	= BIT(5),
+	STAGEBUNDLE_TCGEN		= BIT(6),
+	STAGEBUNDLE_TCMOD		= BIT(7),
+} bundleFlags_t;
 
 typedef enum
 {
@@ -147,21 +148,30 @@ typedef enum
 
 typedef enum
 {
-	SORT_SKY = 1,
+	SUBVIEW_NONE,
+	SUBVIEW_MIRROR,
+	SUBVIEW_REMOTE
+} subview_t;
+
+typedef enum
+{
+	SORT_BAD = 0,
+	SORT_SUBVIEW,
 	SORT_OPAQUE,
+	SORT_SKY,
 	SORT_DECAL,
 	SORT_SEETHROUGH,
 	SORT_BANNER,
 	SORT_UNDERWATER,
 	SORT_WATER,
-	SORT_INNERBLEND,
-	SORT_BLEND,
-	SORT_BLEND2,
-	SORT_BLEND3,
-	SORT_BLEND4,
-	SORT_OUTERBLEND,
+	SORT_FARTHEST,
+	SORT_FAR,
+	SORT_MEDIUM,
+	SORT_CLOSE,
 	SORT_ADDITIVE,
-	SORT_NEAREST
+	SORT_ALMOST_NEAREST,
+	SORT_NEAREST,
+	SORT_POST_PROCESS
 } sort_t;
 
 typedef enum
@@ -349,8 +359,11 @@ typedef struct
 typedef struct stageBundle_s
 {
 	texType_t		texType;
-	uint		flags;
+	texFlags_t	texFlags;
+	texFilter_t	texFilter;
+	texWrap_t		texWrap;
 
+	bundleFlags_t	flags;
 	texture_t		*textures[SHADER_MAX_TEXTURES];
 	uint		numTextures;
 
@@ -368,6 +381,7 @@ typedef struct stageBundle_s
 typedef struct shaderStage_s
 {
 	bool		ignore;
+	int		conditionRegister;
 	uint		flags;
 
 	stageBundle_t	*bundles[MAX_TEXTURE_UNITS];
@@ -390,6 +404,7 @@ typedef struct ref_shader_s
 	int		index;
 	shaderType_t	type;
 	uint		surfaceParm;
+	int		conditionRegister;
 	uint		flags;
 
 	cull_t		cull;
@@ -401,6 +416,9 @@ typedef struct ref_shader_s
 	shaderStage_t	*stages[SHADER_MAX_STAGES];
 	uint	   	numStages;
 
+	subview_t		subview;
+	int		subviewWidth;
+	int		subviewHeight;
 	ammoDisplay_t	ammoDisplay;
 	bool		constantExpressions;
 	statement_t	*statements;

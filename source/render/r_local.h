@@ -141,11 +141,12 @@ void		R_ShutdownPrograms( void );
 extern ref_shader_t	*r_shaders[MAX_SHADERS];
 extern int	r_numShaders;
 
+void	R_EvaluateRegisters( ref_shader_t *shader, float time, const float *entityParms, const float *globalParms );
 shader_t	R_FindShader( const char *name, shaderType_t shaderType, uint surfaceParm );
 void	R_SetInternalMap( texture_t *mipTex );		// internal textures (skins, spriteframes, etc)
 void	R_ShaderList_f( void );
 void	R_InitShaders( void );
-void	R_ShutdownShaders (void);
+void	R_ShutdownShaders( void );
 
 /*
 =======================================================================
@@ -156,7 +157,7 @@ BRUSH MODELS
 */
 #define SURF_PLANEBACK		1 // fast surface culling
 #define CONTENTS_NODE		-1
-#define SKY_SIZE			8
+#define SKY_SIZE			16
 #define SKY_INDICES			(SKY_SIZE * SKY_SIZE * 6)
 #define SKY_VERTICES		((SKY_SIZE+1) * (SKY_SIZE+1))
 

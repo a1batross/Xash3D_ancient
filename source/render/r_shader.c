@@ -1014,13 +1014,6 @@ static bool R_ParseExpression( script_t *script, ref_shader_t *shader, int *expr
 }
 
 /*
-=======================================================================
-
- SHADER PARSING
-
-=======================================================================
-*/
-/*
 =================
 R_ParseWaveFunc
 =================
@@ -1054,51 +1047,12 @@ static bool R_ParseWaveFunc( ref_shader_t *shader, waveFunc_t *func, script_t *s
 }
 
 /*
-=================
-R_ParseHeightToNormal
-=================
+=======================================================================
+
+ SHADER PARSING
+
+=======================================================================
 */
-static bool R_ParseHeightToNormal( ref_shader_t *shader, char *heightMap, int heightMapLen, float *bumpScale, script_t *script )
-{
-	token_t	tok;
-
-	Com_ReadToken( script, false, &tok );
-	if( com.stricmp( tok.string, "(" ))
-	{
-		MsgDev( D_WARN, "missing '(' for 'heightToNormal' in shader '%s'\n", shader->name );
-		return false;
-	}
-
-	if( !Com_ReadToken( script, false, &tok ))
-	{
-		MsgDev( D_WARN, "missing parameters for 'heightToNormal' in shader '%s'\n", shader->name );
-		return false;
-	}
-	com.strncpy( heightMap, tok.string, heightMapLen );
-
-	Com_ReadToken( script, false, &tok );
-	if( !com.stricmp( tok.string, "," ))
-	{
-		MsgDev( D_WARN, "expected ',', found '%s' instead in 'heightToNormal' in shader '%s'\n", tok.string, shader->name );
-		return false;
-	}
-
-	if( !Com_ReadToken( script, false, &tok ))
-	{
-		MsgDev( D_WARN, "missing parameters for 'heightToNormal' in shader '%s'\n", shader->name );
-		return false;
-	}
-	*bumpScale = com.atof( tok.string );
-
-	Com_ReadToken( script, false, &tok );
-	if( !com.stricmp( tok.string, ")" ))
-	{
-		MsgDev( D_WARN, "missing ')' for 'heightToNormal' in shader '%s'\n", shader->name );
-		return false;
-	}
-	return true;
-}
-
 /*
 =================
 R_ParseGeneralSurfaceParm
@@ -1147,12 +1101,16 @@ static bool R_ParseGeneralSurfaceParm( ref_shader_t *shader, script_t *script )
 
 /*
 =================
-R_ParseGeneralNoMipmaps
+R_ParseGeneralIf
 =================
 */
-static bool R_ParseGeneralNoMipmaps( ref_shader_t *shader, script_t *script )
+static bool R_ParseGeneralIf( script_t *script, ref_shader_t *shader )
 {
-	shader->flags |= (SHADER_NOMIPMAPS|SHADER_NOPICMIP);
+	if( !R_ParseExpression( script, shader, &shader->conditionRegister ))
+	{
+		MsgDev( D_WARN, "missing expression parameters for 'if' in shader '%s'\n", shader->name );
+		return false;
+	}
 	return true;
 }
 
@@ -1163,7 +1121,11 @@ R_ParseGeneralNoPicmip
 */
 static bool R_ParseGeneralNoPicmip( ref_shader_t *shader, script_t *script )
 {
-	shader->flags |= SHADER_NOPICMIP;
+	int	i, j;
+
+	for( i = 0; i < SHADER_MAX_STAGES; i++ )
+		for( j = 0; j < MAX_TEXTURE_UNITS; j++ )
+			shader->stages[i]->bundles[j]->texFlags |= TF_NOPICMIP;
 	return true;
 }
 
@@ -1174,7 +1136,297 @@ R_ParseGeneralNoCompress
 */
 static bool R_ParseGeneralNoCompress( ref_shader_t *shader, script_t *script )
 {
-	shader->flags |= SHADER_NOCOMPRESS;
+	int	i, j;
+
+	for( i = 0; i < SHADER_MAX_STAGES; i++ )
+		for( j = 0; j < MAX_TEXTURE_UNITS; j++ )
+			shader->stages[i]->bundles[j]->texFlags |= TF_UNCOMPRESSED;
+	return true;
+}
+
+/*
+=================
+R_ParseGeneralHighQuality
+=================
+*/
+static bool R_ParseGeneralHighQuality( ref_shader_t *shader, script_t *script )
+{
+	int	i, j;
+
+	for( i = 0; i < SHADER_MAX_STAGES; i++ )
+		for( j = 0; j < MAX_TEXTURE_UNITS; j++ )
+			shader->stages[i]->bundles[j]->texFlags |= (TF_NOPICMIP|TF_UNCOMPRESSED);
+	return true;
+}
+
+/*
+=================
+R_ParseGeneralLinear
+=================
+*/
+static bool R_ParseGeneralLinear( ref_shader_t *shader, script_t *script )
+{
+	int	i, j;
+
+	for( i = 0; i < SHADER_MAX_STAGES; i++ )
+		for( j = 0; j < MAX_TEXTURE_UNITS; j++ )
+			shader->stages[i]->bundles[j]->texFilter = TF_LINEAR;
+	return true;
+}
+
+/*
+=================
+R_ParseGeneralNearest
+=================
+*/
+static bool R_ParseGeneralNearest( ref_shader_t *shader, script_t *script )
+{
+	int	i, j;
+
+	for( i = 0; i < SHADER_MAX_STAGES; i++ )
+		for( j = 0; j < MAX_TEXTURE_UNITS; j++ )
+			shader->stages[i]->bundles[j]->texFilter = TF_NEAREST;
+	return true;
+}
+
+/*
+=================
+R_ParseGeneralClamp
+=================
+*/
+static bool R_ParseGeneralClamp( ref_shader_t *shader, script_t *script )
+{
+	int	i, j;
+
+	for( i = 0; i < SHADER_MAX_STAGES; i++ )
+		for( j = 0; j < MAX_TEXTURE_UNITS; j++ )
+			shader->stages[i]->bundles[j]->texWrap = TW_CLAMP;
+	return true;
+}
+
+/*
+=================
+R_ParseGeneralZeroClamp
+=================
+*/
+static bool R_ParseGeneralZeroClamp( ref_shader_t *shader, script_t *script )
+{
+	int	i, j;
+
+	for( i = 0; i < SHADER_MAX_STAGES; i++ )
+		for( j = 0; j < MAX_TEXTURE_UNITS; j++ )
+			shader->stages[i]->bundles[j]->texWrap = TW_CLAMP_TO_ZERO;
+	return true;
+}
+
+/*
+=================
+R_ParseGeneralAlphaZeroClamp
+=================
+*/
+static bool R_ParseGeneralAlphaZeroClamp( ref_shader_t *shader, script_t *script )
+{
+	int	i, j;
+
+	for( i = 0; i < SHADER_MAX_STAGES; i++ )
+		for( j = 0; j < MAX_TEXTURE_UNITS; j++ )
+			shader->stages[i]->bundles[j]->texWrap = TW_CLAMP_TO_ZERO_ALPHA;
+	return true;
+}
+
+/*
+=================
+R_ParseGeneralMirror
+=================
+*/
+static bool R_ParseGeneralMirror( ref_shader_t *shader, script_t *script )
+{
+	if( shader->type != SHADER_TEXTURE )
+	{
+		MsgDev( D_WARN, "'mirror' not allowed in shader '%s'\n", shader->name );
+		return false;
+	}
+
+	if( shader->subview != SUBVIEW_NONE && shader->subview != SUBVIEW_MIRROR )
+	{
+		MsgDev( D_WARN, "multiple subview types for shader '%s'\n", shader->name );
+		return false;
+	}
+
+	shader->sort = SORT_SUBVIEW;
+	shader->subview = SUBVIEW_MIRROR;
+	shader->subviewWidth = 0;
+	shader->subviewHeight = 0;
+	return true;
+}
+
+/*
+=================
+R_ParseGeneralSort
+=================
+*/
+static bool R_ParseGeneralSort( ref_shader_t *shader, script_t *script )
+{
+	token_t	tok;
+
+	if( !Com_ReadToken( script, false, &tok ))
+	{
+		MsgDev( D_WARN, "missing parameters for 'sort' in shader '%s'\n", shader->name );
+		return false;
+	}
+
+	if( !com.stricmp( tok.string, "subview" )) shader->sort = SORT_SUBVIEW;
+	else if( !com.stricmp( tok.string, "opaque" )) shader->sort = SORT_OPAQUE;
+	else if( !com.stricmp( tok.string, "sky" )) shader->sort = SORT_SKY;
+	else if( !com.stricmp( tok.string, "decal" )) shader->sort = SORT_DECAL;
+	else if( !com.stricmp( tok.string, "seeThrough" )) shader->sort = SORT_SEETHROUGH;
+	else if( !com.stricmp( tok.string, "banner" )) shader->sort = SORT_BANNER;
+	else if( !com.stricmp( tok.string, "underwater" )) shader->sort = SORT_UNDERWATER;
+	else if( !com.stricmp( tok.string, "water" )) shader->sort = SORT_WATER;
+	else if( !com.stricmp( tok.string, "farthest" )) shader->sort = SORT_FARTHEST;
+	else if( !com.stricmp( tok.string, "far" )) shader->sort = SORT_FAR;
+	else if( !com.stricmp( tok.string, "medium" )) shader->sort = SORT_MEDIUM;
+	else if( !com.stricmp( tok.string, "close" )) shader->sort = SORT_CLOSE;
+	else if( !com.stricmp( tok.string, "additive" )) shader->sort = SORT_ADDITIVE;
+	else if( !com.stricmp( tok.string, "almostNearest" )) shader->sort = SORT_ALMOST_NEAREST;
+	else if( !com.stricmp( tok.string, "nearest" )) shader->sort = SORT_NEAREST;
+	else if( !com.stricmp( tok.string, "postProcess" )) shader->sort = SORT_POST_PROCESS;
+	else
+	{
+		shader->sort = com.atoi( tok.string );
+
+		if( shader->sort < 1 || shader->sort > 15 )
+		{
+			MsgDev( D_WARN, "unknown 'sort' parameter '%s' in shader '%s'\n", tok.string, shader->name );
+			return false;
+		}
+	}
+	shader->flags |= SHADER_SORT;
+	return true;
+}
+
+/*
+=================
+R_ParseGeneralCull
+=================
+*/
+static bool R_ParseGeneralCull( ref_shader_t *shader, script_t *script )
+{
+	token_t	tok;
+
+	if( !Com_ReadToken( script, false, &tok )) shader->cull.mode = GL_FRONT;
+	else
+	{
+		if( !com.stricmp( tok.string, "front")) shader->cull.mode = GL_FRONT;
+		else if( !com.stricmp( tok.string, "back" ) || !com.stricmp( tok.string, "backSide" ) || !com.stricmp( tok.string, "backSided" ))
+			shader->cull.mode = GL_BACK;
+		else if( !com.stricmp( tok.string, "disable" ) || !com.stricmp( tok.string, "none" ) ||  !com.stricmp( tok.string, "twoSided" ))
+			shader->cull.mode = 0;
+		else
+		{
+			MsgDev( D_WARN, "unknown 'cull' parameter '%s' in shader '%s'\n", tok.string, shader->name );
+			return false;
+		}
+	}
+	shader->flags |= SHADER_CULL;
+	return true;
+}
+
+/*
+=================
+R_ParseGeneralPolygonOffset
+=================
+*/
+static bool R_ParseGeneralPolygonOffset( ref_shader_t *shader, script_t *script )
+{
+	shader->flags |= SHADER_POLYGONOFFSET;
+	return true;
+}
+
+/*
+=================
+R_ParseGeneralDeformVertexes
+=================
+*/
+static bool R_ParseGeneralDeformVertexes( ref_shader_t *shader, script_t *script )
+{
+	deform_t	*deformVertexes;
+	token_t	tok;
+	int	i;
+
+	if( shader->numDeforms == SHADER_MAX_TRANSFORMS )
+	{
+		MsgDev( D_WARN, "SHADER_MAX_TRANSFORMS hit in shader '%s'\n", shader->name );
+		return false;
+	}
+	deformVertexes = &shader->deform[shader->numDeforms++];
+
+	if( !Com_ReadToken( script, false, &tok ))
+	{
+		MsgDev( D_WARN, "missing parameters for 'deformVertexes' in shader '%s'\n", shader->name );
+		return false;
+	}
+
+	if( !com.stricmp( tok.string, "wave" ))
+	{
+		if( !Com_ReadToken( script, false, &tok ))
+		{
+			MsgDev( D_WARN, "missing parameters for 'deformVertexes wave' in shader '%s'\n", shader->name );
+			return false;
+		}
+
+		deformVertexes->params[0] = com.atof( tok.string );
+		if( deformVertexes->params[0] == 0.0 )
+		{
+			MsgDev( D_WARN, "illegal div value of 0 for 'deformVertexes wave' in shader '%s', defaulting to 100\n", shader->name );
+			deformVertexes->params[0] = 100.0;
+		}
+		deformVertexes->params[0] = 1.0 / deformVertexes->params[0];
+
+		if(!R_ParseWaveFunc( shader, &deformVertexes->func, script ))
+		{
+			MsgDev( D_WARN, "missing waveform parameters for 'deformVertexes wave' in shader '%s'\n", shader->name );
+			return false;
+		}
+		deformVertexes->type = DEFORM_WAVE;
+	}
+	else if( !com.stricmp( tok.string, "move" ))
+	{
+		for( i = 0; i < 3; i++ )
+		{
+			if( !Com_ReadFloat( script, false, &deformVertexes->params[i] ))
+			{
+				MsgDev( D_WARN, "missing parameters for 'deformVertexes move' in shader '%s'\n", shader->name );
+				return false;
+			}
+		}
+
+		if(!R_ParseWaveFunc( shader, &deformVertexes->func, script ))
+		{
+			MsgDev( D_WARN, "missing waveform parameters for 'deformVertexes move' in shader '%s'\n", shader->name );
+			return false;
+		}
+		deformVertexes->type = DEFORM_MOVE;
+	}
+	else if( !com.stricmp( tok.string, "normal" ))
+	{
+		for( i = 0; i < 2; i++ )
+		{
+			if( !Com_ReadFloat( script, false, &deformVertexes->params[i] ))
+			{
+				MsgDev( D_WARN, "missing parameters for 'deformVertexes normal' in shader '%s'\n", shader->name );
+				return false;
+			}
+		}
+		deformVertexes->type = DEFORM_NORMAL;
+	}
+	else
+	{
+		MsgDev( D_WARN, "unknown 'deformVertexes' parameter '%s' in shader '%s'\n", tok.string, shader->name );
+		return false;
+	}
+
+	shader->flags |= SHADER_DEFORMVERTEXES;
 	return true;
 }
 
@@ -1208,88 +1460,6 @@ R_ParseGeneralEntityMergable
 static bool R_ParseGeneralEntityMergable( ref_shader_t *shader, script_t *script )
 {
 	shader->flags |= SHADER_ENTITYMERGABLE;
-	return true;
-}
-
-/*
-=================
-R_ParseGeneralPolygonOffset
-=================
-*/
-static bool R_ParseGeneralPolygonOffset( ref_shader_t *shader, script_t *script )
-{
-	shader->flags |= SHADER_POLYGONOFFSET;
-	return true;
-}
-
-/*
-=================
-R_ParseGeneralCull
-=================
-*/
-static bool R_ParseGeneralCull( ref_shader_t *shader, script_t *script )
-{
-	token_t	tok;
-
-	if( !Com_ReadToken( script, false, &tok )) shader->cull.mode = GL_FRONT;
-	else
-	{
-		if( !com.stricmp( tok.string, "front")) shader->cull.mode = GL_FRONT;
-		else if( !com.stricmp( tok.string, "back" ) || !com.stricmp( tok.string, "backSide" ) || !com.stricmp( tok.string, "backSided" ))
-			shader->cull.mode = GL_BACK;
-		else if( !com.stricmp( tok.string, "disable" ) || !com.stricmp( tok.string, "none" ) ||  !com.stricmp( tok.string, "twoSided" ))
-			shader->cull.mode = 0;
-		else
-		{
-			MsgDev( D_WARN, "unknown 'cull' parameter '%s' in shader '%s'\n", tok.string, shader->name );
-			return false;
-		}
-	}
-	shader->flags |= SHADER_CULL;
-	return true;
-}
-
-/*
-=================
-R_ParseGeneralSort
-=================
-*/
-static bool R_ParseGeneralSort( ref_shader_t *shader, script_t *script )
-{
-	token_t	tok;
-
-	if( !Com_ReadToken( script, false, &tok ))
-	{
-		MsgDev( D_WARN, "missing parameters for 'sort' in shader '%s'\n", shader->name );
-		return false;
-	}
-
-	if( !com.stricmp( tok.string, "sky" )) shader->sort = SORT_SKY;
-	else if( !com.stricmp( tok.string, "opaque")) shader->sort = SORT_OPAQUE;
-	else if( !com.stricmp( tok.string, "decal")) shader->sort = SORT_DECAL;
-	else if( !com.stricmp( tok.string, "seeThrough")) shader->sort = SORT_SEETHROUGH;
-	else if( !com.stricmp( tok.string, "banner")) shader->sort = SORT_BANNER;
-	else if( !com.stricmp( tok.string, "underwater")) shader->sort = SORT_UNDERWATER;
-	else if( !com.stricmp( tok.string, "water")) shader->sort = SORT_WATER;
-	else if( !com.stricmp( tok.string, "innerBlend")) shader->sort = SORT_INNERBLEND;
-	else if( !com.stricmp( tok.string, "blend")) shader->sort = SORT_BLEND;
-	else if( !com.stricmp( tok.string, "blend2")) shader->sort = SORT_BLEND2;
-	else if( !com.stricmp( tok.string, "blend3")) shader->sort = SORT_BLEND3;
-	else if( !com.stricmp( tok.string, "blend4")) shader->sort = SORT_BLEND4;
-	else if( !com.stricmp( tok.string, "outerBlend")) shader->sort = SORT_OUTERBLEND;
-	else if( !com.stricmp( tok.string, "additive")) shader->sort = SORT_ADDITIVE;
-	else if( !com.stricmp( tok.string, "nearest")) shader->sort = SORT_NEAREST;
-	else
-	{
-		shader->sort = com.atoi( tok.string );
-
-		if( shader->sort < 1 || shader->sort > 15 )
-		{
-			MsgDev( D_WARN, "unknown 'sort' parameter '%s' in shader '%s'\n", tok.string, shader->name );
-			return false;
-		}
-	}
-	shader->flags |= SHADER_SORT;
 	return true;
 }
 
@@ -1388,7 +1558,7 @@ static bool R_ParseGeneralSkyParms( ref_shader_t *shader, script_t *script )
 	}
 	else shader->skyParms.cloudHeight = 128.0;
 
-	if( !Com_ReadToken( script, false, &tok ))
+	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'skyParms' in shader '%s'\n", shader->name );
 		return false;
@@ -1415,122 +1585,28 @@ static bool R_ParseGeneralSkyParms( ref_shader_t *shader, script_t *script )
 
 /*
 =================
-R_ParseGeneralDeformVertexes
+R_ParseStageIf
 =================
 */
-static bool R_ParseGeneralDeformVertexes( ref_shader_t *shader, script_t *script )
+static bool R_ParseStageIf( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
-	deform_t	*deformVertexes;
-	token_t	tok;
-	int	i;
-
-	if( shader->numDeforms == SHADER_MAX_TRANSFORMS )
+	if( !R_ParseExpression( script, shader, &stage->conditionRegister ))
 	{
-		MsgDev( D_WARN, "SHADER_MAX_TRANSFORMS hit in shader '%s'\n", shader->name );
+		MsgDev( D_WARN, "missing expression parameters for 'if' in shader '%s'\n", shader->name );
 		return false;
 	}
-	deformVertexes = &shader->deform[shader->numDeforms++];
-
-	if( !Com_ReadToken( script, false, &tok ))
-	{
-		MsgDev( D_WARN, "missing parameters for 'deformVertexes' in shader '%s'\n", shader->name );
-		return false;
-	}
-
-	if( !com.stricmp( tok.string, "wave" ))
-	{
-		if( !Com_ReadToken( script, false, &tok ))
-		{
-			MsgDev( D_WARN, "missing parameters for 'deformVertexes wave' in shader '%s'\n", shader->name );
-			return false;
-		}
-
-		deformVertexes->params[0] = com.atof( tok.string );
-		if( deformVertexes->params[0] == 0.0 )
-		{
-			MsgDev( D_WARN, "illegal div value of 0 for 'deformVertexes wave' in shader '%s', defaulting to 100\n", shader->name );
-			deformVertexes->params[0] = 100.0;
-		}
-		deformVertexes->params[0] = 1.0 / deformVertexes->params[0];
-
-		if(!R_ParseWaveFunc( shader, &deformVertexes->func, script ))
-		{
-			MsgDev( D_WARN, "missing waveform parameters for 'deformVertexes wave' in shader '%s'\n", shader->name );
-			return false;
-		}
-		deformVertexes->type = DEFORM_WAVE;
-	}
-	else if( !com.stricmp( tok.string, "move" ))
-	{
-		for( i = 0; i < 3; i++ )
-		{
-			if( !Com_ReadFloat( script, false, &deformVertexes->params[i] ))
-			{
-				MsgDev( D_WARN, "missing parameters for 'deformVertexes move' in shader '%s'\n", shader->name );
-				return false;
-			}
-		}
-
-		if(!R_ParseWaveFunc( shader, &deformVertexes->func, script ))
-		{
-			MsgDev( D_WARN, "missing waveform parameters for 'deformVertexes move' in shader '%s'\n", shader->name );
-			return false;
-		}
-		deformVertexes->type = DEFORM_MOVE;
-	}
-	else if( !com.stricmp( tok.string, "normal" ))
-	{
-		for( i = 0; i < 2; i++ )
-		{
-			if( !Com_ReadFloat( script, false, &deformVertexes->params[i] ))
-			{
-				MsgDev( D_WARN, "missing parameters for 'deformVertexes normal' in shader '%s'\n", shader->name );
-				return false;
-			}
-		}
-		deformVertexes->type = DEFORM_NORMAL;
-	}
-	else
-	{
-		MsgDev( D_WARN, "unknown 'deformVertexes' parameter '%s' in shader '%s'\n", tok.string, shader->name );
-		return false;
-	}
-	shader->flags |= SHADER_DEFORMVERTEXES;
 	return true;
 }
-
 /*
 =================
-R_ParseStageRequires
+R_ParseStageNoPicMip
 =================
 */
-static bool R_ParseStageRequires( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
-{
-	MsgDev( D_WARN, "'requires' is not the first command in the stage in shader '%s'\n", shader->name );
-	return false;
-}
-
-/*
-=================
-R_ParseStageNoMipmaps
-=================
-*/
-static bool R_ParseStageNoMipmaps( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
+static bool R_ParseStageNoPicMip( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t *bundle = stage->bundles[stage->numBundles - 1];
-	bundle->flags |= (STAGEBUNDLE_NOMIPMAPS|STAGEBUNDLE_NOPICMIP);
-	return true;
-}
+	bundle->texFlags |= TF_NOPICMIP;
 
-/*
-=================
-R_ParseStageNoPicmip
-=================
-*/
-static bool R_ParseStageNoPicmip( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
-{
-	stageBundle_t *bundle = stage->bundles[stage->numBundles - 1];
-	bundle->flags |= STAGEBUNDLE_NOPICMIP;
 	return true;
 }
 
@@ -1542,19 +1618,99 @@ R_ParseStageNoCompress
 static bool R_ParseStageNoCompress( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t *bundle = stage->bundles[stage->numBundles - 1];
-	bundle->flags |= STAGEBUNDLE_NOCOMPRESS;
+	bundle->texFlags |= TF_UNCOMPRESSED;
+
 	return true;
 }
 
 /*
 =================
-R_ParseStageClampTexCoords
+R_ParseStageHighQuality
 =================
 */
-static bool R_ParseStageClampTexCoords( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
+static bool R_ParseStageHighQuality( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t *bundle = stage->bundles[stage->numBundles - 1];
-	bundle->flags |= STAGEBUNDLE_CLAMPTEXCOORDS;
+	bundle->texFlags |= (TF_NOPICMIP|TF_UNCOMPRESSED);
+
+	return true;
+}
+
+/*
+=================
+R_ParseStageNearest
+=================
+*/
+static bool R_ParseStageNearest( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
+{
+	stageBundle_t *bundle = stage->bundles[stage->numBundles - 1];
+	bundle->texFilter = TF_NEAREST;
+
+	return true;
+}
+
+/*
+=================
+R_ParseStageLinear
+=================
+*/
+static bool R_ParseStageLinear ( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
+{
+	stageBundle_t *bundle = stage->bundles[stage->numBundles - 1];
+	bundle->texFilter = TF_LINEAR;
+
+	return true;
+}
+
+/*
+=================
+R_ParseStageNoClamp
+=================
+*/
+static bool R_ParseStageNoClamp( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
+{
+	stageBundle_t *bundle = stage->bundles[stage->numBundles - 1];
+	bundle->texWrap = TW_REPEAT;
+
+	return true;
+}
+
+/*
+=================
+R_ParseStageClamp
+=================
+*/
+static bool R_ParseStageClamp( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
+{
+	stageBundle_t *bundle = stage->bundles[stage->numBundles - 1];
+	bundle->texWrap = TW_CLAMP;
+
+	return true;
+}
+
+/*
+=================
+R_ParseStageZeroClamp
+=================
+*/
+static bool R_ParseStageZeroClamp( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
+{
+	stageBundle_t *bundle = stage->bundles[stage->numBundles - 1];
+	bundle->texWrap = TW_CLAMP_TO_ZERO;
+
+	return true;
+}
+
+/*
+=================
+R_ParseStageAlphaZeroClamp
+=================
+*/
+static bool R_ParseStageAlphaZeroClamp( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
+{
+	stageBundle_t *bundle = stage->bundles[stage->numBundles - 1];
+	bundle->texWrap = TW_CLAMP_TO_ZERO_ALPHA;
+
 	return true;
 }
 
@@ -1566,17 +1722,14 @@ R_ParseStageAnimFrequency
 static bool R_ParseStageAnimFrequency( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t	*bundle = stage->bundles[stage->numBundles - 1];
-	token_t		tok;
 
-	if( !Com_ReadToken( script, false, &tok ))
+	if( !Com_ReadFloat( script, false, &bundle->animFrequency ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'animFrequency' in shader '%s\n", shader->name );
 		return false;
 	}
 
-	bundle->animFrequency = com.atof( tok.string );
 	bundle->flags |= STAGEBUNDLE_ANIMFREQUENCY;
-
 	return true;
 }
 
@@ -1588,8 +1741,11 @@ R_ParseStageMap
 static bool R_ParseStageMap( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t	*bundle = stage->bundles[stage->numBundles - 1];
-	uint		wrap = 0, filter = 0, flags = 0;
+	string		name;
 	token_t		tok;
+
+	if( shader->type == SHADER_NOMIP )
+		bundle->texFlags |= TF_NOPICMIP;
 
 	if( bundle->numTextures )
 	{
@@ -1645,22 +1801,24 @@ static bool R_ParseStageMap( ref_shader_t *shader, shaderStage_t *stage, script_
 		return true;
 	}
 
-	if( !com.stricmp( tok.string, "$whiteImage" )) bundle->textures[bundle->numTextures++] = r_whiteTexture;
-	else if( !com.stricmp( tok.string, "$blackImage")) bundle->textures[bundle->numTextures++] = r_blackTexture;
-	else if( !com.stricmp( tok.string, "$internal")) bundle->textures[bundle->numTextures++] = r_internalMiptex;
+	com.strncpy( name, tok.string, sizeof( name ));
+	if( !com.stricmp( tok.string, "$whiteImage" ))
+		bundle->textures[bundle->numTextures++] = r_whiteTexture;
+	else if( !com.stricmp( tok.string, "$blackImage"))
+		bundle->textures[bundle->numTextures++] = r_blackTexture;
+	else if( !com.stricmp( tok.string, "$internal"))
+		bundle->textures[bundle->numTextures++] = r_internalMiptex;
 	else
 	{
-		if( shader->flags & SHADER_NOMIPMAPS || bundle->flags & STAGEBUNDLE_NOMIPMAPS )
-			filter = TF_LINEAR;
-		if( shader->flags & SHADER_NOPICMIP || bundle->flags & STAGEBUNDLE_NOPICMIP )
-			flags |= TF_NOPICMIP;
-		if( shader->flags & SHADER_NOCOMPRESS || bundle->flags & STAGEBUNDLE_NOCOMPRESS )
-			flags |= TF_UNCOMPRESSED;
+		while( 1 )
+		{
+			if( !Com_ReadToken( script, SC_PARSE_GENERIC, &tok ))
+				break;
 
-		if( bundle->flags & STAGEBUNDLE_CLAMPTEXCOORDS)
-			wrap = TW_CLAMP;
-
-		bundle->textures[bundle->numTextures] = R_FindTexture( tok.string, NULL, 0, flags, filter, wrap );
+			com.strncat( name, " ", sizeof( name ));
+			com.strncat( name, tok.string, sizeof( name ));
+		}
+		bundle->textures[bundle->numTextures] = R_FindTexture( name, NULL, 0, bundle->texFlags, bundle->texFilter, bundle->texWrap );
 		if( !bundle->textures[bundle->numTextures] )
 		{
 			MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", tok.string, shader->name );
@@ -1682,8 +1840,11 @@ R_ParseStageBumpMap
 static bool R_ParseStageBumpMap( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t	*bundle = stage->bundles[stage->numBundles - 1];
-	uint		wrap = 0, filter = 0, flags = TF_NORMALMAP;
+	string		name;
 	token_t		tok;
+
+	if( shader->type == SHADER_NOMIP )
+		bundle->texFlags |= TF_NOPICMIP;
 
 	if( bundle->numTextures )
 	{
@@ -1716,17 +1877,18 @@ static bool R_ParseStageBumpMap( ref_shader_t *shader, shaderStage_t *stage, scr
 		return false;
 	}
 
-	if( shader->flags & SHADER_NOMIPMAPS || bundle->flags & STAGEBUNDLE_NOMIPMAPS )
-		filter = TF_LINEAR;
-	if( shader->flags & SHADER_NOPICMIP || bundle->flags & STAGEBUNDLE_NOPICMIP )
-		flags |= TF_NOPICMIP;
-	if( shader->flags & SHADER_NOCOMPRESS || bundle->flags & STAGEBUNDLE_NOCOMPRESS )
-		flags |= TF_UNCOMPRESSED;
+	com.strncpy( name, tok.string, sizeof( name ));
+	while( 1 )
+	{
+		if( !Com_ReadToken( script, SC_PARSE_GENERIC, &tok ))
+			break;
 
-	if( bundle->flags & STAGEBUNDLE_CLAMPTEXCOORDS)
-		wrap = TW_CLAMP;
+		com.strncat( name, " ", sizeof( name ));
+		com.strncat( name, tok.string, sizeof( name ));
+	}
 
-	bundle->textures[bundle->numTextures] = R_FindTexture( tok.string, NULL, 0, flags, filter, wrap );
+	bundle->texFlags |= TF_NORMALMAP;
+	bundle->textures[bundle->numTextures] = R_FindTexture( name, NULL, 0, bundle->texFlags, bundle->texFilter, bundle->texWrap );
 	if( !bundle->textures[bundle->numTextures] )
 	{
 		MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", tok.string, shader->name );
@@ -1748,8 +1910,10 @@ R_ParseStageCubeMap
 static bool R_ParseStageCubeMap( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
 	stageBundle_t	*bundle = stage->bundles[stage->numBundles - 1];
-	uint		wrap = TW_CLAMP, filter = 0, flags = 0;
 	token_t		tok;
+
+	if( shader->type == SHADER_NOMIP )
+		bundle->texFlags |= TF_NOPICMIP;
 
 	if( !GL_Support( R_TEXTURECUBEMAP_EXT ))
 	{
@@ -1783,11 +1947,13 @@ static bool R_ParseStageCubeMap( ref_shader_t *shader, shaderStage_t *stage, scr
 		return false;
 	}
 
-	if( !Com_ReadToken( script, false, &tok ))
+	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'cubeMap' in shader '%s'\n", shader->name );
 		return false;
 	}
+
+	bundle->texFlags |= TF_CUBEMAP;
 
 	if( !com.stricmp( tok.string, "$normalize" ))
 	{
@@ -1800,17 +1966,7 @@ static bool R_ParseStageCubeMap( ref_shader_t *shader, shaderStage_t *stage, scr
 	}
 	else
 	{
-		if( shader->flags & SHADER_NOMIPMAPS || bundle->flags & STAGEBUNDLE_NOMIPMAPS )
-			filter = TF_LINEAR;
-		if( shader->flags & SHADER_NOPICMIP || bundle->flags & STAGEBUNDLE_NOPICMIP )
-			flags |= TF_NOPICMIP;
-		if( shader->flags & SHADER_NOCOMPRESS || bundle->flags & STAGEBUNDLE_NOCOMPRESS )
-			flags |= TF_UNCOMPRESSED;
-
-		if( bundle->flags & STAGEBUNDLE_CLAMPTEXCOORDS)
-			wrap = TW_CLAMP;
-
-		bundle->textures[bundle->numTextures] = R_FindCubeMapTexture( tok.string, NULL, 0, flags, filter, wrap, false );
+		bundle->textures[bundle->numTextures] = R_FindCubeMapTexture( tok.string, NULL, 0, bundle->texFlags, bundle->texFilter, bundle->texWrap, false );
 		if( !bundle->textures[bundle->numTextures] )
 		{
 			MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", tok.string, shader->name );
@@ -1853,7 +2009,7 @@ static bool R_ParseStageVideoMap( ref_shader_t *shader, shaderStage_t *stage, sc
 	}
 
 	//FIXME: implement
-	//bundle->cinematicHandle = CIN_PlayCinematic( tok.string, 0, 0, 0, 0, CIN_LOOPED|CIN_SILENT|CIN_SHADER );
+	//bundle->cinematicHandle = R_PlayVideo( tok.string );
 	if( !bundle->cinematicHandle )
 	{
 		MsgDev( D_WARN, "couldn't find video '%s' in shader '%s'\n", tok.string, shader->name );
@@ -2501,12 +2657,11 @@ static bool R_ParseStageTcMod( ref_shader_t *shader, shaderStage_t *stage, scrip
 	{
 		for( i = 0; i < 2; i++ )
 		{
-			if( !Com_ReadToken( script, false, &tok ))
+			if( !Com_ReadFloat( script, false, &tcMod->params[i] ))
 			{
 				MsgDev( D_WARN, "missing parameters for 'tcMod translate' in shader '%s'\n", shader->name );
 				return false;
 			}
-			tcMod->params[i] = com.atof( tok.string );
 		}
 		tcMod->type = TCMOD_TRANSLATE;
 	}
@@ -2514,12 +2669,11 @@ static bool R_ParseStageTcMod( ref_shader_t *shader, shaderStage_t *stage, scrip
 	{
 		for( i = 0; i < 2; i++ )
 		{
-			if( !Com_ReadToken( script, false, &tok ))
+			if( !Com_ReadFloat( script, false, &tcMod->params[i] ))
 			{
 				MsgDev( D_WARN, "missing parameters for 'tcMod scale' in shader '%s'\n", shader->name );
 				return false;
 			}
-			tcMod->params[i] = com.atof( tok.string );
 		}
 		tcMod->type = TCMOD_SCALE;
 	}
@@ -2527,23 +2681,21 @@ static bool R_ParseStageTcMod( ref_shader_t *shader, shaderStage_t *stage, scrip
 	{
 		for( i = 0; i < 2; i++ )
 		{
-			if( !Com_ReadToken( script, false, &tok ))
+			if( !Com_ReadFloat( script, false, &tcMod->params[i] ))
 			{
 				MsgDev( D_WARN, "missing parameters for 'tcMod scroll' in shader '%s'\n", shader->name );
 				return false;
 			}
-			tcMod->params[i] = com.atof( tok.string );
 		}
 		tcMod->type = TCMOD_SCROLL;
 	}
 	else if( !com.stricmp( tok.string, "rotate" ))
 	{
-		if( !Com_ReadToken( script, false, &tok ))
+		if( !Com_ReadFloat( script, false, &tcMod->params[0] ))
 		{
 			MsgDev( D_WARN, "missing parameters for 'tcMod rotate' in shader '%s'\n", shader->name );
 			return false;
 		}
-		tcMod->params[0] = com.atof( tok.string );
 		tcMod->type = TCMOD_ROTATE;
 	}
 	else if( !com.stricmp( tok.string, "stretch" ))
@@ -2561,12 +2713,11 @@ static bool R_ParseStageTcMod( ref_shader_t *shader, shaderStage_t *stage, scrip
 
 		for( i = 0; i < 4; i++ )
 		{
-			if( !Com_ReadToken( script, false, &tok ))
+			if( !Com_ReadFloat( script, false, &tcMod->func.params[i] ))
 			{
 				MsgDev( D_WARN, "missing parameters for 'tcMod turb' in shader '%s'\n", shader->name );
 				return false;
 			}
-			tcMod->func.params[i] = com.atof( tok.string );
 		}
 		tcMod->type = TCMOD_TURB;
 	}
@@ -2574,12 +2725,11 @@ static bool R_ParseStageTcMod( ref_shader_t *shader, shaderStage_t *stage, scrip
 	{
 		for( i = 0; i < 6; i++ )
 		{
-			if( !Com_ReadToken( script, false, &tok ))
+			if( !Com_ReadFloat( script, false, &tcMod->params[i] ))
 			{
 				MsgDev( D_WARN, "missing parameters for 'tcMod transform' in shader '%s'\n", shader->name );
 				return false;
 			}
-			tcMod->params[i] = com.atof( tok.string );
 		}
 		tcMod->type = TCMOD_TRANSFORM;
 	}
@@ -3010,9 +3160,9 @@ static bool R_ParseStageBlendFunc( ref_shader_t *shader, shaderStage_t *stage, s
 }
 
 /*
- =================
- R_ParseStageDepthFunc
- =================
+=================
+R_ParseStageDepthFunc
+=================
 */
 static bool R_ParseStageDepthFunc( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
 {
@@ -3364,15 +3514,21 @@ typedef struct
 static shaderGeneralCmd_t r_shaderGeneralCmds[] =
 {
 {"surfaceParm",	R_ParseGeneralSurfaceParm	},
-{"noMipmaps",	R_ParseGeneralNoMipmaps	},
-{"noPicmip",	R_ParseGeneralNoPicmip	},
-{"noCompress",	R_ParseGeneralNoCompress	},
+{ "noPicMip",	R_ParseGeneralNoPicmip	},
+{ "noCompress",	R_ParseGeneralNoCompress	},
+{ "highQuality",	R_ParseGeneralHighQuality	},
+{ "linear",	R_ParseGeneralLinear	},
+{ "nearest",	R_ParseGeneralNearest	},
+{ "clamp",	R_ParseGeneralClamp		},
+{ "zeroClamp",	R_ParseGeneralZeroClamp	},
+{ "alphaZeroClamp",	R_ParseGeneralAlphaZeroClamp	},
 {"noShadows",	R_ParseGeneralNoShadows	},
-{"noFragments",	R_ParseGeneralNoFragments	},
+{"nomarks",	R_ParseGeneralNoFragments	},
 {"entityMergable",	R_ParseGeneralEntityMergable	},
 {"polygonOffset",	R_ParseGeneralPolygonOffset	},
 {"cull",		R_ParseGeneralCull		},
 {"sort",		R_ParseGeneralSort		},
+{"mirror",	R_ParseGeneralMirror	},
 {"tessSize",	R_ParseGeneralTessSize	},
 {"skyParms",	R_ParseGeneralSkyParms	},
 {"deformVertexes",	R_ParseGeneralDeformVertexes	},
@@ -3381,11 +3537,16 @@ static shaderGeneralCmd_t r_shaderGeneralCmds[] =
 
 static shaderStageCmd_t r_shaderStageCmds[] =
 {
-{"requires",	R_ParseStageRequires	},
-{"noMipmaps",	R_ParseStageNoMipmaps	},
-{"noPicmip",	R_ParseStageNoPicmip	},
+{"if",		R_ParseStageIf		},
+{"noPicMip",	R_ParseStageNoPicMip	},
 {"noCompress",	R_ParseStageNoCompress	},
-{"clampTexCoords",	R_ParseStageClampTexCoords	},
+{"highQuality",	R_ParseStageHighQuality	},
+{"nearest",	R_ParseStageNearest		},
+{"linear",	R_ParseStageLinear		},
+{"noClamp",	R_ParseStageNoClamp		},
+{"clamp",		R_ParseStageClamp		},
+{"zeroClamp",	R_ParseStageZeroClamp	},
+{"alphaZeroClamp",	R_ParseStageAlphaZeroClamp	},
 {"animFrequency",	R_ParseStageAnimFrequency	},
 {"map",		R_ParseStageMap		},
 {"bumpMap",	R_ParseStageBumpMap		},
@@ -3452,198 +3613,6 @@ static bool R_ParseShaderStageCommand( ref_shader_t *shader, shaderStage_t *stag
 
 /*
 =================
-R_EvaluateRequires
-=================
-*/
-static bool R_EvaluateRequires( ref_shader_t *shader, script_t *script )
-{
-	bool	results[SHADER_MAX_EXPRESSIONS];
-	bool	logicAnd = false, logicOr = false;
-	bool	negate, expectingExpression = false;
-	char	cmpOperator[8];
-	int	cmpOperand1, cmpOperand2;
-	int	i, count = 0;
-	token_t	tok;
-
-	// parse the expressions
-	while( 1 )
-	{
-		if( !Com_ReadToken( script, false, &tok ))
-		{
-			if( count == 0 || expectingExpression )
-			{
-				MsgDev( D_WARN, "missing expression for 'requires' in shader '%s', discarded stage\n", shader->name );
-				return false;
-			}
-			break; // end of data
-		}
-
-		if( !com.stricmp( tok.string, "&&" ))
-		{
-			if( count == 0 || expectingExpression )
-			{
-				MsgDev( D_WARN, "'requires' has logical operator without preceding expression in shader '%s', discarded stage\n", shader->name );
-				return false;
-			}
-			logicAnd = true;
-			expectingExpression = true;
-			continue;
-		}
-		if( !com.stricmp( tok.string, "||" ))
-		{
-			if( count == 0 || expectingExpression )
-			{
-				MsgDev( D_WARN, "'requires' has logical operator without preceding expression in shader '%s', discarded stage\n", shader->name );
-				return false;
-			}
-			logicOr = true;
-			expectingExpression = true;
-			continue;
-		}
-
-		expectingExpression = false;
-		if( count == SHADER_MAX_EXPRESSIONS )
-		{
-			MsgDev( D_WARN, "SHADER_MAX_EXPRESSIONS hit in shader '%s', discarded stage\n", shader->name );
-			return false;
-		}
-
-		if( !com.stricmp( tok.string, "GL_MAX_TEXTURE_UNITS_ARB" ) || !com.stricmp( tok.string, "GL_MAX_TEXTURE_COORDS_ARB" ) || !com.stricmp( tok.string, "GL_MAX_TEXTURE_IMAGE_UNITS_ARB" ))
-		{
-			if( !com.stricmp( tok.string, "GL_MAX_TEXTURE_UNITS_ARB" ))
-				cmpOperand1 = gl_config.textureunits;
-			else if( !com.stricmp( tok.string, "GL_MAX_TEXTURE_COORDS_ARB" ))
-				cmpOperand1 = gl_config.texturecoords;
-			else if( !com.stricmp( tok.string, "GL_MAX_TEXTURE_IMAGE_UNITS_ARB" ))
-				cmpOperand1 = gl_config.teximageunits;
-
-			if( !Com_ReadToken( script, false, &tok ))
-			{
-				MsgDev( D_WARN, "missing operator for 'requires' expression in shader '%s', discarded stage\n", shader->name );
-				return false;
-			}
-			com.strncpy( cmpOperator, tok.string, sizeof( cmpOperator ));
-
-			if( !Com_ReadToken( script, false, &tok ))
-			{
-				MsgDev( D_WARN, "missing operand for 'requires' expression in shader '%s', discarded stage\n", shader->name );
-				return false;
-			}
-			cmpOperand2 = com.atoi( tok.string );
-
-			if( !com.stricmp( cmpOperator, "==" ))
-				results[count] = (cmpOperand1 == cmpOperand2);
-			else if( !com.stricmp( cmpOperator, "!=" ))
-				results[count] = (cmpOperand1 != cmpOperand2);
-			else if( !com.stricmp( cmpOperator, ">=" ))
-				results[count] = (cmpOperand1 >= cmpOperand2);
-			else if( !com.stricmp( cmpOperator, "<=" ))
-				results[count] = (cmpOperand1 <= cmpOperand2);
-			else if( !com.stricmp( cmpOperator, ">" ))
-				results[count] = (cmpOperand1 > cmpOperand2);
-			else if( !com.stricmp( cmpOperator, "<" ))
-				results[count] = (cmpOperand1 < cmpOperand2);
-			else
-			{
-				MsgDev( D_WARN, "unknown 'requires' operator '%s' in shader '%s', discarded stage\n", cmpOperator, shader->name );
-				return false;
-			}
-		}
-		else
-		{
-			if( !com.stricmp( tok.string, "!" ))
-			{
-				negate = true;
-				if( !Com_ReadToken( script, false, &tok ))
-				{
-					MsgDev( D_WARN, "missing expression for 'requires' in shader '%s', discarded stage\n", shader->name );
-					return false;
-				}
-			}
-
-			if( !com.stricmp( tok.string, "GL_ARB_multitexture" ))
-				results[count] = GL_Support( R_ARB_MULTITEXTURE );
-			else if( !com.stricmp( tok.string, "GL_ARB_texture_env_add" ))
-				results[count] = GL_Support( R_TEXTURE_ENV_ADD_EXT );
-			else if( !com.stricmp( tok.string, "GL_ARB_texture_env_combine" ))
-				results[count] = GL_Support( R_COMBINE_EXT );
-			else if( !com.stricmp( tok.string, "GL_ARB_texture_env_dot3" ))
-				results[count] = GL_Support( R_DOT3_ARB_EXT );
-			else if( !com.stricmp( tok.string, "GL_ARB_texture_cube_map" ))
-				results[count] = GL_Support( R_TEXTURECUBEMAP_EXT );
-			else if( !com.stricmp( tok.string, "GL_ARB_vertex_program" ))
-				results[count] = GL_Support( R_VERTEX_PROGRAM_EXT );
-			else if( !com.stricmp( tok.string, "GL_ARB_fragment_program" ))
-				results[count] = GL_Support( R_FRAGMENT_PROGRAM_EXT );
-			else
-			{
-				MsgDev( D_WARN, "unknown 'requires' expression '%s' in shader '%s', discarded stage\n", tok.string, shader->name );
-				return false;
-			}
-			if( negate ) results[count] = !results[count];
-		}
-		count++;
-	}
-
-	// evaluate expressions
-	if( logicAnd && logicOr )
-	{
-		MsgDev( D_WARN, "different logical operators used for 'requires' in shader '%s', discarded stage\n", shader->name );
-		return false;
-	}
-
-	if( logicAnd )
-	{
-		// all expressions must evaluate to true
-		for( i = 0; i < count; i++ )
-		{
-			if( results[i] == false )
-				return false;
-		}
-		return true;
-	}
-	else if( logicOr )
-	{
-		// at least one of the expressions must evaluate to true
-		for( i = 0; i < count; i++ )
-		{
-			if( results[i] == true )
-				return true;
-		}
-		return false;
-	}
-	return results[0];
-}
-
-/*
-=================
-R_SkipShaderStage
-=================
-*/
-static bool R_SkipShaderStage( ref_shader_t *shader, script_t *script )
-{
-	token_t	tok;
-
-	while( 1 )
-	{
-		Com_ReadToken( script, true, &tok );
-		Com_SaveToken( script, &tok );
-		if( !com.stricmp( tok.string, "requires" ))
-		{
-			if( !R_EvaluateRequires( shader, script ))
-			{
-				Com_SkipBracedSection( script, 1 );
-				return true;
-			}
-			continue;
-		}
-		break;
-	}
-	return false;
-}
-
-/*
-=================
 R_ParseShader
 =================
 */
@@ -3674,10 +3643,6 @@ static bool R_ParseShader( ref_shader_t *shader, script_t *script )
 			// parse a stage
 			if( !com.stricmp( tok.string, "{" ))
 			{
-				// check if we need to skip this stage
-				if( R_SkipShaderStage( shader, script ))
-					continue;
-
 				// create a new stage
 				if( shader->numStages == SHADER_MAX_STAGES )
 				{
@@ -3733,22 +3698,22 @@ static void R_ParseShaderFile( script_t *script, const char *name )
 	char		*buffer, *end;
 	uint		i, hashKey;
 	int		tableStatus = 0;
-	token_t		token;
+	token_t		tok;
 	size_t		size;
 
 	while( 1 )
 	{
 		// parse the name
-		if( !Com_ReadToken( script, SC_ALLOW_NEWLINES|SC_ALLOW_PATHNAMES, &token ))
+		if( !Com_ReadToken( script, SC_ALLOW_NEWLINES|SC_ALLOW_PATHNAMES, &tok ))
 			break; // end of data
 
 
 		// check for table parms
 		while( 1 )
 		{
-			if( !com.stricmp( token.string, "clamp" )) clamp = true;
-			else if( !com.stricmp( token.string, "snap" )) snap = true;
-			else if( !com.stricmp( token.string, "table" ))
+			if( !com.stricmp( tok.string, "clamp" )) clamp = true;
+			else if( !com.stricmp( tok.string, "snap" )) snap = true;
+			else if( !com.stricmp( tok.string, "table" ))
 			{
 				if( !R_ParseTable( script, clamp, snap ))
 					tableStatus = -1; // parsing failed
@@ -3760,7 +3725,7 @@ static void R_ParseShaderFile( script_t *script, const char *name )
 				tableStatus = 0;  // not a table
 				break;
 			}
-			Com_ReadToken( script, false, &token );
+			Com_ReadToken( script, false, &tok );
 		}
 
 		if( tableStatus != 0 )
@@ -3781,12 +3746,12 @@ static void R_ParseShaderFile( script_t *script, const char *name )
 
 		// store the script
 		shaderScript = Mem_Alloc( r_shaderpool, sizeof( ref_script_t ));
-		com.strncpy( shaderScript->name, token.string, sizeof( shaderScript->name ));
+		com.strncpy( shaderScript->name, tok.string, sizeof( shaderScript->name ));
 		shaderScript->surfaceParm = 0;
 		shaderScript->type = -1;
 
 		com.strncpy( shaderScript->source, name, sizeof( shaderScript->source ));
-		shaderScript->line = token.line;
+		shaderScript->line = tok.line;
 		shaderScript->buffer = Mem_Alloc( r_shaderpool, size + 1 );
 		Mem_Copy( shaderScript->buffer, buffer, size );
 		shaderScript->buffer[size] = 0; // terminator
@@ -3805,17 +3770,17 @@ static void R_ParseShaderFile( script_t *script, const char *name )
 		{
 			while( 1 )
 			{
-				if( !Com_ReadToken( scriptBlock, SC_ALLOW_NEWLINES, &token ))
+				if( !Com_ReadToken( scriptBlock, SC_ALLOW_NEWLINES, &tok ))
 					break; // end of data
 
-				if( !com.stricmp( token.string, "surfaceParm" ))
+				if( !com.stricmp( tok.string, "surfaceParm" ))
 				{
-					if( !Com_ReadToken( scriptBlock, 0, &token ))
+					if( !Com_ReadToken( scriptBlock, 0, &tok ))
 						continue;
 
 					for( i = 0; i < numInfoParms; i++ )
 					{
-						if( !com.stricmp(token.string, infoParms[i].name ))
+						if( !com.stricmp(tok.string, infoParms[i].name ))
 						{
 							shaderScript->surfaceParm |= infoParms[i].surfaceFlags;
 							break;
@@ -3860,6 +3825,13 @@ static ref_shader_t *R_NewShader( void )
 			Mem_Set( shader->stages[i]->bundles[j], 0, sizeof( stageBundle_t ));
 		}
 	}
+
+	shader->statements = r_parseShaderOps;
+	Mem_Set( shader->statements, 0, MAX_EXPRESSION_OPS * sizeof( statement_t ));
+
+	shader->expressions = r_parseShaderExpressionRegisters;
+	Mem_Set( shader->expressions, 0, MAX_EXPRESSION_REGISTERS * sizeof( float ));
+
 	return shader;
 }
 
@@ -3959,7 +3931,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, shaderType_t shade
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
 			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
-	         		shader->sort = SORT_BLEND;
+	         		shader->sort = SORT_ADDITIVE;
 		}
 		if( shader->surfaceParm & SURF_ADDITIVE )
 		{
@@ -3967,7 +3939,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, shaderType_t shade
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
 			shader->stages[0]->blendFunc.dst = GL_ONE;
 			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
-	         		shader->sort = SORT_BLEND;
+	         		shader->sort = SORT_ADDITIVE;
 		}
 		if( shader->surfaceParm & SURF_ALPHA )
 		{
@@ -3998,7 +3970,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, shaderType_t shade
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
 			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
-	         		shader->sort = SORT_BLEND;
+	         		shader->sort = SORT_ADDITIVE;
 		}
 		if( shader->surfaceParm & SURF_ALPHA )
 		{
@@ -4426,7 +4398,7 @@ static void R_FinishShader( ref_shader_t *shader )
 				{
 					if((stage->blendFunc.src == GL_SRC_ALPHA && stage->blendFunc.dst == GL_ONE) || (stage->blendFunc.src == GL_ONE && stage->blendFunc.dst == GL_ONE))
 						shader->sort = SORT_ADDITIVE;
-					else shader->sort = SORT_BLEND;
+					else shader->sort = SORT_ADDITIVE;
 				}
 			}
 		}
@@ -4502,7 +4474,30 @@ R_OptimizeShader
 static void R_OptimizeShader( ref_shader_t *shader )
 {
 	shaderStage_t	*curStage, *prevStage = NULL;
+	float		*registers = shader->expressions;
+	statement_t	*op;
 	int		i;
+
+	// Make sure the predefined registers are initialized
+	registers[EXP_REGISTER_ONE] = 1.0;
+	registers[EXP_REGISTER_ZERO] = 0.0;
+	registers[EXP_REGISTER_TIME] = 0.0;
+	registers[EXP_REGISTER_PARM0] = 0.0;
+	registers[EXP_REGISTER_PARM1] = 0.0;
+	registers[EXP_REGISTER_PARM2] = 0.0;
+	registers[EXP_REGISTER_PARM3] = 0.0;
+	registers[EXP_REGISTER_PARM4] = 0.0;
+	registers[EXP_REGISTER_PARM5] = 0.0;
+	registers[EXP_REGISTER_PARM6] = 0.0;
+	registers[EXP_REGISTER_PARM7] = 0.0;
+	registers[EXP_REGISTER_GLOBAL0] = 0.0;
+	registers[EXP_REGISTER_GLOBAL1] = 0.0;
+	registers[EXP_REGISTER_GLOBAL2] = 0.0;
+	registers[EXP_REGISTER_GLOBAL3] = 0.0;
+	registers[EXP_REGISTER_GLOBAL4] = 0.0;
+	registers[EXP_REGISTER_GLOBAL5] = 0.0;
+	registers[EXP_REGISTER_GLOBAL6] = 0.0;
+	registers[EXP_REGISTER_GLOBAL7] = 0.0;
 
 	// try to merge multiple stages for multitexturing
 	for( i = 0; i < shader->numStages; i++ )
@@ -4539,6 +4534,88 @@ static void R_OptimizeShader( ref_shader_t *shader )
 		if( shader->stages[i]->bundles[0]->texEnv != GL_REPLACE && shader->stages[i]->bundles[0]->texEnv != GL_MODULATE )
 			shader->stages[i]->bundles[0]->texEnv = GL_MODULATE;
 	}
+
+	// check for constant expressions
+	if( !shader->numstatements ) return;
+
+	for( i = 0, op = shader->statements; i < shader->numstatements; i++, op++ )
+	{
+		if( op->opType != OP_TYPE_TABLE )
+		{
+			if( op->a < EXP_REGISTER_NUM_PREDEFINED || op->b < EXP_REGISTER_NUM_PREDEFINED )
+				break;
+		}
+		else
+		{
+			if( op->b < EXP_REGISTER_NUM_PREDEFINED )
+				break;
+		}
+	}
+
+	if( i != shader->numstatements ) return; // something references a variable
+
+	// evaluate all the registers
+	for( i = 0, op = shader->statements; i < shader->numstatements; i++, op++ )
+	{
+		switch( op->opType )
+		{
+		case OP_TYPE_MULTIPLY:
+			registers[op->c] = registers[op->a] * registers[op->b];
+			break;
+		case OP_TYPE_DIVIDE:
+			if( registers[op->b] == 0.0 )
+			{
+				registers[op->c] = 0.0;
+				break;
+			}
+			registers[op->c] = registers[op->a] / registers[op->b];
+			break;
+		case OP_TYPE_MOD:
+			if( registers[op->b] == 0.0 )
+			{
+				registers[op->c] = 0.0;
+				break;
+			}
+			registers[op->c] = (int)registers[op->a] % (int)registers[op->b];
+			break;
+		case OP_TYPE_ADD:
+			registers[op->c] = registers[op->a] + registers[op->b];
+			break;
+		case OP_TYPE_SUBTRACT:
+			registers[op->c] = registers[op->a] - registers[op->b];
+			break;
+		case OP_TYPE_GREATER:
+			registers[op->c] = registers[op->a] > registers[op->b];
+			break;
+		case OP_TYPE_LESS:
+			registers[op->c] = registers[op->a] < registers[op->b];
+			break;
+		case OP_TYPE_GEQUAL:
+			registers[op->c] = registers[op->a] >= registers[op->b];
+			break;
+		case OP_TYPE_LEQUAL:
+			registers[op->c] = registers[op->a] <= registers[op->b];
+			break;
+		case OP_TYPE_EQUAL:
+			registers[op->c] = registers[op->a] == registers[op->b];
+			break;
+		case OP_TYPE_NOTEQUAL:
+			registers[op->c] = registers[op->a] != registers[op->b];
+			break;
+		case OP_TYPE_AND:
+			registers[op->c] = registers[op->a] && registers[op->b];
+			break;
+		case OP_TYPE_OR:
+			registers[op->c] = registers[op->a] || registers[op->b];
+			break;
+		case OP_TYPE_TABLE:
+			registers[op->c] = R_LookupTable( op->a, registers[op->b] );
+			break;
+		}
+	}
+
+	// we don't need to evaluate the registers during rendering, except for development purposes
+	shader->constantExpressions = true;
 }
 
 /*
@@ -4584,6 +4661,14 @@ ref_shader_t *R_LoadShader( ref_shader_t *newShader )
 		}
 		shader->numStages++;
 	}
+
+	// allocate and copy the expression ops
+	shader->statements = Mem_Alloc( r_shaderpool, shader->numstatements * sizeof( statement_t ));
+	Mem_Copy( shader->statements, newShader->statements, shader->numstatements * sizeof( statement_t ));
+
+	// Allocate and copy the expression registers
+	shader->expressions = Mem_Alloc( r_shaderpool, shader->numRegisters * sizeof( float ));
+	Mem_Copy( shader->expressions, newShader->expressions, shader->numRegisters * sizeof( float ));
 
 	// add to hash table
 	hashKey = Com_HashKey( shader->name, SHADERS_HASH_SIZE );
@@ -4641,6 +4726,97 @@ void R_SetInternalMap( texture_t *mipTex )
 {
 	// never replace with NULL
 	if( mipTex ) r_internalMiptex = mipTex;
+}
+
+/*
+ =================
+ R_EvaluateRegisters
+ =================
+*/
+void R_EvaluateRegisters( ref_shader_t *shader, float time, const float *entityParms, const float *globalParms )
+{
+	float		*registers = shader->expressions;
+	statement_t	*op;
+	int		i;
+
+	if( shader->constantExpressions ) return;
+
+	// update the predefined registers
+	registers[EXP_REGISTER_ONE] = 1.0;
+	registers[EXP_REGISTER_ZERO] = 0.0;
+	registers[EXP_REGISTER_TIME] = time;
+	registers[EXP_REGISTER_PARM0] = entityParms[0];
+	registers[EXP_REGISTER_PARM1] = entityParms[1];
+	registers[EXP_REGISTER_PARM2] = entityParms[2];
+	registers[EXP_REGISTER_PARM3] = entityParms[3];
+	registers[EXP_REGISTER_PARM4] = entityParms[4];
+	registers[EXP_REGISTER_PARM5] = entityParms[5];
+	registers[EXP_REGISTER_PARM6] = entityParms[6];
+	registers[EXP_REGISTER_PARM7] = entityParms[7];
+	registers[EXP_REGISTER_GLOBAL0] = globalParms[0];
+	registers[EXP_REGISTER_GLOBAL1] = globalParms[1];
+	registers[EXP_REGISTER_GLOBAL2] = globalParms[2];
+	registers[EXP_REGISTER_GLOBAL3] = globalParms[3];
+	registers[EXP_REGISTER_GLOBAL4] = globalParms[4];
+	registers[EXP_REGISTER_GLOBAL5] = globalParms[5];
+	registers[EXP_REGISTER_GLOBAL6] = globalParms[6];
+	registers[EXP_REGISTER_GLOBAL7] = globalParms[7];
+
+	// evaluate all the registers
+	for( i = 0, op = shader->statements; i < shader->numstatements; i++, op++ )
+	{
+		switch( op->opType )
+		{
+		case OP_TYPE_MULTIPLY:
+			registers[op->c] = registers[op->a] * registers[op->b];
+			break;
+		case OP_TYPE_DIVIDE:
+			if( registers[op->b] == 0.0 )
+				Host_Error( "R_EvaluateRegisters: division by zero\n" );
+			registers[op->c] = registers[op->a] / registers[op->b];
+			break;
+		case OP_TYPE_MOD:
+			if( registers[op->b] == 0.0 )
+				Host_Error( "R_EvaluateRegisters: mod division by zero\n" );
+			registers[op->c] = (int)registers[op->a] % (int)registers[op->b];
+			break;
+		case OP_TYPE_ADD:
+			registers[op->c] = registers[op->a] + registers[op->b];
+			break;
+		case OP_TYPE_SUBTRACT:
+			registers[op->c] = registers[op->a] - registers[op->b];
+			break;
+		case OP_TYPE_GREATER:
+			registers[op->c] = registers[op->a] > registers[op->b];
+			break;
+		case OP_TYPE_LESS:
+			registers[op->c] = registers[op->a] < registers[op->b];
+			break;
+		case OP_TYPE_GEQUAL:
+			registers[op->c] = registers[op->a] >= registers[op->b];
+			break;
+		case OP_TYPE_LEQUAL:
+			registers[op->c] = registers[op->a] <= registers[op->b];
+			break;
+		case OP_TYPE_EQUAL:
+			registers[op->c] = registers[op->a] == registers[op->b];
+			break;
+		case OP_TYPE_NOTEQUAL:
+			registers[op->c] = registers[op->a] != registers[op->b];
+			break;
+		case OP_TYPE_AND:
+			registers[op->c] = registers[op->a] && registers[op->b];
+			break;
+		case OP_TYPE_OR:
+			registers[op->c] = registers[op->a] || registers[op->b];
+			break;
+		case OP_TYPE_TABLE:
+			registers[op->c] = R_LookupTable(op->a, registers[op->b]);
+			break;
+		default:
+			Host_Error( "R_EvaluateRegisters: bad opType (%i)", op->opType );
+		}
+	}
 }
 
 /*
