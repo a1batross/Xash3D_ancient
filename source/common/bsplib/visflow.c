@@ -687,7 +687,7 @@ void RecursivePassagePortalFlow( vportal_t *portal, threaddata_t *thread, pstack
 		prevmight = (long *)prevstack->mightsee;
 		cansee = (long *)passage->cansee;
 		might = (long *)stack.mightsee;
-		Mem_Copy(might, prevmight, portalbytes);
+		memcpy(might, prevmight, portalbytes);
 		if( p->status == stat_done )
 			portalvis = (long *)p->portalvis;
 		else portalvis = (long *)p->portalflood;
@@ -1145,7 +1145,7 @@ void PassageMemory( void )
 		}
 	}
 	Msg( "%7i average number of passages per leaf\n", totalportals/numportals );
-	Msg( "%7i MB required passage memory\n", totalmem>>10>>10 );
+	Msg( "%7s required passage memory\n", memprint( totalmem ));
 }
 
 
@@ -1233,7 +1233,8 @@ void BasePortalVis (int portalnum)
 	int		j, k;
 	vportal_t		*tp, *p;
 	float		d;
-	winding_t	*w;
+	winding_t		*w;
+	vec3_t		dir;
 
 	p = portals + portalnum;
 
@@ -1246,6 +1247,14 @@ void BasePortalVis (int portalnum)
 	{
 		if( j == portalnum ) continue;
 		if( tp->removed ) continue;
+
+		// this is known-to-be-working farplane code
+		if( farPlaneDist > 0.0f )
+		{
+			VectorSubtract( p->origin, tp->origin, dir );
+			if( VectorLength( dir ) - p->radius - tp->radius > farPlaneDist )
+				continue;
+		}
 
 		w = tp->winding;
 		for( k = 0; k < w->numpoints; k++ )

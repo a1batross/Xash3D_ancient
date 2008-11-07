@@ -1299,7 +1299,7 @@ PS_EndOfScript
 */
 bool PS_EndOfScript( script_t *script )
 {
-	if( !script->text )
+	if( !script || !script->text )
 		return true;
 	return false;
 }
@@ -1348,7 +1348,7 @@ script_t *PS_LoadScript( const char *filename, const char *buf, size_t size )
 		// trying to get script from disk
 		buf = FS_LoadFile( filename, &size );
 		script = PS_NewScript( filename, buf, size );
-		Mem_Free((char *)buf );
+		if( buf ) Mem_Free((char *)buf );
 	}
 	else script = PS_NewScript( filename, buf, size ); // from memory
 

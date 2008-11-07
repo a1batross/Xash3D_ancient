@@ -302,9 +302,9 @@ void Sys_LookupInstance( void )
 	// lookup all instances
 	if(!com_strcmp(Sys.progname, "credits"))
 	{
-		Sys.app_name = HOST_CREDITS;	// easter egg
-		Sys.linked_dll = NULL;	// no need to loading library
-		Sys.log_active = Sys.developer = Sys.debug = 0; // clear all dbg states
+		Sys.app_name = HOST_CREDITS;		// easter egg
+		Sys.linked_dll = NULL;		// no need to loading library
+		Sys.log_active = Sys.developer = 0;	// clear all dbg states
 		com_strcpy(Sys.caption, "About");
 		Sys.con_showcredits = true;
 	}
@@ -320,7 +320,8 @@ void Sys_LookupInstance( void )
 			Sys.app_name = HOST_NORMAL;
 			Sys.con_readonly = true;
 			// don't show console as default
-			if(!Sys.debug) Sys.con_showalways = false;
+			if( Sys.developer < D_WARN )
+				Sys.con_showalways = false;
 		}
 		Sys.linked_dll = &engine_dll;	// pointer to engine.dll info
 		com_sprintf(Sys.log_path, "engine.log", com_timestamp(TIME_NO_SECONDS)); // logs folder
@@ -374,8 +375,8 @@ void Sys_LookupInstance( void )
 	{
 		Sys.app_name = HOST_VIEWER;
 		Sys.con_readonly = true;
-		//don't show console as default
-		if(!Sys.debug) Sys.con_showalways = false;
+		// don't show console as default
+		if( Sys.developer < D_NOTE ) Sys.con_showalways = false;
 		Sys.linked_dll = &viewer_dll;	// pointer to viewer.dll info
 		com_sprintf(Sys.log_path, "%s/editor.log", sys_rootdir ); // logs folder
 		com_strcpy(Sys.caption, va("Xash3D Resource Viewer ver.%g", XASH_VERSION ));
@@ -820,7 +821,7 @@ void Sys_Error(const char *error, ...)
 	va_end( argptr );
          
 	Con_ShowConsole( true );
-	if(Sys.debug) Sys_Print( text );		// print error message
+	if( Sys.developer >= D_ERROR ) Sys_Print( text );	// print error message
 	else Sys_Print( "Internal engine error\n" );	// don't confuse non-developers with technique stuff
 
 	Sys_WaitForQuit();
@@ -880,7 +881,6 @@ void Sys_Init( void )
 	else Sys_MergeCommandLine( GetCommandLine());
 
 	// parse and copy args into local array
-	if(FS_CheckParm( "-debug" )) Sys.debug = true;
 	if(FS_CheckParm( "-log" )) Sys.log_active = true;
 	if(FS_GetParmFromCmdLine( "-dev", dev_level )) Sys.developer = com_atoi(dev_level);
           

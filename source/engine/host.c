@@ -532,14 +532,14 @@ void Host_Error( const char *error, ... )
 
 	if( recursive )
 	{ 
-		Msg("Host_RecursiveError: %s", hosterror2 );
+		Msg( "Host_RecursiveError: %s", hosterror2 );
 		com.error( va( "%s", hosterror1 ));
 		return; // don't multiple executes
 	}
 
 	recursive = true;
 	com.strncpy( hosterror2, hosterror1, MAX_MSGLEN );
-	host.framecount = host.errorframe; // to avoid multply calls per frame
+	host.errorframe = host.framecount; // to avoid multply calls per frame
 	com.sprintf( host.finalmsg, "Server crashed: %s\n", hosterror1 );
 
 	SV_Shutdown( false );

@@ -2046,6 +2046,24 @@ static void R_UploadTexture( rgbdata_t *pic, texture_t *tex )
 	}
 }
 
+texture_t *R_CreateImage( const char *name, byte *buf, int width, int height, texFlags_t texFlags, texFilter_t filter, texWrap_t wrap )
+{
+	rgbdata_t	r_generic;
+
+	Mem_Set( &r_generic, 0, sizeof( r_generic ));	
+	r_generic.width = width;
+	r_generic.height = height;
+	r_generic.type = PF_RGBA_GN; // special case for generated textures
+	r_generic.size = r_generic.width * r_generic.height * 4; // always same as RGBA
+	r_generic.numMips = 1;
+	r_generic.buffer = buf;
+
+	// setup image flags
+	if( texFlags & TF_CUBEMAP ) r_generic.flags |= TF_CUBEMAP;
+
+	return R_LoadTexture( name, &r_generic, 0, texFlags, filter, wrap );
+}  
+
 /*
 =================
 R_LoadTexture

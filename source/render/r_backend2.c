@@ -987,12 +987,14 @@ static void RB_SetupTextureUnit( stageBundle_t *bundle, uint unit )
 		else GL_BindTexture( bundle->textures[(int)(bundle->animFrequency * m_fShaderTime) % bundle->numTextures] );
 		break;
 	case TEX_LIGHTMAP:
+		/*
 		if( m_iInfoKey != 255 )
 		{
-			GL_BindTexture( r_lightmapTextures[m_iInfoKey] );
+			GL_BindTexture( r_worldModel->lightMaps[m_iInfoKey] );
 			break;
 		}
 		R_UpdateSurfaceLightmap( m_pRenderMesh->mesh );
+		*/
 		break;
 	case TEX_CINEMATIC:
 		// not implemented
@@ -1489,6 +1491,8 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 			shader = r_shaders[(sortKey>>18) & (MAX_SHADERS - 1)];
 			entity = &r_entities[(sortKey >> 8) & MAX_ENTITIES-1];
 			infoKey = sortKey & 255;
+
+			Com_Assert( shader == NULL );
 
 			// development tool
 			if( r_debugsort->integer )

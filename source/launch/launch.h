@@ -45,7 +45,6 @@ typedef struct system_s
 	int			app_name;
 	int			app_state;
 
-	bool			debug;
 	int			developer;
 	int			printlevel;
 

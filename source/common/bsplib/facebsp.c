@@ -13,13 +13,13 @@ int c_faceleafs;
 
 bspface_t	*AllocBspFace( void )
 {
-	return BSP_Malloc(sizeof( bspface_t ));
+	return BSP_Malloc( sizeof( bspface_t ));
 }
 
 void FreeBspFace( bspface_t *f )
 {
 	if( f->w ) FreeWinding( f->w );
-	Mem_Free( f );
+	BSP_Free( f );
 }
 
 /*
@@ -50,7 +50,7 @@ int SelectSplitPlaneNum( node_t *node, bspface_t *list )
 		{
 			VectorClear( normal );
 			normal[i] = 1;
-			planenum = FindFloatPlane( normal, dist );
+			planenum = FindFloatPlane( normal, dist, 0, NULL );
 			return planenum;
 		}
 	}
@@ -231,7 +231,7 @@ tree_t *FaceBSP( bspface_t *list )
 	bspface_t		*face;
 	int		i, count = 0;
 
-	Msg( "--- FaceBSP ---\n" );
+	MsgDev( D_NOTE, "--- FaceBSP ---\n" );
 
 	tree = AllocTree();
 
@@ -252,23 +252,6 @@ tree_t *FaceBSP( bspface_t *list )
 	Msg( "%5i leafs\n", c_faceleafs );
 
 	return tree;
-}
-
-
-/*
-=================
-BspFaceForPortal
-=================
-*/
-bspface_t *BspFaceForPortal( portal_t *p )
-{
-	bspface_t	*f;
-
-	f = AllocBspFace();
-	f->w = CopyWinding( p->winding );
-	f->planenum = p->onnode->planenum & ~1;
-
-	return f;
 }
 
 /*
@@ -293,12 +276,27 @@ bspface_t	*MakeStructuralBspFaceList( bspbrush_t *list )
 			s = &b->sides[i];
 			w = s->winding;
 			if( !w ) continue;
+
+			// skip certain faces
+			if( s->surfaceFlags & SURF_SKIP )
+				continue;
+
 			f = AllocBspFace();
 			f->w = CopyWinding( w );
 			f->planenum = s->planenum & ~1;
 			f->next = flist;
+			f->priority = 0;
+
+			// set face attributes
 			if( s->surfaceFlags & SURF_HINT )
+			{
+				f->priority += HINT_PRIORITY;
 				f->hint = true;
+			}
+			if( s->contents & CONTENTS_ANTIPORTAL )
+				f->priority += HINTPORTAL_PRIORITY;
+			if( s->contents & CONTENTS_AREAPORTAL )
+				f->priority += AREAPORTAL_PRIORITY;
 			flist = f;
 		}
 	}
@@ -326,12 +324,24 @@ bspface_t	*MakeVisibleBspFaceList( bspbrush_t *list )
 			s = &b->sides[i];
 			w = s->visibleHull;
 			if( !w ) continue;
+			if( s->surfaceFlags & SURF_SKIP )
+				continue;
 			f = AllocBspFace();
 			f->w = CopyWinding( w );
 			f->planenum = s->planenum & ~1;
 			f->next = flist;
+
+			// set face attributes
+			f->priority = 0;
 			if( s->surfaceFlags & SURF_HINT )
+			{
+				f->priority += HINT_PRIORITY;
 				f->hint = true;
+			}
+			if( s->contents & CONTENTS_ANTIPORTAL )
+				f->priority += HINTPORTAL_PRIORITY;
+			if( s->contents & CONTENTS_AREAPORTAL )
+				f->priority += AREAPORTAL_PRIORITY;
 			flist = f;
 		}
 	}

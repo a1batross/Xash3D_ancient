@@ -686,6 +686,7 @@ typedef struct cvar_s
 #define Com_ResetScript		com.Com_ResetScript
 #define Com_SkipBracedSection		com.Com_SkipBracedSection
 #define Com_SkipRestOfLine		com.Com_SkipRestOfLine
+#define Com_EndOfScript		com.Com_EndOfScript
 #define Com_ReadToken		com.Com_ReadToken
 #define Com_SaveToken		com.Com_SaveToken
 #define Com_FreeToken		com.Com_FreeToken
@@ -727,6 +728,7 @@ filesystem manager
 #define FS_Seek			com.fseek
 #define FS_Tell			com.ftell
 #define FS_Gets			com.fgets
+#define FS_Delete			com.fremove
 #define FS_Gamedir			com.GameInfo->gamedir
 #define FS_Title			com.GameInfo->title
 #define g_Instance			com.GameInfo->instance

@@ -76,6 +76,7 @@ cvar_t	*r_offsetunits;
 cvar_t	*r_debugsort;
 cvar_t	*r_speeds;
 cvar_t	*r_singleshader;
+cvar_t	*r_showlightmaps;
 cvar_t	*r_skipbackend;
 cvar_t	*r_skipfrontend;
 cvar_t	*r_swapInterval;
@@ -1267,7 +1268,7 @@ bool R_UploadImage( const char *unused, int index )
 	texture = m_pLoadModel->shaders + index;
 
 	// this is not actually needed	
-	if( texture->flags & (SURF_SKY||SURF_SKYROOM|SURF_NODRAW))
+	if( texture->flags & (SURF_SKY|SURF_NODRAW))
 		return true;
 
 	if( !m_pLoadModel->lightMaps )

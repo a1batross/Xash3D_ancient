@@ -386,7 +386,8 @@ void GL_InitCommands( void )
 	r_singleshader = Cvar_Get("r_singleshader", "0", CVAR_CHEAT|CVAR_LATCH, "apply default shader everywhere" );
 	r_skipbackend = Cvar_Get("r_skipbackend", "0", CVAR_CHEAT, "skip 2d drawing (hud, console, etc)" );
 	r_skipfrontend = Cvar_Get("r_skipfronend", "0", CVAR_CHEAT, "skip 3d drawing (scene)" );
-	r_overbrightbits = Cvar_Get("r_overbrightbits", "0", CVAR_ARCHIVE|CVAR_LATCH, "hardware gamma overbright" );
+	r_overbrightbits = Cvar_Get( "r_overbrightbits", "0", CVAR_ARCHIVE|CVAR_LATCH, "hardware gamma overbright" );
+	r_showlightmaps = Cvar_Get( "r_showlightmaps", "0", CVAR_CHEAT, "show lightmap development tool" );
 
 	r_modulate = Cvar_Get( "r_modulate", "1.0", CVAR_ARCHIVE|CVAR_LATCH, "modulate light" );
 	r_ambientscale = Cvar_Get("r_ambientScale", "0.6", CVAR_ARCHIVE, "default ambient light level" );
@@ -399,7 +400,7 @@ void GL_InitCommands( void )
 	r_max_normal_texsize = Cvar_Get( "r_max_normal_texsize", "256", CVAR_ARCHIVE|CVAR_LATCH, "maximum size for down sized normal map textures" );
 	r_compress_textures = Cvar_Get( "r_compress_textures", "0", CVAR_ARCHIVE|CVAR_LATCH, "compress textures" );
 	r_compress_normal_textures = Cvar_Get( "r_compress_normal_textures", "0", CVAR_ARCHIVE|CVAR_LATCH, "compress normal map textures" );
-	r_round_down = Cvar_Get( "r_round_down", "0", CVAR_ARCHIVE|CVAR_LATCH, "down size non-power of two textures" );
+	r_round_down = Cvar_Get( "gl_round_down", "0", CVAR_SYSTEMINFO, "down size non-power of two textures" );
 	r_detailtextures = Cvar_Get( "r_detailtextures", "0", CVAR_ARCHIVE|CVAR_LATCH, "allow detail textures" );
 	r_vertexbuffers = Cvar_Get( "r_vertexbuffers", "1", CVAR_ARCHIVE, "store vertex data in VBOs" );
 
@@ -702,6 +703,7 @@ void GL_BindTexture( texture_t *texture )
 	if( r_nobind->integer && !(texture->flags & TF_STATIC))
 		texture = r_defaultTexture;
 
+	if( !texture ) Host_Error( "GL_BindTexture: null texture\n" );
 	if( gl_state.texNum[gl_state.activeTMU] == texture->texnum )
 		return;
 	gl_state.texNum[gl_state.activeTMU] = texture->texnum;

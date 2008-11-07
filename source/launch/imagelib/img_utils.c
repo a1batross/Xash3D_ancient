@@ -7,6 +7,7 @@
 #include "mathlib.h"
 
 cvar_t *image_profile;
+cvar_t *gl_round_down;
 cvar_t *fs_textures;
 
 #define LERPBYTE(i)		r = resamplerow1[i];out[i] = (byte)((((resamplerow2[i] - r) * lerp)>>16) + r)
@@ -291,6 +292,7 @@ void Image_Init( void )
 	// init pools
 	Sys.imagepool = Mem_AllocPool( "ImageLib Pool" );
 	image_profile = Cvar_Get( "image_profile", "Xash3D", CVAR_SYSTEMINFO, "set imagelib profile: e.g. Doom1, Quake1, Xash3D etc" );
+	gl_round_down = Cvar_Get( "gl_round_down", "0", CVAR_SYSTEMINFO, "down size non-power of two textures" );
 	fs_textures = Cvar_Get( "fs_textures_path", "textures", CVAR_SYSTEMINFO, "textures default folder" );
 
 	// install image formats (can be re-install later by Image_Setup)
@@ -364,15 +366,11 @@ byte *Image_Copy( size_t size )
 	return out; 
 }
 
-void Image_RoundDimensions( int *scaled_width, int *scaled_height )
+void Image_RoundDimensions( int *width, int *height )
 {
-	int width, height;
-
-	for( width = 1; width < *scaled_width; width <<= 1 );
-	for( height = 1; height < *scaled_height; height <<= 1 );
-
-	*scaled_width = bound( 1, width, IMAGE_MAXWIDTH );
-	*scaled_height = bound( 1, height, IMAGE_MAXHEIGHT );
+	// find nearest power of two, rounding down if desired
+	*width = NearestPOW( *width, gl_round_down->integer );
+	*height = NearestPOW( *height, gl_round_down->integer );
 }
 
 bool Image_ValidSize( const char *name )

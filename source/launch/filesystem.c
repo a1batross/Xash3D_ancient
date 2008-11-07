@@ -1534,8 +1534,9 @@ void FS_UpdateConfig( void )
 {
 	file_t	*f;
 
-	// only normal instance can change config.dll
-	if( Sys.app_name != HOST_NORMAL || Sys.app_state == SYS_ERROR ) return;
+	if( Sys.app_state == SYS_ERROR ) return;
+	// only normal and bsplib instance can change config.dll
+	if( Sys.app_name != HOST_NORMAL && Sys.app_name != HOST_BSPLIB ) return;
 	com_strncpy( fs_gamedir, "bin", sizeof(fs_gamedir));	// set write directory for system config
 	f = FS_Open( "config.dll", "w" );
 	if( f )
@@ -2512,9 +2513,8 @@ fs_offset_t FS_FileTime (const char *filename)
 
 bool FS_Remove( const char *path )
 {
-	// FIXME: implement
-	Msg("FS_Remove: can't remove %s - not implemented\n", path );
-	return false;
+	remove( path );
+	return true;
 }
 
 /*

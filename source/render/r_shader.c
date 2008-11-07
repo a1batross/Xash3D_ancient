@@ -65,7 +65,6 @@ shaderParm_t infoParms[] =
 	{"areaportal",	0,		CONTENTS_AREAPORTAL,	},
 	{"fog",		0,		CONTENTS_FOG,		}, // carves surfaces entering
 	{"sky",		SURF_SKY,		0,			}, // emit light from environment map
-	{"skyroom",	SURF_SKYROOM,	0,			}, // env_sky surface
 	{"lightfilter",	SURF_LIGHTFILTER,	0,			}, // filter light going through it
 	{"alphashadow",	SURF_ALPHASHADOW,	0,			}, // test light on a per-pixel basis
 	{"hint",		SURF_HINT,	0,			}, // use as a primary splitter

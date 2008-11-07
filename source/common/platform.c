@@ -21,6 +21,8 @@ byte	*basepool;
 byte	*zonepool;
 byte	*error_bmp;
 size_t	error_bmp_size;
+byte	*checkermate_dds;
+size_t	checkermate_dds_size;
 static	double start, end;
 uint	app_name = HOST_OFFLINE;
 
@@ -77,9 +79,12 @@ void InitPlatform ( int argc, char **argv )
 		if(FS_CheckParm("-onlyents")) bspflags |= BSP_ONLYENTS;
 		if(FS_CheckParm("-notjunc")) notjunc = true;
 
+		// famous q1 "notexture" image: purple-black checkerboard
+		checkermate_dds = FS_LoadInternal( "checkerboard.dds", &checkermate_dds_size );
+
 		// initialize ImageLibrary
 		start = Sys_DoubleTime();
-		Image_Init( NULL, IL_ALLOW_OVERWRITE );
+		Image_Init( NULL, IL_ALLOW_OVERWRITE|IL_IGNORE_MIPS );
 		PrepareBSPModel( gamedir, source, bspflags );
 		break;
 	case HOST_QCCLIB:

@@ -70,7 +70,7 @@ void FreeTree_r( node_t *node )
 	// free the node
 	if( node->volume )
 		FreeBrush( node->volume );
-	Mem_Free( node );
+	BSP_Free( node );
 }
 
 
@@ -83,5 +83,5 @@ void FreeTree( tree_t *tree )
 {
 	FreeTreePortals_r( tree->headnode );
 	FreeTree_r( tree->headnode );
-	Mem_Free( tree );
+	BSP_Free( tree );
 }

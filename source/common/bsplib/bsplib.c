@@ -15,6 +15,7 @@ bool notjunc = false;
 bool onlyents = false;
 bool nosubdivide = false;
 
+cvar_t	*bsp_lmsample_size;
 cvar_t	*bsp_lightmap_size;
 
 dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, false, sizeof(physic_exp_t) };
@@ -48,7 +49,7 @@ void Init_PhysicsLibrary( void )
 		pe = CreatePhysic( &com, &pi ); // sys_error not overrided
 		pe->Init(); // initialize phys callback
 	}
-	else memset( &pe, 0, sizeof(pe));
+	else Mem_Set( &pe, 0, sizeof( pe ));
 }
 
 void Free_PhysicLibrary( void )
@@ -56,17 +57,17 @@ void Free_PhysicLibrary( void )
 	if( physic_dll.link )
 	{
 		pe->Shutdown();
-		memset( &pe, 0, sizeof(pe));
+		Mem_Set( &pe, 0, sizeof( pe ));
 	}
 	Sys_FreeLibrary( &physic_dll );
 }
 
-bool PrepareBSPModel ( const char *dir, const char *name, byte params )
+bool PrepareBSPModel( const char *dir, const char *name, byte params )
 {
 	int	numshaders;
 	
-	if( dir ) com.strncpy(gs_basedir, dir, sizeof(gs_basedir));
-	if( name ) com.strncpy(gs_filename, name, sizeof(gs_filename));
+	if( dir ) com.strncpy( gs_basedir, dir, sizeof( gs_basedir ));
+	if( name ) com.strncpy( gs_filename, name, sizeof( gs_filename ));
 
 	// copy state
 	onlyents = (params & BSP_ONLYENTS) ? true : false;
@@ -75,11 +76,15 @@ bool PrepareBSPModel ( const char *dir, const char *name, byte params )
 	full_compile = (params & BSP_FULLCOMPILE) ? true : false;
 
 	// register our cvars
-	bsp_lightmap_size = Cvar_Get( "bsplib_lightmapsize", "16", CVAR_SYSTEMINFO, "bsplib lightmap sample size" );
+	bsp_lmsample_size = Cvar_Get( "bsplib_lmsample_size", "16", CVAR_SYSTEMINFO, "bsplib lightmap sample size" );
+	bsp_lightmap_size = Cvar_Get( "bsplib_lightmap_size", "128", CVAR_SYSTEMINFO, "bsplib lightmap size" );
 
 	FS_LoadGameInfo( "gameinfo.txt" ); // same as normal gamemode
 
 	Init_PhysicsLibrary();
+	BeginMapShaderFile();
+	SetDefaultSampleSize( bsp_lmsample_size->integer );
+
 	numshaders = LoadShaderInfo();
 	Msg( "%5i shaderInfo\n", numshaders );
 
@@ -101,9 +106,9 @@ bool CompileBSPModel ( void )
           {
 		// delete portal and line files
 		com.sprintf( path, "%s/maps/%s.prt", com.GameInfo->gamedir, gs_filename );
-		remove( path );
+		FS_Delete( path );
 		com.sprintf( path, "%s/maps/%s.lin", com.GameInfo->gamedir, gs_filename );
-		remove( path );
+		FS_Delete( path );
 		WbspMain( false ); // just create bsp
 	}
 	Free_PhysicLibrary();
@@ -111,12 +116,12 @@ bool CompileBSPModel ( void )
 	if( onlyrad && onlyvis && full_compile )
 	{
 		// delete all temporary files after final compile
-		com.sprintf(path, "%s/maps/%s.prt", com.GameInfo->gamedir, gs_filename);
-		remove(path);
-		com.sprintf(path, "%s/maps/%s.lin", com.GameInfo->gamedir, gs_filename);
-		remove(path);
-		com.sprintf(path, "%s/maps/%s.log", com.GameInfo->gamedir, gs_filename);
-		remove(path);
+		com.sprintf( path, "%s/maps/%s.prt", com.GameInfo->gamedir, gs_filename );
+		FS_Delete( path );
+		com.sprintf(path, "%s/maps/%s.lin", com.GameInfo->gamedir, gs_filename );
+		FS_Delete( path );
+		com.sprintf( path, "%s/maps/%s.log", com.GameInfo->gamedir, gs_filename );
+		FS_Delete( path );
 	}
 
 	return true;

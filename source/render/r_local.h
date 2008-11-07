@@ -103,6 +103,7 @@ extern byte	*r_framebuffer;
 
 void		R_SetTextureParameters( void );
 void		R_TextureList_f( void );
+texture_t		*R_CreateImage( const char *name, byte *buf, int w, int h, texFlags_t texFlags, texFilter_t filter, texWrap_t wrap );
 texture_t		*R_LoadTexture( const char *name, rgbdata_t *pic, int samples, texFlags_t flags, texFilter_t filter, texWrap_t wrap );
 texture_t		*R_FindTexture( const char *name, const byte *buf, size_t size, texFlags_t flags, texFilter_t filter, texWrap_t wrap );
 texture_t		*R_FindCubeMapTexture( const char *name, const byte *buf, size_t size, texFlags_t flags, texFilter_t filter, texWrap_t wrap, bool skybox );
@@ -481,7 +482,7 @@ typedef struct rmodel_s
 	byte		*novis;			// clusterBytes of 0xff
 
 	sky_t		*sky;
-	byte		*lightMaps;
+	texture_t		*lightMaps[MAX_LIGHTMAPS];
 	int		numLightmaps;
 
 	vec3_t		gridMins;
@@ -868,6 +869,7 @@ extern cvar_t	*r_offsetunits;
 extern cvar_t	*r_vertexbuffers;
 extern cvar_t	*r_debugsort;
 extern cvar_t	*r_speeds;
+extern cvar_t	*r_showlightmaps;
 extern cvar_t	*r_singleshader;
 extern cvar_t	*r_skipbackend;
 extern cvar_t	*r_skipfrontend;

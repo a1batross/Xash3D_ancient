@@ -108,6 +108,9 @@ void BSP_CreateMeshBuffer( int modelnum )
 		flags = cm.shaders[m_surface->shadernum].surfaceflags;
 		k = m_surface->firstvertex;
 
+		// current implementation not supported meshes or patches
+		if( m_surface->surfaceType != MST_PLANAR ) continue;
+
 		// sky is noclip for all physobjects
 		if(flags & SURF_SKY) continue;
 		for( j = 0; j < m_surface->numvertices; j++ ) 
@@ -198,7 +201,7 @@ void BSP_LoadShaders( lump_t *l )
 	{
 		com.strncpy( out->name, in->name, MAX_SHADERPATH );
 		out->contentflags = LittleLong( in->contents );
-		out->surfaceflags = LittleLong( in->flags );
+		out->surfaceflags = LittleLong( in->surfaceFlags );
 	}
 }
 
@@ -265,7 +268,7 @@ void BSP_LoadBrushes( lump_t *l )
 {
 	dbrush_t	*in;
 	cbrush_t	*out;
-	int	i, j, count, maxplanes = 0;
+	int	i, j, n, count, maxplanes = 0;
 	cplanef_t	*planes = NULL;
 	
 	in = (void *)(cm.mod_base + l->fileofs);
@@ -278,7 +281,10 @@ void BSP_LoadBrushes( lump_t *l )
 	{
 		out->firstbrushside = LittleLong(in->firstside);
 		out->numsides = LittleLong(in->numsides);
-		out->contents = LittleLong(in->contents);
+		n = LittleLong(in->shadernum);
+		if( n < 0 || n >= cm.numshaders )
+			Host_Error( "BSP_LoadBrushes: invalid shader index %i (brush %i)\n", n, i );
+		out->contents = cm.shaders[n].contentflags;
 		CM_BoundBrush( out );
 
 		// make a list of mplane_t structs to construct a colbrush from
@@ -301,10 +307,10 @@ void BSP_LoadBrushes( lump_t *l )
 
 /*
 =================
-BSP_LoadLeafFaces
+BSP_LoadLeafSurffaces
 =================
 */
-void BSP_LoadLeafFaces( lump_t *l )
+void BSP_LoadLeafSurfaces( lump_t *l )
 {
 	dword	*in, *out;
 	int	i, n, count;
@@ -382,8 +388,8 @@ void BSP_LoadLeafs( lump_t *l )
 			out->mins[j] = LittleLong( in->mins[j] ) - 1;
 			out->maxs[j] = LittleLong( in->maxs[j] ) + 1;
 		}
-		n = LittleLong( in->firstleafface );
-		c = LittleLong( in->numleaffaces );
+		n = LittleLong( in->firstleafsurface );
+		c = LittleLong( in->numleafsurfaces );
 		if( n < 0 || n + c > cm.numleafsurfaces )
 			Host_Error("BSP_LoadLeafs: invalid leafsurface range %i : %i (%i leafsurfaces)\n", n, n + c, cm.numleafsurfaces);
 		out->firstleafsurface = cm.leafsurfaces + n;
@@ -867,7 +873,7 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 	BSP_LoadIndexes(&hdr->lumps[LUMP_INDICES]);
 	BSP_LoadSurfaces(&hdr->lumps[LUMP_SURFACES]);		// used only for generate NewtonCollisionTree
 	BSP_LoadLeafBrushes(&hdr->lumps[LUMP_LEAFBRUSHES]);
-	BSP_LoadLeafFaces(&hdr->lumps[LUMP_LEAFFACES]);
+	BSP_LoadLeafSurfaces(&hdr->lumps[LUMP_LEAFSURFACES]);
 	BSP_LoadLeafs(&hdr->lumps[LUMP_LEAFS]);
 	BSP_LoadNodes(&hdr->lumps[LUMP_NODES]);
 	BSP_LoadVisibility(&hdr->lumps[LUMP_VISIBILITY]);

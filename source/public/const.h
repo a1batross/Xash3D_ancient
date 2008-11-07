@@ -58,24 +58,26 @@
 
 // system contents
 #define CONTENTS_AREAPORTAL		(1<<15)
-#define CONTENTS_PLAYERCLIP		(1<<16)
-#define CONTENTS_MONSTERCLIP		(1<<17)
+#define CONTENTS_ANTIPORTAL		(1<<16)
+#define CONTENTS_PLAYERCLIP		(1<<17)
+#define CONTENTS_MONSTERCLIP		(1<<18)
 #define CONTENTS_CLIP		CONTENTS_PLAYERCLIP|CONTENTS_MONSTERCLIP
-#define CONTENTS_ORIGIN		(1<<18)	// removed before bsping an entity
-#define CONTENTS_BODY		(1<<19)	// should never be on a brush, only in game
-#define CONTENTS_CORPSE		(1<<20)	// dead bodies
-#define CONTENTS_DETAIL		(1<<21)	// brushes not used for the bsp
-#define CONTENTS_STRUCTURAL		(1<<22)	// brushes used for the bsp
-#define CONTENTS_TRANSLUCENT		(1<<23)	// don't consume surface fragments inside
-#define CONTENTS_TRIGGER		(1<<24)	// trigger volume
-#define CONTENTS_NODROP		(1<<25)	// don't leave bodies or items (death fog, lava)
-#define CONTENTS_LADDER		(1<<26)	// ladder in games
+#define CONTENTS_ORIGIN		(1<<19)	// removed before bsping an entity
+#define CONTENTS_BODY		(1<<20)	// should never be on a brush, only in game
+#define CONTENTS_CORPSE		(1<<21)	// dead bodies
+#define CONTENTS_DETAIL		(1<<22)	// brushes not used for the bsp
+#define CONTENTS_STRUCTURAL		(1<<23)	// brushes used for the bsp
+#define CONTENTS_TRANSLUCENT		(1<<24)	// don't consume surface fragments inside
+#define CONTENTS_TRIGGER		(1<<25)	// trigger volume
+#define CONTENTS_NODROP		(1<<26)	// don't leave bodies or items (death fog, lava)
+#define CONTENTS_LADDER		(1<<27)	// ladder in games
+#define CONTENTS_LIGHTGRID		(1<<28)	// lightgrid contents
 
 // surface flags
 #define SURF_NODAMAGE		(1<<0)	// never give falling damage
 #define SURF_SLICK			(1<<1)	// effects game physics
 #define SURF_SKY			(1<<2)	// lighting from environment map
-#define SURF_SKYROOM		(1<<3)	// sky portal drawing surface
+#define SURF_POINTLIGHT		(1<<3)	// generate lighting info at vertexes
 #define SURF_NOIMPACT		(1<<4)	// don't make missile explosions
 #define SURF_NOMARKS		(1<<5)	// don't leave missile marks
 #define SURF_PORTAL			(1<<6)	// portal surface
@@ -90,6 +92,7 @@
 #define SURF_ALPHA			(1<<15)	// alpha surface (e.g. grates, trees)
 #define SURF_BLEND			(1<<16)	// blended surface (e.g. windows)
 #define SURF_ADDITIVE		(1<<17)	// additive surface (studio skins)
+#define SURF_VERTEXLIT		(SURF_POINTLIGHT|SURF_NOLIGHTMAP)
 
 // engine physics constants
 #define COLLISION_SNAPSCALE		(32.0f)

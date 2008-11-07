@@ -27,6 +27,7 @@ loadres_t load_resources[] =
 	// add new resource description here
 	{"error.tga", error_tga, sizeof(error_tga)},
 	{"blank.bmp", blank_bmp, sizeof(blank_bmp)},
+	{"checkerboard.dds", q1mip_dds, sizeof(q1mip_dds)},
 	{"default.dds", deffont_dds, sizeof(deffont_dds)},
 	{"server.dat", server_dat, sizeof(server_dat)},
 	{"client.dat", client_dat, sizeof(client_dat)},
