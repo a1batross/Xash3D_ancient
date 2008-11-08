@@ -695,6 +695,6 @@ void R_UpdateSurfaceLightmap( surface_t *surf )
 		R_SetCacheState( surf );
 	}
 
-	R_BuildLightmap( surf, r_lmState.buffer, surf->lmWidth * 4 );
-	pglTexSubImage2D( GL_TEXTURE_2D, 0, surf->lmS, surf->lmT, surf->lmWidth, surf->lmHeight, GL_RGBA, GL_UNSIGNED_BYTE, r_lmState.buffer );
+	// R_BuildLightmap( surf, r_lmState.buffer, surf->lmWidth * 4 );
+	// pglTexSubImage2D( GL_TEXTURE_2D, 0, surf->lmS, surf->lmT, surf->lmWidth, surf->lmHeight, GL_RGBA, GL_UNSIGNED_BYTE, r_lmState.buffer );
 }

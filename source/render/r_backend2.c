@@ -987,14 +987,12 @@ static void RB_SetupTextureUnit( stageBundle_t *bundle, uint unit )
 		else GL_BindTexture( bundle->textures[(int)(bundle->animFrequency * m_fShaderTime) % bundle->numTextures] );
 		break;
 	case TEX_LIGHTMAP:
-		/*
 		if( m_iInfoKey != 255 )
 		{
 			GL_BindTexture( r_worldModel->lightMaps[m_iInfoKey] );
 			break;
 		}
 		R_UpdateSurfaceLightmap( m_pRenderMesh->mesh );
-		*/
 		break;
 	case TEX_CINEMATIC:
 		// not implemented

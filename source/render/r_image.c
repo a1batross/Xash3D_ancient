@@ -2346,6 +2346,12 @@ static void R_CreateBuiltInTextures( void )
 	// current render texture
 	r_currentRenderTexture = R_LoadTexture( "*currentRender", &pic, 3, TF_STATIC|TF_NOPICMIP|TF_UNCOMPRESSED, TF_LINEAR, TW_CLAMP );
 
+	// dynamic light texture
+	Mem_Set( data2D, 255, 128*128*4 );
+	pic.width = pic.height = 128;
+	pic.size = pic.width * pic.height * 4;
+	r_dlightTexture = R_LoadTexture( "*dlight", &pic, 3, TF_STATIC|TF_NOPICMIP|TF_UNCOMPRESSED, TF_LINEAR, TW_CLAMP );
+
 	// raw texture
 	Mem_Set( data2D, 255, 256*256*4 );
 	pic.width = pic.height = 256;
