@@ -77,6 +77,7 @@ void Host_InitRender( void )
 	ri.api_size = sizeof(render_imp_t);
 
           // studio callbacks
+	ri.UpdateScreen = SCR_UpdateScreen;
 	ri.StudioEvent = CL_StudioEvent;
 	ri.ShowCollision = pe->DrawCollision;
 	ri.GetClientEdict = CL_GetEdictByIndex;

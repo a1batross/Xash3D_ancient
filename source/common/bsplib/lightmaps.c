@@ -1501,17 +1501,16 @@ static void FindOutLightmaps( rawLightmap_t *lm )
 	// set default lightmap number (-3 = LIGHTMAP_BY_VERTEX)
 	for( lightmapNum = 0; lightmapNum < LM_STYLES; lightmapNum++ )
 		lm->outLightmapNums[lightmapNum] = -3;
-	
+
 	// can this lightmap be approximated with vertex color?
-	if( ApproximateLightmap( lm ))
-		return;
-	
+	if( ApproximateLightmap( lm )) return;
+
 	// walk list
 	for( lightmapNum = 0; lightmapNum < LM_STYLES; lightmapNum++ )
 	{
 		if( lm->styles[lightmapNum] == LS_NONE )
 			continue;
-		
+
 		// don't store twinned lightmaps
 		if( lm->twins[lightmapNum] != NULL )
 			continue;
@@ -1635,10 +1634,11 @@ static void FindOutLightmaps( rawLightmap_t *lm )
 		// if this is a style-using lightmap, it must be exported
 		if( lightmapNum > 0 ) olm->extLightmapNum = 0;
 		
-		/* add the surface lightmap to the bsp lightmap */
-		lm->outLightmapNums[ lightmapNum ] = i;
-		lm->lightmapX[ lightmapNum ] = x;
-		lm->lightmapY[ lightmapNum ] = y;
+		// add the surface lightmap to the bsp lightmap
+		lm->outLightmapNums[lightmapNum] = i;
+
+		lm->lightmapX[lightmapNum] = x;
+		lm->lightmapY[lightmapNum] = y;
 		olm->numLightmaps++;
 		
 		for( i = 0; i < lm->numLightSurfaces; i++ )
@@ -2250,12 +2250,11 @@ void StoreSurfaceLightmaps( void )
 	for( i = 0; i < numRawLightmaps; i++ )
 	{
 		lm = &rawLightmaps[sortLightmaps[i]];
-		
+
 		for( lightmapNum = 0; lightmapNum < LM_STYLES; lightmapNum++ )
 		{
 			lm2 = lm->twins[lightmapNum];
-			if( lm2 == NULL )
-				continue;
+			if( lm2 == NULL ) continue;
 			lightmapNum2 = lm->twinNums[lightmapNum];
 			
 			lm->outLightmapNums[lightmapNum] = lm2->outLightmapNums[lightmapNum2];
@@ -2297,7 +2296,7 @@ void StoreSurfaceLightmaps( void )
 	// delete unused external lightmaps
 	for( i = numExtLightmaps; i; i++ )
 	{
-		com.sprintf( filename, "gfx/lightmaps/%s_%04d.tga", gs_filename, i );
+		com.sprintf( filename, "gfx/lightmaps/%s_%04d.dds", gs_filename, i );
 		if( !FS_FileExists( filename )) break;
 		FS_Delete( filename );
 	}
@@ -2340,7 +2339,6 @@ void StoreSurfaceLightmaps( void )
 			// skip the rest
 			continue;
 		}
-		
 		// handle vertex lit or approximated surfaces
 		else if( lm == NULL || lm->outLightmapNums[0] < 0 )
 		{
@@ -2362,11 +2360,12 @@ void StoreSurfaceLightmaps( void )
 					continue;
 				}
 				
-				olm = &outLightmaps[lm->outLightmapNums[lightmapNum]];
-				
+				olm = &outLightmaps[lm->outLightmapNums[lightmapNum]];				
+		
 				// set bsp lightmap number
-				ds->lmapNum[lightmapNum] = olm->lightmapNum;
-				
+				// FIXME: test
+				ds->lmapNum[lightmapNum] = lm->outLightmapNums[lightmapNum];//olm->lightmapNum;
+				Msg("LightMap number: [%i] == %i\n", lightmapNum, lm->outLightmapNums[lightmapNum] );
 				// deluxemap debugging makes the deluxemap visible
 				if( deluxemap && debugDeluxemap && lightmapNum == 0 )
 					ds->lmapNum[lightmapNum]++;

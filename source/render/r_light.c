@@ -669,9 +669,9 @@ void R_EndBuildingLightmaps( void )
 */
 void R_BuildSurfaceLightmap( surface_t *surf )
 {
-	byte	*base = NULL;
+	byte		*base = NULL;
 
-	if(!(surf->texInfo->shader->flags & SHADER_HASLIGHTMAP))
+	if(!( surf->texInfo->flags & SHADER_HASLIGHTMAP ))
 		return;	// no lightmaps
 
 	r_lmState.currentNum = surf->lmNum;

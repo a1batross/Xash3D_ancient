@@ -71,6 +71,7 @@ cvar_t	*r_shownormals;
 cvar_t	*r_showtangentspace;
 cvar_t	*r_showmodelbounds;
 cvar_t	*r_showshadowvolumes;
+cvar_t	*r_showtextures;
 cvar_t	*r_offsetfactor;
 cvar_t	*r_offsetunits;
 cvar_t	*r_debugsort;
@@ -1258,27 +1259,6 @@ bool R_UploadModel( const char *name, int index )
 	return (mod != NULL);	
 }
 
-bool R_UploadImage( const char *unused, int index )
-{
-	mipTex_t	*texture;
-	
-	// nothing to load
-	if( !r_worldModel ) return false;
-	m_pLoadModel = r_worldModel;
-	texture = m_pLoadModel->shaders + index;
-
-	// this is not actually needed	
-	if( texture->flags & (SURF_SKY|SURF_NODRAW))
-		return true;
-
-	if( !m_pLoadModel->lightMaps )
-		texture->flags |= SURF_NOLIGHTMAP;
-
-	// now all pointers are valid
-	texture->shader = r_shaders[R_FindShader( texture->name, SHADER_TEXTURE, texture->flags )];
-	return true;
-}
-
 /*
 =================
 R_PrecachePic
@@ -1364,7 +1344,7 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	
 	re.BeginRegistration = R_BeginRegistration;
 	re.RegisterModel = R_UploadModel;
-	re.RegisterImage = R_UploadImage;
+	re.RegisterImage = Mod_RegisterShader;
 	re.PrecacheImage = R_PrecachePic;
 	re.SetSky = R_SetupSky;
 	re.EndRegistration = R_EndRegistration;

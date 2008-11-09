@@ -111,18 +111,17 @@ R_AddSurfaceToList
 */
 static void R_AddSurfaceToList( surface_t *surf, ref_entity_t *entity )
 {
-	mipTex_t		*tex = surf->texInfo;
-	ref_shader_t	*shader = tex->shader;
+	ref_shader_t	*shader = surf->texInfo;
 	int		map, lmNum;
 
-	if( tex->flags & SURF_NODRAW )
+	if( surf->texInfo->surfaceParm & SURF_NODRAW )
 		return;
 
 	// select lightmap
 	lmNum = surf->lmNum;
 
 	// check for lightmap modification
-	if( r_dynamiclights->integer && (shader->flags & SHADER_HASLIGHTMAP))
+	if( r_dynamiclights->integer && (surf->texInfo->flags & SHADER_HASLIGHTMAP))
 	{
 		if( surf->dlightFrame == r_frameCount ) lmNum = 255;
 		else
@@ -407,12 +406,12 @@ static void R_RecursiveWorldNode( node_t *node, int planeBits, int dlightBits )
 			continue;
 
 		// clip sky surfaces
-		if( surf->texInfo->flags & SURF_SKY )
+		if( surf->texInfo->surfaceParm & SURF_SKY )
 		{
 			R_ClipSkySurface( surf );
 			continue;
 		}
-
+	
 		// add the surface
 		R_AddSurfaceToList( surf, r_worldEntity );
 	}

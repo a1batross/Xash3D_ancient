@@ -483,7 +483,7 @@ void BSP_LoadVisibility( lump_t *l )
 	}
 
 	if( cm.numclusters != cm.vis->numclusters )
-		Sys_Break("iinvalid vis->numclusters (%i, should be %i)\n", cm.vis->numclusters, cm.numclusters );
+		Sys_Break( "invalid vis->numclusters (%i, should be %i)\n", cm.vis->numclusters, cm.numclusters );
 }
 
 /*

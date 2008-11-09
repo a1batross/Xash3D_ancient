@@ -16,7 +16,7 @@
 #define TYPE_QPIC			66	// quake1 and hl pic (lmp_t)
 #define TYPE_MIPTEX2		67	// half-life (mip_t) previous was TYP_SOUND but never used in quake1
 #define TYPE_MIPTEX			68	// quake1 (mip_t)
-#define TYPE_BINDATA		69	// engine internal data
+#define TYPE_BINDATA		69	// engine internal data (map lumps, save lumps etc)
 #define TYPE_STRDATA		70	// big unterminated string (stringtable marked as TYPE_BINARYDATA)
 
 #define TYPE_RAW			71	// unrecognized raw data
@@ -32,9 +32,23 @@
 #define RF_VIEWMODEL		(1<<2)	// it's a viewmodel
 #define RF_FULLBRIGHT		(1<<3)	// allways draw full intensity
 #define RF_DEPTHHACK		(1<<4)	// for view weapon Z crunching
-#define RF_TRANSLUCENT		(1<<5)
+#define RF_TRANSLUCENT		(1<<5)	// FIXME: remove or replace
 #define RF_IR_VISIBLE		(1<<6)	// skin is an index in image_precache
-#define RF_HOLOGRAMM		(1<<7)
+#define RF_HOLOGRAMM		(1<<7)	// studio hologramm effect (like hl1)
+#define RF_OCCLUSIONTEST		(1<<8)	// do occlusion test for this entity
+#define RF_PLANARSHADOW	 	(1<<9)	// force shadow to planar
+#define RF_NOSHADOW			(1<<10)	// disable shadow at all
+
+// FIXME: player_state_t->renderfx
+#define RDF_UNDERWATER		(1<<0)	// warp the screen as apropriate
+#define RDF_NOWORLDMODEL		(1<<1)	// used for player configuration screen
+#define RDF_BLOOM			(1<<2)	// light blooms
+#define RDF_OLDAREABITS		(1<<3)	// forces R_MarkLeaves() if not set
+#define RDF_PAIN			(1<<4)	// motion blur effects
+#define RDF_IRGOGGLES		(1<<5)	// infra red goggles effect
+#define RDF_PORTALINVIEW		(1<<6)	// cull entities using vis too because areabits are merged serverside
+#define RDF_SKYPORTALINVIEW		(1<<7)	// draw skyportal instead of regular sky
+#define RDF_NOFOVADJUSTMENT		(1<<8)	// do not adjust fov for widescreen
 
 // entity_state_t->effects
 #define EF_BRIGHTFIELD		(1<<0)	// swirling cloud of particles
@@ -73,6 +87,15 @@
 #define CONTENTS_LADDER		(1<<27)	// ladder in games
 #define CONTENTS_LIGHTGRID		(1<<28)	// lightgrid contents
 
+// content masks
+#define MASK_SOLID			(CONTENTS_SOLID)
+#define MASK_PLAYERSOLID		(CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_BODY)
+#define MASK_MONSTERSOLID		(CONTENTS_SOLID|CONTENTS_MONSTERCLIP|CONTENTS_BODY)
+#define MASK_DEADSOLID		(CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_WINDOW)
+#define MASK_WATER			(CONTENTS_WATER|CONTENTS_LAVA|CONTENTS_SLIME)
+#define MASK_OPAQUE			(CONTENTS_SOLID|CONTENTS_SLIME|CONTENTS_LAVA)
+#define MASK_SHOT			(CONTENTS_SOLID|CONTENTS_BODY|CONTENTS_CORPSE)
+
 // surface flags
 #define SURF_NODAMAGE		(1<<0)	// never give falling damage
 #define SURF_SLICK			(1<<1)	// effects game physics
@@ -92,6 +115,8 @@
 #define SURF_ALPHA			(1<<15)	// alpha surface (e.g. grates, trees)
 #define SURF_BLEND			(1<<16)	// blended surface (e.g. windows)
 #define SURF_ADDITIVE		(1<<17)	// additive surface (studio skins)
+#define SURF_NONSOLID		(1<<18)	// not solid surface
+
 #define SURF_VERTEXLIT		(SURF_POINTLIGHT|SURF_NOLIGHTMAP)
 
 // engine physics constants

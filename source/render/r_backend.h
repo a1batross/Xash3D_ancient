@@ -208,4 +208,7 @@ void RB_InitVertexBuffers( void );
 void RB_ShutdownVertexBuffers( void );
 void RB_DrawElements( void );
 
+// debug
+void RB_ShowTextures( void );
+
 #endif//R_BACKEND_H

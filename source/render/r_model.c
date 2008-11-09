@@ -9,7 +9,19 @@
 #include "matrixlib.h"
 #include "const.h"
 
+typedef struct worldmodel_s
+{
+	int		numVerts;
+	vertex_t		*verts;
+	int		numIndices;
+	uint		*indices;
+
+	int		numLightmaps;
+	int		numClusters;
+} worldmodel_t;
+
 // the inline models from the current map are kept separate
+static worldmodel_t	*world;
 static rmodel_t	r_inlinemodels[MAX_MODELS];
 static byte	r_fullvis[MAX_MAP_LEAFS/8];
 static rmodel_t	r_models[MAX_MODELS];
@@ -263,23 +275,27 @@ static void R_LoadLightmaps( void )
 {
 	float	maxIntensity = 0;
 	double	sumIntensity = 0;
-	string	lmap_name;
-	byte	*buf_p, *pixels;
+	string	mapname, lmap_name;
+	byte	*buf_p, *pixels = NULL;
 	rgbdata_t	*lmap;
 	int	i, j;	
 
 	if( r_fullbright->integer || m_pLoadModel->numLightmaps <= 0 )
 		return;
 
+	FS_FileBase( m_pLoadModel->name, mapname );
 	Msg( "m_pLoadModel->numLightmaps %d\n", m_pLoadModel->numLightmaps );
 
 	for( i = 0; i < m_pLoadModel->numLightmaps; i++ )
 	{
-		com.sprintf( lmap_name, "gfx/lightmaps/%s_%04d.dds", m_pLoadModel->name, i );
+		com.sprintf( lmap_name, "gfx/lightmaps/%s_%04d.dds", mapname, i );
 		lmap = FS_LoadImage( lmap_name, NULL, 0 );
-		if( !lmap ) continue;
-
-		pixels = Mem_Realloc( r_temppool, pixels, lmap->size );
+		if( !lmap )
+		{
+			Msg("can't load %s\n", lmap_name );
+			continue;
+		}
+		pixels = Mem_Realloc( r_temppool, pixels, lmap->width * lmap->height * 4 );
 		buf_p = lmap->buffer;
 
 		if ( r_showlightmaps->integer == 2 )
@@ -287,9 +303,9 @@ static void R_LoadLightmaps( void )
 			// color code by intensity as development tool	(FIXME: check range)
 			for( j = 0; j < lmap->width * lmap->height; j++ )
 			{
-				float r = buf_p[j*4+0];
-				float g = buf_p[j*4+1];
-				float b = buf_p[j*4+2];
+				float r = buf_p[j*3+0];
+				float g = buf_p[j*3+1];
+				float b = buf_p[j*3+2];
 				float intensity;
 				float out[3];
 
@@ -314,7 +330,7 @@ static void R_LoadLightmaps( void )
 		{
 			for( j = 0; j < lmap->width * lmap->height; j++ )
 			{
-				R_ColorShiftLightingBytes( &buf_p[j*4], &pixels[j*4] );
+				R_ColorShiftLightingBytes( &buf_p[j*3], &pixels[j*4] );
 				pixels[j*4+3] = 255;
 			}
 		}
@@ -366,25 +382,47 @@ R_LoadShaders
 void R_LoadShaders( const byte *base, const lump_t *l )
 {
 	dshader_t		*in;
-	mipTex_t		*out;
+	ref_shader_t	*out;
 	int 		i, count;
+	int		surfaceParm, contents;
+	int		shaderType = SHADER_TEXTURE;
+	cvar_t		*scr_loading = Cvar_Get("scr_loading", "0", 0, "loading bar progress" );
 
 	in = (void *)(base + l->fileofs);
 	if (l->filelen % sizeof(*in)) Host_Error("R_LoadShaders: funny lump size in '%s'\n", m_pLoadModel->name );
 	count = l->filelen / sizeof(*in);
 
-	out = (mipTex_t *)Mem_Alloc( m_pLoadModel->mempool, count * sizeof(*out));
- 
-	m_pLoadModel->shaders = out;
+	m_pLoadModel->shaders = Mem_Alloc( m_pLoadModel->mempool, count * sizeof( shader_t* ));
 	m_pLoadModel->numShaders = count;
 
-	for ( i = 0; i < count; i++, in++, out++ )
+	for( i = 0; i < count; i++, in++ )
 	{
-		com.strncpy( out->name, in->name, MAX_SHADERPATH );
-		out->shader = tr.defaultShader; // real shaders will load later
-		out->contents = LittleLong( in->contents );
-		out->flags = LittleLong( in->surfaceFlags );
+		surfaceParm = LittleLong( in->surfaceFlags );
+		contents = LittleLong( in->contents );
+
+		if( surfaceParm & (SURF_NODRAW|SURF_SKY))
+		{
+			m_pLoadModel->shaders[i] = tr.defaultShader;
+			continue;
+		}
+
+		// detect surfaceParm
+		if( contents & ( MASK_WATER|CONTENTS_FOG ))
+			surfaceParm |= SURF_NOMARKS;
+		if( !m_pLoadModel->lightMaps )
+			surfaceParm |= SURF_NOLIGHTMAP;
+
+		shaderType = SHADER_TEXTURE;
+
+		out = r_shaders[R_FindShader( in->name, shaderType, surfaceParm )];
+
+		// now all pointers are valid
+		m_pLoadModel->shaders[i] = out;
+
+		Cvar_SetValue( "scr_loading", scr_loading->value + 50.0f / count );
+		ri.UpdateScreen();
 	}
+	Cvar_SetValue( "scr_loading", scr_loading->value + 50.0f / count ); // done
 }
 
 /*
@@ -476,7 +514,7 @@ static void R_LoadSurfaces( const byte *base, const lump_t *l )
 		out->firstVertex = LittleLong( in->firstvertex );
 		out->numVertexes = LittleLong( in->numvertices );
 		out->plane = m_pLoadModel->planes + LittleLong( in->flat.planenum );
-		out->texInfo = m_pLoadModel->shaders + LittleLong( in->shadernum );
+		out->texInfo = m_pLoadModel->shaders[LittleLong( in->shadernum )];
 
 		R_CalcSurfaceBounds( out );
 
@@ -500,6 +538,7 @@ static void R_LoadSurfaces( const byte *base, const lump_t *l )
 		out->lmHeight = LittleLong( in->lmapHeight );
 		out->lmNum = LittleLong( in->lmapNum[0] );
 
+		Msg("out->lmNum %i\n", out->lmNum );
 		if( out->lmNum >= m_pLoadModel->numLightmaps )
 			m_pLoadModel->numLightmaps = out->lmNum + 1;
 		if( out->lmNum == -1 ) out->lmNum = 255; // turn up fullbright
@@ -518,6 +557,8 @@ static void R_LoadSurfaces( const byte *base, const lump_t *l )
 		R_BuildSurfacePolygon( out );
 	}
 	R_EndBuildingLightmaps();
+
+	Msg("numlightmaps %i\n", m_pLoadModel->numLightmaps );
 }
 
 /*
@@ -773,10 +814,13 @@ void Mod_LoadBrushModel( rmodel_t *mod, const void *buffer )
 	R_LoadVisibility( mod_base, &header->lumps[LUMP_VISIBILITY]);
 	R_LoadSubmodels( mod_base, &header->lumps[LUMP_MODELS]);
 	R_LoadLightgrid( mod_base, &header->lumps[LUMP_LIGHTGRID]);
-
 	R_LoadLightmaps();					// load external lightmaps
-
 	mod->registration_sequence = registration_sequence;	// register model
+}
+
+bool Mod_RegisterShader( const char *unused, int index )
+{
+	return true;
 }
 
 /*
@@ -913,6 +957,7 @@ void R_BeginRegistration( const char *mapname )
 	if( com.strcmp( r_models[0].name, fullname ))
 		Mod_Free( &r_models[0] );
 	r_worldModel = Mod_ForName( fullname, true );
+	R_ShaderRegisterImages( r_worldModel );
 	r_viewCluster = -1;
 }
 
@@ -1012,6 +1057,7 @@ R_InitModels
 */
 void R_InitModels( void )
 {
+	world = Mem_Alloc( r_temppool, sizeof( worldmodel_t ));
 	Mem_Set( r_fullvis, 255, sizeof( r_fullvis ));
 
 	r_worldModel = NULL;
@@ -1037,6 +1083,7 @@ R_ShutdownModels
 */
 void R_ShutdownModels( void )
 {
+	if( world ) Mem_Free( world );
 	R_StudioShutdown();
 
 	r_worldModel = NULL;

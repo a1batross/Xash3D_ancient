@@ -17,7 +17,7 @@
 */
 string		frame_prefix;
 uint		surfaceParm;
-mipTex_t		*frames;
+ref_shader_t	**frames = NULL;
 	
 /*
 ====================
@@ -29,7 +29,6 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	dspriteframe_t	*pinframe;
 	mspriteframe_t	*pspriteframe;
 	string		name;
-	mipTex_t		*out;
 
 	// build uinque frame name
 	FS_FileBase( mod->name, mod->name );
@@ -53,12 +52,8 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	R_SetInternalMap( pspriteframe->texture );
 	pspriteframe->shader = R_FindShader( name, SHADER_SPRITE, surfaceParm );
 
-	frames = Mem_Realloc( mod->mempool, frames, sizeof(*frames) * (mod->numShaders + 1));
-	out = frames + mod->numShaders++;
-
-	com.strncpy( out->name, name, 64 );
-	out->shader = r_shaders[pspriteframe->shader];
-	out->flags = surfaceParm;
+	frames = Mem_Realloc( mod->mempool, frames, sizeof( ref_shader_t* ) * (mod->numShaders + 1));
+	frames[mod->numShaders++] = r_shaders[pspriteframe->shader];
 
 	return (dframetype_t *)((byte *)(pinframe + 1) + pinframe->width * pinframe->height );
 }

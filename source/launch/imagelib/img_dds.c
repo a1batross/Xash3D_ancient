@@ -1325,6 +1325,7 @@ void Image_DXTGetPixelFormat( dds_t *hdr )
 		else 
 		{
 			if( bits == 32 ) image.type = PF_ABGR_64;
+			else if( bits == 24 ) image.type = PF_RGB_24;
 			else image.type = PF_ARGB_32;
 		}
 	}
@@ -1385,7 +1386,6 @@ uint Image_DXTCalcSize( const char *name, dds_t *hdr, size_t filesize )
 	int w = image.width;
 	int h = image.height;
 	int d = image.num_layers;
-	int bits = hdr->dsPixelFormat.dwRGBBitCount / 8;
 
 	if( hdr->dsCaps.dwCaps2 & DDS_CUBEMAP ) 
 	{

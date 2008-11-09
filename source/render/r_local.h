@@ -47,7 +47,6 @@ typedef enum
 	TF_NORMALMAP	= BIT(5),
 	TF_GEN_MIPS	= BIT(6),
 	TF_CUBEMAP	= BIT(7),
-	TF_SKYBOX		= BIT(8),
 } texFlags_t;
 
 typedef enum
@@ -106,7 +105,7 @@ void		R_TextureList_f( void );
 texture_t		*R_CreateImage( const char *name, byte *buf, int w, int h, texFlags_t texFlags, texFilter_t filter, texWrap_t wrap );
 texture_t		*R_LoadTexture( const char *name, rgbdata_t *pic, int samples, texFlags_t flags, texFilter_t filter, texWrap_t wrap );
 texture_t		*R_FindTexture( const char *name, const byte *buf, size_t size, texFlags_t flags, texFilter_t filter, texWrap_t wrap );
-texture_t		*R_FindCubeMapTexture( const char *name, const byte *buf, size_t size, texFlags_t flags, texFilter_t filter, texWrap_t wrap, bool skybox );
+texture_t		*R_FindCubeMapTexture( const char *name, const byte *buf, size_t size, texFlags_t flags, texFilter_t filter, texWrap_t wrap );
 void		R_InitTextures( void );
 void		R_ShutdownTextures( void );
 void		R_ImageFreeUnused( void );
@@ -223,14 +222,6 @@ typedef struct
 	polyVert_t	*verts;
 } poly_t;
 
-typedef struct mipTex_s
-{
-	string		name;		// original miptex name
-	ref_shader_t	*shader;		// texture shader
-	int		contents;
-	int		flags;
-} mipTex_t;
-
 typedef struct
 {
 	int		flags;
@@ -252,7 +243,7 @@ typedef struct
 	vec3_t		binormal;
 	vec3_t		normal;
 
-	mipTex_t		*texInfo;
+	ref_shader_t	*texInfo;
 
 	int		visFrame;
 	int		fragmentFrame;
@@ -463,7 +454,7 @@ typedef struct rmodel_s
 	int		*indexes;
 
 	int		numShaders;
-	mipTex_t		*shaders;
+	ref_shader_t	**shaders;
 
 	int		numSurfaces;
 	surface_t		*surfaces;
@@ -822,6 +813,7 @@ void		R_GetBitsFromMask( uint Mask, uint *ShiftLeft, uint *ShiftRight );
 // exported funcs
 void		R_BeginRegistration( const char *map );
 rmodel_t		*R_RegisterModel( const char *name );
+bool		Mod_RegisterShader( const char *unused, int index );
 void		R_SetupSky( const char *name, float rotate, const vec3_t axis );
 void		R_EndRegistration( void );
 void		R_ShaderRegisterImages( rmodel_t *mod );	// prolonge registration
@@ -829,6 +821,7 @@ ref_shader_t		*R_RegisterShader( const char *name );
 ref_shader_t		*R_RegisterShaderSkin( const char *name );
 ref_shader_t		*R_RegisterShaderNoMip( const char *name );
 bool		VID_ScreenShot( const char *filename, bool levelshot );
+bool		VID_CubemapShot( const char *base, uint size, bool skyshot );
 void		R_DrawFill( float x, float y, float w, float h );
 void		R_DrawStretchRaw( int x, int y, int w, int h, int width, int height, const byte *raw, bool dirty );
 void		R_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, float sh, float th, const char *name );
@@ -861,6 +854,7 @@ extern cvar_t	*r_frontbuffer;
 extern cvar_t	*r_showcluster;
 extern cvar_t	*r_showtris;
 extern cvar_t	*r_shownormals;
+extern cvar_t	*r_showtextures;
 extern cvar_t	*r_showtangentspace;
 extern cvar_t	*r_showmodelbounds;
 extern cvar_t	*r_showshadowvolumes;

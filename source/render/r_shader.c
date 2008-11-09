@@ -1965,7 +1965,7 @@ static bool R_ParseStageCubeMap( ref_shader_t *shader, shaderStage_t *stage, scr
 	}
 	else
 	{
-		bundle->textures[bundle->numTextures] = R_FindCubeMapTexture( tok.string, NULL, 0, bundle->texFlags, bundle->texFilter, bundle->texWrap, false );
+		bundle->textures[bundle->numTextures] = R_FindCubeMapTexture( tok.string, NULL, 0, bundle->texFlags, bundle->texFilter, bundle->texWrap );
 		if( !bundle->textures[bundle->numTextures] )
 		{
 			MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", tok.string, shader->name );
@@ -3900,6 +3900,10 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, shaderType_t shade
 			shader->stages[0]->alphaFunc.ref = 0.666;
 			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
 		}
+		if( shader->surfaceParm & SURF_SKY )
+		{
+			shader->surfaceParm |= SURF_NOLIGHTMAP;
+		}
 		shader->stages[0]->numBundles++;
 		shader->numStages++;
 
@@ -3910,7 +3914,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, shaderType_t shade
 			shader->stages[1]->bundles[0]->texType = TEX_LIGHTMAP;
 			shader->stages[1]->flags |= SHADERSTAGE_BLENDFUNC;
 			shader->stages[1]->blendFunc.src = GL_DST_COLOR;
-			shader->stages[1]->blendFunc.dst = GL_ONE; //FIXME: was GL_ZERO
+			shader->stages[1]->blendFunc.dst = GL_ZERO;
 			shader->stages[1]->numBundles++;
 			shader->numStages++;
 		}
@@ -4867,7 +4871,8 @@ void R_ShaderRegisterImages( rmodel_t *mod )
 	if( !mod ) return;
 	for( i = 0; i < mod->numShaders; i++ )
 	{
-		shader = mod->shaders[i].shader;
+		shader = mod->shaders[i];
+		if( !shader ) Sys_Break("%s [%i] have invalid shader %i\n", mod->name, mod->numShaders, i );
 		for( j = 0; j < shader->numStages; j++ )
 		{
 			stage = shader->stages[j];
@@ -4901,7 +4906,7 @@ static void R_CreateBuiltInShaders( void )
 	com.strncpy( shader->name, "<default>", sizeof( shader->name ));
 	shader->index = r_numShaders;
 	shader->type = SHADER_TEXTURE;
-	shader->surfaceParm = 0;
+	shader->surfaceParm = SURF_NOLIGHTMAP;
 	shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
 	shader->stages[0]->bundles[0]->numTextures++;
 	shader->stages[0]->numBundles++;

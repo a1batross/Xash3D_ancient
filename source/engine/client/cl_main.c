@@ -707,7 +707,7 @@ Call before entering a new level, or after changing dlls
 */
 void CL_PrepVideo( void )
 {
-	char		mapname[32];
+	string		mapname;
 	int		mdlcount;
 	string		name;
 	float		rotate;
@@ -727,24 +727,12 @@ void CL_PrepVideo( void )
 	for( i = 1, mdlcount = 0; i < MAX_MODELS && cl.configstrings[CS_MODELS+1+i][0]; i++ )
 		mdlcount++; // total num models
 
-	Msg("Num textures %d\n", pe->NumTextures());
-	for( i = 0; i < pe->NumTextures(); i++ )
-	{
-		if(!re->RegisterImage( cl.configstrings[CS_MODELS+1], i ))
-		{
-			Cvar_SetValue( "scr_loading", scr_loading->value + 70.0f );
-			break; // hey, textures already loaded!
-		}
-		Cvar_SetValue( "scr_loading", scr_loading->value + 70.0f / pe->NumTextures());
-		SCR_UpdateScreen();
-	}
-
 	for( i = 1; i < MAX_MODELS && cl.configstrings[CS_MODELS+1+i][0]; i++ )
 	{
 		com.strncpy( name, cl.configstrings[CS_MODELS+1+i], MAX_STRING );
 		re->RegisterModel( name, i+1 );
 		cl.models[i+1] = pe->RegisterModel( name );
-		Cvar_SetValue("scr_loading", scr_loading->value + 25.0f/mdlcount );
+		Cvar_SetValue("scr_loading", scr_loading->value + 45.0f/mdlcount );
 		SCR_UpdateScreen();
 	}
 

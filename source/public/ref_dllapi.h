@@ -197,11 +197,6 @@ typedef struct physdata_s
 #define MAX_PARTICLES		32768	// pre one frame
 #define MAX_EDICTS			65535	// absolute limit that never be reached, (do not edit!)
 
-// FIXME: player_state_t->renderfx
-#define RDF_NOWORLDMODEL		(1<<0)		// used for player configuration screen
-#define RDF_IRGOGGLES		(1<<1)
-#define RDF_PAIN			(1<<2)
-
 // encoded bmodel mask
 #define SOLID_BMODEL	0xffffff
 
@@ -458,9 +453,10 @@ typedef struct render_exp_s
 typedef struct render_imp_s
 {
 	// interface validator
-	size_t	api_size;		// must matched with sizeof(render_imp_t)
+	size_t	api_size;			// must matched with sizeof(render_imp_t)
 
 	// client fundamental callbacks
+	void	(*UpdateScreen)( void );	// update screen while loading
 	void	(*StudioEvent)( dstudioevent_t *event, entity_state_t *ent );
 	void	(*ShowCollision)( cmdraw_t callback );	// debug
 	long	(*WndProc)( void *hWnd, uint uMsg, uint wParam, long lParam );

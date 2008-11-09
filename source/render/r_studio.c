@@ -204,7 +204,6 @@ dstudiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
 	byte		*pin;
 	dstudiohdr_t	*phdr;
 	dstudiotexture_t	*ptexture;
-	mipTex_t		*out;
 	texture_t		*in;
 	
 	pin = (byte *)buffer;
@@ -220,18 +219,14 @@ dstudiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
 	if( phdr->textureindex > 0 && phdr->numtextures <= MAXSTUDIOSKINS )
 	{
 		mod->numShaders = phdr->numtextures;
-		mod->shaders = (mipTex_t *)Mem_Alloc( mod->mempool, sizeof( mipTex_t ) * mod->numShaders );
+		mod->shaders = Mem_Alloc( mod->mempool, sizeof( shader_t* ) * mod->numShaders );
 
 		for( i = 0; i < phdr->numtextures; i++ )
 		{
 			in = R_StudioLoadTexture( mod, &ptexture[i], pin );
 			R_SetInternalMap( in );
 			ptexture[i].shader = R_FindShader( ptexture->name, SHADER_STUDIO, surfaceParm );
-
-			out = mod->shaders + i;
-			com.strncpy( out->name, ptexture->name, 64 );
-			out->shader = r_shaders[ptexture[i].shader];
-			out->flags = surfaceParm;
+			mod->shaders[i] = r_shaders[ptexture[i].shader];
 		}
 	}
 	return (dstudiohdr_t *)buffer;

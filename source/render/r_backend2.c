@@ -7,6 +7,7 @@
 #include "byteorder.h"
 #include "mathlib.h"
 #include "matrixlib.h" 
+#include "const.h"
 
 #define TABLE_SIZE		1024
 #define TABLE_MASK		1023
@@ -1364,15 +1365,21 @@ static void RB_DrawLine( int color, int numpoints, const float *points )
 
 void RB_DebugGraphics( void )
 {
-	if( !r_physbdebug->integer ) return;
 	if( r_refdef.rdflags & RDF_NOWORLDMODEL )
 		return;
 
-	// physic debug
-	GL_LoadMatrix( r_worldMatrix );
-	pglBegin( GL_LINES );
-	ri.ShowCollision( RB_DrawLine );
-	pglEnd();
+	if( r_physbdebug->integer )
+	{
+		// physic debug
+		GL_LoadMatrix( r_worldMatrix );
+		pglBegin( GL_LINES );
+		ri.ShowCollision( RB_DrawLine );
+		pglEnd();
+	}
+	if( r_showtextures->integer )
+	{
+		RB_ShowTextures();
+	}
 }
 
 /*

@@ -6,6 +6,7 @@
 #include "r_local.h"
 #include "byteorder.h"
 #include "vector_lib.h"
+#include "const.h"
 
 static rgbdata_t *R_LoadImage( script_t *script, const char *name, const byte *buf, size_t size, int *samples, texFlags_t *flags );
 static int r_textureMinFilter = GL_LINEAR_MIPMAP_LINEAR;
@@ -416,18 +417,16 @@ bool R_GetPixelFormat( const char *name, rgbdata_t *pic, uint tex_flags )
 			{
 				MsgDev( D_WARN, "R_GetPixelFormat: %s it's not a cubemap image\n", name );
 				image_desc.tflags &= ~TF_CUBEMAP;
-				image_desc.tflags &= ~TF_SKYBOX;
 			}
 		}
 		else
 		{
 			MsgDev( D_WARN, "R_GetPixelFormat: cubemaps isn't supported, %s ignored\n", name );
 			image_desc.tflags &= ~TF_CUBEMAP;
-			image_desc.tflags &= ~TF_SKYBOX;
 		}
 	}
 
-	if( image_desc.tflags & TF_NOPICMIP|TF_SKYBOX )
+	if( image_desc.tflags & TF_NOPICMIP )
 	{
 		// don't build mips for sky and hud pics
 		image_desc.tflags &= ~TF_GEN_MIPS;
@@ -2137,7 +2136,7 @@ texture_t *R_FindTexture( const char *name, const byte *buf, size_t size, texFla
 
 	for( texture = r_texturesHashTable[hash]; texture; texture = texture->nextHash )
 	{
-		if( texture->flags & TF_CUBEMAP|TF_SKYBOX )
+		if( texture->flags & TF_CUBEMAP )
 			continue;
 
 		if( !com.stricmp( texture->name, name ))
@@ -2183,9 +2182,8 @@ texture_t *R_FindTexture( const char *name, const byte *buf, size_t size, texFla
 	return NULL;
 }
 
-texture_t *R_FindCubeMapTexture( const char *name, const byte *buf, size_t size, texFlags_t flags, texFilter_t filter, texWrap_t wrap, bool skybox )
+texture_t *R_FindCubeMapTexture( const char *name, const byte *buf, size_t size, texFlags_t flags, texFilter_t filter, texWrap_t wrap )
 {
-	if( skybox ) flags |= TF_SKYBOX;
 	return R_FindTexture( name, buf, size, flags|TF_CUBEMAP, filter, wrap );
 }
 
@@ -2452,6 +2450,71 @@ void R_ImageFreeUnused( void )
 }
 
 /*
+===============
+RB_ShowImages
+
+Draw all the images to the screen, on top of whatever
+was there.  This is used to test for texture thrashing.
+===============
+*/
+void RB_ShowTextures( void )
+{
+	texture_t		*texture;
+	float		x, y, w, h;
+	int		i, j;
+
+	if( !gl_state.orthogonal )
+	{
+		GL_Setup2D();
+	}
+
+	pglClear( GL_COLOR_BUFFER_BIT );
+	pglFinish();
+	pglEnable( GL_TEXTURE_2D );
+		
+	for( i = j = 0; i < r_numTextures; i++ )
+	{
+		texture = r_textures[i];
+		if( !texture ) continue;
+
+		// FIXME: make cases for system, 2d, bsp, sprite and model textures
+
+		if( r_showtextures->integer == 1 && texture->flags & TF_STATIC )
+			continue;
+		if( r_showtextures->integer == 2 && !(texture->flags & TF_STATIC ))
+			continue;
+
+		w = r_width->integer / 10;
+		h = r_height->integer / 8;
+		x = j % 10 * w;
+		y = j / 10 * h;
+
+		// show in proportional size in mode 2
+		/*if( r_showtextures->integer == 2 )
+		{
+			w *= texture->width / 512.0f;
+			h *= texture->height / 512.0f;
+		}*/
+
+		pglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
+		GL_BindTexture( texture );
+		pglBegin( GL_QUADS );
+		pglTexCoord2f( 0, 0 );
+		pglVertex2f( x, y );
+		pglTexCoord2f( 1, 0 );
+		pglVertex2f( x + w, y );
+		pglTexCoord2f( 1, 1 );
+		pglVertex2f( x + w, y + h );
+		pglTexCoord2f( 0, 1 );
+		pglVertex2f( x, y + h );
+		pglEnd();
+		j++;
+	}
+	pglDisable( GL_TEXTURE_2D );
+	pglFinish();
+}
+
+/*
 =================
 R_TextureList_f
 =================
@@ -2697,6 +2760,9 @@ bool VID_ScreenShot( const char *filename, bool levelshot )
 	rgbdata_t *r_shot;
 	uint	flags = IMAGE_FLIP_Y;
 
+	VID_CubemapShot( "cubemap", 512, true );
+	return true;
+
 	r_shot = Mem_Alloc( r_imagepool, sizeof( rgbdata_t ));
 	r_shot->width = r_width->integer;
 	r_shot->height = r_height->integer;
@@ -2766,10 +2832,11 @@ bool VID_CubemapShot( const char *base, uint size, bool skyshot )
 	}
 
 	r_shot = Mem_Alloc( r_imagepool, sizeof( rgbdata_t ));
+	r_shot->flags |= IMAGE_CUBEMAP;
 	r_shot->width = size;
 	r_shot->height = size;
 	r_shot->type = PF_RGB_24;
-	r_shot->size = r_shot->width * r_shot->height * 3;
+	r_shot->size = r_shot->width * r_shot->height * 3 * 6;
 	r_shot->palette = NULL;
 	r_shot->numLayers = 1;
 	r_shot->numMips = 1;
