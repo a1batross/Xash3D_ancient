@@ -521,7 +521,7 @@ bool AddSurfaceToRawLightmap( int num, rawLightmap_t *lm )
 	Mem_Set( vecs, 0, sizeof( vecs ));
 	
 	// classify the plane (x y or z major) (ydnar: biased to z axis projection)
-	if( faxis[2] >= faxis[0] && faxis[2] >= faxis[1] )
+	if( faxis[2] > faxis[0] && faxis[2] > faxis[1] )
 	{
 		axisNum = 2;
 		lm->w = size[0];
@@ -529,7 +529,7 @@ bool AddSurfaceToRawLightmap( int num, rawLightmap_t *lm )
 		vecs[0][0] = 1.0f / sampleSize;
 		vecs[1][1] = 1.0f / sampleSize;
 	}
-	else if( faxis[0] >= faxis[1] && faxis[0] >= faxis[2] )
+	else if( faxis[0] > faxis[1] && faxis[0] > faxis[2] )
 	{
 		axisNum = 0;
 		lm->w = size[1];

@@ -12,11 +12,16 @@ R_GetPicSize
 this is needed by some client drawing functions
 =================
 */
-void R_GetPicSize( int *w, int *h, const char *name )
+void R_GetPicSize( int *w, int *h, shader_t handle )
 {
-	ref_shader_t	*shader = R_RegisterShaderNoMip(va( "gfx/%s", name ));
-	*w = (int)shader->stages[0]->bundles[0]->textures[0]->width;
-	*h = (int)shader->stages[0]->bundles[0]->textures[0]->height;
+	ref_shader_t *shader;
+	
+	if( handle >= 0 && handle < MAX_SHADERS && (shader = r_shaders[handle]))
+	{
+		*w = (int)shader->stages[0]->bundles[0]->textures[0]->width;
+		*h = (int)shader->stages[0]->bundles[0]->textures[0]->height;
+	}
+	else *w = *h = -1;
 }
 
 
@@ -28,9 +33,11 @@ Batches the pic in the vertex arrays.
 Call RB_RenderMesh to flush.
 =================
 */
-void R_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, float sh, float th, const char *name )
+void R_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, float sh, float th, shader_t handle )
 {
-	ref_shader_t *shader = R_RegisterShaderNoMip(va( "gfx/%s", name ));
+	ref_shader_t *shader = tr.defaultShader;
+	
+	if( handle >= 0 && handle < MAX_SHADERS ) shader = r_shaders[handle];
 	RB_DrawStretchPic( x, y, w, h, sl, tl, sh, th, shader );
 }
 

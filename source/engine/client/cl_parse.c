@@ -239,11 +239,7 @@ void CL_ParseConfigString( sizebuf_t *msg )
 	// do something apropriate 
 	if( i >= CS_SKYNAME && i < CS_MAXCLIENTS && cl.video_prepped )
 	{
-		float 	rotate;
-		vec3_t	axis;
-		rotate = com.atof(cl.configstrings[CS_SKYSPEED]);
-		com.atov( axis, cl.configstrings[CS_SKYANGLES], 3 );
-		re->SetSky( cl.configstrings[CS_SKYNAME], rotate, axis );
+		re->RegisterShader( cl.configstrings[CS_SKYNAME], SHADER_SKY );
 	}
 	else if( i >= CS_MODELS && i < CS_MODELS+MAX_MODELS && cl.video_prepped )
 	{

@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "viewer.h"
+#include "engine_api.h"
 
 stdlib_api_t com;
 

@@ -5,6 +5,7 @@
 
 #include "launch.h"
 #include "baserc_api.h"
+#include "engine_api.h"
 #include "mathlib.h"
 #include "parselib.h"
 

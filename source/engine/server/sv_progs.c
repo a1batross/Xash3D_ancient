@@ -2242,16 +2242,11 @@ void setsky( string name, vector angles, float speed )
 */
 void PF_setsky( void )
 {
-	float	*ang;
-
-	if(!VM_ValidateArgs( "setsky", 3 ))
+	if(!VM_ValidateArgs( "setsky", 1 ))
 		return;
 
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
-	ang = PRVM_G_VECTOR(OFS_PARM1);
 	SV_ConfigString( CS_SKYNAME, PRVM_G_STRING(OFS_PARM0));
-	SV_ConfigString( CS_SKYANGLES, va( "%g %g %g", ang[0], ang[1], ang[2] ));
-	SV_ConfigString( CS_SKYSPEED, va("%g", PRVM_G_FLOAT(OFS_PARM2)));
 }
 
 /*

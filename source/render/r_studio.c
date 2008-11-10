@@ -223,9 +223,8 @@ dstudiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
 
 		for( i = 0; i < phdr->numtextures; i++ )
 		{
-			in = R_StudioLoadTexture( mod, &ptexture[i], pin );
-			R_SetInternalMap( in );
-			ptexture[i].shader = R_FindShader( ptexture->name, SHADER_STUDIO, surfaceParm );
+			R_SetInternalMap(R_StudioLoadTexture( mod, &ptexture[i], pin ));
+			ptexture[i].shader = R_FindShader( ptexture[i].name, SHADER_STUDIO, surfaceParm );
 			mod->shaders[i] = r_shaders[ptexture[i].shader];
 		}
 	}
@@ -1425,6 +1424,7 @@ void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref, int pass 
 
 		//GL_BindTexture( m_pRenderModel->textures[ptexture[pskinref[pmesh->skinref]].index].image );
 		// FIXME: test
+		//m_pCurrentShader = m_pRenderModel->shaders[ptexture[pskinref[pmesh->skinref]].shader];
 		m_pCurrentShader = r_shaders[ptexture[pskinref[pmesh->skinref]].shader];
 
 		while( i = *(ptricmds++))

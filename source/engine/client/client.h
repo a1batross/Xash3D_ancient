@@ -24,11 +24,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mathlib.h"
 #include "cl_edict.h"
+#include "render_api.h"
 
 #define MAX_EDIT_LINE	256
 #define COMMAND_HISTORY	32
 #define MAX_SERVERS		64
 #define ColorIndex(c)	(((c) - '0') & 7)
+
+// button bits
+#define	BUTTON_ATTACK	1
+#define	BUTTON_ATTACK2	2
+#define	BUTTON_USE	4
+#define	BUTTON_WALKING	8
+#define	BUTTON_ANY	128 // any key whatsoever
 
 //=============================================================================
 typedef struct frame_s
@@ -216,7 +224,9 @@ typedef struct
 	int		serverProtocol;		// in case we are doing some kind of version hack
 
 	int		challenge;		// from the server to use for connecting
-
+	shader_t		consoleFont;		// current console font
+	shader_t		consoleBack;		// console background
+	
 	file_t		*download;		// file transfer from server
 	string		downloadname;
 	string		downloadtempname;
@@ -281,7 +291,7 @@ extern	cvar_t	*cl_sidespeed;
 extern	cvar_t	*cl_shownet;
 extern	cvar_t	*cl_yawspeed;
 extern	cvar_t	*cl_pitchspeed;
-
+extern	cvar_t	*cl_envshot_size;
 extern	cvar_t	*cl_run;
 
 extern	cvar_t	*cl_anglespeedkey;
@@ -307,6 +317,7 @@ extern	cvar_t	*cl_levelshot_name;
 
 extern cvar_t *scr_centertime;
 extern cvar_t *scr_showpause;
+extern cvar_t *con_font;
 
 typedef struct
 {
@@ -397,6 +408,8 @@ void CL_PrepSound( void );
 //
 void CL_Quit_f (void);
 void CL_ScreenShot_f( void );
+void CL_EnvShot_f( void );
+void CL_SkyShot_f( void );
 void CL_LevelShot_f( void );
 void CL_SetSky_f( void );
 void CL_SetFont_f( void );
@@ -498,7 +511,7 @@ void SCR_UpdateScreen( void );
 void VID_Init( void );
 void SCR_Shutdown( void );
 void SCR_AdjustSize( float *x, float *y, float *w, float *h );
-void SCR_DrawPic( float x, float y, float width, float height, const char *picname );
+void SCR_DrawPic( float x, float y, float width, float height, shader_t shader );
 void SCR_FillRect( float x, float y, float width, float height, const float *color );
 void SCR_DrawSmallChar( int x, int y, int ch );
 void SCR_DrawChar( int x, int y, float w, float h, int ch );

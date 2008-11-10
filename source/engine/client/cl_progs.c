@@ -23,6 +23,8 @@ const char *field_nums[11] =
 "hud/num_-",
 };
 
+static shader_t field_shaders[11];
+
 /*
 ================
 CL_FadeColor
@@ -268,7 +270,7 @@ void PF_drawfield( void )
 	{
 		if( *ptr == '-' ) frame = STAT_MINUS;
 		else frame = *ptr -'0';
-		SCR_DrawPic( pos[0], pos[1], size[0], size[1], field_nums[frame] );
+		SCR_DrawPic( pos[0], pos[1], size[0], size[1], field_shaders[frame] );
 		pos[0] += size[0];
 		ptr++;
 		l--;
@@ -286,18 +288,18 @@ void DrawNet( vector pos, string image )
 void PF_drawnet( void )
 {
 	float	*pos;
-	const char *pic;
+	shader_t	shader;
 
 	if(!VM_ValidateArgs( "drawnet", 2 ))
 		return;
 	if(cls.netchan.outgoing_sequence - cls.netchan.incoming_acknowledged < CMD_BACKUP-1)
 		return;
 
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM1));
 	pos = PRVM_G_VECTOR(OFS_PARM0);
-	pic = PRVM_G_STRING(OFS_PARM1);
-	VM_ValidateString( pic );
+	shader = re->RegisterShader( va( "gfx/%s", PRVM_G_STRING(OFS_PARM1)), SHADER_NOMIP ); 
 
-	SCR_DrawPic( pos[0], pos[1], -1, -1, pic );
+	SCR_DrawPic( pos[0], pos[1], -1, -1, shader );
 }
 
 /*
@@ -612,6 +614,8 @@ const int vm_cl_numbuiltins = sizeof(vm_cl_builtins) / sizeof(prvm_builtin_t); /
 
 void CL_InitClientProgs( void )
 {
+	int	i;
+
 	Msg("\n");
 	PRVM_Begin;
 
@@ -645,6 +649,9 @@ void CL_InitClientProgs( void )
 	prog->globals.cl->pev = 0;
 	prog->globals.cl->mapname = PRVM_SetEngineString( cls.servername );
 	prog->globals.cl->playernum = cl.playernum;
+
+	for( i = 0; i < sizeof( field_nums ) / sizeof( field_nums[0] ); i++ )
+		field_shaders[i] = re->RegisterShader( va("gfx/%s", field_nums[i] ), SHADER_NOMIP );
 
 	// call the prog init
 	PRVM_ExecuteProgram( prog->globals.cl->HUD_Init, "HUD_Init" );

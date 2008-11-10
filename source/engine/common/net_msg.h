@@ -122,10 +122,8 @@ static const net_desc_t NWDesc[] =
 #define CS_SIZE			64	// size of one config string
 #define CS_NAME			0	// map name
 #define CS_MAPCHECKSUM		1	// level checksum (for catching cheater maps)
-#define CS_SKYNAME			2	// skybox name
-#define CS_SKYANGLES		3	// <angles> %f %f %f
-#define CS_SKYSPEED			4	// <speed> %f
-#define CS_MAXCLIENTS		5	// server maxclients value (0-255)
+#define CS_SKYNAME			2	// skybox shader name
+#define CS_MAXCLIENTS		3	// server maxclients value (0-255)
 
 // reserved config strings
 

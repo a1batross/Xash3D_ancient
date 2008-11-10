@@ -7,6 +7,8 @@
 
 #include <stdio.h>
 #include "platform.h"
+#include "engine_api.h"
+#include "physic_api.h"
 #include "utils.h"
 #include "mathlib.h"
 

@@ -707,14 +707,10 @@ Call before entering a new level, or after changing dlls
 */
 void CL_PrepVideo( void )
 {
-	string		mapname;
-	int		mdlcount;
-	string		name;
-	float		rotate;
-	vec3_t		axis;
-	int		i;
+	string		name, mapname;
+	int		i, mdlcount;
 
-	if (!cl.configstrings[CS_MODELS+1][0])
+	if( !cl.configstrings[CS_MODELS+1][0] )
 		return; // no map loaded
 
 	Msg( "CL_PrepRefresh: %s\n", cl.configstrings[CS_NAME] );
@@ -736,10 +732,8 @@ void CL_PrepVideo( void )
 		SCR_UpdateScreen();
 	}
 
-	// set sky textures and speed
-	rotate = com.atof(cl.configstrings[CS_SKYSPEED]);
-	com.atov( axis, cl.configstrings[CS_SKYANGLES], 3 );
-	re->SetSky( cl.configstrings[CS_SKYNAME], rotate, axis );
+	// setup sky shader
+	re->RegisterShader( cl.configstrings[CS_SKYNAME], SHADER_SKY );
           Cvar_SetValue("scr_loading", 100.0f ); // all done
 	
 	re->EndRegistration (); // the render can now free unneeded stuff
@@ -1137,6 +1131,8 @@ void CL_InitLocal (void)
 	Cmd_AddCommand ("exit", CL_Quit_f, "quit from game" );
 
 	Cmd_AddCommand ("screenshot", CL_ScreenShot_f, "takes a screenshot of the next rendered frame" );
+	Cmd_AddCommand ("envshot", CL_EnvShot_f, "takes a six-sides cubemap shot with specified name" );
+	Cmd_AddCommand ("skyshot", CL_SkyShot_f, "takes a six-sides envmap (skybox) shot with specified name" );
 	Cmd_AddCommand ("levelshot", CL_LevelShot_f, "same as \"screenshot\", used for create plaque images" );
 
 	Cmd_AddCommand ("connect", CL_Connect_f, "connect to a server by hostname" );

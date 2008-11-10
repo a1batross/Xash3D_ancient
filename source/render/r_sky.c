@@ -582,14 +582,15 @@ R_SetupSky
 */
 void R_SetupSky( const char *name, float rotate, const vec3_t axis )
 {
-	sky_t		*sky;
+	sky_t		*sky = NULL;
 	skySide_t		*skySide;
 	skySideVert_t	*v;
 	vec3_t		org, row, col;
 	void		*map;
 	int		i, j;
 
-	r_worldModel->sky = sky = Mem_Alloc( r_temppool, sizeof( sky_t ));
+	r_worldModel->sky = Mem_Realloc( r_temppool, r_worldModel->sky, sizeof( sky_t ));
+	sky = r_worldModel->sky;
 	sky->shader = r_shaders[R_FindShader( name, SHADER_SKY, 0 )];
 
 	sky->rotate = rotate;

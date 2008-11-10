@@ -447,10 +447,10 @@ bool R_Init_OpenGL( void )
 
 /*
 =================
-R_CheckForErrors
+RB_CheckForErrors
 =================
 */
-void R_CheckForErrors( void )
+void RB_CheckForErrors( const char *filename, const int fileline )
 {
 	int	err;
 	char	*str;
@@ -484,5 +484,5 @@ void R_CheckForErrors( void )
 		str = "UNKNOWN ERROR";
 		break;
 	}
-	Host_Error( "R_CheckForErrors: %s\n", str );
+	Host_Error( "R_CheckForErrors: %s (called at %s:%i)\n", str, filename, fileline );
 }

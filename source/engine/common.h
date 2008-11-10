@@ -12,6 +12,8 @@
 
 #include "launch_api.h"
 #include "ref_dllapi.h"
+#include "engine_api.h"
+#include "physic_api.h"
 #include "net_msg.h"
 
 // linked interfaces

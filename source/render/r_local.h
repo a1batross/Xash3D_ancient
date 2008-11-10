@@ -9,6 +9,8 @@
 #include <windows.h>
 #include "launch_api.h"
 #include "ref_dllapi.h"
+#include "engine_api.h"
+#include "render_api.h"
 #include "r_opengl.h"
 
 extern stdlib_api_t com;		// engine toolbox
@@ -142,7 +144,7 @@ extern ref_shader_t	*r_shaders[MAX_SHADERS];
 extern int	r_numShaders;
 
 void	R_EvaluateRegisters( ref_shader_t *shader, float time, const float *entityParms, const float *globalParms );
-shader_t	R_FindShader( const char *name, shaderType_t shaderType, uint surfaceParm );
+shader_t	R_FindShader( const char *name, int shaderType, uint surfaceParm );
 void	R_SetInternalMap( texture_t *mipTex );		// internal textures (skins, spriteframes, etc)
 void	R_ShaderList_f( void );
 void	R_InitShaders( void );
@@ -648,11 +650,12 @@ void		GL_Color4fv( const GLfloat *v );
 void		GL_Color4ub( GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha );
 void		GL_Color4ubv( const GLubyte *v );
 
-void		R_CheckForErrors( void );
+void		RB_CheckForErrors( const char *filename, const int fileline );
 void		R_EndFrame( void );
 bool		R_Init_OpenGL( void );
 void		R_Free_OpenGL( void );
-void		R_CheckForErrors( void );
+
+#define R_CheckForErrors() RB_CheckForErrors( __FILE__, __LINE__ )
 
 /*
  =======================================================================
@@ -806,26 +809,23 @@ void		R_AddBrushModelToList( ref_entity_t *entity );
 void		R_AddWorldToList( void );
 
 void		RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees );
-void		R_DXTReadColor( word data, color32* out );
-void		R_DXTReadColors( const byte* data, color32* out );
-void		R_GetBitsFromMask( uint Mask, uint *ShiftLeft, uint *ShiftRight );
 
 // exported funcs
 void		R_BeginRegistration( const char *map );
 rmodel_t		*R_RegisterModel( const char *name );
-bool		Mod_RegisterShader( const char *unused, int index );
+shader_t		Mod_RegisterShader( const char *name, int shaderType );
 void		R_SetupSky( const char *name, float rotate, const vec3_t axis );
 void		R_EndRegistration( void );
 void		R_ShaderRegisterImages( rmodel_t *mod );	// prolonge registration
-ref_shader_t		*R_RegisterShader( const char *name );
-ref_shader_t		*R_RegisterShaderSkin( const char *name );
-ref_shader_t		*R_RegisterShaderNoMip( const char *name );
+ref_shader_t	*R_RegisterShader( const char *name );
+ref_shader_t	*R_RegisterShaderSkin( const char *name );
+ref_shader_t	*R_RegisterShaderNoMip( const char *name );
 bool		VID_ScreenShot( const char *filename, bool levelshot );
 bool		VID_CubemapShot( const char *base, uint size, bool skyshot );
 void		R_DrawFill( float x, float y, float w, float h );
 void		R_DrawStretchRaw( int x, int y, int w, int h, int width, int height, const byte *raw, bool dirty );
-void		R_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, float sh, float th, const char *name );
-void		R_GetPicSize( int *w, int *h, const char *pic );
+void		R_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, float sh, float th, shader_t shader );
+void		R_GetPicSize( int *w, int *h, shader_t shader );
 
 // r_utils.c (test)
 void AxisClear( vec3_t axis[3] );

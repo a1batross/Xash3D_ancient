@@ -19,7 +19,7 @@ cvar_t *scr_height;
 cvar_t *cl_testentities;
 cvar_t *cl_testlights;
 cvar_t *cl_levelshot_name;
-cvar_t *cl_font;
+cvar_t *cl_envshot_size;
 
 void SCR_TimeRefresh_f( void );
 void SCR_Loading_f( void );
@@ -67,21 +67,18 @@ SCR_DrawPic
 Coordinates are 640*480 virtual values
 ================
 */
-void SCR_DrawPic( float x, float y, float width, float height, const char *picname )
+void SCR_DrawPic( float x, float y, float width, float height, string_t shader )
 {
 	int	w, h;
-
-	// to avoid drawing r_notexture image
-	if(!picname || !*picname ) return;
 
 	// get original size
 	if(width == -1 || height == -1)
 	{
-		re->DrawGetPicSize( &w, &h, picname );
+		re->DrawGetPicSize( &w, &h, shader );
 		width = w, height = h;
 	}
 	SCR_AdjustSize( &x, &y, &width, &height );
-	re->DrawStretchPic (x, y, width, height, 0, 0, 1, 1, picname );
+	re->DrawStretchPic (x, y, width, height, 0, 0, 1, 1, shader );
 }
 
 /*
@@ -111,7 +108,7 @@ void SCR_DrawChar( int x, int y, float w, float h, int ch )
 	fcol = (ch & 15)*0.0625f + (0.5f / 256.0f);
 	size = 0.0625f - (1.0f / 256.0f);
 
-	re->DrawStretchPic( ax, ay, aw, ah, fcol, frow, fcol + size, frow + size, va( "fonts/%s", cl_font->string ));
+	re->DrawStretchPic( ax, ay, aw, ah, fcol, frow, fcol + size, frow + size, cls.consoleFont );
 }
 
 /*
@@ -135,7 +132,7 @@ void SCR_DrawSmallChar( int x, int y, int ch )
 	fcol = (ch & 15)*0.0625f + (0.5f / 256.0f);
 	size = 0.0625f - (1.0f / 256.0f);
 
-	re->DrawStretchPic( x, y, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, fcol, frow, fcol + size, frow + size, va( "fonts/%s", cl_font->string ));
+	re->DrawStretchPic( x, y, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, fcol, frow, fcol + size, frow + size, cls.consoleFont );
 }
 
 /*
@@ -342,11 +339,11 @@ void SCR_Init (void)
 	scr_centertime = Cvar_Get("scr_centertime", "2.5", 0, "centerprint hold time" );
 	scr_printspeed = Cvar_Get("scr_printspeed", "8", 0, "centerprint speed of print" );
 	cl_levelshot_name = Cvar_Get("cl_levelshot_name", "common/black", 0, "contains path to current levelshot" );
-	cl_font = Cvar_Get("cl_font", "conchars", CVAR_ARCHIVE, "contains path to current charset" );
 	scr_loading = Cvar_Get("scr_loading", "0", 0, "loading bar progress" );
 	scr_download = Cvar_Get("scr_download", "0", 0, "downloading bar progress" );
 	cl_testentities = Cvar_Get ("cl_testentities", "0", 0, "test client entities" );
 	cl_testlights = Cvar_Get ("cl_testlights", "0", 0, "test dynamic lights" );
+	cl_envshot_size = Cvar_Get( "cl_envshot_size", "256", CVAR_ARCHIVE, "envshot size of cube side" );
 
 	// register our commands
 	Cmd_AddCommand( "timerefresh", SCR_TimeRefresh_f, "turn quickly and print rendering statistcs" );
@@ -354,6 +351,10 @@ void SCR_Init (void)
 	Cmd_AddCommand( "skyname", CL_SetSky_f, "set new skybox by basename" );
 	Cmd_AddCommand( "setfont", CL_SetFont_f, "set new system font" );
 	Cmd_AddCommand( "viewpos", SCR_Viewpos_f, "prints current player origin" );
+
+	// register console images
+	cls.consoleFont = re->RegisterShader( va( "gfx/fonts/%s", con_font->string ), SHADER_FONT );
+	cls.consoleBack = re->RegisterShader( "gfx/background/conback", SHADER_NOMIP );
 }
 
 void SCR_Shutdown( void )

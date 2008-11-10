@@ -8,6 +8,7 @@
 
 cvar_t	*con_notifytime;
 cvar_t	*con_speed;
+cvar_t	*con_font;
 
 vec4_t console_color = {1.0, 1.0, 1.0, 1.0};
 int g_console_field_width = 78;
@@ -238,6 +239,7 @@ void Con_Init (void)
 	// register our commands
 	con_notifytime = Cvar_Get ("con_notifytime", "3", 0, "notify time to live" );
 	con_speed = Cvar_Get ("con_speed", "3", 0, "console moving speed" );
+	con_font = Cvar_Get( "con_font", "conchars", CVAR_ARCHIVE, "path to console charset" );
 
 	Field_Clear( &g_consoleField );
 	g_consoleField.widthInChars = g_console_field_width;
@@ -479,7 +481,7 @@ void Con_DrawSolidConsole (float frac)
 	// draw the background
 	y = frac * SCREEN_HEIGHT - 2;
 	if ( y < 1 ) y = 0;
-	else SCR_DrawPic( 0, y - SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, "background/conback" );
+	else SCR_DrawPic( 0, y - SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, cls.consoleBack );
 
 	Vector4Set( color, 1, 0, 0, 1 );
 	SCR_FillRect( 0, y, SCREEN_WIDTH, 2, color );

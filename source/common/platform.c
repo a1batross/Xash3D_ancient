@@ -233,6 +233,8 @@ launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 	Com.Init = InitPlatform;
 	Com.Main = RunPlatform;
 	Com.Free = FreePlatform;
+	Com.MSG_Init = NULL;
+	Com.CPrint = NULL;
 
 	return &Com;
 }

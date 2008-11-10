@@ -2038,7 +2038,7 @@ static void R_UploadTexture( rgbdata_t *pic, texture_t *tex )
 			if( j == 0 ) GL_GenerateMipmaps( data, tex, i, border );
 			if( dxtformat ) pglCompressedTexImage2DARB( image_desc.texTarget + i, j, tex->format, w, h, 0, mipsize, data );
 			else pglTexImage2D( image_desc.texTarget + i, j, tex->format, tex->width, tex->height, 0, image_desc.glFormat, image_desc.glType, data );
-
+                              
 			w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; // calc size of next mip
 			if( r_check_errors->integer ) R_CheckForErrors();
 		}
@@ -2522,17 +2522,18 @@ R_TextureList_f
 void R_TextureList_f( void )
 {
 	texture_t	*texture;
-	int	i, bytes = 0;
+	int	i, texCount, bytes = 0;
 
 	Msg( "\n" );
 	Msg("      -w-- -h-- -size- -fmt- type -filter -wrap-- -name--------\n" );
 
-	for( i = 0; i < r_numTextures; i++ )
+	for( i = texCount = 0; i < r_numTextures; i++ )
 	{
 		texture = r_textures[i];
 		if( !texture ) continue;
 
 		bytes += texture->size;
+		texCount++;
 
 		Msg( "%4i: ", i );
 		Msg( "%4i %4i ", texture->width, texture->height );
@@ -2613,26 +2614,26 @@ void R_TextureList_f( void )
 		switch( texture->wrap )
 		{
 		case TW_REPEAT:
-			Msg( "repeat " );
+			Msg( " repeat " );
 			break;
 		case TW_CLAMP:
-			Msg( "clamp  " );
+			Msg( " clamp  " );
 			break;
 		case TW_CLAMP_TO_ZERO:
-			Msg( "clamp 0" );
+			Msg( " clamp 0" );
 			break;
 		case TW_CLAMP_TO_ZERO_ALPHA:
-			Msg( "clamp A" );
+			Msg( " clamp A" );
 			break;
 		default:
-			Msg( "????   " );
+			Msg( " ????   " );
 			break;
 		}
-		Msg( "%s\n", texture->name );
+		Msg( "  %s\n", texture->name );
 	}
 
 	Msg( "---------------------------------------------------------\n" );
-	Msg( "%i total textures\n", r_numTextures );
+	Msg( "%i total textures\n", texCount );
 	Msg( "%.2f total megabytes of textures\n", bytes/1048576.0 );
 	Msg( "\n" );
 }
@@ -2759,9 +2760,7 @@ bool VID_ScreenShot( const char *filename, bool levelshot )
 {
 	rgbdata_t *r_shot;
 	uint	flags = IMAGE_FLIP_Y;
-
-	VID_CubemapShot( "cubemap", 512, true );
-	return true;
+	bool	result;
 
 	r_shot = Mem_Alloc( r_imagepool, sizeof( rgbdata_t ));
 	r_shot->width = r_width->integer;
@@ -2781,9 +2780,9 @@ bool VID_ScreenShot( const char *filename, bool levelshot )
 	Image_Process( &r_shot, 512, 384, flags );
 
 	// write image
-	FS_SaveImage( filename, r_shot );
+	result = FS_SaveImage( filename, r_shot );
 	FS_FreeImage( r_shot );
-	return true;
+	return result;
 }
 
 /*
@@ -2795,7 +2794,8 @@ bool VID_CubemapShot( const char *base, uint size, bool skyshot )
 {
 	rgbdata_t		*r_shot;
 	byte		*buffer = NULL;
-	int		i = 1;
+	string		basename;
+	int		i = 1, result;
 
 	if(( r_refdef.rdflags & RDF_NOWORLDMODEL) || !r_worldModel)
 		return false;
@@ -2841,10 +2841,15 @@ bool VID_CubemapShot( const char *base, uint size, bool skyshot )
 	r_shot->numLayers = 1;
 	r_shot->numMips = 1;
 	r_shot->buffer = buffer;
+
+	// make sure what we have right extension
+	com.strncpy( basename, base, MAX_STRING );
+	FS_StripExtension( basename );
+	FS_DefaultExtension( basename, ".dds" );
 	
 	// write image as dds packet
-	FS_SaveImage( va( "gfx/env/%s.dds", base ), r_shot );
+	result = FS_SaveImage( basename, r_shot );
 	FS_FreeImage( r_shot ); // don't touch framebuffer!
 
-	return true;
+	return result;
 }

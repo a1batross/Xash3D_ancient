@@ -400,7 +400,7 @@ void R_LoadShaders( const byte *base, const lump_t *l )
 		surfaceParm = LittleLong( in->surfaceFlags );
 		contents = LittleLong( in->contents );
 
-		if( surfaceParm & (SURF_NODRAW|SURF_SKY))
+		if( surfaceParm & SURF_NODRAW )
 		{
 			m_pLoadModel->shaders[i] = tr.defaultShader;
 			continue;
@@ -422,7 +422,6 @@ void R_LoadShaders( const byte *base, const lump_t *l )
 		Cvar_SetValue( "scr_loading", scr_loading->value + 50.0f / count );
 		ri.UpdateScreen();
 	}
-	Cvar_SetValue( "scr_loading", scr_loading->value + 50.0f / count ); // done
 }
 
 /*
@@ -538,7 +537,6 @@ static void R_LoadSurfaces( const byte *base, const lump_t *l )
 		out->lmHeight = LittleLong( in->lmapHeight );
 		out->lmNum = LittleLong( in->lmapNum[0] );
 
-		Msg("out->lmNum %i\n", out->lmNum );
 		if( out->lmNum >= m_pLoadModel->numLightmaps )
 			m_pLoadModel->numLightmaps = out->lmNum + 1;
 		if( out->lmNum == -1 ) out->lmNum = 255; // turn up fullbright
@@ -818,11 +816,6 @@ void Mod_LoadBrushModel( rmodel_t *mod, const void *buffer )
 	mod->registration_sequence = registration_sequence;	// register model
 }
 
-bool Mod_RegisterShader( const char *unused, int index )
-{
-	return true;
-}
-
 /*
 =================
 Mod_LoadStudioModel
@@ -970,7 +963,7 @@ R_RegisterModel
 */
 rmodel_t *R_RegisterModel( const char *name )
 {
-	rmodel_t		*mod;
+	rmodel_t	*mod;
 	
 	mod = Mod_ForName( name, false );
 	R_ShaderRegisterImages( mod );

@@ -1098,7 +1098,7 @@ void VM_precache_pic( void )
 		return;
 
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
-	if(re->PrecacheImage((char *)PRVM_G_STRING(OFS_PARM0)))
+	if( re->RegisterShader( va( "gfx/%s", PRVM_G_STRING(OFS_PARM0)), SHADER_NOMIP ))
 		PRVM_G_FLOAT(OFS_RETURN) = true;
 	else PRVM_G_FLOAT(OFS_RETURN) = false;
 }
@@ -1179,28 +1179,28 @@ float drawpic( vector pos, string pic, vector size, vector rgb, float alpha )
 */
 void VM_drawpic( void )
 {
-	const char	*picname;
 	float		*size, *pos, *rgb, alpha;
+	shader_t		shader;
 
 	if(!VM_ValidateArgs( "drawpic", 5 ))
 		return;
 
-	picname = PRVM_G_STRING(OFS_PARM1);
-	if(!picname)
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM1));
+	shader = re->RegisterShader( va("gfx/%s", PRVM_G_STRING( OFS_PARM1 )), SHADER_NOMIP );
+	if( !shader )
 	{
 		VM_Warning( "PF_drawpic: %s passed null picture name!\n", PRVM_NAME );
 		PRVM_G_FLOAT(OFS_RETURN) = false;
 		return;
 	}
 
-	VM_ValidateString(PRVM_G_STRING(OFS_PARM1));
 	pos = PRVM_G_VECTOR(OFS_PARM0);
 	size = PRVM_G_VECTOR(OFS_PARM2);
 	rgb = PRVM_G_VECTOR(OFS_PARM3);
 	alpha = PRVM_G_FLOAT(OFS_PARM4);
 
 	re->SetColor( GetRGBA(rgb[0], rgb[1], rgb[2], alpha ));
-	SCR_DrawPic( pos[0], pos[1], size[0], size[1], (char *)picname );
+	SCR_DrawPic( pos[0], pos[1], size[0], size[1], shader );
 	re->SetColor( NULL );
 	PRVM_G_FLOAT(OFS_RETURN) = true;
 }
@@ -1295,6 +1295,7 @@ vector getimagesize( string pic )
 void VM_getimagesize( void )
 {
 	const char	*p;
+	shader_t		shader;
 	int		w, h;
 
 	if(!VM_ValidateArgs( "getimagesize", 1 ))
@@ -1303,7 +1304,8 @@ void VM_getimagesize( void )
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
 	p = PRVM_G_STRING(OFS_PARM0);
 
-	re->DrawGetPicSize( &w, &h, (char *)p);
+	shader = re->RegisterShader( va( "gfx/%s", p ), SHADER_NOMIP );
+	re->DrawGetPicSize( &w, &h, shader );
 	VectorSet(PRVM_G_VECTOR(OFS_RETURN), w, h, 0 ); 
 }
 

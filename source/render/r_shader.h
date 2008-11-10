@@ -16,6 +16,14 @@
 #define TABLES_HASH_SIZE		1024
 #define MAX_TABLES			4096
 
+#define SHADER_SKY			0	// sky box shader
+#define SHADER_FONT			1	// speical case for displayed fonts
+#define SHADER_NOMIP		2	// 2d images
+#define SHADER_TEXTURE		3	// bsp polygon
+#define SHADER_STUDIO		4	// studio skins
+#define SHADER_SPRITE		5	// sprite frames
+#define SHADER_GENERIC		6	// generic shader
+
 #define MAX_SHADERS			1024
 #define SHADERS_HASH_SIZE		256
 #define MAX_EXPRESSION_OPS		4096
@@ -115,18 +123,6 @@ typedef enum
 	EXP_REGISTER_GLOBAL7,
 	EXP_REGISTER_NUM_PREDEFINED
 } expRegister_t;
-
-// shader types used for shader loading
-typedef enum
-{
-	SHADER_SKY = 0,		// sky box shader
-	SHADER_FONT,		// speical case for displayed fonts
-	SHADER_NOMIP,		// 2d images
-	SHADER_TEXTURE,		// bsp polygon
-	SHADER_STUDIO,		// studio skins
-	SHADER_SPRITE,		// sprite frames
-	SHADER_GENERIC		// generic shader
-} shaderType_t;
 
 typedef enum
 {
@@ -402,7 +398,7 @@ typedef struct ref_shader_s
 {
 	string		name;
 	int		index;
-	shaderType_t	type;
+	int		type;
 	uint		surfaceParm;
 	int		conditionRegister;
 	uint		flags;

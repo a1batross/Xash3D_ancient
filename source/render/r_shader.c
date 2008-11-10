@@ -22,7 +22,7 @@ typedef struct
 typedef struct ref_script_s
 {
 	string		name;
-	shaderType_t	type;
+	int		type;
 	uint		surfaceParm;
 	string		source;
 	int		line;
@@ -3839,7 +3839,7 @@ static ref_shader_t *R_NewShader( void )
 R_CreateDefaultShader
 =================
 */
-static ref_shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderType, uint surfaceParm )
+static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, uint surfaceParm )
 {
 	ref_shader_t	*shader;
 	const byte	*buffer = NULL; // default image buffer
@@ -3989,10 +3989,9 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, shaderType_t shade
 		shader->stages[0]->numBundles++;
 		shader->numStages++;
 		break;
-	case SHADER_NOMIP:
+	case SHADER_FONT:
 		// don't let user set invalid font
-		// FIXME: make case SHADER_FONT and func RegisterShaderFont
-		if(com.stristr( shader->name, "fonts/" )) buffer = FS_LoadInternal( "default.dds", &bufsize );
+		buffer = FS_LoadInternal( "default.dds", &bufsize );
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
 		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_NOPICMIP, TF_LINEAR, 0 );
 		if( !shader->stages[0]->bundles[0]->textures[0] )
@@ -4000,8 +3999,25 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, shaderType_t shade
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
 			shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
 		}
+		shader->stages[0]->rgbGen.type = RGBGEN_VERTEX;
 		shader->stages[0]->bundles[0]->numTextures++;
-		shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+		shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC|SHADERSTAGE_RGBGEN;
+		shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
+		shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+		shader->stages[0]->numBundles++;
+		shader->numStages++;
+		break;
+	case SHADER_NOMIP:
+		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
+		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_NOPICMIP, TF_LINEAR, 0 );
+		if( !shader->stages[0]->bundles[0]->textures[0] )
+		{
+			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
+			shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
+		}
+		shader->stages[0]->rgbGen.type = RGBGEN_VERTEX;
+		shader->stages[0]->bundles[0]->numTextures++;
+		shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC|SHADERSTAGE_RGBGEN;
 		shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
 		shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 		shader->stages[0]->numBundles++;
@@ -4028,7 +4044,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, shaderType_t shade
 R_CreateShader
 =================
 */
-static ref_shader_t *R_CreateShader( const char *name, shaderType_t shaderType, uint surfaceParm, ref_script_t *shaderScript )
+static ref_shader_t *R_CreateShader( const char *name, int shaderType, uint surfaceParm, ref_script_t *shaderScript )
 {
 	ref_shader_t	*shader;
 	shaderStage_t	*stage;
@@ -4681,12 +4697,58 @@ ref_shader_t *R_LoadShader( ref_shader_t *newShader )
 	return shader;
 }
 
+static void R_ShaderTouchImages( ref_shader_t *shader )
+{
+	int		i, j, k;
+	int		c_total = 0;
+	shaderStage_t	*stage;
+	stageBundle_t	*bundle;
+	texture_t		*texture;
+
+	Com_Assert( shader == NULL );
+	if( !shader ) return;
+	if( shader->type == SHADER_NOMIP || shader->type == SHADER_FONT )
+		return; // static textures not needs to touch
+
+	for( i = 0; i < shader->numStages; i++ )
+	{
+		stage = shader->stages[i];
+		for( j = 0; j < stage->numBundles; j++ )
+		{
+			bundle = stage->bundles[j];
+			for( k = 0; k < bundle->numTextures; k++ )
+			{
+				// prolonge registration for all shader textures
+				texture = bundle->textures[k];
+				if( !texture || texture->touchFrame == registration_sequence )
+					continue;
+				Msg("update texture %s with texnum %i\n", texture->name, texture->texnum );
+				texture->touchFrame = registration_sequence;
+				c_total++; // just for debug
+			}
+		}
+	}
+
+	// also update skybox if present
+	if( shader->flags & SHADER_SKYPARMS )
+	{
+		for( i = 0; i < 6; i++ )
+		{
+			texture = shader->skyParms.farBox[i];
+			if( texture ) texture->touchFrame = registration_sequence;
+			texture = shader->skyParms.nearBox[i];
+			if( texture ) texture->touchFrame = registration_sequence;
+			c_total++; // just for debug
+		}
+	}
+}
+
 /*
 =================
 R_FindShader
 =================
 */
-shader_t R_FindShader( const char *name, shaderType_t shaderType, uint surfaceParm )
+shader_t R_FindShader( const char *name, int shaderType, uint surfaceParm )
 {
 	ref_shader_t	*shader;
 	ref_script_t	*shaderScript;
@@ -4702,8 +4764,12 @@ shader_t R_FindShader( const char *name, shaderType_t shaderType, uint surfacePa
 		if( shader->type != shaderType || shader->surfaceParm != surfaceParm )
 			continue;
 
-		if(!com.stricmp( shader->name, name ))
+		if( !com.stricmp( shader->name, name ))
+		{
+			// prolonge registration
+			R_ShaderTouchImages( shader );
 			return shader->index;
+		}
 	}
 
 	// see if there's a script for this shader
@@ -4732,9 +4798,9 @@ void R_SetInternalMap( texture_t *mipTex )
 }
 
 /*
- =================
- R_EvaluateRegisters
- =================
+=================
+R_EvaluateRegisters
+=================
 */
 void R_EvaluateRegisters( ref_shader_t *shader, float time, const float *entityParms, const float *globalParms )
 {
@@ -4861,34 +4927,10 @@ many many included cycles ...
 */
 void R_ShaderRegisterImages( rmodel_t *mod )
 {
-	int		i, j, k, l;
-	int		c_total = 0;
-	ref_shader_t	*shader;
-	shaderStage_t	*stage;
-	stageBundle_t	*bundle;
-	texture_t		*texture;
+	int	i;
 
-	if( !mod ) return;
-	for( i = 0; i < mod->numShaders; i++ )
-	{
-		shader = mod->shaders[i];
-		if( !shader ) Sys_Break("%s [%i] have invalid shader %i\n", mod->name, mod->numShaders, i );
-		for( j = 0; j < shader->numStages; j++ )
-		{
-			stage = shader->stages[j];
-			for( k = 0; k < stage->numBundles; k++ )
-			{
-				bundle = stage->bundles[k];
-				for( l = 0; l < bundle->numTextures; l++ )
-				{
-					// prolonge registration for all shader textures
-					texture = bundle->textures[l];
-					texture->touchFrame = registration_sequence;
-					c_total++; // just for debug
-				}
-			}
-		}
-	}
+	for( i = 0; mod && i < mod->numShaders; i++ )
+		R_ShaderTouchImages( mod->shaders[i] );
 }
 
 /*

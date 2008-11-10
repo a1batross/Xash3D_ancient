@@ -1259,6 +1259,18 @@ bool R_UploadModel( const char *name, int index )
 	return (mod != NULL);	
 }
 
+shader_t Mod_RegisterShader( const char *name, int shaderType )
+{
+	shader_t	shader = tr.defaultShader->index;
+
+	if( shaderType >= SHADER_SKY && shaderType <= SHADER_NOMIP )
+		shader = R_FindShader( name, shaderType, 0 );
+	else MsgDev( D_WARN, "Mod_RegisterShader: invalid shader type (%i)\n", shaderType );
+	if( shaderType == SHADER_SKY ) R_SetupSky( name, 0, vec3_origin );
+
+	return shader;
+}
+
 /*
 =================
 R_PrecachePic
@@ -1344,9 +1356,7 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	
 	re.BeginRegistration = R_BeginRegistration;
 	re.RegisterModel = R_UploadModel;
-	re.RegisterImage = Mod_RegisterShader;
-	re.PrecacheImage = R_PrecachePic;
-	re.SetSky = R_SetupSky;
+	re.RegisterShader = Mod_RegisterShader;
 	re.EndRegistration = R_EndRegistration;
 
 	re.AddLightStyle = R_AddLightStyle;
@@ -1361,6 +1371,7 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 
 	re.SetColor = GL_SetColor;
 	re.ScrShot = VID_ScreenShot;
+	re.EnvShot = VID_CubemapShot;
 	re.DrawFill = R_DrawFill;
 	re.DrawStretchRaw = R_DrawStretchRaw;
 	re.DrawStretchPic = R_DrawStretchPic;

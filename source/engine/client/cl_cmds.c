@@ -35,7 +35,8 @@ void CL_SetFont_f( void )
 		Msg( "Usage: setfont <fontname>\n" );
 		return;
 	}
-	Cvar_Set("cl_font", Cmd_Argv(1));
+	Cvar_Set( "con_font", Cmd_Argv(1));
+	cls.consoleFont = re->RegisterShader( va( "gfx/fonts/%s", con_font->string ), SHADER_FONT );
 }
 
 /*
@@ -136,6 +137,36 @@ void CL_ScreenShot_f( void )
 	re->ScrShot( checkname, false );
 }
 
+void CL_EnvShot_f( void )
+{
+	string	basename;
+
+	if(Cmd_Argc() < 2)
+	{
+		Msg("Usage: envshot <shotname>\n");
+		return;
+	}
+
+	Con_ClearNotify();
+	com.snprintf( basename, MAX_STRING, "gfx/env/%s", Cmd_Argv( 1 ));
+	re->EnvShot( basename, cl_envshot_size->integer, false );
+}
+
+void CL_SkyShot_f( void )
+{
+	string	basename;
+
+	if(Cmd_Argc() < 2)
+	{
+		Msg("Usage: envshot <shotname>\n");
+		return;
+	}
+
+	Con_ClearNotify();
+	com.snprintf( basename, MAX_STRING, "gfx/env/%s", Cmd_Argv( 1 ));
+	re->EnvShot( basename, cl_envshot_size->integer, true );
+}
+
 /* 
 ================== 
 CL_LevelShot_f
@@ -162,21 +193,12 @@ Set a specific sky and rotation speed
 */
 void CL_SetSky_f( void )
 {
-	float	rotate = 0;
-	vec3_t	axis = { 0, 0, 0 };
-
 	if(Cmd_Argc() < 2)
 	{
-		Msg("Usage: sky <basename> <rotate> <axis x y z>\n");
+		Msg("Usage: sky <shadername>\n");
 		return;
 	}
-
-	if( Cmd_Argc() > 2 ) rotate = com.atof(Cmd_Argv(2));
-	if( Cmd_Argc() == 6 )
-	{
-		VectorSet( axis, com.atof(Cmd_Argv(3)), com.atof(Cmd_Argv(4)), com.atof(Cmd_Argv(5)));
-	}
-	re->SetSky( Cmd_Argv(1), rotate, axis );
+	re->RegisterShader( Cmd_Argv(1), SHADER_SKY );
 }
 
 /*

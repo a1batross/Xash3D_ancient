@@ -37,6 +37,17 @@ typedef vec_t		vec4_t[4];
 typedef vec_t		matrix3x3[3][3];
 typedef vec_t		matrix4x4[4][4];
 typedef char		string[MAX_STRING];
+typedef struct edict_s	edict_t;
+typedef struct sv_edict_s	sv_edict_t;
+typedef struct cl_edict_s	cl_edict_t;
+typedef struct ui_edict_s	ui_edict_t;
+typedef struct sv_entvars_s	sv_entvars_t;
+typedef struct cl_entvars_s	cl_entvars_t;
+typedef struct ui_entvars_s	ui_entvars_t;
+typedef struct sv_globalvars_s sv_globalvars_t;
+typedef struct cl_globalvars_s cl_globalvars_t;
+typedef struct ui_globalvars_s ui_globalvars_t;
+typedef struct physbody_s	physbody_t;
 
 // FIXME: get rid of this
 typedef vec_t		matrix3x4[3][4];
@@ -87,8 +98,12 @@ typedef struct wfile_s wfile_t;	// wad file
 typedef struct script_s script_t;	// script machine
 typedef struct { const char *name; void **func; } dllfunc_t; // Sys_LoadLibrary stuff
 typedef struct { int numfilenames; char **filenames; char *filenamesbuffer; } search_t;
+typedef struct { int ofs; int type; const char *name; } fields_t;	// prvm custom fields
+typedef void (*cmsave_t) (void* handle, const void* buffer, size_t size);
+typedef void (*cmdraw_t)( int color, int numpoints, const float *points );
 typedef void ( *setpair_t )( const char *key, const char *value, void *buffer, void *numpairs );
 typedef enum { NA_BAD, NA_LOOPBACK, NA_BROADCAST, NA_IP, NA_IPX, NA_BROADCAST_IPX } netadrtype_t;
+typedef enum { mod_bad, mod_world, mod_brush, mod_studio, mod_sprite } modtype_t;
 typedef enum { NS_CLIENT, NS_SERVER } netsrc_t;
 typedef void ( *xcommand_t )( void );
 
@@ -617,6 +632,10 @@ typedef struct stdilib_api_s
 	bool (*st_save)( int h, wfile_t *wad );
 	void (*st_remove)( int handle );
 } stdlib_api_t;
+
+// this is the only function actually exported at the linker level
+typedef void *(*launch_t)( stdlib_api_t*, void* );
+typedef struct { size_t api_size; } generic_api_t;
 
 #ifndef LAUNCH_DLL
 /*

@@ -7,11 +7,6 @@
 
 #include <math.h>
 
-#define SIDE_FRONT		0
-#define SIDE_BACK		1
-#define SIDE_ON		2
-#define SIDE_CROSS		-2
-
 #ifndef M_PI
 #define M_PI		(float)3.14159265358979323846
 #endif
@@ -20,6 +15,10 @@
 #define M_PI2		(float)6.28318530717958647692
 #endif
 
+// euler angle order
+#define PITCH		0
+#define YAW		1
+#define ROLL		2
 
 #define METERS_PER_INCH	0.0254f
 #define EQUAL_EPSILON	0.001f
@@ -509,28 +508,28 @@ _inline float *GetRGBA( float r, float g, float b, float a )
 
 _inline dword MakeRGBA( byte red, byte green, byte blue, byte alpha )
 {
-	color32	rgba;
+	byte	rgba[4];
 
-	rgba.r = red;
-	rgba.g = green;
-	rgba.b = blue;
-	rgba.a = alpha;
+	rgba[0] = red;
+	rgba[1] = green;
+	rgba[2] = blue;
+	rgba[3] = alpha;
 
-	return (rgba.a << 24) | (rgba.b << 16) | (rgba.g << 8) | rgba.r;
+	return (rgba[3] << 24) | (rgba[2] << 16) | (rgba[1] << 8) | rgba[0];
 }
 
 _inline dword PackRGBA( float red, float green, float blue, float alpha )
 {
-	color32	rgba;
+	byte	rgba[4];
 	
-	rgba.r = bound( 0, 255 * red, 255 );
-	rgba.g = bound( 0, 255 * green, 255 );
-	rgba.b = bound( 0, 255 * blue, 255 );
+	rgba[0] = bound( 0, 255 * red, 255 );
+	rgba[1] = bound( 0, 255 * green, 255 );
+	rgba[2] = bound( 0, 255 * blue, 255 );
 
-	if( alpha > 0.0f ) rgba.a = bound( 0, 255 * alpha, 255 );
-	else rgba.a = 0xFF; // fullbright
+	if( alpha > 0.0f ) rgba[3] = bound( 0, 255 * alpha, 255 );
+	else rgba[3] = 0xFF; // fullbright
 
-	return (rgba.a << 24) | (rgba.b << 16) | (rgba.g << 8) | rgba.r;
+	return (rgba[3] << 24) | (rgba[2] << 16) | (rgba[1] << 8) | rgba[0];
 }
 
 _inline float *UnpackRGBA( dword icolor )
@@ -562,21 +561,6 @@ _inline vec_t ColorNormalize( const vec3_t in, vec3_t out )
 	return max;
 }
 
-_inline void PlaneClassify( cplane_t *p )
-{
-	// for optimized plane comparisons
-	if (fabs(p->normal[0]) == 1) p->type = PLANE_X;
-	else if (fabs(p->normal[1]) == 1) p->type = PLANE_Y;
-	else if (fabs(p->normal[2]) == 1) p->type = PLANE_Z;
-	else p->type = 3; // needs alternate calc
-
-	// for BoxOnPlaneSide
-	p->signbits = 0;
-	if (p->normal[0] < 0) p->signbits |= 1;
-	if (p->normal[1] < 0) p->signbits |= 2;
-	if (p->normal[2] < 0) p->signbits |= 4;
-}
-
 /*
 =================
 BoundsIntersect
@@ -606,29 +590,7 @@ _inline bool BoundsAndSphereIntersect( const vec3_t mins, const vec3_t maxs, con
 }
 
 
-/*
-==============
-BoxOnPlaneSide (engine fast version)
 
-Returns SIDE_FRONT, SIDE_BACK, or SIDE_ON
-==============
-*/
-_inline int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, cplane_t *p )
-{
-	if (p->type < 3) return ((emaxs[p->type] >= p->dist) | ((emins[p->type] < p->dist) << 1));
-	switch(p->signbits)
-	{
-	default:
-	case 0: return (((p->normal[0] * emaxs[0] + p->normal[1] * emaxs[1] + p->normal[2] * emaxs[2]) >= p->dist) | (((p->normal[0] * emins[0] + p->normal[1] * emins[1] + p->normal[2] * emins[2]) < p->dist) << 1));
-	case 1: return (((p->normal[0] * emins[0] + p->normal[1] * emaxs[1] + p->normal[2] * emaxs[2]) >= p->dist) | (((p->normal[0] * emaxs[0] + p->normal[1] * emins[1] + p->normal[2] * emins[2]) < p->dist) << 1));
-	case 2: return (((p->normal[0] * emaxs[0] + p->normal[1] * emins[1] + p->normal[2] * emaxs[2]) >= p->dist) | (((p->normal[0] * emins[0] + p->normal[1] * emaxs[1] + p->normal[2] * emins[2]) < p->dist) << 1));
-	case 3: return (((p->normal[0] * emins[0] + p->normal[1] * emins[1] + p->normal[2] * emaxs[2]) >= p->dist) | (((p->normal[0] * emaxs[0] + p->normal[1] * emaxs[1] + p->normal[2] * emins[2]) < p->dist) << 1));
-	case 4: return (((p->normal[0] * emaxs[0] + p->normal[1] * emaxs[1] + p->normal[2] * emins[2]) >= p->dist) | (((p->normal[0] * emins[0] + p->normal[1] * emins[1] + p->normal[2] * emaxs[2]) < p->dist) << 1));
-	case 5: return (((p->normal[0] * emins[0] + p->normal[1] * emaxs[1] + p->normal[2] * emins[2]) >= p->dist) | (((p->normal[0] * emaxs[0] + p->normal[1] * emins[1] + p->normal[2] * emaxs[2]) < p->dist) << 1));
-	case 6: return (((p->normal[0] * emaxs[0] + p->normal[1] * emins[1] + p->normal[2] * emins[2]) >= p->dist) | (((p->normal[0] * emins[0] + p->normal[1] * emaxs[1] + p->normal[2] * emaxs[2]) < p->dist) << 1));
-	case 7: return (((p->normal[0] * emins[0] + p->normal[1] * emins[1] + p->normal[2] * emins[2]) >= p->dist) | (((p->normal[0] * emaxs[0] + p->normal[1] * emaxs[1] + p->normal[2] * emaxs[2]) < p->dist) << 1));
-	}
-}
 
 #define PlaneDist(point,plane)  ((plane)->type < 3 ? (point)[(plane)->type] : DotProduct((point), (plane)->normal))
 #define PlaneDiff(point,plane) (((plane)->type < 3 ? (point)[(plane)->type] : DotProduct((point), (plane)->normal)) - (plane)->dist)
