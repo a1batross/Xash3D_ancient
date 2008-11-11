@@ -16,6 +16,84 @@
 =======================================================================
 */
 /*
+=================
+R_RecursiveLightNode
+=================
+*/
+static void R_RecursiveLightNode( node_t *node, dlight_t *dl, int bit )
+{
+	surface_t	*surf;
+	cplane_t	*plane;
+	float	dist;
+	int	i;
+
+	if( node->contents != -1 )
+		return;
+
+	if( node->visFrame != r_visFrameCount )
+		return;
+
+	// Find which side of the node we are on
+	plane = node->plane;
+	if( plane->type < 3 )dist = dl->origin[plane->type] - plane->dist;
+	else dist = DotProduct( dl->origin, plane->normal ) - plane->dist;
+
+	// Go down the appropriate sides
+	if( dist > dl->intensity )
+	{
+		R_RecursiveLightNode( node->children[0], dl, bit );
+		return;
+	}
+	if( dist < -dl->intensity )
+	{
+		R_RecursiveLightNode( node->children[1], dl, bit );
+		return;
+	}
+
+	// Mark the surfaces
+	surf = r_worldModel->surfaces + node->firstSurface;
+	for( i = 0; i < node->numSurfaces; i++, surf++ )
+	{
+		if( !BoundsAndSphereIntersect( surf->mins, surf->maxs, dl->origin, dl->intensity ))
+			continue;	 // No intersection
+
+		if( surf->dlightFrame != r_frameCount )
+		{
+			surf->dlightFrame = r_frameCount;
+			surf->dlightBits = bit;
+		}
+		else surf->dlightBits |= bit;
+	}
+
+	// recurse down the children
+	R_RecursiveLightNode( node->children[0], dl, bit );
+	R_RecursiveLightNode( node->children[1], dl, bit );
+}
+
+/*
+=================
+R_MarkLights
+=================
+*/
+void R_MarkLights( void )
+{
+	dlight_t	*dl;
+	int	l;
+
+	if( !r_dynamiclights->integer || !r_numDLights )
+		return;
+
+	r_stats.numDLights += r_numDLights;
+
+	for( l = 0, dl = r_dlights; l < r_numDLights; l++, dl++ )
+	{
+		if( R_CullSphere( dl->origin, dl->intensity, MAX_CLIPFLAGS ))
+			continue;
+		R_RecursiveLightNode( r_worldModel->nodes, dl, 1<<l );
+	}
+}
+
+/*
 =======================================================================
 
 AMBIENT & DIFFUSE LIGHTING
@@ -24,7 +102,7 @@ AMBIENT & DIFFUSE LIGHTING
 */
 
 static vec3_t	r_pointColor;
-static vec3_t	r_lightColors[MAX_VERTICES];
+static vec3_t	r_lightColors[MAX_VERTEXES];
 
 /*
 =================
@@ -33,14 +111,13 @@ R_RecursiveLightPoint
 */
 static bool R_RecursiveLightPoint( node_t *node, const vec3_t start, const vec3_t end )
 {
-#if 0
 	float		front, back, frac;
 	int		i, map, size, s, t;
 	vec3_t		mid;
 	int		side;
 	cplane_t		*plane;
 	surface_t		*surf;
-	mipTex_t		*tex;
+	texInfo_t		*tex;
 	byte		*lm;
 	vec3_t		scale;
 
@@ -80,11 +157,11 @@ static bool R_RecursiveLightPoint( node_t *node, const vec3_t start, const vec3_
 	{
 		tex = surf->texInfo;
 
-		if( tex->flags & (SURF_SKY|SURF_WARP|SURF_NODRAW|SURF_NOLIGHTMAP))
+		if( tex->surfaceFlags & (SURF_SKY|SURF_WARP|SURF_NODRAW|SURF_NOLIGHTMAP))
 			continue;	// no lightmaps
 
-		s = DotProduct(mid, surf->lmVecs[0]) + surf->lmVecs[0][3] - surf->textureMins[0];
-		t = DotProduct(mid, surf->lmVecs[1]) + surf->lmVecs[1][3] - surf->textureMins[1];
+		s = DotProduct(mid, tex->vecs[0]) + tex->vecs[0][3] - surf->textureMins[0];
+		t = DotProduct(mid, tex->vecs[1]) + tex->vecs[1][3] - surf->textureMins[1];
 
 		if((s < 0 || s > surf->extents[0]) || (t < 0 || t > surf->extents[1]))
 			continue;
@@ -115,8 +192,6 @@ static bool R_RecursiveLightPoint( node_t *node, const vec3_t start, const vec3_
 
 	// go down back side
 	return R_RecursiveLightPoint( node->children[!side], mid, end );
-#endif
-	return true;
 }
 
 /*
@@ -132,7 +207,7 @@ void R_LightForPoint( const vec3_t point, vec3_t ambientLight )
 	int		l;
 
 	// Set to full bright if no light data
-	if( !r_worldModel || !r_worldModel->lightMaps )
+	if( !r_worldModel || !r_worldModel->lightData )
 	{
 		VectorSet( ambientLight, 1, 1, 1 );
 		return;
@@ -195,7 +270,7 @@ static void R_ReadLightGrid( const vec3_t origin, vec3_t lightDir )
 
 	for( i = 0; i < 4; i++ )
 	{
-		if( index[i] < 0 || index[i] >= r_worldModel->gridPoints -1 )
+		if( index[i] < 0 || index[i] >= r_worldModel->numGridPoints - 1 )
 		{
 			VectorSet( lightDir, 1, 0, -1 );
 			return;
@@ -264,7 +339,7 @@ void R_LightingAmbient( void )
 	vec3_t		ambientLight;
 
 	// Set to full bright if no light data
-	if(( r_refdef.rdflags & RDF_NOWORLDMODEL) || !r_worldModel->lightMaps )
+	if(( r_refdef.rdflags & RDF_NOWORLDMODEL) || !r_worldModel->lightData || !m_pCurrentEntity )
 	{
 		for( i = 0; i < ref.numVertex; i++ )
 		{
@@ -314,7 +389,7 @@ void R_LightingAmbient( void )
 		}
 	}
 
-	// normalize and convert to byte
+	// normalize
 	ColorNormalize( ambientLight, ambientLight );
 
 	for( i = 0; i < ref.numVertex; i++ )
@@ -340,7 +415,7 @@ void R_LightingDiffuse( void )
 	vec3_t		ambientLight, directedLight, lightDir;
 
 	// Set to full bright if no light data
-	if((r_refdef.rdflags & RDF_NOWORLDMODEL) || !r_worldModel->lightMaps )
+	if((r_refdef.rdflags & RDF_NOWORLDMODEL) || !r_worldModel->lightData )
 	{
 		for( i = 0; i < ref.numVertex; i++ )
 		{
@@ -464,14 +539,13 @@ R_AddDynamicLights
 */
 static void R_AddDynamicLights( surface_t *surf )
 {
-#if 0
 	int		l;
 	int		s, t, sd, td;
 	float		sl, tl, sacc, tacc;
 	float		dist, rad, scale;
 	cplane_t		*plane;
 	vec3_t		origin, tmp, impact;
-	mipTex_t		*tex = surf->texInfo;
+	texInfo_t		*tex = surf->texInfo;
 	dlight_t		*dl;
 	float		*bl;
 
@@ -531,7 +605,6 @@ static void R_AddDynamicLights( surface_t *surf )
 			}
 		}
 	}
-#endif
 }
 
 /*
@@ -543,7 +616,6 @@ Combine and scale multiple lightmaps into the floating format in r_blockLights
 */
 static void R_BuildLightmap( surface_t *surf, byte *dest, int stride )
 {
-#if 0
 	int	i, map, size, s, t;
 	vec3_t	scale;
 	float	*bl;
@@ -608,7 +680,6 @@ static void R_BuildLightmap( surface_t *surf, byte *dest, int stride )
 		}
 		dest += stride;
 	}
-#endif
 }
 
 
@@ -623,11 +694,73 @@ LIGHTMAP ALLOCATION
 typedef struct
 {
 	int	currentNum;
-	int	allocated[LIGHTMAP_WIDTH];
-	byte	buffer[LIGHTMAP_WIDTH*LIGHTMAP_HEIGHT*4];
+	int	allocated[LM_SIZE];
+	byte	buffer[LM_SIZE*LM_SIZE*4];
 } lmState_t;
 
 static lmState_t	r_lmState;
+
+/*
+=================
+R_UploadLightmap
+=================
+*/
+static void R_UploadLightmap( void )
+{
+	string	name;
+	texture_t *lightmap;
+
+	if( r_lmState.currentNum == MAX_LIGHTMAPS )
+		Host_Error( "R_UploadLightmap: MAX_LIGHTMAPS limit exceeded\n" );
+
+	com.snprintf( name, sizeof(name), "*lightmap%i", r_lmState.currentNum );
+	lightmap = R_CreateImage( va("*lightmap%d", r_lmState.currentNum ), (byte *)r_lmState.buffer, LM_SIZE, LM_SIZE, 0, 0, TW_CLAMP );
+	r_lightmapTextures[r_lmState.currentNum++] = lightmap;
+
+	// reset
+	Mem_Set( r_lmState.allocated, 0, sizeof( r_lmState.allocated ));
+	Mem_Set( r_lmState.buffer, 255, sizeof( r_lmState.buffer ));
+}
+
+/*
+=================
+R_AllocLightmapBlock
+=================
+*/
+static byte *R_AllocLightmapBlock( int width, int height, int *s, int *t )
+{
+	int	i, j;
+	int	best1, best2;
+
+	best1 = LM_SIZE;
+
+	for( i = 0; i < LM_SIZE - width; i++ )
+	{
+		best2 = 0;
+
+		for( j = 0; j < width; j++ )
+		{
+			if( r_lmState.allocated[i+j] >= best1 )
+				break;
+			if( r_lmState.allocated[i+j] > best2 )
+				best2 = r_lmState.allocated[i+j];
+		}
+		if( j == width )
+		{
+			// this is a valid spot
+			*s = i;
+			*t = best1 = best2;
+		}
+	}
+
+	if( best1 + height > LM_SIZE )
+		return NULL;
+
+	for( i = 0; i < width; i++ )
+		r_lmState.allocated[*s + i] = best1 + height;
+
+	return r_lmState.buffer + ((*t * LM_SIZE + *s) * 4);
+}
 
 /*
 =================
@@ -660,24 +793,38 @@ R_EndBuildingLightmaps
 */
 void R_EndBuildingLightmaps( void )
 {
+	if( r_lmState.currentNum == -1 )
+		return;
+	R_UploadLightmap();
 }
 
 /*
- =================
- R_BuildSurfaceLightmap
- =================
+=================
+R_BuildSurfaceLightmap
+=================
 */
 void R_BuildSurfaceLightmap( surface_t *surf )
 {
-	byte		*base = NULL;
+	byte	*base;
 
-	if(!( surf->texInfo->flags & SHADER_HASLIGHTMAP ))
+	if(!(surf->texInfo->shader->flags & SHADER_HASLIGHTMAP))
 		return;	// no lightmaps
 
-	r_lmState.currentNum = surf->lmNum;
+	base = R_AllocLightmapBlock( surf->lmWidth, surf->lmHeight, &surf->lmS, &surf->lmT );
+	if( !base )
+	{
+		if( r_lmState.currentNum != -1 )
+			R_UploadLightmap();
+
+		base = R_AllocLightmapBlock( surf->lmWidth, surf->lmHeight, &surf->lmS, &surf->lmT );
+		if( !base ) Host_Error( "R_BuildSurfaceLightmap: couldn't allocate lightmap block (%i x %i)\n", surf->lmWidth, surf->lmHeight );
+	}
+
+	if( r_lmState.currentNum == -1 ) r_lmState.currentNum = 0;
+	surf->lmNum = r_lmState.currentNum;
 
 	R_SetCacheState( surf );
-	R_BuildLightmap( surf, base, LIGHTMAP_WIDTH * 4 );
+	R_BuildLightmap( surf, base, LM_SIZE * 4 );
 }
 
 /*
@@ -691,10 +838,10 @@ void R_UpdateSurfaceLightmap( surface_t *surf )
 		GL_BindTexture( r_dlightTexture );
 	else
 	{
-		GL_BindTexture( r_worldModel->lightMaps[surf->lmNum] );
+		GL_BindTexture( r_lightmapTextures[surf->lmNum] );
 		R_SetCacheState( surf );
 	}
 
-	// R_BuildLightmap( surf, r_lmState.buffer, surf->lmWidth * 4 );
-	// pglTexSubImage2D( GL_TEXTURE_2D, 0, surf->lmS, surf->lmT, surf->lmWidth, surf->lmHeight, GL_RGBA, GL_UNSIGNED_BYTE, r_lmState.buffer );
+	R_BuildLightmap( surf, r_lmState.buffer, surf->lmWidth * 4 );
+	pglTexSubImage2D( GL_TEXTURE_2D, 0, surf->lmS, surf->lmT, surf->lmWidth, surf->lmHeight, GL_RGBA, GL_UNSIGNED_BYTE, r_lmState.buffer );
 }

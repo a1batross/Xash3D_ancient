@@ -61,12 +61,9 @@ shaderParm_t infoParms[] =
 	{"origin",	0,		CONTENTS_ORIGIN,		}, // center of rotating brushes
 	{"trans",		0,		CONTENTS_TRANSLUCENT,	}, // don't eat contained surfaces
 	{"detail",	0,		CONTENTS_DETAIL,		}, // carves surfaces entering
-	{"world",		0,		CONTENTS_STRUCTURAL,	}, // force into world even if trans
 	{"areaportal",	0,		CONTENTS_AREAPORTAL,	},
 	{"fog",		0,		CONTENTS_FOG,		}, // carves surfaces entering
 	{"sky",		SURF_SKY,		0,			}, // emit light from environment map
-	{"lightfilter",	SURF_LIGHTFILTER,	0,			}, // filter light going through it
-	{"alphashadow",	SURF_ALPHASHADOW,	0,			}, // test light on a per-pixel basis
 	{"hint",		SURF_HINT,	0,			}, // use as a primary splitter
 	{"skip",		SURF_NODRAW,	0,			}, // use as a secondary splitter
 	{"null",		SURF_NODRAW,	0,			}, // don't generate a drawsurface
@@ -74,20 +71,14 @@ shaderParm_t infoParms[] =
 
 	// server attributes
 	{"slick",		0,		SURF_SLICK,		},
-	{"noimpact",	0,		SURF_NOIMPACT,		}, // no impact explosions or marks
-	{"nomarks",	0,		SURF_NOMARKS,		}, // no impact marks, but explodes
 	{"ladder",	0,		CONTENTS_LADDER,		},
-	{"nodamage",	SURF_NODAMAGE,	0,			},
-	{"nosteps",	SURF_NOSTEPS,	0,			},
 
 	// drawsurf attributes
 	{"nolightmap",	SURF_NOLIGHTMAP,	0,			}, // don't generate a lightmap
-	{"nodlight",	SURF_NODLIGHT,	0,			}, // don't ever add dynamic lights
 	{"alpha",		SURF_ALPHA,	CONTENTS_TRANSLUCENT,	}, // alpha surface preset
 	{"additive",	SURF_ADDITIVE,	CONTENTS_TRANSLUCENT,	}, // additive surface preset
 	{"blend",		SURF_BLEND,	CONTENTS_TRANSLUCENT,	}, // blend surface preset
-	{"mirror",	SURF_PORTAL,	0,			}, // mirror surface
-	{"portal",	SURF_PORTAL,	0,			}, // portal surface
+	{"mirror",	SURF_MIRROR,	0,			}, // mirror surface
 };
 
 /*

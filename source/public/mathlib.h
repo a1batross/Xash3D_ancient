@@ -544,7 +544,7 @@ _inline float *UnpackRGBA( dword icolor )
 	return color;
 }
 
-_inline vec_t ColorNormalize( const vec3_t in, vec3_t out )
+_inline float ColorNormalize( const vec3_t in, vec3_t out )
 {
 	float	max, scale;
 
@@ -556,7 +556,7 @@ _inline vec_t ColorNormalize( const vec3_t in, vec3_t out )
 		out[0] = out[1] = out[2] = 1.0f;
 		return 0;
 	}
-	scale = 1.0 / max;
+	scale = 255.0 / max;
 	VectorScale( in, scale, out );
 	return max;
 }

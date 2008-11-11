@@ -990,7 +990,7 @@ static void RB_SetupTextureUnit( stageBundle_t *bundle, uint unit )
 	case TEX_LIGHTMAP:
 		if( m_iInfoKey != 255 )
 		{
-			GL_BindTexture( r_worldModel->lightMaps[m_iInfoKey] );
+			GL_BindTexture( r_lightmapTextures[m_iInfoKey] );
 			break;
 		}
 		R_UpdateSurfaceLightmap( m_pRenderMesh->mesh );
@@ -1431,7 +1431,7 @@ RB_RenderMesh
 */
 void RB_RenderMesh( void )
 {
-	if( !ref.numIndex || !ref.numVertex )
+	if( !ref.numIndex || !ref.numVertex || !m_pCurrentShader )
 		return;
 
 	// update r_speeds statistics

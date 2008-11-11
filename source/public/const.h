@@ -62,62 +62,62 @@
 #define EF_TELEPORT			(1<<8)	// create teleport splash
 #define EF_ROTATE			(1<<9)	// rotate bonus item
 
-// user contents
-#define CONTENTS_SOLID		(1<<0)	// an eye is never valid in a solid
-#define CONTENTS_LAVA		(1<<1)	// liquid type (apply damage and some visual sfx)
-#define CONTENTS_SLIME		(1<<2)	// liquid type (apply damaga and some visual sfx)
-#define CONTENTS_WATER		(1<<3)	// normal translucent water		
-#define CONTENTS_FOG		(1<<4)	// fog area or underwater volume
-#define CONTENTS_WINDOW		(1<<5)	// get rid of this
+// bsp contents
+typedef enum
+{
+	CONTENTS_NONE		= 0, 	// just a mask for source tabulation
+	CONTENTS_SOLID		= BIT(0),	// an eye is never valid in a solid
+	CONTENTS_WINDOW		= BIT(1),	// translucent, but not watery
+	CONTENTS_AUX		= BIT(2),
+	CONTENTS_LAVA		= BIT(3),
+	CONTENTS_SLIME		= BIT(4),
+	CONTENTS_WATER		= BIT(5),
 
-// system contents
-#define CONTENTS_AREAPORTAL		(1<<15)
-#define CONTENTS_ANTIPORTAL		(1<<16)
-#define CONTENTS_PLAYERCLIP		(1<<17)
-#define CONTENTS_MONSTERCLIP		(1<<18)
-#define CONTENTS_CLIP		CONTENTS_PLAYERCLIP|CONTENTS_MONSTERCLIP
-#define CONTENTS_ORIGIN		(1<<19)	// removed before bsping an entity
-#define CONTENTS_BODY		(1<<20)	// should never be on a brush, only in game
-#define CONTENTS_CORPSE		(1<<21)	// dead bodies
-#define CONTENTS_DETAIL		(1<<22)	// brushes not used for the bsp
-#define CONTENTS_STRUCTURAL		(1<<23)	// brushes used for the bsp
-#define CONTENTS_TRANSLUCENT		(1<<24)	// don't consume surface fragments inside
-#define CONTENTS_TRIGGER		(1<<25)	// trigger volume
-#define CONTENTS_NODROP		(1<<26)	// don't leave bodies or items (death fog, lava)
-#define CONTENTS_LADDER		(1<<27)	// ladder in games
-#define CONTENTS_LIGHTGRID		(1<<28)	// lightgrid contents
+	// space for new user contents
 
-// content masks
-#define MASK_SOLID			(CONTENTS_SOLID)
-#define MASK_PLAYERSOLID		(CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_BODY)
-#define MASK_MONSTERSOLID		(CONTENTS_SOLID|CONTENTS_MONSTERCLIP|CONTENTS_BODY)
-#define MASK_DEADSOLID		(CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_WINDOW)
-#define MASK_WATER			(CONTENTS_WATER|CONTENTS_LAVA|CONTENTS_SLIME)
-#define MASK_OPAQUE			(CONTENTS_SOLID|CONTENTS_SLIME|CONTENTS_LAVA)
-#define MASK_SHOT			(CONTENTS_SOLID|CONTENTS_BODY|CONTENTS_CORPSE)
+	CONTENTS_MIST		= BIT(12),// g-cont. what difference between fog and mist ?
+	LAST_VISIBLE_CONTENTS	= BIT(12),// mask (LAST_VISIBLE_CONTENTS-1)
+	CONTENTS_FOG		= BIT(13),// future expansion
+	CONTENTS_AREAPORTAL		= BIT(14),// func_areaportal volume
+	CONTENTS_PLAYERCLIP		= BIT(15),// clip affect only by player or bot
+	CONTENTS_MONSTERCLIP	= BIT(16),// clip affect only by monster or npc
+	CONTENTS_CLIP		= (CONTENTS_PLAYERCLIP|CONTENTS_MONSTERCLIP), // both type clip
+	CONTENTS_ORIGIN		= BIT(17),// removed before bsping an entity
+	CONTENTS_BODY		= BIT(18),// should never be on a brush, only in game
+	CONTENTS_CORPSE		= BIT(19),// deadbody
+	CONTENTS_DETAIL		= BIT(20),// brushes to be added after vis leafs
+	CONTENTS_TRANSLUCENT	= BIT(21),// auto set if any surface has trans
+	CONTENTS_LADDER		= BIT(22),// like water but ladder : )
+	CONTENTS_TRIGGER		= BIT(23),// trigger volume
 
-// surface flags
-#define SURF_NODAMAGE		(1<<0)	// never give falling damage
-#define SURF_SLICK			(1<<1)	// effects game physics
-#define SURF_SKY			(1<<2)	// lighting from environment map
-#define SURF_POINTLIGHT		(1<<3)	// generate lighting info at vertexes
-#define SURF_NOIMPACT		(1<<4)	// don't make missile explosions
-#define SURF_NOMARKS		(1<<5)	// don't leave missile marks
-#define SURF_PORTAL			(1<<6)	// portal surface
-#define SURF_NODRAW			(1<<7)	// don't generate a drawsurface at all
-#define SURF_HINT			(1<<8)	// make a primary bsp splitter
-#define SURF_SKIP			(1<<9)	// make a secondary bsp splitter
-#define SURF_NOLIGHTMAP		(1<<10)	// surface doesn't need a lightmap
-#define SURF_NOSTEPS		(1<<11)	// no footstep sounds
-#define SURF_LIGHTFILTER		(1<<12)	// act as a light filter during q3map -light
-#define SURF_ALPHASHADOW		(1<<13)	// do per-pixel light shadow casting in q3map
-#define SURF_NODLIGHT		(1<<14)	// never add dynamic lights
-#define SURF_ALPHA			(1<<15)	// alpha surface (e.g. grates, trees)
-#define SURF_BLEND			(1<<16)	// blended surface (e.g. windows)
-#define SURF_ADDITIVE		(1<<17)	// additive surface (studio skins)
-#define SURF_NONSOLID		(1<<18)	// not solid surface
+	// content masks
+	MASK_SOLID		= (CONTENTS_SOLID||CONTENTS_WINDOW),
+	MASK_PLAYERSOLID		= (CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_WINDOW|CONTENTS_BODY),
+	MASK_MONSTERSOLID		= (CONTENTS_SOLID|CONTENTS_MONSTERCLIP|CONTENTS_WINDOW|CONTENTS_BODY),
+	MASK_DEADSOLID		= (CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_WINDOW|CONTENTS_WINDOW),
+	MASK_WATER		= (CONTENTS_WATER|CONTENTS_LAVA|CONTENTS_SLIME),
+	MASK_OPAQUE		= (CONTENTS_SOLID|CONTENTS_SLIME|CONTENTS_LAVA),
+	MASK_SHOT			= (CONTENTS_SOLID|CONTENTS_BODY|CONTENTS_WINDOW|CONTENTS_CORPSE)
+} contentType_t;
 
-#define SURF_VERTEXLIT		(SURF_POINTLIGHT|SURF_NOLIGHTMAP)
+typedef enum
+{
+	SURF_NONE			= 0,	// just a mask for source tabulation
+	SURF_LIGHT		= BIT(0),	// value will hold the light strength
+	SURF_SLICK		= BIT(1),	// effects game physics
+	SURF_SKY			= BIT(2),	// don't draw, but add to skybox
+	SURF_WARP			= BIT(3),	// turbulent water warp
+	SURF_TRANS		= BIT(4),	// translucent
+	SURF_BLEND		= BIT(5),	// same as blend
+	SURF_ALPHA		= BIT(6),	// alphatest
+	SURF_ADDITIVE		= BIT(7),	// additive surface
+	SURF_NODRAW		= BIT(8),	// don't bother referencing the texture
+	SURF_HINT			= BIT(9),	// make a primary bsp splitter
+	SURF_SKIP			= BIT(10),// completely ignore, allowing non-closed brushes
+	SURF_NULL			= BIT(11),// remove face after compile
+	SURF_NOLIGHTMAP		= BIT(12),// don't place lightmap for this surface
+	SURF_MIRROR		= BIT(12),// remove face after compile
+} surfaceType_t;
 
 // engine physics constants
 #define COLLISION_SNAPSCALE		(32.0f)

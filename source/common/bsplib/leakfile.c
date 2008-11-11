@@ -1,10 +1,19 @@
 //=======================================================================
-//			Copyright XashXT Group 2007 ©
+//			Copyright XashXT Group 2008 ©
 //		        leakfile.c - leaf file generation
 //=======================================================================
 
+#include <stdio.h>
 #include "bsplib.h"
 
+/*
+==============================================================================
+
+Leaf file generation
+
+Save out name.line for qe3 to read
+==============================================================================
+*/
 /*
 =============
 LeakFile
@@ -14,7 +23,7 @@ that leads from the outside leaf to a specifically
 occupied leaf
 =============
 */
-void LeakFile( tree_t *tree )
+void LeakFile (tree_t *tree)
 {
 	vec3_t	mid;
 	file_t	*linefile;
@@ -22,17 +31,17 @@ void LeakFile( tree_t *tree )
 	node_t	*node;
 	int	count;
 
-	if( !tree->outside_node.occupied )
+	if (!tree->outside_node.occupied)
 		return;
 
 	// write the points to the file
-	com.sprintf( path, "maps/%s.lin", gs_filename );
-	linefile = FS_Open( path, "w" );
-	if( !linefile ) Sys_Error( "Couldn't open %s\n", path );
+	sprintf (path, "%s.lin", gs_filename);
+	linefile = FS_Open (path, "w" );
+	if (!linefile) Sys_Error ("Couldn't open %s\n", path);
 
 	count = 0;
 	node = &tree->outside_node;
-	while( node->occupied > 1 )
+	while (node->occupied > 1)
 	{
 		int	next;
 		portal_t	*p, *nextportal;
@@ -41,10 +50,10 @@ void LeakFile( tree_t *tree )
 
 		// find the best portal exit
 		next = node->occupied;
-		for( p = node->portals; p; p = p->next[!s] )
+		for (p=node->portals ; p ; p = p->next[!s])
 		{
 			s = (p->nodes[0] == node);
-			if( p->nodes[s]->occupied && p->nodes[s]->occupied < next )
+			if (p->nodes[s]->occupied && p->nodes[s]->occupied < next)
 			{
 				nextportal = p;
 				nextnode = p->nodes[s];
@@ -52,13 +61,14 @@ void LeakFile( tree_t *tree )
 			}
 		}
 		node = nextnode;
-		WindingCenter( nextportal->winding, mid );
-		FS_Printf( linefile, "%f %f %f\n", mid[0], mid[1], mid[2] );
+		WindingCenter (nextportal->winding, mid);
+		FS_Printf(linefile, "%f %f %f\n", mid[0], mid[1], mid[2]);
 		count++;
 	}
-
 	// add the occupant center
-	GetVectorForKey( node->occupant, "origin", mid );
-	FS_Printf( linefile, "%f %f %f\n", mid[0], mid[1], mid[2] );
-	FS_Close( linefile );
+	GetVectorForKey (node->occupant, "origin", mid);
+
+	FS_Printf (linefile, "%f %f %f\n", mid[0], mid[1], mid[2]);
+	FS_Close (linefile);
 }
+

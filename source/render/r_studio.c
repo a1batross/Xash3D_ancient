@@ -204,7 +204,6 @@ dstudiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
 	byte		*pin;
 	dstudiohdr_t	*phdr;
 	dstudiotexture_t	*ptexture;
-	texture_t		*in;
 	
 	pin = (byte *)buffer;
 	phdr = (dstudiohdr_t *)pin;

@@ -113,15 +113,11 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\bsplib\brush.c
+SOURCE=.\bsplib\brushbsp.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\bsplib\bspfile.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\bsplib.c
 # End Source File
 # Begin Source File
 
@@ -149,15 +145,15 @@ SOURCE=.\ripper\conv_sprite.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\decals.c
+SOURCE=.\bsplib\csg.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\facebsp.c
+SOURCE=.\bsplib\faces.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\fog.c
+SOURCE=.\bsplib\flow.c
 # End Source File
 # Begin Source File
 
@@ -165,7 +161,7 @@ SOURCE=.\bsplib\leakfile.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\lightmaps.c
+SOURCE=.\bsplib\lightmap.c
 # End Source File
 # Begin Source File
 
@@ -173,15 +169,7 @@ SOURCE=.\bsplib\map.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\mesh.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\model.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\patch.c
+SOURCE=.\bsplib\patches.c
 # End Source File
 # Begin Source File
 
@@ -209,22 +197,6 @@ SOURCE=.\bsplib\qvis3.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\rad_bounce.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\rad_sample.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\rad_trace.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\radfile.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\bsplib\shaders.c
 # End Source File
 # Begin Source File
@@ -241,15 +213,11 @@ SOURCE=.\studio_utils.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\surface.c
+SOURCE=.\bsplib\textures.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\surface_meta.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\tjunc.c
+SOURCE=.\bsplib\trace.c
 # End Source File
 # Begin Source File
 
@@ -261,15 +229,15 @@ SOURCE=.\utils.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\visflow.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\wadlib.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\bsplib\winding.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\writebsp.c
 # End Source File
 # End Group
 # Begin Group "Header Files"

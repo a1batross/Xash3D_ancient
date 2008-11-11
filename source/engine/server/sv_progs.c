@@ -2437,7 +2437,7 @@ PF_ServerPrint,			// #162 void ServerPrint(string s)
 NULL,				// #163 getAttachment
 NULL,				// #164 setView
 NULL,				// #165 crosshairangle
-PF_AreaPortalState,			// #166 void areaportal( float num, float state )
+PF_AreaPortalState,			// #166 void areaportal( entity ent, float state )
 NULL,				// #167 compareFileTime
 PF_geteyepos,			// #168 vector GetEyePosition( string model )
 PF_InfoPrint,      			// #169 void Info_Print( entity client )

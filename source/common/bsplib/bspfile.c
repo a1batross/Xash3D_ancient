@@ -3,88 +3,95 @@
 //		    	bspfile.c - read\save bsp file
 //=======================================================================
 
+#include <stdio.h>		// sscanf support
 #include "bsplib.h"
 #include "byteorder.h"
 #include "const.h"
 
+//=============================================================================
 wfile_t		*handle;
 file_t		*wadfile;
-int		s_table;
 dheader_t		*header;
-dheader_t		outheader;
 
 int		num_entities;
 bsp_entity_t	entities[MAX_MAP_ENTITIES];
-int		num_lightbytes;
-byte		*lightbytes;
 
-char		dentdata[MAX_MAP_ENTSTRING];
-int		entdatasize;
-dshader_t		dshaders[MAX_MAP_SHADERS];
-int		numshaders;
-dplane_t		dplanes[MAX_MAP_PLANES];
-int		numplanes;
-dnode_t		dnodes[MAX_MAP_NODES];
-int		numnodes;
-dleaf_t		dleafs[MAX_MAP_LEAFS];
-int		numleafs;
-dword		dleaffaces[MAX_MAP_LEAFFACES];
-int		numleaffaces;
-dword		dleafbrushes[MAX_MAP_LEAFBRUSHES];
-int		numleafbrushes;
-dmodel_t		dmodels[MAX_MAP_MODELS];
 int		nummodels;
-dbrush_t		dbrushes[MAX_MAP_BRUSHES];
-int		numbrushes;
-dbrushside_t	dbrushsides[MAX_MAP_BRUSHSIDES];
-int		numbrushsides;
-dvertex_t		dvertexes[MAX_MAP_VERTEXES];
-int		numvertexes;
-int		dindexes[MAX_MAP_INDEXES];
-int		numindexes;
-dfog_t		dfogs[MAX_MAP_FOGS];
-int		numfogs;
-dsurface_t	dsurfaces[MAX_MAP_SURFACES];
-int		numsurfaces;
-byte		dcollision[MAX_MAP_COLLISION];
-int		dcollisiondatasize;
-dlightgrid_t	dlightgrid[MAX_MAP_LIGHTGRID];
-int		numgridpoints;
+dmodel_t		dmodels[MAX_MAP_MODELS];
+int		visdatasize;
 byte		dvisdata[MAX_MAP_VISIBILITY];
 dvis_t		*dvis = (dvis_t *)dvisdata;
-int		visdatasize;
+int		lightdatasize;
+byte		dlightdata[MAX_MAP_LIGHTING];
+int		entdatasize;
+char		dentdata[MAX_MAP_ENTSTRING];
+int		numleafs;
+dleaf_t		dleafs[MAX_MAP_LEAFS];
+int		numplanes;
+dplane_t		dplanes[MAX_MAP_PLANES];
+int		numvertexes;
+dvertex_t		dvertexes[MAX_MAP_VERTS];
+int		numnodes;
+dnode_t		dnodes[MAX_MAP_NODES];
+int		numtexinfo;
+dtexinfo_t	texinfo[MAX_MAP_TEXINFO];
+int		numsurfaces;
+dsurface_t	dsurfaces[MAX_MAP_SURFACES];
+int		numedges;
+dedge_t		dedges[MAX_MAP_EDGES];
+int		numleafsurfaces;
+dleafface_t	dleafsurfaces[MAX_MAP_LEAFFACES];
+int		numleafbrushes;
+dleafbrush_t	dleafbrushes[MAX_MAP_LEAFBRUSHES];
+int		numsurfedges;
+dsurfedge_t	dsurfedges[MAX_MAP_SURFEDGES];
+int		numbrushes;
+dbrush_t		dbrushes[MAX_MAP_BRUSHES];
+int		numbrushsides;
+dbrushside_t	dbrushsides[MAX_MAP_BRUSHSIDES];
+int		numshaders;
+dshader_t		dshaders[MAX_MAP_SHADERS];
+int		numareas;
+darea_t		dareas[MAX_MAP_AREAS];
+int		numareaportals;
+dareaportal_t	dareaportals[MAX_MAP_AREAPORTALS];
+byte		dcollision[MAX_MAP_COLLISION];
+int		dcollisiondatasize;
 
-//=============================================================================
 /*
 ===============
 CompressVis
+
 ===============
 */
 int CompressVis( byte *vis, byte *dest )
 {
-	int	j;
-	int	rep;
-	int	visrow;
+	int		j;
+	int		rep;
+	int		visrow;
 	byte	*dest_p;
 	
 	dest_p = dest;
 	visrow = (dvis->numclusters + 7)>>3;
 	
-	for( j = 0; j < visrow; j++ )
+	for (j=0 ; j<visrow ; j++)
 	{
 		*dest_p++ = vis[j];
-		if( vis[j] ) continue;
+		if (vis[j])
+			continue;
 
 		rep = 1;
-		for( j++; j < visrow; j++ )
-			if( vis[j] || rep == 255 )
+		for ( j++; j<visrow ; j++)
+			if (vis[j] || rep == 255)
 				break;
 			else rep++;
 		*dest_p++ = rep;
 		j--;
 	}
+	
 	return dest_p - dest;
 }
+
 
 /*
 ===================
@@ -102,23 +109,24 @@ void DecompressVis( byte *in, byte *decompressed )
 
 	do
 	{
-		if( *in )
+		if (*in)
 		{
 			*out++ = *in++;
 			continue;
 		}
 	
 		c = in[1];
-		if( !c ) Sys_Error( "DecompressVis: 0 repeat\n" );
+		if (!c) Sys_Error("DecompressVis: 0 repeat");
 		in += 2;
-		while( c )
+		while (c)
 		{
 			*out++ = 0;
 			c--;
 		}
-	} while( out - decompressed < row );
+	} while (out - decompressed < row);
 }
 
+//=============================================================================
 
 /*
 =============
@@ -130,54 +138,68 @@ Byte swaps all data in a bsp file.
 void SwapBSPFile( bool todisk )
 {
 	int	i, j;
+	
+	// models	
+	SwapBlock((int *)dmodels, nummodels * sizeof( dmodels[0] ));
+
+	// vertexes
+	SwapBlock( (int *)dvertexes, numvertexes * sizeof( dvertexes[0] ));
+
+	// planes
+	SwapBlock( (int *)dplanes, numplanes * sizeof( dplanes[0] ));
+	
+	// texinfos
+	SwapBlock( (int *)texinfo, numtexinfo * sizeof( texinfo[0] ));
+
+	// nodes
+	SwapBlock( (int *)dnodes, numnodes * sizeof( dnodes[0] ));
+
+	// leafs
+	SwapBlock( (int *)dleafs, numleafs * sizeof( dleafs[0] ));
+
+	// leaffaces
+	SwapBlock( (int *)dleafsurfaces, numleafsurfaces * sizeof( dleafsurfaces[0] ));
+
+	// leafbrushes
+	SwapBlock( (int *)dleafbrushes, numleafbrushes * sizeof( dleafbrushes[0] ));
+
+	// surfedges
+	SwapBlock( (int *)dsurfedges, numsurfedges * sizeof( dsurfedges[0] ));
+
+	// edges
+	SwapBlock( (int *)dedges, numedges * sizeof( dedges[0] ));
+
+	// brushes
+	SwapBlock( (int *)dbrushes, numbrushes * sizeof( dbrushes[0] ));
+
+	// areas
+	SwapBlock( (int *)dareas, numareas * sizeof( dareas[0] ));
+
+	// areasportals
+	SwapBlock( (int *)dareaportals, numareaportals * sizeof( dareaportals[0] ));
+
+	// brushsides
+	SwapBlock( (int *)dbrushsides, numbrushsides * sizeof( dbrushsides[0] ));
 
 	// shaders
 	for( i = 0; i < numshaders; i++ )
 	{
+		dshaders[i].size[0] = LittleLong( dshaders[i].size[0] );
+		dshaders[i].size[1] = LittleLong( dshaders[i].size[1] );
 		dshaders[i].surfaceFlags = LittleLong( dshaders[i].surfaceFlags );
-		dshaders[i].contents = LittleLong( dshaders[i].contents ); 
-
+		dshaders[i].contentFlags = LittleLong( dshaders[i].contentFlags );
 	}
 
-	// fogs
-	for( i = 0; i < numfogs; i++ )
+	// faces
+	for( i = 0; i < numsurfaces; i++ )
 	{
-		dfogs[i].brushnum = LittleLong( dfogs[i].brushnum );
-		dfogs[i].visibleSide = LittleLong( dfogs[i].visibleSide );
+		dsurfaces[i].planenum = LittleLong( dsurfaces[i].planenum );
+		dsurfaces[i].side = LittleLong (dsurfaces[i].side);
+		dsurfaces[i].firstedge = LittleLong( dsurfaces[i].firstedge );
+		dsurfaces[i].numedges = LittleLong( dsurfaces[i].numedges );
+		dsurfaces[i].texinfo = LittleLong( dsurfaces[i].texinfo );	
+		dsurfaces[i].lightofs = LittleLong( dsurfaces[i].lightofs );
 	}
-
-	// planes
-	SwapBlock( (int *)dplanes, numplanes * sizeof(dplanes[0]));
-
-	// nodes
-	SwapBlock( (int *)dnodes, numnodes * sizeof(dnodes[0]));	
-
-	// leafs
-	SwapBlock( (int *)dleafs, numleafs * sizeof(dleafs[0]));
-
-	// leaffaces
-	SwapBlock( (int *)dleaffaces, numleaffaces * sizeof(dleaffaces[0]));
-
-	// leafbrushes
-	SwapBlock( (int *)dleafbrushes, numleafbrushes * sizeof(dleafbrushes[0]));
-
-	// models	
-	SwapBlock( (int *)dmodels, nummodels * sizeof(dmodels[0]));
-
-	// brushes
-	SwapBlock( (int *)dbrushes, numbrushes * sizeof(dbrushes[0]));
-
-	// brushsides
-	SwapBlock( (int *)dbrushsides, numbrushsides * sizeof(dbrushsides[0]));
-
-	// vertices
-	SwapBlock( (int *)dvertexes, numvertexes * sizeof(dvertexes[0]));
-
-	// indices
-	SwapBlock( (int *)dindexes, numindexes * sizeof(dindexes[0]));
-
-	// surfaces
-	SwapBlock( (int *)dsurfaces, numsurfaces * sizeof(dsurfaces[0]));
 
 	// visibility
 	if( todisk ) j = dvis->numclusters;
@@ -201,7 +223,7 @@ size_t CopyLump( const char *lumpname, void *dest, size_t block_size )
 	in = WAD_Read( handle, lumpname, &length, TYPE_BINDATA );
 	if( length % block_size ) Sys_Break( "LoadBSPFile: %s funny lump size\n", lumpname );
 	Mem_Copy( dest, in, length );
-	BSP_Free( in ); // no need more
+	Mem_Free( in ); // no need more
 	return length / block_size;
 }
 
@@ -210,7 +232,7 @@ void AddLump( const char *lumpname, const void *data, size_t length )
 	int	compress = CMP_NONE;
 
 	if( !handle ) return;
-	if( length > 0xffff ) compress = CMP_ZLIB;
+	if( length > 0xffff ) compress = CMP_ZLIB; // save hdd space
 	WAD_Write( handle, lumpname, data, length, TYPE_BINDATA, compress );
 }
 
@@ -241,101 +263,6 @@ void AddLump( const int lumpname, const void *data, size_t length )
 }
 #endif
 
-static void CopyLightGridLumps( void )
-{
-	int		i, index;
-	word		*inArray;
-	dlightgrid_t	*in, *out;
-	
-	if( header->lumps[LUMP_LIGHTARRAY].filelen % sizeof(*inArray))
-		Sys_Break( "LoadBSPFile: %i funny lump size\n", LUMP_LIGHTARRAY );
-	numgridpoints = header->lumps[LUMP_LIGHTARRAY].filelen / sizeof(*inArray);
-	inArray = (void*)( (byte*)header + header->lumps[LUMP_LIGHTARRAY].fileofs);
-	in = (void*)( (byte*)header + header->lumps[LUMP_LIGHTGRID].fileofs);
-	out = &dlightgrid[0];
-
-	for( i = 0; i < numgridpoints; i++ )
-	{
-		index = LittleShort( *inArray );
-		Mem_Copy( out, &in[index], sizeof( *in ));
-		inArray++;
-		out++;
-	}
-}
-
-static void AddLightGridLumps( void )
-{
-	int		i, j, k, c, d;
-	int		numGridPoints, maxGridPoints;
-	dlightgrid_t	*gridPoints, *in, *out;
-	int		numGridArray;
-	word		*gridArray;
-	bool		bad;
-	
-	maxGridPoints = (numgridpoints < MAX_MAP_GRID) ? numgridpoints : MAX_MAP_GRID;
-	gridPoints = BSP_Malloc( maxGridPoints * sizeof( *gridPoints ));
-	gridArray = BSP_Malloc( numgridpoints * sizeof( *gridArray ));
-	
-	numGridPoints = 0;
-	numGridArray = numgridpoints;
-	
-	// for each bsp grid point, find an approximate twin
-	MsgDev( D_INFO, "Storing lightgrid: %d points\n", numgridpoints );
-	for( i = 0; i < numGridArray; i++ )
-	{
-		in = &dlightgrid[i];
-		
-		for( j = 0; j < numgridpoints; j++ )
-		{
-			out = &gridPoints[j];
-			
-			if(*((uint*) in->styles) != *((uint*) out->styles))
-				continue;
-			
-			d = abs( in->latLong[0] - out->latLong[0] );
-			if( d < (255 - LG_EPSILON) && d > LG_EPSILON )
-				continue;
-			d = abs( in->latLong[1] - out->latLong[1] );
-			if( d < 255 - LG_EPSILON && d > LG_EPSILON )
-				continue;
-			
-			// compare light
-			bad = false;
-			for( k = 0; (k < LM_STYLES && bad == false); k++ )
-			{
-				for( c = 0; c < 3; c++ )
-				{
-					if(abs((int)in->ambient[k][c] - (int)out->ambient[k][c]) > LG_EPSILON
-					|| abs((int)in->direct[k][c] - (int)out->direct[k][c]) > LG_EPSILON )
-					{
-						bad = true;
-						break;
-					}
-				}
-			}
-			
-			if( bad ) continue;
-			break; // found
-		}
-		
-		// set sample index
-		gridArray[i] = (word)j;
-		
-		// if no sample found, add a new one
-		if( j >= numGridPoints && numGridPoints < maxGridPoints )
-		{
-			out = &gridPoints[numGridPoints++];
-			memcpy( out, in, sizeof( *in ) );
-		}
-	}
-	
-	// swap array
-	for( i = 0; i < numGridArray; i++ ) gridArray[i] = LittleShort( gridArray[i] );
-	AddLump( LUMP_LIGHTGRID, gridPoints, (numGridPoints * sizeof( *gridPoints )));
-	AddLump( LUMP_LIGHTARRAY, gridArray, (numGridArray * sizeof( *gridArray )));
-	if( gridPoints ) BSP_Free( gridPoints );
-	if( gridArray ) BSP_Free( gridArray );
-}
 
 /*
 =============
@@ -362,23 +289,26 @@ bool LoadBSPFile( void )
 	if( header->version != BSPMOD_VERSION )
 		Sys_Break( "%s.bsp is version %i, not %i\n", gs_filename, header->version, BSPMOD_VERSION );
 
-	entdatasize = CopyLump( LUMP_ENTITIES, dentdata, 1);
-	numshaders = CopyLump( LUMP_SHADERS, dshaders, sizeof(dshader_t));
-	numplanes = CopyLump( LUMP_PLANES, dplanes, sizeof(dplane_t));
-	numnodes = CopyLump( LUMP_NODES, dnodes, sizeof(dnode_t));
-	numleafs = CopyLump( LUMP_LEAFS, dleafs, sizeof(dleaf_t));
-	numleaffaces = CopyLump( LUMP_LEAFSURFACES, dleaffaces, sizeof(dleaffaces[0]));
-	numleafbrushes = CopyLump( LUMP_LEAFBRUSHES, dleafbrushes, sizeof(dleafbrushes[0]));
-	nummodels = CopyLump( LUMP_MODELS, dmodels, sizeof(dmodel_t));
-	numbrushes = CopyLump( LUMP_BRUSHES, dbrushes, sizeof(dbrush_t));
-	numbrushsides = CopyLump( LUMP_BRUSHSIDES, dbrushsides, sizeof(dbrushside_t));
-	numvertexes = CopyLump( LUMP_VERTICES, dvertexes, sizeof(dvertex_t));
-	numindexes = CopyLump( LUMP_INDICES, dindexes, sizeof(dindexes[0]));
-	numfogs = CopyLump( LUMP_FOGS, dfogs, sizeof( dfog_t ));
-	numsurfaces = CopyLump( LUMP_SURFACES, dsurfaces, sizeof(dsurfaces[0]));
-	dcollisiondatasize = CopyLump( LUMP_COLLISION, dcollision, 1);
-	visdatasize = CopyLump( LUMP_VISIBILITY, dvisdata, 1);
-	CopyLightGridLumps();
+	entdatasize = CopyLump( LUMP_ENTITIES, dentdata, 1 );
+	numplanes = CopyLump( LUMP_PLANES, dplanes, sizeof( dplanes[0] ));
+	numvertexes = CopyLump( LUMP_VERTEXES, dvertexes, sizeof( dvertexes[0] ));
+	visdatasize = CopyLump( LUMP_VISIBILITY, dvisdata, 1 );
+	numnodes = CopyLump( LUMP_NODES, dnodes, sizeof( dnodes[0] ));
+	numtexinfo = CopyLump( LUMP_TEXINFO, texinfo, sizeof( texinfo[0] ));
+	numsurfaces = CopyLump( LUMP_SURFACES, dsurfaces, sizeof( dsurfaces[0] ));
+	lightdatasize = CopyLump( LUMP_LIGHTING, dlightdata, 1 );
+	numleafs = CopyLump( LUMP_LEAFS, dleafs, sizeof( dleafs[0] ));
+	numleafsurfaces = CopyLump( LUMP_LEAFFACES, dleafsurfaces, sizeof( dleafsurfaces[0] ));
+	numleafbrushes = CopyLump( LUMP_LEAFBRUSHES, dleafbrushes, sizeof( dleafbrushes[0] ));
+	numedges = CopyLump( LUMP_EDGES, dedges, sizeof( dedges[0] ));
+	numsurfedges = CopyLump( LUMP_SURFEDGES, dsurfedges, sizeof( dsurfedges[0] ));
+	nummodels = CopyLump( LUMP_MODELS, dmodels, sizeof( dmodels[0] ));
+	numbrushes = CopyLump( LUMP_BRUSHES, dbrushes, sizeof( dbrushes[0] ));
+	numbrushsides = CopyLump( LUMP_BRUSHSIDES, dbrushsides, sizeof( dbrushsides[0] ));
+	dcollisiondatasize = CopyLump( LUMP_COLLISION, dcollision, 1 );
+	numshaders = CopyLump( LUMP_SHADERS, dshaders, sizeof( dshaders[0] ));
+	numareas = CopyLump ( LUMP_AREAS, dareas, sizeof( dareas[0] ));
+	numareaportals = CopyLump( LUMP_AREAPORTALS, dareaportals, sizeof( dareaportals[0] ));
 
 	// swap everything
 	SwapBSPFile( false );
@@ -397,41 +327,46 @@ Swaps the bsp file in place, so it should not be referenced again
 */
 void WriteBSPFile( void )
 {		
+	static dheader_t	outheader;
+	
 	header = &outheader;
-	memset( header, 0, sizeof( dheader_t ));
+	Mem_Set( header, 0, sizeof( dheader_t ));
 	
 	SwapBSPFile( true );
 
 	header->ident = LittleLong( IDBSPMODHEADER );
 	header->version = LittleLong( BSPMOD_VERSION );
 	
-	// build path
 	MsgDev( D_NOTE, "\n\nwriting %s.bsp\n", gs_filename );
 	if( pe ) pe->FreeBSP();
 	
 	wadfile = FS_Open( va( "maps/%s.bsp", gs_filename ), "wb" );
 	FS_Write( wadfile, header, sizeof( dheader_t ));	// overwritten later
 
-	AddLump (LUMP_ENTITIES, dentdata, entdatasize);
-	AddLump (LUMP_SHADERS, dshaders, numshaders*sizeof(dshaders[0]));
-	AddLump (LUMP_PLANES, dplanes, numplanes*sizeof(dplanes[0]));
-	AddLump (LUMP_NODES, dnodes, numnodes*sizeof(dnodes[0]));
-	AddLump (LUMP_LEAFS, dleafs, numleafs*sizeof(dleafs[0]));
-	AddLump (LUMP_LEAFSURFACES, dleaffaces, numleaffaces*sizeof(dleaffaces[0]));
-	AddLump (LUMP_LEAFBRUSHES, dleafbrushes, numleafbrushes*sizeof(dleafbrushes[0]));
-	AddLump (LUMP_MODELS, dmodels, nummodels*sizeof(dmodels[0]));
-	AddLump (LUMP_BRUSHES, dbrushes, numbrushes*sizeof(dbrushes[0]));
-	AddLump (LUMP_BRUSHSIDES, dbrushsides, numbrushsides*sizeof(dbrushsides[0]));
-	AddLump (LUMP_VERTICES, dvertexes, numvertexes*sizeof(dvertexes[0]));
-	AddLump (LUMP_INDICES, dindexes, numindexes*sizeof(dindexes[0]));
-	AddLump (LUMP_FOGS, dfogs, numfogs*sizeof(dfogs[0]));
-	AddLump (LUMP_SURFACES, dsurfaces, numsurfaces*sizeof(dsurfaces[0]));	
-	AddLump (LUMP_COLLISION, dcollision, dcollisiondatasize );
-	AddLightGridLumps();
-	AddLump (LUMP_VISIBILITY, dvisdata, visdatasize);
+	AddLump( LUMP_ENTITIES, dentdata, entdatasize );
+	AddLump( LUMP_PLANES, dplanes, numplanes * sizeof( dplanes[0] ));
+	AddLump( LUMP_VERTEXES, dvertexes, numvertexes * sizeof( dvertexes[0] ));
+	AddLump( LUMP_VISIBILITY, dvisdata, visdatasize );
+	AddLump( LUMP_NODES, dnodes, numnodes * sizeof( dnodes[0] ));
+	AddLump( LUMP_TEXINFO, texinfo, numtexinfo * sizeof( texinfo[0] ));
+	AddLump( LUMP_SURFACES, dsurfaces, numsurfaces * sizeof( dsurfaces[0] ));
+	AddLump( LUMP_LIGHTING, dlightdata, lightdatasize );
+	AddLump( LUMP_LEAFS, dleafs, numleafs * sizeof( dleafs[0] ));
+	AddLump( LUMP_LEAFFACES, dleafsurfaces, numleafsurfaces * sizeof( dleafsurfaces[0] ));
+	AddLump( LUMP_LEAFBRUSHES, dleafbrushes, numleafbrushes * sizeof( dleafbrushes[0] ));
+	AddLump( LUMP_EDGES, dedges, numedges * sizeof( dedges[0] ));
+	AddLump( LUMP_SURFEDGES, dsurfedges, numsurfedges * sizeof( dsurfedges[0] ));
+	AddLump( LUMP_MODELS, dmodels, nummodels * sizeof( dmodels[0] ));
+	AddLump( LUMP_BRUSHES, dbrushes, numbrushes * sizeof( dbrushes[0] ));
+	AddLump( LUMP_BRUSHSIDES, dbrushsides, numbrushsides * sizeof( dbrushsides[0] ));
+	AddLump( LUMP_COLLISION, dcollision, dcollisiondatasize );
+	AddLump( LUMP_SHADERS, dshaders, numshaders * sizeof( dshaders[0] ));
+	AddLump( LUMP_AREAS, dareas, numareas * sizeof( dareas[0] ));
+	AddLump( LUMP_AREAPORTALS, dareaportals, numareaportals * sizeof( dareaportals[0] ));
 
+	// merge header
 	FS_Seek( wadfile, 0, SEEK_SET );
-	FS_Write( wadfile, header, sizeof(dheader_t));
+	FS_Write( wadfile, header, sizeof( dheader_t ));
 	FS_Close( wadfile );
 }
 
@@ -460,7 +395,7 @@ epair_t *ParseEpair( token_t *token )
 {
 	epair_t	*e;
 
-	e = BSP_Malloc( sizeof( epair_t ));
+	e = Malloc( sizeof( epair_t ));
 	
 	if( com.strlen( token->string ) >= MAX_KEY - 1 )
 		Sys_Break( "ParseEpair: token too long\n" );
@@ -524,7 +459,6 @@ void ParseEntities( void )
 	Com_CloseScript( mapfile );
 }
 
-
 /*
 ================
 UnparseEntities
@@ -586,12 +520,12 @@ void SetKeyValue( bsp_entity_t *ent, const char *key, const char *value )
 	{
 		if(!com.strcmp( ep->key, key ))
 		{
-			BSP_Free( ep->value );
+			Mem_Free( ep->value );
 			ep->value = copystring( value );
 			return;
 		}
 	}
-	ep = BSP_Malloc( sizeof( *ep ));
+	ep = Malloc( sizeof( *ep ));
 	ep->next = ent->epairs;
 	ent->epairs = ep;
 	ep->key = copystring( key );
@@ -664,98 +598,6 @@ bsp_entity_t *FindTargetEntity( const char *target )
 	return NULL;
 }
 
-/*
-================
-GetEntityShadowFlags
-
-gets an entity's shadow flags
-note: does not set them to defaults if the keys are not found!
-================
-*/
-void GetEntityShadowFlags( const bsp_entity_t *ent, const bsp_entity_t *ent2, int *castShadows, int *recvShadows )
-{
-	const char	*value;
-	
-	// get cast shadows
-	// FIXME: make ZHLT shadowflags support here
-	if( castShadows != NULL )
-	{
-		value = ValueForKey( ent, "_castShadows" );
-		if( value[0] == '\0' ) value = ValueForKey( ent, "_cs" );
-		if( value[0] == '\0' ) value = ValueForKey( ent2, "_castShadows" );
-		if( value[0] == '\0' ) value = ValueForKey( ent2, "_cs" );
-		if( value[0] != '\0' ) *castShadows = com.atoi( value );
-	}
-	
-	// receive
-	if( recvShadows != NULL )
-	{
-		value = ValueForKey( ent, "_receiveShadows" );
-		if( value[0] == '\0' ) value = ValueForKey( ent, "_rs" );
-		if( value[0] == '\0' ) value = ValueForKey( ent2, "_receiveShadows" );
-		if( value[0] == '\0' ) value = ValueForKey( ent2, "_rs" );
-		if( value[0] != '\0' ) *recvShadows = com.atoi( value );
-	}
-}
-
-/*
-================
-Com_GetTokenAppend
-
-gets a token and appends its text to the specified buffer
-================
-*/
-static int oldScriptLine = 0;
-static int tabDepth = 0;
-
-bool Com_GetTokenAppend( script_t *script, char *buffer, bool crossline, token_t *token )
-{
-	bool	result;
-	int	i, flags = SC_PARSE_GENERIC;
-
-	if( crossline ) flags |= SC_ALLOW_NEWLINES;	
-	result = Com_ReadToken( script, flags, token );
-	if( result == false || buffer == NULL || token->string[0] == '\0' )
-		return result;
-	
-	// pre-tabstops
-	if( !com.stricmp( token->string, "}" )) tabDepth--;
-	
-	// append?
-	if( oldScriptLine != token->line )
-	{
-		com.strcat( buffer, "\n" );
-		for( i = 0; i < tabDepth; i++ )
-			com.strcat( buffer, "\t" );
-	}
-	else com.strcat( buffer, " " );
-
-	oldScriptLine = token->line;
-	com.strcat( buffer, token->string );
-	
-	// post-tabstops
-	if( !com.stricmp( token->string, "{" )) tabDepth++;
-	
-	return result;
-}
-
-void Com_Parse1DMatrixAppend( script_t *script, char *buffer, int x, vec_t *m )
-{
-	token_t	token;
-	int	i;
-	
-	if( !Com_GetTokenAppend( script, buffer, true, &token ) || com.stricmp( token.string, "(" ))
-		Sys_Break( "Com_Parse1DMatrixAppend: line %d: ( not found!\n", token.line );
-	for( i = 0; i < x; i++ )
-	{
-		if(!Com_GetTokenAppend( script, buffer, false, &token ))
-			Sys_Break( "Com_Parse1DMatrixAppend: line %d: Number not found!\n", token.line );
-		m[i] = com.atof( token.string );
-	}
-	if( !Com_GetTokenAppend( script, buffer, true, &token ) || com.stricmp( token.string, ")" ))
-		Sys_Break( "Com_Parse1DMatrixAppend: line %d: ) not found!", token.line );
-}
-
 void Com_CheckToken( script_t *script, const char *match )
 {
 	token_t	token;
@@ -773,7 +615,6 @@ void Com_Parse1DMatrix( script_t *script, int x, vec_t *m )
 	int	i;
 
 	Com_CheckToken( script, "(" );
-
 	for( i = 0; i < x; i++ )
 		Com_ReadFloat( script, false, &m[i] );
 	Com_CheckToken( script, ")" );
@@ -784,23 +625,7 @@ void Com_Parse2DMatrix( script_t *script, int y, int x, vec_t *m )
 	int	i;
 
 	Com_CheckToken( script, "(" );
-
 	for( i = 0; i < y; i++ )
-	{
 		Com_Parse1DMatrix( script, x, m+i*x );
-	}
-	Com_CheckToken( script, ")" );
-}
-
-void Com_Parse3DMatrix( script_t *script, int z, int y, int x, vec_t *m )
-{
-	int	i;
-
-	Com_CheckToken( script, "(" );
-
-	for( i = 0; i < z; i++ )
-	{
-		Com_Parse2DMatrix( script, y, x, m+i*x*y );
-	}
 	Com_CheckToken( script, ")" );
 }

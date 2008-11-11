@@ -879,6 +879,7 @@ bool PS_ReadToken( script_t *script, scFlags_t flags, token_t *token )
 	token->length = 0;
 	token->floatValue = 0.0;
 	token->integerValue = 0;
+	script->TXcommand = '\0';		// clear TXcommand
 
 	// make sure incoming data is valid
 	if( !script->text ) return false;

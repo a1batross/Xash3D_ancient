@@ -126,85 +126,85 @@ BRUSH MODELS
 ==============================================================================
 */
 
-
 // header
-#define BSPMOD_VERSION	48
+#define BSPMOD_VERSION	39
 #define IDBSPMODHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'I') // little-endian "IBSP"
 
 // 32 bit limits
 #define MAX_MAP_AREA_BYTES		32	// bit vector of area visibility
-#define MAX_MAP_MODELS		0x2000	// mesh models and sprites too
-#define MAX_MAP_BRUSHES		0x8000
-#define MAX_MAP_ENTITIES		0x2000	// same as models
-#define MAX_MAP_ENTSTRING		0x40000
-#define MAX_MAP_SHADERS		0x800
 #define MAX_MAP_AREAS		0x100	// don't increase this
-#define MAX_MAP_FOGS		0x100
+#define MAX_MAP_MODELS		0x2000	// mesh models and sprites too
+#define MAX_MAP_AREAPORTALS		0x400
+#define MAX_MAP_ENTITIES		0x2000
+#define MAX_MAP_SHADERS		0x1000
+#define MAX_MAP_TEXINFO		0x2000
+#define MAX_MAP_BRUSHES		0x8000
 #define MAX_MAP_PLANES		0x20000
 #define MAX_MAP_NODES		0x20000
 #define MAX_MAP_BRUSHSIDES		0x20000
 #define MAX_MAP_LEAFS		0x20000
+#define MAX_MAP_VERTS		0x80000
+#define MAX_MAP_SURFACES		0x20000
 #define MAX_MAP_LEAFFACES		0x20000
 #define MAX_MAP_LEAFBRUSHES		0x40000
 #define MAX_MAP_PORTALS		0x20000
-#define MAX_MAP_LIGHTGRID		0x100000
-#define MAX_MAP_VISIBILITY		0x200000
-#define MAX_MAP_COLLISION		0x400000	// collision data size
-#define MAX_MAP_SURFACES		0x20000
-#define MAX_MAP_VERTEXES		0x80000
-#define MAX_MAP_INDEXES		0x80000
-#define MAX_MAP_GRIDARRAY		0x100000
-#define MAX_MAP_AREAPORTALS		MAX_EDICTS<<1
+#define MAX_MAP_EDGES		0x80000
+#define MAX_MAP_SURFEDGES		0x80000
+#define MAX_MAP_ENTSTRING		0x80000
+#define MAX_MAP_LIGHTING		0x800000
+#define MAX_MAP_VISIBILITY		0x800000
+#define MAX_MAP_COLLISION		0x800000
 
 // other limits
 #define DVIS_PVS			0
 #define DVIS_PHS			1
 #define MAX_KEY			128
 #define MAX_VALUE			512
-#define MAX_WORLD_COORD		( 128 * 1024 )
-#define MIN_WORLD_COORD		(-128 * 1024 )
+#define MAX_WORLD_COORD		( 32 * 1024 )
+#define MIN_WORLD_COORD		(-32 * 1024 )
 #define WORLD_SIZE			( MAX_WORLD_COORD - MIN_WORLD_COORD )
-#define MAX_BUILD_SIDES		512	// per one brush. (don't change)
-#define LIGHTMAP_WIDTH		128
-#define LIGHTMAP_HEIGHT		128
-#define LIGHTMAP_BITS		3	// RGB
 #define MAX_SHADERPATH		64
-#define LIGHTMAP_NAME		"lm_%04d.png"
-#define LM_SIZE			( LIGHTMAP_WIDTH * LIGHTMAP_HEIGHT * LIGHTMAP_BITS )
+
+#define MAX_BUILD_SIDES		512	// per one brush. (don't touch!)
 #define LM_SAMPLE_SIZE		16	// q1, q2, q3 default value (lightmap resoultion)
+#define LM_SIZE			128	// LM_SIZE x LM_SIZE (width x height)
 #define LM_STYLES			4	// MAXLIGHTMAPS
 #define LS_NORMAL			0x00
 #define LS_UNUSED			0xFE
 #define LS_NONE			0xFF
 #define MAX_LIGHT_STYLES		64
 #define MAX_SWITCHED_LIGHTS		32
-#define MAX_LIGHTMAP_SHADERS		256
 
-// lump offset
+// lump offset (TODO: compress it same as much more as possible)
 #define LUMP_ENTITIES		0
-#define LUMP_SHADERS		1
-#define LUMP_PLANES			2
-#define LUMP_NODES			3
-#define LUMP_LEAFS			4
-#define LUMP_LEAFSURFACES		5
-#define LUMP_LEAFBRUSHES		6
-#define LUMP_MODELS			7
-#define LUMP_BRUSHES		8
-#define LUMP_BRUSHSIDES		9
-#define LUMP_VERTICES		10
-#define LUMP_INDICES		11
-#define LUMP_FOGS			12
-#define LUMP_SURFACES		13
-#define LUMP_COLLISION		14	// precomputed physic engine collision tree
-#define LUMP_LIGHTGRID		15
-#define LUMP_VISIBILITY		16	// pvs+phs lumps
-#define LUMP_LIGHTARRAY		17
-#define LUMP_TOTALCOUNT		18	// max lumps
+#define LUMP_PLANES			1
+#define LUMP_LEAFS			2
+#define LUMP_LEAFFACES		3
+#define LUMP_LEAFBRUSHES		4
+#define LUMP_NODES			5
+#define LUMP_VERTEXES		6
+#define LUMP_EDGES			7
+#define LUMP_SURFEDGES		8
+#define LUMP_TEXINFO		9
+#define LUMP_SURFACES		10
+#define LUMP_MODELS			11
+#define LUMP_BRUSHES		12
+#define LUMP_BRUSHSIDES		13
+#define LUMP_VISIBILITY		14
+#define LUMP_LIGHTING		15
+#define LUMP_COLLISION		16	// newton collision tree (worldmodel coords already convert to meters)
+#define LUMP_SHADERS		17	// contains texture name and dims
+#define LUMP_LIGHTGRID		18	// private server.dat for current map
+// get rid of this
+#define LUMP_AREAS			19
+#define LUMP_AREAPORTALS		20
+
+#define LUMP_TOTALCOUNT		32	// max lumps
 
 typedef struct
 {
-	int fileofs;
-	int filelen;
+	int	fileofs;
+	int	filelen;
 } lump_t;
 
 typedef struct
@@ -218,31 +218,24 @@ typedef struct
 {
 	float	mins[3];
 	float	maxs[3];
-	int	firstface;	// submodels just draw faces 
-	int	numfaces;		// without walking the bsp tree
-	int	firstbrush;
+	int	headnode;		// FIXME: eliminate this
+	int	firstsurface;	// submodels just draw faces 
+	int	numsurfaces;	// without walking the bsp tree
+	int	firstbrush;	// physics stuff
 	int	numbrushes;
 } dmodel_t;
 
 typedef struct
 {
 	char	name[64];		// shader name
-	int	surfaceFlags;	// surface flags (can be replaced by shader)
-	int	contents;		// texture contents (can be replaced by shader)
+	int	size[2];		// general size for current s\t coords (used for replace texture)
+	int	surfaceFlags;	// surface flags (can be replaced)
+	int	contentFlags;	// texture contents (can be replaced)
 } dshader_t;
 
 typedef struct
 {
-	float	point[3];		// Vertex3f
-	float	st[2];		// texCoord2f
-	float	lm[LM_STYLES][2];	// lightmap texCoord2f
-	float	normal[3];	// Normal3f
-
-	union
-	{
-		byte	color[LM_STYLES][4];	// color array
-		long	rgba[LM_STYLES];		// packed rgba color
-	};
+	float	point[3];
 } dvertex_t;
 
 typedef struct
@@ -257,10 +250,29 @@ typedef struct
 	int	children[2];	// negative numbers are -(leafs+1), not nodes
 	int	mins[3];		// for frustom culling
 	int	maxs[3];
+	int	firstsurface;
+	int	numsurfaces;	// counting both sides
 } dnode_t;
 
 typedef struct
 {
+	float	vecs[2][4];	// [s/t][xyz offset] texture s\t
+	int	shadernum;	// shader number in LUMP_SHADERS array
+	int	value;		// FIXME: eliminate this ? used by qrad, not engine
+} dtexinfo_t;
+
+typedef struct
+{
+	int	v[2];		// vertex numbers
+} dedge_t;
+
+typedef int	dsurfedge_t;
+typedef dword	dleafface_t;
+typedef dword	dleafbrush_t;
+
+typedef struct
+{
+	int	contents;		// or of all brushes (not needed?)
 	int	cluster;
 	int	area;
 	int	mins[3];		// for frustum culling
@@ -274,8 +286,7 @@ typedef struct
 typedef struct
 {
 	int	planenum;		// facing out of the leaf
-	int	shadernum;	// shader description
-	int	surfacenum;	// surface description
+	int	texinfo;		// surface description
 } dbrushside_t;
 
 typedef struct
@@ -287,105 +298,43 @@ typedef struct
 
 typedef struct
 {
-	char	shader[64];
-	int	brushnum;
-	int	visibleSide;	// the brush side that ray tests need to clip against (-1 == none)
-} dfog_t;
-
-typedef struct
-{
 	int	numclusters;
 	int	bitofs[8][2];	// bitofs[numclusters][2]
 } dvis_t;
 
-typedef enum
+typedef struct
 {
-	MST_BAD,
-	MST_PLANAR,
-	MST_PATCH,
-	MST_TRIANGLE_SOUP,
-	MST_FLARE,
-	MST_FOLIAGE
-} dmst_t;
+	vec3_t	mins;
+	vec3_t	size;
+	int	bounds[4];	// world bounds
+	int	numpoints;	// lightgrid[points]
+} dlightgrid_t;
 
 typedef struct
 {
-	int	shadernum;	// dshader_t[num]
-	int	fognum;		// dfog_t[num]
-	dmst_t	surfaceType;	// surface type
-	int	firstvertex;	// dvertex[start]
-	int	numvertices;	// may contain odd number for tristrips
-	int	firstindex;	// dvertex[dindex[firstindex]] == dvertex[firstvertex]
-	int	numindices;	// may contain odd number for tristrips
+	int	planenum;
+	int	side;
 
-	byte	lStyles[LM_STYLES];	// lightmapStyles
-	byte	vStyles[LM_STYLES];	// vertexLightstyles
-	int	lmapNum[LM_STYLES];	// "lm_%04d.png", num 
-	int	lmapX[LM_STYLES];	// lm block x-offset[style]
-	int	lmapY[LM_STYLES];	// lm block y-offset[style]
-	int	lmapWidth;	// lm block width
-	int	lmapHeight;	// lm block height
+	int	firstedge;
+	int	numedges;	
+	int	texinfo;		// number in LUMP_TEXINFO array
 
-	union
-	{
-		struct
-		{
-			// MST_BAD
-			int	unused1[14];
-		} bad;
-		struct
-		{
-			// MST_PLANAR
-			float	lmapOrigin[3];
-			float	vecs[2][3];
-			float	normal[3];
-			int	planenum;		// Xash3D: for fast surface culling
-			int	planeside;
-		} flat;
-		struct
-		{
-			// MST_PATCH
-			float	origin[3];
-			float	mins[3];		// LOD bbox
-			float	maxs[3];		// LOD bbox
-			float	normal[3];
-			int	width; 
-			int	height;
-		} patch;
-		struct
-		{
-			// MST_TRIANGLE_SOUP
-			int	unused1[3];
-			float	mins[3];
-			float	maxs[3];
-			int	unused2[5];
-		} mesh;
-		struct
-		{
-			// MST_FLARE
-			float	origin[3];
-			float	color[3];
-			int	unused1[3];
-			float	normal[3];
-			int	unused2[2];
-		} flare;
-
-		// FIXME: put MST_FOLIAGE description here
-	};
+	// lighting info
+	byte	styles[LM_STYLES];
+	int	lightofs;		// start of [numstyles*surfsize] samples
 } dsurface_t;
 
-typedef struct dlightmap_s
+typedef struct
 {
-	byte	image[LM_SIZE];	// PF_RGB_24
-} dlightmap_t;
+	int	portalnum;
+	int	otherarea;
+} dareaportal_t;
 
 typedef struct
 {
-	byte	ambient[LM_STYLES][3];
-	byte	direct[LM_STYLES][3];
-	byte	styles[LM_STYLES];
-	byte	latLong[2];
-} dlightgrid_t;
+	int	numareaportals;
+	int	firstareaportal;
+} darea_t;
 
 /*
 ==============================================================================

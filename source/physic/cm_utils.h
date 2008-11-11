@@ -44,9 +44,9 @@ cmodel_t *CM_BeginRegistration ( const char *name, bool clientload, uint *checks
 cmodel_t *CM_RegisterModel ( const char *name );
 void CM_EndRegistration ( void );
 
-void CM_SetAreaPortals ( byte *portals, size_t size );
-void CM_GetAreaPortals ( byte **portals, size_t *size );
-void CM_SetAreaPortalState ( int area, int otherarea, bool open );
+void CM_SetAreaPortals( byte *portals, size_t size );
+void CM_GetAreaPortals( byte **portals, size_t *size );
+void CM_SetAreaPortalState( int area1, int area2, bool open );
 
 int CM_NumClusters( void );
 int CM_NumTextures( void );

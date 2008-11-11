@@ -219,25 +219,35 @@ typedef struct
 
 typedef struct
 {
-	ref_shader_t		*shader;
+	ref_shader_t	*shader;
 	int		numVerts;
 	polyVert_t	*verts;
 } poly_t;
+
+typedef struct texInfo_s
+{
+	float		vecs[2][4];
+	int		contentFlags;
+	int		surfaceFlags;
+	uint		width;
+	uint		height;
+	ref_shader_t	*shader;		// texture shader
+} texInfo_t;
 
 typedef struct
 {
 	int		flags;
 
-	int		firstIndex;	// Look up in model->edges[]. Negative
-	int		numIndexes;		// numbers are backwards edges
-
-	int		firstVertex;
-	int		numVertexes;
+	int		firstEdge;	// look up in model->edges[]. negative
+	int		numEdges;		// numbers are backwards edges
 
 	cplane_t		*plane;
 
 	vec3_t		mins;
 	vec3_t		maxs;
+
+	short		textureMins[2];
+	short		extents[2];
 
 	surfPoly_t	*poly;			// multiple if subdivided
 
@@ -245,7 +255,7 @@ typedef struct
 	vec3_t		binormal;
 	vec3_t		normal;
 
-	ref_shader_t	*texInfo;
+	texInfo_t		*texInfo;
 
 	int		visFrame;
 	int		fragmentFrame;
@@ -259,7 +269,6 @@ typedef struct
 	int		lmS;
 	int		lmT;
 	int		lmNum;
-	float		lmVecs[2][3];	// lightmap vecs
 	byte		*lmSamples;
 	int		numStyles;
 	byte		styles[MAX_LIGHTSTYLES];
@@ -268,7 +277,7 @@ typedef struct
 
 typedef struct node_s
 {
-	// common with leaf and node
+	// common with leaf
 	int		contents;		// -1, to differentiate from leafs
 	int		visFrame;		// Node needs to be traversed if current
 	vec3_t		mins, maxs;	// for bounding box culling
@@ -277,37 +286,43 @@ typedef struct node_s
 	// node specific
 	cplane_t		*plane;
 	struct node_s	*children[2];
-	
-	// common with leaf
+	uint		firstSurface;
+	uint		numSurfaces;
+} node_t;
+
+typedef struct leaf_s
+{
+	// common with node
+	int		contents;		// will be a negative contents number
+	int		visFrame;		// node needs to be traversed if current
+	vec3_t		mins, maxs;	// for bounding box culling
+	struct node_s	*parent;
+
 	// leaf specific
 	int		cluster;
 	int		area;
 	surface_t		**firstMarkSurface;
 	int		numMarkSurfaces;
-} node_t;
+} leaf_t;
 
 typedef struct
 {
-	int		numClusters;
-	int		bitOfs[8][2];
-} vis_t;
-
-typedef struct
-{
-
 	vec3_t		point;
-	vec3_t		normal;
-	float		st[2];
-	float		lm[2];
-	vec4_t		color;	
 } vertex_t;
 
 typedef struct
 {
+	uint		v[2];
+} edge_t;
+
+typedef struct
+{
+
 	vec3_t		mins;
 	vec3_t		maxs;
 	vec3_t		origin;		// for sounds or lights
 	float		radius;
+	int		visLeafs;		// not including the solid leaf 0
 	int		firstFace;
 	int		numFaces;
 } submodel_t;
@@ -452,11 +467,11 @@ typedef struct rmodel_s
 	int		numVertexes;
 	vertex_t		*vertexes;
 
-	int		numIndexes;
-	int		*indexes;
+	int		numSurfEdges;
+	int		*surfEdges;
 
-	int		numShaders;
-	ref_shader_t	**shaders;
+	int		numEdges;
+	edge_t		*edges;
 
 	int		numSurfaces;
 	surface_t		*surfaces;
@@ -468,20 +483,29 @@ typedef struct rmodel_s
 	cplane_t		*planes;
 
 	int		numNodes;
-	node_t		*nodes;			// also included leafs
+	int		firstNode;
+	node_t		*nodes;
+
+	int		numLeafs;
+	leaf_t		*leafs;
 
 	int		numClusters;		// used for create novis lump
-	vis_t		*vis;			// may be passed in by CM_LoadMap to save space
 	byte		*novis;			// clusterBytes of 0xff
 
 	sky_t		*sky;
-	texture_t		*lightMaps[MAX_LIGHTMAPS];
-	int		numLightmaps;
+	dvis_t		*vis;			// may be passed in by CM_LoadMap to save space
+	byte		*lightData;
+
+	int		numTexInfo;
+	texInfo_t		*texInfo;
+
+	int		numShaders;
+	ref_shader_t	**shaders;
 
 	vec3_t		gridMins;
 	vec3_t		gridSize;
 	int		gridBounds[4];
-	int		gridPoints;
+	int		numGridPoints;
 	lightGrid_t	*lightGrid;
 
 	// studio model
@@ -572,7 +596,7 @@ typedef struct ref_entity_s
 } ref_entity_t;
 
 const char *R_GetStringFromTable( int index );
-node_t	*R_PointInLeaf( const vec3_t p );
+leaf_t	*R_PointInLeaf( const vec3_t p );
 byte	*R_ClusterPVS( int cluster );
 
 void	R_ModelList_f( void );
@@ -732,6 +756,7 @@ extern vec3_t      	r_worldMins, r_worldMaxs;
 extern int         	r_frameCount;
 extern int         	r_visFrameCount;
 extern int         	r_viewCluster;
+extern int	r_oldViewCluster;
 extern int	r_areabitsChanged;
 extern vec3_t	r_origin;				// same as r_refdef.vieworg
 extern vec3_t	r_forward;
@@ -779,6 +804,7 @@ void		R_AddSpriteModelToList( ref_entity_t *entity );
 void		R_SpriteLoadModel( rmodel_t *mod, const void *buffer );
 mspriteframe_t	*R_GetSpriteFrame( ref_entity_t *ent );
 
+void		R_MarkLights( void );
 void		R_LightDir( const vec3_t origin, vec3_t lightDir );
 void		R_LightForPoint( const vec3_t point, vec3_t ambientLight );
 void		R_LightingAmbient( void );

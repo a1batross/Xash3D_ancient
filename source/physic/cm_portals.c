@@ -127,21 +127,21 @@ void CM_FloodAreaConnections( void )
 
 void CM_SetAreaPortals ( byte *portals, size_t size )
 {
-	if( size == cm.areaportals_size )
+	if( size == cm.numareaportals )
 	{ 
-		Mem_Copy( cm.areaportals, portals, cm.areaportals_size );
+		Mem_Copy( cm.areaportals, portals, cm.numareaportals );
 		CM_FloodAreaConnections();
 		return;
 	}
-	MsgDev( D_ERROR, "CM_SetAreaPortals: portals mismatch size (%i should be %i)\n", size, cm.areaportals_size );
+	MsgDev( D_ERROR, "CM_SetAreaPortals: portals mismatch size (%i should be %i)\n", size, cm.numareaportals );
 }
 
 void CM_GetAreaPortals ( byte **portals, size_t *size )
 {
 	byte *prt = *portals;
 
-	if( prt ) Mem_Copy( prt, cm.areaportals, cm.areaportals_size );
-	if( size) *size = cm.areaportals_size; 
+	if( prt ) Mem_Copy( prt, cm.areaportals, cm.numareaportals );
+	if( size) *size = cm.numareaportals; 
 }
 
 void CM_SetAreaPortalState( int area1, int area2, bool open )

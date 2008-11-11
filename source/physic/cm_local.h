@@ -154,13 +154,15 @@ typedef struct clipmap_s
 	char		*entitystring;
 	cplane_t		*planes;		// 12 extra planes for box hull
 	cleaf_t		*leafs;		// 1 extra leaf for box hull
-	dword		*leafbrushes;
-	dword		*leafsurfaces;
+	dleafbrush_t	*leafbrushes;
+	dleafface_t	*leafsurfaces;
 	cnode_t		*nodes;		// 6 extra planes for box hull
 	dvertex_t		*vertices;
 	dsurface_t	*surfaces;	// source collision data
+	dedge_t		*edges;
+	dsurfedge_t	*surfedges;
+	dtexinfo_t	*texinfo;
 	csurface_t	*shaders;
-	int		*indices;
 	cbrush_t		*brushes;
 	cbrushside_t	*brushsides;
 	byte		*visbase;		// vis offset
@@ -168,15 +170,16 @@ typedef struct clipmap_s
 	NewtonCollision	*collision;
 	carea_t		*areas;
 	int		*areaportals;	// [ cm.numareas * cm.numareas ] reference counts
-	size_t		areaportals_size;
 
 	int		numbrushsides;
+	int		numtexinfo;
 	int		numplanes;
 	int		numbmodels;
 	int		numnodes;
 	int		numleafs;		// allow leaf funcs to be called without a map
 	int		numleafbrushes;
 	int		numleafsurfaces;
+	size_t		numareaportals;
 	int		numshaders;
 	int		numsurfaces;
 	int		numbrushes;
