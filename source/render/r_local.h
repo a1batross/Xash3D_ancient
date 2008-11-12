@@ -49,6 +49,7 @@ typedef enum
 	TF_NORMALMAP	= BIT(5),
 	TF_GEN_MIPS	= BIT(6),
 	TF_CUBEMAP	= BIT(7),
+	TF_LIGHTMAP	= BIT(8),
 } texFlags_t;
 
 typedef enum

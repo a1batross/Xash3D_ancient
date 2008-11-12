@@ -5,6 +5,8 @@
 
 #include "cm_local.h"
 
+static byte fatpvs[MAX_MAP_LEAFS/8];
+
 /*
 ===============================================================================
 
@@ -75,31 +77,81 @@ byte *CM_ClusterPHS( int cluster )
 }
 
 /*
+============
+CM_FatPVS
+
+The client will interpolate the view position,
+so we can't use a single PVS point
+===========
+*/
+byte *CM_FatPVS( const vec3_t org, bool portal )
+{
+	int	leafs[128];
+	int	i, j, count;
+	int	longs;
+	byte	*src;
+	vec3_t	mins, maxs;
+	int	snap = portal ? 1 : 8;
+
+	for( i = 0; i < 3; i++ )
+	{
+		mins[i] = org[i] - snap;
+		maxs[i] = org[i] + snap;
+	}
+
+	count = CM_BoxLeafnums( mins, maxs, leafs, 128, NULL );
+	if( count < 1 ) Host_Error( "CM_FatPVS: invalid leafnum count\n" );
+	longs = (CM_NumClusters() + 31)>>5;
+
+	// convert leafs to clusters
+	for( i = 0; i < count; i++ ) leafs[i] = CM_LeafCluster( leafs[i] );
+
+	if( !portal ) Mem_Copy( fatpvs, CM_ClusterPVS( leafs[0] ), longs<<2 );
+
+	// or in all the other leaf bits
+	for( i = portal ? 0 : 1; i < count; i++ )
+	{
+		for( j = 0; j < i; j++ )
+		{
+			if( leafs[i] == leafs[j] )
+				break;
+		}
+
+		if( j != i ) continue;	// already have the cluster we want
+		src = CM_ClusterPVS( leafs[i] );
+		for( j = 0; j < longs; j++ ) ((long *)fatpvs)[j] |= ((long *)src)[j];
+	}
+
+	return fatpvs;
+}
+
+/*
 ===============================================================================
 
 AREAPORTALS
 
 ===============================================================================
 */
-void CM_FloodArea_r( int areanum, int floodnum )
+void CM_FloodArea_r( carea_t *area, int floodnum )
 {
-	carea_t		*area;
-	int		i, *con;	
-
-	area = &cm.areas[areanum];
+	int		i;
+	dareaportal_t	*p;
 
 	if( area->floodvalid == cm.floodvalid )
 	{
 		if( area->floodnum == floodnum ) return;
-		Host_Error("FloodArea_r: reflooded\n");
+		Host_Error( "CM_FloodArea_r: reflooded\n" );
 	}
 
 	area->floodnum = floodnum;
 	area->floodvalid = cm.floodvalid;
-	con = cm.areaportals + areanum * cm.numareas;
+	p = &cm.areaportals[area->firstareaportal];
 
-	for( i = 0; i < cm.numareas; i++ )
-		if( con[i] > 0 ) CM_FloodArea_r( i, floodnum );
+	for( i = 0; i < area->numareaportals; i++, p++ )
+	{
+		if( cm.portalopen[p->portalnum] )
+			CM_FloodArea_r( &cm.areas[p->otherarea], floodnum );
+	}
 }
 
 /*
@@ -116,20 +168,21 @@ void CM_FloodAreaConnections( void )
 	cm.floodvalid++;
 
 	// area 0 is not used
-	for( i = 0, area = cm.areas; i < cm.numareas; i++, area++ )
+	for( i = 1; i < cm.numareas; i++ )
 	{
+		area = &cm.areas[i];
 		if( area->floodvalid == cm.floodvalid )
 			continue;	// already flooded into
 		floodnum++;
-		CM_FloodArea_r( i, floodnum );
+		CM_FloodArea_r( area, floodnum );
 	}
 }
 
 void CM_SetAreaPortals ( byte *portals, size_t size )
 {
-	if( size == cm.numareaportals )
+	if( size == sizeof( cm.portalopen ))
 	{ 
-		Mem_Copy( cm.areaportals, portals, cm.numareaportals );
+		Mem_Copy( cm.portalopen, portals, size );
 		CM_FloodAreaConnections();
 		return;
 	}
@@ -140,28 +193,16 @@ void CM_GetAreaPortals ( byte **portals, size_t *size )
 {
 	byte *prt = *portals;
 
-	if( prt ) Mem_Copy( prt, cm.areaportals, cm.numareaportals );
-	if( size) *size = cm.numareaportals; 
+	if( prt ) Mem_Copy( prt, cm.portalopen, sizeof( cm.portalopen ));
+	if( size) *size = sizeof( cm.portalopen ); 
 }
 
-void CM_SetAreaPortalState( int area1, int area2, bool open )
+void CM_SetAreaPortalState( int portalnum, bool open )
 {
-	if( area1 < 0 || area2 < 0 ) return;
-	if( area1 >= cm.numareas || area2 >= cm.numareas )
-		Host_Error( "CM_SetAreaPortalState: bad area numbers %i or %i\n", area1, area2 );
+	if( portalnum > cm.numareaportals )
+		Host_Error( "CM_SetAreaPortalState: areaportal > numareaportals\n" );
 
-	if( open )
-	{
-		cm.areaportals[area1*cm.numareas+area2]++;
-		cm.areaportals[area2*cm.numareas+area1]++;
-	}
-	else
-	{
-		cm.areaportals[area1*cm.numareas+area2]--;
-		cm.areaportals[area2*cm.numareas+area1]--;
-		if(cm.areaportals[area2*cm.numareas+area1] < 0 )
-			Host_Error( "CM_SetAreaPortalState: negative reference count\n" );
-	}
+	cm.portalopen[portalnum] = open;
 	CM_FloodAreaConnections();
 }
 
@@ -188,24 +229,56 @@ that area in the same flood as the area parameter
 This is used by the client refreshes to cull visibility
 =================
 */
-int CM_WriteAreaBits( byte *buffer, int area )
+int CM_WriteAreaBits( byte *buffer, int area, bool portal )
 {
-	int	i, size, floodnum;
+	int	i, size;
 
 	size = (cm.numareas + 7)>>3;
 
-	if( cm_noareas->integer || area == -1 )
+	if( cm_noareas->integer )
 	{
-		Mem_Set( buffer, 0xFF, size );
+		if( !portal ) Mem_Set( buffer, 0xFF, size );
 	}
 	else		
 	{
-		floodnum = cm.areas[area].floodnum;
+		if( !portal ) Mem_Set( buffer, 0x00, size );
 		for( i = 0; i < cm.numareas; i++ )
 		{
-			if( cm.areas[i].floodnum == floodnum || area == -1 )
-				buffer[i>>3] |= 1 << (i & 7);
+			if(CM_AreasConnected( i, area ) || !area )
+			{
+				if( !portal ) buffer[i>>3] |= 1 << (i & 7);
+				else buffer[i>>3] |= 1 << (i & 7) ^ ~0;
+			}
 		}
 	}
 	return size;
+}
+
+/*
+=============
+CM_HeadnodeVisible
+
+Returns true if any leaf under headnode has a cluster that
+is potentially visible
+=============
+*/
+bool CM_HeadnodeVisible( int nodenum, byte *visbits )
+{
+	int	leafnum, cluster;
+	cnode_t	*node;
+
+	if( nodenum < 0 )
+	{
+		leafnum = -1-nodenum;
+		cluster = cm.leafs[leafnum].cluster;
+		if( cluster == -1 ) return false;
+		if( visbits[cluster>>3] & (1<<(cluster&7)))
+			return true;
+		return false;
+	}
+
+	node = &cm.nodes[nodenum];
+	if( CM_HeadnodeVisible( node->children[0] - cm.nodes, visbits ))
+		return true;
+	return CM_HeadnodeVisible( node->children[1] - cm.nodes, visbits );
 }

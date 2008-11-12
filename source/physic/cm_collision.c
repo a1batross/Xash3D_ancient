@@ -1442,7 +1442,7 @@ void CM_CollisionDrawForEachBrush( void )
 			if( !draw ) continue;
 			if( i == 0 ) color = PackRGBA( 1, 0.7f, 0, 1 );	// world
 			else color = PackRGBA( 1, 0.1f, 0.1f, 1 );
-			ph.debug_line( color, draw->numpoints, (float *)&draw->points->v[0] );
+			ph.debug_line( color, draw->numpoints, (float *)&draw->points->v[0], (int *)&draw->elements );
 		}
 	}
 }

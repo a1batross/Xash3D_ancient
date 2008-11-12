@@ -3145,7 +3145,7 @@ file_t *VFS_Close( vfile_t *file )
 	}
 	handle = file->handle; // keep real handle
 
-	Mem_Free( file->buff );
+	if( file->buff )Mem_Free( file->buff );
 	Mem_Free( file ); // himself
 
 	return handle;

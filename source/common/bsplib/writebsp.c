@@ -97,8 +97,6 @@ void EmitLeaf( node_t *node )
 	leaf_p->cluster = node->cluster;
 	leaf_p->area = node->area;
 
-	Msg( "leaf %i cluster %i, area %i\n", numleafs - 1, leaf_p->cluster, leaf_p->area );
-
 	//
 	// write bounding box info
 	//	
@@ -270,7 +268,7 @@ void WriteBSP( node_t *headnode )
 
 	oldsurfaces = numsurfaces;
 	dmodels[nummodels].headnode = EmitDrawNode_r( headnode );
-	// EmitAreaPortals( headnode );
+	EmitAreaPortals( headnode );
 }
 
 //===========================================================

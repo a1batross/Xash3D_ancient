@@ -383,7 +383,7 @@ void BSP_LoadLeafBrushes( lump_t *l )
 	count = l->filelen / sizeof(*in);
 
 	if( count < 1 ) Host_Error( "Map %s with no leaf brushes\n", cm.name );
-	out = cm.leafbrushes = (dword *)Mem_Alloc( cmappool, count * sizeof(*out));
+	out = cm.leafbrushes = (dleafbrush_t *)Mem_Alloc( cmappool, count * sizeof(*out));
 	cm.numleafbrushes = count;
 	for( i = 0; i < count; i++, in++, out++) *out = LittleLong( *in );
 }
@@ -407,8 +407,8 @@ void BSP_LoadLeafs( lump_t *l )
 	count = l->filelen / sizeof(*in);
 	if( count < 1 ) Host_Error( "Map %s with no leafs\n", cm.name );
 	out = cm.leafs = (cleaf_t *)Mem_Alloc( cmappool, count * sizeof(*out));
-	cm.numclusters = cm.numareas = 0;
 	cm.numleafs = count;
+	cm.numclusters = 0;
 
 	for( i = 0; i < count; i++, in++, out++)
 	{
@@ -419,8 +419,6 @@ void BSP_LoadLeafs( lump_t *l )
 		out->area = LittleLong( in->area );
 		if( out->cluster >= cm.numclusters )
 			cm.numclusters = out->cluster + 1;
-		if( out->area >= cm.numareas )
-			cm.numareas = out->area + 1;
 		for( j = 0; j < 3; j++ )
 		{
 			// yes the mins/maxs are ints
@@ -441,9 +439,13 @@ void BSP_LoadLeafs( lump_t *l )
 		out->numleafbrushes = c;
 	}
 
+	// probably any wall it's liquid ?
+	if( cm.leafs[0].contents != CONTENTS_SOLID )
+		Host_Error("Map %s with leaf 0 is not CONTENTS_SOLID\n", cm.name );
+
 	for( i = 1; i < count; i++ )
 	{
-		if(!cm.leafs[i].contents)
+		if( !cm.leafs[i].contents )
 		{
 			emptyleaf = i;
 			break;
@@ -452,10 +454,6 @@ void BSP_LoadLeafs( lump_t *l )
 
 	// stuck into brushes
 	if( emptyleaf == -1 ) Host_Error( "Map %s does not have an empty leaf\n", cm.name );
-
-	cm.numareaportals = cm.numareas * cm.numareas * sizeof( *cm.areaportals );
-	cm.areas = Mem_Alloc( cmappool, cm.numareas * sizeof( *cm.areas ));
-	cm.areaportals = Mem_Alloc( cmappool, cm.numareaportals );
 }
 
 /*
@@ -500,7 +498,7 @@ void BSP_LoadBrushSides( lump_t *l )
 	in = (void *)(cm.mod_base + l->fileofs);
 	if( l->filelen % sizeof( *in ))
 		Host_Error( "BSP_LoadBrushSides: funny lump size\n" );
-	count = l->filelen / sizeof(*in);
+	count = l->filelen / sizeof( *in );
 	out = cm.brushsides = (cbrushside_t *)Mem_Alloc( cmappool, count * sizeof(*out));
 	cm.numbrushsides = count;
 
@@ -516,6 +514,57 @@ void BSP_LoadBrushSides( lump_t *l )
 
 /*
 =================
+BSP_LoadAreas
+=================
+*/
+void BSP_LoadAreas( lump_t *l )
+{
+	darea_t 		*in;
+	carea_t		*out;
+	int		i, count;
+
+	in = (void *)(cm.mod_base + l->fileofs);
+	if( l->filelen % sizeof( *in ))
+		Host_Error( "BSP_LoadAreas: funny lump size\n" );
+	count = l->filelen / sizeof( *in );
+  	out = cm.areas = (carea_t *)Mem_Alloc( cmappool, count * sizeof( *out ));
+	cm.numareas = count;
+
+	for( i = 0; i < count; i++, in++, out++ )
+	{
+		out->numareaportals = LittleLong( in->numareaportals );
+		out->firstareaportal = LittleLong( in->firstareaportal );
+		out->floodvalid = 0;
+		out->floodnum = 0;
+	}
+}
+
+/*
+=================
+BSP_LoadAreaPortals
+=================
+*/
+void BSP_LoadAreaPortals( lump_t *l )
+{
+	dareaportal_t	*in, *out;
+	int		i, count;
+
+	in = (void *)(cm.mod_base + l->fileofs);
+	if( l->filelen % sizeof( *in ))
+		Host_Error( "BSP_LoadAreaPortals: funny lump size\n" );
+	count = l->filelen / sizeof( *in );
+	out = cm.areaportals = (dareaportal_t *)Mem_Alloc( cmappool, count * sizeof( *out ));
+	cm.numareaportals = count;
+
+	for( i = 0; i < count; i++, in++, out++ )
+	{
+		out->portalnum = LittleLong( in->portalnum );
+		out->otherarea = LittleLong( in->otherarea );
+	}
+}
+
+/*
+=================
 BSP_LoadVisibility
 =================
 */
@@ -524,18 +573,19 @@ void BSP_LoadVisibility( lump_t *l )
 	int	i;
 
 	if( !l->filelen ) return;
+
 	cm.visbase = (byte *)Mem_Alloc( cmappool, l->filelen );
 	Mem_Copy( cm.visbase, cm.mod_base + l->fileofs, l->filelen );
 	cm.vis = (dvis_t *)cm.visbase; // conversion
 	cm.vis->numclusters = LittleLong( cm.vis->numclusters );
 	for( i = 0; i < cm.vis->numclusters; i++ )
 	{
-		cm.vis->bitofs[i][0] = LittleLong(cm.vis->bitofs[i][0]);
-		cm.vis->bitofs[i][1] = LittleLong(cm.vis->bitofs[i][1]);
+		cm.vis->bitofs[i][0] = LittleLong( cm.vis->bitofs[i][0] );
+		cm.vis->bitofs[i][1] = LittleLong( cm.vis->bitofs[i][1] );
 	}
 
 	if( cm.numclusters != cm.vis->numclusters )
-		Sys_Break( "invalid vis->numclusters (%i, should be %i)\n", cm.vis->numclusters, cm.numclusters );
+		Host_Error( "BSP_LoadVisibility: mismatch vis and leaf clusters (%i should be %i)\n", cm.vis->numclusters, cm.numclusters );
 }
 
 /*
@@ -603,8 +653,7 @@ void BSP_LoadSurfedges( lump_t *l )
 	if( l->filelen % sizeof( *in ))
 		Host_Error( "BSP_LoadSurfedges: funny lump size\n" );
 	count = l->filelen / sizeof(*in);
-	if( count < 1 || count >= MAX_MAP_SURFEDGES )
-		Host_Error( "BSP_LoadSurfedges: invalid surfedges count %i\n", count );
+	if( count < 1 ) Host_Error( "BSP_LoadSurfedges: map without surfedges\n" );
 	cm.surfedges = Mem_Alloc( cmappool, count * sizeof( *in ));	
 	Mem_Copy( cm.edges, in, count * sizeof( *in ));
 
@@ -643,21 +692,8 @@ BSP_LoadCollision
 */
 void BSP_LoadCollision( lump_t *l )
 {
+	if( !l->filelen ) return;
 	cm.world_tree = VFS_Create( cm.mod_base + l->fileofs, l->filelen );	
-}
-
-/*
-=================
-BSP_LoadBuiltinProgs
-=================
-*/
-void BSP_LoadBuiltinProgs( lump_t *l )
-{	
-	// not implemented
-	if( !l->filelen )
-	{
-		return;
-	}
 }
 
 static void BSP_RecursiveFindNumLeafs( cnode_t *node )
@@ -838,9 +874,9 @@ void CM_SaveCollisionTree( file_t *f, cmsave_t callback )
 
 void CM_LoadCollisionTree( void )
 {
+	if( !cm.world_tree ) return;
 	cm.collision = NewtonCreateTreeCollisionFromSerialization( gWorld, NULL, BSP_LoadTree, cm.world_tree );
 	VFS_Close( cm.world_tree );
-	cm.world_tree = NULL;
 }
 
 void CM_LoadWorld( const void *buffer )
@@ -872,10 +908,11 @@ void CM_FreeWorld( void )
 	// free old stuff
 	if( cm.loaded ) Mem_EmptyPool( cmappool );
 	cm.numplanes = cm.numnodes = cm.numleafs = 0;
+	cm.numleafbrushes = cm.numsurfaces = cm.numbmodels = 0;
 	cm.floodvalid = cm.numbrushsides = cm.numtexinfo = 0;
 	cm.numbrushes = cm.numleafsurfaces = cm.numareas = 0;
-	cm.numleafbrushes = cm.numsurfaces = cm.numbmodels = 0;
-	cm.numclusters = cm.numareaportals = cm.numshaders = 0;
+	cm.numareaportals = cm.numclusters = cm.numshaders = 0;
+	cm.world_tree = NULL;
 	cm.vis = NULL;
 
 	cm.name[0] = 0;
@@ -928,7 +965,7 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 		if( !clientload )
 		{
 			// rebuild portals for server
-			Mem_Set( cm.areaportals, 0, cm.numareaportals );
+			Mem_Set( cm.portalopen, 0, sizeof( cm.portalopen ));
 			CM_FloodAreaConnections();
 		}
 		// still have the right version
@@ -940,7 +977,7 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 
 	// load the newmap
 	buf = (uint *)FS_LoadFile( name, &length );
-	if(!buf) Host_Error("Couldn't load %s\n", name );
+	if(!buf) Host_Error( "Couldn't load %s\n", name );
 
 	*checksum = cm.checksum = LittleLong(Com_BlockChecksum (buf, length));
 	hdr = (dheader_t *)buf;
@@ -964,9 +1001,12 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 	BSP_LoadLeafSurfaces(&hdr->lumps[LUMP_LEAFFACES]);
 	BSP_LoadLeafs(&hdr->lumps[LUMP_LEAFS]);
 	BSP_LoadNodes(&hdr->lumps[LUMP_NODES]);
+	BSP_LoadAreas(&hdr->lumps[LUMP_AREAS]);
+	BSP_LoadAreaPortals(&hdr->lumps[LUMP_AREAPORTALS]);
 	BSP_LoadVisibility(&hdr->lumps[LUMP_VISIBILITY]);
 	BSP_LoadModels(&hdr->lumps[LUMP_MODELS]);
 	BSP_LoadCollision(&hdr->lumps[LUMP_COLLISION]);
+	cm.loaded = true;
 
 	BSP_RecursiveFindNumLeafs( cm.nodes );
 	BSP_RecursiveSetParent( cm.nodes, NULL );
@@ -975,8 +1015,8 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 	Mem_Free( buf );	// release map buffer
 
 	com.strncpy( cm.name, name, MAX_STRING );
+	Mem_Set( cm.portalopen, 0, sizeof( cm.portalopen ));
 	CM_FloodAreaConnections();
-	cm.loaded = true;
 
 	return &cm.bmodels[0];
 }
@@ -997,14 +1037,14 @@ void CM_EndRegistration( void )
 int CM_LeafContents( int leafnum )
 {
 	if( leafnum < 0 || leafnum >= cm.numleafs )
-		Host_Error("CM_LeafContents: bad number %d\n", leafnum );
+		Host_Error("CM_LeafContents: bad number %i >= %i\n", leafnum, cm.numleafs );
 	return cm.leafs[leafnum].contents;
 }
 
 int CM_LeafCluster( int leafnum )
 {
 	if( leafnum < 0 || leafnum >= cm.numleafs )
-		Host_Error("CM_LeafCluster: bad number %d\n", leafnum );
+		Host_Error("CM_LeafCluster: bad number %i >= %i\n", leafnum, cm.numleafs );
 	return cm.leafs[leafnum].cluster;
 }
 

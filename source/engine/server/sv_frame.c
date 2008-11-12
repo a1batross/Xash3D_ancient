@@ -13,6 +13,10 @@ typedef struct
 	int	entities[MAX_VISIBLE_PACKET];	
 } sv_ents_t;
 
+static byte *clientpvs;
+static byte *clientphs;
+static byte *bitvector;
+
 int	c_fullsend;
 
 /*
@@ -192,12 +196,14 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 	// specfically check for it
 	if( !sv.state ) return;
 
+	bitvector = pe->FatPVS( origin, portal );
+
 	leafnum = pe->PointLeafnum( origin );
 	clientarea = pe->LeafArea( leafnum );
 	clientcluster = pe->LeafCluster( leafnum );
 
 	// calculate the visible areas
-	frame->areabits_size = pe->WriteAreaBits( frame->areabits, clientarea );
+	frame->areabits_size = pe->WriteAreaBits( frame->areabits, clientarea, portal );
 	clientpvs = pe->ClusterPVS( clientcluster );
 
 	for( e = 0; e < prog->num_edicts; e++ )
@@ -237,7 +243,7 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 			if( !pe->AreasConnected( clientarea, ent->priv.sv->areanum2 ))
 				continue;	// blocked by a door
 		}
-		bitvector = clientpvs;
+		// bitvector = clientpvs;
 
 		// check individual leafs
 		if( !svent->num_clusters && !force ) continue;
@@ -424,11 +430,6 @@ void SV_BuildClientFrame( sv_client_t *cl )
 	// to work correctly.  This also catches the error condition
 	// of an entity being included twice.
 	qsort( frame_ents.entities, frame_ents.num_entities, sizeof( frame_ents.entities[0] ), SV_EntityNumbers );
-
-	// now that all viewpoint's areabits have been OR'd together, invert
-	// all of them to make it a mask vector, which is what the renderer wants
-	for( i = 0; i < MAX_MAP_AREA_BYTES / 4; i++ )
-		((int *)frame->areabits)[i] = ((int *)frame->areabits)[i] ^ -1;
 
 	// copy the entity states out
 	frame->num_entities = 0;

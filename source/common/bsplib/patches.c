@@ -80,7 +80,7 @@ void CalcTextureReflectivity( void )
 
 			// scale the reflectivity up, because the textures are so dim
 			scale = ColorNormalize( color, texture_reflectivity[i] );
-			texinfo[i].value = texels * 255.0 / scale; // basic intensity value
+			texinfo[i].value = (texels * 255.0) / scale; // basic intensity value
           		FS_FreeImage( pic ); // don't forget free image
 		}			
 		else VectorSet( texture_reflectivity[i], 0.5, 0.5, 0.5 );  // no texture, no shader...

@@ -2169,18 +2169,18 @@ bool Image_DecompressRGBA( uint target, int level, int intformat, uint width, ui
 	case PF_RGB_24:
 		for (i = 0; i < width * height; i++ )
 		{
-			fout[(i<<2)+0] = fin[i+0];
-			fout[(i<<2)+1] = fin[i+1];
-			fout[(i<<2)+2] = fin[i+2];
+			fout[(i<<2)+0] = fin[i*3+0];
+			fout[(i<<2)+1] = fin[i*3+1];
+			fout[(i<<2)+2] = fin[i*3+2];
 			fout[(i<<2)+3] = 255;
 		}
 		break;
 	case PF_BGR_24:
 		for (i = 0; i < width * height; i++ )
 		{
-			fout[(i<<2)+0] = fin[i+2];
-			fout[(i<<2)+1] = fin[i+1];
-			fout[(i<<2)+2] = fin[i+0];
+			fout[(i<<2)+0] = fin[i*3+2];
+			fout[(i<<2)+1] = fin[i*3+1];
+			fout[(i<<2)+2] = fin[i*3+0];
 			fout[(i<<2)+3] = 255;
 		}
 		break;

@@ -618,7 +618,7 @@ static void R_BuildLightmap( surface_t *surf, byte *dest, int stride )
 {
 	int	i, map, size, s, t;
 	vec3_t	scale;
-	float	*bl;
+	float	*bl, max;
 	byte	*lm;
 
 	lm = surf->lmSamples;
@@ -673,8 +673,34 @@ static void R_BuildLightmap( surface_t *surf, byte *dest, int stride )
 	{
 		for( s = 0; s < surf->lmWidth; s++ )
 		{
-			ColorNormalize( bl, bl );
-			Vector4Set( dest, bl[0], bl[1], bl[2], 255 );			
+			// catch negative lights
+			if( bl[0] < 0 ) bl[0] = 0;
+			if( bl[1] < 0 ) bl[1] = 0;
+			if( bl[2] < 0 ) bl[2] = 0;
+
+			// determine the brightest of the three color components
+			max = bl[0];
+			if( max < bl[1] ) max = bl[1];
+			if( max < bl[2] ) max = bl[2];
+
+			// rescale all the color components if the intensity of the
+			// greatest channel exceeds 255
+			if( max > 255.0 )
+			{
+				max = 255.0 / max;
+				dest[0] = bl[0] * max;
+				dest[1] = bl[1] * max;
+				dest[2] = bl[2] * max;
+				dest[3] = 255;
+			}
+			else
+			{
+				dest[0] = bl[0];
+				dest[1] = bl[1];
+				dest[2] = bl[2];
+				dest[3] = 255;
+			}
+			
 			bl += 3;
 			dest += 4;
 		}
@@ -714,7 +740,7 @@ static void R_UploadLightmap( void )
 		Host_Error( "R_UploadLightmap: MAX_LIGHTMAPS limit exceeded\n" );
 
 	com.snprintf( name, sizeof(name), "*lightmap%i", r_lmState.currentNum );
-	lightmap = R_CreateImage( va("*lightmap%d", r_lmState.currentNum ), (byte *)r_lmState.buffer, LM_SIZE, LM_SIZE, 0, 0, TW_CLAMP );
+	lightmap = R_CreateImage( va("*lightmap%d", r_lmState.currentNum ), (byte *)r_lmState.buffer, LM_SIZE, LM_SIZE, TF_LIGHTMAP, 0, TW_CLAMP );
 	r_lightmapTextures[r_lmState.currentNum++] = lightmap;
 
 	// reset

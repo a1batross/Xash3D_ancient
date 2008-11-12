@@ -89,6 +89,9 @@ physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs 
 	Phys.GetAreaPortals = CM_GetAreaPortals;
 	Phys.SetAreaPortalState = CM_SetAreaPortalState;
 
+	Phys.HeadnodeVisible = CM_HeadnodeVisible;
+	Phys.FatPVS = CM_FatPVS;
+
 	Phys.NumClusters = CM_NumClusters;
 	Phys.NumTextures = CM_NumTextures;
 	Phys.NumBmodels = CM_NumInlineModels;

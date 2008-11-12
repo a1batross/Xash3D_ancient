@@ -2117,11 +2117,12 @@ void PF_AreaPortalState( void )
 	edict_t	*ent;
 	bool	open;
 
-	if(!VM_ValidateArgs( "areaportal", 2 )) return;
+	if( !VM_ValidateArgs( "areaportal", 2 ))
+		return;
+
 	ent = PRVM_G_EDICT( OFS_PARM0 );
-	if( ent->priv.sv->areanum2 == -1 ) return;
 	open = (bool)PRVM_G_FLOAT( OFS_PARM1 );
-	pe->SetAreaPortalState( ent->priv.sv->areanum, ent->priv.sv->areanum2, open );
+	pe->SetAreaPortalState( ent->progs.sv->style, open );
 }
 
 /*

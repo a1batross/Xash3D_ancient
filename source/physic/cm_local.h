@@ -106,16 +106,11 @@ typedef struct
 
 typedef struct
 {
+	int		numareaportals;
+	int		firstareaportal;
 	int		floodnum;		// if two areas have equal floodnums, they are connected
 	int		floodvalid;
 } carea_t;
-
-typedef struct
-{
-	int		numClusters;
-	int		clusterBytes;
-	byte		*data;		// vis data
-} cvis_t;
 
 typedef struct material_info_s
 {
@@ -139,9 +134,11 @@ typedef struct collide_info_s
 typedef struct clipmap_s
 {
 	string		name;
+
 	uint		checksum;		// map checksum
 	byte		pvsrow[MAX_MAP_LEAFS/8];
 	byte		phsrow[MAX_MAP_LEAFS/8];
+	byte		portalopen[MAX_MAP_AREAPORTALS];
 
 	// brush, studio and sprite models
 	cmodel_t		cmodels[MAX_MODELS];
@@ -158,18 +155,18 @@ typedef struct clipmap_s
 	dleafface_t	*leafsurfaces;
 	cnode_t		*nodes;		// 6 extra planes for box hull
 	dvertex_t		*vertices;
-	dsurface_t	*surfaces;	// source collision data
 	dedge_t		*edges;
+	dsurface_t	*surfaces;	// source collision data
 	dsurfedge_t	*surfedges;
 	dtexinfo_t	*texinfo;
-	csurface_t	*shaders;
 	cbrush_t		*brushes;
 	cbrushside_t	*brushsides;
 	byte		*visbase;		// vis offset
 	dvis_t		*vis;
 	NewtonCollision	*collision;
+	csurface_t	*shaders;
 	carea_t		*areas;
-	int		*areaportals;	// [ cm.numareas * cm.numareas ] reference counts
+	dareaportal_t	*areaportals;
 
 	int		numbrushsides;
 	int		numtexinfo;
@@ -179,11 +176,11 @@ typedef struct clipmap_s
 	int		numleafs;		// allow leaf funcs to be called without a map
 	int		numleafbrushes;
 	int		numleafsurfaces;
-	size_t		numareaportals;
 	int		numshaders;
-	int		numsurfaces;
 	int		numbrushes;
+	int		numsurfaces;
 	int		numareas;
+	int		numareaportals;
 	int		numclusters;
 	int		floodvalid;
 

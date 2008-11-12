@@ -1004,13 +1004,13 @@ BuildFacelights
 float	sampleofs[5][2] = 
 {  {0,0}, {-0.25, -0.25}, {0.25, -0.25}, {0.25, 0.25}, {-0.25, 0.25} };
 
+static lightinfo_t	light_info[5];
 
 void BuildFacelights (int facenum)
 {
 	dsurface_t	*f;
-	lightinfo_t	l[5];
-	float		*styletable[MAX_LSTYLES];
 	int		i, j;
+	float		*styletable[MAX_LSTYLES];
 	float		*spot;
 	patch_t		*patch;
 	int		numsamples;
@@ -1030,43 +1030,43 @@ void BuildFacelights (int facenum)
 		numsamples = 1;
 	for (i=0 ; i<numsamples ; i++)
 	{
-		memset (&l[i], 0, sizeof(l[i]));
-		l[i].surfnum = facenum;
-		l[i].face = f;
-		VectorCopy (dplanes[f->planenum].normal, l[i].facenormal);
-		l[i].facedist = dplanes[f->planenum].dist;
+		memset (&light_info[i], 0, sizeof(light_info[i]));
+		light_info[i].surfnum = facenum;
+		light_info[i].face = f;
+		VectorCopy (dplanes[f->planenum].normal, light_info[i].facenormal);
+		light_info[i].facedist = dplanes[f->planenum].dist;
 		if (f->side)
 		{
-			VectorSubtract (vec3_origin, l[i].facenormal, l[i].facenormal);
-			l[i].facedist = -l[i].facedist;
+			VectorSubtract (vec3_origin, light_info[i].facenormal, light_info[i].facenormal);
+			light_info[i].facedist = -light_info[i].facedist;
 		}
 
 		// get the origin offset for rotating bmodels
-		VectorCopy (face_offset[facenum], l[i].modelorg);
+		VectorCopy (face_offset[facenum], light_info[i].modelorg);
 
-		CalcFaceVectors (&l[i]);
-		CalcFaceExtents (&l[i]);
-		CalcPoints (&l[i], sampleofs[i][0], sampleofs[i][1]);
+		CalcFaceVectors (&light_info[i]);
+		CalcFaceExtents (&light_info[i]);
+		CalcPoints (&light_info[i], sampleofs[i][0], sampleofs[i][1]);
 	}
 
-	tablesize = l[0].numsurfpt * sizeof(vec3_t);
+	tablesize = light_info[0].numsurfpt * sizeof(vec3_t);
 	styletable[0] = Malloc(tablesize);
 
 	fl = &facelight[facenum];
-	fl->numsamples = l[0].numsurfpt;
+	fl->numsamples = light_info[0].numsurfpt;
 	fl->origins = Malloc (tablesize);
-	memcpy (fl->origins, l[0].surfpt, tablesize);
+	memcpy (fl->origins, light_info[0].surfpt, tablesize);
 
-	for (i=0 ; i<l[0].numsurfpt ; i++)
+	for (i=0 ; i<light_info[0].numsurfpt ; i++)
 	{
 		for (j=0 ; j<numsamples ; j++)
 		{
-			GatherSampleLight (l[j].surfpt[i], l[0].facenormal, styletable,
+			GatherSampleLight (light_info[j].surfpt[i], light_info[0].facenormal, styletable,
 				i*3, tablesize, 1.0/numsamples);
 		}
 
 		// contribute the sample to one or more patches
-		AddSampleToPatch (l[0].surfpt[i], styletable[0]+i*3, facenum);
+		AddSampleToPatch (light_info[0].surfpt[i], styletable[0]+i*3, facenum);
 	}
 
 	// average up the direct light on each patch for radiosity
@@ -1098,7 +1098,7 @@ void BuildFacelights (int facenum)
 		)
 	{
 		spot = fl->samples[0];
-		for (i=0 ; i<l[0].numsurfpt ; i++, spot+=3)
+		for (i=0 ; i<light_info[0].numsurfpt ; i++, spot+=3)
 		{
 			VectorAdd (spot, face_patches[facenum]->baselight, spot);
 		}

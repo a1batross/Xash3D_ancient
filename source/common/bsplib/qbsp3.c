@@ -287,7 +287,7 @@ void Init_PhysicsLibrary( void )
 	pi.api_size = sizeof(physic_imp_t);
 	Sys_LoadLibrary( &physic_dll );
 
-	if(physic_dll.link)
+	if( physic_dll.link )
 	{
 		CreatePhysic = (void *)physic_dll.main;
 		pe = CreatePhysic( &com, &pi ); // sys_error not overrided
@@ -298,7 +298,7 @@ void Init_PhysicsLibrary( void )
 
 void Free_PhysicLibrary( void )
 {
-	if(physic_dll.link)
+	if( physic_dll.link )
 	{
 		pe->Shutdown();
 		memset( &pe, 0, sizeof(pe));

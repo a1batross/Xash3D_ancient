@@ -1342,7 +1342,7 @@ static void RB_DrawModelBounds( void )
 	pglEnd();
 }
 
-static void RB_DrawLine( int color, int numpoints, const float *points )
+static void RB_DrawLine( int color, int numpoints, const float *points, const int *elements )
 {
 	int	i = numpoints - 1;
 	vec3_t	p0, p1;

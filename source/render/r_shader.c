@@ -1764,7 +1764,7 @@ static bool R_ParseStageMap( ref_shader_t *shader, shaderStage_t *stage, script_
 		return false;
 	}
 
-	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES, &tok ))
+	if( !Com_ReadToken( script, SC_PARSE_GENERIC, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'map' in shader '%s'\n", shader->name );
 		return false;
@@ -3694,7 +3694,7 @@ static void R_ParseShaderFile( script_t *script, const char *name )
 	while( 1 )
 	{
 		// parse the name
-		if( !Com_ReadToken( script, SC_ALLOW_NEWLINES|SC_ALLOW_PATHNAMES, &tok ))
+		if( !Com_ReadToken( script, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &tok ))
 			break; // end of data
 
 

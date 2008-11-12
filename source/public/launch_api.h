@@ -100,7 +100,7 @@ typedef struct { const char *name; void **func; } dllfunc_t; // Sys_LoadLibrary 
 typedef struct { int numfilenames; char **filenames; char *filenamesbuffer; } search_t;
 typedef struct { int ofs; int type; const char *name; } fields_t;	// prvm custom fields
 typedef void (*cmsave_t) (void* handle, const void* buffer, size_t size);
-typedef void (*cmdraw_t)( int color, int numpoints, const float *points );
+typedef void (*cmdraw_t)( int color, int numpoints, const float *points, const int *elements );
 typedef void ( *setpair_t )( const char *key, const char *value, void *buffer, void *numpairs );
 typedef enum { NA_BAD, NA_LOOPBACK, NA_BROADCAST, NA_IP, NA_IPX, NA_BROADCAST_IPX } netadrtype_t;
 typedef enum { mod_bad, mod_world, mod_brush, mod_studio, mod_sprite } modtype_t;

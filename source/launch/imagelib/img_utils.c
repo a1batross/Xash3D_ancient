@@ -1208,7 +1208,8 @@ void Image_Process( rgbdata_t **pix, int width, int height, uint flags )
 		return;
 	}
 
-	if( flags & IMAGE_FORCE_RGBA ) Sys_Error( "Image_Process: Image_ForceRGBA not implemented\n" );
+// FIXME:
+// if( flags & IMAGE_FORCE_RGBA ) Sys_Error( "Image_Process: Image_ForceRGBA not implemented\n" );
 
 	// NOTE: flip and resample algorythms can't different palette size
 	if( flags & IMAGE_PALTO24 ) Image_ConvertPalTo24bit( pic );

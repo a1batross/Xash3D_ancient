@@ -2048,6 +2048,7 @@ static void R_UploadTexture( rgbdata_t *pic, texture_t *tex )
 texture_t *R_CreateImage( const char *name, byte *buf, int width, int height, texFlags_t texFlags, texFilter_t filter, texWrap_t wrap )
 {
 	rgbdata_t	r_generic;
+	int	i;
 
 	Mem_Set( &r_generic, 0, sizeof( r_generic ));	
 	r_generic.width = width;
@@ -2058,8 +2059,16 @@ texture_t *R_CreateImage( const char *name, byte *buf, int width, int height, te
 	r_generic.buffer = buf;
 
 	// setup image flags
-	if( texFlags & TF_CUBEMAP ) r_generic.flags |= TF_CUBEMAP;
+	if( texFlags & TF_CUBEMAP ) r_generic.flags |= IMAGE_CUBEMAP;
 
+	for( i = 0; i < width * height; i++ )
+	{
+		if( buf[i*4+2] != buf[i*4+1] || buf[i*4+1] != buf[i*4+0] )
+		{
+			r_generic.flags |= IMAGE_HAS_COLOR;
+			break;
+		}
+	}
 	return R_LoadTexture( name, &r_generic, 0, texFlags, filter, wrap );
 }  
 
@@ -2482,6 +2491,8 @@ void RB_ShowTextures( void )
 		if( r_showtextures->integer == 1 && texture->flags & TF_STATIC )
 			continue;
 		if( r_showtextures->integer == 2 && !(texture->flags & TF_STATIC ))
+			continue;
+		if( r_showtextures->integer == 3 && !(texture->flags & TF_LIGHTMAP ))
 			continue;
 
 		w = r_width->integer / 10;
