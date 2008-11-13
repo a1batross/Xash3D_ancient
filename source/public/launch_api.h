@@ -184,11 +184,12 @@ typedef enum
 	SC_ALLOW_STRINGCONCAT	= BIT(1),
 	SC_ALLOW_ESCAPECHARS 	= BIT(2),
 	SC_ALLOW_PATHNAMES		= BIT(3),
-	SC_PARSE_GENERIC		= BIT(4),
-	SC_PRINT_ERRORS		= BIT(5),
-	SC_PRINT_WARNINGS	 	= BIT(6),
-	SC_PARSE_LINE		= BIT(7),	// read line, ignore whitespaces
-	SC_COMMENT_SEMICOLON	= BIT(8),	// using semicolon as mark or begin comment (q2 oldstyle)
+	SC_ALLOW_PATHNAMES2		= BIT(4),	// allow pathnames with quake symbols (!, %, $, +, -, { )
+	SC_PARSE_GENERIC		= BIT(5),
+	SC_PRINT_ERRORS		= BIT(6),
+	SC_PRINT_WARNINGS	 	= BIT(7),
+	SC_PARSE_LINE		= BIT(8),	// read line, ignore whitespaces
+	SC_COMMENT_SEMICOLON	= BIT(9),	// using semicolon as mark or begin comment (q2 oldstyle)
 } scFlags_t;
 
 typedef struct

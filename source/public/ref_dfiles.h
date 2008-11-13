@@ -175,31 +175,30 @@ BRUSH MODELS
 #define MAX_LIGHT_STYLES		64
 #define MAX_SWITCHED_LIGHTS		32
 
-// lump offset (TODO: compress it same as much more as possible)
+// lump offset
 #define LUMP_ENTITIES		0
-#define LUMP_PLANES			1
-#define LUMP_LEAFS			2
-#define LUMP_LEAFFACES		3
-#define LUMP_LEAFBRUSHES		4
-#define LUMP_NODES			5
-#define LUMP_VERTEXES		6
-#define LUMP_EDGES			7
-#define LUMP_SURFEDGES		8
-#define LUMP_TEXINFO		9
-#define LUMP_SURFACES		10
-#define LUMP_MODELS			11
-#define LUMP_BRUSHES		12
-#define LUMP_BRUSHSIDES		13
-#define LUMP_VISIBILITY		14
-#define LUMP_LIGHTING		15
-#define LUMP_COLLISION		16	// newton collision tree (worldmodel coords already convert to meters)
-#define LUMP_SHADERS		17	// contains texture name and dims
+#define LUMP_SHADERS		1	// contains shader name and dims
+#define LUMP_PLANES			2
+#define LUMP_LEAFS			3
+#define LUMP_LEAFFACES		4	// marksurfaces
+#define LUMP_LEAFBRUSHES		5
+#define LUMP_NODES			6
+#define LUMP_VERTEXES		7
+#define LUMP_EDGES			8
+#define LUMP_SURFEDGES		9
+#define LUMP_TEXINFO		10
+#define LUMP_SURFACES		11
+#define LUMP_MODELS			12	// bsp brushmodels
+#define LUMP_BRUSHES		13
+#define LUMP_BRUSHSIDES		14
+#define LUMP_VISIBILITY		15
+#define LUMP_LIGHTING		16
+#define LUMP_COLLISION		17	// prepared newton collision tree
 #define LUMP_LIGHTGRID		18	// private server.dat for current map
-// get rid of this
 #define LUMP_AREAS			19
 #define LUMP_AREAPORTALS		20
-
-#define LUMP_TOTALCOUNT		32	// max lumps
+// reserved for future expansions
+#define LUMP_TOTALCOUNT		24	// max lumps
 
 typedef struct
 {

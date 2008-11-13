@@ -552,6 +552,22 @@ void Image_CopyPalette32bit( void )
 	Mem_Copy( image.palette, image.d_currentpal, 1024 );
 }
 
+void Image_CopyParms( rgbdata_t *src )
+{
+	Image_Reset();
+
+	image.width = src->width;
+	image.height = src->height;
+	image.num_layers = src->numLayers;
+	image.num_mips = src->numMips;
+	image.type = src->type;
+	image.flags = src->flags;
+	image.bits_count = src->bitsCount;
+	image.size = src->size;
+	image.rgba = src->buffer;
+	image.palette = src->palette;	// may be NULL
+}
+
 /*
 ============
 Image_Copy8bitRGBA
@@ -1196,6 +1212,48 @@ byte *Image_FlipInternal( const byte *in, int *srcwidth, int *srcheight, int typ
 	return image.tempbuffer;
 }
 
+rgbdata_t *Image_DecompressInternal( rgbdata_t *pic )
+{
+	int	i, offset, numsides = 1;
+	uint	target = 1;
+	byte	*buf;
+
+	// quick case to reject unneeded conversions
+	switch( pic->type )
+	{
+	case PF_UV_32:
+	case PF_RGBA_GN:
+	case PF_RGBA_32:
+	case PF_ABGR_128F:
+		return pic; // just change type
+	}
+
+	Image_CopyParms( pic );
+
+	if( image.flags & IMAGE_CUBEMAP ) numsides = 6;
+	Image_SetPixelFormat( image.width, image.height, image.num_layers ); // setup
+	image.size = image.ptr = 0;
+	if( image.cmd_flags & IL_IGNORE_MIPS ) image.cur_mips = 1;
+	else image.cur_mips = image.num_mips;
+	image.num_mips = 0; // clear mipcount
+	buf = image.rgba;
+
+	for( i = 0, offset = 0; i < numsides; i++, buf += offset )
+	{
+		Image_SetPixelFormat( image.curwidth, image.curheight, image.curdepth );
+		offset = image.SizeOfFile; // move pointer
+
+		Image_DecompressDDS( buf, target + i );
+	}
+	// now we can change type to RGBA
+	if( image.filter != CB_HINT_NO ) image.flags &= ~IMAGE_CUBEMAP; // side extracted
+	image.type = PF_RGBA_32;
+
+	FS_FreeImage( pic );	// free original
+
+	return ImagePack();
+}
+
 void Image_Process( rgbdata_t **pix, int width, int height, uint flags )
 {
 	rgbdata_t	*pic = *pix;
@@ -1208,10 +1266,10 @@ void Image_Process( rgbdata_t **pix, int width, int height, uint flags )
 		return;
 	}
 
-// FIXME:
-// if( flags & IMAGE_FORCE_RGBA ) Sys_Error( "Image_Process: Image_ForceRGBA not implemented\n" );
+	// update format to RGBA if any
+	if( flags & IMAGE_FORCE_RGBA ) pic = Image_DecompressInternal( pic );
 
-	// NOTE: flip and resample algorythms can't different palette size
+	// NOTE: flip and resample algorythms can't difference palette size
 	if( flags & IMAGE_PALTO24 ) Image_ConvertPalTo24bit( pic );
 	out = Image_FlipInternal( pic->buffer, &pic->width, &pic->height, pic->type, flags );
 	if( pic->buffer != out ) Mem_Copy( pic->buffer, image.tempbuffer, pic->size );

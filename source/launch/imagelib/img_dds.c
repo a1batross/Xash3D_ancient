@@ -1325,7 +1325,7 @@ void Image_DXTGetPixelFormat( dds_t *hdr )
 		else 
 		{
 			if( bits == 32 ) image.type = PF_ABGR_64;
-			else if( bits == 24 ) image.type = PF_RGB_24;
+			else if( bits == 24 ) image.type = PF_BGR_24;
 			else image.type = PF_ARGB_32;
 		}
 	}
@@ -2142,6 +2142,72 @@ bool Image_DecompressARGB( uint target, int level, int intformat, uint width, ui
 	return true;
 }
 
+bool Image_DecompressPal8( uint target, int level, int intformat, uint width, uint height, uint imageSize, const void* data )
+{
+	byte	*fin, *fout;
+	int	size; 
+
+	if( !data ) return false;
+	fin = (byte *)data;
+
+	size = width * height * image.curdepth * 4;
+	image.tempbuffer = Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
+	fout = image.tempbuffer;
+
+	switch( PFDesc[intformat].format )
+	{
+	case PF_INDEXED_24:
+		if( image.flags & IMAGE_HAS_ALPHA )
+		{
+			if( image.flags & IMAGE_COLORINDEX )
+				Image_GetPaletteLMP( image.palette, LUMP_DECAL ); 
+			else Image_GetPaletteLMP( image.palette, LUMP_TRANSPARENT ); 
+		}
+		else Image_GetPaletteLMP( image.palette, LUMP_NORMAL );
+		// intentional falltrough
+	case PF_INDEXED_32:
+		if( !image.d_currentpal ) image.d_currentpal = ( uint *)image.palette;
+		if( !Image_Copy8bitRGBA( fin, fout, width * height )) return false;
+		break;
+	}
+
+	Image_AddRGBAToPack( target, level, size, fout );
+	return true;
+}
+
+bool Image_DecompressDUDV( uint target, int level, int intformat, uint width, uint height, uint imageSize, const void* data )
+{
+	byte	*fin, *fout;
+	int	i, size; 
+	short	*col;
+
+	if( !data ) return false;
+	fin = (byte *)data;
+
+	size = width * height * image.curdepth * 4;
+	image.tempbuffer = Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
+	fout = image.tempbuffer;
+
+	switch( PFDesc[intformat].format )
+	{
+	case PF_UV_16:
+		for( i = 0, col = (short *)fin; i < width * height; i++, col += sizeof( short ))
+		{
+			fout[(i<<2)+0] = col[0];
+			fout[(i<<2)+1] = col[1];
+			fout[(i<<2)+2] = 0;
+			fout[(i<<2)+3] = 0;
+		}
+		break;
+	case PF_UV_32:
+		Mem_Copy( fout, fin, size );	// nothing to process
+		break;
+	}
+
+	Image_AddRGBAToPack( target, level, size, fout );
+	return true;
+}
+
 bool Image_DecompressRGBA( uint target, int level, int intformat, uint width, uint height, uint imageSize, const void* data )
 {
 	byte	*fin, *fout;
@@ -2160,9 +2226,9 @@ bool Image_DecompressRGBA( uint target, int level, int intformat, uint width, ui
 	case PF_RGB_16:
 		for( i = 0, col = (color16 *)fin; i < width * height; i++, col += sizeof( color16 ))
 		{
-			fout[(i<<2)+0] = col->r;
-			fout[(i<<2)+1] = col->g;
-			fout[(i<<2)+2] = col->b;
+			fout[(i<<2)+0] = col->r << 3;
+			fout[(i<<2)+1] = col->g << 2;
+			fout[(i<<2)+2] = col->b << 3;
 			fout[(i<<2)+3] = 255;
 		}
 		break;	
@@ -2184,6 +2250,7 @@ bool Image_DecompressRGBA( uint target, int level, int intformat, uint width, ui
 			fout[(i<<2)+3] = 255;
 		}
 		break;
+	case PF_RGBA_GN:
 	case PF_RGBA_32:
 		Mem_Copy( fout, fin, size );
 		break;
@@ -2216,14 +2283,15 @@ void Image_DecompressDDS( const byte *buffer, uint target )
 
 	switch( image.type )
 	{
-	case PF_RGB_24:
+	case PF_INDEXED_24:
+	case PF_INDEXED_32: image.decompress = Image_DecompressPal8; break;
 	case PF_RGBA_32: 
-	case PF_BGRA_32:
-	case PF_ABGR_64: image.decompress = Image_DecompressRGBA; break;
-	case PF_LUMINANCE:
-	case PF_LUMINANCE_16:
-	case PF_LUMINANCE_ALPHA:
+	case PF_BGRA_32: image.decompress = Image_DecompressRGBA; break;
 	case PF_ARGB_32: image.decompress = Image_DecompressARGB; break;
+	case PF_ABGR_64: 
+	case PF_RGB_24:
+	case PF_BGR_24: 
+	case PF_RGB_16: image.decompress = Image_DecompressRGBA; break;
 	case PF_DXT1:
 	case PF_DXT2:
 	case PF_DXT3:
@@ -2232,13 +2300,19 @@ void Image_DecompressDDS( const byte *buffer, uint target )
 	case PF_RXGB: image.decompress = Image_DecompressDXT; break;
 	case PF_ATI1N:
 	case PF_ATI2N: image.decompress = Image_DecompressATI; break;
+	case PF_LUMINANCE:
+	case PF_LUMINANCE_16:
+	case PF_LUMINANCE_ALPHA: image.decompress = Image_DecompressARGB; break;
+	case PF_UV_16:
+	case PF_UV_32: image.decompress = Image_DecompressDUDV; break;
 	case PF_R_16F:
 	case PF_R_32F:
 	case PF_GR_32F:
 	case PF_GR_64F:
 	case PF_ABGR_64F:
 	case PF_ABGR_128F: image.decompress = Image_DecompressFloat; break;
-	case PF_UNKNOWN: break;
+	case PF_RGBA_GN: image.decompress = Image_DecompressRGBA; break;
+	default: Sys_Error( "Image_DecompressDDS: unknown image format\n" );
 	}
 
 	for( i = 0; i < image.cur_mips; i++, buffer += size )
@@ -2358,6 +2432,7 @@ bool Image_LoadDDS( const char *name, const byte *buffer, size_t filesize )
 		// now we can change type to RGBA
 		if( image.filter != CB_HINT_NO ) image.flags &= ~IMAGE_CUBEMAP; // side extracted
 		image.type = PF_RGBA_32;
+		image.bits_count = 32;
 	}
 	else
 	{

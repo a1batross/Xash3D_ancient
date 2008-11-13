@@ -46,39 +46,45 @@ static int		r_numTables;
 ref_shader_t		*r_shaders[MAX_SHADERS];
 int			r_numShaders = 0;
 
+// NOTE: this table must match with same table in common\bsplib\shaders.c
 shaderParm_t infoParms[] =
 {
 	// server relevant contents
-	{"water",		0,		CONTENTS_WATER		},
-	{"slime",		0,		CONTENTS_SLIME,		}, // mildly damaging
-	{"lava",		0,		CONTENTS_LAVA,		}, // very damaging
-	{"playerclip",	0,		CONTENTS_PLAYERCLIP,	},
-	{"monsterclip",	0,		CONTENTS_MONSTERCLIP,	},
-	{"clip",		0,		CONTENTS_CLIP,		},
-	{"nonsolid",	0,		0,			}, // just clears the solid flag
+	{"window",	SURF_NONE,	CONTENTS_WINDOW,		},
+	{"aux",		SURF_NONE,	CONTENTS_AUX,		},
+	{"warp",		SURF_WARP,	CONTENTS_NONE,		},
+	{"water",		SURF_NONE,	CONTENTS_WATER,		},
+	{"slime",		SURF_NONE,	CONTENTS_SLIME,		}, // mildly damaging
+	{"lava",		SURF_NONE,	CONTENTS_LAVA,		}, // very damaging
+	{"playerclip",	SURF_NONE,	CONTENTS_PLAYERCLIP,	},
+	{"monsterclip",	SURF_NONE,	CONTENTS_MONSTERCLIP,	},
+	{"clip",		SURF_NONE,	CONTENTS_CLIP,		},
+	{"notsolid",	SURF_NONE,	CONTENTS_NONE,		},
+	{"trigger",	SURF_NONE,	CONTENTS_TRIGGER,		},
 
 	// utility relevant attributes
-	{"origin",	0,		CONTENTS_ORIGIN,		}, // center of rotating brushes
-	{"trans",		0,		CONTENTS_TRANSLUCENT,	}, // don't eat contained surfaces
-	{"detail",	0,		CONTENTS_DETAIL,		}, // carves surfaces entering
-	{"areaportal",	0,		CONTENTS_AREAPORTAL,	},
-	{"fog",		0,		CONTENTS_FOG,		}, // carves surfaces entering
-	{"sky",		SURF_SKY,		0,			}, // emit light from environment map
-	{"hint",		SURF_HINT,	0,			}, // use as a primary splitter
-	{"skip",		SURF_NODRAW,	0,			}, // use as a secondary splitter
-	{"null",		SURF_NODRAW,	0,			}, // don't generate a drawsurface
-	{"nodraw",	SURF_NODRAW,	0,			}, // don't generate a drawsurface
+	{"origin",	SURF_NONE,	CONTENTS_ORIGIN,		}, // center of rotating brushes
+	{"nolightmap",	SURF_NOLIGHTMAP,	CONTENTS_NONE,		}, // don't generate a lightmap
+	{"translucent",	SURF_NONE,	CONTENTS_TRANSLUCENT,	}, // don't eat contained surfaces
+	{"detail",	SURF_NONE,	CONTENTS_DETAIL,		}, // carves surfaces entering
+	{"fog",		SURF_NOLIGHTMAP,	CONTENTS_FOG,		}, // carves surfaces entering
+	{"sky",		SURF_SKY,		CONTENTS_NONE,		}, // emit light from environment map
+	{"hint",		SURF_HINT,	CONTENTS_NONE,		}, // use as a primary splitter
+	{"skip",		SURF_SKIP,	CONTENTS_NONE,		}, // use as a secondary splitter
+	{"null",		SURF_NODRAW,	CONTENTS_NONE,		}, // don't generate a drawsurface
+	{"mirror",	SURF_MIRROR,	CONTENTS_NONE,		}, // mirror surface
 
 	// server attributes
-	{"slick",		0,		SURF_SLICK,		},
-	{"ladder",	0,		CONTENTS_LADDER,		},
+	{"slick",		SURF_SLICK,	CONTENTS_NONE,		},
+	{"light",		SURF_LIGHT,	CONTENTS_NONE,		},
+	{"ladder",	SURF_NONE,	CONTENTS_LADDER,		},
 
-	// drawsurf attributes
-	{"nolightmap",	SURF_NOLIGHTMAP,	0,			}, // don't generate a lightmap
-	{"alpha",		SURF_ALPHA,	CONTENTS_TRANSLUCENT,	}, // alpha surface preset
-	{"additive",	SURF_ADDITIVE,	CONTENTS_TRANSLUCENT,	}, // additive surface preset
-	{"blend",		SURF_BLEND,	CONTENTS_TRANSLUCENT,	}, // blend surface preset
-	{"mirror",	SURF_MIRROR,	0,			}, // mirror surface
+	// drawsurf attributes (matched with Half-Life render modes)
+	{"texture",	SURF_BLEND,	CONTENTS_NONE,		}, // blend surface
+	{"glow",		SURF_GLOW,	CONTENTS_NONE,		}, // glow sprite
+	{"solid",		SURF_ALPHA,	CONTENTS_NONE,		}, // alphatest
+	{"additive",	SURF_ADDITIVE,	CONTENTS_NONE,		}, // additive
+	{"chrome",	SURF_CHROME,	CONTENTS_NONE,		}, // studio chrome
 };
 
 /*
@@ -1764,7 +1770,7 @@ static bool R_ParseStageMap( ref_shader_t *shader, shaderStage_t *stage, script_
 		return false;
 	}
 
-	if( !Com_ReadToken( script, SC_PARSE_GENERIC, &tok ))
+	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'map' in shader '%s'\n", shader->name );
 		return false;
@@ -3898,7 +3904,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 		shader->stages[0]->numBundles++;
 		shader->numStages++;
 
-		if(!( shader->surfaceParm & SURF_NOLIGHTMAP ))
+		if(!( shader->surfaceParm & (SURF_NOLIGHTMAP|SURF_LIGHT)))
 		{
 			shader->flags |= SHADER_HASLIGHTMAP;
 			shader->stages[1]->bundles[0]->flags |= STAGEBUNDLE_MAP;
@@ -4053,9 +4059,9 @@ static ref_shader_t *R_CreateShader( const char *name, int shaderType, uint surf
 	shader->surfaceParm = surfaceParm;
 	shader->flags = SHADER_EXTERNAL;
 
-	if( shaderType == SHADER_NOMIP ) shader->flags |= (SHADER_NOMIPMAPS | SHADER_NOPICMIP);
+	if( shaderType == SHADER_NOMIP ) shader->flags |= (SHADER_NOMIPMAPS|SHADER_NOPICMIP);
 
-	// If we have a script, create an external shader
+	// if we have a script, create an external shader
 	if( shaderScript )
 	{
 		shader->shaderScript = shaderScript;
@@ -4063,6 +4069,8 @@ static ref_shader_t *R_CreateShader( const char *name, int shaderType, uint surf
 		// load the script text
 		script = Com_OpenScript( shaderScript->name, shaderScript->buffer, shaderScript->size );
 		if( !script ) return R_CreateDefaultShader( name, shaderType, surfaceParm );
+
+		Msg("ParseScript: %s\n", shaderScript->name );
 
 		// parse it
 		if( !R_ParseShader( shader, script ))
@@ -4768,10 +4776,8 @@ shader_t R_FindShader( const char *name, int shaderType, uint surfaceParm )
 	{
 		if( !com.stricmp( shaderScript->name, name ))
 		{
-			if( shaderScript->type == -1 ) // not initialized
-				break;
-			if( shaderScript->type == shaderType && shaderScript->surfaceParm == surfaceParm )
-				break;
+			if( shaderScript->type == -1 ) break; // not initialized
+			if( shaderScript->type == shaderType ) break;
 		}
 	}
  
@@ -5036,7 +5042,7 @@ void R_InitShaders( void )
 	MsgDev( D_NOTE, "R_InitShaders()\n" );
 
 	r_shaderpool = Mem_AllocPool( "Shader Zone" );
-	t = FS_Search( "scripts/shaders/*.txt", true );
+	t = FS_Search( "scripts/*.shader", true );
 	if( !t ) MsgDev( D_WARN, "no shader files found!\n");
 
 	// Load them

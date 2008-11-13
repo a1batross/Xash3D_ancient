@@ -13,7 +13,8 @@ static int r_textureMinFilter = GL_LINEAR_MIPMAP_LINEAR;
 static int r_textureMagFilter = GL_LINEAR;
 
 // internal tables
-static vec3_t r_luminanceTable[256];	// RGB to LUMA
+static vec3_t r_luminanceTable[256];	// RGB to luminance
+static byte r_glowTable[256][3];	// auto LUMA table
 static byte r_intensityTable[256];	// scale intensity
 static byte r_gammaTable[256];	// adjust screenshot gamma
 
@@ -898,6 +899,42 @@ static rgbdata_t *R_MakeLuminance( rgbdata_t *in )
 
 /*
 =================
+R_MakeGlow
+
+Converts the given image to glow (LUMA)
+=================
+*/
+static rgbdata_t *R_MakeGlow( rgbdata_t *in )
+{
+	rgbdata_t	*out;
+	int	width, height;
+	byte	r, g, b;
+	int	x, y;
+
+	// make sure what we processing RGBA image
+	in = R_ForceImageToRGBA( in );
+	width = in->width, height = in->height;
+	out = in;
+
+	for( y = 0; y < height; y++ )
+	{
+		for( x = 0; x < width; x++ )
+		{
+			r = r_glowTable[in->buffer[4*(y*width+x)+0]][0];
+			g = r_glowTable[in->buffer[4*(y*width+x)+1]][1];
+			b = r_glowTable[in->buffer[4*(y*width+x)+2]][2];
+
+			out->buffer[4*(y*width+x)+0] = r;
+			out->buffer[4*(y*width+x)+1] = g;
+			out->buffer[4*(y*width+x)+2] = b;
+			out->buffer[4*(y*width+x)+3] = 255; // kill alpha if any
+		}
+	}
+	return out;
+}
+
+/*
+=================
 R_MakeAlpha
 
 Converts the given image to alpha
@@ -1586,9 +1623,48 @@ static rgbdata_t *R_ParseMakeAlpha( script_t *script, int *samples, texFlags_t *
 }
 
 /*
- =================
- R_ParseHeightMap
- =================
+=================
+R_ParseMakeGlow
+=================
+*/
+static rgbdata_t *R_ParseMakeGlow( script_t *script, int *samples, texFlags_t *flags )
+{
+	token_t	token;
+	rgbdata_t *pic;
+
+	Com_ReadToken( script, 0, &token );
+	if( com.stricmp( token.string, "(" ))
+	{
+		MsgDev( D_WARN, "expected '(', found '%s' instead for 'makeGlow'\n", token.string );
+		return NULL;
+	}
+
+	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &token ))
+	{
+		MsgDev( D_WARN, "missing parameters for 'makeGlow'\n" );
+		return NULL;
+	}
+
+	pic = R_LoadImage( script, token.string, NULL, 0, samples, flags );
+	if( !pic ) return NULL;
+
+	Com_ReadToken( script, 0, &token );
+	if( com.stricmp( token.string, ")" ))
+	{
+		MsgDev( D_WARN, "expected ')', found '%s' instead for 'makeGlow'\n", token.string );
+		FS_FreeImage( pic );
+		return NULL;
+	}
+
+	*samples = 3;
+
+	return R_MakeGlow( pic );
+}
+
+/*
+=================
+R_ParseHeightMap
+=================
 */
 static rgbdata_t *R_ParseHeightMap( script_t *script, int *samples, texFlags_t *flags )
 {
@@ -1785,6 +1861,8 @@ static rgbdata_t *R_LoadImage( script_t *script, const char *name, const byte *b
 		return R_ParseMakeLuminance( script, samples, flags);
 	else if( !com.stricmp( name, "makeAlpha" ))
 		return R_ParseMakeAlpha( script, samples, flags );
+	else if( !com.stricmp( name, "makeGlow" ))
+		return R_ParseMakeGlow( script, samples, flags );
 	else if( !com.stricmp( name, "heightMap" ))
 		return R_ParseHeightMap( script, samples, flags );
 	else if( !com.stricmp( name, "addNormals" ))
@@ -2677,6 +2755,15 @@ void R_InitTextures( void )
 	{
 		j = i * r_intensity->value;
 		r_intensityTable[i] = bound( 0, j, 255 );
+	}
+
+	// build the auto-luma table
+	for( i = 0; i < 256; i++ )
+	{
+		// 224 is a Q1 luma threshold
+		r_glowTable[i][0] = i > 196 ? i : 0;
+		r_glowTable[i][1] = i > 196 ? i : 0;
+		r_glowTable[i][2] = i > 196 ? i : 0;
 	}
 
 	// build luminance table

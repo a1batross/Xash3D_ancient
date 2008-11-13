@@ -130,7 +130,7 @@ void Cbuf_Execute( void )
 	char	line[MAX_CMD_LINE];
 	int	quotes;
 
-	while (cmd_text.cursize)
+	while( cmd_text.cursize )
 	{
 		if( cmd_wait )
 		{
@@ -168,7 +168,7 @@ void Cbuf_Execute( void )
 		}
 
 		// execute the command line
-		Cmd_ExecuteString (line);		
+		Cmd_ExecuteString( line );		
 	}
 }
 
@@ -270,7 +270,7 @@ void Cmd_Exec_f (void)
 		return;
 	}
 
-	com.snprintf( rcpath, MAX_STRING, "scripts/config/%s", Cmd_Argv(1)); 
+	com.snprintf( rcpath, MAX_STRING, "config/%s", Cmd_Argv(1)); 
 	FS_DefaultExtension(rcpath, ".rc" ); // append as default
 
 	f = FS_LoadFile(rcpath, &len );

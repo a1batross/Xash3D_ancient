@@ -1520,9 +1520,10 @@ Appends lines containing "set variable value" for all variables
 with the archive flag set to true.
 ============
 */
-static void FS_WriteCvar( const char *name, const char *string, const char *unused, void *f )
+static void FS_WriteCvar( const char *name, const char *string, const char *desc, void *f )
 {
-	FS_Printf(f, "setc %s \"%s\"\n", name, string );
+	if( !desc ) return; // ignore cvars without description (fantom variables)
+	FS_Printf( f, "setc %s \"%s\"\n", name, string );
 }
 
 void FS_WriteVariables( file_t *f )
@@ -1542,7 +1543,7 @@ void FS_UpdateConfig( void )
 	if( f )
 	{
 		FS_Printf (f, "//=======================================================================\n");
-		FS_Printf (f, "//\t\t\tCopyright XashXT Group 2008 ©\n");
+		FS_Printf (f, "//\t\t\tCopyright XashXT Group %s ©\n", com_timestamp( TIME_YEAR_ONLY ));
 		FS_Printf (f, "//\t\t      system.rc - archive of system cvars\n");
 		FS_Printf (f, "//=======================================================================\n");
 		FS_WriteVariables( f );

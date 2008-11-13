@@ -561,6 +561,16 @@ void ParseBrush( bsp_entity_t *mapent )
 			Com_ReadFloat( mapfile, SC_COMMENT_SEMICOLON, &td.vects.hammer.scale[1] );
                     }
 
+		// hidden q2/q3 legacy, but can be used
+                    if( g_brushtype != BRUSH_QUARK && Com_ReadToken( mapfile, SC_COMMENT_SEMICOLON, &token ))
+		{
+			// overwrite shader values directly from .map file
+			Com_SaveToken( mapfile, &token );
+			Com_ReadLong( mapfile, false, &td.contents );
+			Com_ReadLong( mapfile, false, &td.flags );
+			Com_ReadLong( mapfile, false, &td.value );
+		}
+
 		if( mapfile->TXcommand == '1' || mapfile->TXcommand == '2' )
 		{
 			// we are QuArK mode and need to translate some numbers to align textures its way
@@ -628,15 +638,6 @@ void ParseBrush( bsp_entity_t *mapent )
 		{
 			side->contents = td.contents;
 			side->surf = td.flags;
-		}
-
-		// hidden q2/q3 legacy, but can be used
-                    if( g_brushtype != BRUSH_QUARK && Com_ReadLong( mapfile, SC_COMMENT_SEMICOLON, &side->contents ))
-		{
-			// overwrite shader values directly from .map file
-			Com_ReadLong( mapfile, false, &td.contents );
-			Com_ReadLong( mapfile, false, &td.flags );
-			Com_ReadLong( mapfile, false, &td.value );
 		}
 
 		// translucent objects are automatically classified as detail

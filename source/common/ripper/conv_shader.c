@@ -319,7 +319,7 @@ bool Conv_CreateShader( const char *name, rgbdata_t *pic, const char *ext, const
 	FS_ExtractFilePath( name, shadername );
 	FS_FileBase( shadername, shadername ); // remove "textures" from path
 	FS_FileBase( name, imagename );
-	com.snprintf( shaderpath, MAX_STRING, "%s/shaders/%s.txt", gs_gamedir, shadername );
+	com.snprintf( shaderpath, MAX_STRING, "%s/scripts/%s.txt", gs_gamedir, shadername );
 	com.snprintf( imagepath, MAX_STRING, "%s", name ); // full path
 	nextanimchain[0] = 0; // clear chain
 

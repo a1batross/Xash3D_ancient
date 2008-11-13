@@ -35,7 +35,7 @@ void LeakFile (tree_t *tree)
 		return;
 
 	// write the points to the file
-	sprintf (path, "%s.lin", gs_filename);
+	com.sprintf( path, "maps/%s.lin", gs_filename );
 	linefile = FS_Open (path, "w" );
 	if (!linefile) Sys_Error ("Couldn't open %s\n", path);
 

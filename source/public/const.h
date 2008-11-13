@@ -91,7 +91,7 @@ typedef enum
 	CONTENTS_TRIGGER		= BIT(23),// trigger volume
 
 	// content masks
-	MASK_SOLID		= (CONTENTS_SOLID||CONTENTS_WINDOW),
+	MASK_SOLID		= (CONTENTS_SOLID|CONTENTS_WINDOW),
 	MASK_PLAYERSOLID		= (CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_WINDOW|CONTENTS_BODY),
 	MASK_MONSTERSOLID		= (CONTENTS_SOLID|CONTENTS_MONSTERCLIP|CONTENTS_WINDOW|CONTENTS_BODY),
 	MASK_DEADSOLID		= (CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_WINDOW|CONTENTS_WINDOW),
@@ -117,6 +117,8 @@ typedef enum
 	SURF_NULL			= BIT(11),// remove face after compile
 	SURF_NOLIGHTMAP		= BIT(12),// don't place lightmap for this surface
 	SURF_MIRROR		= BIT(12),// remove face after compile
+	SURF_CHROME		= BIT(13),// chrome surface effect
+	SURF_GLOW			= BIT(14),// sprites glow
 } surfaceType_t;
 
 // engine physics constants

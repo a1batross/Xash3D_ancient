@@ -973,15 +973,35 @@ choseclump:
 	return (void *)((byte *) mem + sizeof(memheader_t));
 }
 
+static const char *_mem_check_filename( const char *filename )
+{
+	static const char	*dummy = "<corrupted>\0";
+	const char	*out = filename;
+	int		i;
+
+	if( !out ) return dummy;
+	for( i = 0; i < 32; i++, out++ )
+		if( out == '\0' ) break; // valid name
+	if( i == 32 ) return dummy;
+	return filename;
+}
+
 static void _mem_freeblock(memheader_t *mem, const char *filename, int fileline)
 {
 	int i, firstblock, endblock;
 	memclump_t *clump, **clumpchainpointer;
 	mempool_t *pool;
 
-	if (mem->sentinel1 != MEMHEADER_SENTINEL1) Sys_Error("Mem_Free: trashed header sentinel 1 (alloc at %s:%i, free at %s:%i)\n", mem->filename, mem->fileline, filename, fileline);
-	if (*((byte *) mem + sizeof(memheader_t) + mem->size) != MEMHEADER_SENTINEL2)
-		Sys_Error("Mem_Free: trashed header sentinel 2 (alloc at %s:%i, free at %s:%i)\n", mem->filename, mem->fileline, filename, fileline);
+	if( mem->sentinel1 != MEMHEADER_SENTINEL1 )
+	{
+		mem->filename = _mem_check_filename( mem->filename ); // make sure what we don't crash var_args
+		Sys_Error( "Mem_Free: trashed header sentinel 1 (alloc at %s:%i, free at %s:%i)\n", mem->filename, mem->fileline, filename, fileline );
+	}
+	if(*((byte *) mem + sizeof(memheader_t) + mem->size) != MEMHEADER_SENTINEL2 )
+	{	
+		mem->filename = _mem_check_filename( mem->filename ); // make sure what we don't crash var_args
+		Sys_Error( "Mem_Free: trashed header sentinel 2 (alloc at %s:%i, free at %s:%i)\n", mem->filename, mem->fileline, filename, fileline );
+	}
 	pool = mem->pool;
 	// unlink memheader from doubly linked list
 	if ((mem->prev ? mem->prev->next != mem : pool->chain != mem) || (mem->next && mem->next->prev != mem))
@@ -1321,10 +1341,16 @@ void _mem_checkheadersentinels( void *data, const char *filename, int fileline )
 
 	if (data == NULL) Sys_Error("Mem_CheckSentinels: data == NULL (sentinel check at %s:%i)\n", filename, fileline);
 	mem = (memheader_t *)((byte *) data - sizeof(memheader_t));
-	if (mem->sentinel1 != MEMHEADER_SENTINEL1)
+	if( mem->sentinel1 != MEMHEADER_SENTINEL1 )
+	{
+		mem->filename = _mem_check_filename( mem->filename ); // make sure what we don't crash var_args
 		Sys_Error("Mem_CheckSentinels: trashed header sentinel 1 (block allocated at %s:%i, sentinel check at %s:%i)\n", mem->filename, mem->fileline, filename, fileline);
-	if (*((byte *) mem + sizeof(memheader_t) + mem->size) != MEMHEADER_SENTINEL2)
+	}
+	if(*((byte *) mem + sizeof(memheader_t) + mem->size) != MEMHEADER_SENTINEL2 )
+	{	
+		mem->filename = _mem_check_filename( mem->filename ); // make sure what we don't crash var_args
 		Sys_Error("Mem_CheckSentinels: trashed header sentinel 2 (block allocated at %s:%i, sentinel check at %s:%i)\n", mem->filename, mem->fileline, filename, fileline);
+	}
 }
 
 static void _mem_checkclumpsentinels( memclump_t *clump, const char *filename, int fileline )

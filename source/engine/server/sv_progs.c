@@ -331,7 +331,7 @@ SV_WriteSaveFile
 void SV_WriteSaveFile( const char *name )
 {
 	string		comment;
-	wfile_t		*savfile;
+	wfile_t		*savfile = NULL;
 	bool		autosave = false;
 	char		path[MAX_SYSPATH];
 	byte		*portalstate = Z_Malloc( MAX_MAP_AREAPORTALS );

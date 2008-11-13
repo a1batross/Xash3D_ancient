@@ -331,6 +331,7 @@ void Sys_LookupInstance( void )
 	else if(!com_strcmp(Sys.progname, "bsplib"))
 	{
 		Sys.app_name = HOST_BSPLIB;
+		Sys.log_active = true;	// always create log
 		Sys.linked_dll = &common_dll;	// pointer to common.dll info
 		com_strcpy(Sys.log_path, "bsplib.log" ); // xash3d root directory
 		com_strcpy(Sys.caption, "Xash3D BSP Compiler");

@@ -784,6 +784,12 @@ static bool PS_ReadName( script_t *script, scFlags_t flags, token_t *token )
 			&& c != '/' && c != '\\' && c != ':' && c != '.' && c != '+' && c != '-')
 				break;
 		}
+		else if( flags & SC_ALLOW_PATHNAMES2 )
+		{
+			if((c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9')
+			&& c != '_' && c != '/' && c != '\\' && c != ':' && c != '.' && c != '+'
+			&& c != '-' && c != '{' && c != '!' && c != '$' ) break;
+		}
 		else
 		{
 			if((c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') && c != '_')
@@ -922,6 +928,13 @@ bool PS_ReadToken( script_t *script, scFlags_t flags, token_t *token )
 	else if( *script->text == '\'' )
 	{
 		if( PS_ReadLiteral( script, flags, token ))
+			return true;
+	}
+	// old pathnames must be grab before numbers because they contains '+', '-' and other unexpected symbols
+	else if((flags & SC_ALLOW_PATHNAMES2) && (*script->text == '/' || *script->text == '\\' || *script->text == ':' || *script->text == '.' 
+	|| *script->text == '$' || *script->text == '-' || *script->text == '+' || *script->text == '!' || *script->text == '{' )) // damn prefix!
+	{
+		if( PS_ReadName( script, flags, token ))
 			return true;
 	}
 	// if it is a number

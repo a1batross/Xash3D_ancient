@@ -27,7 +27,7 @@ winding_t	*AllocWinding (int points)
 			c_peak_windings = c_active_windings;
 	}
 	s = sizeof(vec_t)*3*points + sizeof(int);
-	w = Malloc (s);
+	w = malloc (s);
 	memset (w, 0, s); 
 	return w;
 }
@@ -40,7 +40,7 @@ void FreeWinding (winding_t *w)
 
 	if (GetNumThreads() == 1)
 		c_active_windings--;
-	Mem_Free (w);
+	free (w);
 }
 
 

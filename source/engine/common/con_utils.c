@@ -691,7 +691,7 @@ with the archive flag set to true.
 
 static void Cmd_WriteCvar(const char *name, const char *string, const char *desc, void *f )
 {
-	//if(!desc) return; // ignore fantom cvars
+	if( !desc ) return; // ignore cvars without description (fantom variables)
 	FS_Printf(f, "seta %s \"%s\"\n", name, string );
 }
 
@@ -722,11 +722,11 @@ void CL_WriteConfiguration( void )
 
 	if( !cls.initialized ) return;
 
-	f = FS_Open("scripts/config/keys.rc", "w");
-	if(f)
+	f = FS_Open( "config/keys.rc", "w" );
+	if( f )
 	{
 		FS_Printf (f, "//=======================================================================\n");
-		FS_Printf (f, "//\t\t\tCopyright XashXT Group 2007 ©\n");
+		FS_Printf (f, "//\t\t\tCopyright XashXT Group %s ©\n", timestamp( TIME_YEAR_ONLY ));
 		FS_Printf (f, "//\t\t\tkeys.rc - current key bindings\n");
 		FS_Printf (f, "//=======================================================================\n");
 		Key_WriteBindings(f);
@@ -734,11 +734,11 @@ void CL_WriteConfiguration( void )
 	}
 	else MsgDev( D_ERROR, "Couldn't write keys.rc.\n");
 
-	f = FS_Open("scripts/config/vars.rc", "w");
-	if(f)
+	f = FS_Open( "config/vars.rc", "w" );
+	if( f )
 	{
 		FS_Printf (f, "//=======================================================================\n");
-		FS_Printf (f, "//\t\t\tCopyright XashXT Group 2007 ©\n");
+		FS_Printf (f, "//\t\t\tCopyright XashXT Group %s ©\n", timestamp( TIME_YEAR_ONLY ));
 		FS_Printf (f, "//\t\t\tvars.rc - archive of cvars\n");
 		FS_Printf (f, "//=======================================================================\n");
 		Cmd_WriteVariables(f);
@@ -753,7 +753,7 @@ void Key_EnumCmds_f( void )
 	if( f )
 	{
 		FS_Printf( f, "//=======================================================================\n");
-		FS_Printf( f, "//\t\t\tCopyright XashXT Group 2007 ©\n");
+		FS_Printf( f, "//\t\t\tCopyright XashXT Group %s ©\n", timestamp( TIME_YEAR_ONLY ));
 		FS_Printf( f, "//\t\thelp.txt - xash commands and console variables\n");
 		FS_Printf( f, "//=======================================================================\n");
 

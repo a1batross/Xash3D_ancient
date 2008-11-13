@@ -547,6 +547,8 @@ bool Image_SavePCX( const char *name, rgbdata_t *pix );
 //
 // img_utils.c
 //
+void Image_Reset( void );
+rgbdata_t *ImagePack( void );
 byte *Image_Copy( size_t size );
 bool Image_ValidSize( const char *name );
 bool Image_LumpValidSize( const char *name );
