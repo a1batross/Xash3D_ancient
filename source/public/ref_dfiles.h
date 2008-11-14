@@ -167,7 +167,6 @@ BRUSH MODELS
 
 #define MAX_BUILD_SIDES		512	// per one brush. (don't touch!)
 #define LM_SAMPLE_SIZE		16	// q1, q2, q3 default value (lightmap resoultion)
-#define LM_SIZE			128	// LM_SIZE x LM_SIZE (width x height)
 #define LM_STYLES			4	// MAXLIGHTMAPS
 #define LS_NORMAL			0x00
 #define LS_UNUSED			0xFE

@@ -646,16 +646,16 @@ varargs versions of all text functions.
 FIXME: make this buffer size safe someday
 ============
 */
-char *va(const char *format, ...)
+char *va( const char *format, ... )
 {
 	va_list argptr;
-	static char string[8][1024], *s;
+	static char string[16][1024], *s;
 	static int stringindex = 0;
 
 	s = string[stringindex];
-	stringindex = (stringindex + 1) & 7;
-	va_start (argptr, format);
-	com_vsnprintf (s, sizeof(string[0]), format, argptr);
-	va_end (argptr);
+	stringindex = (stringindex + 1) & 15;
+	va_start( argptr, format );
+	com_vsnprintf( s, sizeof(string[0]), format, argptr );
+	va_end( argptr );
 	return s;
 }

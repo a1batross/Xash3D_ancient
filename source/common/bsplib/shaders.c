@@ -9,10 +9,10 @@ bsp_shader_t shaderInfo[MAX_SURFACE_INFO];
 
 typedef struct
 {
-	char	*name;
-	int	surfaceFlags;
-	int	contents;
-	bool	clearSolid;
+	const char	*name;
+	int		surfaceFlags;
+	int		contents;
+	bool		clearSolid;
 } infoParm_t;
 
 // NOTE: this table must match with same table in render\r_shader.c
@@ -25,11 +25,11 @@ infoParm_t infoParms[] =
 	{"water",		SURF_NONE,	CONTENTS_WATER,		1},
 	{"slime",		SURF_NONE,	CONTENTS_SLIME,		1}, // mildly damaging
 	{"lava",		SURF_NONE,	CONTENTS_LAVA,		1}, // very damaging
-	{"playerclip",	SURF_NONE,	CONTENTS_PLAYERCLIP,	1},
-	{"monsterclip",	SURF_NONE,	CONTENTS_MONSTERCLIP,	1},
-	{"clip",		SURF_NONE,	CONTENTS_CLIP,		1},
+	{"playerclip",	SURF_NODRAW,	CONTENTS_PLAYERCLIP,	1},
+	{"monsterclip",	SURF_NODRAW,	CONTENTS_MONSTERCLIP,	1},
+	{"clip",		SURF_NODRAW,	CONTENTS_CLIP,		1},
 	{"notsolid",	SURF_NONE,	CONTENTS_NONE,		1}, // just clear solid flag
-	{"trigger",	SURF_NONE,	CONTENTS_TRIGGER,		1}, // trigger volume
+	{"trigger",	SURF_NODRAW,	CONTENTS_TRIGGER,		1}, // trigger volume
 	          
 	// utility relevant attributes
 	{"origin",	SURF_NONE,	CONTENTS_ORIGIN,		1}, // center of rotating brushes
@@ -51,7 +51,7 @@ infoParm_t infoParms[] =
 	// drawsurf attributes (matched with Half-Life render modes)
 	{"texture",	SURF_BLEND,	CONTENTS_NONE,		0}, // blend surface
 	{"glow",		SURF_GLOW,	CONTENTS_NONE,		0}, // glow sprite
-	{"solid",		SURF_ALPHA,	CONTENTS_NONE,		0}, // alphatest
+	{"solid",		SURF_ALPHA,	CONTENTS_TRANSLUCENT,	0}, // alphatest
 	{"additive",	SURF_ADDITIVE,	CONTENTS_NONE,		0}, // additive
 	{"chrome",	SURF_CHROME,	CONTENTS_NONE,		0}, // studio chrome
 };

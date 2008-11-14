@@ -516,7 +516,7 @@ LIGHT SAMPLING
 =======================================================================
 */
 
-static vec3_t	r_blockLights[128*128];
+static vec3_t	r_blockLights[LM_SIZE*LM_SIZE];
 
 
 /*
@@ -581,12 +581,12 @@ static void R_AddDynamicLights( surface_t *surf )
 
 		bl = (float *)r_blockLights;
 
-		for( t = 0, tacc = 0; t < surf->lmHeight; t++, tacc += 16 )
+		for( t = 0, tacc = 0; t < surf->lmHeight; t++, tacc += LM_SAMPLE_SIZE )
 		{
 			td = tl - tacc;
 			if( td < 0 ) td = -td;
 
-			for( s = 0, sacc = 0; s < surf->lmWidth; s++, sacc += 16 )
+			for( s = 0, sacc = 0; s < surf->lmWidth; s++, sacc += LM_SAMPLE_SIZE )
 			{
 				sd = sl - sacc;
 				if( sd < 0 ) sd = -sd;
@@ -740,7 +740,7 @@ static void R_UploadLightmap( void )
 		Host_Error( "R_UploadLightmap: MAX_LIGHTMAPS limit exceeded\n" );
 
 	com.snprintf( name, sizeof(name), "*lightmap%i", r_lmState.currentNum );
-	lightmap = R_CreateImage( va("*lightmap%d", r_lmState.currentNum ), (byte *)r_lmState.buffer, LM_SIZE, LM_SIZE, TF_LIGHTMAP, 0, TW_CLAMP );
+	lightmap = R_CreateImage( va("*lightmap%d", r_lmState.currentNum ), (byte *)r_lmState.buffer, LM_SIZE, LM_SIZE, TF_LIGHTMAP, TF_LINEAR, TW_CLAMP );
 	r_lightmapTextures[r_lmState.currentNum++] = lightmap;
 
 	// reset

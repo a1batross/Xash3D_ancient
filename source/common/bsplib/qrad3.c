@@ -446,33 +446,44 @@ void RadWorld (void)
 void WradMain ( bool option )
 {
 	string	cmdparm;
+	bool	light = FS_CheckParm("-light");
+
 	extrasamples = option;
           
-	if(!LoadBSPFile())
+	if(!LoadBSPFile( ))
 	{
 		// map not exist, create it
 		WbspMain( false );
 		LoadBSPFile();
 	}
 
-	Msg("---- Radiocity ---- [%s]\n", extrasamples ? "extra" : "normal" );
+	if( light ) Msg("---- Light ---- [%s]\n", extrasamples ? "extra" : "normal" );
+	else Msg("---- Radiocity ---- [%s]\n", extrasamples ? "extra" : "normal" );
 
-	if( extrasamples ) 
+	if( light )
 	{
-		if(FS_GetParmFromCmdLine("-ambient", cmdparm ))
-			ambient = com.atoi( cmdparm );
-		ambient = bound( 0, ambient, 512 );
+		ambient = 0.0f;
+		numbounce = 0;
 	}
-	if(FS_GetParmFromCmdLine("-bounce", cmdparm ))
-		numbounce = com.atoi( cmdparm );
-	numbounce = bound( 0, numbounce, 32 );
-	
+	else
+	{
+		if( extrasamples ) 
+		{
+			if( FS_GetParmFromCmdLine( "-ambient", cmdparm ))
+				ambient = com.atof( cmdparm );
+			ambient = bound( 0, ambient, 512 );
+		}
+		if(FS_GetParmFromCmdLine("-bounce", cmdparm ))
+			numbounce = com.atoi( cmdparm );
+		numbounce = bound( 0, numbounce, 32 );
+	}	
+
 	ParseEntities();
 	CalcTextureReflectivity();
 
-	if (!visdatasize)
+	if( !visdatasize )
 	{
-		Msg ("No vis information, direct lighting only.\n");
+		Msg( "No vis information, direct lighting only.\n" );
 		numbounce = 0;
 		ambient = 0.1f;
 	}

@@ -36,7 +36,7 @@ bool ConvWAL( const char *name, byte *buffer, size_t filesize, const char *ext )
 	{
 		wal_t *wal = (wal_t *)buffer;
 		FS_SaveImage( va("%s/%s.%s", gs_gamedir, name, ext ), pic );
-		Conv_CreateShader( name, pic, "wal", wal->animname, wal->flags, wal->contents );
+		Conv_CreateShader( name, pic, ext, wal->animname, wal->flags, wal->contents );
 		Msg("%s.wal\n", name ); // echo to console
 		FS_FreeImage( pic );
 		return true;
@@ -56,7 +56,7 @@ bool ConvJPG( const char *name, byte *buffer, size_t filesize, const char *ext )
 	if( pic )
 	{
 		FS_SaveImage( va("%s/%s.%s", gs_gamedir, name, ext ), pic );
-		Conv_CreateShader( name, pic, "jpg", NULL, 0, 0 );
+		Conv_CreateShader( name, pic, ext, NULL, 0, 0 );
 		Msg( "%s.jpg\n", name, ext ); // echo to console
 		FS_FreeImage( pic );
 		return true;
@@ -98,7 +98,7 @@ bool ConvVTF( const char *name, byte *buffer, size_t filesize, const char *ext )
 	if( pic )
 	{
 		FS_SaveImage( va("%s/%s.%s", gs_gamedir, name, ext ), pic );
-		Conv_CreateShader( name, pic, "vtf", NULL, 0, 0 );
+		Conv_CreateShader( name, pic, ext, NULL, 0, 0 );
 		Msg( "%s.vtf\n", name ); // echo to console
 		FS_FreeImage( pic );
 		return true;
@@ -118,8 +118,8 @@ bool ConvMIP( const char *name, byte *buffer, size_t filesize, const char *ext )
 	if( pic )
 	{
 		FS_SaveImage( va("%s/%s.%s", gs_gamedir, name, ext ), pic );
-		Conv_CreateShader( name, pic, "mip", NULL, 0, 0 );
-		Msg("%s.mip\n", name ); // echo to console
+		Conv_CreateShader( name, pic, ext, NULL, 0, 0 );
+		Msg( "%s.mip\n", name ); // echo to console
 		FS_FreeImage( pic );
 		return true;
 	}

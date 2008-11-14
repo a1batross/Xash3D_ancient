@@ -151,6 +151,7 @@ bool Image_LoadWAL( const char *name, const byte *buffer, size_t filesize )
 	wal_t 	wal;
 	int	pixels, ofs[4], mipsize;
 	int	i, flags, value, contents; // wal additional parms
+	const byte *fin;
 
 	if( filesize < (int)sizeof(wal))
 	{
@@ -178,9 +179,20 @@ bool Image_LoadWAL( const char *name, const byte *buffer, size_t filesize )
 
 	image.num_layers = 1;
 	image.type = PF_INDEXED_32;	// 32-bit palete
+	fin = buffer + ofs[0];
+
+	// check for luma pixels
+	for( i = 0; i < image.width * image.height; i++ )
+	{
+		if( fin[i] > 208 && fin[i] < 240 )
+		{
+			image.flags |= IMAGE_HAS_LUMA_Q2;
+			break;
+		}
+	}
 
 	Image_GetPaletteQ2(); // hardcoded
-	return FS_AddMipmapToPack( buffer + ofs[0], image.width, image.height );
+	return FS_AddMipmapToPack( fin, image.width, image.height );
 }
 
 /*
@@ -411,6 +423,16 @@ bool Image_LoadMIP( const char *name, const byte *buffer, size_t filesize )
 		fin = (byte *)buffer + mip.offsets[0];
 		pal = NULL; // clear palette
 		rendermode = LUMP_NORMAL;
+
+		// check for luma pixels
+		for( i = 0; i < image.width * image.height; i++ )
+		{
+			if( fin[i] > 224 )
+			{
+				image.flags |= IMAGE_HAS_LUMA_Q1;
+				break;
+			}
+		}
 	}
 	else
 	{

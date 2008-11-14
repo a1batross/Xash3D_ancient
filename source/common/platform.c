@@ -75,6 +75,7 @@ void InitPlatform ( int argc, char **argv )
 			com.strncpy(source, "newmap", sizeof(source));
 		if(FS_CheckParm("-vis")) bspflags |= BSP_ONLYVIS;
 		if(FS_CheckParm("-rad")) bspflags |= BSP_ONLYRAD;
+		if(FS_CheckParm("-light")) bspflags |= BSP_ONLYRAD;
 		if(FS_CheckParm("-full")) bspflags |= BSP_FULLCOMPILE;
 		if(FS_CheckParm("-onlyents")) bspflags |= BSP_ONLYENTS;
 

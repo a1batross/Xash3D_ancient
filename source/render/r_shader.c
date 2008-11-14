@@ -17,6 +17,7 @@ typedef struct
 	const char	*name;
 	int		surfaceFlags;
 	int		contents;
+	bool		clearSolid;
 } shaderParm_t;
 
 typedef struct ref_script_s
@@ -50,41 +51,41 @@ int			r_numShaders = 0;
 shaderParm_t infoParms[] =
 {
 	// server relevant contents
-	{"window",	SURF_NONE,	CONTENTS_WINDOW,		},
-	{"aux",		SURF_NONE,	CONTENTS_AUX,		},
-	{"warp",		SURF_WARP,	CONTENTS_NONE,		},
-	{"water",		SURF_NONE,	CONTENTS_WATER,		},
-	{"slime",		SURF_NONE,	CONTENTS_SLIME,		}, // mildly damaging
-	{"lava",		SURF_NONE,	CONTENTS_LAVA,		}, // very damaging
-	{"playerclip",	SURF_NONE,	CONTENTS_PLAYERCLIP,	},
-	{"monsterclip",	SURF_NONE,	CONTENTS_MONSTERCLIP,	},
-	{"clip",		SURF_NONE,	CONTENTS_CLIP,		},
-	{"notsolid",	SURF_NONE,	CONTENTS_NONE,		},
-	{"trigger",	SURF_NONE,	CONTENTS_TRIGGER,		},
-
+	{"window",	SURF_NONE,	CONTENTS_WINDOW,		0},
+	{"aux",		SURF_NONE,	CONTENTS_AUX,		0},
+	{"warp",		SURF_WARP,	CONTENTS_NONE,		0},
+	{"water",		SURF_NONE,	CONTENTS_WATER,		1},
+	{"slime",		SURF_NONE,	CONTENTS_SLIME,		1}, // mildly damaging
+	{"lava",		SURF_NONE,	CONTENTS_LAVA,		1}, // very damaging
+	{"playerclip",	SURF_NODRAW,	CONTENTS_PLAYERCLIP,	1},
+	{"monsterclip",	SURF_NODRAW,	CONTENTS_MONSTERCLIP,	1},
+	{"clip",		SURF_NODRAW,	CONTENTS_CLIP,		1},
+	{"notsolid",	SURF_NONE,	CONTENTS_NONE,		1}, // just clear solid flag
+	{"trigger",	SURF_NODRAW,	CONTENTS_TRIGGER,		1}, // trigger volume
+	          
 	// utility relevant attributes
-	{"origin",	SURF_NONE,	CONTENTS_ORIGIN,		}, // center of rotating brushes
-	{"nolightmap",	SURF_NOLIGHTMAP,	CONTENTS_NONE,		}, // don't generate a lightmap
-	{"translucent",	SURF_NONE,	CONTENTS_TRANSLUCENT,	}, // don't eat contained surfaces
-	{"detail",	SURF_NONE,	CONTENTS_DETAIL,		}, // carves surfaces entering
-	{"fog",		SURF_NOLIGHTMAP,	CONTENTS_FOG,		}, // carves surfaces entering
-	{"sky",		SURF_SKY,		CONTENTS_NONE,		}, // emit light from environment map
-	{"hint",		SURF_HINT,	CONTENTS_NONE,		}, // use as a primary splitter
-	{"skip",		SURF_SKIP,	CONTENTS_NONE,		}, // use as a secondary splitter
-	{"null",		SURF_NODRAW,	CONTENTS_NONE,		}, // don't generate a drawsurface
-	{"mirror",	SURF_MIRROR,	CONTENTS_NONE,		}, // mirror surface
+	{"origin",	SURF_NONE,	CONTENTS_ORIGIN,		1}, // center of rotating brushes
+	{"nolightmap",	SURF_NOLIGHTMAP,	CONTENTS_NONE,		0}, // don't generate a lightmap
+	{"translucent",	SURF_NONE,	CONTENTS_TRANSLUCENT,	0}, // don't eat contained surfaces
+	{"detail",	SURF_NONE,	CONTENTS_DETAIL,		0}, // don't include in structural bsp
+	{"fog",		SURF_NOLIGHTMAP,	CONTENTS_FOG,		0}, // carves surfaces entering
+	{"sky",		SURF_SKY,		CONTENTS_NONE,		0}, // emit light from environment map
+	{"hint",		SURF_HINT,	CONTENTS_NONE,		0}, // use as a primary splitter
+	{"skip",		SURF_SKIP,	CONTENTS_NONE,		0}, // use as a secondary splitter
+	{"null",		SURF_NODRAW,	CONTENTS_NONE,		0}, // nodraw texture
+	{"mirror",	SURF_MIRROR,	CONTENTS_NONE,		0},
 
 	// server attributes
-	{"slick",		SURF_SLICK,	CONTENTS_NONE,		},
-	{"light",		SURF_LIGHT,	CONTENTS_NONE,		},
-	{"ladder",	SURF_NONE,	CONTENTS_LADDER,		},
+	{"slick",		SURF_SLICK,	CONTENTS_NONE,		0},
+	{"light",		SURF_LIGHT,	CONTENTS_NONE,		0},
+	{"ladder",	SURF_NONE,	CONTENTS_LADDER,		0},
 
 	// drawsurf attributes (matched with Half-Life render modes)
-	{"texture",	SURF_BLEND,	CONTENTS_NONE,		}, // blend surface
-	{"glow",		SURF_GLOW,	CONTENTS_NONE,		}, // glow sprite
-	{"solid",		SURF_ALPHA,	CONTENTS_NONE,		}, // alphatest
-	{"additive",	SURF_ADDITIVE,	CONTENTS_NONE,		}, // additive
-	{"chrome",	SURF_CHROME,	CONTENTS_NONE,		}, // studio chrome
+	{"texture",	SURF_BLEND,	CONTENTS_NONE,		0}, // blend surface
+	{"glow",		SURF_GLOW,	CONTENTS_NONE,		0}, // glow sprite
+	{"solid",		SURF_ALPHA,	CONTENTS_TRANSLUCENT,	0}, // alphatest
+	{"additive",	SURF_ADDITIVE,	CONTENTS_NONE,		0}, // additive
+	{"chrome",	SURF_CHROME,	CONTENTS_NONE,		0}, // studio chrome
 };
 
 /*
@@ -3580,7 +3581,7 @@ static bool R_ParseShaderCommand( ref_shader_t *shader, script_t *script, char *
 	}
 
 	// compiler commands ignored silently
-	if( !com.strnicmp( "q3map_", command, 6 ))
+	if( !com.strnicmp( "q3map_", command, 6 ) || !com.strnicmp( "rad_", command, 4 ))
 	{
 		Com_SkipRestOfLine( script );
 		return true;
@@ -3897,7 +3898,15 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 			shader->stages[0]->alphaFunc.ref = 0.666;
 			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
 		}
-		if( shader->surfaceParm & SURF_SKY )
+		if( shader->surfaceParm & SURF_WARP )
+		{
+			shader->flags |= SHADER_TESSSIZE;
+			shader->tessSize = 64;
+
+			shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_TCGEN;
+			shader->stages[0]->bundles[0]->tcGen.type = TCGEN_WARP;
+		}
+		else if( shader->surfaceParm & SURF_SKY )
 		{
 			shader->surfaceParm |= SURF_NOLIGHTMAP;
 		}

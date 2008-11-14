@@ -20,6 +20,7 @@ extern int game_family;
 bool Conv_CreateShader( const char *name, rgbdata_t *pic, const char *ext, const char *anim, int surf, int cnt );
 bool Conv_CheckMap( const char *mapname ); // for detect gametype
 bool Conv_CheckWad( const char *wadname ); // for detect gametype
+bool MipExist( const char *name );
 
 typedef enum
 {

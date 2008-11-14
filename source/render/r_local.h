@@ -27,6 +27,7 @@ extern byte *r_temppool;
 #define MAX_POLYS			4096
 #define MAX_POLY_VERTS		16384
 #define MAX_CLIPFLAGS		15	// all sides of bbox are valid
+#define LM_SIZE			256	// LM_SIZE x LM_SIZE (width x height)
 
 /*
 =======================================================================

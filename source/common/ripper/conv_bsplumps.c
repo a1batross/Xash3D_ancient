@@ -37,8 +37,28 @@ typedef struct
 	int		dataofs[4];	// [nummiptex]
 } dmiptexlump_t;
 
-byte*	bsp_base;
-bool	bsp_halflife = false;
+typedef struct
+{
+	char		name[64];
+} dmiptexname_t;
+
+byte*		bsp_base;
+bool		bsp_halflife = false;
+dmiptexname_t	*mipnames = NULL;
+int		mip_count = 0;
+
+bool MipExist( const char *name )
+{
+	int	i;
+
+	if( !name ) return false;
+	for( i = 0; i < mip_count; i++ )
+	{
+		if( !com.stricmp( name, mipnames[i].name ))
+			return true;
+	}
+	return FS_FileExists( name );
+}
 
 void Conv_BspTextures( const char *name, lump_t *l, const char *ext )
 {
@@ -53,30 +73,50 @@ void Conv_BspTextures( const char *name, lump_t *l, const char *ext )
 	FS_FileBase( name, genericname );
 
 	m = (dmiptexlump_t *)(bsp_base + l->fileofs);
-	m->nummiptex = LittleLong(m->nummiptex);
+	m->nummiptex = LittleLong( m->nummiptex );
 	dofs = m->dataofs;
 
-	for (i = 0; i < m->nummiptex; i++)
+	mipnames = Mem_Realloc( basepool, mipnames, m->nummiptex * sizeof( dmiptexname_t )); 
+	mip_count = 0;
+
+	// first pass: store all names into linear array
+	for( i = 0; i < m->nummiptex; i++ )
 	{
 		dofs[i] = LittleLong( dofs[i] );
 		if( dofs[i] == -1 ) continue;
 
 		// needs to simulate directly loading
 		mip = (mip_t *)((byte *)m + dofs[i]);
-		if(!LittleLong( mip->offsets[0] )) continue;		// not in bsp
-		com.strnlwr(mip->name, mip->name, sizeof(mip->name));	// name
-		buffer = ((byte *)m + dofs[i]);			// buffer
-		size = (int)sizeof(mip_t) + (((mip->width * mip->height) * 85)>>6);
-		if( bsp_halflife ) size += sizeof(short) + 768; // palette
+		if( !LittleLong( mip->offsets[0] )) continue;		// not in bsp
+		com.strnlwr( mip->name, mip->name, sizeof( mip->name ));	// name
 
 		// check for '*' symbol issues
 		k = com.strlen( com.strrchr( mip->name, '*' ));
 		if( k ) mip->name[com.strlen(mip->name)-k] = '!'; // quake1 issues
 		// some Q1 mods contains blank names (e.g. "after the fall")
-		if(!com.strlen( mip->name )) com.snprintf( mip->name, 16, "%s_%d", genericname, i );
-		if(!FS_FileExists( va( "%s/%s/%s.%s", gs_gamedir, name, mip->name, ext )))
+		if( !com.strlen( mip->name )) com.snprintf( mip->name, 16, "%s_%d", genericname, i );
+		com.snprintf( mipnames[mip_count].name, 64, "%s/%s.mip", genericname, mip->name ); // build name
+		mip_count++; 
+	}
+
+	// second pass: convert lumps
+	for( i = 0; i < m->nummiptex; i++ )
+	{
+		dofs[i] = LittleLong( dofs[i] );
+		if( dofs[i] == -1 ) continue;
+
+		// needs to simulate direct loading
+		mip = (mip_t *)((byte *)m + dofs[i]);
+		if( !LittleLong( mip->offsets[0] )) continue;		// not in bsp
+
+		buffer = ((byte *)m + dofs[i]);			// buffer
+		size = (int)sizeof(mip_t) + (((mip->width * mip->height) * 85)>>6);
+		if( bsp_halflife ) size += sizeof(short) + 768; // palette
+
+		if( !FS_FileExists( va( "%s/%s/%s.%s", gs_gamedir, name, mip->name, ext )))
 			ConvMIP( va("%s/%s", name, mip->name ), buffer, size, ext ); // convert it
 	}
+	mip_count = 0; // freed and invaliadte
 }
 
 /*

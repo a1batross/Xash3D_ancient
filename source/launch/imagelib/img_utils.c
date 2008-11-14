@@ -1212,6 +1212,38 @@ byte *Image_FlipInternal( const byte *in, int *srcwidth, int *srcheight, int typ
 	return image.tempbuffer;
 }
 
+byte *Image_CreateLumaInternal( const byte *fin, int width, int height, int type, int flags )
+{
+	byte	*out;
+	int	i;
+
+	if(!( flags & IMAGE_HAS_LUMA ))
+	{
+		MsgDev( D_WARN, "Image_MakeLuma: image doesn't has luma pixels\n" );
+		return (byte *)fin;	  
+	}
+
+	switch( type )
+	{
+	case PF_INDEXED_24:
+	case PF_INDEXED_32:
+		out = image.tempbuffer = Mem_Realloc( Sys.imagepool, image.tempbuffer, width * height );
+		for( i = 0; i < width * height; i++ )
+		{
+			if( flags & IMAGE_HAS_LUMA_Q1 )
+				*out++ = fin[i] > 224 ? fin[i] : 0;
+			else if( flags & IMAGE_HAS_LUMA_Q2 )
+				*out++ = (fin[i] > 208 && fin[i] < 240) ? fin[i] : 0;
+                    }
+		break;
+	default:
+		// another formats does ugly result :(
+		MsgDev( D_WARN, "Image_MakeLuma: unsupported format %s\n", PFDesc[type].name );
+		return (byte *)fin;	
+	}
+	return image.tempbuffer;
+}
+
 rgbdata_t *Image_DecompressInternal( rgbdata_t *pic )
 {
 	int	i, offset, numsides = 1;
@@ -1264,6 +1296,12 @@ void Image_Process( rgbdata_t **pix, int width, int height, uint flags )
 	{
 		MsgDev( D_WARN, "Image_Process: NULL image\n" );
 		return;
+	}
+
+	if( flags & IMAGE_MAKE_LUMA )
+	{
+		out = Image_CreateLumaInternal( pic->buffer, pic->width, pic->height, pic->type, pic->flags );
+		if( pic->buffer != out ) Mem_Copy( pic->buffer, image.tempbuffer, pic->size );
 	}
 
 	// update format to RGBA if any

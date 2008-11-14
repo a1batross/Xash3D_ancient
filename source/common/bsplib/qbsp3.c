@@ -374,7 +374,7 @@ bool CompileBSPModel ( void )
 {
 	// must be first!
 	if( onlyents ) WbspMain( true );
-	else if( onlyvis && !onlyrad ) WvisMain ( full_compile );
+	else if( onlyvis && !onlyrad ) WvisMain( full_compile );
 	else if( onlyrad && !onlyvis ) WradMain( full_compile );
 	else if( onlyrad && onlyvis )
 	{

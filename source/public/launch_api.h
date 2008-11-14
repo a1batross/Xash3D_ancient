@@ -365,20 +365,23 @@ typedef enum
 	IMAGE_HAS_COLOR	= BIT(2),		// image contain RGB-channel
 	IMAGE_COLORINDEX	= BIT(3),		// all colors in palette is gradients of last color (decals)
 	IMAGE_PREMULT	= BIT(4),		// need to premultiply alpha (DXT2, DXT4)
-	IMAGE_S3		= BIT(5),		// s&3 image
+	IMAGE_HAS_LUMA_Q1	= BIT(5),		// image has luma pixels (q1-style maps)
+	IMAGE_HAS_LUMA_Q2	= BIT(6),		// image has luma pixels (q2-style maps)
+	IMAGE_HAS_LUMA	= IMAGE_HAS_LUMA_Q1|IMAGE_HAS_LUMA_Q2,
 
 	// Image_Process manipulation flags
-	IMAGE_FLIP_X	= BIT(16),	// flip the image by width
-	IMAGE_FLIP_Y	= BIT(17),	// flip the image by height
-	IMAGE_ROT_90	= BIT(18),	// flip from upper left corner to down right corner
+	IMAGE_FLIP_X	= BIT(12),	// flip the image by width
+	IMAGE_FLIP_Y	= BIT(13),	// flip the image by height
+	IMAGE_ROT_90	= BIT(14),	// flip from upper left corner to down right corner
 	IMAGE_ROT180	= IMAGE_FLIP_X|IMAGE_FLIP_Y,
 	IMAGE_ROT270	= IMAGE_FLIP_X|IMAGE_FLIP_Y|IMAGE_ROT_90,	
-	IMAGE_ROUND	= BIT(19),	// round image to nearest Pow2
-	IMAGE_RESAMPLE	= BIT(20),	// resample image to specified dims
-	IMAGE_PALTO24	= BIT(21),	// turn 32-bit palette into 24-bit mode (only for indexed images)
-	IMAGE_COMP_DXT	= BIT(22),	// compress image to DXT format
-	IMAGE_ROUNDFILLER	= BIT(23),	// round image to nearest Pow2 and fill unused entries with single color	
-	IMAGE_FORCE_RGBA	= BIT(24),	// force image to RGBA buffer
+	IMAGE_ROUND	= BIT(15),	// round image to nearest Pow2
+	IMAGE_RESAMPLE	= BIT(16),	// resample image to specified dims
+	IMAGE_PALTO24	= BIT(17),	// turn 32-bit palette into 24-bit mode (only for indexed images)
+	IMAGE_COMP_DXT	= BIT(18),	// compress image to DXT format
+	IMAGE_ROUNDFILLER	= BIT(19),	// round image to nearest Pow2 and fill unused entries with single color	
+	IMAGE_FORCE_RGBA	= BIT(20),	// force image to RGBA buffer
+	IMAGE_MAKE_LUMA	= BIT(21),	// create luma texture from indexed
 } imgFlags_t;
 
 typedef struct rgbdata_s

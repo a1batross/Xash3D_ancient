@@ -865,12 +865,12 @@ void SubdivideFace( node_t *node, face_t *f )
 			else if (maxs - mins <= subdivide_size)
 				break;
 			
-		// split it
+			// split it
 			c_subdivide++;
 			
 			v = VectorNormalizeLength( temp );	
 
-			dist = (mins + subdivide_size - 16)/v;
+			dist = (mins + subdivide_size - LM_SAMPLE_SIZE)/v;
 
 			ClipWindingEpsilon (w, temp, dist, ON_EPSILON, &frontw, &backw);
 			if (!frontw || !backw)

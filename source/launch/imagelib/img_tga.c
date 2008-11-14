@@ -431,7 +431,7 @@ bool Image_SaveTGA( const char *name, rgbdata_t *pix )
 				*out++ = in[2];
 				*out++ = in[1];
 				*out++ = in[0];
-				if( pix->type == PF_RGBA_32 )
+				if( pix->flags & IMAGE_HAS_ALPHA )
 					*out++ = in[3];
 			}
 		}

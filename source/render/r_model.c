@@ -268,7 +268,7 @@ void R_LoadShaders( const byte *base, const lump_t *l )
 		}
 
 		// detect surfaceParm
-		if( !m_pLoadModel->lightData )
+		if( !m_pLoadModel->lightData || surfaceParm & SURF_WARP )
 			surfaceParm |= SURF_NOLIGHTMAP;
 
 		shaderType = SHADER_TEXTURE;

@@ -454,7 +454,7 @@ void SampleTriangulation (vec3_t point, triangulation_t *trian, vec3_t color)
 */
 
 
-#define	SINGLEMAP	(64*64*4)
+#define SINGLEMAP	(128*128*4)
 
 typedef struct
 {
@@ -528,8 +528,8 @@ void CalcFaceExtents (lightinfo_t *l)
 		l->exactmins[i] = mins[i];
 		l->exactmaxs[i] = maxs[i];
 		
-		mins[i] = floor(mins[i]/16);
-		maxs[i] = ceil(maxs[i]/16);
+		mins[i] = floor(mins[i] / LM_SAMPLE_SIZE );
+		maxs[i] = ceil( maxs[i] / LM_SAMPLE_SIZE );
 
 		l->texmins[i] = mins[i];
 		l->texsize[i] = maxs[i] - mins[i];
@@ -643,9 +643,9 @@ void CalcPoints (lightinfo_t *l, float sofs, float tofs)
 	w = l->texsize[0]+1;
 	l->numsurfpt = w * h;
 
-	starts = l->texmins[0]*16;
-	startt = l->texmins[1]*16;
-	step = 16;
+	starts = l->texmins[0] * LM_SAMPLE_SIZE;
+	startt = l->texmins[1] * LM_SAMPLE_SIZE;
+	step = LM_SAMPLE_SIZE;
 
 
 	for (t=0 ; t<h ; t++)
@@ -676,13 +676,13 @@ void CalcPoints (lightinfo_t *l, float sofs, float tofs)
 				{
 					if (us > mids)
 					{
-						us -= 8;
+						us -= LM_SAMPLE_SIZE >> 1;
 						if (us < mids)
 							us = mids;
 					}
 					else
 					{
-						us += 8;
+						us += LM_SAMPLE_SIZE >> 1;
 						if (us > mids)
 							us = mids;
 					}
@@ -691,13 +691,13 @@ void CalcPoints (lightinfo_t *l, float sofs, float tofs)
 				{
 					if (ut > midt)
 					{
-						ut -= 8;
+						ut -= LM_SAMPLE_SIZE >> 1;
 						if (ut < midt)
 							ut = midt;
 					}
 					else
 					{
-						ut += 8;
+						ut += LM_SAMPLE_SIZE >> 1;
 						if (ut > midt)
 							ut = midt;
 					}
@@ -981,9 +981,9 @@ void AddSampleToPatch (vec3_t pos, vec3_t color, int facenum)
 		WindingBounds (patch->winding, mins, maxs);
 		for (i=0 ; i<3 ; i++)
 		{
-			if (mins[i] > pos[i] + 16)
+			if( mins[i] > pos[i] + LM_SAMPLE_SIZE )
 				goto nextpatch;
-			if (maxs[i] < pos[i] - 16)
+			if( maxs[i] < pos[i] - LM_SAMPLE_SIZE )
 				goto nextpatch;
 		}
 
