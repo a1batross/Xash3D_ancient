@@ -3170,8 +3170,7 @@ wadtype_t wad_types[] =
 	{"flt", TYPE_FLAT	}, // doom1 wall texture
 	{"pal", TYPE_QPAL	}, // palette
 	{"lmp", TYPE_QPIC	}, // quake1, hl pic
-	{"mip", TYPE_MIPTEX2}, // hl texture
-	{"mip", TYPE_MIPTEX }, // quake1 mip
+	{"mip", TYPE_MIPTEX }, // hl/q1 mip
 	{"bin", TYPE_BINDATA}, // xash binary data
 	{"str", TYPE_STRDATA}, // xash string data
 	{"raw", TYPE_RAW	}, // signed raw data
@@ -3387,7 +3386,10 @@ static bool W_ReadLumpTable( wfile_t *wad )
 		k = com_strlen( com_strrchr( wad->lumps[i].name, '*' ));
 		if( k ) wad->lumps[i].name[com_strlen(wad->lumps[i].name)-k] = '!'; // quake1 issues
 
-		// check for 'conchars' issues
+		// convert all qmip types to miptex
+		if( wad->lumps[i].type == TYPE_QMIP ) wad->lumps[i].type = TYPE_MIPTEX;
+
+		// check for 'conchars' issues (only lmp loader supposed to read this lame pic)
 		if( !com.strcmp( wad->lumps[i].name, "conchars" )) wad->lumps[i].type = TYPE_QPIC; 
 	}
 	return true;
@@ -3534,7 +3536,10 @@ wfile_t *W_Open( const char *filename, const char *mode )
 	dwadinfo_t	header;
 	wfile_t		*wad = (wfile_t *)Mem_Alloc( fs_mempool, sizeof( wfile_t ));
 
-	wad->file = FS_Open( filename, mode );
+	if( mode[0] == 'a' ) wad->file = FS_Open( filename, "r+b" );
+	else if( mode[0] == 'w' ) wad->file = FS_Open( filename, "wb" );
+	else if( mode[0] == 'r' ) wad->file = FS_Open( filename, "rb" );
+
 	if( !wad->file )
 	{
 		W_Close( wad );
@@ -3611,21 +3616,38 @@ wfile_t *W_Open( const char *filename, const char *mode )
 		// NOTE: lumps table can be reallocated for O_APPEND mode
 		wad->lumps = Mem_Alloc( wad->mempool, wad->numlumps * sizeof( dlumpinfo_t ));
 
-		// setup lump allocation table
-		switch( header.ident )
-		{
-		case IDIWADHEADER:
-		case IDPWADHEADER:
-			if(!W_ConvertIWADLumps( wad ))
-				return NULL;
-			break;		
-		case IDWAD2HEADER:
-		case IDWAD3HEADER: 
-			if(!W_ReadLumpTable( wad ))
-				return NULL;
-			break;
-		}
+		if( wad->mode == O_APPEND )
+		{ 
+			size_t	lat_size = wad->numlumps * sizeof( dlumpinfo_t );
 
+			if( FS_Read( wad->file, wad->lumps, lat_size ) != lat_size )
+			{
+				MsgDev( D_ERROR, "W_ReadLumpTable: %s has corrupted lump allocation table\n", wad->filename );
+				W_Close( wad );
+				return NULL;
+			}
+
+			// if we are in append mode - we need started from infotableofs poisition
+			// overwrite lumptable as well, we have her copy in wad->lumps
+			FS_Seek( wad->file, wad->infotableofs, SEEK_SET );
+		}
+		else
+		{
+			// setup lump allocation table
+			switch( header.ident )
+			{
+			case IDIWADHEADER:
+			case IDPWADHEADER:
+				if(!W_ConvertIWADLumps( wad ))
+					return NULL;
+				break;		
+			case IDWAD2HEADER:
+			case IDWAD3HEADER: 
+				if(!W_ReadLumpTable( wad ))
+					return NULL;
+				break;
+			}
+		}
 	}
 	// and leaves the file open
 	return wad;
@@ -3649,7 +3671,7 @@ void W_Close( wfile_t *wad )
 		hdr.ident = IDWAD3HEADER;
 		hdr.numlumps = LittleLong( wad->numlumps );
 		hdr.infotableofs = LittleLong( ofs );
-		
+
 		FS_Seek( wad->file, 0, SEEK_SET );
 		FS_Write( wad->file, &hdr, sizeof( hdr ));
 	}
@@ -3663,6 +3685,7 @@ fs_offset_t W_SaveLump( wfile_t *wad, const char *lump, const void* data, size_t
 {
 	size_t		lat_size;
 	dlumpinfo_t	*info;
+	int	i;
 
 	if( !wad || !lump ) return -1;
 	if( !data || !datasize )
@@ -3693,16 +3716,13 @@ fs_offset_t W_SaveLump( wfile_t *wad, const char *lump, const void* data, size_t
 	wad->lumps = Mem_Realloc( wad->mempool, wad->lumps, lat_size );
 	info = wad->lumps + wad->numlumps;
 
-	// if we are in append mode - we need started from infotableofs poisition
-	// overwrite lumptable as well, we have her copy in wad->lumps
-	if( wad->mode == O_APPEND ) FS_Seek( wad->file, wad->infotableofs, SEEK_SET );
-
 	// write header
 	W_CleanupName( lump, info->name );
 	info->filepos = LittleLong( FS_Tell( wad->file ));
 	info->compression = cmp;
 	info->type = type;
 
+	i = FS_Tell( wad->file );
 	if(!W_WriteLump( wad, info, data, datasize, cmp ))
 		return -1;		
 

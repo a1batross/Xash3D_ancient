@@ -26,10 +26,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 //=============================================================================
 
-#define MAX_MASTERS			8 	// max recipients for heartbeat packets
+#define AREA_SOLID			1
+#define AREA_TRIGGERS		2
+
+#define MAX_MASTERS			8 			// max recipients for heartbeat packets
 #define LATENCY_COUNTS		16
 #define MAX_ENT_CLUSTERS		16
-#define DF_NO_FRIENDLY_FIRE		0x00000001		//FIXME: move to server.dat
+#define DF_NO_FRIENDLY_FIRE		0x00000001		// FIXME: move to server.dat
 
 // classic quake flags
 #define SPAWNFLAG_NOT_EASY		0x00000100
@@ -37,20 +40,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define SPAWNFLAG_NOT_HARD		0x00000400
 #define SPAWNFLAG_NOT_DEATHMATCH	0x00000800
 
-#define AI_FLY				(1<<0)		// monster is flying
-#define AI_SWIM				(1<<1)		// swimming monster
-#define AI_ONGROUND				(1<<2)		// monster is onground
-#define AI_PARTIALONGROUND			(1<<3)		// monster is partially onground
-#define AI_GODMODE				(1<<4)		// monster don't give damage at all
-#define AI_NOTARGET				(1<<5)		// monster will no searching enemy's
-#define AI_NOSTEP				(1<<6)		// Lazarus stuff
-#define AI_DUCKED				(1<<7)		// monster (or player) is ducked
-#define AI_JUMPING				(1<<8)		// monster (or player) is jumping
-#define AI_FROZEN				(1<<9)		// stop moving, but continue thinking
-#define AI_ACTOR                		(1<<10)		// disable ai for actor
-#define AI_DRIVER				(1<<11)		// npc or player driving vehcicle or train
-#define AI_SPECTATOR			(1<<12)		// spectator mode for clients
-#define AI_WATERJUMP			(1<<13)		// npc or player take out of water
+#define AI_FLY			BIT(0)		// monster is flying
+#define AI_SWIM			BIT(1)		// swimming monster
+#define AI_ONGROUND			BIT(2)		// monster is onground
+#define AI_PARTIALONGROUND		BIT(3)		// monster is partially onground
+#define AI_GODMODE			BIT(4)		// monster don't give damage at all
+#define AI_NOTARGET			BIT(5)		// monster will no searching enemy's
+#define AI_NOSTEP			BIT(6)		// Lazarus stuff
+#define AI_DUCKED			BIT(7)		// monster (or player) is ducked
+#define AI_JUMPING			BIT(8)		// monster (or player) is jumping
+#define AI_FROZEN			BIT(9)		// stop moving, but continue thinking
+#define AI_ACTOR                	BIT(10)		// disable ai for actor
+#define AI_DRIVER			BIT(11)		// npc or player driving vehcicle or train
+#define AI_SPECTATOR		BIT(12)		// spectator mode for clients
+#define AI_WATERJUMP		BIT(13)		// npc or player take out of water
 
 typedef enum
 {
@@ -120,7 +123,7 @@ typedef struct sv_client_s
 
 	vec3_t		fix_angles;		// q1 legacy
 	bool		fixangle;
-						// commands exhaust it, assume time cheating
+
 	int		ping;
 	int		rate;
 	int		surpressCount;		// number of messages rate supressed
@@ -150,14 +153,13 @@ typedef struct sv_client_s
 	netchan_t		netchan;
 } sv_client_t;
 
-
-typedef struct worldsector_s
+// link_t is only used for entity area links now
+typedef struct link_s
 {
-	int			axis;		// -1 = leaf node
-	float			dist;
-	struct worldsector_s	*children[2];
-	sv_edict_t		*entities;
-} worldsector_t;
+	struct link_s	*prev;
+	struct link_s	*next;
+	int		entnum;			// PRVM_EDICT_NUM
+} link_t;
 
 struct sv_edict_s
 {
@@ -166,11 +168,10 @@ struct sv_edict_s
 	float			freetime;	 	// sv.time when the object was freed
 
 	// sv_private_edict_t
-	worldsector_t		*worldsector;	// member of current wolrdsector
-	struct sv_edict_s 		*nextedict;	// next edict in world sector
+	link_t			area;		// linked to a division node or leaf
 	struct sv_client_s		*client;		// filled for player ents
 	int			clipmask;		// trace info
-	int			lastcluster;	// unused if num_clusters != -1
+	int			headnode;		// unused if num_clusters != -1
 	int			linkcount;
 	int			num_clusters;	// if -1, use headnode instead
 	int			clusternums[MAX_ENT_CLUSTERS];
@@ -221,7 +222,7 @@ typedef struct
 	dword		realtime;			// always increasing, no clamping, etc
 	dword		timeleft;
 
-	string		mapcmd;				// ie: *intro.cin+base 
+	string		mapcmd;			// ie: *intro.cin+base 
 	string		comment;			// map name, e.t.c. 
 
 	int		spawncount;		// incremented each server start
@@ -344,7 +345,6 @@ void SV_ConnectionlessPacket( netadr_t from, sizebuf_t *msg );
 //
 void SV_Status_f( void );
 void SV_Newgame_f( void );
-void SV_SectorList_f( void );
 
 //
 // sv_ents.c
@@ -412,7 +412,7 @@ void SV_LinkEdict (edict_t *ent);
 // sets ent->leafnums[] for pvs determination even if the entity
 // is not solid
 
-int SV_AreaEdicts( const vec3_t mins, const vec3_t maxs, edict_t **list, int maxcount );
+int SV_AreaEdicts( const vec3_t mins, const vec3_t maxs, edict_t **list, int maxcount, int areatype );
 // fills in a table of edict pointers with edicts that have bounding boxes
 // that intersect the given area.  It is possible for a non-axial bmodel
 // to be returned that doesn't actually intersect the area on an exact

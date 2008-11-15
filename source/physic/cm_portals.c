@@ -212,7 +212,7 @@ bool CM_AreasConnected( int area, int otherarea )
 	if( area > cm.numareas || otherarea > cm.numareas )
 		Host_Error("CM_AreasConnected: area >= cm.numareas\n" );
 
-	if( area < 0 || otherarea < 0 ) return false;
+	if( !area || !otherarea ) return false;
 	if( area == otherarea ) return true; // quick test
 
 	if( cm.areas[area].floodnum == cm.areas[otherarea].floodnum )

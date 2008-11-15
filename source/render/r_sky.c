@@ -589,6 +589,7 @@ void R_SetupSky( const char *name, float rotate, const vec3_t axis )
 	void		*map;
 	int		i, j;
 
+	if( !com.strlen( name )) return; // invalid name
 	r_worldModel->sky = Mem_Realloc( r_temppool, r_worldModel->sky, sizeof( sky_t ));
 	sky = r_worldModel->sky;
 	sky->shader = r_shaders[R_FindShader( name, SHADER_SKY, 0 )];

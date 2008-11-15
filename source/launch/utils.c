@@ -279,7 +279,7 @@ void StringTable_DeleteSystem( int handle )
 	Mem_Free( dstring[handle]->data );	// free strings
 	Mem_Free( dstring[handle]->table);	// free indices
 	Mem_Free( dstring[handle] );		// free himself
-	Mem_Set( &dstring[handle], 0, sizeof( stringtable_t )); 
+	dstring[handle] = NULL;
 }
 
 const char *StringTable_GetString( int handle, string_t index )

@@ -63,7 +63,7 @@ void V_TestEntities( void )
 	float		f, r;
 	entity_state_t	ent;
 
-	memset( &ent, 0, sizeof(entity_state_t));
+	Mem_Set( &ent, 0, sizeof( entity_state_t ));
 	V_ClearScene();
 
 	for( i = 0; i < 32; i++ )
@@ -169,7 +169,7 @@ void V_RenderView( void )
 		cl.refdef.vieworg[1] += 1.0 / 32;
 		cl.refdef.vieworg[2] += 1.0 / 32;
 
-		Mem_Copy( &cl.refdef.rect, &scr_vrect, sizeof(vrect_t));
+		Mem_Copy( &cl.refdef.rect, &scr_vrect, sizeof( vrect_t ));
                     
                     cl.refdef.areabits = cl.frame.areabits;
                     cl.refdef.rdflags = cl.frame.ps.renderfx;

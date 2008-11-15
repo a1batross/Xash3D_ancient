@@ -10,6 +10,7 @@
 #include "utils.h"
 
 string		wadoutname;
+bool		wad_append = false;
 script_t		*wadqc = NULL;
 wfile_t		*handle = NULL;
 string		lumpname;
@@ -130,7 +131,9 @@ byte Mip_AveragePixels( int count )
 
 void Wad3_NewWad( void )
 {
-	handle = WAD_Open( wadoutname, "wb" );
+	if( wad_append )
+		handle = WAD_Open( wadoutname, "a+" );
+	else handle = WAD_Open( wadoutname, "wb" );
 	if( !handle ) Sys_Break( "Wad3_NewWad: can't create %s\n", wadoutname );
 }
 
@@ -144,7 +147,7 @@ void Wad3_AddLump( const byte *buffer, size_t lumpsize, int lump_type, bool comp
 	int result;
 	if( !handle ) Wad3_NewWad(); 	// create wad file
 	result = WAD_Write( handle, lumpname, buffer, lumpsize, lump_type, ( compress ? CMP_ZLIB : CMP_NONE ));
-	if( result != -1 ) Msg("Add %s\t#%i\n", lumpname, result ); // FIXME: align message
+	if( result != -1 ) Msg("Add %s\t#%3i\n", lumpname, result ); // FIXME: align message
 }
 
 /*
@@ -167,10 +170,11 @@ void Cmd_GrabMip( void )
 
 	Com_ReadString( wadqc, SC_PARSE_GENERIC, lumpname );
 
-	// load mip image or replaced with error.bmp
-	image = FS_LoadImage( lumpname, error_bmp, error_bmp_size );	
+	// load mip image
+	image = FS_LoadImage( lumpname, NULL, 0 );	
 	if( !image )
 	{
+		Com_SkipRestOfLine( wadqc );
 		// no fatal error, just ignore this image for adding into wad-archive
 		MsgDev( D_ERROR, "Cmd_LoadMip: unable to loading %s\n", lumpname );
 		return;
@@ -316,7 +320,7 @@ void Cmd_GrabMip( void )
 		plump += 768;
 
 		// write out and release intermediate buffers
-		Wad3_AddLump( lump, plump_size, TYPE_MIPTEX2, false );
+		Wad3_AddLump( lump, plump_size, TYPE_MIPTEX, false );
 	}
 	else MsgDev( D_WARN, "lump %s have invalid size, ignore\n", lumpname ); 
 	FS_FreeImage( image );
@@ -339,10 +343,11 @@ void Cmd_GrabPic( void )
 
 	Com_ReadString( wadqc, SC_PARSE_GENERIC, lumpname );
 
-	// load mip image or replaced with error.bmp
-	image = FS_LoadImage( lumpname, error_bmp, error_bmp_size );	
+	// load lmp image
+	image = FS_LoadImage( lumpname, NULL, 0 );	
 	if( !image )
 	{
+		Com_SkipRestOfLine( wadqc );
 		// no fatal error, just ignore this image for adding into wad-archive
 		MsgDev( D_ERROR, "Cmd_LoadPic: unable to loading %s\n", lumpname );
 		return;
@@ -415,6 +420,7 @@ void Cmd_GrabScript( void )
 	
 	if( !lump || !plump_size )
 	{
+		Com_SkipRestOfLine( wadqc );
 		// no fatal error, just ignore this image for adding into wad-archive
 		MsgDev( D_ERROR, "Cmd_LoadScript: unable to loading %s\n", lumpname );
 		return;
@@ -445,6 +451,7 @@ void Cmd_GrabProgs( void )
 	
 	if( !lump || !plump_size || plump_size < sizeof(dprograms_t))
 	{
+		Com_SkipRestOfLine( wadqc );
 		// no fatal error, just ignore this image for adding into wad-archive
 		MsgDev( D_ERROR, "Cmd_LoadProgs: unable to loading %s\n", lumpname );
 		return;
@@ -467,10 +474,15 @@ void Cmd_GrabProgs( void )
 
 void Cmd_WadName( void )
 {
-	Com_ReadString( wadqc, SC_PARSE_GENERIC, wadoutname );
+	string	parm;
+
+	Com_ReadString( wadqc, SC_ALLOW_PATHNAMES2, wadoutname );
 
 	FS_StripExtension( wadoutname );
 	FS_DefaultExtension( wadoutname, ".wad" );
+
+	if( Com_ReadString( wadqc, SC_ALLOW_PATHNAMES2, parm ))
+		if( !com.stricmp( parm, "append" )) wad_append = true;	
 }
 
 /*

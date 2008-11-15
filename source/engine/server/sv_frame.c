@@ -13,9 +13,8 @@ typedef struct
 	int	entities[MAX_VISIBLE_PACKET];	
 } sv_ents_t;
 
-static byte *clientpvs;
-static byte *clientphs;
-static byte *bitvector;
+static byte *clientpvs;	// FatPVS
+static byte *clientphs;	// ClientPHS
 
 int	c_fullsend;
 
@@ -186,9 +185,10 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 	edict_t		*ent;
 	sv_edict_t	*svent;
 	int		leafnum;
-	byte		*clientpvs;
+	byte		*clientphs;
 	byte		*bitvector;
-	int		clientarea, clientcluster;
+	int		clientarea;
+	int		clientcluster;
 	bool		force = false;
 
 	// during an error shutdown message we may need to transmit
@@ -196,7 +196,7 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 	// specfically check for it
 	if( !sv.state ) return;
 
-	bitvector = pe->FatPVS( origin, portal );
+	clientpvs = pe->FatPVS( origin, portal );
 
 	leafnum = pe->PointLeafnum( origin );
 	clientarea = pe->LeafArea( leafnum );
@@ -204,9 +204,9 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 
 	// calculate the visible areas
 	frame->areabits_size = pe->WriteAreaBits( frame->areabits, clientarea, portal );
-	clientpvs = pe->ClusterPVS( clientcluster );
+	clientphs = pe->ClusterPHS( clientcluster );
 
-	for( e = 0; e < prog->num_edicts; e++ )
+	for( e = 1; e < prog->num_edicts; e++ )
 	{
 		ent = PRVM_EDICT_NUM( e );
 		force = false; // clear forceflag
@@ -220,7 +220,7 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 		// NOTE: client index on client expected that entity will be valid
 		if( sv_newprotocol->integer && ent->priv.sv->s.ed_type == ED_CLIENT )
 			force = true;
-		
+
 		// never send entities that aren't linked in
 		if( !ent->priv.sv->linked && !force ) continue;
 
@@ -235,56 +235,54 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 		// don't double add an entity through portals
 		if( svent->framenum == sv.net_framenum ) continue;
 
-		// ignore if not touching a PV leaf check area
-		if( !pe->AreasConnected( clientarea, ent->priv.sv->areanum ))
+		if( !force )
 		{
-			// doors can legally straddle two areas, so
-			// we may need to check another one
-			if( !pe->AreasConnected( clientarea, ent->priv.sv->areanum2 ))
-				continue;	// blocked by a door
-		}
-		// bitvector = clientpvs;
-
-		// check individual leafs
-		if( !svent->num_clusters && !force ) continue;
-		for( i = l = 0; i < svent->num_clusters && !force; i++ )
-		{
-			l = svent->clusternums[i];
-			if( bitvector[l>>3] & (1<<(l & 7)))
-				break;
-		}
-
-		// if we haven't found it to be visible,
-		// check overflow clusters that coudln't be stored
-		if( !force && i == svent->num_clusters )
-		{
-			if( svent->lastcluster )
+			// ignore if not touching a PV leaf check area
+			if( !pe->AreasConnected( clientarea, ent->priv.sv->areanum ))
 			{
-				for( ; l <= svent->lastcluster; l++ )
+				// doors can legally straddle two areas, so
+				// we may need to check another one
+				if( !pe->AreasConnected( clientarea, ent->priv.sv->areanum2 ))
+					continue;	// blocked by a door
+			}
+		}
+
+		if( svent->s.ed_type == ED_AMBIENT )
+			bitvector = clientphs;
+		else bitvector = clientpvs;
+
+		if( !force )
+		{ 
+			// check individual leafs
+			if( svent->num_clusters == -1 )
+			{
+				// too many leafs for individual check, go by headnode
+				if( !pe->HeadnodeVisible( svent->headnode, bitvector ))
+					continue;
+			}
+			else
+			{
+				// check individual leafs
+				for( i = 0; i < svent->num_clusters; i++ )
 				{
+					l = svent->clusternums[i];
 					if( bitvector[l>>3] & (1<<(l & 7)))
 						break;
 				}
-				if( l == svent->lastcluster )
+				if( i == ent->priv.sv->num_clusters )
 					continue;	// not visible
 			}
-			else continue;
 		}
 
 		if( ent->priv.sv->s.ed_type == ED_AMBIENT )
 		{	
-			// don't send sounds if they will be attenuated away
 			vec3_t	delta, entorigin;
 			float	len;
 
-			if(VectorIsNull( ent->progs.sv->origin ))
-			{
+			// don't send sounds if they will be attenuated away
+			if( VectorIsNull( ent->progs.sv->origin ))
 				VectorAverage( ent->progs.sv->mins, ent->progs.sv->maxs, entorigin );
-			}
-			else
-			{
-				VectorCopy( ent->progs.sv->origin, entorigin );
-			}
+			else VectorCopy( ent->progs.sv->origin, entorigin );
 
 			VectorSubtract( origin, entorigin, delta );	
 			len = VectorLength( delta );
@@ -402,7 +400,7 @@ void SV_BuildClientFrame( sv_client_t *cl )
 
 	// clear everything in this snapshot
 	frame_ents.num_entities = c_fullsend = 0;
-	memset( frame->areabits, 0, sizeof( frame->areabits ));
+	Mem_Set( frame->areabits, 0, sizeof( frame->areabits ));
 	if( !clent->priv.sv->client ) return; // not in game yet
 
 	// find the client's PVS

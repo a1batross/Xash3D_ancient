@@ -16,6 +16,7 @@ static byte	r_fullvis[MAX_MAP_LEAFS/8];
 static rmodel_t	r_models[MAX_MODELS];
 int		registration_sequence;
 rmodel_t		*m_pLoadModel;
+static string	r_skyShader;
 static int	r_nummodels;
 
 /*
@@ -259,6 +260,14 @@ void R_LoadShaders( const byte *base, const lump_t *l )
 			m_pLoadModel->shaders[i] = tr.defaultShader;
 			continue;
 		}
+		
+		if( surfaceParm & SURF_SKY )
+		{
+			// setup sky shader
+			com.strncpy( r_skyShader, in->name, MAX_STRING );
+			shaderType = SHADER_SKY;
+		}
+		else shaderType = SHADER_TEXTURE;
 
 		// lightmap visualization tool
 		if( r_lightmap->integer && !(surfaceParm & SURF_NOLIGHTMAP))
@@ -271,7 +280,6 @@ void R_LoadShaders( const byte *base, const lump_t *l )
 		if( !m_pLoadModel->lightData || surfaceParm & SURF_WARP )
 			surfaceParm |= SURF_NOLIGHTMAP;
 
-		shaderType = SHADER_TEXTURE;
 		m_pLoadModel->shaders[i] = r_shaders[R_FindShader( in->name, shaderType, surfaceParm )];
 	}
 }
@@ -990,6 +998,7 @@ void Mod_LoadBrushModel( rmodel_t *mod, const void *buffer )
 	byte		*mod_base;
 
 	m_pLoadModel->type = mod_world;
+	r_skyShader[0] = 0;
 
 	if( m_pLoadModel != r_models )
 	{
@@ -1192,6 +1201,9 @@ void R_EndRegistration( void )
 {
 	int	i;
 	rmodel_t	*mod;
+
+	// setup skybox
+	R_SetupSky( r_skyShader, 0, vec3_origin );
 
 	for( i = 0, mod = r_models; i < r_nummodels; i++, mod++ )
 	{

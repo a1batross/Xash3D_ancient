@@ -655,9 +655,9 @@ void BSP_LoadSurfedges( lump_t *l )
 	count = l->filelen / sizeof(*in);
 	if( count < 1 ) Host_Error( "BSP_LoadSurfedges: map without surfedges\n" );
 	cm.surfedges = Mem_Alloc( cmappool, count * sizeof( *in ));	
-	Mem_Copy( cm.edges, in, count * sizeof( *in ));
+	Mem_Copy( cm.surfedges, in, count * sizeof( *in ));
 
-	SwapBlock( (int *)cm.edges, sizeof(*in) * count );
+	SwapBlock( (int *)cm.surfedges, sizeof(*in) * count );
 }
 
 

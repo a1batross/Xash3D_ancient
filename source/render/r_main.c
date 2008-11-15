@@ -822,24 +822,6 @@ void R_RenderView( const refdef_t *fd )
 	r_numSolidMeshes = 0;
 	r_numTransMeshes = 0;
 
-	// copy the areamask data over and note if it has changed, which
-	// will force a reset of the visible leafs even if the view hasn't moved
-	r_areabitsChanged = false;
-	if(!(r_refdef.rdflags & RDF_NOWORLDMODEL ))
-	{
-		int	i, areaDiff = 0;
-
-		// compare the area bits
-		for( i = 0; i < MAX_MAP_AREA_BYTES / 4; i++ )
-		{
-			areaDiff |= ((int *)r_refdef.areabits)[i] ^ ((int *)fd->areabits)[i];
-			((int *)r_refdef.areabits)[i] = ((int *)fd->areabits)[i];
-		}
-
-		// a door just opened or something
-		if( areaDiff ) r_areabitsChanged = true;
-	}
-
 	r_refdef = *fd;
 	// set up frustum
 	R_SetFrustum();
@@ -876,7 +858,7 @@ void R_RenderView( const refdef_t *fd )
 void R_DrawPauseScreen( void )
 {
 	// don't apply post effects for custom window
-	if(r_refdef.rdflags & RDF_NOWORLDMODEL)
+	if( r_refdef.rdflags & RDF_NOWORLDMODEL )
 		return;
 
 	if( !r_pause_bw->integer )
@@ -1119,7 +1101,7 @@ bool R_AddParticleToScene( const vec3_t origin, float alpha, int color )
 
 	p = &r_particles[r_numParticles];
 
-	p->shader = tr.defaultShader;
+	p->shader = tr.particleShader;
 	VectorCopy( origin, p->origin );
 	VectorCopy( origin, p->old_origin );
 	p->radius = 5;

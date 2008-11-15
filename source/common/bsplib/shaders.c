@@ -47,13 +47,6 @@ infoParm_t infoParms[] =
 	{"slick",		SURF_SLICK,	CONTENTS_NONE,		0},
 	{"light",		SURF_LIGHT,	CONTENTS_NONE,		0},
 	{"ladder",	SURF_NONE,	CONTENTS_LADDER,		0},
-
-	// drawsurf attributes (matched with Half-Life render modes)
-	{"texture",	SURF_BLEND,	CONTENTS_NONE,		0}, // blend surface
-	{"glow",		SURF_GLOW,	CONTENTS_NONE,		0}, // glow sprite
-	{"solid",		SURF_ALPHA,	CONTENTS_TRANSLUCENT,	0}, // alphatest
-	{"additive",	SURF_ADDITIVE,	CONTENTS_NONE,		0}, // additive
-	{"chrome",	SURF_CHROME,	CONTENTS_NONE,		0}, // studio chrome
 };
 
 /*

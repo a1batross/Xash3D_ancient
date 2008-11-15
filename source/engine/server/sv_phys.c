@@ -118,7 +118,7 @@ trace_t SV_Trace( const vec3_t start, const vec3_t mins, const vec3_t maxs, cons
 	// clip to entities
 	// because this uses SV_AreaEdicts, we know all entity boxes overlap
 	// the clip region, so we can skip culling checks in the loop below
-	numtouchedicts = SV_AreaEdicts( clipboxmins, clipboxmaxs, touchedicts, host.max_edicts );
+	numtouchedicts = SV_AreaEdicts( clipboxmins, clipboxmaxs, touchedicts, host.max_edicts, AREA_SOLID );
 	if( numtouchedicts > host.max_edicts )
 	{
 		// this never happens
@@ -185,7 +185,7 @@ int SV_PointContents( const vec3_t point )
 		contents = sv.worldmodel->PointContents( point, sv.worldmodel );
 
 	// get list of entities at this point
-	numtouchedicts = SV_AreaEdicts( point, point, touchedicts, host.max_edicts );
+	numtouchedicts = SV_AreaEdicts( point, point, touchedicts, host.max_edicts, AREA_SOLID );
 	if( numtouchedicts > host.max_edicts )
 	{
 		// this never happens
@@ -395,7 +395,7 @@ void SV_TouchTriggers( edict_t *ent )
 	if(!((int)ent->progs.sv->flags & FL_CLIENT) && (ent->progs.sv->health <= 0))
 		return;
 
-	num = SV_AreaEdicts( ent->progs.sv->absmin, ent->progs.sv->absmax, touch, host.max_edicts );
+	num = SV_AreaEdicts( ent->progs.sv->absmin, ent->progs.sv->absmax, touch, host.max_edicts, AREA_TRIGGERS );
 
 	PRVM_PUSH_GLOBALS;
 
@@ -784,7 +784,7 @@ void SV_PushMove( edict_t *pusher, float movetime )
 	// see if any solid entities are inside the final position
 	num_moved = 0;
 
-	numcheckentities = SV_AreaEdicts( mins, maxs, checkentities, MAX_EDICTS );
+	numcheckentities = SV_AreaEdicts( mins, maxs, checkentities, MAX_EDICTS, AREA_SOLID );
 	for( e = 0; e < numcheckentities; e++ )
 	{
 		edict_t	*check = checkentities[e];

@@ -267,6 +267,8 @@ void ProcessModels (void)
 
 static void AddCollision( void* handle, const void* buffer, size_t size )
 {
+	if((dcollisiondatasize + size) > MAX_MAP_COLLISION )
+		Sys_Error( "MAX_MAP_COLLISION limit exceeded\n" );
 	Mem_Copy( dcollision + dcollisiondatasize, (void *)buffer, size );
 	dcollisiondatasize += size;
 }

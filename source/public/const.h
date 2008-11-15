@@ -14,8 +14,8 @@
 #define TYPE_QPAL			64	// quake palette
 #define TYPE_QTEX			65	// probably was never used
 #define TYPE_QPIC			66	// quake1 and hl pic (lmp_t)
-#define TYPE_MIPTEX2		67	// half-life (mip_t) previous was TYP_SOUND but never used in quake1
-#define TYPE_MIPTEX			68	// quake1 (mip_t)
+#define TYPE_MIPTEX			67	// half-life (mip_t) previous was TYP_SOUND but never used in quake1
+#define TYPE_QMIP			68	// quake1 (mip_t)
 #define TYPE_BINDATA		69	// engine internal data (map lumps, save lumps etc)
 #define TYPE_STRDATA		70	// big unterminated string (stringtable marked as TYPE_BINARYDATA)
 

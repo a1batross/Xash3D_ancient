@@ -1406,7 +1406,7 @@ void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref, int pass 
 			VectorScale(m_plightcolor, lv_tmp, lv );
 		}
 	}
-
+          
 	for( j = 0; j < m_pSubModel->nummesh; j++ ) 
 	{
 		float	s, t;
@@ -1729,7 +1729,7 @@ void R_StudioRenderModel( void )
 {
 	int i;
 
-	for (i = 0; i < m_pStudioHeader->numbodyparts ; i++)
+	for( i = 0; i < m_pStudioHeader->numbodyparts; i++ )
 	{
 		R_StudioSetupModel( m_pCurrentEntity->body, i );
 		R_StudioDrawPoints();
@@ -2164,7 +2164,7 @@ void R_AddStudioModelToList( ref_entity_t *entity )
 	R_StudioSetupRender( 0 );
 	if(!R_StudioCheckBBox())
 		return;
-	if(!entity->shader ) return;
+	if( !entity->shader ) return;
 
 	// add it
 	R_AddMeshToList( MESH_STUDIO, NULL, entity->shader, entity, 0 );

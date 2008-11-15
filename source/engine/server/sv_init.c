@@ -174,6 +174,7 @@ void SV_SpawnServer( const char *server, const char *savename )
 	com.sprintf( sv.configstrings[CS_MODELS+1], "maps/%s", server );
 	sv.worldmodel = sv.models[1] = pe->BeginRegistration( sv.configstrings[CS_MODELS+1], false, &checksum );
 	com.sprintf( sv.configstrings[CS_MAPCHECKSUM], "%i", checksum );
+	com.strncpy( sv.configstrings[CS_SKYNAME], "<skybox>", 64 );
 
 	// clear physics interaction links
 	SV_ClearWorld();

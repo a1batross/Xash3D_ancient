@@ -36,6 +36,7 @@
 #define CONTENTS_DETAIL	0x08000000	// brushes to be added after vis leafs
 #define CONTENTS_TRANSLUCENT	0x10000000	// auto set if any surface has trans
 #define CONTENTS_LADDER	0x20000000
+#define CONTENTS_TRIGGER	0x40000000	// trigger
 
 #define SURF_LIGHT		0x00000001	// value will hold the light strength
 #define SURF_SLICK		0x00000002	// effects game physics
@@ -63,6 +64,7 @@ bool Conv_WriteShader( const char *shaderpath, const char *imagepath, rgbdata_t 
 	string	qcname, qcpath;
 	string	temp, lumpname;
 	string	wadname, shadername;
+	int	i, lightmap_stage = false;
 
 	// write also wadlist.qc for xwad compiler
 	FS_ExtractFilePath( imagepath, temp );
@@ -165,8 +167,12 @@ check_shader:
 		if(!VectorIsNull( rad )) FS_Printf(f, "\trad_color\t\t%.f %.f %.f\n", rad[0], rad[1], rad[2] );
 		if( scale ) FS_Printf(f, "\trad_intensity\t%.f\n", scale );
 	}
+
 	if( flags & SURF_WARP )
 	{
+		FS_Print( f, "\tsurfaceparm\tnoLightMap\n" );
+		FS_Print( f, "\ttessSize\t\t64\n\n" );
+
 		// server relevant contents
 		if(contents & CONTENTS_WATER)
 			FS_Print( f, "\tsurfaceparm\twater\n" );
@@ -176,14 +182,28 @@ check_shader:
 			FS_Print( f, "\tsurfaceparm\tlava\n" );
 		else FS_Print( f, "\tsurfaceparm\twater\n" );
 		FS_Print( f, "\tsurfaceparm\twarp\n" );
-	}
 
-	if( flags & SURF_SKY ) FS_Print( f, "\tsurfaceparm\tsky\n" );
+		FS_Printf( f, "\t{\n\t\tmap\t%s\n", shadername );	// save basemap
+		if( flags & (SURF_TRANS33|SURF_TRANS66))
+		{
+			FS_Print( f, "\t\tblendFunc\tGL_SRC_ALPHA\tGL_ONE_MINUS_SRC_ALPHA\n" );
+			FS_Print( f, "\t\tAlphaGen\t\tvertex\n" ); 
+		}
+		FS_Print( f, "\t\ttcGen\twarp\n\t}\n" );	// warp
+		lightmap_stage = false;
+	}
+	else if( flags & SURF_SKY ) FS_Print( f, "\tsurfaceparm\tsky\n" );
 	else if( flags & SURF_HINT ) FS_Print( f, "\tsurfaceparm\thint\n" );
 	else if( flags & SURF_SKIP ) FS_Print( f, "\tsurfaceparm\tskip\n" );
 	else if( flags & SURF_MIRROR ) FS_Print( f, "\tsurfaceparm\tmirror\n" );
-	else if( flags & SURF_TRANS33 ) FS_Print( f, "\tsurfaceparm\tblend\n" );
-	else if( flags & SURF_TRANS66 ) FS_Print( f, "\tsurfaceparm\tblend\n" );
+	else if( flags & (SURF_TRANS33|SURF_TRANS66))
+	{
+		FS_Print( f, "\tentityMergable\n\n" );
+		FS_Printf( f, "\t{\n\t\tmap\t%s\n\n", shadername );	// save basemap
+		FS_Print( f, "\t\tblendFunc\tGL_SRC_ALPHA\tGL_ONE_MINUS_SRC_ALPHA\n" );
+		FS_Print( f, "\t\tAlphaGen\t\tvertex\n\t}\n" ); 
+		lightmap_stage = true;
+	}
 	else if( flags & SURF_NODRAW ) FS_Print( f, "\tsurfaceparm\tnull\n" );
 
 	if( contents & CONTENTS_CLIP && contents && CONTENTS_PLAYERCLIP )
@@ -194,42 +214,48 @@ check_shader:
 	else if( contents & CONTENTS_ORIGIN ) FS_Print( f, "\tsurfaceparm\torigin\n" );
 	else if( contents & CONTENTS_TRANSLUCENT ) FS_Print( f, "\tsurfaceparm\tsolid\n" );
 	else if( contents & CONTENTS_AREAPORTAL ) FS_Print( f, "\tsurfaceparm\tareaportal\n" );
+	else if( contents & CONTENTS_TRIGGER )  FS_Print( f, "\tsurfaceparm\ttrigger\n" );
 	else if( contents & CONTENTS_DETAIL ) FS_Print( f, "\tsurfaceparm\tdetail\n" );
 
 	if( num_anims )
 	{
-		int	i;
-
 		FS_Printf( f, "\t{\n\t\tAnimFrequency\t%i\n", animcount );	// #frames per second
 		for( i = 0; i < num_anims; i++ )		
 			FS_Printf( f, "\t\tmap\t\t%s\n", animmap[i] );
 		FS_Printf( f, "\t}\n" );	// close section
+		lightmap_stage = true;
+	}
+	else if( p->flags & IMAGE_HAS_LUMA && !( flags & SURF_WARP ))
+	{
+		FS_Printf( f, "\t{\n\t\tmap\t%s\n\t}\n", shadername );
+		lightmap_stage = true;
+	}
 
-		if( p->flags & IMAGE_HAS_LUMA )
+	if( lightmap_stage )
+	{
+		FS_Print( f, "\t{\n\t\tmap\t$lightmap\n" );	// lightmap stage
+		FS_Print( f, "\t\tblendFunc\tfilter\n" );
+		FS_Print( f, "\t}\n" );
+	}
+
+	if( p->flags & IMAGE_HAS_LUMA )
+	{
+		if( num_anims )
 		{
-			FS_Printf( f, "\t{\n\t\tmap\t\t$lightmap\n" );	// lightmap stage
-			FS_Printf( f, "\t\tblendFunc\t\tfilter\n" );
-			FS_Printf( f, "\t}\n\n" );	// close section
-
 			FS_Printf( f, "\t{\n\t\tAnimFrequency\t%i\n", animcount );	// #frames per second
 			for( i = 0; i < num_anims; i++ )		
 				FS_Printf( f, "\t\tmap\t\t%s_luma\n", animmap[i] ); // anim luma stage
 			FS_Printf( f, "\t\tblendFunc\t\tadd\n" );
 			FS_Printf( f, "\t}\n" );	// close section
-                    }
-		animcount = num_anims = 0;	// done
-	}
-	else if( p->flags & IMAGE_HAS_LUMA )
-	{
-		FS_Printf( f, "\t{\n\t\tmap\t%s\n\t}\n", shadername );	// save basemap
-
-		FS_Printf( f, "\t{\n\t\tmap\t\t$lightmap\n" );	// lightmap stage
-		FS_Printf( f, "\t\tblendFunc\t\tfilter\n" );
-		FS_Printf( f, "\t}\n" );	// close section
-
-		FS_Printf( f, "\t{\n\t\tmap\t%s_luma\n", shadername );	// save luma
-		FS_Printf( f, "\t\tblendFunc\t\tadd\n" );
-		FS_Printf( f, "\t}\n" );	// close section
+			animcount = num_anims = 0;	// done
+		}
+		else
+		{
+			FS_Printf( f, "\t{\n\t\tmap\t%s_luma\n", shadername );	// save luma
+			FS_Printf( f, "\t\tblendFunc\tadd\n" );
+			if( flags & SURF_WARP ) FS_Print( f, "\t\ttcGen\twarp\n" );
+			FS_Printf( f, "\t}\n" );	// close section
+		}
 	}
 
 	FS_Print( f, "}\n" ); // close shader
@@ -313,6 +339,7 @@ void Conv_ShaderGetFlags( const char *imagename, const char *shadername, const c
 		else if( !com.strnicmp( imagename, "glass", 5 )) *flags |= SURF_TRANS66;
 		else if( !com.strnicmp( imagename, "mirror", 6 )) *flags |= SURF_MIRROR;
 		else if( !com.strnicmp( imagename, "portal", 6 )) *flags |= SURF_PORTAL;
+		else if( com.stristr( imagename, "trigger" )) *contents |= CONTENTS_TRIGGER;
 
 		// try to exctract contents and flags directly form mip-name
 		if( imagename[0] == '!' || imagename[0] == '*' ) *flags |= SURF_WARP; // liquids

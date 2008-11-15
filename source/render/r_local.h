@@ -27,7 +27,7 @@ extern byte *r_temppool;
 #define MAX_POLYS			4096
 #define MAX_POLY_VERTS		16384
 #define MAX_CLIPFLAGS		15	// all sides of bbox are valid
-#define LM_SIZE			256	// LM_SIZE x LM_SIZE (width x height)
+#define LM_SIZE			128	// LM_SIZE x LM_SIZE (width x height)
 
 /*
 =======================================================================
@@ -96,8 +96,10 @@ typedef struct texture_s
 extern texture_t	*r_defaultTexture;
 extern texture_t	*r_whiteTexture;
 extern texture_t	*r_blackTexture;
+extern texture_t	*r_skyTexture;
 extern texture_t	*r_rawTexture;
 extern texture_t	*r_dlightTexture;
+extern texture_t	*r_particleTexture;
 extern texture_t	*r_lightmapTextures[MAX_LIGHTMAPS];
 extern texture_t	*r_normalizeTexture;
 extern texture_t	*r_radarMap;
@@ -759,7 +761,6 @@ extern int         	r_frameCount;
 extern int         	r_visFrameCount;
 extern int         	r_viewCluster;
 extern int	r_oldViewCluster;
-extern int	r_areabitsChanged;
 extern vec3_t	r_origin;				// same as r_refdef.vieworg
 extern vec3_t	r_forward;
 extern vec3_t	r_right;

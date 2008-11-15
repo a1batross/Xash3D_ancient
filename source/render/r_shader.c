@@ -79,13 +79,6 @@ shaderParm_t infoParms[] =
 	{"slick",		SURF_SLICK,	CONTENTS_NONE,		0},
 	{"light",		SURF_LIGHT,	CONTENTS_NONE,		0},
 	{"ladder",	SURF_NONE,	CONTENTS_LADDER,		0},
-
-	// drawsurf attributes (matched with Half-Life render modes)
-	{"texture",	SURF_BLEND,	CONTENTS_NONE,		0}, // blend surface
-	{"glow",		SURF_GLOW,	CONTENTS_NONE,		0}, // glow sprite
-	{"solid",		SURF_ALPHA,	CONTENTS_TRANSLUCENT,	0}, // alphatest
-	{"additive",	SURF_ADDITIVE,	CONTENTS_NONE,		0}, // additive
-	{"chrome",	SURF_CHROME,	CONTENTS_NONE,		0}, // studio chrome
 };
 
 /*
@@ -1059,13 +1052,11 @@ static bool R_ParseGeneralSurfaceParm( ref_shader_t *shader, script_t *script )
 {
 	token_t	tok;
 	int	i, numInfoParms = sizeof(infoParms) / sizeof(infoParms[0]);
-	
+
 	switch( shader->type )
 	{
 	case SHADER_TEXTURE:
-	case SHADER_STUDIO:
-	case SHADER_SPRITE:
-		break;
+	case SHADER_SKY: break;
 	default:
 		MsgDev( D_WARN, "'surfaceParm' not allowed in shader '%s'\n", shader->name );
 		return false;
@@ -1084,6 +1075,12 @@ static bool R_ParseGeneralSurfaceParm( ref_shader_t *shader, script_t *script )
 			shader->surfaceParm |= infoParms[i].surfaceFlags;
 			break;
 		}
+	}
+
+	if(!(shader->surfaceParm & SURF_SKY) && shader->type == SHADER_SKY )
+	{
+		MsgDev( D_WARN, "invalid 'surfaceParm' for shader '%s'\n", shader->name );
+		return false;
 	}
 
 	if( i == numInfoParms )
@@ -3107,6 +3104,8 @@ static bool R_ParseStageBlendFunc( ref_shader_t *shader, shaderStage_t *stage, s
 			stage->blendFunc.src = GL_DST_COLOR;
 		else if( !com.stricmp( tok.string, "GL_ONE_MINUS_DST_COLOR"))
 			stage->blendFunc.src = GL_ONE_MINUS_DST_COLOR;
+		else if( !com.stricmp( tok.string, "GL_SRC_COLOR"))
+			stage->blendFunc.src = GL_SRC_COLOR;
 		else if( !com.stricmp( tok.string, "GL_SRC_ALPHA"))
 			stage->blendFunc.src = GL_SRC_ALPHA;
 		else if( !com.stricmp( tok.string, "GL_ONE_MINUS_SRC_ALPHA"))
@@ -3783,7 +3782,9 @@ static void R_ParseShaderFile( script_t *script, const char *name )
 							break;
 						}
 					}
-					shaderScript->type = SHADER_TEXTURE;
+					if( shaderScript->surfaceParm & SURF_SKY )
+						shaderScript->type = SHADER_SKY; 
+					else shaderScript->type = SHADER_TEXTURE;
 				}
 			}
 			Com_CloseScript( scriptBlock );
@@ -4078,8 +4079,6 @@ static ref_shader_t *R_CreateShader( const char *name, int shaderType, uint surf
 		// load the script text
 		script = Com_OpenScript( shaderScript->name, shaderScript->buffer, shaderScript->size );
 		if( !script ) return R_CreateDefaultShader( name, shaderType, surfaceParm );
-
-		Msg("ParseScript: %s\n", shaderScript->name );
 
 		// parse it
 		if( !R_ParseShader( shader, script ))
@@ -4947,6 +4946,7 @@ R_CreateBuiltInShaders
 static void R_CreateBuiltInShaders( void )
 {
 	ref_shader_t	*shader;
+	int		i;
 
 	// default shader
 	shader = R_NewShader();
@@ -4974,6 +4974,36 @@ static void R_CreateBuiltInShaders( void )
 	shader->numStages++;
 
 	tr.lightmapShader = R_LoadShader( shader );
+
+	// skybox shader
+	shader = R_NewShader();
+
+	com.strncpy( shader->name, "<skybox>", sizeof( shader->name ));
+	shader->index = r_numShaders;
+	shader->type = SHADER_SKY;
+	shader->flags = SHADER_SKYPARMS;
+	for( i = 0; i < 6; i++ )
+		shader->skyParms.farBox[i] = r_skyTexture;
+	shader->skyParms.cloudHeight = 128.0f;
+	tr.skyboxShader = R_LoadShader( shader );
+	
+	// particle shader
+	shader = R_NewShader();
+
+	com.strncpy( shader->name, "<particle>", sizeof( shader->name ));
+	shader->index = r_numShaders;
+	shader->type = SHADER_SPRITE;
+	shader->surfaceParm = SURF_NOLIGHTMAP;
+	shader->stages[0]->bundles[0]->textures[0] = r_particleTexture;
+	shader->stages[0]->blendFunc.src = GL_DST_COLOR;
+	shader->stages[0]->blendFunc.dst = GL_SRC_ALPHA;
+	shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC|SHADERSTAGE_RGBGEN;
+	shader->stages[0]->rgbGen.type = RGBGEN_VERTEX;
+	shader->stages[0]->bundles[0]->numTextures++;
+	shader->stages[0]->numBundles++;
+	shader->numStages++;
+
+	tr.particleShader = R_LoadShader( shader );
 }
 
 /*

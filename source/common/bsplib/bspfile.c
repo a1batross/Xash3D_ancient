@@ -343,6 +343,8 @@ void WriteBSPFile( void )
 	wadfile = FS_Open( va( "maps/%s.bsp", gs_filename ), "wb" );
 	FS_Write( wadfile, header, sizeof( dheader_t ));	// overwritten later
 
+	Msg("add collision lump %i\n", dcollisiondatasize );
+
 	AddLump( LUMP_ENTITIES, dentdata, entdatasize );
 	AddLump( LUMP_PLANES, dplanes, numplanes * sizeof( dplanes[0] ));
 	AddLump( LUMP_VERTEXES, dvertexes, numvertexes * sizeof( dvertexes[0] ));

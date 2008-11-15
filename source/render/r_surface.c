@@ -15,7 +15,6 @@ ref_entity_t	*r_worldEntity;
 vec3_t		r_worldMins, r_worldMaxs;
 int		r_frameCount;
 int		r_visFrameCount;
-int		r_areabitsChanged;
 int		r_viewCluster, r_viewCluster2;
 int		r_oldViewCluster, r_oldViewCluster2;
 int		numRadarEnts = 0;

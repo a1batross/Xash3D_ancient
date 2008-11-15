@@ -33,15 +33,29 @@ texture_t	*r_dlightTexture;
 texture_t	*r_normalizeTexture;
 texture_t	*r_attenuationTexture;
 texture_t	*r_falloffTexture;
+texture_t *r_skyTexture;
 texture_t	*r_rawTexture;
 texture_t	*r_fogTexture;
 texture_t	*r_fogEnterTexture;
 texture_t	*r_scratchTexture;
 texture_t	*r_accumTexture;
+texture_t	*r_particleTexture;
 texture_t	*r_mirrorRenderTexture;
 texture_t	*r_portalRenderTexture;
 texture_t	*r_currentRenderTexture;
 texture_t	*r_lightmapTextures[MAX_LIGHTMAPS];
+
+static byte rb_dotImage[8][8] =
+{
+{0,0,0,0,0,0,0,0},
+{0,0,1,1,0,0,0,0},
+{0,1,1,1,1,0,0,0},
+{0,1,1,1,1,0,0,0},
+{0,0,1,1,0,0,0,0},
+{0,0,0,0,0,0,0,0},
+{0,0,0,0,0,0,0,0},
+{0,0,0,0,0,0,0,0},
+};
 
 const vec3_t r_cubeMapAngles[6] =
 {
@@ -933,6 +947,47 @@ static rgbdata_t *R_MakeGlow( rgbdata_t *in )
 	return out;
 }
 
+static rgbdata_t *R_MakeImageBlock( rgbdata_t *in , int block[4] )
+{
+	byte	*fin, *out;
+	int	i, x, y, xl, yl, xh, yh, w, h;
+	int	linedelta;
+
+	// make sure what we processing RGBA image
+	in = R_ForceImageToRGBA( in );
+
+	xl = block[0];
+	yl = block[1];
+	w = block[2];
+	h = block[3];
+	xh = xl + w;
+	yh = yl + h;
+
+	image_desc.source = Mem_Realloc( r_temppool, image_desc.source, w * h * 4 );
+	out = image_desc.source;
+          
+	fin = in->buffer + (yl * in->width + xl) * 4;
+	linedelta = (in->width - w) * 4;
+
+	// cut block from source
+	for( y = yl; y < yh; y++ )
+	{
+		for( x = xl; x < xh; x++ )
+			for( i = 0; i < 4; i++ )
+				*out++ = *fin++;
+		fin += linedelta;
+	}
+
+	// copy result back
+	in->buffer = Mem_Realloc( r_temppool, in->buffer, w * h * 4 );
+	Mem_Copy( in->buffer, image_desc.source, w * h * 4 );
+	in->size = w * h * 4;
+	in->height = h;
+	in->width = w;
+
+	return in;
+}
+
 /*
 =================
 R_MakeAlpha
@@ -1663,6 +1718,86 @@ static rgbdata_t *R_ParseMakeGlow( script_t *script, int *samples, texFlags_t *f
 
 /*
 =================
+R_ParseScrapBlock
+=================
+*/
+static rgbdata_t *R_ParseScrapBlock( script_t *script, int *samples, texFlags_t *flags )
+{
+	int	i, block[4];
+	token_t	token;
+	rgbdata_t *pic;
+
+	Com_ReadToken( script, 0, &token );
+	if( com.stricmp( token.string, "(" ))
+	{
+		MsgDev( D_WARN, "expected '(', found '%s' instead for 'makeGlow'\n", token.string );
+		return NULL;
+	}
+
+	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &token ))
+	{
+		MsgDev( D_WARN, "missing parameters for 'scrapBlock'\n" );
+		return NULL;
+	}
+
+	pic = R_LoadImage( script, token.string, NULL, 0, samples, flags );
+	if( !pic ) return NULL;
+
+	for( i = 0; i < 4; i++ )
+	{
+		Com_ReadToken( script, 0, &token );
+		if( com.stricmp( token.string, "," ))
+		{
+			MsgDev( D_WARN, "expected ',', found '%s' instead for 'rect'\n", token.string );
+			FS_FreeImage( pic );
+			return NULL;
+		}
+
+		if( !Com_ReadLong( script, 0, &block[i] ))
+		{
+			MsgDev( D_WARN, "missing parameters for 'block'\n" );
+			FS_FreeImage( pic );
+			return NULL;
+		}
+		if( block[i] < 0 )
+		{
+			MsgDev( D_WARN, "invalid argument %i for 'block'\n", i+1 );
+			FS_FreeImage( pic );
+			return NULL;
+		}
+		if((i+1) & 1 && block[i] > pic->width ) 
+		{
+			MsgDev( D_WARN, "invalid argument %i for 'block'\n", i+1 );
+			FS_FreeImage( pic );
+			return NULL;
+		}
+		if((i+1) & 2 && block[i] > pic->height ) 
+		{
+			MsgDev( D_WARN, "invalid argument %i for 'block'\n", i+1 );
+			FS_FreeImage( pic );
+			return NULL;
+		}
+	}
+
+	Com_ReadToken( script, 0, &token );
+	if( com.stricmp( token.string, ")" ))
+	{
+		MsgDev( D_WARN, "expected ')', found '%s' instead for 'bias'\n", token.string );
+		FS_FreeImage( pic );
+		return NULL;
+	}
+	if((block[0] + block[2] > pic->width) || (block[1] + block[3] > pic->height))
+	{
+		MsgDev( D_WARN, "'ScrapBlock' image size out of bounds\n" );
+		FS_FreeImage( pic );
+		return NULL;
+	}
+
+	return R_MakeImageBlock( pic, block );
+}
+
+/*
+=================
 R_ParseHeightMap
 =================
 */
@@ -1865,6 +2000,8 @@ static rgbdata_t *R_LoadImage( script_t *script, const char *name, const byte *b
 		return R_ParseMakeGlow( script, samples, flags );
 	else if( !com.stricmp( name, "heightMap" ))
 		return R_ParseHeightMap( script, samples, flags );
+	else if( !com.stricmp( name, "ScrapBlock" ))
+		return R_ParseScrapBlock( script, samples, flags );
 	else if( !com.stricmp( name, "addNormals" ))
 		return R_ParseAddNormals( script, samples, flags );
 	else if( !com.stricmp( name, "smoothNormals" ))
@@ -2320,6 +2457,30 @@ static void R_CreateBuiltInTextures( void )
 	for( i = 0; i < 64; i++ ) ((uint *)&data2D)[i] = LittleLong(0xFFFF8080);
 	r_flatTexture = R_LoadTexture( "*flat", &pic, 3, TF_STATIC|TF_NOPICMIP|TF_UNCOMPRESSED|TF_NORMALMAP, TF_DEFAULT, TW_REPEAT );
 
+	// skybox texture
+	for( i = 0; i < 256; i++ )((uint *)&data2D)[i] = LittleLong( 0xFFFFDEB5 );
+	pic.width = pic.height = 16;
+	pic.size = pic.width * pic.height * 4;
+	r_skyTexture = R_LoadTexture( "*sky", &pic, 3, TF_STATIC|TF_NOPICMIP, TF_LINEAR, TW_REPEAT );
+
+	// particle texture
+	for( x = 0; x < 8; x++ )
+	{
+		for( y = 0; y < 8; y++ )
+		{
+			data2D[4*(y*8+x)+0] = 0xFF;
+			data2D[4*(y*8+x)+1] = 0xFF;
+			data2D[4*(y*8+x)+2] = 0xFF;
+			data2D[4*(y*8+x)+3] = rb_dotImage[x][y] * 0xFF;
+		}
+	}
+
+	pic.width = pic.height = 8;
+	pic.size = pic.width * pic.height * 4;
+	pic.flags |= IMAGE_HAS_ALPHA;
+	r_particleTexture = R_LoadTexture( "*particle", &pic, 4, TF_STATIC|TF_NOPICMIP, TF_NEAREST, 0 );
+	pic.flags &= ~IMAGE_HAS_ALPHA;
+
 	// attenuation texture
 	for( y = 0; y < 128; y++ )
 	{
@@ -2761,9 +2922,9 @@ void R_InitTextures( void )
 	for( i = 0; i < 256; i++ )
 	{
 		// 224 is a Q1 luma threshold
-		r_glowTable[i][0] = i > 196 ? i : 0;
-		r_glowTable[i][1] = i > 196 ? i : 0;
-		r_glowTable[i][2] = i > 196 ? i : 0;
+		r_glowTable[i][0] = i > 224 ? i : 0;
+		r_glowTable[i][1] = i > 224 ? i : 0;
+		r_glowTable[i][2] = i > 224 ? i : 0;
 	}
 
 	// build luminance table

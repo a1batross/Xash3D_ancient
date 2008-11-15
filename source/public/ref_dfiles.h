@@ -131,9 +131,9 @@ BRUSH MODELS
 #define IDBSPMODHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'I') // little-endian "IBSP"
 
 // 32 bit limits
-#define MAX_MAP_AREA_BYTES		32	// bit vector of area visibility
-#define MAX_MAP_AREAS		0x100	// don't increase this
-#define MAX_MAP_MODELS		0x2000	// mesh models and sprites too
+#define MAX_MAP_AREA_BYTES		MAX_MAP_AREAS / 8	// bit vector of area visibility
+#define MAX_MAP_AREAS		0x100		// don't increase this
+#define MAX_MAP_MODELS		0x2000		// mesh models and sprites too
 #define MAX_MAP_AREAPORTALS		0x400
 #define MAX_MAP_ENTITIES		0x2000
 #define MAX_MAP_SHADERS		0x1000

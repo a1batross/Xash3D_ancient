@@ -5,7 +5,7 @@
 int	c_nodes;
 int	c_nonvis;
 int	c_active_brushes;
-vec_t	microvolume = 1.0;
+vec_t	microvolume = 0.5f;
 
 #define	PSIDE_FRONT			1
 #define	PSIDE_BACK			2

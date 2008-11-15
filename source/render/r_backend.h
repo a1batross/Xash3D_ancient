@@ -196,6 +196,8 @@ typedef struct
 	// builtin shaders
 	ref_shader_t	*defaultShader;
 	ref_shader_t	*lightmapShader;
+	ref_shader_t	*skyboxShader;
+	ref_shader_t	*particleShader;
 } ref_globals_t;
 
 extern ref_backend_t	ref;

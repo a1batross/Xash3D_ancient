@@ -167,6 +167,12 @@ void Conv_RunSearch( void )
 		break;
 	case GAME_HEXEN2:
 	case GAME_QUAKE1:
+		search = FS_Search("*.wad", true );
+		// make sure, that we stored all files from all wads
+		for( i = 0; search && i < search->numfilenames; i++ )
+			AddMask(va("%s/*.mip", search->filenames[i]));
+		if( search ) Mem_Free( search );
+		else AddMask( "*.mip" );
 		AddMask( "maps/*.bsp" );	// Quake1 textures from bsp
 		AddMask( "sprites/*.spr" );	// Quake1 sprites
 		AddMask( "sprites/*.spr32" );	// QW 32bit sprites
@@ -178,7 +184,6 @@ void Conv_RunSearch( void )
 		AddMask( "gfx/*.lmp" );	// Quake1 pics
 		AddMask( "*.sp32");
 		AddMask( "*.spr" );
-		AddMask( "*.mip" );
 		imageflags |= IL_KEEP_8BIT;
 		write_qscsript = true;
 		Image_Init( "Quake1", imageflags );

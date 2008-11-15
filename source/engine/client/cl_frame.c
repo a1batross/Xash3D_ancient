@@ -40,14 +40,8 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 	ent = PRVM_EDICT_NUM( newnum );
 	state = &cl_parse_entities[cl.parse_entities & (MAX_PARSE_ENTITIES-1)];
 
-	if( unchanged )
-	{
-		*state = *old;
-	}
-	else
-	{
-		MSG_ReadDeltaEntity( msg, old, state, newnum );
-	}
+	if( unchanged ) *state = *old;
+	else MSG_ReadDeltaEntity( msg, old, state, newnum );
 
 	if( state->number == -1 ) return; // entity was delta removed
 
@@ -66,7 +60,7 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 	{	
 		// duplicate the current state so lerping doesn't hurt anything
 		ent->priv.cl->prev = *state;
-		VectorCopy (state->old_origin, ent->priv.cl->prev.origin);
+		VectorCopy( state->old_origin, ent->priv.cl->prev.origin );
 	}
 	else
 	{	// shuffle the last state to previous

@@ -198,9 +198,9 @@ void SV_Map_f( void )
 	}
 
 	com.snprintf( filename, MAX_STRING, "%s.bsp", Cmd_Argv(1));
-	if(!FS_FileExists(va("maps/%s", filename )))
+	if( !FS_FileExists( va("maps/%s", filename )))
 	{
-		Msg("Can't loading %s\n", filename );
+		Msg( "Can't loading %s\n", filename );
 		return;
 	}
 
@@ -524,27 +524,26 @@ SV_InitOperatorCommands
 */
 void SV_InitOperatorCommands( void )
 {
-	Cmd_AddCommand ("heartbeat", SV_Heartbeat_f, "send a heartbeat to the master server" );
-	Cmd_AddCommand ("kick", SV_Kick_f, "kick a player off the server by number or name" );
-	Cmd_AddCommand ("status", SV_Status_f, "print server status information" );
-	Cmd_AddCommand ("serverinfo", SV_ServerInfo_f, "print server settings" );
-	Cmd_AddCommand ("clientinfo", SV_ClientInfo_f, "print user infostring (player num required)" );
+	Cmd_AddCommand( "heartbeat", SV_Heartbeat_f, "send a heartbeat to the master server" );
+	Cmd_AddCommand( "kick", SV_Kick_f, "kick a player off the server by number or name" );
+	Cmd_AddCommand( "status", SV_Status_f, "print server status information" );
+	Cmd_AddCommand( "serverinfo", SV_ServerInfo_f, "print server settings" );
+	Cmd_AddCommand( "clientinfo", SV_ClientInfo_f, "print user infostring (player num required)" );
 
-	Cmd_AddCommand("map", SV_Map_f, "start new level" );
-	Cmd_AddCommand("newgame", SV_Newgame_f, "begin new game" );
-	Cmd_AddCommand("changelevel", SV_ChangeLevel_f, "changing level" );
-	Cmd_AddCommand("restart", SV_Restart_f, "restarting current level" );
-	Cmd_AddCommand("sectorlist", SV_SectorList_f, "display pvs sectors" );
+	Cmd_AddCommand( "map", SV_Map_f, "start new level" );
+	Cmd_AddCommand( "newgame", SV_Newgame_f, "begin new game" );
+	Cmd_AddCommand( "changelevel", SV_ChangeLevel_f, "changing level" );
+	Cmd_AddCommand( "restart", SV_Restart_f, "restarting current level" );
 
 	if( host.type == HOST_DEDICATED )
 	{
-		Cmd_AddCommand ("say", SV_ConSay_f, "send a chat message to everyone on the server" );
-		Cmd_AddCommand("setmaster", SV_SetMaster_f, "set ip address for dedicated server" );
+		Cmd_AddCommand( "say", SV_ConSay_f, "send a chat message to everyone on the server" );
+		Cmd_AddCommand( "setmaster", SV_SetMaster_f, "set ip address for dedicated server" );
 	}
 
-	Cmd_AddCommand ("save", SV_Save_f, "save the game to a file");
-	Cmd_AddCommand ("load", SV_Load_f, "load a saved game file" );
-	Cmd_AddCommand ("killserver", SV_KillServer_f, "shutdown current server" );
+	Cmd_AddCommand( "save", SV_Save_f, "save the game to a file" );
+	Cmd_AddCommand( "load", SV_Load_f, "load a saved game file" );
+	Cmd_AddCommand( "killserver", SV_KillServer_f, "shutdown current server" );
 }
 
 void SV_KillOperatorCommands( void )
