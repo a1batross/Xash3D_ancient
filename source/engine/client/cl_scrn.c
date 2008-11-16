@@ -20,6 +20,7 @@ cvar_t *cl_testentities;
 cvar_t *cl_testlights;
 cvar_t *cl_levelshot_name;
 cvar_t *cl_envshot_size;
+cvar_t *cl_font;
 
 void SCR_TimeRefresh_f( void );
 void SCR_Loading_f( void );
@@ -108,7 +109,7 @@ void SCR_DrawChar( int x, int y, float w, float h, int ch )
 	fcol = (ch & 15)*0.0625f + (0.5f / 256.0f);
 	size = 0.0625f - (1.0f / 256.0f);
 
-	re->DrawStretchPic( ax, ay, aw, ah, fcol, frow, fcol + size, frow + size, cls.consoleFont );
+	re->DrawStretchPic( ax, ay, aw, ah, fcol, frow, fcol + size, frow + size, cls.clientFont );
 }
 
 /*
@@ -116,6 +117,7 @@ void SCR_DrawChar( int x, int y, float w, float h, int ch )
 SCR_DrawSmallChar
 
 small chars are drawn at native screen resolution
+console only
 ====================
 */
 void SCR_DrawSmallChar( int x, int y, int ch )
@@ -326,12 +328,20 @@ void SCR_UpdateScreen( void )
 	V_PostRender();
 }
 
+void SCR_RegisterShaders( void )
+{
+	// register console images
+	cls.consoleFont = re->RegisterShader( va( "gfx/fonts/%s", con_font->string ), SHADER_FONT );
+	cls.clientFont = re->RegisterShader( va( "gfx/fonts/%s", cl_font->string ), SHADER_FONT );
+	cls.consoleBack = re->RegisterShader( "gfx/background/conback", SHADER_NOMIP );
+}
+
 /*
 ==================
 SCR_Init
 ==================
 */
-void SCR_Init (void)
+void SCR_Init( void )
 {
 	cls.mempool = Mem_AllocPool( "Client Static" );
 
@@ -344,17 +354,16 @@ void SCR_Init (void)
 	cl_testentities = Cvar_Get ("cl_testentities", "0", 0, "test client entities" );
 	cl_testlights = Cvar_Get ("cl_testlights", "0", 0, "test dynamic lights" );
 	cl_envshot_size = Cvar_Get( "cl_envshot_size", "256", CVAR_ARCHIVE, "envshot size of cube side" );
-
+	cl_font = Cvar_Get( "cl_font", "default", CVAR_ARCHIVE, "in-game messages font" );
+	
 	// register our commands
 	Cmd_AddCommand( "timerefresh", SCR_TimeRefresh_f, "turn quickly and print rendering statistcs" );
 	Cmd_AddCommand( "loading", SCR_Loading_f, "prepare client to a loading new map" );
 	Cmd_AddCommand( "skyname", CL_SetSky_f, "set new skybox by basename" );
-	Cmd_AddCommand( "setfont", CL_SetFont_f, "set new system font" );
+	Cmd_AddCommand( "setfont", CL_SetFont_f, "set console/messsages font" );
 	Cmd_AddCommand( "viewpos", SCR_Viewpos_f, "prints current player origin" );
 
-	// register console images
-	cls.consoleFont = re->RegisterShader( va( "gfx/fonts/%s", con_font->string ), SHADER_FONT );
-	cls.consoleBack = re->RegisterShader( "gfx/background/conback", SHADER_NOMIP );
+	SCR_RegisterShaders();
 }
 
 void SCR_Shutdown( void )

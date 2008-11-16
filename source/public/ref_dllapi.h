@@ -219,6 +219,7 @@ typedef struct prvm_prog_s
 	void		(*free_edict)(edict_t *ed);
 	void		(*count_edicts)(void);
 	bool		(*load_edict)(edict_t *ent);		// initialize edict for first loading
+	void		(*classify_edict)(edict_t *ent);	// called after spawn for classify edict
 	void		(*restore_edict)(edict_t *ent);	// restore edict from savegame or changelevel
 	void		(*init_cmd)(void);
 	void		(*reset_cmd)(void);

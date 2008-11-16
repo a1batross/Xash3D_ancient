@@ -35,7 +35,12 @@ GLOBAL: Достигнуть уровня xash 0.45 к очередному релизу
 13. сделать case -light для bsplib		OK
 14. зачинить небо				OK
 15. наладить отрисовку энтить
-16. починить PhysWorld
+16. починить PhysWorld			OK
+17. наладить StudioModelRender
+18. энумератор текстур			OK
+19. наладить удаление ключей из HashTable	OK
+20. CM_HeadnodeVisible
+21. Matrix3x3_Compare crashed
 
 операция "Полная отладка менеджера текстур"
 0. анализ менеджера egl и q2e_068

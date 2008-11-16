@@ -30,13 +30,26 @@ setfont <fontname>
 */
 void CL_SetFont_f( void )
 {
-	if(Cmd_Argc() < 2)
+	if( Cmd_Argc() < 2 )
 	{
-		Msg( "Usage: setfont <fontname>\n" );
+		Msg( "Usage: setfont <fontname> <console>\n" );
 		return;
 	}
-	Cvar_Set( "con_font", Cmd_Argv(1));
-	cls.consoleFont = re->RegisterShader( va( "gfx/fonts/%s", con_font->string ), SHADER_FONT );
+
+	switch(Cmd_Argc( ))
+	{
+	case 2:
+		Cvar_Set( "cl_font", Cmd_Argv( 1 ));
+		cls.clientFont = re->RegisterShader( va( "gfx/fonts/%s", cl_font->string ), SHADER_FONT );
+		break;
+	case 3:
+		Cvar_Set( "con_font", Cmd_Argv( 1 ));
+		cls.consoleFont = re->RegisterShader( va( "gfx/fonts/%s", con_font->string ), SHADER_FONT );
+		break;
+	default:
+		Msg( "setfont: invalid aruments\n" );
+		break;
+	}
 }
 
 /*

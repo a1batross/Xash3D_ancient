@@ -44,7 +44,7 @@ static ref_script_t		*r_shaderScriptsHash[SHADERS_HASH_SIZE];
 static ref_shader_t		*r_shadersHash[SHADERS_HASH_SIZE];
 static table_t		*r_tables[MAX_TABLES];
 static int		r_numTables;
-ref_shader_t		*r_shaders[MAX_SHADERS];
+ref_shader_t		r_shaders[MAX_SHADERS];
 int			r_numShaders = 0;
 
 // NOTE: this table must match with same table in common\bsplib\shaders.c
@@ -1523,10 +1523,8 @@ static bool R_ParseGeneralSkyParms( ref_shader_t *shader, script_t *script )
 	{
 		for( i = 0; i < 6; i++ )
 		{
-			if( shader->skyParms.farBox[i] )
-				shader->skyParms.farBox[i]->flags &= ~TF_STATIC; // old skybox will be removed on next loading
 			com.snprintf( name, sizeof( name ), "%s%s", tok.string, r_skyBoxSuffix[i] );
-			shader->skyParms.farBox[i] = R_FindTexture( name, NULL, 0, TF_STATIC, TF_LINEAR, TW_CLAMP );
+			shader->skyParms.farBox[i] = R_FindTexture( name, NULL, 0, 0, TF_LINEAR, TW_CLAMP );
 			if( !shader->skyParms.farBox[i] )
 			{
 				MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", name, shader->name );
@@ -1562,10 +1560,8 @@ static bool R_ParseGeneralSkyParms( ref_shader_t *shader, script_t *script )
 	{
 		for( i = 0; i < 6; i++ )
 		{
-			if( shader->skyParms.nearBox[i] )
-				shader->skyParms.nearBox[i]->flags &= ~TF_STATIC; // old skybox will be removed on next loading
 			com.snprintf( name, sizeof(name), "%s%s", tok.string, r_skyBoxSuffix[i] );
-			shader->skyParms.nearBox[i] = R_FindTexture( name, NULL, 0, TF_STATIC, TF_LINEAR, TW_CLAMP );
+			shader->skyParms.nearBox[i] = R_FindTexture( name, NULL, 0, 0, TF_LINEAR, TW_CLAMP );
 			if( !shader->skyParms.nearBox[i] )
 			{
 				MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", name, shader->name );
@@ -3807,10 +3803,25 @@ R_NewShader
 static ref_shader_t *R_NewShader( void )
 {
 	ref_shader_t	*shader;
-	int	i, j;
+	int		i, j;
+
+	// find a free shader_t slot
+	for( i = 0, shader = r_shaders; i < r_numShaders; i++, shader++ )
+		if( !shader->name[0] ) break;
+
+	if( i == r_numShaders )
+	{
+		if( r_numShaders == MAX_SHADERS )
+		{
+			Host_Error( "R_LoadShader: MAX_SHADERS limit exceeded\n" );
+			return tr.defaultShader;
+		}
+		r_numShaders++;
+	}
 
 	shader = &r_parseShader;
 	Mem_Set( shader, 0, sizeof( ref_shader_t ));
+	shader->shadernum = i;
 
 	for( i = 0; i < SHADER_MAX_STAGES; i++ )
 	{
@@ -3850,7 +3861,6 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 
 	// fill it in
 	com.strncpy( shader->name, name, sizeof( shader->name ));
-	shader->index = r_numShaders;
 	shader->type = shaderType;
 	shader->surfaceParm = surfaceParm;
 
@@ -3861,9 +3871,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 
 		for( i = 0; i < 6; i++ )
 		{
-			if( shader->skyParms.farBox[i] )
-				shader->skyParms.farBox[i]->flags &= ~TF_STATIC; // old skybox will be removed on next loading
-			shader->skyParms.farBox[i] = R_FindTexture(va("gfx/env/%s%s", shader->name, r_skyBoxSuffix[i]), NULL, 0, TF_STATIC, TF_LINEAR, TW_CLAMP );
+			shader->skyParms.farBox[i] = R_FindTexture(va("gfx/env/%s%s", shader->name, r_skyBoxSuffix[i]), NULL, 0, 0, TF_LINEAR, TW_CLAMP );
 			if( !shader->skyParms.farBox[i] )
 			{
 				MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
@@ -4064,7 +4072,6 @@ static ref_shader_t *R_CreateShader( const char *name, int shaderType, uint surf
 
 	// fill it in
 	com.strncpy( shader->name, name, sizeof( shader->name ));
-	shader->index = r_numShaders;
 	shader->type = shaderType;
 	shader->surfaceParm = surfaceParm;
 	shader->flags = SHADER_EXTERNAL;
@@ -4102,7 +4109,6 @@ static ref_shader_t *R_CreateShader( const char *name, int shaderType, uint surf
 			shader = R_NewShader();
 
 			com.strncpy( shader->name, name, sizeof( shader->name ));
-			shader->index = r_numShaders;
 			shader->type = shaderType;
 			shader->surfaceParm = surfaceParm;
 			shader->flags = SHADER_EXTERNAL|SHADER_DEFAULTED;
@@ -4383,7 +4389,8 @@ static void R_FinishShader( ref_shader_t *shader )
 			}
 			else
 			{
-				if((stage->blendFunc.src == GL_DST_COLOR && stage->blendFunc.dst == GL_ZERO) || (stage->blendFunc.src == GL_ZERO && stage->blendFunc.dst == GL_SRC_COLOR))
+				if((stage->blendFunc.src == GL_DST_COLOR && stage->blendFunc.dst == GL_ZERO)
+				|| (stage->blendFunc.src == GL_ZERO && stage->blendFunc.dst == GL_SRC_COLOR))
 					stage->bundles[0]->texEnv = GL_MODULATE;
 				else if(stage->blendFunc.src == GL_ONE && stage->blendFunc.dst == GL_ONE)
 					stage->bundles[0]->texEnv = GL_ADD;
@@ -4644,67 +4651,7 @@ static void R_OptimizeShader( ref_shader_t *shader )
 	shader->constantExpressions = true;
 }
 
-/*
-=================
-R_LoadShader
-=================
-*/
-ref_shader_t *R_LoadShader( ref_shader_t *newShader )
-{
-	ref_shader_t	*shader;
-	uint	hashKey;
-	int	i, j;
-
-	if( r_numShaders == MAX_SHADERS )
-		Host_Error( "R_LoadShader: MAX_SHADERS limit exceeded\n" );
-
-	r_shaders[r_numShaders++] = shader = Mem_Alloc( r_shaderpool, sizeof( ref_shader_t ));
-
-	// make sure the shader is valid and set all the unset parameters
-	R_FinishShader( newShader );
-
-	// try to merge multiple stages for multitexturing
-	R_OptimizeShader( newShader );
-
-	// copy the shader
-	Mem_Copy( shader, newShader, sizeof( ref_shader_t ));
-	shader->numStages = 0;
-
-	// allocate and copy the stages
-	for( i = 0; i < newShader->numStages; i++ )
-	{
-		if( newShader->stages[i]->ignore )
-			continue;
-
-		shader->stages[shader->numStages] = Mem_Alloc( r_shaderpool, sizeof( shaderStage_t ));
-		Mem_Copy(shader->stages[shader->numStages], newShader->stages[i], sizeof(shaderStage_t));
-
-		// allocate and copy the bundles
-		for( j = 0; j < shader->stages[shader->numStages]->numBundles; j++ )
-		{
-			shader->stages[shader->numStages]->bundles[j] = Mem_Alloc( r_shaderpool, sizeof( stageBundle_t ));
-			Mem_Copy(shader->stages[shader->numStages]->bundles[j], newShader->stages[i]->bundles[j], sizeof(stageBundle_t));
-		}
-		shader->numStages++;
-	}
-
-	// allocate and copy the expression ops
-	shader->statements = Mem_Alloc( r_shaderpool, shader->numstatements * sizeof( statement_t ));
-	Mem_Copy( shader->statements, newShader->statements, shader->numstatements * sizeof( statement_t ));
-
-	// Allocate and copy the expression registers
-	shader->expressions = Mem_Alloc( r_shaderpool, shader->numRegisters * sizeof( float ));
-	Mem_Copy( shader->expressions, newShader->expressions, shader->numRegisters * sizeof( float ));
-
-	// add to hash table
-	hashKey = Com_HashKey( shader->name, SHADERS_HASH_SIZE );
-	shader->nextHash = r_shadersHash[hashKey];
-	r_shadersHash[hashKey] = shader;
-
-	return shader;
-}
-
-static void R_ShaderTouchImages( ref_shader_t *shader )
+static void R_ShaderTouchImages( ref_shader_t *shader, bool free_unused )
 {
 	int		i, j, k;
 	int		c_total = 0;
@@ -4713,9 +4660,6 @@ static void R_ShaderTouchImages( ref_shader_t *shader )
 	texture_t		*texture;
 
 	Com_Assert( shader == NULL );
-	if( !shader ) return;
-	if( shader->type == SHADER_NOMIP || shader->type == SHADER_FONT )
-		return; // static textures not needs to touch
 
 	for( i = 0; i < shader->numStages; i++ )
 	{
@@ -4723,14 +4667,20 @@ static void R_ShaderTouchImages( ref_shader_t *shader )
 		for( j = 0; j < stage->numBundles; j++ )
 		{
 			bundle = stage->bundles[j];
+
+ 			// FIXME: implement
+			//if( free_unused && bundle->flags & STAGEBUNDLE_VIDEOMAP )
+			//	CIN_StopCinematic( bundle->cinematicHandle );
+
 			for( k = 0; k < bundle->numTextures; k++ )
 			{
 				// prolonge registration for all shader textures
 				texture = bundle->textures[k];
-				if( !texture || texture->touchFrame == registration_sequence )
-					continue;
-				Msg("update texture %s with texnum %i\n", texture->name, texture->texnum );
-				texture->touchFrame = registration_sequence;
+
+				if( !texture || !texture->name[0] ) continue;
+				if( free_unused && texture->touchFrame != registration_sequence )
+					R_FreeImage( texture );
+				else texture->touchFrame = registration_sequence;
 				c_total++; // just for debug
 			}
 		}
@@ -4742,9 +4692,19 @@ static void R_ShaderTouchImages( ref_shader_t *shader )
 		for( i = 0; i < 6; i++ )
 		{
 			texture = shader->skyParms.farBox[i];
-			if( texture ) texture->touchFrame = registration_sequence;
+			if( texture && texture->name[0] )
+			{
+				if( free_unused && texture->touchFrame != registration_sequence )
+					R_FreeImage( texture );
+				else texture->touchFrame = registration_sequence;
+			}
 			texture = shader->skyParms.nearBox[i];
-			if( texture ) texture->touchFrame = registration_sequence;
+			if( texture && texture->texnum )
+			{
+				if( free_unused && texture->touchFrame != registration_sequence )
+					R_FreeImage( texture );
+				else texture->touchFrame = registration_sequence;
+			}
 			c_total++; // just for debug
 		}
 	}
@@ -4752,10 +4712,70 @@ static void R_ShaderTouchImages( ref_shader_t *shader )
 
 /*
 =================
+R_LoadShader
+=================
+*/
+ref_shader_t *R_LoadShader( ref_shader_t *newShader )
+{
+	ref_shader_t	*shader;
+	uint		hashKey;
+	int		i, j;
+
+	// make sure the shader is valid and set all the unset parameters
+	R_FinishShader( newShader );
+
+	// try to merge multiple stages for multitexturing
+	R_OptimizeShader( newShader );
+
+	// copy the shader
+	shader = &r_shaders[newShader->shadernum];
+	Mem_Copy( shader, newShader, sizeof( ref_shader_t ));
+	shader->mempool = Mem_AllocPool( shader->name );
+	shader->numStages = 0;
+
+	// allocate and copy the stages
+	for( i = 0; i < newShader->numStages; i++ )
+	{
+		if( newShader->stages[i]->ignore )
+			continue;
+
+		shader->stages[shader->numStages] = Mem_Alloc( shader->mempool, sizeof( shaderStage_t ));
+		Mem_Copy( shader->stages[shader->numStages], newShader->stages[i], sizeof( shaderStage_t ));
+
+		// allocate and copy the bundles
+		for( j = 0; j < shader->stages[shader->numStages]->numBundles; j++ )
+		{
+			shader->stages[shader->numStages]->bundles[j] = Mem_Alloc( shader->mempool, sizeof( stageBundle_t ));
+			Mem_Copy( shader->stages[shader->numStages]->bundles[j], newShader->stages[i]->bundles[j], sizeof( stageBundle_t ));
+		}
+		shader->numStages++;
+	}
+
+	// allocate and copy the expression ops
+	shader->statements = Mem_Alloc( shader->mempool, shader->numstatements * sizeof( statement_t ));
+	Mem_Copy( shader->statements, newShader->statements, shader->numstatements * sizeof( statement_t ));
+
+	// Allocate and copy the expression registers
+	shader->expressions = Mem_Alloc( shader->mempool, shader->numRegisters * sizeof( float ));
+	Mem_Copy( shader->expressions, newShader->expressions, shader->numRegisters * sizeof( float ));
+
+	shader->touchFrame = registration_sequence;
+	R_ShaderTouchImages( shader, false );
+
+	// add to hash table
+	hashKey = Com_HashKey( shader->name, SHADERS_HASH_SIZE );
+	shader->nextHash = r_shadersHash[hashKey];
+	r_shadersHash[hashKey] = shader;
+
+	return shader;
+}
+
+/*
+=================
 R_FindShader
 =================
 */
-shader_t R_FindShader( const char *name, int shaderType, uint surfaceParm )
+ref_shader_t *R_FindShader( const char *name, int shaderType, uint surfaceParm )
 {
 	ref_shader_t	*shader;
 	ref_script_t	*shaderScript;
@@ -4774,8 +4794,9 @@ shader_t R_FindShader( const char *name, int shaderType, uint surfaceParm )
 		if( !com.stricmp( shader->name, name ))
 		{
 			// prolonge registration
-			R_ShaderTouchImages( shader );
-			return shader->index;
+			shader->touchFrame = registration_sequence;
+			R_ShaderTouchImages( shader, false );
+			return shader;
 		}
 	}
 
@@ -4793,7 +4814,7 @@ shader_t R_FindShader( const char *name, int shaderType, uint surfaceParm )
 	shader = R_CreateShader( name, shaderType, surfaceParm, shaderScript );
 
 	// load it in
-	return R_LoadShader( shader )->index;
+	return R_LoadShader( shader );
 }
 
 void R_SetInternalMap( texture_t *mipTex )
@@ -4895,47 +4916,74 @@ void R_EvaluateRegisters( ref_shader_t *shader, float time, const float *entityP
 
 /*
 =================
-R_RegisterShader
+R_ModRegisterShaders
+
+update shader and associated textures
 =================
 */
-ref_shader_t *R_RegisterShader( const char *name )
+void R_ModRegisterShaders( rmodel_t *mod )
 {
-	return r_shaders[R_FindShader( name, SHADER_GENERIC, 0 )];
+	ref_shader_t	*shader;
+	int		i;
+
+	if( !mod || !mod->name[0] )
+		return;
+
+	for( i = 0; i < mod->numShaders; i++ )
+	{
+		shader = mod->shaders[i];
+		if( !shader || !shader->name[0] ) continue;
+		shader = R_FindShader( shader->name, shader->type, shader->surfaceParm );
+	}
 }
 
-/*
-=================
-R_RegisterShaderSkin
-=================
-*/
-ref_shader_t *R_RegisterShaderSkin( const char *name )
+static void R_FreeShader( ref_shader_t *shader )
 {
-	return r_shaders[R_FindShader( name, SHADER_STUDIO, 0 )];
+	uint		hash;
+	ref_shader_t	*cur;
+	ref_shader_t	**prev;
+	
+	Com_Assert( shader == NULL );
+	
+	// free uinque shader images only
+	R_ShaderTouchImages( shader, true );
+
+	// remove from hash table
+	hash = Com_HashKey( shader->name, SHADERS_HASH_SIZE );
+	prev = &r_shadersHash[hash];
+
+	while( 1 )
+	{
+		cur = *prev;
+		if( !cur ) break;
+
+		if( cur == shader )
+		{
+			*prev = cur->nextHash;
+			break;
+		}
+		prev = &cur->nextHash;
+	}
+
+	// free stages
+	Mem_FreePool( &shader->mempool );
+	Mem_Set( shader, 0, sizeof( *shader ));
 }
 
-/*
-=================
-R_RegisterShaderNoMip
-=================
-*/
-ref_shader_t *R_RegisterShaderNoMip( const char *name )
+void R_ShaderFreeUnused( void )
 {
-	return r_shaders[R_FindShader( name, SHADER_NOMIP, 0 )];
-}
+	ref_shader_t	*shader;
+	int		i;
 
-/*
-=================
-R_ShaderRegisterImages
-
-many many included cycles ...
-=================
-*/
-void R_ShaderRegisterImages( rmodel_t *mod )
-{
-	int	i;
-
-	for( i = 0; mod && i < mod->numShaders; i++ )
-		R_ShaderTouchImages( mod->shaders[i] );
+	for( i = 0, shader = r_shaders; i < r_numShaders; i++, shader++ )
+	{
+		if( !shader->name[0] ) continue;
+		
+		// used this sequence
+		if( shader->touchFrame == registration_sequence ) continue;
+		if( shader->flags & SHADER_STATIC ) continue;
+		R_FreeShader( shader );
+	}
 }
 
 /*
@@ -4952,8 +5000,8 @@ static void R_CreateBuiltInShaders( void )
 	shader = R_NewShader();
 
 	com.strncpy( shader->name, "<default>", sizeof( shader->name ));
-	shader->index = r_numShaders;
 	shader->type = SHADER_TEXTURE;
+	shader->flags = SHADER_STATIC;
 	shader->surfaceParm = SURF_NOLIGHTMAP;
 	shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
 	shader->stages[0]->bundles[0]->numTextures++;
@@ -4966,9 +5014,8 @@ static void R_CreateBuiltInShaders( void )
 	shader = R_NewShader();
 
 	com.strncpy( shader->name, "<lightmap>", sizeof( shader->name ));
-	shader->index = r_numShaders;
 	shader->type = SHADER_TEXTURE;
-	shader->flags = SHADER_HASLIGHTMAP;
+	shader->flags = SHADER_HASLIGHTMAP|SHADER_STATIC;
 	shader->stages[0]->bundles[0]->texType = TEX_LIGHTMAP;
 	shader->stages[0]->numBundles++;
 	shader->numStages++;
@@ -4979,9 +5026,8 @@ static void R_CreateBuiltInShaders( void )
 	shader = R_NewShader();
 
 	com.strncpy( shader->name, "<skybox>", sizeof( shader->name ));
-	shader->index = r_numShaders;
 	shader->type = SHADER_SKY;
-	shader->flags = SHADER_SKYPARMS;
+	shader->flags = SHADER_SKYPARMS|SHADER_STATIC;
 	for( i = 0; i < 6; i++ )
 		shader->skyParms.farBox[i] = r_skyTexture;
 	shader->skyParms.cloudHeight = 128.0f;
@@ -4991,8 +5037,8 @@ static void R_CreateBuiltInShaders( void )
 	shader = R_NewShader();
 
 	com.strncpy( shader->name, "<particle>", sizeof( shader->name ));
-	shader->index = r_numShaders;
 	shader->type = SHADER_SPRITE;
+	shader->flags = SHADER_STATIC;
 	shader->surfaceParm = SURF_NOLIGHTMAP;
 	shader->stages[0]->bundles[0]->textures[0] = r_particleTexture;
 	shader->stages[0]->blendFunc.src = GL_DST_COLOR;
@@ -5013,16 +5059,17 @@ R_ShaderList_f
 */
 void R_ShaderList_f( void )
 {
-	ref_shader_t		*shader;
+	ref_shader_t	*shader;
 	int		i, j;
 	int		passes;
+	int		shaderCount;
 
 	Msg( "\n" );
 	Msg( "-----------------------------------\n" );
 
-	for( i = 0; i < r_numShaders; i++ )
+	for( i = shaderCount = 0, shader = r_shaders; i < r_numShaders; i++, shader++ )
 	{
-		shader = r_shaders[i];
+		if( !shader->shadernum ) continue;
 		for( passes = j = 0; j < shader->numStages; j++ )
 			passes += shader->stages[j]->numBundles;
 
@@ -5060,10 +5107,11 @@ void R_ShaderList_f( void )
 
 		Msg( "%2i ", shader->sort );
 		Msg( ": %s%s\n", shader->name, (shader->flags & SHADER_DEFAULTED) ? " (DEFAULTED)" : "" );
+		shaderCount++;
 	}
 
 	Msg( "-----------------------------------\n" );
-	Msg( "%i total shaders\n", r_numShaders );
+	Msg( "%i total shaders\n", shaderCount );
 	Msg( "\n" );
 }
 
@@ -5112,26 +5160,13 @@ R_ShutdownShaders
 */
 void R_ShutdownShaders( void )
 {
-	ref_shader_t		*shader;
-	shaderStage_t	*stage;
-	stageBundle_t	*bundle;
-	int		i, j, k;
+	ref_shader_t	*shader;
+	int		i;
 
-	for( i = 0; i < r_numShaders; i++ )
+	for( i = 0, shader = r_shaders; i < r_numShaders; i++, shader++ )
 	{
-		shader = r_shaders[i];
-		for( j = 0; j < shader->numStages; j++ )
-		{
-			stage = shader->stages[j];
-			for( k = 0; k < stage->numBundles; k++ )
-			{
-				bundle = stage->bundles[k];
-
-				//FIXME: implement
-				//if( bundle->flags & STAGEBUNDLE_VIDEOMAP )
-				//	CIN_StopCinematic( bundle->cinematicHandle );
-			}
-		}
+		if( !shader->shadernum ) continue;	// already freed
+		R_FreeShader( shader );
 	}
 
 	Mem_FreePool( &r_shaderpool ); // free all data allocated by shaders

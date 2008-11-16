@@ -223,8 +223,8 @@ dstudiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
 		for( i = 0; i < phdr->numtextures; i++ )
 		{
 			R_SetInternalMap(R_StudioLoadTexture( mod, &ptexture[i], pin ));
-			ptexture[i].shader = R_FindShader( ptexture[i].name, SHADER_STUDIO, surfaceParm );
-			mod->shaders[i] = r_shaders[ptexture[i].shader];
+			ptexture[i].shader = R_FindShader( ptexture[i].name, SHADER_STUDIO, surfaceParm )->shadernum;
+			mod->shaders[i] = &r_shaders[ptexture[i].shader];
 		}
 	}
 	return (dstudiohdr_t *)buffer;
@@ -1424,7 +1424,7 @@ void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref, int pass 
 		//GL_BindTexture( m_pRenderModel->textures[ptexture[pskinref[pmesh->skinref]].index].image );
 		// FIXME: test
 		//m_pCurrentShader = m_pRenderModel->shaders[ptexture[pskinref[pmesh->skinref]].shader];
-		m_pCurrentShader = r_shaders[ptexture[pskinref[pmesh->skinref]].shader];
+		m_pCurrentShader = &r_shaders[ptexture[pskinref[pmesh->skinref]].shader];
 
 		while( i = *(ptricmds++))
 		{
@@ -1503,7 +1503,7 @@ void R_StudioDrawPoints ( void )
 	// hack the depth range to prevent view model from poking into walls
 	if( m_pCurrentEntity->renderfx & RF_DEPTHHACK) pglDepthRange( 0.0, 0.3 );
 	if(( m_pCurrentEntity->renderfx & RF_VIEWMODEL ) && ( r_lefthand->value == 1.0F ))
-		VectorNegate( m_pCurrentEntity->axis[1], m_pCurrentEntity->axis[1] ); 
+		VectorNegate( m_pCurrentEntity->matrix[1], m_pCurrentEntity->matrix[1] ); 
 	R_StudioDrawMeshes( ptexture, pskinref, m_PassNum );
 
 	// hack the depth range to prevent view model from poking into walls

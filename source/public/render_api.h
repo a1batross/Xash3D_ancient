@@ -42,8 +42,8 @@ typedef struct render_exp_s
 	size_t	api_size;			// must matched with sizeof(render_exp_t)
 
 	// initialize
-	bool	(*Init)( void );		// init all render systems
-	void	(*Shutdown)( void );	// shutdown all render systems
+	bool	(*Init)( bool full );	// init all render systems
+	void	(*Shutdown)( bool full );	// shutdown all render systems
 
 	void	(*BeginRegistration)( const char *map );
 	bool	(*RegisterModel)( const char *name, int cl_index ); // also build replacement index table

@@ -9,7 +9,7 @@ void DebugShowGeometryCollision( const NewtonBody* body, int vertexCount, const 
 {    
 	int color;
 
-	if( body == cm.body ) color = PackRGBA( 1, 0.7f, 0, 1 ); // world
+	if( body == cms.body ) color = PackRGBA( 1, 0.7f, 0, 1 ); // world
 	else color = PackRGBA( 1, 0.1f, 0.1f, 1 );
 
 	ph.debug_line( color, vertexCount, faceVertec, NULL );

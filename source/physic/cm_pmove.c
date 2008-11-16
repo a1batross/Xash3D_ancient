@@ -230,7 +230,7 @@ void CM_ServerMove( pmove_t *pmove )
 	m_isAirBorne = true;
 	VectorSet( m_stepContact, 0.0f, -m_size[2], 0.0f );   
 
-	NewtonUpVectorSetPin( cm.upVector, &vec3_up[0] );
+	NewtonUpVectorSetPin( cms.upVector, &vec3_up[0] );
 }
 
 void CM_ClientMove( pmove_t *pmove )
@@ -298,7 +298,7 @@ physbody_t *Phys_CreatePlayer( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transfor
 
   	// add and up vector constraint to help in keeping the body upright
 	VectorSet( upDirection, 0.0f, 1.0f, 0.0f );
-	cm.upVector = NewtonConstraintCreateUpVector( gWorld, &upDirection[0], body ); 
+	cms.upVector = NewtonConstraintCreateUpVector( gWorld, &upDirection[0], body ); 
 	NewtonBodySetContinuousCollisionMode( body, 1 );
 
 	return (physbody_t *)body;

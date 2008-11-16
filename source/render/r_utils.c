@@ -6,43 +6,6 @@
 #include "r_local.h"
 #include "mathlib.h"
 
-vec3_t	axisDefault[3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
-
-/*
- =================
- AxisCopy
- =================
-*/
-void AxisCopy( const vec3_t in[3], vec3_t out[3] )
-{
-	out[0][0] = in[0][0];
-	out[0][1] = in[0][1];
-	out[0][2] = in[0][2];
-	out[1][0] = in[1][0];
-	out[1][1] = in[1][1];
-	out[1][2] = in[1][2];
-	out[2][0] = in[2][0];
-	out[2][1] = in[2][1];
-	out[2][2] = in[2][2];
-}
-
-/*
- =================
- AxisClear
- =================
-*/
-void AxisClear( vec3_t axis[3] )
-{
-	axis[0][0] = 1;
-	axis[0][1] = 0;
-	axis[0][2] = 0;
-	axis[1][0] = 0;
-	axis[1][1] = 1;
-	axis[1][2] = 0;
-	axis[2][0] = 0;
-	axis[2][1] = 0;
-	axis[2][2] = 1;
-}
 
 /*
 =================
@@ -73,66 +36,6 @@ void AnglesToAxis ( const vec3_t angles )
 	r_up[0] = cr*sp*cy+-sr*-sy;
 	r_up[1] = cr*sp*sy+-sr*cy;
 	r_up[2] = cr*cp;
-}
-
-/*
- =================
- AnglesToAxis
- =================
-*/
-void AnglesToAxisPrivate (const vec3_t angles, vec3_t axis[3])
-{
-
-	static float	sp, sy, sr, cp, cy, cr;
-	float			angle;
-
-	angle = DEG2RAD(angles[PITCH]);
-	sp = sin(angle);
-	cp = cos(angle);
-	angle = DEG2RAD(angles[YAW]);
-	sy = sin(angle);
-	cy = cos(angle);
-	angle = DEG2RAD(angles[ROLL]);
-	sr = sin(angle);
-	cr = cos(angle);
-
-	axis[0][0] = cp*cy;
-	axis[0][1] = cp*sy;
-	axis[0][2] = -sp;
-	axis[1][0] = sr*sp*cy+cr*-sy;
-	axis[1][1] = sr*sp*sy+cr*cy;
-	axis[1][2] = sr*cp;
-	axis[2][0] = cr*sp*cy+-sr*-sy;
-	axis[2][1] = cr*sp*sy+-sr*cy;
-	axis[2][2] = cr*cp;
-}
-
-/*
- =================
- AxisCompare
- =================
-*/
-bool AxisCompare( const vec3_t axis1[3], const vec3_t axis2[3] )
-{
-	if (axis1[0][0] != axis2[0][0] || axis1[0][1] != axis2[0][1] || axis1[0][2] != axis2[0][2])
-		return false;
-	if (axis1[1][0] != axis2[1][0] || axis1[1][1] != axis2[1][1] || axis1[1][2] != axis2[1][2])
-		return false;
-	if (axis1[2][0] != axis2[2][0] || axis1[2][1] != axis2[2][1] || axis1[2][2] != axis2[2][2])
-		return false;
-	return true;
-}
-
-/*
- =================
- VectorRotate
- =================
-*/
-void VectorRotate ( const vec3_t v, const vec3_t matrix[3], vec3_t out )
-{
-	out[0] = v[0]*matrix[0][0] + v[1]*matrix[0][1] + v[2]*matrix[0][2];
-	out[1] = v[0]*matrix[1][0] + v[1]*matrix[1][1] + v[2]*matrix[1][2];
-	out[2] = v[0]*matrix[2][0] + v[1]*matrix[2][1] + v[2]*matrix[2][2];
 }
 
 /*

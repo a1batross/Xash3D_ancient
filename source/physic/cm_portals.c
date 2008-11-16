@@ -63,17 +63,17 @@ void CM_DecompressVis( byte *in, byte *out )
 byte *CM_ClusterPVS( int cluster )
 {
 	if( cluster < 0 || cluster >= cm.numclusters || !cm.vis )
-		Mem_Set( cm.pvsrow, 0xFF, (cm.numclusters + 31) & ~31 );
-	else CM_DecompressVis( cm.visbase + cm.vis->bitofs[cluster][DVIS_PVS], cm.pvsrow );
-	return cm.pvsrow;
+		Mem_Set( cms.pvsrow, 0xFF, (cm.numclusters + 31) & ~31 );
+	else CM_DecompressVis( cm.visbase + cm.vis->bitofs[cluster][DVIS_PVS], cms.pvsrow );
+	return cms.pvsrow;
 }
 
 byte *CM_ClusterPHS( int cluster )
 {
 	if( cluster < 0 || cluster >= cm.numclusters || !cm.vis )
-		Mem_Set( cm.phsrow, 0xFF, (cm.numclusters + 31) & ~31 );
-	else CM_DecompressVis( cm.visbase + cm.vis->bitofs[cluster][DVIS_PHS], cm.phsrow );
-	return cm.phsrow;
+		Mem_Set( cms.phsrow, 0xFF, (cm.numclusters + 31) & ~31 );
+	else CM_DecompressVis( cm.visbase + cm.vis->bitofs[cluster][DVIS_PHS], cms.phsrow );
+	return cms.phsrow;
 }
 
 /*
@@ -149,7 +149,7 @@ void CM_FloodArea_r( carea_t *area, int floodnum )
 
 	for( i = 0; i < area->numareaportals; i++, p++ )
 	{
-		if( cm.portalopen[p->portalnum] )
+		if( cms.portalopen[p->portalnum] )
 			CM_FloodArea_r( &cm.areas[p->otherarea], floodnum );
 	}
 }
@@ -180,9 +180,9 @@ void CM_FloodAreaConnections( void )
 
 void CM_SetAreaPortals ( byte *portals, size_t size )
 {
-	if( size == sizeof( cm.portalopen ))
+	if( size == sizeof( cms.portalopen ))
 	{ 
-		Mem_Copy( cm.portalopen, portals, size );
+		Mem_Copy( cms.portalopen, portals, size );
 		CM_FloodAreaConnections();
 		return;
 	}
@@ -193,8 +193,8 @@ void CM_GetAreaPortals ( byte **portals, size_t *size )
 {
 	byte *prt = *portals;
 
-	if( prt ) Mem_Copy( prt, cm.portalopen, sizeof( cm.portalopen ));
-	if( size) *size = sizeof( cm.portalopen ); 
+	if( prt ) Mem_Copy( prt, cms.portalopen, sizeof( cms.portalopen ));
+	if( size) *size = sizeof( cms.portalopen ); 
 }
 
 void CM_SetAreaPortalState( int portalnum, bool open )
@@ -202,7 +202,7 @@ void CM_SetAreaPortalState( int portalnum, bool open )
 	if( portalnum > cm.numareaportals )
 		Host_Error( "CM_SetAreaPortalState: areaportal > numareaportals\n" );
 
-	cm.portalopen[portalnum] = open;
+	cms.portalopen[portalnum] = open;
 	CM_FloodAreaConnections();
 }
 
@@ -270,14 +270,17 @@ bool CM_HeadnodeVisible( int nodenum, byte *visbits )
 	if( nodenum < 0 )
 	{
 		leafnum = -1-nodenum;
-		cluster = cm.leafs[leafnum].cluster;
+		cluster = CM_LeafCluster( leafnum );
 		if( cluster == -1 ) return false;
 		if( visbits[cluster>>3] & (1<<(cluster&7)))
 			return true;
 		return false;
 	}
 
-	node = &cm.nodes[nodenum];
+	if( nodenum < 0 || nodenum >= cm.numnodes )
+		Host_Error( "CM_HeadnodeVisible: bad number %i >= %i\n", nodenum, cm.numnodes );
+	
+	node = cm.nodes + nodenum;
 	if( CM_HeadnodeVisible( node->children[0] - cm.nodes, visbits ))
 		return true;
 	return CM_HeadnodeVisible( node->children[1] - cm.nodes, visbits );

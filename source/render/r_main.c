@@ -199,7 +199,7 @@ void R_RotateForEntity( ref_entity_t *e )
 	Matrix4x4_ConcatRotate( rotMatrix, -e->angles[2],  1, 0, 0 );
 	Matrix4x4_Concat( r_entityMatrix, r_worldMatrix, rotMatrix );
 #else
-	Matrix4x4_FromVectors( rotMatrix, e->axis[0], e->axis[1], e->axis[2], vec3_origin );
+	Matrix4x4_FromMatrix3x3( rotMatrix, e->matrix );
 	Matrix4x4_SetOrigin( rotMatrix, e->origin[0], e->origin[1], e->origin[2] );
 	Matrix4x4_Concat( r_entityMatrix, r_worldMatrix, rotMatrix );
 #endif
@@ -247,37 +247,37 @@ void R_DrawBeam( void )
 		ref.indexArray[ref.numIndex++] = ref.numVertex + i;
 	}
 
-	ref.vertsArray[ref.numVertex+0].point[0] = m_pCurrentEntity->origin[0] + axis[2][0];
-	ref.vertsArray[ref.numVertex+0].point[1] = m_pCurrentEntity->origin[1] + axis[2][1];
-	ref.vertsArray[ref.numVertex+0].point[2] = m_pCurrentEntity->origin[2] + axis[2][2];
-	ref.vertsArray[ref.numVertex+1].point[0] = m_pCurrentEntity->prev.origin[0] + axis[2][0];
-	ref.vertsArray[ref.numVertex+1].point[1] = m_pCurrentEntity->prev.origin[1] + axis[2][1];
-	ref.vertsArray[ref.numVertex+1].point[2] = m_pCurrentEntity->prev.origin[2] + axis[2][2];
-	ref.vertsArray[ref.numVertex+2].point[0] = m_pCurrentEntity->prev.origin[0] - axis[2][0];
-	ref.vertsArray[ref.numVertex+2].point[1] = m_pCurrentEntity->prev.origin[1] - axis[2][1];
-	ref.vertsArray[ref.numVertex+2].point[2] = m_pCurrentEntity->prev.origin[2] - axis[2][2];
-	ref.vertsArray[ref.numVertex+3].point[0] = m_pCurrentEntity->origin[0] - axis[2][0];
-	ref.vertsArray[ref.numVertex+3].point[1] = m_pCurrentEntity->origin[1] - axis[2][1];
-	ref.vertsArray[ref.numVertex+3].point[2] = m_pCurrentEntity->origin[2] - axis[2][2];
+	ref.vertexArray[ref.numVertex+0][0] = m_pCurrentEntity->origin[0] + axis[2][0];
+	ref.vertexArray[ref.numVertex+0][1] = m_pCurrentEntity->origin[1] + axis[2][1];
+	ref.vertexArray[ref.numVertex+0][2] = m_pCurrentEntity->origin[2] + axis[2][2];
+	ref.vertexArray[ref.numVertex+1][0] = m_pCurrentEntity->prev.origin[0] + axis[2][0];
+	ref.vertexArray[ref.numVertex+1][1] = m_pCurrentEntity->prev.origin[1] + axis[2][1];
+	ref.vertexArray[ref.numVertex+1][2] = m_pCurrentEntity->prev.origin[2] + axis[2][2];
+	ref.vertexArray[ref.numVertex+2][0] = m_pCurrentEntity->prev.origin[0] - axis[2][0];
+	ref.vertexArray[ref.numVertex+2][1] = m_pCurrentEntity->prev.origin[1] - axis[2][1];
+	ref.vertexArray[ref.numVertex+2][2] = m_pCurrentEntity->prev.origin[2] - axis[2][2];
+	ref.vertexArray[ref.numVertex+3][0] = m_pCurrentEntity->origin[0] - axis[2][0];
+	ref.vertexArray[ref.numVertex+3][1] = m_pCurrentEntity->origin[1] - axis[2][1];
+	ref.vertexArray[ref.numVertex+3][2] = m_pCurrentEntity->origin[2] - axis[2][2];
 
-	ref.vertsArray[ref.numVertex+0].stcoord[0] = 0;
-	ref.vertsArray[ref.numVertex+0].stcoord[1] = 0;
-	ref.vertsArray[ref.numVertex+1].stcoord[0] = length;
-	ref.vertsArray[ref.numVertex+1].stcoord[1] = 0;
-	ref.vertsArray[ref.numVertex+2].stcoord[0] = length;
-	ref.vertsArray[ref.numVertex+2].stcoord[1] = 1;
-	ref.vertsArray[ref.numVertex+3].stcoord[0] = 0;
-	ref.vertsArray[ref.numVertex+3].stcoord[1] = 1;
+	ref.inTexCoordArray[ref.numVertex+0][0] = 0;
+	ref.inTexCoordArray[ref.numVertex+0][1] = 0;
+	ref.inTexCoordArray[ref.numVertex+1][0] = length;
+	ref.inTexCoordArray[ref.numVertex+1][1] = 0;
+	ref.inTexCoordArray[ref.numVertex+2][0] = length;
+	ref.inTexCoordArray[ref.numVertex+2][1] = 1;
+	ref.inTexCoordArray[ref.numVertex+3][0] = 0;
+	ref.inTexCoordArray[ref.numVertex+3][1] = 1;
 
 	for( i = 0; i < 4; i++ )
 	{
-		ref.vertsArray[ref.numVertex].normal[0] = axis[0][0];
-		ref.vertsArray[ref.numVertex].normal[1] = axis[0][1];
-		ref.vertsArray[ref.numVertex].normal[2] = axis[0][2];
-		ref.vertsArray[ref.numVertex].color[0] = m_pCurrentEntity->rendercolor[0];
-		ref.vertsArray[ref.numVertex].color[1] = m_pCurrentEntity->rendercolor[1];
-		ref.vertsArray[ref.numVertex].color[2] = m_pCurrentEntity->rendercolor[2];
-		ref.vertsArray[ref.numVertex].color[3] = m_pCurrentEntity->renderamt;
+		ref.normalArray[ref.numVertex][0] = axis[0][0];
+		ref.normalArray[ref.numVertex][1] = axis[0][1];
+		ref.normalArray[ref.numVertex][2] = axis[0][2];
+		ref.colorArray[ref.numVertex][0] = m_pCurrentEntity->rendercolor[0];
+		ref.colorArray[ref.numVertex][1] = m_pCurrentEntity->rendercolor[1];
+		ref.colorArray[ref.numVertex][2] = m_pCurrentEntity->rendercolor[2];
+		ref.colorArray[ref.numVertex][3] = m_pCurrentEntity->renderamt;
 		ref.numVertex++;
 	}
 }
@@ -312,10 +312,13 @@ static void R_AddEntitiesToList( void )
 	{
 		switch( entity->ent_type )
 		{
+		case ED_MOVER:
 		case ED_NORMAL:
 		case ED_CLIENT:
 		case ED_BSPBRUSH:
 		case ED_VIEWMODEL:
+		case ED_RIGIDBODY:
+			m_pCurrentEntity = entity;
 			model = m_pRenderModel = entity->model;
 			if( !model || model->type == mod_bad )
 			{
@@ -383,9 +386,9 @@ static void R_DrawNullModels( void )
 	{
 		entity = r_nullModels[i];
 
-		VectorMA( entity->origin, 15, entity->axis[0], points[0] );
-		VectorMA( entity->origin, -15, entity->axis[1], points[1] );
-		VectorMA( entity->origin, 15, entity->axis[2], points[2] );
+		VectorMA( entity->origin, 15, entity->matrix[0], points[0] );
+		VectorMA( entity->origin, -15, entity->matrix[1], points[1] );
+		VectorMA( entity->origin, 15, entity->matrix[2], points[2] );
 
 		pglBegin( GL_LINES );
 
@@ -444,18 +447,18 @@ void R_DrawParticle( void )
 		VectorMA( particle->origin, -particle->length, axis[1], particle->old_origin );
 		VectorScale( axis[2], particle->radius, axis[2] );
 
-		ref.vertsArray[ref.numVertex+0].point[0] = particle->old_origin[0] + axis[2][0];
-		ref.vertsArray[ref.numVertex+0].point[1] = particle->old_origin[1] + axis[2][1];
-		ref.vertsArray[ref.numVertex+0].point[2] = particle->old_origin[2] + axis[2][2];
-		ref.vertsArray[ref.numVertex+1].point[0] = particle->origin[0] + axis[2][0];
-		ref.vertsArray[ref.numVertex+1].point[1] = particle->origin[1] + axis[2][1];
-		ref.vertsArray[ref.numVertex+1].point[2] = particle->origin[2] + axis[2][2];
-		ref.vertsArray[ref.numVertex+2].point[0] = particle->origin[0] - axis[2][0];
-		ref.vertsArray[ref.numVertex+2].point[1] = particle->origin[1] - axis[2][1];
-		ref.vertsArray[ref.numVertex+2].point[2] = particle->origin[2] - axis[2][2];
-		ref.vertsArray[ref.numVertex+3].point[0] = particle->old_origin[0] - axis[2][0];
-		ref.vertsArray[ref.numVertex+3].point[1] = particle->old_origin[1] - axis[2][1];
-		ref.vertsArray[ref.numVertex+3].point[2] = particle->old_origin[2] - axis[2][2];
+		ref.vertexArray[ref.numVertex+0][0] = particle->old_origin[0] + axis[2][0];
+		ref.vertexArray[ref.numVertex+0][1] = particle->old_origin[1] + axis[2][1];
+		ref.vertexArray[ref.numVertex+0][2] = particle->old_origin[2] + axis[2][2];
+		ref.vertexArray[ref.numVertex+1][0] = particle->origin[0] + axis[2][0];
+		ref.vertexArray[ref.numVertex+1][1] = particle->origin[1] + axis[2][1];
+		ref.vertexArray[ref.numVertex+1][2] = particle->origin[2] + axis[2][2];
+		ref.vertexArray[ref.numVertex+2][0] = particle->origin[0] - axis[2][0];
+		ref.vertexArray[ref.numVertex+2][1] = particle->origin[1] - axis[2][1];
+		ref.vertexArray[ref.numVertex+2][2] = particle->origin[2] - axis[2][2];
+		ref.vertexArray[ref.numVertex+3][0] = particle->old_origin[0] - axis[2][0];
+		ref.vertexArray[ref.numVertex+3][1] = particle->old_origin[1] - axis[2][1];
+		ref.vertexArray[ref.numVertex+3][2] = particle->old_origin[2] - axis[2][2];
 	}
 	else
 	{
@@ -482,35 +485,35 @@ void R_DrawParticle( void )
 			VectorScale( r_up, particle->radius, axis[2] );
 		}
 
-		ref.vertsArray[ref.numVertex+0].point[0] = particle->origin[0] + axis[1][0] + axis[2][0];
-		ref.vertsArray[ref.numVertex+0].point[1] = particle->origin[1] + axis[1][1] + axis[2][1];
-		ref.vertsArray[ref.numVertex+0].point[2] = particle->origin[2] + axis[1][2] + axis[2][2];
-		ref.vertsArray[ref.numVertex+1].point[0] = particle->origin[0] - axis[1][0] + axis[2][0];
-		ref.vertsArray[ref.numVertex+1].point[1] = particle->origin[1] - axis[1][1] + axis[2][1];
-		ref.vertsArray[ref.numVertex+1].point[2] = particle->origin[2] - axis[1][2] + axis[2][2];
-		ref.vertsArray[ref.numVertex+2].point[0] = particle->origin[0] - axis[1][0] - axis[2][0];
-		ref.vertsArray[ref.numVertex+2].point[1] = particle->origin[1] - axis[1][1] - axis[2][1];
-		ref.vertsArray[ref.numVertex+2].point[2] = particle->origin[2] - axis[1][2] - axis[2][2];
-		ref.vertsArray[ref.numVertex+3].point[0] = particle->origin[0] + axis[1][0] - axis[2][0];
-		ref.vertsArray[ref.numVertex+3].point[1] = particle->origin[1] + axis[1][1] - axis[2][1];
-		ref.vertsArray[ref.numVertex+3].point[2] = particle->origin[2] + axis[1][2] - axis[2][2];
+		ref.vertexArray[ref.numVertex+0][0] = particle->origin[0] + axis[1][0] + axis[2][0];
+		ref.vertexArray[ref.numVertex+0][1] = particle->origin[1] + axis[1][1] + axis[2][1];
+		ref.vertexArray[ref.numVertex+0][2] = particle->origin[2] + axis[1][2] + axis[2][2];
+		ref.vertexArray[ref.numVertex+1][0] = particle->origin[0] - axis[1][0] + axis[2][0];
+		ref.vertexArray[ref.numVertex+1][1] = particle->origin[1] - axis[1][1] + axis[2][1];
+		ref.vertexArray[ref.numVertex+1][2] = particle->origin[2] - axis[1][2] + axis[2][2];
+		ref.vertexArray[ref.numVertex+2][0] = particle->origin[0] - axis[1][0] - axis[2][0];
+		ref.vertexArray[ref.numVertex+2][1] = particle->origin[1] - axis[1][1] - axis[2][1];
+		ref.vertexArray[ref.numVertex+2][2] = particle->origin[2] - axis[1][2] - axis[2][2];
+		ref.vertexArray[ref.numVertex+3][0] = particle->origin[0] + axis[1][0] - axis[2][0];
+		ref.vertexArray[ref.numVertex+3][1] = particle->origin[1] + axis[1][1] - axis[2][1];
+		ref.vertexArray[ref.numVertex+3][2] = particle->origin[2] + axis[1][2] - axis[2][2];
 	}
 
-	ref.vertsArray[ref.numVertex+0].stcoord[0] = 0;
-	ref.vertsArray[ref.numVertex+0].stcoord[1] = 0;
-	ref.vertsArray[ref.numVertex+1].stcoord[0] = 1;
-	ref.vertsArray[ref.numVertex+1].stcoord[1] = 0;
-	ref.vertsArray[ref.numVertex+2].stcoord[0] = 1;
-	ref.vertsArray[ref.numVertex+2].stcoord[1] = 1;
-	ref.vertsArray[ref.numVertex+3].stcoord[0] = 0;
-	ref.vertsArray[ref.numVertex+3].stcoord[1] = 1;
+	ref.inTexCoordArray[ref.numVertex+0][0] = 0;
+	ref.inTexCoordArray[ref.numVertex+0][1] = 0;
+	ref.inTexCoordArray[ref.numVertex+1][0] = 1;
+	ref.inTexCoordArray[ref.numVertex+1][1] = 0;
+	ref.inTexCoordArray[ref.numVertex+2][0] = 1;
+	ref.inTexCoordArray[ref.numVertex+2][1] = 1;
+	ref.inTexCoordArray[ref.numVertex+3][0] = 0;
+	ref.inTexCoordArray[ref.numVertex+3][1] = 1;
 
 	for( i = 0; i < 4; i++ )
 	{
-		ref.vertsArray[ref.numVertex].normal[0] = axis[0][0];
-		ref.vertsArray[ref.numVertex].normal[1] = axis[0][1];
-		ref.vertsArray[ref.numVertex].normal[2] = axis[0][2];
-		Vector4Copy( particle->modulate, ref.vertsArray[ref.numVertex].color ); 
+		ref.normalArray[ref.numVertex][0] = axis[0][0];
+		ref.normalArray[ref.numVertex][1] = axis[0][1];
+		ref.normalArray[ref.numVertex][2] = axis[0][2];
+		Vector4Copy( particle->modulate, ref.colorArray[ref.numVertex] ); 
 		ref.numVertex++;
 	}
 }
@@ -677,15 +680,13 @@ void R_AddMeshToList( meshType_t meshType, void *mesh, ref_shader_t *shader, ref
 		m = &r_transMeshes[r_numTransMeshes++];
 	}
 
-	m->sortKey = (shader->sort<<28) | (shader->index<<18) | ((entity - r_entities)<<8) | (infoKey);
+	m->sortKey = (shader->sort<<28) | (shader->shadernum<<18) | ((entity - r_entities)<<8) | (infoKey);
 	m->meshType = meshType;
 	m->mesh = mesh;
 }
 
 
 // =====================================================================
-
-
 /*
 =================
 R_SetFrustum
@@ -697,7 +698,8 @@ static void R_SetFrustum( void )
 
 	// build the transformation matrix for the given view angles
 	VectorCopy( r_refdef.vieworg, r_origin );
-	AnglesToAxis( r_refdef.viewangles );
+
+	AngleVectorsFLU( r_refdef.viewangles, r_forward, r_right, r_up );
 
 	RotatePointAroundVector( r_frustum[0].normal, r_up, r_forward, -(90 - r_refdef.fov_x / 2));
 	RotatePointAroundVector( r_frustum[1].normal, r_up, r_forward, 90 - r_refdef.fov_x / 2);
@@ -972,6 +974,17 @@ static bool R_AddEntityToScene( entity_state_t *s1, entity_state_t *s2, float le
 	refent = &r_entities[r_numEntities];
 	if( !s2 ) s2 = s1; // no lerping state
 
+	// filter ents
+	switch( s1->ed_type )
+	{
+	case ED_MOVER:
+	case ED_CLIENT:
+	case ED_NORMAL:
+	case ED_BSPBRUSH:
+	case ED_RIGIDBODY:
+	case ED_VIEWMODEL: break;
+	default: return false;
+	}
 	// copy state to render
 	refent->frame = s1->model.frame;
 	refent->index = s1->number;
@@ -1019,7 +1032,7 @@ static bool R_AddEntityToScene( entity_state_t *s1, entity_state_t *s2, float le
 			refent->angles[i] = LerpAngle( s2->angles[i], s1->angles[i], lerpfrac );
 	}
 
-	AnglesToAxisPrivate( refent->angles, refent->axis );
+	Matrix3x3_FromAngles( refent->angles, refent->matrix );
 
 	// copy controllers
 	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
@@ -1243,10 +1256,10 @@ bool R_UploadModel( const char *name, int index )
 
 shader_t Mod_RegisterShader( const char *name, int shaderType )
 {
-	shader_t	shader = tr.defaultShader->index;
+	shader_t	shader = tr.defaultShader->shadernum;
 
 	if( shaderType >= SHADER_SKY && shaderType <= SHADER_NOMIP )
-		shader = R_FindShader( name, shaderType, 0 );
+		shader = R_FindShader( name, shaderType, 0 )->shadernum;
 	else MsgDev( D_WARN, "Mod_RegisterShader: invalid shader type (%i)\n", shaderType );
 	if( shaderType == SHADER_SKY ) R_SetupSky( name, 0, vec3_origin );
 
@@ -1272,18 +1285,21 @@ bool R_PrecachePic( const char *name )
 R_Init
 =================
 */
-bool R_Init( void )
+bool R_Init( bool full )
 {
-	GL_InitBackend();
-
-	// create the window and set up the context
-	if(!R_Init_OpenGL())
+	if( full )
 	{
-		R_Free_OpenGL();
-		return false;
+		GL_InitBackend();
+
+		// create the window and set up the context
+		if( !R_Init_OpenGL())
+		{
+			R_Free_OpenGL();
+			return false;
+		}
+		GL_InitExtensions();
 	}
 
-	GL_InitExtensions();
 	RB_InitBackend();
 
 	R_InitTextures();
@@ -1300,7 +1316,7 @@ bool R_Init( void )
 R_Shutdown
 =================
 */
-void R_Shutdown( void )
+void R_Shutdown( bool full )
 {
 	R_ShutdownModels();
 	R_ShutdownShaders();
@@ -1308,10 +1324,14 @@ void R_Shutdown( void )
 	R_ShutdownTextures();
 
 	RB_ShutdownBackend();
-	GL_ShutdownBackend();
 
-	// shut down OS specific OpenGL stuff like contexts, etc.
-	R_Free_OpenGL();
+	if( full )
+	{
+		GL_ShutdownBackend();
+
+		// shut down OS specific OpenGL stuff like contexts, etc.
+		R_Free_OpenGL();
+	}
 }
 
 /*

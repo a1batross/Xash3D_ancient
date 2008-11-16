@@ -239,7 +239,7 @@ void Con_Init (void)
 	// register our commands
 	con_notifytime = Cvar_Get ("con_notifytime", "3", 0, "notify time to live" );
 	con_speed = Cvar_Get ("con_speed", "3", 0, "console moving speed" );
-	con_font = Cvar_Get( "con_font", "conchars", CVAR_ARCHIVE, "path to console charset" );
+	con_font = Cvar_Get( "con_font", "default", CVAR_ARCHIVE, "path to console charset" );
 
 	Field_Clear( &g_consoleField );
 	g_consoleField.widthInChars = g_console_field_width;

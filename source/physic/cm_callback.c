@@ -9,10 +9,10 @@
 int Callback_ContactBegin( const NewtonMaterial* material, const NewtonBody* body0, const NewtonBody* body1 )
 {
 	// save the collision bodies
-	cm.touch_info.m_body0 = (NewtonBody*) body0;
-	cm.touch_info.m_body1 = (NewtonBody*) body1;
-	cm.touch_info.normal_speed = 0.0f;// clear the contact normal speed 
-	cm.touch_info.tangent_speed = 0.0f;// clear the contact sliding speed 
+	cms.touch_info.m_body0 = (NewtonBody*) body0;
+	cms.touch_info.m_body1 = (NewtonBody*) body1;
+	cms.touch_info.normal_speed = 0.0f;// clear the contact normal speed 
+	cms.touch_info.tangent_speed = 0.0f;// clear the contact sliding speed 
 
 	// return one the tell Newton the application wants to process this contact
 	return 1;
@@ -26,11 +26,11 @@ int Callback_ContactProcess( const NewtonMaterial* material, const NewtonContact
 
 	// get the maximum normal speed of this impact. this can be used for particles of playing collision sound
 	speed0 = NewtonMaterialGetContactNormalSpeed( material, contact );
-	if( speed0 > cm.touch_info.normal_speed )
+	if( speed0 > cms.touch_info.normal_speed )
 	{
 		// save the position of the contact (for 3d sound of particles effects)
-		cm.touch_info.normal_speed = speed0;
-		NewtonMaterialGetContactPositionAndNormal( material, &cm.touch_info.position[0], &normal[0] );
+		cms.touch_info.normal_speed = speed0;
+		NewtonMaterialGetContactPositionAndNormal( material, &cms.touch_info.position[0], &normal[0] );
 	}
 
 	// get the maximum of the two sliding contact speed
@@ -40,11 +40,11 @@ int Callback_ContactProcess( const NewtonMaterial* material, const NewtonContact
 	if( speed1 > speed0 ) speed0 = speed1;
 
 	// Get the maximum tangent speed of this contact. this can be used for particles(sparks) of playing scratch sounds 
-	if( speed0 > cm.touch_info.tangent_speed )
+	if( speed0 > cms.touch_info.tangent_speed )
 	{
 		// save the position of the contact (for 3d sound of particles effects)
-		cm.touch_info.tangent_speed = speed0;
-		NewtonMaterialGetContactPositionAndNormal( material, &cm.touch_info.position[0], &normal[0] );
+		cms.touch_info.tangent_speed = speed0;
+		NewtonMaterialGetContactPositionAndNormal( material, &cms.touch_info.position[0], &normal[0] );
 	}
 
 	// return one to tell Newton we want to accept this contact
@@ -54,20 +54,20 @@ int Callback_ContactProcess( const NewtonMaterial* material, const NewtonContact
 // this function is call after all contacts for this pairs is processed
 void Callback_ContactEnd( const NewtonMaterial* material )
 {
-	sv_edict_t *edict = (sv_edict_t *)NewtonBodyGetUserData( cm.touch_info.m_body0 );
+	sv_edict_t *edict = (sv_edict_t *)NewtonBodyGetUserData( cms.touch_info.m_body0 );
 
 	// if the max contact speed is larger than some minimum value. play a sound
-	if( cm.touch_info.normal_speed > 15.0f )
+	if( cms.touch_info.normal_speed > 15.0f )
 	{
-		float pitch = cm.touch_info.normal_speed - 15.0f;
+		float pitch = cms.touch_info.normal_speed - 15.0f;
 		// TODO: play impact sound here
 		pi.PlaySound( edict, pitch, "materials/metal/bustmetal1.wav" );
 	}
 
 	// if the max contact speed is larger than some minimum value. play a sound
-	if( cm.touch_info.normal_speed > 5.0f )
+	if( cms.touch_info.normal_speed > 5.0f )
 	{
-		float pitch = cm.touch_info.normal_speed - 5.0f;
+		float pitch = cms.touch_info.normal_speed - 5.0f;
 		// TODO: play scratch sound here
 		pi.PlaySound( edict, pitch, "materials/metal/pushmetal1.wav" );
 	}

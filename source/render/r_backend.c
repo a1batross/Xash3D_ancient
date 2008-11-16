@@ -78,7 +78,7 @@ RB_DrawElements
 */
 void RB_DrawElements( void )
 {
-	ref_vindex_t	*indices;
+	elem_t	*indices;
 
 	indices = ref.indexArray;
 
@@ -96,9 +96,11 @@ void RB_InitVertexBuffers( void )
 {
 	int	i;
 
-	ref.vertexBuffer = RB_AllocVertexBuffer( MAX_VERTEXES * sizeof(ref_varray_t), GL_STREAM_DRAW_ARB );
+	ref.vertexBuffer = RB_AllocVertexBuffer( MAX_VERTEXES * sizeof(vec3_t), GL_STREAM_DRAW_ARB );
+	ref.colorBuffer = RB_AllocVertexBuffer( MAX_VERTEXES * sizeof(vec4_t), GL_STREAM_DRAW_ARB );
+	ref.normalBuffer = RB_AllocVertexBuffer( MAX_VERTEXES * sizeof(vec3_t), GL_STREAM_DRAW_ARB );
 	for( i = 0; i < MAX_TEXTURE_UNITS; i++ )
-		ref.stBuffer[i] = RB_AllocVertexBuffer( MAX_VERTEXES * sizeof(vec3_t), GL_STREAM_DRAW_ARB );	
+		ref.texCoordBuffer[i] = RB_AllocVertexBuffer( MAX_VERTEXES * sizeof(vec3_t), GL_STREAM_DRAW_ARB );	
 }
 
 /*

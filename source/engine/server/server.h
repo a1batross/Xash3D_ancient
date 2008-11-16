@@ -242,7 +242,7 @@ typedef struct
 //=============================================================================
 
 extern	netadr_t	master_adr[MAX_MASTERS];		// address of the master server
-
+extern	const char	*ed_name[];
 extern	server_static_t	svs;			// persistant server info
 extern	server_t		sv;			// local server
 
@@ -295,16 +295,17 @@ void SV_InitGame (void);
 void SV_Map( char *levelstring, char *savename );
 void SV_SpawnServer( const char *server, const char *savename );
 int SV_FindIndex (const char *name, int start, int end, bool create);
-void SV_VM_Begin(void);
-void SV_VM_End(void);
+void SV_ClassifyEdict( edict_t *ent );
+void SV_VM_Begin( void );
+void SV_VM_End( void );
 
 //
 // sv_phys.c
 //
 void SV_Physics( void );
 void SV_PlayerMove( sv_edict_t *ed );
-void SV_DropToFloor (edict_t *ent);
-void SV_CheckGround (edict_t *ent);
+void SV_DropToFloor( edict_t *ent );
+void SV_CheckGround( edict_t *ent );
 bool SV_UnstickEntity( edict_t *ent );
 int SV_ContentsMask( const edict_t *passedict );
 bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink);

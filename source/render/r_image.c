@@ -19,7 +19,7 @@ static byte r_intensityTable[256];	// scale intensity
 static byte r_gammaTable[256];	// adjust screenshot gamma
 
 static texture_t	*r_texturesHashTable[TEXTURES_HASH_SIZE];
-static texture_t	*r_textures[MAX_TEXTURES];
+static texture_t	r_textures[MAX_TEXTURES];
 static int	r_numTextures;
 static byte	*r_imagepool;	// immediate buffers
 static byte	*r_texpool;	// texture_t permanent chain
@@ -589,10 +589,9 @@ void R_SetTextureParameters( void )
 	r_texturelodbias->modified = false;
 
 	// change all the existing mipmapped texture objects
-	for( i = 0; i < r_numTextures; i++ )
+	for( i = 0, texture = r_textures; i < r_numTextures; i++, texture++ )
 	{
-		texture = r_textures[i];
-		if( !texture ) continue;	// free slot
+		if( !texture->texnum ) continue;	// free slot
 
 		if( texture->filter != TF_DEFAULT )
 			continue;
@@ -2226,7 +2225,7 @@ static void R_UploadTexture( rgbdata_t *pic, texture_t *tex )
 	default: dxtformat = false; break;
 	}
 
-	pglGenTextures( 1, &tex->texnum );
+	tex->texnum = (tex - r_textures) + 1;
 	GL_BindTexture( tex );
 		
 	// uploading texture into video memory
@@ -2301,12 +2300,20 @@ texture_t *R_LoadTexture( const char *name, rgbdata_t *pic, int samples, texFlag
 		Host_Error( "R_LoadTexture: MAX_TEXTURES limit exceeds\n" );
 
 	// find a free texture_t slot
-	for( i = 0; i < r_numTextures; i++ )
-		if( !r_textures[i] ) break;
+	for( i = 0, texture = r_textures; i < r_numTextures; i++, texture++ )
+		if( !texture->texnum ) break;
 
 	if( i == r_numTextures )
-		r_textures[r_numTextures++] = texture = Mem_Alloc( r_texpool, sizeof( texture_t ));
-	else r_textures[i] = texture = Mem_Alloc( r_texpool, sizeof( texture_t ));
+	{
+		if( r_numTextures == MAX_TEXTURES )
+		{
+			MsgDev( D_ERROR, "R_LoadTexture: gl textures is out\n" );
+			return r_defaultTexture;
+		}
+		r_numTextures++;
+	}
+
+	texture = &r_textures[i];
 
 	// fill it in
 	com.strncpy( texture->name, name, sizeof( texture->name ));
@@ -2655,46 +2662,33 @@ static void R_CreateBuiltInTextures( void )
 R_FreeImage
 ================
 */
-static void R_FreeImage( texture_t *image )
+void R_FreeImage( texture_t *image )
 {
-	uint	hash;
+	uint		hash;
+	texture_t		*cur;
+	texture_t		**prev;
+	
+	Com_Assert( image == NULL );
 
-	if( !image ) return;
-
-	// add to hash table
-	Msg( "release texture %s\n", image->name );
+	// remove from hash table
 	hash = Com_HashKey( image->name, TEXTURES_HASH_SIZE );
-	r_texturesHashTable[hash] = image->nextHash;
+	prev = &r_texturesHashTable[hash];
+
+	while( 1 )
+	{
+		cur = *prev;
+		if( !cur ) break;
+
+		if( cur == image )
+		{
+			*prev = cur->nextHash;
+			break;
+		}
+		prev = &cur->nextHash;
+	}
 
 	pglDeleteTextures( 1, &image->texnum );
-	Mem_Free( image );
-}
-
-/*
-================
-R_ImageFreeUnused
-
-Any image that was not touched on this registration sequence
-will be freed.
-================
-*/
-void R_ImageFreeUnused( void )
-{
-	texture_t	*image;
-	int	i;
-
-	for( i = 0; i < r_numTextures; i++ )
-	{
-		image = r_textures[i];
-		if( !image ) continue;
-		
-		// used this sequence
-		if( image->touchFrame == registration_sequence ) continue;
-		if( image->flags & TF_STATIC ) continue;
-
-		R_FreeImage( image );
-		r_textures[i] = NULL;
-	}
+	Mem_Set( image, 0, sizeof( *image ));
 }
 
 /*
@@ -2707,7 +2701,7 @@ was there.  This is used to test for texture thrashing.
 */
 void RB_ShowTextures( void )
 {
-	texture_t		*texture;
+	texture_t		*image;
 	float		x, y, w, h;
 	int		i, j;
 
@@ -2720,18 +2714,17 @@ void RB_ShowTextures( void )
 	pglFinish();
 	pglEnable( GL_TEXTURE_2D );
 		
-	for( i = j = 0; i < r_numTextures; i++ )
+	for( i = j = 0, image = r_textures; i < r_numTextures; i++, image++ )
 	{
-		texture = r_textures[i];
-		if( !texture ) continue;
+		if( !image->texnum ) continue;
 
 		// FIXME: make cases for system, 2d, bsp, sprite and model textures
 
-		if( r_showtextures->integer == 1 && texture->flags & TF_STATIC )
+		if( r_showtextures->integer == 1 && image->flags & TF_STATIC )
 			continue;
-		if( r_showtextures->integer == 2 && !(texture->flags & TF_STATIC ))
+		if( r_showtextures->integer == 2 && !(image->flags & TF_STATIC ))
 			continue;
-		if( r_showtextures->integer == 3 && !(texture->flags & TF_LIGHTMAP ))
+		if( r_showtextures->integer == 3 && !(image->flags & TF_LIGHTMAP ))
 			continue;
 
 		w = r_width->integer / 10;
@@ -2742,12 +2735,12 @@ void RB_ShowTextures( void )
 		// show in proportional size in mode 2
 		/*if( r_showtextures->integer == 2 )
 		{
-			w *= texture->width / 512.0f;
-			h *= texture->height / 512.0f;
+			w *= image->width / 512.0f;
+			h *= image->height / 512.0f;
 		}*/
 
 		pglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
-		GL_BindTexture( texture );
+		GL_BindTexture( image );
 		pglBegin( GL_QUADS );
 		pglTexCoord2f( 0, 0 );
 		pglVertex2f( x, y );
@@ -2771,25 +2764,24 @@ R_TextureList_f
 */
 void R_TextureList_f( void )
 {
-	texture_t	*texture;
+	texture_t	*image;
 	int	i, texCount, bytes = 0;
 
 	Msg( "\n" );
 	Msg("      -w-- -h-- -size- -fmt- type -filter -wrap-- -name--------\n" );
 
-	for( i = texCount = 0; i < r_numTextures; i++ )
+	for( i = texCount = 0, image = r_textures; i < r_numTextures; i++, image++ )
 	{
-		texture = r_textures[i];
-		if( !texture ) continue;
+		if( !image->texnum ) continue;
 
-		bytes += texture->size;
+		bytes += image->size;
 		texCount++;
 
 		Msg( "%4i: ", i );
-		Msg( "%4i %4i ", texture->width, texture->height );
-		Msg( "%5ik ", texture->size >> 10 );
+		Msg( "%4i %4i ", image->width, image->height );
+		Msg( "%5ik ", image->size >> 10 );
 
-		switch( texture->format )
+		switch( image->format )
 		{
 		case GL_COMPRESSED_RGBA_ARB:
 			Msg( "CRGBA " );
@@ -2832,7 +2824,7 @@ void R_TextureList_f( void )
 			break;
 		}
 
-		switch( texture->target )
+		switch( image->target )
 		{
 		case GL_TEXTURE_2D:
 			Msg( " 2D  " );
@@ -2845,7 +2837,7 @@ void R_TextureList_f( void )
 			break;
 		}
 
-		switch( texture->filter )
+		switch( image->filter )
 		{
 		case TF_DEFAULT:
 			Msg( "default" );
@@ -2861,7 +2853,7 @@ void R_TextureList_f( void )
 			break;
 		}
 
-		switch( texture->wrap )
+		switch( image->wrap )
 		{
 		case TW_REPEAT:
 			Msg( " repeat " );
@@ -2879,7 +2871,7 @@ void R_TextureList_f( void )
 			Msg( " ????   " );
 			break;
 		}
-		Msg( "  %s\n", texture->name );
+		Msg( "  %s\n", image->name );
 	}
 
 	Msg( "---------------------------------------------------------\n" );
@@ -2951,7 +2943,7 @@ R_ShutdownTextures
 void R_ShutdownTextures( void )
 {
 	int	i;
-	texture_t	*texture;
+	texture_t	*image;
 
 	for( i = MAX_TEXTURE_UNITS - 1; i >= 0; i-- )
 	{
@@ -2974,14 +2966,10 @@ void R_ShutdownTextures( void )
 	if( gl_config.texRectangle )
 		pglDeleteTextures( 1, &gl_state.screenTexture );
 
-	for( i = 0; i < r_numTextures; i++ )
+	for( i = 0, image = r_textures; i < r_numTextures; i++, image++ )
 	{
-		texture = r_textures[i];
-		if( !texture ) continue;
-
-		pglDeleteTextures( 1, &texture->texnum );
-		Mem_Free( texture );
-		texture = NULL;
+		if( !image->texnum ) continue;
+		pglDeleteTextures( 1, &image->texnum );
 	}
 
 	Mem_Set( r_texturesHashTable, 0, sizeof( r_texturesHashTable ));

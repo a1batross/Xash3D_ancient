@@ -114,7 +114,7 @@ texture_t		*R_FindTexture( const char *name, const byte *buf, size_t size, texFl
 texture_t		*R_FindCubeMapTexture( const char *name, const byte *buf, size_t size, texFlags_t flags, texFilter_t filter, texWrap_t wrap );
 void		R_InitTextures( void );
 void		R_ShutdownTextures( void );
-void		R_ImageFreeUnused( void );
+void		R_FreeImage( texture_t *image );
 
 /*
  =======================================================================
@@ -144,12 +144,13 @@ void		R_ShutdownPrograms( void );
 
 #include "r_shader.h"
 
-extern ref_shader_t	*r_shaders[MAX_SHADERS];
+extern ref_shader_t	r_shaders[MAX_SHADERS];
 extern int	r_numShaders;
 
 void	R_EvaluateRegisters( ref_shader_t *shader, float time, const float *entityParms, const float *globalParms );
-shader_t	R_FindShader( const char *name, int shaderType, uint surfaceParm );
+ref_shader_t *R_FindShader( const char *name, int shaderType, uint surfaceParm );
 void	R_SetInternalMap( texture_t *mipTex );		// internal textures (skins, spriteframes, etc)
+void	R_ShaderFreeUnused( void );
 void	R_ShaderList_f( void );
 void	R_InitShaders( void );
 void	R_ShutdownShaders( void );
@@ -199,7 +200,7 @@ typedef struct
 {
 	vec3_t		xyz;
 	vec2_t		st;
-	vec2_t		lightmap;
+	vec2_t		lm;
 	vec4_t		color;
 } surfPolyVert_t;
 
@@ -408,41 +409,7 @@ STUDIO MODELS
 
 ==============================================================================
 */
-typedef struct
-{
-	uint		index[3];
-} mstudiotriangle_t;
-
-typedef struct
-{
-	int		index[3];
-} mstudioneighbor_t;
-
-typedef struct
-{
-	short		point[3];
-	byte		tangent[2];
-	byte		binormal[2];
-	byte		normal[2];
-} mstudiopoint_t;
-
-typedef struct
-{
-	vec2_t		st;
-} mstudiost_t;
-
-typedef struct
-{
-	mstudiotriangle_t	*triangles;
-	mstudioneighbor_t	*neighbors;
-	mstudiopoint_t	*points;
-	mstudiost_t	*st;
-	ref_shader_t		*shaders;
-
-	int		numTriangles;
-	int		numVertices;
-	int		numShaders;
-} mstudiosurface_t;
+#include "r_model.h"
 
 typedef struct rmodel_s
 {
@@ -557,6 +524,7 @@ typedef struct ref_entity_s
 	
 	vec3_t		angles;
 	vec3_t		origin;		// position
+	matrix3x3		matrix;		// rotation vectors
 
 	float		framerate;	// custom framerate
           float		animtime;		// lerping animtime	
@@ -595,7 +563,6 @@ typedef struct ref_entity_s
 	ref_shader_t		*shader;
 	float		shaderTime;	// subtracted from refdef time to control effect start times
 	float		radius;		// bbox approximate radius
-	vec3_t		axis[3];		// Rotation vectors
 	float		rotation;		// what the hell ???
 } ref_entity_t;
 
@@ -668,6 +635,10 @@ void		GL_Vertex3f( GLfloat x, GLfloat y, GLfloat z );
 void		GL_Vertex3fv( const GLfloat *v );
 void		GL_Normal3f( GLfloat x, GLfloat y, GLfloat z );
 void		GL_Normal3fv( const GLfloat *v );
+void		GL_Tangent3f( GLfloat x, GLfloat y, GLfloat z );
+void		GL_Tangent3fv( const GLfloat *v );
+void		GL_Binormal3f( GLfloat x, GLfloat y, GLfloat z );
+void		GL_Binormal3fv( const GLfloat *v );
 void		GL_TexCoord2f( GLfloat s, GLfloat t );
 void		GL_TexCoord4f( GLfloat s, GLfloat t, GLfloat ls, GLfloat lt );
 void		GL_TexCoord4fv( const GLfloat *v );
@@ -774,7 +745,6 @@ extern gl_matrix   	gl_entityMatrix;
 extern gl_matrix	gl_textureMatrix;
 
 extern cplane_t	r_frustum[4];
-extern vec3_t	axisDefault[3];
 extern float	r_frameTime;
 
 extern mesh_t	r_solidMeshes[MAX_MESHES];
@@ -845,10 +815,7 @@ rmodel_t		*R_RegisterModel( const char *name );
 shader_t		Mod_RegisterShader( const char *name, int shaderType );
 void		R_SetupSky( const char *name, float rotate, const vec3_t axis );
 void		R_EndRegistration( void );
-void		R_ShaderRegisterImages( rmodel_t *mod );	// prolonge registration
-ref_shader_t	*R_RegisterShader( const char *name );
-ref_shader_t	*R_RegisterShaderSkin( const char *name );
-ref_shader_t	*R_RegisterShaderNoMip( const char *name );
+void		R_ModRegisterShaders( rmodel_t *mod );	// prolonge registration
 bool		VID_ScreenShot( const char *filename, bool levelshot );
 bool		VID_CubemapShot( const char *base, uint size, bool skyshot );
 void		R_DrawFill( float x, float y, float w, float h );
@@ -857,13 +824,7 @@ void		R_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, 
 void		R_GetPicSize( int *w, int *h, shader_t shader );
 
 // r_utils.c (test)
-void AxisClear( vec3_t axis[3] );
-void AnglesToAxis ( const vec3_t angles );
-void AxisCopy( const vec3_t in[3], vec3_t out[3] );
-void AnglesToAxisPrivate (const vec3_t angles, vec3_t axis[3]);
-bool AxisCompare( const vec3_t axis1[3], const vec3_t axis2[3] );
-void VectorRotate ( const vec3_t v, const vec3_t matrix[3], vec3_t out );
-void MatrixGL_MultiplyFast (const gl_matrix m1, const gl_matrix m2, gl_matrix out);
+void MatrixGL_MultiplyFast (const gl_matrix m1, const gl_matrix m2, gl_matrix out);	// FIXME: remove
 
 // cvars
 extern cvar_t	*r_check_errors;

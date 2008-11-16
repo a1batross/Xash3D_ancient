@@ -329,7 +329,7 @@ void CL_ClearState (void)
 	CL_FreeEdicts();
 
 	// wipe the entire cl structure
-	memset( &cl, 0, sizeof(cl));
+	Mem_Set( &cl, 0, sizeof( cl ));
 	MSG_Clear( &cls.netchan.message );
 
 	Cvar_SetValue( "scr_download", 0.0f );
@@ -734,10 +734,12 @@ void CL_PrepVideo( void )
 
 	// setup default sky shader or custom skybox from progs
 	re->RegisterShader( cl.configstrings[CS_SKYNAME], SHADER_SKY );
-          Cvar_SetValue("scr_loading", 100.0f ); // all done
-	
-	re->EndRegistration();	// the render can now free unneeded stuff
-	Con_ClearNotify();		// clear any lines of console text
+          Cvar_SetValue("scr_loading", 98.0f );	// load sky
+	SCR_RegisterShaders();
+          Cvar_SetValue("scr_loading", 100.0f );	// all done	
+
+	re->EndRegistration();		// the render can now free unneeded stuff
+	Con_ClearNotify();			// clear any lines of console text
 	SCR_UpdateScreen();
 	cl.video_prepped = true;
 	cl.force_refdef = true;

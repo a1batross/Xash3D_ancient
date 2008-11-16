@@ -82,8 +82,8 @@ static void S_AllocChannels( void )
 
 	for( i = 0, ch = s_channels; i < MAX_CHANNELS; i++, ch++)
 	{
-		palGenSources(1, &ch->sourceNum);
-		if(palGetError() != AL_NO_ERROR)
+		palGenSources( 1, &ch->sourceNum );
+		if( palGetError() != AL_NO_ERROR )
 			break;
 		al_state.num_channels++;
 	}
@@ -129,8 +129,8 @@ static void S_StopChannel( channel_t *ch )
 {
 	ch->sfx = NULL;
 
-	palSourceStop(ch->sourceNum);
-	palSourcei(ch->sourceNum, AL_BUFFER, 0);
+	palSourceStop( ch->sourceNum );
+	palSourcei( ch->sourceNum, AL_BUFFER, 0 );
 }
 
 /*
@@ -142,9 +142,9 @@ static void S_PlayChannel( channel_t *ch, sfx_t *sfx )
 {
 	ch->sfx = sfx;
 
-	palSourcei(ch->sourceNum, AL_BUFFER, sfx->bufferNum);
-	palSourcei(ch->sourceNum, AL_LOOPING, ch->loopsound);
-	palSourcei(ch->sourceNum, AL_SOURCE_RELATIVE, false);
+	palSourcei( ch->sourceNum, AL_BUFFER, sfx->bufferNum );
+	palSourcei( ch->sourceNum, AL_LOOPING, ch->loopsound );
+	palSourcei( ch->sourceNum, AL_SOURCE_RELATIVE, false );
 	palSourcei( ch->sourceNum, AL_SAMPLE_OFFSET, 0 );
 
 	if( ch->loopstart >= 0 )
@@ -193,7 +193,7 @@ static void S_SpatializeChannel( channel_t *ch )
 		}
 	}
 
-	// Update min/max distance
+	// update min/max distance
 	if( ch->distanceMult )
 		palSourcef( ch->sourceNum, AL_REFERENCE_DISTANCE, s_minDistance->value * ch->distanceMult );
 	else palSourcef( ch->sourceNum, AL_REFERENCE_DISTANCE, s_maxDistance->value );
@@ -439,7 +439,8 @@ void S_StartSound( const vec3_t pos, int entnum, int channel, sound_t handle, fl
 	if( !sfx ) return;
 
 	// Make sure the sound is loaded
-	if(!S_LoadSound(sfx)) return;
+	if( !S_LoadSound( sfx ))
+		return;
 
 	// Allocate a playSound
 	ps = S_AllocPlaySound();
@@ -460,7 +461,7 @@ void S_StartSound( const vec3_t pos, int entnum, int channel, sound_t handle, fl
 		VectorCopy( pos, ps->position );
 	}
 	else ps->fixedPosition = false;
-
+	
 	ps->volume = vol;
 	ps->attenuation = attn;
 	ps->beginTime = Sys_DoubleTime();
@@ -485,7 +486,7 @@ bool S_StartLocalSound( const char *name )
 {
 	sound_t	sfxHandle;
 
-	if(!al_state.initialized)
+	if( !al_state.initialized )
 		return false;
 
 	sfxHandle = S_RegisterSound( name );
@@ -608,12 +609,12 @@ void S_Update( int clientnum, const vec3_t position, const vec3_t velocity, cons
 	// update spatialization for all sounds
 	for( i = 0, ch = s_channels; i < al_state.num_channels; i++, ch++ )
 	{
-		if(!ch->sfx) continue; // not active
+		if( !ch->sfx ) continue; // not active
 
 		// check for stop
 		if( ch->loopsound )
 		{
-			if(ch->loopframe != al_state.framecount)
+			if( ch->loopframe != al_state.framecount )
 			{
 				S_StopChannel( ch );
 				continue;

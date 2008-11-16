@@ -887,6 +887,45 @@ _inline void Matrix4x4_FromVectors( matrix4x4 out, const float vx[3], const floa
 #endif
 }
 
+_inline void Matrix4x4_FromMatrix3x3( matrix4x4 out, const matrix3x3 in )
+{
+#ifdef OPENGL_STYLE
+	out[0][0] = in[0][0];
+	out[1][0] = in[1][0];
+	out[2][0] = in[2][0];
+	out[3][0] = 0.0f;
+	out[0][1] = in[0][1];
+	out[1][1] = in[1][1];
+	out[2][1] = in[2][1];
+	out[3][1] = 0.0f;
+	out[0][2] = in[0][2];
+	out[1][2] = in[1][2];
+	out[2][2] = in[2][2];
+	out[3][2] = 0.0f;
+	out[0][3] = 0.0f;
+	out[1][3] = 0.0f;
+	out[2][3] = 0.0f;
+	out[3][3] = 1.0f;
+#else
+	out[0][0] = in[0][0];
+	out[0][1] = in[1][0];
+	out[0][2] = in[2][0];
+	out[0][3] = 0.0f;
+	out[1][0] = in[0][1];
+	out[1][1] = in[1][1];
+	out[1][2] = in[2][1];
+	out[1][3] = 0.0f;
+	out[2][0] = in[0][2];
+	out[2][1] = in[1][2];
+	out[2][2] = in[2][2];
+	out[2][3] = 0.0f;
+	out[3][0] = 0.0f;
+	out[3][1] = 0.0f;
+	out[3][2] = 0.0f;
+	out[3][3] = 1.0f;
+#endif
+}
+
 /*
 ================
 Matrix4x4_CreateModelview_FromAxis

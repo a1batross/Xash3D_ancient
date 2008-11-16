@@ -37,22 +37,26 @@
 #define SHADER_MAX_TCMOD		8
 
 // shader flags
-#define SHADER_EXTERNAL			0x00000001
-#define SHADER_DEFAULTED			0x00000002
-#define SHADER_HASLIGHTMAP			0x00000004
-#define SHADER_SURFACEPARM			0x00000008
-#define SHADER_NOMIPMAPS			0x00000010
-#define SHADER_NOPICMIP			0x00000020
-#define SHADER_NOCOMPRESS			0x00000040
-#define SHADER_NOSHADOWS			0x00000080
-#define SHADER_NOFRAGMENTS			0x00000100
-#define SHADER_ENTITYMERGABLE			0x00000200
-#define SHADER_POLYGONOFFSET			0x00000400
-#define SHADER_CULL				0x00000800
-#define SHADER_SORT				0x00001000
-#define SHADER_TESSSIZE			0x00002000
-#define SHADER_SKYPARMS			0x00004000
-#define SHADER_DEFORMVERTEXES			0x00008000
+typedef enum
+{
+	SHADER_STATIC		= BIT(0),	// never freed by R_ShaderFreeUnused
+	SHADER_EXTERNAL		= BIT(1),
+	SHADER_DEFAULTED		= BIT(2),
+	SHADER_HASLIGHTMAP		= BIT(3),
+	SHADER_SURFACEPARM		= BIT(4),
+	SHADER_NOMIPMAPS		= BIT(5),
+	SHADER_NOPICMIP		= BIT(6),
+	SHADER_NOCOMPRESS		= BIT(7),
+	SHADER_NOSHADOWS		= BIT(8),
+	SHADER_NOFRAGMENTS		= BIT(9),
+	SHADER_ENTITYMERGABLE	= BIT(10),
+	SHADER_POLYGONOFFSET	= BIT(11),
+	SHADER_CULL		= BIT(12),
+	SHADER_SORT		= BIT(13),
+	SHADER_TESSSIZE		= BIT(14),
+	SHADER_SKYPARMS		= BIT(15),
+	SHADER_DEFORMVERTEXES	= BIT(16),
+}shaderFlags_t;
 
 // shader stage flags
 typedef enum
@@ -397,10 +401,12 @@ typedef struct shaderStage_s
 typedef struct ref_shader_s
 {
 	string		name;
-	int		index;
 	int		type;
+	int		shadernum;
 	uint		surfaceParm;
 	int		conditionRegister;
+	int		touchFrame;		// 0 = free
+	byte		*mempool;			// private shader pool
 	uint		flags;
 
 	cull_t		cull;

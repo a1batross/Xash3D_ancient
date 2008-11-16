@@ -637,8 +637,7 @@ void S_EndRegistration( void )
 		{	
 			// don't need this sound
 			palDeleteBuffers( 1, &sfx->bufferNum );
-			sfx->name[0] = '\0'; // free spot
-			sfx->loaded = false;
+			Mem_Set( sfx, 0, sizeof( sfx_t )); // free spot
 		}
 	}
 

@@ -76,7 +76,7 @@ void PRVM_MEM_IncreaseEdicts( void )
 	Mem_Copy(vm.prog->edictsfields, oldedictsfields, oldmaxedicts * vm.prog->edict_size);
 	Mem_Copy(vm.prog->edictprivate, oldedictprivate, oldmaxedicts * vm.prog->edictprivate_size);
 
-	//set e and v pointers
+	// set e and v pointers
 	for(i = 0; i < vm.prog->max_edicts; i++)
 	{
 		vm.prog->edicts[i].priv.ed  = (vm_edict_t *)((byte  *)vm.prog->edictprivate + i * vm.prog->edictprivate_size);
@@ -1184,6 +1184,7 @@ void PRVM_ED_LoadFromFile( const char *data )
 			// pev = ent
 			PRVM_G_INT(vm.prog->pev->ofs) = PRVM_EDICT_TO_PROG(ent);
 			PRVM_ExecuteProgram( func - vm.prog->functions, "", __FILE__, __LINE__ );
+			if( vm.prog->classify_edict ) vm.prog->classify_edict( ent );
 		}
 
 		spawned++;

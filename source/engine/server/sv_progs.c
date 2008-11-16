@@ -565,10 +565,10 @@ void SV_BeginIncreaseEdicts( void )
 	edict_t		*ent;
 
 	// links don't survive the transition, so unlink everything
-	for (i = 0, ent = prog->edicts; i < prog->max_edicts; i++, ent++)
+	for( i = 0, ent = prog->edicts; i < prog->max_edicts; i++, ent++ )
 	{
-		if (!ent->priv.sv->free) SV_UnlinkEdict(prog->edicts + i); //free old entity
-		memset(&ent->priv.sv->clusternums, 0, sizeof(ent->priv.sv->clusternums));
+		if( !ent->priv.sv->free ) SV_UnlinkEdict( prog->edicts + i ); // free old entity
+		Mem_Set( &ent->priv.sv->clusternums, 0, sizeof( ent->priv.sv->clusternums ));
 	}
 	SV_ClearWorld();
 }
@@ -578,10 +578,10 @@ void SV_EndIncreaseEdicts(void)
 	int		i;
 	edict_t		*ent;
 
-	for (i = 0, ent = prog->edicts; i < prog->max_edicts; i++, ent++)
+	for( i = 0, ent = prog->edicts; i < prog->max_edicts; i++, ent++ )
 	{
 		// link every entity except world
-		if (!ent->priv.sv->free) SV_LinkEdict(ent);
+		if( !ent->priv.sv->free ) SV_LinkEdict(ent);
 	}
 }
 
@@ -609,6 +609,7 @@ void SV_FreeEdict( edict_t *ed )
 	// unlink from world
 	SV_UnlinkEdict( ed );
 
+	ed->priv.sv->s.ed_type = ED_SPAWNED;
 	ed->priv.sv->freetime = sv.time;
 	ed->priv.sv->free = true;
 
@@ -620,8 +621,8 @@ void SV_FreeEdict( edict_t *ed )
 	ed->progs.sv->solid = 0;
 
 	pe->RemoveBody( ed->priv.sv->physbody );
-	VectorClear(ed->progs.sv->origin);
-	VectorClear(ed->progs.sv->angles);
+	VectorClear( ed->progs.sv->origin );
+	VectorClear( ed->progs.sv->angles );
 	ed->progs.sv->nextthink = -1;
 	ed->priv.sv->physbody = NULL;
 }
@@ -1491,7 +1492,7 @@ void PF_ambientsound( void )
 	// check to see if samp was properly precached
 	ent->progs.sv->loopsound = PRVM_G_INT(OFS_PARM1);
 	ent->priv.sv->s.soundindex = SV_SoundIndex( samp );
-	if(!ent->progs.sv->modelindex ) SV_LinkEdict( ent );
+	if( !ent->progs.sv->modelindex ) SV_LinkEdict( ent );
 }
 
 /*
@@ -2504,7 +2505,7 @@ Init the game subsystem for a new map
 */
 void SV_InitServerProgs( void )
 {
-	Msg("\n");
+	Msg( "\n" );
 	PRVM_Begin;
 	PRVM_InitProg( PRVM_SERVERPROG );
 
@@ -2526,7 +2527,7 @@ void SV_InitServerProgs( void )
 		prog->free_edict = SV_FreeEdict;
 		prog->count_edicts = SV_CountEdicts;
 		prog->load_edict = SV_LoadEdict;
-                    prog->restore_edict = SV_RestoreEdict;
+		prog->restore_edict = SV_RestoreEdict;
                     prog->filecrc = PROG_CRC_SERVER;
 		
 		// using default builtins

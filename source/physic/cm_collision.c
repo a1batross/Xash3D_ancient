@@ -1434,11 +1434,11 @@ void CM_CollisionDrawForEachBrush( void )
 
 	if( !ph.debug_line ) return;
 
-	for( i = 0; i < cm.numbmodels; i++ )
+	for( i = 0; i < cms.numbmodels; i++ )
 	{
-		for( j = 0; j < cm.bmodels[i].numbrushes; j++ )
+		for( j = 0; j < cms.bmodels[i].numbrushes; j++ )
 		{
-			draw = cm.brushes[cm.bmodels[i].firstbrush + j].colbrushf;
+			draw = cm.brushes[cms.bmodels[i].firstbrush + j].colbrushf;
 			if( !draw ) continue;
 			if( i == 0 ) color = PackRGBA( 1, 0.7f, 0, 1 );	// world
 			else color = PackRGBA( 1, 0.1f, 0.1f, 1 );

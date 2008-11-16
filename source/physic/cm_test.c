@@ -131,7 +131,7 @@ int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsiz
 {
 	leaflist_t	ll;
 
-	cm.checkcount++;
+	cms.checkcount++;
 	VectorCopy( mins, ll.bounds[0] );
 	VectorCopy( maxs, ll.bounds[1] );
 	ll.count = 0;

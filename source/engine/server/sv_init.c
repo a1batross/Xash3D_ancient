@@ -85,29 +85,26 @@ to the clients -- only the fields that differ from the
 baseline will be transmitted
 ================
 */
-void SV_CreateBaseline (void)
+void SV_CreateBaseline( void )
 {
-	edict_t			*svent;
-	int			entnum;	
+	edict_t	*svent;
+	int	entnum;	
 
-	for (entnum = 1; entnum < prog->num_edicts ; entnum++)
+	for( entnum = 1; entnum < prog->num_edicts ; entnum++ )
 	{
-		svent = PRVM_EDICT_NUM(entnum);
-		if (svent->priv.sv->free) continue;
-		if (!svent->progs.sv->modelindex && !svent->priv.sv->s.soundindex && !svent->progs.sv->effects)
+		svent = PRVM_EDICT_NUM( entnum );
+		if( svent->priv.sv->free ) continue;
+		if( !svent->progs.sv->modelindex && !svent->priv.sv->s.soundindex && !svent->progs.sv->effects )
 			continue;
 		svent->priv.sv->serialnumber = entnum;
 
-		//
 		// take current state as baseline
-		//
 		VectorCopy (svent->progs.sv->origin, svent->progs.sv->old_origin);
 		SV_UpdateEntityState( svent );
 
 		svs.baselines[entnum] = svent->priv.sv->s;
 	}
 }
-
 
 /*
 =================
@@ -214,8 +211,15 @@ void SV_SpawnServer( const char *server, const char *savename )
 	// create a baseline for more efficient communications
 	SV_CreateBaseline();
 
+	// classify edicts for quick network sorting
+	for( i = 0; i < prog->num_edicts; i++ )
+	{
+		edict_t *ent = PRVM_EDICT_NUM( i );
+		SV_ClassifyEdict( ent );
+	}
+
 	// set serverinfo variable
-	Cvar_FullSet("mapname", sv.name, CVAR_SERVERINFO | CVAR_INIT);
+	Cvar_FullSet( "mapname", sv.name, CVAR_SERVERINFO|CVAR_INIT );
 	pe->EndRegistration(); // free unused models
 	SV_VM_End();
 }
@@ -296,13 +300,12 @@ void SV_InitGame( void )
 
 	SV_VM_Begin();
 
-	for (i = 0; i < Host_MaxClients(); i++)
+	for( i = 0; i < Host_MaxClients(); i++ )
 	{
-		ent = PRVM_EDICT_NUM(i + 1);
+		ent = PRVM_EDICT_NUM( i + 1 );
 		ent->priv.sv->serialnumber = i + 1;
 		svs.clients[i].edict = ent;
 		Mem_Set (&svs.clients[i].lastcmd, 0, sizeof(svs.clients[i].lastcmd));
 	}
-
 	SV_VM_End();
 }

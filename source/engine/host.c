@@ -92,7 +92,7 @@ void Host_InitRender( void )
 		CreateRender = (void *)render_dll.main;
 		re = CreateRender( &newcom, &ri );
 
-		if(re->Init()) result = true;
+		if( re->Init( true )) result = true;
 	} 
 
 	// video system not started, run dedicated server
@@ -101,10 +101,10 @@ void Host_InitRender( void )
 
 void Host_FreeRender( void )
 {
-	if(render_dll.link)
+	if( render_dll.link )
 	{
-		re->Shutdown();
-		Mem_Set( &re, 0, sizeof(re));
+		re->Shutdown( true );
+		Mem_Set( &re, 0, sizeof( re ));
 	}
 	Sys_FreeLibrary( &render_dll );
 }
@@ -123,7 +123,7 @@ void Host_InitVprogs( int argc, char **argv )
 
 void Host_FreeVprogs( void )
 {
-	if(vprogs_dll.link)
+	if( vprogs_dll.link )
 	{
 		vm->Free();
 		Mem_Set( &vm, 0, sizeof(vm));

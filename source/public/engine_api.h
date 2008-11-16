@@ -20,6 +20,7 @@
 typedef enum
 {
 	ED_SPAWNED = 0,	// this entity requris to set own type with SV_ClassifyEdict
+	ED_WORLDSPAWN,	// this is a worldspawn
 	ED_STATIC,	// this is a logic without model or entity with static model
 	ED_AMBIENT,	// this is entity emitted ambient sounds only
 	ED_NORMAL,	// normal entity with model (and\or) sound

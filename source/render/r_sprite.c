@@ -50,10 +50,10 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	*ppframe = pspriteframe;
 
 	R_SetInternalMap( pspriteframe->texture );
-	pspriteframe->shader = R_FindShader( name, SHADER_SPRITE, surfaceParm );
+	pspriteframe->shader = R_FindShader( name, SHADER_SPRITE, surfaceParm )->shadernum;
 
 	frames = Mem_Realloc( mod->mempool, frames, sizeof( ref_shader_t* ) * (mod->numShaders + 1));
-	frames[mod->numShaders++] = r_shaders[pspriteframe->shader];
+	frames[mod->numShaders++] = &r_shaders[pspriteframe->shader];
 
 	return (dframetype_t *)((byte *)(pinframe + 1) + pinframe->width * pinframe->height );
 }
@@ -172,6 +172,7 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 
 	MsgDev( D_LOAD, "%s, rendermode %d\n", mod->name, psprite->rendermode );
 	mod->registration_sequence = registration_sequence;
+	frames = NULL; // invalidate pointer
 
 	for( i = 0; i < numframes; i++ )
 	{
@@ -272,7 +273,7 @@ void R_AddSpriteModelToList( ref_entity_t *entity )
 	// copy frame params
 	entity->radius = frame->radius;
 	entity->rotation = 0;
-	entity->shader = r_shaders[frame->shader];
+	entity->shader = &r_shaders[frame->shader];
 
 	// add it
 	R_AddMeshToList( MESH_SPRITE, NULL, entity->shader, entity, 0 );
@@ -299,9 +300,9 @@ void R_DrawSpriteModel( void )
 	switch( psprite->type )
 	{
 	case SPR_ORIENTED:
-		VectorCopy( e->axis[0], forward );
-		VectorCopy( e->axis[1], right );
-		VectorCopy( e->axis[2], up );
+		VectorCopy( e->matrix[0], forward );
+		VectorCopy( e->matrix[1], right );
+		VectorCopy( e->matrix[2], up );
 		VectorScale( forward, 0.01, forward ); // to avoid z-fighting
 		VectorSubtract( e->origin, forward, e->origin );
 		break;
@@ -317,12 +318,12 @@ void R_DrawSpriteModel( void )
 		VectorSet( up, 0, 0, 1 );
 		break;
 	case SPR_FWD_PARALLEL_ORIENTED:
-		right[0] = e->axis[1][0] * r_forward[0] + e->axis[1][1] * r_right[0] + e->axis[1][2] * r_up[0];
-		right[1] = e->axis[1][0] * r_forward[1] + e->axis[1][1] * r_right[1] + e->axis[1][2] * r_up[1];
-		right[2] = e->axis[1][0] * r_forward[2] + e->axis[1][1] * r_right[2] + e->axis[1][2] * r_up[2];
-		up[0] = e->axis[2][0] * r_forward[0] + e->axis[2][1] * r_right[0] + e->axis[2][2] * r_up[0];
-		up[1] = e->axis[2][0] * r_forward[1] + e->axis[2][1] * r_right[1] + e->axis[2][2] * r_up[1];
-		up[2] = e->axis[2][0] * r_forward[2] + e->axis[2][1] * r_right[2] + e->axis[2][2] * r_up[2];
+		right[0] = e->matrix[1][0] * r_forward[0] + e->matrix[1][1] * r_right[0] + e->matrix[1][2] * r_up[0];
+		right[1] = e->matrix[1][0] * r_forward[1] + e->matrix[1][1] * r_right[1] + e->matrix[1][2] * r_up[1];
+		right[2] = e->matrix[1][0] * r_forward[2] + e->matrix[1][1] * r_right[2] + e->matrix[1][2] * r_up[2];
+		up[0] = e->matrix[2][0] * r_forward[0] + e->matrix[2][1] * r_right[0] + e->matrix[2][2] * r_up[0];
+		up[1] = e->matrix[2][0] * r_forward[1] + e->matrix[2][1] * r_right[1] + e->matrix[2][2] * r_up[1];
+		up[2] = e->matrix[2][0] * r_forward[2] + e->matrix[2][1] * r_right[2] + e->matrix[2][2] * r_up[2];
 		break;
 	case SPR_FWD_PARALLEL:
 	default: // normal sprite

@@ -8,6 +8,7 @@
 #include "const.h"
 
 clipmap_t		cm;
+clipmap_static_t	cms;
 studio_t		studio;
 
 cvar_t *cm_noareas;
@@ -69,13 +70,13 @@ CM_FreeModel
 void CM_FreeModel( cmodel_t *mod )
 {
 	Mem_FreePool( &mod->mempool );
-	Mem_Set( mod, 0, sizeof(*mod));
+	Mem_Set( mod, 0, sizeof( *mod ));
 	mod = NULL;
 }
 
 int CM_NumTextures( void ) { return cm.numshaders; }
 int CM_NumClusters( void ) { return cm.numclusters; }
-int CM_NumInlineModels( void ) { return cm.numbmodels; }
+int CM_NumInlineModels( void ) { return cms.numbmodels; }
 const char *CM_EntityString( void ) { return cm.entitystring; }
 const char *CM_TexName( int index ) { return cm.shaders[index].name; }
 
@@ -98,10 +99,10 @@ void BSP_CreateMeshBuffer( int modelnum )
 	int		flags;
 
 	// ignore world or bsplib instance
-	if( app_name == HOST_BSPLIB || modelnum >= cm.numbmodels )
+	if( app_name == HOST_BSPLIB || modelnum >= cms.numbmodels )
 		return;
 
-	loadmodel = &cm.bmodels[modelnum];
+	loadmodel = &cms.bmodels[modelnum];
 	if( modelnum ) loadmodel->type = mod_brush;
 	else loadmodel->type = mod_world; // level static geometry
 	loadmodel->TraceBox = CM_TraceBmodel;
@@ -154,8 +155,8 @@ void BSP_LoadModels( lump_t *l )
 
 	if(count < 1) Host_Error( "Map %s without models\n", cm.name );
 	if(count > MAX_MODELS ) Host_Error( "Map %s has too many models\n", cm.name );
-	cm.numbmodels = count;
-	out = &cm.bmodels[0];
+	cms.numbmodels = count;
+	out = &cms.bmodels[0];
 
 	for( i = 0; i < count; i++, in++, out++ )
 	{
@@ -693,7 +694,7 @@ BSP_LoadCollision
 void BSP_LoadCollision( lump_t *l )
 {
 	if( !l->filelen ) return;
-	cm.world_tree = VFS_Create( cm.mod_base + l->fileofs, l->filelen );	
+	cms.world_tree = VFS_Create( cm.mod_base + l->fileofs, l->filelen );	
 }
 
 static void BSP_RecursiveFindNumLeafs( cnode_t *node )
@@ -707,8 +708,8 @@ static void BSP_RecursiveFindNumLeafs( cnode_t *node )
 	}
 	numleafs = ((cleaf_t *)node - cm.leafs) + 1;
 
-	// these never happens
-	if( cm.numleafs < numleafs ) cm.numleafs = numleafs;
+	if( cm.numleafs < numleafs )  // these never happens
+		Host_Error( "BSP_RecursiveFindNumLeafs: invalid leafs count %i > %i\n", numleafs, cm.numleafs );
 }
 
 static void BSP_RecursiveSetParent( cnode_t *node, cnode_t *parent )
@@ -761,8 +762,8 @@ static void BSP_RecursiveSetParent( cnode_t *node, cnode_t *parent )
 void BSP_BeginBuildTree( void )
 {
 	// create tree collision
-	cm.collision = NewtonCreateTreeCollision( gWorld, NULL );
-	NewtonTreeCollisionBeginBuild( cm.collision );
+	cms.collision = NewtonCreateTreeCollision( gWorld, NULL );
+	NewtonTreeCollisionBeginBuild( cms.collision );
 }
 
 void BSP_AddCollisionFace( int facenum )
@@ -793,14 +794,14 @@ void BSP_AddCollisionFace( int facenum )
 			CM_GetPoint( k,	face[0] );
 			CM_GetPoint( k+j+1, face[1] );
 			CM_GetPoint( k+j+2, face[2] );
-			NewtonTreeCollisionAddFace( cm.collision, 3, (float *)face[0], sizeof(vec3_t), 1 );
+			NewtonTreeCollisionAddFace( cms.collision, 3, (float *)face[0], sizeof(vec3_t), 1 );
 		}
 	}
 	else
 	{
 		vec3_t *face = Mem_Alloc( cmappool, m_surface->numedges * sizeof( vec3_t ));
 		for(j = 0; j < m_surface->numedges; j++ ) CM_GetPoint( k+j, face[j] );
-		NewtonTreeCollisionAddFace( cm.collision, m_surface->numedges, (float *)face[0], sizeof(vec3_t), 1);
+		NewtonTreeCollisionAddFace( cms.collision, m_surface->numedges, (float *)face[0], sizeof(vec3_t), 1);
 		if( face ) Mem_Free( face ); // polygons with 0 edges ?
 	}
 }
@@ -808,7 +809,7 @@ void BSP_AddCollisionFace( int facenum )
 void BSP_EndBuildTree( void )
 {
 	if( app_name == HOST_BSPLIB ) Msg("Optimize collision tree..." );
-	NewtonTreeCollisionEndBuild( cm.collision, true );
+	NewtonTreeCollisionEndBuild( cms.collision, true );
 	if( app_name == HOST_BSPLIB ) Msg(" done\n");
 }
 
@@ -833,7 +834,7 @@ void CM_LoadBSP( const void *buffer )
 	BSP_LoadSurfaces(&header.lumps[LUMP_SURFACES]);
 	BSP_LoadModels(&header.lumps[LUMP_MODELS]);
 	BSP_LoadCollision(&header.lumps[LUMP_COLLISION]);
-	cm.loaded = true;
+	cms.loaded = true;
 }
 
 void CM_FreeBSP( void )
@@ -842,9 +843,11 @@ void CM_FreeBSP( void )
 	cmodel_t	*mod;
 
 	CM_FreeWorld();
-	for( i = 0, mod = &cm.cmodels[0]; i < cm.numcmodels; i++, mod++)
+
+	for( i = 0, mod = cms.cmodels; i < cms.numcmodels; i++, mod++)
 	{
-		if( mod->name ) CM_FreeModel( mod );
+		if( !mod->name[0] ) continue;
+		CM_FreeModel( mod );
 	}
 }
 
@@ -852,16 +855,16 @@ void CM_MakeCollisionTree( void )
 {
 	int	i, world = 0; // world index
 
-	if( !cm.loaded ) Host_Error( "CM_MakeCollisionTree: map not loaded\n" );
-	if( cm.collision ) return; // already generated
+	if( !cms.loaded ) Host_Error( "CM_MakeCollisionTree: map not loaded\n" );
+	if( cms.collision ) return; // already generated
 	if( app_name == HOST_BSPLIB ) Msg("Building collision tree...\n" );
 
 	BSP_BeginBuildTree();
 
 	// world firstface index always equal 0
 	if( app_name == HOST_BSPLIB )
-		RunThreadsOnIndividual( cm.bmodels[world].numfaces, true, BSP_AddCollisionFace );
-	else for( i = 0; i < cm.bmodels[world].numfaces; i++ ) BSP_AddCollisionFace( i );
+		RunThreadsOnIndividual( cms.bmodels[world].numfaces, true, BSP_AddCollisionFace );
+	else for( i = 0; i < cms.bmodels[world].numfaces; i++ ) BSP_AddCollisionFace( i );
 
 	BSP_EndBuildTree();
 }
@@ -869,14 +872,14 @@ void CM_MakeCollisionTree( void )
 void CM_SaveCollisionTree( file_t *f, cmsave_t callback )
 {
 	CM_MakeCollisionTree(); // create if needed
-	NewtonTreeCollisionSerialize( cm.collision, callback, f );
+	NewtonTreeCollisionSerialize( cms.collision, callback, f );
 }
 
 void CM_LoadCollisionTree( void )
 {
-	if( !cm.world_tree ) return;
-	cm.collision = NewtonCreateTreeCollisionFromSerialization( gWorld, NULL, BSP_LoadTree, cm.world_tree );
-	VFS_Close( cm.world_tree );
+	if( !cms.world_tree ) return;
+	cms.collision = NewtonCreateTreeCollisionFromSerialization( gWorld, NULL, BSP_LoadTree, cms.world_tree );
+	VFS_Close( cms.world_tree );
 }
 
 void CM_LoadWorld( const void *buffer )
@@ -884,13 +887,13 @@ void CM_LoadWorld( const void *buffer )
 	vec3_t		boxP0, boxP1;
 	vec3_t		extra = { 10.0f, 10.0f, 10.0f }; 
 
-	if( cm.world_tree ) CM_LoadCollisionTree();
+	if( cms.world_tree ) CM_LoadCollisionTree();
 	else CM_MakeCollisionTree(); // can be used for old maps or for product of alternative map compiler
 
-	cm.body = NewtonCreateBody( gWorld, cm.collision );
-	NewtonBodyGetMatrix( cm.body, &cm.matrix[0][0] );	// set the global position of this body 
-	NewtonCollisionCalculateAABB( cm.collision, &cm.matrix[0][0], &boxP0[0], &boxP1[0] ); 
-	NewtonReleaseCollision( gWorld, cm.collision );
+	cms.body = NewtonCreateBody( gWorld, cms.collision );
+	NewtonBodyGetMatrix( cms.body, &cm.matrix[0][0] );	// set the global position of this body 
+	NewtonCollisionCalculateAABB( cms.collision, &cm.matrix[0][0], &boxP0[0], &boxP1[0] ); 
+	NewtonReleaseCollision( gWorld, cms.collision );
 
 	VectorSubtract( boxP0, extra, boxP0 );
 	VectorAdd( boxP1, extra, boxP1 );
@@ -906,35 +909,21 @@ void CM_FreeWorld( void )
 	cmodel_t	*mod;
 
 	// free old stuff
-	if( cm.loaded ) Mem_EmptyPool( cmappool );
-	cm.numplanes = cm.numnodes = cm.numleafs = 0;
-	cm.numleafbrushes = cm.numsurfaces = cm.numbmodels = 0;
-	cm.floodvalid = cm.numbrushsides = cm.numtexinfo = 0;
-	cm.numbrushes = cm.numleafsurfaces = cm.numareas = 0;
-	cm.numareaportals = cm.numclusters = cm.numshaders = 0;
-	cm.world_tree = NULL;
-	cm.vis = NULL;
+	if( cms.loaded ) Mem_EmptyPool( cmappool );
+	Mem_Set( &cm, 0, sizeof( cm ));
 
-	cm.name[0] = 0;
-	Mem_Set( cm.matrix, 0, sizeof(matrix4x4));
-	
-	// free bmodels too
-	for (i = 0, mod = &cm.bmodels[0]; i < cm.numbmodels; i++, mod++)
-	{
-		if(!mod->name[0]) continue;
-		if(mod->registration_sequence != registration_sequence)
-			CM_FreeModel( mod );
-	}
-	cm.numbmodels = 0;
+	for( i = 0, mod = cms.bmodels; i < cms.numbmodels; i++, mod++ )
+		CM_FreeModel( mod );
+	cms.numbmodels = 0;
 
-	if( cm.body )
+	if( cms.body )
 	{
 		// and physical body release too
-		NewtonDestroyBody( gWorld, cm.body );
-		cm.body = NULL;
-		cm.collision = NULL;
+		NewtonDestroyBody( gWorld, cms.body );
+		cms.body = NULL;
+		cms.collision = NULL;
 	}
-	cm.loaded = false;
+	cms.loaded = false;
 }
 
 /*
@@ -956,20 +945,20 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 		// cinematic servers won't have anything at all
 		cm.numleafs = cm.numclusters = cm.numareas = 1;
 		*checksum = 0;
-		return &cm.bmodels[0];
+		return &cms.bmodels[0];
 	}
-	if(!com.strcmp( cm.name, name ) && cm.loaded )
+	if(!com.strcmp( cm.name, name ) && cms.loaded )
 	{
 		// singleplayer mode: serever already loading map
 		*checksum = cm.checksum;
 		if( !clientload )
 		{
 			// rebuild portals for server
-			Mem_Set( cm.portalopen, 0, sizeof( cm.portalopen ));
+			Mem_Set( cms.portalopen, 0, sizeof( cms.portalopen ));
 			CM_FloodAreaConnections();
 		}
 		// still have the right version
-		return &cm.bmodels[0];
+		return &cms.bmodels[0];
 	}
 
 	CM_FreeWorld();		// release old map
@@ -1006,7 +995,7 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 	BSP_LoadVisibility(&hdr->lumps[LUMP_VISIBILITY]);
 	BSP_LoadModels(&hdr->lumps[LUMP_MODELS]);
 	BSP_LoadCollision(&hdr->lumps[LUMP_COLLISION]);
-	cm.loaded = true;
+	cms.loaded = true;
 
 	BSP_RecursiveFindNumLeafs( cm.nodes );
 	BSP_RecursiveSetParent( cm.nodes, NULL );
@@ -1015,10 +1004,10 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 	Mem_Free( buf );	// release map buffer
 
 	com.strncpy( cm.name, name, MAX_STRING );
-	Mem_Set( cm.portalopen, 0, sizeof( cm.portalopen ));
+	Mem_Set( cms.portalopen, 0, sizeof( cms.portalopen ));
 	CM_FloodAreaConnections();
 
-	return &cm.bmodels[0];
+	return &cms.bmodels[0];
 }
 
 void CM_EndRegistration( void )
@@ -1026,7 +1015,7 @@ void CM_EndRegistration( void )
 	cmodel_t	*mod;
 	int	i;
 
-	for( i = 0, mod = &cm.cmodels[0]; i < cm.numcmodels; i++, mod++)
+	for( i = 0, mod = &cms.cmodels[0]; i < cms.numcmodels; i++, mod++)
 	{
 		if(!mod->name[0]) continue;
 		if( mod->registration_sequence != registration_sequence )
@@ -1372,18 +1361,18 @@ cmodel_t *CM_RegisterModel( const char *name )
 	if(name[0] == '*') 
 	{
 		i = com.atoi( name + 1);
-		if( i < 1 || !cm.loaded || i >= cm.numbmodels)
+		if( i < 1 || !cms.loaded || i >= cms.numbmodels)
 		{
 			MsgDev(D_WARN, "CM_InlineModel: bad submodel number %d\n", i );
 			return NULL;
 		}
 		// prolonge registration
-		cm.bmodels[i].registration_sequence = registration_sequence;
-		return &cm.bmodels[i];
+		cms.bmodels[i].registration_sequence = registration_sequence;
+		return &cms.bmodels[i];
 	}
-	for( i = 0; i < cm.numcmodels; i++ )
+	for( i = 0; i < cms.numcmodels; i++ )
           {
-		mod = &cm.cmodels[i];
+		mod = &cms.cmodels[i];
 		if(!mod->name[0]) continue;
 		if(!com.strcmp( name, mod->name ))
 		{
@@ -1394,18 +1383,18 @@ cmodel_t *CM_RegisterModel( const char *name )
 	} 
 
 	// find a free model slot spot
-	for( i = 0, mod = cm.cmodels; i < cm.numcmodels; i++, mod++)
+	for( i = 0, mod = cms.cmodels; i < cms.numcmodels; i++, mod++)
 	{
 		if(!mod->name[0]) break; // free spot
 	}
-	if( i == cm.numcmodels)
+	if( i == cms.numcmodels)
 	{
-		if( cm.numcmodels == MAX_MODELS )
+		if( cms.numcmodels == MAX_MODELS )
 		{
 			MsgDev( D_ERROR, "CM_LoadModel: MAX_MODELS limit exceeded\n" );
 			return NULL;
 		}
-		cm.numcmodels++;
+		cms.numcmodels++;
 	}
 
 	com.strncpy( mod->name, name, sizeof(mod->name));

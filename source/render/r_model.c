@@ -280,7 +280,7 @@ void R_LoadShaders( const byte *base, const lump_t *l )
 		if( !m_pLoadModel->lightData || surfaceParm & SURF_WARP )
 			surfaceParm |= SURF_NOLIGHTMAP;
 
-		m_pLoadModel->shaders[i] = r_shaders[R_FindShader( in->name, shaderType, surfaceParm )];
+		m_pLoadModel->shaders[i] = R_FindShader( in->name, shaderType, surfaceParm );
 	}
 }
 
@@ -519,8 +519,8 @@ static void R_SubdividePolygon( surface_t *surf, int numVerts, float *verts )
 		t += LM_SAMPLE_SIZE >> 1;
 		t /= LM_SIZE * LM_SAMPLE_SIZE;
 
-		p->vertices[i+1].lightmap[0] = s;
-		p->vertices[i+1].lightmap[1] = t;
+		p->vertices[i+1].lm[0] = s;
+		p->vertices[i+1].lm[1] = t;
 
 		totalLM[0] += s;
 		totalLM[1] += t;
@@ -545,8 +545,8 @@ static void R_SubdividePolygon( surface_t *surf, int numVerts, float *verts )
 	p->vertices[0].st[1] = totalST[1] / numVerts;
 
 	// lightmap texture coordinates
-	p->vertices[0].lightmap[0] = totalLM[0] / numVerts;
-	p->vertices[0].lightmap[1] = totalLM[1] / numVerts;
+	p->vertices[0].lm[0] = totalLM[0] / numVerts;
+	p->vertices[0].lm[1] = totalLM[1] / numVerts;
 
 	// vertex color
 	p->vertices[0].color[0] = 1.0f;
@@ -568,7 +568,7 @@ static void R_SubdividePolygon( surface_t *surf, int numVerts, float *verts )
 R_BuildPolygon
 =================
 */
-static void R_BuildPolygon( surface_t *surf, int numVerts, float *verts )
+static void R_BuildPolygon( surface_t *surf, int numVerts, const float *verts )
 {
 	int		i;
 	uint		index;
@@ -593,9 +593,7 @@ static void R_BuildPolygon( surface_t *surf, int numVerts, float *verts )
 
 	// create vertices
 	p->numVertices = numVerts;
-
-	// FIXME:
-	p->vertices = Mem_Alloc( m_pLoadModel->mempool, (p->numVertices * 2) * sizeof(surfPolyVert_t));
+	p->vertices = Mem_Alloc( m_pLoadModel->mempool, p->numVertices * sizeof( surfPolyVert_t ));
 	
 	for( i = 0; i < numVerts; i++, verts += 3 )
 	{
@@ -625,19 +623,16 @@ static void R_BuildPolygon( surface_t *surf, int numVerts, float *verts )
 		t += LM_SAMPLE_SIZE >> 1;
 		t /= LM_SIZE * LM_SAMPLE_SIZE;
 
-		p->vertices[i].lightmap[0] = s;
-		p->vertices[i].lightmap[1] = t;
+		p->vertices[i].lm[0] = s;
+		p->vertices[i].lm[1] = t;
 
 		// vertex color
-		p->vertices[i+1].color[0] = 1.0f;
-		p->vertices[i+1].color[1] = 1.0f;
-		p->vertices[i+1].color[2] = 1.0f;
-		p->vertices[i+1].color[3] = 1.0f;
+		Vector4Set( p->vertices[i].color, 1.0f, 1.0f, 1.0f, 1.0f );
 
 		if( texInfo->surfaceFlags & SURF_TRANS )
-			p->vertices[i+1].color[3] *= 0.33;
+			p->vertices[i].color[3] *= 0.33;
 		else if( texInfo->surfaceFlags & SURF_BLEND )
-			p->vertices[i+1].color[3] *= 0.66;
+			p->vertices[i].color[3] *= 0.66;
 	}
 }
 
@@ -648,8 +643,8 @@ R_BuildSurfacePolygons
 */
 static void R_BuildSurfacePolygons( surface_t *surf )
 {
+	vec3_t		verts[64];
 	int		i, e;
-	vec3_t		verts[MAX_BUILD_SIDES];
 	vertex_t		*v;
 
 	// convert edges back to a normal polygon
@@ -1168,9 +1163,17 @@ void R_BeginRegistration( const char *mapname )
 
 	// explicitly free the old map if different
 	if( com.strcmp( r_models[0].name, fullname ))
+	{
 		Mod_Free( &r_models[0] );
+	}
+	else
+	{
+		// update progress bar
+		Cvar_SetValue( "scr_loading", 50.0f );
+		if( ri.UpdateScreen ) ri.UpdateScreen();
+	}
 	r_worldModel = Mod_ForName( fullname, true );
-	R_ShaderRegisterImages( r_worldModel );
+	R_ModRegisterShaders( r_worldModel );
 	r_viewCluster = -1;
 }
 
@@ -1186,7 +1189,7 @@ rmodel_t *R_RegisterModel( const char *name )
 	rmodel_t	*mod;
 	
 	mod = Mod_ForName( name, false );
-	R_ShaderRegisterImages( mod );
+	R_ModRegisterShaders( mod );
 	return mod;
 }
 
@@ -1211,7 +1214,8 @@ void R_EndRegistration( void )
 		if( mod->registration_sequence != registration_sequence )
 			Mod_Free( mod );
 	}
-	R_ImageFreeUnused();
+
+	R_ShaderFreeUnused();
 }
 
 /*
@@ -1284,7 +1288,7 @@ void R_InitModels( void )
 	Mem_Set( r_worldEntity, 0, sizeof( ref_entity_t ));
 	r_worldEntity->ent_type = ED_NORMAL;
 	r_worldEntity->model = r_worldModel;
-	AxisClear( r_worldEntity->axis );
+	Matrix3x3_LoadIdentity( r_worldEntity->matrix );
 	VectorSet( r_worldEntity->rendercolor, 1.0f, 1.0f, 1.0f );
 	r_worldEntity->renderamt = 1.0f;		// i'm hope we don't want to see semisolid world :) 
 	

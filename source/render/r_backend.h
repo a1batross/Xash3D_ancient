@@ -125,27 +125,7 @@ BACKEND
 #define MAX_VERTEXES		4096
 #define MAX_ELEMENTS		MAX_VERTEXES * 6
 
-// vbo offsets
-#define BUFFER_OFFSET_POINT		0	// in bytes
-#define BUFFER_OFFSET_NORMAL		12
-#define BUFFER_OFFSET_TANGENT		24
-#define BUFFER_OFFSET_BINORMAL	36
-#define BUFFER_OFFSET_STCOORD		48
-#define BUFFER_OFFSET_LMCOORD		56
-#define BUFFER_OFFSET_COLOR		64
-
-typedef uint ref_vindex_t;
-
-typedef struct ref_varray_s
-{
-	vec3_t		point;
-	vec3_t		normal;
-	vec3_t		tangent;
-	vec3_t		binormal;
-	vec2_t		stcoord;
-	vec2_t		lmcoord;
-	vec4_t		color;
-} ref_varray_t;
+typedef uint elem_t;
 
 typedef struct ref_buffer_s
 {
@@ -181,12 +161,23 @@ typedef struct
 
 	int		numIndex;
 	int		numVertex;
-	ref_vindex_t	indexArray[MAX_ELEMENTS];
-	ref_varray_t	vertsArray[MAX_VERTEXES];
-	vec3_t		stArray[MAX_TEXTURE_UNITS][MAX_VERTEXES];
 
-	ref_buffer_t	*stBuffer[MAX_TEXTURE_UNITS];
+	// immediate buffers
+	vec3_t		tangentArray[MAX_VERTEXES];
+	vec3_t		binormalArray[MAX_VERTEXES];
+	vec4_t		inTexCoordArray[MAX_VERTEXES];
+
+	// vbo source buffers
+	elem_t		indexArray[MAX_ELEMENTS];
+	vec4_t		colorArray[MAX_VERTEXES];
+	vec3_t		vertexArray[MAX_VERTEXES];
+	vec3_t		normalArray[MAX_VERTEXES];
+	vec3_t		texCoordArray[MAX_TEXTURE_UNITS][MAX_VERTEXES];
+
+	ref_buffer_t	*texCoordBuffer[MAX_TEXTURE_UNITS];
 	ref_buffer_t	*vertexBuffer;
+	ref_buffer_t	*colorBuffer;
+	ref_buffer_t	*normalBuffer;
 
 	uint		registration_sequence;
 } ref_backend_t;

@@ -134,17 +134,7 @@ typedef struct collide_info_s
 typedef struct clipmap_s
 {
 	string		name;
-
 	uint		checksum;		// map checksum
-	byte		pvsrow[MAX_MAP_LEAFS/8];
-	byte		phsrow[MAX_MAP_LEAFS/8];
-	byte		portalopen[MAX_MAP_AREAPORTALS];
-
-	// brush, studio and sprite models
-	cmodel_t		cmodels[MAX_MODELS];
-	cmodel_t		bmodels[MAX_MODELS];
-	int		numcmodels;
-
 	byte		*mod_base;	// start of buffer
 
 	// shared copy of map (client - server)
@@ -163,30 +153,43 @@ typedef struct clipmap_s
 	cbrushside_t	*brushsides;
 	byte		*visbase;		// vis offset
 	dvis_t		*vis;
-	NewtonCollision	*collision;
 	csurface_t	*shaders;
 	carea_t		*areas;
 	dareaportal_t	*areaportals;
 
 	int		numbrushsides;
-	int		numtexinfo;
-	int		numplanes;
-	int		numbmodels;
-	int		numnodes;
-	int		numleafs;		// allow leaf funcs to be called without a map
 	int		numleafbrushes;
 	int		numleafsurfaces;
+	int		numtexinfo;
+	int		numplanes;
+	int		numnodes;
+	int		numleafs;		// allow leaf funcs to be called without a map
 	int		numshaders;
 	int		numbrushes;
 	int		numsurfaces;
-	int		numareas;
 	int		numareaportals;
 	int		numclusters;
 	int		floodvalid;
+	int		numareas;
+
+	matrix4x4		matrix;		// world matrix
+} clipmap_t;
+
+typedef struct clipmap_static_s
+{
+	byte		pvsrow[MAX_MAP_LEAFS/8];
+	byte		phsrow[MAX_MAP_LEAFS/8];
+	byte		portalopen[MAX_MAP_AREAPORTALS];
+
+	// brush, studio and sprite models
+	cmodel_t		cmodels[MAX_MODELS];
+	cmodel_t		bmodels[MAX_MODELS];
+	int		numcmodels;
+	int		numbmodels;
 
 	// misc stuff
 	NewtonBody	*body;
-	matrix4x4		matrix;		// world matrix
+	NewtonCollision	*collision;
 	NewtonJoint	*upVector;	// world upvector
 	material_info_t	mat[MAX_MATERIALS];
 	uint		num_materials;	// number of parsed materials
@@ -196,7 +199,8 @@ typedef struct clipmap_s
 	vfile_t		*world_tree;	// pre-calcualated collision tree (worldmodel only)
 	trace_t		trace;		// contains result of last trace
 	int		checkcount;
-} clipmap_t;
+
+} clipmap_static_t;
 
 typedef struct physic_s
 {
@@ -234,9 +238,10 @@ typedef struct leaflist_s
 	void		(*storeleafs)( struct leaflist_s *ll, cnode_t *node );
 } leaflist_t;
 
-extern clipmap_t cm;
-extern studio_t studio;
-extern physic_t ph;
+extern clipmap_t		cm;
+extern clipmap_static_t	cms;
+extern studio_t		studio;
+extern physic_t		ph;
 
 extern cvar_t *cm_noareas;
 extern cvar_t *cm_debugdraw;

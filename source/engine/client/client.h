@@ -225,6 +225,7 @@ typedef struct
 
 	int		challenge;		// from the server to use for connecting
 	shader_t		consoleFont;		// current console font
+	shader_t		clientFont;		// current client font
 	shader_t		consoleBack;		// console background
 	
 	file_t		*download;		// file transfer from server
@@ -293,6 +294,7 @@ extern	cvar_t	*cl_yawspeed;
 extern	cvar_t	*cl_pitchspeed;
 extern	cvar_t	*cl_envshot_size;
 extern	cvar_t	*cl_run;
+extern	cvar_t	*cl_font;
 
 extern	cvar_t	*cl_anglespeedkey;
 
@@ -510,6 +512,7 @@ void SCR_Init( void );
 void SCR_UpdateScreen( void );
 void VID_Init( void );
 void SCR_Shutdown( void );
+void SCR_RegisterShaders( void );
 void SCR_AdjustSize( float *x, float *y, float *w, float *h );
 void SCR_DrawPic( float x, float y, float width, float height, shader_t shader );
 void SCR_FillRect( float x, float y, float width, float height, const float *color );

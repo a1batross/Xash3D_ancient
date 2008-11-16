@@ -9,7 +9,7 @@ static script_t	*materials = NULL;
 
 bool CM_ParseMaterial( token_t *token )
 {
-	uint	num = cm.num_materials;
+	uint	num = cms.num_materials;
 
 	if( num > MAX_MATERIALS - 1 )
 	{
@@ -25,7 +25,7 @@ bool CM_ParseMaterial( token_t *token )
 		num = 0; // write default material first
 
 	// member material name	
-	com.strncpy( cm.mat[num].name, token->string, MAX_STRING );
+	com.strncpy( cms.mat[num].name, token->string, MAX_STRING );
 
 	// setup default values
 	while( com.stricmp( token->string, "}" ))
@@ -35,28 +35,28 @@ bool CM_ParseMaterial( token_t *token )
 
 		if( !com.stricmp( token->string, "elasticity" ))
 		{
-			Com_ReadFloat( materials, false, &cm.mat[num].elasticity );
+			Com_ReadFloat( materials, false, &cms.mat[num].elasticity );
 		}
 		else if( !com.stricmp( token->string, "softness" ))
 		{
-			Com_ReadFloat( materials, false, &cm.mat[num].softness );
+			Com_ReadFloat( materials, false, &cms.mat[num].softness );
 		}
 		else if( !com.stricmp( token->string, "friction" ))
 		{
-			Com_ReadFloat( materials, false, &cm.mat[num].friction_static );
+			Com_ReadFloat( materials, false, &cms.mat[num].friction_static );
 
-			if(!Com_ReadFloat( materials, false, &cm.mat[num].friction_kinetic ))
-				cm.mat[num].friction_kinetic = cm.mat[num].friction_static; // same as static friction
+			if(!Com_ReadFloat( materials, false, &cms.mat[num].friction_kinetic ))
+				cms.mat[num].friction_kinetic = cms.mat[num].friction_static; // same as static friction
 		}
 	}
 
 	// set default values if needed
-	if( cm.mat[num].softness == 0.0f ) cm.mat[num].softness = cm.mat[0].softness;
-	if( cm.mat[num].elasticity == 0.0f ) cm.mat[num].elasticity = cm.mat[0].elasticity;
-	if( cm.mat[num].friction_static == 0.0f ) cm.mat[num].friction_static = cm.mat[0].friction_static;
-	if( cm.mat[num].friction_kinetic == 0.0f ) cm.mat[num].friction_kinetic = cm.mat[0].friction_kinetic;	
+	if( cms.mat[num].softness == 0.0f ) cms.mat[num].softness = cms.mat[0].softness;
+	if( cms.mat[num].elasticity == 0.0f ) cms.mat[num].elasticity = cms.mat[0].elasticity;
+	if( cms.mat[num].friction_static == 0.0f ) cms.mat[num].friction_static = cms.mat[0].friction_static;
+	if( cms.mat[num].friction_kinetic == 0.0f ) cms.mat[num].friction_kinetic = cms.mat[0].friction_kinetic;	
 
-	cm.num_materials++;
+	cms.num_materials++;
 
 	// material will be parsed sucessfully
 	return true;
@@ -75,26 +75,26 @@ void CM_InitMaterials( void )
 		MsgDev( D_WARN, "scripts/materials.txt not found!\n" );
 		return;
 	}
-	cm.num_materials = 0;
-	Mem_Set( cm.mat, 0, sizeof(material_info_t) * MAX_MATERIALS );
+	cms.num_materials = 0;
+	Mem_Set( cms.mat, 0, sizeof(material_info_t) * MAX_MATERIALS );
 
 	while( Com_ReadToken( materials, SC_ALLOW_NEWLINES, &token ))
 		CM_ParseMaterial( &token );
 
 	// assume IDs are in order and we don't need to remember them
-	for ( i = 1; i < cm.num_materials; i++ )
+	for ( i = 1; i < cms.num_materials; i++ )
 		NewtonMaterialCreateGroupID( gWorld );
 
-	for ( i = 0; i < cm.num_materials; i++ )
+	for ( i = 0; i < cms.num_materials; i++ )
 	{
-		for ( j = 0; j < cm.num_materials; j++ )
+		for ( j = 0; j < cms.num_materials; j++ )
 		{
 			NewtonMaterialSetDefaultCollidable( gWorld, i, j, true );
-			NewtonMaterialSetDefaultSoftness( gWorld, i, j, cm.mat[i].softness / 2.0f + cm.mat[j].softness / 2.0f );
-			NewtonMaterialSetDefaultElasticity( gWorld, i, j, cm.mat[i].elasticity / 2.0f + cm.mat[j].elasticity / 2.0f );
-			NewtonMaterialSetDefaultFriction( gWorld, i, j, cm.mat[i].friction_static / 2.0f + cm.mat[j].friction_static / 2.0f, cm.mat[i].friction_kinetic / 2.0f + cm.mat[j].friction_kinetic / 2.0f );
+			NewtonMaterialSetDefaultSoftness( gWorld, i, j, cms.mat[i].softness / 2.0f + cms.mat[j].softness / 2.0f );
+			NewtonMaterialSetDefaultElasticity( gWorld, i, j, cms.mat[i].elasticity / 2.0f + cms.mat[j].elasticity / 2.0f );
+			NewtonMaterialSetDefaultFriction( gWorld, i, j, cms.mat[i].friction_static / 2.0f + cms.mat[j].friction_static / 2.0f, cms.mat[i].friction_kinetic / 2.0f + cms.mat[j].friction_kinetic / 2.0f );
 			NewtonMaterialSetCollisionCallback( gWorld, i, j, NULL, Callback_ContactBegin, Callback_ContactProcess, Callback_ContactEnd );
 		}
 	}
-	Msg( "num materials %d\n", cm.num_materials );
+	Msg( "num materials %d\n", cms.num_materials );
 }

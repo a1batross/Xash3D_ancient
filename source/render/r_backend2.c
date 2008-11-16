@@ -129,9 +129,9 @@ static void RB_SetVertex( float x, float y, float z )
 	}
 
 	// copy current vertex
-	ref.vertsArray[ref.numVertex].point[0] = x;
-	ref.vertsArray[ref.numVertex].point[1] = y;
-	ref.vertsArray[ref.numVertex].point[2] = z;
+	ref.vertexArray[ref.numVertex][0] = x;
+	ref.vertexArray[ref.numVertex][1] = y;
+	ref.vertexArray[ref.numVertex][2] = z;
 	ref.numVertex++;
 
 	// flush buffer if needed
@@ -140,25 +140,39 @@ static void RB_SetVertex( float x, float y, float z )
 
 static void RB_SetTexCoord( GLfloat s, GLfloat t, GLfloat ls, GLfloat lt )
 {
-	ref.vertsArray[ref.numVertex].stcoord[0] = s;
-	ref.vertsArray[ref.numVertex].stcoord[1] = t;
-	ref.vertsArray[ref.numVertex].lmcoord[2] = ls;
-	ref.vertsArray[ref.numVertex].lmcoord[3] = lt;
+	ref.inTexCoordArray[ref.numVertex][0] = s;
+	ref.inTexCoordArray[ref.numVertex][1] = t;
+	ref.inTexCoordArray[ref.numVertex][2] = ls;
+	ref.inTexCoordArray[ref.numVertex][3] = lt;
 }
 
 static void RB_SetColor( GLfloat r, GLfloat g, GLfloat b, GLfloat a )
 {
-	ref.vertsArray[ref.numVertex].color[0] = r;
-	ref.vertsArray[ref.numVertex].color[1] = g;
-	ref.vertsArray[ref.numVertex].color[2] = b;
-	ref.vertsArray[ref.numVertex].color[3] = a;
+	ref.colorArray[ref.numVertex][0] = r;
+	ref.colorArray[ref.numVertex][1] = g;
+	ref.colorArray[ref.numVertex][2] = b;
+	ref.colorArray[ref.numVertex][3] = a;
 }
 
 static void RB_SetNormal( GLfloat x, GLfloat y, GLfloat z )
 {
-	ref.vertsArray[ref.numVertex].normal[0] = x;
-	ref.vertsArray[ref.numVertex].normal[1] = y;
-	ref.vertsArray[ref.numVertex].normal[2] = z;
+	ref.normalArray[ref.numVertex][0] = x;
+	ref.normalArray[ref.numVertex][1] = y;
+	ref.normalArray[ref.numVertex][2] = z;
+}
+
+static void RB_SetTangent( GLfloat x, GLfloat y, GLfloat z )
+{
+	ref.tangentArray[ref.numVertex][0] = x;
+	ref.tangentArray[ref.numVertex][1] = y;
+	ref.tangentArray[ref.numVertex][2] = z;
+}
+
+static void RB_SetBinormal( GLfloat x, GLfloat y, GLfloat z )
+{
+	ref.binormalArray[ref.numVertex][0] = x;
+	ref.binormalArray[ref.numVertex][1] = y;
+	ref.binormalArray[ref.numVertex][2] = z;
 }
 
 /*
@@ -204,6 +218,16 @@ void GL_Normal3f( GLfloat x, GLfloat y, GLfloat z )
 void GL_Normal3fv( const GLfloat *v )
 {
 	RB_SetNormal( v[0], v[1], v[2] );
+}
+
+void GL_Tangent3fv( const GLfloat *v )
+{
+	RB_SetTangent( v[0], v[1], v[2] );
+}
+
+void GL_Binormal3fv( const GLfloat *v )
+{
+	RB_SetBinormal( v[0], v[1], v[2] );
 }
 
 void GL_TexCoord2f( GLfloat s, GLfloat t )
@@ -277,9 +301,9 @@ static void RB_BuildTables( void )
 }
 
 /*
- =================
- RB_TableForFunc
- =================
+=================
+RB_TableForFunc
+=================
 */
 static float *RB_TableForFunc( const waveFunc_t *func )
 {
@@ -325,10 +349,10 @@ static void RB_DeformVertexes( void )
 
 			for( j = 0; j < ref.numVertex; j++ )
 			{
-				v = ref.vertsArray[j].point;
+				v = ref.vertexArray[j];
 				t = (v[0] + v[1] + v[2]) * deformVertexes->params[0] + now;
 				f = table[((int)(t * TABLE_SIZE)) & TABLE_MASK] * deformVertexes->func.params[1] + deformVertexes->func.params[0];
-				VectorMA(ref.vertsArray[j].point, f, ref.vertsArray[j].normal, ref.vertsArray[j].point);
+				VectorMA( ref.vertexArray[j], f, ref.normalArray[j], ref.vertexArray[j] );
 			}
 			break;
 		case DEFORM_MOVE:
@@ -338,7 +362,7 @@ static void RB_DeformVertexes( void )
 
 			for( j = 0; j < ref.numVertex; j++ )
 			{
-				VectorMA(ref.vertsArray[j].point, f, deformVertexes->params, ref.vertsArray[j].point);
+				VectorMA(ref.vertexArray[j], f, deformVertexes->params, ref.vertexArray[j]);
 			}
 			break;
 		case DEFORM_NORMAL:
@@ -346,10 +370,10 @@ static void RB_DeformVertexes( void )
 
 			for (j = 0; j < ref.numVertex; j++)
 			{
-				f = ref.vertsArray[j].normal[2] * now;
-				ref.vertsArray[j].normal[0] *= (deformVertexes->params[0] * com.sin( f ));
-				ref.vertsArray[j].normal[1] *= (deformVertexes->params[0] * com.cos( f ));
-				VectorNormalizeFast( ref.vertsArray[j].normal );
+				f = ref.normalArray[j][2] * now;
+				ref.normalArray[j][0] *= (deformVertexes->params[0] * com.sin( f ));
+				ref.normalArray[j][1] *= (deformVertexes->params[0] * com.cos( f ));
+				VectorNormalizeFast( ref.normalArray[j] );
 			}
 			break;
 		default:
@@ -378,9 +402,9 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 	case RGBGEN_IDENTITY:
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			ref.vertsArray[i].color[0] = 1.0f;
-			ref.vertsArray[i].color[1] = 1.0f;
-			ref.vertsArray[i].color[2] = 1.0f;
+			ref.colorArray[i][0] = 1.0f;
+			ref.colorArray[i][1] = 1.0f;
+			ref.colorArray[i][2] = 1.0f;
 		}
 		break;
 	case RGBGEN_IDENTITYLIGHTING:
@@ -390,9 +414,9 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			ref.vertsArray[i].color[0] = r;
-			ref.vertsArray[i].color[1] = g;
-			ref.vertsArray[i].color[2] = b;
+			ref.colorArray[i][0] = r;
+			ref.colorArray[i][1] = g;
+			ref.colorArray[i][2] = b;
 		}
 		break;
 	case RGBGEN_WAVE:
@@ -408,9 +432,9 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			ref.vertsArray[i].color[0] = r;
-			ref.vertsArray[i].color[1] = g;
-			ref.vertsArray[i].color[2] = b;
+			ref.colorArray[i][0] = r;
+			ref.colorArray[i][1] = g;
+			ref.colorArray[i][2] = b;
 		}
 		break;
 	case RGBGEN_COLORWAVE:
@@ -426,9 +450,9 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			ref.vertsArray[i].color[0] = r;
-			ref.vertsArray[i].color[1] = g;
-			ref.vertsArray[i].color[2] = b;
+			ref.colorArray[i][0] = r;
+			ref.colorArray[i][1] = g;
+			ref.colorArray[i][2] = b;
 		}
 		break;
 	case RGBGEN_VERTEX:
@@ -436,25 +460,25 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 	case RGBGEN_ONEMINUSVERTEX:
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			ref.vertsArray[i].color[0] = 1.0f - ref.vertsArray[i].color[0];
-			ref.vertsArray[i].color[1] = 1.0f - ref.vertsArray[i].color[1];
-			ref.vertsArray[i].color[2] = 1.0f - ref.vertsArray[i].color[2];
+			ref.colorArray[i][0] = 1.0f - ref.colorArray[i][0];
+			ref.colorArray[i][1] = 1.0f - ref.colorArray[i][1];
+			ref.colorArray[i][2] = 1.0f - ref.colorArray[i][2];
 		}
 		break;
 	case RGBGEN_ENTITY:
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			ref.vertsArray[i].color[0] = m_pCurrentEntity->rendercolor[0];
-			ref.vertsArray[i].color[1] = m_pCurrentEntity->rendercolor[1];
-			ref.vertsArray[i].color[2] = m_pCurrentEntity->rendercolor[2];
+			ref.colorArray[i][0] = m_pCurrentEntity->rendercolor[0];
+			ref.colorArray[i][1] = m_pCurrentEntity->rendercolor[1];
+			ref.colorArray[i][2] = m_pCurrentEntity->rendercolor[2];
 		}
 		break;
 	case RGBGEN_ONEMINUSENTITY:
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			ref.vertsArray[i].color[0] = 1.0f - m_pCurrentEntity->rendercolor[0];
-			ref.vertsArray[i].color[1] = 1.0f - m_pCurrentEntity->rendercolor[1];
-			ref.vertsArray[i].color[2] = 1.0f - m_pCurrentEntity->rendercolor[2];
+			ref.colorArray[i][0] = 1.0f - m_pCurrentEntity->rendercolor[0];
+			ref.colorArray[i][1] = 1.0f - m_pCurrentEntity->rendercolor[1];
+			ref.colorArray[i][2] = 1.0f - m_pCurrentEntity->rendercolor[2];
 		}
 		break;
 	case RGBGEN_LIGHTINGAMBIENT:
@@ -470,9 +494,9 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			ref.vertsArray[i].color[0] = r;
-			ref.vertsArray[i].color[1] = g;
-			ref.vertsArray[i].color[2] = b;
+			ref.colorArray[i][0] = r;
+			ref.colorArray[i][1] = g;
+			ref.colorArray[i][2] = b;
 		}
 		break;
 	default:
@@ -483,7 +507,7 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 	{
 	case ALPHAGEN_IDENTITY:
 		for( i = 0; i < ref.numVertex; i++ )
-			ref.vertsArray[i].color[3] = 1.0f;
+			ref.colorArray[i][3] = 1.0f;
 		break;
 	case ALPHAGEN_WAVE:
 		table = RB_TableForFunc(&alphaGen->func);
@@ -493,7 +517,7 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 		a = 1.0f * f;
 
 		for( i = 0; i < ref.numVertex; i++ )
-			ref.vertsArray[i].color[3] = a;
+			ref.colorArray[i][3] = a;
 		break;
 	case ALPHAGEN_ALPHAWAVE:
 		table = RB_TableForFunc(&alphaGen->func);
@@ -503,91 +527,91 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 		a = 1.0f * (alphaGen->params[0] * f);
 
 		for( i = 0; i < ref.numVertex; i++ )
-			ref.vertsArray[i].color[3] = a;
+			ref.colorArray[i][3] = a;
 		break;
 	case ALPHAGEN_VERTEX:
 		break;
 	case ALPHAGEN_ONEMINUSVERTEX:
 		for( i = 0; i < ref.numVertex; i++ )
-			ref.vertsArray[i].color[3] = 1.0f - ref.vertsArray[i].color[3];
+			ref.colorArray[i][3] = 1.0f - ref.colorArray[i][3];
 		break;
 	case ALPHAGEN_ENTITY:
 		for( i = 0; i < ref.numVertex; i++ )
-			ref.vertsArray[i].color[3] = m_pCurrentEntity->renderamt;
+			ref.colorArray[i][3] = m_pCurrentEntity->renderamt;
 		break;
 	case ALPHAGEN_ONEMINUSENTITY:
 		for( i = 0; i < ref.numVertex; i++ )
-			ref.vertsArray[i].color[3] = 1.0f - m_pCurrentEntity->renderamt;
+			ref.colorArray[i][3] = 1.0f - m_pCurrentEntity->renderamt;
 		break;
 	case ALPHAGEN_DOT:
-		if( !AxisCompare( m_pCurrentEntity->axis, axisDefault ))
-			VectorRotate( r_forward, m_pCurrentEntity->axis, vec );
+		if( !Matrix3x3_Compare( m_pCurrentEntity->matrix, matrix3x3_identity ))
+			Matrix3x3_Transform( m_pCurrentEntity->matrix, r_forward, vec );
 		else VectorCopy( r_forward, vec );
 
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			f = DotProduct(vec, ref.vertsArray[i].normal );
+			f = DotProduct(vec, ref.normalArray[i] );
 			if( f < 0 ) f = -f;
-			ref.vertsArray[i].color[3] = 1.0f * bound( alphaGen->params[0], f, alphaGen->params[1] );
+			ref.colorArray[i][3] = 1.0f * bound( alphaGen->params[0], f, alphaGen->params[1] );
 		}
 		break;
 	case ALPHAGEN_ONEMINUSDOT:
-		if( !AxisCompare( m_pCurrentEntity->axis, axisDefault ))
-			VectorRotate( r_forward, m_pCurrentEntity->axis, vec );
+		if( !Matrix3x3_Compare( m_pCurrentEntity->matrix, matrix3x3_identity ))
+			Matrix3x3_Transform( m_pCurrentEntity->matrix, r_forward, vec );
 		else VectorCopy( r_forward, vec );
 
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			f = DotProduct(vec, ref.vertsArray[i].normal );
+			f = DotProduct(vec, ref.normalArray[i] );
 			if( f < 0 ) f = -f;
-			ref.vertsArray[i].color[3] = 1.0f * bound( alphaGen->params[0], 1.0 - f, alphaGen->params[1]);
+			ref.colorArray[i][3] = 1.0f * bound( alphaGen->params[0], 1.0 - f, alphaGen->params[1]);
 		}
 		break;
 	case ALPHAGEN_FADE:
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			VectorAdd( ref.vertsArray[i].point, m_pCurrentEntity->origin, vec );
+			VectorAdd( ref.vertexArray[i], m_pCurrentEntity->origin, vec );
 			f = VectorDistance( vec, r_refdef.vieworg );
 
 			f = bound( alphaGen->params[0], f, alphaGen->params[1] ) - alphaGen->params[0];
 			f = f * alphaGen->params[2];
-			ref.vertsArray[i].color[3] = 1.0f * bound( 0.0, f, 1.0 );
+			ref.colorArray[i][3] = 1.0f * bound( 0.0, f, 1.0 );
 		}
 		break;
 	case ALPHAGEN_ONEMINUSFADE:
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			VectorAdd( ref.vertsArray[i].point, m_pCurrentEntity->origin, vec );
+			VectorAdd( ref.vertexArray[i], m_pCurrentEntity->origin, vec );
 			f = VectorDistance( vec, r_refdef.vieworg );
 
 			f = bound( alphaGen->params[0], f, alphaGen->params[1] ) - alphaGen->params[0];
 			f = f * alphaGen->params[2];
-			ref.vertsArray[i].color[3] = 1.0f * bound( 0.0, 1.0 - f, 1.0 );
+			ref.colorArray[i][3] = 1.0f * bound( 0.0, 1.0 - f, 1.0 );
 		}
 		break;
 	case ALPHAGEN_LIGHTINGSPECULAR:
-		if( !AxisCompare( m_pCurrentEntity->axis, axisDefault ))
+		if( !Matrix3x3_Compare( m_pCurrentEntity->matrix, matrix3x3_identity ))
 		{
 			VectorSubtract( r_origin, m_pCurrentEntity->origin, dir );
-			VectorRotate( dir, m_pCurrentEntity->axis, vec );
+			Matrix3x3_Transform( m_pCurrentEntity->matrix, dir, vec );
 		}
 		else VectorSubtract( r_origin, m_pCurrentEntity->origin, vec );
 
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			VectorSubtract( vec, ref.vertsArray[i].point, dir );
+			VectorSubtract( vec, ref.vertexArray[i], dir );
 			VectorNormalizeFast( dir );
 
-			f = DotProduct( dir, ref.vertsArray[i].normal );
+			f = DotProduct( dir, ref.normalArray[i] );
 			f = pow( f, alphaGen->params[0] );
-			ref.vertsArray[i].color[3] = 1.0f * bound( 0.0, f, 1.0 );
+			ref.colorArray[i][3] = 1.0f * bound( 0.0, f, 1.0 );
 		}
 		break;
 	case ALPHAGEN_CONST:
 		a = 1.0f * alphaGen->params[0];
 
 		for( i = 0; i < ref.numVertex; i++ )
-			ref.vertsArray[i].color[3] = a;
+			ref.colorArray[i][3] = a;
 		break;
 	default: Host_Error( "RB_CalcVertexColors: unknown alphaGen type %i in shader '%s'\n", alphaGen->type, m_pCurrentShader->name);
 	}
@@ -616,47 +640,47 @@ static void RB_CalcTextureCoords( stageBundle_t *bundle, uint unit )
 	case TCGEN_BASE:
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			ref.stArray[unit][i][0] = ref.vertsArray[i].stcoord[0];
-			ref.stArray[unit][i][1] = ref.vertsArray[i].stcoord[1];
+			ref.texCoordArray[unit][i][0] = ref.inTexCoordArray[i][0];
+			ref.texCoordArray[unit][i][1] = ref.inTexCoordArray[i][1];
 		}
 		break;
 	case TCGEN_LIGHTMAP:
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			ref.stArray[unit][i][0] = ref.vertsArray[i].lmcoord[0];
-			ref.stArray[unit][i][1] = ref.vertsArray[i].lmcoord[1];
+			ref.texCoordArray[unit][i][0] = ref.inTexCoordArray[i][2];
+			ref.texCoordArray[unit][i][1] = ref.inTexCoordArray[i][3];
 		}
 		break;
 	case TCGEN_ENVIRONMENT:
-		if (!AxisCompare( m_pCurrentEntity->axis, axisDefault ))
+		if( !Matrix3x3_Compare( m_pCurrentEntity->matrix, matrix3x3_identity ))
 		{
 			VectorSubtract( r_origin, m_pCurrentEntity->origin, dir );
-			VectorRotate( dir, m_pCurrentEntity->axis, vec );
+			Matrix3x3_Transform( m_pCurrentEntity->matrix, dir, vec );
 		}
 		else VectorSubtract( r_origin, m_pCurrentEntity->origin, vec );
 
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			VectorSubtract( vec, ref.vertsArray[i].point, dir );
+			VectorSubtract( vec, ref.vertexArray[i], dir );
 			VectorNormalizeFast( dir );
 
-			f = 2.0 * DotProduct( dir, ref.vertsArray[i].normal );
-			ref.stArray[unit][i][0] = dir[0] - ref.vertsArray[i].normal[0] * f;
-			ref.stArray[unit][i][1] = dir[1] - ref.vertsArray[i].normal[1] * f;
+			f = 2.0 * DotProduct( dir, ref.normalArray[i] );
+			ref.texCoordArray[unit][i][0] = dir[0] - ref.normalArray[i][0] * f;
+			ref.texCoordArray[unit][i][1] = dir[1] - ref.normalArray[i][1] * f;
 		}
 		break;
 	case TCGEN_VECTOR:
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			ref.stArray[unit][i][0] = DotProduct( ref.vertsArray[i].point, &tcGen->params[0] );
-			ref.stArray[unit][i][1] = DotProduct( ref.vertsArray[i].point, &tcGen->params[3] );
+			ref.texCoordArray[unit][i][0] = DotProduct( ref.vertexArray[i], &tcGen->params[0] );
+			ref.texCoordArray[unit][i][1] = DotProduct( ref.vertexArray[i], &tcGen->params[3] );
 		}
 		break;
 	case TCGEN_WARP:
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			ref.stArray[unit][i][0] = ref.vertsArray[i].stcoord[0] + rb_warpSinTable[((int)((ref.vertsArray[i].stcoord[1] * 8.0 + m_fShaderTime) * (256.0/M_PI2))) & 255] * (1.0/64);
-			ref.stArray[unit][i][1] = ref.vertsArray[i].stcoord[1] + rb_warpSinTable[((int)((ref.vertsArray[i].stcoord[0] * 8.0 + m_fShaderTime) * (256.0/M_PI2))) & 255] * (1.0/64);
+			ref.texCoordArray[unit][i][0] = ref.inTexCoordArray[i][0] + rb_warpSinTable[((int)((ref.inTexCoordArray[i][1] * 8.0 + m_fShaderTime) * (256.0/M_PI2))) & 255] * (1.0/64);
+			ref.texCoordArray[unit][i][1] = ref.inTexCoordArray[i][1] + rb_warpSinTable[((int)((ref.inTexCoordArray[i][0] * 8.0 + m_fShaderTime) * (256.0/M_PI2))) & 255] * (1.0/64);
 		}
 		break;
 	case TCGEN_LIGHTVECTOR:
@@ -664,25 +688,25 @@ static void RB_CalcTextureCoords( stageBundle_t *bundle, uint unit )
 		{
 			for( i = 0; i < ref.numVertex; i++ )
 			{
-				R_LightDir( ref.vertsArray[i].point, lightVector );
+				R_LightDir( ref.vertexArray[i], lightVector );
 
-				ref.stArray[unit][i][0] = DotProduct( lightVector, ref.vertsArray[i].tangent );
-				ref.stArray[unit][i][1] = DotProduct( lightVector, ref.vertsArray[i].binormal );
-				ref.stArray[unit][i][2] = DotProduct( lightVector, ref.vertsArray[i].normal );
+				ref.texCoordArray[unit][i][0] = DotProduct( lightVector, ref.tangentArray[i] );
+				ref.texCoordArray[unit][i][1] = DotProduct( lightVector, ref.binormalArray[i] );
+				ref.texCoordArray[unit][i][2] = DotProduct( lightVector, ref.normalArray[i] );
 			}
 		}
 		else
 		{
 			R_LightDir( m_pCurrentEntity->origin, dir );
-			if( !AxisCompare( m_pCurrentEntity->axis, axisDefault ))
-				VectorRotate( dir, m_pCurrentEntity->axis, lightVector );
+			if( !Matrix3x3_Compare( m_pCurrentEntity->matrix, matrix3x3_identity ))
+				Matrix3x3_Transform( m_pCurrentEntity->matrix, dir, lightVector );
 			else VectorCopy( dir, lightVector );
 
 			for( i = 0; i < ref.numVertex; i++ )
 			{
-				ref.stArray[unit][i][0] = DotProduct(lightVector, ref.vertsArray[i].tangent );
-				ref.stArray[unit][i][1] = DotProduct(lightVector, ref.vertsArray[i].binormal );
-				ref.stArray[unit][i][2] = DotProduct(lightVector, ref.vertsArray[i].normal );
+				ref.texCoordArray[unit][i][0] = DotProduct(lightVector, ref.tangentArray[i] );
+				ref.texCoordArray[unit][i][1] = DotProduct(lightVector, ref.binormalArray[i] );
+				ref.texCoordArray[unit][i][2] = DotProduct(lightVector, ref.normalArray[i] );
 			}
 		}
 		break;
@@ -691,28 +715,28 @@ static void RB_CalcTextureCoords( stageBundle_t *bundle, uint unit )
 		{
 			for( i = 0; i < ref.numVertex; i++ )
 			{
-				R_LightDir( ref.vertsArray[i].point, lightVector );
+				R_LightDir( ref.vertexArray[i], lightVector );
 
-				VectorSubtract( r_refdef.vieworg, ref.vertsArray[i].point, eyeVector );
+				VectorSubtract( r_refdef.vieworg, ref.vertexArray[i], eyeVector );
 				VectorNormalizeFast( lightVector );
 				VectorNormalizeFast( eyeVector );
 				VectorAdd( lightVector, eyeVector, halfAngle );
 
-				ref.stArray[unit][i][0] = DotProduct( halfAngle, ref.vertsArray[i].tangent );
-				ref.stArray[unit][i][1] = DotProduct( halfAngle, ref.vertsArray[i].binormal );
-				ref.stArray[unit][i][2] = DotProduct( halfAngle, ref.vertsArray[i].normal );
+				ref.texCoordArray[unit][i][0] = DotProduct( halfAngle, ref.tangentArray[i] );
+				ref.texCoordArray[unit][i][1] = DotProduct( halfAngle, ref.binormalArray[i] );
+				ref.texCoordArray[unit][i][2] = DotProduct( halfAngle, ref.normalArray[i] );
 			}
 		}
 		else
 		{
 			R_LightDir( m_pCurrentEntity->origin, dir );
 
-			if( !AxisCompare( m_pCurrentEntity->axis, axisDefault ))
+			if( !Matrix3x3_Compare( m_pCurrentEntity->matrix, matrix3x3_identity ))
 			{
-				VectorRotate( dir, m_pCurrentEntity->axis, lightVector );
+				Matrix3x3_Transform( m_pCurrentEntity->matrix, dir, lightVector );
 
 				VectorSubtract( r_origin, m_pCurrentEntity->origin, dir );
-				VectorRotate( dir, m_pCurrentEntity->axis, eyeVector );
+				Matrix3x3_Transform( m_pCurrentEntity->matrix, dir, eyeVector );
 			}
 			else
 			{
@@ -727,9 +751,9 @@ static void RB_CalcTextureCoords( stageBundle_t *bundle, uint unit )
 
 			for( i = 0; i < ref.numVertex; i++ )
 			{
-				ref.stArray[unit][i][0] = DotProduct(halfAngle, ref.vertsArray[i].tangent );
-				ref.stArray[unit][i][1] = DotProduct(halfAngle, ref.vertsArray[i].binormal );
-				ref.stArray[unit][i][2] = DotProduct(halfAngle, ref.vertsArray[i].normal );
+				ref.texCoordArray[unit][i][0] = DotProduct(halfAngle, ref.tangentArray[i] );
+				ref.texCoordArray[unit][i][1] = DotProduct(halfAngle, ref.binormalArray[i] );
+				ref.texCoordArray[unit][i][2] = DotProduct(halfAngle, ref.normalArray[i] );
 			}
 		}
 		break;
@@ -755,15 +779,15 @@ static void RB_CalcTextureCoords( stageBundle_t *bundle, uint unit )
 		case TCMOD_TRANSLATE:
 			for( j = 0; j < ref.numVertex; j++ )
 			{
-				ref.stArray[unit][j][0] += tcMod->params[0];
-				ref.stArray[unit][j][1] += tcMod->params[1];
+				ref.texCoordArray[unit][j][0] += tcMod->params[0];
+				ref.texCoordArray[unit][j][1] += tcMod->params[1];
 			}
 			break;
 		case TCMOD_SCALE:
 			for( j = 0; j < ref.numVertex; j++ )
 			{
-				ref.stArray[unit][j][0] *= tcMod->params[0];
-				ref.stArray[unit][j][1] *= tcMod->params[1];
+				ref.texCoordArray[unit][j][0] *= tcMod->params[0];
+				ref.texCoordArray[unit][j][1] *= tcMod->params[1];
 			}
 			break;
 		case TCMOD_SCROLL:
@@ -774,8 +798,8 @@ static void RB_CalcTextureCoords( stageBundle_t *bundle, uint unit )
 
 			for( j = 0; j < ref.numVertex; j++ )
 			{
-				ref.stArray[unit][j][0] += st[0];
-				ref.stArray[unit][j][1] += st[1];
+				ref.texCoordArray[unit][j][0] += st[0];
+				ref.texCoordArray[unit][j][1] += st[1];
 			}
 			break;
 		case TCMOD_ROTATE:
@@ -785,10 +809,10 @@ static void RB_CalcTextureCoords( stageBundle_t *bundle, uint unit )
 
 			for( j = 0; j < ref.numVertex; j++ )
 			{
-				st[0] = ref.stArray[unit][j][0];
-				st[1] = ref.stArray[unit][j][1];
-				ref.stArray[unit][j][0] = c * (st[0] - 0.5) - s * (st[1] - 0.5) + 0.5;
-				ref.stArray[unit][j][1] = c * (st[1] - 0.5) + s * (st[0] - 0.5) + 0.5;
+				st[0] = ref.texCoordArray[unit][j][0];
+				st[1] = ref.texCoordArray[unit][j][1];
+				ref.texCoordArray[unit][j][0] = c * (st[0] - 0.5) - s * (st[1] - 0.5) + 0.5;
+				ref.texCoordArray[unit][j][1] = c * (st[1] - 0.5) + s * (st[0] - 0.5) + 0.5;
 			}
 			break;
 		case TCMOD_STRETCH:
@@ -801,8 +825,8 @@ static void RB_CalcTextureCoords( stageBundle_t *bundle, uint unit )
 
 			for( j = 0; j < ref.numVertex; j++ )
 			{
-				ref.stArray[unit][j][0] = ref.stArray[unit][j][0] * f + t;
-				ref.stArray[unit][j][1] = ref.stArray[unit][j][1] * f + t;
+				ref.texCoordArray[unit][j][0] = ref.texCoordArray[unit][j][0] * f + t;
+				ref.texCoordArray[unit][j][1] = ref.texCoordArray[unit][j][1] * f + t;
 			}
 			break;
 		case TCMOD_TURB:
@@ -811,18 +835,18 @@ static void RB_CalcTextureCoords( stageBundle_t *bundle, uint unit )
 
 			for( j = 0; j < ref.numVertex; j++ )
 			{
-				v = ref.vertsArray[j].point;
-				ref.stArray[unit][j][0] += (table[((int)(((v[0] + v[2]) * 1.0/128 * 0.125 + now) * TABLE_SIZE)) & TABLE_MASK] * tcMod->func.params[1] + tcMod->func.params[0]);
-				ref.stArray[unit][j][1] += (table[((int)(((v[1]) * 1.0/128 * 0.125 + now) * TABLE_SIZE)) & TABLE_MASK] * tcMod->func.params[1] + tcMod->func.params[0]);
+				v = ref.vertexArray[j];
+				ref.texCoordArray[unit][j][0] += (table[((int)(((v[0] + v[2]) * 1.0/128 * 0.125 + now) * TABLE_SIZE)) & TABLE_MASK] * tcMod->func.params[1] + tcMod->func.params[0]);
+				ref.texCoordArray[unit][j][1] += (table[((int)(((v[1]) * 1.0/128 * 0.125 + now) * TABLE_SIZE)) & TABLE_MASK] * tcMod->func.params[1] + tcMod->func.params[0]);
 			}
 			break;
 		case TCMOD_TRANSFORM:
 			for( j = 0; j < ref.numVertex; j++ )
 			{
-				st[0] = ref.stArray[unit][j][0];
-				st[1] = ref.stArray[unit][j][1];
-				ref.stArray[unit][j][0] = st[0] * tcMod->params[0] + st[1] * tcMod->params[2] + tcMod->params[4];
-				ref.stArray[unit][j][1] = st[1] * tcMod->params[1] + st[0] * tcMod->params[3] + tcMod->params[5];
+				st[0] = ref.texCoordArray[unit][j][0];
+				st[1] = ref.texCoordArray[unit][j][1];
+				ref.texCoordArray[unit][j][0] = st[0] * tcMod->params[0] + st[1] * tcMod->params[2] + tcMod->params[4];
+				ref.texCoordArray[unit][j][1] = st[1] * tcMod->params[1] + st[0] * tcMod->params[3] + tcMod->params[5];
 			}
 			break;
 		default: Host_Error( "RB_CalcTextureCoords: unknown tcMod type %i in shader '%s'\n", tcMod->type, m_pCurrentShader->name);
@@ -845,16 +869,16 @@ static void RB_SetupVertexProgram( shaderStage_t *stage )
 	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 2, r_right[0], r_right[1], r_right[2], 0 );
 	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 3, r_up[0], r_up[1], r_up[2], 0 );
 	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 4, m_pCurrentEntity->origin[0], m_pCurrentEntity->origin[1], m_pCurrentEntity->origin[2], 0 );
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 5, m_pCurrentEntity->axis[0][0], m_pCurrentEntity->axis[0][1], m_pCurrentEntity->axis[0][2], 0 );
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 6, m_pCurrentEntity->axis[1][0], m_pCurrentEntity->axis[1][1], m_pCurrentEntity->axis[1][2], 0 );
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 7, m_pCurrentEntity->axis[2][0], m_pCurrentEntity->axis[2][1], m_pCurrentEntity->axis[2][2], 0 );
+	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 5, m_pCurrentEntity->matrix[0][0], m_pCurrentEntity->matrix[0][1], m_pCurrentEntity->matrix[0][2], 0 );
+	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 6, m_pCurrentEntity->matrix[1][0], m_pCurrentEntity->matrix[1][1], m_pCurrentEntity->matrix[1][2], 0 );
+	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 7, m_pCurrentEntity->matrix[2][0], m_pCurrentEntity->matrix[2][1], m_pCurrentEntity->matrix[2][2], 0 );
 	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 8, m_fShaderTime, 0, 0, 0 );
 }
 
 /*
- =================
- RB_SetupFragmentProgram
- =================
+=================
+RB_SetupFragmentProgram
+=================
 */
 static void RB_SetupFragmentProgram( shaderStage_t *stage )
 {
@@ -866,9 +890,9 @@ static void RB_SetupFragmentProgram( shaderStage_t *stage )
 	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 2, r_right[0], r_right[1], r_right[2], 0 );
 	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 3, r_up[0], r_up[1], r_up[2], 0 );
 	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 4, m_pCurrentEntity->origin[0], m_pCurrentEntity->origin[1], m_pCurrentEntity->origin[2], 0 );
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 5, m_pCurrentEntity->axis[0][0], m_pCurrentEntity->axis[0][1], m_pCurrentEntity->axis[0][2], 0 );
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 6, m_pCurrentEntity->axis[1][0], m_pCurrentEntity->axis[1][1], m_pCurrentEntity->axis[1][2], 0 );
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 7, m_pCurrentEntity->axis[2][0], m_pCurrentEntity->axis[2][1], m_pCurrentEntity->axis[2][2], 0 );
+	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 5, m_pCurrentEntity->matrix[0][0], m_pCurrentEntity->matrix[0][1], m_pCurrentEntity->matrix[0][2], 0 );
+	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 6, m_pCurrentEntity->matrix[1][0], m_pCurrentEntity->matrix[1][1], m_pCurrentEntity->matrix[1][2], 0 );
+	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 7, m_pCurrentEntity->matrix[2][0], m_pCurrentEntity->matrix[2][1], m_pCurrentEntity->matrix[2][2], 0 );
 	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 8, m_fShaderTime, 0, 0, 0 );
 }
 
@@ -1069,6 +1093,14 @@ static void RB_RenderShaderARB( void )
 	RB_SetShaderState();
 	RB_DeformVertexes();
 
+	RB_UpdateVertexBuffer( ref.vertexBuffer, ref.vertexArray, ref.numVertex * sizeof( vec3_t ));
+	pglEnableClientState( GL_VERTEX_ARRAY );
+	pglVertexPointer( 3, GL_FLOAT, 0, ref.vertexBuffer->pointer );
+
+	RB_UpdateVertexBuffer( ref.normalBuffer, ref.normalArray, ref.numVertex * sizeof( vec3_t ));
+	pglEnableClientState( GL_NORMAL_ARRAY );
+	pglNormalPointer( GL_FLOAT, 0, ref.vertexBuffer->pointer );
+
 	for( i = 0; i < m_pCurrentShader->numStages; i++ )
 	{
 		stage = m_pCurrentShader->stages[i];
@@ -1076,16 +1108,9 @@ static void RB_RenderShaderARB( void )
 		RB_SetShaderStageState( stage );
 		RB_CalcVertexColors( stage );
 
-		RB_UpdateVertexBuffer( ref.vertexBuffer, ref.vertsArray, ref.numVertex * sizeof(ref_varray_t));
-
-		pglEnableClientState( GL_VERTEX_ARRAY );
-		pglVertexPointer( 3, GL_FLOAT, sizeof(ref_varray_t), ref.vertexBuffer->pointer + BUFFER_OFFSET_POINT );
-
-		pglEnableClientState( GL_NORMAL_ARRAY );
-		pglNormalPointer( GL_FLOAT, sizeof(ref_varray_t), ref.vertexBuffer->pointer + BUFFER_OFFSET_NORMAL );
-
+		RB_UpdateVertexBuffer( ref.colorBuffer, ref.colorArray, ref.numVertex * sizeof( vec4_t ));
 		pglEnableClientState( GL_COLOR_ARRAY );
-		pglColorPointer( 4, GL_FLOAT, sizeof(ref_varray_t), ref.vertexBuffer->pointer + BUFFER_OFFSET_COLOR );
+		pglColorPointer( 4, GL_FLOAT, 0, ref.vertexBuffer->pointer );
 	
 		for( j = 0; j < stage->numBundles; j++ )
 		{
@@ -1094,9 +1119,9 @@ static void RB_RenderShaderARB( void )
 			RB_SetupTextureUnit( bundle, j );
 			RB_CalcTextureCoords( bundle, j );
 
-			RB_UpdateVertexBuffer( ref.stBuffer[j], ref.stArray[j], ref.numVertex * sizeof(vec3_t));
+			RB_UpdateVertexBuffer( ref.texCoordBuffer[j], ref.texCoordArray[j], ref.numVertex * sizeof( vec3_t ));
 			pglEnableClientState( GL_TEXTURE_COORD_ARRAY );
-			pglTexCoordPointer( 3, GL_FLOAT, 0, ref.stBuffer[j]->pointer );
+			pglTexCoordPointer( 3, GL_FLOAT, 0, ref.texCoordBuffer[j]->pointer );
 		}
 
 		RB_DrawElements();
@@ -1125,12 +1150,13 @@ static void RB_RenderShader( void )
 	RB_SetShaderState();
 	RB_DeformVertexes();
 
-	RB_UpdateVertexBuffer( ref.vertexBuffer, ref.vertsArray, ref.numVertex * sizeof(ref_varray_t));
-
+	RB_UpdateVertexBuffer( ref.vertexBuffer, ref.vertexArray, ref.numVertex * sizeof( vec3_t ));
 	pglEnableClientState( GL_VERTEX_ARRAY );
-	pglVertexPointer( 3, GL_FLOAT, sizeof(ref_varray_t), ref.vertexBuffer->pointer + BUFFER_OFFSET_POINT );
+	pglVertexPointer( 3, GL_FLOAT, 0, ref.vertexBuffer->pointer );
+
+	RB_UpdateVertexBuffer( ref.normalBuffer, ref.normalArray, ref.numVertex * sizeof( vec3_t ));
 	pglEnableClientState( GL_NORMAL_ARRAY );
-	pglNormalPointer( GL_FLOAT, sizeof(ref_varray_t), ref.vertexBuffer->pointer + BUFFER_OFFSET_NORMAL );
+	pglNormalPointer( GL_FLOAT, 0, ref.vertexBuffer->pointer );
 
 	if( GL_Support( R_CUSTOM_VERTEX_ARRAY_EXT ))
 	{
@@ -1149,8 +1175,9 @@ static void RB_RenderShader( void )
 		RB_SetShaderStageState( stage );
 		RB_CalcVertexColors( stage );
 
+		RB_UpdateVertexBuffer( ref.colorBuffer, ref.colorArray, ref.numVertex * sizeof( vec4_t ));
 		pglEnableClientState( GL_COLOR_ARRAY );
-		pglColorPointer( 4, GL_FLOAT, sizeof(ref_varray_t), ref.vertexBuffer->pointer + BUFFER_OFFSET_COLOR );
+		pglColorPointer( 4, GL_FLOAT, 0, ref.vertexBuffer->pointer );
 
 		for( j = 0; j < stage->numBundles; j++ )
 		{
@@ -1159,8 +1186,9 @@ static void RB_RenderShader( void )
 			RB_SetupTextureUnit( bundle, j );
 			RB_CalcTextureCoords( bundle, j );
 
+			RB_UpdateVertexBuffer( ref.texCoordBuffer[j], ref.texCoordArray[j], ref.numVertex * sizeof( vec3_t ));
 			pglEnableClientState( GL_TEXTURE_COORD_ARRAY );
-			pglTexCoordPointer( 3, GL_FLOAT, 0, ref.stArray[j] );
+			pglTexCoordPointer( 3, GL_FLOAT, 0, ref.texCoordBuffer[j]->pointer );
 		}
 
 		if(GL_Support( R_CUSTOM_VERTEX_ARRAY_EXT ))
@@ -1234,8 +1262,8 @@ static void RB_DrawNormals( void )
 	pglBegin( GL_LINES );
 	for( i = 0; i < ref.numVertex; i++ )
 	{
-		VectorAdd( ref.vertsArray[i].point, ref.vertsArray[i].normal, v );
-		pglVertex3fv( ref.vertsArray[i].point );
+		VectorAdd( ref.vertexArray[i], ref.normalArray[i], v );
+		pglVertex3fv( ref.vertexArray[i] );
 		pglVertex3fv( v );
 	}
 	pglEnd();
@@ -1259,8 +1287,8 @@ static void RB_DrawTangentSpace( void )
 	pglBegin( GL_LINES );
 	for( i = 0; i < ref.numVertex; i++ )
 	{
-		VectorAdd( ref.vertsArray[i].point, ref.vertsArray[i].tangent, v );
-		pglVertex3fv( ref.vertsArray[i].point );
+		VectorAdd( ref.vertexArray[i], ref.tangentArray[i], v );
+		pglVertex3fv( ref.vertexArray[i] );
 		pglVertex3fv( v );
 	}
 	pglEnd();
@@ -1270,8 +1298,8 @@ static void RB_DrawTangentSpace( void )
 	pglBegin( GL_LINES );
 	for( i = 0; i < ref.numVertex; i++ )
 	{
-		VectorAdd( ref.vertsArray[i].point, ref.vertsArray[i].binormal, v );
-		pglVertex3fv( ref.vertsArray[i].point );
+		VectorAdd( ref.vertexArray[i], ref.binormalArray[i], v );
+		pglVertex3fv( ref.vertexArray[i] );
 		pglVertex3fv( v );
 	}
 	pglEnd();
@@ -1281,8 +1309,8 @@ static void RB_DrawTangentSpace( void )
 	pglBegin( GL_LINES );
 	for( i = 0; i < ref.numVertex; i++ )
 	{
-		VectorAdd( ref.vertsArray[i].point, ref.vertsArray[i].normal, v );
-		pglVertex3fv( ref.vertsArray[i].point );
+		VectorAdd( ref.vertexArray[i], ref.normalArray[i], v );
+		pglVertex3fv( ref.vertexArray[i] );
 		pglVertex3fv( v );
 	}
 	pglEnd();
@@ -1493,7 +1521,7 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 			sortKey = mesh->sortKey;
 
 			// unpack sort key
-			shader = r_shaders[(sortKey>>18) & (MAX_SHADERS - 1)];
+			shader = &r_shaders[(sortKey>>18) & (MAX_SHADERS - 1)];
 			entity = &r_entities[(sortKey >> 8) & MAX_ENTITIES-1];
 			infoKey = sortKey & 255;
 
@@ -1521,6 +1549,10 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 				if( entity == r_worldEntity )
 					GL_LoadMatrix( r_worldMatrix );
 				else if( entity->ent_type == ED_BSPBRUSH )
+					R_RotateForEntity( entity );
+				else if( entity->ent_type == ED_RIGIDBODY )
+					R_RotateForEntity( entity );
+				else if( entity->ent_type == ED_MOVER )
 					R_RotateForEntity( entity );
 				// sprites and studio models make transformation locally
 
@@ -1573,8 +1605,6 @@ RB_DrawStretchPic
 */
 void RB_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, float sh, float th, ref_shader_t *shader )
 {
-	int	i;
-
 	if( r_skipbackend->integer )
 		return;
 
@@ -1590,44 +1620,23 @@ void RB_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, 
 	// check if the arrays will overflow
 	RB_CheckMeshOverflow( 6, 4 );
 
-	// draw it
-	for( i = 2; i < 4; i++ )
-	{
-		ref.indexArray[ref.numIndex++] = ref.numVertex + 0;
-		ref.indexArray[ref.numIndex++] = ref.numVertex + i-1;
-		ref.indexArray[ref.numIndex++] = ref.numVertex + i;
-	}
+	GL_Begin( GL_QUADS );
+		GL_Color4fv( gl_state.draw_color );
+		GL_TexCoord2f( sl, tl );
+		GL_Vertex2f( x, y );
 
-	ref.vertsArray[ref.numVertex+0].point[0] = x;
-	ref.vertsArray[ref.numVertex+0].point[1] = y;
-	ref.vertsArray[ref.numVertex+0].point[2] = 0;
-	ref.vertsArray[ref.numVertex+1].point[0] = x + w;
-	ref.vertsArray[ref.numVertex+1].point[1] = y;
-	ref.vertsArray[ref.numVertex+1].point[2] = 0;
-	ref.vertsArray[ref.numVertex+2].point[0] = x + w;
-	ref.vertsArray[ref.numVertex+2].point[1] = y + h;
-	ref.vertsArray[ref.numVertex+2].point[2] = 0;
-	ref.vertsArray[ref.numVertex+3].point[0] = x;
-	ref.vertsArray[ref.numVertex+3].point[1] = y + h;
-	ref.vertsArray[ref.numVertex+3].point[2] = 0;
+		GL_Color4fv( gl_state.draw_color );
+		GL_TexCoord2f( sh, tl );
+		GL_Vertex2f( x + w, y );
 
-	ref.vertsArray[ref.numVertex+0].stcoord[0] = sl;
-	ref.vertsArray[ref.numVertex+0].stcoord[1] = tl;
-	ref.vertsArray[ref.numVertex+1].stcoord[0] = sh;
-	ref.vertsArray[ref.numVertex+1].stcoord[1] = tl;
-	ref.vertsArray[ref.numVertex+2].stcoord[0] = sh;
-	ref.vertsArray[ref.numVertex+2].stcoord[1] = th;
-	ref.vertsArray[ref.numVertex+3].stcoord[0] = sl;
-	ref.vertsArray[ref.numVertex+3].stcoord[1] = th;
+		GL_Color4fv( gl_state.draw_color );
+		GL_TexCoord2f( sh, th );
+		GL_Vertex2f( x + w, y + h );
 
-	for( i = 0; i < 4; i++ )
-	{
-		ref.vertsArray[ref.numVertex].color[0] = gl_state.draw_color[0];
-		ref.vertsArray[ref.numVertex].color[1] = gl_state.draw_color[1];
-		ref.vertsArray[ref.numVertex].color[2] = gl_state.draw_color[2];
-		ref.vertsArray[ref.numVertex].color[3] = gl_state.draw_color[3];
-		ref.numVertex++;
-	}
+		GL_Color4fv( gl_state.draw_color );
+		GL_TexCoord2f( sl, th );
+		GL_Vertex2f( x, y + h );
+	GL_End();
 }
 
 /*

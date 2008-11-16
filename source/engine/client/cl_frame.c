@@ -486,7 +486,7 @@ void CL_GetEntitySoundSpatialization( int entnum, vec3_t origin, vec3_t velocity
 	if( VectorIsNull( origin ))
 	{
 		cmodel = cl.models[ent->priv.cl->current.model.index];
-		if(!cmodel) return;
+		if( !cmodel ) return;
 		VectorAverage( cmodel->mins, cmodel->maxs, midPoint );
 		VectorAdd( origin, midPoint, origin );
 	}
@@ -514,7 +514,16 @@ void CL_AddLoopingSounds( void )
 	{
 		num = (cl.frame.parse_entities + i)&(MAX_PARSE_ENTITIES-1);
 		ent = &cl_parse_entities[num];
-		if(!ent->soundindex) continue;
+
+		switch( ent->ed_type )
+		{
+		case ED_MOVER:
+		case ED_AMBIENT:
+		case ED_NORMAL: break;
+		default: continue;
+		}
+
+		if( !ent->soundindex ) continue;
 		se->AddLoopingSound( ent->number, cl.sound_precache[ent->soundindex], 1.0f, ATTN_IDLE );
 	}
 }

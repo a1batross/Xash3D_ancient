@@ -343,10 +343,10 @@ void R_LightingAmbient( void )
 	{
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			ref.vertsArray[i].color[0] = 1.0f;
-			ref.vertsArray[i].color[1] = 1.0f;
-			ref.vertsArray[i].color[2] = 1.0f;
-			ref.vertsArray[i].color[3] = 1.0f;
+			ref.colorArray[i][0] = 1.0f;
+			ref.colorArray[i][1] = 1.0f;
+			ref.colorArray[i][2] = 1.0f;
+			ref.colorArray[i][3] = 1.0f;
 		}
 		return;
 	}
@@ -358,7 +358,7 @@ void R_LightingAmbient( void )
 	R_RecursiveLightPoint( r_worldModel->nodes, m_pCurrentEntity->origin, end );
 	VectorScale( r_pointColor, r_ambientscale->value, ambientLight );
 
-	// Always have some light
+	// always have some light
 	if( m_pCurrentEntity->renderfx & RF_MINLIGHT )
 	{
 		for( i = 0; i < 3; i++ )
@@ -394,10 +394,10 @@ void R_LightingAmbient( void )
 
 	for( i = 0; i < ref.numVertex; i++ )
 	{
-		ref.vertsArray[i].color[0] = ambientLight[0];
-		ref.vertsArray[i].color[1] = ambientLight[1];
-		ref.vertsArray[i].color[2] = ambientLight[2];
-		ref.vertsArray[i].color[3] = 1.0f;
+		ref.colorArray[i][0] = ambientLight[0];
+		ref.colorArray[i][1] = ambientLight[1];
+		ref.colorArray[i][2] = ambientLight[2];
+		ref.colorArray[i][3] = 1.0f;
 	}
 }
 
@@ -419,10 +419,10 @@ void R_LightingDiffuse( void )
 	{
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			ref.vertsArray[i].color[0] = 1.0f;
-			ref.vertsArray[i].color[1] = 1.0f;
-			ref.vertsArray[i].color[2] = 1.0f;
-			ref.vertsArray[i].color[3] = 1.0f;
+			ref.colorArray[i][0] = 1.0f;
+			ref.colorArray[i][1] = 1.0f;
+			ref.colorArray[i][2] = 1.0f;
+			ref.colorArray[i][3] = 1.0f;
 		}
 		return;
 	}
@@ -451,12 +451,12 @@ void R_LightingDiffuse( void )
 	}
 
 	// Compute lighting at each vertex
-	VectorRotate( lightDir, m_pCurrentEntity->axis, dir );
+	Matrix3x3_Transform( m_pCurrentEntity->matrix, lightDir, dir );
 	VectorNormalizeFast( dir );
 
 	for( i = 0; i < ref.numVertex; i++ )
 	{
-		dot = DotProduct( ref.vertsArray[i].normal, dir );
+		dot = DotProduct( ref.normalArray[i], dir );
 		if( dot <= 0 )
 		{
 			VectorCopy( ambientLight, r_lightColors[i] );
@@ -479,14 +479,14 @@ void R_LightingDiffuse( void )
 			if( !dist || dist > dl->intensity + radius )
 				continue;
 
-			VectorRotate( dir, m_pCurrentEntity->axis, lightDir );
+			Matrix3x3_Transform( m_pCurrentEntity->matrix, dir, lightDir );
 			intensity = dl->intensity * 8;
 
 			// compute lighting at each vertex
 			for( i = 0; i < ref.numVertex; i++ )
 			{
-				VectorSubtract( lightDir, ref.vertsArray[i].point, dir );
-				add = DotProduct( ref.vertsArray[i].normal, dir );
+				VectorSubtract( lightDir, ref.vertexArray[i], dir );
+				add = DotProduct( ref.normalArray[i], dir );
 				if( add <= 0 ) continue;
 
 				dot = DotProduct( dir, dir );
@@ -500,10 +500,10 @@ void R_LightingDiffuse( void )
 	for (i = 0; i < ref.numVertex; i++)
 	{
 		ColorNormalize( r_lightColors[i], r_lightColors[i] );
-		ref.vertsArray[i].color[0] = r_lightColors[i][0];
-		ref.vertsArray[i].color[1] = r_lightColors[i][1];
-		ref.vertsArray[i].color[2] = r_lightColors[i][2];
-		ref.vertsArray[i].color[3] = 1.0f;
+		ref.colorArray[i][0] = r_lightColors[i][0];
+		ref.colorArray[i][1] = r_lightColors[i][1];
+		ref.colorArray[i][2] = r_lightColors[i][2];
+		ref.colorArray[i][3] = 1.0f;
 	}
 }
 
@@ -551,13 +551,12 @@ static void R_AddDynamicLights( surface_t *surf )
 
 	for( l = 0, dl = r_dlights; l < r_numDLights; l++, dl++ )
 	{
-		if(!(surf->dlightBits & (1<<l)))
-			continue;	// not lit by this light
+		if(!(surf->dlightBits & (1<<l))) continue; // not lit by this light
 
-		if( !AxisCompare( m_pCurrentEntity->axis, axisDefault ))
+		if( !Matrix3x3_Compare( m_pCurrentEntity->matrix, matrix3x3_identity ))
 		{
 			VectorSubtract( dl->origin, m_pCurrentEntity->origin, tmp );
-			VectorRotate( tmp, m_pCurrentEntity->axis, origin );
+			Matrix3x3_Transform( m_pCurrentEntity->matrix, tmp, origin );
 		}
 		else VectorSubtract( dl->origin, m_pCurrentEntity->origin, origin );
 
@@ -734,10 +733,11 @@ R_UploadLightmap
 static void R_UploadLightmap( void )
 {
 	string	name;
-	texture_t *lightmap;
+	texture_t *lightmap = r_lightmapTextures[r_lmState.currentNum];
 
 	if( r_lmState.currentNum == MAX_LIGHTMAPS )
 		Host_Error( "R_UploadLightmap: MAX_LIGHTMAPS limit exceeded\n" );
+	if( lightmap ) R_FreeImage( lightmap );	// free old lightmap
 
 	com.snprintf( name, sizeof(name), "*lightmap%i", r_lmState.currentNum );
 	lightmap = R_CreateImage( va("*lightmap%d", r_lmState.currentNum ), (byte *)r_lmState.buffer, LM_SIZE, LM_SIZE, TF_LIGHTMAP, TF_LINEAR, TW_CLAMP );

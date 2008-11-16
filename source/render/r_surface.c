@@ -34,6 +34,20 @@ void R_DrawSurface( void )
 
 	for( p = surf->poly; p; p = p->next )
 	{
+#if 0
+		GL_Begin( GL_POLYGON );
+
+		for( i = 0, v = p->vertices; i < p->numVertices; i++, v++ )
+		{
+                              GL_TexCoord4f( v->st[0], v->st[1], v->lm[0], v->lm[1] );
+			GL_Binormal3fv( surf->binormal );
+			GL_Tangent3fv( surf->tangent );
+			GL_Normal3fv( surf->normal );
+			GL_Color4fv( v->color );
+			GL_Vertex3fv( v->xyz );
+		}
+		GL_End();
+#else
 		RB_CheckMeshOverflow( p->numIndices, p->numVertices );
 
 		for( i = 0; i < p->numIndices; i += 3 )
@@ -45,25 +59,26 @@ void R_DrawSurface( void )
 
 		for( i = 0, v = p->vertices; i < p->numVertices; i++, v++ )
 		{
-			ref.vertsArray[ref.numVertex].point[0] = v->xyz[0];
-			ref.vertsArray[ref.numVertex].point[1] = v->xyz[1];
-			ref.vertsArray[ref.numVertex].point[2] = v->xyz[2];
-			ref.vertsArray[ref.numVertex].tangent[0] = surf->tangent[0];
-			ref.vertsArray[ref.numVertex].tangent[1] = surf->tangent[1];
-			ref.vertsArray[ref.numVertex].tangent[2] = surf->tangent[2];
-			ref.vertsArray[ref.numVertex].binormal[0] = surf->binormal[0];
-			ref.vertsArray[ref.numVertex].binormal[1] = surf->binormal[1];
-			ref.vertsArray[ref.numVertex].binormal[2] = surf->binormal[2];
-			ref.vertsArray[ref.numVertex].normal[0] = surf->normal[0];
-			ref.vertsArray[ref.numVertex].normal[1] = surf->normal[1];
-			ref.vertsArray[ref.numVertex].normal[2] = surf->normal[2];
-			ref.vertsArray[ref.numVertex].stcoord[0] = v->st[0];
-			ref.vertsArray[ref.numVertex].stcoord[1] = v->st[1];
-			ref.vertsArray[ref.numVertex].lmcoord[0] = v->lightmap[0];
-			ref.vertsArray[ref.numVertex].lmcoord[1] = v->lightmap[1];
-			Vector4Copy( v->color, ref.vertsArray[ref.numVertex].color );
+			ref.vertexArray[ref.numVertex][0] = v->xyz[0];
+			ref.vertexArray[ref.numVertex][1] = v->xyz[1];
+			ref.vertexArray[ref.numVertex][2] = v->xyz[2];
+			ref.tangentArray[ref.numVertex][0] = surf->tangent[0];
+			ref.tangentArray[ref.numVertex][1] = surf->tangent[1];
+			ref.tangentArray[ref.numVertex][2] = surf->tangent[2];
+			ref.binormalArray[ref.numVertex][0] = surf->binormal[0];
+			ref.binormalArray[ref.numVertex][1] = surf->binormal[1];
+			ref.binormalArray[ref.numVertex][2] = surf->binormal[2];
+			ref.normalArray[ref.numVertex][0] = surf->normal[0];
+			ref.normalArray[ref.numVertex][1] = surf->normal[1];
+			ref.normalArray[ref.numVertex][2] = surf->normal[2];
+			ref.inTexCoordArray[ref.numVertex][0] = v->st[0];
+			ref.inTexCoordArray[ref.numVertex][1] = v->st[1];
+			ref.inTexCoordArray[ref.numVertex][2] = v->lm[0];
+			ref.inTexCoordArray[ref.numVertex][3] = v->lm[1];
+			Vector4Copy( v->color, ref.colorArray[ref.numVertex] );
 			ref.numVertex++;
 		}
+#endif
 	}
 }
 
@@ -169,7 +184,7 @@ void R_AddBrushModelToList( ref_entity_t *entity )
 		return;
 
 	// cull
-	if( !AxisCompare( entity->axis, axisDefault ))
+	if( !Matrix3x3_Compare( m_pCurrentEntity->matrix, matrix3x3_identity ))
 	{
 		for( i = 0; i < 3; i++ )
 		{
@@ -181,7 +196,7 @@ void R_AddBrushModelToList( ref_entity_t *entity )
 			return;
 
 		VectorSubtract( r_origin, entity->origin, tmp );
-		VectorRotate( tmp, entity->axis, origin );
+		Matrix3x3_Transform( m_pCurrentEntity->matrix, tmp, origin );
 	}
 	else
 	{

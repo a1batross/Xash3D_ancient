@@ -82,6 +82,21 @@ void SV_UpdateEntityState( edict_t *ent )
 		VectorCopy( ent->progs.sv->origin, ent->priv.sv->s.old_origin );
 		ent->priv.sv->s.model.colormap = ent->progs.sv->colormap = client->progs.sv->colormap;
 	}
+	else if( ent->priv.sv->s.ed_type == ED_AMBIENT )
+	{
+		if( ent->progs.sv->solid == SOLID_TRIGGER )
+		{
+			vec3_t	midPoint;
+
+			// NOTE: no reason to compute this shit on the client - save bandwidth
+			VectorAverage( ent->progs.sv->mins, ent->progs.sv->maxs, midPoint );
+			VectorAdd( ent->priv.sv->s.origin, midPoint, ent->priv.sv->s.origin );
+		}
+	}
+	else if( ent->priv.sv->s.ed_type == ED_MOVER )
+	{
+		// FIXME: send mins\maxs for sound spatialization and entity prediction ?
+	}
 }
 
 /*
@@ -231,6 +246,17 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 		}
 
 		svent = ent->priv.sv;
+
+		// quick reject by type
+		switch( svent->s.ed_type )
+		{
+		case ED_MOVER:
+		case ED_NORMAL:
+		case ED_AMBIENT:
+		case ED_BSPBRUSH:
+		case ED_RIGIDBODY: break;
+		default: if( !force ) continue;
+		}
 
 		// don't double add an entity through portals
 		if( svent->framenum == sv.net_framenum ) continue;

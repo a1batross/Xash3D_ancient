@@ -475,18 +475,18 @@ void R_DrawSky( void )
 
 			for( j = 0, v = skySide->vertices; j < skySide->numVertices; j++, v++ )
 			{
-				ref.vertsArray[ref.numVertex].point[0] = v->xyz[0];
-				ref.vertsArray[ref.numVertex].point[1] = v->xyz[1];
-				ref.vertsArray[ref.numVertex].point[2] = v->xyz[2];
-				ref.vertsArray[ref.numVertex].normal[0] = v->normal[0];
-				ref.vertsArray[ref.numVertex].normal[1] = v->normal[1];
-				ref.vertsArray[ref.numVertex].normal[2] = v->normal[2];
-				ref.vertsArray[ref.numVertex].stcoord[0] = v->sphere[0];
-				ref.vertsArray[ref.numVertex].stcoord[1] = v->sphere[1];
-				ref.vertsArray[ref.numVertex].color[0] = 1.0f;
-				ref.vertsArray[ref.numVertex].color[1] = 1.0f;
-				ref.vertsArray[ref.numVertex].color[2] = 1.0f;
-				ref.vertsArray[ref.numVertex].color[3] = 1.0f;
+				ref.vertexArray[ref.numVertex][0] = v->xyz[0];
+				ref.vertexArray[ref.numVertex][1] = v->xyz[1];
+				ref.vertexArray[ref.numVertex][2] = v->xyz[2];
+				ref.normalArray[ref.numVertex][0] = v->normal[0];
+				ref.normalArray[ref.numVertex][1] = v->normal[1];
+				ref.normalArray[ref.numVertex][2] = v->normal[2];
+				ref.inTexCoordArray[ref.numVertex][0] = v->sphere[0];
+				ref.inTexCoordArray[ref.numVertex][1] = v->sphere[1];
+				ref.colorArray[ref.numVertex][0] = 1.0f;
+				ref.colorArray[ref.numVertex][1] = 1.0f;
+				ref.colorArray[ref.numVertex][2] = 1.0f;
+				ref.colorArray[ref.numVertex][3] = 1.0f;
 				ref.numVertex++;
 			}
 		}
@@ -592,7 +592,7 @@ void R_SetupSky( const char *name, float rotate, const vec3_t axis )
 	if( !com.strlen( name )) return; // invalid name
 	r_worldModel->sky = Mem_Realloc( r_temppool, r_worldModel->sky, sizeof( sky_t ));
 	sky = r_worldModel->sky;
-	sky->shader = r_shaders[R_FindShader( name, SHADER_SKY, 0 )];
+	sky->shader = R_FindShader( name, SHADER_SKY, 0 );
 
 	sky->rotate = rotate;
 	if(!VectorIsNull( axis ))

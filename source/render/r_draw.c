@@ -16,7 +16,7 @@ void R_GetPicSize( int *w, int *h, shader_t handle )
 {
 	ref_shader_t *shader;
 	
-	if( handle >= 0 && handle < MAX_SHADERS && (shader = r_shaders[handle]))
+	if( handle >= 0 && handle < MAX_SHADERS && (shader = &r_shaders[handle]))
 	{
 		*w = (int)shader->stages[0]->bundles[0]->textures[0]->width;
 		*h = (int)shader->stages[0]->bundles[0]->textures[0]->height;
@@ -37,7 +37,7 @@ void R_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, f
 {
 	ref_shader_t *shader = tr.defaultShader;
 	
-	if( handle >= 0 && handle < MAX_SHADERS ) shader = r_shaders[handle];
+	if( handle >= 0 && handle < MAX_SHADERS ) shader = &r_shaders[handle];
 	RB_DrawStretchPic( x, y, w, h, sl, tl, sh, th, shader );
 }
 
