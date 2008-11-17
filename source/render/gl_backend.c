@@ -43,6 +43,7 @@ static dllfunc_t opengl_110funcs[] =
 	{"glDepthRange", (void **) &pglDepthRange},
 	{"glDrawElements", (void **) &pglDrawElements},
 	{"glColorMask", (void **) &pglColorMask},
+	{"glIndexPointer", (void **) &pglIndexPointer},
 	{"glVertexPointer", (void **) &pglVertexPointer},
 	{"glNormalPointer", (void **) &pglNormalPointer},
 	{"glColorPointer", (void **) &pglColorPointer},

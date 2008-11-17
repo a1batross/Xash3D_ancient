@@ -2225,7 +2225,7 @@ static void R_UploadTexture( rgbdata_t *pic, texture_t *tex )
 	default: dxtformat = false; break;
 	}
 
-	tex->texnum = (tex - r_textures) + 1;
+	pglGenTextures( 1, &tex->texnum );
 	GL_BindTexture( tex );
 		
 	// uploading texture into video memory

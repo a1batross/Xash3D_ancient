@@ -37,6 +37,8 @@ cvar_t	*cl_gun;
 cvar_t	*cl_add_particles;
 cvar_t	*cl_add_lights;
 cvar_t	*cl_add_entities;
+cvar_t	*cl_particles;
+cvar_t	*cl_particlelod;
 
 cvar_t	*cl_shownet;
 cvar_t	*cl_showmiss;
@@ -1075,8 +1077,9 @@ void CL_InitLocal (void)
 	cl_gun = Cvar_Get ("cl_gun", "1", 0, "hide firstperson viewmodel" );
 	cl_footsteps = Cvar_Get ("cl_footsteps", "1", 0, "disables player footsteps" );
 	cl_predict = Cvar_Get ("cl_predict", "1", CVAR_ARCHIVE, "disables client movement prediction" );
-//	cl_minfps = Cvar_Get ("cl_minfps", "5", 0);
 	cl_maxfps = Cvar_Get ("cl_maxfps", "1000", 0, "maximum client fps" );
+	cl_particles = Cvar_Get( "cl_particles", "1", CVAR_ARCHIVE, "disables particle effects" );
+	cl_particlelod = Cvar_Get( "cl_lod_particle", "0", CVAR_ARCHIVE, "enables particle LOD (1, 2, 3)" );
 
 	cl_upspeed = Cvar_Get ("cl_upspeed", "200", 0, "client upspeed limit" );
 	cl_forwardspeed = Cvar_Get ("cl_forwardspeed", "200", 0, "client forward speed limit" );

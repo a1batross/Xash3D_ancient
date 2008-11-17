@@ -139,7 +139,7 @@ void Host_InitSound( void )
 	// phys callback
 	si.api_size = sizeof(vsound_imp_t);
 	si.GetSoundSpatialization = CL_GetEntitySoundSpatialization;
-	si.PointContents = CL_PMpointcontents;
+	si.PointContents = CL_PointContents;
 	si.AddLoopingSounds = CL_AddLoopingSounds;
 
 	Sys_LoadLibrary( &vsound_dll );

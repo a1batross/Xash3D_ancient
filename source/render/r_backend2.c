@@ -327,16 +327,20 @@ static float *RB_TableForFunc( const waveFunc_t *func )
 }
 
 /*
- =================
- RB_DeformVertexes
- =================
+=================
+RB_DeformVertexes
+=================
 */
 static void RB_DeformVertexes( void )
 {
 	deform_t		*deformVertexes = m_pCurrentShader->deform;
 	uint		deformVertexesNum = m_pCurrentShader->numDeforms;
+	matrix3x3		mat1, mat2, mat3, matrix, invMatrix;
+	vec3_t		vec, tmp, len, axis, rotCentre;
+	int		index, longAxis, shortAxis;
 	float		*table, *v;
 	float		now, f, t;
+	float		*quad[4];
 	int		i, j;
 
 	for( i = 0; i < deformVertexesNum; i++, deformVertexes++ )
@@ -376,8 +380,178 @@ static void RB_DeformVertexes( void )
 				VectorNormalizeFast( ref.normalArray[j] );
 			}
 			break;
-		default:
-			Host_Error( "RB_DeformVertexes: unknown deformVertexes type %i in shader '%s'\n", deformVertexes->type, m_pCurrentShader->name);
+		case DEFORM_AUTOSPRITE:
+			if(( ref.numIndex % 6) || (ref.numVertex % 4 ))
+			{
+				MsgDev( D_WARN, "Shader '%s' has autoSprite but it's not a triangle quad\n", m_pCurrentShader->name );
+				break;
+			}
+
+			if( m_pCurrentEntity == r_worldEntity || !m_pCurrentEntity->model )
+				Matrix3x3_FromMatrix4x4( invMatrix, r_worldMatrix );
+			else Matrix3x3_FromMatrix4x4( invMatrix, r_entityMatrix );
+
+			for( index = 0; index < ref.numIndex; index += 6 )
+			{
+				quad[0] = (float *)(ref.vertexArray + ref.indexArray[index+0]);
+				quad[1] = (float *)(ref.vertexArray + ref.indexArray[index+1]);
+				quad[2] = (float *)(ref.vertexArray + ref.indexArray[index+2]);
+
+				for( j = 2; j >= 0; j-- )
+				{
+					quad[3] = (float *)(ref.vertexArray + ref.indexArray[index+3+j]);
+					if( !VectorCompare( quad[3], quad[0] ) && !VectorCompare( quad[3], quad[1] ) && !VectorCompare( quad[3], quad[2] ))
+						break;
+				}
+
+				VectorSubtract( quad[0], quad[1], mat1[0] );
+				VectorSubtract( quad[2], quad[1], mat1[1] );
+				CrossProduct( mat1[0], mat1[1], mat1[2] );
+				VectorNormalizeFast( mat1[2] );
+				VectorVectors( mat1[2], mat1[1], mat1[0] );
+
+				Matrix3x3_Concat( matrix, invMatrix, mat1 );
+
+				rotCentre[0] = (quad[0][0] + quad[1][0] + quad[2][0] + quad[3][0]) * 0.25;
+				rotCentre[1] = (quad[0][1] + quad[1][1] + quad[2][1] + quad[3][1]) * 0.25;
+				rotCentre[2] = (quad[0][2] + quad[1][2] + quad[2][2] + quad[3][2]) * 0.25;
+
+				for( j = 0; j < 4; j++ )
+				{
+					VectorSubtract(quad[j], rotCentre, vec);
+					Matrix3x3_Transform( matrix, vec, quad[j] );
+					VectorAdd( quad[j], rotCentre, quad[j] );
+				}
+			}
+			break;
+		case DEFORM_AUTOSPRITE2:
+			if(( ref.numIndex % 6) || (ref.numVertex % 4 ))
+			{
+				MsgDev( D_WARN, "Shader '%s' has autoSprite2 but it's not a triangle quad\n", m_pCurrentShader->name );
+				break;
+			}
+
+			for( index = 0; index < ref.numIndex; index += 6 )
+			{
+				quad[0] = (float *)(ref.vertexArray + ref.indexArray[index+0]);
+				quad[1] = (float *)(ref.vertexArray + ref.indexArray[index+1]);
+				quad[2] = (float *)(ref.vertexArray + ref.indexArray[index+2]);
+
+				for( j = 2; j >= 0; j-- )
+				{
+					quad[3] = (float *)(ref.vertexArray + ref.indexArray[index+3+j]);
+					if( !VectorCompare( quad[3], quad[0] ) && !VectorCompare( quad[3], quad[1] ) && !VectorCompare( quad[3], quad[2] ))
+						break;
+				}
+
+				VectorSubtract( quad[1], quad[0], mat1[0] );
+				VectorSubtract( quad[2], quad[0], mat1[1] );
+				VectorSubtract( quad[2], quad[1], mat1[2] );
+
+				len[0] = DotProduct( mat1[0], mat1[0] );
+				len[1] = DotProduct( mat1[1], mat1[1] );
+				len[2] = DotProduct( mat1[2], mat1[2] );
+
+				if( len[2] > len[1] && len[2] > len[0] )
+				{
+					if( len[1] > len[0] )
+					{
+						longAxis = 1;
+						shortAxis = 0;
+					}
+					else
+					{
+						longAxis = 0;
+						shortAxis = 1;
+					}
+				}
+				else if( len[1] > len[2] && len[1] > len[0] )
+				{
+					if( len[2] > len[0] )
+					{
+						longAxis = 2;
+						shortAxis = 0;
+					}
+					else
+					{
+						longAxis = 0;
+						shortAxis = 2;
+					}
+				}
+				else if( len[0] > len[1] && len[0] > len[2] )
+				{
+					if( len[2] > len[1] )
+					{
+						longAxis = 2;
+						shortAxis = 1;
+					}
+					else
+					{
+						longAxis = 1;
+						shortAxis = 2;
+					}
+				}
+				else
+				{
+					longAxis = 0;
+					shortAxis = 0;
+				}
+
+				if( DotProduct( mat1[longAxis], mat1[shortAxis] ))
+				{
+					VectorNormalize2( mat1[longAxis], axis );
+					VectorCopy(axis, mat1[1]);
+
+					if( axis[0] || axis[1] )
+						VectorVectors( mat1[1], mat1[0], mat1[2] );
+					else VectorVectors( mat1[1], mat1[2], mat1[0] );
+				}
+				else
+				{
+					VectorNormalize2( mat1[longAxis], axis );
+					VectorNormalize2( mat1[shortAxis], mat1[0] );
+					VectorCopy( axis, mat1[1] );
+					CrossProduct( mat1[0], mat1[1], mat1[2] );
+				}
+
+				rotCentre[0] = (quad[0][0] + quad[1][0] + quad[2][0] + quad[3][0]) * 0.25;
+				rotCentre[1] = (quad[0][1] + quad[1][1] + quad[2][1] + quad[3][1]) * 0.25;
+				rotCentre[2] = (quad[0][2] + quad[1][2] + quad[2][2] + quad[3][2]) * 0.25;
+
+				if( !Matrix3x3_Compare( m_pCurrentEntity->matrix, matrix3x3_identity ))
+				{
+					VectorAdd( rotCentre, m_pCurrentEntity->origin, vec );
+					VectorSubtract( r_refdef.vieworg, vec, tmp );
+					Matrix3x3_Transform( m_pCurrentEntity->matrix, tmp, vec );
+				}
+				else
+				{
+					VectorAdd( rotCentre, m_pCurrentEntity->origin, vec );
+					VectorSubtract( r_refdef.vieworg, vec, vec );
+				}
+
+				f = -DotProduct( vec, axis );
+
+				VectorMA( vec, f, axis, mat2[2] );
+				VectorNormalizeFast( mat2[2] );
+				VectorCopy( axis, mat2[1] );
+				CrossProduct( mat2[1], mat2[2], mat2[0] );
+
+				VectorSet( mat3[0], mat2[0][0], mat2[1][0], mat2[2][0] );
+				VectorSet( mat3[1], mat2[0][1], mat2[1][1], mat2[2][1] );
+				VectorSet( mat3[2], mat2[0][2], mat2[1][2], mat2[2][2] );
+
+				Matrix3x3_Concat( matrix, mat3, mat1 );
+
+				for( j = 0; j < 4; j++ )
+				{
+					VectorSubtract( quad[j], rotCentre, vec );
+					Matrix3x3_Transform( matrix, vec, quad[j] );
+					VectorAdd( quad[j], rotCentre, quad[j] );
+				}
+			}
+			break;
+		default: Host_Error( "RB_DeformVertexes: unknown deformVertexes type %i in shader '%s'\n", deformVertexes->type, m_pCurrentShader->name);
 		}
 	}
 }
@@ -1099,66 +1273,9 @@ static void RB_RenderShaderARB( void )
 
 	RB_UpdateVertexBuffer( ref.normalBuffer, ref.normalArray, ref.numVertex * sizeof( vec3_t ));
 	pglEnableClientState( GL_NORMAL_ARRAY );
-	pglNormalPointer( GL_FLOAT, 0, ref.vertexBuffer->pointer );
+	pglNormalPointer( GL_FLOAT, 0, ref.normalBuffer->pointer );
 
-	for( i = 0; i < m_pCurrentShader->numStages; i++ )
-	{
-		stage = m_pCurrentShader->stages[i];
-
-		RB_SetShaderStageState( stage );
-		RB_CalcVertexColors( stage );
-
-		RB_UpdateVertexBuffer( ref.colorBuffer, ref.colorArray, ref.numVertex * sizeof( vec4_t ));
-		pglEnableClientState( GL_COLOR_ARRAY );
-		pglColorPointer( 4, GL_FLOAT, 0, ref.vertexBuffer->pointer );
-	
-		for( j = 0; j < stage->numBundles; j++ )
-		{
-			bundle = stage->bundles[j];
-
-			RB_SetupTextureUnit( bundle, j );
-			RB_CalcTextureCoords( bundle, j );
-
-			RB_UpdateVertexBuffer( ref.texCoordBuffer[j], ref.texCoordArray[j], ref.numVertex * sizeof( vec3_t ));
-			pglEnableClientState( GL_TEXTURE_COORD_ARRAY );
-			pglTexCoordPointer( 3, GL_FLOAT, 0, ref.texCoordBuffer[j]->pointer );
-		}
-
-		RB_DrawElements();
-
-		for( j = stage->numBundles - 1; j >= 0; j-- )
-		{
-			bundle = stage->bundles[j];
-
-			RB_CleanupTextureUnit( bundle, j );
-			pglDisableClientState( GL_TEXTURE_COORD_ARRAY );
-		}
-	}
-}
-
-/*
-=================
-RB_RenderShader
-=================
-*/
-static void RB_RenderShader( void )
-{
-	shaderStage_t	*stage;
-	stageBundle_t	*bundle;
-	int		i, j;
-
-	RB_SetShaderState();
-	RB_DeformVertexes();
-
-	RB_UpdateVertexBuffer( ref.vertexBuffer, ref.vertexArray, ref.numVertex * sizeof( vec3_t ));
-	pglEnableClientState( GL_VERTEX_ARRAY );
-	pglVertexPointer( 3, GL_FLOAT, 0, ref.vertexBuffer->pointer );
-
-	RB_UpdateVertexBuffer( ref.normalBuffer, ref.normalArray, ref.numVertex * sizeof( vec3_t ));
-	pglEnableClientState( GL_NORMAL_ARRAY );
-	pglNormalPointer( GL_FLOAT, 0, ref.vertexBuffer->pointer );
-
-	if( GL_Support( R_CUSTOM_VERTEX_ARRAY_EXT ))
+	if( !GL_Support( R_ARB_VERTEX_BUFFER_OBJECT_EXT ) && GL_Support( R_CUSTOM_VERTEX_ARRAY_EXT ))
 	{
 		if( m_pCurrentShader->numStages != 1 )
 		{
@@ -1177,8 +1294,8 @@ static void RB_RenderShader( void )
 
 		RB_UpdateVertexBuffer( ref.colorBuffer, ref.colorArray, ref.numVertex * sizeof( vec4_t ));
 		pglEnableClientState( GL_COLOR_ARRAY );
-		pglColorPointer( 4, GL_FLOAT, 0, ref.vertexBuffer->pointer );
-
+		pglColorPointer( 4, GL_FLOAT, 0, ref.colorBuffer->pointer );
+	
 		for( j = 0; j < stage->numBundles; j++ )
 		{
 			bundle = stage->bundles[j];
@@ -1191,7 +1308,7 @@ static void RB_RenderShader( void )
 			pglTexCoordPointer( 3, GL_FLOAT, 0, ref.texCoordBuffer[j]->pointer );
 		}
 
-		if(GL_Support( R_CUSTOM_VERTEX_ARRAY_EXT ))
+		if(!GL_Support( R_ARB_VERTEX_BUFFER_OBJECT_EXT ) && GL_Support( R_CUSTOM_VERTEX_ARRAY_EXT ))
 		{
 			if( m_pCurrentShader->numStages == 1 )
 				pglLockArraysEXT( 0, ref.numVertex );
@@ -1208,7 +1325,8 @@ static void RB_RenderShader( void )
 		}
 	}
 
-	if( GL_Support( R_CUSTOM_VERTEX_ARRAY_EXT )) pglUnlockArraysEXT();
+	if(!GL_Support( R_ARB_VERTEX_BUFFER_OBJECT_EXT ) && GL_Support( R_CUSTOM_VERTEX_ARRAY_EXT ))
+		pglUnlockArraysEXT();
 }
 
 /*
@@ -1470,9 +1588,7 @@ void RB_RenderMesh( void )
 	r_stats.totalIndices += ref.numIndex * m_pCurrentShader->numStages;
 
 	// render the shader
-	if( GL_Support( R_ARB_VERTEX_BUFFER_OBJECT_EXT ))
-		RB_RenderShaderARB();
-	else RB_RenderShader();
+	RB_RenderShaderARB();
 
 	// draw debug tools
 	if( r_showtris->integer || r_physbdebug->integer || r_shownormals->integer || r_showtangentspace->integer || r_showmodelbounds->integer )
@@ -1546,16 +1662,17 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 			// check if the entity changed
 			if( m_pCurrentEntity != entity )
 			{
-				if( entity == r_worldEntity )
-					GL_LoadMatrix( r_worldMatrix );
-				else if( entity->ent_type == ED_BSPBRUSH )
-					R_RotateForEntity( entity );
-				else if( entity->ent_type == ED_RIGIDBODY )
-					R_RotateForEntity( entity );
-				else if( entity->ent_type == ED_MOVER )
-					R_RotateForEntity( entity );
-				// sprites and studio models make transformation locally
-
+				if( entity->model )
+				{
+					switch( entity->model->type )
+					{
+					case mod_brush:
+						R_RotateForEntity( entity );
+						break;
+					default:	break;
+					}
+				}
+				else GL_LoadMatrix( r_worldMatrix );
 				m_pCurrentEntity = entity;
 				m_fShaderTime = r_refdef.time - entity->shaderTime;
 				m_pRenderModel = m_pCurrentEntity->model;

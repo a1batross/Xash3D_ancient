@@ -94,7 +94,7 @@ void V_TestLights( void )
 	float		f, r;
 	cdlight_t		dl;
 
-	memset( &dl, 0, sizeof(cdlight_t));
+	Mem_Set( &dl, 0, sizeof( cdlight_t ));
 	V_ClearScene();
 	
 	for( i = 0; i < 32; i++ )

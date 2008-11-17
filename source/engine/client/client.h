@@ -300,6 +300,8 @@ extern	cvar_t	*cl_anglespeedkey;
 
 extern	cvar_t	*cl_showmiss;
 extern	cvar_t	*cl_showclamp;
+extern	cvar_t	*cl_particles;
+extern	cvar_t	*cl_particlelod;
 
 extern	cvar_t	*lookspring;
 extern	cvar_t	*lookstrafe;
@@ -356,24 +358,6 @@ void CL_ParticleEffect3 (vec3_t org, vec3_t dir, int color, int count);
 
 
 //=================================================
-
-// ========
-// PGM
-typedef struct cparticle_s
-{
-	struct cparticle_s	*next;
-
-	float		time;
-
-	vec3_t		org;
-	vec3_t		vel;
-	vec3_t		accel;
-	float		color;
-	float		colorvel;
-	float		alpha;
-	float		alphavel;
-} cparticle_t;
-
 //
 // cinematic.c
 //
@@ -382,8 +366,6 @@ void CIN_DrawCinematic( void );			// draw current frame
 void CIN_RunCinematic( void );			// decompress next frame
 void CIN_StopCinematic( void );			// stop video playing
 
-#define PARTICLE_GRAVITY	40
-#define INSTANT_PARTICLE	-10000.0
 void CL_TeleportSplash( vec3_t org );
 int CL_ParseEntityBits( sizebuf_t *msg, uint *bits );
 void CL_ParseFrame( sizebuf_t *msg );
@@ -546,6 +528,8 @@ float V_CalcFov( float fov_x, float width, float height );
 void CL_InitPrediction (void);
 void CL_PredictMove (void);
 void CL_CheckPredictionError (void);
+int CL_PointContents( vec3_t point );
+trace_t CL_Trace( const vec3_t s1, const vec3_t m1, const vec3_t m2, const vec3_t s2, int type, edict_t *ed, int mask );
 
 //
 // cl_ents.c

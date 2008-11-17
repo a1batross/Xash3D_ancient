@@ -111,6 +111,31 @@ _inline void Matrix3x3_FromAngles( const vec3_t angles, matrix3x3 out )
 	out[2][2] = cr*cp;
 }
 
+_inline void Matrix3x3_FromMatrix4x4( matrix3x3 out, const matrix4x4 in )
+{
+#ifdef OPENGL_STYLE
+	out[0][0] = in[0][0];
+	out[1][0] = in[1][0];
+	out[2][0] = in[2][0];
+	out[0][1] = in[0][1];
+	out[1][1] = in[1][1];
+	out[2][1] = in[2][1];
+	out[0][2] = in[0][2];
+	out[1][2] = in[1][2];
+	out[2][2] = in[2][2];
+#else
+	out[0][0] = in[0][0];
+	out[1][0] = in[0][1];
+	out[2][0] = in[0][2];
+	out[0][1] = in[1][0];
+	out[1][1] = in[1][1];
+	out[2][1] = in[1][2];
+	out[0][2] = in[2][0];
+	out[1][2] = in[2][1];
+	out[2][2] = in[2][2];
+#endif
+}
+
 _inline void Matrix3x3_ToAngles( const matrix3x3 matrix, vec3_t out )
 {
 	double	pitch, cpitch, yaw, roll;

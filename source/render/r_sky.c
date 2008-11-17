@@ -361,8 +361,6 @@ static void R_DrawSkyBox( texture_t *textures[6], bool blended )
 
 		if( GL_Support( R_ARB_VERTEX_BUFFER_OBJECT_EXT ))
 		{
-			//pglBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB, rb_vbo.indexBuffer );
-			//pglBufferDataARB( GL_ELEMENT_ARRAY_BUFFER_ARB, skySide->numIndices * sizeof(uint), skySide->indices, GL_STREAM_DRAW_ARB );
 			RB_UpdateVertexBuffer( sky->vbo[i], skySide->vertices, skySide->numVertices * sizeof(skySideVert_t));
 
 			pglEnableClientState( GL_VERTEX_ARRAY );

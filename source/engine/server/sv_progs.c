@@ -608,23 +608,15 @@ void SV_FreeEdict( edict_t *ed )
 {
 	// unlink from world
 	SV_UnlinkEdict( ed );
+	pe->RemoveBody( ed->priv.sv->physbody );
 
-	ed->priv.sv->s.ed_type = ED_SPAWNED;
+	Mem_Set( ed->priv.sv, 0, sizeof( sv_edict_t ));
+	Mem_Set( ed->progs.sv, 0, sizeof( sv_entvars_t ));
+
+	// mark edict as freed
 	ed->priv.sv->freetime = sv.time;
 	ed->priv.sv->free = true;
-
-	ed->progs.sv->model = 0;
-	ed->progs.sv->takedamage = 0;
-	ed->progs.sv->modelindex = 0;
-	ed->progs.sv->skin = 0;
-	ed->progs.sv->frame = 0;
-	ed->progs.sv->solid = 0;
-
-	pe->RemoveBody( ed->priv.sv->physbody );
-	VectorClear( ed->progs.sv->origin );
-	VectorClear( ed->progs.sv->angles );
 	ed->progs.sv->nextthink = -1;
-	ed->priv.sv->physbody = NULL;
 }
 
 void SV_CountEdicts( void )

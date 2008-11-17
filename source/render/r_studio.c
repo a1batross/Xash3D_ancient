@@ -1819,6 +1819,9 @@ bool R_StudioDrawModel( int pass, int flags )
 	}
 	R_StudioSaveBones();	
 
+	//////// AFTER THIS POINT GO STUDIO MODEL DRAW ///////
+	//////// SAVE BONES INTO LOCAL ARRAY /////////////////
+
 	if( flags & STUDIO_EVENTS )
 	{
 		R_StudioCalcAttachments();
@@ -2159,8 +2162,6 @@ void R_DrawStudioModel( void )
 
 void R_AddStudioModelToList( ref_entity_t *entity )
 {
-	m_pCurrentEntity = entity;
-
 	R_StudioSetupRender( 0 );
 	if(!R_StudioCheckBBox())
 		return;

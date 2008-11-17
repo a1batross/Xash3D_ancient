@@ -22,9 +22,9 @@ GLOBAL: ƒостигнуть уровн€ xash 0.45 к очередному релизу
 0. Com_Filter убрать внутрь launch.dll ??
 1. имплементаци€ нового формата карт		OK
 2. новый загрузчик моделей на рендере		OK
-3. SV_Frame на сервере
+3. SV_Frame на сервере			OK
 4. переписать загрузчик BSP			OK
-5. отладить R_ImageFreeUnused
+5. отладить R_ImageFreeUnused			OK
 6. дописать Image_ForceRGBA			OK
 7. SC_ALLOW_PATHNAMES2 - набор символов		OK
 8. упор€дочить ресурсы			OK
@@ -39,8 +39,12 @@ GLOBAL: ƒостигнуть уровн€ xash 0.45 к очередному релизу
 17. наладить StudioModelRender
 18. энумератор текстур			OK
 19. наладить удаление ключей из HashTable	OK
-20. CM_HeadnodeVisible
-21. Matrix3x3_Compare crashed
+20. CM_HeadnodeVisible			OK
+21. Matrix3x3_Compare crashed			OK
+22. SpriteCulling				OK
+23. LightSwitch				OK
+24. ParticleDrawing				OK
+25. CM_LeafCluster crashing
 
 операци€ "ѕолна€ отладка менеджера текстур"
 0. анализ менеджера egl и q2e_068

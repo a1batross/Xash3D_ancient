@@ -312,33 +312,32 @@ void SetLightStyles( void )
 		e = &entities[i];
 
 		t = ValueForKey( e, "classname" );
-		if( !com.strncmp( t, "func_light", 10 ))
-		{
-			// may create func_light family 
-			// e.g. func_light_fluoro, func_light_broken etc
-			k = com.atoi(ValueForKey( e, "spawnflags" ));
-			if( k & SF_START_ON ) t = "-2"; // initially on
-			else t = "-1"; // initially off
-		}
-		else t = ValueForKey( e, "style" );
-			
-		switch( com.atoi( t ))
-		{
-		case 0: continue; // not a light, no style, generally pretty boring
-		case -1: // normal switchable texlight (start off)
-			SetKeyValue( e, "style", va( "%i", 32 + stylenum ));
-			stylenum++;
-			continue;
-		case -2: // backwards switchable texlight (start on)
-			SetKeyValue(e, "style", va( "%i", -(32 + stylenum )));
-			stylenum++;
-			continue;
-		default: continue; // nothing to set
-		}
-
 		if( com.strncmp( t, "light", 5 ))
-			continue;
-
+		{
+			if(!com.strncmp( t, "func_light", 10 ))
+			{
+				// may create func_light family 
+				// e.g. func_light_fluoro, func_light_broken etc
+				k = com.atoi(ValueForKey( e, "spawnflags" ));
+				if( k & SF_START_ON ) t = "-2"; // initially on
+				else t = "-1"; // initially off
+			}
+			else t = ValueForKey( e, "style" );
+			
+			switch( com.atoi( t ))
+			{
+			case 0: continue; // not a light, no style, generally pretty boring
+			case -1: // normal switchable texlight (start off)
+				SetKeyValue( e, "style", va( "%i", 32 + stylenum ));
+				stylenum++;
+				continue;
+			case -2: // backwards switchable texlight (start on)
+				SetKeyValue(e, "style", va( "%i", -(32 + stylenum )));
+				stylenum++;
+				continue;
+			default: continue; // nothing to set
+			}
+                    }
 		t = ValueForKey( e, "targetname" );
 		if( !t[0] ) continue;
 

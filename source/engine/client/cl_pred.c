@@ -235,7 +235,7 @@ void CL_PMTrace( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, trace_t *tr
 	*tr = CL_Trace( start, mins, maxs, end, MOVE_NORMAL, NULL, CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_BODY );
 }
 
-int CL_PMpointcontents( vec3_t point )
+int CL_PointContents( vec3_t point )
 {
 	// get world supercontents at this point
 	if( cl.worldmodel && cl.worldmodel->PointContents )
@@ -289,7 +289,7 @@ void CL_PredictMovement (void)
 	// copy current state to pmove
 	memset (&pm, 0, sizeof(pm));
 	pm.trace = CL_PMTrace;
-	pm.pointcontents = CL_PMpointcontents;
+	pm.pointcontents = CL_PointContents;
 	pm.ps = cl.frame.ps;
 
 //	SCR_DebugGraph (current - ack - 1, COLOR_0);

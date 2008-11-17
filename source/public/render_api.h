@@ -9,6 +9,7 @@
 #define SHADER_SKY			0	// sky box shader
 #define SHADER_FONT			1	// speical case for displayed fonts
 #define SHADER_NOMIP		2	// 2d images
+#define SHADER_GENERIC		3	// generic shader
 
 typedef struct vrect_s
 {
@@ -53,7 +54,7 @@ typedef struct render_exp_s
 	// prepare frame to rendering
 	bool	(*AddRefEntity)( entity_state_t *s1, entity_state_t *s2, float lerp );
 	bool	(*AddDynLight)( vec3_t org, vec3_t color, float intensity );
-	bool	(*AddParticle)( vec3_t org, float alpha, int color );
+	bool	(*AddParticle)( shader_t shader, const vec3_t p1, const vec3_t p2, float rad, float len, float rot, int col );
 	bool	(*AddLightStyle)( int stylenum, vec3_t color );
 	void	(*ClearScene)( void );
 
@@ -61,9 +62,11 @@ typedef struct render_exp_s
 	void	(*RenderFrame)( refdef_t *fd );
 	void	(*EndFrame)( void );
 
+	// misc utilities
 	void	(*SetColor)( const float *rgba );
 	bool	(*ScrShot)( const char *filename, int shot_type ); // write screenshot with same name 
 	bool	(*EnvShot)( const char *filename, uint size, bool skyshot ); // write envshot with same name 
+	void	(*LightForPoint)( const vec3_t point, vec3_t ambientLight );
 	void	(*DrawFill)( float x, float y, float w, float h );
 	void	(*DrawStretchRaw)( int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw );
 	void	(*DrawStretchPic)( float x, float y, float w, float h, float s1, float t1, float s2, float t2, shader_t shader );

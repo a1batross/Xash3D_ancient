@@ -19,10 +19,10 @@
 #define SHADER_SKY			0	// sky box shader
 #define SHADER_FONT			1	// speical case for displayed fonts
 #define SHADER_NOMIP		2	// 2d images
-#define SHADER_TEXTURE		3	// bsp polygon
-#define SHADER_STUDIO		4	// studio skins
-#define SHADER_SPRITE		5	// sprite frames
-#define SHADER_GENERIC		6	// generic shader
+#define SHADER_GENERIC		3	// generic shader
+#define SHADER_TEXTURE		4	// bsp polygon
+#define SHADER_STUDIO		5	// studio skins
+#define SHADER_SPRITE		6	// sprite frames
 
 #define MAX_SHADERS			1024
 #define SHADERS_HASH_SIZE		256
@@ -180,7 +180,8 @@ typedef enum
 	DEFORM_MOVE,
 	DEFORM_NORMAL,
 	DEFORM_AUTOSPRITE,
-	DEFORM_AUTOSPRITE2
+	DEFORM_AUTOSPRITE2,
+	DEFORM_AUTOPARTICLE
 } deformType_t;
 
 typedef enum

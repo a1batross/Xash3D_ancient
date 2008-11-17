@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "common.h"
 #include "client.h"
+#include "const.h"
 
 /*
 ==============================================================
@@ -245,10 +246,81 @@ PARTICLE MANAGEMENT
 
 ==============================================================
 */
-cparticle_t *active_particles, *free_particles;
-cparticle_t particles[MAX_PARTICLES];
-int cl_numparticles = MAX_PARTICLES;
+#define NUM_VERTEX_NORMALS		162
+#define PARTICLE_GRAVITY		40
 
+#define PARTICLE_BOUNCE		1
+#define PARTICLE_FRICTION		2
+#define PARTICLE_VERTEXLIGHT		4
+#define PARTICLE_STRETCH		8
+#define PARTICLE_UNDERWATER		16
+#define PARTICLE_INSTANT		32
+
+typedef struct cparticle_s
+{
+	struct cparticle_s	*next;
+	shader_t		shader;
+
+	int		time;
+	int		flags;
+	
+	vec3_t		org;
+	vec3_t		vel;
+	vec3_t		accel;
+	vec3_t		color;
+	vec3_t		colorVel;
+	float		alpha;
+	float		alphaVel;
+	float		radius;
+	float		radiusVel;
+	float		length;
+	float		lengthVel;
+	float		rotation;
+	float		bounceFactor;
+
+	vec3_t		old_origin;
+} cparticle_t;
+
+cparticle_t *cl_active_particles, *cl_free_particles;
+static cparticle_t	cl_particle_list[MAX_PARTICLES];
+static vec3_t cl_particle_velocities[NUM_VERTEX_NORMALS];
+
+/*
+=================
+CL_FreeParticle
+=================
+*/
+static void CL_FreeParticle( cparticle_t *p )
+{
+	p->next = cl_free_particles;
+	cl_free_particles = p;
+}
+
+/*
+=================
+CL_AllocParticle
+=================
+*/
+static cparticle_t *CL_AllocParticle( void )
+{
+	cparticle_t	*p;
+
+	if( !cl_free_particles )
+		return NULL;
+
+	if( cl_particlelod->integer > 1 )
+	{
+		if(!(Com_RandomLong( 0, 1 ) % cl_particlelod->integer))
+			return NULL;
+	}
+
+	p = cl_free_particles;
+	cl_free_particles = p->next;
+	p->next = cl_active_particles;
+	cl_active_particles = p;
+
+	return p;
+}
 
 /*
 ===============
@@ -259,14 +331,221 @@ void CL_ClearParticles( void )
 {
 	int		i;
 	
-	free_particles = &particles[0];
-	active_particles = NULL;
+	cl_active_particles = NULL;
+	cl_free_particles = cl_particle_list;
 
-	for( i = 0; i < cl_numparticles; i++ )
-		particles[i].next = &particles[i + 1];
-	particles[cl_numparticles - 1].next = NULL;
+	for( i = 0; i < MAX_PARTICLES; i++ )
+		cl_particle_list[i].next = &cl_particle_list[i+1];
+
+	cl_particle_list[MAX_PARTICLES-1].next = NULL;
+
+	for( i = 0; i < NUM_VERTEX_NORMALS; i++ )
+	{
+		cl_particle_velocities[i][0] = (rand() & 255) * 0.01;
+		cl_particle_velocities[i][1] = (rand() & 255) * 0.01;
+		cl_particle_velocities[i][2] = (rand() & 255) * 0.01;
+	}
 }
 
+/*
+===============
+CL_AddParticles
+===============
+*/
+void CL_AddParticles( void )
+{
+	cparticle_t	*p, *next;
+	cparticle_t	*active = NULL, *tail = NULL;
+	dword		modulate;
+	vec3_t		org, org2, vel, color;
+	vec3_t		ambientLight;
+	float		alpha, radius, length;
+	float		time, time2, gravity, dot;
+	vec3_t		mins, maxs;
+	int		contents;
+	trace_t		trace;
+
+	if( !cl_particles->integer ) return;
+
+	if( PRVM_EDICT_NUM( cl.frame.ps.number )->priv.cl->current.gravity != 0 )
+		gravity = PRVM_EDICT_NUM( cl.frame.ps.number )->priv.cl->current.gravity / 800.0;
+	else gravity = 1.0f;
+
+	for( p = cl_active_particles; p; p = next )
+	{
+		// grab next now, so if the particle is freed we still have it
+		next = p->next;
+
+		time = (cl.time - p->time) * 0.001;
+		time2 = time * time;
+
+		alpha = p->alpha + p->alphaVel * time;
+		radius = p->radius + p->radiusVel * time;
+		length = p->length + p->lengthVel * time;
+
+		if( alpha <= 0 || radius <= 0 || length <= 0 )
+		{
+			// faded out
+			CL_FreeParticle( p );
+			continue;
+		}
+
+		color[0] = p->color[0] + p->colorVel[0] * time;
+		color[1] = p->color[1] + p->colorVel[1] * time;
+		color[2] = p->color[2] + p->colorVel[2] * time;
+
+		org[0] = p->org[0] + p->vel[0] * time + p->accel[0] * time2;
+		org[1] = p->org[1] + p->vel[1] * time + p->accel[1] * time2;
+		org[2] = p->org[2] + p->vel[2] * time + p->accel[2] * time2 * gravity;
+
+		if( p->flags & PARTICLE_UNDERWATER )
+		{
+			// underwater particle
+			VectorSet( org2, org[0], org[1], org[2] + radius );
+
+			if(!(CL_PointContents( org2 ) & MASK_WATER ))
+			{
+				// not underwater
+				CL_FreeParticle( p );
+				continue;
+			}
+		}
+
+		p->next = NULL;
+		if( !tail ) active = tail = p;
+		else
+		{
+			tail->next = p;
+			tail = p;
+		}
+
+		if( p->flags & PARTICLE_FRICTION )
+		{
+			// water friction affected particle
+			contents = CL_PointContents( org );
+			if( contents & MASK_WATER )
+			{
+				// add friction
+				if( contents & CONTENTS_WATER )
+				{
+					VectorScale( p->vel, 0.25, p->vel );
+					VectorScale( p->accel, 0.25, p->accel );
+				}
+				if( contents & CONTENTS_SLIME )
+				{
+					VectorScale( p->vel, 0.20, p->vel );
+					VectorScale( p->accel, 0.20, p->accel );
+				}
+				if( contents & CONTENTS_LAVA )
+				{
+					VectorScale( p->vel, 0.10, p->vel );
+					VectorScale( p->accel, 0.10, p->accel );
+				}
+
+				// don't add friction again
+				p->flags &= ~PARTICLE_FRICTION;
+				length = 1;
+				
+				// reset
+				p->time = cl.time;
+				VectorCopy( org, p->org );
+				VectorCopy( color, p->color );
+				p->alpha = alpha;
+				p->radius = radius;
+
+				// don't stretch
+				p->flags &= ~PARTICLE_STRETCH;
+				p->length = length;
+				p->lengthVel = 0;
+			}
+		}
+
+		if( p->flags & PARTICLE_BOUNCE )
+		{
+			edict_t	*clent = PRVM_EDICT_NUM( cl.frame.ps.number );
+
+			// bouncy particle
+			VectorSet(mins, -radius, -radius, -radius);
+			VectorSet(maxs, radius, radius, radius);
+
+			trace = CL_Trace( p->old_origin, mins, maxs, org, MOVE_NORMAL, clent, MASK_SOLID );
+			if( trace.fraction != 0.0 && trace.fraction != 1.0 )
+			{
+				// reflect velocity
+				time = cl.time - (cls.frametime + cls.frametime * trace.fraction) * 1000;
+				time = (time - p->time) * 0.001;
+
+				VectorSet( vel, p->vel[0], p->vel[1], p->vel[2]+p->accel[2]*gravity*time );
+				VectorReflect( vel, 0, trace.plane.normal, p->vel );
+				VectorScale( p->vel, p->bounceFactor, p->vel );
+
+				// check for stop or slide along the plane
+				if( trace.plane.normal[2] > 0 && p->vel[2] < 1 )
+				{
+					if( trace.plane.normal[2] == 1 )
+					{
+						VectorClear( p->vel );
+						VectorClear( p->accel );
+						p->flags &= ~PARTICLE_BOUNCE;
+					}
+					else
+					{
+						// FIXME: check for new plane or free fall
+						dot = DotProduct( p->vel, trace.plane.normal );
+						VectorMA( p->vel, -dot, trace.plane.normal, p->vel );
+
+						dot = DotProduct( p->accel, trace.plane.normal );
+						VectorMA( p->accel, -dot, trace.plane.normal, p->accel );
+					}
+				}
+
+				VectorCopy( trace.endpos, org );
+				length = 1;
+
+				// reset
+				p->time = cl.time;
+				VectorCopy( org, p->org );
+				VectorCopy( color, p->color );
+				p->alpha = alpha;
+				p->radius = radius;
+
+				// don't stretch
+				p->flags &= ~PARTICLE_STRETCH;
+				p->length = length;
+				p->lengthVel = 0;
+			}
+		}
+
+		// save current origin if needed
+		if( p->flags & (PARTICLE_BOUNCE|PARTICLE_STRETCH))
+		{
+			VectorCopy( p->old_origin, org2 );
+			VectorCopy( org, p->old_origin ); // FIXME: pause
+		}
+
+		if( p->flags & PARTICLE_VERTEXLIGHT )
+		{
+			// vertex lit particle
+			re->LightForPoint( org, ambientLight );
+			VectorMultiply( color, ambientLight, color );
+		}
+
+		// bound color and alpha and convert to byte
+		modulate = PackRGBA( color[0], color[1], color[2], alpha );
+
+		if( p->flags & PARTICLE_INSTANT )
+		{
+			// instant particle
+			p->alpha = 0;
+			p->alphaVel = 0;
+		}
+
+		// send the particle to the renderer
+		re->AddParticle( p->shader, org, org2, radius, length, p->rotation, modulate );
+	}
+
+	cl_active_particles = active;
+}
 
 /*
 ===============
@@ -281,20 +560,16 @@ void CL_ParticleEffect (vec3_t org, vec3_t dir, int color, int count)
 	cparticle_t	*p;
 	float		d;
 
-	for (i=0 ; i<count ; i++)
+	for( i = 0; i < count; i++ )
 	{
-		if (!free_particles)
-			return;
-		p = free_particles;
-		free_particles = p->next;
-		p->next = active_particles;
-		active_particles = p;
+		p = CL_AllocParticle();
+		if( !p ) return;
 
-		p->time = cl.time * 0.001;
-		p->color = color + (rand()&7);
+		p->time = cl.time;
+		VectorCopy( UnpackRGBA( color ), p->color );
 
 		d = rand()&31;
-		for (j=0 ; j<3 ; j++)
+		for( j = 0; j < 3; j++ )
 		{
 			p->org[j] = org[j] + ((rand()&7)-4) + d*dir[j];
 			p->vel[j] = RANDOM_FLOAT( -1.0f, 1.0f ) * 20;
@@ -303,8 +578,12 @@ void CL_ParticleEffect (vec3_t org, vec3_t dir, int color, int count)
 		p->accel[0] = p->accel[1] = 0;
 		p->accel[2] = -PARTICLE_GRAVITY;
 		p->alpha = 1.0;
-
-		p->alphavel = -1.0 / (0.5 + RANDOM_FLOAT(0, 1) * 0.3);
+		p->alphaVel = -1.0 / (0.5 + RANDOM_FLOAT(0, 1) * 0.3);
+		p->radius = 2;
+		p->radiusVel = 0;
+		p->length = 1;
+		p->lengthVel = 0;
+		p->rotation = 0;
 	}
 }
 
@@ -318,8 +597,14 @@ void CL_TeleportSplash( vec3_t org )
 {
 	int		i, j, k;
 	cparticle_t	*p;
-	float		vel;
+	shader_t		teleShader;
+	float		vel, color;
 	vec3_t		dir;
+
+	if( !cl_particles->integer )
+		return;
+
+	teleShader = re->RegisterShader( "particles/glow", SHADER_GENERIC );
 
 	for( i = -16; i < 16; i += 4 )
 	{
@@ -327,103 +612,46 @@ void CL_TeleportSplash( vec3_t org )
 		{
 			for( k = -24; k < 32; k += 4 )
 			{
-				if(!free_particles) return;
-				p = free_particles;
-				free_particles = p->next;
-				p->next = active_particles;
-				active_particles = p;
+				p = CL_AllocParticle();
+				if( !p ) return;
 		
-				p->time = (cl.time * 0.001) + RANDOM_FLOAT( 0.02f, 0.2f );
-				p->color = 0xdb;
+				VectorSet( dir, j*8, i*8, k*8 );
+				VectorNormalizeFast( dir );
+
+				vel = 50 + (rand() & 63);
+				color = 0.1 + (0.2 * Com_RandomFloat( -1.0f, 1.0f ));
+								
+				p->shader = teleShader;
+				p->time = cl.time;
+				p->flags = 0;
 				
-				dir[0] = j * 8;
-				dir[1] = i * 8;
-				dir[2] = k * 8;
-	
-				p->org[0] = org[0] + i + (rand()&3);
-				p->org[1] = org[1] + j + (rand()&3);
-				p->org[2] = org[2] + k + (rand()&3);
-
-				p->accel[0] = p->accel[1] = 0;
+				p->org[0] = org[0] + i + (rand() & 3);
+				p->org[1] = org[1] + j + (rand() & 3);
+				p->org[2] = org[2] + k + (rand() & 3);
+				p->vel[0] = dir[0] * vel;
+				p->vel[1] = dir[1] * vel;
+				p->vel[2] = dir[2] * vel;
+				p->accel[0] = 0;
+				p->accel[1] = 0;
 				p->accel[2] = -PARTICLE_GRAVITY;
-				p->alphavel = -0.5;
+				p->color[0] = color;
+				p->color[1] = color;
+				p->color[2] = color;
+				p->colorVel[0] = 0;
+				p->colorVel[1] = 0;
+				p->colorVel[2] = 0;
 				p->alpha = 1.0;
-	
-				VectorNormalize( dir );						
-				vel = 50 + (rand()&63);
-				VectorScale( dir, vel, p->vel );
+				p->alphaVel = -1.0 / (0.3 + (rand() & 7) * 0.02);
+				p->radius = 2;
+				p->radiusVel = 0;
+				p->length = 1;
+				p->lengthVel = 0;
+				p->rotation = 0;
 			}
 		}
 	}
 }
 
-/*
-===============
-CL_AddParticles
-===============
-*/
-void CL_AddParticles (void)
-{
-	cparticle_t		*p, *next;
-	float			alpha;
-	float			time, time2;
-	vec3_t			org;
-	int				color;
-	cparticle_t		*active, *tail;
-
-	active = NULL;
-	tail = NULL;
-
-	for( p = active_particles; p; p = next )
-	{
-		next = p->next;
-
-		// PMM - added INSTANT_PARTICLE handling for heat beam
-		if( p->alphavel != INSTANT_PARTICLE )
-		{
-			time = ( cl.time * 0.001 ) - p->time;
-			alpha = p->alpha + time * p->alphavel;
-			if( alpha <= 0 )
-			{	
-				// faded out
-				p->next = free_particles;
-				free_particles = p;
-				continue;
-			}
-		}
-		else
-		{
-			alpha = p->alpha;
-		}
-
-		p->next = NULL;
-		if( !tail ) active = tail = p;
-		else
-		{
-			tail->next = p;
-			tail = p;
-		}
-
-		if( alpha > 1.0 ) alpha = 1;
-		color = p->color;
-
-		time2 = time*time;
-
-		org[0] = p->org[0] + p->vel[0] * time + p->accel[0] * time2;
-		org[1] = p->org[1] + p->vel[1] * time + p->accel[1] * time2;
-		org[2] = p->org[2] + p->vel[2] * time + p->accel[2] * time2;
-
-		re->AddParticle( org, alpha, color );
-		// PMM
-		if( p->alphavel == INSTANT_PARTICLE )
-		{
-			p->alphavel = 0.0;
-			p->alpha = 0.0;
-		}
-	}
-
-	active_particles = active;
-}
 
 /*
 ==============

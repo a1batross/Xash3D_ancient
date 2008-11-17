@@ -1105,7 +1105,7 @@ static bool R_AddDynamicLight( vec3_t org, vec3_t color, float intensity )
 R_AddParticleToScene
 =================
 */
-bool R_AddParticleToScene( const vec3_t origin, float alpha, int color )
+bool R_AddParticleToScene( shader_t shader, const vec3_t org1, const vec3_t org2, float radius, float length, float rotate, int color )
 {
 	particle_t	*p;
 
@@ -1114,13 +1114,16 @@ bool R_AddParticleToScene( const vec3_t origin, float alpha, int color )
 
 	p = &r_particles[r_numParticles];
 
-	p->shader = tr.particleShader;
-	VectorCopy( origin, p->origin );
-	VectorCopy( origin, p->old_origin );
-	p->radius = 5;
-	p->length = alpha;
-	p->rotation = 0;
-	Vector4Set( p->modulate, 1.0f, 1.0f, 1.0f, 1.0f );
+	if( shader > 0 )
+		p->shader = &r_shaders[shader];
+	else p->shader = tr.particleShader;
+
+	VectorCopy( org1, p->origin );
+	VectorCopy( org2, p->old_origin );
+	p->radius = radius;
+	p->length = length;
+	p->rotation = rotate;
+	Vector4Copy( UnpackRGBA( color ), p->modulate );
 	r_numParticles++;
 
 	return true;
@@ -1258,7 +1261,7 @@ shader_t Mod_RegisterShader( const char *name, int shaderType )
 {
 	shader_t	shader = tr.defaultShader->shadernum;
 
-	if( shaderType >= SHADER_SKY && shaderType <= SHADER_NOMIP )
+	if( shaderType >= SHADER_SKY && shaderType <= SHADER_GENERIC )
 		shader = R_FindShader( name, shaderType, 0 )->shadernum;
 	else MsgDev( D_WARN, "Mod_RegisterShader: invalid shader type (%i)\n", shaderType );
 	if( shaderType == SHADER_SKY ) R_SetupSky( name, 0, vec3_origin );
@@ -1374,6 +1377,7 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	re.SetColor = GL_SetColor;
 	re.ScrShot = VID_ScreenShot;
 	re.EnvShot = VID_CubemapShot;
+	re.LightForPoint = R_LightForPoint;
 	re.DrawFill = R_DrawFill;
 	re.DrawStretchRaw = R_DrawStretchRaw;
 	re.DrawStretchPic = R_DrawStretchPic;
