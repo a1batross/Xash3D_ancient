@@ -94,12 +94,12 @@ static const net_desc_t NWDesc[] =
 { NET_BYTE,	"Byte",	0,		255	},
 { NET_SHORT,	"Short",	-32767,		32767	},
 { NET_WORD,	"Word",	0,		65535	},
-{ NET_LONG,	"Long",	0,		0	},
-{ NET_FLOAT,	"Float",	0,		0	},
+{ NET_LONG,	"Long",	0,		0	}, // can't overflow
+{ NET_FLOAT,	"Float",	0,		0	}, // can't overflow
 { NET_ANGLE,	"Angle",	-360,		360	},
-{ NET_SCALE,	"Scale",	0,		0	},
+{ NET_SCALE,	"Scale",	0,		255	},
 { NET_COORD,	"Coord",	-262140,		262140	},
-{ NET_COLOR,	"Color",	0,		0	},
+{ NET_COLOR,	"Color",	0,		255	},
 };
 
 /*

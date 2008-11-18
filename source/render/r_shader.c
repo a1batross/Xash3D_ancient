@@ -9,7 +9,7 @@
 
 // FIXME: remove it
 const char *r_skyBoxSuffix[6] = { "rt", "lf", "bk", "ft", "up", "dn" };
-static texture_t		*r_internalMiptex;
+static texture_t *r_spriteTexture;
 
 
 typedef struct
@@ -64,7 +64,7 @@ shaderParm_t infoParms[] =
 	{"trigger",	SURF_NODRAW,	CONTENTS_TRIGGER,		1}, // trigger volume
 	          
 	// utility relevant attributes
-	{"origin",	SURF_NONE,	CONTENTS_ORIGIN,		1}, // center of rotating brushes
+	{"origin",	SURF_NODRAW,	CONTENTS_ORIGIN,		1}, // center of rotating brushes
 	{"nolightmap",	SURF_NOLIGHTMAP,	CONTENTS_NONE,		0}, // don't generate a lightmap
 	{"translucent",	SURF_NONE,	CONTENTS_TRANSLUCENT,	0}, // don't eat contained surfaces
 	{"detail",	SURF_NONE,	CONTENTS_DETAIL,		0}, // don't include in structural bsp
@@ -1796,8 +1796,6 @@ static bool R_ParseStageMap( ref_shader_t *shader, shaderStage_t *stage, script_
 		bundle->textures[bundle->numTextures++] = r_whiteTexture;
 	else if( !com.stricmp( tok.string, "$blackImage"))
 		bundle->textures[bundle->numTextures++] = r_blackTexture;
-	else if( !com.stricmp( tok.string, "$internal"))
-		bundle->textures[bundle->numTextures++] = r_internalMiptex;
 	else
 	{
 		while( 1 )
@@ -3936,7 +3934,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 		break;
 	case SHADER_STUDIO:
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
-		shader->stages[0]->bundles[0]->textures[0] = r_internalMiptex; // internal spriteframe
+		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( va( "Studio( %s )", shader->name ), NULL, 0, TF_GEN_MIPS, 0, 0 );
 		if( !shader->stages[0]->bundles[0]->textures[0] )
 		{
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
@@ -3947,26 +3945,21 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 		{
 			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
-			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
-			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
+			shader->stages[0]->blendFunc.dst = GL_ONE;
 	         		shader->sort = SORT_ADDITIVE;
 		}
-		if( shader->surfaceParm & SURF_ADDITIVE )
+		else if( shader->surfaceParm & SURF_ADDITIVE )
 		{
 			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
+			shader->stages[0]->blendFunc.src = GL_ONE;
 			shader->stages[0]->blendFunc.dst = GL_ONE;
-			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
 	         		shader->sort = SORT_ADDITIVE;
 		}
-		if( shader->surfaceParm & SURF_ALPHA )
+		else if( shader->surfaceParm & SURF_ALPHA )
 		{
 			shader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
-			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
-			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 			shader->stages[0]->alphaFunc.func = GL_GREATER;
 			shader->stages[0]->alphaFunc.ref = 0.666;
-			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
 			shader->sort = SORT_SEETHROUGH;
 		}
 		shader->stages[0]->bundles[0]->numTextures++;
@@ -3975,7 +3968,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 		break;
 	case SHADER_SPRITE:
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
-		shader->stages[0]->bundles[0]->textures[0] = r_internalMiptex; // internal spriteframe
+		shader->stages[0]->bundles[0]->textures[0] = r_spriteTexture;
 		shader->stages[0]->bundles[0]->texType = TEX_GENERIC;
 		if( !shader->stages[0]->bundles[0]->textures[0] )
 		{
@@ -3984,20 +3977,32 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 		}
 		if( shader->surfaceParm & SURF_BLEND )
 		{
+			// normal transparency
 			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
 			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
-			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
-	         		shader->sort = SORT_ADDITIVE;
 		}
-		if( shader->surfaceParm & SURF_ALPHA )
+		else if( shader->surfaceParm & SURF_ADDITIVE )
+		{
+			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAGEN;
+			shader->stages[0]->blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
+			shader->stages[0]->blendFunc.dst = GL_ONE;
+			shader->stages[0]->alphaGen.type = ALPHAGEN_ENTITY;
+			shader->sort = SORT_ADDITIVE;
+		}
+		else if( shader->surfaceParm & SURF_GLOW )
+		{
+			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAGEN;
+			shader->stages[0]->blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
+			shader->stages[0]->blendFunc.dst = GL_ONE;
+			shader->stages[0]->alphaGen.type = ALPHAGEN_ENTITY;
+			shader->sort = SORT_ADDITIVE;
+		}
+		else if( shader->surfaceParm & SURF_ALPHA )
 		{
 			shader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
-			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
-			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 			shader->stages[0]->alphaFunc.func = GL_GREATER;
 			shader->stages[0]->alphaFunc.ref = 0.666;
-			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
 			shader->sort = SORT_SEETHROUGH;
 		}
 		shader->stages[0]->bundles[0]->numTextures++;
@@ -4296,14 +4301,14 @@ static void R_FinishShader( ref_shader_t *shader )
 				else stage->rgbGen.type = RGBGEN_IDENTITY;
 				break;
 			case SHADER_STUDIO:
-				if( shader->surfaceParm & SURF_ADDITIVE )
+				if( shader->surfaceParm & (SURF_ADDITIVE|SURF_GLOW))
 					stage->rgbGen.type = RGBGEN_IDENTITYLIGHTING;
 				else stage->rgbGen.type = RGBGEN_LIGHTINGAMBIENT;
 				break;
 			case SHADER_SPRITE:
-				if( shader->surfaceParm & SURF_ALPHA|SURF_BLEND )
-					stage->rgbGen.type = RGBGEN_LIGHTINGAMBIENT; // sprite colormod
-				else if( shader->surfaceParm & SURF_ADDITIVE )
+				if( shader->surfaceParm & (SURF_ALPHA|SURF_BLEND))
+					stage->rgbGen.type = RGBGEN_LIGHTINGAMBIENT;
+				else if( shader->surfaceParm & (SURF_ADDITIVE|SURF_GLOW))
 					stage->rgbGen.type = RGBGEN_IDENTITYLIGHTING;
 				break;
 			case SHADER_NOMIP:
@@ -4332,10 +4337,10 @@ static void R_FinishShader( ref_shader_t *shader )
 				else stage->alphaGen.type = ALPHAGEN_IDENTITY;
 				break;
 			case SHADER_STUDIO:
-				stage->alphaGen.type = ALPHAGEN_IDENTITY;
+				stage->alphaGen.type = ALPHAGEN_ENTITY;
 				break;
 			case SHADER_SPRITE:
-				stage->alphaGen.type = ALPHAGEN_IDENTITY;
+				stage->alphaGen.type = ALPHAGEN_ENTITY;
 				break;
 			case SHADER_NOMIP:
 			case SHADER_GENERIC:
@@ -4817,10 +4822,10 @@ ref_shader_t *R_FindShader( const char *name, int shaderType, uint surfaceParm )
 	return R_LoadShader( shader );
 }
 
-void R_SetInternalMap( texture_t *mipTex )
+void R_ShaderSetSpriteTexture( texture_t *mipTex )
 {
 	// never replace with NULL
-	if( mipTex ) r_internalMiptex = mipTex;
+	if( mipTex ) r_spriteTexture = mipTex;
 }
 
 /*
@@ -5090,6 +5095,9 @@ void R_ShaderList_f( void )
 		case SHADER_STUDIO:
 			Msg( "mdl " );
 			break;
+		case SHADER_FONT:
+			Msg( "fnt " );
+			break;
 		case SHADER_SPRITE:
 			Msg( "spr " );
 			break;
@@ -5102,8 +5110,8 @@ void R_ShaderList_f( void )
 		}
 
 		if( shader->surfaceParm )
-			Msg( "%02X ", shader->surfaceParm );
-		else Msg("   ");
+			Msg( "%02p ", shader->surfaceParm );
+		else Msg("         ");
 
 		Msg( "%2i ", shader->sort );
 		Msg( ": %s%s\n", shader->name, (shader->flags & SHADER_DEFAULTED) ? " (DEFAULTED)" : "" );
@@ -5150,7 +5158,7 @@ void R_InitShaders( void )
 
 	// create built-in shaders
 	R_CreateBuiltInShaders();
-	r_internalMiptex = r_defaultTexture;
+	r_spriteTexture = r_defaultTexture;
 }
 
 /*

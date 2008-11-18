@@ -738,7 +738,7 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 		{
 			f = DotProduct(vec, ref.normalArray[i] );
 			if( f < 0 ) f = -f;
-			ref.colorArray[i][3] = 1.0f * bound( alphaGen->params[0], 1.0 - f, alphaGen->params[1]);
+			ref.colorArray[i][3] = bound( alphaGen->params[0], 1.0 - f, alphaGen->params[1]);
 		}
 		break;
 	case ALPHAGEN_FADE:
@@ -749,7 +749,7 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 
 			f = bound( alphaGen->params[0], f, alphaGen->params[1] ) - alphaGen->params[0];
 			f = f * alphaGen->params[2];
-			ref.colorArray[i][3] = 1.0f * bound( 0.0, f, 1.0 );
+			ref.colorArray[i][3] = bound( 0.0, f, 1.0 );
 		}
 		break;
 	case ALPHAGEN_ONEMINUSFADE:
@@ -760,7 +760,7 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 
 			f = bound( alphaGen->params[0], f, alphaGen->params[1] ) - alphaGen->params[0];
 			f = f * alphaGen->params[2];
-			ref.colorArray[i][3] = 1.0f * bound( 0.0, 1.0 - f, 1.0 );
+			ref.colorArray[i][3] = bound( 0.0, 1.0 - f, 1.0 );
 		}
 		break;
 	case ALPHAGEN_LIGHTINGSPECULAR:
@@ -1668,6 +1668,10 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 					{
 					case mod_brush:
 						R_RotateForEntity( entity );
+						break;
+					case mod_studio:
+					case mod_sprite:
+						GL_LoadMatrix( r_worldMatrix );
 						break;
 					default:	break;
 					}

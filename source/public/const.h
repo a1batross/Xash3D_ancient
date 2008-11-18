@@ -121,6 +121,17 @@ typedef enum
 	SURF_GLOW			= BIT(14),// sprites glow
 } surfaceType_t;
 
+// rendering constants
+enum 
+{	
+	kRenderNormal,		// src
+	kRenderTransColor,		// c*a+dest*(1-a)
+	kRenderTransTexture,	// src*a+dest*(1-a)
+	kRenderGlow,		// src*a+dest -- no Z buffer checks
+	kRenderTransAlpha,		// src*srca+dest*(1-srca)
+	kRenderTransAdd,		// src*a+dest
+} kRenderMode_t;
+
 // engine physics constants
 #define COLLISION_SNAPSCALE		(32.0f)
 #define COLLISION_SNAP		(1.0f / COLLISION_SNAPSCALE)

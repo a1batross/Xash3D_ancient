@@ -32,7 +32,7 @@ infoParm_t infoParms[] =
 	{"trigger",	SURF_NODRAW,	CONTENTS_TRIGGER,		1}, // trigger volume
 	          
 	// utility relevant attributes
-	{"origin",	SURF_NONE,	CONTENTS_ORIGIN,		1}, // center of rotating brushes
+	{"origin",	SURF_NODRAW,	CONTENTS_ORIGIN,		1}, // center of rotating brushes
 	{"nolightmap",	SURF_NOLIGHTMAP,	CONTENTS_NONE,		0}, // don't generate a lightmap
 	{"translucent",	SURF_NONE,	CONTENTS_TRANSLUCENT,	0}, // don't eat contained surfaces
 	{"detail",	SURF_NONE,	CONTENTS_DETAIL,		0}, // don't include in structural bsp

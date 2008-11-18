@@ -985,12 +985,14 @@ static bool R_AddEntityToScene( entity_state_t *s1, entity_state_t *s2, float le
 	case ED_VIEWMODEL: break;
 	default: return false;
 	}
+
 	// copy state to render
 	refent->frame = s1->model.frame;
 	refent->index = s1->number;
 	refent->ent_type = s1->ed_type;
 	refent->backlerp = 1.0f - lerpfrac;
-	refent->renderamt = s1->renderamt;
+	refent->renderamt = s1->renderamt / 255.0f;
+	refent->rendermode = s1->rendermode;
 	refent->body = s1->model.body;
 	refent->sequence = s1->model.sequence;		
 	refent->movetype = s1->movetype;
@@ -999,7 +1001,7 @@ static bool R_AddEntityToScene( entity_state_t *s1, entity_state_t *s2, float le
 	refent->framerate = s1->model.framerate;
 	refent->effects = s1->effects;
 	refent->animtime = s1->model.animtime;
-	VectorCopy( s1->rendercolor, refent->rendercolor );
+	VectorDivide( s1->rendercolor, 255.0f, refent->rendercolor );
 
 	// setup latchedvars
 	refent->prev.frame = s2->model.frame;

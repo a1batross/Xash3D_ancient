@@ -63,6 +63,7 @@ void SV_UpdateEntityState( edict_t *ent )
 	ent->priv.sv->s.model.sequence = (byte)ent->progs.sv->sequence;	// studio model sequence
 	ent->priv.sv->s.effects = (uint)ent->progs.sv->effects;		// shared client and render flags
 	ent->priv.sv->s.renderfx = (int)ent->progs.sv->renderfx;		// renderer flags
+	ent->priv.sv->s.rendermode = ent->progs.sv->rendermode;		// rendering mode
 	ent->priv.sv->s.renderamt = ent->progs.sv->renderamt;		// alpha value
 	ent->priv.sv->s.model.framerate = ent->progs.sv->framerate;
 	ent->priv.sv->s.model.animtime = (int)(1000.0 * ent->progs.sv->animtime) * 0.001; // sequence time

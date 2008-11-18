@@ -238,17 +238,6 @@ void _MSG_WriteBits( sizebuf_t *msg, int value, const char *name, int net_type, 
 	union { long l; float f; } dat;
 	byte *buf;
 
-	if((NWDesc[net_type].min_range + NWDesc[net_type].max_range) != 0 )
-	{
-		// check range first
-		if( value < NWDesc[net_type].min_range || value > NWDesc[net_type].max_range )
-		{
-			MsgDev( D_INFO, "MSG_Write%s: ", NWDesc[net_type].name );
-			if( name ) MsgDev( D_INFO, "variable '%s' ", name );
-			MsgDev( D_INFO, "range error %i should be in range (%i", value, NWDesc[net_type].min_range );
-			MsgDev( D_INFO, " %i)(called at %s:%i)\n", NWDesc[net_type].max_range, filename, fileline );
-          	}
-          }
 	// this isn't an exact overflow check, but close enough
 	if( msg->maxsize - msg->cursize < 4 )
 	{
@@ -267,7 +256,7 @@ void _MSG_WriteBits( sizebuf_t *msg, int value, const char *name, int net_type, 
 		break;
 	case NET_COLOR:
 		dat.l = value;
-		value = dat.f * 255;
+		value = bound( 0, dat.f, 255 );
 		buf = MSG_GetSpace( msg, 1 );
 		buf[0] = value;
 		break;
@@ -300,6 +289,18 @@ void _MSG_WriteBits( sizebuf_t *msg, int value, const char *name, int net_type, 
 		Host_Error( "MSG_WriteBits: bad net.type (called at %s:%i)\n", filename, fileline );			
 		break;
 	}
+
+	if((NWDesc[net_type].min_range + NWDesc[net_type].max_range) != 0 )
+	{
+		// check range
+		if( value < NWDesc[net_type].min_range || value > NWDesc[net_type].max_range )
+		{
+			MsgDev( D_INFO, "MSG_Write%s: ", NWDesc[net_type].name );
+			if( name ) MsgDev( D_INFO, "variable '%s' ", name );
+			MsgDev( D_INFO, "range error %i should be in range (%i", value, NWDesc[net_type].min_range );
+			MsgDev( D_INFO, " %i)(called at %s:%i)\n", NWDesc[net_type].max_range, filename, fileline );
+          	}
+          }
 }
 
 /*
@@ -324,7 +325,7 @@ long _MSG_ReadBits( sizebuf_t *msg, int net_type, const char *filename, const in
 		break;
 	case NET_COLOR:
 		value = (byte)(msg->data[msg->readcount]);
-		dat.f = value / 255.0f;
+		dat.f = value;
 		value = dat.l;
 		msg->readcount += 1;
 		break;

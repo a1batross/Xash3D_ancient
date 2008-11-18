@@ -9,6 +9,44 @@
 #include "const.h"
 
 /*
+=================
+R_LightNormalizeColor
+=================
+*/
+void R_LightNormalizeColor( vec3_t in, vec4_t out )
+{
+	float	max;
+
+	// catch negative colors
+	if( in[0] < 0 ) in[0] = 0;
+	if( in[1] < 0 ) in[1] = 0;
+	if( in[2] < 0 ) in[2] = 0;
+
+	// determine the brightest of the three color components
+	max = in[0];
+	if( max < in[1] ) max = in[1];
+	if( max < in[2] ) max = in[2];
+
+	// rescale all the color components if the intensity of the greatest
+	// channel exceeds 1.0
+	if( max > 255.0f )
+	{
+		max = (1.0f / max);
+
+		out[0] = in[0] * max;
+		out[1] = in[1] * max;
+		out[2] = in[2] * max;
+	}
+	else
+	{
+		out[0] = in[0] / 255;
+		out[1] = in[1] / 255;
+		out[2] = in[2] / 255;
+	}
+	out[3] = 1.0f;
+}
+
+/*
 =======================================================================
 
  DYNAMIC LIGHTS
@@ -251,7 +289,7 @@ static void R_ReadLightGrid( const vec3_t origin, vec3_t lightDir )
 
 	if( !r_worldModel->lightGrid )
 	{
-		VectorSet( lightDir, 1, 0, -1 );
+		VectorSet( lightDir, 1.0f, 0.0f, -1.0f );
 		return;
 	}
 
@@ -336,7 +374,7 @@ void R_LightingAmbient( void )
 	vec3_t		end, dir;
 	float		add, dist, radius;
 	int		i, l;
-	vec3_t		ambientLight;
+	vec4_t		ambientLight;
 
 	// Set to full bright if no light data
 	if(( r_refdef.rdflags & RDF_NOWORLDMODEL) || !r_worldModel->lightData || !m_pCurrentEntity )
@@ -390,7 +428,7 @@ void R_LightingAmbient( void )
 	}
 
 	// normalize
-	ColorNormalize( ambientLight, ambientLight );
+	R_LightNormalizeColor( ambientLight, ambientLight );
 
 	for( i = 0; i < ref.numVertex; i++ )
 	{
@@ -427,7 +465,7 @@ void R_LightingDiffuse( void )
 		return;
 	}
 
-	// Get lighting at this point
+	// get lighting at this point
 	VectorSet( end, m_pCurrentEntity->origin[0], m_pCurrentEntity->origin[1], m_pCurrentEntity->origin[2] - MAX_WORLD_COORD );
 	VectorSet( r_pointColor, 1, 1, 1 );
 
@@ -438,7 +476,7 @@ void R_LightingDiffuse( void )
 
 	R_ReadLightGrid( m_pCurrentEntity->origin, lightDir );
 
-	// Always have some light
+	// always have some light
 	if( m_pCurrentEntity->renderfx & RF_MINLIGHT )
 	{
 		for( i = 0; i < 3; i++ )
@@ -496,15 +534,9 @@ void R_LightingDiffuse( void )
 		}
 	}
 
-	// Normalize and convert to byte
-	for (i = 0; i < ref.numVertex; i++)
-	{
-		ColorNormalize( r_lightColors[i], r_lightColors[i] );
-		ref.colorArray[i][0] = r_lightColors[i][0];
-		ref.colorArray[i][1] = r_lightColors[i][1];
-		ref.colorArray[i][2] = r_lightColors[i][2];
-		ref.colorArray[i][3] = 1.0f;
-	}
+	// normalize and convert to byte
+	for( i = 0; i < ref.numVertex; i++ )
+		R_LightNormalizeColor( r_lightColors[i], ref.colorArray[i] );
 }
 
 

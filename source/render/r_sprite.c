@@ -32,7 +32,7 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 
 	// build uinque frame name
 	FS_FileBase( mod->name, mod->name );
-	com.snprintf( name, MAX_STRING, "#%s_%s_%i%i.spr", mod->name, frame_prefix, framenum/10, framenum%10 );
+	com.snprintf( name, MAX_STRING, "Sprite( %s_%s_%i%i )", mod->name, frame_prefix, framenum/10, framenum%10 );
 	
 	pinframe = (dspriteframe_t *)pin;
 	SwapBlock((int *)pinframe, sizeof( dspriteframe_t ));
@@ -49,7 +49,7 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	pspriteframe->texture = R_FindTexture( name, (byte *)pin, pinframe->width * pinframe->height, TF_GEN_MIPS, 0, 0 );
 	*ppframe = pspriteframe;
 
-	R_SetInternalMap( pspriteframe->texture );
+	R_ShaderSetSpriteTexture( pspriteframe->texture );
 	pspriteframe->shader = R_FindShader( name, SHADER_SPRITE, surfaceParm )->shadernum;
 
 	frames = Mem_Realloc( mod->mempool, frames, sizeof( ref_shader_t* ) * (mod->numShaders + 1));
@@ -137,6 +137,9 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 		switch( psprite->rendermode )
 		{
 		case SPR_ADDGLOW:
+			pal = FS_LoadImage( "#normal.pal", src, 768 );
+			surfaceParm |= SURF_GLOW;
+			break;
 		case SPR_ADDITIVE:
 			pal = FS_LoadImage( "#normal.pal", src, 768 );
 			surfaceParm |= SURF_ADDITIVE;
@@ -155,7 +158,6 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 			break;
 		}
 		pframetype = (dframetype_t *)(src + 768);
-		surfaceParm |= SURF_NOLIGHTMAP;
 		FS_FreeImage( pal ); // palette installed, no reason to keep this data
 	}
 	else 
@@ -331,6 +333,13 @@ void R_DrawSpriteModel( void )
 		VectorNegate( r_right, right );
 		VectorCopy( r_up, up );
 		break;
+	}
+
+	if((m_pCurrentEntity->rendermode == kRenderGlow) || (m_pCurrentShader->surfaceParm & SURF_GLOW))
+	{
+		float dist = VectorDistance( m_pCurrentEntity->origin, r_refdef.vieworg );
+		e->scale = bound( 1.0, dist * 0.005f, 10.0f );
+		e->renderamt = bound( 0.0f, dist / 1000, 1.0f );
 	}
 
 	// draw it

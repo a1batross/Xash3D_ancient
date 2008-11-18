@@ -1715,6 +1715,179 @@ static rgbdata_t *R_ParseMakeGlow( script_t *script, int *samples, texFlags_t *f
 	return R_MakeGlow( pic );
 }
 
+static rgbdata_t *R_ParseStudioSkin( script_t *script, int *samples, texFlags_t *flags )
+{
+	token_t		token;
+	rgbdata_t 	*pic;
+	string		model_path;
+	string		modelT_path;
+	string		skinname;
+	dstudiohdr_t	hdr;
+	file_t		*f;
+
+	Com_ReadToken( script, 0, &token );
+	if( com.stricmp( token.string, "(" ))
+	{
+		MsgDev( D_WARN, "expected '(', found '%s' instead for 'Studio'\n", token.string );
+		return NULL;
+	}
+
+	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &token ))
+	{
+		MsgDev( D_WARN, "missing parameters for 'Studio'\n" );
+		return NULL;
+	}
+
+	// NOTE: studio skin show as 'models/props/flame1.mdl/flame2a.bmp'
+	FS_ExtractFilePath( token.string, model_path );
+	FS_StripExtension( model_path );
+	com.snprintf( modelT_path, MAX_STRING, "%sT.mdl", model_path );
+	FS_DefaultExtension( model_path, ".mdl" );
+	FS_FileBase( token.string, skinname );
+	FS_DefaultExtension( skinname, ".bmp" );
+
+	f = FS_Open( model_path, "rb" );
+	if( !f )
+	{
+		MsgDev( D_WARN, "'Studio' can't find studiomodel %s\n", model_path );
+		return NULL;
+	}
+	if( FS_Read( f, &hdr, sizeof( hdr )) != sizeof( hdr ))
+	{
+		MsgDev( D_WARN, "'Studio' %s probably corrupted\n", model_path );
+		FS_Close( f );
+		return NULL;		
+	}
+	SwapBlock( (int *)&hdr, sizeof( hdr ));
+
+	if( hdr.numtextures == 0 )
+	{
+		// textures are keep seperate
+		FS_Close( f );
+		f = FS_Open( modelT_path, "rb" );
+		if( !f )
+		{
+			MsgDev( D_WARN, "'Studio' can't find studiotextures %s\n", modelT_path );
+			return NULL;
+		}
+		if( FS_Read( f, &hdr, sizeof( hdr )) != sizeof( hdr ))
+		{
+			MsgDev( D_WARN, "'Studio' %s probably corrupted\n", modelT_path );
+			FS_Close( f );
+			return NULL;		
+		}
+		SwapBlock( (int *)&hdr, sizeof( hdr ));
+	}
+
+	if( hdr.textureindex > 0 && hdr.numtextures <= MAXSTUDIOSKINS )
+	{
+		// all ok, can load model into memory
+		dstudiotexture_t	*ptexture, *tex;
+		size_t		mdl_size, tex_size;
+		rgbdata_t		*pal;
+		byte		*pin;
+		int		i;
+
+		FS_Seek( f, 0, SEEK_END );
+		mdl_size = FS_Tell( f );
+		FS_Seek( f, 0, SEEK_SET );
+
+		pin = Mem_Alloc( r_imagepool, mdl_size );
+		if( FS_Read( f, pin, mdl_size ) != mdl_size )
+		{
+			MsgDev( D_WARN, "'Studio' %s probably corrupted\n", model_path );
+			Mem_Free( pin );
+			FS_Close( f );
+			return NULL;
+		}
+		ptexture = (dstudiotexture_t *)(pin + hdr.textureindex);
+
+		// find specified texture
+		for( i = 0; i < hdr.numtextures; i++ )
+		{
+			if( !com.stricmp( ptexture[i].name, skinname ))
+				break; // found
+		}
+		if( i == hdr.numtextures )
+		{
+			MsgDev( D_WARN, "'Studio' %s doesn't have skin %s\n", model_path, skinname );
+			Mem_Free( pin );
+			FS_Close( f );
+			return NULL;
+		}
+		tex = ptexture + i;
+
+		// setup palette
+		if( tex->flags & STUDIO_NF_TRANSPARENT )
+			pal = FS_LoadImage( "#transparent.pal", pin + tex->index + (tex->width * tex->height), 768 );
+		else pal = FS_LoadImage( "#normal.pal", pin + tex->width * tex->height + tex->index, 768 );
+		FS_FreeImage( pal ); // external copy not needed 
+
+		// NOTE: replace index with pointer to start of imagebuffer, ImageLib expected it
+		tex->index = (int)pin + tex->index;
+		tex_size = sizeof( dstudiotexture_t ) + tex->width * tex->height + 768;
+
+		// load studio texture and bind it
+		FS_FileBase( skinname, skinname );
+
+		// load it in
+		pic = R_LoadImage( script, va( "#%s.mdl", tex->name ), (byte *)tex, tex_size, samples, flags );
+
+		// shutdown operations
+		Mem_Free( pin );
+		FS_Close( f );
+
+		if( !pic ) return NULL;
+	}
+	else
+	{
+		MsgDev( D_WARN, "'Studio' %s has invalid skin count\n", model_path );
+		FS_Close( f );
+		return NULL;		
+	}
+
+	Com_ReadToken( script, 0, &token );
+	if( com.stricmp( token.string, ")" ))
+	{
+		MsgDev( D_WARN, "expected ')', found '%s' instead for 'Studio'\n", token.string );
+		FS_FreeImage( pic );
+		return NULL;
+	}
+
+	return pic;
+}
+
+static rgbdata_t *R_ParseSpriteFrame( script_t *script, const byte *buf, size_t size, int *samples, texFlags_t *flags )
+{
+	token_t	token;
+	rgbdata_t *pic;
+
+	Com_ReadToken( script, 0, &token );
+	if( com.stricmp( token.string, "(" ))
+	{
+		MsgDev( D_WARN, "expected '(', found '%s' instead for 'Sprite'\n", token.string );
+		return NULL;
+	}
+
+	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &token ))
+	{
+		MsgDev( D_WARN, "missing parameters for 'Sprite'\n" );
+		return NULL;
+	}
+
+	pic = R_LoadImage( script, va( "#%s.spr", token.string ), buf, size, samples, flags );
+	if( !pic ) return NULL;
+
+	Com_ReadToken( script, 0, &token );
+	if( com.stricmp( token.string, ")" ))
+	{
+		MsgDev( D_WARN, "expected ')', found '%s' instead for 'Sprite'\n", token.string );
+		FS_FreeImage( pic );
+		return NULL;
+	}
+	return pic;
+}
+
 /*
 =================
 R_ParseScrapBlock
@@ -2005,6 +2178,10 @@ static rgbdata_t *R_LoadImage( script_t *script, const char *name, const byte *b
 		return R_ParseAddNormals( script, samples, flags );
 	else if( !com.stricmp( name, "smoothNormals" ))
 		return R_ParseSmoothNormals( script, samples, flags );
+	else if( !com.stricmp( name, "Studio" ))
+		return R_ParseStudioSkin( script, samples, flags );
+	else if( !com.stricmp( name, "Sprite" ))
+		return R_ParseSpriteFrame( script, buf, size, samples, flags );
 	else
 	{	
 		// loading form disk
@@ -2392,7 +2569,7 @@ texture_t *R_FindTexture( const char *name, const byte *buf, size_t size, texFla
 	script = Com_OpenScript( name, name, com.strlen( name ));
 	if( !script ) return NULL;
 
-	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES|(name[0] == '#') ? SC_PARSE_GENERIC : 0, &token ))
+	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &token ))
 	{
 		Com_CloseScript( script );
 		return NULL;

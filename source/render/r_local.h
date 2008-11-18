@@ -149,7 +149,7 @@ extern int	r_numShaders;
 
 void	R_EvaluateRegisters( ref_shader_t *shader, float time, const float *entityParms, const float *globalParms );
 ref_shader_t *R_FindShader( const char *name, int shaderType, uint surfaceParm );
-void	R_SetInternalMap( texture_t *mipTex );		// internal textures (skins, spriteframes, etc)
+void	R_ShaderSetSpriteTexture( texture_t *mipTex );
 void	R_ShaderFreeUnused( void );
 void	R_ShaderList_f( void );
 void	R_InitShaders( void );
@@ -546,6 +546,7 @@ typedef struct ref_entity_s
 	float		backlerp;		// 0.0 = current, 1.0 = old
 	vec3_t		rendercolor;	// hl1 rendercolor
 	float		renderamt;	// hl1 alphavalues
+	int		rendermode;	// hl1 rendermode
 	int		renderfx;		// server will be translate hl1 values into flags
 	int		colormap;		// q1 and hl1 model colormap (can applied for sprites)
 	int		effects;		// q1 effect flags, EF_ROTATE, EF_DIMLIGHT etc

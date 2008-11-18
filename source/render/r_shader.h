@@ -138,6 +138,7 @@ typedef enum
 
 typedef enum
 {
+	WAVEFORM_NONE = 0,
 	WAVEFORM_SIN,
 	WAVEFORM_TRIANGLE,
 	WAVEFORM_SQUARE,

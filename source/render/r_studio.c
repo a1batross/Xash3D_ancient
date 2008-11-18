@@ -64,7 +64,6 @@ rmodel_t *m_pChromeSprite;
 // player gait sequence stuff
 int m_fGaitEstimation;
 float m_flGaitMovement;
-uint surfaceParm = 0;
 		
 /*
 ====================
@@ -167,35 +166,18 @@ static void R_StudioBuildNeighbors( int numtris, mstudiotriangle_t *triangles, m
 Studio model loader
 ====================
 */
-texture_t *R_StudioLoadTexture( rmodel_t *mod, dstudiotexture_t *tex, byte *pin )
+uint R_StudioSurfaceParm( dstudiotexture_t *tex )
 {
-	rgbdata_t	*pal;
-	size_t	size;
+	uint surfaceParm = 0;
 
-	surfaceParm = 0;
-
-	// install palette first
 	if( tex->flags & STUDIO_NF_TRANSPARENT )
-	{
-		pal = FS_LoadImage( "#transparent.pal", pin + tex->width * tex->height + tex->index, 768 );
 		surfaceParm |= SURF_ALPHA;
-	}
-	else pal = FS_LoadImage( "#normal.pal", pin + tex->width * tex->height + tex->index, 768 );
-
-	if( tex->flags & STUDIO_NF_ADDITIVE )
+	else if( tex->flags & STUDIO_NF_ADDITIVE )
 		surfaceParm |= SURF_ADDITIVE;
 	else if( tex->flags & STUDIO_NF_BLENDED )
 		surfaceParm |= SURF_BLEND;
-	surfaceParm |= SURF_NOLIGHTMAP;
-	FS_FreeImage( pal );
 
-	// NOTE: replace index with pointer to start of imagebuffer, ImageLib expected it
-	tex->index = (int)pin + tex->index;
-	size = sizeof( dstudiotexture_t ) + tex->width * tex->height + 768;
-
-	// load studio texture and bind it
-	FS_FileBase( tex->name, tex->name );
-	return R_FindTexture( va( "#%s.mdl", tex->name ), (byte *)tex, size, TF_GEN_MIPS, 0, 0 );
+	return surfaceParm;
 }
 
 dstudiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
@@ -204,6 +186,8 @@ dstudiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
 	byte		*pin;
 	dstudiohdr_t	*phdr;
 	dstudiotexture_t	*ptexture;
+	string		shadername;
+	uint		surfaceParm;
 	
 	pin = (byte *)buffer;
 	phdr = (dstudiohdr_t *)pin;
@@ -222,8 +206,10 @@ dstudiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
 
 		for( i = 0; i < phdr->numtextures; i++ )
 		{
-			R_SetInternalMap(R_StudioLoadTexture( mod, &ptexture[i], pin ));
-			ptexture[i].shader = R_FindShader( ptexture[i].name, SHADER_STUDIO, surfaceParm )->shadernum;
+			surfaceParm = R_StudioSurfaceParm( &ptexture[i] );
+			com.snprintf( shadername, MAX_STRING, "%s/%s", mod->name, ptexture[i].name );
+			FS_StripExtension( shadername ); // doesn't produce shaders with .ext
+			ptexture[i].shader = R_FindShader( shadername, SHADER_STUDIO, surfaceParm )->shadernum;
 			mod->shaders[i] = &r_shaders[ptexture[i].shader];
 		}
 	}
@@ -1421,9 +1407,6 @@ void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref, int pass 
 		s = 1.0/(float)ptexture[pskinref[pmesh->skinref]].width;
 		t = 1.0/(float)ptexture[pskinref[pmesh->skinref]].height;
 
-		//GL_BindTexture( m_pRenderModel->textures[ptexture[pskinref[pmesh->skinref]].index].image );
-		// FIXME: test
-		//m_pCurrentShader = m_pRenderModel->shaders[ptexture[pskinref[pmesh->skinref]].shader];
 		m_pCurrentShader = &r_shaders[ptexture[pskinref[pmesh->skinref]].shader];
 
 		while( i = *(ptricmds++))
@@ -1445,6 +1428,8 @@ void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref, int pass 
 				else GL_TexCoord2f( ptricmds[2] * s, ptricmds[3] * t );
 
 				lv = m_pvlightvalues[ptricmds[1]];
+
+				GL_Normal3fv( vec3_origin );	// needs to clear normals
                                         
                                         if ( m_pCurrentEntity->renderfx & RF_FULLBRIGHT )
 					lv = &fbright[0];
@@ -1454,12 +1439,14 @@ void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref, int pass 
 				if ( r_refdef.rdflags & RDF_IRGOGGLES && m_pCurrentEntity->renderfx & RF_IR_VISIBLE)
 					lv = &irgoggles[0];
 
-				//if( flags & STUDIO_NF_ADDITIVE ) // additive is self-lighting texture
-				//	GL_Color4f( 1.0f, 1.0f, 1.0f, 0.8f );
-				//else if( m_pCurrentEntity->renderfx & RF_TRANSLUCENT )
-				//	GL_Color4f( 1.0f, 1.0f, 1.0f, m_pCurrentEntity->renderamt );
-				//else GL_Color3fv( lv ); // get light from floor
-		
+				/*
+				if( flags & STUDIO_NF_ADDITIVE ) // additive is self-lighting texture
+					GL_Color4f( 1.0f, 1.0f, 1.0f, 0.8f );
+				else if( m_pCurrentEntity->renderfx & RF_TRANSLUCENT )
+					GL_Color4f( 1.0f, 1.0f, 1.0f, m_pCurrentEntity->renderamt );
+				else GL_Color3fv( lv ); // get light from floor
+		                    */
+		                    
 				av = m_pxformverts[ptricmds[0]]; // verts
                                         GL_Vertex3f( av[0], av[1], av[2] );
 			}

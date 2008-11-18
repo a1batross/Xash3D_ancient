@@ -271,6 +271,7 @@ bool CM_HeadnodeVisible( int nodenum, byte *visbits )
 	{
 		leafnum = -1-nodenum;
 		cluster = CM_LeafCluster( leafnum );
+		//cluster = cm.leafs[leafnum].cluster;
 		if( cluster == -1 ) return false;
 		if( visbits[cluster>>3] & (1<<(cluster&7)))
 			return true;

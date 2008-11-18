@@ -98,6 +98,7 @@ struct sv_entvars_s
 	float	style;
 	float	gaitsequence;
 	float	effects;
+	float	rendermode;
 	float	renderfx;
 	float	renderamt;
 	float	colormap;
@@ -143,6 +144,6 @@ struct sv_entvars_s
 	float	team;
 };
 
-#define PROG_CRC_SERVER		9691
+#define PROG_CRC_SERVER		8066
 
 #endif//SV_EDICT_H
