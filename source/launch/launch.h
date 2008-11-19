@@ -231,10 +231,11 @@ char *va(const char *format, ...);
 #define copystring2( pool, str ) com_stralloc( pool, str, __FILE__, __LINE__)
 
 //
-// random.c
+// utils.c
 //
 long Com_RandomLong( long lMin, long lMax );
 float Com_RandomFloat( float fMin, float fMax );
+uint Com_HashKey( const char *string, uint hashSize );
 
 //
 // math.c
@@ -409,6 +410,7 @@ uint Cmd_Argc( void );
 char *Cmd_Args( void );
 char *Cmd_Argv( uint arg );
 void Cmd_Init( void );
+bool Cmd_FilterToken( char *filter, char *name, int casecmp );
 void Cmd_AddCommand(const char *cmd_name, xcommand_t function, const char *cmd_desc);
 void Cmd_RemoveCommand(const char *cmd_name);
 bool Cmd_Exists (const char *cmd_name);
@@ -448,8 +450,51 @@ uint Com_BlockChecksumKey(void *buffer, int length, int key);
 //
 // parselib.c
 //
-bool SC_FilterToken(char *filter, char *name, int casecmp);
-uint SC_HashKey( const char *string, uint hashSize );
+typedef struct
+{
+	const char	*name;
+	uint		type;
+} punctuation_t;
+
+typedef struct script_s
+{
+	// shared part of script
+	char		*buffer;
+	char		*text;
+	size_t		size;
+	char		TXcommand;	// (quark .map comment)
+
+	// private part of script
+	string		name;
+	int		line;
+	bool		allocated;
+	punctuation_t	*punctuations;
+	bool		tokenAvailable;
+	token_t		token;
+};
+
+bool PS_ReadToken( script_t *script, scFlags_t flags, token_t *token );
+void PS_SaveToken( script_t *script, token_t *token );
+bool PS_GetString( script_t *script, int flags, char *value, size_t size );
+bool PS_GetDouble( script_t *script, int flags, double *value );
+bool PS_GetFloat( script_t *script, int flags, float *value );
+bool PS_GetUnsigned( script_t *script, int flags, uint *value );
+bool PS_GetInteger( script_t *script, int flags, int *value );
+
+void PS_SkipWhiteSpace( script_t *script );
+void PS_SkipRestOfLine( script_t *script );
+void PS_SkipBracedSection( script_t *script, int depth );
+
+void PS_ScriptError( script_t *script, scFlags_t flags, const char *fmt, ... );
+void PS_ScriptWarning( script_t *script, scFlags_t flags, const char *fmt, ... );
+
+bool PS_MatchToken( token_t *token, const char *keyword );
+void PS_SetPunctuationsTable( script_t *script, punctuation_t *punctuationsTable );
+void PS_ResetScript( script_t *script );
+bool PS_EndOfScript( script_t *script );
+
+script_t	*PS_LoadScript( const char *filename, const char *buf, size_t size );
+void	PS_FreeScript( script_t *script );
 
 //
 // imglib.c

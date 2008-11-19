@@ -1235,11 +1235,11 @@ void PF_droptofloor( void )
 	vec3_t		end;
 	trace_t		trace;
 
-	if(!VM_ValidateArgs( "droptofloor", 0 )) return;
+	if( !VM_ValidateArgs( "droptofloor", 0 )) return;
 	PRVM_G_FLOAT(OFS_RETURN) = 0;	// assume failure if it returns early
 	ent = PRVM_PROG_TO_EDICT(prog->globals.sv->pev);
 
-	if (ent == prog->edicts)
+	if( ent == prog->edicts )
 	{
 		VM_Warning("droptofloor: can't modify world entity\n");
 		return;
@@ -1254,7 +1254,7 @@ void PF_droptofloor( void )
 	end[2] -= 256;
 	SV_UnstickEntity( ent );
 
-	trace = SV_Trace(ent->progs.sv->origin, ent->progs.sv->mins, ent->progs.sv->maxs, end, MOVE_NORMAL, ent, SV_ContentsMask( ent ));
+	trace = SV_Trace( ent->progs.sv->origin, ent->progs.sv->mins, ent->progs.sv->maxs, end, MOVE_NORMAL, ent, SV_ContentsMask( ent ));
 
 	if( trace.startsolid )
 	{
@@ -1265,7 +1265,7 @@ void PF_droptofloor( void )
 		VectorSubtract( trace.endpos, offset, trace.endpos );
 		if( trace.startsolid )
 		{
-			VM_Warning( "droptofloor: startsolid at %g %g %g\n", ent->progs.sv->origin[0], ent->progs.sv->origin[1], ent->progs.sv->origin[2]);
+			VM_Warning( "droptofloor: startsolid at %g %g %g\n", ent->progs.sv->origin[0], ent->progs.sv->origin[1], ent->progs.sv->origin[2] );
 			SV_UnstickEntity( ent );
 			SV_LinkEdict( ent );
 			ent->progs.sv->aiflags = (int)ent->progs.sv->aiflags | AI_ONGROUND;
@@ -1274,7 +1274,7 @@ void PF_droptofloor( void )
 		}
 		else if( trace.fraction < 1 )
 		{
-			VM_Warning( "droptofloor moved to %g %g %g\n", ent->progs.sv->origin[0], ent->progs.sv->origin[1], ent->progs.sv->origin[2]);
+			VM_Warning( "droptofloor moved to %g %g %g\n", ent->progs.sv->origin[0], ent->progs.sv->origin[1], ent->progs.sv->origin[2] );
 			VectorCopy( trace.endpos, ent->progs.sv->origin );
 			SV_UnstickEntity( ent );
 			SV_LinkEdict( ent );
@@ -1285,7 +1285,7 @@ void PF_droptofloor( void )
 			ent->priv.sv->suspended = true;
 		}
 
-		VM_Warning( "droptofloor: startsolid at %g %g %g\n", ent->progs.sv->origin[0], ent->progs.sv->origin[1], ent->progs.sv->origin[2]);
+		VM_Warning( "droptofloor: startsolid at %g %g %g\n", ent->progs.sv->origin[0], ent->progs.sv->origin[1], ent->progs.sv->origin[2] );
 		SV_FreeEdict( ent );
 		return;
 	}
@@ -2294,7 +2294,7 @@ VM_ComFileTime,			// #14 float Com_FileTime( string filename )
 VM_ComLoadScript,			// #15 float Com_LoadScript( string filename )
 VM_ComResetScript,			// #16 void Com_ResetScript( void )
 VM_ComReadToken,			// #17 string Com_ReadToken( float newline )
-VM_ComFilterToken,			// #18 float Com_Filter( string mask, string s, float casecmp )
+NULL,				// #18 -- reserved --
 VM_ComSearchFiles,			// #19 float Com_Search( string mask, float casecmp )
 VM_ComSearchNames,			// #20 string Com_SearchFilename( float num )
 VM_RandomLong,			// #21 float RandomLong( float min, float max )

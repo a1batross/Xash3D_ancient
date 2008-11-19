@@ -715,11 +715,12 @@ void CL_PrepVideo( void )
 	if( !cl.configstrings[CS_MODELS+1][0] )
 		return; // no map loaded
 
+	SCR_RegisterShaders(); // vid_restart issues
 	Msg( "CL_PrepRefresh: %s\n", cl.configstrings[CS_NAME] );
-
 	// let the render dll load the map
 	FS_FileBase( cl.configstrings[CS_MODELS+1], mapname ); 
 	re->BeginRegistration( mapname ); // load map
+	SCR_RegisterShaders(); // update with new sequence
 	SCR_UpdateScreen();
 
 	for( i = 1, mdlcount = 0; i < MAX_MODELS && cl.configstrings[CS_MODELS+1+i][0]; i++ )
@@ -734,13 +735,10 @@ void CL_PrepVideo( void )
 		SCR_UpdateScreen();
 	}
 
-	// setup default sky shader or custom skybox from progs
-	re->RegisterShader( cl.configstrings[CS_SKYNAME], SHADER_SKY );
-          Cvar_SetValue("scr_loading", 98.0f );	// load sky
-	SCR_RegisterShaders();
-          Cvar_SetValue("scr_loading", 100.0f );	// all done	
-
-	re->EndRegistration();		// the render can now free unneeded stuff
+	// setup sky and free unneeded stuff
+	re->EndRegistration( cl.configstrings[CS_SKYNAME] );
+	Cvar_SetValue("scr_loading", 100.0f );	// all done
+	
 	Con_ClearNotify();			// clear any lines of console text
 	SCR_UpdateScreen();
 	cl.video_prepped = true;

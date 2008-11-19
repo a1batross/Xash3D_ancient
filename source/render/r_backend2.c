@@ -72,12 +72,12 @@ static void RB_SetVertex( float x, float y, float z )
 		}
 		break;
 	case GL_TRIANGLE_STRIP:
-		if( ref.numVertex + rb_vertexState > MAX_VERTICES )
+		if( ref.numVertex + rb_vertexState > MAX_VERTEXES )
 		{
 			// This is a strip that's too big for us to buffer.
 			// (We can't just flush the buffer because we have to keep
 			// track of the last two vertices.
-			Host_Error( "RB_SetVertex: overflow: %i > MAX_VERTICES\n", ref.numVertex + rb_vertexState );
+			Host_Error( "RB_SetVertex: overflow: %i > MAX_VERTEXES\n", ref.numVertex + rb_vertexState );
 		}
 		if( rb_vertexState++ < 3 )
 		{
@@ -104,12 +104,12 @@ static void RB_SetVertex( float x, float y, float z )
 		break;
 	case GL_POLYGON:
 	case GL_TRIANGLE_FAN:	// same as polygon
-		if( ref.numVertex + rb_vertexState > MAX_VERTICES )
+		if( ref.numVertex + rb_vertexState > MAX_VERTEXES )
 		{
 			// This is a polygon or fan that's too big for us to buffer.
 			// (We can't just flush the buffer because we have to keep
 			// track of the starting vertex.
-			Host_Error( "RB_SetVertex: overflow: %i > MAX_VERTICES\n", ref.numVertex + rb_vertexState );
+			Host_Error( "RB_SetVertex: overflow: %i > MAX_VERTEXES\n", ref.numVertex + rb_vertexState );
 		}
 		if( rb_vertexState++ < 3 )
 		{
@@ -197,7 +197,7 @@ void GL_End( void )
 
 void GL_Vertex2f( GLfloat x, GLfloat y )
 {
-	RB_SetVertex( x, y, 0 );
+	RB_SetVertex( x, y, 1.0f );
 }
 
 void GL_Vertex3f( GLfloat x, GLfloat y, GLfloat z )
@@ -710,8 +710,21 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 			ref.colorArray[i][3] = 1.0f - ref.colorArray[i][3];
 		break;
 	case ALPHAGEN_ENTITY:
-		for( i = 0; i < ref.numVertex; i++ )
-			ref.colorArray[i][3] = m_pCurrentEntity->renderamt;
+		switch( m_pCurrentEntity->rendermode )
+		{
+		case kRenderNormal:
+		case kRenderTransColor:
+			for( i = 0; i < ref.numVertex; i++ )
+				ref.colorArray[i][3] = 1.0f;
+			break;
+		case kRenderGlow:
+		case kRenderTransAdd:
+		case kRenderTransAlpha:
+		case kRenderTransTexture:
+			for( i = 0; i < ref.numVertex; i++ )
+				ref.colorArray[i][3] = m_pCurrentEntity->renderamt;
+			break;
+		}
 		break;
 	case ALPHAGEN_ONEMINUSENTITY:
 		for( i = 0; i < ref.numVertex; i++ )
@@ -1176,6 +1189,8 @@ RB_SetupTextureUnit
 */
 static void RB_SetupTextureUnit( stageBundle_t *bundle, uint unit )
 {
+	int	angleframe;
+
 	GL_SelectTexture( unit );
 
 	switch( bundle->texType )
@@ -1197,6 +1212,10 @@ static void RB_SetupTextureUnit( stageBundle_t *bundle, uint unit )
 		// not implemented
 		//CIN_RunCinematic( bundle->cinematicHandle );
 		//CIN_DrawCinematic( bundle->cinematicHandle );
+		break;
+	case TEX_ANGLEDMAP:
+		angleframe = (int)((r_refdef.viewangles[1] - m_pCurrentEntity->angles[1])/360*8 + 0.5 - 4) & 7;
+		GL_BindTexture( bundle->textures[angleframe] );
 		break;
 	default: Host_Error( "RB_SetupTextureUnit: unknown texture type %i in shader '%s'\n", bundle->texType, m_pCurrentShader->name );
 	}
@@ -1562,10 +1581,10 @@ RB_CheckMeshOverflow
 */
 void RB_CheckMeshOverflow( int numIndices, int numVertices )
 {
-	if( numIndices > MAX_INDICES || numVertices > MAX_VERTICES )
-		Host_Error( "RB_CheckMeshOverflow: %i > MAX_INDICES or %i > MAX_VERTICES\n", numIndices, numVertices );
+	if( numIndices > MAX_ELEMENTS || numVertices > MAX_VERTEXES )
+		Host_Error( "RB_CheckMeshOverflow: %i > MAX_ELEMENTS or %i > MAX_VERTEXES\n", numIndices, numVertices );
 
-	if( ref.numIndex + numIndices <= MAX_INDICES && ref.numVertex + numVertices <= MAX_VERTICES )
+	if( ref.numIndex + numIndices <= MAX_ELEMENTS && ref.numVertex + numVertices <= MAX_VERTEXES )
 		return;
 	RB_RenderMesh();
 }

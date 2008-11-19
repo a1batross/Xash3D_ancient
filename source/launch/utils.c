@@ -112,6 +112,24 @@ long Com_RandomLong( long lLow, long lHigh )
 	return lLow + (n % x);
 }
 
+/*
+=================
+Com_HashKey
+
+returns hash key for string
+=================
+*/
+uint Com_HashKey( const char *string, uint hashSize )
+{
+	uint	hashKey = 0;
+	int	i;
+
+	for( i = 0; string[i]; i++ )
+		hashKey = (hashKey + i) * 37 + com_tolower(string[i]);
+
+	return (hashKey % hashSize);
+}
+
 // build the square root table
 void Com_BuildSqrtTable( void )
 {

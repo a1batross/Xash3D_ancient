@@ -9,8 +9,9 @@
 
 // FIXME: remove it
 const char *r_skyBoxSuffix[6] = { "rt", "lf", "bk", "ft", "up", "dn" };
-static texture_t *r_spriteTexture;
-
+static texture_t *r_spriteTexture[256];	// MAX_FRAMES in spritegen.c
+static float r_spriteFrequency;	// sprite group auto-animate
+static int r_numSpriteTextures;	// num textures in group
 
 typedef struct
 {
@@ -3873,7 +3874,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 			if( !shader->skyParms.farBox[i] )
 			{
 				MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
-				shader->skyParms.farBox[i] = r_defaultTexture;
+				shader->skyParms.farBox[i] = r_skyTexture;
 			}
 		}
 		shader->skyParms.cloudHeight = 128.0;
@@ -3934,7 +3935,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 		break;
 	case SHADER_STUDIO:
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
-		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( va( "Studio( %s )", shader->name ), NULL, 0, TF_GEN_MIPS, 0, 0 );
+		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( va( "Studio( %s )", shader->name ), NULL, 0, 0, 0, 0 );
 		if( !shader->stages[0]->bundles[0]->textures[0] )
 		{
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
@@ -3959,7 +3960,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 		{
 			shader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
 			shader->stages[0]->alphaFunc.func = GL_GREATER;
-			shader->stages[0]->alphaFunc.ref = 0.666;
+			shader->stages[0]->alphaFunc.ref = 0.9;		// FIXME
 			shader->sort = SORT_SEETHROUGH;
 		}
 		shader->stages[0]->bundles[0]->numTextures++;
@@ -3967,14 +3968,55 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 		shader->numStages++;
 		break;
 	case SHADER_SPRITE:
-		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
-		shader->stages[0]->bundles[0]->textures[0] = r_spriteTexture;
-		shader->stages[0]->bundles[0]->texType = TEX_GENERIC;
-		if( !shader->stages[0]->bundles[0]->textures[0] )
+		if( r_spriteFrequency == 0.0f && r_numSpriteTextures == 8 )
 		{
-			MsgDev( D_WARN, "couldn't find spriteframe for shader '%s', using default...\n", shader->name );
-			shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
+			// angled map
+			shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
+			shader->stages[0]->bundles[0]->texType = TEX_ANGLEDMAP;
+
+			for( i = 0; i < 8; i++ )
+			{
+				if( !r_spriteTexture[i] )
+					shader->stages[0]->bundles[0]->textures[i] = r_defaultTexture;
+				else shader->stages[0]->bundles[0]->textures[i] = r_spriteTexture[i];
+				shader->stages[0]->bundles[0]->numTextures++;
+			}
 		}
+		else if( r_numSpriteTextures > 1 )
+		{
+			// group frames
+			shader->stages[0]->bundles[0]->flags |= (STAGEBUNDLE_MAP|STAGEBUNDLE_ANIMFREQUENCY);
+			shader->stages[0]->bundles[0]->animFrequency = r_spriteFrequency;
+			shader->stages[0]->bundles[0]->texType = TEX_GENERIC;
+
+			for( i = 0; i < r_numSpriteTextures; i++ )
+			{
+				if( !r_spriteTexture[i] )
+					shader->stages[0]->bundles[0]->textures[i] = r_defaultTexture;
+				else shader->stages[0]->bundles[0]->textures[i] = r_spriteTexture[i];
+				shader->stages[0]->bundles[0]->numTextures++;
+			}
+			
+		}
+		else
+		{
+			// single frame
+			shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
+			shader->stages[0]->bundles[0]->texType = TEX_GENERIC;
+			shader->stages[0]->bundles[0]->textures[0] = r_spriteTexture[0];
+
+			if( !shader->stages[0]->bundles[0]->textures[0] )
+			{
+				MsgDev( D_WARN, "couldn't find spriteframe for shader '%s', using default...\n", shader->name );
+				shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
+			}
+			shader->stages[0]->bundles[0]->numTextures++;
+		}
+
+		// reset parms
+		r_numSpriteTextures = 0;
+		r_spriteFrequency = 0.0f;
+                    
 		if( shader->surfaceParm & SURF_BLEND )
 		{
 			// normal transparency
@@ -4005,19 +4047,17 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 			shader->stages[0]->alphaFunc.ref = 0.666;
 			shader->sort = SORT_SEETHROUGH;
 		}
-		shader->stages[0]->bundles[0]->numTextures++;
 		shader->stages[0]->numBundles++;
 		shader->numStages++;
 		break;
 	case SHADER_FONT:
-		// don't let user set invalid font
-		buffer = FS_LoadInternal( "default.dds", &bufsize );
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
 		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_NOPICMIP, TF_LINEAR, 0 );
 		if( !shader->stages[0]->bundles[0]->textures[0] )
 		{
+			// don't let user set invalid font
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
-			shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
+			shader->stages[0]->bundles[0]->textures[0] = r_defaultConchars;
 		}
 		shader->stages[0]->rgbGen.type = RGBGEN_VERTEX;
 		shader->stages[0]->bundles[0]->numTextures++;
@@ -4176,6 +4216,9 @@ static void R_FinishShader( ref_shader_t *shader )
 		{
 			shader->flags |= SHADER_SKYPARMS;
 			shader->skyParms.cloudHeight = 128.0;
+
+			for( i = 0; i < 6; i++ )
+				shader->skyParms.farBox[i] = r_skyTexture;
 		}
 	}
 
@@ -4683,6 +4726,7 @@ static void R_ShaderTouchImages( ref_shader_t *shader, bool free_unused )
 				texture = bundle->textures[k];
 
 				if( !texture || !texture->name[0] ) continue;
+				if( texture->flags & TF_STATIC ) continue;
 				if( free_unused && texture->touchFrame != registration_sequence )
 					R_FreeImage( texture );
 				else texture->touchFrame = registration_sequence;
@@ -4699,15 +4743,21 @@ static void R_ShaderTouchImages( ref_shader_t *shader, bool free_unused )
 			texture = shader->skyParms.farBox[i];
 			if( texture && texture->name[0] )
 			{
-				if( free_unused && texture->touchFrame != registration_sequence )
-					R_FreeImage( texture );
+				if( free_unused )
+				{
+					if(!(texture->flags & TF_STATIC) && (texture->touchFrame != registration_sequence ))
+						R_FreeImage( texture );
+				}
 				else texture->touchFrame = registration_sequence;
 			}
 			texture = shader->skyParms.nearBox[i];
-			if( texture && texture->texnum )
+			if( texture && texture->name[0] )
 			{
-				if( free_unused && texture->touchFrame != registration_sequence )
-					R_FreeImage( texture );
+				if( free_unused )
+				{
+					if(!(texture->flags & TF_STATIC) && (texture->touchFrame != registration_sequence ))
+						R_FreeImage( texture );
+				}
 				else texture->touchFrame = registration_sequence;
 			}
 			c_total++; // just for debug
@@ -4824,8 +4874,13 @@ ref_shader_t *R_FindShader( const char *name, int shaderType, uint surfaceParm )
 
 void R_ShaderSetSpriteTexture( texture_t *mipTex )
 {
-	// never replace with NULL
-	if( mipTex ) r_spriteTexture = mipTex;
+	if( r_numSpriteTextures >= 256 ) return;
+	r_spriteTexture[r_numSpriteTextures++] = mipTex;
+}
+
+void R_ShaderAddSpriteIntervals( float interval )
+{
+	r_spriteFrequency += interval;
 }
 
 /*
@@ -5015,6 +5070,17 @@ static void R_CreateBuiltInShaders( void )
 
 	tr.defaultShader = R_LoadShader( shader );
 
+	// nodraw shader
+	shader = R_NewShader();
+
+	// just hold the surface parms
+	com.strncpy( shader->name, "<nodraw>", sizeof( shader->name ));
+	shader->surfaceParm = SURF_NOLIGHTMAP|SURF_NODRAW;
+	shader->type = SHADER_GENERIC;
+	shader->flags = SHADER_STATIC;
+
+	tr.nodrawShader = R_LoadShader( shader );
+
 	// lightmap shader
 	shader = R_NewShader();
 
@@ -5158,7 +5224,12 @@ void R_InitShaders( void )
 
 	// create built-in shaders
 	R_CreateBuiltInShaders();
-	r_spriteTexture = r_defaultTexture;
+
+	// init sprite frames
+	for( i = 0; i < 256; i++ )
+		r_spriteTexture[i] = r_defaultTexture;
+	r_spriteFrequency = 0.0f;
+	r_numSpriteTextures = 0;
 }
 
 /*

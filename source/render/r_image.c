@@ -25,6 +25,7 @@ static byte	*r_imagepool;	// immediate buffers
 static byte	*r_texpool;	// texture_t permanent chain
 
 texture_t	*r_defaultTexture;
+texture_t	*r_defaultConchars;
 texture_t	*r_whiteTexture;
 texture_t	*r_blackTexture;
 texture_t	*r_flatTexture;
@@ -444,21 +445,9 @@ bool R_GetPixelFormat( const char *name, rgbdata_t *pic, uint tex_flags )
 	if( image_desc.tflags & TF_NOPICMIP )
 	{
 		// don't build mips for sky and hud pics
-		image_desc.tflags &= ~TF_GEN_MIPS;
 		image_desc.MipCount = 1; // and ignore it to load
 	} 
-	else if( pic->numMips > 1 )
-	{
-		// .dds, .vtf, .wal or .mip image
-		image_desc.tflags &= ~TF_GEN_MIPS;
-		image_desc.MipCount = pic->numMips;
-	}
-	else
-	{
-		// so it normal texture without mips
-		image_desc.tflags |= TF_GEN_MIPS;
-		image_desc.MipCount = pic->numMips;
-	}
+	else image_desc.MipCount = pic->numMips;
 		
 	if( image_desc.MipCount < 1 ) image_desc.MipCount = 1;
 	image_desc.pal = pic->palette;
@@ -2205,7 +2194,6 @@ void GL_GenerateMipmaps( byte *buffer, texture_t *tex, int side, bool border )
 	int	mipWidth, mipHeight;
 
 	// not needs
-	//if(!(tex->flags & TF_GEN_MIPS)) return;
 	if( tex->filter != TF_DEFAULT ) return;
 
 	if( GL_Support( R_SGIS_MIPMAPS_EXT ))
@@ -2553,7 +2541,7 @@ texture_t *R_FindTexture( const char *name, const byte *buf, size_t size, texFla
 				return texture;
 
 			if( texture->flags != flags )
-				MsgDev( D_WARN, "reused texture '%s' with mixed flags parameter\n", name );
+				MsgDev( D_WARN, "reused texture '%s' with mixed flags parameter (%p should be %p)\n", name, texture->flags, flags );
 			if( texture->filter != filter )
 				MsgDev( D_WARN, "reused texture '%s' with mixed filter parameter\n", name );
 			if( texture->wrap != wrap )
@@ -2605,7 +2593,8 @@ static void R_CreateBuiltInTextures( void )
 	rgbdata_t	pic;
 	byte	data2D[256*256*4];
 	float	s, t, intensity;
-	int	i, x, y;
+	int	i, x, y, bufsize;
+	byte	*buffer;
 	vec3_t	normal;
 
 	// default texture
@@ -2832,6 +2821,9 @@ static void R_CreateBuiltInTextures( void )
 
 	// screen rect texture (just reserve a slot)
 	if( gl_config.texRectangle ) pglGenTextures( 1, &gl_state.screenTexture );
+
+	buffer = FS_LoadInternal( "default.dds", &bufsize );
+	r_defaultConchars = R_FindTexture( "#default.dds", buffer, bufsize, TF_NOPICMIP|TF_STATIC, TF_LINEAR, 0 );
 }
 
 /*

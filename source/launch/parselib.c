@@ -4,7 +4,82 @@
 //=======================================================================
 
 #include "launch.h"
-#include "parselib.h"
+
+#define MAX_TOKEN_LENGTH	MAX_SYSPATH
+
+// number sub-types
+enum
+{
+	NT_BINARY		= BIT(0),
+	NT_OCTAL		= BIT(1),
+	NT_DECIMAL	= BIT(2),
+	NT_HEXADECIMAL	= BIT(3),
+	NT_INTEGER	= BIT(4),
+	NT_FLOAT		= BIT(5),
+	NT_UNSIGNED	= BIT(6),
+	NT_LONG		= BIT(7),
+	NT_SINGLE		= BIT(8),
+	NT_DOUBLE		= BIT(9),
+	NT_EXTENDED	= BIT(10),
+};
+
+// punctuation sub-types
+enum
+{
+	PT_RSHIFT_ASSIGN = 1,
+	PT_LSHIFT_ASSIGN,
+	PT_PARAMETERS,
+	PT_PRECOMPILER_MERGE,
+	PT_LOGIC_AND,
+	PT_LOGIC_OR,
+	PT_LOGIC_GEQUAL,
+	PT_LOGIC_LEQUAL,
+	PT_LOGIC_EQUAL,
+	PT_LOGIC_NOTEQUAL,
+	PT_MUL_ASSIGN,
+	PT_DIV_ASSIGN,
+	PT_MOD_ASSIGN,
+	PT_ADD_ASSIGN,
+	PT_SUB_ASSIGN,
+	PT_INCREMENT,
+	PT_DECREMENT,
+	PT_BINARY_AND_ASSIGN,
+	PT_BINARY_OR_ASSIGN,
+	PT_BINARY_XOR_ASSIGN,
+	PT_RSHIFT,
+	PT_LSHIFT,
+	PT_POINTER_REFERENCE,
+	PT_CPP_1,
+	PT_CPP_2,
+	PT_MUL,
+	PT_DIV,
+	PT_MOD,
+	PT_ADD,
+	PT_SUB,
+	PT_ASSIGN,
+	PT_BINARY_AND,
+	PT_BINARY_OR,
+	PT_BINARY_XOR,
+	PT_BINARY_NOT,
+	PT_LOGIC_NOT,
+	PT_LOGIC_GREATER,
+	PT_LOGIC_LESS,
+	PT_REFERENCE,
+	PT_COLON,
+	PT_COMMA,
+	PT_SEMICOLON,
+	PT_QUESTION_MARK,
+	PT_BRACE_OPEN,
+	PT_BRACE_CLOSE,
+	PT_BRACKET_OPEN,
+	PT_BRACKET_CLOSE,
+	PT_PARENTHESIS_OPEN,
+	PT_PARENTHESIS_CLOSE,
+	PT_PRECOMPILER,
+	PT_DOLLAR,
+	PT_BACKSLASH,
+	PT_MAXCOUNT,
+};
 
 // default punctuation table
 static punctuation_t ps_punctuationsTable[] = 
@@ -788,7 +863,8 @@ static bool PS_ReadName( script_t *script, scFlags_t flags, token_t *token )
 		{
 			if((c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9')
 			&& c != '_' && c != '/' && c != '\\' && c != ':' && c != '.' && c != '+'
-			&& c != '-' && c != '{' && c != '!' && c != '$' && c != '&' ) break;
+			&& c != '-' && c != '{' && c != '!' && c != '$' && c != '&' && c != '~' )
+				break;
 		}
 		else
 		{
@@ -1384,154 +1460,4 @@ void PS_FreeScript( script_t *script )
 	if( script->allocated )
 		Mem_Free( script->buffer );
 	Mem_Free( script );	// himself
-}
-
-/*
-============
-SC_StringContains
-============
-*/
-char *SC_StringContains(char *str1, char *str2, int casecmp)
-{
-	int	len, i, j;
-
-	len = com_strlen(str1) - com_strlen(str2);
-
-	for (i = 0; i <= len; i++, str1++)
-	{
-		for (j = 0; str2[j]; j++)
-		{
-			if (casecmp)
-			{
-				if (str1[j] != str2[j]) break;
-			}
-			else
-			{
-				if(com_toupper(str1[j]) != com_toupper(str2[j]))
-					break;
-			}
-		}
-		if (!str2[j]) return str1;
-	}
-	return NULL;
-}
-
-/*
-============
-SC_FilterToken
-============
-*/
-bool SC_FilterToken(char *filter, char *name, int casecmp)
-{
-	char	buf[MAX_MSGLEN];
-	char	*ptr;
-	int	i, found;
-
-	while(*filter)
-	{
-		if(*filter == '*')
-		{
-			filter++;
-			for (i = 0; *filter; i++)
-			{
-				if (*filter == '*' || *filter == '?')
-					break;
-				buf[i] = *filter;
-				filter++;
-			}
-			buf[i] = '\0';
-			if (com_strlen(buf))
-			{
-				ptr = SC_StringContains(name, buf, casecmp);
-				if (!ptr) return false;
-				name = ptr + com_strlen(buf);
-			}
-		}
-		else if (*filter == '?')
-		{
-			filter++;
-			name++;
-		}
-		else if (*filter == '[' && *(filter+1) == '[')
-		{
-			filter++;
-		}
-		else if (*filter == '[')
-		{
-			filter++;
-			found = false;
-			while(*filter && !found)
-			{
-				if (*filter == ']' && *(filter+1) != ']') break;
-				if (*(filter+1) == '-' && *(filter+2) && (*(filter+2) != ']' || *(filter+3) == ']'))
-				{
-					if (casecmp)
-					{
-						if (*name >= *filter && *name <= *(filter+2)) found = true;
-					}
-					else
-					{
-						if (com_toupper(*name) >= com_toupper(*filter) && com_toupper(*name) <= com_toupper(*(filter+2)))
-							found = true;
-					}
-					filter += 3;
-				}
-				else
-				{
-					if (casecmp)
-					{
-						if (*filter == *name) found = true;
-					}
-					else
-					{
-						if (com_toupper(*filter) == com_toupper(*name)) found = true;
-					}
-					filter++;
-				}
-			}
-			if (!found) return false;
-			while(*filter)
-			{
-				if (*filter == ']' && *(filter+1) != ']')
-					break;
-				filter++;
-			}
-			filter++;
-			name++;
-		}
-		else
-		{
-			if (casecmp)
-			{
-				if (*filter != *name)
-					return false;
-			}
-			else
-			{
-				if (com_toupper(*filter) != com_toupper(*name))
-					return false;
-			}
-			filter++;
-			name++;
-		}
-	}
-	return true;
-}
-
-/*
-=================
-SC_HashKey
-
-returns hash key for string
-=================
-*/
-uint SC_HashKey( const char *string, uint hashSize )
-{
-	uint	hashKey = 0;
-	int	i;
-
-	for( i = 0; string[i]; i++ )
-		hashKey = (hashKey + i) * 37 + com_tolower(string[i]);
-
-	return (hashKey % hashSize);
 }

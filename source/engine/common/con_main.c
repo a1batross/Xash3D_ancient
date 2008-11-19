@@ -563,9 +563,9 @@ void Con_DrawConsole( void )
 		break;
 	case ca_connected:
 	case ca_connecting:
-		if( host.developer )
+		if( host.developer >= 2 )
 		{
-			// show console in devmode
+			// -dev 1 probably nothing print while loading
 			Con_DrawSolidConsole( 0.5f );
 		}
 		break;

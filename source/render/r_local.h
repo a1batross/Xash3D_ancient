@@ -48,9 +48,8 @@ typedef enum
 	TF_INTENSITY	= BIT(3),
 	TF_ALPHA		= BIT(4),
 	TF_NORMALMAP	= BIT(5),
-	TF_GEN_MIPS	= BIT(6),
-	TF_CUBEMAP	= BIT(7),
-	TF_LIGHTMAP	= BIT(8),
+	TF_CUBEMAP	= BIT(6),
+	TF_LIGHTMAP	= BIT(7),
 } texFlags_t;
 
 typedef enum
@@ -94,6 +93,7 @@ typedef struct texture_s
 } texture_t;
 
 extern texture_t	*r_defaultTexture;
+extern texture_t	*r_defaultConchars;
 extern texture_t	*r_whiteTexture;
 extern texture_t	*r_blackTexture;
 extern texture_t	*r_skyTexture;
@@ -150,6 +150,7 @@ extern int	r_numShaders;
 void	R_EvaluateRegisters( ref_shader_t *shader, float time, const float *entityParms, const float *globalParms );
 ref_shader_t *R_FindShader( const char *name, int shaderType, uint surfaceParm );
 void	R_ShaderSetSpriteTexture( texture_t *mipTex );
+void	R_ShaderAddSpriteIntervals( float interval );
 void	R_ShaderFreeUnused( void );
 void	R_ShaderList_f( void );
 void	R_InitShaders( void );
@@ -664,9 +665,6 @@ void		R_Free_OpenGL( void );
 
  =======================================================================
 */
-
-#define MAX_INDICES			16384 * 3
-#define MAX_VERTICES		8192
 #define MAX_MESHES			32768
 
 typedef enum
@@ -815,7 +813,7 @@ void		R_BeginRegistration( const char *map );
 rmodel_t		*R_RegisterModel( const char *name );
 shader_t		Mod_RegisterShader( const char *name, int shaderType );
 void		R_SetupSky( const char *name, float rotate, const vec3_t axis );
-void		R_EndRegistration( void );
+void		R_EndRegistration( const char *skyname );
 void		R_ModRegisterShaders( rmodel_t *mod );	// prolonge registration
 bool		VID_ScreenShot( const char *filename, bool levelshot );
 bool		VID_CubemapShot( const char *base, uint size, bool skyshot );

@@ -19,61 +19,11 @@ fopen завешивает приложение, даже если перепутать местами + и a, при установке р
 
 GLOBAL: ƒостигнуть уровн€ xash 0.45 к очередному релизу
 
-0. Com_Filter убрать внутрь launch.dll ??
-1. имплементаци€ нового формата карт		OK
-2. новый загрузчик моделей на рендере		OK
-3. SV_Frame на сервере			OK
-4. переписать загрузчик BSP			OK
-5. отладить R_ImageFreeUnused			OK
-6. дописать Image_ForceRGBA			OK
-7. SC_ALLOW_PATHNAMES2 - набор символов		OK
-8. упор€дочить ресурсы			OK
-9. оставить только tmpQuArK			OK
-10. починить IMAGE_FORCE_RGBA (или избавитс€ ?)
-11. LUMA processing				OK
-12. дописать генератор шейдеров		OK
-13. сделать case -light дл€ bsplib		OK
-14. зачинить небо				OK
-15. наладить отрисовку энтить
-16. починить PhysWorld			OK
-17. наладить StudioModelRender		OK
-18. энумератор текстур			OK
-19. наладить удаление ключей из HashTable	OK
-20. CM_HeadnodeVisible
-21. Matrix3x3_Compare crashed			OK
-22. SpriteCulling				OK
-23. LightSwitch				OK
-24. ParticleDrawing				OK
-25. CM_LeafCluster crashing
-26. StudioLighting				OK
-27. SurfaceParm дл€ спрайтов и моделей
-
-операци€ "ѕолна€ отладка менеджера текстур"
-0. анализ менеджера egl и q2e_068
-1. переместить глобальные переменные в ref.
-2. доводка загрузчика шейдеров
-
-операци€ "ќтладка: bsp 48
-0. отладка qbsp3
-2. подправить рендер с учетом новых констант
-3. «аюзать матрицы 3x3 на сервере
-
-Ќовый загрузчик текстур:
-1. –асширение matrixlib - Matrix3x3
-
-1. r_backend.c:1335
-2. r_backend.c:1338
-3. r_backend.c:1347
-4. r_shader.c:3087
-5. r_main.c:339
-6. r_backend.c:1310
-
-table format:
-
-table r_warpTable[256] = { 0, 1, 2, 3, };
-
-9. r_texture.c:1724
-
+0. починить IMAGE_FORCE_RGBA (или избавитс€ ?)
+1. droptofloor
+2. bsplib и финальный формат карты
+3. console garbage					OK
+4. create indexBuffer
 
 TODO LIST
 поправить поле movedir в bsplib/map.c
@@ -97,7 +47,4 @@ TODO LIST
 4. EGL				(Effects, Shaders)
 5. Quake2XP			(Effects, Glass, Shadows)
 6. Tenebrae			(Mirrors, Cubemap Projection, Bump)
-7. Venegeance			(Reflective Water)
-8. ftewqw				(some model loadings)
 9.Darkplaces			ALL!!!!!!!!!!!!!!!111111111111
-10.MHQuakeII			(auto-luma)

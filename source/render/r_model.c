@@ -254,10 +254,16 @@ void R_LoadShaders( const byte *base, const lump_t *l )
 		Cvar_SetValue( "scr_loading", scr_loading->value + 50.0f / count );
 		if( ri.UpdateScreen ) ri.UpdateScreen();
 
-		// performance evaluation option
-		if( surfaceParm & SURF_NODRAW || r_singleshader->integer )
+		// performance evaluation option                    
+                    if( r_singleshader->integer )
 		{
 			m_pLoadModel->shaders[i] = tr.defaultShader;
+			continue;
+		}
+
+		if( surfaceParm & SURF_NODRAW ) 
+		{
+			m_pLoadModel->shaders[i] = tr.nodrawShader;
 			continue;
 		}
 		
@@ -1200,13 +1206,26 @@ R_EndRegistration
 
 @@@@@@@@@@@@@@@@@@@@@
 */
-void R_EndRegistration( void )
+void R_EndRegistration( const char *skyname )
 {
 	int	i;
 	rmodel_t	*mod;
 
-	// setup skybox
-	R_SetupSky( r_skyShader, 0, vec3_origin );
+	if( com.strncmp( skyname, "<skybox>", 8 ))
+	{
+		// worldspawn:skyname
+		R_SetupSky( skyname, 0, vec3_origin );
+	}
+	else if( com.strlen( r_skyShader ))
+	{
+		// setup skybox from map
+		R_SetupSky( r_skyShader, 0, vec3_origin );
+	}
+	else
+	{
+		// default shader
+		R_SetupSky( skyname, 0, vec3_origin );
+	}
 
 	for( i = 0, mod = r_models; i < r_nummodels; i++, mod++ )
 	{
@@ -1214,7 +1233,6 @@ void R_EndRegistration( void )
 		if( mod->registration_sequence != registration_sequence )
 			Mod_Free( mod );
 	}
-
 	R_ShaderFreeUnused();
 }
 

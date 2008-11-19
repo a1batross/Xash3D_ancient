@@ -418,31 +418,6 @@ void VM_ComReadToken( void )
 
 /*
 =========
-VM_ComFilterToken
-
-float Com_Filter( string mask, string s, float casecmp )
-=========
-*/
-void VM_ComFilterToken( void )
-{
-	const char *mask, *name;
-	bool	casecmp;
-
-	if(!VM_ValidateArgs( "Com_Filter", 3 ))
-		return;
-
-	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
-	VM_ValidateString(PRVM_G_STRING(OFS_PARM1));
-
-	mask = PRVM_G_STRING(OFS_PARM0);
-	name = PRVM_G_STRING(OFS_PARM1);
-	casecmp = PRVM_G_FLOAT(OFS_PARM2) ? true : false;
-
-	PRVM_G_FLOAT(OFS_RETURN) = (float)Com_Filter( (char *)mask, (char *)name, casecmp );
-}
-
-/*
-=========
 VM_ComSearchFiles
 
 float Com_Search( string mask, float casecmp )
@@ -1584,7 +1559,7 @@ VM_ComFileTime,			// #14 float Com_FileTime( string filename )
 VM_ComLoadScript,			// #15 float Com_LoadScript( string filename )
 VM_ComResetScript,			// #16 void Com_ResetScript( void )
 VM_ComReadToken,			// #17 string Com_ReadToken( float newline )
-VM_ComFilterToken,			// #18 float Com_Filter( string mask, string s, float casecmp )
+NULL,				// #18 -- reserved --
 VM_ComSearchFiles,			// #19 float Com_Search( string mask, float casecmp )
 VM_ComSearchNames,			// #20 string Com_SearchFilename( float num )
 VM_RandomLong,			// #21 float RandomLong( float min, float max )

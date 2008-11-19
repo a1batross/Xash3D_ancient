@@ -8,7 +8,7 @@
 #include "utils.h"
 #include "mathlib.h"
 
-#define MAX_FRAMES		512
+#define MAX_FRAMES		256
 #define MAX_FRAME_DIM	512
 #define MIN_INTERVAL	0.001f
 #define MAX_INTERVAL	64.0f

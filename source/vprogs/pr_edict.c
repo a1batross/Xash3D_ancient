@@ -549,17 +549,17 @@ For debugging
 // LordHavoc: changed to print out every 4096 characters (incase there are a lot of fields to print)
 void PRVM_ED_Print(edict_t *ed)
 {
-	size_t	l;
-	ddef_t	*d;
+	size_t		l;
+	ddef_t		*d;
 	int		*v;
 	int		i, j;
 	const char	*name;
 	int		type;
-	char	tempstring[MAX_MSGLEN], tempstring2[260]; // temporary string buffers
+	char		tempstring[MAX_MSGLEN], tempstring2[260]; // temporary string buffers
 
-	if (ed->priv.ed->free)
+	if( ed->priv.ed->free )
 	{
-		Msg("%s: FREE\n",PRVM_NAME);
+		Msg( "%s: FREE\n", PRVM_NAME );
 		return;
 	}
 
@@ -1172,12 +1172,12 @@ void PRVM_ED_LoadFromFile( const char *data )
 
 			if( !func )
 			{
-				if(prvm_developer >= D_NOTE)
+				if( prvm_developer >= D_ERROR )
 				{
-					MsgDev( D_ERROR, "No spawn function for:\n");
-					PRVM_ED_Print(ent);
+					MsgDev( D_ERROR, "No spawn function for:\n" );
+					PRVM_ED_Print( ent );
 				}
-				PRVM_ED_Free (ent);
+				PRVM_ED_Free( ent );
 				continue;
 			}
 

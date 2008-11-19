@@ -7,7 +7,6 @@
 #include "baserc_api.h"
 #include "engine_api.h"
 #include "mathlib.h"
-#include "parselib.h"
 
 #define MAX_QUED_EVENTS		256
 #define MASK_QUED_EVENTS		(MAX_QUED_EVENTS - 1)
@@ -125,8 +124,7 @@ void Sys_GetStdAPI( void )
 	com.Com_ReadLong = PS_GetInteger;		// signed integer
 
 	com.Com_Search = FS_Search;			// returned list of founded files
-	com.Com_Filter = SC_FilterToken;		// compare keyword by mask with filter
-	com.Com_HashKey = SC_HashKey;			// returns hash key for a string (generic fucntion)
+	com.Com_HashKey = Com_HashKey;		// returns hash key for a string (generic fucntion)
 	com.Com_LoadRes = Sys_LoadRes;		// get internal resource by name
 
 	// console variables

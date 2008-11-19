@@ -245,7 +245,8 @@ typedef enum
 {
 	TEX_GENERIC,
 	TEX_LIGHTMAP,
-	TEX_CINEMATIC
+	TEX_CINEMATIC,
+	TEX_ANGLEDMAP
 } texType_t;
 
 typedef struct table_s

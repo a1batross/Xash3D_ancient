@@ -502,7 +502,6 @@ typedef struct stdilib_api_s
 	bool (*Com_ReadLong)( script_t *script, int flags, int *value );		// signed integer
 
 	search_t *(*Com_Search)(const char *pattern, int casecmp );	// returned list of found files
-	bool (*Com_Filter)(char *filter, char *name, int casecmp ); // compare keyword by mask with filter
 	uint (*Com_HashKey)( const char *string, uint hashSize );	// returns hash key for a string
 	byte *(*Com_LoadRes)( const char *filename, size_t *size );	// find internal resource in baserc.dll 
 
@@ -719,7 +718,6 @@ typedef struct cvar_s
 #define Com_ReadUlong		com.Com_ReadDword
 #define Com_ReadLong		com.Com_ReadLong
 
-#define Com_Filter			com.Com_Filter
 #define Com_HashKey			com.Com_HashKey
 
 /*

@@ -16,7 +16,10 @@
 =============================================================
 */
 string		frame_prefix;
+uint		frame_type;
+uint		group_num;
 uint		surfaceParm;
+string		sp_name;
 ref_shader_t	**frames = NULL;
 	
 /*
@@ -28,11 +31,11 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 {
 	dspriteframe_t	*pinframe;
 	mspriteframe_t	*pspriteframe;
-	string		name;
+	string		name, shadername;
 
 	// build uinque frame name
-	FS_FileBase( mod->name, mod->name );
-	com.snprintf( name, MAX_STRING, "Sprite( %s_%s_%i%i )", mod->name, frame_prefix, framenum/10, framenum%10 );
+	if( !sp_name[0] ) FS_FileBase( mod->name, sp_name );
+	com.snprintf( name, MAX_STRING, "Sprite( %s_%s_%i%i )", sp_name, frame_prefix, framenum/10, framenum%10 );
 	
 	pinframe = (dspriteframe_t *)pin;
 	SwapBlock((int *)pinframe, sizeof( dspriteframe_t ));
@@ -46,15 +49,18 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	pspriteframe->down = pinframe->origin[1] - pinframe->height;
 	pspriteframe->right = pinframe->width + pinframe->origin[0];
 	pspriteframe->radius = com.sqrt((pinframe->width * pinframe->width) + (pinframe->height * pinframe->height));
-	pspriteframe->texture = R_FindTexture( name, (byte *)pin, pinframe->width * pinframe->height, TF_GEN_MIPS, 0, 0 );
+	pspriteframe->texture = R_FindTexture( name, (byte *)pin, pinframe->width * pinframe->height, 0, 0, 0 );
 	*ppframe = pspriteframe;
 
 	R_ShaderSetSpriteTexture( pspriteframe->texture );
-	pspriteframe->shader = R_FindShader( name, SHADER_SPRITE, surfaceParm )->shadernum;
 
-	frames = Mem_Realloc( mod->mempool, frames, sizeof( ref_shader_t* ) * (mod->numShaders + 1));
-	frames[mod->numShaders++] = &r_shaders[pspriteframe->shader];
-
+	if( frame_type == SPR_SINGLE )
+	{
+		com.snprintf( shadername, MAX_STRING, "sprites/%s.spr/%s_%i%i )", sp_name, frame_prefix, framenum/10, framenum%10 );
+		pspriteframe->shader = R_FindShader( shadername, SHADER_SPRITE, surfaceParm )->shadernum;
+		frames = Mem_Realloc( mod->mempool, frames, sizeof( ref_shader_t* ) * (mod->numShaders + 1));
+		frames[mod->numShaders++] = &r_shaders[pspriteframe->shader];
+	}
 	return (dframetype_t *)((byte *)(pinframe + 1) + pinframe->width * pinframe->height );
 }
 
@@ -64,11 +70,13 @@ dframetype_t *R_SpriteLoadGroup( rmodel_t *mod, void * pin, mspriteframe_t **ppf
 	mspritegroup_t	*pspritegroup;
 	dspriteinterval_t	*pin_intervals;
 	float		*poutintervals;
+	shader_t		group_shader;
 	int		i, groupsize, numframes;
+	string		shadername;
 	void		*ptemp;
 
 	pingroup = (dspritegroup_t *)pin;
-	numframes = LittleLong(pingroup->numframes);
+	numframes = LittleLong( pingroup->numframes );
 
 	groupsize = sizeof(mspritegroup_t) + (numframes - 1) * sizeof( pspritegroup->frames[0] );
 	pspritegroup = Mem_Alloc( mod->mempool, groupsize );
@@ -79,10 +87,11 @@ dframetype_t *R_SpriteLoadGroup( rmodel_t *mod, void * pin, mspriteframe_t **ppf
 	poutintervals = Mem_Alloc( mod->mempool, numframes * sizeof( float ));
 	pspritegroup->intervals = poutintervals;
 
-	for (i = 0; i < numframes; i++)
+	for( i = 0; i < numframes; i++ )
 	{
 		*poutintervals = LittleFloat( pin_intervals->interval );
 		if( *poutintervals <= 0.0 ) *poutintervals = 1.0f; // set error value
+		if( frame_type == SPR_GROUP ) R_ShaderAddSpriteIntervals( *poutintervals );
 		poutintervals++;
 		pin_intervals++;
 	}
@@ -90,8 +99,19 @@ dframetype_t *R_SpriteLoadGroup( rmodel_t *mod, void * pin, mspriteframe_t **ppf
 	ptemp = (void *)pin_intervals;
 	for( i = 0; i < numframes; i++ )
 	{
-		ptemp = R_SpriteLoadFrame(mod, ptemp, &pspritegroup->frames[i], framenum * 10 + i );
+		ptemp = R_SpriteLoadFrame( mod, ptemp, &pspritegroup->frames[i], framenum * 10 + i );
 	}
+
+	com.snprintf( shadername, MAX_STRING, "sprites/%s.spr/%s_%i%i", sp_name, frame_prefix, group_num/10, group_num%10 );
+	group_shader = R_FindShader( shadername, SHADER_SPRITE, surfaceParm )->shadernum;
+	frames = Mem_Realloc( mod->mempool, frames, sizeof( ref_shader_t* ) * (mod->numShaders + 1));
+	frames[mod->numShaders++] = &r_shaders[group_shader];
+
+	// apply this shader for all frames in group
+	for( i = 0; i < numframes; i++ )
+		pspritegroup->frames[i]->shader = group_shader;
+	group_num++;
+
 	return (dframetype_t *)ptemp;
 }
 
@@ -102,7 +122,7 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 	msprite_t		*psprite;
 	dframetype_t	*pframetype;
 	int		i, size, numframes;
-	
+
 	pin = (dsprite_t *)buffer;
 	i = LittleLong( pin->version );
 		
@@ -175,12 +195,15 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 	MsgDev( D_LOAD, "%s, rendermode %d\n", mod->name, psprite->rendermode );
 	mod->registration_sequence = registration_sequence;
 	frames = NULL; // invalidate pointer
+	sp_name[0] = 0;
+	group_num = 0;
 
 	for( i = 0; i < numframes; i++ )
 	{
 		frametype_t frametype = LittleLong( pframetype->type );
 		psprite->frames[i].type = frametype;
-
+		frame_type = frametype;
+			
 		switch( frametype )
 		{
 		case SPR_SINGLE:

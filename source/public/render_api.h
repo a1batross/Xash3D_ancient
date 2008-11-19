@@ -49,7 +49,7 @@ typedef struct render_exp_s
 	void	(*BeginRegistration)( const char *map );
 	bool	(*RegisterModel)( const char *name, int cl_index ); // also build replacement index table
 	shader_t	(*RegisterShader)( const char *name, int shaderType );
-	void	(*EndRegistration)( void );
+	void	(*EndRegistration)( const char *skyname );
 
 	// prepare frame to rendering
 	bool	(*AddRefEntity)( entity_state_t *s1, entity_state_t *s2, float lerp );

@@ -649,12 +649,12 @@ void Cvar_List_f( void )
 	char	*match;
 	int	i = 0;
 
-	if ( Cmd_Argc() > 1 ) match = Cmd_Argv(1);
+	if( Cmd_Argc() > 1 ) match = Cmd_Argv(1);
 	else match = NULL;
 
-	for (var = cvar_vars; var; var = var->next, i++)
+	for( var = cvar_vars; var; var = var->next, i++ )
 	{
-		if (match && !SC_FilterToken(match, var->name, false))
+		if( match && !Cmd_FilterToken( match, var->name, false ))
 			continue;
 
 		if (var->flags & CVAR_SERVERINFO) Msg("S");

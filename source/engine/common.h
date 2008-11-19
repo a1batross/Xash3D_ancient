@@ -232,7 +232,6 @@ void VM_ComFileTime( void );
 void VM_ComLoadScript( void );
 void VM_ComResetScript( void );
 void VM_ComReadToken( void );
-void VM_ComFilterToken( void );
 void VM_ComSearchFiles( void );
 void VM_ComSearchNames( void );
 void VM_RandomLong( void );

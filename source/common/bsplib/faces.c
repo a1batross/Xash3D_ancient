@@ -59,7 +59,7 @@ typedef struct hashvert_s
 } hashvert_t;
 
 
-#define	HASH_SIZE	1536
+#define HASH_SIZE		512
 
 
 int	vertexchain[MAX_MAP_VERTS];		// the next vertex in a hash chain
@@ -74,11 +74,11 @@ unsigned HashVec (vec3_t vec)
 {
 	int			x, y;
 
-	x = (131072 + (int)(vec[0]+0.5)) >> 7;
-	y = (131072 + (int)(vec[1]+0.5)) >> 7;
+	x = (MAX_WORLD_COORD + (int)(vec[0]+0.5)) >> 16;
+	y = (MAX_WORLD_COORD + (int)(vec[1]+0.5)) >> 16;
 
 	if ( x < 0 || x >= HASH_SIZE || y < 0 || y >= HASH_SIZE )
-		Sys_Error ("HashVec: point outside valid range");
+		Sys_Error( "HashVec: point outside valid range\n" );
 	
 	return y*HASH_SIZE + x;
 }

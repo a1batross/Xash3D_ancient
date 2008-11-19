@@ -116,7 +116,7 @@ static void ParseShaderFile( const char *filename )
 	if( shader )
 	{
 		FS_FileBase( filename, name );
-		MsgDev( D_INFO, "Adding shader: %s.txt\n", name );
+		MsgDev( D_INFO, "Adding: %s.shader\n", name );
           }
           
 	while( shader )

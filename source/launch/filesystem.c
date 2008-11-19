@@ -6,7 +6,6 @@
 #include "launch.h"
 #include "filesystem.h"
 #include "byteorder.h"
-#include "parselib.h"
 
 #define ZIP_END_CDIR_SIZE		22
 #define ZIP_CDIR_CHUNK_BASE_SIZE	46

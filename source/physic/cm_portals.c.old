@@ -262,32 +262,29 @@ Returns true if any leaf under headnode has a cluster that
 is potentially visible
 =============
 */
-bool CM_HeadnodeVisible_r( cnode_t *node, byte *visbits )
-{
-	cleaf_t	*leaf;
-
-	if( !node->plane )
-	{
-		leaf = (cleaf_t *)node;
-
-		if( leaf->cluster == -1 ) return false;
-		if( visbits[leaf->cluster>>3] & (1<<(leaf->cluster&7)))
-			return true;
-		return false;
-	}
-	
-	if( CM_HeadnodeVisible_r( node->children[0], visbits ))
-		return true;
-	return CM_HeadnodeVisible_r( node->children[1], visbits );
-}
-
 bool CM_HeadnodeVisible( int nodenum, byte *visbits )
 {
+	int	leafnum, cluster;
 	cnode_t	*node;
 
 	if( nodenum < 0 )
-		node = (cnode_t *)cm.leafs + (-1 - nodenum);
-	else node = (cnode_t *)cm.nodes + nodenum;
+	{
+		leafnum = -1 - nodenum;
 
-	return CM_HeadnodeVisible_r( node, visbits );
+		if( leafnum < 0 || leafnum >= cm.numleafs )
+			Host_Error("CM_HeadnodeVisible: bad leaf %i >= %i\n", leafnum, cm.numleafs );
+		cluster = cm.leafs[leafnum].cluster;
+		if( cluster == -1 ) return false;
+		if( visbits[cluster>>3] & (1<<(cluster&7)))
+			return true;
+		return false;
+	}
+
+	if( nodenum < 0 || nodenum >= cm.numnodes )
+		Host_Error( "CM_HeadnodeVisible: bad node %i >= %i\n", nodenum, cm.numnodes );
+	
+	node = cm.nodes + nodenum;
+	if( CM_HeadnodeVisible( node->children[0] - cm.nodes, visbits ))
+		return true;
+	return CM_HeadnodeVisible( node->children[1] - cm.nodes, visbits );
 }

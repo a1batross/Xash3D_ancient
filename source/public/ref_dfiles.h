@@ -160,8 +160,8 @@ BRUSH MODELS
 #define DVIS_PHS			1
 #define MAX_KEY			128
 #define MAX_VALUE			512
-#define MAX_WORLD_COORD		( 32 * 1024 )
-#define MIN_WORLD_COORD		(-32 * 1024 )
+#define MAX_WORLD_COORD		( 128 * 1024 )
+#define MIN_WORLD_COORD		(-128 * 1024 )
 #define WORLD_SIZE			( MAX_WORLD_COORD - MIN_WORLD_COORD )
 #define MAX_SHADERPATH		64
 
