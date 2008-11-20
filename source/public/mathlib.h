@@ -54,6 +54,7 @@
 #define Vector4Scale(in, scale, out) ((out)[0] = (in)[0] * (scale),(out)[1] = (in)[1] * (scale),(out)[2] = (in)[2] * (scale),(out)[3] = (in)[3] * (scale))
 #define VectorMultiply(a,b,c) ((c)[0]=(a)[0]*(b)[0],(c)[1]=(a)[1]*(b)[1],(c)[2]=(a)[2]*(b)[2])
 #define VectorDivide( in, d, out ) VectorScale( in, (1.0f / (d)), out )
+#define VectorAvg(a) ( ((a)[0] + (a)[1] + (a)[2]) / 3 )
 #define VectorLength(a) (sqrt(DotProduct(a, a)))
 #define VectorLength2(a) (DotProduct(a, a))
 #define VectorDistance(a, b) (sqrt(VectorDistance2(a,b)))
@@ -589,8 +590,25 @@ _inline bool BoundsAndSphereIntersect( const vec3_t mins, const vec3_t maxs, con
 	return true;
 }
 
+_inline bool PlaneIntersect( vec3_t p_n, vec_t p_d, vec3_t l_o, vec3_t l_n, vec3_t out )
+{
+	float	dot, t;
 
+	dot = DotProduct( p_n, l_n );
 
+	if( dot > -0.001 )
+		return false;
+
+	t = (p_d - (l_o[0] * p_n[0]) - (l_o[1] * p_n[1]) - (l_o[2] * p_n[2])) / dot;
+
+	if( out )
+	{
+		out[0] = l_o[0] + (t * l_n[0]);
+		out[1] = l_o[1] + (t * l_n[1]);
+		out[2] = l_o[2] + (t * l_n[2]);
+	}                
+	return true;
+}
 
 #define PlaneDist(point,plane)  ((plane)->type < 3 ? (point)[(plane)->type] : DotProduct((point), (plane)->normal))
 #define PlaneDiff(point,plane) (((plane)->type < 3 ? (point)[(plane)->type] : DotProduct((point), (plane)->normal)) - (plane)->dist)

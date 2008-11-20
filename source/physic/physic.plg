@@ -1,0 +1,76 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: physic - Win32 Release--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP1EE0.tmp" with contents
+[
+/nologo /MD /W3 /GX /O2 /I "../public" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /Fo"..\temp\physic\!release/" /Fd"..\temp\physic\!release/" /FD /c 
+"D:\Xash3D\src_main\physic\cm_callback.c"
+"D:\Xash3D\src_main\physic\cm_collision.c"
+"D:\Xash3D\src_main\physic\cm_debug.c"
+"D:\Xash3D\src_main\physic\cm_materials.c"
+"D:\Xash3D\src_main\physic\cm_model.c"
+"D:\Xash3D\src_main\physic\cm_pmove.c"
+"D:\Xash3D\src_main\physic\cm_polygon.c"
+"D:\Xash3D\src_main\physic\cm_portals.c"
+"D:\Xash3D\src_main\physic\cm_rigidbody.c"
+"D:\Xash3D\src_main\physic\cm_test.c"
+"D:\Xash3D\src_main\physic\cm_trace.c"
+"D:\Xash3D\src_main\physic\physic.c"
+]
+Creating command line "cl.exe @"C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP1EE0.tmp"" 
+Creating temporary file "C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP1EE1.tmp" with contents
+[
+user32.lib msvcrt.lib newton.lib opengl32.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /out:"..\temp\physic\!release/physic.dll" /implib:"..\temp\physic\!release/physic.lib" /libpath:"../public/libs/" 
+"\Xash3D\src_main\temp\physic\!release\cm_callback.obj"
+"\Xash3D\src_main\temp\physic\!release\cm_collision.obj"
+"\Xash3D\src_main\temp\physic\!release\cm_debug.obj"
+"\Xash3D\src_main\temp\physic\!release\cm_materials.obj"
+"\Xash3D\src_main\temp\physic\!release\cm_model.obj"
+"\Xash3D\src_main\temp\physic\!release\cm_pmove.obj"
+"\Xash3D\src_main\temp\physic\!release\cm_polygon.obj"
+"\Xash3D\src_main\temp\physic\!release\cm_portals.obj"
+"\Xash3D\src_main\temp\physic\!release\cm_rigidbody.obj"
+"\Xash3D\src_main\temp\physic\!release\cm_test.obj"
+"\Xash3D\src_main\temp\physic\!release\cm_trace.obj"
+"\Xash3D\src_main\temp\physic\!release\cm_utils.obj"
+"\Xash3D\src_main\temp\physic\!release\physic.obj"
+]
+Creating command line "link.exe @"C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP1EE1.tmp""
+Creating temporary file "C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP1EE2.bat" with contents
+[
+@echo off
+copy \Xash3D\src_main\temp\physic\!release\physic.dll "D:\Xash3D\bin\physic.dll"
+]
+Creating command line ""C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP1EE2.bat""
+Compiling...
+cm_callback.c
+cm_collision.c
+cm_debug.c
+cm_materials.c
+cm_model.c
+cm_pmove.c
+cm_polygon.c
+cm_portals.c
+cm_rigidbody.c
+cm_test.c
+cm_trace.c
+physic.c
+Generating Code...
+Linking...
+   Creating library ..\temp\physic\!release/physic.lib and object ..\temp\physic\!release/physic.exp
+<h3>Output Window</h3>
+Performing Custom Build Step on \Xash3D\src_main\temp\physic\!release\physic.dll
+ë™ÆØ®‡Æ¢†≠Æ ‰†©´Æ¢:         1.
+
+
+
+<h3>Results</h3>
+physic.dll - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

@@ -1429,7 +1429,7 @@ void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref, int pass 
 
 				lv = m_pvlightvalues[ptricmds[1]];
 
-				GL_Normal3fv( vec3_origin );	// needs to clear normals
+				GL_Normal3fv( vec3_origin );	// FIXME: apply normals
                                         
                                         if ( m_pCurrentEntity->renderfx & RF_FULLBRIGHT )
 					lv = &fbright[0];

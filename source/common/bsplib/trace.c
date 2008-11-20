@@ -6,15 +6,6 @@
 #include "bsplib.h"
 #include "const.h"
 
-typedef struct tnode_s
-{
-	int	type;
-	vec3_t	normal;
-	float	dist;
-	int	children[2];
-	int	pad;
-} tnode_t;
-
 tnode_t		*tnodes, *tnode_p;
 
 /*

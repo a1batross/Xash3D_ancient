@@ -1860,7 +1860,7 @@ static bool R_ParseStageBumpMap( ref_shader_t *shader, shaderStage_t *stage, scr
 		return false;
 	}
 
-	if( !Com_ReadToken( script, false, &tok ))
+	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'bumpMap' in shader '%s'\n", shader->name );
 		return false;
@@ -1869,7 +1869,7 @@ static bool R_ParseStageBumpMap( ref_shader_t *shader, shaderStage_t *stage, scr
 	com.strncpy( name, tok.string, sizeof( name ));
 	while( 1 )
 	{
-		if( !Com_ReadToken( script, SC_PARSE_GENERIC, &tok ))
+		if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &tok ))
 			break;
 
 		com.strncat( name, " ", sizeof( name ));
@@ -1936,7 +1936,7 @@ static bool R_ParseStageCubeMap( ref_shader_t *shader, shaderStage_t *stage, scr
 		return false;
 	}
 
-	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES, &tok ))
+	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'cubeMap' in shader '%s'\n", shader->name );
 		return false;

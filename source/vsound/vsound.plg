@@ -1,0 +1,54 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: vsound - Win32 Release--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP1EF5.tmp" with contents
+[
+/nologo /MD /W3 /GX /O2 /I "./" /I "../public" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /Fo"..\temp\vsound\!release/" /Fd"..\temp\vsound\!release/" /FD /c 
+"D:\Xash3D\src_main\vsound\s_load.c"
+"D:\Xash3D\src_main\vsound\s_main.c"
+"D:\Xash3D\src_main\vsound\s_openal.c"
+"D:\Xash3D\src_main\vsound\s_stream.c"
+"D:\Xash3D\src_main\vsound\s_export.c"
+]
+Creating command line "cl.exe @"C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP1EF5.tmp"" 
+Creating temporary file "C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP1EF6.tmp" with contents
+[
+libogg.lib vorbis.lib /nologo /dll /profile /machine:I386 /nodefaultlib:"libcmt.lib" /out:"..\temp\vsound\!release/vsound.dll" /implib:"..\temp\vsound\!release/vsound.lib" /opt:nowin98 
+"\Xash3D\src_main\temp\vsound\!release\s_load.obj"
+"\Xash3D\src_main\temp\vsound\!release\s_main.obj"
+"\Xash3D\src_main\temp\vsound\!release\s_openal.obj"
+"\Xash3D\src_main\temp\vsound\!release\s_stream.obj"
+"\Xash3D\src_main\temp\vsound\!release\s_export.obj"
+]
+Creating command line "link.exe @"C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP1EF6.tmp""
+Creating temporary file "C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP1EF7.bat" with contents
+[
+@echo off
+copy \Xash3D\src_main\temp\vsound\!release\vsound.dll "D:\Xash3D\bin\vsound.dll"
+]
+Creating command line ""C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP1EF7.bat""
+Compiling...
+s_load.c
+s_main.c
+s_openal.c
+s_stream.c
+s_export.c
+Generating Code...
+Linking...
+   Creating library ..\temp\vsound\!release/vsound.lib and object ..\temp\vsound\!release/vsound.exp
+<h3>Output Window</h3>
+Performing Custom Build Step on \Xash3D\src_main\temp\vsound\!release\vsound.dll
+ë™ÆØ®‡Æ¢†≠Æ ‰†©´Æ¢:         1.
+
+
+
+<h3>Results</h3>
+vsound.dll - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

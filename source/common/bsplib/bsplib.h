@@ -44,6 +44,10 @@ extern bool onlyvis;
 extern bool onlyrad;
 extern physic_exp_t *pe;
 
+// parms
+extern bool noblock;
+extern bool nocolor;
+
 // bsplib export functions
 void WradMain ( bool option );
 void WvisMain ( bool option );
@@ -559,54 +563,63 @@ int CountBits (byte *bits, int numbits);
 //=============================================================================
 
 // rad.c
+#define LIGHTDISTBIAS	6800.0
 
 typedef enum
 {
 	emit_surface,
 	emit_point,
-	emit_spotlight
+	emit_spotlight,
+	emit_skylight
 } emittype_t;
-
-
 
 typedef struct directlight_s
 {
 	struct directlight_s *next;
 	emittype_t	type;
+	int		style;
 
-	float		intensity;
-	int			style;
 	vec3_t		origin;
 	vec3_t		color;
 	vec3_t		normal;		// for surfaces and spotlights
+	float		intensity;
 	float		stopdot;		// for spotlights
+	float		stopdot2;		// for spotlights
+
+	dplane_t		*plane;
+	dleaf_t		*leaf;
 } directlight_t;
 
+typedef struct tnode_s
+{
+	int		type;
+	vec3_t		normal;
+	float		dist;
+	int		children[2];
+	int		pad;
+} tnode_t;
 
 // the sum of all tranfer->transfer values for a given patch
 // should equal exactly 0x10000, showing that all radiance
 // reaches other patches
 typedef struct
 {
-	unsigned short	patch;
-	unsigned short	transfer;
+	word	patch;
+	word	transfer;
 } transfer_t;
-
-
-
 
 typedef struct patch_s
 {
-	winding_t	*winding;
-	struct patch_s		*next;		// next in face
-	int			numtransfers;
+	winding_t		*winding;
+	struct patch_s	*next;		// next in face
+	int		numtransfers;
 	transfer_t	*transfers;
-
-	int			cluster;			// for pvs checking
+    
+	int		cluster;			// for pvs checking
 	vec3_t		origin;
-	dplane_t	*plane;
+	dplane_t		*plane;
 
-	bool	sky;
+	bool		sky;
 
 	vec3_t		totallight;	// accumulated by radiosity
 					// does NOT include light
@@ -623,17 +636,18 @@ typedef struct patch_s
 	int			samples;		// for averaging direct light
 } patch_t;
 
-extern	patch_t		*face_patches[MAX_MAP_SURFACES];
-extern	bsp_entity_t	*face_entity[MAX_MAP_SURFACES];
-extern	vec3_t		face_offset[MAX_MAP_SURFACES];		// for rotating bmodels
-extern	patch_t		patches[MAX_PATCHES];
-extern	unsigned	num_patches;
+extern patch_t	*face_patches[MAX_MAP_SURFACES];
+extern bsp_entity_t	*face_entity[MAX_MAP_SURFACES];
+extern vec3_t	face_offset[MAX_MAP_SURFACES];		// for rotating bmodels
+extern patch_t	patches[MAX_PATCHES];
+extern tnode_t	*tnodes;
+extern uint	num_patches;
 
-extern	int		leafparents[MAX_MAP_LEAFS];
-extern	int		nodeparents[MAX_MAP_NODES];
+extern int	leafparents[MAX_MAP_LEAFS];
+extern int	nodeparents[MAX_MAP_NODES];
 
-extern	float	lightscale;
-extern	float	ambient;
+extern float	lightscale;
+extern float	ambient;
 
 void MakeShadowSplits (void);
 
@@ -672,14 +686,14 @@ dleaf_t	*RadPointInLeaf (vec3_t point);
 
 
 extern	dplane_t	backplanes[MAX_MAP_PLANES];
-extern	int			fakeplanes;// created planes for origin offset 
+extern	int	fakeplanes;// created planes for origin offset 
 
 extern	float	subdiv;
 
 extern	float	direct_scale;
 extern	float	entity_scale;
 
-int	PointInLeafnum (vec3_t point);
+int PointInLeafnum( vec3_t point );
 void MakeTnodes (dmodel_t *bm);
 void MakePatches (void);
 void SubdividePatches (void);

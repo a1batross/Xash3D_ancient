@@ -506,7 +506,7 @@ void R_LightingDiffuse( void )
 	// add dynamic lights
 	if( r_dynamiclights->integer )
 	{
-		if( m_pCurrentEntity->ent_type == ED_NORMAL )
+		if( m_pCurrentEntity->ent_type == ED_NORMAL && m_pCurrentEntity->model )
 			radius = m_pCurrentEntity->model->radius;
 		else radius = m_pCurrentEntity->radius;
 
