@@ -45,9 +45,7 @@ void CalcTextureReflectivity( void )
 		{						
 			if( !VectorIsNull( si->color ))
 			{
-				texture_reflectivity[i][0] = si->color[0] / 255.0f;
-				texture_reflectivity[i][1] = si->color[1] / 255.0f;
-				texture_reflectivity[i][2] = si->color[2] / 255.0f;
+				VectorDivide( si->color, 255.0f, texture_reflectivity[i] );
 				texinfo[i].value = si->intensity;
 				continue;
 			}
@@ -80,6 +78,7 @@ void CalcTextureReflectivity( void )
 
 			// scale the reflectivity up, because the textures are so dim
 			scale = ColorNormalize( color, texture_reflectivity[i] );
+			VectorDivide( texture_reflectivity[i], 255.0f, texture_reflectivity[i] );
 			texinfo[i].value = (texels * 255.0) / scale; // basic intensity value
           		FS_FreeImage( pic ); // don't forget free image
 		}			

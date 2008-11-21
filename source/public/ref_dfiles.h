@@ -164,6 +164,7 @@ BRUSH MODELS
 #define MIN_WORLD_COORD		(-128 * 1024 )
 #define WORLD_SIZE			( MAX_WORLD_COORD - MIN_WORLD_COORD )
 #define MAX_SHADERPATH		64
+#define NUMVERTEXNORMALS		162	// not a table, only magic value...
 
 #define MAX_BUILD_SIDES		512	// per one brush. (don't touch!)
 #define LM_SAMPLE_SIZE		16	// q1, q2, q3 default value (lightmap resoultion)

@@ -246,7 +246,6 @@ PARTICLE MANAGEMENT
 
 ==============================================================
 */
-#define NUM_VERTEX_NORMALS		162
 #define PARTICLE_GRAVITY		40
 
 #define PARTICLE_BOUNCE		1
@@ -283,7 +282,7 @@ typedef struct cparticle_s
 
 cparticle_t *cl_active_particles, *cl_free_particles;
 static cparticle_t	cl_particle_list[MAX_PARTICLES];
-static vec3_t cl_particle_velocities[NUM_VERTEX_NORMALS];
+static vec3_t cl_particle_velocities[NUMVERTEXNORMALS];
 
 /*
 =================
@@ -339,7 +338,7 @@ void CL_ClearParticles( void )
 
 	cl_particle_list[MAX_PARTICLES-1].next = NULL;
 
-	for( i = 0; i < NUM_VERTEX_NORMALS; i++ )
+	for( i = 0; i < NUMVERTEXNORMALS; i++ )
 	{
 		cl_particle_velocities[i][0] = (rand() & 255) * 0.01;
 		cl_particle_velocities[i][1] = (rand() & 255) * 0.01;

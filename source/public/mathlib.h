@@ -54,6 +54,7 @@
 #define Vector4Scale(in, scale, out) ((out)[0] = (in)[0] * (scale),(out)[1] = (in)[1] * (scale),(out)[2] = (in)[2] * (scale),(out)[3] = (in)[3] * (scale))
 #define VectorMultiply(a,b,c) ((c)[0]=(a)[0]*(b)[0],(c)[1]=(a)[1]*(b)[1],(c)[2]=(a)[2]*(b)[2])
 #define VectorDivide( in, d, out ) VectorScale( in, (1.0f / (d)), out )
+#define VectorMax(a) ( max((a)[0], max((a)[1], (a)[2])) )
 #define VectorAvg(a) ( ((a)[0] + (a)[1] + (a)[2]) / 3 )
 #define VectorLength(a) (sqrt(DotProduct(a, a)))
 #define VectorLength2(a) (DotProduct(a, a))

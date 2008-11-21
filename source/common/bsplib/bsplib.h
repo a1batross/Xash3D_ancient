@@ -580,9 +580,8 @@ typedef struct directlight_s
 	int		style;
 
 	vec3_t		origin;
-	vec3_t		color;
+	vec3_t		intensity;
 	vec3_t		normal;		// for surfaces and spotlights
-	float		intensity;
 	float		stopdot;		// for spotlights
 	float		stopdot2;		// for spotlights
 
@@ -650,12 +649,6 @@ extern float	lightscale;
 extern float	ambient;
 
 void MakeShadowSplits (void);
-
-//==============================================
-
-
-void BuildVisMatrix (void);
-bool CheckVisBit (unsigned p1, unsigned p2);
 
 //==============================================
 

@@ -72,7 +72,8 @@ typedef enum
 	CONTENTS_LAVA		= BIT(3),
 	CONTENTS_SLIME		= BIT(4),
 	CONTENTS_WATER		= BIT(5),
-
+	CONTENTS_SKY		= BIT(6),
+	
 	// space for new user contents
 
 	CONTENTS_MIST		= BIT(12),// g-cont. what difference between fog and mist ?
