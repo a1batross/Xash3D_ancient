@@ -19,12 +19,18 @@ fopen завешивает приложение, даже если перепутать местами + и a, при установке р
 
 GLOBAL: Достигнуть уровня xash 0.45 к очередному релизу
 
+qrad3:
+0. правильный парсинг light энтитей			OK
+1. -qrad, -hlrad					OK
+2. bsp -> wad
+
 0. починить IMAGE_FORCE_RGBA (или избавится ?)
 1. droptofloor
 2. bsplib и финальный формат карты
 3. console garbage					OK
 4. create indexBuffer
 5. light_environment
+6. сделать 2 типа расчета освещения			OK
 
 TODO LIST
 поправить поле movedir в bsplib/map.c

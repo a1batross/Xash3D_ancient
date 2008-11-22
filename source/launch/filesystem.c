@@ -347,7 +347,7 @@ pack_t *FS_LoadPackPK3 (const char *packfile)
 		return NULL;
 	}
 
-	MsgDev(D_INFO, "Adding packfile %s (%i files)\n", packfile, real_nb_files);
+	MsgDev( D_LOAD, "Adding packfile %s (%i files)\n", packfile, real_nb_files );
 	return pack;
 }
 
@@ -762,8 +762,8 @@ pack_t *FS_LoadPackPAK(const char *packfile)
 		FS_AddFileToPack (info[i].name, pack, offset, size, size, PACKFILE_FLAG_TRUEOFFS);
 	}
 
-	Mem_Free(info);
-	MsgDev(D_INFO, "Adding packfile: %s (%i files)\n", packfile, numpackfiles);
+	Mem_Free( info );
+	MsgDev( D_LOAD, "Adding packfile: %s (%i files)\n", packfile, numpackfiles );
 	return pack;
 }
 
@@ -838,8 +838,8 @@ pack_t *FS_LoadPackPK2(const char *packfile)
 		FS_AddFileToPack(info[i].name, pack, offset, size, size, PACKFILE_FLAG_TRUEOFFS);
 	}
 
-	Mem_Free(info);
-	MsgDev(D_INFO, "Adding packfile %s (%i files)\n", packfile, numpackfiles);
+	Mem_Free( info );
+	MsgDev( D_LOAD, "Adding packfile %s (%i files)\n", packfile, numpackfiles );
 	return pack;
 }
 
@@ -994,7 +994,7 @@ static bool FS_AddWad_Fullpath( const char *wadfile, bool *already_loaded, bool 
 			search->next = fs_searchpaths;
 			fs_searchpaths = search;
 		}
-		MsgDev( D_INFO, "Adding wadfile %s (%i files)\n", wadfile, wad->numlumps );
+		MsgDev( D_LOAD, "Adding wadfile %s (%i files)\n", wadfile, wad->numlumps );
 		return true;
 	}
 	else
@@ -1427,18 +1427,18 @@ void FS_Init( void )
 		stringlistsort(&dirs);
 		GI.numgamedirs = 0;
 	
-		if(!FS_GetParmFromCmdLine("-game", gs_basedir ))
+		if( !FS_GetParmFromCmdLine( "-game", gs_basedir ))
 		{
 			if( Sys.app_name == HOST_BSPLIB )
 				com_strcpy( gs_basedir, fs_defaultdir->string );
-			else if(Sys_GetModuleName( gs_basedir, MAX_SYSPATH ));
-			else com_strcpy( gs_basedir, fs_defaultdir->string ); // default dir
+			else if( Sys_GetModuleName( gs_basedir, MAX_SYSPATH ));
+			else com.strcpy( gs_basedir, fs_defaultdir->string ); // default dir
 		}
 		// checked nasty path: "bin" it's a reserved word
-		if(FS_CheckNastyPath( gs_basedir, true ) || !com_stricmp("bin", gs_basedir ))
+		if( FS_CheckNastyPath( gs_basedir, true ) || !com_stricmp("bin", gs_basedir ))
 		{
-			MsgDev( D_INFO, "FS_Init: invalid game directory \"%s\"\n", gs_basedir );		
-			com_strcpy(gs_basedir, fs_defaultdir->string ); // default dir
+			MsgDev( D_ERROR, "FS_Init: invalid game directory \"%s\"\n", gs_basedir );		
+			com.strcpy( gs_basedir, fs_defaultdir->string ); // default dir
 		}
 
 		// validate directories
@@ -1454,18 +1454,18 @@ void FS_Init( void )
 			com_strcpy(gs_basedir, fs_defaultdir->string ); // default dir
 		}
 
-		// save for game change
+		// build list of game directories here
 		FS_AddGameDirectory( "./", 0 );
 		for( i = 0; i < dirs.numstrings; i++ )
 		{
 			// make sure what it's real game directory
-			if(!FS_FileExists(va("%s/gameinfo.txt", dirs.strings[i] ))) continue;
+			if( !FS_FileExists( va( "%s/gameinfo.txt", dirs.strings[i] ))) continue;
 			com_strncpy( GI.gamedirs[GI.numgamedirs++], dirs.strings[i], MAX_STRING );
 		}
-		stringlistfreecontents(&dirs);
+		stringlistfreecontents( &dirs );
 	}	
 
-	// enable temporary wad support for some tools
+	// enable explicit wad support for some tools
 	switch( Sys.app_name )
 	{
 	case HOST_WADLIB:
@@ -1478,7 +1478,7 @@ void FS_Init( void )
 	}
 
 	FS_ResetGameInfo();
-	MsgDev(D_INFO, "FS_Init: done\n");
+	MsgDev( D_NOTE, "FS_Init: done\n" );
 }
 
 void FS_InitRootDir( char *path )

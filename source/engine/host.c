@@ -23,7 +23,7 @@ char	*buildstring = __TIME__ " " __DATE__;
 dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(physic_exp_t) };
 dll_info_t render_dll = { "render.dll", NULL, "CreateAPI", NULL, NULL, false, sizeof(render_exp_t) };
 dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(vprogs_exp_t) };
-dll_info_t vsound_dll = { "vsound.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(vsound_exp_t) };
+dll_info_t vsound_dll = { "vsound.dll", NULL, "CreateAPI", NULL, NULL, false, sizeof(vsound_exp_t) };
 
 cvar_t	*timescale;
 cvar_t	*host_serverstate;
@@ -611,13 +611,8 @@ void Host_Init( int argc, char **argv)
 	Key_Init();
 
 	// get default configuration
-#if 1
 	Cbuf_AddText("exec keys.rc\n");
 	Cbuf_AddText("exec vars.rc\n");
-#else
-	Cbuf_AddText("exec default.cfg\n");
-	Cbuf_AddText("exec config.cfg\n");
-#endif
 	Cbuf_Execute();
 
 	// init commands and vars

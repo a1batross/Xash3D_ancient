@@ -78,7 +78,6 @@ void CalcTextureReflectivity( void )
 
 			// scale the reflectivity up, because the textures are so dim
 			scale = ColorNormalize( color, texture_reflectivity[i] );
-			VectorDivide( texture_reflectivity[i], 255.0f, texture_reflectivity[i] );
 			texinfo[i].value = (texels * 255.0) / scale; // basic intensity value
           		FS_FreeImage( pic ); // don't forget free image
 		}			
@@ -207,7 +206,7 @@ void MakePatchForFace( int fn, winding_t *w )
 
 	WindingCenter (w, patch->origin);
 	VectorAdd (patch->origin, patch->plane->normal, patch->origin);
-	leaf = RadPointInLeaf(patch->origin);
+	leaf = PointInLeaf(patch->origin);
 	patch->cluster = leaf->cluster;
 
 	patch->area = area;
@@ -265,7 +264,7 @@ void MakePatches( void )
 	vec3_t		origin;
 	bsp_entity_t	*ent;
 
-	Msg( "%i faces\n", numsurfaces );
+	MsgDev( D_INFO, "%i faces\n", numsurfaces );
 
 	for( i = 0; i < nummodels; i++ )
 	{
@@ -288,7 +287,7 @@ void MakePatches( void )
 		}
 	}
 
-	Msg( "%i sqaure feet\n", (int)( totalarea/64 ));
+	MsgDev( D_INFO, "%i square feet\n", (int)( totalarea/64 ));
 }
 
 /*
@@ -319,12 +318,12 @@ void FinishSplit (patch_t *patch, patch_t *newp)
 
 	WindingCenter (patch->winding, patch->origin);
 	VectorAdd (patch->origin, patch->plane->normal, patch->origin);
-	leaf = RadPointInLeaf(patch->origin);
+	leaf = PointInLeaf(patch->origin);
 	patch->cluster = leaf->cluster;
 
 	WindingCenter (newp->winding, newp->origin);
 	VectorAdd (newp->origin, newp->plane->normal, newp->origin);
-	leaf = RadPointInLeaf(newp->origin);
+	leaf = PointInLeaf(newp->origin);
 	newp->cluster = leaf->cluster;
 }
 

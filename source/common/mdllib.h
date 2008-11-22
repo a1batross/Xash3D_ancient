@@ -313,6 +313,7 @@ extern int numcommands;
 extern int stripcount;
 extern int clip_texcoords;
 extern int xnode[100][100];
+extern byte *studiopool;
 
 extern s_bbox_t hitbox[MAXSTUDIOSRCBONES];
 extern s_texture_t *texture[MAXSTUDIOSKINS];

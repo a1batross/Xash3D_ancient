@@ -1,6 +1,6 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//			platform.c - game common dll
+//			platform.c - tools common dll
 //=======================================================================
 
 #include "platform.h"
@@ -21,8 +21,6 @@ byte	*basepool;
 byte	*zonepool;
 byte	*error_bmp;
 size_t	error_bmp_size;
-byte	*checkermate_dds;
-size_t	checkermate_dds_size;
 static	double start, end;
 uint	app_name = HOST_OFFLINE;
 
@@ -51,63 +49,50 @@ platform.dll needs for some setup operations
 so do it manually
 ==================
 */
-void InitPlatform ( int argc, char **argv )
+void InitCommon( int argc, char **argv )
 {
-	byte	bspflags = 0, qccflags = 0, roqflags = 0;
 	string	source, gamedir;
 	launch_t	CreateVprogs;
 
-	basepool = Mem_AllocPool( "Temp" );
-	// blamk image for missed resources
-	error_bmp = FS_LoadInternal( "blank.bmp", &error_bmp_size );
-
-	// for custom cmdline parsing
-	com_argc = argc;
-	com_argv = argv;
+	basepool = Mem_AllocPool( "Common Pool" );
 	app_name = g_Instance;
 
 	switch( app_name )
 	{
 	case HOST_BSPLIB:
-		if(!FS_GetParmFromCmdLine("-game", gamedir ))
-			com.strncpy(gamedir, Cvar_VariableString( "fs_defaultdir" ), sizeof(gamedir));
-		if(!FS_GetParmFromCmdLine("+map", source ))
-			com.strncpy(source, "newmap", sizeof(source));
-		if(FS_CheckParm("-vis")) bspflags |= BSP_ONLYVIS;
-		if(FS_CheckParm("-rad")) bspflags |= BSP_ONLYRAD;
-		if(FS_CheckParm("-light")) bspflags |= BSP_ONLYRAD;
-		if(FS_CheckParm("-full")) bspflags |= BSP_FULLCOMPILE;
-		if(FS_CheckParm("-onlyents")) bspflags |= BSP_ONLYENTS;
+		if( !FS_GetParmFromCmdLine( "-game", gs_basedir ))
+			com.strncpy( gs_basedir, Cvar_VariableString( "fs_defaultdir" ), sizeof( gs_basedir ));
+		if( !FS_GetParmFromCmdLine( "+map", gs_filename ))
+			com.strncpy( gs_filename, "newmap", sizeof( gs_filename ));
 
-		// famous q1 "notexture" image: purple-black checkerboard
-		checkermate_dds = FS_LoadInternal( "checkerboard.dds", &checkermate_dds_size );
 
 		// initialize ImageLibrary
 		start = Sys_DoubleTime();
-		Image_Init( NULL, IL_ALLOW_OVERWRITE|IL_IGNORE_MIPS );
-		PrepareBSPModel( gamedir, source, bspflags );
+		PrepareBSPModel( gamedir, source );
 		break;
 	case HOST_QCCLIB:
-		Sys_LoadLibrary( &vprogs_dll ); // load qcclib
+		Sys_LoadLibrary( &vprogs_dll );	// load qcclib
 		CreateVprogs = (void *)vprogs_dll.main;
-		PRVM = CreateVprogs( &com, NULL ); // second interface not allowed
+		PRVM = CreateVprogs( &com, NULL );	// second interface not allowed
 
 		PRVM->Init( argc, argv );
 
-		if(!FS_GetParmFromCmdLine("-dir", gamedir ))
-			com.strncpy(gamedir, ".", sizeof(gamedir));
-		if(!FS_GetParmFromCmdLine("+src", source ))
-			com.strncpy(source, "progs.src", sizeof(source));
+		if( !FS_GetParmFromCmdLine( "-dir", gs_basedir ))
+			com.strncpy( gs_basedir, ".", sizeof( gs_basedir ));
+		if( !FS_GetParmFromCmdLine( "+src", gs_filename ))
+			com.strncpy( gs_filename, "progs.src", sizeof( gs_filename ));
 
 		start = Sys_DoubleTime();
-		PRVM->PrepareDAT( gamedir, source );	
+		PRVM->PrepareDAT( gs_basedir, gs_filename );	
 		break;
 	case HOST_SPRITE:
 	case HOST_STUDIO:
 	case HOST_WADLIB:
 	case HOST_RIPPER:
+		// blamk image for missed resources
+		error_bmp = FS_LoadInternal( "blank.bmp", &error_bmp_size );
 		FS_InitRootDir(".");
-
+	
 		// initialize ImageLibrary
 		Image_Init( NULL, IL_KEEP_8BIT );
 		start = Sys_DoubleTime();
@@ -118,7 +103,7 @@ void InitPlatform ( int argc, char **argv )
 	}
 }
 
-void RunPlatform( void )
+void CommonMain( void )
 {
 	search_t	*search;
 	bool	(*CompileMod)( byte *mempool, const char *name, byte parms ) = NULL;
@@ -169,20 +154,20 @@ void RunPlatform( void )
 		ClrMask(); // clear all previous masks
 		AddMask( gs_searchmask ); // custom mask
 	}
-	zonepool = Mem_AllocPool( "compiler" );
+	zonepool = Mem_AllocPool( "Zone Pool" );
 	Msg( "Converting ...\n\n" );
 
 	// search by mask		
 	for( i = 0; i < num_searchmask; i++ )
 	{
 		// skip blank mask
-		if(!com.strlen( searchmask[i] )) continue;
+		if( !com.strlen( searchmask[i] )) continue;
 		search = FS_Search( searchmask[i], true );
 		if( !search ) continue; // try next mask
 
 		for( j = 0; j < search->numfilenames; j++ )
 		{
-			if(CompileMod( zonepool, search->filenames[j], parms ))
+			if( CompileMod( zonepool, search->filenames[j], parms ))
 				numCompiledMods++;
 		}
 		Mem_Free( search );
@@ -192,7 +177,7 @@ void RunPlatform( void )
 		if( !num_searchmask ) com.strncpy( errorstring, "files", MAX_STRING );
 		for( j = 0; j < num_searchmask; j++ ) 
 		{
-			if(!com.strlen( searchmask[j] )) continue;
+			if( !com.strlen( searchmask[j] )) continue;
 			com.strncat( errorstring, va("%s ", searchmask[j]), MAX_STRING );
 		}
 		Sys_Break( "no %s found in this folder!\n", errorstring );
@@ -200,10 +185,10 @@ void RunPlatform( void )
 elapced_time:
 	end = Sys_DoubleTime();
 	Msg( "%5.3f seconds elapsed\n", end - start );
-	if( numCompiledMods > 1) Msg("total %d files proceed\n", numCompiledMods );
+	if( numCompiledMods > 1) Msg( "total %d files proceed\n", numCompiledMods );
 }
 
-void FreePlatform ( void )
+void FreeCommon( void )
 {
 	if( app_name == HOST_QCCLIB )
 	{
@@ -230,9 +215,9 @@ launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 	// generic functions
 	Com.api_size = sizeof(launch_exp_t);
 
-	Com.Init = InitPlatform;
-	Com.Main = RunPlatform;
-	Com.Free = FreePlatform;
+	Com.Init = InitCommon;
+	Com.Main = CommonMain;
+	Com.Free = FreeCommon;
 	Com.MSG_Init = NULL;
 	Com.CPrint = NULL;
 

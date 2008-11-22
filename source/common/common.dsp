@@ -121,6 +121,10 @@ SOURCE=.\bsplib\bspfile.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\bsplib\bsplib.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\ripper\conv_bsplumps.c
 # End Source File
 # Begin Source File

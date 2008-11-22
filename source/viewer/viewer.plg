@@ -1,0 +1,49 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: viewer - Win32 Release--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP29E1.tmp" with contents
+[
+/nologo /MD /W3 /GX /O2 /I "../public" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /Fo"..\temp\viewer\!release/" /Fd"..\temp\viewer\!release/" /FD /c 
+"D:\Xash3D\src_main\viewer\guiforms.c"
+"D:\Xash3D\src_main\viewer\guiutils.c"
+"D:\Xash3D\src_main\viewer\viewer.c"
+]
+Creating command line "cl.exe @"C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP29E1.tmp"" 
+Creating temporary file "C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP29E2.tmp" with contents
+[
+msvcrt.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /out:"..\temp\viewer\!release/viewer.dll" /implib:"..\temp\viewer\!release/viewer.lib" 
+"\Xash3D\src_main\temp\viewer\!release\guiforms.obj"
+"\Xash3D\src_main\temp\viewer\!release\guiutils.obj"
+"\Xash3D\src_main\temp\viewer\!release\viewer.obj"
+"\Xash3D\src_main\temp\viewer\!release\viewer.res"
+]
+Creating command line "link.exe @"C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP29E2.tmp""
+Creating temporary file "C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP29E3.bat" with contents
+[
+@echo off
+copy \Xash3D\src_main\temp\viewer\!release\viewer.dll "D:\Xash3D\bin\viewer.dll"
+]
+Creating command line ""C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP29E3.bat""
+Compiling...
+guiforms.c
+guiutils.c
+viewer.c
+Generating Code...
+Linking...
+   Creating library ..\temp\viewer\!release/viewer.lib and object ..\temp\viewer\!release/viewer.exp
+<h3>Output Window</h3>
+Performing Custom Build Step on \Xash3D\src_main\temp\viewer\!release\viewer.dll
+ë™ÆØ®‡Æ¢†≠Æ ‰†©´Æ¢:         1.
+
+
+
+<h3>Results</h3>
+viewer.dll - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

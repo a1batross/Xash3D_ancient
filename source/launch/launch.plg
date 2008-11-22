@@ -1,0 +1,110 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: launch - Win32 Release--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP29C8.tmp" with contents
+[
+/nologo /MD /W3 /GX /O2 /I "./" /I "./imagelib" /I "../public" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /Fo"..\temp\launch\!release/" /Fd"..\temp\launch\!release/" /FD /c 
+"D:\Xash3D\src_main\launch\cmd.c"
+"D:\Xash3D\src_main\launch\console.c"
+"D:\Xash3D\src_main\launch\cpuinfo.c"
+"D:\Xash3D\src_main\launch\crclib.c"
+"D:\Xash3D\src_main\launch\cvar.c"
+"D:\Xash3D\src_main\launch\export.c"
+"D:\Xash3D\src_main\launch\filesystem.c"
+"D:\Xash3D\src_main\launch\imagelib\img_bmp.c"
+"D:\Xash3D\src_main\launch\imagelib\img_dds.c"
+"D:\Xash3D\src_main\launch\imagelib\img_jpg.c"
+"D:\Xash3D\src_main\launch\imagelib\img_main.c"
+"D:\Xash3D\src_main\launch\imagelib\img_pcx.c"
+"D:\Xash3D\src_main\launch\imagelib\img_png.c"
+"D:\Xash3D\src_main\launch\imagelib\img_tga.c"
+"D:\Xash3D\src_main\launch\imagelib\img_utils.c"
+"D:\Xash3D\src_main\launch\imagelib\img_vtf.c"
+"D:\Xash3D\src_main\launch\imagelib\img_wad.c"
+"D:\Xash3D\src_main\launch\memlib.c"
+"D:\Xash3D\src_main\launch\network.c"
+"D:\Xash3D\src_main\launch\parselib.c"
+"D:\Xash3D\src_main\launch\stdlib.c"
+"D:\Xash3D\src_main\launch\system.c"
+"D:\Xash3D\src_main\launch\utils.c"
+]
+Creating command line "cl.exe @"C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP29C8.tmp"" 
+Creating temporary file "C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP29C9.tmp" with contents
+[
+zlib.lib png.lib user32.lib gdi32.lib advapi32.lib winmm.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /out:"..\temp\launch\!release/launch.dll" /implib:"..\temp\launch\!release/launch.lib" /libpath:"./imagelib" /opt:nowin98 
+"\Xash3D\src_main\temp\launch\!release\cmd.obj"
+"\Xash3D\src_main\temp\launch\!release\console.obj"
+"\Xash3D\src_main\temp\launch\!release\cpuinfo.obj"
+"\Xash3D\src_main\temp\launch\!release\crclib.obj"
+"\Xash3D\src_main\temp\launch\!release\cvar.obj"
+"\Xash3D\src_main\temp\launch\!release\export.obj"
+"\Xash3D\src_main\temp\launch\!release\filesystem.obj"
+"\Xash3D\src_main\temp\launch\!release\img_bmp.obj"
+"\Xash3D\src_main\temp\launch\!release\img_dds.obj"
+"\Xash3D\src_main\temp\launch\!release\img_jpg.obj"
+"\Xash3D\src_main\temp\launch\!release\img_main.obj"
+"\Xash3D\src_main\temp\launch\!release\img_pcx.obj"
+"\Xash3D\src_main\temp\launch\!release\img_png.obj"
+"\Xash3D\src_main\temp\launch\!release\img_tga.obj"
+"\Xash3D\src_main\temp\launch\!release\img_utils.obj"
+"\Xash3D\src_main\temp\launch\!release\img_vtf.obj"
+"\Xash3D\src_main\temp\launch\!release\img_wad.obj"
+"\Xash3D\src_main\temp\launch\!release\memlib.obj"
+"\Xash3D\src_main\temp\launch\!release\network.obj"
+"\Xash3D\src_main\temp\launch\!release\parselib.obj"
+"\Xash3D\src_main\temp\launch\!release\stdlib.obj"
+"\Xash3D\src_main\temp\launch\!release\system.obj"
+"\Xash3D\src_main\temp\launch\!release\utils.obj"
+]
+Creating command line "link.exe @"C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP29C9.tmp""
+Creating temporary file "C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP29CA.bat" with contents
+[
+@echo off
+copy \Xash3D\src_main\temp\launch\!release\launch.dll "D:\Xash3D\bin\launch.dll"
+]
+Creating command line ""C:\DOCUME~1\¿ƒÃ»Õ»~1.9CC\LOCALS~1\Temp\RSP29CA.bat""
+Compiling...
+cmd.c
+console.c
+cpuinfo.c
+crclib.c
+cvar.c
+export.c
+filesystem.c
+img_bmp.c
+img_dds.c
+img_jpg.c
+img_main.c
+img_pcx.c
+img_png.c
+img_tga.c
+img_utils.c
+img_vtf.c
+img_wad.c
+memlib.c
+network.c
+parselib.c
+Generating Code...
+Compiling...
+stdlib.c
+system.c
+utils.c
+Generating Code...
+Linking...
+   Creating library ..\temp\launch\!release/launch.lib and object ..\temp\launch\!release/launch.exp
+<h3>Output Window</h3>
+Performing Custom Build Step on \Xash3D\src_main\temp\launch\!release\launch.dll
+ë™ÆØ®‡Æ¢†≠Æ ‰†©´Æ¢:         1.
+
+
+
+<h3>Results</h3>
+launch.dll - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

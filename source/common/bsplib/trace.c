@@ -33,8 +33,10 @@ void MakeTnode (int nodenum)
 	
 	for (i=0 ; i<2 ; i++)
 	{
-		if (node->children[i] < 0)
-			t->children[i] = (dleafs[-node->children[i] - 1].contents & CONTENTS_SOLID) | (1<<31);
+		if( node->children[i] < 0 )
+		{
+			t->children[i] = (-node->children[i] - 1)|(1<<31);
+		}
 		else
 		{
 			t->children[i] = tnode_p - tnodes;
@@ -72,11 +74,27 @@ int TestLine_r (int node, vec3_t start, vec3_t stop)
 	float	front, back;
 	vec3_t	mid;
 	float	frac;
-	int		side;
-	int		r;
+	int	side;
+	int	r;
 
 	if (node & (1<<31))
-		return node & ~(1<<31);	// leaf node
+	{
+		int	leafnum = node & ~(1<<31);
+		int	i, sky_found = 0;
+		dleafface_t *lface = &dleafsurfaces[dleafs[leafnum].firstleafsurface];
+
+		for( i = 0; i < dleafs[leafnum].numleafsurfaces; i++, lface++ )
+		{
+			dsurface_t *face = &dsurfaces[*lface];
+			if( dshaders[texinfo[face->texinfo].shadernum].contentFlags & CONTENTS_SKY )
+				sky_found = true;
+			if( sky_found ) break;
+		}
+
+		if( sky_found )
+			return dleafs[leafnum].contents|CONTENTS_SKY;
+		return dleafs[leafnum].contents;
+	}
 
 	tnode = &tnodes[node];
 	switch (tnode->type)
@@ -114,7 +132,7 @@ int TestLine_r (int node, vec3_t start, vec3_t stop)
 	mid[2] = start[2] + (stop[2] - start[2])*frac;
 
 	r = TestLine_r (tnode->children[side], start, mid);
-	if (r)
+	if( r & (CONTENTS_SOLID|CONTENTS_SKY))
 		return r;
 	return TestLine_r (tnode->children[!side], mid, stop);
 }

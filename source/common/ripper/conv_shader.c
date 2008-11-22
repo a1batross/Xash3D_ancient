@@ -5,6 +5,7 @@
 
 #include "ripper.h"
 #include "mathlib.h"
+#include "utils.h"
 
 // q2 wal contents
 #define CONTENTS_SOLID	0x00000001	// an eye is never valid in a solid
@@ -52,6 +53,7 @@
 // xash 0.45 surfaces replacement table
 #define SURF_MIRROR		0x00010000	// mirror surface
 #define SURF_PORTAL		0x00020000	// portal surface
+#define SURF_ALPHATEST	0x00040000	// alpha surface
 
 string	animmap[256];	// should be enoguh
 int	animcount;	// process counter
@@ -161,11 +163,27 @@ check_shader:
 
 	FS_Printf( f, "\n%s\n{\n", shadername ); // write shadername
 
+	if( contents & CONTENTS_CLIP && contents && CONTENTS_PLAYERCLIP )
+		FS_Print( f, "\tsurfaceparm\tclip\n" );
+	else if( contents & CONTENTS_MONSTERCLIP ) FS_Print( f, "\tsurfaceparm\tmonsterclip\n" );
+	else if( contents & CONTENTS_PLAYERCLIP ) FS_Print( f, "\tsurfaceparm\tplayerclip\n" );
+	else if( contents & CONTENTS_WINDOW ) FS_Print( f, "\tsurfaceparm\twindow\n" );
+	else if( contents & CONTENTS_ORIGIN ) FS_Print( f, "\tsurfaceparm\torigin\n" );
+	else if( contents & CONTENTS_TRANSLUCENT ) FS_Print( f, "\tsurfaceparm\ttranslucent\n" );
+	else if( contents & CONTENTS_AREAPORTAL ) FS_Print( f, "\tsurfaceparm\tareaportal\n" );
+	else if( contents & CONTENTS_TRIGGER )  FS_Print( f, "\tsurfaceparm\ttrigger\n" );
+	else if( contents & CONTENTS_DETAIL ) FS_Print( f, "\tsurfaceparm\tdetail\n" );
+
 	if( flags & SURF_LIGHT )
 	{
 		FS_Print( f, "\tsurfaceparm\tlight\n" );
 		if(!VectorIsNull( rad )) FS_Printf(f, "\trad_color\t\t%.f %.f %.f\n", rad[0], rad[1], rad[2] );
 		if( scale ) FS_Printf(f, "\trad_intensity\t%.f\n", scale );
+		if( !num_anims )
+		{
+			FS_Printf( f, "\t{\n\t\tmap\t%s\n\t}\n", shadername );
+			lightmap_stage = true;
+		}
 	}
 
 	if( flags & SURF_WARP )
@@ -198,24 +216,19 @@ check_shader:
 	else if( flags & SURF_MIRROR ) FS_Print( f, "\tsurfaceparm\tmirror\n" );
 	else if( flags & (SURF_TRANS33|SURF_TRANS66))
 	{
-		FS_Print( f, "\tentityMergable\n\n" );
 		FS_Printf( f, "\t{\n\t\tmap\t%s\n\n", shadername );	// save basemap
 		FS_Print( f, "\t\tblendFunc\tGL_SRC_ALPHA\tGL_ONE_MINUS_SRC_ALPHA\n" );
-		FS_Print( f, "\t\tAlphaGen\t\tvertex\n\t}\n" ); 
+		FS_Print( f, "\t\tAlphaGen\t\tentity\n\t}\n" ); 
+		lightmap_stage = true;
+	}
+	else if( flags & SURF_ALPHATEST )
+	{
+		FS_Printf( f, "\t{\n\t\tmap\t%s\n\n", shadername );	// save basemap
+		FS_Print( f, "\t\talphaFunc\tGL_GREATER 0.666f\t// id Software magic value\n" );
+		FS_Print( f, "\t\tAlphaGen\tidentity\n\t}\n" ); 
 		lightmap_stage = true;
 	}
 	else if( flags & SURF_NODRAW ) FS_Print( f, "\tsurfaceparm\tnull\n" );
-
-	if( contents & CONTENTS_CLIP && contents && CONTENTS_PLAYERCLIP )
-		FS_Print( f, "\tsurfaceparm\tclip\n" );
-	else if( contents & CONTENTS_MONSTERCLIP ) FS_Print( f, "\tsurfaceparm\tmonsterclip\n" );
-	else if( contents & CONTENTS_PLAYERCLIP ) FS_Print( f, "\tsurfaceparm\tplayerclip\n" );
-	else if( contents & CONTENTS_WINDOW ) FS_Print( f, "\tsurfaceparm\twindow\n" );
-	else if( contents & CONTENTS_ORIGIN ) FS_Print( f, "\tsurfaceparm\torigin\n" );
-	else if( contents & CONTENTS_TRANSLUCENT ) FS_Print( f, "\tsurfaceparm\tsolid\n" );
-	else if( contents & CONTENTS_AREAPORTAL ) FS_Print( f, "\tsurfaceparm\tareaportal\n" );
-	else if( contents & CONTENTS_TRIGGER )  FS_Print( f, "\tsurfaceparm\ttrigger\n" );
-	else if( contents & CONTENTS_DETAIL ) FS_Print( f, "\tsurfaceparm\tdetail\n" );
 
 	if( num_anims )
 	{
@@ -309,9 +322,6 @@ void Conv_ShaderGetFlags( const char *imagename, const char *shadername, const c
 	{
 		num_anims = animcount = 0; // valid onlt for current frame so reset it
 
-		// light definition
-		if( com.strchr( imagename, '~' )) *flags |= SURF_LIGHT;
-
 		if( com.stristr( imagename, "water" )) 
 		{
 			*contents |= CONTENTS_WATER;
@@ -335,15 +345,21 @@ void Conv_ShaderGetFlags( const char *imagename, const char *shadername, const c
 		else if( !com.strnicmp( imagename, "hint", 4 )) *flags |= SURF_HINT;
 		else if( !com.strnicmp( imagename, "skip", 4 )) *flags |= SURF_SKIP;
 		else if( !com.strnicmp( imagename, "null", 4 )) *flags |= SURF_NODRAW;
-		else if( !com.strnicmp( imagename, "translucent", 11 )) *flags |= CONTENTS_TRANSLUCENT;
+		else if( !com.strnicmp( imagename, "translucent", 11 )) *contents |= CONTENTS_TRANSLUCENT;
 		else if( !com.strnicmp( imagename, "glass", 5 )) *flags |= SURF_TRANS66;
 		else if( !com.strnicmp( imagename, "mirror", 6 )) *flags |= SURF_MIRROR;
 		else if( !com.strnicmp( imagename, "portal", 6 )) *flags |= SURF_PORTAL;
 		else if( com.stristr( imagename, "trigger" )) *contents |= CONTENTS_TRIGGER;
+		else if( com.stristr( imagename, "lite" )) *flags |= SURF_LIGHT;
 
 		// try to exctract contents and flags directly form mip-name
 		if( imagename[0] == '!' || imagename[0] == '*' ) *flags |= SURF_WARP; // liquids
-		else if( imagename[0] == '{' ) *contents |= CONTENTS_TRANSLUCENT; // grates
+		else if( imagename[0] == '{' )
+		{
+			*flags |= SURF_ALPHATEST; // grates
+			*contents |= CONTENTS_TRANSLUCENT;
+		}
+		else if( imagename[0] == '~' ) *flags |= SURF_LIGHT; // light definition
 		else if( imagename[0] == '+' )
 		{
 			char	c1 = imagename[1];
@@ -494,6 +510,7 @@ bool Conv_CreateShader( const char *name, rgbdata_t *pic, const char *ext, const
 		for( j = 0; j < 3; j++ )
 			radiocity[j] /= texels;
 		scale = ColorNormalize( radiocity, radiocity );
+		VectorScale( radiocity, 255.0f, radiocity );
 		intencity = texels * 255.0 / scale; // basic intensity value
 	}
 	return Conv_WriteShader( shaderpath, imagepath, pic, radiocity, intencity, flags, contents );

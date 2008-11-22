@@ -137,7 +137,7 @@ BRUSH MODELS
 #define MAX_MAP_AREAPORTALS		0x400
 #define MAX_MAP_ENTITIES		0x2000
 #define MAX_MAP_SHADERS		0x1000
-#define MAX_MAP_TEXINFO		0x2000
+#define MAX_MAP_TEXINFO		0x8000
 #define MAX_MAP_BRUSHES		0x8000
 #define MAX_MAP_PLANES		0x20000
 #define MAX_MAP_NODES		0x20000
@@ -164,7 +164,7 @@ BRUSH MODELS
 #define MIN_WORLD_COORD		(-128 * 1024 )
 #define WORLD_SIZE			( MAX_WORLD_COORD - MIN_WORLD_COORD )
 #define MAX_SHADERPATH		64
-#define NUMVERTEXNORMALS		162	// not a table, only magic value...
+#define NUMVERTEXNORMALS		162	// quake avertex normals
 
 #define MAX_BUILD_SIDES		512	// per one brush. (don't touch!)
 #define LM_SAMPLE_SIZE		16	// q1, q2, q3 default value (lightmap resoultion)
@@ -172,6 +172,7 @@ BRUSH MODELS
 #define LS_NORMAL			0x00
 #define LS_UNUSED			0xFE
 #define LS_NONE			0xFF
+#define MAX_LSTYLES			256
 #define MAX_LIGHT_STYLES		64
 #define MAX_SWITCHED_LIGHTS		32
 

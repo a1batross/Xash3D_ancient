@@ -24,8 +24,8 @@ bool InitPhysics( void )
 {
 	char	dev_level[4];
 
-	physpool = Mem_AllocPool("Physics Pool");
-	cmappool = Mem_AllocPool("CM Zone");
+	physpool = Mem_AllocPool( "Physic Pool" );
+	cmappool = Mem_AllocPool( "CM Zone" );
 	gWorld = NewtonCreate( Palloc, Pfree ); // alloc world
 	app_name = g_Instance;
 

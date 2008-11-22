@@ -616,6 +616,7 @@ void ParseBrush( bsp_entity_t *mapent )
 			td.vects.quark.vecs[0][3] = -DotProduct( td.vects.quark.vecs[0], planepts[0] );
 			td.vects.quark.vecs[1][3] = -DotProduct( td.vects.quark.vecs[1], planepts[0] );
 		}
+
 		td.brush_type = g_brushtype;	// member map type
 		td.flags = td.contents = td.value = 0;	// reset all values before setting
 		side->contents = side->surf = 0;
@@ -672,6 +673,41 @@ void ParseBrush( bsp_entity_t *mapent )
 		{
 			Msg( "Entity %i, Brush %i: plane with no normal\n", b->entitynum, b->brushnum );
 			continue;
+		}
+
+		if( g_brushtype == BRUSH_RADIANT )
+		{
+			float	m[2][3], vecs[2][4];
+			float	a, ac, as, bc, bs;
+			plane_t	*plane = mapplanes + planenum;
+		
+			Mem_Copy( m, td.vects.radiant.matrix, sizeof (m )); // save outside 
+
+			// calculate proper texture vectors from GTKRadiant/Doom3 brushprimitives matrix
+			a = -com.atan2( plane->normal[2], com.sqrt( plane->normal[0] * plane->normal[0] + plane->normal[1] * plane->normal[1] ));
+			ac = com.cos( a );
+			as = com.sin( a );
+			a = com.atan2( plane->normal[1], plane->normal[0] );
+			bc = com.cos( a );
+			bs = com.sin( a );
+
+			vecs[0][0] = -bs;
+			vecs[0][1] = bc;
+			vecs[0][2] = 0.0f;
+			vecs[0][3] = 0;	// FIXME: set to 1.0f ?
+			vecs[1][0] = -as*bc;
+			vecs[1][1] = -as*bs;
+			vecs[1][2] = -ac;
+			vecs[1][3] = 0;	// FIXME: set to 1.0f ?
+
+			td.vects.quark.vecs[0][0] = m[0][0] * vecs[0][0] + m[0][1] * vecs[1][0];
+			td.vects.quark.vecs[0][1] = m[0][0] * vecs[0][1] + m[0][1] * vecs[1][1];
+			td.vects.quark.vecs[0][2] = m[0][0] * vecs[0][2] + m[0][1] * vecs[1][2];
+			td.vects.quark.vecs[0][3] = m[0][0] * vecs[0][3] + m[0][1] * vecs[1][3] + m[0][2];
+			td.vects.quark.vecs[1][0] = m[1][0] * vecs[0][0] + m[1][1] * vecs[1][0];
+			td.vects.quark.vecs[1][1] = m[1][0] * vecs[0][1] + m[1][1] * vecs[1][1];
+			td.vects.quark.vecs[1][2] = m[1][0] * vecs[0][2] + m[1][1] * vecs[1][2];
+			td.vects.quark.vecs[1][3] = m[1][0] * vecs[0][3] + m[1][1] * vecs[1][3] + m[1][2];
 		}
 
 		// see if the plane has been used already

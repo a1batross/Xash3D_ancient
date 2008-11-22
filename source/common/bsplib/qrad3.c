@@ -1,8 +1,7 @@
 // qrad.c
 
 #include "bsplib.h"
-
-bool extrasamples;
+#include "const.h"
 
 /*
 NOTES
@@ -14,10 +13,8 @@ patch_t		*face_patches[MAX_MAP_SURFACES];
 bsp_entity_t	*face_entity[MAX_MAP_SURFACES];
 patch_t		patches[MAX_PATCHES];
 uint		num_patches;
-
 vec3_t		radiosity[MAX_PATCHES];		// light leaving a patch
 vec3_t		illumination[MAX_PATCHES];		// light arriving at a patch
-
 vec3_t		face_offset[MAX_MAP_SURFACES];	// for rotating bmodels
 dplane_t		backplanes[MAX_MAP_PLANES];
 
@@ -30,12 +27,12 @@ int TestLine (vec3_t start, vec3_t stop);
 
 int	junk;
 
-int	numbounce = 3;
+int	numbounce = 0;
 float	ambient = 0;
 float	maxlight = 196;
 float	lightscale = 1.0f;
-float	direct_scale =	0.4f;
-float	entity_scale =	1.0f;
+float	direct_scale = 0.4f;
+float	entity_scale = 1.0f;
 
 /*
 ===================================================================
@@ -94,58 +91,6 @@ TRANSFER SCALES
 
 ===================================================================
 */
-
-int	PointInLeafnum (vec3_t point)
-{
-	int		nodenum;
-	vec_t	dist;
-	dnode_t	*node;
-	dplane_t	*plane;
-
-	nodenum = 0;
-	while (nodenum >= 0)
-	{
-		node = &dnodes[nodenum];
-		plane = &dplanes[node->planenum];
-		dist = DotProduct (point, plane->normal) - plane->dist;
-		if (dist > 0)
-			nodenum = node->children[0];
-		else
-			nodenum = node->children[1];
-	}
-
-	return -nodenum - 1;
-}
-
-
-dleaf_t		*RadPointInLeaf (vec3_t point)
-{
-	int		num;
-
-	num = PointInLeafnum (point);
-	return &dleafs[num];
-}
-
-
-bool PvsForOrigin (vec3_t org, byte *pvs)
-{
-	dleaf_t	*leaf;
-
-	if (!visdatasize)
-	{
-		memset (pvs, 255, (numleafs+7)/8 );
-		return true;
-	}
-
-	leaf = RadPointInLeaf (org);
-	if (leaf->cluster == -1)
-		return false;		// in solid leaf
-
-	DecompressVis (dvisdata + dvis->bitofs[leaf->cluster][DVIS_PVS], pvs);
-	return true;
-}
-
-
 /*
 =============
 MakeTransfers
@@ -209,8 +154,8 @@ void MakeTransfers (int i)
 		if (scale <= 0)
 			continue;
 
-		// check exact tramsfer
-		if (TestLine_r (0, patch->origin, patch2->origin) )
+		// check exact transfer
+		if( TestLine_r( 0, patch->origin, patch2->origin ) & CONTENTS_SOLID )
 			continue;
 
 		trans = scale * patch2->area / (dist*dist);
@@ -443,40 +388,28 @@ void RadWorld (void)
 	RunThreadsOnIndividual( numsurfaces, true, FinalLightFace );
 }
 
-void WradMain ( bool option )
+void WradMain( void )
 {
 	string	cmdparm;
-	bool	light = FS_CheckParm("-light");
-
-	extrasamples = option;
           
 	if(!LoadBSPFile( ))
 	{
 		// map not exist, create it
-		WbspMain( false );
+		WbspMain();
 		LoadBSPFile();
 	}
 
-	if( light ) Msg("---- Light ---- [%s]\n", extrasamples ? "extra" : "normal" );
-	else Msg("---- Radiocity ---- [%s]\n", extrasamples ? "extra" : "normal" );
+	if( bsp_parms & BSPLIB_MAKEHLRAD )
+		Msg( "\n---- hlrad ---- [%s]\n", (bsp_parms & BSPLIB_FULLCOMPILE) ? "extra" : "normal" );
+	else Msg( "\n---- qrad ---- [%s]\n", (bsp_parms & BSPLIB_FULLCOMPILE) ? "extra" : "normal" );
 
-	if( light )
-	{
-		ambient = 0.0f;
-		numbounce = 0;
-	}
-	else
-	{
-		if( extrasamples ) 
-		{
-			if( FS_GetParmFromCmdLine( "-ambient", cmdparm ))
-				ambient = com.atof( cmdparm );
-			ambient = bound( 0, ambient, 512 );
-		}
-		if(FS_GetParmFromCmdLine("-bounce", cmdparm ))
-			numbounce = com.atoi( cmdparm );
-		numbounce = bound( 0, numbounce, 32 );
-	}	
+	if( FS_GetParmFromCmdLine( "-ambient", cmdparm ))
+		ambient = com.atof( cmdparm );
+	ambient = bound( 0, ambient, 512 );
+
+	if( FS_GetParmFromCmdLine( "-bounce", cmdparm ))
+		numbounce = com.atoi( cmdparm );
+	numbounce = bound( 0, numbounce, 32 );
 
 	ParseEntities();
 	CalcTextureReflectivity();
@@ -488,7 +421,6 @@ void WradMain ( bool option )
 		ambient = 0.1f;
 	}
 
-	RadWorld ();
+	RadWorld();
 	WriteBSPFile();
 }
-

@@ -8,6 +8,9 @@
 #include "byteorder.h"
 #include "const.h"
 
+#define ENTRIES(a)		(sizeof(a)/sizeof(*(a)))
+#define ENTRYSIZE(a)	(sizeof(*(a)))
+
 //=============================================================================
 wfile_t		*handle;
 file_t		*wadfile;
@@ -58,75 +61,76 @@ dareaportal_t	dareaportals[MAX_MAP_AREAPORTALS];
 byte		dcollision[MAX_MAP_COLLISION];
 int		dcollisiondatasize;
 
-/*
-===============
-CompressVis
-
-===============
-*/
-int CompressVis( byte *vis, byte *dest )
-{
-	int		j;
-	int		rep;
-	int		visrow;
-	byte	*dest_p;
-	
-	dest_p = dest;
-	visrow = (dvis->numclusters + 7)>>3;
-	
-	for (j=0 ; j<visrow ; j++)
-	{
-		*dest_p++ = vis[j];
-		if (vis[j])
-			continue;
-
-		rep = 1;
-		for ( j++; j<visrow ; j++)
-			if (vis[j] || rep == 255)
-				break;
-			else rep++;
-		*dest_p++ = rep;
-		j--;
-	}
-	
-	return dest_p - dest;
-}
-
-
-/*
-===================
-DecompressVis
-===================
-*/
-void DecompressVis( byte *in, byte *decompressed )
-{
-	int		c;
-	byte	*out;
-	int		row;
-
-	row = (dvis->numclusters+7)>>3;	
-	out = decompressed;
-
-	do
-	{
-		if (*in)
-		{
-			*out++ = *in++;
-			continue;
-		}
-	
-		c = in[1];
-		if (!c) Sys_Error("DecompressVis: 0 repeat");
-		in += 2;
-		while (c)
-		{
-			*out++ = 0;
-			c--;
-		}
-	} while (out - decompressed < row);
-}
-
 //=============================================================================
+size_t ArrayUsage( char *szItem, int items, int maxitems, int itemsize )
+{
+	float	percentage = maxitems ? items * 100.0 / maxitems : 0.0;
+
+	MsgDev( D_INFO, "%-12s  %7i/%-7i  %7i/%-7i  (%4.1f%%)", szItem, items, maxitems, items * itemsize, maxitems * itemsize, percentage );
+
+	if( percentage > 80.0 ) MsgDev( D_INFO, "VERY FULL!\n" );
+	else if( percentage > 95.0 ) MsgDev( D_INFO, "SIZE DANGER!\n" );
+	else if( percentage > 99.9 ) MsgDev( D_INFO, "SIZE OVERFLOW!!!\n" );
+	else MsgDev( D_INFO, "\n" );
+
+	return items * itemsize;
+}
+
+size_t GlobUsage( char *szItem, int itemstorage, int maxstorage )
+{
+	float	percentage = maxstorage ? itemstorage * 100.0 / maxstorage : 0.0;
+
+	MsgDev( D_INFO, "%-12s     [variable]    %7i/%-7i  (%4.1f%%)", szItem, itemstorage, maxstorage, percentage );
+
+	if( percentage > 80.0 ) MsgDev( D_INFO, "VERY FULL!\n" );
+	else if( percentage > 95.0 ) MsgDev( D_INFO, "SIZE DANGER!\n" );
+	else if( percentage > 99.9 ) MsgDev( D_INFO, "SIZE OVERFLOW!!!\n" );
+	else MsgDev( D_INFO, "\n" );
+
+	return itemstorage;
+}
+
+/*
+=============
+PrintBSPFileSizes
+
+Dumps info about current file
+=============
+*/
+void PrintBSPFileSizes( void )
+{
+	int	totalmemory = 0;
+
+	MsgDev( D_INFO, "\n" );
+	MsgDev( D_INFO, "Object names  Objects/Maxobjs  Memory / Maxmem  Fullness\n" );
+	MsgDev( D_INFO, "------------  ---------------  ---------------  --------\n" );
+
+	// struct arrays
+	totalmemory += ArrayUsage( "shaders",		numshaders,	ENTRIES( dshaders ),	ENTRYSIZE( dshaders ));
+	totalmemory += ArrayUsage( "planes",		numplanes,	ENTRIES( dplanes ),		ENTRYSIZE( dplanes ));
+	totalmemory += ArrayUsage( "leafs",		numleafs,		ENTRIES( dleafs ),		ENTRYSIZE( dleafs ));
+	totalmemory += ArrayUsage( "leaffaces",		numleafsurfaces,	ENTRIES( dleafsurfaces ),	ENTRYSIZE( dleafsurfaces ));
+	totalmemory += ArrayUsage( "leafbrushes",	numleafbrushes,	ENTRIES( dleafbrushes ),	ENTRYSIZE( dleafbrushes ));
+	totalmemory += ArrayUsage( "nodes",		numnodes,		ENTRIES( dnodes ),		ENTRYSIZE( dnodes ));
+	totalmemory += ArrayUsage( "vertexes",		numvertexes,	ENTRIES( dvertexes ),	ENTRYSIZE( dvertexes ));
+	totalmemory += ArrayUsage( "edges",		numedges,		ENTRIES( dedges ),		ENTRYSIZE( dedges ));
+	totalmemory += ArrayUsage( "surfedges",		numsurfedges,	ENTRIES( dsurfedges ),	ENTRYSIZE( dsurfedges ));
+	totalmemory += ArrayUsage( "texinfos",		numtexinfo,	ENTRIES( texinfo ),		ENTRYSIZE( texinfo ));
+	totalmemory += ArrayUsage( "surfaces",		numsurfaces,	ENTRIES( dsurfaces ),	ENTRYSIZE( dsurfaces ));
+	totalmemory += ArrayUsage( "models",		nummodels,	ENTRIES( dmodels ),		ENTRYSIZE( dmodels ));
+	totalmemory += ArrayUsage( "brushes",		numbrushes,	ENTRIES( dbrushes ),	ENTRYSIZE( dbrushes ));
+	totalmemory += ArrayUsage( "brushsides",	numbrushsides,	ENTRIES( dbrushsides ),	ENTRYSIZE( dbrushsides ));
+	totalmemory += ArrayUsage( "areas",		numareas,		ENTRIES( dareas ),		ENTRYSIZE( dareas ));
+	totalmemory += ArrayUsage( "areaportals",	numareaportals,	ENTRIES( dareaportals ),	ENTRYSIZE( dareaportals ));
+
+	// byte arrays
+	totalmemory += GlobUsage( "entities",		entdatasize,	sizeof( dentdata ));
+	totalmemory += GlobUsage( "lightdata",		lightdatasize,	sizeof( dlightdata ));
+	totalmemory += GlobUsage( "visdata",		visdatasize,	sizeof( dvisdata ));
+	totalmemory += GlobUsage( "collision",		dcollisiondatasize,	sizeof( dcollision ));
+
+	MsgDev( D_INFO, "=== Total BSP file data space used: %d bytes ===\n", totalmemory );
+}
 
 /*
 =============

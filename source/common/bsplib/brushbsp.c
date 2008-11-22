@@ -309,31 +309,6 @@ bspbrush_t *CopyBrush (bspbrush_t *brush)
 	return newbrush;
 }
 
-
-/*
-==================
-PointInLeaf
-
-==================
-*/
-node_t	*PointInLeaf (node_t *node, vec3_t point)
-{
-	vec_t		d;
-	plane_t		*plane;
-
-	while (node->planenum != PLANENUM_LEAF)
-	{
-		plane = &mapplanes[node->planenum];
-		d = DotProduct (point, plane->normal) - plane->dist;
-		if (d > 0)
-			node = node->children[0];
-		else
-			node = node->children[1];
-	}
-
-	return node;
-}
-
 //========================================================
 
 /*
@@ -600,7 +575,7 @@ void LeafNode( node_t *node, bspbrush_t *brushes )
 			for (i=0 ; i<b->numsides ; i++)
 				if (b->sides[i].texinfo != TEXINFO_NODE)
 					break;
-			if (i == b->numsides)
+			if (i == b->numsides )
 			{
 				node->contents = CONTENTS_SOLID;
 				break;

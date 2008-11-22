@@ -150,30 +150,8 @@ bool BrushesDisjoint (bspbrush_t *a, bspbrush_t *b)
 	return false;	// might intersect
 }
 
-/*
-===============
-IntersectionContents
-
-Returns a content word for the intersection of two brushes.
-Some combinations will generate a combination (water + clip),
-but most will be the stronger of the two contents.
-===============
-*/
-int	IntersectionContents (int c1, int c2)
-{
-	int		out;
-
-	out = c1 | c2;
-
-	if (out & CONTENTS_SOLID)
-		out = CONTENTS_SOLID;
-
-	return out;
-}
-
-
-int		minplanenums[3];
-int		maxplanenums[3];
+int minplanenums[3];
+int maxplanenums[3];
 
 /*
 ===============

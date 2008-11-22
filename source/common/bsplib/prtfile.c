@@ -245,12 +245,12 @@ void WritePortalFile (tree_t *tree)
 	FS_Printf (pf, "%i\n", num_visclusters);
 	FS_Printf (pf, "%i\n", num_visportals);
 
-	Msg("%5i visclusters\n", num_visclusters);
-	Msg("%5i visportals\n", num_visportals);
+	MsgDev( D_INFO, "%5i visclusters\n", num_visclusters );
+	MsgDev( D_INFO, "%5i visportals\n", num_visportals );
 
-	WritePortalFile_r (headnode);
+	WritePortalFile_r( headnode );
 
-	FS_Close (pf);
+	FS_Close( pf );
 
 	// we need to store the clusters out now because ordering
 	// issues made us do this after writebsp...

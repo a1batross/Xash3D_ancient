@@ -37,21 +37,29 @@ enum
 #define MAX_TEXTURE_FRAMES	256
 #define MAX_PATCHES		65000		// larger will cause 32 bit overflows
 
-extern bool full_compile;
+// compile parms
+typedef enum
+{
+	BSPLIB_MAKEBSP	= BIT(0),		// create a bsp file
+	BSPLIB_MAKEVIS	= BIT(1),		// do visibility
+	BSPLIB_MAKEHLRAD	= BIT(2),		// do half-life radiosity
+	BSPLIB_MAKEQ2RAD	= BIT(3),		// do quake2 radiosity
+	BSPLIB_FULLCOMPILE	= BIT(4),		// equals -full for vis, -extra for rad or light
+	BSPLIB_ONLYENTS	= BIT(5),		// update only ents lump
+	BSPLIB_RAD_NOPVS	= BIT(6),		// ignore pvs while processing radiocity (kill smooth light)
+	BSPLIB_RAD_NOBLOCK	= BIT(7),
+	BSPLIB_RAD_NOCOLOR	= BIT(8),
+	BSPLIB_DELETE_TEMP	= BIT(9),		// delete itermediate files
+} bsplibFlags_t;
 
-extern bool onlyents;
-extern bool onlyvis;
-extern bool onlyrad;
+extern uint bsp_parms;
 extern physic_exp_t *pe;
-
-// parms
-extern bool noblock;
-extern bool nocolor;
+extern char path[MAX_SYSPATH];
 
 // bsplib export functions
-void WradMain ( bool option );
-void WvisMain ( bool option );
-void WbspMain ( bool option );
+void WradMain( void );
+void WvisMain( void );
+void WbspMain( void );
 
 typedef struct plane_s
 {
@@ -325,7 +333,7 @@ long	IntForKey( const bsp_entity_t *ent, const char *key );
 void	GetVectorForKey( const bsp_entity_t *ent, const char *key, vec3_t vec );
 bsp_entity_t *FindTargetEntity( const char *target );
 epair_t	*ParseEpair( token_t *token );
-
+void	PrintBSPFileSizes( void );
 
 extern	int entity_num;
 extern	int g_mapversion;
@@ -386,14 +394,17 @@ void	DecompressVis (byte *in, byte *decompressed);
 int	CompressVis (byte *vis, byte *dest);
 
 //=============================================================================
+// bsplib.c
+
+void ProcessCollisionTree( void );
+
+//=============================================================================
 // textures.c
 
 int FindMiptex( const char *name );
 int TexinfoForBrushTexture( plane_t *plane, brush_texture_t *bt, vec3_t origin );
 
 //=============================================================================
-
-void FindGCD (int *v);
 
 mapbrush_t *Brush_LoadEntity (bsp_entity_t *ent);
 int	PlaneTypeForNormal (vec3_t normal);
@@ -558,8 +569,10 @@ void PortalFlow (int portalnum);
 
 extern	visportal_t	*sorted_portals[MAX_MAP_PORTALS*2];
 
-int CountBits (byte *bits, int numbits);
-
+int CountBits( byte *bits, int numbits );
+int PointInLeafnum( vec3_t point );
+dleaf_t *PointInLeaf( vec3_t point );
+bool PvsForOrigin( vec3_t org, byte *pvs );
 //=============================================================================
 
 // rad.c
@@ -572,22 +585,6 @@ typedef enum
 	emit_spotlight,
 	emit_skylight
 } emittype_t;
-
-typedef struct directlight_s
-{
-	struct directlight_s *next;
-	emittype_t	type;
-	int		style;
-
-	vec3_t		origin;
-	vec3_t		intensity;
-	vec3_t		normal;		// for surfaces and spotlights
-	float		stopdot;		// for spotlights
-	float		stopdot2;		// for spotlights
-
-	dplane_t		*plane;
-	dleaf_t		*leaf;
-} directlight_t;
 
 typedef struct tnode_s
 {
@@ -656,10 +653,7 @@ extern	float ambient, maxlight;
 
 void LinkPlaneFaces (void);
 
-extern	bool	extrasamples;
 extern int numbounce;
-
-extern	directlight_t	*directlights[MAX_MAP_LEAFS];
 
 extern	byte	nodehit[MAX_MAP_NODES];
 
@@ -668,15 +662,9 @@ void BuildLightmaps (void);
 void BuildFacelights (int facenum);
 
 void FinalLightFace (int facenum);
-
-bool PvsForOrigin (vec3_t org, byte *pvs);
-
 int TestLine_r (int node, vec3_t start, vec3_t stop);
 
 void CreateDirectLights (void);
-
-dleaf_t	*RadPointInLeaf (vec3_t point);
-
 
 extern	dplane_t	backplanes[MAX_MAP_PLANES];
 extern	int	fakeplanes;// created planes for origin offset 
@@ -686,7 +674,6 @@ extern	float	subdiv;
 extern	float	direct_scale;
 extern	float	entity_scale;
 
-int PointInLeafnum( vec3_t point );
 void MakeTnodes (dmodel_t *bm);
 void MakePatches (void);
 void SubdividePatches (void);

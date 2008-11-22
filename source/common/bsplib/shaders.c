@@ -116,7 +116,7 @@ static void ParseShaderFile( const char *filename )
 	if( shader )
 	{
 		FS_FileBase( filename, name );
-		MsgDev( D_INFO, "Adding: %s.shader\n", name );
+		MsgDev( D_LOAD, "Adding: %s.shader\n", name );
           }
           
 	while( shader )
@@ -147,7 +147,7 @@ static void ParseShaderFile( const char *filename )
 				continue;
 			}
 
-			if( !com.stricmp( token.string, "surfaceparm" ))
+			if( !com.stricmp( token.string, "surfaceParm" ))
 			{
 				Com_ReadToken( shader, 0, &token );
 				for( i = 0; i < numInfoParms; i++ )
@@ -156,7 +156,7 @@ static void ParseShaderFile( const char *filename )
 					{
 						si->surfaceFlags |= infoParms[i].surfaceFlags;
 						si->contents |= infoParms[i].contents;
-						if ( infoParms[i].clearSolid )
+						if( infoParms[i].clearSolid )
 							si->contents &= ~CONTENTS_SOLID;
 						break;
 					}

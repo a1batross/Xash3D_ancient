@@ -7,11 +7,33 @@
 #include "bsplib.h"
 #include "const.h"
 
+float	r_avertexnormals[NUMVERTEXNORMALS][3] =
+{
+#include "anorms.h"
+};
+
 #define	MAX_LSTYLES	256
 
 // stupid legacy
 #define	ANGLE_UP		-1
 #define	ANGLE_DOWN	-2
+
+typedef struct directlight_s
+{
+	struct directlight_s *next;
+	emittype_t	type;
+	int		style;
+
+	vec3_t		color;
+	vec3_t		origin;
+	vec3_t		normal;		// for surfaces and spotlights
+	float		intensity;	// light scale
+	float		stopdot;		// for spotlights
+	float		stopdot2;		// for spotlights
+
+	dplane_t		*plane;
+	dleaf_t		*leaf;
+} directlight_t;
 
 typedef struct
 {
@@ -19,8 +41,9 @@ typedef struct
 	bool		coplanar;
 } edgeshare_t;
 
-edgeshare_t	edgeshare[MAX_MAP_EDGES];
 static byte	pvs[(MAX_MAP_LEAFS+7)/8];
+edgeshare_t	edgeshare[MAX_MAP_EDGES];
+
 int		facelinks[MAX_MAP_SURFACES];
 int		planelinks[2][MAX_MAP_PLANES];
 
@@ -667,7 +690,7 @@ void CalcPoints (lightinfo_t *l, float sofs, float tofs)
 				leaf = RadPointInLeaf (surf);
 				if (leaf->contents != CONTENTS_SOLID)
 				{
-					if (!TestLine_r (0, facemid, surf))
+					if (!(TestLine_r( 0, facemid, surf ) & CONTENTS_SOLID))
 						break;	// got it
 				}
 
@@ -745,7 +768,6 @@ void CreateDirectLights (void)
 	bsp_entity_t	*e, *e2;
 	char		*name;
 	char		*target;
-	char		*value;
 	float		angle;
 	vec3_t		dest;
 	float		intensity;
@@ -758,12 +780,11 @@ void CreateDirectLights (void)
 		if( p->totallight[0] < DIRECT_LIGHT && p->totallight[1] < DIRECT_LIGHT && p->totallight[2] < DIRECT_LIGHT )
 			continue;
 
-		numdlights++;
 		dl = Malloc( sizeof( directlight_t ));
+		numdlights++;
 
-		VectorCopy (p->origin, dl->origin);
-
-		leaf = RadPointInLeaf (dl->origin);
+		VectorCopy( p->origin, dl->origin );
+		leaf = RadPointInLeaf( dl->origin );
 		cluster = leaf->cluster;
 		dl->next = directlights[cluster];
 		directlights[cluster] = dl;
@@ -779,46 +800,93 @@ void CreateDirectLights (void)
 	//
 	// entities
 	//
-	for (i=0 ; i<num_entities ; i++)
+	for( i = 0; i < num_entities; i++ )
 	{
+		char	*value;
+		int	argCnt;
+		bool	monolight = false;
+			
 		e = &entities[i];
 		name = ValueForKey( e, "classname" );
 		if( com.strncmp( name, "light", 5 ))
 			continue;
 
+		dl = Malloc( sizeof( directlight_t ));
 		numdlights++;
-		dl = Malloc(sizeof(directlight_t));
 
 		GetVectorForKey( e, "origin", dl->origin );
-		leaf = RadPointInLeaf (dl->origin);
+		dl->style = FloatForKey( e, "_style" );
+		if( !dl->style ) dl->style = FloatForKey( e, "style" );
+		if( dl->style < 0 || dl->style >= MAX_LSTYLES )
+			dl->style = 0;
+
+		leaf = RadPointInLeaf( dl->origin );
 		cluster = leaf->cluster;
 
 		dl->next = directlights[cluster];
 		directlights[cluster] = dl;
 
-		dl->style = FloatForKey( e, "style" );
-		if( dl->style < 0 || dl->style >= MAX_LSTYLES )
-			dl->style = 0;
+		value = ValueForKey( e, "light" );
+		if( !value[0] ) value = ValueForKey( e, "_light" );
 
-		value = ValueForKey( e, "_light" );
-		if( !com.stricmp( value, "" ))
+		// assume default light color
+		VectorSet( dl->color, 1.0f, 1.0f, 1.0f );
+		intensity = 0.0f;
+
+		if( value[0] )
 		{
-			intensity = FloatForKey( e, "light" );
-			value = ValueForKey( e, "_color" );
-			if( com.stricmp( value, "" ))
-				sscanf( value, "%lf %lf %lf", &dl->color[0], &dl->color[1], &dl->color[2] );
-			else VectorSet( dl->color, 1.0f, 1.0f, 1.0f );
+			double	vec[4];
+			
+			argCnt = sscanf( value, "%lf %lf %lf %lf", &vec[0], &vec[1], &vec[2], &vec[3] );
+			switch( argCnt )
+			{
+			case 4:	// HalfLife light
+				dl->color[0] = vec[0] / 255.0f;
+				dl->color[1] = vec[1] / 255.0f;
+				dl->color[2] = vec[2] / 255.0f;
+				intensity = vec[3];
+				break;
+			case 3:	// Half-Life light_environment
+				dl->color[0] = vec[0] / 255.0f;
+				dl->color[1] = vec[1] / 255.0f;
+				dl->color[2] = vec[2] / 255.0f;
+				break;
+			case 1:	// Quake light
+				dl->color[0] = vec[0];
+				dl->color[1] = vec[0];
+				dl->color[2] = vec[0];
+				intensity = vec[0];
+				monolight = true;
+				break;
+			default:
+				MsgDev( D_WARN, "%s [%i]: '_light' key must be 1 (q1) or 3 or 4 (hl) numbers\n", name, i );
+				break;
+			}
 		}
-		else
-		{
-			sscanf( value, "%lf %lf %lf %lf", &dl->color[0], &dl->color[1], &dl->color[2], &dl->intensity );
-		} 
 
-		target = ValueForKey( e, "target" );
+		if( monolight )
+		{
+			double	col[3];
+
+			value = ValueForKey( e, "color" );
+			if( !value[0] ) value = ValueForKey( e, "_color" );
+			if( value[0] )
+			{
+				argCnt = sscanf( value, "%lf %lf %lf", &col[0], &col[1], &col[2] );
+				if( argCnt != 3 )
+				{
+					MsgDev( D_WARN, "light at %.0f %.0f %.0f:\ncolor must be given 3 values\n",
+					dl->origin[0], dl->origin[1], dl->origin[2] );
+				}
+				else VectorCopy( col, dl->color );
+			}
+		}
+  
+		target = ValueForKey (e, "target");
 
 		if( !com.strcmp( name, "light_spot" ) || !com.strcmp( name, "light_environment" ) || target[0] )
 		{
-			if( !dl->intensity ) dl->intensity = 500;
+			if( !intensity ) intensity = 500.0f;
 			dl->type = emit_spotlight;
 			dl->stopdot = FloatForKey( e, "_cone" );
 			if( !dl->stopdot ) dl->stopdot = 10;
@@ -884,16 +952,16 @@ void CreateDirectLights (void)
 		}
 		else
 		{
-			if( !dl->intensity ) dl->intensity = 300;
-			dl->intensity = intensity * entity_scale;
+			if( !intensity ) intensity = 300.0f;
 			dl->type = emit_point;
 		}
 
 		if( dl->type != emit_skylight )
 		{
 			ColorNormalize( dl->color, dl->color );
-			VectorDivide( dl->color, 255.0f, dl->color );
+			dl->intensity = intensity * entity_scale;
 		}
+		Msg("color( %g %g %g)( %g)\n", dl->color[0], dl->color[1], dl->color[2], dl->intensity );
 	}
 	Msg( "%i direct lights\n", numdlights );
 }
@@ -908,19 +976,20 @@ Lightscale is the normalizer for multisampling
 void GatherSampleLight( vec3_t pos, vec3_t normal, float **styletable, int offset, int mapsize, float lightscale )
 {
 	int		i;
-	directlight_t	*l, *sky_used = NULL;
 	vec3_t		delta;
 	float		dot, dot2;
 	float		dist;
 	float		scale;
 	float		*dest;
+	directlight_t	*l, *sky_used = NULL;
 
 	// get the PVS for the pos to limit the number of checks
+	Mem_Set( pvs, 0x00, sizeof( pvs ));
 	if( !PvsForOrigin( pos, pvs )) return;
 
 	for( i = 0; i < dvis->numclusters; i++ )
 	{
-		if( !(pvs[i>>3] & (1<<(i & 7))) )
+		if(!( pvs[i>>3] & (1<<(i & 7))))
 			continue;
 
 		for( l = directlights[i]; l; l = l->next )
@@ -939,16 +1008,17 @@ void GatherSampleLight( vec3_t pos, vec3_t normal, float **styletable, int offse
 				// search back to see if we can hit a sky brush
 				VectorScale( l->normal, -10000, delta );
 				VectorAdd( pos, delta, delta );
-				if( TestLine_r( 0, pos, delta ))// != CONTENTS_SKY )
+				if(!(TestLine_r( 0, pos, delta ) & CONTENTS_SKY ))
 					continue;	// occluded
-				scale = dot;
+				scale = VectorMax( l->color ) * dot;
+				Msg("sky light: %g\n", scale );
 			}
 			else
 			{
 				VectorSubtract( l->origin, pos, delta );
 				dist = VectorNormalizeLength( delta );
 				dot = DotProduct( delta, normal );
-				if( dot <= 0.001 ) continue;	// behind sample surface
+				if( dot <= 0.001 ) continue; // behind sample surface
 
 				switch( l->type )
 				{
@@ -958,13 +1028,12 @@ void GatherSampleLight( vec3_t pos, vec3_t normal, float **styletable, int offse
 					break;
 				case emit_surface:
 					dot2 = -DotProduct (delta, l->normal);
-					if (dot2 <= 0.001)
-						goto skipadd;	// behind light surface
-					scale = (l->intensity / (dist*dist) ) * dot * dot2;
+					if( dot2 <= 0.001 ) goto skipadd;	// behind light surface
+					scale = (l->intensity / (dist*dist)) * (dot * dot2);
 					break;
 				case emit_spotlight:
 					// linear falloff
-					dot2 = -DotProduct (delta, l->normal);
+					dot2 = -DotProduct( delta, l->normal );
 					if (dot2 <= l->stopdot)
 						goto skipadd;	// outside light cone
 					scale = (l->intensity - dist) * dot;
@@ -973,13 +1042,14 @@ void GatherSampleLight( vec3_t pos, vec3_t normal, float **styletable, int offse
 					Sys_Error( "Bad l->type\n" );
 				}
 
-				if( TestLine_r( 0, pos, l->origin ))
-					continue;	// occluded
 				if( scale <= 0 ) continue;
+				if( TestLine_r( 0, pos, l->origin ) & CONTENTS_SOLID )
+					continue;	// occluded
 
 				// if this style doesn't have a table yet, allocate one
 				if( !styletable[l->style] )
 					styletable[l->style] = Malloc (mapsize);
+
 				dest = styletable[l->style] + offset;			
 				// add some light to it
 				VectorMA( dest, scale * lightscale, l->color, dest );
@@ -987,7 +1057,41 @@ void GatherSampleLight( vec3_t pos, vec3_t normal, float **styletable, int offse
 skipadd:;
 		}
 	}
+	if( sky_used )
+	{
+		vec3_t	total;
+		int	j;
 
+		sky_used->intensity *= (1.0f / (NUMVERTEXNORMALS * 2));
+		VectorClear( total );
+
+		for( j = 0; j < NUMVERTEXNORMALS; j++)
+		{
+			// make sure the angle is okay
+			dot = -DotProduct( normal, r_avertexnormals[j] );
+			if( dot <= 0.001 ) continue;
+
+			// search back to see if we can hit a sky brush
+			VectorScale( r_avertexnormals[j], -10000, delta );
+			VectorAdd( pos, delta, delta );
+			if(!(TestLine_r( 0, pos, delta ) & CONTENTS_SKY )) 
+				continue;	// occluded
+			
+			scale *= sky_used->intensity * dot;
+			VectorAdd( total, sky_used->color, total );
+		}
+		if( VectorMax( total ) > 0 )
+		{
+
+			// if this style doesn't have a table yet, allocate one
+			if( !styletable[sky_used->style] )
+				styletable[sky_used->style] = Malloc( mapsize );
+			dest = styletable[sky_used->style] + offset;			
+					
+			// add some light to it
+			VectorMA( dest, scale, sky_used->color, dest );
+		}
+	}
 }
 
 /*

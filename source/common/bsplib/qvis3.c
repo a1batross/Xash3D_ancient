@@ -16,11 +16,117 @@ int		originalvismapsize;
 int		leafbytes;			// (portalclusters+63)>>3
 int		leaflongs;
 int		portalbytes, portallongs;
-bool		fastvis;
 int		totalvis;
 int		totalphs;
 visportal_t	*sorted_portals[MAX_MAP_PORTALS*2];
 
+/*
+===============
+CompressVis
+
+===============
+*/
+int CompressVis( byte *vis, byte *dest )
+{
+	int	j, rep, visrow;
+	byte	*dest_p;
+	
+	dest_p = dest;
+	visrow = (dvis->numclusters + 7)>>3;
+	
+	for( j = 0; j < visrow; j++ )
+	{
+		*dest_p++ = vis[j];
+		if( vis[j] ) continue;
+
+		rep = 1;
+		for( j++; j < visrow; j++ )
+			if( vis[j] || rep == 255 )
+				break;
+			else rep++;
+		*dest_p++ = rep;
+		j--;
+	}
+	return dest_p - dest;
+}
+
+
+/*
+===================
+DecompressVis
+===================
+*/
+void DecompressVis( byte *in, byte *decompressed )
+{
+	int		c;
+	byte	*out;
+	int		row;
+
+	row = (dvis->numclusters+7)>>3;	
+	out = decompressed;
+
+	do
+	{
+		if( *in )
+		{
+			*out++ = *in++;
+			continue;
+		}
+	
+		c = in[1];
+		if( !c ) Sys_Error( "DecompressVis: 0 repeat\n" );
+		in += 2;
+		while( c )
+		{
+			*out++ = 0;
+			c--;
+		}
+	} while( out - decompressed < row );
+}
+
+int PointInLeafnum ( vec3_t point )
+{
+	float	dist;
+	dnode_t	*node;
+	dplane_t	*plane;
+	int	nodenum = 0;
+
+	while( nodenum >= 0 )
+	{
+		node = &dnodes[nodenum];
+		plane = &dplanes[node->planenum];
+		dist = DotProduct( point, plane->normal ) - plane->dist;
+		if( dist > 0 ) nodenum = node->children[0];
+		else nodenum = node->children[1];
+	}
+	return -nodenum - 1;
+}
+
+dleaf_t *PointInLeaf( vec3_t point )
+{
+	int	num;
+
+	num = PointInLeafnum( point );
+	return &dleafs[num];
+}
+
+bool PvsForOrigin( vec3_t org, byte *pvs )
+{
+	dleaf_t	*leaf;
+
+	if( !visdatasize )
+	{
+		Mem_Set( pvs, 0xFF, (numleafs+7)/8 );
+		return true;
+	}
+
+	leaf = PointInLeaf( org );
+	if( leaf->cluster == -1 )
+		return false;		// in solid leaf
+
+	DecompressVis( dvisdata + dvis->bitofs[leaf->cluster][DVIS_PVS], pvs );
+	return true;
+}
 
 //=============================================================================
 
@@ -28,7 +134,7 @@ void PlaneFromWinding( viswinding_t *w, visplane_t *plane )
 {
 	vec3_t		v1, v2;
 
-// calc plane
+	// calc plane
 	VectorSubtract (w->points[2], w->points[1], v1);
 	VectorSubtract (w->points[0], w->points[1], v2);
 	CrossProduct (v2, v1, plane->normal);
@@ -205,46 +311,46 @@ void ClusterMerge (int leafnum)
 CalcPortalVis
 ==================
 */
-void CalcPortalVis (void)
+void CalcPortalVis( void )
 {
-	int		i;
-
-	// fastvis just uses mightsee for a very loose bound
-	if(fastvis)
+	if( bsp_parms & BSPLIB_FULLCOMPILE )
 	{
-		for (i = 0; i < numportals * 2; i++)
+		RunThreadsOnIndividual( numportals * 2, true, PortalFlow );
+	}
+	else
+	{
+		int	i;
+	
+		// fastvis just uses mightsee for a very loose bound
+		for( i = 0; i < numportals * 2; i++ )
 		{
 			portals[i].portalvis = portals[i].portalflood;
 			portals[i].status = stat_done;
 		}
-		return;
 	}
-	RunThreadsOnIndividual (numportals*2, true, PortalFlow);
 }
 
 
 /*
 ==================
-CalcVis
+CalcPVS
 ==================
 */
-void CalcVis (void)
+void CalcPVS( void )
 {
-	int		i;
+	int	i;
 	
-	Msg ("Building PVS...\n");
+	Msg( "Building PVS...\n" );
 
-	RunThreadsOnIndividual (numportals*2, true, BasePortalVis);
-	SortPortals ();
-	CalcPortalVis ();
+	RunThreadsOnIndividual( numportals * 2, true, BasePortalVis );
+	SortPortals();
+	CalcPortalVis();
 
-//
-// assemble the leaf vis lists by oring and compressing the portal lists
-//
-	for (i=0 ; i<portalclusters ; i++)
+	// assemble the leaf vis lists by oring and compressing the portal lists
+	for( i = 0; i < portalclusters; i++ )
 		ClusterMerge (i);
 		
-	Msg ("Average clusters visible: %i\n", totalvis / portalclusters);
+	Msg( "Average clusters visible: %i\n", totalvis / portalclusters );
 }
 
 
@@ -297,7 +403,7 @@ void LoadPortals( void )
 	com.sprintf( path, "maps/%s.prt", gs_filename );
 	prtfile = Com_OpenScript( path, NULL, 0 );
 	if( !prtfile ) Sys_Break( "LoadPortals: couldn't read %s\n", path );
-	Msg( "reading %s\n", path );
+	MsgDev( D_NOTE, "reading %s\n", path );
 	
 	Com_ReadString( prtfile, true, magic );
           Com_ReadLong( prtfile, true, &portalclusters );
@@ -436,16 +542,16 @@ void ClusterPHS( int clusternum )
 			totalphs++;
 
 	// compress the bit string
-	j = CompressVis (uncompressed, compressed);
+	j = CompressVis( uncompressed, compressed );
 
 	dest = (long *)vismap_p;
 	vismap_p += j;
 		
-	if (vismap_p > vismap_end)
-		Sys_Error ("Vismap expansion overflow");
+	if( vismap_p > vismap_end )
+		Sys_Error( "Vismap expansion overflow\n" );
 
-	dvis->bitofs[clusternum][DVIS_PHS] = (byte *)dest-vismap;
-	Mem_Copy (dest, compressed, j);	
+	dvis->bitofs[clusternum][DVIS_PHS] = (byte *)dest - vismap;
+	Mem_Copy( dest, compressed, j );	
 } 
 
 /*
@@ -456,11 +562,11 @@ Calculate the PHS (Potentially Hearable Set)
 by ORing together all the PVS visible from a leaf
 ================
 */
-void CalcPHS (void)
+void CalcPHS( void )
 {
-	Msg ("Building PHS...\n");
-	RunThreadsOnIndividual (portalclusters, true, ClusterPHS);
-	Msg("Average clusters hearable: %i\n", totalphs/portalclusters);
+	Msg( "Building PHS...\n" );
+	RunThreadsOnIndividual( portalclusters, true, ClusterPHS );
+	Msg( "Average clusters hearable: %i\n", totalphs / portalclusters );
 }
 
 /*
@@ -468,27 +574,25 @@ void CalcPHS (void)
 main
 ===========
 */
-void WvisMain ( bool option )
+void WvisMain( void )
 {
-	fastvis = !option;
-	
-	if(!LoadBSPFile())
+	if( !LoadBSPFile( ))
 	{
 		// map not exist, create it
-		WbspMain( false );
+		WbspMain();
 		LoadBSPFile();
 	}
 	if( numnodes == 0 || numsurfaces == 0 )
 		Sys_Break( "Empty map %s.bsp\n", gs_filename );
 
-	Msg ("---- Visibility ---- [%s]\n", fastvis ? "fast" : "full" );
-	LoadPortals ();
-	CalcVis ();
-	CalcPHS ();
+	Msg ("\n---- vis ---- [%s]\n", (bsp_parms & BSPLIB_FULLCOMPILE) ? "full" : "fast" );
+
+	LoadPortals();
+	CalcPVS();
+	CalcPHS();
 
 	visdatasize = vismap_p - dvisdata;	
-	Msg ("visdatasize:%i  compressed from %i\n", visdatasize, originalvismapsize*2);
+	MsgDev( D_INFO, "visdatasize:%i  compressed from %i\n", visdatasize, originalvismapsize * 2 );
 
 	WriteBSPFile();	
 }
-
