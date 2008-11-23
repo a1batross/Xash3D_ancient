@@ -28,10 +28,10 @@ _inline void CM_ConvertDimensionToMeters( vec3_t out, vec3_t in )
 	out[2] = LittleFloat(INCH2METER(in[2]));
 }
 
-void CM_LoadBSP( const void *buffer );
+void CM_LoadBSP( wfile_t *wad );
 void CM_FreeBSP( void );
 
-void CM_LoadWorld( const void *buffer );
+void CM_LoadWorld( void );
 void CM_FreeWorld( void );
 
 void CM_MakeCollisionTree( void );

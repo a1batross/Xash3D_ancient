@@ -329,7 +329,6 @@ void Sys_LookupInstance( void )
 	else if(!com_strcmp(Sys.progname, "bsplib"))
 	{
 		Sys.app_name = HOST_BSPLIB;
-		Sys.log_active = true;	// always create log
 		Sys.linked_dll = &common_dll;	// pointer to common.dll info
 		com_strcpy(Sys.log_path, "bsplib.log" ); // xash3d root directory
 		com_strcpy(Sys.caption, "Xash3D BSP Compiler");
@@ -882,7 +881,8 @@ void Sys_Init( void )
 
 	// parse and copy args into local array
 	if(FS_CheckParm( "-log" )) Sys.log_active = true;
-	if(FS_GetParmFromCmdLine( "-dev", dev_level )) Sys.developer = com_atoi(dev_level);
+	if(FS_GetParmFromCmdLine( "-dev", dev_level, sizeof( dev_level )))
+		Sys.developer = com_atoi( dev_level );
           
 	FS_UpdateEnvironmentVariables();	// set working directory
 	SetErrorMode( SEM_FAILCRITICALERRORS );	// no abort/retry/fail errors

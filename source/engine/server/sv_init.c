@@ -113,13 +113,17 @@ SV_CheckForSavegame
 */
 void SV_CheckForSavegame( const char *savename )
 {
-	sv.loadgame = true; // predicting state
+	sv.loadgame = false;
 
-	if(sv_noreload->value) sv.loadgame = false;
-	if(Cvar_VariableValue("deathmatch")) sv.loadgame = false;
-	if(!savename) sv.loadgame = false;
-	if(!FS_FileExists(va("save/%s", savename )))
-		sv.loadgame = false;
+	if( savename )
+	{
+		sv.loadgame = true; // predicting state
+		if( sv_noreload->value ) sv.loadgame = false;
+		if( Cvar_VariableValue( "deathmatch" )) sv.loadgame = false;
+		if( !savename ) sv.loadgame = false;
+		if( !FS_FileExists( va( "save/%s", savename )))
+			sv.loadgame = false;
+	}
 }
 
 

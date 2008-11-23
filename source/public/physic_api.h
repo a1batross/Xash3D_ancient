@@ -44,7 +44,7 @@ typedef struct physic_exp_s
 	bool (*Init)( void );				// init all physic systems
 	void (*Shutdown)( void );				// shutdown all render systems
 
-	void (*LoadBSP)( const void *buf );			// load bspdata ( bsplib use this )
+	void (*LoadBSP)( wfile_t *wad );			// load bspdata ( bsplib use this )
 	void (*FreeBSP)( void );				// free bspdata
 	void (*WriteCollisionLump)( file_t *f, cmsave_t callback );	// write collision data into LUMP_COLLISION
 

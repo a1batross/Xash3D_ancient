@@ -43,6 +43,7 @@ bool InitPhysics( void )
 	cm_physics_model = Cvar_Get("cm_physic", "1", CVAR_ARCHIVE|CVAR_LATCH, "change physic model: 0 - Classic Quake Physic, 1 - Physics Engine" );
 	cm_debugdraw = Cvar_Get( "cm_debugdraw", "0", CVAR_ARCHIVE, "draw physics hulls" );
 	cm_novis = Cvar_Get( "r_novis", "0", 0, "ignore vis information (perfomance test)" );
+	cms.handle = NULL;
 
 	return true;
 }

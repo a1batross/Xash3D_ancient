@@ -135,7 +135,6 @@ typedef struct clipmap_s
 {
 	string		name;
 	uint		checksum;		// map checksum
-	byte		*mod_base;	// start of buffer
 
 	// shared copy of map (client - server)
 	char		*entitystring;
@@ -177,6 +176,8 @@ typedef struct clipmap_s
 
 typedef struct clipmap_static_s
 {
+	wfile_t		*handle;
+
 	byte		pvsrow[MAX_MAP_LEAFS/8];
 	byte		phsrow[MAX_MAP_LEAFS/8];
 	byte		portalopen[MAX_MAP_AREAPORTALS];

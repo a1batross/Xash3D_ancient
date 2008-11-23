@@ -12,7 +12,7 @@
 
 extern byte *basepool;
 extern byte *zonepool;
-
+extern bool enable_log;
 extern stdlib_api_t com;
 extern vprogs_exp_t *PRVM;
 

@@ -9,9 +9,17 @@ byte	*checkermate_dds;
 size_t	checkermate_dds_size;
 char	path[MAX_SYSPATH];
 uint	bsp_parms;
+file_t	*bsplog;
 
 dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, false, sizeof(physic_exp_t) };
 physic_exp_t *pe;
+
+void BSP_PrintLog( const char *pMsg )
+{
+	if( !enable_log ) return;
+	if( !bsplog ) bsplog = FS_Open( va("maps/%s.log", gs_filename ), "wb" );
+	FS_Print( bsplog, pMsg );
+}
 
 static void AddCollision( void* handle, const void* buffer, size_t size )
 {
@@ -61,6 +69,7 @@ bool PrepareBSPModel( const char *dir, const char *name )
 	int	numshaders;
 
 	bsp_parms = 0;
+	bsplog = NULL;
 
 	// get global parms
 	if( FS_CheckParm( "-vis" )) bsp_parms |= BSPLIB_MAKEVIS;
@@ -102,6 +111,8 @@ bool PrepareBSPModel( const char *dir, const char *name )
 
 	FS_LoadGameInfo( "gameinfo.txt" ); // same as normal gamemode
 	Init_PhysicsLibrary();
+
+	enable_log = true;
 	numshaders = LoadShaderInfo();
 	Msg( "%5i shaderInfo\n", numshaders );
 
@@ -122,6 +133,11 @@ bool CompileBSPModel ( void )
 
 	Free_PhysicLibrary();
 	PrintBSPFileSizes();
+
+	// close log before deleting temporaries
+	enable_log = false;
+	if( bsplog ) FS_Close( bsplog );
+	bsplog = NULL;
 
 	if( bsp_parms & BSPLIB_DELETE_TEMP )
 	{

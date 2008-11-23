@@ -320,6 +320,7 @@ typedef struct
 extern	int		num_entities;
 extern	bsp_entity_t	entities[MAX_MAP_ENTITIES];
 extern	script_t		*mapfile;
+extern	file_t		*bsplog;
 
 void	ParseEntities( void );
 void	UnparseEntities( void );
@@ -332,6 +333,8 @@ vec_t	FloatForKey( const bsp_entity_t *ent, const char *key );
 long	IntForKey( const bsp_entity_t *ent, const char *key );
 void	GetVectorForKey( const bsp_entity_t *ent, const char *key, vec3_t vec );
 bsp_entity_t *FindTargetEntity( const char *target );
+void	BSP_PrintLog( const char *pMsg );
+void	FindMapMessage( char *message );
 epair_t	*ParseEpair( token_t *token );
 void	PrintBSPFileSizes( void );
 

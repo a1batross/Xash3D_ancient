@@ -322,7 +322,7 @@ void FS_LoadGameInfo( const char *filename );
 void FS_FileBase( const char *in, char *out);
 const char *FS_FileExtension (const char *in);
 void FS_DefaultExtension (char *path, const char *extension );
-bool FS_GetParmFromCmdLine( char *parm, char *out );
+bool FS_GetParmFromCmdLine( char *parm, char *out, size_t size );
 void FS_ExtractFilePath(const char* const path, char* dest);
 void FS_UpdateEnvironmentVariables( void );
 const char *FS_FileWithoutPath( const char *in );

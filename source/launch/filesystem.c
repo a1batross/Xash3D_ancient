@@ -1427,7 +1427,7 @@ void FS_Init( void )
 		stringlistsort(&dirs);
 		GI.numgamedirs = 0;
 	
-		if( !FS_GetParmFromCmdLine( "-game", gs_basedir ))
+		if( !FS_GetParmFromCmdLine( "-game", gs_basedir, sizeof( gs_basedir )))
 		{
 			if( Sys.app_name == HOST_BSPLIB )
 				com_strcpy( gs_basedir, fs_defaultdir->string );
@@ -1499,7 +1499,7 @@ void FS_InitRootDir( char *path )
 	FS_AddGameHierarchy( path );
 }
 
-bool FS_GetParmFromCmdLine( char *parm, char *out )
+bool FS_GetParmFromCmdLine( char *parm, char *out, size_t size )
 {
 	int argc = FS_CheckParm( parm );
 
@@ -1507,7 +1507,7 @@ bool FS_GetParmFromCmdLine( char *parm, char *out )
 	if(!out) return false;	
 	if(!fs_argv[argc + 1]) return false;
 
-	com_strcpy( out, fs_argv[argc+1]);
+	com_strncpy( out, fs_argv[argc+1], size );
 	return true;
 }
 
@@ -3399,13 +3399,16 @@ byte *W_ReadLump( wfile_t *wad, dlumpinfo_t *lump, size_t *lumpsizeptr )
 	byte	*buf, *cbuf;
 	size_t	size = 0;
 
+	// assume error
+	if( lumpsizeptr ) *lumpsizeptr = 0;
+
 	// no wads loaded
 	if( !wad || !lump ) return NULL;
 
 	if( FS_Seek( wad->file, lump->filepos, SEEK_SET ))
 	{
 		MsgDev( D_ERROR, "W_ReadLump: %s is corrupted\n", lump->name );
-		return 0;
+		return NULL;
 	}
 
 	switch( lump->compression )
@@ -3542,7 +3545,7 @@ wfile_t *W_Open( const char *filename, const char *mode )
 	if( !wad->file )
 	{
 		W_Close( wad );
-		MsgDev(D_ERROR, "W_Open: couldn't open %s\n", filename );
+		MsgDev( D_ERROR, "W_Open: couldn't open %s\n", filename );
 		return NULL;
 	}
 
@@ -3732,6 +3735,9 @@ fs_offset_t W_SaveLump( wfile_t *wad, const char *lump, const void* data, size_t
 byte *W_LoadLump( wfile_t *wad, const char *lumpname, size_t *lumpsizeptr, const char type )
 {
 	dlumpinfo_t	*lump;
+
+	// assume error
+	if( lumpsizeptr ) *lumpsizeptr = 0;
 
 	if( !wad ) return NULL;
 	lump = W_FindLump( wad, lumpname, type );

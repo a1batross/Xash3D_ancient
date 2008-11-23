@@ -115,17 +115,17 @@ BRUSH MODELS
 R_LoadVertexes
 =================
 */
-static void R_LoadVertexes( const byte *base, const lump_t *l )
+static void R_LoadVertexes( wfile_t *l )
 {
 	dvertex_t		*in;
 	vertex_t		*out;
-	int		i;
+	size_t		i, filelen;
 
-	in = (dvertex_t *)(base + l->fileofs);
-	if( l->filelen % sizeof(dvertex_t))
+	in = (dvertex_t *)WAD_Read( l, LUMP_VERTEXES, &filelen, TYPE_BINDATA );
+	if( filelen % sizeof( dvertex_t ))
 		Host_Error( "R_LoadVertexes: funny lump size in '%s'\n", m_pLoadModel->name );
 
-	m_pLoadModel->numVertexes = l->filelen / sizeof(dvertex_t);
+	m_pLoadModel->numVertexes = filelen / sizeof(dvertex_t);
 	m_pLoadModel->vertexes = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numVertexes * sizeof(vertex_t));
 
 	for( i = 0; i < m_pLoadModel->numVertexes; i++, in++, out++ )
@@ -141,18 +141,18 @@ static void R_LoadVertexes( const byte *base, const lump_t *l )
 R_LoadEdges
 =================
 */
-static void R_LoadEdges( const byte *base, const lump_t *l )
+static void R_LoadEdges( wfile_t *l )
 {
 	dedge_t	*in;
 	edge_t	*out;
-	int 	i;
+	size_t	i, filelen;
 
-	in = (dedge_t *)(base + l->fileofs);
-	if (l->filelen % sizeof(dedge_t))
-		Host_Error( "R_LoadEdges: funny lump size in '%s'\n", m_pLoadModel->name);
+	in = (dedge_t *)WAD_Read( l, LUMP_EDGES, &filelen, TYPE_BINDATA );
+	if( filelen % sizeof( dedge_t ))
+		Host_Error( "R_LoadEdges: funny lump size in '%s'\n", m_pLoadModel->name );
 
-	m_pLoadModel->numEdges = l->filelen / sizeof(dedge_t);
-	m_pLoadModel->edges = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numEdges * sizeof(edge_t));
+	m_pLoadModel->numEdges = filelen / sizeof( dedge_t );
+	m_pLoadModel->edges = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numEdges * sizeof( edge_t ));
 
 	for( i = 0; i < m_pLoadModel->numEdges; i++, in++, out++ )
 	{
@@ -166,17 +166,17 @@ static void R_LoadEdges( const byte *base, const lump_t *l )
 R_LoadSurfEdges
 =================
 */
-static void R_LoadSurfEdges( const byte *base, const lump_t *l )
+static void R_LoadSurfEdges( wfile_t *l )
 {
 	dsurfedge_t	*in, *out;
-	int		i;
+	size_t		i, filelen;
 	
-	in = (int *)(base + l->fileofs);
-	if (l->filelen % sizeof(int))
+	in = (int *)WAD_Read( l, LUMP_SURFEDGES, &filelen, TYPE_BINDATA );
+	if( filelen % sizeof( int ))
 		Host_Error( "R_LoadSurfEdges: funny lump size in '%s'\n", m_pLoadModel->name );
 
-	m_pLoadModel->numSurfEdges = l->filelen / sizeof(int);
-	m_pLoadModel->surfEdges = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numSurfEdges * sizeof(int));
+	m_pLoadModel->numSurfEdges = filelen / sizeof( int );
+	m_pLoadModel->surfEdges = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numSurfEdges * sizeof( int ));
 
 	for( i = 0; i < m_pLoadModel->numSurfEdges; i++ )
 		out[i] = LittleLong(in[i]);
@@ -187,13 +187,17 @@ static void R_LoadSurfEdges( const byte *base, const lump_t *l )
 R_LoadLighting
 =================
 */
-static void R_LoadLighting( const byte *base, const lump_t *l )
+static void R_LoadLighting( wfile_t *l )
 {
-	if( r_fullbright->integer || !l->filelen )
-		return;
+	byte	*in;
+	size_t	filelen;
 
-	m_pLoadModel->lightData = Mem_Alloc( m_pLoadModel->mempool, l->filelen );
-	Mem_Copy( m_pLoadModel->lightData, base + l->fileofs, l->filelen );
+	if( r_fullbright->integer ) return;
+	in = WAD_Read( l, LUMP_LIGHTING, &filelen, TYPE_BINDATA );
+	if( !filelen ) return;
+
+	m_pLoadModel->lightData = Mem_Alloc( m_pLoadModel->mempool, filelen );
+	Mem_Copy( m_pLoadModel->lightData, in, filelen );
 }
 
 /*
@@ -201,18 +205,18 @@ static void R_LoadLighting( const byte *base, const lump_t *l )
 R_LoadPlanes
 =================
 */
-static void R_LoadPlanes( const byte *base, const lump_t *l )
+static void R_LoadPlanes( wfile_t *l )
 {
 	dplane_t		*in;
 	cplane_t		*out;
-	int		i;
+	size_t		i, filelen;
 	
-	in = (dplane_t *)(base + l->fileofs);
-	if (l->filelen % sizeof(dplane_t))
+	in = (dplane_t *)WAD_Read( l, LUMP_PLANES, &filelen, TYPE_BINDATA );
+	if( filelen % sizeof( dplane_t ))
 		Host_Error( "R_LoadPlanes: funny lump size in '%s'\n", m_pLoadModel->name );
 
-	m_pLoadModel->numPlanes = l->filelen / sizeof(dplane_t);
-	m_pLoadModel->planes = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numPlanes * sizeof(cplane_t));
+	m_pLoadModel->numPlanes = filelen / sizeof( dplane_t );
+	m_pLoadModel->planes = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numPlanes * sizeof( cplane_t ));
 
 	for( i = 0; i < m_pLoadModel->numPlanes; i++, in++, out++ )
 	{
@@ -229,18 +233,18 @@ static void R_LoadPlanes( const byte *base, const lump_t *l )
 R_LoadShaders
 =================
 */
-void R_LoadShaders( const byte *base, const lump_t *l )
+void R_LoadShaders( wfile_t *l )
 {
 	dshader_t		*in;
-	int 		i, count;
+	size_t 		i, filelen, count;
 	int		surfaceParm, contents;
 	int		shaderType = SHADER_TEXTURE;
 	cvar_t		*scr_loading = Cvar_Get("scr_loading", "0", 0, "loading bar progress" );
 
-	in = (void *)(base + l->fileofs);
-	if( l->filelen % sizeof( *in ))
+	in = (void *)WAD_Read( l, LUMP_SHADERS, &filelen, TYPE_BINDATA );
+	if( filelen % sizeof( *in ))
 		Host_Error( "R_LoadShaders: funny lump size in '%s'\n", m_pLoadModel->name );
-	count = l->filelen / sizeof( *in );
+	count = filelen / sizeof( *in );
 
 	m_pLoadModel->shaders = Mem_Alloc( m_pLoadModel->mempool, count * sizeof( shader_t* ));
 	m_pLoadModel->numShaders = count;
@@ -295,18 +299,19 @@ void R_LoadShaders( const byte *base, const lump_t *l )
 R_LoadTexInfo
 =================
 */
-static void R_LoadTexInfo( const byte *base, const lump_t *l )
+static void R_LoadTexInfo( wfile_t *l )
 {
 	dtexinfo_t	*in;
 	texInfo_t		*out;
 	int		shadernum;
 	int		i, j, count;
 	uint		surfaceParm = 0;
+	size_t		filelen;
 
-	in = (void *)(base + l->fileofs);
-	if( l->filelen % sizeof( *in ))
+	in = (void *)WAD_Read( l, LUMP_TEXINFO, &filelen, TYPE_BINDATA );
+	if( filelen % sizeof( *in ))
 		Host_Error( "R_LoadTexinfo: funny lump size in '%s'\n", m_pLoadModel->name );
-	count = l->filelen / sizeof(*in);
+	count = filelen / sizeof( *in );
           out = Mem_Alloc( m_pLoadModel->mempool, count * sizeof( *out ));
 	
 	m_pLoadModel->texInfo = out;
@@ -672,18 +677,18 @@ static void R_BuildSurfacePolygons( surface_t *surf )
 R_LoadFaces
 =================
 */
-static void R_LoadSurfaces( const byte *base, const lump_t *l )
+static void R_LoadSurfaces( wfile_t *l )
 {
-	dsurface_t		*in;
+	dsurface_t	*in;
 	surface_t 	*out;
-	int		i, lightofs;
+	size_t		i, filelen, lightofs;
 
-	in = (dsurface_t *)(base + l->fileofs);
-	if (l->filelen % sizeof(dsurface_t))
+	in = (dsurface_t *)WAD_Read( l, LUMP_SURFACES, &filelen, TYPE_BINDATA );
+	if( filelen % sizeof( dsurface_t ))
 		Host_Error( "R_LoadFaces: funny lump size in '%s'\n", m_pLoadModel->name );
 
-	m_pLoadModel->numSurfaces = l->filelen / sizeof(dsurface_t);
-	m_pLoadModel->surfaces = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numSurfaces * sizeof(surface_t));
+	m_pLoadModel->numSurfaces = filelen / sizeof( dsurface_t );
+	m_pLoadModel->surfaces = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numSurfaces * sizeof( surface_t ));
 
 	R_BeginBuildingLightmaps();
 
@@ -742,20 +747,21 @@ static void R_LoadSurfaces( const byte *base, const lump_t *l )
 R_LoadMarkSurfaces
 =================
 */
-static void R_LoadMarkSurfaces( const byte *base, const lump_t *l )
+static void R_LoadMarkSurfaces( wfile_t *l )
 {
 	dleafface_t	*in;
 	surface_t		**out;
 	int		i, j;
+	size_t		filelen;
 	
-	in = (dword *)(base + l->fileofs);
-	if (l->filelen % sizeof(dword))
+	in = (dword *)WAD_Read( l, LUMP_LEAFFACES, &filelen, TYPE_BINDATA );
+	if( filelen % sizeof( dword ))
 		Host_Error( "R_LoadMarkSurfaces: funny lump size in '%s'\n", m_pLoadModel->name );
 
-	m_pLoadModel->numMarkSurfaces = l->filelen / sizeof(dword);
-	m_pLoadModel->markSurfaces = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numMarkSurfaces * sizeof(surface_t *));
+	m_pLoadModel->numMarkSurfaces = filelen / sizeof( dword );
+	m_pLoadModel->markSurfaces = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numMarkSurfaces * sizeof( surface_t * ));
 
-	for (i = 0; i < m_pLoadModel->numMarkSurfaces; i++ )
+	for( i = 0; i < m_pLoadModel->numMarkSurfaces; i++ )
 	{
 		j = LittleLong( in[i] );
 		if (j < 0 ||  j >= m_pLoadModel->numMarkSurfaces)
@@ -770,9 +776,10 @@ static void R_LoadMarkSurfaces( const byte *base, const lump_t *l )
 R_LoadVisibility
 =================
 */
-static void R_LoadVisibility( const byte *base, const lump_t *l )
+static void R_LoadVisibility( wfile_t *l )
 {
-	size_t	vis_length;
+	size_t	filelen, vis_length;
+	byte	*in;
 	int	i;
 
 	// novis lumps attempt to create always
@@ -780,9 +787,11 @@ static void R_LoadVisibility( const byte *base, const lump_t *l )
 	m_pLoadModel->novis = Mem_Alloc( m_pLoadModel->mempool, vis_length );
 	Mem_Set( m_pLoadModel->novis, 0xFF, vis_length );
 
-	if( !l->filelen ) return;
-	m_pLoadModel->vis = Mem_Alloc( m_pLoadModel->mempool, l->filelen );
-	Mem_Copy( m_pLoadModel->vis, base + l->fileofs, l->filelen );
+	in = WAD_Read( l, LUMP_VISIBILITY, &filelen, TYPE_BINDATA );
+	if( !filelen ) return;
+
+	m_pLoadModel->vis = Mem_Alloc( m_pLoadModel->mempool, filelen );
+	Mem_Copy( m_pLoadModel->vis, in, filelen );
 
 	m_pLoadModel->vis->numclusters = LittleLong( m_pLoadModel->vis->numclusters );
 	for( i = 0; i < m_pLoadModel->vis->numclusters; i++ )
@@ -797,18 +806,19 @@ static void R_LoadVisibility( const byte *base, const lump_t *l )
 R_LoadLeafs
 =================
 */
-static void R_LoadLeafs( const byte *base, const lump_t *l )
+static void R_LoadLeafs( wfile_t *l )
 {
 	dleaf_t	*in;
 	leaf_t	*out;
+	size_t	filelen;
 	int	i, j;
 
-	in = (dleaf_t *)(base + l->fileofs);
-	if (l->filelen % sizeof(dleaf_t))
+	in = (dleaf_t *)WAD_Read( l, LUMP_LEAFS, &filelen, TYPE_BINDATA );
+	if( filelen % sizeof( dleaf_t ))
 		Host_Error( "R_LoadLeafs: funny lump size in '%s'\n", m_pLoadModel->name );
 
-	m_pLoadModel->numLeafs = l->filelen / sizeof(dleaf_t);
-	m_pLoadModel->leafs = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numLeafs * sizeof(leaf_t));
+	m_pLoadModel->numLeafs = filelen / sizeof( dleaf_t );
+	m_pLoadModel->leafs = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numLeafs * sizeof( leaf_t ));
 	m_pLoadModel->numClusters = 0;
 
 	for( i = 0; i < m_pLoadModel->numLeafs; i++, in++, out++ )
@@ -850,18 +860,19 @@ static void R_NodeSetParent( node_t *node, node_t *parent )
 R_LoadNodes
 =================
 */
-static void R_LoadNodes( const byte *base, const lump_t *l )
+static void R_LoadNodes( wfile_t *l )
 {
 	dnode_t		*in;
 	node_t		*out;
+	size_t		filelen;
 	int		i, j, p;
 
-	in = (dnode_t *)(base + l->fileofs);
-	if (l->filelen % sizeof(dnode_t))
+	in = (dnode_t *)WAD_Read( l, LUMP_NODES, &filelen, TYPE_BINDATA );
+	if( filelen % sizeof( dnode_t ))
 		Host_Error( "R_LoadNodes: funny lump size in '%s'\n", m_pLoadModel->name );
 
-	m_pLoadModel->numNodes = l->filelen / sizeof(dnode_t);
-	m_pLoadModel->nodes = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numNodes * sizeof(node_t));
+	m_pLoadModel->numNodes = filelen / sizeof( dnode_t );
+	m_pLoadModel->nodes = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numNodes * sizeof( node_t ));
 
 	for( i = 0; i < m_pLoadModel->numNodes; i++, in++, out++ )
 	{
@@ -922,18 +933,19 @@ static void R_SetupSubmodels( void )
 R_LoadSubmodels
 =================
 */
-static void R_LoadSubmodels( const byte *base, const lump_t *l )
+static void R_LoadSubmodels( wfile_t *l )
 {
 	dmodel_t		*in;
 	submodel_t	*out;
+	size_t		filelen;
 	int		i, j;
 
-	in = (dmodel_t *)(base + l->fileofs);
-	if( l->filelen % sizeof(dmodel_t))
+	in = (dmodel_t *)WAD_Read( l, LUMP_MODELS, &filelen, TYPE_BINDATA );
+	if( filelen % sizeof( dmodel_t ))
 		Host_Error( "R_LoadSubmodels: funny lump size in '%s'\n", m_pLoadModel->name );
 
-	m_pLoadModel->numSubmodels = l->filelen / sizeof(dmodel_t);
-	m_pLoadModel->submodels = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numSubmodels * sizeof(submodel_t));
+	m_pLoadModel->numSubmodels = filelen / sizeof( dmodel_t );
+	m_pLoadModel->submodels = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numSubmodels * sizeof( submodel_t ));
 
 	for( i = 0; i < m_pLoadModel->numSubmodels; i++, in++, out++ )
 	{
@@ -958,17 +970,18 @@ R_LoadLightgrid
 =================
 */
 
-static void R_LoadLightgrid( const byte *base, const lump_t *l )
+static void R_LoadLightgrid( wfile_t *l )
 {
 	byte		*data;
 	dlightgrid_t	*header;
 	lightGrid_t	*in, *out;
-	int		i;
+	size_t		i, filelen;
 
-	if( !l->filelen ) return;
-	data = (byte *)(base + l->fileofs);
+	data = (byte *)WAD_Read( l, LUMP_LIGHTGRID, &filelen, TYPE_BINDATA );
+	if( !filelen ) return;
+
 	header = (dlightgrid_t *)data;
-	if(( l->filelen - sizeof(dlightgrid_t)) % sizeof(lightGrid_t))
+	if(( filelen - sizeof( dlightgrid_t )) % sizeof( lightGrid_t ))
 		Host_Error( "R_LoadLightgrid: funny lump size in '%s'\n", m_pLoadModel->name );
 
 	for( i = 0; i < 3; i++ ) m_pLoadModel->gridMins[i] = LittleFloat( header->mins[i] );
@@ -996,7 +1009,7 @@ Mod_LoadBrushModel
 void Mod_LoadBrushModel( rmodel_t *mod, const void *buffer )
 {
 	dheader_t		*header;
-	byte		*mod_base;
+	wfile_t		*handle;
 
 	m_pLoadModel->type = mod_world;
 	r_skyShader[0] = 0;
@@ -1007,30 +1020,29 @@ void Mod_LoadBrushModel( rmodel_t *mod, const void *buffer )
 		return;
 	}
 
-	header = (dheader_t *)buffer;
-
-	// Byte swap the header fields and sanity check
-	SwapBlock( (int *)header, sizeof(dheader_t));
+	handle = (wfile_t *)buffer;
+	header = (dheader_t *)WAD_Read( handle, LUMP_MAPINFO, NULL, TYPE_BINDATA );
+	header->ident = LittleLong( header->ident );
+	header->version = LittleLong( header->version );
 
 	if( header->version != BSPMOD_VERSION )
 		Host_Error( "Mod_LoadBrushModel: %s has wrong version number (%i should be %i)", mod->name, header->version, BSPMOD_VERSION );
-	mod_base = (byte *)header;
 
 	// load into heap
-	R_LoadVertexes( mod_base, &header->lumps[LUMP_VERTEXES]);
-	R_LoadEdges( mod_base, &header->lumps[LUMP_EDGES]);
-	R_LoadSurfEdges( mod_base, &header->lumps[LUMP_SURFEDGES]);
-	R_LoadLighting( mod_base, &header->lumps[LUMP_LIGHTING]);
-	R_LoadLightgrid( mod_base, &header->lumps[LUMP_LIGHTGRID]);
-	R_LoadPlanes( mod_base, &header->lumps[LUMP_PLANES]);
-	R_LoadShaders( mod_base, &header->lumps[LUMP_SHADERS]);
-	R_LoadTexInfo( mod_base, &header->lumps[LUMP_TEXINFO]);
-	R_LoadSurfaces( mod_base, &header->lumps[LUMP_SURFACES]);
-	R_LoadMarkSurfaces( mod_base, &header->lumps[LUMP_LEAFFACES]);
-	R_LoadLeafs( mod_base, &header->lumps[LUMP_LEAFS]);
-	R_LoadNodes( mod_base, &header->lumps[LUMP_NODES]);
-	R_LoadVisibility( mod_base, &header->lumps[LUMP_VISIBILITY]);
-	R_LoadSubmodels( mod_base, &header->lumps[LUMP_MODELS]);
+	R_LoadVertexes( handle );
+	R_LoadEdges( handle );
+	R_LoadSurfEdges( handle );
+	R_LoadLighting( handle );
+	R_LoadLightgrid( handle );
+	R_LoadPlanes( handle );
+	R_LoadShaders( handle );
+	R_LoadTexInfo( handle );
+	R_LoadSurfaces( handle );
+	R_LoadMarkSurfaces( handle );
+	R_LoadLeafs( handle );
+	R_LoadNodes( handle );
+	R_LoadVisibility( handle );
+	R_LoadSubmodels( handle );
 
 	mod->registration_sequence = registration_sequence;	// register model
 }
@@ -1056,6 +1068,7 @@ void Mod_LoadSpriteModel( rmodel_t *mod, const void *buffer )
 	R_SpriteLoadModel( mod, buffer );
 	mod->type = mod_sprite;
 }
+
 /*
 ==================
 Mod_ForName
@@ -1065,8 +1078,11 @@ Loads in a model for the given name
 */
 rmodel_t *Mod_ForName( const char *name, bool crash )
 {
+	wfile_t	*wad = NULL;
+	byte	*buf = NULL;
+	file_t	*file = NULL;
+	uint	i, hdr;
 	rmodel_t	*mod;
-	uint	i, *buf;
 	
 	if( !name[0] ) return NULL;
 
@@ -1113,8 +1129,8 @@ rmodel_t *Mod_ForName( const char *name, bool crash )
 	com.strncpy( mod->name, name, MAX_STRING );
 	
 	// load the file
-	buf = (uint *)FS_LoadFile( mod->name, NULL );
-	if( !buf )
+	file = FS_Open( mod->name, "rb" );
+	if( !file )
 	{
 		if( crash ) Host_Error( "Mod_NumForName: %s not found\n", mod->name );
 		Mem_Set( mod->name, 0, sizeof( mod->name ));
@@ -1127,17 +1143,22 @@ rmodel_t *Mod_ForName( const char *name, bool crash )
 	//
 	// fill it in
 	//
+	FS_Read( file, &hdr, sizeof( uint ));
+	FS_Close( file );
 
 	// call the apropriate loader
-	switch (LittleLong(*(uint *)buf))
+	switch( LittleLong( hdr ))
 	{
-	case IDBSPMODHEADER:
-		Mod_LoadBrushModel( mod, buf );
+	case IDWAD3HEADER:
+		wad = WAD_Open( mod->name, "rb" );
+		Mod_LoadBrushModel( mod, wad );
 		break;
 	case IDSTUDIOHEADER:
+		buf = FS_LoadFile( mod->name, NULL );
 		Mod_LoadStudioModel( mod, buf );
 		break;
 	case IDSPRITEHEADER:
+		buf = FS_LoadFile( mod->name, NULL );
 		Mod_LoadSpriteModel( mod, buf );
 		break;
 	default:
@@ -1145,7 +1166,8 @@ rmodel_t *Mod_ForName( const char *name, bool crash )
 		MsgDev( D_ERROR, "Mod_NumForName: unknown file id for %s, unloaded\n", mod->name );
 		break;
 	}
-	Mem_Free( buf );	// free file buffer
+	if( buf ) Mem_Free( buf );	// free file buffer
+	if( wad ) WAD_Close( wad );
 
 	return mod;
 }

@@ -5,6 +5,8 @@
 #ifndef REF_DFILES_H
 #define REF_DFILES_H
 
+#define IDWAD3HEADER	(('3'<<24)+('D'<<16)+('A'<<8)+'W')
+
 /*
 ==============================================================================
 
@@ -176,42 +178,36 @@ BRUSH MODELS
 #define MAX_LIGHT_STYLES		64
 #define MAX_SWITCHED_LIGHTS		32
 
-// lump offset
-#define LUMP_ENTITIES		0
-#define LUMP_SHADERS		1	// contains shader name and dims
-#define LUMP_PLANES			2
-#define LUMP_LEAFS			3
-#define LUMP_LEAFFACES		4	// marksurfaces
-#define LUMP_LEAFBRUSHES		5
-#define LUMP_NODES			6
-#define LUMP_VERTEXES		7
-#define LUMP_EDGES			8
-#define LUMP_SURFEDGES		9
-#define LUMP_TEXINFO		10
-#define LUMP_SURFACES		11
-#define LUMP_MODELS			12	// bsp brushmodels
-#define LUMP_BRUSHES		13
-#define LUMP_BRUSHSIDES		14
-#define LUMP_VISIBILITY		15
-#define LUMP_LIGHTING		16
-#define LUMP_COLLISION		17	// prepared newton collision tree
-#define LUMP_LIGHTGRID		18	// private server.dat for current map
-#define LUMP_AREAS			19
-#define LUMP_AREAPORTALS		20
-// reserved for future expansions
-#define LUMP_TOTALCOUNT		24	// max lumps
-
-typedef struct
-{
-	int	fileofs;
-	int	filelen;
-} lump_t;
+// lump names
+#define LUMP_MAPINFO		"mapinfo"
+#define LUMP_ENTITIES		"entities"
+#define LUMP_SHADERS		"shaders"		// contains shader name and dims
+#define LUMP_PLANES			"planes"
+#define LUMP_LEAFS			"leafs"
+#define LUMP_LEAFFACES		"leafsurfaces"	// marksurfaces
+#define LUMP_LEAFBRUSHES		"leafbrushes"
+#define LUMP_NODES			"nodes"
+#define LUMP_VERTEXES		"vertexes"
+#define LUMP_EDGES			"edges"
+#define LUMP_SURFEDGES		"surfedges"
+#define LUMP_TEXINFO		"texinfo"
+#define LUMP_SURFACES		"surfaces"
+#define LUMP_MODELS			"bmodels"		// bsp brushmodels
+#define LUMP_BRUSHES		"brushes"
+#define LUMP_BRUSHSIDES		"brushsides"
+#define LUMP_VISIBILITY		"visdata"
+#define LUMP_LIGHTING		"lightdata"
+#define LUMP_COLLISION		"collision"	// prepared newton collision tree
+#define LUMP_LIGHTGRID		"lightgrid"	// private server.dat for current map
+#define LUMP_AREAS			"areas"
+#define LUMP_AREAPORTALS		"areaportals"
 
 typedef struct
 {
 	int	ident;
 	int	version;	
-	lump_t	lumps[LUMP_TOTALCOUNT];
+	char	message[64];	// map message
+	int	reserved[14];	// future expansions
 } dheader_t;
 
 typedef struct

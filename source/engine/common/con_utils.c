@@ -6,6 +6,7 @@
 #include "common.h"
 #include "client.h"
 #include "byteorder.h"
+#include "const.h"
 
 /*
 =======================================================================
@@ -32,124 +33,52 @@ Prints or complete map filename
 bool Cmd_GetMapList( const char *s, char *completedname, int length )
 {
 	search_t		*t;
-	file_t		*f;
+	wfile_t		*wad;
 	string		message;
 	string		matchbuf;
 	byte		buf[MAX_SYSPATH]; // 1 kb
 	int		i, nummaps;
 
-	t = FS_Search(va("maps/%s*.bsp", s), true );
+	t = FS_Search( va( "maps/%s*.bsp", s ), true );
 	if( !t ) return false;
 
-	FS_FileBase(t->filenames[0], matchbuf ); 
+	FS_FileBase( t->filenames[0], matchbuf ); 
 	com.strncpy( completedname, matchbuf, length );
-	if(t->numfilenames == 1) return true;
+	if( t->numfilenames == 1 ) return true;
 
-	for(i = 0, nummaps = 0; i < t->numfilenames; i++)
+	for( i = 0, nummaps = 0; i < t->numfilenames; i++ )
 	{
-		string		entfilename;
-		int		ver = -1, lumpofs = 0, lumplen = 0;
+		dheader_t		*header;
+		int		ver = -1;
 		const char	*ext = FS_FileExtension( t->filenames[i] ); 
-		script_t		*ents = NULL;
 
 		if( com.stricmp( ext, "bsp" )) continue;
-
 		com.strncpy( message, "^1error^7", sizeof( message ));
-		f = FS_Open( t->filenames[i], "rb" );
+		wad = WAD_Open( t->filenames[i], "rb" );
 	
-		if( f )
+		if( wad )
 		{
-			Mem_Set( buf, 0, MAX_SYSPATH );
-			FS_Read( f, buf, MAX_SYSPATH );
-			if(!memcmp( buf, "IBSP", 4 ))
+			header = (dheader_t *)WAD_Read( wad, LUMP_MAPINFO, NULL, TYPE_BINDATA );
+			if( header )
 			{
-				dheader_t *header = (dheader_t *)buf;
-				ver = LittleLong(((int *)buf)[1]);
+				// swap the header
+				header->ident = LittleLong( header->ident );
+				ver = LittleLong( header->version );
 
-				switch(ver)
-				{
-				case 38:	// quake2
-				case 39:	// xash3d
-				case 46:	// quake3
-				case 47:	// return to castle wolfenstein
-					lumpofs = LittleLong( header->lumps[LUMP_ENTITIES].fileofs );
-					lumplen = LittleLong( header->lumps[LUMP_ENTITIES].filelen );
-					break;
-				}
-			}
-			else
-			{
-				lump_t	ents; // quake1 entity lump
-				Mem_Copy( &ents, buf + 4, sizeof( lump_t )); // skip first four bytes (version)
-				ver = LittleLong(((int *)buf)[0]);
-
-				switch( ver )
-				{
-				case 28:	// quake 1 beta
-				case 29:	// quake 1 regular
-				case 30:	// Half-Life regular
-					lumpofs = LittleLong(ents.fileofs);
-					lumplen = LittleLong(ents.filelen);
-					break;
-				default:
-					ver = 0;
-					break;
-				}
-			}
-
-			com.strncpy( entfilename, t->filenames[i], sizeof( entfilename ));
-			FS_StripExtension( entfilename );
-			FS_DefaultExtension( entfilename, ".ent" );
-			ents = Com_OpenScript( entfilename, NULL, 0 );
-
-			if( !ents && lumplen >= 10 )
-			{
-				char *entities = NULL;
-		
-				FS_Seek( f, lumpofs, SEEK_SET );
-				entities = (char *)Z_Malloc( lumplen + 1 );
-				FS_Read( f, entities, lumplen );
-				ents = Com_OpenScript( "ents", entities, lumplen + 1 );
-				Mem_Free( entities ); // no reason to keep it
-			}
-
-			if( ents )
-			{
-				// if there are entities to parse, a missing message key just
-				// means there is no title, so clear the message string now
-				token_t	token;
-
-				message[0] = 0;
-				while( Com_ReadToken( ents, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &token ))
-				{
-					if( !com.strcmp( token.string, "{" )) continue;
-					else if(!com.strcmp( token.string, "}" )) break;
-					else if(!com.strcmp( token.string, "message" ))
-					{
-						// get the message contents
-						Com_ReadString( ents, false, message );
-					}
-				}
-				Com_CloseScript( ents );
+				if( header->ident == IDBSPMODHEADER && ver == BSPMOD_VERSION )
+					com.strncpy( message, header->message, MAX_STRING );
 			}
 		}
 
-
-		if( f ) FS_Close(f);
+		if( wad ) WAD_Close( wad );
 		FS_FileBase( t->filenames[i], matchbuf );
 
 		switch( ver )
 		{
-		case 28:  com.strncpy((char *)buf, "Quake1 beta", sizeof(buf)); break;
-		case 29:  com.strncpy((char *)buf, "Quake1", sizeof(buf)); break;
-		case 30:  com.strncpy((char *)buf, "Half-Life", sizeof(buf)); break;
-		case 38:  com.strncpy((char *)buf, "Quake 2", sizeof(buf)); break;
 		case 39:  com.strncpy((char *)buf, "Xash 3D", sizeof(buf)); break;
-		case 46:  com.strncpy((char *)buf, "Quake 3", sizeof(buf)); break;
-		case 47:  com.strncpy((char *)buf, "RTCW", sizeof(buf)); break;
 		default:	com.strncpy((char *)buf, "??", sizeof(buf)); break;
 		}
-		Msg("%16s (%s) ^3%s^7\n", matchbuf, buf, message);
+		Msg("%16s (%s) ^3%s^7\n", matchbuf, buf, message );
 		nummaps++;
 	}
 	Msg("\n^3 %i maps found.\n", nummaps );
@@ -529,102 +458,61 @@ bool Cmd_GetGamesList( const char *s, char *completedname, int length )
 
 bool Cmd_CheckMapsList( void )
 {
-	byte	buf[MAX_SYSPATH]; // 1 kb
-	char	*buffer;
-	string	result;
+	byte	*buffer;
+	wfile_t	*wad;
 	search_t	*t;
-	file_t	*f;
 	int	i;
 
-	if(FS_FileExists( "scripts/maps.lst" ))
+	if( FS_FileExists( "scripts/maps.lst" ))
 		return true; // exist 
 
 	t = FS_Search( "maps/*.bsp", false );
-	if(!t) return false;
+	if( !t ) return false;
 
-	buffer = Z_Malloc( t->numfilenames * 2 * sizeof( result ));
+	buffer = Z_Malloc( t->numfilenames * 2 * sizeof( MAX_STRING ));	// should be enough...
 	for( i = 0; i < t->numfilenames; i++ )
 	{
-		script_t		*ents = NULL;
-		int		ver = -1, lumpofs = 0, lumplen = 0;
-		string		mapname, message, entfilename;
+		string		mapname, message;
+		const char	*ext = FS_FileExtension( t->filenames[i] ); 
 
-		f = FS_Open( t->filenames[i], "rb" );
+		if( com.stricmp( ext, "bsp" )) continue;
 		FS_FileBase( t->filenames[i], mapname );
+		wad = WAD_Open( t->filenames[i], "rb" );
 
-		if( f )
+		if( wad )
 		{
-			int num_spawnpoints = 0;
+			script_t	*ents = NULL;
+			int	num_spawnpoints = 0;
+			int	lumplen = 0;
+			dheader_t	*header;
 
-			Mem_Set( buf, 0, MAX_SYSPATH );
-			FS_Read( f, buf, MAX_SYSPATH );
-			if(!memcmp( buf, "IBSP", 4 ))
+			com.strncpy( message, "No Title", MAX_STRING );		
+			header = (dheader_t *)WAD_Read( wad, LUMP_MAPINFO, NULL, TYPE_BINDATA );
+			if( header )
 			{
-				dheader_t *header = (dheader_t *)buf;
-				ver = LittleLong(((int *)buf)[1]);
-				switch(ver)
-				{
-				case 38:	// quake2
-				case 39:	// xash
-				case 46:	// quake3
-				case 47:	// return to castle wolfenstein
-					lumpofs = LittleLong(header->lumps[LUMP_ENTITIES].fileofs);
-					lumplen = LittleLong(header->lumps[LUMP_ENTITIES].filelen);
-					break;
-				}
-			}
-			else
-			{
-				lump_t	ents; // quake1 entity lump
-				Mem_Copy(&ents, buf + 4, sizeof(lump_t)); // skip first four bytes (version)
-				ver = LittleLong(((int *)buf)[0]);
+				// swap the header
+				header->ident = LittleLong( header->ident );
+				header->version = LittleLong( header->version );
 
-				switch( ver )
-				{
-				case 28:	// quake 1 beta
-				case 29:	// quake 1 regular
-				case 30:	// Half-Life regular
-					lumpofs = LittleLong(ents.fileofs);
-					lumplen = LittleLong(ents.filelen);
-					break;
-				default:
-					ver = 0;
-					break;
-				}
+				if( header->ident == IDBSPMODHEADER && header->version == BSPMOD_VERSION )
+					com.strncpy( message, header->message, MAX_STRING );
+				else goto skip_map;
 			}
-			com.strncpy( entfilename, t->filenames[i], sizeof( entfilename ));
-			FS_StripExtension( entfilename );
-			FS_DefaultExtension( entfilename, ".ent" );
-			ents = Com_OpenScript( entfilename, NULL, 0 );
+			else goto skip_map;
 
-			if( !ents && lumplen >= 10 )
-			{
-				char *entities = NULL;
-		
-				FS_Seek( f, lumpofs, SEEK_SET );
-				entities = (char *)Z_Malloc( lumplen + 1 );
-				FS_Read( f, entities, lumplen );
-				ents = Com_OpenScript( "ents", entities, lumplen + 1 );
-				Mem_Free( entities ); // no reason to keep it
-			}
+			buffer = (byte *)WAD_Read( wad, LUMP_ENTITIES, &lumplen, TYPE_SCRIPT );
+			ents = Com_OpenScript( LUMP_ENTITIES, buffer, lumplen + 1 );
+
 			if( ents )
 			{
 				// if there are entities to parse, a missing message key just
 				// means there is no title, so clear the message string now
 				token_t	token;
 
-				message[0] = 0;
-				com.strncpy( message, "No Title", MAX_STRING );
-
 				while( Com_ReadToken( ents, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &token ))
 				{
 					if( !com.strcmp( token.string, "{" )) continue;
 					else if( !com.strcmp( token.string, "}" )) break;
-					else if( !com.strcmp( token.string, "message" ))
-					{
-						// get the message contents
-						Com_ReadString( ents, 0, message );
-					}
 					else if( !com.strcmp( token.string, "classname" ))
 					{
 						Com_ReadToken( ents, 0, &token );
@@ -636,13 +524,14 @@ bool Cmd_CheckMapsList( void )
 					if( num_spawnpoints > 0 ) break; // valid map
 				}
 				Com_CloseScript( ents );
+				if( !num_spawnpoints ) goto skip_map;
 			}
-
-			if( f ) FS_Close(f);
+			else goto skip_map;
 
 			// format: mapname "maptitle"\n
-			com.sprintf( result, "%s \"%s\"\n", mapname, message );
-			com.strcat( buffer, result ); // add new string
+			com.strcat( buffer, va( "%s \"%s\"\n", mapname, message )); // add new string
+skip_map:
+			if( wad ) WAD_Close( wad );
 		}
 	}
 	if( t ) Mem_Free( t ); // free search result

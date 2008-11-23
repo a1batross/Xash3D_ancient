@@ -23,6 +23,7 @@ byte	*error_bmp;
 size_t	error_bmp_size;
 static	double start, end;
 uint	app_name = HOST_OFFLINE;
+bool	enable_log = false;
 
 void ClrMask( void )
 {
@@ -56,6 +57,7 @@ void InitCommon( int argc, char **argv )
 
 	basepool = Mem_AllocPool( "Common Pool" );
 	app_name = g_Instance;
+	enable_log = false;
 
 	switch( app_name )
 	{
@@ -200,6 +202,10 @@ void FreeCommon( void )
 		// finalize qc-script
 		Skin_FinalizeScript();
 	}
+	else if( app_name == HOST_BSPLIB )
+	{
+		if( bsplog ) FS_Close( bsplog );
+	}
 
 	Mem_Check(); // check for leaks
 	Mem_FreePool( &basepool );
@@ -218,8 +224,8 @@ launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 	Com.Init = InitCommon;
 	Com.Main = CommonMain;
 	Com.Free = FreeCommon;
+	Com.CPrint = BSP_PrintLog;
 	Com.MSG_Init = NULL;
-	Com.CPrint = NULL;
 
 	return &Com;
 }

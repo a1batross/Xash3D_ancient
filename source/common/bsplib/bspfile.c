@@ -12,8 +12,7 @@
 #define ENTRYSIZE(a)	(sizeof(*(a)))
 
 //=============================================================================
-wfile_t		*handle;
-file_t		*wadfile;
+wfile_t		*wadfile;
 dheader_t		*header;
 
 int		num_entities;
@@ -216,18 +215,43 @@ void SwapBSPFile( bool todisk )
 	}
 }
 
-#ifdef BSP_WADFILE
+bool CompressLump( const char *lumpname, size_t length )
+{
+	if( !com.strcmp( lumpname, LUMP_MAPINFO ))
+		return false;
+	if( !com.strcmp( lumpname, LUMP_ENTITIES ))
+		return false; // never compress entities
+	if( !com.strcmp( lumpname, LUMP_COLLISION ))
+		return true;
+	if( !com.strcmp( lumpname, LUMP_VISIBILITY ))
+		return true;
+	if( !com.strcmp( lumpname, LUMP_LIGHTING ))
+		return true;
+
+	// other lumps can be compressed if their size more than 32 kBytes
+	if( length > 0x8000 )
+		return true;
+	return false;
+}
+
+char TypeForLump( const char *lumpname )
+{
+	if( !com.strcmp( lumpname, LUMP_ENTITIES ))
+		return TYPE_SCRIPT;
+	return TYPE_BINDATA;
+}
+
 size_t CopyLump( const char *lumpname, void *dest, size_t block_size )
 {
 	size_t	length;
 	byte	*in;
 
-	if( !handle ) return 0;
+	if( !wadfile ) return 0;
 
-	in = WAD_Read( handle, lumpname, &length, TYPE_BINDATA );
+	in = WAD_Read( wadfile, lumpname, &length, TypeForLump( lumpname ));
+	if( !in ) return 0; // empty lump
 	if( length % block_size ) Sys_Break( "LoadBSPFile: %s funny lump size\n", lumpname );
 	Mem_Copy( dest, in, length );
-	Mem_Free( in ); // no need more
 	return length / block_size;
 }
 
@@ -235,38 +259,10 @@ void AddLump( const char *lumpname, const void *data, size_t length )
 {
 	int	compress = CMP_NONE;
 
-	if( !handle ) return;
-	if( length > 0xffff ) compress = CMP_ZLIB; // save hdd space
-	WAD_Write( handle, lumpname, data, length, TYPE_BINDATA, compress );
+	if( !wadfile || !length ) return;
+	compress = CompressLump( lumpname, length ) ? CMP_ZLIB : CMP_NONE;
+	WAD_Write( wadfile, lumpname, data, (length + 3) & ~3, TypeForLump( lumpname ), compress );
 }
-
-#else
-
-size_t CopyLump( const int lumpname, void *dest, size_t block_size )
-{
-	size_t	length, ofs;
-
-	length = header->lumps[lumpname].filelen;
-	ofs = header->lumps[lumpname].fileofs;
-	
-	if( length % block_size) Sys_Break( "LoadBSPFile: %i funny lump size\n", lumpname );
-	Mem_Copy(dest, (byte *)header + ofs, length);
-
-	return length / block_size;
-}
-
-void AddLump( const int lumpname, const void *data, size_t length )
-{
-	lump_t *lump;
-
-	lump = &header->lumps[lumpname];
-	lump->fileofs = LittleLong( FS_Tell( wadfile ));
-	lump->filelen = LittleLong( length );
-
-	FS_Write( wadfile, data, (length + 3) & ~3 );
-}
-#endif
-
 
 /*
 =============
@@ -275,18 +271,20 @@ LoadBSPFile
 */
 bool LoadBSPFile( void )
 {
-	byte	*buffer;
-	
-	buffer = (byte *)FS_LoadFile( va("maps/%s.bsp", gs_filename ), NULL );
-	if( !buffer ) return false;
+	static dheader_t	inheader;
 
-	header = (dheader_t *)buffer; // load the file header
-	if( pe ) pe->LoadBSP( buffer );
+	header = &inheader;
+	wadfile = WAD_Open( va("maps/%s.bsp", gs_filename ), "rb" );
+	if( !wadfile ) return false;
+
+	CopyLump( LUMP_MAPINFO, header, 1 );
+	if( pe ) pe->LoadBSP( wadfile );
 
 	MsgDev( D_NOTE, "reading %s.bsp\n", gs_filename );
 	
 	// swap the header
-	SwapBlock( (int *)header, sizeof( header ));
+	header->ident = LittleLong( header->ident );
+	header->version = LittleLong( header->version );
 
 	if( header->ident != IDBSPMODHEADER )
 		Sys_Break( "%s.bsp is not a IBSP file\n", gs_filename );
@@ -313,6 +311,8 @@ bool LoadBSPFile( void )
 	numshaders = CopyLump( LUMP_SHADERS, dshaders, sizeof( dshaders[0] ));
 	numareas = CopyLump ( LUMP_AREAS, dareas, sizeof( dareas[0] ));
 	numareaportals = CopyLump( LUMP_AREAPORTALS, dareaportals, sizeof( dareaportals[0] ));
+	WAD_Close( wadfile ); // release memory
+	wadfile = NULL;
 
 	// swap everything
 	SwapBSPFile( false );
@@ -340,13 +340,14 @@ void WriteBSPFile( void )
 
 	header->ident = LittleLong( IDBSPMODHEADER );
 	header->version = LittleLong( BSPMOD_VERSION );
+	FindMapMessage( header->message );
 	
 	MsgDev( D_NOTE, "\n\nwriting %s.bsp\n", gs_filename );
 	if( pe ) pe->FreeBSP();
 	
-	wadfile = FS_Open( va( "maps/%s.bsp", gs_filename ), "wb" );
-	FS_Write( wadfile, header, sizeof( dheader_t ));	// overwritten later
+	wadfile = WAD_Open( va( "maps/%s.bsp", gs_filename ), "wb" );
 
+	AddLump( LUMP_MAPINFO, header, sizeof( dheader_t ));
 	AddLump( LUMP_ENTITIES, dentdata, entdatasize );
 	AddLump( LUMP_PLANES, dplanes, numplanes * sizeof( dplanes[0] ));
 	AddLump( LUMP_VERTEXES, dvertexes, numvertexes * sizeof( dvertexes[0] ));
@@ -368,10 +369,8 @@ void WriteBSPFile( void )
 	AddLump( LUMP_AREAS, dareas, numareas * sizeof( dareas[0] ));
 	AddLump( LUMP_AREAPORTALS, dareaportals, numareaportals * sizeof( dareaportals[0] ));
 
-	// merge header
-	FS_Seek( wadfile, 0, SEEK_SET );
-	FS_Write( wadfile, header, sizeof( dheader_t ));
-	FS_Close( wadfile );
+	WAD_Close( wadfile );
+	wadfile = NULL;
 }
 
 //============================================
@@ -600,6 +599,36 @@ bsp_entity_t *FindTargetEntity( const char *target )
 			return &entities[i];
 	}
 	return NULL;
+}
+
+/*
+================
+FindTargetEntity
+
+finds an entity target
+================
+*/
+void FindMapMessage( char *message )
+{
+	int		i;
+	const char	*value;
+	bsp_entity_t	*e;
+
+	if( !message ) return;
+	
+	// walk entity list
+	for( i = 0; i < num_entities; i++ )
+	{
+		e = &entities[i];
+		value = ValueForKey( e, "classname" );
+		if( !com.stricmp( value, "worldspawn" ))
+		{
+			value = ValueForKey( e, "message" );
+			com.strncpy( message, value, MAX_SHADERPATH );
+			return;
+		}
+	}
+	com.strncpy( message, "", MAX_SHADERPATH );
 }
 
 void Com_CheckToken( script_t *script, const char *match )

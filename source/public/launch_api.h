@@ -469,7 +469,7 @@ typedef struct stdilib_api_s
 	void (*Com_LoadGameInfo)( const char *filename );		// gate game info from script file
 	void (*Com_AddGameHierarchy)(const char *dir);		// add base directory in search list
 	int  (*Com_CheckParm)( const char *parm );		// check parm in cmdline  
-	bool (*Com_GetParm)( char *parm, char *out );		// get parm from cmdline
+	bool (*Com_GetParm)( char *parm, char *out, size_t size );	// get parm from cmdline
 	void (*Com_FileBase)(const char *in, char *out);		// get filename without path & ext
 	bool (*Com_FileExists)(const char *filename);		// return true if file exist
 	long (*Com_FileSize)(const char *filename);		// same as Com_FileExists but return filesize
@@ -558,7 +558,7 @@ typedef struct stdilib_api_s
 	int (*wfcheck)( const char *filename );				// validate container
 	wfile_t *(*wfopen)( const char *filename, const char *mode );	// open wad file or create new
 	void (*wfclose)( wfile_t *wad );				// close wadfile
-	long (*wfwrite)( wfile_t *wad, const char *lump, const void* data, size_t datasize, char type, char cmp );
+	long (*wfwrite)( wfile_t *wad, const char *lump, const void* data, size_t size, char type, char cmp );
 	byte *(*wfread)( wfile_t *wad, const char *lump, size_t *lumpsizeptr, const char type );
 
 	// filesystem simply user interface
@@ -755,7 +755,7 @@ filesystem manager
 #define g_Instance			com.GameInfo->instance
 #define FS_ClearSearchPath		com.Com_ClearSearchPath
 #define FS_CheckParm		com.Com_CheckParm
-#define FS_GetParmFromCmdLine		com.Com_GetParm
+#define FS_GetParmFromCmdLine( a, b )	com.Com_GetParm( a, b, sizeof( b ))
 
 /*
 ===========================================

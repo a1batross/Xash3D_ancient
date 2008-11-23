@@ -21,8 +21,14 @@ typedef struct
 
 typedef struct
 {
+	int		fileofs;
+	int		filelen;
+} dlump_t;
+
+typedef struct
+{
 	int		version;
-	lump_t		lumps[15];
+	dlump_t		lumps[15];
 } dbspheader_t;
 
 typedef struct
@@ -60,7 +66,7 @@ bool MipExist( const char *name )
 	return FS_FileExists( name );
 }
 
-void Conv_BspTextures( const char *name, lump_t *l, const char *ext )
+void Conv_BspTextures( const char *name, dlump_t *l, const char *ext )
 {
 	dmiptexlump_t	*m;
 	string		genericname;
@@ -184,10 +190,6 @@ bool Conv_CheckMap( const char *mapname )
 			game_family = GAME_QUAKE2;
 			FS_Close( f );
 			return true;
-		case 39:
-			game_family = GAME_XASH3D;
-			FS_Close( f );
-			return true;
 		case 46:
 			game_family = GAME_QUAKE3;
 			FS_Close( f );
@@ -210,6 +212,10 @@ bool Conv_CheckMap( const char *mapname )
 			FS_Close( f );
 			return true;
 		}
+	case IDWAD3HEADER:
+		game_family = GAME_XASH3D;
+		FS_Close( f );
+		return true;
 	default:
 		game_family = GAME_GENERIC;
 		FS_Close( f );
