@@ -4026,18 +4026,20 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 		}
 		else if( shader->surfaceParm & SURF_ADDITIVE )
 		{
-			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAGEN;
+			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAGEN|SHADERSTAGE_RGBGEN;
 			shader->stages[0]->blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
 			shader->stages[0]->blendFunc.dst = GL_ONE;
 			shader->stages[0]->alphaGen.type = ALPHAGEN_ENTITY;
+			shader->stages[0]->rgbGen.type = RGBGEN_ENTITY;
 			shader->sort = SORT_ADDITIVE;
 		}
 		else if( shader->surfaceParm & SURF_GLOW )
 		{
-			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAGEN;
+			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAGEN|SHADERSTAGE_RGBGEN;
 			shader->stages[0]->blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
 			shader->stages[0]->blendFunc.dst = GL_ONE;
 			shader->stages[0]->alphaGen.type = ALPHAGEN_ENTITY;
+			shader->stages[0]->rgbGen.type = RGBGEN_ENTITY;
 			shader->sort = SORT_ADDITIVE;
 		}
 		else if( shader->surfaceParm & SURF_ALPHA )
@@ -4352,7 +4354,7 @@ static void R_FinishShader( ref_shader_t *shader )
 				if( shader->surfaceParm & (SURF_ALPHA|SURF_BLEND))
 					stage->rgbGen.type = RGBGEN_LIGHTINGAMBIENT;
 				else if( shader->surfaceParm & (SURF_ADDITIVE|SURF_GLOW))
-					stage->rgbGen.type = RGBGEN_IDENTITYLIGHTING;
+					stage->rgbGen.type = RGBGEN_ENTITY;
 				break;
 			case SHADER_NOMIP:
 			case SHADER_GENERIC:

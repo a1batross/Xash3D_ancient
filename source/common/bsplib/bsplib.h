@@ -24,7 +24,7 @@ enum
 
 #define VALVE_FORMAT	220
 #define MAX_BRUSH_SIDES	128
-#define BOGUS_RANGE		131072
+#define BOGUS_RANGE		MAX_WORLD_COORD
 #define TEXINFO_NODE	-1		// side is allready on a node
 #define MAX_PORTALS		32768
 #define PORTALFILE		"PRT1"
@@ -50,6 +50,7 @@ typedef enum
 	BSPLIB_RAD_NOBLOCK	= BIT(7),
 	BSPLIB_RAD_NOCOLOR	= BIT(8),
 	BSPLIB_DELETE_TEMP	= BIT(9),		// delete itermediate files
+	BSPLIB_SHOWINFO	= BIT(10),
 } bsplibFlags_t;
 
 extern uint bsp_parms;
@@ -559,7 +560,7 @@ extern	byte	*vismap, *vismap_p, *vismap_end;	// past visfile
 
 extern	int	testlevel;
 
-extern	byte	*uncompressed;
+extern	byte	*uncompressedvis;
 
 extern	int	leafbytes, leaflongs;
 extern	int	portalbytes, portallongs;
@@ -576,6 +577,9 @@ int CountBits( byte *bits, int numbits );
 int PointInLeafnum( vec3_t point );
 dleaf_t *PointInLeaf( vec3_t point );
 bool PvsForOrigin( vec3_t org, byte *pvs );
+byte *PhsForCluster( int cluster );
+void CalcAmbientSounds( void );
+
 //=============================================================================
 
 // rad.c

@@ -18,7 +18,6 @@
 
 #define LAUNCH_DLL			// ignore alias names
 #include "launch_api.h"
-#include "ref_dllapi.h"
 
 #define XASH_VERSION		0.51f // current version will be shared across gameinfo struct
 

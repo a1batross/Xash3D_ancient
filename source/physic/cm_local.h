@@ -86,6 +86,7 @@ typedef struct cleaf_s
 	int		numleafbrushes;
 	int 		numleafsurfaces;
 	int		*firstleafsurface;
+	float		ambient_level[NUM_AMBIENTS];
 } cleaf_t;
 
 typedef struct
@@ -267,6 +268,7 @@ extern float	*m_upVector;
 int CM_PointLeafnum_r( const vec3_t p, cnode_t *node );
 int CM_PointLeafnum( const vec3_t p );
 void CM_StoreBrushes( leaflist_t *ll, cnode_t *node );
+bool CM_AmbientSounds( const vec3_t p, float *volumes, cmodel_t *model );
 int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsize, int *lastleaf );
 int CM_BoxBrushes( const vec3_t mins, const vec3_t maxs, cbrush_t **list, int listsize );
 cmodel_t *CM_TempBoxModel( const vec3_t mins, const vec3_t maxs, bool capsule );

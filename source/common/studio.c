@@ -4,7 +4,7 @@
 //=======================================================================
 
 #include "mdllib.h"
-#include "matrixlib.h"
+#include "matrix_lib.h"
 
 bool		cdset;
 bool		ignore_errors;

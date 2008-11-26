@@ -119,6 +119,26 @@ SOURCE=.\rc_main.c
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
+# Begin Source File
+
+SOURCE=.\client.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\images.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\q1texture.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\server.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu.h
+# End Source File
 # End Group
 # End Target
 # End Project

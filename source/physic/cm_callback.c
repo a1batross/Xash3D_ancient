@@ -4,7 +4,7 @@
 //=======================================================================
 
 #include "cm_local.h"
-#include "matrixlib.h"
+#include "matrix_lib.h"
 
 int Callback_ContactBegin( const NewtonMaterial* material, const NewtonBody* body0, const NewtonBody* body1 )
 {

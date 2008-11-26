@@ -113,6 +113,10 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\bsplib\ambient.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\bsplib\brushbsp.c
 # End Source File
 # Begin Source File
@@ -250,10 +254,6 @@ SOURCE=.\bsplib\writebsp.c
 # Begin Source File
 
 SOURCE=.\bsplib\bsplib.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\image.h
 # End Source File
 # Begin Source File
 

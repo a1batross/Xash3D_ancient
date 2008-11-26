@@ -8,7 +8,7 @@
 
 #include <windows.h>
 #include "launch_api.h"
-#include "ref_dllapi.h"
+#include "qfiles_ref.h"
 #include "engine_api.h"
 #include "render_api.h"
 #include "r_opengl.h"
@@ -164,6 +164,10 @@ BRUSH MODELS
 =======================================================================
 */
 #define SURF_PLANEBACK		1 // fast surface culling
+#define SURF_WATERCAUSTICS		2
+#define SURF_SLIMECAUSTICS		4
+#define SURF_LAVACAUSTICS		8
+
 #define CONTENTS_NODE		-1
 #define SKY_SIZE			16
 #define SKY_INDICES			(SKY_SIZE * SKY_SIZE * 6)
@@ -188,9 +192,9 @@ typedef struct lightstyle_s
 
 typedef struct particle_s
 {
-	ref_shader_t		*shader;
-	vec3_t		origin;
-	vec3_t		old_origin;
+	ref_shader_t	*shader;
+	vec3_t		origin1;
+	vec3_t		origin2;
 	float		radius;
 	float		length;
 	float		rotation;
@@ -860,6 +864,7 @@ extern cvar_t	*r_swapInterval;
 extern cvar_t	*r_mode;
 extern cvar_t	*r_testmode;
 extern cvar_t	*r_fullscreen;
+extern cvar_t	*r_caustics;
 extern cvar_t	*r_minimap;
 extern cvar_t	*r_minimap_size;
 extern cvar_t	*r_minimap_zoom;

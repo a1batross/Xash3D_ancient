@@ -60,7 +60,6 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 	{	
 		// duplicate the current state so lerping doesn't hurt anything
 		ent->priv.cl->prev = *state;
-		VectorCopy( state->old_origin, ent->priv.cl->prev.origin );
 	}
 	else
 	{	// shuffle the last state to previous

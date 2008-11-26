@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "server.h"
+#include "const.h"
 
 #define MAX_VISIBLE_PACKET		1024
 typedef struct
@@ -46,6 +47,7 @@ Copy PRVM values into entity state
 void SV_UpdateEntityState( edict_t *ent )
 {
 	edict_t	*client;
+	int	i;
 
 	// copy progs values to state
 	ent->priv.sv->s.number = ent->priv.sv->serialnumber;
@@ -53,14 +55,12 @@ void SV_UpdateEntityState( edict_t *ent )
 
 	VectorCopy (ent->progs.sv->origin, ent->priv.sv->s.origin);
 	VectorCopy (ent->progs.sv->angles, ent->priv.sv->s.angles);
-	VectorCopy (ent->progs.sv->old_origin, ent->priv.sv->s.old_origin);
 	ent->priv.sv->s.model.index = (int)ent->progs.sv->modelindex;
 	ent->priv.sv->s.health = ent->progs.sv->health;
 	ent->priv.sv->s.model.skin = (short)ent->progs.sv->skin;		// studio model skin
 	ent->priv.sv->s.model.body = (byte)ent->progs.sv->body;		// studio model submodel 
 	ent->priv.sv->s.model.frame = ent->progs.sv->frame;		// any model current frame
 	ent->priv.sv->s.model.gaitsequence = (int)ent->progs.sv->gaitsequence;// player sequence, that will be playing on client
-	ent->priv.sv->s.model.sequence = (byte)ent->progs.sv->sequence;	// studio model sequence
 	ent->priv.sv->s.effects = (uint)ent->progs.sv->effects;		// shared client and render flags
 	ent->priv.sv->s.renderfx = (int)ent->progs.sv->renderfx;		// renderer flags
 	ent->priv.sv->s.rendermode = ent->progs.sv->rendermode;		// rendering mode
@@ -68,6 +68,18 @@ void SV_UpdateEntityState( edict_t *ent )
 	ent->priv.sv->s.model.framerate = ent->progs.sv->framerate;
 	ent->priv.sv->s.model.animtime = (int)(1000.0 * ent->progs.sv->animtime) * 0.001; // sequence time
 	ent->priv.sv->s.aiment = ent->progs.sv->aiment;			// viewmodel parent
+	ent->priv.sv->s.model.scale = ent->progs.sv->scale;		// shared client and render flags
+	VectorCopy( ent->progs.sv->rendercolor, ent->priv.sv->s.rendercolor );
+
+	// studio model sequence
+	if( ent->progs.sv->sequence != -1 ) ent->priv.sv->s.model.sequence = ent->progs.sv->sequence;
+
+	for( i = 0; i < 16; i++ )
+	{
+		// copy blendings and bone ctrls
+		ent->priv.sv->s.model.blending[i] = ent->progs.sv->blending[i];
+		ent->priv.sv->s.model.controller[i] = ent->progs.sv->controller[i];
+	}
 
 	if( ent->priv.sv->s.ed_type == ED_VIEWMODEL )
 	{
@@ -79,9 +91,10 @@ void SV_UpdateEntityState( edict_t *ent )
 		ent->priv.sv->s.model.frame = ent->progs.sv->frame = client->progs.sv->v_frame;
 		ent->priv.sv->s.model.body = ent->progs.sv->body = client->progs.sv->v_body;
 		ent->priv.sv->s.model.skin = ent->progs.sv->skin = client->progs.sv->v_skin;
-		ent->priv.sv->s.model.sequence = ent->progs.sv->sequence = client->progs.sv->v_sequence;
-		VectorCopy( ent->progs.sv->origin, ent->priv.sv->s.old_origin );
+		ent->progs.sv->sequence = client->progs.sv->v_sequence;
+		if( ent->progs.sv->sequence != -1 ) ent->priv.sv->s.model.sequence = ent->progs.sv->sequence; 
 		ent->priv.sv->s.model.colormap = ent->progs.sv->colormap = client->progs.sv->colormap;
+		ent->priv.sv->s.effects |= EF_MINLIGHT; // always have some light
 	}
 	else if( ent->priv.sv->s.ed_type == ED_AMBIENT )
 	{
@@ -187,7 +200,8 @@ void SV_EmitPacketEntities( client_frame_t *from, client_frame_t *to, sizebuf_t 
 		}
 		if( newnum > oldnum )
 		{	
-			MSG_WriteDeltaEntity( oldent, NULL, msg, true, true );
+			// remove from message
+			MSG_WriteDeltaEntity( oldent, NULL, msg, false, false );
 			oldindex++;
 			continue;
 		}
@@ -515,6 +529,7 @@ bool SV_SendClientDatagram( sv_client_t *cl )
 		MsgDev( D_WARN, "msg overflowed for %s\n", cl->name );
 		MSG_Clear( &msg );
 	}
+
 	// send the datagram
 	Netchan_Transmit( &cl->netchan, msg.cursize, msg.data );
 

@@ -6,7 +6,7 @@
 #include "r_local.h"
 #include "byteorder.h"
 #include "mathlib.h"
-#include "matrixlib.h" 
+#include "matrix_lib.h" 
 #include "const.h"
 
 #define TABLE_SIZE		1024
@@ -640,11 +640,22 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 		}
 		break;
 	case RGBGEN_ENTITY:
-		for( i = 0; i < ref.numVertex; i++ )
+		switch( m_pCurrentEntity->rendermode )
 		{
-			ref.colorArray[i][0] = m_pCurrentEntity->rendercolor[0];
-			ref.colorArray[i][1] = m_pCurrentEntity->rendercolor[1];
-			ref.colorArray[i][2] = m_pCurrentEntity->rendercolor[2];
+		case kRenderNormal:
+		case kRenderTransAlpha:
+		case kRenderTransTexture:
+			break;
+		case kRenderGlow:
+		case kRenderTransAdd:
+		case kRenderTransColor:
+			for( i = 0; i < ref.numVertex; i++ )
+			{
+				ref.colorArray[i][0] = m_pCurrentEntity->rendercolor[0];
+				ref.colorArray[i][1] = m_pCurrentEntity->rendercolor[1];
+				ref.colorArray[i][2] = m_pCurrentEntity->rendercolor[2];
+			}
+			break;
 		}
 		break;
 	case RGBGEN_ONEMINUSENTITY:

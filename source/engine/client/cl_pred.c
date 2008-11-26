@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "common.h"
 #include "client.h"
-#include "matrixlib.h"
+#include "matrix_lib.h"
 #include "const.h"
 
 /*
@@ -235,7 +235,7 @@ void CL_PMTrace( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, trace_t *tr
 	*tr = CL_Trace( start, mins, maxs, end, MOVE_NORMAL, NULL, CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_BODY );
 }
 
-int CL_PointContents( vec3_t point )
+int CL_PointContents( const vec3_t point )
 {
 	// get world supercontents at this point
 	if( cl.worldmodel && cl.worldmodel->PointContents )
@@ -243,6 +243,13 @@ int CL_PointContents( vec3_t point )
 	return 0;
 }
 
+bool CL_AmbientLevel( const vec3_t point, float *volumes )
+{
+	// get world supercontents at this point
+	if( cl.worldmodel && cl.worldmodel->AmbientLevel )
+		return cl.worldmodel->AmbientLevel( point, volumes, cl.worldmodel );
+	return 0;
+}
 
 /*
 =================

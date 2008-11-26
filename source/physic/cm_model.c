@@ -4,7 +4,7 @@
 //=======================================================================
 
 #include "cm_local.h"
-#include "matrixlib.h"
+#include "matrix_lib.h"
 #include "const.h"
 
 clipmap_t		cm;
@@ -107,6 +107,7 @@ void BSP_CreateMeshBuffer( int modelnum )
 	else loadmodel->type = mod_world; // level static geometry
 	loadmodel->TraceBox = CM_TraceBmodel;
 	loadmodel->PointContents = CM_PointContents;
+	loadmodel->AmbientLevel = CM_AmbientSounds;
 
 	// because world loading collision tree from LUMP_COLLISION
 	if( modelnum < 1 ) return;
@@ -433,6 +434,10 @@ void BSP_LoadLeafs( wfile_t *l )
 			out->mins[j] = LittleLong( in->mins[j] ) - 1;
 			out->maxs[j] = LittleLong( in->maxs[j] ) + 1;
 		}
+
+		for( j = 0; j < NUM_AMBIENTS; j++ )
+			out->ambient_level[j] = (float)(in->sounds[j] / 255.0f);
+
 		n = LittleLong( in->firstleafsurface );
 		c = LittleLong( in->numleafsurfaces );
 		if( n < 0 || n + c > cm.numleafsurfaces )

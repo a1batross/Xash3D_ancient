@@ -1184,7 +1184,6 @@ void PRVM_ED_LoadFromFile( const char *data )
 			// pev = ent
 			PRVM_G_INT(vm.prog->pev->ofs) = PRVM_EDICT_TO_PROG(ent);
 			PRVM_ExecuteProgram( func - vm.prog->functions, "", __FILE__, __LINE__ );
-			if( vm.prog->classify_edict ) vm.prog->classify_edict( ent );
 		}
 
 		spawned++;
@@ -1560,6 +1559,7 @@ void PRVM_LoadProgs( const char *filename )
 		case OP_CALL6:
 		case OP_CALL7:
 		case OP_CALL8:
+		case OP_CALL9:
 		case OP_DONE:
 		case OP_RETURN:
 			if ((dword) st->a >= vm.prog->progs->numglobals)
@@ -1797,16 +1797,16 @@ void PRVM_GlobalSet_f(void)
 }
 
 // LordHavoc: changed this to NOT use a return statement, so that it can be used in functions that must return a value
-void VM_Warning(const char *fmt, ...)
+void VM_Warning( const char *fmt, ... )
 {
-	va_list argptr;
-	char msg[MAX_MSGLEN];
+	va_list		argptr;
+	static char	msg[MAX_MSGLEN];
 
-	va_start(argptr, fmt);
-	com.sprintf(msg, fmt, argptr);
-	va_end(argptr);
+	va_start( argptr, fmt );
+	com.vsnprintf( msg, sizeof(msg), fmt, argptr );
+	va_end( argptr );
 
-	Msg(msg);
+	Msg( msg );
 	// TODO: either add a cvar/cmd to control the state dumping or replace some of the calls with Msgf [9/13/2006 Black]
 	//PRVM_PrintState();
 }

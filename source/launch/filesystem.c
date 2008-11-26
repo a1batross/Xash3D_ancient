@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "launch.h"
+#include "qfiles_ref.h"
 #include "filesystem.h"
 #include "byteorder.h"
 
@@ -3173,13 +3174,7 @@ wadtype_t wad_types[] =
 	{"bin", TYPE_BINDATA}, // xash binary data
 	{"str", TYPE_STRDATA}, // xash string data
 	{"raw", TYPE_RAW	}, // signed raw data
-	{"txt", TYPE_SCRIPT	}, // xash script file
-	{"lst", TYPE_SCRIPT	}, // xash script file
-	{"aur", TYPE_SCRIPT	}, // xash aurora file
-	{"qc",  TYPE_SCRIPT	}, // xash qc-script file
-	{"qh",  TYPE_SCRIPT	}, // xash qc-header file
-	{"c",   TYPE_SCRIPT	}, // xash c-source file
-	{"h",   TYPE_SCRIPT	}, // xash c-header file
+	{"txt", TYPE_SCRIPT	}, // any script file
 	{"dat", TYPE_VPROGS	}, // xash progs
 	{ NULL, TYPE_NONE	}
 };

@@ -264,6 +264,7 @@ typedef struct cparticle_s
 	int		flags;
 	
 	vec3_t		org;
+	vec3_t		org2;
 	vec3_t		vel;
 	vec3_t		accel;
 	vec3_t		color;
@@ -276,8 +277,6 @@ typedef struct cparticle_s
 	float		lengthVel;
 	float		rotation;
 	float		bounceFactor;
-
-	vec3_t		old_origin;
 } cparticle_t;
 
 cparticle_t *cl_active_particles, *cl_free_particles;
@@ -467,7 +466,7 @@ void CL_AddParticles( void )
 			VectorSet(mins, -radius, -radius, -radius);
 			VectorSet(maxs, radius, radius, radius);
 
-			trace = CL_Trace( p->old_origin, mins, maxs, org, MOVE_NORMAL, clent, MASK_SOLID );
+			trace = CL_Trace( p->org2, mins, maxs, org, MOVE_NORMAL, clent, MASK_SOLID );
 			if( trace.fraction != 0.0 && trace.fraction != 1.0 )
 			{
 				// reflect velocity
@@ -518,8 +517,8 @@ void CL_AddParticles( void )
 		// save current origin if needed
 		if( p->flags & (PARTICLE_BOUNCE|PARTICLE_STRETCH))
 		{
-			VectorCopy( p->old_origin, org2 );
-			VectorCopy( org, p->old_origin ); // FIXME: pause
+			VectorCopy( p->org2, org2 );
+			VectorCopy( org, p->org2 ); // FIXME: pause
 		}
 
 		if( p->flags & PARTICLE_VERTEXLIGHT )
@@ -544,6 +543,68 @@ void CL_AddParticles( void )
 	}
 
 	cl_active_particles = active;
+}
+
+/*
+===============
+PF_addparticle
+
+void AddParticle(vector, vector, vector, vector, vector, vector, vector, string, float)
+===============
+*/
+void PF_addparticle( void )
+{
+	float		*pos, *vel, *color, *colorVel;
+	float		*alphaVel, *radiusVel, *lengthVel;
+	shader_t		shader;
+	uint		flags;	
+	cparticle_t	*p;
+
+	if( !VM_ValidateArgs( "AddParticle", 9 ))
+		return;
+
+	VM_ValidateString( PRVM_G_STRING( OFS_PARM7 ));
+	pos = PRVM_G_VECTOR(OFS_PARM0);
+	vel = PRVM_G_VECTOR(OFS_PARM1);
+	color = PRVM_G_VECTOR(OFS_PARM2);
+	colorVel = PRVM_G_VECTOR(OFS_PARM3);
+	alphaVel = PRVM_G_VECTOR(OFS_PARM4);
+	radiusVel = PRVM_G_VECTOR(OFS_PARM5);
+	lengthVel = PRVM_G_VECTOR(OFS_PARM6);
+	shader = re->RegisterShader( PRVM_G_STRING(OFS_PARM7), SHADER_GENERIC );
+	flags = (uint)PRVM_G_FLOAT(OFS_PARM8);
+
+	p = CL_AllocParticle();
+	if( !p )
+	{
+		VM_Warning( "AddParticle: no free particles\n" );
+		PRVM_G_FLOAT(OFS_RETURN) = 0;
+		return;
+	}
+
+	p->shader = shader;
+	p->time = cl.time;
+	p->flags = flags;
+
+	VectorCopy( pos, p->org );
+	VectorCopy( vel, p->vel );
+	VectorSet( p->accel, 0.0f, 0.0f, alphaVel[2] ); 
+	VectorCopy( color, p->color );
+	VectorCopy( colorVel, p->colorVel );
+	p->alpha = alphaVel[0];
+	p->alphaVel = alphaVel[1];
+
+	p->radius = radiusVel[0];
+	p->radiusVel = radiusVel[1];
+	p->length = lengthVel[0];
+	p->lengthVel = lengthVel[1];
+	p->rotation = radiusVel[2];
+	p->bounceFactor = lengthVel[2];
+
+	// needs to save old origin
+	if( flags & (PARTICLE_BOUNCE|PARTICLE_FRICTION))
+		VectorCopy( p->org, p->org2 );
+	PRVM_G_FLOAT(OFS_RETURN) = 1;
 }
 
 /*
@@ -651,6 +712,100 @@ void CL_TeleportSplash( vec3_t org )
 	}
 }
 
+/*
+=================
+CL_ExplosionParticles
+=================
+*/
+void CL_ExplosionParticles( const vec3_t org )
+{
+	cparticle_t	*p;
+	int		i, flags;
+	shader_t		sparksShader;
+	shader_t		smokeShader;
+
+	if( !cl_particles->integer )
+		return;
+
+	// sparks
+	flags = PARTICLE_STRETCH;
+	flags |= PARTICLE_BOUNCE;
+	flags |= PARTICLE_FRICTION;
+	sparksShader = re->RegisterShader( "particles/sparks", SHADER_GENERIC );
+	smokeShader = re->RegisterShader( "particles/smoke", SHADER_GENERIC );
+
+	for( i = 0; i < 384; i++ )
+	{
+		p = CL_AllocParticle();
+		if( !p ) return;
+
+		p->shader = sparksShader;
+		p->time = cl.time;
+		p->flags = flags;
+
+		p->org[0] = org[0] + ((rand() % 32) - 16);
+		p->org[1] = org[1] + ((rand() % 32) - 16);
+		p->org[2] = org[2] + ((rand() % 32) - 16);
+		p->vel[0] = (rand() % 512) - 256;
+		p->vel[1] = (rand() % 512) - 256;
+		p->vel[2] = (rand() % 512) - 256;
+		p->accel[0] = 0;
+		p->accel[1] = 0;
+		p->accel[2] = -60 + (30 * RANDOM_FLOAT( -1.0f, 1.0f ));
+		p->color[0] = 1.0;
+		p->color[1] = 1.0;
+		p->color[2] = 1.0;
+		p->colorVel[0] = 0;
+		p->colorVel[1] = 0;
+		p->colorVel[2] = 0;
+		p->alpha = 1.0;
+		p->alphaVel = -3.0;
+		p->radius = 0.5 + (0.2 * RANDOM_FLOAT( -1.0f, 1.0f ));
+		p->radiusVel = 0;
+		p->length = 8 + (4 * RANDOM_FLOAT( -1.0f, 1.0f ));
+		p->lengthVel = 8 + (4 * RANDOM_FLOAT( -1.0f, 1.0f ));
+		p->rotation = 0;
+		p->bounceFactor = 0.2;
+		VectorCopy( p->org, p->org2 );
+	}
+
+	// Smoke
+	flags = 0;
+	flags |= PARTICLE_VERTEXLIGHT;
+
+	for( i = 0; i < 5; i++ )
+	{
+		p = CL_AllocParticle();
+		if( !p ) return;
+
+		p->shader = smokeShader;
+		p->time = cl.time;
+		p->flags = flags;
+
+		p->org[0] = org[0] + RANDOM_FLOAT( -1.0f, 1.0f ) * 10;
+		p->org[1] = org[1] + RANDOM_FLOAT( -1.0f, 1.0f ) * 10;
+		p->org[2] = org[2] + RANDOM_FLOAT( -1.0f, 1.0f ) * 10;
+		p->vel[0] = RANDOM_FLOAT( -1.0f, 1.0f ) * 10;
+		p->vel[1] = RANDOM_FLOAT( -1.0f, 1.0f ) * 10;
+		p->vel[2] = RANDOM_FLOAT( -1.0f, 1.0f ) * 10 + (25 + RANDOM_FLOAT( -1.0f, 1.0f ) * 5);
+		p->accel[0] = 0;
+		p->accel[1] = 0;
+		p->accel[2] = 0;
+		p->color[0] = 0;
+		p->color[1] = 0;
+		p->color[2] = 0;
+		p->colorVel[0] = 0.75f;
+		p->colorVel[1] = 0.75f;
+		p->colorVel[2] = 0.75f;
+		p->alpha = 0.5f;
+		p->alphaVel = -(0.1 + RANDOM_FLOAT( 0.0f, 1.0f ) * 0.1f);
+		p->radius = 30 + (15 * RANDOM_FLOAT( -1.0f, 1.0f ));
+		p->radiusVel = 15 + (7.5 * RANDOM_FLOAT( -1.0f, 1.0f ));
+		p->length = 1;
+		p->lengthVel = 0;
+		p->rotation = rand() % 360;
+	}
+}
 
 /*
 ==============

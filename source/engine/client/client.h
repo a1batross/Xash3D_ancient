@@ -528,7 +528,8 @@ float V_CalcFov( float fov_x, float width, float height );
 void CL_InitPrediction (void);
 void CL_PredictMove (void);
 void CL_CheckPredictionError (void);
-int CL_PointContents( vec3_t point );
+int CL_PointContents( const vec3_t point );
+bool CL_AmbientLevel( const vec3_t point, float *volumes );
 trace_t CL_Trace( const vec3_t s1, const vec3_t m1, const vec3_t m2, const vec3_t s2, int type, edict_t *ed, int mask );
 
 //
@@ -544,8 +545,10 @@ cdlight_t *CL_AllocDlight (int key);
 void CL_AddParticles (void);
 void CL_ClearEffects( void );
 void CL_StudioEvent( dstudioevent_t *event, entity_state_t *ent );
+void CL_ExplosionParticles( const vec3_t org );
 entity_state_t *CL_GetEdictByIndex( int index );
 entity_state_t *CL_GetLocalPlayer( void );
+void PF_addparticle( void );
 
 //
 // cl_pred.c

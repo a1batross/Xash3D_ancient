@@ -1387,108 +1387,6 @@ void PF_setorigin( void )
 
 /*
 =================
-PF_sound
-
-void EmitSound(entity e, float chan, string samp, float vol, float attn)
-=================
-*/
-void PF_sound( void )
-{
-	const char	*sample;
-	int		channel, sound_idx;
-	edict_t		*entity;
-	float		attenuation;
-	int 		flags = 0, ent, volume;
-	vec3_t		snd_origin;
-	int		sendchan;
-	bool		use_phs;
-
-	if(!VM_ValidateArgs( "EmitSound", 5 )) return;
-	entity = PRVM_G_EDICT(OFS_PARM0);
-	channel = (int)PRVM_G_FLOAT(OFS_PARM1);
-	sample = PRVM_G_STRING(OFS_PARM2);
-	volume = PRVM_G_FLOAT(OFS_PARM3);
-	attenuation = PRVM_G_FLOAT(OFS_PARM4);
-	ent = PRVM_NUM_FOR_EDICT( entity );
-
-	if( attenuation < 0 || attenuation > 4 )
-	{
-		VM_Warning("SV_StartSound: attenuation must be in range 0-4\n");
-		return;
-	}
-	if( channel < 0 || channel > 7 )
-	{
-		VM_Warning("SV_StartSound: channel must be in range 0-7\n");
-		return;
-	}
-
-	if( volume != 1.0f ) flags |= SND_VOL;
-	if( attenuation != 1.0f ) flags |= SND_ATTN;
-	flags |= SND_POS|SND_ENT;
-
-	// use the entity origin unless it is a bmodel or explicitly specified
-	if( entity->progs.sv->solid == SOLID_BSP || VectorIsNull( entity->progs.sv->origin ))
-	{
-		VectorAverage( entity->progs.sv->mins, entity->progs.sv->maxs, snd_origin );
-		VectorAdd( snd_origin, entity->progs.sv->origin, snd_origin );
-		channel |= CHAN_RELIABLE;
-		use_phs = false;
-		channel &= 7;
-	}
-	else
-	{
-		VectorCopy( entity->progs.sv->origin, snd_origin );
-		use_phs = true;
-	}
-	sound_idx = SV_SoundIndex( sample );
-	sendchan = (ent<<3)|(channel & 7);
-
-	MSG_Begin( svc_sound );
-	MSG_WriteByte( &sv.multicast, flags );
-	MSG_WriteByte( &sv.multicast, sound_idx );
-
-	if( flags & SND_VOL ) MSG_WriteBits( &sv.multicast, volume, "voulme", NET_COLOR );
-	if( flags & SND_ATTN) MSG_WriteByte( &sv.multicast, attenuation );
-	if( flags & SND_ENT ) MSG_WriteWord( &sv.multicast, sendchan );
-	if( flags & SND_POS ) MSG_WritePos( &sv.multicast, snd_origin );
-
-	if( channel & CHAN_RELIABLE )
-	{
-		if( use_phs ) MSG_Send( MSG_PHS_R, snd_origin, NULL );
-		else MSG_Send( MSG_ALL_R, snd_origin, NULL );
-	}
-	else
-	{
-		if( use_phs ) MSG_Send( MSG_PHS, snd_origin, NULL );
-		else MSG_Send( MSG_ALL, snd_origin, NULL );
-	}
-}
-
-/*
-=================
-PF_ambientsound
-
-void EmitAmbientSound(entity e, string samp)
-=================
-*/
-void PF_ambientsound( void )
-{
-	const char	*samp;
-	edict_t		*ent;
-
-	if(!VM_ValidateArgs( "EmitAmbientSound", 2 )) return;
-	ent = PRVM_G_EDICT(OFS_PARM0);
-	samp = PRVM_G_STRING(OFS_PARM1);
-
-	if( !ent ) return;
-	// check to see if samp was properly precached
-	ent->progs.sv->loopsound = PRVM_G_INT(OFS_PARM1);
-	ent->priv.sv->s.soundindex = SV_SoundIndex( samp );
-	if( !ent->progs.sv->modelindex ) SV_LinkEdict( ent );
-}
-
-/*
-=================
 PF_traceline
 
 void traceline( vector v1, vector v2, float move, entity ignore )
@@ -1605,6 +1503,7 @@ void PF_lookupactivity( void )
 	int		activity, weighttotal = 0;
 
 	if(!VM_ValidateArgs( "LookupActivity", 2 )) return;	
+	if( !com.strcmp( PRVM_G_STRING( OFS_PARM0 ), "" )) return;
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
 	PRVM_G_FLOAT(OFS_RETURN) = 0;
 
@@ -1630,6 +1529,48 @@ void PF_lookupactivity( void )
 
 /*
 =============
+PF_lookupactivity
+
+float LookupActivityHeaviest( string model, float activity )
+=============
+*/
+void PF_lookupactivityheaviest( void )
+{
+	cmodel_t		*mod;
+	dstudioseqdesc_t	*pseqdesc;
+	dstudiohdr_t	*pstudiohdr;
+	int		i, seq = -1;
+	int		activity, weight = 0;
+
+	if(!VM_ValidateArgs( "LookupActivityHeaviest", 2 )) return;	
+	if( !com.strcmp( PRVM_G_STRING( OFS_PARM0 ), "" )) return;
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+	PRVM_G_FLOAT(OFS_RETURN) = 0;
+
+	mod = pe->RegisterModel(PRVM_G_STRING(OFS_PARM0));
+	if( !mod ) return;
+	pstudiohdr = (dstudiohdr_t *)mod->extradata;
+	if( !pstudiohdr ) return;
+
+	pseqdesc = (dstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex);
+	activity = (int)PRVM_G_FLOAT(OFS_PARM1);
+
+	for( i = 0; i < pstudiohdr->numseq; i++ )
+	{
+		if( pseqdesc[i].activity == activity )
+		{
+			if( pseqdesc[i].actweight > weight )
+			{
+				weight = pseqdesc[i].actweight;
+				seq = i;
+			}
+		}
+	}
+	PRVM_G_FLOAT(OFS_RETURN) = seq;
+}
+
+/*
+=============
 PF_geteyepos
 
 vector GetEyePosition( string model )
@@ -1641,6 +1582,7 @@ void PF_geteyepos( void )
 	dstudiohdr_t *pstudiohdr;
 
 	if(!VM_ValidateArgs( "GetEyePosition", 1 )) return;	
+	if( !com.strcmp( PRVM_G_STRING( OFS_PARM0 ), "" )) return;
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
 	VectorCopy( vec3_origin, PRVM_G_VECTOR(OFS_RETURN));
 		
@@ -1666,10 +1608,11 @@ void PF_lookupsequence( void )
 	dstudioseqdesc_t	*pseqdesc;
 	int		i;
 
-	if(!VM_ValidateArgs( "LookupSequence", 2 )) return;	
+	PRVM_G_FLOAT(OFS_RETURN) = -1;
+	if( !VM_ValidateArgs( "LookupSequence", 2 )) return;	
+	if( !com.strcmp( PRVM_G_STRING( OFS_PARM0 ), "" )) return;
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM1));
-	PRVM_G_FLOAT(OFS_RETURN) = -1;
 	
 	mod = pe->RegisterModel(PRVM_G_STRING(OFS_PARM0));
 	if( !mod ) return;
@@ -1703,6 +1646,7 @@ void PF_getsequenceinfo( void )
 	int		sequence;
 
 	if(!VM_ValidateArgs( "GetSequenceInfo", 2 )) return;	
+	if( !com.strcmp( PRVM_G_STRING( OFS_PARM0 ), "" )) return;
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
 	PRVM_G_FLOAT(OFS_RETURN) = 0;
 
@@ -1737,6 +1681,51 @@ void PF_getsequenceinfo( void )
 
 /*
 =============
+PF_getweaponsequenceinfo
+
+float GetWeaponSequenceInfo( string model, float sequence )
+=============
+*/
+void PF_getweaponsequenceinfo( void )
+{
+	cmodel_t		*mod;
+	edict_t		*ent;
+	dstudiohdr_t	*pstudiohdr;
+	dstudioseqdesc_t	*pseqdesc;
+	int		sequence;
+
+	if(!VM_ValidateArgs( "GetWeaponSequenceInfo", 2 )) return;	
+	if( !com.strcmp( PRVM_G_STRING( OFS_PARM0 ), "" )) return;
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+	PRVM_G_FLOAT(OFS_RETURN) = 0;
+
+	sequence = (int)PRVM_G_FLOAT(OFS_PARM1);
+	ent = PRVM_PROG_TO_EDICT( prog->globals.sv->pev );
+	mod = pe->RegisterModel(PRVM_G_STRING(OFS_PARM0));
+	if( !mod ) return;
+	pstudiohdr = (dstudiohdr_t *)mod->extradata;
+	if( !pstudiohdr ) return;
+
+	if( sequence >= pstudiohdr->numseq )
+	{
+		ent->progs.sv->m_flWeaponFrameRate = 0.0;
+		return;
+	}
+
+	pseqdesc = (dstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex) + sequence;
+	if( pseqdesc->numframes > 1 )
+	{
+		ent->progs.sv->m_flWeaponFrameRate = 256.0 * (pseqdesc->fps / (pseqdesc->numframes - 1));
+	}
+	else
+	{
+		ent->progs.sv->m_flWeaponFrameRate = 256.0;
+	}
+	PRVM_G_FLOAT(OFS_RETURN) = 1;	// all done
+}
+
+/*
+=============
 PF_getsequenceflags
 
 float GetSequenceFlags( string model, float sequence )
@@ -1751,6 +1740,7 @@ void PF_getsequenceflags( void )
 	int		sequence;
 
 	if(!VM_ValidateArgs( "GetSequenceFlags", 2 )) return;	
+	if( !com.strcmp( PRVM_G_STRING( OFS_PARM0 ), "" )) return;
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
 	PRVM_G_FLOAT(OFS_RETURN) = -1;
 
@@ -1764,6 +1754,130 @@ void PF_getsequenceflags( void )
 
 	pseqdesc = (dstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex) + sequence;
 	PRVM_G_FLOAT(OFS_RETURN) = (float )pseqdesc->flags;
+}
+
+/*
+=============
+PF_setcontroller
+
+float SetController( string model, float controller, float value )
+=============
+*/
+void PF_setcontroller( void )
+{
+	cmodel_t			*mod;
+	edict_t			*ent;
+	dstudiohdr_t		*pstudiohdr;
+	dstudiobonecontroller_t	*pbonecontroller;
+	int			i, iController;
+	int			setting;
+	float			flValue;
+
+	if(!VM_ValidateArgs( "SetController", 3 )) return;	
+	if( !com.strcmp( PRVM_G_STRING( OFS_PARM0 ), "" )) return;
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+	flValue = PRVM_G_FLOAT(OFS_PARM2); // not modified value
+	PRVM_G_FLOAT(OFS_RETURN) = flValue;
+
+	ent = PRVM_PROG_TO_EDICT( prog->globals.sv->pev );
+	mod = pe->RegisterModel(PRVM_G_STRING(OFS_PARM0));
+	if( !mod ) return;
+	pstudiohdr = (dstudiohdr_t *)mod->extradata;
+	if( !pstudiohdr ) return;
+
+	iController = (int)PRVM_G_FLOAT(OFS_PARM1);
+
+	pbonecontroller = (dstudiobonecontroller_t *)((byte *)pstudiohdr + pstudiohdr->bonecontrollerindex );
+
+	// find first controller that matches the index
+	for( i = 0; i < pstudiohdr->numbonecontrollers; i++, pbonecontroller++ )
+		if( pbonecontroller->index == iController ) break;
+	if( i >= pstudiohdr->numbonecontrollers ) return;
+
+	// wrap 0..360 if it's a rotational controller
+	if( pbonecontroller->type & (STUDIO_XR|STUDIO_YR|STUDIO_ZR))
+	{
+		// ugly hack, invert value if end < start
+		if( pbonecontroller->end < pbonecontroller->start)
+			flValue = -flValue;
+
+		// does the controller not wrap?
+		if( pbonecontroller->start + 359.0 >= pbonecontroller->end )
+		{
+			if( flValue > ((pbonecontroller->start + pbonecontroller->end) / 2.0f) + 180.0f )
+				flValue = flValue - 360.0f;
+			if( flValue < ((pbonecontroller->start + pbonecontroller->end) / 2.0f) - 180.0f )
+				flValue = flValue + 360.0f;
+		}
+		else
+		{
+			if( flValue > 360.0f ) flValue = flValue - (int)(flValue / 360.0f) * 360.0f;
+			else if( flValue < 0.0f ) flValue = flValue + (int)((flValue / -360.0f) + 1) * 360.0f;
+		}
+	}
+
+	// round to byte
+	setting = 255 * (flValue - pbonecontroller->start) / (pbonecontroller->end - pbonecontroller->start);
+	ent->progs.sv->controller[iController] = setting = bound( 0, setting, 255 );
+
+	// returns full range value
+	PRVM_G_FLOAT(OFS_RETURN) = setting * (1.0f / 255.0f) * (pbonecontroller->end - pbonecontroller->start) + pbonecontroller->start;
+}
+
+/*
+=============
+PF_setblending
+
+float SetBlending( string model, float blender, float value )
+=============
+*/
+void PF_setblending( void )
+{
+	cmodel_t			*mod;
+	edict_t			*ent;
+	dstudioseqdesc_t		*pseqdesc;
+	dstudiohdr_t		*pstudiohdr;
+	int			iBlender;
+	int			setting;
+	float			flValue;
+
+	if(!VM_ValidateArgs( "SetBlending", 3 )) return;	
+	if( !com.strcmp( PRVM_G_STRING( OFS_PARM0 ), "" )) return;
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+	flValue = PRVM_G_FLOAT(OFS_PARM2); // not modified value
+	PRVM_G_FLOAT(OFS_RETURN) = flValue;
+
+	ent = PRVM_PROG_TO_EDICT( prog->globals.sv->pev );
+	mod = pe->RegisterModel(PRVM_G_STRING(OFS_PARM0));
+	if( !mod ) return;
+	pstudiohdr = (dstudiohdr_t *)mod->extradata;
+	if( !pstudiohdr ) return;
+
+	pseqdesc = (dstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex) + (int)ent->progs.sv->sequence;
+	iBlender = (int)PRVM_G_FLOAT(OFS_PARM1);
+	if( pseqdesc->blendtype[iBlender] == 0 ) return;
+
+	if( pseqdesc->blendtype[iBlender] & (STUDIO_XR|STUDIO_YR|STUDIO_ZR))
+	{
+		// ugly hack, invert value if end < start
+		if( pseqdesc->blendend[iBlender] < pseqdesc->blendstart[iBlender] )
+			flValue = -flValue;
+
+		// does the controller not wrap?
+		if( pseqdesc->blendstart[iBlender] + 359.0f >= pseqdesc->blendend[iBlender] )
+		{
+			if( flValue > ((pseqdesc->blendstart[iBlender] + pseqdesc->blendend[iBlender]) / 2.0f) + 180.0f)
+				flValue = flValue - 360.0f;
+			if( flValue < ((pseqdesc->blendstart[iBlender] + pseqdesc->blendend[iBlender]) / 2.0f) - 180.0f)
+				flValue = flValue + 360.0f;
+		}
+	}
+
+	setting = 255 * (flValue - pseqdesc->blendstart[iBlender]) / (pseqdesc->blendend[iBlender] - pseqdesc->blendstart[iBlender]);
+	ent->progs.sv->blending[iBlender] = setting = bound( 0, setting, 255 );
+
+	// returns full range value
+	PRVM_G_FLOAT(OFS_RETURN) = setting * (1.0f / 255.0f) * (pseqdesc->blendend[iBlender] - pseqdesc->blendstart[iBlender]) + pseqdesc->blendstart[iBlender];
 }
 
 /*
@@ -1783,7 +1897,7 @@ void PF_aim( void )
 	float	speed;
           int	flags = Cvar_VariableValue( "dmflags" );
 
-	if(!VM_ValidateArgs( "tracebox", 6 )) return;	
+	if(!VM_ValidateArgs( "tracebox", 2 )) return;	
 	VectorCopy(prog->globals.sv->v_forward, PRVM_G_VECTOR(OFS_RETURN)); // assume failure if it returns early
 
 	ent = PRVM_G_EDICT(OFS_PARM0);
@@ -2021,7 +2135,7 @@ void PF_WriteLong (void){ MSG_WriteLong(&sv.multicast, (int)PRVM_G_FLOAT(OFS_PAR
 void PF_WriteAngle (void){ MSG_WriteAngle32(&sv.multicast, PRVM_G_FLOAT(OFS_PARM0)); }
 void PF_WriteCoord (void){ MSG_WriteCoord32(&sv.multicast, PRVM_G_FLOAT(OFS_PARM0)); }
 void PF_WriteString (void){ MSG_WriteString(&sv.multicast, PRVM_G_STRING(OFS_PARM0)); }
-void PF_WriteEntity (void){ MSG_WriteShort(&sv.multicast, PRVM_G_EDICTNUM(OFS_PARM1)); }
+void PF_WriteEntity (void){ MSG_WriteShort(&sv.multicast, PRVM_G_EDICTNUM(OFS_PARM0)); }
 
 /*
 =============
@@ -2294,7 +2408,7 @@ VM_ComFileTime,			// #14 float Com_FileTime( string filename )
 VM_ComLoadScript,			// #15 float Com_LoadScript( string filename )
 VM_ComResetScript,			// #16 void Com_ResetScript( void )
 VM_ComReadToken,			// #17 string Com_ReadToken( float newline )
-NULL,				// #18 -- reserved --
+VM_Random,			// #18 float Random( void )
 VM_ComSearchFiles,			// #19 float Com_Search( string mask, float casecmp )
 VM_ComSearchNames,			// #20 string Com_SearchFilename( float num )
 VM_RandomLong,			// #21 float RandomLong( float min, float max )
@@ -2358,7 +2472,7 @@ VM_rint,				// #72 float rint (float v)
 VM_floor,				// #73 float floor(float v)
 VM_ceil,				// #74 float ceil (float v)
 VM_fabs,				// #75 float fabs (float f)
-VM_mod,				// #76 float fmod( float val, float m )
+VM_fmod,				// #76 float fmod( float val, float m )
 NULL,				// #77 -- reserved --
 NULL,				// #78 -- reserved --
 VM_VectorNormalize,			// #79 vector VectorNormalize( vector v )
@@ -2395,8 +2509,8 @@ NULL,				// #126 isEntOnFloor
 PF_droptofloor,			// #127 float droptofloor( void )
 PF_walkmove,			// #128 float walkmove(float yaw, float dist)
 PF_setorigin,			// #129 void setorigin(entity e, vector o)
-PF_sound,				// #130 void EmitSound(entity e, float chan, string samp, float vol, float attn)
-PF_ambientsound,			// #131 void EmitAmbientSound(entity e, string samp)
+NULL,				// #130 -- reserved --
+NULL,				// #131 -- reserved --
 PF_traceline,			// #132 void traceline(vector v1, vector v2, float mask, entity ignore)
 PF_tracetoss,			// #133 void tracetoss (entity e, entity ignore)
 NULL,				// #134 traceMonsterHull
@@ -2432,7 +2546,7 @@ NULL,				// #163 getAttachment
 NULL,				// #164 setView
 NULL,				// #165 crosshairangle
 PF_AreaPortalState,			// #166 void areaportal( entity ent, float state )
-NULL,				// #167 compareFileTime
+PF_lookupactivityheaviest,		// #167 float LookupActivityHeaviest( string model, float activity )
 PF_geteyepos,			// #168 vector GetEyePosition( string model )
 PF_InfoPrint,      			// #169 void Info_Print( entity client )
 PF_InfoValueForKey,			// #170 string Info_ValueForKey( entity client, string key )
@@ -2440,7 +2554,10 @@ PF_InfoRemoveKey,			// #171 void Info_RemoveKey( entity client, string key )
 PF_InfoSetValueForKey,		// #172 void Info_SetValueForKey( entity client, string key, string value )
 PF_setsky,			// #173 void setsky( string name, vector angles, float speed )
 NULL,				// #174 staticDecal
-PF_lookupsequence			// #175 float LookupSequence( string model, string label )
+PF_lookupsequence,			// #175 float LookupSequence( string model, string label )
+PF_setcontroller,			// #176 float SetController( string model, float controller, float value )
+PF_setblending,			// #177 float SetBlending( string model, float blender, float value )
+PF_getweaponsequenceinfo,		// #178 float GetWeaponSequenceInfo( string model, float sequence )
 };
 
 const int vm_sv_numbuiltins = sizeof(vm_sv_builtins) / sizeof(prvm_builtin_t); //num of builtins

@@ -5,7 +5,7 @@
 
 #include "common.h"
 #include "mathlib.h"
-#include "matrixlib.h"
+#include "matrix_lib.h"
 #include "server.h"
 #include "const.h"
 

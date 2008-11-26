@@ -5,7 +5,7 @@
 
 #include "r_local.h"
 #include "mathlib.h"
-#include "matrixlib.h"
+#include "matrix_lib.h"
 #include "const.h"
 
 /*
@@ -289,7 +289,9 @@ static void R_ReadLightGrid( const vec3_t origin, vec3_t lightDir )
 
 	if( !r_worldModel->lightGrid )
 	{
-		VectorSet( lightDir, 1.0f, 0.0f, -1.0f );
+		if( m_pCurrentEntity && m_pCurrentEntity->effects & EF_INVLIGHT )
+			VectorSet( lightDir, 1.0f, 0.0f, 1.0f );
+		else VectorSet( lightDir, 1.0f, 0.0f, -1.0f );
 		return;
 	}
 
@@ -397,21 +399,20 @@ void R_LightingAmbient( void )
 	VectorScale( r_pointColor, r_ambientscale->value, ambientLight );
 
 	// always have some light
-	if( m_pCurrentEntity->renderfx & RF_MINLIGHT )
+	if( m_pCurrentEntity->effects & EF_MINLIGHT )
 	{
 		for( i = 0; i < 3; i++ )
 		{
 			if( ambientLight[i] > 0.1 )
 				break;
 		}
-
 		if( i == 3 ) VectorSet( ambientLight, 0.1, 0.1, 0.1 );
 	}
 
 	// add dynamic lights
 	if( r_dynamiclights->integer )
 	{
-		if( m_pCurrentEntity->ent_type == ED_NORMAL )
+		if( m_pCurrentEntity->model && m_pCurrentEntity->ent_type == ED_NORMAL )
 			radius = m_pCurrentEntity->model->radius;
 		else radius = m_pCurrentEntity->radius;
 
@@ -477,7 +478,7 @@ void R_LightingDiffuse( void )
 	R_ReadLightGrid( m_pCurrentEntity->origin, lightDir );
 
 	// always have some light
-	if( m_pCurrentEntity->renderfx & RF_MINLIGHT )
+	if( m_pCurrentEntity->effects & EF_MINLIGHT )
 	{
 		for( i = 0; i < 3; i++ )
 		{

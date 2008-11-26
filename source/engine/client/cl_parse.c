@@ -269,48 +269,6 @@ ACTION MESSAGES
 
 =====================================================================
 */
-
-/*
-==================
-CL_ParseStartSoundPacket
-==================
-*/
-void CL_ParseStartSoundPacket( sizebuf_t *msg )
-{
-	vec3_t	pos_v;
-	float	*pos = NULL;
-	int 	channel = 0;
-	int 	sound_num;
-	float 	volume;
-	int 	attenuation;  
-	int	flags, ent = 0;
-
-	flags = MSG_ReadByte( msg );
-	sound_num = MSG_ReadByte( msg );
-
-	if( flags & SND_VOL ) volume = MSG_ReadBits( msg, NET_COLOR );
-	else volume = 1.0f;
-	if( flags & SND_ATTN ) attenuation = MSG_ReadByte( msg );
-	else attenuation = ATTN_NORM;	
-
-	if( flags & SND_ENT )
-	{	
-		// entity reletive
-		channel = MSG_ReadShort( msg ); 
-		ent = channel>>3;
-		if( ent > host.max_edicts ) Host_Error("CL_ParseStartSoundPacket: ent out of range\n" );
-		channel &= 7;
-	}
-	if( flags & SND_POS )
-	{	
-		// positioned in space
-		MSG_ReadPos( msg, pos_v );
-		pos = pos_v;
-	}
-	if(!cl.sound_precache[sound_num]) return;
-	S_StartSound( pos, ent, channel, cl.sound_precache[sound_num], volume, attenuation );
-}       
-
 /*
 =====================
 CL_ParseServerMessage
@@ -367,15 +325,14 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 		case svc_configstring:
 			CL_ParseConfigString( msg );
 			break;
-		case svc_sound:
-			CL_ParseStartSoundPacket( msg );
-			break;
 		case svc_spawnbaseline:
 			CL_ParseBaseline( msg );
 			break;
+		/*
 		case svc_temp_entity:
 			CL_ParseTempEnts( msg );
 			break;
+		*/
 		case svc_download:
 			CL_ParseDownload( msg );
 			break;

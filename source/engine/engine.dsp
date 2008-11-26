@@ -258,10 +258,6 @@ SOURCE=.\server\sv_world.c
 # PROP Default_Filter "h;hpp;hxx;hm;inl;fi;fd"
 # Begin Source File
 
-SOURCE=..\public\basetypes.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\client\cl_edict.h
 # End Source File
 # Begin Source File
@@ -283,10 +279,6 @@ SOURCE=.\server\server.h
 # Begin Source File
 
 SOURCE=.\server\sv_edict.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\client\ui_edict.h
 # End Source File
 # End Group
 # End Target

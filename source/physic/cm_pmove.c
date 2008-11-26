@@ -4,7 +4,7 @@
 //=======================================================================
 
 #include "cm_local.h"
-#include "matrixlib.h"
+#include "matrix_lib.h"
 
 int		characterID; 
 uint		m_jumpTimer;

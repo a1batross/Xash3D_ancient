@@ -4,10 +4,14 @@
 //=======================================================================
 
 #include "cm_local.h"
-#include "matrixlib.h"
+#include "matrix_lib.h"
 #include "const.h"
 
-#define MAX_BRUSHFORBOX		16 // must be power of two
+#define MAX_BRUSHFORBOX		16	// must be power of two
+#define COLLISION_SNAPSCALE		(32.0f)
+#define COLLISION_SNAP		(1.0f / COLLISION_SNAPSCALE)
+#define COLLISION_SNAP2		(2.0f / COLLISION_SNAPSCALE)
+#define COLLISION_PLANE_DIST_EPSILON	(2.0f / COLLISION_SNAPSCALE)
 
 cvar_t *cm_impactnudge;
 cvar_t *cm_startnudge;

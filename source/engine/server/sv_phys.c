@@ -5,7 +5,7 @@
 
 #include "common.h"
 #include "server.h"
-#include "matrixlib.h"
+#include "matrix_lib.h"
 #include "const.h"
 
 /*
@@ -331,8 +331,8 @@ bool SV_RunThink( edict_t *ent )
 	{
 		prog->globals.sv->time = max( sv.time, ent->progs.sv->nextthink );
 		ent->progs.sv->nextthink = 0;
-		prog->globals.sv->pev = PRVM_EDICT_TO_PROG(ent);
-		prog->globals.sv->other = PRVM_EDICT_TO_PROG(prog->edicts);
+		prog->globals.sv->pev = PRVM_EDICT_TO_PROG( ent );
+		prog->globals.sv->other = PRVM_EDICT_TO_PROG( prog->edicts );
 		PRVM_ExecuteProgram( ent->progs.sv->think, "pev->think" );
 		// mods often set nextthink to time to cause a think every frame,
 		// we don't want to loop in that case, so exit if the new nextthink is
@@ -361,8 +361,8 @@ void SV_Impact( edict_t *e1, trace_t *trace )
 	prog->globals.sv->time = sv.time;
 	if( !e1->priv.sv->free && !e2->priv.sv->free && e1->progs.sv->touch && e1->progs.sv->solid != SOLID_NOT )
 	{
-		prog->globals.sv->pev = PRVM_EDICT_TO_PROG(e1);
-		prog->globals.sv->other = PRVM_EDICT_TO_PROG(e2);
+		prog->globals.sv->pev = PRVM_EDICT_TO_PROG( e1 );
+		prog->globals.sv->other = PRVM_EDICT_TO_PROG( e2 );
 		PRVM_ExecuteProgram( e1->progs.sv->touch, "pev->touch" );
 	}
 

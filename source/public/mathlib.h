@@ -239,8 +239,8 @@ _inline void CrossProduct( vec3_t v1, vec3_t v2, vec3_t cross )
 _inline void ClearBounds( vec3_t mins, vec3_t maxs )
 {
 	// make bogus range
-	mins[0] = mins[1] = mins[2] = MAX_WORLD_COORD;
-	maxs[0] = maxs[1] = maxs[2] = MIN_WORLD_COORD;
+	mins[0] = mins[1] = mins[2] =  999999;
+	maxs[0] = maxs[1] = maxs[2] = -999999;
 }
 
 _inline void AddPointToBounds( vec3_t v, vec3_t mins, vec3_t maxs )

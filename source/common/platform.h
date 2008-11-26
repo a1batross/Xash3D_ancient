@@ -7,7 +7,8 @@
 
 #include <windows.h>
 #include "launch_api.h"
-#include "ref_dllapi.h"
+#include "qfiles_ref.h"
+#include "vprogs_api.h"
 
 //=====================================
 //	platform export

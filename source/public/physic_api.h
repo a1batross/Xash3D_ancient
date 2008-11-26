@@ -5,7 +5,25 @@
 #ifndef PHYSIC_API_H
 #define PHYSIC_API_H
 
-// FIXME: killme
+// pmove_state_t is the information necessary for client side movement
+#define PM_NORMAL		0	// can accelerate and turn
+#define PM_SPECTATOR	1
+#define PM_DEAD		2	// no acceleration or turning
+#define PM_GIB		3	// different bounding box
+#define PM_FREEZE		4
+#define PM_INTERMISSION	5
+#define PM_NOCLIP		6
+
+// pmove->pm_flags
+#define PMF_DUCKED		1
+#define PMF_JUMP_HELD	2
+#define PMF_ON_GROUND	4
+#define PMF_TIME_WATERJUMP	8	// pm_time is waterjump
+#define PMF_TIME_LAND	16	// pm_time is time before rejump
+#define PMF_TIME_TELEPORT	32	// pm_time is non-moving time
+#define PMF_NO_PREDICTION	64	// temporarily disables prediction (used for grappling hook)
+#define PMF_ALL_TIMES	(PMF_TIME_WATERJUMP|PMF_TIME_LAND|PMF_TIME_TELEPORT)
+
 typedef struct pmove_s
 {
 	entity_state_t	ps;		// state (in / out)

@@ -51,8 +51,25 @@ static const char *xash_credits[] =
 	"",
 	"^3THANKS TO",
 	"ID Software at all",
-	"Lord Havoc (Darkplaces Team)",
 	"Georg Destroy for icon graphics",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"^3Xash3D using some parts of:",
+	"Doom 1 (Id Software)",
+	"Quake 1 (Id Software)",
+	"Quake 2 (Id Software)",
+	"Quake 3 (Id Software)",
+	"Half-Life (Valve Software)",
+	"Darkplaces (Darkplaces Team)",
+	"Quake 2 Evolved (Team Blur)",
+	"",
+	"",
+	"",
 	"",
 	"",
 	"",
@@ -665,7 +682,7 @@ VM_ComFileTime,			// #14 float Com_FileTime( string filename )
 VM_ComLoadScript,			// #15 float Com_LoadScript( string filename )
 VM_ComResetScript,			// #16 void Com_ResetScript( void )
 VM_ComReadToken,			// #17 string Com_ReadToken( float newline )
-NULL,				// #18 -- reserved --
+VM_Random,			// #18 float Random( void )
 VM_ComSearchFiles,			// #19 float Com_Search( string mask, float casecmp )
 VM_ComSearchNames,			// #20 string Com_SearchFilename( float num )
 VM_RandomLong,			// #21 float RandomLong( float min, float max )
@@ -729,7 +746,7 @@ VM_rint,				// #72 float rint (float v)
 VM_floor,				// #73 float floor(float v)
 VM_ceil,				// #74 float ceil (float v)
 VM_fabs,				// #75 float fabs (float f)
-VM_mod,				// #76 float fmod( float val, float m )
+VM_fmod,				// #76 float fmod( float val, float m )
 NULL,				// #77 -- reserved --
 NULL,				// #78 -- reserved --
 VM_VectorNormalize,			// #79 vector VectorNormalize( vector v )

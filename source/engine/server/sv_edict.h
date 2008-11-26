@@ -82,6 +82,7 @@ struct sv_entvars_s
 	vec3_t	size;
 	float	mass;
 	float	solid;
+	float	scale;
 	float	contents;
 	float	movetype;
 	float	waterlevel;
@@ -96,15 +97,18 @@ struct sv_entvars_s
 	float	animtime;
 	float	framerate;
 	float	style;
-	float	gaitsequence;
 	float	effects;
-	float	rendermode;
 	float	renderfx;
+	float	rendermode;
 	float	renderamt;
+	vec3_t	rendercolor;
 	float	colormap;
+	float	gaitsequence;
 	float	flags;
 	float	aiflags;
 	float	spawnflags;
+	float	blending[16];
+	float	controller[16];
 	float	fixangle;
 	vec3_t	v_angle;
 	vec3_t	view_ofs;
@@ -113,6 +117,9 @@ struct sv_entvars_s
 	float	button1;
 	float	button2;
 	float	impulse;
+	float	weapon;
+	float	items;
+	float	currentammo;
 	string_t	v_model;
 	float	v_frame;
 	float	v_body;
@@ -135,6 +142,7 @@ struct sv_entvars_s
 	float	yaw_speed;
 	float	m_flGroundSpeed;
 	float	m_flFrameRate;
+	float	m_flWeaponFrameRate;
 	int	groundentity;
 	float	takedamage;
 	float	nextthink;
@@ -144,6 +152,6 @@ struct sv_entvars_s
 	float	team;
 };
 
-#define PROG_CRC_SERVER		8066
+#define PROG_CRC_SERVER		16873
 
 #endif//SV_EDICT_H

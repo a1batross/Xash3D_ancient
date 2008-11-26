@@ -5,7 +5,7 @@
 
 #include "r_local.h"
 #include "mathlib.h"
-#include "matrixlib.h"
+#include "matrix_lib.h"
 #include "const.h"
 
 render_imp_t	ri;
@@ -85,6 +85,7 @@ cvar_t	*r_vertexbuffers;
 cvar_t	*r_mode;
 cvar_t	*r_testmode;
 cvar_t	*r_fullscreen;
+cvar_t	*r_caustics;
 cvar_t	*r_minimap;
 cvar_t	*r_minimap_size;
 cvar_t	*r_minimap_zoom;
@@ -433,8 +434,8 @@ void R_DrawParticle( void )
 	if( particle->length != 1 )
 	{
 		// find orientation vectors
-		VectorSubtract( r_refdef.vieworg, particle->origin, axis[0] );
-		VectorSubtract( particle->old_origin, particle->origin, axis[1] );
+		VectorSubtract( r_refdef.vieworg, particle->origin1, axis[0] );
+		VectorSubtract( particle->origin2, particle->origin1, axis[1] );
 		CrossProduct( axis[0], axis[1], axis[2] );
 
 		VectorNormalizeFast( axis[1] );
@@ -444,21 +445,21 @@ void R_DrawParticle( void )
 		CrossProduct( axis[1], axis[2], axis[0] );
 		VectorNormalizeFast( axis[0] );
 
-		VectorMA( particle->origin, -particle->length, axis[1], particle->old_origin );
+		VectorMA( particle->origin1, -particle->length, axis[1], particle->origin2 );
 		VectorScale( axis[2], particle->radius, axis[2] );
 
-		ref.vertexArray[ref.numVertex+0][0] = particle->old_origin[0] + axis[2][0];
-		ref.vertexArray[ref.numVertex+0][1] = particle->old_origin[1] + axis[2][1];
-		ref.vertexArray[ref.numVertex+0][2] = particle->old_origin[2] + axis[2][2];
-		ref.vertexArray[ref.numVertex+1][0] = particle->origin[0] + axis[2][0];
-		ref.vertexArray[ref.numVertex+1][1] = particle->origin[1] + axis[2][1];
-		ref.vertexArray[ref.numVertex+1][2] = particle->origin[2] + axis[2][2];
-		ref.vertexArray[ref.numVertex+2][0] = particle->origin[0] - axis[2][0];
-		ref.vertexArray[ref.numVertex+2][1] = particle->origin[1] - axis[2][1];
-		ref.vertexArray[ref.numVertex+2][2] = particle->origin[2] - axis[2][2];
-		ref.vertexArray[ref.numVertex+3][0] = particle->old_origin[0] - axis[2][0];
-		ref.vertexArray[ref.numVertex+3][1] = particle->old_origin[1] - axis[2][1];
-		ref.vertexArray[ref.numVertex+3][2] = particle->old_origin[2] - axis[2][2];
+		ref.vertexArray[ref.numVertex+0][0] = particle->origin2[0] + axis[2][0];
+		ref.vertexArray[ref.numVertex+0][1] = particle->origin2[1] + axis[2][1];
+		ref.vertexArray[ref.numVertex+0][2] = particle->origin2[2] + axis[2][2];
+		ref.vertexArray[ref.numVertex+1][0] = particle->origin1[0] + axis[2][0];
+		ref.vertexArray[ref.numVertex+1][1] = particle->origin1[1] + axis[2][1];
+		ref.vertexArray[ref.numVertex+1][2] = particle->origin1[2] + axis[2][2];
+		ref.vertexArray[ref.numVertex+2][0] = particle->origin1[0] - axis[2][0];
+		ref.vertexArray[ref.numVertex+2][1] = particle->origin1[1] - axis[2][1];
+		ref.vertexArray[ref.numVertex+2][2] = particle->origin1[2] - axis[2][2];
+		ref.vertexArray[ref.numVertex+3][0] = particle->origin2[0] - axis[2][0];
+		ref.vertexArray[ref.numVertex+3][1] = particle->origin2[1] - axis[2][1];
+		ref.vertexArray[ref.numVertex+3][2] = particle->origin2[2] - axis[2][2];
 	}
 	else
 	{
@@ -485,18 +486,18 @@ void R_DrawParticle( void )
 			VectorScale( r_up, particle->radius, axis[2] );
 		}
 
-		ref.vertexArray[ref.numVertex+0][0] = particle->origin[0] + axis[1][0] + axis[2][0];
-		ref.vertexArray[ref.numVertex+0][1] = particle->origin[1] + axis[1][1] + axis[2][1];
-		ref.vertexArray[ref.numVertex+0][2] = particle->origin[2] + axis[1][2] + axis[2][2];
-		ref.vertexArray[ref.numVertex+1][0] = particle->origin[0] - axis[1][0] + axis[2][0];
-		ref.vertexArray[ref.numVertex+1][1] = particle->origin[1] - axis[1][1] + axis[2][1];
-		ref.vertexArray[ref.numVertex+1][2] = particle->origin[2] - axis[1][2] + axis[2][2];
-		ref.vertexArray[ref.numVertex+2][0] = particle->origin[0] - axis[1][0] - axis[2][0];
-		ref.vertexArray[ref.numVertex+2][1] = particle->origin[1] - axis[1][1] - axis[2][1];
-		ref.vertexArray[ref.numVertex+2][2] = particle->origin[2] - axis[1][2] - axis[2][2];
-		ref.vertexArray[ref.numVertex+3][0] = particle->origin[0] + axis[1][0] - axis[2][0];
-		ref.vertexArray[ref.numVertex+3][1] = particle->origin[1] + axis[1][1] - axis[2][1];
-		ref.vertexArray[ref.numVertex+3][2] = particle->origin[2] + axis[1][2] - axis[2][2];
+		ref.vertexArray[ref.numVertex+0][0] = particle->origin1[0] + axis[1][0] + axis[2][0];
+		ref.vertexArray[ref.numVertex+0][1] = particle->origin1[1] + axis[1][1] + axis[2][1];
+		ref.vertexArray[ref.numVertex+0][2] = particle->origin1[2] + axis[1][2] + axis[2][2];
+		ref.vertexArray[ref.numVertex+1][0] = particle->origin1[0] - axis[1][0] + axis[2][0];
+		ref.vertexArray[ref.numVertex+1][1] = particle->origin1[1] - axis[1][1] + axis[2][1];
+		ref.vertexArray[ref.numVertex+1][2] = particle->origin1[2] - axis[1][2] + axis[2][2];
+		ref.vertexArray[ref.numVertex+2][0] = particle->origin1[0] - axis[1][0] - axis[2][0];
+		ref.vertexArray[ref.numVertex+2][1] = particle->origin1[1] - axis[1][1] - axis[2][1];
+		ref.vertexArray[ref.numVertex+2][2] = particle->origin1[2] - axis[1][2] - axis[2][2];
+		ref.vertexArray[ref.numVertex+3][0] = particle->origin1[0] + axis[1][0] - axis[2][0];
+		ref.vertexArray[ref.numVertex+3][1] = particle->origin1[1] + axis[1][1] - axis[2][1];
+		ref.vertexArray[ref.numVertex+3][2] = particle->origin1[2] + axis[1][2] - axis[2][2];
 	}
 
 	ref.inTexCoordArray[ref.numVertex+0][0] = 0;
@@ -539,7 +540,7 @@ static void R_AddParticlesToList( void )
 		// cull
 		if( !r_nocull->integer )
 		{
-			VectorSubtract( particle->origin, r_refdef.vieworg, vec );
+			VectorSubtract( particle->origin1, r_refdef.vieworg, vec );
 			VectorNormalizeFast( vec );
 
 			if( DotProduct( vec, r_forward ) < 0 )
@@ -974,6 +975,9 @@ static bool R_AddEntityToScene( entity_state_t *s1, entity_state_t *s2, float le
 	refent = &r_entities[r_numEntities];
 	if( !s2 ) s2 = s1; // no lerping state
 
+	if( s1->effects & EF_NODRAW )
+		return true;	// done
+
 	// filter ents
 	switch( s1->ed_type )
 	{
@@ -996,12 +1000,14 @@ static bool R_AddEntityToScene( entity_state_t *s1, entity_state_t *s2, float le
 	refent->body = s1->model.body;
 	refent->sequence = s1->model.sequence;		
 	refent->movetype = s1->movetype;
-	refent->scale = s1->model.scale ? s1->model.scale : 1.0f;
+	refent->scale = (s1->model.scale != 0.0f) ? s1->model.scale : 1.0f;
 	refent->colormap = s1->model.colormap;
 	refent->framerate = s1->model.framerate;
 	refent->effects = s1->effects;
 	refent->animtime = s1->model.animtime;
-	VectorDivide( s1->rendercolor, 255.0f, refent->rendercolor );
+	if( VectorIsNull( s1->rendercolor ))
+		VectorSet( refent->rendercolor, 1.0f, 1.0f, 1.0f );
+	else VectorDivide( s1->rendercolor, 255.0f, refent->rendercolor );
 
 	// setup latchedvars
 	refent->prev.frame = s2->model.frame;
@@ -1051,11 +1057,7 @@ static bool R_AddEntityToScene( entity_state_t *s1, entity_state_t *s2, float le
 	}
 
 	if( refent->ent_type == ED_CLIENT )
-	{
-		// only draw from mirrors
-		refent->renderfx |= RF_PLAYERMODEL;
 		refent->gaitsequence = s1->model.gaitsequence;
-	}
 
 	// because entity without models never added to scene
 	if( !refent->ent_type )
@@ -1120,8 +1122,8 @@ bool R_AddParticleToScene( shader_t shader, const vec3_t org1, const vec3_t org2
 		p->shader = &r_shaders[shader];
 	else p->shader = tr.particleShader;
 
-	VectorCopy( org1, p->origin );
-	VectorCopy( org2, p->old_origin );
+	VectorCopy( org1, p->origin1 );
+	VectorCopy( org2, p->origin2 );
 	p->radius = radius;
 	p->length = length;
 	p->rotation = rotate;

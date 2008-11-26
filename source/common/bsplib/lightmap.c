@@ -1022,10 +1022,6 @@ void CreateDirectLights( void )
 				dl->lightscale = intensity * entity_scale;
                     	}
 		}
-
-		if( bsp_parms & BSPLIB_MAKEHLRAD )
-			Msg("intensity ( %g %g %g)\n", dl->intensity[0], dl->intensity[1], dl->intensity[2] );
-		else Msg( "color( %g %g %g)( %g)\n", dl->color[0], dl->color[1], dl->color[2], dl->lightscale );
 	}
 	Msg( "%i direct lights\n", numdlights );
 }

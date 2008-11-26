@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "launch_api.h"
-#include "ref_dllapi.h"
 
 #include "mxtk.h"
 #include "options.h"

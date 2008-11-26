@@ -267,7 +267,7 @@ void WriteBSP( node_t *headnode )
 	c_facenodes = 0;
 
 	oldsurfaces = numsurfaces;
-	dmodels[nummodels].headnode = EmitDrawNode_r( headnode );
+	EmitDrawNode_r( headnode );
 	EmitAreaPortals( headnode );
 }
 

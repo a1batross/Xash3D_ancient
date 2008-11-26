@@ -1,11 +1,45 @@
 //=======================================================================
-//			Copyright XashXT Group 2007 ©
-//		        ref_dfiles.h - xash supported formats
+//			Copyright XashXT Group 2008 ©
+//		        qfiles_ref.h - xash supported formats
 //=======================================================================
 #ifndef REF_DFILES_H
 #define REF_DFILES_H
 
+/*
+========================================================================
+.WAD archive format	(WhereAllData - WAD)
+
+List of compressed files, that can be identify only by TYPE_*
+
+<format>
+header:	dwadinfo_t[dwadinfo_t]
+file_1:	byte[dwadinfo_t[num]->disksize]
+file_2:	byte[dwadinfo_t[num]->disksize]
+file_3:	byte[dwadinfo_t[num]->disksize]
+...
+file_n:	byte[dwadinfo_t[num]->disksize]
+infotable	dlumpinfo_t[dwadinfo_t->numlumps]
+========================================================================
+*/
+
 #define IDWAD3HEADER	(('3'<<24)+('D'<<16)+('A'<<8)+'W')
+
+// dlumpinfo_t->compression
+#define CMP_NONE			0	// compression none
+#define CMP_LZSS			1	// currently not used
+#define CMP_ZLIB			2	// zip-archive compression
+
+// dlumpinfo_t->type
+#define TYPE_QPAL			64	// quake palette
+#define TYPE_QTEX			65	// probably was never used
+#define TYPE_QPIC			66	// quake1 and hl pic (lmp_t)
+#define TYPE_MIPTEX			67	// half-life (mip_t) previous was TYP_SOUND but never used in quake1
+#define TYPE_QMIP			68	// quake1 (mip_t) (replaced with TYPE_MIPTEX while loading)
+#define TYPE_BINDATA		69	// engine internal data (map lumps, save lumps etc)
+#define TYPE_STRDATA		70	// stringdata type (stringtable marked as TYPE_BINDATA)
+#define TYPE_RAW			71	// unrecognized raw data
+#define TYPE_SCRIPT			72	// .txt scripts (xash ext)
+#define TYPE_VPROGS			73	// .dat progs (xash ext)
 
 /*
 ==============================================================================
@@ -178,6 +212,15 @@ BRUSH MODELS
 #define MAX_LIGHT_STYLES		64
 #define MAX_SWITCHED_LIGHTS		32
 
+typedef enum
+{
+	AMBIENT_SKY = 0,		// windfly1.wav
+	AMBIENT_WATER,
+	AMBIENT_SLIME,
+	AMBIENT_LAVA,
+	NUM_AMBIENTS		// automatic ambient sounds
+} bsp_sounds_t;
+
 // lump names
 #define LUMP_MAPINFO		"mapinfo"
 #define LUMP_ENTITIES		"entities"
@@ -202,6 +245,66 @@ BRUSH MODELS
 #define LUMP_AREAS			"areas"
 #define LUMP_AREAPORTALS		"areaportals"
 
+typedef enum
+{
+	SURF_NONE			= 0,		// just a mask for source tabulation
+	SURF_LIGHT		= BIT(0),		// value will hold the light strength
+	SURF_SLICK		= BIT(1),		// effects game physics
+	SURF_SKY			= BIT(2),		// don't draw, but add to skybox
+	SURF_WARP			= BIT(3),		// turbulent water warp
+	SURF_TRANS		= BIT(4),		// translucent
+	SURF_BLEND		= BIT(5),		// same as blend
+	SURF_ALPHA		= BIT(6),		// alphatest
+	SURF_ADDITIVE		= BIT(7),		// additive surface
+	SURF_NODRAW		= BIT(8),		// don't bother referencing the texture
+	SURF_HINT			= BIT(9),		// make a primary bsp splitter
+	SURF_SKIP			= BIT(10),	// completely ignore, allowing non-closed brushes
+	SURF_NULL			= BIT(11),	// remove face after compile
+	SURF_NOLIGHTMAP		= BIT(12),	// don't place lightmap for this surface
+	SURF_MIRROR		= BIT(12),	// remove face after compile
+	SURF_CHROME		= BIT(13),	// chrome surface effect
+	SURF_GLOW			= BIT(14),	// sprites glow
+} surfaceType_t;
+
+// bsp contents
+typedef enum
+{
+	CONTENTS_NONE		= 0, 	// just a mask for source tabulation
+	CONTENTS_SOLID		= BIT(0),	// an eye is never valid in a solid
+	CONTENTS_WINDOW		= BIT(1),	// translucent, but not watery
+	CONTENTS_AUX		= BIT(2),
+	CONTENTS_LAVA		= BIT(3),
+	CONTENTS_SLIME		= BIT(4),
+	CONTENTS_WATER		= BIT(5),
+	CONTENTS_SKY		= BIT(6),
+	
+	// space for new user contents
+
+	CONTENTS_MIST		= BIT(12),// g-cont. what difference between fog and mist ?
+	LAST_VISIBLE_CONTENTS	= BIT(12),// mask (LAST_VISIBLE_CONTENTS-1)
+	CONTENTS_FOG		= BIT(13),// future expansion
+	CONTENTS_AREAPORTAL		= BIT(14),// func_areaportal volume
+	CONTENTS_PLAYERCLIP		= BIT(15),// clip affect only by player or bot
+	CONTENTS_MONSTERCLIP	= BIT(16),// clip affect only by monster or npc
+	CONTENTS_CLIP		= (CONTENTS_PLAYERCLIP|CONTENTS_MONSTERCLIP), // both type clip
+	CONTENTS_ORIGIN		= BIT(17),// removed before bsping an entity
+	CONTENTS_BODY		= BIT(18),// should never be on a brush, only in game
+	CONTENTS_CORPSE		= BIT(19),// deadbody
+	CONTENTS_DETAIL		= BIT(20),// brushes to be added after vis leafs
+	CONTENTS_TRANSLUCENT	= BIT(21),// auto set if any surface has trans
+	CONTENTS_LADDER		= BIT(22),// like water but ladder : )
+	CONTENTS_TRIGGER		= BIT(23),// trigger volume
+
+	// content masks
+	MASK_SOLID		= (CONTENTS_SOLID|CONTENTS_WINDOW),
+	MASK_PLAYERSOLID		= (CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_WINDOW|CONTENTS_BODY),
+	MASK_MONSTERSOLID		= (CONTENTS_SOLID|CONTENTS_MONSTERCLIP|CONTENTS_WINDOW|CONTENTS_BODY),
+	MASK_DEADSOLID		= (CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_WINDOW|CONTENTS_WINDOW),
+	MASK_WATER		= (CONTENTS_WATER|CONTENTS_LAVA|CONTENTS_SLIME),
+	MASK_OPAQUE		= (CONTENTS_SOLID|CONTENTS_SLIME|CONTENTS_LAVA),
+	MASK_SHOT			= (CONTENTS_SOLID|CONTENTS_BODY|CONTENTS_WINDOW|CONTENTS_CORPSE)
+} contentType_t;
+
 typedef struct
 {
 	int	ident;
@@ -214,7 +317,6 @@ typedef struct
 {
 	float	mins[3];
 	float	maxs[3];
-	int	headnode;		// FIXME: eliminate this
 	int	firstsurface;	// submodels just draw faces 
 	int	numsurfaces;	// without walking the bsp tree
 	int	firstbrush;	// physics stuff
@@ -277,6 +379,7 @@ typedef struct
 	int	numleafsurfaces;
 	int	firstleafbrush;
 	int	numleafbrushes;
+	byte	sounds[NUM_AMBIENTS];
 } dleaf_t;
 
 typedef struct
@@ -797,7 +900,7 @@ included global, and both (client & server) pent list
 #define LUMP_MAPCMDS	"map_cmds"
 #define LUMP_GAMECVARS	"latched_cvars"
 #define LUMP_GAMEENTS	"entities"
-#define LUMP_SNAPSHOT	"levelshot"	// currently not implemented
+#define LUMP_SNAPSHOT	"saveshot"	// currently not implemented
 
 #define DENT_KEY		0
 #define DENT_VAL		1

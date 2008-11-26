@@ -6,7 +6,7 @@
 #include "r_local.h"
 #include "byteorder.h"
 #include "mathlib.h"
-#include "matrixlib.h"
+#include "matrix_lib.h"
 #include "const.h"
 
 /*
@@ -286,7 +286,7 @@ void R_StudioAddEntityToRadar( void )
 	if( r_minimap->value < 2 ) return; 
 
 	if( numRadarEnts >= MAX_RADAR_ENTS ) return;
-	if( m_pCurrentEntity->renderfx & RF_VIEWMODEL ) return;
+	if( m_pCurrentEntity->ent_type == ED_VIEWMODEL ) return;
 
 	if( m_pCurrentEntity->ent_type == ED_MONSTER )
 	{ 
@@ -844,7 +844,7 @@ Studio_FxTransform
 */
 void R_StudioFxTransform( ref_entity_t *ent, matrix4x4 transform )
 {
-	if( ent->renderfx & RF_HOLOGRAMM )
+	if( ent->renderfx == kRenderFxHologram )
 	{
 		if(!Com_RandomLong( 0, 49 ))
 		{
@@ -1205,7 +1205,7 @@ static bool R_StudioCheckBBox( void )
 
 	int aggregatemask = ~0;
 
-	if( m_pCurrentEntity->renderfx & RF_VIEWMODEL )
+	if( m_pCurrentEntity->ent_type == ED_VIEWMODEL )
 		return true;          
 	if(!R_StudioComputeBBox( bbox ))
           	return false;
@@ -1255,18 +1255,12 @@ void R_StudioSetupLighting( void )
 	m_plightvec[1] = 0.0f;
 	m_plightvec[2] = (m_pCurrentEntity->effects & EF_INVLIGHT) ? 1.0f : -1.0f;
 
-	if( m_pCurrentEntity->renderfx & RF_FULLBRIGHT )
-	{
-		for (i = 0; i < 3; i++)
-			m_plightcolor[i] = 1.0f;
-	}
-	else
 	{
 		vec3_t light_org;
 		VectorCopy( m_pCurrentEntity->origin, light_org );
 		light_org[2] += 3; // make sure what lightpoint is off the ground
 		R_LightForPoint( light_org, m_plightcolor );
-		if ( m_pCurrentEntity->renderfx & RF_VIEWMODEL )
+		if ( m_pCurrentEntity->ent_type == ED_VIEWMODEL )
 			r_lightlevel->value = bound(0, VectorLength(m_plightcolor) * 75.0f, 255); 
 
 	}
@@ -1342,27 +1336,6 @@ void R_StudioSetupChrome( float *pchrome, int bone, vec3_t normal )
 	pchrome[1] = (n + 1.0) * 32.0f;
 }
 
-bool R_AcceptStudioPass( int flags, int pass )
-{
-	if( pass == RENDERPASS_SOLID )
-	{
-		if(!flags) return true;			// draw all
-		if(flags & STUDIO_NF_ADDITIVE) return false;	// draw it at second pass (and chrome too)
-		if(flags & STUDIO_NF_CHROME) return true;	// chrome drawing once (without additive)
-		if(flags & STUDIO_NF_TRANSPARENT) return true;	// must be draw first always
-	}	
-	if( pass == RENDERPASS_ALPHA )
-	{
-		//pass for blended ents
-		if(m_pCurrentEntity->renderfx & RF_TRANSLUCENT) 	return true;
-		if(!flags) return false;			// skip all
-		if(flags & STUDIO_NF_TRANSPARENT) return false;	// must be draw first always
-		if(flags & STUDIO_NF_ADDITIVE) return true;	// draw it at second pass
-		if(flags & STUDIO_NF_CHROME) return false;	// skip chrome without additive
-	}
-	return true;
-}
-
 void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref, int pass )
 {
 	int	i, j;
@@ -1380,7 +1353,6 @@ void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref, int pass 
 	for (j = 0; j < m_pSubModel->nummesh; j++) 
 	{
 		flags = ptexture[pskinref[pmesh[j].skinref]].flags;
-		if(!R_AcceptStudioPass( flags, pass )) continue;
 		
 		for (i = 0; i < pmesh[j].numnorms; i++, lv += 3, pstudionorms++, pnormbone++)
 		{
@@ -1402,8 +1374,6 @@ void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref, int pass 
 		ptricmds = (short *)((byte *)m_pStudioHeader + pmesh->triindex);
 
 		flags = ptexture[pskinref[pmesh->skinref]].flags;
-		//if(!R_AcceptStudioPass(flags, pass )) 
-		//	continue;
 		s = 1.0/(float)ptexture[pskinref[pmesh->skinref]].width;
 		t = 1.0/(float)ptexture[pskinref[pmesh->skinref]].height;
 
@@ -1430,23 +1400,6 @@ void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref, int pass 
 				lv = m_pvlightvalues[ptricmds[1]];
 
 				GL_Normal3fv( vec3_origin );	// FIXME: apply normals
-                                        
-                                        if ( m_pCurrentEntity->renderfx & RF_FULLBRIGHT )
-					lv = &fbright[0];
-                                        if ( m_pCurrentEntity->renderfx & RF_MINLIGHT ) // used for viewmodel only
-					VectorBound( 0.01f, lv, 1.0f );
-
-				if ( r_refdef.rdflags & RDF_IRGOGGLES && m_pCurrentEntity->renderfx & RF_IR_VISIBLE)
-					lv = &irgoggles[0];
-
-				/*
-				if( flags & STUDIO_NF_ADDITIVE ) // additive is self-lighting texture
-					GL_Color4f( 1.0f, 1.0f, 1.0f, 0.8f );
-				else if( m_pCurrentEntity->renderfx & RF_TRANSLUCENT )
-					GL_Color4f( 1.0f, 1.0f, 1.0f, m_pCurrentEntity->renderamt );
-				else GL_Color3fv( lv ); // get light from floor
-		                    */
-		                    
 				av = m_pxformverts[ptricmds[0]]; // verts
                                         GL_Vertex3f( av[0], av[1], av[2] );
 			}
@@ -1488,13 +1441,13 @@ void R_StudioDrawPoints ( void )
 	}
 
 	// hack the depth range to prevent view model from poking into walls
-	if( m_pCurrentEntity->renderfx & RF_DEPTHHACK) pglDepthRange( 0.0, 0.3 );
-	if(( m_pCurrentEntity->renderfx & RF_VIEWMODEL ) && ( r_lefthand->value == 1.0F ))
+	if( m_pCurrentEntity->ent_type == ED_VIEWMODEL ) pglDepthRange( 0.0, 0.3 );
+	if(( m_pCurrentEntity->ent_type == ED_VIEWMODEL ) && ( r_lefthand->value == 1.0F ))
 		VectorNegate( m_pCurrentEntity->matrix[1], m_pCurrentEntity->matrix[1] ); 
 	R_StudioDrawMeshes( ptexture, pskinref, m_PassNum );
 
 	// hack the depth range to prevent view model from poking into walls
-	if( m_pCurrentEntity->renderfx & RF_DEPTHHACK ) pglDepthRange( 0.0, 1.0 );
+	if( m_pCurrentEntity->ent_type == ED_VIEWMODEL ) pglDepthRange( 0.0, 1.0 );
 }
 
 void R_StudioDrawBones( void )
@@ -1668,7 +1621,9 @@ void R_StudioDrawHulls ( void )
 	// we already have code for drawing hulls
 	// make this go away
 
-	if(m_pCurrentEntity->renderfx & RF_VIEWMODEL) return;
+	if( m_pCurrentEntity->ent_type == ED_VIEWMODEL )
+		return;
+
 	if(!R_StudioComputeBBox( bbox )) return;
 
 	pglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
@@ -1771,10 +1726,10 @@ StudioDrawModel
 */
 bool R_StudioDrawModel( int pass, int flags )
 {
-	//if( !mirror_render && m_pCurrentEntity->renderfx & RF_PLAYERMODEL )
+	//if( !mirror_render && m_pCurrentEntity->ent_type == ED_CLIENT )
 	//	return 0;
 
-	if( m_pCurrentEntity->renderfx & RF_VIEWMODEL )
+	if( m_pCurrentEntity->ent_type == ED_VIEWMODEL )
 	{
 		if( /*mirror_render ||*/ r_lefthand->value == 2 )
 			return 0;
@@ -2020,7 +1975,7 @@ int R_StudioDrawPlayer( int pass, int flags )
 {
 	entity_state_t	*pplayer;
 
-	if( m_pCurrentEntity->renderfx & RF_PLAYERMODEL )
+	if( m_pCurrentEntity->ent_type == ED_CLIENT )
 		return 0;
 
 	if(!(flags & STUDIO_MIRROR))

@@ -5,7 +5,7 @@
 
 #include "physic.h"
 #include "mathlib.h"
-#include "matrixlib.h"
+#include "matrix_lib.h"
 #include "cm_utils.h"
 
 physbody_t *Phys_CreateBody( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform, int solid )

@@ -198,10 +198,6 @@ SOURCE=.\r_opengl.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\public\ref_dfiles.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\warpsin.h
 # End Source File
 # End Group

@@ -31,9 +31,9 @@ bool VM_ValidateArgs( const char *builtin, int num_argc )
 	return true;
 }
 
-void VM_ValidateString( const char *s )
+void _VM_ValidateString( const char *s, const char *filename, const int fileline )
 {
-	if( s[0] <= ' ' ) PRVM_ERROR( "%s: bad string\n", PRVM_NAME );
+	if( s[0] <= ' ' ) PRVM_ERROR( "%s: bad string (called at %s:%i)\n", PRVM_NAME, filename, fileline );
 }
 
 void VM_SetTraceGlobals( const trace_t *trace )
@@ -469,6 +469,20 @@ void VM_ComSearchNames( void )
 
 /*
 =========
+VM_Random
+
+float Random( void )
+=========
+*/
+void VM_Random( void )
+{
+	if(!VM_ValidateArgs( "Random", 0 ))
+		return;
+	PRVM_G_FLOAT(OFS_RETURN) = (float)rand();
+}
+
+/*
+=========
 VM_RandomLong
 
 float RandomLong( float min, float max )
@@ -763,9 +777,9 @@ void VM_localsound( void )
 		return;
 	s = PRVM_G_STRING( OFS_PARM0 );
 
-	if(!S_StartLocalSound(s))
+	if(!S_StartLocalSound( s ))
 	{
-		VM_Warning("localsound: can't play %s!\n", s );
+		VM_Warning( "localsound: can't play %s!\n", s );
 		PRVM_G_FLOAT(OFS_RETURN) = 0;
 		return;
 	}
@@ -1244,7 +1258,6 @@ void VM_drawmodel( void )
 
 	re->ClearScene();
 	re->RegisterModel( modname, MAX_MODELS - 1 );
-	ent.renderfx = RF_FULLBRIGHT;
 	ent.model.sequence = sequence;
 	ent.model.index = MAX_MODELS - 1;
 	ent.model.controller[0] = 127;
@@ -1252,7 +1265,6 @@ void VM_drawmodel( void )
 	ent.model.controller[2] = 127;
 	ent.model.controller[3] = 127;
 	VectorCopy( origin, ent.origin );
-	VectorCopy( origin, ent.old_origin );
 	VectorCopy( angles, ent.angles );
 	ent.model.frame = frame += 0.7f;	// FXIME: needs flag EF_AUTOANIMATE or somewhat
 
@@ -1493,20 +1505,20 @@ void VM_fabs( void )
 
 /*
 =========
-VM_modulo
+VM_fmod
 
-float mod( float val, float m )
+float fmod( float val, float m )
 =========
 */
-void VM_mod( void )
+void VM_fmod( void )
 {
-	int val, m;
+	float	val, m;
 
 	if(!VM_ValidateArgs( "fmod", 2 )) return;
 
-	val = (int)PRVM_G_FLOAT(OFS_PARM0);
-	m = (int)PRVM_G_FLOAT(OFS_PARM1);
-	PRVM_G_FLOAT(OFS_RETURN) = (float)(val % m);
+	val = PRVM_G_FLOAT(OFS_PARM0);
+	m = PRVM_G_FLOAT(OFS_PARM1);
+	PRVM_G_FLOAT(OFS_RETURN) = fmod( val, m );
 }
 
 /*
@@ -1559,7 +1571,7 @@ VM_ComFileTime,			// #14 float Com_FileTime( string filename )
 VM_ComLoadScript,			// #15 float Com_LoadScript( string filename )
 VM_ComResetScript,			// #16 void Com_ResetScript( void )
 VM_ComReadToken,			// #17 string Com_ReadToken( float newline )
-NULL,				// #18 -- reserved --
+VM_Random,			// #18 float Random( void )
 VM_ComSearchFiles,			// #19 float Com_Search( string mask, float casecmp )
 VM_ComSearchNames,			// #20 string Com_SearchFilename( float num )
 VM_RandomLong,			// #21 float RandomLong( float min, float max )
@@ -1623,7 +1635,7 @@ VM_rint,				// #72 float rint (float v)
 VM_floor,				// #73 float floor(float v)
 VM_ceil,				// #74 float ceil (float v)
 VM_fabs,				// #75 float fabs (float f)
-VM_mod,				// #76 float fmod( float val, float m )
+VM_fmod,				// #76 float fmod( float val, float m )
 NULL,				// #77 -- reserved --
 NULL,				// #78 -- reserved --
 VM_VectorNormalize,			// #79 vector VectorNormalize( vector v )

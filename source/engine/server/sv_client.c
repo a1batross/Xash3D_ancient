@@ -501,7 +501,6 @@ void SV_PutClientInServer( edict_t *ent )
 		PRVM_ExecuteProgram( prog->globals.sv->PutClientInServer, "PutClientInServer" );
 		ent->progs.sv->v_angle[ROLL] = 0;	// cut off any camera rolling
 		ent->progs.sv->origin[2] += 1;	// make sure off ground
-		VectorCopy( ent->progs.sv->origin, ent->progs.sv->old_origin );
 
 		// create viewmodel
 		viewmodel = PRVM_ED_Alloc();
@@ -511,13 +510,10 @@ void SV_PutClientInServer( edict_t *ent )
 		VectorCopy( ent->progs.sv->angles, viewmodel->progs.sv->angles );
 		viewmodel->progs.sv->model = ent->progs.sv->v_model;
 		viewmodel->progs.sv->movetype = MOVETYPE_FOLLOW;
-
+		
 		// make cross links for consistency
 		viewmodel->progs.sv->aiment = PRVM_NUM_FOR_EDICT( ent );
 		ent->progs.sv->aiment = PRVM_NUM_FOR_EDICT( viewmodel );
-
-		// setup viewflags
-		viewmodel->progs.sv->renderfx = RF_MINLIGHT | RF_DEPTHHACK | RF_VIEWMODEL;
 	}
 	else
 	{
@@ -813,7 +809,7 @@ void SV_UserinfoChanged( sv_client_t *cl )
 		if( com.strlen( val ))
 		{
 			i = com.atoi( val );
-			cl->rate = bound( 1000, i, 90000 );
+			cl->rate = bound( 3000, i, 90000 );
 		}
 		else cl->rate = 3000;
 	}

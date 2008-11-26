@@ -5,7 +5,7 @@
 
 #include "r_local.h" 
 #include "mathlib.h" 
-#include "matrixlib.h" 
+#include "matrix_lib.h" 
 
 // set initial values
 extern dll_info_t opengl_dll;
@@ -390,6 +390,7 @@ void GL_InitCommands( void )
 	r_skipfrontend = Cvar_Get("r_skipfronend", "0", CVAR_CHEAT, "skip 3d drawing (scene)" );
 	r_overbrightbits = Cvar_Get( "r_overbrightbits", "0", CVAR_ARCHIVE|CVAR_LATCH, "hardware gamma overbright" );
 	r_showlightmaps = Cvar_Get( "r_showlightmaps", "0", CVAR_CHEAT, "show lightmap development tool" );
+	r_caustics = Cvar_Get( "r_caustics", "0", CVAR_ARCHIVE, "enable water caustics" );
 
 	r_modulate = Cvar_Get( "r_modulate", "1.0", CVAR_ARCHIVE|CVAR_LATCH, "modulate light" );
 	r_ambientscale = Cvar_Get("r_ambientScale", "0.6", CVAR_ARCHIVE, "default ambient light level" );

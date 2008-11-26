@@ -314,8 +314,10 @@ void R_DrawSpriteModel( void )
 	mspriteframe_t	*frame;
 	msprite_t		*psprite;
 	vec3_t		forward, right, up;
+	float		angle, sr, cr;
 	vec3_t		point;
 	ref_entity_t	*e;
+	int		i;
 
 	e = m_pCurrentEntity;
 	frame = R_GetSpriteFrame( e );
@@ -343,12 +345,15 @@ void R_DrawSpriteModel( void )
 		VectorSet( up, 0, 0, 1 );
 		break;
 	case SPR_FWD_PARALLEL_ORIENTED:
-		right[0] = e->matrix[1][0] * r_forward[0] + e->matrix[1][1] * r_right[0] + e->matrix[1][2] * r_up[0];
-		right[1] = e->matrix[1][0] * r_forward[1] + e->matrix[1][1] * r_right[1] + e->matrix[1][2] * r_up[1];
-		right[2] = e->matrix[1][0] * r_forward[2] + e->matrix[1][1] * r_right[2] + e->matrix[1][2] * r_up[2];
-		up[0] = e->matrix[2][0] * r_forward[0] + e->matrix[2][1] * r_right[0] + e->matrix[2][2] * r_up[0];
-		up[1] = e->matrix[2][0] * r_forward[1] + e->matrix[2][1] * r_right[1] + e->matrix[2][2] * r_up[1];
-		up[2] = e->matrix[2][0] * r_forward[2] + e->matrix[2][1] * r_right[2] + e->matrix[2][2] * r_up[2];
+		angle = e->angles[ROLL] * (M_PI*2.0f/360.0f);
+		sr = com.sin( angle );
+		cr = com.cos( angle );
+		for( i = 0; i < 3; i++ )
+		{
+			forward[i] = -r_forward[i];
+			right[i] = -(r_right[i] * cr + r_up[i] * sr);
+			up[i] = r_right[i] * -sr + r_up[i] * cr;
+		}
 		break;
 	case SPR_FWD_PARALLEL:
 	default: // normal sprite
@@ -356,6 +361,44 @@ void R_DrawSpriteModel( void )
 		VectorNegate( r_right, right );
 		VectorCopy( r_up, up );
 		break;
+	}
+
+	// HACKHACK: manually set rendermode for sprites
+	if( m_pCurrentShader->stages[0]->renderMode != m_pCurrentEntity->rendermode )
+	{
+		switch( m_pCurrentEntity->rendermode )
+		{
+		case kRenderNormal:
+			m_pCurrentShader->stages[0]->flags &= ~(SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAFUNC);
+			break;
+		case kRenderTransColor:
+			m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+			m_pCurrentShader->stages[0]->blendFunc.src = GL_SRC_COLOR;
+			m_pCurrentShader->stages[0]->blendFunc.dst = GL_ZERO;
+			break;
+		case kRenderTransTexture:
+			m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+			m_pCurrentShader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
+			m_pCurrentShader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+			break;
+		case kRenderGlow:
+			m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+			m_pCurrentShader->stages[0]->blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
+			m_pCurrentShader->stages[0]->blendFunc.dst = GL_ONE;
+			break;
+		case kRenderTransAlpha:
+			m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
+			m_pCurrentShader->stages[0]->alphaFunc.func = GL_GREATER;
+			m_pCurrentShader->stages[0]->alphaFunc.ref = 0.666;
+			m_pCurrentShader->sort = SORT_SEETHROUGH;
+			break;
+		case kRenderTransAdd:
+			m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+			m_pCurrentShader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
+			m_pCurrentShader->stages[0]->blendFunc.dst = GL_ONE;
+			break;
+		}
+		m_pCurrentShader->stages[0]->renderMode = m_pCurrentEntity->rendermode;
 	}
 
 	if((m_pCurrentEntity->rendermode == kRenderGlow) || (m_pCurrentShader->surfaceParm & SURF_GLOW))

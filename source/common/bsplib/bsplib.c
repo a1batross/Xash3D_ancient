@@ -77,6 +77,7 @@ bool PrepareBSPModel( const char *dir, const char *name )
 	if( FS_CheckParm( "-hlrad" )) bsp_parms |= BSPLIB_MAKEHLRAD;
 	if( FS_CheckParm( "-full" )) bsp_parms |= BSPLIB_FULLCOMPILE;
 	if( FS_CheckParm( "-onlyents" )) bsp_parms |= BSPLIB_ONLYENTS;
+	if( FS_CheckParm( "-info" )) bsp_parms |= BSPLIB_SHOWINFO;
 
 	// famous q1 "notexture" image: purple-black checkerboard
 	checkermate_dds = FS_LoadInternal( "checkerboard.dds", &checkermate_dds_size );
@@ -131,8 +132,10 @@ bool CompileBSPModel ( void )
 	if( bsp_parms & (BSPLIB_MAKEQ2RAD|BSPLIB_MAKEHLRAD))
 		WradMain();
 
+	if( bsp_parms & BSPLIB_SHOWINFO )
+		PrintBSPFileSizes();
+		
 	Free_PhysicLibrary();
-	PrintBSPFileSizes();
 
 	// close log before deleting temporaries
 	enable_log = false;

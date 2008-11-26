@@ -183,6 +183,9 @@ void SV_ClassifyEdict( edict_t *ent )
 	if( sv_ent->s.ed_type != ED_SPAWNED )
 		return;
 
+	// null state ?
+	if( !sv_ent->s.number ) SV_UpdateEntityState( ent );
+
 	classname = PRVM_GetString( ent->progs.sv->classname );
 
 	if( !com.strnicmp( "worldspawn", classname, 10 ))
@@ -391,12 +394,13 @@ void SV_LinkEdict( edict_t *ent )
 		}
 	}
 
-	// if first time, make sure old_origin is valid
-	if( !ent->priv.sv->linkcount )
-	{
-		VectorCopy( ent->progs.sv->origin, ent->progs.sv->old_origin );
-	}
 	ent->priv.sv->linkcount++;
+
+	// update ambient sound here
+	if( ent->progs.sv->loopsound )
+	{
+		ent->priv.sv->s.soundindex = SV_SoundIndex( PRVM_GetString( ent->progs.sv->loopsound ));
+	}
 
 	// don't link not solid or rigid bodies
 	if( ent->progs.sv->solid == SOLID_NOT || ent->progs.sv->solid >= SOLID_BOX )

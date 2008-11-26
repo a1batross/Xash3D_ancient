@@ -385,6 +385,7 @@ typedef struct shaderStage_s
 {
 	bool		ignore;
 	int		conditionRegister;
+	int		renderMode;
 	uint		flags;
 
 	stageBundle_t	*bundles[MAX_TEXTURE_UNITS];

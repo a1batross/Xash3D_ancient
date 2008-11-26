@@ -97,6 +97,7 @@ char *prvm_opnames[] =
 "^3CALL6",
 "^3CALL7",
 "^3CALL8",
+"^3CALL9",
 
 "^1STATE",
 
@@ -442,7 +443,7 @@ PRVM_EnterFunction
 Returns the new program statement counter
 ====================
 */
-int PRVM_EnterFunction (mfunction_t *f)
+int PRVM_EnterFunction( mfunction_t *f )
 {
 	int		i, j, c, o;
 
@@ -452,14 +453,14 @@ int PRVM_EnterFunction (mfunction_t *f)
 	vm.prog->stack[vm.prog->depth].f = vm.prog->xfunction;
 	vm.prog->depth++;
 	if (vm.prog->depth >=PRVM_MAX_STACK_DEPTH)
-		PRVM_ERROR ("stack overflow");
+		PRVM_ERROR( "stack overflow\n" );
 
 	// save off any locals that the new function steps on
 	c = f->locals;
 	if (vm.prog->localstack_used + c > PRVM_LOCALSTACK_SIZE)
-		PRVM_ERROR ("PRVM_ExecuteProgram: locals stack overflow in %s", PRVM_NAME);
+		PRVM_ERROR( "PRVM_ExecuteProgram: locals stack overflow in %s", PRVM_NAME );
 
-	for (i=0 ; i < c ; i++)
+	for( i = 0; i < c; i++ )
 		vm.prog->localstack[vm.prog->localstack_used+i] = ((int *)vm.prog->globals.gp)[f->parm_start + i];
 	vm.prog->localstack_used += c;
 
@@ -978,23 +979,25 @@ chooseexecprogram:
 		case OP_CALL6:
 		case OP_CALL7:
 		case OP_CALL8:
+		case OP_CALL9:
 			vm.prog->xfunction->profile += (st - startst);
 			startst = st;
 			vm.prog->xstatement = st - vm.prog->statements;
 			vm.prog->argc = st->op - OP_CALL0;
-			if (!OPA->function) PRVM_ERROR("NULL function in %s", PRVM_NAME);
+			if( !OPA->function )
+				PRVM_ERROR( "NULL function in %s (%s)(called at %s:%i)\n", name, PRVM_NAME, file, line );
 
 			newf = &vm.prog->functions[OPA->function];
 			newf->callcount++;
 
-			if (newf->first_statement < 0)
+			if( newf->first_statement < 0 )
 			{
 				// negative statements are built in functions
 				int builtinnumber = -newf->first_statement;
 				vm.prog->xfunction->builtinsprofile++;
 				if (builtinnumber < vm.prog->numbuiltins && vm.prog->builtins[builtinnumber])
 					vm.prog->builtins[builtinnumber]();
-				else PRVM_ERROR("No such builtin #%i in %s", builtinnumber, PRVM_NAME);
+				else PRVM_ERROR( "No such builtin #%i in %s\n", builtinnumber, PRVM_NAME );
 			}
 			else st = vm.prog->statements + PRVM_EnterFunction(newf);
 			startst = st;

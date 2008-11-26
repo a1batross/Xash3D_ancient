@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "common.h"
 #include "client.h"
+#include "const.h"
 
 /*
 ====================
@@ -176,6 +177,13 @@ void V_RenderView( void )
 		cl.refdef.fov_y = V_CalcFov( cl.refdef.fov_x, cl.refdef.rect.width, cl.refdef.rect.height );
 		cl.refdef.time = cl.time * 0.001f; // cl.time for right lerping		
 		cl.refdef.oldtime = (cl.time * 0.001f) - 0.005; // frametime
+
+		if( cl.refdef.rdflags & RDF_UNDERWATER )
+		{
+			float f = com.sin( cl.time * 0.001 * 0.4 * (M_PI * 2.7));
+			cl.refdef.fov_x += f;
+			cl.refdef.fov_y -= f;
+		} 
 	}
 	re->RenderFrame( &cl.refdef );
 }

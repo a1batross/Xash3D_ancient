@@ -102,7 +102,6 @@ typedef struct entity_state_s
 	vec3_t		origin;
 	vec3_t		angles;		// entity angles, not viewangles
 	vec3_t		velocity;		// player velocity
-	vec3_t		old_origin;	// for lerping animation
 	vec3_t		infotarget;	// portal camera, etc
 	model_state_t	model;		// general entity model
 	solid_t		solidtype;	// entity solidtype
@@ -123,7 +122,6 @@ typedef struct entity_state_s
 	// client specific
 	int		pm_type;		// client movetype
 	int		pm_flags;		// ducked, jump_held, etc
-	int		pm_time;		// each unit = 8 ms
 	vec3_t		delta_angles;	// add to command angles to get view direction 
 	vec3_t		punch_angles;	// add to view direction to get render angles 
 	vec3_t		viewangles;	// already calculated view angles on server-side
@@ -208,6 +206,7 @@ typedef struct cmodel_s
 	// custom traces for various model types
 	void (*TraceBox)( const vec3_t, const vec3_t, const vec3_t, const vec3_t, struct cmodel_s*, struct trace_s*, int );
 	int (*PointContents)( const vec3_t point, struct cmodel_s *model );
+	bool (*AmbientLevel)( const vec3_t point, float *volumes, struct cmodel_s *model );
 } cmodel_t;
 
 typedef struct csurface_s

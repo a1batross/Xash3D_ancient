@@ -5,7 +5,7 @@
 
 #include "r_local.h"
 #include "mathlib.h"
-#include "matrixlib.h"
+#include "matrix_lib.h"
 
 #define MAX_CLIP_VERTS	64
 

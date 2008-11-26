@@ -59,6 +59,7 @@ void CL_DrawHUD( void )
 	// setup pparms
 	prog->globals.cl->health = cl.frame.ps.health;
 	prog->globals.cl->maxclients = com.atoi(cl.configstrings[CS_MAXCLIENTS]);
+	prog->globals.cl->max_entities = host.max_edicts;
 	prog->globals.cl->realtime = cls.realtime * 0.001f;
 	prog->globals.cl->paused = cl_paused->integer;
 
@@ -234,8 +235,8 @@ void PF_ReadChar (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadChar( cls.multicast 
 void PF_ReadShort (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadShort( cls.multicast ); }
 void PF_ReadLong (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadLong( cls.multicast ); }
 void PF_ReadFloat (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadFloat( cls.multicast ); }
-void PF_ReadAngle (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadFloat( cls.multicast ); }
-void PF_ReadCoord (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadFloat( cls.multicast ); }
+void PF_ReadAngle (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadBits( cls.multicast, NET_FLOAT ); }
+void PF_ReadCoord (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadBits( cls.multicast, NET_FLOAT ); }
 void PF_ReadString (void){ PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( MSG_ReadString( cls.multicast) ); }
 void PF_ReadEntity (void){ VM_RETURN_EDICT( PRVM_PROG_TO_EDICT( MSG_ReadShort( cls.multicast ))); } // entindex
 
@@ -483,6 +484,39 @@ void PF_setcolor( void )
 	re->SetColor( GetRGBA( rgb[0], rgb[1], rgb[2], alpha ));
 }
 
+/*
+=========
+PF_startsound
+
+CL_StartSound( vector pos, entity e, float chan, float sfx, float vol, float attn )
+=========
+*/
+void PF_startsound( void )
+{
+	float 	volume;
+	int 	channel;
+	int 	sound_num;
+	int 	attenuation;
+	float	*pos = NULL;
+	int	ent = 0;
+
+	if( !VM_ValidateArgs( "CL_StartSound", 6 ))
+		return;
+
+	pos = PRVM_G_VECTOR(OFS_PARM0);
+	ent = PRVM_G_EDICTNUM(OFS_PARM1);
+	channel = (int)PRVM_G_FLOAT(OFS_PARM2);
+	sound_num = (int)PRVM_G_FLOAT(OFS_PARM3);
+	volume = PRVM_G_FLOAT(OFS_PARM4);
+	attenuation = (int)PRVM_G_FLOAT(OFS_PARM5);
+	if( !cl.sound_precache[sound_num] )
+	{
+		VM_Warning( "CL_StartSound: invalid sound index: %i\n", sound_num );
+		return;
+	}
+	S_StartSound( pos, ent, channel, cl.sound_precache[sound_num], volume, attenuation );
+}
+
 //NOTE: intervals between various "interfaces" was leave for future expansions
 prvm_builtin_t vm_cl_builtins[] = 
 {
@@ -508,7 +542,7 @@ VM_ComFileTime,			// #14 float Com_FileTime( string filename )
 VM_ComLoadScript,			// #15 float Com_LoadScript( string filename )
 VM_ComResetScript,			// #16 void Com_ResetScript( void )
 VM_ComReadToken,			// #17 string Com_ReadToken( float newline )
-NULL,				// #18 -- reserved --
+VM_Random,			// #18 float Random( void )
 VM_ComSearchFiles,			// #19 float Com_Search( string mask, float casecmp )
 VM_ComSearchNames,			// #20 string Com_SearchFilename( float num )
 VM_RandomLong,			// #21 float RandomLong( float min, float max )
@@ -572,7 +606,7 @@ VM_rint,				// #72 float rint (float v)
 VM_floor,				// #73 float floor(float v)
 VM_ceil,				// #74 float ceil (float v)
 VM_fabs,				// #75 float fabs (float f)
-VM_mod,				// #76 float fmod( float val, float m )
+VM_fmod,				// #76 float fmod( float val, float m )
 NULL,				// #77 -- reserved --
 NULL,				// #78 -- reserved --
 VM_VectorNormalize,			// #79 vector VectorNormalize( vector v )
@@ -608,6 +642,8 @@ PF_centerprint,			// #123 void HUD_CenterPrint( string text, float y, float char
 PF_levelshot,			// #124 float HUD_MakeLevelShot( void )
 PF_setcolor,			// #125 void HUD_SetColor( vector rgb, float alpha )
 VM_localsound,			// #126 void HUD_PlaySound( string sample )
+PF_startsound,			// #127 void CL_StartSound( vector pos, entity e, float chan, float sfx, float vol, float attn )
+PF_addparticle,			// #128 float AddParticle(vector, vector, vector, vector, vector, vector, vector, string, float)
 };
 
 const int vm_cl_numbuiltins = sizeof(vm_cl_builtins) / sizeof(prvm_builtin_t); //num of builtins

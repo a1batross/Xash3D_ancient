@@ -216,3 +216,19 @@ int CM_TransformedPointContents( const vec3_t p, cmodel_t *model, const vec3_t o
 	}
 	return CM_PointContents( p_l, model );
 }
+
+bool CM_AmbientSounds( const vec3_t p, float *volumes, cmodel_t *model )
+{
+	cleaf_t	*leaf;
+
+	if( !volumes ) return false;	
+	leaf = cm.leafs + CM_PointLeafnum( p );
+	if( leaf )
+	{
+		Mem_Copy( volumes, leaf->ambient_level, sizeof( float ) * NUM_AMBIENTS );
+		return true;
+	}
+
+	Mem_Set( volumes, 0x00, sizeof( volumes ));
+	return false;
+}

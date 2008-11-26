@@ -6,7 +6,7 @@
 #include "r_local.h"
 #include "byteorder.h"
 #include "mathlib.h"
-#include "matrixlib.h"
+#include "matrix_lib.h"
 #include "const.h"
 
 // the inline models from the current map are kept separate
@@ -835,6 +835,23 @@ static void R_LoadLeafs( wfile_t *l )
 		out->firstMarkSurface = m_pLoadModel->markSurfaces + LittleLong( in->firstleafsurface );
 		out->numMarkSurfaces = LittleLong( in->numleafsurfaces );
 
+		// mark the surfaces for caustics
+		if( out->contents & MASK_WATER )
+		{
+			for( j = 0; j < out->numMarkSurfaces; j++ )
+			{
+				if( out->firstMarkSurface[j]->texInfo->surfaceFlags & SURF_WARP )
+					continue;	// HACK: ignore warped surfaces
+
+				if( out->contents & CONTENTS_WATER )
+					out->firstMarkSurface[j]->flags |= SURF_WATERCAUSTICS;
+				if( out->contents & CONTENTS_SLIME )
+					out->firstMarkSurface[j]->flags |= SURF_SLIMECAUSTICS;
+				if( out->contents & CONTENTS_LAVA )
+					out->firstMarkSurface[j]->flags |= SURF_LAVACAUSTICS;
+			}
+		}
+
 		// cluster count using for create novis lump
 		if( out->cluster >= m_pLoadModel->numClusters )
 			m_pLoadModel->numClusters = out->cluster + 1;
@@ -1044,7 +1061,7 @@ void Mod_LoadBrushModel( rmodel_t *mod, const void *buffer )
 	R_LoadVisibility( handle );
 	R_LoadSubmodels( handle );
 
-	mod->registration_sequence = registration_sequence;	// register model
+	mod->registration_sequence = registration_sequence; // register model
 }
 
 /*
@@ -1200,8 +1217,14 @@ void R_BeginRegistration( const char *mapname )
 		Cvar_SetValue( "scr_loading", 50.0f );
 		if( ri.UpdateScreen ) ri.UpdateScreen();
 	}
+
 	r_worldModel = Mod_ForName( fullname, true );
 	R_ModRegisterShaders( r_worldModel );
+
+	tr.waterCausticsShader = R_FindShader( "engine/waterCaustics", SHADER_TEXTURE, 0 );
+	tr.slimeCausticsShader = R_FindShader( "engine/slimeCaustics", SHADER_TEXTURE, 0 );
+	tr.lavaCausticsShader = R_FindShader( "engine/lavaCaustics", SHADER_TEXTURE, 0 );
+
 	r_viewCluster = -1;
 }
 

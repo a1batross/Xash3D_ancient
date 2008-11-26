@@ -5,7 +5,7 @@
 
 #include "cm_local.h"
 #include "cm_utils.h"
-#include "matrixlib.h"
+#include "matrix_lib.h"
 #include "const.h"
 
 /*

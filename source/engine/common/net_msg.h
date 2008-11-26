@@ -77,7 +77,7 @@ enum clc_ops_e
 
 typedef enum
 {
-	MSG_ONE,
+	MSG_ONE = 0,	// never send by QC-code (just not declared)
 	MSG_ALL,
 	MSG_PHS,
 	MSG_PVS,
@@ -258,7 +258,7 @@ typedef struct netchan_s
 #define PORT_MASTER		27900
 #define PORT_CLIENT		27901
 #define PORT_SERVER		27910
-#define UPDATE_BACKUP	64	// copies of entity_state_t to keep buffered, must be power of two
+#define UPDATE_BACKUP	32	// copies of entity_state_t to keep buffered, must be power of two
 #define UPDATE_MASK		(UPDATE_BACKUP - 1)
 
 void Netchan_Init( void );

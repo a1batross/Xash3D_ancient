@@ -99,7 +99,6 @@ void SV_CreateBaseline( void )
 		svent->priv.sv->serialnumber = entnum;
 
 		// take current state as baseline
-		VectorCopy (svent->progs.sv->origin, svent->progs.sv->old_origin);
 		SV_UpdateEntityState( svent );
 
 		svs.baselines[entnum] = svent->priv.sv->s;

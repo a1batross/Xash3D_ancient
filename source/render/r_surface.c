@@ -5,7 +5,7 @@
 
 #include "r_local.h"
 #include "mathlib.h"
-#include "matrixlib.h"
+#include "matrix_lib.h"
 #include "const.h"
 
 #define BACKFACE_EPSILON	0.01
@@ -156,6 +156,17 @@ static void R_AddSurfaceToList( surface_t *surf, ref_entity_t *entity )
 
 	// add it
 	R_AddMeshToList( MESH_SURFACE, surf, shader, entity, lmNum );
+
+	// also add caustics
+	if( r_caustics->integer )
+	{
+		if( surf->flags & SURF_WATERCAUSTICS )
+			R_AddMeshToList( MESH_SURFACE, surf, tr.waterCausticsShader, entity, 0 );
+		if( surf->flags & SURF_SLIMECAUSTICS )
+			R_AddMeshToList( MESH_SURFACE, surf, tr.slimeCausticsShader, entity, 0 );
+		if( surf->flags & SURF_LAVACAUSTICS )
+			R_AddMeshToList( MESH_SURFACE, surf, tr.lavaCausticsShader, entity, 0 );
+	}
 }
 
 

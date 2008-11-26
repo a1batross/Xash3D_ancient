@@ -11,9 +11,11 @@
 #include <windows.h>
 
 #include "launch_api.h"
-#include "ref_dllapi.h"
+#include "qfiles_ref.h"
 #include "engine_api.h"
 #include "physic_api.h"
+#include "vprogs_api.h"
+#include "vsound_api.h"
 #include "net_msg.h"
 
 // linked interfaces
@@ -124,6 +126,9 @@ CLIENT / SERVER SYSTEMS
 #define FL_FLOAT			(1<<7)	// this entity can be floating. FIXME: remove this ?
 #define FL_TRACKTRAIN		(1<<8)	// old stuff...
 
+// encoded bmodel mask
+#define SOLID_BMODEL		0xffffff
+
 void CL_Init( void );
 void CL_Shutdown( void );
 void CL_Frame( dword time );
@@ -181,7 +186,8 @@ _inline edict_t *_PRVM_EDICT_NUM( int n, const char * file, const int line )
 const char *VM_VarArgs( int start_arg );
 bool VM_ValidateArgs( const char *builtin, int num_argc );
 void VM_SetTraceGlobals( const trace_t *trace );
-void VM_ValidateString( const char *s );
+#define VM_ValidateString( str )	_VM_ValidateString( str, __FILE__, __LINE__ )
+void _VM_ValidateString( const char *s, const char *filename, const int fileline );
 void VM_Cmd_Init( void );
 void VM_Cmd_Reset( void );
 
@@ -243,6 +249,7 @@ void VM_CvarGetValue( void );
 void VM_CvarSetString( void );
 void VM_CvarGetString( void );
 void VM_AddCommand( void );
+void VM_Random( void );
 void VM_ComVA( void );
 void VM_ComStrlen( void );
 void VM_TimeStamp( void );
@@ -269,7 +276,7 @@ void VM_getimagesize( void );
 void VM_min( void );
 void VM_max( void );
 void VM_bound( void );
-void VM_mod( void );
+void VM_fmod( void );
 void VM_pow( void );
 void VM_sin( void );
 void VM_cos( void );

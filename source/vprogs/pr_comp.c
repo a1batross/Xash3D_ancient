@@ -176,6 +176,7 @@ opcode_t pr_opcodes[] =
 {"<CALL6>",	"CALL6",		-1,	ASSOC_LEFT, &type_function,	&type_void,	&type_void},
 {"<CALL7>",	"CALL7",		-1,	ASSOC_LEFT, &type_function,	&type_void,	&type_void},
 {"<CALL8>",	"CALL8",		-1,	ASSOC_LEFT, &type_function,	&type_void,	&type_void},
+{"<CALL9>",	"CALL9",		-1,	ASSOC_LEFT, &type_function,	&type_void,	&type_void},
 {"<STATE>",	"STATE",		-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_void},
 {"<GOTO>",	"GOTO",		-1,	ASSOC_RIGHT,NULL,		&type_void,	&type_void},
 {"&&",		"AND",		7,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},

@@ -7,7 +7,8 @@
 
 #include <windows.h>
 #include "launch_api.h"
-#include "ref_dllapi.h"
+#include "qfiles_ref.h"
+#include "vprogs_api.h"
 #include "pr_local.h"
 
 extern stdlib_api_t	com;
@@ -94,6 +95,7 @@ enum op_state
 	OP_CALL6,
 	OP_CALL7,
 	OP_CALL8,
+	OP_CALL9,
 	OP_STATE,		// 60
 	OP_GOTO,
 	OP_AND,

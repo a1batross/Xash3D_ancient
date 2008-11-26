@@ -15,35 +15,21 @@ fopen завешивает приложение, даже если перепутать местами + и a, при установке р
 1. ѕоддержка loop дл€ ogg vorbis
 2. переписать studiomdl дл€ использовани€ VFS
 3. избавитс€ от PR_ParseToken\Word в vprogs.dll
-4. поправить генератор шейдеров в extragen
 
-GLOBAL: ƒостигнуть уровн€ xash 0.45 к очередному релизу
+Beta 13.12.08
 
-qrad3:
-0. правильный парсинг light энтитей			OK
-1. -qrad, -hlrad					OK
-2. bsp -> wad
+0. move effects to client.dat
 
-0. починить IMAGE_FORCE_RGBA (или избавитс€ ?)
-1. droptofloor
-2. bsplib и финальный формат карты
-3. console garbage					OK
-4. create indexBuffer
-5. light_environment
-6. сделать 2 типа расчета освещени€			OK
-
-TODO LIST
-поправить поле movedir в bsplib/map.c
-придумать как вернуть cmodel_t обратно в physic.dll
-научить игрока лазить по лестницам
-ѕроверитьс€ боундс-чекером на течку
-Ќайти наконец эту йобанную утечку
-избавитс€ от идиотскова RF_TRANSLUCENT
-”пор€дочить EF_, RF_ ed_type проверки
-јнимаци€ (разобратьс€ с pev->animtime)
-
-выбросить лишние ресурсы
-забэкапить результат
+0. light_environment
+1. научить оружие стрел€ть
+2. добавить нужных энтитей
+3. bumpmapping test
+4. player ducking
+5. pev->animtime
+6. bloom
+7. pause effect
+8. automap
+9. Phys matrices
 
 
 —писок доступных рендереров:  	„то в них интересного
@@ -51,7 +37,6 @@ TODO LIST
 1. MhQuake			(Caustics)
 2. Xash 0.45			(Mirrors, Portals, Monitors, Rain, Sky)
 3. Paranoia			(Sky)
-4. EGL				(Effects, Shaders)
-5. Quake2XP			(Effects, Glass, Shadows)
-6. Tenebrae			(Mirrors, Cubemap Projection, Bump)
-9.Darkplaces			ALL!!!!!!!!!!!!!!!111111111111
+4. Quake2XP			(Effects, Glass, Shadows)
+5. Tenebrae			(Mirrors, Cubemap Projection, Bump)
+6. Darkplaces			ALL!!!!!!!!!!!!!!!111111111111

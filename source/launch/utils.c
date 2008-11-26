@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "launch.h"
+#include "qfiles_ref.h"
 #include "mathlib.h"
 #include "const.h"
 

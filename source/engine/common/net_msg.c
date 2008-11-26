@@ -9,8 +9,8 @@
 
 static net_field_t ent_fields[] =
 {
-{ ES_FIELD(ed_type),		NET_BYTE,	 true	},
-{ ES_FIELD(classname),		NET_WORD,  true	},
+{ ES_FIELD(ed_type),		NET_BYTE,	 false	},	// stateflags_t #0 (4 bytes)
+{ ES_FIELD(classname),		NET_WORD,  false	},
 { ES_FIELD(soundindex),		NET_WORD,	 false	},	// 512 sounds ( OpenAL software limit is 255 )
 { ES_FIELD(origin[0]),		NET_FLOAT, false	},
 { ES_FIELD(origin[1]),		NET_FLOAT, false	},
@@ -21,9 +21,6 @@ static net_field_t ent_fields[] =
 { ES_FIELD(velocity[0]),		NET_FLOAT, false	},
 { ES_FIELD(velocity[1]),		NET_FLOAT, false	},
 { ES_FIELD(velocity[2]),		NET_FLOAT, false	},
-{ ES_FIELD(old_origin[0]),		NET_FLOAT, true	},	// send always
-{ ES_FIELD(old_origin[1]),		NET_FLOAT, true	},
-{ ES_FIELD(old_origin[2]),		NET_FLOAT, true	},
 { ES_FIELD(infotarget[0]),		NET_FLOAT, false	},	// beam endpoint, portal camera pos, etc
 { ES_FIELD(infotarget[1]),		NET_FLOAT, false	},
 { ES_FIELD(infotarget[2]),		NET_FLOAT, false	},
@@ -38,13 +35,12 @@ static net_field_t ent_fields[] =
 { ES_FIELD(model.skin),		NET_CHAR,	 false	},	// negative skins are contents
 { ES_FIELD(model.body),		NET_BYTE,	 false	},	// 255 bodies
 { ES_FIELD(pmodel.index),		NET_WORD,  false	},	// 4096 models 
-{ ES_FIELD(pmodel.colormap),		NET_LONG,  false	},	// 4096 models 
 { ES_FIELD(pmodel.sequence),		NET_WORD,  false	},	// 1024 sequences
 { ES_FIELD(pmodel.frame),		NET_FLOAT, false	},	// interpolate value
 { ES_FIELD(pmodel.body),		NET_BYTE,  false	},	// 255 bodies
 { ES_FIELD(pmodel.skin),		NET_BYTE,  false	},	// 255 skins
-{ ES_FIELD(model.blending[0]),	NET_COLOR, false	},	// animation blending
-{ ES_FIELD(model.blending[1]),	NET_COLOR, false	},
+{ ES_FIELD(model.blending[0]),	NET_COLOR, false	},
+{ ES_FIELD(model.blending[1]),	NET_COLOR, false	},	// stateflags_t #1 (4 bytes)
 { ES_FIELD(model.blending[2]),	NET_COLOR, false	},
 { ES_FIELD(model.blending[3]),	NET_COLOR, false	},
 { ES_FIELD(model.blending[4]),	NET_COLOR, false	},
@@ -63,16 +59,10 @@ static net_field_t ent_fields[] =
 { ES_FIELD(model.controller[7]),	NET_COLOR, false	},
 { ES_FIELD(model.controller[8]),	NET_COLOR, false	},
 { ES_FIELD(solidtype),		NET_BYTE,	 false	},
-{ ES_FIELD(movetype),		NET_BYTE,	 false	},        // send flags (second 4 bytes)
+{ ES_FIELD(movetype),		NET_BYTE,	 false	},
 { ES_FIELD(gravity),		NET_SHORT, false	},	// gravity multiplier
 { ES_FIELD(aiment),			NET_WORD,	 false	},	// entity index
 { ES_FIELD(solid),			NET_LONG,	 false	},	// encoded mins/maxs
-{ ES_FIELD(model.blending[10]),	NET_COLOR, false	},
-{ ES_FIELD(model.blending[11]),	NET_COLOR, false	},
-{ ES_FIELD(model.blending[12]),	NET_COLOR, false	},
-{ ES_FIELD(model.blending[13]),	NET_COLOR, false	},
-{ ES_FIELD(model.blending[14]),	NET_COLOR, false	},
-{ ES_FIELD(model.blending[15]),	NET_COLOR, false	},
 { ES_FIELD(mins[0]),		NET_FLOAT, false	},
 { ES_FIELD(mins[1]),		NET_FLOAT, false	},
 { ES_FIELD(mins[2]),		NET_FLOAT, false	},
@@ -82,20 +72,12 @@ static net_field_t ent_fields[] =
 { ES_FIELD(effects),		NET_LONG,	 false	},	// effect flags
 { ES_FIELD(renderfx),		NET_LONG,	 false	},	// renderfx flags
 { ES_FIELD(renderamt),		NET_COLOR, false	},	// alpha amount
-{ ES_FIELD(rendercolor[0]),		NET_COLOR, false	},	// animation blending
+{ ES_FIELD(rendercolor[0]),		NET_COLOR, false	},	// stateflags_t #2 (4 bytes)
 { ES_FIELD(rendercolor[1]),		NET_COLOR, false	},
 { ES_FIELD(rendercolor[2]),		NET_COLOR, false	},
 { ES_FIELD(rendermode),		NET_BYTE,  false	},	// render mode (legacy stuff)
-{ ES_FIELD(model.controller[9]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[10]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[11]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[12]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[13]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[14]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[15]),	NET_COLOR, false	},
 { ES_FIELD(pm_type),		NET_BYTE,  false	},	// 16 player movetypes allowed
 { ES_FIELD(pm_flags),		NET_WORD,  false	},	// 16 movetype flags allowed
-{ ES_FIELD(pm_time),		NET_BYTE,  false	},	// each unit 8 msec
 { ES_FIELD(delta_angles[0]),		NET_FLOAT, false	},
 { ES_FIELD(delta_angles[1]),		NET_FLOAT, false	},
 { ES_FIELD(delta_angles[2]),		NET_FLOAT, false	},
@@ -108,9 +90,10 @@ static net_field_t ent_fields[] =
 { ES_FIELD(viewoffset[0]),		NET_SCALE, false	},
 { ES_FIELD(viewoffset[1]),		NET_SCALE, false	},
 { ES_FIELD(viewoffset[2]),		NET_SCALE, false	},
-{ ES_FIELD(maxspeed),		NET_WORD,  false	},	// send flags (third 4 bytes )
+{ ES_FIELD(maxspeed),		NET_WORD,  false	},
 { ES_FIELD(fov),			NET_FLOAT, false	},	// client horizontal field of view
 { ES_FIELD(health),			NET_FLOAT, false	},	// client health
+// reserve for 10-11 fields without enlarge null_msg_size
 { NULL },							// terminator
 };
 
@@ -585,7 +568,7 @@ identical, under the assumption that the in-order delta code will catch it.
 void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t *msg, bool force, bool newentity, const char *filename, int fileline ) 
 {
 	net_field_t	*field, *field2;
-	int		i, j, k, flags;
+	int		i, j, k, flags = 0;
 	int		*fromF, *toF;
 	int		num_fields;
 	size_t		null_msg_size;
@@ -620,7 +603,7 @@ void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t 
 			{
 				if( k > 31 ) break; // return to main cycle
 				toF = (int *)((byte *)to + field2->offset );
-				if( flags & 1<<k ) MSG_WriteBits( msg, *toF, field2->name, field2->bits );
+				if( flags & (1<<k)) MSG_WriteBits( msg, *toF, field2->name, field2->bits );
 			}
 			j = flags = 0;
 		}
@@ -628,9 +611,9 @@ void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t 
 
 	// NOTE: null_msg_size is number of (ent_fields / 32) + (1), 
 	// who indicates flags count multiplied by sizeof(long)
-	// plus sizeof(short) (head number). If message equal null_message_size
+	// plus sizeof(short) (head number). if message equal null_message_size
 	// we will be ignore it 
-	if(!force && (( msg->cursize - buff_size ) == null_msg_size ))
+	if( !force && (( msg->cursize - buff_size ) == null_msg_size ))
 		msg->cursize = buff_size; // kill message
 }
 
@@ -656,7 +639,6 @@ void MSG_ReadDeltaEntity( sizebuf_t *msg, entity_state_t *from, entity_state_t *
 		Host_Error( "MSG_ReadDeltaEntity: bad delta entity number: %i\n", number );
 
 	*to = *from;
-	VectorCopy( from->origin, to->old_origin );
 	to->number = number;
 
 	if(*(int *)&msg->data[msg->readcount] == -99 )

@@ -128,6 +128,16 @@ bool PvsForOrigin( vec3_t org, byte *pvs )
 	return true;
 }
 
+byte *PhsForCluster( int cluster )
+{
+	static byte phs[(MAX_MAP_LEAFS+7)/8];
+
+	Mem_Set( phs, 0x00, (numleafs+7)/8 );
+	DecompressVis( dvisdata + dvis->bitofs[cluster][DVIS_PHS], phs );
+
+	return phs;
+}
+
 //=============================================================================
 
 void PlaneFromWinding( viswinding_t *w, visplane_t *plane )
@@ -585,7 +595,7 @@ void WvisMain( void )
 	if( numnodes == 0 || numsurfaces == 0 )
 		Sys_Break( "Empty map %s.bsp\n", gs_filename );
 
-	Msg ("\n---- vis ---- [%s]\n", (bsp_parms & BSPLIB_FULLCOMPILE) ? "full" : "fast" );
+	Msg( "\n---- vis ---- [%s]\n", (bsp_parms & BSPLIB_FULLCOMPILE) ? "full" : "fast" );
 
 	LoadPortals();
 	CalcPVS();
@@ -593,6 +603,8 @@ void WvisMain( void )
 
 	visdatasize = vismap_p - dvisdata;	
 	MsgDev( D_INFO, "visdatasize:%i  compressed from %i\n", visdatasize, originalvismapsize * 2 );
+
+	CalcAmbientSounds();
 
 	WriteBSPFile();	
 }

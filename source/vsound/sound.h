@@ -8,7 +8,8 @@
 
 #include <windows.h>
 #include "launch_api.h"
-#include "ref_dllapi.h"
+#include "qfiles_ref.h"
+#include "vsound_api.h"
 #include "s_openal.h"
 
 extern stdlib_api_t com;
@@ -159,6 +160,7 @@ extern cvar_t *s_alDevice;
 extern cvar_t *s_soundfx;
 extern cvar_t *s_musicvolume;
 extern cvar_t *s_check_errors;
+extern sound_t ambient_sfx[NUM_AMBIENTS];
 
 void S_Init( void *hInst );
 void S_Shutdown( void );
@@ -175,6 +177,7 @@ int S_StartLocalSound( const char *name );
 sfx_t *S_GetSfxByHandle( sound_t handle );
 void S_StreamBackgroundTrack( void );
 void S_StopBackgroundTrack( void );
+void S_InitAmbientSounds( void );
 void S_ClearSoundBuffer( void );
 bool S_LoadSound( sfx_t *sfx );
 void S_StartStreaming( void );

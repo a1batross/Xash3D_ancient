@@ -10,7 +10,7 @@
 #include "launch_api.h"
 #include "engine_api.h"
 #include "physic_api.h"
-#include "ref_dllapi.h"
+#include "qfiles_ref.h"
 
 typedef struct physbody_s	NewtonBody;
 typedef struct physworld_s	NewtonWorld;

@@ -11,6 +11,11 @@
 #define SHADER_NOMIP		2	// 2d images
 #define SHADER_GENERIC		3	// generic shader
 
+// player_state_t->renderfx
+#define RDF_UNDERWATER		(1<<0)	// warp the screen as apropriate
+#define RDF_NOWORLDMODEL		(1<<1)	// used for player configuration screen
+#define RDF_BLOOM			(1<<2)	// light blooms
+
 typedef struct vrect_s
 {
 	int	x, y;

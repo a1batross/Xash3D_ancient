@@ -7,6 +7,7 @@
 #include "s_stream.h"
 
 #define MAX_SFX		4096
+sound_t ambient_sfx[NUM_AMBIENTS];
 static sfx_t s_knownSfx[MAX_SFX];
 static int s_numSfx = 0;
 int s_registration_sequence = 0;
@@ -617,6 +618,8 @@ void S_BeginRegistration( void )
 {
 	s_registration_sequence++;
 	s_registering = true;
+
+	S_InitAmbientSounds();
 }
 
 /*
@@ -659,11 +662,11 @@ sound_t S_RegisterSound( const char *name )
 {
 	sfx_t	*sfx;
 
-	if(!al_state.initialized)
-		return 0;
+	if( !al_state.initialized )
+		return -1;
 
 	sfx = S_FindSound( name );
-	if( !sfx ) return 0;
+	if( !sfx ) return -1;
 
 	sfx->registration_sequence = s_registration_sequence;
 	if( !s_registering ) S_LoadSound( sfx );
@@ -682,9 +685,9 @@ sfx_t *S_GetSfxByHandle( sound_t handle )
 }
 
 /*
- =================
- S_FreeSounds
- =================
+=================
+S_FreeSounds
+=================
 */
 void S_FreeSounds( void )
 {
@@ -704,4 +707,11 @@ void S_FreeSounds( void )
 
 	Mem_Set( s_knownSfx, 0, sizeof(s_knownSfx));
 	s_numSfx = 0;
+}
+
+void S_InitAmbientSounds( void )
+{
+	// FIXME: create external script for replace this sounds
+	ambient_sfx[AMBIENT_SKY] = S_RegisterSound( "ambience/wind2.wav" );
+	ambient_sfx[AMBIENT_WATER] = S_RegisterSound( "ambience/water1.wav" );
 }
