@@ -15,6 +15,7 @@
 #define MAX_MODELS			4096	// total count of brush & studio various models per one map
 #define MAX_PARTICLES		32768	// pre one frame
 #define MAX_EDICTS			65535	// absolute limit that never be reached, (do not edit!)
+#define MAX_VERTS_ON_POLY		10	// decal vertices
 
 // engine edict types
 typedef enum

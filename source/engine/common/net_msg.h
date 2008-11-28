@@ -61,6 +61,7 @@ enum svc_ops_e
 	svc_packetentities,		// [...]
 	svc_deltapacketentities,	// [...]
 	svc_frame,		// server frame
+	svc_setangle,		// [short short short] set the view angle to this absolute value
 };
 
 // client to server
@@ -187,6 +188,8 @@ void MSG_BeginReading (sizebuf_t *sb);
 #define MSG_ReadShort( x) _MSG_ReadBits( x, NET_SHORT, __FILE__, __LINE__ )
 #define MSG_ReadWord( x ) _MSG_ReadBits( x, NET_WORD, __FILE__, __LINE__ )
 #define MSG_ReadLong( x ) _MSG_ReadBits( x, NET_LONG, __FILE__, __LINE__ )
+#define MSG_ReadAngle16( x ) _MSG_ReadBits( x, NET_ANGLE, __FILE__, __LINE__ )
+#define MSG_ReadAngle32( x ) _MSG_ReadBits( x, NET_FLOAT, __FILE__, __LINE__ )
 float MSG_ReadFloat( sizebuf_t *msg );
 char *MSG_ReadString( sizebuf_t *sb );
 char *MSG_ReadStringLine( sizebuf_t *sb );

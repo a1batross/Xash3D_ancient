@@ -54,7 +54,7 @@ bool CL_CheckOrDownloadFile( const char *filename )
 	if( f )
 	{
 		// it exists
-		int len = FS_Tell( f );
+		size_t	len = FS_Tell( f );
 
 		cls.download = f;
 		// give the server an offset to start the download
@@ -141,7 +141,7 @@ void CL_ParseDownload( sizebuf_t *msg )
 		if( r ) MsgDev( D_ERROR, "failed to rename.\n" );
 
 		cls.download = NULL;
-		Cvar_SetValue("scr_download", 0.0f );
+		Cvar_SetValue( "scr_download", 0.0f );
 
 		// get another file if needed
 		CL_RequestNextDownload();
@@ -184,9 +184,9 @@ void CL_ParseServerData( sizebuf_t *msg )
 	str = MSG_ReadString( msg );
 
 	// get splash name
-	Cvar_Set( "cl_levelshot_name", va("background/%s.png", str ));
+	Cvar_Set( "cl_levelshot_name", va( "background/%s.png", str ));
 	Cvar_SetValue("scr_loading", 0.0f ); // reset progress bar
-	if(!FS_FileExists(va("gfx/%s", Cvar_VariableString("cl_levelshot_name")))) 
+	if(!FS_FileExists( va("gfx/%s", Cvar_VariableString( "cl_levelshot_name" )))) 
 	{
 		Cvar_Set("cl_levelshot_name", "common/black");
 		cl.make_levelshot = true; // make levelshot
@@ -261,6 +261,19 @@ void CL_ParseConfigString( sizebuf_t *msg )
 	}
 }
 
+/*
+================
+CL_ParseSetAngle
+
+set the view angle to this absolute value
+================
+*/
+void CL_ParseSetAngle( sizebuf_t *msg )
+{
+	cl.viewangles[0] = MSG_ReadAngle16( msg );
+	cl.viewangles[1] = MSG_ReadAngle16( msg );
+	cl.viewangles[2] = MSG_ReadAngle16( msg );
+}
 
 /*
 =====================================================================
@@ -328,13 +341,11 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 		case svc_spawnbaseline:
 			CL_ParseBaseline( msg );
 			break;
-		/*
-		case svc_temp_entity:
-			CL_ParseTempEnts( msg );
-			break;
-		*/
 		case svc_download:
 			CL_ParseDownload( msg );
+			break;
+		case svc_setangle:
+			CL_ParseSetAngle( msg );
 			break;
 		case svc_frame:
 			CL_ParseFrame( msg );

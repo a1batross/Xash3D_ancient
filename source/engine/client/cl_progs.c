@@ -223,22 +223,22 @@ bool CL_LoadEdict( edict_t *ent )
 	return true;
 }
 
-void PF_BeginRead( void )
+static void PF_BeginRead( void )
 {
 }
 
-void PF_EndRead( void )
+static void PF_EndRead( void )
 {
 }
 
-void PF_ReadChar (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadChar( cls.multicast ); }
-void PF_ReadShort (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadShort( cls.multicast ); }
-void PF_ReadLong (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadLong( cls.multicast ); }
-void PF_ReadFloat (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadFloat( cls.multicast ); }
-void PF_ReadAngle (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadBits( cls.multicast, NET_FLOAT ); }
-void PF_ReadCoord (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadBits( cls.multicast, NET_FLOAT ); }
-void PF_ReadString (void){ PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( MSG_ReadString( cls.multicast) ); }
-void PF_ReadEntity (void){ VM_RETURN_EDICT( PRVM_PROG_TO_EDICT( MSG_ReadShort( cls.multicast ))); } // entindex
+static void PF_ReadChar (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadChar( cls.multicast ); }
+static void PF_ReadShort (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadShort( cls.multicast ); }
+static void PF_ReadLong (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadLong( cls.multicast ); }
+static void PF_ReadFloat (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadFloat( cls.multicast ); }
+static void PF_ReadAngle (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadBits( cls.multicast, NET_FLOAT ); }
+static void PF_ReadCoord (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadBits( cls.multicast, NET_FLOAT ); }
+static void PF_ReadString (void){ PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( MSG_ReadString( cls.multicast) ); }
+static void PF_ReadEntity (void){ VM_RETURN_EDICT( PRVM_PROG_TO_EDICT( MSG_ReadShort( cls.multicast ))); } // entindex
 
 /*
 =========
@@ -247,7 +247,7 @@ PF_drawfield
 void DrawField( float value, vector pos, vector size )
 =========
 */
-void PF_drawfield( void )
+static void PF_drawfield( void )
 {
 	char	num[16], *ptr;
 	int	l, frame;
@@ -286,7 +286,7 @@ PF_drawnet
 void DrawNet( vector pos, string image )
 =========
 */
-void PF_drawnet( void )
+static void PF_drawnet( void )
 {
 	float	*pos;
 	shader_t	shader;
@@ -310,7 +310,7 @@ PF_drawfps
 void DrawFPS( vector pos )
 =========
 */
-void PF_drawfps( void )
+static void PF_drawfps( void )
 {
 	float		calc;
 	static double	nexttime = 0, lasttime = 0;
@@ -358,7 +358,7 @@ PF_drawcenterprint
 void DrawCenterPrint( void )
 =========
 */
-void PF_drawcenterprint( void )
+static void PF_drawcenterprint( void )
 {
 	char	*start;
 	int	l, x, y, w;
@@ -411,7 +411,7 @@ PF_centerprint
 void HUD_CenterPrint( string text, float y, float charwidth )
 =========
 */
-void PF_centerprint( void )
+static void PF_centerprint( void )
 {
 	float		y, width;
 	const char	*text;
@@ -448,7 +448,7 @@ PF_levelshot
 float HUD_MakeLevelShot( void )
 =========
 */
-void PF_levelshot( void )
+static void PF_levelshot( void )
 {
 	PRVM_G_FLOAT(OFS_RETURN) = 0;
 	if(!VM_ValidateArgs( "HUD_MakeLevelShot", 0 ))
@@ -472,7 +472,7 @@ PF_setcolor
 void HUD_SetColor( vector rgb, float alpha )
 =========
 */
-void PF_setcolor( void )
+static void PF_setcolor( void )
 {
 	float	*rgb, alpha;
 
@@ -488,36 +488,112 @@ void PF_setcolor( void )
 =========
 PF_startsound
 
-CL_StartSound( vector pos, entity e, float chan, float sfx, float vol, float attn )
+void CL_StartSound( vector pos, entity e, float chan, float sfx, float vol, float attn, float localsound )
 =========
 */
-void PF_startsound( void )
+static void PF_startsound( void )
 {
 	float 	volume;
 	int 	channel;
-	int 	sound_num;
+	sound_t 	sound_num;
 	int 	attenuation;
 	float	*pos = NULL;
+	bool	client_sound;
 	int	ent = 0;
 
-	if( !VM_ValidateArgs( "CL_StartSound", 6 ))
+	if( !VM_ValidateArgs( "CL_StartSound", 7 ))
 		return;
 
 	pos = PRVM_G_VECTOR(OFS_PARM0);
 	ent = PRVM_G_EDICTNUM(OFS_PARM1);
 	channel = (int)PRVM_G_FLOAT(OFS_PARM2);
-	sound_num = (int)PRVM_G_FLOAT(OFS_PARM3);
+	sound_num = (sound_t)PRVM_G_FLOAT(OFS_PARM3);
 	volume = PRVM_G_FLOAT(OFS_PARM4);
 	attenuation = (int)PRVM_G_FLOAT(OFS_PARM5);
-	if( !cl.sound_precache[sound_num] )
+	client_sound = (bool)PRVM_G_FLOAT(OFS_PARM6);
+
+	if( client_sound )
 	{
-		VM_Warning( "CL_StartSound: invalid sound index: %i\n", sound_num );
-		return;
+		S_StartSound( pos, ent, channel, sound_num, volume, attenuation );
 	}
-	S_StartSound( pos, ent, channel, cl.sound_precache[sound_num], volume, attenuation );
+	else if( cl.sound_precache[sound_num] )
+	{
+		S_StartSound( pos, ent, channel, cl.sound_precache[sound_num], volume, attenuation );
+	}
+	else VM_Warning( "CL_StartSound: can't play sound with index %i\n", sound_num );
 }
 
-//NOTE: intervals between various "interfaces" was leave for future expansions
+/*
+=========
+PF_pointcontents
+
+float CL_PointContents( vector point )
+=========
+*/
+static void PF_pointcontents( void )
+{
+	if( !VM_ValidateArgs( "CL_PointContents", 1 ))
+		return;
+	PRVM_G_FLOAT(OFS_RETURN) = CL_PointContents(PRVM_G_VECTOR(OFS_PARM0));	
+}
+
+/*
+=========
+PF_startsound
+
+sound_t CL_PrecacheSound( string samp )
+=========
+*/
+static void PF_precachesound( void )
+{
+	if( !VM_ValidateArgs( "CL_PrecacheSound", 1 ))
+		return;
+
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+	PRVM_G_FLOAT(OFS_RETURN) = S_RegisterSound(PRVM_G_STRING(OFS_PARM0));
+}
+
+/*
+=================
+PF_findexplosionplane
+
+vector CL_FindExplosionPlane( vector org, float radius )
+=================
+*/
+static void PF_findexplosionplane( void )
+{
+	static vec3_t	planes[6] = {{0, 0, 1}, {0, 1, 0}, {1, 0, 0}, {0, 0, -1}, {0, -1, 0}, {-1, 0, 0}};
+	trace_t		trace;
+	float		best = 1.0, radius;
+	vec3_t		point, dir;
+	const float	*org;
+	int		i;
+
+	if( !VM_ValidateArgs( "CL_FindExplosionPlane", 2 ))
+		return;
+
+	org = PRVM_G_VECTOR(OFS_PARM0);
+	radius = PRVM_G_FLOAT(OFS_PARM1);
+	VectorClear( dir );
+
+	for( i = 0; i < 6; i++ )
+	{
+		VectorMA( org, radius, planes[i], point );
+
+		trace = CL_Trace( org, vec3_origin, vec3_origin, point, MOVE_WORLDONLY, NULL, MASK_SOLID );
+		if( trace.allsolid || trace.fraction == 1.0 )
+			continue;
+
+		if( trace.fraction < best )
+		{
+			best = trace.fraction;
+			VectorCopy( trace.plane.normal, dir );
+		}
+	}
+	VectorCopy( dir, PRVM_G_VECTOR( OFS_RETURN ));
+}
+
+// NOTE: intervals between various "interfaces" was leave for future expansions
 prvm_builtin_t vm_cl_builtins[] = 
 {
 NULL,				// #0  (leave blank as default, but can include easter egg ) 
@@ -642,8 +718,18 @@ PF_centerprint,			// #123 void HUD_CenterPrint( string text, float y, float char
 PF_levelshot,			// #124 float HUD_MakeLevelShot( void )
 PF_setcolor,			// #125 void HUD_SetColor( vector rgb, float alpha )
 VM_localsound,			// #126 void HUD_PlaySound( string sample )
-PF_startsound,			// #127 void CL_StartSound( vector pos, entity e, float chan, float sfx, float vol, float attn )
+PF_startsound,			// #127 void CL_StartSound( vector, entity, float, float, float, float, float )
 PF_addparticle,			// #128 float AddParticle(vector, vector, vector, vector, vector, vector, vector, string, float)
+PF_pointcontents,			// #129 float CL_PointContents( vector point )
+PF_precachesound,			// #130 sound_t CL_PrecacheSound( string samp )
+PF_adddecal,			// #131 void AddDecal( vector, vector, vector, float, float, float, float, string, float )
+PF_addlight,			// #132 void AddLight( vector pos, vector col, float rad, float decay, float time, float key )
+NULL,				// #133
+NULL,				// #134
+NULL,				// #135
+NULL,				// #136
+NULL,				// #137
+PF_findexplosionplane,		// #138 vector CL_FindExplosionPlane( vector org, float radius )
 };
 
 const int vm_cl_numbuiltins = sizeof(vm_cl_builtins) / sizeof(prvm_builtin_t); //num of builtins

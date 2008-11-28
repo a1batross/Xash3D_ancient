@@ -1,23 +1,7 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-// cl_fx.c -- entity effects parsing and management
+//=======================================================================
+//			Copyright XashXT Group 2008 ©
+//		cl_effects.c - entity effects parsing and management
+//=======================================================================
 
 #include "common.h"
 #include "client.h"
@@ -46,9 +30,9 @@ static int	lastofs;
 CL_ClearLightStyles
 ================
 */
-void CL_ClearLightStyles (void)
+void CL_ClearLightStyles( void )
 {
-	Mem_Set (cl_lightstyle, 0, sizeof(cl_lightstyle));
+	Mem_Set( cl_lightstyle, 0, sizeof( cl_lightstyle ));
 	lastofs = -1;
 }
 
@@ -57,21 +41,20 @@ void CL_ClearLightStyles (void)
 CL_RunLightStyles
 ================
 */
-void CL_RunLightStyles (void)
+void CL_RunLightStyles( void )
 {
-	int		ofs;
+	int		i, ofs;
 	clightstyle_t	*ls;
-	int		i;
 	
 	ofs = cl.time / 100;
 	if( ofs == lastofs ) return;
 	lastofs = ofs;
 
-	for( i = 0, ls = cl_lightstyle; i < MAX_LIGHTSTYLES; i++, ls++)
+	for( i = 0, ls = cl_lightstyle; i < MAX_LIGHTSTYLES; i++, ls++ )
 	{
 		if( !ls->length )
 		{
-			ls->value[0] = ls->value[1] = ls->value[2] = 1.0;
+			VectorSet( ls->value, 1.0f, 1.0f, 1.0f );
 			continue;
 		}
 		if( ls->length == 1 ) ls->value[0] = ls->value[1] = ls->value[2] = ls->map[0];
@@ -92,7 +75,7 @@ void CL_SetLightstyle( int i )
 	cl_lightstyle[i].length = j;
 
 	for( k = 0; k < j; k++ )
-		cl_lightstyle[i].map[k] = (float)(s[k]-'a')/(float)('m'-'a');
+		cl_lightstyle[i].map[k] = (float)(s[k]-'a') / (float)('m'-'a');
 }
 
 /*
@@ -124,9 +107,9 @@ cdlight_t		cl_dlights[MAX_DLIGHTS];
 CL_ClearDlights
 ================
 */
-void CL_ClearDlights (void)
+void CL_ClearDlights( void )
 {
-	Mem_Set (cl_dlights, 0, sizeof(cl_dlights));
+	Mem_Set( cl_dlights, 0, sizeof( cl_dlights ));
 }
 
 /*
@@ -135,59 +118,80 @@ CL_AllocDlight
 
 ===============
 */
-cdlight_t *CL_AllocDlight (int key)
+cdlight_t *CL_AllocDlight( int key )
 {
 	int		i;
-	cdlight_t	*dl;
+	cdlight_t		*dl;
 
 	// first look for an exact key match
-	if (key)
+	if( key )
 	{
 		dl = cl_dlights;
-		for (i=0 ; i<MAX_DLIGHTS ; i++, dl++)
+		for( i = 0; i < MAX_DLIGHTS; i++, dl++ )
 		{
-			if (dl->key == key)
+			if( dl->key == key )
 			{
-				Mem_Set (dl, 0, sizeof(*dl));
+				Mem_Set( dl, 0, sizeof( *dl ));
 				dl->key = key;
 				return dl;
 			}
 		}
 	}
 
-// then look for anything else
+	// then look for anything else
 	dl = cl_dlights;
-	for (i=0 ; i<MAX_DLIGHTS ; i++, dl++)
+	for( i = 0; i < MAX_DLIGHTS; i++, dl++ )
 	{
-		if (dl->die < cl.time)
+		if( dl->die < cl.time )
 		{
-			Mem_Set (dl, 0, sizeof(*dl));
+			Mem_Set( dl, 0, sizeof( *dl ));
 			dl->key = key;
 			return dl;
 		}
 	}
 
 	dl = &cl_dlights[0];
-	Mem_Set (dl, 0, sizeof(*dl));
+	Mem_Set( dl, 0, sizeof( *dl ));
 	dl->key = key;
 	return dl;
 }
 
 /*
 ===============
-CL_NewDlight
+PF_addlight
+
+void AddLight( vector pos, vector color, float radius, float decay, float time, float key )
 ===============
 */
-void CL_NewDlight (int key, float x, float y, float z, float radius, float time)
+void PF_addlight( void )
 {
-	cdlight_t	*dl;
+	cdlight_t		*dl;
+	const float	*pos, *col;
+	float		radius, decay, time;
+	int		key;
 
-	dl = CL_AllocDlight (key);
-	dl->origin[0] = x;
-	dl->origin[1] = y;
-	dl->origin[2] = z;
+	if( !VM_ValidateArgs( "AddLight", 6 ))
+		return;
+
+	pos = PRVM_G_VECTOR(OFS_PARM0);
+	col = PRVM_G_VECTOR(OFS_PARM1);
+	radius = PRVM_G_FLOAT(OFS_PARM2);
+	decay = PRVM_G_FLOAT(OFS_PARM3);
+	time = PRVM_G_FLOAT(OFS_PARM4);
+	key = (int)PRVM_G_FLOAT(OFS_PARM5);
+
+	if( radius <= 0 )
+	{
+		VM_Warning( "AddLight: ignore light with radius <= 0\n" );
+		return;
+	}
+
+	dl = CL_AllocDlight( key );
+	VectorCopy( pos, dl->origin );
+	VectorCopy( col, dl->color );
+	dl->die = cl.time + (time * 1000);
+	dl->decay = (decay * 1000);
 	dl->radius = radius;
-	dl->die = cl.time + time;
 }
 
 
@@ -197,25 +201,22 @@ CL_RunDLights
 
 ===============
 */
-void CL_RunDLights (void)
+void CL_RunDLights( void )
 {
-	int			i;
+	int	i;
 	cdlight_t	*dl;
 
 	dl = cl_dlights;
-	for (i=0 ; i<MAX_DLIGHTS ; i++, dl++)
+	for( i = 0; i < MAX_DLIGHTS; i++, dl++ )
 	{
-		if (!dl->radius)
-			continue;
-		
-		if (dl->die < cl.time)
+		if( !dl->radius ) continue;
+		if( dl->die < cl.time )
 		{
 			dl->radius = 0;
 			return;
 		}
-		dl->radius -= cls.frametime*dl->decay;
-		if (dl->radius < 0)
-			dl->radius = 0;
+		dl->radius -= cls.frametime * dl->decay;
+		if( dl->radius < 0 ) dl->radius = 0;
 	}
 }
 
@@ -225,7 +226,7 @@ CL_AddDLights
 
 ===============
 */
-void CL_AddDLights (void)
+void CL_AddDLights( void )
 {
 	int	i;
 	cdlight_t	*dl;
@@ -237,7 +238,228 @@ void CL_AddDLights (void)
 	}
 }
 
+/*
+==============================================================
 
+DECALS MANAGEMENT
+
+==============================================================
+*/
+#define MAX_DECALS			2048
+#define DECAL_FADETIME		(30 * 1000)	// 30 seconds
+#define DECAL_STAYTIME		(120 * 1000)	// 120 seconds
+
+typedef struct cdecal_s
+{
+	struct cdecal_s	*prev, *next;
+	int		time;
+	vec4_t		modulate;
+	bool		alphaFade;
+	shader_t		shader;
+	int		numVerts;
+	polyVert_t	verts[MAX_VERTS_ON_POLY];
+	vec3_t		origin;
+} cdecal_t;
+
+static cdecal_t	cl_activeDecals;
+static cdecal_t	*cl_freeDecals;
+static cdecal_t	cl_decalList[MAX_DECALS];
+
+/*
+=================
+CL_FreeDecal
+=================
+*/
+static void CL_FreeDecal( cdecal_t *decal )
+{
+	if( !decal->prev )
+		return;
+
+	decal->prev->next = decal->next;
+	decal->next->prev = decal->prev;
+
+	decal->next = cl_freeDecals;
+	cl_freeDecals = decal;
+}
+
+/*
+=================
+CL_AllocDecal
+
+will always succeed, even if it requires freeing an old active mark
+=================
+*/
+static cdecal_t *CL_AllocDecal( void )
+{
+	cdecal_t	*decal;
+
+	if( !cl_freeDecals )
+		CL_FreeDecal( cl_activeDecals.prev );
+
+	decal = cl_freeDecals;
+	cl_freeDecals = cl_freeDecals->next;
+
+	Mem_Set( decal, 0, sizeof( cdecal_t ));
+
+	decal->next = cl_activeDecals.next;
+	decal->prev = &cl_activeDecals;
+	cl_activeDecals.next->prev = decal;
+	cl_activeDecals.next = decal;
+
+	return decal;
+}
+
+/*
+=================
+CL_ClearDecals
+=================
+*/
+void CL_ClearDecals( void )
+{
+	int	i;
+
+	Mem_Set( cl_decalList, 0, sizeof( cl_decalList ));
+
+	cl_activeDecals.next = &cl_activeDecals;
+	cl_activeDecals.prev = &cl_activeDecals;
+	cl_freeDecals = cl_decalList;
+
+	for( i = 0; i < MAX_DECALS - 1; i++ )
+		cl_decalList[i].next = &cl_decalList[i+1];
+}
+
+/*
+=================
+CL_AddDecal
+
+called from render after clipping
+=================
+*/
+void CL_AddDecal( vec3_t org, matrix3x3 m, shader_t s, vec4_t rgba, bool fade, decalFragment_t *df, const vec3_t *v )
+{
+	cdecal_t	*decal;
+	vec3_t	delta;
+	int	i;
+
+	decal = CL_AllocDecal();
+	VectorCopy( org, decal->origin );
+	decal->time = cl.time;
+	Vector4Copy( rgba, decal->modulate );
+	decal->alphaFade = fade;
+	decal->shader = s;
+	decal->numVerts = df->numVerts;
+
+	for( i = 0; i < df->numVerts; i++ )
+	{
+		VectorCopy( v[df->firstVert + i], decal->verts[i].point );
+
+		VectorSubtract( decal->verts[i].point, org, delta );
+		decal->verts[i].st[0] = 0.5 + DotProduct( delta, m[1] );
+		decal->verts[i].st[1] = 0.5 + DotProduct( delta, m[2] );
+		Vector4Copy( rgba, decal->verts[i].modulate );
+	}
+}
+
+/*
+=================
+CL_AddDecals
+=================
+*/
+void CL_AddDecals( void )
+{
+	cdecal_t	*decal, *next;
+	int	i, time, fadeTime;
+	float	c;
+
+	fadeTime = DECAL_FADETIME;	// 30 seconds
+
+	for( decal = cl_activeDecals.next; decal != &cl_activeDecals; decal = next )
+	{
+		// crab next now, so if the decal is freed we still have it
+		next = decal->next;
+
+		if( cl.time >= decal->time + DECAL_STAYTIME )
+		{
+			CL_FreeDecal( decal );
+			continue;
+		}
+
+		// HACKHACK: fade out glowing energy decals
+		if( decal->shader == re->RegisterShader( "particles/energy", SHADER_GENERIC ))
+		{
+			time = cl.time - decal->time;
+
+			if( time < fadeTime )
+			{
+				c = 1.0 - ((float)time / fadeTime);
+
+				for( i = 0; i < decal->numVerts; i++ )
+				{
+					decal->verts[i].modulate[0] = decal->modulate[0] * c;
+					decal->verts[i].modulate[1] = decal->modulate[1] * c;
+					decal->verts[i].modulate[2] = decal->modulate[2] * c;
+				}
+			}
+		}
+
+		// fade out with time
+		time = decal->time + DECAL_STAYTIME - cl.time;
+
+		if( time < fadeTime )
+		{
+			c = (float)time / fadeTime;
+
+			if( decal->alphaFade )
+			{
+				for( i = 0; i < decal->numVerts; i++ )
+					decal->verts[i].modulate[3] = decal->modulate[3] * c;
+			}
+			else
+			{
+				for( i = 0; i < decal->numVerts; i++ )
+				{
+					decal->verts[i].modulate[0] = decal->modulate[0] * c;
+					decal->verts[i].modulate[1] = decal->modulate[1] * c;
+					decal->verts[i].modulate[2] = decal->modulate[2] * c;
+				}
+			}
+		}
+		re->AddPolygon( decal->shader, decal->numVerts, decal->verts );
+	}
+}
+
+/*
+===============
+PF_adddecal
+
+void AddDecal( vector org, vector dir, vector color, float rot, float radius, float alpha, float fade, float shader, float temp )
+===============
+*/
+void PF_adddecal( void )
+{
+	float	*org, *dir, *col;
+	float	rot, radius, alpha;
+	shader_t	shader;
+	bool	fade, temp;
+	vec4_t	modulate;
+
+	if( !VM_ValidateArgs( "AddDecal", 9 ))
+		return;
+
+	VM_ValidateString( PRVM_G_STRING( OFS_PARM7 ));
+	org = PRVM_G_VECTOR(OFS_PARM0);
+	dir = PRVM_G_VECTOR(OFS_PARM1);
+	col = PRVM_G_VECTOR(OFS_PARM2);
+	rot = PRVM_G_FLOAT(OFS_PARM3);
+	radius = PRVM_G_FLOAT(OFS_PARM4);
+	alpha = PRVM_G_FLOAT(OFS_PARM5);
+	fade = (bool)PRVM_G_FLOAT(OFS_PARM6);
+	shader = re->RegisterShader( PRVM_G_STRING(OFS_PARM7), SHADER_GENERIC );
+	temp = (bool)PRVM_G_FLOAT(OFS_PARM8);
+
+	Vector4Set( modulate, col[0], col[1], col[2], alpha );
+	re->ImpactMark( org, dir, rot, radius, modulate, fade, shader, temp );	
+}
 
 /*
 ==============================================================
@@ -608,209 +830,8 @@ void PF_addparticle( void )
 }
 
 /*
-===============
-CL_ParticleEffect
-
-Wall impact puffs
-===============
-*/
-void CL_ParticleEffect (vec3_t org, vec3_t dir, int color, int count)
-{
-	int			i, j;
-	cparticle_t	*p;
-	float		d;
-
-	for( i = 0; i < count; i++ )
-	{
-		p = CL_AllocParticle();
-		if( !p ) return;
-
-		p->time = cl.time;
-		VectorCopy( UnpackRGBA( color ), p->color );
-
-		d = rand()&31;
-		for( j = 0; j < 3; j++ )
-		{
-			p->org[j] = org[j] + ((rand()&7)-4) + d*dir[j];
-			p->vel[j] = RANDOM_FLOAT( -1.0f, 1.0f ) * 20;
-		}
-
-		p->accel[0] = p->accel[1] = 0;
-		p->accel[2] = -PARTICLE_GRAVITY;
-		p->alpha = 1.0;
-		p->alphaVel = -1.0 / (0.5 + RANDOM_FLOAT(0, 1) * 0.3);
-		p->radius = 2;
-		p->radiusVel = 0;
-		p->length = 1;
-		p->lengthVel = 0;
-		p->rotation = 0;
-	}
-}
-
-/*
-===============
-CL_TeleportSplash
-
-===============
-*/
-void CL_TeleportSplash( vec3_t org )
-{
-	int		i, j, k;
-	cparticle_t	*p;
-	shader_t		teleShader;
-	float		vel, color;
-	vec3_t		dir;
-
-	if( !cl_particles->integer )
-		return;
-
-	teleShader = re->RegisterShader( "particles/glow", SHADER_GENERIC );
-
-	for( i = -16; i < 16; i += 4 )
-	{
-		for( j = -16; j < 16; j += 4 )
-		{
-			for( k = -24; k < 32; k += 4 )
-			{
-				p = CL_AllocParticle();
-				if( !p ) return;
-		
-				VectorSet( dir, j*8, i*8, k*8 );
-				VectorNormalizeFast( dir );
-
-				vel = 50 + (rand() & 63);
-				color = 0.1 + (0.2 * Com_RandomFloat( -1.0f, 1.0f ));
-								
-				p->shader = teleShader;
-				p->time = cl.time;
-				p->flags = 0;
-				
-				p->org[0] = org[0] + i + (rand() & 3);
-				p->org[1] = org[1] + j + (rand() & 3);
-				p->org[2] = org[2] + k + (rand() & 3);
-				p->vel[0] = dir[0] * vel;
-				p->vel[1] = dir[1] * vel;
-				p->vel[2] = dir[2] * vel;
-				p->accel[0] = 0;
-				p->accel[1] = 0;
-				p->accel[2] = -PARTICLE_GRAVITY;
-				p->color[0] = color;
-				p->color[1] = color;
-				p->color[2] = color;
-				p->colorVel[0] = 0;
-				p->colorVel[1] = 0;
-				p->colorVel[2] = 0;
-				p->alpha = 1.0;
-				p->alphaVel = -1.0 / (0.3 + (rand() & 7) * 0.02);
-				p->radius = 2;
-				p->radiusVel = 0;
-				p->length = 1;
-				p->lengthVel = 0;
-				p->rotation = 0;
-			}
-		}
-	}
-}
-
-/*
-=================
-CL_ExplosionParticles
-=================
-*/
-void CL_ExplosionParticles( const vec3_t org )
-{
-	cparticle_t	*p;
-	int		i, flags;
-	shader_t		sparksShader;
-	shader_t		smokeShader;
-
-	if( !cl_particles->integer )
-		return;
-
-	// sparks
-	flags = PARTICLE_STRETCH;
-	flags |= PARTICLE_BOUNCE;
-	flags |= PARTICLE_FRICTION;
-	sparksShader = re->RegisterShader( "particles/sparks", SHADER_GENERIC );
-	smokeShader = re->RegisterShader( "particles/smoke", SHADER_GENERIC );
-
-	for( i = 0; i < 384; i++ )
-	{
-		p = CL_AllocParticle();
-		if( !p ) return;
-
-		p->shader = sparksShader;
-		p->time = cl.time;
-		p->flags = flags;
-
-		p->org[0] = org[0] + ((rand() % 32) - 16);
-		p->org[1] = org[1] + ((rand() % 32) - 16);
-		p->org[2] = org[2] + ((rand() % 32) - 16);
-		p->vel[0] = (rand() % 512) - 256;
-		p->vel[1] = (rand() % 512) - 256;
-		p->vel[2] = (rand() % 512) - 256;
-		p->accel[0] = 0;
-		p->accel[1] = 0;
-		p->accel[2] = -60 + (30 * RANDOM_FLOAT( -1.0f, 1.0f ));
-		p->color[0] = 1.0;
-		p->color[1] = 1.0;
-		p->color[2] = 1.0;
-		p->colorVel[0] = 0;
-		p->colorVel[1] = 0;
-		p->colorVel[2] = 0;
-		p->alpha = 1.0;
-		p->alphaVel = -3.0;
-		p->radius = 0.5 + (0.2 * RANDOM_FLOAT( -1.0f, 1.0f ));
-		p->radiusVel = 0;
-		p->length = 8 + (4 * RANDOM_FLOAT( -1.0f, 1.0f ));
-		p->lengthVel = 8 + (4 * RANDOM_FLOAT( -1.0f, 1.0f ));
-		p->rotation = 0;
-		p->bounceFactor = 0.2;
-		VectorCopy( p->org, p->org2 );
-	}
-
-	// Smoke
-	flags = 0;
-	flags |= PARTICLE_VERTEXLIGHT;
-
-	for( i = 0; i < 5; i++ )
-	{
-		p = CL_AllocParticle();
-		if( !p ) return;
-
-		p->shader = smokeShader;
-		p->time = cl.time;
-		p->flags = flags;
-
-		p->org[0] = org[0] + RANDOM_FLOAT( -1.0f, 1.0f ) * 10;
-		p->org[1] = org[1] + RANDOM_FLOAT( -1.0f, 1.0f ) * 10;
-		p->org[2] = org[2] + RANDOM_FLOAT( -1.0f, 1.0f ) * 10;
-		p->vel[0] = RANDOM_FLOAT( -1.0f, 1.0f ) * 10;
-		p->vel[1] = RANDOM_FLOAT( -1.0f, 1.0f ) * 10;
-		p->vel[2] = RANDOM_FLOAT( -1.0f, 1.0f ) * 10 + (25 + RANDOM_FLOAT( -1.0f, 1.0f ) * 5);
-		p->accel[0] = 0;
-		p->accel[1] = 0;
-		p->accel[2] = 0;
-		p->color[0] = 0;
-		p->color[1] = 0;
-		p->color[2] = 0;
-		p->colorVel[0] = 0.75f;
-		p->colorVel[1] = 0.75f;
-		p->colorVel[2] = 0.75f;
-		p->alpha = 0.5f;
-		p->alphaVel = -(0.1 + RANDOM_FLOAT( 0.0f, 1.0f ) * 0.1f);
-		p->radius = 30 + (15 * RANDOM_FLOAT( -1.0f, 1.0f ));
-		p->radiusVel = 15 + (7.5 * RANDOM_FLOAT( -1.0f, 1.0f ));
-		p->length = 1;
-		p->lengthVel = 0;
-		p->rotation = rand() % 360;
-	}
-}
-
-/*
 ==============
 CL_ClearEffects
-
 ==============
 */
 void CL_ClearEffects( void )
@@ -818,4 +839,5 @@ void CL_ClearEffects( void )
 	CL_ClearParticles ();
 	CL_ClearDlights ();
 	CL_ClearLightStyles ();
+	CL_ClearDecals ();
 }

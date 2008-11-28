@@ -8,7 +8,7 @@
 #include "matrix_lib.h"
 #include "cm_utils.h"
 
-physbody_t *Phys_CreateBody( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform, int solid )
+physbody_t *Phys_CreateBody( sv_edict_t *ed, cmodel_t *mod, const vec3_t origin, const matrix3x3 matrix, int solid )
 {
 	NewtonCollision	*col;
 	NewtonBody	*body;
@@ -55,10 +55,11 @@ physbody_t *Phys_CreateBody( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform,
 	VectorScale( center, 0.5, offset[3] );
 	
 	// setup translation matrix
-	VectorCopy( transform[0], trans[0] );
-	VectorCopy( transform[1], trans[1] );
-	VectorCopy( transform[2], trans[2] );
-	VectorCopy( transform[3], trans[3] );
+	VectorCopy( matrix[0], trans[0] );
+	VectorCopy( matrix[1], trans[1] );
+	VectorCopy( matrix[2], trans[2] );
+	VectorCopy( origin, trans[3] );
+	ConvertPositionToPhysic( trans[3] );
 
 	switch(solid)
 	{          

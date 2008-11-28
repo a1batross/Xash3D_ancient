@@ -1738,7 +1738,7 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 			R_DrawParticle();
 			break;
 		case MESH_POLY:
-			// R_DrawPoly();
+			R_DrawPoly();
 			break;
 		default:
 			Host_Error( "RB_RenderMeshes: bad meshType (%i)\n", m_pRenderMesh->meshType );

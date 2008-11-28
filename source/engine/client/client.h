@@ -334,7 +334,6 @@ typedef struct
 	int	key;				// so entities can reuse same entry
 	float	die;				// stop lighting after this time
 	float	decay;				// drop this each second
-	float	minlight;			// don't add when contributing less
 } cdlight_t;
 
 extern	cdlight_t	cl_dlights[MAX_DLIGHTS];
@@ -541,14 +540,17 @@ void CL_AddLoopingSounds( void );
 //
 // cl_fx.c
 //
-cdlight_t *CL_AllocDlight (int key);
-void CL_AddParticles (void);
+cdlight_t *CL_AllocDlight( int key );
+void CL_AddParticles( void );
+void CL_AddDecals( void );
 void CL_ClearEffects( void );
 void CL_StudioEvent( dstudioevent_t *event, entity_state_t *ent );
-void CL_ExplosionParticles( const vec3_t org );
+void CL_AddDecal( vec3_t org, matrix3x3 m, shader_t s, vec4_t rgba, bool fade, decalFragment_t *df, const vec3_t *v );
 entity_state_t *CL_GetEdictByIndex( int index );
 entity_state_t *CL_GetLocalPlayer( void );
+void PF_addlight( void );
 void PF_addparticle( void );
+void PF_adddecal( void );
 
 //
 // cl_pred.c
@@ -558,7 +560,6 @@ void CL_PredictMovement (void);
 //
 // cl_con.c
 //
-int Con_PrintStrlen( const char *string );
 bool Con_Active( void );
 void Con_CheckResize( void );
 void Con_Print( const char *txt );

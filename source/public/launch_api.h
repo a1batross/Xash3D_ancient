@@ -50,8 +50,6 @@ typedef struct ui_globalvars_s ui_globalvars_t;
 typedef struct physbody_s	physbody_t;
 
 // FIXME: get rid of this
-typedef vec_t		matrix3x4[3][4];
-typedef vec_t		matrix4x3[4][3];
 typedef vec_t		gl_matrix[16];
 
 #ifndef NULL

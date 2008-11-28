@@ -380,7 +380,7 @@ _inline void AngleVectorsFLU(const vec3_t angles, vec3_t forward, vec3_t left, v
 }
 
 // FIXME: get rid of this
-_inline void MatrixAngles( matrix4x4 matrix, vec3_t origin, vec3_t angles )
+_inline void MatrixAngles( matrix3x3 matrix, vec3_t angles )
 { 
 	vec3_t		forward, right, up;
 	float		xyDist;
@@ -393,7 +393,7 @@ _inline void MatrixAngles( matrix4x4 matrix, vec3_t origin, vec3_t angles )
 	right[2] = matrix[1][1];
 	up[2] = matrix[2][1];
 	
-	xyDist = sqrt( forward[0] * forward[0] + forward[1] * forward[1] );
+	xyDist = com.sqrt( forward[0] * forward[0] + forward[1] * forward[1] );
 	
 	if ( xyDist > EQUAL_EPSILON )	// enough here to get angles?
 	{
@@ -407,8 +407,6 @@ _inline void MatrixAngles( matrix4x4 matrix, vec3_t origin, vec3_t angles )
 		angles[0] = RAD2DEG( atan2( -forward[2], xyDist ) );
 		angles[2] = 0;
 	}
-	VectorCopy(matrix[3], origin );// extract origin
-	ConvertPositionToGame( origin );
 }
 
 /*

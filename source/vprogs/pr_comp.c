@@ -162,7 +162,7 @@ opcode_t pr_opcodes[] =
 {"<RETURN>",	"RETURN",		-1,	ASSOC_LEFT, &type_float,	&type_void,	&type_void},
 {"!",		"NOT_F",		-1,	ASSOC_LEFT, &type_float,	&type_void,	&type_float},
 {"!",		"NOT_V",		-1,	ASSOC_LEFT, &type_vector,	&type_void,	&type_float},
-{"!",		"NOT_S",		-1,	ASSOC_LEFT, &type_vector,	&type_void,	&type_float},
+{"!",		"NOT_S",		-1,	ASSOC_LEFT, &type_string,	&type_void,	&type_float},
 {"!",		"NOT_ENT",	-1,	ASSOC_LEFT, &type_entity,	&type_void,	&type_float},
 {"!",		"NOT_FNC",	-1,	ASSOC_LEFT, &type_function,	&type_void,	&type_float},
 {"<IF>",		"IF",		-1,	ASSOC_RIGHT,&type_float,	NULL,		&type_void},

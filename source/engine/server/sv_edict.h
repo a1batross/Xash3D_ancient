@@ -68,7 +68,7 @@ struct sv_entvars_s
 	vec3_t	velocity;
 	vec3_t	avelocity;
 	vec3_t	m_pcentre[3];
-	vec3_t	m_pmatrix[4];
+	vec3_t	m_pmatrix[3];
 	vec3_t	movedir;
 	vec3_t	force;
 	vec3_t	torque;
@@ -96,22 +96,22 @@ struct sv_entvars_s
 	float	sequence;
 	float	animtime;
 	float	framerate;
-	float	style;
 	float	effects;
 	float	renderfx;
 	float	rendermode;
 	float	renderamt;
 	vec3_t	rendercolor;
-	float	colormap;
 	float	gaitsequence;
+	float	colormap;
+	float	style;
 	float	flags;
 	float	aiflags;
 	float	spawnflags;
-	float	blending[16];
 	float	controller[16];
-	float	fixangle;
+	float	blending[16];
 	vec3_t	v_angle;
 	vec3_t	view_ofs;
+	float	fixangle;
 	vec3_t	punchangle;
 	float	button0;
 	float	button1;
@@ -120,14 +120,14 @@ struct sv_entvars_s
 	float	weapon;
 	float	items;
 	float	currentammo;
-	string_t	v_model;
+	float	v_sequence;
 	float	v_frame;
+	string_t	v_model;
 	float	v_body;
 	float	v_skin;
-	float	v_sequence;
-	string_t	p_model;
 	float	p_sequence;
 	float	p_frame;
+	string_t	p_model;
 	float	p_body;
 	float	p_skin;
 	string_t	loopsound;
@@ -152,6 +152,6 @@ struct sv_entvars_s
 	float	team;
 };
 
-#define PROG_CRC_SERVER		16873
+#define PROG_CRC_SERVER		3519
 
 #endif//SV_EDICT_H

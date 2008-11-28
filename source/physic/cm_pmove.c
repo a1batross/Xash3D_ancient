@@ -238,7 +238,7 @@ void CM_ClientMove( pmove_t *pmove )
 
 }
 
-physbody_t *Phys_CreatePlayer( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform )
+physbody_t *Phys_CreatePlayer( sv_edict_t *ed, cmodel_t *mod, const vec3_t origin, const matrix3x3 matrix )
 {
 	NewtonCollision	*col, *hull;
 	NewtonBody	*body;
@@ -267,7 +267,8 @@ physbody_t *Phys_CreatePlayer( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transfor
 	m_maxTranslation = m_size[0] * 0.25f;
 	m_maxStepHigh = -m_size[2] * 0.5f;
 
-	VectorCopy( transform[3], trans[3] );	// copy position only
+	VectorCopy( origin, trans[3] );	// copy position only
+	ConvertPositionToPhysic( trans[3] );
 
 	trans[3][1] = CM_FindFloor( trans[3], 32768 ) + radius[2]; // merge floor position
 

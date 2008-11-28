@@ -66,6 +66,61 @@ void MatrixGL_MultiplyFast (const gl_matrix m1, const gl_matrix m2, gl_matrix ou
 
 /*
 ====================
+PerpendicularVector
+
+assumes "src" is normalized
+====================
+*/
+void PerpendicularVector( vec3_t dst, const vec3_t src )
+{
+	int	pos;
+	float	minelem;
+
+	if( src[0] )
+	{
+		dst[0] = 0;
+		if( src[1] )
+		{
+			dst[1] = 0;
+			if( src[2] )
+			{
+				dst[2] = 0;
+				pos = 0;
+				minelem = fabs( src[0] );
+				if( fabs( src[1] ) < minelem )
+				{
+					pos = 1;
+					minelem = fabs( src[1] );
+				}
+				if( fabs( src[2] ) < minelem )
+					pos = 2;
+
+				dst[pos] = 1;
+				dst[0] -= src[pos] * src[0];
+				dst[1] -= src[pos] * src[1];
+				dst[2] -= src[pos] * src[2];
+
+				// normalize the result
+				VectorNormalize( dst );
+			}
+			else dst[2] = 1;
+		}
+		else
+		{
+			dst[1] = 1;
+			dst[2] = 0;
+		}
+	}
+	else
+	{
+		dst[0] = 1;
+		dst[1] = 0;
+		dst[2] = 0;
+	}
+}
+
+/*
+====================
 RotatePointAroundVector
 ====================
 */

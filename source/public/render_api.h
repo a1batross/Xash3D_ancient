@@ -25,6 +25,19 @@ typedef struct vrect_s
 
 typedef struct
 {
+	vec3_t		point;
+	vec4_t		modulate;
+	vec2_t		st;
+} polyVert_t;
+
+typedef struct
+{
+	int		firstVert;
+	int		numVerts;
+} decalFragment_t;
+
+typedef struct
+{
 	vrect_t		rect;		// screen rectangle
 	float		fov_x;		// field of view by vertical
 	float		fov_y;		// field of view by horizontal
@@ -60,6 +73,7 @@ typedef struct render_exp_s
 	bool	(*AddRefEntity)( entity_state_t *s1, entity_state_t *s2, float lerp );
 	bool	(*AddDynLight)( vec3_t org, vec3_t color, float intensity );
 	bool	(*AddParticle)( shader_t shader, const vec3_t p1, const vec3_t p2, float rad, float len, float rot, int col );
+	bool	(*AddPolygon)( shader_t shader, int numVerts, const polyVert_t *verts );
 	bool	(*AddLightStyle)( int stylenum, vec3_t color );
 	void	(*ClearScene)( void );
 
@@ -75,7 +89,7 @@ typedef struct render_exp_s
 	void	(*DrawFill)( float x, float y, float w, float h );
 	void	(*DrawStretchRaw)( int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw );
 	void	(*DrawStretchPic)( float x, float y, float w, float h, float s1, float t1, float s2, float t2, shader_t shader );
-
+	void	(*ImpactMark)( vec3_t org, vec3_t dir, float rot, float radius, vec4_t mod, bool fade, shader_t s, bool tmp );
 	void	(*DrawGetPicSize)( int *w, int *h, shader_t shader );
 
 } render_exp_t;
@@ -88,6 +102,7 @@ typedef struct render_imp_s
 	// client fundamental callbacks
 	void	(*UpdateScreen)( void );	// update screen while loading
 	void	(*StudioEvent)( dstudioevent_t *event, entity_state_t *ent );
+	void	(*AddDecal)( vec3_t org, matrix3x3 m, shader_t s, vec4_t rgba, bool fade, decalFragment_t *df, const vec3_t *v );
 	void	(*ShowCollision)( cmdraw_t callback );	// debug
 	long	(*WndProc)( void *hWnd, uint uMsg, uint wParam, long lParam );
 	entity_state_t *(*GetClientEdict)( int index );

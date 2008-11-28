@@ -6,6 +6,7 @@
 #include "common.h"
 #include "server.h"
 #include "byteorder.h"
+#include "matrix_lib.h"
 #include "const.h"
 
 /*
@@ -134,7 +135,7 @@ static trace_t SV_TraceToss( edict_t *tossent, edict_t *ignore)
 void SV_CreatePhysBody( edict_t *ent )
 {
 	if( !ent || ent->progs.sv->movetype != MOVETYPE_PHYSIC ) return;
-	ent->priv.sv->physbody = pe->CreateBody( ent->priv.sv, SV_GetModelPtr(ent), ent->progs.sv->m_pmatrix, ent->progs.sv->solid );
+	ent->priv.sv->physbody = pe->CreateBody( ent->priv.sv, SV_GetModelPtr(ent), ent->progs.sv->origin, ent->progs.sv->m_pmatrix, ent->progs.sv->solid );
 
 	pe->SetParameters( ent->priv.sv->physbody, SV_GetModelPtr(ent), 0, ent->progs.sv->mass ); 
 }
@@ -166,13 +167,12 @@ void SV_SetModel (edict_t *ent, const char *name)
 	if( mod ) SV_SetMinMaxSize( ent, mod->mins, mod->maxs, false );
 
 	// FIXME: translate angles correctly
-	angles[0] = ent->progs.sv->angles[0] - 90.0f;
+	angles[0] = ent->progs.sv->angles[0] + 90;
 	angles[1] = ent->progs.sv->angles[1];
-	angles[2] = ent->progs.sv->angles[2] + 90.0f;
+	angles[2] = ent->progs.sv->angles[2] - 90;
 
-	AngleVectors( angles, ent->progs.sv->m_pmatrix[0], ent->progs.sv->m_pmatrix[1], ent->progs.sv->m_pmatrix[2] );
-	VectorCopy( ent->progs.sv->origin, ent->progs.sv->m_pmatrix[3] );
-	ConvertPositionToPhysic( ent->progs.sv->m_pmatrix[3] );
+	Matrix3x3_FromAngles( angles, ent->progs.sv->m_pmatrix );
+	Matrix3x3_Transpose( ent->progs.sv->m_pmatrix, ent->progs.sv->m_pmatrix );
 	SV_CreatePhysBody( ent );
 }
 
@@ -2055,7 +2055,7 @@ PF_lightstyle
 void lightstyle( float style, string value ) 
 ===============
 */
-void PF_lightstyle( void )
+static void PF_lightstyle( void )
 {
 	int		style;
 	const char	*val;
@@ -2078,7 +2078,7 @@ PF_pointcontents
 float pointcontents( vector v ) 
 =============
 */
-void PF_pointcontents( void )
+static void PF_pointcontents( void )
 {
 	if(!VM_ValidateArgs( "pointcontents", 1 )) return;
 	PRVM_G_FLOAT(OFS_RETURN) = SV_PointContents(PRVM_G_VECTOR(OFS_PARM0));

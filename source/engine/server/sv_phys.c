@@ -1689,15 +1689,6 @@ void SV_Physics_ClientEntity( edict_t *ent )
 	prog->globals.sv->time = sv.time;
 	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(ent);
 	PRVM_ExecuteProgram( prog->globals.sv->PlayerPostThink, "PlayerPostThink" );
-
-	if( ent->progs.sv->fixangle )
-	{
-		// angle fixing was requested by physics code...
-		// so store the current angles for later use
-		VectorCopy( ent->progs.sv->angles, client->fix_angles );
-		ent->progs.sv->fixangle = false;// and clear fixangle for the next frame
-		client->fixangle = true;
-	}
 }
 
 void SV_Physics_ClientMove( sv_client_t *client, usercmd_t *cmd )
@@ -1738,15 +1729,6 @@ void SV_Physics_ClientMove( sv_client_t *client, usercmd_t *cmd )
 	prog->globals.sv->pev = PRVM_EDICT_TO_PROG( ent );
 	PRVM_ExecuteProgram( prog->globals.sv->PlayerPostThink, "PlayerPostThink" );
 	prog->globals.sv->frametime = sv.frametime;
-
-	if( ent->progs.sv->fixangle )
-	{
-		// angle fixing was requested by physics code...
-		// so store the current angles for later use
-		VectorCopy( ent->progs.sv->angles, client->fix_angles );
-		ent->progs.sv->fixangle = false;// and clear fixangle for the next frame
-		client->fixangle = true;
-	}
 }
 
 /*

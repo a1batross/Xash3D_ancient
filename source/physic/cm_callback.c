@@ -93,19 +93,17 @@ void Callback_PmoveApplyForce( const NewtonBody* body )
 	pi.ClientMove((sv_edict_t *)NewtonBodyGetUserData( body ));
 }
 
-void Callback_ApplyTransform( const NewtonBody* body, const float* matrix )
+void Callback_ApplyTransform( const NewtonBody* body, const float* src )
 {
 	sv_edict_t	*edict = (sv_edict_t *)NewtonBodyGetUserData( body );
-	matrix4x4		objcoords;
-	matrix4x3		translate;// obj matrix
+	matrix4x4		tmp;
+	matrix3x3		dst;
+	vec3_t		origin;
 
-	// convert matrix4x4 into 4x3
-	// Matrix4x4_FromArrayFloatGL( objcoords, matrix ); 
-	Mem_Copy( objcoords, matrix, sizeof(objcoords));
-	VectorCopy( objcoords[0], translate[0] );
-	VectorCopy( objcoords[1], translate[1] );
-	VectorCopy( objcoords[2], translate[2] );
-	VectorCopy( objcoords[3], translate[3] );
+	Matrix4x4_FromArrayFloatGL( tmp, src ); 
+	Matrix4x4_OriginFromMatrix( tmp, origin );
+	Matrix4x4_ToMatrix3x3( dst, tmp );
+	ConvertPositionToGame( origin );
 
-	pi.Transform( edict, translate );
+	pi.Transform( edict, origin, dst );
 }

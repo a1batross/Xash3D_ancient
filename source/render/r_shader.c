@@ -1797,6 +1797,8 @@ static bool R_ParseStageMap( ref_shader_t *shader, shaderStage_t *stage, script_
 		bundle->textures[bundle->numTextures++] = r_whiteTexture;
 	else if( !com.stricmp( tok.string, "$blackImage"))
 		bundle->textures[bundle->numTextures++] = r_blackTexture;
+	else if( !com.stricmp( tok.string, "$particle"))
+		bundle->textures[bundle->numTextures++] = r_particleTexture;
 	else
 	{
 		while( 1 )
@@ -4062,8 +4064,9 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 			shader->stages[0]->bundles[0]->textures[0] = r_defaultConchars;
 		}
 		shader->stages[0]->rgbGen.type = RGBGEN_VERTEX;
+		shader->stages[0]->alphaGen.type = ALPHAGEN_VERTEX;
 		shader->stages[0]->bundles[0]->numTextures++;
-		shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC|SHADERSTAGE_RGBGEN;
+		shader->stages[0]->flags |= (SHADERSTAGE_BLENDFUNC|SHADERSTAGE_RGBGEN|SHADERSTAGE_ALPHAGEN);
 		shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
 		shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 		shader->stages[0]->numBundles++;

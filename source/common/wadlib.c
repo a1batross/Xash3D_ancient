@@ -5,9 +5,9 @@
 
 #include "platform.h"
 #include "byteorder.h"
-#include "mathlib.h"
 #include "const.h"
 #include "utils.h"
+#include "mathlib.h"
 
 string		wadoutname;
 bool		wad_append = false;

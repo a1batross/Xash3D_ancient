@@ -534,7 +534,7 @@ void SV_PutClientInServer( edict_t *ent )
 	viewmodel->priv.sv->s.classname = SV_ClassIndex(PRVM_GetString(viewmodel->progs.sv->classname));
 
 	SV_LinkEdict( ent ); // m_pmatrix calculated here, so we need call this before pe->CreatePlayer
-	ent->priv.sv->physbody = pe->CreatePlayer( ent->priv.sv, SV_GetModelPtr( ent ), ent->progs.sv->m_pmatrix );
+	ent->priv.sv->physbody = pe->CreatePlayer( ent->priv.sv, SV_GetModelPtr( ent ), ent->progs.sv->origin, ent->progs.sv->m_pmatrix );
 }
 
 /*

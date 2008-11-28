@@ -121,9 +121,6 @@ typedef struct sv_client_s
 	usercmd_t		lastcmd;			// for filling in big drops
 	usercmd_t		cmd;			// current user commands
 
-	vec3_t		fix_angles;		// q1 legacy
-	bool		fixangle;
-
 	int		ping;
 	int		rate;
 	int		surpressCount;		// number of messages rate supressed
@@ -316,7 +313,7 @@ bool SV_CheckBottom (edict_t *ent);
 //
 // sv_move.c
 //
-void SV_Transform( sv_edict_t *ed, matrix4x3 transform );
+void SV_Transform( sv_edict_t *ed, const vec3_t origin, const matrix3x3 transform );
 void SV_PlaySound( sv_edict_t *ed, float volume, const char *sample );
 bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool settrace );
 

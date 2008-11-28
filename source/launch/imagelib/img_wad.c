@@ -413,7 +413,12 @@ bool Image_LoadMIP( const char *name, const byte *buffer, size_t filesize )
 
 			// qlumpy used this color for transparent textures, otherwise it's decals
  			if( pal[255*3+0] == 0 && pal[255*3+1] == 0 && pal[255*3+2] == 255 );
-			else image.flags |= IMAGE_COLORINDEX;
+			else if( Sys.app_name == HOST_NORMAL )
+			{
+				// render requires setup special palette
+				image.flags |= IMAGE_COLORINDEX;
+				rendermode = LUMP_DECAL;
+			}
 			image.flags |= IMAGE_HAS_ALPHA;
 		}
 		else rendermode = LUMP_NORMAL;

@@ -101,8 +101,8 @@ typedef struct physic_exp_s
 	void (*PlayerMove)( pmove_t *pmove, bool clientmove );
 	
 	// simple objects
-	physbody_t *(*CreateBody)( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform, int solid );
-	physbody_t *(*CreatePlayer)( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform );
+	physbody_t *(*CreateBody)( sv_edict_t *ed, cmodel_t *mod, const vec3_t origin, const matrix3x3 matrix, int solid );
+	physbody_t *(*CreatePlayer)( sv_edict_t *ed, cmodel_t *mod, const vec3_t origin, const matrix3x3 matrix );
 
 	void (*SetOrigin)( physbody_t *body, vec3_t origin );
 	void (*SetParameters)( physbody_t *body, cmodel_t *mod, int material, float mass );
@@ -119,7 +119,7 @@ typedef struct physic_imp_s
 	size_t	api_size;		// must matched with sizeof(physic_imp_t)
 
 	void (*ClientMove)( sv_edict_t *ed );
-	void (*Transform)( sv_edict_t *ed, matrix4x3 transform );
+	void (*Transform)( sv_edict_t *ed, const vec3_t org, const matrix3x3 matrix );
 	void (*PlaySound)( sv_edict_t *ed, float volume, const char *sample );
 	float *(*GetModelVerts)( sv_edict_t *ent, int *numvertices );
 } physic_imp_t;

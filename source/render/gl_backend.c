@@ -375,6 +375,7 @@ void GL_InitCommands( void )
 
 	r_nobind = Cvar_Get( "r_nobind", "0", CVAR_CHEAT, "disable all textures (perfomance test)" );
 	r_drawparticles = Cvar_Get( "r_drawparticles", "1", CVAR_CHEAT, "disable particles (perfomance test)" );
+	r_drawpolys = Cvar_Get( "r_drawpolys", "1", CVAR_CHEAT, "disable decal polygons (perfomance test)" );
 	r_frontbuffer = Cvar_Get("r_frontBuffer", "0", CVAR_CHEAT, "directly draw into front buffer (perfomance test)" );
 	r_showcluster = Cvar_Get("r_showcluster", "0", CVAR_CHEAT, "print info about current viewcluster" );
 	r_shownormals = Cvar_Get("r_showNormals", "0", CVAR_CHEAT, "draw model normals" );

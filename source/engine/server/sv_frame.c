@@ -96,6 +96,21 @@ void SV_UpdateEntityState( edict_t *ent )
 		ent->priv.sv->s.model.colormap = ent->progs.sv->colormap = client->progs.sv->colormap;
 		ent->priv.sv->s.effects |= EF_MINLIGHT; // always have some light
 	}
+	else if( ent->priv.sv->s.ed_type == ED_CLIENT )
+	{
+		if( ent->progs.sv->fixangle )
+		{
+			// FIXME: set angles
+			//for( i = 0; i < 3; i++ )
+			//	ent->priv.sv->s.delta_angles[i] = ANGLE2SHORT( ent->priv.sv->s.angles[i] );
+			//VectorClear( ent->priv.sv->s.angles );
+			//VectorClear( ent->priv.sv->s.viewangles );
+			//VectorClear( ent->progs.sv->v_angle );
+			
+			// and clear fixangle for the next frame
+			ent->progs.sv->fixangle = 0;
+		}
+	}
 	else if( ent->priv.sv->s.ed_type == ED_AMBIENT )
 	{
 		if( ent->progs.sv->solid == SOLID_TRIGGER )

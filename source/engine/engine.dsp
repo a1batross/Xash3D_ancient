@@ -126,11 +126,11 @@ SOURCE=.\client\cl_demo.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\client\cl_frame.c
+SOURCE=.\client\cl_effects.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\client\cl_fx.c
+SOURCE=.\client\cl_frame.c
 # End Source File
 # Begin Source File
 
@@ -155,10 +155,6 @@ SOURCE=.\client\cl_progs.c
 # Begin Source File
 
 SOURCE=.\client\cl_scrn.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\client\cl_tent.c
 # End Source File
 # Begin Source File
 

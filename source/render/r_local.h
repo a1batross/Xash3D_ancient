@@ -222,13 +222,6 @@ typedef struct surfPoly_s
 
 typedef struct
 {
-	vec3_t		xyz;
-	vec2_t		st;
-	vec4_t		modulate;
-} polyVert_t;
-
-typedef struct
-{
 	ref_shader_t	*shader;
 	int		numVerts;
 	polyVert_t	*verts;
@@ -793,6 +786,8 @@ bool		R_CullBox( const vec3_t mins, const vec3_t maxs, int clipFlags );
 bool		R_CullSphere( const vec3_t origin, float radius, int clipFlags );
 void		R_RotateForEntity( ref_entity_t *entity );
 void		R_AddMeshToList( meshType_t meshType, void *mesh, ref_shader_t *shader, ref_entity_t *entity, int infoKey );
+bool		R_AddPolyToScene( shader_t shader, int numVerts, const polyVert_t *verts );
+void		R_ImpactMark( vec3_t org, vec3_t dir, float rot, float radius, vec4_t rgba, bool fade, shader_t shader, bool temp );
 void		R_DrawSprite( void );
 void		R_DrawBeam( void );
 void		R_DrawParticle( void );
@@ -811,6 +806,7 @@ void		R_AddBrushModelToList( ref_entity_t *entity );
 void		R_AddWorldToList( void );
 
 void		RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees );
+void		PerpendicularVector( vec3_t dst, const vec3_t src );
 
 // exported funcs
 void		R_BeginRegistration( const char *map );

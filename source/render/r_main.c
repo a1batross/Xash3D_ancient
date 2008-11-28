@@ -552,6 +552,58 @@ static void R_AddParticlesToList( void )
 	}
 }
 
+/*
+=================
+R_DrawPoly
+=================
+*/
+void R_DrawPoly( void )
+{
+	poly_t		*poly = m_pRenderMesh->mesh;
+	polyVert_t	*vert;
+	int			i;
+
+	RB_CheckMeshOverflow((poly->numVerts - 2) * 3, poly->numVerts );
+
+	for( i = 2; i < poly->numVerts; i++ )
+	{
+		ref.indexArray[ref.numIndex++] = ref.numVertex + 0;
+		ref.indexArray[ref.numIndex++] = ref.numVertex + i-1;
+		ref.indexArray[ref.numIndex++] = ref.numVertex + i;
+	}
+	for( i = 0, vert = poly->verts; i < poly->numVerts; i++, vert++ )
+	{
+		ref.vertexArray[ref.numVertex][0] = vert->point[0];
+		ref.vertexArray[ref.numVertex][1] = vert->point[1];
+		ref.vertexArray[ref.numVertex][2] = vert->point[2];
+		ref.inTexCoordArray[ref.numVertex][0] = vert->st[0];
+		ref.inTexCoordArray[ref.numVertex][1] = vert->st[1];
+		ref.colorArray[ref.numVertex][0] = vert->modulate[0];
+		ref.colorArray[ref.numVertex][1] = vert->modulate[1];
+		ref.colorArray[ref.numVertex][2] = vert->modulate[2];
+		ref.colorArray[ref.numVertex][3] = vert->modulate[3];
+		ref.numVertex++;
+	}
+}
+
+/*
+=================
+R_AddPolysToList
+=================
+*/
+static void R_AddPolysToList( void )
+{
+	poly_t	*poly;
+	int	i;
+
+	if( !r_drawpolys->integer || !r_numPolys )
+		return;
+
+	r_stats.numPolys += r_numPolys;
+	for( i = 0, poly = r_polys; i < r_numPolys; i++, poly++ )
+		R_AddMeshToList( MESH_POLY, poly, poly->shader, r_worldEntity, 0 );
+}
+
 // =====================================================================
 
 
@@ -833,6 +885,7 @@ void R_RenderView( const refdef_t *fd )
 	R_AddWorldToList();
 	R_AddEntitiesToList();
 	R_AddParticlesToList();
+	R_AddPolysToList();
 
 	// sort mesh lists
 	R_QSortMeshes( r_solidMeshes, r_numSolidMeshes );
@@ -1149,6 +1202,28 @@ static bool R_AddLightStyle( int style, vec3_t color )
 
 /*
 =================
+R_AddPolyToScene
+=================
+*/
+bool R_AddPolyToScene( shader_t shader, int numVerts, const polyVert_t *verts )
+{
+	poly_t	*poly;
+
+	if( r_numPolys >= MAX_POLYS || r_numPolyVerts + numVerts > MAX_POLY_VERTS )
+		return false;
+
+	poly = &r_polys[r_numPolys++];
+	poly->shader = r_shaders + shader;
+	poly->numVerts = numVerts;
+	poly->verts = &r_polyVerts[r_numPolyVerts];
+	Mem_Copy( poly->verts, verts, numVerts * sizeof( polyVert_t ));
+	r_numPolyVerts += numVerts;
+	return true;
+}
+
+
+/*
+=================
 R_RenderFrame
 =================
 */
@@ -1372,6 +1447,7 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	re.AddRefEntity = R_AddEntityToScene;
 	re.AddDynLight = R_AddDynamicLight;
 	re.AddParticle = R_AddParticleToScene;
+	re.AddPolygon = R_AddPolyToScene;
 	re.ClearScene = R_ClearScene;
 
 	re.BeginFrame = R_BeginFrame;
@@ -1385,6 +1461,7 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	re.DrawFill = R_DrawFill;
 	re.DrawStretchRaw = R_DrawStretchRaw;
 	re.DrawStretchPic = R_DrawStretchPic;
+	re.ImpactMark = R_ImpactMark;
 
 	// get rid of this
 	re.DrawGetPicSize = R_GetPicSize;

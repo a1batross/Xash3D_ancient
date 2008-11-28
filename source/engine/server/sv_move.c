@@ -400,30 +400,37 @@ float *SV_GetModelVerts( sv_edict_t *ed, int *numvertices )
 	return NULL;
 }
 
-void SV_Transform( sv_edict_t *ed, matrix4x3 transform )
+void SV_Transform( sv_edict_t *ed, const vec3_t origin, const matrix3x3 matrix )
 {
 	edict_t	*edict;
-	vec3_t	origin, angles;
-	matrix4x4	objmatrix;
+	vec3_t	angles;
 
-	if(!ed) return;
+	if( !ed ) return;
 	edict = PRVM_EDICT_NUM( ed->serialnumber );
 
-	// save matrix (fourth value will be reset on save\load)
-	VectorCopy( transform[0], edict->progs.sv->m_pmatrix[0] );
-	VectorCopy( transform[1], edict->progs.sv->m_pmatrix[1] );
-	VectorCopy( transform[2], edict->progs.sv->m_pmatrix[2] );
-	VectorCopy( transform[3], edict->progs.sv->m_pmatrix[3] );
+	Matrix3x3_Transpose( edict->progs.sv->m_pmatrix, matrix );
+#if 0
+	edict->progs.sv->m_pmatrix[0][0] = matrix[0][0];
+	edict->progs.sv->m_pmatrix[0][1] = matrix[0][2];
+	edict->progs.sv->m_pmatrix[0][2] = matrix[0][1];
+	edict->progs.sv->m_pmatrix[1][0] = matrix[1][0];
+	edict->progs.sv->m_pmatrix[1][1] = matrix[1][2];
+	edict->progs.sv->m_pmatrix[1][2] = matrix[1][1];
+	edict->progs.sv->m_pmatrix[2][0] = matrix[2][0];
+	edict->progs.sv->m_pmatrix[2][1] = matrix[2][2];
+	edict->progs.sv->m_pmatrix[2][2] = matrix[2][1];
 
-	Matrix4x4_LoadIdentity( objmatrix );
-	VectorCopy( transform[0], objmatrix[0] );
-	VectorCopy( transform[1], objmatrix[1] );
-	VectorCopy( transform[2], objmatrix[2] );
-	VectorCopy( transform[3], objmatrix[3] );
-	MatrixAngles( objmatrix, origin, angles );
-
+	Matrix3x3_ConcatRotate( edict->progs.sv->m_pmatrix, -90, 1, 0, 0 );
+	Matrix3x3_ConcatRotate( edict->progs.sv->m_pmatrix, 180, 0, 1, 0 );
+	Matrix3x3_ConcatRotate( edict->progs.sv->m_pmatrix, 90, 0, 0, 1 );
+	Matrix3x3_ToAngles( edict->progs.sv->m_pmatrix, angles );
+#endif
 	VectorCopy( origin, edict->progs.sv->origin );
-	VectorCopy( angles, edict->progs.sv->angles );
+
+	MatrixAngles( edict->progs.sv->m_pmatrix, angles );
+	edict->progs.sv->angles[0] = angles[0];
+	edict->progs.sv->angles[1] = angles[1];
+	edict->progs.sv->angles[2] = angles[2];
 
 	// refresh force and torque
 	pe->GetForce( ed->physbody, edict->progs.sv->velocity, edict->progs.sv->avelocity, edict->progs.sv->force, edict->progs.sv->torque );
