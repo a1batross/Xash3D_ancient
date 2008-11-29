@@ -14,7 +14,6 @@ extern byte *basepool;
 extern byte *zonepool;
 extern bool enable_log;
 extern stdlib_api_t com;
-extern vprogs_exp_t *PRVM;
 
 #define Sys_Error			com.error
 #define Malloc(size)		Mem_Alloc( basepool, size )  

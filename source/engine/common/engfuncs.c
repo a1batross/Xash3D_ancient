@@ -62,6 +62,7 @@ supports follow prefixes:
 %p - function pointer (will be printed function name)
 %e - entity (will be print entity number) - just in case
 %v - vector (format: %g %g %g)
+%x - print flags as hexadecimal
 =========
 */
 const char *VM_VarArgs( int start_arg )
@@ -78,7 +79,7 @@ const char *VM_VarArgs( int start_arg )
 	s = PRVM_G_STRING((OFS_PARM0 + start_arg * 3));
 	out = vm_string;
 	outend = out + MAX_SYSPATH - 1;
-	memset( vm_string, 0, MAX_SYSPATH - 1 );
+	Mem_Set( vm_string, 0, MAX_SYSPATH - 1 );
 
 	while( out < outend && *s )
 	{
@@ -93,6 +94,7 @@ const char *VM_VarArgs( int start_arg )
 		{
 		case 'd': com.snprintf( vm_arg, MAX_STRING, "%d", (int)PRVM_G_FLOAT(OFS_PARM0+arg*3)); break;
 		case 'i': com.snprintf( vm_arg, MAX_STRING, "%i", (int)PRVM_G_FLOAT(OFS_PARM0+arg*3)); break;
+		case 'x': com.snprintf( vm_arg, MAX_STRING, "%p", (int)PRVM_G_FLOAT(OFS_PARM0+arg*3)); break;
 		case 's': com.snprintf( vm_arg, MAX_STRING, "%s", PRVM_G_STRING(OFS_PARM0+arg*3)); break;
 		case 'f': com.snprintf( vm_arg, MAX_STRING, "%f", PRVM_G_FLOAT(OFS_PARM0+arg*3)); break;
 		case 'g': com.snprintf( vm_arg, MAX_STRING, "%g", PRVM_G_FLOAT(OFS_PARM0+arg*3)); break;

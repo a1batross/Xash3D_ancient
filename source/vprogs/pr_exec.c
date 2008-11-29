@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "vprogs.h"
+#include "mathlib.h"
 
 char *prvm_opnames[] =
 {
@@ -84,6 +85,8 @@ char *prvm_opnames[] =
 "^2NOT_S",
 "^2NOT_ENT",
 "^2NOT_FNC",
+"^2NOT_BITI",
+"^2NOT_BITF",
 
 "^5IF",
 "^5IFNOT",
@@ -696,6 +699,12 @@ chooseexecprogram:
 		case OP_NOT_ENT:
 			OPC->_float = (OPA->edict == 0);
 			break;
+		case OP_NOT_BITI:
+			OPC->_int = ~OPA->_int;
+			break;
+		case OP_NOT_BITF:
+			OPC->_float = (float)(~(int)OPA->_float);
+			break;
 		case OP_EQ_F:
 			OPC->_float = (float)(OPA->_float == OPB->_float);
 			break;
@@ -709,20 +718,20 @@ chooseexecprogram:
 			OPC->_float = (OPA->vector[0] == OPB->vector[0]) && (OPA->vector[1] == OPB->vector[1]) && (OPA->vector[2] == OPB->vector[2]);
 			break;
 		case OP_EQ_S:
-			if (OPA->string == OPB->string) OPC->_float = true; // try fast method first
-			else if (!OPA->string)
+			if( OPA->string == OPB->string ) OPC->_float = true; // try fast method first
+			else if( !OPA->string )
 			{
-				if (!OPB->string || !*PRVM_GetString(OPB->string))
+				if( !OPB->string || !*PRVM_GetString( OPB->string ))
 					OPC->_float = true;
 				else OPC->_float = false;
 			}
-			else if (!OPB->string)
+			else if( !OPB->string )
 			{
-				if (!OPA->string || !*PRVM_GetString(OPA->string))
+				if( !OPA->string || !*PRVM_GetString( OPA->string ))
 					OPC->_float = true;
 				else OPC->_float = false;
 			}
-			else OPC->_float = !com.strcmp(PRVM_GetString(OPA->string), PRVM_GetString(OPB->string));
+			else OPC->_float = !com.strcmp( PRVM_GetString( OPA->string ), PRVM_GetString( OPB->string ));
 			break;
 		case OP_EQ_E:
 			OPC->_float = (float)(OPA->_int == OPB->_int);
@@ -1139,6 +1148,12 @@ chooseexecprogram:
 		case OP_LSHIFT_I:
 			OPC->_int = OPA->_int << OPB->_int;
 			break;
+		case OP_RSHIFT_F:
+			OPC->_float = (float)((int)OPA->_float >> (int)OPB->_float);
+			break;
+		case OP_LSHIFT_F:
+			OPC->_float = (float)((int)OPA->_float << (int)OPB->_float);
+			break;
 		case OP_FETCH_GBL_F:
 		case OP_FETCH_GBL_S:
 		case OP_FETCH_GBL_E:
@@ -1176,11 +1191,11 @@ chooseexecprogram:
 			ptr->_float = (float)((int)ptr->_float | (int)OPA->_float);
 			break;
 		case OP_BITCLR:
-			OPB->_float = (float)((int)OPB->_float & ~((int)OPA->_float));
+			OPB->_float = (float)((int)OPB->_float & ((int)OPA->_float));
 			break;
 		case OP_BITCLRP:
 			ptr = PRVM_ED_POINTER(OPB);
-			ptr->_float = (float)((int)ptr->_float & ~((int)OPA->_float));
+			ptr->_float = (float)((int)ptr->_float & ((int)OPA->_float));
 			break;
 		case OP_SWITCH_F:
 		case OP_SWITCH_V:
@@ -1427,6 +1442,11 @@ chooseexecprogram:
 				vm.prog->xstatement = st - vm.prog->statements;
 				PRVM_ERROR("OP_STATE not supported by %s", PRVM_NAME);
 			}
+			break;
+		case OP_MODULO_I:
+			OPC->_int = (OPA->_int % OPB->_int);
+		case OP_MODULO_F:
+			OPC->_float = fmod( OPA->_float, OPB->_float );
 			break;
 		default:
 			vm.prog->xfunction->profile += (st - startst);

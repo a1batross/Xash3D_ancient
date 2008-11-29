@@ -125,6 +125,7 @@ static const net_desc_t NWDesc[] =
 #define CS_MAPCHECKSUM		1	// level checksum (for catching cheater maps)
 #define CS_SKYNAME			2	// skybox shader name
 #define CS_MAXCLIENTS		3	// server maxclients value (0-255)
+#define CS_BACKGROUND_TRACK		4	// basename of background track
 
 // reserved config strings
 

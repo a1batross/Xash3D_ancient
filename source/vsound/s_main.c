@@ -204,6 +204,7 @@ static void S_SpatializeChannel( channel_t *ch )
 
 	// update volume and rolloff factor
 	palSourcef( ch->sourceNum, AL_GAIN, ch->volume );
+	palSourcef( ch->sourceNum, AL_PITCH, ch->pitch );
 	palSourcef( ch->sourceNum, AL_ROLLOFF_FACTOR, s_rolloffFactor->value );
 }
 
@@ -315,8 +316,7 @@ bool S_AddLoopingSound( int entnum, sound_t handle, float volume, float attn )
 	ch = S_PickChannel( 0, 0 );
 	if( !ch )
 	{
-		if( sfx->name[0] == '#' ) MsgDev(D_ERROR, "dropped sound %s\n", &sfx->name[1] );
-		else MsgDev( D_ERROR, "dropped sound \"sound/%s\"\n", sfx->name );
+		MsgDev( D_ERROR, "dropped sound \"sound/%s\"\n", sfx->name );
 		return false;
 	}
 
@@ -324,7 +324,8 @@ bool S_AddLoopingSound( int entnum, sound_t handle, float volume, float attn )
 	ch->loopnum = entnum;
 	ch->loopframe = al_state.framecount;
 	ch->fixedPosition = false;
-	ch->volume = 1.0;
+	ch->volume = 1.0f;
+	ch->pitch = 1.0f;
 	ch->distanceMult = 1.0f / ATTN_STATIC;
 
 	S_SpatializeChannel( ch );
@@ -409,6 +410,7 @@ static void S_IssuePlaySounds( void )
 		ch->fixedPosition = ps->fixedPosition;
 		VectorCopy( ps->position, ch->position );
 		ch->volume = ps->volume;
+		ch->pitch = ps->pitch;
 
 		if( ps->attenuation != ATTN_NONE ) ch->distanceMult = 1.0 / ps->attenuation;
 		else ch->distanceMult = 0.0;
@@ -430,7 +432,7 @@ if origin is NULL, the sound will be dynamically sourced from the entity.
 entchannel 0 will never override a playing sound.
 =================
 */
-void S_StartSound( const vec3_t pos, int entnum, int channel, sound_t handle, float vol, float attn, bool use_loop )
+void S_StartSound( const vec3_t pos, int entnum, int channel, sound_t handle, float vol, float attn, float pitch, bool use_loop )
 {
 	playSound_t	*ps, *sort;
 	sfx_t		*sfx = NULL;
@@ -465,10 +467,11 @@ void S_StartSound( const vec3_t pos, int entnum, int channel, sound_t handle, fl
 	else ps->fixedPosition = false;
 	
 	ps->volume = vol;
+	ps->pitch = pitch / PITCH_NORM;
 	ps->attenuation = attn;
 	ps->beginTime = Sys_DoubleTime();
 
-	// Sort into the pending playSounds list
+	// sort into the pending playSounds list
 	for( sort = s_pendingPlaySounds.next; sort != &s_pendingPlaySounds && sort->beginTime < ps->beginTime; sort = sort->next );
 
 	ps->next = sort;
@@ -492,7 +495,7 @@ bool S_StartLocalSound( const char *name )
 		return false;
 
 	sfxHandle = S_RegisterSound( name );
-	S_StartSound( NULL, al_state.clientnum, CHAN_AUTO, sfxHandle, 1.0f, ATTN_NONE, false );
+	S_StartSound( NULL, al_state.clientnum, CHAN_AUTO, sfxHandle, 1.0f, ATTN_NONE, PITCH_NORM, false );
 	return true;
 }
 

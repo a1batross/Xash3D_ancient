@@ -11,7 +11,6 @@ extern stdlib_api_t com;
 extern byte *basepool;
 extern string gs_gamedir;
 #define Sys_Error com.error
-extern vprogs_exp_t *PRVM;
 extern uint app_name;
 extern bool write_qscsript;
 extern int game_family;

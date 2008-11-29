@@ -691,9 +691,11 @@ void PRVM_ED_Read( int s_table, int entnum, dkeyvalue_t *fields, int numpairs )
 		key = PRVM_ED_FindField( keyname );
 		if( !key )
 		{
-			MsgDev( D_WARN, "%s: unknown field '%s'\n", PRVM_NAME, keyname);
+			PRVM_GCALL(keyvalue_edict)(ent, keyname, value );
+			else MsgDev( D_WARN, "%s: unknown field '%s'\n", PRVM_NAME, keyname);
 			continue;
 		}
+
 		// simple huh ?
 		if(!PRVM_ED_ParseEpair( ent, key, value )) PRVM_ERROR( "PRVM_ED_ParseEdict: parse error" );
 	}

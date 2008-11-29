@@ -86,6 +86,7 @@ typedef struct playsound_s
 	float		volume;
 	float		attenuation;
 	float		beginTime;	// Begin at this time
+	float		pitch;
 } playSound_t;
 
 typedef struct
@@ -105,6 +106,7 @@ typedef struct
 	bool		fixedPosition;	// use position instead of fetching entity's origin
 	vec3_t		position;		// only use if fixedPosition is set
 	float		volume;
+	float		pitch;
 	float		distanceMult;
 	uint		sourceNum;	// openAL source
 } channel_t;
@@ -167,7 +169,7 @@ void S_Shutdown( void );
 void S_Activate( bool active );
 void S_SoundList_f( void );
 void S_CheckForErrors( void );
-void S_StartSound( const vec3_t pos, int entnum, int channel, sound_t sfx, float vol, float attn, bool use_loop );
+void S_StartSound(const vec3_t pos, int ent, int chan, sound_t sfx, float vol, float attn, float pitch, bool use_loop);
 void S_Update( int clientnum, const vec3_t pos, const vec3_t vel, const vec3_t at, const vec3_t up );
 void S_StreamRawSamples( int samples, int rate, int width, int channels, const byte *data );
 bool S_AddLoopingSound( int entnum, sound_t handle, float volume, float attn );

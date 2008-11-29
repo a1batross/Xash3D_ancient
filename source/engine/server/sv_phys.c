@@ -1706,19 +1706,23 @@ void SV_Physics_ClientMove( sv_client_t *client, usercmd_t *cmd )
 	PRVM_ExecuteProgram( prog->globals.sv->PlayerPreThink, "PlayerPreThink" );
 	prog->globals.sv->frametime = sv.frametime;
 
-	// make sure the velocity is sane (not a NaN)
-	SV_CheckVelocity( ent );
-	if(DotProduct(ent->progs.sv->velocity, ent->progs.sv->velocity) < 0.0001)
-		VectorClear( ent->progs.sv->velocity );
+	if( !sv_physics->integer )
+	{
+		// make sure the velocity is sane (not a NaN)
+		SV_CheckVelocity( ent );
+		if( DotProduct(ent->progs.sv->velocity, ent->progs.sv->velocity) < 0.0001)
+			VectorClear( ent->progs.sv->velocity );
 
-	// perform MOVETYPE_WALK behavior
-	if(!SV_CheckWater (ent) && !((int)ent->progs.sv->aiflags & AI_WATERJUMP))
-		SV_AddGravity( ent );
-	SV_CheckStuck( ent );
-	SV_WalkMove( ent );
-	SV_CheckVelocity( ent );
-	SV_LinkEdict( ent );
-	SV_CheckVelocity( ent );
+		// perform MOVETYPE_WALK behavior
+		if(!SV_CheckWater (ent) && !((int)ent->progs.sv->aiflags & AI_WATERJUMP))
+			SV_AddGravity( ent );
+		SV_CheckStuck( ent );
+		SV_WalkMove( ent );
+		SV_CheckVelocity( ent );
+		SV_LinkEdict( ent );
+		SV_CheckVelocity( ent );
+          }
+          else SV_LinkEdict( ent );
 
 	if( ent->progs.sv->movetype != MOVETYPE_NOCLIP )
 		SV_TouchTriggers( ent );

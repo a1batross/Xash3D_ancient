@@ -30,8 +30,8 @@ bool	recursivefunctiontype;
 #define GoToEndLine() while(*pr_file_p != '\n' && *pr_file_p != '\0'){ pr_file_p++; }
 
 // longer symbols must be before a shorter partial match
-char *pr_punctuation1[] = {"&&", "||", "<=", ">=","==", "!=", "/=", "*=", "+=", "-=", "(+)", "|=", "(-)", "++", "--", "->", "::", ";", ",", "!", "*", "/", "(", ")", "-", "+", "=", "[", "]", "{", "}", "...", "..", ".", "<<", "<", ">>", ">" , "#" , "@", "&" , "|", "^", ":", NULL};
-char *pr_punctuation2[] = {"&&", "||", "<=", ">=","==", "!=", "/=", "*=", "+=", "-=", "|=",  "|=", "(-)", "++", "--", ".",  "::", ";", ",", "!", "*", "/", "(", ")", "-", "+", "=", "[", "]", "{", "}", "...", "..", ".", "<<", "<", ">>", ">" , "#" , "@", "&" , "|", "^", ":", NULL};
+char *pr_punctuation1[] = {"&&", "||", "<=", ">=","==", "!=", "/=", "*=", "+=", "-=", "(+)", "|=", "(-)", "&=", "++", "--", "->", "::", ";", ",", "!", "*", "/", "(", ")", "-", "+", "=", "[", "]", "{", "}", "...", "..", ".", "<<", "<", ">>", ">" , "#" , "%", "@", "&" , "|", "^", "~", ":", NULL};
+char *pr_punctuation2[] = {"&&", "||", "<=", ">=","==", "!=", "/=", "*=", "+=", "-=", "|=",  "|=", "&=",  "&=", "++", "--", ".",  "::", ";", ",", "!", "*", "/", "(", ")", "-", "+", "=", "[", "]", "{", "}", "...", "..", ".", "<<", "<", ">>", ">" , "#" , "%", "@", "&" , "|", "^", "~", ":", NULL};
 
 optimisations_t pr_optimisations[] =
 {
@@ -1020,12 +1020,12 @@ void PR_LexString (void)
 				if (*end == '-') break;
 				if (*end == '*') break;
 				if (*end == '/') break;
+				if (*end == '%') break;
 				if (*end =='\\') break;
 				if (*end == '|') break;
 				if (*end == '&') break;
 				if (*end == '=') break;
 				if (*end == '^') break;
-				if (*end == '~') break;
 				if (*end == '[') break;
 				if (*end == ']') break;
 				if (*end =='\"') break;
@@ -1290,27 +1290,26 @@ void PR_LexName (void)
 PR_LexPunctuation
 ==============
 */
-void PR_LexPunctuation (void)
+void PR_LexPunctuation( void )
 {
-	int	i;
-	int	len;
+	int	i, len;
 	char	*p;
 	
 	pr_token_type = tt_punct;
 	
-	for (i = 0; (p = pr_punctuation1[i]) != NULL; i++)
+	for( i = 0; (p = pr_punctuation1[i]) != NULL; i++ )
 	{
-		len = com.strlen(p);
-		if (!com.strncmp(p, pr_file_p, len) )
+		len = com.strlen( p );
+		if(!com.strncmp( p, pr_file_p, len ))
 		{
-			com.strcpy (pr_token, pr_punctuation2[i]);
-			if (p[0] == '{') pr_bracelevel++;
-			else if (p[0] == '}') pr_bracelevel--;
+			com.strcpy( pr_token, pr_punctuation2[i] );
+			if( p[0] == '{' ) pr_bracelevel++;
+			else if( p[0] == '}' ) pr_bracelevel--;
 			pr_file_p += len;
 			return;
 		}
 	}
-	PR_ParseError (ERR_UNKNOWNPUCTUATION, "Unknown punctuation");
+	PR_ParseError( ERR_UNKNOWNPUCTUATION, "Unknown punctuation" );
 }
 		
 /*
@@ -1818,11 +1817,11 @@ int PR_CheakCompConst( void )
 		if (*end == '-') break;
 		if (*end == '*') break;
 		if (*end == '/') break;
+		if (*end == '%') break;
 		if (*end == '|') break;
 		if (*end == '&') break;
 		if (*end == '=') break;
 		if (*end == '^') break;
-		if (*end == '~') break;
 		if (*end == '[') break;
 		if (*end == ']') break;
 		if (*end =='\"') break;
@@ -2060,22 +2059,22 @@ Advanced version of Com_ParseToken()
 Sets pr_token, pr_token_type, and possibly pr_immediate and pr_immediate_type
 ==============
 */
-void PR_Lex (void)
+void PR_Lex( void )
 {
 	int	c;
 
 	pr_token[0] = 0;
 	
-	if (!pr_file_p) goto end_of_file;
+	if( !pr_file_p ) goto end_of_file;
 
 	PR_LexWhitespace();
 
-	if (!pr_file_p) goto end_of_file;
+	if( !pr_file_p ) goto end_of_file;
 	c = *pr_file_p;
-	if (!c) goto end_of_file;
+	if( !c ) goto end_of_file;
 
 	// handle quoted strings as a unit
-	if (c == '\"')
+	if( c == '\"' )
 	{
 		PR_LexString ();
 		return;
@@ -2088,24 +2087,13 @@ void PR_Lex (void)
 		return;
 	}
 
-	// if the first character is a valid identifier, parse until a non-id
-	// character is reached
-	if ( c == '~' || c == '%')	
-	{
-		// let's see which one we make into an operator first... possibly both...
-		pr_file_p++;
-		pr_token_type = tt_immediate;
-		pr_immediate_type = type_integer;
-		pr_immediate._int = PR_LexInteger ();
-		return;
-	}
-	if ( c == '0' && pr_file_p[1] == 'x')
+	if( c == '0' && pr_file_p[1] == 'x' )
 	{
 		pr_token_type = tt_immediate;
 		PR_LexNumber();
 		return;
 	}
-	if ( (c == '.'&&pr_file_p[1] >='0' && pr_file_p[1] <= '9') || (c >= '0' && c <= '9') || ( c=='-' && pr_file_p[1]>='0' && pr_file_p[1] <='9') )
+	if(( c == '.'&&pr_file_p[1] >='0' && pr_file_p[1] <= '9') || (c >= '0' && c <= '9') || ( c=='-' && pr_file_p[1]>='0' && pr_file_p[1] <='9') )
 	{
 		pr_token_type = tt_immediate;
 		pr_immediate_type = type_float;
@@ -2362,19 +2350,19 @@ PR_ParseName
 Checks to see if the current token is a valid name
 ============
 */
-char *PR_ParseName (void)
+char *PR_ParseName( void )
 {
 	static char	ident[MAX_NAME];
 	char		*ret;
 	
-	if (pr_token_type != tt_name) PR_ParseError (ERR_NOTANAME, "\"%s\" - not a name", pr_token);	
-	if (com.strlen(pr_token) >= MAX_NAME-1) PR_ParseError (ERR_NAMETOOLONG, "name too long");
+	if( pr_token_type != tt_name ) PR_ParseError( ERR_NOTANAME, "\"%s\" - not a name", pr_token );	
+	if( com.strlen(pr_token ) >= MAX_NAME-1 ) PR_ParseError (ERR_NAMETOOLONG, "name too long" );
 
-	com.strcpy (ident, pr_token);
-	PR_Lex ();
+	com.strcpy( ident, pr_token );
+	PR_Lex();
 	
-	ret = Qalloc(com.strlen(ident) + 1);
-	com.strcpy(ret, ident);
+	ret = Qalloc( com.strlen( ident ) + 1 );
+	com.strcpy( ret, ident );
 	return ret;
 }
 

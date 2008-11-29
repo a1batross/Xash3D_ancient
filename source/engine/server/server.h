@@ -261,6 +261,7 @@ extern	cvar_t		*sv_playersonly;
 extern	cvar_t		*sv_rollangle;
 extern	cvar_t		*sv_rollspeed;
 extern	cvar_t		*sv_maxspeed;
+extern	cvar_t		*sv_physics;
 extern	cvar_t		*host_frametime;
 
 extern	sv_client_t	*sv_client;
@@ -314,7 +315,7 @@ bool SV_CheckBottom (edict_t *ent);
 // sv_move.c
 //
 void SV_Transform( sv_edict_t *ed, const vec3_t origin, const matrix3x3 transform );
-void SV_PlaySound( sv_edict_t *ed, float volume, const char *sample );
+void SV_PlaySound( sv_edict_t *ed, float volume, float pitch, const char *sample );
 bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool settrace );
 
 //

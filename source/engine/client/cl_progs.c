@@ -232,6 +232,7 @@ static void PF_EndRead( void )
 }
 
 static void PF_ReadChar (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadChar( cls.multicast ); }
+static void PF_ReadByte (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadByte( cls.multicast ); }
 static void PF_ReadShort (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadShort( cls.multicast ); }
 static void PF_ReadLong (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadLong( cls.multicast ); }
 static void PF_ReadFloat (void){ PRVM_G_FLOAT(OFS_RETURN) = MSG_ReadFloat( cls.multicast ); }
@@ -488,7 +489,7 @@ static void PF_setcolor( void )
 =========
 PF_startsound
 
-void CL_StartSound( vector pos, entity e, float chan, float sfx, float vol, float attn, float localsound )
+void CL_StartSound( vector pos, entity e, float chan, float sfx, float vol, float attn, float pitch, float localsound )
 =========
 */
 static void PF_startsound( void )
@@ -500,8 +501,9 @@ static void PF_startsound( void )
 	float	*pos = NULL;
 	bool	client_sound;
 	int	ent = 0;
+	float	pitch;
 
-	if( !VM_ValidateArgs( "CL_StartSound", 7 ))
+	if( !VM_ValidateArgs( "CL_StartSound", 8 ))
 		return;
 
 	pos = PRVM_G_VECTOR(OFS_PARM0);
@@ -510,15 +512,16 @@ static void PF_startsound( void )
 	sound_num = (sound_t)PRVM_G_FLOAT(OFS_PARM3);
 	volume = PRVM_G_FLOAT(OFS_PARM4);
 	attenuation = (int)PRVM_G_FLOAT(OFS_PARM5);
-	client_sound = (bool)PRVM_G_FLOAT(OFS_PARM6);
+	pitch = (int)PRVM_G_FLOAT(OFS_PARM6);
+	client_sound = (bool)PRVM_G_FLOAT(OFS_PARM7);
 
 	if( client_sound )
 	{
-		S_StartSound( pos, ent, channel, sound_num, volume, attenuation );
+		S_StartSound( pos, ent, channel, sound_num, volume, attenuation, pitch );
 	}
 	else if( cl.sound_precache[sound_num] )
 	{
-		S_StartSound( pos, ent, channel, cl.sound_precache[sound_num], volume, attenuation );
+		S_StartSound( pos, ent, channel, cl.sound_precache[sound_num], volume, attenuation, pitch );
 	}
 	else VM_Warning( "CL_StartSound: can't play sound with index %i\n", sound_num );
 }
@@ -691,15 +694,15 @@ e10, e10,				// #81 - #100 are reserved for future expansions
 
 // network messaging
 PF_BeginRead,			// #101 void MsgBegin( void )
-NULL,				// #102
-PF_ReadChar,			// #103 float ReadChar (float f)
-PF_ReadShort,			// #104 float ReadShort (float f)
-PF_ReadLong,			// #105 float ReadLong (float f)
-PF_ReadFloat,			// #106 float ReadFloat (float f)
-PF_ReadAngle,			// #107 float ReadAngle (float f)
-PF_ReadCoord,			// #108 float ReadCoord (float f)
-PF_ReadString,			// #109 string ReadString (string s)
-PF_ReadEntity,			// #110 entity ReadEntity (entity s)
+PF_ReadByte,			// #102 float ReadByte( void )
+PF_ReadChar,			// #103 float ReadChar( void )
+PF_ReadShort,			// #104 float ReadShort( void )
+PF_ReadLong,			// #105 float ReadLong( void )
+PF_ReadFloat,			// #106 float ReadFloat( void )
+PF_ReadAngle,			// #107 float ReadAngle( void )
+PF_ReadCoord,			// #108 float ReadCoord( void )
+PF_ReadString,			// #109 string ReadString( void )
+PF_ReadEntity,			// #110 entity ReadEntity( void )
 PF_EndRead,			// #111 void MsgEnd( void )
 
 // clientfuncs_t
@@ -718,7 +721,7 @@ PF_centerprint,			// #123 void HUD_CenterPrint( string text, float y, float char
 PF_levelshot,			// #124 float HUD_MakeLevelShot( void )
 PF_setcolor,			// #125 void HUD_SetColor( vector rgb, float alpha )
 VM_localsound,			// #126 void HUD_PlaySound( string sample )
-PF_startsound,			// #127 void CL_StartSound( vector, entity, float, float, float, float, float )
+PF_startsound,			// #127 void CL_StartSound( vector, entity, float, float, float, float, float, float )
 PF_addparticle,			// #128 float AddParticle(vector, vector, vector, vector, vector, vector, vector, string, float)
 PF_pointcontents,			// #129 float CL_PointContents( vector point )
 PF_precachesound,			// #130 sound_t CL_PrecacheSound( string samp )

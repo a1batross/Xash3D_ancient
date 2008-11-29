@@ -56,6 +56,7 @@ typedef enum
 extern uint bsp_parms;
 extern physic_exp_t *pe;
 extern char path[MAX_SYSPATH];
+extern cvar_t *bsplib_compress_bsp;
 
 // bsplib export functions
 void WradMain( void );

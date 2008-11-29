@@ -167,7 +167,7 @@ void SV_SetModel (edict_t *ent, const char *name)
 	if( mod ) SV_SetMinMaxSize( ent, mod->mins, mod->maxs, false );
 
 	// FIXME: translate angles correctly
-	angles[0] = ent->progs.sv->angles[0] + 90;
+	angles[0] = ent->progs.sv->angles[0] - 180;
 	angles[1] = ent->progs.sv->angles[1];
 	angles[2] = ent->progs.sv->angles[2] - 90;
 
@@ -673,6 +673,13 @@ void SV_RestoreEdict( edict_t *ent )
 
 	if( ent->progs.sv->loopsound ) // restore loopsound
 		ent->priv.sv->s.soundindex = SV_SoundIndex(PRVM_GetString(ent->progs.sv->loopsound));
+}
+
+bool SV_ParseKeyValue( edict_t *ent, const char *key, const char *value )
+{
+	// FIXME: implement
+	Msg("ParseKeyValue: %s - %s\n", key, value );
+	return false;
 }
 
 void SV_VM_Begin( void )
@@ -2358,6 +2365,20 @@ void PF_setsky( void )
 }
 
 /*
+===============
+PF_music
+
+void music( string trackname )
+===============
+*/
+void PF_music( void )
+{
+	if(!VM_ValidateArgs( "music", 1 ))
+		return;
+	SV_ConfigString( CS_BACKGROUND_TRACK, PRVM_G_STRING(OFS_PARM0));
+}
+
+/*
 ==============
 PF_dropclient
 
@@ -2509,7 +2530,7 @@ NULL,				// #126 isEntOnFloor
 PF_droptofloor,			// #127 float droptofloor( void )
 PF_walkmove,			// #128 float walkmove(float yaw, float dist)
 PF_setorigin,			// #129 void setorigin(entity e, vector o)
-NULL,				// #130 -- reserved --
+PF_music,				// #130 void music( string trackname )
 NULL,				// #131 -- reserved --
 PF_traceline,			// #132 void traceline(vector v1, vector v2, float mask, entity ignore)
 PF_tracetoss,			// #133 void tracetoss (entity e, entity ignore)
@@ -2636,6 +2657,7 @@ void SV_InitServerProgs( void )
 		prog->free_edict = SV_FreeEdict;
 		prog->count_edicts = SV_CountEdicts;
 		prog->load_edict = SV_LoadEdict;
+		prog->keyvalue_edict = SV_ParseKeyValue;
 		prog->restore_edict = SV_RestoreEdict;
                     prog->filecrc = PROG_CRC_SERVER;
 		

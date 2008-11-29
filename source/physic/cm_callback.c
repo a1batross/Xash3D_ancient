@@ -61,7 +61,7 @@ void Callback_ContactEnd( const NewtonMaterial* material )
 	{
 		float pitch = cms.touch_info.normal_speed - 15.0f;
 		// TODO: play impact sound here
-		pi.PlaySound( edict, pitch, "materials/metal/bustmetal1.wav" );
+		pi.PlaySound( edict, 0.95f, pitch, "plats/train2.wav" );	// FIXME: get sound from material desc
 	}
 
 	// if the max contact speed is larger than some minimum value. play a sound
@@ -69,7 +69,7 @@ void Callback_ContactEnd( const NewtonMaterial* material )
 	{
 		float pitch = cms.touch_info.normal_speed - 5.0f;
 		// TODO: play scratch sound here
-		pi.PlaySound( edict, pitch, "materials/metal/pushmetal1.wav" );
+		pi.PlaySound( edict, 0.95f, pitch, "misc/swing1.wav" );	// FIXME: get sound from material desc
 	}
 }
 

@@ -120,7 +120,7 @@ typedef struct physic_imp_s
 
 	void (*ClientMove)( sv_edict_t *ed );
 	void (*Transform)( sv_edict_t *ed, const vec3_t org, const matrix3x3 matrix );
-	void (*PlaySound)( sv_edict_t *ed, float volume, const char *sample );
+	void (*PlaySound)( sv_edict_t *ed, float volume, float pitch, const char *sample );
 	float *(*GetModelVerts)( sv_edict_t *ent, int *numvertices );
 } physic_imp_t;
 

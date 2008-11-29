@@ -29,6 +29,7 @@ cvar_t	*sv_maxspeed;
 cvar_t	*sv_accelerate;
 cvar_t	*sv_friction;
 cvar_t	*sv_newprotocol;
+cvar_t	*sv_physics;
 cvar_t	*hostname;
 cvar_t	*public_server; // should heartbeats be sent
 
@@ -371,6 +372,7 @@ void SV_Init( void )
 	sv_accelerate = Cvar_Get( "sv_accelerate", "10", 0, "rate at which a player accelerates to sv_maxspeed" );
 	sv_friction = Cvar_Get( "sv_friction", "4", 0, "how fast you slow down" );
 	sv_newprotocol = Cvar_Get( "sv_protocol", "0", CVAR_LATCH|CVAR_ARCHIVE, "using protocol version 0 or 1" );
+	sv_physics = Cvar_Get( "cm_physic", "1", CVAR_ARCHIVE|CVAR_LATCH, "change physic model: 0 - Classic Quake Physic, 1 - Physics Engine" );
 	
 	public_server = Cvar_Get ("public", "0", 0, "change server type from private to public" );
 

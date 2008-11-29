@@ -217,6 +217,8 @@ void SwapBSPFile( bool todisk )
 
 bool CompressLump( const char *lumpname, size_t length )
 {
+	if( !bsplib_compress_bsp->integer )
+		return false;
 	if( !com.strcmp( lumpname, LUMP_MAPINFO ))
 		return false;
 	if( !com.strcmp( lumpname, LUMP_ENTITIES ))

@@ -467,7 +467,7 @@ void CL_VM_End( void );
 // if origin is NULL, the sound will be dynamically sourced from the entity
 #define S_StartStreaming		se->StartStreaming
 #define S_RegisterSound		se->RegisterSound
-#define S_StartSound( a,b,c,d,e,f )	se->StartSound( a, b, c, d, e, f, true );
+#define S_StartSound( a,b,c,d,e,f,g )	se->StartSound( a, b, c, d, e, f, g, true );
 #define S_StartLocalSound		se->StartLocalSound
 #define S_StartBackgroundTrack	se->StartBackgroundTrack
 #define S_StopBackgroundTrack		se->StopBackgroundTrack

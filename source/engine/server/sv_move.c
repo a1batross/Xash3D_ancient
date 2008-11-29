@@ -483,13 +483,15 @@ void SV_PlayerMove( sv_edict_t *ed )
 	VectorCopy(pm.ps.viewangles, player->priv.sv->s.viewangles );
 }
 
-void SV_PlaySound( sv_edict_t *ed, float volume, const char *sample )
+void SV_PlaySound( sv_edict_t *ed, float volume, float pitch, const char *sample )
 {
-	float	vol = bound( 0.0f, volume/255.0f, 255.0f );
-	int	sound_idx = SV_SoundIndex( sample );
-	edict_t	*ent;
 	if( !ed ) ed = prog->edicts->priv.sv;
-	ent = PRVM_PROG_TO_EDICT( ed->serialnumber );
 
-	//SV_StartSound( ent->progs.sv->origin, ent, CHAN_BODY, sound_idx, vol, 1.0f, 0 );
+	PRVM_G_INT(OFS_PARM0) = ed->serialnumber;
+	PRVM_G_FLOAT(OFS_PARM1) = CHAN_AUTO;
+	PRVM_G_INT(OFS_PARM2) = PRVM_SetEngineString( sample );
+	PRVM_G_FLOAT(OFS_PARM3) = volume;
+	PRVM_G_FLOAT(OFS_PARM4) = ATTN_NORM;
+	PRVM_G_FLOAT(OFS_PARM5) = bound( 1, pitch * PITCH_NORM, 255 );
+	PRVM_ExecuteProgram( prog->globals.sv->EmitSound, "EmitSound" );
 }

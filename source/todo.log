@@ -19,7 +19,7 @@ fopen завешивает приложение, даже если перепутать местами + и a, при установке р
 Beta 13.12.08
 
 0. move effects to client.dat		OK
-1. fixangle
+1. Xash 0.45 ents
 
 0. light_environment
 1. научить оружие стрелять

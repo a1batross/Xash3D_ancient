@@ -10,6 +10,7 @@ size_t	checkermate_dds_size;
 char	path[MAX_SYSPATH];
 uint	bsp_parms;
 file_t	*bsplog;
+cvar_t	*bsplib_compress_bsp;
 
 dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, false, sizeof(physic_exp_t) };
 physic_exp_t *pe;
@@ -82,6 +83,7 @@ bool PrepareBSPModel( const char *dir, const char *name )
 	// famous q1 "notexture" image: purple-black checkerboard
 	checkermate_dds = FS_LoadInternal( "checkerboard.dds", &checkermate_dds_size );
 	Image_Init( NULL, IL_ALLOW_OVERWRITE|IL_IGNORE_MIPS );
+	bsplib_compress_bsp = Cvar_Get( "bsp_compress", "0", CVAR_SYSTEMINFO, "compress bsp lumps" );
 
 	// merge parms
 	if( bsp_parms & BSPLIB_ONLYENTS )

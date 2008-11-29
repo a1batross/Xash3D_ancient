@@ -37,7 +37,6 @@ struct sv_globalvars_s
 	float	trace_hitgroup;
 	float	trace_flags;
 	int	trace_ent;
-	func_t	CreateAPI;
 	func_t	StartFrame;
 	func_t	EndFrame;
 	func_t	PlayerPreThink;
@@ -47,6 +46,7 @@ struct sv_globalvars_s
 	func_t	PutClientInServer;
 	func_t	ClientCommand;
 	func_t	ClientUserInfoChanged;
+	func_t	EmitSound;
 };
 
 struct sv_entvars_s
@@ -152,6 +152,6 @@ struct sv_entvars_s
 	float	team;
 };
 
-#define PROG_CRC_SERVER		3519
+#define PROG_CRC_SERVER		1737
 
 #endif//SV_EDICT_H

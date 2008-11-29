@@ -84,6 +84,8 @@ enum op_state
 	OP_NOT_S,
 	OP_NOT_ENT,
 	OP_NOT_FNC,
+	OP_NOT_BITI,
+	OP_NOT_BITF,
 	OP_IF,
 	OP_IFNOT,		// 50
 	OP_CALL0,
@@ -104,7 +106,6 @@ enum op_state
 	OP_BITAND,	// = (float) & (float); // of cource converting into integer in real code
 	OP_BITOR,
 
-	// version 7 started
 	OP_MULSTORE_F,	// f *= f
 	OP_MULSTORE_V,	// v *= f
 	OP_MULSTOREP_F,	// e.f *= f
@@ -194,6 +195,10 @@ enum op_state
 	OP_POWER_I,
 	OP_RSHIFT_I,
 	OP_LSHIFT_I,
+	OP_RSHIFT_F,
+	OP_LSHIFT_F,
+	OP_MODULO_I,	// (int)c = (int)a % (int)b
+	OP_MODULO_F,	// (float)c = fmod( (float)a, (float)b )
 
 	OP_GLOBAL_ADD,
 	OP_POINTER_ADD,	// pointer to 32 bit (remember to *3 for vectors)
@@ -280,7 +285,6 @@ enum op_state
 	OP_PUSH,
 	OP_POP,
 
-	// version 8 started
 	OP_NUMOPS,
 };
 

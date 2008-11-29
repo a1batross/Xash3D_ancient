@@ -165,6 +165,8 @@ opcode_t pr_opcodes[] =
 {"!",		"NOT_S",		-1,	ASSOC_LEFT, &type_string,	&type_void,	&type_float},
 {"!",		"NOT_ENT",	-1,	ASSOC_LEFT, &type_entity,	&type_void,	&type_float},
 {"!",		"NOT_FNC",	-1,	ASSOC_LEFT, &type_function,	&type_void,	&type_float},
+{"~",		"NOT_BITI",	-1,	ASSOC_LEFT, &type_integer,	&type_void,	&type_integer},
+{"~",		"NOT_BITF",	-1,	ASSOC_LEFT, &type_float,	&type_void,	&type_float},
 {"<IF>",		"IF",		-1,	ASSOC_RIGHT,&type_float,	NULL,		&type_void},
 {"<IFNOT>",	"IFNOT",		-1,	ASSOC_RIGHT,&type_float,	NULL,		&type_void},
 {"<CALL0>",	"CALL0",		-1,	ASSOC_LEFT, &type_function,	&type_void,	&type_void},
@@ -207,8 +209,8 @@ opcode_t pr_opcodes[] =
 {"<THINKTIME>",	"THINKTIME",	-1,	ASSOC_LEFT, &type_entity,	&type_float,	&type_void},
 {"|=",		"BITSET_F",	6,	ASSOC_RIGHT,&type_float,	&type_float,	&type_float},
 {"|=",		"BITSETP_F",	6,	ASSOC_RIGHT,&type_pointer,	&type_float,	&type_float},
-{"(-)",		"BITCLR_F",	6,	ASSOC_RIGHT,&type_float,	&type_float,	&type_float},
-{"(-)",		"BITCLRP_F",	6,	ASSOC_RIGHT,&type_pointer,	&type_float,	&type_float},
+{"&=",		"BITCLR_F",	6,	ASSOC_RIGHT,&type_float,	&type_float,	&type_float},
+{"&=",		"BITCLRP_F",	6,	ASSOC_RIGHT,&type_pointer,	&type_float,	&type_float},
 {"<RAND0>",	"RAND0",		-1,	ASSOC_LEFT, &type_void,	&type_void,	&type_float},
 {"<RAND1>",	"RAND1",		-1,	ASSOC_LEFT, &type_float,	&type_void,	&type_float},
 {"<RAND2>",	"RAND2",		-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},	
@@ -252,6 +254,10 @@ opcode_t pr_opcodes[] =
 {"^",		"POWER_I",	3,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
 {">>",		"RSHIFT_I",	3,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
 {"<<",		"LSHIFT_I",	3,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
+{">>",		"RSHIFT_F",	3,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{"<<",		"LSHIFT_F",	3,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{"%",		"OP_MODULO_I",	3,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
+{"%",		"OP_MODULO_F",	3,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
 {"<ARRAY>",	"GET_POINTER",	-1,	ASSOC_LEFT, &type_float,	&type_integer,	&type_pointer},
 {"<ARRAY>",	"ARRAY_OFS",	-1,	ASSOC_LEFT, &type_pointer,	&type_integer,	&type_pointer},
 {"=",		"LOADA_F",	6,	ASSOC_LEFT, &type_float,	&type_integer,	&type_float},
@@ -325,6 +331,7 @@ opcode_t pr_opcodes[] =
 {"=",		"STOREP_P",	6,	ASSOC_RIGHT,&type_pointer,	&type_pointer,	&type_void},
 {"<PUSH>",	"PUSH",		-1,	ASSOC_RIGHT,&type_float,	&type_void,	&type_pointer},
 {"<POP>",		"POP",		-1,	ASSOC_RIGHT,&type_float,	&type_void,	&type_void},
+{"<POP>",		"POP",		-1,	ASSOC_RIGHT,&type_float,	&type_void,	&type_void},
 {"|=",		"BITSET_I",	6,	ASSOC_RIGHT,&type_integer,	&type_integer,	&type_integer},
 {"|=",		"BITSETP_I",	6,	ASSOC_RIGHT,&type_pointer,	&type_integer,	&type_integer},
 {"*=",		"MULSTORE_I",	6,	ASSOC_RIGHT,&type_integer,	&type_integer,	&type_integer},
@@ -344,7 +351,7 @@ keyword_t pr_keywords[] =
 {KEYWORD_IF,	"if",		"",	0 },
 {KEYWORD_VOID,	"void",		"",	0 },
 {KEYWORD_ELSE,	"else",		"",	0 },
-{KEYWORD_LOCAL,	"local",		"",	0 },
+{KEYWORD_LOCAL,	"local",		"",	0 },	// FIXME: get rid of this
 {KEYWORD_WHILE,	"while",		"",	0 },
 {KEYWORD_ENTITY,	"entity",		"",	0 },
 {KEYWORD_FLOAT,	"float",		"",	0 },
@@ -367,13 +374,13 @@ keyword_t pr_keywords[] =
 {KEYWORD_SWITCH,	"switch",		"",	0 },
 {KEYWORD_TYPEDEF,	"typedef",	"",	0 },
 {KEYWORD_EXTERN,	"extern",		"",	0 },
-{KEYWORD_VAR,	"var",		"",	0 },
+{KEYWORD_VAR,	"var",		"",	0 },	// FIXME: get rid of this
 {KEYWORD_UNION,	"union",		"",	0 },
 {KEYWORD_THINKTIME,	"thinktime",	"",	0 },
 {KEYWORD_BOOL,	"bool",		"BOOL",	0 },
 {KEYWORD_ASM,	"asm",		"_asm",	0 },
-{KEYWORD_SHARED,	"shared",		"_export",0 },	// multiprogs stuff
-{KEYWORD_NOSAVE,	"nosave",		"",	0 },
+{KEYWORD_SHARED,	"shared",		"_export",0 },	// rename to ?
+{KEYWORD_NOSAVE,	"nosave",		"",	0 },	// rename to ?
 {NUM_KEYWORDS,	"",		"",	0 },
 };
 
@@ -418,6 +425,10 @@ opcode_t *opcodeprioritized[TOP_PRIORITY+1][64] =
 		&pr_opcodes[OP_POWER_I],
 		&pr_opcodes[OP_RSHIFT_I],
 		&pr_opcodes[OP_LSHIFT_I],
+		&pr_opcodes[OP_RSHIFT_F],
+		&pr_opcodes[OP_LSHIFT_F],
+		&pr_opcodes[OP_MODULO_I],
+		&pr_opcodes[OP_MODULO_F],
 		NULL
 	},
 	{
@@ -2544,9 +2555,9 @@ def_t *PR_Term( void )
 	def_t	*e, *e2;
 	etype_t	t;
 
-	if (pr_token_type == tt_punct) // a little extra speed...
+	if( pr_token_type == tt_punct ) // a little extra speed...
 	{
-		if (PR_CheckToken("++"))
+		if( PR_CheckToken( "++" ))
 		{
 			qcc_usefulstatement = true;
 			e = PR_Term ();
@@ -2567,7 +2578,7 @@ def_t *PR_Term( void )
 			}
 			return e;
 		}
-		else if (PR_CheckToken("--"))
+		else if( PR_CheckToken( "--" ))
 		{
 			qcc_usefulstatement = true;
 			e = PR_Term ();
@@ -2587,7 +2598,7 @@ def_t *PR_Term( void )
 			}
 			return e;
 		}
-		if (PR_CheckToken ("!"))
+		if( PR_CheckToken( "!" ))
 		{
 			e = PR_Expression (NOT_PRIORITY, false);
 			t = e->type->type;
@@ -2621,7 +2632,26 @@ def_t *PR_Term( void )
 			}
 			return e2;
 		}
-		else if (PR_CheckToken ("&"))
+		else if( PR_CheckToken( "~" ))
+		{
+			e = PR_Expression( NOT_PRIORITY, false );
+			t = e->type->type;
+			switch( t )
+			{
+			case ev_float: 
+				e2 = PR_Statement( &pr_opcodes[OP_NOT_BITF], e, 0, NULL ); 
+				break;
+			case ev_integer:
+				e2 = PR_Statement( &pr_opcodes[OP_NOT_BITI], e, 0, NULL );
+				break; // functions are integer values too.
+			default:
+				e2 = NULL; // shut up compiler warning;
+				PR_ParseError( ERR_BADNOTTYPE, "type mismatch for ~" );
+				break;
+			}
+			return e2;
+		}
+		else if( PR_CheckToken( "&" ))
 		{
 			int st = numstatements;
 			e = PR_Expression (NOT_PRIORITY, false);

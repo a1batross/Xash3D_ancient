@@ -28,6 +28,11 @@ typedef enum
 	ATTN_IDLE,
 	ATTN_STATIC,		// diminish very rapidly with distance
 } snd_attenuation_t;
+
+#define PITCH_LOW		95	// other values are possible - 0-255, where 255 is very high
+#define PITCH_NORM		100	// non-pitch shifted
+#define PITCH_HIGH		120
+
 /*
 ==============================================================================
 
@@ -47,7 +52,7 @@ typedef struct vsound_exp_s
 	sound_t (*RegisterSound)( const char *name );
 	void (*EndRegistration)( void );
 
-	void (*StartSound)( const vec3_t pos, int ent, int chan, sound_t sfx, float vol, float attn, bool loop );
+	void (*StartSound)( const vec3_t pos, int ent, int chan, sound_t sfx, float vol, float attn, float pitch, bool loop );
 	void (*StreamRawSamples)( int samples, int rate, int width, int channels, const byte *data );
 	bool (*AddLoopingSound)( int entnum, sound_t handle, float volume, float attn );
 	bool (*StartLocalSound)( const char *name );

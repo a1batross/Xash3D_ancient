@@ -7,6 +7,7 @@
 #include "utils.h"
 #include "bsplib.h"
 #include "mdllib.h"
+#include "vprogs_api.h"
 
 dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(vprogs_exp_t) };
 vprogs_exp_t *PRVM;
