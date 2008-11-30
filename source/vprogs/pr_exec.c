@@ -1440,11 +1440,11 @@ chooseexecprogram:
 			{
 				vm.prog->xfunction->profile += (st - startst);
 				vm.prog->xstatement = st - vm.prog->statements;
-				PRVM_ERROR("OP_STATE not supported by %s", PRVM_NAME);
+				PRVM_ERROR("OP_THINKTIME not supported by %s", PRVM_NAME);
 			}
 			break;
 		case OP_MODULO_I:
-			OPC->_int = (OPA->_int % OPB->_int);
+			OPC->_int = (int)(OPA->_int % OPB->_int);
 		case OP_MODULO_F:
 			OPC->_float = fmod( OPA->_float, OPB->_float );
 			break;

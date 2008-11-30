@@ -310,10 +310,10 @@ void com_atov( float *vec, const char *str, size_t siz )
 
 	for ( j = 0; j < siz; j++ )
 	{
-		vec[j] = com_atof( pfront );
+		vec[j] = com.atof( pfront );
 
-		// valid separator is space or ,
-		while( *pstr && (*pstr != ' ' || *pstr != ',' ))
+		// valid separator is space
+		while( *pstr && *pstr != ' ' )
 			pstr++;
 
 		if (!*pstr) break;

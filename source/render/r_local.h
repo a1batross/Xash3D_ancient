@@ -522,6 +522,7 @@ typedef struct ref_entity_s
 	
 	vec3_t		angles;
 	vec3_t		origin;		// position
+	vec3_t		movedir;		// forward vector that computed on a server
 	matrix3x3		matrix;		// rotation vectors
 
 	float		framerate;	// custom framerate

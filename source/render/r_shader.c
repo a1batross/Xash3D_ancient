@@ -3891,13 +3891,20 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 		}
 		shader->stages[0]->bundles[0]->numTextures++;
 
+		// support for hl1 "scroll" textures
+		if( com.stristr( shader->stages[0]->bundles[0]->textures[0]->name, "SCROLL" ))
+		{
+			shader->stages[0]->flags |= STAGEBUNDLE_TCMOD;
+			shader->stages[0]->bundles[0]->tcMod[0].type = TCMOD_CONVEYOR;
+			shader->stages[0]->bundles[0]->tcModNum++;
+		}
+
 		// fast presets
 		if( shader->surfaceParm & SURF_BLEND )
 		{
 			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
 			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
-			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
 		}
 		else if( shader->surfaceParm & SURF_ALPHA )
 		{
@@ -3906,7 +3913,6 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 			shader->stages[0]->alphaFunc.func = GL_GREATER;
 			shader->stages[0]->alphaFunc.ref = 0.666;
-			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
 		}
 		if( shader->surfaceParm & SURF_WARP )
 		{

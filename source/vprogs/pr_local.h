@@ -120,7 +120,6 @@ enum
 	KEYWORD_SWITCH,
 	KEYWORD_TYPEDEF,
 	KEYWORD_EXTERN,
-	KEYWORD_VAR,
 	KEYWORD_UNION,
 	KEYWORD_THINKTIME,
 
@@ -144,7 +143,6 @@ typedef enum
 	ev_function,
 	ev_pointer,
 	ev_integer,
-	ev_variant,
 	ev_struct,
 	ev_union,
 	ev_bool,
@@ -509,7 +507,6 @@ extern type_t	*type_field;
 extern type_t	*type_function;
 extern type_t	*type_pointer;
 extern type_t	*type_integer;
-extern type_t	*type_variant;
 extern type_t	*type_floatfield;
 extern includechunk_t *currentchunk;
 extern cachedsourcefile_t *sourcefile;

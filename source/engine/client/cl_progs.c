@@ -81,7 +81,7 @@ bool CL_ParseUserMessage( int svc_number )
 	// setup args
 	PRVM_G_FLOAT(OFS_PARM0) = (float)svc_number;
 	PRVM_ExecuteProgram (prog->globals.cl->HUD_ParseMessage, "HUD_ParseMessage");
-	msg_parsed = PRVM_G_FLOAT(OFS_RETURN);
+	msg_parsed = (bool)PRVM_G_FLOAT(OFS_RETURN);
 
 	return msg_parsed; 
 }
@@ -638,9 +638,9 @@ VM_TimeStamp,			// #31 string Com_TimeStamp( float format )
 VM_LocalCmd,			// #32 void LocalCmd( ... )
 VM_SubString,			// #33 string substring( string s, float start, float length )
 VM_AddCommand,			// #34 void Add_Command( string s )
-NULL,				// #35 -- reserved --
-NULL,				// #36 -- reserved --
-NULL,				// #37 -- reserved --
+VM_atof,				// #35 float atof( string s )
+VM_atoi,				// #36 float atoi( string s )
+VM_atov,				// #37 vector atov( string s )
 NULL,				// #38 -- reserved --
 NULL,				// #39 -- reserved --
 NULL,				// #40 -- reserved --

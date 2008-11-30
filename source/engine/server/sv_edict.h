@@ -42,9 +42,10 @@ struct sv_globalvars_s
 	func_t	PlayerPreThink;
 	func_t	PlayerPostThink;
 	func_t	ClientConnect;
+	func_t	ClientCommand;
 	func_t	ClientDisconnect;
 	func_t	PutClientInServer;
-	func_t	ClientCommand;
+	func_t	KeyValue;
 	func_t	ClientUserInfoChanged;
 	func_t	EmitSound;
 };
@@ -152,6 +153,6 @@ struct sv_entvars_s
 	float	team;
 };
 
-#define PROG_CRC_SERVER		1737
+#define PROG_CRC_SERVER		8505
 
 #endif//SV_EDICT_H

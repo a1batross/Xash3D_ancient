@@ -699,9 +699,9 @@ VM_TimeStamp,			// #31 string Com_TimeStamp( float format )
 VM_LocalCmd,			// #32 void LocalCmd( ... )
 VM_SubString,			// #33 string substring( string s, float start, float length )
 VM_AddCommand,			// #34 void Add_Command( string s )
-NULL,				// #35 -- reserved --
-NULL,				// #36 -- reserved --
-NULL,				// #37 -- reserved --
+VM_atof,				// #35 float atof( string s )
+VM_atoi,				// #36 float atoi( string s )
+VM_atov,				// #37 vector atov( string s )
 NULL,				// #38 -- reserved --
 NULL,				// #39 -- reserved --
 NULL,				// #40 -- reserved --

@@ -705,6 +705,45 @@ void VM_ComVA( void )
 
 /*
 =========
+VM_atof
+
+float atof( string s )
+=========
+*/
+void VM_atof( void )
+{
+	if(!VM_ValidateArgs( "atof", 1 )) return;
+	PRVM_G_FLOAT(OFS_RETURN) = com.atof(PRVM_G_STRING(OFS_PARM0));
+}
+
+/*
+=========
+VM_atoi
+
+float atoi( string s )
+=========
+*/
+void VM_atoi( void )
+{
+	if(!VM_ValidateArgs( "atoi", 1 )) return;
+	PRVM_G_FLOAT(OFS_RETURN) = com.atoi(PRVM_G_STRING(OFS_PARM0));
+}
+
+/*
+=========
+VM_atof
+
+vector atov( string s )
+=========
+*/
+void VM_atov( void )
+{
+	if(!VM_ValidateArgs( "atov", 1 )) return;
+	com.atov( PRVM_G_VECTOR(OFS_RETURN), PRVM_G_STRING(OFS_PARM0), 3 );
+}
+
+/*
+=========
 VM_ComStrlen
 
 float strlen( string text )
@@ -845,7 +884,7 @@ void VM_NextEdict( void )
 	edict_t	*ent;
 	int	i;
 
-	if(!VM_ValidateArgs( "nextent", 1 ))
+	if( !VM_ValidateArgs( "nextent", 1 ))
 		return;
 
 	i = PRVM_G_EDICTNUM( OFS_PARM0 );
@@ -858,8 +897,8 @@ void VM_NextEdict( void )
 			VM_RETURN_EDICT( prog->edicts );
 			return;
 		}
-		ent = PRVM_EDICT_NUM(i);
-		if(!ent->priv.ed->free)
+		ent = PRVM_EDICT_NUM( i );
+		if( !ent->priv.ed->free )
 		{
 			VM_RETURN_EDICT( ent );
 			return;
@@ -1590,9 +1629,9 @@ VM_TimeStamp,			// #31 string Com_TimeStamp( float format )
 VM_LocalCmd,			// #32 void LocalCmd( ... )
 VM_SubString,			// #33 string substring( string s, float start, float length )
 VM_AddCommand,			// #34 void Add_Command( string s )
-NULL,				// #35 -- reserved --
-NULL,				// #36 -- reserved --
-NULL,				// #37 -- reserved --
+VM_atof,				// #35 float atof( string s )
+VM_atoi,				// #36 float atoi( string s )
+VM_atov,				// #37 vector atov( string s )
 NULL,				// #38 -- reserved --
 NULL,				// #39 -- reserved --
 NULL,				// #40 -- reserved --

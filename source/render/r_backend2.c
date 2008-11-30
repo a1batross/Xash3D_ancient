@@ -1000,6 +1000,23 @@ static void RB_CalcTextureCoords( stageBundle_t *bundle, uint unit )
 				ref.texCoordArray[unit][j][1] += st[1];
 			}
 			break;
+		case TCMOD_CONVEYOR:
+			if( m_pCurrentEntity->framerate == 0.0f ) return;
+			now = (m_pCurrentEntity->framerate * m_fShaderTime) * 0.0039; // magic number :-)
+			s = m_pCurrentEntity->movedir[0];
+			t = m_pCurrentEntity->movedir[1];
+
+			st[0] = now * s;
+			st[0] -= floor(st[0]);
+			st[1] = now * t;
+			st[1] -= floor(st[1]);
+
+			for( j = 0; j < ref.numVertex; j++ )
+			{
+				ref.texCoordArray[unit][j][0] -= st[0];
+				ref.texCoordArray[unit][j][1] += st[1];
+			}
+			break;
 		case TCMOD_ROTATE:
 			rad = -DEG2RAD( tcMod->params[0] * m_fShaderTime );
 			s = com.sin( rad );

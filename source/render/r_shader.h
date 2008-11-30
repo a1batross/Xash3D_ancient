@@ -206,7 +206,8 @@ typedef enum
 	TCMOD_ROTATE,
 	TCMOD_STRETCH,
 	TCMOD_TURB,
-	TCMOD_TRANSFORM
+	TCMOD_TRANSFORM,
+	TCMOD_CONVEYOR	// same as TCMOD_SCROLL, but dynamically changed by entity
 } tcModType_t;
 
 typedef enum

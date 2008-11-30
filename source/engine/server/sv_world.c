@@ -202,13 +202,13 @@ void SV_ClassifyEdict( edict_t *ent )
 	}
 	else if( ent->progs.sv->movetype == MOVETYPE_PHYSIC )
 		sv_ent->s.ed_type = ED_RIGIDBODY;
-	else if( ent->progs.sv->solid == SOLID_BSP )
+	else if( ent->progs.sv->solid == SOLID_BSP || VectorIsNull( ent->progs.sv->origin ))
 	{
-		if((int)ent->progs.sv->flags & FL_WORLDBRUSH )
+		if( ent->progs.sv->movetype == MOVETYPE_CONVEYOR )
+			sv_ent->s.ed_type = ED_MOVER;
+		else if((int)ent->progs.sv->flags & FL_WORLDBRUSH )
 			sv_ent->s.ed_type = ED_BSPBRUSH;
 		else if( ent->progs.sv->movetype == MOVETYPE_PUSH ) 
-			sv_ent->s.ed_type = ED_MOVER;
-		else if( ent->progs.sv->movetype == MOVETYPE_CONVEYOR )
 			sv_ent->s.ed_type = ED_MOVER;
 		else if( ent->progs.sv->movetype == MOVETYPE_NONE )
 			sv_ent->s.ed_type = ED_BSPBRUSH;

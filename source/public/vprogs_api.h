@@ -159,7 +159,7 @@ typedef struct prvm_prog_s
 	void		(*count_edicts)(void);
 	bool		(*load_edict)(edict_t *ent);		// initialize edict for first loading
 	void		(*restore_edict)(edict_t *ent);	// restore edict from savegame or changelevel
-	bool		(*keyvalue_edict)(edict_t *ent, const char *key, const char *value );	// KeyValueData
+	void		(*keyvalue_edict)(edict_t *ent, const char *key, const char *value );	// KeyValueData
 	void		(*init_cmd)(void);
 	void		(*reset_cmd)(void);
 	void		(*error_cmd)(const char *format, ...);

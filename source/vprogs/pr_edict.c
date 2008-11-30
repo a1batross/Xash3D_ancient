@@ -482,7 +482,6 @@ char *PRVM_UglyValueString (etype_t type, prvm_eval_t *val)
 		com.sprintf (line, "%i", val->_int);
 		break;
 	case ev_pointer:
-	case ev_variant:
 	case ev_struct:
 	case ev_union:
 		com.sprintf (line, "skip new type %i", type);
@@ -691,7 +690,7 @@ void PRVM_ED_Read( int s_table, int entnum, dkeyvalue_t *fields, int numpairs )
 		key = PRVM_ED_FindField( keyname );
 		if( !key )
 		{
-			PRVM_GCALL(keyvalue_edict)(ent, keyname, value );
+			PRVM_GCALL(keyvalue_edict)( ent, keyname, value );
 			else MsgDev( D_WARN, "%s: unknown field '%s'\n", PRVM_NAME, keyname);
 			continue;
 		}
@@ -1077,7 +1076,8 @@ const char *PRVM_ED_ParseEdict( const char *data, edict_t *ent )
 		key = PRVM_ED_FindField( keyname );
 		if( !key )
 		{
-			MsgDev(D_NOTE, "%s: unknown field '%s'\n", PRVM_NAME, keyname);
+			PRVM_GCALL(keyvalue_edict)( ent, keyname, pr_token );
+			else MsgDev( D_WARN, "%s: unknown field '%s'\n", PRVM_NAME, keyname);
 			continue;
 		}
 
@@ -1090,7 +1090,7 @@ const char *PRVM_ED_ParseEdict( const char *data, edict_t *ent )
 		}
 		if(!PRVM_ED_ParseEpair( ent, key, pr_token )) PRVM_ERROR ("PRVM_ED_ParseEdict: parse error");
 	}
-	if(!init) ent->priv.ed->free = true;
+	if( !init ) ent->priv.ed->free = true;
 
 	return data;
 }

@@ -1507,7 +1507,7 @@ void SV_Physics_Conveyor( edict_t *ent )
 		{
 			if( tr.plane.normal[2] > 0 )
 			{
-				v[2] = ent->progs.sv->speed * sqrt(1.0 - tr.plane.normal[2]*tr.plane.normal[2]) / tr.plane.normal[2];
+				v[2] = ent->progs.sv->speed * com.sqrt( 1.0 - tr.plane.normal[2]*tr.plane.normal[2]) / tr.plane.normal[2];
 				if(DotProduct( ent->progs.sv->movedir, tr.plane.normal) > 0)
 					v[2] = -v[2]; // then we're moving down
 				move[2] = v[2] * 0.1f;

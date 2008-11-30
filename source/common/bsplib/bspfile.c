@@ -477,7 +477,7 @@ void UnparseEntities( void )
 	char		*buf, *end;
 	char		line[2048];
 	char		key[MAX_KEY], value[MAX_VALUE];
-	const char	*value2;
+	char		*value2;
 	int		i;
 
 	buf = dentdata;
@@ -491,14 +491,20 @@ void UnparseEntities( void )
 
 		// certain entities get stripped from bsp file */
 		value2 = ValueForKey( &entities[i], "classname" );
-		if(!com.stricmp( value2, "_decal" ) || !com.stricmp( value2, "_skybox" ))
-			continue;
 		
 		com.strcat( end, "{\n" );
 		end += 2;
+
+		// always place "classname" at first
+		StripTrailing( value2 );
+		com.snprintf( line, 2048, "\"classname\" \"%s\"\n", value2 );
+		com.strcat( end, line );
+		end += com.strlen( line );
 				
 		for( ep = entities[i].epairs; ep; ep = ep->next )
 		{
+			if( !com.stricmp( ep->key, "classname" ))
+				continue;	// already stored
 			com.strncpy( key, ep->key, MAX_KEY );
 			StripTrailing( key );
 			com.strncpy( value, ep->value, MAX_VALUE );

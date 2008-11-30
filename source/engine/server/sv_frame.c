@@ -81,6 +81,15 @@ void SV_UpdateEntityState( edict_t *ent )
 		ent->priv.sv->s.model.controller[i] = ent->progs.sv->controller[i];
 	}
 
+	if( ent->priv.sv->s.ed_type != ED_VIEWMODEL )
+		ent->priv.sv->s.movetype = ent->progs.sv->movetype;
+
+	if( ent->priv.sv->s.ed_type == ED_MOVER || ent->priv.sv->s.ed_type == ED_BSPBRUSH )
+	{
+		// these needs to right calculate direction of scroll texture
+		VectorCopy( ent->progs.sv->movedir, ent->priv.sv->s.velocity );
+	}
+
 	if( ent->priv.sv->s.ed_type == ED_VIEWMODEL )
 	{
 		// copy v_model state from client to viemodel entity
@@ -101,11 +110,11 @@ void SV_UpdateEntityState( edict_t *ent )
 		if( ent->progs.sv->fixangle )
 		{
 			// FIXME: set angles
-			//for( i = 0; i < 3; i++ )
-			//	ent->priv.sv->s.delta_angles[i] = ANGLE2SHORT( ent->priv.sv->s.angles[i] );
-			//VectorClear( ent->priv.sv->s.angles );
-			//VectorClear( ent->priv.sv->s.viewangles );
-			//VectorClear( ent->progs.sv->v_angle );
+			for( i = 0; i < 3; i++ )
+				ent->priv.sv->s.delta_angles[i] = ANGLE2SHORT( ent->priv.sv->s.angles[i] );
+			VectorClear( ent->priv.sv->s.angles );
+			VectorClear( ent->priv.sv->s.viewangles );
+			VectorClear( ent->progs.sv->v_angle );
 			
 			// and clear fixangle for the next frame
 			ent->progs.sv->fixangle = 0;
@@ -255,6 +264,10 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 	{
 		ent = PRVM_EDICT_NUM( e );
 		force = false; // clear forceflag
+
+		// completely ignore dormant entity
+		if((int)ent->progs.sv->flags & FL_DORMANT )
+			continue;
 
 		// send viewmodel entity always
 		// NOTE: never apply LinkEdict to viewmodel entity, because

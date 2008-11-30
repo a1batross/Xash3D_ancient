@@ -1080,6 +1080,12 @@ static bool R_AddEntityToScene( entity_state_t *s1, entity_state_t *s2, float le
 	refent->renderfx = s1->renderfx;
 	refent->prev.sequencetime = s1->model.animtime - s2->model.animtime;
 
+	if( refent->ent_type == ED_MOVER || refent->ent_type == ED_BSPBRUSH )
+	{
+		// store conveyor movedir in pev->velocity
+		VectorNormalize2( s1->velocity, refent->movedir );
+	}
+
 	// calculate angles
 	if( refent->effects & EF_ROTATE )
 	{	

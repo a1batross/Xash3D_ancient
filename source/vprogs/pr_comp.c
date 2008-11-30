@@ -368,15 +368,14 @@ keyword_t pr_keywords[] =
 {KEYWORD_DEFAULT,	"default",	"",	0 },
 {KEYWORD_GOTO,	"goto",		"",	0 },
 {KEYWORD_INT,	"int",		"integer",0 },
-{KEYWORD_STATE,	"state",		"",	ev_field},
+{KEYWORD_STATE,	"state",		"",	ev_field},// intrinsic
 {KEYWORD_CLASS,	"class",		"",	0 }, 
 {KEYWORD_STRUCT,	"struct",		"",	0 },
 {KEYWORD_SWITCH,	"switch",		"",	0 },
 {KEYWORD_TYPEDEF,	"typedef",	"",	0 },
 {KEYWORD_EXTERN,	"extern",		"",	0 },
-{KEYWORD_VAR,	"var",		"",	0 },	// FIXME: get rid of this
 {KEYWORD_UNION,	"union",		"",	0 },
-{KEYWORD_THINKTIME,	"thinktime",	"",	0 },
+{KEYWORD_THINKTIME,	"thinktime",	"",	0 },	// intrinsic
 {KEYWORD_BOOL,	"bool",		"BOOL",	0 },
 {KEYWORD_ASM,	"asm",		"_asm",	0 },
 {KEYWORD_SHARED,	"shared",		"_export",0 },	// rename to ?
@@ -543,7 +542,6 @@ char *PR_NameFromType( etype_t type )
 	case ev_vector: com.strncpy(typeinfo, "vector", 32 ); break;
 	case ev_entity: com.strncpy(typeinfo, "entity", 32 ); break;
 	case ev_integer: com.strncpy(typeinfo, "int", 32 ); break;
-	case ev_variant: com.strncpy(typeinfo, "var", 32 ); break;
 	case ev_struct: com.strncpy(typeinfo, "struct", 32 ); break;
 	case ev_union: com.strncpy(typeinfo, "union", 32 ); break;
 	case ev_void: com.strncpy(typeinfo, "void", 32 ); break;
@@ -564,7 +562,6 @@ void PR_KeyWordValid( char *name, type_t *type )
 	case ev_vector:
 	case ev_entity:
           case ev_integer:
-          case ev_variant:
 	case ev_struct:
 	case ev_union:
 		typeinfo = PR_NameFromType( type->type );
@@ -580,8 +577,8 @@ void PR_KeyWordValid( char *name, type_t *type )
 		if(!STRCMP(name, pr_keywords[i].name))
 		{         
 			// MSVC 6.0 style
-			PR_ParseWarning(ERR_ILLEGALNAME, "'%s' followed by '%s' is illegal", typeinfo, name );
-			PR_ParseWarning(WARN_IGNOREDONLEFT, "' ' : ignored on left of '%s ' when no variable is declared", typeinfo );
+			PR_ParseWarning( ERR_ILLEGALNAME, "'%s' followed by '%s' is illegal", typeinfo, name );
+			PR_ParseWarning( WARN_IGNOREDONLEFT, "' ' : ignored on left of '%s ' when no variable is declared", typeinfo );
 			break;
 		}
 	}
@@ -592,18 +589,18 @@ void PR_GetEntvarsName( void )
 	def_t	*d;
 
 	// for emit class constructor we need before
-	// get name of global entvars pointer (default "self")
+	// get name of global entvars pointer (default "pev")
 
-	if(pr_setevarsname) return;
+	if( pr_setevarsname ) return;
 
-	for (d = pr.def_head.next; d; d = d->next)
+	for( d = pr.def_head.next; d; d = d->next )
 	{
-		if (!com.strcmp (d->name, "end_sys_globals")) break;
-		if (d->ofs < RESERVED_OFS) continue;
-		if (d->type->type == ev_entity)
+		if( !com.strcmp (d->name, "end_sys_globals" )) break;
+		if( d->ofs < RESERVED_OFS ) continue;
+		if( d->type->type == ev_entity )
 		{
-			com.strncpy(pevname, d->name, 32 );
-			com.strncpy(opevname, va("o%s", pevname), 32 );
+			com.strncpy( pevname, d->name, 32 );
+			com.strncpy( opevname, va( "o%s", pevname ), 32 );
 			pr_setevarsname = true;
 			break;
 		}
@@ -1434,59 +1431,59 @@ def_t *PR_ParseFunctionCall (def_t *func)
 	func->timescalled++;
 	t = func->type;
 
-	if(t && t->type == ev_variant) t->aux_type = type_variant;
-	if(t && t->type != ev_function && t->type != ev_variant)
+	if( t && t->type != ev_function )
 	{
-		PR_ParseErrorPrintDef (ERR_NOTAFUNCTION, func, "not a function");
+		PR_ParseErrorPrintDef( ERR_NOTAFUNCTION, func, "not a function" );
 	}
 
-	if (!t->num_parms && t->type != ev_variant)	
+	if( !t->num_parms )	
 	{
 		// intrinsics. These base functions have variable arguments. I would check for (...) args too, 
 		// but that might be used for extended builtin functionality. (this code wouldn't compile otherwise)
-		if (!com.strcmp(func->name, "spawn"))
+		if( !com.strcmp( func->name, "spawn" ))
 		{
 			type_t *rettype;
-			if (PR_CheckToken(")"))
+			if( PR_CheckToken( ")" ))
 			{
 				rettype = type_entity;
 			}
 			else
 			{
-				rettype = TypeForName(PR_ParseName());
-				if (!rettype || rettype->type != ev_entity)
-					PR_ParseError(ERR_NOTANAME, "Spawn operator with undefined class");
+				rettype = TypeForName( PR_ParseName());
+				if( !rettype || rettype->type != ev_entity )
+					PR_ParseError(ERR_NOTANAME, "spawn operator with undefined class" );
 
 				PR_Expect(")");
 			}
 
-			if (def_ret.temp->used)
-				PR_ParseWarning(0, "Return value conflict - output is likly to be invalid");
+			if( def_ret.temp->used )
+				PR_ParseWarning( 0, "return value conflict - output is likly to be invalid" );
 			def_ret.temp->used = true;
 
-			if (rettype != type_entity)
+			if( rettype != type_entity )
 			{
-				char genfunc[2048];
-				com.sprintf(genfunc, "Class*%s", rettype->name);
-				func = PR_GetDef(type_function, genfunc, NULL, true, 1);
+				char	genfunc[2048];
+
+				com.sprintf( genfunc, "Class*%s", rettype->name );
+				func = PR_GetDef( type_function, genfunc, NULL, true, 1 );
 				func->references++;
 			}
-			PR_SimpleStatement(OP_CALL0, func->ofs, 0, 0, false);
+			PR_SimpleStatement( OP_CALL0, func->ofs, 0, 0, false );
 			def_ret.type = rettype;
 			return &def_ret;
 		}
-		else if (!com.strcmp(func->name, "entnum") && !PR_CheckToken(")"))
+		else if( !com.strcmp( func->name, "entnum" ) && !PR_CheckToken( ")" ))
 		{
 			// t = (a/%1) / (nextent(world)/%1)
 			// a/%1 does a (int)entity to float conversion type thing
 
 			e = PR_Expression(TOP_PRIORITY, false);
 			PR_Expect(")");
-			e = PR_Statement(&pr_opcodes[OP_DIV_F], e, PR_MakeIntDef(1), (dstatement_t **)0xffffffff);
+			e = PR_Statement(&pr_opcodes[OP_DIV_F], e, PR_MakeIntDef( 1 ), (dstatement_t **)0xffffffff);
 
-			d = PR_GetDef(NULL, "nextent", NULL, false, 0);
-			if (!d) PR_ParseError(0, "the nextent builtin is not defined");
-			PR_FreeTemp(PR_Statement(&pr_opcodes[OP_STORE_F], e, &def_parms[0], (dstatement_t **)0xffffffff));
+			d = PR_GetDef( NULL, "nextent", NULL, false, 0 );
+			if( !d ) PR_ParseError(0, "the nextent builtin is not defined");
+			PR_FreeTemp( PR_Statement(&pr_opcodes[OP_STORE_F], e, &def_parms[0], (dstatement_t **)0xffffffff));
 			d = PR_Statement(&pr_opcodes[OP_CALL0], d, NULL, NULL);
 			d = PR_Statement(&pr_opcodes[OP_DIV_F], d, PR_MakeIntDef(1), (dstatement_t **)0xffffffff);
 
@@ -1496,30 +1493,25 @@ def_t *PR_ParseFunctionCall (def_t *func)
 		}
 	}	// so it's not an intrinsic.
 
-	if (opt_precache_file)
+	if( opt_precache_file )
 	{
 		// should we strip out all precache_file calls?
-		if (!com.strncmp(func->name,"precache_file", 13))
+		if( !com.strncmp( func->name,"precache_file", 13 ))
 		{
-			if (pr_token_type == tt_immediate && pr_immediate_type->type == ev_string)
+			if( pr_token_type == tt_immediate && pr_immediate_type->type == ev_string )
 			{
 				PR_Lex();
-				PR_Expect(")");
+				PR_Expect( ")" );
 				def_ret.type = type_void;
 				return &def_ret;
 			}
 		}
 	}
-	PR_LockActiveTemps(); // any temps before are likly to be used with the return value.
+	PR_LockActiveTemps(); // any temps before are likely to be used with the return value.
 
 	// any temps referenced to build the parameters don't need to be locked.
 	// copy the arguments to the global parameter variables
-	if (t->type == ev_variant)
-	{
-		extraparms = true;
-		np = 0;
-	}
-	else if (t->num_parms < 0)
+	if( t->num_parms < 0 )
 	{
 		extraparms = true;
 		np = (t->num_parms * -1) - 1;
@@ -1665,7 +1657,7 @@ def_t *PR_ParseFunctionCall (def_t *func)
 							// you're allowed to use int 0 to pass a null function pointer
 							// this is basically because __NULL__ is defined as ~0 (int 0)
 						}
-						else if (p->type != ev_variant)
+						else
 						{
 							// can cast to variant whatever happens
 							if (opt_laxcasts || (p->type == ev_function && e->type->type == ev_function))
@@ -1751,36 +1743,31 @@ def_t *PR_ParseFunctionCall (def_t *func)
 	else PR_FreeTemp(PR_Statement (&pr_opcodes[OP_CALL0], func, 0, (dstatement_t **)&st));
 	if (opev) PR_SimpleStatement(OP_STORE_ENT, opev->ofs, d->ofs, 0, false);
 
-	for(; arg; arg--)
+	for( ; arg; arg-- )
 	{
-		PR_FreeTemp(param[arg-1]);
+		PR_FreeTemp( param[arg-1] );
 	}
 
-	if (old)
+	if( old )
 	{
-		if (t->type == ev_variant)
-		{
-			d = PR_GetTemp(type_variant);
-			PR_FreeTemp(PR_Statement(pr_opcodes+OP_STORE_F, &def_ret, d, NULL));
-		}
-		else
-		{
-			d = PR_GetTemp(t->aux_type);
-			if (t->aux_type->size == 3) PR_FreeTemp(PR_Statement(pr_opcodes+OP_STORE_V, &def_ret, d, NULL));
-			else PR_FreeTemp(PR_Statement(pr_opcodes+OP_STORE_F, &def_ret, d, NULL));
-		}
-		if (def_ret.type->size == 3) PR_FreeTemp(PR_Statement(pr_opcodes+OP_STORE_V, old, &def_ret, NULL));
-		else PR_FreeTemp(PR_Statement(pr_opcodes+OP_STORE_F, old, &def_ret, NULL));
-		PR_FreeTemp(old);
-		PR_UnFreeTemp(&def_ret);
-		PR_UnFreeTemp(d);
+		d = PR_GetTemp(t->aux_type);
+
+		if( t->aux_type->size == 3 ) PR_FreeTemp( PR_Statement( pr_opcodes+OP_STORE_V, &def_ret, d, NULL ));
+		else PR_FreeTemp( PR_Statement( pr_opcodes+OP_STORE_F, &def_ret, d, NULL ));
+
+		if( def_ret.type->size == 3 ) PR_FreeTemp( PR_Statement(pr_opcodes+OP_STORE_V, old, &def_ret, NULL ));
+		else PR_FreeTemp(PR_Statement( pr_opcodes+OP_STORE_F, old, &def_ret, NULL ));
+
+		PR_FreeTemp( old );
+		PR_UnFreeTemp( &def_ret );
+		PR_UnFreeTemp( d );
 
 		return d;
 	}
 	
-	if (t->type == ev_variant) def_ret.type = type_variant;
-	else def_ret.type = t->aux_type;
-	if (def_ret.temp->used) PR_ParseWarning(WARN_FIXEDRETURNVALUECONFLICT, "Return value conflict - output is inefficient");
+	def_ret.type = t->aux_type;
+	if( def_ret.temp->used )
+		PR_ParseWarning( WARN_FIXEDRETURNVALUECONFLICT, "return value conflict - output is inefficient" );
 	def_ret.temp->used = true;
 
 	return &def_ret;
@@ -2156,32 +2143,29 @@ def_t *PR_ParseValue (type_t *assumeclass)
 	if (!d)
 	{
 		// intrinsics, any old function with no args will do.
-		if ((!com.strcmp(name, "spawn")) || (!com.strcmp(name, "entnum")))
-			od = d = PR_GetDef (type_function, name, NULL, true, 1);
-		else if (PR_KeywordEnabled(KEYWORD_CLASS) && !com.strcmp(name, "this"))
+		if(( !com.strcmp( name, "spawn" )) || (!com.strcmp( name, "entnum" )))
+			od = d = PR_GetDef( type_function, name, NULL, true, 1 );
+		else if( PR_KeywordEnabled( KEYWORD_CLASS ) && !com.strcmp( name, "this" ))
 		{
-			if (!pr_classtype) PR_ParseError(ERR_NOTANAME, "Cannot use 'this' outside of an OO function\n");
-			od = PR_GetDef(NULL, pevname, NULL, true, 1);
-			od = d = PR_DummyDef(pr_classtype, "this", pr_scope, 1, od->ofs, true);
+			if( !pr_classtype )
+				PR_ParseError( ERR_NOTANAME, "cannot use 'this' outside of an OO function\n" );
+			od = PR_GetDef( NULL, pevname, NULL, true, 1 );
+			od = d = PR_DummyDef( pr_classtype, "this", pr_scope, 1, od->ofs, true );
 		}
-		else if (PR_KeywordEnabled(KEYWORD_CLASS) && !com.strcmp(name, "super"))
+		else if( PR_KeywordEnabled( KEYWORD_CLASS ) && !com.strcmp( name, "super" ))
 		{
-			if (!pr_classtype) PR_ParseError(ERR_NOTANAME, "Cannot use 'super' outside of an OO function\n");
-			od = PR_GetDef(NULL, pevname, NULL, true, 1);
-			od = d = PR_DummyDef(pr_classtype, "super", pr_scope, 1, od->ofs, true);
+			if( !pr_classtype )
+				PR_ParseError( ERR_NOTANAME, "cannot use 'super' outside of an OO function\n" );
+			od = PR_GetDef( NULL, pevname, NULL, true, 1 );
+			od = d = PR_DummyDef( pr_classtype, "super", pr_scope, 1, od->ofs, true );
 		}
-		else
-		{
-			od = d = PR_GetDef (type_variant, name, pr_scope, true, 1);
-			if (!d) PR_ParseError (ERR_UNKNOWNVALUE, "Unknown value \"%s\"", name);
-			else PR_ParseWarning (ERR_UNKNOWNVALUE, "Unknown value \"%s\".", name);
-		}
+		else PR_ParseError( ERR_UNKNOWNVALUE, "unknown value \"%s\"", name );
 	}
 reloop:
 	// FIXME: Make this work with double arrays/2nd level structures.
 	// Should they just jump back to here?
 
-	if (PR_CheckToken("["))
+	if( PR_CheckToken( "[" ))
 	{
 		type_t	*newtype;
 		if (ao)
@@ -3240,44 +3224,47 @@ PR_ParseStatement
 
 ============
 */
-void PR_ParseStatement (void)
+void PR_ParseStatement( void )
 {
 	int		continues;
 	int		breaks;
-	int		cases;
-	int		i;
+	int		cases, i;
 	def_t		*e, *e2;
 	dstatement_t	*patch1, *patch2, *patch3;
 	int		statementstart = pr_source_line;
 
-	if (PR_CheckToken ("{"))
+	if( PR_CheckToken( "{" ))
 	{
 		e = pr.localvars;
-		while (!PR_CheckToken("}")) PR_ParseStatement ();
+		while( !PR_CheckToken( "}" )) PR_ParseStatement();
 
-		if (pr_subscopedlocals)
+		if( pr_subscopedlocals )
 		{
-			for (e2 = pr.localvars; e2 != e; e2 = e2->nextlocal)
+			for( e2 = pr.localvars; e2 != e; e2 = e2->nextlocal )
 			{
-				Hash_RemoveData(&localstable, e2->name, e2);
+				Hash_RemoveData( &localstable, e2->name, e2 );
 			}
 		}
 		return;
 	}
-	if (PR_CheckForKeyword( KEYWORD_RETURN ))
+	if( PR_CheckForKeyword( KEYWORD_RETURN ))
 	{
-		if (PR_CheckToken (";"))
+		if( PR_CheckToken( ";" ))
 		{
-			if (pr_scope->type->aux_type->type != ev_void)
-				PR_ParseWarning(WARN_MISSINGRETURNVALUE, "\'%s\' should return %s", pr_scope->name, pr_scope->type->aux_type->name);
-			if (opt_return_only) PR_FreeTemp(PR_Statement (&pr_opcodes[OP_DONE], 0, 0, NULL));
+			if( pr_scope->type->aux_type->type != ev_void )
+				PR_ParseWarning( WARN_MISSINGRETURNVALUE, "\'%s\' should return %s", pr_scope->name, pr_scope->type->aux_type->name);
+			if( opt_return_only ) PR_FreeTemp(PR_Statement (&pr_opcodes[OP_DONE], 0, 0, NULL));
 			else PR_FreeTemp(PR_Statement (&pr_opcodes[OP_RETURN], 0, 0, NULL));
 			return;
 		}
-		e = PR_Expression (TOP_PRIORITY, true);
-		PR_Expect (";");
-		if (pr_scope->type->aux_type->type != e->type->type)
-			PR_ParseWarning(WARN_WRONGRETURNTYPE, "\'%s\' returned %s, expected %s", pr_scope->name, e->type->name, pr_scope->type->aux_type->name);
+		e = PR_Expression( TOP_PRIORITY, true );
+		PR_Expect( ";" );
+		if( pr_scope->type->aux_type->type != e->type->type )
+		{
+			if( pr_scope->type->aux_type->type == ev_void )
+				PR_ParseWarning( WARN_WRONGRETURNTYPE, "\'%s\' : 'void' function returning a value", pr_scope->name );
+			else PR_ParseWarning( WARN_WRONGRETURNTYPE, "\'%s\' returned %s, expected %s", pr_scope->name, e->type->name, pr_scope->type->aux_type->name);
+		}
 		PR_FreeTemp(PR_Statement (&pr_opcodes[OP_RETURN], e, 0, NULL));
 		return;
 	}
@@ -3492,24 +3479,23 @@ void PR_ParseStatement (void)
 	{
 		bool result = false;
 
-		if (PR_MatchKeyword(KEYWORD_VAR)) result = true;
-		else if (PR_MatchKeyword(KEYWORD_STRING)) result = true;
-		else if (PR_MatchKeyword(KEYWORD_FLOAT)) result = true;
-		else if (PR_MatchKeyword(KEYWORD_ENTITY)) result = true;
-		else if (PR_MatchKeyword(KEYWORD_VECTOR)) result = true;
-		else if (PR_MatchKeyword(KEYWORD_INT)) result = true;
-		else if (PR_MatchKeyword(KEYWORD_CLASS)) result = true; 
-		else if (PR_MatchKeyword(KEYWORD_CONST)) result = true;
+		if( PR_MatchKeyword( KEYWORD_STRING )) result = true;
+		else if( PR_MatchKeyword( KEYWORD_FLOAT )) result = true;
+		else if( PR_MatchKeyword( KEYWORD_ENTITY )) result = true;
+		else if( PR_MatchKeyword( KEYWORD_VECTOR )) result = true;
+		else if( PR_MatchKeyword( KEYWORD_INT )) result = true;
+		else if( PR_MatchKeyword( KEYWORD_CLASS )) result = true; 
+		else if( PR_MatchKeyword( KEYWORD_CONST )) result = true;
 		else result = false;
 
-		if(result)
+		if( result )
 		{
-			PR_ParseDefs (NULL);
+			PR_ParseDefs( NULL );
 			locals_end = numpr_globals;
 			return;
 		}
 	}
-	if (PR_CheckForKeyword( KEYWORD_STATE ))
+	if( PR_CheckForKeyword( KEYWORD_STATE ))
 	{
 		PR_Expect("[");
 		PR_ParseState();
@@ -4927,13 +4913,12 @@ def_t *PR_DummyDef(type_t *type, char *name, def_t *scope, int arraysize, uint o
 				case ev_integer:
 				case ev_struct:
 				case ev_union:
-				case ev_variant: // for lack of any better alternative
-					com.sprintf(newname, "%s%s.%s", name, array, parttype->name);
-					PR_DummyDef(parttype, newname, scope, 1, ofs + type->size*a + parttype->ofs, false);
+					com.sprintf( newname, "%s%s.%s", name, array, parttype->name );
+					PR_DummyDef( parttype, newname, scope, 1, ofs + type->size*a + parttype->ofs, false );
 					break;
 				case ev_function:
-					com.sprintf(newname, "%s%s.%s", name, array, parttype->name);
-					PR_DummyDef(parttype, newname, scope, 1, ofs + type->size*a +parttype->ofs, false)->initialized = true;
+					com.sprintf( newname, "%s%s.%s", name, array, parttype->name );
+					PR_DummyDef( parttype, newname, scope, 1, ofs + type->size*a +parttype->ofs, false)->initialized = true;
 					break;
 				case ev_void:
 					break;
@@ -4941,7 +4926,7 @@ def_t *PR_DummyDef(type_t *type, char *name, def_t *scope, int arraysize, uint o
 				parttype = parttype->next;
 			}			
 		}
-		else if (type->type == ev_vector)
+		else if( type->type == ev_vector )
 		{	
 			// do the vector thing.
 			com.sprintf(newname, "%s%s_x", name, array);
@@ -5207,19 +5192,18 @@ def_t *PR_DummyFieldDef(type_t *type, char *name, def_t *scope, int arraysize, u
 				case ev_field:
 				case ev_pointer:
 				case ev_integer:
-				case ev_variant:
-					if (*name) com.sprintf(newname, "%s%s.%s", name, array, parttype->name);
-					else com.sprintf(newname, "%s%s", parttype->name, array);
-					ftype = PR_NewType("FIELD TYPE", ev_field);
+					if( *name ) com.sprintf( newname, "%s%s.%s", name, array, parttype->name );
+					else com.sprintf( newname, "%s%s", parttype->name, array );
+					ftype = PR_NewType( "FIELD TYPE", ev_field );
 					ftype->aux_type = parttype;
 					// vector fields create a _y and _z too, so we need this still.
-					if (parttype->type == ev_vector) ftype->size = parttype->size;
-					def = PR_GetDef(NULL, newname, scope, false, 1);
-					if (!def) def = PR_GetDef(ftype, newname, scope, true, 1);
+					if( parttype->type == ev_vector ) ftype->size = parttype->size;
+					def = PR_GetDef( NULL, newname, scope, false, 1 );
+					if( !def ) def = PR_GetDef( ftype, newname, scope, true, 1 );
 					else
 					{
-						PR_ParseWarning(WARN_CONFLICTINGUNIONMEMBER, "conflicting offsets for union/struct expansion of %s. Ignoring new def.", newname);
-						PR_ParsePrintDef(WARN_CONFLICTINGUNIONMEMBER, def);
+						PR_ParseWarning( WARN_CONFLICTINGUNIONMEMBER, "conflicting offsets for union/struct expansion of %s. Ignoring new def.", newname );
+						PR_ParsePrintDef( WARN_CONFLICTINGUNIONMEMBER, def );
 					}
 					break;
 				case ev_function:
@@ -5274,7 +5258,6 @@ void PR_ParseDefs (char *classname)
 	bool		shared = false;
 	bool		externfnc = false;
 	bool		isconstant = false;
-	bool		isvar = false;
 	bool		nosave = false;
 	bool		allocatenew = true;
 	int		ispointer;
@@ -5383,15 +5366,14 @@ void PR_ParseDefs (char *classname)
 	}
 	while(1)
 	{
-		if (PR_CheckForKeyword( KEYWORD_EXTERN )) externfnc = true;
-		else if (PR_CheckForKeyword( KEYWORD_SHARED ))
+		if( PR_CheckForKeyword( KEYWORD_EXTERN )) externfnc = true;
+		else if( PR_CheckForKeyword( KEYWORD_SHARED ))
 		{
 			shared = true;
-			if (pr_scope) PR_ParseError (ERR_NOSHAREDLOCALS, "Cannot have shared locals");
+			if( pr_scope ) PR_ParseError( ERR_NOSHAREDLOCALS, "cannot have shared locals" );
 		}
-		else if (PR_CheckForKeyword( KEYWORD_CONST )) isconstant = true;
-		else if (PR_CheckForKeyword( KEYWORD_VAR )) isvar = true;
-		else if (PR_CheckForKeyword( KEYWORD_NOSAVE )) nosave = true;
+		else if( PR_CheckForKeyword( KEYWORD_CONST )) isconstant = true;
+		else if( PR_CheckForKeyword( KEYWORD_NOSAVE )) nosave = true;
 		else break;
 	}
 
@@ -5405,7 +5387,7 @@ void PR_ParseDefs (char *classname)
 	}
 	do
 	{
-		if (PR_CheckToken ("*"))
+		if( PR_CheckToken( "*" ))
 		{
 			ispointer = 1;
 			while(PR_CheckToken ("*")) ispointer++;
@@ -5478,7 +5460,7 @@ void PR_ParseDefs (char *classname)
 
 		if (PR_CheckToken("(")) type = PR_ParseFunctionType(false, type);
 
-		if (classname)
+		if( classname )
 		{
 			char *membername = name;
 			name = Qalloc(com.strlen(classname) + com.strlen(name) + 3);
@@ -5596,17 +5578,16 @@ void PR_ParseDefs (char *classname)
 				for (i = 0; i < d->type->size; i++) G_INT(def->ofs) = G_INT(d->ofs);
 				PR_Lex();
 
-				if (type->type == ev_function)
+				if( type->type == ev_function )
 				{
 					def->initialized = 1;
-					def->constant = !isvar;
+					def->constant = true;
 				}
 				continue;
 			}
-			else if (type->type == ev_function)
+			else if( type->type == ev_function )
 			{
-				if (isvar) def->constant = false;
-				else def->constant = true;
+				def->constant = true;
 
 				if (PR_CheckToken("0"))
 				{
@@ -5702,8 +5683,7 @@ void PR_ParseDefs (char *classname)
 				int arraypart, partnum;
 				type_t *parttype;
 				def->initialized = 1;
-				if (isvar) def->constant = true;
-				else def->constant = false;
+				def->constant = false;
 				
 				// FIXME: should do this recursivly
 				PR_Expect("{");
@@ -5807,11 +5787,9 @@ void PR_ParseDefs (char *classname)
 				PR_Expect("}");
 				continue;
 			}
-			else if (type->type == ev_integer)
+			else if( type->type == ev_integer )
 			{
-				// handle these differently, because they may need conversions
-				if (isvar) def->constant = false;
-				else def->constant = true;
+				def->constant = true;
 
 				def->initialized = 1;
 				Mem_Copy (pr_globals + def->ofs, &pr_immediate, 4*type_size[pr_immediate_type->type]);
@@ -5841,8 +5819,7 @@ void PR_ParseDefs (char *classname)
 
 							d->type = type_string;
 							d->name = "IMMEDIATE";
-							if (isvar) d->constant = false;
-							else d->constant = true;
+							d->constant = true;
 							d->initialized = 1;
 							d->scope = NULL;
 
@@ -5858,8 +5835,7 @@ void PR_ParseDefs (char *classname)
 				}
 				else if (arraysize<=1)
 				{
-					if (isvar) def->constant = false;
-					else def->constant = true;
+					def->constant = true;
 					def->initialized = 1;
 					(((int *)pr_globals)[def->ofs]) = PR_CopyString(pr_immediate_string, opt_noduplicatestrings );
 					PR_Lex();
@@ -5889,8 +5865,7 @@ void PR_ParseDefs (char *classname)
 				}
 				else if (arraysize<=1)
 				{
-					if (isvar) def->constant = false;
-					else def->constant = true;
+					def->constant = true;
 					def->initialized = 1;
 
 					if (pr_immediate_type->type != ev_float)
@@ -5936,8 +5911,7 @@ void PR_ParseDefs (char *classname)
 				}
 				else if (arraysize<=1)
 				{
-					if (isvar) def->constant = false;
-					else def->constant = true;
+					def->constant = true;
 					def->initialized = 1;
 					(((float *)pr_globals)[def->ofs+0]) = pr_immediate.vector[0];
 					(((float *)pr_globals)[def->ofs+1]) = pr_immediate.vector[1];
@@ -5969,19 +5943,12 @@ void PR_ParseDefs (char *classname)
 				PR_ParseError (ERR_BADIMMEDIATETYPE, "wrong immediate type for %s - %s", name, pr_token);
 			else Mem_Copy (pr_globals + def->ofs, &pr_immediate, 4*type_size[pr_immediate_type->type]);
 
-			if (isvar) def->constant = false;
-			else def->constant = true;
+			def->constant = true;
 			def->initialized = true;
 			PR_Lex ();
 		}
 		else
 		{
-			if (type->type == ev_function && isvar)
-			{
-				isconstant = !isvar;
-				def->initialized = 1;
-			}
-
 			// special flag on fields, 2, makes the pointer obtained from them also constant.
 			if (isconstant && type->type == ev_field)
 				def->constant = 2;
@@ -6188,7 +6155,6 @@ void PR_BeginCompilation ( void )
 	type_function = PR_NewType("function", ev_function);
 	type_pointer = PR_NewType("pointer", ev_pointer);	
 	type_integer = PR_NewType("__integer", ev_integer);
-	type_variant = PR_NewType("__variant", ev_variant);
 	type_floatfield = PR_NewType("fieldfloat", ev_field);
 	type_pointer->aux_type = PR_NewType("pointeraux", ev_float);
 	if (PR_KeywordEnabled(KEYWORD_INT)) PR_NewType("int", ev_integer);
