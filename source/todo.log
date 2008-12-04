@@ -20,17 +20,12 @@ Beta 13.12.08
 
 0. move effects to client.dat		OK
 1. Xash 0.45 ents
+2. qc->newton
+3. newton->qc
 
-0. light_environment
-1. научить оружие стрелять
-2. добавить нужных энтитей
-3. bumpmapping test
-4. player ducking
-5. pev->animtime
-6. bloom
-7. pause effect
-8. automap
-9. Phys matrices
+0. bmodels.c, items.c
+1. animation
+2. player duck
 
 
 Список доступных рендереров:  	Что в них интересного

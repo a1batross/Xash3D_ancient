@@ -1803,7 +1803,7 @@ static bool R_ParseStageMap( ref_shader_t *shader, shaderStage_t *stage, script_
 	{
 		while( 1 )
 		{
-			if( !Com_ReadToken( script, SC_PARSE_GENERIC, &tok ))
+			if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &tok ))
 				break;
 
 			com.strncat( name, " ", sizeof( name ));
@@ -3699,7 +3699,6 @@ static void R_ParseShaderFile( script_t *script, const char *name )
 		// parse the name
 		if( !Com_ReadToken( script, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &tok ))
 			break; // end of data
-
 
 		// check for table parms
 		while( 1 )

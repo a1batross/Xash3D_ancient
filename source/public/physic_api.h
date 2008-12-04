@@ -101,7 +101,7 @@ typedef struct physic_exp_s
 	void (*PlayerMove)( pmove_t *pmove, bool clientmove );
 	
 	// simple objects
-	physbody_t *(*CreateBody)( sv_edict_t *ed, cmodel_t *mod, const vec3_t origin, const matrix3x3 matrix, int solid );
+	physbody_t *(*CreateBody)( sv_edict_t *ed, cmodel_t *mod, const vec3_t org, const matrix3x3 m, int solid, int move );
 	physbody_t *(*CreatePlayer)( sv_edict_t *ed, cmodel_t *mod, const vec3_t origin, const matrix3x3 matrix );
 
 	void (*SetOrigin)( physbody_t *body, vec3_t origin );

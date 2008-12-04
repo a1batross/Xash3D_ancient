@@ -132,10 +132,21 @@ void Host_FreeVprogs( void )
 	Sys_FreeLibrary( &vprogs_dll );
 }
 
+void Host_FreeSound( void )
+{
+	if( vsound_dll.link )
+	{
+		se->Shutdown();
+		Mem_Set( &se, 0, sizeof( se ));
+	}
+	Sys_FreeLibrary( &vsound_dll );
+}
+
 void Host_InitSound( void )
 {
 	static vsound_imp_t		si;
 	launch_t			CreateSound;  
+	bool			result = false;
 
 	// phys callback
 	si.api_size = sizeof(vsound_imp_t);
@@ -146,20 +157,16 @@ void Host_InitSound( void )
 
 	Sys_LoadLibrary( &vsound_dll );
 
-	CreateSound = (void *)vsound_dll.main;
-	se = CreateSound( &newcom, &si );
-	
-	se->Init( host.hWnd );
-}
-
-void Host_FreeSound( void )
-{
-	if(vsound_dll.link)
+	if( vsound_dll.link )
 	{
-		se->Shutdown();
-		Mem_Set( &se, 0, sizeof(se));
+		CreateSound = (void *)vsound_dll.main;
+		se = CreateSound( &newcom, &si );
+	
+		if( se->Init( host.hWnd )) result = true;
 	}
-	Sys_FreeLibrary( &vsound_dll );
+
+	// audio system not started, shutdown sound subsystem
+	if( !result ) Host_FreeSound();
 }
 
 /*

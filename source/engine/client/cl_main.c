@@ -683,7 +683,7 @@ Call before entering a new level, or after changing dlls
 void CL_PrepSound( void )
 {
 	int	i, sndcount;
-
+		
 	for( i = 1, sndcount = 0; i < MAX_SOUNDS && cl.configstrings[CS_SOUNDS+i][0]; i++ )
 		sndcount++; // total num sounds
 
@@ -694,7 +694,9 @@ void CL_PrepSound( void )
 		Cvar_SetValue( "scr_loading", scr_loading->value + 5.0f/sndcount );
 		SCR_UpdateScreen();
 	}
+
 	S_EndRegistration();
+	CL_RunBackgroundTrack();
 
 	cl.audio_prepped = true;
 	cl.force_refdef = true;

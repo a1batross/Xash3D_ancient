@@ -5,11 +5,13 @@
 
 #include <stdio.h>		// sscanf support
 #include "bsplib.h"
+#include "physic_api.h"
 #include "byteorder.h"
 #include "const.h"
 
 #define ENTRIES(a)		(sizeof(a)/sizeof(*(a)))
 #define ENTRYSIZE(a)	(sizeof(*(a)))
+extern physic_exp_t		*pe;
 
 //=============================================================================
 wfile_t		*wadfile;

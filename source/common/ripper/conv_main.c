@@ -37,6 +37,27 @@ convformat_t convert_formats[] =
 	{NULL, NULL, NULL, NULL }		// list terminator
 };
 
+convformat_t convert_formats32[] =
+{
+	{"%s.%s", "spr", ConvSPR, "png" },	// quake1/half-life sprite
+	{"%s.%s","spr32",ConvSPR, "png" },	// spr32 sprite
+	{"%s.%s", "sp2", ConvSPR, "png" },	// quake2 sprite
+	{"%s.%s", "jpg", ConvJPG, "png" },	// quake3 textures
+	{"%s.%s", "pcx", ConvPCX, "png" },	// quake2 pics
+	{"%s.%s", "flt", ConvFLT, "png" },	// doom1 textures
+	{"%s.%s", "flp", ConvFLP, "png" },	// doom1 menu pics
+	{"%s.%s", "mip", ConvMIP, "png" },	// Quake1/Half-Life textures
+	{"%s.%s", "lmp", ConvLMP, "png" },	// Quake1/Half-Life gfx
+	{"%s.%s", "wal", ConvWAL, "png" },	// Quake2 textures
+	{"%s.%s", "vtf", ConvVTF, "dds" },	// Half-Life 2 materials
+	{"%s.%s", "skn", ConvSKN, "png" },	// doom1 sprite models
+	{"%s.%s", "bsp", ConvBSP, "png" },	// Quake1\Half-Life map textures
+	{"%s.%s", "mus", ConvMID, "mid" },	// doom1\2 music files
+	{"%s.%s", "txt", ConvRAW, "txt" },	// (hidden) Xash-extract scripts
+	{"%s.%s", "dat", ConvRAW, "dat" },	// (hidden) Xash-extract progs
+	{NULL, NULL, NULL, NULL }		// list terminator
+};
+
 bool CheckForExist( const char *path, const char *ext )
 {
 	if( game_family == GAME_DOOM1 )
@@ -65,8 +86,12 @@ bool ConvertResource( byte *mempool, const char *filename, byte parms )
 	com.strncpy( convname, filename, sizeof( convname ));
 	FS_StripExtension( convname ); // remove extension if needed
 
+	if( FS_CheckParm( "-force32" ))
+		format = convert_formats32;
+	else format = convert_formats;
+
 	// now try all the formats in the selected list
-	for( format = convert_formats; format->convfunc; format++ )
+	for( ; format->convfunc; format++ )
 	{
 		if( anyformat || !com.stricmp( ext, format->ext ))
 		{
@@ -161,7 +186,8 @@ void Conv_RunSearch( void )
 			AddMask( "*.flt" );		// Doom1 textures
 			AddMask( "*.mus" );		// Doom1 music
 		}
-		imageflags |= IL_KEEP_8BIT;
+		if( !FS_CheckParm( "-force32" )) 
+			imageflags |= IL_KEEP_8BIT;
 		Image_Init( "Doom1", imageflags );
 		write_qscsript = true;
 		break;
@@ -184,7 +210,8 @@ void Conv_RunSearch( void )
 		AddMask( "gfx/*.lmp" );	// Quake1 pics
 		AddMask( "*.sp32");
 		AddMask( "*.spr" );
-		imageflags |= IL_KEEP_8BIT;
+		if( !FS_CheckParm( "-force32" ))
+			imageflags |= IL_KEEP_8BIT;
 		write_qscsript = true;
 		Image_Init( "Quake1", imageflags );
 		break;
@@ -207,7 +234,8 @@ void Conv_RunSearch( void )
 		AddMask( "sprites/*.sp2" );	// Quake2 sprites
 		AddMask( "pics/*.pcx");	// Quake2 pics
 		AddMask( "env/*.pcx" );	// Quake2 skyboxes
-		imageflags |= IL_KEEP_8BIT;
+		if( !FS_CheckParm( "-force32" ))
+			imageflags |= IL_KEEP_8BIT;
 		write_qscsript = true;
 		Image_Init( "Quake2", imageflags );
 		break;
@@ -302,7 +330,8 @@ void Conv_RunSearch( void )
 		}
 		AddMask( "maps/*.bsp" );	// textures from bsp
 		AddMask( "sprites/*.spr" );	// Half-Life sprites
-		imageflags |= IL_KEEP_8BIT;
+		if( !FS_CheckParm( "-force32" ))
+			imageflags |= IL_KEEP_8BIT;
 		write_qscsript = true;
 		Image_Init( "Half-Life", imageflags );
 		break;

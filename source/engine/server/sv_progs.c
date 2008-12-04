@@ -132,27 +132,58 @@ static trace_t SV_TraceToss( edict_t *tossent, edict_t *ignore)
 	return trace;
 }
 
+bool SV_CheckForPhysobject( edict_t *ent )
+{
+	if( !ent ) return false;
+
+	switch( (int)ent->progs.sv->solid )
+	{
+	case SOLID_BSP:
+		switch( (int)ent->progs.sv->movetype )
+		{
+		case MOVETYPE_NONE:		// static physobject (no gravity)
+		case MOVETYPE_PUSH:		// dynamic physobject (no gravity)
+		case MOVETYPE_CONVEYOR:
+			// return true;
+		default: return false;
+		}
+		break;
+	case SOLID_BOX:
+	case SOLID_SPHERE:
+	case SOLID_CYLINDER:
+	case SOLID_MESH:
+		switch( (int)ent->progs.sv->movetype )
+		{
+		case MOVETYPE_PHYSIC:	// dynamic physobject (with gravity)
+			return true;
+		default: return false;
+		}
+		break;
+	default: return false;
+	}
+}
+
 void SV_CreatePhysBody( edict_t *ent )
 {
-	if( !ent || ent->progs.sv->movetype != MOVETYPE_PHYSIC ) return;
-	ent->priv.sv->physbody = pe->CreateBody( ent->priv.sv, SV_GetModelPtr(ent), ent->progs.sv->origin, ent->progs.sv->m_pmatrix, ent->progs.sv->solid );
+	if( !SV_CheckForPhysobject( ent )) return;
+	ent->priv.sv->physbody = pe->CreateBody( ent->priv.sv, SV_GetModelPtr(ent), ent->progs.sv->origin, ent->progs.sv->m_pmatrix, ent->progs.sv->solid, ent->progs.sv->movetype );
 
 	pe->SetParameters( ent->priv.sv->physbody, SV_GetModelPtr(ent), 0, ent->progs.sv->mass ); 
 }
 
 void SV_SetPhysForce( edict_t *ent )
 {
-	if( !ent || ent->progs.sv->movetype != MOVETYPE_PHYSIC ) return;
+	if( !SV_CheckForPhysobject( ent )) return;
 	pe->SetForce( ent->priv.sv->physbody, ent->progs.sv->velocity, ent->progs.sv->avelocity, ent->progs.sv->force, ent->progs.sv->torque );
 }
 
 void SV_SetMassCentre( edict_t *ent )
 {
-	if( !ent || ent->progs.sv->movetype != MOVETYPE_PHYSIC ) return;
+	if( !SV_CheckForPhysobject( ent )) return;
 	pe->SetMassCentre( ent->priv.sv->physbody, ent->progs.sv->m_pcentre );
 }
 
-void SV_SetModel (edict_t *ent, const char *name)
+void SV_SetModel( edict_t *ent, const char *name )
 {
 	int		i;
 	cmodel_t		*mod;
@@ -166,10 +197,21 @@ void SV_SetModel (edict_t *ent, const char *name)
 	mod = pe->RegisterModel( name );
 	if( mod ) SV_SetMinMaxSize( ent, mod->mins, mod->maxs, false );
 
-	// FIXME: translate angles correctly
-	angles[0] = ent->progs.sv->angles[0] - 180;
-	angles[1] = ent->progs.sv->angles[1];
-	angles[2] = ent->progs.sv->angles[2] - 90;
+	switch( (int)ent->progs.sv->movetype )
+	{
+	case MOVETYPE_PHYSIC:
+		// FIXME: translate angles correctly
+		angles[0] = ent->progs.sv->angles[0] - 180;
+		angles[1] = ent->progs.sv->angles[1];
+		angles[2] = ent->progs.sv->angles[2] - 90;
+		break;
+	case MOVETYPE_NONE:
+	case MOVETYPE_PUSH:
+	case MOVETYPE_CONVEYOR:
+		VectorClear( angles );
+		ent->progs.sv->mass = 0.0f;
+		break;
+	}
 
 	Matrix3x3_FromAngles( angles, ent->progs.sv->m_pmatrix );
 	Matrix3x3_Transpose( ent->progs.sv->m_pmatrix, ent->progs.sv->m_pmatrix );
@@ -285,7 +327,7 @@ void SV_AddCStrLump( wfile_t *f )
 	int		i;
 
 	// pack the cfg string data
-	for(i = 0; i < MAX_CONFIGSTRINGS; i++)
+	for( i = 0; i < MAX_CONFIGSTRINGS; i++ )
 		csbuffer[i] = StringTable_SetString( s_table, sv.configstrings[i] );
 	SV_AddSaveLump( f, LUMP_CFGSTRING, &csbuffer, sizeof(csbuffer), true );
 }
@@ -717,13 +759,14 @@ void PF_precache_model( void )
 	if(!VM_ValidateArgs( "precache_model", 1 ))
 		return;
 
+	if( !com.strcmp( PRVM_G_STRING( OFS_PARM0 ), "" )) return;
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
 	PRVM_G_FLOAT(OFS_RETURN) = SV_ModelIndex(PRVM_G_STRING(OFS_PARM0));
 }
 
 /*
 =========
-PF_precache_model
+PF_precache_sound
 
 float precache_sound( string s )
 =========
@@ -733,6 +776,7 @@ void PF_precache_sound( void )
 	if(!VM_ValidateArgs( "precache_sound", 1 ))
 		return;
 
+	if( !com.strcmp( PRVM_G_STRING( OFS_PARM0 ), "" )) return;
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
 	PRVM_G_FLOAT(OFS_RETURN) = SV_SoundIndex(PRVM_G_STRING(OFS_PARM0));
 }
@@ -1391,6 +1435,35 @@ void PF_setorigin( void )
 	VectorCopy( PRVM_G_VECTOR(OFS_PARM1), e->progs.sv->origin );
 	pe->SetOrigin( e->priv.sv->physbody, e->progs.sv->origin );
 	SV_LinkEdict( e );
+}
+
+/*
+=================
+PF_setangles
+
+void setangles( entity e, vector ang )
+=================
+*/
+void PF_setangles( void )
+{
+	edict_t	*e;
+
+	if(!VM_ValidateArgs( "setangles", 2 )) return;
+	e = PRVM_G_EDICT(OFS_PARM0);
+	if (e == prog->edicts)
+	{
+		VM_Warning("setangles: can't modify world entity\n");
+		return;
+	}
+	if (e->priv.sv->free)
+	{
+		VM_Warning("setangles: can't modify free entity\n");
+		return;
+	}
+
+	VectorCopy( PRVM_G_VECTOR(OFS_PARM1), e->progs.sv->angles );
+	Matrix3x3_FromAngles( e->progs.sv->angles, e->progs.sv->m_pmatrix );
+	Matrix3x3_Transpose( e->progs.sv->m_pmatrix, e->progs.sv->m_pmatrix );
 }
 
 /*
@@ -2494,7 +2567,7 @@ VM_rint,				// #72 float rint (float v)
 VM_floor,				// #73 float floor(float v)
 VM_ceil,				// #74 float ceil (float v)
 VM_fabs,				// #75 float fabs (float f)
-VM_fmod,				// #76 float fmod( float val, float m )
+VM_abs,				// #76 float abs (float f)
 NULL,				// #77 -- reserved --
 NULL,				// #78 -- reserved --
 VM_VectorNormalize,			// #79 vector VectorNormalize( vector v )
@@ -2530,9 +2603,9 @@ PF_makestatic,			// #125 void makestatic(entity e)
 NULL,				// #126 isEntOnFloor
 PF_droptofloor,			// #127 float droptofloor( void )
 PF_walkmove,			// #128 float walkmove(float yaw, float dist)
-PF_setorigin,			// #129 void setorigin(entity e, vector o)
-PF_music,				// #130 void music( string trackname )
-NULL,				// #131 -- reserved --
+PF_setorigin,			// #129 void setorigin( entity e, vector org )
+PF_setangles,			// #130 void setangles( entity e, vector ang )
+PF_music,				// #131 void music( string trackname )
 PF_traceline,			// #132 void traceline(vector v1, vector v2, float mask, entity ignore)
 PF_tracetoss,			// #133 void tracetoss (entity e, entity ignore)
 NULL,				// #134 traceMonsterHull

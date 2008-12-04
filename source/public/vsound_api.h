@@ -44,8 +44,8 @@ typedef struct vsound_exp_s
 	// interface validator
 	size_t	api_size;		// must matched with sizeof(vprogs_api_t)
 
-	void (*Init)( void *hInst );	// init host
-	void (*Shutdown)( void );	// close host
+	bool (*Init)( void *hInst );	// init sound
+	void (*Shutdown)( void );
 
 	// sound manager
 	void (*BeginRegistration)( void );

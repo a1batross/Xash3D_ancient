@@ -685,7 +685,7 @@ VM_rint,				// #72 float rint (float v)
 VM_floor,				// #73 float floor(float v)
 VM_ceil,				// #74 float ceil (float v)
 VM_fabs,				// #75 float fabs (float f)
-VM_fmod,				// #76 float fmod( float val, float m )
+VM_abs,				// #76 float abs (float f)
 NULL,				// #77 -- reserved --
 NULL,				// #78 -- reserved --
 VM_VectorNormalize,			// #79 vector VectorNormalize( vector v )

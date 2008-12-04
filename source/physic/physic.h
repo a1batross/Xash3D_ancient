@@ -44,7 +44,7 @@ void Phys_Frame( float time );
 //
 // cm_rigidbody.c
 //
-physbody_t *Phys_CreateBody( sv_edict_t *ed, cmodel_t *mod, const vec3_t origin, const matrix3x3 matrix, int solid );
+physbody_t *Phys_CreateBody( sv_edict_t *ed, cmodel_t *mod, const vec3_t org, const matrix3x3 m, int solid, int move );
 physbody_t *Phys_CreatePlayer( sv_edict_t *ed, cmodel_t *mod, const vec3_t origin, const matrix3x3 matrix );
 void Phys_SetParameters( physbody_t *body, cmodel_t *mod, int material, float mass );
 bool Phys_GetForce( physbody_t *body, vec3_t velocity, vec3_t avelocity, vec3_t force, vec3_t torque );
@@ -52,13 +52,6 @@ void Phys_SetForce( physbody_t *body, vec3_t velocity, vec3_t avelocity, vec3_t 
 bool Phys_GetMassCentre( physbody_t *body, matrix3x3 mass );
 void Phys_SetMassCentre( physbody_t *body, matrix3x3 mass );
 void Phys_RemoveBody( physbody_t *body );
-
-//
-// cm_callback.c
-//
-void Callback_ApplyForce( const NewtonBody* body );
-void Callback_PmoveApplyForce( const NewtonBody* body );
-void Callback_ApplyTransform( const NewtonBody* body, const float* matrix );
 
 #define Host_Error com.error
 

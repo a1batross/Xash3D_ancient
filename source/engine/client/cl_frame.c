@@ -524,6 +524,6 @@ void CL_AddLoopingSounds( void )
 		}
 
 		if( !ent->soundindex ) continue;
-		se->AddLoopingSound( ent->number, cl.sound_precache[ent->soundindex], 1.0f, ATTN_IDLE );
+		S_AddLoopingSound( ent->number, cl.sound_precache[ent->soundindex], 1.0f, ATTN_IDLE );
 	}
 }

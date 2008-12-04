@@ -91,13 +91,13 @@ void InitCommon( int argc, char **argv )
 	case HOST_SPRITE:
 	case HOST_STUDIO:
 	case HOST_WADLIB:
+		// initialize ImageLibrary
+		Image_Init( NULL, IL_KEEP_8BIT );
 	case HOST_RIPPER:
 		// blamk image for missed resources
 		error_bmp = FS_LoadInternal( "blank.bmp", &error_bmp_size );
 		FS_InitRootDir(".");
-	
-		// initialize ImageLibrary
-		Image_Init( NULL, IL_KEEP_8BIT );
+
 		start = Sys_DoubleTime();
 		Msg( "\n\n" ); // tabulation
 		break;

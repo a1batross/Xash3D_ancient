@@ -109,8 +109,8 @@ void SV_UpdateEntityState( edict_t *ent )
 	{
 		if( ent->progs.sv->fixangle )
 		{
-			// FIXME: set angles
-			for( i = 0; i < 3; i++ )
+			// FIXME: set angles correctly
+			for( i = 0; i < 2; i++ )
 				ent->priv.sv->s.delta_angles[i] = ANGLE2SHORT( ent->priv.sv->s.angles[i] );
 			VectorClear( ent->priv.sv->s.angles );
 			VectorClear( ent->priv.sv->s.viewangles );

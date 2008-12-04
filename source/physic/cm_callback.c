@@ -55,21 +55,27 @@ int Callback_ContactProcess( const NewtonMaterial* material, const NewtonContact
 void Callback_ContactEnd( const NewtonMaterial* material )
 {
 	sv_edict_t *edict = (sv_edict_t *)NewtonBodyGetUserData( cms.touch_info.m_body0 );
+	int id = NewtonBodyGetMaterialGroupID( cms.touch_info.m_body0 );
 
 	// if the max contact speed is larger than some minimum value. play a sound
-	if( cms.touch_info.normal_speed > 15.0f )
+	if( cms.touch_info.normal_speed > 15.0f && cms.mat[id].num_impactsounds )
 	{
-		float pitch = cms.touch_info.normal_speed - 15.0f;
+		float	pitch = cms.touch_info.normal_speed - 15.0f;
+		int	snd = Com_RandomLong( 0, cms.mat[id].num_impactsounds - 1 );
+		
 		// TODO: play impact sound here
-		pi.PlaySound( edict, 0.95f, pitch, "plats/train2.wav" );	// FIXME: get sound from material desc
+		pi.PlaySound( edict, 0.95f, pitch, cms.mat[id].impact_sounds[snd] );
+		// FIXME: get sound from material desc
 	}
 
 	// if the max contact speed is larger than some minimum value. play a sound
-	if( cms.touch_info.normal_speed > 5.0f )
+	if( cms.touch_info.normal_speed > 5.0f  && cms.mat[id].num_pushsounds )
 	{
-		float pitch = cms.touch_info.normal_speed - 5.0f;
+		float	pitch = cms.touch_info.normal_speed - 5.0f;
+		int	snd = Com_RandomLong( 0, cms.mat[id].num_pushsounds - 1 );
+
 		// TODO: play scratch sound here
-		pi.PlaySound( edict, 0.95f, pitch, "misc/swing1.wav" );	// FIXME: get sound from material desc
+		pi.PlaySound( edict, 0.95f, pitch, cms.mat[id].push_sounds[snd] );
 	}
 }
 
@@ -85,6 +91,20 @@ void Callback_ApplyForce( const NewtonBody* body )
 
 	NewtonBodyAddForce (body, force); 
 	NewtonBodyAddTorque (body, torque); 
+}
+
+void Callback_ApplyForce_NoGravity( const NewtonBody* body )
+{
+	float	mass; 
+	vec3_t	m_size, force, torque; 
+
+	NewtonBodyGetMassMatrix( body, &mass, &m_size[0], &m_size[1], &m_size[2] ); 
+
+	VectorSet( torque, 0.0f, 0.0f, 0.0f );
+	VectorSet( force, 0.0f, 0.0f, 0.0f );
+
+	NewtonBodyAddForce( body, force ); 
+	NewtonBodyAddTorque( body, torque );
 }
 
 void Callback_PmoveApplyForce( const NewtonBody* body )
@@ -106,4 +126,9 @@ void Callback_ApplyTransform( const NewtonBody* body, const float* src )
 	ConvertPositionToGame( origin );
 
 	pi.Transform( edict, origin, dst );
+}
+
+void Callback_Static( const NewtonBody* body, const float* src )
+{
+	// this does nothing
 }

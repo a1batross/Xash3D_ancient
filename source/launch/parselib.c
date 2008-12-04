@@ -1301,6 +1301,12 @@ void PS_SkipBracedSection( script_t *script, int depth )
 		if( !PS_ReadToken( script, SC_ALLOW_NEWLINES, &token ))
 			break;
 
+		// HACKHACK: allow pathnames that can contain '{' symbol
+		// and invoke wrong count of braced sections :(
+		if( !com.stricmp( "map", token.string ))
+			if( !PS_ReadToken( script, SC_ALLOW_PATHNAMES2, &token ))
+				break;
+
 		if( token.type == TT_PUNCTUATION )
 		{
 			if( !com.stricmp( token.string, "{" ))

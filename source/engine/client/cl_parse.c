@@ -148,6 +148,32 @@ void CL_ParseDownload( sizebuf_t *msg )
 	}
 }
 
+void CL_RunBackgroundTrack( void )
+{
+	string	intro, main, track;
+
+	// run background track
+	com.strncpy( track, cl.configstrings[CS_BACKGROUND_TRACK], MAX_STRING );
+	com.snprintf( intro, MAX_STRING, "%s_intro", cl.configstrings[CS_BACKGROUND_TRACK] );
+	com.snprintf( main, MAX_STRING, "%s_main", cl.configstrings[CS_BACKGROUND_TRACK] );
+
+	if( FS_FileExists( va( "media/%s.ogg", intro )) && FS_FileExists( va( "media/%s.ogg", main )))
+	{
+		// combined track with introduction and main loop theme
+		S_StartBackgroundTrack( intro, main );
+	}
+	else if( FS_FileExists( va( "media/%s.ogg", track )))
+	{
+		// single looped theme
+		S_StartBackgroundTrack( track, track );
+	}
+	else if( !com.strcmp( track, "" ))
+	{
+		// blank name stopped last track
+		S_StopBackgroundTrack();
+	}
+}
+
 /*
 =====================================================================
 
@@ -243,28 +269,7 @@ void CL_ParseConfigString( sizebuf_t *msg )
 	}
 	else if( i == CS_BACKGROUND_TRACK && cl.audio_prepped )
 	{
-		string	intro, main, track;
-
-		// build fullnames
-		com.strncpy( track, cl.configstrings[CS_BACKGROUND_TRACK], MAX_STRING );
-		com.snprintf( intro, MAX_STRING, "%s_intro", cl.configstrings[CS_BACKGROUND_TRACK] );
-		com.snprintf( main, MAX_STRING, "%s_main", cl.configstrings[CS_BACKGROUND_TRACK] );
-
-		if( FS_FileExists( va( "media/%s.ogg", intro )) && FS_FileExists( va( "media/%s.ogg", main )))
-		{
-			// combined track with introduction and main loop theme
-			S_StartBackgroundTrack( intro, main );
-		}
-		else if( FS_FileExists( va( "media/%s.ogg", track )))
-		{
-			// single looped theme
-			S_StartBackgroundTrack( track, track );
-		}
-		else if( !com.strcmp( track, "" ))
-		{
-			// blank name stopped last track
-			S_StopBackgroundTrack();
-		} 
+		CL_RunBackgroundTrack();
 	}
 	else if( i >= CS_MODELS && i < CS_MODELS+MAX_MODELS && cl.video_prepped )
 	{

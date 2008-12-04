@@ -368,7 +368,7 @@ bool S_Init_OpenAL( void )
 	al_config.renderer_string = palGetString(AL_RENDERER);	// stupid name :)
 	al_config.version_string = palGetString(AL_VERSION);
 	al_config.extensions_string = palGetString(AL_EXTENSIONS);
-	MsgDev(D_INFO, "Audio: %s\n", al_config.renderer_string );
+	MsgDev( D_INFO, "Audio: %s\n", al_config.renderer_string );
 
 	// Initialize extensions
 	S_InitExtensions();

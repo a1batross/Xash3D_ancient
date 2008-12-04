@@ -292,6 +292,7 @@ void VM_rint( void );
 void VM_floor( void );
 void VM_ceil( void );
 void VM_fabs( void );
+void VM_abs( void );
 void VM_VectorNormalize( void );
 void VM_VectorLength( void );		
 

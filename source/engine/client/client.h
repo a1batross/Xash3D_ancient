@@ -462,28 +462,37 @@ void CL_VM_End( void );
 //
 // cl_sound.c
 //
-#define S_Shutdown			se->Shutdown
+#define S_Shutdown			if( se ) se->Shutdown
 
 // if origin is NULL, the sound will be dynamically sourced from the entity
-#define S_StartStreaming		se->StartStreaming
-#define S_RegisterSound		se->RegisterSound
-#define S_StartSound( a,b,c,d,e,f,g )	se->StartSound( a, b, c, d, e, f, g, true );
-#define S_StartLocalSound		se->StartLocalSound
-#define S_StartBackgroundTrack	se->StartBackgroundTrack
-#define S_StopBackgroundTrack		se->StopBackgroundTrack
-#define S_RawSamples 		se->StreamRawSamples
-#define S_StopAllSounds		se->StopAllSounds
+#define S_StartStreaming		if( se ) se->StartStreaming
+#define S_StartSound( a,b,c,d,e,f,g )	if( se ) se->StartSound( a, b, c, d, e, f, g, true );
+#define S_StartLocalSound( name )	( se && se->StartLocalSound( name ))
+#define S_StartBackgroundTrack	if( se ) se->StartBackgroundTrack
+#define S_StopBackgroundTrack		if( se ) se->StopBackgroundTrack
+#define S_RawSamples 		if( se ) se->StreamRawSamples
+#define S_StopAllSounds		if( se ) se->StopAllSounds
+#define S_AddLoopingSound		if( se ) se->AddLoopingSound
+
+_inline sound_t S_RegisterSound( const char *name )
+{
+	if( se )
+		return se->RegisterSound( name );
+	return 0;
+} 
 
 // recompute the reletive volumes for all running sounds
 // reletive to the given entityNum / orientation
-#define S_Update			se->Frame
-#define S_BeginRegistration		se->BeginRegistration
-#define S_EndRegistration		se->EndRegistration
+#define S_Activate			if( se ) se->Activate
+#define S_Update			if( se ) se->Frame
+#define S_BeginRegistration		if( se ) se->BeginRegistration
+#define S_EndRegistration		if( se ) se->EndRegistration
 
 //
 // cl_parse.c
 //
 void CL_ParseServerMessage( sizebuf_t *msg );
+void CL_RunBackgroundTrack( void );
 void CL_Download_f( void );
 
 //

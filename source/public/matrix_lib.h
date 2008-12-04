@@ -6,7 +6,7 @@
 #define MATRIX_LIB_H
 
 //#define OPENGL_STYLE		// TODO: enable OpenGL style someday
-#define	RHAND_STYLE		// right hand style euler engles
+//#define	RHAND_STYLE		// right hand style euler engles
 
 /*
 	Quake engine tranformation matrix

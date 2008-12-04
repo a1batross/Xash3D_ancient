@@ -318,7 +318,7 @@ long IN_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 		else if(LOWORD(wParam) == WA_INACTIVE) host.state = HOST_NOFOCUS;
 		else host.state = HOST_FRAME;
 
-		if( se ) se->Activate((host.state == HOST_FRAME) ? true : false );
+		S_Activate( (host.state == HOST_FRAME) ? true : false );
 		Key_ClearStates();	// FIXME!!!
 
 		if( host.state == HOST_FRAME )

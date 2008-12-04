@@ -162,13 +162,14 @@ extern cvar_t *s_alDevice;
 extern cvar_t *s_soundfx;
 extern cvar_t *s_musicvolume;
 extern cvar_t *s_check_errors;
+extern cvar_t *s_ambientvolume;
 extern sound_t ambient_sfx[NUM_AMBIENTS];
 
-void S_Init( void *hInst );
+bool S_Init( void *hInst );
 void S_Shutdown( void );
 void S_Activate( bool active );
 void S_SoundList_f( void );
-void S_CheckForErrors( void );
+bool S_CheckForErrors( void );
 void S_StartSound(const vec3_t pos, int ent, int chan, sound_t sfx, float vol, float attn, float pitch, bool use_loop);
 void S_Update( int clientnum, const vec3_t pos, const vec3_t vel, const vec3_t at, const vec3_t up );
 void S_StreamRawSamples( int samples, int rate, int width, int channels, const byte *data );

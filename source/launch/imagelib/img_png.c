@@ -40,6 +40,7 @@ extern uint png_get_rowbytes (void*, void*);
 extern byte png_get_channels (void*, void*);
 extern byte png_get_bit_depth (void*, void*);
 extern uint png_get_IHDR (void*, void*, uint*, uint*, int *, int *, int *, int *, int *);
+extern void png_set_PLTE (void*, void*, color24 *pal, int );
 extern char* png_get_libpng_ver (void*);
 extern void png_set_strip_16 (void*);
 extern void* png_create_write_struct (const char*, void*, void*, void*);
@@ -231,6 +232,10 @@ bool Image_SavePNG( const char *name, rgbdata_t *pix )
 	// get image description
 	switch( pix->type )
 	{
+	case PF_INDEXED_32:
+		Image_ConvertPalTo24bit( pix );
+		// intentional fallthrough
+	case PF_INDEXED_24: pixel_size = 1; break;
 	case PF_RGB_24: pixel_size = 3; break;
 	case PF_RGBA_32: pixel_size = 4; break;	
 	default:
@@ -263,8 +268,26 @@ bool Image_SavePNG( const char *name, rgbdata_t *pix )
 
 	png_init_io( fin, png.file );
 	png_set_write_fn( fin, png.ioBuffer, (void *)png_fwrite, NULL );
-	png_set_compression_level( fin, 9 ); // Z_BEST_COMPRESSION
-	png_set_IHDR( fin, info, pix->width, pix->height, 8, PNG_COLOR_TYPE_RGB, 0, 0, 0 );
+	png_set_compression_level( fin, png_compression->integer ); // Z_BEST_COMPRESSION
+
+	switch( pix->type )
+	{
+	case PF_INDEXED_24:
+		png_set_PLTE( fin, info, (color24 *)pix->palette, 256 );
+		png_set_IHDR( fin, info, pix->width, pix->height, 8, PNG_COLOR_TYPE_PALETTE, 0, 0, 0 );
+		break;
+	case PF_RGB_24:
+		png_set_IHDR( fin, info, pix->width, pix->height, 8, PNG_COLOR_TYPE_RGB, 0, 0, 0 );
+		break;
+	case PF_RGBA_32:
+		png_set_IHDR( fin, info, pix->width, pix->height, 8, PNG_COLOR_TYPE_RGB_ALPHA, 0, 0, 0 );	
+		break;
+	default:
+		MsgDev( D_ERROR, "Image_SavePNG: unsupported image type %s\n", PFDesc[pix->type].name );
+		png_destroy_write_struct( &fin, &info );
+		return false;
+	}
+	
 	png_write_info( fin, info );
 
 	row = Mem_Alloc( Sys.imagepool, pix->height * sizeof(byte*));

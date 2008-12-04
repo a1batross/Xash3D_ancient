@@ -336,8 +336,7 @@ bool SV_RunThink( edict_t *ent )
 		PRVM_ExecuteProgram( ent->progs.sv->think, "pev->think" );
 		// mods often set nextthink to time to cause a think every frame,
 		// we don't want to loop in that case, so exit if the new nextthink is
-		// <= the time the qc was told, also exit if it is past the end of the
-		// frame
+		// <= the time the qc was told, also exit if it is past the end of the frame
 		if( ent->progs.sv->nextthink <= prog->globals.sv->time || ent->progs.sv->nextthink > sv.time + sv.frametime )
 			break;
 	}
@@ -1712,12 +1711,22 @@ void SV_Physics_ClientMove( sv_client_t *client, usercmd_t *cmd )
 		SV_CheckVelocity( ent );
 		if( DotProduct(ent->progs.sv->velocity, ent->progs.sv->velocity) < 0.0001)
 			VectorClear( ent->progs.sv->velocity );
-
-		// perform MOVETYPE_WALK behavior
-		if(!SV_CheckWater (ent) && !((int)ent->progs.sv->aiflags & AI_WATERJUMP))
-			SV_AddGravity( ent );
-		SV_CheckStuck( ent );
-		SV_WalkMove( ent );
+                   		
+		switch((int)ent->progs.sv->movetype )
+		{
+		case MOVETYPE_WALK:
+			// perform MOVETYPE_WALK behavior
+			if(!SV_CheckWater (ent) && !((int)ent->progs.sv->aiflags & AI_WATERJUMP))
+				SV_AddGravity( ent );
+			SV_CheckStuck( ent );
+			SV_WalkMove( ent );
+			break;
+		case MOVETYPE_NOCLIP:
+			SV_CheckWater( ent );
+			VectorMA( ent->progs.sv->origin, sv.frametime, ent->progs.sv->velocity, ent->progs.sv->origin );
+			VectorMA( ent->progs.sv->angles, sv.frametime, ent->progs.sv->avelocity, ent->progs.sv->angles );
+			break;
+		}
 		SV_CheckVelocity( ent );
 		SV_LinkEdict( ent );
 		SV_CheckVelocity( ent );

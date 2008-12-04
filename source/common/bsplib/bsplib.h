@@ -7,7 +7,6 @@
 
 #include "platform.h"
 #include "engine_api.h"
-#include "physic_api.h"
 #include "utils.h"
 #include "mathlib.h"
 
@@ -54,7 +53,6 @@ typedef enum
 } bsplibFlags_t;
 
 extern uint bsp_parms;
-extern physic_exp_t *pe;
 extern char path[MAX_SYSPATH];
 extern cvar_t *bsplib_compress_bsp;
 

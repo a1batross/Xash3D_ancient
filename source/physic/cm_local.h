@@ -10,6 +10,7 @@
 #include "cm_utils.h"
 
 #define MAX_MATERIALS	64
+#define MAX_MAT_SOUNDS	8
 #define CAPSULE_MODEL_HANDLE	MAX_MODELS - 2
 #define BOX_MODEL_HANDLE	MAX_MODELS - 1
 
@@ -115,12 +116,18 @@ typedef struct
 
 typedef struct material_info_s
 {
-	string	name;
-	float	softness;
-	float	elasticity;
-	float	friction_static;
-	float	friction_kinetic;
+	string		name;
+	float		softness;
+	float		elasticity;
+	float		friction_static;
+	float		friction_kinetic;
+	string		bust_sounds[MAX_MAT_SOUNDS];
+	string		push_sounds[MAX_MAT_SOUNDS];
+	string		impact_sounds[MAX_MAT_SOUNDS];
 
+	int		num_bustsounds;
+	int		num_pushsounds;
+	int		num_impactsounds;
 } material_info_t;
 
 typedef struct collide_info_s
@@ -279,6 +286,11 @@ cmodel_t *CM_TempBoxModel( const vec3_t mins, const vec3_t maxs, bool capsule );
 int Callback_ContactBegin( const NewtonMaterial* material, const NewtonBody* body0, const NewtonBody* body1 );
 int Callback_ContactProcess( const NewtonMaterial* material, const NewtonContact* contact );
 void Callback_ContactEnd( const NewtonMaterial* material );
+void Callback_ApplyForce( const NewtonBody* body );
+void Callback_PmoveApplyForce( const NewtonBody* body );
+void Callback_ApplyForce_NoGravity( const NewtonBody* body );
+void Callback_Static( const NewtonBody* body, const float* src );
+void Callback_ApplyTransform( const NewtonBody* body, const float* matrix );
 
 //
 // cm_materials.c

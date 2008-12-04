@@ -491,6 +491,7 @@ enum
 extern imglib_t image;
 extern cvar_t *img_oldformats;
 extern cvar_t *fs_wadsupport;
+extern cvar_t *png_compression;
 extern byte *fs_mempool;
 extern const bpc_desc_t PFDesc[];
 

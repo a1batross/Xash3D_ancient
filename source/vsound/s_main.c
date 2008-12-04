@@ -38,15 +38,15 @@ cvar_t	*s_dopplerVelocity;
 S_CheckForErrors
 =================
 */
-void S_CheckForErrors( void )
+bool S_CheckForErrors( void )
 {
 	int	err;
 	char	*str;
 
 	if( !s_check_errors->integer )
-		return;
+		return false;
 	if((err = palGetError()) == AL_NO_ERROR)
-		return;
+		return false;
 
 	switch( err )
 	{
@@ -69,7 +69,12 @@ void S_CheckForErrors( void )
 		str = "UNKNOWN ERROR";
 		break;
 	}
-	Host_Error( "S_CheckForErrors: %s", str );
+
+	if( al_state.active )
+		Host_Error( "S_CheckForErrors: %s", str );
+	else MsgDev( D_ERROR, "S_CheckForErrors: %s", str );
+
+	return true;
 }
 
 /*
@@ -765,12 +770,12 @@ void S_SoundInfo_f( void )
  S_Init
 =================
 */
-void S_Init( void *hInst )
+bool S_Init( void *hInst )
 {
 	int	num_mono_src, num_stereo_src;
 
 	host_sound = Cvar_Get("host_sound", "1", CVAR_SYSTEMINFO, "enable sound system" );
-	s_alDevice = Cvar_Get("s_device", "Generic Software", CVAR_LATCH|CVAR_ARCHIVE, "OpenAL curent device name" );
+	s_alDevice = Cvar_Get("s_device", "Generic Software", CVAR_LATCH|CVAR_ARCHIVE, "OpenAL current device name" );
 	s_soundfx = Cvar_Get("s_soundfx", "1", CVAR_LATCH|CVAR_ARCHIVE, "allow OpenAl extensions" );
 	s_check_errors = Cvar_Get("s_check_errors", "1", CVAR_ARCHIVE, "ignore audio engine errors" );
 	s_volume = Cvar_Get("s_volume", "1.0", CVAR_ARCHIVE, "sound volume" );
@@ -790,30 +795,35 @@ void S_Init( void *hInst )
 	Cmd_AddCommand("s_info", S_SoundInfo_f, "print sound system information" );
 	Cmd_AddCommand("soundlist", S_SoundList_f, "display loaded sounds" );
 
-	if(!host_sound->integer)
+	if( !host_sound->integer )
 	{
-		MsgDev(D_INFO, "Audio: disabled\n" );
-		return;
+		MsgDev( D_INFO, "Audio: disabled\n" );
+		return false;
 	}
 
 	if(!S_Init_OpenAL())
 	{
-		MsgDev( D_INFO, "S_Init: sound system can't initialized\n");
-		return;
+		MsgDev( D_INFO, "S_Init: sound system can't initialized\n" );
+		return false;
 	}
 
 	palcGetIntegerv( al_state.hDevice, ALC_MONO_SOURCES, sizeof(int), &num_mono_src );
 	palcGetIntegerv( al_state.hDevice, ALC_STEREO_SOURCES, sizeof(int), &num_stereo_src );
-	Msg("Mono sources %d, stereo %d\n", num_mono_src, num_stereo_src );
+	MsgDev( D_INFO, "mono sources %d, stereo %d\n", num_mono_src, num_stereo_src );
 
-	sndpool = Mem_AllocPool("Sound Zone");
+	sndpool = Mem_AllocPool( "Sound Zone" );
 	al_state.initialized = true;
 
 	S_AllocChannels();
 	S_StopAllSounds();
-	S_CheckForErrors();
+
+	// initialize error catched
+	if(S_CheckForErrors())
+		return false;
 
 	al_state.active = true; // enabled
+
+	return true;
 }
 
 /*

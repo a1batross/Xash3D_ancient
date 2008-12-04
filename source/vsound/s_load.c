@@ -711,7 +711,12 @@ void S_FreeSounds( void )
 
 void S_InitAmbientSounds( void )
 {
+	if( s_ambientvolume->value == 0.0f )
+		return;
+
 	// FIXME: create external script for replace this sounds
 	ambient_sfx[AMBIENT_SKY] = S_RegisterSound( "ambience/wind2.wav" );
 	ambient_sfx[AMBIENT_WATER] = S_RegisterSound( "ambience/water1.wav" );
+	ambient_sfx[AMBIENT_SLIME] = S_RegisterSound( "misc/null.wav" );
+	ambient_sfx[AMBIENT_LAVA] = S_RegisterSound( "misc/null.wav" );
 }

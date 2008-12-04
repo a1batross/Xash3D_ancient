@@ -6,37 +6,52 @@
 #include "physic.h"
 #include "mathlib.h"
 #include "matrix_lib.h"
-#include "cm_utils.h"
+#include "cm_local.h"
 
-physbody_t *Phys_CreateBody( sv_edict_t *ed, cmodel_t *mod, const vec3_t origin, const matrix3x3 matrix, int solid )
+physbody_t *Phys_CreateBody( sv_edict_t *ed, cmodel_t *mod, const vec3_t org, const matrix3x3 m, int solid, int move )
 {
 	NewtonCollision	*col;
 	NewtonBody	*body;
 	matrix4x4		trans, offset;
-	float		*vertices;
-	int		numvertices;		
-	vec3_t		size, center, mins, maxs;
+	float		*vertices, mass = 10.0f;
+	vec3_t		size, mins, maxs;
+	int		numvertices;
 
 	// setup matrixes
 	Matrix4x4_LoadIdentity( trans );
 	Matrix4x4_LoadIdentity( offset );
+
+	// setup translation matrix
+	VectorCopy( m[0], trans[0] );
+	VectorCopy( m[1], trans[1] );
+	VectorCopy( m[2], trans[2] );
+	VectorCopy( org, trans[3] );
 
 	if( mod )
 	{
 		VectorCopy( mod->mins, mins );
 		VectorCopy( mod->maxs, maxs );
 
-		if( solid == SOLID_BOX )
+		switch( solid )
 		{
+		case SOLID_BOX:
 			CM_RoundUpHullSize( mins );
 			CM_RoundUpHullSize( maxs );
-		}
-		else if( solid == SOLID_CYLINDER )
-		{
+			break;
+		case SOLID_CYLINDER:
 			// barrel always stay on top side
 			VectorSet( vec3_angles, 90.0f, 0.0f, 0.0f );
 			AngleVectors( vec3_angles, offset[0], offset[2], offset[1] );
-			VectorSet( vec3_angles, 0.0f, 0.0f, 0.0f ); // don't forget reset angles
+			VectorClear( vec3_angles ); // don't forget reset angles
+			break;
+		case SOLID_BSP:
+			if( VectorIsNull( org ))
+				VectorAverage( mins, maxs, trans[3] );
+			VectorSet( vec3_angles, -180.0f, 0.0f, 90.0f );
+			AngleVectors( vec3_angles, offset[0], offset[1], offset[2] );
+			VectorClear( vec3_angles ); // don't forget reset angles
+			mass = 0.0f;
+			break;
 		}
 	}
 	else
@@ -49,19 +64,15 @@ physbody_t *Phys_CreateBody( sv_edict_t *ed, cmodel_t *mod, const vec3_t origin,
 
 	// setup offset matrix
 	VectorSubtract( maxs, mins, size );
-	VectorAdd( mins, maxs, center );
 	ConvertDimensionToPhysic( size );
-	ConvertDimensionToPhysic( center );
-	VectorScale( center, 0.5, offset[3] );
-	
-	// setup translation matrix
-	VectorCopy( matrix[0], trans[0] );
-	VectorCopy( matrix[1], trans[1] );
-	VectorCopy( matrix[2], trans[2] );
-	VectorCopy( origin, trans[3] );
+
+	if( solid != SOLID_BSP || !VectorCompare( offset[3], trans[3] ) && VectorIsNull( org ))
+		VectorAverage( mins, maxs, offset[3] );
+
+	ConvertDimensionToPhysic( offset[3] );
 	ConvertPositionToPhysic( trans[3] );
 
-	switch(solid)
+	switch( solid )
 	{          
 	case SOLID_BOX:
 		col = NewtonCreateBox( gWorld, size[0], size[1], size[2], &offset[0][0] );
@@ -72,23 +83,38 @@ physbody_t *Phys_CreateBody( sv_edict_t *ed, cmodel_t *mod, const vec3_t origin,
 	case SOLID_CYLINDER:
 		col = NewtonCreateCylinder( gWorld, size[1]/2, size[2], &offset[0][0] );
 		break;
+	case SOLID_BSP:
 	case SOLID_MESH:
 		vertices = pi.GetModelVerts( ed, &numvertices );
 		if(!vertices || !numvertices ) return NULL;
 		col = NewtonCreateConvexHull( gWorld, numvertices, vertices, sizeof(vec3_t), &offset[0][0] );
 		break;
 	default:
-		Host_Error("Phys_CreateBody: unsupported solid type\n");
+		Host_Error("Phys_CreateBody: unsupported solid type %i\n", solid );
 		return NULL;
 	}
+
 	body = NewtonCreateBody( gWorld, col );
 	NewtonBodySetUserData( body, ed );
-	NewtonBodySetMassMatrix( body, 10.0f, size[0], size[1], size[2] ); // 10 kg
+	NewtonBodySetMassMatrix( body, mass, size[0], size[1], size[2] ); // 10 kg
 
-	// setup generic callback to engine.dll
-	NewtonBodySetTransformCallback(body, Callback_ApplyTransform );
-	NewtonBodySetForceAndTorqueCallback( body, Callback_ApplyForce );
-	NewtonBodySetMatrix(body, &trans[0][0]);// origin
+	// setup callbacks to engine.dll
+	switch( move )
+	{
+	case MOVETYPE_NONE:
+	case MOVETYPE_PUSH:
+		NewtonBodySetTransformCallback( body, Callback_Static );
+		NewtonBodySetForceAndTorqueCallback( body, Callback_ApplyForce_NoGravity );
+		break;
+	case MOVETYPE_PHYSIC:
+		NewtonBodySetTransformCallback( body, Callback_ApplyTransform );
+		NewtonBodySetForceAndTorqueCallback( body, Callback_ApplyForce );
+		break;
+	default:
+		Host_Error("Phys_CreateBody: unsupported movetype %i\n", move );
+		return NULL;
+	}
+	NewtonBodySetMatrix( body, &trans[0][0] );// origin
 	NewtonReleaseCollision( gWorld, col );
 
 	return (physbody_t *)body;

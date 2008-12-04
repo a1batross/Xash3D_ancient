@@ -9,6 +9,7 @@
 cvar_t *image_profile;
 cvar_t *gl_round_down;
 cvar_t *fs_textures;
+cvar_t *png_compression;
 
 #define LERPBYTE(i)		r = resamplerow1[i];out[i] = (byte)((((resamplerow2[i] - r) * lerp)>>16) + r)
 
@@ -294,6 +295,8 @@ void Image_Init( void )
 	image_profile = Cvar_Get( "image_profile", "Xash3D", CVAR_SYSTEMINFO, "set imagelib profile: e.g. Doom1, Quake1, Xash3D etc" );
 	gl_round_down = Cvar_Get( "gl_round_down", "0", CVAR_SYSTEMINFO, "down size non-power of two textures" );
 	fs_textures = Cvar_Get( "fs_textures_path", "textures", CVAR_SYSTEMINFO, "textures default folder" );
+	png_compression = Cvar_Get( "png_compression", "9", CVAR_SYSTEMINFO, "pnglib compression level" );
+	Cvar_SetValue( "png_compression", bound( 0, png_compression->integer, 9 ));
 
 	// install image formats (can be re-install later by Image_Setup)
 	switch( Sys.app_name )

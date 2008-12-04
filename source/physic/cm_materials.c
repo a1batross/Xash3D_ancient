@@ -9,7 +9,8 @@ static script_t	*materials = NULL;
 
 bool CM_ParseMaterial( token_t *token )
 {
-	uint	num = cms.num_materials;
+	uint	i, num = cms.num_materials;
+	string	sndmask;
 
 	if( num > MAX_MATERIALS - 1 )
 	{
@@ -47,6 +48,48 @@ bool CM_ParseMaterial( token_t *token )
 
 			if(!Com_ReadFloat( materials, false, &cms.mat[num].friction_kinetic ))
 				cms.mat[num].friction_kinetic = cms.mat[num].friction_static; // same as static friction
+		}
+		else if( !com.stricmp( token->string, "bust_sndmask" ))
+		{
+			string	bustsnd;
+
+			if( !Com_ReadString( materials, false, sndmask ))
+				continue;
+
+			for( i = 0; i < MAX_MAT_SOUNDS; i++ )
+			{
+				com.snprintf( bustsnd, MAX_STRING, "materials/%s%i.wav", sndmask );
+				if( FS_FileExists( va( "sound/%s", bustsnd )))
+					com.strncpy( cms.mat[num].bust_sounds[cms.mat[num].num_bustsounds++], bustsnd, MAX_STRING );
+			}
+		}
+		else if( !com.stricmp( token->string, "push_sndmask" ))
+		{
+			string	pushsnd;
+
+			if( !Com_ReadString( materials, false, sndmask ))
+				continue;
+
+			for( i = 0; i < MAX_MAT_SOUNDS; i++ )
+			{
+				com.snprintf( pushsnd, MAX_STRING, "materials/%s%i.wav", sndmask );
+				if( FS_FileExists( va( "sound/%s", pushsnd )))
+					com.strncpy( cms.mat[num].push_sounds[cms.mat[num].num_pushsounds++], pushsnd, MAX_STRING );
+			}
+		}
+		else if( !com.stricmp( token->string, "impact_sndmask" ))
+		{
+			string	impactsnd;
+
+			if( !Com_ReadString( materials, false, sndmask ))
+				continue;
+
+			for( i = 0; i < MAX_MAT_SOUNDS; i++ )
+			{
+				com.snprintf( impactsnd, MAX_STRING, "materials/%s%i.wav", sndmask );
+				if( FS_FileExists( va( "sound/%s", impactsnd )))
+					com.strncpy( cms.mat[num].impact_sounds[cms.mat[num].num_impactsounds++], impactsnd, MAX_STRING );
+			}
 		}
 	}
 

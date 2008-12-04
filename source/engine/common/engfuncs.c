@@ -1546,20 +1546,15 @@ void VM_fabs( void )
 
 /*
 =========
-VM_fmod
+VM_abs
 
-float fmod( float val, float m )
+float abs( float f )
 =========
 */
-void VM_fmod( void )
+void VM_abs( void )
 {
-	float	val, m;
-
-	if(!VM_ValidateArgs( "fmod", 2 )) return;
-
-	val = PRVM_G_FLOAT(OFS_PARM0);
-	m = PRVM_G_FLOAT(OFS_PARM1);
-	PRVM_G_FLOAT(OFS_RETURN) = fmod( val, m );
+	if(!VM_ValidateArgs( "abs", 1 )) return;
+	PRVM_G_FLOAT(OFS_RETURN) = (float)abs(PRVM_G_FLOAT(OFS_PARM0));
 }
 
 /*
@@ -1676,7 +1671,7 @@ VM_rint,				// #72 float rint (float v)
 VM_floor,				// #73 float floor(float v)
 VM_ceil,				// #74 float ceil (float v)
 VM_fabs,				// #75 float fabs (float f)
-VM_fmod,				// #76 float fmod( float val, float m )
+VM_abs,				// #76 float abs (float f)
 NULL,				// #77 -- reserved --
 NULL,				// #78 -- reserved --
 VM_VectorNormalize,			// #79 vector VectorNormalize( vector v )
