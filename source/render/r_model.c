@@ -927,6 +927,9 @@ static void R_SetupSubmodels( void )
 	submodel_t	*bm;
 	rmodel_t		*model;
 
+	// clear all previous bmodels
+	Mem_Set( r_inlinemodels, 0, sizeof( r_inlinemodels ));
+
 	for( i = 0; i < m_pLoadModel->numSubmodels; i++ )
 	{
 		bm = &m_pLoadModel->submodels[i];

@@ -21,7 +21,7 @@ cd studio
 makefile.nmake
 
 cd ..
-cd viewer
+cd dpvenc
 makefile.nmake
 
 cd ..

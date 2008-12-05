@@ -1,5 +1,0 @@
-// Microsoft Developer Studio generated Help ID include file.
-// Used by editor.rc
-//
-#define HIDB_CHOOSECOLOR                0x806503ed    // DLG_FIRST [English (U.S.)]
-#define HIDC_MAXUNDO                    0x806503f5    // DLG_FIRST [English (U.S.)]

@@ -14,14 +14,14 @@
 #define VER_FILESUBTYPE		VFT2_UNKNOWN
 
 #define VER_COMPANYNAME_STR		"XashXT Group"
-#define VER_LEGALCOPYRIGHT_STR	"XashXT 2007"
-#define VER_PRODUCTNAME_STR		"Resource Viewer"
+#define VER_LEGALCOPYRIGHT_STR	"XashXT 2008"
+#define VER_PRODUCTNAME_STR		"DP video encoder (DarkPlaces video)"
 
 #define VER_ANSICP
 
-#define VER_FILEDESCRIPTION_STR	"Resource Viewer"
-#define VER_ORIGINALFILENAME_STR	"viewer.exe"
-#define VER_INTERNALNAME_STR		"viewer"
+#define VER_FILEDESCRIPTION_STR	"DPVencoder"
+#define VER_ORIGINALFILENAME_STR	"dpvenc.exe"
+#define VER_INTERNALNAME_STR		"dpvenc"
 
 #include <common.ver>
 

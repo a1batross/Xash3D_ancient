@@ -22,7 +22,6 @@ int		event_head, event_tail;
 
 dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
-dll_info_t viewer_dll = { "viewer.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t baserc_dll = { "baserc.dll", NULL, "CreateAPI", NULL, NULL, false, sizeof(baserc_exp_t)};
 
 static const char *show_credits = "\n\n\n\n\tCopyright XashXT Group %s ©\n\t\
@@ -264,18 +263,17 @@ Parse program name to launch and determine work style
 
 NOTE: at this day we have ten instances
 
-1. "normal" - normal or dedicated game launch
-2. "viewer" - resource editor
-3. "bsplib" - three BSP compilers in one
-4. "imglib" - convert old formats (mip, pcx, lmp) to 32-bit tga
+0. "offline" - invalid instance
+1. "credits" - show engine credits
+2. "dedicated" - dedicated server
+3. "normal" - normal or dedicated game launch
+4. "bsplib" - four BSP compilers in one
 5. "qcclib" - quake c complier
-6. "roqlib" - roq video file maker
-7. "sprite" - sprite creator (requires qc. script)
-8. "studio" - Half-Life style models creator (requires qc. script) 
-9. "credits" - display credits of engine developers
-10. "host_setup" - write current path into registry (silently)
-
-This list will be expnaded in future
+6. "sprite" - sprite creator (requires qc. script)
+7. "studio" - Half-Life style models creator (requires qc. script) 
+8. "roqlib" - wad-file maker
+9. "ripper" - RESOURCE extraCTOR genERIC
+10."dpvenc" - dp video encoder
 ==================
 */
 void Sys_LookupInstance( void )
@@ -304,7 +302,7 @@ void Sys_LookupInstance( void )
 		Sys.app_name = HOST_CREDITS;		// easter egg
 		Sys.linked_dll = NULL;		// no need to loading library
 		Sys.log_active = Sys.developer = 0;	// clear all dbg states
-		com_strcpy(Sys.caption, "About");
+		com_strcpy( Sys.caption, "About" );
 		Sys.con_showcredits = true;
 	}
 	else if(!com_strcmp(Sys.progname, "normal"))
@@ -323,7 +321,7 @@ void Sys_LookupInstance( void )
 				Sys.con_showalways = false;
 		}
 		Sys.linked_dll = &engine_dll;	// pointer to engine.dll info
-		com_sprintf(Sys.log_path, "engine.log", com_timestamp(TIME_NO_SECONDS)); // logs folder
+		com_sprintf( Sys.log_path, "engine.log", com_timestamp( TIME_NO_SECONDS )); // logs folder
 		com_strcpy(Sys.caption, va("Xash3D ver.%g", XASH_VERSION ));
 	}
 	else if(!com_strcmp(Sys.progname, "bsplib"))
@@ -370,15 +368,15 @@ void Sys_LookupInstance( void )
 		com_sprintf(Sys.log_path, "%s/decompile.log", sys_rootdir ); // default
 		com_strcpy(Sys.caption, va("Quake Recource Extractor ver.%g", XASH_VERSION ));
 	}
-	else if(!com_strcmp(Sys.progname, "viewer"))
+	else if(!com_strcmp(Sys.progname, "dpvenc"))
 	{
-		Sys.app_name = HOST_VIEWER;
+		Sys.app_name = HOST_DPVENC;
 		Sys.con_readonly = true;
 		// don't show console as default
 		if( Sys.developer < D_NOTE ) Sys.con_showalways = false;
-		Sys.linked_dll = &viewer_dll;	// pointer to viewer.dll info
-		com_sprintf(Sys.log_path, "%s/editor.log", sys_rootdir ); // logs folder
-		com_strcpy(Sys.caption, va("Xash3D Resource Viewer ver.%g", XASH_VERSION ));
+		Sys.linked_dll = &common_dll;	// pointer to dpvenc.dll info
+		com_sprintf(Sys.log_path, "%s/movie.log", sys_rootdir ); // logs folder
+		com_strcpy(Sys.caption, "DarkPlaces Video Encoder" );
 	}
 	// share instance over all system
 	GI.instance = Sys.app_name;
@@ -402,7 +400,7 @@ void Sys_CreateInstance( void )
 	{
 	case HOST_NORMAL:
 	case HOST_DEDICATED:
-	case HOST_VIEWER:		
+	case HOST_DPVENC:		
 	case HOST_BSPLIB:
 	case HOST_QCCLIB:
 	case HOST_SPRITE:
@@ -445,9 +443,7 @@ void Sys_CreateInstance( void )
 		// if stuffcmds wasn't run, then init.rc is probably missing, use default
 		if(!Sys.stuffcmdsrun) Cbuf_ExecuteText( EXEC_NOW, "stuffcmds\n" );
 		break;
-	case HOST_VIEWER:
-		Con_ShowConsole( false );
-		// intentional falltrough
+	case HOST_DPVENC:
 	case HOST_BSPLIB:
 	case HOST_QCCLIB:
 	case HOST_SPRITE:

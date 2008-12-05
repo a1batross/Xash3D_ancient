@@ -14,7 +14,6 @@ todo.log
 
 public\
 baserc\
-viewer\
 physic\
 render\
 vprogs\
@@ -31,8 +30,8 @@ launch\qcc\
 launch\xwad\
 launch\xash\
 launch\bsplib\
+launch\dpvenc\
 launch\sprite\
 launch\studio\
-launch\viewer\
 launch\imagelib\
 launch\extragen\

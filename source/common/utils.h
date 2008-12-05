@@ -38,6 +38,7 @@ float ColorNormalize( const vec3_t in, vec3_t out );
 bool CompileStudioModel( byte *mempool, const char *name, byte parms );
 bool CompileSpriteModel( byte *mempool, const char *name, byte parms );
 bool CompileWad3Archive( byte *mempool, const char *name, byte parms );
+bool CompileDPVideo( byte *mempool, const char *name, byte parms );
 bool PrepareBSPModel( const char *dir, const char *name );
 bool CompileBSPModel( void );
 

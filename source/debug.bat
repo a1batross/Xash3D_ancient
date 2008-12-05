@@ -26,9 +26,6 @@ if errorlevel 1 set BUILD_ERROR=1
 %MSDEV% render/render.dsp %CONFIG%"render - Win32 Debug" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
-%MSDEV% viewer/viewer.dsp %CONFIG%"viewer - Win32 Debug" %build_target%
-if errorlevel 1 set BUILD_ERROR=1
-
 %MSDEV% vprogs/vprogs.dsp %CONFIG%"vprogs - Win32 Debug" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 

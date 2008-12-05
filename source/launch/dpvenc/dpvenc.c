@@ -4,4 +4,4 @@
 
 #include "../rundll.h"
 
-Run32( viewer );
+Run32( dpvenc );

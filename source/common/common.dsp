@@ -157,6 +157,10 @@ SOURCE=.\bsplib\csg.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\dpvencoder.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\bsplib\faces.c
 # End Source File
 # Begin Source File

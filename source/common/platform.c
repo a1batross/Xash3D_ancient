@@ -54,6 +54,7 @@ so do it manually
 void InitCommon( int argc, char **argv )
 {
 	string	source, gamedir;
+	int	imageflags = 0;
 	launch_t	CreateVprogs;
 
 	basepool = Mem_AllocPool( "Common Pool" );
@@ -91,8 +92,10 @@ void InitCommon( int argc, char **argv )
 	case HOST_SPRITE:
 	case HOST_STUDIO:
 	case HOST_WADLIB:
+		imageflags |= IL_KEEP_8BIT;
+	case HOST_DPVENC:
 		// initialize ImageLibrary
-		Image_Init( NULL, IL_KEEP_8BIT );
+		Image_Init( NULL, imageflags );
 	case HOST_RIPPER:
 		// blamk image for missed resources
 		error_bmp = FS_LoadInternal( "blank.bmp", &error_bmp_size );
@@ -136,6 +139,10 @@ void CommonMain( void )
 		break;
 	case HOST_WADLIB:
 		CompileMod = CompileWad3Archive;
+		AddMask( "*.qc" );
+		break;
+	case HOST_DPVENC:
+		CompileMod = CompileDPVideo;
 		AddMask( "*.qc" );
 		break;
 	case HOST_RIPPER:
