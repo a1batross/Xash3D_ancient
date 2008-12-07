@@ -242,9 +242,9 @@ typedef struct leaflist_s
 	int		maxcount;
 	bool		overflowed;
 	int		*list;
-	vec3_t		bounds[2];
-	int		lastleaf;		// for overflows where each leaf can't be stored individually
-	void		(*storeleafs)( struct leaflist_s *ll, cnode_t *node );
+	vec3_t		mins;
+	vec3_t		maxs;
+	int		topnode;		// for overflows where each leaf can't be stored individually
 } leaflist_t;
 
 extern clipmap_t		cm;

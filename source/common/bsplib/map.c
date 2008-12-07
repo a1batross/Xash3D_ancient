@@ -230,6 +230,33 @@ int PlaneFromPoints( vec_t *p0, vec_t *p1, vec_t *p2 )
 	return FindFloatPlane( normal, dist );
 }
 
+void PrintContents( int cnt )
+{
+	Msg("Contents:" );
+
+	if( cnt & CONTENTS_SOLID ) Msg( "solid " );
+	if( cnt & CONTENTS_WINDOW) Msg( "window " );
+	if( cnt & CONTENTS_AUX ) Msg( "aux " );
+	if( cnt & CONTENTS_LAVA) Msg( "lava " );
+	if( cnt & CONTENTS_SLIME) Msg( "slime " );
+	if( cnt & CONTENTS_WATER) Msg( "water " );
+	if( cnt & CONTENTS_SKY) Msg( "sky " );
+
+	if( cnt & CONTENTS_MIST) Msg( "mist " );
+	if( cnt & CONTENTS_FOG) Msg( "fog " );
+	if( cnt & CONTENTS_AREAPORTAL) Msg( "areaportal " );
+	if( cnt & CONTENTS_PLAYERCLIP) Msg( "playerclip " );
+	if( cnt & CONTENTS_MONSTERCLIP) Msg(" monsterclip " );
+	if( cnt & CONTENTS_CLIP) Msg( "clip " );
+	if( cnt & CONTENTS_ORIGIN) Msg(" origin" );
+	if( cnt & CONTENTS_BODY) Sys_Error("\nCONTENTS_BODY detected\n" );
+	if( cnt & CONTENTS_CORPSE) Sys_Error("\nCONTENTS_CORPSE detected\n" );
+	if( cnt & CONTENTS_DETAIL) Msg(" detail " );
+	if( cnt & CONTENTS_TRANSLUCENT) Msg( "translucent " );
+	if( cnt & CONTENTS_LADDER) Msg( "ladder " );
+	if( cnt & CONTENTS_TRIGGER) Msg( "trigger " );
+	Msg( "\n" );
+}
 
 //====================================================================
 /*
@@ -252,8 +279,9 @@ int BrushContents( mapbrush_t *b )
 	{
 		s = &b->original_sides[i];
 		trans |= dshaders[texinfo[s->texinfo].shadernum].surfaceFlags;
-		if( s->contents != contents )
+		if( s->contents != contents && !( trans & SURF_NODRAW ))
 		{
+			// nodraw textures are ignored
 			MsgDev( D_WARN, "Entity %i, Brush %i: mixed face contents\n", b->entitynum, b->brushnum );
 			break;
 		}

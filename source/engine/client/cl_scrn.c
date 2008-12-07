@@ -321,7 +321,7 @@ void SCR_UpdateScreen( void )
 		SCR_DrawCinematic();
 		break;
 	default:
-		Host_Error("SCR_UpdateScreen: bad cls.state" );
+		Host_Error( "SCR_UpdateScreen: bad cls.state\n" );
 		break;
 	}
 
@@ -333,7 +333,7 @@ void SCR_RegisterShaders( void )
 	// register console images
 	cls.consoleFont = re->RegisterShader( va( "gfx/fonts/%s", con_font->string ), SHADER_FONT );
 	cls.clientFont = re->RegisterShader( va( "gfx/fonts/%s", cl_font->string ), SHADER_FONT );
-	cls.consoleBack = re->RegisterShader( "gfx/background/conback", SHADER_NOMIP );
+	cls.consoleBack = re->RegisterShader( "gfx/shell/conback", SHADER_NOMIP ); // hardcoded ...
 }
 
 /*
@@ -348,7 +348,7 @@ void SCR_Init( void )
 	scr_showpause = Cvar_Get("scr_showpause", "1", 0, "show pause picture" );
 	scr_centertime = Cvar_Get("scr_centertime", "2.5", 0, "centerprint hold time" );
 	scr_printspeed = Cvar_Get("scr_printspeed", "8", 0, "centerprint speed of print" );
-	cl_levelshot_name = Cvar_Get("cl_levelshot_name", "common/black", 0, "contains path to current levelshot" );
+	cl_levelshot_name = Cvar_Get( "cl_levelshot_name", "", 0, "contains path to current levelshot" );
 	scr_loading = Cvar_Get("scr_loading", "0", 0, "loading bar progress" );
 	scr_download = Cvar_Get("scr_download", "0", 0, "downloading bar progress" );
 	cl_testentities = Cvar_Get ("cl_testentities", "0", 0, "test client entities" );

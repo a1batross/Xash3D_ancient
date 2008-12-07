@@ -50,11 +50,13 @@ typedef enum
 	BSPLIB_RAD_NOCOLOR	= BIT(8),
 	BSPLIB_DELETE_TEMP	= BIT(9),		// delete itermediate files
 	BSPLIB_SHOWINFO	= BIT(10),
+	BSPLIB_CULLERROR	= BIT(11),
 } bsplibFlags_t;
 
 extern uint bsp_parms;
 extern char path[MAX_SYSPATH];
 extern cvar_t *bsplib_compress_bsp;
+extern float maxdist;
 
 // bsplib export functions
 void WradMain( void );
@@ -258,19 +260,20 @@ typedef struct
 typedef enum {stat_none, stat_working, stat_done} vstatus_t;
 typedef struct
 {
-	visplane_t		plane;	// normal pointing into neighbor
-	int			leaf;	// neighbor
-	
-	vec3_t		origin;	// for fast clip testing
+	visplane_t	plane;		// normal pointing into neighbor
+	int		leaf;		// neighbor
+	int		owner_leaf;	// neighbor
+		
+	vec3_t		origin;		// for fast clip testing
 	float		radius;
 
 	viswinding_t	*winding;
 	vstatus_t	status;
 	byte		*portalfront;	// [portals], preliminary
 	byte		*portalflood;	// [portals], intermediate
-	byte		*portalvis;		// [portals], final
+	byte		*portalvis;	// [portals], final
 
-	int			nummightsee;	// bit count on portalflood for sort
+	int		nummightsee;	// bit count on portalflood for sort
 } visportal_t;
 
 typedef struct seperating_plane_s

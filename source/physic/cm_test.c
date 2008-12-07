@@ -64,24 +64,6 @@ LEAF LISTING
 
 ======================================================================
 */
-void CM_StoreLeafs( leaflist_t *ll, cnode_t *node )
-{
-	cleaf_t	*leaf = (cleaf_t *)node;
-
-	// store the lastLeaf even if the list is overflowed
-	if( leaf->cluster != -1 )
-	{
-		ll->lastleaf = leaf - cm.leafs;
-	}
-
-	if( ll->count >= ll->maxcount )
-	{
-		ll->overflowed = true;
-		return;
-	}
-	ll->list[ll->count++] = leaf - cm.leafs;
-}
-
 /*
 =============
 CM_BoxLeafnums
@@ -98,13 +80,20 @@ void CM_BoxLeafnums_r( leaflist_t *ll, cnode_t *node )
 	{
 		if( node->plane == NULL )
 		{
+			cleaf_t	*leaf = (cleaf_t *)node;
+
 			// it's a leaf!
-			ll->storeleafs( ll, node );
+			if( ll->count >= ll->maxcount)
+			{
+				ll->overflowed = true;
+				return;
+			}
+			ll->list[ll->count++] = leaf - cm.leafs;
 			return;
 		}
 	
 		plane = node->plane;
-		s = BoxOnPlaneSide( ll->bounds[0], ll->bounds[1], plane );
+		s = BoxOnPlaneSide( ll->mins, ll->maxs, plane );
 		if( s == 1 )
 		{
 			node = node->children[0];
@@ -116,6 +105,8 @@ void CM_BoxLeafnums_r( leaflist_t *ll, cnode_t *node )
 		else
 		{
 			// go down both
+			if( ll->topnode == -1 )
+				ll->topnode = node - cm.nodes;
 			CM_BoxLeafnums_r( ll, node->children[0] );
 			node = node->children[1];
 		}
@@ -127,23 +118,22 @@ void CM_BoxLeafnums_r( leaflist_t *ll, cnode_t *node )
 CM_BoxLeafnums
 ==================
 */
-int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsize, int *lastleaf )
+int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsize, int *topnode )
 {
 	leaflist_t	ll;
 
 	cms.checkcount++;
-	VectorCopy( mins, ll.bounds[0] );
-	VectorCopy( maxs, ll.bounds[1] );
+	VectorCopy( mins, ll.mins );
+	VectorCopy( maxs, ll.maxs );
 	ll.count = 0;
 	ll.maxcount = listsize;
 	ll.list = list;
-	ll.storeleafs = CM_StoreLeafs;
-	ll.lastleaf = -1;
+	ll.topnode = -1;
 	ll.overflowed = false;
 
 	CM_BoxLeafnums_r( &ll, cm.nodes );
 
-	if( lastleaf ) *lastleaf = ll.lastleaf;
+	if( topnode ) *topnode = ll.topnode;
 	return ll.count;
 }
 

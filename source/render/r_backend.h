@@ -187,6 +187,7 @@ typedef struct
 	// builtin shaders
 	ref_shader_t	*defaultShader;
 	ref_shader_t	*nodrawShader;
+	ref_shader_t	*blackShader;
 	ref_shader_t	*lightmapShader;
 	ref_shader_t	*skyboxShader;
 	ref_shader_t	*particleShader;

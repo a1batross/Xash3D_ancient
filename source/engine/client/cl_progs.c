@@ -6,25 +6,6 @@
 #include "common.h"
 #include "client.h"
 
-#define STAT_MINUS		10 // num frame for '-' stats digit
-
-const char *field_nums[11] =
-{
-"hud/num_0",
-"hud/num_1",
-"hud/num_2", 
-"hud/num_3",
-"hud/num_4",
-"hud/num_5",
-"hud/num_6",
-"hud/num_7",
-"hud/num_8", 
-"hud/num_9",
-"hud/num_-",
-};
-
-static shader_t field_shaders[11];
-
 /*
 ================
 CL_FadeColor
@@ -243,45 +224,6 @@ static void PF_ReadEntity (void){ VM_RETURN_EDICT( PRVM_PROG_TO_EDICT( MSG_ReadS
 
 /*
 =========
-PF_drawfield
-
-void DrawField( float value, vector pos, vector size )
-=========
-*/
-static void PF_drawfield( void )
-{
-	char	num[16], *ptr;
-	int	l, frame;
-	float	value, *pos, *size;
-
-	if(!VM_ValidateArgs( "drawpic", 3 ))
-		return;
-
-	value = PRVM_G_FLOAT(OFS_PARM0);
-	pos = PRVM_G_VECTOR(OFS_PARM1);
-	size = PRVM_G_VECTOR(OFS_PARM2);
-
-	com.snprintf( num, 16, "%i", (int)value );
-	l = com.strlen( num );
-	ptr = num;
-
-	if( size[0] == 0.0f ) size[0] = GIANTCHAR_WIDTH; 
-	if( size[1] == 0.0f ) size[1] = GIANTCHAR_HEIGHT; 
-
-	while( *ptr && l )
-	{
-		if( *ptr == '-' ) frame = STAT_MINUS;
-		else frame = *ptr -'0';
-		SCR_DrawPic( pos[0], pos[1], size[0], size[1], field_shaders[frame] );
-		pos[0] += size[0];
-		ptr++;
-		l--;
-	}
-	re->SetColor( NULL );
-}
-
-/*
-=========
 PF_drawnet
 
 void DrawNet( vector pos, string image )
@@ -292,14 +234,14 @@ static void PF_drawnet( void )
 	float	*pos;
 	shader_t	shader;
 
-	if(!VM_ValidateArgs( "drawnet", 2 ))
+	if(!VM_ValidateArgs( "DrawNet", 2 ))
 		return;
 	if(cls.netchan.outgoing_sequence - cls.netchan.incoming_acknowledged < CMD_BACKUP-1)
 		return;
 
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM1));
 	pos = PRVM_G_VECTOR(OFS_PARM0);
-	shader = re->RegisterShader( va( "gfx/%s", PRVM_G_STRING(OFS_PARM1)), SHADER_NOMIP ); 
+	shader = re->RegisterShader( PRVM_G_STRING(OFS_PARM1), SHADER_NOMIP ); 
 
 	SCR_DrawPic( pos[0], pos[1], -1, -1, shader );
 }
@@ -712,7 +654,7 @@ VM_drawstring,			// #114 float DrawString( vector pos, string text, vector scale
 VM_drawpic,			// #115 float DrawPic( vector pos, string pic, vector size, vector rgb, float alpha )
 VM_drawfill,			// #116 void DrawFill( vector pos, vector size, vector rgb, float alpha )
 VM_drawmodel,			// #117 void DrawModel( vector pos, vector size, string mod, vector org, vector ang, float seq )
-PF_drawfield,			// #118 void DrawField( float value, vector pos, vector size )
+NULL,				// #118 -- reserved -- 
 VM_getimagesize,			// #119 vector getimagesize( string pic )
 PF_drawnet,			// #120 void DrawNet( vector pos, string image )
 PF_drawfps,			// #121 void DrawFPS( vector pos )
@@ -739,8 +681,6 @@ const int vm_cl_numbuiltins = sizeof(vm_cl_builtins) / sizeof(prvm_builtin_t); /
 
 void CL_InitClientProgs( void )
 {
-	int	i;
-
 	Msg("\n");
 	PRVM_Begin;
 
@@ -774,9 +714,6 @@ void CL_InitClientProgs( void )
 	prog->globals.cl->pev = 0;
 	prog->globals.cl->mapname = PRVM_SetEngineString( cls.servername );
 	prog->globals.cl->playernum = cl.playernum;
-
-	for( i = 0; i < sizeof( field_nums ) / sizeof( field_nums[0] ); i++ )
-		field_shaders[i] = re->RegisterShader( va("gfx/%s", field_nums[i] ), SHADER_NOMIP );
 
 	// call the prog init
 	PRVM_ExecuteProgram( prog->globals.cl->HUD_Init, "HUD_Init" );

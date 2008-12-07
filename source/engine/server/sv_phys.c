@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "common.h"
+#include "render_api.h"
 #include "server.h"
 #include "matrix_lib.h"
 #include "const.h"
@@ -1054,7 +1055,16 @@ bool SV_CheckWater( edict_t *ent )
 			ent->progs.sv->waterlevel = 2;
 			point[2] = ent->progs.sv->origin[2] + ent->progs.sv->view_ofs[2];
 			if(SV_PointContents(point) & (MASK_WATER))
+			{
 				ent->progs.sv->waterlevel = 3;
+				if( ent->priv.sv->s.ed_type == ED_CLIENT )
+					ent->progs.sv->renderfx = (int)ent->progs.sv->renderfx | RDF_UNDERWATER;
+			}
+			else
+			{
+				if( ent->priv.sv->s.ed_type == ED_CLIENT )
+					ent->progs.sv->renderfx = (int)ent->progs.sv->renderfx & ~RDF_UNDERWATER;
+			}
 		}
 	}
 	return ent->progs.sv->waterlevel > 1;

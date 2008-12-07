@@ -1029,7 +1029,7 @@ void CL_RequestNextDownload( void )
 			while( precache_tex < pe->NumTextures())
 			{
 				com.sprintf( fn, "textures/%s.tga", pe->GetTextureName( precache_tex++ ));
-				if(!CL_CheckOrDownloadFile(fn)) return; // started a download
+				if(!CL_CheckOrDownloadFile( fn )) return; // started a download
 			}
 		}
 		precache_check = TEXTURE_CNT + 999;

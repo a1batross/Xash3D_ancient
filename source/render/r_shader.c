@@ -4876,7 +4876,7 @@ ref_shader_t *R_FindShader( const char *name, int shaderType, uint surfaceParm )
 	}
  
  	// create the shader
-	shader = R_CreateShader( name, shaderType, surfaceParm, shaderScript );
+ 	shader = R_CreateShader( name, shaderType, surfaceParm, shaderScript );
 
 	// load it in
 	return R_LoadShader( shader );
@@ -5090,6 +5090,20 @@ static void R_CreateBuiltInShaders( void )
 	shader->flags = SHADER_STATIC;
 
 	tr.nodrawShader = R_LoadShader( shader );
+
+	// black shader
+	shader = R_NewShader();
+
+	// gfx black image
+	com.strncpy( shader->name, "<black>", sizeof( shader->name ));
+	shader->type = SHADER_NOMIP;
+	shader->flags = SHADER_STATIC;
+	shader->stages[0]->bundles[0]->textures[0] = r_blackTexture;
+	shader->stages[0]->bundles[0]->numTextures++;
+	shader->stages[0]->numBundles++;
+	shader->numStages++;
+
+	tr.blackShader = R_LoadShader( shader );
 
 	// lightmap shader
 	shader = R_NewShader();

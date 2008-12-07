@@ -186,10 +186,12 @@ void Conv_RunSearch( void )
 			AddMask( "*.flt" );		// Doom1 textures
 			AddMask( "*.mus" );		// Doom1 music
 		}
-		if( !FS_CheckParm( "-force32" )) 
+		if( !FS_CheckParm( "-force32" ))
+		{ 
 			imageflags |= IL_KEEP_8BIT;
+			write_qscsript = true;
+		}
 		Image_Init( "Doom1", imageflags );
-		write_qscsript = true;
 		break;
 	case GAME_HEXEN2:
 	case GAME_QUAKE1:
@@ -211,8 +213,10 @@ void Conv_RunSearch( void )
 		AddMask( "*.sp32");
 		AddMask( "*.spr" );
 		if( !FS_CheckParm( "-force32" ))
+		{
 			imageflags |= IL_KEEP_8BIT;
-		write_qscsript = true;
+			write_qscsript = true;
+		}
 		Image_Init( "Quake1", imageflags );
 		break;
 	case GAME_QUAKE2:
@@ -235,8 +239,10 @@ void Conv_RunSearch( void )
 		AddMask( "pics/*.pcx");	// Quake2 pics
 		AddMask( "env/*.pcx" );	// Quake2 skyboxes
 		if( !FS_CheckParm( "-force32" ))
+		{
 			imageflags |= IL_KEEP_8BIT;
-		write_qscsript = true;
+			write_qscsript = true;
+		}
 		Image_Init( "Quake2", imageflags );
 		break;
 	case GAME_RTCW:
@@ -331,8 +337,10 @@ void Conv_RunSearch( void )
 		AddMask( "maps/*.bsp" );	// textures from bsp
 		AddMask( "sprites/*.spr" );	// Half-Life sprites
 		if( !FS_CheckParm( "-force32" ))
+		{
 			imageflags |= IL_KEEP_8BIT;
-		write_qscsript = true;
+			write_qscsript = true;
+		}
 		Image_Init( "Half-Life", imageflags );
 		break;
 	case GAME_XASH3D:

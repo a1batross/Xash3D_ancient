@@ -242,7 +242,8 @@ bspbrush_t *AllocBrush (int numsides)
 	int			c;
 
 	c = (int)&(((bspbrush_t *)0)->sides[numsides]);
-	bb = Malloc(c);
+	bb = malloc(c);
+	memset (bb, 0, c);
 	if (GetNumThreads() == 1) c_active_brushes++;
 	return bb;
 }
@@ -259,7 +260,7 @@ void FreeBrush (bspbrush_t *brushes)
 	for (i=0 ; i<brushes->numsides ; i++)
 		if (brushes->sides[i].winding)
 			FreeWinding(brushes->sides[i].winding);
-	Mem_Free (brushes);
+	free(brushes);
 	if (GetNumThreads() == 1)
 		c_active_brushes--;
 }

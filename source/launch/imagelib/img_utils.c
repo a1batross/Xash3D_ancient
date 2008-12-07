@@ -449,11 +449,18 @@ void Image_GetPaletteD1( void )
 {
 	image.d_rendermode = LUMP_NORMAL;
 
-	if(!d1palette_init)
+	if( !d1palette_init )
 	{
+		byte	temp[4];
+
 		Image_SetPalette( palette_d1, d_8toD1table );
 		d_8toD1table[247] = 0; // Image_LoadFLT will be convert transparency from 247 into 255 color
 		d1palette_init = true;
+
+		// also swap palette colors: from 247 to 255
+		Mem_Copy( temp, &d_8toD1table[255], 4 );
+		Mem_Copy( &d_8toD1table[255], &d_8toD1table[247], 4 );		
+		Mem_Copy( &d_8toD1table[247], temp, 4 );
 	}
 	image.d_currentpal = d_8toD1table;
 }

@@ -6,6 +6,8 @@
 #include "bsplib.h"
 #include "const.h"
 
+#define BLOCK_SIZE		8192	// test
+
 int	block_xl = -8, block_xh = 7, block_yl = -8, block_yh = 7;
 int	entity_num;
 node_t	*block_nodes[10][10];
@@ -45,7 +47,7 @@ node_t *BlockTree (int xl, int yl, int xh, int yh)
 		normal[0] = 1;
 		normal[1] = 0;
 		normal[2] = 0;
-		dist = mid*32768;
+		dist = mid*BLOCK_SIZE;
 		node->planenum = FindFloatPlane (normal, dist);
 		node->children[0] = BlockTree ( mid, yl, xh, yh);
 		node->children[1] = BlockTree ( xl, yl, mid-1, yh);
@@ -56,7 +58,7 @@ node_t *BlockTree (int xl, int yl, int xh, int yh)
 		normal[0] = 0;
 		normal[1] = 1;
 		normal[2] = 0;
-		dist = mid*32768;
+		dist = mid*BLOCK_SIZE;
 		node->planenum = FindFloatPlane (normal, dist);
 		node->children[0] = BlockTree ( xl, mid, xh, yh);
 		node->children[1] = BlockTree ( xl, yl, xh, mid-1);
@@ -84,12 +86,12 @@ void ProcessBlock_Thread (int blocknum)
 	yblock = block_yl + blocknum / (block_xh-block_xl+1);
 	xblock = block_xl + blocknum % (block_xh-block_xl+1);
 
-	mins[0] = xblock*32768;
-	mins[1] = yblock*32768;
-	mins[2] = -131072;
-	maxs[0] = (xblock+1)*32768;
-	maxs[1] = (yblock+1)*32768;
-	maxs[2] = 131072;
+	mins[0] = xblock*BLOCK_SIZE;
+	mins[1] = yblock*BLOCK_SIZE;
+	mins[2] = MIN_WORLD_COORD;
+	maxs[0] = (xblock+1)*BLOCK_SIZE;
+	maxs[1] = (yblock+1)*BLOCK_SIZE;
+	maxs[2] = MAX_WORLD_COORD;
 
 	// the makelist and chopbrushes could be cached between the passes...
 	brushes = MakeBspBrushList (brush_start, brush_end, mins, maxs);
@@ -102,10 +104,12 @@ void ProcessBlock_Thread (int blocknum)
 		return;
 	}
 
-	brushes = ChopBrushes (brushes);
+//	brushes = ChopBrushes (brushes);
 	tree = BrushBSP (brushes, mins, maxs);
 
 	block_nodes[xblock+5][yblock+5] = tree->headnode;
+
+	Mem_Free( tree );
 }
 
 /*
@@ -130,14 +134,14 @@ void ProcessWorldModel( void )
 	//
 	// perform per-block operations
 	//
-	if (block_xh * 32768 > map_maxs[0])
-		block_xh = floor(map_maxs[0]/32768.0);
-	if ( (block_xl+1) * 32768 < map_mins[0])
-		block_xl = floor(map_mins[0]/32768.0);
-	if (block_yh * 32768 > map_maxs[1])
-		block_yh = floor(map_maxs[1]/32768.0);
-	if ( (block_yl+1) * 32768 < map_mins[1])
-		block_yl = floor(map_mins[1]/32768.0);
+	if (block_xh * BLOCK_SIZE > map_maxs[0])
+		block_xh = floor(map_maxs[0]/BLOCK_SIZE);
+	if ( (block_xl+1) * BLOCK_SIZE < map_mins[0])
+		block_xl = floor(map_mins[0]/BLOCK_SIZE);
+	if (block_yh * BLOCK_SIZE > map_maxs[1])
+		block_yh = floor(map_maxs[1]/BLOCK_SIZE);
+	if ( (block_yl+1) * BLOCK_SIZE < map_mins[1])
+		block_yl = floor(map_mins[1]/BLOCK_SIZE);
 
 	if (block_xl <-4) block_xl = -4;
 	if (block_yl <-4) block_yl = -4;
@@ -155,12 +159,12 @@ void ProcessWorldModel( void )
 		tree = AllocTree ();
 		tree->headnode = BlockTree (block_xl-1, block_yl-1, block_xh+1, block_yh+1);
 
-		tree->mins[0] = (block_xl)*32768;
-		tree->mins[1] = (block_yl)*32768;
+		tree->mins[0] = (block_xl)*BLOCK_SIZE;
+		tree->mins[1] = (block_yl)*BLOCK_SIZE;
 		tree->mins[2] = map_mins[2] - 8;
 
-		tree->maxs[0] = (block_xh+1)*32768;
-		tree->maxs[1] = (block_yh+1)*32768;
+		tree->maxs[0] = (block_xh+1)*BLOCK_SIZE;
+		tree->maxs[1] = (block_yh+1)*BLOCK_SIZE;
 		tree->maxs[2] = map_maxs[2] + 8;
 
 		//
@@ -218,8 +222,8 @@ void ProcessSubModel (void)
 	start = e->firstbrush;
 	end = start + e->numbrushes;
 
-	mins[0] = mins[1] = mins[2] = -131072;
-	maxs[0] = maxs[1] = maxs[2] = 131072;
+	mins[0] = mins[1] = mins[2] = MIN_WORLD_COORD;
+	maxs[0] = maxs[1] = maxs[2] = MAX_WORLD_COORD;
 	list = MakeBspBrushList (start, end, mins, maxs);
 	list = ChopBrushes (list);
 	tree = BrushBSP (list, mins, maxs);

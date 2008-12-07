@@ -327,7 +327,9 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 			{
 				// too many leafs for individual check, go by headnode
 				if( !pe->HeadnodeVisible( svent->headnode, bitvector ))
+				{
 					continue;
+				}
 			}
 			else
 			{

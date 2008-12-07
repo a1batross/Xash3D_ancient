@@ -458,10 +458,10 @@ bool Cmd_GetGamesList( const char *s, char *completedname, int length )
 
 bool Cmd_CheckMapsList( void )
 {
-	byte	*buffer;
 	wfile_t	*wad;
 	search_t	*t;
-	int	i;
+	int	i, bufsize;
+	byte	*buffer = NULL;
 
 	if( FS_FileExists( "scripts/maps.lst" ))
 		return true; // exist 
@@ -469,7 +469,8 @@ bool Cmd_CheckMapsList( void )
 	t = FS_Search( "maps/*.bsp", false );
 	if( !t ) return false;
 
-	buffer = Z_Malloc( t->numfilenames * 2 * sizeof( MAX_STRING ));	// should be enough...
+	bufsize = t->numfilenames * MAX_VALUE;		// should be enough...
+	buffer = Z_Malloc( bufsize );
 	for( i = 0; i < t->numfilenames; i++ )
 	{
 		string		mapname, message;
@@ -485,6 +486,7 @@ bool Cmd_CheckMapsList( void )
 			int	num_spawnpoints = 0;
 			int	lumplen = 0;
 			dheader_t	*header;
+			byte	*lump;
 
 			com.strncpy( message, "No Title", MAX_STRING );		
 			header = (dheader_t *)WAD_Read( wad, LUMP_MAPINFO, NULL, TYPE_BINDATA );
@@ -500,8 +502,8 @@ bool Cmd_CheckMapsList( void )
 			}
 			else goto skip_map;
 
-			buffer = (byte *)WAD_Read( wad, LUMP_ENTITIES, &lumplen, TYPE_SCRIPT );
-			ents = Com_OpenScript( LUMP_ENTITIES, buffer, lumplen + 1 );
+			lump = (byte *)WAD_Read( wad, LUMP_ENTITIES, &lumplen, TYPE_SCRIPT );
+			ents = Com_OpenScript( LUMP_ENTITIES, lump, lumplen + 1 );
 
 			if( ents )
 			{
@@ -511,11 +513,10 @@ bool Cmd_CheckMapsList( void )
 
 				while( Com_ReadToken( ents, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &token ))
 				{
-					if( !com.strcmp( token.string, "{" )) continue;
-					else if( !com.strcmp( token.string, "}" )) break;
-					else if( !com.strcmp( token.string, "classname" ))
+					if( !com.strcmp( token.string, "classname" ))
 					{
 						Com_ReadToken( ents, 0, &token );
+						Msg("read token: %s\n", token.string );
 						if(!com.strcmp( token.string, "info_player_deatchmatch" ))
 							num_spawnpoints++;
 						else if(!com.strcmp( token.string, "info_player_start" ))
@@ -529,7 +530,7 @@ bool Cmd_CheckMapsList( void )
 			else goto skip_map;
 
 			// format: mapname "maptitle"\n
-			com.strcat( buffer, va( "%s \"%s\"\n", mapname, message )); // add new string
+			com.strncat( buffer, va( "%s \"%s\"\n", mapname, message ), bufsize ); // add new string
 skip_map:
 			if( wad ) WAD_Close( wad );
 		}

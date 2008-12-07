@@ -1356,20 +1356,6 @@ shader_t Mod_RegisterShader( const char *name, int shaderType )
 
 /*
 =================
-R_PrecachePic
-
-prefetching 2d graphics
-=================
-*/
-bool R_PrecachePic( const char *name )
-{
-	if( R_FindTexture(va( "gfx/%s", name ), NULL, 0, TF_STATIC|TF_NOPICMIP, TF_LINEAR, TW_REPEAT ))
-		return true;
-	return false;	
-}
-
-/*
-=================
 R_Init
 =================
 */

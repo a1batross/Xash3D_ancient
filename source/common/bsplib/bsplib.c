@@ -71,6 +71,7 @@ bool PrepareBSPModel( const char *dir, const char *name )
 	int	numshaders;
 
 	bsp_parms = 0;
+	maxdist = 0.0;
 	bsplog = NULL;
 
 	// get global parms
@@ -80,6 +81,7 @@ bool PrepareBSPModel( const char *dir, const char *name )
 	if( FS_CheckParm( "-full" )) bsp_parms |= BSPLIB_FULLCOMPILE;
 	if( FS_CheckParm( "-onlyents" )) bsp_parms |= BSPLIB_ONLYENTS;
 	if( FS_CheckParm( "-info" )) bsp_parms |= BSPLIB_SHOWINFO;
+	if( FS_CheckParm( "-cullerror" )) bsp_parms |= BSPLIB_CULLERROR;
 
 	// famous q1 "notexture" image: purple-black checkerboard
 	checkermate_dds = FS_LoadInternal( "checkerboard.dds", &checkermate_dds_size );

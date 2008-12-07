@@ -278,16 +278,6 @@ bool Image_LoadFLT( const char *name, const byte *buffer, size_t filesize )
 	image.type = PF_INDEXED_32;	// 32-bit palete
 	Image_GetPaletteD1();
 
-	// also swap palette colors: from 247 to 255
-	if( image.d_currentpal )
-	{
-		byte	temp[4];
-	
-		Mem_Copy( temp, &image.d_currentpal[247], 4 );
-		Mem_Copy( &image.d_currentpal[247], &image.d_currentpal[255], 4 );		
-		Mem_Copy( &image.d_currentpal[247], temp, 4 );
-	}
-
 	result = FS_AddMipmapToPack( Data, image.width, image.height );
 	if( Data ) Mem_Free( Data );
 	return result;
@@ -413,9 +403,9 @@ bool Image_LoadMIP( const char *name, const byte *buffer, size_t filesize )
 
 			// qlumpy used this color for transparent textures, otherwise it's decals
  			if( pal[255*3+0] == 0 && pal[255*3+1] == 0 && pal[255*3+2] == 255 );
-			else if( Sys.app_name == HOST_NORMAL )
+			else if(!( image.cmd_flags & IL_KEEP_8BIT ))
 			{
-				// render requires setup special palette
+				// apply decal palette immediately
 				image.flags |= IMAGE_COLORINDEX;
 				rendermode = LUMP_DECAL;
 			}

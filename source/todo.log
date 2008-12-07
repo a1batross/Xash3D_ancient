@@ -22,6 +22,10 @@ Beta 13.12.08
 1. Xash 0.45 ents
 2. qc->newton
 3. newton->qc
+4.
+gfx->env
+gfx->shell
+gfx->
 
 0. bmodels.c, items.c
 1. animation

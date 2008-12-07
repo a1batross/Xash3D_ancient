@@ -1128,7 +1128,7 @@ void VM_precache_pic( void )
 		return;
 
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
-	if( re->RegisterShader( va( "gfx/%s", PRVM_G_STRING(OFS_PARM0)), SHADER_NOMIP ))
+	if( re->RegisterShader( PRVM_G_STRING(OFS_PARM0), SHADER_NOMIP ))
 		PRVM_G_FLOAT(OFS_RETURN) = true;
 	else PRVM_G_FLOAT(OFS_RETURN) = false;
 }
@@ -1216,7 +1216,7 @@ void VM_drawpic( void )
 		return;
 
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM1));
-	shader = re->RegisterShader( va("gfx/%s", PRVM_G_STRING( OFS_PARM1 )), SHADER_NOMIP );
+	shader = re->RegisterShader( PRVM_G_STRING( OFS_PARM1 ), SHADER_NOMIP );
 	if( !shader )
 	{
 		VM_Warning( "PF_drawpic: %s passed null picture name!\n", PRVM_NAME );
@@ -1332,7 +1332,7 @@ void VM_getimagesize( void )
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
 	p = PRVM_G_STRING(OFS_PARM0);
 
-	shader = re->RegisterShader( va( "gfx/%s", p ), SHADER_NOMIP );
+	shader = re->RegisterShader( p, SHADER_NOMIP );
 	re->DrawGetPicSize( &w, &h, shader );
 	VectorSet(PRVM_G_VECTOR(OFS_RETURN), w, h, 0 ); 
 }

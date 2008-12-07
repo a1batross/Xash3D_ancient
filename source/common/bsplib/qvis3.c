@@ -19,6 +19,7 @@ int		portalbytes, portallongs;
 int		totalvis;
 int		totalphs;
 visportal_t	*sorted_portals[MAX_MAP_PORTALS*2];
+float		maxdist;
 
 /*
 ===============
@@ -152,23 +153,23 @@ void PlaneFromWinding( viswinding_t *w, visplane_t *plane )
 	plane->dist = DotProduct (w->points[0], plane->normal);
 }
 
-
 /*
 ==================
 NewVisWinding
 ==================
 */
-viswinding_t *NewVisWinding (int points)
+viswinding_t *NewVisWinding( int points )
 {
 	viswinding_t	*w;
-	int			size;
+	int		size;
 	
-	if (points > MAX_POINTS_ON_WINDING)
+	if( points > MAX_POINTS_ON_WINDING )
 		Sys_Error ("NewVisWinding: %i points", points);
 	
 	size = (int)((viswinding_t *)0)->points[points];
-	w = Malloc (size);
-	
+	w = malloc( size );
+	memset( w, 0, size );
+ 	
 	return w;
 }
 
@@ -518,6 +519,7 @@ void LoadPortals( void )
 		p++;
 
 	}
+	Com_CloseScript( prtfile );
 }
 
 void ClusterPHS( int clusternum )
