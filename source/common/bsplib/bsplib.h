@@ -51,6 +51,7 @@ typedef enum
 	BSPLIB_DELETE_TEMP	= BIT(9),		// delete itermediate files
 	BSPLIB_SHOWINFO	= BIT(10),
 	BSPLIB_CULLERROR	= BIT(11),
+	BSPLIB_MAKESOUND	= BIT(12),	// calculate ambient sounds
 } bsplibFlags_t;
 
 extern uint bsp_parms;

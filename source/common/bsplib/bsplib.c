@@ -82,6 +82,7 @@ bool PrepareBSPModel( const char *dir, const char *name )
 	if( FS_CheckParm( "-onlyents" )) bsp_parms |= BSPLIB_ONLYENTS;
 	if( FS_CheckParm( "-info" )) bsp_parms |= BSPLIB_SHOWINFO;
 	if( FS_CheckParm( "-cullerror" )) bsp_parms |= BSPLIB_CULLERROR;
+	if( FS_CheckParm( "-sound" )) bsp_parms |= BSPLIB_MAKESOUND;
 
 	// famous q1 "notexture" image: purple-black checkerboard
 	checkermate_dds = FS_LoadInternal( "checkerboard.dds", &checkermate_dds_size );
@@ -105,6 +106,7 @@ bool PrepareBSPModel( const char *dir, const char *name )
 			if((bsp_parms & BSPLIB_MAKEVIS) && (bsp_parms & (BSPLIB_MAKEQ2RAD|BSPLIB_MAKEHLRAD)))
 			{
 				bsp_parms |= BSPLIB_MAKEBSP;	// rebuild bsp file for final compile
+				bsp_parms |= BSPLIB_MAKESOUND;
 				bsp_parms |= BSPLIB_DELETE_TEMP;
 			}
 		}
@@ -131,7 +133,7 @@ bool CompileBSPModel ( void )
 	if( bsp_parms & BSPLIB_MAKEBSP )
 		WbspMain();
 
-	if( bsp_parms & BSPLIB_MAKEVIS )
+	if( bsp_parms & (BSPLIB_MAKEVIS|BSPLIB_MAKESOUND))
 		WvisMain();
 
 	if( bsp_parms & (BSPLIB_MAKEQ2RAD|BSPLIB_MAKEHLRAD))

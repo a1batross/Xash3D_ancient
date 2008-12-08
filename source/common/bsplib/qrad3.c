@@ -400,7 +400,10 @@ void WradMain( void )
 	}
 
 	if( bsp_parms & BSPLIB_MAKEHLRAD )
+	{
 		Msg( "\n---- hlrad ---- [%s]\n", (bsp_parms & BSPLIB_FULLCOMPILE) ? "extra" : "normal" );
+		direct_scale = 1.4f; // extrapolated light is too dim
+	}
 	else Msg( "\n---- qrad ---- [%s]\n", (bsp_parms & BSPLIB_FULLCOMPILE) ? "extra" : "normal" );
 
 	if( FS_GetParmFromCmdLine( "-ambient", cmdparm ))

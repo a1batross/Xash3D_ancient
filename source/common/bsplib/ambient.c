@@ -76,7 +76,10 @@ void CalcAmbientSounds( void )
 
 	Msg( "---- CalcAmbientSounds ----\n" );
 
-	for( i = 0; i < portalclusters; i++ )
+	if( !visdatasize )
+		Sys_Break( "can't create ambient sources - map not vised\n" );
+
+	for( i = 0; i < dvis->numclusters; i++ )
 	{
 		leaf = &dleafs[i+1];
 
@@ -85,7 +88,7 @@ void CalcAmbientSounds( void )
 			dists[j] = MAX_AMBIENT_DIST;
 		vis = PhsForCluster( i );
 
-		for( j = 0; j < portalclusters; j++ )
+		for( j = 0; j < dvis->numclusters; j++ )
 		{
 			if(!(vis[j>>3] & (1<<(j & 7))))
 				continue;

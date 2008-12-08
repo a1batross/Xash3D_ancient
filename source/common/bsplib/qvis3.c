@@ -597,16 +597,21 @@ void WvisMain( void )
 	if( numnodes == 0 || numsurfaces == 0 )
 		Sys_Break( "Empty map %s.bsp\n", gs_filename );
 
-	Msg( "\n---- vis ---- [%s]\n", (bsp_parms & BSPLIB_FULLCOMPILE) ? "full" : "fast" );
+	if( bsp_parms & BSPLIB_MAKEVIS )
+	{
+		Msg( "\n---- vis ---- [%s]\n", (bsp_parms & BSPLIB_FULLCOMPILE) ? "full" : "fast" );
 
-	LoadPortals();
-	CalcPVS();
-	CalcPHS();
+		LoadPortals();
+		CalcPVS();
+		CalcPHS();
 
-	visdatasize = vismap_p - dvisdata;	
-	MsgDev( D_INFO, "visdatasize:%i  compressed from %i\n", visdatasize, originalvismapsize * 2 );
+		visdatasize = vismap_p - dvisdata;	
+		MsgDev( D_INFO, "visdatasize:%i  compressed from %i\n", visdatasize, originalvismapsize * 2 );
+	}
 
-	CalcAmbientSounds();
-
+	if( bsp_parms & BSPLIB_MAKESOUND )
+	{
+		CalcAmbientSounds();
+	}
 	WriteBSPFile();	
 }

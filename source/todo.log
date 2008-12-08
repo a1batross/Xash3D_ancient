@@ -18,18 +18,8 @@ fopen завешивает приложение, даже если перепутать местами + и a, при установке р
 
 Beta 13.12.08
 
-0. move effects to client.dat		OK
-1. Xash 0.45 ents
-2. qc->newton
-3. newton->qc
-4.
-gfx->env
-gfx->shell
-gfx->
+0. имплементаци€ server.dll, client.dll
 
-0. bmodels.c, items.c
-1. animation
-2. player duck
 
 
 —писок доступных рендереров:  	„то в них интересного
