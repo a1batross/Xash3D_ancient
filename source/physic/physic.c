@@ -96,7 +96,7 @@ physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs 
 	Phys.NumClusters = CM_NumClusters;
 	Phys.NumTextures = CM_NumTextures;
 	Phys.NumBmodels = CM_NumInlineModels;
-	Phys.GetEntityString = CM_EntityString;
+	Phys.GetEntityScript = CM_EntityScript;
 	Phys.GetTextureName = CM_TexName;
 	Phys.ClipToGenericEntity = CM_CollisionClipToGenericEntity;
 	Phys.ClipToWorld = CM_CollisionClipToWorld;

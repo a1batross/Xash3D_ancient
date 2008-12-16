@@ -34,7 +34,7 @@ void CL_WriteDemoHeader( const char *name )
 {
 	char		buf_data[MAX_MSGLEN];
 	entity_state_t	*state, nullstate;
-	edict_t		*ent;
+	pr_edict_t	*ent;
 	sizebuf_t		buf;
 	int		i, len;
 

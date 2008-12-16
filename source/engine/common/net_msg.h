@@ -131,9 +131,11 @@ static const net_desc_t NWDesc[] =
 
 #define CS_MODELS			16				// configstrings starts here
 #define CS_SOUNDS			(CS_MODELS+MAX_MODELS)		// sound names
-#define CS_CLASSNAMES		(CS_SOUNDS+MAX_SOUNDS)		// edicts classnames
+#define CS_DECALS			(CS_SOUNDS+MAX_SOUNDS)		// server decal indexes
+#define CS_CLASSNAMES		(CS_DECALS+MAX_DECALS)		// edicts classnames
 #define CS_LIGHTSTYLES		(CS_CLASSNAMES+MAX_CLASSNAMES)	// lightstyle patterns
-#define MAX_CONFIGSTRINGS		(CS_LIGHTSTYLES+MAX_LIGHTSTYLES)	// total count
+#define CS_USER_MESSAGES		(CS_LIGHTSTYLES+MAX_LIGHTSTYLES)	// names of user messages
+#define MAX_CONFIGSTRINGS		(CS_USER_MESSAGES+MAX_USER_MESSAGES)	// total count
 
 // sound flags (get rid of this)
 #define SND_VOL			(1<<0)	// a scaled byte

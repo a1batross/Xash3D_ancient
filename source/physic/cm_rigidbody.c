@@ -8,7 +8,7 @@
 #include "matrix_lib.h"
 #include "cm_local.h"
 
-physbody_t *Phys_CreateBody( sv_edict_t *ed, cmodel_t *mod, const vec3_t org, const matrix3x3 m, int solid, int move )
+physbody_t *Phys_CreateBody( edict_t *ed, cmodel_t *mod, const vec3_t org, const matrix3x3 m, int solid, int move )
 {
 	NewtonCollision	*col;
 	NewtonBody	*body;

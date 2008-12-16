@@ -54,7 +54,7 @@ byte *CM_FatPVS( const vec3_t org, bool portal );
 int CM_NumClusters( void );
 int CM_NumTextures( void );
 int CM_NumInlineModels( void );
-const char *CM_EntityString( void );
+script_t *CM_EntityScript( void );
 const char *CM_TexName( int index );
 int CM_PointContents( const vec3_t p, cmodel_t *model );
 int CM_TransformedPointContents( const vec3_t p, cmodel_t *model, const vec3_t origin, const vec3_t angles );

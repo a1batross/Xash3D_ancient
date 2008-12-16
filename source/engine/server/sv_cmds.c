@@ -308,14 +308,14 @@ void SV_ChangeLevel_f( void )
 		savedFree = Z_Malloc(Host_MaxClients() * sizeof(bool));
 		for (i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++)
 		{
-			savedFree[i] = cl->edict->priv.sv->free;
-			cl->edict->priv.sv->free = true;
+			savedFree[i] = cl->edict->free;
+			cl->edict->free = true;
 		}
 		SV_WriteSaveFile( "save0.bin" ); // autosave
 		// we must restore these for clients to transfer over correctly
 		for (i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++)
-			cl->edict->priv.sv->free = savedFree[i];
-		Mem_Free(savedFree);
+			cl->edict->free = savedFree[i];
+		Mem_Free( savedFree );
 	}
 
 	SV_InitGame(); // reset previous state
@@ -404,7 +404,7 @@ void SV_Status_f( void )
 		if( !cl->state ) continue;
 
 		Msg("%3i ", i);
-		Msg("%5i ", (int)cl->edict->progs.sv->frags );
+		Msg("%5i ", (int)cl->edict->v.frags );
 
 		if (cl->state == cs_connected) Msg("Connect");
 		else if (cl->state == cs_zombie) Msg ("Zombie ");

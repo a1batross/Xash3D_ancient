@@ -19,7 +19,10 @@
 #define DLLEXPORT		__declspec( dllexport )
 
 // generic engine types
+#ifndef __cplusplus
 typedef enum { false, true }	bool;
+#endif
+
 typedef unsigned char 	byte;
 typedef unsigned short	word;
 typedef unsigned long	dword;
@@ -38,13 +41,11 @@ typedef vec_t		matrix3x3[3][3];
 typedef vec_t		matrix4x4[4][4];
 typedef char		string[MAX_STRING];
 typedef struct edict_s	edict_t;
-typedef struct sv_edict_s	sv_edict_t;
+typedef struct pr_edict_s	pr_edict_t;
 typedef struct cl_edict_s	cl_edict_t;
 typedef struct ui_edict_s	ui_edict_t;
-typedef struct sv_entvars_s	sv_entvars_t;
 typedef struct cl_entvars_s	cl_entvars_t;
 typedef struct ui_entvars_s	ui_entvars_t;
-typedef struct sv_globalvars_s sv_globalvars_t;
 typedef struct cl_globalvars_s cl_globalvars_t;
 typedef struct ui_globalvars_s ui_globalvars_t;
 typedef struct physbody_s	physbody_t;
@@ -532,6 +533,7 @@ typedef struct stdilib_api_s
 	long (*fread)(file_t* file, void* buffer, size_t buffersize);	// same as fread, can see trough pakfile
 	int (*fprint)(file_t* file, const char *msg);			// printed message into file		
 	int (*fprintf)(file_t* file, const char* format, ...);		// same as fprintf
+	int (*fgetc)( file_t* file );					// same as fgetc
 	int (*fgets)(file_t* file, byte *string, size_t bufsize );		// like a fgets, but can return EOF
 	int (*fseek)(file_t* file, fs_offset_t offset, int whence);		// fseek, can seek in packfiles too
 	bool (*fremove)( const char *path );				// remove sepcified file
@@ -746,6 +748,7 @@ filesystem manager
 #define FS_Print			com.fprint
 #define FS_Seek			com.fseek
 #define FS_Tell			com.ftell
+#define FS_Getc			com.fgetc
 #define FS_Gets			com.fgets
 #define FS_Delete			com.fremove
 #define FS_Gamedir			com.GameInfo->gamedir

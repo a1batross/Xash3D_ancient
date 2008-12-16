@@ -5,7 +5,6 @@
 
 #include "common.h"
 #include "input.h"
-#include "server.h"
 #include "client.h"
 
 #define VID_NUM_MODES ( sizeof( vid_modes ) / sizeof( vid_modes[0] ))
@@ -385,7 +384,7 @@ dword Host_EventLoop( void )
 				continue;
 			}
 			Mem_Copy( buf.data, (byte *)((netadr_t *)ev.data + 1), buf.cursize );
-			if ( svs.initialized ) SV_PacketEvent( ev_from, &buf );
+			if ( SV_Active()) SV_PacketEvent( ev_from, &buf );
 			else CL_PacketEvent( ev_from, &buf );
 			break;
 		default:

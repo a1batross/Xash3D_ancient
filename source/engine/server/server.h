@@ -22,9 +22,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define SERVER_H
 
 #include "mathlib.h"
-#include "sv_edict.h"
+#include "svprog_def.h"
+#include "svgame_api.h"
 
 //=============================================================================
+#define NUM_FOR_EDICT(e) ((int)((edict_t *)(e) - svg.edicts))
+#define EDICT_NUM( num ) _EDICT_NUM( num, __FILE__, __LINE__ )
 
 #define AREA_SOLID			1
 #define AREA_TRIGGERS		2
@@ -32,28 +35,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAX_MASTERS			8 			// max recipients for heartbeat packets
 #define LATENCY_COUNTS		16
 #define MAX_ENT_CLUSTERS		16
-#define DF_NO_FRIENDLY_FIRE		0x00000001		// FIXME: move to server.dat
 
 // classic quake flags
 #define SPAWNFLAG_NOT_EASY		0x00000100
 #define SPAWNFLAG_NOT_MEDIUM		0x00000200
 #define SPAWNFLAG_NOT_HARD		0x00000400
 #define SPAWNFLAG_NOT_DEATHMATCH	0x00000800
-
-#define AI_FLY			BIT(0)		// monster is flying
-#define AI_SWIM			BIT(1)		// swimming monster
-#define AI_ONGROUND			BIT(2)		// monster is onground
-#define AI_PARTIALONGROUND		BIT(3)		// monster is partially onground
-#define AI_GODMODE			BIT(4)		// monster don't give damage at all
-#define AI_NOTARGET			BIT(5)		// monster will no searching enemy's
-#define AI_NOSTEP			BIT(6)		// Lazarus stuff
-#define AI_DUCKED			BIT(7)		// monster (or player) is ducked
-#define AI_JUMPING			BIT(8)		// monster (or player) is jumping
-#define AI_FROZEN			BIT(9)		// stop moving, but continue thinking
-#define AI_ACTOR                	BIT(10)		// disable ai for actor
-#define AI_DRIVER			BIT(11)		// npc or player driving vehcicle or train
-#define AI_SPECTATOR		BIT(12)		// spectator mode for clients
-#define AI_WATERJUMP		BIT(13)		// npc or player take out of water
 
 typedef enum
 {
@@ -155,16 +142,12 @@ typedef struct link_s
 {
 	struct link_s	*prev;
 	struct link_s	*next;
-	int		entnum;			// PRVM_EDICT_NUM
+	int		entnum;			// NUM_FOR_EDICT
 } link_t;
 
-struct sv_edict_s
+// sv_private_edict_t
+struct ed_priv_s
 {
-	// generic_edict_t (don't move these fields!)
-	bool			free;
-	float			freetime;	 	// sv.time when the object was freed
-
-	// sv_private_edict_t
 	link_t			area;		// linked to a division node or leaf
 	struct sv_client_s		*client;		// filled for player ents
 	int			clipmask;		// trace info
@@ -182,7 +165,6 @@ struct sv_edict_s
 	vec3_t			moved_origin;	// push old origin
 	vec3_t			moved_angles;	// push old angles
 
-	int			serialnumber;	// unical entity #id
 	int			solid;		// see entity_state_t for details
 	physbody_t		*physbody;	// ptr to phys body
 
@@ -215,9 +197,34 @@ typedef struct
 
 typedef struct
 {
+	int		msg_sizes[MAX_USER_MESSAGES];	// user messages bounds checker
+	int		msg_leftsize;		// left in bytes
+	int		msg_index;		// for debug messages
+	edict_t		*edicts;
+
+	// library exports table
+	word		*ordinals;
+	dword		*funcs;
+	char		*names[MAX_SYSPATH];	// max 1024 exports supported
+	int		num_ordinals;		// actual exports count
+	dword		funcBase;			// base offset
+} game_static_t;
+
+typedef struct
+{
 	bool		initialized;		// sv_init has completed
 	dword		realtime;			// always increasing, no clamping, etc
 	dword		timeleft;
+
+	dll_info_t	*game;			// pointer to server.dll
+	globalvars_t	*globals;			// server globals
+	DLL_FUNCTIONS	dllFuncs;			// dll exported funcs
+	byte		*mempool;			// edicts pool
+	byte		*private;			// server.dll private pool
+	byte		*stringpool;		// sv.strings pool
+	int		msg_dest;			// msg destination ( MSG_ONE, MSG_ALL etc )
+	edict_t		*msg_ent;
+	vec3_t		msg_org;
 
 	string		mapcmd;			// ie: *intro.cin+base 
 	string		comment;			// map name, e.t.c. 
@@ -229,7 +236,6 @@ typedef struct
 	int		next_client_entities;	// next client_entity to use
 	entity_state_t	*client_entities;		// [num_client_entities]
 	entity_state_t	*baselines;		// [host.max_edicts]
-	func_t		ClientMove;		// qc client physic
 
 	int		last_heartbeat;
 
@@ -241,6 +247,7 @@ typedef struct
 extern	netadr_t	master_adr[MAX_MASTERS];		// address of the master server
 extern	const char	*ed_name[];
 extern	server_static_t	svs;			// persistant server info
+extern	game_static_t	svg;			// persistant game info
 extern	server_t		sv;			// local server
 
 extern	cvar_t		*sv_paused;
@@ -276,6 +283,8 @@ void SV_DropClient (sv_client_t *drop);
 int SV_ModelIndex (const char *name);
 int SV_SoundIndex (const char *name);
 int SV_ClassIndex (const char *name);
+int SV_DecalIndex (const char *name);
+int SV_UserMessageIndex (const char *name);
 
 void SV_WriteClientdataToMessage (sv_client_t *client, sizebuf_t *msg);
 void SV_ExecuteUserCommand (char *s);
@@ -294,14 +303,12 @@ void SV_Map( char *levelstring, char *savename );
 void SV_SpawnServer( const char *server, const char *savename );
 int SV_FindIndex (const char *name, int start, int end, bool create);
 void SV_ClassifyEdict( edict_t *ent );
-void SV_VM_Begin( void );
-void SV_VM_End( void );
 
 //
 // sv_phys.c
 //
 void SV_Physics( void );
-void SV_PlayerMove( sv_edict_t *ed );
+void SV_PlayerMove( edict_t *ed );
 void SV_DropToFloor( edict_t *ent );
 void SV_CheckGround( edict_t *ent );
 bool SV_UnstickEntity( edict_t *ent );
@@ -314,8 +321,8 @@ bool SV_CheckBottom (edict_t *ent);
 //
 // sv_move.c
 //
-void SV_Transform( sv_edict_t *ed, const vec3_t origin, const matrix3x3 transform );
-void SV_PlaySound( sv_edict_t *ed, float volume, float pitch, const char *sample );
+void SV_Transform( edict_t *ed, const vec3_t origin, const matrix3x3 transform );
+void SV_PlaySound( edict_t *ed, float volume, float pitch, const char *sample );
 bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool settrace );
 
 //
@@ -356,33 +363,45 @@ void SV_Error (char *error, ...);
 //
 // sv_game.c
 //
-void SV_InitServerProgs( void );
-void SV_FreeServerProgs( void );
-
+bool SV_LoadProgs( const char *name );
+void SV_UnloadProgs( void );
 void SV_InitEdict (edict_t *e);
 void SV_ConfigString (int index, const char *val);
 void SV_SetModel (edict_t *ent, const char *name);
 void SV_CreatePhysBody( edict_t *ent );
 void SV_SetPhysForce( edict_t *ent );
 void SV_SetMassCentre( edict_t *ent);
+void SV_CopyTraceToGlobal( trace_t *trace );
+void SV_CopyTraceResult( TraceResult *out, trace_t trace );
 float SV_AngleMod( float ideal, float current, float speed );
+void SV_SpawnEntities( const char *mapname, script_t *entities );
+
+_inline edict_t *_EDICT_NUM( int n, const char * file, const int line )
+{
+	if((n >= 0) && (n < svs.globals->maxEntities))
+		return svg.edicts + n;
+	Host_Error( "EDICT_NUM: bad number %i (called at %s:%i)\n", n, file, line );
+	return NULL;	
+}
+
+// for constant strings
+#define STRING( offset )	(const char *)( svs.globals->pStringBase + (int)offset )
+#define MAKE_STRING(str)	((int)str - (int)STRING( 0 ))
 
 //
 // sv_studio.c
 //
 cmodel_t *SV_GetModelPtr( edict_t *ent );
-float *SV_GetModelVerts( sv_edict_t *ent, int *numvertices );
+float *SV_GetModelVerts( edict_t *ent, int *numvertices );
 int SV_StudioExtractBbox( dstudiohdr_t *phdr, int sequence, float *mins, float *maxs );
 bool SV_CreateMeshBuffer( edict_t *in, cmodel_t *out );
 
 //
 // sv_spawn.c
 //
-void SV_SpawnEntities( const char *mapname, const char *entities );
-void SV_StartParticle (vec3_t org, vec3_t dir, int color, int count);
-void SV_FreeEdict (edict_t *ed);
-void SV_InitEdict (edict_t *e);
-edict_t *SV_Spawn (void);
+void SV_StartParticle( const float *org, const float *dir, int color, int count );
+void SV_FreeEdict( edict_t *ed );
+edict_t *SV_AllocEdict( void );
 bool SV_ClientConnect (edict_t *ent, char *userinfo);
 void SV_TouchTriggers (edict_t *ent);
 

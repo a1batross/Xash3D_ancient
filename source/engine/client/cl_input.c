@@ -328,12 +328,10 @@ void CL_BaseMove( usercmd_t *cmd )
 	// adjust for speed key / running
 	if( in_speed.state & 1 ^ cl_run->integer )
 	{
-		cmd->buttons &= ~BUTTON_WALKING;
 		cmd->forwardmove *= 2;
 		cmd->sidemove *= 2;
 		cmd->upmove *= 2;
 	}
-	else cmd->buttons |= BUTTON_WALKING;	
 }
 
 void CL_ClampPitch (void)
@@ -357,19 +355,19 @@ CL_CmdButtons
 void CL_CmdButtons( usercmd_t *cmd )
 {
 	if ( in_attack.state & 3 )
-		cmd->buttons |= BUTTON_ATTACK;
+		cmd->buttons |= IN_ATTACK;
 	in_attack.state &= ~2;
 
 	if ( in_attack2.state & 3 )
-		cmd->buttons |= BUTTON_ATTACK2;
+		cmd->buttons |= IN_ATTACK2;
 	in_attack2.state &= ~2;	
 
 	if (in_use.state & 3)
-		cmd->buttons |= BUTTON_USE;
+		cmd->buttons |= IN_USE;
 	in_use.state &= ~2;
 
-	if( anykeydown && cls.key_dest == key_game)
-		cmd->buttons |= BUTTON_ANY;
+	if (in_speed.state & 3)
+		cmd->buttons |= IN_RUN;
 }
 
 /*

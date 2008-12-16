@@ -145,7 +145,7 @@ typedef struct clipmap_s
 	uint		checksum;		// map checksum
 
 	// shared copy of map (client - server)
-	char		*entitystring;
+	script_t		*entityscript;
 	cplane_t		*planes;		// 12 extra planes for box hull
 	cleaf_t		*leafs;		// 1 extra leaf for box hull
 	dleafbrush_t	*leafbrushes;

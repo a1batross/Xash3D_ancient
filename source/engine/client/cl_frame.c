@@ -13,7 +13,7 @@ FRAME PARSING
 
 =========================================================================
 */
-void CL_UpdateEntityFileds( edict_t *ent )
+void CL_UpdateEntityFileds( pr_edict_t *ent )
 {
 	// copy state to progs
 	ent->progs.cl->classname = cl.edict_classnames[ent->priv.cl->current.classname];
@@ -34,7 +34,7 @@ to the current frame
 */
 void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t *old, bool unchanged )
 {
-	edict_t		*ent;
+	pr_edict_t		*ent;
 	entity_state_t	*state;
 
 	ent = PRVM_EDICT_NUM( newnum );
@@ -154,7 +154,7 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 		if( oldnum > newnum )
 		{	
 			// delta from baseline
-			edict_t *ent = PRVM_EDICT_NUM( newnum );
+			pr_edict_t *ent = PRVM_EDICT_NUM( newnum );
 			CL_DeltaEntity( msg, newframe, newnum, &ent->priv.cl->baseline, false );
 			continue;
 		}
@@ -188,7 +188,7 @@ CL_ParseFrame
 void CL_ParseFrame( sizebuf_t *msg )
 {
 	int     		cmd, len, idx;
-	edict_t		*clent;
+	pr_edict_t		*clent;
 	frame_t		*old;
           
 	memset( &cl.frame, 0, sizeof(cl.frame));
@@ -304,7 +304,7 @@ CL_AddPacketEntities
 void CL_AddPacketEntities( frame_t *frame )
 {
 	entity_state_t	*s1;
-	edict_t		*ent;
+	pr_edict_t		*ent;
 	int		pnum;
 
 	for( pnum = 0; pnum < frame->num_entities; pnum++ )
@@ -324,7 +324,7 @@ CL_AddViewWeapon
 */
 void CL_AddViewWeapon( entity_state_t *ps )
 {
-	edict_t		*view;	// view model
+	pr_edict_t		*view;	// view model
 
 	// allow the gun to be completely removed
 	if( !cl_gun->value ) return;
@@ -459,7 +459,7 @@ void CL_AddEntities( void )
 
 void CL_GetEntitySoundSpatialization( int entnum, vec3_t origin, vec3_t velocity )
 {
-	edict_t		*ent;
+	pr_edict_t		*ent;
 	cmodel_t		*cmodel;
 	vec3_t		midPoint;
 

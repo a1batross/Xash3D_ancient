@@ -11,7 +11,7 @@ sizebuf_t vm_tempstringsbuf;
 int prvm_type_size[8] = {1, sizeof(string_t)/4,1,3,1,1, sizeof(func_t)/4, sizeof(void *)/4};
 
 ddef_t *PRVM_ED_FieldAtOfs(int ofs);
-bool PRVM_ED_ParseEpair(edict_t *ent, ddef_t *key, const char *s);
+bool PRVM_ED_ParseEpair(pr_edict_t *ent, ddef_t *key, const char *s);
 
 //============================================================================
 // mempool handling
@@ -34,7 +34,7 @@ void PRVM_MEM_Alloc(void)
 	vm.prog->edictprivate_size = max(vm.prog->edictprivate_size, (int)sizeof(vm_edict_t));
 
 	// alloc edicts
-	vm.prog->edicts = (edict_t *)Mem_Alloc(vm.prog->progs_mempool, vm.prog->limit_edicts * sizeof(edict_t));
+	vm.prog->edicts = (pr_edict_t *)Mem_Alloc(vm.prog->progs_mempool, vm.prog->limit_edicts * sizeof(pr_edict_t));
 
 	// alloc edict private space
 	vm.prog->edictprivate = Mem_Alloc(vm.prog->progs_mempool, vm.prog->max_edicts * vm.prog->edictprivate_size);
@@ -177,7 +177,7 @@ PRVM_ED_ClearEdict
 Sets everything to NULL
 =================
 */
-void PRVM_ED_ClearEdict (edict_t *e)
+void PRVM_ED_ClearEdict (pr_edict_t *e)
 {
 	Mem_Set (e->progs.vp, 0, vm.prog->progs->entityfields * 4);
 	e->priv.ed->free = false;
@@ -197,10 +197,10 @@ instead of being removed and recreated, which can cause interpolated
 angles and bad trails.
 =================
 */
-edict_t *PRVM_ED_Alloc (void)
+pr_edict_t *PRVM_ED_Alloc (void)
 {
 	int			i;
-	edict_t		*e;
+	pr_edict_t		*e;
 
 	// the client qc dont need maxclients
 	// thus it doesnt need to use svs.maxclients
@@ -240,7 +240,7 @@ Marks the edict as free
 FIXME: walk all entities and NULL out references to this entity
 =================
 */
-void PRVM_ED_Free (edict_t *ed)
+void PRVM_ED_Free (pr_edict_t *ed)
 {
 	// dont delete the null entity (world) or reserved edicts
 	if(PRVM_NUM_FOR_EDICT(ed) <= vm.prog->reserved_edicts )
@@ -546,7 +546,7 @@ For debugging
 */
 // LordHavoc: optimized this to print out much more quickly (tempstring)
 // LordHavoc: changed to print out every 4096 characters (incase there are a lot of fields to print)
-void PRVM_ED_Print(edict_t *ed)
+void PRVM_ED_Print(pr_edict_t *ed)
 {
 	size_t		l;
 	ddef_t		*d;
@@ -620,7 +620,7 @@ PRVM_ED_Write
 For savegames
 =============
 */
-void PRVM_ED_Write( edict_t *ed, void *buffer, void *numpairs, setpair_t callback )
+void PRVM_ED_Write( pr_edict_t *ed, void *buffer, void *numpairs, setpair_t callback )
 {
 	ddef_t		*d;
 	int		*v;
@@ -666,7 +666,7 @@ void PRVM_ED_Read( int s_table, int entnum, dkeyvalue_t *fields, int numpairs )
 {
 	const char *keyname, *value;
 	ddef_t	*key;
-	edict_t	*ent;
+	pr_edict_t	*ent;
 	int	i;
 
 	if( entnum >= vm.prog->limit_edicts ) Host_Error( "PRVM_ED_Read: too many edicts in save file\n" );
@@ -777,7 +777,7 @@ For debugging
 void PRVM_ED_Count_f( void )
 {
 	int		i;
-	edict_t	*ent;
+	pr_edict_t	*ent;
 	int		active;
 
 	if(Cmd_Argc() != 2)
@@ -883,7 +883,7 @@ Can parse either fields or globals
 returns false if error
 =============
 */
-bool PRVM_ED_ParseEpair( edict_t *ent, ddef_t *key, const char *s )
+bool PRVM_ED_ParseEpair( pr_edict_t *ent, ddef_t *key, const char *s )
 {
 	int		i, l;
 	char		*new_p;
@@ -976,7 +976,7 @@ Console command to set a field of a specified edict
 */
 void PRVM_ED_EdictSet_f(void)
 {
-	edict_t *ed;
+	pr_edict_t *ed;
 	ddef_t *key;
 
 	if(Cmd_Argc() != 5)
@@ -1010,7 +1010,7 @@ ed should be a properly initialized empty edict.
 Used for initial level load and for savegames.
 ====================
 */
-const char *PRVM_ED_ParseEdict( const char *data, edict_t *ent )
+const char *PRVM_ED_ParseEdict( const char *data, pr_edict_t *ent )
 {
 	ddef_t	*key;
 	bool	init, newline, anglehack;
@@ -1113,7 +1113,7 @@ to call PRVM_ED_CallSpawnFunctions () to let the objects initialize themselves.
 */
 void PRVM_ED_LoadFromFile( const char *data )
 {
-	edict_t *ent;
+	pr_edict_t *ent;
 	int parsed, inhibited, spawned, died;
 	mfunction_t *func;
 
@@ -1421,7 +1421,7 @@ void PRVM_LoadProgs( const char *filename )
 		((int *)vm.prog->globals.gp)[i] = LittleLong (((int *)vm.prog->globals.gp)[i]);
 
 	// moved edict_size calculation down here, below field adding code
-	// LordHavoc: this no longer includes the edict_t header
+	// LordHavoc: this no longer includes the pr_edict_t header
 	vm.prog->edict_size = vm.prog->progs->entityfields * 4;
 	vm.prog->edictareasize = vm.prog->edict_size * vm.prog->limit_edicts;
 
@@ -1602,7 +1602,7 @@ void PRVM_Fields_f (void)
 	int *counts;
 	char tempstring[MAX_MSGLEN], tempstring2[260];
 	const char *name;
-	edict_t *ed;
+	pr_edict_t *ed;
 	ddef_t *d;
 	int *v;
 
@@ -1876,7 +1876,7 @@ void _PRVM_FreeAll(const char *filename, int fileline)
 }
 
 // LordHavoc: turned PRVM_EDICT_NUM into a #define for speed reasons
-edict_t *PRVM_EDICT_NUM_ERROR(int n, char *filename, int fileline)
+pr_edict_t *PRVM_EDICT_NUM_ERROR(int n, char *filename, int fileline)
 {
 	PRVM_ERROR ("PRVM_EDICT_NUM: %s: bad number %i (called at %s:%i)", PRVM_NAME, n, filename, fileline);
 	return NULL;

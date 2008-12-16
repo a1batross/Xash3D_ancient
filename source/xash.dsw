@@ -63,6 +63,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "server"=".\sv_dll\server.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "render"=".\render\render.dsp" - Package Owner=<4>
 
 Package=<5>

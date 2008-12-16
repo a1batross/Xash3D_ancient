@@ -80,7 +80,7 @@ typedef struct physic_exp_s
 	int (*NumClusters)( void );
 	int (*NumTextures)( void );
 	int (*NumBmodels )( void );
-	const char *(*GetEntityString)( void );
+	script_t *(*GetEntityScript)( void );
 	const char *(*GetTextureName)( int index );
 	byte *(*ClusterPVS)( int cluster );
 	byte *(*ClusterPHS)( int cluster );
@@ -101,8 +101,8 @@ typedef struct physic_exp_s
 	void (*PlayerMove)( pmove_t *pmove, bool clientmove );
 	
 	// simple objects
-	physbody_t *(*CreateBody)( sv_edict_t *ed, cmodel_t *mod, const vec3_t org, const matrix3x3 m, int solid, int move );
-	physbody_t *(*CreatePlayer)( sv_edict_t *ed, cmodel_t *mod, const vec3_t origin, const matrix3x3 matrix );
+	physbody_t *(*CreateBody)( edict_t *ed, cmodel_t *mod, const vec3_t org, const matrix3x3 m, int solid, int move );
+	physbody_t *(*CreatePlayer)( edict_t *ed, cmodel_t *mod, const vec3_t origin, const matrix3x3 matrix );
 
 	void (*SetOrigin)( physbody_t *body, vec3_t origin );
 	void (*SetParameters)( physbody_t *body, cmodel_t *mod, int material, float mass );
@@ -118,10 +118,10 @@ typedef struct physic_imp_s
 	// interface validator
 	size_t	api_size;		// must matched with sizeof(physic_imp_t)
 
-	void (*ClientMove)( sv_edict_t *ed );
-	void (*Transform)( sv_edict_t *ed, const vec3_t org, const matrix3x3 matrix );
-	void (*PlaySound)( sv_edict_t *ed, float volume, float pitch, const char *sample );
-	float *(*GetModelVerts)( sv_edict_t *ent, int *numvertices );
+	void (*ClientMove)( edict_t *ed );
+	void (*Transform)( edict_t *ed, const vec3_t org, const matrix3x3 matrix );
+	void (*PlaySound)( edict_t *ed, float volume, float pitch, const char *sample );
+	float *(*GetModelVerts)( edict_t *ent, int *numvertices );
 } physic_imp_t;
 
 #endif//PHYSIC_API_H

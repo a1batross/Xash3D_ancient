@@ -15,7 +15,7 @@ ENTITY AREA CHECKING
 FIXME: this use of "area" is different from the bsp file use
 ===============================================================================
 */
-#define EDICT_FROM_AREA( l )		PRVM_EDICT_NUM( l->entnum )
+#define EDICT_FROM_AREA( l )		EDICT_NUM( l->entnum )
 #define MAX_TOTAL_ENT_LEAFS		128
 #define AREA_NODES			32
 #define AREA_DEPTH			4
@@ -105,7 +105,7 @@ void SV_InsertLinkBefore( link_t *l, link_t *before, edict_t *ent )
 	l->prev = before->prev;
 	l->prev->next = l;
 	l->next->prev = l;
-	l->entnum = PRVM_NUM_FOR_EDICT(ent);
+	l->entnum = NUM_FOR_EDICT( ent );
 }
 
 /*
@@ -176,17 +176,17 @@ sorting edict by type
 */
 void SV_ClassifyEdict( edict_t *ent )
 {
-	sv_edict_t	*sv_ent;
+	ed_priv_t	*sv_ent;
 	const char	*classname;
 
-	sv_ent = ent->priv.sv;
+	sv_ent = ent->pvEngineData;
 	if( sv_ent->s.ed_type != ED_SPAWNED )
 		return;
 
 	// null state ?
 	if( !sv_ent->s.number ) SV_UpdateEntityState( ent );
 
-	classname = PRVM_GetString( ent->progs.sv->classname );
+	classname = STRING( ent->v.classname );
 
 	if( !com.strnicmp( "worldspawn", classname, 10 ))
 	{
@@ -194,28 +194,28 @@ void SV_ClassifyEdict( edict_t *ent )
 		return;
 	}
 	// first pass: determine type by explicit parms
-	if( ent->progs.sv->solid == SOLID_TRIGGER )
+	if( ent->v.solid == SOLID_TRIGGER )
 	{
 		if( sv_ent->s.soundindex )
 			sv_ent->s.ed_type = ED_AMBIENT;	// e.g. trigger_teleport
 		else sv_ent->s.ed_type = ED_TRIGGER;		// never sending to client
 	}
-	else if( ent->progs.sv->movetype == MOVETYPE_PHYSIC )
+	else if( ent->v.movetype == MOVETYPE_PHYSIC )
 		sv_ent->s.ed_type = ED_RIGIDBODY;
-	else if( ent->progs.sv->solid == SOLID_BSP || VectorIsNull( ent->progs.sv->origin ))
+	else if( ent->v.solid == SOLID_BSP || VectorIsNull( ent->v.origin ))
 	{
-		if( ent->progs.sv->movetype == MOVETYPE_CONVEYOR )
+		if( ent->v.movetype == MOVETYPE_CONVEYOR )
 			sv_ent->s.ed_type = ED_MOVER;
-		else if((int)ent->progs.sv->flags & FL_WORLDBRUSH )
+		else if((int)ent->v.flags & FL_WORLDBRUSH )
 			sv_ent->s.ed_type = ED_BSPBRUSH;
-		else if( ent->progs.sv->movetype == MOVETYPE_PUSH ) 
+		else if( ent->v.movetype == MOVETYPE_PUSH ) 
 			sv_ent->s.ed_type = ED_MOVER;
-		else if( ent->progs.sv->movetype == MOVETYPE_NONE )
+		else if( ent->v.movetype == MOVETYPE_NONE )
 			sv_ent->s.ed_type = ED_BSPBRUSH;
 	}
-	else if((int)ent->progs.sv->flags & FL_MONSTER )
+	else if((int)ent->v.flags & FL_MONSTER )
 		sv_ent->s.ed_type = ED_MONSTER;
-	else if((int)ent->progs.sv->flags & FL_CLIENT )
+	else if((int)ent->v.flags & FL_CLIENT )
 		sv_ent->s.ed_type = ED_CLIENT;
 	else if( !sv_ent->s.model.index && !sv_ent->s.aiment )
 	{	
@@ -232,7 +232,7 @@ void SV_ClassifyEdict( edict_t *ent )
 	}
 	
 	// or leave unclassified, wait for next SV_LinkEdict...
-	// Msg( "%s: <%s>\n", PRVM_GetString( ent->progs.sv->classname ), ed_name[sv_ent->s.ed_type] );
+	// Msg( "%s: <%s>\n", STRING( ent->v.classname ), ed_name[sv_ent->s.ed_type] );
 }
 
 /*
@@ -243,10 +243,10 @@ SV_UnlinkEdict
 void SV_UnlinkEdict( edict_t *ent )
 {
 	// not linked in anywhere
-	if( !ent->priv.sv->area.prev ) return;
+	if( !ent->pvEngineData->area.prev ) return;
 
-	SV_RemoveLink( &ent->priv.sv->area );
-	ent->priv.sv->area.prev = ent->priv.sv->area.next = NULL;
+	SV_RemoveLink( &ent->pvEngineData->area );
+	ent->pvEngineData->area.prev = ent->pvEngineData->area.next = NULL;
 }
 
 /*
@@ -263,71 +263,71 @@ void SV_LinkEdict( edict_t *ent )
 	int		i, j, k;
 	int		area;
 	int		topnode;
-	sv_edict_t	*sv_ent;
+	ed_priv_t		*sv_ent;
 
-	sv_ent = ent->priv.sv;
+	sv_ent = ent->pvEngineData;
 
 	if( sv_ent->area.prev ) SV_UnlinkEdict( ent ); // unlink from old position
-	if( ent == prog->edicts ) return; // don't add the world
-	if( sv_ent->free ) return;
+	if( ent == svg.edicts ) return; // don't add the world
+	if( ent->free ) return;
 
 	// trying to classify unclassified edicts
 	if( sv.state == ss_active && sv_ent->s.ed_type == ED_SPAWNED )
 		SV_ClassifyEdict( ent );
 
 	// set the size
-	VectorSubtract( ent->progs.sv->maxs, ent->progs.sv->mins, ent->progs.sv->size );
+	VectorSubtract( ent->v.maxs, ent->v.mins, ent->v.size );
 
-	if( ent->progs.sv->solid == SOLID_BSP )
+	if( ent->v.solid == SOLID_BSP )
 	{
 		// a solid_bbox will never create this value
 		sv_ent->solid = SOLID_BMODEL;
 	}
-	else if(( int )ent->progs.sv->contents & ( CONTENTS_SOLID|CONTENTS_BODY ))
+	else if(( int )ent->v.contents & ( CONTENTS_SOLID|CONTENTS_BODY ))
 	{
 		// encode the size into the entity_state for client prediction
 		// assume that x/y are equal and symetric
-		i = ent->progs.sv->maxs[0];
+		i = ent->v.maxs[0];
 		i = bound( 1, i, 255 );
 
 		// z is not symetric
-		j = (-ent->progs.sv->mins[2]);
+		j = (-ent->v.mins[2]);
 		j = bound( 1, j, 255 );
 
 		// and z maxs can be negative...
-		k = (ent->progs.sv->maxs[2] + 32);
+		k = (ent->v.maxs[2] + 32);
 		k = bound( 1, k, 255 );
 		sv_ent->solid = (k<<16)|(j<<8)|i;
 	}
 	else sv_ent->solid = 0;
 
 	// set the abs box
-	if( ent->progs.sv->solid == SOLID_BSP && !VectorIsNull( ent->progs.sv->angles ))
+	if( ent->v.solid == SOLID_BSP && !VectorIsNull( ent->v.angles ))
 	{
 		// expand for rotation
 		int	i;
-		float	max = RadiusFromBounds( ent->progs.sv->mins, ent->progs.sv->maxs );
+		float	max = RadiusFromBounds( ent->v.mins, ent->v.maxs );
 
 		for( i = 0; i < 3; i++ )
 		{
-			ent->progs.sv->absmin[i] = ent->progs.sv->origin[i] - max;
-			ent->progs.sv->absmax[i] = ent->progs.sv->origin[i] + max;
+			ent->v.absmin[i] = ent->v.origin[i] - max;
+			ent->v.absmax[i] = ent->v.origin[i] + max;
 		}
 	}
 	else
 	{	// normal
-		VectorAdd( ent->progs.sv->origin, ent->progs.sv->mins, ent->progs.sv->absmin );	
-		VectorAdd( ent->progs.sv->origin, ent->progs.sv->maxs, ent->progs.sv->absmax );
+		VectorAdd( ent->v.origin, ent->v.mins, ent->v.absmin );	
+		VectorAdd( ent->v.origin, ent->v.maxs, ent->v.absmax );
 	}
 
 	// because movement is clipped an epsilon away from an actual edge,
 	// we must fully check even when bounding boxes don't quite touch
-	ent->progs.sv->absmin[0] -= 1;
-	ent->progs.sv->absmin[1] -= 1;
-	ent->progs.sv->absmin[2] -= 1;
-	ent->progs.sv->absmax[0] += 1;
-	ent->progs.sv->absmax[1] += 1;
-	ent->progs.sv->absmax[2] += 1;
+	ent->v.absmin[0] -= 1;
+	ent->v.absmin[1] -= 1;
+	ent->v.absmin[2] -= 1;
+	ent->v.absmax[0] += 1;
+	ent->v.absmax[1] += 1;
+	ent->v.absmax[2] += 1;
 
 	// link to PVS leafs
 	sv_ent->num_clusters = 0;
@@ -335,7 +335,7 @@ void SV_LinkEdict( edict_t *ent )
 	sv_ent->areanum2 = 0;
 
 	// get all leafs, including solids
-	num_leafs = pe->BoxLeafnums( ent->progs.sv->absmin, ent->progs.sv->absmax, leafs, MAX_TOTAL_ENT_LEAFS, &topnode );
+	num_leafs = pe->BoxLeafnums( ent->v.absmin, ent->v.absmax, leafs, MAX_TOTAL_ENT_LEAFS, &topnode );
 
 	// if none of the leafs were inside the map, the
 	// entity is outside the world and can be considered unlinked
@@ -354,7 +354,7 @@ void SV_LinkEdict( edict_t *ent )
 			{
 				if( sv_ent->areanum2 && sv_ent->areanum2 != area && sv.state == ss_loading )
 				{
-					float *v = ent->progs.sv->absmin;
+					float *v = ent->v.absmin;
 					MsgDev( D_WARN, "SV_LinkEdict: object touching 3 areas at %f %f %f\n", v[0], v[1], v[2] );
 				}
 				sv_ent->areanum2 = area;
@@ -394,16 +394,16 @@ void SV_LinkEdict( edict_t *ent )
 		}
 	}
 
-	ent->priv.sv->linkcount++;
+	ent->pvEngineData->linkcount++;
 
 	// update ambient sound here
-	if( ent->progs.sv->loopsound )
+	if( ent->v.ambient )
 	{
-		ent->priv.sv->s.soundindex = SV_SoundIndex( PRVM_GetString( ent->progs.sv->loopsound ));
+		ent->pvEngineData->s.soundindex = SV_SoundIndex( STRING( ent->v.ambient ));
 	}
 
 	// don't link not solid or rigid bodies
-	if( ent->progs.sv->solid == SOLID_NOT || ent->progs.sv->solid >= SOLID_BOX )
+	if( ent->v.solid == SOLID_NOT || ent->v.solid >= SOLID_BOX )
 	{
 		sv_ent->linked = true;
 		return;
@@ -414,15 +414,15 @@ void SV_LinkEdict( edict_t *ent )
 	while( 1 )
 	{
 		if( node->axis == -1 ) break;
-		if( ent->progs.sv->absmin[node->axis] > node->dist )
+		if( ent->v.absmin[node->axis] > node->dist )
 			node = node->children[0];
-		else if( ent->progs.sv->absmax[node->axis] < node->dist )
+		else if( ent->v.absmax[node->axis] < node->dist )
 			node = node->children[1];
 		else break; // crosses the node
 	}
 	
 	// link it in	
-	if( ent->progs.sv->solid == SOLID_TRIGGER )
+	if( ent->v.solid == SOLID_TRIGGER )
 		SV_InsertLinkBefore( &sv_ent->area, &node->trigger_edicts, ent );
 	else SV_InsertLinkBefore (&sv_ent->area, &node->solid_edicts, ent );
 	sv_ent->linked = true;
@@ -458,10 +458,10 @@ void SV_AreaEdicts_r( areanode_t *node, area_t *ap )
 		next = l->next;
 		check = EDICT_FROM_AREA( l );
 
-		if( check->progs.sv->solid == SOLID_NOT ) continue; // deactivated
-		if( check->progs.sv->absmin[0] > ap->maxs[0] || check->progs.sv->absmin[1] > ap->maxs[1]
-		 || check->progs.sv->absmin[2] > ap->maxs[2] || check->progs.sv->absmax[0] < ap->mins[0]
-		 || check->progs.sv->absmax[1] < ap->mins[1] || check->progs.sv->absmax[2] < ap->mins[2] )
+		if( check->v.solid == SOLID_NOT ) continue; // deactivated
+		if( check->v.absmin[0] > ap->maxs[0] || check->v.absmin[1] > ap->maxs[1]
+		 || check->v.absmin[2] > ap->maxs[2] || check->v.absmax[0] < ap->mins[0]
+		 || check->v.absmax[1] < ap->mins[1] || check->v.absmax[2] < ap->mins[2] )
 			continue;	// not touching
 
 		if( ap->count == ap->maxcount )

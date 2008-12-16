@@ -116,7 +116,7 @@ mathlib, debugger, and various misc helpers
 void CL_BeginIncreaseEdicts( void )
 {
 	int		i;
-	edict_t		*ent;
+	pr_edict_t		*ent;
 
 	// links don't survive the transition, so unlink everything
 	for (i = 0, ent = prog->edicts; i < prog->max_edicts; i++, ent++)
@@ -127,20 +127,20 @@ void CL_BeginIncreaseEdicts( void )
 void CL_EndIncreaseEdicts( void )
 {
 	int		i;
-	edict_t		*ent;
+	pr_edict_t		*ent;
 
 	for (i = 0, ent = prog->edicts; i < prog->max_edicts; i++, ent++)
 	{
 	}
 }
 
-void CL_InitEdict( edict_t *e )
+void CL_InitEdict( pr_edict_t *e )
 {
 	e->priv.cl->serialnumber = PRVM_NUM_FOR_EDICT(e);
 	e->priv.cl->free = false;
 }
 
-void CL_FreeEdict( edict_t *ed )
+void CL_FreeEdict( pr_edict_t *ed )
 {
 	ed->priv.cl->freetime = cl.time * 0.001f;
 	ed->priv.cl->free = true;
@@ -157,7 +157,7 @@ void CL_FreeEdict( edict_t *ed )
 void CL_FreeEdicts( void )
 {
 	int	i;
-	edict_t	*ent;
+	pr_edict_t	*ent;
 
 	CL_VM_Begin();
 	for( i = 1; prog && i < prog->num_edicts; i++ )
@@ -170,7 +170,7 @@ void CL_FreeEdicts( void )
 
 void CL_CountEdicts( void )
 {
-	edict_t	*ent;
+	pr_edict_t	*ent;
 	int	i, active = 0, models = 0;
 
 	for (i = 0; i < prog->num_edicts; i++)
@@ -199,7 +199,7 @@ void CL_VM_End( void )
 	PRVM_End;
 }
 
-bool CL_LoadEdict( edict_t *ent )
+bool CL_LoadEdict( pr_edict_t *ent )
 {
 	return true;
 }

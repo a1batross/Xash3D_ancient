@@ -32,21 +32,19 @@ enum
 };
 
 typedef void (*prvm_builtin_t)( void );
-typedef struct edict_state_s
+typedef struct vm_edict_s
 {
 	bool	free;
 	float	freetime;
-
 } vm_edict_t;
 
-struct edict_s
+struct pr_edict_s
 {
 	// engine-private fields (stored in dynamically resized array)
 	union
 	{
 		void			*vp;	// generic edict
 		vm_edict_t		*ed;	// vm edict state 
-		sv_edict_t		*sv;	// sv edict state
 		cl_edict_t		*cl;	// cl edict state
 		vm_edict_t		*ui;	// ui edict state
 	} priv;
@@ -55,7 +53,6 @@ struct edict_s
 	union
 	{
 		void			*vp;	// generic entvars
-		sv_entvars_t		*sv;	// server entvars
 		cl_entvars_t		*cl;	// client entvars
 		ui_entvars_t		*ui;	// uimenu entvars
 	} progs;
@@ -107,7 +104,6 @@ typedef struct prvm_prog_s
 	union
 	{
 		float			*gp;
-		sv_globalvars_t		*sv;
 		cl_globalvars_t		*cl;
 		ui_globalvars_t		*ui;
 	} globals;
@@ -138,7 +134,7 @@ typedef struct prvm_prog_s
 	int		max_edicts;
 	int		limit_edicts;
 	int		reserved_edicts;
-	edict_t		*edicts;
+	pr_edict_t	*edicts;
 	void		*edictsfields;
 	void		*edictprivate;
 	int		edictprivate_size;
@@ -154,12 +150,12 @@ typedef struct prvm_prog_s
 	// function pointers
 	void		(*begin_increase_edicts)(void);
 	void		(*end_increase_edicts)(void);
-	void		(*init_edict)(edict_t *edict);
-	void		(*free_edict)(edict_t *ed);
+	void		(*init_edict)(pr_edict_t *edict);
+	void		(*free_edict)(pr_edict_t *ed);
 	void		(*count_edicts)(void);
-	bool		(*load_edict)(edict_t *ent);		// initialize edict for first loading
-	void		(*restore_edict)(edict_t *ent);	// restore edict from savegame or changelevel
-	void		(*keyvalue_edict)(edict_t *ent, const char *key, const char *value );	// KeyValueData
+	bool		(*load_edict)(pr_edict_t *ent);	// initialize edict for first loading
+	void		(*restore_edict)(pr_edict_t *ent);	// restore edict from savegame or changelevel
+	void		(*keyvalue_edict)(pr_edict_t *ent, const char *key, const char *value );
 	void		(*init_cmd)(void);
 	void		(*reset_cmd)(void);
 	void		(*error_cmd)(const char *format, ...);
@@ -180,14 +176,14 @@ typedef struct vprogs_exp_s
 	void ( *Update )( dword time );		// refreshing compile, exec some programs e.t.c
 
 	// edict operations
-	edict_t *(*AllocEdict)( void );
-	void (*FreeEdict)( edict_t *ed );
-	void (*PrintEdict)( edict_t *ed );
+	pr_edict_t *(*AllocEdict)( void );
+	void (*FreeEdict)( pr_edict_t *ed );
+	void (*PrintEdict)( pr_edict_t *ed );
 
 	// savegame stuff
 	void (*WriteGlobals)( void *buffer, void *ptr, setpair_t callback );
 	void (*ReadGlobals)( int s_table, dkeyvalue_t *globals, int count );
-	void (*WriteEdict)( edict_t *ed, void *buffer, void *ptr, setpair_t callback );
+	void (*WriteEdict)( pr_edict_t *ed, void *buffer, void *ptr, setpair_t callback );
 	void (*ReadEdict)( int s_table, int ednum, dkeyvalue_t *fields, int numpairs );
 
 	// load ents description

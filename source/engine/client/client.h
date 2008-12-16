@@ -31,13 +31,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAX_SERVERS		64
 #define ColorIndex(c)	(((c) - '0') & 7)
 
-// button bits
-#define	BUTTON_ATTACK	1
-#define	BUTTON_ATTACK2	2
-#define	BUTTON_USE	4
-#define	BUTTON_WALKING	8
-#define	BUTTON_ANY	128 // any key whatsoever
-
 //=============================================================================
 typedef struct frame_s
 {
@@ -138,6 +131,7 @@ typedef struct
 
 	string_t		edict_classnames[MAX_CLASSNAMES];
 	sound_t		sound_precache[MAX_SOUNDS];
+	shader_t		decal_shaders[MAX_DECALS];
 } client_t;
 
 extern client_t	cl;
@@ -452,7 +446,7 @@ void CL_InitClientProgs( void );
 void CL_FreeClientProgs( void );
 int CL_GetMaxClients( void );
 void CL_DrawHUD( void );
-edict_t *CL_GetEdict( int entnum );
+pr_edict_t *CL_GetEdict( int entnum );
 float *CL_FadeColor( float starttime, float endtime );
 bool CL_ParseUserMessage( int svc_number );
 void CL_FreeEdicts( void );
@@ -538,7 +532,7 @@ void CL_PredictMove (void);
 void CL_CheckPredictionError (void);
 int CL_PointContents( const vec3_t point );
 bool CL_AmbientLevel( const vec3_t point, float *volumes );
-trace_t CL_Trace( const vec3_t s1, const vec3_t m1, const vec3_t m2, const vec3_t s2, int type, edict_t *ed, int mask );
+trace_t CL_Trace(const vec3_t s1, const vec3_t m1, const vec3_t m2, const vec3_t s2, int type, pr_edict_t *e, int mask);
 
 //
 // cl_ents.c

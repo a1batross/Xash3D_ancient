@@ -5,33 +5,9 @@
 #ifndef VSOUND_API_H
 #define VSOUND_API_H
 
-// sound channels
-typedef enum
-{
-	CHAN_AUTO = 0,
-	CHAN_WEAPON,
-	CHAN_VOICE,
-	CHAN_ITEM,
-	CHAN_BODY,
-	CHAN_ANNOUNCER,		// announcer
-
-	// snd flags
-	CHAN_NO_PHS_ADD = 8,	// send to all clients, not just ones in PHS (ATTN 0 will also do this)
-	CHAN_RELIABLE = 16,		// send by reliable message, not datagram
-} snd_channel_t;
-
-// sound attenuation values
-typedef enum
-{
-	ATTN_NONE = 0,		// full volume the entire level
-	ATTN_NORM,
-	ATTN_IDLE,
-	ATTN_STATIC,		// diminish very rapidly with distance
-} snd_attenuation_t;
-
-#define PITCH_LOW		95	// other values are possible - 0-255, where 255 is very high
-#define PITCH_NORM		100	// non-pitch shifted
-#define PITCH_HIGH		120
+// snd internal flags (lower bits are used for snd channels)
+#define CHAN_NO_PHS_ADD	(1<<3)	// send to all clients, not just ones in PHS (ATTN 0 will also do this)
+#define CHAN_RELIABLE	(1<<4)	// send by reliable message, not datagram
 
 /*
 ==============================================================================

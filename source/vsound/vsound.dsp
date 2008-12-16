@@ -54,7 +54,8 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386 /opt:nowin98
-# ADD LINK32 libogg.lib vorbis.lib /nologo /dll /profile /machine:I386 /nodefaultlib:"libcmt.lib" /opt:nowin98
+# ADD LINK32 libogg.lib vorbis.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libcmt.lib" /opt:nowin98
+# SUBTRACT LINK32 /profile
 # Begin Custom Build
 TargetDir=\Xash3D\src_main\temp\vsound\!release
 InputPath=\Xash3D\src_main\temp\vsound\!release\vsound.dll
@@ -79,7 +80,7 @@ SOURCE="$(InputPath)"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PLATFORM_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /I "./" /I "../public" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "../public" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /GZ /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -113,6 +114,10 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\s_export.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\s_load.c
 # End Source File
 # Begin Source File
@@ -126,10 +131,6 @@ SOURCE=.\s_openal.c
 # Begin Source File
 
 SOURCE=.\s_stream.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\s_export.c
 # End Source File
 # End Group
 # Begin Group "Header Files"

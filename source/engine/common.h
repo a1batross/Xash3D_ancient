@@ -116,16 +116,6 @@ CLIENT / SERVER SYSTEMS
 
 ==============================================================
 */
-#define FL_CLIENT			(1<<0)	// this is client
-#define FL_MONSTER			(1<<1)	// this is npc
-#define FL_DEADMONSTER		(1<<2)	// dead npc or dead player
-#define FL_WORLDBRUSH		(1<<3)	// Not moveable/removeable brush entity
-#define FL_DORMANT			(1<<4)	// Entity is dormant, no updates to client
-#define FL_FRAMETHINK		(1<<5)	// entity will be thinking every frame
-#define FL_GRAPHED			(1<<6)	// worldgraph has this ent listed as something that blocks a conection
-#define FL_FLOAT			(1<<7)	// this entity can be floating. FIXME: remove this ?
-#define FL_TRACKTRAIN		(1<<8)	// old stuff...
-
 // encoded bmodel mask
 #define SOLID_BMODEL		0xffffff
 
@@ -139,6 +129,13 @@ void SV_Shutdown( bool reconnect );
 void SV_Frame( dword time );
 void SV_PacketEvent( netadr_t from, sizebuf_t *msg );
 
+// exports
+void SV_Transform( edict_t *ed, const vec3_t origin, const matrix3x3 transform );
+void SV_PlaySound( edict_t *ed, float volume, float pitch, const char *sample );
+float *SV_GetModelVerts( edict_t *ent, int *numvertices );
+void SV_PlayerMove( edict_t *ed );
+bool SV_Active( void );
+
 /*
 ==============================================================
 
@@ -146,10 +143,12 @@ PRVM INTERACTIONS
 
 ==============================================================
 */
+char *ED_NewString( const char *string, byte *mempool );
+
 #define prog	vm->prog	// global callback to vprogs.dll
 #define PRVM_EDICT_NUM( num )	_PRVM_EDICT_NUM( num, __FILE__, __LINE__ )
 
-_inline edict_t *_PRVM_EDICT_NUM( int n, const char * file, const int line )
+_inline pr_edict_t *_PRVM_EDICT_NUM( int n, const char * file, const int line )
 {
 	if(!prog) Host_Error(" prog unset at (%s:%d)\n", file, line );
 	if((n >= 0) && (n < prog->max_edicts))
@@ -163,7 +162,7 @@ _inline edict_t *_PRVM_EDICT_NUM( int n, const char * file, const int line )
 #define PRVM_NAME	(prog->name ? prog->name : "unnamed.dat")
 
 #define PRVM_ERROR if( prog ) prog->error_cmd
-#define PRVM_NUM_FOR_EDICT(e) ((int)((edict_t *)(e) - prog->edicts))
+#define PRVM_NUM_FOR_EDICT(e) ((int)((pr_edict_t *)(e) - prog->edicts))
 #define PRVM_NEXT_EDICT(e) ((e) + 1)
 #define PRVM_EDICT_TO_PROG(e) (PRVM_NUM_FOR_EDICT(e))
 #define PRVM_PROG_TO_EDICT(n) (PRVM_EDICT_NUM(n))
@@ -185,7 +184,6 @@ _inline edict_t *_PRVM_EDICT_NUM( int n, const char * file, const int line )
 // helper common functions
 const char *VM_VarArgs( int start_arg );
 bool VM_ValidateArgs( const char *builtin, int num_argc );
-void VM_SetTraceGlobals( const trace_t *trace );
 #define VM_ValidateString( str )	_VM_ValidateString( str, __FILE__, __LINE__ )
 void _VM_ValidateString( const char *s, const char *filename, const int fileline );
 void VM_Cmd_Init( void );
@@ -222,6 +220,9 @@ void VM_Cmd_Reset( void );
 #define PRVM_ED_FindField		vm->FindField
 #define PRVM_ED_FindGlobal		vm->FindGlobal
 #define PRVM_ED_FindFunction		vm->FindFunction
+
+edict_t *ED_Alloc( void );
+void ED_Free( edict_t *e);
 
 // builtins and other general functions
 void VM_ConPrintf( void );

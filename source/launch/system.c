@@ -154,6 +154,7 @@ void Sys_GetStdAPI( void )
 	com.fread = FS_Read;		// same as fread, can see trough pakfile
 	com.fprint = FS_Print;		// printed message into file		
 	com.fprintf = FS_Printf;		// same as fprintf
+	com.fgetc = FS_Getc;		// same as fgetc
 	com.fgets = FS_Gets;		// like a fgets, but can return EOF
 	com.fseek = FS_Seek;		// fseek, can seek in packfiles too
 	com.fremove = FS_Remove;		// like remove

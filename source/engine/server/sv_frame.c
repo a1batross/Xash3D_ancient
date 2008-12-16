@@ -40,7 +40,7 @@ static int SV_EntityNumbers( const void *a, const void *b )
 /*
 =============================================================================
 
-Copy PRVM values into entity state
+Copy entvars into entity state
 
 =============================================================================
 */
@@ -50,88 +50,89 @@ void SV_UpdateEntityState( edict_t *ent )
 	int	i;
 
 	// copy progs values to state
-	ent->priv.sv->s.number = ent->priv.sv->serialnumber;
-	ent->priv.sv->s.solid = ent->priv.sv->solid;
+	ent->pvEngineData->s.number = ent->serialnumber;
+	ent->pvEngineData->s.solid = ent->pvEngineData->solid;
 
-	VectorCopy (ent->progs.sv->origin, ent->priv.sv->s.origin);
-	VectorCopy (ent->progs.sv->angles, ent->priv.sv->s.angles);
-	ent->priv.sv->s.model.index = (int)ent->progs.sv->modelindex;
-	ent->priv.sv->s.health = ent->progs.sv->health;
-	ent->priv.sv->s.model.skin = (short)ent->progs.sv->skin;		// studio model skin
-	ent->priv.sv->s.model.body = (byte)ent->progs.sv->body;		// studio model submodel 
-	ent->priv.sv->s.model.frame = ent->progs.sv->frame;		// any model current frame
-	ent->priv.sv->s.model.gaitsequence = (int)ent->progs.sv->gaitsequence;// player sequence, that will be playing on client
-	ent->priv.sv->s.effects = (uint)ent->progs.sv->effects;		// shared client and render flags
-	ent->priv.sv->s.renderfx = (int)ent->progs.sv->renderfx;		// renderer flags
-	ent->priv.sv->s.rendermode = ent->progs.sv->rendermode;		// rendering mode
-	ent->priv.sv->s.renderamt = ent->progs.sv->renderamt;		// alpha value
-	ent->priv.sv->s.model.framerate = ent->progs.sv->framerate;
-	ent->priv.sv->s.model.animtime = (int)(1000.0 * ent->progs.sv->animtime) * 0.001; // sequence time
-	ent->priv.sv->s.aiment = ent->progs.sv->aiment;			// viewmodel parent
-	ent->priv.sv->s.model.scale = ent->progs.sv->scale;		// shared client and render flags
-	VectorCopy( ent->progs.sv->rendercolor, ent->priv.sv->s.rendercolor );
+	VectorCopy (ent->v.origin, ent->pvEngineData->s.origin);
+	VectorCopy (ent->v.angles, ent->pvEngineData->s.angles);
+	ent->pvEngineData->s.model.index = ent->v.modelindex;
+	ent->pvEngineData->s.health = ent->v.health;
+	ent->pvEngineData->s.model.skin = ent->v.skin;		// studio model skin
+	ent->pvEngineData->s.model.body = ent->v.body;		// studio model submodel 
+	ent->pvEngineData->s.model.frame = ent->v.frame;		// any model current frame
+	ent->pvEngineData->s.model.gaitsequence = ent->v.gaitsequence;// player sequence, that will be playing on client
+	ent->pvEngineData->s.effects = ent->v.effects;		// shared client and render flags
+	ent->pvEngineData->s.renderfx = ent->v.renderfx;		// renderer flags
+	ent->pvEngineData->s.rendermode = ent->v.rendermode;	// rendering mode
+	ent->pvEngineData->s.renderamt = ent->v.renderamt;	// alpha value
+	ent->pvEngineData->s.model.framerate = ent->v.framerate;
+	ent->pvEngineData->s.model.animtime = (int)(1000.0 * ent->v.animtime) * 0.001; // sequence time
+	ent->pvEngineData->s.aiment = NUM_FOR_EDICT( ent->v.aiment );	// viewmodel parent
+	ent->pvEngineData->s.model.scale = ent->v.scale;		// shared client and render flags
+	VectorCopy( ent->v.rendercolor, ent->pvEngineData->s.rendercolor );
 
 	// studio model sequence
-	if( ent->progs.sv->sequence != -1 ) ent->priv.sv->s.model.sequence = ent->progs.sv->sequence;
+	if( ent->v.sequence != -1 ) ent->pvEngineData->s.model.sequence = ent->v.sequence;
 
 	for( i = 0; i < 16; i++ )
 	{
 		// copy blendings and bone ctrls
-		ent->priv.sv->s.model.blending[i] = ent->progs.sv->blending[i];
-		ent->priv.sv->s.model.controller[i] = ent->progs.sv->controller[i];
+		ent->pvEngineData->s.model.blending[i] = ent->v.blending[i];
+		ent->pvEngineData->s.model.controller[i] = ent->v.controller[i];
 	}
 
-	if( ent->priv.sv->s.ed_type != ED_VIEWMODEL )
-		ent->priv.sv->s.movetype = ent->progs.sv->movetype;
+	if( ent->pvEngineData->s.ed_type != ED_VIEWMODEL )
+		ent->pvEngineData->s.movetype = ent->v.movetype;
 
-	if( ent->priv.sv->s.ed_type == ED_MOVER || ent->priv.sv->s.ed_type == ED_BSPBRUSH )
+	if( ent->pvEngineData->s.ed_type == ED_MOVER || ent->pvEngineData->s.ed_type == ED_BSPBRUSH )
 	{
 		// these needs to right calculate direction of scroll texture
-		VectorCopy( ent->progs.sv->movedir, ent->priv.sv->s.velocity );
+		VectorCopy( ent->v.movedir, ent->pvEngineData->s.velocity );
 	}
 
-	if( ent->priv.sv->s.ed_type == ED_VIEWMODEL )
+	if( ent->pvEngineData->s.ed_type == ED_VIEWMODEL )
 	{
 		// copy v_model state from client to viemodel entity
-		client = PRVM_EDICT_NUM( ent->progs.sv->aiment );
+		client = ent->v.aiment;
 
 		// update both arrays, because viewmodel are hidden for qc-coders
-		ent->priv.sv->s.model.index = ent->progs.sv->modelindex = SV_ModelIndex(PRVM_GetString(client->progs.sv->v_model));
-		ent->priv.sv->s.model.frame = ent->progs.sv->frame = client->progs.sv->v_frame;
-		ent->priv.sv->s.model.body = ent->progs.sv->body = client->progs.sv->v_body;
-		ent->priv.sv->s.model.skin = ent->progs.sv->skin = client->progs.sv->v_skin;
-		ent->progs.sv->sequence = client->progs.sv->v_sequence;
-		if( ent->progs.sv->sequence != -1 ) ent->priv.sv->s.model.sequence = ent->progs.sv->sequence; 
-		ent->priv.sv->s.model.colormap = ent->progs.sv->colormap = client->progs.sv->colormap;
-		ent->priv.sv->s.effects |= EF_MINLIGHT; // always have some light
+		ent->v.modelindex = SV_ModelIndex( STRING( client->v.viewmodel ));
+		ent->pvEngineData->s.model.index = ent->v.modelindex;
+		ent->pvEngineData->s.model.frame = ent->v.frame = client->v.weaponframe;
+		ent->pvEngineData->s.model.body = ent->v.body = client->v.weaponbody;
+		ent->pvEngineData->s.model.skin = ent->v.skin = client->v.weaponskin;
+		ent->v.sequence = client->v.weaponsequence;
+		if( ent->v.sequence != -1 ) ent->pvEngineData->s.model.sequence = ent->v.sequence; 
+		ent->pvEngineData->s.model.colormap = ent->v.colormap = client->v.colormap;
+		ent->pvEngineData->s.effects |= EF_MINLIGHT; // always have some light
 	}
-	else if( ent->priv.sv->s.ed_type == ED_CLIENT )
+	else if( ent->pvEngineData->s.ed_type == ED_CLIENT )
 	{
-		if( ent->progs.sv->fixangle )
+		if( ent->v.fixangle )
 		{
 			// FIXME: set angles correctly
 			for( i = 0; i < 2; i++ )
-				ent->priv.sv->s.delta_angles[i] = ANGLE2SHORT( ent->priv.sv->s.angles[i] );
-			VectorClear( ent->priv.sv->s.angles );
-			VectorClear( ent->priv.sv->s.viewangles );
-			VectorClear( ent->progs.sv->v_angle );
+				ent->pvEngineData->s.delta_angles[i] = ANGLE2SHORT( ent->pvEngineData->s.angles[i] );
+			VectorClear( ent->pvEngineData->s.angles );
+			VectorClear( ent->pvEngineData->s.viewangles );
+			VectorClear( ent->v.v_angle );
 			
 			// and clear fixangle for the next frame
-			ent->progs.sv->fixangle = 0;
+			ent->v.fixangle = 0;
 		}
 	}
-	else if( ent->priv.sv->s.ed_type == ED_AMBIENT )
+	else if( ent->pvEngineData->s.ed_type == ED_AMBIENT )
 	{
-		if( ent->progs.sv->solid == SOLID_TRIGGER )
+		if( ent->v.solid == SOLID_TRIGGER )
 		{
 			vec3_t	midPoint;
 
 			// NOTE: no reason to compute this shit on the client - save bandwidth
-			VectorAverage( ent->progs.sv->mins, ent->progs.sv->maxs, midPoint );
-			VectorAdd( ent->priv.sv->s.origin, midPoint, ent->priv.sv->s.origin );
+			VectorAverage( ent->v.mins, ent->v.maxs, midPoint );
+			VectorAdd( ent->pvEngineData->s.origin, midPoint, ent->pvEngineData->s.origin );
 		}
 	}
-	else if( ent->priv.sv->s.ed_type == ED_MOVER )
+	else if( ent->pvEngineData->s.ed_type == ED_MOVER )
 	{
 		// FIXME: send mins\maxs for sound spatialization and entity prediction ?
 	}
@@ -142,7 +143,7 @@ void SV_UpdateEntityState( edict_t *ent )
 SV_AddEntToSnapshot
 ===============
 */
-static void SV_AddEntToSnapshot( sv_edict_t *svent, edict_t *ent, sv_ents_t *ents )
+static void SV_AddEntToSnapshot( ed_priv_t *svent, edict_t *ent, sv_ents_t *ents )
 {
 	// if we have already added this entity to this snapshot, don't add again
 	if( svent->framenum == sv.net_framenum ) return;
@@ -152,7 +153,7 @@ static void SV_AddEntToSnapshot( sv_edict_t *svent, edict_t *ent, sv_ents_t *ent
 	if( ents->num_entities == MAX_VISIBLE_PACKET ) return;
 
 	SV_UpdateEntityState( ent ); // copy entity state from progs
-	ents->entities[ents->num_entities] = svent->serialnumber;
+	ents->entities[ents->num_entities] = ent->serialnumber;
 	ents->num_entities++;
 	c_fullsend++;		// debug counter
 }
@@ -237,7 +238,7 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 {
 	int		l, e, i;
 	edict_t		*ent;
-	sv_edict_t	*svent;
+	ed_priv_t		*svent;
 	int		leafnum;
 	byte		*clientphs;
 	byte		*bitvector;
@@ -260,35 +261,35 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 	frame->areabits_size = pe->WriteAreaBits( frame->areabits, clientarea, portal );
 	clientphs = pe->ClusterPHS( clientcluster );
 
-	for( e = 1; e < prog->num_edicts; e++ )
+	for( e = 1; e < svs.globals->numEntities; e++ )
 	{
-		ent = PRVM_EDICT_NUM( e );
+		ent = EDICT_NUM( e );
 		force = false; // clear forceflag
 
 		// completely ignore dormant entity
-		if((int)ent->progs.sv->flags & FL_DORMANT )
+		if((int)ent->v.flags & FL_DORMANT )
 			continue;
 
 		// send viewmodel entity always
 		// NOTE: never apply LinkEdict to viewmodel entity, because
 		// we wan't see it in list of entities returned with SV_AreaEdicts
-		if( ent->priv.sv->s.ed_type == ED_VIEWMODEL )
+		if( ent->pvEngineData->s.ed_type == ED_VIEWMODEL )
 			force = true;
 
 		// NOTE: client index on client expected that entity will be valid
-		if( sv_newprotocol->integer && ent->priv.sv->s.ed_type == ED_CLIENT )
+		if( sv_newprotocol->integer && ent->pvEngineData->s.ed_type == ED_CLIENT )
 			force = true;
 
 		// never send entities that aren't linked in
-		if( !ent->priv.sv->linked && !force ) continue;
+		if( !ent->pvEngineData->linked && !force ) continue;
 
-		if( ent->priv.sv->serialnumber != e )
+		if( ent->serialnumber != e )
 		{
-			MsgDev( D_WARN, "fixing ent->priv.sv->serialnumber\n");
-			ent->priv.sv->serialnumber = e;
+			MsgDev( D_WARN, "fixing ent->pvEngineData->serialnumber\n");
+			ent->serialnumber = e;
 		}
 
-		svent = ent->priv.sv;
+		svent = ent->pvEngineData;
 
 		// quick reject by type
 		switch( svent->s.ed_type )
@@ -307,11 +308,11 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 		if( !force )
 		{
 			// ignore if not touching a PV leaf check area
-			if( !pe->AreasConnected( clientarea, ent->priv.sv->areanum ))
+			if( !pe->AreasConnected( clientarea, ent->pvEngineData->areanum ))
 			{
 				// doors can legally straddle two areas, so
 				// we may need to check another one
-				if( !pe->AreasConnected( clientarea, ent->priv.sv->areanum2 ))
+				if( !pe->AreasConnected( clientarea, ent->pvEngineData->areanum2 ))
 					continue;	// blocked by a door
 			}
 		}
@@ -340,20 +341,20 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 					if( bitvector[l>>3] & (1<<(l & 7)))
 						break;
 				}
-				if( i == ent->priv.sv->num_clusters )
+				if( i == ent->pvEngineData->num_clusters )
 					continue;	// not visible
 			}
 		}
 
-		if( ent->priv.sv->s.ed_type == ED_AMBIENT )
+		if( ent->pvEngineData->s.ed_type == ED_AMBIENT )
 		{	
 			vec3_t	delta, entorigin;
 			float	len;
 
 			// don't send sounds if they will be attenuated away
-			if( VectorIsNull( ent->progs.sv->origin ))
-				VectorAverage( ent->progs.sv->mins, ent->progs.sv->maxs, entorigin );
-			else VectorCopy( ent->progs.sv->origin, entorigin );
+			if( VectorIsNull( ent->v.origin ))
+				VectorAverage( ent->v.mins, ent->v.maxs, entorigin );
+			else VectorCopy( ent->v.origin, entorigin );
 
 			VectorSubtract( origin, entorigin, delta );	
 			len = VectorLength( delta );
@@ -419,7 +420,7 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 	MSG_WriteData( msg, frame->areabits, frame->areabits_size );
 
 	// just send an client index
-	// it's safe, because PRVM_NUM_FOR_EDICT always equal ed->serialnumber,
+	// it's safe, because NUM_FOR_EDICT always equal ed->serialnumber,
 	// thats shared across network
 	if( sv_newprotocol->integer )
 	{
@@ -472,22 +473,22 @@ void SV_BuildClientFrame( sv_client_t *cl )
 	// clear everything in this snapshot
 	frame_ents.num_entities = c_fullsend = 0;
 	Mem_Set( frame->areabits, 0, sizeof( frame->areabits ));
-	if( !clent->priv.sv->client ) return; // not in game yet
+	if( !clent->pvEngineData->client ) return; // not in game yet
 
 	// find the client's PVS
-	VectorCopy( clent->priv.sv->s.origin, org ); 
-	VectorAdd( org, clent->priv.sv->s.viewoffset, org );  
+	VectorCopy( clent->pvEngineData->s.origin, org ); 
+	VectorAdd( org, clent->pvEngineData->s.viewoffset, org );  
 
 	if( sv_newprotocol->integer )
 	{
 		// grab the current player index
-		frame->index = PRVM_NUM_FOR_EDICT( clent );
+		frame->index = NUM_FOR_EDICT( clent );
 	}
 	else
 	{
 		// grab the current player state
-		cl->edict->priv.sv->framenum = sv.net_framenum;
-		frame->ps = clent->priv.sv->s;
+		cl->edict->pvEngineData->framenum = sv.net_framenum;
+		frame->ps = clent->pvEngineData->s;
 	}
 
 	// add all the entities directly visible to the eye, which
@@ -506,11 +507,11 @@ void SV_BuildClientFrame( sv_client_t *cl )
 
 	for( i = 0; i < frame_ents.num_entities; i++ )
 	{
-		ent = PRVM_EDICT_NUM( frame_ents.entities[i] );
+		ent = EDICT_NUM( frame_ents.entities[i] );
 
 		// add it to the circular client_entities array
 		state = &svs.client_entities[svs.next_client_entities % svs.num_client_entities];
-		*state = ent->priv.sv->s;
+		*state = ent->pvEngineData->s;
 		svs.next_client_entities++;
 
 		// this should never hit, map should always be restarted first in SV_Frame

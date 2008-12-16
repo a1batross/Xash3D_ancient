@@ -8,7 +8,6 @@
 #include "mathlib.h"
 #include "const.h"
 #include "client.h"
-#include "server.h"
 
 /*
 =======================================================================
@@ -34,19 +33,6 @@ bool VM_ValidateArgs( const char *builtin, int num_argc )
 void _VM_ValidateString( const char *s, const char *filename, const int fileline )
 {
 	if( s[0] <= ' ' ) PRVM_ERROR( "%s: bad string (called at %s:%i)\n", PRVM_NAME, filename, fileline );
-}
-
-void VM_SetTraceGlobals( const trace_t *trace )
-{
-	prog->globals.sv->trace_allsolid = trace->allsolid;
-	prog->globals.sv->trace_startsolid = trace->startsolid;
-	prog->globals.sv->trace_fraction = trace->fraction;
-	prog->globals.sv->trace_contents = trace->contents;
-	VectorCopy (trace->endpos, prog->globals.sv->trace_endpos);
-	VectorCopy (trace->plane.normal, prog->globals.sv->trace_plane_normal);
-	prog->globals.sv->trace_plane_dist =  trace->plane.dist;
-	if( trace->ent ) prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG( trace->ent );
-	else prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG( prog->edicts ); // world
 }
 
 /*
@@ -208,7 +194,7 @@ void Com_Error( ... )
 */
 void VM_HostError( void )
 {
-	edict_t		*ed;
+	pr_edict_t	*ed;
 	const char	*s = VM_VarArgs( 0 );
 
 	Msg( "====== %s ERROR in %s:\n%s\n", PRVM_NAME, PRVM_GetString(prog->xfunction->s_name), s );
@@ -229,7 +215,7 @@ void Ed_Error( ... )
 */
 void VM_EdictError( void )
 {
-	edict_t		*ed;
+	pr_edict_t	*ed;
 	const char	*s = VM_VarArgs( 0 );
 
 	Msg( "======OBJECT ERROR======\n", PRVM_NAME, PRVM_GetString(prog->xfunction->s_name), s );
@@ -836,7 +822,7 @@ entity spawn( void )
 */
 void VM_SpawnEdict( void )
 {
-	edict_t	*ed;
+	pr_edict_t	*ed;
 
 	prog->xfunction->builtinsprofile += 20;
 	ed = PRVM_ED_Alloc();
@@ -852,7 +838,7 @@ void remove( entity ent )
 */
 void VM_RemoveEdict( void )
 {
-	edict_t	*ed;
+	pr_edict_t	*ed;
 
 	if(!VM_ValidateArgs( "remove", 1 ))
 		return;
@@ -881,8 +867,8 @@ void nextent( entity ent )
 */
 void VM_NextEdict( void )
 {
-	edict_t	*ent;
-	int	i;
+	pr_edict_t	*ent;
+	int		i;
 
 	if( !VM_ValidateArgs( "nextent", 1 ))
 		return;
@@ -915,7 +901,7 @@ void copyentity( entity src, entity dst )
 */
 void VM_CopyEdict( void )
 {
-	edict_t *in, *out;
+	pr_edict_t *in, *out;
 
 	if(!VM_ValidateArgs( "copyentity", 1 ))
 		return;
@@ -936,7 +922,7 @@ void VM_FindEdict( void )
 {
 	int		e, f;
 	const char	*s, *t;
-	edict_t		*ed;
+	pr_edict_t	*ed;
 
 	if(!VM_ValidateArgs( "find", 2 ))
 		return;
@@ -971,9 +957,9 @@ entity findfloat(entity start, .float field, float match)
 */
 void VM_FindField( void )
 {
-	int	e, f;
-	float	s;
-	edict_t	*ed;
+	int		e, f;
+	float		s;
+	pr_edict_t	*ed;
 
 	if(!VM_ValidateArgs( "findfloat", 2 ))
 		return;

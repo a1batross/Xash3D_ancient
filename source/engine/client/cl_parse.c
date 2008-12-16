@@ -234,7 +234,7 @@ void CL_ParseBaseline( sizebuf_t *msg )
 {
 	int		newnum;
 	entity_state_t	nullstate;
-	edict_t		*ent;
+	pr_edict_t		*ent;
 
 	CL_VM_Begin();
 	memset( &nullstate, 0, sizeof(nullstate));
@@ -279,6 +279,14 @@ void CL_ParseConfigString( sizebuf_t *msg )
 	else if( i >= CS_SOUNDS && i < CS_SOUNDS+MAX_SOUNDS && cl.audio_prepped )
 	{
 		cl.sound_precache[i-CS_SOUNDS] = S_RegisterSound( cl.configstrings[i] );
+	}
+	else if( i >= CS_DECALS && i < CS_DECALS+MAX_DECALS && cl.video_prepped )
+	{
+		// FIXME: register decal shaders here
+	}
+	else if( i >= CS_USER_MESSAGES && i < CS_USER_MESSAGES+MAX_USER_MESSAGES )
+	{
+		// FIXME: register user message here
 	}
 	else if( i >= CS_CLASSNAMES && i < CS_CLASSNAMES+MAX_CLASSNAMES )
 	{

@@ -162,6 +162,10 @@ SOURCE=.\client\cl_view.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\common\com_edict.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\common\con_keys.c
 # End Source File
 # Begin Source File
@@ -219,6 +223,10 @@ SOURCE=.\server\sv_cmds.c
 # Begin Source File
 
 SOURCE=.\server\sv_frame.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\server\sv_game.c
 # End Source File
 # Begin Source File
 

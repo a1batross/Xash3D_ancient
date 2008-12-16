@@ -245,7 +245,7 @@ DECALS MANAGEMENT
 
 ==============================================================
 */
-#define MAX_DECALS			2048
+#define MAX_DECAL_MARKS		2048
 #define DECAL_FADETIME		(30 * 1000)	// 30 seconds
 #define DECAL_STAYTIME		(120 * 1000)	// 120 seconds
 
@@ -263,7 +263,7 @@ typedef struct cdecal_s
 
 static cdecal_t	cl_activeDecals;
 static cdecal_t	*cl_freeDecals;
-static cdecal_t	cl_decalList[MAX_DECALS];
+static cdecal_t	cl_decalList[MAX_DECAL_MARKS];
 
 /*
 =================
@@ -324,7 +324,7 @@ void CL_ClearDecals( void )
 	cl_activeDecals.prev = &cl_activeDecals;
 	cl_freeDecals = cl_decalList;
 
-	for( i = 0; i < MAX_DECALS - 1; i++ )
+	for( i = 0; i < MAX_DECAL_MARKS - 1; i++ )
 		cl_decalList[i].next = &cl_decalList[i+1];
 }
 
@@ -682,7 +682,7 @@ void CL_AddParticles( void )
 
 		if( p->flags & PARTICLE_BOUNCE )
 		{
-			edict_t	*clent = PRVM_EDICT_NUM( cl.frame.ps.number );
+			pr_edict_t	*clent = PRVM_EDICT_NUM( cl.frame.ps.number );
 
 			// bouncy particle
 			VectorSet(mins, -radius, -radius, -radius);

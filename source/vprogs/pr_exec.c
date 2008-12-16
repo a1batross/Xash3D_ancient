@@ -539,7 +539,7 @@ void PRVM_ExecuteProgram( func_t fnum, const char *name, const char *file, const
 {
 	dstatement_t	*st, *startst;
 	mfunction_t	*f, *newf;
-	edict_t		*ed;
+	pr_edict_t	*ed;
 	prvm_eval_t	*ptr, *_switch;
 	int		switchtype, exitdepth;
 	int		i, jumpcount, cachedpr_trace;

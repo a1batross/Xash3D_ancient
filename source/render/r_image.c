@@ -5,7 +5,7 @@
 
 #include "r_local.h"
 #include "byteorder.h"
-#include "vector_lib.h"
+#include "mathlib.h"
 #include "const.h"
 
 static rgbdata_t *R_LoadImage( script_t *script, const char *name, const byte *buf, size_t size, int *samples, texFlags_t *flags );

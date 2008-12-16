@@ -12,9 +12,11 @@ release.bat
 launchers.bat
 todo.log
 
-public\
 baserc\
+cl_dll\
+public\
 physic\
+sv_dll\
 render\
 vprogs\
 vsound\

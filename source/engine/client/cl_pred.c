@@ -67,13 +67,13 @@ void CL_CheckPredictionError (void)
 CL_Trace
 ==================
 */
-trace_t CL_Trace( const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int type, edict_t *passedict, int contentsmask )
+trace_t CL_Trace( const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int type, pr_edict_t *passedict, int contentsmask )
 {
 	vec3_t		hullmins, hullmaxs;
 	int		i, bodycontents;
 	int		passedictprog;
 	bool		pointtrace;
-	edict_t		*traceowner, *touch;
+	pr_edict_t	*traceowner, *touch;
 	trace_t		trace;
 	vec3_t		clipboxmins, clipboxmaxs;	// bounding box of entire move area
 	vec3_t		clipmins, clipmaxs;		// size of the moving object
@@ -83,7 +83,7 @@ trace_t CL_Trace( const vec3_t start, const vec3_t mins, const vec3_t maxs, cons
 	matrix4x4		matrix, imatrix;		// matrices to transform into/out of other entity's space
 	cmodel_t		*model;			// model of other entity
 	int		numtouchedicts = 0;		// list of entities to test for collisions
-	edict_t		*touchedicts[MAX_EDICTS];
+	pr_edict_t	*touchedicts[MAX_EDICTS];
 
 	VectorCopy( start, clipstart );
 	VectorCopy( end, clipend );
@@ -95,7 +95,8 @@ trace_t CL_Trace( const vec3_t start, const vec3_t mins, const vec3_t maxs, cons
 	// clip to world
 	pe->ClipToWorld( &cliptrace, cl.worldmodel, clipstart, clipmins, clipmaxs, clipend, contentsmask );
 	cliptrace.startstuck = cliptrace.startsolid;
-	if( cliptrace.startsolid || cliptrace.fraction < 1 ) cliptrace.ent = prog ? prog->edicts : NULL;
+	if( cliptrace.startsolid || cliptrace.fraction < 1 )
+		cliptrace.ent = prog ? (edict_t *)prog->edicts : NULL;
 	if( type == MOVE_WORLDONLY ) return cliptrace;
 
 	if( type == MOVE_MISSILE )
@@ -178,7 +179,7 @@ trace_t CL_Trace( const vec3_t start, const vec3_t mins, const vec3_t maxs, cons
 		if((int)touch->progs.cl->flags & FL_MONSTER)
 			pe->ClipToGenericEntity(&trace, model, touch->progs.cl->mins, touch->progs.cl->maxs, bodycontents, matrix, imatrix, clipstart, clipmins2, clipmaxs2, clipend, contentsmask );
 		else pe->ClipToGenericEntity(&trace, model, touch->progs.cl->mins, touch->progs.cl->maxs, bodycontents, matrix, imatrix, clipstart, clipmins, clipmaxs, clipend, contentsmask );
-		pe->CombineTraces(&cliptrace, &trace, touch, touch->progs.cl->solid == SOLID_BSP );
+		pe->CombineTraces( &cliptrace, &trace, (edict_t *)touch, touch->progs.cl->solid == SOLID_BSP );
 	}
 	return cliptrace;
 }

@@ -119,17 +119,17 @@ static byte chktbl[1024] =
 0x39, 0x4f, 0xdd, 0xe4, 0xb6, 0x19, 0x27, 0xfb, 0xb8, 0xf5, 0x32, 0x73, 0xe5, 0xcb, 0x32
 };
 
-void CRC_Init(word *crcvalue)
+void CRC_Init( word *crcvalue )
 {
 	*crcvalue = CRC_INIT_VALUE;
 }
 
-void CRC_ProcessByte(word *crcvalue, byte data)
+void CRC_ProcessByte( word *crcvalue, byte data )
 {
 	*crcvalue = (*crcvalue << 8) ^ crctable[(*crcvalue >> 8) ^ data];
 }
 
-word CRC_Block (byte *start, int count)
+word CRC_Block( byte *start, int count )
 {
 	word	crc;
 

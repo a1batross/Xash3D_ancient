@@ -77,7 +77,7 @@ void CM_FreeModel( cmodel_t *mod )
 int CM_NumTextures( void ) { return cm.numshaders; }
 int CM_NumClusters( void ) { return cm.numclusters; }
 int CM_NumInlineModels( void ) { return cms.numbmodels; }
-const char *CM_EntityString( void ) { return cm.entitystring; }
+script_t *CM_EntityScript( void ) { return cm.entityscript; }
 const char *CM_TexName( int index ) { return cm.shaders[index].name; }
 
 /*
@@ -619,9 +619,8 @@ void BSP_LoadEntityString( wfile_t *l )
 	byte	*in;
 
 	in = WAD_Read( l, LUMP_ENTITIES, &filelen, TYPE_SCRIPT );
-	cm.entitystring = (byte *)Mem_Alloc( cmappool, filelen );
+	cm.entityscript = Com_OpenScript( LUMP_ENTITIES, in, filelen );
 	cm.checksum = LittleLong(Com_BlockChecksum( in, filelen ));
-	Mem_Copy( cm.entitystring, in, filelen );
 }
 
 /*
@@ -935,7 +934,11 @@ void CM_FreeWorld( void )
 	cmodel_t	*mod;
 
 	// free old stuff
-	if( cms.loaded ) Mem_EmptyPool( cmappool );
+	if( cms.loaded )
+	{
+		Com_CloseScript( cm.entityscript ); 
+		Mem_EmptyPool( cmappool );
+	}
 	Mem_Set( &cm, 0, sizeof( cm ));
 
 	for( i = 0, mod = cms.bmodels; i < cms.numbmodels; i++, mod++ )
@@ -978,13 +981,16 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 
 	if(!com.strcmp( cm.name, name ) && cms.loaded )
 	{
-		// singleplayer mode: serever already loading map
+		// singleplayer mode: server already loading map
 		*checksum = cm.checksum;
 		if( !clientload )
 		{
 			// rebuild portals for server
 			Mem_Set( cms.portalopen, 0, sizeof( cms.portalopen ));
 			CM_FloodAreaConnections();
+
+			// and reset entity script
+			Com_ResetScript( cm.entityscript );
 		}
 		// still have the right version
 		return &cms.bmodels[0];

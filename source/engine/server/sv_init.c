@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "server.h"
 
 server_static_t	svs;	// persistant server info
+game_static_t	svg;	// persistant game info
 server_t		sv;	// local server
 
 /*
@@ -62,19 +63,29 @@ int SV_FindIndex (const char *name, int start, int end, bool create)
 }
 
 
-int SV_ModelIndex (const char *name)
+int SV_ModelIndex( const char *name )
 {
-	return SV_FindIndex (name, CS_MODELS, MAX_MODELS, true);
+	return SV_FindIndex( name, CS_MODELS, MAX_MODELS, true );
 }
 
-int SV_SoundIndex (const char *name)
+int SV_SoundIndex( const char *name )
 {
-	return SV_FindIndex (name, CS_SOUNDS, MAX_SOUNDS, true);
+	return SV_FindIndex (name, CS_SOUNDS, MAX_SOUNDS, true );
+}
+
+int SV_UserMessageIndex( const char *name )
+{
+	return SV_FindIndex (name, CS_USER_MESSAGES, MAX_USER_MESSAGES, true );
+}
+
+int SV_DecalIndex( const char *name )
+{
+	return SV_FindIndex( name, CS_DECALS, MAX_DECALS, true );
 }
 
 int SV_ClassIndex( const char *name )
 {
-	return SV_FindIndex (name, CS_CLASSNAMES, MAX_CLASSNAMES, true);
+	return SV_FindIndex( name, CS_CLASSNAMES, MAX_CLASSNAMES, true );
 }
 /*
 ================
@@ -90,18 +101,18 @@ void SV_CreateBaseline( void )
 	edict_t	*svent;
 	int	entnum;	
 
-	for( entnum = 1; entnum < prog->num_edicts ; entnum++ )
+	for( entnum = 1; entnum < svs.globals->numEntities; entnum++ )
 	{
-		svent = PRVM_EDICT_NUM( entnum );
-		if( svent->priv.sv->free ) continue;
-		if( !svent->progs.sv->modelindex && !svent->priv.sv->s.soundindex && !svent->progs.sv->effects )
+		svent = EDICT_NUM( entnum );
+		if( svent->free ) continue;
+		if( !svent->v.modelindex && !svent->pvEngineData->s.soundindex && !svent->v.effects )
 			continue;
-		svent->priv.sv->serialnumber = entnum;
+		svent->serialnumber = entnum;
 
 		// take current state as baseline
 		SV_UpdateEntityState( svent );
 
-		svs.baselines[entnum] = svent->priv.sv->s;
+		svs.baselines[entnum] = svent->pvEngineData->s;
 	}
 }
 
@@ -155,8 +166,6 @@ void SV_SpawnServer( const char *server, const char *savename )
 	MSG_Init( &sv.multicast, sv.multicast_buf, sizeof(sv.multicast_buf));
 	com.strcpy( sv.name, server );
 
-	SV_VM_Begin();
-
 	// leave slots at start for clients only
 	for( i = 0; i < Host_MaxClients(); i++ )
 	{
@@ -198,7 +207,7 @@ void SV_SpawnServer( const char *server, const char *savename )
 	SV_CheckForSavegame( savename );
 
 	if( sv.loadgame ) SV_ReadLevelFile( savename );
-	else SV_SpawnEntities( sv.name, pe->GetEntityString());
+	else SV_SpawnEntities( sv.name, pe->GetEntityScript());
 
 	// run two frames to allow everything to settle
 	for( i = 0; i < 2; i++ )
@@ -215,16 +224,15 @@ void SV_SpawnServer( const char *server, const char *savename )
 	SV_CreateBaseline();
 
 	// classify edicts for quick network sorting
-	for( i = 0; i < prog->num_edicts; i++ )
+	for( i = 0; i < svs.globals->numEntities; i++ )
 	{
-		edict_t *ent = PRVM_EDICT_NUM( i );
+		edict_t *ent = EDICT_NUM( i );
 		SV_ClassifyEdict( ent );
 	}
 
 	// set serverinfo variable
 	Cvar_FullSet( "mapname", sv.name, CVAR_SERVERINFO|CVAR_INIT );
 	pe->EndRegistration(); // free unused models
-	SV_VM_End();
 }
 
 /*
@@ -299,16 +307,21 @@ void SV_InitGame( void )
 	NET_StringToAdr( idmaster, &master_adr[0] );
 
 	// init game
-	SV_InitServerProgs();
-
-	SV_VM_Begin();
+	if(!SV_LoadProgs( "server" ))
+	{
+		Host_Error( "SV_InitGame: can't initialize server.dll\n" );
+	}
 
 	for( i = 0; i < Host_MaxClients(); i++ )
 	{
-		ent = PRVM_EDICT_NUM( i + 1 );
-		ent->priv.sv->serialnumber = i + 1;
+		ent = EDICT_NUM( i + 1 );
+		ent->serialnumber = i + 1;
 		svs.clients[i].edict = ent;
-		Mem_Set (&svs.clients[i].lastcmd, 0, sizeof(svs.clients[i].lastcmd));
+		Mem_Set( &svs.clients[i].lastcmd, 0, sizeof( svs.clients[i].lastcmd ));
 	}
-	SV_VM_End();
+}
+
+bool SV_Active( void )
+{
+	return svs.initialized;
 }

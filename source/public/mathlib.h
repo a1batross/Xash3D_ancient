@@ -6,6 +6,7 @@
 #define BASEMATH_H
 
 #include <math.h>
+#include "const.h"
 
 #ifndef M_PI
 #define M_PI		(float)3.14159265358979323846
@@ -14,11 +15,6 @@
 #ifndef M_PI2
 #define M_PI2		(float)6.28318530717958647692
 #endif
-
-// euler angle order
-#define PITCH		0
-#define YAW		1
-#define ROLL		2
 
 #define METERS_PER_INCH	0.0254f
 #define EQUAL_EPSILON	0.001f

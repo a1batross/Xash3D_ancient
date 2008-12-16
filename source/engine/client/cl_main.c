@@ -684,11 +684,11 @@ void CL_PrepSound( void )
 {
 	int	i, sndcount;
 		
-	for( i = 1, sndcount = 0; i < MAX_SOUNDS && cl.configstrings[CS_SOUNDS+i][0]; i++ )
+	for( i = 0, sndcount = 0; i < MAX_SOUNDS && cl.configstrings[CS_SOUNDS+i][0]; i++ )
 		sndcount++; // total num sounds
 
 	S_BeginRegistration();
-	for( i = 1; i < MAX_SOUNDS && cl.configstrings[CS_SOUNDS+i][0]; i++ )
+	for( i = 0; i < MAX_SOUNDS && cl.configstrings[CS_SOUNDS+i][0]; i++ )
 	{
 		cl.sound_precache[i] = S_RegisterSound( cl.configstrings[CS_SOUNDS+i]);
 		Cvar_SetValue( "scr_loading", scr_loading->value + 5.0f/sndcount );
@@ -735,6 +735,12 @@ void CL_PrepVideo( void )
 		cl.models[i+1] = pe->RegisterModel( name );
 		Cvar_SetValue("scr_loading", scr_loading->value + 45.0f/mdlcount );
 		SCR_UpdateScreen();
+	}
+
+	for( i = 0; i < MAX_DECALS && cl.configstrings[CS_DECALS+i][0]; i++ )
+	{
+		com.strncpy( name, cl.configstrings[CS_DECALS+i], MAX_STRING );
+		// FIXME: register shaders
 	}
 
 	// setup sky and free unneeded stuff

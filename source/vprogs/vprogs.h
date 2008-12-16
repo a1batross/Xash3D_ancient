@@ -359,25 +359,25 @@ func_t PRVM_ED_FindFunctionOffset(const char *function);
 
 void PRVM_MEM_IncreaseEdicts(void);
 
-edict_t *PRVM_ED_Alloc (void);
-void PRVM_ED_Free (edict_t *ed);
-void PRVM_ED_ClearEdict (edict_t *e);
+pr_edict_t *PRVM_ED_Alloc (void);
+void PRVM_ED_Free (pr_edict_t *ed);
+void PRVM_ED_ClearEdict (pr_edict_t *e);
 ddef_t *PRVM_ED_GlobalAtOfs( int ofs );
 void PRVM_PrintFunctionStatements (const char *name);
-void PRVM_ED_Print(edict_t *ed);
-void PRVM_ED_Write( edict_t *ed, void *buffer, void *ptr, setpair_t callback );
+void PRVM_ED_Print(pr_edict_t *ed);
+void PRVM_ED_Write( pr_edict_t *ed, void *buffer, void *ptr, setpair_t callback );
 void PRVM_ED_Read( int s_table, int ednum, dkeyvalue_t *fields, int numpairs );
-const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent);
+const char *PRVM_ED_ParseEdict (const char *data, pr_edict_t *ent);
 char *PRVM_ValueString( etype_t type, prvm_eval_t *val );
 void PRVM_ED_WriteGlobals( void *buffer, void *ptr, setpair_t callback );
 void PRVM_ED_ReadGlobals( int s_table, dkeyvalue_t *globals, int numpairs );
 
 void PRVM_ED_LoadFromFile( const char *data );
 
-edict_t *PRVM_EDICT_NUM_ERROR(int n, char *filename, int fileline);
+pr_edict_t *PRVM_EDICT_NUM_ERROR(int n, char *filename, int fileline);
 #define PRVM_EDICT_NUM(n) (((n) >= 0 && (n) < vm.prog->max_edicts) ? vm.prog->edicts + (n) : PRVM_EDICT_NUM_ERROR(n, __FILE__, __LINE__))
 #define PRVM_EDICT_NUM_UNSIGNED(n) (((n) < vm.prog->max_edicts) ? vm.prog->edicts + (n) : PRVM_EDICT_NUM_ERROR(n, __FILE__, __LINE__))
-#define PRVM_NUM_FOR_EDICT(e) ((int)((edict_t *)(e) - vm.prog->edicts))
+#define PRVM_NUM_FOR_EDICT(e) ((int)((pr_edict_t *)(e) - vm.prog->edicts))
 #define PRVM_NEXT_EDICT(e) ((e) + 1)
 #define PRVM_EDICT_TO_PROG(e) (PRVM_NUM_FOR_EDICT(e))
 #define PRVM_PROG_TO_EDICT(n) (PRVM_EDICT_NUM(n))

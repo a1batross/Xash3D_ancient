@@ -245,6 +245,13 @@ typedef enum
 #define LUMP_AREAS			"areas"
 #define LUMP_AREAPORTALS		"areaportals"
 
+#define MAP_SINGLEPLAYER		BIT(0)
+#define MAP_DEATHMATCH		BIT(1)		// Classic DeathMatch
+#define MAP_COOPERATIVE		BIT(2)		// Cooperative mode
+#define MAP_TEAMPLAY_CTF		BIT(3)		// teamplay Capture The Flag
+#define MAP_TEAMPLAY_DOM		BIT(4)		// teamplay dominate
+#define MAP_LASTMANSTANDING		BIT(5)
+
 typedef enum
 {
 	SURF_NONE			= 0,		// just a mask for source tabulation
@@ -310,7 +317,8 @@ typedef struct
 	int	ident;
 	int	version;	
 	char	message[64];	// map message
-	int	reserved[14];	// future expansions
+	int	flags;		// map flags
+	int	reserved[13];	// future expansions
 } dheader_t;
 
 typedef struct

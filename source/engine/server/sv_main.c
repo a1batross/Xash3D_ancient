@@ -71,7 +71,7 @@ void SV_CalcPings( void )
 		else cl->ping = total / count;
 
 		// let the game dll know about the ping
-		cl->edict->priv.sv->client->ping = cl->ping;
+		cl->edict->pvEngineData->client->ping = cl->ping;
 	}
 }
 
@@ -87,8 +87,6 @@ void SV_PacketEvent( netadr_t from, sizebuf_t *msg )
 	int		qport;
 
 	if( !svs.initialized ) return;
-
-	SV_VM_Begin();
 
 	// check for connectionless packet (0xffffffff) first
 	if( msg->cursize >= 4 && *(int *)msg->data == -1 )
@@ -127,7 +125,6 @@ void SV_PacketEvent( netadr_t from, sizebuf_t *msg )
 		break;
 	}
 	if( i != Host_MaxClients()) return;
-	SV_VM_End();
 }
 
 /*
@@ -238,9 +235,6 @@ void SV_Frame( dword time )
 		return;
 	}
 
-	// setup the VM frame
-	SV_VM_Begin();
-
 	// update ping based on the last known frame from all clients
 	SV_CalcPings ();
 
@@ -252,9 +246,6 @@ void SV_Frame( dword time )
 
 	// send a heartbeat to the master if needed
 	Master_Heartbeat ();
-
-	// end the server VM frame
-	SV_VM_End();
 }
 
 //============================================================================
@@ -337,7 +328,7 @@ void Master_Shutdown (void)
 ===============
 SV_Init
 
-Only called at xash.exe startup, not for each game
+Only called at startup, not for each game
 ===============
 */
 void SV_Init( void )
@@ -438,19 +429,19 @@ void SV_Shutdown( bool reconnect )
 	if( !svs.initialized ) return;
 
 	MsgDev( D_INFO, "SV_Shutdown: %s\n", host.finalmsg );
-	if( svs.clients ) SV_FinalMessage( host.finalmsg, reconnect);
+	if( svs.clients ) SV_FinalMessage( host.finalmsg, reconnect );
 
 	Master_Shutdown();
-	SV_FreeServerProgs();
+	SV_UnloadProgs();
 
 	// free current level
-	memset( &sv, 0, sizeof( sv ));
+	Mem_Set( &sv, 0, sizeof( sv ));
 	Host_SetServerState( sv.state );
 
 	// free server static data
 	if( svs.clients ) Mem_Free( svs.clients );
 	if( svs.baselines ) Mem_Free( svs.baselines );
 	if( svs.client_entities ) Mem_Free( svs.client_entities );
-	memset( &svs, 0, sizeof( svs ));
+	Mem_Set( &svs, 0, sizeof( svs ));
 }
 

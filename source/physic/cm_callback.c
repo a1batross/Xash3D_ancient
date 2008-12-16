@@ -54,7 +54,7 @@ int Callback_ContactProcess( const NewtonMaterial* material, const NewtonContact
 // this function is call after all contacts for this pairs is processed
 void Callback_ContactEnd( const NewtonMaterial* material )
 {
-	sv_edict_t *edict = (sv_edict_t *)NewtonBodyGetUserData( cms.touch_info.m_body0 );
+	edict_t *edict = (edict_t *)NewtonBodyGetUserData( cms.touch_info.m_body0 );
 	int id = NewtonBodyGetMaterialGroupID( cms.touch_info.m_body0 );
 
 	// if the max contact speed is larger than some minimum value. play a sound
@@ -110,12 +110,12 @@ void Callback_ApplyForce_NoGravity( const NewtonBody* body )
 void Callback_PmoveApplyForce( const NewtonBody* body )
 {
 	// grab state and jump to CM_ServerMove
-	pi.ClientMove((sv_edict_t *)NewtonBodyGetUserData( body ));
+	pi.ClientMove((edict_t *)NewtonBodyGetUserData( body ));
 }
 
 void Callback_ApplyTransform( const NewtonBody* body, const float* src )
 {
-	sv_edict_t	*edict = (sv_edict_t *)NewtonBodyGetUserData( body );
+	edict_t		*edict = (edict_t *)NewtonBodyGetUserData( body );
 	matrix4x4		tmp;
 	matrix3x3		dst;
 	vec3_t		origin;

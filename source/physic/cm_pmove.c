@@ -238,7 +238,7 @@ void CM_ClientMove( pmove_t *pmove )
 
 }
 
-physbody_t *Phys_CreatePlayer( sv_edict_t *ed, cmodel_t *mod, const vec3_t origin, const matrix3x3 matrix )
+physbody_t *Phys_CreatePlayer( edict_t *ed, cmodel_t *mod, const vec3_t origin, const matrix3x3 matrix )
 {
 	NewtonCollision	*col, *hull;
 	NewtonBody	*body;

@@ -5,73 +5,21 @@
 #ifndef ENGINE_API_H
 #define ENGINE_API_H
 
+#include "const.h"
+
 //
 // engine constant limits, touching networking protocol modify with precaution
 //
 #define MAX_DLIGHTS			128	// dynamic lights (per one frame)
-#define MAX_LIGHTSTYLES		256	// can be blindly increased
+#define MAX_LIGHTSTYLES		256	// can't be blindly increased
+#define MAX_DECALS			256	// server decal indexes
+#define MAX_USER_MESSAGES		200	// another 56 messages reserved for engine routines
 #define MAX_CLASSNAMES		512	// maxcount of various edicts classnames
 #define MAX_SOUNDS			512	// openal software limit
 #define MAX_MODELS			4096	// total count of brush & studio various models per one map
 #define MAX_PARTICLES		32768	// pre one frame
 #define MAX_EDICTS			65535	// absolute limit that never be reached, (do not edit!)
 #define MAX_VERTS_ON_POLY		10	// decal vertices
-
-// engine edict types
-typedef enum
-{
-	ED_SPAWNED = 0,	// this entity requris to set own type with SV_ClassifyEdict
-	ED_WORLDSPAWN,	// this is a worldspawn
-	ED_STATIC,	// this is a logic without model or entity with static model
-	ED_AMBIENT,	// this is entity emitted ambient sounds only
-	ED_NORMAL,	// normal entity with model (and\or) sound
-	ED_BSPBRUSH,	// brush entity (a part of level)
-	ED_CLIENT,	// this is a client entity
-	ED_MONSTER,	// monster or bot (generic npc with AI)
-	ED_TEMPENTITY,	// this edict will be removed on server when "lifetime" exceeds 
-	ED_BEAM,		// laser beam (needs to recalculate pvs and frustum)
-	ED_MOVER,		// func_train, func_door and another bsp or mdl movers
-	ED_VIEWMODEL,	// client or bot viewmodel (for spectating)
-	ED_ITEM,		// holdable items
-	ED_RAGDOLL,	// dead body with simulated ragdolls
-	ED_RIGIDBODY,	// simulated physic
-	ED_TRIGGER,	// just for sorting on a server
-	ED_PORTAL,	// realtime display, portal or mirror brush or model
-	ED_MISSILE,	// greande, rocket e.t.c
-	ED_DECAL,		// render will be merge real coords and normal
-	ED_VEHICLE,	// controllable vehicle
-	ED_MAXTYPES,
-} edtype_t;
-
-// edict movetype
-typedef enum
-{
-	MOVETYPE_NONE,	// never moves
-	MOVETYPE_NOCLIP,	// origin and angles change with no interaction
-	MOVETYPE_PUSH,	// no clip to world, push on box contact
-	MOVETYPE_WALK,	// gravity
-	MOVETYPE_STEP,	// gravity, special edge handling
-	MOVETYPE_FLY,
-	MOVETYPE_TOSS,	// gravity
-	MOVETYPE_BOUNCE,
-	MOVETYPE_FOLLOW,	// attached models
-	MOVETYPE_CONVEYOR,
-	MOVETYPE_PUSHABLE,
-	MOVETYPE_PHYSIC,	// phys simulation
-} movetype_t;
-
-// edict collision modes
-typedef enum
-{
-	SOLID_NOT = 0,    	// no interaction with other objects
-	SOLID_TRIGGER,	// only touch when inside, after moving
-	SOLID_BBOX,	// touch on edge
-	SOLID_BSP,    	// bsp clip, touch on edge
-	SOLID_BOX,	// physbox
-	SOLID_SPHERE,	// sphere
-	SOLID_CYLINDER,	// cylinder e.g. barrel
-	SOLID_MESH,	// custom convex hull
-} solid_t;
 
 // model_state_t communication (a part of network protocol)
 typedef struct model_state_s

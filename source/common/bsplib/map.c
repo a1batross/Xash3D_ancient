@@ -1008,10 +1008,10 @@ bool ParseMapEntity( void )
 		b->contents = CONTENTS_AREAPORTAL;
 		c_areaportals++;
 		mapent->areaportalnum = c_areaportals;
-		// set the portal number as "style"
-		com.sprintf (str, "%i", c_areaportals);
-		SetKeyValue (mapent, "style", str);
-		MoveBrushesToWorld (mapent);
+		// set the portal number as "skin"
+		com.sprintf( str, "%i", c_areaportals );
+		SetKeyValue( mapent, "skin", str );
+		MoveBrushesToWorld( mapent );
 		return true;
 	}
 
