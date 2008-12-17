@@ -1772,6 +1772,8 @@ void SV_Physics( void )
 	svs.globals->time = sv.time;
 	// svs.dllFuncs.pfnEndFrame();
 
+	Msg("NumEnts %d\n", svs.globals->numEntities - 1 );
+
 	// decrement svs.globals->numEntities if the highest number entities died
 	for( ; EDICT_NUM( svs.globals->numEntities - 1)->free; svs.globals->numEntities-- );
 

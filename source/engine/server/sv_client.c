@@ -480,7 +480,8 @@ void SV_PutClientInServer( edict_t *ent )
 	sv_client_t	*client;
 	edict_t		*viewmodel;
 	int		i;
-          
+
+	Com_Assert( 1 );          
 	index = NUM_FOR_EDICT( ent ) - 1;
 	client = ent->pvEngineData->client;
 

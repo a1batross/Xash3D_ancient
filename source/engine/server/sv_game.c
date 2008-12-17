@@ -619,53 +619,62 @@ bool SV_EntitiesIn( bool mode, vec3_t v1, vec3_t v2 )
 	return true;
 }
 
-edict_t *SV_AllocEdict( void )
+void SV_InitEdict( edict_t *pEdict )
 {
-	edict_t	*pEdict = svg.edicts;
-	int	i;
+	Com_Assert( pEdict == NULL );
 
-	// search for free entity
-	for( i = svs.globals->maxClients; i < svs.globals->numEntities; i++ )
-	{
-		pEdict = svg.edicts + i;
-		if( pEdict->free ) break;
-	}
-
-	if( i == svs.globals->numEntities )
-	{
-		if( ++svs.globals->numEntities == svs.globals->maxEntities )
-		{
-			MsgDev( D_ERROR, "SV_AllocEdict: no free edicts\n" );
-			return NULL;
-		}
-	}
-
+	pEdict->v.pContainingEntity = pEdict; // make cross-links for consistency
 	pEdict->pvEngineData = (ed_priv_t *)Mem_Alloc( svs.mempool,  sizeof( ed_priv_t ));
 	pEdict->pvServerData = NULL;	// will be alloced later by pfnAllocPrivateData
 	pEdict->serialnumber = pEdict->pvEngineData->s.number = NUM_FOR_EDICT( pEdict );
 	pEdict->free = false;
-
-	return pEdict;
 }
 
-void SV_FreeEdict( edict_t *e )
+void SV_FreeEdict( edict_t *pEdict )
 {
 	// unlink from world
-	SV_UnlinkEdict( e );
-	pe->RemoveBody( e->pvEngineData->physbody );
+	SV_UnlinkEdict( pEdict );
+	pe->RemoveBody( pEdict->pvEngineData->physbody );
 
-	if( e->pvEngineData ) Mem_Free( e->pvEngineData );
-	if( e->pvServerData ) Mem_Free( e->pvServerData );
-	Mem_Set( &e->v, 0, sizeof( entvars_t ));
+	if( pEdict->pvEngineData ) Mem_Free( pEdict->pvEngineData );
+	if( pEdict->pvServerData ) Mem_Free( pEdict->pvServerData );
+	Mem_Set( &pEdict->v, 0, sizeof( entvars_t ));
 
-	e->pvEngineData = NULL;
-	e->pvServerData = NULL;
+	pEdict->pvEngineData = NULL;
+	pEdict->pvServerData = NULL;
 
 	// mark edict as freed
-	e->freetime = sv.time;
-	e->v.nextthink = -1;
-	e->serialnumber = 0;
-	e->free = true;
+	pEdict->freetime = sv.time;
+	pEdict->v.nextthink = -1;
+	pEdict->serialnumber = 0;
+	pEdict->free = true;
+}
+
+edict_t *SV_AllocEdict( void )
+{
+	edict_t	*pEdict;
+	int	i;
+
+	for( i = svs.globals->maxClients + 1; i < svs.globals->numEntities; i++ )
+	{
+		pEdict = EDICT_NUM( i );
+		// the first couple seconds of server time can involve a lot of
+		// freeing and allocating, so relax the replacement policy
+		if( pEdict->free && ( pEdict->freetime < 2.0f || (sv.time - pEdict->freetime) > 0.5f ))
+		{
+			SV_InitEdict( pEdict );
+			return pEdict;
+		}
+	}
+
+	if( i == svs.globals->maxEntities )
+		Host_Error( "SV_AllocEdict: no free edicts\n" );
+
+	svs.globals->numEntities++;
+	pEdict = EDICT_NUM( i );
+	SV_InitEdict( pEdict );
+
+	return pEdict;
 }
 
 /*
@@ -988,8 +997,6 @@ pfnPrecacheModel
 */
 int pfnPrecacheModel( const char *s )
 {
-	if( !com.strcmp( s, "" ))
-		return 0;
 	return SV_ModelIndex( s );
 }
 
@@ -1001,8 +1008,6 @@ pfnPrecacheSound
 */
 int pfnPrecacheSound( const char *s )
 {
-	if( !com.strcmp( s, "" ))
-		return 0;
 	return SV_SoundIndex( s );
 }
 
@@ -1526,8 +1531,10 @@ edict_t* pfnCreateNamedEntity( string_t className )
 	pszClassName = STRING( className );
 	ed = pfnCreateEntity();
 	ed->v.classname = className;
+	pszClassName = STRING( className );
 
 	// also register classname to send for client
+	Com_Assert( pszClassName == NULL || !pszClassName[0] );
 	ed->pvEngineData->s.classname = SV_ClassIndex( pszClassName );
 
 	return ed;
@@ -2240,8 +2247,7 @@ pfnPvAllocEntPrivateData
 */
 void *pfnPvAllocEntPrivateData( edict_t *pEdict, long cb )
 {
-	Msg("Alloc %s\n", memprint( cb ));
-	Com_Assert( pEdict == NULL );
+	Msg("Edict: %s alloc %s\n", STRING( pEdict->v.classname ), memprint( cb ));
 
 	// to avoid multiple alloc
 	pEdict->pvServerData = (void *)Mem_Alloc( svs.private, cb );
@@ -2270,7 +2276,12 @@ FIXME: make work
 */
 string_t pfnAllocString( const char *szValue )
 {
-	return ED_NewString( szValue, svs.stringpool ) - svs.globals->pStringBase;
+	string_t	str;
+
+	str = ED_NewString( szValue, svs.stringpool ) - svs.globals->pStringBase;
+
+	Msg("AllocString: %s\n", STRING( str ));
+	return str;
 }		
 
 /*
@@ -3028,8 +3039,11 @@ bool SV_ParseEdict( script_t *script, edict_t *ent )
 		return false;
 	}
 
-	SpawnEdict( NULL ); // same as ED_Alloc
-	Com_Assert( 1 );
+	// apply edict classnames
+	ent->pvEngineData->s.classname = SV_ClassIndex( classname );
+	ent->v.classname = pfnAllocString( classname );
+
+	SpawnEdict( &ent->v );
 
 	// apply classname to keyvalue containers and parse fields			
 	for( i = 0; i < numpairs; i++ )
@@ -3038,9 +3052,6 @@ bool SV_ParseEdict( script_t *script, edict_t *ent )
 		pkvd[i].szClassName = (char *)classname;
 		svs.dllFuncs.pfnKeyValue( ent, &pkvd[i] );
 	}
-
-	// initialize network classname
-	ent->pvEngineData->s.classname = SV_ClassIndex( classname );
 	return true;
 }
 
@@ -3060,7 +3071,8 @@ void SV_LoadFromFile( script_t *entities )
 {
 	token_t	token;
 	int	inhibited, spawned, died;
-	edict_t	*ent = svg.edicts;
+	bool	create_world = true;
+	edict_t	*ent;
 
 	inhibited = 0;
 	spawned = 0;
@@ -3072,12 +3084,25 @@ void SV_LoadFromFile( script_t *entities )
 		if( token.string[0] != '{' )
 			Host_Error( "SV_LoadFromFile: found %s when expecting {\n", token.string );
 
+		if( create_world )
+		{
+			create_world = false;
+			ent = EDICT_NUM( 0 );
+			SV_InitEdict( ent );
+		}
+		else ent = SV_AllocEdict();
+
 		if( !SV_ParseEdict( entities, ent ))
 			continue;
-		spawned++;
-		if( ent->free ) died++;
+
+		Msg("SpawnEntity: %s\n", STRING( ent->v.classname ));
+		if( svs.dllFuncs.pfnSpawn( ent ) == -1 )
+			died++;
+		else spawned++;
 	}
 	MsgDev( D_INFO, "%i entities inhibited\n", inhibited );
+
+	Com_Assert( 1 );
 }
 
 /*
@@ -3111,14 +3136,15 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 	SV_LoadFromFile( entities );
 
 	// set client fields on player ents
-	/*
 	for( i = 0; i < svs.globals->maxClients; i++ )
 	{
 		// setup all clients
 		ent = EDICT_NUM( i + 1 );
+		SV_InitEdict( ent );
 		ent->pvEngineData->client = svs.clients + i;
 	}
-	*/
+
+	Msg("Total %i entities spawned\n", svs.globals->numEntities );
 }
 
 void SV_UnloadProgs( void )
@@ -3187,7 +3213,7 @@ bool SV_LoadProgs( const char *name )
 	}
 
 	// get pointer as really static object
-	svs.globals->pStringBase = (const char *)&svs;
+	svs.globals->pStringBase = (const char *)GiveFnptrsToDll;
 	svs.globals->maxEntities = host.max_edicts;
 	svs.globals->maxClients = Host_MaxClients();
 	svg.edicts = Mem_Alloc( svs.mempool, sizeof( edict_t ) * svs.globals->maxEntities );

@@ -400,8 +400,9 @@ bool SV_CreateMeshBuffer( edict_t *in, cmodel_t *out );
 // sv_spawn.c
 //
 void SV_StartParticle( const float *org, const float *dir, int color, int count );
-void SV_FreeEdict( edict_t *ed );
 edict_t *SV_AllocEdict( void );
+void SV_InitEdict( edict_t *pEdict );
+void SV_FreeEdict( edict_t *pEdict );
 bool SV_ClientConnect (edict_t *ent, char *userinfo);
 void SV_TouchTriggers (edict_t *ent);
 

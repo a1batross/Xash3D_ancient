@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /YX /c
-# ADD CPP /nologo /GB /MD /W3 /O2 /I "./" /I "./ents" /I "./game" /I "./global" /I "./monsters" /I "../public" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /MD /W3 /O2 /I "./" /I "./ents" /I "./game" /I "./global" /I "./monsters" /I "../public" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /Fr /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -61,8 +61,8 @@ TargetDir=\Xash3D\src_main\temp\server\!release
 InputPath=\Xash3D\src_main\temp\server\!release\server.dll
 SOURCE="$(InputPath)"
 
-"D:\Xash3D\xash\bin\server.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	copy $(TargetDir)\server.dll "D:\Xash3D\xash\bin\server.dll"
+"D:\Xash3D\tmpQuArK\bin\server.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy $(TargetDir)\server.dll "D:\Xash3D\tmpQuArK\bin\server.dll"
 
 # End Custom Build
 
@@ -82,7 +82,7 @@ SOURCE="$(InputPath)"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /G5 /MT /W3 /O2 /I "..\server" /I "..\common\engine" /I "..\common" /I "..\server\ents" /I "..\server\global" /I "..\server\weapons" /I "..\server\game" /I "..\server\monsters" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /YX /FD /c
 # SUBTRACT BASE CPP /Fr
-# ADD CPP /nologo /GB /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "./ents" /I "./game" /I "./global" /I "./monsters" /I "../public" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /c
+# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "./ents" /I "./game" /I "./global" /I "./monsters" /I "../public" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /c
 # SUBTRACT CPP /u /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -101,8 +101,8 @@ TargetDir=\Xash3D\src_main\temp\server\!debug
 InputPath=\Xash3D\src_main\temp\server\!debug\server.dll
 SOURCE="$(InputPath)"
 
-"D:\Xash3D\xash\bin\server.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	copy $(TargetDir)\server.dll "D:\Xash3D\xash\bin\server.dll"
+"D:\Xash3D\tmpQuArK\bin\server.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy $(TargetDir)\server.dll "D:\Xash3D\tmpQuArK\bin\server.dll"
 
 # End Custom Build
 
