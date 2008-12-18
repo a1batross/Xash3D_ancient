@@ -82,7 +82,7 @@ trace_t SV_Trace( const vec3_t start, const vec3_t mins, const vec3_t maxs, cons
 	pe->ClipToWorld( &cliptrace, sv.worldmodel, clipstart, clipmins, clipmaxs, clipend, contentsmask );
 	cliptrace.startstuck = cliptrace.startsolid;
 	if( cliptrace.startsolid || cliptrace.fraction < 1 )
-		cliptrace.ent = svg.edicts;
+		cliptrace.ent = NULL;
 	if( type == MOVE_WORLDONLY )
 		return cliptrace;
 
@@ -106,12 +106,12 @@ trace_t SV_Trace( const vec3_t start, const vec3_t mins, const vec3_t maxs, cons
 		clipboxmaxs[i] = max(clipstart[i], cliptrace.endpos[i]) + max(hullmaxs[i], clipmaxs2[i]) + 1;
 	}
 
-	// if the passedict is world, make it NULL (to avoid two checks each time)
-	if( passedict == svg.edicts ) passedict = NULL;
 	// figure out whether this is a point trace for comparisons
 	pointtrace = VectorCompare(clipmins, clipmaxs);
 	// precalculate passedict's owner edict pointer for comparisons
-	traceowner = passedict ? passedict->v.owner : svg.edicts;
+	if( passedict && passedict->v.owner )
+		traceowner = passedict->v.owner;
+	else traceowner = NULL;
 
 	// clip to entities
 	// because this uses SV_AreaEdicts, we know all entity boxes overlap
@@ -139,7 +139,7 @@ trace_t SV_Trace( const vec3_t start, const vec3_t mins, const vec3_t maxs, cons
 			// don't clip owner against owned entities
 			if( passedict == touch->v.owner ) continue;
 			// don't clip points against points (they can't collide)
-			if( pointtrace && VectorCompare( touch->v.mins, touch->v.maxs ) && (type != MOVE_MISSILE || !((int)touch->v.flags & FL_MONSTER)))
+			if( pointtrace && VectorCompare( touch->v.mins, touch->v.maxs ) && (type != MOVE_MISSILE || !(touch->v.flags & FL_MONSTER)))
 				continue;
 		}
 
@@ -147,7 +147,7 @@ trace_t SV_Trace( const vec3_t start, const vec3_t mins, const vec3_t maxs, cons
 
 		// might interact, so do an exact clip
 		model = NULL;
-		if((int)touch->v.solid == SOLID_BSP || type == MOVE_HITMODEL )
+		if( touch->v.solid == SOLID_BSP || type == MOVE_HITMODEL )
 		{
 			uint modelindex = (uint)touch->v.modelindex;
 			// if the modelindex is 0, it shouldn't be SOLID_BSP!
@@ -251,7 +251,7 @@ void SV_CheckAllEnts( void )
 	edict_t	*check;
 
 	// see if any solid entities are inside the final position
-	check = svg.edicts + 1;
+	check = EDICT_NUM( 1 );
 	for( e = 1; e < svs.globals->numEntities; e++, check++ )
 	{
 		if( check->free ) continue;
@@ -478,7 +478,7 @@ int SV_FlyMove( edict_t *ent, float time, float *stepnormal, int contentsmask )
 		if( !trace.ent )
 		{
 			MsgDev( D_WARN, "SV_FlyMove: trace.ent == NULL\n" );
-			trace.ent = svg.edicts;
+			trace.ent = EDICT_NUM( 0 );
 		}
 
 		impact = !(ent->v.flags & FL_ONGROUND) || ent->v.groundentity != trace.ent;
@@ -899,7 +899,7 @@ void SV_Physics_Pusher( edict_t *ent )
 	oldltime = ent->v.ltime;
 	thinktime = ent->v.nextthink;
 
-	if( thinktime < ent->v.ltime + sv.frametime)
+	if( thinktime < ent->v.ltime + sv.frametime )
 	{
 		movetime = thinktime - ent->v.ltime;
 		if( movetime < 0 ) movetime = 0;
@@ -1316,7 +1316,7 @@ void SV_Physics_Toss( edict_t *ent )
 			// if ent was supported by a brush model on previous frame,
 			// and groundentity is now freed, set groundentity to 0 (world)
 			// which leaves it suspended in the air
-			ent->v.groundentity = svg.edicts;
+			ent->v.groundentity = EDICT_NUM( 0 );
 			return;
 		}
 	}
@@ -1368,7 +1368,7 @@ void SV_Physics_Toss( edict_t *ent )
 			{
 				ent->v.flags |= FL_ONGROUND;
 				ent->v.groundentity = trace.ent;
-				if( trace.ent->v.solid == SOLID_BSP ) 
+				if( trace.ent && trace.ent->v.solid == SOLID_BSP ) 
 					ent->pvEngineData->suspended = true;
 				VectorClear( ent->v.velocity );
 				VectorClear( ent->v.avelocity );
@@ -1542,7 +1542,7 @@ void SV_Physics_None( edict_t *ent )
 
 static void SV_Physics_Entity( edict_t *ent )
 {
-	switch((int)ent->v.movetype)
+	switch( ent->v.movetype )
 	{
 	case MOVETYPE_PUSH:
 		SV_Physics_Pusher( ent );
@@ -1763,16 +1763,17 @@ void SV_Physics( void )
 	}
 
 	// at end of frame kill all entities which supposed to it 
-	for( i = svs.globals->maxClients; i < svs.globals->numEntities; i++ )
+	for( i = svs.globals->maxClients + 1; i < svs.globals->numEntities; i++ )
 	{
+		ent = EDICT_NUM( i );
+		if( ent->free ) continue;
+
 		if( ent->v.flags & FL_KILLME )
 			SV_FreeEdict( EDICT_NUM( i ));
 	}
 
 	svs.globals->time = sv.time;
 	// svs.dllFuncs.pfnEndFrame();
-
-	Msg("NumEnts %d\n", svs.globals->numEntities - 1 );
 
 	// decrement svs.globals->numEntities if the highest number entities died
 	for( ; EDICT_NUM( svs.globals->numEntities - 1)->free; svs.globals->numEntities-- );

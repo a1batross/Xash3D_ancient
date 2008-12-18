@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "svgame_api.h"
 
 //=============================================================================
-#define NUM_FOR_EDICT(e) ((int)((edict_t *)(e) - svg.edicts))
+#define NUM_FOR_EDICT(e) ((int)((edict_t *)(e) - game.edicts))
 #define EDICT_NUM( num ) _EDICT_NUM( num, __FILE__, __LINE__ )
 
 #define AREA_SOLID			1
@@ -200,7 +200,12 @@ typedef struct
 	int		msg_sizes[MAX_USER_MESSAGES];	// user messages bounds checker
 	int		msg_leftsize;		// left in bytes
 	int		msg_index;		// for debug messages
-	edict_t		*edicts;
+
+	union
+	{
+		edict_t	*edicts;			// acess by edict number
+		void	*vp;			// acess by offset in bytes
+	};
 
 	// library exports table
 	word		*ordinals;
@@ -208,6 +213,8 @@ typedef struct
 	char		*names[MAX_SYSPATH];	// max 1024 exports supported
 	int		num_ordinals;		// actual exports count
 	dword		funcBase;			// base offset
+
+	int		hStringTable;		// stringtable handle
 } game_static_t;
 
 typedef struct
@@ -247,7 +254,7 @@ typedef struct
 extern	netadr_t	master_adr[MAX_MASTERS];		// address of the master server
 extern	const char	*ed_name[];
 extern	server_static_t	svs;			// persistant server info
-extern	game_static_t	svg;			// persistant game info
+extern	game_static_t	game;			// persistant game info
 extern	server_t		sv;			// local server
 
 extern	cvar_t		*sv_paused;
@@ -365,7 +372,7 @@ void SV_Error (char *error, ...);
 //
 bool SV_LoadProgs( const char *name );
 void SV_UnloadProgs( void );
-void SV_InitEdict (edict_t *e);
+void SV_InitEdict( edict_t *pEdict );
 void SV_ConfigString (int index, const char *val);
 void SV_SetModel (edict_t *ent, const char *name);
 void SV_CreatePhysBody( edict_t *ent );
@@ -375,18 +382,20 @@ void SV_CopyTraceToGlobal( trace_t *trace );
 void SV_CopyTraceResult( TraceResult *out, trace_t trace );
 float SV_AngleMod( float ideal, float current, float speed );
 void SV_SpawnEntities( const char *mapname, script_t *entities );
+string_t pfnAllocString( const char *szValue );
+const char *pfnGetString( string_t iString );
 
 _inline edict_t *_EDICT_NUM( int n, const char * file, const int line )
 {
 	if((n >= 0) && (n < svs.globals->maxEntities))
-		return svg.edicts + n;
+		return game.edicts + n;
 	Host_Error( "EDICT_NUM: bad number %i (called at %s:%i)\n", n, file, line );
 	return NULL;	
 }
 
 // for constant strings
-#define STRING( offset )	(const char *)( svs.globals->pStringBase + (int)offset )
-#define MAKE_STRING(str)	((int)str - (int)STRING( 0 ))
+#define STRING( offset )	pfnGetString( offset )
+#define MAKE_STRING(str)	pfnAllocString( str )
 
 //
 // sv_studio.c
@@ -401,7 +410,6 @@ bool SV_CreateMeshBuffer( edict_t *in, cmodel_t *out );
 //
 void SV_StartParticle( const float *org, const float *dir, int color, int count );
 edict_t *SV_AllocEdict( void );
-void SV_InitEdict( edict_t *pEdict );
 void SV_FreeEdict( edict_t *pEdict );
 bool SV_ClientConnect (edict_t *ent, char *userinfo);
 void SV_TouchTriggers (edict_t *ent);

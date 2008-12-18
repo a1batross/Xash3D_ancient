@@ -176,11 +176,11 @@ sorting edict by type
 */
 void SV_ClassifyEdict( edict_t *ent )
 {
-	ed_priv_t	*sv_ent;
+	ed_priv_t		*sv_ent;
 	const char	*classname;
 
 	sv_ent = ent->pvEngineData;
-	if( sv_ent->s.ed_type != ED_SPAWNED )
+	if( !sv_ent || sv_ent->s.ed_type != ED_SPAWNED )
 		return;
 
 	// null state ?
@@ -268,7 +268,7 @@ void SV_LinkEdict( edict_t *ent )
 	sv_ent = ent->pvEngineData;
 
 	if( sv_ent->area.prev ) SV_UnlinkEdict( ent ); // unlink from old position
-	if( ent == svg.edicts ) return; // don't add the world
+	if( ent == EDICT_NUM( 0 )) return; // don't add the world
 	if( ent->free ) return;
 
 	// trying to classify unclassified edicts

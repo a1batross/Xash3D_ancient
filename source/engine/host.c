@@ -630,7 +630,7 @@ void Host_Init( int argc, char **argv)
 		Cmd_AddCommand ("crash", Host_Crash_f, "a way to force a bus error for development reasons");
           }
 
-	host_cheats = Cvar_Get( "host_cheats", "1", CVAR_SYSTEMINFO, "allow cheat variables to enable" );          
+	host_cheats = Cvar_Get( "sv_cheats", "1", CVAR_SYSTEMINFO, "allow cheat variables to enable" );          
 	host_maxfps = Cvar_Get( "host_maxfps", "100", CVAR_ARCHIVE, "host fps upper limit" );
 	host_frametime = Cvar_Get("host_frametime", "0.1", CVAR_SERVERINFO, "host frametime (only for test!)" );
 	host_maxclients = Cvar_Get("host_maxclients", "1", CVAR_SERVERINFO|CVAR_LATCH, "server maxplayers limit" );

@@ -67,7 +67,6 @@ void SV_UpdateEntityState( edict_t *ent )
 	ent->pvEngineData->s.renderamt = ent->v.renderamt;	// alpha value
 	ent->pvEngineData->s.model.framerate = ent->v.framerate;
 	ent->pvEngineData->s.model.animtime = (int)(1000.0 * ent->v.animtime) * 0.001; // sequence time
-	ent->pvEngineData->s.aiment = NUM_FOR_EDICT( ent->v.aiment );	// viewmodel parent
 	ent->pvEngineData->s.model.scale = ent->v.scale;		// shared client and render flags
 	VectorCopy( ent->v.rendercolor, ent->pvEngineData->s.rendercolor );
 
@@ -92,11 +91,14 @@ void SV_UpdateEntityState( edict_t *ent )
 
 	if( ent->pvEngineData->s.ed_type == ED_VIEWMODEL )
 	{
+		if( !ent->v.aiment ) return;	// no aiment
+
 		// copy v_model state from client to viemodel entity
 		client = ent->v.aiment;
 
 		// update both arrays, because viewmodel are hidden for qc-coders
 		ent->v.modelindex = SV_ModelIndex( STRING( client->v.viewmodel ));
+		ent->pvEngineData->s.aiment = NUM_FOR_EDICT( client ); // viewmodel parent
 		ent->pvEngineData->s.model.index = ent->v.modelindex;
 		ent->pvEngineData->s.model.frame = ent->v.frame = client->v.weaponframe;
 		ent->pvEngineData->s.model.body = ent->v.body = client->v.weaponbody;
@@ -264,6 +266,7 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 	for( e = 1; e < svs.globals->numEntities; e++ )
 	{
 		ent = EDICT_NUM( e );
+		if( ent->free ) continue;
 		force = false; // clear forceflag
 
 		// completely ignore dormant entity

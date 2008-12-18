@@ -12,7 +12,7 @@ Base Entry Point
 */
 DLLEXPORT int CreateAPI( char *hostname, bool console )
 {
-	// memeber name
+	// member name
 	com_strncpy( Sys.progname, hostname, sizeof(Sys.progname));
 	Sys.hooked_out = console; // set mode
 

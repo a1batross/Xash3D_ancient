@@ -40,9 +40,9 @@ enum
 // NOTE: engine trace struct not matched with svgame trace
 typedef struct
 {
-	bool		fAllSolid;	// if true, plane is not valid
-	bool		fStartSolid;	// if true, the initial point was in a solid area
-	bool		fStartStuck;	// if true, trace started from solid entity
+	BOOL		fAllSolid;	// if true, plane is not valid
+	BOOL		fStartSolid;	// if true, the initial point was in a solid area
+	BOOL		fStartStuck;	// if true, trace started from solid entity
 	float		flFraction;	// time completed, 1.0 = didn't hit anything
 	vec3_t		vecEndPos;	// final position
 	int		iStartContents;	// start pos conetnts
@@ -124,6 +124,7 @@ typedef struct enginefuncs_s
 	void*	(*pfnPvAllocEntPrivateData)( edict_t *pEdict, long cb );
 	void	(*pfnFreeEntPrivateData)( edict_t *pEdict );
 	string_t	(*pfnAllocString)( const char *szValue );
+	const char *(*pfnGetString)( string_t iString );
 	edict_t*	(*pfnPEntityOfEntOffset)( int iEntOffset );
 	int	(*pfnEntOffsetOfPEntity)( const edict_t *pEdict );
 	int	(*pfnIndexOfEdict)( const edict_t *pEdict );
@@ -137,7 +138,7 @@ typedef struct enginefuncs_s
 	const char *(*pfnNameForFunction)( dword function );
 	void	(*pfnClientPrintf)( edict_t* pEdict, int ptype, const char *szMsg );
 	void	(*pfnServerPrint)( const char *szMsg );
-	void	(*pfnAreaPortal)( edict_t *pEdict, bool enable );
+	void	(*pfnAreaPortal)( edict_t *pEdict, BOOL enable );
 	const char *(*pfnCmd_Args)( void );
 	const char *(*pfnCmd_Argv)( int argc );
 	int	(*pfnCmd_Argc)( void );
@@ -167,6 +168,7 @@ typedef struct enginefuncs_s
 	void	(*pfnSetSkybox)( const char *name );
 	void	(*pfnPlayMusic)( const char *trackname, int flags );	// background track
 	void	(*pfnDropClient)( int clientIndex );			// used for kick cheaters from server
+	void	(*pfnHostError)( const char *szFmt, ... );		// invoke host error
 } enginefuncs_t;
 
 // passed to pfnKeyValue

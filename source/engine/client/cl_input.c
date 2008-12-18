@@ -354,15 +354,15 @@ CL_CmdButtons
 */
 void CL_CmdButtons( usercmd_t *cmd )
 {
-	if ( in_attack.state & 3 )
+	if( in_attack.state & 3 )
 		cmd->buttons |= IN_ATTACK;
 	in_attack.state &= ~2;
 
-	if ( in_attack2.state & 3 )
+	if( in_attack2.state & 3 )
 		cmd->buttons |= IN_ATTACK2;
 	in_attack2.state &= ~2;	
 
-	if (in_use.state & 3)
+	if( in_use.state & 3 )
 		cmd->buttons |= IN_USE;
 	in_use.state &= ~2;
 

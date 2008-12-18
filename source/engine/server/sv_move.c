@@ -106,11 +106,11 @@ bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool set
 		for( i = 0; i < 2; i++ )
 		{
 			VectorAdd( ent->v.origin, move, neworg );
-			if( noenemy ) enemy = svg.edicts;
+			if( noenemy ) enemy = EDICT_NUM( 0 );
 			else
 			{
 				enemy = ent->v.enemy;
-				if( i == 0 && enemy != svg.edicts )
+				if( i == 0 && enemy != EDICT_NUM( 0 ))
 				{
 					dz = ent->v.origin[2] - ent->v.enemy->v.origin[2];
 					if( dz > 40 ) neworg[2] -= 8;
@@ -129,7 +129,7 @@ bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool set
 				if( relink ) SV_LinkEdict( ent );
 				return true;
 			}
-			if( enemy == svg.edicts ) break;
+			if( enemy == EDICT_NUM( 0 )) break;
 		}
 		return false;
 	}
@@ -349,7 +349,7 @@ bool SV_MoveToGoal( edict_t *ent, edict_t *goal, float dist )
 	}
 
 	// if the next step hits the enemy, return immediately
-	if( ent->v.enemy != svg.edicts &&  SV_CloseEnough( ent, goal, dist ))
+	if( ent->v.enemy != EDICT_NUM( 0 ) && SV_CloseEnough( ent, goal, dist ))
 		return false;
 
 	// bump around...

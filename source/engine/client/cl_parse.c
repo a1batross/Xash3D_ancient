@@ -287,6 +287,7 @@ void CL_ParseConfigString( sizebuf_t *msg )
 	else if( i >= CS_USER_MESSAGES && i < CS_USER_MESSAGES+MAX_USER_MESSAGES )
 	{
 		// FIXME: register user message here
+		// Msg("PrepUserMessage: %s[svc_%i]\n", cl.configstrings[i], i - CS_USER_MESSAGES );
 	}
 	else if( i >= CS_CLASSNAMES && i < CS_CLASSNAMES+MAX_CLASSNAMES )
 	{

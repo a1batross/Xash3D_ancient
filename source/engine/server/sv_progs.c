@@ -15,9 +15,9 @@ void SV_BeginIncreaseEdicts( void )
 	edict_t		*ent;
 
 	// links don't survive the transition, so unlink everything
-	for( i = 0, ent = svg.edicts; i < svs.globals->maxEntities; i++, ent++ )
+	for( i = 0, ent = EDICT_NUM( 0 ); i < svs.globals->maxEntities; i++, ent++ )
 	{
-		if( !ent->free ) SV_UnlinkEdict( svg.edicts + i ); // free old entity
+		if( !ent->free ) SV_UnlinkEdict( EDICT_NUM( i )); // free old entity
 		Mem_Set( &ent->pvEngineData->clusternums, 0, sizeof( ent->pvEngineData->clusternums ));
 	}
 	SV_ClearWorld();
@@ -28,7 +28,7 @@ void SV_EndIncreaseEdicts(void)
 	int		i;
 	edict_t		*ent;
 
-	for( i = 0, ent = svg.edicts; i < svs.globals->maxEntities; i++, ent++ )
+	for( i = 0, ent = EDICT_NUM( 0 ); i < svs.globals->maxEntities; i++, ent++ )
 	{
 		// link every entity except world
 		if( !ent->free ) SV_LinkEdict(ent);

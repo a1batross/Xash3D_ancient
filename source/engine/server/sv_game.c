@@ -27,18 +27,18 @@ void Sys_FreeNameFuncGlobals( void )
 {
 	int	i;
 
-	if( svg.ordinals ) Mem_Free( svg.ordinals );
-	if( svg.funcs) Mem_Free( svg.funcs);
+	if( game.ordinals ) Mem_Free( game.ordinals );
+	if( game.funcs) Mem_Free( game.funcs);
 
-	for( i = 0; i < svg.num_ordinals; i++ )
+	for( i = 0; i < game.num_ordinals; i++ )
 	{
-		if( svg.names[i] )
-			Mem_Free( svg.names[i] );
+		if( game.names[i] )
+			Mem_Free( game.names[i] );
 	}
 
-	svg.num_ordinals = 0;
-	svg.ordinals = NULL;
-	svg.funcs = NULL;
+	game.num_ordinals = 0;
+	game.ordinals = NULL;
+	game.funcs = NULL;
 }
 
 char *Sys_GetMSVCName( const char *in_name )
@@ -51,13 +51,13 @@ char *Sys_GetMSVCName( const char *in_name )
 		{
 			int	len = pos - in_name;
 
-			out_name = copystring( in_name + 1 );	// strip off the leading '?'
-			out_name[len-1] = 0;		// terminate string at the "@@"
+			// strip off the leading '?'
+			out_name = com.stralloc( svs.private, in_name + 1, __FILE__, __LINE__ );
+			out_name[len-1] = 0; // terminate string at the "@@"
 			return out_name;
 		}
 	}
-
-	return copystring( in_name );
+	return com.stralloc( svs.private, in_name, __FILE__, __LINE__ );
 }
 
 bool Sys_LoadSymbols( const char *filename )
@@ -79,8 +79,8 @@ bool Sys_LoadSymbols( const char *filename )
 	dword		*p_Names = NULL;
 	int		i, index;
 
-	for( i = 0; i < svg.num_ordinals; i++ )
-		svg.names[i] = NULL;
+	for( i = 0; i < game.num_ordinals; i++ )
+		game.names[i] = NULL;
 
 	f = FS_Open( filename, "rb" );
 	if( !f )
@@ -189,9 +189,9 @@ bool Sys_LoadSymbols( const char *filename )
 		return false;
 	}
 
-	svg.num_ordinals = export_directory.NumberOfNames;	// also number of ordinals
+	game.num_ordinals = export_directory.NumberOfNames;	// also number of ordinals
 
-	if( svg.num_ordinals > MAX_SYSPATH )
+	if( game.num_ordinals > MAX_SYSPATH )
 	{
 		MsgDev( D_ERROR, "Sys_LoadSymbols: %s too many exports\n", filename );
 		FS_Close( f );
@@ -207,9 +207,9 @@ bool Sys_LoadSymbols( const char *filename )
 		return false;
 	}
 
-	svg.ordinals = Z_Malloc( svg.num_ordinals * sizeof( word ));
+	game.ordinals = Z_Malloc( game.num_ordinals * sizeof( word ));
 
-	if( FS_Read( f, svg.ordinals, svg.num_ordinals * sizeof( word )) != (svg.num_ordinals * sizeof( word )))
+	if( FS_Read( f, game.ordinals, game.num_ordinals * sizeof( word )) != (game.num_ordinals * sizeof( word )))
 	{
 		Sys_FreeNameFuncGlobals();
 		MsgDev( D_ERROR, "Sys_LoadSymbols: %s error during reading ordinals table\n", filename );
@@ -225,9 +225,9 @@ bool Sys_LoadSymbols( const char *filename )
 		return false;
 	}
 
-	svg.funcs = Z_Malloc( svg.num_ordinals * sizeof( dword ));
+	game.funcs = Z_Malloc( game.num_ordinals * sizeof( dword ));
 
-	if( FS_Read( f, svg.funcs, svg.num_ordinals * sizeof( dword )) != (svg.num_ordinals * sizeof( dword )))
+	if( FS_Read( f, game.funcs, game.num_ordinals * sizeof( dword )) != (game.num_ordinals * sizeof( dword )))
 	{
 		Sys_FreeNameFuncGlobals();
 		MsgDev( D_ERROR, "Sys_LoadSymbols: %s error during reading export address section\n", filename );
@@ -245,9 +245,9 @@ bool Sys_LoadSymbols( const char *filename )
 		return false;
 	}
 
-	p_Names = Z_Malloc( svg.num_ordinals * sizeof( dword ));
+	p_Names = Z_Malloc( game.num_ordinals * sizeof( dword ));
 
-	if( FS_Read( f, p_Names, svg.num_ordinals * sizeof( dword )) != (svg.num_ordinals * sizeof( dword )))
+	if( FS_Read( f, p_Names, game.num_ordinals * sizeof( dword )) != (game.num_ordinals * sizeof( dword )))
 	{
 		Sys_FreeNameFuncGlobals();
 		if( p_Names ) Mem_Free( p_Names );
@@ -256,7 +256,7 @@ bool Sys_LoadSymbols( const char *filename )
 		return false;
 	}
 
-	for( i = 0; i < svg.num_ordinals; i++ )
+	for( i = 0; i < game.num_ordinals; i++ )
 	{
 		name_offset = p_Names[i] - edata_delta;
 
@@ -265,13 +265,13 @@ bool Sys_LoadSymbols( const char *filename )
 			if( FS_Seek( f, name_offset, SEEK_SET ) != -1 )
 			{
 				Sys_FsGetString( f, function_name );
-				svg.names[i] = Sys_GetMSVCName( function_name );
+				game.names[i] = Sys_GetMSVCName( function_name );
 			}
 			else break;
 		}
 	}
 
-	if( i != svg.num_ordinals )
+	if( i != game.num_ordinals )
 	{
 		Sys_FreeNameFuncGlobals();
 		if( p_Names ) Mem_Free( p_Names );
@@ -281,15 +281,15 @@ bool Sys_LoadSymbols( const char *filename )
 	}
 	FS_Close( f );
 
-	for( i = 0; i < svg.num_ordinals; i++ )
+	for( i = 0; i < game.num_ordinals; i++ )
 	{
-		if( com.strcmp( "GiveFnptrsToDll", svg.names[i] ))
+		if( !com.strcmp( "GiveFnptrsToDll", game.names[i] ))
 		{
 			void	*fn_offset;
 
-			index = svg.ordinals[i];
+			index = game.ordinals[i];
 			fn_offset = (void *)Sys_GetProcAddress( svs.game, "GiveFnptrsToDll" );
-			svg.funcBase = (dword)(fn_offset) - svg.funcs[index];
+			game.funcBase = (dword)(fn_offset) - game.funcs[index];
 			break;
 		}
 	}
@@ -622,6 +622,7 @@ bool SV_EntitiesIn( bool mode, vec3_t v1, vec3_t v2 )
 void SV_InitEdict( edict_t *pEdict )
 {
 	Com_Assert( pEdict == NULL );
+	Com_Assert( pEdict->pvServerData != NULL );
 
 	pEdict->v.pContainingEntity = pEdict; // make cross-links for consistency
 	pEdict->pvEngineData = (ed_priv_t *)Mem_Alloc( svs.mempool,  sizeof( ed_priv_t ));
@@ -632,6 +633,9 @@ void SV_InitEdict( edict_t *pEdict )
 
 void SV_FreeEdict( edict_t *pEdict )
 {
+	Com_Assert( pEdict == NULL );
+	Com_Assert( pEdict->free );
+
 	// unlink from world
 	SV_UnlinkEdict( pEdict );
 	pe->RemoveBody( pEdict->pvEngineData->physbody );
@@ -1019,7 +1023,7 @@ pfnSetModel
 */
 void pfnSetModel( edict_t *e, const char *m )
 {
-	if( e == svg.edicts )
+	if( e == game.edicts )
 	{
 		MsgDev( D_WARN, "SV_SetModel: can't modify world entity\n" );
 		return;
@@ -1088,7 +1092,7 @@ void pfnSetSize( edict_t *e, const float *rgflMin, const float *rgflMax )
 		MsgDev( D_ERROR, "SV_SetSize: entity not exist\n" );
 		return;
 	}
-	else if( e == svg.edicts )
+	else if( e == game.edicts )
 	{
 		MsgDev( D_ERROR, "SV_SetSize: can't modify world entity\n" );
 		return;
@@ -1211,7 +1215,7 @@ void pfnChangeYaw( edict_t* ent )
 {
 	float	current;
 
-	if( ent == svg.edicts )
+	if( ent == game.edicts )
 	{
 		MsgDev( D_WARN, "SV_ChangeYaw: can't modify world entity\n" );
 		return;
@@ -1236,7 +1240,7 @@ void pfnChangePitch( edict_t* ent )
 {
 	float	current;
 
-	if( ent == svg.edicts )
+	if( ent == game.edicts )
 	{
 		MsgDev( D_WARN, "SV_ChangePitch: can't modify world entity\n" );
 		return;
@@ -1263,7 +1267,9 @@ edict_t* pfnFindEntityByString( edict_t *pStartEdict, const char *pszField, cons
 	const char	*t;
 	edict_t		*ed;
 
-	e = NUM_FOR_EDICT( pStartEdict );
+	if( !pStartEdict )
+		e = NUM_FOR_EDICT( game.edicts );
+	else e = NUM_FOR_EDICT( pStartEdict );
 	if( !pszValue ) pszValue = "";
 
 	if( !com.strcmp( pszField, "classname" ))
@@ -1289,7 +1295,7 @@ edict_t* pfnFindEntityByString( edict_t *pStartEdict, const char *pszField, cons
 		if( !com.strcmp( t, pszValue ))
 			return ed;
 	}
-	return svg.edicts;
+	return game.edicts;
 }
 
 /*
@@ -1300,7 +1306,7 @@ pfnGetEntityIllum
 */
 int pfnGetEntityIllum( edict_t* pEnt )
 {
-	if( pEnt == svg.edicts )
+	if( pEnt == game.edicts )
 	{
 		MsgDev( D_WARN, "SV_GetEntityIllum: can't get light level at world entity\n" );
 		return 0;
@@ -1325,11 +1331,12 @@ edict_t* pfnFindEntityInSphere( edict_t *pStartEdict, const float *org, float ra
 	edict_t	*ent, *chain;
 	float	radSquare;
 	vec3_t	eorg;
-	int	e;
+	int	e = 0;
 
 	radSquare = rad * rad;
 	chain = pStartEdict; 
-	e = NUM_FOR_EDICT( pStartEdict );
+	if( pStartEdict )
+		e = NUM_FOR_EDICT( pStartEdict );
 	
 	for( e++; e < svs.globals->numEntities; e++ )
 	{
@@ -1367,7 +1374,7 @@ edict_t* pfnFindClientInPVS( edict_t *pEdict )
 
 	for( i = 1; i < numents; i++ )
 	{
-		pClient = svg.edicts + i;
+		pClient = game.edicts + i;
 		if( pClient->free ) continue;
 		if( SV_EntitiesIn( DVIS_PVS, pEdict->v.origin, pClient->v.origin ))
 		{
@@ -1396,7 +1403,7 @@ edict_t* pfnFindClientInPHS( edict_t *pEdict )
 
 	for( i = 1; i < numents; i++ )
 	{
-		pClient = svg.edicts + i;
+		pClient = game.edicts + i;
 		if( pClient->free ) continue;
 		if( SV_EntitiesIn( DVIS_PHS, pClient->v.origin, pEdict->v.origin ))
 		{
@@ -1424,7 +1431,7 @@ edict_t* pfnEntitiesInPVS( edict_t *pplayer )
 
 	for( i = svs.globals->maxClients; i < numents; i++ )
 	{
-		pEdict = svg.edicts + i;
+		pEdict = game.edicts + i;
 		if( pEdict->free ) continue;
 		if( SV_EntitiesIn( DVIS_PVS, pEdict->v.origin, pplayer->v.origin ))
 		{
@@ -1452,7 +1459,7 @@ edict_t* pfnEntitiesInPHS( edict_t *pplayer )
 
 	for( i = svs.globals->maxClients; i < numents; i++ )
 	{
-		pEdict = svg.edicts + i;
+		pEdict = game.edicts + i;
 		if( pEdict->free ) continue;
 		if( SV_EntitiesIn( DVIS_PHS, pEdict->v.origin, pplayer->v.origin ))
 		{
@@ -1511,7 +1518,7 @@ void pfnRemoveEntity( edict_t* e )
 	// never free client or world entity
 	if( NUM_FOR_EDICT( e ) < svs.globals->maxClients )
 	{
-		MsgDev( D_ERROR, "SV_RemoveEntity: can't delete %s\n", (e == svg.edicts) ? "world" : "client" );
+		MsgDev( D_ERROR, "SV_RemoveEntity: can't delete %s\n", (e == game.edicts) ? "world" : "client" );
 		return;
 	}
 	SV_FreeEdict( e );
@@ -1534,7 +1541,6 @@ edict_t* pfnCreateNamedEntity( string_t className )
 	pszClassName = STRING( className );
 
 	// also register classname to send for client
-	Com_Assert( pszClassName == NULL || !pszClassName[0] );
 	ed->pvEngineData->s.classname = SV_ClassIndex( pszClassName );
 
 	return ed;
@@ -1576,7 +1582,7 @@ int pfnDropToFloor( edict_t* e )
 	trace_t		trace;
 
 	// ignore world silently
-	if( e == svg.edicts ) return false;
+	if( e == game.edicts ) return false;
 	if( e->free )
 	{
 		MsgDev( D_ERROR, "SV_DropToFloor: can't modify free entity\n" );
@@ -1654,7 +1660,7 @@ int pfnWalkMove( edict_t *ent, float yaw, float dist, int iMode )
 	vec3_t		move;
 
 	// ignore world silently
-	if( ent == svg.edicts ) return false;
+	if( ent == game.edicts ) return false;
 	if( ent->free )
 	{
 		MsgDev( D_WARN, "SV_DropToFloor: can't modify free entity\n" );
@@ -1678,7 +1684,7 @@ pfnSetOrigin
 void pfnSetOrigin( edict_t *e, const float *rgflOrigin )
 {
 	// ignore world silently
-	if( e == svg.edicts ) return;
+	if( e == game.edicts ) return;
 	if( e->free )
 	{
 		MsgDev( D_ERROR, "SV_SetOrigin: can't modify free entity\n" );
@@ -1701,7 +1707,7 @@ pfnSetAngles
 */
 void pfnSetAngles( edict_t *e, const float *rgflAngles )
 {
-	if( e == svg.edicts ) return;
+	if( e == game.edicts ) return;
 	if( e->free )
 	{
 		MsgDev( D_ERROR, "SV_SetAngles: can't modify free entity\n" );
@@ -1768,7 +1774,7 @@ void pfnTraceToss( edict_t* pent, edict_t* pentToIgnore, TraceResult *ptr )
 {
 	trace_t		trace;
 
-	if( pent == svg.edicts ) return;
+	if( pent == game.edicts ) return;
 	trace = SV_TraceToss( pent, pentToIgnore );
 	SV_CopyTraceResult( ptr, trace );
 }
@@ -1854,7 +1860,7 @@ void pfnGetAimVector( edict_t* ent, float speed, float *rgflReturn )
 	fNoFriendlyFire = Cvar_VariableValue( "mp_friendlyfire" );
 	VectorCopy( svs.globals->v_forward, rgflReturn );		// assume failure if it returns early
 
-	if( ent == svg.edicts ) return;
+	if( ent == game.edicts ) return;
 	if( ent->free )
 	{
 		MsgDev( D_ERROR, "SV_GetAimVector: can't aiming at free entity\n" );
@@ -1880,7 +1886,7 @@ void pfnGetAimVector( edict_t* ent, float speed, float *rgflReturn )
 	bestdist = 0.5f;
 	bestent = NULL;
 
-	check = svg.edicts + 1; // start at first client
+	check = game.edicts + 1; // start at first client
 	for( i = 1; i < svs.globals->numEntities; i++, check++ )
 	{
 		if( check->v.takedamage != DAMAGE_AIM ) continue;
@@ -2024,14 +2030,14 @@ void pfnMessageBegin( int msg_dest, int msg_type, const float *pOrigin, edict_t 
 {
 	// some users can send message with engine index
 	// reduce number to avoid overflow problems or cheating
-	svg.msg_index = bound( svc_bad, msg_type, svc_nop );
+	game.msg_index = bound( svc_bad, msg_type, svc_nop );
 
-	MSG_Begin( svg.msg_index );
+	MSG_Begin( game.msg_index );
 
 	// save message destination
 	if( pOrigin ) VectorCopy( pOrigin, svs.msg_org );
 	else VectorClear( svs.msg_org );
-	svg.msg_leftsize = svg.msg_sizes[msg_type];
+	game.msg_leftsize = game.msg_sizes[msg_type];
 	svs.msg_dest = msg_dest;
 	svs.msg_ent = ed;
 }
@@ -2044,11 +2050,13 @@ pfnMessageEnd
 */
 void pfnMessageEnd( void )
 {
-	if( svg.msg_leftsize != 0xFFFF && svg.msg_leftsize != 0 )
+	return;//
+	
+	if( game.msg_leftsize != 0xFFFF && game.msg_leftsize != 0 )
 	{
-		const char *name = sv.configstrings[CS_USER_MESSAGES + svg.msg_index];
-		int size = svg.msg_sizes[svg.msg_index];
-		int realsize = size - svg.msg_leftsize;
+		const char *name = sv.configstrings[CS_USER_MESSAGES + game.msg_index];
+		int size = game.msg_sizes[game.msg_index];
+		int realsize = size - game.msg_leftsize;
 
 		MsgDev( D_ERROR, "SV_Message: %s expected %i bytes, it written %i\n", name, size, realsize );
 		MSG_Clear( &sv.multicast );
@@ -2068,7 +2076,7 @@ pfnWriteByte
 void pfnWriteByte( int iValue )
 {
 	MSG_WriteByte( &sv.multicast, (int)iValue );
-	if( svg.msg_leftsize != 0xFFFF ) svg.msg_leftsize--;
+	if( game.msg_leftsize != 0xFFFF ) game.msg_leftsize--;
 }
 
 /*
@@ -2080,7 +2088,7 @@ pfnWriteChar
 void pfnWriteChar( int iValue )
 {
 	MSG_WriteChar( &sv.multicast, (int)iValue );
-	if( svg.msg_leftsize != 0xFFFF ) svg.msg_leftsize--;
+	if( game.msg_leftsize != 0xFFFF ) game.msg_leftsize--;
 }
 
 /*
@@ -2092,7 +2100,7 @@ pfnWriteShort
 void pfnWriteShort( int iValue )
 {
 	MSG_WriteShort( &sv.multicast, (int)iValue );
-	if( svg.msg_leftsize != 0xFFFF ) svg.msg_leftsize -= 2;
+	if( game.msg_leftsize != 0xFFFF ) game.msg_leftsize -= 2;
 }
 
 /*
@@ -2104,7 +2112,7 @@ pfnWriteLong
 void pfnWriteLong( int iValue )
 {
 	MSG_WriteLong( &sv.multicast, (int)iValue );
-	if( svg.msg_leftsize != 0xFFFF ) svg.msg_leftsize -= 4;
+	if( game.msg_leftsize != 0xFFFF ) game.msg_leftsize -= 4;
 }
 
 /*
@@ -2116,7 +2124,7 @@ pfnWriteAngle
 void pfnWriteAngle( float flValue )
 {
 	MSG_WriteAngle32( &sv.multicast, flValue );
-	if( svg.msg_leftsize != 0xFFFF ) svg.msg_leftsize -= 4;
+	if( game.msg_leftsize != 0xFFFF ) game.msg_leftsize -= 4;
 }
 
 /*
@@ -2128,7 +2136,7 @@ pfnWriteCoord
 void pfnWriteCoord( float flValue )
 {
 	MSG_WriteCoord32( &sv.multicast, flValue );
-	if( svg.msg_leftsize != 0xFFFF ) svg.msg_leftsize -= 4;
+	if( game.msg_leftsize != 0xFFFF ) game.msg_leftsize -= 4;
 }
 
 /*
@@ -2146,8 +2154,8 @@ void pfnWriteString( const char *sz )
 	total_size = sv.multicast.cursize - cur_size;
 
 	// some messages with constant strings can be marked as known sized
-	if( svg.msg_leftsize != 0xFFFF )
-		svg.msg_leftsize -= total_size;
+	if( game.msg_leftsize != 0xFFFF )
+		game.msg_leftsize -= total_size;
 }
 
 /*
@@ -2161,7 +2169,7 @@ void pfnWriteEntity( int iValue )
 	if( iValue < 0 || iValue > svs.globals->numEntities )
 		Host_Error( "MSG_WriteEntity: invalid entnumber %d\n", iValue );
 	MSG_WriteShort( &sv.multicast, iValue );
-	if( svg.msg_leftsize != 0xFFFF ) svg.msg_leftsize -= 2;
+	if( game.msg_leftsize != 0xFFFF ) game.msg_leftsize -= 2;
 }
 
 /*
@@ -2247,15 +2255,15 @@ pfnPvAllocEntPrivateData
 */
 void *pfnPvAllocEntPrivateData( edict_t *pEdict, long cb )
 {
-	Msg("Edict: %s alloc %s\n", STRING( pEdict->v.classname ), memprint( cb ));
+	Com_Assert( pEdict == NULL );
 
 	// to avoid multiple alloc
-	pEdict->pvServerData = (void *)Mem_Alloc( svs.private, cb );
+	pEdict->pvServerData = (void *)Mem_Realloc( svs.private, pEdict->pvServerData, cb );
 
 	return pEdict->pvServerData;
 }
 
-/*
+/*                                 
 =============
 pfnFreeEntPrivateData
 
@@ -2263,7 +2271,8 @@ pfnFreeEntPrivateData
 */
 void pfnFreeEntPrivateData( edict_t *pEdict )
 {
-	if( pEdict->pvServerData ) Mem_Free( pEdict->pvServerData );
+	if( pEdict->pvServerData )
+		Mem_Free( pEdict->pvServerData );
 	pEdict->pvServerData = NULL; // freed
 }
 
@@ -2271,41 +2280,44 @@ void pfnFreeEntPrivateData( edict_t *pEdict )
 =============
 pfnAllocString
 
-FIXME: make work
 =============
 */
 string_t pfnAllocString( const char *szValue )
 {
-	string_t	str;
-
-	str = ED_NewString( szValue, svs.stringpool ) - svs.globals->pStringBase;
-
-	Msg("AllocString: %s\n", STRING( str ));
-	return str;
+	return StringTable_SetString( game.hStringTable, szValue );
 }		
+
+/*
+=============
+pfnGetString
+
+=============
+*/
+const char *pfnGetString( string_t iString )
+{
+	return StringTable_GetString( game.hStringTable, iString );
+}
 
 /*
 =============
 pfnPEntityOfEntOffset
 
-FIXME: this is correct ?
 =============
 */
 edict_t* pfnPEntityOfEntOffset( int iEntOffset )
 {
-	return svg.edicts + iEntOffset;
+	return (&((edict_t*)game.vp)[iEntOffset]);
 }
 
 /*
 =============
 pfnEntOffsetOfPEntity
 
-FIXME: this is correct ?
 =============
 */
 int pfnEntOffsetOfPEntity( const edict_t *pEdict )
 {
-	return pEdict - svg.edicts;
+	return ((byte *)pEdict - (byte *)game.vp);
 }
 
 /*
@@ -2316,7 +2328,7 @@ pfnIndexOfEdict
 */
 int pfnIndexOfEdict( const edict_t *pEdict )
 {
-	return pEdict - svg.edicts;
+	return NUM_FOR_EDICT( pEdict );
 }
 
 /*
@@ -2327,7 +2339,7 @@ pfnPEntityOfEntIndex
 */
 edict_t* pfnPEntityOfEntIndex( int iEntIndex )
 {
-	return svg.edicts + iEntIndex;
+	return EDICT_NUM( iEntIndex );
 }
 
 /*
@@ -2339,8 +2351,13 @@ slow linear brute force
 */
 edict_t* pfnFindEntityByVars( entvars_t* pvars )
 {
-	edict_t	*e = svg.edicts;
+	edict_t	*e = game.edicts;
 	int	i;
+
+	Msg("FindEntity by VARS()\n" );
+
+	// HACKHACK
+	if( pvars ) return pvars->pContainingEntity;
 
 	for( i = 0; i < svs.globals->numEntities; i++, e++ )
 	{
@@ -2381,8 +2398,8 @@ int pfnRegUserMsg( const char *pszName, int iSize )
 
 	msg_index = SV_UserMessageIndex( pszName );
 	if( iSize == -1 )
-		svg.msg_sizes[msg_index] = 0xFFFF;
-	else svg.msg_sizes[msg_index] = iSize;
+		game.msg_sizes[msg_index] = 0xFFFF;
+	else game.msg_sizes[msg_index] = iSize;
 
 	return msg_index;
 }
@@ -2419,12 +2436,12 @@ dword pfnFunctionFromName( const char *pName )
 {
 	int	i, index;
 
-	for( i = 0; i < svg.num_ordinals; i++ )
+	for( i = 0; i < game.num_ordinals; i++ )
 	{
-		if( !com.strcmp( pName, svg.names[i] ))
+		if( !com.strcmp( pName, game.names[i] ))
 		{
-			index = svg.ordinals[i];
-			return svg.funcs[index] + svg.funcBase;
+			index = game.ordinals[i];
+			return game.funcs[index] + game.funcBase;
 		}
 	}
 
@@ -2442,13 +2459,14 @@ const char *pfnNameForFunction( dword function )
 {
 	int	i, index;
 
-	for( i = 0; i < svg.num_ordinals; i++ )
+	for( i = 0; i < game.num_ordinals; i++ )
 	{
-		index = svg.ordinals[i];
+		index = game.ordinals[i];
 
-		if((function - svg.funcBase) == svg.funcs[index] )
-			return svg.names[i];
+		if((function - game.funcBase) == game.funcs[index] )
+			return game.names[i];
 	}
+
 	// couldn't find the function address to return name
 	return NULL;
 }
@@ -2516,7 +2534,7 @@ changes area portal state
 */
 void pfnAreaPortal( edict_t *pEdict, bool enable )
 {
-	if( pEdict == svg.edicts ) return;
+	if( pEdict == game.edicts ) return;
 	if( pEdict->free )
 	{
 		MsgDev( D_ERROR, "SV_AreaPortal: can't modify free entity\n" );
@@ -2939,6 +2957,7 @@ static enginefuncs_t gEngfuncs =
 	pfnPvAllocEntPrivateData,
 	pfnFreeEntPrivateData,
 	pfnAllocString,
+	pfnGetString,
 	pfnPEntityOfEntOffset,
 	pfnEntOffsetOfPEntity,
 	pfnIndexOfEdict,
@@ -2979,7 +2998,8 @@ static enginefuncs_t gEngfuncs =
 	pfnSetClientKeyValue,	
 	pfnSetSkybox,
 	pfnPlayMusic,
-	pfnDropClient		
+	pfnDropClient,		
+	Host_Error
 };
 
 /*
@@ -3095,14 +3115,11 @@ void SV_LoadFromFile( script_t *entities )
 		if( !SV_ParseEdict( entities, ent ))
 			continue;
 
-		Msg("SpawnEntity: %s\n", STRING( ent->v.classname ));
 		if( svs.dllFuncs.pfnSpawn( ent ) == -1 )
 			died++;
 		else spawned++;
 	}
 	MsgDev( D_INFO, "%i entities inhibited\n", inhibited );
-
-	Com_Assert( 1 );
 }
 
 /*
@@ -3120,8 +3137,8 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 
 	MsgDev( D_NOTE, "SV_SpawnEntities()\n" );
 
-	ent = svg.edicts;
-	Mem_Set( &ent->v, 0, sizeof( entvars_t ));
+	ent = EDICT_NUM( 0 );
+	SV_InitEdict( ent );
 	ent->v.model = pfnAllocString( sv.configstrings[CS_MODELS] );
 	ent->v.modelindex = 1;	// world model
 	ent->v.solid = SOLID_BSP;
@@ -3142,14 +3159,15 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 		ent = EDICT_NUM( i + 1 );
 		SV_InitEdict( ent );
 		ent->pvEngineData->client = svs.clients + i;
+		svs.globals->numClients++;
 	}
-
 	Msg("Total %i entities spawned\n", svs.globals->numEntities );
 }
 
 void SV_UnloadProgs( void )
 {
 	Sys_FreeNameFuncGlobals();
+	StringTable_Delete( game.hStringTable );
 
 	if( svs.game && svs.game->link )
 	{
@@ -3212,13 +3230,15 @@ bool SV_LoadProgs( const char *name )
 		return false;
 	}
 
-	// get pointer as really static object
-	svs.globals->pStringBase = (const char *)GiveFnptrsToDll;
+	// 65535 unique strings should be enough ...
+	game.hStringTable = StringTable_Create( "Game Strings", 0x10000 );
+	StringTable_SetString( game.hStringTable, "" ); // make NULL string
 	svs.globals->maxEntities = host.max_edicts;
 	svs.globals->maxClients = Host_MaxClients();
-	svg.edicts = Mem_Alloc( svs.mempool, sizeof( edict_t ) * svs.globals->maxEntities );
-	svs.globals->numClients = svs.globals->numEntities = 0;
-	for( i = 0, e = svg.edicts; i < svs.globals->maxEntities; i++, e++ )
+	game.edicts = Mem_Alloc( svs.mempool, sizeof( edict_t ) * svs.globals->maxEntities );
+	svs.globals->numEntities = svs.globals->maxClients + 1; // clients + world
+	svs.globals->numClients = 0;
+	for( i = 0, e = game.edicts; i < svs.globals->maxEntities; i++, e++ )
 		e->free = true; // mark all edicts as freed
 
 	// initialize game

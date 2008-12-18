@@ -260,7 +260,7 @@ bool StringTable_CheckString( int handle, string_t str )
 	if(!StringTable_CheckHandle( handle ))
 		return false;
 
-	if( str < 0 || str > dstring[handle]->numstrings )
+	if( str < 0 || str >= dstring[handle]->numstrings )
 	{
 		MsgDev( D_ERROR, "StringTable_CheckString: invalid string index %i\n", str );
 		return false;
@@ -316,7 +316,7 @@ string_t StringTable_SetString( int handle, const char *string )
 
 	for( i = 0; i < dstring[handle]->numstrings; i++ )
 	{
-		if(!com.stricmp( string, StringTable_GetString( handle, i )))
+		if(!com.strcmp( string, StringTable_GetString( handle, i )))
 			return i; // already existing
 	}
 

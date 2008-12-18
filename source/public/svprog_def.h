@@ -16,9 +16,9 @@ typedef struct globalvars_s
 	string_t		startspot;
 	vec3_t		spotOffset;	// landmark offset
 
-	bool		deathmatch;
-	bool		coop;
-	bool		teamplay;
+	BOOL		deathmatch;
+	BOOL		coop;
+	BOOL		teamplay;
 
 	int		serverflags;
 	int		maxClients;
@@ -30,9 +30,9 @@ typedef struct globalvars_s
 	vec3_t		v_right;
 	vec3_t		v_up;
 
-	bool		trace_allsolid;
-	bool		trace_startsolid;
-	bool		trace_startstuck;
+	BOOL		trace_allsolid;
+	BOOL		trace_startsolid;
+	BOOL		trace_startstuck;
 	float		trace_fraction;
 	vec3_t		trace_endpos;
 	vec3_t		trace_plane_normal;
@@ -48,7 +48,6 @@ typedef struct globalvars_s
 	int		total_monsters;
 	int		killed_monsters;	// number of monsters killed
 
-	const char	*pStringBase;	// stringtable base offset
 	void		*pSaveData;	// savedata base offset
 } globalvars_t;
 
@@ -190,7 +189,7 @@ typedef struct entvars_s
 
 struct edict_s
 {
-	bool		free;
+	BOOL		free;
 	float		freetime;			// sv.time when the object was freed
 	int		serialnumber;
 

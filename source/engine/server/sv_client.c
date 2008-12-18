@@ -481,7 +481,6 @@ void SV_PutClientInServer( edict_t *ent )
 	edict_t		*viewmodel;
 	int		i;
 
-	Com_Assert( 1 );          
 	index = NUM_FOR_EDICT( ent ) - 1;
 	client = ent->pvEngineData->client;
 
@@ -504,10 +503,7 @@ void SV_PutClientInServer( edict_t *ent )
 		VectorCopy( ent->v.angles, viewmodel->v.angles );
 		viewmodel->v.model = ent->v.viewmodel;
 		viewmodel->v.movetype = MOVETYPE_FOLLOW;
-		
-		// make cross links for consistency
 		viewmodel->v.aiment = ent;
-		ent->v.aiment = viewmodel;
 	}
 	else
 	{

@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "server.h"
 
 server_static_t	svs;	// persistant server info
-game_static_t	svg;	// persistant game info
+game_static_t	game;	// persistant game info
 server_t		sv;	// local server
 
 /*
@@ -208,6 +208,8 @@ void SV_SpawnServer( const char *server, const char *savename )
 
 	if( sv.loadgame ) SV_ReadLevelFile( savename );
 	else SV_SpawnEntities( sv.name, pe->GetEntityScript());
+
+	svs.dllFuncs.pfnServerActivate( game.edicts, svs.globals->numEntities, svs.globals->maxClients );
 
 	// run two frames to allow everything to settle
 	for( i = 0; i < 2; i++ )

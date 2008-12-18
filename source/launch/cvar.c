@@ -314,7 +314,7 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 			var->modificationCount++;
 			return var;
 		}
-		if((var->flags & CVAR_CHEAT) && !Cvar_VariableInteger("host_cheats"))
+		if((var->flags & CVAR_CHEAT) && !Cvar_VariableInteger( "sv_cheats" ))
 		{
 			MsgDev( D_INFO, "%s is cheat protected.\n", var_name );
 			return var;
