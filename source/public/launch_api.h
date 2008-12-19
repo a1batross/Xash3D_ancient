@@ -10,6 +10,8 @@
 #pragma warning(disable : 4018)	// signed/unsigned mismatch
 #pragma warning(disable : 4305)	// truncation from const double to float
 
+#define false		0
+#define true		1
 #define STRING_COLOR_TAG	'^'
 #define MAX_STRING		256	// generic string
 #define MAX_SYSPATH		1024	// system filepath
@@ -18,11 +20,11 @@
 #define bound(min, num, max)	((num) >= (min) ? ((num) < (max) ? (num) : (max)) : (min))
 #define DLLEXPORT		__declspec( dllexport )
 
-// generic engine types
 #ifndef __cplusplus
-typedef enum { false, true }	bool;
+#define bool		BOOL	// sizeof( int )
 #endif
 
+// generic engine types
 typedef unsigned char 	byte;
 typedef unsigned short	word;
 typedef unsigned long	dword;

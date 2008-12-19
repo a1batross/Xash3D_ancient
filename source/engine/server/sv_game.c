@@ -1316,7 +1316,7 @@ int pfnGetEntityIllum( edict_t* pEnt )
 		MsgDev( D_WARN, "SV_GetEntityIllum: can't get light level at free entity\n" );
 		return 0;
 	}	
-	return 255; //FIXME: implement
+	return 255; // FIXME: implement
 }
 
 /*
@@ -1328,13 +1328,12 @@ return NULL instead of world
 */
 edict_t* pfnFindEntityInSphere( edict_t *pStartEdict, const float *org, float rad )
 {
-	edict_t	*ent, *chain;
+	edict_t	*ent;
 	float	radSquare;
 	vec3_t	eorg;
 	int	e = 0;
 
 	radSquare = rad * rad;
-	chain = pStartEdict; 
 	if( pStartEdict )
 		e = NUM_FOR_EDICT( pStartEdict );
 	
@@ -1342,19 +1341,14 @@ edict_t* pfnFindEntityInSphere( edict_t *pStartEdict, const float *org, float ra
 	{
 		ent = EDICT_NUM( e );
 		if( ent->free ) continue;
-		if( ent->v.solid == SOLID_NOT ) continue;
 
 		VectorSubtract( org, ent->v.origin, eorg );
 		VectorMAMAM( 1, eorg, 0.5f, ent->v.mins, 0.5f, ent->v.maxs, eorg );
 
-		if(DotProduct( eorg, eorg ) < radSquare )
-		{
-			ent->v.chain = chain;
-			chain = ent;
-		}
+		if( DotProduct( eorg, eorg ) < radSquare )
+			return ent;
 	}
-
-	return chain; // fisrt chain
+	return NULL; // fisrt chain
 }
 
 /*
@@ -1366,24 +1360,20 @@ return NULL instead of world
 */
 edict_t* pfnFindClientInPVS( edict_t *pEdict )
 {
-	edict_t	*pClient, *chain;
-	int	i, numents;
+	edict_t	*pClient;
+	int	i;
 
-	chain = NULL;
-	numents = svs.globals->maxClients;
-
-	for( i = 1; i < numents; i++ )
+	for( i = 1; i < svs.globals->maxClients; i++ )
 	{
 		pClient = game.edicts + i;
 		if( pClient->free ) continue;
 		if( SV_EntitiesIn( DVIS_PVS, pEdict->v.origin, pClient->v.origin ))
 		{
 			Msg( "found client %d\n", pClient->serialnumber );
-			pEdict->v.chain = chain;
-			chain = pEdict;
+			return pEdict;
 		}
 	}
-	return chain; // fisrt entry
+	return NULL;
 }
 
 /*
@@ -1395,24 +1385,20 @@ return NULL instead of world
 */
 edict_t* pfnFindClientInPHS( edict_t *pEdict )
 {
-	edict_t	*pClient, *chain;
-	int	i, numents;
+	edict_t	*pClient;
+	int	i;
 
-	chain = NULL;
-	numents = svs.globals->maxClients;
-
-	for( i = 1; i < numents; i++ )
+	for( i = 1; i < svs.globals->maxClients; i++ )
 	{
 		pClient = game.edicts + i;
 		if( pClient->free ) continue;
-		if( SV_EntitiesIn( DVIS_PHS, pClient->v.origin, pEdict->v.origin ))
+		if( SV_EntitiesIn( DVIS_PHS, pEdict->v.origin, pClient->v.origin ))
 		{
 			Msg( "found client %d\n", pClient->serialnumber );
-			pClient->v.chain = chain;
-			chain = pClient;
+			return pEdict;
 		}
 	}
-	return chain; // fisrt entry
+	return NULL;
 }
 
 /*

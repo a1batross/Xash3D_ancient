@@ -107,7 +107,7 @@ static net_field_t cmd_fields[] =
 { CM_FIELD(forwardmove),	NET_SHORT, false	},
 { CM_FIELD(sidemove),	NET_SHORT, false	},
 { CM_FIELD(upmove),		NET_SHORT, false	},
-{ CM_FIELD(buttons),	NET_BYTE,  false	},
+{ CM_FIELD(buttons),	NET_SHORT, false	},
 { CM_FIELD(impulse),	NET_BYTE,  false	},
 { CM_FIELD(lightlevel),	NET_BYTE,  false	},
 { NULL },
