@@ -82,7 +82,7 @@ trace_t SV_Trace( const vec3_t start, const vec3_t mins, const vec3_t maxs, cons
 	pe->ClipToWorld( &cliptrace, sv.worldmodel, clipstart, clipmins, clipmaxs, clipend, contentsmask );
 	cliptrace.startstuck = cliptrace.startsolid;
 	if( cliptrace.startsolid || cliptrace.fraction < 1 )
-		cliptrace.ent = NULL;
+		cliptrace.ent = EDICT_NUM( 0 );
 	if( type == MOVE_WORLDONLY )
 		return cliptrace;
 
@@ -106,6 +106,8 @@ trace_t SV_Trace( const vec3_t start, const vec3_t mins, const vec3_t maxs, cons
 		clipboxmaxs[i] = max(clipstart[i], cliptrace.endpos[i]) + max(hullmaxs[i], clipmaxs2[i]) + 1;
 	}
 
+	// if the passedict is world, make it NULL (to avoid two checks each time)
+	if( passedict == EDICT_NUM( 0 )) passedict = NULL;
 	// figure out whether this is a point trace for comparisons
 	pointtrace = VectorCompare(clipmins, clipmaxs);
 	// precalculate passedict's owner edict pointer for comparisons
@@ -322,7 +324,7 @@ bool SV_RunThink( edict_t *ent )
 
 	// don't let things stay in the past.
 	// it is possible to start that way by a trigger with a local time.
-	if( ent->v.nextthink <= 0 || ent->v.nextthink > sv.time + sv.frametime )
+	if( ent->v.nextthink <= 0 || ent->v.nextthink > sv.time + svs.globals->frametime )
 		return true;
 
 	for( iterations = 0; iterations < 128 && !ent->free; iterations++ )
@@ -333,7 +335,7 @@ bool SV_RunThink( edict_t *ent )
 		// mods often set nextthink to time to cause a think every frame,
 		// we don't want to loop in that case, so exit if the new nextthink is
 		// <= the time the qc was told, also exit if it is past the end of the frame
-		if( ent->v.nextthink <= svs.globals->time || ent->v.nextthink > sv.time + sv.frametime )
+		if( ent->v.nextthink <= svs.globals->time || ent->v.nextthink > sv.time + svs.globals->frametime )
 			break;
 	}
 	return !ent->free;
@@ -577,7 +579,7 @@ int SV_FlyMove( edict_t *ent, float time, float *stepnormal, int contentsmask )
 	}
 
 	// this came from QW and allows you to get out of water more easily
-	if(((int)ent->v.aiflags & AI_WATERJUMP))
+	if( ent->v.aiflags & AI_WATERJUMP )
 		VectorCopy( primal_velocity, ent->v.velocity );
 
 	return blocked;
@@ -592,8 +594,8 @@ SV_AddGravity
 void SV_AddGravity( edict_t *ent )
 {
 	if( ent->v.gravity )
-		ent->v.velocity[2] -= ent->v.gravity * sv.frametime;
-	else ent->v.velocity[2] -= sv_gravity->value * sv.frametime;
+		ent->v.velocity[2] -= ent->v.gravity * svs.globals->frametime;
+	else ent->v.velocity[2] -= sv_gravity->value * svs.globals->frametime;
 }
 
 /*
@@ -899,12 +901,12 @@ void SV_Physics_Pusher( edict_t *ent )
 	oldltime = ent->v.ltime;
 	thinktime = ent->v.nextthink;
 
-	if( thinktime < ent->v.ltime + sv.frametime )
+	if( thinktime < ent->v.ltime + svs.globals->frametime )
 	{
 		movetime = thinktime - ent->v.ltime;
 		if( movetime < 0 ) movetime = 0;
 	}
-	else movetime = sv.frametime;
+	else movetime = svs.globals->frametime;
 
 	// advances ent->v.ltime if not blocked
 	if( movetime ) SV_PushMove( ent, movetime );
@@ -948,7 +950,7 @@ void SV_CheckStuck( edict_t *ent )
 	vec3_t	offset;
 
 	VectorClear( offset );
-	if((int)ent->v.aiflags & AI_DUCKED )
+	if( ent->v.aiflags & AI_DUCKED )
 	{
 		offset[0] += 1;
 		offset[1] += 1;
@@ -964,7 +966,7 @@ void SV_CheckStuck( edict_t *ent )
 	{
 		if(!SV_TestEntityPosition( ent, unstickoffsets + i))
 		{
-			MsgDev( D_INFO, "Unstuck player with offset %g %g %g.\n", unstickoffsets[i+0], unstickoffsets[i+1], unstickoffsets[i+2]);
+			MsgDev( D_NOTE, "Unstuck player with offset %g %g %g.\n", unstickoffsets[i+0], unstickoffsets[i+1], unstickoffsets[i+2]);
 			SV_LinkEdict( ent );
 			return;
 		}
@@ -973,11 +975,11 @@ void SV_CheckStuck( edict_t *ent )
 	VectorSubtract( ent->v.oldorigin, ent->v.origin, offset );
 	if(!SV_TestEntityPosition( ent, offset ))
 	{
-		MsgDev( D_INFO, "Unstuck player by restoring oldorigin.\n" );
+		MsgDev( D_NOTE, "Unstuck player by restoring oldorigin.\n" );
 		SV_LinkEdict( ent );
 		return;
 	}
-	MsgDev( D_INFO, "Stuck player\n" );
+	MsgDev( D_ERROR, "Stuck player\n" );
 }
 
 bool SV_UnstickEntity( edict_t *ent )
@@ -1084,7 +1086,7 @@ void SV_WalkMove( edict_t *ent )
 	trace_t	downtrace;
 
 	// if frametime is 0 (due to client sending the same timestamp twice), don't move
-	if( sv.frametime <= 0 ) return;
+	if( svs.globals->frametime <= 0 ) return;
 
 	contentsmask = SV_ContentsMask( ent );
  	SV_CheckVelocity( ent );
@@ -1094,7 +1096,7 @@ void SV_WalkMove( edict_t *ent )
 
 	VectorCopy( ent->v.origin, start_origin );
 	VectorCopy( ent->v.velocity, start_velocity );
-	clip = SV_FlyMove( ent, sv.frametime, NULL, contentsmask );
+	clip = SV_FlyMove( ent, svs.globals->frametime, NULL, contentsmask );
 
 	// if the move did not hit the ground at any point, we're not on ground
 	if(!(clip & 1)) ent->v.flags &= ~FL_ONGROUND;
@@ -1141,7 +1143,7 @@ void SV_WalkMove( edict_t *ent )
 
 		// move forward
 		ent->v.velocity[2] = 0;
-		clip = SV_FlyMove( ent, sv.frametime, stepnormal, contentsmask );
+		clip = SV_FlyMove( ent, svs.globals->frametime, stepnormal, contentsmask );
 		ent->v.velocity[2] += start_velocity[2];
 
 		SV_CheckVelocity( ent );
@@ -1167,7 +1169,7 @@ void SV_WalkMove( edict_t *ent )
 
 	// move down
 	VectorClear( downmove );
-	downmove[2] = -sv_stepheight->value + start_velocity[2] * sv.frametime;
+	downmove[2] = -sv_stepheight->value + start_velocity[2] * svs.globals->frametime;
 	downtrace = SV_PushEntity( ent, downmove, false ); // FIXME: don't link?
 
 	if( downtrace.fraction < 1 && downtrace.plane.normal[2] > 0.7 )
@@ -1329,10 +1331,10 @@ void SV_Physics_Toss( edict_t *ent )
 		SV_AddGravity( ent );
 
 	// move angles
-	VectorMA( ent->v.angles, sv.frametime, ent->v.avelocity, ent->v.angles );
+	VectorMA( ent->v.angles, svs.globals->frametime, ent->v.avelocity, ent->v.angles );
 
 	// move origin
-	VectorScale( ent->v.velocity, sv.frametime, move );
+	VectorScale( ent->v.velocity, svs.globals->frametime, move );
 	trace = SV_PushEntity( ent, move, true );
 	if( ent->free ) return;
 
@@ -1414,7 +1416,7 @@ void SV_Physics_Step( edict_t *ent )
 				ent->v.flags &= ~FL_ONGROUND;
 				SV_AddGravity( ent );
 				SV_CheckVelocity( ent );
-				SV_FlyMove( ent, sv.frametime, NULL, SV_ContentsMask( ent ));
+				SV_FlyMove( ent, svs.globals->frametime, NULL, SV_ContentsMask( ent ));
 				SV_LinkEdict( ent );
 				ent->pvEngineData->forceupdate = true;
 			}
@@ -1426,7 +1428,7 @@ void SV_Physics_Step( edict_t *ent )
 
 			SV_AddGravity( ent );
 			SV_CheckVelocity( ent );
-			SV_FlyMove( ent, sv.frametime, NULL, SV_ContentsMask( ent ));
+			SV_FlyMove( ent, svs.globals->frametime, NULL, SV_ContentsMask( ent ));
 			SV_LinkEdict( ent );
 
 			// just hit ground
@@ -1517,8 +1519,8 @@ void SV_Physics_Noclip( edict_t *ent )
 	if(SV_RunThink( ent ))
 	{
 		SV_CheckWater( ent );	
-		VectorMA( ent->v.angles, sv.frametime, ent->v.avelocity, ent->v.angles );
-		VectorMA( ent->v.origin, sv.frametime, ent->v.velocity, ent->v.origin );
+		VectorMA( ent->v.angles, svs.globals->frametime, ent->v.avelocity, ent->v.angles );
+		VectorMA( ent->v.origin, svs.globals->frametime, ent->v.velocity, ent->v.origin );
 	}
 	SV_LinkEdict( ent );
 }
@@ -1533,7 +1535,7 @@ Non moving objects can only think
 */
 void SV_Physics_None( edict_t *ent )
 {
-	if (ent->v.nextthink > 0 && ent->v.nextthink <= sv.time + sv.frametime)
+	if (ent->v.nextthink > 0 && ent->v.nextthink <= sv.time + svs.globals->frametime)
 		SV_RunThink (ent);
 }
 
@@ -1563,7 +1565,7 @@ static void SV_Physics_Entity( edict_t *ent )
 	case MOVETYPE_WALK:
 		if(SV_RunThink( ent ))
 		{
-			if(!SV_CheckWater( ent ) && !((int)ent->v.aiflags & AI_WATERJUMP ))
+			if(!SV_CheckWater( ent ) && !( ent->v.aiflags & AI_WATERJUMP ))
 				SV_AddGravity( ent );
 			SV_CheckStuck( ent );
 			SV_WalkMove( ent );
@@ -1579,7 +1581,7 @@ static void SV_Physics_Entity( edict_t *ent )
 		SV_Physics_Conveyor( ent );
 		break;
 	default:
-		MsgDev( D_ERROR, "SV_Physics: bad movetype %i\n", (int)ent->v.movetype );
+		svs.dllFuncs.pfnFrame( ent );
 		break;
 	}
 }
@@ -1625,8 +1627,8 @@ void SV_Physics_ClientEntity( edict_t *ent )
 	case MOVETYPE_NOCLIP:
 		SV_RunThink( ent );
 		SV_CheckWater( ent );
-		VectorMA( ent->v.origin, sv.frametime, ent->v.velocity, ent->v.origin );
-		VectorMA( ent->v.angles, sv.frametime, ent->v.avelocity, ent->v.angles );
+		VectorMA( ent->v.origin, svs.globals->frametime, ent->v.velocity, ent->v.origin );
+		VectorMA( ent->v.angles, svs.globals->frametime, ent->v.avelocity, ent->v.angles );
 		break;
 	case MOVETYPE_STEP:
 		SV_Physics_Step( ent );
@@ -1636,7 +1638,7 @@ void SV_Physics_ClientEntity( edict_t *ent )
 		// don't run physics here if running asynchronously
 		if( client->skipframes <= 0 )
 		{
-			if(!SV_CheckWater( ent ) && !((int)ent->v.aiflags & AI_WATERJUMP) )
+			if(!SV_CheckWater( ent ) && !( ent->v.aiflags & AI_WATERJUMP) )
 				SV_AddGravity (ent);
 			SV_CheckStuck (ent);
 			SV_WalkMove (ent);
@@ -1694,19 +1696,19 @@ void SV_Physics_ClientMove( sv_client_t *client, usercmd_t *cmd )
 		if( DotProduct(ent->v.velocity, ent->v.velocity) < 0.0001)
 			VectorClear( ent->v.velocity );
                    		
-		switch((int)ent->v.movetype )
+		switch( ent->v.movetype )
 		{
 		case MOVETYPE_WALK:
 			// perform MOVETYPE_WALK behavior
-			if(!SV_CheckWater (ent) && !((int)ent->v.aiflags & AI_WATERJUMP))
+			if(!SV_CheckWater( ent ) && !( ent->v.aiflags & AI_WATERJUMP ))
 				SV_AddGravity( ent );
 			SV_CheckStuck( ent );
 			SV_WalkMove( ent );
 			break;
 		case MOVETYPE_NOCLIP:
 			SV_CheckWater( ent );
-			VectorMA( ent->v.origin, sv.frametime, ent->v.velocity, ent->v.origin );
-			VectorMA( ent->v.angles, sv.frametime, ent->v.avelocity, ent->v.angles );
+			VectorMA( ent->v.origin, svs.globals->frametime, ent->v.velocity, ent->v.origin );
+			VectorMA( ent->v.angles, svs.globals->frametime, ent->v.avelocity, ent->v.angles );
 			break;
 		}
 		SV_CheckVelocity( ent );
@@ -1735,8 +1737,6 @@ void SV_Physics( void )
 {
 	int    	i;
 	edict_t	*ent;
-	int	frametime  = 1000 / sv_fps->integer;
-	int	num_physframes = 0;
 
 	// let the progs know that a new frame has started
 	svs.globals->time = sv.time;
@@ -1755,12 +1755,9 @@ void SV_Physics( void )
 	}
 
 	// let everything in the world think and move
-	while( svs.timeleft >= frametime )
-	{
-		svs.timeleft -= frametime;
-		pe->Frame( frametime * 0.001f );
-		num_physframes++;
-	}
+	pe->Frame( svs.globals->frametime * 0.001f );
+
+	svs.globals->time = sv.time;
 
 	// at end of frame kill all entities which supposed to it 
 	for( i = svs.globals->maxClients + 1; i < svs.globals->numEntities; i++ )
@@ -1772,8 +1769,7 @@ void SV_Physics( void )
 			SV_FreeEdict( EDICT_NUM( i ));
 	}
 
-	svs.globals->time = sv.time;
-	// svs.dllFuncs.pfnEndFrame();
+	svs.dllFuncs.pfnEndFrame();
 
 	// decrement svs.globals->numEntities if the highest number entities died
 	for( ; EDICT_NUM( svs.globals->numEntities - 1)->free; svs.globals->numEntities-- );

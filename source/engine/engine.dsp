@@ -166,6 +166,10 @@ SOURCE=.\common\com_edict.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\common\com_library.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\common\con_keys.c
 # End Source File
 # Begin Source File
@@ -247,10 +251,6 @@ SOURCE=.\server\sv_phys.c
 # Begin Source File
 
 SOURCE=.\server\sv_progs.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\server\sv_spawn.c
 # End Source File
 # Begin Source File
 

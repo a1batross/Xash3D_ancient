@@ -122,4 +122,8 @@ typedef struct
 	dword	AddressOfNameOrdinals;	// RVA from base of image
 } EXPORT_DIRECTORY;
 
+void *Com_LoadLibrary( const char *name );
+void *Com_GetProcAddress( void *hInstance, const char *name );
+void Com_FreeLibrary( void *hInstance );
+
 #endif//COM_LIBRARY

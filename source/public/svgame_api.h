@@ -60,6 +60,8 @@ typedef struct enginefuncs_s
 	// interface validator
 	int	api_size;			// must matched with sizeof( enginefuncs_t )
 
+	void*	(*pfnMemAlloc)( size_t cb, const char *filename, const int fileline );
+	void	(*pfnMemFree)( void *mem, const char *filename, const int fileline );
 	int	(*pfnPrecacheModel)( const char* s );
 	int	(*pfnPrecacheSound)( const char* s );
 	void	(*pfnSetModel)( edict_t *e, const char *m );
@@ -286,6 +288,7 @@ typedef struct
 	void	(*pfnTouch)( edict_t *pentTouched, edict_t *pentOther );
 	void	(*pfnBlocked)( edict_t *pentBlocked, edict_t *pentOther );
 	void	(*pfnKeyValue)( edict_t *pentKeyvalue, KeyValueData *pkvd );
+	void	(*pfnFrame)( edict_t *pent );
 	void	(*pfnSave)( edict_t *pent, SAVERESTOREDATA *pSaveData );
 	int 	(*pfnRestore)( edict_t *pent, SAVERESTOREDATA *pSaveData, int globalEntity );
 	void	(*pfnSetAbsBox)( edict_t *pent );
@@ -309,7 +312,7 @@ typedef struct
 	void	(*pfnPlayerPostThink)( edict_t *pEntity );
 
 	void	(*pfnStartFrame)( void );
-	void	(*pfnParmsNewLevel)( void );
+	void	(*pfnEndFrame)( void );
 	void	(*pfnParmsChangeLevel)( void );
 
 	 // returns string describing current .dll.  E.g., TeamFotrress 2, Half-Life

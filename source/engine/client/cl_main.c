@@ -96,15 +96,20 @@ so when they are typed in at the console, they will need to be forwarded.
 CL_ForwardToServer_f
 ==================
 */
-void CL_ForwardToServer_f (void)
+void CL_ForwardToServer_f( void )
 {
-	if( cls.demoplayback ) return; // not really connected
-	if (cls.state != ca_connected && cls.state != ca_active)
+	char	*cmd;
+
+	if( cls.demoplayback || ( cls.state != ca_connected && cls.state != ca_active ))
+		return; // not connected
+
+	cmd = Cmd_Argv( 0 );
+	if( *cmd == '-' || *cmd == '+' )
 	{
-		Msg("Can't \"%s\", not connected\n", Cmd_Argv(0));
+		Msg( "Unknown command \"%s\"\n", cmd );
 		return;
-	}
-	
+	}	
+
 	// don't forward the first argument
 	if( Cmd_Argc() > 1 )
 	{

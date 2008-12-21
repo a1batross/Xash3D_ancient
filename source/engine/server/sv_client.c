@@ -858,7 +858,7 @@ SV_ExecuteUserCommand
 void SV_ExecuteClientCommand( sv_client_t *cl, char *s )
 {
 	ucmd_t	*u;
-	
+
 	Cmd_TokenizeString( s );
 	for( u = ucmds; u->name; u++ )
 	{
@@ -1041,7 +1041,7 @@ void SV_ApplyClientMove( sv_client_t *cl, usercmd_t *cmd )
 		ent->pvEngineData->s.viewangles[PITCH] = 271;
 
 	// test
-	if((int)ent->v.aiflags & AI_DUCKED )
+	if( ent->v.aiflags & AI_DUCKED )
 	{
 		cmd->forwardmove *= 0.333;
 		cmd->sidemove    *= 0.333;
@@ -1223,7 +1223,7 @@ void SV_WaterJump( sv_client_t *cl )
 {
 	if (sv.time > cl->edict->v.teleport_time || !cl->edict->v.waterlevel )
 	{
-		cl->edict->v.flags = (int)cl->edict->v.aiflags & ~AI_WATERJUMP;
+		cl->edict->v.aiflags &= ~AI_WATERJUMP;
 		cl->edict->v.teleport_time = 0;
 	}
 	cl->edict->v.velocity[0] = cl->edict->v.movedir[0];
@@ -1327,7 +1327,7 @@ void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 		cl->edict->v.angles[YAW] = v_angle[YAW];
 	}
 
-	if((int)cl->edict->v.aiflags & AI_WATERJUMP )
+	if( cl->edict->v.aiflags & AI_WATERJUMP )
 	{
 		SV_WaterJump( cl );
 		SV_CheckVelocity( cl->edict );

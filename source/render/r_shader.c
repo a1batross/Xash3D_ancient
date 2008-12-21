@@ -3942,7 +3942,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 		break;
 	case SHADER_STUDIO:
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
-		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( va( "Studio( %s )", shader->name ), NULL, 0, 0, 0, 0 );
+		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( va( "Studio( \"%s\" )", shader->name ), NULL, 0, 0, 0, 0 );
 		if( !shader->stages[0]->bundles[0]->textures[0] )
 		{
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );

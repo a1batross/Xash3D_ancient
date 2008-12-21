@@ -288,7 +288,7 @@ bool Sys_LoadSymbols( const char *filename )
 			void	*fn_offset;
 
 			index = game.ordinals[i];
-			fn_offset = (void *)Sys_GetProcAddress( svs.game, "GiveFnptrsToDll" );
+			fn_offset = (void *)Com_GetProcAddress( svs.game, "GiveFnptrsToDll" );
 			game.funcBase = (dword)(fn_offset) - game.funcs[index];
 			break;
 		}
@@ -993,6 +993,17 @@ bool SV_ReadComment( char *comment, int savenum )
 
 ===============================================================================
 */
+
+void *pfnMemAlloc( size_t cb, const char *filename, const int fileline )
+{
+	return com.malloc( svs.mempool, cb, filename, fileline );
+}
+
+void pfnMemFree( void *mem, const char *filename, const int fileline )
+{
+	com.free( mem, filename, fileline );
+}
+
 /*
 =========
 pfnPrecacheModel
@@ -1266,6 +1277,8 @@ edict_t* pfnFindEntityByString( edict_t *pStartEdict, const char *pszField, cons
 	int		e, f;
 	const char	*t;
 	edict_t		*ed;
+
+	Msg("SV_FindEntityByString: %s\n", pszField );
 
 	if( !pStartEdict )
 		e = NUM_FOR_EDICT( game.edicts );
@@ -1967,7 +1980,7 @@ pfnParticleEffect
 */
 void pfnParticleEffect( const float *org, const float *dir, float color, float count )
 {
-	SV_StartParticle( org, dir, (int)color, (int)count );
+	// FIXME: implement
 }
 
 /*
@@ -2879,6 +2892,8 @@ void pfnDropClient( int clientIndex )
 static enginefuncs_t gEngfuncs = 
 {
 	sizeof( enginefuncs_t ),
+	pfnMemAlloc,
+	pfnMemFree,
 	pfnPrecacheModel,
 	pfnPrecacheSound,	
 	pfnSetModel,
@@ -3038,7 +3053,7 @@ bool SV_ParseEdict( script_t *script, edict_t *ent )
 	}
 
 	// allocate edict private memory (passed by dlls)
-	SpawnEdict = (LINK_ENTITY_FUNC)Sys_GetProcAddress( svs.game, classname );
+	SpawnEdict = (LINK_ENTITY_FUNC)Com_GetProcAddress( svs.game, classname );
 	if( !SpawnEdict )
 	{
 		MsgDev( D_ERROR, "No spawn function for %s\n", classname );
@@ -3154,13 +3169,7 @@ void SV_UnloadProgs( void )
 {
 	Sys_FreeNameFuncGlobals();
 	StringTable_Delete( game.hStringTable );
-
-	if( svs.game && svs.game->link )
-	{
-		Sys_FreeLibrary( svs.game );
-		svs.game->link = NULL;
-	}
-
+	Com_FreeLibrary( svs.game );
 	Mem_FreePool( &svs.mempool );
 	Mem_FreePool( &svs.stringpool );
 	Mem_FreePool( &svs.private );
@@ -3171,24 +3180,23 @@ bool SV_LoadProgs( const char *name )
 	static APIFUNCTION		GetEntityAPI;
 	static GIVEFNPTRSTODLL	GiveFnptrsToDll;
 	static globalvars_t		gpGlobals;
+	string			libname;
 	edict_t			*e;
 	int			i;
 
-	if( !svs.game ) svs.game = Z_Malloc( sizeof( dll_info_t ));
-	if( svs.game->link ) SV_UnloadProgs();
+	if( svs.game ) SV_UnloadProgs();
 
 	// fill it in
 	svs.globals = &gpGlobals;
-	svs.game->name = copystring( va( "%s/bin/%s.dll", FS_Gamedir, name ));
-	svs.game->crash = false;
+	com.snprintf( libname, MAX_STRING, "bin/%s.dll", name );
 	svs.mempool = Mem_AllocPool( "Server Edicts Zone" );
 	svs.stringpool = Mem_AllocPool( "Server Strings Zone" );
 	svs.private = Mem_AllocPool( "Server Private Zone" );
 
-	if( !Sys_LoadLibrary( svs.game ))
-		return false;
+	svs.game = Com_LoadLibrary( libname );
+	if( !svs.game ) return false;
 
-	GetEntityAPI = (APIFUNCTION)Sys_GetProcAddress( svs.game, "GetEntityAPI" );
+	GetEntityAPI = (APIFUNCTION)Com_GetProcAddress( svs.game, "GetEntityAPI" );
 
 	if( !GetEntityAPI )
 	{
@@ -3196,7 +3204,7 @@ bool SV_LoadProgs( const char *name )
 		return false;
 	}
 
-	GiveFnptrsToDll = (GIVEFNPTRSTODLL)Sys_GetProcAddress( svs.game, "GiveFnptrsToDll" );
+	GiveFnptrsToDll = (GIVEFNPTRSTODLL)Com_GetProcAddress( svs.game, "GiveFnptrsToDll" );
 
 	if( !GiveFnptrsToDll )
 	{

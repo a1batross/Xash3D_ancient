@@ -177,23 +177,30 @@ void SV_CheckTimeouts( void )
 SV_RunGameFrame
 =================
 */
-void SV_RunGameFrame (void)
+void SV_RunGameFrame( float time )
 {
+	float	save_frametime;
+	float	timeleft = 0.1;
+	int	iterations = 0;
+
 	if( sv_paused->integer && Host_MaxClients() == 1 )
 		return;
-
 	if( sv.state != ss_active ) return;
 
-	// we always need to bump framenum, even if we
-	// don't run the world, otherwise the delta
-	// compression can get confused when a client
-	// has the "current" frame
+	// save old frametime in case we need restore it after run physics
+	save_frametime = sv.frametime;
+	// don't allow really long or short frames
+	sv.frametime = bound( 0.01, (1.0f / sv_fps->integer ), 0.1f );
+
+	for( iterations = 0; iterations < 10; iterations++ )
+	{
+		timeleft -= sv.frametime;
+		SV_Physics();
+		if( timeleft < (1.0f/100.0f)) break;
+	}
+	sv.frametime = save_frametime;
 	sv.framenum++;
-	sv.frametime = Host_FrameTime() * 0.001f;
-	//sv.time = sv.framenum * sv.frametime;
-
-	SV_Physics();
-
+	
 	// never get more than one tic behind
 	if( sv.time * 1000 < svs.realtime )
 	{
@@ -210,10 +217,12 @@ SV_Frame
 */
 void SV_Frame( dword time )
 {
+	dword	g_time;
+
 	// if server is not active, do nothing
 	if( !svs.initialized ) return;
 	svs.realtime += time;
-	svs.timeleft += sv_paused->integer ? 0 : time;
+	g_time = sv.time * 1000;
 
 	// keep the random time dependent
 	rand ();
@@ -222,16 +231,14 @@ void SV_Frame( dword time )
 	SV_CheckTimeouts ();
 
 	// move autonomous things around if enough time has passed
-	if( svs.realtime < (sv.time * 1000))
+	if( svs.realtime < g_time )
 	{
 		// never let the time get too far off
-		if((sv.time * 1000) - svs.realtime > Host_FrameTime())
+		if((g_time - svs.realtime) > 100 )
 		{
-			Msg ("sv lowclamp\n");
-			svs.realtime = (sv.time * 1000 ) - Host_FrameTime();
+			Msg( "sv lowclamp\n" );
+			svs.realtime = g_time - 100;
 		}
-
-		NET_Sleep((sv.time*1000) - svs.realtime);
 		return;
 	}
 
@@ -239,7 +246,7 @@ void SV_Frame( dword time )
 	SV_CalcPings ();
 
 	// let everything in the world think and move
-	SV_RunGameFrame ();
+	SV_RunGameFrame ( time * 0.001f );
 
 	// send messages back to the clients that had packets read this frame
 	SV_SendClientMessages ();
@@ -259,10 +266,10 @@ let it know we are alive, and log information
 ================
 */
 #define	HEARTBEAT_SECONDS	300.0f
-void Master_Heartbeat (void)
+void Master_Heartbeat( void )
 {
-	char		*string;
-	int			i;
+	char	*string;
+	int	i;
 
 	if( host.type != HOST_DEDICATED )
 		return;		// only dedicated servers send heartbeats

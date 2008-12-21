@@ -142,21 +142,21 @@ void IN_KeyDown( kbutton_t *b )
 	if (k == b->down[0] || k == b->down[1])
 		return; // repeating key
 	
-	if (!b->down[0]) b->down[0] = k;
-	else if (!b->down[1]) b->down[1] = k;
+	if( !b->down[0] ) b->down[0] = k;
+	else if( !b->down[1] ) b->down[1] = k;
 	else
 	{
-		Msg ("Three keys down for a button!\n");
+		MsgDev( D_ERROR, "IN_KeyDown: three keys down for a button!\n" );
 		return;
 	}
 	
-	if (b->state & 1) return; // still down
+	if( b->state & 1 ) return; // still down
 
 	// save timestamp
-	c = Cmd_Argv(2);
+	c = Cmd_Argv( 2 );
 	b->downtime = com.atoi(c);
 
-	if (!b->downtime) b->downtime = host.frametime[0] - Host_FrameTime();
+	if( !b->downtime ) b->downtime = host.frametime[0] - 100;	// 100 msec auto-repeat
 	b->state |= 1 + 2;	// down + impulse down
 }
 

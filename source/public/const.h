@@ -60,7 +60,7 @@
 #define FL_INTERMISSION		(1<<3)
 #define FL_ONGROUND			(1<<2)	// at rest / on the ground
 #define FL_SKYENTITY		(1<<5)	// it's a env_sky entity
-#define FL_WATERJUMP		(1<<6)	// player jumping out of water
+
 #define FL_FLOAT			(1<<7)	// Apply floating force to this entity when in water
 #define FL_GRAPHED			(1<<8)	// worldgraph has this ent listed as something that blocks a connection
 #define FL_TANK			(1<<9)	// this is func tank
@@ -81,8 +81,8 @@
 // edict->aiflags
 #define AI_FLY			(1<<0)	// changes the SV_Movestep() behavior to not need to be on ground
 #define AI_SWIM			(1<<1)	// same as AI_FLY but stay in water
-#define AI_WATERJUMP		(1<<2)	// -- reserved --
-
+#define AI_WATERJUMP		(1<<2)	// water jumping
+#define AI_JUMPRELEASED		(1<<3)	// jump released
 #define AI_GODMODE			(1<<4)	// invulnerability npc or client
 #define AI_NOTARGET			(1<<5)	// mark any npc as neytral
 #define AI_NOSTEP			(1<<6)	// -- reserved --

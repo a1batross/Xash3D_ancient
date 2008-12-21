@@ -221,9 +221,9 @@ typedef struct
 {
 	bool		initialized;		// sv_init has completed
 	dword		realtime;			// always increasing, no clamping, etc
-	dword		timeleft;
+	float		timeleft;			// frametime * game_frames
 
-	dll_info_t	*game;			// pointer to server.dll
+	void		*game;			// pointer to server.dll
 	globalvars_t	*globals;			// server globals
 	DLL_FUNCTIONS	dllFuncs;			// dll exported funcs
 	byte		*mempool;			// edicts pool
@@ -408,7 +408,6 @@ bool SV_CreateMeshBuffer( edict_t *in, cmodel_t *out );
 //
 // sv_spawn.c
 //
-void SV_StartParticle( const float *org, const float *dir, int color, int count );
 edict_t *SV_AllocEdict( void );
 void SV_FreeEdict( edict_t *pEdict );
 bool SV_ClientConnect (edict_t *ent, char *userinfo);

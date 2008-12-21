@@ -270,7 +270,7 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 		force = false; // clear forceflag
 
 		// completely ignore dormant entity
-		if((int)ent->v.flags & FL_DORMANT )
+		if( ent->v.flags & FL_DORMANT )
 			continue;
 
 		// send viewmodel entity always

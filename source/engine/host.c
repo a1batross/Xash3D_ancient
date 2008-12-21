@@ -458,7 +458,7 @@ void Host_Frame( void )
 	dword		time, min_time;
 	static int	last_time;
 
-	if( setjmp(host.abortframe))
+	if( setjmp( host.abortframe ))
 		return;
 
 	rand(); // keep the random time dependent

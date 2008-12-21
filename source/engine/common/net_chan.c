@@ -521,8 +521,3 @@ bool NET_StringToAdr( const char *s, netadr_t *a )
 
 	return true;
 }
-
-void NET_Sleep( int msec )
-{
-	// not using
-}

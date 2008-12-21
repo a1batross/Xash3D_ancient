@@ -20,7 +20,10 @@ Beta 13.12.08
 
 0. подключить sv_dll к проекту		OK
 1. включить Think				OK
-2. rename bool to BOOL
+2. rename bool to BOOL			OK
+3. player Physic
+4. release crash				OK
+5. timers set				OK
 
 entity_state_t невидима для пользователя
 

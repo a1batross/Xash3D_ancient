@@ -711,7 +711,7 @@ void Cmd_ExecuteString( const char *text )
 			cmd_functions = cmd;
 
 			// perform the action
-			if(!cmd->function )
+			if( !cmd->function )
 				Cmd_ExecuteString(va("cmd %s", text));
 			else cmd->function();
 			return;
@@ -719,7 +719,10 @@ void Cmd_ExecuteString( const char *text )
 	}
 	
 	// check cvars
-	Cvar_Command();
+	if( Cvar_Command()) return;
+
+	// all unrecognized commands will be forwarded to a server
+	Cmd_ExecuteString( va("cmd %s", text ));
 }
 
 /*

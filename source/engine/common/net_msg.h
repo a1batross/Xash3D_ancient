@@ -223,7 +223,6 @@ bool NET_StringToAdr( const char *s, netadr_t *a );
 bool NET_CompareBaseAdr( netadr_t a, netadr_t b );
 bool NET_CompareAdr( netadr_t a, netadr_t b );
 bool NET_IsLocalAddress( netadr_t adr );
-void NET_Sleep( int msec );
 
 typedef struct netchan_s
 {
