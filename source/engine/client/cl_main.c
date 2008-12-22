@@ -689,13 +689,13 @@ void CL_PrepSound( void )
 {
 	int	i, sndcount;
 		
-	for( i = 0, sndcount = 0; i < MAX_SOUNDS && cl.configstrings[CS_SOUNDS+i][0]; i++ )
+	for( i = 1, sndcount = 0; i < MAX_SOUNDS && cl.configstrings[CS_SOUNDS+i+1][0]; i++ )
 		sndcount++; // total num sounds
 
 	S_BeginRegistration();
-	for( i = 0; i < MAX_SOUNDS && cl.configstrings[CS_SOUNDS+i][0]; i++ )
+	for( i = 1; i < MAX_SOUNDS && cl.configstrings[CS_SOUNDS+1+i][0]; i++ )
 	{
-		cl.sound_precache[i] = S_RegisterSound( cl.configstrings[CS_SOUNDS+i]);
+		cl.sound_precache[i+1] = S_RegisterSound( cl.configstrings[CS_SOUNDS+1+i]);
 		Cvar_SetValue( "scr_loading", scr_loading->value + 5.0f/sndcount );
 		SCR_UpdateScreen();
 	}

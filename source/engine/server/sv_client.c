@@ -224,7 +224,6 @@ bool SV_ClientConnect( edict_t *ent, char *userinfo )
 
 	// make sure we start with known default
 	ent->v.flags = 0;
-	ent->v.aiflags = 0;
 
 	MsgDev(D_NOTE, "SV_ClientConnect()\n");
 	svs.globals->time = sv.time;
@@ -476,10 +475,8 @@ a deathmatch.
 */
 void SV_PutClientInServer( edict_t *ent )
 {
-	int		index;
+	int		i, index;
 	sv_client_t	*client;
-	edict_t		*viewmodel;
-	int		i;
 
 	index = NUM_FOR_EDICT( ent ) - 1;
 	client = ent->pvEngineData->client;
@@ -494,21 +491,6 @@ void SV_PutClientInServer( edict_t *ent )
 		svs.dllFuncs.pfnClientPutInServer( ent );
 		ent->v.v_angle[ROLL] = 0;	// cut off any camera rolling
 		ent->v.origin[2] += 1;	// make sure off ground
-
-		// create viewmodel
-		viewmodel = SV_AllocEdict();
-		viewmodel->v.classname = MAKE_STRING( "viewmodel" );
-		VectorCopy( ent->v.view_ofs, viewmodel->v.view_ofs );
-		VectorCopy( ent->v.origin, viewmodel->v.origin );
-		VectorCopy( ent->v.angles, viewmodel->v.angles );
-		viewmodel->v.model = ent->v.viewmodel;
-		viewmodel->v.movetype = MOVETYPE_FOLLOW;
-		viewmodel->v.aiment = ent;
-	}
-	else
-	{
-		// restore viewmodel
-		viewmodel = ent->v.aiment;
 	}
 
 	ent->pvEngineData->s.fov = 90;	// FIXME: get from qc
@@ -519,9 +501,6 @@ void SV_PutClientInServer( edict_t *ent )
 	VectorCopy( ent->v.origin, ent->pvEngineData->s.origin );
 	VectorCopy( ent->v.v_angle, ent->pvEngineData->s.viewangles );
 	for( i = 0; i < 3; i++ ) ent->pvEngineData->s.delta_angles[i] = ANGLE2SHORT(ent->v.v_angle[i]);
-	viewmodel->pvEngineData->s.ed_type = ED_VIEWMODEL; // set entity type
-	viewmodel->v.modelindex = SV_ModelIndex( STRING( viewmodel->v.model ));
-	viewmodel->pvEngineData->s.classname = SV_ClassIndex( STRING( viewmodel->v.classname ));
 
 	SV_LinkEdict( ent ); // m_pmatrix calculated here, so we need call this before pe->CreatePlayer
 	ent->pvEngineData->physbody = pe->CreatePlayer( ent, SV_GetModelPtr( ent ), ent->v.origin, ent->v.m_pmatrix );
@@ -594,17 +573,17 @@ void SV_Configstrings_f( sv_client_t *cl )
 	}
 
 	// handle the case of a level changing while a client was connecting
-	if( com.atoi(Cmd_Argv(1)) != svs.spawncount )
+	if( com.atoi( Cmd_Argv( 1 )) != svs.spawncount )
 	{
 		MsgDev( D_INFO, "configstrings from different level\n" );
 		SV_New_f( cl );
 		return;
 	}
 	
-	start = com.atoi(Cmd_Argv(2));
+	start = com.atoi( Cmd_Argv( 2 ));
 
 	// write a packet full of data
-	while( cl->netchan.message.cursize < MAX_MSGLEN/2 && start < MAX_CONFIGSTRINGS )
+	while( cl->netchan.message.cursize < (MAX_MSGLEN / 2) && start < MAX_CONFIGSTRINGS )
 	{
 		if( sv.configstrings[start][0])
 		{
@@ -614,7 +593,7 @@ void SV_Configstrings_f( sv_client_t *cl )
 		}
 		start++;
 	}
-	if( start == MAX_CONFIGSTRINGS )com.snprintf( cs, MAX_STRING, "cmd baselines %i %i\n", svs.spawncount, 0 );
+	if( start == MAX_CONFIGSTRINGS ) com.snprintf( cs, MAX_STRING, "cmd baselines %i %i\n", svs.spawncount, 0 );
 	else com.snprintf( cs, MAX_STRING, "cmd configstrings %i %i\n", svs.spawncount, start );
 
 	// send next command
@@ -1021,9 +1000,12 @@ void SV_ApplyClientMove( sv_client_t *cl, usercmd_t *cmd )
 	edict_t		*ent = cl->edict;
 
 	ent->v.button = cmd->buttons; // initialize buttons
-	ent->v.button |= (cmd->upmove < 0) ? IN_DUCK : IN_JUMP;
-	ent->v.button |= (cmd->sidemove < 0) ? IN_MOVELEFT : IN_MOVERIGHT;
-	ent->v.button |= (cmd->forwardmove > 0) ? IN_FORWARD : IN_BACK;
+	if( cmd->upmove < 0 ) ent->v.button |= IN_DUCK;
+	if( cmd->upmove > 0 ) ent->v.button |= IN_JUMP;
+	if( cmd->sidemove < 0 ) ent->v.button |= IN_MOVELEFT;
+	if( cmd->sidemove > 0 ) ent->v.button |= IN_MOVERIGHT;
+	if( cmd->forwardmove > 0 ) ent->v.button |= IN_FORWARD;
+	if( cmd->forwardmove < 0 ) ent->v.button |= IN_BACK;
 	if( cmd->impulse ) ent->v.impulse = cmd->impulse;
 	cmd->impulse = 0; // only send the impulse to qc once
 
@@ -1041,7 +1023,7 @@ void SV_ApplyClientMove( sv_client_t *cl, usercmd_t *cmd )
 		ent->pvEngineData->s.viewangles[PITCH] = 271;
 
 	// test
-	if( ent->v.aiflags & AI_DUCKED )
+	if( ent->v.flags & FL_DUCKING )
 	{
 		cmd->forwardmove *= 0.333;
 		cmd->sidemove    *= 0.333;
@@ -1223,7 +1205,7 @@ void SV_WaterJump( sv_client_t *cl )
 {
 	if (sv.time > cl->edict->v.teleport_time || !cl->edict->v.waterlevel )
 	{
-		cl->edict->v.aiflags &= ~AI_WATERJUMP;
+		cl->edict->v.flags &= ~FL_WATERJUMP;
 		cl->edict->v.teleport_time = 0;
 	}
 	cl->edict->v.velocity[0] = cl->edict->v.movedir[0];
@@ -1327,7 +1309,7 @@ void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 		cl->edict->v.angles[YAW] = v_angle[YAW];
 	}
 
-	if( cl->edict->v.aiflags & AI_WATERJUMP )
+	if( cl->edict->v.flags & FL_WATERJUMP )
 	{
 		SV_WaterJump( cl );
 		SV_CheckVelocity( cl->edict );

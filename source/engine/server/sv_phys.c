@@ -38,9 +38,9 @@ int SV_ContentsMask( const edict_t *passedict )
 {
 	if( passedict )
 	{
-		if((int)passedict->v.flags & FL_MONSTER)
+		if( passedict->v.flags & FL_MONSTER )
 			return MASK_MONSTERSOLID;
-		else if((int)passedict->v.flags & FL_CLIENT)
+		else if( passedict->v.flags & FL_CLIENT )
 			return MASK_PLAYERSOLID;
 		else if( passedict->v.solid == SOLID_TRIGGER )
 			return CONTENTS_SOLID|CONTENTS_BODY;
@@ -457,8 +457,8 @@ int SV_FlyMove( edict_t *ent, float time, float *stepnormal, int contentsmask )
 	trace_t	trace;
 
 	if( time <= 0 ) return 0;
-	VectorCopy(ent->v.velocity, original_velocity);
-	VectorCopy(ent->v.velocity, primal_velocity);
+	VectorCopy( ent->v.velocity, original_velocity );
+	VectorCopy( ent->v.velocity, primal_velocity );
 	numplanes = 0;
 	time_left = time;
 
@@ -579,7 +579,7 @@ int SV_FlyMove( edict_t *ent, float time, float *stepnormal, int contentsmask )
 	}
 
 	// this came from QW and allows you to get out of water more easily
-	if( ent->v.aiflags & AI_WATERJUMP )
+	if( ent->v.flags & FL_WATERJUMP )
 		VectorCopy( primal_velocity, ent->v.velocity );
 
 	return blocked;
@@ -593,8 +593,8 @@ SV_AddGravity
 */
 void SV_AddGravity( edict_t *ent )
 {
-	if( ent->v.gravity )
-		ent->v.velocity[2] -= ent->v.gravity * svs.globals->frametime;
+	if( ent->v.gravity ) // gravity modifier
+		ent->v.velocity[2] -= sv_gravity->value * ent->v.gravity * svs.globals->frametime;
 	else ent->v.velocity[2] -= sv_gravity->value * svs.globals->frametime;
 }
 
@@ -950,7 +950,7 @@ void SV_CheckStuck( edict_t *ent )
 	vec3_t	offset;
 
 	VectorClear( offset );
-	if( ent->v.aiflags & AI_DUCKED )
+	if( ent->v.flags & FL_DUCKING )
 	{
 		offset[0] += 1;
 		offset[1] += 1;
@@ -1019,27 +1019,28 @@ bool SV_CheckWater( edict_t *ent )
 	point[2] = ent->v.origin[2] + ent->v.mins[2] + 1;
 
 	ent->v.waterlevel = 0;
-	ent->v.watertype = 0;
+	ent->v.watertype = CONTENTS_NONE;
 	cont = SV_PointContents( point );
+
 	if( cont & (MASK_WATER))
 	{
 		ent->v.watertype = cont;
 		ent->v.waterlevel = 1;
 		point[2] = ent->v.origin[2] + (ent->v.mins[2] + ent->v.maxs[2])*0.5;
-		if(SV_PointContents( point ) & (MASK_WATER))
+		if( SV_PointContents( point ) & MASK_WATER )
 		{
 			ent->v.waterlevel = 2;
 			point[2] = ent->v.origin[2] + ent->v.view_ofs[2];
-			if(SV_PointContents(point) & (MASK_WATER))
+			if( SV_PointContents( point ) & MASK_WATER )
 			{
 				ent->v.waterlevel = 3;
 				if( ent->pvEngineData->s.ed_type == ED_CLIENT )
-					ent->v.renderfx = (int)ent->v.renderfx | RDF_UNDERWATER;
+					ent->v.renderfx |= RDF_UNDERWATER;
 			}
 			else
 			{
 				if( ent->pvEngineData->s.ed_type == ED_CLIENT )
-					ent->v.renderfx = (int)ent->v.renderfx & ~RDF_UNDERWATER;
+					ent->v.renderfx &= ~RDF_UNDERWATER;
 			}
 		}
 	}
@@ -1079,7 +1080,7 @@ Only used by players
 void SV_WalkMove( edict_t *ent )
 {
 	int	contentsmask;
-	int	clip, oldonground, originalmove_clip, originalmove_aiflags;
+	int	clip, oldonground, originalmove_clip, originalmove_flags;
 	vec3_t	upmove, downmove, start_origin, start_velocity, stepnormal;
 	vec3_t	originalmove_origin, originalmove_velocity;
 	edict_t	*originalmove_groundentity;
@@ -1106,10 +1107,10 @@ void SV_WalkMove( edict_t *ent )
 	VectorCopy( ent->v.origin, originalmove_origin );
 	VectorCopy( ent->v.velocity, originalmove_velocity );
 	originalmove_clip = clip;
-	originalmove_aiflags = ent->v.aiflags;
+	originalmove_flags = ent->v.flags;
 	originalmove_groundentity = ent->v.groundentity;
 
-	if( ent->v.aiflags & AI_WATERJUMP )
+	if( ent->v.flags & FL_WATERJUMP )
 		return;
 
 	// if move didn't block on a step, return
@@ -1155,7 +1156,7 @@ void SV_WalkMove( edict_t *ent )
 			// stepping up didn't make any progress, revert to original move
 			VectorCopy( originalmove_origin, ent->v.origin );
 			VectorCopy( originalmove_velocity, ent->v.velocity );
-			ent->v.aiflags = originalmove_aiflags;
+			ent->v.flags = originalmove_flags;
 			ent->v.groundentity = originalmove_groundentity;
 			return;
 		}
@@ -1193,7 +1194,7 @@ void SV_WalkMove( edict_t *ent )
 		// cause the player to hop up higher on a slope too steep to climb
 		VectorCopy( originalmove_origin, ent->v.origin );
 		VectorCopy( originalmove_velocity, ent->v.velocity );
-		ent->v.aiflags = originalmove_aiflags;
+		ent->v.flags = originalmove_flags;
 		ent->v.groundentity = originalmove_groundentity;
 	}
 	SV_CheckVelocity( ent );
@@ -1272,7 +1273,7 @@ void SV_CheckWaterTransition( edict_t *ent )
 	// check if the entity crossed into or out of water
 	if( ent->v.watertype & MASK_WATER ) 
 	{
-		Msg( "water splash!\n" );
+		//Msg( "water splash!\n" );
 		//SV_StartSound (ent, 0, "", 255, 1);
 	}
 
@@ -1403,9 +1404,9 @@ will fall if the floor is pulled out from under them.
 */
 void SV_Physics_Step( edict_t *ent )
 {
-	int flags = ent->v.aiflags;
+	int flags = ent->v.flags;
 
-	if(!(flags & (AI_FLY|AI_SWIM)))
+	if(!(flags & (FL_FLY|FL_SWIM)))
 	{
 		if( ent->v.flags & FL_ONGROUND )
 		{
@@ -1565,7 +1566,7 @@ static void SV_Physics_Entity( edict_t *ent )
 	case MOVETYPE_WALK:
 		if(SV_RunThink( ent ))
 		{
-			if(!SV_CheckWater( ent ) && !( ent->v.aiflags & AI_WATERJUMP ))
+			if(!SV_CheckWater( ent ) && !( ent->v.flags & FL_WATERJUMP ))
 				SV_AddGravity( ent );
 			SV_CheckStuck( ent );
 			SV_WalkMove( ent );
@@ -1638,7 +1639,7 @@ void SV_Physics_ClientEntity( edict_t *ent )
 		// don't run physics here if running asynchronously
 		if( client->skipframes <= 0 )
 		{
-			if(!SV_CheckWater( ent ) && !( ent->v.aiflags & AI_WATERJUMP) )
+			if(!SV_CheckWater( ent ) && !( ent->v.flags & FL_WATERJUMP) )
 				SV_AddGravity (ent);
 			SV_CheckStuck (ent);
 			SV_WalkMove (ent);
@@ -1656,7 +1657,7 @@ void SV_Physics_ClientEntity( edict_t *ent )
 		SV_WalkMove( ent );
 		break;
 	default:
-		MsgDev( D_ERROR, "SV_Physics_ClientEntity: bad movetype %i\n", (int)ent->v.movetype);
+		MsgDev( D_ERROR, "SV_Physics_ClientEntity: bad movetype %i\n", ent->v.movetype );
 		break;
 	}
 
@@ -1700,7 +1701,7 @@ void SV_Physics_ClientMove( sv_client_t *client, usercmd_t *cmd )
 		{
 		case MOVETYPE_WALK:
 			// perform MOVETYPE_WALK behavior
-			if(!SV_CheckWater( ent ) && !( ent->v.aiflags & AI_WATERJUMP ))
+			if(!SV_CheckWater( ent ) && !( ent->v.flags & FL_WATERJUMP ))
 				SV_AddGravity( ent );
 			SV_CheckStuck( ent );
 			SV_WalkMove( ent );

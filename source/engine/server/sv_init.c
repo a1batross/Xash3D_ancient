@@ -70,12 +70,12 @@ int SV_ModelIndex( const char *name )
 
 int SV_SoundIndex( const char *name )
 {
-	return SV_FindIndex (name, CS_SOUNDS, MAX_SOUNDS, true );
+	return SV_FindIndex( name, CS_SOUNDS, MAX_SOUNDS, true );
 }
 
 int SV_UserMessageIndex( const char *name )
 {
-	return SV_FindIndex (name, CS_USER_MESSAGES, MAX_USER_MESSAGES, true );
+	return SV_FindIndex( name, CS_USER_MESSAGES, MAX_USER_MESSAGES, true );
 }
 
 int SV_DecalIndex( const char *name )

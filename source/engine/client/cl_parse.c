@@ -175,6 +175,47 @@ void CL_RunBackgroundTrack( void )
 }
 
 /*
+==================
+CL_ParseSoundPacket
+
+==================
+*/
+void CL_ParseSoundPacket( sizebuf_t *msg )
+{
+	vec3_t	pos;
+	int 	channel, sound_num;
+	float 	volume, attenuation;  
+	int	flags, pitch, entnum;
+
+	flags = MSG_ReadByte( msg );
+	sound_num = MSG_ReadWord( msg );
+	channel = MSG_ReadByte( msg );
+
+	if( flags & SND_VOL )
+		volume = MSG_ReadByte( msg ) / 255.0f;
+	else volume = 1.0f;
+	if( flags & SND_ATTN )
+		attenuation = MSG_ReadByte( msg ) / 255.0f;
+	else attenuation = ATTN_NORM;	
+	if( flags & SND_PITCH )
+		pitch = MSG_ReadByte( msg );
+	else pitch = PITCH_NORM;
+
+	// entity reletive
+	if( flags & SND_ENT )
+		entnum = MSG_ReadBits( msg, NET_WORD ); 
+
+	if( flags & SND_POS )
+	{	
+		// positioned in space
+		MSG_ReadPos( msg, pos );
+	}
+	else VectorClear( pos );
+
+	S_StartSound( pos, entnum, channel, cl.sound_precache[sound_num], volume, attenuation, pitch );
+}
+
+/*
 =====================================================================
 
   SERVER CONNECTING MESSAGES
@@ -382,6 +423,9 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			break;
 		case svc_download:
 			CL_ParseDownload( msg );
+			break;
+		case svc_sound:
+			CL_ParseSoundPacket( msg );
 			break;
 		case svc_setangle:
 			CL_ParseSetAngle( msg );

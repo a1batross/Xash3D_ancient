@@ -100,7 +100,7 @@ bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool set
 	VectorAdd (ent->v.origin, move, neworg);
 
 	// flying monsters don't step up
-	if( ent->v.aiflags & (AI_SWIM|AI_FLY))
+	if( ent->v.flags & (FL_SWIM|FL_FLY))
 	{
 		// try one move with vertical motion, then one without
 		for( i = 0; i < 2; i++ )
@@ -122,7 +122,7 @@ bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool set
 			if( trace.fraction == 1 )
 			{
 				VectorCopy( trace.endpos, traceendpos );
-				if((ent->v.aiflags & AI_SWIM) && !(SV_PointContents(traceendpos) & MASK_WATER))
+				if((ent->v.flags & FL_SWIM) && !(SV_PointContents(traceendpos) & MASK_WATER))
 					return false; // swim monster left water
 
 				VectorCopy( traceendpos, ent->v.origin );
@@ -343,7 +343,7 @@ SV_MoveToGoal
 */
 bool SV_MoveToGoal( edict_t *ent, edict_t *goal, float dist )
 {
-	if(!(ent->v.aiflags & (AI_FLY|AI_SWIM)) && !(ent->v.flags & FL_ONGROUND))
+	if(!(ent->v.flags & (FL_FLY|FL_SWIM|FL_ONGROUND)))
 	{
 		return false;
 	}

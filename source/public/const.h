@@ -54,45 +54,30 @@
 #define SF_START_ON			0x1
 
 // edict->flags
-#define FL_CLIENT			(1<<0)
-#define FL_MONSTER			(1<<1)	// monster bit
-#define FL_INWATER			(1<<2)
-#define FL_INTERMISSION		(1<<3)
-#define FL_ONGROUND			(1<<2)	// at rest / on the ground
-#define FL_SKYENTITY		(1<<5)	// it's a env_sky entity
-
-#define FL_FLOAT			(1<<7)	// Apply floating force to this entity when in water
-#define FL_GRAPHED			(1<<8)	// worldgraph has this ent listed as something that blocks a connection
-#define FL_TANK			(1<<9)	// this is func tank
-#define FL_ROCKET			(1<<10)	// this is rocket entity
-#define FL_POINTENTITY		(1<<11)	// this is point entity
-#define FL_PROXY			(1<<12)	// This is a spectator proxy
-#define FL_FRAMETHINK		(1<<13)	// Brush model flag -- call think every frame regardless of nextthink - ltime (for constantly changing velocity/path)
-#define FL_BASEVELOCITY		(1<<14)	// Base velocity has been applied this frame (used to convert base velocity into momentum)
-#define FL_MONSTERCLIP		(1<<15)	// Only collide in with monsters who have FL_MONSTERCLIP set
+#define FL_FLY			(1<<0)	// changes the SV_Movestep() behavior to not need to be on ground
+#define FL_SWIM			(1<<1)	// same as AI_FLY but stay in water
+#define FL_CLIENT			(1<<2)
+#define FL_INWATER			(1<<3)
+#define FL_MONSTER			(1<<4)	// monster bit
+#define FL_GODMODE			(1<<5)	// invulnerability npc or client
+#define FL_NOTARGET			(1<<6)	// mark any npc as neytral
+#define FL_ONGROUND			(1<<7)	// at rest / on the ground
+#define FL_PARTIALONGROUND		(1<<8)	// not corners are valid
+#define FL_WATERJUMP		(1<<8)	// water jumping
+#define FL_FROZEN			(1<<9)	// stop moving, but continue thinking (e.g. for thirdperson camera)
+#define FL_DUCKING			(1<<10)	// monster (or player) is ducked
+#define FL_FLOAT			(1<<11)	// Apply floating force to this entity when in water
+#define FL_GRAPHED			(1<<12)	// worldgraph has this ent listed as something that blocks a connection
+#define FL_ALWAYSTHINK		(1<<13)	// Brush model flag -- call think every frame regardless of nextthink - ltime (for constantly changing velocity/path)
+#define FL_PROJECTILE		(1<<14)	// this is rocket entity
+#define FL_TANK			(1<<15)	// this is func tank entity
 #define FL_ONTRAIN			(1<<16)	// Player is _controlling_ a train, so movement commands should be ignored on client during prediction.
 #define FL_WORLDBRUSH		(1<<17)	// Not moveable/removeable brush entity (really part of the world, but represented as an entity for transparency or something)
 #define FL_SPECTATOR            	(1<<18)	// This client is a spectator, don't run touch functions, etc.
 #define FL_CUSTOMENTITY		(1<<19)	// This is a custom entity
 #define FL_KILLME			(1<<20)	// This entity is marked for death -- This allows the engine to kill ents at the appropriate time
 #define FL_DORMANT			(1<<21)	// Entity is dormant, no updates to client
-#define FL_PARTIALONGROUND		(1<<22)	// not corners are valid
-
-// edict->aiflags
-#define AI_FLY			(1<<0)	// changes the SV_Movestep() behavior to not need to be on ground
-#define AI_SWIM			(1<<1)	// same as AI_FLY but stay in water
-#define AI_WATERJUMP		(1<<2)	// water jumping
-#define AI_JUMPRELEASED		(1<<3)	// jump released
-#define AI_GODMODE			(1<<4)	// invulnerability npc or client
-#define AI_NOTARGET			(1<<5)	// mark any npc as neytral
-#define AI_NOSTEP			(1<<6)	// -- reserved --
-#define AI_DUCKED			(1<<7)	// monster (or player) is ducked
-#define AI_JUMPING			(1<<8)	// monster (or player) is jumping
-#define AI_FROZEN			(1<<9)	// stop moving, but continue thinking (e.g. for thirdperson camera)
-#define AI_ACTOR                	(1<<10)	// npc that playing scriped_sequence
-#define AI_DRIVER			(1<<11)	// npc or player driving vehcicle or train
-#define AI_SPECTATOR		(1<<12)	// spectator mode for clients
-
+#define FL_POINTENTITY		(1<<22)	// this is point entity
 
 // entity_state_t->effects
 #define EF_BRIGHTFIELD		(1<<0)	// swirling cloud of particles

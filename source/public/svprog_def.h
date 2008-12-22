@@ -68,8 +68,7 @@ typedef struct entvars_s
 	vec3_t		m_pcentre[3];	// physical centre of mass
 
 	vec3_t		velocity;
-	vec3_t		avelocity;	// angle velocity (degrees per second)
-	vec3_t		basevelocity;
+	vec3_t		avelocity;	// angular velocity (degrees per second)
 	vec3_t		movedir;
 	vec3_t		force;		// linear physical impulse vector
 	vec3_t		torque;		// angular physical impulse vector
@@ -137,8 +136,6 @@ typedef struct entvars_s
 	edict_t		*groundentity;
 
 	int		spawnflags;	// spwanflags are used only during level loading
-	int		aiflags;		// monsters and player flags
-	int		phflags;		// physic state flags
 	int		flags;		// generic flags that can be send to client
 	
 	// player specific only

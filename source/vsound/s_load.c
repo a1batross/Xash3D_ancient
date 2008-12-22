@@ -503,6 +503,7 @@ loadformat_t load_formats[] =
 	{"%s.%s", "wav", S_LoadWAV},
 	{NULL, NULL}
 };
+
 bool S_LoadSound( sfx_t *sfx )
 {
 	byte		*data;
@@ -518,7 +519,7 @@ bool S_LoadSound( sfx_t *sfx )
 
 	// load it from disk
 	ext = FS_FileExtension( sfx->name );
-	anyformat = !com.stricmp(ext, "") ? true : false;
+	anyformat = !com.stricmp( ext, "" ) ? true : false;
 
 	com.strncpy( loadname, sfx->name, sizeof(loadname) - 1);
 	FS_StripExtension( loadname ); // remove extension if needed

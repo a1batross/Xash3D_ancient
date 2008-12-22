@@ -1275,10 +1275,8 @@ pfnFindEntityByString
 edict_t* pfnFindEntityByString( edict_t *pStartEdict, const char *pszField, const char *pszValue )
 {
 	int		e, f;
-	const char	*t;
 	edict_t		*ed;
-
-	Msg("SV_FindEntityByString: %s\n", pszField );
+	const char	*t;
 
 	if( !pStartEdict )
 		e = NUM_FOR_EDICT( game.edicts );
@@ -1303,10 +1301,13 @@ edict_t* pfnFindEntityByString( edict_t *pStartEdict, const char *pszField, cons
 		ed = EDICT_NUM( e );
 		if( ed->free ) continue;
 
-		t = STRING( *(string_t *)&((int *)&ed->v)[f] );
+		t = STRING( *(string_t *)&((byte *)&ed->v)[f] );
 		if( !t ) t = "";
 		if( !com.strcmp( t, pszValue ))
+		{
+			Msg("Find %s [%s]\n", STRING( ed->v.classname ), t );
 			return ed;
+		}
 	}
 	return game.edicts;
 }
@@ -1658,15 +1659,15 @@ int pfnWalkMove( edict_t *ent, float yaw, float dist, int iMode )
 {
 	vec3_t		move;
 
-	// ignore world silently
-	if( ent == game.edicts ) return false;
+	if( ent == NULL || ent == game.edicts )
+		return false;
 	if( ent->free )
 	{
-		MsgDev( D_WARN, "SV_DropToFloor: can't modify free entity\n" );
+		MsgDev( D_WARN, "SV_WlakMove: can't modify free entity\n" );
 		return false;
 	}
 
-	if(!(ent->v.aiflags & AI_FLY|AI_SWIM) || !(ent->v.flags & FL_ONGROUND))
+	if(!(ent->v.flags & FL_FLY|FL_SWIM|FL_ONGROUND))
 		return false;
 	yaw = yaw * M_PI * 2 / 360;
 
@@ -1729,7 +1730,92 @@ pfnEmitSound
 */
 void pfnEmitSound( edict_t *ent, int chan, const char *sample, float vol, float attn, int flags, int pitch )
 {
-	// FIXME: implement
+	int 	sound_idx;
+	vec3_t	snd_origin;
+	bool	reliable = false;
+	bool	use_phs = false;
+
+	if( attn < ATTN_NONE || attn > ATTN_IDLE )
+	{
+		MsgDev( D_ERROR, "SV_StartSound: attenuation must be in range 0-2\n" );
+		return;
+	}
+	if( chan < 0 || chan > 7 )
+	{
+		MsgDev( D_ERROR, "SV_StartSound: channel must be in range 0-7\n" );
+		return;
+	}
+	if( ent == NULL )
+	{
+		MsgDev( D_ERROR, "SV_StartSound: edict == NULL\n" );
+		return;
+	}
+
+	if( vol != 1.0f ) flags |= SND_VOL;
+	if( attn != 1.0f ) flags |= SND_ATTN;
+	if( pitch != PITCH_NORM ) flags |= SND_PITCH;
+
+	switch( ent->v.movetype )
+	{
+	case MOVETYPE_NONE:
+		flags |= SND_POS;
+		break;
+	default:
+		flags |= SND_ENT;
+		break;
+	}
+
+	if( flags & SND_POS )
+	{
+		// use the entity origin unless it is a bmodel or explicitly specified
+		if( ent->v.solid == SOLID_BSP || VectorCompare( ent->v.origin, vec3_origin ))
+		{
+			VectorAverage( ent->v.mins, ent->v.maxs, snd_origin );
+			VectorAdd( snd_origin, ent->v.origin, snd_origin );
+			reliable = true; // because brush center can be out of PHS (outside from world)
+			use_phs = false;
+		}
+		else
+		{
+			VectorCopy( ent->v.origin, snd_origin );
+			reliable = false;
+			use_phs = true;
+		}
+	}
+	// NOTE: bsp origin for moving edicts will be done on client-side
+
+	// always sending stop sound command
+	if( flags & SND_STOP ) reliable = true;
+
+	// precache_sound can be used twice: cache sounds when loading
+	// and return sound index when server is active
+	sound_idx = SV_SoundIndex( sample );
+
+	MSG_Begin( svc_sound );
+	MSG_WriteByte( &sv.multicast, flags );
+	MSG_WriteWord( &sv.multicast, sound_idx );
+	MSG_WriteByte( &sv.multicast, chan );
+
+	if( flags & SND_VOL ) MSG_WriteByte( &sv.multicast, vol * 255 );
+	if( flags & SND_ATTN) MSG_WriteByte( &sv.multicast, attn * 127 );
+	if(flags & SND_PITCH) MSG_WriteByte( &sv.multicast, pitch );
+	if( flags & SND_ENT ) MSG_WriteWord( &sv.multicast, ent->serialnumber );
+	if( flags & SND_POS )
+	{
+		MSG_WriteCoord32( &sv.multicast, snd_origin[0] );
+		MSG_WriteCoord32( &sv.multicast, snd_origin[1] );
+		MSG_WriteCoord32( &sv.multicast, snd_origin[2] );
+	}
+	if( reliable )
+	{
+		if( use_phs ) MSG_Send( MSG_PHS_R, snd_origin, ent );
+		else MSG_Send( MSG_ALL_R, snd_origin, ent );
+	}
+	else
+	{
+		if( use_phs ) MSG_Send( MSG_PHS, snd_origin, ent );
+		else MSG_Send( MSG_ALL, snd_origin, ent );
+	}
 }
 
 /*
@@ -2049,6 +2135,7 @@ pfnMessageEnd
 */
 void pfnMessageEnd( void )
 {
+	MSG_Clear( &sv.multicast );
 	return;//
 	
 	if( game.msg_leftsize != 0xFFFF && game.msg_leftsize != 0 )
@@ -3160,6 +3247,7 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 		ent = EDICT_NUM( i + 1 );
 		SV_InitEdict( ent );
 		ent->pvEngineData->client = svs.clients + i;
+		ent->pvEngineData->client->edict = ent;
 		svs.globals->numClients++;
 	}
 	Msg("Total %i entities spawned\n", svs.globals->numEntities );
