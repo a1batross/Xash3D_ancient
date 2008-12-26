@@ -22,13 +22,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define SERVER_H
 
 #include "mathlib.h"
-#include "svprog_def.h"
+#include "entity_def.h"
 #include "svgame_api.h"
 
 //=============================================================================
-#define NUM_FOR_EDICT(e) ((int)((edict_t *)(e) - game.edicts))
-#define EDICT_NUM( num ) _EDICT_NUM( num, __FILE__, __LINE__ )
-
 #define AREA_SOLID			1
 #define AREA_TRIGGERS		2
 
@@ -215,7 +212,7 @@ typedef struct
 	dword		funcBase;			// base offset
 
 	int		hStringTable;		// stringtable handle
-} game_static_t;
+} svgame_static_t;
 
 typedef struct
 {
@@ -254,7 +251,7 @@ typedef struct
 extern	netadr_t	master_adr[MAX_MASTERS];		// address of the master server
 extern	const char	*ed_name[];
 extern	server_static_t	svs;			// persistant server info
-extern	game_static_t	game;			// persistant game info
+extern	svgame_static_t	game;			// persistant game info
 extern	server_t		sv;			// local server
 
 extern	cvar_t		*sv_paused;
@@ -384,6 +381,11 @@ float SV_AngleMod( float ideal, float current, float speed );
 void SV_SpawnEntities( const char *mapname, script_t *entities );
 string_t pfnAllocString( const char *szValue );
 const char *pfnGetString( string_t iString );
+void pfnGetGameDir( char *szGetGameDir );
+long pfnRandomLong( long lLow, long lHigh );
+float pfnRandomFloat( float flLow, float flHigh );
+byte* pfnLoadFile( const char *filename, int *pLength );
+void pfnFreeFile( void *buffer );
 
 _inline edict_t *_EDICT_NUM( int n, const char * file, const int line )
 {
@@ -392,10 +394,6 @@ _inline edict_t *_EDICT_NUM( int n, const char * file, const int line )
 	Host_Error( "EDICT_NUM: bad number %i (called at %s:%i)\n", n, file, line );
 	return NULL;	
 }
-
-// for constant strings
-#define STRING( offset )	pfnGetString( offset )
-#define MAKE_STRING(str)	pfnAllocString( str )
 
 //
 // sv_studio.c

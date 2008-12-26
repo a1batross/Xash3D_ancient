@@ -302,7 +302,7 @@ void SV_FlushRedirect( netadr_t adr, int dest, char *buf )
 	case RD_CLIENT:
 		if( !sv_client ) return; // client not set
 		MSG_WriteByte( &sv_client->netchan.message, svc_print );
-		MSG_WriteByte( &sv_client->netchan.message, PRINT_CONSOLE );
+		MSG_WriteByte( &sv_client->netchan.message, HUD_PRINTCONSOLE );
 		MSG_WriteString( &sv_client->netchan.message, buf );
 		break;
 	case RD_NONE:

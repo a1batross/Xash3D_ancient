@@ -529,7 +529,7 @@ void Host_Error( const char *error, ... )
 
 	if( host.framecount < 3 || host.state == HOST_SHUTDOWN )
 	{
-		Msg( "Host_InitError:" );
+		Msg( "Host_InitError: " );
 		com.error( hosterror1 );
 	}
 	else if( host.framecount == host.errorframe )

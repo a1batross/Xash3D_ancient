@@ -177,9 +177,9 @@ void SCR_DrawStringExt( int x, int y, float w, float h, const char *string, floa
 	re->SetColor( setColor );
 	while ( *s )
 	{
-		if(IsColorString( s ))
+		if( IsColorString( s ))
 		{
-			if ( !forceColor )
+			if( !forceColor )
 			{
 				Mem_Copy( color, g_color_table[ColorIndex(*(s+1))], sizeof( color ));
 				color[3] = setColor[3];
@@ -343,8 +343,6 @@ SCR_Init
 */
 void SCR_Init( void )
 {
-	cls.mempool = Mem_AllocPool( "Client Static" );
-
 	scr_showpause = Cvar_Get("scr_showpause", "1", 0, "show pause picture" );
 	scr_centertime = Cvar_Get("scr_centertime", "2.5", 0, "centerprint hold time" );
 	scr_printspeed = Cvar_Get("scr_printspeed", "8", 0, "centerprint speed of print" );
@@ -368,5 +366,4 @@ void SCR_Init( void )
 
 void SCR_Shutdown( void )
 {
-	Mem_FreePool( &cls.mempool );
 }

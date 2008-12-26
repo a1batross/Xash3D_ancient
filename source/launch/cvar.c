@@ -40,13 +40,13 @@ static long Cvar_GetHashValue( const char *fname )
 Cvar_InfoValidate
 ============
 */
-static bool Cvar_ValidateString(const char *s, bool isvalue )
+static bool Cvar_ValidateString( const char *s, bool isvalue )
 {
-	if ( !s ) return false;
-	if (strstr(s, "\\") && !isvalue)
+	if( !s ) return false;
+	if( com.strstr( s, "\\" ) && !isvalue )
 		return false;
-	if (strstr(s, "\"")) return false;
-	if (strstr(s, ";")) return false;
+	if( com.strstr( s, "\"" )) return false;
+	if( com.strstr( s, ";" )) return false;
 	return true;
 }
 

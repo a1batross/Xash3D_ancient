@@ -154,7 +154,7 @@ trace_t SV_Trace( const vec3_t start, const vec3_t mins, const vec3_t maxs, cons
 			uint modelindex = (uint)touch->v.modelindex;
 			// if the modelindex is 0, it shouldn't be SOLID_BSP!
 			if( modelindex > 0 && modelindex < MAX_MODELS )
-				model = sv.models[(int)touch->v.modelindex];
+				model = sv.models[touch->v.modelindex];
 		}
 		if( model ) Matrix4x4_CreateFromEntity( matrix, touch->v.origin[0], touch->v.origin[1], touch->v.origin[2], touch->v.angles[0], touch->v.angles[1], touch->v.angles[2], 1 );
 		else Matrix4x4_CreateTranslate( matrix, touch->v.origin[0], touch->v.origin[1], touch->v.origin[2] );

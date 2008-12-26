@@ -145,6 +145,13 @@ PRVM INTERACTIONS
 */
 char *ED_NewString( const char *string, byte *mempool );
 
+#define NUM_FOR_EDICT(e) ((int)((edict_t *)(e) - game.edicts))
+#define EDICT_NUM( num ) _EDICT_NUM( num, __FILE__, __LINE__ )
+
+// for constant strings
+#define STRING( offset )	pfnGetString( offset )
+#define MAKE_STRING(str)	pfnAllocString( str )
+
 #define prog	vm->prog	// global callback to vprogs.dll
 #define PRVM_EDICT_NUM( num )	_PRVM_EDICT_NUM( num, __FILE__, __LINE__ )
 
@@ -317,13 +324,6 @@ enum e_trace
 	MOVE_HITMODEL,
 };
 
-// client printf level
-enum e_clprint
-{
-	PRINT_CONSOLE = 0,	// normal messages
-	PRINT_CENTER,	// centerprint
-	PRINT_CHAT,	// chat messages (with sound)
-};
 extern byte *zonepool;
 
 #define Z_Malloc(size) Mem_Alloc( zonepool, size )

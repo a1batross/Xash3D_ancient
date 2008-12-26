@@ -626,7 +626,7 @@ void SV_SendClientMessages( void )
 		{
 			MSG_Clear( &cl->netchan.message );
 			MSG_Clear( &cl->datagram );
-			SV_BroadcastPrintf( PRINT_CONSOLE, "%s overflowed\n", cl->name );
+			SV_BroadcastPrintf( HUD_PRINTCONSOLE, "%s overflowed\n", cl->name );
 			SV_DropClient( cl );
 		}
 

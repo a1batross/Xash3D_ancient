@@ -31,7 +31,7 @@ typedef struct vsound_exp_s
 	void (*StartSound)( const vec3_t pos, int ent, int chan, sound_t sfx, float vol, float attn, float pitch, bool loop );
 	void (*StreamRawSamples)( int samples, int rate, int width, int channels, const byte *data );
 	bool (*AddLoopingSound)( int entnum, sound_t handle, float volume, float attn );
-	bool (*StartLocalSound)( const char *name );
+	bool (*StartLocalSound)( const char *name, float volume, const float *origin );
 	void (*StartBackgroundTrack)( const char *introTrack, const char *loopTrack );
 	void (*StopBackgroundTrack)( void );
 

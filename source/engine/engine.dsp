@@ -134,6 +134,10 @@ SOURCE=.\client\cl_frame.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\client\cl_game.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\client\cl_input.c
 # End Source File
 # Begin Source File
@@ -146,7 +150,7 @@ SOURCE=.\client\cl_parse.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\client\cl_pred.c
+SOURCE=.\client\cl_phys.c
 # End Source File
 # Begin Source File
 
@@ -260,10 +264,6 @@ SOURCE=.\server\sv_world.c
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl;fi;fd"
-# Begin Source File
-
-SOURCE=.\client\cl_edict.h
-# End Source File
 # Begin Source File
 
 SOURCE=.\client\client.h

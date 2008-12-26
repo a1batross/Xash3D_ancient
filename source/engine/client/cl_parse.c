@@ -275,17 +275,16 @@ void CL_ParseBaseline( sizebuf_t *msg )
 {
 	int		newnum;
 	entity_state_t	nullstate;
-	pr_edict_t		*ent;
+	edict_t		*ent;
 
-	CL_VM_Begin();
-	memset( &nullstate, 0, sizeof(nullstate));
+	Mem_Set( &nullstate, 0, sizeof( nullstate ));
 	newnum = MSG_ReadBits( msg, NET_WORD );
 
 	// increase edicts
-	while( newnum >= prog->num_edicts ) PRVM_ED_Alloc();
-	ent = PRVM_EDICT_NUM( newnum );
+	while( newnum >= game.numEntities ) CL_AllocEdict();
+	ent = EDICT_NUM( newnum );
 
-	MSG_ReadDeltaEntity( msg, &nullstate, &ent->priv.cl->baseline, newnum );
+	MSG_ReadDeltaEntity( msg, &nullstate, &ent->pvEngineData->baseline, newnum );
 }
 
 /*
@@ -301,7 +300,6 @@ void CL_ParseConfigString( sizebuf_t *msg )
 	if( i < 0 || i >= MAX_CONFIGSTRINGS )
 		Host_Error("configstring > MAX_CONFIGSTRINGS\n");
 	com.strcpy( cl.configstrings[i], MSG_ReadString( msg ));
-	CL_VM_Begin();
 
 	// do something apropriate 
 	if( i == CS_SKYNAME && cl.video_prepped )
@@ -327,13 +325,12 @@ void CL_ParseConfigString( sizebuf_t *msg )
 	}
 	else if( i >= CS_USER_MESSAGES && i < CS_USER_MESSAGES+MAX_USER_MESSAGES )
 	{
-		// FIXME: register user message here
-		// Msg("PrepUserMessage: %s[svc_%i]\n", cl.configstrings[i], i - CS_USER_MESSAGES );
+		CL_PrepUserMessage( cl.configstrings[i], i - CS_USER_MESSAGES );
 	}
 	else if( i >= CS_CLASSNAMES && i < CS_CLASSNAMES+MAX_CLASSNAMES )
 	{
-		// prvm classnames for search by classname on client vm
-		cl.edict_classnames[i-CS_CLASSNAMES] = PRVM_SetEngineString( cl.configstrings[i] );
+		// edicts classnames for search by classname on client
+		cl.edict_classnames[i-CS_CLASSNAMES] = MAKE_STRING( cl.configstrings[i] );
 	}
 	else if( i >= CS_LIGHTSTYLES && i < CS_LIGHTSTYLES+MAX_LIGHTSTYLES )
 	{
@@ -371,9 +368,6 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 {
 	char	*s;
 	int	cmd;
-
-	// client progs can recivied messages too
-	cls.multicast = msg;
 
 	// parse the message
 	while( 1 )
@@ -442,9 +436,7 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			Host_Error( "CL_ParseServerMessage: svc_bad\n" );
 			break;
 		default:
-			// parse user messages
-			if(!CL_ParseUserMessage( cmd ))
-				Host_Error("CL_ParseServerMessage: illegible server message %d\n", cmd );
+			CL_ParseUserMessage( msg, cmd );
 			break;
 		}
 	}

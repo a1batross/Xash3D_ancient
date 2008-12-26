@@ -5,26 +5,6 @@
 #ifndef SVGAME_API_H
 #define SVGAME_API_H
 
-#define INTERFACE_VERSION	138
-
-typedef enum
-{
-	at_console = 1,	// format: [msg]
-	at_warning,	// format: Warning: [msg]
-	at_error,		// format: Error: [msg]
-	at_loading,	// print messages during loading
-	at_aiconsole,	// same as at_console, but only shown if developer level is 5!
-	at_logged		// server print to console ( only in multiplayer games ).
-} ALERT_TYPE;
-
-// Client_Printf modes
-enum
-{
-	print_console = 0,
-	print_center,
-	print_chat
-};
-
 enum
 {
 	WALKMOVE_NORMAL = 0,
@@ -53,6 +33,49 @@ typedef struct
 	const char	*pTexName;	// texture name that we hitting (brushes and studiomodels)
 	edict_t		*pHit;		// entity the surface is on
 } TraceResult;
+
+typedef struct globalvars_s
+{	
+	float		time;
+	float		frametime;
+	string_t		mapname;
+	string_t		startspot;
+	vec3_t		spotOffset;	// landmark offset
+
+	BOOL		deathmatch;
+	BOOL		coop;
+	BOOL		teamplay;
+
+	int		serverflags;
+	int		maxClients;
+	int		numClients;	// actual clients count
+	int		maxEntities;
+	int		numEntities;	// actual ents count
+
+	vec3_t		v_forward;
+	vec3_t		v_right;
+	vec3_t		v_up;
+
+	BOOL		trace_allsolid;
+	BOOL		trace_startsolid;
+	BOOL		trace_startstuck;
+	float		trace_fraction;
+	vec3_t		trace_endpos;
+	vec3_t		trace_plane_normal;
+	float		trace_plane_dist;
+	int		trace_start_contents;
+	int		trace_contents;
+	int		trace_hitgroup;
+	const char	*trace_texture;	// texture name that we hitting (brushes and studiomodels)
+	edict_t		*trace_ent;
+
+	int		total_secrets;
+	int		found_secrets;	// number of secrets found
+	int		total_monsters;
+	int		killed_monsters;	// number of monsters killed
+
+	void		*pSaveData;	// savedata base offset
+} globalvars_t;
 
 // engine hands this to DLLs for functionality callbacks
 typedef struct enginefuncs_s
@@ -115,6 +138,7 @@ typedef struct enginefuncs_s
 	void	(*pfnWriteLong)( int iValue );
 	void	(*pfnWriteAngle)( float flValue );
 	void	(*pfnWriteCoord)( float flValue );
+	void	(*pfnWriteFloat)( float flValue );
 	void	(*pfnWriteString)( const char *sz );
 	void	(*pfnWriteEntity)( int iValue );
 	void	(*pfnCVarRegister)( const char *name, const char *value, int flags, const char *desc );
@@ -148,7 +172,7 @@ typedef struct enginefuncs_s
 	void	(*pfnCRC_Init)( word *pulCRC );
 	void	(*pfnCRC_ProcessBuffer)( word *pulCRC, void *p, int len );
 	word	(*pfnCRC_Final)( word pulCRC );
-	long	(*pfnRandomLong)( long  lLow,  long  lHigh );
+	long	(*pfnRandomLong)( long lLow, long lHigh );
 	float	(*pfnRandomFloat)( float flLow, float flHigh );
 	void	(*pfnSetView)( const edict_t *pClient, const edict_t *pViewent );
 	void	(*pfnCrosshairAngle)( const edict_t *pClient, float pitch, float yaw );
@@ -317,8 +341,6 @@ typedef struct
 
 	 // returns string describing current .dll.  E.g., TeamFotrress 2, Half-Life
 	const char *(*pfnGetGameDescription)( void );     
-	// notify game .dll that engine is going to shut down.  Allows mod authors to set a breakpoint.
-	void	(*pfnHostError)( const char *error_string );
 } DLL_FUNCTIONS;
 
 // TODO: create single func

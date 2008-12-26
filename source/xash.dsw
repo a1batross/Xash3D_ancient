@@ -15,6 +15,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "client"=".\client\client.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "common"=".\common\common.dsp" - Package Owner=<4>
 
 Package=<5>
@@ -63,7 +75,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "server"=".\sv_dll\server.dsp" - Package Owner=<4>
+Project: "server"=".\server\server.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{

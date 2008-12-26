@@ -453,9 +453,9 @@ void S_StartSound( const vec3_t pos, int entnum, int channel, sound_t handle, fl
 
 	// Allocate a playSound
 	ps = S_AllocPlaySound();
-	if(!ps)
+	if( !ps )
 	{
-		if( sfx->name[0] == '#' ) MsgDev(D_ERROR, "dropped sound %s\n", &sfx->name[1] );
+		if( sfx->name[0] == '#' ) MsgDev( D_ERROR, "dropped sound %s\n", &sfx->name[1] );
 		else MsgDev( D_ERROR, "dropped sound \"sound/%s\"\n", sfx->name );
 		return;
 	}
@@ -492,7 +492,7 @@ S_StartLocalSound
 menu sound
 =================
 */
-bool S_StartLocalSound( const char *name )
+bool S_StartLocalSound( const char *name, float volume, const float *origin )
 {
 	sound_t	sfxHandle;
 
@@ -500,7 +500,7 @@ bool S_StartLocalSound( const char *name )
 		return false;
 
 	sfxHandle = S_RegisterSound( name );
-	S_StartSound( NULL, al_state.clientnum, CHAN_AUTO, sfxHandle, 1.0f, ATTN_NONE, PITCH_NORM, false );
+	S_StartSound( origin, al_state.clientnum, CHAN_AUTO, sfxHandle, volume, ATTN_NONE, PITCH_NORM, false );
 	return true;
 }
 
@@ -710,10 +710,10 @@ void S_PlaySound_f( void )
 {
 	if( Cmd_Argc() == 1 )
 	{
-		Msg("Usage: playsound <soundfile>\n");
+		Msg( "Usage: playsound <soundfile>\n" );
 		return;
 	}
-	S_StartLocalSound(Cmd_Argv(1));
+	S_StartLocalSound( Cmd_Argv( 1 ), 1.0f, NULL );
 }
 
 /*
@@ -727,13 +727,13 @@ void S_Music_f( void )
 
 	if( c == 2 ) S_StartBackgroundTrack( Cmd_Argv(1), Cmd_Argv(1) );
 	else if( c == 3 ) S_StartBackgroundTrack( Cmd_Argv(1), Cmd_Argv(2) );
-	else Msg("Usage: music <musicfile> [loopfile]\n");
+	else Msg( "Usage: music <musicfile> [loopfile]\n" );
 }
 
 /*
- =================
- S_StopSound_f
- =================
+=================
+S_StopSound_f
+=================
 */
 void S_StopSound_f( void )
 {

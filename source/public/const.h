@@ -5,6 +5,14 @@
 #ifndef CONST_H
 #define CONST_H
 
+// shared typedefs
+typedef unsigned __int64		qword;
+typedef unsigned long		dword;
+typedef unsigned int		uint;
+typedef unsigned short		word;
+typedef unsigned char		byte;
+typedef int			shader_t;
+
 // euler angle order
 #define PITCH			0
 #define YAW			1
@@ -101,6 +109,16 @@
 #define DAMAGE_NO		0
 #define DAMAGE_YES		1
 #define DAMAGE_AIM		2
+
+typedef enum
+{
+	at_console = 1,	// format: [msg]
+	at_warning,	// format: Warning: [msg]
+	at_error,		// format: Error: [msg]
+	at_loading,	// print messages during loading
+	at_aiconsole,	// same as at_console, but only shown if developer level is 5!
+	at_logged		// server print to console ( only in multiplayer games ).
+} ALERT_TYPE;
 
 // engine edict types
 typedef enum
@@ -209,5 +227,54 @@ typedef enum
 	kRenderFxAurora,			// set particle trail for this entity
 	kRenderFxNoReflect,			// don't reflecting in mirrors 
 } kRenderFx_t;
+
+// all drawing is done to a 640*480 virtual screen size
+// and will be automatically scaled to the real resolution
+#define SCREEN_WIDTH			640
+#define SCREEN_HEIGHT			480
+
+#define TINYCHAR_WIDTH			(SMALLCHAR_WIDTH)
+#define TINYCHAR_HEIGHT			(SMALLCHAR_HEIGHT/2)
+#define SMALLCHAR_WIDTH			8
+#define SMALLCHAR_HEIGHT			16
+#define BIGCHAR_WIDTH			16
+#define BIGCHAR_HEIGHT			24
+#define GIANTCHAR_WIDTH			32
+#define GIANTCHAR_HEIGHT			48
+
+#define HUD_PRINTNOTIFY		1
+#define HUD_PRINTCONSOLE		2
+#define HUD_PRINTTALK		3
+#define HUD_PRINTCENTER		4
+
+#define INTERFACE_VERSION		1	// both the client and server iface version
+
+//=======================================================================
+//
+//		server.dll - client.dll definitions only
+//
+//=======================================================================
+#define MAX_WEAPONS			32
+#define MAX_AMMO_SLOTS  		32
+
+#define HIDEHUD_WEAPONS		BIT( 0 )
+#define HIDEHUD_FLASHLIGHT		BIT( 1 )
+#define HIDEHUD_ALL			BIT( 2 )
+#define HIDEHUD_HEALTH		BIT( 3 )
+#define ITEM_SUIT			BIT( 4 )
+
+enum ShakeCommand_t
+{
+	SHAKE_START = 0,	// Starts the screen shake for all players within the radius.
+	SHAKE_STOP,	// Stops the screen shake for all players within the radius.
+	SHAKE_AMPLITUDE,	// Modifies the amplitude of an active screen shake for all players within the radius.
+	SHAKE_FREQUENCY,	// Modifies the frequency of an active screen shake for all players within the radius.
+};
+
+#define FFADE_IN		0x0000 // Just here so we don't pass 0 into the function
+#define FFADE_OUT		0x0001 // Fade out (not in)
+#define FFADE_MODULATE	0x0002 // Modulate (don't blend)
+#define FFADE_STAYOUT	0x0004 // ignores the duration, stays faded out until new ScreenFade message received
+#define FFADE_CUSTOMVIEW	0x0008 // fading only at custom viewing (don't sending this to engine )
 
 #endif//CONST_H

@@ -102,8 +102,6 @@ void UI_KeyEvent( int key )
 	prog->globals.ui->time = cls.realtime * 0.001f;
 	PRVM_G_INT(OFS_PARM1) = PRVM_SetEngineString(ascii);
 	PRVM_ExecuteProgram (prog->globals.ui->m_keydown, "m_keydown");
-
-	CL_VM_Begin(); 	// restore clvm state
 }
 
 void UI_Draw( void )
@@ -115,8 +113,6 @@ void UI_Draw( void )
 	prog->globals.ui->time = cls.realtime * 0.001f;
 	PRVM_ExecuteProgram (prog->globals.ui->m_draw, "m_draw");
 	UI_DrawCredits(); // display game credits
-
-	CL_VM_Begin(); 	// restore clvm state
 }
 
 void UI_DrawCredits( void )
@@ -160,7 +156,6 @@ void UI_ShowMenu( void )
 	ui_active = true;
 	prog->globals.ui->time = cls.realtime * 0.001f;
 	PRVM_ExecuteProgram (prog->globals.ui->m_show, "m_show");
-	CL_VM_Begin(); 	// restore clvm state
 }
 
 void UI_HideMenu( void )
@@ -173,7 +168,6 @@ void UI_HideMenu( void )
 	ui_active = false;
 	prog->globals.ui->time = cls.realtime * 0.001f;
 	PRVM_ExecuteProgram (prog->globals.ui->m_hide, "m_hide");
-	CL_VM_Begin(); 	// restore clvm state
 }
 
 void UI_Shutdown( void )

@@ -994,12 +994,24 @@ bool SV_ReadComment( char *comment, int savenum )
 ===============================================================================
 */
 
-void *pfnMemAlloc( size_t cb, const char *filename, const int fileline )
+/*
+=========
+pfnMemAlloc
+
+=========
+*/
+static void *pfnMemAlloc( size_t cb, const char *filename, const int fileline )
 {
-	return com.malloc( svs.mempool, cb, filename, fileline );
+	return com.malloc( svs.private, cb, filename, fileline );
 }
 
-void pfnMemFree( void *mem, const char *filename, const int fileline )
+/*
+=========
+pfnMemFree
+
+=========
+*/
+static void pfnMemFree( void *mem, const char *filename, const int fileline )
 {
 	com.free( mem, filename, fileline );
 }
@@ -1484,18 +1496,6 @@ void pfnMakeVectors( const float *rgflVector )
 
 /*
 ==============
-pfnAngleVectors
-
-can receive NULL output args
-==============
-*/
-void pfnAngleVectors( const float *rgflVector, float *forward, float *right, float *up )
-{
-	AngleVectors( rgflVector, forward, right, up );
-}
-
-/*
-==============
 pfnCreateEntity
 
 just allocate new one
@@ -1835,7 +1835,7 @@ pfnTraceLine
 
 =================
 */
-void pfnTraceLine( const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr )
+static void pfnTraceLine( const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr )
 {
 	trace_t		trace;
 	int		move;
@@ -2100,7 +2100,7 @@ pfnPointContents
 
 =============
 */
-int pfnPointContents( const float *rgflVector )
+static int pfnPointContents( const float *rgflVector )
 {
 	return SV_PointContents( rgflVector );
 }
@@ -2227,6 +2227,18 @@ void pfnWriteCoord( float flValue )
 
 /*
 =============
+pfnWriteFloat
+
+=============
+*/
+void pfnWriteFloat( float flValue )
+{
+	MSG_WriteFloat( &sv.multicast, flValue );
+	if( game.msg_leftsize != 0xFFFF ) game.msg_leftsize -= 4;
+}
+
+/*
+=============
 pfnWriteString
 
 =============
@@ -2320,7 +2332,7 @@ pfnAlertMessage
 
 =============
 */
-void pfnAlertMessage( ALERT_TYPE level, char *szFmt, ... )
+static void pfnAlertMessage( ALERT_TYPE level, char *szFmt, ... )
 {
 	char		buffer[2048];	// must support > 1k messages
 	va_list		args;
@@ -2360,28 +2372,6 @@ void pfnFreeEntPrivateData( edict_t *pEdict )
 	if( pEdict->pvServerData )
 		Mem_Free( pEdict->pvServerData );
 	pEdict->pvServerData = NULL; // freed
-}
-
-/*
-=============
-pfnAllocString
-
-=============
-*/
-string_t pfnAllocString( const char *szValue )
-{
-	return StringTable_SetString( game.hStringTable, szValue );
-}		
-
-/*
-=============
-pfnGetString
-
-=============
-*/
-const char *pfnGetString( string_t iString )
-{
-	return StringTable_GetString( game.hStringTable, iString );
 }
 
 /*
@@ -2481,8 +2471,18 @@ int pfnRegUserMsg( const char *pszName, int iSize )
 {
 	// register message first
 	int	msg_index;
+	string	msg_name;
 
-	msg_index = SV_UserMessageIndex( pszName );
+	// scan name for reserved symbol
+	if( com.strchr( pszName, '@' ))
+	{
+		MsgDev( D_ERROR, "SV_RegisterUserMessage: invalid name %s\n", pszName );
+		return svc_bad; // force error
+	}
+
+	// build message name, fmt: MsgName@size
+	com.snprintf( msg_name, MAX_STRING, "%s@%i", pszName, iSize );
+	msg_index = SV_UserMessageIndex( msg_name );
 	if( iSize == -1 )
 		game.msg_sizes[msg_index] = 0xFFFF;
 	else game.msg_sizes[msg_index] = iSize;
@@ -2578,16 +2578,15 @@ void pfnClientPrintf( edict_t* pEdict, int ptype, const char *szMsg )
 
 	switch( ptype )
 	{
-	case PRINT_CONSOLE:
-		SV_ClientPrintf (client, PRINT_CONSOLE, (char *)szMsg );
+	case HUD_PRINTTALK:
+	case HUD_PRINTNOTIFY:	// don't leave message in console history
+	case HUD_PRINTCONSOLE:
+		SV_ClientPrintf( client, ptype, (char *)szMsg );
 		break;
-	case PRINT_CENTER:
+	case HUD_PRINTCENTER:
 		MSG_Begin( svc_centerprint );
 		MSG_WriteString( &sv.multicast, szMsg );
 		MSG_Send( MSG_ONE_R, NULL, pEdict );
-		break;
-	case PRINT_CHAT:
-		SV_ClientPrintf( client, PRINT_CHAT, (char *)szMsg );
 		break;
 	default:
 		MsgDev( D_ERROR, "SV_ClientPrintf: invalid destination\n" );
@@ -2608,7 +2607,7 @@ void pfnServerPrint( const char *szMsg )
 		// while loading in-progress we can sending message
 		com.print( szMsg );	// only for local client
 	}
-	else SV_BroadcastPrintf( PRINT_CONSOLE, (char *)szMsg );
+	else SV_BroadcastPrintf( HUD_PRINTCONSOLE, (char *)szMsg );
 }
 
 /*
@@ -2712,28 +2711,6 @@ word pfnCRC_Final( word pulCRC )
 
 /*
 =============
-pfnRandomLong
-
-=============
-*/
-long pfnRandomLong( long lLow, long lHigh )
-{
-	return Com_RandomLong( lLow, lHigh );
-}
-
-/*
-=============
-pfnRandomFloat
-
-=============
-*/
-float pfnRandomFloat( float flLow, float flHigh )
-{
-	return Com_RandomFloat( flLow, flHigh );
-}
-
-/*
-=============
 pfnSetView
 
 =============
@@ -2752,28 +2729,6 @@ pfnCrosshairAngle
 void pfnCrosshairAngle( const edict_t *pClient, float pitch, float yaw )
 {
 	// FIXME: implement
-}
-
-/*
-=============
-pfnLoadFile
-
-=============
-*/
-byte* pfnLoadFile( const char *filename, int *pLength )
-{
-	return FS_LoadFile( filename, pLength );
-}
-
-/*
-=============
-pfnFreeFile
-
-=============
-*/
-void pfnFreeFile( void *buffer )
-{
-	if( buffer ) Mem_Free( buffer );
 }
 
 /*
@@ -2800,19 +2755,7 @@ int pfnCompareFileTime( const char *filename1, const char *filename2, int *iComp
 
 /*
 =============
-pfnGetGameDir
-
-=============
-*/
-void pfnGetGameDir( char *szGetGameDir )
-{
-	// FIXME: potentially crashpoint
-	com.strcpy( szGetGameDir, FS_Gamedir );
-}
-
-/*
-=============
-pfnGetGameDir
+pfnStaticDecal
 
 =============
 */
@@ -3001,7 +2944,7 @@ static enginefuncs_t gEngfuncs =
 	pfnEntitiesInPVS,
 	pfnEntitiesInPHS,		
 	pfnMakeVectors,
-	pfnAngleVectors,
+	AngleVectors,
 	pfnCreateEntity,
 	pfnRemoveEntity,
 	pfnCreateNamedEntity,				
@@ -3034,6 +2977,7 @@ static enginefuncs_t gEngfuncs =
 	pfnWriteLong,
 	pfnWriteAngle,
 	pfnWriteCoord,
+	pfnWriteFloat,
 	pfnWriteString,
 	pfnWriteEntity,
 	pfnCVarRegister,

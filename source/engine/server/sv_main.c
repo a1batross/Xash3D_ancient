@@ -164,7 +164,7 @@ void SV_CheckTimeouts( void )
 		}
 		if(( cl->state == cs_connected || cl->state == cs_spawned) && cl->lastmessage < droppoint )
 		{
-			SV_BroadcastPrintf( PRINT_CONSOLE, "%s timed out\n", cl->name );
+			SV_BroadcastPrintf( HUD_PRINTCONSOLE, "%s timed out\n", cl->name );
 			SV_DropClient( cl ); 
 			cl->state = cs_free; // don't bother with zombie state
 		}
@@ -394,9 +394,9 @@ void SV_FinalMessage( char *message, bool reconnect )
 	sizebuf_t		msg;
 	int		i;
 	
-	MSG_Init( &msg, msg_buf, sizeof(msg_buf));
+	MSG_Init( &msg, msg_buf, sizeof( msg_buf ));
 	MSG_WriteByte( &msg, svc_print );
-	MSG_WriteByte( &msg, PRINT_CONSOLE );
+	MSG_WriteByte( &msg, HUD_PRINTCONSOLE );
 	MSG_WriteString( &msg, message );
 
 	if( reconnect )

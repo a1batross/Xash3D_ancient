@@ -10,6 +10,84 @@
 #include "client.h"
 
 /*
+=============
+pfnAllocString
+
+=============
+*/
+string_t pfnAllocString( const char *szValue )
+{
+	return StringTable_SetString( game.hStringTable, szValue );
+}		
+
+/*
+=============
+pfnGetString
+
+=============
+*/
+const char *pfnGetString( string_t iString )
+{
+	return StringTable_GetString( game.hStringTable, iString );
+}
+
+/*
+=============
+pfnLoadFile
+
+=============
+*/
+byte* pfnLoadFile( const char *filename, int *pLength )
+{
+	return FS_LoadFile( filename, pLength );
+}
+
+/*
+=============
+pfnFreeFile
+
+=============
+*/
+void pfnFreeFile( void *buffer )
+{
+	if( buffer ) Mem_Free( buffer );
+}
+
+/*
+=============
+pfnRandomLong
+
+=============
+*/
+long pfnRandomLong( long lLow, long lHigh )
+{
+	return Com_RandomLong( lLow, lHigh );
+}
+
+/*
+=============
+pfnRandomFloat
+
+=============
+*/
+float pfnRandomFloat( float flLow, float flHigh )
+{
+	return Com_RandomFloat( flLow, flHigh );
+}
+
+/*
+=============
+pfnGetGameDir
+
+=============
+*/
+void pfnGetGameDir( char *szGetGameDir )
+{
+	// FIXME: potentially crashpoint
+	com.strcpy( szGetGameDir, FS_Gamedir );
+}
+
+/*
 =======================================================================
 
 		    VIRTUAL MACHINE COMMON UTILS
@@ -804,7 +882,8 @@ void VM_localsound( void )
 		return;
 	s = PRVM_G_STRING( OFS_PARM0 );
 
-	if(!S_StartLocalSound( s ))
+	S_StartLocalSound( s, 1.0f, NULL );
+	else
 	{
 		VM_Warning( "localsound: can't play %s!\n", s );
 		PRVM_G_FLOAT(OFS_RETURN) = 0;

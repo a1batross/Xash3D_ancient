@@ -13,10 +13,16 @@ launchers.bat
 todo.log
 
 baserc\
-cl_dll\
+client\
+client\hud\
+client\global\
 public\
 physic\
-sv_dll\
+server\
+server\ents\
+server\game\
+server\global\
+server\monsters\
 render\
 vprogs\
 vsound\

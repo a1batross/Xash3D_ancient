@@ -23,13 +23,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define CLIENT_H
 
 #include "mathlib.h"
-#include "cl_edict.h"
+#include "entity_def.h"
+#include "clgame_api.h"
 #include "render_api.h"
 
 #define MAX_EDIT_LINE	256
 #define COMMAND_HISTORY	32
 #define MAX_SERVERS		64
 #define ColorIndex(c)	(((c) - '0') & 7)
+
+#define NUM_FOR_EDICT(e) ((int)((edict_t *)(e) - game.edicts))
+#define EDICT_NUM( num ) _EDICT_NUM( num, __FILE__, __LINE__ )
 
 //=============================================================================
 typedef struct frame_s
@@ -163,15 +167,11 @@ typedef enum
 	dl_generic,
 } dltype_t;		// download type
 
-struct cl_edict_s
+// cl_private_edict_t
+struct ed_priv_s
 {
-	// generic_edict_t (don't move these fields!)
-	bool		free;
-	float		freetime;	 	// cl.time when the object was freed
 	int		serverframe;	// if not current, this ent isn't in the frame
-	int		serialnumber;	// client serialnumber
 
-	// cl_private_edict_t
 	entity_state_t	baseline;		// delta from this if not from a previous frame
 	entity_state_t	current;
 	entity_state_t	prev;		// will always be valid, but might just be a copy of current
@@ -195,7 +195,32 @@ typedef struct serverinfo_s
 
 } serverinfo_t;
 
-typedef enum {key_game, key_console, key_message, key_menu} keydest_t;
+typedef enum { key_game, key_console, key_message, key_menu } keydest_t;
+
+typedef struct
+{
+	const char	*name;
+	int		number;	// svc_ number
+	int		size;	// if size == -1, size come from first byte after svcnum
+	pfnUserMsgHook	func;	// user-defined function	
+} user_message_t;
+
+typedef struct
+{
+	int		maxClients;
+	int		numEntities;
+	int		maxEntities;
+	user_message_t	*msg[MAX_USER_MESSAGES];
+	int		numMessages;		// actual count of user messages
+
+	union
+	{
+		edict_t	*edicts;			// acess by edict number
+		void	*vp;			// acess by offset in bytes
+	};
+
+	int		hStringTable;		// stringtable handle
+} clgame_static_t;
 
 typedef struct
 {
@@ -203,7 +228,11 @@ typedef struct
 	bool		initialized;
 
 	keydest_t		key_dest;
-	byte		*mempool;
+
+	void		*game;			// pointer to client.dll
+	HUD_FUNCTIONS	dllFuncs;			// dll exported funcs
+	byte		*mempool;			// edicts pool
+	byte		*private;			// client.dll private pool
 
 	int		framecount;
 	dword		realtime;			// always increasing, no clamping, etc
@@ -214,7 +243,6 @@ typedef struct
 	float		connect_time;		// for connection retransmits
 
 	netchan_t		netchan;
-	sizebuf_t		*multicast;		// ptr for current message buffer (net or demo flow)
 	int		serverProtocol;		// in case we are doing some kind of version hack
 
 	int		challenge;		// from the server to use for connecting
@@ -245,6 +273,7 @@ typedef struct
 } client_static_t;
 
 extern client_static_t	cls;
+extern clgame_static_t	game;
 
 /*
 ==============================================================
@@ -253,20 +282,6 @@ SCREEN CONSTS
 
 ==============================================================
 */
-// all drawing is done to a 640*480 virtual screen size
-// and will be automatically scaled to the real resolution
-#define SCREEN_WIDTH	640
-#define SCREEN_HEIGHT	480
-
-#define TINYCHAR_WIDTH	(SMALLCHAR_WIDTH)
-#define TINYCHAR_HEIGHT	(SMALLCHAR_HEIGHT/2)
-#define SMALLCHAR_WIDTH	8
-#define SMALLCHAR_HEIGHT	16
-#define BIGCHAR_WIDTH	16
-#define BIGCHAR_HEIGHT	24
-#define GIANTCHAR_WIDTH	32
-#define GIANTCHAR_HEIGHT	48
-
 extern vrect_t scr_vrect;	// position of render window
 extern vec4_t g_color_table[8];
 
@@ -446,12 +461,34 @@ void CL_InitClientProgs( void );
 void CL_FreeClientProgs( void );
 int CL_GetMaxClients( void );
 void CL_DrawHUD( void );
-pr_edict_t *CL_GetEdict( int entnum );
+edict_t *CL_GetEdict( int entnum );
 float *CL_FadeColor( float starttime, float endtime );
-bool CL_ParseUserMessage( int svc_number );
 void CL_FreeEdicts( void );
-void CL_VM_Begin( void );
-void CL_VM_End( void );
+
+//
+// cl_game.c
+//
+void CL_UnloadProgs( void );
+bool CL_LoadProgs( const char *name );
+void CL_ParseUserMessage( sizebuf_t *msg, int svc_num );
+void CL_PrepUserMessage( char *pszName, const int svc_num );
+edict_t *CL_AllocEdict( void );
+void CL_FreeEdict( edict_t *pEdict );
+string_t pfnAllocString( const char *szValue );
+const char *pfnGetString( string_t iString );
+void pfnGetGameDir( char *szGetGameDir );
+long pfnRandomLong( long lLow, long lHigh );
+float pfnRandomFloat( float flLow, float flHigh );
+byte* pfnLoadFile( const char *filename, int *pLength );
+void pfnFreeFile( void *buffer );
+
+_inline edict_t *_EDICT_NUM( int n, const char *file, const int line )
+{
+	if((n >= 0) && (n < game.maxEntities))
+		return game.edicts + n;
+	Host_Error( "EDICT_NUM: bad number %i (called at %s:%i)\n", n, file, line );
+	return NULL;	
+}
 
 //
 // cl_sound.c
@@ -461,7 +498,7 @@ void CL_VM_End( void );
 // if origin is NULL, the sound will be dynamically sourced from the entity
 #define S_StartStreaming		if( se ) se->StartStreaming
 #define S_StartSound( a,b,c,d,e,f,g )	if( se ) se->StartSound( a, b, c, d, e, f, g, true );
-#define S_StartLocalSound( name )	( se && se->StartLocalSound( name ))
+#define S_StartLocalSound( a, b, c )	if( se ) se->StartLocalSound( a, b, c )
 #define S_StartBackgroundTrack	if( se ) se->StartBackgroundTrack
 #define S_StopBackgroundTrack		if( se ) se->StopBackgroundTrack
 #define S_RawSamples 		if( se ) se->StreamRawSamples
@@ -525,14 +562,15 @@ void V_RenderSplash( void );
 float V_CalcFov( float fov_x, float width, float height );
 
 //
-// cl_pred.c
+// cl_phys.c
 //
 void CL_InitPrediction (void);
 void CL_PredictMove (void);
 void CL_CheckPredictionError (void);
 int CL_PointContents( const vec3_t point );
+int CL_ContentsMask( const edict_t *passedict );
 bool CL_AmbientLevel( const vec3_t point, float *volumes );
-trace_t CL_Trace(const vec3_t s1, const vec3_t m1, const vec3_t m2, const vec3_t s2, int type, pr_edict_t *e, int mask);
+trace_t CL_Trace( const vec3_t s1, const vec3_t m1, const vec3_t m2, const vec3_t s2, int type, edict_t *e, int mask );
 
 //
 // cl_ents.c
@@ -590,8 +628,6 @@ extern field_t chatField;
 // cl_menu.c
 //
 extern bool ui_active;
-extern const int vm_ui_numbuiltins;
-extern prvm_builtin_t vm_ui_builtins[];
 
 void UI_Init( void );
 void UI_DrawCredits( void );

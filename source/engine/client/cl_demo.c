@@ -34,7 +34,7 @@ void CL_WriteDemoHeader( const char *name )
 {
 	char		buf_data[MAX_MSGLEN];
 	entity_state_t	*state, nullstate;
-	pr_edict_t	*ent;
+	edict_t		*ent;
 	sizebuf_t		buf;
 	int		i, len;
 
@@ -69,7 +69,7 @@ void CL_WriteDemoHeader( const char *name )
 			if( buf.cursize + com.strlen(cl.configstrings[i]) + 32 > buf.maxsize )
 			{	
 				// write it out
-				len = LittleLong (buf.cursize);
+				len = LittleLong( buf.cursize );
 				FS_Write( cls.demofile, &len, 4 );
 				FS_Write( cls.demofile, buf.data, buf.cursize );
 				buf.cursize = 0;
@@ -81,16 +81,14 @@ void CL_WriteDemoHeader( const char *name )
 
 	}
 
-	CL_VM_Begin();
-
 	// baselines
-	memset(&nullstate, 0, sizeof(nullstate));
+	Mem_Set( &nullstate, 0, sizeof( nullstate ));
 
-	for( i = 0; i < prog->num_edicts; i++ )
+	for( i = 0; i < game.numEntities; i++ )
 	{
-		ent = PRVM_EDICT_NUM( i );
-		state = &ent->priv.cl->baseline;
-		if(!state->model.index) continue;
+		ent = EDICT_NUM( i );
+		state = &ent->pvEngineData->baseline;
+		if( !state->model.index ) continue;
 
 		if( buf.cursize + 64 > buf.maxsize )
 		{	
@@ -101,7 +99,7 @@ void CL_WriteDemoHeader( const char *name )
 			buf.cursize = 0;
 		}
 		MSG_WriteByte( &buf, svc_spawnbaseline );		
-		MSG_WriteDeltaEntity (&nullstate, &ent->priv.cl->baseline, &buf, true, true );
+		MSG_WriteDeltaEntity( &nullstate, &ent->pvEngineData->baseline, &buf, true, true );
 	}
 
 	MSG_WriteByte( &buf, svc_stufftext );
@@ -111,8 +109,6 @@ void CL_WriteDemoHeader( const char *name )
 	len = LittleLong( buf.cursize );
 	FS_Write( cls.demofile, &len, 4 );
 	FS_Write( cls.demofile, buf.data, buf.cursize );
-
-	CL_VM_End();
 }
 
 /*

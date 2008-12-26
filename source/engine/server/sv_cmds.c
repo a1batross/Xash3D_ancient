@@ -370,9 +370,9 @@ void SV_Kick_f( void )
 	}
 	if(!SV_SetPlayer()) return;
 
-	SV_BroadcastPrintf( PRINT_CONSOLE, "%s was kicked\n", sv_client->name );
-	SV_ClientPrintf(sv_client, PRINT_CONSOLE, "You were kicked from the game\n");
-	SV_DropClient(sv_client);
+	SV_BroadcastPrintf( HUD_PRINTCONSOLE, "%s was kicked\n", sv_client->name );
+	SV_ClientPrintf( sv_client, HUD_PRINTCONSOLE, "You were kicked from the game\n" );
+	SV_DropClient( sv_client );
 	sv_client->lastmessage = svs.realtime; // min case there is a funny zombie
 }
 
@@ -454,7 +454,7 @@ void SV_ConSay_f( void )
 	for (i = 0, client = svs.clients; i < Host_MaxClients(); i++, client++)
 	{
 		if( client->state != cs_spawned ) continue;
-		SV_ClientPrintf( client, PRINT_CHAT, "%s\n", text );
+		SV_ClientPrintf( client, HUD_PRINTTALK, "%s\n", text );
 	}
 }
 

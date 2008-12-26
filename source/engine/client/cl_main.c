@@ -869,8 +869,6 @@ void CL_PacketEvent( netadr_t from, sizebuf_t *msg )
 	if( host.type == HOST_DEDICATED || cls.demoplayback )
 		return;
 
-	CL_VM_Begin();
-	
 	if( msg->cursize >= 4 && *(int *)msg->data == -1 )
 	{
 		cls.netchan.last_received = cls.realtime;
@@ -906,7 +904,6 @@ void CL_PacketEvent( netadr_t from, sizebuf_t *msg )
 		if( cls.demorecording && !cls.demowaiting )
 			CL_WriteDemoMessage( msg, headerBytes );
 	}
-	CL_VM_End();
 }
 
 void CL_ReadPackets( void )
@@ -1203,9 +1200,6 @@ void CL_Frame( dword time )
 	// if in the debugger last frame, don't timeout
 	if( time > 5000 ) cls.netchan.last_received = Sys_Milliseconds();
 
-	// setup the VM frame
-	CL_VM_Begin();
-
 	// fetch results from server
 	CL_ReadPackets();
 
@@ -1235,9 +1229,6 @@ void CL_Frame( dword time )
 	SCR_RunCinematic();
 	Con_RunConsole();
 
-	// end the client VM frame
-	CL_VM_End();
-
 	cls.framecount++;
 }
 
@@ -1259,7 +1250,10 @@ void CL_Init( void )
 
 	Con_Init();	
 	VID_Init();
-	CL_InitClientProgs();
+	if( !CL_LoadProgs( "client" ))
+	{
+		Host_Error( "CL_InitGame: can't initialize client.dll\n" );
+	}
 	UI_Init();
 	SCR_Init();
 	CL_InitLocal();
@@ -1283,7 +1277,7 @@ void CL_Shutdown( void )
 	if( !cls.initialized ) return;
 
 	CL_WriteConfiguration(); 
-	CL_FreeClientProgs();
+	CL_UnloadProgs();
 	UI_Shutdown();
 	S_Shutdown();
 	SCR_Shutdown();

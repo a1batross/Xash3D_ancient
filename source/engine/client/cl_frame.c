@@ -13,15 +13,15 @@ FRAME PARSING
 
 =========================================================================
 */
-void CL_UpdateEntityFileds( pr_edict_t *ent )
+void CL_UpdateEntityFields( edict_t *ent )
 {
 	// copy state to progs
-	ent->progs.cl->classname = cl.edict_classnames[ent->priv.cl->current.classname];
-	ent->progs.cl->modelindex = ent->priv.cl->current.model.index;
-	ent->progs.cl->soundindex = ent->priv.cl->current.soundindex;
-	ent->progs.cl->model = PRVM_SetEngineString( cl.configstrings[CS_MODELS+ent->priv.cl->current.model.index] ); 
-	VectorCopy( ent->priv.cl->current.origin, ent->progs.cl->origin );
-	VectorCopy( ent->priv.cl->current.angles, ent->progs.cl->angles );
+	ent->v.classname = cl.edict_classnames[ent->pvEngineData->current.classname];
+	ent->v.modelindex = ent->pvEngineData->current.model.index;
+	ent->v.ambient = ent->pvEngineData->current.soundindex;
+	ent->v.model = MAKE_STRING( cl.configstrings[CS_MODELS+ent->pvEngineData->current.model.index] ); 
+	VectorCopy( ent->pvEngineData->current.origin, ent->v.origin );
+	VectorCopy( ent->pvEngineData->current.angles, ent->v.angles );
 }
 
 /*
@@ -34,10 +34,10 @@ to the current frame
 */
 void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t *old, bool unchanged )
 {
-	pr_edict_t		*ent;
+	edict_t		*ent;
 	entity_state_t	*state;
 
-	ent = PRVM_EDICT_NUM( newnum );
+	ent = EDICT_NUM( newnum );
 	state = &cl_parse_entities[cl.parse_entities & (MAX_PARSE_ENTITIES-1)];
 
 	if( unchanged ) *state = *old;
@@ -49,28 +49,28 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 	frame->num_entities++;
 
 	// some data changes will force no lerping
-	if( state->model.index != ent->priv.cl->current.model.index || state->pmodel.index != ent->priv.cl->current.pmodel.index || state->model.body != ent->priv.cl->current.model.body
-		|| state->model.sequence != ent->priv.cl->current.model.sequence || abs(state->origin[0] - ent->priv.cl->current.origin[0]) > 512
-		|| abs(state->origin[1] - ent->priv.cl->current.origin[1]) > 512 || abs(state->origin[2] - ent->priv.cl->current.origin[2]) > 512 )
+	if( state->model.index != ent->pvEngineData->current.model.index || state->pmodel.index != ent->pvEngineData->current.pmodel.index || state->model.body != ent->pvEngineData->current.model.body
+		|| state->model.sequence != ent->pvEngineData->current.model.sequence || abs(state->origin[0] - ent->pvEngineData->current.origin[0]) > 512
+		|| abs(state->origin[1] - ent->pvEngineData->current.origin[1]) > 512 || abs(state->origin[2] - ent->pvEngineData->current.origin[2]) > 512 )
 	{
-		ent->priv.cl->serverframe = -99;
+		ent->pvEngineData->serverframe = -99;
 	}
 
-	if( ent->priv.cl->serverframe != cl.frame.serverframe - 1 )
+	if( ent->pvEngineData->serverframe != cl.frame.serverframe - 1 )
 	{	
 		// duplicate the current state so lerping doesn't hurt anything
-		ent->priv.cl->prev = *state;
+		ent->pvEngineData->prev = *state;
 	}
 	else
 	{	// shuffle the last state to previous
-		ent->priv.cl->prev = ent->priv.cl->current;
+		ent->pvEngineData->prev = ent->pvEngineData->current;
 	}
 
-	ent->priv.cl->serverframe = cl.frame.serverframe;
-	ent->priv.cl->current = *state;
+	ent->pvEngineData->serverframe = cl.frame.serverframe;
+	ent->pvEngineData->current = *state;
 
 	// update prvm fields
-	CL_UpdateEntityFileds( ent );
+	CL_UpdateEntityFields( ent );
 }
 
 /*
@@ -154,8 +154,8 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 		if( oldnum > newnum )
 		{	
 			// delta from baseline
-			pr_edict_t *ent = PRVM_EDICT_NUM( newnum );
-			CL_DeltaEntity( msg, newframe, newnum, &ent->priv.cl->baseline, false );
+			edict_t *ent = EDICT_NUM( newnum );
+			CL_DeltaEntity( msg, newframe, newnum, &ent->pvEngineData->baseline, false );
 			continue;
 		}
 
@@ -188,7 +188,7 @@ CL_ParseFrame
 void CL_ParseFrame( sizebuf_t *msg )
 {
 	int     		cmd, len, idx;
-	pr_edict_t		*clent;
+	edict_t		*clent;
 	frame_t		*old;
           
 	memset( &cl.frame, 0, sizeof(cl.frame));
@@ -243,7 +243,7 @@ void CL_ParseFrame( sizebuf_t *msg )
 		cmd = MSG_ReadByte( msg );
 		if( cmd != svc_playerinfo ) Host_Error( "CL_ParseFrame: not clientindex\n" );
 		idx = MSG_ReadByte( msg );
-		clent = PRVM_EDICT_NUM( idx ); // get client
+		clent = EDICT_NUM( idx ); // get client
 		if((idx-1) != cl.playernum ) Host_Error("CL_ParseFrame: invalid playernum (%d should be %d)\n", idx-1, cl.playernum );
 	}
 	else
@@ -263,8 +263,8 @@ void CL_ParseFrame( sizebuf_t *msg )
 	if( sv_newprotocol->integer )
 	{
 		// now we can reading delta player state
-		if( old ) cl.frame.ps = MSG_ParseDeltaPlayer( &old->ps, &clent->priv.cl->current );
-		else cl.frame.ps = MSG_ParseDeltaPlayer( NULL, &clent->priv.cl->current );
+		if( old ) cl.frame.ps = MSG_ParseDeltaPlayer( &old->ps, &clent->pvEngineData->current );
+		else cl.frame.ps = MSG_ParseDeltaPlayer( NULL, &clent->pvEngineData->current );
 	}
 
 	// FIXME
@@ -304,18 +304,16 @@ CL_AddPacketEntities
 void CL_AddPacketEntities( frame_t *frame )
 {
 	entity_state_t	*s1;
-	pr_edict_t		*ent;
+	edict_t		*ent;
 	int		pnum;
 
 	for( pnum = 0; pnum < frame->num_entities; pnum++ )
 	{
 		s1 = &cl_parse_entities[(frame->parse_entities + pnum)&(MAX_PARSE_ENTITIES-1)];
-		ent = PRVM_EDICT_NUM( s1->number );
-		re->AddRefEntity( &ent->priv.cl->current, &ent->priv.cl->prev, cl.lerpfrac );
+		ent = EDICT_NUM( s1->number );
+		re->AddRefEntity( &ent->pvEngineData->current, &ent->pvEngineData->prev, cl.lerpfrac );
 	}
 }
-
-
 
 /*
 ==============
@@ -324,7 +322,7 @@ CL_AddViewWeapon
 */
 void CL_AddViewWeapon( entity_state_t *ps )
 {
-	pr_edict_t		*view;	// view model
+	edict_t		*view;	// view model
 
 	// allow the gun to be completely removed
 	if( !cl_gun->value ) return;
@@ -332,12 +330,12 @@ void CL_AddViewWeapon( entity_state_t *ps )
 	// don't draw gun if in wide angle view
 	if( ps->fov > 135 ) return;
 
-	view = PRVM_EDICT_NUM( ps->aiment );
-	VectorCopy( cl.refdef.vieworg, view->priv.cl->current.origin );
-	VectorCopy( cl.refdef.viewangles, view->priv.cl->current.angles );
-	VectorCopy( cl.refdef.vieworg, view->priv.cl->prev.origin );
-	VectorCopy( cl.refdef.viewangles, view->priv.cl->prev.angles );
-	re->AddRefEntity( &view->priv.cl->current, &view->priv.cl->prev, cl.lerpfrac );
+	view = EDICT_NUM( ps->aiment );
+	VectorCopy( cl.refdef.vieworg, view->pvEngineData->current.origin );
+	VectorCopy( cl.refdef.viewangles, view->pvEngineData->current.angles );
+	VectorCopy( cl.refdef.vieworg, view->pvEngineData->prev.origin );
+	VectorCopy( cl.refdef.viewangles, view->pvEngineData->prev.angles );
+	re->AddRefEntity( &view->pvEngineData->current, &view->pvEngineData->prev, cl.lerpfrac );
 }
 
 
@@ -459,7 +457,7 @@ void CL_AddEntities( void )
 
 void CL_GetEntitySoundSpatialization( int entnum, vec3_t origin, vec3_t velocity )
 {
-	pr_edict_t		*ent;
+	edict_t		*ent;
 	cmodel_t		*cmodel;
 	vec3_t		midPoint;
 
@@ -471,21 +469,21 @@ void CL_GetEntitySoundSpatialization( int entnum, vec3_t origin, vec3_t velocity
 		return;
 	}
 
-	ent = PRVM_EDICT_NUM( entnum );
+	ent = EDICT_NUM( entnum );
 
 	// calculate origin
-	origin[0] = ent->priv.cl->prev.origin[0] + (ent->priv.cl->current.origin[0] - ent->priv.cl->prev.origin[0]) * cl.lerpfrac;
-	origin[1] = ent->priv.cl->prev.origin[1] + (ent->priv.cl->current.origin[1] - ent->priv.cl->prev.origin[1]) * cl.lerpfrac;
-	origin[2] = ent->priv.cl->prev.origin[2] + (ent->priv.cl->current.origin[2] - ent->priv.cl->prev.origin[2]) * cl.lerpfrac;
+	origin[0] = ent->pvEngineData->prev.origin[0] + (ent->pvEngineData->current.origin[0] - ent->pvEngineData->prev.origin[0]) * cl.lerpfrac;
+	origin[1] = ent->pvEngineData->prev.origin[1] + (ent->pvEngineData->current.origin[1] - ent->pvEngineData->prev.origin[1]) * cl.lerpfrac;
+	origin[2] = ent->pvEngineData->prev.origin[2] + (ent->pvEngineData->current.origin[2] - ent->pvEngineData->prev.origin[2]) * cl.lerpfrac;
 
 	// calculate velocity
-	VectorSubtract( ent->priv.cl->current.origin, ent->priv.cl->prev.origin, velocity);
+	VectorSubtract( ent->pvEngineData->current.origin, ent->pvEngineData->prev.origin, velocity);
 	VectorScale(velocity, 10, velocity);
 
 	// if a brush model, offset the origin
 	if( VectorIsNull( origin ))
 	{
-		cmodel = cl.models[ent->priv.cl->current.model.index];
+		cmodel = cl.models[ent->pvEngineData->current.model.index];
 		if( !cmodel ) return;
 		VectorAverage( cmodel->mins, cmodel->maxs, midPoint );
 		VectorAdd( origin, midPoint, origin );
