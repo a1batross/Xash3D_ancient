@@ -9,12 +9,12 @@
 #include "cbase.h"
 #include "saverestore.h"
 #include "baseweapon.h"
+#include "client.h"
 #include "player.h"
 #include "gamerules.h"
 #include "defaults.h"
 
 extern int gEvilImpulse101;
-extern int gmsgItemPickup;
 
 //***********************************************************
 // 		   main functions ()
@@ -56,10 +56,10 @@ void CItem::ItemTouch( CBaseEntity *pOther )
 		UTIL_FireTargets( pev->target, pOther, this, USE_TOGGLE );
 		SetTouch( NULL );
                   
-		if (IsItem() && gmsgItemPickup)
+		if (IsItem() && gmsg.ItemPickup)
 		{
 			//show icon for item
-			MESSAGE_BEGIN( MSG_ONE, gmsgItemPickup, NULL, pPlayer->pev );
+			MESSAGE_BEGIN( MSG_ONE, gmsg.ItemPickup, NULL, pPlayer->pev );
 				WRITE_STRING( STRING(pev->classname) );
 			MESSAGE_END();
 		}
@@ -178,7 +178,7 @@ class CGenericItem : public CItem
 			EMIT_SOUND(ENT(pev), CHAN_ITEM, "weapons/glock/clip_in.wav", 1, ATTN_NORM);
 			return TRUE;
 		}
-		MESSAGE_BEGIN( MSG_ONE, gmsgItemPickup, NULL, pPlayer->pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.ItemPickup, NULL, pPlayer->pev );
 			WRITE_STRING( STRING(pev->classname) );
 		MESSAGE_END();
 		return FALSE;

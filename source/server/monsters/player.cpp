@@ -821,7 +821,7 @@ void CBasePlayer::RemoveAllItems( BOOL removeSuit )
 	UpdateClientData();
 
 	// send Selected Weapon Message to our client
-	MESSAGE_BEGIN( MSG_ONE, gmsgCurWeapon, NULL, pev );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.CurWeapon, NULL, pev );
 		WRITE_BYTE(0);
 		WRITE_BYTE(0);
 		WRITE_BYTE(0);
@@ -885,12 +885,12 @@ void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 
 	// send "health" update message to zero
 	m_iClientHealth = 0;
-	MESSAGE_BEGIN( MSG_ONE, gmsgHealth, NULL, pev );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.Health, NULL, pev );
 		WRITE_BYTE( m_iClientHealth );
 	MESSAGE_END();
 
 	// Tell Ammo Hud that the player is dead
-	MESSAGE_BEGIN( MSG_ONE, gmsgCurWeapon, NULL, pev );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.CurWeapon, NULL, pev );
 		WRITE_BYTE(0);
 		WRITE_BYTE(0XFF);
 		WRITE_BYTE(0xFF);
@@ -903,7 +903,7 @@ void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 	viewFlags = 0;
 	viewNeedsUpdate = 1;
           
-	MESSAGE_BEGIN( MSG_ONE, gmsgSetFOV, NULL, pev );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.SetFOV, NULL, pev );
 		WRITE_BYTE(0);
 	MESSAGE_END();
 
@@ -1313,7 +1313,7 @@ void CBasePlayer::PlayerDeathThink(void)
 	}
 
 	//disable redeemer HUD
-	MESSAGE_BEGIN( MSG_ONE, gmsgWarHUD, NULL, pev );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.WarHUD, NULL, pev );
 		WRITE_BYTE( 0 );
 	MESSAGE_END();
 
@@ -1790,7 +1790,7 @@ void CBasePlayer::AddPoints( int score, BOOL bAllowNegativeScore )
 
 	pev->frags += score;
 
-	MESSAGE_BEGIN( MSG_ALL, gmsgScoreInfo );
+	MESSAGE_BEGIN( MSG_ALL, gmsg.ScoreInfo );
 		WRITE_BYTE( ENTINDEX(edict()) );
 		WRITE_SHORT( pev->frags );
 		WRITE_SHORT( m_iDeaths );
@@ -1875,7 +1875,7 @@ void CBasePlayer::UpdateStatusBar()
 
 	if ( strcmp( sbuf0, m_SbarString0 ) )
 	{
-		MESSAGE_BEGIN( MSG_ONE, gmsgStatusText, NULL, pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.StatusText, NULL, pev );
 			WRITE_BYTE( 0 );
 			WRITE_STRING( sbuf0 );
 		MESSAGE_END();
@@ -1888,7 +1888,7 @@ void CBasePlayer::UpdateStatusBar()
 
 	if ( strcmp( sbuf1, m_SbarString1 ) )
 	{
-		MESSAGE_BEGIN( MSG_ONE, gmsgStatusText, NULL, pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.StatusText, NULL, pev );
 			WRITE_BYTE( 1 );
 			WRITE_STRING( sbuf1 );
 		MESSAGE_END();
@@ -1904,7 +1904,7 @@ void CBasePlayer::UpdateStatusBar()
 	{
 		if ( newSBarState[i] != m_izSBarState[i] || bForceResend )
 		{
-			MESSAGE_BEGIN( MSG_ONE, gmsgStatusValue, NULL, pev );
+			MESSAGE_BEGIN( MSG_ONE, gmsg.StatusValue, NULL, pev );
 				WRITE_BYTE( i );
 				WRITE_SHORT( newSBarState[i] );
 			MESSAGE_END();
@@ -2653,7 +2653,7 @@ void CBasePlayer :: UpdateGeigerCounter( void )
 	{
 		m_igeigerRangePrev = range;
 
-		MESSAGE_BEGIN( MSG_ONE, gmsgGeigerRange, NULL, pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.GeigerRange, NULL, pev );
 			WRITE_BYTE( range );
 		MESSAGE_END();
 	}
@@ -3760,7 +3760,7 @@ void CBasePlayer :: FlashlightTurnOn( void )
 	{
 		EMIT_SOUND_DYN( ENT(pev), CHAN_WEAPON, SOUND_FLASHLIGHT_ON, 1.0, ATTN_NORM, 0, PITCH_NORM );
 		SetBits(pev->effects, EF_DIMLIGHT);
-		MESSAGE_BEGIN( MSG_ONE, gmsgFlashlight, NULL, pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.Flashlight, NULL, pev );
 		WRITE_BYTE(1);
 		WRITE_BYTE(m_iFlashBattery);
 		MESSAGE_END();
@@ -3775,7 +3775,7 @@ void CBasePlayer :: FlashlightTurnOff( void )
 	EMIT_SOUND_DYN( ENT(pev), CHAN_WEAPON, SOUND_FLASHLIGHT_OFF, 1.0, ATTN_NORM, 0, PITCH_NORM );
 
 	ClearBits(pev->effects, EF_DIMLIGHT);
-	MESSAGE_BEGIN( MSG_ONE, gmsgFlashlight, NULL, pev );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.Flashlight, NULL, pev );
 		WRITE_BYTE(0);
 		WRITE_BYTE(m_iFlashBattery);
 	MESSAGE_END();
@@ -3800,7 +3800,7 @@ void CBasePlayer :: ForceClientDllUpdate( void )
 	m_iTrain |= TRAIN_NEW;  // Force new train message.
 	m_fWeapon = FALSE;          // Force weapon send
 	m_fKnownItem = FALSE;    // Force weaponinit messages.
-	m_fInitHUD = TRUE;		// Force HUD gmsgResetHUD message
+	m_fInitHUD = TRUE;		// Force HUD gmsg.ResetHUD message
 
 	// Now force all the necessary messages
 	//  to be sent.
@@ -4073,10 +4073,10 @@ int CBasePlayer :: GiveAmmo( int iCount, char *szName, int iMax )
 	m_rgAmmo[ i ] += iAdd;
 
 
-	if ( gmsgAmmoPickup )// make sure the ammo messages have been linked first
+	if ( gmsg.AmmoPickup )// make sure the ammo messages have been linked first
 	{
 		// Send the message that ammo has been picked up
-		MESSAGE_BEGIN( MSG_ONE, gmsgAmmoPickup, NULL, pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.AmmoPickup, NULL, pev );
 			WRITE_BYTE( GetAmmoIndex(szName) );
 			WRITE_BYTE( iAdd );
 		MESSAGE_END();
@@ -4190,7 +4190,7 @@ void CBasePlayer::SendAmmoUpdate(void)
 			ASSERT( m_rgAmmo[i] < 255 );
 
 			// send "Ammo" update message
-			MESSAGE_BEGIN( MSG_ONE, gmsgAmmoX, NULL, pev );
+			MESSAGE_BEGIN( MSG_ONE, gmsg.AmmoX, NULL, pev );
 				WRITE_BYTE( i );
 				WRITE_BYTE( max( min( m_rgAmmo[i], 254 ), 0 ) );  // clamp the value to one byte
 			MESSAGE_END();
@@ -4220,13 +4220,13 @@ void CBasePlayer :: UpdateClientData( void )
 		m_fInitHUD = FALSE;
 		gInitHUD = FALSE;
 
-		MESSAGE_BEGIN( MSG_ONE, gmsgResetHUD, NULL, pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.ResetHUD, NULL, pev );
 			WRITE_BYTE( 0 );
 		MESSAGE_END();
 
 		if ( !m_fGameHUDInitialized )
 		{
-			MESSAGE_BEGIN( MSG_ONE, gmsgInitHUD, NULL, pev );
+			MESSAGE_BEGIN( MSG_ONE, gmsg.InitHUD, NULL, pev );
 			MESSAGE_END();
 
 			g_pGameRules->InitHUD( this );
@@ -4244,7 +4244,7 @@ void CBasePlayer :: UpdateClientData( void )
 
 	if ( m_iHideHUD != m_iClientHideHUD )
 	{
-		MESSAGE_BEGIN( MSG_ONE, gmsgHideWeapon, NULL, pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.HideWeapon, NULL, pev );
 			WRITE_BYTE( m_iHideHUD );
 		MESSAGE_END();
 
@@ -4253,7 +4253,7 @@ void CBasePlayer :: UpdateClientData( void )
 
 	if ( m_iFOV != m_iClientFOV )
 	{
-		MESSAGE_BEGIN( MSG_ONE, gmsgSetFOV, NULL, pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.SetFOV, NULL, pev );
 			WRITE_BYTE( m_iFOV );
 		MESSAGE_END();
 
@@ -4272,7 +4272,7 @@ void CBasePlayer :: UpdateClientData( void )
 			viewFlags = 0; //clear possibly ACTIVE flag
 		}
 
-		MESSAGE_BEGIN(MSG_ONE, gmsgCamData, NULL, pev);
+		MESSAGE_BEGIN(MSG_ONE, gmsg.CamData, NULL, pev);
 			WRITE_SHORT( indexToSend );
 			WRITE_SHORT( viewFlags );
 		MESSAGE_END();
@@ -4280,19 +4280,19 @@ void CBasePlayer :: UpdateClientData( void )
 		viewNeedsUpdate = 0;
 	}
           
-          if( hearNeedsUpdate != 0)
+          if( hearNeedsUpdate != 0 )
           {
-		//update dsp sound
-          	MESSAGE_BEGIN( MSG_ONE, SVC_ROOMTYPE, NULL, pev );
+		// update dsp sound
+          	MESSAGE_BEGIN( MSG_ONE, gmsg.RoomType, NULL, pev );
 			WRITE_SHORT( m_iSndRoomtype );
 		MESSAGE_END();
           	hearNeedsUpdate = 0;
           }
 
-	if(fadeNeedsUpdate != 0)
+	if( fadeNeedsUpdate != 0 )
 	{
-		//update screenfade
-		MESSAGE_BEGIN( MSG_ONE, gmsgFade, NULL, pev );
+		// update screenfade
+		MESSAGE_BEGIN( MSG_ONE, gmsg.Fade, NULL, pev );
 			WRITE_SHORT( FixedUnsigned16( m_iFadeTime, 1<<12 ));  
 			WRITE_SHORT( FixedUnsigned16( m_iFadeHold, 1<<12 ));
 			WRITE_SHORT( m_iFadeFlags );		// fade flags
@@ -4332,7 +4332,7 @@ void CBasePlayer :: UpdateClientData( void )
 	if(fogNeedsUpdate != 0)
 	{
 		//update fog
-		MESSAGE_BEGIN( MSG_ONE, gmsgSetFog, NULL, pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.SetFog, NULL, pev );
 			WRITE_BYTE ( m_FogColor.x );
 			WRITE_BYTE ( m_FogColor.y );
 			WRITE_BYTE ( m_FogColor.z );
@@ -4344,7 +4344,7 @@ void CBasePlayer :: UpdateClientData( void )
 
 	if( m_iWarHUD != m_iClientWarHUD )
 	{
-		MESSAGE_BEGIN( MSG_ONE, gmsgWarHUD, NULL, pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.WarHUD, NULL, pev );
 			WRITE_BYTE( m_iWarHUD );//make static screen
 		MESSAGE_END();
 		m_iClientWarHUD = m_iWarHUD;
@@ -4355,7 +4355,7 @@ void CBasePlayer :: UpdateClientData( void )
 		int iHealth = max( pev->health, 0 );  // make sure that no negative health values are sent
 
 		// send "health" update message
-		MESSAGE_BEGIN( MSG_ONE, gmsgHealth, NULL, pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.Health, NULL, pev );
 			WRITE_BYTE( iHealth );
 		MESSAGE_END();
 
@@ -4367,9 +4367,9 @@ void CBasePlayer :: UpdateClientData( void )
 	{
 		m_iClientBattery = pev->armorvalue;
 
-		ASSERT( gmsgBattery > 0 );
+		ASSERT( gmsg.Battery > 0 );
 		// send "health" update message
-		MESSAGE_BEGIN( MSG_ONE, gmsgBattery, NULL, pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.Battery, NULL, pev );
 			WRITE_SHORT( (int)pev->armorvalue);
 		MESSAGE_END();
 	}
@@ -4391,7 +4391,7 @@ void CBasePlayer :: UpdateClientData( void )
 		// only send down damage type that have hud art
 		int visibleDamageBits = m_bitsDamageType & DMG_SHOWNHUD;
 
-		MESSAGE_BEGIN( MSG_ONE, gmsgDamage, NULL, pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.Damage, NULL, pev );
 			WRITE_BYTE( pev->dmg_save );
 			WRITE_BYTE( pev->dmg_take );
 			WRITE_LONG( visibleDamageBits );
@@ -4431,7 +4431,7 @@ void CBasePlayer :: UpdateClientData( void )
 			else m_flFlashLightTime = 0;
 		}
 
-		MESSAGE_BEGIN( MSG_ONE, gmsgFlashBattery, NULL, pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.FlashBattery, NULL, pev );
 			WRITE_BYTE(m_iFlashBattery);
 		MESSAGE_END();
 	}
@@ -4510,7 +4510,7 @@ void CBasePlayer :: UpdateClientData( void )
 				pFind = UTIL_FindEntityByClassname( pFind, "util_rainmodify" );
 			}
 
-			MESSAGE_BEGIN(MSG_ONE, gmsgRainData, NULL, pev);
+			MESSAGE_BEGIN(MSG_ONE, gmsg.RainData, NULL, pev);
 				WRITE_SHORT(Rain_dripsPerSecond);
 				WRITE_COORD(raindistance);
 				WRITE_COORD(Rain_windX);
@@ -4527,7 +4527,8 @@ void CBasePlayer :: UpdateClientData( void )
 				ALERT(at_aiconsole, "Sending disabling rain message\n");
 		}
 		else
-		{ // no rain on this map
+		{
+			// no rain on this map
 			Rain_dripsPerSecond = 0;
 			Rain_windX = 0;
 			Rain_windY = 0;
@@ -4540,10 +4541,7 @@ void CBasePlayer :: UpdateClientData( void )
 			Rain_ideal_randY = 0;
 			Rain_endFade = 0;
 			Rain_nextFadeUpdate = 0;
-
-			ALERT(at_aiconsole, "Clearing rain data\n");
 		}
-
 		rainNeedsUpdate = 0;
 	}
 
@@ -4563,16 +4561,16 @@ void CBasePlayer :: UpdateClientData( void )
 		}
 		else m_flFlashLightTime = 0;
 
-		MESSAGE_BEGIN( MSG_ONE, gmsgFlashBattery, NULL, pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.FlashBattery, NULL, pev );
 			WRITE_BYTE(m_iFlashBattery);
 		MESSAGE_END();
 	}
 
 	if (m_iTrain & TRAIN_NEW)
 	{
-		ASSERT( gmsgTrain > 0 );
+		ASSERT( gmsg.Train > 0 );
 		// send "health" update message
-		MESSAGE_BEGIN( MSG_ONE, gmsgTrain, NULL, pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.Train, NULL, pev );
 			WRITE_BYTE(m_iTrain & 0xF);
 		MESSAGE_END();
 
@@ -4613,7 +4611,7 @@ void CBasePlayer :: UpdateClientData( void )
 			if (!II.pszName) pszName = "Empty";
 			else pszName = II.pszName;
 
-			MESSAGE_BEGIN( MSG_ONE, gmsgWeaponList, NULL, pev );
+			MESSAGE_BEGIN( MSG_ONE, gmsg.WeaponList, NULL, pev );
 				WRITE_STRING(pszName);		// string	weapon name
 				WRITE_BYTE(GetAmmoIndex(II.pszAmmo1));	// byte		Ammo Type
 				WRITE_BYTE(II.iMaxAmmo1);		// byte     Max Ammo 1

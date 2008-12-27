@@ -587,8 +587,8 @@ void CL_AddParticles( void )
 
 	if( !cl_particles->integer ) return;
 
-	if( EDICT_NUM( cl.frame.ps.number )->pvEngineData->current.gravity != 0 )
-		gravity = EDICT_NUM( cl.frame.ps.number )->pvEngineData->current.gravity / 800.0; // FIXME: register CS_GRAVITY
+	if( EDICT_NUM( cl.frame.ps.number )->pvClientData->current.gravity != 0 )
+		gravity = EDICT_NUM( cl.frame.ps.number )->pvClientData->current.gravity / 800.0; // FIXME: register CS_GRAVITY
 	else gravity = 1.0f;
 
 	for( p = cl_active_particles; p; p = next )

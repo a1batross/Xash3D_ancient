@@ -6,6 +6,7 @@
 #include "extdll.h"
 #include "utils.h"
 #include "cbase.h"
+#include "client.h"
 #include "player.h"
 #include "monsters.h"
 #include "baseweapon.h"
@@ -18,8 +19,6 @@
 extern int gEvilImpulse101;
 ItemInfo CBasePlayerWeapon::ItemInfoArray[MAX_WEAPONS];
 AmmoInfo CBasePlayerWeapon::AmmoInfoArray[MAX_AMMO_SLOTS];
-extern int gmsgCurWeapon;
-extern int gmsgWeapPickup;
 char NameItems[MAX_WEAPONS][29];
 int ID[MAX_WEAPONS];
 int GlobalID = 0;
@@ -1587,7 +1586,7 @@ void CBasePlayerWeapon::ZoomUpdate( void )
 	}
 	else if(m_iZoom > 1) m_iZoom = 3;
 
-	MESSAGE_BEGIN( MSG_ONE, gmsgZoomHUD, NULL, m_pPlayer->pev );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.ZoomHUD, NULL, m_pPlayer->pev );
 		WRITE_BYTE( m_iZoom );
 	MESSAGE_END();
 }
@@ -1601,7 +1600,7 @@ void CBasePlayerWeapon::ZoomReset( void )
 		m_flHoldTime = UTIL_WeaponTimeBase() + 0.5;
 		m_pPlayer->m_iFOV = 90;
 		m_iZoom = 0;//clear zoom
-		MESSAGE_BEGIN( MSG_ONE, gmsgZoomHUD, NULL, m_pPlayer->pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.ZoomHUD, NULL, m_pPlayer->pev );
 			WRITE_BYTE( m_iZoom );
 		MESSAGE_END();
 		m_pPlayer->UpdateClientData();//update client data manually
@@ -1800,7 +1799,7 @@ int CBasePlayerWeapon::UpdateClientData( CBasePlayer *pPlayer )
 	if( m_iClientBody != m_iBody)
 	{
 		pev->body = (pev->body % NUM_HANDS) + NUM_HANDS * m_iBody;	//calculate body
-		MESSAGE_BEGIN( MSG_ONE, gmsgSetBody, NULL, m_pPlayer->pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.SetBody, NULL, m_pPlayer->pev );
 			WRITE_BYTE( pev->body ); //weaponmodel body
 		MESSAGE_END();
 		m_iClientBody = m_iBody;//synched
@@ -1810,7 +1809,7 @@ int CBasePlayerWeapon::UpdateClientData( CBasePlayer *pPlayer )
 	if( m_iClientSkin != m_iSkin)
 	{
 		pev->skin = m_iSkin;				//calculate skin
-		MESSAGE_BEGIN( MSG_ONE, gmsgSetSkin, NULL, m_pPlayer->pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.SetSkin, NULL, m_pPlayer->pev );
 			WRITE_BYTE( pev->skin ); //weaponmodel skin.
 		MESSAGE_END();
 		m_iClientSkin = m_iSkin;//synched
@@ -1839,7 +1838,7 @@ int CBasePlayerWeapon::UpdateClientData( CBasePlayer *pPlayer )
 
 	if ( bSend )
 	{
-		MESSAGE_BEGIN( MSG_ONE, gmsgCurWeapon, NULL, pPlayer->pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.CurWeapon, NULL, pPlayer->pev );
 			WRITE_BYTE( state );
 			WRITE_BYTE( m_iId );
 			WRITE_BYTE( m_iClip );
@@ -1912,7 +1911,7 @@ int CBasePlayerWeapon::AddToPlayer( CBasePlayer *pPlayer )
 		m_iSecondaryAmmoType = pPlayer->GetAmmoIndex( pszAmmo2() );
 	}
 
-	MESSAGE_BEGIN(MSG_ONE, gmsgWeapPickup, NULL, pPlayer->pev);
+	MESSAGE_BEGIN(MSG_ONE, gmsg.WeapPickup, NULL, pPlayer->pev);
 		WRITE_BYTE(m_iId);
 	MESSAGE_END();
 

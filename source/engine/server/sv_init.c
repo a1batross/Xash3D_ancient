@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "server.h"
 
 server_static_t	svs;	// persistant server info
-svgame_static_t	game;	// persistant game info
+svgame_static_t	svgame;	// persistant game info
 server_t		sv;	// local server
 
 /*
@@ -101,18 +101,18 @@ void SV_CreateBaseline( void )
 	edict_t	*svent;
 	int	entnum;	
 
-	for( entnum = 1; entnum < svs.globals->numEntities; entnum++ )
+	for( entnum = 1; entnum < svgame.globals->numEntities; entnum++ )
 	{
 		svent = EDICT_NUM( entnum );
 		if( svent->free ) continue;
-		if( !svent->v.modelindex && !svent->pvEngineData->s.soundindex && !svent->v.effects )
+		if( !svent->v.modelindex && !svent->pvServerData->s.soundindex && !svent->v.effects )
 			continue;
 		svent->serialnumber = entnum;
 
 		// take current state as baseline
 		SV_UpdateEntityState( svent );
 
-		svs.baselines[entnum] = svent->pvEngineData->s;
+		svs.baselines[entnum] = svent->pvServerData->s;
 	}
 }
 
@@ -209,7 +209,7 @@ void SV_SpawnServer( const char *server, const char *savename )
 	if( sv.loadgame ) SV_ReadLevelFile( savename );
 	else SV_SpawnEntities( sv.name, pe->GetEntityScript());
 
-	svs.dllFuncs.pfnServerActivate( game.edicts, svs.globals->numEntities, svs.globals->maxClients );
+	svgame.dllFuncs.pfnServerActivate( EDICT_NUM( 0 ), svgame.globals->numEntities, svgame.globals->maxClients );
 
 	// run two frames to allow everything to settle
 	for( i = 0; i < 2; i++ )
@@ -226,7 +226,7 @@ void SV_SpawnServer( const char *server, const char *savename )
 	SV_CreateBaseline();
 
 	// classify edicts for quick network sorting
-	for( i = 0; i < svs.globals->numEntities; i++ )
+	for( i = 0; i < svgame.globals->numEntities; i++ )
 	{
 		edict_t *ent = EDICT_NUM( i );
 		SV_ClassifyEdict( ent );
@@ -257,6 +257,9 @@ void SV_InitGame( void )
 	}
 	else
 	{
+		// init game after host error
+		if( !svgame.hInstance )
+			SV_LoadProgs( "server" );
 		// make sure the client is down
 		CL_Drop();
 	}
@@ -307,12 +310,6 @@ void SV_InitGame( void )
 	svs.last_heartbeat = MAX_HEARTBEAT; // send immediately
 	com.sprintf( idmaster, "192.246.40.37:%i", PORT_MASTER );
 	NET_StringToAdr( idmaster, &master_adr[0] );
-
-	// init game
-	if(!SV_LoadProgs( "server" ))
-	{
-		Host_Error( "SV_InitGame: can't initialize server.dll\n" );
-	}
 
 	for( i = 0; i < Host_MaxClients(); i++ )
 	{

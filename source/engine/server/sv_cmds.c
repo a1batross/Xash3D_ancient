@@ -16,20 +16,16 @@ SV_ClientPrintf
 Sends text across to be displayed if the level passes
 =================
 */
-void SV_ClientPrintf( sv_client_t *cl, int level, char *fmt, ... )
+void SV_ClientPrintf( sv_client_t *cl, char *fmt, ... )
 {
 	va_list	argptr;
 	char	string[MAX_SYSPATH];
-	
-	if( level < cl->messagelevel )
-		return;
 	
 	va_start( argptr, fmt );
 	com.vsprintf( string, fmt, argptr );
 	va_end( argptr );
 	
 	MSG_WriteByte( &cl->netchan.message, svc_print );
-	MSG_WriteByte( &cl->netchan.message, level );
 	MSG_WriteString( &cl->netchan.message, string );
 }
 
@@ -40,7 +36,7 @@ SV_BroadcastPrintf
 Sends text to all active clients
 =================
 */
-void SV_BroadcastPrintf( int level, char *fmt, ... )
+void SV_BroadcastPrintf( char *fmt, ... )
 {
 	char		string[MAX_SYSPATH];
 	va_list		argptr;
@@ -55,10 +51,8 @@ void SV_BroadcastPrintf( int level, char *fmt, ... )
 	if( host.type == HOST_DEDICATED ) Msg( "%s", string );
 	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
 	{
-		if( level < cl->messagelevel) continue;
 		if( cl->state != cs_spawned ) continue;
 		MSG_WriteByte( &cl->netchan.message, svc_print );
-		MSG_WriteByte( &cl->netchan.message, level );
 		MSG_WriteString( &cl->netchan.message, string );
 	}
 }
@@ -370,8 +364,8 @@ void SV_Kick_f( void )
 	}
 	if(!SV_SetPlayer()) return;
 
-	SV_BroadcastPrintf( HUD_PRINTCONSOLE, "%s was kicked\n", sv_client->name );
-	SV_ClientPrintf( sv_client, HUD_PRINTCONSOLE, "You were kicked from the game\n" );
+	SV_BroadcastPrintf( "%s was kicked\n", sv_client->name );
+	SV_ClientPrintf( sv_client, "You were kicked from the game\n" );
 	SV_DropClient( sv_client );
 	sv_client->lastmessage = svs.realtime; // min case there is a funny zombie
 }
@@ -454,7 +448,7 @@ void SV_ConSay_f( void )
 	for (i = 0, client = svs.clients; i < Host_MaxClients(); i++, client++)
 	{
 		if( client->state != cs_spawned ) continue;
-		SV_ClientPrintf( client, HUD_PRINTTALK, "%s\n", text );
+		SV_ClientPrintf( client, "%s\n", text );
 	}
 }
 

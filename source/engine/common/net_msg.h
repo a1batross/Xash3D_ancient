@@ -43,9 +43,6 @@ enum svc_ops_e
 {
 	// user messages
 	svc_bad = 0,		// don't send!
-	svc_temp_entity,		// client effects
-	svc_print,		// [byte] id [string] null terminated string
-	svc_centerprint,		// [string] to put in center of the screen
 
 	// engine messages
 	svc_nop = 201,		// end of user messages
@@ -62,6 +59,7 @@ enum svc_ops_e
 	svc_frame,		// server frame
 	svc_sound,		// <see code>
 	svc_setangle,		// [short short short] set the view angle to this absolute value
+	svc_print,		// [byte] id [string] null terminated string
 };
 
 // client to server

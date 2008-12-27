@@ -174,7 +174,7 @@ gotnewcl:
 	edictnum = (newcl - svs.clients) + 1;
 
 	ent = EDICT_NUM( edictnum );
-	ent->pvEngineData->client = newcl;
+	ent->pvServerData->client = newcl;
 	newcl->edict = ent;
 	newcl->challenge = challenge; // save challenge for checksumming
 
@@ -226,8 +226,8 @@ bool SV_ClientConnect( edict_t *ent, char *userinfo )
 	ent->v.flags = 0;
 
 	MsgDev(D_NOTE, "SV_ClientConnect()\n");
-	svs.globals->time = sv.time;
-	result = svs.dllFuncs.pfnClientConnect( ent, userinfo );
+	svgame.globals->time = sv.time;
+	result = svgame.dllFuncs.pfnClientConnect( ent, userinfo );
 
 	return result;
 }
@@ -251,8 +251,8 @@ void SV_DropClient( sv_client_t *drop )
 	MSG_WriteByte( &drop->netchan.message, svc_disconnect );
 
 	// let the game known about client state
-	svs.globals->time = sv.time;
-	svs.dllFuncs.pfnClientDisconnect( drop->edict );
+	svgame.globals->time = sv.time;
+	svgame.dllFuncs.pfnClientDisconnect( drop->edict );
 
 	SV_FreeEdict( drop->edict );
 	if( drop->download ) drop->download = NULL;
@@ -302,7 +302,6 @@ void SV_FlushRedirect( netadr_t adr, int dest, char *buf )
 	case RD_CLIENT:
 		if( !sv_client ) return; // client not set
 		MSG_WriteByte( &sv_client->netchan.message, svc_print );
-		MSG_WriteByte( &sv_client->netchan.message, HUD_PRINTCONSOLE );
 		MSG_WriteString( &sv_client->netchan.message, buf );
 		break;
 	case RD_NONE:
@@ -479,31 +478,31 @@ void SV_PutClientInServer( edict_t *ent )
 	sv_client_t	*client;
 
 	index = NUM_FOR_EDICT( ent ) - 1;
-	client = ent->pvEngineData->client;
+	client = ent->pvServerData->client;
 
-	svs.globals->time = sv.time;
+	svgame.globals->time = sv.time;
 	ent->free = false;
-	ent->pvEngineData->s.ed_type = ED_CLIENT; // init edict type
+	ent->pvServerData->s.ed_type = ED_CLIENT; // init edict type
 
 	if( !sv.loadgame )
 	{	
 		// fisrt entering
-		svs.dllFuncs.pfnClientPutInServer( ent );
+		svgame.dllFuncs.pfnClientPutInServer( ent );
 		ent->v.v_angle[ROLL] = 0;	// cut off any camera rolling
 		ent->v.origin[2] += 1;	// make sure off ground
 	}
 
-	ent->pvEngineData->s.fov = 90;	// FIXME: get from qc
-	ent->pvEngineData->s.fov = bound(1, ent->pvEngineData->s.fov, 160);
-	ent->pvEngineData->s.health = ent->v.health;
-	ent->pvEngineData->s.classname = SV_ClassIndex( STRING( ent->v.classname ));
-	ent->pvEngineData->s.pmodel.index = SV_ModelIndex( STRING( ent->v.weaponmodel ));
-	VectorCopy( ent->v.origin, ent->pvEngineData->s.origin );
-	VectorCopy( ent->v.v_angle, ent->pvEngineData->s.viewangles );
-	for( i = 0; i < 3; i++ ) ent->pvEngineData->s.delta_angles[i] = ANGLE2SHORT(ent->v.v_angle[i]);
+	ent->pvServerData->s.fov = 90;	// FIXME: get from qc
+	ent->pvServerData->s.fov = bound(1, ent->pvServerData->s.fov, 160);
+	ent->pvServerData->s.health = ent->v.health;
+	ent->pvServerData->s.classname = SV_ClassIndex( STRING( ent->v.classname ));
+	ent->pvServerData->s.pmodel.index = SV_ModelIndex( STRING( ent->v.weaponmodel ));
+	VectorCopy( ent->v.origin, ent->pvServerData->s.origin );
+	VectorCopy( ent->v.v_angle, ent->pvServerData->s.viewangles );
+	for( i = 0; i < 3; i++ ) ent->pvServerData->s.delta_angles[i] = ANGLE2SHORT(ent->v.v_angle[i]);
 
 	SV_LinkEdict( ent ); // m_pmatrix calculated here, so we need call this before pe->CreatePlayer
-	ent->pvEngineData->physbody = pe->CreatePlayer( ent, SV_GetModelPtr( ent ), ent->v.origin, ent->v.m_pmatrix );
+	ent->pvServerData->physbody = pe->CreatePlayer( ent, SV_GetModelPtr( ent ), ent->v.origin, ent->v.m_pmatrix );
 }
 
 /*
@@ -783,10 +782,6 @@ void SV_UserinfoChanged( sv_client_t *cl )
 		else cl->rate = 3000;
 	}
 
-	// msg command
-	val = Info_ValueForKey( cl->userinfo, "msg" );
-	if( com.strlen( val )) cl->messagelevel = com.atoi( val );
-
 	// maintain the IP information
 	// this is set in SV_DirectConnect ( directly on the server, not transmitted ),
 	// may be lost when client updates it's userinfo the banning code relies on this being consistently present
@@ -810,9 +805,9 @@ static void SV_UpdateUserinfo_f( sv_client_t *cl )
 	SV_UserinfoChanged( cl );
 
 	// call prog code to allow overrides
-	svs.globals->time = sv.time;
-	svs.globals->frametime = sv.frametime;
-	svs.dllFuncs.pfnClientUserInfoChanged( cl->edict, cl->userinfo );
+	svgame.globals->time = sv.time;
+	svgame.globals->frametime = sv.frametime;
+	svgame.dllFuncs.pfnClientUserInfoChanged( cl->edict, cl->userinfo );
 }
 
 ucmd_t ucmds[] =
@@ -851,9 +846,9 @@ void SV_ExecuteClientCommand( sv_client_t *cl, char *s )
 	if( !u->name && sv.state == ss_active )
 	{
 		// custom client commands
-		svs.globals->time = sv.time;
-		svs.globals->frametime = sv.frametime;
-		svs.dllFuncs.pfnClientCommand( cl->edict );
+		svgame.globals->time = sv.time;
+		svgame.globals->frametime = sv.frametime;
+		svgame.dllFuncs.pfnClientCommand( cl->edict );
 	}
 }
 
@@ -1012,15 +1007,15 @@ void SV_ApplyClientMove( sv_client_t *cl, usercmd_t *cmd )
 	// circularly clamp the angles with deltas
 	for( i = 0; i < 3; i++ )
 	{
-		temp = cmd->angles[i] + ent->pvEngineData->s.delta_angles[i];
-		ent->pvEngineData->s.viewangles[i] = SHORT2ANGLE( temp );
+		temp = cmd->angles[i] + ent->pvServerData->s.delta_angles[i];
+		ent->pvServerData->s.viewangles[i] = SHORT2ANGLE( temp );
 	}
 
 	// don't let the player look up or down more than 90 degrees
-	if( ent->pvEngineData->s.viewangles[PITCH] > 89 && ent->pvEngineData->s.viewangles[PITCH] < 180 )
-		ent->pvEngineData->s.viewangles[PITCH] = 89;
-	else if( ent->pvEngineData->s.viewangles[PITCH] < 271 && ent->pvEngineData->s.viewangles[PITCH] >= 180 )
-		ent->pvEngineData->s.viewangles[PITCH] = 271;
+	if( ent->pvServerData->s.viewangles[PITCH] > 89 && ent->pvServerData->s.viewangles[PITCH] < 180 )
+		ent->pvServerData->s.viewangles[PITCH] = 89;
+	else if( ent->pvServerData->s.viewangles[PITCH] < 271 && ent->pvServerData->s.viewangles[PITCH] >= 180 )
+		ent->pvServerData->s.viewangles[PITCH] = 271;
 
 	// test
 	if( ent->v.flags & FL_DUCKING )
@@ -1030,9 +1025,9 @@ void SV_ApplyClientMove( sv_client_t *cl, usercmd_t *cmd )
 		cmd->upmove      *= 0.333;
 	}
 
-	VectorCopy( ent->pvEngineData->s.viewangles, cl->edict->v.v_angle );
-	VectorCopy( ent->pvEngineData->s.viewangles, cl->edict->v.angles );
-	VectorCopy( ent->v.view_ofs, cl->edict->pvEngineData->s.viewoffset );
+	VectorCopy( ent->pvServerData->s.viewangles, cl->edict->v.v_angle );
+	VectorCopy( ent->pvServerData->s.viewangles, cl->edict->v.angles );
+	VectorCopy( ent->v.view_ofs, cl->edict->pvServerData->s.viewoffset );
 }
 
 void SV_DropPunchAngle( sv_client_t *cl )
@@ -1326,8 +1321,8 @@ void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 	SV_AirMove( cl, &cl->cmd );
 	SV_CheckVelocity( cl->edict );
 
-	VectorCopy( cl->edict->v.origin, cl->edict->pvEngineData->s.origin );
-	VectorCopy( cl->edict->v.velocity, cl->edict->pvEngineData->s.velocity );
+	VectorCopy( cl->edict->v.origin, cl->edict->pvServerData->s.origin );
+	VectorCopy( cl->edict->v.velocity, cl->edict->pvServerData->s.velocity );
 }
 
 /*
@@ -1386,8 +1381,8 @@ static void SV_UserMove( sv_client_t *cl, sizebuf_t *msg )
 	if( !sv_paused->value )
 	{
 		frametime[0] = sv.frametime;
-		frametime[1] = svs.globals->frametime;
-		svs.globals->frametime = sv.frametime = newcmd.msec * 0.001f;
+		frametime[1] = svgame.globals->frametime;
+		svgame.globals->frametime = sv.frametime = newcmd.msec * 0.001f;
 		
 		net_drop = cl->netchan.dropped;
 		if( net_drop < 20 )
@@ -1403,7 +1398,7 @@ static void SV_UserMove( sv_client_t *cl, sizebuf_t *msg )
 		SV_Physics_ClientMove( cl, &newcmd );
 	}
 	sv.frametime = frametime[0];
-	svs.globals->frametime = frametime[1];
+	svgame.globals->frametime = frametime[1];
 	cl->lastcmd = newcmd;
 }
 

@@ -144,14 +144,6 @@ PRVM INTERACTIONS
 ==============================================================
 */
 char *ED_NewString( const char *string, byte *mempool );
-
-#define NUM_FOR_EDICT(e) ((int)((edict_t *)(e) - game.edicts))
-#define EDICT_NUM( num ) _EDICT_NUM( num, __FILE__, __LINE__ )
-
-// for constant strings
-#define STRING( offset )	pfnGetString( offset )
-#define MAKE_STRING(str)	pfnAllocString( str )
-
 #define prog	vm->prog	// global callback to vprogs.dll
 #define PRVM_EDICT_NUM( num )	_PRVM_EDICT_NUM( num, __FILE__, __LINE__ )
 

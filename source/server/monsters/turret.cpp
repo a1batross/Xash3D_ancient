@@ -27,6 +27,7 @@
 #include "extdll.h"
 #include "utils.h"
 #include "cbase.h"
+#include "client.h"
 #include "monsters.h"
 #include "baseweapon.h"
 #include "basebeams.h"
@@ -974,7 +975,7 @@ void CBaseTurret ::	TurretDeath( void )
 	if (pev->dmgtime + RANDOM_FLOAT( 0, 2 ) > gpGlobals->time)
 	{
 		// lots of smoke
-		MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+		MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 			WRITE_BYTE( TE_SMOKE );
 			WRITE_COORD( RANDOM_FLOAT( pev->absmin.x, pev->absmax.x ) );
 			WRITE_COORD( RANDOM_FLOAT( pev->absmin.y, pev->absmax.y ) );
@@ -1310,7 +1311,7 @@ void CSentry ::	SentryDeath( void )
 	if (pev->dmgtime + RANDOM_FLOAT( 0, 2 ) > gpGlobals->time)
 	{
 		// lots of smoke
-		MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+		MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 			WRITE_BYTE( TE_SMOKE );
 			WRITE_COORD( vecSrc.x + RANDOM_FLOAT( -16, 16 ) );
 			WRITE_COORD( vecSrc.y + RANDOM_FLOAT( -16, 16 ) );

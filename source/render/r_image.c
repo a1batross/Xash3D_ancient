@@ -3227,10 +3227,10 @@ bool VID_CubemapShot( const char *base, uint size, bool skyshot )
 		return false;
 
 	// setup refdef
-	r_refdef.rect.x = 0;
-	r_refdef.rect.y = 0;
-	r_refdef.rect.width = size;
-	r_refdef.rect.height = size;
+	r_refdef.viewport[0] = 0;
+	r_refdef.viewport[1] = 0;
+	r_refdef.viewport[2] = size;
+	r_refdef.viewport[3] = size;
 	r_refdef.fov_x = 90;
 	r_refdef.fov_y = 90;
 

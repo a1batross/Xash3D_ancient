@@ -59,62 +59,68 @@ extern int  InconsistentFile( const edict_t *player, const char *filename, char 
 extern int AllowLagCompensation( void );
 extern int g_serveractive;
 
-//messages affect only player
-extern int gmsgShake;
-extern int gmsgFade;
-extern int gmsgSelAmmo;
-extern int gmsgFlashlight;
-extern int gmsgFlashBattery;
-extern int gmsgResetHUD;
-extern int gmsgInitHUD;
-extern int gmsgHUDColor;
-extern int gmsgCurWeapon;
-extern int gmsgHealth;
-extern int gmsgDamage;
-extern int gmsgBattery;
-extern int gmsgTrain;
-extern int gmsgWeaponList;
-extern int gmsgAmmoX;
-extern int gmsgDeathMsg;
-extern int gmsgScoreInfo;
-extern int gmsgTeamInfo;
-extern int gmsgTeamScore;
-extern int gmsgGameMode;
-extern int gmsgMOTD;
-extern int gmsgServerName;
-extern int gmsgAmmoPickup;
-extern int gmsgWeapPickup;
-extern int gmsgItemPickup;
-extern int gmsgHideWeapon;
-extern int gmsgSetCurWeap;
-extern int gmsgSayText;
-extern int gmsgSetFOV;
-extern int gmsgShowMenu;
-extern int gmsgGeigerRange;
-extern int gmsgTeamNames;
-extern int gmsgTextMsg;
-extern int gmsgStatusText;
-extern int gmsgStatusValue;
-extern int gmsgSetBody;
-extern int gmsgSetSkin;
-extern int gmsgZoomHUD;
-extern int gmsgWarHUD;
+// messages affect only player
+typedef struct user_messages_s
+{
+	int	Shake;
+	int	Fade;
+	int	SelAmmo;
+	int	Intermission;
+	int	Flashlight;
+	int	FlashBattery;
+	int	ResetHUD;
+	int	InitHUD;
+	int	HUDColor;
+	int	CurWeapon;
+	int	Health;
+	int	Damage;
+	int	Battery;
+	int	Train;
+	int	WeaponList;
+	int	AmmoX;
+	int	DeathMsg;
+	int	ScoreInfo;
+	int	TeamInfo;
+	int	TeamScore;
+	int	GameMode;
+	int	MOTD;
+	int	ServerName;
+	int	AmmoPickup;
+	int	WeapPickup;
+	int	ItemPickup;
+	int	HideWeapon;
+	int	RoomType;
+	int	SayText;
+	int	SetFOV;
+	int	ShowMenu;
+	int	GeigerRange;
+	int	TeamNames;
+	int	TextMsg;
+	int	StatusText;
+	int	StatusValue;
+	int	SetBody;
+	int	SetSkin;
+	int	ZoomHUD;
+	int	WarHUD;
 
-//entity messages
-extern int gmsgSetFog;
-extern int gmsgStatusIcon;
-extern int gmsgSetSky;
-extern int gmsgParticle;
-extern int gmsgFsound;
-extern int gmsgCamData;
-extern int gmsgRainData;
-extern int gmsgHudText;
-extern int gmsgShowGameTitle;
-extern int gmsgAddScreen;
-extern int gmsgAddMirror;
-extern int gmsgAddPortal;
-extern int gmsgBeams;
+	// entity messages
+	int	TempEntity;	// completely moved from engine to user dlls
+	int	SetFog;
+	int	StatusIcon;
+	int	SetSky;
+	int	Particle;
+	int	Fsound;
+	int	CamData;
+	int	RainData;
+	int	HudText;
+	int	ShowGameTitle;
+	int	AddScreen;
+	int	AddMirror;
+	int	AddPortal;
+	int	Beams;
+} user_messages_t;
 
+extern user_messages_t gmsg;
 extern BOOL MSGSended;
 
 #endif // CLIENT_H

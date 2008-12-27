@@ -22,6 +22,7 @@
 #include	"extdll.h"
 #include	"utils.h"
 #include	"cbase.h"
+#include  "client.h"
 #include	"monsters.h"
 #include	"nodes.h"
 #include	"animation.h"
@@ -415,7 +416,7 @@ int	CGraph :: FindNearestLink ( const Vector &vecTestPoint, int *piNearestLink, 
 /*
 	if ( fSuccess )
 	{
-		WRITE_BYTE(MSG_BROADCAST, SVC_TEMPENTITY);
+		WRITE_BYTE(MSG_BROADCAST, gmsg.TempEntity);
 		WRITE_BYTE(MSG_BROADCAST, TE_SHOWLINE);
 		
 		WRITE_COORD(MSG_BROADCAST, m_pNodes[ m_pLinkPool[ iNearestLink ].m_iSrcNode ].m_vecOrigin.x );
@@ -742,7 +743,7 @@ int CGraph :: FindShortestPath ( int *piPath, int iStart, int iDest, int iHull, 
 
 		for ( int i = 0 ; i < iNumPathNodes - 1 ; i++ )
 		{
-			MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+			MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 				WRITE_BYTE( TE_SHOWLINE);
 				
 				WRITE_COORD( m_pNodes[ piPath[ i ] ].m_vecOrigin.x );
@@ -758,7 +759,7 @@ int CGraph :: FindShortestPath ( int *piPath, int iStart, int iDest, int iHull, 
 
 #endif
 #if 0 // MAZE map
-	MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+	MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 		WRITE_BYTE( TE_SHOWLINE);
 		
 		WRITE_COORD( m_pNodes[ 4 ].m_vecOrigin.x );
@@ -1111,7 +1112,7 @@ void CGraph :: ShowNodeConnections ( int iNode )
 		pLinkNode = &Node( NodeLink( iNode, i).m_iDestNode );
 		vecSpot = pLinkNode->m_vecOrigin;
 
-		MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+		MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 			WRITE_BYTE( TE_SHOWLINE);
 			
 			WRITE_COORD( m_pNodes[ iNode ].m_vecOrigin.x );
@@ -2093,7 +2094,7 @@ void CTestHull :: PathFind ( void )
 
 		pNextNode = &WorldGraph.m_pNodes[ iPath [ i + 1 ] ];
 
-		MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+		MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 			WRITE_BYTE( TE_SHOWLINE);
 			
 			WRITE_COORD( pNode->m_vecOrigin.x );
@@ -3631,7 +3632,7 @@ void CNodeViewer :: DrawThink( void )
 		}
 
 		extern short g_sModelIndexLaser;
-		MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+		MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 			WRITE_BYTE( TE_BEAMPOINTS );
 			WRITE_COORD( WorldGraph.m_pNodes[ m_aFrom[m_iDraw] ].m_vecOrigin.x );
 			WRITE_COORD( WorldGraph.m_pNodes[ m_aFrom[m_iDraw] ].m_vecOrigin.y );

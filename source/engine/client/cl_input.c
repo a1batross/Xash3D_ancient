@@ -469,12 +469,12 @@ void CL_SendCmd( void )
 	}
 
 	// begin a client move command
-	MSG_Init(&buf, data, sizeof(data));
-	MSG_WriteByte (&buf, clc_move);
+	MSG_Init( &buf, data, sizeof( data ));
+	MSG_WriteByte( &buf, clc_move );
 
 	// save the position for a checksum byte
 	checksumIndex = buf.cursize;
-	MSG_WriteByte (&buf, 0);
+	MSG_WriteByte( &buf, 0 );
 
 	// let the server know what the last frame we
 	// got was, so the next message can be delta compressed

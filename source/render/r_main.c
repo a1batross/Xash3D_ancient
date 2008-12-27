@@ -38,7 +38,7 @@ int		r_numPolys;
 polyVert_t	r_polyVerts[MAX_POLY_VERTS];
 int		r_numPolyVerts;
 int		r_numNullModels;
-refdef_t		r_refdef;
+ref_params_t	r_refdef;
 refstats_t	r_stats;
 byte		*r_framebuffer;			// pause frame buffer
 float		r_pause_alpha;
@@ -869,7 +869,7 @@ static void R_SetMatrices( void )
 R_RenderView
 =================
 */
-void R_RenderView( const refdef_t *fd )
+void R_RenderView( const ref_params_t *fd )
 {
 	if( r_skipfrontend->integer )
 		return;
@@ -1233,7 +1233,7 @@ bool R_AddPolyToScene( shader_t shader, int numVerts, const polyVert_t *verts )
 R_RenderFrame
 =================
 */
-void R_RenderFrame( refdef_t *rd )
+void R_RenderFrame( ref_params_t *rd )
 {
 	if( r_norefresh->integer )
 		return;

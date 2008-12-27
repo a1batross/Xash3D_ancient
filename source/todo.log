@@ -25,12 +25,14 @@ Beta 13.12.08
 4. release crash				OK
 5. timers set				OK
 6. AI_ -> FL_				OK
-7. SVC_SOUND				
+7. SVC_SOUND				OK
+8. client.dll implementation			OK
+9. HookUserMessages				OK				
+10.remove SVC_* in utils.h			OK
+11.Load server.dll and client.dll only once	OK
+12.v_refdef interactions
 
 entity_state_t невидима для пользователя
-
-edict_t - существует только на сервере
-
 
 
 Список доступных рендереров:  	Что в них интересного

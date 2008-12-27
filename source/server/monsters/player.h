@@ -55,7 +55,7 @@
 #define CSUITPLAYLIST	4		// max of 4 suit sentences queued up at any time
 
 #define SUIT_GROUP			TRUE
-#define	SUIT_SENTENCE		FALSE
+#define SUIT_SENTENCE		FALSE
 
 #define	SUIT_REPEAT_OK		0
 #define SUIT_NEXT_IN_30SEC	30
@@ -371,12 +371,6 @@ public:
 #define AUTOAIM_8DEGREES  0.1391731009601
 #define AUTOAIM_10DEGREES 0.1736481776669
 
-
-extern int	gmsgHudText;
-extern int	gmsgSetBody;
-extern int	gmsgSetSkin;
-extern int	gmsgZoomHUD;
-extern int	gmsgWarHUD;
 extern BOOL gInitHUD;
 
 #endif // PLAYER_H

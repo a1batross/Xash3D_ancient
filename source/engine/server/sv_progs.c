@@ -9,32 +9,6 @@
 #include "matrix_lib.h"
 #include "const.h"
 
-void SV_BeginIncreaseEdicts( void )
-{
-	int		i;
-	edict_t		*ent;
-
-	// links don't survive the transition, so unlink everything
-	for( i = 0, ent = EDICT_NUM( 0 ); i < svs.globals->maxEntities; i++, ent++ )
-	{
-		if( !ent->free ) SV_UnlinkEdict( EDICT_NUM( i )); // free old entity
-		Mem_Set( &ent->pvEngineData->clusternums, 0, sizeof( ent->pvEngineData->clusternums ));
-	}
-	SV_ClearWorld();
-}
-
-void SV_EndIncreaseEdicts(void)
-{
-	int		i;
-	edict_t		*ent;
-
-	for( i = 0, ent = EDICT_NUM( 0 ); i < svs.globals->maxEntities; i++, ent++ )
-	{
-		// link every entity except world
-		if( !ent->free ) SV_LinkEdict(ent);
-	}
-}
-
 void SV_RestoreEdict( edict_t *ent )
 {
 	// link it into the bsp tree
@@ -44,5 +18,5 @@ void SV_RestoreEdict( edict_t *ent )
 	SV_SetMassCentre( ent ); // and mass force
 
 	if( ent->v.ambient ) // restore loopsound
-		ent->pvEngineData->s.soundindex = SV_SoundIndex( STRING( ent->v.ambient ));
+		ent->pvServerData->s.soundindex = SV_SoundIndex( STRING( ent->v.ambient ));
 }

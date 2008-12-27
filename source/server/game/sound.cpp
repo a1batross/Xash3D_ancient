@@ -1907,7 +1907,7 @@ void CFMODAudio::Spawn( void )
 
 void CFMODAudio::StartMessage( CBasePlayer *pPlayer )
 {
-	MESSAGE_BEGIN( MSG_ONE, gmsgFsound, NULL, pPlayer->pev );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.Fsound, NULL, pPlayer->pev );
 		WRITE_STRING( STRING(pev->message));
 		WRITE_SHORT( pev->button );//position
 		WRITE_SHORT( pev->impulse );//flags

@@ -84,10 +84,10 @@ void CL_WriteDemoHeader( const char *name )
 	// baselines
 	Mem_Set( &nullstate, 0, sizeof( nullstate ));
 
-	for( i = 0; i < game.numEntities; i++ )
+	for( i = 0; i < clgame.numEntities; i++ )
 	{
 		ent = EDICT_NUM( i );
-		state = &ent->pvEngineData->baseline;
+		state = &ent->pvClientData->baseline;
 		if( !state->model.index ) continue;
 
 		if( buf.cursize + 64 > buf.maxsize )
@@ -99,7 +99,7 @@ void CL_WriteDemoHeader( const char *name )
 			buf.cursize = 0;
 		}
 		MSG_WriteByte( &buf, svc_spawnbaseline );		
-		MSG_WriteDeltaEntity( &nullstate, &ent->pvEngineData->baseline, &buf, true, true );
+		MSG_WriteDeltaEntity( &nullstate, &ent->pvClientData->baseline, &buf, true, true );
 	}
 
 	MSG_WriteByte( &buf, svc_stufftext );
@@ -109,6 +109,9 @@ void CL_WriteDemoHeader( const char *name )
 	len = LittleLong( buf.cursize );
 	FS_Write( cls.demofile, &len, 4 );
 	FS_Write( cls.demofile, buf.data, buf.cursize );
+
+	// force client.dll update
+	Cmd_ExecuteString( "cmd fullupdate\n" );
 }
 
 /*

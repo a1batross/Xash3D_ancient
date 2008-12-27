@@ -8,6 +8,7 @@
 #include "utils.h"
 #include "cbase.h"
 #include "player.h"
+#include "client.h"
 
 //=======================================================================
 // 			info_target (target entity)
@@ -73,7 +74,7 @@ public:
 		if(FStringNull(pev->targetname)) g_engfuncs.pfnStaticDecal( pev->origin, (int)pev->skin, entityIndex, modelIndex );
 		else
 		{
-			MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY);
+			MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 			WRITE_BYTE( TE_BSPDECAL );
 			WRITE_COORD( pev->origin.x );
 			WRITE_COORD( pev->origin.y );

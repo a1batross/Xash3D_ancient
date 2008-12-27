@@ -7,6 +7,7 @@
 #include "utils.h"
 #include "cbase.h"
 #include "player.h"
+#include "client.h"
 
 //=======================================================================
 // 		   sparkleent - explode post sparks
@@ -146,7 +147,7 @@ void CSmokeEnt::Think( void )
 	
 	Vector VecSrc = UTIL_RandomVector( pev->absmin, pev->absmax );
 
-	MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, VecSrc );
+	MESSAGE_BEGIN( MSG_PVS, gmsg.TempEntity, VecSrc );
 		WRITE_BYTE( TE_SMOKE );
 		WRITE_COORD( VecSrc.x );
 		WRITE_COORD( VecSrc.y );

@@ -413,7 +413,7 @@ void CBaseEntity::FireBullets(ULONG cShots, Vector vecSrc, Vector vecDirShooting
 			case BULLET_762:
 			case BULLET_BUCKSHOT:
 			default:
-				MESSAGE_BEGIN( MSG_PAS, SVC_TEMPENTITY, vecTracerSrc );
+				MESSAGE_BEGIN( MSG_PAS, gmsg.TempEntity, vecTracerSrc );
 					WRITE_BYTE( TE_TRACER );
 					WRITE_COORD( vecTracerSrc.x );
 					WRITE_COORD( vecTracerSrc.y );

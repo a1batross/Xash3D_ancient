@@ -490,12 +490,7 @@ extern DLL_GLOBAL int			g_Language;
 #define VEC_DUCK_HULL_MAX	Vector( 16,  16,  18)
 #define VEC_DUCK_VIEW		Vector( 0, 0, 12 )
 
-#define SVC_TEMPENTITY		23
-#define SVC_INTERMISSION	30
-#define SVC_CDTRACK			32
-#define SVC_WEAPONANIM		35
-#define SVC_ROOMTYPE		37
-#define	SVC_DIRECTOR		51
+#define SVC_WEAPONANIM	35	// FIMXE: get rid of this
 
 // camera flags
 #define	CAMERA_ON		1

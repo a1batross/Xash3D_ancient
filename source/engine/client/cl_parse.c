@@ -256,7 +256,7 @@ void CL_ParseServerData( sizebuf_t *msg )
 	if(!FS_FileExists( Cvar_VariableString( "cl_levelshot_name" ))) 
 	{
 		Cvar_Set( "cl_levelshot_name", "" );
-		cl.make_levelshot = true; // make levelshot
+		cl.need_levelshot = true; // make levelshot
 	}
 	// seperate the printfs so the server message can have a color
 	Msg("\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");
@@ -281,10 +281,10 @@ void CL_ParseBaseline( sizebuf_t *msg )
 	newnum = MSG_ReadBits( msg, NET_WORD );
 
 	// increase edicts
-	while( newnum >= game.numEntities ) CL_AllocEdict();
+	while( newnum >= clgame.numEntities ) CL_AllocEdict();
 	ent = EDICT_NUM( newnum );
 
-	MSG_ReadDeltaEntity( msg, &nullstate, &ent->pvEngineData->baseline, newnum );
+	MSG_ReadDeltaEntity( msg, &nullstate, &ent->pvClientData->baseline, newnum );
 }
 
 /*
@@ -325,7 +325,7 @@ void CL_ParseConfigString( sizebuf_t *msg )
 	}
 	else if( i >= CS_USER_MESSAGES && i < CS_USER_MESSAGES+MAX_USER_MESSAGES )
 	{
-		CL_PrepUserMessage( cl.configstrings[i], i - CS_USER_MESSAGES );
+		CL_LinkUserMessage( cl.configstrings[i], i - CS_USER_MESSAGES );
 	}
 	else if( i >= CS_CLASSNAMES && i < CS_CLASSNAMES+MAX_CLASSNAMES )
 	{
@@ -423,6 +423,9 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			break;
 		case svc_setangle:
 			CL_ParseSetAngle( msg );
+			break;
+		case svc_print:
+			Con_Print( va( "^6%s\n", MSG_ReadString( msg )));
 			break;
 		case svc_frame:
 			CL_ParseFrame( msg );

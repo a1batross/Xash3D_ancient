@@ -11,28 +11,6 @@
 
 /*
 =============
-pfnAllocString
-
-=============
-*/
-string_t pfnAllocString( const char *szValue )
-{
-	return StringTable_SetString( game.hStringTable, szValue );
-}		
-
-/*
-=============
-pfnGetString
-
-=============
-*/
-const char *pfnGetString( string_t iString )
-{
-	return StringTable_GetString( game.hStringTable, iString );
-}
-
-/*
-=============
 pfnLoadFile
 
 =============
@@ -1333,9 +1311,8 @@ void VM_drawmodel( void )
 {
 	float		*size, *pos, *origin, *angles;
 	const char	*modname;
-	vrect_t		rect;
-	static refdef_t	refdef;
 	int		sequence;
+	static ref_params_t	refdef;
 	entity_state_t	ent;
 	static float	frame;
 
@@ -1353,11 +1330,13 @@ void VM_drawmodel( void )
 	memset( &ent, 0, sizeof( ent ));
 
 	SCR_AdjustSize( &pos[0], &pos[1], &size[0], &size[1] );
-	rect.x = pos[0]; rect.y = pos[1]; rect.width = size[0]; rect.height = size[1];
-	Mem_Copy( &refdef.rect, &rect, sizeof(vrect_t));
+	refdef.viewport[0] = pos[0];
+	refdef.viewport[1] = pos[1];
+	refdef.viewport[2] = size[0];
+	refdef.viewport[3] = size[1];
 
 	refdef.fov_x = 50;
-	refdef.fov_y = V_CalcFov( refdef.fov_x, refdef.rect.width, refdef.rect.height );
+	refdef.fov_y = V_CalcFov( refdef.fov_x, refdef.viewport[2], refdef.viewport[3] );
 	refdef.time = cls.realtime * 0.001f;
 	refdef.oldtime = refdef.time - 0.005;
 	refdef.rdflags = RDF_NOWORLDMODEL;

@@ -24,6 +24,7 @@
 #include "utils.h"
 #include "cbase.h"
 #include "nodes.h"
+#include "client.h"
 #include "monsters.h"
 #include "animation.h"
 #include "saverestore.h"
@@ -748,7 +749,7 @@ void DrawRoute( entvars_t *pev, WayPoint_t *m_Route, int m_iRouteIndex, int r, i
 
 //	UTIL_ParticleEffect ( m_Route[ m_iRouteIndex ].vecLocation, g_vecZero, 255, 25 );
 
-	MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+	MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 		WRITE_BYTE( TE_BEAMPOINTS);
 		WRITE_COORD( pev->origin.x );
 		WRITE_COORD( pev->origin.y );
@@ -776,7 +777,7 @@ void DrawRoute( entvars_t *pev, WayPoint_t *m_Route, int m_iRouteIndex, int r, i
 			break;
 
 		
-		MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+		MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 			WRITE_BYTE( TE_BEAMPOINTS );
 			WRITE_COORD( m_Route[ i ].vecLocation.x );
 			WRITE_COORD( m_Route[ i ].vecLocation.y );
@@ -1378,7 +1379,7 @@ int CBaseMonster :: CheckLocalMove ( const Vector &vecStart, const Vector &vecEn
 	}
 	/*
 	// uncommenting this block will draw a line representing the nearest legal move.
-	WRITE_BYTE(MSG_BROADCAST, SVC_TEMPENTITY);
+	WRITE_BYTE(MSG_BROADCAST, gmsg.TempEntity);
 	WRITE_BYTE(MSG_BROADCAST, TE_SHOWLINE);
 	WRITE_COORD(MSG_BROADCAST, pev->origin.x);
 	WRITE_COORD(MSG_BROADCAST, pev->origin.y);
@@ -1556,7 +1557,7 @@ BOOL CBaseMonster :: BuildRoute ( const Vector &vecGoal, int iMoveFlag, CBaseEnt
 		m_Route[ 1 ].iType = iMoveFlag | bits_MF_IS_GOAL;
 
 			/*
-			WRITE_BYTE(MSG_BROADCAST, SVC_TEMPENTITY);
+			WRITE_BYTE(MSG_BROADCAST, gmsg.TempEntity);
 			WRITE_BYTE(MSG_BROADCAST, TE_SHOWLINE);
 			WRITE_COORD(MSG_BROADCAST, vecApex.x );
 			WRITE_COORD(MSG_BROADCAST, vecApex.y );
@@ -1667,7 +1668,7 @@ BOOL CBaseMonster :: FTriangulate ( const Vector &vecStart , const Vector &vecEn
 	{
 // Debug, Draw the triangulation
 #if 0
-		MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+		MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 			WRITE_BYTE( TE_SHOWLINE);
 			WRITE_COORD( pev->origin.x );
 			WRITE_COORD( pev->origin.y );
@@ -1677,7 +1678,7 @@ BOOL CBaseMonster :: FTriangulate ( const Vector &vecStart , const Vector &vecEn
 			WRITE_COORD( vecRight.z );
 		MESSAGE_END();
 
-		MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+		MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 			WRITE_BYTE( TE_SHOWLINE );
 			WRITE_COORD( pev->origin.x );
 			WRITE_COORD( pev->origin.y );
@@ -1691,7 +1692,7 @@ BOOL CBaseMonster :: FTriangulate ( const Vector &vecStart , const Vector &vecEn
 #if 0
 		if (pev->movetype == MOVETYPE_FLY)
 		{
-			MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+			MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 				WRITE_BYTE( TE_SHOWLINE );
 				WRITE_COORD( pev->origin.x );
 				WRITE_COORD( pev->origin.y );
@@ -1701,7 +1702,7 @@ BOOL CBaseMonster :: FTriangulate ( const Vector &vecStart , const Vector &vecEn
 				WRITE_COORD( vecTop.z );
 			MESSAGE_END();
 
-			MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+			MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 				WRITE_BYTE( TE_SHOWLINE );
 				WRITE_COORD( pev->origin.x );
 				WRITE_COORD( pev->origin.y );
@@ -2308,7 +2309,7 @@ BOOL CBaseMonster :: FindCover ( Vector vecThreat, Vector vecViewOffset, float f
 					if ( FValidateCover ( node.m_vecOrigin ) && MoveToLocation( ACT_RUN, 0, node.m_vecOrigin ) )
 					{
 						/*
-						MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+						MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 							WRITE_BYTE( TE_SHOWLINE);
 							
 							WRITE_COORD( node.m_vecOrigin.x );
@@ -5264,7 +5265,7 @@ void CBaseMonster :: MakeDamageBloodDecal ( int cCount, float flNoise, TraceResu
 		UTIL_TraceLine( ptr->vecEndPos, ptr->vecEndPos + vecTraceDir * 172, ignore_monsters, ENT(pev), &Bloodtr);
 
 /*
-		MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+		MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 			WRITE_BYTE( TE_SHOWLINE);
 			WRITE_COORD( ptr->vecEndPos.x );
 			WRITE_COORD( ptr->vecEndPos.y );

@@ -10,6 +10,8 @@
 #include "launch_api.h"
 #include "qfiles_ref.h"
 #include "engine_api.h"
+#include "entity_def.h"
+#include "clgame_api.h"
 #include "render_api.h"
 #include "r_opengl.h"
 
@@ -762,7 +764,7 @@ extern ref_entity_t	*r_nullModels[MAX_ENTITIES];
 extern int	r_numNullModels;
 
 extern lightstyle_t	r_lightStyles[MAX_LIGHTSTYLES];
-extern refdef_t	r_refdef;
+extern ref_params_t	r_refdef;
 extern refstats_t	r_stats;
 
 void		R_DrawStudioModel( void );
@@ -793,10 +795,10 @@ void		R_DrawSprite( void );
 void		R_DrawBeam( void );
 void		R_DrawParticle( void );
 void		R_DrawPoly( void );
-void		R_RenderView( const refdef_t *fd );
+void		R_RenderView( const ref_params_t *fd );
 void		R_AddShadowToList( ref_entity_t *entity );
 void		R_RenderShadows( void );
-void		R_BloomBlend ( const refdef_t *fd );
+void		R_BloomBlend ( const ref_params_t *fd );
 void		R_DrawSky( void );
 void		R_ClearSky( void );
 void		R_ClipSkySurface( surface_t *surf );

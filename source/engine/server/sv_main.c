@@ -71,7 +71,7 @@ void SV_CalcPings( void )
 		else cl->ping = total / count;
 
 		// let the game dll know about the ping
-		cl->edict->pvEngineData->client->ping = cl->ping;
+		cl->edict->pvServerData->client->ping = cl->ping;
 	}
 }
 
@@ -164,7 +164,7 @@ void SV_CheckTimeouts( void )
 		}
 		if(( cl->state == cs_connected || cl->state == cs_spawned) && cl->lastmessage < droppoint )
 		{
-			SV_BroadcastPrintf( HUD_PRINTCONSOLE, "%s timed out\n", cl->name );
+			SV_BroadcastPrintf( "%s timed out\n", cl->name );
 			SV_DropClient( cl ); 
 			cl->state = cs_free; // don't bother with zombie state
 		}
@@ -375,6 +375,9 @@ void SV_Init( void )
 	public_server = Cvar_Get ("public", "0", 0, "change server type from private to public" );
 
 	sv_reconnect_limit = Cvar_Get ("sv_reconnect_limit", "3", CVAR_ARCHIVE, "max reconnect attempts" );
+
+	// init game
+	SV_LoadProgs( "server" );
 }
 
 /*
@@ -439,7 +442,13 @@ void SV_Shutdown( bool reconnect )
 	if( svs.clients ) SV_FinalMessage( host.finalmsg, reconnect );
 
 	Master_Shutdown();
-	SV_UnloadProgs();
+	if( reconnect )
+	{
+		if( svgame.hInstance )
+			svgame.dllFuncs.pfnServerDeactivate();
+		SV_FreeEdicts();
+	}
+	else SV_UnloadProgs();
 
 	// free current level
 	Mem_Set( &sv, 0, sizeof( sv ));

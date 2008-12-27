@@ -93,7 +93,7 @@ inline void MESSAGE_BEGIN( int msg_dest, int msg_type, const float *pOrigin = NU
 inline void *GET_PRIVATE( edict_t *pent )
 {
 	if ( pent )
-		return pent->pvServerData;
+		return pent->pvPrivateData;
 	return NULL;
 }
 
@@ -116,7 +116,6 @@ inline void *GET_PRIVATE( edict_t *pent )
 #define FUNCTION_FROM_NAME			(*g_engfuncs.pfnFunctionFromName)
 #define NAME_FOR_FUNCTION			(*g_engfuncs.pfnNameForFunction)
 #define TRACE_TEXTURE				(*g_engfuncs.pfnTraceTexture)
-#define CLIENT_PRINTF				(*g_engfuncs.pfnClientPrintf)
 #define CMD_ARGS					(*g_engfuncs.pfnCmd_Args)
 #define CMD_ARGC					(*g_engfuncs.pfnCmd_Argc)
 #define CMD_ARGV					(*g_engfuncs.pfnCmd_Argv)

@@ -17,6 +17,7 @@
 #include "extdll.h"
 #include "utils.h"
 #include "cbase.h"
+#include "client.h"
 #include "monsters.h"
 #include "baseweapon.h"
 #include "nodes.h"
@@ -233,7 +234,7 @@ void CApache :: DyingThink( void )
 	if (m_flNextRocket > gpGlobals->time )
 	{
 		// random explosions
-		MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, pev->origin );
+		MESSAGE_BEGIN( MSG_PVS, gmsg.TempEntity, pev->origin );
 			WRITE_BYTE( TE_EXPLOSION);		// This just makes a dynamic light now
 			WRITE_COORD( pev->origin.x + RANDOM_FLOAT( -150, 150 ));
 			WRITE_COORD( pev->origin.y + RANDOM_FLOAT( -150, 150 ));
@@ -245,7 +246,7 @@ void CApache :: DyingThink( void )
 		MESSAGE_END();
 
 		// lots of smoke
-		MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, pev->origin );
+		MESSAGE_BEGIN( MSG_PVS, gmsg.TempEntity, pev->origin );
 			WRITE_BYTE( TE_SMOKE );
 			WRITE_COORD( pev->origin.x + RANDOM_FLOAT( -150, 150 ));
 			WRITE_COORD( pev->origin.y + RANDOM_FLOAT( -150, 150 ));
@@ -256,7 +257,7 @@ void CApache :: DyingThink( void )
 		MESSAGE_END();
 
 		Vector vecSpot = pev->origin + (pev->mins + pev->maxs) * 0.5;
-		MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, vecSpot );
+		MESSAGE_BEGIN( MSG_PVS, gmsg.TempEntity, vecSpot );
 			WRITE_BYTE( TE_BREAKMODEL);
 
 			// position
@@ -301,7 +302,7 @@ void CApache :: DyingThink( void )
 		Vector vecSpot = pev->origin + (pev->mins + pev->maxs) * 0.5;
 
 		/*
-		MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+		MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 			WRITE_BYTE( TE_EXPLOSION);		// This just makes a dynamic light now
 			WRITE_COORD( vecSpot.x );
 			WRITE_COORD( vecSpot.y );
@@ -313,7 +314,7 @@ void CApache :: DyingThink( void )
 		*/
 
 		// fireball
-		MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, vecSpot );
+		MESSAGE_BEGIN( MSG_PVS, gmsg.TempEntity, vecSpot );
 			WRITE_BYTE( TE_SPRITE );
 			WRITE_COORD( vecSpot.x );
 			WRITE_COORD( vecSpot.y );
@@ -324,7 +325,7 @@ void CApache :: DyingThink( void )
 		MESSAGE_END();
 		
 		// big smoke
-		MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, vecSpot );
+		MESSAGE_BEGIN( MSG_PVS, gmsg.TempEntity, vecSpot );
 			WRITE_BYTE( TE_SMOKE );
 			WRITE_COORD( vecSpot.x );
 			WRITE_COORD( vecSpot.y );
@@ -335,7 +336,7 @@ void CApache :: DyingThink( void )
 		MESSAGE_END();
 
 		// blast circle
-		MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, pev->origin );
+		MESSAGE_BEGIN( MSG_PVS, gmsg.TempEntity, pev->origin );
 			WRITE_BYTE( TE_BEAMCYLINDER );
 			WRITE_COORD( pev->origin.x);
 			WRITE_COORD( pev->origin.y);
@@ -375,7 +376,7 @@ void CApache :: DyingThink( void )
 
 		// gibs
 		vecSpot = pev->origin + (pev->mins + pev->maxs) * 0.5;
-		MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, vecSpot );
+		MESSAGE_BEGIN( MSG_PVS, gmsg.TempEntity, vecSpot );
 			WRITE_BYTE( TE_BREAKMODEL);
 
 			// position
@@ -768,7 +769,7 @@ void CApache :: FireRocket( void )
 	case 4: break;
 	}
 
-	MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, vecSrc );
+	MESSAGE_BEGIN( MSG_PVS, gmsg.TempEntity, vecSrc );
 		WRITE_BYTE( TE_SMOKE );
 		WRITE_COORD( vecSrc.x );
 		WRITE_COORD( vecSrc.y );
@@ -876,7 +877,7 @@ void CApache :: ShowDamage( void )
 {
 	if (m_iDoSmokePuff > 0 || RANDOM_LONG(0,99) > pev->health)
 	{
-		MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, pev->origin );
+		MESSAGE_BEGIN( MSG_PVS, gmsg.TempEntity, pev->origin );
 			WRITE_BYTE( TE_SMOKE );
 			WRITE_COORD( pev->origin.x );
 			WRITE_COORD( pev->origin.y );

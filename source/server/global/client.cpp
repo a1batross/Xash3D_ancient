@@ -51,11 +51,9 @@ DLL_GLOBAL int g_serveractive = 0;
 BOOL MSGSended;
 BOOL NewLevel = FALSE;
 float MsgDelay;
+user_messages_t gmsg;
 void LinkUserMessages( void );
 char text[128];
-extern int gmsgSayText;
-extern int gmsgHUDColor;
-extern int gmsgCamData; // for trigger_viewset
 extern int g_teamplay;
 
 //messages affect only player
@@ -66,60 +64,6 @@ typedef struct _SelAmmo
 	BYTE	Ammo2Type;
 	BYTE	Ammo2;
 } SelAmmo;
-int gmsgShake = 0;
-int gmsgFade = 0;
-int gmsgSelAmmo = 0;
-int gmsgFlashlight = 0;
-int gmsgFlashBattery = 0;
-int gmsgResetHUD = 0;
-int gmsgInitHUD = 0;
-int gmsgHUDColor = 0;
-int gmsgCurWeapon = 0;
-int gmsgHealth = 0;
-int gmsgDamage = 0;
-int gmsgBattery = 0;
-int gmsgTrain = 0;
-int gmsgWeaponList = 0;
-int gmsgAmmoX = 0;
-int gmsgDeathMsg = 0;
-int gmsgScoreInfo = 0;
-int gmsgTeamInfo = 0;
-int gmsgTeamScore = 0;
-int gmsgGameMode = 0;
-int gmsgMOTD = 0;
-int gmsgServerName = 0;
-int gmsgAmmoPickup = 0;
-int gmsgWeapPickup = 0;
-int gmsgItemPickup = 0;
-int gmsgHideWeapon = 0;
-int gmsgSetCurWeap = 0;
-int gmsgSayText = 0;
-int gmsgTextMsg = 0;
-int gmsgSetFOV = 0;
-int gmsgShowMenu = 0;
-int gmsgGeigerRange = 0;
-int gmsgTeamNames = 0;
-int gmsgStatusText = 0;
-int gmsgStatusValue = 0;
-int gmsgSetBody = 0;
-int gmsgSetSkin = 0;
-int gmsgZoomHUD = 0;
-int gmsgWarHUD = 0;
-
-//entity messages
-int gmsgHudText = 0;
-int gmsgStatusIcon = 0;
-int gmsgSetFog = 0;
-int gmsgSetSky = 0;
-int gmsgParticle = 0;
-int gmsgBeams = 0;
-int gmsgFsound = 0;
-int gmsgShowGameTitle = 0;
-int gmsgCamData;
-int gmsgRainData = 0;
-int gmsgAddMirror = 0;
-int gmsgAddScreen = 0;
-int gmsgAddPortal = 0;
 
 /*
  * used by kill command and disconnect command
@@ -226,7 +170,7 @@ void ClientDisconnect( edict_t *pEntity )
 
 	char text[256];
 	sprintf( text, "- %s has left the game\n", STRING(pEntity->v.netname) );
-	MESSAGE_BEGIN( MSG_ALL, gmsgSayText, NULL );
+	MESSAGE_BEGIN( MSG_ALL, gmsg.SayText, NULL );
 		WRITE_BYTE( ENTINDEX(pEntity) );
 		WRITE_STRING( text );
 	MESSAGE_END();
@@ -432,7 +376,7 @@ void Host_Say( edict_t *pEntity, int teamonly )
 		if ( teamonly && g_pGameRules->PlayerRelationship(client, CBaseEntity::Instance(pEntity)) != GR_TEAMMATE )
 			continue;
 
-		MESSAGE_BEGIN( MSG_ONE, gmsgSayText, NULL, client->pev );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.SayText, NULL, client->pev );
 			WRITE_BYTE( ENTINDEX(pEntity) );
 			WRITE_STRING( text );
 		MESSAGE_END();
@@ -440,7 +384,7 @@ void Host_Say( edict_t *pEntity, int teamonly )
 	}
 
 	// print to the sending client
-	MESSAGE_BEGIN( MSG_ONE, gmsgSayText, NULL, &pEntity->v );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.SayText, NULL, &pEntity->v );
 		WRITE_BYTE( ENTINDEX(pEntity) );
 		WRITE_STRING( text );
 	MESSAGE_END();
@@ -471,7 +415,7 @@ void ClientCommand( edict_t *pEntity )
 	const char *pstr;
 
 	// Is the client spawned yet?
-	if( !pEntity->pvServerData )
+	if( !pEntity->pvPrivateData )
 		return;
 
 	entvars_t *pev = &pEntity->v;
@@ -496,7 +440,7 @@ void ClientCommand( edict_t *pEntity )
 			int col = (atoi(CMD_ARGV(1)) & 255) << 16;
 			col += (atoi(CMD_ARGV(2)) & 255) << 8;
 			col += (atoi(CMD_ARGV(3)) & 255);
-			MESSAGE_BEGIN( MSG_ONE, gmsgHUDColor, NULL, &pEntity->v );
+			MESSAGE_BEGIN( MSG_ONE, gmsg.HUDColor, NULL, &pEntity->v );
 				WRITE_LONG(col);
 			MESSAGE_END();
 		}
@@ -577,18 +521,18 @@ void ClientCommand( edict_t *pEntity )
 		if(IsMultiplayer())  g_pGameRules->EndMultiplayerGame();	//loading next map
 		// FIXME: return to main menu here
 	}
-	else if ( FStrEq(pcmd, "gametitle" ) )
+	else if( FStrEq( pcmd, "gametitle" ))
 	{
-		MESSAGE_BEGIN( MSG_ONE, gmsgShowGameTitle, NULL, ENT(pev) );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.ShowGameTitle, NULL, ENT( pev ));
 			WRITE_BYTE( 0 );
 		MESSAGE_END();
 	}
-	else if ( FStrEq(pcmd, "intermission" ) )
+	else if( FStrEq( pcmd, "intermission" ))
 	{
-		MESSAGE_BEGIN(MSG_ONE, SVC_INTERMISSION, NULL, ENT(pev));
+		MESSAGE_BEGIN( MSG_ONE, gmsg.Intermission, NULL, ENT( pev ));
 		MESSAGE_END();
 	}
-	else if ( FStrEq(pcmd, "fullupdate" ) )
+	else if( FStrEq( pcmd, "fullupdate" ))
 	{
 		GetClassPtr((CBasePlayer *)pev)->ForceClientDllUpdate();
 	}
@@ -608,13 +552,13 @@ void ClientCommand( edict_t *pEntity )
 	}
 	else if ( FStrEq(pcmd, "fov" ) )
 	{
-		if ( g_flWeaponCheat && CMD_ARGC() > 1)
+		if( g_flWeaponCheat && CMD_ARGC() > 1)
 		{
 			GetClassPtr((CBasePlayer *)pev)->m_iFOV = atoi( CMD_ARGV(1) );
 		}
 		else
 		{
-			CLIENT_PRINTF( pEntity, HUD_PRINTCONSOLE, UTIL_VarArgs( "\"fov\" is \"%d\"\n", (int)GetClassPtr((CBasePlayer *)pev)->m_iFOV ) );
+			ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, UTIL_VarArgs( "\"fov\" is \"%d\"\n", (int)GetClassPtr((CBasePlayer *)pev)->m_iFOV ) );
 		}
 	}
 	else if ( FStrEq(pcmd, "use" ) )
@@ -668,7 +612,7 @@ it gets sent into the rest of the engine.
 void ClientUserInfoChanged( edict_t *pEntity, char *infobuffer )
 {
 	// Is the client spawned yet?
-	if ( !pEntity->pvServerData )
+	if ( !pEntity->pvPrivateData )
 		return;
 
 	// msg everyone if someone changes their name,  and it isn't the first time (changing no name to current name)
@@ -692,7 +636,7 @@ void ClientUserInfoChanged( edict_t *pEntity, char *infobuffer )
 
 		char text[256];
 		sprintf( text, "* %s changed name to %s\n", STRING(pEntity->v.netname), g_engfuncs.pfnInfoKeyValue( infobuffer, "name" ) );
-		MESSAGE_BEGIN( MSG_ALL, gmsgSayText, NULL );
+		MESSAGE_BEGIN( MSG_ALL, gmsg.SayText, NULL );
 			WRITE_BYTE( ENTINDEX(pEntity) );
 			WRITE_STRING( text );
 		MESSAGE_END();
@@ -732,7 +676,7 @@ void ServerActivate( edict_t *pEdictList, int edictCount, int clientMax )
 			continue;
 
 		// Clients aren't necessarily initialized until ClientPutInServer()
-		if ( i < clientMax || !pEdictList[i].pvServerData )
+		if ( i < clientMax || !pEdictList[i].pvPrivateData )
 			continue;
 
 		pClass = CBaseEntity::Instance( &pEdictList[i] );
@@ -1065,63 +1009,67 @@ const char *GetGameDescription()
 //=======================================================================
 void LinkUserMessages( void )
 {
-	// Already taken care of?
-	if ( gmsgSelAmmo )return;
+	// already taken care of?
+	if( gmsg.SelAmmo ) return;
+
+	memset( &gmsg, 0, sizeof( gmsg ));
 
 	//messages affect only player
-	gmsgSelAmmo = REG_USER_MSG("SelAmmo", sizeof(SelAmmo));
-	gmsgCurWeapon = REG_USER_MSG("CurWeapon", 3);
-	gmsgGeigerRange = REG_USER_MSG("Geiger", 1);
-	gmsgFlashlight = REG_USER_MSG("Flashlight", 2);
-	gmsgFlashBattery = REG_USER_MSG("FlashBat", 1);
-	gmsgHealth = REG_USER_MSG( "Health", 1 );
-	gmsgDamage = REG_USER_MSG( "Damage", 12 );
-	gmsgBattery = REG_USER_MSG( "Battery", 2);
-	gmsgTrain = REG_USER_MSG( "Train", 1);
-	gmsgSayText = REG_USER_MSG( "SayText", -1 );
-	gmsgTextMsg = REG_USER_MSG( "TextMsg", -1 );
-	gmsgWeaponList = REG_USER_MSG("WeaponList", -1);
-	gmsgResetHUD = REG_USER_MSG("ResetHUD", 1);
-	gmsgInitHUD = REG_USER_MSG("InitHUD", 0 );
-	gmsgHUDColor = REG_USER_MSG( "HUDColor", 4 );
-	gmsgDeathMsg = REG_USER_MSG( "DeathMsg", -1 );
-	gmsgScoreInfo = REG_USER_MSG( "ScoreInfo", 9 );
-	gmsgTeamInfo = REG_USER_MSG( "TeamInfo", -1 );
-	gmsgTeamScore = REG_USER_MSG( "TeamScore", -1 );
-	gmsgGameMode = REG_USER_MSG( "GameMode", 1 );
-	gmsgMOTD = REG_USER_MSG( "MOTD", -1 );
-	gmsgServerName = REG_USER_MSG( "ServerName", -1 );
-	gmsgAmmoPickup = REG_USER_MSG( "AmmoPickup", 2 );
-	gmsgWeapPickup = REG_USER_MSG( "WeapPickup", 1 );
-	gmsgItemPickup = REG_USER_MSG( "ItemPickup", -1 );
-	gmsgHideWeapon = REG_USER_MSG( "HideWeapon", 1 );
-	gmsgSetFOV = REG_USER_MSG( "SetFOV", 1 );
-	gmsgShowMenu = REG_USER_MSG( "ShowMenu", -1 );
-	gmsgShake = REG_USER_MSG("ScreenShake", 13 );
-	gmsgFade = REG_USER_MSG("ScreenFade", sizeof(ScreenFade));
-	gmsgAmmoX = REG_USER_MSG("AmmoX", 2);
-	gmsgTeamNames = REG_USER_MSG( "TeamNames", -1 );
-	gmsgStatusText = REG_USER_MSG("StatusText", -1);
-	gmsgStatusValue = REG_USER_MSG("StatusValue", 3);
-	gmsgSetBody = REG_USER_MSG("SetBody", 1);
-	gmsgSetSkin = REG_USER_MSG("SetSkin", 1);
-	gmsgZoomHUD = REG_USER_MSG("ZoomHUD", 1);
-	gmsgWarHUD = REG_USER_MSG("WarHUD", 1);
+	gmsg.SelAmmo = REG_USER_MSG("SelAmmo", sizeof(SelAmmo));
+	gmsg.Intermission = REG_USER_MSG( "Intermission", 0 );
+	gmsg.CurWeapon = REG_USER_MSG("CurWeapon", 3);
+	gmsg.GeigerRange = REG_USER_MSG("Geiger", 1);
+	gmsg.Flashlight = REG_USER_MSG("Flashlight", 2);
+	gmsg.FlashBattery = REG_USER_MSG("FlashBat", 1);
+	gmsg.Health = REG_USER_MSG( "Health", 1 );
+	gmsg.Damage = REG_USER_MSG( "Damage", 18 );
+	gmsg.Battery = REG_USER_MSG( "Battery", 2);
+	gmsg.Train = REG_USER_MSG( "Train", 1);
+	gmsg.SayText = REG_USER_MSG( "SayText", -1 );
+	gmsg.TextMsg = REG_USER_MSG( "TextMsg", -1 );
+	gmsg.WeaponList = REG_USER_MSG("WeaponList", -1);
+	gmsg.ResetHUD = REG_USER_MSG("ResetHUD", 1);
+	gmsg.InitHUD = REG_USER_MSG("InitHUD", 0 );
+	gmsg.HUDColor = REG_USER_MSG( "HUDColor", 4 );
+	gmsg.DeathMsg = REG_USER_MSG( "DeathMsg", -1 );
+	gmsg.ScoreInfo = REG_USER_MSG( "ScoreInfo", 9 );
+	gmsg.TeamInfo = REG_USER_MSG( "TeamInfo", -1 );
+	gmsg.TeamScore = REG_USER_MSG( "TeamScore", -1 );
+	gmsg.GameMode = REG_USER_MSG( "GameMode", 1 );
+	gmsg.MOTD = REG_USER_MSG( "MOTD", -1 );
+	gmsg.ServerName = REG_USER_MSG( "ServerName", -1 );
+	gmsg.AmmoPickup = REG_USER_MSG( "AmmoPickup", 2 );
+	gmsg.WeapPickup = REG_USER_MSG( "WeapPickup", 1 );
+	gmsg.ItemPickup = REG_USER_MSG( "ItemPickup", -1 );
+	gmsg.RoomType = REG_USER_MSG( "RoomType", 2 );
+	gmsg.HideWeapon = REG_USER_MSG( "HideWeapon", 1 );
+	gmsg.SetFOV = REG_USER_MSG( "SetFOV", 1 );
+	gmsg.ShowMenu = REG_USER_MSG( "ShowMenu", -1 );
+	gmsg.Shake = REG_USER_MSG("ScreenShake", 13 );
+	gmsg.Fade = REG_USER_MSG("ScreenFade", sizeof(ScreenFade));
+	gmsg.AmmoX = REG_USER_MSG("AmmoX", 2);
+	gmsg.TeamNames = REG_USER_MSG( "TeamNames", -1 );
+	gmsg.StatusText = REG_USER_MSG("StatusText", -1);
+	gmsg.StatusValue = REG_USER_MSG("StatusValue", 3);
+	gmsg.SetBody = REG_USER_MSG("SetBody", 1);
+	gmsg.SetSkin = REG_USER_MSG("SetSkin", 1);
+	gmsg.ZoomHUD = REG_USER_MSG("ZoomHUD", 1);
+	gmsg.WarHUD = REG_USER_MSG("WarHUD", 1);
 
 	//entity messages
-	gmsgStatusIcon = REG_USER_MSG("StatusIcon", -1);
-	gmsgCamData = REG_USER_MSG("CamData", -1);
-	gmsgFsound = REG_USER_MSG("Fsound", -1);
-	gmsgRainData = REG_USER_MSG("RainData", 16);
-	gmsgAddScreen = REG_USER_MSG( "AddScreen", 1);
-	gmsgAddPortal = REG_USER_MSG( "AddPortal", 1);
-	gmsgHudText = REG_USER_MSG( "HudText", -1 );
-	gmsgShowGameTitle = REG_USER_MSG("GameTitle", 1);
-	gmsgSetFog = REG_USER_MSG("SetFog", 7 );
-	gmsgSetSky = REG_USER_MSG( "SetSky", 7 );
-	gmsgParticle = REG_USER_MSG( "Particle", -1);
-	gmsgBeams = REG_USER_MSG( "Beams", -1 );
-	gmsgAddMirror = REG_USER_MSG( "AddMirror", 2);
+	gmsg.StatusIcon = REG_USER_MSG("StatusIcon", -1);
+	gmsg.CamData = REG_USER_MSG("CamData", -1);
+	gmsg.Fsound = REG_USER_MSG("Fsound", -1);
+	gmsg.RainData = REG_USER_MSG("RainData", 16);
+	gmsg.AddScreen = REG_USER_MSG( "AddScreen", 1);
+	gmsg.AddPortal = REG_USER_MSG( "AddPortal", 1);
+	gmsg.HudText = REG_USER_MSG( "HudText", -1 );
+	gmsg.ShowGameTitle = REG_USER_MSG("GameTitle", 1);
+	gmsg.SetFog = REG_USER_MSG("SetFog", 7 );
+	gmsg.SetSky = REG_USER_MSG( "SetSky", 7 );
+	gmsg.Particle = REG_USER_MSG( "Particle", -1);
+	gmsg.Beams = REG_USER_MSG( "Beams", -1 );
+	gmsg.AddMirror = REG_USER_MSG( "AddMirror", 2);
 }
 
 /*

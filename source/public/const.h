@@ -195,10 +195,10 @@ typedef enum
 } kBeamType_t;
 
 // lower bits encoded as kBeamType_t (max 8 types)
-#define BEAM_FSINE		(1<<3)
-#define BEAM_FSOLID		(1<<4)
-#define BEAM_FSHADEIN	(1<<5)
-#define BEAM_FSHADEOUT	(1<<6)
+#define BEAM_FSINE			(1<<3)
+#define BEAM_FSOLID			(1<<4)
+#define BEAM_FSHADEIN		(1<<5)
+#define BEAM_FSHADEOUT		(1<<6)
 
 // rendering constants
 typedef enum 
@@ -228,19 +228,29 @@ typedef enum
 	kRenderFxNoReflect,			// don't reflecting in mirrors 
 } kRenderFx_t;
 
+// player_state_t->renderfx
+#define RDF_UNDERWATER		(1<<0)	// warp the screen as apropriate
+#define RDF_NOWORLDMODEL		(1<<1)	// used for player configuration screen
+#define RDF_BLOOM			(1<<2)	// light blooms
+
 // all drawing is done to a 640*480 virtual screen size
 // and will be automatically scaled to the real resolution
 #define SCREEN_WIDTH			640
 #define SCREEN_HEIGHT			480
 
-#define TINYCHAR_WIDTH			(SMALLCHAR_WIDTH)
-#define TINYCHAR_HEIGHT			(SMALLCHAR_HEIGHT/2)
-#define SMALLCHAR_WIDTH			8
-#define SMALLCHAR_HEIGHT			16
-#define BIGCHAR_WIDTH			16
-#define BIGCHAR_HEIGHT			24
-#define GIANTCHAR_WIDTH			32
-#define GIANTCHAR_HEIGHT			48
+// client screen state
+#define CL_DISCONNECTED		1	//
+#define CL_LOADING			2	// draw loading progress-bar
+#define CL_ACTIVE			3	// draw normal hud
+
+#define TINYCHAR_WIDTH		(SMALLCHAR_WIDTH)
+#define TINYCHAR_HEIGHT		(SMALLCHAR_HEIGHT/2)
+#define SMALLCHAR_WIDTH		8
+#define SMALLCHAR_HEIGHT		16
+#define BIGCHAR_WIDTH		16
+#define BIGCHAR_HEIGHT		24
+#define GIANTCHAR_WIDTH		32
+#define GIANTCHAR_HEIGHT		48
 
 #define HUD_PRINTNOTIFY		1
 #define HUD_PRINTCONSOLE		2

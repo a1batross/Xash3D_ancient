@@ -417,8 +417,8 @@ void SV_Transform( edict_t *edict, const vec3_t origin, const matrix3x3 matrix )
 	edict->v.angles[2] = angles[2];
 
 	// refresh force and torque
-	pe->GetForce( edict->pvEngineData->physbody, edict->v.velocity, edict->v.avelocity, edict->v.force, edict->v.torque );
-	pe->GetMassCentre( edict->pvEngineData->physbody, edict->v.m_pcentre );
+	pe->GetForce( edict->pvServerData->physbody, edict->v.velocity, edict->v.avelocity, edict->v.force, edict->v.torque );
+	pe->GetMassCentre( edict->pvServerData->physbody, edict->v.m_pcentre );
 }
 
 /*
@@ -434,21 +434,21 @@ void SV_PlayerMove( edict_t *player )
 	pmove_t		pm;
 	sv_client_t	*client;
 
-	client = player->pvEngineData->client;
+	client = player->pvServerData->client;
 	memset( &pm, 0, sizeof(pm) );
 
 	if( player->v.movetype == MOVETYPE_NOCLIP )
-		player->pvEngineData->s.pm_type = PM_SPECTATOR;
-	else player->pvEngineData->s.pm_type = PM_NORMAL;
-	player->pvEngineData->s.gravity = sv_gravity->value;
+		player->pvServerData->s.pm_type = PM_SPECTATOR;
+	else player->pvServerData->s.pm_type = PM_NORMAL;
+	player->pvServerData->s.gravity = sv_gravity->value;
 
 	if( player->v.teleport_time )
-		player->pvEngineData->s.pm_flags |= PMF_TIME_TELEPORT; 
-	else player->pvEngineData->s.pm_flags &= ~PMF_TIME_TELEPORT; 
+		player->pvServerData->s.pm_flags |= PMF_TIME_TELEPORT; 
+	else player->pvServerData->s.pm_flags &= ~PMF_TIME_TELEPORT; 
 
-	pm.ps = player->pvEngineData->s;
+	pm.ps = player->pvServerData->s;
 	pm.cmd = client->lastcmd;
-	pm.body = player->pvEngineData->physbody;	// member body ptr
+	pm.body = player->pvServerData->physbody;	// member body ptr
 	
 	VectorCopy( player->v.origin, pm.ps.origin );
 	VectorCopy( player->v.velocity, pm.ps.velocity );
@@ -456,13 +456,13 @@ void SV_PlayerMove( edict_t *player )
 	pe->PlayerMove( &pm, false );	// server move
 
 	// save results of pmove
-	player->pvEngineData->s = pm.ps;
+	player->pvServerData->s = pm.ps;
 
 	VectorCopy(pm.ps.origin, player->v.origin);
 	VectorCopy(pm.ps.velocity, player->v.velocity);
 	VectorCopy(pm.mins, player->v.mins);
 	VectorCopy(pm.maxs, player->v.maxs);
-	VectorCopy(pm.ps.viewangles, player->pvEngineData->s.viewangles );
+	VectorCopy(pm.ps.viewangles, player->pvServerData->s.viewangles );
 }
 
 void SV_PlaySound( edict_t *ed, float volume, float pitch, const char *sample )

@@ -18,6 +18,7 @@
 #include	"extdll.h"
 #include	"utils.h"
 #include	"cbase.h"
+#include	"client.h"
 #include	"player.h"
 #include  "baseweapon.h"
 #include	"gamerules.h"
@@ -153,15 +154,9 @@ BOOL CHalfLifeTeamplay :: ClientCommand( CBasePlayer *pPlayer, const char *pcmd 
 	return FALSE;
 }
 
-extern int gmsgGameMode;
-extern int gmsgSayText;
-extern int gmsgTeamInfo;
-extern int gmsgTeamNames;
-extern int gmsgScoreInfo;
-
 void CHalfLifeTeamplay :: UpdateGameMode( CBasePlayer *pPlayer )
 {
-	MESSAGE_BEGIN( MSG_ONE, gmsgGameMode, NULL, pPlayer->edict() );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.GameMode, NULL, pPlayer->edict() );
 		WRITE_BYTE( 1 );  // game mode teamplay
 	MESSAGE_END();
 }
@@ -206,7 +201,7 @@ void CHalfLifeTeamplay::InitHUD( CBasePlayer *pPlayer )
 	CHalfLifeMultiplay::InitHUD( pPlayer );
 
 	// Send down the team names
-	MESSAGE_BEGIN( MSG_ONE, gmsgTeamNames, NULL, pPlayer->edict() );  
+	MESSAGE_BEGIN( MSG_ONE, gmsg.TeamNames, NULL, pPlayer->edict() );  
 		WRITE_BYTE( num_teams );
 		for ( i = 0; i < num_teams; i++ )
 		{
@@ -239,7 +234,7 @@ void CHalfLifeTeamplay::InitHUD( CBasePlayer *pPlayer )
 		CBaseEntity *plr = UTIL_PlayerByIndex( i );
 		if ( plr && IsValidTeam( plr->TeamID() ) )
 		{
-			MESSAGE_BEGIN( MSG_ONE, gmsgTeamInfo, NULL, pPlayer->edict() );
+			MESSAGE_BEGIN( MSG_ONE, gmsg.TeamInfo, NULL, pPlayer->edict() );
 				WRITE_BYTE( plr->entindex() );
 				WRITE_STRING( plr->TeamID() );
 			MESSAGE_END();
@@ -282,12 +277,12 @@ void CHalfLifeTeamplay::ChangePlayerTeam( CBasePlayer *pPlayer, const char *pTea
 	g_engfuncs.pfnSetClientKeyValue( clientIndex, g_engfuncs.pfnGetInfoKeyBuffer( pPlayer->edict() ), "team", pPlayer->m_szTeamName );
 
 	// notify everyone's HUD of the team change
-	MESSAGE_BEGIN( MSG_ALL, gmsgTeamInfo );
+	MESSAGE_BEGIN( MSG_ALL, gmsg.TeamInfo );
 		WRITE_BYTE( clientIndex );
 		WRITE_STRING( pPlayer->m_szTeamName );
 	MESSAGE_END();
 
-	MESSAGE_BEGIN( MSG_ALL, gmsgScoreInfo );
+	MESSAGE_BEGIN( MSG_ALL, gmsg.ScoreInfo );
 		WRITE_BYTE( clientIndex );
 		WRITE_SHORT( pPlayer->pev->frags );
 		WRITE_SHORT( pPlayer->m_iDeaths );
@@ -342,8 +337,6 @@ void CHalfLifeTeamplay::ClientUserInfoChanged( CBasePlayer *pPlayer, char *infob
 	RecountTeams( TRUE );
 }
 
-extern int gmsgDeathMsg;
-
 //=========================================================
 // Deathnotice. 
 //=========================================================
@@ -360,7 +353,7 @@ void CHalfLifeTeamplay::DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, e
 		{
 			if ( (pk != pVictim) && (PlayerRelationship( pVictim, pk ) == GR_TEAMMATE) )
 			{
-				MESSAGE_BEGIN( MSG_ALL, gmsgDeathMsg );
+				MESSAGE_BEGIN( MSG_ALL, gmsg.DeathMsg );
 					WRITE_BYTE( ENTINDEX(ENT(pKiller)) );		// the killer
 					WRITE_BYTE( ENTINDEX(pVictim->edict()) );	// the victim
 					WRITE_STRING( "teammate" );		// flag this as a teammate kill
@@ -603,7 +596,7 @@ void CHalfLifeTeamplay::RecountTeams( bool bResendInfo )
 			{
 				if ( plr && IsValidTeam( plr->TeamID() ) )
 				{
-					MESSAGE_BEGIN( MSG_ALL, gmsgTeamInfo, NULL );
+					MESSAGE_BEGIN( MSG_ALL, gmsg.TeamInfo, NULL );
 						WRITE_BYTE( plr->entindex() );
 						WRITE_STRING( plr->TeamID() );
 					MESSAGE_END();

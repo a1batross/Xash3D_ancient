@@ -44,11 +44,11 @@ Sets scr_vrect, the coordinates of the rendered window
 */
 void V_CalcRect( void )
 {
-	scr_vrect.width = scr_width->integer;
-	scr_vrect.width &= ~7;
-	scr_vrect.height = scr_height->integer;
-	scr_vrect.height &= ~1;
-	scr_vrect.y = scr_vrect.x = 0;
+	scr_rect[2] = scr_width->integer;
+	scr_rect[2] &= ~7;
+	scr_rect[3] = scr_height->integer;
+	scr_rect[3] &= ~1;
+	scr_rect[0] = scr_rect[1] = 0;
 }
 
 /*
@@ -73,7 +73,7 @@ void V_TestEntities( void )
 		f = 64 * (i/4) + 128;
 
 		for( j = 0; j < 3; j++ )
-			ent.origin[j] = cl.refdef.vieworg[j] + cl.v_forward[j] * f + cl.v_right[j] * r;
+			ent.origin[j] = cl.refdef.vieworg[j] + cl.refdef.forward[j] * f + cl.refdef.right[j] * r;
 
 		ent.model.controller[0] = ent.model.controller[1] = 90.0f;
 		ent.model.controller[2] = ent.model.controller[3] = 180.0f;
@@ -104,7 +104,7 @@ void V_TestLights( void )
 		f = 64 * (i/4) + 128;
 
 		for( j = 0; j < 3; j++ )
-			dl.origin[j] = cl.refdef.vieworg[j] + cl.v_forward[j] * f + cl.v_right[j] * r;
+			dl.origin[j] = cl.refdef.vieworg[j] + cl.refdef.forward[j] * f + cl.refdef.right[j] * r;
 
 		dl.color[0] = ((i%6)+1) & 1;
 		dl.color[1] = (((i%6)+1) & 2)>>1;
@@ -156,7 +156,7 @@ void V_RenderView( void )
 
 		// build a refresh entity list and calc cl.sim*
 		// this also calls CL_CalcViewValues which loads
-		// v_forward, etc.
+		// refdef.forward, etc.
 		CL_AddEntities ();
 
 		if( cl_testentities->value ) V_TestEntities();
@@ -169,11 +169,11 @@ void V_RenderView( void )
 		cl.refdef.vieworg[1] += 1.0 / 32;
 		cl.refdef.vieworg[2] += 1.0 / 32;
 
-		Mem_Copy( &cl.refdef.rect, &scr_vrect, sizeof( vrect_t ));
+		Mem_Copy( &cl.refdef.viewport, &scr_rect, sizeof( cl.refdef.viewport ));
                     
                     cl.refdef.areabits = cl.frame.areabits;
                     cl.refdef.rdflags = cl.frame.ps.renderfx;
-		cl.refdef.fov_y = V_CalcFov( cl.refdef.fov_x, cl.refdef.rect.width, cl.refdef.rect.height );
+		cl.refdef.fov_y = V_CalcFov( cl.refdef.fov_x, cl.refdef.viewport[2], cl.refdef.viewport[3] );
 		cl.refdef.time = cl.time * 0.001f; // cl.time for right lerping		
 		cl.refdef.oldtime = (cl.time * 0.001f) - 0.005; // frametime
 
@@ -211,6 +211,8 @@ V_PostRender
 */
 void V_PostRender( void )
 {
+	SCR_DrawNet();
+	SCR_DrawFPS();
 	UI_Draw();
 	Con_DrawConsole();
 	re->EndFrame();

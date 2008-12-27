@@ -5,8 +5,9 @@
 #ifndef ENTITY_DEF_H
 #define ENTITY_DEF_H
 
-typedef struct ed_priv_s	ed_priv_t;	// engine private data
-typedef struct edict_s	edict_t;
+typedef struct cl_priv_s	cl_priv_t;	// cl.engine private data
+typedef struct sv_priv_s	sv_priv_t;	// sv.engine private data
+typedef struct edict_s	edict_t;		// generic entity
 
 // TODO: move to CBaseEntity all fields which doesn't existing on client side
 // TODO: generic edict must have all fields as valid on client side too
@@ -140,19 +141,20 @@ typedef struct entvars_s
 	edict_t		*pContainingEntity;		// ptr to class for consistency
 } entvars_t;
 
-// FIXME: make pvEngineData as generic ptr for both types (client and server are valid, entvars are shared)
-
 struct edict_s
 {
-	BOOL		free;
+	BOOL		free;			// shared parms
 	float		freetime;			// sv.time when the object was freed
-	int		serialnumber;
+	int		serialnumber;		// must match with entity num
 
-	ed_priv_t		*pvEngineData;		// alloced, freed and used by engine only
-	void		*pvServerData;		// alloced and freed by engine, used by DLLs
+	union
+	{
+		sv_priv_t	*pvServerData;		// alloced, freed and used by engine only
+		cl_priv_t	*pvClientData;		// alloced, freed and used by engine only
+	};
+
+	void		*pvPrivateData;		// alloced and freed by engine, used by DLLs
 	entvars_t		v;			// C exported fields from progs (network relative)
-
-	// other fields from progs come immediately after
 };
 
 #endif//ENTITY_DEF_H

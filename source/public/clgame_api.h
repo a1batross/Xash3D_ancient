@@ -98,17 +98,20 @@ typedef struct
 typedef struct ref_params_s
 {
 	// output
+	int	viewport[4];	// x, y, width, height
 	vec3_t	vieworg;
 	vec3_t	viewangles;
-	float	fov;
+	float	fov_x;
+	float	fov_y;		// fov_y = V_CalcFov( fov_x, viewport[2], viewport[3] );
 
 	vec3_t	forward;
 	vec3_t	right;
 	vec3_t	up;
 	
 	float	frametime;	// client frametime
-	float	lerpfrac;		// interp value 
+	float	lerpfrac;		// between oldframe and frame
 	float	time;		// client time
+	float	oldtime;		// studio lerping
 
 	// misc
 	BOOL	intermission;
@@ -116,15 +119,19 @@ typedef struct ref_params_s
 	BOOL	demorecord;
 	BOOL	spectator;
 	BOOL	paused;
+	uint	rdflags;		// client view effects: RDF_UNDERWATER, RDF_MOTIONBLUR, etc
 	qword	iWeaponBits;	// pev->weapon
 	dword	iKeyBits;		// pev->button
 	edict_t	*onground;	// pointer to onground entity
+	byte	*areabits;	// come from server, contains visible areas list
 	int	waterlevel;
 
 	// input
 	vec3_t	velocity;
 	vec3_t	angles;		// input viewangles
 	vec3_t	origin;		// origin + viewheight = vieworg
+	vec3_t	old_angles;	// prev.state values to interpolate from
+	vec3_t	old_origin;
 
 	vec3_t	viewheight;
 	float	idealpitch;
@@ -164,7 +171,7 @@ typedef struct cl_enginefuncs_s
 
 	// command handlers
 	void	(*pfnAddCommand)( const char *cmd_name, void (*function)(void), const char *cmd_desc );
-	void	(*pfnHookUserMsg)( char *szMsgName, pfnUserMsgHook pfn );
+	void	(*pfnHookUserMsg)( const char *szMsgName, pfnUserMsgHook pfn );
 	void	(*pfnServerCmd)( const char *szCmdString );
 	void	(*pfnClientCmd)( const char *szCmdString );
 	void	(*pfnGetPlayerInfo)( int player_num, hud_player_info_t *pinfo );
@@ -195,6 +202,7 @@ typedef struct cl_enginefuncs_s
 	float	(*pfnGetClientTime)( void );
 	int	(*pfnGetMaxClients)( void );
 	edict_t*	(*pfnGetViewModel)( void );
+	void	(*pfnMakeLevelShot)( void );		// level shot will be created at next frame
 
 	int	(*pfnPointContents)( const float *rgflVector );
 	void	(*pfnTraceLine)( const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr );
@@ -217,7 +225,7 @@ typedef struct
 
 	int	(*pfnVidInit)( void );
 	void	(*pfnInit)( void );
-	int	(*pfnRedraw)( float flTime, int intermission );
+	int	(*pfnRedraw)( float flTime, int state );
 	int	(*pfnUpdateClientData)( ref_params_t *parms, float flTime );
 	void	(*pfnReset)( void );
 	void	(*pfnFrame)( double time );

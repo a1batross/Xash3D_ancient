@@ -19,7 +19,7 @@ Render callback for studio models
 */
 entity_state_t *CL_GetEdictByIndex( int index )
 {
-	return &EDICT_NUM( index )->pvEngineData->current;
+	return &EDICT_NUM( index )->pvClientData->current;
 }
 
 /*
@@ -31,7 +31,7 @@ Render callback for studio models
 */
 entity_state_t *CL_GetLocalPlayer( void )
 {
-	return &EDICT_NUM( cl.playernum + 1 )->pvEngineData->current;
+	return &EDICT_NUM( cl.playernum + 1 )->pvClientData->current;
 }
 
 /*
@@ -73,8 +73,9 @@ float *CL_FadeColor( float starttime, float endtime )
 	return color;
 }
 
-void CL_DrawHUD( void )
+void CL_DrawHUD( int state )
 {
+	cls.dllFuncs.pfnRedraw( cl.time * 0.001f, state );
 }
 
 void CL_CopyTraceResult( TraceResult *out, trace_t trace )
@@ -98,84 +99,109 @@ void CL_CopyTraceResult( TraceResult *out, trace_t trace )
 	out->pHit = trace.ent;
 }
 
-void CL_PrepUserMessage( char *pszName, const int svc_num )
+static void CL_CreateUserMessage( int lastnum, const char *szMsgName, int svc_num, int iSize, pfnUserMsgHook pfn )
+{
+	user_message_t	*msg;
+
+	if( lastnum == clgame.numMessages )
+	{
+		if( clgame.numMessages == MAX_USER_MESSAGES )
+		{
+			MsgDev( D_ERROR, "CL_CreateUserMessage: user messages limit is out\n" );
+			return;
+		}
+		clgame.numMessages++;
+	}
+
+	msg = clgame.msg[lastnum];
+
+	// clear existing or allocate new one
+	if( msg ) Mem_Set( msg, 0, sizeof( *msg ));
+	else msg = clgame.msg[lastnum] = Mem_Alloc( cls.mempool, sizeof( *msg ));
+
+	com.strncpy( msg->name, szMsgName, CS_SIZE );
+	msg->number = svc_num;
+	msg->size = iSize;
+	msg->func = pfn;
+}
+
+void CL_LinkUserMessage( char *pszName, const int svc_num )
 {
 	user_message_t	*msg;
 	char		*end;
+	char		msgName[CS_SIZE];
+	int		i, msgSize;
 
 	if( !pszName || !*pszName ) return; // ignore blank names
 
-	if( game.numMessages == MAX_USER_MESSAGES )
-	{
-		MsgDev( D_ERROR, "CL_PrepUserMessage: user messages limit is out\n" );
-		return;
-	}
-
-	// clear existing or allocate new one
-	msg = game.msg[game.numMessages];
-	if( msg ) Mem_Set( msg, 0, sizeof( *msg ));
-	else msg = Mem_Alloc( cls.mempool, sizeof( *msg ));
-
-	end = com.strchr( pszName, '@' );
+	com.strncpy( msgName, pszName, CS_SIZE );
+	end = com.strchr( msgName, '@' );
 	if( !end )
 	{
-		MsgDev( D_ERROR, "CL_PrepUserMessage: can't register message %s\n", pszName );
+		MsgDev( D_ERROR, "CL_LinkUserMessage: can't register message %s\n", msgName );
 		return;
 	}
 
-	msg->size = com.atoi( end + 1 );
-	pszName[end-pszName] = '\0'; // remove size description from MsgName
-	msg->name = pszName;
-	msg->number = svc_num;
-	game.numMessages++;
+	msgSize = com.atoi( end + 1 );
+	msgName[end-msgName] = '\0'; // remove size description from MsgName
 
-	// debug
-	Msg("name %s [%i][svc_%i]\n", msg->name, msg->size, msg->number );
+	// search message by name to link with
+	for( i = 0; i < clgame.numMessages; i++ )
+	{
+		msg = clgame.msg[i];
+		if( !msg ) continue;
+
+		if( !com.strcmp( msg->name, msgName ))
+		{
+			msg->number = svc_num;
+			msg->size = msgSize;
+			return;
+		}
+	}
+
+	// create an empty message
+	CL_CreateUserMessage( i, msgName, svc_num, msgSize, NULL );
+}
+
+void CL_SortUserMessages( void )
+{
+	// FIXME: implement
 }
 
 void CL_ParseUserMessage( sizebuf_t *net_buffer, int svc_num )
 {
 	user_message_t	*msg;
-	int		iSize;
+	int		i, iSize;
 	byte		*pbuf;
-	
+
 	// NOTE: any user message parse on engine, not in client.dll
-	if( svc_num >= game.numMessages || !game.msg[svc_num] )
+	if( svc_num >= clgame.numMessages )
 	{
 		// unregister message can't be parsed
 		Host_Error( "CL_ParseUserMessage: illegible server message %d\n", svc_num );
 		return;
 	}
 
-	if( svc_num != game.msg[svc_num]->number )
+	// search for svc_num
+	for( i = 0; i < clgame.numMessages; i++ )
 	{
-		int	i;
-
-		// search for right number
-		for( i = 0; i < game.numMessages; i++ )
-		{
-			msg = game.msg[i];	
-			if( !msg || msg->number == svc_num )
-				break;
-		}
-
-		// throw warn
-		MsgDev( D_WARN, "CL_ParseUserMessage: wrong message num %i\n", svc_num );
-
-		if( i == game.numMessages || !msg )
-		{
-			// this never happens
-			Host_Error( "CL_ParseUserMessage: illegible server message %d\n", svc_num );
-			return;
-		}
+		msg = clgame.msg[i];	
+		if( !msg ) continue;
+		if( msg->number == svc_num )
+			break;
 	}
-	else msg = game.msg[svc_num];
+
+	if( i == clgame.numMessages || !msg )
+	{
+		// unregistered message ?
+		Host_Error( "CL_ParseUserMessage: illegible server message %d\n", svc_num );
+		return;
+	}
 
 	iSize = msg->size;
 	pbuf = NULL;
 
-	// message with variable sizes receive actual size as first byte
-	// FIXME: replace with short for support messages more than 255 bytes ?
+	// message with variable sizes receive an actual size as first byte
 	if( iSize == -1 ) iSize = MSG_ReadByte( net_buffer );
 	if( iSize > 0 ) pbuf = Mem_Alloc( cls.private, iSize );
 
@@ -183,7 +209,7 @@ void CL_ParseUserMessage( sizebuf_t *net_buffer, int svc_num )
 	MSG_ReadData( net_buffer, pbuf, iSize );
 
 	if( msg->func ) msg->func( msg->name, iSize, pbuf );
-	else MsgDev( D_WARN, "CL_ParseUserMessage: message %s doesn't have execute function\n", msg->name );
+	else MsgDev( D_WARN, "CL_ParseUserMessage: %s not hooked\n", msg->name );
 	if( pbuf ) Mem_Free( pbuf );
 }
 
@@ -192,7 +218,7 @@ void CL_InitEdict( edict_t *pEdict )
 	Com_Assert( pEdict == NULL );
 
 	pEdict->v.pContainingEntity = pEdict; // make cross-links for consistency
-	pEdict->pvEngineData = (ed_priv_t *)Mem_Alloc( cls.mempool,  sizeof( ed_priv_t ));
+	pEdict->pvClientData = (cl_priv_t *)Mem_Alloc( cls.mempool,  sizeof( cl_priv_t ));
 	pEdict->serialnumber = NUM_FOR_EDICT( pEdict );	// merged on first update
 	pEdict->free = false;
 }
@@ -205,10 +231,10 @@ void CL_FreeEdict( edict_t *pEdict )
 	// unlink from world
 	// CL_UnlinkEdict( pEdict );
 
-	if( pEdict->pvEngineData ) Mem_Free( pEdict->pvEngineData );
+	if( pEdict->pvClientData ) Mem_Free( pEdict->pvClientData );
 	Mem_Set( &pEdict->v, 0, sizeof( entvars_t ));
 
-	pEdict->pvEngineData = NULL;
+	pEdict->pvClientData = NULL;
 
 	// mark edict as freed
 	pEdict->freetime = cl.time * 0.001f;
@@ -221,7 +247,7 @@ edict_t *CL_AllocEdict( void )
 	edict_t	*pEdict;
 	int	i;
 
-	for( i = 0; i < game.numEntities; i++ )
+	for( i = 0; i < clgame.numEntities; i++ )
 	{
 		pEdict = EDICT_NUM( i );
 		// the first couple seconds of server time can involve a lot of
@@ -233,10 +259,10 @@ edict_t *CL_AllocEdict( void )
 		}
 	}
 
-	if( i == game.maxEntities )
+	if( i == clgame.maxEntities )
 		Host_Error( "CL_AllocEdict: no free edicts\n" );
 
-	game.numEntities++;
+	clgame.numEntities++;
 	pEdict = EDICT_NUM( i );
 	CL_InitEdict( pEdict );
 
@@ -248,12 +274,13 @@ void CL_FreeEdicts( void )
 	int	i;
 	edict_t	*ent;
 
-	for( i = 0; game.numEntities; i++ )
+	for( i = 0; i < clgame.numEntities; i++ )
 	{
 		ent = EDICT_NUM( i );
 		if( ent->free ) continue;
 		CL_FreeEdict( ent );
 	}
+	clgame.numEntities = 0;
 }
 
 /*
@@ -284,6 +311,7 @@ static void pfnMemFree( void *mem, const char *filename, const int fileline )
 {
 	com.free( mem, filename, fileline );
 }
+
 /*
 =============
 pfnLoadShader
@@ -406,27 +434,30 @@ pfnHookUserMsg
 
 =============
 */
-void pfnHookUserMsg( char *szMsgName, pfnUserMsgHook pfn )
+void pfnHookUserMsg( const char *szMsgName, pfnUserMsgHook pfn )
 {
 	user_message_t	*msg;
 	int		i;
 
 	// ignore blank names
 	if( !szMsgName || !*szMsgName ) return;	
-	for( i = 0; game.numMessages; i++ )
+
+	// duplicate call can change msgFunc	
+	for( i = 0; i < clgame.numMessages; i++ )
 	{
-		msg = game.msg[i];	
-		if( !msg ) break;
+		msg = clgame.msg[i];	
+		if( !msg ) continue;
 
 		if( !com.strcmp( szMsgName, msg->name ))
 		{
-			// msg registration is complete
-			msg->func = pfn;
+			if( msg->func != pfn )
+				msg->func = pfn;
 			return;
 		}
 	}
-	MsgDev( D_ERROR, "CL_HookMessage: can't hook message %s\n", szMsgName );
 
+	// allocate a new one
+	CL_CreateUserMessage( i, szMsgName, 0, 0, pfn );
 }
 
 /*
@@ -699,7 +730,7 @@ pfnGetEntityByIndex
 */
 edict_t* pfnGetEntityByIndex( int idx )
 {
-	if( idx < 0 || idx > game.numEntities )
+	if( idx < 0 || idx > clgame.numEntities )
 	{
 		MsgDev( D_ERROR, "CL_GetEntityByIndex: invalid entindex %i\n", idx );
 		return EDICT_NUM( 0 );
@@ -766,6 +797,24 @@ edict_t* pfnGetViewModel( void )
 
 /*
 =============
+pfnMakeLevelShot
+
+force to make levelshot
+=============
+*/
+void pfnMakeLevelShot( void )
+{
+	if( !cl.need_levelshot ) return;
+
+	Con_ClearNotify();
+	cl.need_levelshot = false;
+
+	// make levelshot at nextframe()
+	Cbuf_ExecuteText( EXEC_APPEND, "levelshot\n" );
+}
+
+/*
+=============
 pfnPointContents
 
 =============
@@ -793,6 +842,28 @@ static void pfnTraceLine( const float *v1, const float *v2, int fNoMonsters, edi
 
 	trace = CL_Trace( v1, vec3_origin, vec3_origin, v2, move, pentToSkip, CL_ContentsMask( pentToSkip ));
 	CL_CopyTraceResult( ptr, trace );
+}
+
+/*
+=============
+CL_AllocString
+
+=============
+*/
+string_t CL_AllocString( const char *szValue )
+{
+	return StringTable_SetString( clgame.hStringTable, szValue );
+}		
+
+/*
+=============
+CL_GetString
+
+=============
+*/
+const char *CL_GetString( string_t iString )
+{
+	return StringTable_GetString( clgame.hStringTable, iString );
 }
 
 static triapi_t gTriApi =
@@ -837,7 +908,8 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnIsSpectateOnly,
 	pfnGetClientTime,
 	pfnGetMaxClients,
-	pfnGetViewModel,						
+	pfnGetViewModel,
+	pfnMakeLevelShot,						
 	pfnPointContents,
 	pfnTraceLine,
 	pfnRandomLong,
@@ -869,7 +941,7 @@ void CL_UnloadProgs( void )
 	// initialize game
 	cls.dllFuncs.pfnShutdown();
 
-	StringTable_Delete( game.hStringTable );
+	StringTable_Delete( clgame.hStringTable );
 	Com_FreeLibrary( cls.game );
 	Mem_FreePool( &cls.mempool );
 	Mem_FreePool( &cls.private );
@@ -907,14 +979,17 @@ bool CL_LoadProgs( const char *name )
 	}
 
 	// 65535 unique strings should be enough ...
-	game.hStringTable = StringTable_Create( "Client Strings", 0x10000 );
-	StringTable_SetString( game.hStringTable, "" ); // make NULL string
-	game.maxEntities = host.max_edicts;	// FIXME: must come from CS_MAXENTITIES
-	game.maxClients = Host_MaxClients();
-	game.edicts = Mem_Alloc( cls.mempool, sizeof( edict_t ) * game.maxEntities );
-	game.numMessages = 1; // message with index 0 it's svc_bad
+	clgame.hStringTable = StringTable_Create( "Client Strings", 0x10000 );
+	StringTable_SetString( clgame.hStringTable, "" ); // make NULL string
+	clgame.maxEntities = host.max_edicts;	// FIXME: must come from CS_MAXENTITIES
+	clgame.maxClients = Host_MaxClients();
+	cls.edicts = Mem_Alloc( cls.mempool, sizeof( edict_t ) * clgame.maxEntities );
 
-	for( i = 0, e = game.edicts; i < game.maxEntities; i++, e++ )
+	// register svc_bad message
+	pfnHookUserMsg( "bad", NULL );
+	CL_LinkUserMessage( "bad@0", svc_bad );
+
+	for( i = 0, e = EDICT_NUM( 0 ); i < clgame.maxEntities; i++, e++ )
 		e->free = true; // mark all edicts as freed
 
 	// initialize game

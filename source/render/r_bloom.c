@@ -399,7 +399,7 @@ void R_Bloom_DownsampleView( void )
 R_BloomBlend
 =================
 */
-void R_BloomBlend( const refdef_t *fd )
+void R_BloomBlend( const ref_params_t *fd )
 {
 	if( !r_bloom->value ) return;
 	if( screen_texture_width < BLOOM_SIZE || screen_texture_height < BLOOM_SIZE )
@@ -421,21 +421,21 @@ void R_BloomBlend( const refdef_t *fd )
 	pglColor4f( 1, 1, 1, 1 );
 
 	// set up current sizes
-	curView_x = fd->rect.x;
-	curView_y = fd->rect.y;
-	curView_width = fd->rect.width;
-	curView_height = fd->rect.height;
-	screenText_tcw = ((float)fd->rect.width / (float)screen_texture_width);
-	screenText_tch = ((float)fd->rect.height / (float)screen_texture_height);
-	if( fd->rect.height > fd->rect.width )
+	curView_x = fd->viewport[0];
+	curView_y = fd->viewport[1];
+	curView_width = fd->viewport[2];
+	curView_height = fd->viewport[3];
+	screenText_tcw = ((float)fd->viewport[2] / (float)screen_texture_width);
+	screenText_tch = ((float)fd->viewport[3] / (float)screen_texture_height);
+	if( fd->viewport[3] > fd->viewport[2] )
 	{
-		sampleText_tcw = ((float)fd->rect.width / (float)fd->rect.height);
+		sampleText_tcw = ((float)fd->viewport[2] / (float)fd->viewport[3]);
 		sampleText_tch = 1.0f;
 	}
 	else
 	{
 		sampleText_tcw = 1.0f;
-		sampleText_tch = ((float)fd->rect.height / (float)fd->rect.width);
+		sampleText_tch = ((float)fd->viewport[3] / (float)fd->viewport[2]);
 	}
 	sample_width = BLOOM_SIZE * sampleText_tcw;
 	sample_height = BLOOM_SIZE * sampleText_tch;

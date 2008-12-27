@@ -618,7 +618,7 @@ public:
 	void Init( void );
 	void VidInit( void );
 	void Think( void );
-	int Redraw( float flTime, int intermission );
+	int Redraw( float flTime );
 	int UpdateClientData( ref_params_t *pparams, float time );
 
 	CHud() : m_pHudList(NULL) { }
@@ -630,6 +630,7 @@ public:
 	int _cdecl MsgFunc_ServerName( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_ResetHUD( const char *pszName,  int iSize, void *pbuf);
 	int _cdecl MsgFunc_InitHUD( const char *pszName, int iSize, void *pbuf );
+	int _cdecl MsgFunc_Intermission( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_ViewMode( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_SetFOV( const char *pszName,  int iSize, void *pbuf );
 	int _cdecl MsgFunc_Concuss( const char *pszName, int iSize, void *pbuf );

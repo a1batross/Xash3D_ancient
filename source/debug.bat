@@ -58,6 +58,7 @@ goto done
 
 rem //delete log files
 if exist baserc\baserc.plg del /f /q baserc\baserc.plg
+if exist client\client.plg del /f /q client\client.plg
 if exist engine\engine.plg del /f /q engine\engine.plg
 if exist launch\launch.plg del /f /q launch\launch.plg
 if exist common\common.plg del /f /q common\common.plg
@@ -71,5 +72,5 @@ if exist vsound\vsound.plg del /f /q vsound\vsound.plg
 echo 	     Build succeeded!
 echo Please wait. Xash is now loading
 cd D:\Xash3D\
-quake.exe -game tmpQuArK -log -debug -dev 5 +map qctest
+quake.exe -game tmpQuArK -log -debug -dev 3 +map qctest
 :done

@@ -1041,9 +1041,9 @@ void GL_Setup3D( void )
 	int	bits;
 
 	if( gl_finish->integer )  pglFinish();
-	x = r_refdef.rect.x;
-	y = r_height->integer - r_refdef.rect.height - r_refdef.rect.y;
-	w = r_refdef.rect.width;
+	x = r_refdef.viewport[0];
+	y = r_height->integer - r_refdef.viewport[3] - r_refdef.viewport[1];
+	w = r_refdef.viewport[2];
 	h = r_height->integer;
 
 	// Set up viewport

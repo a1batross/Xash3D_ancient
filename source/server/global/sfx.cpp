@@ -5,10 +5,11 @@
 //=======================================================================
 
 #include "sfx.h"
+#include "client.h"
 
 void SFX_Explode( short model, Vector origin, float scale, int flags )
 {
-	MESSAGE_BEGIN( MSG_PAS, SVC_TEMPENTITY, origin );
+	MESSAGE_BEGIN( MSG_PAS, gmsg.TempEntity, origin );
 		WRITE_BYTE( TE_EXPLOSION );	// This makes a dynamic light and the explosion sprites/sound
 		WRITE_COORD( origin.x );	// Send to PAS because of the sound
 		WRITE_COORD( origin.y );
@@ -22,7 +23,7 @@ void SFX_Explode( short model, Vector origin, float scale, int flags )
 
 void SFX_Trail( int entindex, short model, Vector color, float life )
 {
-	MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+	MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 		WRITE_BYTE( TE_BEAMFOLLOW );
 		WRITE_SHORT( entindex );	// entity
 		WRITE_SHORT( model );	// model
@@ -38,7 +39,7 @@ void SFX_Trail( int entindex, short model, Vector color, float life )
 
 void SFX_MakeGibs( int shards, Vector pos, Vector size, Vector velocity, float time, int flags)
 {
-	MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, pos );
+	MESSAGE_BEGIN( MSG_PVS, gmsg.TempEntity, pos );
 		WRITE_BYTE( TE_BREAKMODEL);
 		WRITE_COORD( pos.x ); // position
 		WRITE_COORD( pos.y );
@@ -59,7 +60,7 @@ void SFX_MakeGibs( int shards, Vector pos, Vector size, Vector velocity, float t
 
 void SFX_EjectBrass ( const Vector &vecOrigin, const Vector &vecVelocity, float rotation, int model, int soundtype )
 {
-	MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, vecOrigin );
+	MESSAGE_BEGIN( MSG_PVS, gmsg.TempEntity, vecOrigin );
 		WRITE_BYTE( TE_MODEL);
 		WRITE_COORD( vecOrigin.x);
 		WRITE_COORD( vecOrigin.y);
@@ -76,7 +77,7 @@ void SFX_EjectBrass ( const Vector &vecOrigin, const Vector &vecVelocity, float 
 
 void SFX_Decal( const Vector &vecOrigin, int decalIndex, int entityIndex, int modelIndex )
 {
-	MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY);
+	MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity);
 		WRITE_BYTE( TE_BSPDECAL );
 		WRITE_COORD( vecOrigin.x );
 		WRITE_COORD( vecOrigin.y );
@@ -89,7 +90,7 @@ void SFX_Decal( const Vector &vecOrigin, int decalIndex, int entityIndex, int mo
 
 void SFX_Light ( entvars_t *pev, float iTime, float decay, int attachment )
 {
-	MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, pev->origin );
+	MESSAGE_BEGIN( MSG_PVS, gmsg.TempEntity, pev->origin );
 		WRITE_BYTE( TE_ELIGHT );
 		WRITE_SHORT( ENTINDEX( ENT(pev) ) + 0x1000 * attachment );// entity, attachment
 		WRITE_COORD( pev->origin.x );		// X
@@ -106,7 +107,7 @@ void SFX_Light ( entvars_t *pev, float iTime, float decay, int attachment )
 
 void SFX_Zap ( entvars_t *pev, const Vector &vecSrc, const Vector &vecDest )
 {
-	MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+	MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 		WRITE_BYTE( TE_BEAMPOINTS);
 		WRITE_COORD(vecSrc.x);
 		WRITE_COORD(vecSrc.y);
@@ -130,7 +131,7 @@ void SFX_Zap ( entvars_t *pev, const Vector &vecSrc, const Vector &vecDest )
 
 void SFX_Ring ( entvars_t *pev, entvars_t *pev2 )
 {
-	MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+	MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 		WRITE_BYTE( TE_BEAMRING );
 		WRITE_SHORT( ENTINDEX(ENT(pev)) );
 		WRITE_SHORT( ENTINDEX(ENT(pev2)) );

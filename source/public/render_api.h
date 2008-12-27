@@ -11,18 +11,6 @@
 #define SHADER_NOMIP		2	// 2d images
 #define SHADER_GENERIC		3	// generic shader
 
-// player_state_t->renderfx
-#define RDF_UNDERWATER		(1<<0)	// warp the screen as apropriate
-#define RDF_NOWORLDMODEL		(1<<1)	// used for player configuration screen
-#define RDF_BLOOM			(1<<2)	// light blooms
-
-typedef struct vrect_s
-{
-	int	x, y;
-	int	width;
-	int	height;
-} vrect_t;
-
 typedef struct
 {
 	vec3_t		point;
@@ -35,19 +23,6 @@ typedef struct
 	int		firstVert;
 	int		numVerts;
 } decalFragment_t;
-
-typedef struct
-{
-	vrect_t		rect;		// screen rectangle
-	float		fov_x;		// field of view by vertical
-	float		fov_y;		// field of view by horizontal
-	vec3_t		vieworg;		// client origin + viewoffset
-	vec3_t		viewangles;	// client angles
-	float		time;		// time is used to shaders auto animate
-	float		oldtime;		// oldtime using for lerping studio models
-	uint		rdflags;		// client view effects: RDF_UNDERWATER, RDF_MOTIONBLUR, etc
-	byte		*areabits;	// if not NULL, only areas with set bits will be drawn
-} refdef_t;
 
 /*
 ==============================================================================
@@ -78,7 +53,7 @@ typedef struct render_exp_s
 	void	(*ClearScene)( void );
 
 	void	(*BeginFrame)( void );
-	void	(*RenderFrame)( refdef_t *fd );
+	void	(*RenderFrame)( ref_params_t *fd );
 	void	(*EndFrame)( void );
 
 	// misc utilities

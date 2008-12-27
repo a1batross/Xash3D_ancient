@@ -12,7 +12,7 @@ extern cl_enginefuncs_t g_engfuncs;
 
 extern int HUD_VidInit( void );
 extern void HUD_Init( void );
-extern int HUD_Redraw( float flTime, int intermission );
+extern int HUD_Redraw( float flTime, int state );
 extern int HUD_UpdateClientData( ref_params_t *parms, float flTime );
 extern void HUD_Reset( void );
 extern void HUD_Frame( double time );
@@ -61,6 +61,8 @@ typedef struct dllfunction_s
 { \
 	gHUD.##y.UserCmd_##x( ); \
 }
+
+#define bound( min, num, max )	((num) >= (min) ? ((num) < (max) ? (num) : (max)) : (min))
 
 inline void UnpackRGB( int &r, int &g, int &b, dword ulRGB )
 {
@@ -140,8 +142,17 @@ extern void SPR_DrawHoles( int frame, int x, int y, int width, int height );
 extern void SPR_DrawAdditive( int frame, int x, int y, const wrect_t *prc );
 extern void SetCrosshair( HSPRITE hspr, wrect_t rc, int r, int g, int b );
 extern void DrawCrosshair( void );
+extern void DrawPause( void );
 extern void SetScreenFade( Vector fadeColor, float alpha, float duration, float holdTime, int fadeFlags );
 extern void DrawScreenFade( void );
+extern void DrawImageBar( float percent, HSPRITE hImage, int w, int h );
+extern void DrawImageBar( float percent, HSPRITE hImage, int x, int y, int w, int h );
+extern void DrawGenericBar( float percent, int w, int h );
+extern void DrawGenericBar( float percent, int x, int y, int w, int h );
+
+// from cl_view.c
+extern void V_RenderSplash( void );
+extern void V_RenderPlaque( void );
 
 // stdio stuff
 extern char *va( const char *format, ... );

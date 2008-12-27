@@ -151,7 +151,7 @@ typedef struct
 	int		width;
 	int		height;
 
-	vrect_t		viewport;
+	int		viewport[4];
 	viewParms_t	viewParms;
 
 	ref_entity_t	*CurrentEntity;

@@ -475,7 +475,7 @@ void CFuncMirror :: Spawn( void )
 
 void CFuncMirror :: StartMessage( CBasePlayer *pPlayer )
 {
-	MESSAGE_BEGIN( MSG_ONE, gmsgAddMirror, NULL, pPlayer->pev );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.AddMirror, NULL, pPlayer->pev );
 		WRITE_SHORT( entindex() );
 	MESSAGE_END();
 }
@@ -570,7 +570,7 @@ int CFuncMonitor :: ObjectCaps( void )
 void CFuncMonitor::StartMessage( CBasePlayer *pPlayer )
 {
 	//send monitor index
-	MESSAGE_BEGIN( MSG_ONE, gmsgAddScreen, NULL, pPlayer->pev );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.AddScreen, NULL, pPlayer->pev );
 		WRITE_BYTE( entindex() );
 	MESSAGE_END();
 	ChangeCamera( pev->target );
@@ -668,7 +668,7 @@ void CFuncTeleport :: Spawn( void )
 void CFuncTeleport::StartMessage( CBasePlayer *pPlayer )
 {
 	//send portal index
-	MESSAGE_BEGIN( MSG_ONE, gmsgAddPortal, NULL, pPlayer->pev );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.AddPortal, NULL, pPlayer->pev );
 		WRITE_BYTE( entindex() );
 	MESSAGE_END();
 	ChangeCamera( pev->target );

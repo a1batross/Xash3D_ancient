@@ -67,6 +67,7 @@ cvar_t	*fov;
 
 client_static_t	cls;
 client_t		cl;
+clgame_static_t	clgame;
 
 entity_state_t	cl_parse_entities[MAX_PARSE_ENTITIES];
 
@@ -334,6 +335,8 @@ void CL_ClearState (void)
 	S_StopAllSounds ();
 	CL_ClearEffects ();
 	CL_FreeEdicts();
+
+	cls.dllFuncs.pfnVidInit();
 
 	// wipe the entire cl structure
 	Mem_Set( &cl, 0, sizeof( cl ));
@@ -1037,7 +1040,7 @@ void CL_RequestNextDownload( void )
 			while( precache_tex < pe->NumTextures())
 			{
 				com.sprintf( fn, "textures/%s.tga", pe->GetTextureName( precache_tex++ ));
-				if(!CL_CheckOrDownloadFile( fn )) return; // started a download
+				if( !CL_CheckOrDownloadFile( fn )) return; // started a download
 			}
 		}
 		precache_check = TEXTURE_CNT + 999;
@@ -1045,6 +1048,7 @@ void CL_RequestNextDownload( void )
 
 	CL_PrepSound();
 	CL_PrepVideo();
+	CL_SortUserMessages();
 
 	if( cls.demoplayback ) return; // not really connected
 	MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
@@ -1220,7 +1224,7 @@ void CL_Frame( dword time )
 	SCR_UpdateScreen();
 
 	// update audio
-	S_Update( cl.playernum + 1, cl.refdef.vieworg, vec3_origin, cl.v_forward, cl.v_up );
+	S_Update( cl.playernum + 1, cl.refdef.vieworg, vec3_origin, cl.refdef.forward, cl.refdef.up );
 
 	// advance local effects for next frame
 	CL_RunDLights ();

@@ -117,7 +117,7 @@ void CEnvSky :: PostSpawn( void )
 void CEnvSky :: StartMessage( CBasePlayer *pPlayer )
 {
 	pev->effects |= EF_NODRAW;
-	MESSAGE_BEGIN( MSG_ONE, gmsgSetSky, NULL, pPlayer->pev );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.SetSky, NULL, pPlayer->pev );
 		WRITE_BYTE( 1 ); // mode
 		WRITE_COORD( pev->origin.x ); // view position
 		WRITE_COORD( pev->origin.y );

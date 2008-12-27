@@ -39,6 +39,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define SPAWNFLAG_NOT_HARD		0x00000400
 #define SPAWNFLAG_NOT_DEATHMATCH	0x00000800
 
+#define NUM_FOR_EDICT(e)	((int)((edict_t *)(e) - svgame.edicts))
+#define EDICT_NUM( num )	SV_EDICT_NUM( num, __FILE__, __LINE__ )
+#define STRING( offset )	SV_GetString( offset )
+#define MAKE_STRING(str)	SV_AllocString( str )
+
 typedef enum
 {
 	ss_dead,		// no map loaded
@@ -112,7 +117,6 @@ typedef struct sv_client_s
 
 	edict_t		*edict;			// EDICT_NUM(clientnum+1)
 	char		name[32];			// extracted from userinfo, high bits masked
-	int		messagelevel;		// for filtering printed messages
 
 	// The datagram is written to by sound calls, prints, temp ents, etc.
 	// It can be harmlessly overflowed.
@@ -143,7 +147,7 @@ typedef struct link_s
 } link_t;
 
 // sv_private_edict_t
-struct ed_priv_s
+struct sv_priv_s
 {
 	link_t			area;		// linked to a division node or leaf
 	struct sv_client_s		*client;		// filled for player ents
@@ -157,6 +161,7 @@ struct ed_priv_s
 	bool			forceupdate;	// physic_push force update
 	bool			suspended;	// suspended in air toss object
 	bool			linked;		// passed through SV_LinkEdict
+	bool			stuck;		// entity stucked in brush
 
 	vec3_t			water_origin;	// step old origin
 	vec3_t			moved_origin;	// push old origin
@@ -194,15 +199,27 @@ typedef struct
 
 typedef struct
 {
+	// user messages stuff
 	int		msg_sizes[MAX_USER_MESSAGES];	// user messages bounds checker
-	int		msg_leftsize;		// left in bytes
+	int		msg_size_index;		// write message size at this pos in sizebuf
+	int		msg_realsize;		// left in bytes
 	int		msg_index;		// for debug messages
+	int		msg_dest;			// msg destination ( MSG_ONE, MSG_ALL etc )
+	edict_t		*msg_ent;
+	vec3_t		msg_org;
+
+	void		*hInstance;		// pointer to server.dll
 
 	union
 	{
 		edict_t	*edicts;			// acess by edict number
 		void	*vp;			// acess by offset in bytes
 	};
+
+	globalvars_t	*globals;			// server globals
+	DLL_FUNCTIONS	dllFuncs;			// dll exported funcs
+	byte		*mempool;			// edicts pool
+	byte		*private;			// server.dll private pool
 
 	// library exports table
 	word		*ordinals;
@@ -219,16 +236,6 @@ typedef struct
 	bool		initialized;		// sv_init has completed
 	dword		realtime;			// always increasing, no clamping, etc
 	float		timeleft;			// frametime * game_frames
-
-	void		*game;			// pointer to server.dll
-	globalvars_t	*globals;			// server globals
-	DLL_FUNCTIONS	dllFuncs;			// dll exported funcs
-	byte		*mempool;			// edicts pool
-	byte		*private;			// server.dll private pool
-	byte		*stringpool;		// sv.strings pool
-	int		msg_dest;			// msg destination ( MSG_ONE, MSG_ALL etc )
-	edict_t		*msg_ent;
-	vec3_t		msg_org;
 
 	string		mapcmd;			// ie: *intro.cin+base 
 	string		comment;			// map name, e.t.c. 
@@ -251,8 +258,8 @@ typedef struct
 extern	netadr_t	master_adr[MAX_MASTERS];		// address of the master server
 extern	const char	*ed_name[];
 extern	server_static_t	svs;			// persistant server info
-extern	svgame_static_t	game;			// persistant game info
 extern	server_t		sv;			// local server
+extern	svgame_static_t	svgame;			// persistant game info
 
 extern	cvar_t		*sv_paused;
 extern	cvar_t		*sv_noreload;		// don't reload level state when reentering
@@ -332,12 +339,11 @@ bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool set
 //
 // sv_send.c
 //
-void SV_SendClientMessages (void);
+void SV_SendClientMessages( void );
 void SV_AmbientSound( edict_t *entity, int soundindex, float volume, float attenuation );
-void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int index, float vol, float attn, float timeofs);
-void SV_ClientPrintf (sv_client_t *cl, int level, char *fmt, ...);
-void SV_BroadcastPrintf (int level, char *fmt, ...);
-void SV_BroadcastCommand (char *fmt, ...);
+void SV_ClientPrintf( sv_client_t *cl, char *fmt, ... );
+void SV_BroadcastPrintf( char *fmt, ... );
+void SV_BroadcastCommand( char *fmt, ... );
 
 //
 // sv_client.c
@@ -367,8 +373,9 @@ void SV_Error (char *error, ...);
 //
 // sv_game.c
 //
-bool SV_LoadProgs( const char *name );
+void SV_LoadProgs( const char *name );
 void SV_UnloadProgs( void );
+void SV_FreeEdicts( void );
 void SV_InitEdict( edict_t *pEdict );
 void SV_ConfigString (int index, const char *val);
 void SV_SetModel (edict_t *ent, const char *name);
@@ -379,19 +386,19 @@ void SV_CopyTraceToGlobal( trace_t *trace );
 void SV_CopyTraceResult( TraceResult *out, trace_t trace );
 float SV_AngleMod( float ideal, float current, float speed );
 void SV_SpawnEntities( const char *mapname, script_t *entities );
-string_t pfnAllocString( const char *szValue );
-const char *pfnGetString( string_t iString );
+string_t SV_AllocString( const char *szValue );
+const char *SV_GetString( string_t iString );
 void pfnGetGameDir( char *szGetGameDir );
 long pfnRandomLong( long lLow, long lHigh );
 float pfnRandomFloat( float flLow, float flHigh );
 byte* pfnLoadFile( const char *filename, int *pLength );
 void pfnFreeFile( void *buffer );
 
-_inline edict_t *_EDICT_NUM( int n, const char * file, const int line )
+_inline edict_t *SV_EDICT_NUM( int n, const char * file, const int line )
 {
-	if((n >= 0) && (n < svs.globals->maxEntities))
-		return game.edicts + n;
-	Host_Error( "EDICT_NUM: bad number %i (called at %s:%i)\n", n, file, line );
+	if((n >= 0) && (n < svgame.globals->maxEntities))
+		return svgame.edicts + n;
+	Host_Error( "SV_EDICT_NUM: bad number %i (called at %s:%i)\n", n, file, line );
 	return NULL;	
 }
 

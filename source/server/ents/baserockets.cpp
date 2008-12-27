@@ -9,6 +9,7 @@
 #include "monsters.h"
 #include "baseweapon.h"
 #include "nodes.h"
+#include "client.h"
 #include "soundent.h"
 #include "decals.h"
 #include "defaults.h"
@@ -533,7 +534,7 @@ void CApacheHVR :: IgniteThink( void  )
 	EMIT_SOUND( ENT(pev), CHAN_VOICE, "weapons/rocket1.wav", 1, 0.5 );
 
 	// rocket trail
-	MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+	MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 		WRITE_BYTE( TE_BEAMFOLLOW );
 		WRITE_SHORT(entindex());	// entity
 		WRITE_SHORT(m_iTrail );	// model

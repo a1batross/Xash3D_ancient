@@ -1180,7 +1180,7 @@ int UTIL_PrecacheAurora( const char *s )
 
 void UTIL_SetAurora( CBaseEntity *pAttach, int aur, int attachment )
 {
-	MESSAGE_BEGIN( MSG_ALL, gmsgParticle );
+	MESSAGE_BEGIN( MSG_ALL, gmsg.Particle );
 		WRITE_BYTE( pAttach->entindex() );
 		WRITE_STRING( STRING(aur) );
 	MESSAGE_END();
@@ -1190,7 +1190,7 @@ void UTIL_SetAurora( CBaseEntity *pAttach, int aur, int attachment )
 //========================================================================
 void UTIL_SetBeams( char *szFile, CBaseEntity *pStart, CBaseEntity *pEnd )
 {
-	MESSAGE_BEGIN( MSG_ALL, gmsgBeams );
+	MESSAGE_BEGIN( MSG_ALL, gmsg.Beams );
 		WRITE_STRING( szFile );
 		WRITE_BYTE( pStart->entindex());//beam start entity
 		WRITE_BYTE( pEnd->entindex() );//beam end entity
@@ -2028,7 +2028,7 @@ void UTIL_ScreenShake( const Vector &center, float amplitude, float frequency, f
 		{
 			if ( eCommand == SHAKE_STOP ) localAmplitude = 0;
 
-			MESSAGE_BEGIN( MSG_ONE, gmsgShake, NULL, pPlayer->edict() );
+			MESSAGE_BEGIN( MSG_ONE, gmsg.Shake, NULL, pPlayer->edict() );
 				WRITE_BYTE( eCommand );	// shake command (SHAKE_START, STOP, FREQUENCY, AMPLITUDE)
 				WRITE_FLOAT( localAmplitude );// shake magnitude/amplitude
 				WRITE_FLOAT( frequency );	// shake noise frequency
@@ -2087,7 +2087,7 @@ void UTIL_HudMessage( CBaseEntity *pEntity, const hudtextparms_t &textparms, con
 	if ( !pEntity || !pEntity->IsNetClient() )
 		return;
 
-	MESSAGE_BEGIN( MSG_ONE, SVC_TEMPENTITY, NULL, pEntity->edict() );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.TempEntity, NULL, pEntity->edict() );
 		WRITE_BYTE( TE_TEXTMESSAGE );
 		WRITE_BYTE( textparms.channel & 0xFF );
 
@@ -2137,12 +2137,10 @@ void UTIL_HudMessageAll( const hudtextparms_t &textparms, const char *pMessage )
 			UTIL_HudMessage( pPlayer, textparms, pMessage );
 	}
 }
-
 					 
-extern int gmsgTextMsg, gmsgSayText;
 void UTIL_ClientPrintAll( int msg_dest, const char *msg_name, const char *param1, const char *param2, const char *param3, const char *param4 )
 {
-	MESSAGE_BEGIN( MSG_ALL, gmsgTextMsg );
+	MESSAGE_BEGIN( MSG_ALL, gmsg.TextMsg );
 		WRITE_BYTE( msg_dest );
 		WRITE_STRING( msg_name );
 
@@ -2160,7 +2158,7 @@ void UTIL_ClientPrintAll( int msg_dest, const char *msg_name, const char *param1
 
 void ClientPrint( entvars_t *client, int msg_dest, const char *msg_name, const char *param1, const char *param2, const char *param3, const char *param4 )
 {
-	MESSAGE_BEGIN( MSG_ONE, gmsgTextMsg, NULL, client );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.TextMsg, NULL, client );
 		WRITE_BYTE( msg_dest );
 		WRITE_STRING( msg_name );
 
@@ -2181,7 +2179,7 @@ void UTIL_SayText( const char *pText, CBaseEntity *pEntity )
 	if ( !pEntity->IsNetClient() )
 		return;
 
-	MESSAGE_BEGIN( MSG_ONE, gmsgSayText, NULL, pEntity->edict() );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.SayText, NULL, pEntity->edict() );
 		WRITE_BYTE( pEntity->entindex() );
 		WRITE_STRING( pText );
 	MESSAGE_END();
@@ -2189,7 +2187,7 @@ void UTIL_SayText( const char *pText, CBaseEntity *pEntity )
 
 void UTIL_SayTextAll( const char *pText, CBaseEntity *pEntity )
 {
-	MESSAGE_BEGIN( MSG_ALL, gmsgSayText, NULL );
+	MESSAGE_BEGIN( MSG_ALL, gmsg.SayText, NULL );
 		WRITE_BYTE( pEntity->entindex() );
 		WRITE_STRING( pText );
 	MESSAGE_END();
@@ -2229,7 +2227,7 @@ void UTIL_ShowMessage( const char *pString, CBaseEntity *pEntity )
 	if ( !pEntity || !pEntity->IsNetClient() )
 		return;
 
-	MESSAGE_BEGIN( MSG_ONE, gmsgHudText, NULL, pEntity->edict() );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.HudText, NULL, pEntity->edict() );
 	WRITE_STRING( pString );
 	MESSAGE_END();
 }
@@ -2479,7 +2477,7 @@ void UTIL_BloodStream( const Vector &origin, const Vector &direction, int color,
 		return;
 
 
-	MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, origin );
+	MESSAGE_BEGIN( MSG_PVS, gmsg.TempEntity, origin );
 		WRITE_BYTE( TE_BLOODSTREAM );
 		WRITE_COORD( origin.x );
 		WRITE_COORD( origin.y );
@@ -2512,7 +2510,7 @@ void UTIL_BloodDrips( const Vector &origin, const Vector &direction, int color, 
 	if ( amount > 255 )
 		amount = 255;
 
-	MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, origin );
+	MESSAGE_BEGIN( MSG_PVS, gmsg.TempEntity, origin );
 		WRITE_BYTE( TE_BLOODSPRITE );
 		WRITE_COORD( origin.x);								// pos
 		WRITE_COORD( origin.y);
@@ -2595,7 +2593,7 @@ void UTIL_DecalTrace( TraceResult *pTrace, int decalNumber )
 		}
 	}
 	
-	MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+	MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 		WRITE_BYTE( message );
 		WRITE_COORD( pTrace->vecEndPos.x );
 		WRITE_COORD( pTrace->vecEndPos.y );
@@ -2634,7 +2632,7 @@ void UTIL_PlayerDecalTrace( TraceResult *pTrace, int playernum, int decalNumber,
 	if (pTrace->flFraction == 1.0)
 		return;
 
-	MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+	MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 		WRITE_BYTE( TE_PLAYERDECAL );
 		WRITE_BYTE ( playernum );
 		WRITE_COORD( pTrace->vecEndPos.x );
@@ -2657,7 +2655,7 @@ void UTIL_GunshotDecalTrace( TraceResult *pTrace, int decalNumber )
 	if (pTrace->flFraction == 1.0)
 		return;
 
-	MESSAGE_BEGIN( MSG_PAS, SVC_TEMPENTITY, pTrace->vecEndPos );
+	MESSAGE_BEGIN( MSG_PAS, gmsg.TempEntity, pTrace->vecEndPos );
 		WRITE_BYTE( TE_GUNSHOTDECAL );
 		WRITE_COORD( pTrace->vecEndPos.x );
 		WRITE_COORD( pTrace->vecEndPos.y );
@@ -2670,7 +2668,7 @@ void UTIL_GunshotDecalTrace( TraceResult *pTrace, int decalNumber )
 
 void UTIL_Sparks( const Vector &position )
 {
-	MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, position );
+	MESSAGE_BEGIN( MSG_PVS, gmsg.TempEntity, position );
 		WRITE_BYTE( TE_SPARKS );
 		WRITE_COORD( position.x );
 		WRITE_COORD( position.y );
@@ -2693,7 +2691,7 @@ void UTIL_Explode( const Vector &center, edict_t *pOwner, int radius, int name )
 
 void UTIL_Ricochet( const Vector &position, float scale )
 {
-	MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, position );
+	MESSAGE_BEGIN( MSG_PVS, gmsg.TempEntity, position );
 		WRITE_BYTE( TE_ARMOR_RICOCHET );
 		WRITE_COORD( position.x );
 		WRITE_COORD( position.y );
@@ -2903,7 +2901,7 @@ void UTIL_Bubbles( Vector mins, Vector maxs, int count )
 	float flHeight = UTIL_WaterLevel( mid,  mid.z, mid.z + 1024 );
 	flHeight = flHeight - mins.z;
 
-	MESSAGE_BEGIN( MSG_PAS, SVC_TEMPENTITY, mid );
+	MESSAGE_BEGIN( MSG_PAS, gmsg.TempEntity, mid );
 		WRITE_BYTE( TE_BUBBLES );
 		WRITE_COORD( mins.x );	// mins
 		WRITE_COORD( mins.y );
@@ -2937,7 +2935,7 @@ void UTIL_BubbleTrail( Vector from, Vector to, int count )
 	if (count > 255) 
 		count = 255;
 
-	MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+	MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
 		WRITE_BYTE( TE_BUBBLETRAIL );
 		WRITE_COORD( from.x );	// mins
 		WRITE_COORD( from.y );

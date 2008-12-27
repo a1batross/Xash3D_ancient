@@ -176,10 +176,10 @@ sorting edict by type
 */
 void SV_ClassifyEdict( edict_t *ent )
 {
-	ed_priv_t		*sv_ent;
+	sv_priv_t		*sv_ent;
 	const char	*classname;
 
-	sv_ent = ent->pvEngineData;
+	sv_ent = ent->pvServerData;
 	if( !sv_ent || sv_ent->s.ed_type != ED_SPAWNED )
 		return;
 
@@ -243,10 +243,10 @@ SV_UnlinkEdict
 void SV_UnlinkEdict( edict_t *ent )
 {
 	// not linked in anywhere
-	if( !ent->pvEngineData->area.prev ) return;
+	if( !ent->pvServerData->area.prev ) return;
 
-	SV_RemoveLink( &ent->pvEngineData->area );
-	ent->pvEngineData->area.prev = ent->pvEngineData->area.next = NULL;
+	SV_RemoveLink( &ent->pvServerData->area );
+	ent->pvServerData->area.prev = ent->pvServerData->area.next = NULL;
 }
 
 /*
@@ -263,9 +263,9 @@ void SV_LinkEdict( edict_t *ent )
 	int		i, j, k;
 	int		area;
 	int		topnode;
-	ed_priv_t		*sv_ent;
+	sv_priv_t		*sv_ent;
 
-	sv_ent = ent->pvEngineData;
+	sv_ent = ent->pvServerData;
 
 	if( sv_ent->area.prev ) SV_UnlinkEdict( ent ); // unlink from old position
 	if( ent == EDICT_NUM( 0 )) return; // don't add the world
@@ -394,12 +394,12 @@ void SV_LinkEdict( edict_t *ent )
 		}
 	}
 
-	ent->pvEngineData->linkcount++;
+	ent->pvServerData->linkcount++;
 
 	// update ambient sound here
 	if( ent->v.ambient )
 	{
-		ent->pvEngineData->s.soundindex = SV_SoundIndex( STRING( ent->v.ambient ));
+		ent->pvServerData->s.soundindex = SV_SoundIndex( STRING( ent->v.ambient ));
 	}
 
 	// don't link not solid or rigid bodies

@@ -15,13 +15,19 @@ this is needed by some client drawing functions
 void R_GetPicSize( int *w, int *h, shader_t handle )
 {
 	ref_shader_t *shader;
-	
-	if( handle >= 0 && handle < MAX_SHADERS && (shader = &r_shaders[handle]))
+
+	if( !w && !h ) return;
+		
+	if( 0 ) //handle >= 0 && handle < MAX_SHADERS && (shader = &r_shaders[handle]))
 	{
-		*w = (int)shader->stages[0]->bundles[0]->textures[0]->width;
-		*h = (int)shader->stages[0]->bundles[0]->textures[0]->height;
+		if( w ) *w = (int)shader->stages[0]->bundles[0]->textures[0]->width;
+		if( h ) *h = (int)shader->stages[0]->bundles[0]->textures[0]->height;
 	}
-	else *w = *h = -1;
+	else
+	{
+		if( w ) *w = -1;
+		if( h ) *h = -1;
+	}
 }
 
 

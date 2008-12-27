@@ -62,11 +62,22 @@ void HUD_Init( void )
 	gHUD.Init();
 }
 
-int HUD_Redraw( float flTime, int intermission )
+int HUD_Redraw( float flTime, int state )
 {
-	gHUD.Redraw( flTime, intermission );
-	DrawCrosshair();
-
+	switch( state )
+	{
+	case CL_DISCONNECTED:
+		V_RenderSplash();
+		break;
+	case CL_LOADING:
+		V_RenderPlaque();
+		break;
+	case CL_ACTIVE:
+		gHUD.Redraw( flTime );
+		DrawCrosshair();
+		DrawPause();
+		break;
+	}
 	return 1;
 }
 

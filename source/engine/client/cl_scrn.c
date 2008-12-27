@@ -6,7 +6,7 @@
 #include "common.h"
 #include "client.h"
 
-vrect_t	scr_vrect;		// position of render window on screen
+int scr_rect[4];		// position of render window on screen
 
 cvar_t *scr_viewsize;
 cvar_t *scr_centertime;
@@ -20,6 +20,7 @@ cvar_t *cl_testentities;
 cvar_t *cl_testlights;
 cvar_t *cl_levelshot_name;
 cvar_t *cl_envshot_size;
+cvar_t *cl_neticon;
 cvar_t *cl_font;
 
 void SCR_TimeRefresh_f( void );
@@ -293,6 +294,61 @@ void SCR_StopCinematic( void )
 }
 
 /*
+==============
+SCR_DrawNet
+==============
+*/
+void SCR_DrawNet( void )
+{
+	if( cls.netchan.outgoing_sequence - cls.netchan.incoming_acknowledged < CMD_BACKUP-1 )
+		return;
+
+	SCR_DrawPic( scr_rect[0] + 64, scr_rect[1], 48, 48, cls.netIcon );
+}
+
+/*
+==============
+SCR_DrawFPS
+==============
+*/
+void SCR_DrawFPS( void )
+{
+	float		calc;
+	static double	nexttime = 0, lasttime = 0;
+	static double	framerate = 0;
+	static int	framecount = 0;
+	double		newtime;
+	bool		red = false; // fps too low
+	char		fpsstring[32];
+	float		*color;
+
+	if( cls.state != ca_active ) return; 
+	
+	newtime = Sys_DoubleTime();
+	if (newtime >= nexttime)
+	{
+		framerate = framecount / (newtime - lasttime);
+		lasttime = newtime;
+		nexttime = max(nexttime + 1, lasttime - 1);
+		framecount = 0;
+	}
+	framecount++;
+	calc = framerate;
+
+	if ((red = (calc < 1.0f)))
+	{
+		com.snprintf( fpsstring, sizeof( fpsstring ), "%4i spf", (int)(1.0f / calc + 0.5));
+		color = g_color_table[1];
+	}
+	else
+	{
+		com.snprintf( fpsstring, sizeof( fpsstring ), "%4i fps", (int)(calc + 0.5));
+		color = g_color_table[3];
+          }
+	SCR_DrawBigStringColor( SCREEN_WIDTH - 146, SCREEN_HEIGHT - 32, fpsstring, color );
+}
+
+/*
 ==================
 SCR_UpdateScreen
 
@@ -307,14 +363,16 @@ void SCR_UpdateScreen( void )
 	switch( cls.state )
 	{
 	case ca_disconnected:
+		CL_DrawHUD( CL_DISCONNECTED );
+		break;
 	case ca_connecting:
 	case ca_connected:
-		CL_DrawHUD();
+		CL_DrawHUD( CL_LOADING );
 		break;
 	case ca_active:
 		V_CalcRect();
 		V_RenderView();
-		CL_DrawHUD();
+		CL_DrawHUD( CL_ACTIVE );
 		CL_DrawDemoRecording();
 		break;
 	case ca_cinematic:
@@ -324,7 +382,6 @@ void SCR_UpdateScreen( void )
 		Host_Error( "SCR_UpdateScreen: bad cls.state\n" );
 		break;
 	}
-
 	V_PostRender();
 }
 
@@ -333,7 +390,8 @@ void SCR_RegisterShaders( void )
 	// register console images
 	cls.consoleFont = re->RegisterShader( va( "gfx/fonts/%s", con_font->string ), SHADER_FONT );
 	cls.clientFont = re->RegisterShader( va( "gfx/fonts/%s", cl_font->string ), SHADER_FONT );
-	cls.consoleBack = re->RegisterShader( "gfx/shell/conback", SHADER_NOMIP ); // hardcoded ...
+	cls.consoleBack = re->RegisterShader( "gfx/shell/conback", SHADER_NOMIP ); // FIXME: hardcoded ...
+	cls.netIcon = re->RegisterShader( cl_neticon->string, SHADER_NOMIP );
 }
 
 /*
@@ -352,6 +410,7 @@ void SCR_Init( void )
 	cl_testentities = Cvar_Get ("cl_testentities", "0", 0, "test client entities" );
 	cl_testlights = Cvar_Get ("cl_testlights", "0", 0, "test dynamic lights" );
 	cl_envshot_size = Cvar_Get( "cl_envshot_size", "256", CVAR_ARCHIVE, "envshot size of cube side" );
+	cl_neticon = Cvar_Get( "cl_neticon", "gfx/shell/net", CVAR_ARCHIVE, "path to icon that displayed bad network connection" );
 	cl_font = Cvar_Get( "cl_font", "default", CVAR_ARCHIVE, "in-game messages font" );
 	
 	// register our commands

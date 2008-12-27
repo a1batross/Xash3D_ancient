@@ -585,7 +585,7 @@ void Host_InitCommon( int argc, char **argv )
 	newcom.error = Host_Error;
 
 	// check developer mode
-	if(FS_GetParmFromCmdLine("-dev", dev_level ))
+	if(FS_GetParmFromCmdLine( "-dev", dev_level ))
 		host.developer = com.atoi(dev_level);
 
 	Host_InitEvents();

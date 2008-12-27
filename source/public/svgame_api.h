@@ -162,7 +162,6 @@ typedef struct enginefuncs_s
 	void	(*pfnGetBonePosition)( const edict_t* pEdict, int iBone, float *rgflOrigin, float *rgflAngles );
 	dword	(*pfnFunctionFromName)( const char *pName );
 	const char *(*pfnNameForFunction)( dword function );
-	void	(*pfnClientPrintf)( edict_t* pEdict, int ptype, const char *szMsg );
 	void	(*pfnServerPrint)( const char *szMsg );
 	void	(*pfnAreaPortal)( edict_t *pEdict, BOOL enable );
 	const char *(*pfnCmd_Args)( void );

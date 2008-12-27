@@ -6,10 +6,6 @@
 #include "hud_iface.h"
 #include "hud.h"
 
-extern float HUD_GetFOV( void );
-extern float v_idlescale;
-float in_fov;
-
 void CHud :: Init( void )
 {
 	InitMessages();
@@ -131,9 +127,8 @@ int CHud :: UpdateClientData( ref_params_t *cdata, float time )
 
 	Think();
 
-	cdata->fov = m_iFOV;
+	cdata->fov_x = m_iFOV;
 	cdata->iKeyBits = m_iKeyBits;
-	cdata->fov = m_iFOV;
 	cdata->v_idlescale = m_iConcussionEffect;
 
 	if( m_flMouseSensitivity )
@@ -142,7 +137,7 @@ int CHud :: UpdateClientData( ref_params_t *cdata, float time )
 	return 1;
 }
 
-int CHud :: Redraw( float flTime, int intermission )
+int CHud :: Redraw( float flTime )
 {
 	m_fOldTime = m_flTime;	// save time of previous redraw
 	m_flTime = flTime;
@@ -151,7 +146,8 @@ int CHud :: Redraw( float flTime, int intermission )
 	// clock was reset, reset delta
 	if( m_flTimeDelta < 0 ) m_flTimeDelta = 0;
 
-	m_iIntermission = intermission;
+	// make levelshot if needed
+	MAKE_LEVELSHOT();
 
 	// draw screen fade before hud
 	DrawScreenFade();
@@ -180,7 +176,7 @@ int CHud :: Redraw( float flTime, int intermission )
 
 		while( pList )
 		{
-			if( !intermission )
+			if( !m_iIntermission )
 			{
 				if(( pList->p->m_iFlags & HUD_ACTIVE ) && !(m_iHideHUDDisplay & HIDEHUD_ALL ))
 					pList->p->Draw(flTime);

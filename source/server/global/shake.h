@@ -17,17 +17,12 @@
 
 // Screen / View effects
 
-// screen shake
-extern int gmsgShake;
-
 //
 // Commands for the screen shake effect.
 //
 
 
 // Fade in/out
-extern int gmsgFade;
-
 // This structure is sent over the net to describe a screen fade event
 typedef struct
 {

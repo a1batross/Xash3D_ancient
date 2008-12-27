@@ -162,6 +162,7 @@ typedef struct
 {
 	// temp handle
 	HSPRITE	hSprite;
+	HSPRITE	hPause;		// pause pic
 
 	// crosshair members
 	HSPRITE	hCrosshair;
@@ -263,6 +264,113 @@ void DrawCrosshair( void )
 	// FIXME: apply crosshair angles
 	SetColor( ds.rgbCrosshair.x, ds.rgbCrosshair.y, ds.rgbCrosshair.z, 1.0f );
 	DrawImage( ds.hCrosshair, x, y, ds.rcCrosshair.right, ds.rcCrosshair.bottom, 0 );
+}
+
+void DrawPause( void )
+{
+	// pause image
+	if( !CVAR_GET_FLOAT( "paused" ) || !CVAR_GET_FLOAT( "scr_showpause" ))
+		return;
+
+	if( !ds.hPause ) ds.hPause = LOAD_SHADER( "gfx/shell/m_pause" ); 
+	DrawImage( ds.hPause, (SCREEN_WIDTH - 128) / 2, (SCREEN_HEIGHT - 32) / 2, 128, 32, 0 );
+}
+
+void DrawImageRectangle( HSPRITE hImage )
+{
+	DrawImage( hImage, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0 );
+}
+
+void DrawImageBar( float percent, HSPRITE hImage, int w, int h )
+{
+	DrawImageBar( percent, hImage, (SCREEN_WIDTH - w)/2, (SCREEN_HEIGHT - h)/2, w, h );
+}
+
+void DrawImageBar( float percent, HSPRITE hImage, int x, int y, int w, int h )
+{
+	HSPRITE	hFilled;
+	float	progress;
+	int	width1, width2, height;
+
+	hFilled = LOAD_SHADER( "gfx/shell/fill_rect" );	
+	progress = bound( 0.0, percent * 0.01, 100.0 );
+
+	width2 = w * progress;
+	width1 = bound( 64.0, w, 512.0 );
+	height = bound( 16.0, h, 64.0 );
+
+	DrawImage( hImage, x, y, width1, height, 0 );	// background
+
+	SetColor( 1.0f, 1.0f, 1.0f, 0.5f );
+	DrawImage( hFilled, x, y, width2, height, 0 );	// progress bar
+}
+
+void DrawGenericBar( float percent, int w, int h )
+{
+	DrawGenericBar( percent, (SCREEN_WIDTH - w)/2, (SCREEN_HEIGHT - h)/2, w, h );
+}
+
+void DrawGenericBar( float percent, int x, int y, int w, int h )
+{
+	HSPRITE	hFill, hBack;
+	float	progress;
+	int	width1, width2, height1, height2;
+	int	width3, height3, pos_x, pos_y, pos2_x, pos2_y;
+
+	hFill = LOAD_SHADER( "gfx/shell/bar_load" );
+	hBack = LOAD_SHADER( "gfx/shell/bar_back" );	
+	progress = bound( 0.0f, percent * 0.01f, 100.0f );
+
+	// filling area size
+	width1 = bound( 64.0, w, 512.0 );
+	height1 = bound( 16.0, h, 64.0 );
+
+	// background size
+	width2 = width1 - 2;
+	height2 = height1 - 2;
+
+	// bar size	
+	width3 = width2 * progress;
+	height3 = height2;
+
+	pos_x = x;
+	pos_y = y;
+	pos2_x = x + 1;
+	pos2_y = y + 1;
+
+	FillRGBA( pos_x, pos_y, width1, height1, 255, 255, 255, 255 );
+	DrawImage( hBack, pos2_x, pos2_y, width2, height2, 0 );
+
+	SetColor( 1.0f, 1.0f, 1.0f, 0.5f );
+	DrawImage( hFill, pos2_x, pos2_y, width3, height3, 0 );
+}
+
+//
+// 27/12/08 moved here from cl_view.c
+//
+void V_RenderPlaque( void )
+{
+	const char *levelshot;
+	HSPRITE hDownload;
+
+	levelshot = CVAR_GET_STRING( "cl_levelshot_name" );
+	if( !strcmp( levelshot, "" )) levelshot = "<black>";
+
+	// logo that shows up while upload next level
+	DrawImageRectangle( LOAD_SHADER( levelshot ));
+	DrawImageBar( CVAR_GET_FLOAT( "scr_loading" ), LOAD_SHADER( "gfx/shell/m_loading" ), 128, 32 );
+
+	if( !CVAR_GET_FLOAT( "scr_download" )) return;
+
+	// FIXME: replace with picture "m_download"
+	hDownload = LOAD_SHADER( "gfx/shell/m_loading" );
+
+	DrawImageBar( CVAR_GET_FLOAT( "scr_download" ), hDownload, (SCREEN_WIDTH-128)/2, 420, 128, 32 );
+}
+
+void V_RenderSplash( void )
+{
+	DrawImageRectangle( LOAD_SHADER( "gfx/shell/splash" )); 
 }
 
 void SetScreenFade( Vector fadeColor, float alpha, float duration, float holdTime, int fadeFlags )

@@ -20,6 +20,7 @@
 #include	"extdll.h"
 #include	"utils.h"
 #include	"cbase.h"
+#include	"client.h"
 #include	"player.h"
 #include "baseweapon.h"
 #include	"gamerules.h"
@@ -29,11 +30,6 @@
 
 extern DLL_GLOBAL CGameRules	*g_pGameRules;
 extern DLL_GLOBAL BOOL	g_fGameOver;
-extern int gmsgDeathMsg;	// client dll messages
-extern int gmsgScoreInfo;
-extern int gmsgMOTD;
-extern int gmsgServerName;
-
 extern int g_teamplay;
 
 #define ITEM_RESPAWN_TIME	30
@@ -321,12 +317,9 @@ BOOL CHalfLifeMultiplay :: ClientConnected( edict_t *pEntity, const char *userin
 	return TRUE;
 }
 
-extern int gmsgSayText;
-extern int gmsgGameMode;
-
 void CHalfLifeMultiplay :: UpdateGameMode( CBasePlayer *pPlayer )
 {
-	MESSAGE_BEGIN( MSG_ONE, gmsgGameMode, NULL, pPlayer->edict() );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.GameMode, NULL, pPlayer->edict() );
 		WRITE_BYTE( 0 );  // game mode none
 	MESSAGE_END();
 }
@@ -341,7 +334,7 @@ void CHalfLifeMultiplay :: InitHUD( CBasePlayer *pl )
 
 	// sending just one score makes the hud scoreboard active;  otherwise
 	// it is just disabled for single play
-	MESSAGE_BEGIN( MSG_ONE, gmsgScoreInfo, NULL, pl->edict() );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.ScoreInfo, NULL, pl->edict() );
 		WRITE_BYTE( ENTINDEX(pl->edict()) );
 		WRITE_SHORT( 0 );
 		WRITE_SHORT( 0 );
@@ -359,7 +352,7 @@ void CHalfLifeMultiplay :: InitHUD( CBasePlayer *pl )
 
 		if ( plr )
 		{
-			MESSAGE_BEGIN( MSG_ONE, gmsgScoreInfo, NULL, pl->edict() );
+			MESSAGE_BEGIN( MSG_ONE, gmsg.ScoreInfo, NULL, pl->edict() );
 				WRITE_BYTE( i );	// client number
 				WRITE_SHORT( plr->pev->frags );
 				WRITE_SHORT( plr->m_iDeaths );
@@ -371,7 +364,7 @@ void CHalfLifeMultiplay :: InitHUD( CBasePlayer *pl )
 
 	if ( g_fGameOver )
 	{
-		MESSAGE_BEGIN( MSG_ONE, SVC_INTERMISSION, NULL, pl->edict() );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.Intermission, NULL, pl->edict() );
 		MESSAGE_END();
 	}
 }
@@ -525,7 +518,7 @@ void CHalfLifeMultiplay :: PlayerKilled( CBasePlayer *pVictim, entvars_t *pKille
 
 	// update the scores
 	// killed scores
-	MESSAGE_BEGIN( MSG_ALL, gmsgScoreInfo );
+	MESSAGE_BEGIN( MSG_ALL, gmsg.ScoreInfo );
 		WRITE_BYTE( ENTINDEX(pVictim->edict()) );
 		WRITE_SHORT( pVictim->pev->frags );
 		WRITE_SHORT( pVictim->m_iDeaths );
@@ -539,7 +532,7 @@ void CHalfLifeMultiplay :: PlayerKilled( CBasePlayer *pVictim, entvars_t *pKille
 	{
 		CBasePlayer *PK = (CBasePlayer*)ep;
 
-		MESSAGE_BEGIN( MSG_ALL, gmsgScoreInfo );
+		MESSAGE_BEGIN( MSG_ALL, gmsg.ScoreInfo );
 			WRITE_BYTE( ENTINDEX(PK->edict()) );
 			WRITE_SHORT( PK->pev->frags );
 			WRITE_SHORT( PK->m_iDeaths );
@@ -602,7 +595,7 @@ void CHalfLifeMultiplay::DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, 
 	else if ( strncmp( killer_weapon_name, "func_", 5 ) == 0 )
 		killer_weapon_name += 5;
 
-	MESSAGE_BEGIN( MSG_ALL, gmsgDeathMsg );
+	MESSAGE_BEGIN( MSG_ALL, gmsg.DeathMsg );
 		WRITE_BYTE( killer_index );						// the killer
 		WRITE_BYTE( ENTINDEX(pVictim->edict()) );		// the victim
 		WRITE_STRING( killer_weapon_name );		// what they were killed by (should this be a string?)
@@ -866,7 +859,7 @@ void CHalfLifeMultiplay :: GoToIntermission( void )
 	if ( g_fGameOver )
 		return;  // intermission has already been triggered, so ignore.
 
-	MESSAGE_BEGIN(MSG_ALL, SVC_INTERMISSION);
+	MESSAGE_BEGIN( MSG_ALL, gmsg.Intermission );
 	MESSAGE_END();
 
 	// bounds check
@@ -1306,7 +1299,7 @@ void CHalfLifeMultiplay :: SendMOTDToClient( edict_t *client )
 	char *aFileList = pFileList = (char*)LOAD_FILE ((char *)CVAR_GET_STRING( "motdfile" ), &length );
 
 	// send the server name
-	MESSAGE_BEGIN( MSG_ONE, gmsgServerName, NULL, client );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.ServerName, NULL, client );
 		WRITE_STRING( CVAR_GET_STRING("hostname") );
 	MESSAGE_END();
 
@@ -1333,7 +1326,7 @@ void CHalfLifeMultiplay :: SendMOTDToClient( edict_t *client )
 		else
 			*pFileList = 0;
 
-		MESSAGE_BEGIN( MSG_ONE, gmsgMOTD, NULL, client );
+		MESSAGE_BEGIN( MSG_ONE, gmsg.MOTD, NULL, client );
 			WRITE_BYTE( *pFileList ? FALSE : TRUE );	// FALSE means there is still more message to come
 			WRITE_STRING( chunk );
 		MESSAGE_END();

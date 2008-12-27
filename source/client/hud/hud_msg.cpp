@@ -39,12 +39,14 @@ DECLARE_HUDMESSAGE( AddScreen );
 DECLARE_HUDMESSAGE( AddPortal );
 DECLARE_HUDMESSAGE( ServerName );
 DECLARE_HUDMESSAGE( ScreenShake );
+DECLARE_HUDMESSAGE( Intermission );
 
 int CHud :: InitMessages( void )
 {
 	HOOK_MESSAGE( ResetHUD );
 	HOOK_MESSAGE( GameMode );
 	HOOK_MESSAGE( ServerName );
+	HOOK_MESSAGE( Intermission );
 	HOOK_MESSAGE( InitHUD );
 	HOOK_MESSAGE( ViewMode );
 	HOOK_MESSAGE( SetFOV );
@@ -60,6 +62,7 @@ int CHud :: InitMessages( void )
 	HOOK_MESSAGE( AddMirror);
 	HOOK_MESSAGE( AddScreen );
 	HOOK_MESSAGE( AddPortal );
+	HOOK_MESSAGE( ScreenShake );
 
 	viewEntityIndex = 0; // trigger_viewset stuff
 	viewFlags = 0;
@@ -105,6 +108,8 @@ int CHud :: MsgFunc_ResetHUD(const char *pszName, int iSize, void *pbuf )
 	// reset concussion effect
 	m_iConcussionEffect = 0;
 
+	m_iIntermission = 0;
+
 	// reset fog
 	m_fStartDist = 0;
 	m_fEndDist = 0;
@@ -123,6 +128,7 @@ int CHud :: MsgFunc_InitHUD( const char *pszName, int iSize, void *pbuf )
 	m_fStartDist = 0;
 	m_fEndDist = 0;
 	m_iSkyMode = SKY_OFF;
+	m_iIntermission = 0;
 
 	// prepare all hud data
 	HUDLIST *pList = m_pHudList;
@@ -136,7 +142,16 @@ int CHud :: MsgFunc_InitHUD( const char *pszName, int iSize, void *pbuf )
 	return 1;
 }
 
-int CHud::MsgFunc_SetFOV( const char *pszName,  int iSize, void *pbuf )
+int CHud :: MsgFunc_Intermission( const char *pszName, int iSize, void *pbuf )
+{
+	BEGIN_READ( pszName, iSize, pbuf );
+	m_iIntermission = 1;
+	END_READ();
+
+	return 1;
+}
+
+int CHud::MsgFunc_SetFOV( const char *pszName, int iSize, void *pbuf )
 {
 	BEGIN_READ( pszName, iSize, pbuf );
 
