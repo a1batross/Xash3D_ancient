@@ -3419,7 +3419,7 @@ int CBasePlayer::Restore( CRestore &restore )
 
 	SAVERESTOREDATA *pSaveData = (SAVERESTOREDATA *)gpGlobals->pSaveData;
 	// landmark isn't present.
-	if ( !pSaveData->fUseLandmark )
+	if( !pSaveData->fUseLandmark )
 	{
 		ALERT( at_debug, "No Landmark:%s\n", pSaveData->szLandmarkName );
 

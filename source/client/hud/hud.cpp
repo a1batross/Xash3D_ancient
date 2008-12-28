@@ -250,8 +250,8 @@ int CHud :: DrawHudNumber( int x, int y, int iFlags, int iNumber, int r, int g, 
 		if( iNumber >= 100 )
 		{
 			k = iNumber / 100;
-			SPR_Set(GetSprite(m_HUD_number_0 + k), r, g, b );
-			SPR_DrawAdditive( 0, x, y, &GetSpriteRect(m_HUD_number_0 + k));
+			SPR_Set(GetSprite(LOAD_SHADER( va( "number_%i", k ))), r, g, b );
+			SPR_DrawAdditive( 0, x, y, &GetSpriteRect(LOAD_SHADER( va( "number_%i", k ))));
 			x += iWidth;
 		}
 		else if( iFlags & DHN_3DIGITS )
@@ -263,8 +263,8 @@ int CHud :: DrawHudNumber( int x, int y, int iFlags, int iNumber, int r, int g, 
 		if( iNumber >= 10 )
 		{
 			k = (iNumber % 100)/10;
-			SPR_Set(GetSprite(m_HUD_number_0 + k), r, g, b );
-			SPR_DrawAdditive( 0, x, y, &GetSpriteRect(m_HUD_number_0 + k));
+			SPR_Set(GetSprite(LOAD_SHADER( va( "number_%i", k ))), r, g, b );
+			SPR_DrawAdditive( 0, x, y, &GetSpriteRect(LOAD_SHADER( va( "number_%i", k ))));
 			x += iWidth;
 		}
 		else if( iFlags & (DHN_3DIGITS|DHN_2DIGITS))
@@ -274,8 +274,8 @@ int CHud :: DrawHudNumber( int x, int y, int iFlags, int iNumber, int r, int g, 
 
 		// SPR_Draw ones
 		k = iNumber % 10;
-		SPR_Set(GetSprite(m_HUD_number_0 + k), r, g, b );
-		SPR_DrawAdditive(0,  x, y, &GetSpriteRect(m_HUD_number_0 + k));
+		SPR_Set(GetSprite(LOAD_SHADER( va( "number_%i", k ))), r, g, b );
+		SPR_DrawAdditive(0,  x, y, &GetSpriteRect(LOAD_SHADER( va( "number_%i", k ))));
 		x += iWidth;
 	} 
 	else if( iFlags & DHN_DRAWZERO ) 

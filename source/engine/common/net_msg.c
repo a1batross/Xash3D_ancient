@@ -92,6 +92,8 @@ static net_field_t ent_fields[] =
 { ES_FIELD(viewoffset[2]),		NET_SCALE, false	},
 { ES_FIELD(maxspeed),		NET_WORD,  false	},
 { ES_FIELD(fov),			NET_FLOAT, false	},	// client horizontal field of view
+{ ES_FIELD(weapon1),		NET_LONG,  false	},	// client weapon 0-32
+{ ES_FIELD(weapon2),		NET_LONG,  false	},	// client weapon 32-64
 { ES_FIELD(health),			NET_FLOAT, false	},	// client health
 // reserve for 10-11 fields without enlarge null_msg_size
 { NULL },							// terminator

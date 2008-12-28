@@ -22,6 +22,11 @@ void CL_UpdateEntityFields( edict_t *ent )
 	ent->v.model = MAKE_STRING( cl.configstrings[CS_MODELS+ent->pvClientData->current.model.index] ); 
 	VectorCopy( ent->pvClientData->current.origin, ent->v.origin );
 	VectorCopy( ent->pvClientData->current.angles, ent->v.angles );
+
+	if( ent->pvClientData->current.ed_type == ED_CLIENT )
+	{
+		ent->v.weapons = ent->pvClientData->current.weapon1 + (ent->pvClientData->current.weapon2 << 32);
+	}
 }
 
 /*
@@ -352,6 +357,7 @@ void CL_CalcViewValues( void )
 	float		lerp, backlerp;
 	frame_t		*oldframe;
 	entity_state_t	*ps, *ops;
+	edict_t		*clent;
 
 	// clamp time
 	if( cl.time > cl.frame.servertime )
@@ -429,6 +435,14 @@ void CL_CalcViewValues( void )
 
 	// add the weapon
 	CL_AddViewWeapon( ps );
+
+	clent = EDICT_NUM( ps->number );
+	cl.refdef.iWeaponBits = clent->v.weapons;
+
+	if( cl.refdef.iWeaponBits )
+		Msg( "%li\n", cl.refdef.iWeaponBits );
+
+	cls.dllFuncs.pfnUpdateClientData( &cl.refdef, (cl.time * 0.001f));
 }
 
 /*

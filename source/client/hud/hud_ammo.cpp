@@ -948,7 +948,7 @@ int CHudAmmo::DrawWList( float flTime )
 		else a = 192; // not used ???
 
 		ScaleColors( r, g, b, 255 );
-		SPR_Set( gHUD.GetSprite( m_HUD_bucket0 + i ), r, g, b );
+		SPR_Set( gHUD.GetSprite( LOAD_SHADER( va( "bucket%i", i ))), r, g, b );
 
 		// make active slot wide enough to accomodate gun pictures
 		if( i == iActiveSlot )
@@ -960,7 +960,7 @@ int CHudAmmo::DrawWList( float flTime )
 		}
 		else iWidth = giBucketWidth;
 
-		SPR_DrawAdditive( 0, x, y, &gHUD.GetSpriteRect( m_HUD_bucket0 + i ));
+		SPR_DrawAdditive( 0, x, y, &gHUD.GetSpriteRect(LOAD_SHADER( va( "bucket%i", i ))));
 		
 		x += iWidth + 5;
 	}

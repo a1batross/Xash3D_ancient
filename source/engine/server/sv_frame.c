@@ -122,6 +122,8 @@ void SV_UpdateEntityState( edict_t *ent )
 			// and clear fixangle for the next frame
 			ent->v.fixangle = 0;
 		}
+		ent->pvServerData->s.weapon1 = ent->v.weapons & 0xFFFFFFFF;
+		ent->pvServerData->s.weapon2 = ent->v.weapons>>32;
 	}
 	else if( ent->pvServerData->s.ed_type == ED_AMBIENT )
 	{

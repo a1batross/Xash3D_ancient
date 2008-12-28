@@ -39,9 +39,9 @@ convformat_t convert_formats[] =
 
 convformat_t convert_formats32[] =
 {
-	{"%s.%s", "spr", ConvSPR, "png" },	// quake1/half-life sprite
-	{"%s.%s","spr32",ConvSPR, "png" },	// spr32 sprite
-	{"%s.%s", "sp2", ConvSPR, "png" },	// quake2 sprite
+	{"%s.%s", "spr", ConvSPR, "tga" },	// quake1/half-life sprite
+	{"%s.%s","spr32",ConvSPR, "tga" },	// spr32 sprite
+	{"%s.%s", "sp2", ConvSPR, "tga" },	// quake2 sprite
 	{"%s.%s", "jpg", ConvJPG, "png" },	// quake3 textures
 	{"%s.%s", "pcx", ConvPCX, "png" },	// quake2 pics
 	{"%s.%s", "flt", ConvFLT, "png" },	// doom1 textures

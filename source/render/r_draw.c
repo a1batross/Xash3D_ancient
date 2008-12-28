@@ -18,16 +18,18 @@ void R_GetPicSize( int *w, int *h, shader_t handle )
 
 	if( !w && !h ) return;
 		
-	if( 0 ) //handle >= 0 && handle < MAX_SHADERS && (shader = &r_shaders[handle]))
+	if( handle >= 0 && handle < MAX_SHADERS && (shader = &r_shaders[handle]))
 	{
-		if( w ) *w = (int)shader->stages[0]->bundles[0]->textures[0]->width;
-		if( h ) *h = (int)shader->stages[0]->bundles[0]->textures[0]->height;
+		if( shader->numStages && shader->stages[0]->numBundles && shader->stages[0]->bundles[0]->numTextures )
+		{
+			if( w ) *w = (int)shader->stages[0]->bundles[0]->textures[0]->width;
+			if( h ) *h = (int)shader->stages[0]->bundles[0]->textures[0]->height;
+			return;
+		}
 	}
-	else
-	{
-		if( w ) *w = -1;
-		if( h ) *h = -1;
-	}
+
+	if( w ) *w = -1;
+	if( h ) *h = -1;
 }
 
 

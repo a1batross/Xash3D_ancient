@@ -1905,6 +1905,8 @@ int CBasePlayerWeapon::AddToPlayer( CBasePlayer *pPlayer )
 	m_pPlayer = pPlayer;//Give global pointer to player
 	pPlayer->pev->weapons |= (1<<m_iId);
 
+	ALERT( at_console, "AddToPlayer: pev->weapons %li (add %i)\n", pPlayer->pev->weapons, (1<<m_iId));
+
 	if ( !m_iPrimaryAmmoType || !m_iSecondaryAmmoType )
 	{
 		m_iPrimaryAmmoType =   pPlayer->GetAmmoIndex( pszAmmo1() );

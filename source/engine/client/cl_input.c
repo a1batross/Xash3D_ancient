@@ -34,7 +34,7 @@ int	in_impulse;
 kbutton_t	in_left, in_right, in_forward, in_back;
 kbutton_t	in_lookup, in_lookdown, in_moveleft, in_moveright;
 kbutton_t	in_strafe, in_speed, in_use, in_attack, in_attack2;
-kbutton_t	in_up, in_down;
+kbutton_t	in_up, in_down, in_reload;
 
 /*
 ============================================================
@@ -264,6 +264,8 @@ void IN_Attack2Down(void) {IN_KeyDown(&in_attack2);}
 void IN_Attack2Up(void) {IN_KeyUp(&in_attack2);}
 void IN_UseDown (void) {IN_KeyDown(&in_use);}
 void IN_UseUp (void) {IN_KeyUp(&in_use);}
+void IN_ReloadDown(void) {IN_KeyDown(&in_reload);}
+void IN_ReloadUp(void) {IN_KeyUp(&in_reload);}
 void IN_Impulse (void) {in_impulse = com.atoi(Cmd_Argv(1));}
 void IN_MLookDown( void ){Cvar_SetValue( "cl_mouselook", 1 );}
 void IN_MLookUp( void ){ IN_CenterView(); Cvar_SetValue( "cl_mouselook", 0 );}
@@ -368,6 +370,14 @@ void CL_CmdButtons( usercmd_t *cmd )
 
 	if (in_speed.state & 3)
 		cmd->buttons |= IN_RUN;
+	in_speed.state &= ~2;
+
+	if( in_reload.state & 3)
+		cmd->buttons |= IN_RELOAD;
+	in_reload.state &= ~2;
+
+	// save it for hud processing
+	cl.refdef.iKeyBits = cmd->buttons;
 }
 
 /*
@@ -562,6 +572,8 @@ void CL_InitInput( void )
 	Cmd_AddCommand ("-attack2", IN_Attack2Up, "stop alternate firing");
 	Cmd_AddCommand ("+use", IN_UseDown, "use item (doors, monsters, inventory, etc" );
 	Cmd_AddCommand ("-use", IN_UseUp, "stop using item" );
+	Cmd_AddCommand ("+reload", IN_ReloadDown, "reload current weapon" );
+	Cmd_AddCommand ("-reload", IN_ReloadUp, "continue reload weapon" );
 	Cmd_AddCommand ("impulse", IN_Impulse, "send an impulse number to server (select weapon, use item, etc)");
 	Cmd_AddCommand ("+mlook", IN_MLookDown, "activate mouse looking mode, do not recenter view" );
 	Cmd_AddCommand ("-mlook", IN_MLookUp, "deactivate mouse looking mode" );
