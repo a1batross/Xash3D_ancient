@@ -821,6 +821,7 @@ void		R_ModRegisterShaders( rmodel_t *mod );	// prolonge registration
 bool		VID_ScreenShot( const char *filename, bool levelshot );
 bool		VID_CubemapShot( const char *base, uint size, bool skyshot );
 void		R_DrawFill( float x, float y, float w, float h );
+void		R_DrawSetParms( shader_t handle, kRenderMode_t rendermode, int frame );
 void		R_DrawStretchRaw( int x, int y, int w, int h, int width, int height, const byte *raw, bool dirty );
 void		R_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, float sh, float th, shader_t shader );
 void		R_GetPicSize( int *w, int *h, shader_t shader );

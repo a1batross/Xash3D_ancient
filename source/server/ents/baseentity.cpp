@@ -729,15 +729,15 @@ CBaseEntity * CBaseEntity::CreateGib( char *szName, char *szModel )
 	int istr = ALLOC_STRING(szName);
           
 	//check for virtual entities
-	if(GetProcAddress( GetModuleHandle("server"), szName ))
+	if( FUNCTION_FROM_NAME( szName ))
 	{
-		pent = CREATE_NAMED_ENTITY(istr);
+		pent = CREATE_NAMED_ENTITY( istr );
 		if ( FNullEnt( pent )) return NULL;
 	}
 	else if(!strncmp( szName, "weapon_", 7))
 	{
-		//may be this a weapon_generic entity?
-		pent = CREATE_NAMED_ENTITY(MAKE_STRING("weapon_generic"));
+		// may be this a weapon_generic entity?
+		pent = CREATE_NAMED_ENTITY( MAKE_STRING( "weapon_generic" ));
 		if ( FNullEnt( pent )) return NULL; //this never gonna called anymore. just in case
   		pent->v.netname = istr; 
 	}

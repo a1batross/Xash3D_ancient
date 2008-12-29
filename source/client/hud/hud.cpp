@@ -34,6 +34,10 @@ void CHud :: Init( void )
 
 CHud :: ~CHud( void )
 {
+	delete [] m_rghSprites;
+	delete [] m_rgrcRects;
+	delete [] m_rgszSpriteNames;
+
 	m_Sound.Close();
 
 	if( m_pHudList )
@@ -51,8 +55,13 @@ CHud :: ~CHud( void )
 
 int CHud :: GetSpriteIndex( const char *SpriteName )
 {
-	// use built-in Shader Manager
-	return LOAD_SHADER( SpriteName );
+	// look through the loaded sprite name list for SpriteName
+	for( int i = 0; i < m_iSpriteCount; i++ )
+	{
+		if(!strncmp( SpriteName, m_rgszSpriteNames + (i * MAX_SPRITE_NAME_LENGTH), MAX_SPRITE_NAME_LENGTH ))
+			return i;
+	}
+	return -1; // invalid sprite
 }
 
 void CHud :: VidInit( void )
@@ -64,14 +73,57 @@ void CHud :: VidInit( void )
 	m_hsprCursor = 0;
 	m_hHudError = 0;
 
+	m_flScale = CVAR_GET_FLOAT( "hud_scale" );
+
 	// TODO: build real table of fonts widthInChars
 	for( int i = 0; i < 256; i++ )
 		charWidths[i] = SMALLCHAR_WIDTH;
 	iCharHeight = SMALLCHAR_HEIGHT;
 
+	// Only load this once
+	if ( !m_pSpriteList )
+	{
+		// we need to load the hud.txt, and all sprites within
+		m_pSpriteList = SPR_GetList( "scripts/hud.shader", &m_iSpriteCount );
+
+		if( m_pSpriteList )
+		{
+			// allocated memory for sprite handle arrays
+ 			m_rghSprites = new HSPRITE[m_iSpriteCount];
+			m_rgrcRects = new wrect_t[m_iSpriteCount];
+			m_rgszSpriteNames = new char[m_iSpriteCount * MAX_SPRITE_NAME_LENGTH];
+
+			client_sprite_t *p = m_pSpriteList;
+			for ( int j = 0; j < m_iSpriteCount; j++ )
+			{
+				m_rghSprites[j] = p->hSprite;
+				m_rgrcRects[j] = p->rc;
+				strncpy( &m_rgszSpriteNames[j * MAX_SPRITE_NAME_LENGTH], p->szName, MAX_SPRITE_NAME_LENGTH );
+				p++;
+			}
+		}
+		else
+		{
+			ALERT( at_warning, "hud.shader couldn't load\n" );
+			CVAR_SET_FLOAT( "hud_draw", 0 );
+			return;
+		}
+	}
+	else
+	{
+		// engine may be release unused shaders after reloading map or change level
+		// loading them again here
+		client_sprite_t *p = m_pSpriteList;
+		for( int j = 0; j < m_iSpriteCount; j++ )
+		{
+			m_rghSprites[j] = SPR_Load( p->szName );
+			p++;
+		}
+	}
+
 	// assumption: number_1, number_2, etc, are all listed and loaded sequentially
 	m_HUD_number_0 = GetSpriteIndex( "number_0" );
-	GetImageSize( NULL, &m_iFontHeight, m_HUD_number_0 );
+	m_iFontHeight = GetSpriteRect( m_HUD_number_0 ).bottom;
 
 	// loading error sprite
 	m_HUD_error = GetSpriteIndex( "error" );
@@ -250,8 +302,8 @@ int CHud :: DrawHudNumber( int x, int y, int iFlags, int iNumber, int r, int g, 
 		if( iNumber >= 100 )
 		{
 			k = iNumber / 100;
-			SPR_Set(GetSprite(LOAD_SHADER( va( "number_%i", k ))), r, g, b );
-			SPR_DrawAdditive( 0, x, y, &GetSpriteRect(LOAD_SHADER( va( "number_%i", k ))));
+			SPR_Set(GetSprite(m_HUD_number_0 + k), r, g, b );
+			SPR_DrawAdditive( 0, x, y, &GetSpriteRect(m_HUD_number_0 + k));
 			x += iWidth;
 		}
 		else if( iFlags & DHN_3DIGITS )
@@ -263,8 +315,8 @@ int CHud :: DrawHudNumber( int x, int y, int iFlags, int iNumber, int r, int g, 
 		if( iNumber >= 10 )
 		{
 			k = (iNumber % 100)/10;
-			SPR_Set(GetSprite(LOAD_SHADER( va( "number_%i", k ))), r, g, b );
-			SPR_DrawAdditive( 0, x, y, &GetSpriteRect(LOAD_SHADER( va( "number_%i", k ))));
+			SPR_Set(GetSprite(m_HUD_number_0 + k), r, g, b );
+			SPR_DrawAdditive( 0, x, y, &GetSpriteRect(m_HUD_number_0 + k));
 			x += iWidth;
 		}
 		else if( iFlags & (DHN_3DIGITS|DHN_2DIGITS))
@@ -274,8 +326,8 @@ int CHud :: DrawHudNumber( int x, int y, int iFlags, int iNumber, int r, int g, 
 
 		// SPR_Draw ones
 		k = iNumber % 10;
-		SPR_Set(GetSprite(LOAD_SHADER( va( "number_%i", k ))), r, g, b );
-		SPR_DrawAdditive(0,  x, y, &GetSpriteRect(LOAD_SHADER( va( "number_%i", k ))));
+		SPR_Set(GetSprite(m_HUD_number_0 + k), r, g, b );
+		SPR_DrawAdditive(0,  x, y, &GetSpriteRect(m_HUD_number_0 + k));
 		x += iWidth;
 	} 
 	else if( iFlags & DHN_DRAWZERO ) 
@@ -289,7 +341,7 @@ int CHud :: DrawHudNumber( int x, int y, int iFlags, int iNumber, int r, int g, 
 		}
 
 		if( iFlags & (DHN_3DIGITS|DHN_2DIGITS)) x += iWidth;
-		SPR_DrawAdditive( 0,  x, y, &GetSpriteRect( m_HUD_number_0 ));
+		SPR_DrawAdditive( 0,  x, y, &GetSpriteRect(m_HUD_number_0));
 		x += iWidth;
 	}
 	return x;

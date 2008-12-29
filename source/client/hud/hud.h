@@ -554,6 +554,8 @@ class CHud
 {
 private:
 	HUDLIST		*m_pHudList;
+	client_sprite_t	*m_pSpriteList;
+	int		m_iSpriteCount;
 	float		m_flMouseSensitivity;
 	int		m_iConcussionEffect;
 
@@ -583,16 +585,28 @@ public:
 	int m_iHUDColor;
 	int viewFlags;
 private:
-	wrect_t m_Rect;
+	// the memory for these arrays are allocated in the first call to CHud::VidInit()
+	// when the hud.txt and associated sprites are loaded. freed in ~CHud()
+	HSPRITE *m_rghSprites; // the sprites loaded from hud.txt
+	wrect_t *m_rgrcRects;
+	char *m_rgszSpriteNames;
+	wrect_t  m_ScaledRect;
+	float m_flScale;
 public:
-	HSPRITE GetSprite( int index ) { return (HSPRITE)index; }
-	wrect_t& GetSpriteRect( HSPRITE index )
+	HSPRITE GetSprite( int index ) { return (index < 0) ? 0 : m_rghSprites[index]; }
+	wrect_t& GetSpriteRect( int index, int m_iScaled = FALSE )
 	{
-		m_Rect.left = m_Rect.top = 0;
-		GetImageSize( &m_Rect.right, &m_Rect.bottom, index );
-		return m_Rect;
+		if( m_iScaled )
+		{
+			m_ScaledRect.top = m_rgrcRects[index].top;
+			m_ScaledRect.left = m_rgrcRects[index].left;
+			m_ScaledRect.right = m_rgrcRects[index].right * (m_flScale / 4);
+			m_ScaledRect.bottom = m_rgrcRects[index].bottom * (m_flScale / 3);
+			return m_ScaledRect;
+		}
+		return m_rgrcRects[index];
 	}
-          int InitMessages( void ); // init hud messages
+	int InitMessages( void ); // init hud messages
 	int GetSpriteIndex( const char *SpriteName );
 
 	CHudAmmo		m_Ammo;

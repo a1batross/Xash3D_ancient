@@ -58,6 +58,7 @@ typedef struct render_exp_s
 
 	// misc utilities
 	void	(*SetColor)( const float *rgba );
+	void	(*SetParms)( shader_t handle, kRenderMode_t rendermode, int frame );
 	bool	(*ScrShot)( const char *filename, int shot_type ); // write screenshot with same name 
 	bool	(*EnvShot)( const char *filename, uint size, bool skyshot ); // write envshot with same name 
 	void	(*LightForPoint)( const vec3_t point, vec3_t ambientLight );

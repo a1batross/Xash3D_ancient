@@ -208,6 +208,57 @@ int SPR_Width( HSPRITE hPic, int frame )
 	return Width;
 }
 
+client_sprite_t *SPR_GetList( const char *psz, int *piCount )
+{
+	char *pfile = (char *)LOAD_FILE( psz, NULL );
+	int iSprCount = 0;
+
+	if( !pfile )
+	{
+		*piCount = iSprCount;
+		return NULL;
+	}
+	
+	char *token;
+	const char *plist = pfile;
+	int depth = 0;
+
+	while(( token = COM_ParseToken( &plist )) != NULL ) // calculate count of sprites
+	{
+		if( !stricmp( token, "{" )) depth++;
+		else if( !stricmp( token, "}" )) depth--;
+		else if( depth == 0 ) iSprCount++;
+	}
+
+	client_sprite_t *phud, *p;
+	plist = pfile;
+
+	phud = p = new client_sprite_t[iSprCount];
+
+	if( depth != 0 ) ALERT( at_console, "hud.sprite EOF without closing brace\n" );
+	depth = 0;
+          
+	while(( token = COM_ParseToken( &plist )) != NULL )
+	{
+		if( !stricmp( token, "{" )) depth++;
+		else if( !stricmp( token, "}" )) depth--;
+		else if( depth == 0 )
+		{
+			strncpy( p->szName, token, sizeof( p->szName ));
+			p->hSprite = SPR_Load( p->szName );
+			p->rc.left = p->rc.top = 0;
+			GetImageSize( &p->rc.right, &p->rc.bottom, p->hSprite );
+			p++;
+		}
+	}
+          
+          if( !iSprCount ) ALERT( at_console, "SPR_GetList: %s doesn't have sprites\n", psz );
+          FREE_FILE( pfile );
+          
+          *piCount = iSprCount;
+	return phud;
+}
+
 void SPR_Set( HSPRITE hPic, int r, int g, int b )
 {
 	ds.hSprite = hPic;
@@ -216,31 +267,31 @@ void SPR_Set( HSPRITE hPic, int r, int g, int b )
 
 void SPR_Draw( int frame, int x, int y, const wrect_t *prc )
 {
-	// FIXME: switch rendermode
+	SetParms( ds.hSprite, kRenderNormal, frame );
 	DrawImage( ds.hSprite, x, y, prc->right, prc->bottom, frame );
 }
 
 void SPR_Draw( int frame, int x, int y, int width, int height )
 {
-	// FIXME: switch rendermode
+	SetParms( ds.hSprite, kRenderNormal, frame );
 	DrawImage( ds.hSprite, x, y, width, height, frame );
 }
 
 void SPR_DrawHoles( int frame, int x, int y, const wrect_t *prc )
 {
-	// FIXME: switch rendermode
+	SetParms( ds.hSprite, kRenderTransAlpha, frame );
 	DrawImage( ds.hSprite, x, y, prc->right, prc->bottom, frame );
 }
 
 void SPR_DrawHoles( int frame, int x, int y, int width, int height )
 {
-	// FIXME: switch rendermode
+	SetParms( ds.hSprite, kRenderTransAlpha, frame );
 	DrawImage( ds.hSprite, x, y, width, height, frame );
 }
 
 void SPR_DrawAdditive( int frame, int x, int y, const wrect_t *prc )
 {
-	// FIXME: switch rendermode
+	SetParms( ds.hSprite, kRenderTransAdd, frame );
 	DrawImage( ds.hSprite, x, y, prc->right, prc->bottom, frame );
 }
 
@@ -461,4 +512,102 @@ char *va( const char *format, ... )
 	_vsnprintf( s, sizeof( string[0] ), format, argptr );
 	va_end( argptr );
 	return s;
+}
+
+/*
+==============
+COM_ParseToken
+
+Parse a token out of a string
+==============
+*/
+char *COM_ParseToken( const char **data_p )
+{
+	int		c;
+	int		len = 0;
+	const char	*data;
+	static char	token[512];
+	
+	token[0] = 0;
+	data = *data_p;
+	
+	if( !data ) 
+	{
+		*data_p = NULL;
+		return NULL;
+	}		
+
+	// skip whitespace
+skipwhite:
+	while(( c = *data) <= ' ' )
+	{
+		if( c == 0 )
+		{
+			*data_p = NULL;
+			return NULL; // end of file;
+		}
+		data++;
+	}
+	
+	// skip // comments
+	if( c=='/' && data[1] == '/' )
+	{
+		while( *data && *data != '\n' )
+			data++;
+		goto skipwhite;
+	}
+
+	// skip /* comments
+	if( c=='/' && data[1] == '*' )
+	{
+		while( data[1] && (data[0] != '*' || data[1] != '/' ))
+			data++;
+		data += 2;
+		goto skipwhite;
+	}
+	
+
+	// handle quoted strings specially
+	if( *data == '\"' || *data == '\'' )
+	{
+		data++;
+		while( 1 )
+		{
+			c = *data++;
+			if( c=='\"' || c=='\0' )
+			{
+				token[len] = 0;
+				*data_p = data;
+				return token;
+			}
+			token[len] = c;
+			len++;
+		}
+	}
+
+	// parse single characters
+	if( c == '{' || c == '}' || c == ')' || c == '(' || c == '\'' || c == ':' || c == ',' )
+	{
+		token[len] = c;
+		data++;
+		len++;
+		token[len] = 0;
+		*data_p = data;
+		return token;
+	}
+
+	// parse a regular word
+	do
+	{
+		token[len] = c;
+		data++;
+		len++;
+		c = *data;
+		if( c == '{' || c == '}'|| c == ')'|| c == '(' || c == '\'' || c == ':' || c == ',' )
+			break;
+	} while( c > 32 );
+	
+	token[len] = 0;
+	*data_p = data;
+	return token;
 }

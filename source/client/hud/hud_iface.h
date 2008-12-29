@@ -31,6 +31,13 @@ typedef struct rect_s
 	int	bottom;
 } wrect_t;
 
+typedef struct client_sprite_s
+{
+	char	szName[64]; // shader name and sprite name are matched
+	HSPRITE	hSprite;
+	wrect_t	rc;
+} client_sprite_t;
+
 typedef HMODULE dllhandle_t;
 typedef struct dllfunction_s
 {
@@ -42,6 +49,7 @@ typedef struct dllfunction_s
 #define CVAR_ARCHIVE	BIT(0)	// set to cause it to be saved to vars.rc
 #define CVAR_USERINFO	BIT(1)	// added to userinfo  when changed
 #define CVAR_SERVERINFO	BIT(2)	// added to serverinfo when changed
+#define CVAR_LATCH		BIT(5)
 
 // macros to hook function calls into the HUD object
 #define HOOK_MESSAGE( x ) (*g_engfuncs.pfnHookUserMsg)( #x, __MsgFunc_##x );
@@ -131,9 +139,11 @@ extern float READ_ANGLE16( void );
 extern void END_READ( void );
 
 // drawing stuff
+#define SPR_Load( x ) LOAD_SHADER( x )
 extern int SPR_Frames( HSPRITE hPic );
 extern int SPR_Height( HSPRITE hPic, int frame );
 extern int SPR_Width( HSPRITE hPic, int frame );
+extern client_sprite_t *SPR_GetList( const char *name, int *count );
 extern void SPR_Set( HSPRITE hPic, int r, int g, int b );
 extern void SPR_Draw( int frame, int x, int y, const wrect_t *prc );
 extern void SPR_Draw( int frame, int x, int y, int width, int height );
@@ -156,6 +166,7 @@ extern void V_RenderPlaque( void );
 
 // stdio stuff
 extern char *va( const char *format, ... );
+char *COM_ParseToken( const char **data_p );
 
 // dlls stuff
 BOOL Sys_LoadLibrary( const char* dllname, dllhandle_t* handle, const dllfunction_t *fcts );

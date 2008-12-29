@@ -1225,8 +1225,20 @@ static void RB_SetupTextureUnit( stageBundle_t *bundle, uint unit )
 	{
 	case TEX_GENERIC:
 		if( bundle->numTextures == 1 )
+		{
 			GL_BindTexture( bundle->textures[0] );
-		else GL_BindTexture( bundle->textures[(int)(bundle->animFrequency * m_fShaderTime) % bundle->numTextures] );
+		}
+		else if( bundle->flags & STAGEBUNDLE_FRAMES )
+		{
+			// manually changed
+			bundle->currentFrame = bound( 0, bundle->currentFrame, bundle->numTextures - 1 );
+			GL_BindTexture( bundle->textures[bundle->currentFrame] );
+		}
+		else if( bundle->flags & STAGEBUNDLE_ANIMFREQUENCY )
+		{
+			// animated image
+			GL_BindTexture( bundle->textures[(int)(bundle->animFrequency * m_fShaderTime) % bundle->numTextures] );
+		}
 		break;
 	case TEX_LIGHTMAP:
 		if( m_iInfoKey != 255 )

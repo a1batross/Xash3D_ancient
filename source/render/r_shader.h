@@ -71,19 +71,21 @@ typedef enum
 	SHADERSTAGE_DETAIL		= BIT(7),
 	SHADERSTAGE_RGBGEN		= BIT(8),
 	SHADERSTAGE_ALPHAGEN	= BIT(10),
+	SHADERSTAGE_RENDERMODE	= BIT(11),	// allow to change rendermode from code
 } stageFlags_t;
 
 // stage bundle flags
 typedef enum
 {
-	STAGEBUNDLE_ANIMFREQUENCY	= BIT(0),
-	STAGEBUNDLE_MAP		= BIT(1),
-	STAGEBUNDLE_BUMPMAP		= BIT(2),
-	STAGEBUNDLE_CUBEMAP		= BIT(3),
-	STAGEBUNDLE_VIDEOMAP	= BIT(4),
-	STAGEBUNDLE_TEXENVCOMBINE	= BIT(5),
-	STAGEBUNDLE_TCGEN		= BIT(6),
-	STAGEBUNDLE_TCMOD		= BIT(7),
+	STAGEBUNDLE_ANIMFREQUENCY	= BIT(0),		// auto-animate
+	STAGEBUNDLE_FRAMES		= BIT(1),		// bundle have frames, thats can be switching manually
+	STAGEBUNDLE_MAP		= BIT(2),
+	STAGEBUNDLE_BUMPMAP		= BIT(3),
+	STAGEBUNDLE_CUBEMAP		= BIT(4),
+	STAGEBUNDLE_VIDEOMAP	= BIT(5),
+	STAGEBUNDLE_TEXENVCOMBINE	= BIT(6),
+	STAGEBUNDLE_TCGEN		= BIT(7),
+	STAGEBUNDLE_TCMOD		= BIT(8),
 } bundleFlags_t;
 
 typedef enum
@@ -247,7 +249,7 @@ typedef enum
 	TEX_GENERIC,
 	TEX_LIGHTMAP,
 	TEX_CINEMATIC,
-	TEX_ANGLEDMAP
+	TEX_ANGLEDMAP			// doom1 eight angle-aligned ( 360 / 8 ) textures
 } texType_t;
 
 typedef struct table_s
@@ -371,6 +373,7 @@ typedef struct stageBundle_s
 	texture_t		*textures[SHADER_MAX_TEXTURES];
 	uint		numTextures;
 
+	int		currentFrame;
 	float		animFrequency;
 	video_t		cinematicHandle;
 

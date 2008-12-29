@@ -336,7 +336,7 @@ void CL_ClearState (void)
 	CL_ClearEffects ();
 	CL_FreeEdicts();
 
-	cls.dllFuncs.pfnVidInit();
+	if( cls.game ) cls.dllFuncs.pfnReset();
 
 	// wipe the entire cl structure
 	Mem_Set( &cl, 0, sizeof( cl ));

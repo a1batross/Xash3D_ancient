@@ -1447,6 +1447,7 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	re.EndFrame = R_EndFrame;
 
 	re.SetColor = GL_SetColor;
+	re.SetParms = R_DrawSetParms;
 	re.ScrShot = VID_ScreenShot;
 	re.EnvShot = VID_CubemapShot;
 	re.LightForPoint = R_LightForPoint;

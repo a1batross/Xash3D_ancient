@@ -193,6 +193,7 @@ typedef struct cl_enginefuncs_s
 	int	(*pfnDrawCharacter)( int x, int y, int width, int height, int number );
 	void	(*pfnDrawString)( int x, int y, int width, int height, const char *text );
 	void	(*pfnGetImageSize)( int *w, int *h, shader_t shader );
+	void	(*pfnSetParms)( shader_t handle, kRenderMode_t rendermode, int frame );
 
 	// local client handlers
 	void	(*pfnGetViewAngles)( float *angles );

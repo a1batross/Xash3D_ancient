@@ -1705,6 +1705,12 @@ static bool R_ParseStageAlphaZeroClamp( ref_shader_t *shader, shaderStage_t *sta
 	return true;
 }
 
+static bool R_ParseStageRenderMode( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
+{
+	stage->flags |= SHADERSTAGE_RENDERMODE;
+	return true;
+}
+
 /*
 =================
 R_ParseStageAnimFrequency
@@ -1752,10 +1758,9 @@ static bool R_ParseStageMap( ref_shader_t *shader, shaderStage_t *stage, script_
 			return false;
 		}
 
-		if(!(bundle->flags & STAGEBUNDLE_ANIMFREQUENCY))
+		if(!( bundle->flags & STAGEBUNDLE_ANIMFREQUENCY ))
 		{
-			MsgDev( D_WARN, "multiple 'map' specifications without preceding 'animFrequency' in shader '%s'\n", shader->name );
-			return false;
+			bundle->flags |= STAGEBUNDLE_FRAMES;
 		}
 	}
 
@@ -1851,8 +1856,7 @@ static bool R_ParseStageBumpMap( ref_shader_t *shader, shaderStage_t *stage, scr
 		}
 		if(!(bundle->flags & STAGEBUNDLE_ANIMFREQUENCY))
 		{
-			MsgDev( D_WARN, "multiple 'bumpMap' specifications without preceding 'animFrequency' in shader '%s'\n", shader->name );
-			return false;
+			bundle->flags |= STAGEBUNDLE_FRAMES;
 		}
 	}
 
@@ -1927,8 +1931,7 @@ static bool R_ParseStageCubeMap( ref_shader_t *shader, shaderStage_t *stage, scr
 		}
 		if(!(bundle->flags & STAGEBUNDLE_ANIMFREQUENCY))
 		{
-			MsgDev( D_WARN, "multiple 'cubeMap' specifications without preceding 'animFrequency' in shader '%s'\n", shader->name );
-			return false;
+			bundle->flags |= STAGEBUNDLE_FRAMES;
 		}
 	}
 
@@ -3540,6 +3543,7 @@ static shaderStageCmd_t r_shaderStageCmds[] =
 {"clamp",		R_ParseStageClamp		},
 {"zeroClamp",	R_ParseStageZeroClamp	},
 {"alphaZeroClamp",	R_ParseStageAlphaZeroClamp	},
+{"renderMode",	R_ParseStageRenderMode,	},
 {"animFrequency",	R_ParseStageAnimFrequency	},
 {"map",		R_ParseStageMap		},
 {"bumpMap",	R_ParseStageBumpMap		},

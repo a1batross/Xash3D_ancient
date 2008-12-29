@@ -392,6 +392,9 @@ void SCR_RegisterShaders( void )
 	cls.clientFont = re->RegisterShader( va( "gfx/fonts/%s", cl_font->string ), SHADER_FONT );
 	cls.consoleBack = re->RegisterShader( "gfx/shell/conback", SHADER_NOMIP ); // FIXME: hardcoded ...
 	cls.netIcon = re->RegisterShader( cl_neticon->string, SHADER_NOMIP );
+
+	// vid_state has changed
+	if( cls.game ) cls.dllFuncs.pfnVidInit();
 }
 
 /*

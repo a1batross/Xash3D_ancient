@@ -699,14 +699,31 @@ void pfnDrawString( int x, int y, int width, int height, const char *text )
 	if( re ) re->SetColor( NULL );
 }
 
+/*
+=============
+pfnGetImageSize
+
+=============
+*/
 void pfnGetImageSize( int *w, int *h, shader_t shader )
 {
 	if( re ) re->DrawGetPicSize( w, h, shader );
 	else
 	{
-		if( w ) *w = -1;
-		if( h ) *h = -1;
+		if( w ) *w = 0;
+		if( h ) *h = 0;
 	}
+}
+
+/*
+=============
+pfnSetDrawParms
+
+=============
+*/
+void pfnSetDrawParms( shader_t handle, kRenderMode_t rendermode, int frame )
+{
+	if( re ) re->SetParms( handle, rendermode, frame );
 }
 
 /*
@@ -902,6 +919,7 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnDrawCharacter,
 	pfnDrawString,		
 	pfnGetImageSize,
+	pfnSetDrawParms,
 	pfnGetViewAngles,
 	pfnGetEntityByIndex,
 	pfnGetLocalPlayer,

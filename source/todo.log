@@ -30,7 +30,8 @@ Beta 13.12.08
 9. HookUserMessages				OK				
 10.remove SVC_* in utils.h			OK
 11.Load server.dll and client.dll only once	OK
-12.v_refdef interactions
+12.v_refdef interactions			OK
+13.hud_scale factor
 
 entity_state_t невидима для пользователя
 

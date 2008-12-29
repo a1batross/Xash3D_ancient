@@ -17,21 +17,83 @@ void R_GetPicSize( int *w, int *h, shader_t handle )
 	ref_shader_t *shader;
 
 	if( !w && !h ) return;
-		
-	if( handle >= 0 && handle < MAX_SHADERS && (shader = &r_shaders[handle]))
-	{
-		if( shader->numStages && shader->stages[0]->numBundles && shader->stages[0]->bundles[0]->numTextures )
-		{
-			if( w ) *w = (int)shader->stages[0]->bundles[0]->textures[0]->width;
-			if( h ) *h = (int)shader->stages[0]->bundles[0]->textures[0]->height;
-			return;
-		}
-	}
 
-	if( w ) *w = -1;
-	if( h ) *h = -1;
+	// assume error
+	if( w ) *w = 0;
+	if( h ) *h = 0;
+		
+	if( handle < 0 || handle > MAX_SHADERS || !(shader = &r_shaders[handle]))
+		return;
+
+	if( !shader->numStages || !shader->stages[0]->numBundles || !shader->stages[0]->bundles[0]->numTextures )
+		return;
+
+	if( w ) *w = (int)shader->stages[0]->bundles[0]->textures[0]->width;
+	if( h ) *h = (int)shader->stages[0]->bundles[0]->textures[0]->height;
 }
 
+/*
+=================
+R_DrawSetParms
+
+setup rendermode fast preset and choose frame
+=================
+*/
+void R_DrawSetParms( shader_t handle, kRenderMode_t rendermode, int frame )
+{
+	ref_shader_t *shader;
+
+	if( handle < 0 || handle > MAX_SHADERS || !(shader = &r_shaders[handle]) || !shader->numStages )
+		return;
+
+	// change rendermode if need
+	if( shader->stages[0]->flags & SHADERSTAGE_RENDERMODE && shader->stages[0]->renderMode != rendermode )
+	{
+		switch( rendermode )
+		{
+		case kRenderNormal:
+			shader->stages[0]->flags &= ~(SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAFUNC);
+			break;
+		case kRenderTransColor:
+			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+			shader->stages[0]->blendFunc.src = GL_SRC_COLOR;
+			shader->stages[0]->blendFunc.dst = GL_ZERO;
+			break;
+		case kRenderTransTexture:
+			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
+			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+			break;
+		case kRenderGlow:
+			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+			shader->stages[0]->blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
+			shader->stages[0]->blendFunc.dst = GL_ONE;
+			break;
+		case kRenderTransAlpha:
+			shader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
+			shader->stages[0]->alphaFunc.func = GL_GREATER;
+			shader->stages[0]->alphaFunc.ref = 0.666;
+			shader->sort = SORT_SEETHROUGH;
+			break;
+		case kRenderTransAdd:
+			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
+			shader->stages[0]->blendFunc.dst = GL_ONE;
+			break;
+		}
+		shader->stages[0]->renderMode = rendermode;
+	}
+
+	if( !shader->stages[0]->numBundles || !shader->stages[0]->bundles[0]->numTextures )
+		return;
+
+	// change frame if need
+	if( shader->stages[0]->bundles[0]->flags & STAGEBUNDLE_FRAMES && shader->stages[0]->bundles[0]->currentFrame != frame )
+	{
+		// make sure what frame inbound
+		shader->stages[0]->bundles[0]->currentFrame = bound( 0, frame, shader->stages[0]->bundles[0]->numTextures - 1 );
+	}
+}
 
 /*
 =================

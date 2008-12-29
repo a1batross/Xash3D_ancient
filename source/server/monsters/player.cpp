@@ -3699,19 +3699,19 @@ void CBasePlayer::GiveNamedItem( const char *pszName )
 	edict_t	*pent;
 	int istr = MAKE_STRING(pszName);
           	
-	if(GetProcAddress( GetModuleHandle("server"), pszName ))
+	if( FUNCTION_FROM_NAME( pszName ))
 	{
 		pent = CREATE_NAMED_ENTITY(istr);
 		if ( FNullEnt( pent )) return;
 	}
-	else if(!strncmp( pszName, "weapon_", 7))
+	else if( !strncmp( pszName, "weapon_", 7 ))
 	{
 		//may be this a weapon_generic entity?
 		pent = CREATE_NAMED_ENTITY(MAKE_STRING("weapon_generic"));
 		if ( FNullEnt( pent )) return;//this never gonna called anymore. just in case
   		pent->v.netname = istr; 
 	}
-	else if(!strncmp( pszName, "item_", 5))
+	else if( !strncmp( pszName, "item_", 5 ))
 	{
 		//may be this a weapon_generic entity?
 		pent = CREATE_NAMED_ENTITY(MAKE_STRING("item_generic"));
