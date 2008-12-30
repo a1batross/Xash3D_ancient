@@ -72,7 +72,6 @@ int CHud :: InitMessages( void )
 	CVAR_REGISTER( "zoom_sensitivity_ratio", "1.2", 0, "mouse sensitivity when zooming" );
 	CVAR_REGISTER( "default_fov", "90", 0, "default client fov" );
 	CVAR_REGISTER( "hud_draw", "1", CVAR_ARCHIVE, "hud drawing modes" );
-	CVAR_REGISTER( "hud_scale", "1", CVAR_ARCHIVE|CVAR_LATCH, "hud scale factor" );
 
 	// clear any old HUD list
 	if( m_pHudList )

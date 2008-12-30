@@ -26,7 +26,7 @@
 #define MAX_CHARS_PER_LINE	256  /* it can be less than this, depending on char size */
 
 // allow 20 pixels on either side of the text
-#define MAX_LINE_WIDTH  ( SCREEN_WIDTH - 40 )
+#define MAX_LINE_WIDTH  ( ScreenWidth - 40 )
 #define LINE_START  10
 static float SCROLL_SPEED = 5;
 
@@ -151,7 +151,7 @@ void CHudSayText :: SayTextPrint( const char *pszBuf, int iBufSize, int clientIn
 	m_iFlags |= HUD_ACTIVE;
 	CL_PlaySound( "misc/talk.wav", 1.0f );
 
-	Y_START = SCREEN_HEIGHT - 60;
+	Y_START = ScreenHeight - 60;
 	Y_START -= (line_height * (MAX_LINES+1));
 
 }

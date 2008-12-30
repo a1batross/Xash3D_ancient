@@ -12,9 +12,10 @@ R_GetPicSize
 this is needed by some client drawing functions
 =================
 */
-void R_GetPicSize( int *w, int *h, shader_t handle )
+void R_GetPicSize( int *w, int *h, int frame, shader_t handle )
 {
 	ref_shader_t *shader;
+	int cur = 0;
 
 	if( !w && !h ) return;
 
@@ -28,8 +29,11 @@ void R_GetPicSize( int *w, int *h, shader_t handle )
 	if( !shader->numStages || !shader->stages[0]->numBundles || !shader->stages[0]->bundles[0]->numTextures )
 		return;
 
-	if( w ) *w = (int)shader->stages[0]->bundles[0]->textures[0]->width;
-	if( h ) *h = (int)shader->stages[0]->bundles[0]->textures[0]->height;
+	if( shader->stages[0]->bundles[0]->flags & STAGEBUNDLE_FRAMES && frame > 0 )
+		cur = bound( 0, frame, shader->stages[0]->bundles[0]->numTextures - 1 );
+
+	if( w ) *w = (int)shader->stages[0]->bundles[0]->textures[cur]->srcWidth;
+	if( h ) *h = (int)shader->stages[0]->bundles[0]->textures[cur]->srcHeight;
 }
 
 /*

@@ -74,9 +74,9 @@ void SCR_DrawPic( float x, float y, float width, float height, string_t shader )
 	int	w, h;
 
 	// get original size
-	if(width == -1 || height == -1)
+	if( width == -1 || height == -1 )
 	{
-		re->DrawGetPicSize( &w, &h, shader );
+		re->DrawGetPicSize( &w, &h, 0, shader );
 		width = w, height = h;
 	}
 	SCR_AdjustSize( &x, &y, &width, &height );

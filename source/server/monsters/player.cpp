@@ -69,7 +69,7 @@ extern CGraph	WorldGraph;
 #define TRAIN_FAST		0x04
 #define TRAIN_BACK		0x05
 
-#define	FLASH_DRAIN_TIME	 1.3 //100 units/3 minutes
+#define	FLASH_DRAIN_TIME	 0.1 //100 units/3 minutes
 #define	FLASH_CHARGE_TIME	 0.2 // 100 units/20 seconds  (seconds per unit)
 
 // Global Savedata for player

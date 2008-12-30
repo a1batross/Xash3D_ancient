@@ -73,12 +73,14 @@ void CHud :: VidInit( void )
 	m_hsprCursor = 0;
 	m_hHudError = 0;
 
-	m_flScale = CVAR_GET_FLOAT( "hud_scale" );
+	// setup screen info
+	m_scrinfo.iWidth = CVAR_GET_FLOAT( "width" );
+	m_scrinfo.iHeight = CVAR_GET_FLOAT( "height" );
 
 	// TODO: build real table of fonts widthInChars
 	for( int i = 0; i < 256; i++ )
-		charWidths[i] = SMALLCHAR_WIDTH;
-	iCharHeight = SMALLCHAR_HEIGHT;
+		m_scrinfo.charWidths[i] = SMALLCHAR_WIDTH;
+	m_scrinfo.iCharHeight = SMALLCHAR_HEIGHT;
 
 	// Only load this once
 	if ( !m_pSpriteList )
@@ -123,7 +125,7 @@ void CHud :: VidInit( void )
 
 	// assumption: number_1, number_2, etc, are all listed and loaded sequentially
 	m_HUD_number_0 = GetSpriteIndex( "number_0" );
-	m_iFontHeight = GetSpriteRect( m_HUD_number_0 ).bottom;
+	m_iFontHeight = GetSpriteRect( m_HUD_number_0 ).bottom - GetSpriteRect( m_HUD_number_0 ).top;
 
 	// loading error sprite
 	m_HUD_error = GetSpriteIndex( "error" );
@@ -251,7 +253,7 @@ int CHud :: DrawHudString( int xpos, int ypos, int iMaxX, char *szIt, int r, int
 	// draw the string until we hit the null character or a newline character
 	for( ; *szIt != 0 && *szIt != '\n'; szIt++ )
 	{
-		int next = xpos + gHUD.charWidths[*szIt]; // variable-width fonts look cool
+		int next = xpos + gHUD.m_scrinfo.charWidths[*szIt]; // variable-width fonts look cool
 		if ( next > iMaxX )
 			return xpos;
 
@@ -280,7 +282,7 @@ int CHud :: DrawHudStringReverse( int xpos, int ypos, int iMinX, char *szString,
 	// iterate throug the string in reverse
 	for( szIt--;  szIt != (szString-1);  szIt-- )	
 	{
-		int next = xpos - gHUD.charWidths[ *szIt ]; // variable-width fonts look cool
+		int next = xpos - gHUD.m_scrinfo.charWidths[ *szIt ]; // variable-width fonts look cool
 		if( next < iMinX )
 			return xpos;
 		xpos = next;
@@ -349,12 +351,12 @@ int CHud :: DrawHudNumber( int x, int y, int iFlags, int iNumber, int r, int g, 
 
 int CHud::GetNumWidth( int iNumber, int iFlags )
 {
-	if( iFlags & DHN_3DIGITS ) return 3;
-	if( iFlags & DHN_2DIGITS ) return 2;
+	if( iFlags & (DHN_3DIGITS)) return 3;
+	if( iFlags & (DHN_2DIGITS)) return 2;
 
 	if( iNumber <= 0 )
 	{
-		if( iFlags & DHN_DRAWZERO )
+		if( iFlags & (DHN_DRAWZERO))
 			return 1;
 		else return 0;
 	}

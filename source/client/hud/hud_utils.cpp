@@ -194,7 +194,7 @@ int SPR_Height( HSPRITE hPic, int frame )
 {
 	int Height;
 
-	GetImageSize( NULL, &Height, hPic );
+	GetImageSize( NULL, &Height, frame, hPic );
 
 	return Height;
 }
@@ -203,7 +203,7 @@ int SPR_Width( HSPRITE hPic, int frame )
 {
 	int Width;
 
-	GetImageSize( &Width, NULL, hPic );
+	GetImageSize( &Width, NULL, frame, hPic );
 
 	return Width;
 }
@@ -247,7 +247,7 @@ client_sprite_t *SPR_GetList( const char *psz, int *piCount )
 			strncpy( p->szName, token, sizeof( p->szName ));
 			p->hSprite = SPR_Load( p->szName );
 			p->rc.left = p->rc.top = 0;
-			GetImageSize( &p->rc.right, &p->rc.bottom, p->hSprite );
+			GetImageSize( &p->rc.right, &p->rc.bottom, 0, p->hSprite );
 			p++;
 		}
 	}
@@ -265,41 +265,73 @@ void SPR_Set( HSPRITE hPic, int r, int g, int b )
 	SetColor((r / 255.0f), (g / 255.0f), (b / 255.0f), 1.0f );
 }
 
+inline static void SPR_DrawGeneric( int frame, int x, int y, int width, int height, const wrect_t *prc )
+{
+	float	s1, s2, t1, t2;
+
+	if( width == -1 && height == -1 )
+		GetImageSize( &width, &height, frame, ds.hSprite );
+
+	if( prc )
+	{
+		// calc rectangle
+		s1 = (float)prc->left / width;
+		t1 = (float)prc->top / height;
+		s2 = (float)prc->right / width;
+		t2 = (float)prc->bottom / height;
+		width = prc->right - prc->left;
+		height = prc->bottom - prc->top;
+	}
+	else
+	{
+		s1 = t1 = 0.0f;
+		s2 = t2 = 1.0f;
+	}
+
+	DrawImageExt( ds.hSprite, x, y, width, height, s1, t1, s2, t2 );
+} 
+
 void SPR_Draw( int frame, int x, int y, const wrect_t *prc )
 {
 	SetParms( ds.hSprite, kRenderNormal, frame );
-	DrawImage( ds.hSprite, x, y, prc->right, prc->bottom, frame );
+	SPR_DrawGeneric( frame, x, y, -1, -1, prc );
 }
 
 void SPR_Draw( int frame, int x, int y, int width, int height )
 {
 	SetParms( ds.hSprite, kRenderNormal, frame );
-	DrawImage( ds.hSprite, x, y, width, height, frame );
+	SPR_DrawGeneric( frame, x, y, width, height, NULL );
 }
 
 void SPR_DrawHoles( int frame, int x, int y, const wrect_t *prc )
 {
 	SetParms( ds.hSprite, kRenderTransAlpha, frame );
-	DrawImage( ds.hSprite, x, y, prc->right, prc->bottom, frame );
+	SPR_DrawGeneric( frame, x, y, -1, -1, prc );
 }
 
 void SPR_DrawHoles( int frame, int x, int y, int width, int height )
 {
 	SetParms( ds.hSprite, kRenderTransAlpha, frame );
-	DrawImage( ds.hSprite, x, y, width, height, frame );
+	SPR_DrawGeneric( frame, x, y, width, height, NULL );
 }
 
 void SPR_DrawAdditive( int frame, int x, int y, const wrect_t *prc )
 {
 	SetParms( ds.hSprite, kRenderTransAdd, frame );
-	DrawImage( ds.hSprite, x, y, prc->right, prc->bottom, frame );
+	SPR_DrawGeneric( frame, x, y, -1, -1, prc );
+}
+
+void SPR_DrawAdditive( int frame, int x, int y, int width, int height )
+{
+	SetParms( ds.hSprite, kRenderTransAdd, frame );
+	SPR_DrawGeneric( frame, x, y, width, height, NULL );
 }
 
 void SetCrosshair( HSPRITE hspr, wrect_t rc, int r, int g, int b )
 {
-	ds.rgbCrosshair.x = (float)(r / 255.0f);
-	ds.rgbCrosshair.y = (float)(g / 255.0f);
-	ds.rgbCrosshair.z = (float)(b / 255.0f);
+	ds.rgbCrosshair.x = (float)r / 255.0f;
+	ds.rgbCrosshair.y = (float)g / 255.0f;
+	ds.rgbCrosshair.z = (float)b / 255.0f;
 	ds.hCrosshair = hspr;
 	ds.rcCrosshair = rc;
 }
@@ -314,7 +346,7 @@ void DrawCrosshair( void )
 
 	// FIXME: apply crosshair angles
 	SetColor( ds.rgbCrosshair.x, ds.rgbCrosshair.y, ds.rgbCrosshair.z, 1.0f );
-	DrawImage( ds.hCrosshair, x, y, ds.rcCrosshair.right, ds.rcCrosshair.bottom, 0 );
+	DrawImage( ds.hCrosshair, x, y, ds.rcCrosshair.right, ds.rcCrosshair.bottom );
 }
 
 void DrawPause( void )
@@ -324,12 +356,12 @@ void DrawPause( void )
 		return;
 
 	if( !ds.hPause ) ds.hPause = LOAD_SHADER( "gfx/shell/m_pause" ); 
-	DrawImage( ds.hPause, (SCREEN_WIDTH - 128) / 2, (SCREEN_HEIGHT - 32) / 2, 128, 32, 0 );
+	DrawImage( ds.hPause, (SCREEN_WIDTH - 128) / 2, (SCREEN_HEIGHT - 32) / 2, 128, 32 );
 }
 
 void DrawImageRectangle( HSPRITE hImage )
 {
-	DrawImage( hImage, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0 );
+	DrawImage( hImage, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT );
 }
 
 void DrawImageBar( float percent, HSPRITE hImage, int w, int h )
@@ -350,10 +382,10 @@ void DrawImageBar( float percent, HSPRITE hImage, int x, int y, int w, int h )
 	width1 = bound( 64.0, w, 512.0 );
 	height = bound( 16.0, h, 64.0 );
 
-	DrawImage( hImage, x, y, width1, height, 0 );	// background
+	DrawImage( hImage, x, y, width1, height );	// background
 
 	SetColor( 1.0f, 1.0f, 1.0f, 0.5f );
-	DrawImage( hFilled, x, y, width2, height, 0 );	// progress bar
+	DrawImage( hFilled, x, y, width2, height );	// progress bar
 }
 
 void DrawGenericBar( float percent, int w, int h )
@@ -390,10 +422,10 @@ void DrawGenericBar( float percent, int x, int y, int w, int h )
 	pos2_y = y + 1;
 
 	FillRGBA( pos_x, pos_y, width1, height1, 255, 255, 255, 255 );
-	DrawImage( hBack, pos2_x, pos2_y, width2, height2, 0 );
+	DrawImage( hBack, pos2_x, pos2_y, width2, height2 );
 
 	SetColor( 1.0f, 1.0f, 1.0f, 0.5f );
-	DrawImage( hFill, pos2_x, pos2_y, width3, height3, 0 );
+	DrawImage( hFill, pos2_x, pos2_y, width3, height3 );
 }
 
 //

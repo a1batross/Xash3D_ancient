@@ -338,8 +338,11 @@ pfnFillRGBA
 */
 void pfnFillRGBA( int x, int y, int width, int height, const float *color, float alpha )
 {
-	SCR_FillRect( x, y, width, height, GetRGBA( color[0], color[1], color[2], alpha )); 
-	if( re ) re->SetColor( NULL );
+	if( !re ) return;
+
+	re->SetColor( GetRGBA( color[0], color[1], color[2], alpha ));
+	re->DrawFill( x, y, width, height );
+	re->SetColor( NULL );
 }
 
 /*
@@ -348,7 +351,7 @@ pfnDrawImage
 
 =============
 */
-void pfnDrawImage( shader_t shader, int x, int y, int width, int height, int frame )
+void pfnDrawImage( shader_t shader, int x, int y, int width, int height )
 {
 	if( shader == -1 )
 	{
@@ -357,6 +360,20 @@ void pfnDrawImage( shader_t shader, int x, int y, int width, int height, int fra
 	}
 	SCR_DrawPic( x, y, width, height, shader );
 	if( re ) re->SetColor( NULL );
+}
+
+/*
+=============
+pfnDrawImageExt
+
+=============
+*/
+void pfnDrawImageExt( HSPRITE shader, int x, int y, int w, int h, float s1, float t1, float s2, float t2 )
+{
+	if( !re ) return;
+
+	re->DrawStretchPic( x, y, w, h, s1, t1, s2, t2, shader );
+	re->SetColor( NULL );
 }
 
 /*
@@ -705,9 +722,9 @@ pfnGetImageSize
 
 =============
 */
-void pfnGetImageSize( int *w, int *h, shader_t shader )
+void pfnGetImageSize( int *w, int *h, int frame, shader_t shader )
 {
-	if( re ) re->DrawGetPicSize( w, h, shader );
+	if( re ) re->DrawGetPicSize( w, h, frame, shader );
 	else
 	{
 		if( w ) *w = 0;
@@ -897,6 +914,7 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnLoadShader,
 	pfnFillRGBA,
 	pfnDrawImage,
+	pfnDrawImageExt,
 	pfnSetColor,
 	pfnRegisterVariable,
 	pfnCvarSetValue,

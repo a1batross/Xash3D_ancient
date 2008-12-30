@@ -1,7 +1,6 @@
 //=======================================================================
 //			Copyright (C) Shambler Team 2004
-//			  warhead.cpp - hud for weapon_redeemer
-//			    
+//		         warhead.cpp - hud for sniper rifle
 //=======================================================================
 
 #include "extdll.h"
@@ -59,22 +58,22 @@ int CHudZoom :: Draw( float flTime )
 	if( !m_hLines || !m_hCrosshair ) return 0;
 	if( !m_iHudMode ) return 0; // draw scope
 
-	float left = (SCREEN_WIDTH - SCREEN_HEIGHT)/2;
-	float right = left + SCREEN_HEIGHT;
-	float centerx = SCREEN_WIDTH / 2;
-	float centery = SCREEN_HEIGHT / 2;
+	float left = (ScreenWidth - ScreenHeight)/2;
+	float right = left + ScreenHeight;
+	float centerx = ScreenWidth / 2;
+	float centery = ScreenHeight / 2;
 
 	// draw crosshair          
 	SPR_Set( m_hCrosshair, 255, 255, 255 );
 	SPR_DrawHoles( 0, left, 0, centerx, centery);
 	SPR_DrawHoles( 1, centerx, 0, right, centery);
-	SPR_DrawHoles( 2, centerx, centery, right, SCREEN_HEIGHT);
-	SPR_DrawHoles( 3, left, centery, centerx, SCREEN_HEIGHT);
+	SPR_DrawHoles( 2, centerx, centery, right, ScreenHeight);
+	SPR_DrawHoles( 3, left, centery, centerx, ScreenHeight);
 
 	// draw side-lines
 	SPR_Set( m_hLines, 255, 255, 255 );
-	SPR_Draw( 0, 0, 0, left, SCREEN_HEIGHT );
-	SPR_Draw( 0, right, 0, SCREEN_WIDTH, SCREEN_HEIGHT );
+	SPR_Draw( 0, 0, 0, left, ScreenHeight );
+	SPR_Draw( 0, right, 0, ScreenWidth, ScreenHeight );
 
 	return 1;
 }

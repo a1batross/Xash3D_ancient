@@ -89,7 +89,7 @@ We have a minimum width of 1-320 - we could have the field widths scale with it?
 // Y positions
 #define ROW_GAP		13
 #define ROW_RANGE_MIN	15
-#define ROW_RANGE_MAX	( SCREEN_HEIGHT - 50 )
+#define ROW_RANGE_MAX	( ScreenHeight - 50 )
 
 int CHudScoreboard :: Draw( float fTime )
 {
@@ -101,7 +101,7 @@ int CHudScoreboard :: Draw( float fTime )
 	// just sort the list on the fly
 	// list is sorted first by frags, then by deaths
 	float list_slot = 0;
-	int xpos_rel = (SCREEN_WIDTH - SCOREBOARD_WIDTH) / 2;
+	int xpos_rel = (ScreenWidth - SCOREBOARD_WIDTH) / 2;
 
 	// print the heading line
 	int ypos = ROW_RANGE_MIN + (list_slot * ROW_GAP);
@@ -113,9 +113,9 @@ int CHudScoreboard :: Draw( float fTime )
 		gHUD.DrawHudString( xpos, ypos, NAME_RANGE_MAX + xpos_rel, "Teams", 255, 140, 0 );
 
 	gHUD.DrawHudStringReverse( KILLS_RANGE_MAX + xpos_rel, ypos, 0, "frags", 255, 140, 0 );
-	gHUD.DrawHudString( DIVIDER_POS + xpos_rel, ypos, SCREEN_WIDTH, "/", 255, 140, 0 );
-	gHUD.DrawHudString( DEATHS_RANGE_MIN + xpos_rel + 5, ypos, SCREEN_WIDTH, "deaths", 255, 140, 0 );
-	gHUD.DrawHudString( PING_RANGE_MAX + xpos_rel - 35, ypos, SCREEN_WIDTH, "ping", 255, 140, 0 );
+	gHUD.DrawHudString( DIVIDER_POS + xpos_rel, ypos, ScreenWidth, "/", 255, 140, 0 );
+	gHUD.DrawHudString( DEATHS_RANGE_MIN + xpos_rel + 5, ypos, ScreenWidth, "deaths", 255, 140, 0 );
+	gHUD.DrawHudString( PING_RANGE_MAX + xpos_rel - 35, ypos, ScreenWidth, "ping", 255, 140, 0 );
 
 	list_slot += 1.2;
 	ypos = ROW_RANGE_MIN + (list_slot * ROW_GAP);

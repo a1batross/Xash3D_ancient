@@ -14,6 +14,7 @@
 // screen handlers
 #define LOAD_SHADER		(*g_engfuncs.pfnLoadShader)
 #define DrawImage		(*g_engfuncs.pfnDrawImage)
+#define DrawImageExt	(*g_engfuncs.pfnDrawImageExt)
 #define SetColor		(*g_engfuncs.pfnSetColor)
 #define SetParms		(*g_engfuncs.pfnSetParms)
 #define CVAR_REGISTER	(*g_engfuncs.pfnRegisterVariable)

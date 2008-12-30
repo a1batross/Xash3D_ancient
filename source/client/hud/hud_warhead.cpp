@@ -52,21 +52,21 @@ int CHudRedeemer :: Draw( float flTime )
 
 	// setup screen rectangle
 	rc.left = rc.top = 0;
-	rc.right = SCREEN_WIDTH;
-	rc.bottom = SCREEN_HEIGHT;
+	rc.right = ScreenWidth;
+	rc.bottom = ScreenHeight;
 
 	if( m_iHudMode == 1 )		// draw crosshair and readout
 	{
 		
-		y = (SCREEN_WIDTH - GUIDE_S) / 2;
-		x = (SCREEN_HEIGHT - GUIDE_S) / 2;
+		y = (ScreenWidth - GUIDE_S) / 2;
+		x = (ScreenHeight - GUIDE_S) / 2;
 
 		SPR_Set( m_hCrosshair, 255, 128, 128 );
 		SPR_DrawAdditive( 0,  y, x, NULL);
 
 		int yOffset = ((int)(flTime * 850) % READOUT_S) - READOUT_S;
 		SPR_Set( m_hSprite, 255, 128, 128 );
-		for( ; yOffset < SCREEN_HEIGHT; yOffset += READOUT_S )
+		for( ; yOffset < ScreenHeight; yOffset += READOUT_S )
 			SPR_DrawAdditive( 0, 0, yOffset, NULL );
 		SetScreenFade( Vector( 1, 0, 0 ), 0.25, 0, 0, FFADE_STAYOUT ); // enable red fade
 	}
@@ -81,19 +81,19 @@ int CHudRedeemer :: Draw( float flTime )
 		w = SPR_Width( m_hStatic, 0);
 		h = SPR_Height( m_hStatic, 0);
 
-		for( y = -(rand() % h); y < SCREEN_HEIGHT; y += h ) 
-			for( x = -(rand() % w); x < SCREEN_WIDTH; x += w ) 
+		for( y = -(rand() % h); y < ScreenHeight; y += h ) 
+			for( x = -(rand() % w); x < ScreenWidth; x += w ) 
 				SPR_DrawAdditive ( frame, x, y, NULL );
 
-		y = (SCREEN_WIDTH - GUIDE_S) / 2;
-		x = (SCREEN_HEIGHT - GUIDE_S) / 2;
+		y = (ScreenWidth - GUIDE_S) / 2;
+		x = (ScreenHeight - GUIDE_S) / 2;
 
 		SPR_Set( m_hCrosshair, 255, 128, 128 );
 		SPR_DrawAdditive( 0,  y, x, NULL );
 
 		int yOffset = ((int)(flTime * 850) % READOUT_S) - READOUT_S;
 		SPR_Set(m_hSprite, 255, 128, 128 );
-		for( ; yOffset < SCREEN_HEIGHT; yOffset += READOUT_S )
+		for( ; yOffset < ScreenHeight; yOffset += READOUT_S )
 			SPR_DrawAdditive( 0, 0, yOffset, NULL );
 		SetScreenFade( Vector( 1, 0, 0 ), 0.25, 0, 0, FFADE_STAYOUT ); // enable red fade
 	}
@@ -126,7 +126,7 @@ int CHudRedeemer :: Draw( float flTime )
 		// calculating pos with different resolutions
 		w = SPR_Width( m_hCamRec, 0 ) * scale; 
 		h = SPR_Height( m_hCamRec, 0 ) * scale;
-		x = SCREEN_WIDTH - (w * 1.5f);
+		x = ScreenWidth - (w * 1.5f);
 		y = w * 0.4f;
 		m_rcCamRec.left = x;
 		m_rcCamRec.right = x + w; 

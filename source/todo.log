@@ -31,7 +31,9 @@ Beta 13.12.08
 10.remove SVC_* in utils.h			OK
 11.Load server.dll and client.dll only once	OK
 12.v_refdef interactions			OK
-13.hud_scale factor
+13.hud_scale factor				OK
+14.move "loading" and "pause" into CHUD
+15.Get Rid Of DrawImage
 
 entity_state_t невидима для пользователя
 

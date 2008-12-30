@@ -1,4 +1,4 @@
-//=======================================================================
+	//=======================================================================
 //			Copyright XashXT Group 2008 ©
 //		         render_api.h - xash renderer api
 //=======================================================================
@@ -66,7 +66,7 @@ typedef struct render_exp_s
 	void	(*DrawStretchRaw)( int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw );
 	void	(*DrawStretchPic)( float x, float y, float w, float h, float s1, float t1, float s2, float t2, shader_t shader );
 	void	(*ImpactMark)( vec3_t org, vec3_t dir, float rot, float radius, vec4_t mod, bool fade, shader_t s, bool tmp );
-	void	(*DrawGetPicSize)( int *w, int *h, shader_t shader );
+	void	(*DrawGetPicSize)( int *w, int *h, int frame, shader_t shader );
 
 } render_exp_t;
 

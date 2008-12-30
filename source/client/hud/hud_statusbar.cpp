@@ -175,15 +175,15 @@ int CHudStatusBar :: Draw( float fTime )
 		int TextHeight, TextWidth;
 		GetConsoleStringSize( m_szStatusBar[i], &TextWidth, &TextHeight );
 
-		int Y_START = SCREEN_HEIGHT - 45;
+		int Y_START = ScreenHeight - 45;
 		int x = 4;
 		int y = Y_START - ( 4 + TextHeight * i ); // draw along bottom of screen
 
 		// let user set status ID bar centering
 		if ( (i == STATUSBAR_ID_LINE) && CVAR_GET_FLOAT( "hud_centerid" ))
 		{
-			x = max( 0, max( 2, (SCREEN_WIDTH - TextWidth)) / 2 );
-			y = (SCREEN_HEIGHT / 2) + (TextHeight * CVAR_GET_FLOAT( "hud_centerid" ));
+			x = max( 0, max( 2, (ScreenWidth - TextWidth)) / 2 );
+			y = (ScreenHeight / 2) + (TextHeight * CVAR_GET_FLOAT( "hud_centerid" ));
 		}
 		DrawConsoleString( x, y, m_szStatusBar[i] );
 	}

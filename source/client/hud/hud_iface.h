@@ -72,6 +72,11 @@ typedef struct dllfunction_s
 
 #define bound( min, num, max )	((num) >= (min) ? ((num) < (max) ? (num) : (max)) : (min))
 
+// ScreenHeight returns the height of the screen, in pixels
+#define ScreenHeight	(gHUD.m_scrinfo.iHeight)
+// ScreenWidth returns the width of the screen, in pixels
+#define ScreenWidth		(gHUD.m_scrinfo.iWidth)
+
 inline void UnpackRGB( int &r, int &g, int &b, dword ulRGB )
 {
 	r = (ulRGB & 0xFF0000) >>16;\
@@ -150,6 +155,7 @@ extern void SPR_Draw( int frame, int x, int y, int width, int height );
 extern void SPR_DrawHoles( int frame, int x, int y, const wrect_t *prc );
 extern void SPR_DrawHoles( int frame, int x, int y, int width, int height );
 extern void SPR_DrawAdditive( int frame, int x, int y, const wrect_t *prc );
+extern void SPR_DrawAdditive( int frame, int x, int y, int width, int height );
 extern void SetCrosshair( HSPRITE hspr, wrect_t rc, int r, int g, int b );
 extern void DrawCrosshair( void );
 extern void DrawPause( void );

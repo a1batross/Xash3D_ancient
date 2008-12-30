@@ -590,22 +590,9 @@ private:
 	HSPRITE *m_rghSprites; // the sprites loaded from hud.txt
 	wrect_t *m_rgrcRects;
 	char *m_rgszSpriteNames;
-	wrect_t  m_ScaledRect;
-	float m_flScale;
 public:
 	HSPRITE GetSprite( int index ) { return (index < 0) ? 0 : m_rghSprites[index]; }
-	wrect_t& GetSpriteRect( int index, int m_iScaled = FALSE )
-	{
-		if( m_iScaled )
-		{
-			m_ScaledRect.top = m_rgrcRects[index].top;
-			m_ScaledRect.left = m_rgrcRects[index].left;
-			m_ScaledRect.right = m_rgrcRects[index].right * (m_flScale / 4);
-			m_ScaledRect.bottom = m_rgrcRects[index].bottom * (m_flScale / 3);
-			return m_ScaledRect;
-		}
-		return m_rgrcRects[index];
-	}
+	wrect_t& GetSpriteRect( int index ) { return m_rgrcRects[index]; }
 	int InitMessages( void ); // init hud messages
 	int GetSpriteIndex( const char *SpriteName );
 
@@ -661,9 +648,14 @@ public:
 	int _cdecl MsgFunc_AddPortal( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_Particle( const char *pszName, int iSize, void *pbuf );
 
-	// from m_screenInfo
-	byte	charWidths[256];
-	int	iCharHeight;
+	// filled in VidInit
+	struct
+	{
+		byte	charWidths[256];
+		int	iCharHeight;
+		int	iWidth;
+		int	iHeight;
+	} m_scrinfo;
 		
 	qword	m_iWeaponBits;
 	int	m_fPlayerDead;

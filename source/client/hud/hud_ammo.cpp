@@ -784,7 +784,7 @@ int CHudAmmo::Draw( float flTime )
 	ScaleColors(r, g, b, a );
 
 	// Does this weapon have a clip?
-	y = SCREEN_HEIGHT - gHUD.m_iFontHeight - gHUD.m_iFontHeight / 2;
+	y = ScreenHeight - gHUD.m_iFontHeight - gHUD.m_iFontHeight / 2;
 
 	// Does weapon have any ammo at all?
 	if( m_pWeapon->iAmmoType > 0 )
@@ -795,7 +795,7 @@ int CHudAmmo::Draw( float flTime )
 		{
 			// room for the number and the '|' and the current ammo
 			
-			x = SCREEN_WIDTH - (8 * AmmoWidth) - iIconWidth;
+			x = ScreenWidth - (8 * AmmoWidth) - iIconWidth;
 			x = gHUD.DrawHudNumber(x, y, iFlags|DHN_3DIGITS, pw->iClip, r, g, b );
 
 			wrect_t rc;
@@ -822,7 +822,7 @@ int CHudAmmo::Draw( float flTime )
 		else
 		{
 			// SPR_Draw a bullets only line
-			x = SCREEN_WIDTH - 4 * AmmoWidth - iIconWidth;
+			x = ScreenWidth - 4 * AmmoWidth - iIconWidth;
 			x = gHUD.DrawHudNumber(x, y, iFlags | DHN_3DIGITS, gWR.CountAmmo(pw->iAmmoType), r, g, b);
 		}
 
@@ -841,7 +841,7 @@ int CHudAmmo::Draw( float flTime )
 		if((pw->iAmmo2Type != 0) && (gWR.CountAmmo(pw->iAmmo2Type) > 0))
 		{
 			y -= gHUD.m_iFontHeight + gHUD.m_iFontHeight/4;
-			x = SCREEN_WIDTH - 4 * AmmoWidth - iIconWidth;
+			x = ScreenWidth - 4 * AmmoWidth - iIconWidth;
 			x = gHUD.DrawHudNumber(x, y, iFlags|DHN_3DIGITS, gWR.CountAmmo(pw->iAmmo2Type), r, g, b);
 
 			// Draw the ammo Icon
@@ -1096,8 +1096,8 @@ int CHudAmmoSecondary :: Draw( float flTime )
 
 	AmmoWidth = gHUD.GetSpriteRect(gHUD.m_HUD_number_0).right - gHUD.GetSpriteRect(gHUD.m_HUD_number_0).left;
 
-	y = SCREEN_HEIGHT - (gHUD.m_iFontHeight*4);  // this is one font height higher than the weapon ammo values
-	x = SCREEN_WIDTH - AmmoWidth;
+	y = ScreenHeight - (gHUD.m_iFontHeight*4);  // this is one font height higher than the weapon ammo values
+	x = ScreenWidth - AmmoWidth;
 
 	if( m_HUD_ammoicon )
 	{

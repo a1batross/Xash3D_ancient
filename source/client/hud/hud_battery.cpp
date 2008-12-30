@@ -110,8 +110,8 @@ int CHudBattery :: Draw( float flTime )
 	
 	int iOffset = (m_prc1->bottom - m_prc1->top) / 6;
 
-	y = SCREEN_HEIGHT - gHUD.m_iFontHeight - gHUD.m_iFontHeight / 2;
-	x = SCREEN_WIDTH / 5;
+	y = ScreenHeight - gHUD.m_iFontHeight - gHUD.m_iFontHeight / 2;
+	x = ScreenWidth / 5;
 
 	// make sure we have the right sprite handles
 	if( !m_hSprite1 )
