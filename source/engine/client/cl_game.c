@@ -951,7 +951,7 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnRandomLong,
 	pfnRandomFloat,
 	pfnLoadFile,
-	pfnFreeFile,
+	pfnFileExists,
 	pfnGetGameDir,				
 	Host_Error,
 	&gTriApi

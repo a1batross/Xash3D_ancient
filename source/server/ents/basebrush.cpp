@@ -175,13 +175,13 @@ void CBaseBrush::PlayRandomSound( edict_t *pEdict, Materials soundMaterial, floa
 
 void CBaseBrush :: AxisDir( void )
 {
-	//make backward compatibility
-	if ( pev->movedir != g_vecZero) return;
+	// make backward compatibility
+	if( pev->movedir != g_vecZero ) return;
 
-	//Don't change this!
-	if ( FBitSet(pev->spawnflags, SF_BRUSH_ROTATE_Z_AXIS))
+	// don't change this!
+	if( FBitSet(pev->spawnflags, SF_BRUSH_ROTATE_Z_AXIS ))
 		pev->movedir = Vector ( 0, 0, 1 );	// around z-axis
-	else if ( FBitSet(pev->spawnflags, SF_BRUSH_ROTATE_X_AXIS))
+	else if( FBitSet(pev->spawnflags, SF_BRUSH_ROTATE_X_AXIS ))
 		pev->movedir = Vector ( 1, 0, 0 );	// around x-axis
 	else	pev->movedir = Vector ( 0, 1, 0 );	// around y-axis
 }
@@ -204,18 +204,18 @@ void CBaseBrush::KeyValue( KeyValueData* pkvd )
 		pev->health = atof(pkvd->szValue);
 		pkvd->fHandled = TRUE;
 	}
-	else if (FStrEq(pkvd->szKeyName, "spawnobject") )
+	else if( FStrEq( pkvd->szKeyName, "spawnobject" ))
 	{
 		int namelen = strlen(pkvd->szValue) - 1;
                     int obj = atoi( pkvd->szValue );
 		
-		//custom spawn object
-		if(namelen > 2) m_iSpawnObject = ALLOC_STRING( pkvd->szValue );
+		// custom spawn object
+		if( namelen > 2 ) m_iSpawnObject = ALLOC_STRING( pkvd->szValue );
 		else if ( obj > 0 && obj < ARRAYSIZE(pSpawnObjects))
 			m_iSpawnObject = MAKE_STRING( pSpawnObjects[obj] );
 		pkvd->fHandled = TRUE;
 	}
-	else if (FStrEq(pkvd->szKeyName, "gibmodel"))
+	else if (FStrEq( pkvd->szKeyName, "gibmodel" ))
 	{
 		m_iGibModel = ALLOC_STRING(pkvd->szValue);
 		pkvd->fHandled = TRUE;
@@ -228,38 +228,33 @@ void CBaseBrush::KeyValue( KeyValueData* pkvd )
 		if (m_flVolume < 0.0) m_flVolume = 0.0;
 		pkvd->fHandled = TRUE;
 	}
-	else if (FStrEq(pkvd->szKeyName, "movesound") || FStrEq(pkvd->szKeyName, "movesnd"))
+	else if( FStrEq( pkvd->szKeyName, "movesound" ))
 	{
 		m_iMoveSound = ALLOC_STRING(pkvd->szValue);
 		pkvd->fHandled = TRUE;
 	}
-	else if (FStrEq(pkvd->szKeyName, "stopsound") || FStrEq(pkvd->szKeyName, "stopsnd"))
+	else if( FStrEq( pkvd->szKeyName, "stopsound" ))
 	{
 		m_iStopSound = ALLOC_STRING(pkvd->szValue);
 		pkvd->fHandled = TRUE;
 	}
-	else if (FStrEq(pkvd->szKeyName, "contents"))
-	{
-		pev->skin = atoi(pkvd->szValue);
-		pkvd->fHandled = TRUE;
-	}
-	else	CBaseLogic::KeyValue( pkvd );
+	else CBaseLogic::KeyValue( pkvd );
 }
 
 //Base functions
 TYPEDESCRIPTION CBaseBrush::m_SaveData[] =
 {
-	DEFINE_FIELD( CBaseBrush, m_flVolume, FIELD_FLOAT ),	//volume of sounds
-	DEFINE_FIELD( CBaseBrush, m_pitch, FIELD_FLOAT ),		//pitch of sound	
-	DEFINE_FIELD( CBaseBrush, m_Material, FIELD_INTEGER ),	//brush material
-	DEFINE_FIELD( CBaseBrush, m_iMagnitude, FIELD_INTEGER ),	//explosion magnitude
-	DEFINE_FIELD( CBaseBrush, m_iMoveSound, FIELD_STRING ),	//sound scheme like Quake
-	DEFINE_FIELD( CBaseBrush, m_iStartSound, FIELD_STRING ),	//sound scheme like Quake
-	DEFINE_FIELD( CBaseBrush, m_iStopSound, FIELD_STRING ),     //sound scheme like Quake
-	DEFINE_FIELD( CBaseBrush, m_iSpawnObject, FIELD_STRING ),	//spawnobject index
-	DEFINE_FIELD( CBaseBrush, m_iGibModel, FIELD_STRING ),	//custom gibname
-	DEFINE_FIELD( CBaseBrush, m_vecPlayerPos, FIELD_VECTOR ),	//for controllable entity like tank
-	DEFINE_FIELD( CBaseBrush, m_pController, FIELD_CLASSPTR ),	//for controllable entity like tank	
+	DEFINE_FIELD( CBaseBrush, m_flVolume, FIELD_FLOAT ),	// volume of sounds
+	DEFINE_FIELD( CBaseBrush, m_pitch, FIELD_FLOAT ),		// pitch of sound	
+	DEFINE_FIELD( CBaseBrush, m_Material, FIELD_INTEGER ),	// brush material
+	DEFINE_FIELD( CBaseBrush, m_iMagnitude, FIELD_INTEGER ),	// explosion magnitude
+	DEFINE_FIELD( CBaseBrush, m_iMoveSound, FIELD_STRING ),	// sound scheme like Quake
+	DEFINE_FIELD( CBaseBrush, m_iStartSound, FIELD_STRING ),	// sound scheme like Quake
+	DEFINE_FIELD( CBaseBrush, m_iStopSound, FIELD_STRING ),     // sound scheme like Quake
+	DEFINE_FIELD( CBaseBrush, m_iSpawnObject, FIELD_STRING ),	// spawnobject index
+	DEFINE_FIELD( CBaseBrush, m_iGibModel, FIELD_STRING ),	// custom gibname
+	DEFINE_FIELD( CBaseBrush, m_vecPlayerPos, FIELD_VECTOR ),	// for controllable entity like tank
+	DEFINE_FIELD( CBaseBrush, m_pController, FIELD_CLASSPTR ),	// for controllable entity like tank	
 };
 IMPLEMENT_SAVERESTORE( CBaseBrush, CBaseLogic );
 
@@ -267,16 +262,16 @@ void CBaseBrush::Spawn( void )
 {
     	Precache();
 
-	if (!m_flVolume)m_flVolume = 1.0;//just enable full volume
+	if( !m_flVolume ) m_flVolume = 1.0;//just enable full volume
 	          
-	//breacable brush (if mapmaker just set material - just play material sound)
-	if(IsBreakable())
-		pev->takedamage	= DAMAGE_YES;
-	else	pev->takedamage	= DAMAGE_NO;
+	// breacable brush (if mapmaker just set material - just play material sound)
+	if( IsBreakable())
+		pev->takedamage = DAMAGE_YES;
+	else pev->takedamage = DAMAGE_NO;
 
 	pev->solid		= SOLID_BSP;
 	pev->movetype		= MOVETYPE_PUSH;
-	if (!m_pParent)pev->flags |= FL_WORLDBRUSH;
+	if( !m_pParent ) pev->flags |= FL_WORLDBRUSH;
 }
 
 void CBaseBrush::Precache( void )
@@ -358,10 +353,10 @@ void CBaseBrush::Precache( void )
 	MaterialSoundPrecache( m_Material );
 	if(IsBreakable())
 	{
-		m_idShard = UTIL_PrecacheModel( m_iGibModel, (char*)pGibName );//precache model
-		if(m_iSpawnObject)UTIL_PrecacheEntity( m_iSpawnObject );
+		m_idShard = UTIL_PrecacheModel( m_iGibModel, (char*)pGibName ); // precache model
+		if( m_iSpawnObject ) UTIL_PrecacheEntity( m_iSpawnObject );
 	}
-	UTIL_PrecacheModel( pev->model );//can use *.mdl for any brush
+	UTIL_PrecacheModel( pev->model ); // can use *.mdl for any brush
 }
 
 void CBaseBrush :: DamageSound( void )

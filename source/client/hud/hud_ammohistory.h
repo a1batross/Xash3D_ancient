@@ -76,7 +76,6 @@ public:
 
 	WEAPON* GetWeaponSlot( int slot, int pos ) { return rgSlots[slot][pos]; }
 
-	void LoadWeaponSprite( WEAPON *p, const char *type );
 	void LoadWeaponSprites( WEAPON* wp );
 	void LoadAllWeaponSprites( void );
 	WEAPON* GetFirstPos( int iSlot );

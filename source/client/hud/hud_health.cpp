@@ -25,8 +25,7 @@
 DECLARE_MESSAGE( m_Health, Health )
 DECLARE_MESSAGE( m_Health, Damage )
 
-#define PAIN_NAME	"hud_pain"
-#define DAMAGE_NAME	"sprites/%d_dmg.spr"
+#define PAIN_NAME	"sprites/pain.spr"
 
 int giDmgHeight, giDmgWidth;
 

@@ -208,6 +208,87 @@ int SPR_Width( HSPRITE hPic, int frame )
 	return Width;
 }
 
+void Draw_VidInit( void )
+{
+	memset( &ds, 0, sizeof( ds ));
+}
+
+/*
+====================
+SPRITE_GetList
+
+====================
+*/
+void ParseHudSprite( const char **pfile, char *psz, client_sprite_t *result )
+{
+	int x = 0, y = 0, width = 0, height = 0;
+	client_sprite_t p;
+	int section = 0;
+	char *token;
+		
+	memset( &p, 0, sizeof( client_sprite_t ));
+          
+	while(( token = COM_ParseToken( pfile )) != NULL )
+	{
+		if( !stricmp( token, psz ))
+		{
+			token = COM_ParseToken( pfile );
+			if( !stricmp( token, "{" )) section = 1;
+		}
+		if( section ) // parse section
+		{
+			if( !stricmp( token, "}" )) break; // end section
+			
+			if( !stricmp( token, "file" )) 
+			{                                          
+				token = COM_ParseToken( pfile );
+				strncpy( p.szSprite, token, 64 );
+
+				// fill structure at default
+				p.hSprite = SPR_Load( p.szSprite );
+				width = SPR_Width( p.hSprite, 0 );
+				height = SPR_Height( p.hSprite, 0 );
+				x = y = 0;
+			}
+			else if ( !stricmp( token, "name" )) 
+			{                                          
+				token = COM_ParseToken( pfile );
+				strncpy( p.szName, token, 64 );
+			}
+			else if ( !stricmp( token, "x" )) 
+			{                                          
+				token = COM_ParseToken( pfile );
+				x = atoi( token );
+			}
+			else if ( !stricmp( token, "y" )) 
+			{                                          
+				token = COM_ParseToken( pfile );
+				y = atoi( token );
+			}
+			else if ( !stricmp( token, "width" )) 
+			{                                          
+				token = COM_ParseToken( pfile );
+				width = atoi( token );
+			}
+			else if ( !stricmp( token, "height" )) 
+			{                                          
+				token = COM_ParseToken( pfile );
+				height = atoi( token );
+			}
+		}
+	}
+
+	if( !section ) return; // data not found
+
+	// calculate sprite position
+	p.rc.left = x;
+	p.rc.right = x + width; 
+	p.rc.top = y;
+	p.rc.bottom = y + height;
+
+	memcpy( result, &p, sizeof( client_sprite_t ));
+}
+
 client_sprite_t *SPR_GetList( const char *psz, int *piCount )
 {
 	char *pfile = (char *)LOAD_FILE( psz, NULL );
@@ -227,33 +308,24 @@ client_sprite_t *SPR_GetList( const char *psz, int *piCount )
 	{
 		if( !stricmp( token, "{" )) depth++;
 		else if( !stricmp( token, "}" )) depth--;
-		else if( depth == 0 ) iSprCount++;
+		else if( depth == 0 && !strcmp( token, "hudsprite" ))
+			iSprCount++;
 	}
 
-	client_sprite_t *phud, *p;
+	client_sprite_t *phud;
 	plist = pfile;
 
-	phud = p = new client_sprite_t[iSprCount];
+	phud = new client_sprite_t[iSprCount];
 
-	if( depth != 0 ) ALERT( at_console, "hud.sprite EOF without closing brace\n" );
-	depth = 0;
-          
-	while(( token = COM_ParseToken( &plist )) != NULL )
+	if( depth != 0 ) ALERT( at_console, "%s EOF without closing brace\n", psz );
+
+	for( int i = 0; i < iSprCount; i++ ) //parse structures
 	{
-		if( !stricmp( token, "{" )) depth++;
-		else if( !stricmp( token, "}" )) depth--;
-		else if( depth == 0 )
-		{
-			strncpy( p->szName, token, sizeof( p->szName ));
-			p->hSprite = SPR_Load( p->szName );
-			p->rc.left = p->rc.top = 0;
-			GetImageSize( &p->rc.right, &p->rc.bottom, 0, p->hSprite );
-			p++;
-		}
+		ParseHudSprite( &plist, "hudsprite", &phud[i] );
 	}
-          
-          if( !iSprCount ) ALERT( at_console, "SPR_GetList: %s doesn't have sprites\n", psz );
-          FREE_FILE( pfile );
+
+	if( !iSprCount ) ALERT( at_console, "SPR_GetList: %s doesn't have sprites\n", psz );
+	FREE_FILE( pfile );
           
           *piCount = iSprCount;
 	return phud;

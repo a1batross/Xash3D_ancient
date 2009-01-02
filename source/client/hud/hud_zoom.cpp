@@ -38,8 +38,8 @@ int CHudZoom :: Init( void )
 
 int CHudZoom::VidInit( void )
 {
-	m_hLines = LOAD_SHADER( "sniper_lines" );
-	m_hCrosshair = LOAD_SHADER( "sniper_zoom" );
+	m_hLines = SPR_Load( "sprites/snlines.spr" );
+	m_hCrosshair = SPR_Load( "sprites/snzoom.spr" );
 	m_iHudMode = 0;
 	return 1;
 }

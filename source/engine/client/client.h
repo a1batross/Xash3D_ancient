@@ -476,7 +476,7 @@ void pfnGetGameDir( char *szGetGameDir );
 long pfnRandomLong( long lLow, long lHigh );
 float pfnRandomFloat( float flLow, float flHigh );
 byte* pfnLoadFile( const char *filename, int *pLength );
-void pfnFreeFile( void *buffer );
+int pfnFileExists( const char *filename );
 
 _inline edict_t *CL_EDICT_NUM( int n, const char *file, const int line )
 {

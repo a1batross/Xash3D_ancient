@@ -69,7 +69,8 @@ inline void CL_PlaySound( int iSound, float flVolume, Vector &pos )
 #define RANDOM_LONG		(*g_engfuncs.pfnRandomLong)
 #define RANDOM_FLOAT	(*g_engfuncs.pfnRandomFloat)
 #define LOAD_FILE		(*g_engfuncs.pfnLoadFile)
-#define FREE_FILE		(*g_engfuncs.pfnFreeFile)
+#define FILE_EXISTS		(*g_engfuncs.pfnFileExists)
+#define FREE_FILE		FREE
 #define GET_GAME_DIR	(*g_engfuncs.pfnGetGameDir)
 #define HOST_ERROR		(*g_engfuncs.pfnHostError)
 

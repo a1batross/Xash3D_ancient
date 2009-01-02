@@ -34,6 +34,7 @@ typedef struct rect_s
 typedef struct client_sprite_s
 {
 	char	szName[64]; // shader name and sprite name are matched
+	char	szSprite[64];
 	HSPRITE	hSprite;
 	wrect_t	rc;
 } client_sprite_t;
@@ -149,6 +150,7 @@ extern int SPR_Frames( HSPRITE hPic );
 extern int SPR_Height( HSPRITE hPic, int frame );
 extern int SPR_Width( HSPRITE hPic, int frame );
 extern client_sprite_t *SPR_GetList( const char *name, int *count );
+extern void ParseHudSprite( const char **pfile, char *psz, client_sprite_t *result );
 extern void SPR_Set( HSPRITE hPic, int r, int g, int b );
 extern void SPR_Draw( int frame, int x, int y, const wrect_t *prc );
 extern void SPR_Draw( int frame, int x, int y, int width, int height );
@@ -165,6 +167,7 @@ extern void DrawImageBar( float percent, HSPRITE hImage, int w, int h );
 extern void DrawImageBar( float percent, HSPRITE hImage, int x, int y, int w, int h );
 extern void DrawGenericBar( float percent, int w, int h );
 extern void DrawGenericBar( float percent, int x, int y, int w, int h );
+extern void Draw_VidInit( void );
 
 // from cl_view.c
 extern void V_RenderSplash( void );

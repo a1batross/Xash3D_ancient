@@ -1641,17 +1641,17 @@ float TEXTURETYPE_PlaySound(TraceResult *ptr,  Vector vecSrc, Vector vecEnd, int
 		cnt = 4;
 		break;
 	case CHAR_TEX_WOOD: fvol = 0.9; fvolbar = 0.2;
-		rgsz[0] = "debris/wood1.wav";
-		rgsz[1] = "debris/wood2.wav";
-		rgsz[2] = "debris/wood3.wav";
+		rgsz[0] = "materials/wood/wood1.wav";
+		rgsz[1] = "materials/wood/wood2.wav";
+		rgsz[2] = "materials/wood/wood3.wav";
 		cnt = 3;
 		break;
 	case CHAR_TEX_GLASS:
 	case CHAR_TEX_COMPUTER:
 		fvol = 0.8; fvolbar = 0.2;
-		rgsz[0] = "debris/glass1.wav";
-		rgsz[1] = "debris/glass2.wav";
-		rgsz[2] = "debris/glass3.wav";
+		rgsz[0] = "materials/glass/glass1.wav";
+		rgsz[1] = "materials/glass/glass2.wav";
+		rgsz[2] = "materials/glass/glass3.wav";
 		cnt = 3;
 		break;
 	case CHAR_TEX_FLESH:

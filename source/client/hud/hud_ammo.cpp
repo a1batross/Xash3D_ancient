@@ -25,62 +25,13 @@
 
 WEAPON *gpActiveSel;	// NULL means off, 1 means just the menu bar, otherwise
 WEAPON *gpLastSel;		// Last weapon menu selection 
+client_sprite_t *GetSpriteList( client_sprite_t *pList, const char *psz, int iCount );
 WeaponsResource gWR;
 int g_weaponselect = 0;
 
-void WeaponsResource :: LoadWeaponSprite( WEAPON *pWeapon, const char *type )
-{
-	if( !pWeapon ) return;
-
-	// fmt <weapon_shotgun::crosshair>
-	HSPRITE hSprite = LOAD_SHADER( va( "%s::%s\n", pWeapon->szName, type )); 
-
-	if( !strcmp( type, "crosshair" ))
-	{
-		pWeapon->hCrosshair = hSprite;
-		pWeapon->rcCrosshair = gHUD.GetSpriteRect( hSprite );
-	}
-	else if( !strcmp( type, "autoaim" ))
-	{
-		pWeapon->hAutoaim = hSprite;
-		pWeapon->rcAutoaim = gHUD.GetSpriteRect( hSprite );
-	}
-	else if( !strcmp( type, "zoom" ))
-	{
-		pWeapon->hZoomedCrosshair = hSprite;
-		pWeapon->rcZoomedCrosshair = gHUD.GetSpriteRect( hSprite );
-	}
-	else if( !strcmp( type, "zoom_autoaim" ))
-	{
-		pWeapon->hZoomedAutoaim = hSprite;
-		pWeapon->rcZoomedAutoaim = gHUD.GetSpriteRect( hSprite );
-	}
-	else if( !strcmp( type, "weapon" ))
-	{
-		pWeapon->hInactive = hSprite;
-		pWeapon->rcInactive = gHUD.GetSpriteRect( hSprite );
-		gHR.iHistoryGap = max( gHR.iHistoryGap, pWeapon->rcActive.bottom - pWeapon->rcActive.top );
-	}
-	else if( !strcmp( type, "weapon_s" ))
-	{
-		pWeapon->hActive = hSprite;
-		pWeapon->rcActive = gHUD.GetSpriteRect( hSprite );
-	}
-	else if( !strcmp( type, "ammo" ))
-	{
-		pWeapon->hAmmo = hSprite;
-		pWeapon->rcAmmo = gHUD.GetSpriteRect( hSprite );
-	}
-	else if( !strcmp( type, "ammo2" ))
-	{
-		pWeapon->hAmmo2 = hSprite;
-		pWeapon->rcAmmo2 = gHUD.GetSpriteRect( hSprite );
-	}
-}
-
 void WeaponsResource :: LoadAllWeaponSprites( void )
 {
-	for (int i = 0; i < MAX_WEAPONS; i++)
+	for( int i = 0; i < MAX_WEAPONS; i++ )
 	{
 		if ( rgWeapons[i].iId ) LoadWeaponSprites( &rgWeapons[i] );
 	}
@@ -111,6 +62,9 @@ void WeaponsResource :: LoadWeaponSprites( WEAPON *pWeapon )
 {
 	if( !pWeapon ) return;
 
+	int i;
+	char sz[256];
+
 	memset( &pWeapon->rcActive, 0, sizeof( wrect_t ));
 	memset( &pWeapon->rcInactive, 0, sizeof( wrect_t ));
 	memset( &pWeapon->rcAmmo, 0, sizeof( wrect_t ));
@@ -119,16 +73,98 @@ void WeaponsResource :: LoadWeaponSprites( WEAPON *pWeapon )
 	pWeapon->hActive = 0;
 	pWeapon->hAmmo = 0;
 	pWeapon->hAmmo2 = 0;
+	
+	sprintf( sz, "scripts/weapons/%s.txt", pWeapon->szName );
+	client_sprite_t *pList = SPR_GetList( sz, &i );
 
-	// find specified shaders
-	LoadWeaponSprite( pWeapon, "crosshair" );	
-	LoadWeaponSprite( pWeapon, "autoaim" );
-	LoadWeaponSprite( pWeapon, "zoom" );
-	LoadWeaponSprite( pWeapon, "zoom_autoaim" );
-	LoadWeaponSprite( pWeapon, "weapon" );
-	LoadWeaponSprite( pWeapon, "weapon_s" );
-	LoadWeaponSprite( pWeapon, "ammo" );
-	LoadWeaponSprite( pWeapon, "ammo2" );
+	if( !pList ) return;
+
+	client_sprite_t *p;
+	
+	p = GetSpriteList( pList, "crosshair", i );
+	if( p )
+	{
+		pWeapon->hCrosshair = p->hSprite;
+		pWeapon->rcCrosshair = p->rc;
+	}
+	else pWeapon->hCrosshair = 0;
+
+	p = GetSpriteList( pList, "autoaim", i );
+	if( p )
+	{
+		pWeapon->hAutoaim = p->hSprite;
+		pWeapon->rcAutoaim = p->rc;
+	}
+	else pWeapon->hAutoaim = 0;
+
+	p = GetSpriteList( pList, "zoom", i );
+	if( p )
+	{
+		pWeapon->hZoomedCrosshair = p->hSprite;
+		pWeapon->rcZoomedCrosshair = p->rc;
+	}
+	else
+	{
+		pWeapon->hZoomedCrosshair = pWeapon->hCrosshair; // default to non-zoomed crosshair
+		pWeapon->rcZoomedCrosshair = pWeapon->rcCrosshair;
+	}
+
+	p = GetSpriteList( pList, "zoom_autoaim", i );
+	if( p )
+	{
+		pWeapon->hZoomedAutoaim = p->hSprite;
+		pWeapon->rcZoomedAutoaim = p->rc;
+	}
+	else
+	{
+		pWeapon->hZoomedAutoaim = pWeapon->hZoomedCrosshair;  // default to zoomed crosshair
+		pWeapon->rcZoomedAutoaim = pWeapon->rcZoomedCrosshair;
+	}
+
+	p = GetSpriteList( pList, "weapon", i );
+	if( p )
+	{
+		pWeapon->hInactive = p->hSprite;
+		pWeapon->rcInactive = p->rc;
+		gHR.iHistoryGap = max( gHR.iHistoryGap, pWeapon->rcActive.bottom - pWeapon->rcActive.top );
+	}
+	else
+	{
+		pWeapon->hInactive = gHUD.m_hHudError;
+		pWeapon->rcInactive = gHUD.GetSpriteRect( gHUD.m_HUD_error );
+		gHR.iHistoryGap = max( gHR.iHistoryGap, pWeapon->rcActive.bottom - pWeapon->rcActive.top );
+	}
+
+	p = GetSpriteList( pList, "weapon_s", i );
+	if( p )
+	{
+		pWeapon->hActive = p->hSprite;
+		pWeapon->rcActive = p->rc;
+	}
+	else
+	{
+		pWeapon->hActive = gHUD.m_hHudError;
+		pWeapon->rcActive = gHUD.GetSpriteRect( gHUD.m_HUD_error );
+	}
+
+	p = GetSpriteList( pList, "ammo", i );
+	if( p )
+	{
+		pWeapon->hAmmo = p->hSprite;
+		pWeapon->rcAmmo = p->rc;
+		gHR.iHistoryGap = max( gHR.iHistoryGap, pWeapon->rcActive.bottom - pWeapon->rcActive.top );
+	}
+	else pWeapon->hAmmo = 0;
+
+	p = GetSpriteList( pList, "ammo2", i );
+	if( p )
+	{
+		pWeapon->hAmmo2 = p->hSprite;
+		pWeapon->rcAmmo2 = p->rc;
+		gHR.iHistoryGap = max( gHR.iHistoryGap, pWeapon->rcActive.bottom - pWeapon->rcActive.top );
+	}
+	else pWeapon->hAmmo2 = 0;
+
 }
 
 // Returns the first weapon for a given slot.
@@ -1186,4 +1222,29 @@ int CHudAmmoSecondary :: MsgFunc_SecAmmoVal( const char *pszName, int iSize, voi
 	END_READ();
 
 	return 1;
+}
+
+/*
+=================================
+	GetSpriteList
+
+Finds and returns the matching 
+sprite name 'psz' in the given sprite list 'pList'
+iCount is the number of items in the pList
+=================================
+*/
+client_sprite_t *GetSpriteList( client_sprite_t *pList, const char *psz, int iCount )
+{
+	if( !pList ) return NULL;
+
+	int i = iCount;
+	client_sprite_t *p = pList;
+
+	while( i-- )
+	{
+		if( !strcmp( psz, p->szName ))
+			return p;
+		p++;
+	}
+	return NULL;
 }

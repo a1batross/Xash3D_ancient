@@ -34,6 +34,7 @@ Beta 13.12.08
 13.hud_scale factor				OK
 14.move "loading" and "pause" into CHUD
 15.Get Rid Of DrawImage
+16.Copy Resources				OK
 
 entity_state_t невидима для пользователя
 

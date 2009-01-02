@@ -212,7 +212,7 @@ typedef struct cl_enginefuncs_s
 	long	(*pfnRandomLong)( long lLow, long lHigh );
 	float	(*pfnRandomFloat)( float flLow, float flHigh );
 	byte*	(*pfnLoadFile)( const char *filename, int *pLength );
-	void	(*pfnFreeFile)( void *buffer );
+	int	(*pfnFileExists)( const char *filename );
 	void	(*pfnGetGameDir)( char *szGetGameDir );
 	void	(*pfnHostError)( const char *szFmt, ... );		// invoke host error
 

@@ -33,6 +33,17 @@ void pfnFreeFile( void *buffer )
 
 /*
 =============
+pfnFileExists
+
+=============
+*/
+int pfnFileExists( const char *filename )
+{
+	return FS_FileExists( filename );
+}
+
+/*
+=============
 pfnRandomLong
 
 =============

@@ -44,7 +44,7 @@ int CHudTrain::VidInit( void )
 int CHudTrain::Draw(float fTime)
 {
 	if( !m_hSprite )
-		m_hSprite = LOAD_SHADER( "hud_train" );
+		m_hSprite = SPR_Load( "sprites/train.spr" );
 
 	if( m_iPos )
 	{

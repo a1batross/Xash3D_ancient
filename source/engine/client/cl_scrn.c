@@ -323,6 +323,7 @@ void SCR_DrawFPS( void )
 	float		*color;
 
 	if( cls.state != ca_active ) return; 
+	if( !cl_showfps->integer ) return;
 	
 	newtime = Sys_DoubleTime();
 	if (newtime >= nexttime)

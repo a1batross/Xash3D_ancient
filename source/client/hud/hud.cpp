@@ -73,6 +73,8 @@ void CHud :: VidInit( void )
 	m_hsprCursor = 0;
 	m_hHudError = 0;
 
+	Draw_VidInit();
+
 	// setup screen info
 	m_scrinfo.iWidth = CVAR_GET_FLOAT( "width" );
 	m_scrinfo.iHeight = CVAR_GET_FLOAT( "height" );
@@ -86,7 +88,7 @@ void CHud :: VidInit( void )
 	if ( !m_pSpriteList )
 	{
 		// we need to load the hud.txt, and all sprites within
-		m_pSpriteList = SPR_GetList( "scripts/hud.shader", &m_iSpriteCount );
+		m_pSpriteList = SPR_GetList( "scripts/hud.txt", &m_iSpriteCount );
 
 		if( m_pSpriteList )
 		{
@@ -118,7 +120,7 @@ void CHud :: VidInit( void )
 		client_sprite_t *p = m_pSpriteList;
 		for( int j = 0; j < m_iSpriteCount; j++ )
 		{
-			m_rghSprites[j] = SPR_Load( p->szName );
+			m_rghSprites[j] = SPR_Load( p->szSprite );
 			p++;
 		}
 	}

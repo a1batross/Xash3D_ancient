@@ -25,11 +25,11 @@ int CHudRedeemer::Init( void )
 
 int CHudRedeemer :: VidInit( void )
 {
-	m_hSprite = LOAD_SHADER( "wh_readout" );
-	m_hCrosshair = LOAD_SHADER( "wh_guidedx");
-	m_hStatic = LOAD_SHADER( "wh_static");
-	m_hCamera = LOAD_SHADER( "wh_camera");
-	m_hCamRec = LOAD_SHADER( "wh_cam_rec");
+	m_hCrosshair = SPR_Load( "sprites/guidedx.spr" );
+	m_hSprite = SPR_Load( "sprites/readout.spr" );
+	m_hCamRec = SPR_Load( "sprites/cam_rec.spr" );
+	m_hStatic = SPR_Load( "sprites/static.spr" );
+	m_hCamera = SPR_Load( "sprites/camera.spr" );
 
 	m_iHudMode = 0;
 	return 1;
@@ -57,7 +57,6 @@ int CHudRedeemer :: Draw( float flTime )
 
 	if( m_iHudMode == 1 )		// draw crosshair and readout
 	{
-		
 		y = (ScreenWidth - GUIDE_S) / 2;
 		x = (ScreenHeight - GUIDE_S) / 2;
 
