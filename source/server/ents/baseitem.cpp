@@ -231,7 +231,7 @@ LINK_ENTITY_TO_CLASS( item_longjump, CItemLongJump );
 
 class CItemBattery : public CItem
 {
-	const char *Model( void ){ return "models/w_battery.mdl"; }
+	const char *Model( void ){ return "models/items/w_battery.mdl"; }
 	const char *PickSound( void ){ return "items/gunpickup2.wav"; }
 	BOOL AddItem( CBaseEntity *pOther ) { return pOther->TakeArmor( BATTERY_CHARGE, TRUE ); }
 };
@@ -308,7 +308,7 @@ LINK_ENTITY_TO_CLASS( ammo_762, CSniperAmmo );
 
 class CRpgAmmo : public CItem
 {
-	const char *Model( void ){ return "models/w_rpgammo.mdl"; }
+	const char *Model( void ){ return "models/ammo/w_rpgammo.mdl"; }
 	const char *PickSound( void ){ return "weapons/glock/clip_in.wav"; }
 	BOOL AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_RPGCLIP_GIVE, "rockets", 3 ); }
 };
@@ -333,7 +333,7 @@ LINK_ENTITY_TO_CLASS( ammo_556, CSawAmmo );
 
 class CMP5AmmoGrenade : public CItem
 {
-	const char *Model( void ){ return "models/w_ARgrenade.mdl"; }
+	const char *Model( void ){ return "models/ammo/w_argrenade.mdl"; }
 	const char *PickSound( void ){ return "weapons/glock/clip_in.wav"; }
 	BOOL AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_M203BOX_GIVE, "m203", 10 ); }
 };
@@ -488,15 +488,15 @@ void CWeaponBox::Touch( CBaseEntity *pOther )
 
 int CWeaponBox::MaxAmmoCarry( int iszName )
 {
-	for ( int i = 0;  i < MAX_WEAPONS; i++ )
+	for( int i = 0;  i < MAX_WEAPONS; i++ )
 	{
-		if ( CBasePlayerWeapon::ItemInfoArray[i].pszAmmo1 && !strcmp( STRING(iszName), CBasePlayerWeapon::ItemInfoArray[i].pszAmmo1 ) )
+		if( CBasePlayerWeapon::ItemInfoArray[i].iszAmmo1 == iszName )
 			return CBasePlayerWeapon::ItemInfoArray[i].iMaxAmmo1;
-		if ( CBasePlayerWeapon::ItemInfoArray[i].pszAmmo2 && !strcmp( STRING(iszName), CBasePlayerWeapon::ItemInfoArray[i].pszAmmo2 ) )
+		if( CBasePlayerWeapon::ItemInfoArray[i].iszAmmo2 == iszName )
 			return CBasePlayerWeapon::ItemInfoArray[i].iMaxAmmo2;
 	}
 
-	Msg( "MaxAmmoCarry() doesn't recognize '%s'!\n", STRING( iszName ) );
+	ALERT( at_error, "MaxAmmoCarry() doesn't recognize '%s'!\n", STRING( iszName ));
 	return -1;
 }
 

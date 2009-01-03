@@ -472,11 +472,6 @@ edict_t *CL_AllocEdict( void );
 void CL_FreeEdict( edict_t *pEdict );
 string_t CL_AllocString( const char *szValue );
 const char *CL_GetString( string_t iString );
-void pfnGetGameDir( char *szGetGameDir );
-long pfnRandomLong( long lLow, long lHigh );
-float pfnRandomFloat( float flLow, float flHigh );
-byte* pfnLoadFile( const char *filename, int *pLength );
-int pfnFileExists( const char *filename );
 
 _inline edict_t *CL_EDICT_NUM( int n, const char *file, const int line )
 {

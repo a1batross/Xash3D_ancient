@@ -120,8 +120,8 @@ typedef struct ref_params_s
 	BOOL	spectator;
 	BOOL	paused;
 	uint	rdflags;		// client view effects: RDF_UNDERWATER, RDF_MOTIONBLUR, etc
-	qword	iWeaponBits;	// pev->weapon
-	dword	iKeyBits;		// pev->button
+	int	iWeaponBits;	// pev->weapon
+	int	iKeyBits;		// pev->button
 	edict_t	*onground;	// pointer to onground entity
 	byte	*areabits;	// come from server, contains visible areas list
 	int	waterlevel;

@@ -215,6 +215,7 @@ public:
 private:
 	int m_iStatus;
 	int m_iTime;
+	float m_flVolume;
 };
 
 //
@@ -657,7 +658,7 @@ public:
 		int	iHeight;
 	} m_scrinfo;
 		
-	qword	m_iWeaponBits;
+	int	m_iWeaponBits;
 	int	m_fPlayerDead;
 	int	m_iIntermission;
 

@@ -1279,7 +1279,7 @@ void SENTENCEG_Init()
 		}
 	}
 
-	g_engfuncs.pfnFreeFile( pMemFile );
+	FREE_FILE( pMemFile );
 	
 	fSentencesInit = TRUE;
 
@@ -1505,7 +1505,7 @@ void TEXTURETYPE_Init()
 		strcpy(&(grgszTextureName[gcTextures++][0]), &(buffer[i]));
 	}
 
-	g_engfuncs.pfnFreeFile( pMemFile );
+	FREE_FILE( pMemFile );
 	
 	fTextureTypeInit = TRUE;
 }
@@ -1908,9 +1908,9 @@ void CFMODAudio::Spawn( void )
 void CFMODAudio::StartMessage( CBasePlayer *pPlayer )
 {
 	MESSAGE_BEGIN( MSG_ONE, gmsg.Fsound, NULL, pPlayer->pev );
-		WRITE_STRING( STRING(pev->message));
-		WRITE_SHORT( pev->button );//position
-		WRITE_SHORT( pev->impulse );//flags
+		WRITE_STRING( STRING( pev->message ));
+		WRITE_SHORT( pev->button );	// position
+		WRITE_SHORT( pev->impulse );	// flags
 	MESSAGE_END();
 }
 
@@ -1922,24 +1922,24 @@ void CFMODAudio::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE us
 	}	
 	else m_hActivator = UTIL_PlayerByIndex( 1 );
 		
-	if (useType == USE_TOGGLE)
+	if( useType == USE_TOGGLE )
 	{
 		if(m_iState == STATE_OFF) useType = USE_ON;
 		else useType = USE_OFF;
 	}
-	if (useType == USE_ON)
+	if( useType == USE_ON )
 	{
 		m_iState = STATE_ON;
 		SetBits( pev->impulse, SF_START_ON );
 		StartMessage( (CBasePlayer *)(CBaseEntity *)m_hActivator );
 	}
-	else if (useType == USE_OFF)
+	else if( useType == USE_OFF )
 	{
 		ClearBits( pev->impulse, SF_START_ON );
 		StartMessage( (CBasePlayer *)(CBaseEntity *)m_hActivator );
 		m_iState = STATE_OFF;
 	}
-	else if (useType == USE_SHOWINFO)
+	else if( useType == USE_SHOWINFO )
 	{
 		DEBUGHEAD;
 		ALERT(at_console, "State: %s, Song name: %s\n", GetStringForState( GetState()), STRING(pev->message));

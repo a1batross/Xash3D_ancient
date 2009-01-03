@@ -100,7 +100,7 @@ void CHud :: VidInit( void )
 			client_sprite_t *p = m_pSpriteList;
 			for ( int j = 0; j < m_iSpriteCount; j++ )
 			{
-				m_rghSprites[j] = p->hSprite;
+				m_rghSprites[j] = SPR_Load( p->szSprite );
 				m_rgrcRects[j] = p->rc;
 				strncpy( &m_rgszSpriteNames[j * MAX_SPRITE_NAME_LENGTH], p->szName, MAX_SPRITE_NAME_LENGTH );
 				p++;
@@ -177,7 +177,10 @@ int CHud :: UpdateClientData( ref_params_t *cdata, float time )
 {
 	memcpy( m_vecOrigin, cdata->origin, sizeof( vec3_t ));
 	memcpy( m_vecAngles, cdata->angles, sizeof( vec3_t ));
-	
+
+	if( m_iWeaponBits != cdata->iWeaponBits )
+		ALERT( at_console, "WeaponBits: %i\n", cdata->iWeaponBits );
+
 	m_iKeyBits = cdata->iKeyBits;
 	m_iWeaponBits = cdata->iWeaponBits;
 

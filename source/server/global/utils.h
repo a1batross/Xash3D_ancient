@@ -153,6 +153,52 @@ inline void MESSAGE_BEGIN( int msg_dest, int msg_type, const float *pOrigin, ent
 class CBaseEntity;
 class CBasePlayer;
 
+//=========================================================
+// RandomRange - for random values
+//=========================================================
+class RandomRange
+{
+public:
+	float m_flMax, m_flMin; // class members
+
+	RandomRange() { m_flMin = m_flMax = 0; }
+	RandomRange( float fValue ) { m_flMin = m_flMax = fValue; }
+	RandomRange( float fMin, float fMax ) { m_flMin = fMin; m_flMax = fMax; }
+	RandomRange( const char *szToken )
+	{
+		char *cOneDot = NULL;
+		m_flMin = m_flMax = 0;
+	
+		for( const char *c = szToken; *c; c++ )
+		{
+			if( *c == '.' )
+			{
+				if( cOneDot != NULL )
+				{
+					// found two dots in a row - it's a range
+					*cOneDot = 0; // null terminate the first number
+					m_flMin = atof( szToken ); // parse the first number
+					*cOneDot = '.'; // change it back, just in case
+					c++;
+					m_flMax = atof( c ); // parse the second number
+					return;
+				}
+				else cOneDot = (char *)c;
+			}
+			else cOneDot = NULL;
+		}
+
+		// no range, just record the number
+		m_flMax = m_flMin = atof( szToken );
+          }
+	
+	float Random() { return RANDOM_FLOAT( m_flMin, m_flMax ); }
+
+	// array access...
+	float operator[](int i) const { return ((float*)this)[i];}
+	float& operator[](int i)  { return ((float*)this)[i];}
+};
+
 // Testing the three types of "entity" for nullity
 //LRC- four types, rather; see cbase.h
 #define eoNullEntity 0
@@ -490,8 +536,6 @@ extern DLL_GLOBAL int			g_Language;
 #define VEC_DUCK_HULL_MAX	Vector( 16,  16,  18)
 #define VEC_DUCK_VIEW		Vector( 0, 0, 12 )
 
-#define SVC_WEAPONANIM	35	// FIMXE: get rid of this
-
 // camera flags
 #define	CAMERA_ON		1
 #define	DRAW_HUD		2
@@ -751,7 +795,7 @@ int UTIL_LoadDecalPreset( string_t pString );
 int UTIL_LoadDecalPreset( const char *pString );
 void UTIL_ChangeLevel( string_t mapname, string_t spotname );
 void UTIL_ChangeLevel( const char *szNextMap, const char *szNextSpot );
-void AddAmmoName( const char *szAmmoname );
+void AddAmmoName( string_t iAmmoName );
 
 // precache utils
 void UTIL_PrecacheEntity( string_t szClassname );

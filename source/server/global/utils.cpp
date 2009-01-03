@@ -111,9 +111,9 @@ char *COM_ParseFile( char *data, char *token )
 	return return_data;	          
 }
 
-void COM_FreeFile (char *buffer)
+void COM_FreeFile( char *buffer )
 {
-	FREE_FILE( buffer );
+	if( buffer ) FREE_FILE( buffer );
 }
 
 //=========================================================
@@ -1104,22 +1104,23 @@ int UTIL_PrecacheModel( char* s )
 //========================================================================
 // Precaches the ammo and queues the ammo info for sending to clients
 //========================================================================
-void AddAmmoName( const char *szAmmoname )
+void AddAmmoName( string_t iAmmoName )
 {
 	// make sure it's not already in the registry
 	for ( int i = 0; i < MAX_AMMO_SLOTS; i++ )
 	{
-		if ( !CBasePlayerWeapon::AmmoInfoArray[i].pszName) continue;
-		if ( stricmp( CBasePlayerWeapon::AmmoInfoArray[i].pszName, szAmmoname ) == 0 )
+		if( !CBasePlayerWeapon::AmmoInfoArray[i].iszName ) continue;
+		if( CBasePlayerWeapon::AmmoInfoArray[i].iszName == iAmmoName )
 			return; // ammo already in registry, just quite
 	}
+
 	giAmmoIndex++;
 	ASSERT( giAmmoIndex < MAX_AMMO_SLOTS );
-	if ( giAmmoIndex >= MAX_AMMO_SLOTS )
+	if( giAmmoIndex >= MAX_AMMO_SLOTS )
 		giAmmoIndex = 0;
 
-	CBasePlayerWeapon::AmmoInfoArray[giAmmoIndex].pszName = szAmmoname;
-	CBasePlayerWeapon::AmmoInfoArray[giAmmoIndex].iId = giAmmoIndex;// yes, this info is redundant
+	CBasePlayerWeapon::AmmoInfoArray[giAmmoIndex].iszName = iAmmoName;
+	CBasePlayerWeapon::AmmoInfoArray[giAmmoIndex].iId = giAmmoIndex; // yes, this info is redundant
 }
 
 //========================================================================
@@ -2296,7 +2297,30 @@ void UTIL_TraceLine( const Vector &vecStart, const Vector &vecEnd, IGNORE_MONSTE
 
 void UTIL_TraceHull( const Vector &vecStart, const Vector &vecEnd, IGNORE_MONSTERS igmon, int hullNumber, edict_t *pentIgnore, TraceResult *ptr )
 {
-	TRACE_HULL( vecStart, vecEnd, (igmon == ignore_monsters ? TRUE : FALSE), hullNumber, pentIgnore, ptr );
+	Vector	mins, maxs;
+
+	switch( hullNumber )
+	{
+	case human_hull:
+		mins = Vector( -16, -16, 0  );
+		maxs = Vector(  16,  16, 72 );
+		break; 
+	case large_hull:
+		mins = Vector( -32, -32,-32 );
+		maxs = Vector(  32,  32, 32 );
+		break;
+	case head_hull:	// ducked
+		mins = Vector( -16, -16,-18 );
+		maxs = Vector(  16,  16, 18 );
+		break;
+	case point_hull:
+	default:	
+		mins = g_vecZero;
+		maxs = g_vecZero;
+		break; 
+	}
+
+	TRACE_HULL( vecStart, mins, maxs, vecEnd, (igmon == ignore_monsters ? TRUE : FALSE), pentIgnore, ptr );
 }
 
 void UTIL_TraceModel( const Vector &vecStart, const Vector &vecEnd, int hullNumber, edict_t *pentModel, TraceResult *ptr )

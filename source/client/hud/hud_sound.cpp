@@ -79,6 +79,8 @@ static char *FMOD_ErrorString( int errcode )
 #define FSOUND_LOADMEMORY	0x00008000
 #define FSOUND_MPEGACCURATE	0x00020000
 
+#define FSOUND_ALL		-3    /* for a channel index, this flag will affect ALL channels available!*/
+
 enum FSOUND_MIXERTYPES
 {
     FSOUND_MIXER_AUTODETECT,        /* CE/PS2/GC Only - Non interpolating/low quality mixer. */
@@ -129,8 +131,8 @@ static int	(_stdcall *qfmod_getstreampos)(void *data);
 static signed char	(_stdcall *qfmod_setstreampause)(int channel, signed char paused);
 static signed char	(_stdcall *qfmod_setstreampos)(void *data, unsigned int pos);
 static signed char	(_stdcall *qfmod_stopstream)(void *data);
-static signed char	(_stdcall *qfmod_setvolume)(int channel, int vol);
-
+static signed char	(_stdcall *qfmod_setvolume)(int channel, int vol );
+static signed char	(_stdcall *qfmod_setmodvolume)( void *mod, int volume );
 
 static dllfunction_t fmodfuncs[] =
 {
@@ -151,6 +153,7 @@ static dllfunction_t fmodfuncs[] =
 	{"_FMUSIC_LoadSongMemory@8",	(void **) &qfmod_loadsongmemory},
 	{"_FMUSIC_SetPaused@8",	(void **) &qfmod_setmodpause},
 	{"_FMUSIC_GetPaused@4",	(void **) &qfmod_getmodpause},
+	{"_FMUSIC_SetMasterVolume@8",	(void **) &qfmod_setmodvolume},
 	{"_FSOUND_Stream_OpenFile@12",(void **) &qfmod_loadstream},
 	{"_FSOUND_Stream_Play@8",	(void **) &qfmod_playstream},
 	{"_FSOUND_Stream_Close@4",	(void **) &qfmod_freestream},
@@ -238,6 +241,7 @@ int CHudSound :: VidInit( void )
 {
 	// MsgFunc_Fsound( 0, 0, NULL );
 	if( fmod_dll ) qfmod_stopallsongs(); // stop all songs
+	m_flVolume = 0.0;
 	return 1;
 }
 
@@ -247,7 +251,7 @@ int CHudSound :: MsgFunc_Fsound( const char *pszName, int iSize, void *pbuf )
 
 	BEGIN_READ( pszName, iSize, pbuf );
 
-	strcpy( songname, READ_STRING( )); // songname
+	strcpy( songname, va( "media/%s", READ_STRING( ))); // songname
 	m_iTime = READ_SHORT(); // song position
 	m_iStatus = READ_BYTE();
 	
@@ -256,8 +260,8 @@ int CHudSound :: MsgFunc_Fsound( const char *pszName, int iSize, void *pbuf )
 	{
 		if( CheckFormat( FALSE ) == TRACK ) qfmod_freesong( fmod_data );
 		else if( CheckFormat( FALSE ) == STREAM ) qfmod_freestream( fmod_data );
-		memset( fmod_data, 0, sizeof( fmod_data ));
 		memset( (char*)songname, 0, sizeof( songname ));
+		fmod_data = NULL;
 		m_iTime = 0;
 		m_iStatus = 0;
 	}
@@ -329,6 +333,7 @@ int CHudSound :: PlayStream( const char* name )
 int CHudSound :: Draw( float flTime )
 {
 	int pause = CVAR_GET_FLOAT( "paused" );	// engine cvar
+	float vol = CVAR_GET_FLOAT( "s_musicvolume" ); // sound engine cvar
 
 	if( fmod_dll && fmod_data )
 	{
@@ -340,6 +345,14 @@ int CHudSound :: Draw( float flTime )
 			else if( CheckFormat( FALSE ) == STREAM )
 				qfmod_setstreampause( 0, !qfmod_getstreampause( 0 ));
 			last_state = pause;
+		}
+		if( vol != m_flVolume )
+		{
+			if( CheckFormat( FALSE ) == TRACK )
+				qfmod_setmodvolume( fmod_data, (int)(vol * 256.f ));
+			else if( CheckFormat( FALSE ) == STREAM )
+				qfmod_setvolume( FSOUND_ALL, (int)(vol * 256.f ));
+			m_flVolume = vol;
 		}
           }
 	return 1;

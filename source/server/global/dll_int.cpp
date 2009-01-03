@@ -36,6 +36,7 @@ static DLL_FUNCTIONS gFunctionTable =
 	sizeof( DLL_FUNCTIONS ),
 	GameDLLInit,		// pfnGameInit
 	DispatchSpawn,		// pfnSpawn
+	DispatchCreate,		// pfnCreate
 	DispatchThink,		// pfnThink
 	DispatchUse,		// pfnUse
 	DispatchTouch,		// pfnTouch
@@ -96,12 +97,13 @@ int DispatchSpawn( edict_t *pent )
 {
 	CBaseEntity *pEntity = (CBaseEntity *)GET_PRIVATE(pent);
 
-	if (pEntity)
+	if( pEntity )
 	{
 		// Initialize these or entities who don't link to the world won't have anything in here
 		pEntity->pev->absmin = pEntity->pev->origin - Vector(1,1,1);
 		pEntity->pev->absmax = pEntity->pev->origin + Vector(1,1,1);
 
+		pEntity->SetObjectClass(); // apply default value
 		pEntity->Spawn();
 		pEntity = (CBaseEntity *)GET_PRIVATE(pent);
 
@@ -131,6 +133,11 @@ int DispatchSpawn( edict_t *pent )
 		}
 	}
 	return 0;
+}
+
+int DispatchCreate( edict_t *pent, const char *szName )
+{
+	return -1; // -1 = failed, 0 = done
 }
 
 void DispatchKeyValue( edict_t *pentKeyvalue, KeyValueData *pkvd )
@@ -376,8 +383,8 @@ void SetObjectCollisionBox( entvars_t *pev )
 void DispatchObjectCollsionBox( edict_t *pent )
 {
 	CBaseEntity *pEntity = (CBaseEntity *)GET_PRIVATE(pent);
-	if (pEntity)pEntity->SetObjectCollisionBox();
-	else	SetObjectCollisionBox( &pent->v );
+	if( pEntity ) pEntity->SetObjectCollisionBox();
+	else SetObjectCollisionBox( &pent->v );
 }
 
 //=======================================================================

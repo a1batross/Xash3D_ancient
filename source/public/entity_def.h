@@ -78,7 +78,7 @@ typedef struct entvars_s
 
 	float		health;
 	float		frags;
-	qword		weapons;		// bit mask for available weapons
+	int		weapons;		// bit mask for available weapons
 	float		takedamage;
 
 	int		deadflag;

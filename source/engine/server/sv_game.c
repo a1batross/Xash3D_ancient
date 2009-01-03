@@ -12,6 +12,31 @@
 
 #define EOFS( x )	(int)&(((entvars_t *)0)->x)
 
+const char *ed_name[] =
+{
+	"unknown",
+	"world",
+	"static",
+	"ambient",
+	"normal",
+	"brush",
+	"player",
+	"monster",
+	"tempent",
+	"beam",
+	"mover",
+	"viewmodel",
+	"item",
+	"ragdoll",
+	"physbody",
+	"trigger",
+	"portal",
+	"missile",
+	"decal",
+	"vehicle",
+	"error",
+};
+
 void Sys_FsGetString( file_t *f, char *str )
 {
 	char	ch;
@@ -514,19 +539,21 @@ void SV_SetMassCentre( edict_t *ent )
 void SV_SetModel( edict_t *ent, const char *name )
 {
 	int		i;
-	cmodel_t		*mod;
 	vec3_t		angles;
 
 	i = SV_ModelIndex( name );
 	if( i == 0 ) return;
-	// we can accept configstring as non moveable memory ?
+
 	ent->v.model = MAKE_STRING( sv.configstrings[CS_MODELS+i] );
 	ent->v.modelindex = i;
 
-	mod = pe->RegisterModel( name );
-	if( mod ) SV_SetMinMaxSize( ent, mod->mins, mod->maxs, false );
+	if( !pe->RegisterModel( name )) // precache sv.model
+		MsgDev( D_ERROR, "SV_SetModel: %s not found\n", name );
 
-	switch( (int)ent->v.movetype )
+	// can be changed from qc-code later
+	SV_SetMinMaxSize( ent, vec3_origin, vec3_origin, false );
+
+	switch( ent->v.movetype )
 	{
 	case MOVETYPE_PHYSIC:
 		// FIXME: translate angles correctly
@@ -628,6 +655,7 @@ void SV_InitEdict( edict_t *pEdict )
 	pEdict->pvServerData = (sv_priv_t *)Mem_Alloc( svgame.mempool, sizeof( sv_priv_t ));
 	pEdict->pvPrivateData = NULL;	// will be alloced later by pfnAllocPrivateData
 	pEdict->serialnumber = pEdict->pvServerData->s.number = NUM_FOR_EDICT( pEdict );
+	pEdict->pvServerData->s.ed_type = ED_SPAWNED;
 	pEdict->free = false;
 }
 
@@ -694,6 +722,7 @@ void SV_FreeEdicts( void )
 	}
 
 	// clear globals
+	StringTable_Clear( svgame.hStringTable );
 	svgame.globals->numEntities = 0;
 	svgame.globals->numClients = 0;
 	svgame.globals->mapname = 0;
@@ -1225,7 +1254,7 @@ void pfnVecToAngles( const float *rgflVectorIn, float *rgflVectorOut )
 =================
 pfnMoveToOrigin
 
-FIXME: i'm not sure what is what you want
+FIXME: i'm not sure what is does what you want
 =================
 */
 void pfnMoveToOrigin( edict_t *ent, const float *pflGoal, float dist, int iMoveType )
@@ -1310,14 +1339,19 @@ edict_t* pfnFindEntityByString( edict_t *pStartEdict, const char *pszField, cons
 
 	if( !pStartEdict ) e = 0;
 	else e = NUM_FOR_EDICT( pStartEdict );
-	if( !pszValue ) pszValue = "";
+	if( !pszValue || !*pszValue ) return pStartEdict;
 
+	// FIXME: make table with hints
 	if( !com.strcmp( pszField, "classname" ))
 		f = EOFS( classname );
 	else if( !com.strcmp( pszField, "globalname" ))
 		f = EOFS( globalname );
 	else if( !com.strcmp( pszField, "targetname" ))
 		f = EOFS( targetname );
+	else if( !com.strcmp( pszField, "netname" ))
+		f = EOFS( netname );
+	else if( !com.strcmp( pszField, "model" ))
+		f = EOFS( model );
 	else
 	{
 		// FIXME: make cases for all fileds
@@ -1333,10 +1367,7 @@ edict_t* pfnFindEntityByString( edict_t *pStartEdict, const char *pszField, cons
 		t = STRING( *(string_t *)&((byte *)&ed->v)[f] );
 		if( !t ) t = "";
 		if( !com.strcmp( t, pszValue ))
-		{
-			Msg("Find %s [%s]\n", STRING( ed->v.classname ), t );
 			return ed;
-		}
 	}
 	return EDICT_NUM( 0 );
 }
@@ -1888,33 +1919,12 @@ pfnTraceHull
 FIXME: replace constant hulls with mins/maxs
 =================
 */
-void pfnTraceHull( const float *v1, const float *v2, int fNoMonsters, int hullNumber, edict_t *pentToSkip, TraceResult *ptr )
+void pfnTraceHull( const float *v1, const float *mins, const float *maxs, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr )
 {
-	vec3_t		mins, maxs;
-	trace_t		trace;
-	int		move;
+	trace_t	trace;
+	int	move;
 
 	move = (fNoMonsters) ? MOVE_NOMONSTERS : MOVE_NORMAL;
-
-	switch( hullNumber )
-	{
-	case human_hull:
-		VectorSet( mins, -16, -16, 0 );
-		VectorSet( maxs,  16,  16, 72);
-		break; 
-	case large_hull:
-		VectorSet( mins, -32, -32,-32);
-		VectorSet( maxs,  32,  32, 32);
-		break;
-	case head_hull:	// ducked
-		VectorSet( mins, -16, -16,-18);
-		VectorSet( maxs,  16,  16, 18);
-		break;
-	case point_hull:
-	default:	VectorCopy( vec3_origin, mins );
-		VectorCopy( vec3_origin, maxs );
-		break; 
-	}
 
 	if( IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2] ))
 		Host_Error( "SV_TraceHull: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
@@ -2134,6 +2144,10 @@ void pfnMessageBegin( int msg_dest, int msg_type, const float *pOrigin, edict_t 
 	// reduce number to avoid overflow problems or cheating
 	svgame.msg_index = bound( svc_bad, msg_type, svc_nop );
 
+	if( svgame.msg_index >= 0 && svgame.msg_index < MAX_USER_MESSAGES )
+		svgame.msg_name = sv.configstrings[CS_USER_MESSAGES + svgame.msg_index];
+	else svgame.msg_name = NULL;
+
 	MSG_Begin( svgame.msg_index );
 
 	// save message destination
@@ -2161,11 +2175,10 @@ pfnMessageEnd
 */
 void pfnMessageEnd( void )
 {
-	const char *name = "Unknown"; // error case
+	const char *name = "Unknown";
 
-	if( svgame.msg_index >= 0 && svgame.msg_index < MAX_USER_MESSAGES )
-		name = sv.configstrings[CS_USER_MESSAGES + svgame.msg_index];
-		
+	if( svgame.msg_name ) name = svgame.msg_name;
+
 	if( svgame.msg_sizes[svgame.msg_index] != -1 )
 	{
 		int expsize = svgame.msg_sizes[svgame.msg_index];
@@ -2210,7 +2223,8 @@ pfnWriteByte
 */
 void pfnWriteByte( int iValue )
 {
-	MSG_WriteByte( &sv.multicast, (int)iValue );
+	if( iValue == -1 ) iValue = 0xFF; // convert char to byte 
+	_MSG_WriteBits( &sv.multicast, (int)iValue, svgame.msg_name, NET_BYTE, __FILE__, __LINE__ );
 	svgame.msg_realsize++;
 }
 
@@ -2222,7 +2236,7 @@ pfnWriteChar
 */
 void pfnWriteChar( int iValue )
 {
-	MSG_WriteChar( &sv.multicast, (int)iValue );
+	_MSG_WriteBits( &sv.multicast, (int)iValue, svgame.msg_name, NET_CHAR, __FILE__, __LINE__ );
 	svgame.msg_realsize++;
 }
 
@@ -2234,7 +2248,7 @@ pfnWriteShort
 */
 void pfnWriteShort( int iValue )
 {
-	MSG_WriteShort( &sv.multicast, (int)iValue );
+	_MSG_WriteBits( &sv.multicast, (int)iValue, svgame.msg_name, NET_SHORT, __FILE__, __LINE__ );
 	svgame.msg_realsize += 2;
 }
 
@@ -2246,7 +2260,7 @@ pfnWriteLong
 */
 void pfnWriteLong( int iValue )
 {
-	MSG_WriteLong( &sv.multicast, (int)iValue );
+	_MSG_WriteBits( &sv.multicast, (int)iValue, svgame.msg_name, NET_LONG, __FILE__, __LINE__ );
 	svgame.msg_realsize += 4;
 }
 
@@ -2258,7 +2272,7 @@ pfnWriteAngle
 */
 void pfnWriteAngle( float flValue )
 {
-	MSG_WriteAngle32( &sv.multicast, flValue );
+	_MSG_WriteBits( &sv.multicast, flValue, svgame.msg_name, NET_ANGLE, __FILE__, __LINE__ );
 	svgame.msg_realsize += 4;
 }
 
@@ -2270,7 +2284,7 @@ pfnWriteCoord
 */
 void pfnWriteCoord( float flValue )
 {
-	MSG_WriteCoord32( &sv.multicast, flValue );
+	_MSG_WriteBits( &sv.multicast, flValue, svgame.msg_name, NET_FLOAT, __FILE__, __LINE__ );
 	svgame.msg_realsize += 4;
 }
 
@@ -2372,25 +2386,6 @@ pfnCVarSetString
 void pfnCVarSetString( const char *szVarName, const char *szValue )
 {
 	Cvar_Set( szVarName, szValue );
-}
-
-/*
-=============
-pfnAlertMessage
-
-=============
-*/
-static void pfnAlertMessage( ALERT_TYPE level, char *szFmt, ... )
-{
-	char		buffer[2048];	// must support > 1k messages
-	va_list		args;
-
-	va_start( args, szFmt );
-	com.vsnprintf( buffer, 2048, szFmt, args );
-	va_end( args );
-
-	// FIXME: implement message filter
-	com.print( buffer );
 }
 
 /*
@@ -2657,6 +2652,28 @@ void pfnAreaPortal( edict_t *pEdict, bool enable )
 		return;
 	}
 	pe->SetAreaPortalState( pEdict->v.skin, enable );
+}
+
+/*
+=============
+pfnClassifyEdict
+
+classify edict for render and network usage
+=============
+*/
+void pfnClassifyEdict( edict_t *pEdict, int class )
+{
+	if( pEdict->free )
+	{
+		MsgDev( D_ERROR, "SV_ClassifyEdict: can't modify free entity\n" );
+		return;
+	}
+
+	if( !pEdict->pvServerData ) return;
+	pEdict->pvServerData->s.ed_type = class;
+
+	// or leave unclassified, wait for next SV_LinkEdict...
+	Msg( "%s: <%s>\n", STRING( pEdict->v.classname ), ed_name[class] );
 }
 
 /*
@@ -3034,6 +3051,7 @@ static enginefuncs_t gEngfuncs =
 	pfnNameForFunction,	
 	pfnServerPrint,	
 	pfnAreaPortal,
+	pfnClassifyEdict,
 	pfnCmd_Args,	
 	pfnCmd_Argv,
 	pfnCmd_Argc,	
@@ -3046,7 +3064,7 @@ static enginefuncs_t gEngfuncs =
 	pfnSetView,
 	pfnCrosshairAngle,
 	pfnLoadFile,
-	pfnFreeFile,
+	pfnFileExists,
 	pfnCompareFileTime,
 	pfnGetGameDir,							
 	pfnStaticDecal,
@@ -3115,23 +3133,27 @@ bool SV_ParseEdict( script_t *script, edict_t *ent )
 			classname = pkvd[numpairs].szValue;
 		if( ++numpairs >= 256 ) break;
 	}
-
+	
 	// allocate edict private memory (passed by dlls)
 	SpawnEdict = (LINK_ENTITY_FUNC)Com_GetProcAddress( svgame.hInstance, classname );
 	if( !SpawnEdict )
 	{
-		MsgDev( D_ERROR, "No spawn function for %s\n", classname );
-		Mem_FreePool( &tempstr );
-		return false;
+		// attempt to create custom entity
+		if( svgame.dllFuncs.pfnCreate( ent, classname ) == -1 )
+		{
+			MsgDev( D_ERROR, "No spawn function for %s\n", classname );
+			Mem_FreePool( &tempstr );
+			return false;
+		}
+	}
+	else
+	{
+		ent->v.classname = MAKE_STRING( classname );
+		SpawnEdict( &ent->v );
 	}
 
-	// apply edict classnames
-	ent->pvServerData->s.classname = SV_ClassIndex( classname );
-	ent->v.classname = MAKE_STRING( classname );
-
-	SpawnEdict( &ent->v );
-
 	// apply classname to keyvalue containers and parse fields			
+	ent->pvServerData->s.classname = SV_ClassIndex( classname );
 	for( i = 0; i < numpairs; i++ )
 	{
 		if( pkvd[i].fHandled ) continue;
@@ -3303,8 +3325,7 @@ void SV_LoadProgs( const char *name )
 	}
 
 	// 65535 unique strings should be enough ...
-	svgame.hStringTable = StringTable_Create( "Game Strings", 0x10000 );
-	StringTable_SetString( svgame.hStringTable, "" ); // make NULL string
+	svgame.hStringTable = StringTable_Create( "Server", 0x10000 );
 	svgame.globals->maxEntities = host.max_edicts;
 	svgame.globals->maxClients = Host_MaxClients();
 	svgame.edicts = Mem_Alloc( svgame.mempool, sizeof( edict_t ) * svgame.globals->maxEntities );

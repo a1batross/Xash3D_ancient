@@ -862,6 +862,7 @@ TYPEDESCRIPTION	CBaseEntity::m_SaveData[] =
 	DEFINE_FIELD( CBaseEntity, m_fPevNextThink, FIELD_TIME ),
 		
 	DEFINE_FIELD( CBaseEntity, m_iStyle, FIELD_INTEGER ),
+	DEFINE_FIELD( CBaseEntity, m_iClassType, FIELD_INTEGER ),
           DEFINE_FIELD( CBaseEntity, m_iAcessLevel, FIELD_INTEGER ),
 	
 	DEFINE_FIELD( CBaseEntity, m_pfnThink, FIELD_FUNCTION ),
@@ -883,20 +884,20 @@ int CBaseEntity::Save( CSave &save )
 	return 0;
 }
 
-int CBaseEntity::Restore( CRestore &restore )
+int CBaseEntity :: Restore( CRestore &restore )
 {
 	int status;
 
 	status = restore.ReadEntVars( "ENTVARS", pev );
-	if ( status ) status = restore.ReadFields( "BASE", this, m_SaveData, ARRAYSIZE(m_SaveData) );
+	if( status ) status = restore.ReadFields( "BASE", this, m_SaveData, ARRAYSIZE( m_SaveData ));
 
-    	if ( pev->modelindex != 0 && !FStringNull(pev->model) )
+    	if( pev->modelindex != 0 && !FStringNull( pev->model ))
 	{
 		Vector mins = pev->mins, maxs = pev->maxs; // Set model is about to destroy these
 		
 		UTIL_PrecacheModel( pev->model );
-		UTIL_SetModel(ENT(pev), pev->model);
-		UTIL_SetSize(pev, mins, maxs);
+		UTIL_SetModel( ENT( pev ), pev->model );
+		UTIL_SetSize( pev, mins, maxs );
 	}
 	return status;
 }

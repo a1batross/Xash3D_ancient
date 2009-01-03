@@ -597,12 +597,12 @@ void CSprite::Spawn( void )
 {
 	Precache();
 
-	UTIL_SetModel( ENT(pev), pev->model );
+	UTIL_SetModel( ENT( pev ), pev->model );
           
-	//Smart Field System ©
-          if(!pev->renderamt) pev->renderamt = 200; //light transparency
-          if(!pev->framerate) pev->framerate = Frames(); //play sequence at one second
-	if(!pev->rendermode) pev->rendermode = kRenderTransAdd;
+	// Smart Field System ©
+          if( !pev->renderamt ) pev->renderamt = 200; // light transparency
+          if( !pev->framerate ) pev->framerate = Frames(); // play sequence at one second
+	if( !pev->rendermode ) pev->rendermode = kRenderTransAdd;
 
 	pev->solid	= SOLID_NOT;
 	pev->movetype	= MOVETYPE_NOCLIP;
@@ -617,16 +617,16 @@ void CSprite::Spawn( void )
 
 void CSprite::PostSpawn( void )
 {
-	m_pGoalEnt = UTIL_FindEntityByTargetname (NULL, STRING(pev->target));
-	if(m_pGoalEnt) UTIL_SetOrigin( this, m_pGoalEnt->pev->origin );
+	m_pGoalEnt = UTIL_FindEntityByTargetname( NULL, STRING( pev->target ));
+	if( m_pGoalEnt ) UTIL_SetOrigin( this, m_pGoalEnt->pev->origin );
 }
 
 void CSprite::Think( void )
 {
 	SetNextThink( 0 );
 
-	if(pev->spawnflags & SF_TEMPSPRITE && gpGlobals->time > pev->pain_finished ) UTIL_Remove(this);
-	else if ( pev->framerate ) Animate( pev->framerate * (gpGlobals->time - pev->dmgtime) );
+	if( pev->spawnflags & SF_TEMPSPRITE && gpGlobals->time > pev->pain_finished ) UTIL_Remove(this);
+	else if( pev->framerate ) Animate( pev->framerate * (gpGlobals->time - pev->dmgtime) );
 
 	Move();
 	pev->dmgtime = gpGlobals->time;
@@ -635,7 +635,7 @@ void CSprite::Think( void )
 void CSprite::Move( void )
 {
 	// Not moving on a path, return
-	if (!m_pGoalEnt) return;
+	if( !m_pGoalEnt ) return;
 
 	// Subtract movement from the previous frame
 	pev->frags -= pev->speed * gpGlobals->frametime;

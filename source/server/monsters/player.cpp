@@ -758,19 +758,19 @@ void CBasePlayer::PackDeadPlayerItems( void )
 	pWeaponBox->SetThink(& CWeaponBox::Kill );
 	pWeaponBox->SetNextThink( 120 );
 
-// back these two lists up to their first elements
+	// back these two lists up to their first elements
 	iPA = 0;
 	iPW = 0;
 
-// pack the ammo
-	while ( iPackAmmo[ iPA ] != -1 )
+	// pack the ammo
+	while( iPackAmmo[ iPA ] != -1 )
 	{
-		pWeaponBox->PackAmmo( MAKE_STRING( CBasePlayerWeapon::AmmoInfoArray[ iPackAmmo[ iPA ] ].pszName ), m_rgAmmo[ iPackAmmo[ iPA ] ] );
+		pWeaponBox->PackAmmo( CBasePlayerWeapon::AmmoInfoArray[ iPackAmmo[ iPA ] ].iszName, m_rgAmmo[iPackAmmo[iPA]] );
 		iPA++;
 	}
 
-// now pack all of the items in the lists
-	while ( rgpPackWeapons[ iPW ] )
+	// now pack all of the items in the lists
+	while( rgpPackWeapons[ iPW ] )
 	{
 		// weapon unhooked from the player. Pack it into der box.
 		pWeaponBox->PackWeapon( rgpPackWeapons[ iPW ] );
@@ -892,7 +892,7 @@ void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 	// Tell Ammo Hud that the player is dead
 	MESSAGE_BEGIN( MSG_ONE, gmsg.CurWeapon, NULL, pev );
 		WRITE_BYTE(0);
-		WRITE_BYTE(0XFF);
+		WRITE_BYTE(0xFF);
 		WRITE_BYTE(0xFF);
 	MESSAGE_END();
          
@@ -4153,27 +4153,26 @@ int CBasePlayer::AmmoInventory( int iAmmoIndex )
 	return m_rgAmmo[ iAmmoIndex ];
 }
 
-int CBasePlayer::GetAmmoIndex(const char *psz)
+int CBasePlayer :: GetAmmoIndex( const char *psz )
 {
-	int i;
+	int	i;
 
-	if (!psz || !stricmp( psz, "none" )) return -1;
+	if( !psz || !stricmp( psz, "none" )) return -1;
 
-	for (i = 1; i < MAX_AMMO_SLOTS; i++)
+	for( i = 1; i < MAX_AMMO_SLOTS; i++ )
 	{
-		if ( !CBasePlayerWeapon::AmmoInfoArray[i].pszName )
+		if( !CBasePlayerWeapon::AmmoInfoArray[i].iszName )
 			continue;
 
-		if (stricmp( psz, CBasePlayerWeapon::AmmoInfoArray[i].pszName ) == 0)
+		if( !stricmp( psz, STRING( CBasePlayerWeapon::AmmoInfoArray[i].iszName )))
 			return i;
 	}
-
 	return -1;
 }
 
-const char *CBasePlayer::GetAmmoName(int index )
+const char *CBasePlayer::GetAmmoName( int index )
 {
-	return CBasePlayerWeapon::AmmoInfoArray[index].pszName;
+	return STRING( CBasePlayerWeapon::AmmoInfoArray[index].iszName );
 }
 
 // Called from UpdateClientData
@@ -4604,23 +4603,23 @@ void CBasePlayer :: UpdateClientData( void )
 		{
 			ItemInfo& II = CBasePlayerWeapon::ItemInfoArray[i];
 
-			if ( !II.iId )
-				continue;
+			if( !II.iId ) continue;
 
 			const char *pszName;
-			if (!II.pszName) pszName = "Empty";
-			else pszName = II.pszName;
-
+			if( !II.iszName )
+				pszName = "Empty";
+			else pszName = STRING( II.iszName );
+                              
 			MESSAGE_BEGIN( MSG_ONE, gmsg.WeaponList, NULL, pev );
-				WRITE_STRING(pszName);		// string	weapon name
-				WRITE_BYTE(GetAmmoIndex(II.pszAmmo1));	// byte		Ammo Type
-				WRITE_BYTE(II.iMaxAmmo1);		// byte     Max Ammo 1
-				WRITE_BYTE(GetAmmoIndex(II.pszAmmo2));	// byte		Ammo2 Type
-				WRITE_BYTE(II.iMaxAmmo2);		// byte     Max Ammo 2
-				WRITE_BYTE(II.iSlot);		// byte		bucket
-				WRITE_BYTE(II.iPosition);		// byte		bucket pos
-				WRITE_BYTE(II.iId);			// byte		id (bit index into pev->weapons)
-				WRITE_BYTE(II.iFlags);		// byte		Flags
+				WRITE_STRING( pszName );		// string	weapon name
+				WRITE_BYTE( GetAmmoIndex( STRING( II.iszAmmo1 )));	// byte	Ammo Type
+				WRITE_BYTE( II.iMaxAmmo1 );		// byte	Max Ammo 1
+				WRITE_BYTE( GetAmmoIndex(STRING( II.iszAmmo2 )));	// byte	Ammo2 Type
+				WRITE_BYTE( II.iMaxAmmo2 );		// byte	Max Ammo 2
+				WRITE_BYTE( II.iSlot );		// byte	bucket
+				WRITE_BYTE( II.iPosition );		// byte	bucket pos
+				WRITE_BYTE( II.iId );		// byte	id (bit index into pev->weapons)
+				WRITE_BYTE( II.iFlags );		// byte	Flags
 			MESSAGE_END();
 		}
 	}

@@ -9,7 +9,6 @@
 #include "baseweapon.h"
 
 LINK_ENTITY_TO_CLASS( weapon_m249, CBasePlayerWeapon );
-LINK_ENTITY_TO_CLASS( weapon_crossbow, CBasePlayerWeapon );
 LINK_ENTITY_TO_CLASS( weapon_crowbar, CBasePlayerWeapon );
 LINK_ENTITY_TO_CLASS( weapon_redeemer, CBasePlayerWeapon );
 LINK_ENTITY_TO_CLASS( weapon_eagle, CBasePlayerWeapon );

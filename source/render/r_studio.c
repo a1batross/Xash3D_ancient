@@ -316,8 +316,8 @@ void R_StudioGetSequenceInfo( dstudiohdr_t *hdr, ref_entity_t *ent, float *pflFr
 
 	if( ent->sequence >= hdr->numseq )
 	{
-		*pflFrameRate = 0.0;
-		*pflGroundSpeed = 0.0;
+		if( pflFrameRate ) *pflFrameRate = 0.0;
+		if( pflGroundSpeed ) *pflGroundSpeed = 0.0;
 		return;
 	}
 
@@ -325,14 +325,17 @@ void R_StudioGetSequenceInfo( dstudiohdr_t *hdr, ref_entity_t *ent, float *pflFr
 
 	if( pseqdesc->numframes > 1 )
 	{
-		*pflFrameRate = 256 * pseqdesc->fps / (pseqdesc->numframes - 1);
-		*pflGroundSpeed = VectorLength( pseqdesc->linearmovement ); 
-		*pflGroundSpeed = *pflGroundSpeed * pseqdesc->fps / (pseqdesc->numframes - 1);
+		if( pflFrameRate ) *pflFrameRate = 256 * pseqdesc->fps / (pseqdesc->numframes - 1);
+		if( pflGroundSpeed )
+		{
+			*pflGroundSpeed = VectorLength( pseqdesc->linearmovement ); 
+			*pflGroundSpeed = *pflGroundSpeed * pseqdesc->fps / (pseqdesc->numframes - 1);
+		}
 	}
 	else
 	{
-		*pflFrameRate = 256.0;
-		*pflGroundSpeed = 0.0;
+		if( pflFrameRate ) *pflFrameRate = 256.0;
+		if( pflGroundSpeed ) *pflGroundSpeed = 0.0;
 	}
 }
 
@@ -371,6 +374,20 @@ float R_StudioFrameAdvance( ref_entity_t *ent, float framerate, float flInterval
 		ent->m_fSequenceFinished = true;
 	}
 	return flInterval;
+}
+
+void R_StudioResetSequenceInfo( ref_entity_t *ent )
+{
+	float	m_flFrameRate;
+
+	R_StudioGetSequenceInfo( m_pStudioHeader, ent, &m_flFrameRate, NULL );
+	ent->m_fSequenceLoops = ((R_StudioGetSequenceFlags( m_pStudioHeader, ent ) & STUDIO_LOOPING) != 0 );
+
+	// if custom framerate not specified, use default value from studiomodel
+	if( !ent->framerate ) ent->framerate = m_flFrameRate;
+	ent->animtime = r_refdef.time;
+	ent->framerate = 1.0;
+	ent->m_fSequenceFinished = FALSE;
 }
 
 /*
@@ -1733,6 +1750,12 @@ bool R_StudioDrawModel( int pass, int flags )
 	{
 		if( /*mirror_render ||*/ r_lefthand->value == 2 )
 			return 0;
+
+		// viewmodel animate on client
+		R_StudioFrameAdvance( m_pCurrentEntity, 1.0f, 0 );
+
+		if( m_pCurrentEntity->m_fSequenceFinished )
+			R_StudioResetSequenceInfo( m_pCurrentEntity );
 	}
 
 	R_StudioSetupRender( pass );	

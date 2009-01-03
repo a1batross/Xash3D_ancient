@@ -19,9 +19,10 @@ public:
 
 	float		m_fNextThink;
 	float		m_fPevNextThink;
-	float		flTravelTime; //time to moving brushes
+	float		flTravelTime; // time to moving brushes
+	int		m_iClassType; // edict classtype
 	int		m_iStyle;
-	int		m_iAcessLevel;//acess level for retinal sacners
+	int		m_iAcessLevel;// acess level for retinal sacners
 
 	//===================================================================================================
 	//			Xash BaseEntity
@@ -39,12 +40,6 @@ public:
 	virtual void ChangeCamera( string_t newcamera ) {}
 
 public:
-	unsigned char m_iParentAttachment; // 0 if we're relative to the parent's absorigin and absangles.
-	EHANDLE m_hParent;
-	EHANDLE m_hMoveParent;
-	EHANDLE m_hMoveChild;	
-	EHANDLE m_hMovePeer;
-
 	//===================================================================================================
 	//			Xash Parent System 0.2 beta
 	//===================================================================================================
@@ -108,7 +103,71 @@ public:
 	virtual void PostActivate( void ) {}
 	virtual void PostSpawn( void ) {}
 	virtual void DesiredAction( void ) {}
-          virtual void StartMessage( CBasePlayer *pPlayer ) {}
+	virtual void StartMessage( CBasePlayer *pPlayer ) {}
+	virtual void SetObjectClass( int iClassType = ED_SPAWNED )
+	{
+		m_iClassType = iClassType;
+		CLASSIFY_EDICT( ENT( pev ), m_iClassType );
+	}
+
+	// auto-classify edict on spawn
+	virtual void ClassifyEdict( void )
+	{
+		// already classified ?
+		if( m_iClassType != ED_SPAWNED ) return; 
+
+		if( !strnicmp( "worldspawn", STRING( pev->classname ), 10 ))
+		{
+			SetObjectClass( ED_WORLDSPAWN );
+			return;
+		}
+
+		// first pass: determine type by explicit parms
+		if( !strnicmp( "ambient_", STRING( pev->classname ), 8 ))
+		{
+			SetObjectClass( ED_AMBIENT );
+			return;
+		}
+		else if( pev->solid == SOLID_TRIGGER )
+		{
+			if( pev->modelindex == 0 )
+				SetObjectClass( ED_TRIGGER );	// never sending to client
+			else SetObjectClass( ED_NORMAL );
+		}
+		else if( pev->movetype == MOVETYPE_PHYSIC )
+		{
+			SetObjectClass( ED_RIGIDBODY );
+		}
+		else if( pev->solid == SOLID_BSP || pev->origin == g_vecZero )
+		{
+			if( pev->movetype == MOVETYPE_CONVEYOR )
+				SetObjectClass( ED_MOVER );
+			else if( pev->flags & FL_WORLDBRUSH )
+				SetObjectClass( ED_BSPBRUSH );
+			else if( pev->movetype == MOVETYPE_PUSH ) 
+				SetObjectClass( ED_MOVER );
+			else if( pev->movetype == MOVETYPE_NONE )
+				SetObjectClass( ED_BSPBRUSH );
+		}
+		else if( pev->flags & FL_MONSTER )
+			SetObjectClass( ED_MONSTER );
+		else if( pev->flags & FL_CLIENT )
+			SetObjectClass( ED_CLIENT );
+		else if( !pev->modelindex && !pev->weaponmodel )
+		{	
+			if( pev->noise1 || pev->noise2 || pev->noise3 )
+				SetObjectClass( ED_AMBIENT );
+			else SetObjectClass( ED_STATIC ); // never sending to client
+		}
+
+		// second pass: check sound and model indexes
+		if( m_iClassType == ED_SPAWNED )
+		{
+			// mark as normal
+			if( pev->modelindex || pev->noise1 || pev->noise2 || pev->noise3 )
+				SetObjectClass( ED_NORMAL );
+		}
+	}
 	
 	// Setup the object->object collision box (pev->mins / pev->maxs is the object->world collision box)
 	virtual void	SetObjectCollisionBox( void );

@@ -78,8 +78,7 @@ typedef struct entity_state_s
 	int		maxspeed;		// sv_maxspeed will be duplicate on all clients
 	float		health;		// client health (other parms can be send by custom messages)
 	float		fov;		// horizontal field of view
-	int		weapon1;		// weapon lowbytes
-	int		weapon2;		// weapon highbytes
+	int		weapons;		// weapon flags
 	model_state_t	pmodel;		// weaponmodel info
 } entity_state_t;
 

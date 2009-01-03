@@ -55,21 +55,21 @@ typedef struct
 	int		iViewModel;         	// path to viewmodel
 	int		iWorldModel;        	// path to worldmodel
 	char		szAnimExt[16];		// player anim postfix	
-	const char	*pszAmmo1;		// ammo 1 type
+	string_t		iszAmmo1;			// ammo 1 type
 	int		iMaxAmmo1;		// max ammo 1
-	const char	*pszAmmo2;		// ammo 2 type
+	string_t		iszAmmo2;			// ammo 2 type
 	int		iMaxAmmo2;		// max ammo 2
-	const char	*pszName;			// weapon name
+	string_t		iszName;			// weapon name
 	int		iMaxClip;			// clip size
-	int		iId;			// unikal weapon Id number
+	int		iId;			// unique weapon Id number
 	int		iFlags;			// weapon flags
 	int		iWeight;			// for autoselect weapon
 	int		attack1;			// attack1 type
 	int		attack2;			// attack2 type
 	float		fNextAttack;		// nextattack
 	float		fNextAttack2;		// next secondary attack
-	int		firesound[MAX_SHOOTSOUNDS];	// firesounds
-	int		sfxsound[MAX_SHOOTSOUNDS];	// sfxsound
+	string_t		firesound[MAX_SHOOTSOUNDS];	// firesounds
+	string_t		sfxsound[MAX_SHOOTSOUNDS];	// sfxsound
 	int		sndcount;			// fire sound count
 	int		sfxcount;			// sfx sound count
 	int		emptysnd;			// empty sound
@@ -81,7 +81,7 @@ typedef struct
 
 typedef struct
 {
-	const char *pszName;
+	string_t iszName;
 	int iMaxCarry;
 	int iId;
 } AmmoInfo;
@@ -201,13 +201,13 @@ public:
 	float		fPunchAngle2( void ){ return ItemInfoArray[ m_iId ].punchangle2.Random();	}
 	float		fRecoil1( void )	{ return ItemInfoArray[ m_iId ].recoil1.Random();		}
 	float		fRecoil2( void )	{ return ItemInfoArray[ m_iId ].recoil2.Random();		}
-	const char	*pszAmmo1( void )	{ return ItemInfoArray[ m_iId ].pszAmmo1;		}
-	const char	*pszName( void )	{ return ItemInfoArray[ m_iId ].pszName;		}
-	const char	*pszAmmo2( void )	{ return ItemInfoArray[ m_iId ].pszAmmo2;		}
+	const char	*pszAmmo1( void )	{ return STRING( ItemInfoArray[ m_iId ].iszAmmo1 );	}
+	const char	*pszAmmo2( void )	{ return STRING( ItemInfoArray[ m_iId ].iszAmmo2 );	}
+	const char	*pszName( void )	{ return STRING( ItemInfoArray[ m_iId ].iszName );	}
 
 	BOOL PlayEmptySound( void );//universal empty sound
 
-	//Default functions
+	// default functions
 	BOOL DefaultDeploy( Activity sequence );
 	BOOL DefaultHolster( Activity sequence );
           BOOL DefaultReload( Activity sequence );

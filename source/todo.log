@@ -35,6 +35,8 @@ Beta 13.12.08
 14.move "loading" and "pause" into CHUD
 15.Get Rid Of DrawImage
 16.Copy Resources				OK
+17.тормоза на больших картах
+18.weapon pickup & drawing
 
 entity_state_t невидима для пользователя
 
@@ -43,7 +45,7 @@ entity_state_t невидима для пользователя
 0. Q3Fusion			(Mirrors, Portals)
 1. MhQuake			(Caustics)
 2. Xash 0.45			(Mirrors, Portals, Monitors, Rain, Sky)
-3. Paranoia			(Sky)
+3. Paranoia			(Sky, Light)
 4. Quake2XP			(Effects, Glass, Shadows)
 5. Tenebrae			(Mirrors, Cubemap Projection, Bump)
 6. Darkplaces			ALL!!!!!!!!!!!!!!!111111111111

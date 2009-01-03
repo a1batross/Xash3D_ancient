@@ -20,7 +20,7 @@
 // This gets called one time when the game is initialied
 void GameDLLInit( void )
 {
-	ALERT( at_console, "GameDLLInit();\n" );
+	ALERT( at_aiconsole, "GameDLLInit();\n" );
 
 	// register cvars here:
 	CVAR_REGISTER( "sv_soundlist", "0", 0, "show server sound list" );

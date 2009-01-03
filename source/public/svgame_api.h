@@ -119,7 +119,7 @@ typedef struct enginefuncs_s
 	void	(*pfnEmitAmbientSound)( edict_t *ent, float *pos, const char *samp, float vol, float attn, int flags, int pitch );
 	void	(*pfnTraceLine)( const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr );
 	void	(*pfnTraceToss)( edict_t* pent, edict_t* pentToIgnore, TraceResult *ptr );
-	void	(*pfnTraceHull)( const float *v1, const float *v2, int fNoMonsters, int hullNumber, edict_t *pentToSkip, TraceResult *ptr );
+	void	(*pfnTraceHull)( const float *v1, const float *mins, const float *maxs, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr );
 	void	(*pfnTraceModel)( const float *v1, const float *v2, edict_t *pent, TraceResult *ptr );
 	const char *(*pfnTraceTexture)( edict_t *pTextureEntity, const float *v1, const float *v2 );
 	void	(*pfnGetAimVector)( edict_t* ent, float speed, float *rgflReturn );
@@ -164,6 +164,7 @@ typedef struct enginefuncs_s
 	const char *(*pfnNameForFunction)( dword function );
 	void	(*pfnServerPrint)( const char *szMsg );
 	void	(*pfnAreaPortal)( edict_t *pEdict, BOOL enable );
+	void	(*pfnClassifyEdict)( edict_t *pEdict, int ed_type );
 	const char *(*pfnCmd_Args)( void );
 	const char *(*pfnCmd_Argv)( int argc );
 	int	(*pfnCmd_Argc)( void );
@@ -176,7 +177,7 @@ typedef struct enginefuncs_s
 	void	(*pfnSetView)( const edict_t *pClient, const edict_t *pViewent );
 	void	(*pfnCrosshairAngle)( const edict_t *pClient, float pitch, float yaw );
 	byte*	(*pfnLoadFile)( const char *filename, int *pLength );
-	void	(*pfnFreeFile)( void *buffer );
+	int	(*pfnFileExists)( const char *filename );
 	int	(*pfnCompareFileTime)( const char *filename1, const char *filename2, int *iCompare );
 	void	(*pfnGetGameDir)( char *szGetGameDir );
 	void	(*pfnStaticDecal)( const float *origin, int decalIndex, int entityIndex, int modelIndex );
@@ -306,6 +307,7 @@ typedef struct
 	// initialize/shutdown the game (one-time call after loading of game .dll )
 	void	(*pfnGameInit)( void );				
 	int	(*pfnSpawn)( edict_t *pent );
+	int	(*pfnCreate)( edict_t *pent, const char *szName );
 	void	(*pfnThink)( edict_t *pent );
 	void	(*pfnUse)( edict_t *pentUsed, edict_t *pentOther );
 	void	(*pfnTouch)( edict_t *pentTouched, edict_t *pentOther );

@@ -17,10 +17,10 @@ void CWorld :: Precache( void )
 
 void CWorld :: KeyValue( KeyValueData *pkvd )
 {
-	if ( FStrEq(pkvd->szKeyName, "skyname") )
+	if( FStrEq( pkvd->szKeyName, "skyname" ))
 	{
 		// Sent over net now.
-		CVAR_SET_STRING( "sv_skyname", pkvd->szValue );
+		SET_SKYBOX( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
 	else if ( FStrEq(pkvd->szKeyName, "chaptertitle") )

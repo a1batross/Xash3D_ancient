@@ -635,6 +635,7 @@ typedef struct stdilib_api_s
 	string_t (*st_setstring)( int handle, const char *string );
 	int (*st_load)( wfile_t *wad, const char *name );
 	bool (*st_save)( int h, wfile_t *wad );
+	void (*st_clear)( int handle );
 	void (*st_remove)( int handle );
 } stdlib_api_t;
 
@@ -892,6 +893,7 @@ misc utils
 #define Com_RandomFloat		com.Com_RandomFloat
 #define StringTable_Create		com.st_create
 #define StringTable_Delete		com.st_remove
+#define StringTable_Clear		com.st_clear
 #define StringTable_GetString		com.st_getstring
 #define StringTable_SetString		com.st_setstring
 #define StringTable_Load		com.st_load

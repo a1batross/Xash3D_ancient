@@ -856,7 +856,7 @@ void ServerPostActivate( void )
 	CBasePlayer 	*plr = (CBasePlayer*)UTIL_PlayerByIndex( 1 );
 	CBaseEntity	*pClass;
 
-	if( !pEdict || MSGSended ) return; //player spawned ?
+	if( !pEdict || MSGSended ) return; // player spawned ?
 	// NOTE: Time to affect is obsolete delay before sending message
 	// Tune multiplayer time if need
 
@@ -866,10 +866,11 @@ void ServerPostActivate( void )
 		for ( int i = 0; i < gpGlobals->maxEntities; i++, pEdict++ )
 		{
 			if( pEdict->free )	continue;
-			pClass = CBaseEntity::Instance(pEdict);
-			if ( pClass && !(pClass->pev->flags & FL_DORMANT) )
+			pClass = CBaseEntity::Instance( pEdict );
+			if( pClass && !( pClass->pev->flags & FL_DORMANT ))
 			{
 				pClass->PostActivate();
+				pClass->ClassifyEdict();
 			}
 		}
 		MSGSended = TRUE;//messages sucessfully sended
@@ -1043,6 +1044,7 @@ void LinkUserMessages( void )
 	gmsg.ItemPickup = REG_USER_MSG( "ItemPickup", -1 );
 	gmsg.RoomType = REG_USER_MSG( "RoomType", 2 );
 	gmsg.HideWeapon = REG_USER_MSG( "HideWeapon", 1 );
+	gmsg.WeaponAnim = REG_USER_MSG( "WeaponAnim", 2 );
 	gmsg.SetFOV = REG_USER_MSG( "SetFOV", 1 );
 	gmsg.ShowMenu = REG_USER_MSG( "ShowMenu", -1 );
 	gmsg.Shake = REG_USER_MSG("ScreenShake", 13 );
@@ -1066,7 +1068,7 @@ void LinkUserMessages( void )
 	gmsg.HudText = REG_USER_MSG( "HudText", -1 );
 	gmsg.ShowGameTitle = REG_USER_MSG("GameTitle", 1);
 	gmsg.SetFog = REG_USER_MSG("SetFog", 7 );
-	gmsg.SetSky = REG_USER_MSG( "SetSky", 7 );
+	gmsg.SetSky = REG_USER_MSG( "SetSky", 13 );
 	gmsg.Particle = REG_USER_MSG( "Particle", -1);
 	gmsg.Beams = REG_USER_MSG( "Beams", -1 );
 	gmsg.AddMirror = REG_USER_MSG( "AddMirror", 2);

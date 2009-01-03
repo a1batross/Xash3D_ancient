@@ -412,13 +412,14 @@ void DrawCrosshair( void )
 {
 	if( ds.hCrosshair == 0 ) return;
 
-	// find center of screen
-	int x = (SCREEN_WIDTH - ds.rcCrosshair.right) / 2; 
-	int y = (SCREEN_HEIGHT - ds.rcCrosshair.bottom) / 2;
-
 	// FIXME: apply crosshair angles
+	int x = (ScreenWidth - ds.rcCrosshair.right) / 2; 
+	int y = (ScreenHeight - ds.rcCrosshair.bottom) / 2;
+
+	ds.hSprite = ds.hCrosshair;
+	SetParms( ds.hCrosshair, kRenderTransAlpha, 0 );
 	SetColor( ds.rgbCrosshair.x, ds.rgbCrosshair.y, ds.rgbCrosshair.z, 1.0f );
-	DrawImage( ds.hCrosshair, x, y, ds.rcCrosshair.right, ds.rcCrosshair.bottom );
+	SPR_DrawGeneric( 0, x, y, -1, -1, &ds.rcCrosshair );
 }
 
 void DrawPause( void )

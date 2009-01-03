@@ -280,6 +280,9 @@ void CL_FreeEdicts( void )
 		if( ent->free ) continue;
 		CL_FreeEdict( ent );
 	}
+
+	// clear globals
+	StringTable_Clear( clgame.hStringTable );
 	clgame.numEntities = 0;
 }
 
@@ -326,7 +329,6 @@ shader_t pfnLoadShader( const char *szShaderName )
 		MsgDev( D_ERROR, "CL_LoadShader: invalid shadername\n" );
 		return -1;
 	}
-
 	return re->RegisterShader( szShaderName, SHADER_NOMIP );
 }
 
@@ -551,25 +553,6 @@ char *pfnCmdArgv( int argc )
 	if( argc >= 0 && argc < Cmd_Argc())
 		return Cmd_Argv( argc );
 	return "";
-}
-
-/*
-=============
-pfnAlertMessage
-
-=============
-*/
-static void pfnAlertMessage( ALERT_TYPE type, char *szFmt, ... )
-{
-	char	buffer[2048];	// must support > 1k messages
-	va_list	args;
-
-	va_start( args, szFmt );
-	com.vsnprintf( buffer, 2048, szFmt, args );
-	va_end( args );
-
-	// FIXME: implement message filter
-	com.print( buffer );
 }
 
 /*
@@ -1015,8 +998,7 @@ bool CL_LoadProgs( const char *name )
 	}
 
 	// 65535 unique strings should be enough ...
-	clgame.hStringTable = StringTable_Create( "Client Strings", 0x10000 );
-	StringTable_SetString( clgame.hStringTable, "" ); // make NULL string
+	clgame.hStringTable = StringTable_Create( "Client", 0x10000 );
 	clgame.maxEntities = host.max_edicts;	// FIXME: must come from CS_MAXENTITIES
 	clgame.maxClients = Host_MaxClients();
 	cls.edicts = Mem_Alloc( cls.mempool, sizeof( edict_t ) * clgame.maxEntities );

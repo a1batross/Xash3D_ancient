@@ -240,8 +240,8 @@ void CBasePlayerWeapon :: Precache( void )
 	{
 		ItemInfoArray[II.iId] = II;
 
-		if ( II.pszAmmo1 && *II.pszAmmo1 )AddAmmoName( II.pszAmmo1 );
-		if ( II.pszAmmo2 && *II.pszAmmo2 )AddAmmoName( II.pszAmmo2 );
+		if( II.iszAmmo1 ) AddAmmoName( II.iszAmmo1 );
+		if( II.iszAmmo2 ) AddAmmoName( II.iszAmmo2 );
 
 		memset( &II, 0, sizeof II );
 	
@@ -344,13 +344,13 @@ void CBasePlayerWeapon :: ResetParse( ItemInfo *II )
 	m_iId = MAX_WEAPONS; //Will be owerwrite with GenerateID()
 	II->iSlot = 0;
 	II->iPosition = 0;
-	II->iViewModel = MAKE_STRING("models/weapons/v_glock.mdl");
-	II->iWorldModel = MAKE_STRING("models/weapons/w_glock.mdl");
-	strcpy(II->szAnimExt, "onehanded");
- 	II->pszAmmo1 = "none";
-	II->iMaxAmmo1 = -1;
- 	II->pszAmmo2 = "none";
-	II->iMaxAmmo2 = -1;
+	II->iViewModel = MAKE_STRING( "models/weapons/v_glock.mdl" );
+	II->iWorldModel = MAKE_STRING( "models/weapons/w_glock.mdl" );
+	strcpy( II->szAnimExt, "onehanded");
+ 	II->iszAmmo1 = MAKE_STRING( "none" );
+	II->iMaxAmmo1 = WEAPON_NOAMMO;
+ 	II->iszAmmo2 = MAKE_STRING( "none" );
+ 	II->iMaxAmmo2 = WEAPON_NOAMMO;
 	II->iMaxClip = -1;
 	II->iFlags = 0;
 	II->iWeight = 0;
@@ -358,8 +358,8 @@ void CBasePlayerWeapon :: ResetParse( ItemInfo *II )
 	II->attack2 = NONE;
 	II->fNextAttack = 0.5;
 	II->fNextAttack2 = 0.5;
-	memset( II->firesound, 0, sizeof(MAX_SHOOTSOUNDS) );
-	memset( II->sfxsound, 0, sizeof(MAX_SHOOTSOUNDS) );
+	memset( II->firesound, 0, sizeof( MAX_SHOOTSOUNDS ));
+	memset( II->sfxsound, 0, sizeof( MAX_SHOOTSOUNDS ));
 	II->sndcount = 0;
 	II->sfxcount = 0;
 	II->emptysnd = iStringNull;
@@ -383,7 +383,7 @@ int CBasePlayerWeapon :: ParseWeaponFile( ItemInfo *II, const char *filename )
 	char *pfile = (char *)LOAD_FILE( path, NULL );
 	ResetParse( II );
 	
-	if(!pfile)
+	if( !pfile )
 	{
  		Msg( "Warning: Weapon info file for %s not found!\n", STRING(pev->netname) );
  		COM_FreeFile( pfile );
@@ -393,8 +393,8 @@ int CBasePlayerWeapon :: ParseWeaponFile( ItemInfo *II, const char *filename )
 	else
 	{
 
-		II->pszName = STRING(pev->netname);
-		DevMsg("Parse %s.txt\n", II->pszName );
+		II->iszName = pev->netname;
+		DevMsg("Parse %s.txt\n", STRING( II->iszName ));
 		// parses the type, moves the file pointer
 		iResult = ParseWeaponData( II, pfile );
 		DevMsg("Parsing: WeaponData{} %s\n", iResult ? "OK" : "ERROR" );
@@ -630,37 +630,38 @@ int CBasePlayerWeapon :: ParseWeaponData( ItemInfo *II, char *pfile )
 			pfile = COM_ParseFile(pfile, token);
 			II->iViewModel = ALLOC_STRING(token);
 		}
-		else if ( !stricmp( token, "playermodel" )) 
+		else if( !stricmp( token, "playermodel" )) 
 		{                                          
 			pfile = COM_ParseFile(pfile, token);
 			II->iWorldModel = ALLOC_STRING(token);			
 		}
-		else if ( !stricmp( token, "anim_prefix" )) 
+		else if( !stricmp( token, "anim_prefix" )) 
 		{                                          
 			pfile = COM_ParseFile(pfile, token);
-			strcpy(II->szAnimExt, token);
+			strncpy( II->szAnimExt, token, sizeof( II->szAnimExt ));
 		}
-		else if ( !stricmp( token, "bucket" )) 
+		else if( !stricmp( token, "bucket" )) 
 		{                                          
 			pfile = COM_ParseFile(pfile, token);
-			II->iSlot = atoi(token);  
+			II->iSlot = atoi( token );  
 		} 
-		else if ( !stricmp( token, "bucket_position" )) 
+		else if( !stricmp( token, "bucket_position" )) 
 		{                                          
 			pfile = COM_ParseFile(pfile, token);
-			II->iPosition = atoi(token); 
+			II->iPosition = atoi( token ); 
 		} 
-		else if ( !stricmp( token, "clip_size" )) 
+		else if( !stricmp( token, "clip_size" )) 
 		{                                             
-  			pfile = COM_ParseFile(pfile, token);
-			if ( !stricmp( token, "noclip" ) ) II->iMaxClip = -1; 
-			else II->iMaxClip = atoi(token); 
+  			pfile = COM_ParseFile( pfile, token );
+			if( !stricmp( token, "noclip" ))
+				II->iMaxClip = -1; 
+			else II->iMaxClip = atoi( token ); 
   	 	}  
-		else if ( !stricmp( token, "primary_ammo" )) 
+		else if( !stricmp( token, "primary_ammo" )) 
 		{                                   
-  			pfile = COM_ParseFile(pfile, token);    
+  			pfile = COM_ParseFile( pfile, token );    
 			
-			if ( !stricmp( token, "none" )) II->iMaxAmmo1 = -1;
+			if ( !stricmp( token, "none" )) II->iMaxAmmo1 = WEAPON_NOAMMO;
 			else if ( !stricmp( token, "357" )) II->iMaxAmmo1 = DESERT_MAX_CARRY;
 			else if ( !stricmp( token, "9mm" )) II->iMaxAmmo1 = GLOCK_MAX_CARRY;
 			else if ( !stricmp( token, "12mm" )) II->iMaxAmmo1 = GLOCK_MAX_CARRY;
@@ -672,16 +673,14 @@ int CBasePlayerWeapon :: ParseWeaponData( ItemInfo *II, char *pfile )
 			else if ( !stricmp( token, "buckshot" )) II->iMaxAmmo1 = BUCKSHOT_MAX_CARRY;
 			else if ( !stricmp( token, "grenade" )) II->iMaxAmmo1 = M203_GRENADE_MAX_CARRY;
 			else if ( !stricmp( token, "bolts" )) II->iMaxAmmo1 = BOLT_MAX_CARRY;
-			
-			char *psz = new char[16];
-			strcpy(psz, token);
-			II->pszAmmo1 = const_cast<const char *>(psz);
+
+			II->iszAmmo1 = ALLOC_STRING( token );
 		}
 		else if ( !stricmp( token, "secondary_ammo" )) 
 		{                                   
 			pfile = COM_ParseFile(pfile, token); 
 
-			if ( !stricmp( token, "none" )) II->iMaxAmmo2 = -1;
+			if ( !stricmp( token, "none" )) II->iMaxAmmo2 = WEAPON_NOAMMO;
 			else if ( !stricmp( token, "357" )) II->iMaxAmmo2 = DESERT_MAX_CARRY;
 			else if ( !stricmp( token, "9mm" )) II->iMaxAmmo2 = GLOCK_MAX_CARRY;
 			else if ( !stricmp( token, "12mm" )) II->iMaxAmmo2 = GLOCK_MAX_CARRY;
@@ -694,19 +693,17 @@ int CBasePlayerWeapon :: ParseWeaponData( ItemInfo *II, char *pfile )
 			else if ( !stricmp( token, "grenade" )) II->iMaxAmmo1 = M203_GRENADE_MAX_CARRY;//don't change this!
 			else if ( !stricmp( token, "bolts" )) II->iMaxAmmo2 = BOLT_MAX_CARRY;
 			
-			char *psz  = new char[16];
-			strcpy(psz, token);
-			II->pszAmmo2 = const_cast<const char *>(psz);
+			II->iszAmmo2 = ALLOC_STRING( token );
 		} 
 		else if ( !stricmp( token, "defaultammo" )) 
 		{                                                      
   			pfile = COM_ParseFile(pfile, token);
-			m_iDefaultAmmo = RandomRange((char*)STRING(ALLOC_STRING(token))).Random();
+			m_iDefaultAmmo = RandomRange( token ).Random();
 		}
 		else if ( !stricmp( token, "defaultammo2" )) 
 		{                                                      
   			pfile = COM_ParseFile(pfile, token);
-			m_iDefaultAmmo2 = RandomRange((char*)STRING(ALLOC_STRING(token))).Random();
+			m_iDefaultAmmo2 = RandomRange( token ).Random();
 		}
 		else if ( !stricmp( token, "weight" )) 
 		{                                          
@@ -846,7 +843,7 @@ int CBasePlayerWeapon :: SetAnimation( Activity activity, float fps )
 		break;	
 	}
  
-	//lookup all names
+	// lookup all names
 	for(int i = 0; i < m_iAnimCount; i++ )
 	{
 		iSequence = LookupSequence( pAnimsList[i] );
@@ -869,10 +866,10 @@ void CBasePlayerWeapon :: SendWeaponAnim( int sequence, float fps )
  	dstudioseqdesc_t *pseqdesc;
  	pstudiohdr = (dstudiohdr_t *)GET_MODEL_PTR( ENT(pev) );
 
-	//calculate additional body for special effects
+	// calculate additional body for special effects
 	pev->body = (pev->body % NUM_HANDS) + NUM_HANDS * m_iBody;
  	
-	MESSAGE_BEGIN( MSG_ONE, SVC_WEAPONANIM, NULL, m_pPlayer->pev );
+	MESSAGE_BEGIN( MSG_ONE, gmsg.WeaponAnim, NULL, m_pPlayer->pev );
 		WRITE_BYTE( sequence );						
 		WRITE_BYTE( pev->body );					
 	MESSAGE_END();                                    
@@ -1878,17 +1875,19 @@ void CBasePlayerWeapon::Drop( void )
 
 void CBasePlayerWeapon::AttachToPlayer ( CBasePlayer *pPlayer )
 {
+	SetObjectClass( ED_VIEWMODEL );
+
 	pev->movetype = MOVETYPE_FOLLOW;
 	pev->solid = SOLID_NOT;
 	pev->aiment = pPlayer->edict();
 	pev->effects = EF_NODRAW;
-	pev->modelindex = 0;// server won't send down to clients if modelindex == 0
-	pev->targetname = iStringNull; //don't try remove this weapon from map
+	pev->modelindex = 0; // server won't send down to clients if modelindex == 0
+	pev->targetname = iStringNull; // don't try remove this weapon from map
 	pev->model = iStringNull;
 	pev->owner = pPlayer->edict();
 	SetNextThink( 0.1 );
 	SetTouch( NULL );
-	SetThink(NULL);
+	SetThink( NULL );
 }
 
 int CBasePlayerWeapon::AddDuplicate( CBasePlayerWeapon *pOriginal )
@@ -1902,19 +1901,17 @@ int CBasePlayerWeapon::AddDuplicate( CBasePlayerWeapon *pOriginal )
 
 int CBasePlayerWeapon::AddToPlayer( CBasePlayer *pPlayer )
 {
-	m_pPlayer = pPlayer;//Give global pointer to player
+	m_pPlayer = pPlayer; // Give global pointer to player
 	pPlayer->pev->weapons |= (1<<m_iId);
 
-	ALERT( at_console, "AddToPlayer: pev->weapons %li (add %i)\n", pPlayer->pev->weapons, (1<<m_iId));
-
-	if ( !m_iPrimaryAmmoType || !m_iSecondaryAmmoType )
+	if( !m_iPrimaryAmmoType || !m_iSecondaryAmmoType )
 	{
 		m_iPrimaryAmmoType =   pPlayer->GetAmmoIndex( pszAmmo1() );
 		m_iSecondaryAmmoType = pPlayer->GetAmmoIndex( pszAmmo2() );
 	}
 
-	MESSAGE_BEGIN(MSG_ONE, gmsg.WeapPickup, NULL, pPlayer->pev);
-		WRITE_BYTE(m_iId);
+	MESSAGE_BEGIN( MSG_ONE, gmsg.WeapPickup, NULL, pPlayer->pev );
+		WRITE_BYTE( m_iId );
 	MESSAGE_END();
 
 	return AddWeapon();

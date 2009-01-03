@@ -1431,7 +1431,7 @@ void MemList_f( void )
 		_mem_printstats();
 		break;
 	default:
-		Msg("memlist: usage: memlist <all>\n");
+		Msg( "Usage: memlist <all>\n" );
 		break;
 	}
 }
@@ -1459,4 +1459,5 @@ void Memory_Shutdown( void )
 void Memory_Init_Commands( void )
 {
 	Cmd_AddCommand( "memlist", MemList_f, "prints memory pool information (or if used as memlist 5 lists individual allocations of 5K or larger, 0 lists all allocations)");
+	Cmd_AddCommand( "stinfo", StringTable_Info_f, "prints StringTable system names or contained strings" );
 }

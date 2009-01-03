@@ -150,7 +150,7 @@ void SV_SpawnServer( const char *server, const char *savename )
 {
 	uint	i, checksum;
 
-	Msg("SpawnServer [%s]\n", server );
+	Msg( "SpawnServer [%s]\n", server );
 
 	svs.spawncount++; // any partially connected client will be restarted
 	sv.state = ss_dead;
@@ -163,7 +163,7 @@ void SV_SpawnServer( const char *server, const char *savename )
 
 	// save name for levels that don't set message
 	com.strncpy( sv.configstrings[CS_NAME], server, CS_SIZE );
-	MSG_Init( &sv.multicast, sv.multicast_buf, sizeof(sv.multicast_buf));
+	MSG_Init( &sv.multicast, sv.multicast_buf, sizeof( sv.multicast_buf ));
 	com.strcpy( sv.name, server );
 
 	// leave slots at start for clients only
@@ -224,13 +224,6 @@ void SV_SpawnServer( const char *server, const char *savename )
 
 	// create a baseline for more efficient communications
 	SV_CreateBaseline();
-
-	// classify edicts for quick network sorting
-	for( i = 0; i < svgame.globals->numEntities; i++ )
-	{
-		edict_t *ent = EDICT_NUM( i );
-		SV_ClassifyEdict( ent );
-	}
 
 	// set serverinfo variable
 	Cvar_FullSet( "mapname", sv.name, CVAR_SERVERINFO|CVAR_INIT );

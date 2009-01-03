@@ -253,6 +253,7 @@ void Sys_GetStdAPI( void )
 	com.st_setstring = StringTable_SetString;
 	com.st_load = StringTable_LoadSystem;
 	com.st_save = StringTable_SaveSystem;
+	com.st_clear = StringTable_ClearSystem;
 	com.st_remove = StringTable_DeleteSystem;
 
 	com.GameInfo = &GI;

@@ -67,7 +67,6 @@ typedef struct system_s
 	bool			con_showcredits;
 	bool			con_silentmode;
 	byte			*basepool;
-	byte			*zonepool;
 	byte			*imagepool;
 	byte			*scriptpool;
 	byte			*stringpool;
@@ -511,5 +510,7 @@ const char *StringTable_GetString( int handle, string_t index );
 int StringTable_LoadSystem( wfile_t *wad, const char *name );
 bool StringTable_SaveSystem( int h, wfile_t *wad );
 void StringTable_DeleteSystem( int handle );
+void StringTable_ClearSystem( int handle );
+void StringTable_Info_f( void );
 
 #endif//LAUNCHER_H

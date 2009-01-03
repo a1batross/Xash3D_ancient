@@ -200,6 +200,7 @@ typedef struct
 typedef struct
 {
 	// user messages stuff
+	const char	*msg_name;		// just for debug
 	int		msg_sizes[MAX_USER_MESSAGES];	// user messages bounds checker
 	int		msg_size_index;		// write message size at this pos in sizebuf
 	int		msg_realsize;		// left in bytes
@@ -313,7 +314,6 @@ void SV_InitGame (void);
 void SV_Map( char *levelstring, char *savename );
 void SV_SpawnServer( const char *server, const char *savename );
 int SV_FindIndex (const char *name, int start, int end, bool create);
-void SV_ClassifyEdict( edict_t *ent );
 
 //
 // sv_phys.c
@@ -388,11 +388,6 @@ float SV_AngleMod( float ideal, float current, float speed );
 void SV_SpawnEntities( const char *mapname, script_t *entities );
 string_t SV_AllocString( const char *szValue );
 const char *SV_GetString( string_t iString );
-void pfnGetGameDir( char *szGetGameDir );
-long pfnRandomLong( long lLow, long lHigh );
-float pfnRandomFloat( float flLow, float flHigh );
-byte* pfnLoadFile( const char *filename, int *pLength );
-void pfnFreeFile( void *buffer );
 
 _inline edict_t *SV_EDICT_NUM( int n, const char * file, const int line )
 {

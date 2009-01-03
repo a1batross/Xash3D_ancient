@@ -126,7 +126,7 @@ CGameRules *InstallGameRules( void )
 	SERVER_COMMAND( "exec game.rc\n" );
 	SERVER_EXECUTE( );
 
-	ALERT( at_console, "InstallGameRules\n" );
+	ALERT( at_aiconsole, "InstallGameRules\n" );
 
 	if ( !gpGlobals->deathmatch )
 	{

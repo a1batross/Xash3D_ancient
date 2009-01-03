@@ -39,31 +39,6 @@ typedef struct area_s
 	int		type;
 } area_t;
 
-const char *ed_name[] =
-{
-	"unknown",
-	"world",
-	"static",
-	"ambient",
-	"normal",
-	"brush",
-	"player",
-	"monster",
-	"tempent",
-	"beam",
-	"mover",
-	"viewmodel",
-	"item",
-	"ragdoll",
-	"physbody",
-	"trigger",
-	"portal",
-	"missile",
-	"decal",
-	"vehicle",
-	"error",
-};
-
 areanode_t	sv_areanodes[AREA_NODES];
 int		sv_numareanodes;
 
@@ -168,74 +143,6 @@ void SV_ClearWorld( void )
 }
 
 /*
-=================
-SV_ClassifyEdict
-
-sorting edict by type
-=================
-*/
-void SV_ClassifyEdict( edict_t *ent )
-{
-	sv_priv_t		*sv_ent;
-	const char	*classname;
-
-	sv_ent = ent->pvServerData;
-	if( !sv_ent || sv_ent->s.ed_type != ED_SPAWNED )
-		return;
-
-	// null state ?
-	if( !sv_ent->s.number ) SV_UpdateEntityState( ent );
-
-	classname = STRING( ent->v.classname );
-
-	if( !com.strnicmp( "worldspawn", classname, 10 ))
-	{
-		sv_ent->s.ed_type = ED_WORLDSPAWN;
-		return;
-	}
-	// first pass: determine type by explicit parms
-	if( ent->v.solid == SOLID_TRIGGER )
-	{
-		if( sv_ent->s.soundindex )
-			sv_ent->s.ed_type = ED_AMBIENT;	// e.g. trigger_teleport
-		else sv_ent->s.ed_type = ED_TRIGGER;		// never sending to client
-	}
-	else if( ent->v.movetype == MOVETYPE_PHYSIC )
-		sv_ent->s.ed_type = ED_RIGIDBODY;
-	else if( ent->v.solid == SOLID_BSP || VectorIsNull( ent->v.origin ))
-	{
-		if( ent->v.movetype == MOVETYPE_CONVEYOR )
-			sv_ent->s.ed_type = ED_MOVER;
-		else if((int)ent->v.flags & FL_WORLDBRUSH )
-			sv_ent->s.ed_type = ED_BSPBRUSH;
-		else if( ent->v.movetype == MOVETYPE_PUSH ) 
-			sv_ent->s.ed_type = ED_MOVER;
-		else if( ent->v.movetype == MOVETYPE_NONE )
-			sv_ent->s.ed_type = ED_BSPBRUSH;
-	}
-	else if((int)ent->v.flags & FL_MONSTER )
-		sv_ent->s.ed_type = ED_MONSTER;
-	else if((int)ent->v.flags & FL_CLIENT )
-		sv_ent->s.ed_type = ED_CLIENT;
-	else if( !sv_ent->s.model.index && !sv_ent->s.aiment )
-	{	
-		if( sv_ent->s.soundindex )
-			sv_ent->s.ed_type = ED_AMBIENT;
-		else sv_ent->s.ed_type = ED_STATIC; // never sending to client
-	}
-
-	if( sv_ent->s.ed_type == ED_SPAWNED )
-	{
-		// mark as normal
-		if( sv_ent->s.model.index || sv_ent->s.soundindex )
-			sv_ent->s.ed_type = ED_NORMAL;
-	}
-	
-	// or leave unclassified, wait for next SV_LinkEdict...
-	// Msg( "%s: <%s>\n", STRING( ent->v.classname ), ed_name[sv_ent->s.ed_type] );
-}
-
-/*
 ===============
 SV_UnlinkEdict
 ===============
@@ -271,10 +178,6 @@ void SV_LinkEdict( edict_t *ent )
 	if( ent == EDICT_NUM( 0 )) return; // don't add the world
 	if( ent->free ) return;
 
-	// trying to classify unclassified edicts
-	if( sv.state == ss_active && sv_ent->s.ed_type == ED_SPAWNED )
-		SV_ClassifyEdict( ent );
-
 	// set the size
 	VectorSubtract( ent->v.maxs, ent->v.mins, ent->v.size );
 
@@ -302,32 +205,7 @@ void SV_LinkEdict( edict_t *ent )
 	else sv_ent->solid = 0;
 
 	// set the abs box
-	if( ent->v.solid == SOLID_BSP && !VectorIsNull( ent->v.angles ))
-	{
-		// expand for rotation
-		int	i;
-		float	max = RadiusFromBounds( ent->v.mins, ent->v.maxs );
-
-		for( i = 0; i < 3; i++ )
-		{
-			ent->v.absmin[i] = ent->v.origin[i] - max;
-			ent->v.absmax[i] = ent->v.origin[i] + max;
-		}
-	}
-	else
-	{	// normal
-		VectorAdd( ent->v.origin, ent->v.mins, ent->v.absmin );	
-		VectorAdd( ent->v.origin, ent->v.maxs, ent->v.absmax );
-	}
-
-	// because movement is clipped an epsilon away from an actual edge,
-	// we must fully check even when bounding boxes don't quite touch
-	ent->v.absmin[0] -= 1;
-	ent->v.absmin[1] -= 1;
-	ent->v.absmin[2] -= 1;
-	ent->v.absmax[0] += 1;
-	ent->v.absmax[1] += 1;
-	ent->v.absmax[2] += 1;
+	svgame.dllFuncs.pfnSetAbsBox( ent );
 
 	// link to PVS leafs
 	sv_ent->num_clusters = 0;

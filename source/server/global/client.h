@@ -89,6 +89,7 @@ typedef struct user_messages_s
 	int	WeapPickup;
 	int	ItemPickup;
 	int	HideWeapon;
+	int	WeaponAnim;
 	int	RoomType;
 	int	SayText;
 	int	SetFOV;

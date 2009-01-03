@@ -460,4 +460,3 @@ void SV_Shutdown( bool reconnect )
 	if( svs.client_entities ) Mem_Free( svs.client_entities );
 	Mem_Set( &svs, 0, sizeof( svs ));
 }
-

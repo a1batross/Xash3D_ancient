@@ -143,6 +143,13 @@ PRVM INTERACTIONS
 
 ==============================================================
 */
+byte* pfnLoadFile( const char *filename, int *pLength );
+int pfnFileExists( const char *filename );
+long pfnRandomLong( long lLow, long lHigh );
+float pfnRandomFloat( float flLow, float flHigh );
+void pfnAlertMessage( ALERT_TYPE level, char *szFmt, ... );
+void pfnGetGameDir( char *szGetGameDir );
+
 char *ED_NewString( const char *string, byte *mempool );
 #define prog	vm->prog	// global callback to vprogs.dll
 #define PRVM_EDICT_NUM( num )	_PRVM_EDICT_NUM( num, __FILE__, __LINE__ )

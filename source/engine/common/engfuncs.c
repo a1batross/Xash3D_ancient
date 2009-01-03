@@ -22,17 +22,6 @@ byte* pfnLoadFile( const char *filename, int *pLength )
 
 /*
 =============
-pfnFreeFile
-
-=============
-*/
-void pfnFreeFile( void *buffer )
-{
-	if( buffer ) Mem_Free( buffer );
-}
-
-/*
-=============
 pfnFileExists
 
 =============
@@ -62,6 +51,45 @@ pfnRandomFloat
 float pfnRandomFloat( float flLow, float flHigh )
 {
 	return Com_RandomFloat( flLow, flHigh );
+}
+
+/*
+=============
+pfnAlertMessage
+
+=============
+*/
+void pfnAlertMessage( ALERT_TYPE level, char *szFmt, ... )
+{
+	char		buffer[2048];	// must support > 1k messages
+	va_list		args;
+
+	va_start( args, szFmt );
+	com.vsnprintf( buffer, 2048, szFmt, args );
+	va_end( args );
+
+	if( host.developer < level )
+		return;
+
+	switch( level )
+	{
+	case at_console:	
+		com.print( buffer );
+		break;
+	case at_warning:
+		com.print( va("^3Warning:^7 %s", buffer ));
+		break;
+	case at_error:
+		com.print( va("^1Error:^7 %s", buffer ));
+		break;
+	case at_loading:
+		com.print( va("^2Loading:^7 %s", buffer ));
+		break;
+	case at_aiconsole:
+	case at_logged:
+		com.print( buffer );
+		break;
+	}
 }
 
 /*

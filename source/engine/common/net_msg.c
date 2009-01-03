@@ -9,7 +9,7 @@
 
 static net_field_t ent_fields[] =
 {
-{ ES_FIELD(ed_type),		NET_BYTE,	 false	},	// stateflags_t #0 (4 bytes)
+{ ES_FIELD(ed_type),		NET_CHAR,	 false	},	// stateflags_t #0 (4 bytes)
 { ES_FIELD(classname),		NET_WORD,  false	},
 { ES_FIELD(soundindex),		NET_WORD,	 false	},	// 512 sounds ( OpenAL software limit is 255 )
 { ES_FIELD(origin[0]),		NET_FLOAT, false	},
@@ -92,8 +92,7 @@ static net_field_t ent_fields[] =
 { ES_FIELD(viewoffset[2]),		NET_SCALE, false	},
 { ES_FIELD(maxspeed),		NET_WORD,  false	},
 { ES_FIELD(fov),			NET_FLOAT, false	},	// client horizontal field of view
-{ ES_FIELD(weapon1),		NET_LONG,  false	},	// client weapon 0-32
-{ ES_FIELD(weapon2),		NET_LONG,  false	},	// client weapon 32-64
+{ ES_FIELD(weapons),		NET_LONG,  false	},	// client weapon 0-32
 { ES_FIELD(health),			NET_FLOAT, false	},	// client health
 // reserve for 10-11 fields without enlarge null_msg_size
 { NULL },							// terminator
@@ -281,7 +280,7 @@ void _MSG_WriteBits( sizebuf_t *msg, int value, const char *name, int net_type, 
 		if( value < NWDesc[net_type].min_range || value > NWDesc[net_type].max_range )
 		{
 			MsgDev( D_INFO, "MSG_Write%s: ", NWDesc[net_type].name );
-			if( name ) MsgDev( D_INFO, "variable '%s' ", name );
+			if( name ) MsgDev( D_INFO, "'%s' ", name );
 			MsgDev( D_INFO, "range error %i should be in range (%i", value, NWDesc[net_type].min_range );
 			MsgDev( D_INFO, " %i)(called at %s:%i)\n", NWDesc[net_type].max_range, filename, fileline );
           	}

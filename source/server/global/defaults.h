@@ -205,7 +205,8 @@
 #define	DIM_GUN_FLASH		128
 #define	NO_GUN_FLASH		0
 
-#define WEAPON_NOCLIP			-1
+#define WEAPON_NOCLIP		-1
+#define WEAPON_NOAMMO		-1
 
 //default as barney hands for weapon
 #define GORDON_HANDS			1
