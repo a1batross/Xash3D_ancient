@@ -76,6 +76,7 @@ typedef struct entity_state_s
 	vec3_t		viewangles;	// already calculated view angles on server-side
 	vec3_t		viewoffset;	// viewoffset over ground
 	int		maxspeed;		// sv_maxspeed will be duplicate on all clients
+	int		viewmodel;	// contains vmodel index
 	float		health;		// client health (other parms can be send by custom messages)
 	float		fov;		// horizontal field of view
 	int		weapons;		// weapon flags

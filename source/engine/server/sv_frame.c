@@ -46,7 +46,6 @@ Copy entvars into entity state
 */
 void SV_UpdateEntityState( edict_t *ent )
 {
-	edict_t	*client;
 	int	i;
 
 	// copy progs values to state
@@ -59,15 +58,16 @@ void SV_UpdateEntityState( edict_t *ent )
 	ent->pvServerData->s.health = ent->v.health;
 	ent->pvServerData->s.model.skin = ent->v.skin;		// studio model skin
 	ent->pvServerData->s.model.body = ent->v.body;		// studio model submodel 
-	ent->pvServerData->s.model.frame = ent->v.frame;		// any model current frame
 	ent->pvServerData->s.model.gaitsequence = ent->v.gaitsequence;// player sequence, that will be playing on client
 	ent->pvServerData->s.effects = ent->v.effects;		// shared client and render flags
 	ent->pvServerData->s.renderfx = ent->v.renderfx;		// renderer flags
 	ent->pvServerData->s.rendermode = ent->v.rendermode;	// rendering mode
 	ent->pvServerData->s.renderamt = ent->v.renderamt;	// alpha value
-	ent->pvServerData->s.model.framerate = ent->v.framerate;
 	ent->pvServerData->s.model.animtime = (int)(1000.0 * ent->v.animtime) * 0.001; // sequence time
 	ent->pvServerData->s.model.scale = ent->v.scale;		// shared client and render flags
+	ent->pvServerData->s.movetype = ent->v.movetype;
+	ent->pvServerData->s.model.frame = ent->v.frame;		// any model current frame
+	ent->pvServerData->s.model.framerate = ent->v.framerate;
 	VectorCopy( ent->v.rendercolor, ent->pvServerData->s.rendercolor );
 
 	// studio model sequence
@@ -80,35 +80,12 @@ void SV_UpdateEntityState( edict_t *ent )
 		ent->pvServerData->s.model.controller[i] = ent->v.controller[i];
 	}
 
-	if( ent->pvServerData->s.ed_type != ED_VIEWMODEL )
-		ent->pvServerData->s.movetype = ent->v.movetype;
-
 	if( ent->pvServerData->s.ed_type == ED_MOVER || ent->pvServerData->s.ed_type == ED_BSPBRUSH )
 	{
 		// these needs to right calculate direction of scroll texture
 		VectorCopy( ent->v.movedir, ent->pvServerData->s.velocity );
 	}
-
-	if( ent->pvServerData->s.ed_type == ED_VIEWMODEL )
-	{
-		if( !ent->v.aiment ) return;	// no aiment
-
-		// copy v_model state from client to viemodel entity
-		client = ent->v.aiment;
-
-		// update both arrays, because viewmodel are hidden for qc-coders
-		ent->v.modelindex = SV_ModelIndex( STRING( client->v.viewmodel ));
-		ent->pvServerData->s.aiment = NUM_FOR_EDICT( client ); // viewmodel parent
-		ent->pvServerData->s.model.index = ent->v.modelindex;
-		ent->pvServerData->s.model.frame = ent->v.frame = client->v.weaponframe;
-		ent->pvServerData->s.model.body = ent->v.body = client->v.weaponbody;
-		ent->pvServerData->s.model.skin = ent->v.skin = client->v.weaponskin;
-		ent->v.sequence = client->v.weaponsequence;
-		if( ent->v.sequence != -1 ) ent->pvServerData->s.model.sequence = ent->v.sequence; 
-		ent->pvServerData->s.model.colormap = ent->v.colormap = client->v.colormap;
-		ent->pvServerData->s.effects |= EF_MINLIGHT; // always have some light
-	}
-	else if( ent->pvServerData->s.ed_type == ED_CLIENT )
+	if( ent->pvServerData->s.ed_type == ED_CLIENT )
 	{
 		if( ent->v.fixangle )
 		{
@@ -122,6 +99,15 @@ void SV_UpdateEntityState( edict_t *ent )
 			// and clear fixangle for the next frame
 			ent->v.fixangle = 0;
 		}
+
+		if( ent->v.viewmodel )
+			ent->pvServerData->s.viewmodel = SV_ModelIndex( STRING( ent->v.viewmodel ));
+		else ent->pvServerData->s.viewmodel = 0;
+
+		if( ent->v.aiment ) 
+			ent->pvServerData->s.aiment = NUM_FOR_EDICT( ent->v.aiment );
+		else ent->pvServerData->s.aiment = 0;
+
 		ent->pvServerData->s.weapons = ent->v.weapons;
 	}
 	else if( ent->pvServerData->s.ed_type == ED_AMBIENT )
@@ -274,14 +260,8 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 		if( ent->v.flags & FL_DORMANT )
 			continue;
 
-		// send viewmodel entity always
-		// NOTE: never apply LinkEdict to viewmodel entity, because
-		// we wan't see it in list of entities returned with SV_AreaEdicts
-		if( ent->pvServerData->s.ed_type == ED_VIEWMODEL )
-			force = true;
-
 		// NOTE: client index on client expected that entity will be valid
-		if( sv_newprotocol->integer && ent->pvServerData->s.ed_type == ED_CLIENT )
+		if( ent->pvServerData->s.ed_type == ED_CLIENT )
 			force = true;
 
 		// never send entities that aren't linked in
@@ -426,16 +406,8 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 	// just send an client index
 	// it's safe, because NUM_FOR_EDICT always equal ed->serialnumber,
 	// thats shared across network
-	if( sv_newprotocol->integer )
-	{
-		MSG_WriteByte( msg, svc_playerinfo );
-		MSG_WriteByte( msg, frame->index );
-	}
-	else
-	{
-		// delta encode the playerstate
-		MSG_WriteDeltaPlayerstate( &oldframe->ps, &frame->ps, msg );
-	}
+	MSG_WriteByte( msg, svc_playerinfo );
+	MSG_WriteByte( msg, frame->index );
 
 	// delta encode the entities
 	SV_EmitPacketEntities( oldframe, frame, msg );
@@ -483,17 +455,8 @@ void SV_BuildClientFrame( sv_client_t *cl )
 	VectorCopy( clent->pvServerData->s.origin, org ); 
 	VectorAdd( org, clent->pvServerData->s.viewoffset, org );  
 
-	if( sv_newprotocol->integer )
-	{
-		// grab the current player index
-		frame->index = NUM_FOR_EDICT( clent );
-	}
-	else
-	{
-		// grab the current player state
-		cl->edict->pvServerData->framenum = sv.net_framenum;
-		frame->ps = clent->pvServerData->s;
-	}
+	// grab the current player index
+	frame->index = NUM_FOR_EDICT( clent );
 
 	// add all the entities directly visible to the eye, which
 	// may include portal entities that merge other viewpoints

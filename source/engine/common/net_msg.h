@@ -69,9 +69,9 @@ enum clc_ops_e
 
 	// engine messages
 	clc_nop = 201, 		
-	clc_move,				// [[usercmd_t]
-	clc_userinfo,			// [[userinfo string]
-	clc_stringcmd,			// [string] message
+	clc_move,			// [[usercmd_t]
+	clc_userinfo,		// [[userinfo string]
+	clc_stringcmd,		// [string] message
 };
 
 typedef enum

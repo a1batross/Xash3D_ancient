@@ -1017,22 +1017,22 @@ void R_SetLightLevel( void )
 R_AddEntityToScene
 =================
 */
-static bool R_AddEntityToScene( entity_state_t *s1, entity_state_t *s2, float lerpfrac )
+static bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac )
 {
 	ref_entity_t	*refent;
 	int		i;
 
-	if( !s1 || !s1->model.index ) return false; // if set to invisible, skip
+	if( !pRefEntity || !pRefEntity->v.modelindex )
+		return false; // if set to invisible, skip
 	if( r_numEntities >= MAX_ENTITIES ) return false;
 
 	refent = &r_entities[r_numEntities];
-	if( !s2 ) s2 = s1; // no lerping state
 
-	if( s1->effects & EF_NODRAW )
-		return true;	// done
+	if( pRefEntity->v.effects & EF_NODRAW )
+		return true; // done
 
 	// filter ents
-	switch( s1->ed_type )
+	switch( ed_type )
 	{
 	case ED_MOVER:
 	case ED_CLIENT:
@@ -1044,46 +1044,70 @@ static bool R_AddEntityToScene( entity_state_t *s1, entity_state_t *s2, float le
 	}
 
 	// copy state to render
-	refent->frame = s1->model.frame;
-	refent->index = s1->number;
-	refent->ent_type = s1->ed_type;
+	refent->index = pRefEntity->serialnumber;
+	refent->ent_type = ed_type;
 	refent->backlerp = 1.0f - lerpfrac;
-	refent->renderamt = s1->renderamt / 255.0f;
-	refent->rendermode = s1->rendermode;
-	refent->body = s1->model.body;
-	refent->sequence = s1->model.sequence;		
-	refent->movetype = s1->movetype;
-	refent->scale = (s1->model.scale != 0.0f) ? s1->model.scale : 1.0f;
-	refent->colormap = s1->model.colormap;
-	refent->framerate = s1->model.framerate;
-	refent->effects = s1->effects;
-	refent->animtime = s1->model.animtime;
-	if( VectorIsNull( s1->rendercolor ))
+	refent->renderamt = pRefEntity->v.renderamt / 255.0f;
+	refent->rendermode = pRefEntity->v.rendermode;
+	refent->body = pRefEntity->v.body;
+	refent->scale = pRefEntity->v.scale;
+	refent->colormap = pRefEntity->v.colormap;
+	refent->framerate = pRefEntity->v.framerate;
+	refent->effects = pRefEntity->v.effects;
+	if( VectorIsNull( pRefEntity->v.rendercolor ))
 		VectorSet( refent->rendercolor, 1.0f, 1.0f, 1.0f );
-	else VectorDivide( s1->rendercolor, 255.0f, refent->rendercolor );
+	else VectorDivide( pRefEntity->v.rendercolor, 255.0f, refent->rendercolor );
 
 	// setup latchedvars
-	refent->prev.frame = s2->model.frame;
-	refent->prev.animtime = s2->model.animtime;
-	VectorCopy( s2->origin, refent->prev.origin );
-	VectorCopy( s2->angles, refent->prev.angles );
-	refent->prev.sequence = s2->model.sequence;
+	VectorCopy( pRefEntity->v.oldorigin, refent->prev.origin );
+	VectorCopy( pRefEntity->v.oldangles, refent->prev.angles );
 		
 	// interpolate origin
 	for( i = 0; i < 3; i++ )
-		refent->origin[i] = LerpPoint( s2->origin[i], s1->origin[i], lerpfrac );
+		refent->origin[i] = LerpPoint( pRefEntity->v.oldorigin[i], pRefEntity->v.origin[i], lerpfrac );
+
+	if( ed_type != ED_VIEWMODEL )
+	{
+		refent->frame = pRefEntity->v.frame;
+		refent->movetype = pRefEntity->v.movetype;
+		refent->sequence = pRefEntity->v.sequence;
+		refent->animtime = pRefEntity->v.animtime;
+	
+		/* FIXME
+		refent->prev.animtime = pRefEntity->v.animtime;
+		refent->prev.sequencetime = pRefEntity->v.animtime - s2->model.animtime;
+		refent->prev.frame = s2->v.frame;
+		refent->prev.sequence = s2->model.sequence;
+		*/
+	}
+	else
+	{
+		if( !refent->model || !refent->model->phdr )
+			return false;
+
+		// update sequence only if finished or not equal current
+		if( pRefEntity->v.effects & EF_ANIMATE )
+		{
+			Msg("SetSequence: %i\n", pRefEntity->v.sequence );
+			refent->sequence = pRefEntity->v.sequence;
+			R_StudioResetSequenceInfo( refent, refent->model->phdr );
+			pRefEntity->v.effects &= ~EF_ANIMATE;
+		}
+	}
 
 	// set skin
-	refent->skin = s1->model.skin;
-	refent->model = cl_models[s1->model.index];
-	refent->weaponmodel = cl_models[s1->pmodel.index];
-	refent->renderfx = s1->renderfx;
-	refent->prev.sequencetime = s1->model.animtime - s2->model.animtime;
+	refent->skin = pRefEntity->v.skin;
+	refent->model = cl_models[pRefEntity->v.modelindex];
+	refent->renderfx = pRefEntity->v.renderfx;
+
+	// FIXME:
+	// refent->weaponmodel = cl_models[pRefEntity->v.modelindex];
+
 
 	if( refent->ent_type == ED_MOVER || refent->ent_type == ED_BSPBRUSH )
 	{
 		// store conveyor movedir in pev->velocity
-		VectorNormalize2( s1->velocity, refent->movedir );
+		VectorNormalize2( pRefEntity->v.velocity, refent->movedir );
 	}
 
 	// calculate angles
@@ -1096,7 +1120,7 @@ static bool R_AddEntityToScene( entity_state_t *s1, entity_state_t *s2, float le
 	{	
 		// interpolate angles
 		for( i = 0; i < 3; i++ )
-			refent->angles[i] = LerpAngle( s2->angles[i], s1->angles[i], lerpfrac );
+			refent->angles[i] = LerpAngle( pRefEntity->v.oldangles[i], pRefEntity->v.angles[i], lerpfrac );
 	}
 
 	Matrix3x3_FromAngles( refent->angles, refent->matrix );
@@ -1104,19 +1128,23 @@ static bool R_AddEntityToScene( entity_state_t *s1, entity_state_t *s2, float le
 	// copy controllers
 	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
 	{
-		refent->controller[i] = s1->model.controller[i];
-		refent->prev.controller[i] = s2->model.controller[i];
+		refent->controller[i] = pRefEntity->v.controller[i];
+
+		// FIXME:
+		// refent->prev.controller[i] = s2->model.controller[i];
 	}
 
 	// copy blends
 	for( i = 0; i < MAXSTUDIOBLENDS; i++ )
 	{
-		refent->blending[i] = s1->model.blending[i];
-		refent->prev.blending[i] = s2->model.blending[i];
+		refent->blending[i] = pRefEntity->v.blending[i];
+
+		// FIXME:
+		// refent->prev.blending[i] = s2->model.blending[i];
 	}
 
 	if( refent->ent_type == ED_CLIENT )
-		refent->gaitsequence = s1->model.gaitsequence;
+		refent->gaitsequence = pRefEntity->v.gaitsequence;
 
 	// because entity without models never added to scene
 	if( !refent->ent_type )

@@ -644,10 +644,12 @@ public:
 	int _cdecl MsgFunc_CamData( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_SetBody( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_SetSkin( const char *pszName, int iSize, void *pbuf );
+	int _cdecl MsgFunc_WeaponAnim( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_AddScreen( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_AddMirror( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_AddPortal( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_Particle( const char *pszName, int iSize, void *pbuf );
+	int _cdecl MsgFunc_TempEntity( const char *pszName, int iSize, void *pbuf );
 
 	// filled in VidInit
 	struct

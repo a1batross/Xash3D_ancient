@@ -103,7 +103,6 @@ int DispatchSpawn( edict_t *pent )
 		pEntity->pev->absmin = pEntity->pev->origin - Vector(1,1,1);
 		pEntity->pev->absmax = pEntity->pev->origin + Vector(1,1,1);
 
-		pEntity->SetObjectClass(); // apply default value
 		pEntity->Spawn();
 		pEntity = (CBaseEntity *)GET_PRIVATE(pent);
 

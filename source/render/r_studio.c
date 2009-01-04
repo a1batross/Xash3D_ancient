@@ -354,7 +354,7 @@ float R_StudioFrameAdvance( ref_entity_t *ent, float framerate, float flInterval
 {
 	if( flInterval == 0.0 )
 	{
-		flInterval = (r_refdef.time - ent->animtime );
+		flInterval = ( r_refdef.time - ent->animtime );
 		if( flInterval <= 0.001 )
 		{
 			ent->animtime = r_refdef.time;
@@ -376,17 +376,18 @@ float R_StudioFrameAdvance( ref_entity_t *ent, float framerate, float flInterval
 	return flInterval;
 }
 
-void R_StudioResetSequenceInfo( ref_entity_t *ent )
+void R_StudioResetSequenceInfo( ref_entity_t *ent, dstudiohdr_t *hdr )
 {
 	float	m_flFrameRate;
 
-	R_StudioGetSequenceInfo( m_pStudioHeader, ent, &m_flFrameRate, NULL );
-	ent->m_fSequenceLoops = ((R_StudioGetSequenceFlags( m_pStudioHeader, ent ) & STUDIO_LOOPING) != 0 );
+	if( !ent || !hdr ) return;
+
+	R_StudioGetSequenceInfo( hdr, ent, &m_flFrameRate, NULL );
+	ent->m_fSequenceLoops = ((R_StudioGetSequenceFlags( hdr, ent ) & STUDIO_LOOPING) != 0 );
 
 	// if custom framerate not specified, use default value from studiomodel
-	if( !ent->framerate ) ent->framerate = m_flFrameRate;
+	ent->framerate = m_flFrameRate;
 	ent->animtime = r_refdef.time;
-	ent->framerate = 1.0;
 	ent->m_fSequenceFinished = FALSE;
 }
 
@@ -1381,7 +1382,7 @@ void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref, int pass 
 			VectorScale(m_plightcolor, lv_tmp, lv );
 		}
 	}
-          
+		          
 	for( j = 0; j < m_pSubModel->nummesh; j++ ) 
 	{
 		float	s, t;
@@ -1391,8 +1392,8 @@ void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref, int pass 
 		ptricmds = (short *)((byte *)m_pStudioHeader + pmesh->triindex);
 
 		flags = ptexture[pskinref[pmesh->skinref]].flags;
-		s = 1.0/(float)ptexture[pskinref[pmesh->skinref]].width;
-		t = 1.0/(float)ptexture[pskinref[pmesh->skinref]].height;
+		s = 1.0 / (float)ptexture[pskinref[pmesh->skinref]].width;
+		t = 1.0 / (float)ptexture[pskinref[pmesh->skinref]].height;
 
 		m_pCurrentShader = &r_shaders[ptexture[pskinref[pmesh->skinref]].shader];
 
@@ -1752,10 +1753,11 @@ bool R_StudioDrawModel( int pass, int flags )
 			return 0;
 
 		// viewmodel animate on client
-		R_StudioFrameAdvance( m_pCurrentEntity, 1.0f, 0 );
+		//if( !m_pCurrentEntity->m_fSequenceFinished )
+			R_StudioFrameAdvance( m_pCurrentEntity, 1.0f, 0 );
 
-		if( m_pCurrentEntity->m_fSequenceFinished )
-			R_StudioResetSequenceInfo( m_pCurrentEntity );
+		//if( m_pCurrentEntity->m_fSequenceFinished && m_pCurrentEntity->m_fSequenceLoops )
+		//	R_StudioResetSequenceInfo( m_pCurrentEntity, m_pStudioHeader );
 	}
 
 	R_StudioSetupRender( pass );	
@@ -1797,8 +1799,8 @@ bool R_StudioDrawModel( int pass, int flags )
 		if( m_pCurrentEntity->index > 0 )
 		{
 			// copy attachments into global entity array
-			entity_state_t *ent = ri.GetClientEdict( m_pCurrentEntity->index );
-			Mem_Copy( m_pCurrentEntity->attachment, m_pCurrentEntity->attachment, sizeof(vec3_t) * MAXSTUDIOATTACHMENTS );
+			edict_t *ent = ri.GetClientEdict( m_pCurrentEntity->index );
+			Mem_Copy( ent->v.attachment, m_pCurrentEntity->attachment, sizeof(vec3_t) * MAXSTUDIOATTACHMENTS );
 		}
 	}
 
@@ -1843,7 +1845,7 @@ StudioEstimateGait
 
 ====================
 */
-void R_StudioEstimateGait( entity_state_t *pplayer )
+void R_StudioEstimateGait( edict_t *pplayer )
 {
 	float	dt;
 	vec3_t	est_velocity;
@@ -1858,7 +1860,7 @@ void R_StudioEstimateGait( entity_state_t *pplayer )
 		return;
 	}
 
-	// VectorAdd( pplayer->velocity, pplayer->prediction_error, est_velocity );
+	// VectorAdd( pplayer->v.velocity, pplayer->v.prediction_error, est_velocity );
 	if( m_fGaitEstimation )
 	{
 		VectorSubtract( m_pCurrentEntity->origin, m_pCurrentEntity->prev.gaitorigin, est_velocity );
@@ -1874,7 +1876,7 @@ void R_StudioEstimateGait( entity_state_t *pplayer )
 	}
 	else
 	{
-		VectorCopy( pplayer->velocity, est_velocity );
+		VectorCopy( pplayer->v.velocity, est_velocity );
 		m_flGaitMovement = VectorLength( est_velocity ) * dt;
 	}
 
@@ -1908,7 +1910,7 @@ StudioProcessGait
 
 ====================
 */
-void R_StudioProcessGait( entity_state_t *pplayer )
+void R_StudioProcessGait( edict_t *pplayer )
 {
 	dstudioseqdesc_t	*pseqdesc;
 	float		dt, flYaw;	// view direction relative to movement
@@ -1968,10 +1970,10 @@ void R_StudioProcessGait( entity_state_t *pplayer )
 	if( m_pCurrentEntity->angles[YAW] < -0 ) m_pCurrentEntity->angles[YAW] += 360;
 	m_pCurrentEntity->prev.angles[YAW] = m_pCurrentEntity->angles[YAW];
 
-	if( pplayer->model.gaitsequence >= m_pStudioHeader->numseq ) 
-		pplayer->model.gaitsequence = 0;
+	if( pplayer->v.gaitsequence >= m_pStudioHeader->numseq ) 
+		pplayer->v.gaitsequence = 0;
 
-	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + pplayer->model.gaitsequence;
+	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + pplayer->v.gaitsequence;
 
 	// calc gait frame
 	if( pseqdesc->linearmovement[0] > 0 )
@@ -1996,12 +1998,12 @@ StudioDrawPlayer
 */
 int R_StudioDrawPlayer( int pass, int flags )
 {
-	entity_state_t	*pplayer;
+	edict_t	*pplayer;
 
 	if( m_pCurrentEntity->ent_type == ED_CLIENT )
 		return 0;
 
-	if(!(flags & STUDIO_MIRROR))
+	if( !( flags & STUDIO_MIRROR ))
 	{
 		//m_pCurrentEntity = IEngineStudio.GetCurrentEntity();
 	}
@@ -2010,20 +2012,20 @@ int R_StudioDrawPlayer( int pass, int flags )
 	R_StudioSetupRender( pass );
 
 	// MsgDev( D_INFO, "DrawPlayer %d\n", m_pCurrentEntity->blending[0] );
-	// MsgDev( D_INFO, "DrawPlayer %d %d (%d)\n", r_framecount, pplayer->number, m_pCurrentEntity->sequence );
-	// MsgDev( D_INFO, "Player %.2f %.2f %.2f\n", pplayer->velocity[0], pplayer->velocity[1], pplayer->velocity[2] );
+	// MsgDev( D_INFO, "DrawPlayer %d %d (%d)\n", r_framecount, pplayer->serialnumber, m_pCurrentEntity->sequence );
+	// MsgDev( D_INFO, "Player %.2f %.2f %.2f\n", pplayer->v.velocity[0], pplayer->v.velocity[1], pplayer->v.velocity[2] );
 
-	if( pplayer->number < 0 || pplayer->number > ri.GetMaxClients())
+	if( pplayer->serialnumber < 0 || pplayer->serialnumber > ri.GetMaxClients())
 		return 0;
 
-	if( pplayer->model.gaitsequence )
+	if( pplayer->v.gaitsequence )
 	{
 		vec3_t orig_angles;
 
 		VectorCopy( m_pCurrentEntity->angles, orig_angles );
 		R_StudioProcessGait( pplayer );
 
-		m_pCurrentEntity->gaitsequence = pplayer->model.gaitsequence;
+		m_pCurrentEntity->gaitsequence = pplayer->v.gaitsequence;
 		R_StudioSetUpTransform( );
 		VectorCopy( orig_angles, m_pCurrentEntity->angles );
 	}
@@ -2068,8 +2070,8 @@ int R_StudioDrawPlayer( int pass, int flags )
 		if( m_pCurrentEntity->index > 0 )
 		{
 			// copy attachments into global entity array
-			entity_state_t *ent = ri.GetClientEdict( m_pCurrentEntity->index );
-			Mem_Copy( m_pCurrentEntity->attachment, m_pCurrentEntity->attachment, sizeof(vec3_t) * MAXSTUDIOATTACHMENTS );
+			edict_t *ent = ri.GetClientEdict( m_pCurrentEntity->index );
+			Mem_Copy( ent->v.attachment, m_pCurrentEntity->attachment, sizeof(vec3_t) * MAXSTUDIOATTACHMENTS );
 		}
 	}
 

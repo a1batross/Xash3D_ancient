@@ -9,7 +9,7 @@
 
 static net_field_t ent_fields[] =
 {
-{ ES_FIELD(ed_type),		NET_CHAR,	 false	},	// stateflags_t #0 (4 bytes)
+{ ES_FIELD(ed_type),		NET_BYTE,	 false	},	// stateflags_t #0 (4 bytes)
 { ES_FIELD(classname),		NET_WORD,  false	},
 { ES_FIELD(soundindex),		NET_WORD,	 false	},	// 512 sounds ( OpenAL software limit is 255 )
 { ES_FIELD(origin[0]),		NET_FLOAT, false	},
@@ -91,6 +91,7 @@ static net_field_t ent_fields[] =
 { ES_FIELD(viewoffset[1]),		NET_SCALE, false	},
 { ES_FIELD(viewoffset[2]),		NET_SCALE, false	},
 { ES_FIELD(maxspeed),		NET_WORD,  false	},
+{ ES_FIELD(viewmodel),		NET_WORD,  false	},
 { ES_FIELD(fov),			NET_FLOAT, false	},	// client horizontal field of view
 { ES_FIELD(weapons),		NET_LONG,  false	},	// client weapon 0-32
 { ES_FIELD(health),			NET_FLOAT, false	},	// client health

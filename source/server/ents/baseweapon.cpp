@@ -329,7 +329,7 @@ void CBasePlayerWeapon::DefaultTouch( CBaseEntity *pOther )
 		return;
 	}
 
-	if (pOther->AddPlayerItem( this ))
+	if( pOther->AddPlayerItem( this ))
 	{
 		AttachToPlayer( pPlayer );
 		EMIT_SOUND(ENT(pPlayer->pev), CHAN_ITEM, "items/gunpickup2.wav", 1, ATTN_NORM);
@@ -344,8 +344,8 @@ void CBasePlayerWeapon :: ResetParse( ItemInfo *II )
 	m_iId = MAX_WEAPONS; //Will be owerwrite with GenerateID()
 	II->iSlot = 0;
 	II->iPosition = 0;
-	II->iViewModel = MAKE_STRING( "models/weapons/v_glock.mdl" );
-	II->iWorldModel = MAKE_STRING( "models/weapons/w_glock.mdl" );
+	II->iViewModel = iStringNull;
+	II->iWorldModel = iStringNull;
 	strcpy( II->szAnimExt, "onehanded");
  	II->iszAmmo1 = MAKE_STRING( "none" );
 	II->iMaxAmmo1 = WEAPON_NOAMMO;
@@ -739,11 +739,11 @@ int CBasePlayerWeapon :: PlaySequence( Activity activity, float fps )
 //=========================================================
 int CBasePlayerWeapon :: SetAnimation( char *name, float fps )
 {
-	if(!m_pPlayer->pev->viewmodel) return -1;    
-	UTIL_SetModel( ENT(pev), STRING( m_pPlayer->pev->viewmodel ));
+	if( !m_pPlayer->pev->viewmodel ) return -1;    
+	UTIL_SetModel( ENT( pev ), STRING( m_pPlayer->pev->viewmodel ));
  	int iSequence = LookupSequence( name );
-	if(iSequence != -1) SendWeaponAnim(iSequence, fps);
-	else DevMsg("Warning: Sequence \"%s\" not found\n", name);
+	if( iSequence != -1 ) SendWeaponAnim( iSequence, fps );
+	else ALERT( at_warning, "sequence \"%s\" not found\n", name );
 
 	return iSequence;
 }
@@ -759,15 +759,15 @@ int CBasePlayerWeapon :: SetAnimation( Activity activity, float fps )
 	if(!m_pPlayer->pev->viewmodel) return -1;
 	UTIL_SetModel( ENT(pev), STRING( m_pPlayer->pev->viewmodel ));
 	
-	//try to playing ACT sequence
+	// try to playing ACT sequence
 	iSequence = LookupActivity( activity );
-	if(iSequence != -1)
+	if( iSequence != -1 )
 	{
-		SendWeaponAnim(iSequence, fps); //activity method
+		SendWeaponAnim( iSequence, fps ); // activity method
 		return iSequence;
 	}
                         
-	//ACT not found, translate name to ACT
+	// ACT not found, translate name to ACT
 	switch ( activity )
 	{
 	case ACT_VM_IDLE1:
@@ -847,9 +847,9 @@ int CBasePlayerWeapon :: SetAnimation( Activity activity, float fps )
 	for(int i = 0; i < m_iAnimCount; i++ )
 	{
 		iSequence = LookupSequence( pAnimsList[i] );
-		if(iSequence != -1)
+		if( iSequence != -1 )
 		{
-			SendWeaponAnim(iSequence, fps); //names method
+			SendWeaponAnim (iSequence, fps ); // names method
 			return iSequence;
 		}
 	}
@@ -871,10 +871,9 @@ void CBasePlayerWeapon :: SendWeaponAnim( int sequence, float fps )
  	
 	MESSAGE_BEGIN( MSG_ONE, gmsg.WeaponAnim, NULL, m_pPlayer->pev );
 		WRITE_BYTE( sequence );						
-		WRITE_BYTE( pev->body );					
 	MESSAGE_END();                                    
 	
-	if(pstudiohdr)
+	if( pstudiohdr )
 	{
 		pseqdesc = (dstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex) + (int)sequence;
 		if(fps) pseqdesc->fps = fps;
@@ -892,20 +891,20 @@ BOOL CBasePlayerWeapon :: DefaultDeploy( Activity sequence )
 	if ( SUIT ) pev->body = TRUE;
 	else  pev->body = FALSE;
 
-	m_iClientSkin = -1;//reset last skin info for new weapon
-	m_iClientBody = -1;//reset last skin info for new weapon
+	m_iClientSkin = -1; // reset last skin info for new weapon
+	m_iClientBody = -1; // reset last skin info for new weapon
 	
 	m_pPlayer->pev->viewmodel = iViewModel();
 	m_pPlayer->pev->weaponmodel = iWorldModel();
-	strcpy( m_pPlayer->m_szAnimExtention, szAnimExt() );
-
-	if(SetAnimation( sequence ) != -1)
+	strcpy( m_pPlayer->m_szAnimExtention, szAnimExt());
+		
+	if( SetAnimation( sequence ) != -1 )
 	{
-		SetNextAttack(SequenceDuration() + 0.5);//delay before idle playing       
+		SetNextAttack( SequenceDuration() + 0.5 );//delay before idle playing       
 		return TRUE;        
 	}
 
-	//animation not found
+	// animation not found
 	return FALSE;
 }
 
@@ -915,21 +914,22 @@ BOOL CBasePlayerWeapon :: DefaultHolster( Activity sequence )
 	int iResult = 0;
 
 	iResult = SetAnimation( sequence );
-	if(iResult == -1) return 0;
+	if( iResult == -1 ) return 0;
 
-	SetNextAttack(SequenceDuration() + 0.1);//delay before switching
-	if(m_pSpot)//disable laser dot
+	SetNextAttack( SequenceDuration() + 0.1 ); // delay before switching
+	if( m_pSpot ) // disable laser dot
 	{
-		EMIT_SOUND(ENT(m_pPlayer->pev), CHAN_ITEM, "weapons/spot_off.wav", 1, ATTN_NORM);
+		EMIT_SOUND( ENT( m_pPlayer->pev ), CHAN_ITEM, "weapons/spot_off.wav", 1, ATTN_NORM );
 		m_pSpot->Killed();
 		m_pSpot = NULL;
 	}
           ZoomReset();
-	m_iSkin = 0;//reset screen
+	m_iSkin = 0; // reset screen
 
-	if(iAttack1() == FLASHLIGHT || iAttack2() == FLASHLIGHT) ClearBits(m_pPlayer->pev->effects, EF_DIMLIGHT);
+	if( iAttack1() == FLASHLIGHT || iAttack2() == FLASHLIGHT )
+		ClearBits( m_pPlayer->pev->effects, EF_DIMLIGHT );
 
-	if ( (iFlags() & ITEM_FLAG_EXHAUSTIBLE) && (m_pPlayer->m_rgAmmo[ m_iPrimaryAmmoType ] <= 0) )
+	if( (iFlags() & ITEM_FLAG_EXHAUSTIBLE) && (m_pPlayer->m_rgAmmo[ m_iPrimaryAmmoType ] <= 0) )
 	{
 		// no more ammo!
 		m_pPlayer->pev->weapons &= ~(1<<m_iId);
@@ -939,7 +939,7 @@ BOOL CBasePlayerWeapon :: DefaultHolster( Activity sequence )
 		SetNextThink( 0.5 );
 	}
 
-	//animation not found
+	// animation not found
 	return 1;
 }
 
@@ -948,7 +948,7 @@ void CBasePlayerWeapon :: DefaultIdle( void )
 	// weapon have clip and ammo or just have ammo
 	if ((iMaxClip() && m_iClip) || m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] > 0 || iMaxAmmo1() == -1)
 	{
-		//play random idle animation
+		// play random idle animation
 		int iAnim;
 		float flRand = RANDOM_FLOAT(0, 1.2);
 		if (flRand < 0.2) iAnim = ACT_VM_IDLE1;
@@ -970,59 +970,63 @@ void CBasePlayerWeapon :: DefaultIdle( void )
 
 BOOL CBasePlayerWeapon :: DefaultReload( Activity sequence )
 {
-	if (m_cActiveRocket && m_iSpot ) return FALSE;
-	if (m_flNextPrimaryAttack > UTIL_WeaponTimeBase()) return FALSE;
-	if (m_flNextSecondaryAttack > UTIL_WeaponTimeBase()) return FALSE;
-	if(m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] > 0)//have ammo?
+	if( m_cActiveRocket && m_iSpot )
+		return FALSE;
+	if( m_flNextPrimaryAttack > UTIL_WeaponTimeBase())
+		return FALSE;
+	if( m_flNextSecondaryAttack > UTIL_WeaponTimeBase())
+		return FALSE;
+	if( m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] > 0 ) // have ammo?
 	{ 
-		if(iMaxClip() == m_iClip) return FALSE;
-		if (m_iStepReload == 0)//try to playing step reload
+		if( iMaxClip() == m_iClip ) return FALSE;
+		if( m_iStepReload == 0 ) // try to playing step reload
 		{
-			if(SetAnimation( ACT_VM_START_RELOAD ) != -1)
+			if( SetAnimation( ACT_VM_START_RELOAD ) != -1 )
 			{
-				//found anim, continue
+				// found anim, continue
 				m_iStepReload = 1;
-				m_fInReload = TRUE;//disable reload button
-				return TRUE;//start reload cycle. See also ItemPostFrame 
+				m_fInReload = TRUE; // disable reload button
+				return TRUE; // start reload cycle. See also ItemPostFrame 
 			}
 			else // init default reload
 			{
 				int i = min(iMaxClip() - m_iClip, m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType]);	
-				if (i == 0) return FALSE;
+				if( i == 0 ) return FALSE;
 				int iResult = -1;
-				ZoomReset();//reset zoom
-				if(m_iClip <= 0)//empty clip ?
+				ZoomReset(); // reset zoom
+				if( m_iClip <= 0 ) // empty clip ?
 				{
-					//iResult is error code
+					// iResult is error code
 					iResult = SetAnimation( ACT_VM_RELOAD_EMPTY );
-					m_iStepReload = EMPTY_RELOAD;//it's empty reload
+					m_iStepReload = EMPTY_RELOAD; // it's empty reload
 				}
-				if(iResult == -1) 
+				if( iResult == -1 ) 
 				{
 					SetAnimation( sequence );
-					m_iStepReload = NORMAL_RELOAD;//it's not empty reload
+					m_iStepReload = NORMAL_RELOAD; // it's not empty reload
 				}
-				if(m_pSpot)m_pSpot->Suspend(SequenceDuration());//suspend laserdot
-				SetNextAttack(SequenceDuration());
-				m_fInReload = TRUE;//disable reload button
+				if( m_pSpot ) m_pSpot->Suspend( SequenceDuration( )); // suspend laserdot
+				SetNextAttack( SequenceDuration( ));
+				m_fInReload = TRUE; // disable reload button
 				
-				return TRUE;//that's all right
+				return TRUE; // that's all right
 			}
 		}
-		else if (m_iStepReload == 1)//continue step reload
+		else if( m_iStepReload == 1 ) // continue step reload
 		{
-			if (m_flTimeWeaponIdle > UTIL_WeaponTimeBase()) return FALSE;
+			if( m_flTimeWeaponIdle > UTIL_WeaponTimeBase( ))
+				return FALSE;
 			// was waiting for gun to move to side
 			SetAnimation( sequence );
 			m_iStepReload = 2;
 		}
-		else if (m_iStepReload == 2)//continue step reload
+		else if( m_iStepReload == 2 ) // continue step reload
 		{
-			// Add them to the clip
+			// add them to the clip
 			m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType]--;
 			m_iClip++;
 			m_iStepReload = 1;
-			if(m_iClip == iMaxClip()) m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 0.1;
+			if( m_iClip == iMaxClip()) m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 0.1;
 		}
 		return TRUE;
 	}            
@@ -1031,9 +1035,10 @@ BOOL CBasePlayerWeapon :: DefaultReload( Activity sequence )
 
 BOOL CBasePlayerWeapon :: PlayEmptySound( void )
 {
-	if (m_iPlayEmptySound)
+	if( m_iPlayEmptySound )
 	{
-		if(EmptySnd()) EMIT_SOUND(ENT(m_pPlayer->pev), CHAN_ITEM, STRING(EmptySnd()), 1, ATTN_NORM);
+		if( EmptySnd( ))
+			EMIT_SOUND( ENT( m_pPlayer->pev ), CHAN_ITEM, STRING( EmptySnd( )), 1, ATTN_NORM );
 		m_iPlayEmptySound = 0;
 		return TRUE;
 	}
@@ -1044,15 +1049,16 @@ BOOL CBasePlayerWeapon :: PlayEmptySound( void )
 //=========================================================
 Vector CBasePlayerWeapon :: GetCurrentSpread( const char *ammo )
 {
-	int iBullet = GetBulletType( ammo );
-	if( iBullet == BULLET_9MM) return VECTOR_CONE_2DEGREES;
-	else if( iBullet == BULLET_357)	return VECTOR_CONE_2DEGREES;
-	else if( iBullet == BULLET_556)	return VECTOR_CONE_3DEGREES;
-	else if( iBullet == BULLET_762)	return VECTOR_CONE_1DEGREES;
-	else if( iBullet == BULLET_12MM)	return VECTOR_CONE_15DEGREES;
-	else if( iBullet == BULLET_BUCKSHOT)	return VECTOR_CONE_10DEGREES;
-
-	return VECTOR_CONE_0DEGREES;
+	switch( GetBulletType( ammo ))
+	{
+	case BULLET_9MM: return VECTOR_CONE_2DEGREES;
+	case BULLET_357: return VECTOR_CONE_2DEGREES;
+	case BULLET_556: return VECTOR_CONE_3DEGREES;
+	case BULLET_762: return VECTOR_CONE_1DEGREES;
+	case BULLET_12MM: return VECTOR_CONE_15DEGREES;
+	case BULLET_BUCKSHOT: return VECTOR_CONE_10DEGREES;
+	default: return VECTOR_CONE_0DEGREES;
+	}
 }
 
 int CBasePlayerWeapon :: GetBulletType( const char *ammo )
@@ -1080,10 +1086,10 @@ int CBasePlayerWeapon :: GetAmmoType( const char *ammo )
 int CBasePlayerWeapon :: ReturnAmmoIndex( const char *ammo )
 {
 	const char *ammoname;
-	ammoname = m_pPlayer->GetAmmoName(m_iPrimaryAmmoType);
-	if(!stricmp( ammo, ammoname )) return m_iPrimaryAmmoType;
-	ammoname = m_pPlayer->GetAmmoName(m_iSecondaryAmmoType);
-	if(!stricmp( ammo, ammoname )) return m_iSecondaryAmmoType;
+	ammoname = m_pPlayer->GetAmmoName( m_iPrimaryAmmoType );
+	if( !stricmp( ammo, ammoname )) return m_iPrimaryAmmoType;
+	ammoname = m_pPlayer->GetAmmoName( m_iSecondaryAmmoType );
+	if( !stricmp( ammo, ammoname )) return m_iSecondaryAmmoType;
 	return 0;
 }
 
@@ -1093,7 +1099,7 @@ int CBasePlayerWeapon :: GetCurrentAttack( const char *ammo, int firemode )
 	if( !stricmp( ammo, "none" ))	//no ammo
 	{
 		//just play animation and sound
-		if(!firemode) iResult = PlayRangeAttack();//anim is present ?
+		if(!firemode) iResult = PlayRangeAttack(); // anim is present ?
 		else iResult = PlayMeleeAttack();
 
 		SetPlayerEffects( ammo, firemode );
@@ -1590,17 +1596,17 @@ void CBasePlayerWeapon::ZoomUpdate( void )
 
 void CBasePlayerWeapon::ZoomReset( void )
 {
-	//return viewmodel
-	if(m_iZoom)
+	// return viewmodel
+	if( m_iZoom )
 	{
 		m_pPlayer->pev->viewmodel = iViewModel();
 		m_flHoldTime = UTIL_WeaponTimeBase() + 0.5;
 		m_pPlayer->m_iFOV = 90;
-		m_iZoom = 0;//clear zoom
+		m_iZoom = 0; // clear zoom
 		MESSAGE_BEGIN( MSG_ONE, gmsg.ZoomHUD, NULL, m_pPlayer->pev );
 			WRITE_BYTE( m_iZoom );
 		MESSAGE_END();
-		m_pPlayer->UpdateClientData();//update client data manually
+		m_pPlayer->UpdateClientData(); // update client data manually
 	}
 }
 
@@ -1610,37 +1616,37 @@ void CBasePlayerWeapon::ZoomReset( void )
 void CBasePlayerWeapon :: Deploy( void )
 {                              
 	m_iStepReload = 0;
-	if(iMaxClip() && m_iClip <= 0)		 //weapon have clip and clip is empty ?
+	if( iMaxClip() && m_iClip <= 0 )		 // weapon have clip and clip is empty ?
 	{
-		if(!DefaultDeploy(ACT_VM_DEPLOY_EMPTY))	 //try to playing "deploy_empty" anim
-			DefaultDeploy(ACT_VM_DEPLOY);	 //custom animation not found, play standard animation
+		if(!DefaultDeploy( ACT_VM_DEPLOY_EMPTY ))// try to playing "deploy_empty" anim
+			DefaultDeploy( ACT_VM_DEPLOY );// custom animation not found, play standard animation
 	}
-	else DefaultDeploy(ACT_VM_DEPLOY);		 //just playing standard anim
+	else DefaultDeploy( ACT_VM_DEPLOY );		 // just playing standard anim
 }
 
 void CBasePlayerWeapon :: Holster( void )
 {                              
-	if(iMaxClip() && m_iClip <= 0)		 //weapon have clip and clip is empty ?
+	if( iMaxClip() && m_iClip <= 0 )		 // weapon have clip and clip is empty ?
 	{         
-		if(!DefaultHolster(ACT_VM_HOLSTER_EMPTY))//try to playing "holster_empty" anim
-			DefaultHolster(ACT_VM_HOLSTER);
+		if(!DefaultHolster(ACT_VM_HOLSTER_EMPTY))// try to playing "holster_empty" anim
+			DefaultHolster( ACT_VM_HOLSTER );
 	}
-	else DefaultHolster(ACT_VM_HOLSTER);		 //just playing standard anim
+	else DefaultHolster(ACT_VM_HOLSTER);		 // just playing standard anim
 }
 
 //=========================================================
 //	NOT USED:HoldDown weapon
 //=========================================================
-int CBasePlayerWeapon::FoundAlly( void )
+int CBasePlayerWeapon :: FoundAlly( void )
 {
 	CBaseEntity *pEntity = UTIL_FindEntityForward( m_pPlayer );
-	if ( pEntity )
+	if( pEntity )
 	{
 		CBaseMonster *pMonster = pEntity->MyMonsterPointer();
-		if ( pMonster )
+		if( pMonster )
 		{
 			int m_class = pMonster->Classify();
-			if( m_class == CLASS_PLAYER_ALLY || m_class == CLASS_HUMAN_PASSIVE)
+			if( m_class == CLASS_PLAYER_ALLY || m_class == CLASS_HUMAN_PASSIVE )
 			{
 				return 1;
 			}
@@ -1659,83 +1665,84 @@ void CBasePlayerWeapon::ItemPreFrame( void )
 
 void CBasePlayerWeapon::ItemPostFrame( void )
 {
-	if(!b_restored)
+	if( !b_restored )
 	{
-		m_iClientSkin = -1;//reset last skin info for new weapon
-		m_iClientBody = -1;//reset last skin info for new weapon
-		if(iMaxClip() && !m_iClip) SetAnimation(ACT_VM_IDLE_EMPTY); //restore last animation
+		m_iClientSkin = -1; // reset last skin info for new weapon
+		m_iClientBody = -1; // reset last skin info for new weapon
+		if( iMaxClip() && !m_iClip )
+			SetAnimation( ACT_VM_IDLE_EMPTY ); // restore last animation
 		else SetAnimation( ACT_VM_IDLE1 );
 		b_restored = TRUE;
 	}
-	if(!m_iSpot && m_pSpot)//disable laser dot
+	if( !m_iSpot && m_pSpot ) // disable laser dot
 	{
-		m_iSkin = 0; //disable screen
-		EMIT_SOUND(ENT(m_pPlayer->pev), CHAN_ITEM, "weapons/spot_off.wav", 1, ATTN_NORM);
+		m_iSkin = 0; // disable screen
+		EMIT_SOUND( ENT( m_pPlayer->pev ), CHAN_ITEM, "weapons/spot_off.wav", 1, ATTN_NORM );
 		m_pSpot->Killed();
 		m_pSpot = NULL;
 	}
-	if(m_iSpot && !m_pSpot)//enable laser dot
+	if( m_iSpot && !m_pSpot ) // enable laser dot
 	{
 		m_pSpot = CLaserSpot::CreateSpot();
-		EMIT_SOUND(ENT(m_pPlayer->pev), CHAN_ITEM, "weapons/spot_on.wav", 1, ATTN_NORM);
-		m_iSkin = 1; //enable screen
+		EMIT_SOUND( ENT( m_pPlayer->pev ), CHAN_ITEM, "weapons/spot_on.wav", 1, ATTN_NORM );
+		m_iSkin = 1; // enable screen
 	}
-          if(m_pSpot) m_pSpot->Update( m_pPlayer );
+          if( m_pSpot ) m_pSpot->Update( m_pPlayer );
 
-          ZoomUpdate();//update zoom
+          ZoomUpdate(); // update zoom
 
-	if ( !m_iStepReload ) m_fInReload = FALSE;//reload done          
-	if ( m_flTimeUpdate < UTIL_WeaponTimeBase() ) PostIdle(); //catch all
-	if (m_fInReload && m_pPlayer->m_flNextAttack <= UTIL_WeaponTimeBase())
+	if( !m_iStepReload ) m_fInReload = FALSE; // reload done          
+	if( m_flTimeUpdate < UTIL_WeaponTimeBase()) PostIdle(); // catch all
+	if( m_fInReload && m_pPlayer->m_flNextAttack <= UTIL_WeaponTimeBase() )
 	{
-		if(m_iStepReload > 2)
+		if( m_iStepReload > 2 )
 		{
 			// complete the reload. 
 			int j = min( iMaxClip() - m_iClip, m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType]);	
 
-			// Add them to the clip
+			// add them to the clip
 			m_iClip += j;
 			m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] -= j;
-			m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 0.01;//play PostReload
-			//m_iStepReload = 1;
+			m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 0.01; // play PostReload
+			// m_iStepReload = 1;
 			m_fInReload = FALSE;
 		}
 	}
 
-	if ((m_pPlayer->pev->button & IN_ATTACK2) && CanAttack( m_flNextSecondaryAttack ) && !m_iOnControl)
+	if((m_pPlayer->pev->button & IN_ATTACK2) && CanAttack( m_flNextSecondaryAttack ) && !m_iOnControl )
 	{
 		SecondaryAttack();
 		m_pPlayer->pev->button &= ~IN_ATTACK2;
 	}
-	else if ((m_pPlayer->pev->button & IN_ATTACK) && CanAttack( m_flNextPrimaryAttack ))
+	else if((m_pPlayer->pev->button & IN_ATTACK) && CanAttack( m_flNextPrimaryAttack ))
 	{
-		if(m_iOnControl == 1)//destroy controllable rocket
+		if( m_iOnControl == 1 ) // destroy controllable rocket
 		{
-			m_iOnControl = 2;//destroy nuke
+			m_iOnControl = 2; // destroy nuke
 			m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 1.5;
 			return;
 		}
 		PrimaryAttack();
 		m_pPlayer->pev->button &= ~IN_ATTACK;
 	}
-	else if ( m_pPlayer->pev->button & IN_RELOAD && iMaxClip() != WEAPON_NOCLIP && !m_fInReload ) 
+	else if( m_pPlayer->pev->button & IN_RELOAD && iMaxClip() != WEAPON_NOCLIP && !m_fInReload ) 
 	{
 		// reload when reload is pressed, or if no buttons are down and weapon is empty.
 		Reload();
 	}
-	else if ( !(m_pPlayer->pev->button & (IN_ATTACK|IN_ATTACK2) ) )
+	else if(!(m_pPlayer->pev->button & (IN_ATTACK|IN_ATTACK2)))
 	{
-		//play sequence holster/deploy if player find or lose suit
+		// play sequence holster/deploy if player find or lose suit
 		if( ((SUIT) && !PLAYER_HAS_SUIT) || (!(SUIT) && PLAYER_HAS_SUIT))
 		{
 			m_pPlayer->m_pActiveItem->Holster( );
-			m_pPlayer->QueueItem(this);
-			if (m_pPlayer->m_pActiveItem) m_pPlayer->m_pActiveItem->Deploy();
+			m_pPlayer->QueueItem( this );
+			if( m_pPlayer->m_pActiveItem ) m_pPlayer->m_pActiveItem->Deploy( );
 		}
-		if ( !CanDeploy() && m_flNextPrimaryAttack < gpGlobals->time ) 
+		if( !CanDeploy() && m_flNextPrimaryAttack < gpGlobals->time ) 
 		{
 			// weapon isn't useable, switch.
-			if ( !(iFlags() & ITEM_FLAG_NOAUTOSWITCHEMPTY) && g_pGameRules->GetNextBestWeapon( m_pPlayer, this ) )
+			if( !(iFlags() & ITEM_FLAG_NOAUTOSWITCHEMPTY) && g_pGameRules->GetNextBestWeapon( m_pPlayer, this ))
 			{
 				m_flNextPrimaryAttack = gpGlobals->time + 0.3;
 				return;
@@ -1744,38 +1751,42 @@ void CBasePlayerWeapon::ItemPostFrame( void )
 		else
 		{
 			// weapon is useable. Reload if empty and weapon has waited as long as it has to after firing
-			if ( m_iClip == 0 && !(iFlags() & ITEM_FLAG_NOAUTORELOAD) && m_flNextPrimaryAttack < gpGlobals->time )
+			if( m_iClip == 0 && !(iFlags() & ITEM_FLAG_NOAUTORELOAD) && m_flNextPrimaryAttack < gpGlobals->time )
 			{
 				Reload();
 				return;
 			}
 		}
-		m_iPlayEmptySound = 1;//reset empty sound
+		m_iPlayEmptySound = 1; // reset empty sound
 		if(iFlags() & ITEM_FLAG_USEAUTOAIM) m_pPlayer->GetAutoaimVector( AUTOAIM_5DEGREES );
 
-		if(m_flTimeWeaponIdle < UTIL_WeaponTimeBase())//step reload
+		if(m_flTimeWeaponIdle < UTIL_WeaponTimeBase()) // step reload
 		{
 			if (m_iStepReload > 0 )
 			{
-				if (m_iClip != iMaxClip() && m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType]) Reload();
+				if (m_iClip != iMaxClip() && m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] )
+				{
+					Reload();
+				}
 				else
 				{
 					// reload debounce has timed out
-					if(IsEmptyReload())
+					if( IsEmptyReload())
 					{
-						if(SetAnimation( ACT_VM_PUMP_EMPTY ) == -1)
+						if( SetAnimation( ACT_VM_PUMP_EMPTY ) == -1 )
 							SetAnimation( ACT_VM_PUMP );
 					}
 					else SetAnimation( ACT_VM_PUMP );
-					if ( iFlags() & ITEM_FLAG_HIDEAMMO ) m_iBody = 0;//reset ammo
-					PostReload();//post effects
+					if( iFlags() & ITEM_FLAG_HIDEAMMO )
+						m_iBody = 0; // reset ammo
+					PostReload(); // post effects
 					m_iStepReload = 0;
 				}
 			}
-			else if ( m_iOnControl > 3 )//item deploy
+			else if( m_iOnControl > 3 ) // item deploy
 			{
 				m_iOnControl = 0;
-				if ( m_pPlayer->m_rgAmmo[ m_iPrimaryAmmoType ] )
+				if( m_pPlayer->m_rgAmmo[ m_iPrimaryAmmoType ] )
 				{
 					SetAnimation( ACT_VM_DEPLOY );
 					m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + RANDOM_LONG( 10, 15 );
@@ -1792,48 +1803,49 @@ int CBasePlayerWeapon::UpdateClientData( CBasePlayer *pPlayer )
 	BOOL bSend = FALSE;
 	int state = 0;
 
-	//update weapon body
-	if( m_iClientBody != m_iBody)
+	// update weapon body
+	if( m_iClientBody != m_iBody )
 	{
-		pev->body = (pev->body % NUM_HANDS) + NUM_HANDS * m_iBody;	//calculate body
+		pev->body = (pev->body % NUM_HANDS) + NUM_HANDS * m_iBody;	// calculate body
 		MESSAGE_BEGIN( MSG_ONE, gmsg.SetBody, NULL, m_pPlayer->pev );
-			WRITE_BYTE( pev->body ); //weaponmodel body
+			WRITE_BYTE( pev->body ); // weaponmodel body
 		MESSAGE_END();
 		m_iClientBody = m_iBody;//synched
 	}
 
-	//update weapon skin
-	if( m_iClientSkin != m_iSkin)
+	// update weapon skin
+	if( m_iClientSkin != m_iSkin )
 	{
-		pev->skin = m_iSkin;				//calculate skin
+		pev->skin = m_iSkin;				// calculate skin
 		MESSAGE_BEGIN( MSG_ONE, gmsg.SetSkin, NULL, m_pPlayer->pev );
 			WRITE_BYTE( pev->skin ); //weaponmodel skin.
 		MESSAGE_END();
 		m_iClientSkin = m_iSkin;//synched
 	}
 
-	if ( pPlayer->m_pActiveItem == this )
+	if( pPlayer->m_pActiveItem == this )
 	{
-		if ( pPlayer->m_fOnTarget ) state = 0x40;//weapon is ontarget
-		else	state = 1;
+		if( pPlayer->m_fOnTarget )
+			state = 0x40; // weapon is ontarget
+		else state = 1;
 	}
 
-	// Forcing send of all data!
-	if ( !pPlayer->m_fWeapon ) bSend = TRUE;
+	// forcing send of all data!
+	if( !pPlayer->m_fWeapon ) bSend = TRUE;
 	
 	// This is the current or last weapon, so the state will need to be updated
-	if ( this == pPlayer->m_pActiveItem || this == pPlayer->m_pClientActiveItem )
+	if( this == pPlayer->m_pActiveItem || this == pPlayer->m_pClientActiveItem )
 	{
-		if ( pPlayer->m_pActiveItem != pPlayer->m_pClientActiveItem ) bSend = TRUE;
+		if( pPlayer->m_pActiveItem != pPlayer->m_pClientActiveItem ) bSend = TRUE;
 	}
 
-	// If the ammo, state, or fov has changed, update the weapon
-	if ( m_iClip != m_iClientClip || state != m_iClientWeaponState || pPlayer->m_iFOV != pPlayer->m_iClientFOV )
+	// if the ammo, state, or fov has changed, update the weapon
+	if( m_iClip != m_iClientClip || state != m_iClientWeaponState || pPlayer->m_iFOV != pPlayer->m_iClientFOV )
 	{
 		bSend = TRUE;
 	}
 
-	if ( bSend )
+	if( bSend )
 	{
 		MESSAGE_BEGIN( MSG_ONE, gmsg.CurWeapon, NULL, pPlayer->pev );
 			WRITE_BYTE( state );
@@ -1846,7 +1858,7 @@ int CBasePlayerWeapon::UpdateClientData( CBasePlayer *pPlayer )
 		pPlayer->m_fWeapon = TRUE;
 	}
 
-	if ( m_pNext ) m_pNext->UpdateClientData( pPlayer );
+	if( m_pNext ) m_pNext->UpdateClientData( pPlayer );
 	return 1;
 }
 
@@ -1869,22 +1881,24 @@ void CBasePlayerWeapon::DestroyItem( void )
 void CBasePlayerWeapon::Drop( void )
 {
 	SetTouch( NULL );
-	SetThink(Remove);
+	SetThink( Remove );
 	SetNextThink( 0.1 );
 }
 
-void CBasePlayerWeapon::AttachToPlayer ( CBasePlayer *pPlayer )
+void CBasePlayerWeapon::AttachToPlayer( CBasePlayer *pPlayer )
 {
-	SetObjectClass( ED_VIEWMODEL );
+	SetObjectClass( ED_STATIC );		// disable client updates
+
+	// make cross-links for consitency
+	pev->aiment = pPlayer->edict();
+	pev->owner = pPlayer->edict();
 
 	pev->movetype = MOVETYPE_FOLLOW;
 	pev->solid = SOLID_NOT;
-	pev->aiment = pPlayer->edict();
-	pev->effects = EF_NODRAW;
-	pev->modelindex = 0; // server won't send down to clients if modelindex == 0
-	pev->targetname = iStringNull; // don't try remove this weapon from map
+	pev->effects |= EF_NODRAW; 
+	pev->modelindex = 0;		// server won't send down to clients if modelindex == 0
+	pev->targetname = iStringNull;	// don't try remove this weapon from map
 	pev->model = iStringNull;
-	pev->owner = pPlayer->edict();
 	SetNextThink( 0.1 );
 	SetTouch( NULL );
 	SetThink( NULL );

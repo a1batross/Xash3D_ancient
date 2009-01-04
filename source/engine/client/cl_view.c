@@ -62,9 +62,9 @@ void V_TestEntities( void )
 {
 	int		i, j;
 	float		f, r;
-	entity_state_t	ent;
+	edict_t		ent;
 
-	Mem_Set( &ent, 0, sizeof( entity_state_t ));
+	Mem_Set( &ent, 0, sizeof( edict_t ));
 	V_ClearScene();
 
 	for( i = 0; i < 32; i++ )
@@ -73,12 +73,14 @@ void V_TestEntities( void )
 		f = 64 * (i/4) + 128;
 
 		for( j = 0; j < 3; j++ )
-			ent.origin[j] = cl.refdef.vieworg[j] + cl.refdef.forward[j] * f + cl.refdef.right[j] * r;
+			ent.v.origin[j] = cl.refdef.vieworg[j]+cl.refdef.forward[j] * f + cl.refdef.right[j] * r;
 
-		ent.model.controller[0] = ent.model.controller[1] = 90.0f;
-		ent.model.controller[2] = ent.model.controller[3] = 180.0f;
-		ent.model.index = cl.frame.ps.model.index;
-		re->AddRefEntity( &ent, NULL, 1.0f );
+		ent.v.scale = 1.0f;
+		ent.serialnumber = cl.frame.ps.number;
+		ent.v.controller[0] = ent.v.controller[1] = 90.0f;
+		ent.v.controller[2] = ent.v.controller[3] = 180.0f;
+		ent.v.modelindex = cl.frame.ps.model.index;
+		re->AddRefEntity( &ent, ED_NORMAL, 1.0f );
 	}
 }
 

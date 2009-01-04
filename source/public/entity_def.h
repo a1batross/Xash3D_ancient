@@ -58,6 +58,7 @@ typedef struct entvars_s
 	float		frame;		// % playback position in animation sequences (0..255)
 	float		animtime;		// world time when frame was set
 	float		framerate;	// animation playback rate (-8x to 8x)
+	vec3_t		attachment[16];	// server-client attachment actual coords
 	float		controller[16];	// bone controller setting (0..255)
 	float		blending[16];	// blending amount between sub-sequences (0..255)
 
@@ -102,10 +103,6 @@ typedef struct entvars_s
 	vec3_t		v_angle;		// viewing angle (player only)
 	int		fixangle;		// 0 - nothing, 1 - force view angles, 2 - add avelocity
 	string_t		viewmodel;	// player's viewmodel
-	float		weaponframe;	// viewmodel frame
-	int		weaponsequence;
-	int		weaponbody;	// viewmodel body
-	int		weaponskin;	// viewmodel skin
 	int		gaitsequence;	// movement animation sequence for player (0 for none)
 	short		colormap;		// lowbyte topcolor, highbyte bottomcolor
 	int		playerclass;

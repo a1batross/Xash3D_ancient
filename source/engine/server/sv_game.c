@@ -539,7 +539,9 @@ void SV_SetMassCentre( edict_t *ent )
 void SV_SetModel( edict_t *ent, const char *name )
 {
 	int		i;
+	cmodel_t		*mod;
 	vec3_t		angles;
+	int		mod_type = mod_bad;
 
 	i = SV_ModelIndex( name );
 	if( i == 0 ) return;
@@ -547,11 +549,22 @@ void SV_SetModel( edict_t *ent, const char *name )
 	ent->v.model = MAKE_STRING( sv.configstrings[CS_MODELS+i] );
 	ent->v.modelindex = i;
 
-	if( !pe->RegisterModel( name )) // precache sv.model
-		MsgDev( D_ERROR, "SV_SetModel: %s not found\n", name );
+	mod = pe->RegisterModel( name ); // precache sv.model
+	if( !mod ) MsgDev( D_ERROR, "SV_SetModel: %s not found\n", name );
+	else mod_type = mod->type;
 
 	// can be changed from qc-code later
-	SV_SetMinMaxSize( ent, vec3_origin, vec3_origin, false );
+	switch( mod_type )
+	{
+	case mod_brush:
+	case mod_sprite:
+		SV_SetMinMaxSize( ent, mod->mins, mod->maxs, false );
+		break;
+	case mod_studio:
+	case mod_bad:
+		SV_SetMinMaxSize( ent, vec3_origin, vec3_origin, false );
+		break;
+	}
 
 	switch( ent->v.movetype )
 	{

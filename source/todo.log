@@ -37,6 +37,8 @@ Beta 13.12.08
 16.Copy Resources				OK
 17.тормоза на больших картах
 18.weapon pickup & drawing
+19.AddRefEntity uses edict_t instead entity state
+20.render custom models
 
 entity_state_t невидима для пользователя
 

@@ -497,13 +497,13 @@ typedef struct
 
 typedef struct latchedvars_s
 {
-	float		animtime;
+	float		animtime;		// ???
 	float		sequencetime;
-	vec3_t		origin;
+	vec3_t		origin;		// edict->v.old_origin
 	vec3_t		angles;		
 
 	vec3_t		gaitorigin;
-	int		sequence;
+	int		sequence;		// ???
 	float		frame;
 
 	float		blending[MAXSTUDIOBLENDS];
@@ -516,7 +516,7 @@ typedef struct latchedvars_s
 typedef struct ref_entity_s
 {
 	edtype_t		ent_type;		// entity type
-	int		index;		// entity index
+	int		index;		// viewmodel has entindex -1
 	rmodel_t		*model;		// opaque type outside refresh
 	rmodel_t		*weaponmodel;	// opaque type outside refresh	
 
@@ -562,7 +562,7 @@ typedef struct ref_entity_s
 	float		gaityaw;		// local value
 
 	// shader information
-	ref_shader_t		*shader;
+	ref_shader_t	*shader;
 	float		shaderTime;	// subtracted from refdef time to control effect start times
 	float		radius;		// bbox approximate radius
 	float		rotation;		// what the hell ???
@@ -576,6 +576,7 @@ void	R_ModelList_f( void );
 void	R_StudioInit( void );
 void	R_StudioShutdown( void );
 bool	R_StudioComputeBBox( vec3_t bbox[8] );	// for drawing bounds
+void	R_StudioResetSequenceInfo( ref_entity_t *ent, dstudiohdr_t *hdr );
 void	R_StudioSetupModel( int body, int bodypart );
 void	R_InitModels( void );
 void	R_ShutdownModels( void );

@@ -1352,7 +1352,7 @@ void VM_drawmodel( void )
 	const char	*modname;
 	int		sequence;
 	static ref_params_t	refdef;
-	entity_state_t	ent;
+	edict_t		ent;
 	static float	frame;
 
 	if(!VM_ValidateArgs( "drawmodel", 4 ))
@@ -1382,17 +1382,17 @@ void VM_drawmodel( void )
 
 	re->ClearScene();
 	re->RegisterModel( modname, MAX_MODELS - 1 );
-	ent.model.sequence = sequence;
-	ent.model.index = MAX_MODELS - 1;
-	ent.model.controller[0] = 127;
-	ent.model.controller[1] = 127;
-	ent.model.controller[2] = 127;
-	ent.model.controller[3] = 127;
-	VectorCopy( origin, ent.origin );
-	VectorCopy( angles, ent.angles );
-	ent.model.frame = frame += 0.7f;	// FXIME: needs flag EF_AUTOANIMATE or somewhat
+	ent.v.sequence = sequence;
+	ent.v.modelindex = MAX_MODELS - 1;
+	ent.v.controller[0] = 127;
+	ent.v.controller[1] = 127;
+	ent.v.controller[2] = 127;
+	ent.v.controller[3] = 127;
+	VectorCopy( origin, ent.v.origin );
+	VectorCopy( angles, ent.v.angles );
+	ent.v.frame = frame += 0.7f;	// FXIME: needs flag EF_AUTOANIMATE or somewhat
 
-	re->AddRefEntity( &ent, NULL, 1.0f );
+	re->AddRefEntity( &ent, ED_NORMAL, 1.0f );
 	re->RenderFrame( &refdef );
 }
 

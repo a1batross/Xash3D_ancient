@@ -26,6 +26,7 @@ DECLARE_HUDMESSAGE( SetSky );
 DECLARE_HUDMESSAGE( RainData );
 DECLARE_HUDMESSAGE( SetBody );
 DECLARE_HUDMESSAGE( SetSkin );
+DECLARE_HUDMESSAGE( WeaponAnim );
 DECLARE_HUDMESSAGE( ResetHUD );
 DECLARE_HUDMESSAGE( InitHUD );
 DECLARE_HUDMESSAGE( ViewMode );
@@ -37,6 +38,7 @@ DECLARE_HUDMESSAGE( CamData );
 DECLARE_HUDMESSAGE( AddMirror );
 DECLARE_HUDMESSAGE( AddScreen );
 DECLARE_HUDMESSAGE( AddPortal );
+DECLARE_HUDMESSAGE( TempEntity );
 DECLARE_HUDMESSAGE( ServerName );
 DECLARE_HUDMESSAGE( ScreenShake );
 DECLARE_HUDMESSAGE( Intermission );
@@ -53,10 +55,12 @@ int CHud :: InitMessages( void )
 	HOOK_MESSAGE( Concuss );
 	HOOK_MESSAGE( HUDColor );
 	HOOK_MESSAGE( Particle );
+	HOOK_MESSAGE( TempEntity );
 	HOOK_MESSAGE( SetFog );
 	HOOK_MESSAGE( SetSky );
 	HOOK_MESSAGE( CamData );
 	HOOK_MESSAGE( RainData ); 
+	HOOK_MESSAGE( WeaponAnim );
 	HOOK_MESSAGE( SetBody );
 	HOOK_MESSAGE( SetSkin );
 	HOOK_MESSAGE( AddMirror);
@@ -308,15 +312,25 @@ int CHud :: MsgFunc_RainData( const char *pszName, int iSize, void *pbuf )
 	return 1;
 }
 
+int CHud :: MsgFunc_WeaponAnim( const char *pszName, int iSize, void *pbuf )
+{
+	BEGIN_READ( pszName, iSize, pbuf );
+
+	edict_t *viewmodel = GetViewModel();
+	viewmodel->v.sequence = READ_BYTE();
+	viewmodel->v.effects |= EF_ANIMATE;
+
+	END_READ();
+	
+	return 1;
+}
+
 int CHud :: MsgFunc_SetBody( const char *pszName, int iSize, void *pbuf )
 {
 	BEGIN_READ( pszName, iSize, pbuf );
 
-	edict_t	*viewmodel = GetViewModel();
-	int	body = READ_BYTE();
-
-	if( viewmodel )
-		viewmodel->v.body = body;
+	edict_t *viewmodel = GetViewModel();
+	viewmodel->v.body = READ_BYTE();
 
 	END_READ();
 	
@@ -327,11 +341,8 @@ int CHud :: MsgFunc_SetSkin( const char *pszName, int iSize, void *pbuf )
 {
 	BEGIN_READ( pszName, iSize, pbuf );
 
-	edict_t	*viewmodel = GetViewModel();
-	int	skin = READ_BYTE();
-
-	if( viewmodel )
-		viewmodel->v.skin = skin;
+	edict_t *viewmodel = GetViewModel();
+	viewmodel->v.skin = READ_BYTE();
 
 	END_READ();
 	
@@ -378,6 +389,17 @@ int CHud :: MsgFunc_Particle( const char *pszName,  int iSize, void *pbuf )
 	int idx = READ_BYTE();
 	char *sz = READ_STRING();
 	// CreateAurora( idx, sz );
+
+	END_READ();
+	
+	return 1;
+}
+
+int CHud :: MsgFunc_TempEntity( const char *pszName, int iSize, void *pbuf )
+{
+	BEGIN_READ( pszName, iSize, pbuf );
+
+	// AddTempEntity( ... );
 
 	END_READ();
 	

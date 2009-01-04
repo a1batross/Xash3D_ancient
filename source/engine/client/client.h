@@ -108,6 +108,7 @@ typedef struct
 	dword		time;		// this is the time value that the client
 					// is rendering at.  always <= cls.realtime
 	ref_params_t	refdef;		// shared refdef
+	edict_t		viewent;		// viewmodel
 
 	// misc 2d drawing stuff
 	int		centerPrintTime;
@@ -576,10 +577,10 @@ cdlight_t *CL_AllocDlight( int key );
 void CL_AddParticles( void );
 void CL_AddDecals( void );
 void CL_ClearEffects( void );
-void CL_StudioEvent( dstudioevent_t *event, entity_state_t *ent );
+void CL_StudioEvent( dstudioevent_t *event, edict_t *ent );
 void CL_AddDecal( vec3_t org, matrix3x3 m, shader_t s, vec4_t rgba, bool fade, decalFragment_t *df, const vec3_t *v );
-entity_state_t *CL_GetEdictByIndex( int index );
-entity_state_t *CL_GetLocalPlayer( void );
+edict_t *CL_GetEdictByIndex( int index );
+edict_t *CL_GetLocalPlayer( void );
 void PF_addlight( void );
 void PF_addparticle( void );
 void PF_adddecal( void );

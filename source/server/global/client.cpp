@@ -1044,7 +1044,7 @@ void LinkUserMessages( void )
 	gmsg.ItemPickup = REG_USER_MSG( "ItemPickup", -1 );
 	gmsg.RoomType = REG_USER_MSG( "RoomType", 2 );
 	gmsg.HideWeapon = REG_USER_MSG( "HideWeapon", 1 );
-	gmsg.WeaponAnim = REG_USER_MSG( "WeaponAnim", 2 );
+	gmsg.WeaponAnim = REG_USER_MSG( "WeaponAnim", 1 );
 	gmsg.SetFOV = REG_USER_MSG( "SetFOV", 1 );
 	gmsg.ShowMenu = REG_USER_MSG( "ShowMenu", -1 );
 	gmsg.Shake = REG_USER_MSG("ScreenShake", 13 );
@@ -1058,7 +1058,7 @@ void LinkUserMessages( void )
 	gmsg.ZoomHUD = REG_USER_MSG("ZoomHUD", 1);
 	gmsg.WarHUD = REG_USER_MSG("WarHUD", 1);
 
-	//entity messages
+	// entity messages
 	gmsg.StatusIcon = REG_USER_MSG("StatusIcon", -1);
 	gmsg.CamData = REG_USER_MSG("CamData", -1);
 	gmsg.Fsound = REG_USER_MSG("Fsound", -1);
@@ -1067,6 +1067,7 @@ void LinkUserMessages( void )
 	gmsg.AddPortal = REG_USER_MSG( "AddPortal", 1);
 	gmsg.HudText = REG_USER_MSG( "HudText", -1 );
 	gmsg.ShowGameTitle = REG_USER_MSG("GameTitle", 1);
+	gmsg.TempEntity = REG_USER_MSG( "TempEntity", 1); // FIXME
 	gmsg.SetFog = REG_USER_MSG("SetFog", 7 );
 	gmsg.SetSky = REG_USER_MSG( "SetSky", 13 );
 	gmsg.Particle = REG_USER_MSG( "Particle", -1);

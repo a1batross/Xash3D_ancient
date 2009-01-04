@@ -17,9 +17,15 @@ CL_GetClientEntity
 Render callback for studio models
 ====================
 */
-entity_state_t *CL_GetEdictByIndex( int index )
+edict_t *CL_GetEdictByIndex( int index )
 {
-	return &EDICT_NUM( index )->pvClientData->current;
+	if( index < 0 || index > clgame.numEntities )
+	{
+		if( index == -1 ) return &cl.viewent;
+		MsgDev( D_ERROR, "CL_GetEntityByIndex: invalid entindex %i\n", index );
+		return NULL;
+	}
+	return EDICT_NUM( index );
 }
 
 /*
@@ -29,9 +35,9 @@ CL_GetLocalPlayer
 Render callback for studio models
 ====================
 */
-entity_state_t *CL_GetLocalPlayer( void )
+edict_t *CL_GetLocalPlayer( void )
 {
-	return &EDICT_NUM( cl.playernum + 1 )->pvClientData->current;
+	return EDICT_NUM( cl.playernum + 1 );
 }
 
 /*
@@ -505,7 +511,7 @@ void pfnClientCmd( const char *szCmdString )
 
 /*
 =============
-pfnTextMessageGet
+pfnGetPlayerInfo
 
 =============
 */
@@ -519,13 +525,13 @@ void pfnGetPlayerInfo( int player_num, hud_player_info_t *pinfo )
 
 /*
 =============
-pfnGetPlayerInfo
+pfnTextMessageGet
 
 =============
 */
 client_textmessage_t *pfnTextMessageGet( const char *pName )
 {
-	// FIXME: implement
+	// FIXME: implement or move to client.dll
 	static client_textmessage_t null_msg;
 
 	return &null_msg;
@@ -741,33 +747,6 @@ void pfnGetViewAngles( float *angles )
 
 /*
 =============
-pfnGetEntityByIndex
-
-=============
-*/
-edict_t* pfnGetEntityByIndex( int idx )
-{
-	if( idx < 0 || idx > clgame.numEntities )
-	{
-		MsgDev( D_ERROR, "CL_GetEntityByIndex: invalid entindex %i\n", idx );
-		return EDICT_NUM( 0 );
-	}
-	return EDICT_NUM( idx );
-}
-
-/*
-=============
-pfnGetLocalPlayer
-
-=============
-*/
-edict_t* pfnGetLocalPlayer( void )
-{
-	return EDICT_NUM( cl.playernum + 1 );
-}
-
-/*
-=============
 pfnIsSpectateOnly
 
 =============
@@ -809,7 +788,7 @@ can return NULL
 */
 edict_t* pfnGetViewModel( void )
 {
-	return EDICT_NUM( cl.playernum + 1 )->v.aiment;
+	return &cl.viewent;
 }
 
 /*
@@ -922,8 +901,8 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnGetImageSize,
 	pfnSetDrawParms,
 	pfnGetViewAngles,
-	pfnGetEntityByIndex,
-	pfnGetLocalPlayer,
+	CL_GetEdictByIndex,
+	CL_GetLocalPlayer,
 	pfnIsSpectateOnly,
 	pfnGetClientTime,
 	pfnGetMaxClients,
@@ -947,11 +926,8 @@ StudioEvent
 Event callback for studio models
 ====================
 */
-void CL_StudioEvent( dstudioevent_t *event, entity_state_t *ent )
+void CL_StudioEvent( dstudioevent_t *event, edict_t *pEdict )
 {
-	// do upcast 
-	edict_t	*pEdict = EDICT_NUM( ent->number );
-
 	cls.dllFuncs.pfnStudioEvent( event, pEdict );
 }
 

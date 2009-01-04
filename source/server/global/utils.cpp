@@ -1005,53 +1005,55 @@ void UTIL_SetAvelocity ( CBaseEntity *pEnt, const Vector vecSet )
 
 //========================================================================
 // Precache and set resources - add check for present or invalid name
-// Don't crash game if model not found or no specified
+// NOTE: game will not crashed if model not specified, this code is legacy
 //========================================================================
-void UTIL_SetModel( edict_t *e, string_t s, char *c )//set default model if not found
+void UTIL_SetModel( edict_t *e, string_t s, char *c ) // set default model if not found
 {
-	if (FStringNull( s )) UTIL_SetModel( e, c );
+	if( FStringNull( s )) UTIL_SetModel( e, c );
 	else UTIL_SetModel( e, s );
 }
-void UTIL_SetModel( edict_t *e, string_t model ){ UTIL_SetModel( e, STRING(model)); }
+
+void UTIL_SetModel( edict_t *e, string_t model )
+{
+	UTIL_SetModel( e, STRING( model ));
+}
+
 void UTIL_SetModel( edict_t *e, const char *model )
 {
-	//if(g_serveractive && g_engfuncs.pfnModelIndex( model ) >= 0) return;
-	if(!model || !*model) 
+	if( !model || !*model ) 
 	{
-		g_engfuncs.pfnSetModel(e, "models/common/null.mdl");
-		return;
-	}
-	//is this brush model?
-	if (model[0] == '*')
-	{
-		g_engfuncs.pfnSetModel(e, model);
+		g_engfuncs.pfnSetModel( e, "models/common/null.mdl" );
 		return;
 	}
 
-	//verify file exists
-	byte *data = LOAD_FILE((char*)model, NULL);
-	if (data)
+	// is this brush model?
+	if( model[0] == '*' )
 	{
-		FREE_FILE( data );
-		g_engfuncs.pfnSetModel(e, model);
+		g_engfuncs.pfnSetModel( e, model );
 		return;
 	}
 
-	int namelen = strlen(model) - 1;
-	if (model[namelen] == 'l')
+	// verify file exists
+	if( FILE_EXISTS( model ))
 	{
-		//this is model
-		g_engfuncs.pfnSetModel(e, "models/common/error.mdl");
+		g_engfuncs.pfnSetModel( e, model );
+		return;
 	}
-	else if (model[namelen] == 'r')
+
+	if( !strcmp( UTIL_FileExtension( model ), "mdl" ))
 	{
-		//this is sprite
-		g_engfuncs.pfnSetModel(e, "sprites/error.spr");
+		// this is model
+		g_engfuncs.pfnSetModel(e, "models/common/error.mdl" );
+	}
+	else if( !strcmp( UTIL_FileExtension( model ), "spr" ))
+	{
+		// this is sprite
+		g_engfuncs.pfnSetModel( e, "sprites/error.spr" );
 	}
 	else
 	{
-		//set null model
-		g_engfuncs.pfnSetModel(e, "models/common/null.mdl");
+		// set null model
+		g_engfuncs.pfnSetModel( e, "models/common/null.mdl" );
 	}
 }
 
@@ -2996,6 +2998,27 @@ void UTIL_LogPrintf( char *fmt, ... )
 
 	// Print to server console
 	ALERT( at_logged, "%s", string );
+}
+
+//============
+// UTIL_FileExtension
+// returns file extension
+//============
+const char *UTIL_FileExtension( const char *in )
+{
+	const char *separator, *backslash, *colon, *dot;
+
+	separator = strrchr( in, '/' );
+	backslash = strrchr( in, '\\' );
+	if( !separator || separator < backslash )
+		separator = backslash;
+	colon = strrchr( in, ':' );
+	if( !separator || separator < colon )
+		separator = colon;
+	dot = strrchr( in, '.' );
+	if( dot == NULL || (separator && ( dot < separator )))
+		return "";
+	return dot + 1;
 }
 
 //=========================================================

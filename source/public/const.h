@@ -98,6 +98,7 @@ typedef int			shader_t;
 #define EF_ROTATE			(1<<7)	// rotate bonus item
 #define EF_MINLIGHT			(1<<8)	// allways have some light (viewmodel)
 #define EF_LIGHT			(1<<9)	// dynamic light (rockets use)
+#define EF_ANIMATE			(1<<10)	// do client animate (ignore v.frame)
 
 // edict->deadflag values
 #define DEAD_NO		0	// alive

@@ -15,14 +15,53 @@ FRAME PARSING
 */
 void CL_UpdateEntityFields( edict_t *ent )
 {
+	int	i;
+
+	// always keep an actual
+	ent->serialnumber = ent->pvClientData->current.number;
+
 	// copy state to progs
 	ent->v.classname = cl.edict_classnames[ent->pvClientData->current.classname];
 	ent->v.modelindex = ent->pvClientData->current.model.index;
 	ent->v.ambient = ent->pvClientData->current.soundindex;
 	ent->v.model = MAKE_STRING( cl.configstrings[CS_MODELS+ent->pvClientData->current.model.index] ); 
+	ent->v.weaponmodel = MAKE_STRING( cl.configstrings[CS_MODELS+ent->pvClientData->current.pmodel.index] );
+	ent->v.frame = ent->pvClientData->current.model.frame;
+	ent->v.sequence = ent->pvClientData->current.model.sequence;
+	ent->v.gaitsequence = ent->pvClientData->current.model.gaitsequence;
+	ent->v.body = ent->pvClientData->current.model.body;
+	ent->v.skin = ent->pvClientData->current.model.skin;
+	VectorCopy( ent->pvClientData->current.rendercolor, ent->v.rendercolor );
+	VectorCopy( ent->pvClientData->current.velocity, ent->v.velocity );
 	VectorCopy( ent->pvClientData->current.origin, ent->v.origin );
 	VectorCopy( ent->pvClientData->current.angles, ent->v.angles );
+	VectorCopy( ent->pvClientData->prev.origin, ent->v.oldorigin );
+	VectorCopy( ent->pvClientData->prev.angles, ent->v.oldangles );
+	VectorCopy( ent->pvClientData->current.mins, ent->v.mins );
+	VectorCopy( ent->pvClientData->current.maxs, ent->v.maxs );
+	ent->v.framerate = ent->pvClientData->current.model.framerate;
+	ent->v.colormap = ent->pvClientData->current.model.colormap; 
+	ent->v.rendermode = ent->pvClientData->current.rendermode; 
+	ent->v.renderamt = ent->pvClientData->current.renderamt; 
+	ent->v.renderfx = ent->pvClientData->current.renderfx; 
+	ent->v.scale = ent->pvClientData->current.model.scale; 
 	ent->v.weapons = ent->pvClientData->current.weapons;
+	ent->v.gravity = ent->pvClientData->current.gravity;
+	ent->v.health = ent->pvClientData->current.health;
+	ent->v.solid = ent->pvClientData->current.solidtype;
+	ent->v.movetype = ent->pvClientData->current.movetype;
+	if( ent->v.scale == 0.0f ) ent->v.scale = 1.0f;
+
+	for( i = 0; i < MAXSTUDIOBLENDS; i++ )
+		ent->v.blending[i] = ent->pvClientData->current.model.blending[i]; 
+	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
+		ent->v.controller[i] = ent->pvClientData->current.model.controller[i]; 
+	
+	if( ent->pvClientData->current.aiment )
+		ent->v.aiment = EDICT_NUM( ent->pvClientData->current.aiment );
+	else ent->v.aiment = NULL;
+
+	ent->v.pContainingEntity = ent;
 }
 
 /*
@@ -238,35 +277,22 @@ void CL_ParseFrame( sizebuf_t *msg )
 	len = MSG_ReadByte( msg );
 	MSG_ReadData( msg, &cl.frame.areabits, len );
 
-	if( sv_newprotocol->integer )
-	{
-		// read clientindex
-		cmd = MSG_ReadByte( msg );
-		if( cmd != svc_playerinfo ) Host_Error( "CL_ParseFrame: not clientindex\n" );
-		idx = MSG_ReadByte( msg );
-		clent = EDICT_NUM( idx ); // get client
-		if((idx-1) != cl.playernum ) Host_Error("CL_ParseFrame: invalid playernum (%d should be %d)\n", idx-1, cl.playernum );
-	}
-	else
-	{
-		// read playerinfo
-		cmd = MSG_ReadByte( msg );
-		if( cmd != svc_playerinfo ) Host_Error( "CL_ParseFrame: not playerinfo\n" );
-		if( old ) MSG_ReadDeltaPlayerstate( msg, &old->ps, &cl.frame.ps );
-		else MSG_ReadDeltaPlayerstate( msg, NULL, &cl.frame.ps );
-	}
+	// read clientindex
+	cmd = MSG_ReadByte( msg );
+	if( cmd != svc_playerinfo ) Host_Error( "CL_ParseFrame: not clientindex\n" );
+	idx = MSG_ReadByte( msg );
+	clent = EDICT_NUM( idx ); // get client
+	if(( idx - 1 ) != cl.playernum )
+		Host_Error("CL_ParseFrame: invalid playernum (%d should be %d)\n", idx-1, cl.playernum );
 
 	// read packet entities
 	cmd = MSG_ReadByte( msg );
 	if( cmd != svc_packetentities ) Host_Error("CL_ParseFrame: not packetentities[%d]\n", cmd );
 	CL_ParsePacketEntities( msg, old, &cl.frame );
 
-	if( sv_newprotocol->integer )
-	{
-		// now we can reading delta player state
-		if( old ) cl.frame.ps = MSG_ParseDeltaPlayer( &old->ps, &clent->pvClientData->current );
-		else cl.frame.ps = MSG_ParseDeltaPlayer( NULL, &clent->pvClientData->current );
-	}
+	// now we can reading delta player state
+	if( old ) cl.frame.ps = MSG_ParseDeltaPlayer( &old->ps, &clent->pvClientData->current );
+	else cl.frame.ps = MSG_ParseDeltaPlayer( NULL, &clent->pvClientData->current );
 
 	// FIXME
 	if( cls.state == ca_cinematic || cls.demoplayback )
@@ -312,7 +338,8 @@ void CL_AddPacketEntities( frame_t *frame )
 	{
 		s1 = &cl_parse_entities[(frame->parse_entities + pnum)&(MAX_PARSE_ENTITIES-1)];
 		ent = EDICT_NUM( s1->number );
-		re->AddRefEntity( &ent->pvClientData->current, &ent->pvClientData->prev, cl.refdef.lerpfrac );
+
+		re->AddRefEntity( ent, s1->ed_type, cl.refdef.lerpfrac );
 	}
 }
 
@@ -323,20 +350,23 @@ CL_AddViewWeapon
 */
 void CL_AddViewWeapon( entity_state_t *ps )
 {
-	edict_t		*view;	// view model
-
 	// allow the gun to be completely removed
 	if( !cl_gun->value ) return;
 
 	// don't draw gun if in wide angle view
 	if( ps->fov > 135 ) return;
+	if( !ps->viewmodel ) return;
 
-	view = EDICT_NUM( ps->aiment );
-	VectorCopy( cl.refdef.vieworg, view->pvClientData->current.origin );
-	VectorCopy( cl.refdef.viewangles, view->pvClientData->current.angles );
-	VectorCopy( cl.refdef.vieworg, view->pvClientData->prev.origin );
-	VectorCopy( cl.refdef.viewangles, view->pvClientData->prev.angles );
-	re->AddRefEntity( &view->pvClientData->current, &view->pvClientData->prev, cl.refdef.lerpfrac );
+	cl.viewent.v.scale = 1.0f;
+	cl.viewent.serialnumber = -1;
+	cl.viewent.v.framerate = 1.0f;
+	cl.viewent.v.effects |= EF_MINLIGHT;
+	cl.viewent.v.modelindex = ps->viewmodel;
+	VectorCopy( cl.refdef.vieworg, cl.viewent.v.origin );
+	VectorCopy( cl.refdef.viewangles, cl.viewent.v.angles );
+	VectorCopy( cl.refdef.vieworg, cl.viewent.v.oldorigin );
+	VectorCopy( cl.refdef.viewangles, cl.viewent.v.oldangles );
+	re->AddRefEntity( &cl.viewent, ED_VIEWMODEL, cl.refdef.lerpfrac );
 }
 
 
@@ -428,12 +458,12 @@ void CL_CalcViewValues( void )
 
 	// interpolate field of view
 	cl.refdef.fov_x = ops->fov + lerp * ( ps->fov - ops->fov );
+	clent = EDICT_NUM( cl.playernum + 1 );
 
 	// add the weapon
 	CL_AddViewWeapon( ps );
 
-	clent = EDICT_NUM( cl.playernum + 1 );
-	cl.refdef.iWeaponBits = clent->v.weapons;
+	cl.refdef.iWeaponBits = ps->weapons;
 	cls.dllFuncs.pfnUpdateClientData( &cl.refdef, (cl.time * 0.001f));
 }
 

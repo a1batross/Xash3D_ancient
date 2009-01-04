@@ -45,7 +45,7 @@ typedef struct render_exp_s
 	void	(*EndRegistration)( const char *skyname );
 
 	// prepare frame to rendering
-	bool	(*AddRefEntity)( entity_state_t *s1, entity_state_t *s2, float lerp );
+	bool	(*AddRefEntity)( edict_t *pRefEntity, int ed_type, float lerp );
 	bool	(*AddDynLight)( vec3_t org, vec3_t color, float intensity );
 	bool	(*AddParticle)( shader_t shader, const vec3_t p1, const vec3_t p2, float rad, float len, float rot, int col );
 	bool	(*AddPolygon)( shader_t shader, int numVerts, const polyVert_t *verts );
@@ -77,12 +77,12 @@ typedef struct render_imp_s
 
 	// client fundamental callbacks
 	void	(*UpdateScreen)( void );	// update screen while loading
-	void	(*StudioEvent)( dstudioevent_t *event, entity_state_t *ent );
+	void	(*StudioEvent)( dstudioevent_t *event, edict_t *ent );
 	void	(*AddDecal)( vec3_t org, matrix3x3 m, shader_t s, vec4_t rgba, bool fade, decalFragment_t *df, const vec3_t *v );
 	void	(*ShowCollision)( cmdraw_t callback );	// debug
 	long	(*WndProc)( void *hWnd, uint uMsg, uint wParam, long lParam );
-	entity_state_t *(*GetClientEdict)( int index );
-	entity_state_t *(*GetLocalPlayer)( void );
+	edict_t	*(*GetClientEdict)( int index );
+	edict_t	*(*GetLocalPlayer)( void );
 	int	(*GetMaxClients)( void );
 } render_imp_t;
 
