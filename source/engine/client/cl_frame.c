@@ -23,9 +23,9 @@ void CL_UpdateEntityFields( edict_t *ent )
 	// copy state to progs
 	ent->v.classname = cl.edict_classnames[ent->pvClientData->current.classname];
 	ent->v.modelindex = ent->pvClientData->current.model.index;
+	ent->v.weaponmodel = ent->pvClientData->current.pmodel.index;
 	ent->v.ambient = ent->pvClientData->current.soundindex;
 	ent->v.model = MAKE_STRING( cl.configstrings[CS_MODELS+ent->pvClientData->current.model.index] ); 
-	ent->v.weaponmodel = MAKE_STRING( cl.configstrings[CS_MODELS+ent->pvClientData->current.pmodel.index] );
 	ent->v.frame = ent->pvClientData->current.model.frame;
 	ent->v.sequence = ent->pvClientData->current.model.sequence;
 	ent->v.gaitsequence = ent->pvClientData->current.model.gaitsequence;
@@ -83,7 +83,11 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 	if( unchanged ) *state = *old;
 	else MSG_ReadDeltaEntity( msg, old, state, newnum );
 
-	if( state->number == -1 ) return; // entity was delta removed
+	if( state->number == -1 )
+	{
+		CL_FreeEdict( ent );
+		return; // entity was delta removed
+	}
 
 	cl.parse_entities++;
 	frame->num_entities++;
@@ -156,6 +160,8 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 		if( msg->readcount > msg->cursize )
 			Host_Error("CL_ParsePacketEntities: end of message[%d > %d]\n", msg->readcount, msg->cursize );
 
+		while( newnum >= clgame.numEntities ) CL_AllocEdict();
+
 		while( oldnum < newnum )
 		{	
 			// one or more entities from the old packet are unchanged
@@ -193,8 +199,9 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 
 		if( oldnum > newnum )
 		{	
-			// delta from baseline
+			// delta from baseline ?
 			edict_t *ent = EDICT_NUM( newnum );
+			if( ent->free ) CL_InitEdict( ent ); // FIXME: get rid of this
 			CL_DeltaEntity( msg, newframe, newnum, &ent->pvClientData->baseline, false );
 			continue;
 		}
@@ -218,6 +225,8 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 			oldnum = oldstate->number;
 		}
 	}
+
+	for( ; EDICT_NUM( clgame.numEntities - 1 )->free; clgame.numEntities-- );
 }
 
 /*
@@ -357,9 +366,7 @@ void CL_AddViewWeapon( entity_state_t *ps )
 	if( ps->fov > 135 ) return;
 	if( !ps->viewmodel ) return;
 
-	cl.viewent.v.scale = 1.0f;
 	cl.viewent.serialnumber = -1;
-	cl.viewent.v.framerate = 1.0f;
 	cl.viewent.v.effects |= EF_MINLIGHT;
 	cl.viewent.v.modelindex = ps->viewmodel;
 	VectorCopy( cl.refdef.vieworg, cl.viewent.v.origin );

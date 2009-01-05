@@ -12,16 +12,17 @@ R_GetPicSize
 this is needed by some client drawing functions
 =================
 */
-void R_GetPicSize( int *w, int *h, int frame, shader_t handle )
+void R_DrawGetParms( int *w, int *h, int *f, int frame, shader_t handle )
 {
 	ref_shader_t *shader;
 	int cur = 0;
 
-	if( !w && !h ) return;
+	if( !w && !h && !f ) return;
 
 	// assume error
 	if( w ) *w = 0;
 	if( h ) *h = 0;
+	if( f ) *f = 1;
 		
 	if( handle < 0 || handle > MAX_SHADERS || !(shader = &r_shaders[handle]))
 		return;
@@ -34,6 +35,7 @@ void R_GetPicSize( int *w, int *h, int frame, shader_t handle )
 
 	if( w ) *w = (int)shader->stages[0]->bundles[0]->textures[cur]->srcWidth;
 	if( h ) *h = (int)shader->stages[0]->bundles[0]->textures[cur]->srcHeight;
+	if( f ) *f = (int)shader->stages[0]->bundles[0]->numTextures;
 }
 
 /*
@@ -60,8 +62,8 @@ void R_DrawSetParms( shader_t handle, kRenderMode_t rendermode, int frame )
 			break;
 		case kRenderTransColor:
 			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-			shader->stages[0]->blendFunc.src = GL_SRC_COLOR;
-			shader->stages[0]->blendFunc.dst = GL_ZERO;
+			shader->stages[0]->blendFunc.src = GL_ZERO;
+			shader->stages[0]->blendFunc.dst = GL_SRC_COLOR;
 			break;
 		case kRenderTransTexture:
 			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;

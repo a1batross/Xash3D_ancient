@@ -66,6 +66,26 @@ bool ConvJPG( const char *name, byte *buffer, size_t filesize, const char *ext )
 
 /*
 =============
+ConvBMP
+=============
+*/
+bool ConvBMP( const char *name, byte *buffer, size_t filesize, const char *ext )
+{
+	rgbdata_t	*pic = FS_LoadImage( va( "#%s.bmp", name ), buffer, filesize );
+
+	if( pic )
+	{
+		FS_SaveImage( va("%s/%s.%s", gs_gamedir, name, ext ), pic );
+		Conv_CreateShader( name, pic, ext, NULL, 0, 0 );
+		Msg( "%s.bmp\n", name, ext ); // echo to console
+		FS_FreeImage( pic );
+		return true;
+	}
+	return false;
+}
+
+/*
+=============
 ConvPCX
 
 this also uses by SP2_ConvertFrame

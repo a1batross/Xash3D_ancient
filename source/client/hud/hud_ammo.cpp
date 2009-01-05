@@ -565,7 +565,7 @@ int CHudAmmo::MsgFunc_CurWeapon( const char *pszName, int iSize, void *pbuf )
 
 	m_pWeapon = pWeapon;
 
-	if( gHUD.m_iFOV >= 90 )
+	if( gHUD.m_flFOV >= 90 )
 	{
 		// normal crosshairs
 		if( fOnTarget && m_pWeapon->hAutoaim )

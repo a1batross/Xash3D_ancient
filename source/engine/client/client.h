@@ -106,6 +106,7 @@ typedef struct
 	vec3_t		viewangles;
 
 	dword		time;		// this is the time value that the client
+	dword		oldtime;		// cl.oldtime
 					// is rendering at.  always <= cls.realtime
 	ref_params_t	refdef;		// shared refdef
 	edict_t		viewent;		// viewmodel
@@ -470,6 +471,7 @@ void CL_ParseUserMessage( sizebuf_t *msg, int svc_num );
 void CL_LinkUserMessage( char *pszName, const int svc_num );
 void CL_SortUserMessages( void );
 edict_t *CL_AllocEdict( void );
+void CL_InitEdict( edict_t *pEdict );
 void CL_FreeEdict( edict_t *pEdict );
 string_t CL_AllocString( const char *szValue );
 const char *CL_GetString( string_t iString );

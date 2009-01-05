@@ -13,7 +13,6 @@
 
 // screen handlers
 #define LOAD_SHADER		(*g_engfuncs.pfnLoadShader)
-#define DrawImage		(*g_engfuncs.pfnDrawImage)
 #define DrawImageExt	(*g_engfuncs.pfnDrawImageExt)
 #define SetColor		(*g_engfuncs.pfnSetColor)
 #define SetParms		(*g_engfuncs.pfnSetParms)
@@ -55,7 +54,7 @@ inline void CL_PlaySound( int iSound, float flVolume, Vector &pos )
 #define CenterPrint		(*g_engfuncs.pfnCenterPrint)
 #define DrawChar		(*g_engfuncs.pfnDrawCharacter)
 #define DrawString		(*g_engfuncs.pfnDrawString)
-#define GetImageSize	(*g_engfuncs.pfnGetImageSize)
+#define GetParms		(*g_engfuncs.pfnGetParms)
 #define GetViewAngles	(*g_engfuncs.pfnGetViewAngles)
 #define GetEntityByIndex	(*g_engfuncs.pfnGetEntityByIndex)
 #define GetLocalPlayer	(*g_engfuncs.pfnGetLocalPlayer)
@@ -80,17 +79,6 @@ inline void TextMessageDrawChar( int xpos, int ypos, int number, int r, int g, i
 {
 	SetColor((r / 255.0f), (g / 255.0f), (b / 255.0f), 1.0f );
 	DrawChar( xpos, ypos, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, number );
-}
-
-inline void FillRGBA( int x, int y, int width, int height, int r, int g, int b, int a )
-{
-	Vector	RGB;
-
-	RGB.x = (float)(r / 255.0f);
-	RGB.y = (float)(g / 255.0f);
-	RGB.z = (float)(b / 255.0f);
-
-	g_engfuncs.pfnFillRGBA( x, y, width, height, RGB, (float)(a / 255.0f));
 }
 
 #endif//ENGINECALLBACKS_H

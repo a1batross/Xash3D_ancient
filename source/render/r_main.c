@@ -316,6 +316,7 @@ static void R_AddEntitiesToList( void )
 		case ED_MOVER:
 		case ED_NORMAL:
 		case ED_CLIENT:
+		case ED_MONSTER:
 		case ED_BSPBRUSH:
 		case ED_VIEWMODEL:
 		case ED_RIGIDBODY:
@@ -1037,6 +1038,7 @@ static bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac
 	case ED_MOVER:
 	case ED_CLIENT:
 	case ED_NORMAL:
+	case ED_MONSTER:
 	case ED_BSPBRUSH:
 	case ED_RIGIDBODY:
 	case ED_VIEWMODEL: break;
@@ -1052,11 +1054,31 @@ static bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac
 	refent->body = pRefEntity->v.body;
 	refent->scale = pRefEntity->v.scale;
 	refent->colormap = pRefEntity->v.colormap;
-	refent->framerate = pRefEntity->v.framerate;
 	refent->effects = pRefEntity->v.effects;
 	if( VectorIsNull( pRefEntity->v.rendercolor ))
 		VectorSet( refent->rendercolor, 1.0f, 1.0f, 1.0f );
 	else VectorDivide( pRefEntity->v.rendercolor, 255.0f, refent->rendercolor );
+	refent->model = cl_models[pRefEntity->v.modelindex];
+	refent->movetype = pRefEntity->v.movetype;
+	refent->framerate = pRefEntity->v.framerate;
+	refent->prev.sequencetime = refent->animtime - refent->prev.animtime;
+				
+	// check model
+	if( !refent->model ) return false;
+	switch( refent->model->type )
+	{
+	case mod_brush: break;
+	case mod_studio:
+		if( !refent->model->phdr )
+			return false;
+		break;
+	case mod_sprite:		
+		if( !refent->model->extradata )
+			return false;
+		break;
+	case mod_bad: // let the render drawing null model
+		break;
+	}
 
 	// setup latchedvars
 	VectorCopy( pRefEntity->v.oldorigin, refent->prev.origin );
@@ -1066,43 +1088,54 @@ static bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac
 	for( i = 0; i < 3; i++ )
 		refent->origin[i] = LerpPoint( pRefEntity->v.oldorigin[i], pRefEntity->v.origin[i], lerpfrac );
 
-	if( ed_type != ED_VIEWMODEL )
-	{
-		refent->frame = pRefEntity->v.frame;
-		refent->movetype = pRefEntity->v.movetype;
-		refent->sequence = pRefEntity->v.sequence;
-		refent->animtime = pRefEntity->v.animtime;
+	refent->skin = pRefEntity->v.skin;
+	refent->renderfx = pRefEntity->v.renderfx;
 	
-		/* FIXME
-		refent->prev.animtime = pRefEntity->v.animtime;
-		refent->prev.sequencetime = pRefEntity->v.animtime - s2->model.animtime;
-		refent->prev.frame = s2->v.frame;
-		refent->prev.sequence = s2->model.sequence;
-		*/
-	}
+	// do animate
+	if( refent->effects & EF_ANIMATE )
+	{
+		switch( refent->model->type )
+		{
+		case mod_studio:
+			if( pRefEntity->v.frame == -1 )
+			{
+				pRefEntity->v.frame = refent->frame = 0;
+				refent->sequence = pRefEntity->v.sequence;
+				R_StudioResetSequenceInfo( refent, refent->model->phdr );
+			}
+			else
+			{
+				R_StudioFrameAdvance( refent, 0 );
+
+				if( refent->m_fSequenceFinished )
+				{
+					if( refent->m_fSequenceLoops )
+						pRefEntity->v.frame = -1;
+					// hold at last frame
+				}
+				else
+				{
+					// copy current frame back to let user grab it on a client-side
+					pRefEntity->v.frame = refent->frame;
+				}
+			}
+			break;
+		case mod_sprite:
+		case mod_brush:
+			break;
+		}
+          }
 	else
 	{
-		if( !refent->model || !refent->model->phdr )
-			return false;
-
-		// update sequence only if finished or not equal current
-		if( pRefEntity->v.effects & EF_ANIMATE )
-		{
-			Msg("SetSequence: %i\n", pRefEntity->v.sequence );
-			refent->sequence = pRefEntity->v.sequence;
-			R_StudioResetSequenceInfo( refent, refent->model->phdr );
-			pRefEntity->v.effects &= ~EF_ANIMATE;
-		}
+		refent->prev.frame = refent->frame;
+		refent->frame = pRefEntity->v.frame;
+		refent->prev.sequence = refent->sequence;
+		refent->prev.animtime = refent->animtime;
+		refent->animtime = pRefEntity->v.animtime;
+		refent->sequence = pRefEntity->v.sequence;
 	}
 
-	// set skin
-	refent->skin = pRefEntity->v.skin;
-	refent->model = cl_models[pRefEntity->v.modelindex];
-	refent->renderfx = pRefEntity->v.renderfx;
-
-	// FIXME:
-	// refent->weaponmodel = cl_models[pRefEntity->v.modelindex];
-
+	refent->weaponmodel = cl_models[pRefEntity->v.weaponmodel];
 
 	if( refent->ent_type == ED_MOVER || refent->ent_type == ED_BSPBRUSH )
 	{
@@ -1475,6 +1508,7 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	re.EndFrame = R_EndFrame;
 
 	re.SetColor = GL_SetColor;
+	re.GetParms = R_DrawGetParms;
 	re.SetParms = R_DrawSetParms;
 	re.ScrShot = VID_ScreenShot;
 	re.EnvShot = VID_CubemapShot;
@@ -1483,9 +1517,6 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	re.DrawStretchRaw = R_DrawStretchRaw;
 	re.DrawStretchPic = R_DrawStretchPic;
 	re.ImpactMark = R_ImpactMark;
-
-	// get rid of this
-	re.DrawGetPicSize = R_GetPicSize;
 
 	return &re;
 }

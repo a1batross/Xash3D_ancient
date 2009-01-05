@@ -1416,7 +1416,7 @@ void VM_getimagesize( void )
 	p = PRVM_G_STRING(OFS_PARM0);
 
 	shader = re->RegisterShader( p, SHADER_NOMIP );
-	re->DrawGetPicSize( &w, &h, 0, shader );
+	re->GetParms( &w, &h, NULL, 0, shader );
 	VectorSet(PRVM_G_VECTOR(OFS_RETURN), w, h, 0 ); 
 }
 

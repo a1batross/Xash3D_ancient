@@ -32,13 +32,16 @@ Beta 13.12.08
 11.Load server.dll and client.dll only once	OK
 12.v_refdef interactions			OK
 13.hud_scale factor				OK
-14.move "loading" and "pause" into CHUD
-15.Get Rid Of DrawImage
+14.move "loading" and "pause" into CHUD		OK
+15.Get Rid Of DrawImage			OK
 16.Copy Resources				OK
 17.тормоза на больших картах
-18.weapon pickup & drawing
-19.AddRefEntity uses edict_t instead entity state
-20.render custom models
+18.weapon pickup & drawing			OK
+19.AddRefEntity uses edict_t instead entity state	OK
+20.render custom models			OK
+21.zoom_hud and warhead hud			OK
+22.entity_state_t revision 4
+23.entvars_t revision 1
 
 entity_state_t невидима для пользователя
 

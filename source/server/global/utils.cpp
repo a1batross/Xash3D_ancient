@@ -1007,7 +1007,7 @@ void UTIL_SetAvelocity ( CBaseEntity *pEnt, const Vector vecSet )
 // Precache and set resources - add check for present or invalid name
 // NOTE: game will not crashed if model not specified, this code is legacy
 //========================================================================
-void UTIL_SetModel( edict_t *e, string_t s, char *c ) // set default model if not found
+void UTIL_SetModel( edict_t *e, string_t s, const char *c ) // set default model if not found
 {
 	if( FStringNull( s )) UTIL_SetModel( e, c );
 	else UTIL_SetModel( e, s );
@@ -1057,49 +1057,44 @@ void UTIL_SetModel( edict_t *e, const char *model )
 	}
 }
 
-int UTIL_PrecacheModel( string_t s, char *e )//precache default model if not found
+int UTIL_PrecacheModel( string_t s, const char *e ) // precache default model if not found
 {
-	if (FStringNull( s ))
+	if( FStringNull( s ))
 		return UTIL_PrecacheModel( e );
 	return UTIL_PrecacheModel( s );
 }
-int UTIL_PrecacheModel( string_t s ){ return UTIL_PrecacheModel( (char*)STRING(s)); }
-int UTIL_PrecacheModel( char* s )
+
+int UTIL_PrecacheModel( string_t s ){ return UTIL_PrecacheModel( STRING( s )); }
+int UTIL_PrecacheModel( const char* s )
 {
-	if(!s || !*s)
+	if( !s || !*s )
 	{
-		ALERT(at_console,"Warning: modelname not specified\n");
-		return g_sModelIndexNullModel; //set null model
-	}
-	//no need to precacahe brush
-	if (s[0] == '*') return 0;
-
-	//verify file exists
-	byte *data = LOAD_FILE(s, NULL);
-	if (data)
-	{
-		FREE_FILE( data );
-		return g_engfuncs.pfnPrecacheModel(s);
+		ALERT( at_warning, "modelname not specified\n" );
+		return g_sModelIndexNullModel; // set null model
 	}
 
-	int namelen = strlen(s) - 1;
-	if (s[namelen] == 'l')
+	// no need to precache brush
+	if( s[0] == '*' ) return 0;
+
+	if( FILE_EXISTS( s ))
 	{
-		//this is model
-		ALERT(at_console,"Warning: model \"%s\" not found!\n",s);
+		return g_engfuncs.pfnPrecacheModel( s );
+	}
+
+	if( !strcmp( UTIL_FileExtension( s ), "mdl" ))
+	{
+		ALERT( at_warning, "model \"%s\" not found!\n", s );
 		return g_sModelIndexErrorModel;
 	}
-	else if (s[namelen] == 'r')
+	else if( !strcmp( UTIL_FileExtension( s ), "spr" ))
 	{
-		//this is sprite
-		ALERT(at_console,"Warning: sprite \"%s\" not found!\n",s);
+		ALERT( at_warning, "sprite \"%s\" not found!\n", s );
 		return g_sModelIndexErrorSprite;
 	}
 	else
 	{
-		//unknown format
-		ALERT(at_console,"Warning: invalid name \"%s\"!\n",s);
-		return g_sModelIndexNullModel; //set null model
+		ALERT( at_error, "invalid name \"%s\"!\n", s );
+		return g_sModelIndexNullModel;
 	}
 }
 
@@ -1128,7 +1123,7 @@ void AddAmmoName( string_t iAmmoName )
 //========================================================================
 // Precaches entity from other entity
 //========================================================================
-void UTIL_PrecacheEntity( string_t szClassname ) { UTIL_PrecacheEntity( (char *)STRING(szClassname) ); }
+void UTIL_PrecacheEntity( string_t szClassname ) { UTIL_PrecacheEntity( STRING( szClassname )); }
 void UTIL_PrecacheEntity( const char *szClassname )
 {
 	edict_t	*pent;
@@ -1137,47 +1132,45 @@ void UTIL_PrecacheEntity( const char *szClassname )
 	// check for virtual entities
 	if( FUNCTION_FROM_NAME( szClassname ))
 	{
-		pent = CREATE_NAMED_ENTITY(istr);
-		if ( FNullEnt( pent )) return;
+		pent = CREATE_NAMED_ENTITY( istr );
+		if( FNullEnt( pent )) return;
 	}
 	else if( !strncmp( szClassname, "weapon_", 7 ))
 	{
 		//may be this a weapon_generic entity?
-		pent = CREATE_NAMED_ENTITY(MAKE_STRING("weapon_generic"));
+		pent = CREATE_NAMED_ENTITY( MAKE_STRING( "weapon_generic" ));
 		if ( FNullEnt( pent )) return; //this never gonna called anymore. just in case
   		pent->v.netname = istr; 
 	}
-	else //unknown error
+	else // unknown error
 	{
-		Msg("can't create %s\n", szClassname );
+		ALERT( at_error, "can't create %s\n", szClassname );
 		return;
 	}
 	
-	CBaseEntity *pEntity = CBaseEntity::Instance (VARS( pent ));
-	if (pEntity) pEntity->Precache();
+	CBaseEntity *pEntity = CBaseEntity::Instance( VARS( pent ));
+	if( pEntity ) pEntity->Precache();
 	REMOVE_ENTITY(pent);
 }
 
 //========================================================================
 // Precaches aurora particle and set it
 //========================================================================
-int UTIL_PrecacheAurora( string_t s ) { return UTIL_PrecacheAurora( (char *)STRING(s)); }
+int UTIL_PrecacheAurora( string_t s ) { return UTIL_PrecacheAurora( STRING( s )); }
 int UTIL_PrecacheAurora( const char *s )
 {
-	char path[128]; //path length
-	sprintf(path, "scripts/aurora/%s.aur", s);	
+	char path[256];
+	sprintf( path, "scripts/aurora/%s.aur", s );	
 
-	byte *data = LOAD_FILE(path, NULL);
-	if (data)
+	if( FILE_EXISTS( path ))
 	{
-		FREE_FILE( data );
-		return ALLOC_STRING(path);
+		return ALLOC_STRING( path );
 	}
-	else //otherwise
+	else // otherwise
 	{
-		if(!s || !*s)Msg( "Warning: Aurora not specified!\n", s);
-		else Msg( "Warning: Aurora %s not found!\n", s);
-		return ALLOC_STRING( "scripts/aurora/error.aur");
+		if( !s || !*s )Msg( "Warning: Aurora not specified!\n", s);
+		else ALERT( at_warning, "aurora %s not found!\n", s );
+		return MAKE_STRING( "scripts/aurora/error.aur" );
 	} 
 }
 
@@ -1195,86 +1188,81 @@ void UTIL_SetBeams( char *szFile, CBaseEntity *pStart, CBaseEntity *pEnd )
 {
 	MESSAGE_BEGIN( MSG_ALL, gmsg.Beams );
 		WRITE_STRING( szFile );
-		WRITE_BYTE( pStart->entindex());//beam start entity
-		WRITE_BYTE( pEnd->entindex() );//beam end entity
+		WRITE_BYTE( pStart->entindex());	// beam start entity
+		WRITE_BYTE( pEnd->entindex() );	// beam end entity
 	MESSAGE_END();
 }
 
 //========================================================================
 // Precaches and play sound
 //========================================================================
-int UTIL_PrecacheSound( string_t s, char *e )//precache default model if not found
+int UTIL_PrecacheSound( string_t s, const char *e ) // precache default model if not found
 {
 	if (FStringNull( s ))
 		return UTIL_PrecacheSound( e );
 	return UTIL_PrecacheSound( s );
 }
-int UTIL_PrecacheSound( string_t s ){ return UTIL_PrecacheSound( (char*)STRING(s)); }
-int UTIL_PrecacheSound( char* s )
+int UTIL_PrecacheSound( string_t s ){ return UTIL_PrecacheSound( STRING( s )); }
+int UTIL_PrecacheSound( const char* s )
 {
-	if(!s || !*s) return MAKE_STRING("common/null.wav"); //set null sound
-	if(*s == '!') return MAKE_STRING(s); //sentence - just make string
+	if( !s || !*s ) return MAKE_STRING( "common/null.wav" ); // set null sound
+	if( *s == '!' ) return MAKE_STRING( s ); // sentence - just make string
 
-	//LOAD_FILE_FOR_ME will cause problems for some users. Disabled
-	g_engfuncs.pfnPrecacheSound(s);
-	return MAKE_STRING(s);
-	
-	//NOTE: Engine function as predicted for sound folder
-	//But LOAD_FILE don't known about this. Set it manualy
+	char path[256];
+	sprintf( path, "sound/%s", s );
 
-	char path[256]; //path size
-	sprintf(path, "sound/%s", s);
-
-	//verify file exists
-	byte *data = LOAD_FILE(path, NULL);
-	if (data)
+	// check file for existing
+	if( FILE_EXISTS( path ))
 	{
-		FREE_FILE( data );
-		g_engfuncs.pfnPrecacheSound(s);
-		return MAKE_STRING(s);
+		g_engfuncs.pfnPrecacheSound( s );
+		return MAKE_STRING( s );
 	}
-	int namelen = strlen(s) - 1;
-	if (s[namelen] == 'v')
+
+	if( !strcmp( UTIL_FileExtension( s ), "wav" ))
 	{
-		//this is sound
-		ALERT(at_console,"Warning: sound \"%s\" not found!\n",s);
-		g_engfuncs.pfnPrecacheSound("common/null.wav");
-		return MAKE_STRING("common/null.wav"); //set null sound
+		// this is sound
+		ALERT( at_warning, "sound \"%s\" not found!\n", s );
+	}
+	else if( !strcmp( UTIL_FileExtension( s ), "ogg" ))
+	{
+		// this is sound
+		ALERT( at_warning, "sound \"%s\" not found!\n", s );
 	}
 	else
 	{
-		//unknown format
-		ALERT(at_console,"Warning: invalid name \"%s\"!\n",s);
-		g_engfuncs.pfnPrecacheSound("common/null.wav");
-		return MAKE_STRING("common/null.wav"); //set null sound
+		// unknown format
+		ALERT( at_error, "invalid name \"%s\"!\n", s );
 	}
+
+	g_engfuncs.pfnPrecacheSound("common/null.wav");
+	return MAKE_STRING( "common/null.wav" );
 }
 
-int UTIL_LoadSoundPreset( string_t pString ) { return UTIL_LoadSoundPreset( (char*)STRING(pString) ); }
+int UTIL_LoadSoundPreset( string_t pString ) { return UTIL_LoadSoundPreset( STRING( pString )); }
 int UTIL_LoadSoundPreset( const char *pString )
 {
-	//try to load direct sound path
-	//so we supported 99 presets...
-	int m_sound, namelen = strlen(pString) - 1;
+	// try to load direct sound path
+	// so we supported 99 presets...
+	int m_sound, namelen = strlen( pString ) - 1;
 
-	if(namelen > 2)//yes, it's sound path
+	if( namelen > 2 ) // yes, it's sound path
 		m_sound = ALLOC_STRING( pString );
-	else if(pString[0] == '!')//sentence
+	else if( pString[0] == '!' ) // sentence
 		m_sound = ALLOC_STRING( pString );
-	else	m_sound = atoi(pString);//no, it's preset
+	else m_sound = atoi( pString ); // no, it's preset
 	return m_sound;
 }
 
-int UTIL_LoadDecalPreset( string_t pString ) { return UTIL_LoadDecalPreset( (char*)STRING(pString) ); }
+int UTIL_LoadDecalPreset( string_t pString ) { return UTIL_LoadDecalPreset( STRING( pString )); }
 int UTIL_LoadDecalPreset( const char *pString )
 {
-	//try to load direct sound path
-	//so we supported 9 decal groups...
+	// try to load direct sound path
+	// so we supported 9 decal groups...
 	int m_decal, namelen = strlen(pString) - 1;
 
-	if(namelen > 1)//yes, it's decal name
+	if( namelen > 1 ) // yes, it's decal name
 		m_decal = ALLOC_STRING( pString );
-	else	m_decal = atoi(pString);//no, it's preset
+	else m_decal = atoi( pString ); // no, it's preset
 	return m_decal;
 }
 

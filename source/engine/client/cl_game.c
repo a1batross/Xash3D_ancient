@@ -222,6 +222,7 @@ void CL_ParseUserMessage( sizebuf_t *net_buffer, int svc_num )
 void CL_InitEdict( edict_t *pEdict )
 {
 	Com_Assert( pEdict == NULL );
+	Com_Assert( pEdict->pvClientData != NULL );
 
 	pEdict->v.pContainingEntity = pEdict; // make cross-links for consistency
 	pEdict->pvClientData = (cl_priv_t *)Mem_Alloc( cls.mempool,  sizeof( cl_priv_t ));
@@ -256,7 +257,7 @@ edict_t *CL_AllocEdict( void )
 	for( i = 0; i < clgame.numEntities; i++ )
 	{
 		pEdict = EDICT_NUM( i );
-		// the first couple seconds of server time can involve a lot of
+		// the first couple seconds of client time can involve a lot of
 		// freeing and allocating, so relax the replacement policy
 		if( pEdict->free && ( pEdict->freetime < 2.0f || ((cl.time * 0.001f) - pEdict->freetime) > 0.5f ))
 		{
@@ -351,23 +352,6 @@ void pfnFillRGBA( int x, int y, int width, int height, const float *color, float
 	re->SetColor( GetRGBA( color[0], color[1], color[2], alpha ));
 	re->DrawFill( x, y, width, height );
 	re->SetColor( NULL );
-}
-
-/*
-=============
-pfnDrawImage
-
-=============
-*/
-void pfnDrawImage( shader_t shader, int x, int y, int width, int height )
-{
-	if( shader == -1 )
-	{
-		MsgDev( D_ERROR, "CL_DrawImage: invalid shader handle\n" );
-		return;
-	}
-	SCR_DrawPic( x, y, width, height, shader );
-	if( re ) re->SetColor( NULL );
 }
 
 /*
@@ -711,13 +695,14 @@ pfnGetImageSize
 
 =============
 */
-void pfnGetImageSize( int *w, int *h, int frame, shader_t shader )
+void pfnGetDrawParms( int *w, int *h, int *f, int frame, shader_t shader )
 {
-	if( re ) re->DrawGetPicSize( w, h, frame, shader );
+	if( re ) re->GetParms( w, h, f, frame, shader );
 	else
 	{
 		if( w ) *w = 0;
 		if( h ) *h = 0;
+		if( f ) *f = 1;
 	}
 }
 
@@ -875,7 +860,6 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnMemFree,
 	pfnLoadShader,
 	pfnFillRGBA,
-	pfnDrawImage,
 	pfnDrawImageExt,
 	pfnSetColor,
 	pfnRegisterVariable,
@@ -898,7 +882,7 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnCenterPrint,
 	pfnDrawCharacter,
 	pfnDrawString,		
-	pfnGetImageSize,
+	pfnGetDrawParms,
 	pfnSetDrawParms,
 	pfnGetViewAngles,
 	CL_GetEdictByIndex,

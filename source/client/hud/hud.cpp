@@ -76,8 +76,19 @@ void CHud :: VidInit( void )
 	Draw_VidInit();
 
 	// setup screen info
-	m_scrinfo.iWidth = CVAR_GET_FLOAT( "width" );
-	m_scrinfo.iHeight = CVAR_GET_FLOAT( "height" );
+	m_scrinfo.iRealWidth = CVAR_GET_FLOAT( "width" );
+	m_scrinfo.iRealHeight = CVAR_GET_FLOAT( "height" );
+
+	if( CVAR_GET_FLOAT( "hud_scale" ))
+	{
+		m_scrinfo.iWidth = SCREEN_WIDTH;
+		m_scrinfo.iHeight = SCREEN_HEIGHT;
+	}
+	else
+	{
+		m_scrinfo.iWidth = CVAR_GET_FLOAT( "width" );
+		m_scrinfo.iHeight = CVAR_GET_FLOAT( "height" );
+	}
 
 	// TODO: build real table of fonts widthInChars
 	for( int i = 0; i < 256; i++ )
@@ -166,10 +177,10 @@ void CHud :: Think( void )
 	}
 
 	// think about default fov
-	if( m_iFOV == 0 )
+	if( m_flFOV == 0 )
 	{
 		// only let players adjust up in fov, and only if they are not overriden by something else
-		m_iFOV = max( CVAR_GET_FLOAT( "default_fov" ), 90 );  
+		m_flFOV = max( CVAR_GET_FLOAT( "default_fov" ), 90 );  
 	}
 }
 
@@ -186,7 +197,7 @@ int CHud :: UpdateClientData( ref_params_t *cdata, float time )
 
 	Think();
 
-	cdata->fov_x = m_iFOV;
+	cdata->fov_x = m_flFOV;
 	cdata->iKeyBits = m_iKeyBits;
 	cdata->v_idlescale = m_iConcussionEffect;
 

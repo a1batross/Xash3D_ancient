@@ -176,8 +176,9 @@ void V_RenderView( void )
                     cl.refdef.areabits = cl.frame.areabits;
                     cl.refdef.rdflags = cl.frame.ps.renderfx;
 		cl.refdef.fov_y = V_CalcFov( cl.refdef.fov_x, cl.refdef.viewport[2], cl.refdef.viewport[3] );
-		cl.refdef.time = cl.time * 0.001f; // cl.time for right lerping		
-		cl.refdef.oldtime = (cl.time * 0.001f) - 0.005; // frametime
+		cl.refdef.oldtime = (cl.oldtime * 0.001f);
+		cl.refdef.time = (cl.time * 0.001f); // cl.time for right lerping		
+		cl.refdef.frametime = cls.frametime;
 
 		if( cl.refdef.rdflags & RDF_UNDERWATER )
 		{

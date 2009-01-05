@@ -70,12 +70,16 @@ int CHud :: InitMessages( void )
 
 	viewEntityIndex = 0; // trigger_viewset stuff
 	viewFlags = 0;
-	m_iFOV = 0;
-	m_iHUDColor = RGB_YELLOWISH; // 255,160,0
+	m_flFOV = 0;
+	m_iHUDColor = RGB_YELLOWISH; // 255, 160, 0
 	
 	CVAR_REGISTER( "zoom_sensitivity_ratio", "1.2", 0, "mouse sensitivity when zooming" );
 	CVAR_REGISTER( "default_fov", "90", 0, "default client fov" );
 	CVAR_REGISTER( "hud_draw", "1", CVAR_ARCHIVE, "hud drawing modes" );
+
+	// UNDONE: replace all coord variables with float not int
+	// FIXME: remove jitter for moving objects (flashlight beam etc)
+	CVAR_REGISTER( "hud_scale", "0", CVAR_ARCHIVE|CVAR_LATCH, "scale hud at current resolution" );
 
 	// clear any old HUD list
 	if( m_pHudList )
@@ -159,26 +163,26 @@ int CHud::MsgFunc_SetFOV( const char *pszName, int iSize, void *pbuf )
 {
 	BEGIN_READ( pszName, iSize, pbuf );
 
-	int newfov = READ_BYTE();
-	int def_fov = CVAR_GET_FLOAT( "default_fov" );
+	float newfov = READ_FLOAT();
+	float def_fov = CVAR_GET_FLOAT( "default_fov" );
 
-	if( newfov == 0 )
+	if( newfov == 0.0f )
 	{
-		m_iFOV = def_fov;
+		m_flFOV = def_fov;
 	}
 	else
 	{
-		m_iFOV = newfov;
+		m_flFOV = newfov;
           }
 
-	if( m_iFOV == def_fov )
+	if( m_flFOV == def_fov )
 	{
 		m_flMouseSensitivity = 0;
 	}
 	else
 	{
 		// set a new sensitivity that is proportional to the change from the FOV default
-		m_flMouseSensitivity = CVAR_GET_FLOAT( "sensitivity" ) * ( (float)newfov / (float)def_fov );
+		m_flMouseSensitivity = CVAR_GET_FLOAT( "sensitivity" ) * ( newfov / def_fov );
 		m_flMouseSensitivity *= CVAR_GET_FLOAT( "zoom_sensitivity_ratio" ); // apply zoom factor
 	}
 	END_READ();
@@ -318,7 +322,11 @@ int CHud :: MsgFunc_WeaponAnim( const char *pszName, int iSize, void *pbuf )
 
 	edict_t *viewmodel = GetViewModel();
 	viewmodel->v.sequence = READ_BYTE();
+	viewmodel->v.body = READ_BYTE();
+	viewmodel->v.framerate = READ_BYTE() * 0.0625;
 	viewmodel->v.effects |= EF_ANIMATE;
+	viewmodel->v.frame = -1; // force to start new sequence
+	viewmodel->v.scale = 1.0f;
 
 	END_READ();
 	

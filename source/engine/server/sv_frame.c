@@ -52,13 +52,15 @@ void SV_UpdateEntityState( edict_t *ent )
 	ent->pvServerData->s.number = ent->serialnumber;
 	ent->pvServerData->s.solid = ent->pvServerData->solid;
 
+	if( !ent->pvServerData->s.classname )
+		ent->pvServerData->s.classname = SV_ClassIndex( STRING( ent->v.classname ));
+
 	VectorCopy (ent->v.origin, ent->pvServerData->s.origin);
 	VectorCopy (ent->v.angles, ent->pvServerData->s.angles);
 	ent->pvServerData->s.model.index = ent->v.modelindex;
 	ent->pvServerData->s.health = ent->v.health;
 	ent->pvServerData->s.model.skin = ent->v.skin;		// studio model skin
 	ent->pvServerData->s.model.body = ent->v.body;		// studio model submodel 
-	ent->pvServerData->s.model.gaitsequence = ent->v.gaitsequence;// player sequence, that will be playing on client
 	ent->pvServerData->s.effects = ent->v.effects;		// shared client and render flags
 	ent->pvServerData->s.renderfx = ent->v.renderfx;		// renderer flags
 	ent->pvServerData->s.rendermode = ent->v.rendermode;	// rendering mode
@@ -108,6 +110,8 @@ void SV_UpdateEntityState( edict_t *ent )
 			ent->pvServerData->s.aiment = NUM_FOR_EDICT( ent->v.aiment );
 		else ent->pvServerData->s.aiment = 0;
 
+		// playermodel sequence, that will be playing on a client
+		ent->pvServerData->s.model.gaitsequence = ent->v.gaitsequence;
 		ent->pvServerData->s.weapons = ent->v.weapons;
 	}
 	else if( ent->pvServerData->s.ed_type == ED_AMBIENT )
@@ -280,6 +284,7 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 		{
 		case ED_MOVER:
 		case ED_NORMAL:
+		case ED_MONSTER:
 		case ED_AMBIENT:
 		case ED_BSPBRUSH:
 		case ED_RIGIDBODY: break;

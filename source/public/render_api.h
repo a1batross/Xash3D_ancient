@@ -59,6 +59,7 @@ typedef struct render_exp_s
 	// misc utilities
 	void	(*SetColor)( const float *rgba );
 	void	(*SetParms)( shader_t handle, kRenderMode_t rendermode, int frame );
+	void	(*GetParms)( int *w, int *h, int *frames, int frame, shader_t shader );
 	bool	(*ScrShot)( const char *filename, int shot_type ); // write screenshot with same name 
 	bool	(*EnvShot)( const char *filename, uint size, bool skyshot ); // write envshot with same name 
 	void	(*LightForPoint)( const vec3_t point, vec3_t ambientLight );
@@ -66,7 +67,6 @@ typedef struct render_exp_s
 	void	(*DrawStretchRaw)( int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw );
 	void	(*DrawStretchPic)( float x, float y, float w, float h, float s1, float t1, float s2, float t2, shader_t shader );
 	void	(*ImpactMark)( vec3_t org, vec3_t dir, float rot, float radius, vec4_t mod, bool fade, shader_t s, bool tmp );
-	void	(*DrawGetPicSize)( int *w, int *h, int frame, shader_t shader );
 
 } render_exp_t;
 

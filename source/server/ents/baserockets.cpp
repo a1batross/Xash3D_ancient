@@ -338,14 +338,17 @@ IMPLEMENT_SAVERESTORE( CRpgRocket, CGrenade );
 void CRpgRocket :: Spawn( void )
 {
 	Precache( );
+
+	SetObjectClass( ED_NORMAL );
+
 	// motor
 	pev->movetype = MOVETYPE_BOUNCE;
 	pev->solid = SOLID_BBOX;
-	UTIL_SetModel(ENT(pev), "models/rpgrocket.mdl");
+	UTIL_SetModel(ENT(pev), "models/props/rocket.mdl");
 	UTIL_SetSize(pev, Vector( 0, 0, 0), Vector(0, 0, 0));
 	UTIL_SetOrigin( this, pev->origin );
 
-	pev->classname = MAKE_STRING("rpg_rocket");
+	pev->classname = MAKE_STRING( "rpg_rocket" );
 
 	SetThink( IgniteThink );
 	SetTouch( ExplodeTouch );
@@ -383,11 +386,11 @@ void CRpgRocket::Detonate( void )
 
 void CRpgRocket :: Precache( void )
 {
-	UTIL_PrecacheModel("models/rpgrocket.mdl");
-	UTIL_PrecacheSound ("weapons/rpg/rocket1.wav");
-	UTIL_PrecacheSound ("weapons/rpg/beep.wav");
-	UTIL_PrecacheSound ("weapons/rpg/beep2.wav");
-	m_iTrail = UTIL_PrecacheModel("sprites/smoke.spr");
+	UTIL_PrecacheModel( "models/props/rocket.mdl" );
+	UTIL_PrecacheSound( "weapons/rpg/rocket1.wav" );
+	UTIL_PrecacheSound( "weapons/rpg/beep.wav" );
+	UTIL_PrecacheSound( "weapons/rpg/beep2.wav" );
+	m_iTrail = UTIL_PrecacheModel( "sprites/smoke.spr" );
 }
 
 void CRpgRocket :: IgniteThink( void  )
@@ -429,7 +432,7 @@ void CRpgRocket :: FollowThink( void  )
 	vecTarget = gpGlobals->v_forward;
 	flMax = 4096;
 	// Examine all entities within a reasonable radius
-	while ((pOther = UTIL_FindEntityByClassname( pOther, "laserspotent" )) != NULL)
+	while ((pOther = UTIL_FindEntityByClassname( pOther, "misc_laserdot" )) != NULL)
 	{
 		UTIL_TraceLine ( pev->origin, pOther->pev->origin, dont_ignore_monsters, ENT(pev), &tr );
 		// Msg( "%f\n", tr.flFraction );
@@ -591,6 +594,7 @@ CNukeExplode *CNukeExplode::Create ( Vector vecOrigin, CBaseEntity *pOwner )
 
 void CNukeExplode :: Spawn( void )
 {
+	SetObjectClass( ED_NORMAL );
 	Precache();
 	UTIL_SetModel(ENT(pev), "models/nexplode.mdl");	
 	TraceResult tr;
@@ -617,10 +621,10 @@ void CNukeExplode :: Spawn( void )
 
 void CNukeExplode :: Precache( void )
 {
-	m_usExplodeSprite = UTIL_PrecacheModel("sprites/warhead01.spr");
-	m_usExplodeSprite2 = UTIL_PrecacheModel("sprites/warhead02.spr");
-	UTIL_PrecacheModel("models/nexplode.mdl");
-	UTIL_PrecacheSound("weapons/warhead/whexplode.wav");
+	m_usExplodeSprite = UTIL_PrecacheModel("sprites/war_explo01.spr");
+	m_usExplodeSprite2 = UTIL_PrecacheModel("sprites/war_exlpo02.spr");
+	UTIL_PrecacheModel( "models/nexplode.mdl" );
+	UTIL_PrecacheSound( "weapons/warhead/whexplode.wav" );
 }
 
 void CNukeExplode :: ExplodeThink( void )
@@ -628,8 +632,8 @@ void CNukeExplode :: ExplodeThink( void )
 	pev->renderamt -= 1.5;
  	pev->scale += .2;
 
-	if(pev->scale >= 8 && pev->scale < 8.2)//create second explode sprite
-		SFX_Explode( m_usExplodeSprite2, pev->oldorigin, 100, TE_EXPLFLAG_NOPARTICLES | TE_EXPLFLAG_NOSOUND );
+	if(pev->scale >= 8 && pev->scale < 8.2 ) // create second explode sprite
+		SFX_Explode( m_usExplodeSprite2, pev->oldorigin, 100, TE_EXPLFLAG_NOPARTICLES|TE_EXPLFLAG_NOSOUND );
 
 	entvars_t *pevOwner;
 	if ( pev->owner ) pevOwner = VARS( pev->owner );
@@ -675,12 +679,13 @@ void CWHRocket :: Spawn( void )
 {
 	Precache( );
 
+	SetObjectClass( ED_NORMAL );
 	m_pPlayer = (CBasePlayer*)CBasePlayer::Instance( pev->owner );
-	if(!m_pPlayer)//leveldesigner may put rocket on a map
+	if( !m_pPlayer ) // leveldesigner may put rocket on a map
 	{
-		if(!IsMultiplayer())
+		if( !IsMultiplayer())
 		{
-			Msg("Warning! Player pointer is not valid\n");
+			ALERT( at_warning, "player pointer is not valid\n" );
 			m_pPlayer = (CBasePlayer*)UTIL_PlayerByIndex( 1 );	
 		}
 		else
@@ -693,10 +698,10 @@ void CWHRocket :: Spawn( void )
 	pev->solid = SOLID_SLIDEBOX;
 	pev->takedamage = DAMAGE_YES;
 	pev->health = 10;
-          pev->speed = WARHEAD_SPEED;//set initial speed
+          pev->speed = WARHEAD_SPEED; // set initial speed
 	
-	UTIL_SetModel(ENT(pev), "models/whrocket.mdl");
-	EMIT_SOUND( ENT(pev), CHAN_WEAPON, "weapons/warhead/launch.wav", 1, 0.5 );
+	UTIL_SetModel(ENT( pev ), "models/whrocket.mdl");
+	EMIT_SOUND( ENT( pev ), CHAN_WEAPON, "weapons/warhead/launch.wav", 1, 0.5 );
 	UTIL_SetOrigin( this, pev->origin );
           pev->colormap = ENTINDEX(edict());//manually save our index into colormap
 		

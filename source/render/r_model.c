@@ -1166,6 +1166,8 @@ rmodel_t *Mod_ForName( const char *name, bool crash )
 	FS_Read( file, &hdr, sizeof( uint ));
 	FS_Close( file );
 
+	MsgDev( D_LOAD, "%s\n", mod->name );
+
 	// call the apropriate loader
 	switch( LittleLong( hdr ))
 	{
@@ -1297,7 +1299,7 @@ void R_ModelList_f( void )
 	Msg( "\n" );
 	Msg( "-----------------------------------\n" );
 
-	for( i = 0; i < r_nummodels, mod = r_models; i++, mod++ )
+	for( i = 0, mod = r_models; i < r_nummodels; i++, mod++ )
 	{
 		if( !mod->name[0] ) continue; // free slot
 		Msg( "%s%s\n", mod->name, (mod->type == mod_bad) ? " (DEFAULTED)" : "" );

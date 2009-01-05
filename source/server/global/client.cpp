@@ -536,7 +536,7 @@ void ClientCommand( edict_t *pEntity )
 	{
 		GetClassPtr((CBasePlayer *)pev)->ForceClientDllUpdate();
 	}
-	else if ( FStrEq(pcmd, "give" ) )
+	else if( FStrEq( pcmd, "give" ))
 	{
 		if ( g_flWeaponCheat != 0.0)
 		{
@@ -550,15 +550,15 @@ void ClientCommand( edict_t *pEntity )
 		// player is dropping an item.
 		GetClassPtr((CBasePlayer *)pev)->DropPlayerItem((char *)CMD_ARGV(1));
 	}
-	else if ( FStrEq(pcmd, "fov" ) )
+	else if( FStrEq( pcmd, "fov" ))
 	{
-		if( g_flWeaponCheat && CMD_ARGC() > 1)
+		if( g_flWeaponCheat && CMD_ARGC() > 1 )
 		{
-			GetClassPtr((CBasePlayer *)pev)->m_iFOV = atoi( CMD_ARGV(1) );
+			GetClassPtr((CBasePlayer *)pev)->m_flFOV = atof( CMD_ARGV( 1 ));
 		}
 		else
 		{
-			ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, UTIL_VarArgs( "\"fov\" is \"%d\"\n", (int)GetClassPtr((CBasePlayer *)pev)->m_iFOV ) );
+			ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, UTIL_VarArgs( "\"fov\" is \"%g\"\n", (int)GetClassPtr((CBasePlayer *)pev)->m_flFOV ) );
 		}
 	}
 	else if ( FStrEq(pcmd, "use" ) )
@@ -1044,8 +1044,8 @@ void LinkUserMessages( void )
 	gmsg.ItemPickup = REG_USER_MSG( "ItemPickup", -1 );
 	gmsg.RoomType = REG_USER_MSG( "RoomType", 2 );
 	gmsg.HideWeapon = REG_USER_MSG( "HideWeapon", 1 );
-	gmsg.WeaponAnim = REG_USER_MSG( "WeaponAnim", 1 );
-	gmsg.SetFOV = REG_USER_MSG( "SetFOV", 1 );
+	gmsg.WeaponAnim = REG_USER_MSG( "WeaponAnim", 3 );
+	gmsg.SetFOV = REG_USER_MSG( "SetFOV", 4 );
 	gmsg.ShowMenu = REG_USER_MSG( "ShowMenu", -1 );
 	gmsg.Shake = REG_USER_MSG("ScreenShake", 13 );
 	gmsg.Fade = REG_USER_MSG("ScreenFade", sizeof(ScreenFade));
@@ -1067,7 +1067,7 @@ void LinkUserMessages( void )
 	gmsg.AddPortal = REG_USER_MSG( "AddPortal", 1);
 	gmsg.HudText = REG_USER_MSG( "HudText", -1 );
 	gmsg.ShowGameTitle = REG_USER_MSG("GameTitle", 1);
-	gmsg.TempEntity = REG_USER_MSG( "TempEntity", 1); // FIXME
+	gmsg.TempEntity = REG_USER_MSG( "TempEntity", -1);
 	gmsg.SetFog = REG_USER_MSG("SetFog", 7 );
 	gmsg.SetSky = REG_USER_MSG( "SetSky", 13 );
 	gmsg.Particle = REG_USER_MSG( "Particle", -1);

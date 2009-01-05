@@ -186,15 +186,18 @@ static screenfade_t sf;
 	
 int SPR_Frames( HSPRITE hPic )
 {
-	// FIXME: engfuncs GetImageFrames
-	return 1;
+	int Frames;
+
+	GetParms( NULL, NULL, &Frames, 0, hPic );
+
+	return Frames;
 }
 
 int SPR_Height( HSPRITE hPic, int frame )
 {
 	int Height;
 
-	GetImageSize( NULL, &Height, frame, hPic );
+	GetParms( NULL, &Height, NULL, frame, hPic );
 
 	return Height;
 }
@@ -203,7 +206,7 @@ int SPR_Width( HSPRITE hPic, int frame )
 {
 	int Width;
 
-	GetImageSize( &Width, NULL, frame, hPic );
+	GetParms( &Width, NULL, NULL, frame, hPic );
 
 	return Width;
 }
@@ -337,12 +340,23 @@ void SPR_Set( HSPRITE hPic, int r, int g, int b )
 	SetColor((r / 255.0f), (g / 255.0f), (b / 255.0f), 1.0f );
 }
 
-inline static void SPR_DrawGeneric( int frame, int x, int y, int width, int height, const wrect_t *prc )
+void SPR_Set( HSPRITE hPic, int r, int g, int b, int a )
+{
+	ds.hSprite = hPic;
+	SetColor((r / 255.0f), (g / 255.0f), (b / 255.0f), (a / 255.0f));
+}
+
+inline static void SPR_DrawGeneric( int frame, float x, float y, float width, float height, const wrect_t *prc )
 {
 	float	s1, s2, t1, t2;
 
 	if( width == -1 && height == -1 )
-		GetImageSize( &width, &height, frame, ds.hSprite );
+	{
+		int w, h;
+		GetParms( &w, &h, NULL, frame, ds.hSprite );
+		width = w;
+		height = h;
+	}
 
 	if( prc )
 	{
@@ -360,8 +374,41 @@ inline static void SPR_DrawGeneric( int frame, int x, int y, int width, int heig
 		s2 = t2 = 1.0f;
 	}
 
+	float	xscale, yscale;
+
+	// scale for screen sizes
+	xscale = gHUD.m_scrinfo.iRealWidth / (float)gHUD.m_scrinfo.iWidth;
+	yscale = gHUD.m_scrinfo.iRealHeight / (float)gHUD.m_scrinfo.iHeight;
+
+	x *= xscale;
+	y *= yscale;
+	width *= xscale;
+	height *= yscale;
+
 	DrawImageExt( ds.hSprite, x, y, width, height, s1, t1, s2, t2 );
 } 
+
+void FillRGBA( int x, int y, int width, int height, int r, int g, int b, int a )
+{
+	Vector	RGB;
+
+	RGB.x = (float)(r / 255.0f);
+	RGB.y = (float)(g / 255.0f);
+	RGB.z = (float)(b / 255.0f);
+
+	float	xscale, yscale;
+
+	// scale for screen sizes
+	xscale = gHUD.m_scrinfo.iRealWidth / (float)gHUD.m_scrinfo.iWidth;
+	yscale = gHUD.m_scrinfo.iRealHeight / (float)gHUD.m_scrinfo.iHeight;
+
+	x *= xscale;
+	y *= yscale;
+	width *= xscale;
+	height *= yscale;
+
+	g_engfuncs.pfnFillRGBA( x, y, width, height, RGB, (float)(a / 255.0f));
+}
 
 void SPR_Draw( int frame, int x, int y, const wrect_t *prc )
 {
@@ -372,6 +419,18 @@ void SPR_Draw( int frame, int x, int y, const wrect_t *prc )
 void SPR_Draw( int frame, int x, int y, int width, int height )
 {
 	SetParms( ds.hSprite, kRenderNormal, frame );
+	SPR_DrawGeneric( frame, x, y, width, height, NULL );
+}
+
+void SPR_DrawTransColor( int frame, int x, int y, const wrect_t *prc )
+{
+	SetParms( ds.hSprite, kRenderTransColor, frame );
+	SPR_DrawGeneric( frame, x, y, -1, -1, prc );
+}
+
+void SPR_DrawTransColor( int frame, int x, int y, int width, int height )
+{
+	SetParms( ds.hSprite, kRenderTransColor, frame );
 	SPR_DrawGeneric( frame, x, y, width, height, NULL );
 }
 
@@ -428,77 +487,40 @@ void DrawPause( void )
 	if( !CVAR_GET_FLOAT( "paused" ) || !CVAR_GET_FLOAT( "scr_showpause" ))
 		return;
 
-	if( !ds.hPause ) ds.hPause = LOAD_SHADER( "gfx/shell/m_pause" ); 
-	DrawImage( ds.hPause, (SCREEN_WIDTH - 128) / 2, (SCREEN_HEIGHT - 32) / 2, 128, 32 );
+	DrawImageBar( 100, "m_pause" ); // HACKHACK
 }
 
 void DrawImageRectangle( HSPRITE hImage )
 {
-	DrawImage( hImage, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT );
+	DrawImageExt( hImage, 0, 0, ActualWidth, ActualHeight, 0, 0, 1, 1 );
 }
 
-void DrawImageBar( float percent, HSPRITE hImage, int w, int h )
+void DrawImageBar( float percent, const char *szSpriteName )
 {
-	DrawImageBar( percent, hImage, (SCREEN_WIDTH - w)/2, (SCREEN_HEIGHT - h)/2, w, h );
+	int m_loading = gHUD.GetSpriteIndex( szSpriteName );
+	wrect_t rcSize = gHUD.GetSpriteRect( m_loading );
+
+	int w = rcSize.right - rcSize.left;
+	int h = rcSize.bottom - rcSize.top;
+	DrawImageBar( percent, szSpriteName, (ScreenWidth - w)/2, (ScreenHeight - h)/2 );
 }
 
-void DrawImageBar( float percent, HSPRITE hImage, int x, int y, int w, int h )
+void DrawImageBar( float percent, const char *szSpriteName, int x, int y )
 {
-	HSPRITE	hFilled;
-	float	progress;
-	int	width1, width2, height;
+	int	m_loading = gHUD.GetSpriteIndex( szSpriteName );
+	HSPRITE	hLoading = gHUD.GetSprite( m_loading );
+	wrect_t	rcBar, rcBack;
+	float	step;
 
-	hFilled = LOAD_SHADER( "gfx/shell/fill_rect" );	
-	progress = bound( 0.0, percent * 0.01, 100.0 );
+	rcBar = rcBack = gHUD.GetSpriteRect( m_loading );
+	step = (float)(rcBack.right - rcBack.left) / 100;
+	rcBar.right = rcBar.left + (int)ceil(percent * step);
 
-	width2 = w * progress;
-	width1 = bound( 64.0, w, 512.0 );
-	height = bound( 16.0, h, 64.0 );
+	SPR_Set( hLoading, 128, 128, 128 );
+	SPR_DrawAdditive( 0, x, y, &rcBack );	// background
 
-	DrawImage( hImage, x, y, width1, height );	// background
-
-	SetColor( 1.0f, 1.0f, 1.0f, 0.5f );
-	DrawImage( hFilled, x, y, width2, height );	// progress bar
-}
-
-void DrawGenericBar( float percent, int w, int h )
-{
-	DrawGenericBar( percent, (SCREEN_WIDTH - w)/2, (SCREEN_HEIGHT - h)/2, w, h );
-}
-
-void DrawGenericBar( float percent, int x, int y, int w, int h )
-{
-	HSPRITE	hFill, hBack;
-	float	progress;
-	int	width1, width2, height1, height2;
-	int	width3, height3, pos_x, pos_y, pos2_x, pos2_y;
-
-	hFill = LOAD_SHADER( "gfx/shell/bar_load" );
-	hBack = LOAD_SHADER( "gfx/shell/bar_back" );	
-	progress = bound( 0.0f, percent * 0.01f, 100.0f );
-
-	// filling area size
-	width1 = bound( 64.0, w, 512.0 );
-	height1 = bound( 16.0, h, 64.0 );
-
-	// background size
-	width2 = width1 - 2;
-	height2 = height1 - 2;
-
-	// bar size	
-	width3 = width2 * progress;
-	height3 = height2;
-
-	pos_x = x;
-	pos_y = y;
-	pos2_x = x + 1;
-	pos2_y = y + 1;
-
-	FillRGBA( pos_x, pos_y, width1, height1, 255, 255, 255, 255 );
-	DrawImage( hBack, pos2_x, pos2_y, width2, height2 );
-
-	SetColor( 1.0f, 1.0f, 1.0f, 0.5f );
-	DrawImage( hFill, pos2_x, pos2_y, width3, height3 );
+	SPR_Set( hLoading, 255, 160, 0 );
+	SPR_DrawAdditive( 0, x, y, &rcBar );	// progress bar
 }
 
 //
@@ -507,21 +529,17 @@ void DrawGenericBar( float percent, int x, int y, int w, int h )
 void V_RenderPlaque( void )
 {
 	const char *levelshot;
-	HSPRITE hDownload;
 
 	levelshot = CVAR_GET_STRING( "cl_levelshot_name" );
 	if( !strcmp( levelshot, "" )) levelshot = "<black>";
 
 	// logo that shows up while upload next level
 	DrawImageRectangle( LOAD_SHADER( levelshot ));
-	DrawImageBar( CVAR_GET_FLOAT( "scr_loading" ), LOAD_SHADER( "gfx/shell/m_loading" ), 128, 32 );
+	DrawImageBar( CVAR_GET_FLOAT( "scr_loading" ), "m_loading" );
 
 	if( !CVAR_GET_FLOAT( "scr_download" )) return;
 
-	// FIXME: replace with picture "m_download"
-	hDownload = LOAD_SHADER( "gfx/shell/m_loading" );
-
-	DrawImageBar( CVAR_GET_FLOAT( "scr_download" ), hDownload, (SCREEN_WIDTH-128)/2, 420, 128, 32 );
+	DrawImageBar( CVAR_GET_FLOAT( "scr_download" ), "m_download", (ScreenWidth-128)/2, ScreenHeight-60 );
 }
 
 void V_RenderSplash( void )

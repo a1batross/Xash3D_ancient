@@ -195,24 +195,26 @@ LINK_ENTITY_TO_CLASS( floorent, CFloorEnt );
 CLaserSpot *CLaserSpot::CreateSpot( void )
 {
 	CLaserSpot *pSpot = GetClassPtr( (CLaserSpot *)NULL );
+	pSpot->pev->classname = MAKE_STRING( "misc_laserdot" );
 	pSpot->Spawn();
-	pSpot->pev->classname = MAKE_STRING("laserspotent");
 
 	return pSpot;
 }
 
 void CLaserSpot::Precache( void )
 {
-	UTIL_PrecacheModel("sprites/glow02.spr");
-	UTIL_PrecacheSound("weapons/spot_on.wav");
-	UTIL_PrecacheSound("weapons/spot_off.wav"); 
+	UTIL_PrecacheModel( "sprites/laserdot.spr" );
+	UTIL_PrecacheSound( "weapons/spot_on.wav" );
+	UTIL_PrecacheSound( "weapons/spot_off.wav" ); 
 }  
 
 void CLaserSpot::Spawn( void )
 {
 	Precache( );
 
-	//laser dot settings
+	SetObjectClass( ED_NORMAL );
+
+	// laser dot settings
 	pev->movetype = MOVETYPE_FLY;
 	pev->solid = SOLID_NOT;
 	pev->scale = 1.0;
@@ -220,7 +222,7 @@ void CLaserSpot::Spawn( void )
 	pev->renderfx = kRenderFxNoDissipation;
 	pev->renderamt = 255;
 	pev->rendercolor = Vector( 200, 12, 12 );
-	UTIL_SetModel(ENT(pev), "sprites/glow02.spr" );
+	UTIL_SetModel( ENT( pev ), "sprites/laserdot.spr" );
 	UTIL_SetOrigin( this, pev->origin );
 }
 
@@ -229,7 +231,7 @@ void CLaserSpot::Suspend( float flSuspendTime )
 	pev->effects |= EF_NODRAW;
 	
 	// -1 means suspend indefinitely
-	if (flSuspendTime == -1) SetThink( NULL );
+	if( flSuspendTime == -1 ) SetThink( NULL );
 	else
 	{
 		SetThink( Revive );
@@ -249,9 +251,9 @@ void CLaserSpot::Update( CBasePlayer *m_pPlayer )
 		
 	UTIL_MakeVectors( m_pPlayer->pev->v_angle );
 	UTIL_TraceLine( m_pPlayer->GetGunPosition(), m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 8192, dont_ignore_monsters, ENT(m_pPlayer->pev), &tr );
-	UTIL_SetOrigin( this, tr.vecEndPos );
+	UTIL_SetOrigin( this, tr.vecEndPos + tr.vecPlaneNormal * 10 );
 
-	if( UTIL_PointContents( tr.vecEndPos ) & CONTENTS_SKY && VARS(tr.pHit)->solid == SOLID_BSP ) 
+	if( UTIL_PointContents( tr.vecEndPos ) & CONTENTS_SKY && VARS( tr.pHit )->solid == SOLID_BSP ) 
 	{                     
 		pev->renderamt = 33;
 		pev->effects |= EF_NODRAW;
@@ -261,11 +263,11 @@ void CLaserSpot::Update( CBasePlayer *m_pPlayer )
 		pev->effects &= ~EF_NODRAW;
 				
 		float SpotDistance = (tr.vecEndPos - m_pPlayer->GetGunPosition()).Length();
-		int brightness = (1 / log(SpotDistance / 0.3)) * 1300;
-		pev->scale = SpotDistance / 2500 + RANDOM_FLOAT(0.01, SpotDistance/2750);
+		int brightness = (1 / log( SpotDistance / 0.3 )) * 1300;
+		pev->scale = SpotDistance / 2500 + RANDOM_FLOAT( 0.01, SpotDistance / 2750 );
 				                                                  
 		if(pev->renderamt >= 255) pev->renderamt = brightness + RANDOM_LONG(1, SpotDistance/400);
 		else pev->renderamt += 5;
 	}
 }
-LINK_ENTITY_TO_CLASS( laserspotent, CLaserSpot );
+LINK_ENTITY_TO_CLASS( misc_laserdot, CLaserSpot );

@@ -15,7 +15,7 @@
 #include "gamerules.h"
 #include "defaults.h"
 
-//base defines
+// base defines
 extern int gEvilImpulse101;
 ItemInfo CBasePlayerWeapon::ItemInfoArray[MAX_WEAPONS];
 AmmoInfo CBasePlayerWeapon::AmmoInfoArray[MAX_AMMO_SLOTS];
@@ -24,6 +24,8 @@ int ID[MAX_WEAPONS];
 int GlobalID = 0;
 int g_iSwing;
 
+// replacement table for classic half-life weapons
+// add animation names if we need
 const char *NAME_VM_PUMP[] = { "pump", };
 const char *NAME_VM_IDLE1[] = { "idle", "idle1", };
 const char *NAME_VM_IDLE2[] = { "fidget", "fidget1", };
@@ -154,7 +156,7 @@ CBaseEntity* CBasePlayerWeapon::Respawn( void )
 	pent = CREATE_NAMED_ENTITY( pev->classname );
 	if ( FNullEnt( pent ) )
 	{
-		//it's a custom weapon!
+		// it's a custom weapon!
 		pent = CREATE_NAMED_ENTITY( MAKE_STRING( "weapon_generic" ));
 	}
 	pNewWeapon = Instance( pent );
@@ -275,19 +277,21 @@ void CBasePlayerWeapon :: Spawn( void )
           
 	pev->movetype = MOVETYPE_TOSS;
 	pev->solid = SOLID_BBOX;
-          pev->sequence = 1;//set world animation
+          pev->sequence = 1; // set world animation
 	
 	UTIL_SetOrigin( this, pev->origin );
-	UTIL_SetSize(pev, Vector( 0, 0, 0), Vector(0, 0, 0) );//pointsize until it lands on the ground.
+	UTIL_SetModel( ENT( pev ), iWorldModel( ));
+	SetObjectClass( ED_NORMAL );
 	
 	SetTouch( DefaultTouch );
 	SetThink( FallThink );
 
-	UTIL_SetModel(ENT(pev), iWorldModel());
+	// pointsize until it lands on the ground.
+	UTIL_SetSize( pev, Vector( 0, 0, 0 ), Vector( 0, 0, 0 ));
 
 	m_iSpot = 0;
 	pev->animtime = gpGlobals->time + 0.1;
-	b_restored = TRUE; //already restored
+	b_restored = TRUE; // already restored
 	
 	SetNextThink( 0.1 );
 }
@@ -862,25 +866,31 @@ int CBasePlayerWeapon :: SetAnimation( Activity activity, float fps )
 //=========================================================
 void CBasePlayerWeapon :: SendWeaponAnim( int sequence, float fps )
 {                
-	dstudiohdr_t *pstudiohdr;
- 	dstudioseqdesc_t *pseqdesc;
- 	pstudiohdr = (dstudiohdr_t *)GET_MODEL_PTR( ENT(pev) );
+	float framerate = 1.0f; // fps multiplier
+
+	if( fps )
+	{
+		dstudiohdr_t *pstudiohdr = (dstudiohdr_t *)GET_MODEL_PTR( ENT( pev ));
+		if( pstudiohdr )
+		{
+ 			dstudioseqdesc_t *pseqdesc;
+			
+			pseqdesc = (dstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex) + sequence;
+			framerate = fps / pseqdesc->fps;
+		}
+	}
 
 	// calculate additional body for special effects
 	pev->body = (pev->body % NUM_HANDS) + NUM_HANDS * m_iBody;
  	
 	MESSAGE_BEGIN( MSG_ONE, gmsg.WeaponAnim, NULL, m_pPlayer->pev );
 		WRITE_BYTE( sequence );						
+		WRITE_BYTE( pev->body );
+		WRITE_BYTE( framerate * 16 );
 	MESSAGE_END();                                    
 	
-	if( pstudiohdr )
-	{
-		pseqdesc = (dstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex) + (int)sequence;
-		if(fps) pseqdesc->fps = fps;
-	}
-	
 	m_pPlayer->pev->weaponanim = sequence;
-	SetNextIdle(SequenceDuration());
+	SetNextIdle( SequenceDuration( ));
 }
 
 //=========================================================
@@ -1564,30 +1574,30 @@ void CBasePlayerWeapon::ZoomUpdate( void )
 {
 	if((iAttack1() == ZOOM && m_pPlayer->pev->button & IN_ATTACK) || (iAttack2() == ZOOM && m_pPlayer->pev->button & IN_ATTACK2))
 	{
-		if(m_iZoom == 0)
+		if( m_iZoom == 0 )
 		{
 			if (m_flHoldTime > UTIL_WeaponTimeBase()) return;
 			m_iZoom = 1;
 			EMIT_SOUND(ENT(m_pPlayer->pev), CHAN_ITEM, "weapons/zoom.wav", 1, ATTN_NORM);
 			m_flTimeUpdate = UTIL_WeaponTimeBase() + 0.8;
 		}
-		if(m_iZoom == 1)
+		if( m_iZoom == 1 )
 		{
-			m_pPlayer->m_iFOV = 50;
+			m_pPlayer->m_flFOV = 50.0f;
 			m_pPlayer->pev->viewmodel = NULL;
-			m_iZoom = 2;//ready to zooming, wait for 0.8 secs
+			m_iZoom = 2; // ready to zooming, wait for 0.8 secs
 		}
-		if (m_iZoom == 2 && m_pPlayer->m_iFOV > MAX_ZOOM)
+		if( m_iZoom == 2 && m_pPlayer->m_flFOV > MAX_ZOOM )
 		{
-			if (m_flTimeUpdate < UTIL_WeaponTimeBase())
+			if( m_flTimeUpdate < UTIL_WeaponTimeBase( ))
 			{
-				m_pPlayer->m_iFOV--;
-				m_flTimeUpdate = UTIL_WeaponTimeBase() + 0.02;
+				m_pPlayer->m_flFOV -= 1.2;//gpGlobals->frametime;
+				m_flTimeUpdate = UTIL_WeaponTimeBase() + 0.002;
 			}
 		}
-		if(m_iZoom == 3) ZoomReset();
+		if( m_iZoom == 3 ) ZoomReset();
 	}
-	else if(m_iZoom > 1) m_iZoom = 3;
+	else if( m_iZoom > 1 ) m_iZoom = 3;
 
 	MESSAGE_BEGIN( MSG_ONE, gmsg.ZoomHUD, NULL, m_pPlayer->pev );
 		WRITE_BYTE( m_iZoom );
@@ -1601,7 +1611,7 @@ void CBasePlayerWeapon::ZoomReset( void )
 	{
 		m_pPlayer->pev->viewmodel = iViewModel();
 		m_flHoldTime = UTIL_WeaponTimeBase() + 0.5;
-		m_pPlayer->m_iFOV = 90;
+		m_pPlayer->m_flFOV = 90;
 		m_iZoom = 0; // clear zoom
 		MESSAGE_BEGIN( MSG_ONE, gmsg.ZoomHUD, NULL, m_pPlayer->pev );
 			WRITE_BYTE( m_iZoom );
@@ -1840,7 +1850,7 @@ int CBasePlayerWeapon::UpdateClientData( CBasePlayer *pPlayer )
 	}
 
 	// if the ammo, state, or fov has changed, update the weapon
-	if( m_iClip != m_iClientClip || state != m_iClientWeaponState || pPlayer->m_iFOV != pPlayer->m_iClientFOV )
+	if( m_iClip != m_iClientClip || state != m_iClientWeaponState || pPlayer->m_flFOV != pPlayer->m_flClientFOV )
 	{
 		bSend = TRUE;
 	}

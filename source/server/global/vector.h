@@ -62,6 +62,7 @@ public:
 
 #define nanmask		(255<<23)
 #define IS_NAN(x)		(((*(int *)&x)&nanmask)==nanmask)
+#define Q_rint(x)		((x) > 0 ? (int)((x) + 0.5) : (int)((x) - 0.5))
 
 inline float DotProduct(const Vector2D& a, const Vector2D& b) { return( a.x*b.x + a.y*b.y ); }
 inline Vector2D operator*(float fl, const Vector2D& v)	{ return v * fl; }

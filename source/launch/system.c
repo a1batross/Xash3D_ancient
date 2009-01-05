@@ -252,6 +252,7 @@ void Sys_GetStdAPI( void )
 	com.st_getstring = StringTable_GetString;
 	com.st_setstring = StringTable_SetString;
 	com.st_load = StringTable_LoadSystem;
+	com.st_getname = StringTable_GetName;
 	com.st_save = StringTable_SaveSystem;
 	com.st_clear = StringTable_ClearSystem;
 	com.st_remove = StringTable_DeleteSystem;

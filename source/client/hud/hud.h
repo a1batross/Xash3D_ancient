@@ -569,7 +569,7 @@ public:
 	float m_vecAngles[3];
 	int m_iKeyBits;
 	int m_iHideHUDDisplay;
-	int m_iFOV;
+	float m_flFOV;
 	int m_Teamplay;
 	int m_iRes;
 	Vector m_vecSkyPos;
@@ -656,6 +656,8 @@ public:
 	{
 		byte	charWidths[256];
 		int	iCharHeight;
+		int	iRealWidth;
+		int	iRealHeight;
 		int	iWidth;
 		int	iHeight;
 	} m_scrinfo;

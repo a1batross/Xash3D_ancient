@@ -314,6 +314,7 @@ void SV_InitGame (void);
 void SV_Map( char *levelstring, char *savename );
 void SV_SpawnServer( const char *server, const char *savename );
 int SV_FindIndex (const char *name, int start, int end, bool create);
+void SV_ClassifyEdict( edict_t *ent );
 
 //
 // sv_phys.c

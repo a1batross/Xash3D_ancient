@@ -114,6 +114,13 @@ void SV_CreateBaseline( void )
 
 		svs.baselines[entnum] = svent->pvServerData->s;
 	}
+
+	// classify edicts for quick network sorting
+	for( entnum = 0; entnum < svgame.globals->numEntities; entnum++ )
+	{
+		svent = EDICT_NUM( entnum );
+		SV_ClassifyEdict( svent );
+	}
 }
 
 /*

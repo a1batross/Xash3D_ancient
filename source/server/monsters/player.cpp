@@ -123,7 +123,7 @@ TYPEDESCRIPTION	CBasePlayer::m_playerSaveData[] =
 	DEFINE_FIELD( CBasePlayer, m_pTank, FIELD_EHANDLE ), // NB: this points to a CFuncTank*Controls* now. --LRC
 	DEFINE_FIELD( CBasePlayer, m_pMonitor, FIELD_EHANDLE ),
 	DEFINE_FIELD( CBasePlayer, m_iHideHUD, FIELD_INTEGER ),
-	DEFINE_FIELD( CBasePlayer, m_iFOV, FIELD_INTEGER ),
+	DEFINE_FIELD( CBasePlayer, m_flFOV, FIELD_FLOAT ),
 	DEFINE_FIELD( CBasePlayer, pViewEnt, FIELD_CLASSPTR),
 	DEFINE_FIELD( CBasePlayer, viewFlags, FIELD_INTEGER),
 	DEFINE_FIELD( CBasePlayer, m_iSndRoomtype, FIELD_INTEGER ),
@@ -897,7 +897,7 @@ void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 	MESSAGE_END();
          
 	// reset FOV
-	m_iFOV = m_iClientFOV = 90;
+	m_flFOV = m_flClientFOV = 90.0f;
 
 	pViewEnt = 0;
 	viewFlags = 0;
@@ -3276,8 +3276,8 @@ void CBasePlayer::Spawn( void )
 	Rain_nextFadeUpdate = 0;
 	GiveOnlyAmmo = FALSE;
 
-	m_iFOV = 90;// init field of view.
-	m_iClientFOV = -1; // make sure fov reset is sent
+	m_flFOV = 90.0f;// init field of view.
+	m_flClientFOV = -1; // make sure fov reset is sent
 	//m_iAcessLevel = 2;
 
 	m_flNextDecalTime = 0;	// let this player decal as soon as he spawns.
@@ -4250,10 +4250,10 @@ void CBasePlayer :: UpdateClientData( void )
 		m_iClientHideHUD = m_iHideHUD;
 	}
 
-	if ( m_iFOV != m_iClientFOV )
+	if ( m_flFOV != m_flClientFOV )
 	{
 		MESSAGE_BEGIN( MSG_ONE, gmsg.SetFOV, NULL, pev );
-			WRITE_BYTE( m_iFOV );
+			WRITE_FLOAT( m_flFOV );
 		MESSAGE_END();
 
 		// cache FOV change at end of function, so weapon updates can see that FOV has changed
@@ -4635,10 +4635,10 @@ void CBasePlayer :: UpdateClientData( void )
 
 	// Cache and client weapon change
 	m_pClientActiveItem = m_pActiveItem;
-	m_iClientFOV = m_iFOV;
+	m_flClientFOV = m_flFOV;
 
-	// Update Status Bar
-	if ( m_flNextSBarUpdateTime < gpGlobals->time )
+	// update Status Bar
+	if( m_flNextSBarUpdateTime < gpGlobals->time )
 	{
 		UpdateStatusBar();
 		m_flNextSBarUpdateTime = gpGlobals->time + 0.2;

@@ -212,6 +212,9 @@ void *SPR_ConvertFrame( const char *name, const char *ext, void *pin, int framen
 		spr.frame[framenum].height = (float)LittleLong(pinframe->height);
 	}
 
+	if( FS_CheckParm( "-force32" ) && spr.texFormat == SPR_INDEXALPHA )
+		pix->flags &= ~IMAGE_HAS_ALPHA;
+
 	FS_SaveImage( va("%s/sprites/%s.%s", gs_gamedir, framename, ext ), pix );
 	FS_FreeImage( pix ); // free image
 

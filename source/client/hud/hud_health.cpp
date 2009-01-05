@@ -160,7 +160,7 @@ int CHudHealth :: Draw( float flTime )
 		return 1;
 
 	if( !m_hSprite )
-		m_hSprite = LOAD_SHADER( PAIN_NAME );
+		m_hSprite = SPR_Load( PAIN_NAME );
 	
 	// has health changed? Flash the health #
 	if( m_fFade )

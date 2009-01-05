@@ -39,6 +39,31 @@ typedef struct area_s
 	int		type;
 } area_t;
 
+const char *ed_name[] =
+{
+	"unknown",
+	"world",
+	"static",
+	"ambient",
+	"normal",
+	"brush",
+	"player",
+	"monster",
+	"tempent",
+	"beam",
+	"mover",
+	"viewmodel",
+	"item",
+	"ragdoll",
+	"physbody",
+	"trigger",
+	"portal",
+	"missile",
+	"decal",
+	"vehicle",
+	"error",
+};
+
 areanode_t	sv_areanodes[AREA_NODES];
 int		sv_numareanodes;
 
@@ -143,6 +168,78 @@ void SV_ClearWorld( void )
 }
 
 /*
+=================
+SV_ClassifyEdict
+
+sorting edict by type
+=================
+*/
+void SV_ClassifyEdict( edict_t *ent )
+{
+	sv_priv_t		*sv_ent;
+	const char	*classname;
+
+	sv_ent = ent->pvServerData;
+	if( !sv_ent || sv_ent->s.ed_type != ED_SPAWNED )
+		return;
+
+	// update baseline for new entity
+	if( !sv_ent->s.number )
+	{
+		// take current state as baseline
+		SV_UpdateEntityState( ent );
+		svs.baselines[ent->serialnumber] = ent->pvServerData->s;
+	}
+	classname = STRING( ent->v.classname );
+
+	if( !com.strnicmp( "worldspawn", classname, 10 ))
+	{
+		sv_ent->s.ed_type = ED_WORLDSPAWN;
+		return;
+	}
+	// first pass: determine type by explicit parms
+	if( ent->v.solid == SOLID_TRIGGER )
+	{
+		if( sv_ent->s.soundindex )
+			sv_ent->s.ed_type = ED_AMBIENT;	// e.g. trigger_teleport
+		else sv_ent->s.ed_type = ED_TRIGGER;		// never sending to client
+	}
+	else if( ent->v.movetype == MOVETYPE_PHYSIC )
+		sv_ent->s.ed_type = ED_RIGIDBODY;
+	else if( ent->v.solid == SOLID_BSP || VectorIsNull( ent->v.origin ))
+	{
+		if( ent->v.movetype == MOVETYPE_CONVEYOR )
+			sv_ent->s.ed_type = ED_MOVER;
+		else if( ent->v.flags & FL_WORLDBRUSH )
+			sv_ent->s.ed_type = ED_BSPBRUSH;
+		else if( ent->v.movetype == MOVETYPE_PUSH ) 
+			sv_ent->s.ed_type = ED_MOVER;
+		else if( ent->v.movetype == MOVETYPE_NONE )
+			sv_ent->s.ed_type = ED_BSPBRUSH;
+	}
+	else if( ent->v.flags & FL_MONSTER )
+		sv_ent->s.ed_type = ED_MONSTER;
+	else if( ent->v.flags & FL_CLIENT )
+		sv_ent->s.ed_type = ED_CLIENT;
+	else if( !sv_ent->s.model.index && !sv_ent->s.aiment )
+	{	
+		if( sv_ent->s.soundindex )
+			sv_ent->s.ed_type = ED_AMBIENT;
+		else sv_ent->s.ed_type = ED_STATIC; // never sending to client
+	}
+
+	if( sv_ent->s.ed_type == ED_SPAWNED )
+	{
+		// mark as normal
+		if( sv_ent->s.model.index || sv_ent->s.soundindex )
+			sv_ent->s.ed_type = ED_NORMAL;
+	}
+	
+	// or leave unclassified, wait for next SV_LinkEdict...
+	// Msg( "%s: <%s>\n", STRING( ent->v.classname ), ed_name[sv_ent->s.ed_type] );
+}
+
+/*
 ===============
 SV_UnlinkEdict
 ===============
@@ -174,9 +271,14 @@ void SV_LinkEdict( edict_t *ent )
 
 	sv_ent = ent->pvServerData;
 
+	if( !sv_ent ) return;
 	if( sv_ent->area.prev ) SV_UnlinkEdict( ent ); // unlink from old position
 	if( ent == EDICT_NUM( 0 )) return; // don't add the world
 	if( ent->free ) return;
+
+	// trying to classify unclassified edicts
+	if( sv.state == ss_active && sv_ent->s.ed_type == ED_SPAWNED )
+		SV_ClassifyEdict( ent );
 
 	// set the size
 	VectorSubtract( ent->v.maxs, ent->v.mins, ent->v.size );

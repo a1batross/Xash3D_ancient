@@ -10,9 +10,9 @@
 //=======================================================================
 // func_trigger - volume, that fire target when player in or out
 //=======================================================================
-#define SF_TRIGGER_ALLOWMONSTERS	1// monsters allowed to fire this trigger
-#define SF_TRIGGER_NOCLIENTS		2// players not allowed to fire this trigger
-#define SF_TRIGGER_PUSHABLES		4// only pushables can fire this trigger
+#define SF_TRIGGER_ALLOWMONSTERS	1 // monsters allowed to fire this trigger
+#define SF_TRIGGER_NOCLIENTS		2 // players not allowed to fire this trigger
+#define SF_TRIGGER_PUSHABLES		4 // only pushables can fire this trigger
 
 class CBaseTrigger;
 class CInOutRegister : public CPointEntity
@@ -157,15 +157,16 @@ void CBaseTrigger :: Spawn( void )
 	pev->solid = SOLID_TRIGGER;
 	pev->movetype = MOVETYPE_NONE;
 	pev->takedamage = DAMAGE_NO;
-	UTIL_SetModel(ENT(pev), pev->model );    // set size and link into world
-          SetBits( pev->effects, EF_NODRAW );
+	UTIL_SetModel( ENT( pev ), pev->model );    // set size and link into world
+	SetObjectClass( ED_TRIGGER );
           
 	// create a null-terminator for the registry
-	m_pRegister = GetClassPtr( (CInOutRegister*)NULL );
+	m_pRegister = GetClassPtr(( CInOutRegister *)NULL );
 	m_pRegister->m_hValue = NULL;
 	m_pRegister->m_pNext = NULL;
 	m_pRegister->m_pField = this;
 	m_pRegister->pev->classname = MAKE_STRING("zoneent");
+	m_pRegister->SetObjectClass( ED_STATIC );
 
 	SetThink( Update );
 }
@@ -917,11 +918,13 @@ void CChangeLevel :: KeyValue( KeyValueData *pkvd )
 
 void CChangeLevel :: Spawn( void )
 {
-	if ( FStringNull( pev->netname)) Msg( "a % doesn't have a map", STRING(pev->classname) );
-	if ( FStringNull( pev->message)) Msg( "trigger_changelevel to %s doesn't have a landmark", STRING(pev->netname) );
+	if( FStringNull( pev->netname ))
+		ALERT( at_error, "a % doesn't have a map\n", STRING( pev->classname ));
+	if( FStringNull( pev->message ))
+		ALERT( at_error, "trigger_changelevel to %s doesn't have a landmark\n", STRING( pev->netname ));
 
-	//determine work style
-	if (FStringNull ( pev->targetname )) SetUse( NULL );
+	// determine work style
+	if( FStringNull( pev->targetname )) SetUse( NULL );
 	else SetTouch( NULL );
 
 	pev->solid = SOLID_TRIGGER;

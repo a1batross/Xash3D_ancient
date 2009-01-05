@@ -485,7 +485,8 @@ enum
 	LUMP_NORMAL = 0,
 	LUMP_TRANSPARENT,
 	LUMP_DECAL,
-	LUMP_QFONT
+	LUMP_QFONT,
+	LUMP_EXTENDED		// bmp images have extened palette with alpha-channel
 };
 
 extern imglib_t image;
@@ -509,6 +510,7 @@ void Image_ConvertPalTo24bit( rgbdata_t *pic );
 void Image_DecompressDDS( const byte *buffer, uint target );
 void Image_GetPaletteLMP( const byte *pal, int rendermode );
 void Image_GetPalettePCX( const byte *pal );
+void Image_GetPaletteBMP( const byte *pal );
 void Image_CopyPalette24bit( void );
 void Image_CopyPalette32bit( void );
 bool Image_ForceDecompress( void );

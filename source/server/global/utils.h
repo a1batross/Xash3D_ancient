@@ -666,13 +666,13 @@ void UTIL_SetView( int ViewEntity = 0, int flags = 0 );
 void UTIL_SetView( CBaseEntity *pActivator, int ViewEntity = 0, int flags = 0 );
 void UTIL_SetView( CBaseEntity *pActivator, CBaseEntity *pViewEnt = 0, int flags = 0 );
 
-void UTIL_SetModel( edict_t *e, string_t s, char *c );
+void UTIL_SetModel( edict_t *e, string_t s, const char *c );
 void UTIL_SetModel( edict_t *e, const char *model );
 void UTIL_SetModel( edict_t *e, string_t model );
-int UTIL_PrecacheModel( char* s );
-int UTIL_PrecacheModel( string_t s, char *e );
-int UTIL_PrecacheSound( char* s );
-int UTIL_PrecacheSound( string_t s, char *e );
+int UTIL_PrecacheModel( const char* s );
+int UTIL_PrecacheModel( string_t s, const char *e );
+int UTIL_PrecacheSound( const char* s );
+int UTIL_PrecacheSound( string_t s, const char *e );
 int UTIL_PrecacheModel( string_t s );
 int UTIL_PrecacheSound( string_t s );
 void UTIL_PrecacheEntity( const char *szClassname );

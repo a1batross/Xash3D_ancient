@@ -130,9 +130,8 @@ public:
 		}
 		else if( pev->solid == SOLID_TRIGGER )
 		{
-			if( pev->modelindex == 0 )
-				SetObjectClass( ED_TRIGGER );	// never sending to client
-			else SetObjectClass( ED_NORMAL );
+			if( pev->ambient ) SetObjectClass( ED_NORMAL );
+			else SetObjectClass( ED_TRIGGER ); // never sending to client
 		}
 		else if( pev->movetype == MOVETYPE_PHYSIC )
 		{
@@ -155,8 +154,7 @@ public:
 			SetObjectClass( ED_CLIENT );
 		else if( !pev->modelindex && !pev->weaponmodel )
 		{	
-			if( pev->noise1 || pev->noise2 || pev->noise3 )
-				SetObjectClass( ED_AMBIENT );
+			if( pev->ambient ) SetObjectClass( ED_AMBIENT );
 			else SetObjectClass( ED_STATIC ); // never sending to client
 		}
 
@@ -164,7 +162,7 @@ public:
 		if( m_iClassType == ED_SPAWNED )
 		{
 			// mark as normal
-			if( pev->modelindex || pev->noise1 || pev->noise2 || pev->noise3 )
+			if( pev->modelindex || pev->ambient )
 				SetObjectClass( ED_NORMAL );
 		}
 	}

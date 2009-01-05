@@ -509,6 +509,7 @@ string_t StringTable_SetString( int handle, const char *string );
 const char *StringTable_GetString( int handle, string_t index );
 int StringTable_LoadSystem( wfile_t *wad, const char *name );
 bool StringTable_SaveSystem( int h, wfile_t *wad );
+const char *StringTable_GetName( int handle );
 void StringTable_DeleteSystem( int handle );
 void StringTable_ClearSystem( int handle );
 void StringTable_Info_f( void );

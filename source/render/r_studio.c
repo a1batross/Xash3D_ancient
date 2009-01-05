@@ -308,35 +308,15 @@ R_StudioGetSequenceInfo
 used for client animation
 ====================
 */
-void R_StudioGetSequenceInfo( dstudiohdr_t *hdr, ref_entity_t *ent, float *pflFrameRate, float *pflGroundSpeed )
+float R_StudioSequenceDuration( dstudiohdr_t *hdr, ref_entity_t *ent )
 {
 	dstudioseqdesc_t	*pseqdesc;
 
-	if( !hdr ) return;
-
-	if( ent->sequence >= hdr->numseq )
-	{
-		if( pflFrameRate ) *pflFrameRate = 0.0;
-		if( pflGroundSpeed ) *pflGroundSpeed = 0.0;
-		return;
-	}
+	if( !hdr || ent->sequence >= hdr->numseq )
+		return 0.0f;
 
 	pseqdesc = (dstudioseqdesc_t *)((byte *)hdr + hdr->seqindex) + ent->sequence;
-
-	if( pseqdesc->numframes > 1 )
-	{
-		if( pflFrameRate ) *pflFrameRate = 256 * pseqdesc->fps / (pseqdesc->numframes - 1);
-		if( pflGroundSpeed )
-		{
-			*pflGroundSpeed = VectorLength( pseqdesc->linearmovement ); 
-			*pflGroundSpeed = *pflGroundSpeed * pseqdesc->fps / (pseqdesc->numframes - 1);
-		}
-	}
-	else
-	{
-		if( pflFrameRate ) *pflFrameRate = 256.0;
-		if( pflGroundSpeed ) *pflGroundSpeed = 0.0;
-	}
+	return pseqdesc->numframes / pseqdesc->fps;
 }
 
 int R_StudioGetSequenceFlags( dstudiohdr_t *hdr, ref_entity_t *ent )
@@ -350,7 +330,7 @@ int R_StudioGetSequenceFlags( dstudiohdr_t *hdr, ref_entity_t *ent )
 	return pseqdesc->flags;
 }
 
-float R_StudioFrameAdvance( ref_entity_t *ent, float framerate, float flInterval )
+float R_StudioFrameAdvance( ref_entity_t *ent, float flInterval )
 {
 	if( flInterval == 0.0 )
 	{
@@ -363,8 +343,8 @@ float R_StudioFrameAdvance( ref_entity_t *ent, float framerate, float flInterval
 	}
 	if( !ent->animtime ) flInterval = 0.0;
 	
-	ent->frame += flInterval * framerate * ent->framerate;
-	ent->animtime = r_refdef.time;
+	ent->frame += flInterval * ent->framerate;
+	//ent->animtime = r_refdef.time;
 
 	if( ent->frame < 0.0 || ent->frame >= 256.0 ) 
 	{
@@ -378,16 +358,14 @@ float R_StudioFrameAdvance( ref_entity_t *ent, float framerate, float flInterval
 
 void R_StudioResetSequenceInfo( ref_entity_t *ent, dstudiohdr_t *hdr )
 {
-	float	m_flFrameRate;
-
 	if( !ent || !hdr ) return;
 
-	R_StudioGetSequenceInfo( hdr, ent, &m_flFrameRate, NULL );
 	ent->m_fSequenceLoops = ((R_StudioGetSequenceFlags( hdr, ent ) & STUDIO_LOOPING) != 0 );
 
-	// if custom framerate not specified, use default value from studiomodel
-	ent->framerate = m_flFrameRate;
-	ent->animtime = r_refdef.time;
+	// calc anim time
+	if( !ent->animtime ) ent->animtime = r_refdef.time;
+	ent->prev.animtime = ent->animtime;
+	ent->animtime = r_refdef.time + R_StudioSequenceDuration( hdr, ent );
 	ent->m_fSequenceFinished = FALSE;
 }
 
@@ -891,9 +869,9 @@ float R_StudioEstimateFrame( dstudioseqdesc_t *pseqdesc )
 {
 	double dfdt, f;
 	
-	if ( m_fDoInterp )
+	if( m_fDoInterp )
 	{
-		if ( r_refdef.time < m_pCurrentEntity->animtime ) dfdt = 0;
+		if( r_refdef.time < m_pCurrentEntity->animtime ) dfdt = 0;
 		else dfdt = (r_refdef.time - m_pCurrentEntity->animtime) * m_pCurrentEntity->framerate * pseqdesc->fps;
 	}
 	else dfdt = 0;
@@ -1732,7 +1710,7 @@ void R_StudioSetupRender( int passnum )
 	m_pvlightvalues = &g_lightvalues[0];
 
 	// misc info
-	m_fDoInterp = r_interpolate->integer;
+	m_fDoInterp = (m_pCurrentEntity->effects & EF_NOINTERP) ? false : true;
 	m_PassNum = passnum;
 }
 
@@ -1751,13 +1729,6 @@ bool R_StudioDrawModel( int pass, int flags )
 	{
 		if( /*mirror_render ||*/ r_lefthand->value == 2 )
 			return 0;
-
-		// viewmodel animate on client
-		//if( !m_pCurrentEntity->m_fSequenceFinished )
-			R_StudioFrameAdvance( m_pCurrentEntity, 1.0f, 0 );
-
-		//if( m_pCurrentEntity->m_fSequenceFinished && m_pCurrentEntity->m_fSequenceLoops )
-		//	R_StudioResetSequenceInfo( m_pCurrentEntity, m_pStudioHeader );
 	}
 
 	R_StudioSetupRender( pass );	

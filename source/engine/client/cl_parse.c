@@ -284,6 +284,7 @@ void CL_ParseBaseline( sizebuf_t *msg )
 	while( newnum >= clgame.numEntities ) CL_AllocEdict();
 	ent = EDICT_NUM( newnum );
 
+	Com_Assert( ent->pvClientData == NULL );
 	MSG_ReadDeltaEntity( msg, &nullstate, &ent->pvClientData->baseline, newnum );
 }
 
@@ -298,9 +299,9 @@ void CL_ParseConfigString( sizebuf_t *msg )
 
 	i = MSG_ReadShort( msg );
 	if( i < 0 || i >= MAX_CONFIGSTRINGS )
-		Host_Error("configstring > MAX_CONFIGSTRINGS\n");
+		Host_Error( "configstring > MAX_CONFIGSTRINGS\n" );
 	com.strcpy( cl.configstrings[i], MSG_ReadString( msg ));
-
+		
 	// do something apropriate 
 	if( i == CS_SKYNAME && cl.video_prepped )
 	{

@@ -63,6 +63,7 @@ bool ConvPCX( const char *name, byte *buffer, size_t filesize, const char *ext )
 bool ConvFLT( const char *name, byte *buffer, size_t filesize, const char *ext );// Doom1 flat images (textures)
 bool ConvFLP( const char *name, byte *buffer, size_t filesize, const char *ext );// Doom1 flat images (menu pics)
 bool ConvJPG( const char *name, byte *buffer, size_t filesize, const char *ext );// Quake3 textures
+bool ConvBMP( const char *name, byte *buffer, size_t filesize, const char *ext );// 8-bit maps with alpha-channel
 bool ConvMIP( const char *name, byte *buffer, size_t filesize, const char *ext );// Quake1, Half-Life wad textures
 bool ConvLMP( const char *name, byte *buffer, size_t filesize, const char *ext );// Quake1, Half-Life lump images
 bool ConvFNT( const char *name, byte *buffer, size_t filesize, const char *ext );// Half-Life system fonts

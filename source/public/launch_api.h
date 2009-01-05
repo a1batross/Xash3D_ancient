@@ -19,7 +19,7 @@
 #define IsColorString(p)	( p && *(p) == STRING_COLOR_TAG && *((p)+1) && *((p)+1) != STRING_COLOR_TAG )
 #define bound(min, num, max)	((num) >= (min) ? ((num) < (max) ? (num) : (max)) : (min))
 #define DLLEXPORT		__declspec( dllexport )
-
+#define MAX_STRING_TABLES	8	// seperately stringsystems
 #ifndef __cplusplus
 #define bool		BOOL	// sizeof( int )
 #endif
@@ -634,6 +634,7 @@ typedef struct stdilib_api_s
 	const char *(*st_getstring)( int handle, string_t index );
 	string_t (*st_setstring)( int handle, const char *string );
 	int (*st_load)( wfile_t *wad, const char *name );
+	const char *(*st_getname)( int handle );
 	bool (*st_save)( int h, wfile_t *wad );
 	void (*st_clear)( int handle );
 	void (*st_remove)( int handle );
@@ -896,6 +897,7 @@ misc utils
 #define StringTable_Clear		com.st_clear
 #define StringTable_GetString		com.st_getstring
 #define StringTable_SetString		com.st_setstring
+#define StringTable_GetName		com.st_getname
 #define StringTable_Load		com.st_load
 #define StringTable_Save		com.st_save
 #define Com_Assert( x )		if( x ) com.abort( "assert failed at %s:%i\n", __FILE__, __LINE__ );

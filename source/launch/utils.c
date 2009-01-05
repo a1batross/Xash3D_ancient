@@ -223,8 +223,8 @@ float sse_sqrt( float x )
 	return root;
 }
 
-
-#define MAX_STRINGTABLE_SYSTEMS	8	// seperately stringsystems
+#define ST_STATIC_ALLOCATE		// comment this to use realloc
+// (all pointers to real strings will be invalid after another calling SetString, but it - memory economy mode )
 
 typedef struct stringtable_s
 {
@@ -239,18 +239,20 @@ typedef struct stringtable_s
 	size_t	maxstrings;	// current system limit
 } stringtable_t;
 
-stringtable_t *dstring[MAX_STRINGTABLE_SYSTEMS];
+stringtable_t *dstring[MAX_STRING_TABLES];
 
-bool StringTable_CheckHandle( int handle )
+bool StringTable_CheckHandle( int handle, bool silent )
 {
-	if( handle < 0 || handle > MAX_STRINGTABLE_SYSTEMS )
+	if( handle < 0 || handle > MAX_STRING_TABLES )
 	{
-		MsgDev( D_ERROR, "StringTable_CheckHandle: invalid system handle %d\n", handle );
+		if( !silent )
+			MsgDev( D_ERROR, "StringTable_CheckHandle: invalid system handle %d\n", handle );
 		return false;
 	}
 	if( !dstring[handle] )
 	{
-		MsgDev( D_ERROR, "StringTable_CheckHandle: system with handle %d inactive\n", handle );
+		if( !silent )
+			MsgDev( D_ERROR, "StringTable_CheckHandle: system with handle %d inactive\n", handle );
 		return false;
 	}
 	return true;
@@ -258,7 +260,7 @@ bool StringTable_CheckHandle( int handle )
 
 bool StringTable_CheckString( int handle, string_t str )
 {
-	if(!StringTable_CheckHandle( handle ))
+	if(!StringTable_CheckHandle( handle, true ))
 		return false;
 
 	if( str < 0 || str >= dstring[handle]->numstrings )
@@ -269,12 +271,19 @@ bool StringTable_CheckString( int handle, string_t str )
 	return true;
 }
 
+const char *StringTable_GetName( int handle )
+{
+	if( !StringTable_CheckHandle( handle, true ))
+		return NULL;	
+	return dstring[handle]->name;
+}
+
 int StringTable_CreateNewSystem( const char *name, size_t max_strings )
 {
 	int	i;
 
 	// fisrt, find free stringtable system
-	for( i = 0; i < MAX_STRINGTABLE_SYSTEMS; i++ )
+	for( i = 0; i < MAX_STRING_TABLES; i++ )
 	{
 		if( !dstring[i] )
 		{
@@ -282,7 +291,13 @@ int StringTable_CreateNewSystem( const char *name, size_t max_strings )
 			dstring[i] = Mem_Alloc( Sys.basepool, sizeof( stringtable_t ));
 			dstring[i]->mempool = Mem_AllocPool( va( "StringTable_%s", name ));			
 			com.strncpy( dstring[i]->name, name, MAX_STRING );
+			dstring[i]->maxdatasize = max_strings * 8;
 			dstring[i]->maxstrings = max_strings;
+#ifdef ST_STATIC_ALLOCATE
+			// create static arrays
+			dstring[i]->data = (char *)Mem_Alloc( dstring[i]->mempool, dstring[i]->maxdatasize );
+			dstring[i]->table = (int *)Mem_Alloc( dstring[i]->mempool, dstring[i]->maxstrings );
+#endif
 
 			StringTable_SetString( i, "" ); // make iNullString
 			return i;
@@ -295,7 +310,7 @@ int StringTable_CreateNewSystem( const char *name, size_t max_strings )
 
 void StringTable_DeleteSystem( int handle )
 {
-	if( !StringTable_CheckHandle( handle ))
+	if( !StringTable_CheckHandle( handle, false ))
 		return;
 
 	// now free stringtable
@@ -306,14 +321,18 @@ void StringTable_DeleteSystem( int handle )
 
 void StringTable_ClearSystem( int handle )
 {
-	if( !StringTable_CheckHandle( handle ))
+	if( !StringTable_CheckHandle( handle, false ))
 		return;
 
 	Mem_EmptyPool( dstring[handle]->mempool );
 	dstring[handle]->datasize = dstring[handle]->numstrings = 0;
+#ifdef ST_STATIC_ALLOCATE
+	dstring[handle]->data = (char *)Mem_Alloc( dstring[handle]->mempool, dstring[handle]->maxdatasize );
+	dstring[handle]->table = (int *)Mem_Alloc( dstring[handle]->mempool, dstring[handle]->maxstrings );
+#else
 	dstring[handle]->table = NULL;
 	dstring[handle]->data = NULL;
-
+#endif
 	StringTable_SetString( handle, "" ); // make iNullString
 }
 
@@ -327,7 +346,7 @@ string_t StringTable_SetString( int handle, const char *string )
 {
 	int i, len, table_size, data_size;
 
-	if( !StringTable_CheckHandle( handle ))
+	if( !StringTable_CheckHandle( handle, false ))
 		return -1;
 
 	for( i = 0; i < dstring[handle]->numstrings; i++ )
@@ -341,15 +360,15 @@ string_t StringTable_SetString( int handle, const char *string )
 	table_size = sizeof(string_t) * (dstring[handle]->numstrings + 1);
 	data_size = dstring[handle]->datasize + len + 1;
 
-	if( table_size >= dstring[handle]->maxstrings )
+	if( table_size >= dstring[handle]->maxstrings || data_size >= dstring[handle]->maxdatasize )
 	{
 		MsgDev( D_ERROR, "StringTable_SetString: string table %s limit exeeded\n", dstring[handle]->name );
 		return -1;
 	}
-
+#ifndef ST_STATIC_ALLOCATE
 	dstring[handle]->table = Mem_Realloc( dstring[handle]->mempool, dstring[handle]->table, table_size );
 	dstring[handle]->data = Mem_Realloc( dstring[handle]->mempool, dstring[handle]->data, data_size );  
-
+#endif
 	com.strcpy( &dstring[handle]->data[dstring[handle]->datasize], string );
 	dstring[handle]->table[dstring[handle]->numstrings] = dstring[handle]->datasize;
 	dstring[handle]->datasize += len + 1; // null terminator
@@ -362,7 +381,7 @@ bool StringTable_SaveSystem( int h, wfile_t *wad )
 {
 	int table_size;
 
-	if(!StringTable_CheckHandle( h ))
+	if(!StringTable_CheckHandle( h, false ))
 		return false;
 	if(!W_SaveLump( wad, "stringdata", dstring[h]->data, dstring[h]->datasize, TYPE_STRDATA, CMP_ZLIB ))
 		return false;
@@ -390,33 +409,24 @@ void StringTable_Info_f( void )
 {
 	int	i, j;
 
-	switch(Cmd_Argc( ))
+	if( Cmd_Argc() != 2 )
 	{
-	case 1:
-		// display list of all actuve StringTable Systems
-		for( i = 0; i < MAX_STRINGTABLE_SYSTEMS; i++ )
-		{
-			if( dstring[i] ) Msg( "%s\n", dstring[i]->name );
-		}
-		break;
-	case 2:
-		// print all symbols in selected StringTable
-		for( i = 0; i < MAX_STRINGTABLE_SYSTEMS; i++ )
-		{
-			if( dstring[i] )
-			{
-				if( !com.stricmp( dstring[i]->name, Cmd_Argv( 1 )))
-				{
-					for( j = 0; j < dstring[i]->numstrings; j++ )
-						Msg( "%s ", StringTable_GetString( i, j ));
-					Msg( "\n" );
-					break;
-				}
-			}
-		}
-		break;
-	default:
 		Msg( "Usage: stinfo <name>\n" );
-		break;
+		return;
+	}
+
+	// print all strings in selected StringTable
+	for( i = 0; i < MAX_STRING_TABLES; i++ )
+	{
+		if( !dstring[i] ) continue;
+
+		if( !com.stricmp( dstring[i]->name, Cmd_Argv( 1 )))
+		{
+			Msg( "------------- %i strings -------------\n", dstring[i]->numstrings );
+			for( j = 0; j < dstring[i]->numstrings; j++ )
+				Msg( "%s ", StringTable_GetString( i, j ));
+			Msg( "\n  ^3total %s used\n", com_pretifymem( dstring[i]->datasize, 3 ));
+			break;
+		}
 	}
 }

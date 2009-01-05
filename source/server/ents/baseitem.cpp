@@ -28,6 +28,7 @@ void CItem::Spawn( void )
 
 	UTIL_SetOrigin( this, pev->origin );
 	UTIL_SetSize(pev, g_vecZero, g_vecZero );
+	SetObjectClass( ED_NORMAL );
 
 	SetTouch( ItemTouch );
           SetThink( ItemFall );

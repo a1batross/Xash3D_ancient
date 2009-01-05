@@ -12,31 +12,6 @@
 
 #define EOFS( x )	(int)&(((entvars_t *)0)->x)
 
-const char *ed_name[] =
-{
-	"unknown",
-	"world",
-	"static",
-	"ambient",
-	"normal",
-	"brush",
-	"player",
-	"monster",
-	"tempent",
-	"beam",
-	"mover",
-	"viewmodel",
-	"item",
-	"ragdoll",
-	"physbody",
-	"trigger",
-	"portal",
-	"missile",
-	"decal",
-	"vehicle",
-	"error",
-};
-
 void Sys_FsGetString( file_t *f, char *str )
 {
 	char	ch;
@@ -667,8 +642,7 @@ void SV_InitEdict( edict_t *pEdict )
 	pEdict->v.pContainingEntity = pEdict; // make cross-links for consistency
 	pEdict->pvServerData = (sv_priv_t *)Mem_Alloc( svgame.mempool, sizeof( sv_priv_t ));
 	pEdict->pvPrivateData = NULL;	// will be alloced later by pfnAllocPrivateData
-	pEdict->serialnumber = pEdict->pvServerData->s.number = NUM_FOR_EDICT( pEdict );
-	pEdict->pvServerData->s.ed_type = ED_SPAWNED;
+	pEdict->serialnumber = NUM_FOR_EDICT( pEdict );
 	pEdict->free = false;
 }
 
@@ -1346,13 +1320,12 @@ pfnFindEntityByString
 */
 edict_t* pfnFindEntityByString( edict_t *pStartEdict, const char *pszField, const char *pszValue )
 {
-	int		e, f;
+	int		f, e = 0;
 	edict_t		*ed;
 	const char	*t;
 
-	if( !pStartEdict ) e = 0;
-	else e = NUM_FOR_EDICT( pStartEdict );
-	if( !pszValue || !*pszValue ) return pStartEdict;
+	if( pStartEdict ) e = NUM_FOR_EDICT( pStartEdict );
+	if( !pszValue || !*pszValue ) return NULL;
 
 	// FIXME: make table with hints
 	if( !com.strcmp( pszField, "classname" ))
@@ -1382,7 +1355,7 @@ edict_t* pfnFindEntityByString( edict_t *pStartEdict, const char *pszField, cons
 		if( !com.strcmp( t, pszValue ))
 			return ed;
 	}
-	return EDICT_NUM( 0 );
+	return NULL;
 }
 
 /*
@@ -1593,18 +1566,31 @@ pfnCreateNamedEntity
 */
 edict_t* pfnCreateNamedEntity( string_t className )
 {
-	edict_t		*ed;
+	edict_t		*ent;
 	const char	*pszClassName;
+	LINK_ENTITY_FUNC	SpawnEdict;
 
 	pszClassName = STRING( className );
-	ed = pfnCreateEntity();
-	ed->v.classname = className;
-	pszClassName = STRING( className );
+	ent = pfnCreateEntity();
+	ent->v.classname = className;
+
+	// allocate edict private memory (passed by dlls)
+	SpawnEdict = (LINK_ENTITY_FUNC)Com_GetProcAddress( svgame.hInstance, pszClassName );
+	if( !SpawnEdict )
+	{
+		// attempt to create custom entity
+		if( svgame.dllFuncs.pfnCreate( ent, pszClassName ) == -1 )
+		{
+			MsgDev( D_ERROR, "No spawn function for %s\n", pszClassName );
+			return ent; // this edict needs to be alloced pvPrivateData
+		}
+	}
+	else SpawnEdict( &ent->v );
 
 	// also register classname to send for client
-	ed->pvServerData->s.classname = SV_ClassIndex( pszClassName );
+	ent->pvServerData->s.classname = SV_ClassIndex( pszClassName );
 
-	return ed;
+	return ent;
 }
 
 /*
@@ -2286,7 +2272,7 @@ pfnWriteAngle
 void pfnWriteAngle( float flValue )
 {
 	_MSG_WriteBits( &sv.multicast, flValue, svgame.msg_name, NET_ANGLE, __FILE__, __LINE__ );
-	svgame.msg_realsize += 4;
+	svgame.msg_realsize += 2;
 }
 
 /*
@@ -2676,17 +2662,16 @@ classify edict for render and network usage
 */
 void pfnClassifyEdict( edict_t *pEdict, int class )
 {
-	if( pEdict->free )
+	if( !pEdict || pEdict->free )
 	{
 		MsgDev( D_ERROR, "SV_ClassifyEdict: can't modify free entity\n" );
 		return;
 	}
 
 	if( !pEdict->pvServerData ) return;
-	pEdict->pvServerData->s.ed_type = class;
 
-	// or leave unclassified, wait for next SV_LinkEdict...
-	Msg( "%s: <%s>\n", STRING( pEdict->v.classname ), ed_name[class] );
+	pEdict->pvServerData->s.ed_type = class;
+	MsgDev( D_NOTE, "%s: <%s>\n", STRING( pEdict->v.classname ), ed_name[class] );
 }
 
 /*

@@ -172,8 +172,8 @@ public:
 	int			m_iClientBattery;	// the Battery currently known by the client.  If this changes, send a new
 	int			m_iHideHUD;		// the players hud weapon info is to be hidden
 	int			m_iClientHideHUD;
-	int			m_iFOV;			// field of view
-	int			m_iClientFOV;	// client's known FOV
+	float			m_flFOV;		// field of view
+	float			m_flClientFOV;	// client's known FOV
 
 	// usable player items 
 	CBasePlayerWeapon	*m_rgpPlayerItems[MAX_ITEM_TYPES];

@@ -73,10 +73,15 @@ typedef struct dllfunction_s
 
 #define bound( min, num, max )	((num) >= (min) ? ((num) < (max) ? (num) : (max)) : (min))
 
-// ScreenHeight returns the height of the screen, in pixels
+// ScreenHeight returns the virtual height of the screen, in pixels
 #define ScreenHeight	(gHUD.m_scrinfo.iHeight)
-// ScreenWidth returns the width of the screen, in pixels
+// ScreenWidth returns the virtual width of the screen, in pixels
 #define ScreenWidth		(gHUD.m_scrinfo.iWidth)
+
+// ScreenHeight returns the height of the screen, in pixels
+#define ActualHeight	(gHUD.m_scrinfo.iRealHeight)
+// ScreenWidth returns the width of the screen, in pixels
+#define ActualWidth		(gHUD.m_scrinfo.iRealWidth)
 
 inline void UnpackRGB( int &r, int &g, int &b, dword ulRGB )
 {
@@ -152,19 +157,23 @@ extern int SPR_Width( HSPRITE hPic, int frame );
 extern client_sprite_t *SPR_GetList( const char *name, int *count );
 extern void ParseHudSprite( const char **pfile, char *psz, client_sprite_t *result );
 extern void SPR_Set( HSPRITE hPic, int r, int g, int b );
+extern void SPR_Set( HSPRITE hPic, int r, int g, int b, int a );
 extern void SPR_Draw( int frame, int x, int y, const wrect_t *prc );
 extern void SPR_Draw( int frame, int x, int y, int width, int height );
 extern void SPR_DrawHoles( int frame, int x, int y, const wrect_t *prc );
 extern void SPR_DrawHoles( int frame, int x, int y, int width, int height );
+extern void SPR_DrawTransColor( int frame, int x, int y, int width, int height );
+extern void SPR_DrawTransColor( int frame, int x, int y, const wrect_t *prc );
 extern void SPR_DrawAdditive( int frame, int x, int y, const wrect_t *prc );
 extern void SPR_DrawAdditive( int frame, int x, int y, int width, int height );
+extern void FillRGBA( int x, int y, int width, int height, int r, int g, int b, int a );
 extern void SetCrosshair( HSPRITE hspr, wrect_t rc, int r, int g, int b );
 extern void DrawCrosshair( void );
 extern void DrawPause( void );
 extern void SetScreenFade( Vector fadeColor, float alpha, float duration, float holdTime, int fadeFlags );
 extern void DrawScreenFade( void );
-extern void DrawImageBar( float percent, HSPRITE hImage, int w, int h );
-extern void DrawImageBar( float percent, HSPRITE hImage, int x, int y, int w, int h );
+extern void DrawImageBar( float percent, const char *szSpriteName );
+extern void DrawImageBar( float percent, const char *szSpriteName, int x, int y );
 extern void DrawGenericBar( float percent, int w, int h );
 extern void DrawGenericBar( float percent, int x, int y, int w, int h );
 extern void Draw_VidInit( void );

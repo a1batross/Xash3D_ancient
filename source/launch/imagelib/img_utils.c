@@ -442,6 +442,16 @@ void Image_SetPalette( const byte *pal, uint *d_table )
 			d_table[i] = BuffBigLong( rgba );
 		}
 		break;
+	case LUMP_EXTENDED:
+		for (i = 0; i < 256; i++)
+		{
+			rgba[3] = pal[i*4+0];
+			rgba[2] = pal[i*4+1];
+			rgba[1] = pal[i*4+2];
+			rgba[0] = pal[i*4+3];
+			d_table[i] = BuffBigLong( rgba );
+		}
+		break;	
 	}
 }
 
@@ -502,6 +512,17 @@ void Image_GetPalettePCX( const byte *pal )
 		image.d_currentpal = d_8to24table;
 	}
 	else Image_GetPaletteQ2();          
+}
+
+void Image_GetPaletteBMP( const byte *pal )
+{
+	image.d_rendermode = LUMP_EXTENDED;
+
+	if( pal )
+	{
+		Image_SetPalette( pal, d_8to24table );
+		image.d_currentpal = d_8to24table;
+	}
 }
 
 void Image_GetPaletteLMP( const byte *pal, int rendermode )

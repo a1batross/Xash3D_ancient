@@ -357,7 +357,7 @@ void CFade::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType
 //=======================================================================
 class CEnvZoom : public CBaseLogic
 {
-	void Spawn (void ){ if(!pev->button) pev->button = CVAR_GET_FLOAT( "default_fov" ); }
+	void Spawn (void ){ if( !pev->frags ) pev->frags = CVAR_GET_FLOAT( "default_fov" ); }
 	void EXPORT Think( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void KeyValue( KeyValueData* pkvd );
@@ -368,14 +368,14 @@ LINK_ENTITY_TO_CLASS( env_zoom,  CEnvZoom );
 
 void CEnvZoom::KeyValue( KeyValueData* pkvd )
 {
-	if (FStrEq(pkvd->szKeyName, "duration"))
+	if( FStrEq( pkvd->szKeyName, "duration" ))
 	{
-		pev->takedamage = atof(pkvd->szValue);
+		pev->takedamage = atof( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if (FStrEq(pkvd->szKeyName, "fov"))
+	else if ( FStrEq( pkvd->szKeyName, "fov" ))
 	{
-		pev->button = atoi(pkvd->szValue);
+		pev->frags = atof( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
 	else CBaseEntity::KeyValue( pkvd );
@@ -383,64 +383,67 @@ void CEnvZoom::KeyValue( KeyValueData* pkvd )
 
 void CEnvZoom::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	if ( !pActivator || !pActivator->IsPlayer()) pActivator = UTIL_PlayerByIndex( 1 );
-	m_hActivator = pActivator; //save activator
+	if( !pActivator || !pActivator->IsPlayer())
+		pActivator = UTIL_PlayerByIndex( 1 );
+	m_hActivator = pActivator; // save activator
 
-	if (m_iState == STATE_ON) return;
-	if (useType == USE_TOGGLE || useType == USE_ON) SetFadeTime();
-	else if (useType == USE_OFF)((CBasePlayer *)pActivator)->m_iFOV = CVAR_GET_FLOAT( "default_fov" );
-	else if (useType == USE_SHOWINFO)
+	if( m_iState == STATE_ON ) return;
+	if( useType == USE_TOGGLE || useType == USE_ON ) SetFadeTime();
+	else if( useType == USE_OFF )
+		((CBasePlayer *)pActivator)->m_flFOV = CVAR_GET_FLOAT( "default_fov" );
+	else if( useType == USE_SHOWINFO )
 	{
 		DEBUGHEAD;
-		Msg("State: %s, Fade time %.00f\n", GetStringForState( GetState()), pev->takedamage);
-		Msg("Current FOV: %d, Final FOV: %d\n", ((CBasePlayer *)pActivator)->m_iFOV, pev->button);
+		ALERT( at_console, "State: %s, Fade time %.00f\n", GetStringForState( GetState()), pev->takedamage );
+		ALERT( at_console, "Current FOV: %g, Final FOV: %g\n", ((CBasePlayer *)pActivator)->m_flFOV, pev->button );
 	}
 }
 
 void CEnvZoom::SetFadeTime( void )
 {
-	int CurFOV;
-	int Length;
+	float CurFOV;
+	float Length;
 
-	if( pev->takedamage == 0) //instant apply fov
+	if( pev->takedamage == 0 ) // instant apply fov
 	{
-		((CBasePlayer *)(CBaseEntity *)m_hActivator)->m_iFOV = pev->button;
+		((CBasePlayer *)(CBaseEntity *)m_hActivator)->m_flFOV = pev->frags;
 		return;
 	}
 	else 
 	{
-		CurFOV = ((CBasePlayer *)(CBaseEntity *)m_hActivator)->m_iFOV;
-		if(CurFOV == 0) CurFOV = ((CBasePlayer *)(CBaseEntity *)m_hActivator)->m_iFOV = CVAR_GET_FLOAT( "default_fov" );
+		CurFOV = ((CBasePlayer *)(CBaseEntity *)m_hActivator)->m_flFOV;
+		if( CurFOV == 0.0f )
+			CurFOV = ((CBasePlayer *)(CBaseEntity *)m_hActivator)->m_flFOV = CVAR_GET_FLOAT( "default_fov" );
 	
-		if(CurFOV > pev->button) Length = CurFOV - pev->button;
-		else if (CurFOV < pev->button)
+		if( CurFOV > pev->frags ) Length = CurFOV - pev->frags;
+		else if( CurFOV < pev->frags )
 		{
-			Length = pev->button - CurFOV;
-			pev->body = 1;//increment fov	
+			Length = pev->frags - CurFOV;
+			pev->body = 1; // increment fov	
 		}
-		else return;//no change
+		else return; // no change
 
 		pev->health = pev->takedamage / Length;	
 		SetNextThink ( pev->health );
 	}
 }
 
-void CEnvZoom::Think ( void )
+void CEnvZoom::Think( void )
 {
-	if( ((CBasePlayer *)(CBaseEntity *)m_hActivator)->m_iFOV == pev->button )
+	if( Q_rint(((CBasePlayer *)(CBaseEntity *)m_hActivator)->m_flFOV ) == Q_rint( pev->frags ))
 	{
-		//calculate fov is over
+		// time is expired
 		SetThink( NULL );
 		DontThink();
 		m_iState = STATE_OFF;
-		//fire target after finished                                   //transfer fov
-		UTIL_FireTargets( pev->target, m_hActivator, this, USE_TOGGLE, pev->button );
+		// fire target after finished                                   // transmit final fov
+		UTIL_FireTargets( pev->target, m_hActivator, this, USE_TOGGLE, pev->frags );
                     return;
 	}
 	else
 	{
-		if(pev->body ) ((CBasePlayer *)(CBaseEntity *)m_hActivator)->m_iFOV++;
-		else ((CBasePlayer *)(CBaseEntity *)m_hActivator)->m_iFOV--;
+		if( pev->body ) ((CBasePlayer *)(CBaseEntity *)m_hActivator)->m_flFOV += gpGlobals->frametime;
+		else ((CBasePlayer *)(CBaseEntity *)m_hActivator)->m_flFOV -= gpGlobals->frametime;
 	}
 	m_iState = STATE_ON;
 	SetNextThink ( pev->health );
