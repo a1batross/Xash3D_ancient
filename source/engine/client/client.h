@@ -110,6 +110,7 @@ typedef struct
 					// is rendering at.  always <= cls.realtime
 	ref_params_t	refdef;		// shared refdef
 	edict_t		viewent;		// viewmodel
+	client_data_t	data;		// hud data
 
 	// misc 2d drawing stuff
 	int		centerPrintTime;
@@ -191,7 +192,7 @@ typedef struct serverinfo_s
 
 } serverinfo_t;
 
-typedef enum { key_game, key_console, key_message, key_menu } keydest_t;
+typedef enum { key_game, key_console, key_message, key_menu, key_gamemenu } keydest_t;
 
 typedef struct
 {
@@ -492,7 +493,7 @@ _inline edict_t *CL_EDICT_NUM( int n, const char *file, const int line )
 // if origin is NULL, the sound will be dynamically sourced from the entity
 #define S_StartStreaming		if( se ) se->StartStreaming
 #define S_StartSound( a,b,c,d,e,f,g )	if( se ) se->StartSound( a, b, c, d, e, f, g, true );
-#define S_StartLocalSound( a, b, c )	if( se ) se->StartLocalSound( a, b, c )
+#define S_StartLocalSound( a,b,c,d )	if( se ) se->StartLocalSound( a, b, c, d )
 #define S_StartBackgroundTrack	if( se ) se->StartBackgroundTrack
 #define S_StopBackgroundTrack		if( se ) se->StopBackgroundTrack
 #define S_RawSamples 		if( se ) se->StreamRawSamples

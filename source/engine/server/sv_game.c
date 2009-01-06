@@ -2301,6 +2301,30 @@ void pfnWriteFloat( float flValue )
 
 /*
 =============
+pfnWriteLong64
+
+=============
+*/
+void pfnWriteLong64( int64 iValue )
+{
+	_MSG_WriteBits( &sv.multicast, iValue, svgame.msg_name, NET_INT64, __FILE__, __LINE__ );
+	svgame.msg_realsize += 8;
+}
+
+/*
+=============
+pfnWriteDouble
+
+=============
+*/
+void pfnWriteDouble( double flValue )
+{
+	MSG_WriteFloat( &sv.multicast, flValue );
+	svgame.msg_realsize += 8;
+}
+
+/*
+=============
 pfnWriteString
 
 =============
@@ -3024,6 +3048,8 @@ static enginefuncs_t gEngfuncs =
 	pfnWriteAngle,
 	pfnWriteCoord,
 	pfnWriteFloat,
+	pfnWriteLong64,
+	pfnWriteDouble,
 	pfnWriteString,
 	pfnWriteEntity,
 	pfnCVarRegister,

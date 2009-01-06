@@ -78,6 +78,18 @@ typedef struct client_textmessage_s
 	const char *pMessage;
 } client_textmessage_t;
 
+typedef struct client_data_s
+{
+	vec3_t	origin;
+	vec3_t	angles;
+
+	int	iKeyBits;		// Keyboard bits
+	int64	iWeaponBits;	// came from pev->weapons
+	float	fov;		// field of view
+	float	v_idlescale;	// view shake/rotate
+	float	mouse_sensitivity;	// used for menus
+} client_data_t;
+
 // NOTE: engine trace struct not matched with clgame trace
 typedef struct
 {
@@ -120,8 +132,6 @@ typedef struct ref_params_s
 	BOOL	spectator;
 	BOOL	paused;
 	uint	rdflags;		// client view effects: RDF_UNDERWATER, RDF_MOTIONBLUR, etc
-	int	iWeaponBits;	// pev->weapon
-	int	iKeyBits;		// pev->button
 	edict_t	*onground;	// pointer to onground entity
 	byte	*areabits;	// come from server, contains visible areas list
 	int	waterlevel;
@@ -135,8 +145,6 @@ typedef struct ref_params_s
 
 	vec3_t	viewheight;
 	float	idealpitch;
-	float	v_idlescale;	// used for concussion effect
-	float	mouse_sensitivity;
 
 	int	health;
 	vec3_t	crosshairangle;	// pfnCrosshairAngle values from server
@@ -182,8 +190,8 @@ typedef struct cl_enginefuncs_s
 	void	(*pfnAlertMessage)( ALERT_TYPE, char *szFmt, ... );
 	
 	// sound handlers (NULL origin == play at current client origin)
-	void	(*pfnPlaySoundByName)( const char *szSound, float volume, const float *org );
-	void	(*pfnPlaySoundByIndex)( int iSound, float volume, const float *org );
+	void	(*pfnPlaySoundByName)( const char *szSound, float volume, int pitch, const float *org );
+	void	(*pfnPlaySoundByIndex)( int iSound, float volume, int pitch, const float *org );
 
 	// vector helpers
 	void	(*pfnAngleVectors)( const float *rgflVector, float *forward, float *right, float *up );
@@ -227,7 +235,7 @@ typedef struct
 	int	(*pfnVidInit)( void );
 	void	(*pfnInit)( void );
 	int	(*pfnRedraw)( float flTime, int state );
-	int	(*pfnUpdateClientData)( ref_params_t *parms, float flTime );
+	int	(*pfnUpdateClientData)( client_data_t *cdata, float flTime );
 	void	(*pfnReset)( void );
 	void	(*pfnFrame)( double time );
 	void 	(*pfnShutdown)( void );

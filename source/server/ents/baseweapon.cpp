@@ -19,7 +19,7 @@
 extern int gEvilImpulse101;
 ItemInfo CBasePlayerWeapon::ItemInfoArray[MAX_WEAPONS];
 AmmoInfo CBasePlayerWeapon::AmmoInfoArray[MAX_AMMO_SLOTS];
-char NameItems[MAX_WEAPONS][29];
+char NameItems[MAX_WEAPONS][64];
 int ID[MAX_WEAPONS];
 int GlobalID = 0;
 int g_iSwing;

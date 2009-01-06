@@ -431,38 +431,25 @@ send it to transform callback
 */
 void SV_PlayerMove( edict_t *player )
 {
-	pmove_t		pm;
+	entvars_t		pmove;
 	sv_client_t	*client;
+	physbody_t	*body;
+	usercmd_t		*cmd;
 
 	client = player->pvServerData->client;
-	memset( &pm, 0, sizeof(pm) );
 
-	if( player->v.movetype == MOVETYPE_NOCLIP )
-		player->pvServerData->s.pm_type = PM_SPECTATOR;
-	else player->pvServerData->s.pm_type = PM_NORMAL;
-	player->pvServerData->s.gravity = sv_gravity->value;
+	pmove = player->v;
+	cmd = &client->lastcmd;
+	body = player->pvServerData->physbody;	// member body ptr
+	VectorCopy( player->pvServerData->s.delta_angles, pmove.delta_angles );
+	VectorCopy( player->pvServerData->s.viewangles, pmove.v_angle );
 
-	if( player->v.teleport_time )
-		player->pvServerData->s.pm_flags |= PMF_TIME_TELEPORT; 
-	else player->pvServerData->s.pm_flags &= ~PMF_TIME_TELEPORT; 
+	pe->PlayerMove( &pmove, cmd, body, false );	// server move
 
-	pm.ps = player->pvServerData->s;
-	pm.cmd = client->lastcmd;
-	pm.body = player->pvServerData->physbody;	// member body ptr
-	
-	VectorCopy( player->v.origin, pm.ps.origin );
-	VectorCopy( player->v.velocity, pm.ps.velocity );
-
-	pe->PlayerMove( &pm, false );	// server move
+	VectorCopy( pmove.v_angle, player->pvServerData->s.viewangles );
 
 	// save results of pmove
-	player->pvServerData->s = pm.ps;
-
-	VectorCopy(pm.ps.origin, player->v.origin);
-	VectorCopy(pm.ps.velocity, player->v.velocity);
-	VectorCopy(pm.mins, player->v.mins);
-	VectorCopy(pm.maxs, player->v.maxs);
-	VectorCopy(pm.ps.viewangles, player->pvServerData->s.viewangles );
+	player->v = pmove;
 }
 
 void SV_PlaySound( edict_t *ed, float volume, float pitch, const char *sample )

@@ -13,7 +13,7 @@ extern cl_enginefuncs_t g_engfuncs;
 extern int HUD_VidInit( void );
 extern void HUD_Init( void );
 extern int HUD_Redraw( float flTime, int state );
-extern int HUD_UpdateClientData( ref_params_t *parms, float flTime );
+extern int HUD_UpdateClientData( client_data_t *cdata, float flTime );
 extern void HUD_Reset( void );
 extern void HUD_Frame( double time );
 extern void HUD_Shutdown( void );
@@ -142,11 +142,12 @@ extern int READ_BYTE( void );
 extern int READ_SHORT( void );
 extern int READ_WORD( void );
 extern int READ_LONG( void );
+extern int64 READ_LONG64( void );
 extern float READ_FLOAT( void );
+extern double READ_DOUBLE( void );
 extern char* READ_STRING( void );
 extern float READ_COORD( void );
 extern float READ_ANGLE( void );
-extern float READ_ANGLE16( void );
 extern void END_READ( void );
 
 // drawing stuff

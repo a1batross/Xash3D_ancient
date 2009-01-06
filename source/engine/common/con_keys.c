@@ -42,7 +42,7 @@ keyname_t keynames[] =
 {
 	{"TAB",		K_TAB,		""		},
 	{"ENTER",		K_ENTER,		""		},
-	{"ESCAPE",	K_ESCAPE, 	"togglemenu"	}, // hardcoded
+	{"ESCAPE",	K_ESCAPE, 	"cancelselect"	}, // hardcoded
 	{"SPACE",		K_SPACE,		"+moveup"		},
 	{"BACKSPACE",	K_BACKSPACE,	""		},
 	{"UPARROW",	K_UPARROW,	"+forward"	},
@@ -661,7 +661,7 @@ void Key_Message( int key )
 {
 	char	buffer[MAX_SYSPATH];
 
-	if(key == K_ESCAPE)
+	if( key == K_ESCAPE )
 	{
 		cls.key_dest = key_game;
 		Field_Clear( &chatField );
@@ -1094,25 +1094,27 @@ void Key_Event(int key, bool down, uint time)
 	}
 
 	// escape is always handled special
-	if ( key == K_ESCAPE && down )
+	if( key == K_ESCAPE && down )
 	{
 		switch( cls.key_dest )
 		{
 		case key_message:
 			Key_Message( key );
-			break;
+			return;
 		case key_game:
 		case key_console:
 			UI_ShowMenu();
-			break;
+			return;
 		case key_menu:
 			UI_KeyEvent( key );
+			return;
+		case key_gamemenu:
+			// passed to client dll's
 			break;
 		default:
 			MsgDev( D_ERROR, "Key_Event: bad cls.key_dest\n");
-			break;
+			return;
 		}
-		return;
 	}
 
 	// key up events only perform actions if the game key binding is
@@ -1127,28 +1129,30 @@ void Key_Event(int key, bool down, uint time)
 		return;
 	}
 
-	if (!down) return; // other systems only care about key down events
+	if( !down ) return; // other systems only care about key down events
 
 	// distribute the key down event to the apropriate handler
-	if(cls.key_dest == key_message)
+	if( cls.key_dest == key_message )
 	{
 		Key_Message( key );
 	}
-	else if(cls.key_dest == key_menu)
+	else if( cls.key_dest == key_menu )
 	{
 		UI_KeyEvent( key );
 	}
-	else if(cls.key_dest == key_console)
+	else if( cls.key_dest == key_console )
 	{
 		Key_Console( key );
 	}
-	else if(cls.key_dest == key_game )
+	else if( cls.key_dest == key_game || cls.key_dest == key_gamemenu )
 	{
 		// send the bound action
+		cls.key_dest = key_game;
 		kb = keys[key].binding;
 		if( !kb )
 		{
-			if (key >= 200) Msg( "%s is unbound, use controls menu to set.\n", Key_KeynumToString(key));
+			if( key >= 200 )
+				Msg( "%s is unbound, use controls menu to set.\n", Key_KeynumToString( key ));
 		}
 		else if( kb[0] == '+' )
 		{	
@@ -1164,14 +1168,14 @@ void Key_Event(int key, bool down, uint time)
 					{
 						// button commands add keynum and time as parms so that multiple
 						// sources can be discriminated and subframe corrected
-						com.sprintf(cmd, "%s %i %i\n", button, key, time);
-						Cbuf_AddText(cmd);
+						com.sprintf( cmd, "%s %i %i\n", button, key, time );
+						Cbuf_AddText( cmd );
 					}
 					else
 					{
 						// down-only command
-						Cbuf_AddText(button);
-						Cbuf_AddText("\n");
+						Cbuf_AddText( button );
+						Cbuf_AddText( "\n" );
 					}
 					buttonPtr = button;
 					while ( (kb[i] <= ' ' || kb[i] == ';') && kb[i] != 0 ) i++;
@@ -1182,9 +1186,13 @@ void Key_Event(int key, bool down, uint time)
 		}
 		else
 		{
+			// HACKHACK: handle user menus here
+			if( !com.strncmp( "slot", kb, 4 ))
+				cls.key_dest = key_gamemenu;
+
 			// down-only command
-			Cbuf_AddText (kb);
-			Cbuf_AddText ("\n");
+			Cbuf_AddText( kb );
+			Cbuf_AddText( "\n" );
 		}
 	}
 }

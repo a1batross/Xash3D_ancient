@@ -13,14 +13,13 @@
 CL_CheckPredictionError
 ===================
 */
-void CL_CheckPredictionError (void)
+void CL_CheckPredictionError( void )
 {
-	int		frame;
-	int		delta[3];
-	int		len;
+	int	frame;
+	int	delta[3];
+	int	len;
 
-	if (!cl_predict->value || (cl.frame.ps.pm_flags & PMF_NO_PREDICTION))
-		return;
+	if( !cl_predict->integer ) return;
 
 	// calculate the last usercmd_t we sent that the server has processed
 	frame = cls.netchan.incoming_acknowledged;
@@ -266,22 +265,22 @@ void CL_PredictMovement (void)
 	int		ack, current;
 	int		frame;
 	int		oldframe;
+	entvars_t		pmove;
 	usercmd_t		*cmd;
-	pmove_t		pm;
 	int		i;
 	float		step;
 	float		oldz;
 
-	if(cls.state != ca_active) return;
-	if(cl_paused->value) return;
+	if( cls.state != ca_active ) return;
+	if( cl_paused->value ) return;
 
-	if (!cl_predict->value || (cl.frame.ps.pm_flags & PMF_NO_PREDICTION))
+	pmove = EDICT_NUM( cl.playernum + 1 )->v;
+
+	if( !cl_predict->value || pmove.teleport_time )
 	{	
 		// just set angles
-		for (i = 0; i < 3; i++)
-		{
-			cl.predicted_angles[i] = cl.viewangles[i] + SHORT2ANGLE(cl.frame.ps.delta_angles[i]);
-		}
+		for( i = 0; i < 3; i++ )
+			cl.predicted_angles[i] = cl.viewangles[i] + SHORT2ANGLE( cl.frame.ps.delta_angles[i] );
 		return;
 	}
 
@@ -289,42 +288,35 @@ void CL_PredictMovement (void)
 	current = cls.netchan.outgoing_sequence;
 
 	// if we are too far out of date, just freeze
-	if (current - ack >= CMD_BACKUP)
+	if( current - ack >= CMD_BACKUP )
 	{
-		if (cl_showmiss->value)
-			Msg ("exceeded CMD_BACKUP\n");
+		if( cl_showmiss->value )
+			Msg( "exceeded CMD_BACKUP\n" );
 		return;	
 	}
-
-	// copy current state to pmove
-	memset (&pm, 0, sizeof(pm));
-	pm.trace = CL_PMTrace;
-	pm.pointcontents = CL_PointContents;
-	pm.ps = cl.frame.ps;
 
 //	SCR_DebugGraph (current - ack - 1, COLOR_0);
 
 	frame = 0;
 
 	// run frames
-	while (++ack < current)
+	while( ++ack < current )
 	{
 		frame = ack & (CMD_BACKUP-1);
 		cmd = &cl.cmds[frame];
 
-		pm.cmd = *cmd;
-		pe->PlayerMove( &pm, true );
+		pe->PlayerMove( &pmove, cmd, NULL, true );
 
 		// save for debug checking
-		VectorCopy (pm.ps.origin, cl.predicted_origins[frame]);
+		VectorCopy( pmove.origin, cl.predicted_origins[frame] );
 	}
 
 	oldframe = (ack-2) & (CMD_BACKUP-1);
 
-	if( pm.ps.pm_flags & PMF_ON_GROUND )
+	if( pmove.flags & FL_ONGROUND )
 	{
 		oldz = cl.predicted_origins[oldframe][2];
-		step = pm.ps.origin[2] - oldz;
+		step = pmove.origin[2] - oldz;
 		if( step > 63 && step < 160 )
 		{
 			cl.predicted_step = step;
@@ -333,6 +325,6 @@ void CL_PredictMovement (void)
 	}
 
 	// copy results out for rendering
-	VectorCopy( pm.ps.origin, cl.predicted_origin );
-	VectorCopy(pm.ps.viewangles, cl.predicted_angles);
+	VectorCopy( pmove.origin, cl.predicted_origin );
+	VectorCopy( pmove.v_angle, cl.predicted_angles );
 }

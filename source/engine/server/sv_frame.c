@@ -50,36 +50,37 @@ void SV_UpdateEntityState( edict_t *ent )
 
 	// copy progs values to state
 	ent->pvServerData->s.number = ent->serialnumber;
-	ent->pvServerData->s.solid = ent->pvServerData->solid;
+	ent->pvServerData->s.solid = ent->v.solid;
 
 	if( !ent->pvServerData->s.classname )
 		ent->pvServerData->s.classname = SV_ClassIndex( STRING( ent->v.classname ));
 
 	VectorCopy (ent->v.origin, ent->pvServerData->s.origin);
 	VectorCopy (ent->v.angles, ent->pvServerData->s.angles);
-	ent->pvServerData->s.model.index = ent->v.modelindex;
+	ent->pvServerData->s.modelindex = ent->v.modelindex;
 	ent->pvServerData->s.health = ent->v.health;
-	ent->pvServerData->s.model.skin = ent->v.skin;		// studio model skin
-	ent->pvServerData->s.model.body = ent->v.body;		// studio model submodel 
+	ent->pvServerData->s.skin = ent->v.skin;		// studio model skin
+	ent->pvServerData->s.body = ent->v.body;		// studio model submodel 
 	ent->pvServerData->s.effects = ent->v.effects;		// shared client and render flags
 	ent->pvServerData->s.renderfx = ent->v.renderfx;		// renderer flags
 	ent->pvServerData->s.rendermode = ent->v.rendermode;	// rendering mode
 	ent->pvServerData->s.renderamt = ent->v.renderamt;	// alpha value
-	ent->pvServerData->s.model.animtime = (int)(1000.0 * ent->v.animtime) * 0.001; // sequence time
-	ent->pvServerData->s.model.scale = ent->v.scale;		// shared client and render flags
+	ent->pvServerData->s.animtime = (int)(1000.0 * ent->v.animtime) * 0.001; // sequence time
+	ent->pvServerData->s.scale = ent->v.scale;		// shared client and render flags
 	ent->pvServerData->s.movetype = ent->v.movetype;
-	ent->pvServerData->s.model.frame = ent->v.frame;		// any model current frame
-	ent->pvServerData->s.model.framerate = ent->v.framerate;
+	ent->pvServerData->s.frame = ent->v.frame;		// any model current frame
+	ent->pvServerData->s.framerate = ent->v.framerate;
+	ent->pvServerData->s.flags = ent->v.flags;
 	VectorCopy( ent->v.rendercolor, ent->pvServerData->s.rendercolor );
 
 	// studio model sequence
-	if( ent->v.sequence != -1 ) ent->pvServerData->s.model.sequence = ent->v.sequence;
+	if( ent->v.sequence != -1 ) ent->pvServerData->s.sequence = ent->v.sequence;
 
 	for( i = 0; i < 16; i++ )
 	{
-		// copy blendings and bone ctrls
-		ent->pvServerData->s.model.blending[i] = ent->v.blending[i];
-		ent->pvServerData->s.model.controller[i] = ent->v.controller[i];
+		// copy blendings and bone ctrlrs
+		ent->pvServerData->s.blending[i] = ent->v.blending[i];
+		ent->pvServerData->s.controller[i] = ent->v.controller[i];
 	}
 
 	if( ent->pvServerData->s.ed_type == ED_MOVER || ent->pvServerData->s.ed_type == ED_BSPBRUSH )
@@ -111,7 +112,7 @@ void SV_UpdateEntityState( edict_t *ent )
 		else ent->pvServerData->s.aiment = 0;
 
 		// playermodel sequence, that will be playing on a client
-		ent->pvServerData->s.model.gaitsequence = ent->v.gaitsequence;
+		ent->pvServerData->s.gaitsequence = ent->v.gaitsequence;
 		ent->pvServerData->s.weapons = ent->v.weapons;
 	}
 	else if( ent->pvServerData->s.ed_type == ED_AMBIENT )
@@ -355,7 +356,7 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 
 		// if its a portal entity, add everything visible from its camera position
 		if( svent->s.ed_type == ED_PORTAL )
-			SV_AddEntitiesToPacket( svent->s.infotarget, frame, ents, true );
+			SV_AddEntitiesToPacket( svent->s.origin, frame, ents, true );
 	}
 }
 

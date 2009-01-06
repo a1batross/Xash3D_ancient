@@ -184,20 +184,20 @@ void CHud :: Think( void )
 	}
 }
 
-int CHud :: UpdateClientData( ref_params_t *cdata, float time )
+int CHud :: UpdateClientData( client_data_t *cdata, float time )
 {
 	memcpy( m_vecOrigin, cdata->origin, sizeof( vec3_t ));
 	memcpy( m_vecAngles, cdata->angles, sizeof( vec3_t ));
 
 	if( m_iWeaponBits != cdata->iWeaponBits )
-		ALERT( at_console, "WeaponBits: %i\n", cdata->iWeaponBits );
+		ALERT( at_console, "WeaponBits: %ld\n", cdata->iWeaponBits );
 
 	m_iKeyBits = cdata->iKeyBits;
 	m_iWeaponBits = cdata->iWeaponBits;
 
 	Think();
 
-	cdata->fov_x = m_flFOV;
+	cdata->fov = m_flFOV;
 	cdata->iKeyBits = m_iKeyBits;
 	cdata->v_idlescale = m_iConcussionEffect;
 
@@ -212,6 +212,7 @@ int CHud :: Redraw( float flTime )
 	m_fOldTime = m_flTime;	// save time of previous redraw
 	m_flTime = flTime;
 	m_flTimeDelta = (double)m_flTime - m_fOldTime;
+	static float m_flShotTime;
 
 	// clock was reset, reset delta
 	if( m_flTimeDelta < 0 ) m_flTimeDelta = 0;
@@ -221,6 +222,16 @@ int CHud :: Redraw( float flTime )
 
 	// draw screen fade before hud
 	DrawScreenFade();
+
+	// take a screenshot if the client's got the cvar set
+	if( CVAR_GET_FLOAT( "hud_takesshots" ))
+	{
+		if( m_flTime > m_flShotTime )
+		{
+			CLIENT_COMMAND( "screenshot\n" );
+			m_flShotTime = m_flTime + 0.04f;
+		}
+	}
 
 	// redeemer hud stuff
 	if( m_Redeemer.m_iHudMode > 0 )

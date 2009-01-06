@@ -369,6 +369,45 @@ void R_StudioResetSequenceInfo( ref_entity_t *ent, dstudiohdr_t *hdr )
 	ent->m_fSequenceFinished = FALSE;
 }
 
+int R_StudioGetEvent( dstudioevent_t *pcurrent, float flStart, float flEnd, int index )
+{
+	dstudioseqdesc_t	*pseqdesc;
+	dstudioevent_t	*pevent;
+	int		events = 0;
+
+	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + m_pCurrentEntity->sequence;
+	pevent = (dstudioevent_t *)((byte *)m_pStudioHeader + pseqdesc->eventindex);
+
+	if( pseqdesc->numevents == 0 || index > pseqdesc->numevents )
+		return 0;
+
+	if( pseqdesc->numframes > 1 )
+	{
+		flStart *= (pseqdesc->numframes - 1) / 256.0;
+		flEnd *= (pseqdesc->numframes - 1) / 256.0;
+	}
+	else
+	{
+		flStart = 0;
+		flEnd = 1.0;
+	}
+
+	for( ; index < pseqdesc->numevents; index++ )
+	{
+		// don't send server-side events to the client effects
+		if( pevent[index].event < EVENT_CLIENT )
+			continue;
+
+		if(( pevent[index].frame >= flStart && pevent[index].frame < flEnd )
+			|| ((pseqdesc->flags & STUDIO_LOOPING) && flEnd >= pseqdesc->numframes - 1 && pevent[index].frame < flEnd - pseqdesc->numframes + 1 ))
+		{
+			Mem_Copy( pcurrent, &pevent[index], sizeof( *pcurrent ));
+			return index + 1;
+		}
+	}
+	return 0;
+}
+
 /*
 ====================
 StudioCalcBoneAdj
@@ -389,7 +428,6 @@ void R_StudioCalcBoneAdj( float dadt, float *adj, const float *pcontroller1, con
 
 		if( i == STUDIO_MOUTH )
 		{
-			// FIXME: convert to float
 			// mouth hardcoded at controller 4
 			value = mouthopen / 64.0;
 			if (value > 1.0) value = 1.0;				
@@ -1729,6 +1767,7 @@ bool R_StudioDrawModel( int pass, int flags )
 	{
 		if( /*mirror_render ||*/ r_lefthand->value == 2 )
 			return 0;
+		flags |= STUDIO_EVENTS;
 	}
 
 	R_StudioSetupRender( pass );	
@@ -1762,16 +1801,20 @@ bool R_StudioDrawModel( int pass, int flags )
 
 	if( flags & STUDIO_EVENTS )
 	{
+		float flStart = m_pCurrentEntity->frame + m_pCurrentEntity->framerate;
+		float flEnd = m_pCurrentEntity->frame + m_pCurrentEntity->framerate * 1.5f;
+		edict_t *ent = ri.GetClientEdict( m_pCurrentEntity->index );
+		dstudioevent_t event;
+		int index = 0;
+
 		R_StudioCalcAttachments();
+		Mem_Set( &event, 0, sizeof( event ));
 
-		//FIXME:
-		//ri.StudioEvent( dstudioevent_t *event, ent );
-
-		if( m_pCurrentEntity->index > 0 )
+		// copy attachments into global entity array
+		Mem_Copy( ent->v.attachment, m_pCurrentEntity->attachment, sizeof( vec3_t ) * MAXSTUDIOATTACHMENTS );
+		while(( index = R_StudioGetEvent( &event, flStart, flEnd, index )) != 0 )
 		{
-			// copy attachments into global entity array
-			edict_t *ent = ri.GetClientEdict( m_pCurrentEntity->index );
-			Mem_Copy( ent->v.attachment, m_pCurrentEntity->attachment, sizeof(vec3_t) * MAXSTUDIOATTACHMENTS );
+			ri.StudioEvent( &event, ent );
 		}
 	}
 

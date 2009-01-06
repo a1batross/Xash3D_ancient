@@ -109,12 +109,12 @@ _inline double DoubleSwap( double swap )
 #endif
 
 // extract from buffer
-_inline dword BuffBigLong( const byte *buf )
+_inline unsigned long BuffBigLong( const byte *buf )
 {
 	return (buf[0]<<24)|(buf[1]<<16)|(buf[2]<<8)|buf[3];
 }
 
-_inline word BuffBigShort( const byte *buf )
+_inline unsigned short BuffBigShort( const byte *buf )
 {
 	return (buf[0]<<8)|buf[1];
 }
@@ -129,12 +129,12 @@ _inline double BuffBigDouble( const byte *buf )
 	return (buf[0]<<64)|(buf[1]<<56)|(buf[2]<<40)|(buf[3]<<32)|(buf[4]<<24)|(buf[5]<<16)|(buf[6]<<8)|buf[7];
 }
 
-_inline dword BuffLittleLong( const byte *buf )
+_inline unsigned long BuffLittleLong( const byte *buf )
 {
 	return (buf[3]<<24)|(buf[2]<<16)|(buf[1]<<8)|buf[0];
 }
 
-_inline word BuffLittleShort( const byte *buf )
+_inline unsigned short BuffLittleShort( const byte *buf )
 {
 	return (buf[1]<<8)|buf[0];
 }
@@ -144,7 +144,7 @@ _inline float BuffLittleFloat( const byte *buf )
 	return BuffLittleLong( buf );
 }
 
-_inline double BuffLittleDouble( const byte *buf )
+_inline signed __int64 BuffLittleLong64( const byte *buf )
 {
 	return (buf[7]<<64)|(buf[6]<<56)|(buf[5]<<40)|(buf[4]<<32)|(buf[3]<<24)|(buf[2]<<16)|(buf[1]<<8)|buf[0];
 }

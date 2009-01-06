@@ -22,6 +22,10 @@ matrix4x4		m_matrix;
 // any differences when running on client or server
 typedef struct
 {
+	entvars_t		*pev;
+	usercmd_t		*cmd;
+	physbody_t	*body;
+
 	vec3_t		origin;
 	vec3_t		velocity;
 	vec3_t		previous_origin;
@@ -45,8 +49,7 @@ typedef struct
 
 } pml_t;
 
-pmove_t		*pm;
-pml_t		pml;
+pml_t pml;
 
 /*
 ================
@@ -56,38 +59,38 @@ This can be used as another entry point when only the viewangles
 are being updated isntead of a full move
 ================
 */
-void CM_UpdateViewAngles( entity_state_t *ps, const usercmd_t *cmd )
+void CM_UpdateViewAngles( entvars_t *pev, const usercmd_t *cmd )
 {
-	short		temp;
-	int		i;
+	short	temp;
+	int	i;
 
-	if( ps->pm_type == PM_INTERMISSION )
+	if( pev->flags & FL_FROZEN )
 	{
 		return;		// no view changes at all
 	}
-	if( ps->pm_type == PM_DEAD )
+	if( pev->health <= 0 )
 	{
 		return;		// no view changes at all
 	}
-	if( pm->ps.pm_flags & PMF_TIME_TELEPORT)
+	if( pev->teleport_time )
 	{
-		ps->viewangles[YAW] = SHORT2ANGLE( pm->cmd.angles[YAW] - pm->ps.delta_angles[YAW] );
-		ps->viewangles[PITCH] = 0;
-		ps->viewangles[ROLL] = 0;
+		pev->v_angle[YAW] = SHORT2ANGLE( cmd->angles[YAW] - pev->delta_angles[YAW] );
+		pev->v_angle[PITCH] = 0;
+		pev->v_angle[ROLL] = 0;
 	}
 
 	// circularly clamp the angles with deltas
 	for( i = 0; i < 3; i++ )
 	{
-		temp = pm->cmd.angles[i] + pm->ps.delta_angles[i];
-		ps->viewangles[i] = SHORT2ANGLE(temp);
+		temp = cmd->angles[i] + pev->delta_angles[i];
+		pev->v_angle[i] = SHORT2ANGLE( temp );
 	}
 
 	// don't let the player look up or down more than 90 degrees
-	if( ps->viewangles[PITCH] > 89 && ps->viewangles[PITCH] < 180 )
-		ps->viewangles[PITCH] = 89;
-	else if( ps->viewangles[PITCH] < 271 && ps->viewangles[PITCH] >= 180 )
-		ps->viewangles[PITCH] = 271;
+	if( pev->v_angle[PITCH] > 89 && pev->v_angle[PITCH] < 180 )
+		pev->v_angle[PITCH] = 89;
+	else if( pev->v_angle[PITCH] < 271 && pev->v_angle[PITCH] >= 180 )
+		pev->v_angle[PITCH] = 271;
 }
 
 
@@ -96,8 +99,8 @@ void CM_CmdUpdateForce( void )
 	float	fmove, smove;
 	int	i;
 
-	fmove = pm->cmd.forwardmove;
-	smove = pm->cmd.sidemove;
+	fmove = pml.cmd->forwardmove;
+	smove = pml.cmd->sidemove;
 
 	// project moves down to flat plane
 	pml.forward[2] = pml.right[2] = 0;
@@ -109,23 +112,25 @@ void CM_CmdUpdateForce( void )
 
 	ConvertDirectionToPhysic( pml.movedir );
 
-	if( pm->cmd.upmove > 0.0f )
+	if( pml.cmd->upmove > 0.0f )
 	{
 		m_jumpTimer = 4;
 	}
 }
 
-void CM_ServerMove( pmove_t *pmove )
+void CM_ServerMove( entvars_t *pmove, usercmd_t *cmd, physbody_t *body )
 {
 	float	mass, Ixx, Iyy, Izz, dist, floor;
 	float	deltaHeight, steerAngle, accelY, timestepInv;
 	vec3_t	force, omega, torque, heading, velocity, step;
 	matrix4x4	matrix, collisionPadding, transpose;
 
-	pm = pmove;
+	pml.pev = pmove;
+	pml.body = body;
+	pml.cmd = cmd;
 
-	CM_UpdateViewAngles( &pm->ps, &pm->cmd );
-	AngleVectors( pm->ps.viewangles, pml.forward, pml.right, pml.up );
+	CM_UpdateViewAngles( pmove, cmd );
+	AngleVectors( pml.pev->v_angle, pml.forward, pml.right, pml.up );
 	CM_CmdUpdateForce(); // get movement direction
 
 	// Get the current world timestep
@@ -133,16 +138,16 @@ void CM_ServerMove( pmove_t *pmove )
 	timestepInv = 1.0f / pml.frametime;
 
 	// get the character mass
-	NewtonBodyGetMassMatrix( pm->body, &mass, &Ixx, &Iyy, &Izz );
+	NewtonBodyGetMassMatrix( pml.body, &mass, &Ixx, &Iyy, &Izz );
 
 	// apply the gravity force, cheat a little with the character gravity
 	VectorSet( force, 0.0f, mass * -9.8f, 0.0f );
 
 	// Get the velocity vector
-	NewtonBodyGetVelocity( pm->body, &velocity[0] );
+	NewtonBodyGetVelocity( pml.body, &velocity[0] );
 
 	// determine if the character have to be snap to the ground
-	NewtonBodyGetMatrix( pm->body, &matrix[0][0] );
+	NewtonBodyGetMatrix( pml.body, &matrix[0][0] );
 
 	// if the floor is with in reach then the character must be snap to the ground
 	// the max allow distance for snapping i 0.25 of a meter
@@ -161,7 +166,7 @@ void CM_ServerMove( pmove_t *pmove )
 	else if( m_jumpTimer == 4 )
 	{
 		vec3_t	veloc = { 0.0f, 0.3f, 0.0f };
-		NewtonAddBodyImpulse( pm->body, &veloc[0], &matrix[3][0] );
+		NewtonAddBodyImpulse( pml.body, &veloc[0], &matrix[3][0] );
 	}
 
 	m_jumpTimer = m_jumpTimer ? m_jumpTimer - 1 : 0;
@@ -178,7 +183,7 @@ void CM_ServerMove( pmove_t *pmove )
 
 		VectorSubtract( tmp1, tmp2, result );
 		VectorAdd( force, result, force );
-		NewtonBodySetForce( pm->body, &force[0] );
+		NewtonBodySetForce( pml.body, &force[0] );
 
 		VectorScale( force, pml.frametime / mass, tmp1 );
 		VectorAdd( tmp1, velocity, step );
@@ -219,10 +224,10 @@ void CM_ServerMove( pmove_t *pmove )
 	steerAngle = asin( bound( -1.0f, pml.forward[2], 1.0f ));
 	
 	// calculate the torque vector
-	NewtonBodyGetOmega( pm->body, &omega[0]);
+	NewtonBodyGetOmega( pml.body, &omega[0]);
 
 	VectorSet( torque, 0.0f, 0.5f * Iyy * (steerAngle * timestepInv - omega[1] ) * timestepInv, 0.0f );
-	NewtonBodySetTorque( pm->body, &torque[0] );
+	NewtonBodySetTorque( pml.body, &torque[0] );
 
 
 	// assume the character is on the air. this variable will be set to false if the contact detect 
@@ -233,7 +238,7 @@ void CM_ServerMove( pmove_t *pmove )
 	NewtonUpVectorSetPin( cms.upVector, &vec3_up[0] );
 }
 
-void CM_ClientMove( pmove_t *pmove )
+void CM_ClientMove( entvars_t *pmove, usercmd_t *cmd, physbody_t *body )
 {
 
 }
@@ -310,10 +315,10 @@ physbody_t *Phys_CreatePlayer( edict_t *ed, cmodel_t *mod, const vec3_t origin, 
 			PMOVE ENTRY POINT
 ===============================================================================
 */
-void CM_PlayerMove( pmove_t *pmove, bool clientmove )
+void CM_PlayerMove( entvars_t *pmove, usercmd_t *cmd, physbody_t *body, bool clientmove )
 {
 	if( !cm_physics_model->integer ) return;
 
-	if( clientmove ) CM_ClientMove( pmove );
-	else CM_ServerMove( pmove );
+	if( clientmove ) CM_ClientMove( pmove, cmd, body );
+	else CM_ServerMove( pmove, cmd, body );
 }

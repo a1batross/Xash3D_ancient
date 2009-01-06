@@ -496,7 +496,7 @@ void SV_PutClientInServer( edict_t *ent )
 	ent->pvServerData->s.fov = bound(1, ent->pvServerData->s.fov, 160);
 	ent->pvServerData->s.health = ent->v.health;
 	ent->pvServerData->s.classname = SV_ClassIndex( STRING( ent->v.classname ));
-	ent->pvServerData->s.pmodel.index = SV_ModelIndex( STRING( ent->v.weaponmodel ));
+	ent->pvServerData->s.weaponmodel = SV_ModelIndex( STRING( ent->v.weaponmodel ));
 	VectorCopy( ent->v.origin, ent->pvServerData->s.origin );
 	VectorCopy( ent->v.v_angle, ent->pvServerData->s.viewangles );
 	for( i = 0; i < 3; i++ ) ent->pvServerData->s.delta_angles[i] = ANGLE2SHORT(ent->v.v_angle[i]);
@@ -633,7 +633,7 @@ void SV_Baselines_f( sv_client_t *cl )
 	while( cl->netchan.message.cursize < MAX_MSGLEN/2 && start < host.max_edicts )
 	{
 		base = &svs.baselines[start];
-		if( base->model.index || base->soundindex || base->effects )
+		if( base->modelindex || base->soundindex || base->effects )
 		{
 			MSG_WriteByte( &cl->netchan.message, svc_spawnbaseline );
 			MSG_WriteDeltaEntity( &nullstate, base, &cl->netchan.message, true, true );

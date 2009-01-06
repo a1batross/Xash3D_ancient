@@ -81,9 +81,9 @@ int HUD_Redraw( float flTime, int state )
 	return 1;
 }
 
-int HUD_UpdateClientData( ref_params_t *parms, float flTime )
+int HUD_UpdateClientData( client_data_t *cdata, float flTime )
 {
-	return gHUD.UpdateClientData( parms, flTime );
+	return gHUD.UpdateClientData( cdata, flTime );
 }
 
 void HUD_Reset( void )

@@ -176,7 +176,7 @@ void S_StreamRawSamples( int samples, int rate, int width, int channels, const b
 bool S_AddLoopingSound( int entnum, sound_t handle, float volume, float attn );
 void S_StartBackgroundTrack( const char *intro, const char *loop );
 channel_t	*S_PickChannel( int entNum, int entChannel );
-int S_StartLocalSound( const char *name, float volume, const float *org );
+int S_StartLocalSound( const char *name, float volume, float pitch, const float *org );
 sfx_t *S_GetSfxByHandle( sound_t handle );
 void S_StreamBackgroundTrack( void );
 void S_StopBackgroundTrack( void );

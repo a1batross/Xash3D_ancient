@@ -166,8 +166,6 @@ struct sv_priv_s
 	vec3_t			water_origin;	// step old origin
 	vec3_t			moved_origin;	// push old origin
 	vec3_t			moved_angles;	// push old angles
-
-	int			solid;		// see entity_state_t for details
 	physbody_t		*physbody;	// ptr to phys body
 
 	// baselines

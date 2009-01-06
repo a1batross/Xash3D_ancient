@@ -324,6 +324,7 @@ void SCR_DrawFPS( void )
 
 	if( cls.state != ca_active ) return; 
 	if( !cl_showfps->integer ) return;
+	if( cl.need_levelshot ) return;
 	
 	newtime = Sys_DoubleTime();
 	if (newtime >= nexttime)

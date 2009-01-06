@@ -621,7 +621,7 @@ public:
 	void VidInit( void );
 	void Think( void );
 	int Redraw( float flTime );
-	int UpdateClientData( ref_params_t *pparams, float time );
+	int UpdateClientData( client_data_t *cdata, float time );
 
 	CHud() : m_pHudList(NULL) { }
 	~CHud();	// destructor, frees allocated memory
@@ -662,7 +662,7 @@ public:
 		int	iHeight;
 	} m_scrinfo;
 		
-	int	m_iWeaponBits;
+	int64	m_iWeaponBits;
 	int	m_fPlayerDead;
 	int	m_iIntermission;
 

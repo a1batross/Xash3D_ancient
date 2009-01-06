@@ -22,15 +22,15 @@ void CL_UpdateEntityFields( edict_t *ent )
 
 	// copy state to progs
 	ent->v.classname = cl.edict_classnames[ent->pvClientData->current.classname];
-	ent->v.modelindex = ent->pvClientData->current.model.index;
-	ent->v.weaponmodel = ent->pvClientData->current.pmodel.index;
+	ent->v.modelindex = ent->pvClientData->current.modelindex;
+	ent->v.weaponmodel = ent->pvClientData->current.weaponmodel;
 	ent->v.ambient = ent->pvClientData->current.soundindex;
-	ent->v.model = MAKE_STRING( cl.configstrings[CS_MODELS+ent->pvClientData->current.model.index] ); 
-	ent->v.frame = ent->pvClientData->current.model.frame;
-	ent->v.sequence = ent->pvClientData->current.model.sequence;
-	ent->v.gaitsequence = ent->pvClientData->current.model.gaitsequence;
-	ent->v.body = ent->pvClientData->current.model.body;
-	ent->v.skin = ent->pvClientData->current.model.skin;
+	ent->v.model = MAKE_STRING( cl.configstrings[CS_MODELS+ent->pvClientData->current.modelindex] ); 
+	ent->v.frame = ent->pvClientData->current.frame;
+	ent->v.sequence = ent->pvClientData->current.sequence;
+	ent->v.gaitsequence = ent->pvClientData->current.gaitsequence;
+	ent->v.body = ent->pvClientData->current.body;
+	ent->v.skin = ent->pvClientData->current.skin;
 	VectorCopy( ent->pvClientData->current.rendercolor, ent->v.rendercolor );
 	VectorCopy( ent->pvClientData->current.velocity, ent->v.velocity );
 	VectorCopy( ent->pvClientData->current.origin, ent->v.origin );
@@ -39,23 +39,24 @@ void CL_UpdateEntityFields( edict_t *ent )
 	VectorCopy( ent->pvClientData->prev.angles, ent->v.oldangles );
 	VectorCopy( ent->pvClientData->current.mins, ent->v.mins );
 	VectorCopy( ent->pvClientData->current.maxs, ent->v.maxs );
-	ent->v.framerate = ent->pvClientData->current.model.framerate;
-	ent->v.colormap = ent->pvClientData->current.model.colormap; 
+	ent->v.framerate = ent->pvClientData->current.framerate;
+	ent->v.colormap = ent->pvClientData->current.colormap; 
 	ent->v.rendermode = ent->pvClientData->current.rendermode; 
 	ent->v.renderamt = ent->pvClientData->current.renderamt; 
 	ent->v.renderfx = ent->pvClientData->current.renderfx; 
-	ent->v.scale = ent->pvClientData->current.model.scale; 
+	ent->v.scale = ent->pvClientData->current.scale; 
 	ent->v.weapons = ent->pvClientData->current.weapons;
 	ent->v.gravity = ent->pvClientData->current.gravity;
 	ent->v.health = ent->pvClientData->current.health;
-	ent->v.solid = ent->pvClientData->current.solidtype;
+	ent->v.solid = ent->pvClientData->current.solid;
 	ent->v.movetype = ent->pvClientData->current.movetype;
+	ent->v.flags = ent->pvClientData->current.flags;
 	if( ent->v.scale == 0.0f ) ent->v.scale = 1.0f;
 
 	for( i = 0; i < MAXSTUDIOBLENDS; i++ )
-		ent->v.blending[i] = ent->pvClientData->current.model.blending[i]; 
+		ent->v.blending[i] = ent->pvClientData->current.blending[i]; 
 	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
-		ent->v.controller[i] = ent->pvClientData->current.model.controller[i]; 
+		ent->v.controller[i] = ent->pvClientData->current.controller[i]; 
 	
 	if( ent->pvClientData->current.aiment )
 		ent->v.aiment = EDICT_NUM( ent->pvClientData->current.aiment );
@@ -93,9 +94,13 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 	frame->num_entities++;
 
 	// some data changes will force no lerping
-	if( state->model.index != ent->pvClientData->current.model.index || state->pmodel.index != ent->pvClientData->current.pmodel.index || state->model.body != ent->pvClientData->current.model.body
-		|| state->model.sequence != ent->pvClientData->current.model.sequence || abs(state->origin[0] - ent->pvClientData->current.origin[0]) > 512
-		|| abs(state->origin[1] - ent->pvClientData->current.origin[1]) > 512 || abs(state->origin[2] - ent->pvClientData->current.origin[2]) > 512 )
+	if( state->modelindex != ent->pvClientData->current.modelindex
+		|| state->weaponmodel != ent->pvClientData->current.weaponmodel
+		|| state->body != ent->pvClientData->current.body
+		|| state->sequence != ent->pvClientData->current.sequence
+		|| abs( state->origin[0] - ent->pvClientData->current.origin[0] ) > 512
+		|| abs( state->origin[1] - ent->pvClientData->current.origin[1] ) > 512
+		|| abs(state->origin[2] - ent->pvClientData->current.origin[2]) > 512 )
 	{
 		ent->pvClientData->serverframe = -99;
 	}
@@ -303,10 +308,6 @@ void CL_ParseFrame( sizebuf_t *msg )
 	if( old ) cl.frame.ps = MSG_ParseDeltaPlayer( &old->ps, &clent->pvClientData->current );
 	else cl.frame.ps = MSG_ParseDeltaPlayer( NULL, &clent->pvClientData->current );
 
-	// FIXME
-	if( cls.state == ca_cinematic || cls.demoplayback )
-		cl.frame.ps.pm_type = PM_FREEZE; // demo or movie playback
-
 	// save the frame off in the backup array for later delta comparisons
 	cl.frames[cl.frame.serverframe & UPDATE_MASK] = cl.frame;
 
@@ -417,16 +418,18 @@ void CL_CalcViewValues( void )
 		oldframe = &cl.frame; // previous frame was dropped or invalid
 	ops = &oldframe->ps;
 
+	clent = EDICT_NUM( cl.playernum + 1 );
+
 	// see if the player entity was teleported this frame
-	if( ps->pm_flags & PMF_TIME_TELEPORT )
+	if( clent->v.teleport_time )
 		ops = ps;	// don't interpolate
 	lerp = cl.refdef.lerpfrac;
 
 	// calculate the origin
-	if((cl_predict->value) && !(cl.frame.ps.pm_flags & PMF_NO_PREDICTION) && !cls.demoplayback )
+	if( cl_predict->integer && !cls.demoplayback )
 	{	
 		// use predicted values
-		int	delta;
+		int delta;
 
 		backlerp = 1.0 - lerp;
 		for( i = 0; i < 3; i++ )
@@ -464,14 +467,10 @@ void CL_CalcViewValues( void )
 	AngleVectors( cl.refdef.viewangles, cl.refdef.forward, cl.refdef.right, cl.refdef.up );
 
 	// interpolate field of view
-	cl.refdef.fov_x = ops->fov + lerp * ( ps->fov - ops->fov );
-	clent = EDICT_NUM( cl.playernum + 1 );
+	cl.data.fov = ops->fov + lerp * ( ps->fov - ops->fov );
 
 	// add the weapon
 	CL_AddViewWeapon( ps );
-
-	cl.refdef.iWeaponBits = ps->weapons;
-	cls.dllFuncs.pfnUpdateClientData( &cl.refdef, (cl.time * 0.001f));
 }
 
 /*
@@ -526,7 +525,7 @@ void CL_GetEntitySoundSpatialization( int entnum, vec3_t origin, vec3_t velocity
 	// if a brush model, offset the origin
 	if( VectorIsNull( origin ))
 	{
-		cmodel = cl.models[ent->pvClientData->current.model.index];
+		cmodel = cl.models[ent->pvClientData->current.modelindex];
 		if( !cmodel ) return;
 		VectorAverage( cmodel->mins, cmodel->maxs, midPoint );
 		VectorAdd( origin, midPoint, origin );

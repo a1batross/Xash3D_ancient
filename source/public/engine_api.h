@@ -21,68 +21,6 @@
 #define MAX_EDICTS			65535	// absolute limit that never be reached, (do not edit!)
 #define MAX_VERTS_ON_POLY		10	// decal vertices
 
-// model_state_t communication (a part of network protocol)
-typedef struct model_state_s
-{
-	int		index;		// server & client shared modelindex	
-	int		colormap;		// change base color for some textures or sprite frames
-	float		scale;		// model or sprite scale, affects to physics too
-	float		frame;		// % playback position in animation sequences (0..255)
-	float		animtime;		// auto-animating time
-	float		framerate;	// custom framerate, specified by QC
-	int		sequence;		// animation sequence (0 - 255)
-	int		gaitsequence;	// client\nps\bot gaitsequence
-	int		skin;		// skin for studiomodels
-	int		body;		// sub-model selection for studiomodels
-	float		blending[16];	// studio animation blending
-	float		controller[16];	// studio bone controllers
-} model_state_t;
-
-// entity_state_t communication (a part of network protocol)
-typedef struct entity_state_s
-{
-	// engine specific
-	uint		number;		// edict index
-	edtype_t		ed_type;		// edict type
-	string_t		classname;	// edict classname
-	int		soundindex;	// looped ambient sound
-
-	// physics information
-	vec3_t		origin;
-	vec3_t		angles;		// entity angles, not viewangles
-	vec3_t		velocity;		// player velocity
-	vec3_t		infotarget;	// portal camera, etc
-	model_state_t	model;		// general entity model
-	solid_t		solidtype;	// entity solidtype
-	movetype_t	movetype;		// entity movetype
-	int		gravity;		// gravity multiplier
-	int		aiment;		// attahced entity (not a physic attach, only rendering)
-	int		solid;		// using for symmetric bboxes
-	vec3_t		mins;		// not symmetric entity bbox    
-	vec3_t		maxs;
-
-	// render information
-	uint		effects;		// effect flags like q1 and hl1
-	int		renderfx;		// render effects same as hl1
-	float		renderamt;	// alpha value or like somewhat
-	vec3_t		rendercolor;	// hl1 legacy stuff, working, but not needed
-	int		rendermode;	// hl1 legacy stuff, working, but not needed
-
-	// client specific
-	int		pm_type;		// client movetype
-	int		pm_flags;		// ducked, jump_held, etc
-	vec3_t		delta_angles;	// add to command angles to get view direction 
-	vec3_t		punch_angles;	// add to view direction to get render angles 
-	vec3_t		viewangles;	// already calculated view angles on server-side
-	vec3_t		viewoffset;	// viewoffset over ground
-	int		maxspeed;		// sv_maxspeed will be duplicate on all clients
-	int		viewmodel;	// contains vmodel index
-	float		health;		// client health (other parms can be send by custom messages)
-	float		fov;		// horizontal field of view
-	int		weapons;		// weapon flags
-	model_state_t	pmodel;		// weaponmodel info
-} entity_state_t;
-
 // usercmd_t communication (a part of network protocol)
 typedef struct usercmd_s
 {
@@ -196,7 +134,6 @@ typedef struct trace_s
 	int		flags;		// misc trace flags
 	edict_t		*ent;		// not set by CM_*() functions
 } trace_t;
-
 
 _inline void PlaneClassify( cplane_t *p )
 {

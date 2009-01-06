@@ -191,10 +191,16 @@ void CL_LevelShot_f( void )
 {
 	string	checkname;	
 
+	if( !cl.need_levelshot )
+	{
+		Msg( "levelshot is not valid from the console\n" );
+		return;
+	}
+
 	// check for exist
 	com.sprintf( checkname, "media/background/%s.png", cl.configstrings[CS_NAME] );
-	if(!FS_FileExists( checkname )) re->ScrShot( checkname, true );
-	else Msg("levelshot for this map already created\nFirst remove old image if you wants do it again\n" );
+	if( !FS_FileExists( checkname )) re->ScrShot( checkname, true );
+	cl.need_levelshot = false; // done
 }
 
 /*

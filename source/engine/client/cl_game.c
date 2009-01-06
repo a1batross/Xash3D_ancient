@@ -551,9 +551,9 @@ pfnPlaySoundByName
 
 =============
 */
-void pfnPlaySoundByName( const char *szSound, float volume, const float *org )
+void pfnPlaySoundByName( const char *szSound, float volume, int pitch, const float *org )
 {
-	S_StartLocalSound( szSound, volume, org );
+	S_StartLocalSound( szSound, volume, pitch, org );
 }
 
 /*
@@ -562,7 +562,7 @@ pfnPlaySoundByIndex
 
 =============
 */
-void pfnPlaySoundByIndex( int iSound, float volume, const float *org )
+void pfnPlaySoundByIndex( int iSound, float volume, int pitch, const float *org )
 {
 	// make sure what we in-bounds
 	iSound = bound( 0, iSound, MAX_SOUNDS );
@@ -572,7 +572,7 @@ void pfnPlaySoundByIndex( int iSound, float volume, const float *org )
 		MsgDev( D_ERROR, "CL_PlaySoundByIndex: invalid sound handle %i\n", iSound );
 		return;
 	}
-	S_StartSound( org, cl.playernum + 1, CHAN_AUTO, cl.sound_precache[iSound], volume, ATTN_NORM, PITCH_NORM );
+	S_StartSound( org, cl.playernum + 1, CHAN_AUTO, cl.sound_precache[iSound], volume, ATTN_NORM, pitch );
 }
 
 /*
@@ -788,7 +788,6 @@ void pfnMakeLevelShot( void )
 	if( !cl.need_levelshot ) return;
 
 	Con_ClearNotify();
-	cl.need_levelshot = false;
 
 	// make levelshot at nextframe()
 	Cbuf_ExecuteText( EXEC_APPEND, "levelshot\n" );

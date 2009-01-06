@@ -102,11 +102,37 @@ int READ_LONG( void )
 	return c;
 }
 
+int64 READ_LONG64( void )
+{
+	int64     c;
+	
+	if( gMsg.read + 8 > gMsg.size )
+	{
+		gMsg.badRead = true;
+		return -1;
+	}
+ 	c = gMsg.buf[gMsg.read]+(gMsg.buf[gMsg.read+1]<<8)
+ 	+(gMsg.buf[gMsg.read+2]<<16)+(gMsg.buf[gMsg.read+3]<<24)
+	+ (gMsg.buf[gMsg.read+4]<<32)+(gMsg.buf[gMsg.read+5]<<40)
+	+(gMsg.buf[gMsg.read+6]<<48)+(gMsg.buf[gMsg.read+7]<<56);
+	gMsg.read += 8;
+	
+	return c;
+}
+
 float READ_FLOAT( void )
 {
 	union { float f; int l; } dat;
 	
 	dat.l = READ_LONG();
+	return dat.f;   
+}
+
+double READ_DOUBLE( void )
+{
+	union { double f; int64 l; } dat;
+	
+	dat.l = READ_LONG64();
 	return dat.f;   
 }
 
@@ -146,11 +172,6 @@ float READ_COORD( void )
 }
 
 float READ_ANGLE( void )
-{
-	return READ_FLOAT();
-}
-
-float READ_ANGLE16( void )
 {
 	return (float)(READ_SHORT() * (360.0 / 65536));
 }

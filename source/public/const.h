@@ -6,6 +6,7 @@
 #define CONST_H
 
 // shared typedefs
+typedef signed __int64		int64;
 typedef unsigned __int64		qword;
 typedef unsigned long		dword;
 typedef unsigned int		uint;
@@ -58,10 +59,10 @@ typedef int			shader_t;
 #define IN_ALT1			(1<<14)
 #define IN_SCORE			(1<<15)   // Used by client.dll for when scoreboard is held down
 
-// edict_t->spawnflags
+// pev->spawnflags
 #define SF_START_ON			0x1
 
-// edict->flags
+// pev->flags
 #define FL_FLY			(1<<0)	// changes the SV_Movestep() behavior to not need to be on ground
 #define FL_SWIM			(1<<1)	// same as AI_FLY but stay in water
 #define FL_CLIENT			(1<<2)
@@ -87,7 +88,7 @@ typedef int			shader_t;
 #define FL_DORMANT			(1<<21)	// Entity is dormant, no updates to client
 #define FL_POINTENTITY		(1<<22)	// this is point entity
 
-// entity_state_t->effects
+// pev->effects
 #define EF_BRIGHTFIELD		(1<<0)	// swirling cloud of particles
 #define EF_MUZZLEFLASH		(1<<1)	// single frame ELIGHT on entity attachment 0
 #define EF_BRIGHTLIGHT		(1<<2)	// DLIGHT centered at entity origin
@@ -229,6 +230,11 @@ typedef enum
 	kRenderFxNoReflect,			// don't reflecting in mirrors 
 } kRenderFx_t;
 
+#define EVENT_SPECIFIC		0
+#define EVENT_SCRIPTED		1000
+#define EVENT_SHARED		2000
+#define EVENT_CLIENT		5000	// less than this value it's a server-side studio events
+
 // player_state_t->renderfx
 #define RDF_UNDERWATER		(1<<0)	// warp the screen as apropriate
 #define RDF_NOWORLDMODEL		(1<<1)	// used for player configuration screen
@@ -265,7 +271,7 @@ typedef enum
 //		server.dll - client.dll definitions only
 //
 //=======================================================================
-#define MAX_WEAPONS			32
+#define MAX_WEAPONS			64		// special for Ghoul[BB] mod support 
 #define MAX_AMMO_SLOTS  		32
 
 #define HIDEHUD_WEAPONS		BIT( 0 )

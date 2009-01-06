@@ -5,6 +5,7 @@
 
 #include <stdio.h>		// sscanf support
 #include "bsplib.h"
+#include "entity_def.h"
 #include "physic_api.h"
 #include "byteorder.h"
 #include "const.h"

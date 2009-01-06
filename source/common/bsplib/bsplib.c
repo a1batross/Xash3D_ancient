@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "bsplib.h"
+#include "entity_def.h"
 #include "physic_api.h"
 
 byte	*checkermate_dds;

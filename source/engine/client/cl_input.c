@@ -30,11 +30,12 @@ cvar_t	*ui_sensitivity;
 cvar_t	*m_filter;		// mouse filtering
 uint	frame_msec;
 int	in_impulse;
+int	in_cancel;
 
 kbutton_t	in_left, in_right, in_forward, in_back;
 kbutton_t	in_lookup, in_lookdown, in_moveleft, in_moveright;
 kbutton_t	in_strafe, in_speed, in_use, in_attack, in_attack2;
-kbutton_t	in_up, in_down, in_reload;
+kbutton_t	in_up, in_down, in_reload, in_score;
 
 /*
 ============================================================
@@ -79,12 +80,14 @@ void CL_MouseMove( usercmd_t *cmd )
 	cl.mouse_x[cl.mouse_step] = 0;
 	cl.mouse_y[cl.mouse_step] = 0;
 
-	rate = sqrt( mx * mx + my * my ) / (float)frame_msec;
+	rate = com.sqrt( mx * mx + my * my ) / (float)frame_msec;
 
 	if( cls.key_dest != key_menu )
 	{
+		if( cl.frame.ps.health <= 0 ) return;
+		if( cl.mouse_sens == 0.0f ) cl.mouse_sens = 1.0f;
 		accel_sensitivity = cl_sensitivity->value + rate * cl_mouseaccel->value;
-//accel_sensitivity *= cl.mouse_sens; // scale by fov
+		accel_sensitivity *= cl.mouse_sens; // scale by fov
 		mx *= accel_sensitivity;
 		my *= accel_sensitivity;
 
@@ -259,13 +262,16 @@ void IN_SpeedUp(void) {IN_KeyUp(&in_speed);}
 void IN_StrafeDown(void) {IN_KeyDown(&in_strafe);}
 void IN_StrafeUp(void) {IN_KeyUp(&in_strafe);}
 void IN_AttackDown(void) {IN_KeyDown(&in_attack);}
-void IN_AttackUp(void) {IN_KeyUp(&in_attack);}
+void IN_AttackUp(void) {IN_KeyUp(&in_attack); in_cancel = 0; }
 void IN_Attack2Down(void) {IN_KeyDown(&in_attack2);}
 void IN_Attack2Up(void) {IN_KeyUp(&in_attack2);}
 void IN_UseDown (void) {IN_KeyDown(&in_use);}
 void IN_UseUp (void) {IN_KeyUp(&in_use);}
 void IN_ReloadDown(void) {IN_KeyDown(&in_reload);}
 void IN_ReloadUp(void) {IN_KeyUp(&in_reload);}
+void IN_ScoreDown(void) {IN_KeyDown(&in_score);}
+void IN_ScoreUp(void) {IN_KeyUp(&in_score);}
+void IN_Cancel(void) {in_cancel = true;}
 void IN_Impulse (void) {in_impulse = com.atoi(Cmd_Argv(1));}
 void IN_MLookDown( void ){Cvar_SetValue( "cl_mouselook", 1 );}
 void IN_MLookUp( void ){ IN_CenterView(); Cvar_SetValue( "cl_mouselook", 0 );}
@@ -283,6 +289,8 @@ Moves the local angle positions
 void CL_AdjustAngles( void )
 {
 	float	speed;
+
+	if( cl.frame.ps.health <= 0 ) return;
 	
 	if( in_speed.state & 1 )
 		speed = cls.frametime * cl_anglespeedkey->value;
@@ -309,7 +317,7 @@ void CL_BaseMove( usercmd_t *cmd )
 {	
 	CL_AdjustAngles ();
 	
-	memset (cmd, 0, sizeof(*cmd));
+	memset( cmd, 0, sizeof( *cmd ));
 	
 	VectorCopy (cl.viewangles, cmd->angles);
 	if( in_strafe.state & 1 )
@@ -376,8 +384,16 @@ void CL_CmdButtons( usercmd_t *cmd )
 		cmd->buttons |= IN_RELOAD;
 	in_reload.state &= ~2;
 
-	// save it for hud processing
-	cl.refdef.iKeyBits = cmd->buttons;
+	if( in_cancel )
+		cmd->buttons |= IN_CANCEL;
+
+	if( in_score.state & 3 )
+		cmd->buttons |= IN_SCORE;
+	in_score.state &= ~2;
+
+	// dead or in intermission? Shore scoreboard, too
+	if( cl.frame.ps.health <= 0 || cl.refdef.intermission )
+		cmd->buttons |= IN_SCORE;
 }
 
 /*
@@ -397,13 +413,26 @@ void CL_FinishMove( usercmd_t *cmd )
 	CL_ClampPitch();
 
 	for( i = 0; i < 3; i++ )
-		cmd->angles[i] = ANGLE2SHORT(cl.viewangles[i]);
+		cmd->angles[i] = ANGLE2SHORT( cl.viewangles[i] );
 
 	cmd->impulse = in_impulse;
 	in_impulse = 0;
 
 	// FIXME: send the ambient light level for all! entities properly
 	cmd->lightlevel = (byte)cl_lightlevel->value;
+
+	// process commands with user dll's
+	cl.data.fov = cl.frame.ps.fov;
+	cl.data.iKeyBits = cmd->buttons;
+	cl.data.iWeaponBits = cl.frame.ps.weapons;
+	cl.data.mouse_sensitivity = cl.mouse_sens;
+	VectorCopy( cl.viewangles, cl.data.angles );
+	VectorCopy( cl.refdef.origin, cl.data.origin );
+	cls.dllFuncs.pfnUpdateClientData( &cl.data, ( cl.time * 0.001f ));
+
+	cmd->buttons = cl.data.iKeyBits;
+	cl.refdef.fov_x = cl.data.fov;
+	cl.mouse_sens = cl.data.mouse_sensitivity;
 }
 
 
@@ -574,7 +603,10 @@ void CL_InitInput( void )
 	Cmd_AddCommand ("-use", IN_UseUp, "stop using item" );
 	Cmd_AddCommand ("+reload", IN_ReloadDown, "reload current weapon" );
 	Cmd_AddCommand ("-reload", IN_ReloadUp, "continue reload weapon" );
+	Cmd_AddCommand ("+showscores", IN_ScoreDown, "show scores" );
+	Cmd_AddCommand ("-showscores", IN_ScoreUp, "hide scores" );
 	Cmd_AddCommand ("impulse", IN_Impulse, "send an impulse number to server (select weapon, use item, etc)");
+	Cmd_AddCommand ("cancelselect", IN_Cancel, "cancel selected item in menu");
 	Cmd_AddCommand ("+mlook", IN_MLookDown, "activate mouse looking mode, do not recenter view" );
 	Cmd_AddCommand ("-mlook", IN_MLookUp, "deactivate mouse looking mode" );
 }
@@ -617,9 +649,12 @@ void CL_ShutdownInput( void )
 	Cmd_RemoveCommand ("-attack" );
 	Cmd_RemoveCommand ("+attack2" );
 	Cmd_RemoveCommand ("-attack2" );
+	Cmd_RemoveCommand ("+reload" );
+	Cmd_RemoveCommand ("-reload" );
 	Cmd_RemoveCommand ("+use" );
 	Cmd_RemoveCommand ("-use" );
 	Cmd_RemoveCommand ("impulse" );
+	Cmd_RemoveCommand ("cancelselect" );
 	Cmd_RemoveCommand ("+mlook" );
 	Cmd_RemoveCommand ("-mlook" );
 }

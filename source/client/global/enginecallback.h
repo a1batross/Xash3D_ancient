@@ -29,24 +29,24 @@
 #define CMD_ARGV		(*g_engfuncs.pfnCmdArgv)
 #define ALERT		(*g_engfuncs.pfnAlertMessage)
 
-inline void CL_PlaySound( const char *szSound, float flVolume )
+inline void CL_PlaySound( const char *szSound, float flVolume, float pitch = PITCH_NORM )
 {
-	g_engfuncs.pfnPlaySoundByName( szSound, flVolume, NULL );
+	g_engfuncs.pfnPlaySoundByName( szSound, flVolume, pitch, NULL );
 }
 
-inline void CL_PlaySound( int iSound, float flVolume )
+inline void CL_PlaySound( int iSound, float flVolume, float pitch = PITCH_NORM )
 {
-	g_engfuncs.pfnPlaySoundByIndex( iSound, flVolume, NULL );
+	g_engfuncs.pfnPlaySoundByIndex( iSound, flVolume, pitch, NULL );
 }
 
-inline void CL_PlaySound( const char *szSound, float flVolume, Vector &pos )
+inline void CL_PlaySound( const char *szSound, float flVolume, Vector &pos, float pitch = PITCH_NORM )
 {
-	g_engfuncs.pfnPlaySoundByName( szSound, flVolume, pos );
+	g_engfuncs.pfnPlaySoundByName( szSound, flVolume, pitch, pos );
 }
 
-inline void CL_PlaySound( int iSound, float flVolume, Vector &pos )
+inline void CL_PlaySound( int iSound, float flVolume, Vector &pos, float pitch = PITCH_NORM )
 {
-	g_engfuncs.pfnPlaySoundByIndex( iSound, flVolume, pos );
+	g_engfuncs.pfnPlaySoundByIndex( iSound, flVolume, pitch, pos );
 }
 
 #define AngleVectors	(*g_engfuncs.pfnAngleVectors)

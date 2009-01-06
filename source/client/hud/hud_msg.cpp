@@ -76,6 +76,7 @@ int CHud :: InitMessages( void )
 	CVAR_REGISTER( "zoom_sensitivity_ratio", "1.2", 0, "mouse sensitivity when zooming" );
 	CVAR_REGISTER( "default_fov", "90", 0, "default client fov" );
 	CVAR_REGISTER( "hud_draw", "1", CVAR_ARCHIVE, "hud drawing modes" );
+	CVAR_REGISTER( "hud_takesshots", "0", 0, "take screenshots at 30 fps" );
 
 	// UNDONE: replace all coord variables with float not int
 	// FIXME: remove jitter for moving objects (flashlight beam etc)

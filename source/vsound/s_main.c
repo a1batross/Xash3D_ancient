@@ -492,7 +492,7 @@ S_StartLocalSound
 menu sound
 =================
 */
-bool S_StartLocalSound( const char *name, float volume, const float *origin )
+bool S_StartLocalSound( const char *name, float volume, float pitch, const float *origin )
 {
 	sound_t	sfxHandle;
 
@@ -500,7 +500,7 @@ bool S_StartLocalSound( const char *name, float volume, const float *origin )
 		return false;
 
 	sfxHandle = S_RegisterSound( name );
-	S_StartSound( origin, al_state.clientnum, CHAN_AUTO, sfxHandle, volume, ATTN_NONE, PITCH_NORM, false );
+	S_StartSound( origin, al_state.clientnum, CHAN_AUTO, sfxHandle, volume, ATTN_NONE, pitch, false );
 	return true;
 }
 
@@ -713,7 +713,7 @@ void S_PlaySound_f( void )
 		Msg( "Usage: playsound <soundfile>\n" );
 		return;
 	}
-	S_StartLocalSound( Cmd_Argv( 1 ), 1.0f, NULL );
+	S_StartLocalSound( Cmd_Argv( 1 ), 1.0f, PITCH_NORM, NULL );
 }
 
 /*

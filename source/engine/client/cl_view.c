@@ -79,7 +79,7 @@ void V_TestEntities( void )
 		ent.serialnumber = cl.frame.ps.number;
 		ent.v.controller[0] = ent.v.controller[1] = 90.0f;
 		ent.v.controller[2] = ent.v.controller[3] = 180.0f;
-		ent.v.modelindex = cl.frame.ps.model.index;
+		ent.v.modelindex = cl.frame.ps.modelindex;
 		re->AddRefEntity( &ent, ED_NORMAL, 1.0f );
 	}
 }

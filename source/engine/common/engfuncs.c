@@ -899,7 +899,7 @@ void VM_localsound( void )
 		return;
 	s = PRVM_G_STRING( OFS_PARM0 );
 
-	S_StartLocalSound( s, 1.0f, NULL );
+	S_StartLocalSound( s, 1.0f, PITCH_NORM, NULL );
 	else
 	{
 		VM_Warning( "localsound: can't play %s!\n", s );

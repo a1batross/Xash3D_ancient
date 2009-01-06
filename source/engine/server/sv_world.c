@@ -221,7 +221,7 @@ void SV_ClassifyEdict( edict_t *ent )
 		sv_ent->s.ed_type = ED_MONSTER;
 	else if( ent->v.flags & FL_CLIENT )
 		sv_ent->s.ed_type = ED_CLIENT;
-	else if( !sv_ent->s.model.index && !sv_ent->s.aiment )
+	else if( !sv_ent->s.modelindex && !sv_ent->s.aiment )
 	{	
 		if( sv_ent->s.soundindex )
 			sv_ent->s.ed_type = ED_AMBIENT;
@@ -231,7 +231,7 @@ void SV_ClassifyEdict( edict_t *ent )
 	if( sv_ent->s.ed_type == ED_SPAWNED )
 	{
 		// mark as normal
-		if( sv_ent->s.model.index || sv_ent->s.soundindex )
+		if( sv_ent->s.modelindex || sv_ent->s.soundindex )
 			sv_ent->s.ed_type = ED_NORMAL;
 	}
 	
@@ -264,7 +264,7 @@ void SV_LinkEdict( edict_t *ent )
 	int		leafs[MAX_TOTAL_ENT_LEAFS];
 	int		clusters[MAX_TOTAL_ENT_LEAFS];
 	int		num_leafs;
-	int		i, j, k;
+	int		i, j;
 	int		area;
 	int		topnode;
 	sv_priv_t		*sv_ent;
@@ -282,29 +282,6 @@ void SV_LinkEdict( edict_t *ent )
 
 	// set the size
 	VectorSubtract( ent->v.maxs, ent->v.mins, ent->v.size );
-
-	if( ent->v.solid == SOLID_BSP )
-	{
-		// a solid_bbox will never create this value
-		sv_ent->solid = SOLID_BMODEL;
-	}
-	else if(( int )ent->v.contents & ( CONTENTS_SOLID|CONTENTS_BODY ))
-	{
-		// encode the size into the entity_state for client prediction
-		// assume that x/y are equal and symetric
-		i = ent->v.maxs[0];
-		i = bound( 1, i, 255 );
-
-		// z is not symetric
-		j = (-ent->v.mins[2]);
-		j = bound( 1, j, 255 );
-
-		// and z maxs can be negative...
-		k = (ent->v.maxs[2] + 32);
-		k = bound( 1, k, 255 );
-		sv_ent->solid = (k<<16)|(j<<8)|i;
-	}
-	else sv_ent->solid = 0;
 
 	// set the abs box
 	svgame.dllFuncs.pfnSetAbsBox( ent );

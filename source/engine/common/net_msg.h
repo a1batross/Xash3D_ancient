@@ -18,6 +18,8 @@ enum net_types_e
 	NET_SCALE,
 	NET_COORD,
 	NET_COLOR,
+	NET_INT64,
+	NET_DOUBLE,
 	NET_TYPES,
 };
 
@@ -99,6 +101,8 @@ static const net_desc_t NWDesc[] =
 { NET_SCALE,	"Scale",	-128,		127	},
 { NET_COORD,	"Coord",	-262140,		262140	},
 { NET_COLOR,	"Color",	0,		255	},
+{ NET_INT64,	"int64",	0,		0	}, // can't overflow
+{ NET_DOUBLE,	"Double",	0,		0	}, // can't overflow
 };
 
 /*
@@ -108,12 +112,62 @@ static const net_desc_t NWDesc[] =
 
 ==========================================================
 */
+// entity_state_t communication (a part of network protocol)
+typedef struct entity_state_s
+{
+	// engine specific
+	uint		number;		// edict index
+	edtype_t		ed_type;		// edict type
+	string_t		classname;	// edict classname
+	int		soundindex;	// looped ambient sound
 
-// per-level limits
+	// physics information
+	vec3_t		origin;
+	vec3_t		angles;		// entity angles, not viewangles
+	solid_t		solid;		// entity solid
+	movetype_t	movetype;		// entity movetype
+	int		gravity;		// gravity multiplier
+	int		aiment;		// attached entity
+	vec3_t		mins;		// not symmetric entity bbox    
+	vec3_t		maxs;
 
+	// model state
+	int		modelindex;	// general modelindex
+	int		colormap;		// change base color for some textures or sprite frames
+	float		scale;		// model or sprite scale, affects to physics too
+	float		frame;		// % playback position in animation sequences (0..255)
+	int		skin;		// skin for studiomodels
+	int		body;		// sub-model selection for studiomodels
+	float		animtime;		// auto-animating time
+	float		framerate;	// custom framerate, specified by QC
+	int		sequence;		// animation sequence (0 - 255)
+	float		blending[16];	// studio animation blending
+	float		controller[16];	// studio bone controllers
 
-#define ES_FIELD(x)			#x,(int)&((entity_state_t*)0)->x
-#define CM_FIELD(x)			#x,(int)&((usercmd_t*)0)->x
+	// flags
+	int		flags;		// v.flags
+	uint		effects;		// effect flags like q1 and hl1
+	int		renderfx;		// render effects same as hl1
+	float		renderamt;	// alpha value or like somewhat
+	vec3_t		rendercolor;	// hl1 legacy stuff, working, but not needed
+	int		rendermode;	// hl1 legacy stuff, working, but not needed
+
+	// client specific
+	vec3_t		velocity;		// player velocity
+	vec3_t		delta_angles;	// add to command angles to get view direction 
+	vec3_t		punch_angles;	// add to view direction to get render angles 
+	vec3_t		viewangles;	// already calculated view angles on server-side
+	vec3_t		viewoffset;	// viewoffset over ground
+	int		gaitsequence;	// client\nps\bot gaitsequence
+	int		viewmodel;	// contains viewmodel index
+	int		weaponmodel;	// contains weaponmodel index
+	float		health;		// client health (other parms can be send by custom messages)
+	int64		weapons;		// weapon flags
+	float		fov;		// horizontal field of view
+} entity_state_t;
+
+#define ES_FIELD( x )		#x,(int)&((entity_state_t*)0)->x
+#define CM_FIELD( x )		#x,(int)&((usercmd_t*)0)->x
 
 // config strings are a general means of communication from
 // the server to all connected clients.
@@ -157,11 +211,12 @@ void MSG_Init( sizebuf_t *buf, byte *data, size_t length );
 void MSG_Clear( sizebuf_t *buf );
 void MSG_Print( sizebuf_t *msg, const char *data );
 void MSG_Bitstream( sizebuf_t *buf, bool state );
-void _MSG_WriteBits( sizebuf_t *msg, int value, const char *name, int bits, const char *filename, const int fileline );
-long _MSG_ReadBits( sizebuf_t *msg, int bits, const char *filename, const int fileline );
+void _MSG_WriteBits( sizebuf_t *msg, int64 value, const char *name, int bits, const char *filename, const int fileline );
+int64 _MSG_ReadBits( sizebuf_t *msg, int bits, const char *filename, const int fileline );
 void _MSG_Begin( int dest, const char *filename, int fileline );
 void _MSG_WriteString( sizebuf_t *sb, const char *s, const char *filename, int fileline );
 void _MSG_WriteFloat( sizebuf_t *sb, float f, const char *filename, int fileline );
+void _MSG_WriteDouble( sizebuf_t *sb, double f, const char *filename, int fileline );
 void _MSG_WritePos( sizebuf_t *sb, vec3_t pos, const char *filename, int fileline );
 void _MSG_WriteData( sizebuf_t *sb, const void *data, size_t length, const char *filename, int fileline );
 void _MSG_WriteDeltaUsercmd( sizebuf_t *sb, struct usercmd_s *from, struct usercmd_s *cmd, const char *filename, const int fileline );
@@ -175,6 +230,7 @@ void _MSG_Send( msgtype_t to, vec3_t origin, edict_t *ent, const char *filename,
 #define MSG_WriteWord(x,y) _MSG_WriteBits (x, y, NULL, NET_WORD, __FILE__, __LINE__)
 #define MSG_WriteLong(x,y) _MSG_WriteBits (x, y, NULL, NET_LONG, __FILE__, __LINE__)
 #define MSG_WriteFloat(x,y) _MSG_WriteFloat(x, y, __FILE__, __LINE__)
+#define MSG_WriteDouble(x,y) _MSG_WriteDouble(x, y, __FILE__, __LINE__)
 #define MSG_WriteString(x,y) _MSG_WriteString (x, y, __FILE__, __LINE__)
 #define MSG_WriteCoord16(x, y) _MSG_WriteBits(x, y, NULL, NET_COORD, __FILE__, __LINE__)
 #define MSG_WriteCoord32(x, y) _MSG_WriteBits(x, y, NULL, NET_FLOAT, __FILE__, __LINE__)
@@ -198,6 +254,7 @@ void MSG_BeginReading (sizebuf_t *sb);
 #define MSG_ReadAngle32( x ) _MSG_ReadBits( x, NET_FLOAT, __FILE__, __LINE__ )
 float MSG_ReadFloat( sizebuf_t *msg );
 char *MSG_ReadString( sizebuf_t *sb );
+double MSG_ReadDouble( sizebuf_t *msg );
 char *MSG_ReadStringLine( sizebuf_t *sb );
 void MSG_ReadPos( sizebuf_t *sb, vec3_t pos );
 void MSG_ReadData( sizebuf_t *sb, void *buffer, size_t size );

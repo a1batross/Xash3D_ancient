@@ -21,44 +21,39 @@ static net_field_t ent_fields[] =
 { ES_FIELD(velocity[0]),		NET_FLOAT, false	},
 { ES_FIELD(velocity[1]),		NET_FLOAT, false	},
 { ES_FIELD(velocity[2]),		NET_FLOAT, false	},
-{ ES_FIELD(infotarget[0]),		NET_FLOAT, false	},	// beam endpoint, portal camera pos, etc
-{ ES_FIELD(infotarget[1]),		NET_FLOAT, false	},
-{ ES_FIELD(infotarget[2]),		NET_FLOAT, false	},
-{ ES_FIELD(model.index),		NET_WORD,	 false	},	// 4096 models
-{ ES_FIELD(model.colormap),		NET_WORD,	 false	},	// encoded as two shorts for top and bottom color
-{ ES_FIELD(model.scale),		NET_COLOR, false	},	// 0-255 values
-{ ES_FIELD(model.frame),		NET_FLOAT, false	},	// interpolate value
-{ ES_FIELD(model.animtime),		NET_FLOAT, false	},	// auto-animating time
-{ ES_FIELD(model.framerate),		NET_FLOAT, false	},	// custom framerate
-{ ES_FIELD(model.sequence),		NET_WORD,	 false	},	// 1024 sequences
-{ ES_FIELD(model.gaitsequence),	NET_WORD,	 false	},	// 1024 gaitsequences
-{ ES_FIELD(model.skin),		NET_CHAR,	 false	},	// negative skins are contents
-{ ES_FIELD(model.body),		NET_BYTE,	 false	},	// 255 bodies
-{ ES_FIELD(pmodel.index),		NET_WORD,  false	},	// 4096 models 
-{ ES_FIELD(pmodel.sequence),		NET_WORD,  false	},	// 1024 sequences
-{ ES_FIELD(pmodel.frame),		NET_FLOAT, false	},	// interpolate value
-{ ES_FIELD(pmodel.body),		NET_BYTE,  false	},	// 255 bodies
-{ ES_FIELD(pmodel.skin),		NET_BYTE,  false	},	// 255 skins
-{ ES_FIELD(model.blending[0]),	NET_COLOR, false	},
-{ ES_FIELD(model.blending[1]),	NET_COLOR, false	},	// stateflags_t #1 (4 bytes)
-{ ES_FIELD(model.blending[2]),	NET_COLOR, false	},
-{ ES_FIELD(model.blending[3]),	NET_COLOR, false	},
-{ ES_FIELD(model.blending[4]),	NET_COLOR, false	},
-{ ES_FIELD(model.blending[5]),	NET_COLOR, false	},
-{ ES_FIELD(model.blending[6]),	NET_COLOR, false	},
-{ ES_FIELD(model.blending[7]),	NET_COLOR, false	},
-{ ES_FIELD(model.blending[8]),	NET_COLOR, false	},
-{ ES_FIELD(model.blending[9]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[0]),	NET_COLOR, false	},	// bone controllers #
-{ ES_FIELD(model.controller[1]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[2]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[3]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[4]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[5]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[6]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[7]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[8]),	NET_COLOR, false	},
-{ ES_FIELD(solidtype),		NET_BYTE,	 false	},
+{ ES_FIELD(modelindex),		NET_WORD,	 false	},	// 4096 models
+{ ES_FIELD(colormap),		NET_WORD,	 false	},	// encoded as two shorts for top and bottom color
+{ ES_FIELD(scale),			NET_COLOR, false	},	// 0-255 values
+{ ES_FIELD(frame),			NET_FLOAT, false	},	// interpolate value
+{ ES_FIELD(animtime),		NET_FLOAT, false	},	// auto-animating time
+{ ES_FIELD(framerate),		NET_FLOAT, false	},	// custom framerate
+{ ES_FIELD(sequence),		NET_WORD,	 false	},	// 1024 sequences
+{ ES_FIELD(gaitsequence),		NET_WORD,	 false	},	// 1024 gaitsequences
+{ ES_FIELD(skin),			NET_CHAR,	 false	},	// negative skins are contents
+{ ES_FIELD(body),			NET_BYTE,	 false	},	// 255 bodies
+{ ES_FIELD(weaponmodel),		NET_WORD,  false	},	// 4096 models 
+{ ES_FIELD(blending[0]),		NET_COLOR, false	},
+{ ES_FIELD(blending[1]),		NET_COLOR, false	},	// stateflags_t #1 (4 bytes)
+{ ES_FIELD(blending[2]),		NET_COLOR, false	},
+{ ES_FIELD(blending[3]),		NET_COLOR, false	},
+{ ES_FIELD(blending[4]),		NET_COLOR, false	},
+{ ES_FIELD(blending[5]),		NET_COLOR, false	},
+{ ES_FIELD(blending[6]),		NET_COLOR, false	},
+{ ES_FIELD(blending[7]),		NET_COLOR, false	},
+{ ES_FIELD(blending[8]),		NET_COLOR, false	},
+{ ES_FIELD(blending[9]),		NET_COLOR, false	},
+{ ES_FIELD(controller[0]),		NET_COLOR, false	},	// bone controllers #
+{ ES_FIELD(controller[1]),		NET_COLOR, false	},
+{ ES_FIELD(controller[2]),		NET_COLOR, false	},
+{ ES_FIELD(controller[3]),		NET_COLOR, false	},
+{ ES_FIELD(controller[4]),		NET_COLOR, false	},
+{ ES_FIELD(controller[5]),		NET_COLOR, false	},
+{ ES_FIELD(controller[6]),		NET_COLOR, false	},
+{ ES_FIELD(controller[7]),		NET_COLOR, false	},
+{ ES_FIELD(controller[8]),		NET_COLOR, false	},
+{ ES_FIELD(controller[9]),		NET_COLOR, false	},
+{ ES_FIELD(solid),			NET_BYTE,	 false	},
+{ ES_FIELD(flags),			NET_LONG,	 false	},
 { ES_FIELD(movetype),		NET_BYTE,	 false	},
 { ES_FIELD(gravity),		NET_SHORT, false	},	// gravity multiplier
 { ES_FIELD(aiment),			NET_WORD,	 false	},	// entity index
@@ -76,8 +71,6 @@ static net_field_t ent_fields[] =
 { ES_FIELD(rendercolor[1]),		NET_COLOR, false	},
 { ES_FIELD(rendercolor[2]),		NET_COLOR, false	},
 { ES_FIELD(rendermode),		NET_BYTE,  false	},	// render mode (legacy stuff)
-{ ES_FIELD(pm_type),		NET_BYTE,  false	},	// 16 player movetypes allowed
-{ ES_FIELD(pm_flags),		NET_WORD,  false	},	// 16 movetype flags allowed
 { ES_FIELD(delta_angles[0]),		NET_FLOAT, false	},
 { ES_FIELD(delta_angles[1]),		NET_FLOAT, false	},
 { ES_FIELD(delta_angles[2]),		NET_FLOAT, false	},
@@ -90,12 +83,11 @@ static net_field_t ent_fields[] =
 { ES_FIELD(viewoffset[0]),		NET_SCALE, false	},
 { ES_FIELD(viewoffset[1]),		NET_SCALE, false	},
 { ES_FIELD(viewoffset[2]),		NET_SCALE, false	},
-{ ES_FIELD(maxspeed),		NET_WORD,  false	},
 { ES_FIELD(viewmodel),		NET_WORD,  false	},
 { ES_FIELD(fov),			NET_FLOAT, false	},	// client horizontal field of view
-{ ES_FIELD(weapons),		NET_LONG,  false	},	// client weapon 0-32
+{ ES_FIELD(weapons),		NET_INT64, false	},	// client weapon 0-32
 { ES_FIELD(health),			NET_FLOAT, false	},	// client health
-// reserve for 10-11 fields without enlarge null_msg_size
+// revision 4. reserve for 17 fields without enlarge null_msg_size
 { NULL },							// terminator
 };
 
@@ -218,7 +210,7 @@ MSG_WriteBits
 write # of bytes
 =======================
 */
-void _MSG_WriteBits( sizebuf_t *msg, int value, const char *name, int net_type, const char *filename, const int fileline )
+void _MSG_WriteBits( sizebuf_t *msg, int64 value, const char *name, int net_type, const char *filename, const int fileline )
 {
 	union { long l; float f; } dat;
 	byte *buf;
@@ -269,7 +261,19 @@ void _MSG_WriteBits( sizebuf_t *msg, int value, const char *name, int net_type, 
 		buf = MSG_GetSpace( msg, 2 );
 		buf[0] = value & 0xff;
 		buf[1] = value>>8;
-		break;		
+		break;
+	case NET_INT64:
+	case NET_DOUBLE:
+		buf = MSG_GetSpace( msg, 8 );
+		buf[0] = (value>>0 ) & 0xff;
+		buf[1] = (value>>8 ) & 0xff;
+		buf[2] = (value>>16) & 0xff;
+		buf[3] = (value>>24) & 0xff;
+		buf[4] = (value>>32) & 0xff;
+		buf[5] = (value>>40) & 0xff;
+		buf[6] = (value>>48) & 0xff;
+		buf[7] = (value>>56);
+		break;
 	default:
 		Host_Error( "MSG_WriteBits: bad net.type (called at %s:%i)\n", filename, fileline );			
 		break;
@@ -295,10 +299,10 @@ MSG_ReadBits
 read # of bytes
 =======================
 */
-long _MSG_ReadBits( sizebuf_t *msg, int net_type, const char *filename, const int fileline )
+int64 _MSG_ReadBits( sizebuf_t *msg, int net_type, const char *filename, const int fileline )
 {
 	union { long l; float f; } dat;
-	long value = 0;
+	int64 value = 0;
 
 	switch( net_type )
 	{
@@ -337,6 +341,11 @@ long _MSG_ReadBits( sizebuf_t *msg, int net_type, const char *filename, const in
 		value = SHORT2ANGLE( value );
 		msg->readcount += 2;
 		break;		
+	case NET_INT64:
+	case NET_DOUBLE:
+		value = (int64)BuffLittleLong64(msg->data + msg->readcount);
+		msg->readcount += 8;
+		break;
 	default:
 		Host_Error( "MSG_ReadBits: bad net.type (called at %s:%i)\n", filename, fileline );			
 		break;
@@ -365,6 +374,13 @@ void _MSG_WriteFloat( sizebuf_t *sb, float f, const char *filename, int fileline
 	union { float f; int l; } dat;
 	dat.f = f;
 	_MSG_WriteBits( sb, dat.l, NWDesc[NET_FLOAT].name, NET_FLOAT, filename, fileline );
+}
+
+void _MSG_WriteDouble( sizebuf_t *sb, double f, const char *filename, int fileline )
+{
+	union { double f; int64 l; } dat;
+	dat.f = f;
+	_MSG_WriteBits( sb, dat.l, NWDesc[NET_DOUBLE].name, NET_DOUBLE, filename, fileline );
 }
 
 void _MSG_WriteString( sizebuf_t *sb, const char *s, const char *filename, int fileline )
@@ -410,6 +426,13 @@ float MSG_ReadFloat( sizebuf_t *msg )
 {
 	union { float f; int l; } dat;
 	dat.l = MSG_ReadBits( msg, NET_FLOAT );
+	return dat.f;	
+}
+
+double MSG_ReadDouble( sizebuf_t *msg )
+{
+	union { double f; int64 l; } dat;
+	dat.l = MSG_ReadBits( msg, NET_DOUBLE );
 	return dat.f;	
 }
 

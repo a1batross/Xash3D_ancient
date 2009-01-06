@@ -87,8 +87,9 @@ void CL_WriteDemoHeader( const char *name )
 	for( i = 0; i < clgame.numEntities; i++ )
 	{
 		ent = EDICT_NUM( i );
+		if( ent->free ) continue;
 		state = &ent->pvClientData->baseline;
-		if( !state->model.index ) continue;
+		if( !state->modelindex ) continue;
 
 		if( buf.cursize + 64 > buf.maxsize )
 		{	

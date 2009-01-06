@@ -9,6 +9,7 @@
 #include <windows.h>
 #include "launch_api.h"
 #include "engine_api.h"
+#include "entity_def.h"
 #include "physic_api.h"
 #include "qfiles_ref.h"
 

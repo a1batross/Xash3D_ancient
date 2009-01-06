@@ -40,10 +40,11 @@ Beta 13.12.08
 19.AddRefEntity uses edict_t instead entity state	OK
 20.render custom models			OK
 21.zoom_hud and warhead hud			OK
-22.entity_state_t revision 4
+22.entity_state_t revision 4			OK
 23.entvars_t revision 1
-
-entity_state_t невидима дл€ пользовател€
+24.UpdateClientData - move call to cl_input.c	OK
+25.wrote HUD_StudioEvents
+16.register cmd->buttons			OK
 
 
 —писок доступных рендереров:  	„то в них интересного

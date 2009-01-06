@@ -139,6 +139,8 @@ typedef struct enginefuncs_s
 	void	(*pfnWriteAngle)( float flValue );
 	void	(*pfnWriteCoord)( float flValue );
 	void	(*pfnWriteFloat)( float flValue );
+	void	(*pfnWriteLong64)( int64 iValue );
+	void	(*pfnWriteDouble)( double flValue );
 	void	(*pfnWriteString)( const char *sz );
 	void	(*pfnWriteEntity)( int iValue );
 	void	(*pfnCVarRegister)( const char *name, const char *value, int flags, const char *desc );

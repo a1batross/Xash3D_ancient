@@ -79,7 +79,7 @@ typedef struct entvars_s
 
 	float		health;
 	float		frags;
-	int		weapons;		// bit mask for available weapons
+	int64		weapons;		// bit mask for available weapons
 	float		takedamage;
 
 	int		deadflag;
@@ -101,6 +101,7 @@ typedef struct entvars_s
 	// player specific only
 	vec3_t		punchangle;	// auto-decaying view angle adjustment
 	vec3_t		v_angle;		// viewing angle (player only)
+	vec3_t		delta_angles;	// viewangles - cmd.angles
 	int		fixangle;		// 0 - nothing, 1 - force view angles, 2 - add avelocity
 	string_t		viewmodel;	// player's viewmodel
 	int		gaitsequence;	// movement animation sequence for player (0 for none)

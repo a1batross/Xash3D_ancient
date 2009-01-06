@@ -5,48 +5,6 @@
 #ifndef PHYSIC_API_H
 #define PHYSIC_API_H
 
-// pmove_state_t is the information necessary for client side movement
-#define PM_NORMAL		0	// can accelerate and turn
-#define PM_SPECTATOR	1
-#define PM_DEAD		2	// no acceleration or turning
-#define PM_GIB		3	// different bounding box
-#define PM_FREEZE		4
-#define PM_INTERMISSION	5
-#define PM_NOCLIP		6
-
-// pmove->pm_flags
-#define PMF_DUCKED		1
-#define PMF_JUMP_HELD	2
-#define PMF_ON_GROUND	4
-#define PMF_TIME_WATERJUMP	8	// pm_time is waterjump
-#define PMF_TIME_LAND	16	// pm_time is time before rejump
-#define PMF_TIME_TELEPORT	32	// pm_time is non-moving time
-#define PMF_NO_PREDICTION	64	// temporarily disables prediction (used for grappling hook)
-#define PMF_ALL_TIMES	(PMF_TIME_WATERJUMP|PMF_TIME_LAND|PMF_TIME_TELEPORT)
-
-typedef struct pmove_s
-{
-	entity_state_t	ps;		// state (in / out)
-
-	// command (in)
-	usercmd_t		cmd;
-	physbody_t	*body;		// pointer to physobject
-
-	// results (out)
-	int		numtouch;
-	edict_t		*touchents[32];	// max touch
-	edict_t		*groundentity;
-
-	vec3_t		mins, maxs;	// bounding box size
-	int		watertype;
-	int		waterlevel;
-	float		xyspeed;		// avoid to compute it twice
-
-	// callbacks to test the world
-	void		(*trace)( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, trace_t *tr );
-	int		(*pointcontents)( vec3_t point );
-} pmove_t;
-
 /*
 ==============================================================================
 
@@ -98,7 +56,7 @@ typedef struct physic_exp_s
 	void (*CombineTraces)( trace_t *cliptrace, const trace_t *trace, edict_t *touch, bool is_bmodel );
 
 	// player movement code
-	void (*PlayerMove)( pmove_t *pmove, bool clientmove );
+	void (*PlayerMove)( entvars_t *pmove, usercmd_t *cmd, physbody_t *body, bool clientmove );
 	
 	// simple objects
 	physbody_t *(*CreateBody)( edict_t *ed, cmodel_t *mod, const vec3_t org, const matrix3x3 m, int solid, int move );
