@@ -353,12 +353,6 @@ void SV_LinkEdict( edict_t *ent )
 
 	ent->pvServerData->linkcount++;
 
-	// update ambient sound here
-	if( ent->v.ambient )
-	{
-		ent->pvServerData->s.soundindex = SV_SoundIndex( STRING( ent->v.ambient ));
-	}
-
 	// don't link not solid or rigid bodies
 	if( ent->v.solid == SOLID_NOT || ent->v.solid >= SOLID_BOX )
 	{

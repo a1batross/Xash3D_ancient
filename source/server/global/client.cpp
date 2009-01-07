@@ -449,19 +449,19 @@ void ClientCommand( edict_t *pEntity )
 			ALERT(at_console, "Syntax: hud_color RRR GGG BBB\n");
 		}
 	}
-	else if ( FStrEq(pcmd, "fire") ) //LRC - trigger entities manually
+	else if( FStrEq( pcmd, "fire" )) //LRC - trigger entities manually
 	{
-		if (g_flWeaponCheat)
+		if( g_flWeaponCheat )
 		{
 			CBaseEntity *pPlayer = CBaseEntity::Instance(pEntity);
-			if (CMD_ARGC() > 1)
+			if( CMD_ARGC() > 1 )
 			{
-				UTIL_FireTargets(CMD_ARGV(1), pPlayer, pPlayer, USE_TOGGLE);
+				UTIL_FireTargets( CMD_ARGV( 1 ), pPlayer, pPlayer, USE_TOGGLE );
 			}
 			else
 			{
 				TraceResult tr;
-				UTIL_MakeVectors(pev->v_angle);
+				UTIL_MakeVectors( pev->viewangles );
 				UTIL_TraceLine(
 					pev->origin + pev->view_ofs,
 					pev->origin + pev->view_ofs + gpGlobals->v_forward * 1000,
@@ -480,20 +480,19 @@ void ClientCommand( edict_t *pEntity )
 			}
 		}
 	}
-	else if ( FStrEq(pcmd, "debug") )
+	else if( FStrEq( pcmd, "debug" ))
 	{
-		Msg("debug called\n" );
-		if (g_flWeaponCheat)
+		if( g_flWeaponCheat )
 		{
-			CBaseEntity *pPlayer = CBaseEntity::Instance(pEntity);
-			if (CMD_ARGC() > 1)
+			CBaseEntity *pPlayer = CBaseEntity::Instance( pEntity );
+			if( CMD_ARGC() > 1 )
 			{
-				UTIL_FireTargets(CMD_ARGV(1), pPlayer, pPlayer, USE_SHOWINFO);
+				UTIL_FireTargets( CMD_ARGV( 1 ), pPlayer, pPlayer, USE_SHOWINFO );
 			}
 			else
 			{
 				TraceResult tr;
-				UTIL_MakeVectors(pev->v_angle);
+				UTIL_MakeVectors( pev->viewangles );
 				UTIL_TraceLine(
 					pev->origin + pev->view_ofs,
 					pev->origin + pev->view_ofs + gpGlobals->v_forward * 1000,
@@ -554,11 +553,11 @@ void ClientCommand( edict_t *pEntity )
 	{
 		if( g_flWeaponCheat && CMD_ARGC() > 1 )
 		{
-			GetClassPtr((CBasePlayer *)pev)->m_flFOV = atof( CMD_ARGV( 1 ));
+			GetClassPtr((CBasePlayer *)pev)->pev->fov = atof( CMD_ARGV( 1 ));
 		}
 		else
 		{
-			ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, UTIL_VarArgs( "\"fov\" is \"%g\"\n", (int)GetClassPtr((CBasePlayer *)pev)->m_flFOV ) );
+			ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, UTIL_VarArgs( "\"fov\" is \"%g\"\n", (int)GetClassPtr((CBasePlayer *)pev)->pev->fov ));
 		}
 	}
 	else if ( FStrEq(pcmd, "use" ) )
@@ -870,7 +869,6 @@ void ServerPostActivate( void )
 			if( pClass && !( pClass->pev->flags & FL_DORMANT ))
 			{
 				pClass->PostActivate();
-				pClass->ClassifyEdict();
 			}
 		}
 		MSGSended = TRUE;//messages sucessfully sended
@@ -1045,7 +1043,6 @@ void LinkUserMessages( void )
 	gmsg.RoomType = REG_USER_MSG( "RoomType", 2 );
 	gmsg.HideWeapon = REG_USER_MSG( "HideWeapon", 1 );
 	gmsg.WeaponAnim = REG_USER_MSG( "WeaponAnim", 3 );
-	gmsg.SetFOV = REG_USER_MSG( "SetFOV", 4 );
 	gmsg.ShowMenu = REG_USER_MSG( "ShowMenu", -1 );
 	gmsg.Shake = REG_USER_MSG("ScreenShake", 13 );
 	gmsg.Fade = REG_USER_MSG("ScreenFade", sizeof(ScreenFade));

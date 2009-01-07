@@ -39,7 +39,9 @@ public:
 
 	void	WriteShort( const char *pname, const short *value, int count );
 	void	WriteInt( const char *pname, const int *value, int count );		// Save an int
+	void	WriteInt64( const char *pname, const int64 *value, int count );	// Save an int64
 	void	WriteFloat( const char *pname, const float *value, int count );	// Save a float
+	void	WriteDouble( const char *pname, const double *value, int count );	// Save a double
 	void	WriteTime( const char *pname, const float *value, int count );	// Save a float (timevalue)
 	void	WriteData( const char *pname, int size, const char *pdata );		// Save a binary data block
 	void	WriteString( const char *pname, const char *pstring );			// Save a null-terminated string

@@ -447,13 +447,14 @@ void CFuncTank::TrackTarget( void )
 		pController->pev->viewmodel = 0;
 		SetNextThink(0.05);
 
-		if (pev->spawnflags & SF_TANK_MATCHTARGET)
+		if( pev->spawnflags & SF_TANK_MATCHTARGET )
 		{
 			// "Match target" mode:
 			// first, get the player's angles
-			angles = pController->pev->v_angle;
-			// Work out what point the player is looking at
-			UTIL_MakeVectorsPrivate(angles, direction, NULL, NULL);
+			angles = pController->pev->viewangles;
+
+			// work out what point the player is looking at
+			UTIL_MakeVectorsPrivate( angles, direction, NULL, NULL );
 
 			targetPosition = pController->EyePosition() + direction * 1000;
 
@@ -483,11 +484,11 @@ void CFuncTank::TrackTarget( void )
 		{
 			// "Match angles" mode
 			// just get the player's angles
-			angles = pController->pev->v_angle;
+			angles = pController->pev->viewangles;
 			angles[0] = 0 - angles[0];
 
 			UpdateSpot();
-			SetNextThink(0.05);//G-Cont.For more smoothing motion a laser spot
+			SetNextThink( 0.05 ); // g-cont. for more smoothing motion a laser spot
 		}
 	}
 	else

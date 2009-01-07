@@ -9,134 +9,140 @@ typedef struct cl_priv_s	cl_priv_t;	// cl.engine private data
 typedef struct sv_priv_s	sv_priv_t;	// sv.engine private data
 typedef struct edict_s	edict_t;		// generic entity
 
-// TODO: move to CBaseEntity all fields which doesn't existing on client side
-// TODO: generic edict must have all fields as valid on client side too
+// Legend:
+// ENG - engine can modify this variable for some reasons [only
+// NET - field that shared on client across network
+// Modifiers:
+// [player] - all notify for this field is valid only for client entity
+// [all] - valid for all ents
+// [phys] - valid only for rigid bodies
+// [solid] - only for solid entities
+// [push] - only ents with SOLID_BSP and MOVETYPE_PUSH have affect on this field
+
 typedef struct entvars_s
 {
-	string_t		classname;
-	string_t		globalname;
-	edict_t		*chain;		// entity pointer when linked into a linked list
+	string_t		classname;	// ENG [all], NET [all]
+	string_t		globalname;	// global entity name transmitted across levels
 	
-	vec3_t		origin;
-	vec3_t		angles;		// model angles
-	int		modelindex;	
-	vec3_t		oldorigin;	// interpolated values
-	vec3_t		oldangles;
-
-	vec3_t		m_pmatrix[3];	// rotational matrix
-	vec3_t		m_pcentre[3];	// physical centre of mass
-
+	vec3_t		origin;		// ENG [all], NET [all]
+	vec3_t		oldorigin;	// ENG [all], NET [all]
 	vec3_t		velocity;
-	vec3_t		avelocity;	// angular velocity (degrees per second)
+
 	vec3_t		movedir;
-	vec3_t		force;		// linear physical impulse vector
-	vec3_t		torque;		// angular physical impulse vector
 
-	string_t		model;
-	string_t		weaponmodel;	// monster or player weaponmodel
+	vec3_t		angles;		// ENG [all], NET [all]
+	vec3_t		oldangles;	// ENG [all], NET [all]
+	vec3_t		avelocity;	// angular velocity (degrees per second)
+	vec3_t		punchangle;	// NET [player], auto-decaying view angle adjustment
+	vec3_t		viewangles;	// NET [player], viewing angle (old name was v_angle)
+	vec3_t		delta_angles;	// ENG [player], NET [player], viewangles - cmd.angles
 
-	vec3_t		absmin;		// bbox max translated to world coord
-	vec3_t		absmax;		// bbox max translated to world coord
-	vec3_t		mins;		// local bbox min
-	vec3_t		maxs;		// local bbox max
-	vec3_t		size;		// maxs - mins
-	float		mass;		// physobject mass
-
-	float		ltime;
-	float		nextthink;
-
-	int		movetype;
-	int		solid;
-
-	int		skin;		//			
-	int		body;		// sub-model selection for studiomodels
-	int 		effects;
-	float		gravity;		// % of "normal" gravity
-	float		friction;		// inverse elasticity of MOVETYPE_BOUNCE
-
-	int		sequence;		// animation sequence
-	float		frame;		// % playback position in animation sequences (0..255)
-	float		animtime;		// world time when frame was set
-	float		framerate;	// animation playback rate (-8x to 8x)
-	vec3_t		attachment[16];	// server-client attachment actual coords
-	float		controller[16];	// bone controller setting (0..255)
-	float		blending[16];	// blending amount between sub-sequences (0..255)
-
-	float		scale;		// model rendering scale (0..255)
-	int		waterlevel;
-	int		watertype;
-	int		contents;
-	
-	float		idealpitch;
+	int		fixangle;		// 0 - nothing, 1 - force view angles, 2 - add avelocity	
+	float		ideal_pitch;
 	float		pitch_speed;
 	float		ideal_yaw;
 	float		yaw_speed;
 
-	int		rendermode;
-	float		renderamt;
-	vec3_t		rendercolor;
-	int		renderfx;
+	int		modelindex;	// ENG [all], NET [all]
 
-	float		health;
+	string_t		model;		// model name
+	string_t		viewmodel;	// player's viewmodel (no network updates)
+	string_t		weaponmodel;	// NET [all] - sending weaponmodel index, not name
+
+	vec3_t		absmin;		// ENG [all] - pfnSetAbsBox passed to modify this values
+	vec3_t		absmax;		// ENG [all] - pfnSetAbsBox passed to modify this values 
+	vec3_t		mins;		// ENG [all], NET [solid]
+	vec3_t		maxs;		// ENG [all], NET [solid]
+	vec3_t		size;		// ENG [all], restored on client-side from mins-maxs 
+
+	// physic decsription
+	vec3_t		m_pmatrix[3];	// ENG [phys]
+	vec3_t		m_pcentre[3];	// ENG [phys]
+	vec3_t		force;		// ENG [phys], linear physical impulse vector
+	vec3_t		torque;		// ENG [phys], angular physical impulse vector
+	float		mass;		// [phys], physobject mass
+
+	float		ltime;		// [push]
+	float		nextthink;	// time to next call of think function
+
+	int		movetype;		// ENG [all], NET [all]
+	int		solid;		// ENG [all], NET [all]
+
+	int		skin;		// NET [all]			
+	int		body;		// NET [all], sub-model selection for studiomodels
+	int		weaponbody;	// NET [all], sub-model selection for weaponmodel
+	int		weaponskin;	// NET [all],
+	int 		effects;		// ENG [all], NET [all]
+	float		gravity;		// % of "normal" gravity
+	float		friction;		// inverse elasticity of MOVETYPE_BOUNCE
+	float		speed;
+
+	int		sequence;		// ENG [all], NET [all], animation sequence
+	int		gaitsequence;	// NET [player], movement animation sequence for player (0 for none)
+	int		weaponanim;	// NET [all], weaponmodel animation sequencs
+	float		frame;		// NET [all], % playback position in animation sequences (0..255)
+	float		animtime;		// NET [all], world time when frame was set
+	float		framerate;	// NET [all], animation playback rate (-8x to 8x)
+	float		controller[16];	// NET [all], bone controller setting (0..255)
+	float		blending[16];	// NET [all], blending amount between sub-sequences (0..255)
+	vec3_t		attachment[16];	// ENG [all], filled by engine on the client-side
+
+	float		scale;		// NET [all], sprites and models rendering scale (0..255)
+	int		rendermode;	// NET [all]
+	float		renderamt;	// NET [all]
+	vec3_t		rendercolor;	// NET [all]
+	int		renderfx;		// NET [all]
+
+	float		fov;		// NET [player], client fov, used instead m_iFov
+	float		health;		// NET [player]
 	float		frags;
-	int64		weapons;		// bit mask for available weapons
+	int64		weapons;		// NET [player], bit mask for available weapons
+	int64		items;		// from Q1, can use for holdable items or user flags 
 	float		takedamage;
+	float		maxspeed;		// NET [player], uses to limit speed for current client
 
 	int		deadflag;
-	vec3_t		view_ofs;		// eye position
+	vec3_t		view_ofs;		// NET [player], eye position
 
 	int		button;
 	int		impulse;
 
-
+	edict_t		*chain;		// linked list for EntitiesInPHS\PVS
 	edict_t		*dmg_inflictor;
 	edict_t		*enemy;
-	edict_t		*aiment;		// entity pointer when MOVETYPE_FOLLOW
-	edict_t		*owner;
-	edict_t		*groundentity;
+	edict_t		*aiment;		// NET [all], entity pointer when MOVETYPE_FOLLOW
+	edict_t		*owner;		// NET [all]
+	edict_t		*groundentity;	// NET [all], only if FL_ONGROUND is set
 
 	int		spawnflags;	// spwanflags are used only during level loading
-	int		flags;		// generic flags that can be send to client
-	
-	// player specific only
-	vec3_t		punchangle;	// auto-decaying view angle adjustment
-	vec3_t		v_angle;		// viewing angle (player only)
-	vec3_t		delta_angles;	// viewangles - cmd.angles
-	int		fixangle;		// 0 - nothing, 1 - force view angles, 2 - add avelocity
-	string_t		viewmodel;	// player's viewmodel
-	int		gaitsequence;	// movement animation sequence for player (0 for none)
+	int64		flags;		// generic flags that can be send to client
+
 	short		colormap;		// lowbyte topcolor, highbyte bottomcolor
-	int		playerclass;
-	int		team;		// for teamplay
-	int		weaponanim;
+	int		team;		// ENG [player], NET [player], for teamplay
 
 	float		max_health;
-	float		teleport_time;
+	float		teleport_time;	// ENG [all], NET [all], engine will be reset value on next frame
 	int		armortype;
 	float		armorvalue;
+	int		waterlevel;	// ENG [all]
+	int		watertype;	// ENG [all]
+	int		contents;		// hl-coders: use this instead of pev->skin, to set entity contents
 
-	string_t		target;
+	string_t		target;		// various server strings
 	string_t		targetname;
 	string_t		netname;
 	string_t		message;
-
-	float		dmg_take;
-	float		dmg_save;
-	float		dmgtime;
-	float		dmg;
-	
 	string_t		noise;
 	string_t		noise1;
 	string_t		noise2;
 	string_t		noise3;
-	string_t		ambient;
-	
-	float		speed;
-	float		air_finished;
-	float		pain_finished;
-	float		radsuit_finished;
-	
-	edict_t		*pContainingEntity;		// ptr to class for consistency
+
+	float		dmg_take;
+	float		dmg_save;
+	float		dmg;
+	float		dmgtime;
+
+	edict_t		*pContainingEntity;	// for upcasting. Filled by engine, don't save, don't modifiy
 } entvars_t;
 
 struct edict_s

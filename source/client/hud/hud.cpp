@@ -72,6 +72,7 @@ void CHud :: VidInit( void )
 
 	m_hsprCursor = 0;
 	m_hHudError = 0;
+	m_hHudFont = 0;
 
 	Draw_VidInit();
 
@@ -143,6 +144,7 @@ void CHud :: VidInit( void )
 	// loading error sprite
 	m_HUD_error = GetSpriteIndex( "error" );
 	m_hHudError = GetSprite( m_HUD_error );
+	m_hHudFont = GetSprite( GetSpriteIndex( "hud_font" ));
 	
 	m_Sound.VidInit();
 	m_Ammo.VidInit();
@@ -177,10 +179,19 @@ void CHud :: Think( void )
 	}
 
 	// think about default fov
-	if( m_flFOV == 0 )
+	float def_fov = CVAR_GET_FLOAT( "default_fov" );
+	if( m_flFOV == 0.0f ) m_flFOV = max( CVAR_GET_FLOAT( "default_fov" ), 90 );
+	
+	// change sensitivity
+	if( m_flFOV == def_fov )
 	{
-		// only let players adjust up in fov, and only if they are not overriden by something else
-		m_flFOV = max( CVAR_GET_FLOAT( "default_fov" ), 90 );  
+		m_flMouseSensitivity = 0;
+	}
+	else
+	{
+		// set a new sensitivity that is proportional to the change from the FOV default
+		m_flMouseSensitivity = CVAR_GET_FLOAT( "sensitivity" ) * ( m_flFOV / def_fov );
+		m_flMouseSensitivity *= CVAR_GET_FLOAT( "zoom_sensitivity_ratio" ); // apply zoom factor
 	}
 }
 
@@ -194,12 +205,16 @@ int CHud :: UpdateClientData( client_data_t *cdata, float time )
 
 	m_iKeyBits = cdata->iKeyBits;
 	m_iWeaponBits = cdata->iWeaponBits;
+	m_flFOV = cdata->fov;
 
 	Think();
 
-	cdata->fov = m_flFOV;
 	cdata->iKeyBits = m_iKeyBits;
 	cdata->v_idlescale = m_iConcussionEffect;
+
+	// fov has been changed
+	if( m_flFOV != cdata->fov )
+		cdata->fov = m_flFOV;
 
 	if( m_flMouseSensitivity )
 		cdata->mouse_sensitivity = m_flMouseSensitivity;

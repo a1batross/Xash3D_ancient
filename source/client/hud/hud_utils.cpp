@@ -367,6 +367,46 @@ void SPR_Set( HSPRITE hPic, int r, int g, int b, int a )
 	SetColor((r / 255.0f), (g / 255.0f), (b / 255.0f), (a / 255.0f));
 }
 
+inline static void SPR_AdjustSize( float *x, float *y, float *w, float *h )
+{
+	if( !x && !y && !w && !h ) return;
+
+	// scale for screen sizes
+	float xscale = gHUD.m_scrinfo.iRealWidth / (float)gHUD.m_scrinfo.iWidth;
+	float yscale = gHUD.m_scrinfo.iRealHeight / (float)gHUD.m_scrinfo.iHeight;
+
+	if( x ) *x *= xscale;
+	if( y ) *y *= yscale;
+	if( w ) *w *= xscale;
+	if( h ) *h *= yscale;
+}
+
+inline static void SPR_DrawChar( HSPRITE hFont, int xpos, int ypos, int width, int height, int ch )
+{
+	float	size, frow, fcol;
+	float	ax, ay, aw, ah;
+	int	fontWidth, fontHeight;
+
+	ch &= 255;
+
+	if( ch == ' ' ) return;
+	if( ypos < -height ) return;
+
+	ax = xpos;
+	ay = ypos;
+	aw = width;
+	ah = height;
+
+	SPR_AdjustSize( &ax, &ay, &aw, &ah ); 
+	GetParms( &fontWidth, &fontHeight, NULL, 0, hFont );
+
+	frow = (ch >> 4) * 0.0625f + (0.5f / (float)fontWidth);
+	fcol = (ch & 15) * 0.0625f + (0.5f / (float)fontHeight);
+	size = 0.0625f - (1.0f / (float)fontWidth);
+
+	DrawImageExt( hFont, ax, ay, aw, ah, fcol, frow, fcol + size, frow + size );
+}
+
 inline static void SPR_DrawGeneric( int frame, float x, float y, float width, float height, const wrect_t *prc )
 {
 	float	s1, s2, t1, t2;
@@ -395,21 +435,19 @@ inline static void SPR_DrawGeneric( int frame, float x, float y, float width, fl
 		s2 = t2 = 1.0f;
 	}
 
-	float	xscale, yscale;
-
 	// scale for screen sizes
-	xscale = gHUD.m_scrinfo.iRealWidth / (float)gHUD.m_scrinfo.iWidth;
-	yscale = gHUD.m_scrinfo.iRealHeight / (float)gHUD.m_scrinfo.iHeight;
-
-	x *= xscale;
-	y *= yscale;
-	width *= xscale;
-	height *= yscale;
-
+	SPR_AdjustSize( &x, &y, &width, &height );
 	DrawImageExt( ds.hSprite, x, y, width, height, s1, t1, s2, t2 );
 } 
 
-void FillRGBA( int x, int y, int width, int height, int r, int g, int b, int a )
+void TextMessageDrawChar( int xpos, int ypos, int number, int r, int g, int b )
+{
+	// tune char size by taste
+	SetColor((r / 255.0f), (g / 255.0f), (b / 255.0f), 1.0f );
+	SPR_DrawChar( gHUD.m_hHudFont, xpos, ypos, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, number );
+}
+
+void FillRGBA( float x, float y, float width, float height, int r, int g, int b, int a )
 {
 	Vector	RGB;
 
@@ -417,17 +455,7 @@ void FillRGBA( int x, int y, int width, int height, int r, int g, int b, int a )
 	RGB.y = (float)(g / 255.0f);
 	RGB.z = (float)(b / 255.0f);
 
-	float	xscale, yscale;
-
-	// scale for screen sizes
-	xscale = gHUD.m_scrinfo.iRealWidth / (float)gHUD.m_scrinfo.iWidth;
-	yscale = gHUD.m_scrinfo.iRealHeight / (float)gHUD.m_scrinfo.iHeight;
-
-	x *= xscale;
-	y *= yscale;
-	width *= xscale;
-	height *= yscale;
-
+	SPR_AdjustSize( &x, &y, &width, &height );
 	g_engfuncs.pfnFillRGBA( x, y, width, height, RGB, (float)(a / 255.0f));
 }
 
@@ -493,8 +521,8 @@ void DrawCrosshair( void )
 	if( ds.hCrosshair == 0 ) return;
 
 	// FIXME: apply crosshair angles
-	int x = (ScreenWidth - ds.rcCrosshair.right) / 2; 
-	int y = (ScreenHeight - ds.rcCrosshair.bottom) / 2;
+	int x = (ScreenWidth - (ds.rcCrosshair.right - ds.rcCrosshair.left)) / 2; 
+	int y =(ScreenHeight - (ds.rcCrosshair.bottom - ds.rcCrosshair.top)) / 2;
 
 	ds.hSprite = ds.hCrosshair;
 	SetParms( ds.hCrosshair, kRenderTransAlpha, 0 );

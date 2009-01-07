@@ -714,9 +714,9 @@ void CFuncTeleport :: Touch( CBaseEntity *pOther )
 
 			// set new angle to face
 			pOther->pev->angles.y += ydiff;
-			if (pOther->IsPlayer())
+			if( pOther->IsPlayer())
 			{
-				pOther->pev->angles.x = pOther->pev->v_angle.x;
+				pOther->pev->angles.x = pOther->pev->viewangles.x;
 				pOther->pev->fixangle = TRUE;
 			}
 
@@ -743,24 +743,25 @@ void CFuncTeleport :: Touch( CBaseEntity *pOther )
 	{
 		Vector tmp = pTarget->pev->origin;
 
-		if ( pOther->IsPlayer()) tmp.z -= pOther->pev->mins.z; // make origin adjustments
+		if( pOther->IsPlayer( ))
+			tmp.z -= pOther->pev->mins.z; // make origin adjustments
 		tmp.z++;
 		UTIL_SetOrigin( pOther, tmp );
 
 		pOther->pev->angles = pTarget->pev->angles;
 		pOther->pev->velocity = g_vecZero;
-		if ( pOther->IsPlayer() )
+		if( pOther->IsPlayer( ))
 		{
-			pOther->pev->v_angle = pTarget->pev->angles;
+			pOther->pev->viewangles = pTarget->pev->angles;
 			pOther->pev->fixangle = TRUE;
 		}
 	}
           
-	ChangeCamera( pev->target );//update PVS
+	ChangeCamera( pev->target ); // update PVS
 	pevToucher->flags &= ~FL_ONGROUND;
 	pevToucher->fixangle = TRUE;
 
-	UTIL_FireTargets( pev->netname, pOther, this, USE_TOGGLE );//fire target
+	UTIL_FireTargets( pev->netname, pOther, this, USE_TOGGLE ); // fire target
 }
 
 //=======================================================================

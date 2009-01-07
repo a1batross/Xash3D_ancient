@@ -91,6 +91,8 @@ TYPEDESCRIPTION	CBasePlayer::m_playerSaveData[] =
 	DEFINE_FIELD( CBasePlayer, m_flDuckTime, FIELD_TIME ),
 	DEFINE_FIELD( CBasePlayer, m_flWallJumpTime, FIELD_TIME ),
 
+	DEFINE_FIELD( CBasePlayer, m_fAirFinished, FIELD_TIME ),
+	DEFINE_FIELD( CBasePlayer, m_fPainFinished, FIELD_TIME ),
 	DEFINE_FIELD( CBasePlayer, m_flSuitUpdate, FIELD_TIME ),
 	DEFINE_ARRAY( CBasePlayer, m_rgSuitPlayList, FIELD_INTEGER, CSUITPLAYLIST ),
 	DEFINE_FIELD( CBasePlayer, m_iSuitPlayNext, FIELD_INTEGER ),
@@ -123,7 +125,6 @@ TYPEDESCRIPTION	CBasePlayer::m_playerSaveData[] =
 	DEFINE_FIELD( CBasePlayer, m_pTank, FIELD_EHANDLE ), // NB: this points to a CFuncTank*Controls* now. --LRC
 	DEFINE_FIELD( CBasePlayer, m_pMonitor, FIELD_EHANDLE ),
 	DEFINE_FIELD( CBasePlayer, m_iHideHUD, FIELD_INTEGER ),
-	DEFINE_FIELD( CBasePlayer, m_flFOV, FIELD_FLOAT ),
 	DEFINE_FIELD( CBasePlayer, pViewEnt, FIELD_CLASSPTR),
 	DEFINE_FIELD( CBasePlayer, viewFlags, FIELD_INTEGER),
 	DEFINE_FIELD( CBasePlayer, m_iSndRoomtype, FIELD_INTEGER ),
@@ -897,20 +898,16 @@ void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 	MESSAGE_END();
          
 	// reset FOV
-	m_flFOV = m_flClientFOV = 90.0f;
+	pev->fov = 90.0f;
 
 	pViewEnt = 0;
 	viewFlags = 0;
 	viewNeedsUpdate = 1;
-          
-	MESSAGE_BEGIN( MSG_ONE, gmsg.SetFOV, NULL, pev );
-		WRITE_BYTE(0);
-	MESSAGE_END();
 
-	//death fading         
-          m_FadeColor = Vector(128, 0, 0);
+	// death fading         
+          m_FadeColor = Vector( 128, 0, 0 );
 	m_FadeAlpha = 240;			
-	m_iFadeFlags = FFADE_OUT | FFADE_MODULATE | FFADE_STAYOUT;
+	m_iFadeFlags = FFADE_OUT|FFADE_MODULATE|FFADE_STAYOUT;
 	m_iFadeTime = 6;
 	fadeNeedsUpdate = TRUE;
 	
@@ -1131,12 +1128,12 @@ void CBasePlayer::WaterMove()
 		// not underwater
 
 		// play 'up for air' sound
-		if (pev->air_finished < gpGlobals->time)
+		if (m_fAirFinished < gpGlobals->time)
 			EMIT_SOUND(ENT(pev), CHAN_VOICE, "player/pl_wade1.wav", 1, ATTN_NORM);
-		else if (pev->air_finished < gpGlobals->time + 9)
+		else if (m_fAirFinished < gpGlobals->time + 9)
 			EMIT_SOUND(ENT(pev), CHAN_VOICE, "player/pl_wade2.wav", 1, ATTN_NORM);
 
-		pev->air_finished = gpGlobals->time + AIRTIME;
+		m_fAirFinished = gpGlobals->time + AIRTIME;
 		pev->dmg = 2;
 
 		// if we took drowning damage, give it back slowly
@@ -1161,16 +1158,16 @@ void CBasePlayer::WaterMove()
 		m_bitsDamageType &= ~DMG_DROWNRECOVER;
 		m_rgbTimeBasedDamage[itbd_DrownRecover] = 0;
 
-		if (pev->air_finished < gpGlobals->time)		// drown!
+		if (m_fAirFinished < gpGlobals->time)		// drown!
 		{
-			if (pev->pain_finished < gpGlobals->time)
+			if (m_fPainFinished < gpGlobals->time)
 			{
 				// take drowning damage
 				pev->dmg += 1;
 				if (pev->dmg > 5)
 					pev->dmg = 5;
 				TakeDamage(VARS(eoNullEntity), VARS(eoNullEntity), pev->dmg, DMG_DROWN);
-				pev->pain_finished = gpGlobals->time + 1;
+				m_fPainFinished = gpGlobals->time + 1;
 
 				// track drowning damage, give it back when
 				// player finally takes a breath
@@ -1204,7 +1201,7 @@ void CBasePlayer::WaterMove()
 
 	// make bubbles
 
-	air = (int)(pev->air_finished - gpGlobals->time);
+	air = (int)(m_fAirFinished - gpGlobals->time);
 	if (!RANDOM_LONG(0,0x1f) && RANDOM_LONG(0,AIRTIME-1) >= air)
 	{
 		switch (RANDOM_LONG(0,3))
@@ -1414,7 +1411,7 @@ void CBasePlayer::StartDeathCam( void )
 		}
 
 		CopyToBodyQue( pev );
-		StartObserver( pSpot->pev->origin, pSpot->pev->v_angle );
+		StartObserver( pSpot->pev->origin, pSpot->pev->viewangles );
 	}
 	else
 	{
@@ -1432,7 +1429,7 @@ void CBasePlayer::StartObserver( Vector vecPosition, Vector vecViewAngle )
 	m_afPhysicsFlags |= PFLAG_OBSERVER;
 
 	pev->view_ofs = g_vecZero;
-	pev->angles = pev->v_angle = vecViewAngle;
+	pev->angles = pev->viewangles = vecViewAngle;
 	pev->fixangle = TRUE;
 	pev->solid = SOLID_NOT;
 	pev->takedamage = DAMAGE_NO;
@@ -1501,7 +1498,7 @@ void CBasePlayer::PlayerUse ( void )
 	TraceResult tr;
 	int caps;
 
-	UTIL_MakeVectors ( pev->v_angle );// so we know which way we are facing
+	UTIL_MakeVectors ( pev->viewangles );// so we know which way we are facing
 
 	//LRC- try to get an exact entity to use.
 	// (is this causing "use-buttons-through-walls" problems? Surely not!)
@@ -1837,7 +1834,7 @@ void CBasePlayer::UpdateStatusBar()
 
 	// Find an ID Target
 	TraceResult tr;
-	UTIL_MakeVectors( pev->v_angle + pev->punchangle );
+	UTIL_MakeVectors( pev->viewangles + pev->punchangle );
 	Vector vecSrc = EyePosition();
 	Vector vecEnd = vecSrc + (gpGlobals->v_forward * MAX_ID_RANGE);
 	UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, edict(), &tr);
@@ -2279,7 +2276,7 @@ void CBasePlayer::PreThink(void)
 	if ( g_fGameOver )
 		return;         // intermission or finale
 
-	UTIL_MakeVectors(pev->v_angle);             // is this still used?
+	UTIL_MakeVectors(pev->viewangles);             // is this still used?
 
 	ItemPreFrame( );
 	WaterMove();
@@ -3247,7 +3244,7 @@ void CBasePlayer::Spawn( void )
 	pev->movetype	= MOVETYPE_WALK;
 	pev->max_health	= pev->health;
 	pev->flags	= FL_CLIENT;
-	pev->air_finished	= gpGlobals->time + 12;
+	m_fAirFinished	= gpGlobals->time + 12;
 	pev->dmg		= 2;				// initial water damage
 	pev->effects	= 0;
 	pev->deadflag	= DEAD_NO;
@@ -3276,8 +3273,7 @@ void CBasePlayer::Spawn( void )
 	Rain_nextFadeUpdate = 0;
 	GiveOnlyAmmo = FALSE;
 
-	m_flFOV = 90.0f;// init field of view.
-	m_flClientFOV = -1; // make sure fov reset is sent
+	pev->fov = 90.0f;	// init field of view.
 	//m_iAcessLevel = 2;
 
 	m_flNextDecalTime = 0;	// let this player decal as soon as he spawns.
@@ -3428,8 +3424,8 @@ int CBasePlayer::Restore( CRestore &restore )
 		pev->origin = VARS(pentSpawnSpot)->origin + Vector(0,0,1);
 		pev->angles = VARS(pentSpawnSpot)->angles;
 	}
-	pev->v_angle.z = 0;	// Clear out roll
-	pev->angles = pev->v_angle;
+	pev->viewangles.z = 0;	// Clear out roll
+	pev->angles = pev->viewangles;
 
 	pev->fixangle = TRUE;           // turn this way immediately
 
@@ -3614,7 +3610,7 @@ public:
 void CSprayCan::Spawn ( entvars_t *pevOwner )
 {
 	pev->origin = pevOwner->origin + Vector ( 0 , 0 , 32 );
-	pev->angles = pevOwner->v_angle;
+	pev->angles = pevOwner->viewangles;
 	pev->owner = ENT(pevOwner);
 	pev->frame = 0;
 
@@ -3670,7 +3666,7 @@ public:
 void CBloodSplat::Spawn ( entvars_t *pevOwner )
 {
 	pev->origin = pevOwner->origin + Vector ( 0 , 0 , 32 );
-	pev->angles = pevOwner->v_angle;
+	pev->angles = pevOwner->viewangles;
 	pev->owner = ENT(pevOwner);
 
 	SetThink(&CBloodSplat:: Spray );
@@ -3829,7 +3825,7 @@ void CBasePlayer::ImpulseCommands( )
 	case 201: // paint decal
 		if( gpGlobals->time < m_flNextDecalTime ) break;
 
-		UTIL_MakeVectors(pev->v_angle);
+		UTIL_MakeVectors(pev->viewangles);
 		UTIL_TraceLine ( pev->origin + pev->view_ofs, pev->origin + pev->view_ofs + gpGlobals->v_forward * 128, ignore_monsters, ENT(pev), & tr);
 
 		if ( tr.flFraction != 1.0 )
@@ -4250,16 +4246,7 @@ void CBasePlayer :: UpdateClientData( void )
 		m_iClientHideHUD = m_iHideHUD;
 	}
 
-	if ( m_flFOV != m_flClientFOV )
-	{
-		MESSAGE_BEGIN( MSG_ONE, gmsg.SetFOV, NULL, pev );
-			WRITE_FLOAT( m_flFOV );
-		MESSAGE_END();
-
-		// cache FOV change at end of function, so weapon updates can see that FOV has changed
-	}
-
-	if (viewNeedsUpdate != 0)
+	if( viewNeedsUpdate != 0 )
 	{
 		int indexToSend;
 
@@ -4635,7 +4622,6 @@ void CBasePlayer :: UpdateClientData( void )
 
 	// Cache and client weapon change
 	m_pClientActiveItem = m_pActiveItem;
-	m_flClientFOV = m_flFOV;
 
 	// update Status Bar
 	if( m_flNextSBarUpdateTime < gpGlobals->time )
@@ -4784,7 +4770,7 @@ Vector CBasePlayer :: GetAutoaimVector( float flDelta )
 
 	// ALERT( at_console, "%f %f\n", angles.x, angles.y );
 
-	UTIL_MakeVectors( pev->v_angle + pev->punchangle + m_vecAutoAim );
+	UTIL_MakeVectors( pev->viewangles + pev->punchangle + m_vecAutoAim );
 	return gpGlobals->v_forward;
 }
 
@@ -4804,7 +4790,7 @@ Vector CBasePlayer :: AutoaimDeflection( Vector &vecSrc, float flDist, float flD
 		return g_vecZero;
 	}
 
-	UTIL_MakeVectors( pev->v_angle + pev->punchangle + m_vecAutoAim );
+	UTIL_MakeVectors( pev->viewangles + pev->punchangle + m_vecAutoAim );
 
 	// try all possible entities
 	bestdir = gpGlobals->v_forward;
@@ -4899,7 +4885,7 @@ Vector CBasePlayer :: AutoaimDeflection( Vector &vecSrc, float flDist, float flD
 	{
 		bestdir = UTIL_VecToAngles (bestdir);
 		bestdir.x = -bestdir.x;
-		bestdir = bestdir - pev->v_angle - pev->punchangle;
+		bestdir = bestdir - pev->viewangles - pev->punchangle;
 
 		if (bestent->v.takedamage == DAMAGE_AIM)
 			m_fOnTarget = TRUE;

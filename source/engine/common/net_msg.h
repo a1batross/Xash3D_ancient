@@ -128,8 +128,11 @@ typedef struct entity_state_s
 	movetype_t	movetype;		// entity movetype
 	int		gravity;		// gravity multiplier
 	int		aiment;		// attached entity
+	int		owner;		// projectiles owner
+	int		groundent;	// onground edict num, valid only if FL_ONGROUND is set, else -1
 	vec3_t		mins;		// not symmetric entity bbox    
 	vec3_t		maxs;
+	float		teleport_time;	// time when no prediction
 
 	// model state
 	int		modelindex;	// general modelindex
@@ -145,7 +148,7 @@ typedef struct entity_state_s
 	float		controller[16];	// studio bone controllers
 
 	// flags
-	int		flags;		// v.flags
+	int64		flags;		// v.flags
 	uint		effects;		// effect flags like q1 and hl1
 	int		renderfx;		// render effects same as hl1
 	float		renderamt;	// alpha value or like somewhat
@@ -161,6 +164,10 @@ typedef struct entity_state_s
 	int		gaitsequence;	// client\nps\bot gaitsequence
 	int		viewmodel;	// contains viewmodel index
 	int		weaponmodel;	// contains weaponmodel index
+	int		weaponanim;	// weaponmodel sequence
+	int		weaponbody;	// weaponmodel body
+	int		weaponskin;	// weaponmodel skin
+	float		maxspeed;		// min( pev->maxspeed, sv_maxspeed->value )
 	float		health;		// client health (other parms can be send by custom messages)
 	int64		weapons;		// weapon flags
 	float		fov;		// horizontal field of view

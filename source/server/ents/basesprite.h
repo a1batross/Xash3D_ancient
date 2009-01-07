@@ -60,7 +60,7 @@ public:
 	{ 
 		SetBits( pev->spawnflags, SF_TEMPSPRITE );
 		pev->framerate = framerate;
-		pev->pain_finished = gpGlobals->time + (Frames() / framerate); 
+		pev->dmg_take = gpGlobals->time + (Frames() / framerate); 
 		SetNextThink( 0 );
 	}
 	static CSprite *SpriteCreate( const char *pSpriteName, const Vector &origin, BOOL animate )

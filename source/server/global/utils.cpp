@@ -500,9 +500,9 @@ CBaseEntity *UTIL_FindEntityForward( CBaseEntity *pMe )
 {
 	TraceResult tr;
 
-	UTIL_MakeVectors(pMe->pev->v_angle);
-	UTIL_TraceLine(pMe->pev->origin + pMe->pev->view_ofs,pMe->pev->origin + pMe->pev->view_ofs + gpGlobals->v_forward * 8192,dont_ignore_monsters, pMe->edict(), &tr );
-	if ( tr.flFraction != 1.0 && !FNullEnt( tr.pHit) )
+	UTIL_MakeVectors( pMe->pev->viewangles );
+	UTIL_TraceLine( pMe->pev->origin + pMe->pev->view_ofs, pMe->pev->origin + pMe->pev->view_ofs + gpGlobals->v_forward * 8192, dont_ignore_monsters, pMe->edict(), &tr );
+	if( tr.flFraction != 1.0 && !FNullEnt( tr.pHit ))
 	{
 		CBaseEntity *pHit = CBaseEntity::Instance( tr.pHit );
 		return pHit;
@@ -2731,18 +2731,18 @@ BOOL UTIL_TeamsMatch( const char *pTeamName1, const char *pTeamName2 )
 	return FALSE;
 }
 
-//LRC - moved here from barney.cpp
 BOOL UTIL_IsFacing( entvars_t *pevTest, const Vector &reference )
 {
 	Vector vecDir = (reference - pevTest->origin);
 	vecDir.z = 0;
 	vecDir = vecDir.Normalize();
 	Vector forward, angle;
-	angle = pevTest->v_angle;
+	angle = pevTest->viewangles;
 	angle.x = 0;
+
 	UTIL_MakeVectorsPrivate( angle, forward, NULL, NULL );
 	// He's facing me, he meant it
-	if ( DotProduct( forward, vecDir ) > 0.96 )	// +/- 15 degrees or so
+	if( DotProduct( forward, vecDir ) > 0.96 ) // +/- 15 degrees or so
 	{
 		return TRUE;
 	}

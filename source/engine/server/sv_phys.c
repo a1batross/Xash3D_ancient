@@ -1074,13 +1074,13 @@ void SV_WallFriction( edict_t *ent, float *stepnormal )
 	float	d, i;
 	vec3_t	forward, into, side;
 
-	AngleVectors (ent->v.v_angle, forward, NULL, NULL);
-	if ((d = DotProduct (stepnormal, forward) + 0.5) < 0)
+	AngleVectors( ent->v.viewangles, forward, NULL, NULL );
+	if(( d = DotProduct( stepnormal, forward ) + 0.5 ) < 0 )
 	{
 		// cut the tangential velocity
-		i = DotProduct (stepnormal, ent->v.velocity);
-		VectorScale (stepnormal, i, into);
-		VectorSubtract (ent->v.velocity, into, side);
+		i = DotProduct( stepnormal, ent->v.velocity );
+		VectorScale( stepnormal, i, into );
+		VectorSubtract( ent->v.velocity, into, side );
 		ent->v.velocity[0] = side[0] * (1 + d);
 		ent->v.velocity[1] = side[1] * (1 + d);
 	}
@@ -1256,7 +1256,7 @@ void SV_Physics_Follow( edict_t *ent )
 		ent->v.origin[1] = v[0] * vr[0] + v[1] * vr[1] + v[2] * vr[2] + e->v.origin[1];
 		ent->v.origin[2] = v[0] * vu[0] + v[1] * vu[1] + v[2] * vu[2] + e->v.origin[2];
 	}
-	VectorAdd( e->v.angles, ent->v.v_angle, ent->v.angles );
+	VectorAdd( e->v.angles, ent->v.viewangles, ent->v.angles );
 	SV_LinkEdict( ent );
 }
 

@@ -168,7 +168,7 @@ typedef struct cl_enginefuncs_s
 	// screen handlers
 	HSPRITE	(*pfnLoadShader)( const char *szShaderName );
 	void	(*pfnFillRGBA)( int x, int y, int width, int height, const float *color, float alpha );
-	void	(*pfnDrawImageExt)( HSPRITE shader, int x, int y, int w, int h, float s1, float t1, float s2, float t2 );
+	void	(*pfnDrawImageExt)( HSPRITE shader, float x, float y, float w, float h, float s1, float t1, float s2, float t2 );
 	void	(*pfnSetColor)( float r, float g, float b, float a );
 
 	// cvar handlers
@@ -198,7 +198,6 @@ typedef struct cl_enginefuncs_s
 
 	void	(*pfnDrawCenterPrint)( void );
 	void	(*pfnCenterPrint)( const char *text, int y, int charWidth );
-	int	(*pfnDrawCharacter)( int x, int y, int width, int height, int number );
 	void	(*pfnDrawString)( int x, int y, int width, int height, const char *text );
 	void	(*pfnGetParms)( int *w, int *h, int *frames, int frame, shader_t shader );
 	void	(*pfnSetParms)( shader_t handle, kRenderMode_t rendermode, int frame );

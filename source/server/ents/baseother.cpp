@@ -249,7 +249,7 @@ void CLaserSpot::Update( CBasePlayer *m_pPlayer )
 {
 	TraceResult tr; 
 		
-	UTIL_MakeVectors( m_pPlayer->pev->v_angle );
+	UTIL_MakeVectors( m_pPlayer->pev->viewangles );
 	UTIL_TraceLine( m_pPlayer->GetGunPosition(), m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 8192, dont_ignore_monsters, ENT(m_pPlayer->pev), &tr );
 	UTIL_SetOrigin( this, tr.vecEndPos + tr.vecPlaneNormal * 10 );
 
@@ -266,7 +266,8 @@ void CLaserSpot::Update( CBasePlayer *m_pPlayer )
 		int brightness = (1 / log( SpotDistance / 0.3 )) * 1300;
 		pev->scale = SpotDistance / 2500 + RANDOM_FLOAT( 0.01, SpotDistance / 2750 );
 				                                                  
-		if(pev->renderamt >= 255) pev->renderamt = brightness + RANDOM_LONG(1, SpotDistance/400);
+		if( pev->renderamt >= 255 )
+			pev->renderamt = brightness + RANDOM_LONG( 1, SpotDistance / 400 );
 		else pev->renderamt += 5;
 	}
 }

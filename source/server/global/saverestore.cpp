@@ -15,10 +15,10 @@
 #include "gamerules.h"
 #include "client.h"
 
-#define ENTVARS_COUNT (sizeof(gEntvarsDescription)/sizeof(gEntvarsDescription[0]))
+#define ENTVARS_COUNT	( sizeof(gEntvarsDescription) / sizeof(gEntvarsDescription[0]) )
 CGlobalState gGlobalState;
 
-TYPEDESCRIPTION	gEntvarsDescription[] = 
+TYPEDESCRIPTION gEntvarsDescription[] = 
 {
 	DEFINE_ENTITY_FIELD( classname, FIELD_STRING ),
 	DEFINE_ENTITY_GLOBAL_FIELD( globalname, FIELD_STRING ),
@@ -31,9 +31,9 @@ TYPEDESCRIPTION	gEntvarsDescription[] =
 	DEFINE_ENTITY_FIELD( angles, FIELD_VECTOR ),
 	DEFINE_ENTITY_FIELD( avelocity, FIELD_VECTOR ),
 	DEFINE_ENTITY_FIELD( punchangle, FIELD_VECTOR ),
-	DEFINE_ENTITY_FIELD( v_angle, FIELD_VECTOR ),
+	DEFINE_ENTITY_FIELD( viewangles, FIELD_VECTOR ),
 	DEFINE_ENTITY_FIELD( fixangle, FIELD_FLOAT ),
-	DEFINE_ENTITY_FIELD( idealpitch, FIELD_FLOAT ),
+	DEFINE_ENTITY_FIELD( ideal_pitch, FIELD_FLOAT ),
 	DEFINE_ENTITY_FIELD( pitch_speed, FIELD_FLOAT ),
 	DEFINE_ENTITY_FIELD( ideal_yaw, FIELD_FLOAT ),
 	DEFINE_ENTITY_FIELD( yaw_speed, FIELD_FLOAT ),
@@ -78,7 +78,7 @@ TYPEDESCRIPTION	gEntvarsDescription[] =
 
 	DEFINE_ENTITY_FIELD( health, FIELD_FLOAT ),
 	DEFINE_ENTITY_FIELD( frags, FIELD_FLOAT ),
-	DEFINE_ENTITY_FIELD( weapons, FIELD_INTEGER ),
+	DEFINE_ENTITY_FIELD( weapons, FIELD_INTEGER64 ),
 	DEFINE_ENTITY_FIELD( takedamage, FIELD_FLOAT ),
 
 	DEFINE_ENTITY_FIELD( deadflag, FIELD_FLOAT ),
@@ -94,7 +94,7 @@ TYPEDESCRIPTION	gEntvarsDescription[] =
 	DEFINE_ENTITY_FIELD( groundentity, FIELD_EDICT ),
 
 	DEFINE_ENTITY_FIELD( spawnflags, FIELD_INTEGER ),
-	DEFINE_ENTITY_FIELD( flags, FIELD_FLOAT ),
+	DEFINE_ENTITY_FIELD( flags, FIELD_INTEGER64 ),
 
 	DEFINE_ENTITY_FIELD( colormap, FIELD_INTEGER ),
 	DEFINE_ENTITY_FIELD( team, FIELD_INTEGER ),
@@ -116,15 +116,13 @@ TYPEDESCRIPTION	gEntvarsDescription[] =
 	DEFINE_ENTITY_FIELD( dmg_save, FIELD_FLOAT ),
 	DEFINE_ENTITY_FIELD( dmg, FIELD_FLOAT ),
 	DEFINE_ENTITY_FIELD( dmgtime, FIELD_TIME ),
+	DEFINE_ENTITY_FIELD( fov, FIELD_FLOAT ),
 
 	DEFINE_ENTITY_FIELD( noise, FIELD_SOUNDNAME ),
 	DEFINE_ENTITY_FIELD( noise1, FIELD_SOUNDNAME ),
 	DEFINE_ENTITY_FIELD( noise2, FIELD_SOUNDNAME ),
 	DEFINE_ENTITY_FIELD( noise3, FIELD_SOUNDNAME ),
 	DEFINE_ENTITY_FIELD( speed, FIELD_FLOAT ),
-	DEFINE_ENTITY_FIELD( air_finished, FIELD_TIME ),
-	DEFINE_ENTITY_FIELD( pain_finished, FIELD_TIME ),
-	DEFINE_ENTITY_FIELD( radsuit_finished, FIELD_TIME ),
 };
 
 
@@ -344,12 +342,20 @@ void CSave :: WriteInt( const char *pname, const int *data, int count )
 	BufferField( pname, sizeof(int) * count, (const char *)data );
 }
 
+void CSave :: WriteInt64( const char *pname, const int64 *data, int count )
+{
+	BufferField( pname, sizeof(int64) * count, (const char *)data );
+}
 
 void CSave :: WriteFloat( const char *pname, const float *data, int count )
 {
 	BufferField( pname, sizeof(float) * count, (const char *)data );
 }
 
+void CSave :: WriteDouble( const char *pname, const double *data, int count )
+{
+	BufferField( pname, sizeof( double ) * count, (const char *)data );
+}
 
 void CSave :: WriteTime( const char *pname, const float *data, int count )
 {
@@ -363,11 +369,10 @@ void CSave :: WriteTime( const char *pname, const float *data, int count )
 
 		// Always encode time as a delta from the current time so it can be re-based if loaded in a new level
 		// Times of 0 are never written to the file, so they will be restored as 0, not a relative time
-		if ( m_pdata )
-			tmp -= m_pdata->time;
+		if( m_pdata ) tmp -= m_pdata->time;
 
-		BufferData( (const char *)&tmp, sizeof(float) );
-		data ++;
+		BufferData( (const char *)&tmp, sizeof( float ));
+		data++;
 	}
 }
 
@@ -501,11 +506,15 @@ void EntvarsKeyvalue( entvars_t *pev, KeyValueData *pkvd )
 			case FIELD_FLOAT:
 				(*(float *)((char *)pev + pField->fieldOffset)) = atof( pkvd->szValue );
 				break;
-
+			case FIELD_DOUBLE:
+				(*(double *)((char *)pev + pField->fieldOffset)) = atof( pkvd->szValue );
+				break;
 			case FIELD_INTEGER:
 				(*(int *)((char *)pev + pField->fieldOffset)) = atoi( pkvd->szValue );
 				break;
-
+			case FIELD_INTEGER64:
+				(*(int64 *)((char *)pev + pField->fieldOffset)) = _atoi64( pkvd->szValue );
+				break;
 			case FIELD_POSITION_VECTOR:
 			case FIELD_VECTOR:
 				UTIL_StringToVector( (float *)((char *)pev + pField->fieldOffset), pkvd->szValue );
@@ -572,77 +581,80 @@ int CSave :: WriteFields( const char *cname, const char *pname, void *pBaseData,
 		{
 		case FIELD_FLOAT:
 			WriteFloat( pTest->fieldName, (float *)pOutputData, pTest->fieldSize );
-		break;
+			break;
+		case FIELD_DOUBLE:
+			WriteDouble( pTest->fieldName, (double *)pOutputData, pTest->fieldSize );
+			break;
 		case FIELD_TIME:
 			WriteTime( pTest->fieldName, (float *)pOutputData, pTest->fieldSize );
-		break;
+			break;
 		case FIELD_MODELNAME:
 		case FIELD_SOUNDNAME:
 		case FIELD_STRING:
 			WriteString( pTest->fieldName, (int *)pOutputData, pTest->fieldSize );
-		break;
+			break;
 		case FIELD_CLASSPTR:
 		case FIELD_EVARS:
 		case FIELD_EDICT:
 		case FIELD_ENTITY:
 		case FIELD_EHANDLE:
-			if ( pTest->fieldSize > MAX_ENTITYARRAY )
+			if( pTest->fieldSize > MAX_ENTITYARRAY )
 				ALERT( at_error, "Can't save more than %d entities in an array!!!\n", MAX_ENTITYARRAY );
-			for ( j = 0; j < pTest->fieldSize; j++ )
+			for( j = 0; j < pTest->fieldSize; j++ )
 			{
 				switch( pTest->fieldType )
 				{
-					case FIELD_EVARS:
-						entityArray[j] = EntityIndex( ((entvars_t **)pOutputData)[j] );
+				case FIELD_EVARS:
+					entityArray[j] = EntityIndex( ((entvars_t **)pOutputData)[j] );
 					break;
-					case FIELD_CLASSPTR:
-						entityArray[j] = EntityIndex( ((CBaseEntity **)pOutputData)[j] );
+				case FIELD_CLASSPTR:
+					entityArray[j] = EntityIndex( ((CBaseEntity **)pOutputData)[j] );
 					break;
-					case FIELD_EDICT:
-						entityArray[j] = EntityIndex( ((edict_t **)pOutputData)[j] );
+				case FIELD_EDICT:
+					entityArray[j] = EntityIndex( ((edict_t **)pOutputData)[j] );
 					break;
-					case FIELD_ENTITY:
-						entityArray[j] = EntityIndex( ((EOFFSET *)pOutputData)[j] );
+				case FIELD_ENTITY:
+					entityArray[j] = EntityIndex( ((EOFFSET *)pOutputData)[j] );
 					break;
-					case FIELD_EHANDLE:
-						entityArray[j] = EntityIndex( (CBaseEntity *)(((EHANDLE *)pOutputData)[j]) );
+				case FIELD_EHANDLE:
+					entityArray[j] = EntityIndex( (CBaseEntity *)(((EHANDLE *)pOutputData)[j]) );
 					break;
 				}
 			}
 			WriteInt( pTest->fieldName, entityArray, pTest->fieldSize );
-		break;
+			break;
 		case FIELD_POSITION_VECTOR:
 			WritePositionVector( pTest->fieldName, (float *)pOutputData, pTest->fieldSize );
-		break;
+			break;
 		case FIELD_VECTOR:
 			WriteVector( pTest->fieldName, (float *)pOutputData, pTest->fieldSize );
-		break;
+			break;
 		case FIELD_RANGE:
 			WriteRange( pTest->fieldName, (float *)pOutputData, pTest->fieldSize );
-		break;
+			break;
 		case FIELD_BOOLEAN:
 		case FIELD_INTEGER:
 			WriteInt( pTest->fieldName, (int *)pOutputData, pTest->fieldSize );
-		break;
-
+			break;
+		case FIELD_INTEGER64:
+			WriteInt64( pTest->fieldName, (int64 *)pOutputData, pTest->fieldSize );
+			break;
 		case FIELD_SHORT:
 			WriteData( pTest->fieldName, 2 * pTest->fieldSize, ((char *)pOutputData) );
-		break;
-
+			break;
 		case FIELD_CHARACTER:
 			WriteData( pTest->fieldName, pTest->fieldSize, ((char *)pOutputData) );
-		break;
-
+			break;
 		// For now, just write the address out, we're not going to change memory while doing this yet!
 		case FIELD_POINTER:
 			WriteInt( pTest->fieldName, (int *)(char *)pOutputData, pTest->fieldSize );
-		break;
-
+			break;
 		case FIELD_FUNCTION:
 			WriteFunction( cname, pTest->fieldName, (int *)(char *)pOutputData, pTest->fieldSize );
-		break;
+			break;
 		default:
 			ALERT( at_error, "Bad field type\n" );
+			break;
 		}
 	}
 
@@ -748,26 +760,29 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 					{
 					case FIELD_TIME:
 						timeData = *(float *)pInputData;
-						// Re-base time variables
+						// re-base time variables
 						timeData += time;
 						*((float *)pOutputData) = timeData;
-					break;
+						break;
 					case FIELD_FLOAT:
 						*((float *)pOutputData) = *(float *)pInputData;
-					break;
+						break;
+					case FIELD_DOUBLE:
+						*((double *)pOutputData) = *(double *)pInputData;
+						break;
 					case FIELD_MODELNAME:
 					case FIELD_SOUNDNAME:
 					case FIELD_STRING:
-						// Skip over j strings
+						// skip over j strings
 						pString = (char *)pData;
 						for ( stringCount = 0; stringCount < j; stringCount++ )
 						{
-							while (*pString)
+							while( *pString )
 								pString++;
 							pString++;
 						}
 						pInputData = pString;
-						if ( strlen( (char *)pInputData ) == 0 )
+						if( strlen((char *)pInputData ) == 0 )
 							*((int *)pOutputData) = 0;
 						else
 						{
@@ -785,15 +800,13 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 									UTIL_PrecacheSound( string );
 							}
 						}
-					break;
+						break;
 					case FIELD_EVARS:
 						entityIndex = *( int *)pInputData;
 						pent = EntityFromIndex( entityIndex );
-						if ( pent )
-							*((entvars_t **)pOutputData) = VARS(pent);
-						else
-							*((entvars_t **)pOutputData) = NULL;
-					break;
+						if ( pent ) *((entvars_t **)pOutputData) = VARS(pent);
+						else *((entvars_t **)pOutputData) = NULL;
+						break;
 					case FIELD_CLASSPTR:
 						entityIndex = *( int *)pInputData;
 						pent = EntityFromIndex( entityIndex );
@@ -804,12 +817,12 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 							*((CBaseEntity **)pOutputData) = NULL;
 							if (entityIndex != -1) ALERT(at_console, "## Restore: invalid entitynum %d\n", entityIndex);
 						}
-					break;
+						break;
 					case FIELD_EDICT:
 						entityIndex = *( int *)pInputData;
 						pent = EntityFromIndex( entityIndex );
 						*((edict_t **)pOutputData) = pent;
-					break;
+						break;
 					case FIELD_EHANDLE:
 						// Input and Output sizes are different!
 						pOutputData = (char *)pOutputData + j*(sizeof(EHANDLE) - gSizes[pTest->fieldType]);
@@ -819,7 +832,7 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 							*((EHANDLE *)pOutputData) = CBaseEntity::Instance(pent);
 						else
 							*((EHANDLE *)pOutputData) = NULL;
-					break;
+						break;
 					case FIELD_ENTITY:
 						entityIndex = *( int *)pInputData;
 						pent = EntityFromIndex( entityIndex );
@@ -827,47 +840,46 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 							*((EOFFSET *)pOutputData) = OFFSET(pent);
 						else
 							*((EOFFSET *)pOutputData) = 0;
-					break;
+						break;
 					case FIELD_RANGE:
 						((float *)pOutputData)[0] = ((float *)pInputData)[0];
 						((float *)pOutputData)[1] = ((float *)pInputData)[1];
-					break;
+						break;
 					case FIELD_VECTOR:
 						((float *)pOutputData)[0] = ((float *)pInputData)[0];
 						((float *)pOutputData)[1] = ((float *)pInputData)[1];
 						((float *)pOutputData)[2] = ((float *)pInputData)[2];
-					break;
+						break;
 					case FIELD_POSITION_VECTOR:
 						((float *)pOutputData)[0] = ((float *)pInputData)[0] + position.x;
 						((float *)pOutputData)[1] = ((float *)pInputData)[1] + position.y;
 						((float *)pOutputData)[2] = ((float *)pInputData)[2] + position.z;
-					break;
-
+						break;
 					case FIELD_BOOLEAN:
 					case FIELD_INTEGER:
 						*((int *)pOutputData) = *( int *)pInputData;
-					break;
-
+						break;
+					case FIELD_INTEGER64:
+						*((int64 *)pOutputData) = *( int64 *)pInputData;
+						break;
 					case FIELD_SHORT:
 						*((short *)pOutputData) = *( short *)pInputData;
-					break;
-
+						break;
 					case FIELD_CHARACTER:
 						*((char *)pOutputData) = *( char *)pInputData;
-					break;
-
+						break;
 					case FIELD_POINTER:
 						*((int *)pOutputData) = *( int *)pInputData;
-					break;
+						break;
 					case FIELD_FUNCTION:
 						if ( strlen( (char *)pInputData ) == 0 )
 							*((int *)pOutputData) = 0;
 						else
 							*((int *)pOutputData) = FUNCTION_FROM_NAME( (char *)pInputData );
-					break;
-
+						break;
 					default:
 						ALERT( at_error, "Bad field type\n" );
+						break;
 					}
 				}
 			}

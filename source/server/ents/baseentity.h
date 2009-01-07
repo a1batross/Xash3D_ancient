@@ -110,63 +110,6 @@ public:
 		CLASSIFY_EDICT( ENT( pev ), m_iClassType );
 	}
 
-	// auto-classify edict on spawn
-	virtual void ClassifyEdict( void )
-	{
-		// already classified ?
-		if( m_iClassType != ED_SPAWNED ) return; 
-
-		if( !strnicmp( "worldspawn", STRING( pev->classname ), 10 ))
-		{
-			SetObjectClass( ED_WORLDSPAWN );
-			return;
-		}
-
-		// first pass: determine type by explicit parms
-		if( !strnicmp( "ambient_", STRING( pev->classname ), 8 ))
-		{
-			SetObjectClass( ED_AMBIENT );
-			return;
-		}
-		else if( pev->solid == SOLID_TRIGGER )
-		{
-			if( pev->ambient ) SetObjectClass( ED_NORMAL );
-			else SetObjectClass( ED_TRIGGER ); // never sending to client
-		}
-		else if( pev->movetype == MOVETYPE_PHYSIC )
-		{
-			SetObjectClass( ED_RIGIDBODY );
-		}
-		else if( pev->solid == SOLID_BSP || pev->origin == g_vecZero )
-		{
-			if( pev->movetype == MOVETYPE_CONVEYOR )
-				SetObjectClass( ED_MOVER );
-			else if( pev->flags & FL_WORLDBRUSH )
-				SetObjectClass( ED_BSPBRUSH );
-			else if( pev->movetype == MOVETYPE_PUSH ) 
-				SetObjectClass( ED_MOVER );
-			else if( pev->movetype == MOVETYPE_NONE )
-				SetObjectClass( ED_BSPBRUSH );
-		}
-		else if( pev->flags & FL_MONSTER )
-			SetObjectClass( ED_MONSTER );
-		else if( pev->flags & FL_CLIENT )
-			SetObjectClass( ED_CLIENT );
-		else if( !pev->modelindex && !pev->weaponmodel )
-		{	
-			if( pev->ambient ) SetObjectClass( ED_AMBIENT );
-			else SetObjectClass( ED_STATIC ); // never sending to client
-		}
-
-		// second pass: check sound and model indexes
-		if( m_iClassType == ED_SPAWNED )
-		{
-			// mark as normal
-			if( pev->modelindex || pev->ambient )
-				SetObjectClass( ED_NORMAL );
-		}
-	}
-	
 	// Setup the object->object collision box (pev->mins / pev->maxs is the object->world collision box)
 	virtual void	SetObjectCollisionBox( void );
 

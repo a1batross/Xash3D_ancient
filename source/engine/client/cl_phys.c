@@ -326,5 +326,5 @@ void CL_PredictMovement (void)
 
 	// copy results out for rendering
 	VectorCopy( pmove.origin, cl.predicted_origin );
-	VectorCopy( pmove.v_angle, cl.predicted_angles );
+	VectorCopy( pmove.viewangles, cl.predicted_angles );
 }

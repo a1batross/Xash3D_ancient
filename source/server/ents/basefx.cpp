@@ -390,12 +390,12 @@ void CEnvZoom::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useT
 	if( m_iState == STATE_ON ) return;
 	if( useType == USE_TOGGLE || useType == USE_ON ) SetFadeTime();
 	else if( useType == USE_OFF )
-		((CBasePlayer *)pActivator)->m_flFOV = CVAR_GET_FLOAT( "default_fov" );
+		((CBasePlayer *)pActivator)->pev->fov = CVAR_GET_FLOAT( "default_fov" );
 	else if( useType == USE_SHOWINFO )
 	{
 		DEBUGHEAD;
 		ALERT( at_console, "State: %s, Fade time %.00f\n", GetStringForState( GetState()), pev->takedamage );
-		ALERT( at_console, "Current FOV: %g, Final FOV: %g\n", ((CBasePlayer *)pActivator)->m_flFOV, pev->button );
+		ALERT( at_console, "Current FOV: %g, Final FOV: %g\n", ((CBasePlayer *)pActivator)->pev->fov, pev->frags );
 	}
 }
 
@@ -406,14 +406,14 @@ void CEnvZoom::SetFadeTime( void )
 
 	if( pev->takedamage == 0 ) // instant apply fov
 	{
-		((CBasePlayer *)(CBaseEntity *)m_hActivator)->m_flFOV = pev->frags;
+		((CBasePlayer *)(CBaseEntity *)m_hActivator)->pev->fov = pev->frags;
 		return;
 	}
 	else 
 	{
-		CurFOV = ((CBasePlayer *)(CBaseEntity *)m_hActivator)->m_flFOV;
+		CurFOV = ((CBasePlayer *)(CBaseEntity *)m_hActivator)->pev->fov;
 		if( CurFOV == 0.0f )
-			CurFOV = ((CBasePlayer *)(CBaseEntity *)m_hActivator)->m_flFOV = CVAR_GET_FLOAT( "default_fov" );
+			CurFOV = ((CBasePlayer *)(CBaseEntity *)m_hActivator)->pev->fov = CVAR_GET_FLOAT( "default_fov" );
 	
 		if( CurFOV > pev->frags ) Length = CurFOV - pev->frags;
 		else if( CurFOV < pev->frags )
@@ -430,7 +430,7 @@ void CEnvZoom::SetFadeTime( void )
 
 void CEnvZoom::Think( void )
 {
-	if( Q_rint(((CBasePlayer *)(CBaseEntity *)m_hActivator)->m_flFOV ) == Q_rint( pev->frags ))
+	if( Q_rint(((CBasePlayer *)(CBaseEntity *)m_hActivator)->pev->fov ) == Q_rint( pev->frags ))
 	{
 		// time is expired
 		SetThink( NULL );
@@ -442,8 +442,8 @@ void CEnvZoom::Think( void )
 	}
 	else
 	{
-		if( pev->body ) ((CBasePlayer *)(CBaseEntity *)m_hActivator)->m_flFOV += gpGlobals->frametime;
-		else ((CBasePlayer *)(CBaseEntity *)m_hActivator)->m_flFOV -= gpGlobals->frametime;
+		if( pev->body ) ((CBasePlayer *)(CBaseEntity *)m_hActivator)->pev->fov += 0.5f;
+		else ((CBasePlayer *)(CBaseEntity *)m_hActivator)->pev->fov -= 0.5f;
 	}
 	m_iState = STATE_ON;
 	SetNextThink ( pev->health );
@@ -628,7 +628,7 @@ void CSprite::Think( void )
 {
 	SetNextThink( 0 );
 
-	if( pev->spawnflags & SF_TEMPSPRITE && gpGlobals->time > pev->pain_finished ) UTIL_Remove(this);
+	if( pev->spawnflags & SF_TEMPSPRITE && gpGlobals->time > pev->dmg_take ) UTIL_Remove(this);
 	else if( pev->framerate ) Animate( pev->framerate * (gpGlobals->time - pev->dmgtime) );
 
 	Move();
@@ -1763,7 +1763,7 @@ CBaseEntity *CEnvShooter :: CreateGib ( Vector vecPos, Vector vecVel )
 			if (pShot->pev->framerate && pShot->Frames() > 1.0)
 			{
 				pShot->AnimateAndDie( 10 );
-				pShot->pev->pain_finished = gpGlobals->time + pev->health;
+				pShot->pev->dmg_take = gpGlobals->time + pev->health;
 				pShot->SetNextThink( 0 );
 				pShot->pev->dmgtime = gpGlobals->time;
 			}

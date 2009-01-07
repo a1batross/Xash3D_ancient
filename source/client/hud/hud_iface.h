@@ -167,7 +167,8 @@ extern void SPR_DrawTransColor( int frame, int x, int y, int width, int height )
 extern void SPR_DrawTransColor( int frame, int x, int y, const wrect_t *prc );
 extern void SPR_DrawAdditive( int frame, int x, int y, const wrect_t *prc );
 extern void SPR_DrawAdditive( int frame, int x, int y, int width, int height );
-extern void FillRGBA( int x, int y, int width, int height, int r, int g, int b, int a );
+extern void TextMessageDrawChar( int xpos, int ypos, int number, int r, int g, int b );
+extern void FillRGBA( float x, float y, float width, float height, int r, int g, int b, int a );
 extern void SetCrosshair( HSPRITE hspr, wrect_t rc, int r, int g, int b );
 extern void DrawCrosshair( void );
 extern void DrawPause( void );

@@ -381,12 +381,7 @@ int R_StudioGetEvent( dstudioevent_t *pcurrent, float flStart, float flEnd, int 
 	if( pseqdesc->numevents == 0 || index > pseqdesc->numevents )
 		return 0;
 
-	if( pseqdesc->numframes > 1 )
-	{
-		flStart *= (pseqdesc->numframes - 1) / 256.0;
-		flEnd *= (pseqdesc->numframes - 1) / 256.0;
-	}
-	else
+	if( pseqdesc->numframes == 1 )
 	{
 		flStart = 0;
 		flEnd = 1.0;
@@ -938,7 +933,7 @@ StudioSetupBones
 
 ====================
 */
-void R_StudioSetupBones( void )
+float R_StudioSetupBones( void )
 {
 	int		i;
 	double		f;
@@ -1061,7 +1056,7 @@ void R_StudioSetupBones( void )
 		for( i = 0; i < m_pStudioHeader->numbones; i++ )
 		{
 			// g-cont. hey, what a hell ?
-			if(!com.strcmp( pbones[i].name, "Bip01 Spine"))
+			if( !com.strcmp( pbones[i].name, "Bip01 Spine" ))
 				break;
 			Mem_Copy( pos[i], pos2[i], sizeof( pos[i] ));
 			Mem_Copy( q[i], q2[i], sizeof( q[i] ));
@@ -1085,6 +1080,7 @@ void R_StudioSetupBones( void )
 			Matrix4x4_ConcatTransforms( m_plighttransform[i], m_plighttransform[pbones[i].parent], bonematrix );
 		}
 	}
+	return (float)f;
 }
 
 /*
@@ -1181,15 +1177,15 @@ void R_StudioCalcAttachments( void )
 	int i;
 	dstudioattachment_t *pattachment;
 
-	if ( m_pStudioHeader->numattachments > MAXSTUDIOATTACHMENTS )
+	if( m_pStudioHeader->numattachments > MAXSTUDIOATTACHMENTS )
 	{
-		Msg("Warning: Too many attachments on %s\n", m_pCurrentEntity->model->name );
-		m_pStudioHeader->numattachments = MAXSTUDIOATTACHMENTS; //reduce it
+		MsgDev( D_WARN, "Too many attachments on %s\n", m_pCurrentEntity->model->name );
+		m_pStudioHeader->numattachments = MAXSTUDIOATTACHMENTS; // reduce it
 	}
 
 	// calculate attachment points
 	pattachment = (dstudioattachment_t *)((byte *)m_pStudioHeader + m_pStudioHeader->attachmentindex);
-	for (i = 0; i < m_pStudioHeader->numattachments; i++)
+	for( i = 0; i < m_pStudioHeader->numattachments; i++ )
 	{
 		Matrix4x4_Transform( m_plighttransform[pattachment[i].bone], pattachment[i].org,  m_pCurrentEntity->attachment[i] );
 	}
@@ -1760,6 +1756,8 @@ StudioDrawModel
 */
 bool R_StudioDrawModel( int pass, int flags )
 {
+	float	curframe;
+
 	//if( !mirror_render && m_pCurrentEntity->ent_type == ED_CLIENT )
 	//	return 0;
 
@@ -1792,7 +1790,7 @@ bool R_StudioDrawModel( int pass, int flags )
 	}
 	else
 	{
-		R_StudioSetupBones();
+		curframe = R_StudioSetupBones();
 	}
 	R_StudioSaveBones();	
 
@@ -1801,16 +1799,16 @@ bool R_StudioDrawModel( int pass, int flags )
 
 	if( flags & STUDIO_EVENTS )
 	{
-		float flStart = m_pCurrentEntity->frame + m_pCurrentEntity->framerate;
-		float flEnd = m_pCurrentEntity->frame + m_pCurrentEntity->framerate * 1.5f;
 		edict_t *ent = ri.GetClientEdict( m_pCurrentEntity->index );
+		float flStart = curframe + m_pCurrentEntity->framerate;
+		float flEnd = flStart + 0.4f;
 		dstudioevent_t event;
 		int index = 0;
-
+		
 		R_StudioCalcAttachments();
 		Mem_Set( &event, 0, sizeof( event ));
 
-		// copy attachments into global entity array
+		// copy attachments back to client entity
 		Mem_Copy( ent->v.attachment, m_pCurrentEntity->attachment, sizeof( vec3_t ) * MAXSTUDIOATTACHMENTS );
 		while(( index = R_StudioGetEvent( &event, flStart, flEnd, index )) != 0 )
 		{

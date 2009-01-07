@@ -24,7 +24,6 @@ void CL_UpdateEntityFields( edict_t *ent )
 	ent->v.classname = cl.edict_classnames[ent->pvClientData->current.classname];
 	ent->v.modelindex = ent->pvClientData->current.modelindex;
 	ent->v.weaponmodel = ent->pvClientData->current.weaponmodel;
-	ent->v.ambient = ent->pvClientData->current.soundindex;
 	ent->v.model = MAKE_STRING( cl.configstrings[CS_MODELS+ent->pvClientData->current.modelindex] ); 
 	ent->v.frame = ent->pvClientData->current.frame;
 	ent->v.sequence = ent->pvClientData->current.sequence;
@@ -51,6 +50,7 @@ void CL_UpdateEntityFields( edict_t *ent )
 	ent->v.solid = ent->pvClientData->current.solid;
 	ent->v.movetype = ent->pvClientData->current.movetype;
 	ent->v.flags = ent->pvClientData->current.flags;
+	ent->v.teleport_time = ent->pvClientData->current.teleport_time;
 	if( ent->v.scale == 0.0f ) ent->v.scale = 1.0f;
 
 	for( i = 0; i < MAXSTUDIOBLENDS; i++ )

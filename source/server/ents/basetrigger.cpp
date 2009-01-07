@@ -1082,7 +1082,7 @@ void CTriggerHurt :: Touch ( CBaseEntity *pOther )
 	{
 		if ( pev->dmgtime > gpGlobals->time )
 		{
-			if ( gpGlobals->time != pev->pain_finished )
+			if ( gpGlobals->time != pev->dmg_take )
 			{
 				// too early to hurt again, and not same frame with a different entity
 				if ( pOther->IsPlayer() )
@@ -1104,14 +1104,14 @@ void CTriggerHurt :: Touch ( CBaseEntity *pOther )
 			}
 		}
 	}
-	else if( pev->dmgtime > gpGlobals->time && gpGlobals->time != pev->pain_finished ) return;
+	else if( pev->dmgtime > gpGlobals->time && gpGlobals->time != pev->dmg_take ) return;
 
 	fldmg = pev->dmg * 0.5;	// 0.5 seconds worth of damage, pev->dmg is damage/second
 
 	if ( fldmg < 0 ) pOther->TakeHealth( -fldmg, pev->button );
 	else pOther->TakeDamage( pev, pev, fldmg, pev->button );
 
-	pev->pain_finished = gpGlobals->time;
+	pev->dmg_take = gpGlobals->time;
 	pev->dmgtime = gpGlobals->time + 0.5;
 }
 

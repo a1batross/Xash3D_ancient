@@ -71,6 +71,7 @@ void SV_UpdateEntityState( edict_t *ent )
 	ent->pvServerData->s.frame = ent->v.frame;		// any model current frame
 	ent->pvServerData->s.framerate = ent->v.framerate;
 	ent->pvServerData->s.flags = ent->v.flags;
+	ent->pvServerData->s.teleport_time = ent->v.teleport_time;	// any entity may be teleported
 	VectorCopy( ent->v.rendercolor, ent->pvServerData->s.rendercolor );
 
 	// studio model sequence
@@ -97,7 +98,7 @@ void SV_UpdateEntityState( edict_t *ent )
 				ent->pvServerData->s.delta_angles[i] = ANGLE2SHORT( ent->pvServerData->s.angles[i] );
 			VectorClear( ent->pvServerData->s.angles );
 			VectorClear( ent->pvServerData->s.viewangles );
-			VectorClear( ent->v.v_angle );
+			VectorClear( ent->v.viewangles );
 			
 			// and clear fixangle for the next frame
 			ent->v.fixangle = 0;
@@ -114,6 +115,7 @@ void SV_UpdateEntityState( edict_t *ent )
 		// playermodel sequence, that will be playing on a client
 		ent->pvServerData->s.gaitsequence = ent->v.gaitsequence;
 		ent->pvServerData->s.weapons = ent->v.weapons;
+		ent->pvServerData->s.fov = bound( 1.0f, ent->v.fov, 160.0f );
 	}
 	else if( ent->pvServerData->s.ed_type == ED_AMBIENT )
 	{
@@ -130,6 +132,8 @@ void SV_UpdateEntityState( edict_t *ent )
 	{
 		// FIXME: send mins\maxs for sound spatialization and entity prediction ?
 	}
+
+	if( ent->v.teleport_time ) ent->v.teleport_time = 0.0f;
 }
 
 /*

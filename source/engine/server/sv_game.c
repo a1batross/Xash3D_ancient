@@ -1309,7 +1309,7 @@ void pfnChangePitch( edict_t* ent )
 	}
 
 	current = anglemod( ent->v.angles[PITCH] );
-	ent->v.angles[PITCH] = SV_AngleMod( ent->v.idealpitch, current, ent->v.pitch_speed );	
+	ent->v.angles[PITCH] = SV_AngleMod( ent->v.ideal_pitch, current, ent->v.pitch_speed );	
 }
 
 /*
@@ -1408,7 +1408,7 @@ edict_t* pfnFindEntityInSphere( edict_t *pStartEdict, const float *org, float ra
 		if( DotProduct( eorg, eorg ) < radSquare )
 			return ent;
 	}
-	return NULL; // fisrt chain
+	return NULL;
 }
 
 /*
@@ -1486,7 +1486,7 @@ edict_t* pfnEntitiesInPVS( edict_t *pplayer )
 			chain = pEdict;
 		}
 	}
-	return chain; // fisrt entry
+	return chain;
 }
 
 /*
@@ -1514,7 +1514,7 @@ edict_t* pfnEntitiesInPHS( edict_t *pplayer )
 			chain = pEdict;
 		}
 	}
-	return chain; // fisrt entry
+	return chain;
 }
 
 /*

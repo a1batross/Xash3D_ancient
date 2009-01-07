@@ -750,11 +750,11 @@ void CWHRocket :: FollowThink( void  )
 	
 	if(pev->button)//controllable rocket
 	{
-		UTIL_MakeVectorsPrivate( m_pPlayer->pev->v_angle, forward, NULL, NULL );
+		UTIL_MakeVectorsPrivate( m_pPlayer->pev->viewangles, forward, NULL, NULL );
 
-		angles = m_pPlayer->pev->v_angle;
+		angles = m_pPlayer->pev->viewangles;
 		angles[0] = 0 - angles[0];
-		float steer = WARHEAD_MAX_SPEED / pev->speed;//steer factor
+		float steer = WARHEAD_MAX_SPEED / pev->speed; // steer factor
 		
 		angles.x = m_Center.x + UTIL_AngleDistance( angles.x, m_Center.x );
 		angles.y = m_Center.y + UTIL_AngleDistance( angles.y, m_Center.y );
@@ -770,9 +770,9 @@ void CWHRocket :: FollowThink( void  )
 		pev->avelocity.z = distY * -steer + distZ * steer;
 
 		pev->velocity = forward * pev->speed + pev->avelocity;
-		if(m_pLauncher && m_pLauncher->m_iOnControl == 2)
+		if( m_pLauncher && m_pLauncher->m_iOnControl == 2 )
 		{
-			Detonate();//check for himself destroy
+			Detonate(); // check for himself destroy
 			return;
 		}
 	}

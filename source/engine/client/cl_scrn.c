@@ -97,7 +97,7 @@ void SCR_DrawChar( int x, int y, float w, float h, int ch )
 
 	ch &= 255;
 
-	if( ch == ' ' )return;
+	if( ch == ' ' ) return;
 	if(y < -h) return;
 
 	ax = x;

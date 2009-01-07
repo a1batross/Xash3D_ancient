@@ -74,23 +74,23 @@ void CM_UpdateViewAngles( entvars_t *pev, const usercmd_t *cmd )
 	}
 	if( pev->teleport_time )
 	{
-		pev->v_angle[YAW] = SHORT2ANGLE( cmd->angles[YAW] - pev->delta_angles[YAW] );
-		pev->v_angle[PITCH] = 0;
-		pev->v_angle[ROLL] = 0;
+		pev->viewangles[YAW] = SHORT2ANGLE( cmd->angles[YAW] - pev->delta_angles[YAW] );
+		pev->viewangles[PITCH] = 0;
+		pev->viewangles[ROLL] = 0;
 	}
 
 	// circularly clamp the angles with deltas
 	for( i = 0; i < 3; i++ )
 	{
 		temp = cmd->angles[i] + pev->delta_angles[i];
-		pev->v_angle[i] = SHORT2ANGLE( temp );
+		pev->viewangles[i] = SHORT2ANGLE( temp );
 	}
 
 	// don't let the player look up or down more than 90 degrees
-	if( pev->v_angle[PITCH] > 89 && pev->v_angle[PITCH] < 180 )
-		pev->v_angle[PITCH] = 89;
-	else if( pev->v_angle[PITCH] < 271 && pev->v_angle[PITCH] >= 180 )
-		pev->v_angle[PITCH] = 271;
+	if( pev->viewangles[PITCH] > 89 && pev->viewangles[PITCH] < 180 )
+		pev->viewangles[PITCH] = 89;
+	else if( pev->viewangles[PITCH] < 271 && pev->viewangles[PITCH] >= 180 )
+		pev->viewangles[PITCH] = 271;
 }
 
 
@@ -130,7 +130,7 @@ void CM_ServerMove( entvars_t *pmove, usercmd_t *cmd, physbody_t *body )
 	pml.cmd = cmd;
 
 	CM_UpdateViewAngles( pmove, cmd );
-	AngleVectors( pml.pev->v_angle, pml.forward, pml.right, pml.up );
+	AngleVectors( pml.pev->viewangles, pml.forward, pml.right, pml.up );
 	CM_CmdUpdateForce(); // get movement direction
 
 	// Get the current world timestep

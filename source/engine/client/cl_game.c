@@ -360,7 +360,7 @@ pfnDrawImageExt
 
 =============
 */
-void pfnDrawImageExt( HSPRITE shader, int x, int y, int w, int h, float s1, float t1, float s2, float t2 )
+void pfnDrawImageExt( HSPRITE shader, float x, float y, float w, float h, float s1, float t1, float s2, float t2 )
 {
 	if( !re ) return;
 
@@ -654,25 +654,6 @@ void pfnCenterPrint( const char *text, int y, int charWidth )
 
 /*
 =============
-pfnDrawCharacter
-
-=============
-*/
-int pfnDrawCharacter( int x, int y, int width, int height, int number )
-{
-	if( number < 32 || number > 255 )
-	{
-		MsgDev( D_WARN, "SCR_DrawChar: passed non-printable character %c\n", (char )number );
-		return false;
-	}
-
-	SCR_DrawChar( x, y, width, height, number );
-	if( re ) re->SetColor( NULL );
-	return true;
-}
-
-/*
-=============
 pfnDrawString
 
 =============
@@ -879,7 +860,6 @@ static cl_enginefuncs_t gEngfuncs =
 	AngleVectors,
 	pfnDrawCenterPrint,
 	pfnCenterPrint,
-	pfnDrawCharacter,
 	pfnDrawString,		
 	pfnGetDrawParms,
 	pfnSetDrawParms,

@@ -41,10 +41,12 @@ Beta 13.12.08
 20.render custom models			OK
 21.zoom_hud and warhead hud			OK
 22.entity_state_t revision 4			OK
-23.entvars_t revision 1
+23.entvars_t revision 1			OK
 24.UpdateClientData - move call to cl_input.c	OK
-25.wrote HUD_StudioEvents
+25.wrote HUD_StudioEvents			OK
 16.register cmd->buttons			OK
+17.pfnSetKeyDest in client.dll
+18.IMPLEMENT SAVERESTORE
 
 
 Список доступных рендереров:  	Что в них интересного

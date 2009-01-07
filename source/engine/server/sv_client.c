@@ -488,18 +488,16 @@ void SV_PutClientInServer( edict_t *ent )
 	{	
 		// fisrt entering
 		svgame.dllFuncs.pfnClientPutInServer( ent );
-		ent->v.v_angle[ROLL] = 0;	// cut off any camera rolling
+		ent->v.viewangles[ROLL] = 0;	// cut off any camera rolling
 		ent->v.origin[2] += 1;	// make sure off ground
 	}
 
-	ent->pvServerData->s.fov = 90;	// FIXME: get from qc
-	ent->pvServerData->s.fov = bound(1, ent->pvServerData->s.fov, 160);
 	ent->pvServerData->s.health = ent->v.health;
 	ent->pvServerData->s.classname = SV_ClassIndex( STRING( ent->v.classname ));
 	ent->pvServerData->s.weaponmodel = SV_ModelIndex( STRING( ent->v.weaponmodel ));
 	VectorCopy( ent->v.origin, ent->pvServerData->s.origin );
-	VectorCopy( ent->v.v_angle, ent->pvServerData->s.viewangles );
-	for( i = 0; i < 3; i++ ) ent->pvServerData->s.delta_angles[i] = ANGLE2SHORT(ent->v.v_angle[i]);
+	VectorCopy( ent->v.viewangles, ent->pvServerData->s.viewangles );
+	for( i = 0; i < 3; i++ ) ent->pvServerData->s.delta_angles[i] = ANGLE2SHORT(ent->v.viewangles[i]);
 
 	SV_LinkEdict( ent ); // m_pmatrix calculated here, so we need call this before pe->CreatePlayer
 	ent->pvServerData->physbody = pe->CreatePlayer( ent, SV_GetModelPtr( ent ), ent->v.origin, ent->v.m_pmatrix );
@@ -1025,7 +1023,7 @@ void SV_ApplyClientMove( sv_client_t *cl, usercmd_t *cmd )
 		cmd->upmove      *= 0.333;
 	}
 
-	VectorCopy( ent->pvServerData->s.viewangles, cl->edict->v.v_angle );
+	VectorCopy( ent->pvServerData->s.viewangles, cl->edict->v.viewangles );
 	VectorCopy( ent->pvServerData->s.viewangles, cl->edict->v.angles );
 	VectorCopy( ent->v.view_ofs, cl->edict->pvServerData->s.viewoffset );
 }
@@ -1155,7 +1153,7 @@ void SV_WaterMove( sv_client_t *cl, usercmd_t *cmd )
 	float	accelspeed, temp;
 
 	// user intentions
-	AngleVectors( cl->edict->v.v_angle, forward, right, up );
+	AngleVectors( cl->edict->v.viewangles, forward, right, up );
 
 	for( i = 0; i < 3; i++ ) wishvel[i] = forward[i] * cmd->forwardmove + right[i] * cmd->sidemove;
 
@@ -1271,7 +1269,7 @@ Also called by bot code
 */
 void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 {
-	vec3_t	v_angle;
+	vec3_t	viewangles;
 	
 	cl->cmd = *cmd;
 	cl->skipframes = 0;
@@ -1296,12 +1294,12 @@ void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 
 	// angles
 	// show 1/3 the pitch angle and all the roll angle
-	VectorAdd( cl->edict->v.v_angle, cl->edict->v.punchangle, v_angle );
+	VectorAdd( cl->edict->v.viewangles, cl->edict->v.punchangle, viewangles );
 	cl->edict->v.angles[ROLL] = SV_CalcRoll( cl->edict->v.angles, cl->edict->v.velocity) * 4;
 	if( !cl->edict->v.fixangle )
 	{
-		cl->edict->v.angles[PITCH] = -v_angle[PITCH]/3;
-		cl->edict->v.angles[YAW] = v_angle[YAW];
+		cl->edict->v.angles[PITCH] = -viewangles[PITCH]/3;
+		cl->edict->v.angles[YAW] = viewangles[YAW];
 	}
 
 	if( cl->edict->v.flags & FL_WATERJUMP )

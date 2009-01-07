@@ -16,7 +16,4 @@ void SV_RestoreEdict( edict_t *ent )
 	SV_CreatePhysBody( ent );
 	SV_SetPhysForce( ent ); // restore forces ...
 	SV_SetMassCentre( ent ); // and mass force
-
-	if( ent->v.ambient ) // restore loopsound
-		ent->pvServerData->s.soundindex = SV_SoundIndex( STRING( ent->v.ambient ));
 }

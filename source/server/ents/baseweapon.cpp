@@ -1376,22 +1376,22 @@ int CBasePlayerWeapon :: Launch ( const char *ammo, int type )
 	if ( !stricmp( ammo, "m203" )) 
 	{
 		// we don't add in player velocity anymore.
-         		UTIL_MakeVectors( m_pPlayer->pev->v_angle + m_pPlayer->pev->punchangle );
+         		UTIL_MakeVectors( m_pPlayer->pev->viewangles + m_pPlayer->pev->punchangle );
 		CGrenade::ShootContact( m_pPlayer->pev, m_pPlayer->pev->origin + m_pPlayer->pev->view_ofs + gpGlobals->v_forward * 16, gpGlobals->v_forward * 800 );
 	}	
 	else if( !stricmp( ammo, "rockets" ))
 	{
-		UTIL_MakeVectors( m_pPlayer->pev->v_angle );
+		UTIL_MakeVectors( m_pPlayer->pev->viewangles );
 		Vector vecSrc = m_pPlayer->GetGunPosition( ) + gpGlobals->v_forward * 16 + gpGlobals->v_right * 8 + gpGlobals->v_up * -8;
 
-		CRpgRocket *pRocket = CRpgRocket::Create ( vecSrc, m_pPlayer->pev->v_angle, m_pPlayer, this );
-		UTIL_MakeVectors( m_pPlayer->pev->v_angle );// RpgRocket::Create stomps on globals, so remake.
+		CRpgRocket *pRocket = CRpgRocket::Create ( vecSrc, m_pPlayer->pev->viewangles, m_pPlayer, this );
+		UTIL_MakeVectors( m_pPlayer->pev->viewangles );// RpgRocket::Create stomps on globals, so remake.
 		pRocket->pev->velocity = pRocket->pev->velocity + gpGlobals->v_forward * DotProduct( m_pPlayer->pev->velocity, gpGlobals->v_forward );
 	} 
 	else if( !stricmp( ammo, "bolts" ))
 	{
 		// we don't add in player velocity anymore.
-		Vector anglesAim = m_pPlayer->pev->v_angle + m_pPlayer->pev->punchangle;
+		Vector anglesAim = m_pPlayer->pev->viewangles + m_pPlayer->pev->punchangle;
 		UTIL_MakeVectors( anglesAim );
 	
 		anglesAim.x = -anglesAim.x;
@@ -1404,13 +1404,13 @@ int CBasePlayerWeapon :: Launch ( const char *ammo, int type )
 	}
 	else if( !stricmp( ammo, "nuke" ))
 	{
-		UTIL_MakeVectors( m_pPlayer->pev->v_angle );
+		UTIL_MakeVectors( m_pPlayer->pev->viewangles );
 		Vector vecSrc = m_pPlayer->GetGunPosition( ) + gpGlobals->v_forward * 125 + gpGlobals->v_up * 2;
-		CWHRocket *pRocket = CWHRocket::Create ( vecSrc, m_pPlayer->pev->v_angle, m_pPlayer, this, type );
+		CWHRocket *pRocket = CWHRocket::Create ( vecSrc, m_pPlayer->pev->viewangles, m_pPlayer, this, type );
 	}
 	else if( !stricmp( ammo, "grenade" ))
 	{
-		Vector angThrow = m_pPlayer->pev->v_angle + m_pPlayer->pev->punchangle;
+		Vector angThrow = m_pPlayer->pev->viewangles + m_pPlayer->pev->punchangle;
 
 		if ( angThrow.x < 0 ) angThrow.x = -10 + angThrow.x * ( ( 90 - 10 ) / 90.0 );
 		else	angThrow.x = -10 + angThrow.x * ( ( 90 + 10 ) / 90.0 );
@@ -1460,7 +1460,7 @@ int CBasePlayerWeapon::Swing( int fFirst )
 
 	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 3;
           
-	UTIL_MakeVectors (m_pPlayer->pev->v_angle);
+	UTIL_MakeVectors (m_pPlayer->pev->viewangles);
 	Vector vecSrc	= m_pPlayer->GetGunPosition( );
 	Vector vecEnd	= vecSrc + gpGlobals->v_forward * 32;
 
@@ -1583,15 +1583,15 @@ void CBasePlayerWeapon::ZoomUpdate( void )
 		}
 		if( m_iZoom == 1 )
 		{
-			m_pPlayer->m_flFOV = 50.0f;
+			m_pPlayer->pev->fov = 50.0f;
 			m_pPlayer->pev->viewmodel = NULL;
 			m_iZoom = 2; // ready to zooming, wait for 0.8 secs
 		}
-		if( m_iZoom == 2 && m_pPlayer->m_flFOV > MAX_ZOOM )
+		if( m_iZoom == 2 && m_pPlayer->pev->fov > MAX_ZOOM )
 		{
 			if( m_flTimeUpdate < UTIL_WeaponTimeBase( ))
 			{
-				m_pPlayer->m_flFOV -= 1.2;//gpGlobals->frametime;
+				m_pPlayer->pev->fov -= 1.2; // gpGlobals->frametime;
 				m_flTimeUpdate = UTIL_WeaponTimeBase() + 0.002;
 			}
 		}
@@ -1611,7 +1611,7 @@ void CBasePlayerWeapon::ZoomReset( void )
 	{
 		m_pPlayer->pev->viewmodel = iViewModel();
 		m_flHoldTime = UTIL_WeaponTimeBase() + 0.5;
-		m_pPlayer->m_flFOV = 90;
+		m_pPlayer->pev->fov = 90;
 		m_iZoom = 0; // clear zoom
 		MESSAGE_BEGIN( MSG_ONE, gmsg.ZoomHUD, NULL, m_pPlayer->pev );
 			WRITE_BYTE( m_iZoom );
@@ -1850,7 +1850,7 @@ int CBasePlayerWeapon::UpdateClientData( CBasePlayer *pPlayer )
 	}
 
 	// if the ammo, state, or fov has changed, update the weapon
-	if( m_iClip != m_iClientClip || state != m_iClientWeaponState || pPlayer->m_flFOV != pPlayer->m_flClientFOV )
+	if( m_iClip != m_iClientClip || state != m_iClientWeaponState )
 	{
 		bSend = TRUE;
 	}

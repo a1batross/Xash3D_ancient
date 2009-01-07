@@ -442,11 +442,11 @@ void SV_PlayerMove( edict_t *player )
 	cmd = &client->lastcmd;
 	body = player->pvServerData->physbody;	// member body ptr
 	VectorCopy( player->pvServerData->s.delta_angles, pmove.delta_angles );
-	VectorCopy( player->pvServerData->s.viewangles, pmove.v_angle );
+	VectorCopy( player->pvServerData->s.viewangles, pmove.viewangles );
 
 	pe->PlayerMove( &pmove, cmd, body, false );	// server move
 
-	VectorCopy( pmove.v_angle, player->pvServerData->s.viewangles );
+	VectorCopy( pmove.viewangles, player->pvServerData->s.viewangles );
 
 	// save results of pmove
 	player->v = pmove;

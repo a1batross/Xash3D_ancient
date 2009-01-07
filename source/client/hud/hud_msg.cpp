@@ -31,7 +31,6 @@ DECLARE_HUDMESSAGE( ResetHUD );
 DECLARE_HUDMESSAGE( InitHUD );
 DECLARE_HUDMESSAGE( ViewMode );
 DECLARE_HUDMESSAGE( Particle );
-DECLARE_HUDMESSAGE( SetFOV );
 DECLARE_HUDMESSAGE( Concuss );
 DECLARE_HUDMESSAGE( GameMode );
 DECLARE_HUDMESSAGE( CamData );
@@ -51,7 +50,6 @@ int CHud :: InitMessages( void )
 	HOOK_MESSAGE( Intermission );
 	HOOK_MESSAGE( InitHUD );
 	HOOK_MESSAGE( ViewMode );
-	HOOK_MESSAGE( SetFOV );
 	HOOK_MESSAGE( Concuss );
 	HOOK_MESSAGE( HUDColor );
 	HOOK_MESSAGE( Particle );
@@ -77,9 +75,6 @@ int CHud :: InitMessages( void )
 	CVAR_REGISTER( "default_fov", "90", 0, "default client fov" );
 	CVAR_REGISTER( "hud_draw", "1", CVAR_ARCHIVE, "hud drawing modes" );
 	CVAR_REGISTER( "hud_takesshots", "0", 0, "take screenshots at 30 fps" );
-
-	// UNDONE: replace all coord variables with float not int
-	// FIXME: remove jitter for moving objects (flashlight beam etc)
 	CVAR_REGISTER( "hud_scale", "0", CVAR_ARCHIVE|CVAR_LATCH, "scale hud at current resolution" );
 
 	// clear any old HUD list
@@ -159,38 +154,6 @@ int CHud :: MsgFunc_Intermission( const char *pszName, int iSize, void *pbuf )
 
 	return 1;
 }
-
-int CHud::MsgFunc_SetFOV( const char *pszName, int iSize, void *pbuf )
-{
-	BEGIN_READ( pszName, iSize, pbuf );
-
-	float newfov = READ_FLOAT();
-	float def_fov = CVAR_GET_FLOAT( "default_fov" );
-
-	if( newfov == 0.0f )
-	{
-		m_flFOV = def_fov;
-	}
-	else
-	{
-		m_flFOV = newfov;
-          }
-
-	if( m_flFOV == def_fov )
-	{
-		m_flMouseSensitivity = 0;
-	}
-	else
-	{
-		// set a new sensitivity that is proportional to the change from the FOV default
-		m_flMouseSensitivity = CVAR_GET_FLOAT( "sensitivity" ) * ( newfov / def_fov );
-		m_flMouseSensitivity *= CVAR_GET_FLOAT( "zoom_sensitivity_ratio" ); // apply zoom factor
-	}
-	END_READ();
-
-	return 1;
-}
-
 
 int CHud::MsgFunc_HUDColor(const char *pszName,  int iSize, void *pbuf)
 {

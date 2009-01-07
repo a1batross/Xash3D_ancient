@@ -279,6 +279,8 @@ typedef enum _fieldtypes
 	FIELD_MODELNAME,		// engine string that is a model name (needs precache)
 	FIELD_SOUNDNAME,		// engine string that is a sound name (needs precache)
           FIELD_RANGE,		// Min and Max range for generate random value
+	FIELD_INTEGER64,		// long integer
+	FIELD_DOUBLE,		// float with double precision
  
 	FIELD_TYPECOUNT,		// MUST BE LAST
 } FIELDTYPE;

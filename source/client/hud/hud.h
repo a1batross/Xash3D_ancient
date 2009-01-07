@@ -634,7 +634,6 @@ public:
 	int _cdecl MsgFunc_InitHUD( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_Intermission( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_ViewMode( const char *pszName, int iSize, void *pbuf );
-	int _cdecl MsgFunc_SetFOV( const char *pszName,  int iSize, void *pbuf );
 	int _cdecl MsgFunc_Concuss( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_ScreenShake( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_RainData( const char *pszName, int iSize, void *pbuf ); 
@@ -684,6 +683,7 @@ public:
 	// error sprite
 	int m_HUD_error;
 	HSPRITE m_hHudError;
+	HSPRITE m_hHudFont;
 	
 	void AddHudElem( CHudBase *p );
 	float GetSensitivity() { return m_flMouseSensitivity; }

@@ -159,9 +159,11 @@ public:
 	int					m_iTrain;				// Train control position
 	BOOL				m_fWeapon;				// Set this to FALSE to force a reset of the current weapon HUD info
 
-	EHANDLE				m_pTank;				// the tank which the player is currently controlling,  NULL if no tank
-	EHANDLE				m_pMonitor;
-	float				m_fDeadTime;			// the time at which the player died  (used in PlayerDeathThink())
+	EHANDLE		m_pTank;		// the tank which the player is currently controlling,  NULL if no tank
+	EHANDLE		m_pMonitor;
+	float		m_fDeadTime;	// the time at which the player died  (used in PlayerDeathThink())
+	float		m_fAirFinished;	// moved here from progdefs.h
+	float		m_fPainFinished;	// moved here from progdefs.h
 
 	BOOL			m_fNoPlayerSound;	// a debugging feature. Player makes no sound if this is true. 
 	BOOL			m_fLongJump; // does this player have the longjump module?
@@ -172,8 +174,6 @@ public:
 	int			m_iClientBattery;	// the Battery currently known by the client.  If this changes, send a new
 	int			m_iHideHUD;		// the players hud weapon info is to be hidden
 	int			m_iClientHideHUD;
-	float			m_flFOV;		// field of view
-	float			m_flClientFOV;	// client's known FOV
 
 	// usable player items 
 	CBasePlayerWeapon	*m_rgpPlayerItems[MAX_ITEM_TYPES];

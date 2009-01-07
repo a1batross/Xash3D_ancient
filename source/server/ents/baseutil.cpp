@@ -1,7 +1,7 @@
 //=======================================================================
 //			Copyright (C) Shambler Team 2004
 //		         util_.cpp - utility entities: util_fade, 
-//			       util_shake, util_fov etc			    
+//			 util_shake, util_changehud etc			    
 //=======================================================================
 
 #include "extdll.h"

@@ -65,7 +65,8 @@ void HistoryResource :: AddToHistory( int iType, const char *szName, int iCount 
 		return;
 
 	if ( (((AMMO_PICKUP_GAP * iCurrentHistorySlot) + AMMO_PICKUP_PICK_HEIGHT) > AMMO_PICKUP_HEIGHT_MAX) || (iCurrentHistorySlot >= MAX_HISTORY) )
-	{	// the pic would have to be drawn too high
+	{	
+		// the pic would have to be drawn too high
 		// so start from the bottom
 		iCurrentHistorySlot = 0;
 	}
@@ -110,7 +111,8 @@ int HistoryResource :: DrawAmmoHistory( float flTime )
 			rgAmmoHistory[i].DisplayTime = min( rgAmmoHistory[i].DisplayTime, gHUD.m_flTime + HISTORY_DRAW_TIME );
 
 			if ( rgAmmoHistory[i].DisplayTime <= flTime )
-			{  // pic drawing time has expired
+			{
+				// pic drawing time has expired
 				memset( &rgAmmoHistory[i], 0, sizeof(HIST_ITEM) );
 				CheckClearHistory();
 			}

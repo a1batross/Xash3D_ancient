@@ -92,7 +92,6 @@ typedef struct user_messages_s
 	int	WeaponAnim;
 	int	RoomType;
 	int	SayText;
-	int	SetFOV;
 	int	ShowMenu;
 	int	GeigerRange;
 	int	TeamNames;

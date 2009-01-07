@@ -52,7 +52,6 @@ inline void CL_PlaySound( int iSound, float flVolume, Vector &pos, float pitch =
 #define AngleVectors	(*g_engfuncs.pfnAngleVectors)
 #define DrawCenterPrint	(*g_engfuncs.pfnDrawCenterPrint)
 #define CenterPrint		(*g_engfuncs.pfnCenterPrint)
-#define DrawChar		(*g_engfuncs.pfnDrawCharacter)
 #define DrawString		(*g_engfuncs.pfnDrawString)
 #define GetParms		(*g_engfuncs.pfnGetParms)
 #define GetViewAngles	(*g_engfuncs.pfnGetViewAngles)
@@ -72,13 +71,5 @@ inline void CL_PlaySound( int iSound, float flVolume, Vector &pos, float pitch =
 #define FREE_FILE		FREE
 #define GET_GAME_DIR	(*g_engfuncs.pfnGetGameDir)
 #define HOST_ERROR		(*g_engfuncs.pfnHostError)
-
-// heavy legacy of Valve...
-// tune char size by taste
-inline void TextMessageDrawChar( int xpos, int ypos, int number, int r, int g, int b )
-{
-	SetColor((r / 255.0f), (g / 255.0f), (b / 255.0f), 1.0f );
-	DrawChar( xpos, ypos, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, number );
-}
 
 #endif//ENGINECALLBACKS_H

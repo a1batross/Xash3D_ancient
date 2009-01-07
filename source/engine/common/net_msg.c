@@ -29,9 +29,13 @@ static net_field_t ent_fields[] =
 { ES_FIELD(framerate),		NET_FLOAT, false	},	// custom framerate
 { ES_FIELD(sequence),		NET_WORD,	 false	},	// 1024 sequences
 { ES_FIELD(gaitsequence),		NET_WORD,	 false	},	// 1024 gaitsequences
-{ ES_FIELD(skin),			NET_CHAR,	 false	},	// negative skins are contents
+{ ES_FIELD(skin),			NET_BYTE,	 false	},	// 255 skins
 { ES_FIELD(body),			NET_BYTE,	 false	},	// 255 bodies
-{ ES_FIELD(weaponmodel),		NET_WORD,  false	},	// 4096 models 
+{ ES_FIELD(weaponmodel),		NET_WORD,  false	},	// p_model index, not name 
+{ ES_FIELD(weaponanim),		NET_WORD,  false	},	// 1024 sequences 
+{ ES_FIELD(weaponbody),		NET_BYTE,  false	},	// 255 bodies
+{ ES_FIELD(weaponskin),		NET_BYTE,  false	},	// 255 skins 
+{ ES_FIELD(teleport_time),		NET_FLOAT, false	},	// FIXME: use byte ?
 { ES_FIELD(blending[0]),		NET_COLOR, false	},
 { ES_FIELD(blending[1]),		NET_COLOR, false	},	// stateflags_t #1 (4 bytes)
 { ES_FIELD(blending[2]),		NET_COLOR, false	},
@@ -53,10 +57,12 @@ static net_field_t ent_fields[] =
 { ES_FIELD(controller[8]),		NET_COLOR, false	},
 { ES_FIELD(controller[9]),		NET_COLOR, false	},
 { ES_FIELD(solid),			NET_BYTE,	 false	},
-{ ES_FIELD(flags),			NET_LONG,	 false	},
+{ ES_FIELD(flags),			NET_INT64, false	},	// misc edict flags
 { ES_FIELD(movetype),		NET_BYTE,	 false	},
 { ES_FIELD(gravity),		NET_SHORT, false	},	// gravity multiplier
 { ES_FIELD(aiment),			NET_WORD,	 false	},	// entity index
+{ ES_FIELD(owner),			NET_WORD,	 false	},	// entity owner index
+{ ES_FIELD(groundent),		NET_WORD,	 false	},	// ground entity index, if FL_ONGROUND is set
 { ES_FIELD(solid),			NET_LONG,	 false	},	// encoded mins/maxs
 { ES_FIELD(mins[0]),		NET_FLOAT, false	},
 { ES_FIELD(mins[1]),		NET_FLOAT, false	},
@@ -84,10 +90,11 @@ static net_field_t ent_fields[] =
 { ES_FIELD(viewoffset[1]),		NET_SCALE, false	},
 { ES_FIELD(viewoffset[2]),		NET_SCALE, false	},
 { ES_FIELD(viewmodel),		NET_WORD,  false	},
+{ ES_FIELD(maxspeed),		NET_FLOAT, false	},	// client maxspeed
 { ES_FIELD(fov),			NET_FLOAT, false	},	// client horizontal field of view
-{ ES_FIELD(weapons),		NET_INT64, false	},	// client weapon 0-32
+{ ES_FIELD(weapons),		NET_INT64, false	},	// client weapon 0-64
 { ES_FIELD(health),			NET_FLOAT, false	},	// client health
-// revision 4. reserve for 17 fields without enlarge null_msg_size
+// revision 4. reserve for 12 fields without enlarge null_msg_size
 { NULL },							// terminator
 };
 

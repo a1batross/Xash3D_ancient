@@ -61,19 +61,17 @@ edict_t *CGameRules :: GetPlayerSpawnSpot( CBasePlayer *pPlayer )
 {
 	edict_t *pentSpawnSpot = EntSelectSpawnPoint( pPlayer );
 
-	pPlayer->pev->origin = VARS(pentSpawnSpot)->origin + Vector(0,0,1);
-	pPlayer->pev->v_angle  = g_vecZero;
+	pPlayer->pev->origin = VARS(pentSpawnSpot)->origin + Vector( 0, 0, 1 );
+	pPlayer->pev->viewangles = g_vecZero;
 	pPlayer->pev->velocity = g_vecZero;
-	pPlayer->pev->angles = VARS(pentSpawnSpot)->angles;
+	pPlayer->pev->angles = VARS( pentSpawnSpot )->angles;
 	pPlayer->pev->punchangle = g_vecZero;
 	pPlayer->pev->fixangle = TRUE;
 	
-	//LRC
-	if (pentSpawnSpot->v.spawnflags & 1) // the START WITH SUIT flag
+	if( pentSpawnSpot->v.spawnflags & 1 ) // the START WITH SUIT flag
 	{
 		g_startSuit = TRUE;
 	}
-	
 	return pentSpawnSpot;
 }
 
