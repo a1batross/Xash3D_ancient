@@ -731,7 +731,7 @@ void PlayerPostThink( edict_t *pEntity )
 	gpGlobals->frametime = cached_frametime;
 }
 
-void ParmsChangeLevel( void )
+void BuildLevelList( void )
 {
 	// retrieve the pointer to the save data
 	SAVERESTOREDATA *pSaveData = (SAVERESTOREDATA *)gpGlobals->pSaveData;

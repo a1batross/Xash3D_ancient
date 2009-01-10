@@ -152,8 +152,34 @@ static int gSizes[FIELD_TYPECOUNT] =
 	sizeof(int),		// FIELD_MODELNAME
 	sizeof(int),		// FIELD_SOUNDNAME
 	sizeof(float)*2,		// FIELD_RANGE
+	sizeof(int64),		// FIELD_INTEGER64
+	sizeof(double),		// FIELD_DOUBLE
 };
 
+static const char *gNames[FIELD_TYPECOUNT] = 
+{
+	"float",		// FIELD_FLOAT
+	"string",		// FIELD_STRING
+	"entity",		// FIELD_ENTITY
+	"classptr",	// FIELD_CLASSPTR
+	"ehandle",	// FIELD_EHANDLE
+	"entvars",	// FIELD_entvars_t
+	"edict",		// FIELD_EDICT
+	"vector",		// FIELD_VECTOR
+	"position vector",	// FIELD_POSITION_VECTOR
+	"pointer",	// FIELD_POINTER
+	"integer",	// FIELD_INTEGER
+	"function",	// FIELD_FUNCTION
+	"boolean",	// FIELD_BOOLEAN
+	"short",		// FIELD_SHORT
+	"char",		// FIELD_CHARACTER
+	"time",		// FIELD_TIME
+	"modelname",	// FIELD_MODELNAME
+	"soundname",	// FIELD_SOUNDNAME
+	"random range",	// FIELD_RANGE
+	"integer 64",	// FIELD_INTEGER64
+	"double",		// FIELD_DOUBLE
+};
 
 // Base class includes common SAVERESTOREDATA pointer, and manages the entity table
 CSaveRestoreBuffer :: CSaveRestoreBuffer( void )
@@ -549,11 +575,19 @@ int CSave :: WriteEntVars( const char *pname, entvars_t *pev )
 
 int CSave :: WriteFields( const char *cname, const char *pname, void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCount )
 {
-	int				i, j, actualCount, emptyCount;
+	int		i, j, actualCount, emptyCount;
 	TYPEDESCRIPTION	*pTest;
-	int				entityArray[MAX_ENTITYARRAY];
+	int		entityArray[MAX_ENTITYARRAY];
 
-	// Precalculate the number of empty fields
+	ALERT( at_console, "CSave::WriteFields( %s [%i fields])\n", pname, fieldCount );
+
+	if( !strcmp( pname, "Save Header" ) || !strcmp( pname, "ADJACENCY" ) || !strcmp( pname, "Game Header" ))
+	{
+		for( i = 0; i < fieldCount; i++ )
+			ALERT( at_console, "FIELD: %s [%s][0x%x]\n", pFields[i].fieldName, gNames[pFields[i].fieldType], pFields[i].flags );
+	}
+
+	// precalculate the number of empty fields
 	emptyCount = 0;
 	for ( i = 0; i < fieldCount; i++ )
 	{
@@ -736,18 +770,18 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 	time = 0;
 	position = Vector(0,0,0);
 
-	if ( m_pdata )
+	if( m_pdata )
 	{
 		time = m_pdata->time;
 		if ( m_pdata->fUseLandmark )
 			position = m_pdata->vecLandmarkOffset;
 	}
 
-	for ( i = 0; i < fieldCount; i++ )
+	for( i = 0; i < fieldCount; i++ )
 	{
-		fieldNumber = (i+startField)%fieldCount;
-		pTest = &pFields[ fieldNumber ];
-		if ( !stricmp( pTest->fieldName, pName ) )
+		fieldNumber = (i + startField) % fieldCount;
+		pTest = &pFields[fieldNumber];
+		if( !stricmp( pTest->fieldName, pName ))
 		{
 			if ( !m_global || !(pTest->flags & FTYPEDESC_GLOBAL) )
 			{
@@ -910,38 +944,39 @@ int CRestore::ReadFields( const char *pname, void *pBaseData, TYPEDESCRIPTION *p
 	HEADER	header;
 
 	i = ReadShort();
-	ASSERT( i == sizeof(int) );			// First entry should be an int
+	ASSERT( i == sizeof( int ));		// First entry should be an int
 
 	token = ReadShort();
 
 	// Check the struct name
-	if ( token != TokenHash(pname) )			// Field Set marker
+	if( token != TokenHash( pname ))	// Field Set marker
 	{
-//		ALERT( at_error, "Expected %s found %s!\n", pname, BufferPointer() );
-		BufferRewind( 2*sizeof(short) );
+		ALERT( at_error, "Expected %s found %s!\n", pname, BufferPointer() );
+		BufferRewind( 2 * sizeof( short ));
 		return 0;
 	}
 
+	ALERT( at_console, "CRestore:ReadFields: %s\n", pname );
+
 	// Skip over the struct name
-	fileCount = ReadInt();						// Read field count
+	fileCount = ReadInt();		// Read field count
 
-	lastField = 0;								// Make searches faster, most data is read/written in the same order
+	lastField = 0;			// Make searches faster, most data is read/written in the same order
 
-	// Clear out base data
-	for ( i = 0; i < fieldCount; i++ )
+	// clear out base data
+	for( i = 0; i < fieldCount; i++ )
 	{
 		// Don't clear global fields
 		if ( !m_global || !(pFields[i].flags & FTYPEDESC_GLOBAL) )
 			memset( ((char *)pBaseData + pFields[i].fieldOffset), 0, pFields[i].fieldSize * gSizes[pFields[i].fieldType] );
 	}
-
 	for ( i = 0; i < fileCount; i++ )
 	{
 		BufferReadHeader( &header );
 		lastField = ReadField( pBaseData, pFields, fieldCount, lastField, header.size, m_pdata->pTokens[header.token], header.pData );
 		lastField++;
 	}
-	
+
 	return 1;
 }
 
@@ -953,6 +988,8 @@ void CRestore::BufferReadHeader( HEADER *pheader )
 	pheader->token = ReadShort();				// Read field name token
 	pheader->pData = BufferPointer();			// Field Data is next
 	BufferSkipBytes( pheader->size );			// Advance to next field
+
+	ALERT( at_console, "header.token is %i\n", pheader->token );
 }
 
 

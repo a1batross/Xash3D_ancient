@@ -74,7 +74,7 @@ typedef struct globalvars_s
 	int		total_monsters;
 	int		killed_monsters;	// number of monsters killed
 
-	void		*pSaveData;	// savedata base offset
+	void		*pSaveData;	// (SAVERESTOREDATA *) pointer
 } globalvars_t;
 
 // engine hands this to DLLs for functionality callbacks
@@ -218,8 +218,8 @@ typedef struct
 
 typedef struct 
 {
-	int	id;		// ordinal ID of this entity (used for entity <--> pointer conversions)
-	edict_t	*pent;		// pointer to the in-game entity
+	int	id;		// ENG ordinal ID of this entity (used for entity <--> pointer conversions)
+	edict_t	*pent;		// ENG pointer to the in-game entity
 
 	int	location;		// offset from the base data of this entity
 	int	size;		// byte size of this entity's data
@@ -237,25 +237,25 @@ typedef struct
 
 typedef struct saverestore_s
 {
-	char		*pBaseData;	// start of all entity save data
+	char		*pBaseData;	// ENG start of all entity save data
 	char		*pCurrentData;	// current buffer pointer for sequential access
 	int		size;		// current data size
-	int		bufferSize;	// total space for data
-	int		tokenSize;	// size of the linear list of tokens
-	int		tokenCount;	// number of elements in the pTokens table
-	char		**pTokens;	// hash table of entity strings (sparse)
-	int		currentIndex;	// holds a global entity table ID
-	int		tableCount;	// number of elements in the entity table
+	int		bufferSize;	// ENG total space for data (Valve used 512 kb's)
+	int		tokenSize;	// always equal 0 (probably not used)
+	int		tokenCount;	// ENG number of elements in the pTokens table (Valve used 4096 tokens)
+	char		**pTokens;	// ENG hash table of entity strings (sparse)
+	int		currentIndex;	// ENG holds a global entity table ID
+	int		tableCount;	// ENG number of elements in the entity table (numEntities)
 	int		connectionCount;	// number of elements in the levelList[]
-	ENTITYTABLE	*pTable;		// array of ENTITYTABLE elements (1 for each entity)
+	ENTITYTABLE	*pTable;		// ENG array of ENTITYTABLE elements (1 for each entity)
 	LEVELLIST		levelList[MAX_LEVEL_CONNECTIONS]; // list of connections from this level
 
 	// smooth transition
-	int		fUseLandmark;
-	char		szLandmarkName[64];	// landmark we'll spawn near in next level
+	int		fUseLandmark;	// ENG
+	char		szLandmarkName[64];	// probably not used
 	vec3_t		vecLandmarkOffset;	// for landmark transitions
-	float		time;
-	char		szCurrentMap[64];	// To check global entities
+	char		szCurrentMap[64];	// ENG To check global entities
+	float		time;		// ENG
 } SAVERESTOREDATA;
 
 typedef enum _fieldtypes
@@ -342,7 +342,7 @@ typedef struct
 
 	void	(*pfnStartFrame)( void );
 	void	(*pfnEndFrame)( void );
-	void	(*pfnParmsChangeLevel)( void );
+	void	(*pfnBuildLevelList)( void );
 
 	 // returns string describing current .dll.  E.g., TeamFotrress 2, Half-Life
 	const char *(*pfnGetGameDescription)( void );     

@@ -254,7 +254,7 @@ SOURCE=.\server\sv_phys.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\server\sv_progs.c
+SOURCE=.\server\sv_save.c
 # End Source File
 # Begin Source File
 

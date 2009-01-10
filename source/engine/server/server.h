@@ -228,6 +228,7 @@ typedef struct
 	dword		funcBase;			// base offset
 
 	int		hStringTable;		// stringtable handle
+	SAVERESTOREDATA	SaveData;			// shared struct, used for save data
 } svgame_static_t;
 
 typedef struct
@@ -236,9 +237,8 @@ typedef struct
 	dword		realtime;			// always increasing, no clamping, etc
 	float		timeleft;			// frametime * game_frames
 
-	string		mapcmd;			// ie: *intro.cin+base 
-	string		comment;			// map name, e.t.c. 
-
+	char		mapname[CS_SIZE];		// current mapname 
+	char		comment[CS_SIZE];		// map name, e.t.c. 
 	int		spawncount;		// incremented each server start
 						// used to check late spawns
 	sv_client_t	*clients;			// [host_maxclients->integer]
@@ -248,7 +248,6 @@ typedef struct
 	entity_state_t	*baselines;		// [host.max_edicts]
 
 	int		last_heartbeat;
-
 	challenge_t	challenges[MAX_CHALLENGES];	// to prevent invalid IPs from connecting
 } server_static_t;
 
@@ -415,7 +414,7 @@ void SV_TouchTriggers (edict_t *ent);
 //
 // sv_save.c
 //
-void SV_WriteSaveFile( const char *name );
+void SV_WriteSaveFile( const char *name, bool autosave );
 void SV_ReadSaveFile( const char *name );
 void SV_ReadLevelFile( const char *name );
 //============================================================

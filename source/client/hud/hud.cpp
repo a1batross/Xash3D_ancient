@@ -82,8 +82,10 @@ void CHud :: VidInit( void )
 
 	if( CVAR_GET_FLOAT( "hud_scale" ))
 	{
-		m_scrinfo.iWidth = SCREEN_WIDTH;
-		m_scrinfo.iHeight = SCREEN_HEIGHT;
+		// virtual screen space 640x480
+		// see cl_screen.c from Quake3 code for more details
+		m_scrinfo.iWidth = 640;
+		m_scrinfo.iHeight = 480;
 	}
 	else
 	{

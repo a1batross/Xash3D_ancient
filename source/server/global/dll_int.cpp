@@ -47,29 +47,29 @@ static DLL_FUNCTIONS gFunctionTable =
 	DispatchRestore,		// pfnRestore
 	DispatchObjectCollsionBox,	// pfnAbsBox
 
-	SaveWriteFields,		//pfnSaveWriteFields
-	SaveReadFields,		//pfnSaveReadFields
+	SaveWriteFields,		// pfnSaveWriteFields
+	SaveReadFields,		// pfnSaveReadFields
 
-	SaveGlobalState,		//pfnSaveGlobalState
-	RestoreGlobalState,		//pfnRestoreGlobalState
-	ResetGlobalState,		//pfnResetGlobalState
+	SaveGlobalState,		// pfnSaveGlobalState
+	RestoreGlobalState,		// pfnRestoreGlobalState
+	ResetGlobalState,		// pfnResetGlobalState
 
-	ClientConnect,		//pfnClientConnect
-	ClientDisconnect,		//pfnClientDisconnect
-	ClientKill,		//pfnClientKill
-	ClientPutInServer,		//pfnClientPutInServer
-	ClientCommand,		//pfnClientCommand
-	ClientUserInfoChanged,	//pfnClientUserInfoChanged
+	ClientConnect,		// pfnClientConnect
+	ClientDisconnect,		// pfnClientDisconnect
+	ClientKill,		// pfnClientKill
+	ClientPutInServer,		// pfnClientPutInServer
+	ClientCommand,		// pfnClientCommand
+	ClientUserInfoChanged,	// pfnClientUserInfoChanged
 
-	ServerActivate,		//pfnServerActivate
-	ServerDeactivate,		//pfnServerDeactivate
+	ServerActivate,		// pfnServerActivate
+	ServerDeactivate,		// pfnServerDeactivate
 
-	PlayerPreThink,		//pfnPlayerPreThink
-	PlayerPostThink,		//pfnPlayerPostThink
+	PlayerPreThink,		// pfnPlayerPreThink
+	PlayerPostThink,		// pfnPlayerPostThink
 
-	StartFrame,		//pfnStartFrame
-	EndFrame,			//pfnEndFrame
-	ParmsChangeLevel,		//pfnParmsChangeLevel
+	StartFrame,		// pfnStartFrame
+	EndFrame,			// pfnEndFrame
+	BuildLevelList,		// pfnBuildLevelList
 
 	GetGameDescription,		//pfnGetGameDescription	Returns string describing current .dll game.
 };
@@ -207,6 +207,7 @@ void DispatchSave( edict_t *pent, SAVERESTOREDATA *pSaveData )
 	
 	if ( pEntity && pSaveData )
 	{
+		ALERT( at_console, "DispatchSave( %s )\n", STRING( pent->v.classname ));
 		ENTITYTABLE *pTable = &pSaveData->pTable[ pSaveData->currentIndex ];
 
 		if ( pTable->pent != pent )

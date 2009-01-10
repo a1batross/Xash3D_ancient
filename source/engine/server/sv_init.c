@@ -136,7 +136,8 @@ void SV_CheckForSavegame( const char *savename )
 	{
 		sv.loadgame = true; // predicting state
 		if( sv_noreload->value ) sv.loadgame = false;
-		if( Cvar_VariableValue( "deathmatch" )) sv.loadgame = false;
+		if( svgame.globals->deathmatch || svgame.globals->coop || svgame.globals->teamplay )
+			sv.loadgame = false;
 		if( !savename ) sv.loadgame = false;
 		if( !FS_FileExists( va( "save/%s", savename )))
 			sv.loadgame = false;
@@ -267,22 +268,23 @@ void SV_InitGame( void )
 	Cmd_ExecuteString( "latch\n" );
 	svs.initialized = true;
 
-	if (Cvar_VariableValue ("coop") && Cvar_VariableValue ("deathmatch"))
+	if( Cvar_VariableValue ("coop") && Cvar_VariableValue ( "deathmatch" ) && Cvar_VariableValue( "teamplay" ))
 	{
-		Msg("Deathmatch and Coop both set, disabling Coop\n");
-		Cvar_FullSet ("coop", "0",  CVAR_SERVERINFO | CVAR_LATCH);
+		Msg("Deathmatch, Teamplay and Coop set, defaulting to Deathmatch\n");
+		Cvar_FullSet( "coop", "0",  CVAR_SERVERINFO|CVAR_LATCH );
+		Cvar_FullSet( "teamplay", "0",  CVAR_SERVERINFO|CVAR_LATCH );
 	}
 
 	// dedicated servers are can't be single player and are usually DM
 	// so unless they explicity set coop, force it to deathmatch
 	if( host.type == HOST_DEDICATED )
 	{
-		if(!Cvar_VariableValue( "coop" ))
+		if(!Cvar_VariableValue( "coop" ) && !Cvar_VariableValue( "teamplay" ))
 			Cvar_FullSet( "deathmatch", "1",  CVAR_SERVERINFO|CVAR_LATCH );
 	}
 
 	// init clients
-	if( Cvar_VariableValue( "deathmatch" ))
+	if( Cvar_VariableValue( "deathmatch" ) || Cvar_VariableValue( "teamplay" ))
 	{
 		if( Host_MaxClients() <= 1 )
 			Cvar_FullSet( "host_maxclients", "8", CVAR_SERVERINFO|CVAR_LATCH );
@@ -305,6 +307,13 @@ void SV_InitGame( void )
 	svs.num_client_entities = Host_MaxClients() * UPDATE_BACKUP * 64; // g-cont: what a mem waster ???????
 	svs.client_entities = Z_Malloc( sizeof(entity_state_t) * svs.num_client_entities );
 	svs.baselines = Z_Malloc( sizeof(entity_state_t) * host.max_edicts );
+
+	// copy gamemode into svgame.globals
+	svgame.globals->deathmatch = (int)Cvar_VariableValue( "deathmatch" );
+	svgame.globals->teamplay = (int)Cvar_VariableValue( "teamplay" );
+	svgame.globals->coop = (int)Cvar_VariableValue( "coop" );
+
+	svgame.dllFuncs.pfnResetGlobalState();
 
 	// heartbeats will always be sent to the id master
 	svs.last_heartbeat = MAX_HEARTBEAT; // send immediately

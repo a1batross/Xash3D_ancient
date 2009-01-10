@@ -32,7 +32,7 @@ extern void StartFrame( void );
 extern void EndFrame( void );
 extern void PlayerPostThink( edict_t *pEntity );
 extern void PlayerPreThink( edict_t *pEntity );
-extern void ParmsChangeLevel( void );
+extern void BuildLevelList( void );
 extern void InitBodyQue(void);
 extern void InitWorld( void );
 

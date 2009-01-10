@@ -27,7 +27,6 @@ WEAPON *gpActiveSel;	// NULL means off, 1 means just the menu bar, otherwise
 WEAPON *gpLastSel;		// Last weapon menu selection 
 client_sprite_t *GetSpriteList( client_sprite_t *pList, const char *psz, int iCount );
 WeaponsResource gWR;
-int g_weaponselect = 0;
 
 void WeaponsResource :: LoadAllWeaponSprites( void )
 {
@@ -339,16 +338,14 @@ void CHudAmmo :: Think( void )
 	if( gHUD.m_iKeyBits & IN_ATTACK )
 	{
 		if( gpActiveSel != (WEAPON *)1 )
-		{
 			SERVER_COMMAND( gpActiveSel->szName );
-			g_weaponselect = gpActiveSel->iId;
-		}
 
 		gpLastSel = gpActiveSel;
 		gpActiveSel = NULL;
 		gHUD.m_iKeyBits &= ~IN_ATTACK;
 
 		CL_PlaySound( "common/wpn_select.wav", 1.0f );
+		SET_KEYDEST( KEY_GAME );
 	}
 
 }
@@ -396,6 +393,8 @@ void WeaponsResource :: SelectSlot( int iSlot, int fAdvance, int iDirection )
 
 	if( !gHUD.m_iWeaponBits ) return;
 
+	SET_KEYDEST( KEY_HUDMENU );
+
 	WEAPON *p = NULL;
 	bool fastSwitch = CVAR_GET_FLOAT( "hud_fastswitch" ) != 0;
 
@@ -412,7 +411,6 @@ void WeaponsResource :: SelectSlot( int iSlot, int fAdvance, int iDirection )
 			if( !p2 )
 			{	// only one active item in bucket, so change directly to weapon
 				SERVER_COMMAND( p->szName );
-				g_weaponselect = p->iId;
 				return;
 			}
 		}
@@ -691,6 +689,8 @@ void CHudAmmo::UserCmd_Close( void )
 		CL_PlaySound( "common/wpn_hudoff.wav", 1.0f );
 	}
 	else CLIENT_COMMAND( "escape" );
+
+	SET_KEYDEST( KEY_GAME );
 }
 
 

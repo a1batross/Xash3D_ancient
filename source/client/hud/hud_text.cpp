@@ -182,7 +182,7 @@ int CHudTextMessage::MsgFunc_TextMsg( const char *pszName, int iSize, void *pbuf
 	{
 	case HUD_PRINTCENTER:
 		sprintf( psz, msg_text, sstr1, sstr2, sstr3, sstr4 );
-		CenterPrint( ConvertCRtoNL( psz ), SCREEN_HEIGHT / 2, BIGCHAR_WIDTH );
+		CenterPrint( ConvertCRtoNL( psz ), 240.0f, BIGCHAR_WIDTH );
 		break;
 	case HUD_PRINTNOTIFY:
 		psz[0] = 1;  // mark this message to go into the notify buffer

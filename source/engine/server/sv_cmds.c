@@ -206,7 +206,7 @@ void SV_Map_f( void )
 	SV_BroadcastCommand( "reconnect\n" );
 
 	// archive server state
-	com.strncpy( svs.mapcmd, filename, sizeof(svs.mapcmd) - 1);
+	com.strncpy( svs.mapname, filename, sizeof( svs.mapname ) - 1 );
 }
 
 void SV_Newgame_f( void )
@@ -241,7 +241,7 @@ void SV_Load_f( void )
 
 	SV_ReadSaveFile( filename );
 	SV_BroadcastCommand( "changing\n" );
-	SV_SpawnServer( svs.mapcmd, filename );
+	SV_SpawnServer( svs.mapname, filename );
 	SV_BroadcastCommand( "reconnect\n" );
 }
 
@@ -255,14 +255,25 @@ void SV_Save_f( void )
 {
 	string	filename;
 
-	if(Cmd_Argc() != 2)
+	if( Cmd_Argc() != 2 )
 	{
-		Msg ("Usage: savegame <directory>\n");
+		Msg ("Usage: save <name>\n");
 		return;
 	}
 
-	com.snprintf( filename, MAX_STRING, "%s.bin", Cmd_Argv(1));
-	SV_WriteSaveFile( filename );
+	com.snprintf( filename, MAX_STRING, "%s.bin", Cmd_Argv( 1 ));
+	SV_WriteSaveFile( filename, false );
+}
+
+/*
+==============
+SV_AutoSave_f
+
+==============
+*/
+void SV_AutoSave_f( void )
+{
+	SV_WriteSaveFile( "autosave.bin", true );
 }
 
 /*
@@ -290,7 +301,7 @@ void SV_ChangeLevel_f( void )
 		return;
 	}
 
-	if(sv.state == ss_active)
+	if( sv.state == ss_active )
 	{
 		bool		*savedFree;
 		sv_client_t	*cl;
@@ -305,7 +316,7 @@ void SV_ChangeLevel_f( void )
 			savedFree[i] = cl->edict->free;
 			cl->edict->free = true;
 		}
-		SV_WriteSaveFile( "save0.bin" ); // autosave
+		SV_WriteSaveFile( "autosave.bin", true );
 		// we must restore these for clients to transfer over correctly
 		for (i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++)
 			cl->edict->free = savedFree[i];
@@ -319,7 +330,7 @@ void SV_ChangeLevel_f( void )
 	SV_BroadcastCommand ("reconnect\n");
 
 	// archive server state
-	com.strncpy (svs.mapcmd, filename, sizeof(svs.mapcmd) - 1);
+	com.strncpy( svs.mapname, filename, sizeof( svs.mapname ) - 1 );
 }
 
 /*
@@ -333,13 +344,12 @@ void SV_Restart_f( void )
 {
 	string	filename;
 	
-	if(sv.state != ss_active) return;
-
-	com.strncpy( filename, svs.mapcmd, MAX_STRING );
+	if( sv.state != ss_active ) return;
+	com.strncpy( filename, svs.mapname, MAX_STRING );
 	FS_StripExtension( filename );
 
 	// just sending console command
-	Cbuf_AddText(va("map %s\n", filename ));
+	Cbuf_AddText( va( "map %s\n", filename ));
 }
 
 /*
@@ -537,31 +547,33 @@ void SV_InitOperatorCommands( void )
 
 	Cmd_AddCommand( "save", SV_Save_f, "save the game to a file" );
 	Cmd_AddCommand( "load", SV_Load_f, "load a saved game file" );
+	Cmd_AddCommand( "autosave", SV_AutoSave_f, "save the game to 'autosave' file" );
 	Cmd_AddCommand( "killserver", SV_KillServer_f, "shutdown current server" );
 }
 
 void SV_KillOperatorCommands( void )
 {
-	Cmd_RemoveCommand("heartbeat");
-	Cmd_RemoveCommand("kick");
-	Cmd_RemoveCommand("status");
-	Cmd_RemoveCommand("serverinfo");
-	Cmd_RemoveCommand("clientinfo");
+	Cmd_RemoveCommand( "heartbeat" );
+	Cmd_RemoveCommand( "kick" );
+	Cmd_RemoveCommand( "status" );
+	Cmd_RemoveCommand( "serverinfo" );
+	Cmd_RemoveCommand( "clientinfo" );
 
-	Cmd_RemoveCommand("map");
-	Cmd_RemoveCommand("movie");
-	Cmd_RemoveCommand("newgame");
-	Cmd_RemoveCommand("changelevel");
-	Cmd_RemoveCommand("restart");
-	Cmd_RemoveCommand("sectorlist");
+	Cmd_RemoveCommand( "map" );
+	Cmd_RemoveCommand( "movie" );
+	Cmd_RemoveCommand( "newgame" );
+	Cmd_RemoveCommand( "changelevel" );
+	Cmd_RemoveCommand( "restart" );
+	Cmd_RemoveCommand( "sectorlist" );
 
 	if( host.type == HOST_DEDICATED )
 	{
-		Cmd_RemoveCommand("say");
-		Cmd_RemoveCommand("setmaster");
+		Cmd_RemoveCommand( "say" );
+		Cmd_RemoveCommand( "setmaster" );
 	}
 
-	Cmd_RemoveCommand("save");
-	Cmd_RemoveCommand("load");
-	Cmd_RemoveCommand("killserver");
+	Cmd_RemoveCommand( "save" );
+	Cmd_RemoveCommand( "load" );
+	Cmd_RemoveCommand( "autosave" );
+	Cmd_RemoveCommand( "killserver" );
 }

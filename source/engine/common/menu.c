@@ -199,6 +199,7 @@ void PF_newgame( void )
 	// disable updates and start the cinematic going
 	cl.servercount = -1;
 	Cvar_SetValue( "deathmatch", 0 );
+	Cvar_SetValue( "teamplay", 0 );
 	Cvar_SetValue( "gamerules", 0 );
 	Cvar_SetValue( "paused", 0 );
 	Cvar_SetValue( "coop", 0 );
@@ -223,7 +224,7 @@ void PF_readcomment( void )
 		return;
 
 	savenum = (int)PRVM_G_FLOAT(OFS_PARM0);
-	SV_ReadComment( comment, savenum );
+	SV_GetComment( comment, savenum );
 	PRVM_G_INT(OFS_RETURN) = PRVM_SetTempString( comment );
 }
 

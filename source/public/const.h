@@ -235,20 +235,19 @@ typedef enum
 #define EVENT_SHARED		2000
 #define EVENT_CLIENT		5000	// less than this value it's a server-side studio events
 
-// player_state_t->renderfx
+// FIXME: get rid of this
 #define RDF_UNDERWATER		(1<<0)	// warp the screen as apropriate
 #define RDF_NOWORLDMODEL		(1<<1)	// used for player configuration screen
 #define RDF_BLOOM			(1<<2)	// light blooms
-
-// all drawing is done to a 640*480 virtual screen size
-// and will be automatically scaled to the real resolution
-#define SCREEN_WIDTH			640
-#define SCREEN_HEIGHT			480
 
 // client screen state
 #define CL_DISCONNECTED		1	//
 #define CL_LOADING			2	// draw loading progress-bar
 #define CL_ACTIVE			3	// draw normal hud
+
+// client key destination
+#define KEY_GAME			1
+#define KEY_HUDMENU			2
 
 #define TINYCHAR_WIDTH		(SMALLCHAR_WIDTH)
 #define TINYCHAR_HEIGHT		(SMALLCHAR_HEIGHT/2)

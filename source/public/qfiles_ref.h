@@ -901,13 +901,11 @@ SAVE FILE
 included global, and both (client & server) pent list
 ==============================================================================
 */
-#define LUMP_COMMENTS	"map_comment"
 #define LUMP_CFGSTRING	"configstrings"
 #define LUMP_AREASTATE	"areaportals"
-#define LUMP_GAMESTATE	"globals"
-#define LUMP_MAPCMDS	"map_cmds"
+#define LUMP_ENTITIES	"entities"
+#define LUMP_GLOBALS	"global_data"
 #define LUMP_GAMECVARS	"latched_cvars"
-#define LUMP_GAMEENTS	"entities"
 #define LUMP_SNAPSHOT	"saveshot"	// currently not implemented
 
 #define DENT_KEY		0

@@ -343,8 +343,9 @@ void SV_Init( void )
 
 	rcon_password = Cvar_Get( "rcon_password", "", 0, "remote connect password" );
 	Cvar_Get ("skill", "1", 0, "game skill level" );
-	Cvar_Get ("deathmatch", "0", CVAR_LATCH, "displays deathmatch state" );
-	Cvar_Get ("coop", "0", CVAR_LATCH, "displays cooperative state" );
+	Cvar_Get ("deathmatch", "0", CVAR_SERVERINFO|CVAR_LATCH, "displays deathmatch state" );
+	Cvar_Get ("teamplay", "0", CVAR_SERVERINFO|CVAR_LATCH, "displays teamplay state" );
+	Cvar_Get ("coop", "0", CVAR_SERVERINFO|CVAR_LATCH, "displays cooperative state" );
 	Cvar_Get ("dmflags", "0", CVAR_SERVERINFO, "setup deathmatch flags" );
 	Cvar_Get ("fraglimit", "0", CVAR_SERVERINFO, "multiplayer fraglimit" );
 	Cvar_Get ("timelimit", "0", CVAR_SERVERINFO, "multiplayer timelimit" );
@@ -440,12 +441,8 @@ void SV_Shutdown( bool reconnect )
 	if( svs.clients ) SV_FinalMessage( host.finalmsg, reconnect );
 
 	Master_Shutdown();
-	if( reconnect )
-	{
-		if( svgame.hInstance )
-			svgame.dllFuncs.pfnServerDeactivate();
+	if( reconnect ) 
 		SV_FreeEdicts();
-	}
 	else SV_UnloadProgs();
 
 	// free current level

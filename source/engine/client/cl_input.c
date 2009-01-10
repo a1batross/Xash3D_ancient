@@ -30,12 +30,11 @@ cvar_t	*ui_sensitivity;
 cvar_t	*m_filter;		// mouse filtering
 uint	frame_msec;
 int	in_impulse;
-int	in_cancel;
 
 kbutton_t	in_left, in_right, in_forward, in_back;
 kbutton_t	in_lookup, in_lookdown, in_moveleft, in_moveright;
 kbutton_t	in_strafe, in_speed, in_use, in_attack, in_attack2;
-kbutton_t	in_up, in_down, in_reload, in_score;
+kbutton_t	in_up, in_down, in_reload;
 
 /*
 ============================================================
@@ -262,16 +261,13 @@ void IN_SpeedUp(void) {IN_KeyUp(&in_speed);}
 void IN_StrafeDown(void) {IN_KeyDown(&in_strafe);}
 void IN_StrafeUp(void) {IN_KeyUp(&in_strafe);}
 void IN_AttackDown(void) {IN_KeyDown(&in_attack);}
-void IN_AttackUp(void) {IN_KeyUp(&in_attack); in_cancel = 0; }
+void IN_AttackUp(void) {IN_KeyUp(&in_attack); }
 void IN_Attack2Down(void) {IN_KeyDown(&in_attack2);}
 void IN_Attack2Up(void) {IN_KeyUp(&in_attack2);}
 void IN_UseDown (void) {IN_KeyDown(&in_use);}
 void IN_UseUp (void) {IN_KeyUp(&in_use);}
 void IN_ReloadDown(void) {IN_KeyDown(&in_reload);}
 void IN_ReloadUp(void) {IN_KeyUp(&in_reload);}
-void IN_ScoreDown(void) {IN_KeyDown(&in_score);}
-void IN_ScoreUp(void) {IN_KeyUp(&in_score);}
-void IN_Cancel(void) {in_cancel = true;}
 void IN_Impulse (void) {in_impulse = com.atoi(Cmd_Argv(1));}
 void IN_MLookDown( void ){Cvar_SetValue( "cl_mouselook", 1 );}
 void IN_MLookUp( void ){ IN_CenterView(); Cvar_SetValue( "cl_mouselook", 0 );}
@@ -359,41 +355,63 @@ void CL_ClampPitch (void)
 
 /*
 ==============
-CL_CmdButtons
+CL_ButtonBits
 ==============
 */
-void CL_CmdButtons( usercmd_t *cmd )
+int CL_ButtonBits( int bResetState )
 {
+	int bits = 0;
+
 	if( in_attack.state & 3 )
-		cmd->buttons |= IN_ATTACK;
-	in_attack.state &= ~2;
+		bits |= IN_ATTACK;
 
 	if( in_attack2.state & 3 )
-		cmd->buttons |= IN_ATTACK2;
-	in_attack2.state &= ~2;	
+		bits |= IN_ATTACK2;
 
 	if( in_use.state & 3 )
-		cmd->buttons |= IN_USE;
-	in_use.state &= ~2;
+		bits |= IN_USE;
 
 	if (in_speed.state & 3)
-		cmd->buttons |= IN_RUN;
-	in_speed.state &= ~2;
+		bits |= IN_RUN;
 
 	if( in_reload.state & 3)
-		cmd->buttons |= IN_RELOAD;
-	in_reload.state &= ~2;
+		bits |= IN_RELOAD;
 
-	if( in_cancel )
-		cmd->buttons |= IN_CANCEL;
+	if( bResetState )
+	{
+		in_attack.state &= ~2;
+		in_attack2.state &= ~2;	
+		in_use.state &= ~2;
+		in_speed.state &= ~2;
+		in_reload.state &= ~2;
+	}
+	return bits;
+}
 
-	if( in_score.state & 3 )
-		cmd->buttons |= IN_SCORE;
-	in_score.state &= ~2;
+/*
+============
+CL_ResetButtonBits
 
-	// dead or in intermission? Shore scoreboard, too
-	if( cl.frame.ps.health <= 0 || cl.refdef.intermission )
-		cmd->buttons |= IN_SCORE;
+============
+*/
+void CL_ResetButtonBits( int bits )
+{
+	int bitsNew = CL_ButtonBits( 0 ) ^ bits;
+
+	// has the attack button been changed
+	if( bitsNew & IN_ATTACK )
+	{
+		// was it pressed? or let go?
+		if( bits & IN_ATTACK )
+		{
+			IN_KeyDown( &in_attack );
+		}
+		else
+		{
+			// totally clear state
+			in_attack.state &= ~7;
+		}
+	}
 }
 
 /*
@@ -418,19 +436,22 @@ void CL_FinishMove( usercmd_t *cmd )
 	cmd->impulse = in_impulse;
 	in_impulse = 0;
 
-	// FIXME: send the ambient light level for all! entities properly
+	// HACKHACK: client lightlevel
 	cmd->lightlevel = (byte)cl_lightlevel->value;
+	if( cls.key_dest == key_game )
+		cmd->buttons = CL_ButtonBits( 1 );
 
 	// process commands with user dll's
 	cl.data.fov = cl.frame.ps.fov;
-	cl.data.iKeyBits = cmd->buttons;
+	cl.data.iKeyBits = CL_ButtonBits( 0 );
 	cl.data.iWeaponBits = cl.frame.ps.weapons;
 	cl.data.mouse_sensitivity = cl.mouse_sens;
 	VectorCopy( cl.viewangles, cl.data.angles );
 	VectorCopy( cl.refdef.origin, cl.data.origin );
+
 	cls.dllFuncs.pfnUpdateClientData( &cl.data, ( cl.time * 0.001f ));
 
-	cmd->buttons = cl.data.iKeyBits;
+	CL_ResetButtonBits( cl.data.iKeyBits );
 	cl.refdef.fov_x = cl.data.fov;
 	cl.mouse_sens = cl.data.mouse_sensitivity;
 }
@@ -452,7 +473,6 @@ usercmd_t CL_CreateCmd( void )
 	// get basic movement from mouse
 	CL_BaseMove( &cmd );
 	CL_MouseMove( &cmd );
-	CL_CmdButtons( &cmd );
 	CL_FinishMove( &cmd );
 
 	host.frametime[1] = host.frametime[0];
@@ -603,10 +623,7 @@ void CL_InitInput( void )
 	Cmd_AddCommand ("-use", IN_UseUp, "stop using item" );
 	Cmd_AddCommand ("+reload", IN_ReloadDown, "reload current weapon" );
 	Cmd_AddCommand ("-reload", IN_ReloadUp, "continue reload weapon" );
-	Cmd_AddCommand ("+showscores", IN_ScoreDown, "show scores" );
-	Cmd_AddCommand ("-showscores", IN_ScoreUp, "hide scores" );
 	Cmd_AddCommand ("impulse", IN_Impulse, "send an impulse number to server (select weapon, use item, etc)");
-	Cmd_AddCommand ("cancelselect", IN_Cancel, "cancel selected item in menu");
 	Cmd_AddCommand ("+mlook", IN_MLookDown, "activate mouse looking mode, do not recenter view" );
 	Cmd_AddCommand ("-mlook", IN_MLookUp, "deactivate mouse looking mode" );
 }
@@ -654,7 +671,6 @@ void CL_ShutdownInput( void )
 	Cmd_RemoveCommand ("+use" );
 	Cmd_RemoveCommand ("-use" );
 	Cmd_RemoveCommand ("impulse" );
-	Cmd_RemoveCommand ("cancelselect" );
 	Cmd_RemoveCommand ("+mlook" );
 	Cmd_RemoveCommand ("-mlook" );
 }

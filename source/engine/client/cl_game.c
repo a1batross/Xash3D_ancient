@@ -495,6 +495,34 @@ void pfnClientCmd( const char *szCmdString )
 
 /*
 =============
+pfnSetKeyDest
+
+=============
+*/
+void pfnSetKeyDest( int key_dest )
+{
+	switch( key_dest )
+	{
+	case key_game:
+		cls.key_dest = key_game;
+		break;
+	case key_hudmenu:
+		cls.key_dest = key_hudmenu;
+		break;
+	case key_menu:
+		cls.key_dest = key_menu;
+		break;
+	case key_message:
+		cls.key_dest = key_message;
+		break;
+	default:
+		MsgDev( D_ERROR, "CL_SetKeyDest: wrong destination %i!\n", key_dest );
+		break;
+	}
+}
+	
+/*
+=============
 pfnGetPlayerInfo
 
 =============
@@ -850,6 +878,7 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnHookUserMsg,
 	pfnServerCmd,
 	pfnClientCmd,
+	pfnSetKeyDest,
 	pfnGetPlayerInfo,
 	pfnTextMessageGet,
 	pfnCmdArgc,

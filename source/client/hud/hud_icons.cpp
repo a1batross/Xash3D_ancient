@@ -46,7 +46,7 @@ int CHudStatusIcons::Draw( float flTime )
 {
 	// find starting position to draw from, along right-hand side of screen
 	int x = 5;
-	int y = SCREEN_HEIGHT / 2;
+	int y = ScreenHeight / 2;
 	
 	// loop through icon list, and draw any valid icons drawing up from the middle of screen
 	for( int i = 0; i < MAX_ICONSPRITES; i++ )

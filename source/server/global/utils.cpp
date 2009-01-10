@@ -1576,23 +1576,16 @@ edict_t *DBG_EntOfVars( const entvars_t *pev )
 
 
 #ifdef	DEBUG
-	void
-DBG_AssertFunction(
-	BOOL		fExpr,
-	const char*	szExpr,
-	const char*	szFile,
-	int			szLine,
-	const char*	szMessage)
-	{
-	if (fExpr)
-		return;
+void DBG_AssertFunction( BOOL fExpr, const char* szExpr, const char* szFile, int szLine, const char* szMessage )
+{
+	if( fExpr ) return;
+
 	char szOut[512];
-	if (szMessage != NULL)
-		sprintf(szOut, "ASSERT FAILED:\n %s \n(%s@%d)\n%s", szExpr, szFile, szLine, szMessage);
-	else
-		sprintf(szOut, "ASSERT FAILED:\n %s \n(%s@%d)", szExpr, szFile, szLine);
-	ALERT(at_debug, szOut);
-	}
+	if( szMessage != NULL )
+		sprintf( szOut, "ASSERT FAILED:\n %s \n(%s@%d)\n%s", szExpr, szFile, szLine, szMessage );
+	else sprintf( szOut, "ASSERT FAILED:\n %s \n(%s@%d)", szExpr, szFile, szLine );
+	HOST_ERROR( szOut );
+}
 #endif	// DEBUG
 
 BOOL UTIL_GetNextBestWeapon( CBasePlayer *pPlayer, CBasePlayerWeapon *pCurrentWeapon )

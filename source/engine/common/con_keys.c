@@ -1108,7 +1108,7 @@ void Key_Event(int key, bool down, uint time)
 		case key_menu:
 			UI_KeyEvent( key );
 			return;
-		case key_gamemenu:
+		case key_hudmenu:
 			// passed to client dll's
 			break;
 		default:
@@ -1144,10 +1144,9 @@ void Key_Event(int key, bool down, uint time)
 	{
 		Key_Console( key );
 	}
-	else if( cls.key_dest == key_game || cls.key_dest == key_gamemenu )
+	else if( cls.key_dest == key_game || cls.key_dest == key_hudmenu )
 	{
 		// send the bound action
-		cls.key_dest = key_game;
 		kb = keys[key].binding;
 		if( !kb )
 		{
@@ -1186,10 +1185,6 @@ void Key_Event(int key, bool down, uint time)
 		}
 		else
 		{
-			// HACKHACK: handle user menus here
-			if( !com.strncmp( "slot", kb, 4 ))
-				cls.key_dest = key_gamemenu;
-
 			// down-only command
 			Cbuf_AddText( kb );
 			Cbuf_AddText( "\n" );

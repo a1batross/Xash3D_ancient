@@ -45,9 +45,33 @@ Beta 13.12.08
 24.UpdateClientData - move call to cl_input.c	OK
 25.wrote HUD_StudioEvents			OK
 16.register cmd->buttons			OK
-17.pfnSetKeyDest in client.dll
+17.pfnSetKeyDest in client.dll		OK
 18.IMPLEMENT SAVERESTORE
 
+// savegame algorhytem
+
+1. Init gpGlobals->pSaveData (for save )
+{
+	pBaseData = malloc( 512 kb )
+	pCurrentData = pBaseData
+	size = 0
+	bufferSize = 512 kb
+	tokenSize = 0
+	tokenCount = 4096
+	pTokens = (pTokens **)malloc( (pTokens*) * 4096 ) // pointers array
+	currentIndex = 0
+	tableCount = numEnts
+	pTable = malloc( (ENTITYTABLE) * numEnts )
+	// also set ENTITYTABLE.id and ENTITTYTABLE.pent
+
+	fUseLandmark = 0
+	szLandmarkName = 0
+	vecLandmarkOffset = 0
+	szCurrentMap = 0;
+	time = sv.time;
+}
+
+2. Save Engine Variables
 
 Список доступных рендереров:  	Что в них интересного
 0. Q3Fusion			(Mirrors, Portals)

@@ -20,7 +20,7 @@
 #define CVAR_SET_FLOAT	(*g_engfuncs.pfnCvarSetValue)
 #define CVAR_GET_FLOAT	(*g_engfuncs.pfnGetCvarFloat)
 #define CVAR_GET_STRING	(*g_engfuncs.pfnGetCvarString)
-
+#define SET_KEYDEST		(*g_engfuncs.pfnSetKeyDest)
 #define SERVER_COMMAND	(*g_engfuncs.pfnServerCmd)
 #define CLIENT_COMMAND	(*g_engfuncs.pfnClientCmd)
 #define GET_PLAYER_INFO	(*g_engfuncs.pfnGetPlayerInfo)

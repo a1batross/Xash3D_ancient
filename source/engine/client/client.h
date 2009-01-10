@@ -192,7 +192,7 @@ typedef struct serverinfo_s
 
 } serverinfo_t;
 
-typedef enum { key_game, key_console, key_message, key_menu, key_gamemenu } keydest_t;
+typedef enum { key_console = 0, key_game, key_hudmenu, key_message, key_menu } keydest_t;
 
 typedef struct
 {

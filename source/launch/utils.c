@@ -386,10 +386,8 @@ bool StringTable_SaveSystem( int h, wfile_t *wad )
 	if(!W_SaveLump( wad, "stringdata", dstring[h]->data, dstring[h]->datasize, TYPE_STRDATA, CMP_ZLIB ))
 		return false;
 	table_size = dstring[h]->numstrings * sizeof( string_t );
-	if(!W_SaveLump( wad, "stringtable", dstring[h]->table, table_size, TYPE_STRDATA, CMP_ZLIB ))
+	if( !W_SaveLump( wad, "stringtable", dstring[h]->table, table_size, TYPE_STRDATA, CMP_ZLIB ))
 		return false;
-
-	StringTable_DeleteSystem( h ); // strings dumped, now we can free it
 	return true;
 }
 

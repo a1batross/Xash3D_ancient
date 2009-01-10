@@ -182,6 +182,8 @@ typedef struct cl_enginefuncs_s
 	void	(*pfnHookUserMsg)( const char *szMsgName, pfnUserMsgHook pfn );
 	void	(*pfnServerCmd)( const char *szCmdString );
 	void	(*pfnClientCmd)( const char *szCmdString );
+	void	(*pfnSetKeyDest)( int key_dest );
+
 	void	(*pfnGetPlayerInfo)( int player_num, hud_player_info_t *pinfo );
 	client_textmessage_t *(*pfnTextMessageGet)( const char *pName );
 

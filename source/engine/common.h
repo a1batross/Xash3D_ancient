@@ -29,6 +29,11 @@ extern vsound_exp_t		*se;
 #define MAX_HEARTBEAT	-99999		// connection time
 #define MAX_EVENTS		1024		// system events
 
+// all drawing is done to a 640*480 virtual screen size
+// and will be automatically scaled to the real resolution
+#define SCREEN_WIDTH			640
+#define SCREEN_HEIGHT			480
+
 // cvars
 extern cvar_t *scr_loading;
 extern cvar_t *scr_download;
@@ -327,7 +332,7 @@ extern byte *zonepool;
 
 #define Z_Malloc(size) Mem_Alloc( zonepool, size )
 void CL_GetEntitySoundSpatialization( int ent, vec3_t origin, vec3_t velocity );
-bool SV_ReadComment( char *comment, int savenum );
+bool SV_GetComment( char *comment, int savenum );
 int CL_PMpointcontents( vec3_t point );
 void CL_MouseEvent( int mx, int my, int time );
 void CL_AddLoopingSounds( void );
