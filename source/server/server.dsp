@@ -185,6 +185,10 @@ SOURCE=.\ents\basepath.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\ents\basephys.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\ents\baserockets.cpp
 # End Source File
 # Begin Source File

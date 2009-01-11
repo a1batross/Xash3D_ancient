@@ -95,7 +95,17 @@ TYPEDESCRIPTION gEntvarsDescription[] =
 
 	DEFINE_ENTITY_FIELD( spawnflags, FIELD_INTEGER ),
 	DEFINE_ENTITY_FIELD( flags, FIELD_INTEGER64 ),
-
+#if 0
+	DEFINE_ENTITY_FIELD_ARRAY( m_pmatrix, FIELD_VECTOR, 3 ),
+	DEFINE_ENTITY_FIELD_ARRAY( m_pcentre, FIELD_VECTOR, 3 ),
+#else
+	DEFINE_ENTITY_FIELD( m_pmatrix[0], FIELD_VECTOR ),
+	DEFINE_ENTITY_FIELD( m_pmatrix[1], FIELD_VECTOR ),
+	DEFINE_ENTITY_FIELD( m_pmatrix[2], FIELD_VECTOR ),
+	DEFINE_ENTITY_FIELD( m_pcentre[0], FIELD_VECTOR ),
+	DEFINE_ENTITY_FIELD( m_pcentre[1], FIELD_VECTOR ),
+	DEFINE_ENTITY_FIELD( m_pcentre[2], FIELD_VECTOR ),
+#endif
 	DEFINE_ENTITY_FIELD( colormap, FIELD_INTEGER ),
 	DEFINE_ENTITY_FIELD( team, FIELD_INTEGER ),
 
@@ -988,8 +998,6 @@ void CRestore::BufferReadHeader( HEADER *pheader )
 	pheader->token = ReadShort();				// Read field name token
 	pheader->pData = BufferPointer();			// Field Data is next
 	BufferSkipBytes( pheader->size );			// Advance to next field
-
-	ALERT( at_console, "header.token is %i\n", pheader->token );
 }
 
 

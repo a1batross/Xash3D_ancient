@@ -629,6 +629,8 @@ public:
 	// user messages
 	int _cdecl MsgFunc_Damage( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_GameMode( const char *pszName, int iSize, void *pbuf );
+	int _cdecl MsgFunc_RoomType( const char *pszName, int iSize, void *pbuf );
+	int _cdecl MsgFunc_ScreenFade( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_ServerName( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_ResetHUD( const char *pszName,  int iSize, void *pbuf);
 	int _cdecl MsgFunc_InitHUD( const char *pszName, int iSize, void *pbuf );

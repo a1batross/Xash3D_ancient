@@ -22,10 +22,12 @@
 // CHud message handlers
 DECLARE_HUDMESSAGE( HUDColor );
 DECLARE_HUDMESSAGE( SetFog );
+DECLARE_HUDMESSAGE( RoomType );
 DECLARE_HUDMESSAGE( SetSky );
 DECLARE_HUDMESSAGE( RainData );
 DECLARE_HUDMESSAGE( SetBody );
 DECLARE_HUDMESSAGE( SetSkin );
+DECLARE_HUDMESSAGE( ScreenFade );
 DECLARE_HUDMESSAGE( WeaponAnim );
 DECLARE_HUDMESSAGE( ResetHUD );
 DECLARE_HUDMESSAGE( InitHUD );
@@ -51,6 +53,7 @@ int CHud :: InitMessages( void )
 	HOOK_MESSAGE( InitHUD );
 	HOOK_MESSAGE( ViewMode );
 	HOOK_MESSAGE( Concuss );
+	HOOK_MESSAGE( RoomType );
 	HOOK_MESSAGE( HUDColor );
 	HOOK_MESSAGE( Particle );
 	HOOK_MESSAGE( TempEntity );
@@ -64,6 +67,7 @@ int CHud :: InitMessages( void )
 	HOOK_MESSAGE( AddMirror);
 	HOOK_MESSAGE( AddScreen );
 	HOOK_MESSAGE( AddPortal );
+	HOOK_MESSAGE( ScreenFade );
 	HOOK_MESSAGE( ScreenShake );
 
 	viewEntityIndex = 0; // trigger_viewset stuff
@@ -387,6 +391,18 @@ int CHud::MsgFunc_ServerName( const char *pszName, int iSize, void *pbuf )
 	END_READ();
 	
  	return 1;
+}
+
+int CHud :: MsgFunc_RoomType( const char *pszName, int iSize, void *pbuf )
+{
+	// FIXME: needs callback to sound engine
+	return 1;
+}
+
+int CHud :: MsgFunc_ScreenFade( const char *pszName, int iSize, void *pbuf )
+{
+	// FIXME: implement
+	return 1;
 }
 
 int CHud::MsgFunc_ScreenShake( const char *pszName, int iSize, void *pbuf )

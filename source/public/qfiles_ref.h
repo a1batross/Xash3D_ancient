@@ -903,9 +903,12 @@ included global, and both (client & server) pent list
 */
 #define LUMP_CFGSTRING	"configstrings"
 #define LUMP_AREASTATE	"areaportals"
-#define LUMP_ENTITIES	"entities"
-#define LUMP_GLOBALS	"global_data"
+#define LUMP_ENTITIES	"entities"	// entvars + CBase->fields
+#define LUMP_ENTTABLE	"enttable"	// entity transition table
+#define LUMP_ADJACENCY	"adjacency"	// Save Header + ADJACENCY
+#define LUMP_GLOBALS	"global_data"	// Game Header + Global State
 #define LUMP_GAMECVARS	"latched_cvars"
+#define LUMP_HASHTABLE	"hashtable"	// contains string_t only for used hash-values
 #define LUMP_SNAPSHOT	"saveshot"	// currently not implemented
 
 #define DENT_KEY		0

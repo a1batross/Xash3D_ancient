@@ -891,7 +891,10 @@ int CBaseEntity :: Restore( CRestore &restore )
 	status = restore.ReadEntVars( "ENTVARS", pev );
 	if( status ) status = restore.ReadFields( "BASE", this, m_SaveData, ARRAYSIZE( m_SaveData ));
 
-    	if( pev->modelindex != 0 && !FStringNull( pev->model ))
+	// restore edict class here
+	SetObjectClass( m_iClassType );
+
+	if( pev->modelindex != 0 && !FStringNull( pev->model ))
 	{
 		Vector mins = pev->mins, maxs = pev->maxs; // Set model is about to destroy these
 		

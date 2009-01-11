@@ -1,6 +1,6 @@
 //=======================================================================
 //			Copyright (C) Shambler Team 2004
-//		    	logicentity.cpp - all entities with prefix "logic_"
+//		    logicentity.cpp - all entities with prefix "logic_"
 //			additional entities for smart system			    
 //=======================================================================
 

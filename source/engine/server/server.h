@@ -219,6 +219,7 @@ typedef struct
 	DLL_FUNCTIONS	dllFuncs;			// dll exported funcs
 	byte		*mempool;			// edicts pool
 	byte		*private;			// server.dll private pool
+	byte		*temppool;		// for parse, save and restore edicts
 
 	// library exports table
 	word		*ordinals;
@@ -384,6 +385,7 @@ void SV_CopyTraceToGlobal( trace_t *trace );
 void SV_CopyTraceResult( TraceResult *out, trace_t trace );
 float SV_AngleMod( float ideal, float current, float speed );
 void SV_SpawnEntities( const char *mapname, script_t *entities );
+edict_t* SV_AllocPrivateData( edict_t *ent, string_t className );
 string_t SV_AllocString( const char *szValue );
 const char *SV_GetString( string_t iString );
 

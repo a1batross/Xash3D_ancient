@@ -557,8 +557,11 @@ void SV_SetModel( edict_t *ent, const char *name )
 		break;
 	}
 
-	Matrix3x3_FromAngles( angles, ent->v.m_pmatrix );
-	Matrix3x3_Transpose( ent->v.m_pmatrix, ent->v.m_pmatrix );
+	if( !sv.loadgame )
+	{
+		Matrix3x3_FromAngles( angles, ent->v.m_pmatrix );
+		Matrix3x3_Transpose( ent->v.m_pmatrix, ent->v.m_pmatrix );
+	}
 	SV_CreatePhysBody( ent );
 }
 
@@ -694,6 +697,39 @@ edict_t *SV_AllocEdict( void )
 	SV_InitEdict( pEdict );
 
 	return pEdict;
+}
+
+edict_t* SV_AllocPrivateData( edict_t *ent, string_t className )
+{
+	const char	*pszClassName;
+	LINK_ENTITY_FUNC	SpawnEdict;
+
+	pszClassName = STRING( className );
+	if( !ent ) ent = SV_AllocEdict();
+	else if( ent->free ) SV_InitEdict( ent );	// FIXME
+	ent->v.classname = className;
+	ent->v.pContainingEntity = ent; // re-link
+
+	// allocate edict private memory (passed by dlls)
+	SpawnEdict = (LINK_ENTITY_FUNC)Com_GetProcAddress( svgame.hInstance, pszClassName );
+	if( !SpawnEdict )
+	{
+		// attempt to create custom entity
+		if( svgame.dllFuncs.pfnCreate( ent, pszClassName ) == -1 )
+		{
+			ent->v.flags |= FL_KILLME;
+			MsgDev( D_ERROR, "No spawn function for %s\n", pszClassName );
+			return ent; // this edict will be removed from map
+		}
+	}
+	else SpawnEdict( &ent->v );
+
+	Com_Assert( ent->pvServerData == NULL )
+
+	// also register classname to send for client
+	ent->pvServerData->s.classname = SV_ClassIndex( pszClassName );
+
+	return ent;
 }
 
 void SV_FreeEdicts( void )
@@ -1265,31 +1301,7 @@ pfnCreateNamedEntity
 */
 edict_t* pfnCreateNamedEntity( string_t className )
 {
-	edict_t		*ent;
-	const char	*pszClassName;
-	LINK_ENTITY_FUNC	SpawnEdict;
-
-	pszClassName = STRING( className );
-	ent = pfnCreateEntity();
-	ent->v.classname = className;
-
-	// allocate edict private memory (passed by dlls)
-	SpawnEdict = (LINK_ENTITY_FUNC)Com_GetProcAddress( svgame.hInstance, pszClassName );
-	if( !SpawnEdict )
-	{
-		// attempt to create custom entity
-		if( svgame.dllFuncs.pfnCreate( ent, pszClassName ) == -1 )
-		{
-			MsgDev( D_ERROR, "No spawn function for %s\n", pszClassName );
-			return ent; // this edict needs to be alloced pvPrivateData
-		}
-	}
-	else SpawnEdict( &ent->v );
-
-	// also register classname to send for client
-	ent->pvServerData->s.classname = SV_ClassIndex( pszClassName );
-
-	return ent;
+	return SV_AllocPrivateData( NULL, className );
 }
 
 /*
@@ -2818,11 +2830,9 @@ bool SV_ParseEdict( script_t *script, edict_t *ent )
 	KeyValueData	pkvd[256]; // per one entity
 	int		i, numpairs = 0;
 	const char	*classname = NULL;
-	LINK_ENTITY_FUNC	SpawnEdict;
-	byte		*tempstr;
 	token_t		token;
 
-	tempstr = Mem_AllocPool( "SV Temp Strings" );
+	svgame.temppool = Mem_AllocPool( "SV Temp Strings" );
 
 	// go through all the dictionary pairs
 	while( 1 )
@@ -2848,8 +2858,8 @@ bool SV_ParseEdict( script_t *script, edict_t *ent )
 
 		// create keyvalue strings
 		pkvd[numpairs].szClassName = (char *)classname;	// unknown at this moment
-		pkvd[numpairs].szKeyName = com.stralloc( tempstr, keyname, __FILE__, __LINE__ );
-		pkvd[numpairs].szValue = com.stralloc( tempstr, token.string, __FILE__, __LINE__ );
+		pkvd[numpairs].szKeyName = com.stralloc( svgame.temppool, keyname, __FILE__, __LINE__ );
+		pkvd[numpairs].szValue = com.stralloc( svgame.temppool, token.string, __FILE__, __LINE__ );
 		pkvd[numpairs].fHandled = false;		
 
 		if( !com.strcmp( keyname, "classname" ) && classname == NULL )
@@ -2857,33 +2867,15 @@ bool SV_ParseEdict( script_t *script, edict_t *ent )
 		if( ++numpairs >= 256 ) break;
 	}
 	
-	// allocate edict private memory (passed by dlls)
-	SpawnEdict = (LINK_ENTITY_FUNC)Com_GetProcAddress( svgame.hInstance, classname );
-	if( !SpawnEdict )
-	{
-		// attempt to create custom entity
-		if( svgame.dllFuncs.pfnCreate( ent, classname ) == -1 )
-		{
-			MsgDev( D_ERROR, "No spawn function for %s\n", classname );
-			Mem_FreePool( &tempstr );
-			return false;
-		}
-	}
-	else
-	{
-		ent->v.classname = MAKE_STRING( classname );
-		SpawnEdict( &ent->v );
-	}
+	ent = SV_AllocPrivateData( ent, MAKE_STRING( classname ));
 
-	// apply classname to keyvalue containers and parse fields			
-	ent->pvServerData->s.classname = SV_ClassIndex( classname );
 	for( i = 0; i < numpairs; i++ )
 	{
 		if( pkvd[i].fHandled ) continue;
 		pkvd[i].szClassName = (char *)classname;
 		svgame.dllFuncs.pfnKeyValue( ent, &pkvd[i] );
 	}
-	Mem_FreePool( &tempstr );
+	Mem_FreePool( &svgame.temppool );
 
 	return true;
 }

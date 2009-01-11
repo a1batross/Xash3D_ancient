@@ -57,38 +57,49 @@ static TYPEDESCRIPTION gETable[] =
 	DEFINE_FIELD( ENTITYTABLE, classname, FIELD_STRING ),
 };
 
-// TEST
-uint HashString( const char *pszToken )
+// FIXME: implement _rotr into Xash::stdlib
+static uint SV_HashString( const char *pszToken )
 {
-	uint	hash = 0;
+	uint hash = 0;
 
 	while( *pszToken )
 		hash = _rotr( hash, 4 ) ^ *pszToken++;
 	return hash;
 }
 
-word TokenHash( const char *pszToken, const char **pTokens, uint tokenCount )
+static word SV_TokenHash( const char *pszToken )
 {
-	word hash = (word)(HashString( pszToken ) % (uint)tokenCount );
-	int i, index;
+	word	hash; 
+	int	i, index;
 
-	for( i = 0; i < tokenCount; i++ )
+	// only valid if SAVERESTOREDATA have been initialized
+	if( !svgame.SaveData.pTokens || !svgame.SaveData.tokenCount ) return 0;
+
+	hash = (word)(SV_HashString( pszToken ) % (uint)svgame.SaveData.tokenCount );
+	for( i = 0; i < svgame.SaveData.tokenCount; i++ )
 	{
 		index = hash + i;
-		if( index >= tokenCount )
-			index -= tokenCount;
+		if( index >= svgame.SaveData.tokenCount )
+			index -= svgame.SaveData.tokenCount;
 
-		if( !pTokens[index] || !com.strcmp( pszToken, pTokens[index] ))
+		if( !svgame.SaveData.pTokens[index] || !com.strcmp( pszToken, svgame.SaveData.pTokens[index] ))
 		{
-			pTokens[index] = (char *)pszToken;
+			svgame.SaveData.pTokens[index] = (char *)pszToken;
 			return index;
 		}
 	}
-		
-	// Token hash table full!!! 
-	// [Consider doing overflow table(s) after the main table & limiting linear hash table search]
-	MsgDev( D_ERROR, "CSaveRestoreBuffer :: TokenHash() is COMPLETELY FULL!" );
+	
+	// consider doing overflow table(s) after the main table & limiting linear hash table search
+	MsgDev( D_ERROR, "SV_TokenHash is completely full!\n" );
 	return 0;
+}
+
+static void SV_UpdateTokens( const TYPEDESCRIPTION *fields, int fieldCount )
+{
+	int	i;
+
+	for( i = 0; i < fieldCount; i++, fields++ )
+		SV_TokenHash( fields->fieldName );
 }
 
 static void SV_AddSaveLump( wfile_t *f, const char *lumpname, void *data, size_t len, bool compress )
@@ -102,6 +113,26 @@ static void SV_SetPair( const char *name, const char *value, dkeyvalue_t *cvars,
 	cvars[*numpairs].epair[DENT_KEY] = StringTable_SetString( svgame.hStringTable, name );
 	cvars[*numpairs].epair[DENT_VAL] = StringTable_SetString( svgame.hStringTable, value);
 	(*numpairs)++; // increase epairs
+}
+
+static void SV_SaveBuffer( wfile_t *f, const char *lumpname, bool compress )
+{
+	// write result into lump
+	SV_AddSaveLump( f, lumpname, svgame.SaveData.pBaseData, svgame.SaveData.size, compress );
+
+	// clear buffer after writing
+	Mem_Set( svgame.SaveData.pBaseData, 0, svgame.SaveData.bufferSize );
+	svgame.SaveData.pCurrentData = svgame.SaveData.pBaseData;
+	svgame.SaveData.size = 0; // reset current bufSize
+}
+
+static void SV_ReadBuffer( wfile_t *f, const char *lumpname )
+{
+	// an older pointer will automatically free memory when calling WAD_Close
+	// so we don't need to care about it
+	svgame.SaveData.pBaseData = WAD_Read( f, lumpname, &svgame.SaveData.bufferSize, TYPE_BINDATA );
+	svgame.SaveData.pCurrentData = svgame.SaveData.pBaseData;
+	svgame.SaveData.size = 0; // reset current bufSize
 }
 
 static void SV_SaveEngineData( wfile_t *f )
@@ -130,22 +161,22 @@ static void SV_SaveEngineData( wfile_t *f )
 static void SV_SaveServerData( wfile_t *f )
 {
 	SAVERESTOREDATA	*pSaveData;
-	byte		*savepool;
+	string_t		hash_strings[4095];
+	int		i, numstrings;
 	ENTITYTABLE	*pTable;
 	save_header_t	shdr;
 	game_header_t	ghdr;
-	int		i;
 
 	// initialize local mempool
-	savepool = Mem_AllocPool( "Save Pool" );
+	svgame.temppool = Mem_AllocPool( "Save Pool" );
 
 	// initialize SAVERESTOREDATA
 	Mem_Set( &svgame.SaveData, 0, sizeof( SAVERESTOREDATA ));
 	svgame.SaveData.bufferSize = 0x80000;	// reserve 512K for now
-	svgame.SaveData.pBaseData = Mem_Alloc( savepool, svgame.SaveData.bufferSize );
+	svgame.SaveData.pBaseData = Mem_Alloc( svgame.temppool, svgame.SaveData.bufferSize );
 	svgame.SaveData.pCurrentData = svgame.SaveData.pBaseData;
 	svgame.SaveData.tokenCount = 0xFFF;	// assume a maximum of 4K-1 symbol table entries
-	svgame.SaveData.pTokens = Mem_Alloc( savepool, svgame.SaveData.tokenCount * sizeof( char* ));
+	svgame.SaveData.pTokens = Mem_Alloc( svgame.temppool, svgame.SaveData.tokenCount * sizeof( char* ));
 	svgame.SaveData.time = svgame.globals->time;
 	pSaveData = svgame.globals->pSaveData = &svgame.SaveData;
 
@@ -165,7 +196,7 @@ static void SV_SaveServerData( wfile_t *f )
 
 	// initialize ENTITYTABLE
 	pSaveData->tableCount = svgame.globals->numEntities;
-	pSaveData->pTable = Mem_Alloc( savepool, pSaveData->tableCount * sizeof( ENTITYTABLE ));
+	pSaveData->pTable = Mem_Alloc( svgame.temppool, pSaveData->tableCount * sizeof( ENTITYTABLE ));
 	
 	for( i = 0; i < svgame.globals->numEntities; i++ )
 	{
@@ -173,7 +204,6 @@ static void SV_SaveServerData( wfile_t *f )
 
 		pTable = &pSaveData->pTable[i];		
 		pTable->id = pent->serialnumber;
-		if( pent->free ) pTable->flags |= FENTTABLE_REMOVED;
 		pTable->pent = pent;
 
 		// setup some flags
@@ -191,15 +221,19 @@ static void SV_SaveServerData( wfile_t *f )
 		svgame.dllFuncs.pfnSaveWriteFields( pSaveData, "ADJACENCY", pList, gAdjacency, ARRAYSIZE( gAdjacency ));
 	}
 
+	SV_SaveBuffer( f, LUMP_ADJACENCY, false );
+
 	// write entity descriptions
 	for( i = 0; i < svgame.globals->numEntities; i++ )
 	{
 		edict_t	*pent = EDICT_NUM( i );
 
-		if( pent->free ) continue;
-		svgame.dllFuncs.pfnSave( pent, pSaveData );
+		if( !pent->free && pent->v.classname )
+			svgame.dllFuncs.pfnSave( pent, pSaveData );
 		pSaveData->currentIndex++; // move pointer
 	}
+
+	SV_SaveBuffer( f, LUMP_ENTITIES, false );
 
 	// write entity table
 	for( i = 0; i < pSaveData->tableCount; i++ )
@@ -209,12 +243,7 @@ static void SV_SaveServerData( wfile_t *f )
 	}
 
 	// write result into lump
-	SV_AddSaveLump( f, LUMP_ENTITIES, pSaveData->pBaseData, pSaveData->size, false );
-
-	// clear buffer for global lump
-	Mem_Set( pSaveData->pBaseData, 0, pSaveData->size );
-	pSaveData->pCurrentData = pSaveData->pBaseData;
-	pSaveData->size = 0;
+	SV_SaveBuffer( f, LUMP_ENTTABLE, false );
 
 	// write game header
 	svgame.dllFuncs.pfnSaveWriteFields( pSaveData, "Game Header", &ghdr, gGameHeader, ARRAYSIZE( gGameHeader ));
@@ -223,12 +252,23 @@ static void SV_SaveServerData( wfile_t *f )
 	svgame.dllFuncs.pfnSaveGlobalState( pSaveData );
 
 	// write result into lump
-	SV_AddSaveLump( f, LUMP_GLOBALS, pSaveData->pBaseData, pSaveData->size, false );
+	SV_SaveBuffer( f, LUMP_GLOBALS, false );
+
+	// save used hash strings
+	for( i = numstrings = 0; i < svgame.SaveData.tokenCount; i++ )
+	{
+		if( !svgame.SaveData.pTokens[i] ) continue;
+		hash_strings[numstrings] = StringTable_SetString( svgame.hStringTable, svgame.SaveData.pTokens[i] );
+		numstrings++;
+	}
+
+	// save hash table
+	SV_AddSaveLump( f, LUMP_HASHTABLE, hash_strings, numstrings * sizeof( string_t ), true );
 
 	// do cleanup operations
 	Mem_Set( &svgame.SaveData, 0, sizeof( SAVERESTOREDATA ));
 	svgame.globals->pSaveData = NULL;
-	Mem_FreePool( &savepool );
+	Mem_FreePool( &svgame.temppool );
 }
 
 /*
@@ -268,7 +308,7 @@ void SV_WriteSaveFile( const char *name, bool autosave )
 	// write lumps
 	SV_SaveEngineData( savfile );
 	SV_SaveServerData( savfile );
-	StringTable_Save( svgame.hStringTable, savfile );
+	StringTable_Save( svgame.hStringTable, savfile );	// must be last
 
 	WAD_Close( savfile );
 
@@ -279,27 +319,33 @@ void SV_ReadComment( wfile_t *l )
 {
 	SAVERESTOREDATA	*pSaveData;
 	game_header_t	ghdr;
-	int		i;
 
 	// initialize SAVERESTOREDATA
 	Mem_Set( &svgame.SaveData, 0, sizeof( SAVERESTOREDATA ));
-	svgame.SaveData.pBaseData = WAD_Read( l, LUMP_GLOBALS, &svgame.SaveData.bufferSize, TYPE_BINDATA );
-	svgame.SaveData.pCurrentData = svgame.SaveData.pBaseData;
 	svgame.SaveData.tokenCount = 0xFFF;	// assume a maximum of 4K-1 symbol table entries
 	svgame.SaveData.pTokens = (char **)Z_Malloc( svgame.SaveData.tokenCount * sizeof( char* ));
 	pSaveData = svgame.globals->pSaveData = &svgame.SaveData;
+	SV_ReadBuffer( l, LUMP_GLOBALS );
 
-	// TEST: tokenize strings
-	for( i = 0; i < ARRAYSIZE( gGameHeader ); i++ )
-		TokenHash( gGameHeader[i].fieldName, svgame.SaveData.pTokens, svgame.SaveData.tokenCount );
+	SV_UpdateTokens( gGameHeader, ARRAYSIZE( gGameHeader ));
 
 	// read game header
 	svgame.dllFuncs.pfnSaveReadFields( pSaveData, "Game Header", &ghdr, gGameHeader, ARRAYSIZE( gGameHeader ));
 
 	com.strncpy( svs.comment, ghdr.comment, CS_SIZE );
 	if( svgame.SaveData.pTokens ) Mem_Free( svgame.SaveData.pTokens );
-	if( svgame.SaveData.pBaseData ) Mem_Free( svgame.SaveData.pBaseData );
 	Mem_Set( &svgame.SaveData, 0, sizeof( SAVERESTOREDATA ));
+}
+
+void SV_ReadHashTable( wfile_t *l )
+{
+	string_t	*in_table;
+	int	i, hash_size;
+
+	in_table = (string_t *)WAD_Read( l, LUMP_HASHTABLE, &hash_size, TYPE_BINDATA );
+
+	for( i = 0; i < hash_size / sizeof( string_t ); i++, in_table++ )
+		SV_TokenHash( STRING( *in_table ));
 }
 
 void SV_ReadCvars( wfile_t *l )
@@ -346,24 +392,19 @@ void SV_ReadAreaPortals( wfile_t *l )
 void SV_ReadGlobals( wfile_t *l )
 {
 	SAVERESTOREDATA	*pSaveData;
-	byte		*restorepool;
 	game_header_t	ghdr;
-	int		i;
 
 	// initialize local mempool
-	// restorepool = Mem_AllocPool( "Restore Pool" );
+	svgame.temppool = Mem_AllocPool( "Restore Pool" );
 
 	// initialize SAVERESTOREDATA
 	Mem_Set( &svgame.SaveData, 0, sizeof( SAVERESTOREDATA ));
-	svgame.SaveData.pBaseData = WAD_Read( l, LUMP_GLOBALS, &svgame.SaveData.bufferSize, TYPE_BINDATA );
-	svgame.SaveData.pCurrentData = svgame.SaveData.pBaseData;
 	svgame.SaveData.tokenCount = 0xFFF;	// assume a maximum of 4K-1 symbol table entries
-	svgame.SaveData.pTokens = Mem_Alloc( svgame.mempool, svgame.SaveData.tokenCount * sizeof( char* ));
+	svgame.SaveData.pTokens = Mem_Alloc( svgame.temppool, svgame.SaveData.tokenCount * sizeof( char* ));
 	pSaveData = svgame.globals->pSaveData = &svgame.SaveData;
+	SV_ReadBuffer( l, LUMP_GLOBALS );
 
-	// TEST: tokenize strings
-	for( i = 0; i < ARRAYSIZE( gGameHeader ); i++ )
-		TokenHash( gGameHeader[i].fieldName, svgame.SaveData.pTokens, svgame.SaveData.tokenCount );
+	SV_ReadHashTable( l );
 
 	// read the game header
 	svgame.dllFuncs.pfnSaveReadFields( pSaveData, "Game Header", &ghdr, gGameHeader, ARRAYSIZE( gGameHeader ));
@@ -376,49 +417,50 @@ void SV_ReadGlobals( wfile_t *l )
 	svgame.dllFuncs.pfnRestoreGlobalState( pSaveData );
 	svgame.dllFuncs.pfnServerDeactivate();
 
-	//Mem_FreePool( &restorepool );
+	// leave pool unfreed, because we have partially filled hash tokens
+}
+
+void SV_RestoreEdict( edict_t *ent )
+{
+	SV_SetPhysForce( ent ); // restore forces ...
+	SV_SetMassCentre( ent ); // and mass force
 }
 
 void SV_ReadEntities( wfile_t *l )
 {
 	SAVERESTOREDATA	*pSaveData;
-	byte		*restorepool;
 	ENTITYTABLE	*pTable;
 	LEVELLIST		*pList;
 	save_header_t	shdr;
 	int		i;
 
-	// initialize local mempool
-	//restorepool = Mem_AllocPool( "Restore Pool" );
-
 	// SAVERESTOREDATA partially initialized, continue filling
 	pSaveData = svgame.globals->pSaveData = &svgame.SaveData;
-	svgame.SaveData.pBaseData = WAD_Read( l, LUMP_ENTITIES, &svgame.SaveData.bufferSize, TYPE_BINDATA );
-	svgame.SaveData.pCurrentData = svgame.SaveData.pBaseData;
-	svgame.SaveData.size = 0;
+	SV_ReadBuffer( l, LUMP_ADJACENCY );
 	
-	// TEST: tokenize strings
-	for( i = 0; i < ARRAYSIZE( gSaveHeader ); i++ )
-		TokenHash( gSaveHeader[i].fieldName, svgame.SaveData.pTokens, svgame.SaveData.tokenCount );
-
 	// read save header
 	svgame.dllFuncs.pfnSaveReadFields( pSaveData, "Save Header", &shdr, gSaveHeader, ARRAYSIZE( gSaveHeader ));
 
-	SV_ConfigString( CS_MAXCLIENTS, va("%i", Host_MaxClients()));
+	SV_ConfigString( CS_MAXCLIENTS, va( "%i", Host_MaxClients( )));
 	com.strncpy( sv.name, shdr.mapName, MAX_STRING );
 	svgame.globals->mapname = MAKE_STRING( sv.name );
 	svgame.globals->time = sv.time = shdr.time;
 	pSaveData->connectionCount = shdr.numConnections;
 
+	// read ADJACENCY sections
+	for( i = 0; i < pSaveData->connectionCount; i++ )
+	{
+		pList = &pSaveData->levelList[i];		
+		svgame.dllFuncs.pfnSaveReadFields( pSaveData, "ADJACENCY", pList, gAdjacency, ARRAYSIZE( gAdjacency ));
+	}
+
 	// initialize ENTITYTABLE
 	pSaveData->tableCount = shdr.numEntities;
-	pSaveData->pTable = Mem_Alloc( svgame.mempool, pSaveData->tableCount * sizeof( ENTITYTABLE ));
+	pSaveData->pTable = Mem_Alloc( svgame.temppool, pSaveData->tableCount * sizeof( ENTITYTABLE ));
 	while( svgame.globals->numEntities < shdr.numEntities ) SV_AllocEdict(); // allocate edicts
 
-	// TEST: tokenize strings
-	for( i = 0; i < ARRAYSIZE( gETable ); i++ )
-		TokenHash( gETable[i].fieldName, svgame.SaveData.pTokens, svgame.SaveData.tokenCount );
-		
+	SV_ReadBuffer( l, LUMP_ENTTABLE );
+
 	// read entity table
 	for( i = 0; i < pSaveData->tableCount; i++ )
 	{
@@ -430,20 +472,13 @@ void SV_ReadEntities( wfile_t *l )
 		if( pTable->id != pent->serialnumber )
 			MsgDev( D_ERROR, "ETABLE id( %i ) != edict->id( %i )\n", pTable->id, pent->serialnumber );
 		if( pTable->flags & FENTTABLE_REMOVED ) SV_FreeEdict( pent );
+		else pent = SV_AllocPrivateData( pent, pTable->classname );
 		pTable->pent = pent;
 	}
 
-	// TEST: tokenize strings
-	for( i = 0; i < ARRAYSIZE( gAdjacency ); i++ )
-		TokenHash( gAdjacency[i].fieldName, svgame.SaveData.pTokens, svgame.SaveData.tokenCount );
+	SV_ReadBuffer( l, LUMP_ENTITIES );
+	pSaveData->fUseLandmark = true;
 
-	// read ADJACENCY sections
-	for( i = 0; i < pSaveData->connectionCount; i++ )
-	{
-		pList = &pSaveData->levelList[i];		
-		svgame.dllFuncs.pfnSaveReadFields( pSaveData, "ADJACENCY", pList, gAdjacency, ARRAYSIZE( gAdjacency ));
-	}
-	Com_Assert( 1 );
 	// and read entities ...
 	for( i = 0; i < pSaveData->tableCount; i++ )
 	{
@@ -451,14 +486,18 @@ void SV_ReadEntities( wfile_t *l )
 		pTable = &pSaveData->pTable[i];
 
 		// ignore removed edicts
-		if( pTable->flags & FENTTABLE_REMOVED ) continue;
-		svgame.dllFuncs.pfnRestore( pent, pSaveData, (pTable->flags & FENTTABLE_GLOBAL));
+		if( !pent->free && pTable->classname )
+		{
+			svgame.dllFuncs.pfnRestore( pent, pSaveData, false );
+			SV_RestoreEdict( pent );
+		}
+		pSaveData->currentIndex++;
 	}
-
+		
 	// do cleanup operations
 	Mem_Set( &svgame.SaveData, 0, sizeof( SAVERESTOREDATA ));
 	svgame.globals->pSaveData = NULL;
-	//Mem_FreePool( &restorepool );
+	Mem_FreePool( &svgame.temppool );
 }
 
 /*
@@ -544,13 +583,4 @@ bool SV_GetComment( char *comment, int savenum )
 	WAD_Close( savfile );
 
 	return true;
-}
-
-void SV_RestoreEdict( edict_t *ent )
-{
-	// link it into the bsp tree
-	SV_LinkEdict( ent );
-	SV_CreatePhysBody( ent );
-	SV_SetPhysForce( ent ); // restore forces ...
-	SV_SetMassCentre( ent ); // and mass force
 }

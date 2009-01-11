@@ -239,11 +239,12 @@ int DispatchRestore( edict_t *pent, SAVERESTOREDATA *pSaveData, int globalEntity
 {
 	CBaseEntity *pEntity = (CBaseEntity *)GET_PRIVATE(pent);
 
-	if ( pEntity && pSaveData )
+	if( pEntity && pSaveData )
 	{
 		entvars_t tmpVars;
 		Vector oldOffset;
 
+		ALERT( at_console, "DispatchRestore( %s )\n", STRING( pent->v.classname ));
 		CRestore restoreHelper( pSaveData );
 		if ( globalEntity )
 		{

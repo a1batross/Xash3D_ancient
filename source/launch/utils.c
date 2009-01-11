@@ -289,7 +289,7 @@ int StringTable_CreateNewSystem( const char *name, size_t max_strings )
 		{
 			// found free slot
 			dstring[i] = Mem_Alloc( Sys.basepool, sizeof( stringtable_t ));
-			dstring[i]->mempool = Mem_AllocPool( va( "StringTable_%s", name ));			
+			dstring[i]->mempool = Mem_AllocPool( va( "StringTable_%s", name ));
 			com.strncpy( dstring[i]->name, name, MAX_STRING );
 			dstring[i]->maxdatasize = max_strings * 8;
 			dstring[i]->maxstrings = max_strings;
@@ -393,13 +393,22 @@ bool StringTable_SaveSystem( int h, wfile_t *wad )
 
 int StringTable_LoadSystem( wfile_t *wad, const char *name )
 {
+	int datasize, table_size;
 	int h = StringTable_CreateNewSystem( name, 0x10000 ); // 65535 unique strings
-	int datasize, numstrings;
+	char *data = (char *)W_LoadLump( wad, "stringdata", &datasize, TYPE_STRDATA );
+	int *table = (int *)W_LoadLump( wad, "stringtable", &table_size, TYPE_STRDATA );
 
-	dstring[h]->data = W_LoadLump( wad, "stringdata", &datasize, TYPE_STRDATA );
-	dstring[h]->table = (int *)W_LoadLump( wad, "stringtable", &numstrings, TYPE_STRDATA );
+	if(( datasize > dstring[h]->maxdatasize ) || ((table_size / sizeof( int )) > dstring[h]->maxstrings ))
+		Sys_Error( "Too small StringTable for loading\n" );
+
+#ifndef ST_STATIC_ALLOCATE
+	dstring[h]->data = Mem_Realloc( dstring[handle]->mempool, dstring[handle]->data, datasize );	
+	dstring[h]->table = Mem_Realloc( dstring[handle]->mempool, dstring[handle]->table, table_size );
+#endif
+	Mem_Copy( dstring[h]->data, data, datasize );
+	Mem_Copy( dstring[h]->table, table, table_size ); 
 	dstring[h]->datasize = datasize;
-	dstring[h]->numstrings = numstrings / sizeof(int);
+	dstring[h]->numstrings = table_size / sizeof( int );
 	return h;
 }
 

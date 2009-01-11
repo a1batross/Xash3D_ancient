@@ -228,7 +228,7 @@ typedef struct
 } ENTITYTABLE;
 
 #define FTYPEDESC_GLOBAL		0x0001	// This field is masked for global entity save/restore
-#define MAX_LEVEL_CONNECTIONS		32	// These are encoded in the lower 16bits of ENTITYTABLE->flags
+#define MAX_LEVEL_CONNECTIONS		16	// These are encoded in the lower 16bits of ENTITYTABLE->flags
 
 #define FENTTABLE_GLOBAL		0x10000000
 #define FENTTABLE_MOVEABLE		0x20000000
@@ -300,6 +300,7 @@ typedef struct
 #define DEFINE_FIELD( type, name, fieldtype )		_FIELD( type, name, fieldtype, 1, 0 )
 #define DEFINE_ARRAY( type, name, fieldtype, count )	_FIELD( type, name, fieldtype, count, 0 )
 #define DEFINE_ENTITY_FIELD( name, fieldtype )		_FIELD( entvars_t, name, fieldtype, 1, 0 )
+#define DEFINE_ENTITY_FIELD_ARRAY( name, fieldtype, count )	_FIELD( entvars_t, name, fieldtype, count, 0 )
 #define DEFINE_ENTITY_GLOBAL_FIELD( name, fieldtype )	_FIELD( entvars_t, name, fieldtype, 1, FTYPEDESC_GLOBAL )
 #define DEFINE_GLOBAL_FIELD( type, name, fieldtype )	_FIELD( type, name, fieldtype, 1, FTYPEDESC_GLOBAL )
 
