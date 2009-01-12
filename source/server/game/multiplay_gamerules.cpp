@@ -66,7 +66,7 @@ CHalfLifeMultiplay :: CHalfLifeMultiplay()
 		{
 			char szCommand[256];
 			
-			ALERT( at_debug, "Executing dedicated server config file\n" );
+			ALERT( at_console, "Executing dedicated server config file\n" );
 			sprintf( szCommand, "exec %s\n", servercfgfile );
 			SERVER_COMMAND( szCommand );
 		}
@@ -80,7 +80,7 @@ CHalfLifeMultiplay :: CHalfLifeMultiplay()
 		{
 			char szCommand[256];
 			
-			ALERT( at_debug, "Executing listen server config file\n" );
+			ALERT( at_console, "Executing listen server config file\n" );
 			sprintf( szCommand, "exec %s\n", lservercfgfile );
 			SERVER_COMMAND( szCommand );
 		}

@@ -5,34 +5,8 @@
 #ifndef SVGAME_API_H
 #define SVGAME_API_H
 
-enum
-{
-	WALKMOVE_NORMAL = 0,
-	WALKMOVE_NOMONSTERS,
-	WALKMOVE_MISSILE,
-	WALKMOVE_WORLDONLY,
-	WALKMOVE_HITMODEL,
-	WALKMOVE_CHECKONLY,
-};
-
-#define at_debug		at_console	// FIXME: stupid Laurie stuff
-
-// NOTE: engine trace struct not matched with svgame trace
-typedef struct
-{
-	BOOL		fAllSolid;	// if true, plane is not valid
-	BOOL		fStartSolid;	// if true, the initial point was in a solid area
-	BOOL		fStartStuck;	// if true, trace started from solid entity
-	float		flFraction;	// time completed, 1.0 = didn't hit anything
-	vec3_t		vecEndPos;	// final position
-	int		iStartContents;	// start pos conetnts
-	int		iContents;	// final pos contents
-	int		iHitgroup;	// 0 == generic, non zero is specific body part
-	float		flPlaneDist;	// planes distance
-	vec3_t		vecPlaneNormal;	// surface normal at impact
-	const char	*pTexName;	// texture name that we hitting (brushes and studiomodels)
-	edict_t		*pHit;		// entity the surface is on
-} TraceResult;
+#include "trace_def.h"
+#include "event_api.h"
 
 typedef struct globalvars_s
 {	
@@ -84,6 +58,7 @@ typedef struct enginefuncs_s
 	int	api_size;			// must matched with sizeof( enginefuncs_t )
 
 	void*	(*pfnMemAlloc)( size_t cb, const char *filename, const int fileline );
+	void	(*pfnMemCopy)( void *dest, const void *src, size_t cb, const char *filename, const int fileline );
 	void	(*pfnMemFree)( void *mem, const char *filename, const int fileline );
 	int	(*pfnPrecacheModel)( const char* s );
 	int	(*pfnPrecacheSound)( const char* s );
@@ -110,7 +85,7 @@ typedef struct enginefuncs_s
 	void	(*pfnRemoveEntity)( edict_t* e );
 	edict_t*	(*pfnCreateNamedEntity)( string_t className );
 	void	(*pfnMakeStatic)( edict_t *ent );
-	int	(*pfnEntIsOnFloor)( edict_t *e );
+	void	(*pfnLinkEdict)( edict_t *e );
 	int	(*pfnDropToFloor)( edict_t* e );
 	int	(*pfnWalkMove)( edict_t *ent, float yaw, float dist, int iMode );
 	void	(*pfnSetOrigin)( edict_t *e, const float *rgflOrigin );
@@ -192,6 +167,10 @@ typedef struct enginefuncs_s
 	void	(*pfnSetKeyValue)( char *infobuffer, char *key, char *value );
 	char*	(*pfnGetInfoKeyBuffer)( edict_t *e );	// passing in NULL gets the serverinfo
 	void	(*pfnSetClientKeyValue)( int clientIndex, char *infobuffer, char *key, char *value );
+
+	word	(*pfnPrecacheEvent)( int type, const char *psz );
+	void	(*pfnPlaybackEvent)( int flags, const edict_t *pInvoker, word eventindex, float delay, event_args_t *args );
+	BOOL	(*pfnCanSkipPlayer)( const edict_t *player );
 
 	void	(*pfnSetSkybox)( const char *name );
 	void	(*pfnPlayMusic)( const char *trackname, int flags );	// background track
@@ -311,14 +290,14 @@ typedef struct
 
 	// initialize/shutdown the game (one-time call after loading of game .dll )
 	void	(*pfnGameInit)( void );				
+	void	(*pfnGameShutdown)( void );
 	int	(*pfnSpawn)( edict_t *pent );
-	int	(*pfnCreate)( edict_t *pent, const char *szName );
+	int	(*pfnCreate)( edict_t *pent, const char *szName );	// create custom entities
 	void	(*pfnThink)( edict_t *pent );
 	void	(*pfnUse)( edict_t *pentUsed, edict_t *pentOther );
 	void	(*pfnTouch)( edict_t *pentTouched, edict_t *pentOther );
 	void	(*pfnBlocked)( edict_t *pentBlocked, edict_t *pentOther );
 	void	(*pfnKeyValue)( edict_t *pentKeyvalue, KeyValueData *pkvd );
-	void	(*pfnFrame)( edict_t *pent );
 	void	(*pfnSave)( edict_t *pent, SAVERESTOREDATA *pSaveData );
 	int 	(*pfnRestore)( edict_t *pent, SAVERESTOREDATA *pSaveData, int globalEntity );
 	void	(*pfnSetAbsBox)( edict_t *pent );
@@ -342,19 +321,18 @@ typedef struct
 	void	(*pfnPlayerPostThink)( edict_t *pEntity );
 
 	void	(*pfnStartFrame)( void );
+	void	(*pfnFrame)( edict_t *pent );
 	void	(*pfnEndFrame)( void );
 	void	(*pfnBuildLevelList)( void );
+
+	void	(*pfnClassifyEdict)( edict_t *pentToClassify );
+	void	(*pfnUpdateEntityState)( struct entity_state_s *to, edict_t *from, int baseline );
 
 	 // returns string describing current .dll.  E.g., TeamFotrress 2, Half-Life
 	const char *(*pfnGetGameDescription)( void );     
 } DLL_FUNCTIONS;
 
-// TODO: create single func
-// typedef DLL_FUNCTIONS *(*GetEntityAPI)( enginefuncs_t* engfuncs, globalvars_t *pGlobals );
-// set pointer to globals, returns export of dll_functions and use CreateAPI as base offset
-
-typedef void (*GIVEFNPTRSTODLL)( enginefuncs_t* engfuncs, globalvars_t *pGlobals );
-typedef int (*APIFUNCTION)( DLL_FUNCTIONS *pFunctionTable, int interfaceVersion );
+typedef int (*SERVERAPI)( DLL_FUNCTIONS *pFunctionTable, enginefuncs_t* engfuncs, globalvars_t *pGlobals );
 typedef void (*LINK_ENTITY_FUNC)( entvars_t *pev );
 
 #endif//SVGAME_API_H

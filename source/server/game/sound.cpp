@@ -249,16 +249,16 @@ void CAmbientGeneric :: Precache( void )
 			m_fActive = TRUE;
 	}
 
-	if (pev->target)
+	if( pev->target )
 	{
 		CBaseEntity *pTarget = UTIL_FindEntityByTargetname( NULL, STRING(pev->target));
-		if (!pTarget)
+
+		if( !pTarget )
 		{
-			ALERT(at_debug, "WARNING: ambient_generic \"%s\" can't find \"%s\", its entity to play from.\n",
+			ALERT( at_warning, "ambient_generic \"%s\" can't find \"%s\", its entity to play from.\n",
 					STRING(pev->targetname), STRING(pev->target));
 		}
-		else
-			m_pPlayFrom = ENT(pTarget->pev);
+		else m_pPlayFrom = ENT( pTarget->pev );
 	}
 
 	if ( m_fActive )
@@ -1112,7 +1112,7 @@ int SENTENCEG_PlayRndSz(edict_t *entity, const char *szgroupname,
 	isentenceg = SENTENCEG_GetIndex(szgroupname);
 	if (isentenceg < 0)
 	{
-		ALERT( at_debug, "No such sentence group %s\n", szgroupname );
+		ALERT( at_console, "No such sentence group %s\n", szgroupname );
 		return -1;
 	}
 
@@ -1808,8 +1808,8 @@ void CSpeaker :: SpeakerThink( void )
 	{
 		// make random announcement from sentence group
 
-		if (SENTENCEG_PlayRndSz(ENT(pev), szSoundFile, flvolume, flattenuation, flags, pitch) < 0)
-			ALERT(at_debug, "Level Design Error!\nSPEAKER has bad sentence group name: %s\n",szSoundFile); 
+		if( SENTENCEG_PlayRndSz( ENT( pev ), szSoundFile, flvolume, flattenuation, flags, pitch ) < 0 )
+			ALERT( at_console, "Level Design Error!\nSPEAKER has bad sentence group name: %s\n",szSoundFile); 
 
 		// set next announcement time for random 5 to 10 minute delay
 		SetNextThink( RANDOM_FLOAT(ANNOUNCE_MINUTES_MIN * 60.0, ANNOUNCE_MINUTES_MAX * 60.0) );

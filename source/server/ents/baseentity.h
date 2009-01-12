@@ -2,9 +2,10 @@
 //			Copyright (C) XashXT Group 2006
 //=======================================================================
 
-
 #ifndef BASEENTITY_H
 #define BASEENTITY_H
+
+#include "entity_state.h"
 
 class CBaseEntity
 {

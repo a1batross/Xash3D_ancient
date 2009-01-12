@@ -897,6 +897,14 @@ void EndFrame( void )
 {
 }
 
+void ServerClassifyEdict( edict_t *pentToClassify )
+{
+}
+
+void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
+{
+}
+
 void ClientPrecache( void )
 {
 	// Material System!!! move this in next versions

@@ -2254,7 +2254,7 @@ BOOL CBaseMonster :: FindCover ( Vector vecThreat, Vector vecViewOffset, float f
 	if ( flMinDist > 0.5 * flMaxDist)
 	{
 #if _DEBUG
-		ALERT ( at_debug, "FindCover MinDist (%.0f) too close to MaxDist (%.0f)\n", flMinDist, flMaxDist );
+		ALERT ( at_console, "FindCover MinDist (%.0f) too close to MaxDist (%.0f)\n", flMinDist, flMaxDist );
 #endif
 		flMinDist = 0.5 * flMaxDist;
 	}
@@ -2359,7 +2359,7 @@ BOOL CBaseMonster :: BuildNearestRoute ( Vector vecThreat, Vector vecViewOffset,
 	if ( flMinDist > 0.5 * flMaxDist)
 	{
 #if _DEBUG
-		ALERT ( at_debug, "FindCover MinDist (%.0f) too close to MaxDist (%.0f)\n", flMinDist, flMaxDist );
+		ALERT ( at_console, "FindCover MinDist (%.0f) too close to MaxDist (%.0f)\n", flMinDist, flMaxDist );
 #endif
 		flMinDist = 0.5 * flMaxDist;
 	}
@@ -3130,7 +3130,7 @@ int CBaseMonster :: CanPlaySequence( int interruptFlags )
 		else
 		{
 #ifdef DEBUG_CANTPLAY
-			ALERT(at_debug, "CANTPLAY: Already playing %s \"%s\"!\n", STRING(m_pCine->pev->classname), STRING(m_pCine->pev->targetname));
+			ALERT(at_console, "CANTPLAY: Already playing %s \"%s\"!\n", STRING(m_pCine->pev->classname), STRING(m_pCine->pev->targetname));
 #endif
 			return false;
 		}
@@ -3138,7 +3138,7 @@ int CBaseMonster :: CanPlaySequence( int interruptFlags )
 	else if ( !IsAlive() || m_MonsterState == MONSTERSTATE_PRONE )
 	{
 #ifdef DEBUG_CANTPLAY
-		ALERT(at_debug, "CANTPLAY: Dead/Barnacled!\n");
+		ALERT(at_console, "CANTPLAY: Dead/Barnacled!\n");
 #endif
 		// monster is already running a scripted sequence or dead!
 		return FALSE;
@@ -3161,7 +3161,7 @@ int CBaseMonster :: CanPlaySequence( int interruptFlags )
 
 	// unknown situation
 #ifdef DEBUG_CANTPLAY
-	ALERT(at_debug, "CANTPLAY: non-interruptable state.\n");
+	ALERT(at_console, "CANTPLAY: non-interruptable state.\n");
 #endif
 	return FALSE;
 }
@@ -3728,7 +3728,7 @@ void CBaseMonster :: ChangeSchedule ( Schedule_t *pNewSchedule )
 #if _DEBUG
 	if ( !ScheduleFromName( pNewSchedule->pName ) )
 	{
-		ALERT( at_debug, "Schedule %s not in table!!!\n", pNewSchedule->pName );
+		ALERT( at_console, "Schedule %s not in table!!!\n", pNewSchedule->pName );
 	}
 #endif
 	
@@ -6178,7 +6178,7 @@ CBaseEntity* CBaseMonster :: DropItem ( char *pszItemName, const Vector &vecPos,
 {
 	if ( !pszItemName )
 	{
-		ALERT ( at_debug, "DropItem() - No item name!\n" );
+		ALERT ( at_console, "DropItem() - No item name!\n" );
 		return NULL;
 	}
 
@@ -6193,7 +6193,7 @@ CBaseEntity* CBaseMonster :: DropItem ( char *pszItemName, const Vector &vecPos,
 	}
 	else
 	{
-		ALERT ( at_debug, "DropItem() - Didn't create!\n" );
+		ALERT ( at_console, "DropItem() - Didn't create!\n" );
 		return FALSE;
 	}
 

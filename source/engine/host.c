@@ -615,12 +615,12 @@ void Host_Init( int argc, char **argv)
 	host.state = HOST_INIT;	// initialzation started
 	host.type = g_Instance;
 
-	Host_InitCommon( argc, argv ); // loading common.dll
+	Host_InitCommon( argc, argv );
 	Key_Init();
 
 	// get default configuration
-	Cbuf_AddText("exec keys.rc\n");
-	Cbuf_AddText("exec vars.rc\n");
+	Cbuf_AddText( "exec keys.rc\n" );
+	Cbuf_AddText( "exec vars.rc\n" );
 	Cbuf_Execute();
 
 	// init commands and vars

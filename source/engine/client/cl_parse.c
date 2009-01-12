@@ -296,6 +296,7 @@ CL_ParseConfigString
 void CL_ParseConfigString( sizebuf_t *msg )
 {
 	int	i;
+	float	value;
 
 	i = MSG_ReadShort( msg );
 	if( i < 0 || i >= MAX_CONFIGSTRINGS )
@@ -306,6 +307,18 @@ void CL_ParseConfigString( sizebuf_t *msg )
 	if( i == CS_SKYNAME && cl.video_prepped )
 	{
 		re->RegisterShader( cl.configstrings[CS_SKYNAME], SHADER_SKY );
+	}
+	else if( i == CS_MAXVELOCITY )
+	{
+		value = com.atof( cl.configstrings[CS_MAXVELOCITY] );
+		if( value > 0 ) clgame.maxVelocity = value;
+		else clgame.maxVelocity = com.atof( DEFAULT_MAXVELOCITY );
+	}
+	else if( i == CS_GRAVITY )
+	{
+		value = com.atof( cl.configstrings[CS_GRAVITY] );
+		if( value > 0 ) clgame.gravity = value;
+		else clgame.gravity = com.atof( DEFAULT_GRAVITY );
 	}
 	else if( i == CS_BACKGROUND_TRACK && cl.audio_prepped )
 	{

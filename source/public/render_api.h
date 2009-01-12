@@ -1,9 +1,11 @@
-	//=======================================================================
+//=======================================================================
 //			Copyright XashXT Group 2008 ©
 //		         render_api.h - xash renderer api
 //=======================================================================
 #ifndef RENDER_API_H
 #define RENDER_API_H
+
+#include "ref_params.h"
 
 // shader types used for shader loading
 #define SHADER_SKY			0	// sky box shader

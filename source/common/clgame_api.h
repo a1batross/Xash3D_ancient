@@ -5,156 +5,49 @@
 #ifndef CLGAME_API_H
 #define CLGAME_API_H
 
-typedef int HSPRITE;						// handle to a graphic
+typedef int		HSPRITE;					// handle to a graphic
+typedef struct ref_params_s	ref_params_t;
+typedef struct dstudioevent_s	dstudioevent_t;
 typedef int (*pfnUserMsgHook)( const char *pszName, int iSize, void *pbuf );	// user message handle
+typedef void (*pfnEventHook)( struct event_args_s *args );
 
-typedef enum 
-{
-	TRI_FRONT = 0,
-	TRI_BACK,
-	TRI_NONE,
-} TRI_CULL;
+#include "trace_def.h"
+#include "event_api.h"
 
-typedef enum
-{
-	TRI_TRIANGLES = 0,
-	TRI_TRIANGLE_FAN,
-	TRI_TRIANGLE_STRIP,
-	TRI_POLYGON,
-	TRI_QUADS,
-	TRI_LINES,	
-} TRI_DRAW;
-
-typedef struct triapi_s
-{
-	size_t	api_size;			// must match with sizeof( triapi_t );
-
-	void	(*Bind)( HSPRITE shader );	// use handle that return pfnLoadShader
-	void	(*Begin)( TRI_DRAW mode );
-	void	(*End)( void );
-
-	void	(*Vertex2f)( float x, float y );
-	void	(*Vertex3f)( float x, float y, float z );
-	void	(*Vertex2fv)( const float *v );
-	void	(*Vertex3fv)( const float *v );
-	void	(*Color3f)( float r, float g, float b );
-	void	(*Color4f)( float r, float g, float b, float a );
-	void	(*Color4ub)( byte r, byte g, byte b, byte a );
-	void	(*TexCoord2f)( float u, float v );
-	void	(*TexCoord2fv)( const float *v );
-	void	(*CullFace)( TRI_CULL mode );
-} triapi_t;
-
-// FIXME: get rid of this
 typedef struct
 {
-	char	*name;
-	short	ping;
-	byte	thisplayer;	// TRUE if this is the calling player
-
-	// stuff that's unused at the moment,  but should be done
-	byte	spectator;
-	byte	packetloss;
-
-	char	*model;
-	short	topcolor;
-	short	bottomcolor;
-
+	char		*name;
+	short		ping;
+	byte		thisplayer;	// TRUE if this is the calling player
+	byte		packetloss;	// TRUE if current packet is loose
 } hud_player_info_t;
 
-// FIXME: get rid of this
 typedef struct client_textmessage_s
 {
-	int	effect;
-	byte	r1, g1, b1, a1;		// 2 colors for effects
-	byte	r2, g2, b2, a2;
-	float	x;
-	float	y;
-	float	fadein;
-	float	fadeout;
-	float	holdtime;
-	float	fxtime;
-	const char *pName;
-	const char *pMessage;
+	int		effect;
+	byte		r1, g1, b1, a1;	// 2 colors for effects
+	byte		r2, g2, b2, a2;
+	float		x;
+	float		y;
+	float		fadein;
+	float		fadeout;
+	float		holdtime;
+	float		fxtime;
+	const char	*pName;
+	const char	*pMessage;
 } client_textmessage_t;
 
 typedef struct client_data_s
 {
-	vec3_t	origin;
-	vec3_t	angles;
+	vec3_t		origin;		// cl.origin
+	vec3_t		angles;		// cl.viewangles
 
-	int	iKeyBits;		// Keyboard bits
-	int64	iWeaponBits;	// came from pev->weapons
-	float	fov;		// field of view
-	float	v_idlescale;	// view shake/rotate
-	float	mouse_sensitivity;	// used for menus
+	int		iKeyBits;		// Keyboard bits
+	int64		iWeaponBits;	// came from pev->weapons
+	float		v_idlescale;	// view shake/rotate
+	float		mouse_sensitivity;	// used for menus
+	float		fov;		// field of view
 } client_data_t;
-
-// NOTE: engine trace struct not matched with clgame trace
-typedef struct
-{
-	BOOL		fAllSolid;	// if true, plane is not valid
-	BOOL		fStartSolid;	// if true, the initial point was in a solid area
-	BOOL		fStartStuck;	// if true, trace started from solid entity
-	float		flFraction;	// time completed, 1.0 = didn't hit anything
-	vec3_t		vecEndPos;	// final position
-	int		iStartContents;	// start pos conetnts
-	int		iContents;	// final pos contents
-	int		iHitgroup;	// 0 == generic, non zero is specific body part
-	float		flPlaneDist;	// planes distance
-	vec3_t		vecPlaneNormal;	// surface normal at impact
-	const char	*pTexName;	// texture name that we hitting (brushes and studiomodels)
-	edict_t		*pHit;		// entity the surface is on
-} TraceResult;
-
-typedef struct ref_params_s
-{
-	// output
-	int	viewport[4];	// x, y, width, height
-	vec3_t	vieworg;
-	vec3_t	viewangles;
-	float	fov_x;
-	float	fov_y;		// fov_y = V_CalcFov( fov_x, viewport[2], viewport[3] );
-
-	vec3_t	forward;
-	vec3_t	right;
-	vec3_t	up;
-	
-	float	frametime;	// client frametime
-	float	lerpfrac;		// between oldframe and frame
-	float	time;		// client time
-	float	oldtime;		// studio lerping
-
-	// misc
-	BOOL	intermission;
-	BOOL	demoplayback;
-	BOOL	demorecord;
-	BOOL	spectator;
-	BOOL	paused;
-	uint	rdflags;		// client view effects: RDF_UNDERWATER, RDF_MOTIONBLUR, etc
-	edict_t	*onground;	// pointer to onground entity
-	byte	*areabits;	// come from server, contains visible areas list
-	int	waterlevel;
-
-	// input
-	vec3_t	velocity;
-	vec3_t	angles;		// input viewangles
-	vec3_t	origin;		// origin + viewheight = vieworg
-	vec3_t	old_angles;	// prev.state values to interpolate from
-	vec3_t	old_origin;
-
-	vec3_t	viewheight;
-	float	idealpitch;
-
-	int	health;
-	vec3_t	crosshairangle;	// pfnCrosshairAngle values from server
-	vec3_t	punchangle;	// recivied from server
-	edict_t	*viewentity;
-	int	clientnum;
-	int	num_entities;
-	int	max_entities;
-	int	max_clients;
-} ref_params_t;
 
 typedef struct cl_enginefuncs_s
 {
@@ -163,6 +56,7 @@ typedef struct cl_enginefuncs_s
 
 	// engine memory manager
 	void*	(*pfnMemAlloc)( size_t cb, const char *filename, const int fileline );
+	void	(*pfnMemCopy)( void *dest, const void *src, size_t cb, const char *filename, const int fileline );
 	void	(*pfnMemFree)( void *mem, const char *filename, const int fileline );
 
 	// screen handlers
@@ -173,7 +67,8 @@ typedef struct cl_enginefuncs_s
 
 	// cvar handlers
 	void	(*pfnRegisterVariable)( const char *szName, const char *szValue, int flags, const char *szDesc );
-	void	(*pfnCvarSetValue)( const char *cvar, float value );
+	void	(*pfnCvarSetString)( const char *szName, const char *szValue );
+	void	(*pfnCvarSetValue)( const char *szName, float flValue );
 	float	(*pfnGetCvarFloat)( const char *szName );
 	char*	(*pfnGetCvarString)( const char *szName );
 
@@ -188,7 +83,7 @@ typedef struct cl_enginefuncs_s
 	client_textmessage_t *(*pfnTextMessageGet)( const char *pName );
 
 	int       (*pfnCmdArgc)( void );	
-	char	*(*pfnCmdArgv)( int argc );
+	char*	(*pfnCmdArgv)( int argc );
 	void	(*pfnAlertMessage)( ALERT_TYPE, char *szFmt, ... );
 	
 	// sound handlers (NULL origin == play at current client origin)
@@ -216,6 +111,18 @@ typedef struct cl_enginefuncs_s
 
 	int	(*pfnPointContents)( const float *rgflVector );
 	void	(*pfnTraceLine)( const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr );
+	void	(*pfnTraceToss)( edict_t* pent, edict_t* pentToIgnore, TraceResult *ptr );
+	void	(*pfnTraceHull)( const float *v1, const float *mins, const float *maxs, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr );
+	void	(*pfnTraceModel)( const float *v1, const float *v2, edict_t *pent, TraceResult *ptr );
+	const char *(*pfnTraceTexture)( edict_t *pTextureEntity, const float *v1, const float *v2 );
+
+	word	(*pfnPrecacheEvent)( int type, const char* psz );
+	void	(*pfnHookEvent)( const char *name, pfnEventHook pfn );
+	void	(*pfnPlaybackEvent)( int flags, const edict_t *pInvoker, word eventindex, float delay, event_args_t *args );
+	void	(*pfnKillEvent)( word eventindex );
+
+	string_t	(*pfnAllocString)( const char *szValue );
+	const char *(*pfnGetString)( string_t iString );
 
 	long	(*pfnRandomLong)( long lLow, long lHigh );
 	float	(*pfnRandomFloat)( float flLow, float flHigh );
@@ -224,7 +131,8 @@ typedef struct cl_enginefuncs_s
 	void	(*pfnGetGameDir)( char *szGetGameDir );
 	void	(*pfnHostError)( const char *szFmt, ... );		// invoke host error
 
-	triapi_t	*pTriAPI;
+	struct triapi_s *pTriAPI;
+	struct efxapi_s *pEfxAPI;
 
 } cl_enginefuncs_t;
 
@@ -244,10 +152,10 @@ typedef struct
 	void	(*pfnDrawTransparentTriangles)( void );
 	void	(*pfnCreateEntities)( void );
 	void	(*pfnStudioEvent)( const dstudioevent_t *event, edict_t *entity );
-	void	(*pfnCalcRefdef)( ref_params_t *parms );
+	void	(*pfnCalcRefdef)( struct ref_params_s *parms );
 
 } HUD_FUNCTIONS;
 
-typedef int (*CLIENTAPI)( HUD_FUNCTIONS *pFunctionTable, cl_enginefuncs_t* pEngfuncsFromEngine, int interfaceVersion );
+typedef int (*CLIENTAPI)( HUD_FUNCTIONS *pFunctionTable, cl_enginefuncs_t* pEngfuncsFromEngine );
 
 #endif//CLGAME_API_H

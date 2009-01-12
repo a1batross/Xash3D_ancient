@@ -9,6 +9,8 @@
 #include "matrix_lib.h"
 #include "com_library.h"
 #include "const.h"
+#include "triangle_api.h"
+#include "effects_api.h"
 
 /*
 ====================
@@ -26,6 +28,43 @@ edict_t *CL_GetEdictByIndex( int index )
 		return NULL;
 	}
 	return EDICT_NUM( index );
+}
+
+static trace_t CL_TraceToss( edict_t *tossent, edict_t *ignore)
+{
+	int	i;
+	float	gravity;
+	vec3_t	move, end;
+	vec3_t	original_origin;
+	vec3_t	original_velocity;
+	vec3_t	original_angles;
+	vec3_t	original_avelocity;
+	trace_t	trace;
+
+	VectorCopy( tossent->v.origin, original_origin );
+	VectorCopy( tossent->v.velocity, original_velocity );
+	VectorCopy( tossent->v.angles, original_angles );
+	VectorCopy( tossent->v.avelocity, original_avelocity );
+	gravity = tossent->v.gravity * clgame.gravity * 0.05;
+
+	for( i = 0; i < 200; i++ )
+	{
+		// LordHavoc: sanity check; never trace more than 10 seconds
+		CL_CheckVelocity( tossent );
+		tossent->v.velocity[2] -= gravity;
+		VectorMA( tossent->v.angles, 0.05, tossent->v.avelocity, tossent->v.angles );
+		VectorScale( tossent->v.velocity, 0.05, move );
+		VectorAdd( tossent->v.origin, move, end );
+		trace = CL_Trace( tossent->v.origin, tossent->v.mins, tossent->v.maxs, end, MOVE_NORMAL, tossent, CL_ContentsMask( tossent ));
+		VectorCopy( trace.endpos, tossent->v.origin );
+		if( trace.fraction < 1 ) break;
+	}
+	VectorCopy( original_origin, tossent->v.origin );
+	VectorCopy( original_velocity, tossent->v.velocity );
+	VectorCopy( original_angles, tossent->v.angles );
+	VectorCopy( original_avelocity, tossent->v.avelocity );
+
+	return trace;
 }
 
 /*
@@ -394,13 +433,24 @@ void pfnRegisterVariable( const char *szName, const char *szValue, int flags, co
 
 /*
 =============
+pfnCvarSetString
+
+=============
+*/
+void pfnCvarSetString( const char *szName, const char *szValue )
+{
+	Cvar_Set( szName, szValue );
+}
+
+/*
+=============
 pfnCvarSetValue
 
 =============
 */
-void pfnCvarSetValue( const char *cvar, float value )
+void pfnCvarSetValue( const char *szName, float flValue )
 {
-	Cvar_SetValue( cvar, value );
+	Cvar_SetValue( szName, flValue );
 }
 
 /*
@@ -834,6 +884,105 @@ static void pfnTraceLine( const float *v1, const float *v2, int fNoMonsters, edi
 }
 
 /*
+=================
+pfnTraceToss
+
+=================
+*/
+static void pfnTraceToss( edict_t* pent, edict_t* pentToIgnore, TraceResult *ptr )
+{
+	trace_t		trace;
+
+	if( pent == EDICT_NUM( 0 )) return;
+	trace = CL_TraceToss( pent, pentToIgnore );
+	CL_CopyTraceResult( ptr, trace );
+}
+
+/*
+=================
+pfnTraceHull
+
+=================
+*/
+static void pfnTraceHull( const float *v1, const float *mins, const float *maxs, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr )
+{
+	trace_t	trace;
+	int	move;
+
+	move = (fNoMonsters) ? MOVE_NOMONSTERS : MOVE_NORMAL;
+
+	if( IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2] ))
+		Host_Error( "CL_TraceHull: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
+
+	trace = CL_Trace( v1, mins, mins, v2, move, pentToSkip, CL_ContentsMask( pentToSkip ));
+	CL_CopyTraceResult( ptr, trace );
+}
+
+static void pfnTraceModel( const float *v1, const float *v2, edict_t *pent, TraceResult *ptr )
+{
+	// FIXME: implement
+}
+
+static const char *pfnTraceTexture( edict_t *pTextureEntity, const float *v1, const float *v2 )
+{
+	trace_t	trace;
+
+	if( IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2] ))
+		Host_Error( "CL_TraceTexture: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
+
+	trace = CL_Trace( v1, vec3_origin, vec3_origin, v2, MOVE_NOMONSTERS, NULL, CL_ContentsMask( pTextureEntity ));
+
+	if( trace.surface )
+		return trace.surface->name;
+	return NULL;
+}
+
+/*
+=============
+pfnPrecacheEvent
+
+=============
+*/
+static word pfnPrecacheEvent( int type, const char* psz )
+{
+	// FIXME: implement
+	return 0;
+}
+
+/*
+=============
+pfnHookEvent
+
+=============
+*/
+static void pfnHookEvent( const char *name, pfnEventHook pfn )
+{
+	// FIXME: implement
+}
+
+/*
+=============
+pfnPlaybackEvent
+
+=============
+*/
+static void pfnPlaybackEvent( int flags, const edict_t *pInvoker, word eventindex, float delay, event_args_t *args )
+{
+	// FIXME: implement
+}
+
+/*
+=============
+pfnKillEvent
+
+=============
+*/
+static void pfnKillEvent( word eventindex )
+{
+	// FIXME: implement
+}
+
+/*
 =============
 CL_AllocString
 
@@ -859,18 +1008,25 @@ static triapi_t gTriApi =
 {
 	sizeof( triapi_t ),	
 };
+
+static efxapi_t gEfxApi =
+{
+	sizeof( efxapi_t ),	
+};
 					
 // engine callbacks
 static cl_enginefuncs_t gEngfuncs = 
 {
 	sizeof( cl_enginefuncs_t ),
 	pfnMemAlloc,
+	pfnMemCopy,
 	pfnMemFree,
 	pfnLoadShader,
 	pfnFillRGBA,
 	pfnDrawImageExt,
 	pfnSetColor,
 	pfnRegisterVariable,
+	pfnCvarSetString,
 	pfnCvarSetValue,
 	pfnGetCvarFloat,
 	pfnGetCvarString,
@@ -902,13 +1058,24 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnMakeLevelShot,						
 	pfnPointContents,
 	pfnTraceLine,
+	pfnTraceToss,
+	pfnTraceHull,
+	pfnTraceModel,
+	pfnTraceTexture,
+	pfnPrecacheEvent,
+	pfnHookEvent,
+	pfnPlaybackEvent,
+	pfnKillEvent,
+	CL_AllocString,
+	CL_GetString,	
 	pfnRandomLong,
 	pfnRandomFloat,
 	pfnLoadFile,
 	pfnFileExists,
 	pfnGetGameDir,				
 	Host_Error,
-	&gTriApi
+	&gTriApi,
+	&gEfxApi
 };
 
 /*
@@ -959,7 +1126,7 @@ bool CL_LoadProgs( const char *name )
 		return false;
 	}
 
-	if( !GetClientAPI( &cls.dllFuncs, &gEngfuncs, INTERFACE_VERSION ))
+	if( !GetClientAPI( &cls.dllFuncs, &gEngfuncs ))
 	{
 		MsgDev( D_ERROR, "CL_LoadProgs: can't init client API\n" );
 		return false;
@@ -974,6 +1141,9 @@ bool CL_LoadProgs( const char *name )
 	// register svc_bad message
 	pfnHookUserMsg( "bad", NULL );
 	CL_LinkUserMessage( "bad@0", svc_bad );
+
+	clgame.gravity = com.atof( DEFAULT_GRAVITY );
+	clgame.maxVelocity = com.atof( DEFAULT_MAXVELOCITY );
 
 	for( i = 0, e = EDICT_NUM( 0 ); i < clgame.maxEntities; i++, e++ )
 		e->free = true; // mark all edicts as freed

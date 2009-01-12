@@ -16,25 +16,15 @@
 #define MAX_STRING		256	// generic string
 #define MAX_SYSPATH		1024	// system filepath
 #define MAX_MSGLEN		32768	// max length of network message
-#define IsColorString(p)	( p && *(p) == STRING_COLOR_TAG && *((p)+1) && *((p)+1) != STRING_COLOR_TAG )
+#define IsColorString( p )	( p && *(p) == STRING_COLOR_TAG && *((p)+1) && *((p)+1) != STRING_COLOR_TAG )
 #define bound(min, num, max)	((num) >= (min) ? ((num) < (max) ? (num) : (max)) : (min))
-#define DLLEXPORT		__declspec( dllexport )
 #define MAX_STRING_TABLES	8	// seperately stringsystems
 #ifndef __cplusplus
 #define bool		BOOL	// sizeof( int )
 #endif
 
-// generic engine types
-typedef unsigned char 	byte;
-typedef unsigned short	word;
-typedef unsigned long	dword;
-typedef unsigned int	uint;
-typedef int		func_t;
-typedef int		sound_t;
-typedef int		model_t;
-typedef int		video_t;
-typedef int		string_t;
-typedef int		shader_t;
+#include "basetypes.h"
+
 typedef float		vec_t;
 typedef vec_t		vec2_t[2];
 typedef vec_t		vec3_t[3];
@@ -42,7 +32,6 @@ typedef vec_t		vec4_t[4];
 typedef vec_t		matrix3x3[3][3];
 typedef vec_t		matrix4x4[4][4];
 typedef char		string[MAX_STRING];
-typedef struct edict_s	edict_t;
 typedef struct pr_edict_s	pr_edict_t;
 typedef struct cl_edict_s	cl_edict_t;
 typedef struct ui_edict_s	ui_edict_t;
@@ -54,14 +43,6 @@ typedef struct physbody_s	physbody_t;
 
 // FIXME: get rid of this
 typedef vec_t		gl_matrix[16];
-
-#ifndef NULL
-#define NULL		((void *)0)
-#endif
-
-#ifndef BIT
-#define BIT( n )		(1<<( n ))
-#endif
 
 // platform instances
 typedef enum

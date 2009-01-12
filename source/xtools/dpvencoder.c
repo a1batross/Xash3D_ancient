@@ -3,7 +3,7 @@
 //			dpvencoder.c - DP video encoder
 //=======================================================================
 
-#include "platform.h"
+#include "xtools.h"
 #include "utils.h"
 
 byte *dpvpool;

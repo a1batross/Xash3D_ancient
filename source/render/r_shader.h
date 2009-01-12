@@ -375,7 +375,7 @@ typedef struct stageBundle_s
 
 	int		currentFrame;
 	float		animFrequency;
-	video_t		cinematicHandle;
+	int		cinematicHandle;
 
 	GLint		texEnv;
 	texEnvCombine_t	texEnvCombine;

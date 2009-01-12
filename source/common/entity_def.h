@@ -5,10 +5,6 @@
 #ifndef ENTITY_DEF_H
 #define ENTITY_DEF_H
 
-typedef struct cl_priv_s	cl_priv_t;	// cl.engine private data
-typedef struct sv_priv_s	sv_priv_t;	// sv.engine private data
-typedef struct edict_s	edict_t;		// generic entity
-
 // Legend:
 // ENG - engine can modify this variable for some reasons [only
 // NET - field that shared on client across network
@@ -142,7 +138,7 @@ typedef struct entvars_s
 	float		dmg;
 	float		dmgtime;
 
-	edict_t		*pContainingEntity;	// for upcasting. Filled by engine, don't save, don't modifiy
+	edict_t		*pContainingEntity;		// filled by engine, don't save, don't modifiy
 } entvars_t;
 
 struct edict_s

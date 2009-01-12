@@ -1,24 +1,16 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//			const.h - shared engine constants
+//			  const.h - engine constants
 //=======================================================================
 #ifndef CONST_H
 #define CONST_H
-
-// shared typedefs
-typedef signed __int64		int64;
-typedef unsigned __int64		qword;
-typedef unsigned long		dword;
-typedef unsigned int		uint;
-typedef unsigned short		word;
-typedef unsigned char		byte;
-typedef int			shader_t;
 
 // euler angle order
 #define PITCH			0
 #define YAW			1
 #define ROLL			2
 
+// sound specific
 #define VOL_NORM			1.0	// volume values
 
 // pitch values
@@ -32,44 +24,25 @@ typedef int			shader_t;
 #define ATTN_IDLE			2.0f
 #define ATTN_STATIC			1.25f 
 
-// channels
+// 7 channels available
 #define CHAN_AUTO			0
 #define CHAN_WEAPON			1
 #define CHAN_VOICE			2
 #define CHAN_ITEM			3
 #define CHAN_BODY			4
 #define CHAN_STREAM			5	// allocate stream channel from the static or dynamic area
-#define CHAN_STATIC			6	// allocate channel from the static area 
+#define CHAN_STATIC			6	// allocate channel from the static area
 
-// in buttons
-#define IN_ATTACK			(1<<0)
-#define IN_JUMP			(1<<1)
-#define IN_DUCK			(1<<2)
-#define IN_FORWARD			(1<<3)
-#define IN_BACK			(1<<4)
-#define IN_USE			(1<<5)
-#define IN_CANCEL			(1<<6)
-#define IN_LEFT			(1<<7)
-#define IN_RIGHT			(1<<8)
-#define IN_MOVELEFT			(1<<9)
-#define IN_MOVERIGHT		(1<<10)
-#define IN_ATTACK2			(1<<11)
-#define IN_RUN			(1<<12)
-#define IN_RELOAD			(1<<13)
-#define IN_ALT1			(1<<14)
-#define IN_SCORE			(1<<15)   // Used by client.dll for when scoreboard is held down
-
-// pev->spawnflags
-#define SF_START_ON			0x1
+// common EDICT flags
 
 // pev->flags
 #define FL_FLY			(1<<0)	// changes the SV_Movestep() behavior to not need to be on ground
 #define FL_SWIM			(1<<1)	// same as AI_FLY but stay in water
-#define FL_CLIENT			(1<<2)
-#define FL_INWATER			(1<<3)
+#define FL_CLIENT			(1<<2)	// this a client entity
+#define FL_INWATER			(1<<3)	// npc in water
 #define FL_MONSTER			(1<<4)	// monster bit
 #define FL_GODMODE			(1<<5)	// invulnerability npc or client
-#define FL_NOTARGET			(1<<6)	// mark any npc as neytral
+#define FL_NOTARGET			(1<<6)	// mark all npc's as neytral
 #define FL_ONGROUND			(1<<7)	// at rest / on the ground
 #define FL_PARTIALONGROUND		(1<<8)	// not corners are valid
 #define FL_WATERJUMP		(1<<8)	// water jumping
@@ -88,6 +61,9 @@ typedef int			shader_t;
 #define FL_DORMANT			(1<<21)	// Entity is dormant, no updates to client
 #define FL_POINTENTITY		(1<<22)	// this is point entity
 
+// pev->spawnflags
+#define SF_START_ON			(1<<0)
+
 // pev->effects
 #define EF_BRIGHTFIELD		(1<<0)	// swirling cloud of particles
 #define EF_MUZZLEFLASH		(1<<1)	// single frame ELIGHT on entity attachment 0
@@ -101,17 +77,19 @@ typedef int			shader_t;
 #define EF_LIGHT			(1<<9)	// dynamic light (rockets use)
 #define EF_ANIMATE			(1<<10)	// do client animate (ignore v.frame)
 
-// edict->deadflag values
-#define DEAD_NO		0	// alive
-#define DEAD_DYING		1	// playing death animation or still falling off of a ledge waiting to hit ground
-#define DEAD_DEAD		2	// dead. lying still.
-#define DEAD_RESPAWNABLE	3	// wait for respawn
-#define DEAD_DISCARDBODY	4
+// pev->takedamage
+#define DAMAGE_NO			0	// can't be damaged
+#define DAMAGE_YES			1	// attempt to damage
+#define DAMAGE_AIM			2	// special case for aiming damage
 
-#define DAMAGE_NO		0
-#define DAMAGE_YES		1
-#define DAMAGE_AIM		2
+// pev->deadflag
+#define DEAD_NO			0	// alive
+#define DEAD_DYING			1	// playing death animation or still falling off of a ledge waiting to hit ground
+#define DEAD_DEAD			2	// dead. lying still.
+#define DEAD_RESPAWNABLE		3	// wait for respawn
+#define DEAD_DISCARDBODY		4
 
+// filter console messages
 typedef enum
 {
 	at_console = 1,	// format: [msg]
@@ -119,34 +97,8 @@ typedef enum
 	at_error,		// format: Error: [msg]
 	at_loading,	// print messages during loading
 	at_aiconsole,	// same as at_console, but only shown if developer level is 5!
-	at_logged		// server print to console ( only in multiplayer games ).
+	at_logged		// server print to console ( only in multiplayer games ). (NOT IMPLEMENTED)
 } ALERT_TYPE;
-
-// engine edict types
-typedef enum
-{
-	ED_SPAWNED = 0,	// this entity requris to set own type with SV_ClassifyEdict
-	ED_WORLDSPAWN,	// this is a worldspawn
-	ED_STATIC,	// this is a logic without model or entity with static model
-	ED_AMBIENT,	// this is entity emitted ambient sounds only
-	ED_NORMAL,	// normal entity with model (and\or) sound
-	ED_BSPBRUSH,	// brush entity (a part of level)
-	ED_CLIENT,	// this is a client entity
-	ED_MONSTER,	// monster or bot (generic npc with AI)
-	ED_TEMPENTITY,	// this edict will be removed on server when "lifetime" exceeds 
-	ED_BEAM,		// laser beam (needs to recalculate pvs and frustum)
-	ED_MOVER,		// func_train, func_door and another bsp or mdl movers
-	ED_VIEWMODEL,	// client or bot viewmodel (for spectating)
-	ED_ITEM,		// holdable items
-	ED_RAGDOLL,	// dead body with simulated ragdolls
-	ED_RIGIDBODY,	// simulated physic
-	ED_TRIGGER,	// just for sorting on a server
-	ED_PORTAL,	// realtime display, portal or mirror brush or model
-	ED_MISSILE,	// greande, rocket e.t.c
-	ED_DECAL,		// render will be merge real coords and normal
-	ED_VEHICLE,	// controllable vehicle
-	ED_MAXTYPES,
-} edtype_t;
 
 // edict movetype
 typedef enum
@@ -165,7 +117,7 @@ typedef enum
 	MOVETYPE_PHYSIC,	// phys simulation
 } movetype_t;
 
-// edict collision modes
+// edict collision filter
 typedef enum
 {
 	SOLID_NOT = 0,    	// no interaction with other objects
@@ -179,13 +131,23 @@ typedef enum
 	SOLID_MESH,	// custom convex hull
 } solid_t;
 
-typedef enum
-{
-	point_hull = 0,
-	human_hull = 1,
-	large_hull = 2,
-	head_hull = 3
-};
+// pev->buttons (client only)
+#define IN_ATTACK			(1<<0)
+#define IN_JUMP			(1<<1)
+#define IN_DUCK			(1<<2)
+#define IN_FORWARD			(1<<3)
+#define IN_BACK			(1<<4)
+#define IN_USE			(1<<5)
+#define IN_CANCEL			(1<<6)
+#define IN_LEFT			(1<<7)
+#define IN_RIGHT			(1<<8)
+#define IN_MOVELEFT			(1<<9)
+#define IN_MOVERIGHT		(1<<10)
+#define IN_ATTACK2			(1<<11)
+#define IN_RUN			(1<<12)
+#define IN_RELOAD			(1<<13)
+#define IN_ALT1			(1<<14)
+#define IN_SCORE			(1<<15)   // Used by client.dll for when scoreboard is held down
 
 // beam types, encoded as a byte
 typedef enum 
@@ -216,6 +178,7 @@ typedef enum
 typedef enum 
 {	
 	kRenderFxNone = 0, 
+	kRenderFxUnderwater,		// client only, applied on engine-side
 
 	// legacy stuff are not supported
 
@@ -230,15 +193,11 @@ typedef enum
 	kRenderFxNoReflect,			// don't reflecting in mirrors 
 } kRenderFx_t;
 
+// studio models event range
 #define EVENT_SPECIFIC		0
 #define EVENT_SCRIPTED		1000
-#define EVENT_SHARED		2000
+#define EVENT_SHARED		2000	// both client and server valid for playing
 #define EVENT_CLIENT		5000	// less than this value it's a server-side studio events
-
-// FIXME: get rid of this
-#define RDF_UNDERWATER		(1<<0)	// warp the screen as apropriate
-#define RDF_NOWORLDMODEL		(1<<1)	// used for player configuration screen
-#define RDF_BLOOM			(1<<2)	// light blooms
 
 // client screen state
 #define CL_DISCONNECTED		1	//
@@ -249,6 +208,7 @@ typedef enum
 #define KEY_GAME			1
 #define KEY_HUDMENU			2
 
+// basic console charwidths
 #define TINYCHAR_WIDTH		(SMALLCHAR_WIDTH)
 #define TINYCHAR_HEIGHT		(SMALLCHAR_HEIGHT/2)
 #define SMALLCHAR_WIDTH		8
@@ -257,40 +217,5 @@ typedef enum
 #define BIGCHAR_HEIGHT		24
 #define GIANTCHAR_WIDTH		32
 #define GIANTCHAR_HEIGHT		48
-
-#define HUD_PRINTNOTIFY		1
-#define HUD_PRINTCONSOLE		2
-#define HUD_PRINTTALK		3
-#define HUD_PRINTCENTER		4
-
-#define INTERFACE_VERSION		1	// both the client and server iface version
-
-//=======================================================================
-//
-//		server.dll - client.dll definitions only
-//
-//=======================================================================
-#define MAX_WEAPONS			64		// special for Ghoul[BB] mod support 
-#define MAX_AMMO_SLOTS  		32
-
-#define HIDEHUD_WEAPONS		BIT( 0 )
-#define HIDEHUD_FLASHLIGHT		BIT( 1 )
-#define HIDEHUD_ALL			BIT( 2 )
-#define HIDEHUD_HEALTH		BIT( 3 )
-#define ITEM_SUIT			BIT( 4 )
-
-enum ShakeCommand_t
-{
-	SHAKE_START = 0,	// Starts the screen shake for all players within the radius.
-	SHAKE_STOP,	// Stops the screen shake for all players within the radius.
-	SHAKE_AMPLITUDE,	// Modifies the amplitude of an active screen shake for all players within the radius.
-	SHAKE_FREQUENCY,	// Modifies the frequency of an active screen shake for all players within the radius.
-};
-
-#define FFADE_IN		0x0000 // Just here so we don't pass 0 into the function
-#define FFADE_OUT		0x0001 // Fade out (not in)
-#define FFADE_MODULATE	0x0002 // Modulate (don't blend)
-#define FFADE_STAYOUT	0x0004 // ignores the duration, stays faded out until new ScreenFade message received
-#define FFADE_CUSTOMVIEW	0x0008 // fading only at custom viewing (don't sending this to engine )
 
 #endif//CONST_H

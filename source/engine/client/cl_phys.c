@@ -185,6 +185,41 @@ trace_t CL_Trace( const vec3_t start, const vec3_t mins, const vec3_t maxs, cons
 	return cliptrace;
 }
 
+/*
+================
+CL_CheckVelocity
+================
+*/
+void CL_CheckVelocity( edict_t *ent )
+{
+	int	i;
+	float	wishspeed;
+
+	// bound velocity
+	for( i = 0; i < 3; i++ )
+	{
+		if(IS_NAN(ent->v.velocity[i]))
+		{
+			MsgDev( D_INFO, "Got a NaN velocity on entity #%i (%s)\n", NUM_FOR_EDICT( ent ), STRING( ent->v.classname ));
+			ent->v.velocity[i] = 0;
+		}
+		if (IS_NAN(ent->v.origin[i]))
+		{
+			MsgDev( D_INFO, "Got a NaN origin on entity #%i (%s)\n", NUM_FOR_EDICT( ent ), STRING( ent->v.classname ));
+			ent->v.origin[i] = 0;
+		}
+	}
+
+	// LordHavoc: max velocity fix, inspired by Maddes's source fixes, but this is faster
+	wishspeed = DotProduct( ent->v.velocity, ent->v.velocity );
+	if( wishspeed > ( clgame.maxVelocity * clgame.maxVelocity ))
+	{
+		wishspeed = clgame.maxVelocity / com.sqrt( wishspeed );
+		ent->v.velocity[0] *= wishspeed;
+		ent->v.velocity[1] *= wishspeed;
+		ent->v.velocity[2] *= wishspeed;
+	}
+}
 
 /*
 ====================

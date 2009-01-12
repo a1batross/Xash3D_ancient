@@ -1038,11 +1038,15 @@ bool SV_CheckWater( edict_t *ent )
 	ent->v.watertype = CONTENTS_NONE;
 	cont = SV_PointContents( point );
 
+	// predict state
+	if( ent->pvServerData->s.ed_type == ED_CLIENT )
+		ent->v.renderfx = kRenderFxNone;
+
 	if( cont & (MASK_WATER))
 	{
 		ent->v.watertype = cont;
 		ent->v.waterlevel = 1;
-		point[2] = ent->v.origin[2] + (ent->v.mins[2] + ent->v.maxs[2])*0.5;
+		point[2] = ent->v.origin[2] + (ent->v.mins[2] + ent->v.maxs[2]) * 0.5;
 		if( SV_PointContents( point ) & MASK_WATER )
 		{
 			ent->v.waterlevel = 2;
@@ -1051,15 +1055,11 @@ bool SV_CheckWater( edict_t *ent )
 			{
 				ent->v.waterlevel = 3;
 				if( ent->pvServerData->s.ed_type == ED_CLIENT )
-					ent->v.renderfx |= RDF_UNDERWATER;
-			}
-			else
-			{
-				if( ent->pvServerData->s.ed_type == ED_CLIENT )
-					ent->v.renderfx &= ~RDF_UNDERWATER;
+					ent->v.renderfx = kRenderFxUnderwater;
 			}
 		}
 	}
+
 	return ent->v.waterlevel > 1;
 }
 

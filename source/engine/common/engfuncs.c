@@ -94,6 +94,17 @@ void pfnAlertMessage( ALERT_TYPE level, char *szFmt, ... )
 
 /*
 =============
+pfnMemCopy
+
+=============
+*/
+void pfnMemCopy( void *dest, const void *src, size_t cb, const char *filename, const int fileline )
+{
+	com.memcpy( dest, src, cb, filename, fileline );
+}
+
+/*
+=============
 pfnGetGameDir
 
 =============
@@ -1378,7 +1389,7 @@ void VM_drawmodel( void )
 	refdef.fov_y = V_CalcFov( refdef.fov_x, refdef.viewport[2], refdef.viewport[3] );
 	refdef.time = cls.realtime * 0.001f;
 	refdef.oldtime = refdef.time - 0.005;
-	refdef.rdflags = RDF_NOWORLDMODEL;
+	refdef.onlyClientDraw = true;
 
 	re->ClearScene();
 	re->RegisterModel( modname, MAX_MODELS - 1 );

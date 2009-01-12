@@ -5,6 +5,7 @@
 
 #include "extdll.h"
 #include "hud_iface.h"
+#include "studio_event.h"
 
 void HUD_CreateEntities( void )
 {

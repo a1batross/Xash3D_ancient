@@ -1,9 +1,9 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//			platform.h - game platform dll
+//			xtools.h - Xash Game Tools
 //=======================================================================
-#ifndef BASEPLATFORM_H
-#define BASEPLATFORM_H
+#ifndef XTOOLS_H
+#define XTOOLS_H
 
 #include <windows.h>
 #include "launch_api.h"
@@ -30,4 +30,4 @@ void AddMask( const char *mask );
 extern string searchmask[];
 extern int num_searchmask;
 
-#endif//BASEPLATFORM_H
+#endif//XTOOLS_H

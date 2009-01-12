@@ -10,6 +10,7 @@
 static net_field_t ent_fields[] =
 {
 { ES_FIELD(ed_type),		NET_BYTE,	 false	},	// stateflags_t #0 (4 bytes)
+{ ES_FIELD(ed_flags),		NET_BYTE,	 true	},	// stateflags_t #0 (4 bytes)
 { ES_FIELD(classname),		NET_WORD,  false	},
 { ES_FIELD(soundindex),		NET_WORD,	 false	},	// 512 sounds ( OpenAL software limit is 255 )
 { ES_FIELD(origin[0]),		NET_FLOAT, false	},
@@ -21,6 +22,9 @@ static net_field_t ent_fields[] =
 { ES_FIELD(velocity[0]),		NET_FLOAT, false	},
 { ES_FIELD(velocity[1]),		NET_FLOAT, false	},
 { ES_FIELD(velocity[2]),		NET_FLOAT, false	},
+{ ES_FIELD(avelocity[0]),		NET_FLOAT, false	},
+{ ES_FIELD(avelocity[1]),		NET_FLOAT, false	},
+{ ES_FIELD(avelocity[2]),		NET_FLOAT, false	},
 { ES_FIELD(modelindex),		NET_WORD,	 false	},	// 4096 models
 { ES_FIELD(colormap),		NET_WORD,	 false	},	// encoded as two shorts for top and bottom color
 { ES_FIELD(scale),			NET_COLOR, false	},	// 0-255 values
@@ -94,7 +98,7 @@ static net_field_t ent_fields[] =
 { ES_FIELD(fov),			NET_FLOAT, false	},	// client horizontal field of view
 { ES_FIELD(weapons),		NET_INT64, false	},	// client weapon 0-64
 { ES_FIELD(health),			NET_FLOAT, false	},	// client health
-// revision 4. reserve for 12 fields without enlarge null_msg_size
+// revision 5. reserve for 6 fields without enlarge null_msg_size
 { NULL },							// terminator
 };
 

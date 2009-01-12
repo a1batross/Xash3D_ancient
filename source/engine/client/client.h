@@ -210,6 +210,11 @@ typedef struct
 	user_message_t	*msg[MAX_USER_MESSAGES];
 	int		numMessages;		// actual count of user messages
 	int		hStringTable;		// stringtable handle
+
+	// sae values from server cvars
+	float		maxVelocity;
+	float		gravity;
+
 } clgame_static_t;
 
 typedef struct
@@ -561,7 +566,8 @@ float V_CalcFov( float fov_x, float width, float height );
 //
 void CL_InitPrediction (void);
 void CL_PredictMove (void);
-void CL_CheckPredictionError (void);
+void CL_CheckPredictionError( void );
+void CL_CheckVelocity( edict_t *ent );
 int CL_PointContents( const vec3_t point );
 int CL_ContentsMask( const edict_t *passedict );
 bool CL_AmbientLevel( const vec3_t point, float *volumes );

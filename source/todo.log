@@ -46,32 +46,12 @@ Beta 13.12.08
 25.wrote HUD_StudioEvents			OK
 16.register cmd->buttons			OK
 17.pfnSetKeyDest in client.dll		OK
-18.IMPLEMENT SAVERESTORE
-
-// savegame algorhytem
-
-1. Init gpGlobals->pSaveData (for save )
-{
-	pBaseData = malloc( 512 kb )
-	pCurrentData = pBaseData
-	size = 0
-	bufferSize = 512 kb
-	tokenSize = 0
-	tokenCount = 4096
-	pTokens = (pTokens **)malloc( (pTokens*) * 4096 ) // pointers array
-	currentIndex = 0
-	tableCount = numEnts
-	pTable = malloc( (ENTITYTABLE) * numEnts )
-	// also set ENTITYTABLE.id and ENTITTYTABLE.pent
-
-	fUseLandmark = 0
-	szLandmarkName = 0
-	vecLandmarkOffset = 0
-	szCurrentMap = 0;
-	time = sv.time;
-}
-
-2. Save Engine Variables
+18.IMPLEMENT SAVERESTORE			OK
+19.crash on dm_knot
+20.rename common.dll to xtools.dll		OK
+21.add missing builtins in enginefuncs_t	OK
+22.add missing builtins in cl_enginefuncs_t	OK
+23.first implement efxapi_t
 
 Список доступных рендереров:  	Что в них интересного
 0. Q3Fusion			(Mirrors, Portals)

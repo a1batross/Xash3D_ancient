@@ -359,13 +359,13 @@ void CDeadGenericMonster :: Spawn( void )
 	pev->yaw_speed		= 8; //LRC -- what?
 	pev->sequence		= 0;
 
-	if (pev->netname)
+	if( pev->netname )
 	{
-		pev->sequence = LookupSequence( STRING(pev->netname) );
+		pev->sequence = LookupSequence( STRING( pev->netname ));
 
-		if (pev->sequence == -1)
+		if( pev->sequence == -1 )
 		{
-			ALERT ( at_debug, "Invalid sequence name \"%s\" in monster_generic_dead\n", STRING(pev->netname) );
+			ALERT ( at_console, "Invalid sequence name \"%s\" in monster_generic_dead\n", STRING(pev->netname) );
 		}
 	}
 	else

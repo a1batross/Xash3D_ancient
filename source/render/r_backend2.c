@@ -1570,7 +1570,7 @@ static void RB_DrawLine( int color, int numpoints, const float *points, const in
 
 void RB_DebugGraphics( void )
 {
-	if( r_refdef.rdflags & RDF_NOWORLDMODEL )
+	if( r_refdef.onlyClientDraw )
 		return;
 
 	if( r_physbdebug->integer )
@@ -1594,7 +1594,7 @@ RB_DrawDebugTools
 */
 static void RB_DrawDebugTools( void )
 {
-	if( gl_state.orthogonal || r_refdef.rdflags & RDF_NOWORLDMODEL )
+	if( gl_state.orthogonal || r_refdef.onlyClientDraw )
 		return;
 
 	GL_Disable( GL_VERTEX_PROGRAM_ARB );

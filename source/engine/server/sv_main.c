@@ -364,8 +364,8 @@ void SV_Init( void )
 	sv_rollangle = Cvar_Get("sv_rollangle", "2", 0, "how much to tilt the view when strafing" );
 	sv_rollspeed = Cvar_Get("sv_rollspeed", "200", 0, "how much strafing is necessary to tilt the view" );
 	sv_airaccelerate = Cvar_Get("sv_airaccelerate", "0", CVAR_LATCH, "player accellerate in air" );
-	sv_maxvelocity = Cvar_Get("sv_maxvelocity", "2000", 0, "max world velocity" );
-          sv_gravity = Cvar_Get("sv_gravity", "800", 0, "world gravity" );
+	sv_maxvelocity = Cvar_Get("sv_maxvelocity", DEFAULT_MAXVELOCITY, CVAR_LATCH, "max world velocity" );
+          sv_gravity = Cvar_Get("sv_gravity", DEFAULT_GRAVITY, CVAR_LATCH, "world gravity" );
 	sv_maxspeed = Cvar_Get("sv_maxspeed", "320", 0, "maximum speed a player can accelerate to when on ground (can be exceeded by tricks)");
 	sv_accelerate = Cvar_Get( "sv_accelerate", "10", 0, "rate at which a player accelerates to sv_maxspeed" );
 	sv_friction = Cvar_Get( "sv_friction", "4", 0, "how fast you slow down" );
@@ -398,7 +398,6 @@ void SV_FinalMessage( char *message, bool reconnect )
 	
 	MSG_Init( &msg, msg_buf, sizeof( msg_buf ));
 	MSG_WriteByte( &msg, svc_print );
-	MSG_WriteByte( &msg, HUD_PRINTCONSOLE );
 	MSG_WriteString( &msg, message );
 
 	if( reconnect )

@@ -5,6 +5,8 @@
 #ifndef VSOUND_API_H
 #define VSOUND_API_H
 
+typedef int		sound_t;
+
 // snd internal flags (lower bits are used for snd channels)
 #define CHAN_NO_PHS_ADD	(1<<3)	// send to all clients, not just ones in PHS (ATTN 0 will also do this)
 #define CHAN_RELIABLE	(1<<4)	// send by reliable message, not datagram

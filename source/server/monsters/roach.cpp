@@ -445,13 +445,13 @@ void CRoach :: Look ( int iDistance )
 				// we see monsters other than the Enemy.
 				switch ( IRelationship ( pSightEnt ) )
 				{
-				case	R_FR:		
+				case R_FR:		
 					iSighted |= bits_COND_SEE_FEAR;	
 					break;
-				case	R_NO:
+				case R_NO:
 					break;
 				default:
-					ALERT ( at_debug, "%s can't assess %s\n", STRING(pev->classname), STRING(pSightEnt->pev->classname ) );
+					ALERT ( at_console, "%s can't assess %s\n", STRING(pev->classname), STRING(pSightEnt->pev->classname ) );
 					break;
 				}
 			}

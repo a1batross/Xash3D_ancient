@@ -22,7 +22,7 @@ class CSound;
 #include "utils.h"
 #include "saverestore.h"
 #include "schedule.h"
-#include "qfiles_ref.h"
+#include "studio_ref.h"
 #include "defaults.h"
 #include "monsterevent.h"
 #include "baseentity.h"

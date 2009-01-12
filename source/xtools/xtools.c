@@ -3,7 +3,7 @@
 //			platform.c - tools common dll
 //=======================================================================
 
-#include "platform.h"
+#include "xtools.h"
 #include "utils.h"
 #include "bsplib.h"
 #include "mdllib.h"

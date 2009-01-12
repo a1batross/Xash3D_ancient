@@ -467,9 +467,9 @@ CBaseEntity *UTIL_FindGlobalEntity( string_t classname, string_t globalname )
 	CBaseEntity *pReturn = UTIL_FindEntityByString( NULL, "globalname", STRING(globalname) );
 	if ( pReturn )
 	{
-		if ( !FClassnameIs( pReturn->pev, STRING(classname) ) )
+		if( !FClassnameIs( pReturn->pev, STRING( classname )))
 		{
-			ALERT( at_debug, "Global entity found %s, wrong class %s\n", STRING(globalname), STRING(pReturn->pev->classname) );
+			ALERT( at_console, "Global entity found %s, wrong class %s\n", STRING(globalname), STRING(pReturn->pev->classname) );
 			pReturn = NULL;
 		}
 	}
@@ -1563,12 +1563,13 @@ float UTIL_SharedRandomFloat( unsigned int seed, float low, float high )
 #ifdef DEBUG
 edict_t *DBG_EntOfVars( const entvars_t *pev )
 {
-	if (pev->pContainingEntity != NULL)
+	if( pev->pContainingEntity != NULL )
 		return pev->pContainingEntity;
-	ALERT(at_debug, "entvars_t pContainingEntity is NULL, calling into engine");
+
+	ALERT( at_console, "entvars_t pContainingEntity is NULL, calling into engine" );
 	edict_t* pent = (*g_engfuncs.pfnFindEntityByVars)((entvars_t*)pev);
-	if (pent == NULL)
-		ALERT(at_debug, "DAMN!  Even the engine couldn't FindEntityByVars!");
+
+	if( pent == NULL ) ALERT( at_console, "DAMN!  Even the engine couldn't FindEntityByVars!" );
 	((entvars_t *)pev)->pContainingEntity = pent;
 	return pent;
 }
@@ -2431,9 +2432,10 @@ BOOL UTIL_IsMasterTriggered(string_t iszMaster, CBaseEntity *pActivator)
 					break;
 				}
 			}
-			if (!found) // no ( found
+
+			if( !found ) // no ( found
 			{
-				ALERT(at_debug, "Master \"%s\" not found!\n",szMaster);
+				ALERT( at_console, "Master \"%s\" not found!\n", szMaster );
 				return TRUE;
 			}
 
@@ -2442,12 +2444,11 @@ BOOL UTIL_IsMasterTriggered(string_t iszMaster, CBaseEntity *pActivator)
 			pMaster = UTIL_FindEntityByTargetname( NULL, szBuf );
 		}
 
-		if (pMaster)
+		if( pMaster )
 		{
-			if (reverse)
-				return (pMaster->GetState( pActivator ) != STATE_ON);
-			else
-				return (pMaster->GetState( pActivator ) == STATE_ON);
+			if( reverse )
+				return (pMaster->GetState( pActivator ) != STATE_ON );
+			return (pMaster->GetState( pActivator ) == STATE_ON);
 		}
 	}
 

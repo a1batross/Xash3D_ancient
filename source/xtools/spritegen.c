@@ -3,7 +3,7 @@
 //		    	sprlib.c - sprite generator
 //=======================================================================
 
-#include "platform.h"
+#include "xtools.h"
 #include "byteorder.h"
 #include "utils.h"
 #include "mathlib.h"

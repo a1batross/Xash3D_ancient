@@ -20,7 +20,7 @@ launch_exp_t	*Host;	// callback to mainframe
 sys_event_t	event_que[MAX_QUED_EVENTS];
 int		event_head, event_tail;
 
-dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
+dll_info_t xtools_dll = { "xtools.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t baserc_dll = { "baserc.dll", NULL, "CreateAPI", NULL, NULL, false, sizeof(baserc_exp_t)};
 
@@ -330,35 +330,35 @@ void Sys_LookupInstance( void )
 	else if(!com_strcmp(Sys.progname, "bsplib"))
 	{
 		Sys.app_name = HOST_BSPLIB;
-		Sys.linked_dll = &common_dll;	// pointer to common.dll info
+		Sys.linked_dll = &xtools_dll;	// pointer to common.dll info
 		com_strcpy(Sys.log_path, "bsplib.log" ); // xash3d root directory
 		com_strcpy(Sys.caption, "Xash3D BSP Compiler");
 	}
 	else if(!com_strcmp(Sys.progname, "qcclib"))
 	{
 		Sys.app_name = HOST_QCCLIB;
-		Sys.linked_dll = &common_dll;	// pointer to common.dll info
+		Sys.linked_dll = &xtools_dll;	// pointer to common.dll info
 		com_sprintf(Sys.log_path, "%s/compile.log", sys_rootdir ); // same as .exe file
 		com_strcpy(Sys.caption, "Xash3D QuakeC Compiler");
 	}
 	else if(!com_strcmp(Sys.progname, "sprite"))
 	{
 		Sys.app_name = HOST_SPRITE;
-		Sys.linked_dll = &common_dll;	// pointer to common.dll info
+		Sys.linked_dll = &xtools_dll;	// pointer to common.dll info
 		com_sprintf(Sys.log_path, "%s/spritegen.log", sys_rootdir ); // same as .exe file
 		com_strcpy(Sys.caption, "Xash3D Sprite Compiler");
 	}
 	else if(!com_strcmp(Sys.progname, "studio"))
 	{
 		Sys.app_name = HOST_STUDIO;
-		Sys.linked_dll = &common_dll;	// pointer to common.dll info
+		Sys.linked_dll = &xtools_dll;	// pointer to common.dll info
 		com_sprintf(Sys.log_path, "%s/studiomdl.log", sys_rootdir ); // same as .exe file
 		com_strcpy(Sys.caption, "Xash3D Studio Models Compiler");
 	}
 	else if(!com_strcmp(Sys.progname, "wadlib"))
 	{
 		Sys.app_name = HOST_WADLIB;
-		Sys.linked_dll = &common_dll;	// pointer to common.dll info
+		Sys.linked_dll = &xtools_dll;	// pointer to common.dll info
 		com_sprintf(Sys.log_path, "%s/wadlib.log", sys_rootdir ); // same as .exe file
 		com_strcpy(Sys.caption, "Xash3D Wad2\\Wad3 maker");
 	}
@@ -367,7 +367,7 @@ void Sys_LookupInstance( void )
 		Sys.app_name = HOST_RIPPER;
 		Sys.con_readonly = true;
 		Sys.log_active = true;	// always create log
-		Sys.linked_dll = &common_dll;	// pointer to wdclib.dll info
+		Sys.linked_dll = &xtools_dll;	// pointer to wdclib.dll info
 		com_sprintf(Sys.log_path, "%s/decompile.log", sys_rootdir ); // default
 		com_strcpy(Sys.caption, va("Quake Recource Extractor ver.%g", XASH_VERSION ));
 	}
@@ -377,7 +377,7 @@ void Sys_LookupInstance( void )
 		Sys.con_readonly = true;
 		// don't show console as default
 		if( Sys.developer < D_NOTE ) Sys.con_showalways = false;
-		Sys.linked_dll = &common_dll;	// pointer to dpvenc.dll info
+		Sys.linked_dll = &xtools_dll;	// pointer to dpvenc.dll info
 		com_sprintf(Sys.log_path, "%s/movie.log", sys_rootdir ); // logs folder
 		com_strcpy(Sys.caption, "DarkPlaces Video Encoder" );
 	}

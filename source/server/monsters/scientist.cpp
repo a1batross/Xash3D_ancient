@@ -1123,7 +1123,7 @@ class CDeadScientist : public CBaseMonster
 {
 public:
 	void Spawn( void );
-	int	Classify ( void ) { return	CLASS_HUMAN_PASSIVE; }
+	int Classify ( void ) { return	CLASS_HUMAN_PASSIVE; }
 
 	void KeyValue( KeyValueData *pkvd );
 	int	m_iPose;// which sequence to display
@@ -1146,10 +1146,10 @@ LINK_ENTITY_TO_CLASS( monster_scientist_dead, CDeadScientist );
 //
 // ********** DeadScientist SPAWN **********
 //
-void CDeadScientist :: Spawn( )
+void CDeadScientist :: Spawn( void )
 {
-	PRECACHE_MODEL("models/scientist.mdl");
-	SET_MODEL(ENT(pev), "models/scientist.mdl");
+	PRECACHE_MODEL( "models/scientist.mdl" );
+	SET_MODEL( ENT( pev ), "models/scientist.mdl" );
 	
 	pev->effects		= 0;
 	pev->sequence		= 0;
@@ -1171,10 +1171,10 @@ void CDeadScientist :: Spawn( )
 	pev->sequence = LookupSequence( m_szPoses[m_iPose] );
 	if (pev->sequence == -1)
 	{
-		ALERT ( at_debug, "Dead scientist with bad pose\n" );
+		ALERT ( at_console, "Dead scientist with bad pose\n" );
 	}
 
-	//	pev->skin += 2; // use bloody skin -- UNDONE: Turn this back on when we have a bloody skin again!
+	// pev->skin += 2; // use bloody skin -- UNDONE: Turn this back on when we have a bloody skin again!
 	MonsterInitDead();
 }
 

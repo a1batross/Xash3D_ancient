@@ -3,7 +3,7 @@
 //			   utils.c - platform utils
 //=======================================================================
 
-#include "platform.h"
+#include "xtools.h"
 #include "byteorder.h"
 #include "utils.h"
 #include "bsplib.h"

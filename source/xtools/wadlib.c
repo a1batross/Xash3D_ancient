@@ -3,7 +3,7 @@
 //		        wadlib.c.c - wad archive compiler
 //=======================================================================
 
-#include "platform.h"
+#include "xtools.h"
 #include "byteorder.h"
 #include "const.h"
 #include "utils.h"

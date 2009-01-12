@@ -491,7 +491,7 @@ R_AddWorldToList
 */
 void R_AddWorldToList( void )
 {
-	if( r_refdef.rdflags & RDF_NOWORLDMODEL )
+	if( r_refdef.onlyClientDraw )
 		return;
 
 	if( !r_drawworld->integer )

@@ -17,7 +17,7 @@
 #include "game.h"
 
 // Register your console variables here
-// This gets called one time when the game is initialied
+// This gets called one time when the game is initialized
 void GameDLLInit( void )
 {
 	ALERT( at_aiconsole, "GameDLLInit();\n" );
@@ -43,4 +43,9 @@ void GameDLLInit( void )
 	CVAR_REGISTER( "mp_teamoverride", "1", 0, "can ovveride teams from map settings ?" );
 	CVAR_REGISTER( "mp_defaultteam", "0", 0, "use default team instead ?" );
 	CVAR_REGISTER( "mp_chattime", "10", CVAR_SERVERINFO, "time beetween messages" );
+}
+
+// perform any shutdown operations
+void GameDLLShutdown( void )
+{
 }

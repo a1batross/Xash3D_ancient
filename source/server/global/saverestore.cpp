@@ -930,7 +930,7 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 #if 0
 			else
 			{
-				ALERT( at_debug, "Skipping global field %s\n", pName );
+				ALERT( at_console, "Skipping global field %s\n", pName );
 			}
 #endif
 			return fieldNumber;
@@ -1152,7 +1152,7 @@ void CGlobalState :: DumpGlobals( void )
 	static char *estates[] = { "Off", "On", "Dead" };
 	globalentity_t *pTest;
 
-	ALERT( at_debug, "-- Globals --\n" );
+	ALERT( at_console, "-- Globals --\n" );
 	pTest = m_pList;
 	while ( pTest )
 	{

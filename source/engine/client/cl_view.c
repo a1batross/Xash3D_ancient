@@ -174,13 +174,12 @@ void V_RenderView( void )
 		Mem_Copy( &cl.refdef.viewport, &scr_rect, sizeof( cl.refdef.viewport ));
                     
                     cl.refdef.areabits = cl.frame.areabits;
-                    cl.refdef.rdflags = cl.frame.ps.renderfx;
 		cl.refdef.fov_y = V_CalcFov( cl.refdef.fov_x, cl.refdef.viewport[2], cl.refdef.viewport[3] );
 		cl.refdef.oldtime = (cl.oldtime * 0.001f);
 		cl.refdef.time = (cl.time * 0.001f); // cl.time for right lerping		
 		cl.refdef.frametime = cls.frametime;
 
-		if( cl.refdef.rdflags & RDF_UNDERWATER )
+		if( cl.frame.ps.renderfx == kRenderFxUnderwater )
 		{
 			float f = com.sin( cl.time * 0.001 * 0.4 * (M_PI * 2.7));
 			cl.refdef.fov_x += f;

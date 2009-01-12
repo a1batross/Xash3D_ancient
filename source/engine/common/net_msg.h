@@ -112,66 +112,8 @@ static const net_desc_t NWDesc[] =
 
 ==========================================================
 */
-// entity_state_t communication (a part of network protocol)
-typedef struct entity_state_s
-{
-	// engine specific
-	uint		number;		// edict index
-	edtype_t		ed_type;		// edict type
-	string_t		classname;	// edict classname
-	int		soundindex;	// looped ambient sound
 
-	// physics information
-	vec3_t		origin;
-	vec3_t		angles;		// entity angles, not viewangles
-	solid_t		solid;		// entity solid
-	movetype_t	movetype;		// entity movetype
-	int		gravity;		// gravity multiplier
-	int		aiment;		// attached entity
-	int		owner;		// projectiles owner
-	int		groundent;	// onground edict num, valid only if FL_ONGROUND is set, else -1
-	vec3_t		mins;		// not symmetric entity bbox    
-	vec3_t		maxs;
-	float		teleport_time;	// time when no prediction
-
-	// model state
-	int		modelindex;	// general modelindex
-	int		colormap;		// change base color for some textures or sprite frames
-	float		scale;		// model or sprite scale, affects to physics too
-	float		frame;		// % playback position in animation sequences (0..255)
-	int		skin;		// skin for studiomodels
-	int		body;		// sub-model selection for studiomodels
-	float		animtime;		// auto-animating time
-	float		framerate;	// custom framerate, specified by QC
-	int		sequence;		// animation sequence (0 - 255)
-	float		blending[16];	// studio animation blending
-	float		controller[16];	// studio bone controllers
-
-	// flags
-	int64		flags;		// v.flags
-	uint		effects;		// effect flags like q1 and hl1
-	int		renderfx;		// render effects same as hl1
-	float		renderamt;	// alpha value or like somewhat
-	vec3_t		rendercolor;	// hl1 legacy stuff, working, but not needed
-	int		rendermode;	// hl1 legacy stuff, working, but not needed
-
-	// client specific
-	vec3_t		velocity;		// player velocity
-	vec3_t		delta_angles;	// add to command angles to get view direction 
-	vec3_t		punch_angles;	// add to view direction to get render angles 
-	vec3_t		viewangles;	// already calculated view angles on server-side
-	vec3_t		viewoffset;	// viewoffset over ground
-	int		gaitsequence;	// client\nps\bot gaitsequence
-	int		viewmodel;	// contains viewmodel index
-	int		weaponmodel;	// contains weaponmodel index
-	int		weaponanim;	// weaponmodel sequence
-	int		weaponbody;	// weaponmodel body
-	int		weaponskin;	// weaponmodel skin
-	float		maxspeed;		// min( pev->maxspeed, sv_maxspeed->value )
-	float		health;		// client health (other parms can be send by custom messages)
-	int64		weapons;		// weapon flags
-	float		fov;		// horizontal field of view
-} entity_state_t;
+#include "entity_state.h"
 
 #define ES_FIELD( x )		#x,(int)&((entity_state_t*)0)->x
 #define CM_FIELD( x )		#x,(int)&((usercmd_t*)0)->x
@@ -185,6 +127,8 @@ typedef struct entity_state_s
 #define CS_SKYNAME			2	// skybox shader name
 #define CS_MAXCLIENTS		3	// server maxclients value (0-255)
 #define CS_BACKGROUND_TRACK		4	// basename of background track
+#define CS_GRAVITY			5	// sv_gravity
+#define CS_MAXVELOCITY		6	// sv_maxvelocity
 
 // reserved config strings
 

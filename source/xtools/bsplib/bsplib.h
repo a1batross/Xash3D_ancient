@@ -5,10 +5,11 @@
 #ifndef BSPLIB_H
 #define BSPLIB_H
 
-#include "platform.h"
+#include "xtools.h"
 #include "engine_api.h"
 #include "utils.h"
 #include "mathlib.h"
+#include "trace_def.h"
 
 // supported map formats
 enum

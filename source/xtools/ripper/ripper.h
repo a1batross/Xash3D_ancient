@@ -5,7 +5,7 @@
 #ifndef BASECONVERTOR_H
 #define BASECONVERTOR_H
 
-#include "platform.h"
+#include "xtools.h"
 
 extern stdlib_api_t com;
 extern byte *basepool;

@@ -2762,10 +2762,10 @@ void CBasePlayer::SetSuitUpdate(char *name, int fgroup, int iNoRepeatTime)
 	// get sentence or group number
 	if (!fgroup)
 	{
-		isentence = SENTENCEG_Lookup(name, NULL);
-		if (isentence < 0)
+		isentence = SENTENCEG_Lookup( name, NULL );
+		if( isentence < 0 )
 		{
-			ALERT(at_debug,"HEV couldn't find sentence %s\n",name);
+			ALERT( at_console, "HEV couldn't find sentence %s\n", name );
 			return;
 		}
 	}
@@ -2861,9 +2861,9 @@ void CBasePlayer :: UpdatePlayerSound ( void )
 
 	pSound = CSoundEnt::SoundPointerForIndex( CSoundEnt :: ClientSoundIndex( edict() ) );
 
-	if ( !pSound )
+	if( !pSound )
 	{
-		ALERT ( at_debug, "Client lost reserved sound!\n" );
+		ALERT ( at_console, "Client lost reserved sound!\n" );
 		return;
 	}
 
@@ -3312,9 +3312,9 @@ void CBasePlayer::Spawn( void )
 	Precache();
 	m_HackedGunPos		= Vector( 0, 32, 0 );
 
-	if ( m_iPlayerSound == SOUNDLIST_EMPTY )
+	if( m_iPlayerSound == SOUNDLIST_EMPTY )
 	{
-		ALERT ( at_debug, "Couldn't alloc player sound slot!\n" );
+		ALERT ( at_console, "Couldn't alloc player sound slot!\n" );
 	}
 
 	m_fNoPlayerSound = FALSE;// normal sound behavior.
@@ -3417,7 +3417,7 @@ int CBasePlayer::Restore( CRestore &restore )
 	// landmark isn't present.
 	if( !pSaveData->fUseLandmark )
 	{
-		ALERT( at_debug, "No Landmark:%s\n", pSaveData->szLandmarkName );
+		ALERT( at_error, "No Landmark:%s\n", pSaveData->szLandmarkName );
 
 		// default to normal spawn
 		edict_t* pentSpawnSpot = EntSelectSpawnPoint( this );
@@ -5145,9 +5145,9 @@ void CDeadHEV :: Spawn( void )
 
 	pev->sequence = LookupSequence( m_szPoses[m_iPose] );
 
-	if (pev->sequence == -1)
+	if( pev->sequence == -1 )
 	{
-		ALERT ( at_debug, "Dead hevsuit with bad pose\n" );
+		ALERT ( at_console, "Dead hevsuit with bad pose\n" );
 		pev->sequence = 0;
 		pev->effects = EF_BRIGHTFIELD;
 	}

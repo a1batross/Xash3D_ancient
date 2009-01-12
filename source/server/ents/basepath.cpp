@@ -185,16 +185,16 @@ void CPathTrack :: Link( void  )
 {
 	CBaseEntity *pTarget;
 
-	if ( !FStringNull(pev->target) )
+	if( !FStringNull( pev->target ))
 	{
 		pTarget = UTIL_FindEntityByTargetname( NULL, STRING(pev->target) );
-		if ( pTarget )
+
+		if( pTarget )
 		{
 			m_pnext = (CPathTrack*)pTarget;
 			m_pnext->SetPrevious( this );
 		}
-		else
-			ALERT( at_debug, "Dead end link %s\n", STRING(pev->target) );
+		else ALERT( at_console, "Dead end link %s\n", STRING(pev->target) );
 	}
 
 	// Find "alternate" path

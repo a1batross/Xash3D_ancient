@@ -777,8 +777,7 @@ static float R_SetFarClip( void )
 	float	farDist, dirDist, worldDist = 0;
 	int	i;
 
-	if( r_refdef.rdflags & RDF_NOWORLDMODEL)
-		return 4096.0;
+	if( r_refdef.onlyClientDraw ) return 4096.0f;
 
 	dirDist = DotProduct( r_refdef.vieworg, r_forward );
 	farDist = dirDist + 256.0;
@@ -915,8 +914,7 @@ void R_RenderView( const ref_params_t *fd )
 void R_DrawPauseScreen( void )
 {
 	// don't apply post effects for custom window
-	if( r_refdef.rdflags & RDF_NOWORLDMODEL )
-		return;
+	if( r_refdef.onlyClientDraw ) return;
 
 	if( !r_pause_bw->integer )
 		return;
@@ -989,11 +987,9 @@ void R_SetLightLevel( void )
 {
 	vec3_t	shadelight;
 
-	if( r_refdef.rdflags & RDF_NOWORLDMODEL )
-		return;
+	if( r_refdef.onlyClientDraw ) return;
 
 	// save off light value for server to look at (BIG HACK!)
-
 	R_LightForPoint( r_refdef.vieworg, shadelight );
 
 	// pick the greatest component, which should be the same
@@ -1301,7 +1297,7 @@ void R_RenderFrame( ref_params_t *rd )
 
 	r_refdef = *rd;
 
-	if(!(r_refdef.rdflags & RDF_NOWORLDMODEL ))
+	if( !r_refdef.onlyClientDraw )
 	{
 		if( !r_worldModel ) Host_Error( "R_RenderScene: NULL worldmodel\n" );
 	}

@@ -36,9 +36,9 @@ static HUD_FUNCTIONS gFunctionTable =
 //=======================================================================
 //			GetApi
 //=======================================================================
-int CreateAPI( HUD_FUNCTIONS *pFunctionTable, cl_enginefuncs_t* pEngfuncsFromEngine, int interfaceVersion )
+int CreateAPI( HUD_FUNCTIONS *pFunctionTable, cl_enginefuncs_t* pEngfuncsFromEngine )
 {
-	if( !pFunctionTable || !pEngfuncsFromEngine || interfaceVersion != INTERFACE_VERSION )
+	if( !pFunctionTable || !pEngfuncsFromEngine )
 	{
 		return FALSE;
 	}

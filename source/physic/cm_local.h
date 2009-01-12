@@ -8,6 +8,7 @@
 #include "physic.h"
 #include "mathlib.h"
 #include "cm_utils.h"
+#include "trace_def.h"
 
 #define MAX_MATERIALS	64
 #define MAX_MAT_SOUNDS	8

@@ -247,7 +247,7 @@ void CSquadMonster :: SquadMakeEnemy ( CBaseEntity *pEnemy )
 
 	if ( !pEnemy )
 	{
-		ALERT ( at_debug, "ERROR: SquadMakeEnemy() - pEnemy is NULL!\n" );
+		ALERT ( at_console, "ERROR: SquadMakeEnemy() - pEnemy is NULL!\n" );
 		return;
 	}
 

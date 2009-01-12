@@ -5,6 +5,7 @@
 
 #include "sound.h"
 #include "const.h"
+#include "trace_def.h"
 
 #define MAX_PLAYSOUNDS		256
 #define MAX_CHANNELS		64

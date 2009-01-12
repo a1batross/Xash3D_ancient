@@ -1433,7 +1433,7 @@ void CFuncTrackTrain :: KeyValue( KeyValueData *pkvd )
 
 void CFuncTrackTrain :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-//	ALERT(at_debug, "TRAIN: use\n");
+//	ALERT( at_console, "TRAIN: use\n" );
 
 	m_hActivator = pActivator;	//AJH
 
@@ -1664,7 +1664,7 @@ void CFuncTrackTrain :: DesiredAction( void ) // Next( void )
 					break;
 				case PATHSPEED_TIME:
 					float distance = (pev->origin - pDest->pev->origin).Length();
-					//ALERT(at_debug, "pFire=%s, distance=%.2f, ospeed=%.2f, nspeed=%.2f\n", STRING(pFire->pev->targetname), distance, pev->speed, distance / pFire->pev->speed);
+					// ALERT( at_console, "pFire=%s, distance=%.2f, ospeed=%.2f, nspeed=%.2f\n", STRING(pFire->pev->targetname), distance, pev->speed, distance / pFire->pev->speed);
 					m_speed = distance / pFire->pev->speed;
 					pev->impulse = m_speed;
 					pev->speed = setting * m_speed;
@@ -1807,10 +1807,10 @@ void CFuncTrackTrain :: NearestPath( void )
 		}
 	}
 
-	if ( !pNearest )
+	if( !pNearest )
 	{
-		ALERT( at_debug, "Can't find a nearby track !!!\n" );
-		SetThink(NULL);
+		ALERT( at_console, "Can't find a nearby track !!!\n" );
+		SetThink( NULL );
 		return;
 	}
 

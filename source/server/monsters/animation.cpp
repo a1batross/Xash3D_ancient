@@ -19,7 +19,7 @@
 #include "extdll.h"
 #include "utils.h"
 #include "const.h"
-#include "qfiles_ref.h"
+#include "studio_ref.h"
 
 #ifndef ACTIVITY_H
 #include "activity.h"
@@ -468,7 +468,7 @@ int FindTransition( void *pmodel, int iEndingAnim, int iGoalAnim, int *piDir )
 		}
 	}
 
-	ALERT( at_debug, "error in transition graph" );
+	ALERT( at_console, "error in transition graph\n" );
 	return iGoalAnim;
 }
 

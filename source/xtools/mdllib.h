@@ -5,7 +5,7 @@
 #ifndef STUDIOMDL_H
 #define STUDIOMDL_H
 
-#include "platform.h"
+#include "xtools.h"
 #include "utils.h"
 #include "mathlib.h"
 

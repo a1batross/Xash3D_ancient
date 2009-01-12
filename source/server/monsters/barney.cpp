@@ -916,9 +916,9 @@ void CDeadBarney :: Spawn( )
 	m_bloodColor		= BLOOD_COLOR_RED;
 
 	pev->sequence = LookupSequence( m_szPoses[m_iPose] );
-	if (pev->sequence == -1)
+	if( pev->sequence == -1 )
 	{
-		ALERT ( at_debug, "Dead barney with bad pose\n" );
+		ALERT ( at_console, "Dead barney with bad pose\n" );
 	}
 	// Corpses have less health
 	pev->health			= DEAD_BARNEY_HEALTH;

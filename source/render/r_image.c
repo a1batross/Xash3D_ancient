@@ -3213,7 +3213,7 @@ bool VID_CubemapShot( const char *base, uint size, bool skyshot )
 	string		basename;
 	int		i = 1, result;
 
-	if(( r_refdef.rdflags & RDF_NOWORLDMODEL) || !r_worldModel)
+	if( r_refdef.onlyClientDraw || !r_worldModel )
 		return false;
 
 	// shared framebuffer not init

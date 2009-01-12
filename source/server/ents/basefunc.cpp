@@ -2342,7 +2342,7 @@ void CFuncTrainControls :: PostSpawn( void )
 
 	if ( !pTarget )
 	{
-		ALERT( at_debug, "TrackTrainControls: No train %s\n", STRING(pev->target) );
+		ALERT( at_console, "TrackTrainControls: No train %s\n", STRING(pev->target) );
 		return;
 	}
 

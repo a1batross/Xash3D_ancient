@@ -9,6 +9,7 @@
 // built-in memory manager
 #define MALLOC( x )		(*g_engfuncs.pfnMemAlloc)( x, __FILE__, __LINE__ )
 #define CALLOC( x, y )	(*g_engfuncs.pfnMemAlloc)((x) * (y), __FILE__, __LINE__ )
+#define MEMCPY( x, y, z )	(*g_engfuncs.pfnMemCopy)( x, y, z, __FILE__, __LINE__ )
 #define FREE( x )		(*g_engfuncs.pfnMemFree)( x, __FILE__, __LINE__ )
 
 // screen handlers

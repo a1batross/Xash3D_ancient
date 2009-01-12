@@ -283,12 +283,12 @@ bool Sys_LoadSymbols( const char *filename )
 
 	for( i = 0; i < svgame.num_ordinals; i++ )
 	{
-		if( !com.strcmp( "GiveFnptrsToDll", svgame.names[i] ))
+		if( !com.strcmp( "CreateAPI", svgame.names[i] ))
 		{
 			void	*fn_offset;
 
 			index = svgame.ordinals[i];
-			fn_offset = (void *)Com_GetProcAddress( svgame.hInstance, "GiveFnptrsToDll" );
+			fn_offset = (void *)Com_GetProcAddress( svgame.hInstance, "CreateAPI" );
 			svgame.funcBase = (dword)(fn_offset) - svgame.funcs[index];
 			break;
 		}
@@ -1318,14 +1318,14 @@ void pfnMakeStatic( edict_t *ent )
 
 /*
 =============
-pfnEntIsOnFloor
+pfnLinkEntity
 
-stupid unused bulletin
+Xash3D extension
 =============
 */
-int pfnEntIsOnFloor( edict_t *e )
+void pfnLinkEntity( edict_t *e )
 {
-	return (e->v.flags & FL_ONGROUND) ? true : false;
+	SV_LinkEdict( e );
 }
 	
 /*
@@ -1613,7 +1613,7 @@ pfnTraceToss
 
 =================
 */
-void pfnTraceToss( edict_t* pent, edict_t* pentToIgnore, TraceResult *ptr )
+static void pfnTraceToss( edict_t* pent, edict_t* pentToIgnore, TraceResult *ptr )
 {
 	trace_t		trace;
 
@@ -1626,10 +1626,9 @@ void pfnTraceToss( edict_t* pent, edict_t* pentToIgnore, TraceResult *ptr )
 =================
 pfnTraceHull
 
-FIXME: replace constant hulls with mins/maxs
 =================
 */
-void pfnTraceHull( const float *v1, const float *mins, const float *maxs, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr )
+static void pfnTraceHull( const float *v1, const float *mins, const float *maxs, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr )
 {
 	trace_t	trace;
 	int	move;
@@ -1643,12 +1642,12 @@ void pfnTraceHull( const float *v1, const float *mins, const float *maxs, const 
 	SV_CopyTraceResult( ptr, trace );
 }
 
-void pfnTraceModel( const float *v1, const float *v2, edict_t *pent, TraceResult *ptr )
+static void pfnTraceModel( const float *v1, const float *v2, edict_t *pent, TraceResult *ptr )
 {
 	// FIXME: implement
 }
 
-const char *pfnTraceTexture( edict_t *pTextureEntity, const float *v1, const float *v2 )
+static const char *pfnTraceTexture( edict_t *pTextureEntity, const float *v1, const float *v2 )
 {
 	trace_t	trace;
 
@@ -2658,6 +2657,42 @@ void pfnSetClientKeyValue( int clientIndex, char *infobuffer, char *key, char *v
 
 /*
 =============
+pfnPrecacheEvent
+
+returns unique hash-value
+=============
+*/
+word pfnPrecacheEvent( int type, const char *psz )
+{
+	// FIXME: implement
+	return 0;
+}
+
+/*
+=============
+pfnPlaybackEvent
+
+=============
+*/
+static void pfnPlaybackEvent( int flags, const edict_t *pInvoker, word eventindex, float delay, event_args_t *args )
+{
+	// FIXME: implement
+}
+
+/*
+=============
+pfnCanSkipPlayer
+
+=============
+*/
+int pfnCanSkipPlayer( const edict_t *player )
+{
+	// FIXME: implement
+	return false;
+}
+
+/*
+=============
 pfnSetSkybox
 
 =============
@@ -2704,6 +2739,7 @@ static enginefuncs_t gEngfuncs =
 {
 	sizeof( enginefuncs_t ),
 	pfnMemAlloc,
+	pfnMemCopy,
 	pfnMemFree,
 	pfnPrecacheModel,
 	pfnPrecacheSound,	
@@ -2730,7 +2766,7 @@ static enginefuncs_t gEngfuncs =
 	pfnRemoveEntity,
 	pfnCreateNamedEntity,				
 	pfnMakeStatic,
-	pfnEntIsOnFloor,
+	pfnLinkEntity,
 	pfnDropToFloor,		
 	pfnWalkMove,
 	pfnSetOrigin,
@@ -2811,6 +2847,9 @@ static enginefuncs_t gEngfuncs =
 	pfnSetKeyValue,		
 	pfnGetInfoKeyBuffer,
 	pfnSetClientKeyValue,	
+	pfnPrecacheEvent,
+	pfnPlaybackEvent,
+	pfnCanSkipPlayer,
 	pfnSetSkybox,
 	pfnPlayMusic,
 	pfnDropClient,		
@@ -2949,8 +2988,10 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 	ent->v.solid = SOLID_BSP;
 	ent->v.movetype = MOVETYPE_PUSH;
 	ent->free = false;
-			
-	SV_ConfigString( CS_MAXCLIENTS, va("%i", Host_MaxClients()));
+
+	SV_ConfigString( CS_GRAVITY, sv_gravity->string );
+	SV_ConfigString( CS_MAXVELOCITY, sv_maxvelocity->string );			
+	SV_ConfigString( CS_MAXCLIENTS, va( "%i", Host_MaxClients( )));
 	svgame.globals->mapname = MAKE_STRING( sv.name );
 	svgame.globals->time = sv.time;
 
@@ -2988,8 +3029,7 @@ void SV_UnloadProgs( void )
 
 void SV_LoadProgs( const char *name )
 {
-	static APIFUNCTION		GetEntityAPI;
-	static GIVEFNPTRSTODLL	GiveFnptrsToDll;
+	static SERVERAPI		GetEntityAPI;
 	static globalvars_t		gpGlobals;
 	string			libname;
 	edict_t			*e;
@@ -3009,20 +3049,11 @@ void SV_LoadProgs( const char *name )
 		Host_Error( "SV_LoadProgs: can't initialize server.dll\n" );
 		return;
 	}
-	GetEntityAPI = (APIFUNCTION)Com_GetProcAddress( svgame.hInstance, "GetEntityAPI" );
 
+	GetEntityAPI = (SERVERAPI)Com_GetProcAddress( svgame.hInstance, "CreateAPI" );
 	if( !GetEntityAPI )
 	{
-		Host_Error( "SV_LoadProgs: failed to get address of GetEntityAPI proc\n" );
-		return;
-	}
-
-	GiveFnptrsToDll = (GIVEFNPTRSTODLL)Com_GetProcAddress( svgame.hInstance, "GiveFnptrsToDll" );
-
-	if( !GiveFnptrsToDll )
-	{
-		// can't find GiveFnptrsToDll!
-		Host_Error( "SV_LoadProgs: failed to get address of GiveFnptrsToDll proc\n" );
+		Host_Error( "SV_LoadProgs: failed to get address of CreateAPI proc\n" );
 		return;
 	}
 
@@ -3031,9 +3062,8 @@ void SV_LoadProgs( const char *name )
 		Host_Error( "SV_LoadProgs: can't loading export symbols\n" );
 		return;
 	}
-	GiveFnptrsToDll( &gEngfuncs, svgame.globals );
 
-	if( !GetEntityAPI( &svgame.dllFuncs, INTERFACE_VERSION ))
+	if( !GetEntityAPI( &svgame.dllFuncs, &gEngfuncs, svgame.globals ))
 	{
 		Host_Error( "SV_LoadProgs: couldn't get entity API\n" );
 		return;

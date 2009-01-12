@@ -13,6 +13,7 @@
 #include "entity_def.h"
 #include "clgame_api.h"
 #include "render_api.h"
+#include "entity_state.h"
 #include "r_opengl.h"
 
 extern stdlib_api_t com;		// engine toolbox

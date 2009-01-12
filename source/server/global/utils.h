@@ -216,6 +216,14 @@ inline BOOL FStringNull(Vector vString)			{ return vString == Vector(0,0,0); }
 
 #define cchMapNameMost 32
 
+typedef enum
+{
+	point_hull = 0,
+	human_hull = 1,
+	large_hull = 2,
+	head_hull = 3
+};
+
 // Dot products for view cone checking
 #define VIEW_FIELD_FULL		(float)-1.0 // +-180 degrees
 #define VIEW_FIELD_WIDE		(float)-0.7 // +-135 degrees 0.1 // +-85 degrees, used for full FOV checks 

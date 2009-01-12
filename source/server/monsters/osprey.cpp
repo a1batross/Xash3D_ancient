@@ -155,7 +155,7 @@ void COsprey :: Spawn( void )
 	UTIL_SetSize(pev, Vector( -400, -400, -100), Vector(400, 400, 32));
 	UTIL_SetOrigin( this, pev->origin );
 
-	//ALERT(at_console, "Osprey origin %f %f %f\n", pev->origin.x, pev->origin.y, pev->origin.z);
+	// ALERT( at_console, "Osprey origin %f %f %f\n", pev->origin.x, pev->origin.y, pev->origin.z);
 
 	pev->flags |= FL_MONSTER;
 	pev->takedamage		= DAMAGE_YES;
@@ -372,7 +372,7 @@ void COsprey::UpdateGoal( )
 		m_startTime = m_startTime + m_dTime;
 		m_dTime = 2.0 * (m_pos1 - m_pos2).Length() / (m_vel1.Length() + pev->speed);
 
-		//ALERT(at_console, "osprey m_dTime = %f / %f + %f\n", (m_pos1 - m_pos2).Length(), m_vel1.Length(), m_pGoalEnt->pev->speed);
+		// ALERT(at_console, "osprey m_dTime = %f / %f + %f\n", (m_pos1 - m_pos2).Length(), m_vel1.Length(), m_pGoalEnt->pev->speed);
 
 		if (m_ang1.y - m_ang2.y < -180)
 		{
@@ -390,7 +390,7 @@ void COsprey::UpdateGoal( )
 	}
 	else
 	{
-		ALERT( at_debug, "osprey missing target");
+		ALERT( at_console, "osprey missing target");
 	}
 }
 

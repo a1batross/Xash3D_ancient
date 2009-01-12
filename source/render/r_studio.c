@@ -1707,7 +1707,7 @@ void R_StudioRenderModel( void )
 		R_StudioDrawPoints();
 	}
 
-	if(!( r_refdef.rdflags & RDF_NOWORLDMODEL ))
+	if( !r_refdef.onlyClientDraw )
 	{
 		if( r_drawentities->integer < 2 )
 			return;

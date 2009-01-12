@@ -287,9 +287,9 @@ CBaseMonster* CCineMonster :: FindEntity( const char* sName, CBaseEntity *pActiv
 			{
 				return pMonster;
 			}
-			ALERT( at_debug, "Found %s, but can't play!\n", sName );
+			ALERT( at_console, "Found %s, but can't play!\n", sName );
 		}
-		pEntity = UTIL_FindEntityByTargetname(pEntity, sName, pActivator);
+		pEntity = UTIL_FindEntityByTargetname( pEntity, sName, pActivator );
 		pMonster = NULL;
 	}
 	
@@ -344,9 +344,11 @@ void CCineMonster :: PossessEntity( void )
 					if (FClassnameIs( pTarget->m_hTargetEnt->pev, STRING(m_iszAttack))) break;
 				}
 			}
-			if (pTarget->m_hTargetEnt == NULL)
-			{	// nothing. Oh well.
-				ALERT(at_debug,"%s %s has a missing \"turn target\": %s\n",STRING(pev->classname),STRING(pev->targetname),STRING(m_iszAttack));
+
+			if( pTarget->m_hTargetEnt == NULL )
+			{	
+				// nothing. Oh well.
+				ALERT( at_console, "%s %s has a missing \"turn target\": %s\n",STRING(pev->classname),STRING(pev->targetname),STRING(m_iszAttack));
 				pTarget->m_hTargetEnt = this;
 			}
 		}
@@ -355,13 +357,14 @@ void CCineMonster :: PossessEntity( void )
 			pTarget->m_hTargetEnt = this;
 		}
 
-		if (m_iszMoveTarget)
+		if( m_iszMoveTarget )
 		{
 			// anything with that name?
 			pTarget->m_pGoalEnt = UTIL_FindEntityByTargetname(NULL, STRING(m_iszMoveTarget), m_hActivator);
-			if (pTarget->m_pGoalEnt == NULL)
-			{	// nothing. Oh well.
-				ALERT(at_debug,"%s %s has a missing \"move target\": %s\n",STRING(pev->classname),STRING(pev->targetname),STRING(m_iszMoveTarget));
+			if( pTarget->m_pGoalEnt == NULL )
+			{	
+				// nothing. Oh well.
+				ALERT( at_console, "%s %s has a missing \"move target\": %s\n",STRING(pev->classname),STRING(pev->targetname),STRING(m_iszMoveTarget));
 				pTarget->m_pGoalEnt = this;
 			}
 		}
@@ -483,12 +486,12 @@ BOOL CCineMonster :: StartSequence( CBaseMonster *pTarget, int iszSeq, BOOL comp
 
 #if 0
 	char *s;
-	if ( pev->spawnflags & SF_SCRIPT_NOINTERRUPT ) 
+	if( pev->spawnflags & SF_SCRIPT_NOINTERRUPT ) 
 		s = "No";
 	else
 		s = "Yes";
 
-	ALERT( at_debug, "%s (%s): started \"%s\":INT:%s\n", STRING( pTarget->pev->targetname ), STRING( pTarget->pev->classname ), STRING( iszSeq), s );
+	ALERT( at_console, "%s (%s): started \"%s\":INT:%s\n", STRING( pTarget->pev->targetname ), STRING( pTarget->pev->classname ), STRING( iszSeq), s );
 #endif
 
 	pTarget->pev->frame = 0;
@@ -1043,7 +1046,7 @@ void CScriptedSentence :: FindThink( void )
 			m_active = FALSE;
 		}
 		else
-			ALERT( at_debug, "ScriptedSentence: can't find \"player\" to play HEV sentence!?\n");
+			ALERT( at_console, "ScriptedSentence: can't find \"player\" to play HEV sentence!?\n" );
 		return;
 	}
 

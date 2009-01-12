@@ -29,6 +29,10 @@ extern vsound_exp_t		*se;
 #define MAX_HEARTBEAT	-99999		// connection time
 #define MAX_EVENTS		1024		// system events
 
+// some engine shared constants
+#define DEFAULT_MAXVELOCITY	"2000"
+#define DEFAULT_GRAVITY	"800"
+
 // all drawing is done to a 640*480 virtual screen size
 // and will be automatically scaled to the real resolution
 #define SCREEN_WIDTH			640
@@ -148,6 +152,7 @@ PRVM INTERACTIONS
 
 ==============================================================
 */
+void pfnMemCopy( void *dest, const void *src, size_t cb, const char *filename, const int fileline );
 byte* pfnLoadFile( const char *filename, int *pLength );
 int pfnFileExists( const char *filename );
 long pfnRandomLong( long lLow, long lHigh );

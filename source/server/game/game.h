@@ -22,5 +22,6 @@
 #define CVAR_SERVERINFO	BIT(2)	// added to serverinfo when changed
 	
 extern void GameDLLInit( void );
+extern void GameDLLShutdown( void );
 
 #endif		// GAME_H

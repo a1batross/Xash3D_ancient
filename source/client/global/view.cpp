@@ -5,6 +5,7 @@
 
 #include "extdll.h"
 #include "hud_iface.h"
+#include "ref_params.h"
 #include "hud.h"
 
 void V_CalcShake( void )

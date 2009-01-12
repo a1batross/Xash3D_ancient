@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "extdll.h"
+#include "triangle_api.h"
 #include "hud_iface.h"
 #include "hud.h"
 

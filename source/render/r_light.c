@@ -379,7 +379,7 @@ void R_LightingAmbient( void )
 	vec4_t		ambientLight;
 
 	// Set to full bright if no light data
-	if(( r_refdef.rdflags & RDF_NOWORLDMODEL) || !r_worldModel->lightData || !m_pCurrentEntity )
+	if( r_refdef.onlyClientDraw || !r_worldModel->lightData || !m_pCurrentEntity )
 	{
 		for( i = 0; i < ref.numVertex; i++ )
 		{
@@ -454,7 +454,7 @@ void R_LightingDiffuse( void )
 	vec3_t		ambientLight, directedLight, lightDir;
 
 	// Set to full bright if no light data
-	if((r_refdef.rdflags & RDF_NOWORLDMODEL) || !r_worldModel->lightData )
+	if( r_refdef.onlyClientDraw || !r_worldModel->lightData )
 	{
 		for( i = 0; i < ref.numVertex; i++ )
 		{

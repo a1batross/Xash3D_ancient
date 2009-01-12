@@ -57,10 +57,10 @@
 //=========================
 // 	Global spawnflag system
 //=========================
-#define SF_START_ON				0x1
 #define SF_NOTSOLID				0x2
 #define SF_FIREONCE				0x2
-#define SF_NORESPAWN			( 1 << 30 )
+#define SF_NORESPAWN			BIT( 30 )
+
 //=========================
 // 	FCAP DEFAULTS
 //=========================

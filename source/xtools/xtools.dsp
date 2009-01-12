@@ -1,24 +1,24 @@
-# Microsoft Developer Studio Project File - Name="common" - Package Owner=<4>
+# Microsoft Developer Studio Project File - Name="xtools" - Package Owner=<4>
 # Microsoft Developer Studio Generated Build File, Format Version 6.00
 # ** DO NOT EDIT **
 
 # TARGTYPE "Win32 (x86) Dynamic-Link Library" 0x0102
 
-CFG=common - Win32 Debug
+CFG=xtools - Win32 Debug
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
 !MESSAGE 
-!MESSAGE NMAKE /f "common.mak".
+!MESSAGE NMAKE /f "xtools.mak".
 !MESSAGE 
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "common.mak" CFG="common - Win32 Debug"
+!MESSAGE NMAKE /f "xtools.mak" CFG="xtools - Win32 Debug"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
-!MESSAGE "common - Win32 Release" (based on "Win32 (x86) Dynamic-Link Library")
-!MESSAGE "common - Win32 Debug" (based on "Win32 (x86) Dynamic-Link Library")
+!MESSAGE "xtools - Win32 Release" (based on "Win32 (x86) Dynamic-Link Library")
+!MESSAGE "xtools - Win32 Debug" (based on "Win32 (x86) Dynamic-Link Library")
 !MESSAGE 
 
 # Begin Project
@@ -29,7 +29,7 @@ CPP=cl.exe
 MTL=midl.exe
 RSC=rc.exe
 
-!IF  "$(CFG)" == "common - Win32 Release"
+!IF  "$(CFG)" == "xtools - Win32 Release"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
@@ -38,12 +38,12 @@ RSC=rc.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "..\temp\common\!release"
-# PROP Intermediate_Dir "..\temp\common\!release"
+# PROP Output_Dir "..\temp\xtools\!release"
+# PROP Intermediate_Dir "..\temp\xtools\!release"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PLATFORM_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "./" /I "../public" /I "./bsplib/" /I "./ripper" /I "./common" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "./" /I "../public" /I "bsplib" /I "ripper" /I "../common" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -57,16 +57,16 @@ LINK32=link.exe
 # ADD LINK32 msvcrt.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /opt:nowin98
 # SUBTRACT LINK32 /profile
 # Begin Custom Build
-TargetDir=\Xash3D\src_main\temp\common\!release
-InputPath=\Xash3D\src_main\temp\common\!release\common.dll
+TargetDir=\Xash3D\src_main\temp\xtools\!release
+InputPath=\Xash3D\src_main\temp\xtools\!release\xtools.dll
 SOURCE="$(InputPath)"
 
-"D:\Xash3D\bin\common.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	copy $(TargetDir)\common.dll "D:\Xash3D\bin\common.dll"
+"D:\Xash3D\bin\xtools.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy $(TargetDir)\xtools.dll "D:\Xash3D\bin\xtools.dll"
 
 # End Custom Build
 
-!ELSEIF  "$(CFG)" == "common - Win32 Debug"
+!ELSEIF  "$(CFG)" == "xtools - Win32 Debug"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 1
@@ -75,12 +75,12 @@ SOURCE="$(InputPath)"
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "..\temp\common\!debug"
-# PROP Intermediate_Dir "..\temp\common\!debug"
+# PROP Output_Dir "..\temp\xtools\!debug"
+# PROP Intermediate_Dir "..\temp\xtools\!debug"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PLATFORM_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "../public" /I "./bsplib/" /I "./ripper" /I "./common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "../public" /I "bsplib" /I "ripper" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /GZ /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -94,12 +94,12 @@ LINK32=link.exe
 # ADD LINK32 msvcrtd.lib user32.lib /nologo /dll /debug /machine:I386 /nodefaultlib:"libc.lib" /pdbtype:sept
 # SUBTRACT LINK32 /incremental:no /nodefaultlib
 # Begin Custom Build
-TargetDir=\Xash3D\src_main\temp\common\!debug
-InputPath=\Xash3D\src_main\temp\common\!debug\common.dll
+TargetDir=\Xash3D\src_main\temp\xtools\!debug
+InputPath=\Xash3D\src_main\temp\xtools\!debug\xtools.dll
 SOURCE="$(InputPath)"
 
-"D:\Xash3D\bin\common.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	copy $(TargetDir)\common.dll "D:\Xash3D\bin\common.dll"
+"D:\Xash3D\bin\xtools.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy $(TargetDir)\xtools.dll "D:\Xash3D\bin\xtools.dll"
 
 # End Custom Build
 
@@ -107,8 +107,8 @@ SOURCE="$(InputPath)"
 
 # Begin Target
 
-# Name "common - Win32 Release"
-# Name "common - Win32 Debug"
+# Name "xtools - Win32 Release"
+# Name "xtools - Win32 Debug"
 # Begin Group "Source Files"
 
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
@@ -186,10 +186,6 @@ SOURCE=.\bsplib\patches.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\platform.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\bsplib\portals.c
 # End Source File
 # Begin Source File
@@ -252,6 +248,10 @@ SOURCE=.\bsplib\winding.c
 
 SOURCE=.\bsplib\writebsp.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\xtools.c
+# End Source File
 # End Group
 # Begin Group "Header Files"
 
@@ -266,15 +266,15 @@ SOURCE=.\mdllib.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\platform.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\ripper\ripper.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\utils.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\xtools.h
 # End Source File
 # End Group
 # End Target

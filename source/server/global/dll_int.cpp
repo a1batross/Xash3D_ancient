@@ -25,16 +25,11 @@ BOOL WINAPI DllMain( HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	return TRUE;
 }
 
-void GiveFnptrsToDll( enginefuncs_t* pengfuncsFromEngine, globalvars_t *pGlobals )
-{
-	memcpy(&g_engfuncs, pengfuncsFromEngine, sizeof(enginefuncs_t));
-	gpGlobals = pGlobals;
-}
-
 static DLL_FUNCTIONS gFunctionTable = 
 {
 	sizeof( DLL_FUNCTIONS ),
 	GameDLLInit,		// pfnGameInit
+	GameDLLShutdown,		// pfnGameShutdown
 	DispatchSpawn,		// pfnSpawn
 	DispatchCreate,		// pfnCreate
 	DispatchThink,		// pfnThink
@@ -42,7 +37,6 @@ static DLL_FUNCTIONS gFunctionTable =
 	DispatchTouch,		// pfnTouch
 	DispatchBlocked,		// pfnBlocked
 	DispatchKeyValue,		// pfnKeyValue
-	DispatchFrame,		// pfnFrame
 	DispatchSave,		// pfnSave
 	DispatchRestore,		// pfnRestore
 	DispatchObjectCollsionBox,	// pfnAbsBox
@@ -68,24 +62,31 @@ static DLL_FUNCTIONS gFunctionTable =
 	PlayerPostThink,		// pfnPlayerPostThink
 
 	StartFrame,		// pfnStartFrame
+	DispatchFrame,		// pfnFrame
 	EndFrame,			// pfnEndFrame
 	BuildLevelList,		// pfnBuildLevelList
 
-	GetGameDescription,		//pfnGetGameDescription	Returns string describing current .dll game.
+	ServerClassifyEdict,	// pfnClassifyEdict
+	UpdateEntityState,		// pfnUpdateEntityState
+
+	GetGameDescription,		// pfnGetGameDescription - returns string describing current .dll game.
 };
 
 //=======================================================================
-//			GetApi
+//			General API entering point
 //=======================================================================
 
-int GetEntityAPI( DLL_FUNCTIONS *pFunctionTable, int interfaceVersion )
+int CreateAPI( DLL_FUNCTIONS *pFunctionTable, enginefuncs_t* pengfuncsFromEngine, globalvars_t *pGlobals )
 {
-	if ( !pFunctionTable || interfaceVersion != INTERFACE_VERSION )
+	if( !pFunctionTable || !pengfuncsFromEngine || !pGlobals )
 	{
 		return FALSE;
 	}
-	
-	memcpy( pFunctionTable, &gFunctionTable, sizeof( DLL_FUNCTIONS ) );
+
+	memcpy( pFunctionTable, &gFunctionTable, sizeof( DLL_FUNCTIONS ));
+	memcpy(&g_engfuncs, pengfuncsFromEngine, sizeof( enginefuncs_t ));
+	gpGlobals = pGlobals;
+
 	return TRUE;
 }
 

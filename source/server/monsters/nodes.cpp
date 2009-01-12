@@ -480,11 +480,11 @@ float CGraph::PathLength( int iStart, int iDest, int iHull, int afCapMask )
 	int iCurrentNode = iStart;
 	int iCap = CapIndex( afCapMask );
 
-	while (iCurrentNode != iDest)
+	while( iCurrentNode != iDest )
 	{
-		if (iMaxLoop-- <= 0)
+		if( iMaxLoop-- <= 0 )
 		{
-			ALERT( at_debug, "Route Failure\n" );
+			ALERT( at_console, "Route Failure\n" );
 			return 0;
 		}
 
@@ -496,13 +496,13 @@ float CGraph::PathLength( int iStart, int iDest, int iHull, int afCapMask )
 		}
 
 		int iLink;
-		HashSearch(iCurrentNode, iNext, iLink);
-		if (iLink < 0)
+		HashSearch( iCurrentNode, iNext, iLink );
+		if( iLink < 0 )
 		{
-			ALERT(at_debug, "HashLinks is broken from %d to %d.\n", iCurrentNode, iDest);
+			ALERT( at_console, "HashLinks is broken from %d to %d.\n", iCurrentNode, iDest );
 			return 0;
 		}
-		CLink &link = Link(iLink);
+		CLink &link = Link( iLink );
 		distance += link.m_flWeight;
 
 		iCurrentNode = iNext;
@@ -2055,9 +2055,9 @@ void CTestHull :: BuildNodeGraph( void )
 	//
 	WorldGraph.ComputeStaticRoutingTables();
 
-// save the node graph for this level	
-	WorldGraph.FSaveGraph( (char *)STRING( gpGlobals->mapname ) );
-	ALERT( at_debug, "Done.\n");
+	// save the node graph for this level	
+	WorldGraph.FSaveGraph( (char *)STRING( gpGlobals->mapname ));
+	ALERT( at_console, "Done.\n");
 }
 
 
@@ -3511,9 +3511,10 @@ LINK_ENTITY_TO_CLASS( node_viewer_large, CNodeViewer );
 
 void CNodeViewer::Spawn( )
 {
-	if ( !WorldGraph.m_fGraphPresent || !WorldGraph.m_fGraphPointersSet )
-	{// protect us in the case that the node graph isn't available or built
-		ALERT ( at_debug, "Graph not ready!\n" );
+	if( !WorldGraph.m_fGraphPresent || !WorldGraph.m_fGraphPointersSet )
+	{
+		// protect us in the case that the node graph isn't available or built
+		ALERT ( at_console, "Graph not ready!\n" );
 		UTIL_Remove( this );
 		return;
 	}
@@ -3541,9 +3542,9 @@ void CNodeViewer::Spawn( )
 
 	m_iBaseNode = WorldGraph.FindNearestNode ( pev->origin, m_afNodeType );
 
-	if ( m_iBaseNode < 0 )
+	if( m_iBaseNode < 0 )
 	{
-		ALERT( at_debug, "No nearby node\n" );
+		ALERT( at_console, "No nearby node\n" );
 		return;
 	}
 
