@@ -585,7 +585,7 @@ void Sys_Print( const char *pMsg )
 	Sys_PrintLog( logbuf );
 
 	// don't flood system console with memory allocation messages or another
-	if( Sys.Con_Print && Sys.printlevel < D_LOAD )
+	if( Sys.Con_Print && Sys.printlevel < D_MEMORY )
 		Sys.Con_Print( buffer );
 	Sys.printlevel = 0; // reset before next message
 }

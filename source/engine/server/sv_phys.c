@@ -326,7 +326,7 @@ bool SV_RunThink( edict_t *ent )
 	if( ent->v.nextthink <= 0 || ent->v.nextthink > sv.time + svgame.globals->frametime )
 		return true;
 
-	for( iterations = 0; iterations < 128 && !ent->free; iterations++ )
+	for( iterations = 0; iterations < 128 && !ent->v.flags & FL_KILLME; iterations++ )
 	{
 		svgame.globals->time = max( sv.time, ent->v.nextthink );
 		ent->v.nextthink = 0;
@@ -1533,7 +1533,7 @@ A moving object that doesn't obey physics
 void SV_Physics_Noclip( edict_t *ent )
 {
 	// regular thinking
-	if(SV_RunThink( ent ))
+	if( SV_RunThink( ent ))
 	{
 		SV_CheckWater( ent );	
 		VectorMA( ent->v.angles, svgame.globals->frametime, ent->v.avelocity, ent->v.angles );
@@ -1552,8 +1552,8 @@ Non moving objects can only think
 */
 void SV_Physics_None( edict_t *ent )
 {
-	if (ent->v.nextthink > 0 && ent->v.nextthink <= sv.time + svgame.globals->frametime)
-		SV_RunThink (ent);
+	if( ent->v.nextthink > 0 && ent->v.nextthink <= sv.time + svgame.globals->frametime )
+		SV_RunThink( ent );
 }
 
 
@@ -1592,7 +1592,7 @@ static void SV_Physics_Entity( edict_t *ent )
 	case MOVETYPE_TOSS:
 	case MOVETYPE_BOUNCE:
 	case MOVETYPE_FLY:
-		if(SV_RunThink( ent )) SV_Physics_Toss( ent );
+		if( SV_RunThink( ent )) SV_Physics_Toss( ent );
 		break;
 	case MOVETYPE_CONVEYOR:
 		SV_Physics_Conveyor( ent );
@@ -1629,7 +1629,7 @@ void SV_Physics_ClientEntity( edict_t *ent )
 	svgame.dllFuncs.pfnPlayerPreThink( ent );
 	SV_CheckVelocity( ent );
 
-	switch((int)ent->v.movetype )
+	switch( ent->v.movetype )
 	{
 	case MOVETYPE_PUSH:
 		SV_Physics_Pusher( ent );

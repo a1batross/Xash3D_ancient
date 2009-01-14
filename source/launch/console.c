@@ -15,9 +15,9 @@ WIN32 CONSOLE
 ===============================================================================
 */
 
-//console defines
+// console defines
 #define SUBMIT_ID		1	// "submit" button
-#define QUIT_ON_ESCPE_ID	2	// escape event
+#define QUIT_ON_ESCAPE_ID	2	// escape event
 #define EDIT_ID		110
 #define INPUT_ID		109
 #define IDI_ICON1		101
@@ -118,7 +118,7 @@ static long _stdcall Con_WndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 	case WM_HOTKEY:
 		switch(LOWORD(wParam))
 		{
-		case QUIT_ON_ESCPE_ID:
+		case QUIT_ON_ESCAPE_ID:
 			PostQuitMessage( 0 );
 			break;
 		}
@@ -408,7 +408,7 @@ void Con_RegisterHotkeys( void )
 	SetFocus( s_wcd.hWnd );
 
 	// user can hit escape for quit
-	RegisterHotKey(s_wcd.hWnd, QUIT_ON_ESCPE_ID, 0, VK_ESCAPE );
+	RegisterHotKey( s_wcd.hWnd, QUIT_ON_ESCAPE_ID, 0, VK_ESCAPE );
 }
 
 /*

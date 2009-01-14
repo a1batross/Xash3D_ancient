@@ -792,9 +792,16 @@ LINK_ENTITY_TO_CLASS( func_rotating, CFuncRotating );
 
 void CFuncRotating :: KeyValue( KeyValueData* pkvd)
 {
-	if (FStrEq(pkvd->szKeyName, "spintime"))
+	if( FStrEq( pkvd->szKeyName, "spintime" ))
 	{
 		pev->frags = atof(pkvd->szValue);
+		pkvd->fHandled = TRUE;
+	}
+	if( FStrEq( pkvd->szKeyName, "spawnorigin" ))
+	{
+		Vector	tmp;
+		UTIL_StringToVector( tmp, pkvd->szValue );
+		if( tmp != g_vecZero ) pev->origin = tmp;
 		pkvd->fHandled = TRUE;
 	}
 	else CBaseBrush::KeyValue( pkvd );
