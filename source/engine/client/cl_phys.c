@@ -311,7 +311,7 @@ void CL_PredictMovement (void)
 
 	pmove = EDICT_NUM( cl.playernum + 1 )->v;
 
-	if( !cl_predict->value || pmove.teleport_time )
+	if( !cl_predict->value || cl.frame.ps.ed_flags & ESF_NO_PREDICTION )
 	{	
 		// just set angles
 		for( i = 0; i < 3; i++ )

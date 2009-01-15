@@ -460,6 +460,7 @@ void S_StartSound( const vec3_t pos, int entnum, int channel, sound_t handle, fl
 		else MsgDev( D_ERROR, "dropped sound \"sound/%s\"\n", sfx->name );
 		return;
 	}
+
 	ps->sfx = sfx;
 	ps->entnum = entnum;
 	ps->entchannel = channel;

@@ -1260,23 +1260,23 @@ LINK_ENTITY_TO_CLASS( func_train, CFuncTrain );
 //=======================================================================
 void CFuncTrackTrain :: Precache( void )
 {
-	CBaseBrush::Precache();//precache damage sound
+	CBaseBrush::Precache(); // precache damage sound
 
-	int m_sounds = UTIL_LoadSoundPreset(m_iMoveSound);
-	switch (m_sounds)
+	int m_sounds = UTIL_LoadSoundPreset( m_iMoveSound );
+	switch( m_sounds )
 	{
-	case 1: pev->noise = UTIL_PrecacheSound("plats/ttrain1.wav");break;
-	case 2: pev->noise = UTIL_PrecacheSound("plats/ttrain2.wav");break;
-	case 3: pev->noise = UTIL_PrecacheSound("plats/ttrain3.wav");break; 
-	case 4: pev->noise = UTIL_PrecacheSound("plats/ttrain4.wav");break;
-	case 5: pev->noise = UTIL_PrecacheSound("plats/ttrain6.wav");break;
-	case 6: pev->noise = UTIL_PrecacheSound("plats/ttrain7.wav");break;
-	default: pev->noise = UTIL_PrecacheSound(m_sounds); break;//custom sound or sentence
+	case 1: pev->noise = UTIL_PrecacheSound( "trains/ttrain1.wav" ); break;
+	case 2: pev->noise = UTIL_PrecacheSound( "trains/ttrain2.wav" ); break;
+	case 3: pev->noise = UTIL_PrecacheSound( "trains/ttrain3.wav" ); break; 
+	case 4: pev->noise = UTIL_PrecacheSound( "trains/ttrain4.wav" ); break;
+	case 5: pev->noise = UTIL_PrecacheSound( "trains/ttrain6.wav" ); break;
+	case 6: pev->noise = UTIL_PrecacheSound( "trains/ttrain7.wav" ); break;
+	default: pev->noise = UTIL_PrecacheSound( m_sounds ); break; // custom sound or sentence
 	}
           
-	//always constant
-	pev->noise1 = UTIL_PrecacheSound("plats/ttrain_brake1.wav");
-	pev->noise2 = UTIL_PrecacheSound("plats/ttrain_start1.wav");
+	// always constant
+	pev->noise1 = UTIL_PrecacheSound( "trains/ttrain_brake1.wav" );
+	pev->noise2 = UTIL_PrecacheSound( "trains/ttrain_start1.wav" );
 }
 
 void CFuncTrackTrain :: Spawn( void )
@@ -1494,12 +1494,11 @@ void CFuncTrackTrain :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_
 void CFuncTrackTrain :: StopSound( void )
 {
 	// if sound playing, stop it
-	if (m_soundPlaying && pev->noise)
+	if( m_soundPlaying && pev->noise )
 	{
-		STOP_SOUND(ENT(pev), CHAN_STATIC, (char*)STRING(pev->noise));
-		EMIT_SOUND_DYN(ENT(pev), CHAN_ITEM, "plats/ttrain_brake1.wav", m_flVolume, ATTN_NORM, 0, 100);
+		STOP_SOUND( ENT( pev ), CHAN_STATIC, STRING( pev->noise ));
+		EMIT_SOUND_DYN( ENT( pev ), CHAN_ITEM, "trains/ttrain_brake1.wav", m_flVolume, ATTN_NORM, 0, 100 );
 	}
-
 	m_soundPlaying = 0;
 }
 
@@ -1507,22 +1506,21 @@ void CFuncTrackTrain :: UpdateSound( void )
 {
 	float flpitch;
 	
-	if (!pev->noise)
-		return;
+	if( !pev->noise ) return;
 
 	flpitch = TRAIN_STARTPITCH + (abs(pev->speed) * (TRAIN_MAXPITCH - TRAIN_STARTPITCH) / TRAIN_MAXSPEED);
 
-	if (!m_soundPlaying)
+	if( !m_soundPlaying )
 	{
 		// play startup sound for train
-		EMIT_SOUND_DYN(ENT(pev), CHAN_ITEM, "plats/ttrain_start1.wav", m_flVolume, ATTN_NORM, 0, 100);
-		EMIT_SOUND_DYN(ENT(pev), CHAN_STATIC, (char*)STRING(pev->noise), m_flVolume, ATTN_NORM, 0, (int) flpitch);
+		EMIT_SOUND_DYN( ENT( pev ), CHAN_ITEM, "trains/ttrain_start1.wav", m_flVolume, ATTN_NORM, 0, 100 );
+		EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, STRING( pev->noise ), m_flVolume, ATTN_NORM, 0, (int)flpitch );
 		m_soundPlaying = 1;
 	} 
 	else
 	{
 		// update pitch
-		EMIT_SOUND_DYN(ENT(pev), CHAN_STATIC, (char*)STRING(pev->noise), m_flVolume, ATTN_NORM, SND_CHANGE_PITCH, (int) flpitch);
+		EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, STRING( pev->noise ), m_flVolume, ATTN_NORM, SND_CHANGE_PITCH, (int)flpitch );
 	}
 }
 
@@ -1535,6 +1533,7 @@ void CFuncTrackTrain::ClearPointers( void )
 void CFuncTrackTrain :: PostActivate( void )
 {
 }
+
 void CFuncTrackTrain :: PostponeNext( void )
 {
 	DesiredAction();//temp fix

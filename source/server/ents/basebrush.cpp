@@ -188,9 +188,9 @@ void CBaseBrush :: AxisDir( void )
 
 void CBaseBrush::KeyValue( KeyValueData* pkvd )
 {
-	//as default all brushes can select material
-	//and set strength (0 = unbreakable)
-	if (FStrEq(pkvd->szKeyName, "material"))
+	// as default all brushes can select material
+	// and set strength (0 = unbreakable)
+	if( FStrEq( pkvd->szKeyName, "material" ))
 	{
 		int i = atoi( pkvd->szValue);
 
@@ -199,7 +199,7 @@ void CBaseBrush::KeyValue( KeyValueData* pkvd )
 		else	m_Material = (Materials)i;
 		pkvd->fHandled = TRUE;
 	}
-	else if (FStrEq(pkvd->szKeyName, "strength") )
+	else if( FStrEq( pkvd->szKeyName, "strength" ))
 	{
 		pev->health = atof(pkvd->szValue);
 		pkvd->fHandled = TRUE;
@@ -262,8 +262,12 @@ void CBaseBrush::Spawn( void )
 {
     	Precache();
 
-	if( !m_flVolume ) m_flVolume = 1.0;//just enable full volume
-	          
+	if( !m_flVolume ) m_flVolume = 1.0; // just enable full volume
+
+	// convert contents and reset skins
+	pev->contents = UTIL_ConvertContents( pev->skin );
+	pev->skin = 0;	          
+
 	// breacable brush (if mapmaker just set material - just play material sound)
 	if( IsBreakable())
 		pev->takedamage = DAMAGE_YES;

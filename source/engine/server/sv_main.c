@@ -170,6 +170,26 @@ void SV_CheckTimeouts( void )
 	}
 }
 
+/*
+================
+SV_PrepWorldFrame
+
+This has to be done before the world logic, because
+player processing happens outside RunWorldFrame
+================
+*/
+void SV_PrepWorldFrame( void )
+{
+	edict_t	*ent;
+	int	i;
+
+	for( i = 0; i < svgame.globals->numEntities; i++ )
+	{
+		ent = EDICT_NUM( i );
+		if( ent->free ) continue;
+		ent->pvServerData->s.ed_flags = 0;
+	}
+}
 
 /*
 =================
@@ -252,6 +272,9 @@ void SV_Frame( dword time )
 
 	// send a heartbeat to the master if needed
 	Master_Heartbeat ();
+
+	// clear edict flags for next frame
+	SV_PrepWorldFrame ();
 }
 
 //============================================================================

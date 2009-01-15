@@ -800,8 +800,9 @@ void CBaseEntity::UpdateOnRemove( void )
 void CBaseEntity :: Remove( void )
 {
 	UpdateOnRemove();
-	if (pev->health > 0)pev->health = 0;
-	REMOVE_ENTITY(ENT(pev));
+	if( pev->health > 0 )
+		pev->health = 0;
+	REMOVE_ENTITY( ENT( pev ));
 }
 
 void CBaseEntity :: PVSRemove( void )

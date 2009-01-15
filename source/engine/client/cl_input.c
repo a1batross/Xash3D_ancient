@@ -29,7 +29,6 @@ cvar_t	*cl_sensitivity;
 cvar_t	*ui_sensitivity;
 cvar_t	*m_filter;		// mouse filtering
 uint	frame_msec;
-int	in_impulse;
 
 kbutton_t	in_left, in_right, in_forward, in_back;
 kbutton_t	in_lookup, in_lookdown, in_moveleft, in_moveright;
@@ -268,7 +267,6 @@ void IN_UseDown (void) {IN_KeyDown(&in_use);}
 void IN_UseUp (void) {IN_KeyUp(&in_use);}
 void IN_ReloadDown(void) {IN_KeyDown(&in_reload);}
 void IN_ReloadUp(void) {IN_KeyUp(&in_reload);}
-void IN_Impulse (void) {in_impulse = com.atoi(Cmd_Argv(1));}
 void IN_MLookDown( void ){Cvar_SetValue( "cl_mouselook", 1 );}
 void IN_MLookUp( void ){ IN_CenterView(); Cvar_SetValue( "cl_mouselook", 0 );}
 void IN_CenterView (void) {cl.viewangles[PITCH] = -SHORT2ANGLE(cl.frame.ps.delta_angles[PITCH]);}
@@ -432,9 +430,6 @@ void CL_FinishMove( usercmd_t *cmd )
 
 	for( i = 0; i < 3; i++ )
 		cmd->angles[i] = ANGLE2SHORT( cl.viewangles[i] );
-
-	cmd->impulse = in_impulse;
-	in_impulse = 0;
 
 	// HACKHACK: client lightlevel
 	cmd->lightlevel = (byte)cl_lightlevel->value;
@@ -623,9 +618,21 @@ void CL_InitInput( void )
 	Cmd_AddCommand ("-use", IN_UseUp, "stop using item" );
 	Cmd_AddCommand ("+reload", IN_ReloadDown, "reload current weapon" );
 	Cmd_AddCommand ("-reload", IN_ReloadUp, "continue reload weapon" );
-	Cmd_AddCommand ("impulse", IN_Impulse, "send an impulse number to server (select weapon, use item, etc)");
 	Cmd_AddCommand ("+mlook", IN_MLookDown, "activate mouse looking mode, do not recenter view" );
 	Cmd_AddCommand ("-mlook", IN_MLookUp, "deactivate mouse looking mode" );
+}
+
+/*
+============
+CL_InitServerCommands
+============
+*/
+void CL_InitServerCommands( void )
+{
+	Cmd_AddCommand ("impulse", NULL, "send impulse to a client" );
+	Cmd_AddCommand ("noclip", NULL, "enable or disable no clipping mode" );
+	Cmd_AddCommand ("give", NULL, "give specified item or weapon" );
+	Cmd_AddCommand ("god", NULL, "classic cheat" );
 }
 
 /*
@@ -670,7 +677,6 @@ void CL_ShutdownInput( void )
 	Cmd_RemoveCommand ("-reload" );
 	Cmd_RemoveCommand ("+use" );
 	Cmd_RemoveCommand ("-use" );
-	Cmd_RemoveCommand ("impulse" );
 	Cmd_RemoveCommand ("+mlook" );
 	Cmd_RemoveCommand ("-mlook" );
 }

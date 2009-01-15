@@ -760,6 +760,7 @@ void CFuncTeleport :: Touch( CBaseEntity *pOther )
 	ChangeCamera( pev->target ); // update PVS
 	pevToucher->flags &= ~FL_ONGROUND;
 	pevToucher->fixangle = TRUE;
+	pevToucher->teleport_time = 0.1;
 
 	UTIL_FireTargets( pev->netname, pOther, this, USE_TOGGLE ); // fire target
 }
@@ -875,7 +876,7 @@ void CFuncRotating :: Touch ( CBaseEntity *pOther )
 
 void CFuncRotating :: Blocked( CBaseEntity *pOther )
 {
-	if(m_pParent && m_pParent->edict() && pFlags & PF_PARENTMOVE)m_pParent->Blocked( pOther );
+	if(m_pParent && m_pParent->edict() && pFlags & PF_PARENTMOVE) m_pParent->Blocked( pOther );
 
 	UTIL_AssignAngles(this, pev->angles );
 	if ( gpGlobals->time < m_flBlockedTime)return;
@@ -907,13 +908,13 @@ void CFuncRotating :: Blocked( CBaseEntity *pOther )
 
 void CFuncRotating :: PostActivate ()
 {
-	if ( pev->spawnflags & SF_START_ON )SetSpeed( pev->speed );
-	ClearBits( pev->spawnflags, SF_START_ON);
+	if( pev->spawnflags & SF_START_ON )
+		SetSpeed( pev->speed );
+	ClearBits( pev->spawnflags, SF_START_ON );
 
-	if(m_iState == STATE_ON )//restore sound if needed
+	if(m_iState == STATE_ON ) // restore sound if needed
 		EMIT_SOUND_DYN( ENT(pev), CHAN_STATIC, (char *)STRING(pev->noise3), m_flVolume, ATTN_NORM, SND_CHANGE_PITCH | SND_CHANGE_VOL, m_pitch);
-	Msg("CFuncRotating:PostActivate()\n" );
-	SetNextThink( 0.05 ); //force to think
+	SetNextThink( 0.05 ); // force to think
 }
 
 void CFuncRotating :: RampPitchVol ( void )
@@ -926,16 +927,16 @@ void CFuncRotating :: RampPitchVol ( void )
 	fpitch = PITCHMIN + (PITCHMAX - PITCHMIN) * speedfactor;
 	
 	pitch = (int)fpitch;
-	if (pitch == PITCH_NORM)pitch = PITCH_NORM-1;
+	if( pitch == PITCH_NORM ) pitch = PITCH_NORM-1;
 
-	//normalize volume and pitch
-	if(m_flVolume > 1.0)m_flVolume = 1.0;
-	if(m_flVolume < 0.0)m_flVolume = 0.0;
-	if(pitch < PITCHMIN) pitch = PITCHMIN;
-	if(pitch > 255) pitch = 255;
+	// normalize volume and pitch
+	if( m_flVolume > 1.0 ) m_flVolume = 1.0;
+	if( m_flVolume < 0.0 ) m_flVolume = 0.0;
+	if( pitch < PITCHMIN ) pitch = PITCHMIN;
+	if( pitch > 255 ) pitch = 255;
 	m_pitch = pitch;//refresh pitch
 	
-	EMIT_SOUND_DYN(ENT(pev), CHAN_STATIC, (char *)STRING(pev->noise3), m_flVolume, ATTN_NORM, SND_CHANGE_PITCH | SND_CHANGE_VOL, m_pitch);
+	EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, (char *)STRING(pev->noise3), m_flVolume, ATTN_NORM, SND_CHANGE_PITCH|SND_CHANGE_VOL, m_pitch );
 }
 
 void CFuncRotating :: SetSpeed( float newspeed )

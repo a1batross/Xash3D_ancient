@@ -366,8 +366,7 @@ void SV_Newgame_f( void );
 //
 void SV_WriteFrameToClient (sv_client_t *client, sizebuf_t *msg);
 void SV_BuildClientFrame (sv_client_t *client);
-void SV_UpdateEntityState( edict_t *ent);
-void SV_Error (char *error, ...);
+void SV_UpdateEntityState( edict_t *ent, bool baseline );
 
 //
 // sv_game.c

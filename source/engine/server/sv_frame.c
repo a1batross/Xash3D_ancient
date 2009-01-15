@@ -44,96 +44,15 @@ Copy entvars into entity state
 
 =============================================================================
 */
-void SV_UpdateEntityState( edict_t *ent )
+void SV_UpdateEntityState( edict_t *ent, bool baseline )
 {
-	int	i;
-
 	// copy progs values to state
 	ent->pvServerData->s.number = ent->serialnumber;
-	ent->pvServerData->s.solid = ent->v.solid;
 
 	if( !ent->pvServerData->s.classname )
 		ent->pvServerData->s.classname = SV_ClassIndex( STRING( ent->v.classname ));
 
-	VectorCopy (ent->v.origin, ent->pvServerData->s.origin);
-	VectorCopy (ent->v.angles, ent->pvServerData->s.angles);
-	ent->pvServerData->s.modelindex = ent->v.modelindex;
-	ent->pvServerData->s.health = ent->v.health;
-	ent->pvServerData->s.skin = ent->v.skin;		// studio model skin
-	ent->pvServerData->s.body = ent->v.body;		// studio model submodel 
-	ent->pvServerData->s.effects = ent->v.effects;		// shared client and render flags
-	ent->pvServerData->s.renderfx = ent->v.renderfx;		// renderer flags
-	ent->pvServerData->s.rendermode = ent->v.rendermode;	// rendering mode
-	ent->pvServerData->s.renderamt = ent->v.renderamt;	// alpha value
-	ent->pvServerData->s.animtime = (int)(1000.0 * ent->v.animtime) * 0.001; // sequence time
-	ent->pvServerData->s.scale = ent->v.scale;		// shared client and render flags
-	ent->pvServerData->s.movetype = ent->v.movetype;
-	ent->pvServerData->s.frame = ent->v.frame;		// any model current frame
-	ent->pvServerData->s.framerate = ent->v.framerate;
-	ent->pvServerData->s.flags = ent->v.flags;
-	ent->pvServerData->s.teleport_time = ent->v.teleport_time;	// any entity may be teleported
-	VectorCopy( ent->v.rendercolor, ent->pvServerData->s.rendercolor );
-
-	// studio model sequence
-	if( ent->v.sequence != -1 ) ent->pvServerData->s.sequence = ent->v.sequence;
-
-	for( i = 0; i < 16; i++ )
-	{
-		// copy blendings and bone ctrlrs
-		ent->pvServerData->s.blending[i] = ent->v.blending[i];
-		ent->pvServerData->s.controller[i] = ent->v.controller[i];
-	}
-
-	if( ent->pvServerData->s.ed_type == ED_MOVER || ent->pvServerData->s.ed_type == ED_BSPBRUSH )
-	{
-		// these needs to right calculate direction of scroll texture
-		VectorCopy( ent->v.movedir, ent->pvServerData->s.velocity );
-	}
-	if( ent->pvServerData->s.ed_type == ED_CLIENT )
-	{
-		if( ent->v.fixangle )
-		{
-			// FIXME: set angles correctly
-			for( i = 0; i < 2; i++ )
-				ent->pvServerData->s.delta_angles[i] = ANGLE2SHORT( ent->pvServerData->s.angles[i] );
-			VectorClear( ent->pvServerData->s.angles );
-			VectorClear( ent->pvServerData->s.viewangles );
-			VectorClear( ent->v.viewangles );
-			
-			// and clear fixangle for the next frame
-			ent->v.fixangle = 0;
-		}
-
-		if( ent->v.viewmodel )
-			ent->pvServerData->s.viewmodel = SV_ModelIndex( STRING( ent->v.viewmodel ));
-		else ent->pvServerData->s.viewmodel = 0;
-
-		if( ent->v.aiment ) 
-			ent->pvServerData->s.aiment = NUM_FOR_EDICT( ent->v.aiment );
-		else ent->pvServerData->s.aiment = 0;
-
-		// playermodel sequence, that will be playing on a client
-		ent->pvServerData->s.gaitsequence = ent->v.gaitsequence;
-		ent->pvServerData->s.weapons = ent->v.weapons;
-		ent->pvServerData->s.fov = bound( 1.0f, ent->v.fov, 160.0f );
-	}
-	else if( ent->pvServerData->s.ed_type == ED_AMBIENT )
-	{
-		if( ent->v.solid == SOLID_TRIGGER )
-		{
-			vec3_t	midPoint;
-
-			// NOTE: no reason to compute this shit on the client - save bandwidth
-			VectorAverage( ent->v.mins, ent->v.maxs, midPoint );
-			VectorAdd( ent->pvServerData->s.origin, midPoint, ent->pvServerData->s.origin );
-		}
-	}
-	else if( ent->pvServerData->s.ed_type == ED_MOVER )
-	{
-		// FIXME: send mins\maxs for sound spatialization and entity prediction ?
-	}
-
-	if( ent->v.teleport_time ) ent->v.teleport_time = 0.0f;
+	svgame.dllFuncs.pfnUpdateEntityState( &ent->pvServerData->s, ent, baseline );
 }
 
 /*
@@ -148,12 +67,16 @@ static void SV_AddEntToSnapshot( sv_priv_t *svent, edict_t *ent, sv_ents_t *ents
 	svent->framenum = sv.net_framenum;
 
 	// if we are full, silently discard entities
-	if( ents->num_entities == MAX_VISIBLE_PACKET ) return;
+	if( ents->num_entities == MAX_VISIBLE_PACKET )
+	{
+		MsgDev( D_ERROR, "too many entities in visible packet list\n" );
+		return;
+	}
 
-	SV_UpdateEntityState( ent ); // copy entity state from progs
+	SV_UpdateEntityState( ent, false ); // copy entity state from progs
 	ents->entities[ents->num_entities] = ent->serialnumber;
 	ents->num_entities++;
-	c_fullsend++;		// debug counter
+	c_fullsend++; // debug counter
 }
 
 /*

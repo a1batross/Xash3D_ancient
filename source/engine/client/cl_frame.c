@@ -50,7 +50,6 @@ void CL_UpdateEntityFields( edict_t *ent )
 	ent->v.solid = ent->pvClientData->current.solid;
 	ent->v.movetype = ent->pvClientData->current.movetype;
 	ent->v.flags = ent->pvClientData->current.flags;
-	ent->v.teleport_time = ent->pvClientData->current.teleport_time;
 	if( ent->v.scale == 0.0f ) ent->v.scale = 1.0f;
 
 	for( i = 0; i < MAXSTUDIOBLENDS; i++ )
@@ -84,23 +83,13 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 	if( unchanged ) *state = *old;
 	else MSG_ReadDeltaEntity( msg, old, state, newnum );
 
-	if( state->number == -1 )
-	{
-		CL_FreeEdict( ent );
-		return; // entity was delta removed
-	}
+	if( state->number == -1 ) return; // entity was delta removed
 
 	cl.parse_entities++;
 	frame->num_entities++;
 
 	// some data changes will force no lerping
-	if( state->modelindex != ent->pvClientData->current.modelindex
-		|| state->weaponmodel != ent->pvClientData->current.weaponmodel
-		|| state->body != ent->pvClientData->current.body
-		|| state->sequence != ent->pvClientData->current.sequence
-		|| abs( state->origin[0] - ent->pvClientData->current.origin[0] ) > 512
-		|| abs( state->origin[1] - ent->pvClientData->current.origin[1] ) > 512
-		|| abs(state->origin[2] - ent->pvClientData->current.origin[2]) > 512 )
+	if( state->ed_flags & ESF_NODELTA )
 	{
 		ent->pvClientData->serverframe = -99;
 	}
@@ -421,7 +410,7 @@ void CL_CalcViewValues( void )
 	clent = EDICT_NUM( cl.playernum + 1 );
 
 	// see if the player entity was teleported this frame
-	if( clent->v.teleport_time )
+	if( ps->ed_flags & ESF_NO_PREDICTION )
 		ops = ps;	// don't interpolate
 	lerp = cl.refdef.lerpfrac;
 

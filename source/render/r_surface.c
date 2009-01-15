@@ -25,17 +25,21 @@ void R_SurfaceRenderMode( void )
 	if( m_pCurrentShader->stages[0]->renderMode == m_pCurrentEntity->rendermode )
 		return;
 
+	m_pCurrentShader->flags |= SHADER_SORT;
+
 	switch( m_pCurrentEntity->rendermode )
 	{
 	case kRenderTransColor:
 		m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
 		m_pCurrentShader->stages[0]->blendFunc.src = GL_SRC_COLOR;
 		m_pCurrentShader->stages[0]->blendFunc.dst = GL_ZERO;
+		m_pCurrentShader->sort = SORT_OPAQUE;
 		break;
 	case kRenderTransTexture:
 		m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
 		m_pCurrentShader->stages[0]->blendFunc.src = GL_SRC_COLOR;
 		m_pCurrentShader->stages[0]->blendFunc.dst = GL_SRC_ALPHA;
+		m_pCurrentShader->sort = SORT_BLEND;
 		break;
 	case kRenderTransAlpha:
 		m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
@@ -47,9 +51,11 @@ void R_SurfaceRenderMode( void )
 		m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
 		m_pCurrentShader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
 		m_pCurrentShader->stages[0]->blendFunc.dst = GL_ONE;
+		m_pCurrentShader->sort = SORT_ADDITIVE;
 		break;
 	case kRenderNormal:
 	default:
+		m_pCurrentShader->sort = SORT_OPAQUE;
 		m_pCurrentShader->stages[0]->flags &= ~(SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAFUNC);
 		break;
 	}

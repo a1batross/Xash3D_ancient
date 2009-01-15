@@ -33,6 +33,8 @@ typedef enum
 
 // entity_state_t->ed_flags
 #define ESF_LINKEDICT	BIT( 0 )		// needs to relink edict on client
+#define ESF_NODELTA		BIT( 1 )		// force no delta frame
+#define ESF_NO_PREDICTION	BIT( 2 )		// e.g. teleport time
 
 typedef struct entity_state_s
 {
@@ -41,7 +43,7 @@ typedef struct entity_state_s
 	edtype_t		ed_type;		// edict type
 	string_t		classname;	// edict classname
 	int		soundindex;	// looped ambient sound
-	int		ed_flags;		// edict internal flags
+	int		ed_flags;		// engine clearing this at end of server frame
 
 	// physics information
 	vec3_t		origin;
@@ -56,7 +58,7 @@ typedef struct entity_state_s
 	vec3_t		maxs;
 	vec3_t		velocity;		// for predicting & tracing
 	vec3_t		avelocity;	// for predicting & tracing
-	float		teleport_time;	// time when no prediction
+	int		contents;		// for predicting & tracing on client
 
 	// model state
 	int		modelindex;	// general modelindex

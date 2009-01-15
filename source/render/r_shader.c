@@ -1278,12 +1278,13 @@ static bool R_ParseGeneralSort( ref_shader_t *shader, script_t *script )
 	else if( !com.stricmp( tok.string, "banner" )) shader->sort = SORT_BANNER;
 	else if( !com.stricmp( tok.string, "underwater" )) shader->sort = SORT_UNDERWATER;
 	else if( !com.stricmp( tok.string, "water" )) shader->sort = SORT_WATER;
-	else if( !com.stricmp( tok.string, "farthest" )) shader->sort = SORT_FARTHEST;
-	else if( !com.stricmp( tok.string, "far" )) shader->sort = SORT_FAR;
-	else if( !com.stricmp( tok.string, "medium" )) shader->sort = SORT_MEDIUM;
-	else if( !com.stricmp( tok.string, "close" )) shader->sort = SORT_CLOSE;
+	else if( !com.stricmp( tok.string, "innerBlend" )) shader->sort = SORT_INNERBLEND;
+	else if( !com.stricmp( tok.string, "blend" )) shader->sort = SORT_BLEND;
+	else if( !com.stricmp( tok.string, "blend2" )) shader->sort = SORT_BLEND2;
+	else if( !com.stricmp( tok.string, "blend3" )) shader->sort = SORT_BLEND3;
+	else if( !com.stricmp( tok.string, "blend4" )) shader->sort = SORT_BLEND4;
+	else if( !com.stricmp( tok.string, "outerBlend" )) shader->sort = SORT_OUTERBLEND;
 	else if( !com.stricmp( tok.string, "additive" )) shader->sort = SORT_ADDITIVE;
-	else if( !com.stricmp( tok.string, "almostNearest" )) shader->sort = SORT_ALMOST_NEAREST;
 	else if( !com.stricmp( tok.string, "nearest" )) shader->sort = SORT_NEAREST;
 	else if( !com.stricmp( tok.string, "postProcess" )) shader->sort = SORT_POST_PROCESS;
 	else
@@ -3908,6 +3909,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
 			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+	         		shader->sort = SORT_BLEND;
 		}
 		else if( shader->surfaceParm & SURF_ALPHA )
 		{
@@ -3916,6 +3918,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 			shader->stages[0]->alphaFunc.func = GL_GREATER;
 			shader->stages[0]->alphaFunc.ref = 0.666;
+	         		shader->sort = SORT_SEETHROUGH;
 		}
 		if( shader->surfaceParm & SURF_WARP )
 		{
@@ -3928,6 +3931,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 		else if( shader->surfaceParm & SURF_SKY )
 		{
 			shader->surfaceParm |= SURF_NOLIGHTMAP;
+	         		shader->sort = SORT_SKY;
 		}
 		shader->stages[0]->numBundles++;
 		shader->numStages++;
@@ -3958,7 +3962,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
 			shader->stages[0]->blendFunc.dst = GL_ONE;
-	         		shader->sort = SORT_ADDITIVE;
+	         		shader->sort = SORT_BLEND;
 		}
 		else if( shader->surfaceParm & SURF_ADDITIVE )
 		{
@@ -4034,6 +4038,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
 			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+	         		shader->sort = SORT_BLEND;
 		}
 		else if( shader->surfaceParm & SURF_ADDITIVE )
 		{
@@ -4493,7 +4498,7 @@ static void R_FinishShader( ref_shader_t *shader )
 				{
 					if((stage->blendFunc.src == GL_SRC_ALPHA && stage->blendFunc.dst == GL_ONE) || (stage->blendFunc.src == GL_ONE && stage->blendFunc.dst == GL_ONE))
 						shader->sort = SORT_ADDITIVE;
-					else shader->sort = SORT_ADDITIVE;
+					else shader->sort = SORT_BLEND;
 				}
 			}
 		}

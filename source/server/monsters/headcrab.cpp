@@ -280,18 +280,14 @@ void CHeadCrab :: Spawn()
 {
 	Precache( );
 
-	if (pev->model)
-		SET_MODEL(ENT(pev), STRING(pev->model)); //LRC
-	else
-		SET_MODEL(ENT(pev), "models/headcrab.mdl");
-	UTIL_SetSize(pev, Vector(-12, -12, 0), Vector(12, 12, 24));
+	UTIL_SetModel( ENT( pev ), pev->model, "models/monsters/headcrab.mdl" );
+	UTIL_SetSize( pev, Vector( -12, -12, 0 ), Vector( 12, 12, 24 ));
 
-	pev->solid			= SOLID_SLIDEBOX;
+	pev->solid		= SOLID_SLIDEBOX;
 	pev->movetype		= MOVETYPE_STEP;
 	m_bloodColor		= BLOOD_COLOR_GREEN;
 	pev->effects		= 0;
-	if (pev->health == 0)
-		pev->health			= HEADCRAB_HEALTH;
+	if( pev->health == 0 ) 	pev->health = HEADCRAB_HEALTH;
 	pev->view_ofs		= Vector ( 0, 0, 20 );// position of the eyes relative to monster's origin.
 	pev->yaw_speed		= 5;//!!! should we put this in the monster's changeanim function since turn rates may vary with state/anim?
 	m_flFieldOfView		= 0.5;// indicates the width of this monster's forward view cone ( as a dotproduct result )
@@ -312,10 +308,7 @@ void CHeadCrab :: Precache()
 	PRECACHE_SOUND_ARRAY(pDeathSounds);
 	PRECACHE_SOUND_ARRAY(pBiteSounds);
 
-	if (pev->model)
-		PRECACHE_MODEL((char*)STRING(pev->model)); //LRC
-	else
-		PRECACHE_MODEL("models/headcrab.mdl");
+	UTIL_PrecacheModel( pev->model, "models/monsters/headcrab.mdl" );
 }	
 
 

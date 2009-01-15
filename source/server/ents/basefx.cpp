@@ -2304,13 +2304,13 @@ void CEnvBeam::BeamUpdatePoints( void )
 
 void CEnvBeam::Spawn( void )
 {
-	UTIL_SetModel(edict(), "sprites/null.spr");//beam start point
-	pev->solid = SOLID_NOT; // Remove model & collisions
+	UTIL_SetModel( edict(), "sprites/null.spr" ); // beam start point
+	pev->solid = SOLID_NOT; // remove model & collisions
 	Precache();
 
-	if (FStringNull(pev->netname))
+	if( FStringNull( pev->netname ))
 	{
-		Msg( "Warning: %s end entity not found!\n", STRING(pev->classname) );
+		ALERT( at_warning, "%s end entity not found!\n", STRING(pev->classname) );
 		SetThink( Remove );
 		SetNextThink( 0 );
 		return;

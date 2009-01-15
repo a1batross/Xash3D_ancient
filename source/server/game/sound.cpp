@@ -1678,8 +1678,8 @@ float TEXTURETYPE_PlaySound(TraceResult *ptr,  Vector vecSrc, Vector vecEnd, int
 			float flVolume = RANDOM_FLOAT ( 0.7 , 1.0 );//random volume range
 			switch ( RANDOM_LONG(0,1) )
 			{
-				case 0: UTIL_EmitAmbientSound(ENT(0), ptr->vecEndPos, "buttons/spark5.wav", flVolume, ATTN_NORM, 0, 100); break;
-				case 1: UTIL_EmitAmbientSound(ENT(0), ptr->vecEndPos, "buttons/spark6.wav", flVolume, ATTN_NORM, 0, 100); break;
+				case 0: UTIL_EmitAmbientSound(ENT(0), ptr->vecEndPos, "materials/spark5.wav", flVolume, ATTN_NORM, 0, 100); break;
+				case 1: UTIL_EmitAmbientSound(ENT(0), ptr->vecEndPos, "materials/spark6.wav", flVolume, ATTN_NORM, 0, 100); break;
 			}
 		}
 	}

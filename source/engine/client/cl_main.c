@@ -692,14 +692,14 @@ void CL_PrepSound( void )
 {
 	int	i, sndcount;
 		
-	for( i = 1, sndcount = 0; i < MAX_SOUNDS && cl.configstrings[CS_SOUNDS+i+1][0]; i++ )
+	for( i = 0, sndcount = 0; i < MAX_SOUNDS && cl.configstrings[CS_SOUNDS+i+1][0]; i++ )
 		sndcount++; // total num sounds
 
 	S_BeginRegistration();
-	for( i = 1; i < MAX_SOUNDS && cl.configstrings[CS_SOUNDS+1+i][0]; i++ )
+	for( i = 0; i < MAX_SOUNDS && cl.configstrings[CS_SOUNDS+1+i][0]; i++ )
 	{
-		cl.sound_precache[i+1] = S_RegisterSound( cl.configstrings[CS_SOUNDS+1+i]);
-		Cvar_SetValue( "scr_loading", scr_loading->value + 5.0f/sndcount );
+		cl.sound_precache[i+1] = S_RegisterSound( cl.configstrings[CS_SOUNDS+1+i] );
+		Cvar_SetValue( "scr_loading", scr_loading->value + 5.0f / sndcount );
 		SCR_UpdateScreen();
 	}
 
@@ -733,10 +733,10 @@ void CL_PrepVideo( void )
 	SCR_RegisterShaders(); // update with new sequence
 	SCR_UpdateScreen();
 
-	for( i = 1, mdlcount = 0; i < MAX_MODELS && cl.configstrings[CS_MODELS+1+i][0]; i++ )
+	for( i = 0, mdlcount = 0; i < MAX_MODELS && cl.configstrings[CS_MODELS+1+i][0]; i++ )
 		mdlcount++; // total num models
 
-	for( i = 1; i < MAX_MODELS && cl.configstrings[CS_MODELS+1+i][0]; i++ )
+	for( i = 0; i < MAX_MODELS && cl.configstrings[CS_MODELS+1+i][0]; i++ )
 	{
 		com.strncpy( name, cl.configstrings[CS_MODELS+1+i], MAX_STRING );
 		re->RegisterModel( name, i+1 );
@@ -1080,6 +1080,7 @@ void CL_InitLocal (void)
 {
 	cls.state = ca_disconnected;
 	cls.realtime = Sys_Milliseconds();
+
 	CL_InitInput();
 
 	// register our variables
@@ -1162,6 +1163,8 @@ void CL_InitLocal (void)
 
 	Cmd_AddCommand ("precache", CL_Precache_f, "precache specified resource (by index)" );
 	Cmd_AddCommand ("download", CL_Download_f, "download specified resource (by name)" );
+
+	CL_InitServerCommands ();
 
 	UI_ShowMenu();
 }

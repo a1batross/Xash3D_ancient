@@ -528,7 +528,7 @@ void EntvarsKeyvalue( entvars_t *pev, KeyValueData *pkvd )
 	{
 		pField = &gEntvarsDescription[i];
 
-		if ( !stricmp( pField->fieldName, pkvd->szKeyName ) )
+		if( !stricmp( pField->fieldName, pkvd->szKeyName ))
 		{
 			switch( pField->fieldType )
 			{
@@ -537,7 +537,6 @@ void EntvarsKeyvalue( entvars_t *pev, KeyValueData *pkvd )
 			case FIELD_STRING:
 				(*(int *)((char *)pev + pField->fieldOffset)) = ALLOC_STRING( pkvd->szValue );
 				break;
-
 			case FIELD_TIME:
 			case FIELD_FLOAT:
 				(*(float *)((char *)pev + pField->fieldOffset)) = atof( pkvd->szValue );
@@ -555,13 +554,12 @@ void EntvarsKeyvalue( entvars_t *pev, KeyValueData *pkvd )
 			case FIELD_VECTOR:
 				UTIL_StringToVector( (float *)((char *)pev + pField->fieldOffset), pkvd->szValue );
 				break;
-
-			default:
 			case FIELD_EVARS:
 			case FIELD_CLASSPTR:
 			case FIELD_EDICT:
 			case FIELD_ENTITY:
 			case FIELD_POINTER:
+			default:
 				ALERT( at_error, "Bad field in entity!!\n" );
 				break;
 			}

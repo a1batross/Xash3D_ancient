@@ -52,6 +52,10 @@ Beta 13.12.08
 21.add missing builtins in enginefuncs_t	OK
 22.add missing builtins in cl_enginefuncs_t	OK
 23.first implement efxapi_t
+24.ed_fields flags				OK
+25.install ALL missing models & sounds!		OK
+26.fixangle doesn't working correctly
+
 
 Список доступных рендереров:  	Что в них интересного
 0. Q3Fusion			(Mirrors, Portals)

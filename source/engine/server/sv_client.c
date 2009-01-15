@@ -667,6 +667,21 @@ void SV_Begin_f( sv_client_t *cl )
 
 /*
 ==================
+SV_Impulse_f
+
+old good "impulse 101"
+==================
+*/
+void SV_Impulse_f( sv_client_t *cl )
+{
+	if( !cl || !cl->edict ) return;
+	if( Cmd_Argc() < 2 ) return;
+
+	cl->edict->v.impulse = com.atoi( Cmd_Argv( 1 ));
+}
+
+/*
+==================
 SV_NextDownload_f
 ==================
 */
@@ -812,6 +827,7 @@ ucmd_t ucmds[] =
 {
 	{"new", SV_New_f},
 	{"begin", SV_Begin_f},
+	{"impulse", SV_Impulse_f},
 	{"baselines", SV_Baselines_f},
 	{"info", SV_ShowServerinfo_f},
 	{"nextdl", SV_NextDownload_f},
@@ -999,8 +1015,6 @@ void SV_ApplyClientMove( sv_client_t *cl, usercmd_t *cmd )
 	if( cmd->sidemove > 0 ) ent->v.button |= IN_MOVERIGHT;
 	if( cmd->forwardmove > 0 ) ent->v.button |= IN_FORWARD;
 	if( cmd->forwardmove < 0 ) ent->v.button |= IN_BACK;
-	if( cmd->impulse ) ent->v.impulse = cmd->impulse;
-	cmd->impulse = 0; // only send the impulse to qc once
 
 	// circularly clamp the angles with deltas
 	for( i = 0; i < 3; i++ )

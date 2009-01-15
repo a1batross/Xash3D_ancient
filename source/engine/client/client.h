@@ -416,6 +416,7 @@ void SCR_Viewpos_f( void );
 extern render_exp_t		*re;
 
 void CL_Init( void );
+void CL_InitServerCommands( void );
 void CL_Disconnect (void);
 void CL_Disconnect_f (void);
 void CL_GetChallengePacket (void);

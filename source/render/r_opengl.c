@@ -150,7 +150,7 @@ bool R_SetPixelformat( void )
 	savedGamma = FS_LoadFile( "config/gamma.rc", &gamma_size );
 	if( !savedGamma || gamma_size != sizeof( gl_state.stateRamp ))
 	{
-		// saved gamma not found or correupted file
+		// saved gamma not found or corrupted file
 		FS_WriteFile( "config/gamma.rc", gl_state.stateRamp, sizeof(gl_state.stateRamp));
 		Msg( "gamma.rc initialized\n" );
 	}
@@ -159,16 +159,16 @@ bool R_SetPixelformat( void )
 		GL_BuildGammaTable();
 
 		// validate base gamma
-		if(!memcmp( savedGamma, gl_state.stateRamp, sizeof(gl_state.stateRamp)))
+		if( !memcmp( savedGamma, gl_state.stateRamp, sizeof( gl_state.stateRamp )))
 		{
 			// all ok, previous gamma is valid
 			MsgDev( D_NOTE, "R_SetPixelformat: validate screen gamma - ok\n" );
 		}
-		else if(!memcmp( gl_state.gammaRamp, gl_state.stateRamp, sizeof(gl_state.stateRamp)))
+		else if( !memcmp( gl_state.gammaRamp, gl_state.stateRamp, sizeof( gl_state.stateRamp )))
 		{
 			// screen gamma is equal to render gamma (probably previous instance crashed)
 			// run additional check to make sure it
-			if(memcmp( savedGamma, gl_state.stateRamp, sizeof(gl_state.stateRamp)))
+			if( memcmp( savedGamma, gl_state.stateRamp, sizeof( gl_state.stateRamp )))
 			{
 				// yes, current gamma it's totally wrong, restore it from gamma.rc
 				MsgDev( D_NOTE, "R_SetPixelformat: restore original gamma after crash\n" );
@@ -181,15 +181,15 @@ bool R_SetPixelformat( void )
 				MsgDev( D_NOTE, "R_SetPixelformat: validate screen gamma - disabled\n" ); 
 			}
 		}
-		else if(!memcmp( gl_state.gammaRamp, savedGamma, sizeof(gl_state.stateRamp)))
+		else if( !memcmp( gl_state.gammaRamp, savedGamma, sizeof( gl_state.stateRamp )))
 		{
 			// saved gamma is equal render gamma, probably gamma.rc writed after crash
 			// run additional check to make sure it
-			if(memcmp( savedGamma, gl_state.stateRamp, sizeof(gl_state.stateRamp)))
+			if( memcmp( savedGamma, gl_state.stateRamp, sizeof( gl_state.stateRamp )))
 			{
 				// yes, saved gamma it's totally wrong, get origianl gamma from screen
 				MsgDev( D_NOTE, "R_SetPixelformat: merge gamma.rc after crash\n" );
-				FS_WriteFile( "config/gamma.rc", gl_state.stateRamp, sizeof(gl_state.stateRamp));
+				FS_WriteFile( "config/gamma.rc", gl_state.stateRamp, sizeof( gl_state.stateRamp ));
 			}
 			else
 			{
@@ -240,17 +240,17 @@ void R_Free_OpenGL( void )
 	Sys_FreeLibrary( &opengl_dll );
 
 	// now all extensions are disabled
-	Mem_Set( gl_config.extension, 0, sizeof(gl_config.extension[0]) * R_EXTCOUNT);
+	Mem_Set( gl_config.extension, 0, sizeof( gl_config.extension[0] ) * R_EXTCOUNT );
 }
 
 void R_SaveVideoMode( int vid_mode )
 {
-	int	i = bound(0, vid_mode, num_vidmodes); // check range
+	int	i = bound( 0, vid_mode, num_vidmodes ); // check range
 
-	Cvar_FullSet("width", va("%i", vidmode[i].width ), CVAR_READ_ONLY );
-	Cvar_FullSet("height", va("%i", vidmode[i].height ), CVAR_READ_ONLY );
-	Cvar_SetValue("r_mode", i ); // merge if out of bounds
-	MsgDev(D_NOTE, "Set: %s [%dx%d]\n", vidmode[i].desc, vidmode[i].width, vidmode[i].height );
+	Cvar_FullSet( "width", va( "%i", vidmode[i].width ), CVAR_READ_ONLY );
+	Cvar_FullSet( "height", va( "%i", vidmode[i].height ), CVAR_READ_ONLY );
+	Cvar_SetValue( "r_mode", i ); // merge if out of bounds
+	MsgDev( D_NOTE, "Set: %s [%dx%d]\n", vidmode[i].desc, vidmode[i].width, vidmode[i].height );
 }
 
 bool R_CreateWindow( int width, int height, bool fullscreen )
@@ -277,7 +277,7 @@ bool R_CreateWindow( int width, int height, bool fullscreen )
 	wc.lpszClassName = "Xash Window";
 	wc.lpszMenuName  = 0;
 
-	if(!RegisterClass( &wc ))
+	if( !RegisterClass( &wc ))
 	{ 
 		MsgDev( D_ERROR, "R_CreateWindow: couldn't register window class %s\n" "Xash Window" );
 		return false;
@@ -286,7 +286,7 @@ bool R_CreateWindow( int width, int height, bool fullscreen )
 	if( fullscreen )
 	{
 		exstyle = WS_EX_TOPMOST;
-		stylebits = WS_POPUP | WS_VISIBLE;
+		stylebits = WS_POPUP|WS_VISIBLE;
 	}
 
 	rect.left = 0;
@@ -318,7 +318,7 @@ bool R_CreateWindow( int width, int height, bool fullscreen )
 	UpdateWindow( glw_state.hWnd );
 
 	// init all the gl stuff for the window
-	if(!R_SetPixelformat())
+	if( !R_SetPixelformat( ))
 	{
 		MsgDev( D_ERROR, "OpenGL driver not installed\n" );
 		return false;
@@ -352,10 +352,10 @@ rserr_t R_ChangeDisplaySettings( int vid_mode, bool fullscreen )
 		dm.dmPelsHeight = height;
 		dm.dmFields = DM_PELSWIDTH|DM_PELSHEIGHT;
 		
-		if(ChangeDisplaySettings( &dm, CDS_FULLSCREEN ) == DISP_CHANGE_SUCCESSFUL)
+		if( ChangeDisplaySettings( &dm, CDS_FULLSCREEN ) == DISP_CHANGE_SUCCESSFUL )
 		{
 			gl_config.fullscreen = true;
-			if(!R_CreateWindow( width, height, true ))
+			if( !R_CreateWindow( width, height, true ))
 				return rserr_invalid_mode;
 			return rserr_ok;
 		}
@@ -363,7 +363,7 @@ rserr_t R_ChangeDisplaySettings( int vid_mode, bool fullscreen )
 		{
 			dm.dmPelsWidth = width * 2;
 			dm.dmPelsHeight = height;
-			dm.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
+			dm.dmFields = DM_PELSWIDTH|DM_PELSHEIGHT;
 			if( r_bitdepth->integer != 0 )
 			{
 				dm.dmBitsPerPel = r_bitdepth->integer;
@@ -375,13 +375,13 @@ rserr_t R_ChangeDisplaySettings( int vid_mode, bool fullscreen )
 			{
 				ChangeDisplaySettings( 0, 0 );
 				gl_config.fullscreen = false;
-				if(!R_CreateWindow( width, height, false ))
+				if( !R_CreateWindow( width, height, false ))
 					return rserr_invalid_mode;
 				return rserr_invalid_fullscreen;
 			}
 			else
 			{
-				if(!R_CreateWindow( width, height, true ))
+				if( !R_CreateWindow( width, height, true ))
 					return rserr_invalid_mode;
 				gl_config.fullscreen = true;
 				return rserr_ok;
@@ -392,7 +392,7 @@ rserr_t R_ChangeDisplaySettings( int vid_mode, bool fullscreen )
 	{
 		ChangeDisplaySettings( 0, 0 );
 		gl_config.fullscreen = false;
-		if(!R_CreateWindow( width, height, false ))
+		if( !R_CreateWindow( width, height, false ))
 			return rserr_invalid_mode;
 	}
 	return rserr_ok;
@@ -457,7 +457,7 @@ void RB_CheckForErrors( const char *filename, const int fileline )
 
 	if( !r_check_errors->integer )
 		return;
-	if((err = pglGetError()) == GL_NO_ERROR)
+	if((err = pglGetError()) == GL_NO_ERROR )
 		return;
 
 	switch( err )

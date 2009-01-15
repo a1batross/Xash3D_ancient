@@ -39,7 +39,7 @@ static net_field_t ent_fields[] =
 { ES_FIELD(weaponanim),		NET_WORD,  false	},	// 1024 sequences 
 { ES_FIELD(weaponbody),		NET_BYTE,  false	},	// 255 bodies
 { ES_FIELD(weaponskin),		NET_BYTE,  false	},	// 255 skins 
-{ ES_FIELD(teleport_time),		NET_FLOAT, false	},	// FIXME: use byte ?
+{ ES_FIELD(contents),		NET_LONG,	 false	},	// full range contents
 { ES_FIELD(blending[0]),		NET_COLOR, false	},
 { ES_FIELD(blending[1]),		NET_COLOR, false	},	// stateflags_t #1 (4 bytes)
 { ES_FIELD(blending[2]),		NET_COLOR, false	},
@@ -98,7 +98,7 @@ static net_field_t ent_fields[] =
 { ES_FIELD(fov),			NET_FLOAT, false	},	// client horizontal field of view
 { ES_FIELD(weapons),		NET_INT64, false	},	// client weapon 0-64
 { ES_FIELD(health),			NET_FLOAT, false	},	// client health
-// revision 5. reserve for 6 fields without enlarge null_msg_size
+// revision 5. reserve for 7 fields without enlarge null_msg_size
 { NULL },							// terminator
 };
 
@@ -113,7 +113,6 @@ static net_field_t cmd_fields[] =
 { CM_FIELD(sidemove),	NET_SHORT, false	},
 { CM_FIELD(upmove),		NET_SHORT, false	},
 { CM_FIELD(buttons),	NET_SHORT, false	},
-{ CM_FIELD(impulse),	NET_BYTE,  false	},
 { CM_FIELD(lightlevel),	NET_BYTE,  false	},
 { NULL },
 };

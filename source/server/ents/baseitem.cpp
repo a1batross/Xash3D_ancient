@@ -169,7 +169,7 @@ void CItem::Materialize( void )
 //***********************************************************
 class CGenericItem : public CItem
 {
-	const char *Model( void ){ return "models/w_adrenaline.mdl"; }
+	const char *Model( void ){ return "models/items/w_adrenaline.mdl"; }
 	BOOL AddItem( CBaseEntity *pOther ) 
 	{ 
 		CBasePlayer *pPlayer = (CBasePlayer *)pOther;
@@ -192,7 +192,7 @@ LINK_ENTITY_TO_CLASS( item_generic, CGenericItem );
 //***********************************************************
 class CItemSuit : public CItem
 {
-	const char *Model( void ){ return  "models/w_suit.mdl"; }
+	const char *Model( void ){ return  "models/items/w_suit.mdl"; }
 	BOOL AddItem( CBaseEntity *pOther )
 	{
 		CBasePlayer *pPlayer = (CBasePlayer *)pOther;
@@ -213,7 +213,7 @@ LINK_ENTITY_TO_CLASS(item_suit, CItemSuit);
 
 class CItemLongJump : public CItem
 {
-	const char *Model( void ){ return  "models/w_longjump.mdl"; }
+	const char *Model( void ){ return  "models/items/w_longjump.mdl"; }
 	const char *PickSound( void ){ return "buttons/bell1.wav"; }
 	BOOL AddItem( CBaseEntity *pOther )
 	{
@@ -257,7 +257,7 @@ LINK_ENTITY_TO_CLASS( item_sodacan, CItemSoda );
 
 class CItemSecurity : public CItem
 {
-	const char *Model( void ){ return  "models/w_security.mdl"; }
+	const char *Model( void ){ return  "models/items/w_security.mdl"; }
 	const char *PickSound( void ){ return "items/gunpickup2.wav"; }
 	BOOL AddItem( CBaseEntity *pOther ) { return TRUE; }
 };
@@ -265,7 +265,7 @@ LINK_ENTITY_TO_CLASS(item_security, CItemSecurity);
 
 class CItemArmorVest : public CItem
 {
-	const char *Model( void ){ return  "models/w_vest.mdl"; }
+	const char *Model( void ){ return  "models/items/w_vest.mdl"; }
 	const char *PickSound( void ){ return "items/gunpickup2.wav"; }
 	BOOL AddItem( CBaseEntity *pOther ) { return pOther->TakeArmor( 60 ); }
 };
@@ -273,7 +273,7 @@ LINK_ENTITY_TO_CLASS(item_armorvest, CItemArmorVest);
 
 class CItemHelmet : public CItem
 {
-	const char *Model( void ){ return  "models/w_helmet.mdl"; }
+	const char *Model( void ){ return  "models/items/w_helmet.mdl"; }
 	const char *PickSound( void ){ return "items/gunpickup2.wav"; }
 	BOOL AddItem( CBaseEntity *pOther ) { return pOther->TakeArmor( 40 ); }
 };
@@ -284,7 +284,7 @@ LINK_ENTITY_TO_CLASS(item_helmet, CItemHelmet);
 //***********************************************************
 class CGlockAmmo : public CItem
 {
-	const char *Model( void ){ return "models/w_9mmclip.mdl"; }
+	const char *Model( void ){ return "models/ammo/w_9mmclip.mdl"; }
 	const char *PickSound( void ){ return "weapons/glock/clip_in.wav"; }
 	BOOL AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_GLOCKCLIP_GIVE, "9mm", 250 ); }
 };
@@ -293,7 +293,7 @@ LINK_ENTITY_TO_CLASS( ammo_glockclip, CGlockAmmo );
 
 class CPythonAmmo : public CItem
 {
-	const char *Model( void ){ return "models/w_357ammobox.mdl"; }
+	const char *Model( void ){ return "models/ammo/w_357ammobox.mdl"; }
 	const char *PickSound( void ){ return "weapons/glock/clip_in.wav"; }
 	BOOL AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_357BOX_GIVE, "357", 21 ); }
 };
@@ -301,7 +301,7 @@ LINK_ENTITY_TO_CLASS( ammo_357, CPythonAmmo );
 
 class CSniperAmmo : public CItem
 {
-	const char *Model( void ){ return "models/w_m40a1clip.mdl"; }
+	const char *Model( void ){ return "models/ammo/w_m40a1clip.mdl"; }
 	const char *PickSound( void ){ return "weapons/glock/clip_in.wav"; }
 	BOOL AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_357BOX_GIVE, "762", 21 ); }
 };
@@ -317,7 +317,7 @@ LINK_ENTITY_TO_CLASS( ammo_rpgclip, CRpgAmmo );
 
 class CMP5AmmoClip : public CItem
 {
-	const char *Model( void ){ return "models/w_9mmARclip.mdl"; }
+	const char *Model( void ){ return "models/ammo/w_9mmARclip.mdl"; }
 	const char *PickSound( void ){ return "weapons/glock/clip_in.wav"; }
 	BOOL AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_MP5CLIP_GIVE, "9mm", 250); }
 };
@@ -326,7 +326,7 @@ LINK_ENTITY_TO_CLASS( ammo_mp5clip, CMP5AmmoClip );
 
 class CSawAmmo : public CItem
 {
-	const char *Model( void ){ return "models/w_saw_clip.mdl"; }
+	const char *Model( void ){ return "models/ammo/w_saw_clip.mdl"; }
 	const char *PickSound( void ){ return "weapons/glock/clip_in.wav"; }
 	BOOL AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_CHAINBOX_GIVE, "556", SAW_MAX_CLIP); }
 };
@@ -342,7 +342,7 @@ LINK_ENTITY_TO_CLASS( ammo_m203, CMP5AmmoGrenade );
 
 class CGaussAmmo : public CItem
 {
-	const char *Model( void ){ return "models/w_gaussammo.mdl"; }
+	const char *Model( void ){ return "models/ammo/w_gaussammo.mdl"; }
 	const char *PickSound( void ){ return "weapons/glock/clip_in.wav"; }
 	BOOL AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_URANIUMBOX_GIVE, "uranium", 100 ); }
 };
@@ -350,7 +350,7 @@ LINK_ENTITY_TO_CLASS( ammo_gaussclip, CGaussAmmo );
 
 class CShotgunAmmoBox : public CItem
 {
-	const char *Model( void ){ return "models/w_shotbox.mdl"; }
+	const char *Model( void ){ return "models/ammo/w_shotbox.mdl"; }
 	const char *PickSound( void ){ return "weapons/glock/clip_in.wav"; }
 	BOOL AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( 12, "buckshot", 125 ); }
 };
@@ -358,7 +358,7 @@ LINK_ENTITY_TO_CLASS( ammo_buckshot, CShotgunAmmoBox );
 
 class CCrossbowAmmo : public CItem
 {
-	const char *Model( void ){ return "models/w_crossbow_clip.mdl"; }
+	const char *Model( void ){ return "models/ammo/w_crossbow_clip.mdl"; }
 	const char *PickSound( void ){ return "weapons/glock/clip_in.wav"; }
 	BOOL AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( 5, "bolts", 50 ); }
 };
@@ -388,7 +388,7 @@ TYPEDESCRIPTION	CWeaponBox::m_SaveData[] =
 
 void CWeaponBox::Precache( void )
 {
-	UTIL_PrecacheModel("models/w_weaponbox.mdl");
+	UTIL_PrecacheModel( "models/items/w_weaponbox.mdl" );
 }
 
 void CWeaponBox :: KeyValue( KeyValueData *pkvd )
@@ -411,7 +411,7 @@ void CWeaponBox::Spawn( void )
 	pev->solid = SOLID_TRIGGER;
 
 	UTIL_SetSize( pev, g_vecZero, g_vecZero );
-	UTIL_SetModel( ENT(pev), "models/w_weaponbox.mdl");
+	UTIL_SetModel( ENT(pev), "models/items/w_weaponbox.mdl" );
 }
 
 void CWeaponBox::Kill( void )

@@ -188,9 +188,9 @@ void CGrenade :: BounceSound( void )
 {
 	switch ( RANDOM_LONG( 0, 2 ) )
 	{
-	case 0:	EMIT_SOUND(ENT(pev), CHAN_VOICE, "weapons/grenade_hit1.wav", 0.25, ATTN_NORM);	break;
-	case 1:	EMIT_SOUND(ENT(pev), CHAN_VOICE, "weapons/grenade_hit2.wav", 0.25, ATTN_NORM);	break;
-	case 2:	EMIT_SOUND(ENT(pev), CHAN_VOICE, "weapons/grenade_hit3.wav", 0.25, ATTN_NORM);	break;
+	case 0:	EMIT_SOUND(ENT(pev), CHAN_VOICE, "weapons/grenade/hit1.wav", 0.25, ATTN_NORM);	break;
+	case 1:	EMIT_SOUND(ENT(pev), CHAN_VOICE, "weapons/grenade/hit2.wav", 0.25, ATTN_NORM);	break;
+	case 2:	EMIT_SOUND(ENT(pev), CHAN_VOICE, "weapons/grenade/hit3.wav", 0.25, ATTN_NORM);	break;
 	}
 }
 
@@ -596,15 +596,15 @@ void CNukeExplode :: Spawn( void )
 {
 	SetObjectClass( ED_NORMAL );
 	Precache();
-	UTIL_SetModel(ENT(pev), "models/nexplode.mdl");	
+	UTIL_SetModel( ENT( pev ), "models/props/nexplode.mdl" );	
 	TraceResult tr;
 	UTIL_TraceLine ( pev->origin, pev->origin + Vector ( 0, 0, -32 ),  ignore_monsters, ENT(pev), &tr);
 	UTIL_ScreenShake( pev->origin, 16, 1, 2, 1700 );
-	pev->oldorigin = tr.vecEndPos + (tr.vecPlaneNormal * 30);//save normalized position
+	pev->oldorigin = tr.vecEndPos + (tr.vecPlaneNormal * 30); // save normalized position
 
-	//create first explode sprite
-	SFX_Explode( m_usExplodeSprite, pev->oldorigin, 100, TE_EXPLFLAG_NOPARTICLES | TE_EXPLFLAG_NOSOUND );
-	EMIT_SOUND( ENT(pev), CHAN_VOICE, "weapons/warhead/whexplode.wav", 1, ATTN_NONE );
+	// create first explode sprite
+	SFX_Explode( m_usExplodeSprite, pev->oldorigin, 100, TE_EXPLFLAG_NOPARTICLES|TE_EXPLFLAG_NOSOUND );
+	EMIT_SOUND( ENT( pev ), CHAN_VOICE, "weapons/warhead/whexplode.wav", 1, ATTN_NONE );
 
 	pev->movetype = MOVETYPE_NONE;
 	pev->solid = SOLID_NOT;
@@ -621,9 +621,9 @@ void CNukeExplode :: Spawn( void )
 
 void CNukeExplode :: Precache( void )
 {
-	m_usExplodeSprite = UTIL_PrecacheModel("sprites/war_explo01.spr");
-	m_usExplodeSprite2 = UTIL_PrecacheModel("sprites/war_exlpo02.spr");
-	UTIL_PrecacheModel( "models/nexplode.mdl" );
+	m_usExplodeSprite = UTIL_PrecacheModel( "sprites/war_explo01.spr" );
+	m_usExplodeSprite2 = UTIL_PrecacheModel( "sprites/war_explo02.spr" );
+	UTIL_PrecacheModel( "models/props/nexplode.mdl" );
 	UTIL_PrecacheSound( "weapons/warhead/whexplode.wav" );
 }
 
@@ -700,7 +700,7 @@ void CWHRocket :: Spawn( void )
 	pev->health = 10;
           pev->speed = WARHEAD_SPEED; // set initial speed
 	
-	UTIL_SetModel(ENT( pev ), "models/whrocket.mdl");
+	UTIL_SetModel(ENT( pev ), "models/props/whrocket.mdl");
 	EMIT_SOUND( ENT( pev ), CHAN_WEAPON, "weapons/warhead/launch.wav", 1, 0.5 );
 	UTIL_SetOrigin( this, pev->origin );
           pev->colormap = ENTINDEX(edict());//manually save our index into colormap
@@ -724,7 +724,7 @@ void CWHRocket :: Spawn( void )
 
 void CWHRocket :: Precache( void )
 {
-	UTIL_PrecacheModel("models/whrocket.mdl");
+	UTIL_PrecacheModel("models/props/whrocket.mdl");
 	UTIL_PrecacheSound("weapons/warhead/launch.wav");
 	UTIL_PrecacheSound("weapons/warhead/whfly.wav");
 	UTIL_PrecacheEntity( "nuclear_explode" );//explode

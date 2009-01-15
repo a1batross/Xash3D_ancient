@@ -177,7 +177,6 @@ sorting edict by type
 void SV_ClassifyEdict( edict_t *ent )
 {
 	sv_priv_t		*sv_ent;
-	const char	*classname;
 
 	sv_ent = ent->pvServerData;
 	if( !sv_ent || sv_ent->s.ed_type != ED_SPAWNED )
@@ -187,56 +186,17 @@ void SV_ClassifyEdict( edict_t *ent )
 	if( !sv_ent->s.number )
 	{
 		// take current state as baseline
-		SV_UpdateEntityState( ent );
+		SV_UpdateEntityState( ent, true );
 		svs.baselines[ent->serialnumber] = ent->pvServerData->s;
 	}
-	classname = STRING( ent->v.classname );
 
-	if( !com.strnicmp( "worldspawn", classname, 10 ))
-	{
-		sv_ent->s.ed_type = ED_WORLDSPAWN;
-		return;
-	}
-	// first pass: determine type by explicit parms
-	if( ent->v.solid == SOLID_TRIGGER )
-	{
-		if( sv_ent->s.soundindex )
-			sv_ent->s.ed_type = ED_AMBIENT;	// e.g. trigger_teleport
-		else sv_ent->s.ed_type = ED_TRIGGER;		// never sending to client
-	}
-	else if( ent->v.movetype == MOVETYPE_PHYSIC )
-		sv_ent->s.ed_type = ED_RIGIDBODY;
-	else if( ent->v.solid == SOLID_BSP || VectorIsNull( ent->v.origin ))
-	{
-		if( ent->v.movetype == MOVETYPE_CONVEYOR )
-			sv_ent->s.ed_type = ED_MOVER;
-		else if( ent->v.flags & FL_WORLDBRUSH )
-			sv_ent->s.ed_type = ED_BSPBRUSH;
-		else if( ent->v.movetype == MOVETYPE_PUSH ) 
-			sv_ent->s.ed_type = ED_MOVER;
-		else if( ent->v.movetype == MOVETYPE_NONE )
-			sv_ent->s.ed_type = ED_BSPBRUSH;
-	}
-	else if( ent->v.flags & FL_MONSTER )
-		sv_ent->s.ed_type = ED_MONSTER;
-	else if( ent->v.flags & FL_CLIENT )
-		sv_ent->s.ed_type = ED_CLIENT;
-	else if( !sv_ent->s.modelindex && !sv_ent->s.aiment )
-	{	
-		if( sv_ent->s.soundindex )
-			sv_ent->s.ed_type = ED_AMBIENT;
-		else sv_ent->s.ed_type = ED_STATIC; // never sending to client
-	}
+	sv_ent->s.ed_type = svgame.dllFuncs.pfnClassifyEdict( ent );
 
-	if( sv_ent->s.ed_type == ED_SPAWNED )
+	if( sv_ent->s.ed_type != ED_SPAWNED )
 	{
-		// mark as normal
-		if( sv_ent->s.modelindex || sv_ent->s.soundindex )
-			sv_ent->s.ed_type = ED_NORMAL;
+		// or leave unclassified, wait for next SV_LinkEdict...
+		// Msg( "%s: <%s>\n", STRING( ent->v.classname ), ed_name[sv_ent->s.ed_type] );
 	}
-	
-	// or leave unclassified, wait for next SV_LinkEdict...
-	// Msg( "%s: <%s>\n", STRING( ent->v.classname ), ed_name[sv_ent->s.ed_type] );
 }
 
 /*
@@ -352,6 +312,7 @@ void SV_LinkEdict( edict_t *ent )
 	}
 
 	ent->pvServerData->linkcount++;
+	ent->pvServerData->s.ed_flags |= ESF_LINKEDICT;	// change edict state on a client too...
 
 	// don't link not solid or rigid bodies
 	if( ent->v.solid == SOLID_NOT || ent->v.solid >= SOLID_BOX )

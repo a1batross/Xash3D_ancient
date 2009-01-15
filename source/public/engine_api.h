@@ -30,9 +30,7 @@ typedef struct usercmd_s
 	int		sidemove;
 	int		upmove;
 	int		buttons;
-	int		impulse;
 	int		lightlevel;
-
 } usercmd_t;
 
 /*

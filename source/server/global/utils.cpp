@@ -394,9 +394,25 @@ char* GetStringForGlobalState( GLOBALESTATE state )
 	}
 }
 
+int UTIL_ConvertContents( int hl_contents )
+{
+	switch( hl_contents )
+	{
+		case -1: return CONTENTS_NONE;
+		case -2: return CONTENTS_SOLID;
+		case -3: return CONTENTS_WATER;
+		case -4: return CONTENTS_SLIME;
+		case -5: return CONTENTS_LAVA;
+		case -6: return CONTENTS_SKY;
+		case -16: return CONTENTS_LADDER;
+		case -19: return CONTENTS_FOG;
+	}
+	return CONTENTS_NONE;
+}
+
 void UTIL_Remove( CBaseEntity *pEntity )
 {
-	if ( !pEntity ) return;
+	if( !pEntity ) return;
  
 	pEntity->UpdateOnRemove();
 	pEntity->pev->flags |= FL_KILLME;

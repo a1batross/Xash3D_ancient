@@ -146,14 +146,15 @@ void DispatchKeyValue( edict_t *pentKeyvalue, KeyValueData *pkvd )
 
 	EntvarsKeyvalue( VARS(pentKeyvalue), pkvd );
 
-	// If the key was an entity variable, or there's no class set yet, don't look for the object, it may
-	// not exist yet.
-	if ( pkvd->fHandled || pkvd->szClassName == NULL )return;
+	// if the key was an entity variable, or there's no class set yet,
+	// don't look for the object, it may not exist yet.
+	if( pkvd->fHandled || pkvd->szClassName == NULL )
+		return;
 
 	// Get the actualy entity object
 	CBaseEntity *pEntity = (CBaseEntity *)GET_PRIVATE(pentKeyvalue);
 
-	if ( !pEntity )return;
+	if( !pEntity ) return;
 	pEntity->KeyValue( pkvd );
 }
 
@@ -177,7 +178,7 @@ void DispatchUse( edict_t *pentUsed, edict_t *pentOther )
 	CBaseEntity *pEntity = (CBaseEntity *)GET_PRIVATE(pentUsed);
 	CBaseEntity *pOther = (CBaseEntity *)GET_PRIVATE(pentOther);
 
-	if (pEntity && !(pEntity->pev->flags & FL_KILLME) )
+	if( pEntity && !( pEntity->pev->flags & FL_KILLME ))
 		pEntity->Use( pOther, pOther, USE_TOGGLE, 0 );
 }
 
@@ -185,11 +186,10 @@ void DispatchThink( edict_t *pent )
 {
 	CBaseEntity *pEntity = (CBaseEntity *)GET_PRIVATE(pent);
 
-	if (pEntity)
+	if( pEntity )
 	{
-		if ( FBitSet( pEntity->pev->flags, FL_DORMANT ) )
-			Msg("ERROR: Dormant entity %s is thinking!!\n", STRING(pEntity->pev->classname) );
-				
+		if( FBitSet( pEntity->pev->flags, FL_DORMANT ))
+			ALERT( at_error, "Dormant entity %s is thinking!\n", STRING( pEntity->pev->classname ));
 		pEntity->Think();
 	}
 }
@@ -199,7 +199,7 @@ void DispatchBlocked( edict_t *pentBlocked, edict_t *pentOther )
 	CBaseEntity *pEntity = (CBaseEntity *)GET_PRIVATE( pentBlocked );
 	CBaseEntity *pOther = (CBaseEntity *)GET_PRIVATE( pentOther );
 
-	if (pEntity)pEntity->Blocked( pOther );
+	if( pEntity ) pEntity->Blocked( pOther );
 }
 
 void DispatchSave( edict_t *pent, SAVERESTOREDATA *pSaveData )

@@ -1483,7 +1483,7 @@ void CBasePlayer::PlayerUse ( void )
 					m_afPhysicsFlags |= PFLAG_ONTRAIN;
 					m_iTrain = TrainSpeed(pTrain->pev->speed, pTrain->pev->impulse);
 					m_iTrain |= TRAIN_NEW;
-					EMIT_SOUND( ENT(pev), CHAN_ITEM, "plats/train_use1.wav", 0.8, ATTN_NORM);
+					EMIT_SOUND( ENT(pev), CHAN_ITEM, "trains/train_use1.wav", 0.8, ATTN_NORM);
 					return;
 				}
 			}

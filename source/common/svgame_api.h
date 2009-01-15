@@ -325,7 +325,7 @@ typedef struct
 	void	(*pfnEndFrame)( void );
 	void	(*pfnBuildLevelList)( void );
 
-	void	(*pfnClassifyEdict)( edict_t *pentToClassify );
+	int	(*pfnClassifyEdict)( edict_t *pentToClassify );
 	void	(*pfnUpdateEntityState)( struct entity_state_s *to, edict_t *from, int baseline );
 
 	 // returns string describing current .dll.  E.g., TeamFotrress 2, Half-Life

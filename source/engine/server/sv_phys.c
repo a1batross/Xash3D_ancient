@@ -319,24 +319,19 @@ Returns false if the entity removed itself.
 */
 bool SV_RunThink( edict_t *ent )
 {
-	int	iterations;
+	float	thinktime;
 
-	// don't let things stay in the past.
-	// it is possible to start that way by a trigger with a local time.
-	if( ent->v.nextthink <= 0 || ent->v.nextthink > sv.time + svgame.globals->frametime )
+	thinktime = ent->v.nextthink;
+	if( thinktime <= 0 || thinktime > sv.time + svgame.globals->frametime )
 		return true;
 
-	for( iterations = 0; iterations < 128 && !ent->v.flags & FL_KILLME; iterations++ )
-	{
-		svgame.globals->time = max( sv.time, ent->v.nextthink );
-		ent->v.nextthink = 0;
-		svgame.dllFuncs.pfnThink( ent );
-		// mods often set nextthink to time to cause a think every frame,
-		// we don't want to loop in that case, so exit if the new nextthink is
-		// <= the time the qc was told, also exit if it is past the end of the frame
-		if( ent->v.nextthink <= svgame.globals->time || ent->v.nextthink > sv.time + svgame.globals->frametime )
-			break;
-	}
+	if( thinktime < sv.time )		// don't let things stay in the past.
+		thinktime = sv.time;	// it is possible to start that way
+					// by a trigger with a local time.
+	svgame.globals->time = thinktime;
+	ent->v.nextthink = 0;
+	svgame.dllFuncs.pfnThink( ent );
+
 	return !ent->free;
 }
 

@@ -110,7 +110,7 @@ void SV_CreateBaseline( void )
 		svent->serialnumber = entnum;
 
 		// take current state as baseline
-		SV_UpdateEntityState( svent );
+		SV_UpdateEntityState( svent, true );
 
 		svs.baselines[entnum] = svent->pvServerData->s;
 	}

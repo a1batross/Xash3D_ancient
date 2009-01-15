@@ -433,6 +433,14 @@ void ClientCommand( edict_t *pEntity )
 			Msg( "noclip off\n" );
 		}
 	}
+	else if( FStrEq( pcmd, "god" ))
+	{
+		pEntity->v.flags = pEntity->v.flags ^ FL_GODMODE;
+
+		if( !(pEntity->v.flags & FL_GODMODE))
+			ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, "godmode OFF\n" );
+		else ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, "godmode ON\n" );
+	}
 	else if ( FStrEq( pcmd, "hud_color") ) //LRC
 	{
 		if (CMD_ARGC() == 4)
@@ -441,12 +449,12 @@ void ClientCommand( edict_t *pEntity )
 			col += (atoi(CMD_ARGV(2)) & 255) << 8;
 			col += (atoi(CMD_ARGV(3)) & 255);
 			MESSAGE_BEGIN( MSG_ONE, gmsg.HUDColor, NULL, &pEntity->v );
-				WRITE_LONG(col);
+				WRITE_LONG( col );
 			MESSAGE_END();
 		}
 		else
 		{
-			ALERT(at_console, "Syntax: hud_color RRR GGG BBB\n");
+			ALERT( at_console, "Usage: hud_color <red green blue>\n" );
 		}
 	}
 	else if( FStrEq( pcmd, "fire" )) //LRC - trigger entities manually
@@ -462,19 +470,17 @@ void ClientCommand( edict_t *pEntity )
 			{
 				TraceResult tr;
 				UTIL_MakeVectors( pev->viewangles );
-				UTIL_TraceLine(
-					pev->origin + pev->view_ofs,
+				UTIL_TraceLine( pev->origin + pev->view_ofs,
 					pev->origin + pev->view_ofs + gpGlobals->v_forward * 1000,
-					dont_ignore_monsters, pEntity, &tr
-				);
+					dont_ignore_monsters, pEntity, &tr );
 
-				if (tr.pHit)
+				if( tr.pHit )
 				{
 					CBaseEntity *pHitEnt = CBaseEntity::Instance(tr.pHit);
-					if (pHitEnt)
+					if( pHitEnt )
 					{
-						pHitEnt->Use(pPlayer, pPlayer, USE_TOGGLE, 0);
-						ALERT(at_aiconsole, "Fired %s \"%s\"\n", STRING(pHitEnt->pev->classname), STRING(pHitEnt->pev->targetname));
+						pHitEnt->Use( pPlayer, pPlayer, USE_TOGGLE, 0 );
+						ALERT( at_console, "Fired %s \"%s\"\n", STRING( pHitEnt->pev->classname ), STRING( pHitEnt->pev->targetname ));
 					}
 				}
 			}
@@ -493,19 +499,17 @@ void ClientCommand( edict_t *pEntity )
 			{
 				TraceResult tr;
 				UTIL_MakeVectors( pev->viewangles );
-				UTIL_TraceLine(
-					pev->origin + pev->view_ofs,
+				UTIL_TraceLine( pev->origin + pev->view_ofs,
 					pev->origin + pev->view_ofs + gpGlobals->v_forward * 1000,
-					dont_ignore_monsters, pEntity, &tr
-				);
+					dont_ignore_monsters, pEntity, &tr );
 
-				if (tr.pHit)
+				if( tr.pHit )
 				{
 					CBaseEntity *pHitEnt = CBaseEntity::Instance(tr.pHit);
-					if (pHitEnt)
+					if( pHitEnt )
 					{
-						pHitEnt->Use(pPlayer, pPlayer, USE_SHOWINFO, 0);
-						ALERT(at_aiconsole, "Fired %s \"%s\"\n", STRING(pHitEnt->pev->classname), STRING(pHitEnt->pev->targetname));
+						pHitEnt->Use( pPlayer, pPlayer, USE_SHOWINFO, 0 );
+						ALERT( at_console, "Fired %s \"%s\"\n", STRING( pHitEnt->pev->classname), STRING(pHitEnt->pev->targetname));
 					}
 				}
 			}
@@ -880,14 +884,14 @@ void ServerPostActivate( void )
 //
 void StartFrame( void )
 {
-	//Msg(" frametime %g\n", gpGlobals->frametime );
+	// Msg(" frametime %g\n", gpGlobals->frametime );
 	if ( g_pGameRules )g_pGameRules->Think();
 	if ( g_fGameOver ) return;
 
 	gpGlobals->teamplay = (CVAR_GET_FLOAT( "mp_teamplay" )  == 1.0f) ? TRUE : FALSE;
 	g_ulFrameCount++;
 
-	ServerPostActivate();//called once
+	ServerPostActivate(); // called once
 	PhysicsFrame();
 	PhysicsPostFrame();
 	
@@ -897,12 +901,167 @@ void EndFrame( void )
 {
 }
 
-void ServerClassifyEdict( edict_t *pentToClassify )
+int ServerClassifyEdict( edict_t *pentToClassify )
 {
+	if( !pentToClassify ) return ED_SPAWNED;
+
+	CBaseEntity *pClass;
+
+	pClass = CBaseEntity::Instance( pentToClassify );
+	if( !pClass ) return ED_SPAWNED;
+
+	const char *classname = STRING( pClass->pev->classname );
+
+	if( !strnicmp( "worldspawn", classname, 10 ))
+	{
+		return ED_WORLDSPAWN;
+	}
+
+	// first pass: determine type by explicit parms
+	if( pClass->pev->solid == SOLID_TRIGGER )
+	{
+		if( !stricmp( classname, "trigger_teleport" ))
+			return ED_AMBIENT;
+		else return ED_TRIGGER; // never sending to client
+	}
+	else if( pClass->pev->movetype == MOVETYPE_PHYSIC )
+		return ED_RIGIDBODY;
+	else if( pClass->pev->solid == SOLID_BSP || pClass->pev->origin == g_vecZero )
+	{
+		if( pClass->pev->movetype == MOVETYPE_CONVEYOR )
+			return ED_MOVER;
+		else if( pClass->pev->flags & FL_WORLDBRUSH )
+			return ED_BSPBRUSH;
+		else if( pClass->pev->movetype == MOVETYPE_PUSH ) 
+			return ED_MOVER;
+		else if( pClass->pev->movetype == MOVETYPE_NONE )
+			return ED_BSPBRUSH;
+	}
+	else if( pClass->pev->flags & FL_MONSTER )
+		return ED_MONSTER;
+	else if( pClass->pev->flags & FL_CLIENT )
+		return ED_CLIENT;
+	else if( !pClass->pev->modelindex && !pClass->pev->aiment )
+	{	
+		if( pClass->pev->noise || pClass->pev->noise1 || pClass->pev->noise2 || pClass->pev->noise3 )
+			return ED_AMBIENT;
+		return ED_STATIC; // never sending to client
+	}
+
+	// mark as normal
+	if( pClass->pev->modelindex || pClass->pev->noise )
+		return ED_NORMAL;
+
+	// fail to classify :-(
+	return ED_SPAWNED;
 }
 
 void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 {
+	int	i;
+
+	if( !to || !from ) return;
+
+	CBaseEntity	*pNet;
+
+	pNet = CBaseEntity::Instance( from );
+	if( !pNet ) return;
+
+	// setup some special edict flags (engine will clearing them after the current frame)
+	if( to->modelindex != pNet->pev->modelindex )
+		to->ed_flags |= ESF_NODELTA;
+
+	if( pNet->pev->teleport_time )
+	{
+		to->ed_flags |= ESF_NO_PREDICTION;
+		to->ed_flags |= ESF_NODELTA;
+	}
+	// copy progs values to state
+	to->solid = (solid_t)pNet->pev->solid;
+
+	to->origin = pNet->pev->origin;
+	to->angles = pNet->pev->angles;
+	to->modelindex = pNet->pev->modelindex;
+	to->health = pNet->pev->health;
+	to->skin = pNet->pev->skin;		// studio model skin
+	to->body = pNet->pev->body;		// studio model submodel 
+	to->effects = pNet->pev->effects;	// shared client and render flags
+	to->renderfx = pNet->pev->renderfx;	// renderer flags
+	to->rendermode = pNet->pev->rendermode;	// rendering mode
+	to->renderamt = pNet->pev->renderamt;	// alpha value
+	to->animtime = (int)(1000.0 * pNet->pev->animtime) * 0.001; // sequence time
+	to->scale = pNet->pev->scale;		// shared client and render flags
+	to->movetype = (movetype_t)pNet->pev->movetype;
+	to->frame = pNet->pev->frame;		// any model current frame
+	to->contents = pNet->pev->contents;	// physic contents
+	to->framerate = pNet->pev->framerate;
+	to->flags = pNet->pev->flags;
+	to->rendercolor = pNet->pev->rendercolor;
+
+	// studio model sequence
+	if( pNet->pev->sequence != -1 ) to->sequence = pNet->pev->sequence;
+
+	for( i = 0; i < 16; i++ )
+	{
+		// copy blendings and bone ctrlrs
+		to->blending[i] = pNet->pev->blending[i];
+		to->controller[i] = pNet->pev->controller[i];
+	}
+
+	if( to->ed_type == ED_MOVER || to->ed_type == ED_BSPBRUSH )
+	{
+		// these needs to right calculate direction of scroll texture
+		to->velocity = pNet->pev->movedir;
+	}
+	if( to->ed_type == ED_CLIENT )
+	{
+		if( pNet->pev->fixangle )
+		{
+			// FIXME: set angles correctly
+			for( i = 0; i < 2; i++ )
+				to->delta_angles[i] = ANGLE2SHORT( pNet->pev->viewangles[i] + pNet->pev->angles[i] );
+			to->angles = g_vecZero;
+			to->viewangles = g_vecZero;
+			pNet->pev->viewangles = g_vecZero;
+			
+			// and clear fixangle for the next frame
+			pNet->pev->fixangle = 0;
+		}
+
+		if( pNet->pev->viewmodel )
+			to->viewmodel = MODEL_INDEX( STRING( pNet->pev->viewmodel ));
+		else to->viewmodel = 0;
+
+		if( pNet->pev->aiment ) 
+			to->aiment = ENTINDEX( pNet->pev->aiment );
+		else to->aiment = 0;
+
+		// playermodel sequence, that will be playing on a client
+		to->gaitsequence = pNet->pev->gaitsequence;
+		to->weapons = pNet->pev->weapons;
+
+		// clamp fov
+		if( pNet->pev->fov < 0.0 ) pNet->pev->fov = 0.0;
+		if( pNet->pev->fov > 160 ) pNet->pev->fov = 160;
+		to->fov = pNet->pev->fov;
+	}
+	else if( to->ed_type == ED_AMBIENT )
+	{
+		if( pNet->pev->solid == SOLID_TRIGGER )
+		{
+			Vector	midPoint;
+
+			// NOTE: no reason to compute this shit on the client - save bandwidth
+			midPoint = pNet->pev->mins + pNet->pev->maxs * 0.5f;
+			to->origin += midPoint;
+		}
+	}
+	else if( to->ed_type == ED_MOVER )
+	{
+		// FIXME: send mins\maxs for sound spatialization and entity prediction ?
+	}
+
+	if( pNet->pev->teleport_time ) pNet->pev->teleport_time = 0.0f;
 }
 
 void ClientPrecache( void )
@@ -963,16 +1122,6 @@ void ClientPrecache( void )
 	PRECACHE_SOUND("player/pl_wade2.wav");
 	PRECACHE_SOUND("player/pl_wade3.wav");
 	PRECACHE_SOUND("player/pl_wade4.wav");
-
-	PRECACHE_SOUND("debris/wood1.wav");		// hit wood texture
-	PRECACHE_SOUND("debris/wood2.wav");
-	PRECACHE_SOUND("debris/wood3.wav");
-
-	PRECACHE_SOUND("buttons/spark5.wav");		// hit computer texture
-	PRECACHE_SOUND("buttons/spark6.wav");
-	PRECACHE_SOUND("debris/glass1.wav");
-	PRECACHE_SOUND("debris/glass2.wav");
-	PRECACHE_SOUND("debris/glass3.wav");
 }
 
 /*

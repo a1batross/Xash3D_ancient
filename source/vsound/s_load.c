@@ -223,15 +223,15 @@ static bool S_LoadWAV( const char *name, byte **wav, wavinfo_t *info )
 	}
 
 	// get cue chunk
-	S_FindChunk("cue ");
+	S_FindChunk( "cue " );
 	if( iff_dataPtr )
 	{
 		iff_dataPtr += 32;
 		info->loopstart = S_GetLittleLong();
-		S_FindNextChunk("LIST"); // if the next chunk is a LIST chunk, look for a cue length marker
+		S_FindNextChunk( "LIST" ); // if the next chunk is a LIST chunk, look for a cue length marker
 		if( iff_dataPtr )
 		{
-			if(!com.strncmp ((const char *)iff_dataPtr + 28, "mark", 4))
+			if( !com.strncmp((const char *)iff_dataPtr + 28, "mark", 4 ))
 			{	
 				// this is not a proper parse, but it works with CoolEdit...
 				iff_dataPtr += 24;
@@ -246,7 +246,7 @@ static bool S_LoadWAV( const char *name, byte **wav, wavinfo_t *info )
 	}
 
 	// find data chunk
-	S_FindChunk("data");
+	S_FindChunk( "data" );
 	if( !iff_dataPtr )
 	{
 		MsgDev( D_WARN, "S_LoadWAV: missing 'data' chunk (%s)\n", name );
@@ -269,7 +269,7 @@ static bool S_LoadWAV( const char *name, byte **wav, wavinfo_t *info )
 
 	if( info->samples <= 0 )
 	{
-		MsgDev( D_WARN, "S_LoadWAV: file with 0 samples (%s)\n", name);
+		MsgDev( D_WARN, "S_LoadWAV: file with %i samples (%s)\n", info->samples, name );
 		Mem_Free( buffer );
 		return false;
 	}
@@ -521,11 +521,12 @@ bool S_LoadSound( sfx_t *sfx )
 	ext = FS_FileExtension( sfx->name );
 	anyformat = !com.stricmp( ext, "" ) ? true : false;
 
-	com.strncpy( loadname, sfx->name, sizeof(loadname) - 1);
+	com.strncpy( loadname, sfx->name, sizeof( loadname ));
 	FS_StripExtension( loadname ); // remove extension if needed
+	Mem_Set( &info, 0, sizeof( info ));
 
 	// developer warning
-	if(!anyformat) MsgDev(D_NOTE, "Note: %s will be loading only with ext .%s\n", loadname, ext );
+	if( !anyformat ) MsgDev(D_NOTE, "Note: %s will be loading only with ext .%s\n", loadname, ext );
 
 	// now try all the formats in the selected list
 	for( format = load_formats; format->formatstring; format++ )
