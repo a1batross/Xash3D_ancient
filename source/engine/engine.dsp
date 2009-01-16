@@ -154,10 +154,6 @@ SOURCE=.\client\cl_phys.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\client\cl_progs.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\client\cl_scrn.c
 # End Source File
 # Begin Source File

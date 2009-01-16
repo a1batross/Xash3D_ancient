@@ -14,7 +14,7 @@
 #include "defaults.h"
 #include "shake.h"
 #include "basebeams.h"
-#include "te_temp.h"
+#include "te_message.h"
 
 // Break Model Defines
 

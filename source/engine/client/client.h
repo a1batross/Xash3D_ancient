@@ -591,9 +591,9 @@ void CL_StudioEvent( dstudioevent_t *event, edict_t *ent );
 void CL_AddDecal( vec3_t org, matrix3x3 m, shader_t s, vec4_t rgba, bool fade, decalFragment_t *df, const vec3_t *v );
 edict_t *CL_GetEdictByIndex( int index );
 edict_t *CL_GetLocalPlayer( void );
-void PF_addlight( void );
-void PF_addparticle( void );
-void PF_adddecal( void );
+bool pfnAddParticle( cparticle_t *src, HSPRITE shader, int flags );
+void pfnAddDecal( float *org, float *dir, float *rgba, float rot, float rad, HSPRITE hSpr, int flags );
+void pfnAddDLight( const float *org, const float *rgb, float radius, float decay, float time, int key );
 
 //
 // cl_pred.c

@@ -158,37 +158,29 @@ cdlight_t *CL_AllocDlight( int key )
 
 /*
 ===============
-PF_addlight
+pfnAddDLight
 
-void AddLight( vector pos, vector color, float radius, float decay, float time, float key )
 ===============
 */
-void PF_addlight( void )
+void pfnAddDLight( const float *org, const float *rgb, float radius, float decay, float time, int key )
 {
 	cdlight_t		*dl;
-	const float	*pos, *col;
-	float		radius, decay, time;
-	int		key;
-
-	if( !VM_ValidateArgs( "AddLight", 6 ))
-		return;
-
-	pos = PRVM_G_VECTOR(OFS_PARM0);
-	col = PRVM_G_VECTOR(OFS_PARM1);
-	radius = PRVM_G_FLOAT(OFS_PARM2);
-	decay = PRVM_G_FLOAT(OFS_PARM3);
-	time = PRVM_G_FLOAT(OFS_PARM4);
-	key = (int)PRVM_G_FLOAT(OFS_PARM5);
 
 	if( radius <= 0 )
 	{
-		VM_Warning( "AddLight: ignore light with radius <= 0\n" );
+		MsgDev( D_WARN, "CL_AddDLight: ignore light with radius <= 0\n" );
 		return;
 	}
 
 	dl = CL_AllocDlight( key );
-	VectorCopy( pos, dl->origin );
-	VectorCopy( col, dl->color );
+	if( !dl )
+	{
+		MsgDev( D_ERROR, "CL_AddDLight: no free dlights\n" );
+		return;
+	}
+
+	VectorCopy( org, dl->origin );
+	VectorCopy( rgb, dl->color );
 	dl->die = cl.time + (time * 1000);
 	dl->decay = (decay * 1000);
 	dl->radius = radius;
@@ -203,11 +195,10 @@ CL_RunDLights
 */
 void CL_RunDLights( void )
 {
-	int	i;
 	cdlight_t	*dl;
+	int	i;
 
-	dl = cl_dlights;
-	for( i = 0; i < MAX_DLIGHTS; i++, dl++ )
+	for( i = 0, dl = cl_dlights; i < MAX_DLIGHTS; i++, dl++ )
 	{
 		if( !dl->radius ) continue;
 		if( dl->die < cl.time )
@@ -215,6 +206,7 @@ void CL_RunDLights( void )
 			dl->radius = 0;
 			return;
 		}
+
 		dl->radius -= cls.frametime * dl->decay;
 		if( dl->radius < 0 ) dl->radius = 0;
 	}
@@ -272,8 +264,7 @@ CL_FreeDecal
 */
 static void CL_FreeDecal( cdecal_t *decal )
 {
-	if( !decal->prev )
-		return;
+	if( !decal->prev ) return;
 
 	decal->prev->next = decal->next;
 	decal->next->prev = decal->prev;
@@ -430,35 +421,18 @@ void CL_AddDecals( void )
 
 /*
 ===============
-PF_adddecal
+pfnAddDecal
 
-void AddDecal( vector org, vector dir, vector color, float rot, float radius, float alpha, float fade, float shader, float temp )
 ===============
 */
-void PF_adddecal( void )
+void pfnAddDecal( float *org, float *dir, float *rgba, float rot, float rad, HSPRITE hSpr, int flags )
 {
-	float	*org, *dir, *col;
-	float	rot, radius, alpha;
-	shader_t	shader;
 	bool	fade, temp;
-	vec4_t	modulate;
 
-	if( !VM_ValidateArgs( "AddDecal", 9 ))
-		return;
+	fade = (flags & DECAL_FADE) ? true : false;
+	temp = (flags & DECAL_TEMPORARY) ? true : false;
 
-	VM_ValidateString( PRVM_G_STRING( OFS_PARM7 ));
-	org = PRVM_G_VECTOR(OFS_PARM0);
-	dir = PRVM_G_VECTOR(OFS_PARM1);
-	col = PRVM_G_VECTOR(OFS_PARM2);
-	rot = PRVM_G_FLOAT(OFS_PARM3);
-	radius = PRVM_G_FLOAT(OFS_PARM4);
-	alpha = PRVM_G_FLOAT(OFS_PARM5);
-	fade = (bool)PRVM_G_FLOAT(OFS_PARM6);
-	shader = re->RegisterShader( PRVM_G_STRING(OFS_PARM7), SHADER_GENERIC );
-	temp = (bool)PRVM_G_FLOAT(OFS_PARM8);
-
-	Vector4Set( modulate, col[0], col[1], col[2], alpha );
-	re->ImpactMark( org, dir, rot, radius, modulate, fade, shader, temp );	
+	re->ImpactMark( org, dir, rot, rad, rgba, fade, hSpr, temp );	
 }
 
 /*
@@ -468,38 +442,32 @@ PARTICLE MANAGEMENT
 
 ==============================================================
 */
-#define PARTICLE_GRAVITY		40
-
-#define PARTICLE_BOUNCE		1
-#define PARTICLE_FRICTION		2
-#define PARTICLE_VERTEXLIGHT		4
-#define PARTICLE_STRETCH		8
-#define PARTICLE_UNDERWATER		16
-#define PARTICLE_INSTANT		32
-
-typedef struct cparticle_s
+struct cparticle_s
 {
-	struct cparticle_s	*next;
+	// this part are shared both client and engine
+	vec3_t		origin;
+	vec3_t		velocity;
+	vec3_t		accel;
+	vec3_t		color;
+	vec3_t		colorVelocity;
+	float		alpha;
+	float		alphaVelocity;
+	float		radius;
+	float		radiusVelocity;
+	float		length;
+	float		lengthVelocity;
+	float		rotation;
+	float		bounceFactor;
+
+	// this part are private for engine
+	cparticle_t	*next;
 	shader_t		shader;
 
 	int		time;
 	int		flags;
-	
-	vec3_t		org;
-	vec3_t		org2;
-	vec3_t		vel;
-	vec3_t		accel;
-	vec3_t		color;
-	vec3_t		colorVel;
-	float		alpha;
-	float		alphaVel;
-	float		radius;
-	float		radiusVel;
-	float		length;
-	float		lengthVel;
-	float		rotation;
-	float		bounceFactor;
-} cparticle_t;
+
+	vec3_t		oldorigin;
+};
 
 cparticle_t *cl_active_particles, *cl_free_particles;
 static cparticle_t	cl_particle_list[MAX_PARTICLES];
@@ -577,7 +545,7 @@ void CL_AddParticles( void )
 	cparticle_t	*p, *next;
 	cparticle_t	*active = NULL, *tail = NULL;
 	dword		modulate;
-	vec3_t		org, org2, vel, color;
+	vec3_t		origin, oldorigin, velocity, color;
 	vec3_t		ambientLight;
 	float		alpha, radius, length;
 	float		time, time2, gravity, dot;
@@ -588,7 +556,7 @@ void CL_AddParticles( void )
 	if( !cl_particles->integer ) return;
 
 	if( EDICT_NUM( cl.frame.ps.number )->pvClientData->current.gravity != 0 )
-		gravity = EDICT_NUM( cl.frame.ps.number )->pvClientData->current.gravity / 800.0; // FIXME: register CS_GRAVITY
+		gravity = EDICT_NUM( cl.frame.ps.number )->pvClientData->current.gravity / clgame.gravity;
 	else gravity = 1.0f;
 
 	for( p = cl_active_particles; p; p = next )
@@ -599,9 +567,9 @@ void CL_AddParticles( void )
 		time = (cl.time - p->time) * 0.001;
 		time2 = time * time;
 
-		alpha = p->alpha + p->alphaVel * time;
-		radius = p->radius + p->radiusVel * time;
-		length = p->length + p->lengthVel * time;
+		alpha = p->alpha + p->alphaVelocity * time;
+		radius = p->radius + p->radiusVelocity * time;
+		length = p->length + p->lengthVelocity * time;
 
 		if( alpha <= 0 || radius <= 0 || length <= 0 )
 		{
@@ -610,20 +578,20 @@ void CL_AddParticles( void )
 			continue;
 		}
 
-		color[0] = p->color[0] + p->colorVel[0] * time;
-		color[1] = p->color[1] + p->colorVel[1] * time;
-		color[2] = p->color[2] + p->colorVel[2] * time;
+		color[0] = p->color[0] + p->colorVelocity[0] * time;
+		color[1] = p->color[1] + p->colorVelocity[1] * time;
+		color[2] = p->color[2] + p->colorVelocity[2] * time;
 
-		org[0] = p->org[0] + p->vel[0] * time + p->accel[0] * time2;
-		org[1] = p->org[1] + p->vel[1] * time + p->accel[1] * time2;
-		org[2] = p->org[2] + p->vel[2] * time + p->accel[2] * time2 * gravity;
+		origin[0] = p->origin[0] + p->velocity[0] * time + p->accel[0] * time2;
+		origin[1] = p->origin[1] + p->velocity[1] * time + p->accel[1] * time2;
+		origin[2] = p->origin[2] + p->velocity[2] * time + p->accel[2] * time2 * gravity;
 
 		if( p->flags & PARTICLE_UNDERWATER )
 		{
 			// underwater particle
-			VectorSet( org2, org[0], org[1], org[2] + radius );
+			VectorSet( oldorigin, origin[0], origin[1], origin[2] + radius );
 
-			if(!(CL_PointContents( org2 ) & MASK_WATER ))
+			if(!(CL_PointContents( oldorigin ) & MASK_WATER ))
 			{
 				// not underwater
 				CL_FreeParticle( p );
@@ -642,23 +610,23 @@ void CL_AddParticles( void )
 		if( p->flags & PARTICLE_FRICTION )
 		{
 			// water friction affected particle
-			contents = CL_PointContents( org );
+			contents = CL_PointContents( origin );
 			if( contents & MASK_WATER )
 			{
 				// add friction
 				if( contents & CONTENTS_WATER )
 				{
-					VectorScale( p->vel, 0.25, p->vel );
+					VectorScale( p->velocity, 0.25, p->velocity );
 					VectorScale( p->accel, 0.25, p->accel );
 				}
 				if( contents & CONTENTS_SLIME )
 				{
-					VectorScale( p->vel, 0.20, p->vel );
+					VectorScale( p->velocity, 0.20, p->velocity );
 					VectorScale( p->accel, 0.20, p->accel );
 				}
 				if( contents & CONTENTS_LAVA )
 				{
-					VectorScale( p->vel, 0.10, p->vel );
+					VectorScale( p->velocity, 0.10, p->velocity );
 					VectorScale( p->accel, 0.10, p->accel );
 				}
 
@@ -668,7 +636,7 @@ void CL_AddParticles( void )
 				
 				// reset
 				p->time = cl.time;
-				VectorCopy( org, p->org );
+				VectorCopy( origin, p->origin );
 				VectorCopy( color, p->color );
 				p->alpha = alpha;
 				p->radius = radius;
@@ -676,7 +644,7 @@ void CL_AddParticles( void )
 				// don't stretch
 				p->flags &= ~PARTICLE_STRETCH;
 				p->length = length;
-				p->lengthVel = 0;
+				p->lengthVelocity = 0;
 			}
 		}
 
@@ -688,43 +656,45 @@ void CL_AddParticles( void )
 			VectorSet(mins, -radius, -radius, -radius);
 			VectorSet(maxs, radius, radius, radius);
 
-			trace = CL_Trace( p->org2, mins, maxs, org, MOVE_NORMAL, clent, MASK_SOLID );
+			trace = CL_Trace( p->oldorigin, mins, maxs, origin, MOVE_NORMAL, clent, MASK_SOLID );
 			if( trace.fraction != 0.0 && trace.fraction != 1.0 )
 			{
 				// reflect velocity
 				time = cl.time - (cls.frametime + cls.frametime * trace.fraction) * 1000;
 				time = (time - p->time) * 0.001;
 
-				VectorSet( vel, p->vel[0], p->vel[1], p->vel[2]+p->accel[2]*gravity*time );
-				VectorReflect( vel, 0, trace.plane.normal, p->vel );
-				VectorScale( p->vel, p->bounceFactor, p->vel );
+				velocity[0] = p->velocity[0];
+				velocity[1] = p->velocity[1];
+				velocity[2] = p->velocity[2] + p->accel[2] * gravity * time;
+				VectorReflect( velocity, 0, trace.plane.normal, p->velocity );
+				VectorScale( p->velocity, p->bounceFactor, p->velocity );
 
 				// check for stop or slide along the plane
-				if( trace.plane.normal[2] > 0 && p->vel[2] < 1 )
+				if( trace.plane.normal[2] > 0 && p->velocity[2] < 1 )
 				{
 					if( trace.plane.normal[2] == 1 )
 					{
-						VectorClear( p->vel );
+						VectorClear( p->velocity );
 						VectorClear( p->accel );
 						p->flags &= ~PARTICLE_BOUNCE;
 					}
 					else
 					{
 						// FIXME: check for new plane or free fall
-						dot = DotProduct( p->vel, trace.plane.normal );
-						VectorMA( p->vel, -dot, trace.plane.normal, p->vel );
+						dot = DotProduct( p->velocity, trace.plane.normal );
+						VectorMA( p->velocity, -dot, trace.plane.normal, p->velocity );
 
 						dot = DotProduct( p->accel, trace.plane.normal );
 						VectorMA( p->accel, -dot, trace.plane.normal, p->accel );
 					}
 				}
 
-				VectorCopy( trace.endpos, org );
+				VectorCopy( trace.endpos, origin );
 				length = 1;
 
 				// reset
 				p->time = cl.time;
-				VectorCopy( org, p->org );
+				VectorCopy( origin, p->origin );
 				VectorCopy( color, p->color );
 				p->alpha = alpha;
 				p->radius = radius;
@@ -732,21 +702,21 @@ void CL_AddParticles( void )
 				// don't stretch
 				p->flags &= ~PARTICLE_STRETCH;
 				p->length = length;
-				p->lengthVel = 0;
+				p->lengthVelocity = 0;
 			}
 		}
 
 		// save current origin if needed
 		if( p->flags & (PARTICLE_BOUNCE|PARTICLE_STRETCH))
 		{
-			VectorCopy( p->org2, org2 );
-			VectorCopy( org, p->org2 ); // FIXME: pause
+			VectorCopy( p->oldorigin, oldorigin );
+			VectorCopy( origin, p->oldorigin ); // FIXME: pause
 		}
 
 		if( p->flags & PARTICLE_VERTEXLIGHT )
 		{
 			// vertex lit particle
-			re->LightForPoint( org, ambientLight );
+			re->LightForPoint( origin, ambientLight );
 			VectorMultiply( color, ambientLight, color );
 		}
 
@@ -757,11 +727,11 @@ void CL_AddParticles( void )
 		{
 			// instant particle
 			p->alpha = 0;
-			p->alphaVel = 0;
+			p->alphaVelocity = 0;
 		}
 
 		// send the particle to the renderer
-		re->AddParticle( p->shader, org, org2, radius, length, p->rotation, modulate );
+		re->AddParticle( p->shader, origin, oldorigin, radius, length, p->rotation, modulate );
 	}
 
 	cl_active_particles = active;
@@ -769,64 +739,48 @@ void CL_AddParticles( void )
 
 /*
 ===============
-PF_addparticle
+pfnAddParticle
 
-void AddParticle(vector, vector, vector, vector, vector, vector, vector, string, float)
 ===============
 */
-void PF_addparticle( void )
+bool pfnAddParticle( cparticle_t *src, HSPRITE shader, int flags )
 {
-	float		*pos, *vel, *color, *colorVel;
-	float		*alphaVel, *radiusVel, *lengthVel;
-	shader_t		shader;
-	uint		flags;	
 	cparticle_t	*p;
 
-	if( !VM_ValidateArgs( "AddParticle", 9 ))
-		return;
-
-	VM_ValidateString( PRVM_G_STRING( OFS_PARM7 ));
-	pos = PRVM_G_VECTOR(OFS_PARM0);
-	vel = PRVM_G_VECTOR(OFS_PARM1);
-	color = PRVM_G_VECTOR(OFS_PARM2);
-	colorVel = PRVM_G_VECTOR(OFS_PARM3);
-	alphaVel = PRVM_G_VECTOR(OFS_PARM4);
-	radiusVel = PRVM_G_VECTOR(OFS_PARM5);
-	lengthVel = PRVM_G_VECTOR(OFS_PARM6);
-	shader = re->RegisterShader( PRVM_G_STRING(OFS_PARM7), SHADER_GENERIC );
-	flags = (uint)PRVM_G_FLOAT(OFS_PARM8);
+	if( !src ) return false;
 
 	p = CL_AllocParticle();
 	if( !p )
 	{
-		VM_Warning( "AddParticle: no free particles\n" );
-		PRVM_G_FLOAT(OFS_RETURN) = 0;
-		return;
+		MsgDev( D_ERROR, "CL_AddParticle: no free particles\n" );
+		return false;
 	}
 
 	p->shader = shader;
 	p->time = cl.time;
 	p->flags = flags;
 
-	VectorCopy( pos, p->org );
-	VectorCopy( vel, p->vel );
-	VectorSet( p->accel, 0.0f, 0.0f, alphaVel[2] ); 
-	VectorCopy( color, p->color );
-	VectorCopy( colorVel, p->colorVel );
-	p->alpha = alphaVel[0];
-	p->alphaVel = alphaVel[1];
+	// sizeof( src ) != sizeof( p ), we must copy params manually
+	VectorCopy( src->origin, p->origin );
+	VectorCopy( src->velocity, p->velocity );
+	VectorCopy( src->accel, p->accel ); 
+	VectorCopy( src->color, p->color );
+	VectorCopy( src->colorVelocity, p->colorVelocity );
+	p->alpha = src->alpha;
 
-	p->radius = radiusVel[0];
-	p->radiusVel = radiusVel[1];
-	p->length = lengthVel[0];
-	p->lengthVel = lengthVel[1];
-	p->rotation = radiusVel[2];
-	p->bounceFactor = lengthVel[2];
+	p->radius = src->radius;
+	p->length = src->length;
+	p->rotation = src->rotation;
+	p->alphaVelocity = src->alphaVelocity;
+	p->radiusVelocity = src->radiusVelocity;
+	p->lengthVelocity = src->lengthVelocity;
+	p->bounceFactor = src->bounceFactor;
 
 	// needs to save old origin
 	if( flags & (PARTICLE_BOUNCE|PARTICLE_FRICTION))
-		VectorCopy( p->org, p->org2 );
-	PRVM_G_FLOAT(OFS_RETURN) = 1;
+		VectorCopy( p->origin, p->oldorigin );
+
+	return true;
 }
 
 /*

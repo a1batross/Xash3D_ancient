@@ -9,7 +9,7 @@
 
 #include <string.h>
 
-#include "te_temp.h"
+#include "te_message.h"
 #include "shake.h"
 
 #ifndef ACTIVITY_H

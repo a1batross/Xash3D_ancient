@@ -21,6 +21,7 @@ extern void HUD_DrawNormalTriangles( void );
 extern void HUD_DrawTransparentTriangles( void );
 extern void HUD_CreateEntities( void );
 extern void HUD_StudioEvent( const dstudioevent_t *event, edict_t *entity );
+extern void HUD_ParseTempEntity( void );
 extern void V_CalcRefdef( ref_params_t *parms );
 
 typedef struct rect_s

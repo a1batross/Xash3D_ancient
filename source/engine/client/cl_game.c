@@ -1004,6 +1004,40 @@ const char *CL_GetString( string_t iString )
 	return StringTable_GetString( clgame.hStringTable, iString );
 }
 
+/*
+=================
+pfnFindExplosionPlane
+
+=================
+*/
+static void pfnFindExplosionPlane( const float *origin, float radius, float *result )
+{
+	static vec3_t	planes[6] = {{0, 0, 1}, {0, 1, 0}, {1, 0, 0}, {0, 0, -1}, {0, -1, 0}, {-1, 0, 0}};
+	float		best = 1.0f;
+	vec3_t		point, dir;
+	trace_t		trace;
+	int		i;
+
+	if( !result ) return;
+	VectorClear( dir );
+
+	for( i = 0; i < 6; i++ )
+	{
+		VectorMA( origin, radius, planes[i], point );
+
+		trace = CL_Trace( origin, vec3_origin, vec3_origin, point, MOVE_WORLDONLY, NULL, MASK_SOLID );
+		if( trace.allsolid || trace.fraction == 1.0 )
+			continue;
+
+		if( trace.fraction < best )
+		{
+			best = trace.fraction;
+			VectorCopy( trace.plane.normal, dir );
+		}
+	}
+	VectorCopy( dir, result );
+}
+
 static triapi_t gTriApi =
 {
 	sizeof( triapi_t ),	
@@ -1012,6 +1046,10 @@ static triapi_t gTriApi =
 static efxapi_t gEfxApi =
 {
 	sizeof( efxapi_t ),	
+	pfnAddParticle,
+	pfnAddDecal,
+	pfnAddDLight,
+	pfnFindExplosionPlane,
 };
 					
 // engine callbacks

@@ -557,10 +557,6 @@ SOURCE=.\monsters\talkmonster.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\global\te_temp.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\game\teamplay_gamerules.h
 # End Source File
 # Begin Source File

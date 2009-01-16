@@ -6,6 +6,7 @@
 #define CLGAME_API_H
 
 typedef int		HSPRITE;					// handle to a graphic
+typedef struct cparticle_s	cparticle_t;
 typedef struct ref_params_s	ref_params_t;
 typedef struct dstudioevent_s	dstudioevent_t;
 typedef int (*pfnUserMsgHook)( const char *pszName, int iSize, void *pbuf );	// user message handle

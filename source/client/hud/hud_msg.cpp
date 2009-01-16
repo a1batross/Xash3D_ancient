@@ -375,7 +375,7 @@ int CHud :: MsgFunc_TempEntity( const char *pszName, int iSize, void *pbuf )
 {
 	BEGIN_READ( pszName, iSize, pbuf );
 
-	// AddTempEntity( ... );
+	HUD_ParseTempEntity();
 
 	END_READ();
 	

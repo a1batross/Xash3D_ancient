@@ -208,6 +208,20 @@ typedef enum
 #define KEY_GAME			1
 #define KEY_HUDMENU			2
 
+// built-in particle-system flags
+#define PARTICLE_GRAVITY		40	// default particle gravity
+
+#define PARTICLE_BOUNCE		(1<<0)	// makes a bouncy particle
+#define PARTICLE_FRICTION		(1<<1)
+#define PARTICLE_VERTEXLIGHT		(1<<2)	// give some ambient light for it
+#define PARTICLE_STRETCH		(1<<3)
+#define PARTICLE_UNDERWATER		(1<<4)
+#define PARTICLE_INSTANT		(1<<5)
+
+// built-in decals flags
+#define DECAL_FADE			(1<<0)	// fade decal when lifetime is expired
+#define DECAL_TEMPORARY		(1<<1)
+
 // basic console charwidths
 #define TINYCHAR_WIDTH		(SMALLCHAR_WIDTH)
 #define TINYCHAR_HEIGHT		(SMALLCHAR_HEIGHT/2)
