@@ -367,7 +367,7 @@ pfnLoadShader
 
 =============
 */
-shader_t pfnLoadShader( const char *szShaderName )
+shader_t pfnLoadShader( const char *szShaderName, int fShaderNoMip )
 {
 	if( !re ) return 0; // render not initialized
 	if( !szShaderName || !*szShaderName )
@@ -375,7 +375,10 @@ shader_t pfnLoadShader( const char *szShaderName )
 		MsgDev( D_ERROR, "CL_LoadShader: invalid shadername\n" );
 		return -1;
 	}
-	return re->RegisterShader( szShaderName, SHADER_NOMIP );
+
+	if( fShaderNoMip )
+		return re->RegisterShader( szShaderName, SHADER_NOMIP );
+	return re->RegisterShader( szShaderName, SHADER_GENERIC );
 }
 
 /*
@@ -1038,6 +1041,37 @@ static void pfnFindExplosionPlane( const float *origin, float radius, float *res
 	VectorCopy( dir, result );
 }
 
+/*
+=================
+pfnDecalIndexFromName
+
+=================
+*/
+static int pfnDecalIndexFromName( const char *szDecalName )
+{
+	int	i;
+
+	// look through the loaded sprite name list for SpriteName
+	for( i = 0; i < MAX_DECALS && cl.configstrings[CS_DECALS+i+1][0]; i++ )
+	{
+		if( !strcmp( szDecalName, cl.configstrings[CS_DECALS+i+1] ))
+			return cl.decal_shaders[i+1];
+	}
+	return 0; // invalid sprite
+}
+
+/*
+=================
+pfnDecalIndex
+
+=================
+*/
+static int pfnDecalIndex( int id )
+{
+	id = bound( 0, id, MAX_DECALS - 1 );
+	return cl.decal_shaders[id];
+}
+
 static triapi_t gTriApi =
 {
 	sizeof( triapi_t ),	
@@ -1050,6 +1084,8 @@ static efxapi_t gEfxApi =
 	pfnAddDecal,
 	pfnAddDLight,
 	pfnFindExplosionPlane,
+	pfnDecalIndexFromName,
+	pfnDecalIndex,
 };
 					
 // engine callbacks

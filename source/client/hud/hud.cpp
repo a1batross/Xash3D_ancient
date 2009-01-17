@@ -149,12 +149,12 @@ void CHud :: VidInit( void )
 	m_hHudFont = GetSprite( GetSpriteIndex( "hud_font" ));
 
 	// loading TE shaders
-	m_hDefaultParticle = SPR_Load( "particles/default" );
-	m_hGlowParticle = SPR_Load( "particles/glow" );
-	m_hDroplet = SPR_Load( "particles/droplet" );
-	m_hBubble = SPR_Load( "particles/bubble" );
-	m_hSparks = SPR_Load( "particles/spark" );
-	m_hSmoke = SPR_Load( "particles/smoke" );
+	m_hDefaultParticle = TEX_Load( "particles/default" );
+	m_hGlowParticle = TEX_Load( "particles/glow" );
+	m_hDroplet = TEX_Load( "particles/droplet" );
+	m_hBubble = TEX_Load( "particles/bubble" );
+	m_hSparks = TEX_Load( "particles/spark" );
+	m_hSmoke = TEX_Load( "particles/smoke" );
 	
 	m_Sound.VidInit();
 	m_Ammo.VidInit();

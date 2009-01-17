@@ -13,7 +13,8 @@
 #define FREE( x )		(*g_engfuncs.pfnMemFree)( x, __FILE__, __LINE__ )
 
 // screen handlers
-#define LOAD_SHADER		(*g_engfuncs.pfnLoadShader)
+#define SPR_Load( x )	(*g_engfuncs.pfnLoadShader)( x, true )
+#define TEX_Load( x )	(*g_engfuncs.pfnLoadShader)( x, false )
 #define DrawImageExt	(*g_engfuncs.pfnDrawImageExt)
 #define SetColor		(*g_engfuncs.pfnSetColor)
 #define SetParms		(*g_engfuncs.pfnSetParms)

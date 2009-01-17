@@ -61,7 +61,7 @@ typedef struct cl_enginefuncs_s
 	void	(*pfnMemFree)( void *mem, const char *filename, const int fileline );
 
 	// screen handlers
-	HSPRITE	(*pfnLoadShader)( const char *szShaderName );
+	HSPRITE	(*pfnLoadShader)( const char *szShaderName, int fShaderNoMip );
 	void	(*pfnFillRGBA)( int x, int y, int width, int height, const float *color, float alpha );
 	void	(*pfnDrawImageExt)( HSPRITE shader, float x, float y, float w, float h, float s1, float t1, float s2, float t2 );
 	void	(*pfnSetColor)( float r, float g, float b, float a );

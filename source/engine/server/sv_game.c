@@ -1993,7 +1993,9 @@ pfnWriteCoord
 */
 void pfnWriteCoord( float flValue )
 {
-	_MSG_WriteBits( &sv.multicast, flValue, svgame.msg_name, NET_FLOAT, __FILE__, __LINE__ );
+	union { float f; int l; } dat;
+	dat.f = flValue;
+	_MSG_WriteBits( &sv.multicast, dat.l, svgame.msg_name, NET_FLOAT, __FILE__, __LINE__ );
 	svgame.msg_realsize += 4;
 }
 

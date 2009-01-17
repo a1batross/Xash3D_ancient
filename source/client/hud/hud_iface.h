@@ -152,7 +152,6 @@ extern float READ_ANGLE( void );
 extern void END_READ( void );
 
 // drawing stuff
-#define SPR_Load( x ) LOAD_SHADER( x )
 extern int SPR_Frames( HSPRITE hPic );
 extern int SPR_Height( HSPRITE hPic, int frame );
 extern int SPR_Width( HSPRITE hPic, int frame );

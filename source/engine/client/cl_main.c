@@ -741,19 +741,19 @@ void CL_PrepVideo( void )
 		com.strncpy( name, cl.configstrings[CS_MODELS+1+i], MAX_STRING );
 		re->RegisterModel( name, i+1 );
 		cl.models[i+1] = pe->RegisterModel( name );
-		Cvar_SetValue("scr_loading", scr_loading->value + 45.0f/mdlcount );
+		Cvar_SetValue("scr_loading", scr_loading->value + 45.0f / mdlcount );
 		SCR_UpdateScreen();
 	}
 
-	for( i = 0; i < MAX_DECALS && cl.configstrings[CS_DECALS+i][0]; i++ )
+	for( i = 0; i < MAX_DECALS && cl.configstrings[CS_DECALS+1+i][0]; i++ )
 	{
-		com.strncpy( name, cl.configstrings[CS_DECALS+i], MAX_STRING );
-		// FIXME: register shaders
+		com.strncpy( name, cl.configstrings[CS_DECALS+1+i], MAX_STRING );
+		cl.decal_shaders[i+1] = re->RegisterShader( name, SHADER_GENERIC );
 	}
 
 	// setup sky and free unneeded stuff
 	re->EndRegistration( cl.configstrings[CS_SKYNAME] );
-	Cvar_SetValue("scr_loading", 100.0f );	// all done
+	Cvar_SetValue( "scr_loading", 100.0f );	// all done
 	
 	Con_ClearNotify();			// clear any lines of console text
 	SCR_UpdateScreen();

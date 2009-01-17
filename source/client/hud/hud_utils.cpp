@@ -583,7 +583,7 @@ void V_RenderPlaque( void )
 	if( !strcmp( levelshot, "" )) levelshot = "<black>";
 
 	// logo that shows up while upload next level
-	DrawImageRectangle( LOAD_SHADER( levelshot ));
+	DrawImageRectangle( SPR_Load( levelshot ));
 	DrawImageBar( CVAR_GET_FLOAT( "scr_loading" ), "m_loading" );
 
 	if( !CVAR_GET_FLOAT( "scr_download" )) return;
@@ -593,7 +593,7 @@ void V_RenderPlaque( void )
 
 void V_RenderSplash( void )
 {
-	DrawImageRectangle( LOAD_SHADER( "gfx/shell/splash" )); 
+	DrawImageRectangle( SPR_Load( "gfx/shell/splash" )); 
 }
 
 void SetScreenFade( Vector fadeColor, float alpha, float duration, float holdTime, int fadeFlags )

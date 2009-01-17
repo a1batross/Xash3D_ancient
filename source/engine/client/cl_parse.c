@@ -335,7 +335,7 @@ void CL_ParseConfigString( sizebuf_t *msg )
 	}
 	else if( i >= CS_DECALS && i < CS_DECALS+MAX_DECALS && cl.video_prepped )
 	{
-		// FIXME: register decal shaders here
+		cl.decal_shaders[i-CS_DECALS] = re->RegisterShader( cl.configstrings[i], SHADER_GENERIC );
 	}
 	else if( i >= CS_USER_MESSAGES && i < CS_USER_MESSAGES+MAX_USER_MESSAGES )
 	{

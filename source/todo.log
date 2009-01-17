@@ -51,10 +51,11 @@ Beta 13.12.08
 20.rename common.dll to xtools.dll		OK
 21.add missing builtins in enginefuncs_t	OK
 22.add missing builtins in cl_enginefuncs_t	OK
-23.first implement efxapi_t
+23.first implement efxapi_t			OK
 24.ed_fields flags				OK
 25.install ALL missing models & sounds!		OK
 26.fixangle doesn't working correctly
+27.fixup viewmodel drawing
 
 
 Список доступных рендереров:  	Что в них интересного
