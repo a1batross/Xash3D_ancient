@@ -29,7 +29,7 @@ void CHud :: Init( void )
 	m_Sound.Init();
 	m_MOTD.Init();
 		
-	MsgFunc_ResetHUD(0, 0, NULL );
+	MsgFunc_ResetHUD( 0, 0, NULL );
 }
 
 CHud :: ~CHud( void )
@@ -209,9 +209,6 @@ int CHud :: UpdateClientData( client_data_t *cdata, float time )
 {
 	memcpy( m_vecOrigin, cdata->origin, sizeof( vec3_t ));
 	memcpy( m_vecAngles, cdata->angles, sizeof( vec3_t ));
-
-	if( m_iWeaponBits != cdata->iWeaponBits )
-		ALERT( at_console, "WeaponBits: %ld\n", cdata->iWeaponBits );
 
 	m_iKeyBits = cdata->iKeyBits;
 	m_iWeaponBits = cdata->iWeaponBits;

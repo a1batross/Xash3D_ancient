@@ -43,7 +43,6 @@ vec3_t g_chromeright[MAXSTUDIOBONES];	// chrome vector "right" in bone reference
 
 int m_fDoInterp;			
 int m_pStudioModelCount;
-int m_PassNum;
 int m_nTopColor;			// palette substition for top and bottom of model			
 int m_nBottomColor;
 rmodel_t *m_pRenderModel;
@@ -636,12 +635,12 @@ void R_StudioSlerpBones( vec4_t q1[], float pos1[][3], vec4_t q2[], float pos2[]
 	vec4_t	q3;
 	float	s1;
 
-	if (s < 0) s = 0;
-	else if (s > 1.0) s = 1.0;
+	if( s < 0 ) s = 0;
+	else if( s > 1.0 ) s = 1.0;
 
 	s1 = 1.0 - s;
 
-	for (i = 0; i < m_pStudioHeader->numbones; i++)
+	for( i = 0; i < m_pStudioHeader->numbones; i++ )
 	{
 		QuaternionSlerp( q1[i], q2[i], s, q3 );
 		q1[i][0] = q3[0];
@@ -953,14 +952,14 @@ float R_StudioSetupBones( void )
 	static float	pos4[MAXSTUDIOBONES][3];
 	static vec4_t	q4[MAXSTUDIOBONES];
 
-	if( m_pCurrentEntity->sequence >=  m_pStudioHeader->numseq) m_pCurrentEntity->sequence = 0;
+	if( m_pCurrentEntity->sequence >= m_pStudioHeader->numseq ) m_pCurrentEntity->sequence = 0;
 	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + m_pCurrentEntity->sequence;
 
 	f = R_StudioEstimateFrame( pseqdesc );
 
 	if( m_pCurrentEntity->prev.frame > f )
 	{
-		//Msg("%f %f\n", m_pCurrentEntity->prev.frame, f );
+		// Msg( "%f %f\n", m_pCurrentEntity->prev.frame, f );
 	}
 
 	panim = R_StudioGetAnim( m_pRenderModel, pseqdesc );
@@ -1007,7 +1006,7 @@ float R_StudioSetupBones( void )
 		// clip prevframe
 		R_StudioCalcRotations( pos1b, q1b, pseqdesc, panim, m_pCurrentEntity->prev.frame );
 
-		if (pseqdesc->numblends > 1)
+		if( pseqdesc->numblends > 1 )
 		{
 			panim += m_pStudioHeader->numbones;
 			R_StudioCalcRotations( pos2, q2, pseqdesc, panim, m_pCurrentEntity->prev.frame );
@@ -1015,7 +1014,7 @@ float R_StudioSetupBones( void )
 			s = (m_pCurrentEntity->prev.seqblending[0]) / 255.0;
 			R_StudioSlerpBones( q1b, pos1b, q2, pos2, s );
 
-			if (pseqdesc->numblends == 4)
+			if( pseqdesc->numblends == 4 )
 			{
 				panim += m_pStudioHeader->numbones;
 				R_StudioCalcRotations( pos3, q3, pseqdesc, panim, m_pCurrentEntity->prev.frame );
@@ -1109,7 +1108,7 @@ StudioMergeBones
 
 ====================
 */
-void R_StudioMergeBones ( rmodel_t *m_pSubModel )
+float R_StudioMergeBones ( rmodel_t *m_pSubModel )
 {
 	int	i, j;
 	double	f;
@@ -1138,7 +1137,7 @@ void R_StudioMergeBones ( rmodel_t *m_pSubModel )
 	{
 		for( j = 0; j < m_nCachedBones; j++ )
 		{
-			if(!com.stricmp(pbones[i].name, m_nCachedBoneNames[j]))
+			if( !com.stricmp( pbones[i].name, m_nCachedBoneNames[j] ))
 			{
 				Matrix4x4_Copy( m_pbonestransform[i], m_rgCachedBonesTransform[j] );
 				Matrix4x4_Copy( m_plighttransform[i], m_rgCachedLightTransform[j] );
@@ -1163,6 +1162,7 @@ void R_StudioMergeBones ( rmodel_t *m_pSubModel )
 			}
 		}
 	}
+	return (float)f;
 }
 
 
@@ -1266,7 +1266,7 @@ void R_StudioSetupModel( int body, int bodypart )
 {
 	int index;
 
-	if (bodypart > m_pStudioHeader->numbodyparts) bodypart = 0;
+	if( bodypart > m_pStudioHeader->numbodyparts ) bodypart = 0;
 	m_pBodyPart = (dstudiobodyparts_t *)((byte *)m_pStudioHeader + m_pStudioHeader->bodypartindex) + bodypart;
 
 	index = body / m_pBodyPart->base;
@@ -1366,7 +1366,48 @@ void R_StudioSetupChrome( float *pchrome, int bone, vec3_t normal )
 	pchrome[1] = (n + 1.0) * 32.0f;
 }
 
-void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref, int pass )
+void R_StudioSetRenderMode( void )
+{
+	if( m_pCurrentShader->stages[0]->renderMode != m_pCurrentEntity->rendermode )
+	{
+		switch( m_pCurrentEntity->rendermode )
+		{
+		case kRenderNormal:
+			m_pCurrentShader->stages[0]->flags &= ~(SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAFUNC);
+			break;
+		case kRenderTransColor:
+			m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+			m_pCurrentShader->stages[0]->blendFunc.src = GL_SRC_COLOR;
+			m_pCurrentShader->stages[0]->blendFunc.dst = GL_ZERO;
+			break;
+		case kRenderTransTexture:
+			m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+			m_pCurrentShader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
+			m_pCurrentShader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+			break;
+		case kRenderGlow:
+			m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+			m_pCurrentShader->stages[0]->blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
+			m_pCurrentShader->stages[0]->blendFunc.dst = GL_ONE;
+			m_pCurrentShader->stages[0]->flags &= ~SHADERSTAGE_DEPTHWRITE;
+			break;
+		case kRenderTransAlpha:
+			m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
+			m_pCurrentShader->stages[0]->alphaFunc.func = GL_GREATER;
+			m_pCurrentShader->stages[0]->alphaFunc.ref = 0.666;
+			m_pCurrentShader->sort = SORT_SEETHROUGH;
+			break;
+		case kRenderTransAdd:
+			m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+			m_pCurrentShader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
+			m_pCurrentShader->stages[0]->blendFunc.dst = GL_ONE;
+			break;
+		}
+		m_pCurrentShader->stages[0]->renderMode = m_pCurrentEntity->rendermode;
+	}
+}
+
+void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref )
 {
 	int	i, j;
 	float	*av, *lv;
@@ -1397,8 +1438,9 @@ void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref, int pass 
 		          
 	for( j = 0; j < m_pSubModel->nummesh; j++ ) 
 	{
-		float	s, t;
-		short	*ptricmds;
+		float		s, t;
+		short		*ptricmds;
+		ref_shader_t	*m_pSkinShader;
 
 		pmesh = (dstudiomesh_t *)((byte *)m_pStudioHeader + m_pSubModel->meshindex) + j;
 		ptricmds = (short *)((byte *)m_pStudioHeader + pmesh->triindex);
@@ -1406,8 +1448,13 @@ void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref, int pass 
 		flags = ptexture[pskinref[pmesh->skinref]].flags;
 		s = 1.0 / (float)ptexture[pskinref[pmesh->skinref]].width;
 		t = 1.0 / (float)ptexture[pskinref[pmesh->skinref]].height;
+		m_pSkinShader = &r_shaders[ptexture[pskinref[pmesh->skinref]].shader];
 
-		m_pCurrentShader = &r_shaders[ptexture[pskinref[pmesh->skinref]].shader];
+		if( m_pCurrentShader != m_pSkinShader )
+			RB_RenderMesh();
+
+		m_pCurrentShader = m_pSkinShader;		
+		R_StudioSetRenderMode();
 
 		while( i = *(ptricmds++))
 		{
@@ -1435,14 +1482,12 @@ void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref, int pass 
 			}
 			GL_End();
 		}
-		RB_RenderMesh();
 	}
 }
 
 void R_StudioDrawPoints ( void )
 {
-	int		i;
-	int		m_skinnum = m_pCurrentEntity->skin;
+	int		i, m_skinnum = m_pCurrentEntity->skin;
 	byte		*pvertbone;
 	byte		*pnormbone;
 	vec3_t		*pstudioverts;
@@ -1474,7 +1519,7 @@ void R_StudioDrawPoints ( void )
 	if( m_pCurrentEntity->ent_type == ED_VIEWMODEL ) pglDepthRange( 0.0, 0.3 );
 	if(( m_pCurrentEntity->ent_type == ED_VIEWMODEL ) && ( r_lefthand->value == 1.0F ))
 		VectorNegate( m_pCurrentEntity->matrix[1], m_pCurrentEntity->matrix[1] ); 
-	R_StudioDrawMeshes( ptexture, pskinref, m_PassNum );
+	R_StudioDrawMeshes( ptexture, pskinref );
 
 	// hack the depth range to prevent view model from poking into walls
 	if( m_pCurrentEntity->ent_type == ED_VIEWMODEL ) pglDepthRange( 0.0, 1.0 );
@@ -1731,7 +1776,7 @@ void R_StudioRenderModel( void )
 	}
 }
 
-void R_StudioSetupRender( int passnum )
+void R_StudioSetupRender( void )
 {
 	// set global pointers
 	m_pRenderModel = m_pCurrentEntity->model;
@@ -1745,7 +1790,6 @@ void R_StudioSetupRender( int passnum )
 
 	// misc info
 	m_fDoInterp = (m_pCurrentEntity->effects & EF_NOINTERP) ? false : true;
-	m_PassNum = passnum;
 }
 
 /*
@@ -1754,12 +1798,9 @@ StudioDrawModel
 
 ====================
 */
-bool R_StudioDrawModel( int pass, int flags )
+bool R_StudioDrawModel( int flags )
 {
-	float	curframe;
-
-	//if( !mirror_render && m_pCurrentEntity->ent_type == ED_CLIENT )
-	//	return 0;
+	float	curframe = 0.0f;
 
 	if( m_pCurrentEntity->ent_type == ED_VIEWMODEL )
 	{
@@ -1768,14 +1809,13 @@ bool R_StudioDrawModel( int pass, int flags )
 		flags |= STUDIO_EVENTS;
 	}
 
-	R_StudioSetupRender( pass );	
-	R_StudioSetUpTransform();
+	R_StudioSetupRender ();	
+	R_StudioSetUpTransform ();
 
 	if( flags & STUDIO_RENDER )
 	{
 		// see if the bounding box lets us trivially reject, also sets
-		if(!R_StudioCheckBBox())
-			return 0;
+		if( !R_StudioCheckBBox( )) return 0;
 
 		m_pStudioModelCount++; // render data cache cookie
 
@@ -1786,7 +1826,7 @@ bool R_StudioDrawModel( int pass, int flags )
 
 	if( m_pCurrentEntity->movetype == MOVETYPE_FOLLOW )
 	{
-		R_StudioMergeBones( m_pRenderModel );
+		curframe = R_StudioMergeBones( m_pRenderModel );
 	}
 	else
 	{
@@ -1804,7 +1844,7 @@ bool R_StudioDrawModel( int pass, int flags )
 		float flEnd = flStart + 0.4f;
 		dstudioevent_t event;
 		int index = 0;
-		
+
 		R_StudioCalcAttachments();
 		Mem_Set( &event, 0, sizeof( event ));
 
@@ -2008,11 +2048,12 @@ StudioDrawPlayer
 
 ====================
 */
-int R_StudioDrawPlayer( int pass, int flags )
+int R_StudioDrawPlayer( int flags )
 {
 	edict_t	*pplayer;
 
-	if( m_pCurrentEntity->ent_type == ED_CLIENT )
+	// FIXME: temporary disabled
+	//if( !mirror_render )
 		return 0;
 
 	if( !( flags & STUDIO_MIRROR ))
@@ -2021,7 +2062,7 @@ int R_StudioDrawPlayer( int pass, int flags )
 	}
 
 	pplayer = ri.GetClientEdict( m_pCurrentEntity->index );
-	R_StudioSetupRender( pass );
+	R_StudioSetupRender();
 
 	// MsgDev( D_INFO, "DrawPlayer %d\n", m_pCurrentEntity->blending[0] );
 	// MsgDev( D_INFO, "DrawPlayer %d %d (%d)\n", r_framecount, pplayer->serialnumber, m_pCurrentEntity->sequence );
@@ -2133,17 +2174,16 @@ int R_StudioDrawPlayer( int pass, int flags )
 void R_DrawStudioModel( void )
 {
 	if( m_pCurrentEntity->ent_type == ED_CLIENT )
-		R_StudioDrawPlayer( 0, STUDIO_RENDER );
-	else R_StudioDrawModel( 0, STUDIO_RENDER );
+		R_StudioDrawPlayer( STUDIO_RENDER );
+	else R_StudioDrawModel( STUDIO_RENDER );
 
 	R_StudioAddEntityToRadar( );
 }
 
 void R_AddStudioModelToList( ref_entity_t *entity )
 {
-	R_StudioSetupRender( 0 );
-	if(!R_StudioCheckBBox())
-		return;
+	R_StudioSetupRender();
+	if( !R_StudioCheckBBox( )) return;
 	if( !entity->shader ) return;
 
 	// add it

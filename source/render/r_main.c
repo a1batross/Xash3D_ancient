@@ -1157,19 +1157,15 @@ static bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac
 	// copy controllers
 	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
 	{
+		refent->prev.controller[i] = refent->controller[i];
 		refent->controller[i] = pRefEntity->v.controller[i];
-
-		// FIXME:
-		// refent->prev.controller[i] = s2->model.controller[i];
 	}
 
 	// copy blends
 	for( i = 0; i < MAXSTUDIOBLENDS; i++ )
 	{
+		refent->prev.blending[i] = refent->blending[i];
 		refent->blending[i] = pRefEntity->v.blending[i];
-
-		// FIXME:
-		// refent->prev.blending[i] = s2->model.blending[i];
 	}
 
 	if( refent->ent_type == ED_CLIENT )

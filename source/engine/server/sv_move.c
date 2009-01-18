@@ -390,7 +390,7 @@ void SV_Transform( edict_t *edict, const vec3_t origin, const matrix3x3 matrix )
 {
 	vec3_t	angles;
 
-	if( !edict ) return;
+	if( !edict || !edict->pvServerData ) return;
 
 	Matrix3x3_Transpose( edict->v.m_pmatrix, matrix );
 #if 0

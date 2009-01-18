@@ -116,8 +116,8 @@ float CHalfLifeRules::FlPlayerFallDamage( CBasePlayer *pPlayer )
 //=========================================================
 void CHalfLifeRules :: PlayerSpawn( CBasePlayer *pPlayer )
 {
-	//if (g_startSuit) 
-	pPlayer->m_iHideHUD |= ITEM_SUIT;
+	if (g_startSuit) 
+		pPlayer->m_iHideHUD |= ITEM_SUIT;
 }
 
 //=========================================================

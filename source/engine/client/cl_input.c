@@ -631,6 +631,7 @@ void CL_InitServerCommands( void )
 {
 	Cmd_AddCommand ("impulse", NULL, "send impulse to a client" );
 	Cmd_AddCommand ("noclip", NULL, "enable or disable no clipping mode" );
+	Cmd_AddCommand ("fullupdate", NULL, "re-init HUD on start demo recording" );
 	Cmd_AddCommand ("give", NULL, "give specified item or weapon" );
 	Cmd_AddCommand ("god", NULL, "classic cheat" );
 }

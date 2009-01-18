@@ -1345,7 +1345,7 @@ int CBasePlayerWeapon :: Shoot ( const char *ammo, Vector vecSpread, int firemod
 		Vector vecDir;		
 
 		// FIXME: wrote GetBulletShellModel
-		int model = PRECACHE_MODEL( "models/shell9mm.mdl" );
+		int model = PRECACHE_MODEL( "models/gibs/shell9mm.mdl" );
 			
 		//eject brass
 		for( int i = 0; cShots > i; i++ )

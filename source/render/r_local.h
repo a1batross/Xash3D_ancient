@@ -508,7 +508,7 @@ typedef struct latchedvars_s
 	float		frame;
 
 	float		blending[MAXSTUDIOBLENDS];
-	byte		seqblending[MAXSTUDIOBLENDS];
+	float		seqblending[MAXSTUDIOBLENDS];
 	float		controller[MAXSTUDIOCONTROLLERS];
 
 } latchedvars_t;

@@ -275,7 +275,10 @@ void CHudAmmo :: Reset( void )
 	m_iFlags |= HUD_ACTIVE; //!!!
 
 	gpActiveSel = NULL;
-	gHUD.m_iHideHUDDisplay = 0;
+
+	if( gHUD.m_iHideHUDDisplay & ITEM_SUIT )
+		gHUD.m_iHideHUDDisplay = ITEM_SUIT;
+	else gHUD.m_iHideHUDDisplay = 0; 
 
 	gWR.Reset();
 	gHR.Reset();

@@ -3015,13 +3015,10 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 
 void SV_UnloadProgs( void )
 {
-	if( svgame.hInstance )
-	{
-		svgame.dllFuncs.pfnServerDeactivate();
-          }
+	sv.loadgame  = false;
+	SV_FreeEdicts();
 
 	Sys_FreeNameFuncGlobals();
-	StringTable_Delete( svgame.hStringTable );
 	Com_FreeLibrary( svgame.hInstance );
 	Mem_FreePool( &svgame.mempool );
 	Mem_FreePool( &svgame.private );

@@ -385,6 +385,9 @@ void R_DrawSpriteModel( void )
 			m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
 			m_pCurrentShader->stages[0]->blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
 			m_pCurrentShader->stages[0]->blendFunc.dst = GL_ONE;
+// FIXME: write flareOcclusionTest
+//			m_pCurrentShader->stages[0]->flags &= ~SHADERSTAGE_DEPTHFUNC;
+			m_pCurrentShader->stages[0]->depthFunc.func = 0;
 			break;
 		case kRenderTransAlpha:
 			m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;

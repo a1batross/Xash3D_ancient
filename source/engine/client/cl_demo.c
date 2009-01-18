@@ -52,7 +52,7 @@ void CL_WriteDemoHeader( const char *name )
 	cls.demowaiting = true;
 
 	// write out messages to hold the startup information
-	MSG_Init( &buf, buf_data, sizeof(buf_data));
+	MSG_Init( &buf, buf_data, sizeof( buf_data ));
 
 	// send the serverdata
 	MSG_WriteByte( &buf, svc_serverdata );
@@ -104,7 +104,9 @@ void CL_WriteDemoHeader( const char *name )
 	}
 
 	MSG_WriteByte( &buf, svc_stufftext );
-	MSG_WriteString( &buf, "precache\n");
+	MSG_WriteString( &buf, "precache\n" );
+	MSG_WriteByte( &buf, svc_stufftext );
+	MSG_WriteString( &buf, "cmd fullupdate\n" );
 
 	// write it to the demo file
 	len = LittleLong( buf.cursize );
