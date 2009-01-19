@@ -12,6 +12,8 @@
 #include	"gamerules.h"
 #include	"game.h"
 #include	"defaults.h"
+#include	"baseitem.h"
+#include	"baseweapon.h"
 
 void EntvarsKeyvalue( entvars_t *pev, KeyValueData *pkvd );
 
@@ -137,7 +139,25 @@ int DispatchSpawn( edict_t *pent )
 
 int DispatchCreate( edict_t *pent, const char *szName )
 {
-	return -1; // -1 = failed, 0 = done
+	if( FNullEnt( pent ) || FStringNull( szName ))
+		return -1;
+
+	int istr = ALLOC_STRING( szName );
+
+	// handle virtual entities here
+	if( !strncmp( szName, "weapon_", 7 ))
+	{
+		CBasePlayerWeapon *pWeapon = GetClassPtr((CBasePlayerWeapon *)VARS( pent ));
+		pWeapon->pev->netname = istr; 
+		return 0;
+	}
+	else if( !strncmp( szName, "item_", 5 ) || !strncmp( szName, "ammo_", 5 ))
+	{
+		CItem *pItem = GetClassPtr((CItem *)VARS( pent ));
+  		pItem->pev->netname = istr; 
+		return 0;
+	}
+	return -1;
 }
 
 void DispatchKeyValue( edict_t *pentKeyvalue, KeyValueData *pkvd )

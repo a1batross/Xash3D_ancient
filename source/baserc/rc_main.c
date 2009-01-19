@@ -6,11 +6,11 @@
 #include <windows.h>
 #include "launch_api.h"
 #include "baserc_api.h"
+#include "progs.h"
 
 // resources
 #include "images.h"
-#include "server.h"
-#include "client.h"
+#include "conback.h"
 #include "uimenu.h"
 
 stdlib_api_t com;
@@ -29,9 +29,10 @@ loadres_t load_resources[] =
 	{"blank.bmp", blank_bmp, sizeof(blank_bmp)},
 	{"checkerboard.dds", q1mip_dds, sizeof(q1mip_dds)},
 	{"default.dds", deffont_dds, sizeof(deffont_dds)},
-	{"server.dat", server_dat, sizeof(server_dat)},
-	{"client.dat", client_dat, sizeof(client_dat)},
-	{"uimenu.dat", uimenu_dat, sizeof(uimenu_dat)},
+	{"conback.dds", conback_dds, sizeof(conback_dds)},
+	{"net.png", net_png, sizeof(net_png)},
+	{"progs.pk3", progs_pk3, sizeof(progs_pk3)},
+	{"uimenu.dat", uimenu_dat, sizeof(uimenu_dat)},	// FIXME: get rid of this
 	{NULL, NULL, 0 }
 };
 

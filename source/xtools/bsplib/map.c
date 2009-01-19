@@ -230,32 +230,31 @@ int PlaneFromPoints( vec_t *p0, vec_t *p1, vec_t *p2 )
 	return FindFloatPlane( normal, dist );
 }
 
-void PrintContents( int cnt )
+void CntString( int cnt, char *contents )
 {
-	Msg("Contents:" );
+	contents[0] = '\0';
 
-	if( cnt & CONTENTS_SOLID ) Msg( "solid " );
-	if( cnt & CONTENTS_WINDOW) Msg( "window " );
-	if( cnt & CONTENTS_AUX ) Msg( "aux " );
-	if( cnt & CONTENTS_LAVA) Msg( "lava " );
-	if( cnt & CONTENTS_SLIME) Msg( "slime " );
-	if( cnt & CONTENTS_WATER) Msg( "water " );
-	if( cnt & CONTENTS_SKY) Msg( "sky " );
+	if( cnt & CONTENTS_SOLID ) com.strcat( contents, "solid " );
+	if( cnt & CONTENTS_WINDOW) com.strcat( contents, "window " );
+	if( cnt & CONTENTS_AUX ) com.strcat( contents, "aux " );
+	if( cnt & CONTENTS_LAVA) com.strcat( contents, "lava " );
+	if( cnt & CONTENTS_SLIME) com.strcat( contents, "slime " );
+	if( cnt & CONTENTS_WATER) com.strcat( contents, "water " );
+	if( cnt & CONTENTS_SKY) com.strcat( contents, "sky " );
 
-	if( cnt & CONTENTS_MIST) Msg( "mist " );
-	if( cnt & CONTENTS_FOG) Msg( "fog " );
-	if( cnt & CONTENTS_AREAPORTAL) Msg( "areaportal " );
-	if( cnt & CONTENTS_PLAYERCLIP) Msg( "playerclip " );
-	if( cnt & CONTENTS_MONSTERCLIP) Msg(" monsterclip " );
-	if( cnt & CONTENTS_CLIP) Msg( "clip " );
-	if( cnt & CONTENTS_ORIGIN) Msg(" origin" );
+	if( cnt & CONTENTS_MIST) com.strcat( contents, "mist " );
+	if( cnt & CONTENTS_FOG) com.strcat( contents, "fog " );
+	if( cnt & CONTENTS_AREAPORTAL) com.strcat( contents, "areaportal " );
+	if( cnt & CONTENTS_PLAYERCLIP) com.strcat( contents, "playerclip " );
+	if( cnt & CONTENTS_MONSTERCLIP) com.strcat( contents, " monsterclip " );
+	if( cnt & CONTENTS_CLIP) com.strcat( contents, "clip " );
+	if( cnt & CONTENTS_ORIGIN) com.strcat( contents, " origin" );
 	if( cnt & CONTENTS_BODY) Sys_Error("\nCONTENTS_BODY detected\n" );
 	if( cnt & CONTENTS_CORPSE) Sys_Error("\nCONTENTS_CORPSE detected\n" );
-	if( cnt & CONTENTS_DETAIL) Msg(" detail " );
-	if( cnt & CONTENTS_TRANSLUCENT) Msg( "translucent " );
-	if( cnt & CONTENTS_LADDER) Msg( "ladder " );
-	if( cnt & CONTENTS_TRIGGER) Msg( "trigger " );
-	Msg( "\n" );
+	if( cnt & CONTENTS_DETAIL) com.strcat( contents, " detail " );
+	if( cnt & CONTENTS_TRANSLUCENT) com.strcat( contents, "translucent " );
+	if( cnt & CONTENTS_LADDER) com.strcat( contents, "ladder " );
+	if( cnt & CONTENTS_TRIGGER) com.strcat( contents, "trigger " );
 }
 
 //====================================================================
@@ -268,6 +267,7 @@ int BrushContents( mapbrush_t *b )
 {
 	int	contents;
 	int	i, trans;
+	string	cnt1, cnt2;
 	side_t	*s;
 
 	s = &b->original_sides[0];
@@ -279,10 +279,13 @@ int BrushContents( mapbrush_t *b )
 	{
 		s = &b->original_sides[i];
 		trans |= dshaders[texinfo[s->texinfo].shadernum].surfaceFlags;
-		if( s->contents != contents && !( trans & SURF_NODRAW ))
+		if(( s->contents != contents ) && ( trans & SURF_NODRAW ) == 0 )
 		{
+			CntString( s->contents, cnt1 );
+			CntString( contents, cnt2 );
+
 			// nodraw textures are ignored
-			MsgDev( D_WARN, "Entity %i, Brush %i: mixed face contents\n", b->entitynum, b->brushnum );
+			MsgDev( D_WARN, "Entity %i, Brush %i: mixed face contents ( %s) and ( %s)\n", b->entitynum, b->brushnum, cnt1, cnt2 );
 			break;
 		}
 	}
@@ -699,7 +702,7 @@ void ParseBrush( bsp_entity_t *mapent )
 		planenum = PlaneFromPoints( planepts[0], planepts[1], planepts[2] );
 		if( planenum == -1 )
 		{
-			Msg( "Entity %i, Brush %i: plane with no normal\n", b->entitynum, b->brushnum );
+			MsgDev( D_ERROR, "Entity %i, Brush %i: plane with no normal\n", b->entitynum, b->brushnum );
 			continue;
 		}
 
@@ -778,7 +781,7 @@ void ParseBrush( bsp_entity_t *mapent )
 	b->contents = BrushContents( b );
 
 	// create windings for sides and bounds for brush
-	if(!MakeBrushWindings( b ))
+	if( !MakeBrushWindings( b ))
 	{
 		// brush outside of the world, remove
 		b->numsides = 0;

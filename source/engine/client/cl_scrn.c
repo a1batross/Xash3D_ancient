@@ -20,7 +20,6 @@ cvar_t *cl_testentities;
 cvar_t *cl_testlights;
 cvar_t *cl_levelshot_name;
 cvar_t *cl_envshot_size;
-cvar_t *cl_neticon;
 cvar_t *cl_font;
 
 void SCR_TimeRefresh_f( void );
@@ -392,8 +391,8 @@ void SCR_RegisterShaders( void )
 	// register console images
 	cls.consoleFont = re->RegisterShader( va( "gfx/fonts/%s", con_font->string ), SHADER_FONT );
 	cls.clientFont = re->RegisterShader( va( "gfx/fonts/%s", cl_font->string ), SHADER_FONT );
-	cls.consoleBack = re->RegisterShader( "gfx/shell/conback", SHADER_NOMIP ); // FIXME: hardcoded ...
-	cls.netIcon = re->RegisterShader( cl_neticon->string, SHADER_NOMIP );
+	cls.consoleBack = re->RegisterShader( "#conback.dds", SHADER_NOMIP );	// internal resource
+	cls.netIcon = re->RegisterShader( "#net.png", SHADER_NOMIP );	// internal recource
 
 	// vid_state has changed
 	if( cls.game ) cls.dllFuncs.pfnVidInit();
@@ -415,7 +414,6 @@ void SCR_Init( void )
 	cl_testentities = Cvar_Get ("cl_testentities", "0", 0, "test client entities" );
 	cl_testlights = Cvar_Get ("cl_testlights", "0", 0, "test dynamic lights" );
 	cl_envshot_size = Cvar_Get( "cl_envshot_size", "256", CVAR_ARCHIVE, "envshot size of cube side" );
-	cl_neticon = Cvar_Get( "cl_neticon", "gfx/shell/net", CVAR_ARCHIVE, "path to icon that displayed bad network connection" );
 	cl_font = Cvar_Get( "cl_font", "default", CVAR_ARCHIVE, "in-game messages font" );
 	
 	// register our commands

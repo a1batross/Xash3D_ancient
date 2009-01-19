@@ -1145,28 +1145,12 @@ void UTIL_PrecacheEntity( const char *szClassname )
 	edict_t	*pent;
 	int	istr = ALLOC_STRING( szClassname );
           
-	// check for virtual entities
-	if( FUNCTION_FROM_NAME( szClassname ))
-	{
-		pent = CREATE_NAMED_ENTITY( istr );
-		if( FNullEnt( pent )) return;
-	}
-	else if( !strncmp( szClassname, "weapon_", 7 ))
-	{
-		//may be this a weapon_generic entity?
-		pent = CREATE_NAMED_ENTITY( MAKE_STRING( "weapon_generic" ));
-		if ( FNullEnt( pent )) return; //this never gonna called anymore. just in case
-  		pent->v.netname = istr; 
-	}
-	else // unknown error
-	{
-		ALERT( at_error, "can't create %s\n", szClassname );
-		return;
-	}
-	
+	pent = CREATE_NAMED_ENTITY( istr );
+	if( FNullEnt( pent )) return;
+
 	CBaseEntity *pEntity = CBaseEntity::Instance( VARS( pent ));
 	if( pEntity ) pEntity->Precache();
-	REMOVE_ENTITY(pent);
+	REMOVE_ENTITY( pent );
 }
 
 //========================================================================
@@ -1390,84 +1374,82 @@ BOOL UTIL_EntIsVisible( entvars_t* pev, entvars_t* pevTarget)
 //========================================================================
 void UTIL_PrecacheResourse( void )
 {
-	//constant precaches
+	// null and errors stuff
+	g_sModelIndexErrorModel  = UTIL_PrecacheModel("models/common/error.mdl");//last crash point
+          g_sModelIndexErrorSprite = UTIL_PrecacheModel("sprites/error.spr");
+          g_sModelIndexNullModel   = UTIL_PrecacheModel("models/common/null.mdl"); 
+          g_sModelIndexNullSprite  = UTIL_PrecacheModel("sprites/null.spr");
 
-	//null and errors stuff
-	g_sModelIndexErrorModel  = 	UTIL_PrecacheModel("models/common/error.mdl");//last crash point
-          g_sModelIndexErrorSprite = 	UTIL_PrecacheModel("sprites/error.spr");
-          g_sModelIndexNullModel   = 	UTIL_PrecacheModel("models/common/null.mdl"); 
-          g_sModelIndexNullSprite  = 	UTIL_PrecacheModel("sprites/null.spr");
-
-	//global sprites and models
-	g_sModelIndexFireball = 	UTIL_PrecacheModel ("sprites/explode.spr");// fireball
-	g_sModelIndexWExplosion = 	UTIL_PrecacheModel ("sprites/wxplode.spr");// underwater fireball
-	g_sModelIndexSmoke = 	UTIL_PrecacheModel ("sprites/steam1.spr");// smoke
-	g_sModelIndexBubbles = 	UTIL_PrecacheModel ("sprites/bubble.spr");//bubbles
-	g_sModelIndexLaser = 	UTIL_PrecacheModel( "sprites/laserbeam.spr" );
-	g_sModelIndexBloodSpray = 	UTIL_PrecacheModel ("sprites/bloodspray.spr");
-	g_sModelIndexBloodDrop = 	UTIL_PrecacheModel ("sprites/blood.spr");
+	// global sprites and models
+	g_sModelIndexFireball = UTIL_PrecacheModel ("sprites/explode.spr");// fireball
+	g_sModelIndexWExplosion = UTIL_PrecacheModel ("sprites/wxplode.spr");// underwater fireball
+	g_sModelIndexSmoke = UTIL_PrecacheModel ("sprites/steam1.spr");// smoke
+	g_sModelIndexBubbles = UTIL_PrecacheModel ("sprites/bubble.spr");//bubbles
+	g_sModelIndexLaser = UTIL_PrecacheModel( "sprites/laserbeam.spr" );
+	g_sModelIndexBloodSpray = UTIL_PrecacheModel ("sprites/bloodspray.spr");
+	g_sModelIndexBloodDrop = UTIL_PrecacheModel ("sprites/blood.spr");
           
-	//player items and weapons
-	memset( CBasePlayerWeapon::ItemInfoArray, 0, sizeof(CBasePlayerWeapon::ItemInfoArray) );
-	memset( CBasePlayerWeapon::AmmoInfoArray, 0, sizeof(CBasePlayerWeapon::AmmoInfoArray) );
+	// player items and weapons
+	memset( CBasePlayerWeapon::ItemInfoArray, 0, sizeof( CBasePlayerWeapon::ItemInfoArray ));
+	memset( CBasePlayerWeapon::AmmoInfoArray, 0, sizeof( CBasePlayerWeapon::AmmoInfoArray ));
 	giAmmoIndex = 0;
 
-	//custom precaches
+	// custom precaches
 	char token[256];
 	char *pfile = (char *)LOAD_FILE( "scripts/precache.txt", NULL );
-	if(pfile)
+	if( pfile )
 	{
-		while ( pfile )
+		while( pfile )
 		{
-			if ( !stricmp( token, "entity" )) 
+			if( !stricmp( token, "entity" )) 
 			{                                          
-				pfile = COM_ParseFile(pfile, token);
-				UTIL_PrecacheEntity( ALLOC_STRING(token) );
+				pfile = COM_ParseFile( pfile, token );
+				UTIL_PrecacheEntity( ALLOC_STRING( token ));
 			}
-			else if ( !stricmp( token, "dmentity" )) 
+			else if( !stricmp( token, "dmentity" )) 
 			{                                          
-				pfile = COM_ParseFile(pfile, token);
+				pfile = COM_ParseFile( pfile, token );
 				if( IsDeatchmatch()) UTIL_PrecacheEntity( ALLOC_STRING( token ));
 			}
-			else if ( !stricmp( token, "model" )) 
+			else if( !stricmp( token, "model" )) 
 			{                                          
-				pfile = COM_ParseFile(pfile, token);
-				UTIL_PrecacheModel( ALLOC_STRING(token) );
+				pfile = COM_ParseFile( pfile, token );
+				UTIL_PrecacheModel( ALLOC_STRING( token ));
 			}
-			else if ( !stricmp( token, "dmmodel" )) 
+			else if( !stricmp( token, "dmmodel" )) 
 			{                                          
-				pfile = COM_ParseFile(pfile, token);
+				pfile = COM_ParseFile( pfile, token );
 				if( IsDeatchmatch()) UTIL_PrecacheModel( ALLOC_STRING( token ));
 			}
-			else if ( !stricmp( token, "sound" )) 
+			else if( !stricmp( token, "sound" )) 
 			{                                          
-				pfile = COM_ParseFile(pfile, token);
+				pfile = COM_ParseFile( pfile, token );
 				UTIL_PrecacheSound( ALLOC_STRING( token ));
 			}
-			else if ( !stricmp( token, "dmsound" )) 
+			else if( !stricmp( token, "dmsound" )) 
 			{                                          
 				pfile = COM_ParseFile( pfile, token );
 				if( IsDeatchmatch()) UTIL_PrecacheSound( ALLOC_STRING( token ));
 			}
-			else if ( !stricmp( token, "aurora" )) 
+			else if( !stricmp( token, "aurora" )) 
 			{                                          
-				pfile = COM_ParseFile(pfile, token);
+				pfile = COM_ParseFile( pfile, token );
 				UTIL_PrecacheAurora( ALLOC_STRING( token ));
 			}
-			pfile = COM_ParseFile(pfile, token);
+			pfile = COM_ParseFile( pfile, token );
 		}
-		COM_FreeFile(pfile);
+		COM_FreeFile( pfile );
 	}
 }
 
-BOOL IsMultiplayer ( void )
+BOOL IsMultiplayer( void )
 {
-	if( g_pGameRules->IsMultiplayer() ) 
+	if( g_pGameRules->IsMultiplayer()) 
 		return TRUE;
 	return FALSE;
 }
 
-BOOL IsDeatchmatch ( void )
+BOOL IsDeatchmatch( void )
 {
 	if( g_pGameRules->IsDeathmatch() ) 
 		return TRUE;

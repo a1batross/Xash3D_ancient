@@ -306,7 +306,6 @@ extern	cvar_t	*cl_pitchspeed;
 extern	cvar_t	*cl_envshot_size;
 extern	cvar_t	*cl_run;
 extern	cvar_t	*cl_font;
-extern	cvar_t	*cl_neticon;
 
 extern	cvar_t	*cl_anglespeedkey;
 

@@ -1278,12 +1278,17 @@ int FS_CheckNastyPath (const char *path, bool isgamedir)
 FS_Rescan
 ================
 */
-void FS_Rescan (void)
+void FS_Rescan( void )
 {
 	FS_ClearSearchPath();
 
-	FS_AddGameHierarchy (GI.basedir);
-	FS_AddGameHierarchy (GI.gamedir);
+	FS_AddGameHierarchy( GI.basedir );
+	FS_AddGameHierarchy( GI.gamedir );
+}
+
+void FS_Rescan_f( void )
+{
+	FS_Rescan();
 }
 
 void FS_ResetGameInfo( void )
@@ -1412,6 +1417,7 @@ void FS_Init( void )
 
 	FS_AddGameDirectory( "bin/", FS_READONLY_PATH ); // execute system config
 
+	Cmd_AddCommand( "fs_rescan", FS_Rescan_f, "rescan filesystem search pathes" );
 	Cmd_AddCommand( "fs_path", FS_Path_f, "show filesystem search pathes" );
 	Cmd_AddCommand( "fs_clearpaths", FS_ClearPaths_f, "clear filesystem search pathes" );
 	fs_wadsupport = Cvar_Get( "fs_wadsupport", "0", CVAR_SYSTEMINFO, "enable wad-archive support" );

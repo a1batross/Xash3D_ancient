@@ -253,17 +253,14 @@ void PRVM_Init( int argc, char **argv )
 		size_t	size;
 		byte	*image;
 
+		if( !FS_FileExists( "bin/client.dll" ) || !FS_FileExists( "bin/server.dll" ))
+		{
+			image = FS_LoadInternal( "progs.pk3", &size );
+			if( size ) FS_WriteFile( "progs.pk3", image, size ); 
+			Cmd_ExecuteString( "fs_rescan\n" );
+		}
+
 		// dump internal copies of progs into hdd if missing
-		if(!FS_FileExists(va("%s/server.dat", GI->vprogs_dir)))
-		{
-			image = FS_LoadInternal( "server.dat", &size );
-			if( size ) FS_WriteFile(va("%s/server.dat", GI->vprogs_dir), image, size ); 
-		}
-		if(!FS_FileExists(va("%s/client.dat", GI->vprogs_dir)))
-		{
-			image = FS_LoadInternal( "client.dat", &size );
-			if( size ) FS_WriteFile(va("%s/client.dat", GI->vprogs_dir), image, size ); 
-		}
 		if(!FS_FileExists(va("%s/uimenu.dat", GI->vprogs_dir)))
 		{
 			image = FS_LoadInternal( "uimenu.dat", &size );

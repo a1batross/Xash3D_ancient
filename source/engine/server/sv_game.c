@@ -2910,6 +2910,9 @@ bool SV_ParseEdict( script_t *script, edict_t *ent )
 	
 	ent = SV_AllocPrivateData( ent, MAKE_STRING( classname ));
 
+	if( ent->v.flags & FL_KILLME )
+		return false;
+
 	for( i = 0; i < numpairs; i++ )
 	{
 		if( pkvd[i].fHandled ) continue;

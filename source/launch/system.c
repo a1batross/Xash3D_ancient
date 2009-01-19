@@ -539,7 +539,8 @@ void Sys_Print( const char *pMsg )
 	int		i = 0;
 
 	if( Sys.con_silentmode ) return;
-	if( Sys.CPrint ) Sys.CPrint( pMsg );
+	if( Sys.CPrint && Sys.app_name == HOST_NORMAL )
+		Sys.CPrint( pMsg );
 
 	// if the message is REALLY long, use just the last portion of it
 	if ( com_strlen( pMsg ) > MAX_MSGLEN - 1 )
@@ -581,6 +582,11 @@ void Sys_Print( const char *pMsg )
 		i++;
 	}
 	*b = *c = 0; // cutoff garbage
+
+	// because we needs to kill any psedo graph symbols
+	// and color strings for other instances
+	if( Sys.CPrint && Sys.app_name != HOST_NORMAL )
+		Sys.CPrint( logbuf );
 
 	Sys_PrintLog( logbuf );
 

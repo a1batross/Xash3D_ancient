@@ -12,13 +12,6 @@
 
 #pragma warning(disable : 4244)		// int or float down-conversion
 
-#ifdef CLIENT_DLL
-			// Header file containing definition of globalvars_t and entvars_t
-typedef int   func_t;	//
-typedef int string_t;	// from engine's pr_comp.h;
-typedef float  vec_t;	// needed before including progdefs.h
-#endif
-
 //=========================================================
 // 2DVector - used for many pathfinding and many other 
 // operations that are treated as planar rather than 3d.
@@ -32,12 +25,7 @@ public:
 	inline Vector2D operator-(const Vector2D& v) const { return Vector2D(x-v.x, y-v.y); }
 	inline Vector2D operator*(float fl) const { return Vector2D(x*fl, y*fl); }
 	inline Vector2D operator/(float fl) const { return Vector2D(x/fl, y/fl); }
-	
-#ifdef CLIENT_DLL
-	inline float Length(void) const { return (float)sqrt(x*x + y*y ); }
-#else
 	inline float Length(void) const { return sqrt(x*x + y*y ); }
-#endif
 	inline Vector2D Normalize ( void ) const
 	{
 		Vector2D vec2;
@@ -45,11 +33,7 @@ public:
 		float flLen = Length();
 		if ( flLen == 0 )
 		{
-#ifdef CLIENT_DLL
-			return Vector2D( (float)0, (float)0 );
-#else
 			return Vector2D( 0, 0 );
-#endif
 		}
 		else
 		{
@@ -123,7 +107,6 @@ public:
 		x *= oofl; y *= oofl; z *= oofl;
 		return *this;
 	}
-#ifndef CLIENT_DLL
 	_forceinline Vector& fixangle(void)
 	{
 		if(!IS_NAN(x))
@@ -143,19 +126,14 @@ public:
 		}
 		return *this;
 	}
-#endif
 	_forceinline Vector MA(  float scale, const Vector &start, const Vector &direction ) const
 	{
 		return Vector(start.x + scale * direction.x, start.y + scale * direction.y, start.z + scale * direction.z) ;
 	}
 	
-	// Methods
+	// methods
 	inline void CopyToArray(float* rgfl) const	{ rgfl[0] = x, rgfl[1] = y, rgfl[2] = z;   }
-#ifdef CLIENT_DLL
 	inline float Length(void) const		{ return (float)sqrt(x*x + y*y + z*z); }
-#else
-	inline float Length(void) const		{ return sqrt(x*x + y*y + z*z); }
-#endif
 	operator float *()				{ return &x; } // Vectors will now automatically convert to float * when needed
 	operator const float *() const		{ return &x; } // Vectors will now automatically convert to float * when needed
 
@@ -185,14 +163,12 @@ public:
 		Vec2.y = y;
 		return Vec2;
 	}
-#ifdef CLIENT_DLL
 	inline float Length2D(void) const { return (float)sqrt(x*x + y*y); }
-#else
-	inline float Length2D(void) const { return sqrt(x*x + y*y); }
-#endif
-	// Members
+
+	// members
 	vec_t x, y, z;
 };
+
 inline Vector operator*(float fl, const Vector& v)	{ return v * fl; }
 inline float DotProduct(const Vector& a, const Vector& b) { return(a.x*b.x+a.y*b.y+a.z*b.z); }
 inline Vector CrossProduct(const Vector& a, const Vector& b) { return Vector( a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x ); }

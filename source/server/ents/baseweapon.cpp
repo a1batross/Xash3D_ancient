@@ -151,17 +151,13 @@ CBaseEntity* CBasePlayerWeapon::Respawn( void )
 	// make a copy of this weapon that is invisible and inaccessible to players (no touch function). The weapon spawn/respawn code
 	// will decide when to make the weapon visible and touchable.
 	CBaseEntity *pNewWeapon = NULL;
-	edict_t	*pent;
+	edict_t *pent;
 
 	pent = CREATE_NAMED_ENTITY( pev->classname );
-	if ( FNullEnt( pent ) )
-	{
-		// it's a custom weapon!
-		pent = CREATE_NAMED_ENTITY( MAKE_STRING( "weapon_generic" ));
-	}
+	if( FNullEnt( pent )) return NULL;
 	pNewWeapon = Instance( pent );
 	
-	if ( pNewWeapon )
+	if( pNewWeapon )
 	{
 		pNewWeapon->pev->owner = pev->owner;
 		pNewWeapon->pev->origin = g_pGameRules->VecWeaponRespawnSpot( this );
@@ -172,13 +168,13 @@ CBaseEntity* CBasePlayerWeapon::Respawn( void )
 		pNewWeapon->SetTouch( NULL );// no touch
 		pNewWeapon->SetThink( AttemptToMaterialize );
 
-		DROP_TO_FLOOR ( ENT(pev) );
+		DROP_TO_FLOOR ( ENT( pev ));
 
 		// not a typo! We want to know when the weapon the player just picked up should respawn! This new entity we created is the replacement,
 		// but when it should respawn is based on conditions belonging to the weapon that was taken.
-		pNewWeapon->AbsoluteNextThink( g_pGameRules->FlWeaponRespawnTime( this ) );
+		pNewWeapon->AbsoluteNextThink( g_pGameRules->FlWeaponRespawnTime( this ));
 	}
-	else	Msg("Respawn failed to create %s!\n", STRING( pev->classname ) );
+	else ALERT( at_error, "failed to respawn %s!\n", STRING( pev->classname ));
 
 	return pNewWeapon;
 }
@@ -238,14 +234,15 @@ BOOL CBasePlayerWeapon :: CanDeploy( void )
 void CBasePlayerWeapon :: Precache( void )
 {
 	ItemInfo II;
-	if(GetItemInfo(&II))
+
+	if( GetItemInfo( &II ))
 	{
 		ItemInfoArray[II.iId] = II;
 
 		if( II.iszAmmo1 ) AddAmmoName( II.iszAmmo1 );
 		if( II.iszAmmo2 ) AddAmmoName( II.iszAmmo2 );
 
-		memset( &II, 0, sizeof II );
+		memset( &II, 0, sizeof( II ));
 	
 		UTIL_PrecacheModel( iViewModel() );
 		UTIL_PrecacheModel( iWorldModel() );
@@ -255,12 +252,14 @@ void CBasePlayerWeapon :: Precache( void )
 //=========================================================
 //	Get Weapon Info from Script File
 //=========================================================
-int CBasePlayerWeapon :: GetItemInfo(ItemInfo *p)
+int CBasePlayerWeapon :: GetItemInfo( ItemInfo *p )
 {
-	if (FStringNull(pev->netname)) pev->netname = pev->classname;
-	if(ParseWeaponFile( p, STRING(pev->netname)))
+	if( FStringNull( pev->netname ))
+		pev->netname = pev->classname;
+
+	if( ParseWeaponFile( p, STRING( pev->netname )))
 	{                                                     
-		//make unical weapon number
+		// make unical weapon number
 		GenerateID();
 		p->iId = m_iId;
  		return 1;
@@ -274,6 +273,10 @@ int CBasePlayerWeapon :: GetItemInfo(ItemInfo *p)
 void CBasePlayerWeapon :: Spawn( void )
 {
 	Precache();            
+
+	// don't let killed entity continue spawning
+	if( pev->flags & FL_KILLME )
+		return;
           
 	pev->movetype = MOVETYPE_TOSS;
 	pev->solid = SOLID_BBOX;
@@ -303,7 +306,7 @@ void CBasePlayerWeapon :: GenerateID( void )
 {
 	for( int i = 0; i < GlobalID; i++ )
 	{
-		if( FStrEq( STRING( pev->netname), NameItems[i] ))
+		if( FStrEq( STRING( pev->netname ), NameItems[i] ))
 		{               
 			m_iId = ID[i];
 			return;
@@ -389,7 +392,7 @@ int CBasePlayerWeapon :: ParseWeaponFile( ItemInfo *II, const char *filename )
 	
 	if( !pfile )
 	{
- 		Msg( "Warning: Weapon info file for %s not found!\n", STRING(pev->netname) );
+ 		ALERT( at_warning, "Weapon info file for %s not found!\n", STRING( pev->netname ));
  		COM_FreeFile( pfile );
  		UTIL_Remove( this );
  		return 0;
@@ -398,16 +401,16 @@ int CBasePlayerWeapon :: ParseWeaponFile( ItemInfo *II, const char *filename )
 	{
 
 		II->iszName = pev->netname;
-		DevMsg("Parse %s.txt\n", STRING( II->iszName ));
+		ALERT( at_aiconsole, "\nparse %s.txt\n", STRING( II->iszName ));
 		// parses the type, moves the file pointer
 		iResult = ParseWeaponData( II, pfile );
-		DevMsg("Parsing: WeaponData{} %s\n", iResult ? "OK" : "ERROR" );
+		ALERT( at_aiconsole, "Parsing: WeaponData{} %s\n", iResult ? "^3OK" : "^1ERROR" );
 		iResult = ParsePrimaryAttack( II, pfile );
-		DevMsg("Parsing: PrimaryAttack{} %s\n", iResult ? "OK" : "ERROR" );
+		ALERT( at_aiconsole, "Parsing: PrimaryAttack{} %s\n", iResult ? "^3OK" : "^1ERROR" );
 		iResult = ParseSecondaryAttack( II, pfile );
-		DevMsg("Parsing: SecondaryAttack{} %s\n", iResult ? "OK" : "ERROR" );
+		ALERT( at_aiconsole, "Parsing: SecondaryAttack{} %s\n", iResult ? "^3OK" : "^1ERROR" );
 		iResult = ParseSoundData( II, pfile );
-		DevMsg("Parsing: SoundData{} %s\n", iResult ? "OK" : "ERROR" );
+		ALERT( at_aiconsole, "Parsing: SoundData{} %s\n", iResult ? "^3OK" : "^1ERROR" );
 		COM_FreeFile( pfile );
 		return 1;
  	}

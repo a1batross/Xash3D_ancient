@@ -71,7 +71,7 @@ void V_CalcShake( void )
 
 void V_ApplyShake( Vector& origin, Vector& angles, float factor )
 {
-	origin.MA( origin, factor, gHUD.m_Shake.appliedOffset );
+	origin.MA( factor, origin, gHUD.m_Shake.appliedOffset );
 	angles.z += gHUD.m_Shake.appliedAngle * factor;
 }
 

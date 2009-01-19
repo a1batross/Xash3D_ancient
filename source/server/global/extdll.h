@@ -41,9 +41,6 @@ typedef int BOOL;
 #include <stdlib.h>
 #include <math.h>
 
-// Header file containing definition of globalvars_t and entvars_t
-typedef float	vec_t;		// needed before including progdefs.h
-
 inline unsigned long& FloatBits( vec_t& f ) { return *reinterpret_cast<unsigned long*>(&f); }
 inline unsigned long const& FloatBits( vec_t const& f ) { return *reinterpret_cast<unsigned long const*>(&f); }
 inline vec_t BitsToFloat( unsigned long i ) { return *reinterpret_cast<vec_t*>(&i); }

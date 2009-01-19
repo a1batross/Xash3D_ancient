@@ -1065,7 +1065,7 @@ CL_KeyEvent
 Called by the system for both key up and key down events
 ===================
 */
-void Key_Event(int key, bool down, uint time)
+void Key_Event( int key, bool down, uint time )
 {
 	char	*kb;
 	char	cmd[1024];
@@ -1073,22 +1073,22 @@ void Key_Event(int key, bool down, uint time)
 	// update auto-repeat status and BUTTON_ANY status
 	keys[key].down = down;
 
-	if (down)
+	if( down )
 	{
 		keys[key].repeats++;
-		if( keys[key].repeats == 1) anykeydown++;
+		if( keys[key].repeats == 1 ) anykeydown++;
 	}
 	else
 	{
 		keys[key].repeats = 0;
 		anykeydown--;
-		if (anykeydown < 0) anykeydown = 0;
+		if( anykeydown < 0 ) anykeydown = 0;
 	}
 
 	// console key is hardcoded, so the user can never unbind it
-	if (key == '`' || key == '~')
+	if( key == '`' || key == '~' )
 	{
-		if (!down) return;
+		if( !down ) return;
     		Con_ToggleConsole_f();
 		return;
 	}
@@ -1112,7 +1112,7 @@ void Key_Event(int key, bool down, uint time)
 			// passed to client dll's
 			break;
 		default:
-			MsgDev( D_ERROR, "Key_Event: bad cls.key_dest\n");
+			MsgDev( D_ERROR, "Key_Event: bad cls.key_dest\n" );
 			return;
 		}
 	}

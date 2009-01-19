@@ -1585,6 +1585,10 @@ void RB_DebugGraphics( void )
 	{
 		RB_ShowTextures();
 	}
+	if( r_pause_bw->integer )
+	{
+		RB_DrawPauseScreen();
+	}
 }
 
 /*

@@ -702,7 +702,7 @@ void		RB_CheckMeshOverflow( int numIndices, int numVertices );
 void		RB_RenderMesh( void );
 void		RB_RenderMeshes( mesh_t *meshes, int numMeshes );
 void		RB_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, float sh, float th, ref_shader_t *shader );
-
+void		RB_DrawPauseScreen( void );
 void		RB_InitBackend( void );
 void		RB_ShutdownBackend( void );
 
@@ -809,7 +809,7 @@ void		R_AddSkyToList( void );
 void		R_DrawSurface( void );
 void		R_AddBrushModelToList( ref_entity_t *entity );
 void		R_AddWorldToList( void );
-
+void		R_Bloom_InitTextures( void );
 void		RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees );
 void		PerpendicularVector( vec3_t dst, const vec3_t src );
 

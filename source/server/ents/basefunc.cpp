@@ -51,18 +51,19 @@ void CFuncWall :: Spawn( void )
 		pev->solid = SOLID_BSP;
           	pev->movetype = MOVETYPE_PUSH;
           }
-	UTIL_SetModel( ENT(pev), pev->model );
+	UTIL_SetModel( ENT( pev ), pev->model );
 
-	//Smart field system ®
-	if (!FStringNull(pev->angles) && FStringNull(pev->origin))
+	// smart field system ®
+	if( !FStringNull( pev->angles ) && FStringNull( pev->origin ))
 	{
 		pev->angles = g_vecZero;
-		DevMsg( "\n======/Xash SmartFiled System/======\n\n");
-		DevMsg( "Create brush origin for %s,\nif we want correctly set angles\n", STRING(pev->classname));
-		SHIFT;
+		ALERT( at_console, "\n======/Xash SmartFiled System/======\n\n");
+		ALERT( at_console, "Create brush origin for %s,\n", STRING( pev->classname ));
+		ALERT( at_console, "if we want correctly set angles\n\n" );
 	}
+
 	pev->angles[1] =  0 - pev->angles[1];	
-	if(pev->spawnflags & SF_START_ON) TurnOff();
+	if( pev->spawnflags & SF_START_ON ) TurnOff();
 	else TurnOn();
 }
 

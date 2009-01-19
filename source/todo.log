@@ -55,7 +55,8 @@ Beta 13.12.08
 24.ed_fields flags				OK
 25.install ALL missing models & sounds!		OK
 26.fixangle doesn't working correctly
-27.fixup viewmodel drawing
+27.fixup viewmodel drawing			OK
+28.fixing r_pause_effect
 
 
 Список доступных рендереров:  	Что в них интересного

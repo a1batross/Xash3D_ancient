@@ -3,8 +3,8 @@
 //		     r_bloom.c - lighting post process effect
 //=======================================================================
 
-#include <assert.h>
 #include "r_local.h"
+#include "mathlib.h"
 
 static float Diamond8x[8][8] =
 { 
@@ -170,12 +170,12 @@ void R_Bloom_InitTextures( void )
 	int	size;
 	rgbdata_t	r_bloomscr, r_downsample;
 
-	Mem_Set(&r_bloomscr, 0, sizeof(rgbdata_t));
-	Mem_Set(&r_downsample, 0, sizeof(rgbdata_t));
+	Mem_Set( &r_bloomscr, 0, sizeof( rgbdata_t ));
+	Mem_Set( &r_downsample, 0, sizeof( rgbdata_t ));
 
 	// find closer power of 2 to screen size 
-	for( screen_texture_width = 1; screen_texture_width < r_width->integer; screen_texture_width *= 2 );
-	for( screen_texture_height = 1; screen_texture_height < r_height->integer; screen_texture_height *= 2 );
+	screen_texture_width = NearestPOW( r_width->integer, true );
+	screen_texture_height = NearestPOW( r_height->integer, true );
 
 	// init the screen texture
 	size = screen_texture_width * screen_texture_height * 4;
@@ -191,10 +191,10 @@ void R_Bloom_InitTextures( void )
 	r_bloomscr.size = screen_texture_width * screen_texture_height * 4;
 	r_bloomscreentexture = R_LoadTexture( "*r_bloomscreentexture", &r_bloomscr, 3, TF_STATIC|TF_NOPICMIP, TF_LINEAR, TW_CLAMP );
 
-	//validate bloom size and init the bloom effect texture
+	// validate bloom size and init the bloom effect texture
 	R_Bloom_InitEffectTexture ();
 
-	//if screensize is more than 2x the bloom effect texture, set up for stepped downsampling
+	// if screensize is more than 2x the bloom effect texture, set up for stepped downsampling
 	r_bloomdownsamplingtexture = NULL;
 	r_screendownsamplingtexture_size = 0;
 	if( r_width->integer > (BLOOM_SIZE * 2) && !r_bloom_fast_sample->value )
@@ -271,7 +271,7 @@ void R_Bloom_GeneratexDiamonds( void )
 	pglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
 	GL_Enable( GL_BLEND );
 
-	//darkening passes
+	// darkening passes
 	if( r_bloom_darken->value )
 	{
 		GL_BlendFunc( GL_DST_COLOR, GL_ZERO );
@@ -285,12 +285,11 @@ void R_Bloom_GeneratexDiamonds( void )
 	}
 
 	// bluring passes
-	// GL_BlendFunc(GL_ONE, GL_ONE);
-	GL_BlendFunc(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
+	GL_BlendFunc( GL_ONE, GL_ONE );
 	
 	if( r_bloom_diamond_size->value > 7 || r_bloom_diamond_size->value <= 3)
 	{
-		if( (int)r_bloom_diamond_size->value != 8 ) Cvar_SetValue( "r_bloom_diamond_size", 8 );
+		if( r_bloom_diamond_size->integer != 8 ) Cvar_SetValue( "r_bloom_diamond_size", 8 );
 
 		for( i = 0; i < r_bloom_diamond_size->value; i++ )
 		{
@@ -305,7 +304,6 @@ void R_Bloom_GeneratexDiamonds( void )
 	}
 	else if( r_bloom_diamond_size->value > 5 )
 	{
-		
 		if( r_bloom_diamond_size->value != 6 ) Cvar_SetValue( "r_bloom_diamond_size", 6 );
 
 		for( i = 0; i < r_bloom_diamond_size->value; i++ )
@@ -356,7 +354,7 @@ void R_Bloom_DownsampleView( void )
 	pglDisable( GL_BLEND );
 	pglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
 
-	//stepped downsample
+	// stepped downsample
 	if( r_screendownsamplingtexture_size )
 	{
 		int	midsample_width = r_screendownsamplingtexture_size * sampleText_tcw;
@@ -367,17 +365,17 @@ void R_Bloom_DownsampleView( void )
 		pglCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, curView_x, r_height->integer - (curView_y + curView_height), curView_width, curView_height);
 		R_Bloom_Quad( 0,  r_height->integer-midsample_height, midsample_width, midsample_height, screenText_tcw, screenText_tch  );
 		
-		//now copy into Downsampling (mid-sized) texture
+		// now copy into Downsampling (mid-sized) texture
 		GL_BindTexture( r_bloomdownsamplingtexture );
 		pglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, midsample_width, midsample_height );
 
-		//now draw again in bloom size
+		// now draw again in bloom size
 		pglColor4f( 0.5f, 0.5f, 0.5f, 1.0f );
 		R_Bloom_Quad( 0,  r_height->integer-sample_height, sample_width, sample_height, sampleText_tcw, sampleText_tch );
 		
-		//now blend the big screen texture into the bloom generation space (hoping it adds some blur)
+		// now blend the big screen texture into the bloom generation space (hoping it adds some blur)
 		GL_Enable( GL_BLEND );
-		GL_BlendFunc(GL_ONE, GL_ONE);
+		GL_BlendFunc( GL_ONE, GL_ONE );
 		pglColor4f( 0.5f, 0.5f, 0.5f, 1.0f );
 		GL_BindTexture( r_bloomscreentexture );
 		R_Bloom_Quad( 0,  r_height->integer-sample_height, sample_width, sample_height, screenText_tcw, screenText_tch );

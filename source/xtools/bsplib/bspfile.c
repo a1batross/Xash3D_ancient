@@ -463,8 +463,11 @@ void ParseEntities( void )
 {
 	num_entities = 0;
 	mapfile = Com_OpenScript( "entities", dentdata, entdatasize );
-	if( mapfile ) while( ParseEntity( ));
-	Com_CloseScript( mapfile );
+	if( mapfile )
+	{
+		while( ParseEntity( ));
+		Com_CloseScript( mapfile );
+	}
 }
 
 /*
@@ -480,7 +483,6 @@ void UnparseEntities( void )
 	char		*buf, *end;
 	char		line[2048];
 	char		key[MAX_KEY], value[MAX_VALUE];
-	char		*value2;
 	int		i;
 
 	buf = dentdata;
@@ -491,23 +493,12 @@ void UnparseEntities( void )
 	{
 		ep = entities[i].epairs;
 		if( !ep ) continue;	// ent got removed
-
-		// certain entities get stripped from bsp file */
-		value2 = ValueForKey( &entities[i], "classname" );
 		
 		com.strcat( end, "{\n" );
 		end += 2;
-
-		// always place "classname" at first
-		StripTrailing( value2 );
-		com.snprintf( line, 2048, "\"classname\" \"%s\"\n", value2 );
-		com.strcat( end, line );
-		end += com.strlen( line );
 				
 		for( ep = entities[i].epairs; ep; ep = ep->next )
 		{
-			if( !com.stricmp( ep->key, "classname" ))
-				continue;	// already stored
 			com.strncpy( key, ep->key, MAX_KEY );
 			StripTrailing( key );
 			com.strncpy( value, ep->value, MAX_VALUE );

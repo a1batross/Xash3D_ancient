@@ -3693,52 +3693,23 @@ void CBloodSplat::Spray ( void )
 void CBasePlayer::GiveNamedItem( const char *pszName )
 {
 	edict_t	*pent;
-	int istr = MAKE_STRING(pszName);
+	int istr = MAKE_STRING( pszName );
           	
-	if( FUNCTION_FROM_NAME( pszName ))
-	{
-		pent = CREATE_NAMED_ENTITY(istr);
-		if ( FNullEnt( pent )) return;
-	}
-	else if( !strncmp( pszName, "weapon_", 7 ))
-	{
-		//may be this a weapon_generic entity?
-		pent = CREATE_NAMED_ENTITY(MAKE_STRING("weapon_generic"));
-		if ( FNullEnt( pent )) return;//this never gonna called anymore. just in case
-  		pent->v.netname = istr; 
-	}
-	else if( !strncmp( pszName, "item_", 5 ))
-	{
-		//may be this a weapon_generic entity?
-		pent = CREATE_NAMED_ENTITY(MAKE_STRING("item_generic"));
-		if ( FNullEnt( pent )) return;//this never gonna called anymore. just in case
-  		pent->v.netname = istr; 
-	}
-	else if(!strncmp( pszName, "ammo_", 5))
-	{
-		//may be this a weapon_generic entity?
-		pent = CREATE_NAMED_ENTITY(MAKE_STRING("item_generic"));
-		if ( FNullEnt( pent )) return;//this never gonna called anymore. just in case
-  		pent->v.netname = istr; 
-	}
-	else //unknown error
-	{
-		Msg("can't create %s\n", pszName );
-		return;
-	}
+	pent = CREATE_NAMED_ENTITY( istr );
+	if( FNullEnt( pent )) return;
 
-          DevMsg("Give %s\n", STRING(pent->v.classname));
+	ALERT( at_aiconsole, "Give %s\n", STRING( pent->v.classname ));
 
 	VARS( pent )->origin = pev->origin;
 	pent->v.spawnflags |= SF_NORESPAWN;
 
 	DispatchSpawn( pent );
-	DispatchTouch( pent, ENT( pev ) );
+	DispatchTouch( pent, ENT( pev ));
 }
 
 BOOL CBasePlayer :: FlashlightIsOn( void )
 {
-	return FBitSet(pev->effects, EF_DIMLIGHT);
+	return FBitSet( pev->effects, EF_DIMLIGHT );
 }
 
 

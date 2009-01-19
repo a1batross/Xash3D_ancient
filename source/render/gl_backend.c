@@ -70,6 +70,7 @@ static dllfunc_t opengl_110funcs[] =
 	{"glPointSize", (void**) &pglPointSize},
 	{"glMatrixMode", (void **) &pglMatrixMode},
 	{"glOrtho", (void **) &pglOrtho},
+	{"glRasterPos2f", (void **) &pglRasterPos2f},
 	{"glFrustum", (void **) &pglFrustum},
 	{"glViewport", (void **) &pglViewport},
 	{"glPushMatrix", (void **) &pglPushMatrix},
@@ -86,6 +87,7 @@ static dllfunc_t opengl_110funcs[] =
 	{"glTranslated", (void **) &pglTranslated},
 	{"glTranslatef", (void **) &pglTranslatef},
 	{"glReadPixels", (void **) &pglReadPixels},
+	{"glDrawPixels", (void **) &pglDrawPixels},
 	{"glStencilFunc", (void **) &pglStencilFunc},
 	{"glStencilMask", (void **) &pglStencilMask},
 	{"glStencilOp", (void **) &pglStencilOp},
@@ -569,7 +571,7 @@ void GL_InitExtensions( void )
 
 	// initialize gl extensions
 	GL_CheckExtension( "OpenGL 1.1.0", opengl_110funcs, NULL, R_OPENGL_110 );
-	if( !r_framebuffer ) r_framebuffer = Mem_Alloc( r_temppool, r_width->integer * r_height->integer * 3 );
+	if( !r_framebuffer ) r_framebuffer = Mem_Alloc( r_temppool, r_width->integer * r_height->integer * 4 );
 
 	// get our various GL strings
 	gl_config.vendor_string = pglGetString( GL_VENDOR );

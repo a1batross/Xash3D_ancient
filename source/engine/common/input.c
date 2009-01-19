@@ -262,9 +262,9 @@ void IN_Frame( void )
 	}
 
 	// uimenu.dat using mouse
-	if((!cl.video_prepped && cls.key_dest != key_menu) || cls.key_dest == key_console )
+	if((!cl.video_prepped && cls.key_dest != key_menu) || cls.key_dest == key_console || cl_paused->integer )
 	{
-		if(!Cvar_VariableValue( "fullscreen"))
+		if( !Cvar_VariableValue( "fullscreen" ))
 		{
 			IN_DeactivateMouse();
 			return;

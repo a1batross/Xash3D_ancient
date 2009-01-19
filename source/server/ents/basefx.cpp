@@ -2310,15 +2310,14 @@ void CEnvBeam::Spawn( void )
 
 	if( FStringNull( pev->netname ))
 	{
-		ALERT( at_warning, "%s end entity not found!\n", STRING(pev->classname) );
-		SetThink( Remove );
-		SetNextThink( 0 );
+		ALERT( at_warning, "%s end entity not found!\n", STRING( pev->classname ));
+		UTIL_Remove( this );
 		return;
 	}
 
 	pev->dmgtime = gpGlobals->time;
-	if (pev->rendercolor == g_vecZero) pev->rendercolor = Vector(255, 255, 255);
-	if(pev->spawnflags & SF_START_ON) Use( this, this, USE_ON, 0 );
+	if( pev->rendercolor == g_vecZero ) pev->rendercolor = Vector( 255, 255, 255 );
+	if( pev->spawnflags & SF_START_ON ) Use( this, this, USE_ON, 0 );
 }
 
 void CEnvBeam::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )

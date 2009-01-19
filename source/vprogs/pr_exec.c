@@ -159,7 +159,51 @@ char *prvm_opnames[] =
 "^6SWITCH_FNC",
 
 "^6CASE",
-"^6CASERANGE"
+"^6CASERANGE",
+
+"STORE_I",
+"STORE_IF",
+"STORE_FI",
+	
+"ADD_I",
+"ADD_FI",
+"ADD_IF",
+  
+"SUB_I",
+"SUB_FI",
+"SUB_IF",
+
+"CONV_ITOF",
+"CONV_FTOI",
+"CP_ITOF",
+"CP_FTOI",
+"LOAD_I",
+"STOREP_I",
+"STOREP_IF",
+"STOREP_FI",
+
+"BITAND_I",
+"BITOR_I",
+
+"MUL_I",
+"DIV_I",
+"EQ_I",
+"NE_I",
+
+"IFNOTS",
+"IFS",
+
+"NOT_I",
+
+"DIV_VF",
+
+"POWER_I",
+"RSHIFT_I",
+"LSHIFT_I",
+"RSHIFT_F",
+"LSHIFT_F",
+"MODULO_I",
+"MODULO_F",
 };
 
 char *PRVM_GlobalString (int ofs);
@@ -179,22 +223,18 @@ void PRVM_PrintStatement (dstatement_t *s)
 	size_t i;
 	int opnum = (int)(s - vm.prog->statements);
 
-	Msg("s%i: ", opnum);
+	Msg( "s%i: ", opnum );
 	if( vm.prog->statement_linenums )
 		Msg( "%s:%i: ", PRVM_GetString( vm.prog->xfunction->s_file ), vm.prog->statement_linenums[ opnum ] );
 
-	if (prvm_statementprofiling->value)
-		Msg("%7.0f ", vm.prog->statement_profile[s - vm.prog->statements]);
+	if( prvm_statementprofiling->integer )
+		Msg( "%7.0f ", vm.prog->statement_profile[s - vm.prog->statements] );
 
-	if ( (unsigned)s->op < sizeof(prvm_opnames)/sizeof(prvm_opnames[0]))
+	if((uint)s->op < sizeof( prvm_opnames ) / sizeof( prvm_opnames[0] ))
 	{
-		Msg("%s ",  prvm_opnames[s->op]);
-		i = strlen(prvm_opnames[s->op]);
-		// don't count a preceding color tag when padding the name
-		if (prvm_opnames[s->op][0] == STRING_COLOR_TAG)
-			i -= 2;
-		for ( ; i<10 ; i++)
-			Msg(" ");
+		Msg( "%s ",  prvm_opnames[s->op] );
+		i = com.cstrlen( prvm_opnames[s->op] );
+		for( ; i < 10; i++ ) Msg(" ");
 	}
 	if (s->op == OP_IF || s->op == OP_IFNOT)
 		Msg("%s, s%i",PRVM_GlobalString((unsigned short) s->a),(signed short)s->b + opnum);

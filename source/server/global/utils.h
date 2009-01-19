@@ -211,8 +211,9 @@ extern BOOL FNullEnt( CBaseEntity *ent );
 // g-cont. radnomize hull nullity yep!
 // and Doom3 colloisation
 #define iStringNull 0
-inline BOOL FStringNull(int iString)			{ return iString == iStringNull; }
-inline BOOL FStringNull(Vector vString)			{ return vString == Vector(0,0,0); }
+inline BOOL FStringNull( int iString )		{ return iString == iStringNull; }
+inline BOOL FStringNull( const char *szString )	{ return (szString && *szString) ? FALSE : TRUE; };
+inline BOOL FStringNull( Vector vString )	{ return vString == Vector( 0, 0, 0); }
 
 #define cchMapNameMost 32
 

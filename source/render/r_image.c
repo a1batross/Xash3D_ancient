@@ -2200,7 +2200,7 @@ void GL_GenerateMipmaps( byte *buffer, texture_t *tex, int side, bool border )
 	{
 		pglHint( GL_GENERATE_MIPMAP_HINT_SGIS, GL_NICEST );
 		pglTexParameteri( image_desc.glTarget, GL_GENERATE_MIPMAP_SGIS, GL_TRUE );
-		if(pglGetError()) MsgDev(D_WARN, "GL_GenerateMipmaps: can't create mip levels\n");
+		if( pglGetError()) MsgDev( D_WARN, "GL_GenerateMipmaps: %s can't create mip levels\n", tex->name );
 		else return; // falltrough to software mipmap generating
 	}
 
@@ -2824,6 +2824,8 @@ static void R_CreateBuiltInTextures( void )
 
 	buffer = FS_LoadInternal( "default.dds", &bufsize );
 	r_defaultConchars = R_FindTexture( "#default.dds", buffer, bufsize, TF_NOPICMIP|TF_STATIC, TF_LINEAR, 0 );
+
+	R_Bloom_InitTextures();
 }
 
 /*

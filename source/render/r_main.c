@@ -911,13 +911,11 @@ void R_RenderView( const ref_params_t *fd )
 	R_BloomBlend( fd );
 }
 
-void R_DrawPauseScreen( void )
+// FIXME: copy screen into texRecatngle then draw as normal quad
+void RB_DrawPauseScreen( void )
 {
 	// don't apply post effects for custom window
 	if( r_refdef.onlyClientDraw ) return;
-
-	if( !r_pause_bw->integer )
-		return;
 
 	if( r_pause->modified )
 	{
@@ -935,7 +933,7 @@ void R_DrawPauseScreen( void )
 		int	i, s, r, g, b;
 
 		pglFlush();
-		pglReadPixels(0, 0, r_width->integer, r_height->integer, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer);
+		pglReadPixels( 0, 0, r_width->integer, r_height->integer, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer );
 		for (i = 0; i < r_width->integer * r_height->integer * 3; i+=3)
 		{
 			r = r_framebuffer[i+0];
@@ -948,18 +946,19 @@ void R_DrawPauseScreen( void )
 		}
 		r_lefthand->modified = false;
 	}
+
 	// set custom orthogonal mode
-	pglMatrixMode(GL_PROJECTION);
+	pglMatrixMode( GL_PROJECTION );
 	pglLoadIdentity ();
-	pglOrtho(0, r_width->integer, 0, r_height->integer, 0, 1.0f);
-	pglMatrixMode(GL_MODELVIEW);
+	pglOrtho( 0, r_width->integer, 0, r_height->integer, 0, 1.0f );
+	pglMatrixMode( GL_MODELVIEW );
 	pglLoadIdentity ();
 
-	pglDisable(GL_TEXTURE_2D);
-	pglRasterPos2f(0, 0);
-	pglDrawPixels(r_width->integer, r_height->integer, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer);
+	pglDisable( GL_TEXTURE_2D );
+	pglRasterPos2f( 0, 0 );
+	pglDrawPixels( r_width->integer, r_height->integer, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer );
 	pglFlush();
-	pglEnable(GL_TEXTURE_2D);
+	pglEnable( GL_TEXTURE_2D );
 }
 
 /*
@@ -1170,6 +1169,7 @@ static bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac
 
 	if( refent->ent_type == ED_CLIENT )
 		refent->gaitsequence = pRefEntity->v.gaitsequence;
+	else refent->gaitsequence = 0;
 
 	// because entity without models never added to scene
 	if( !refent->ent_type )
@@ -1362,7 +1362,7 @@ void R_EndFrame( void )
 	// Swap the buffers
 	if( !r_frontbuffer->integer )
 	{
-		if( !pwglSwapBuffers( glw_state.hDC ) )
+		if( !pwglSwapBuffers( glw_state.hDC ))
 			Sys_Break("R_EndFrame() - SwapBuffers() failed!\n" );
 	}
 

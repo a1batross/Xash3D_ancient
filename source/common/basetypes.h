@@ -19,6 +19,7 @@ typedef int		shader_t;
 typedef struct edict_s	edict_t;
 typedef struct cl_priv_s	cl_priv_t;
 typedef struct sv_priv_s	sv_priv_t;
+typedef float		vec_t;
 
 #define DLLEXPORT		__declspec( dllexport )
 

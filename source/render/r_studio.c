@@ -1061,7 +1061,7 @@ float R_StudioSetupBones( void )
 			Mem_Copy( q[i], q2[i], sizeof( q[i] ));
 		}
 	}
-
+          
 	for (i = 0; i < m_pStudioHeader->numbones; i++) 
 	{
 		Matrix4x4_FromOriginQuat( bonematrix, pos[i][0], pos[i][1], pos[i][2], q[i][0], q[i][1], q[i][2], q[i][3] );
@@ -1122,12 +1122,15 @@ float R_StudioMergeBones ( rmodel_t *m_pSubModel )
 	static vec4_t	q[MAXSTUDIOBONES];
 	static float	pos[MAXSTUDIOBONES][3];
 
-	if( m_pCurrentEntity->sequence >=  m_pStudioHeader->numseq ) m_pCurrentEntity->sequence = 0;
+	if( m_pCurrentEntity->sequence >= m_pStudioHeader->numseq ) m_pCurrentEntity->sequence = 0;
 	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + m_pCurrentEntity->sequence;
 
 	f = R_StudioEstimateFrame( pseqdesc );
 
-	//if (m_pCurrentEntity->prev.frame > f) Msg("%f %f\n", m_pCurrentEntity->prev.frame, f );
+	if( m_pCurrentEntity->prev.frame > f )
+	{
+		// Msg("%f %f\n", m_pCurrentEntity->prev.frame, f );
+	}
 
 	panim = R_StudioGetAnim( m_pSubModel, pseqdesc );
 	R_StudioCalcRotations( pos, q, pseqdesc, panim, f );

@@ -4088,11 +4088,23 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 		break;
 	case SHADER_NOMIP:
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
-		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_NOPICMIP, TF_LINEAR, 0 );
+		if( shader->name[0] == '#' )
+		{
+			// search for internal resource
+			size_t	bufsize = 0;
+			byte	*buffer = FS_LoadInternal( shader->name + 1, &bufsize );
+			shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_NOPICMIP|TF_STATIC, TF_LINEAR, 0 );
+		}
+		else shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_NOPICMIP, TF_LINEAR, 0 );
+
 		if( !shader->stages[0]->bundles[0]->textures[0] )
 		{
-			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
-			shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
+
+			if( !shader->stages[0]->bundles[0]->textures[0] )
+			{
+				MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
+				shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
+			}
 		}
 		shader->stages[0]->rgbGen.type = RGBGEN_VERTEX;
 		shader->stages[0]->bundles[0]->numTextures++;

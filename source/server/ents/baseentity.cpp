@@ -226,21 +226,21 @@ void CBaseEntity :: SetParent( CBaseEntity* pParent, int m_iAttachment )
 //=======================================================================
 void CBaseEntity :: ResetParent( void )
 {
-	if(pFlags & PF_MOVENONE)//this entity was static e.g. func_wall
+	if( pFlags & PF_MOVENONE ) // this entity was static e.g. func_wall
 	{
-		ClearBits (pFlags, PF_MOVENONE);
+		ClearBits( pFlags, PF_MOVENONE );
 		pev->movetype = MOVETYPE_NONE;
 	}
 
-	if ( !g_pWorld )return; //???
+	if( !g_pWorld ) return; //???
 
 	CBaseEntity* pTemp;
 
-	for (pTemp = g_pWorld; pTemp->m_pLinkList != NULL; pTemp = pTemp->m_pLinkList)
+	for( pTemp = g_pWorld; pTemp->m_pLinkList != NULL; pTemp = pTemp->m_pLinkList )
 	{
-		if (this == pTemp->m_pLinkList)
+		if( this == pTemp->m_pLinkList )
 		{
-			pTemp->m_pLinkList = this->m_pLinkList;//save pointer
+			pTemp->m_pLinkList = this->m_pLinkList; // save pointer
 			this->m_pLinkList = NULL;
 			break;
 		}
@@ -680,38 +680,8 @@ CBaseEntity * CBaseEntity::Create( char *szName, const Vector &vecOrigin, const 
 	int istr = ALLOC_STRING(szName);
 	CBaseEntity *pEntity;
           
-	// check for virtual entities
-	if( FUNCTION_FROM_NAME( szName ) != 0 )
-	{
-		pent = CREATE_NAMED_ENTITY( istr );
-		if ( FNullEnt( pent )) return NULL;
-	}
-	else if(!strncmp( szName, "weapon_", 7))
-	{
-		//may be this a weapon_generic entity?
-		pent = CREATE_NAMED_ENTITY(MAKE_STRING("weapon_generic"));
-		if ( FNullEnt( pent )) return NULL; // this never gonna called anymore. just in case
-  		pent->v.netname = istr; 
-	}
-	else if(!strncmp( szName, "item_", 5))
-	{
-		//may be this a weapon_generic entity?
-		pent = CREATE_NAMED_ENTITY(MAKE_STRING("item_generic"));
-		if ( FNullEnt( pent )) return NULL; // this never gonna called anymore. just in case
-  		pent->v.netname = istr; 
-	}
-	else if(!strncmp( szName, "ammo_", 5))
-	{
-		//may be this a weapon_generic entity?
-		pent = CREATE_NAMED_ENTITY(MAKE_STRING("item_generic"));
-		if ( FNullEnt( pent )) return NULL; // this never gonna called anymore. just in case
-  		pent->v.netname = istr; 
-	}
-	else //unknown error
-	{
-		Msg("can't create %s\n", szName );
-		return NULL;
-	}
+	pent = CREATE_NAMED_ENTITY( istr );
+	if( FNullEnt( pent )) return NULL;
 
 	pEntity = Instance( pent );
 	pEntity->pev->owner = pentOwner;
@@ -728,46 +698,16 @@ CBaseEntity * CBaseEntity::CreateGib( char *szName, char *szModel )
           string_t model = MAKE_STRING( szModel );
 	int istr = ALLOC_STRING(szName);
           
-	//check for virtual entities
-	if( FUNCTION_FROM_NAME( szName ))
-	{
-		pent = CREATE_NAMED_ENTITY( istr );
-		if ( FNullEnt( pent )) return NULL;
-	}
-	else if(!strncmp( szName, "weapon_", 7))
-	{
-		// may be this a weapon_generic entity?
-		pent = CREATE_NAMED_ENTITY( MAKE_STRING( "weapon_generic" ));
-		if ( FNullEnt( pent )) return NULL; //this never gonna called anymore. just in case
-  		pent->v.netname = istr; 
-	}
-	else if(!strncmp( szName, "item_", 5))
-	{
-		//may be this a weapon_generic entity?
-		pent = CREATE_NAMED_ENTITY(MAKE_STRING("item_generic"));
-		if ( FNullEnt( pent )) return NULL;//this never gonna called anymore. just in case
-  		pent->v.netname = istr; 
-	}
-	else if(!strncmp( szName, "ammo_", 5))
-	{
-		//may be this a weapon_generic entity?
-		pent = CREATE_NAMED_ENTITY(MAKE_STRING("item_generic"));
-		if ( FNullEnt( pent )) return NULL;//this never gonna called anymore. just in case
-  		pent->v.netname = istr; 
-	}
-	else //unknown error
-	{
-		Msg("can't create %s\n", szName );
-		return NULL;
-	}
+	pent = CREATE_NAMED_ENTITY( istr );
+	if( FNullEnt( pent )) return NULL;
 	
 	pEntity = Instance( pent );
 	DispatchSpawn( pEntity->edict() );
 
-	if(!FStringNull( model )) 
+	if( !FStringNull( model )) 
 	{
 		UTIL_SetModel( pEntity->edict(), szModel );
-		Msg("szModel %s\n", szModel );
+		Msg( "szModel %s\n", szModel );
 	}
 	return pEntity;
 }
@@ -791,7 +731,7 @@ void CBaseEntity::UpdateOnRemove( void )
 				WorldGraph.m_pLinkPool [ i ].m_pLinkEnt = NULL;
 		}
 	}
-	if ( pev->globalname ) gGlobalState.EntitySetState( pev->globalname, GLOBAL_DEAD );
+	if( pev->globalname ) gGlobalState.EntitySetState( pev->globalname, GLOBAL_DEAD );
 }
 
 //=======================================================================

@@ -345,7 +345,7 @@ void CBaseBrush::Precache( void )
 		break;
 	case None:
 	default:
-		if(pev->health > 0)//mapmaker forget set material ?
+		if( pev->health > 0 ) // mapmaker forget set material ?
 		{
 			DevMsg("\n======/Xash SmartFiled System/======\n\n");
 			DevMsg("Please set material for %s,\n", STRING(pev->classname));
@@ -355,9 +355,10 @@ void CBaseBrush::Precache( void )
 	}
 
 	MaterialSoundPrecache( m_Material );
-	if(IsBreakable())
+	if(IsBreakable( ))
 	{
-		m_idShard = UTIL_PrecacheModel( m_iGibModel, (char*)pGibName ); // precache model
+		if( !FStringNull( m_iGibModel ) || !FStringNull( pGibName ))
+			m_idShard = UTIL_PrecacheModel( m_iGibModel, pGibName ); // precache model
 		if( m_iSpawnObject ) UTIL_PrecacheEntity( m_iSpawnObject );
 	}
 	UTIL_PrecacheModel( pev->model ); // can use *.mdl for any brush
@@ -502,11 +503,11 @@ void CBaseBrush::Die( void )
 	int pitch, soundbits = NULL;
 	float fvol;
 
-	pitch = 95 + RANDOM_LONG(0, 29);
-	if(pitch > 97 && pitch < 103)pitch = 100;
+	pitch = 95 + RANDOM_LONG( 0, 29 );
+	if( pitch > 97 && pitch < 103 ) pitch = PITCH_NORM;
 
-	fvol = RANDOM_FLOAT(0.85, 1.0) + (abs(pev->health) / 100.0);
-	if(fvol > 1.0)fvol = 1.0;
+	fvol = RANDOM_FLOAT(0.85, 1.0) + (abs( pev->health ) / 100.0);
+	if( fvol > 1.0 ) fvol = 1.0;
 
 	switch (m_Material)
 	{
