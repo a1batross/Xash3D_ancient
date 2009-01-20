@@ -183,7 +183,11 @@ void CBaseBrush :: AxisDir( void )
 		pev->movedir = Vector ( 0, 0, 1 );	// around z-axis
 	else if( FBitSet(pev->spawnflags, SF_BRUSH_ROTATE_X_AXIS ))
 		pev->movedir = Vector ( 1, 0, 0 );	// around x-axis
-	else	pev->movedir = Vector ( 0, 1, 0 );	// around y-axis
+	else pev->movedir = Vector ( 0, 1, 0 );	// around y-axis
+
+	// check for reverse rotation
+	if( FBitSet( pev->spawnflags, SF_BRUSH_ROTATE_BACKWARDS ))
+		pev->movedir *= -1;
 }
 
 void CBaseBrush::KeyValue( KeyValueData* pkvd )
@@ -196,7 +200,7 @@ void CBaseBrush::KeyValue( KeyValueData* pkvd )
 
 		if ((i < 0) || (i >= LastMaterial))
 			m_Material = Wood;
-		else	m_Material = (Materials)i;
+		else m_Material = (Materials)i;
 		pkvd->fHandled = TRUE;
 	}
 	else if( FStrEq( pkvd->szKeyName, "strength" ))
@@ -222,13 +226,18 @@ void CBaseBrush::KeyValue( KeyValueData* pkvd )
 	}
 	else if (FStrEq(pkvd->szKeyName, "volume"))
 	{
-		//0.0 - silence, 1.0 - loudest( obsolete )
-		m_flVolume = atof(pkvd->szValue);
-		if (m_flVolume > 1.0) m_flVolume = 1.0;
-		if (m_flVolume < 0.0) m_flVolume = 0.0;
+		// 0.0 - silence, 1.0 - loudest( obsolete )
+		m_flVolume = atof( pkvd->szValue );
+		if( m_flVolume > 1.0 ) m_flVolume = 1.0;
+		if( m_flVolume < 0.0 ) m_flVolume = 0.0;
 		pkvd->fHandled = TRUE;
 	}
-	else if( FStrEq( pkvd->szKeyName, "movesound" ))
+	else if (FStrEq(pkvd->szKeyName, "radius"))
+	{
+		m_flRadius = atof( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if( FStrEq( pkvd->szKeyName, "movesound" ) || FStrEq( pkvd->szKeyName, "sounds" ))
 	{
 		m_iMoveSound = ALLOC_STRING(pkvd->szValue);
 		pkvd->fHandled = TRUE;
@@ -255,6 +264,9 @@ TYPEDESCRIPTION CBaseBrush::m_SaveData[] =
 	DEFINE_FIELD( CBaseBrush, m_iGibModel, FIELD_STRING ),	// custom gibname
 	DEFINE_FIELD( CBaseBrush, m_vecPlayerPos, FIELD_VECTOR ),	// for controllable entity like tank
 	DEFINE_FIELD( CBaseBrush, m_pController, FIELD_CLASSPTR ),	// for controllable entity like tank	
+	DEFINE_FIELD( CBaseBrush, m_flRadius, FIELD_FLOAT ),	// volume of sounds
+	DEFINE_FIELD( CBaseBrush, m_flAccel, FIELD_FLOAT ),	// volume of sounds
+	DEFINE_FIELD( CBaseBrush, m_flDecel, FIELD_FLOAT ),	// volume of sounds
 };
 IMPLEMENT_SAVERESTORE( CBaseBrush, CBaseLogic );
 

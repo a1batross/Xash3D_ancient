@@ -936,7 +936,8 @@ void CM_FreeWorld( void )
 	// free old stuff
 	if( cms.loaded )
 	{
-		Com_CloseScript( cm.entityscript ); 
+		if( cm.entityscript )
+			Com_CloseScript( cm.entityscript ); 
 		Mem_EmptyPool( cmappool );
 	}
 	Mem_Set( &cm, 0, sizeof( cm ));

@@ -564,7 +564,7 @@ void CM_CollisionTraceBrushBrushFloat( trace_t *trace, const cbrushf_t *thisbrus
 			nplane2 -= thatbrush_start->numplanes;
 			startplane = thisbrush_start->planes + nplane2;
 			endplane = thisbrush_end->planes + nplane2;
-			if( ph.developer >= D_ERROR )
+			if( ph.developer >= D_NOTE )
 			{
 				// any brush with degenerate planes is not worth handling
 				if( DotProduct(startplane->normal, startplane->normal) < 0.9f || DotProduct(endplane->normal, endplane->normal) < 0.9f)
@@ -583,7 +583,7 @@ void CM_CollisionTraceBrushBrushFloat( trace_t *trace, const cbrushf_t *thisbrus
 		{
 			startplane = thatbrush_start->planes + nplane2;
 			endplane = thatbrush_end->planes + nplane2;
-			if( ph.developer >= D_ERROR )
+			if( ph.developer >= D_NOTE )
 			{
 				// any brush with degenerate planes is not worth handling
 				if( DotProduct(startplane->normal, startplane->normal) < 0.9f || DotProduct(endplane->normal, endplane->normal) < 0.9f )
@@ -698,7 +698,7 @@ void CM_CollisionTraceLineBrushFloat( trace_t *trace, const vec3_t linestart, co
 		endplane = thatbrush_end->planes + nplane;
 		d1 = DotProduct( startplane->normal, linestart ) - startplane->dist - cm_startnudge->value;
 		d2 = DotProduct( endplane->normal, lineend ) - endplane->dist - cm_endnudge->value;
-		if( ph.developer >= D_ERROR )
+		if( ph.developer >= D_NOTE )
 		{
 			// any brush with degenerate planes is not worth handling
 			if( DotProduct(startplane->normal, startplane->normal) < 0.9f || DotProduct(endplane->normal, endplane->normal) < 0.9f)

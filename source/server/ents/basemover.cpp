@@ -38,26 +38,26 @@ TYPEDESCRIPTION CBaseMover::m_SaveData[] =
 
 void CBaseMover :: AxisDir( void )
 {
-	if ( pev->movedir != g_vecZero) return;
+	if( pev->movedir != g_vecZero ) return;
 	
-	//Don't change this!
-	if ( FBitSet(pev->spawnflags, SF_DOOR_ROTATE_X))
+	// don't change this!
+	if( FBitSet( pev->spawnflags, SF_DOOR_ROTATE_X ))
 		pev->movedir = Vector ( 1, 0, 0 );	// around z-axis
-	else if ( FBitSet(pev->spawnflags, SF_DOOR_ROTATE_Z))
+	else if( FBitSet( pev->spawnflags, SF_DOOR_ROTATE_Z ))
 		pev->movedir = Vector ( 0, 0, 1 );	// around x-axis
-	else	pev->movedir = Vector ( 0, 1, 0 );	// around y-axis
+	else pev->movedir = Vector ( 0, 1, 0 );	// around y-axis
 }
 
 void CBaseMover::KeyValue( KeyValueData *pkvd )
 {
-	if (FStrEq(pkvd->szKeyName, "lip"))
+	if( FStrEq(pkvd->szKeyName, "lip" ))
 	{
 		m_flLip = atof(pkvd->szValue);
 		pkvd->fHandled = TRUE;
 	}
-	if (FStrEq(pkvd->szKeyName, "waveheight"))
+	if( FStrEq( pkvd->szKeyName, "waveheight" ))
 	{
-		//field for volume_water
+		// field for volume_water
 		pev->scale = atof(pkvd->szValue) * (1.0/8.0);
 		pkvd->fHandled = TRUE;
 	}
@@ -340,9 +340,10 @@ void CBaseDoor::Spawn( )
 	if(IsRotatingDoor())
 	{
 		// check for clockwise rotation
-	          AxisDir();
+		AxisDir();
 
-		if ( FBitSet (pev->spawnflags, SF_DOOR_ROTATE_BACKWARDS))pev->movedir = pev->movedir * -1;
+		if( FBitSet( pev->spawnflags, SF_DOOR_ROTATE_BACKWARDS ))
+			pev->movedir = pev->movedir * -1;
 		m_vecAngle1 = pev->angles;
 		m_vecAngle2 = pev->angles + pev->movedir * m_flMoveDistance;
 
@@ -475,7 +476,7 @@ void CBaseDoor::DoorTouch( CBaseEntity *pOther )
 		return; 
 	}
 
-	if(pOther->IsPlayer())Use ( pOther, this, USE_TOGGLE, 1 );//player always sending 1
+	if( pOther->IsPlayer( )) Use( pOther, this, USE_TOGGLE, 1 ); // player always sending 1
 }
 
 void CBaseDoor::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
@@ -593,23 +594,23 @@ void CBaseDoor::DoorHitBottom( void )
 
 void CBaseDoor::Blocked( CBaseEntity *pOther )
 {
-	UTIL_AssignOrigin(this, pev->origin);
-	//make delay before retouching
-	if ( gpGlobals->time < m_flBlockedTime) return;
+	UTIL_AssignOrigin( this, pev->origin );
+	// make delay before retouching
+	if( gpGlobals->time < m_flBlockedTime ) return;
 	m_flBlockedTime = gpGlobals->time + 0.5;
 
-	if(m_pParent && m_pParent->edict() && pFlags & PF_PARENTMOVE) m_pParent->Blocked( pOther);
-	if ( pev->dmg ) pOther->TakeDamage( pev, pev, pev->dmg, DMG_CRUSH );
+	if( m_pParent && m_pParent->edict() && pFlags & PF_PARENTMOVE ) m_pParent->Blocked( pOther );
+	if( pev->dmg ) pOther->TakeDamage( pev, pev, pev->dmg, DMG_CRUSH );
 
-	if (m_flWait >= 0)
+	if( m_flWait >= 0 )
 	{
-		STOP_SOUND(ENT(pev), CHAN_STATIC, (char*)STRING(pev->noise1) );
-		if (m_iState == STATE_TURN_ON) DoorGoDown();
-		else if (m_iState == STATE_TURN_OFF) DoorGoUp();
+		STOP_SOUND( ENT( pev ), CHAN_STATIC, (char*)STRING( pev->noise1 ));
+		if( m_iState == STATE_TURN_ON ) DoorGoDown();
+		else if( m_iState == STATE_TURN_OFF ) DoorGoUp();
 	}
           
-	//what the hell does this ?
-	//UTIL_SynchDoors( this );
+	// what the hell does this ?
+	// UTIL_SynchDoors( this );
 	SetNextThink( 0 );
 }
 LINK_ENTITY_TO_CLASS( func_door, CBaseDoor );

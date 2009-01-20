@@ -158,19 +158,22 @@ public:
 	void DamageSound( void );
 
 	Materials	m_Material;
-	CBasePlayer* m_pController;	//player pointer
-	Vector	m_vecPlayerPos;	//player position
-	int 	m_iMoveSound;	//move sound or preset
-	int	m_iStartSound;	//start sound or preset
-	int	m_iStopSound;	//stop sound or preset
-	int	m_idShard;	//index of gibs
-	int	m_iMagnitude;	//explosion magnitude
-	int	m_iSpawnObject;	//spawnobject name
-	int	m_iGibModel;	//custom gib model
-	int	DmgType;		//temp container for right calculate damage
-	float	m_flVolume;	//moving brushes has volume of move sound
-	float	m_flBlockedTime;	//don't save this
-	int	m_pitch;		//sound pitch
+	CBasePlayer* m_pController;	// player pointer
+	Vector	m_vecPlayerPos;	// player position
+	int 	m_iMoveSound;	// move sound or preset
+	int	m_iStartSound;	// start sound or preset
+	int	m_iStopSound;	// stop sound or preset
+	int	m_idShard;	// index of gibs
+	int	m_iMagnitude;	// explosion magnitude
+	int	m_iSpawnObject;	// spawnobject name
+	int	m_iGibModel;	// custom gib model
+	int	DmgType;		// temp container for right calculate damage
+	float	m_flVolume;	// moving brushes has volume of move sound
+	float	m_flBlockedTime;	// don't save this
+	float	m_flRadius;	// sound radius or pendulum radius
+	float	m_flAccel;          // declared here because rotating brushes use this
+	float	m_flDecel;	// declared here because rotating brushes use this
+	int	m_pitch;		// sound pitch
 };
 
 class CPushable : public CBaseBrush

@@ -117,7 +117,7 @@ static void ParseShaderFile( const char *filename )
 	{
 		FS_FileBase( filename, name );
 		MsgDev( D_LOAD, "Adding: %s.shader\n", name );
-          }
+	}
           
 	while( shader )
 	{
@@ -184,7 +184,7 @@ static void ParseShaderFile( const char *filename )
 			Com_SkipRestOfLine( shader );
 		}			
 	}
-	Com_CloseScript( shader );
+	if( shader ) Com_CloseScript( shader );
 }
 
 

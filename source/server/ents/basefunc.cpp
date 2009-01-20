@@ -770,7 +770,7 @@ void CFuncTeleport :: Touch( CBaseEntity *pOther )
 // 			ANGULAR MOVING BRUSHES
 //=======================================================================
 //=======================================================================
-// func_rotate - standard not moving wall. affect to physics 
+// func_rotate - typically non moving wall. affect to physics 
 //=======================================================================
 class CFuncRotating : public CBaseBrush
 {
@@ -812,30 +812,30 @@ void CFuncRotating :: KeyValue( KeyValueData* pkvd)
 void CFuncRotating :: Precache( void )
 {
 	CBaseBrush::Precache();
-	int m_sounds = UTIL_LoadSoundPreset(m_iMoveSound);
+	int m_sounds = UTIL_LoadSoundPreset( m_iMoveSound );
 
-	switch (m_sounds)
+	switch( m_sounds )
 	{
 	case 1:
-		pev->noise3 = UTIL_PrecacheSound ("materials/fans/fan1.wav");
+		pev->noise3 = UTIL_PrecacheSound( "fans/fan1.wav" );
 		break;
 	case 2:
-		pev->noise3 = UTIL_PrecacheSound ("materials/fans/fan2.wav");
+		pev->noise3 = UTIL_PrecacheSound( "fans/fan2.wav" );
 		break;
 	case 3:
-		pev->noise3 = UTIL_PrecacheSound ("materials/fans/fan3.wav");
+		pev->noise3 = UTIL_PrecacheSound( "fans/fan3.wav" );
 		break;
 	case 4:
-		pev->noise3 = UTIL_PrecacheSound ("materials/fans/fan4.wav");
+		pev->noise3 = UTIL_PrecacheSound( "fans/fan4.wav" );
 		break;
 	case 5:
-		pev->noise3 = UTIL_PrecacheSound ("materials/fans/fan5.wav");
+		pev->noise3 = UTIL_PrecacheSound( "fans/fan5.wav" );
 		break;
 	case 0:
-		pev->noise3 = UTIL_PrecacheSound ("common/null.wav");
+		pev->noise3 = UTIL_PrecacheSound( "common/null.wav" );
 		break;
 	default:
-		pev->noise3 = UTIL_PrecacheSound(m_sounds);
+		pev->noise3 = UTIL_PrecacheSound( m_sounds );
 		break;
 	}
 }
@@ -1070,8 +1070,13 @@ void CFuncRotating :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 }
 
 //=======================================================================
-// 	func_pendulum - swinging brush 
+// 	func_pendulum - swinging brush (thanks for Lazarus Q2 mod) 
 //=======================================================================
+#define SF_PENDULUM_STOPPING		0x8000000	// for internal use only
+#define SF_PENDULUM_STOP_AT_TOP	32
+
+// UNDONE: needs to be implement with Xash specifications
+
 class CPendulum : public CBaseMover
 {
 public:
@@ -1098,10 +1103,15 @@ void CPendulum :: KeyValue( KeyValueData *pkvd )
 		pev->scale = atof( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
+	if( FStrEq( pkvd->szKeyName, "phase" ))
+	{
+		m_flDelay = atof( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
 	else if( FStrEq( pkvd->szKeyName, "damp" ))
 	{
-		pev->max_health = atof( pkvd->szValue ) * 0.01f;
-		if( pev->max_health > 0.01f ) pev->max_health = 0.01f;
+		pev->max_health = atof( pkvd->szValue ) / 10000;
+		if(pev->max_health > 0.1) pev->max_health = 0.1;
 		pkvd->fHandled = TRUE;
 	}
 	else CBaseBrush::KeyValue( pkvd );
@@ -1112,13 +1122,13 @@ void CPendulum :: Precache( void )
 	CBaseBrush::Precache();
 	int m_sounds = UTIL_LoadSoundPreset( m_iMoveSound );
 
-	switch (m_sounds)
+	switch( m_sounds )
 	{
 	case 1:
-		pev->noise3 = UTIL_PrecacheSound( "materials/swing/swing1.wav" );
+		pev->noise3 = UTIL_PrecacheSound( "pendulum/swing1.wav" );
 		break;
 	case 2:
-		pev->noise3 = UTIL_PrecacheSound( "materials/swing/swing2.wav" );
+		pev->noise3 = UTIL_PrecacheSound( "pendulum/swing2.wav" );
 		break;
 	case 0:
 		pev->noise3 = UTIL_PrecacheSound( "common/null.wav" );
@@ -1134,26 +1144,65 @@ void CPendulum :: Spawn( void )
 	Precache();
 	CBaseBrush::Spawn();
 
-	if ( pev->spawnflags & SF_NOTSOLID )
+	if( pev->spawnflags & SF_NOTSOLID )
 	{
 		pev->solid = SOLID_NOT;
-		pev->movetype = MOVETYPE_PUSH;
 	}
 	else
 	{
 		pev->solid = SOLID_BSP;
-		pev->movetype = MOVETYPE_PUSH;
 	}
-	
-	SetBits (pFlags, PF_ANGULAR);
-	dir = 1; // evil stuff...
-          m_iState = STATE_OFF;
-          pev->dmg_save = 0; //cur speed is NULL
 
-	// NOTE: I'm not have better idea than it
-	// So, field "angles" setting movedir only
-	// Turn your brush into your fucking worldcraft!	
-	UTIL_AngularVector( this );
+	// set default distance
+	if( !pev->scale ) pev->scale = 90;
+
+	if( pev->scale >= 360 )
+	{
+		ALERT( at_console, "func_pendulum distance must be < 360\n" );
+		pev->scale = 359.0f;
+	}
+
+	if( !pev->speed ) pev->speed = 100;
+	if( !m_flRadius ) m_flRadius = 100;
+	if( !pev->mass ) pev->mass = 200;
+	if( m_flDelay > 1.0 ) m_flDelay -= (int)(m_flDelay);
+	if( !pev->dmg ) pev->dmg = 5;
+
+	// This is the damage delivered by the pendulum at max speed.
+	// Convert to a damage scale used in our damage equation.
+	float max_speed = pev->scale / 2 * M_PI / 180. * sqrt( CVAR_GET_FLOAT( "sv_gravity" ) * m_flRadius );
+	if( max_speed <= 200.0f ) 
+	{
+		pev->dmg = 0;
+	}
+	else
+	{
+		float dmg = (float)(pev->dmg) * 100.0f / (max_speed - 200.0f);
+		pev->dmg = (int)(dmg - 0.5f) + 1;
+	}
+
+	pev->movetype = MOVETYPE_PUSH;	
+	SetBits( pFlags, PF_ANGULAR );
+          m_iState = STATE_OFF;
+
+	pev->spawnflags |= SF_PENDULUM_STOP_AT_TOP;
+
+	// don't change this!
+	if( FBitSet(pev->spawnflags, SF_BRUSH_ROTATE_Z_AXIS ))
+		pev->impulse = PITCH;	// around z-axis
+	else if( FBitSet(pev->spawnflags, SF_BRUSH_ROTATE_X_AXIS ))
+		pev->impulse = ROLL;	// around x-axis
+	else pev->impulse = YAW;		// around y-axis
+
+	if( !m_flAccel ) m_flAccel = 1.0f;
+	else if( m_flAccel > pev->speed )
+		m_flAccel = pev->speed;
+
+	if( !m_flDecel ) m_flDecel = 1.0f;
+	else if( m_flDecel > pev->speed )
+		m_flDecel = pev->speed;
+
+	pev->oldangles[pev->impulse] = pev->angles[pev->impulse] = pev->scale / 2;
           
 	UTIL_SetOrigin( this, pev->origin );
 	UTIL_SetModel( ENT( pev ), pev->model );
@@ -1161,11 +1210,11 @@ void CPendulum :: Spawn( void )
 
 void CPendulum :: PostActivate( void )
 {
-	if ( pev->spawnflags & SF_START_ON )SetSwing( pev->speed );
+	if( pev->spawnflags & SF_START_ON )SetSwing( pev->speed );
 	ClearBits( pev->spawnflags, SF_START_ON);
 
-	if(m_iState == STATE_ON )//restore sound if needed
-	SetNextThink( 0.05 );//force to think
+	if( m_iState == STATE_ON )		// restore sound if needed
+		SetNextThink( 0.05 );	// force to think
 }
 
 void CPendulum :: Touch ( CBaseEntity *pOther )
@@ -1193,85 +1242,111 @@ void CPendulum :: SetImpulse( float speed )
 
 void CPendulum :: SetSwing( float speed )
 {
-	if(m_iState == STATE_OFF)
-		pev->armorvalue = speed;		//save our speed
-	else	pev->armorvalue = pev->armorvalue + speed;//apply impulse
-	
-	//silence normalize speed if needed
-	if(pev->armorvalue > MAX_AVELOCITY)pev->armorvalue = MAX_AVELOCITY;
-
-	//normalize speed at think time
-	//calc min distance at this speed
-	float factor = MAX_AVELOCITY * gpGlobals->frametime; // max avelocity * think time
-	float mindist = (pev->armorvalue/factor) * 2;//full minimal dist
-          if(mindist > pev->scale)
-          {
-          	pev->scale = mindist;//set minimal distance for this speed
-		if(m_iState == STATE_OFF)
-		{
-			Msg( "\n======/Xash SmartFiled System/======\n\n");
-			Msg( "Warning! %s has too small distance for current speed!\nSmart filed normalize distance to %.f\n", STRING(pev->classname), pev->scale);
-			SHIFT;
-          	}
-          }
-          
-	if( m_iState == STATE_OFF )
-		pev->dmg_take = pev->scale * 0.5; // calc half distance
-	else pev->dmg_take = pev->dmg_take + sqrt( speed );
-	pev->dmg_save = pev->armorvalue; // at center speed is maximum
-
-	//random choose starting dir
-	if(m_iState == STATE_OFF)
+	if( m_iState == STATE_ON )
 	{
-		if( RANDOM_LONG( 0, 1 ))
-			pev->impulse = -1;	// backward
-          	else pev->impulse = 1;	// forward
+		if( pev->spawnflags & SF_PENDULUM_STOP_AT_TOP )
+		{
+			m_iState = STATE_TURN_OFF;
+		}
+		else
+		{
+			UTIL_SetAvelocity( this, g_vecZero );
+			m_iState = STATE_OFF;
+			LINK_ENTITY( ENT( pev ));
+		}
+	}
+	else
+	{
 		m_iState = STATE_ON;
-          }
-	SetNextThink( 0.01f ); // force to think
+
+		if( m_flDelay > 0 )
+		{
+			float delay = m_flDelay * 2.0 * M_PI * sqrt( m_flRadius / CVAR_GET_FLOAT( "sv_gravity" ));
+			delay = gpGlobals->frametime * (int)(10 * delay);
+			SetNextThink( delay );
+			pev->frags = g_ulFrameCount + delay * 10;
+			if(!( pev->spawnflags & SF_PENDULUM_STOP_AT_TOP ))
+				m_flDelay = 0;
+		}
+		else
+		{
+			if( pev->angles[pev->impulse] == pev->oldangles[pev->impulse] )
+			{
+				pev->frags = g_ulFrameCount;
+			}
+			else
+			{
+				float	t;
+				t = acos( pev->angles[pev->impulse] / pev->oldangles[pev->impulse] );
+				t /= sqrt( CVAR_GET_FLOAT( "sv_gravity" ) / m_flRadius );
+				pev->frags = g_ulFrameCount - t * 10;
+			}
+			SetNextThink( 0 );
+		}
+	}
 }
 
 void CPendulum :: Think( void )
 {
-	float m_flDegree = (gpGlobals->time - pev->armortype)/pev->frags;
-	float m_flAngle = UTIL_CalcDistance(pev->angles);
-	float m_flAngleOffset = pev->dmg_take - m_flAngle; 
-	float m_flStep = ((pev->armorvalue * 0.01)/(pev->dmg_take * 0.01)) / M_PI;
-	float m_damping = pev->max_health;
-	if(m_iState == STATE_TURN_OFF) m_damping = 0.09;//hack to disable pendulum
-	
-	if(m_flDegree >= 1 && m_flAngleOffset <= 0.5)//extremum point
-	{
-		//recalc time
-		pev->armortype = gpGlobals->time;
-		pev->frags = pev->dmg_take/pev->armorvalue;
-		pev->impulse = -pev->impulse;//change movedir
-	}
-	if(pev->avelocity.Length() > pev->armorvalue * 0.6 && m_damping)//apply damp
-	{
-		pev->armorvalue -= pev->armorvalue * m_damping;
-		pev->dmg_take -= pev->dmg_take * m_damping;
-          }
+	float	this_angle;
+	float	wave, sgor;
 
-	if(pev->avelocity.Length() > pev->armorvalue * 0.95 && pev->dmg_take > 5.0)//zerocrossing
+	if( pev->speed < 20 )
 	{
-		EMIT_SOUND_DYN(ENT(pev), CHAN_STATIC, (char *)STRING(pev->noise3), m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM);
-		UTIL_FireTargets( pev->target, this, this, USE_OFF );
+		if( pev->frags == 0 )
+		{
+			// then we just started moving again after being blocked
+			pev->avelocity[pev->impulse] = -pev->angles[pev->impulse];
+			pev->frags = g_ulFrameCount;
+		}
+		else
+		{
+			float	next_angle;
+
+			next_angle = pev->angles[pev->impulse] + pev->avelocity[pev->impulse] * gpGlobals->frametime;
+			if(( next_angle >= 0 && pev->angles[pev->impulse] < 0) || (next_angle <= 0 && pev->angles[pev->impulse] > 0 ))
+			{
+				UTIL_SetAngles( this, g_vecZero );
+				UTIL_SetAvelocity( this, g_vecZero );
+				return;
+			}
+		}
+		SetNextThink( gpGlobals->frametime );
 	}
-
-	pev->dmg_save = pev->armorvalue * (m_flAngleOffset / pev->dmg_take);
-	UTIL_SetAvelocity(this, pev->movedir * pev->dmg_save * pev->impulse);
-
-	SetNextThink(0.01);
-	if(pev->avelocity.Length() < 0.5 && pev->dmg_take < 2.0)//watch for speed and dist
+	else
 	{
-		UTIL_SetAvelocity(this, g_vecZero);//stop
-		UTIL_AssignAngles(this, pev->angles );
-		EMIT_SOUND_DYN(ENT(pev), CHAN_STATIC, (char *)STRING(pev->noise3), 0, 0, SND_STOP, m_pitch);
-		DontThink();//break thinking
-		UTIL_FireTargets( pev->target, this, this, USE_OFF );//pendulum is full stopped
-		m_iState = STATE_OFF;
+		float	old_velocity = pev->avelocity[pev->impulse];
+
+		if( !pev->frags ) pev->frags = g_ulFrameCount;
+
+		sgor = sqrt( CVAR_GET_FLOAT( "sv_gravity" ) / m_flRadius );
+		wave = sgor * (g_ulFrameCount - pev->frags ) * gpGlobals->frametime;
+		this_angle = pev->oldangles[pev->impulse] * cos( wave );
+		pev->avelocity[pev->impulse] = -pev->oldangles[pev->impulse] * sgor * sin( wave );
+		if( m_iState == STATE_TURN_OFF && ( cos(wave) > 0.0f ))
+		{
+			if((( old_velocity > 0 ) && (pev->avelocity[pev->impulse] <= 0 )) || ((old_velocity < 0) && (pev->avelocity[pev->impulse] >= 0)))
+			{
+				UTIL_AssignAngles( this, pev->angles );
+				UTIL_SetAvelocity( this, g_vecZero );
+
+				EMIT_SOUND_DYN(ENT(pev), CHAN_STATIC, (char *)STRING(pev->noise3), 0, 0, SND_STOP, m_pitch);
+				DontThink(); // break thinking
+				UTIL_FireTargets( pev->target, this, this, USE_OFF ); // pendulum is full stopped
+				m_iState = STATE_OFF;
+				return;
+			}
+		}
+
+		// FIXME: test
+		if( fabs(cos(wave)) < 0.05f )
+		{
+			EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, STRING( pev->noise3 ), m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
+		}
+		pev->angles[pev->impulse] = this_angle;
+		SetNextThink( gpGlobals->frametime );
 	}
+	UTIL_SetAvelocity( this, pev->avelocity );
 }
 
 void CPendulum :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )

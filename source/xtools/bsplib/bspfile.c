@@ -399,7 +399,7 @@ void StripTrailing( char *e )
 ParseEpair
 =================
 */
-epair_t *ParseEpair( token_t *token )
+epair_t *ParseEpair( script_t *script, token_t *token )
 {
 	epair_t	*e;
 
@@ -408,7 +408,7 @@ epair_t *ParseEpair( token_t *token )
 	if( com.strlen( token->string ) >= MAX_KEY - 1 )
 		Sys_Break( "ParseEpair: token too long\n" );
 	e->key = copystring( token->string );
-	Com_ReadToken( mapfile, SC_PARSE_GENERIC, token );
+	Com_ReadToken( script, SC_PARSE_GENERIC, token );
 	if( com.strlen( token->string ) >= MAX_VALUE - 1 )
 		Sys_Break( "ParseEpair: token too long\n" );
 	e->value = copystring( token->string );
@@ -445,7 +445,7 @@ bool ParseEntity( void )
 		if( !Com_ReadToken( mapfile, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &token ))
 			Sys_Break( "ParseEntity: EOF without closing brace\n" );
 		if( !com.stricmp( token.string, "}" )) break;
-		e = ParseEpair( &token );
+		e = ParseEpair( mapfile, &token );
 		e->next = mapent->epairs;
 		mapent->epairs = e;
 	}

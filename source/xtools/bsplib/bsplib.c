@@ -84,6 +84,7 @@ bool PrepareBSPModel( const char *dir, const char *name )
 	if( FS_CheckParm( "-info" )) bsp_parms |= BSPLIB_SHOWINFO;
 	if( FS_CheckParm( "-cullerror" )) bsp_parms |= BSPLIB_CULLERROR;
 	if( FS_CheckParm( "-sound" )) bsp_parms |= BSPLIB_MAKESOUND;
+	if( FS_CheckParm( "-deltemp" )) bsp_parms |= BSPLIB_DELETE_TEMP;
 
 	// famous q1 "notexture" image: purple-black checkerboard
 	checkermate_dds = FS_LoadInternal( "checkerboard.dds", &checkermate_dds_size );

@@ -44,7 +44,7 @@ extern enginefuncs_t g_engfuncs;
 #define REMOVE_ENTITY	(*g_engfuncs.pfnRemoveEntity)
 #define CREATE_NAMED_ENTITY	(*g_engfuncs.pfnCreateNamedEntity)
 #define MAKE_STATIC		(*g_engfuncs.pfnMakeStatic)
-#define LINK_ENTITY		(*g_engfuncs.pfnLinkEntity)
+#define LINK_ENTITY		(*g_engfuncs.pfnLinkEdict)
 #define DROP_TO_FLOOR	(*g_engfuncs.pfnDropToFloor)
 #define WALK_MOVE		(*g_engfuncs.pfnWalkMove)
 #define SET_ORIGIN		(*g_engfuncs.pfnSetOrigin)

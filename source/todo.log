@@ -35,7 +35,7 @@ Beta 13.12.08
 14.move "loading" and "pause" into CHUD		OK
 15.Get Rid Of DrawImage			OK
 16.Copy Resources				OK
-17.тормоза на больших картах
+17.тормоза на больших картах			OK
 18.weapon pickup & drawing			OK
 19.AddRefEntity uses edict_t instead entity state	OK
 20.render custom models			OK
@@ -47,7 +47,7 @@ Beta 13.12.08
 16.register cmd->buttons			OK
 17.pfnSetKeyDest in client.dll		OK
 18.IMPLEMENT SAVERESTORE			OK
-19.crash on dm_knot
+19.crash on dm_knot				OK
 20.rename common.dll to xtools.dll		OK
 21.add missing builtins in enginefuncs_t	OK
 22.add missing builtins in cl_enginefuncs_t	OK
@@ -56,7 +56,10 @@ Beta 13.12.08
 25.install ALL missing models & sounds!		OK
 26.fixangle doesn't working correctly
 27.fixup viewmodel drawing			OK
-28.fixing r_pause_effect
+28.fixing r_pause_effect			OK
+29.dm_knot wrong entities			OK
+30.func_pendulum				OK
+31.weapon_egon & weapon_gauss
 
 
 Список доступных рендереров:  	Что в них интересного

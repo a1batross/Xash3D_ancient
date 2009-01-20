@@ -43,7 +43,6 @@
 
 extern DLL_GLOBAL ULONG	g_ulModelIndexPlayer;
 extern DLL_GLOBAL BOOL	g_fGameOver;
-extern DLL_GLOBAL ULONG	g_ulFrameCount;
 extern CBaseEntity		*g_pLastSpawn;
 extern CSoundEnt 		*pSoundEnt;
 DLL_GLOBAL edict_t		*g_pBodyQueueHead;

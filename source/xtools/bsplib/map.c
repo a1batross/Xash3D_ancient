@@ -279,7 +279,7 @@ int BrushContents( mapbrush_t *b )
 	{
 		s = &b->original_sides[i];
 		trans |= dshaders[texinfo[s->texinfo].shadernum].surfaceFlags;
-		if(( s->contents != contents ) && ( trans & SURF_NODRAW ) == 0 )
+		if(( s->contents != contents ) && !( trans & (SURF_NODRAW|SURF_SKY)))
 		{
 			CntString( s->contents, cnt1 );
 			CntString( contents, cnt2 );
@@ -871,8 +871,9 @@ void MoveBrushesToWorld( bsp_entity_t *mapent )
 
 	newbrushes = mapent->numbrushes;
 	worldbrushes = entities[0].numbrushes;
+	if( newbrushes == 0 ) return;
 
-	temp = Malloc(newbrushes*sizeof(mapbrush_t));
+	temp = Malloc( newbrushes * sizeof( mapbrush_t ));
 	Mem_Copy( temp, mapbrushes + mapent->firstbrush, newbrushes * sizeof( mapbrush_t ));
 
 	// make space to move the brushes (overlapped copy)
@@ -958,7 +959,7 @@ bool ParseMapEntity( void )
 		else
 		{
 			// parse a key / value pair
-			e = ParseEpair( &token );
+			e = ParseEpair( mapfile, &token );
 			if( !com.strcmp( e->key, "mapversion" ))
 			{
 				if( com.atoi( e->value ) == VALVE_FORMAT )
@@ -991,16 +992,21 @@ bool ParseMapEntity( void )
 
 	// group entities are just for editor convenience
 	// toss all brushes into the world entity
-	if( !com.strcmp( "func_group", ValueForKey( mapent, "classname" )))
+	if( !com.strcmp( "func_detail", ValueForKey( mapent, "classname" )))
 	{
+		for( i = 0; i < mapent->numbrushes; i++ )
+		{
+			b = &mapbrushes[mapent->firstbrush + i];
+			b->contents |= CONTENTS_DETAIL;
+		}
 		MoveBrushesToWorld( mapent );
 		mapent->numbrushes = 0;
+		mapent->epairs = NULL; // not a leak, mempool will freeing this memory at shutdown
 		return true;
 	}
 
-	// areaportal entities move their brushes, but don't eliminate
-	// the entity
-	if (!strcmp ("func_areaportal", ValueForKey (mapent, "classname")))
+	// areaportal entities move their brushes, but don't eliminate the entity
+	if( !com.strcmp( "func_areaportal", ValueForKey( mapent, "classname" )))
 	{
 		char	str[128];
 
