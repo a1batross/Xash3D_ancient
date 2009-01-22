@@ -40,7 +40,7 @@ typedef struct client_sprite_s
 	wrect_t	rc;
 } client_sprite_t;
 
-typedef HMODULE dllhandle_t;
+typedef void* dllhandle_t;
 typedef struct dllfunction_s
 {
 	const char *name;

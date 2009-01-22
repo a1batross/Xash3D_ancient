@@ -160,7 +160,6 @@ float pfnRandomFloat( float flLow, float flHigh );
 void pfnAlertMessage( ALERT_TYPE level, char *szFmt, ... );
 void pfnGetGameDir( char *szGetGameDir );
 
-char *ED_NewString( const char *string, byte *mempool );
 #define prog	vm->prog	// global callback to vprogs.dll
 #define PRVM_EDICT_NUM( num )	_PRVM_EDICT_NUM( num, __FILE__, __LINE__ )
 
@@ -335,7 +334,8 @@ enum e_trace
 
 extern byte *zonepool;
 
-#define Z_Malloc(size) Mem_Alloc( zonepool, size )
+#define Z_Malloc(size)		Mem_Alloc( zonepool, size )
+#define Z_Realloc( ptr, size )	Mem_Realloc( zonepool, ptr, size )
 void CL_GetEntitySoundSpatialization( int ent, vec3_t origin, vec3_t velocity );
 bool SV_GetComment( char *comment, int savenum );
 int CL_PMpointcontents( vec3_t point );

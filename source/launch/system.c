@@ -90,6 +90,7 @@ void Sys_GetStdAPI( void )
 	com.Com_InitRootDir = FS_InitRootDir;		// init custom rootdir 
 	com.Com_LoadGameInfo = FS_LoadGameInfo;		// gate game info from script file
 	com.Com_AddGameHierarchy = FS_AddGameHierarchy;	// add base directory in search list
+	com.Com_AllowDirectPaths = FS_AllowDirectPaths;	// allow direct paths e.g. C:\windows
 	com.Com_CheckParm = FS_CheckParm;		// get parm from cmdline
 	com.Com_GetParm = FS_GetParmFromCmdLine;	// get filename without path & ext
 	com.Com_FileBase = FS_FileBase;		// get filename without path & ext

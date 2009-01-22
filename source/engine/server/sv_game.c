@@ -3033,7 +3033,7 @@ void SV_LoadProgs( const char *name )
 {
 	static SERVERAPI		GetEntityAPI;
 	static globalvars_t		gpGlobals;
-	string			libname;
+	string			libpath;
 	edict_t			*e;
 	int			i;
 
@@ -3041,11 +3041,12 @@ void SV_LoadProgs( const char *name )
 
 	// fill it in
 	svgame.globals = &gpGlobals;
-	com.snprintf( libname, MAX_STRING, "bin/%s.dll", name );
+	Com_BuildPath( name, libpath );
 	svgame.mempool = Mem_AllocPool( "Server Edicts Zone" );
 	svgame.private = Mem_AllocPool( "Server Private Zone" );
 
-	svgame.hInstance = Com_LoadLibrary( libname );
+	svgame.hInstance = Com_LoadLibrary( libpath );
+
 	if( !svgame.hInstance )
 	{
 		Host_Error( "SV_LoadProgs: can't initialize server.dll\n" );
@@ -3059,7 +3060,7 @@ void SV_LoadProgs( const char *name )
 		return;
 	}
 
-	if( !Sys_LoadSymbols( va( "bin/%s.dll", name )))
+	if( !Sys_LoadSymbols( libpath ))
 	{
 		Host_Error( "SV_LoadProgs: can't loading export symbols\n" );
 		return;

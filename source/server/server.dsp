@@ -61,8 +61,8 @@ TargetDir=\Xash3D\src_main\temp\server\!release
 InputPath=\Xash3D\src_main\temp\server\!release\server.dll
 SOURCE="$(InputPath)"
 
-"D:\Xash3D\tmpQuArK\bin\server.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	copy $(TargetDir)\server.dll "D:\Xash3D\tmpQuArK\bin\server.dll"
+"D:\Xash3D\bin\server.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy $(TargetDir)\server.dll "D:\Xash3D\bin\server.dll"
 
 # End Custom Build
 
@@ -101,8 +101,8 @@ TargetDir=\Xash3D\src_main\temp\server\!debug
 InputPath=\Xash3D\src_main\temp\server\!debug\server.dll
 SOURCE="$(InputPath)"
 
-"D:\Xash3D\tmpQuArK\bin\server.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	copy $(TargetDir)\server.dll "D:\Xash3D\tmpQuArK\bin\server.dll"
+"D:\Xash3D\bin\server.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy $(TargetDir)\server.dll "D:\Xash3D\bin\server.dll"
 
 # End Custom Build
 

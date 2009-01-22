@@ -123,7 +123,9 @@ typedef struct
 } EXPORT_DIRECTORY;
 
 void *Com_LoadLibrary( const char *name );
-void *Com_GetProcAddress( void *hInstance, const char *name );
+FARPROC Com_GetProcAddress( void *hInstance, const char *name );
 void Com_FreeLibrary( void *hInstance );
+void Com_BuildPathExt( const char *dllname, char *fullpath, size_t size );
+#define Com_BuildPath( a, b )	Com_BuildPathExt( a, b, sizeof( b ))
 
 #endif//COM_LIBRARY

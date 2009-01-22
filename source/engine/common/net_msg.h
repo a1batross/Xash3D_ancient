@@ -1,289 +1,457 @@
 //=======================================================================
-//			Copyright XashXT Group 2007 ©
-//		         net_msg.h - message io functions
+//			Copyright XashXT Group 2008 ©
+//		        com_library.c - custom dlls loader
 //=======================================================================
-#ifndef NET_MSG_H
-#define NET_MSG_H
 
-enum net_types_e
+#include "common.h"
+#include "com_library.h"
+
+typedef struct
 {
-	NET_BAD = 0,
-	NET_CHAR,
-	NET_BYTE,
-	NET_SHORT,
-	NET_WORD,
-	NET_LONG,
-	NET_FLOAT,
-	NET_ANGLE,
-	NET_SCALE,
-	NET_COORD,
-	NET_COLOR,
-	NET_INT64,
-	NET_DOUBLE,
-	NET_TYPES,
+	PIMAGE_NT_HEADERS	headers;
+	byte		*codeBase;
+	HMODULE		*modules;
+	int		numModules;
+	int		initialized;
+} MEMORYMODULE, *PMEMORYMODULE;
+
+typedef BOOL (WINAPI *DllEntryProc)( HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved );
+
+#define GET_HEADER_DICTIONARY( module, idx )	&(module)->headers->OptionalHeader.DataDirectory[idx]
+#define CALCULATE_ADDRESS( base, offset )	(((DWORD)(base)) + (offset))
+
+static void CopySections( const byte *data, PIMAGE_NT_HEADERS old_headers, PMEMORYMODULE module )
+{
+	int 	i, size;
+	byte	*dest;
+	byte	*codeBase = module->codeBase;
+	PIMAGE_SECTION_HEADER section = IMAGE_FIRST_SECTION(module->headers);
+
+	for( i = 0; i < module->headers->FileHeader.NumberOfSections; i++, section++ )
+	{
+		if( section->SizeOfRawData == 0 )
+		{
+			// section doesn't contain data in the dll itself, but may define
+			// uninitialized data
+			size = old_headers->OptionalHeader.SectionAlignment;
+			if( size > 0 )
+			{
+				dest = (byte *)VirtualAlloc((byte *)CALCULATE_ADDRESS(codeBase, section->VirtualAddress), size, MEM_COMMIT, PAGE_READWRITE );
+				section->Misc.PhysicalAddress = (DWORD)dest;
+				Mem_Set( dest, 0, size );
+			}
+			// section is empty
+			continue;
+		}
+
+		// commit memory block and copy data from dll
+		dest = (byte *)VirtualAlloc((byte *)CALCULATE_ADDRESS(codeBase, section->VirtualAddress), section->SizeOfRawData, MEM_COMMIT, PAGE_READWRITE );
+		Mem_Copy( dest, (byte *)CALCULATE_ADDRESS(data, section->PointerToRawData), section->SizeOfRawData );
+		section->Misc.PhysicalAddress = (DWORD)dest;
+	}
+}
+
+static void FreeSections( PIMAGE_NT_HEADERS old_headers, PMEMORYMODULE module )
+{
+	int	i, size;
+	byte	*codeBase = module->codeBase;
+	PIMAGE_SECTION_HEADER section = IMAGE_FIRST_SECTION(module->headers);
+
+	for( i = 0; i < module->headers->FileHeader.NumberOfSections; i++, section++ )
+	{
+		if( section->SizeOfRawData == 0 )
+		{
+			size = old_headers->OptionalHeader.SectionAlignment;
+			if( size > 0 )
+			{
+				VirtualFree( codeBase + section->VirtualAddress, size, MEM_DECOMMIT );
+				section->Misc.PhysicalAddress = 0;
+			}
+			continue;
+		}
+
+		VirtualFree( codeBase + section->VirtualAddress, section->SizeOfRawData, MEM_DECOMMIT );
+		section->Misc.PhysicalAddress = 0;
+	}
+}
+
+// Protection flags for memory pages (Executable, Readable, Writeable)
+static int ProtectionFlags[2][2][2] =
+{
+{
+{ PAGE_NOACCESS, PAGE_WRITECOPY },		// not executable
+{ PAGE_READONLY, PAGE_READWRITE },
+},
+{
+{ PAGE_EXECUTE, PAGE_EXECUTE_WRITECOPY },	// executable
+{ PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE },
+},
 };
 
-typedef struct net_desc_s
+static void FinalizeSections( MEMORYMODULE *module )
 {
-	int	type;	// pixelformat
-	char	name[8];	// used for debug
-	int	min_range;
-	int	max_range;
-} net_desc_t;
+	PIMAGE_SECTION_HEADER section = IMAGE_FIRST_SECTION( module->headers );
+	int	i;
+	
+	// loop through all sections and change access flags
+	for( i = 0; i < module->headers->FileHeader.NumberOfSections; i++, section++ )
+	{
+		DWORD	protect, oldProtect, size;
+		int	executable = (section->Characteristics & IMAGE_SCN_MEM_EXECUTE) != 0;
+		int	readable = (section->Characteristics & IMAGE_SCN_MEM_READ) != 0;
+		int	writeable = (section->Characteristics & IMAGE_SCN_MEM_WRITE) != 0;
 
-// communication state description
-typedef struct net_field_s
+		if( section->Characteristics & IMAGE_SCN_MEM_DISCARDABLE )
+		{
+			// section is not needed any more and can safely be freed
+			VirtualFree((LPVOID)section->Misc.PhysicalAddress, section->SizeOfRawData, MEM_DECOMMIT);
+			continue;
+		}
+
+		// determine protection flags based on characteristics
+		protect = ProtectionFlags[executable][readable][writeable];
+		if( section->Characteristics & IMAGE_SCN_MEM_NOT_CACHED )
+			protect |= PAGE_NOCACHE;
+
+		// determine size of region
+		size = section->SizeOfRawData;
+		if( size == 0 )
+		{
+			if( section->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA )
+				size = module->headers->OptionalHeader.SizeOfInitializedData;
+			else if( section->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA )
+				size = module->headers->OptionalHeader.SizeOfUninitializedData;
+		}
+
+		if( size > 0 )
+		{         
+			// change memory access flags
+			if( !VirtualProtect((LPVOID)section->Misc.PhysicalAddress, size, protect, &oldProtect ))
+				Host_Error( "Com_FinalizeSections: error protecting memory page\n" );
+		}
+	}
+}
+
+static void PerformBaseRelocation( MEMORYMODULE *module, DWORD delta )
 {
-	char	*name;
-	int	offset;
-	int	bits;
-	bool	force;			// will be send for newentity
-} net_field_t;
+	DWORD	i;
+	byte	*codeBase = module->codeBase;
+	PIMAGE_DATA_DIRECTORY directory = GET_HEADER_DICTIONARY( module, IMAGE_DIRECTORY_ENTRY_BASERELOC );
 
-// server to client
-enum svc_ops_e
+	if( directory->Size > 0 )
+	{
+		PIMAGE_BASE_RELOCATION relocation = (PIMAGE_BASE_RELOCATION)CALCULATE_ADDRESS( codeBase, directory->VirtualAddress );
+		for( ; relocation->VirtualAddress > 0; )
+		{
+			byte	*dest = (byte *)CALCULATE_ADDRESS( codeBase, relocation->VirtualAddress );
+			word	*relInfo = (word *)((byte *)relocation + IMAGE_SIZEOF_BASE_RELOCATION );
+
+			for( i = 0; i<((relocation->SizeOfBlock-IMAGE_SIZEOF_BASE_RELOCATION) / 2); i++, relInfo++ )
+			{
+				DWORD	*patchAddrHL;
+				int	type, offset;
+
+				// the upper 4 bits define the type of relocation
+				type = *relInfo >> 12;
+				// the lower 12 bits define the offset
+				offset = *relInfo & 0xfff;
+				
+				switch( type )
+				{
+				case IMAGE_REL_BASED_ABSOLUTE:
+					// skip relocation
+					break;
+				case IMAGE_REL_BASED_HIGHLOW:
+					// change complete 32 bit address
+					patchAddrHL = (DWORD *)CALCULATE_ADDRESS( dest, offset );
+					*patchAddrHL += delta;
+					break;
+				default:
+					MsgDev( D_ERROR, "PerformBaseRelocation: unknown relocation: %d\n", type );
+					break;
+				}
+			}
+
+			// advance to next relocation block
+			relocation = (PIMAGE_BASE_RELOCATION)CALCULATE_ADDRESS( relocation, relocation->SizeOfBlock );
+		}
+	}
+}
+
+static int BuildImportTable( MEMORYMODULE *module )
 {
-	// user messages
-	svc_bad = 0,		// don't send!
+	int	result=1;
+	byte	*codeBase = module->codeBase;
+	PIMAGE_DATA_DIRECTORY directory = GET_HEADER_DICTIONARY( module, IMAGE_DIRECTORY_ENTRY_IMPORT );
 
-	// engine messages
-	svc_nop = 201,		// end of user messages
-	svc_disconnect,		// kick client from server
-	svc_reconnect,		// reconnecting server request
-	svc_stufftext,		// [string] stuffed into client's console buffer, should be \n terminated
-	svc_serverdata,		// [long] protocol ...
-	svc_configstring,		// [short] [string]
-	svc_spawnbaseline,		// valid only at spawn		
-	svc_download,		// [short] size [size bytes]
-	svc_playerinfo,		// [...]
-	svc_packetentities,		// [...]
-	svc_deltapacketentities,	// [...]
-	svc_frame,		// server frame
-	svc_sound,		// <see code>
-	svc_setangle,		// [short short short] set the view angle to this absolute value
-	svc_print,		// [byte] id [string] null terminated string
-};
+	if( directory->Size > 0 )
+	{
+		PIMAGE_IMPORT_DESCRIPTOR importDesc = (PIMAGE_IMPORT_DESCRIPTOR)CALCULATE_ADDRESS( codeBase, directory->VirtualAddress );
 
-// client to server
-enum clc_ops_e
+		for( ; !IsBadReadPtr( importDesc, sizeof( IMAGE_IMPORT_DESCRIPTOR )) && importDesc->Name; importDesc++ )
+		{
+			DWORD	*thunkRef, *funcRef;
+			HMODULE	handle = LoadLibrary((LPCSTR)CALCULATE_ADDRESS(codeBase, importDesc->Name));
+                              
+			// FIXME: allow to loading libraries from memory
+			if( handle == INVALID_HANDLE_VALUE )
+			{
+				MsgDev( D_ERROR, "couldn't load library\n" );
+				result = 0;
+				break;
+			}
+
+			module->modules = (HMODULE *)Z_Realloc( module->modules, (module->numModules + 1) * (sizeof( HMODULE )));
+			if( module->modules == NULL )
+			{
+				result = 0;
+				break;
+			}
+
+			module->modules[module->numModules++] = handle;
+			if( importDesc->OriginalFirstThunk )
+			{
+				thunkRef = (DWORD *)CALCULATE_ADDRESS( codeBase, importDesc->OriginalFirstThunk );
+				funcRef = (DWORD *)CALCULATE_ADDRESS( codeBase, importDesc->FirstThunk );
+			}
+			else
+			{
+				// no hint table
+				thunkRef = (DWORD *)CALCULATE_ADDRESS( codeBase, importDesc->FirstThunk );
+				funcRef = (DWORD *)CALCULATE_ADDRESS( codeBase, importDesc->FirstThunk );
+			}
+			for( ; *thunkRef; thunkRef++, funcRef++ )
+			{
+				if IMAGE_SNAP_BY_ORDINAL( *thunkRef )
+					*funcRef = (DWORD)GetProcAddress( handle, (LPCSTR)IMAGE_ORDINAL( *thunkRef ));
+				else
+				{
+					PIMAGE_IMPORT_BY_NAME thunkData = (PIMAGE_IMPORT_BY_NAME)CALCULATE_ADDRESS( codeBase, *thunkRef );
+					*funcRef = (DWORD)GetProcAddress( handle, (LPCSTR)&thunkData->Name );
+				}
+				if( *funcRef == 0 )
+				{
+					result = 0;
+					break;
+				}
+			}
+			if( !result ) break;
+		}
+	}
+	return result;
+}
+
+void *Com_LoadLibraryExt( const char *name, bool system )
 {
-	clc_bad = 0,
+	MEMORYMODULE	*result;
+	PIMAGE_DOS_HEADER	dos_header;
+	PIMAGE_NT_HEADERS	old_header;
+	byte		*code, *headers;
+	DWORD		locationDelta;
+	DllEntryProc	DllEntry;
+	BOOL		successfull;
+	void		*data;
 
-	// engine messages
-	clc_nop = 201, 		
-	clc_move,			// [[usercmd_t]
-	clc_userinfo,		// [[userinfo string]
-	clc_stringcmd,		// [string] message
-};
+	if( system ) FS_AllowDirectPaths( true );
+	data = FS_LoadFile( name, NULL );
+	if( system ) FS_AllowDirectPaths( false );
+	if( !data ) return NULL;
 
-typedef enum
+	dos_header = (PIMAGE_DOS_HEADER)data;
+	if( dos_header->e_magic != IMAGE_DOS_SIGNATURE )
+	{
+		MsgDev( D_NOTE, "%s it's not a valid executable file\n", name );
+		Mem_Free( data );
+		return NULL;
+	}
+
+	old_header = (PIMAGE_NT_HEADERS)&((const byte *)(data))[dos_header->e_lfanew];
+	if( old_header->Signature != IMAGE_NT_SIGNATURE )
+	{
+		MsgDev( D_NOTE, "library %s: no PE header found\n", name );
+		Mem_Free( data );
+		return NULL;
+	}
+
+	// reserve memory for image of library
+	code = (byte *)VirtualAlloc((LPVOID)(old_header->OptionalHeader.ImageBase), old_header->OptionalHeader.SizeOfImage, MEM_RESERVE, PAGE_READWRITE );
+
+	if( code == NULL )
+	{
+		// try to allocate memory at arbitrary position
+		code = (byte *)VirtualAlloc( NULL, old_header->OptionalHeader.SizeOfImage, MEM_RESERVE, PAGE_READWRITE );
+	}    
+	if( code == NULL )
+	{
+		MsgDev( D_NOTE, "library %s: can't reserve memory\n", name );
+		Mem_Free( data );
+		return NULL;
+	}
+
+	result = (MEMORYMODULE *)HeapAlloc( GetProcessHeap(), 0, sizeof( MEMORYMODULE ));
+	result->codeBase = code;
+	result->numModules = 0;
+	result->modules = NULL;
+	result->initialized = 0;
+
+	// XXX: is it correct to commit the complete memory region at once?
+	// calling DllEntry raises an exception if we don't...
+	VirtualAlloc( code, old_header->OptionalHeader.SizeOfImage, MEM_COMMIT, PAGE_READWRITE );
+
+	// commit memory for headers
+	headers = (byte *)VirtualAlloc( code, old_header->OptionalHeader.SizeOfHeaders, MEM_COMMIT, PAGE_READWRITE );
+	
+	// copy PE header to code
+	Mem_Copy( headers, dos_header, dos_header->e_lfanew + old_header->OptionalHeader.SizeOfHeaders );
+	result->headers = (PIMAGE_NT_HEADERS)&((const byte *)(headers))[dos_header->e_lfanew];
+
+	// update position
+	result->headers->OptionalHeader.ImageBase = (DWORD)code;
+
+	// copy sections from DLL file block to new memory location
+	CopySections( data, old_header, result );
+
+	// adjust base address of imported data
+	locationDelta = (DWORD)(code - old_header->OptionalHeader.ImageBase);
+	if( locationDelta != 0 ) PerformBaseRelocation( result, locationDelta );
+
+	// load required dlls and adjust function table of imports
+	if( !BuildImportTable( result )) goto error;
+
+	// mark memory pages depending on section headers and release
+	// sections that are marked as "discardable"
+	FinalizeSections( result );
+
+	// get entry point of loaded library
+	if( result->headers->OptionalHeader.AddressOfEntryPoint != 0 )
+	{
+		DllEntry = (DllEntryProc)CALCULATE_ADDRESS( code, result->headers->OptionalHeader.AddressOfEntryPoint );
+		if( DllEntry == 0 )
+		{
+			MsgDev( D_NOTE, "library %s: has no entry point\n", name );
+			goto error;
+		}
+
+		// notify library about attaching to process
+		successfull = (*DllEntry)((HINSTANCE)code, DLL_PROCESS_ATTACH, 0 );
+		if( !successfull )
+		{
+			MsgDev( D_ERROR, "can't attach library %s\n", name );
+			goto error;
+		}
+		result->initialized = 1;
+	}
+	Mem_Free( data ); // release memory
+
+	return (void *)result;
+error:
+	// cleanup
+	Mem_Free( data );
+	Com_FreeLibrary( result );
+	return NULL;
+}
+
+FARPROC Com_GetProcAddress( void *module, const char *name )
 {
-	MSG_ONE = 0,	// never send by QC-code (just not declared)
-	MSG_ALL,
-	MSG_PHS,
-	MSG_PVS,
-	MSG_ONE_R,	// reliable messages
-	MSG_ALL_R,
-	MSG_PHS_R,
-	MSG_PVS_R,
-} msgtype_t;
+	int	idx = -1;
+	DWORD	i, *nameRef;
+	WORD	*ordinal;
+	PIMAGE_EXPORT_DIRECTORY exports;
+	byte	*codeBase = ((PMEMORYMODULE)module)->codeBase;
+	PIMAGE_DATA_DIRECTORY directory = GET_HEADER_DICTIONARY((MEMORYMODULE *)module, IMAGE_DIRECTORY_ENTRY_EXPORT );
 
-static const net_desc_t NWDesc[] =
+	if( directory->Size == 0 )
+	{
+		// no export table found
+		return NULL;
+	}
+
+	exports = (PIMAGE_EXPORT_DIRECTORY)CALCULATE_ADDRESS( codeBase, directory->VirtualAddress );
+	if( exports->NumberOfNames == 0 || exports->NumberOfFunctions == 0 )
+	{
+		// DLL doesn't export anything
+		return NULL;
+	}
+
+	// search function name in list of exported names
+	nameRef = (DWORD *)CALCULATE_ADDRESS( codeBase, exports->AddressOfNames );
+	ordinal = (WORD *)CALCULATE_ADDRESS( codeBase, exports->AddressOfNameOrdinals );
+	for( i = 0; i < exports->NumberOfNames; i++, nameRef++, ordinal++ )
+	{
+		// GetProcAddress case insensative ?????
+		if( !com.stricmp( name, (const char *)CALCULATE_ADDRESS( codeBase, *nameRef )))
+		{
+			idx = *ordinal;
+			break;
+		}
+	}
+	if( idx == -1 )
+	{
+		// exported symbol not found
+		return NULL;
+	}
+	if((DWORD)idx > exports->NumberOfFunctions )
+	{
+		// name <-> ordinal number don't match
+		return NULL;
+	}
+
+	// addressOfFunctions contains the RVAs to the "real" functions
+	return (FARPROC)CALCULATE_ADDRESS( codeBase, *(DWORD *)CALCULATE_ADDRESS( codeBase, exports->AddressOfFunctions + (idx * 4)));
+}
+
+void Com_FreeLibrary( void *hInstance )
 {
-{ NET_BAD,	"none",	0,		0	}, // full range
-{ NET_CHAR,	"Char",	-128,		127	},
-{ NET_BYTE,	"Byte",	0,		255	},
-{ NET_SHORT,	"Short",	-32767,		32767	},
-{ NET_WORD,	"Word",	0,		65535	},
-{ NET_LONG,	"Long",	0,		0	}, // can't overflow
-{ NET_FLOAT,	"Float",	0,		0	}, // can't overflow
-{ NET_ANGLE,	"Angle",	-360,		360	},
-{ NET_SCALE,	"Scale",	-128,		127	},
-{ NET_COORD,	"Coord",	-262140,		262140	},
-{ NET_COLOR,	"Color",	0,		255	},
-{ NET_INT64,	"int64",	0,		0	}, // can't overflow
-{ NET_DOUBLE,	"Double",	0,		0	}, // can't overflow
-};
+	MEMORYMODULE *module = (MEMORYMODULE *)hInstance;
+	int	i;
 
-/*
-==========================================================
+	if( module != NULL )
+	{
+		if( module->initialized != 0 )
+		{
+			// notify library about detaching from process
+			DllEntryProc DllEntry = (DllEntryProc)CALCULATE_ADDRESS( module->codeBase, module->headers->OptionalHeader.AddressOfEntryPoint );
+			(*DllEntry)((HINSTANCE)module->codeBase, DLL_PROCESS_DETACH, 0 );
+			module->initialized = 0;
+		}
 
-  ELEMENTS COMMUNICATED ACROSS THE NET
+		if( module->modules != NULL )
+		{
+			// free previously opened libraries
+			for( i = 0; i < module->numModules; i++ )
+				if( module->modules[i] != INVALID_HANDLE_VALUE )
+					FreeLibrary( module->modules[i] );
+			Mem_Free( module->modules ); // Z_Realloc end
+		}
 
-==========================================================
-*/
+		FreeSections( module->headers, module );
 
-#include "entity_state.h"
+		if( module->codeBase != NULL )
+		{
+			// release memory of library
+			VirtualFree( module->codeBase, 0, MEM_RELEASE );
+		}
+		HeapFree( GetProcessHeap(), 0, module );
+	}
+}
 
-#define ES_FIELD( x )		#x,(int)&((entity_state_t*)0)->x
-#define CM_FIELD( x )		#x,(int)&((usercmd_t*)0)->x
-
-// config strings are a general means of communication from
-// the server to all connected clients.
-// each config string can be at most CS_SIZE characters.
-#define CS_SIZE			64	// size of one config string
-#define CS_NAME			0	// map name
-#define CS_MAPCHECKSUM		1	// level checksum (for catching cheater maps)
-#define CS_SKYNAME			2	// skybox shader name
-#define CS_MAXCLIENTS		3	// server maxclients value (0-255)
-#define CS_BACKGROUND_TRACK		4	// basename of background track
-#define CS_GRAVITY			5	// sv_gravity
-#define CS_MAXVELOCITY		6	// sv_maxvelocity
-
-// reserved config strings
-
-#define CS_MODELS			16				// configstrings starts here
-#define CS_SOUNDS			(CS_MODELS+MAX_MODELS)		// sound names
-#define CS_DECALS			(CS_SOUNDS+MAX_SOUNDS)		// server decal indexes
-#define CS_CLASSNAMES		(CS_DECALS+MAX_DECALS)		// edicts classnames
-#define CS_LIGHTSTYLES		(CS_CLASSNAMES+MAX_CLASSNAMES)	// lightstyle patterns
-#define CS_USER_MESSAGES		(CS_LIGHTSTYLES+MAX_LIGHTSTYLES)	// names of user messages
-#define MAX_CONFIGSTRINGS		(CS_USER_MESSAGES+MAX_USER_MESSAGES)	// total count
-
-// sound flags
-#define SND_VOL			(1<<0)	// a scaled byte
-#define SND_ATTN			(1<<1)	// a byte
-#define SND_POS			(1<<2)	// three coordinates
-#define SND_ENT			(1<<3)	// a short 0 - 2: channel, 3 - 12: entity
-#define SND_PITCH			(1<<4)	// a byte
-#define SND_STOP			(1<<5)	// stop sound or loopsound 
-#define SND_CHANGE_VOL		(1<<6)	// change sound vol
-#define SND_CHANGE_PITCH		(1<<7)	// change sound pitch
-#define SND_SPAWNING		(1<<8)	// we're spawing, used in some cases for ambients
- 
-/*
-==============================================================================
-
-			MESSAGE IO FUNCTIONS
-	       Handles byte ordering and avoids alignment errors
-==============================================================================
-*/
-void MSG_Init( sizebuf_t *buf, byte *data, size_t length );
-void MSG_Clear( sizebuf_t *buf );
-void MSG_Print( sizebuf_t *msg, const char *data );
-void MSG_Bitstream( sizebuf_t *buf, bool state );
-void _MSG_WriteBits( sizebuf_t *msg, int64 value, const char *name, int bits, const char *filename, const int fileline );
-int64 _MSG_ReadBits( sizebuf_t *msg, int bits, const char *filename, const int fileline );
-void _MSG_Begin( int dest, const char *filename, int fileline );
-void _MSG_WriteString( sizebuf_t *sb, const char *s, const char *filename, int fileline );
-void _MSG_WriteFloat( sizebuf_t *sb, float f, const char *filename, int fileline );
-void _MSG_WriteDouble( sizebuf_t *sb, double f, const char *filename, int fileline );
-void _MSG_WritePos( sizebuf_t *sb, vec3_t pos, const char *filename, int fileline );
-void _MSG_WriteData( sizebuf_t *sb, const void *data, size_t length, const char *filename, int fileline );
-void _MSG_WriteDeltaUsercmd( sizebuf_t *sb, struct usercmd_s *from, struct usercmd_s *cmd, const char *filename, const int fileline );
-void _MSG_WriteDeltaEntity( struct entity_state_s *from, struct entity_state_s *to, sizebuf_t *msg, bool force, bool newentity, const char *filename, int fileline );
-void _MSG_Send( msgtype_t to, vec3_t origin, edict_t *ent, const char *filename, int fileline );
-
-#define MSG_Begin( x ) _MSG_Begin( x, __FILE__, __LINE__)
-#define MSG_WriteChar(x,y) _MSG_WriteBits (x, y, NULL, NET_CHAR, __FILE__, __LINE__)
-#define MSG_WriteByte(x,y) _MSG_WriteBits (x, y, NULL, NET_BYTE, __FILE__, __LINE__)
-#define MSG_WriteShort(x,y) _MSG_WriteBits(x, y, NULL, NET_SHORT,__FILE__, __LINE__)
-#define MSG_WriteWord(x,y) _MSG_WriteBits (x, y, NULL, NET_WORD, __FILE__, __LINE__)
-#define MSG_WriteLong(x,y) _MSG_WriteBits (x, y, NULL, NET_LONG, __FILE__, __LINE__)
-#define MSG_WriteFloat(x,y) _MSG_WriteFloat(x, y, __FILE__, __LINE__)
-#define MSG_WriteDouble(x,y) _MSG_WriteDouble(x, y, __FILE__, __LINE__)
-#define MSG_WriteString(x,y) _MSG_WriteString (x, y, __FILE__, __LINE__)
-#define MSG_WriteCoord16(x, y) _MSG_WriteBits(x, y, NULL, NET_COORD, __FILE__, __LINE__)
-#define MSG_WriteCoord32(x, y) _MSG_WriteBits(x, y, NULL, NET_FLOAT, __FILE__, __LINE__)
-#define MSG_WriteAngle16(x, y) _MSG_WriteBits(x, y, NULL, NET_ANGLE, __FILE__, __LINE__)
-#define MSG_WriteAngle32(x, y) _MSG_WriteBits(x, y, NULL, NET_FLOAT, __FILE__, __LINE__)
-#define MSG_WritePos(x, y) _MSG_WritePos( x, y, __FILE__, __LINE__ )
-#define MSG_WriteData(x,y,z) _MSG_WriteData (x, y, z, __FILE__, __LINE__)
-#define MSG_WriteDeltaUsercmd(x, y, z) _MSG_WriteDeltaUsercmd (x, y, z, __FILE__, __LINE__)
-#define MSG_WriteDeltaEntity(from, to, msg, force, new ) _MSG_WriteDeltaEntity (from, to, msg, force, new, __FILE__, __LINE__)
-#define MSG_WriteBits( buf, value, name, bits ) _MSG_WriteBits( buf, value, name, bits, __FILE__, __LINE__ )
-#define MSG_ReadBits( buf, bits ) _MSG_ReadBits( buf, bits, __FILE__, __LINE__ )
-#define MSG_Send(x, y, z) _MSG_Send(x, y, z, __FILE__, __LINE__)
-
-void MSG_BeginReading (sizebuf_t *sb);
-#define MSG_ReadChar( x ) _MSG_ReadBits( x, NET_CHAR, __FILE__, __LINE__ )
-#define MSG_ReadByte( x ) _MSG_ReadBits( x, NET_BYTE, __FILE__, __LINE__ )
-#define MSG_ReadShort( x) _MSG_ReadBits( x, NET_SHORT, __FILE__, __LINE__ )
-#define MSG_ReadWord( x ) _MSG_ReadBits( x, NET_WORD, __FILE__, __LINE__ )
-#define MSG_ReadLong( x ) _MSG_ReadBits( x, NET_LONG, __FILE__, __LINE__ )
-#define MSG_ReadAngle16( x ) _MSG_ReadBits( x, NET_ANGLE, __FILE__, __LINE__ )
-#define MSG_ReadAngle32( x ) _MSG_ReadBits( x, NET_FLOAT, __FILE__, __LINE__ )
-float MSG_ReadFloat( sizebuf_t *msg );
-char *MSG_ReadString( sizebuf_t *sb );
-double MSG_ReadDouble( sizebuf_t *msg );
-char *MSG_ReadStringLine( sizebuf_t *sb );
-void MSG_ReadPos( sizebuf_t *sb, vec3_t pos );
-void MSG_ReadData( sizebuf_t *sb, void *buffer, size_t size );
-void MSG_ReadDeltaUsercmd( sizebuf_t *sb, usercmd_t *from, usercmd_t *cmd );
-void MSG_ReadDeltaEntity( sizebuf_t *sb, entity_state_t *from, entity_state_t *to, int number );
-entity_state_t MSG_ParseDeltaPlayer( entity_state_t *from, entity_state_t *to );
-void MSG_WriteDeltaPlayerstate( entity_state_t *from, entity_state_t *to, sizebuf_t *msg );
-void MSG_ReadDeltaPlayerstate( sizebuf_t *msg, entity_state_t *from, entity_state_t *to );
-
-
-// huffman compression
-void Huff_Init( void );
-void Huff_CompressPacket( sizebuf_t *msg, int offset );
-void Huff_DecompressPacket( sizebuf_t *msg, int offset );
-
-/*
-==============================================================
-
-NET
-
-==============================================================
-*/
-bool NET_GetLoopPacket( netsrc_t sock, netadr_t *from, sizebuf_t *msg );
-void NET_SendPacket( netsrc_t sock, int length, void *data, netadr_t to );
-bool NET_StringToAdr( const char *s, netadr_t *a );
-bool NET_CompareBaseAdr( netadr_t a, netadr_t b );
-bool NET_CompareAdr( netadr_t a, netadr_t b );
-bool NET_IsLocalAddress( netadr_t adr );
-
-typedef struct netchan_s
+void Com_BuildPathExt( const char *dllname, char *fullpath, size_t size, bool clearpath )
 {
-	bool			fatal_error;
-	netsrc_t			sock;
+	string	name;
 
-	int			dropped;			// between last packet and previous
-	bool			compress;			// enable huffman compression
+	if( !dllname || !fullpath || size <= 0 ) return;
 
-	int			last_received;		// for timeouts
-	int			last_sent;		// for retransmits
+	// only libraries with extension .dll are valid
+	com.strncpy( name, dllname, sizeof( string ));
+	FS_FileBase( name, name );
 
-	netadr_t			remote_address;
-	int			qport;			// qport value to write when transmitting
+	// game path (Xash3D/game/bin/)
+	com.snprintf( fullpath, size, "bin/%s.dll", name );
+	if( FS_FileExists( fullpath )) return; // found
 
-	// sequencing variables
-	int			incoming_sequence;
-	int			incoming_acknowledged;
-	int			incoming_reliable_acknowledged;	// single bit
+	// absoulte path (Xash3D/bin/)
+	com.snprintf( fullpath, size, "%s.dll", name );	
+	if( FS_FileExists( fullpath )) return; // found
 
-	int			incoming_reliable_sequence;		// single bit, maintained local
-
-	int			outgoing_sequence;
-	int			reliable_sequence;			// single bit
-	int			last_reliable_sequence;		// sequence number of last send
-
-	// reliable staging and holding areas
-	sizebuf_t			message;				// writing buffer to send to server
-	byte			message_buf[MAX_MSGLEN-16];		// leave space for header
-
-	// message is copied to this buffer when it is first transfered
-	int			reliable_length;
-	byte			reliable_buf[MAX_MSGLEN-16];		// unacked reliable message
-
-} netchan_t;
-
-#define PROTOCOL_VERSION	36
-#define PORT_MASTER		27900
-#define PORT_CLIENT		27901
-#define PORT_SERVER		27910
-#define UPDATE_BACKUP	32	// copies of entity_state_t to keep buffered, must be power of two
-#define UPDATE_MASK		(UPDATE_BACKUP - 1)
-
-void Netchan_Init( void );
-void Netchan_Setup( netsrc_t sock, netchan_t *chan, netadr_t adr, int qport );
-bool Netchan_NeedReliable( netchan_t *chan );
-void Netchan_Transmit( netchan_t *chan, int length, byte *data );
-void Netchan_OutOfBand( int net_socket, netadr_t adr, int length, byte *data );
-void Netchan_OutOfBandPrint( int net_socket, netadr_t adr, char *format, ... );
-bool Netchan_Process( netchan_t *chan, sizebuf_t *msg );
-bool Netchan_CanReliable( netchan_t *chan );
-
-#endif//NET_MSG_H
+	if( clearpath ) fullpath[0] = 0;
+}

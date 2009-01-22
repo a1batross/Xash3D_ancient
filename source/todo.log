@@ -60,6 +60,8 @@ Beta 13.12.08
 29.dm_knot wrong entities			OK
 30.func_pendulum				OK
 31.weapon_egon & weapon_gauss
+32.Com_LoadLibrary: searchpaths: game/bin, bin	OK
+33. prepare resources for pak 
 
 
 Список доступных рендереров:  	Что в них интересного

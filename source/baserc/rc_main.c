@@ -6,7 +6,6 @@
 #include <windows.h>
 #include "launch_api.h"
 #include "baserc_api.h"
-#include "progs.h"
 
 // resources
 #include "images.h"
@@ -31,7 +30,6 @@ loadres_t load_resources[] =
 	{"default.dds", deffont_dds, sizeof(deffont_dds)},
 	{"conback.dds", conback_dds, sizeof(conback_dds)},
 	{"net.png", net_png, sizeof(net_png)},
-	{"progs.pk3", progs_pk3, sizeof(progs_pk3)},
 	{"uimenu.dat", uimenu_dat, sizeof(uimenu_dat)},	// FIXME: get rid of this
 	{NULL, NULL, 0 }
 };
@@ -54,6 +52,12 @@ byte *RC_FindFile( const char *filename, fs_offset_t *size )
 	// no matching found
 	if( size ) *size = 0;
 	return NULL;
+}
+
+// main DLL entry point
+BOOL WINAPI DllMain( HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved )
+{
+	return TRUE;
 }
 
 baserc_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )

@@ -1008,6 +1008,43 @@ const char *CL_GetString( string_t iString )
 }
 
 /*
+=============
+CL_LoadLibrary
+
+=============
+*/
+static void *CL_LoadLibrary( const char *name )
+{
+	string	libpath;
+
+	Com_BuildPath( name, libpath );
+	return Com_LoadLibrary( libpath );
+}
+
+/*
+=============
+CL_GetProcAddress
+
+=============
+*/
+static void *CL_GetProcAddress( void *hInstance, const char *name )
+{
+	if( !hInstance ) return NULL;
+	return Com_GetProcAddress( hInstance, name );
+}
+
+/*
+=============
+CL_FreeLibrary
+
+=============
+*/
+static void CL_FreeLibrary( void *hInstance )
+{
+	Com_FreeLibrary( hInstance );
+}
+	
+/*
 =================
 pfnFindExplosionPlane
 
@@ -1147,6 +1184,9 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnLoadFile,
 	pfnFileExists,
 	pfnGetGameDir,				
+	CL_LoadLibrary,
+	CL_GetProcAddress,
+	CL_FreeLibrary,		
 	Host_Error,
 	&gTriApi,
 	&gEfxApi
@@ -1178,18 +1218,18 @@ void CL_UnloadProgs( void )
 bool CL_LoadProgs( const char *name )
 {
 	static CLIENTAPI		GetClientAPI;
-	string			libname;
+	string			libpath;
 	edict_t			*e;
 	int			i;
 
 	if( cls.game ) CL_UnloadProgs();
 
 	// fill it in
-	com.snprintf( libname, MAX_STRING, "bin/%s.dll", name );
+	Com_BuildPath( name, libpath );
 	cls.mempool = Mem_AllocPool( "Client Edicts Zone" );
 	cls.private = Mem_AllocPool( "Client Private Zone" );
 
-	cls.game = Com_LoadLibrary( libname );
+	cls.game = Com_LoadLibrary( libpath );
 	if( !cls.game ) return false;
 
 	GetClientAPI = (CLIENTAPI)Com_GetProcAddress( cls.game, "CreateAPI" );

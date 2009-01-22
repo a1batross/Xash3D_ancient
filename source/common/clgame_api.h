@@ -130,6 +130,9 @@ typedef struct cl_enginefuncs_s
 	byte*	(*pfnLoadFile)( const char *filename, int *pLength );
 	int	(*pfnFileExists)( const char *filename );
 	void	(*pfnGetGameDir)( char *szGetGameDir );
+	void*	(*pfnLoadLibrary)( const char *name );
+	void*	(*pfnGetProcAddress)( void *hInstance, const char *name );
+	void	(*pfnFreeLibrary)( void *hInstance );
 	void	(*pfnHostError)( const char *szFmt, ... );		// invoke host error
 
 	struct triapi_s *pTriAPI;

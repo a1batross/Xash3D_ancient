@@ -234,7 +234,7 @@ void R_StudioLoadModel( rmodel_t *mod, const void *buffer )
 		if( !thdr ) return; // there were problems
 		mod->thdr = (dstudiohdr_t *)Mem_Alloc( mod->mempool, LittleLong( thdr->length ));
           	Mem_Copy( mod->thdr, texbuf, LittleLong( thdr->length ));
-		Mem_Free( texbuf );
+		if( texbuf ) Mem_Free( texbuf );
 	}
 	else mod->thdr = mod->phdr; // just make link
 

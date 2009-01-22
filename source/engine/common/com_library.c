@@ -6,11 +6,14 @@
 #include "common.h"
 #include "com_library.h"
 
+// FIXME: broken code
+//#define	EXPORT_FROM_MEMORY
+
 typedef struct
 {
 	PIMAGE_NT_HEADERS	headers;
 	byte		*codeBase;
-	HMODULE		*modules;
+	void		**modules;
 	int		numModules;
 	int		initialized;
 } MEMORYMODULE, *PMEMORYMODULE;
@@ -51,6 +54,30 @@ static void CopySections( const byte *data, PIMAGE_NT_HEADERS old_headers, PMEMO
 	}
 }
 
+static void FreeSections( PIMAGE_NT_HEADERS old_headers, PMEMORYMODULE module )
+{
+	int	i, size;
+	byte	*codeBase = module->codeBase;
+	PIMAGE_SECTION_HEADER section = IMAGE_FIRST_SECTION(module->headers);
+
+	for( i = 0; i < module->headers->FileHeader.NumberOfSections; i++, section++ )
+	{
+		if( section->SizeOfRawData == 0 )
+		{
+			size = old_headers->OptionalHeader.SectionAlignment;
+			if( size > 0 )
+			{
+				VirtualFree( codeBase + section->VirtualAddress, size, MEM_DECOMMIT );
+				section->Misc.PhysicalAddress = 0;
+			}
+			continue;
+		}
+
+		VirtualFree( codeBase + section->VirtualAddress, section->SizeOfRawData, MEM_DECOMMIT );
+		section->Misc.PhysicalAddress = 0;
+	}
+}
+
 // Protection flags for memory pages (Executable, Readable, Writeable)
 static int ProtectionFlags[2][2][2] =
 {
@@ -66,8 +93,8 @@ static int ProtectionFlags[2][2][2] =
 
 static void FinalizeSections( MEMORYMODULE *module )
 {
-	int i;
 	PIMAGE_SECTION_HEADER section = IMAGE_FIRST_SECTION( module->headers );
+	int	i;
 	
 	// loop through all sections and change access flags
 	for( i = 0; i < module->headers->FileHeader.NumberOfSections; i++, section++ )
@@ -100,13 +127,10 @@ static void FinalizeSections( MEMORYMODULE *module )
 		}
 
 		if( size > 0 )
-		{
+		{         
 			// change memory access flags
-			if( !VirtualProtect((LPVOID)section->Misc.PhysicalAddress, section->SizeOfRawData, protect, &oldProtect ))
-#ifdef _DEBUG
-			Sys_Break( "Error protecting memory page\n" )
-#endif
-			;
+			if( !VirtualProtect((LPVOID)section->Misc.PhysicalAddress, size, protect, &oldProtect ))
+				Host_Error( "Com_FinalizeSections: error protecting memory page\n" );
 		}
 	}
 }
@@ -170,19 +194,26 @@ static int BuildImportTable( MEMORYMODULE *module )
 		for( ; !IsBadReadPtr( importDesc, sizeof( IMAGE_IMPORT_DESCRIPTOR )) && importDesc->Name; importDesc++ )
 		{
 			DWORD	*thunkRef, *funcRef;
-			HMODULE	handle = LoadLibrary((LPCSTR)CALCULATE_ADDRESS(codeBase, importDesc->Name));
+			void	*handle;
 
-			// FIXME: allow to loading libraries from memory
-			if( handle == INVALID_HANDLE_VALUE )
+#ifdef EXPORT_FROM_MEMORY
+			char	libpath[MAX_SYSPATH];
+
+			FS_AllowDirectPaths( true );			
+			Com_BuildPath((LPCSTR)CALCULATE_ADDRESS(codeBase, importDesc->Name), libpath );
+			handle = Com_LoadLibrary( libpath );
+			FS_AllowDirectPaths( false );
+#else
+			handle = LoadLibrary((LPCSTR)CALCULATE_ADDRESS(codeBase, importDesc->Name));
+#endif                               
+			if( handle == NULL )
 			{
-#if DEBUG_OUTPUT
-				Sys_Break( "Can't load library\n" );
-#endif
+				MsgDev( D_ERROR, "couldn't load library\n" );
 				result = 0;
 				break;
 			}
 
-			module->modules = (HMODULE *)realloc( module->modules, (module->numModules + 1) * (sizeof( HMODULE )));
+			module->modules = (void *)Z_Realloc( module->modules, (module->numModules + 1) * (sizeof( void* )));
 			if( module->modules == NULL )
 			{
 				result = 0;
@@ -204,11 +235,21 @@ static int BuildImportTable( MEMORYMODULE *module )
 			for( ; *thunkRef; thunkRef++, funcRef++ )
 			{
 				if( IMAGE_SNAP_BY_ORDINAL( *thunkRef ))
+				{
+#ifdef EXPORT_FROM_MEMORY
+					*funcRef = (DWORD)Com_GetProcAddress( handle, (LPCSTR)IMAGE_ORDINAL( *thunkRef ));
+#else
 					*funcRef = (DWORD)GetProcAddress( handle, (LPCSTR)IMAGE_ORDINAL( *thunkRef ));
+#endif
+				}
 				else
 				{
 					PIMAGE_IMPORT_BY_NAME thunkData = (PIMAGE_IMPORT_BY_NAME)CALCULATE_ADDRESS( codeBase, *thunkRef );
+#ifdef EXPORT_FROM_MEMORY
+					*funcRef = (DWORD)Com_GetProcAddress( handle, (LPCSTR)&thunkData->Name );
+#else
 					*funcRef = (DWORD)GetProcAddress( handle, (LPCSTR)&thunkData->Name );
+#endif
 				}
 				if( *funcRef == 0 )
 				{
@@ -239,20 +280,16 @@ void *Com_LoadLibrary( const char *name )
 	dos_header = (PIMAGE_DOS_HEADER)data;
 	if( dos_header->e_magic != IMAGE_DOS_SIGNATURE )
 	{
+		MsgDev( D_NOTE, "%s it's not a valid executable file\n", name );
 		Mem_Free( data );
-#if _DEBUG
-		Sys_Break( "Not a valid executable file.\n" );
-#endif
 		return NULL;
 	}
 
 	old_header = (PIMAGE_NT_HEADERS)&((const byte *)(data))[dos_header->e_lfanew];
 	if( old_header->Signature != IMAGE_NT_SIGNATURE )
 	{
+		MsgDev( D_NOTE, "library %s: no PE header found\n", name );
 		Mem_Free( data );
-#if _DEBUG
-		Sys_Break( "No PE header found.\n" );
-#endif
 		return NULL;
 	}
 
@@ -266,10 +303,8 @@ void *Com_LoadLibrary( const char *name )
 	}    
 	if( code == NULL )
 	{
+		MsgDev( D_NOTE, "library %s: can't reserve memory\n", name );
 		Mem_Free( data );
-#if _DEBUG
-		Sys_Break( "Can't reserve memory\n" );
-#endif
 		return NULL;
 	}
 
@@ -313,9 +348,7 @@ void *Com_LoadLibrary( const char *name )
 		DllEntry = (DllEntryProc)CALCULATE_ADDRESS( code, result->headers->OptionalHeader.AddressOfEntryPoint );
 		if( DllEntry == 0 )
 		{
-#if _DEBUG
-			Sys_Break( "Library has no entry point.\n" );
-#endif
+			MsgDev( D_NOTE, "library %s: has no entry point\n", name );
 			goto error;
 		}
 
@@ -323,9 +356,7 @@ void *Com_LoadLibrary( const char *name )
 		successfull = (*DllEntry)((HINSTANCE)code, DLL_PROCESS_ATTACH, 0 );
 		if( !successfull )
 		{
-#if _DEBUG
-			Sys_Break( "Can't attach library.\n" );
-#endif
+			MsgDev( D_ERROR, "can't attach library %s\n", name );
 			goto error;
 		}
 		result->initialized = 1;
@@ -340,7 +371,7 @@ error:
 	return NULL;
 }
 
-void *Com_GetProcAddress( void *module, const char *name )
+FARPROC Com_GetProcAddress( void *module, const char *name )
 {
 	int	idx = -1;
 	DWORD	i, *nameRef;
@@ -396,7 +427,7 @@ void Com_FreeLibrary( void *hInstance )
 
 	if( module != NULL )
 	{
-		if (module->initialized != 0)
+		if( module->initialized != 0 )
 		{
 			// notify library about detaching from process
 			DllEntryProc DllEntry = (DllEntryProc)CALCULATE_ADDRESS( module->codeBase, module->headers->OptionalHeader.AddressOfEntryPoint );
@@ -408,16 +439,47 @@ void Com_FreeLibrary( void *hInstance )
 		{
 			// free previously opened libraries
 			for( i = 0; i < module->numModules; i++ )
-				if( module->modules[i] != INVALID_HANDLE_VALUE )
+			{
+				if( module->modules[i] != NULL )
+				{
+#ifdef EXPORT_FROM_MEMORY
+					Com_FreeLibrary( module->modules[i] );
+#else
 					FreeLibrary( module->modules[i] );
-			free( module->modules ); // realloc end
+#endif
+				}
+			}
+			Mem_Free( module->modules ); // Z_Realloc end
 		}
+
+		FreeSections( module->headers, module );
 
 		if( module->codeBase != NULL )
 		{
 			// release memory of library
-			VirtualFree(module->codeBase, 0, MEM_RELEASE);
+			VirtualFree( module->codeBase, 0, MEM_RELEASE );
 		}
 		HeapFree( GetProcessHeap(), 0, module );
 	}
+}
+
+void Com_BuildPathExt( const char *dllname, char *fullpath, size_t size )
+{
+	string	name;
+
+	if( !dllname || !fullpath || size <= 0 ) return;
+
+	// only libraries with extension .dll are valid
+	com.strncpy( name, dllname, sizeof( string ));
+	FS_FileBase( name, name );
+
+	// game path (Xash3D/game/bin/)
+	com.snprintf( fullpath, size, "bin/%s.dll", name );
+	if( FS_FileExists( fullpath )) return; // found
+
+	// absoulte path (Xash3D/bin/)
+	com.snprintf( fullpath, size, "%s.dll", name );	
+	if( FS_FileExists( fullpath )) return; // found
+
+	fullpath[0] = 0;
 }

@@ -620,7 +620,6 @@ Sys LoadGameDLL
 BOOL Sys_LoadLibrary( const char* dllname, dllhandle_t* handle, const dllfunction_t *fcts )
 {
 	const dllfunction_t	*gamefunc;
-	char dllpath[256], gamedir[256];
 	dllhandle_t dllhandle = 0;
 
 	if( handle == NULL ) return false;
@@ -629,21 +628,21 @@ BOOL Sys_LoadLibrary( const char* dllname, dllhandle_t* handle, const dllfunctio
 	for( gamefunc = fcts; gamefunc && gamefunc->name != NULL; gamefunc++ )
 		*gamefunc->funcvariable = NULL;
 
-	GET_GAME_DIR( gamedir );
-	sprintf( dllpath, "%s/bin/%s", gamedir, dllname );
-	dllhandle = LoadLibrary( dllpath );
+	dllhandle = (dllhandle_t)LOAD_LIBRARY( dllname );
         
 	// No DLL found
 	if( !dllhandle ) return false;
 
 	// Get the function adresses
 	for( gamefunc = fcts; gamefunc && gamefunc->name != NULL; gamefunc++ )
+	{
 		if(!( *gamefunc->funcvariable = (void *) Sys_GetProcAddress( dllhandle, gamefunc->name )))
 		{
 			Sys_UnloadLibrary( &dllhandle );
 			return false;
 		}
-          
+	}          
+
 	ALERT( at_loading, "%s loaded succesfully!\n", dllname );
 	*handle = dllhandle;
 	return true;
@@ -654,13 +653,13 @@ void Sys_UnloadLibrary( dllhandle_t *handle )
 	if( handle == NULL || *handle == NULL )
 		return;
 
-	FreeLibrary( *handle );
+	FREE_LIBRARY( *handle );
 	*handle = NULL;
 }
 
 void* Sys_GetProcAddress( dllhandle_t handle, const char* name )
 {
-	return (void *)GetProcAddress( handle, name );
+	return (void *)GET_PROC_ADDRESS( handle, name );
 }
 
 /*

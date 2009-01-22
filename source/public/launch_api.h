@@ -449,6 +449,7 @@ typedef struct stdilib_api_s
 	void (*Com_InitRootDir)( char *path );			// init custom rootdir 
 	void (*Com_LoadGameInfo)( const char *filename );		// gate game info from script file
 	void (*Com_AddGameHierarchy)(const char *dir);		// add base directory in search list
+	void (*Com_AllowDirectPaths)( bool enable );		// allow direct paths e.g. C:\windows
 	int  (*Com_CheckParm)( const char *parm );		// check parm in cmdline  
 	bool (*Com_GetParm)( char *parm, char *out, size_t size );	// get parm from cmdline
 	void (*Com_FileBase)(const char *in, char *out);		// get filename without path & ext
@@ -712,6 +713,7 @@ filesystem manager
 #define FS_AddGameHierarchy		com.Com_AddGameHierarchy
 #define FS_LoadGameInfo		com.Com_LoadGameInfo
 #define FS_InitRootDir		com.Com_InitRootDir
+#define FS_AllowDirectPaths		com.Com_AllowDirectPaths
 #define FS_LoadFile			com.Com_LoadFile
 #define FS_Search			com.Com_Search
 #define FS_WriteFile		com.Com_WriteFile

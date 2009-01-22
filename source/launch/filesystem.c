@@ -95,7 +95,6 @@ typedef struct pack_s
 {
 	char		filename [MAX_SYSPATH];
 	int		handle;
-	int		ignorecase;// PK3 ignores case
 	int		numfiles;
 	packfile_t	*files;
 } pack_t;
@@ -111,6 +110,7 @@ typedef struct searchpath_s
 
 byte *fs_mempool;
 searchpath_t *fs_searchpaths = NULL;
+searchpath_t fs_directpath; // static direct path
 
 static void FS_InitMemory( void );
 const char *FS_FileExtension (const char *in);
@@ -333,7 +333,6 @@ pack_t *FS_LoadPackPK3 (const char *packfile)
 
 	// Create a package structure in memory
 	pack = (pack_t *)Mem_Alloc(fs_mempool, sizeof (pack_t));
-	pack->ignorecase = true; //PK3 ignores case
 	com_strncpy (pack->filename, packfile, sizeof (pack->filename));
 	pack->handle = packhandle;
 	pack->numfiles = eocd.nbentries;
@@ -532,11 +531,8 @@ Add a file to the list of files contained into a package
 */
 static packfile_t* FS_AddFileToPack(const char* name, pack_t* pack, fs_offset_t offset, fs_offset_t packsize, fs_offset_t realsize, int flags)
 {
-	int		(*strcmp_funct) (const char* str1, const char* str2);
 	int		left, right, middle;
 	packfile_t	*pfile;
-
-	strcmp_funct = pack->ignorecase ? com_stricmp : com_strcmp;
 
 	// Look for the slot we should put that file into (binary search)
 	left = 0;
@@ -546,7 +542,7 @@ static packfile_t* FS_AddFileToPack(const char* name, pack_t* pack, fs_offset_t 
 		int diff;
 
 		middle = (left + right) / 2;
-		diff = strcmp_funct(pack->files[middle].name, name);
+		diff = com.stricmp( pack->files[middle].name, name );
 
 		// If we found the file, there's a problem
 		if (!diff) Msg ("Package %s contains the file %s several times\n", pack->filename, name);
@@ -749,7 +745,6 @@ pack_t *FS_LoadPackPAK(const char *packfile)
 	}
 
 	pack = (pack_t *)Mem_Alloc(fs_mempool, sizeof (pack_t));
-	pack->ignorecase = false; // PAK is case sensitive
 	com_strncpy (pack->filename, packfile, sizeof (pack->filename));
 	pack->handle = packhandle;
 	pack->numfiles = 0;
@@ -825,7 +820,6 @@ pack_t *FS_LoadPackPK2(const char *packfile)
 	}
 
 	pack = (pack_t *)Mem_Alloc(fs_mempool, sizeof (pack_t));
-	pack->ignorecase = false; // PK2 is case sensitive
 	com_strncpy (pack->filename, packfile, sizeof (pack->filename));
 	pack->handle = packhandle;
 	pack->numfiles = 0;
@@ -1231,42 +1225,43 @@ Return true if the path should be rejected due to one of the following:
    or are just not a good idea for a mod to be using.
 ====================
 */
-int FS_CheckNastyPath (const char *path, bool isgamedir)
+int FS_CheckNastyPath( const char *path, bool isgamedir )
 {
 	// all: never allow an empty path, as for gamedir it would access the parent directory and a non-gamedir path it is just useless
-	if (!path[0]) return 2;
+	if( !path[0] ) return 2;
 
 	// Windows: don't allow \ in filenames (windows-only), period.
 	// (on Windows \ is a directory separator, but / is also supported)
-	if (strstr(path, "\\")) return 1; // non-portable
+	if( com.strstr( path, "\\" ) && !fs_ext_path ) return 1; // non-portable
 
 	// Mac: don't allow Mac-only filenames - : is a directory separator
 	// instead of /, but we rely on / working already, so there's no reason to
 	// support a Mac-only path
 	// Amiga and Windows: : tries to go to root of drive
-	if (strstr(path, ":")) return 1; // non-portable attempt to go to root of drive
+	if( com.strstr( path, ":" ) && !fs_ext_path ) return 1; // non-portable attempt to go to root of drive
 
 	// Amiga: // is parent directory
-	if (strstr(path, "//")) return 1; // non-portable attempt to go to parent directory
+	if( com.strstr( path, "//" )  && !fs_ext_path ) return 1; // non-portable attempt to go to parent directory
 
 	// all: don't allow going to parent directory (../ or /../)
-	if (strstr(path, "..") && !fs_ext_path) return 2; // attempt to go outside the game directory
+	if( com.strstr( path, ".." ) && !fs_ext_path ) return 2; // attempt to go outside the game directory
 
 	// Windows and UNIXes: don't allow absolute paths
-	if (path[0] == '/' && !fs_ext_path ) return 2; // attempt to go outside the game directory
+	if( path[0] == '/' && !fs_ext_path ) return 2; // attempt to go outside the game directory
 
-	// all: don't allow . characters before the last slash (it should only be used in filenames, not path elements), this catches all imaginable cases of ./, ../, .../, etc
-	if (com_strchr(path, '.')  && !fs_ext_path)
+	// all: don't allow . characters before the last slash (it should only be used in filenames, not path elements),
+	// this catches all imaginable cases of ./, ../, .../, etc
+	if( com.strchr( path, '.' )  && !fs_ext_path )
 	{
-		if (isgamedir) return 2; // gamedir is entirely path elements, so simply forbid . entirely
-		if (com_strchr(path, '.') < com_strrchr(path, '/')) return 2; // possible attempt to go outside the game directory
+		if( isgamedir ) return 2; // gamedir is entirely path elements, so simply forbid . entirely
+		if( com.strchr( path, '.' ) < com.strrchr( path, '/' )) return 2; // possible attempt to go outside the game directory
 	}
 
 	// all: forbid trailing slash on gamedir
-	if (isgamedir && !fs_ext_path && path[com_strlen(path)-1] == '/') return 2;
+	if( isgamedir && !fs_ext_path && path[com.strlen( path )-1] == '/' ) return 2;
 
 	// all: forbid leading dot on any filename for any reason
-	if (strstr(path, "/.")  && !fs_ext_path) return 2; // attempt to go outside the game directory
+	if( com.strstr( path, "/." ) && !fs_ext_path ) return 2; // attempt to go outside the game directory
 
 	// after all these checks we're pretty sure it's a / separated filename
 	// and won't do much if any harm
@@ -1518,6 +1513,11 @@ bool FS_GetParmFromCmdLine( char *parm, char *out, size_t size )
 	return true;
 }
 
+void FS_AllowDirectPaths( bool enable )
+{
+	fs_ext_path = enable;
+}
+
 /*
 ============
 FS_WriteVariables
@@ -1580,12 +1580,12 @@ Internal function used to create a file_t and open the relevant non-packed file 
 */
 static file_t* FS_SysOpen( const char* filepath, const char* mode )
 {
-	file_t* file;
-	int mod, opt;
-	unsigned int ind;
+	file_t	*file;
+	int	mod, opt;
+	uint	ind;
 
 	// Parse the mode string
-	switch (mode[0])
+	switch( mode[0] )
 	{
 		case 'r':
 			mod = O_RDONLY;
@@ -1600,7 +1600,7 @@ static file_t* FS_SysOpen( const char* filepath, const char* mode )
 			opt = O_CREAT | O_APPEND;
 			break;
 		default:
-			Msg("FS_SysOpen(%s, %s): invalid mode\n", filepath, mode);
+			MsgDev( D_ERROR, "FS_SysOpen(%s, %s): invalid mode\n", filepath, mode );
 			return NULL;
 	}
 	for( ind = 1; mode[ind] != '\0'; ind++ )
@@ -1721,10 +1721,10 @@ bool FS_SysFileExists (const char *path)
 {
 	int desc;
      
-	desc = open (path, O_RDONLY | O_BINARY);
+	desc = open( path, O_RDONLY|O_BINARY );
 
-	if (desc < 0) return false;
-	close (desc);
+	if( desc < 0 ) return false;
+	close( desc );
 	return true;
 }
 
@@ -1740,8 +1740,9 @@ and the file index in the package if relevant
 */
 static searchpath_t *FS_FindFile( const char *name, int* index, bool quiet )
 {
-	searchpath_t *search;
-	pack_t *pak;
+	searchpath_t	*search;
+	char		*pEnvPath;
+	pack_t		*pak;
 
 	// search through the path, one element at a time
 	for( search = fs_searchpaths; search; search = search->next )
@@ -1749,11 +1750,9 @@ static searchpath_t *FS_FindFile( const char *name, int* index, bool quiet )
 		// is the element a pak file?
 		if( search->pack )
 		{
-			int (*strcmp_funct) (const char* str1, const char* str2);
 			int left, right, middle;
 
 			pak = search->pack;
-			strcmp_funct = pak->ignorecase ? com_stricmp : com_strcmp;
 
 			// look for the file (binary search)
 			left = 0;
@@ -1763,7 +1762,7 @@ static searchpath_t *FS_FindFile( const char *name, int* index, bool quiet )
 				int diff;
 
 				middle = (left + right) / 2;
-				diff = strcmp_funct(pak->files[middle].name, name);
+				diff = com.stricmp( pak->files[middle].name, name );
 
 				// Found it
 				if( !diff )
@@ -1798,14 +1797,40 @@ static searchpath_t *FS_FindFile( const char *name, int* index, bool quiet )
 		}
 		else
 		{
-			char netpath[MAX_SYSPATH];
-			com_sprintf(netpath, "%s%s", search->filename, name);
-			if (FS_SysFileExists(netpath))
+			char	netpath[MAX_SYSPATH];
+			com.sprintf( netpath, "%s%s", search->filename, name );
+			if( FS_SysFileExists( netpath ))
 			{
-				if (!quiet) MsgDev(D_INFO, "FS_FindFile: %s\n", netpath);
-				if (index != NULL) *index = -1;
+				if( !quiet ) MsgDev( D_INFO, "FS_FindFile: %s\n", netpath );
+				if( index != NULL ) *index = -1;
 				return search;
 			}
+		}
+	}
+
+	if( fs_ext_path && (pEnvPath = getenv( "Path" )))
+	{
+		char	netpath[MAX_SYSPATH];
+
+		// clear searchpath
+		search = &fs_directpath;
+		Mem_Set( search, 0, sizeof( searchpath_t ));
+
+		// search for environment path
+		while( pEnvPath )
+		{
+			char *end = com.strchr( pEnvPath, ';' );
+			if( !end ) break;
+			com.strncpy( search->filename, pEnvPath, (end - pEnvPath) + 1 );
+			com.strcat( search->filename, "\\" );
+			com.snprintf( netpath, MAX_SYSPATH, "%s%s", search->filename, name );
+			if( FS_SysFileExists( netpath ))
+			{
+				if( !quiet ) MsgDev( D_INFO, "FS_FindFile: %s\n", netpath );
+				if( index != NULL ) *index = -1;
+				return search;
+			}
+			pEnvPath += (end - pEnvPath) + 1; // move pointer
 		}
 	}
 
@@ -1828,7 +1853,7 @@ file_t *FS_OpenReadFile( const char *filename, const char *mode, bool quiet )
 	searchpath_t *search;
 	int pack_ind;
 
-	search = FS_FindFile(filename, &pack_ind, quiet );
+	search = FS_FindFile( filename, &pack_ind, quiet );
 
 	// not found?
 	if( search == NULL )
@@ -1863,21 +1888,21 @@ Open a file. The syntax is the same as fopen
 */
 file_t* _FS_Open( const char* filepath, const char* mode, bool quiet )
 {
-	if (FS_CheckNastyPath(filepath, false))
+	if( FS_CheckNastyPath( filepath, false ))
 	{
 		MsgDev( D_NOTE, "FS_Open: (\"%s\", \"%s\"): nasty filename rejected\n", filepath, mode );
 		return NULL;
 	}
 
-	// If the file is opened in "write", "append", or "read/write" mode
-	if (mode[0] == 'w' || mode[0] == 'a' || com_strchr (mode, '+'))
+	// if the file is opened in "write", "append", or "read/write" mode
+	if( mode[0] == 'w' || mode[0] == 'a' || com.strchr( mode, '+' ))
 	{
-		char real_path [MAX_SYSPATH];
+		char real_path[MAX_SYSPATH];
 
-		// Open the file on disk directly
-		com_sprintf (real_path, "%s/%s", fs_gamedir, filepath);
-		FS_CreatePath (real_path);// Create directories up to the file
-		return FS_SysOpen (real_path, mode );
+		// open the file on disk directly
+		com.sprintf( real_path, "%s/%s", fs_gamedir, filepath );
+		FS_CreatePath( real_path );// Create directories up to the file
+		return FS_SysOpen( real_path, mode );
 	}
 	
 	// else, we look at the various search paths and open the file in read-only mode
@@ -2365,7 +2390,7 @@ Filename are relative to the xash directory.
 Always appends a 0 byte.
 ============
 */
-byte *FS_LoadFile (const char *path, fs_offset_t *filesizeptr )
+byte *FS_LoadFile( const char *path, fs_offset_t *filesizeptr )
 {
 	file_t	*file;
 	byte	*buf = NULL;
@@ -2468,9 +2493,9 @@ FS_FileExists
 Look for a file in the packages and in the filesystem
 ==================
 */
-bool FS_FileExists (const char *filename)
+bool FS_FileExists( const char *filename )
 {
-	if(FS_FindFile( filename, NULL, true))
+	if( FS_FindFile( filename, NULL, true ))
 		return true;
 	return false;
 }
