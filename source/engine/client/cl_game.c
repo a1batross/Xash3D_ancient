@@ -45,7 +45,7 @@ static trace_t CL_TraceToss( edict_t *tossent, edict_t *ignore)
 	VectorCopy( tossent->v.velocity, original_velocity );
 	VectorCopy( tossent->v.angles, original_angles );
 	VectorCopy( tossent->v.avelocity, original_avelocity );
-	gravity = tossent->v.gravity * clgame.gravity * 0.05;
+	gravity = tossent->v.gravity * clgame.movevars.gravity * 0.05;
 
 	for( i = 0; i < 200; i++ )
 	{
@@ -121,6 +121,11 @@ float *CL_FadeColor( float starttime, float endtime )
 void CL_DrawHUD( int state )
 {
 	cls.dllFuncs.pfnRedraw( cl.time * 0.001f, state );
+
+	if( state == CL_ACTIVE )
+	{
+		cls.dllFuncs.pfnFrame( (double)cl.time * 0.001f );
+	}
 }
 
 void CL_CopyTraceResult( TraceResult *out, trace_t trace )
@@ -420,18 +425,6 @@ void pfnSetColor( float r, float g, float b, float a )
 {
 	if( !re ) return; // render not initialized
 	re->SetColor( GetRGBA( r, g, b, a ));
-}
-
-/*
-=============
-pfnRegisterVariable
-
-=============
-*/
-void pfnRegisterVariable( const char *szName, const char *szValue, int flags, const char *szDesc )
-{
-	// FIXME: translate client.dll flags to real cvar flags
-	Cvar_Get( szName, szValue, flags, szDesc );
 }
 
 /*
@@ -840,6 +833,23 @@ edict_t* pfnGetViewModel( void )
 
 /*
 =============
+pfnGetModelPtr
+
+returns pointer to a studiomodel
+=============
+*/
+static void *pfnGetModelPtr( edict_t* pEdict )
+{
+	cmodel_t	*mod;
+
+	mod = cl.models[pEdict->v.modelindex];
+
+	if( !mod ) return NULL;
+	return mod->extradata;
+}
+
+/*
+=============
 pfnMakeLevelShot
 
 force to make levelshot
@@ -1109,9 +1119,111 @@ static int pfnDecalIndex( int id )
 	return cl.decal_shaders[id];
 }
 
+/*
+=================
+TriApi implementation
+
+=================
+*/
+void TriRenderMode( kRenderMode_t mode )
+{
+}
+
+void TriBind( shader_t shader )
+{
+}
+
+void TriBegin( TRI_DRAW mode )
+{
+}
+
+void TriEnd( void )
+{
+}
+
+void TriEnable( int cap )
+{
+}
+
+void TriDisable( int cap )
+{
+}
+
+void TriVertex2f( float x, float y )
+{
+}
+
+void TriVertex3f( float x, float y, float z )
+{
+}
+
+void TriVertex2fv( const float *v )
+{
+}
+
+void TriVertex3fv( const float *v )
+{
+}
+
+void TriColor3f( float r, float g, float b )
+{
+}
+
+void TriColor4f( float r, float g, float b, float a )
+{
+}
+
+void TriColor4ub( byte r, byte g, byte b, byte a )
+{
+}
+
+void TriTexCoord2f( float u, float v )
+{
+}
+
+void TriTexCoord2fv( const float *v )
+{
+}
+
+void TriCullFace( TRI_CULL mode )
+{
+}
+
+void TriScreenToWorld( float *screen, float *world )
+{
+} 
+
+int TriWorldToScreen( float *world, float *screen )
+{
+	return 0;
+}
+
+void TriFog( float flFogColor[3], float flStart, float flEnd, int bOn )
+{
+}
+
 static triapi_t gTriApi =
 {
 	sizeof( triapi_t ),	
+	TriRenderMode,
+	TriBind,
+	TriBegin,
+	TriEnd,
+	TriEnable,
+	TriDisable,
+	TriVertex2f,
+	TriVertex3f,
+	TriVertex2fv,
+	TriVertex3fv,
+	TriColor3f,
+	TriColor4f,
+	TriColor4ub,
+	TriTexCoord2f,
+	TriTexCoord2fv,
+	TriCullFace,
+	TriScreenToWorld,
+	TriWorldToScreen,
+	TriFog
 };
 
 static efxapi_t gEfxApi =
@@ -1136,7 +1248,7 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnFillRGBA,
 	pfnDrawImageExt,
 	pfnSetColor,
-	pfnRegisterVariable,
+	pfnCVarRegister,
 	pfnCvarSetString,
 	pfnCvarSetValue,
 	pfnGetCvarFloat,
@@ -1166,6 +1278,7 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnGetClientTime,
 	pfnGetMaxClients,
 	pfnGetViewModel,
+	pfnGetModelPtr,
 	pfnMakeLevelShot,						
 	pfnPointContents,
 	pfnTraceLine,
@@ -1256,8 +1369,15 @@ bool CL_LoadProgs( const char *name )
 	pfnHookUserMsg( "bad", NULL );
 	CL_LinkUserMessage( "bad@0", svc_bad );
 
-	clgame.gravity = com.atof( DEFAULT_GRAVITY );
-	clgame.maxVelocity = com.atof( DEFAULT_MAXVELOCITY );
+	clgame.movevars.gravity = com.atof( DEFAULT_GRAVITY );
+	clgame.movevars.maxvelocity = com.atof( DEFAULT_MAXVELOCITY );
+	clgame.movevars.rollangle = com.atof( DEFAULT_ROLLANGLE );
+	clgame.movevars.rollspeed = com.atof( DEFAULT_ROLLSPEED );
+	clgame.movevars.maxspeed = com.atof( DEFAULT_MAXSPEED );
+	clgame.movevars.stepheight = com.atof( DEFAULT_STEPHEIGHT );
+	clgame.movevars.accelerate = com.atof( DEFAULT_ACCEL );
+	clgame.movevars.airaccelerate = com.atof( DEFAULT_AIRACCEL );
+	clgame.movevars.friction = com.atof( DEFAULT_FRICTION );
 
 	for( i = 0, e = EDICT_NUM( 0 ); i < clgame.maxEntities; i++, e++ )
 		e->free = true; // mark all edicts as freed

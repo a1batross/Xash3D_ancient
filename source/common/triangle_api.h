@@ -22,6 +22,12 @@ typedef enum
 	TRI_LINES,
 } TRI_DRAW;
 
+typedef enum
+{
+	TRI_SHADER = 0,
+	TRI_CLIP_PLANE,
+} TRI_CAPS;
+
 typedef struct triapi_s
 {
 	size_t	api_size;			// must match with sizeof( triapi_t );
@@ -31,6 +37,8 @@ typedef struct triapi_s
 	void	(*Begin)( TRI_DRAW mode );
 	void	(*End)( void );
 
+	void	(*Enable)( int cap );
+	void	(*Disable)( int cap );
 	void	(*Vertex2f)( float x, float y );
 	void	(*Vertex3f)( float x, float y, float z );
 	void	(*Vertex2fv)( const float *v );

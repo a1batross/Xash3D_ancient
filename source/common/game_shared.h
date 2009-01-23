@@ -33,4 +33,10 @@ enum ShakeCommand_t
 #define FFADE_STAYOUT	0x0004 // ignores the duration, stays faded out until new ScreenFade message received
 #define FFADE_CUSTOMVIEW	0x0008 // fading only at custom viewing (don't sending this to engine )
 
+// camera flags
+#define CAMERA_ON		1
+#define DRAW_HUD		2
+#define INVERSE_X		4
+#define MONSTER_VIEW	8
+
 #endif//GAME_SHARED_H

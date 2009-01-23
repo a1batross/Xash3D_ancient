@@ -4,7 +4,7 @@
 //=======================================================================
 
 #include "extdll.h"
-#include "hud_iface.h"
+#include "utils.h"
 #include "hud.h"
 
 cl_enginefuncs_t g_engfuncs;
@@ -60,6 +60,8 @@ int HUD_VidInit( void )
 void HUD_Init( void )
 {
 	gHUD.Init();
+
+	V_Init();
 }
 
 int HUD_Redraw( float flTime, int state )

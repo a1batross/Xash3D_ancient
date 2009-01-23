@@ -3,7 +3,7 @@
 //=======================================================================
 
 #include "extdll.h"
-#include "hud_iface.h"
+#include "utils.h"
 #include "hud.h"
 
 void CHud :: Init( void )
@@ -270,7 +270,7 @@ int CHud :: Redraw( float flTime )
 	}
 
 	// custom view active, and flag "draw hud" isn't set
-	if(( viewFlags & 1 ) && !( viewFlags & 2 ))
+	if(( viewFlags & CAMERA_ON ) && !( viewFlags & DRAW_HUD ))
 		return 1;
 	
 	if( CVAR_GET_FLOAT( "hud_draw" ))

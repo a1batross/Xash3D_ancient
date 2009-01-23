@@ -67,7 +67,7 @@ typedef struct cl_enginefuncs_s
 	void	(*pfnSetColor)( float r, float g, float b, float a );
 
 	// cvar handlers
-	void	(*pfnRegisterVariable)( const char *szName, const char *szValue, int flags, const char *szDesc );
+	cvar_t*	(*pfnRegisterVariable)( const char *szName, const char *szValue, int flags, const char *szDesc );
 	void	(*pfnCvarSetString)( const char *szName, const char *szValue );
 	void	(*pfnCvarSetValue)( const char *szName, float flValue );
 	float	(*pfnGetCvarFloat)( const char *szName );
@@ -108,6 +108,7 @@ typedef struct cl_enginefuncs_s
 	float	(*pfnGetClientTime)( void );
 	int	(*pfnGetMaxClients)( void );
 	edict_t*	(*pfnGetViewModel)( void );
+	void*	(*pfnGetModelPtr)( edict_t* pEdict );
 	void	(*pfnMakeLevelShot)( void );		// level shot will be created at next frame
 
 	int	(*pfnPointContents)( const float *rgflVector );
@@ -157,7 +158,6 @@ typedef struct
 	void	(*pfnCreateEntities)( void );
 	void	(*pfnStudioEvent)( const dstudioevent_t *event, edict_t *entity );
 	void	(*pfnCalcRefdef)( struct ref_params_s *parms );
-
 } HUD_FUNCTIONS;
 
 typedef int (*CLIENTAPI)( HUD_FUNCTIONS *pFunctionTable, cl_enginefuncs_t* pEngfuncsFromEngine );

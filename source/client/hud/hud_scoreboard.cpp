@@ -19,7 +19,7 @@
 //
 
 #include "extdll.h"
-#include "hud_iface.h"
+#include "utils.h"
 #include "hud.h"
 
 DECLARE_COMMAND( m_Scoreboard, ShowScores );

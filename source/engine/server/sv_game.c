@@ -2069,18 +2069,6 @@ void pfnWriteEntity( int iValue )
 
 /*
 =============
-pfnCVarRegister
-
-=============
-*/
-void pfnCVarRegister( const char *name, const char *value, int flags, const char *desc )
-{
-	// FIXME: translate server.dll flags to real cvar flags
-	Cvar_Get( name, value, flags, desc );
-}
-
-/*
-=============
 pfnCVarGetFloat
 
 =============
@@ -2251,7 +2239,7 @@ pfnGetModelPtr
 returns pointer to a studiomodel
 =============
 */
-void* pfnGetModelPtr( edict_t* pEdict )
+static void *pfnGetModelPtr( edict_t* pEdict )
 {
 	cmodel_t	*mod;
 
@@ -2837,6 +2825,13 @@ static enginefuncs_t gEngfuncs =
 	pfnSetView,
 	pfnCrosshairAngle,
 	pfnLoadFile,
+	pfnFOpen,
+	pfnFClose,
+	pfnFWrite,
+	pfnFRead,
+	pfnFGets,
+	pfnFSeek,
+	pfnFTell,
 	pfnFileExists,
 	pfnCompareFileTime,
 	pfnGetGameDir,							
@@ -2996,7 +2991,15 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 
 	SV_ConfigString( CS_GRAVITY, sv_gravity->string );
 	SV_ConfigString( CS_MAXVELOCITY, sv_maxvelocity->string );			
-	SV_ConfigString( CS_MAXCLIENTS, va( "%i", Host_MaxClients( )));
+	SV_ConfigString( CS_ROLLSPEED, sv_rollspeed->string );
+	SV_ConfigString( CS_ROLLANGLE, sv_rollangle->string );
+	SV_ConfigString( CS_MAXSPEED, sv_maxspeed->string );
+	SV_ConfigString( CS_STEPHEIGHT, sv_stepheight->string );
+	SV_ConfigString( CS_AIRACCELERATE, sv_airaccelerate->string );
+	SV_ConfigString( CS_ACCELERATE, sv_accelerate->string );
+	SV_ConfigString( CS_FRICTION, sv_friction->string );
+	SV_ConfigString( CS_MAXEDICTS, Cvar_VariableString( "host_maxedicts" ));
+
 	svgame.globals->mapname = MAKE_STRING( sv.name );
 	svgame.globals->time = sv.time;
 
@@ -3013,13 +3016,15 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 		ent->pvServerData->client->edict = ent;
 		svgame.globals->numClients++;
 	}
-	Msg("Total %i entities spawned\n", svgame.globals->numEntities );
+	MsgDev( D_INFO, "Total %i entities spawned\n", svgame.globals->numEntities );
 }
 
 void SV_UnloadProgs( void )
 {
 	sv.loadgame  = false;
 	SV_FreeEdicts();
+
+	svgame.dllFuncs.pfnGameShutdown();
 
 	Sys_FreeNameFuncGlobals();
 	Com_FreeLibrary( svgame.hInstance );

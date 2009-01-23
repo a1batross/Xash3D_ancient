@@ -332,11 +332,11 @@ pack_t *FS_LoadPackPK3 (const char *packfile)
 	}
 
 	// Create a package structure in memory
-	pack = (pack_t *)Mem_Alloc(fs_mempool, sizeof (pack_t));
-	com_strncpy (pack->filename, packfile, sizeof (pack->filename));
+	pack = (pack_t *)Mem_Alloc(fs_mempool, sizeof( pack_t ));
+	com.strncpy( pack->filename, packfile, sizeof( pack->filename ));
 	pack->handle = packhandle;
 	pack->numfiles = eocd.nbentries;
-	pack->files = (packfile_t *)Mem_Alloc(fs_mempool, eocd.nbentries * sizeof(packfile_t));
+	pack->files = (packfile_t *)Mem_Alloc( fs_mempool, eocd.nbentries * sizeof( packfile_t ));
 
 	real_nb_files = PK3_BuildFileList (pack, &eocd);
 	if (real_nb_files < 0)
@@ -450,10 +450,10 @@ void stringlistfreecontents(stringlist_t *list)
 	if (list->strings) Mem_Free(list->strings);
 }
 
-void stringlistappend(stringlist_t *list, char *text)
+void stringlistappend( stringlist_t *list, char *text )
 {
-	size_t textlen;
-	char **oldstrings;
+	size_t	textlen;
+	char	**oldstrings;
 
 	if (list->numstrings >= list->maxstrings)
 	{
@@ -463,22 +463,23 @@ void stringlistappend(stringlist_t *list, char *text)
 		if (list->numstrings) Mem_Copy(list->strings, oldstrings, list->numstrings * sizeof(*list->strings));
 		if (oldstrings) Mem_Free( oldstrings );
 	}
-	textlen = com_strlen(text) + 1;
-	list->strings[list->numstrings] = Mem_Alloc( fs_mempool, textlen);
-	Mem_Copy(list->strings[list->numstrings], text, textlen);
+	textlen = com.strlen( text ) + 1;
+	list->strings[list->numstrings] = Mem_Alloc( fs_mempool, textlen );
+	Mem_Copy( list->strings[list->numstrings], text, textlen );
 	list->numstrings++;
 }
 
-void stringlistsort(stringlist_t *list)
+void stringlistsort( stringlist_t *list )
 {
-	int i, j;
-	char *temp;
+	int	i, j;
+	char	*temp;
+
 	// this is a selection sort (finds the best entry for each slot)
-	for (i = 0;i < list->numstrings - 1;i++)
+	for( i = 0; i < list->numstrings - 1; i++ )
 	{
-		for (j = i + 1;j < list->numstrings;j++)
+		for( j = i + 1; j < list->numstrings; j++ )
 		{
-			if (com_strcmp(list->strings[i], list->strings[j]) > 0)
+			if( com.strcmp( list->strings[i], list->strings[j] ) > 0 )
 			{
 				temp = list->strings[i];
 				list->strings[i] = list->strings[j];
@@ -488,30 +489,36 @@ void stringlistsort(stringlist_t *list)
 	}
 }
 
-void listdirectory(stringlist_t *list, const char *path)
+void listdirectory( stringlist_t *list, const char *path )
 {
-	int i;
-	char pattern[4096], *c;
-	struct _finddata_t n_file;
-	long hFile;
-	com_strncpy (pattern, path, sizeof (pattern));
-	com_strncat (pattern, "*", sizeof (pattern));
-	// ask for the directory listing handle
-	hFile = _findfirst(pattern, &n_file);
-	if(hFile == -1)
-		return;
-	// start a new chain with the the first name
-	stringlistappend(list, n_file.name);
-	// iterate through the directory
-	while (_findnext(hFile, &n_file) == 0)
-		stringlistappend(list, n_file.name);
-	_findclose(hFile);
+	int		i;
+	char		pattern[4096], *c;
+	struct _finddata_t	n_file;
+	long		hFile;
 
-	// convert names to lowercase because windows does not care, but pattern matching code often does
-	for (i = 0;i < list->numstrings;i++)
-		for (c = list->strings[i];*c;c++)
-			if (*c >= 'A' && *c <= 'Z')
+	com.strncpy( pattern, path, sizeof( pattern ));
+	com.strncat( pattern, "*", sizeof( pattern ));
+
+	// ask for the directory listing handle
+	hFile = _findfirst( pattern, &n_file );
+	if( hFile == -1 ) return;
+
+	// start a new chain with the the first name
+	stringlistappend( list, n_file.name );
+	// iterate through the directory
+	while( _findnext( hFile, &n_file ) == 0 )
+		stringlistappend( list, n_file.name );
+	_findclose( hFile );
+
+	// convert names to lowercase because windows doesn't care, but pattern matching code often does
+	for( i = 0; i < list->numstrings; i++ )
+	{
+		for( c = list->strings[i]; *c; c++ )
+		{
+			if( *c >= 'A' && *c <= 'Z' )
 				*c += 'a' - 'A';
+		}
+	}
 }
 
 /*
@@ -534,10 +541,10 @@ static packfile_t* FS_AddFileToPack(const char* name, pack_t* pack, fs_offset_t 
 	int		left, right, middle;
 	packfile_t	*pfile;
 
-	// Look for the slot we should put that file into (binary search)
+	// look for the slot we should put that file into (binary search)
 	left = 0;
 	right = pack->numfiles - 1;
-	while (left <= right)
+	while( left <= right )
 	{
 		int diff;
 
@@ -545,19 +552,19 @@ static packfile_t* FS_AddFileToPack(const char* name, pack_t* pack, fs_offset_t 
 		diff = com.stricmp( pack->files[middle].name, name );
 
 		// If we found the file, there's a problem
-		if (!diff) Msg ("Package %s contains the file %s several times\n", pack->filename, name);
+		if( !diff ) MsgDev( D_NOTE, "Package %s contains the file %s several times\n", pack->filename, name );
 
 		// If we're too far in the list
-		if (diff > 0) right = middle - 1;
+		if( diff > 0 ) right = middle - 1;
 		else left = middle + 1;
 	}
 
 	// We have to move the right of the list by one slot to free the one we need
 	pfile = &pack->files[left];
-	memmove (pfile + 1, pfile, (pack->numfiles - left) * sizeof (*pfile));
+	memmove( pfile + 1, pfile, (pack->numfiles - left) * sizeof( *pfile ));
 	pack->numfiles++;
 
-	com_strncpy (pfile->name, name, sizeof (pfile->name));
+	com.strncpy( pfile->name, name, sizeof( pfile->name ));
 	pfile->offset = offset;
 	pfile->packsize = packsize;
 	pfile->realsize = realsize;
@@ -633,28 +640,29 @@ Extracts the base name of a file (no path, no extension, assumes '/' as path sep
 */
 void _FS_FileBase( const char *in, char *out, bool kill_backwardslash )
 {
-	int len, start, end;
+	int	len, start, end;
 
-	len = com_strlen( in );
+	len = com.strlen( in );
 	
 	// scan backward for '.'
 	end = len - 1;
-	while ( end && in[end] != '.' && in[end] != '/' && in[end] != '\\' )
+	while( end && in[end] != '.' && in[end] != '/' && in[end] != '\\' )
 		end--;
 	
-	if ( in[end] != '.' ) end = len-1; // no '.', copy to end
-	else end--; // Found ',', copy to left of '.'
+	if( in[end] != '.' )
+		end = len-1; // no '.', copy to end
+	else end--; // found ',', copy to left of '.'
 
 
-	// Scan backward for '/'
+	// scan backward for '/'
 	start = len - 1;
 
 	if( kill_backwardslash )
 	{
-		while ( start >= 0 && in[start] != '/' && in[start] != '\\' )
+		while( start >= 0 && in[start] != '/' && in[start] != '\\' )
 			start--;
 
-		if ( start < 0 || ( in[start] != '/' && in[start] != '\\' ) )
+		if( start < 0 || ( in[start] != '/' && in[start] != '\\' ))
 			start = 0;
 		else start++;
 	}
@@ -670,11 +678,11 @@ void _FS_FileBase( const char *in, char *out, bool kill_backwardslash )
 		else start++;
 	}
 
-	// Length of new sting
+	// length of new sting
 	len = end - start + 1;
 
 	// Copy partial string
-	com_strncpy( out, &in[start], len + 1 );
+	com.strncpy( out, &in[start], len + 1 );
 	out[len] = 0;
 }
 
@@ -744,11 +752,11 @@ pack_t *FS_LoadPackPAK(const char *packfile)
 		return NULL;
 	}
 
-	pack = (pack_t *)Mem_Alloc(fs_mempool, sizeof (pack_t));
-	com_strncpy (pack->filename, packfile, sizeof (pack->filename));
+	pack = (pack_t *)Mem_Alloc(fs_mempool, sizeof( pack_t ));
+	com.strncpy( pack->filename, packfile, sizeof( pack->filename ));
 	pack->handle = packhandle;
 	pack->numfiles = 0;
-	pack->files = (packfile_t *)Mem_Alloc(fs_mempool, numpackfiles * sizeof(packfile_t));
+	pack->files = (packfile_t *)Mem_Alloc( fs_mempool, numpackfiles * sizeof( packfile_t ));
 
 	// parse the directory
 	for (i = 0;i < numpackfiles;i++)
@@ -819,18 +827,18 @@ pack_t *FS_LoadPackPK2(const char *packfile)
 		return NULL;
 	}
 
-	pack = (pack_t *)Mem_Alloc(fs_mempool, sizeof (pack_t));
-	com_strncpy (pack->filename, packfile, sizeof (pack->filename));
+	pack = (pack_t *)Mem_Alloc(fs_mempool, sizeof( pack_t ));
+	com.strncpy( pack->filename, packfile, sizeof( pack->filename ));
 	pack->handle = packhandle;
 	pack->numfiles = 0;
-	pack->files = (packfile_t *)Mem_Alloc(fs_mempool, numpackfiles * sizeof(packfile_t));
+	pack->files = (packfile_t *)Mem_Alloc( fs_mempool, numpackfiles * sizeof( packfile_t ));
 
 	// parse the directory
-	for (i = 0; i < numpackfiles; i++)
+	for( i = 0; i < numpackfiles; i++ )
 	{
-		fs_offset_t offset = LittleLong (info[i].filepos);
-		fs_offset_t size = LittleLong (info[i].filelen);
-		FS_AddFileToPack(info[i].name, pack, offset, size, size, PACKFILE_FLAG_TRUEOFFS);
+		fs_offset_t offset = LittleLong( info[i].filepos );
+		fs_offset_t size = LittleLong( info[i].filelen );
+		FS_AddFileToPack( info[i].name, pack, offset, size, size, PACKFILE_FLAG_TRUEOFFS );
 	}
 
 	Mem_Free( info );
@@ -854,27 +862,27 @@ plain directories.
 */
 static bool FS_AddPack_Fullpath( const char *pakfile, bool *already_loaded, bool keep_plain_dirs )
 {
-	searchpath_t *search;
-	pack_t *pak = NULL;
-	const char *ext = FS_FileExtension( pakfile );
+	searchpath_t	*search;
+	pack_t		*pak = NULL;
+	const char	*ext = FS_FileExtension( pakfile );
 	
-	for(search = fs_searchpaths; search; search = search->next)
+	for( search = fs_searchpaths; search; search = search->next )
 	{
-		if(search->pack && !com_stricmp(search->pack->filename, pakfile))
+		if( search->pack && !com.stricmp( search->pack->filename, pakfile ))
 		{
-			if(already_loaded) *already_loaded = true;
+			if( already_loaded ) *already_loaded = true;
 			return true; // already loaded
 		}
 	}
 
-	if(already_loaded) *already_loaded = false;
+	if( already_loaded ) *already_loaded = false;
 
-	if(!com_stricmp(ext, "pak")) pak = FS_LoadPackPAK (pakfile);
-	else if(!com_stricmp(ext, "pk2")) pak = FS_LoadPackPK3(pakfile);
-	else if(!com_stricmp(ext, "pk3")) pak = FS_LoadPackPK3(pakfile);
-	else Msg("\"%s\" does not have a pack extension\n", pakfile);
+	if( !com.stricmp( ext, "pak" )) pak = FS_LoadPackPAK (pakfile);
+	else if( !com.stricmp( ext, "pk2" )) pak = FS_LoadPackPK3(pakfile);
+	else if( !com.stricmp( ext, "pk3" )) pak = FS_LoadPackPK3(pakfile);
+	else MsgDev( D_ERROR, "\"%s\" does not have a pack extension\n", pakfile );
 
-	if (pak)
+	if( pak )
 	{
 		if(keep_plain_dirs)
 		{
@@ -937,7 +945,7 @@ static bool FS_AddWad_Fullpath( const char *wadfile, bool *already_loaded, bool 
 
 	for( search = fs_searchpaths; search; search = search->next )
 	{
-		if( search->wad && !com_stricmp( search->wad->filename, wadfile ))
+		if( search->wad && !com.stricmp( search->wad->filename, wadfile ))
 		{
 			if( already_loaded ) *already_loaded = true;
 			return true; // already loaded
@@ -945,8 +953,8 @@ static bool FS_AddWad_Fullpath( const char *wadfile, bool *already_loaded, bool 
 	}
           
 	if( already_loaded ) *already_loaded = false;
-	if(!com_stricmp( ext, "wad")) wad = W_Open( wadfile, "rb" );
-	else Msg("\"%s\" does not have a wad extension\n", wadfile);
+	if( !com.stricmp( ext, "wad" )) wad = W_Open( wadfile, "rb" );
+	else MsgDev( D_ERROR, "\"%s\" doesn't have a wad extension\n", wadfile );
 
 	if( wad )
 	{
@@ -969,14 +977,14 @@ static bool FS_AddWad_Fullpath( const char *wadfile, bool *already_loaded, bool 
 			// that case, we want to insert at the beginning...
 			if( !insertion_point )
 			{
-				search = (searchpath_t *)Mem_Alloc( fs_mempool, sizeof(searchpath_t));
+				search = (searchpath_t *)Mem_Alloc( fs_mempool, sizeof( searchpath_t ));
 				search->wad = wad;
 				search->next = fs_searchpaths;
 				fs_searchpaths = search;
 			}
 			else // otherwise we want to append directly after insertion_point.
 			{
-				search = (searchpath_t *)Mem_Alloc(fs_mempool, sizeof(searchpath_t));
+				search = (searchpath_t *)Mem_Alloc( fs_mempool, sizeof( searchpath_t ));
 				search->wad = wad;
 				search->next = insertion_point->next;
 				insertion_point->next = search;
@@ -984,7 +992,7 @@ static bool FS_AddWad_Fullpath( const char *wadfile, bool *already_loaded, bool 
 		}
 		else
 		{
-			search = (searchpath_t *)Mem_Alloc(fs_mempool, sizeof(searchpath_t));
+			search = (searchpath_t *)Mem_Alloc( fs_mempool, sizeof( searchpath_t ));
 			search->wad = wad;
 			search->next = fs_searchpaths;
 			fs_searchpaths = search;
@@ -1016,20 +1024,20 @@ plain directories.
 */
 bool FS_AddPack( const char *pakfile, bool *already_loaded, bool keep_plain_dirs )
 {
-	char fullpath[ MAX_STRING ];
-	int index;
-	searchpath_t *search;
+	char		fullpath[ MAX_STRING ];
+	searchpath_t	*search;
+	int		index;
 
-	if(already_loaded) *already_loaded = false;
+	if( already_loaded ) *already_loaded = false;
 
 	// then find the real name...
 	search = FS_FindFile( pakfile, &index, true );
 	if( !search || search->pack )
 	{
-		MsgDev( D_WARN, "FS_AddPack: could not find pak \"%s\"\n", pakfile);
+		MsgDev( D_WARN, "FS_AddPack: could not find pak \"%s\"\n", pakfile );
 		return false;
 	}
-	com_sprintf(fullpath, "%s%s", search->filename, pakfile);
+	com.sprintf( fullpath, "%s%s", search->filename, pakfile );
 	return FS_AddPack_Fullpath( fullpath, already_loaded, keep_plain_dirs );
 }
 
@@ -1046,63 +1054,60 @@ void FS_AddGameDirectory( const char *dir, int flags )
 	stringlist_t	list;
 	searchpath_t	*search;
 	string		pakfile;
+	search_t		*wads;
 	int		i;
 
-	com_strncpy (fs_gamedir, dir, sizeof (fs_gamedir));
+	com.strncpy( fs_gamedir, dir, sizeof( fs_gamedir ));
 
-	stringlistinit(&list);
-	listdirectory(&list, dir);
-	stringlistsort(&list);
+	stringlistinit( &list );
+	listdirectory( &list, dir );
+	stringlistsort( &list );
 
 	// add any PAK package in the directory
-	for (i = 0;i < list.numstrings;i++)
+	for( i = 0; i < list.numstrings; i++ )
 	{
-		if (!com_stricmp(FS_FileExtension(list.strings[i]), "pak" ))
+		if( !com.stricmp( FS_FileExtension(list.strings[i]), "pak" ))
 		{
-			com_sprintf (pakfile, "%s%s", dir, list.strings[i]);
-			FS_AddPack_Fullpath(pakfile, NULL, false);
+			com.sprintf( pakfile, "%s%s", dir, list.strings[i] );
+			FS_AddPack_Fullpath( pakfile, NULL, false );
 		}
 	}
 
 	// add any PK2 package in the directory
-	for (i = 0;i < list.numstrings;i++)
+	for( i = 0; i < list.numstrings; i++ )
 	{
-		if (!com_stricmp(FS_FileExtension(list.strings[i]), "pk2" ))
+		if( !com.stricmp( FS_FileExtension( list.strings[i]), "pk2" ))
 		{
-			com_sprintf (pakfile, "%s%s", dir, list.strings[i]);
-			FS_AddPack_Fullpath(pakfile, NULL, false);
+			com.sprintf( pakfile, "%s%s", dir, list.strings[i] );
+			FS_AddPack_Fullpath( pakfile, NULL, false );
 		}
 	}
 
 	// add any PK3 package in the directory
-	for (i = 0; i < list.numstrings; i++)
+	for( i = 0; i < list.numstrings; i++ )
 	{
-		if (!com_stricmp(FS_FileExtension(list.strings[i]), "pk3" ))
+		if( !com.stricmp( FS_FileExtension( list.strings[i] ), "pk3" ))
 		{
-			com_sprintf (pakfile, "%s%s", dir, list.strings[i]);
-			FS_AddPack_Fullpath(pakfile, NULL, false);
+			com.sprintf( pakfile, "%s%s", dir, list.strings[i] );
+			FS_AddPack_Fullpath( pakfile, NULL, false );
 		}
 	}
 
-	// Add the directory to the search path
+	// add the directory to the search path
 	// (unpacked files have the priority over packed files)
-	search = (searchpath_t *)Mem_Alloc(fs_mempool, sizeof(searchpath_t));
+	search = (searchpath_t *)Mem_Alloc( fs_mempool, sizeof( searchpath_t ));
 	com.strncpy( search->filename, dir, sizeof ( search->filename ));
 	search->next = fs_searchpaths;
 	search->flags = flags;
 	fs_searchpaths = search;
 
-	// NOTE: must be last, because engine attemp to processing wadfiles as normal files,
-	// so supporting W_Read, W_Write e.t.c
-	// but any pack file it's readonly!
-	for( i = 0; i < list.numstrings; i++ )
-	{
-		if (!com.stricmp(FS_FileExtension(list.strings[i]), "wad" ))
-		{
-			FS_AddWad_Fullpath( list.strings[i], NULL, false );
-		}
-	}
 	stringlistfreecontents( &list );
+
+	// use normal method because we want take access to wad files in pak or pk3 archives
+	wads = FS_Search( "*.wad", true );
+	for( i = 0; wads && i < wads->numfilenames; i++ )
+		FS_AddWad_Fullpath( wads->filenames[i], NULL, false );
+	if( wads ) Mem_Free( wads );
 }
 
 /*
@@ -1110,12 +1115,12 @@ void FS_AddGameDirectory( const char *dir, int flags )
 FS_AddGameHierarchy
 ================
 */
-void FS_AddGameHierarchy (const char *dir)
+void FS_AddGameHierarchy( const char *dir )
 {
 	// Add the common game directory
 	if( dir || *dir ) 
 	{
-		FS_AddGameDirectory( va("%s%s/", fs_basedir, dir ), 0 );
+		FS_AddGameDirectory( va( "%s%s/", fs_basedir, dir ), 0 );
 	}
 }
 
@@ -1129,16 +1134,15 @@ const char *FS_FileExtension( const char *in )
 {
 	const char *separator, *backslash, *colon, *dot;
 
-	separator = com_strrchr(in, '/');
-	backslash = com_strrchr(in, '\\');
-	if (!separator || separator < backslash) separator = backslash;
-	colon = com_strrchr(in, ':');
-	if (!separator || separator < colon) separator = colon;
+	separator = com.strrchr(in, '/');
+	backslash = com.strrchr(in, '\\');
+	if( !separator || separator < backslash ) separator = backslash;
+	colon = com.strrchr( in, ':' );
+	if( !separator || separator < colon ) separator = colon;
 
-	dot = com_strrchr(in, '.');
-	if (dot == NULL || (separator && (dot < separator)))
+	dot = com.strrchr( in, '.' );
+	if( dot == NULL || (separator && (dot < separator)))
 		return "";
-
 	return dot + 1;
 }
 
@@ -1148,15 +1152,15 @@ const char *FS_FileExtension( const char *in )
 FS_FileWithoutPath
 ============
 */
-const char *FS_FileWithoutPath (const char *in)
+const char *FS_FileWithoutPath( const char *in )
 {
 	const char *separator, *backslash, *colon;
 
-	separator = com_strrchr(in, '/');
-	backslash = com_strrchr(in, '\\');
-	if (!separator || separator < backslash) separator = backslash;
-	colon = com_strrchr(in, ':');
-	if (!separator || separator < colon) separator = colon;
+	separator = com.strrchr( in, '/' );
+	backslash = com.strrchr( in, '\\' );
+	if( !separator || separator < backslash ) separator = backslash;
+	colon = com.strrchr( in, ':' );
+	if( !separator || separator < colon ) separator = colon;
 	return separator ? separator + 1 : in;
 }
 
@@ -1167,19 +1171,19 @@ FS_ExtractFilePath
 */
 void FS_ExtractFilePath( const char* const path, char* dest )
 {
-	const char* src;
-	src = path + com_strlen(path) - 1;
+	const char	*src;
+	src = path + com.strlen( path ) - 1;
 
 	// back up until a \ or the start
-	while (src != path && !(*(src - 1) == '\\' || *(src - 1) == '/'))
+	while( src != path && !(*(src - 1) == '\\' || *(src - 1) == '/' ))
 		src--;
 
 	if( src != path )
 	{
-		Mem_Copy(dest, path, src - path);
+		Mem_Copy( dest, path, src - path );
 		dest[src - path - 1] = 0; // cutoff backslash
 	}
-	else com_strcpy( dest, "" ); // file without path
+	else com.strcpy( dest, "" ); // file without path
 }
 
 /*
@@ -1196,7 +1200,8 @@ void FS_ClearSearchPath( void )
 		if( search->flags & FS_READONLY_PATH )
 		{
 			// skip read-only pathes e.g. "bin"
-			if( search->next ) fs_searchpaths = search->next->next;
+			if( search->next )
+				fs_searchpaths = search->next->next;
 			else break;
 		}
 		else fs_searchpaths = search->next;
@@ -1251,7 +1256,7 @@ int FS_CheckNastyPath( const char *path, bool isgamedir )
 
 	// all: don't allow . characters before the last slash (it should only be used in filenames, not path elements),
 	// this catches all imaginable cases of ./, ../, .../, etc
-	if( com.strchr( path, '.' )  && !fs_ext_path )
+	if( com.strchr( path, '.' ) && !fs_ext_path )
 	{
 		if( isgamedir ) return 2; // gamedir is entirely path elements, so simply forbid . entirely
 		if( com.strchr( path, '.' ) < com.strrchr( path, '/' )) return 2; // possible attempt to go outside the game directory
@@ -1288,10 +1293,10 @@ void FS_Rescan_f( void )
 
 void FS_ResetGameInfo( void )
 {
-	com_strcpy(GI.title, gs_basedir );	
-	com_strcpy(GI.basedir, gs_basedir );
-	com_strcpy(GI.gamedir, gs_basedir );
-	com_strcpy(GI.username, Sys_GetCurrentUser());
+	com.strcpy( GI.title, gs_basedir );	
+	com.strcpy( GI.basedir, gs_basedir );
+	com.strcpy( GI.gamedir, gs_basedir );
+	com.strcpy( GI.username, Sys_GetCurrentUser());
 	GI.version = XASH_VERSION;
 	GI.viewmode = 1;
 	GI.gamemode = 1;
@@ -1301,17 +1306,17 @@ void FS_CreateGameInfo( const char *filename )
 {
 	char *buffer = Mem_Alloc( fs_mempool, MAX_SYSPATH );
 
-	// make simply gameinfo.txt
-	com_strncat(buffer, va("// generated by Xash3D\r\r\nbasedir\t\t\"%s\"\n", gs_basedir), MAX_SYSPATH ); // add new string
-	com_strncat(buffer, va("gamedir\t\t\"%s\"\n", gs_basedir ), MAX_SYSPATH);
-	com_strncat(buffer, va("title\t\t\"New Game\"\rversion\t\t\"%g\"\rviewmode\t\t\"firstperson\"\r", XASH_VERSION ), MAX_SYSPATH );
-	com_strncat(buffer, "gamemode\t\t\"singleplayer\"\r", MAX_SYSPATH );
-	com_strncat(buffer, "\nstartmap\t\t\"newmap\"\n\n", MAX_SYSPATH );
-	com_strncat(buffer, "// directory for progs binary and source", MAX_SYSPATH );
-	com_strncat(buffer, "\nvprogsdir\t\t\"vprogs\"", MAX_SYSPATH );
-	com_strncat(buffer, "\nsourcedir\t\t\"source\"", MAX_SYSPATH );
+	// make simple gameinfo.txt
+	com.strncat( buffer, va("// generated by Xash3D\r\r\nbasedir\t\t\"%s\"\n", gs_basedir), MAX_SYSPATH ); // add new string
+	com.strncat( buffer, va("gamedir\t\t\"%s\"\n", gs_basedir ), MAX_SYSPATH);
+	com.strncat( buffer, va("title\t\t\"New Game\"\rversion\t\t\"%g\"\rviewmode\t\t\"firstperson\"\r", XASH_VERSION ), MAX_SYSPATH );
+	com.strncat( buffer, "gamemode\t\t\"singleplayer\"\r", MAX_SYSPATH );
+	com.strncat( buffer, "\nstartmap\t\t\"newmap\"\n\n", MAX_SYSPATH );
+	com.strncat( buffer, "// directory for progs binary and source", MAX_SYSPATH );
+	com.strncat( buffer, "\nvprogsdir\t\t\"vprogs\"", MAX_SYSPATH );
+	com.strncat( buffer, "\nsourcedir\t\t\"source\"", MAX_SYSPATH );
 	
-	FS_WriteFile( filename, buffer, com_strlen(buffer));
+	FS_WriteFile( filename, buffer, com.strlen( buffer ));
 	Mem_Free( buffer );
 } 
 
@@ -1330,13 +1335,13 @@ void FS_LoadGameInfo( const char *filename )
 	FS_AddGameHierarchy( gs_basedir );
 
 	// create default gameinfo
-	if(!FS_FileExists( filename )) FS_CreateGameInfo( filename );
+	if( !FS_FileExists( filename )) FS_CreateGameInfo( filename );
 	// now we have search path and can load gameinfo.txt
 	script = PS_LoadScript( filename, NULL, 0 );
 
 	while( script )
 	{
-		if(!PS_ReadToken( script, SC_ALLOW_NEWLINES, &token ))
+		if( !PS_ReadToken( script, SC_ALLOW_NEWLINES, &token ))
 			break;
 
 		if( !com.stricmp( token.string, "basedir" ))
@@ -1432,28 +1437,28 @@ void FS_Init( void )
 		if( !FS_GetParmFromCmdLine( "-game", gs_basedir, sizeof( gs_basedir )))
 		{
 			if( Sys.app_name == HOST_BSPLIB )
-				com_strcpy( gs_basedir, fs_defaultdir->string );
+				com.strcpy( gs_basedir, fs_defaultdir->string );
 			else if( Sys_GetModuleName( gs_basedir, MAX_SYSPATH ));
 			else com.strcpy( gs_basedir, fs_defaultdir->string ); // default dir
 		}
 		// checked nasty path: "bin" it's a reserved word
-		if( FS_CheckNastyPath( gs_basedir, true ) || !com_stricmp("bin", gs_basedir ))
+		if( FS_CheckNastyPath( gs_basedir, true ) || !com.stricmp( "bin", gs_basedir ))
 		{
 			MsgDev( D_ERROR, "FS_Init: invalid game directory \"%s\"\n", gs_basedir );		
 			com.strcpy( gs_basedir, fs_defaultdir->string ); // default dir
 		}
 
 		// validate directories
-		for (i = 0; i < dirs.numstrings; i++)
+		for( i = 0; i < dirs.numstrings; i++ )
 		{
-			if(!com_stricmp(gs_basedir, dirs.strings[i]))
+			if( !com.stricmp( gs_basedir, dirs.strings[i] ))
 				break;
 		}
 
-		if(i == dirs.numstrings)
+		if( i == dirs.numstrings )
 		{ 
 			MsgDev( D_INFO, "FS_Init: game directory \"%s\" not exist\n", gs_basedir );		
-			com_strcpy(gs_basedir, fs_defaultdir->string ); // default dir
+			com.strcpy( gs_basedir, fs_defaultdir->string ); // default dir
 		}
 
 		// build list of game directories here
@@ -1462,7 +1467,7 @@ void FS_Init( void )
 		{
 			// make sure what it's real game directory
 			if( !FS_FileExists( va( "%s/gameinfo.txt", dirs.strings[i] ))) continue;
-			com_strncpy( GI.gamedirs[GI.numgamedirs++], dirs.strings[i], MAX_STRING );
+			com.strncpy( GI.gamedirs[GI.numgamedirs++], dirs.strings[i], MAX_STRING );
 		}
 		stringlistfreecontents( &dirs );
 	}	
@@ -1509,7 +1514,7 @@ bool FS_GetParmFromCmdLine( char *parm, char *out, size_t size )
 	if(!out) return false;	
 	if(!fs_argv[argc + 1]) return false;
 
-	com_strncpy( out, fs_argv[argc+1], size );
+	com.strncpy( out, fs_argv[argc+1], size );
 	return true;
 }
 
@@ -1544,12 +1549,12 @@ void FS_UpdateConfig( void )
 	if( Sys.app_state == SYS_ERROR ) return;
 	// only normal and bsplib instance can change config.dll
 	if( Sys.app_name != HOST_NORMAL && Sys.app_name != HOST_BSPLIB ) return;
-	com_strncpy( fs_gamedir, "bin", sizeof(fs_gamedir));	// set write directory for system config
+	com.strncpy( fs_gamedir, "bin", sizeof( fs_gamedir ));	// set write directory for system config
 	f = FS_Open( "config.dll", "w" );
 	if( f )
 	{
 		FS_Printf (f, "//=======================================================================\n");
-		FS_Printf (f, "//\t\t\tCopyright XashXT Group %s ©\n", com_timestamp( TIME_YEAR_ONLY ));
+		FS_Printf (f, "//\t\t\tCopyright XashXT Group %s ©\n", com.timestamp( TIME_YEAR_ONLY ));
 		FS_Printf (f, "//\t\t      system.rc - archive of system cvars\n");
 		FS_Printf (f, "//=======================================================================\n");
 		FS_WriteVariables( f );
@@ -1861,12 +1866,13 @@ file_t *FS_OpenReadFile( const char *filename, const char *mode, bool quiet )
 
 	if( search->pack )
 		return FS_OpenPackedFile( search->pack, pack_ind );
-	else if( search->wad ) return NULL; // let W_LoadFile get lump correctly
+	else if( search->wad )
+		return NULL; // let W_LoadFile get lump correctly
 	else if( pack_ind < 0 )
 	{
 		// found in the filesystem?
-		char path [MAX_SYSPATH];
-		com_sprintf( path, "%s%s", search->filename, filename );
+		char	path [MAX_SYSPATH];
+		com.sprintf( path, "%s%s", search->filename, filename );
 		return FS_SysOpen( path, mode );
 	} 
 	return NULL;
@@ -2141,9 +2147,9 @@ FS_Print
 Print a string into a file
 ====================
 */
-int FS_Print (file_t* file, const char *msg)
+int FS_Print( file_t* file, const char *msg )
 {
-	return (int)FS_Write(file, msg, com_strlen (msg));
+	return FS_Write( file, msg, com.strlen( msg ));
 }
 
 /*
@@ -2183,15 +2189,15 @@ int FS_VPrintf( file_t* file, const char* format, va_list ap )
 
 	while( 1 )
 	{
-		tempbuff = (char *)Mem_Alloc( fs_mempool, buff_size);
-		len = com_vsprintf(tempbuff, format, ap);
-		if (len >= 0 && len < buff_size) break;
-		Mem_Free (tempbuff);
+		tempbuff = (char *)Mem_Alloc( fs_mempool, buff_size );
+		len = com.vsprintf( tempbuff, format, ap );
+		if( len >= 0 && len < buff_size ) break;
+		Mem_Free( tempbuff );
 		buff_size *= 2;
 	}
 
-	len = write (file->handle, tempbuff, len);
-	Mem_Free (tempbuff);
+	len = write( file->handle, tempbuff, len );
+	Mem_Free( tempbuff );
 
 	return len;
 }
@@ -2469,13 +2475,13 @@ void FS_StripExtension (char *path)
 FS_DefaultExtension
 ==================
 */
-void FS_DefaultExtension (char *path, const char *extension )
+void FS_DefaultExtension( char *path, const char *extension )
 {
 	const char *src;
 
 	// if path doesn't have a .EXT, append extension
 	// (extension should include the .)
-	src = path + com_strlen(path) - 1;
+	src = path + com.strlen( path ) - 1;
 
 	while (*src != '/' && src != path)
 	{
@@ -2483,7 +2489,7 @@ void FS_DefaultExtension (char *path, const char *extension )
 		if (*src == '.') return;                 
 		src--;
 	}
-	com_strcat( path, extension );
+	com.strcat( path, extension );
 }
 
 /*
@@ -2580,14 +2586,14 @@ static search_t *_FS_Search( const char *pattern, int caseinsensitive, int quiet
 
 	stringlistinit(&resultlist);
 	stringlistinit(&dirlist);
-	slash = com_strrchr(pattern, '/');
-	backslash = com_strrchr(pattern, '\\');
-	colon = com_strrchr(pattern, ':');
-	separator = max(slash, backslash);
-	separator = max(separator, colon);
+	slash = com.strrchr( pattern, '/' );
+	backslash = com.strrchr( pattern, '\\' );
+	colon = com.strrchr( pattern, ':' );
+	separator = max( slash, backslash );
+	separator = max( separator, colon );
 	basepathlength = separator ? (separator + 1 - pattern) : 0;
 	basepath = Mem_Alloc( fs_mempool, basepathlength + 1 );
-	if( basepathlength ) Mem_Copy(basepath, pattern, basepathlength);
+	if( basepathlength ) Mem_Copy( basepath, pattern, basepathlength );
 	basepath[basepathlength] = 0;
 
 	// search through the path, one element at a time
@@ -2600,31 +2606,33 @@ static search_t *_FS_Search( const char *pattern, int caseinsensitive, int quiet
 			pak = searchpath->pack;
 			for( i = 0; i < pak->numfiles; i++ )
 			{
-				com_strncpy( temp, pak->files[i].name, sizeof( temp ));
-				while (temp[0])
+				com.strncpy( temp, pak->files[i].name, sizeof( temp ));
+				while( temp[0] )
 				{
-					if( matchpattern(temp, (char *)pattern, true))
+					if( matchpattern( temp, (char *)pattern, true ))
 					{
-						for (resultlistindex = 0;resultlistindex < resultlist.numstrings;resultlistindex++)
-							if (!com_strcmp(resultlist.strings[resultlistindex], temp))
-								break;
-						if (resultlistindex == resultlist.numstrings)
+						for( resultlistindex = 0; resultlistindex < resultlist.numstrings; resultlistindex++ )
 						{
-							stringlistappend(&resultlist, temp);
-							if (!quiet) MsgDev(D_INFO, "SearchPackFile: %s : %s\n", pak->filename, temp);
+							if( !com.strcmp( resultlist.strings[resultlistindex], temp ))
+								break;
+						}
+						if( resultlistindex == resultlist.numstrings )
+						{
+							stringlistappend( &resultlist, temp );
+							if( !quiet ) MsgDev( D_INFO, "SearchPackFile: %s : %s\n", pak->filename, temp );
 						}
 					}
 					// strip off one path element at a time until empty
 					// this way directories are added to the listing if they match the pattern
-					slash = com_strrchr(temp, '/');
-					backslash = com_strrchr(temp, '\\');
-					colon = com_strrchr(temp, ':');
+					slash = com.strrchr( temp, '/' );
+					backslash = com.strrchr( temp, '\\' );
+					colon = com.strrchr( temp, ':' );
 					separator = temp;
-					if (separator < slash)
+					if( separator < slash )
 						separator = slash;
-					if (separator < backslash)
+					if( separator < backslash )
 						separator = backslash;
-					if (separator < colon)
+					if( separator < colon )
 						separator = colon;
 					*((char *)separator) = 0;
 				}
@@ -2633,7 +2641,7 @@ static search_t *_FS_Search( const char *pattern, int caseinsensitive, int quiet
 		else if( searchpath->wad )
 		{
 			string	wadpattern, wadname, temp2;
-			char type = W_TypeFromExt( pattern );
+			char	type = W_TypeFromExt( pattern );
 			bool	anywadname = true;
 			string	wadfolder;
 
@@ -2643,16 +2651,16 @@ static search_t *_FS_Search( const char *pattern, int caseinsensitive, int quiet
 			FS_FileBase( pattern, wadpattern );
 			wadfolder[0] = '\0';
 
-			if(com_strlen( wadname ))
+			if( com.strlen( wadname ))
 			{
 				FS_FileBase( wadname, wadname );
-				com_strncpy( wadfolder, wadname, sizeof(wadfolder));
+				com.strncpy( wadfolder, wadname, sizeof( wadfolder ));
 				FS_DefaultExtension( wadname, ".wad" );
 				anywadname = false;
 			}
 
 			// quick reject by wadname
-			if( !anywadname && com_stricmp( wadname, searchpath->wad->filename ))
+			if( !anywadname && com.stricmp( wadname, searchpath->wad->filename ))
 				continue;
 
 			// look through all the wad file elements
@@ -2662,18 +2670,20 @@ static search_t *_FS_Search( const char *pattern, int caseinsensitive, int quiet
 				// if type not matching, we already no chance ...
 				if( type != TYPE_ANY && wad->lumps[i].type != type )
 					continue;
-				com_strncpy( temp, wad->lumps[i].name, sizeof( temp ));
+				com.strncpy( temp, wad->lumps[i].name, sizeof( temp ));
 				while( temp[0] )
 				{
 					if( matchpattern( temp, wadpattern, true ))
 					{
 						for( resultlistindex = 0; resultlistindex < resultlist.numstrings; resultlistindex++ )
-							if( !com_strcmp( resultlist.strings[resultlistindex], temp ))
+						{
+							if( !com.strcmp( resultlist.strings[resultlistindex], temp ))
 								break;
+						}
 						if( resultlistindex == resultlist.numstrings )
 						{
 							// build path: wadname/lumpname.ext
-							com_snprintf( temp2, sizeof(temp2), "%s/%s", wadfolder, temp );
+							com.snprintf( temp2, sizeof(temp2), "%s/%s", wadfolder, temp );
 							FS_DefaultExtension( temp2, va(".%s", W_ExtFromType( wad->lumps[i].type ))); // make ext
 							stringlistappend( &resultlist, temp2 );
 							if( !quiet ) MsgDev( D_INFO, "SearchWadFile: %s : %s\n", wad->filename, temp2 );
@@ -2681,15 +2691,15 @@ static search_t *_FS_Search( const char *pattern, int caseinsensitive, int quiet
 					}
 					// strip off one path element at a time until empty
 					// this way directories are added to the listing if they match the pattern
-					slash = com_strrchr(temp, '/');
-					backslash = com_strrchr(temp, '\\');
-					colon = com_strrchr(temp, ':');
+					slash = com.strrchr( temp, '/' );
+					backslash = com.strrchr( temp, '\\' );
+					colon = com.strrchr( temp, ':' );
 					separator = temp;
-					if (separator < slash)
+					if( separator < slash )
 						separator = slash;
-					if (separator < backslash)
+					if( separator < backslash )
 						separator = backslash;
-					if (separator < colon)
+					if( separator < colon )
 						separator = colon;
 					*((char *)separator) = 0;
 				}
@@ -2698,54 +2708,57 @@ static search_t *_FS_Search( const char *pattern, int caseinsensitive, int quiet
 		else
 		{
 			// get a directory listing and look at each name
-			com_sprintf(netpath, "%s%s", searchpath->filename, basepath);
-			stringlistinit(&dirlist);
-			listdirectory(&dirlist, netpath);
-			for (dirlistindex = 0; dirlistindex < dirlist.numstrings; dirlistindex++)
+			com.sprintf( netpath, "%s%s", searchpath->filename, basepath );
+			stringlistinit( &dirlist );
+			listdirectory( &dirlist, netpath );
+			for( dirlistindex = 0; dirlistindex < dirlist.numstrings; dirlistindex++ )
 			{
-				com_sprintf(temp, "%s%s", basepath, dirlist.strings[dirlistindex]);
-				if (matchpattern(temp, (char *)pattern, true))
+				com.sprintf( temp, "%s%s", basepath, dirlist.strings[dirlistindex] );
+				if( matchpattern( temp, (char *)pattern, true ))
 				{
-					for (resultlistindex = 0;resultlistindex < resultlist.numstrings;resultlistindex++)
-						if (!com_strcmp(resultlist.strings[resultlistindex], temp))
-							break;
-					if (resultlistindex == resultlist.numstrings)
+					for( resultlistindex = 0; resultlistindex < resultlist.numstrings; resultlistindex++ )
 					{
-						stringlistappend(&resultlist, temp);
-						if (!quiet) MsgDev(D_INFO, "SearchDirFile: %s\n", temp);
+						if( !com.strcmp( resultlist.strings[resultlistindex], temp ))
+							break;
+					}
+					if( resultlistindex == resultlist.numstrings )
+					{
+						stringlistappend( &resultlist, temp );
+						if( !quiet ) MsgDev( D_INFO, "SearchDirFile: %s\n", temp );
 					}
 				}
 			}
-			stringlistfreecontents(&dirlist);
+			stringlistfreecontents( &dirlist );
 		}
 	}
 
 	if( resultlist.numstrings )
 	{
-		stringlistsort(&resultlist);
+		stringlistsort( &resultlist );
 		numfiles = resultlist.numstrings;
 		numchars = 0;
-		for (resultlistindex = 0;resultlistindex < resultlist.numstrings;resultlistindex++)
-			numchars += (int)com_strlen(resultlist.strings[resultlistindex]) + 1;
-		search = Mem_Alloc( fs_mempool, sizeof(search_t) + numchars + numfiles * sizeof(char *));
+		for( resultlistindex = 0; resultlistindex < resultlist.numstrings; resultlistindex++ )
+			numchars += (int)com.strlen( resultlist.strings[resultlistindex]) + 1;
+		search = Mem_Alloc( fs_mempool, sizeof(search_t) + numchars + numfiles * sizeof( char * ));
 		search->filenames = (char **)((char *)search + sizeof(search_t));
-		search->filenamesbuffer = (char *)((char *)search + sizeof(search_t) + numfiles * sizeof(char *));
+		search->filenamesbuffer = (char *)((char *)search + sizeof(search_t) + numfiles * sizeof( char * ));
 		search->numfilenames = (int)numfiles;
 		numfiles = 0;
 		numchars = 0;
-		for (resultlistindex = 0;resultlistindex < resultlist.numstrings;resultlistindex++)
+		for( resultlistindex = 0; resultlistindex < resultlist.numstrings; resultlistindex++ )
 		{
-			size_t textlen;
+			size_t	textlen;
+
 			search->filenames[numfiles] = search->filenamesbuffer + numchars;
-			textlen = com_strlen(resultlist.strings[resultlistindex]) + 1;
-			Mem_Copy(search->filenames[numfiles], resultlist.strings[resultlistindex], textlen);
+			textlen = com.strlen(resultlist.strings[resultlistindex]) + 1;
+			Mem_Copy( search->filenames[numfiles], resultlist.strings[resultlistindex], textlen );
 			numfiles++;
 			numchars += (int)textlen;
 		}
 	}
-	stringlistfreecontents(&resultlist);
+	stringlistfreecontents( &resultlist );
 
-	Mem_Free(basepath);
+	Mem_Free( basepath );
 	return search;
 }
 
@@ -2764,8 +2777,8 @@ void FS_InitMemory( void )
 	fs_mempool = Mem_AllocPool( "Filesystem Pool" );	
 
 	// add a path separator to the end of the basedir if it lacks one
-	if( fs_basedir[0] && fs_basedir[com_strlen(fs_basedir) - 1] != '/' && fs_basedir[com_strlen(fs_basedir) - 1] != '\\')
-		com_strncat(fs_basedir, "/", sizeof(fs_basedir));
+	if( fs_basedir[0] && fs_basedir[com.strlen(fs_basedir) - 1] != '/' && fs_basedir[com.strlen(fs_basedir) - 1] != '\\' )
+		com.strncat( fs_basedir, "/", sizeof( fs_basedir ));
 
 	fs_searchpaths = NULL;
 }
@@ -2778,15 +2791,15 @@ Returns the position (1 to argc-1) in the program's argument list
 where the given parameter apears, or 0 if not present
 ================
 */
-int FS_CheckParm (const char *parm)
+int FS_CheckParm( const char *parm )
 {
-	int i;
+	int	i;
 
-	for (i = 1; i < fs_argc; i++ )
+	for( i = 1; i < fs_argc; i++ )
 	{
 		// NEXTSTEP sometimes clears appkit vars.
-		if (!fs_argv[i]) continue;
-		if (!com_stricmp (parm, fs_argv[i])) return i;
+		if( !fs_argv[i] ) continue;
+		if( !com.stricmp( parm, fs_argv[i] )) return i;
 	}
 	return 0;
 }
@@ -2798,32 +2811,32 @@ void FS_GetBaseDir( char *pszBuffer, char *out )
 	int	j;
 	char	*pBuffer = NULL;
 
-	com_strcpy( szBuffer, pszBuffer );
+	com.strcpy( szBuffer, pszBuffer );
 
-	pBuffer = com_strrchr( szBuffer,'\\' );
+	pBuffer = com.strrchr( szBuffer,'\\' );
 	if ( pBuffer ) *(pBuffer+1) = '\0';
 
-	com_strcpy( basedir, szBuffer );
+	com.strcpy( basedir, szBuffer );
 
-	j = com_strlen( basedir );
-	if (j > 0)
+	j = com.strlen( basedir );
+	if( j > 0 )
 	{
-		if ( ( basedir[ j-1 ] == '\\' ) || ( basedir[ j-1 ] == '/' ) )
+		if(( basedir[ j-1 ] == '\\' ) || ( basedir[ j-1 ] == '/' ))
 			basedir[ j-1 ] = 0;
 	}
-	com_strcpy(out, basedir);
+	com.strcpy( out, basedir );
 }
 
 void FS_ReadEnvironmentVariables( char *pPath )
 {
 	// get basepath from registry
-	REG_GetValue(HKEY_LOCAL_MACHINE, "System\\CurrentControlSet\\Control\\Session Manager\\Environment", "Xash3D", pPath );
+	REG_GetValue( HKEY_LOCAL_MACHINE, "System\\CurrentControlSet\\Control\\Session Manager\\Environment", "Xash3D", pPath );
 }
 
 void FS_SaveEnvironmentVariables( char *pPath )
 {
 	// save new path
-	REG_SetValue(HKEY_LOCAL_MACHINE, "System\\CurrentControlSet\\Control\\Session Manager\\Environment", "Xash3D", pPath );
+	REG_SetValue( HKEY_LOCAL_MACHINE, "System\\CurrentControlSet\\Control\\Session Manager\\Environment", "Xash3D", pPath );
 	SendMessageTimeout( HWND_BROADCAST, WM_SETTINGCHANGE, 0, 0, SMTO_NORMAL, 10, NULL); // system update message
 }
 
@@ -2831,13 +2844,13 @@ static void FS_BuildPath( char *pPath, char *pOut )
 {
 	// set working directory
 	SetCurrentDirectory ( pPath );
-	com_sprintf( pOut, "%s\\bin\\launch.dll", pPath );
+	com.sprintf( pOut, "%s\\bin\\launch.dll", pPath );
 }
 
 void FS_UpdateEnvironmentVariables( void )
 {
-	char szTemp[ 4096 ];
-	char szPath[ MAX_SYSPATH ]; //test path
+	char	szTemp[4096];
+	char	szPath[MAX_SYSPATH]; // test path
 	
 	// NOTE: we want set "real" work directory
 	// defined in environment variables, but in some reasons
@@ -2845,10 +2858,10 @@ void FS_UpdateEnvironmentVariables( void )
           
           // get variable from registry and current directory
 	FS_ReadEnvironmentVariables( szTemp );
-	GetCurrentDirectory(MAX_SYSPATH, sys_rootdir );
+	GetCurrentDirectory( MAX_SYSPATH, sys_rootdir );
 	
 	// if both values is math - no run additional tests		
-	if(com_stricmp(sys_rootdir, szTemp ))
+	if( com.stricmp( sys_rootdir, szTemp ))
 	{
 		// Step1: path from registry have higher priority than current working directory
 		// because user can execute launcher from random place or from a bat-file
@@ -3005,9 +3018,9 @@ VFS_Print
 Print a string into a file
 ====================
 */
-int VFS_Print(vfile_t* file, const char *msg)
+int VFS_Print( vfile_t* file, const char *msg )
 {
-	return (int)VFS_Write(file, msg, com_strlen(msg));
+	return (int)VFS_Write( file, msg, com.strlen( msg ));
 }
 
 /*
@@ -3026,13 +3039,13 @@ int VFS_VPrintf(vfile_t* file, const char* format, va_list ap)
 	while( 1 )
 	{
 		tempbuff = (char *)Mem_Alloc( fs_mempool, buff_size );
-		len = com_vsprintf( tempbuff, format, ap );
+		len = com.vsprintf( tempbuff, format, ap );
 		if( len >= 0 && len < buff_size ) break;
 		Mem_Free( tempbuff );
 		buff_size *= 2;
 	}
 
-	len = VFS_Write(file, tempbuff, len);
+	len = VFS_Write( file, tempbuff, len );
 	Mem_Free( tempbuff );
 
 	return len;
@@ -3140,10 +3153,10 @@ bool VFS_Unpack( void* compbuf, size_t compsize, void **dst, size_t size )
 	z_stream	strm = {compbuf, compsize, 0, buf, size, 0, NULL, NULL, NULL, NULL, NULL, 0, 0, 0 };
 
 	inflateInit( &strm );
-	if (Z_STREAM_END != inflate( &strm, Z_FINISH )) // decompress it in one go.
+	if( Z_STREAM_END != inflate( &strm, Z_FINISH )) // decompress it in one go.
 	{
-		if(!com_strlen(strm.msg)) MsgDev(D_NOTE, "VFS_Unpack: failed block decompression\n" );
-		else MsgDev(D_NOTE, "VFS_Unpack: failed block decompression: %s\n", strm.msg );
+		if( !com.strlen( strm.msg )) MsgDev( D_NOTE, "VFS_Unpack: failed block decompression\n" );
+		else MsgDev( D_NOTE, "VFS_Unpack: failed block decompression: %s\n", strm.msg );
 		return false;
 	}
 	inflateEnd( &strm );
@@ -3216,12 +3229,12 @@ static char W_TypeFromExt( const char *lumpname )
 	wadtype_t		*type;
 
 	// we not known aboyt filetype, so match only by filename
-	if(!com_strcmp( ext, "*" ) || !com_strcmp( ext, "" ))
+	if( !com.strcmp( ext, "*" ) || !com.strcmp( ext, "" ))
 		return TYPE_ANY;
 	
 	for( type = wad_types; type->ext; type++ )
 	{
-		if(!com_stricmp( ext, type->ext ))
+		if(!com.stricmp( ext, type->ext ))
 			return type->type;
 	}
 	return TYPE_NONE;
@@ -3256,7 +3269,7 @@ static dlumpinfo_t *W_FindLump( wfile_t *wad, const char *name, const char match
 		// filtering lumps by type first
 		if( matchtype == TYPE_ANY || matchtype == wad->lumps[i].type )
 		{
-			if( !com_stricmp( name, wad->lumps[i].name ))
+			if( !com.stricmp( name, wad->lumps[i].name ))
 				return &wad->lumps[i]; // found
 		}
 	}
@@ -3271,14 +3284,15 @@ static void W_CleanupName( const char *dirtyname, char *cleanname )
 
 	cleanname[0] = '\0'; // clear output
 	FS_FileBase( dirtyname, tempname );
-	if( com_strlen( tempname ) > WAD3_NAMELEN )
+	if( com.strlen( tempname ) > WAD3_NAMELEN )
 	{
 		// windows style cutoff long names
+		// FIXME: probably can make duplicate names
 		tempname[14] = '~';
 		tempname[15] = '1';
 	}
 	tempname[16] = '\0'; // cutoff all other ...
-	com_strncpy( cleanname, tempname, 16 );
+	com.strncpy( cleanname, tempname, 16 );
 
 	// .. and turn big letters
 	com.strupr( cleanname, cleanname );
@@ -3318,63 +3332,63 @@ static bool W_ConvertIWADLumps( wfile_t *wad )
 		wad->lumps[i].type = TYPE_NONE;
 
 		// check for backslash issues
-		k = com_strlen( com_strchr( wad->lumps[i].name, '\\' ));
-		if( k ) wad->lumps[i].name[com_strlen(wad->lumps[i].name)-k] = '#'; // vile1.spr issues
+		k = com.strlen( com_strchr( wad->lumps[i].name, '\\' ));
+		if( k ) wad->lumps[i].name[com.strlen( wad->lumps[i].name )-k] = '#'; // vile1.spr issues
 	
 		// textures begin
-		if(!com_stricmp( "S_START", wad->lumps[i].name ))
+		if( !com.stricmp( "S_START", wad->lumps[i].name ))
 		{
 			skin_images = true;
 			continue; // skip identifier
 		}
-		else if(!com_stricmp( "P_START", wad->lumps[i].name ))
+		else if( !com.stricmp( "P_START", wad->lumps[i].name ))
 		{
 			flat_images = true;
 			continue; // skip identifier
 		}
-		else if(!com_stricmp( "P1_START", wad->lumps[i].name ))
+		else if( !com.stricmp( "P1_START", wad->lumps[i].name ))
 		{
 			flat_images = true;
 			continue; // skip identifier
 		}
-		else if (!com_stricmp( "P2_START", wad->lumps[i].name ))
+		else if( !com.stricmp( "P2_START", wad->lumps[i].name ))
 		{
 			flat_images = true;
 			continue; // skip identifier
 		}
-		else if (!com_stricmp( "P3_START", wad->lumps[i].name ))
+		else if( !com.stricmp( "P3_START", wad->lumps[i].name ))
 		{
 			// only doom2 uses this name
 			flat_images = true;
 			continue; // skip identifier
 		}
-		else if(!com_strnicmp("WI", wad->lumps[i].name, 2 )) flmp_images = true;
-		else if(!com_strnicmp("ST", wad->lumps[i].name, 2 )) flmp_images = true;
-		else if(!com_strnicmp("M_", wad->lumps[i].name, 2 )) flmp_images = true;
-		else if(!com_strnicmp("END", wad->lumps[i].name, 3 )) flmp_images = true;
-		else if(!com_strnicmp("HELP", wad->lumps[i].name, 4 )) flmp_images = true;
-		else if(!com_strnicmp("CREDIT", wad->lumps[i].name, 6 )) flmp_images = true;
-		else if(!com_strnicmp("TITLEPIC", wad->lumps[i].name, 8 )) flmp_images = true;
-		else if(!com_strnicmp("VICTORY", wad->lumps[i].name, 7 )) flmp_images = true;
-		else if(!com_strnicmp("PFUB", wad->lumps[i].name, 4 )) flmp_images = true;
-		else if(!com_stricmp("P_END", wad->lumps[i].name )) flat_images = false;
-		else if(!com_stricmp("P1_END", wad->lumps[i].name )) flat_images = false;
-		else if(!com_stricmp("P2_END", wad->lumps[i].name )) flat_images = false;
-		else if(!com_stricmp("P3_END", wad->lumps[i].name )) flat_images = false;
-		else if(!com_stricmp("S_END", wad->lumps[i].name )) skin_images = false;
+		else if( !com.strnicmp( "WI", wad->lumps[i].name, 2 )) flmp_images = true;
+		else if( !com.strnicmp( "ST", wad->lumps[i].name, 2 )) flmp_images = true;
+		else if( !com.strnicmp( "M_", wad->lumps[i].name, 2 )) flmp_images = true;
+		else if( !com.strnicmp( "END", wad->lumps[i].name, 3 )) flmp_images = true;
+		else if( !com.strnicmp( "HELP", wad->lumps[i].name, 4 )) flmp_images = true;
+		else if( !com.strnicmp( "CREDIT", wad->lumps[i].name, 6 )) flmp_images = true;
+		else if( !com.strnicmp( "TITLEPIC", wad->lumps[i].name, 8 )) flmp_images = true;
+		else if( !com.strnicmp( "VICTORY", wad->lumps[i].name, 7 )) flmp_images = true;
+		else if( !com.strnicmp( "PFUB", wad->lumps[i].name, 4 )) flmp_images = true;
+		else if( !com.stricmp( "P_END", wad->lumps[i].name )) flat_images = false;
+		else if( !com.stricmp( "P1_END", wad->lumps[i].name )) flat_images = false;
+		else if( !com.stricmp( "P2_END", wad->lumps[i].name )) flat_images = false;
+		else if( !com.stricmp("P3_END", wad->lumps[i].name )) flat_images = false;
+		else if( !com.stricmp( "S_END", wad->lumps[i].name )) skin_images = false;
 		else flmp_images = false;
 
 		// setup lumptypes for doomwads
 		if( flmp_images ) wad->lumps[i].type = TYPE_FLMP; // mark as menu pic
 		if( flat_images ) wad->lumps[i].type = TYPE_FLAT; // mark as texture
 		if( skin_images ) wad->lumps[i].type = TYPE_SKIN; // mark as skin (sprite model)
-		if(!com_strnicmp( wad->lumps[i].name, "D_", 2 )) wad->lumps[i].type = TYPE_MUS;
-		if(!com_strnicmp( wad->lumps[i].name, "DS", 2 )) wad->lumps[i].type = TYPE_SND;
+		if(!com.strnicmp( wad->lumps[i].name, "D_", 2 )) wad->lumps[i].type = TYPE_MUS;
+		if(!com.strnicmp( wad->lumps[i].name, "DS", 2 )) wad->lumps[i].type = TYPE_SND;
 
 		// remove invalid resources
-		if(!com_strnicmp( wad->lumps[i].name, "ENDOOM", 6 )) wad->lumps[i].type = TYPE_NONE;
-		if(!com_strnicmp( wad->lumps[i].name, "STEP1", 5 )) wad->lumps[i].type = TYPE_NONE;
-		if(!com_strnicmp( wad->lumps[i].name, "STEP2", 5 )) wad->lumps[i].type = TYPE_NONE;
+		if(!com.strnicmp( wad->lumps[i].name, "ENDOOM", 6 )) wad->lumps[i].type = TYPE_NONE;
+		if(!com.strnicmp( wad->lumps[i].name, "STEP1", 5 )) wad->lumps[i].type = TYPE_NONE;
+		if(!com.strnicmp( wad->lumps[i].name, "STEP2", 5 )) wad->lumps[i].type = TYPE_NONE;
 	}
 
 	Mem_Free( doomlumps ); // no need anymore
@@ -3408,8 +3422,8 @@ static bool W_ReadLumpTable( wfile_t *wad )
 		com.strnlwr( wad->lumps[i].name, wad->lumps[i].name, sizeof(wad->lumps[i].name));
 
 		// check for '*' symbol issues
-		k = com_strlen( com_strrchr( wad->lumps[i].name, '*' ));
-		if( k ) wad->lumps[i].name[com_strlen(wad->lumps[i].name)-k] = '!'; // quake1 issues
+		k = com.strlen( com.strrchr( wad->lumps[i].name, '*' ));
+		if( k ) wad->lumps[i].name[com.strlen(wad->lumps[i].name)-k] = '!'; // quake1 issues
 
 		// convert all qmip types to miptex
 		if( wad->lumps[i].type == TYPE_QMIP ) wad->lumps[i].type = TYPE_MIPTEX;
@@ -3576,7 +3590,7 @@ wfile_t *W_Open( const char *filename, const char *mode )
 	}
 
 	// copy wad name
-	com_strncpy( wad->filename, filename, sizeof( wad->filename ));
+	com.strncpy( wad->filename, filename, sizeof( wad->filename ));
 	wad->mempool = Mem_AllocPool( filename );
 
 	// if the file is opened in "write", "append", or "read/write" mode

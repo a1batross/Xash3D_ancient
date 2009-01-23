@@ -343,126 +343,6 @@ void CL_AddPacketEntities( frame_t *frame )
 }
 
 /*
-==============
-CL_AddViewWeapon
-==============
-*/
-void CL_AddViewWeapon( entity_state_t *ps )
-{
-	// allow the gun to be completely removed
-	if( !cl_gun->value ) return;
-
-	// don't draw gun if in wide angle view
-	if( ps->fov > 135 ) return;
-	if( !ps->viewmodel ) return;
-
-	cl.viewent.serialnumber = -1;
-	cl.viewent.v.effects |= EF_MINLIGHT;
-	cl.viewent.v.modelindex = ps->viewmodel;
-	VectorCopy( cl.refdef.vieworg, cl.viewent.v.origin );
-	VectorCopy( cl.refdef.viewangles, cl.viewent.v.angles );
-	VectorCopy( cl.refdef.vieworg, cl.viewent.v.oldorigin );
-	VectorCopy( cl.refdef.viewangles, cl.viewent.v.oldangles );
-	re->AddRefEntity( &cl.viewent, ED_VIEWMODEL, cl.refdef.lerpfrac );
-}
-
-
-/*
-===============
-CL_CalcViewValues
-
-Sets cl.refdef view values
-===============
-*/
-void CL_CalcViewValues( void )
-{
-	int		i;
-	float		lerp, backlerp;
-	frame_t		*oldframe;
-	entity_state_t	*ps, *ops;
-	edict_t		*clent;
-
-	// clamp time
-	if( cl.time > cl.frame.servertime )
-	{
-		if( cl_showclamp->value )
-			Msg ("high clamp %i\n", cl.time - cl.frame.servertime);
-		cl.time = cl.frame.servertime;
-		cl.refdef.lerpfrac = 1.0f;
-	}
-	else if (cl.time < cl.frame.servertime - Host_FrameTime())
-	{
-		if (cl_showclamp->value)
-			Msg( "low clamp %i\n", cl.frame.servertime - Host_FrameTime() - cl.time);
-		cl.time = cl.frame.servertime - Host_FrameTime();
-		cl.refdef.lerpfrac = 0.0f;
-	}
-	else cl.refdef.lerpfrac = 1.0 - (cl.frame.servertime - cl.time) * 0.01f;
-
-	// find the previous frame to interpolate from
-	ps = &cl.frame.ps;
-	i = (cl.frame.serverframe - 1) & UPDATE_MASK;
-	oldframe = &cl.frames[i];
-	if( oldframe->serverframe != cl.frame.serverframe-1 || !oldframe->valid )
-		oldframe = &cl.frame; // previous frame was dropped or invalid
-	ops = &oldframe->ps;
-
-	clent = EDICT_NUM( cl.playernum + 1 );
-
-	// see if the player entity was teleported this frame
-	if( ps->ed_flags & ESF_NO_PREDICTION )
-		ops = ps;	// don't interpolate
-	lerp = cl.refdef.lerpfrac;
-
-	// calculate the origin
-	if( cl_predict->integer && !cls.demoplayback )
-	{	
-		// use predicted values
-		int delta;
-
-		backlerp = 1.0 - lerp;
-		for( i = 0; i < 3; i++ )
-		{
-			cl.refdef.vieworg[i] = cl.predicted_origin[i] + ops->viewoffset[i] 
-				+ cl.refdef.lerpfrac * (ps->viewoffset[i] - ops->viewoffset[i]) - backlerp * cl.prediction_error[i];
-		}
-
-		// smooth out stair climbing
-		delta = cls.realtime - cl.predicted_step_time;
-		if( delta < Host_FrameTime()) cl.refdef.vieworg[2] -= cl.predicted_step * (Host_FrameTime() - delta) * 0.01f;
-	}
-	else
-	{
-		// just use interpolated values
-		for( i = 0; i < 3; i++ )
-			cl.refdef.vieworg[i] = LerpView( ops->origin[i], ps->origin[i], ops->viewoffset[i], ps->viewoffset[i], lerp );
-	}
-
-	// if not running a demo or on a locked frame, add the local angle movement
-	if( cls.demoplayback )
-	{
-		for (i = 0; i < 3; i++)
-			cl.refdef.viewangles[i] = LerpAngle( ops->viewangles[i], ps->viewangles[i], lerp );
-	}
-	else
-	{	
-		// in-game use predicted values
-		for (i = 0; i < 3; i++) cl.refdef.viewangles[i] = cl.predicted_angles[i];
-	}
-
-	for( i = 0; i < 3; i++ )
-		cl.refdef.viewangles[i] += LerpAngle( ops->punch_angles[i], ps->punch_angles[i], lerp );
-
-	AngleVectors( cl.refdef.viewangles, cl.refdef.forward, cl.refdef.right, cl.refdef.up );
-
-	// interpolate field of view
-	cl.data.fov = ops->fov + lerp * ( ps->fov - ops->fov );
-
-	// add the weapon
-	CL_AddViewWeapon( ps );
-}
-
-/*
 ===============
 CL_AddEntities
 
@@ -474,18 +354,22 @@ void CL_AddEntities( void )
 	if( cls.state != ca_active )
 		return;
 
-	CL_CalcViewValues();
 	CL_AddPacketEntities( &cl.frame );
+	cls.dllFuncs.pfnCreateEntities();
+
 	CL_AddParticles();
 	CL_AddDLights();
 	CL_AddLightStyles();
 	CL_AddDecals();
+
+	// perfomance test
+	CL_TestEntities();
+	CL_TestLights();
 }
 
 //
 // sound engine implementation
 //
-
 void CL_GetEntitySoundSpatialization( int entnum, vec3_t origin, vec3_t velocity )
 {
 	edict_t		*ent;

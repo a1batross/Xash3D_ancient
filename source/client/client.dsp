@@ -197,10 +197,6 @@ SOURCE=.\hud\hud_train.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\hud\hud_utils.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\hud\hud_warhead.cpp
 # End Source File
 # Begin Source File
@@ -214,6 +210,10 @@ SOURCE=.\global\tempents.cpp
 # Begin Source File
 
 SOURCE=.\global\triapi.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\global\utils.cpp
 # End Source File
 # Begin Source File
 
@@ -249,7 +249,7 @@ SOURCE=.\hud\hud_health.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\hud\hud_iface.h
+SOURCE=.\global\utils.h
 # End Source File
 # Begin Source File
 

@@ -85,9 +85,6 @@ typedef int EOFFSET;
 // In case it's not alread defined
 typedef int BOOL;
 
-// In case this ever changes
-#define M_PI			3.14159265358979323846
-
 // Keeps clutter down a bit, when declaring external entity/global method prototypes
 #define DECLARE_GLOBAL_METHOD(MethodName)  extern void DLLEXPORT MethodName( void )
 #define GLOBAL_METHOD(funcname)					void DLLEXPORT funcname(void)
@@ -547,12 +544,6 @@ extern DLL_GLOBAL int			g_Language;
 #define VEC_DUCK_HULL_MIN	Vector(-16, -16, -18 )
 #define VEC_DUCK_HULL_MAX	Vector( 16,  16,  18)
 #define VEC_DUCK_VIEW		Vector( 0, 0, 12 )
-
-// camera flags
-#define	CAMERA_ON		1
-#define	DRAW_HUD		2
-#define	INVERSE_X		4
-#define	MONSTER_VIEW	8
 
 // triggers
 #define	SF_TRIGGER_ALLOWMONSTERS	1// monsters allowed to fire this trigger

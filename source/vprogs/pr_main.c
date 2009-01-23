@@ -246,7 +246,7 @@ void PRVM_Init( int argc, char **argv )
 	prvm_boundscheck = Cvar_Get( "prvm_boundscheck", "0", 0, "enable vm internal boundschecker" );
 	prvm_traceqc = Cvar_Get( "prvm_traceqc", "0", 0, "enable tracing (only for debug)" );
 	prvm_statementprofiling = Cvar_Get ("prvm_statementprofiling", "0", 0, "counts how many times each QC statement has been executed" );
-	prvm_maxedicts = Cvar_Get( "prvm_maxedicts", "4096", CVAR_SYSTEMINFO, "user limit edicts number fof server, client and renderer, absolute limit 65535" );
+	prvm_maxedicts = Cvar_Get( "host_maxedicts", "2048", CVAR_SYSTEMINFO, "user limit edicts number fof server, client and renderer, absolute limit 65535" );
 
 	if( host_instance == HOST_NORMAL || host_instance == HOST_DEDICATED )
 	{

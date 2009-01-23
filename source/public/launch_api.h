@@ -72,7 +72,6 @@ enum dev_level
 };
 
 typedef long fs_offset_t;
-typedef struct cvar_s cvar_t;
 typedef struct file_s file_t;		// normal file
 typedef struct vfile_s vfile_t;	// virtual file
 typedef struct wfile_s wfile_t;	// wad file
@@ -646,20 +645,7 @@ typedef struct script_s
 	char	TXcommand;
 };
 
-/*
-========================================================================
-console variables
-external and internal cvars struct have some differences
-========================================================================
-*/
-typedef struct cvar_s
-{
-	char	*name;
-	char	*string;		// normal string
-	float	value;		// com.atof( string )
-	int	integer;		// com.atoi( string )
-	bool	modified;		// set each time the cvar is changed
-};
+#include "cvardef.h"
 
 /*
 ==========================================

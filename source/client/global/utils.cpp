@@ -1,10 +1,10 @@
 //=======================================================================
 //			Copyright XashXT Group 2008 ©
-//		     hud_utils.cpp - client game utilities code
+//		     utils.cpp - client game utilities code
 //=======================================================================
 
 #include "extdll.h"
-#include "hud_iface.h"
+#include "utils.h"
 #include "hud.h"
 
 // NOTE: modify these functions with caution

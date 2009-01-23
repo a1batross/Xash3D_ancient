@@ -61,7 +61,9 @@ Beta 13.12.08
 30.func_pendulum				OK
 31.weapon_egon & weapon_gauss
 32.Com_LoadLibrary: searchpaths: game/bin, bin	OK
-33. prepare resources for pak 
+33.prepare resources for pak			OK
+34.V_CalcRefDef export
+35.other unused exports cl & sv 
 
 
 Список доступных рендереров:  	Что в них интересного

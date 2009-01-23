@@ -16,10 +16,7 @@
 #ifndef GAME_H
 #define GAME_H
 
-// cvar flags
-#define CVAR_ARCHIVE	BIT(0)	// set to cause it to be saved to vars.rc
-#define CVAR_USERINFO	BIT(1)	// added to userinfo  when changed
-#define CVAR_SERVERINFO	BIT(2)	// added to serverinfo when changed
+#include "cvardef.h"
 	
 extern void GameDLLInit( void );
 extern void GameDLLShutdown( void );

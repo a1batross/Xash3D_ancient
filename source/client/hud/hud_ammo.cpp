@@ -19,7 +19,7 @@
 //
 
 #include "extdll.h"
-#include "hud_iface.h"
+#include "utils.h"
 #include "hud.h"
 #include "hud_ammohistory.h"
 
@@ -259,7 +259,7 @@ int CHudAmmo::Init( void )
 	Reset();
 
 	CVAR_REGISTER( "hud_drawhistory_time", HISTORY_DRAW_TIME, 0, "weapons pickup history show time" );
-	CVAR_REGISTER( "hud_fastswitch", "0", CVAR_ARCHIVE, "controls whether or not weapons can be selected in one keypress" ); 
+	CVAR_REGISTER( "hud_fastswitch", "0", FCVAR_ARCHIVE, "controls whether or not weapons can be selected in one keypress" ); 
 
 	m_iFlags |= HUD_ACTIVE; //!!!
 

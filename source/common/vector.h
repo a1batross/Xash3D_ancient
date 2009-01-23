@@ -10,7 +10,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#pragma warning(disable : 4244)		// int or float down-conversion
+#pragma warning( disable : 4244 )		// int or float down-conversion
+
+#ifndef M_PI
+#define M_PI		(float)3.14159265358979323846
+#endif
 
 //=========================================================
 // 2DVector - used for many pathfinding and many other 
@@ -152,6 +156,10 @@ public:
           {
           	return(x*vOther.x+y*vOther.y+z*vOther.z);
           }
+	vec_t	Distance( Vector const &vOther) const
+	{
+		return sqrt((x - vOther.x) * (x - vOther.x) + (y - vOther.y) * (y - vOther.y) + (z - vOther.z) * (z - vOther.z));
+	}
 	Vector	Cross(const Vector &vOther) const
 	{
 		return Vector(y*vOther.z - z*vOther.y, z*vOther.x - x*vOther.z, x*vOther.y - y*vOther.x);

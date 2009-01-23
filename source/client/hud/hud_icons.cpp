@@ -16,7 +16,7 @@
 // status_icons.cpp
 //
 #include "extdll.h"
-#include "hud_iface.h"
+#include "utils.h"
 #include "hud.h"
 
 DECLARE_MESSAGE( m_StatusIcons, StatusIcon );

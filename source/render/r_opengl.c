@@ -441,7 +441,7 @@ bool R_Init_OpenGL( void )
 	}
 
 	// setup limits
-	gl_config.max_entities = (int)Cvar_VariableValue( "prvm_maxedicts" );
+	gl_config.max_entities = (int)Cvar_VariableValue( "host_maxedicts" );
 	return true;
 }
 

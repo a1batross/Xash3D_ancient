@@ -1130,23 +1130,23 @@ GetGameDescription
 Returns the descriptive name of this .dll.  E.g., Half-Life, or Team Fortress 2
 ===============
 */
-const char *GetGameDescription()
+const char *GetGameDescription( void )
 {
-	char token[256];
-          char szbuffer[128];
-	
-	char *pfile = (char *)LOAD_FILE( "liblist.gam", NULL );
-	if(pfile)
+	char	token[256];
+          char	szbuffer[128];
+	char	*pfile = (char *)LOAD_FILE( "liblist.gam", NULL );
+
+	if( pfile )
 	{
-		while ( pfile )
+		while( pfile )
 		{
-			if ( !stricmp( token, "game" )) 
+			if( !stricmp( token, "game" )) 
 			{                                          
 				pfile = COM_ParseFile(pfile, token);
 				sprintf( szbuffer, "%s ", token );
 				strcat( text, szbuffer );
 			}
-			else if ( !stricmp( token, "version" )) 
+			else if( !stricmp( token, "version" )) 
 			{                                          
 				pfile = COM_ParseFile(pfile, token);
 				strcat( text, token );

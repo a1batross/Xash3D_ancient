@@ -375,7 +375,7 @@ void SV_Init( void )
 	Cvar_Get ("protocol", va("%i", PROTOCOL_VERSION), CVAR_SERVERINFO|CVAR_INIT, "displays server protocol version" );
 
 	sv_fps = Cvar_Get( "sv_fps", "60", CVAR_ARCHIVE, "running physics engine at" );
-	sv_stepheight = Cvar_Get( "sv_stepheight", "18", CVAR_ARCHIVE|CVAR_LATCH, "how high you can step up" );
+	sv_stepheight = Cvar_Get( "sv_stepheight", DEFAULT_STEPHEIGHT, CVAR_ARCHIVE|CVAR_LATCH, "how high you can step up" );
 	sv_playersonly = Cvar_Get( "playersonly", "0", 0, "freezes time, except for players" );
 	hostname = Cvar_Get ("sv_hostname", "unnamed", CVAR_SERVERINFO | CVAR_ARCHIVE, "host name" );
 	timeout = Cvar_Get ("timeout", "125", 0, "connection timeout" );
@@ -383,15 +383,15 @@ void SV_Init( void )
 	sv_paused = Cvar_Get ("paused", "0", 0, "server pause" );
 	sv_enforcetime = Cvar_Get ("sv_enforcetime", "0", 0, "client enforce time" );
 	allow_download = Cvar_Get ("allow_download", "1", CVAR_ARCHIVE, "allow download resources" );
-	sv_noreload = Cvar_Get("sv_noreload", "0", 0, "ignore savepoints for singleplayer" );
-	sv_rollangle = Cvar_Get("sv_rollangle", "2", 0, "how much to tilt the view when strafing" );
-	sv_rollspeed = Cvar_Get("sv_rollspeed", "200", 0, "how much strafing is necessary to tilt the view" );
-	sv_airaccelerate = Cvar_Get("sv_airaccelerate", "0", CVAR_LATCH, "player accellerate in air" );
+	sv_noreload = Cvar_Get( "sv_noreload", "0", 0, "ignore savepoints for singleplayer" );
+	sv_rollangle = Cvar_Get( "sv_rollangle", DEFAULT_ROLLANGLE, 0, "how much to tilt the view when strafing" );
+	sv_rollspeed = Cvar_Get( "sv_rollspeed", DEFAULT_ROLLSPEED, 0, "how much strafing is necessary to tilt the view" );
+	sv_airaccelerate = Cvar_Get("sv_airaccelerate", DEFAULT_AIRACCEL, CVAR_LATCH, "player accellerate in air" );
 	sv_maxvelocity = Cvar_Get("sv_maxvelocity", DEFAULT_MAXVELOCITY, CVAR_LATCH, "max world velocity" );
           sv_gravity = Cvar_Get("sv_gravity", DEFAULT_GRAVITY, CVAR_LATCH, "world gravity" );
-	sv_maxspeed = Cvar_Get("sv_maxspeed", "320", 0, "maximum speed a player can accelerate to when on ground (can be exceeded by tricks)");
-	sv_accelerate = Cvar_Get( "sv_accelerate", "10", 0, "rate at which a player accelerates to sv_maxspeed" );
-	sv_friction = Cvar_Get( "sv_friction", "4", 0, "how fast you slow down" );
+	sv_maxspeed = Cvar_Get("sv_maxspeed", DEFAULT_MAXSPEED, 0, "maximum speed a player can accelerate to when on ground");
+	sv_accelerate = Cvar_Get( "sv_accelerate", DEFAULT_ACCEL, 0, "rate at which a player accelerates to sv_maxspeed" );
+	sv_friction = Cvar_Get( "sv_friction", DEFAULT_FRICTION, 0, "how fast you slow down" );
 	sv_physics = Cvar_Get( "cm_physic", "1", CVAR_ARCHIVE|CVAR_LATCH, "change physic model: 0 - Classic Quake Physic, 1 - Physics Engine" );
 	
 	public_server = Cvar_Get ("public", "0", 0, "change server type from private to public" );

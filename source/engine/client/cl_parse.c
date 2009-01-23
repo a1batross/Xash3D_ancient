@@ -288,6 +288,66 @@ void CL_ParseBaseline( sizebuf_t *msg )
 	MSG_ReadDeltaEntity( msg, &nullstate, &ent->pvClientData->baseline, newnum );
 }
 
+void CL_ParseMoveVars( int number )
+{
+	float	value;
+
+	if( number == CS_MAXVELOCITY )
+	{
+		value = com.atof( cl.configstrings[CS_MAXVELOCITY] );
+		if( value > 0 ) clgame.movevars.maxvelocity = value;
+		else clgame.movevars.maxvelocity = com.atof( DEFAULT_MAXVELOCITY );
+	}
+	else if( number == CS_GRAVITY )
+	{
+		value = com.atof( cl.configstrings[CS_GRAVITY] );
+		if( value > 0 ) clgame.movevars.gravity = value;
+		else clgame.movevars.gravity = com.atof( DEFAULT_GRAVITY );
+	}
+	else if( number == CS_ROLLSPEED )
+	{
+		value = com.atof( cl.configstrings[CS_ROLLSPEED] );
+		if( value > 0 ) clgame.movevars.rollspeed = value;
+		else clgame.movevars.rollspeed = com.atof( DEFAULT_ROLLSPEED );
+	}
+	else if( number == CS_ROLLANGLE )
+	{
+		value = com.atof( cl.configstrings[CS_ROLLANGLE] );
+		if( value > 0 ) clgame.movevars.rollangle = value;
+		else clgame.movevars.rollangle = com.atof( DEFAULT_ROLLANGLE );
+	}
+	else if( number == CS_MAXSPEED )
+	{
+		value = com.atof( cl.configstrings[CS_MAXSPEED] );
+		if( value > 0 ) clgame.movevars.maxspeed = value;
+		else clgame.movevars.maxspeed = com.atof( DEFAULT_MAXSPEED );
+	}
+	else if( number == CS_STEPHEIGHT )
+	{
+		value = com.atof( cl.configstrings[CS_STEPHEIGHT] );
+		if( value > 0 ) clgame.movevars.stepheight = value;
+		else clgame.movevars.stepheight = com.atof( DEFAULT_STEPHEIGHT );
+	}
+	else if( number == CS_AIRACCELERATE )
+	{
+		value = com.atof( cl.configstrings[CS_AIRACCELERATE] );
+		if( value > 0 ) clgame.movevars.airaccelerate = value;
+		else clgame.movevars.airaccelerate = com.atof( DEFAULT_AIRACCEL );
+	}
+	else if( number == CS_ACCELERATE )
+	{
+		value = com.atof( cl.configstrings[CS_ACCELERATE] );
+		if( value > 0 ) clgame.movevars.accelerate = value;
+		else clgame.movevars.accelerate = com.atof( DEFAULT_ACCEL );
+	}
+	else if( number == CS_FRICTION )
+	{
+		value = com.atof( cl.configstrings[CS_FRICTION] );
+		if( value > 0 ) clgame.movevars.friction = value;
+		else clgame.movevars.friction = com.atof( DEFAULT_FRICTION );
+	}
+}
+
 /*
 ================
 CL_ParseConfigString
@@ -296,7 +356,6 @@ CL_ParseConfigString
 void CL_ParseConfigString( sizebuf_t *msg )
 {
 	int	i;
-	float	value;
 
 	i = MSG_ReadShort( msg );
 	if( i < 0 || i >= MAX_CONFIGSTRINGS )
@@ -308,17 +367,9 @@ void CL_ParseConfigString( sizebuf_t *msg )
 	{
 		re->RegisterShader( cl.configstrings[CS_SKYNAME], SHADER_SKY );
 	}
-	else if( i == CS_MAXVELOCITY )
+	else if( i > CS_BACKGROUND_TRACK && i < CS_MODELS )
 	{
-		value = com.atof( cl.configstrings[CS_MAXVELOCITY] );
-		if( value > 0 ) clgame.maxVelocity = value;
-		else clgame.maxVelocity = com.atof( DEFAULT_MAXVELOCITY );
-	}
-	else if( i == CS_GRAVITY )
-	{
-		value = com.atof( cl.configstrings[CS_GRAVITY] );
-		if( value > 0 ) clgame.gravity = value;
-		else clgame.gravity = com.atof( DEFAULT_GRAVITY );
+		CL_ParseMoveVars( i );
 	}
 	else if( i == CS_BACKGROUND_TRACK && cl.audio_prepped )
 	{

@@ -8,6 +8,7 @@
 #include "mathlib.h"
 #include "const.h"
 #include "client.h"
+#include "cvardef.h"
 
 /*
 =============
@@ -51,6 +52,24 @@ pfnRandomFloat
 float pfnRandomFloat( float flLow, float flHigh )
 {
 	return Com_RandomFloat( flLow, flHigh );
+}
+
+/*
+=============
+pfnCVarRegister
+
+=============
+*/
+cvar_t *pfnCVarRegister( const char *szName, const char *szValue, int flags, const char *szDesc )
+{
+	int	real_flags = 0;
+
+	if( flags & FCVAR_ARCHIVE ) real_flags |= CVAR_ARCHIVE;
+	if( flags & FCVAR_USERINFO ) real_flags |= CVAR_USERINFO;
+	if( flags & FCVAR_SERVERINFO ) real_flags |= CVAR_SERVERINFO;
+	if( flags & FCVAR_LATCH ) real_flags |= CVAR_LATCH;
+
+	return Cvar_Get( szName, szValue, real_flags, szDesc );
 }
 
 /*
@@ -101,6 +120,83 @@ pfnMemCopy
 void pfnMemCopy( void *dest, const void *src, size_t cb, const char *filename, const int fileline )
 {
 	com.memcpy( dest, src, cb, filename, fileline );
+}
+
+/*
+=============
+pfnFOpen
+
+=============
+*/
+void *pfnFOpen( const char* path, const char* mode )
+{
+	return FS_Open( path, mode );
+}
+
+/*
+=============
+pfnFClose
+
+=============
+*/
+int pfnFClose( void *file )
+{
+	return FS_Close( file );
+}
+
+/*
+=============
+pfnFWrite
+
+=============
+*/
+long pfnFWrite( void *file, const void* data, size_t datasize )
+{
+	return FS_Write( file, data, datasize );
+}
+
+/*
+=============
+pfnFRead
+
+=============
+*/
+long pfnFRead( void *file, void* buffer, size_t buffersize )
+{
+	return FS_Read( file, buffer, buffersize );
+}
+
+/*
+=============
+pfnFGets
+
+=============
+*/
+int pfnFGets( void *file, byte *string, size_t bufsize )
+{
+	return FS_Gets( file, string, bufsize );
+}
+
+/*
+=============
+pfnFSeek
+
+=============
+*/
+int pfnFSeek( void *file, long offset, int whence )
+{
+	return FS_Seek( file, offset, whence );
+}
+
+/*
+=============
+pfnFTell
+
+=============
+*/
+long pfnFTell( void *file )
+{
+	return FS_Tell( file );
 }
 
 /*

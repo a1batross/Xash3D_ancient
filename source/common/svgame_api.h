@@ -118,7 +118,7 @@ typedef struct enginefuncs_s
 	void	(*pfnWriteDouble)( double flValue );
 	void	(*pfnWriteString)( const char *sz );
 	void	(*pfnWriteEntity)( int iValue );
-	void	(*pfnCVarRegister)( const char *name, const char *value, int flags, const char *desc );
+	cvar_t*	(*pfnCVarRegister)( const char *name, const char *value, int flags, const char *desc );
 	float	(*pfnCVarGetFloat)( const char *szVarName );
 	const char* (*pfnCVarGetString)( const char *szVarName );
 	void	(*pfnCVarSetFloat)( const char *szVarName, float flValue );
@@ -154,6 +154,13 @@ typedef struct enginefuncs_s
 	void	(*pfnSetView)( const edict_t *pClient, const edict_t *pViewent );
 	void	(*pfnCrosshairAngle)( const edict_t *pClient, float pitch, float yaw );
 	byte*	(*pfnLoadFile)( const char *filename, int *pLength );
+	void	*(*pfnFOpen)( const char* path, const char* mode );
+	int	(*pfnFClose)( void *file );
+	long	(*pfnFWrite)( void *file, const void* data, size_t datasize);
+	long	(*pfnFRead)( void *file, void* buffer, size_t buffersize );
+	int	(*pfnFGets)( void *file, byte *string, size_t bufsize );
+	int	(*pfnFSeek)( void *file, long offset, int whence );
+	long	(*pfnFTell)( void *file );
 	int	(*pfnFileExists)( const char *filename );
 	int	(*pfnCompareFileTime)( const char *filename1, const char *filename2, int *iCompare );
 	void	(*pfnGetGameDir)( char *szGetGameDir );

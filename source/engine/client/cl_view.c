@@ -36,87 +36,6 @@ void V_ClearScene( void )
 }
 
 /*
-=================
-void V_CalcRect( void )
-
-Sets scr_vrect, the coordinates of the rendered window
-=================
-*/
-void V_CalcRect( void )
-{
-	scr_rect[2] = scr_width->integer;
-	scr_rect[2] &= ~7;
-	scr_rect[3] = scr_height->integer;
-	scr_rect[3] &= ~1;
-	scr_rect[0] = scr_rect[1] = 0;
-}
-
-/*
-================
-V_TestEntities
-
-If cl_testentities is set, create 32 player models
-================
-*/
-void V_TestEntities( void )
-{
-	int		i, j;
-	float		f, r;
-	edict_t		ent;
-
-	Mem_Set( &ent, 0, sizeof( edict_t ));
-	V_ClearScene();
-
-	for( i = 0; i < 32; i++ )
-	{
-		r = 64 * ((i%4) - 1.5 );
-		f = 64 * (i/4) + 128;
-
-		for( j = 0; j < 3; j++ )
-			ent.v.origin[j] = cl.refdef.vieworg[j]+cl.refdef.forward[j] * f + cl.refdef.right[j] * r;
-
-		ent.v.scale = 1.0f;
-		ent.serialnumber = cl.frame.ps.number;
-		ent.v.controller[0] = ent.v.controller[1] = 90.0f;
-		ent.v.controller[2] = ent.v.controller[3] = 180.0f;
-		ent.v.modelindex = cl.frame.ps.modelindex;
-		re->AddRefEntity( &ent, ED_NORMAL, 1.0f );
-	}
-}
-
-/*
-================
-V_TestLights
-
-If cl_testlights is set, create 32 lights models
-================
-*/
-void V_TestLights( void )
-{
-	int		i, j;
-	float		f, r;
-	cdlight_t		dl;
-
-	Mem_Set( &dl, 0, sizeof( cdlight_t ));
-	V_ClearScene();
-	
-	for( i = 0; i < 32; i++ )
-	{
-		r = 64 * ( (i%4) - 1.5 );
-		f = 64 * (i/4) + 128;
-
-		for( j = 0; j < 3; j++ )
-			dl.origin[j] = cl.refdef.vieworg[j] + cl.refdef.forward[j] * f + cl.refdef.right[j] * r;
-
-		dl.color[0] = ((i%6)+1) & 1;
-		dl.color[1] = (((i%6)+1) & 2)>>1;
-		dl.color[2] = (((i%6)+1) & 4)>>2;
-		dl.radius = 200;
-		re->AddDynLight( dl.origin, dl.color, dl.radius ); 
-	}
-}
-
-/*
 ====================
 V_CalcFov
 ====================
@@ -137,6 +56,145 @@ float V_CalcFov( float fov_x, float width, float height )
 	return fov_y;
 }
 
+/*
+===============
+V_SetupRefDef
+
+update refdef values each frame
+===============
+*/
+void V_SetupRefDef( void )
+{
+	int		i;
+	float		lerp, backlerp;
+	frame_t		*oldframe;
+	entity_state_t	*ps, *ops;
+
+	// find the previous frame to interpolate from
+	ps = &cl.frame.ps;
+	i = (cl.frame.serverframe - 1) & UPDATE_MASK;
+	oldframe = &cl.frames[i];
+	if( oldframe->serverframe != cl.frame.serverframe-1 || !oldframe->valid )
+		oldframe = &cl.frame; // previous frame was dropped or invalid
+	ops = &oldframe->ps;
+
+	// see if the player entity was teleported this frame
+	if( ps->ed_flags & ESF_NO_PREDICTION )
+		ops = ps;	// don't interpolate
+	lerp = cl.refdef.lerpfrac;
+
+	if( cl.time > cl.frame.servertime )
+	{
+		if( cl_showclamp->integer )
+			MsgDev( D_NOTE, "cl_highclamp %i\n", cl.time - cl.frame.servertime );
+		cl.time = cl.frame.servertime;
+		cl.refdef.lerpfrac = 1.0f;
+	}
+	else if( cl.time < cl.frame.servertime - Host_FrameTime())
+	{
+		if( cl_showclamp->integer )
+			MsgDev( D_NOTE, "cl_lowclamp %i\n", cl.frame.servertime - Host_FrameTime() - cl.time );
+		cl.time = cl.frame.servertime - Host_FrameTime();
+		cl.refdef.lerpfrac = 0.0f;
+	}
+	else cl.refdef.lerpfrac = 1.0 - (cl.frame.servertime - cl.time) * 0.01f;
+
+	// interpolate field of view
+	cl.data.fov = ops->fov + cl.refdef.lerpfrac * ( ps->fov - ops->fov );
+
+	VectorCopy( ps->velocity, cl.refdef.velocity );
+	VectorCopy( ps->origin, cl.refdef.origin );
+	VectorCopy( ops->origin, cl.refdef.prev.origin );
+	VectorCopy( ps->angles, cl.refdef.angles );
+	VectorCopy( ops->angles, cl.refdef.prev.angles );
+	VectorCopy( ps->viewoffset, cl.refdef.viewheight );
+	VectorCopy( ops->viewoffset, cl.refdef.prev.viewheight );
+	VectorCopy( ps->punch_angles, cl.refdef.punchangle );
+	VectorCopy( ops->punch_angles, cl.refdef.prev.punchangle );
+
+	cl.refdef.movevars = &clgame.movevars;
+
+	if( ps->flags & FL_ONGROUND )
+		cl.refdef.onground = EDICT_NUM( ps->groundent );
+	else cl.refdef.onground = NULL;
+	cl.refdef.clientnum = cl.playernum; // not a entity num
+	cl.refdef.viewmodel = ps->viewmodel;
+	cl.refdef.health = ps->health;
+	cl.refdef.num_entities = clgame.numEntities;
+	cl.refdef.max_entities = clgame.maxEntities;
+	cl.refdef.max_clients = clgame.maxClients;
+	cl.refdef.oldtime = (cl.oldtime * 0.001f);
+	cl.refdef.time = (cl.time * 0.001f); // cl.time for right lerping
+	cl.refdef.frametime = cls.frametime;
+	cl.refdef.demoplayback = cls.demoplayback;
+	cl.refdef.demorecord = cls.demorecording;
+	cl.refdef.paused = cl_paused->integer;
+	cl.refdef.predicting = cl_predict->integer;
+
+	// invalid values
+	cl.refdef.waterlevel = 0;	// FIXME: calc it again
+	cl.refdef.smoothing = 0;	// FIXME: detect right settings
+	cl.refdef.viewentity = NULL; // remove ???
+	VectorClear( cl.refdef.crosshairangle );
+
+	// calculate the origin
+	if( cl.refdef.predicting && !cl.refdef.demoplayback )
+	{	
+		// use predicted values
+		int delta;
+
+		backlerp = 1.0 - lerp;
+		for( i = 0; i < 3; i++ )
+		{
+			cl.refdef.vieworg[i] = cl.predicted_origin[i] + ops->viewoffset[i] 
+				+ cl.refdef.lerpfrac * (ps->viewoffset[i] - ops->viewoffset[i]) - backlerp * cl.prediction_error[i];
+		}
+
+		// smooth out stair climbing
+		delta = cls.realtime - cl.predicted_step_time;
+		if( delta < Host_FrameTime()) cl.refdef.vieworg[2] -= cl.predicted_step * (Host_FrameTime() - delta) * 0.01f;
+
+		// in-game use predicted values
+		for( i = 0; i < 3; i++ ) cl.refdef.viewangles[i] = cl.predicted_angles[i];
+	}
+}
+
+/*
+===============
+V_ApplyRefDef
+
+apply pre-calculated values
+===============
+*/
+void V_ApplyRefDef( void )
+{
+	cl.refdef.areabits = cl.frame.areabits;
+	cl.refdef.fov_y = V_CalcFov( cl.refdef.fov_x, cl.refdef.viewport[2], cl.refdef.viewport[3] );
+
+	if( cl.frame.ps.renderfx == kRenderFxUnderwater )
+	{
+		float f = com.sin( cl.time * 0.001 * 0.4 * (M_PI * 2.7));
+		cl.refdef.fov_x += f;
+		cl.refdef.fov_y -= f;
+	}
+	if( cl.viewent.v.modelindex )
+	{
+		re->AddRefEntity( &cl.viewent, ED_VIEWMODEL, cl.refdef.lerpfrac );
+	}
+}
+
+/*
+===============
+V_CalcRefDef
+
+sets cl.refdef view values
+===============
+*/
+void V_CalcRefDef( void )
+{
+	cls.dllFuncs.pfnCalcRefdef( &cl.refdef );
+}
+
 //============================================================================
 
 /*
@@ -151,7 +209,7 @@ void V_RenderView( void )
 
 	// an invalid frame will just use the exact previous refdef
 	// we can't use the old frame if the video mode has changed, though...
-	if ( cl.frame.valid && (cl.force_refdef || !cl_paused->value) )
+	if( cl.frame.valid && (cl.force_refdef || !cl_paused->value ))
 	{
 		cl.force_refdef = false;
 		V_ClearScene();
@@ -161,30 +219,9 @@ void V_RenderView( void )
 		// refdef.forward, etc.
 		CL_AddEntities ();
 
-		if( cl_testentities->value ) V_TestEntities();
-		if( cl_testlights->value ) V_TestLights();
-
-		// never let it sit exactly on a node line, because a water plane can
-		// dissapear when viewed with the eye exactly on it.
-		// the server protocol only specifies to 1/16 pixel, so add 1/32 in each axis
-		cl.refdef.vieworg[0] += 1.0 / 32;
-		cl.refdef.vieworg[1] += 1.0 / 32;
-		cl.refdef.vieworg[2] += 1.0 / 32;
-
-		Mem_Copy( &cl.refdef.viewport, &scr_rect, sizeof( cl.refdef.viewport ));
-                    
-                    cl.refdef.areabits = cl.frame.areabits;
-		cl.refdef.fov_y = V_CalcFov( cl.refdef.fov_x, cl.refdef.viewport[2], cl.refdef.viewport[3] );
-		cl.refdef.oldtime = (cl.oldtime * 0.001f);
-		cl.refdef.time = (cl.time * 0.001f); // cl.time for right lerping		
-		cl.refdef.frametime = cls.frametime;
-
-		if( cl.frame.ps.renderfx == kRenderFxUnderwater )
-		{
-			float f = com.sin( cl.time * 0.001 * 0.4 * (M_PI * 2.7));
-			cl.refdef.fov_x += f;
-			cl.refdef.fov_y -= f;
-		} 
+		V_SetupRefDef ();
+		V_CalcRefDef ();
+		V_ApplyRefDef ();
 	}
 	re->RenderFrame( &cl.refdef );
 }

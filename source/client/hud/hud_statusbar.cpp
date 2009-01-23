@@ -20,7 +20,7 @@
 //
 
 #include "extdll.h"
-#include "hud_iface.h"
+#include "utils.h"
 #include "hud.h"
 
 DECLARE_MESSAGE( m_StatusBar, StatusText );
@@ -37,7 +37,7 @@ int CHudStatusBar :: Init( void )
 
 	Reset();
 
-	CVAR_REGISTER( "hud_centerid", "0", CVAR_ARCHIVE, "disables center id" );
+	CVAR_REGISTER( "hud_centerid", "0", FCVAR_ARCHIVE, "disables center id" );
 
 	return 1;
 }

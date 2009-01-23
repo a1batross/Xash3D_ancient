@@ -208,7 +208,7 @@ void R_Bloom_InitTextures( void )
 		r_downsample.palette = NULL;
 		r_downsample.buffer = r_framebuffer;
 		r_downsample.numMips = 1;
-		r_bloomdownsamplingtexture = R_LoadTexture( "*r_bloomdownsampetexture", &r_downsample, 3, TF_STATIC|TF_NOPICMIP, TF_LINEAR, TW_CLAMP );
+		r_bloomdownsamplingtexture = R_LoadTexture( "*r_bloomdownsampletexture", &r_downsample, 3, TF_STATIC|TF_NOPICMIP, TF_LINEAR, TW_CLAMP );
 	}
 
 	// Init the screen backup texture

@@ -3,7 +3,7 @@
 //=======================================================================
 
 #include "extdll.h"
-#include "hud_iface.h"
+#include "utils.h"
 #include "hud.h"
 
 /*

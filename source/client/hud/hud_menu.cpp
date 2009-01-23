@@ -18,7 +18,7 @@
 // generic menu handler
 //
 #include "extdll.h"
-#include "hud_iface.h"
+#include "utils.h"
 #include "hud.h"
 
 #define MAX_MENU_STRING		512

@@ -2487,67 +2487,58 @@ NoMemory:
 // CGraph - FSaveGraph - It's not rocket science.
 // this WILL overwrite existing files.
 //=========================================================
-int CGraph :: FSaveGraph ( char *szMapName )
+int CGraph :: FSaveGraph( char *szMapName )
 {
 	
-	int		iVersion = GRAPH_VERSION;
+	int	iVersion = GRAPH_VERSION;
 	char	szFilename[MAX_PATH];
-	FILE	*file;
+	void	*file;
 
-	if ( !m_fGraphPresent || !m_fGraphPointersSet )
-	{// protect us in the case that the node graph isn't available or built
-		ALERT ( at_aiconsole, "Graph not ready!\n" );
+	if( !m_fGraphPresent || !m_fGraphPointersSet )
+	{
+		// protect us in the case that the node graph isn't available or built
+		ALERT( at_aiconsole, "Graph not ready!\n" );
 		return FALSE;
 	}
 
-	// make sure directories have been made
-	GET_GAME_DIR( szFilename );
-	strcat( szFilename, "/maps" );
-	CreateDirectory( szFilename, NULL );
-	strcat( szFilename, "/graphs" );
-	CreateDirectory( szFilename, NULL );
+	sprintf( szFilename, "maps/graphs/%s.nod", szMapName );
+	file = g_engfuncs.pfnFOpen( szFilename, "wb" );
 
-	strcat( szFilename, "/" );
-	strcat( szFilename, szMapName );
-	strcat( szFilename, ".nod" );
+	ALERT( at_aiconsole, "Created: %s\n", szFilename );
 
-	file = fopen ( szFilename, "wb" );
-
-	ALERT ( at_aiconsole, "Created: %s\n", szFilename );
-
-	if ( !file )
-	{// couldn't create
-		ALERT ( at_aiconsole, "Couldn't Create: %s\n", szFilename );
+	if( !file )
+	{
+		// couldn't create
+		ALERT( at_aiconsole, "Couldn't Create: %s\n", szFilename );
 		return FALSE;
 	}
 	else
 	{
-	// write the version
-		fwrite ( &iVersion, sizeof ( int ), 1, file );
+		// write the version
+		g_engfuncs.pfnFWrite( file, &iVersion, sizeof( int ));
 
-	// write the CGraph class
-		fwrite ( this, sizeof ( CGraph ), 1, file );
+		// write the CGraph class
+		g_engfuncs.pfnFWrite( file, this, sizeof( CGraph ));
 
-	// write the nodes
-		fwrite ( m_pNodes, sizeof ( CNode ), m_cNodes, file );
+		// write the nodes
+		g_engfuncs.pfnFWrite( file, m_pNodes, sizeof( CNode ) * m_cNodes );
 
-	// write the links
-		fwrite ( m_pLinkPool, sizeof ( CLink ), m_cLinks, file );
+		// write the links
+		g_engfuncs.pfnFWrite( file, m_pLinkPool, sizeof( CLink ) * m_cLinks );
 
-		fwrite ( m_di, sizeof(DIST_INFO), m_cNodes, file );
+		g_engfuncs.pfnFWrite( file, m_di, sizeof( DIST_INFO ) * m_cNodes );
 
-		// Write the route info.
-		//
-		if ( m_pRouteInfo && m_nRouteInfo )
+		// write the route info.
+		if( m_pRouteInfo && m_nRouteInfo )
 		{
-			fwrite ( m_pRouteInfo, sizeof( char ), m_nRouteInfo, file );
+			g_engfuncs.pfnFWrite( file, m_pRouteInfo, sizeof( char ) * m_nRouteInfo );
 		}
 
-		if (m_pHashLinks && m_nHashLinks)
+		if( m_pHashLinks && m_nHashLinks )
 		{
-			fwrite(m_pHashLinks, sizeof(short), m_nHashLinks, file);
+			g_engfuncs.pfnFWrite( file, m_pHashLinks, sizeof( short ) * m_nHashLinks );
 		}
-		fclose ( file );
+		g_engfuncs.pfnFClose( file );
 		return TRUE;
 	}
 }

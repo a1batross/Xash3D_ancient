@@ -556,7 +556,7 @@ void CL_AddParticles( void )
 	if( !cl_particles->integer ) return;
 
 	if( EDICT_NUM( cl.frame.ps.number )->pvClientData->current.gravity != 0 )
-		gravity = EDICT_NUM( cl.frame.ps.number )->pvClientData->current.gravity / clgame.gravity;
+		gravity = EDICT_NUM( cl.frame.ps.number )->pvClientData->current.gravity / clgame.movevars.gravity;
 	else gravity = 1.0f;
 
 	for( p = cl_active_particles; p; p = next )
@@ -781,6 +781,77 @@ bool pfnAddParticle( cparticle_t *src, HSPRITE shader, int flags )
 		VectorCopy( p->origin, p->oldorigin );
 
 	return true;
+}
+
+/*
+================
+CL_TestEntities
+
+if cl_testentities is set, create 32 player models
+================
+*/
+void CL_TestEntities( void )
+{
+	int	i, j;
+	float	f, r;
+	edict_t	ent;
+
+	if( !cl_testentities->integer )
+		return;
+
+	Mem_Set( &ent, 0, sizeof( edict_t ));
+	V_ClearScene();
+
+	for( i = 0; i < 32; i++ )
+	{
+		r = 64 * ((i%4) - 1.5 );
+		f = 64 * (i/4) + 128;
+
+		for( j = 0; j < 3; j++ )
+			ent.v.origin[j] = cl.refdef.vieworg[j]+cl.refdef.forward[j] * f + cl.refdef.right[j] * r;
+
+		ent.v.scale = 1.0f;
+		ent.serialnumber = cl.frame.ps.number;
+		ent.v.controller[0] = ent.v.controller[1] = 90.0f;
+		ent.v.controller[2] = ent.v.controller[3] = 180.0f;
+		ent.v.modelindex = cl.frame.ps.modelindex;
+		re->AddRefEntity( &ent, ED_NORMAL, 1.0f );
+	}
+}
+
+/*
+================
+CL_TestLights
+
+If cl_testlights is set, create 32 lights models
+================
+*/
+void CL_TestLights( void )
+{
+	int	i, j;
+	float	f, r;
+	cdlight_t	dl;
+
+	if( !cl_testlights->integer )
+		return;
+
+	Mem_Set( &dl, 0, sizeof( cdlight_t ));
+	V_ClearScene();
+	
+	for( i = 0; i < 32; i++ )
+	{
+		r = 64 * ( (i%4) - 1.5 );
+		f = 64 * (i/4) + 128;
+
+		for( j = 0; j < 3; j++ )
+			dl.origin[j] = cl.refdef.vieworg[j] + cl.refdef.forward[j] * f + cl.refdef.right[j] * r;
+
+		dl.color[0] = ((i%6)+1) & 1;
+		dl.color[1] = (((i%6)+1) & 2)>>1;
+		dl.color[2] = (((i%6)+1) & 4)>>2;
+		dl.radius = 200;
+		re->AddDynLight( dl.origin, dl.color, dl.radius ); 
+	}
 }
 
 /*

@@ -1,10 +1,10 @@
 //=======================================================================
 //			Copyright XashXT Group 2008 ©
-//		        hud_iface.h - client exported funcs
+//			  utils.h - client utilities
 //=======================================================================
 
-#ifndef HUD_IFACE_H
-#define HUD_IFACE_H
+#ifndef UTILS_H
+#define UTILS_H
 
 extern cl_enginefuncs_t g_engfuncs;
 
@@ -23,6 +23,9 @@ extern void HUD_CreateEntities( void );
 extern void HUD_StudioEvent( const dstudioevent_t *event, edict_t *entity );
 extern void HUD_ParseTempEntity( void );
 extern void V_CalcRefdef( ref_params_t *parms );
+extern void V_Init( void );
+
+#define VIEWPORT_SIZE	512
 
 typedef struct rect_s
 {
@@ -47,11 +50,7 @@ typedef struct dllfunction_s
 	void **funcvariable;
 } dllfunction_t;
 
-// cvar flags
-#define CVAR_ARCHIVE	BIT(0)	// set to cause it to be saved to vars.rc
-#define CVAR_USERINFO	BIT(1)	// added to userinfo  when changed
-#define CVAR_SERVERINFO	BIT(2)	// added to serverinfo when changed
-#define CVAR_LATCH		BIT(5)
+#include "cvardef.h"
 
 // macros to hook function calls into the HUD object
 #define HOOK_MESSAGE( x ) (*g_engfuncs.pfnHookUserMsg)( #x, __MsgFunc_##x );
@@ -97,6 +96,23 @@ inline void ScaleColors( int &r, int &g, int &b, int a )
 	r = (int)(r * x);
 	g = (int)(g * x);
 	b = (int)(b * x);
+}
+
+inline float LerpAngle( float a2, float a1, float frac )
+{
+	if( a1 - a2 > 180 ) a1 -= 360;
+	if( a1 - a2 < -180 ) a1 += 360;
+	return a2 + frac * (a1 - a2);
+}
+
+inline float LerpView( float org1, float org2, float ofs1, float ofs2, float frac )
+{
+	return org1 + ofs1 + frac * (org2 + ofs2 - (org1 + ofs1));
+}
+
+inline float LerpPoint( float oldpoint, float curpoint, float frac )
+{
+	return oldpoint + frac * (curpoint - oldpoint);
 }
 
 inline int ConsoleStringLen( const char *string )
@@ -193,4 +209,4 @@ BOOL Sys_LoadLibrary( const char* dllname, dllhandle_t* handle, const dllfunctio
 void* Sys_GetProcAddress( dllhandle_t handle, const char* name );
 void Sys_UnloadLibrary( dllhandle_t* handle );
 
-#endif//HUD_IFACE_H
+#endif//UTILS_H

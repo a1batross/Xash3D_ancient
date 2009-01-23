@@ -647,7 +647,7 @@ void Host_Init( int argc, char **argv)
 	Host_InitVprogs( argc, argv );
 
 	// per level user limit
-	host.max_edicts = bound( 8, Cvar_VariableValue("prvm_maxedicts"), MAX_EDICTS - 1 );
+	host.max_edicts = bound( 8, Cvar_VariableValue( "host_maxedicts" ), MAX_EDICTS - 1 );
 
 	SV_Init();
 	CL_Init();

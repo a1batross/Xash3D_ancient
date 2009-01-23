@@ -247,8 +247,8 @@ A brand new game has been started
 */
 void SV_InitGame( void )
 {
-	char		i, idmaster[32];
-	edict_t		*ent;
+	char	i, idmaster[32];
+	edict_t	*ent;
 	
 	if( svs.initialized )
 	{
@@ -264,6 +264,8 @@ void SV_InitGame( void )
 		// make sure the client is down
 		CL_Drop();
 	}
+
+	MsgDev( D_INFO, "Dll loaded for mod %s\n", svgame.dllFuncs.pfnGetGameDescription() );
 
 	Cmd_ExecuteString( "latch\n" );
 	svs.initialized = true;

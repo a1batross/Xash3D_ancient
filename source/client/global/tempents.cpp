@@ -4,7 +4,7 @@
 //=======================================================================
 
 #include "extdll.h"
-#include "hud_iface.h"
+#include "utils.h"
 #include "studio_event.h"
 #include "effects_api.h"
 #include "te_message.h"

@@ -5,6 +5,15 @@
 #ifndef REF_PARAMS_H
 #define REF_PARAMS_H
 
+// prev.state values to interpolate from
+typedef struct latched_params_s
+{
+	vec3_t		origin;
+	vec3_t		angles;
+	vec3_t		viewheight;
+	vec3_t		punchangle;
+} latched_params_t;
+
 typedef struct ref_params_s
 {
 	// output
@@ -23,32 +32,35 @@ typedef struct ref_params_s
 	float		time;		// client time
 	float		oldtime;		// studio lerping
 
+	movevars_t	*movevars;	// sv.movevars
+	latched_params_t	prev;
+
 	// misc
 	BOOL		intermission;
 	BOOL		demoplayback;
 	BOOL		demorecord;
-	BOOL		spectator;
 	BOOL		paused;
+	BOOL		thirdperson;	// thirdperson mode
+	BOOL		predicting;	// client movement predicting is running
 	int		onlyClientDraw;	// 1 - don't draw worldmodel
+	int		nextView;		// num V_RenderView passes
 	edict_t		*onground;	// pointer to onground entity
 	byte		*areabits;	// come from server, contains visible areas list
 	int		waterlevel;
+	int		smoothing;
 
 	// input
 	vec3_t		velocity;
 	vec3_t		angles;		// input viewangles
 	vec3_t		origin;		// origin + viewheight = vieworg
-	vec3_t		old_angles;	// prev.state values to interpolate from
-	vec3_t		old_origin;
-
 	vec3_t		viewheight;
-	float		idealpitch;
 
 	int		health;
 	vec3_t		crosshairangle;	// pfnCrosshairAngle values from server
 	vec3_t		punchangle;	// recivied from server
 	edict_t		*viewentity;
 	int		clientnum;
+	int		viewmodel;	// viewmodel index
 	int		num_entities;
 	int		max_entities;
 	int		max_clients;

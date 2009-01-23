@@ -6,8 +6,6 @@
 #include "common.h"
 #include "client.h"
 
-int scr_rect[4];		// position of render window on screen
-
 cvar_t *scr_viewsize;
 cvar_t *scr_centertime;
 cvar_t *scr_showpause;
@@ -302,7 +300,7 @@ void SCR_DrawNet( void )
 	if( cls.netchan.outgoing_sequence - cls.netchan.incoming_acknowledged < CMD_BACKUP-1 )
 		return;
 
-	SCR_DrawPic( scr_rect[0] + 64, scr_rect[1], 48, 48, cls.netIcon );
+	SCR_DrawPic( cl.refdef.viewport[0] + 64, cl.refdef.viewport[1], 48, 48, cls.netIcon );
 }
 
 /*
@@ -371,7 +369,6 @@ void SCR_UpdateScreen( void )
 		CL_DrawHUD( CL_LOADING );
 		break;
 	case ca_active:
-		V_CalcRect();
 		V_RenderView();
 		CL_DrawHUD( CL_ACTIVE );
 		CL_DrawDemoRecording();

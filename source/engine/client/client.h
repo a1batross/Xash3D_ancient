@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "entity_def.h"
 #include "clgame_api.h"
 #include "render_api.h"
+#include "pm_movevars.h"
 
 #define MAX_EDIT_LINE	256
 #define COMMAND_HISTORY	32
@@ -211,10 +212,8 @@ typedef struct
 	int		numMessages;		// actual count of user messages
 	int		hStringTable;		// stringtable handle
 
-	// sae values from server cvars
-	float		maxVelocity;
-	float		gravity;
-
+	// movement values from server
+	movevars_t	movevars;
 } clgame_static_t;
 
 typedef struct
@@ -284,13 +283,11 @@ SCREEN CONSTS
 
 ==============================================================
 */
-extern int scr_rect[4];	// position of render window
 extern vec4_t g_color_table[8];
 
 //
 // cvars
 //
-extern	cvar_t	*cl_gun;
 extern	cvar_t	*cl_add_lights;
 extern	cvar_t	*cl_add_particles;
 extern	cvar_t	*cl_add_entities;
@@ -551,14 +548,11 @@ void SCR_DrawNet( void );
 //
 
 void V_Init (void);
-void V_CalcRect( void );
 void V_Shutdown( void );
+void V_ClearScene( void );
 bool V_PreRender( void );
-void V_RenderHUD( void );
 void V_PostRender( void );
 void V_RenderView( void );
-void V_RenderLogo( void );
-void V_RenderSplash( void );
 float V_CalcFov( float fov_x, float width, float height );
 
 //
@@ -586,6 +580,8 @@ cdlight_t *CL_AllocDlight( int key );
 void CL_AddParticles( void );
 void CL_AddDecals( void );
 void CL_ClearEffects( void );
+void CL_TestLights( void );
+void CL_TestEntities( void );
 void CL_StudioEvent( dstudioevent_t *event, edict_t *ent );
 void CL_AddDecal( vec3_t org, matrix3x3 m, shader_t s, vec4_t rgba, bool fade, decalFragment_t *df, const vec3_t *v );
 edict_t *CL_GetEdictByIndex( int index );

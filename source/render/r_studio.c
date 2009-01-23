@@ -2055,10 +2055,7 @@ int R_StudioDrawPlayer( int flags )
 {
 	edict_t	*pplayer;
 
-	// FIXME: temporary disabled
-	//if( !mirror_render )
-		return 0;
-
+	if( !r_refdef.thirdperson ) return 0;
 	if( !( flags & STUDIO_MIRROR ))
 	{
 		//m_pCurrentEntity = IEngineStudio.GetCurrentEntity();

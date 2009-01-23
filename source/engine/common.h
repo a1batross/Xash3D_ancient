@@ -32,6 +32,13 @@ extern vsound_exp_t		*se;
 // some engine shared constants
 #define DEFAULT_MAXVELOCITY	"2000"
 #define DEFAULT_GRAVITY	"800"
+#define DEFAULT_ROLLSPEED	"200"
+#define DEFAULT_ROLLANGLE	"2"
+#define DEFAULT_STEPHEIGHT	"18"
+#define DEFAULT_AIRACCEL	"0"
+#define DEFAULT_MAXSPEED	"320"
+#define DEFAULT_ACCEL	"10"
+#define DEFAULT_FRICTION	"4"
 
 // all drawing is done to a 640*480 virtual screen size
 // and will be automatically scaled to the real resolution
@@ -153,11 +160,19 @@ PRVM INTERACTIONS
 ==============================================================
 */
 void pfnMemCopy( void *dest, const void *src, size_t cb, const char *filename, const int fileline );
+cvar_t *pfnCVarRegister( const char *szName, const char *szValue, int flags, const char *szDesc );
 byte* pfnLoadFile( const char *filename, int *pLength );
 int pfnFileExists( const char *filename );
 long pfnRandomLong( long lLow, long lHigh );
 float pfnRandomFloat( float flLow, float flHigh );
 void pfnAlertMessage( ALERT_TYPE level, char *szFmt, ... );
+void *pfnFOpen( const char* path, const char* mode );
+long pfnFWrite( void *file, const void* data, size_t datasize );
+long pfnFRead( void *file, void* buffer, size_t buffersize );
+int pfnFGets( void *file, byte *string, size_t bufsize );
+int pfnFSeek( void *file, long offset, int whence );
+int pfnFClose( void *file );
+long pfnFTell( void *file );
 void pfnGetGameDir( char *szGetGameDir );
 
 #define prog	vm->prog	// global callback to vprogs.dll

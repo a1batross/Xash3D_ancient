@@ -2116,6 +2116,10 @@ void CBaseMonster :: StartMonster ( void )
 		{
 			Msg("%s \"%s\" stuck in wall--level design error\n", STRING(pev->classname), STRING(pev->targetname));
 			pev->effects = EF_BRIGHTFIELD;
+
+			// HACKHACK: this is for pre-alpha version
+			// remove stucked zombies on a start.bsp
+			UTIL_Remove( this );
 		}
 	}
 	else 

@@ -212,9 +212,9 @@ void CL_CheckVelocity( edict_t *ent )
 
 	// LordHavoc: max velocity fix, inspired by Maddes's source fixes, but this is faster
 	wishspeed = DotProduct( ent->v.velocity, ent->v.velocity );
-	if( wishspeed > ( clgame.maxVelocity * clgame.maxVelocity ))
+	if( wishspeed > ( clgame.movevars.maxvelocity * clgame.movevars.maxvelocity ))
 	{
-		wishspeed = clgame.maxVelocity / com.sqrt( wishspeed );
+		wishspeed = clgame.movevars.maxvelocity / com.sqrt( wishspeed );
 		ent->v.velocity[0] *= wishspeed;
 		ent->v.velocity[1] *= wishspeed;
 		ent->v.velocity[2] *= wishspeed;

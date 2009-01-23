@@ -5,7 +5,7 @@
 //=======================================================================
 
 #include "extdll.h"
-#include "hud_iface.h"
+#include "utils.h"
 #include "hud.h"
 
 #define GUIDE_S	SPR_Width( m_hCrosshair, 0 )

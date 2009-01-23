@@ -4,7 +4,7 @@
 //=======================================================================
 
 #include	"extdll.h"
-#include	"hud_iface.h"
+#include "utils.h"
 
 void HUD_DrawNormalTriangles( void )
 {

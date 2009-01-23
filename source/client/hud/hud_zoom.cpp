@@ -5,7 +5,7 @@
 
 #include "extdll.h"
 #include "triangle_api.h"
-#include "hud_iface.h"
+#include "utils.h"
 #include "hud.h"
 
 void DrawQuad(float xmin, float ymin, float xmax, float ymax)

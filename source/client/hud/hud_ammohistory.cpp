@@ -18,7 +18,7 @@
 
 
 #include "extdll.h"
-#include "hud_iface.h"
+#include "utils.h"
 #include "hud.h"
 #include "hud_ammohistory.h"
 
