@@ -584,9 +584,9 @@ LINK_ENTITY_TO_CLASS( hvr_rocket, CApacheHVR );
 CNukeExplode *CNukeExplode::Create ( Vector vecOrigin, CBaseEntity *pOwner )
 {
 	CNukeExplode *pNuke = GetClassPtr( (CNukeExplode *)NULL );
-	UTIL_SetOrigin( pNuke, vecOrigin );
+	pNuke->pev->origin = vecOrigin;
 	pNuke->Spawn();
-	pNuke->pev->classname = MAKE_STRING("nuclear_explode");
+	pNuke->pev->classname = MAKE_STRING( "nuclear_explode" );
 	pNuke->pev->owner = pOwner->edict();
 
 	return pNuke;
@@ -650,24 +650,24 @@ LINK_ENTITY_TO_CLASS( nuclear_explode, CNukeExplode );
 //===========================
 //	Nuke rocket code
 //===========================
-CWHRocket *CWHRocket::Create ( Vector vecOrigin, Vector vecAngles, CBaseEntity *pOwner, CBasePlayerWeapon *pLauncher, BOOL Control )
+CWHRocket *CWHRocket::Create( Vector vecOrigin, Vector vecAngles, CBaseEntity *pOwner, CBasePlayerWeapon *pLauncher, BOOL Control )
 {
 	CWHRocket *pRocket = GetClassPtr( (CWHRocket *)NULL );
 
 	UTIL_SetOrigin( pRocket, vecOrigin );
 	pRocket->pev->angles = vecAngles;
-	pRocket->m_pLauncher = pLauncher;// remember what RPG fired me. 
+	pRocket->m_pLauncher = pLauncher;	// remember what RPG fired me. 
 	pRocket->pev->owner = pOwner->edict();
-          pRocket->pev->button = Control;//memeber rocket type         
-	pRocket->pev->classname = MAKE_STRING("nuke_rocket");
-          pRocket->m_pLauncher->m_cActiveRocket++;//register rocket
+          pRocket->pev->button = Control;	// memeber rocket type         
+	pRocket->pev->classname = MAKE_STRING( "nuke_rocket" );
+          pRocket->m_pLauncher->m_cActiveRocket++;// register rocket
 	pRocket->Spawn();
 	pRocket->pev->flags |= FL_PROJECTILE;
 		
 	return pRocket;
 }
 
-TYPEDESCRIPTION	CWHRocket::m_SaveData[] = 
+TYPEDESCRIPTION CWHRocket::m_SaveData[] = 
 {
 	DEFINE_FIELD( CWHRocket, m_pLauncher, FIELD_CLASSPTR ),
 	DEFINE_FIELD( CWHRocket, m_pPlayer, FIELD_CLASSPTR ),
@@ -700,24 +700,22 @@ void CWHRocket :: Spawn( void )
 	pev->health = 10;
           pev->speed = WARHEAD_SPEED; // set initial speed
 	
-	UTIL_SetModel(ENT( pev ), "models/props/whrocket.mdl");
+	UTIL_SetModel( ENT( pev ), "models/props/whrocket.mdl" );
 	EMIT_SOUND( ENT( pev ), CHAN_WEAPON, "weapons/warhead/launch.wav", 1, 0.5 );
 	UTIL_SetOrigin( this, pev->origin );
-          pev->colormap = ENTINDEX(edict());//manually save our index into colormap
 		
 	SetThink( FollowThink );
 	SetTouch( NukeTouch );
 
 	UTIL_MakeVectors( pev->angles );
-	pev->angles.x = -(pev->angles.x);
 	pev->velocity = gpGlobals->v_forward * pev->speed;
 	m_Center = pev->angles;
 
-	if(pev->button)
+	if( pev->button )
 	{
-		UTIL_SetView( m_pPlayer, this, CAMERA_ON | INVERSE_X );
-		m_pLauncher->m_iOnControl = 1;//start controlling
-		m_pPlayer->m_iWarHUD = 1;//enable warhead HUD
+		UTIL_SetView( m_pPlayer, this, CAMERA_ON|INVERSE_X );
+		m_pLauncher->m_iOnControl = 1; // start controlling
+		m_pPlayer->m_iWarHUD = 1;	// enable warhead HUD
 	}
 	SetNextThink( 0.1 );
 }
@@ -735,10 +733,10 @@ void CWHRocket :: Precache( void )
 
 void CWHRocket :: CreateTrail( void )
 {
-	if(b_setup)return;//restore function
+	if( b_setup ) return; // restore function
 	EMIT_SOUND( ENT(pev), CHAN_VOICE, "weapons/warhead/whfly.wav", 1, 0.5 );
-	UTIL_SetAurora( this, m_iTrail);
-	UTIL_SetAurora( this, m_iBurst);
+	UTIL_SetAurora( this, m_iTrail );
+	UTIL_SetAurora( this, m_iBurst );
           pev->renderfx = kRenderFxAurora;
 	b_setup = TRUE;
 }
@@ -748,12 +746,12 @@ void CWHRocket :: FollowThink( void  )
 	Vector angles, velocity;//private angles & velocity to transform
 	CreateTrail();
 	
-	if(pev->button)//controllable rocket
+	if( pev->button ) // controllable rocket
 	{
 		UTIL_MakeVectorsPrivate( m_pPlayer->pev->viewangles, forward, NULL, NULL );
 
 		angles = m_pPlayer->pev->viewangles;
-		angles[0] = 0 - angles[0];
+		angles.x = -angles.x;
 		float steer = WARHEAD_MAX_SPEED / pev->speed; // steer factor
 		
 		angles.x = m_Center.x + UTIL_AngleDistance( angles.x, m_Center.x );

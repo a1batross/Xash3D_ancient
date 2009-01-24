@@ -453,7 +453,7 @@ static void R_RecursiveWorldNode( node_t *node, int clipFlags )
 	if( !leaf->numMarkSurfaces ) return;
 
 	// check for door connected areas
-	if( r_refdef.areabits )
+	if( !r_refdef.nextView && r_refdef.areabits )	// HACKHACK for pre-alpha release
 	{
 		if(!(r_refdef.areabits[leaf->area>>3] & (1<<(leaf->area&7))))
 			return; // not visible

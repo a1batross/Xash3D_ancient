@@ -386,7 +386,7 @@ int CBasePlayerWeapon :: ParseWeaponFile( ItemInfo *II, const char *filename )
 	char path[256];
 	int iResult = 0;	
 
-	sprintf( path, "scripts/weapons/%s.txt", filename );
+	sprintf( path, "scripts/items/%s.txt", filename );
 	char *pfile = (char *)LOAD_FILE( path, NULL );
 	ResetParse( II );
 	
@@ -1771,7 +1771,8 @@ void CBasePlayerWeapon::ItemPostFrame( void )
 			}
 		}
 		m_iPlayEmptySound = 1; // reset empty sound
-		if(iFlags() & ITEM_FLAG_USEAUTOAIM) m_pPlayer->GetAutoaimVector( AUTOAIM_5DEGREES );
+		if( iFlags() & ITEM_FLAG_USEAUTOAIM )
+			m_pPlayer->GetAutoaimVector( AUTOAIM_5DEGREES );
 
 		if(m_flTimeWeaponIdle < UTIL_WeaponTimeBase()) // step reload
 		{

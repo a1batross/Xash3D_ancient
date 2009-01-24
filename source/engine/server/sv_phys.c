@@ -1033,10 +1033,6 @@ bool SV_CheckWater( edict_t *ent )
 	ent->v.watertype = CONTENTS_NONE;
 	cont = SV_PointContents( point );
 
-	// predict state
-	if( ent->pvServerData->s.ed_type == ED_CLIENT )
-		ent->v.renderfx = kRenderFxNone;
-
 	if( cont & (MASK_WATER))
 	{
 		ent->v.watertype = cont;
@@ -1049,12 +1045,9 @@ bool SV_CheckWater( edict_t *ent )
 			if( SV_PointContents( point ) & MASK_WATER )
 			{
 				ent->v.waterlevel = 3;
-				if( ent->pvServerData->s.ed_type == ED_CLIENT )
-					ent->v.renderfx = kRenderFxUnderwater;
 			}
 		}
 	}
-
 	return ent->v.waterlevel > 1;
 }
 

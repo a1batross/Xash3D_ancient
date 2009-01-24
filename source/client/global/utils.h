@@ -186,6 +186,7 @@ extern void SPR_DrawAdditive( int frame, int x, int y, int width, int height );
 extern void TextMessageDrawChar( int xpos, int ypos, int number, int r, int g, int b );
 extern void FillRGBA( float x, float y, float width, float height, int r, int g, int b, int a );
 extern void SetCrosshair( HSPRITE hspr, wrect_t rc, int r, int g, int b );
+extern void HideCrosshair( bool hide );
 extern void DrawCrosshair( void );
 extern void DrawPause( void );
 extern void SetScreenFade( Vector fadeColor, float alpha, float duration, float holdTime, int fadeFlags );
@@ -199,6 +200,7 @@ extern void Draw_VidInit( void );
 // from cl_view.c
 extern void V_RenderSplash( void );
 extern void V_RenderPlaque( void );
+extern edict_t *spot;
 
 // stdio stuff
 extern char *va( const char *format, ... );

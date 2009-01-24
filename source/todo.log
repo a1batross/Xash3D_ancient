@@ -62,8 +62,17 @@ Beta 13.12.08
 31.weapon_egon & weapon_gauss
 32.Com_LoadLibrary: searchpaths: game/bin, bin	OK
 33.prepare resources for pak			OK
-34.V_CalcRefDef export
-35.other unused exports cl & sv 
+34.V_CalcRefDef export			OK
+35.other unused exports cl & sv		OK
+36.V_CalcThirdPerson			OK
+37. player weaponmodel			OK
+38. CalcShake				OK
+39. CrosshairAngle				OK
+40. FirstPerson RefDef			OK
+41. 3dsky surfaceParm			OK
+42. fixup sky rendering			OK
+43. beta-testing
+44. release 
 
 
 Список доступных рендереров:  	Что в них интересного

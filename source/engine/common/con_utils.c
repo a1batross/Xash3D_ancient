@@ -452,6 +452,50 @@ bool Cmd_GetStringTablesList( const char *s, char *completedname, int length )
 
 /*
 =====================================
+Cmd_GetItemsList
+
+Prints or complete item classname
+=====================================
+*/
+bool Cmd_GetItemsList( const char *s, char *completedname, int length )
+{
+	search_t		*t;
+	string		matchbuf;
+	int		i, numitems;
+
+	t = FS_Search( va("scripts/items/%s*.txt", s ), true );
+	if( !t ) return false;
+
+	FS_FileBase( t->filenames[0], matchbuf ); 
+	if( completedname && length ) com.strncpy( completedname, matchbuf, length );
+	if( t->numfilenames == 1 ) return true;
+
+	for(i = 0, numitems = 0; i < t->numfilenames; i++)
+	{
+		const char *ext = FS_FileExtension( t->filenames[i] ); 
+
+		if( com.stricmp(ext, "txt" )) continue;
+		FS_FileBase( t->filenames[i], matchbuf );
+		Msg( "%16s\n", matchbuf );
+		numitems++;
+	}
+	Msg("\n^3 %i items found.\n", numitems );
+	Mem_Free( t );
+
+	// cut shortestMatch to the amount common with s
+	if( completedname && length )
+	{
+		for( i = 0; matchbuf[i]; i++ )
+		{
+			if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
+				completedname[i] = 0;
+		}
+	}
+	return true;
+}
+
+/*
+=====================================
 Cmd_GetGameList
 
 Prints or complete sound filename
@@ -604,6 +648,7 @@ autocomplete_list_t cmd_list[] =
 { "setfont", Cmd_GetFontList, },
 { "music", Cmd_GetSoundList, },
 { "movie", Cmd_GetMovieList },
+{ "give", Cmd_GetItemsList },
 { "game", Cmd_GetGamesList },
 { "map", Cmd_GetMapList },
 { NULL }, // termiantor

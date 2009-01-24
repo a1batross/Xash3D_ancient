@@ -418,6 +418,20 @@ void CL_ParseSetAngle( sizebuf_t *msg )
 }
 
 /*
+================
+CL_ParseCrosshairAngle
+
+offset crosshair angles
+================
+*/
+void CL_ParseCrosshairAngle( sizebuf_t *msg )
+{
+	cl.refdef.crosshairangle[0] = MSG_ReadAngle16( msg );
+	cl.refdef.crosshairangle[1] = MSG_ReadAngle16( msg );
+	cl.refdef.crosshairangle[2] = 0; // not used for screen space
+}
+
+/*
 =====================================================================
 
 ACTION MESSAGES
@@ -488,6 +502,9 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			break;
 		case svc_setangle:
 			CL_ParseSetAngle( msg );
+			break;
+		case svc_crosshairangle:
+			CL_ParseCrosshairAngle( msg );
 			break;
 		case svc_print:
 			Con_Print( va( "^6%s\n", MSG_ReadString( msg )));

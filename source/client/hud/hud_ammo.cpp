@@ -73,7 +73,7 @@ void WeaponsResource :: LoadWeaponSprites( WEAPON *pWeapon )
 	pWeapon->hAmmo = 0;
 	pWeapon->hAmmo2 = 0;
 	
-	sprintf( sz, "scripts/weapons/%s.txt", pWeapon->szName );
+	sprintf( sz, "scripts/items/%s.txt", pWeapon->szName );
 	client_sprite_t *pList = SPR_GetList( sz, &i );
 
 	if( !pList ) return;

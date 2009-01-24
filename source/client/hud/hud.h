@@ -573,6 +573,7 @@ public:
 	int m_Teamplay;
 	int m_iRes;
 	Vector m_vecSkyPos;
+	Vector m_CrosshairAngles;
 	int m_iSkyMode;
 	int m_iCameraMode;
 	int m_iLastCameraMode;

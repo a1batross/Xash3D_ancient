@@ -196,6 +196,9 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 		if( ent->pvServerData->s.ed_type == ED_CLIENT )
 			force = true;
 
+		if( ent->pvServerData->s.ed_type == ED_SKYPORTAL )
+			force = true;
+
 		// never send entities that aren't linked in
 		if( !ent->pvServerData->linked && !force ) continue;
 
@@ -212,6 +215,7 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 		{
 		case ED_MOVER:
 		case ED_NORMAL:
+		case ED_PORTAL:
 		case ED_MONSTER:
 		case ED_AMBIENT:
 		case ED_BSPBRUSH:
@@ -282,7 +286,7 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 		SV_AddEntToSnapshot( svent, ent, ents );
 
 		// if its a portal entity, add everything visible from its camera position
-		if( svent->s.ed_type == ED_PORTAL )
+		if( svent->s.ed_type == ED_PORTAL || svent->s.ed_type == ED_SKYPORTAL )
 			SV_AddEntitiesToPacket( svent->s.origin, frame, ents, true );
 	}
 }

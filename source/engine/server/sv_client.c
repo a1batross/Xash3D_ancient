@@ -892,7 +892,7 @@ MULTICAST_PVS	send to clients potentially visible from org
 MULTICAST_PHS	send to clients potentially hearable from org
 =================
 */
-void _MSG_Send( msgtype_t msg_type, vec3_t origin, edict_t *ent, const char *filename, int fileline )
+void _MSG_Send( msgtype_t msg_type, vec3_t origin, const edict_t *ent, const char *filename, int fileline )
 {
 	byte		*mask = NULL;
 	int		leafnum = 0, cluster = 0;
@@ -1091,7 +1091,7 @@ void SV_UserFriction( sv_client_t *cl )
 
 /*
 ===============
-V_CalcRoll
+SV_CalcRoll
 
 Used by view and sv_user
 ===============

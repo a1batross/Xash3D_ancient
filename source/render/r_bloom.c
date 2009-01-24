@@ -400,6 +400,7 @@ R_BloomBlend
 void R_BloomBlend( const ref_params_t *fd )
 {
 	if( !r_bloom->value ) return;
+	if( r_refdef.nextView ) return;
 	if( screen_texture_width < BLOOM_SIZE || screen_texture_height < BLOOM_SIZE )
 		return;
 	

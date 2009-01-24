@@ -271,6 +271,7 @@ typedef enum
 	SURF_MIRROR		= BIT(12),	// remove face after compile
 	SURF_CHROME		= BIT(13),	// chrome surface effect
 	SURF_GLOW			= BIT(14),	// sprites glow
+	SURF_3DSKY		= BIT(15),	// sky portal
 } surfaceType_t;
 
 typedef struct

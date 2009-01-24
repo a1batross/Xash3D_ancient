@@ -562,6 +562,7 @@ void CL_InitPrediction (void);
 void CL_PredictMove (void);
 void CL_CheckPredictionError( void );
 void CL_CheckVelocity( edict_t *ent );
+bool CL_CheckWater( edict_t *ent );
 int CL_PointContents( const vec3_t point );
 int CL_ContentsMask( const edict_t *passedict );
 bool CL_AmbientLevel( const vec3_t point, float *volumes );

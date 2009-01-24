@@ -222,6 +222,42 @@ void CL_CheckVelocity( edict_t *ent )
 }
 
 /*
+=============
+CL_CheckWater
+=============
+*/
+bool CL_CheckWater( edict_t *ent )
+{
+	int	cont;
+	vec3_t	point;
+
+	point[0] = ent->v.origin[0];
+	point[1] = ent->v.origin[1];
+	point[2] = ent->v.origin[2] + ent->v.mins[2] + 1;
+
+	ent->v.waterlevel = 0;
+	ent->v.watertype = CONTENTS_NONE;
+	cont = CL_PointContents( point );
+
+	if( cont & (MASK_WATER))
+	{
+		ent->v.watertype = cont;
+		ent->v.waterlevel = 1;
+		point[2] = ent->v.origin[2] + (ent->v.mins[2] + ent->v.maxs[2]) * 0.5;
+		if( CL_PointContents( point ) & MASK_WATER )
+		{
+			ent->v.waterlevel = 2;
+			point[2] = ent->v.origin[2] + ent->v.view_ofs[2];
+			if( CL_PointContents( point ) & MASK_WATER )
+			{
+				ent->v.waterlevel = 3;
+			}
+		}
+	}
+	return ent->v.waterlevel > 1;
+}
+
+/*
 ====================
 CL_ClipMoveToEntities
 

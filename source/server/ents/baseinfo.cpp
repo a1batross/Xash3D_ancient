@@ -93,15 +93,17 @@ public:
 //=========================================================
 // Multiplayer intermission spots.
 //=========================================================
-class CInfoIntermission:public CPointEntity
+class CInfoIntermission : public CPointEntity
 {
 	void Spawn( void );
 	void Think( void );
 	void PostActivate( void );
 	CBaseEntity *pTarget;
+	void KeyValue( KeyValueData *pkvd );
+
 };
 
-void CInfoIntermission::Spawn( void )
+void CInfoIntermission :: Spawn( void )
 {
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NOCLIP;
@@ -115,6 +117,20 @@ void CInfoIntermission::PostActivate( void )
 {
 	pTarget = UTIL_FindEntityByTargetname( NULL, STRING( pev->target ));
 	if( !pev->speed ) pev->speed = 100;
+}
+
+void CInfoIntermission::KeyValue( KeyValueData *pkvd )
+{
+	if( FStrEq( pkvd->szKeyName, "mangle" ))
+	{
+		Vector	tmp;
+
+		// Quake1 intermission angles
+		UTIL_StringToVector( tmp, pkvd->szValue );
+		if( tmp != g_vecZero ) pev->angles = tmp;
+		pkvd->fHandled = TRUE;
+	}
+	else CBaseEntity::KeyValue( pkvd );
 }
 
 void CInfoIntermission::Think ( void )

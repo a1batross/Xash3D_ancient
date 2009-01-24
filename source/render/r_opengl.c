@@ -99,12 +99,12 @@ bool R_SetPixelformat( void )
 		1,			// version number
 		flags,			// support window|OpenGL|generic accel|double buffer
 		PFD_TYPE_RGBA,		// RGBA type
-		24,			// 24-bit color depth
-		8, 0, 8, 0, 8, 0,		// color bits set to 32
-		8, 0,			// alpha bit 8
+		32,			// 32-bit color depth
+		0, 0, 0, 0, 0, 0,		// color bits ignored
+		0, 0,			// no alpha buffer
 		0,			// no accumulation buffer
 		0, 0, 0, 0, 		// accum bits ignored
-		32,			// 32-bit z-buffer
+		24,			// 24-bit z-buffer
 		8,			// 8-bit stencil buffer
 		0,			// no auxiliary buffer
 		PFD_MAIN_PLANE,		// main layer

@@ -1482,7 +1482,7 @@ void VM_drawmodel( void )
 	refdef.viewport[3] = size[1];
 
 	refdef.fov_x = 50;
-	refdef.fov_y = V_CalcFov( refdef.fov_x, refdef.viewport[2], refdef.viewport[3] );
+	refdef.fov_y = V_CalcFov( refdef.fov_x, refdef.viewport[2], refdef.viewport[3] ); // FIXME: use contant!
 	refdef.time = cls.realtime * 0.001f;
 	refdef.oldtime = refdef.time - 0.005;
 	refdef.onlyClientDraw = true;

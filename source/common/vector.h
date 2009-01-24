@@ -130,9 +130,13 @@ public:
 		}
 		return *this;
 	}
-	_forceinline Vector MA(  float scale, const Vector &start, const Vector &direction ) const
+	_forceinline Vector MA( float scale, const Vector &start, const Vector &direction )
 	{
-		return Vector(start.x + scale * direction.x, start.y + scale * direction.y, start.z + scale * direction.z) ;
+		x = start.x + scale * direction.x;
+		y = start.y + scale * direction.y;
+		z = start.z + scale * direction.z;
+
+		return *this;
 	}
 	
 	// methods

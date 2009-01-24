@@ -25,6 +25,7 @@ typedef enum
 	ED_RIGIDBODY,	// simulated physic
 	ED_TRIGGER,	// just for sorting on a server
 	ED_PORTAL,	// realtime display, portal or mirror brush or model
+	ED_SKYPORTAL,	// realtime 3D-sky camera
 	ED_MISSILE,	// greande, rocket e.t.c
 	ED_DECAL,		// render will be merge real coords and normal
 	ED_VEHICLE,	// controllable vehicle

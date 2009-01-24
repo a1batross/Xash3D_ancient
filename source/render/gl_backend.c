@@ -1091,6 +1091,7 @@ void GL_Setup3D( void )
 */
 void GL_Setup2D( void )
 {
+	if( r_refdef.nextView ) return;
 	if( gl_finish->integer ) pglFinish();
 
 	// set 2D virtual screen size

@@ -279,7 +279,7 @@ int BrushContents( mapbrush_t *b )
 	{
 		s = &b->original_sides[i];
 		trans |= dshaders[texinfo[s->texinfo].shadernum].surfaceFlags;
-		if(( s->contents != contents ) && !( trans & (SURF_NODRAW|SURF_SKY)))
+		if(( s->contents != contents ) && !( trans & (SURF_NODRAW|SURF_SKY|SURF_3DSKY)))
 		{
 			CntString( s->contents, cnt1 );
 			CntString( contents, cnt2 );

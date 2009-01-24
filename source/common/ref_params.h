@@ -51,14 +51,14 @@ typedef struct ref_params_s
 
 	// input
 	vec3_t		velocity;
-	vec3_t		angles;		// input viewangles
+	vec3_t		cl_viewangles;	// predicted angles
+	vec3_t		angles;		// viewangles that came from server
 	vec3_t		origin;		// origin + viewheight = vieworg
 	vec3_t		viewheight;
 
 	int		health;
 	vec3_t		crosshairangle;	// pfnCrosshairAngle values from server
 	vec3_t		punchangle;	// recivied from server
-	edict_t		*viewentity;
 	int		clientnum;
 	int		viewmodel;	// viewmodel index
 	int		num_entities;

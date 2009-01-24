@@ -831,7 +831,7 @@ void SubdivideFace( node_t *node, face_t *f )
 	tex = &texinfo[f->texinfo];
 	shader = &dshaders[tex->shadernum];
 
-	if( shader->surfaceFlags & (SURF_WARP|SURF_SKY) )
+	if( shader->surfaceFlags & (SURF_WARP|SURF_SKY|SURF_3DSKY))
 	{
 		return;
 	}

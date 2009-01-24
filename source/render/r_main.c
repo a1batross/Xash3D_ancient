@@ -1131,7 +1131,6 @@ static bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac
 	}
 
 	refent->weaponmodel = cl_models[pRefEntity->v.weaponmodel];
-
 	if( refent->ent_type == ED_MOVER || refent->ent_type == ED_BSPBRUSH )
 	{
 		// store conveyor movedir in pev->velocity
@@ -1316,7 +1315,7 @@ R_BeginFrame
 void R_BeginFrame( void )
 {
 	// clear r_speeds statistics
-	Mem_Set(&r_stats, 0, sizeof(refstats_t));
+	Mem_Set( &r_stats, 0, sizeof( refstats_t ));
 
 	if( vid_gamma->modified )
 	{

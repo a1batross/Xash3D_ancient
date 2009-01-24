@@ -69,6 +69,7 @@ void V_SetupRefDef( void )
 	float		lerp, backlerp;
 	frame_t		*oldframe;
 	entity_state_t	*ps, *ops;
+	edict_t		*clent;
 
 	// find the previous frame to interpolate from
 	ps = &cl.frame.ps;
@@ -77,6 +78,8 @@ void V_SetupRefDef( void )
 	if( oldframe->serverframe != cl.frame.serverframe-1 || !oldframe->valid )
 		oldframe = &cl.frame; // previous frame was dropped or invalid
 	ops = &oldframe->ps;
+
+	clent = EDICT_NUM( cl.playernum + 1 );
 
 	// see if the player entity was teleported this frame
 	if( ps->ed_flags & ESF_NO_PREDICTION )
@@ -99,6 +102,9 @@ void V_SetupRefDef( void )
 	}
 	else cl.refdef.lerpfrac = 1.0 - (cl.frame.servertime - cl.time) * 0.01f;
 
+	// UNDONE: temporary place for detect waterlevel
+	CL_CheckWater( clent );
+
 	// interpolate field of view
 	cl.data.fov = ops->fov + cl.refdef.lerpfrac * ( ps->fov - ops->fov );
 
@@ -111,12 +117,14 @@ void V_SetupRefDef( void )
 	VectorCopy( ops->viewoffset, cl.refdef.prev.viewheight );
 	VectorCopy( ps->punch_angles, cl.refdef.punchangle );
 	VectorCopy( ops->punch_angles, cl.refdef.prev.punchangle );
+	VectorCopy( cl.predicted_angles, cl.refdef.cl_viewangles );
 
 	cl.refdef.movevars = &clgame.movevars;
 
 	if( ps->flags & FL_ONGROUND )
 		cl.refdef.onground = EDICT_NUM( ps->groundent );
 	else cl.refdef.onground = NULL;
+	cl.refdef.areabits = cl.frame.areabits;
 	cl.refdef.clientnum = cl.playernum; // not a entity num
 	cl.refdef.viewmodel = ps->viewmodel;
 	cl.refdef.health = ps->health;
@@ -130,12 +138,9 @@ void V_SetupRefDef( void )
 	cl.refdef.demorecord = cls.demorecording;
 	cl.refdef.paused = cl_paused->integer;
 	cl.refdef.predicting = cl_predict->integer;
-
-	// invalid values
-	cl.refdef.waterlevel = 0;	// FIXME: calc it again
-	cl.refdef.smoothing = 0;	// FIXME: detect right settings
-	cl.refdef.viewentity = NULL; // remove ???
-	VectorClear( cl.refdef.crosshairangle );
+	cl.refdef.waterlevel = clent->v.waterlevel;		
+	cl.refdef.smoothing = 0; // get rid of this
+	cl.refdef.nextView = 0;
 
 	// calculate the origin
 	if( cl.refdef.predicting && !cl.refdef.demoplayback )
@@ -153,9 +158,6 @@ void V_SetupRefDef( void )
 		// smooth out stair climbing
 		delta = cls.realtime - cl.predicted_step_time;
 		if( delta < Host_FrameTime()) cl.refdef.vieworg[2] -= cl.predicted_step * (Host_FrameTime() - delta) * 0.01f;
-
-		// in-game use predicted values
-		for( i = 0; i < 3; i++ ) cl.refdef.viewangles[i] = cl.predicted_angles[i];
 	}
 }
 
@@ -166,21 +168,10 @@ V_ApplyRefDef
 apply pre-calculated values
 ===============
 */
-void V_ApplyRefDef( void )
+void V_AddViewModel( void )
 {
-	cl.refdef.areabits = cl.frame.areabits;
-	cl.refdef.fov_y = V_CalcFov( cl.refdef.fov_x, cl.refdef.viewport[2], cl.refdef.viewport[3] );
-
-	if( cl.frame.ps.renderfx == kRenderFxUnderwater )
-	{
-		float f = com.sin( cl.time * 0.001 * 0.4 * (M_PI * 2.7));
-		cl.refdef.fov_x += f;
-		cl.refdef.fov_y -= f;
-	}
-	if( cl.viewent.v.modelindex )
-	{
-		re->AddRefEntity( &cl.viewent, ED_VIEWMODEL, cl.refdef.lerpfrac );
-	}
+	if( !cl.viewent.v.modelindex || cl.refdef.nextView ) return;
+	re->AddRefEntity( &cl.viewent, ED_VIEWMODEL, cl.refdef.lerpfrac );
 }
 
 /*
@@ -192,7 +183,13 @@ sets cl.refdef view values
 */
 void V_CalcRefDef( void )
 {
-	cls.dllFuncs.pfnCalcRefdef( &cl.refdef );
+	do
+	{
+		if( cl.refdef.nextView )
+			re->RenderFrame( &cl.refdef );
+		cls.dllFuncs.pfnCalcRefdef( &cl.refdef );
+		V_AddViewModel();
+	} while( cl.refdef.nextView );
 }
 
 //============================================================================
@@ -221,7 +218,6 @@ void V_RenderView( void )
 
 		V_SetupRefDef ();
 		V_CalcRefDef ();
-		V_ApplyRefDef ();
 	}
 	re->RenderFrame( &cl.refdef );
 }
@@ -238,7 +234,6 @@ bool V_PreRender( void )
 	if( !re ) return false;
 		
 	re->BeginFrame();
-	SCR_FillRect( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, g_color_table[0] );
 	return true;
 }
 

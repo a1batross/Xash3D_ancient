@@ -154,7 +154,7 @@ bool IsSky( dsurface_t *f )
 	dshader_t	*tx;
 
 	tx = &dshaders[texinfo[f->texinfo].shadernum];
-	if( tx->surfaceFlags & SURF_SKY )
+	if( tx->surfaceFlags & SURF_SKY|SURF_3DSKY )
 		return true;
 	return false;
 }

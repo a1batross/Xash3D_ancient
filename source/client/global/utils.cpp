@@ -189,6 +189,7 @@ typedef struct
 	HSPRITE	hCrosshair;
 	wrect_t	rcCrosshair;
 	Vector	rgbCrosshair;
+	bool	noCrosshair;
 } draw_stuff_t;
 
 typedef struct
@@ -516,13 +517,22 @@ void SetCrosshair( HSPRITE hspr, wrect_t rc, int r, int g, int b )
 	ds.rcCrosshair = rc;
 }
 
+void HideCrosshair( bool hide )
+{
+	ds.noCrosshair = hide;
+}
+
 void DrawCrosshair( void )
 {
-	if( ds.hCrosshair == 0 ) return;
+	if( ds.hCrosshair == 0 || ds.noCrosshair )
+		return;
 
-	// FIXME: apply crosshair angles
 	int x = (ScreenWidth - (ds.rcCrosshair.right - ds.rcCrosshair.left)) / 2; 
-	int y =(ScreenHeight - (ds.rcCrosshair.bottom - ds.rcCrosshair.top)) / 2;
+	int y = (ScreenHeight - (ds.rcCrosshair.bottom - ds.rcCrosshair.top)) / 2;
+
+	// FIXME: apply crosshair angles properly
+	x += gHUD.m_CrosshairAngles.x;
+	y += gHUD.m_CrosshairAngles.y;
 
 	ds.hSprite = ds.hCrosshair;
 	SetParms( ds.hCrosshair, kRenderTransAlpha, 0 );

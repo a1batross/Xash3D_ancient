@@ -970,11 +970,15 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 	if( to->modelindex != pNet->pev->modelindex )
 		to->ed_flags |= ESF_NODELTA;
 
+	// always set nodelta's for baseline
+	if( baseline ) to->ed_flags |= ESF_NODELTA;
+
 	if( pNet->pev->teleport_time )
 	{
 		to->ed_flags |= ESF_NO_PREDICTION;
 		to->ed_flags |= ESF_NODELTA;
 	}
+
 	// copy progs values to state
 	to->solid = (solid_t)pNet->pev->solid;
 
@@ -1035,8 +1039,13 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 			to->aiment = ENTINDEX( pNet->pev->aiment );
 		else to->aiment = 0;
 
+		to->punch_angles = pNet->pev->punchangle;
+
 		// playermodel sequence, that will be playing on a client
 		to->gaitsequence = pNet->pev->gaitsequence;
+		if( pNet->pev->weaponmodel != iStringNull )
+			to->weaponmodel = MODEL_INDEX( STRING( pNet->pev->weaponmodel ));
+		else to->weaponmodel = 0;
 		to->weapons = pNet->pev->weapons;
 
 		// clamp fov

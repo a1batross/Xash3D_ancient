@@ -1293,7 +1293,7 @@ void BuildFacelights( int facenum )
 	
 	f = &dsurfaces[facenum];
 
-	if( dshaders[texinfo[f->texinfo].shadernum].surfaceFlags & (SURF_WARP|SURF_SKY))
+	if( dshaders[texinfo[f->texinfo].shadernum].surfaceFlags & (SURF_WARP|SURF_SKY|SURF_3DSKY))
 		return; // non-lit texture
 
 	Mem_Set( styletable, 0, sizeof( styletable ));
@@ -1406,7 +1406,7 @@ void FinalLightFace (int facenum)
 	f = &dsurfaces[facenum];
 	fl = &facelight[facenum];
 
-	if( dshaders[texinfo[f->texinfo].shadernum].surfaceFlags & ( SURF_WARP|SURF_SKY ))
+	if( dshaders[texinfo[f->texinfo].shadernum].surfaceFlags & ( SURF_WARP|SURF_SKY|SURF_3DSKY ))
 		return;		// non-lit texture
 
 	ThreadLock ();

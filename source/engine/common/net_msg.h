@@ -62,6 +62,7 @@ enum svc_ops_e
 	svc_sound,		// <see code>
 	svc_setangle,		// [short short short] set the view angle to this absolute value
 	svc_print,		// [byte] id [string] null terminated string
+	svc_crosshairangle,		// [short][short][short]
 };
 
 // client to server
@@ -178,7 +179,7 @@ void _MSG_WritePos( sizebuf_t *sb, vec3_t pos, const char *filename, int filelin
 void _MSG_WriteData( sizebuf_t *sb, const void *data, size_t length, const char *filename, int fileline );
 void _MSG_WriteDeltaUsercmd( sizebuf_t *sb, struct usercmd_s *from, struct usercmd_s *cmd, const char *filename, const int fileline );
 void _MSG_WriteDeltaEntity( struct entity_state_s *from, struct entity_state_s *to, sizebuf_t *msg, bool force, bool newentity, const char *filename, int fileline );
-void _MSG_Send( msgtype_t to, vec3_t origin, edict_t *ent, const char *filename, int fileline );
+void _MSG_Send( msgtype_t to, vec3_t origin, const edict_t *ent, const char *filename, int fileline );
 
 #define MSG_Begin( x ) _MSG_Begin( x, __FILE__, __LINE__)
 #define MSG_WriteChar(x,y) _MSG_WriteBits (x, y, NULL, NET_CHAR, __FILE__, __LINE__)

@@ -178,7 +178,6 @@ typedef enum
 typedef enum 
 {	
 	kRenderFxNone = 0, 
-	kRenderFxUnderwater,		// client only, applied on engine-side
 
 	// legacy stuff are not supported
 

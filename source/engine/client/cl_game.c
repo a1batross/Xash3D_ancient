@@ -120,6 +120,12 @@ float *CL_FadeColor( float starttime, float endtime )
 
 void CL_DrawHUD( int state )
 {
+	if( state == CL_LOADING )
+	{
+		// fill unused entries with black color
+		SCR_FillRect( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, g_color_table[0] );
+	}
+	
 	cls.dllFuncs.pfnRedraw( cl.time * 0.001f, state );
 
 	if( state == CL_ACTIVE )

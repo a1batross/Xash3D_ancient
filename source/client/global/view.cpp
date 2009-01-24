@@ -154,10 +154,23 @@ void V_Init( void )
 	r_debug = g_engfuncs.pfnRegisterVariable( "r_debug", "0", 0, "show renderer state" );
 }
 
-void V_PreRender( ref_params_t *pparams )
+//==========================
+// V_CalcFov
+//==========================
+float V_CalcFov( float fov_x, float width, float height )
 {
-	pparams->intermission = gHUD.m_iIntermission;
-	pparams->thirdperson = gHUD.m_iCameraMode;
+	float	fov_y, x, rad = 360.0f * M_PI;
+
+	// check to avoid division by zero
+	if( fov_x == 0 ) HOST_ERROR( "V_CalcFov: null fov!\n" );
+
+	// make sure that fov in-range
+	fov_x = bound( 1, fov_x, 179 );
+	x = width / tan( fov_x / rad );
+	fov_y = atan2( height, x );
+	fov_y = (fov_y * rad);
+
+	return fov_y;
 }
 
 //==========================
@@ -195,9 +208,20 @@ void V_CalcGunAngle( ref_params_t *pparams )
 	// don't apply all of the v_ipitch to prevent normally unseen parts of viewmodel from coming into view.
 	viewent->v.angles[PITCH] -= v_idlescale * sin(pparams->time * v_ipitch_cycle->value) * (v_ipitch_level->value * 0.5);
 	viewent->v.angles[YAW]   -= v_idlescale * sin(pparams->time * v_iyaw_cycle->value) * v_iyaw_level->value;
+}
 
-	viewent->v.oldangles = viewent->v.angles;
-	viewent->v.oldorigin = viewent->v.origin;
+//==========================
+// V_PreRender
+//==========================
+void V_PreRender( ref_params_t *pparams )
+{
+	// input
+	pparams->intermission = gHUD.m_iIntermission;
+	pparams->thirdperson = gHUD.m_iCameraMode;
+
+	// output
+	gHUD.m_CrosshairAngles = pparams->crosshairangle;
+	pparams->fov_y = V_CalcFov( pparams->fov_x, pparams->viewport[2], pparams->viewport[3] );
 }
 
 //==========================
@@ -228,14 +252,14 @@ float V_CalcBob( ref_params_t *pparams )
 	cycle = bobtime - (int)( bobtime / cl_bobcycle->value ) * cl_bobcycle->value;
 	cycle /= cl_bobcycle->value;
 	
-	if ( cycle < cl_bobup->value )cycle = M_PI * cycle / cl_bobup->value;
+	if( cycle < cl_bobup->value ) cycle = M_PI * cycle / cl_bobup->value;
 	else cycle = M_PI + M_PI * ( cycle - cl_bobup->value )/( 1.0 - cl_bobup->value );
 
 	vel = pparams->velocity;
 	vel[2] = 0;
 
 	bob = sqrt( vel[0] * vel[0] + vel[1] * vel[1] ) * cl_bob->value;
-	bob = bob * 0.3 + bob * 0.7 * sin(cycle);
+	bob = bob * 0.3 + bob * 0.7 * sin( cycle );
 	bob = min( bob, 4 );
 	bob = max( bob, -7 );
 	return bob;
@@ -257,12 +281,17 @@ void V_AddIdle( ref_params_t *pparams )
 void V_CalcViewRoll( ref_params_t *pparams )
 {
 	float   sign, side, value;
-	Vector  forward, right, up;
-	
-	if( !pparams->viewentity ) return;
+	Vector  right;
 
-	AngleVectors( pparams->viewentity->v.angles, forward, right, up );
-	side = pparams->velocity.Dot( right );
+	if( pparams->health <= 0 && pparams->viewheight[2] != 0 )
+	{
+		GetViewModel()->v.modelindex = 0;	// clear viewmodel
+		pparams->viewangles[ROLL] = 80;	// dead view angle
+		return;
+	}
+
+	AngleVectors( pparams->angles, NULL, right, NULL );
+	side = right.Dot( pparams->velocity );
 	sign = side < 0 ? -1 : 1;
 	side = fabs( side );
 	value = pparams->movevars->rollangle;
@@ -271,12 +300,6 @@ void V_CalcViewRoll( ref_params_t *pparams )
 	else side = value;
 	side = side * sign;		
 	pparams->viewangles[ROLL] += side;
-
-	if( pparams->health <= 0 && ( pparams->viewheight[2] != 0 ))
-	{
-		pparams->viewangles[ROLL] = 80; // dead view angle
-		return;
-	}
 }
 
 //==========================
@@ -332,7 +355,6 @@ void V_GetChaseOrigin( Vector angles, Vector origin, float distance, Vector &res
 	AngleVectors( angles, forward, NULL, NULL );
 	forward *= -1;
 	vecStart = origin;
-
 	vecEnd.MA( distance, vecStart, forward );
 
 	while( maxLoops > 0 )
@@ -341,13 +363,14 @@ void V_GetChaseOrigin( Vector angles, Vector origin, float distance, Vector &res
 		if( tr.pHit == NULL ) break; // we hit the world or nothing, stop trace
 
 		ent = tr.pHit;
-		if( ent == NULL ) break;
 
 		// hit non-player solid BSP, stop here
-		if( ent->v.solid == SOLID_BSP && !( ent->v.flags & FL_CLIENT )) break;
+		if( ent->v.solid == SOLID_BSP && !( ent->v.flags & FL_CLIENT ))
+			break;
 
 		// if close enought to end pos, stop, otherwise continue trace
-		if( tr.vecEndPos.Distance( vecEnd ) < 1.0f ) break;
+		if( tr.vecEndPos.Distance( vecEnd ) < 1.0f )
+			break;
 		else
 		{
 			ignoreent = tr.pHit; // ignore last hit entity
@@ -363,7 +386,7 @@ void V_GetChaseOrigin( Vector angles, Vector origin, float distance, Vector &res
 //==========================
 // V_GetChasePos
 //==========================
-void V_GetChasePos( edict_t *ent, float *cl_angles, Vector &origin, Vector &angles )
+void V_GetChasePos( ref_params_t *pparams, edict_t *ent, float *cl_angles, Vector &origin, Vector &angles )
 {
 	if( !ent )
 	{
@@ -380,7 +403,17 @@ void V_GetChasePos( edict_t *ent, float *cl_angles, Vector &origin, Vector &angl
 	}
 	else angles = cl_angles;
 
-	origin = ent->v.origin;
+	// refresh the position
+	if( !pparams->predicting || pparams->demoplayback )
+	{
+		// use interpolated values
+		for( int i = 0; i < 3; i++ )
+		{
+			origin[i] = LerpPoint( pparams->prev.origin[i], pparams->origin[i], pparams->lerpfrac );
+			origin[i] += LerpPoint( pparams->prev.viewheight[i], pparams->viewheight[i], pparams->lerpfrac );
+		}
+	}
+
 	origin[2] += 28; // DEFAULT_VIEWHEIGHT - some offset
           V_GetChaseOrigin( angles, origin, cl_chasedist->value, origin );
 }
@@ -390,7 +423,7 @@ void V_GetChasePos( edict_t *ent, float *cl_angles, Vector &origin, Vector &angl
 //==========================
 void V_CalcNextView( ref_params_t *pparams )
 {
-	if( g_FirstFrame )//first time not actually
+	if( g_FirstFrame )	// first time not actually
 	{
 		g_FirstFrame = false;
                     g_RenderReady = false;
@@ -435,22 +468,28 @@ void V_CalcCameraRefdef( ref_params_t *pparams )
 	 	if( viewentity )
 		{		 
 			dstudiohdr_t *viewmonster = (dstudiohdr_t *)GetModelPtr( viewentity );
+			int i;
 
-			if( gHUD.viewFlags & MONSTER_VIEW && viewmonster ) // calc monster view
-				v_origin = viewentity->v.origin + viewmonster->eyeposition;
-			else v_origin = viewentity->v.origin;
-			v_angles = viewentity->v.angles;
+			for( i = 0; i < 3; i++ )
+				v_origin[i] = LerpPoint( viewentity->v.oldorigin[i], viewentity->v.origin[i], pparams->lerpfrac );
+
+			// calc monster view if supposed
+			if( gHUD.viewFlags & MONSTER_VIEW && viewmonster )
+				v_origin += viewmonster->eyeposition;
+
+			for( i = 0; i < 3; i++ )
+				v_angles[i] = LerpAngle( viewentity->v.oldangles[i], viewentity->v.angles[i], pparams->lerpfrac );
 
 			if( gHUD.viewFlags & INVERSE_X )	// inverse X coordinate
 				v_angles[0] = -v_angles[0];
-			pparams->crosshairangle[PITCH] = 100;	// hide crosshair
+			HideCrosshair( true );
 
 			// refresh position
 			pparams->viewangles = v_angles;
 			pparams->vieworg = v_origin;
 		}
 	}
-	else pparams->crosshairangle[PITCH] = 0; // show crosshair again
+	else HideCrosshair( false ); // show crosshair again
 }
 
 edict_t *V_FindIntermisionSpot( ref_params_t *pparams )
@@ -459,8 +498,8 @@ edict_t *V_FindIntermisionSpot( ref_params_t *pparams )
 	int spotindex[16];	// max number of intermission spot
 	int k = 0, j = 0;
 
-	// found intermission point
-	for( int i = 0; i < pparams->max_entities; i++ )
+	// found intermission points
+	for( int i = 0; i < pparams->num_entities; i++ )
 	{
 		ent = GetEntityByIndex( i );
 		if( ent && !stricmp( STRING( ent->v.classname ), "info_intermission" ))
@@ -495,6 +534,7 @@ void V_CalcIntermisionRefdef( ref_params_t *pparams )
           if( !spot ) spot = V_FindIntermisionSpot( pparams );
 	view = GetViewModel();
 
+	// need to lerping position ?
 	pparams->vieworg = spot->v.origin;
 	pparams->viewangles = spot->v.angles;
 	view->v.modelindex = 0;
@@ -505,7 +545,7 @@ void V_CalcIntermisionRefdef( ref_params_t *pparams )
 	V_AddIdle( pparams );
 
 	v_idlescale = old;
-	v_cl_angles = pparams->angles;
+	v_cl_angles = pparams->cl_viewangles;
 	v_origin = pparams->vieworg;
 	v_angles = pparams->viewangles;
 }
@@ -514,7 +554,7 @@ void V_CalcIntermisionRefdef( ref_params_t *pparams )
 // V_PrintDebugInfo
 // FIXME: use custom text drawing ?
 //==========================
-void V_PrintDebugInfo (ref_params_t *pparams) //for future extensions
+void V_PrintDebugInfo( ref_params_t *pparams ) // for future extensions
 {
 	if( !r_debug->value ) return; //show OpenGL renderer debug info
 	ALERT( at_console, "Xash Renderer Info: ");
@@ -523,114 +563,6 @@ void V_PrintDebugInfo (ref_params_t *pparams) //for future extensions
 	if( g_iTotalMirrors ) ALERT( at_console, "Visible mirrors: %d from %d\n", g_iTotalVisibleMirrors, g_iTotalMirrors );
 	if( g_iTotalScreens ) ALERT( at_console, "Visible screens: %d from %d\n", g_iTotalVisibleScreens, g_iTotalScreens );
 	if( g_iTotalPortals ) ALERT( at_console, "Visible portals: %d from %d\n", g_iTotalVisiblePortals, g_iTotalPortals );
-}
-
-//==========================
-// V_CalcFinalPass
-//==========================
-void V_CalcFinalPass( ref_params_t *pparams )
-{
-	g_FirstFrame = true; // enable calc next passes
-	V_ResetViewportRefdef( pparams ); // reset view port as default
-	m_RenderRefCount++; // increase counter
-}
-
-//==========================
-// V_CalcThirdPersonRefdef
-//==========================
-void V_CalcThirdPersonRefdef( ref_params_t * pparams )
-{
-	// passed only in third person
-	if( gHUD.m_iCameraMode == 0 || pparams->intermission ) return;
-
-	// get current values
-	v_cl_angles = pparams->angles;
-	v_angles = pparams->viewangles;
-	v_origin = pparams->vieworg;
-
-	V_GetChasePos( GetLocalPlayer(), v_cl_angles, v_origin, v_angles );
-
-	// write back new values
-	pparams->angles = v_cl_angles;
-	pparams->viewangles = v_angles;
-	pparams->vieworg = v_origin;
-}
-
-//==========================
-// V_CalcSendOrigin
-//==========================
-void V_CalcSendOrigin( ref_params_t *pparams )
-{
-	// never let view origin sit exactly on a node line, because a water plane can
-	// dissapear when viewed with the eye exactly on it.
-	pparams->vieworg[0] += 1.0 / 32;
-	pparams->vieworg[1] += 1.0 / 32;
-	pparams->vieworg[2] += 1.0 / 32;
-}
-
-//==========================
-// V_CalcWaterLevel
-//==========================
-float V_CalcWaterLevel( ref_params_t *pparams )
-{
-	float waterOffset = 0;
-	
-	if( pparams->waterlevel >= 2 )
-	{
-		int i, contents, waterDist;
-		waterDist = cl_waterdist->value;
-		TraceResult tr;
-		Vector point;
-
-		TRACE_HULL( pparams->origin, Vector(-16,-16,-24), Vector(16,16,32), pparams->origin, 1, GetLocalPlayer(), &tr );
-
-		if( tr.pHit && !stricmp( STRING( tr.pHit->v.classname ), "func_water" ))
-			waterDist += ( tr.pHit->v.scale * 16 );
-		point = pparams->vieworg;
-
-		// eyes are above water, make sure we're above the waves
-		if( pparams->waterlevel == 2 )	
-		{
-			point[2] -= waterDist;
-			for( i = 0; i < waterDist; i++ )
-			{
-				contents = POINT_CONTENTS( point );
-				if( contents > CONTENTS_WATER ) break;
-				point[2] += 1;
-			}
-			waterOffset = (point[2] + waterDist) - pparams->vieworg[2];
-		}
-		else
-		{
-			// eyes are under water. Make sure we're far enough under
-			point[2] += waterDist;
-			for( i = 0; i < waterDist; i++ )
-			{
-				contents = POINT_CONTENTS( point );
-				if( contents <= CONTENTS_WATER ) break;
-				point[2] -= 1;
-			}
-			waterOffset = (point[2] - waterDist) - pparams->vieworg[2];
-		}
-	}
-	pparams->vieworg[2] += waterOffset;
-	return waterOffset;
-}
-
-//==========================
-// V_CalcScrOffset
-//==========================
-void V_CalcScrOffset( ref_params_t *pparams )
-{
-	// don't allow cheats in multiplayer
-	if( pparams->max_clients > 1 ) return;
-
-	for( int i = 0; i < 3; i++ )
-	{
-		pparams->vieworg[i] += scr_ofsx->value * pparams->forward[i];
-		pparams->vieworg[i] += scr_ofsy->value * pparams->right[i];
-		pparams->vieworg[i] += scr_ofsz->value * pparams->up[i];
-	}
 }
 
 //==========================
@@ -706,16 +638,142 @@ void V_ApplyShake( Vector& origin, Vector& angles, float factor )
 }
 
 //==========================
-// V_CalcSmoothAngles
+// V_CalcFinalPass
 //==========================
-void V_CalcSmoothAngles( ref_params_t *pparams )
+void V_CalcFinalPass( ref_params_t *pparams )
+{
+	g_FirstFrame = true; // enable calc next passes
+	V_ResetViewportRefdef( pparams ); // reset view port as default
+	m_RenderRefCount++; // increase counter
+}
+
+//==========================
+// V_CalcThirdPersonRefdef
+//==========================
+void V_CalcThirdPersonRefdef( ref_params_t *pparams )
+{
+	// passed only in third person
+	if( gHUD.m_iCameraMode == 0 || pparams->intermission )
+		return;
+
+	// clear viewmodel for thirdperson
+	edict_t	*viewent = GetViewModel();
+	viewent->v.modelindex = 0;
+
+	// get current values
+	v_cl_angles = pparams->cl_viewangles;
+	v_angles = pparams->viewangles;
+	v_origin = pparams->vieworg;
+
+	V_GetChasePos( pparams, GetLocalPlayer(), v_cl_angles, v_origin, v_angles );
+
+	// write back new values
+	pparams->cl_viewangles = v_cl_angles;
+	pparams->viewangles = v_angles;
+	pparams->vieworg = v_origin;
+
+	// apply shake for thirdperson too
+	V_CalcShake();
+	V_ApplyShake( pparams->vieworg, pparams->viewangles, 1.0 );
+}
+
+//==========================
+// V_CalcSendOrigin
+//==========================
+void V_CalcSendOrigin( ref_params_t *pparams )
+{
+	// never let view origin sit exactly on a node line, because a water plane can
+	// dissapear when viewed with the eye exactly on it.
+	pparams->vieworg[0] += 1.0 / 32;
+	pparams->vieworg[1] += 1.0 / 32;
+	pparams->vieworg[2] += 1.0 / 32;
+}
+
+//==========================
+// V_CalcWaterLevel
+//==========================
+float V_CalcWaterLevel( ref_params_t *pparams )
+{
+	float waterOffset = 0;
+	
+	if( pparams->waterlevel >= 2 )
+	{
+		int i, contents, waterDist;
+		waterDist = cl_waterdist->value;
+		TraceResult tr;
+		Vector point;
+
+		TRACE_HULL( pparams->origin, Vector(-16,-16,-24), Vector(16,16,32), pparams->origin, 1, GetLocalPlayer(), &tr );
+
+		if( tr.pHit && !stricmp( STRING( tr.pHit->v.classname ), "func_water" ))
+			waterDist += ( tr.pHit->v.scale * 16 );
+		point = pparams->vieworg;
+
+		// eyes are above water, make sure we're above the waves
+		if( pparams->waterlevel == 2 )	
+		{
+			point[2] -= waterDist;
+			for( i = 0; i < waterDist; i++ )
+			{
+				contents = POINT_CONTENTS( point );
+				if( contents > CONTENTS_WATER ) break;
+				point[2] += 1;
+			}
+			waterOffset = (point[2] + waterDist) - pparams->vieworg[2];
+		}
+		else
+		{
+			// eyes are under water. Make sure we're far enough under
+			point[2] += waterDist;
+			for( i = 0; i < waterDist; i++ )
+			{
+				contents = POINT_CONTENTS( point );
+				if( contents <= CONTENTS_WATER ) break;
+				point[2] -= 1;
+			}
+			waterOffset = (point[2] - waterDist) - pparams->vieworg[2];
+		}
+	}
+
+	// underwater refraction
+	if( pparams->waterlevel == 3 )
+	{
+		float f = sin( pparams->time * 0.4 * (M_PI * 2.7));
+		pparams->fov_x += f;
+		pparams->fov_y -= f;
+	}
+
+	pparams->vieworg[2] += waterOffset;
+	return waterOffset;
+}
+
+//==========================
+// V_CalcScrOffset
+//==========================
+void V_CalcScrOffset( ref_params_t *pparams )
+{
+	// don't allow cheats in multiplayer
+	if( pparams->max_clients > 1 ) return;
+
+	for( int i = 0; i < 3; i++ )
+	{
+		pparams->vieworg[i] += scr_ofsx->value * pparams->forward[i];
+		pparams->vieworg[i] += scr_ofsy->value * pparams->right[i];
+		pparams->vieworg[i] += scr_ofsz->value * pparams->up[i];
+	}
+}
+
+//==========================
+// V_InterpolateOrigin
+//==========================
+void V_InterpolateOrigin( ref_params_t *pparams )
 {
 	edict_t	*view;
 
 	// view is the weapon model (only visible from inside body )
 	view = GetViewModel();
 
-	if( cl_vsmoothing->value && ( pparams->smoothing && pparams->max_clients > 1 ))
+	if( cl_vsmoothing->value && ( pparams->max_clients > 1 ))
 	{
 		int i, foundidx;
 		float t;
@@ -775,19 +833,29 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 
 	bob = V_CalcBob( pparams );
 
-	// refresh position
-	if( !pparams->predicting )
+	// refresh the position
+	if( !pparams->predicting || pparams->demoplayback )
 	{
 		// use interpolated values
 		for( i = 0; i < 3; i++ )
 		{
 			pparams->vieworg[i] = LerpPoint( pparams->prev.origin[i], pparams->origin[i], pparams->lerpfrac );
 			pparams->vieworg[i] += LerpPoint( pparams->prev.viewheight[i], pparams->viewheight[i], pparams->lerpfrac );
-			pparams->viewangles[i] = LerpAngle( pparams->prev.angles[i], pparams->angles[i], pparams->lerpfrac );
 		}
 	}
 
-	pparams->viewangles[PITCH] = -pparams->viewangles[PITCH];
+	if( pparams->demoplayback )
+	{
+		for( i = 0; i < 3; i++ )
+		{
+			pparams->viewangles[i] = LerpAngle( pparams->prev.angles[i], pparams->angles[i], pparams->lerpfrac );
+		}
+	}
+	else
+	{
+		// in-game use predicted values
+		pparams->viewangles = pparams->cl_viewangles;
+	}
 
 	pparams->vieworg[2] += ( bob );
 
@@ -804,13 +872,11 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 	AngleVectors( angles, pparams->forward, pparams->right, pparams->up );
 	V_CalcScrOffset( pparams );
 
-	view->v.angles = pparams->viewangles;
-	view->v.oldangles = pparams->viewangles;
+	view->v.angles = pparams->cl_viewangles;
 	V_CalcGunAngle( pparams );
 
 	// use predicted origin as view origin.
 	view->v.origin = pparams->vieworg;      
-	view->v.oldorigin = pparams->vieworg;
 	view->v.origin[2] += ( waterOffset );
 
 	// Let the viewmodel shake at about 10% of the amplitude
@@ -823,7 +889,10 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 	view->v.angles[YAW] -= bob * 0.5;
 	view->v.angles[ROLL] -= bob * 1;
 	view->v.angles[PITCH] -= bob * 0.3;
-//	view->v.origin[2] -= 1;
+	view->v.origin[2] -= 1;
+
+	view->v.oldangles = view->v.angles;
+	view->v.oldorigin = view->v.origin;
 
 	if( !g_bFinalPass ) pparams->punchangle = -pparams->punchangle; // make inverse for mirror
 
@@ -835,8 +904,7 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 
 	static float oldz = 0;
 
-/*
-	if( !pparams->smoothing && pparams->onground && pparams->origin[2] - oldz > 0 )
+	if( pparams->smoothing && pparams->onground && pparams->origin[2] - oldz > 0 )
 	{
 		float steptime;
 		
@@ -852,7 +920,7 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 		view->v.origin[2] += oldz - pparams->origin[2];
 	}
 	else oldz = pparams->origin[2];
-*/
+
 	static Vector lastorg;
 	Vector delta;
 
@@ -866,7 +934,7 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 
 		lastorg = pparams->origin;
 	}
-	V_CalcSmoothAngles( pparams ); // smooth angles in multiplayer
+	V_InterpolateOrigin( pparams ); // smooth moving in multiplayer
 
 	lasttime = pparams->time;
 	v_origin = pparams->vieworg;	

@@ -38,6 +38,7 @@ infoParm_t infoParms[] =
 	{"detail",	SURF_NONE,	CONTENTS_DETAIL,		0}, // don't include in structural bsp
 	{"fog",		SURF_NOLIGHTMAP,	CONTENTS_FOG,		0}, // carves surfaces entering
 	{"sky",		SURF_SKY,		CONTENTS_SKY,		0}, // emit light from environment map
+	{"3dsky",		SURF_3DSKY,	CONTENTS_SKY,		0}, // emit light from environment map
 	{"hint",		SURF_HINT,	CONTENTS_NONE,		0}, // use as a primary splitter
 	{"skip",		SURF_SKIP,	CONTENTS_NONE,		0}, // use as a secondary splitter
 	{"null",		SURF_NODRAW,	CONTENTS_NONE,		0}, // nodraw texture

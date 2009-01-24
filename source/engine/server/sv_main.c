@@ -373,6 +373,7 @@ void SV_Init( void )
 	Cvar_Get ("fraglimit", "0", CVAR_SERVERINFO, "multiplayer fraglimit" );
 	Cvar_Get ("timelimit", "0", CVAR_SERVERINFO, "multiplayer timelimit" );
 	Cvar_Get ("protocol", va("%i", PROTOCOL_VERSION), CVAR_SERVERINFO|CVAR_INIT, "displays server protocol version" );
+	Cvar_Get ("sv_aim", "1", 0, "enable auto-aiming" );
 
 	sv_fps = Cvar_Get( "sv_fps", "60", CVAR_ARCHIVE, "running physics engine at" );
 	sv_stepheight = Cvar_Get( "sv_stepheight", DEFAULT_STEPHEIGHT, CVAR_ARCHIVE|CVAR_LATCH, "how high you can step up" );

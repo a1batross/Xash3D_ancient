@@ -73,6 +73,7 @@ void CHud :: VidInit( void )
 	m_hsprCursor = 0;
 	m_hHudError = 0;
 	m_hHudFont = 0;
+	spot = NULL; // clear intermission spot
 
 	Draw_VidInit();
 

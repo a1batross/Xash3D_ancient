@@ -2055,7 +2055,9 @@ int R_StudioDrawPlayer( int flags )
 {
 	edict_t	*pplayer;
 
-	if( !r_refdef.thirdperson ) return 0;
+	if( !r_refdef.thirdperson )
+		return 0;
+
 	if( !( flags & STUDIO_MIRROR ))
 	{
 		//m_pCurrentEntity = IEngineStudio.GetCurrentEntity();
@@ -2156,6 +2158,10 @@ int R_StudioDrawPlayer( int flags )
 		{
 			ref_entity_t saveent = *m_pCurrentEntity;
 			rmodel_t *pweaponmodel = m_pCurrentEntity->weaponmodel;
+			// get remap colors
+			m_nTopColor = m_pCurrentEntity->colormap & 0xFF;
+			m_nBottomColor = (m_pCurrentEntity->colormap & 0xFF00)>>8;
+			R_StudioSetRemapColors( m_nTopColor, m_nBottomColor );
 
 			m_pStudioHeader = pweaponmodel->phdr;
 			m_pTextureHeader = pweaponmodel->thdr;
@@ -2164,7 +2170,6 @@ int R_StudioDrawPlayer( int flags )
 
 			R_StudioRenderModel( );
 			R_StudioCalcAttachments( );
-
 			*m_pCurrentEntity = saveent;
 		}
 	}

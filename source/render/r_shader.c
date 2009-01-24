@@ -71,6 +71,7 @@ shaderParm_t infoParms[] =
 	{"detail",	SURF_NONE,	CONTENTS_DETAIL,		0}, // don't include in structural bsp
 	{"fog",		SURF_NOLIGHTMAP,	CONTENTS_FOG,		0}, // carves surfaces entering
 	{"sky",		SURF_SKY,		CONTENTS_SKY,		0}, // emit light from environment map
+	{"3dsky",		SURF_3DSKY,	CONTENTS_SKY,		0}, // emit light from environment map
 	{"hint",		SURF_HINT,	CONTENTS_NONE,		0}, // use as a primary splitter
 	{"skip",		SURF_SKIP,	CONTENTS_NONE,		0}, // use as a secondary splitter
 	{"null",		SURF_NODRAW,	CONTENTS_NONE,		0}, // nodraw texture
@@ -1063,7 +1064,7 @@ static bool R_ParseGeneralSurfaceParm( ref_shader_t *shader, script_t *script )
 		return false;
 	}
 
-	if( !Com_ReadToken( script, false, &tok ))
+	if( !Com_ReadToken( script, SC_PARSE_GENERIC, &tok ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'surfaceParm' in shader '%s'\n", shader->name );
 		return false;
@@ -2727,6 +2728,10 @@ static bool R_ParseStageTcMod( ref_shader_t *shader, shaderStage_t *stage, scrip
 			}
 		}
 		tcMod->type = TCMOD_TRANSFORM;
+	}
+	else if( !com.stricmp( tok.string, "conveyor" ))
+	{
+		tcMod->type = TCMOD_CONVEYOR;
 	}
 	else
 	{	

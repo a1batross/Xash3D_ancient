@@ -265,7 +265,7 @@ void R_LoadShaders( wfile_t *l )
 			continue;
 		}
 
-		if( surfaceParm & SURF_NODRAW ) 
+		if( surfaceParm & (SURF_NODRAW|SURF_3DSKY)) 
 		{
 			m_pLoadModel->shaders[i] = tr.nodrawShader;
 			continue;
@@ -720,7 +720,7 @@ static void R_LoadSurfaces( wfile_t *l )
 		out->lmWidth = (out->extents[0] >> 4) + 1;
 		out->lmHeight = (out->extents[1] >> 4) + 1;
 
-		if( out->texInfo->surfaceFlags & (SURF_SKY|SURF_WARP|SURF_NODRAW))
+		if( out->texInfo->surfaceFlags & (SURF_SKY|SURF_3DSKY|SURF_WARP|SURF_NODRAW))
 			lightofs = -1;
 		else lightofs = LittleLong( in->lightofs );
 

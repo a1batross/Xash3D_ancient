@@ -194,7 +194,7 @@ static void R_RecursiveFragmentNode( node_t *node, const vec3_t origin, const ve
 			continue;	// already checked this surface in another node
 		surf->fragmentFrame = r_fragmentCount;
 
-		if( surf->texInfo->surfaceFlags & (SURF_SKY|SURF_NODRAW|SURF_WARP))
+		if( surf->texInfo->surfaceFlags & (SURF_SKY|SURF_3DSKY|SURF_NODRAW|SURF_WARP))
 			continue;	// don't bother clipping
 
 		if( surf->texInfo->shader->flags & SHADER_NOFRAGMENTS )

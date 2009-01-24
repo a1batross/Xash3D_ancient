@@ -2498,7 +2498,10 @@ pfnCrosshairAngle
 */
 void pfnCrosshairAngle( const edict_t *pClient, float pitch, float yaw )
 {
-	// FIXME: implement
+	MSG_Begin( svc_crosshairangle );
+	MSG_WriteAngle16( &sv.multicast, pitch );
+	MSG_WriteAngle16( &sv.multicast, yaw );
+	MSG_Send( MSG_ONE_R, vec3_origin, pClient );
 }
 
 /*
@@ -2998,6 +3001,7 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 	SV_ConfigString( CS_AIRACCELERATE, sv_airaccelerate->string );
 	SV_ConfigString( CS_ACCELERATE, sv_accelerate->string );
 	SV_ConfigString( CS_FRICTION, sv_friction->string );
+	SV_ConfigString( CS_MAXCLIENTS, va( "%i", Host_MaxClients( )));
 	SV_ConfigString( CS_MAXEDICTS, Cvar_VariableString( "host_maxedicts" ));
 
 	svgame.globals->mapname = MAKE_STRING( sv.name );

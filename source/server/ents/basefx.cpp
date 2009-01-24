@@ -112,11 +112,11 @@ LINK_ENTITY_TO_CLASS( env_sky, CEnvSky );
 
 void CEnvSky :: PostSpawn( void )
 {
+	SetObjectClass( ED_SKYPORTAL );
 }
 
 void CEnvSky :: StartMessage( CBasePlayer *pPlayer )
 {
-	pev->effects |= EF_NODRAW;
 	MESSAGE_BEGIN( MSG_ONE, gmsg.SetSky, NULL, pPlayer->pev );
 		WRITE_BYTE( 1 ); // mode
 		WRITE_COORD( pev->origin.x ); // view position
