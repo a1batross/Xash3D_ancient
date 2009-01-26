@@ -2414,10 +2414,13 @@ static void R_UploadTexture( rgbdata_t *pic, texture_t *tex )
 				data = image_desc.scaled;
 			}
 			if( border ) R_ForceTextureBorder( data, tex->width, tex->height, (tex->wrap == TW_CLAMP_TO_ZERO_ALPHA));
-			if( j == 0 ) GL_GenerateMipmaps( data, tex, i, border );
+			if( j == 0 && GL_Support( R_SGIS_MIPMAPS_EXT )) GL_GenerateMipmaps( data, tex, i, border );
 			if( dxtformat ) pglCompressedTexImage2DARB( image_desc.texTarget + i, j, tex->format, w, h, 0, mipsize, data );
-			else pglTexImage2D( image_desc.texTarget + i, j, tex->format, tex->width, tex->height, 0, image_desc.glFormat, image_desc.glType, data );
-                              
+			else
+			{
+				pglTexImage2D( image_desc.texTarget + i, j, tex->format, tex->width, tex->height, 0, image_desc.glFormat, image_desc.glType, data );
+				if( j == 0 && !GL_Support( R_SGIS_MIPMAPS_EXT )) GL_GenerateMipmaps( data, tex, i, border );
+			}                              
 			w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; // calc size of next mip
 			if( r_check_errors->integer ) R_CheckForErrors();
 		}

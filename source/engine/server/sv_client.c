@@ -464,6 +464,22 @@ void SV_RemoteCommand( netadr_t from, sizebuf_t *msg )
 	SV_EndRedirect();
 }
 
+void SV_SetAngle( edict_t *ent, const float *rgflAngles )
+{
+	if( !ent || !ent->pvServerData || !ent->pvServerData->client ) return;
+#if 0
+	ent->pvServerData->s.delta_angles[0] = rgflAngles[0] - ent->pvServerData->client->lastcmd.angles[0];
+	ent->pvServerData->s.delta_angles[1] = rgflAngles[1] - ent->pvServerData->client->lastcmd.angles[1];
+	ent->pvServerData->s.delta_angles[2] = rgflAngles[2] - ent->pvServerData->client->lastcmd.angles[2];
+#else
+	MSG_Begin( svc_setangle );
+	MSG_WriteAngle32( &sv.multicast, rgflAngles[0] );
+	MSG_WriteAngle32( &sv.multicast, rgflAngles[1] );
+	MSG_WriteAngle32( &sv.multicast, rgflAngles[2] );
+	MSG_Send( MSG_ONE_R, vec3_origin, ent );
+#endif
+}
+
 /*
 ===========
 PutClientInServer
@@ -474,15 +490,15 @@ a deathmatch.
 */
 void SV_PutClientInServer( edict_t *ent )
 {
-	int		i, index;
+	int		index;
 	sv_client_t	*client;
 
 	index = NUM_FOR_EDICT( ent ) - 1;
 	client = ent->pvServerData->client;
 
 	svgame.globals->time = sv.time;
-	ent->free = false;
 	ent->pvServerData->s.ed_type = ED_CLIENT; // init edict type
+	ent->free = false;
 
 	if( !sv.loadgame )
 	{	
@@ -491,13 +507,9 @@ void SV_PutClientInServer( edict_t *ent )
 		ent->v.viewangles[ROLL] = 0;	// cut off any camera rolling
 		ent->v.origin[2] += 1;	// make sure off ground
 	}
-
-	ent->pvServerData->s.health = ent->v.health;
-	ent->pvServerData->s.classname = SV_ClassIndex( STRING( ent->v.classname ));
-	ent->pvServerData->s.weaponmodel = SV_ModelIndex( STRING( ent->v.weaponmodel ));
-	VectorCopy( ent->v.origin, ent->pvServerData->s.origin );
-	VectorCopy( ent->v.viewangles, ent->pvServerData->s.viewangles );
-	for( i = 0; i < 3; i++ ) ent->pvServerData->s.delta_angles[i] = ANGLE2SHORT(ent->v.viewangles[i]);
+	else
+	{
+	}
 
 	SV_LinkEdict( ent ); // m_pmatrix calculated here, so we need call this before pe->CreatePlayer
 	ent->pvServerData->physbody = pe->CreatePlayer( ent, SV_GetModelPtr( ent ), ent->v.origin, ent->v.m_pmatrix );
@@ -1004,8 +1016,8 @@ void SV_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 
 void SV_ApplyClientMove( sv_client_t *cl, usercmd_t *cmd )
 {
-	short		temp;
 	int		i;
+	float		temp;
 	edict_t		*ent = cl->edict;
 
 	ent->v.button = cmd->buttons; // initialize buttons
@@ -1020,26 +1032,24 @@ void SV_ApplyClientMove( sv_client_t *cl, usercmd_t *cmd )
 	for( i = 0; i < 3; i++ )
 	{
 		temp = cmd->angles[i] + ent->pvServerData->s.delta_angles[i];
-		ent->pvServerData->s.viewangles[i] = SHORT2ANGLE( temp );
+		ent->v.viewangles[i] = temp;
 	}
 
 	// don't let the player look up or down more than 90 degrees
-	if( ent->pvServerData->s.viewangles[PITCH] > 89 && ent->pvServerData->s.viewangles[PITCH] < 180 )
-		ent->pvServerData->s.viewangles[PITCH] = 89;
-	else if( ent->pvServerData->s.viewangles[PITCH] < 271 && ent->pvServerData->s.viewangles[PITCH] >= 180 )
-		ent->pvServerData->s.viewangles[PITCH] = 271;
+	if( ent->v.viewangles[PITCH] > 89 && ent->v.viewangles[PITCH] < 180 )
+		ent->v.viewangles[PITCH] = 89;
+	else if( ent->v.viewangles[PITCH] < 271 && ent->v.viewangles[PITCH] >= 180 )
+		ent->v.viewangles[PITCH] = 271;
 
-	// test
-	if( ent->v.flags & FL_DUCKING )
+	if( ent->v.flags & FL_DUCKING && ent->v.flags & FL_ONGROUND )
 	{
 		cmd->forwardmove *= 0.333;
-		cmd->sidemove    *= 0.333;
-		cmd->upmove      *= 0.333;
+		cmd->sidemove *= 0.333;
+		cmd->upmove *= 0.333;
 	}
 
-	VectorCopy( ent->pvServerData->s.viewangles, cl->edict->v.viewangles );
-	VectorCopy( ent->pvServerData->s.viewangles, cl->edict->v.angles );
-	VectorCopy( ent->v.view_ofs, cl->edict->pvServerData->s.viewoffset );
+	VectorCopy( ent->v.viewangles, ent->pvServerData->s.viewangles );
+//	VectorCopy( ent->v.viewangles, ent->v.angles );
 }
 
 void SV_DropPunchAngle( sv_client_t *cl )
@@ -1304,12 +1314,15 @@ void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 
 	// if dead, behave differently
 	if( cl->edict->v.health <= 0 )
+	{
+		VectorClear( cl->edict->v.view_ofs );
 		return;
+	}
 
 	// angles
 	// show 1/3 the pitch angle and all the roll angle
 	VectorAdd( cl->edict->v.viewangles, cl->edict->v.punchangle, viewangles );
-	cl->edict->v.angles[ROLL] = SV_CalcRoll( cl->edict->v.angles, cl->edict->v.velocity) * 4;
+	cl->edict->v.viewangles[ROLL] = SV_CalcRoll( viewangles, cl->edict->v.velocity) * 4;
 	if( !cl->edict->v.fixangle )
 	{
 		cl->edict->v.angles[PITCH] = -viewangles[PITCH]/3;
@@ -1371,7 +1384,7 @@ static void SV_UserMove( sv_client_t *cl, sizebuf_t *msg )
 		}
 	}
 
-	Mem_Set( &nullcmd, 0, sizeof(nullcmd));
+	Mem_Set( &nullcmd, 0, sizeof( nullcmd ));
 	MSG_ReadDeltaUsercmd( msg, &nullcmd, &oldest);
 	MSG_ReadDeltaUsercmd( msg, &oldest, &oldcmd );
 	MSG_ReadDeltaUsercmd( msg, &oldcmd, &newcmd );

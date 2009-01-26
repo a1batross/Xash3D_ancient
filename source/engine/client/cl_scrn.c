@@ -385,11 +385,14 @@ void SCR_UpdateScreen( void )
 
 void SCR_RegisterShaders( void )
 {
-	// register console images
-	cls.consoleFont = re->RegisterShader( va( "gfx/fonts/%s", con_font->string ), SHADER_FONT );
-	cls.clientFont = re->RegisterShader( va( "gfx/fonts/%s", cl_font->string ), SHADER_FONT );
-	cls.consoleBack = re->RegisterShader( "#conback.dds", SHADER_NOMIP );	// internal resource
-	cls.netIcon = re->RegisterShader( "#net.png", SHADER_NOMIP );	// internal recource
+	if( re )
+	{
+		// register console images
+		cls.consoleFont = re->RegisterShader( va( "gfx/fonts/%s", con_font->string ), SHADER_FONT );
+		cls.clientFont = re->RegisterShader( va( "gfx/fonts/%s", cl_font->string ), SHADER_FONT );
+		cls.consoleBack = re->RegisterShader( "#conback.dds", SHADER_NOMIP );	// internal resource
+		cls.netIcon = re->RegisterShader( "#net.png", SHADER_NOMIP );	// internal recource
+	}
 
 	// vid_state has changed
 	if( cls.game ) cls.dllFuncs.pfnVidInit();

@@ -412,9 +412,9 @@ set the view angle to this absolute value
 */
 void CL_ParseSetAngle( sizebuf_t *msg )
 {
-	cl.viewangles[0] = MSG_ReadAngle16( msg );
-	cl.viewangles[1] = MSG_ReadAngle16( msg );
-	cl.viewangles[2] = MSG_ReadAngle16( msg );
+	cl.viewangles[0] = MSG_ReadAngle32( msg );
+	cl.viewangles[1] = MSG_ReadAngle32( msg );
+	cl.viewangles[2] = MSG_ReadAngle32( msg );
 }
 
 /*
@@ -426,8 +426,8 @@ offset crosshair angles
 */
 void CL_ParseCrosshairAngle( sizebuf_t *msg )
 {
-	cl.refdef.crosshairangle[0] = MSG_ReadAngle16( msg );
-	cl.refdef.crosshairangle[1] = MSG_ReadAngle16( msg );
+	cl.refdef.crosshairangle[0] = MSG_ReadAngle32( msg );
+	cl.refdef.crosshairangle[1] = MSG_ReadAngle32( msg );
 	cl.refdef.crosshairangle[2] = 0; // not used for screen space
 }
 

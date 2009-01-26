@@ -283,7 +283,7 @@ void V_CalcViewRoll( ref_params_t *pparams )
 	float   sign, side, value;
 	Vector  right;
 
-	if( pparams->health <= 0 && pparams->viewheight[2] != 0 )
+	if( pparams->health <= 0 )
 	{
 		GetViewModel()->v.modelindex = 0;	// clear viewmodel
 		pparams->viewangles[ROLL] = 80;	// dead view angle
@@ -331,9 +331,9 @@ void V_ResetViewportRefdef( ref_params_t *pparams )
 {
 	pparams->viewport[0] = 0;
 	pparams->viewport[1] = 0;
-	pparams->viewport[2] = ScreenWidth;
+	pparams->viewport[2] = ActualWidth;
 	pparams->viewport[2] &= ~7;
-	pparams->viewport[3] = ScreenHeight;
+	pparams->viewport[3] = ActualHeight;
 	pparams->viewport[3] &= ~1;
 }
 
@@ -894,11 +894,11 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 	view->v.oldangles = view->v.angles;
 	view->v.oldorigin = view->v.origin;
 
-	if( !g_bFinalPass ) pparams->punchangle = -pparams->punchangle; // make inverse for mirror
-
+	if( g_bMirrorPass || g_bPortalPass || g_bScreenPass )
+		pparams->punchangle = -pparams->punchangle; // make inverse for mirror
 	for( i = 0; i < 3; i++ )
 		pparams->viewangles[i] += LerpAngle( pparams->prev.punchangle[i], pparams->punchangle[i], pparams->lerpfrac );
-		
+	
 	pparams->viewangles += ev_punchangle;
 	V_DropPunchAngle( pparams->frametime, ev_punchangle );
 
@@ -1135,9 +1135,6 @@ bool V_CalcPortalsRefdef( ref_params_t *pparams )
 
 void V_CalcRefdef( ref_params_t *pparams )
 {
-	// can't use a paused refdef
-	if( pparams->paused ) return;
-
 	V_CalcNextView( pparams );
 	
 	if( V_CalcSkyRefdef( pparams )) return;

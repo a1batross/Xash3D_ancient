@@ -7,6 +7,12 @@
 #include "byteorder.h"
 #include "mathlib.h"
 
+// angles pack methods
+#define ANGLE2CHAR(x)	((int)((x)*256/360) & 255)
+#define CHAR2ANGLE(x)	((x)*(360.0/256))
+#define ANGLE2SHORT(x)	((int)((x)*65536/360) & 65535)
+#define SHORT2ANGLE(x)	((x)*(360.0/65536))
+
 static net_field_t ent_fields[] =
 {
 { ES_FIELD(ed_type),		NET_BYTE,	 false	},	// stateflags_t #0 (4 bytes)
@@ -81,9 +87,9 @@ static net_field_t ent_fields[] =
 { ES_FIELD(rendercolor[1]),		NET_COLOR, false	},
 { ES_FIELD(rendercolor[2]),		NET_COLOR, false	},
 { ES_FIELD(rendermode),		NET_BYTE,  false	},	// render mode (legacy stuff)
-{ ES_FIELD(delta_angles[0]),		NET_FLOAT, false	},
-{ ES_FIELD(delta_angles[1]),		NET_FLOAT, false	},
-{ ES_FIELD(delta_angles[2]),		NET_FLOAT, false	},
+{ ES_FIELD(delta_angles[0]),		NET_ANGLE, false	},
+{ ES_FIELD(delta_angles[1]),		NET_ANGLE, false	},
+{ ES_FIELD(delta_angles[2]),		NET_ANGLE, false	},
 { ES_FIELD(punch_angles[0]),		NET_SCALE, false	},
 { ES_FIELD(punch_angles[1]),		NET_SCALE, false	},
 { ES_FIELD(punch_angles[2]),		NET_SCALE, false	},
@@ -106,9 +112,9 @@ static net_field_t ent_fields[] =
 static net_field_t cmd_fields[] =
 {
 { CM_FIELD(msec),		NET_BYTE,  true	},
-{ CM_FIELD(angles[0]),	NET_WORD,  false	},
-{ CM_FIELD(angles[1]),	NET_WORD,  false	},
-{ CM_FIELD(angles[2]),	NET_WORD,  false	},
+{ CM_FIELD(angles[0]),	NET_ANGLE, false	},
+{ CM_FIELD(angles[1]),	NET_ANGLE, false	},
+{ CM_FIELD(angles[2]),	NET_ANGLE, false	},
 { CM_FIELD(forwardmove),	NET_SHORT, false	},
 { CM_FIELD(sidemove),	NET_SHORT, false	},
 { CM_FIELD(upmove),		NET_SHORT, false	},
@@ -379,6 +385,13 @@ int64 _MSG_ReadBits( sizebuf_t *msg, int net_type, const char *filename, const i
    writing functions
 =======================
 */
+void _MSG_WriteAngle16( sizebuf_t *sb, float f, const char *filename, int fileline )
+{
+	union { float f; int l; } dat;
+	dat.f = f;
+	_MSG_WriteBits( sb, dat.l, NWDesc[NET_ANGLE].name, NET_ANGLE, filename, fileline );
+}
+
 void _MSG_WriteFloat( sizebuf_t *sb, float f, const char *filename, int fileline )
 {
 	union { float f; int l; } dat;
@@ -436,6 +449,13 @@ float MSG_ReadFloat( sizebuf_t *msg )
 {
 	union { float f; int l; } dat;
 	dat.l = MSG_ReadBits( msg, NET_FLOAT );
+	return dat.f;	
+}
+
+float MSG_ReadAngle16( sizebuf_t *msg )
+{
+	union { float f; int l; } dat;
+	dat.l = MSG_ReadBits( msg, NET_ANGLE );
 	return dat.f;	
 }
 

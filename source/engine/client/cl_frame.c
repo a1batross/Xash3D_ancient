@@ -305,7 +305,6 @@ void CL_ParseFrame( sizebuf_t *msg )
 		if( cls.state != ca_active )
 		{
 			cls.state = ca_active;
-			cl.force_refdef = true;
 			// getting a valid frame message ends the connection process
 			VectorCopy( cl.frame.ps.origin, cl.predicted_origin );
 			VectorCopy( cl.frame.ps.viewangles, cl.predicted_angles );

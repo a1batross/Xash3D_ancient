@@ -3310,7 +3310,7 @@ void CBasePlayer::Spawn( void )
 	pViewEnt = 0;
 	viewFlags = 0;
 	Precache();
-	m_HackedGunPos		= Vector( 0, 32, 0 );
+	m_HackedGunPos = Vector( 0, 32, 0 );
 
 	if( m_iPlayerSound == SOUNDLIST_EMPTY )
 	{
@@ -3427,9 +3427,10 @@ int CBasePlayer::Restore( CRestore &restore )
 	pev->viewangles.z = 0;	// Clear out roll
 	pev->angles = pev->viewangles;
 
+	SET_FIXANGLE( ENT( pev ), pev->angles );
 	pev->fixangle = TRUE;           // turn this way immediately
 
-// Copied from spawn() for now
+	// Copied from spawn() for now
 	m_bloodColor	= BLOOD_COLOR_RED;
 
     g_ulModelIndexPlayer = pev->modelindex;

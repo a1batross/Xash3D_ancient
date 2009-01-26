@@ -56,7 +56,7 @@ typedef struct physic_exp_s
 	void (*CombineTraces)( trace_t *cliptrace, const trace_t *trace, edict_t *touch, bool is_bmodel );
 
 	// player movement code
-	void (*PlayerMove)( entvars_t *pmove, usercmd_t *cmd, physbody_t *body, bool clientmove );
+	void (*PlayerMove)( struct entity_state_s *pmove, usercmd_t *cmd, physbody_t *body, bool clientmove );
 	
 	// simple objects
 	physbody_t *(*CreateBody)( edict_t *ed, cmodel_t *mod, const vec3_t org, const matrix3x3 m, int solid, int move );

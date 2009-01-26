@@ -158,8 +158,8 @@ Called after an Host_Error was thrown
 */
 void CL_Drop (void)
 {
-	if (cls.state == ca_uninitialized) return;
-	if (cls.state == ca_disconnected) return;
+	if( cls.state == ca_uninitialized ) return;
+	if( cls.state == ca_disconnected ) return;
 
 	CL_Disconnect();
 }
@@ -329,7 +329,7 @@ CL_ClearState
 
 =====================
 */
-void CL_ClearState (void)
+void CL_ClearState( void )
 {
 	S_StopAllSounds ();
 	CL_ClearEffects ();
@@ -343,6 +343,8 @@ void CL_ClearState (void)
 
 	Cvar_SetValue( "scr_download", 0.0f );
 	Cvar_SetValue( "scr_loading", 0.0f );
+
+	UI_HideMenu();
 }
 
 /*
@@ -706,7 +708,6 @@ void CL_PrepSound( void )
 	CL_RunBackgroundTrack();
 
 	cl.audio_prepped = true;
-	cl.force_refdef = true;
 }
 
 /*
@@ -724,7 +725,7 @@ void CL_PrepVideo( void )
 	if( !cl.configstrings[CS_MODELS+1][0] )
 		return; // no map loaded
 
-	SCR_RegisterShaders(); // vid_restart issues
+	Cvar_SetValue( "scr_loading", 0.0f ); // reset progress bar
 	Msg( "CL_PrepRefresh: %s\n", cl.configstrings[CS_NAME] );
 	// let the render dll load the map
 	FS_FileBase( cl.configstrings[CS_MODELS+1], mapname ); 
@@ -757,7 +758,6 @@ void CL_PrepVideo( void )
 	Con_ClearNotify();			// clear any lines of console text
 	SCR_UpdateScreen();
 	cl.video_prepped = true;
-	cl.force_refdef = true;
 }
 
 /*

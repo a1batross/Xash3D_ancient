@@ -125,7 +125,13 @@ void CL_DrawHUD( int state )
 		// fill unused entries with black color
 		SCR_FillRect( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, g_color_table[0] );
 	}
-	
+
+	if( state == CL_ACTIVE && !cl.video_prepped )
+		state = CL_LOADING;
+
+	if( state == CL_ACTIVE && cl_paused->integer )
+		state = CL_PAUSED;
+
 	cls.dllFuncs.pfnRedraw( cl.time * 0.001f, state );
 
 	if( state == CL_ACTIVE )
@@ -868,7 +874,7 @@ void pfnMakeLevelShot( void )
 	Con_ClearNotify();
 
 	// make levelshot at nextframe()
-	Cbuf_ExecuteText( EXEC_APPEND, "levelshot\n" );
+	Cbuf_AddText( "wait 1\nlevelshot\n" );
 }
 
 /*

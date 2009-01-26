@@ -22,7 +22,7 @@ matrix4x4		m_matrix;
 // any differences when running on client or server
 typedef struct
 {
-	entvars_t		*pev;
+	entity_state_t	*state;
 	usercmd_t		*cmd;
 	physbody_t	*body;
 
@@ -59,38 +59,38 @@ This can be used as another entry point when only the viewangles
 are being updated isntead of a full move
 ================
 */
-void CM_UpdateViewAngles( entvars_t *pev, const usercmd_t *cmd )
+void CM_UpdateViewAngles( entity_state_t *state, const usercmd_t *cmd )
 {
 	short	temp;
 	int	i;
 
-	if( pev->flags & FL_FROZEN )
+	if( state->flags & FL_FROZEN )
 	{
 		return;		// no view changes at all
 	}
-	if( pev->health <= 0 )
+	if( state->health <= 0 )
 	{
 		return;		// no view changes at all
 	}
-	if( pev->teleport_time )
+	if( state->ed_flags & ESF_NO_PREDICTION )
 	{
-		pev->viewangles[YAW] = SHORT2ANGLE( cmd->angles[YAW] - pev->delta_angles[YAW] );
-		pev->viewangles[PITCH] = 0;
-		pev->viewangles[ROLL] = 0;
+		state->viewangles[YAW] = cmd->angles[YAW] - state->delta_angles[YAW];
+		state->viewangles[PITCH] = 0;
+		state->viewangles[ROLL] = 0;
 	}
 
 	// circularly clamp the angles with deltas
 	for( i = 0; i < 3; i++ )
 	{
-		temp = cmd->angles[i] + pev->delta_angles[i];
-		pev->viewangles[i] = SHORT2ANGLE( temp );
+		temp = cmd->angles[i] + state->delta_angles[i];
+		state->viewangles[i] = temp;
 	}
 
 	// don't let the player look up or down more than 90 degrees
-	if( pev->viewangles[PITCH] > 89 && pev->viewangles[PITCH] < 180 )
-		pev->viewangles[PITCH] = 89;
-	else if( pev->viewangles[PITCH] < 271 && pev->viewangles[PITCH] >= 180 )
-		pev->viewangles[PITCH] = 271;
+	if( state->viewangles[PITCH] > 89 && state->viewangles[PITCH] < 180 )
+		state->viewangles[PITCH] = 89;
+	else if( state->viewangles[PITCH] < 271 && state->viewangles[PITCH] >= 180 )
+		state->viewangles[PITCH] = 271;
 }
 
 
@@ -118,19 +118,19 @@ void CM_CmdUpdateForce( void )
 	}
 }
 
-void CM_ServerMove( entvars_t *pmove, usercmd_t *cmd, physbody_t *body )
+void CM_ServerMove( entity_state_t *state, usercmd_t *cmd, physbody_t *body )
 {
 	float	mass, Ixx, Iyy, Izz, dist, floor;
 	float	deltaHeight, steerAngle, accelY, timestepInv;
 	vec3_t	force, omega, torque, heading, velocity, step;
 	matrix4x4	matrix, collisionPadding, transpose;
 
-	pml.pev = pmove;
+	pml.state = state;
 	pml.body = body;
 	pml.cmd = cmd;
 
-	CM_UpdateViewAngles( pmove, cmd );
-	AngleVectors( pml.pev->viewangles, pml.forward, pml.right, pml.up );
+	CM_UpdateViewAngles( state, cmd );
+	AngleVectors( pml.state->viewangles, pml.forward, pml.right, pml.up );
 	CM_CmdUpdateForce(); // get movement direction
 
 	// Get the current world timestep
@@ -238,7 +238,7 @@ void CM_ServerMove( entvars_t *pmove, usercmd_t *cmd, physbody_t *body )
 	NewtonUpVectorSetPin( cms.upVector, &vec3_up[0] );
 }
 
-void CM_ClientMove( entvars_t *pmove, usercmd_t *cmd, physbody_t *body )
+void CM_ClientMove( entity_state_t *state, usercmd_t *cmd, physbody_t *body )
 {
 
 }
@@ -315,10 +315,10 @@ physbody_t *Phys_CreatePlayer( edict_t *ed, cmodel_t *mod, const vec3_t origin, 
 			PMOVE ENTRY POINT
 ===============================================================================
 */
-void CM_PlayerMove( entvars_t *pmove, usercmd_t *cmd, physbody_t *body, bool clientmove )
+void CM_PlayerMove( entity_state_t *state, usercmd_t *cmd, physbody_t *body, bool clientmove )
 {
 	if( !cm_physics_model->integer ) return;
 
-	if( clientmove ) CM_ClientMove( pmove, cmd, body );
-	else CM_ServerMove( pmove, cmd, body );
+	if( clientmove ) CM_ClientMove( state, cmd, body );
+	else CM_ServerMove( state, cmd, body );
 }

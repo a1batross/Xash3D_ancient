@@ -31,7 +31,6 @@ typedef struct entvars_s
 	vec3_t		avelocity;	// angular velocity (degrees per second)
 	vec3_t		punchangle;	// NET [player], auto-decaying view angle adjustment
 	vec3_t		viewangles;	// NET [player], viewing angle (old name was v_angle)
-	vec3_t		delta_angles;	// ENG [player], NET [player], viewangles - cmd.angles
 
 	int		fixangle;		// 0 - nothing, 1 - force view angles, 2 - add avelocity	
 	float		ideal_pitch;

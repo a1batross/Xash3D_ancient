@@ -1482,11 +1482,11 @@ void pfnSetAngles( edict_t *e, const float *rgflAngles )
 
 /*
 =================
-pfnEmitSound
+SV_StartSound
 
 =================
 */
-void pfnEmitSound( edict_t *ent, int chan, const char *sample, float vol, float attn, int flags, int pitch )
+void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float attn, int flags, int pitch )
 {
 	int 	sound_idx;
 	vec3_t	snd_origin;
@@ -1981,7 +1981,7 @@ pfnWriteAngle
 */
 void pfnWriteAngle( float flValue )
 {
-	_MSG_WriteBits( &sv.multicast, flValue, svgame.msg_name, NET_ANGLE, __FILE__, __LINE__ );
+	MSG_WriteAngle16( &sv.multicast, flValue );
 	svgame.msg_realsize += 2;
 }
 
@@ -2481,17 +2481,6 @@ word pfnCRC_Final( word pulCRC )
 
 /*
 =============
-pfnSetView
-
-=============
-*/
-void pfnSetView( const edict_t *pClient, const edict_t *pViewent )
-{
-	// FIXME: implement
-}
-
-/*
-=============
 pfnCrosshairAngle
 
 =============
@@ -2499,8 +2488,8 @@ pfnCrosshairAngle
 void pfnCrosshairAngle( const edict_t *pClient, float pitch, float yaw )
 {
 	MSG_Begin( svc_crosshairangle );
-	MSG_WriteAngle16( &sv.multicast, pitch );
-	MSG_WriteAngle16( &sv.multicast, yaw );
+	MSG_WriteAngle32( &sv.multicast, pitch );
+	MSG_WriteAngle32( &sv.multicast, yaw );
 	MSG_Send( MSG_ONE_R, vec3_origin, pClient );
 }
 
@@ -2764,7 +2753,7 @@ static enginefuncs_t gEngfuncs =
 	pfnWalkMove,
 	pfnSetOrigin,
 	pfnSetAngles,		
-	pfnEmitSound,
+	SV_StartSound,
 	pfnEmitAmbientSound,
 	pfnTraceLine,
 	pfnTraceToss,
@@ -2825,7 +2814,7 @@ static enginefuncs_t gEngfuncs =
 	pfnCRC_Final,		
 	pfnRandomLong,
 	pfnRandomFloat,
-	pfnSetView,
+	SV_SetAngle,
 	pfnCrosshairAngle,
 	pfnLoadFile,
 	pfnFOpen,

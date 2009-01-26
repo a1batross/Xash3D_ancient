@@ -412,7 +412,7 @@ void GL_InitCommands( void )
 
 	r_swapInterval = Cvar_Get ("gl_swapinterval", "0", CVAR_ARCHIVE, "time beetween frames (in msec)" );
 	gl_finish = Cvar_Get ("gl_finish", "0", CVAR_ARCHIVE, "no description" );
-	gl_clear = Cvar_Get ("gl_clear", "0", 0, "no description" );
+	gl_clear = Cvar_Get ("gl_clear", "0", 0, "clearing screen after each frame" );
 	vid_gamma = Cvar_Get( "vid_gamma", "1", CVAR_ARCHIVE, "screen gamma" );
 
 	Cmd_AddCommand( "modellist", R_ModelList_f, "display loaded models list" );
@@ -1091,7 +1091,6 @@ void GL_Setup3D( void )
 */
 void GL_Setup2D( void )
 {
-	if( r_refdef.nextView ) return;
 	if( gl_finish->integer ) pglFinish();
 
 	// set 2D virtual screen size

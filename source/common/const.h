@@ -202,6 +202,7 @@ typedef enum
 #define CL_DISCONNECTED		1	//
 #define CL_LOADING			2	// draw loading progress-bar
 #define CL_ACTIVE			3	// draw normal hud
+#define CL_PAUSED			4	// pause when active
 
 // client key destination
 #define KEY_GAME			1

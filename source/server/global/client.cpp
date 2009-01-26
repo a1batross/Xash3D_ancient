@@ -973,12 +973,6 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 	// always set nodelta's for baseline
 	if( baseline ) to->ed_flags |= ESF_NODELTA;
 
-	if( pNet->pev->teleport_time )
-	{
-		to->ed_flags |= ESF_NO_PREDICTION;
-		to->ed_flags |= ESF_NODELTA;
-	}
-
 	// copy progs values to state
 	to->solid = (solid_t)pNet->pev->solid;
 
@@ -1020,15 +1014,15 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 	{
 		if( pNet->pev->fixangle )
 		{
-			// FIXME: set angles correctly
-			for( i = 0; i < 2; i++ )
-				to->delta_angles[i] = ANGLE2SHORT( pNet->pev->viewangles[i] + pNet->pev->angles[i] );
-			to->angles = g_vecZero;
-			to->viewangles = g_vecZero;
-			pNet->pev->viewangles = g_vecZero;
-			
-			// and clear fixangle for the next frame
+			to->ed_flags |= ESF_NO_PREDICTION;
 			pNet->pev->fixangle = 0;
+		}
+
+		if( pNet->pev->teleport_time )
+		{
+			to->ed_flags |= ESF_NO_PREDICTION;
+			to->ed_flags |= ESF_NODELTA;
+			pNet->pev->teleport_time = 0.0f;
 		}
 
 		if( pNet->pev->viewmodel )
@@ -1039,6 +1033,8 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 			to->aiment = ENTINDEX( pNet->pev->aiment );
 		else to->aiment = 0;
 
+		to->viewoffset = pNet->pev->view_ofs; 
+		to->viewangles = pNet->pev->viewangles;
 		to->punch_angles = pNet->pev->punchangle;
 
 		// playermodel sequence, that will be playing on a client
@@ -1068,8 +1064,6 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 	{
 		// FIXME: send mins\maxs for sound spatialization and entity prediction ?
 	}
-
-	if( pNet->pev->teleport_time ) pNet->pev->teleport_time = 0.0f;
 }
 
 void ClientPrecache( void )

@@ -336,7 +336,7 @@ void CL_PredictMovement (void)
 	int		ack, current;
 	int		frame;
 	int		oldframe;
-	entvars_t		pmove;
+	entity_state_t	pmove;
 	usercmd_t		*cmd;
 	int		i;
 	float		step;
@@ -345,13 +345,13 @@ void CL_PredictMovement (void)
 	if( cls.state != ca_active ) return;
 	if( cl_paused->value ) return;
 
-	pmove = EDICT_NUM( cl.playernum + 1 )->v;
+	pmove = EDICT_NUM( cl.playernum + 1 )->pvClientData->current;
 
 	if( !cl_predict->value || cl.frame.ps.ed_flags & ESF_NO_PREDICTION )
 	{	
 		// just set angles
 		for( i = 0; i < 3; i++ )
-			cl.predicted_angles[i] = cl.viewangles[i] + SHORT2ANGLE( cl.frame.ps.delta_angles[i] );
+			cl.predicted_angles[i] = cl.viewangles[i] + cl.frame.ps.delta_angles[i];
 		return;
 	}
 

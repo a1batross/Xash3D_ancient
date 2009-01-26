@@ -199,12 +199,12 @@ Restart the video subsystem
 */
 void Host_VidRestart_f( void )
 {
-	cl.force_refdef = true;	// can't use a paused refdef
 	S_StopAllSounds();		// don't let them loop during the restart
 	cl.video_prepped = false;
 
 	Host_FreeRender();		// release render.dll
 	Host_InitRender();		// load it again
+	SCR_RegisterShaders();	// reload 2d-shaders
 }
 
 /*
@@ -216,7 +216,6 @@ Restart the audio subsystem
 */
 void Host_SndRestart_f( void )
 {
-	cl.force_refdef = true;	// can't use a paused refdef
 	S_StopAllSounds();		// don't let them loop during the restart
 	cl.audio_prepped = false;
 	

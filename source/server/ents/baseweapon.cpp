@@ -33,6 +33,8 @@ const char *NAME_VM_IDLE3[] = { "idle3", };
 const char *NAME_VM_RELOAD[] = { "reload", };
 const char *NAME_VM_DEPLOY[] = { "draw", "draw1", "deploy" };
 const char *NAME_VM_HOLSTER[] = { "holster", "holster1" };
+const char *NAME_VM_TURNON[] = { "altfireon", };
+const char *NAME_VM_TURNOFF[] = { "altfireoff", };
 const char *NAME_VM_IDLE_EMPTY[] = { "idle2", };
 const char *NAME_VM_START_RELOAD[] = { "start_reload" };
 const char *NAME_VM_DEPLOY_EMPTY[] = { "draw2", };
@@ -43,6 +45,7 @@ const char *NAME_VM_RANGE_ATTACK3[] = { "fire4", };
 const char *NAME_VM_MELEE_ATTACK1[] = { "fire2", "shoot_big", "grenade" };
 const char *NAME_VM_MELEE_ATTACK2[] = { "fire3", };
 const char *NAME_VM_MELEE_ATTACK3[] = { "fire4", };
+
 
 //***********************************************************
 // 		   main functions ()
@@ -844,6 +847,14 @@ int CBasePlayerWeapon :: SetAnimation( Activity activity, float fps )
 	case ACT_VM_HOLSTER_EMPTY:
 		pAnimsList = NAME_VM_HOLSTER_EMPTY;
 		m_iAnimCount = ARRAYSIZE( NAME_VM_HOLSTER_EMPTY );
+		break;
+	case ACT_VM_TURNON:
+		pAnimsList = NAME_VM_TURNON;
+		m_iAnimCount = ARRAYSIZE( NAME_VM_TURNON );
+		break;
+	case ACT_VM_TURNOFF:
+		pAnimsList = NAME_VM_TURNOFF;
+		m_iAnimCount = ARRAYSIZE( NAME_VM_TURNOFF );
 		break;
 	default:
 		m_iAnimCount = 0;

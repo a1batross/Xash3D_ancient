@@ -172,7 +172,7 @@ BRUSH MODELS
 #define SURF_LAVACAUSTICS		8
 
 #define CONTENTS_NODE		-1
-#define SKY_SIZE			16
+#define SKY_SIZE			8
 #define SKY_INDICES			(SKY_SIZE * SKY_SIZE * 6)
 #define SKY_VERTICES		((SKY_SIZE+1) * (SKY_SIZE+1))
 

@@ -175,6 +175,7 @@ void _MSG_Begin( int dest, const char *filename, int fileline );
 void _MSG_WriteString( sizebuf_t *sb, const char *s, const char *filename, int fileline );
 void _MSG_WriteFloat( sizebuf_t *sb, float f, const char *filename, int fileline );
 void _MSG_WriteDouble( sizebuf_t *sb, double f, const char *filename, int fileline );
+void _MSG_WriteAngle16( sizebuf_t *sb, float f, const char *filename, int fileline );
 void _MSG_WritePos( sizebuf_t *sb, vec3_t pos, const char *filename, int fileline );
 void _MSG_WriteData( sizebuf_t *sb, const void *data, size_t length, const char *filename, int fileline );
 void _MSG_WriteDeltaUsercmd( sizebuf_t *sb, struct usercmd_s *from, struct usercmd_s *cmd, const char *filename, const int fileline );
@@ -192,8 +193,8 @@ void _MSG_Send( msgtype_t to, vec3_t origin, const edict_t *ent, const char *fil
 #define MSG_WriteString(x,y) _MSG_WriteString (x, y, __FILE__, __LINE__)
 #define MSG_WriteCoord16(x, y) _MSG_WriteBits(x, y, NULL, NET_COORD, __FILE__, __LINE__)
 #define MSG_WriteCoord32(x, y) _MSG_WriteBits(x, y, NULL, NET_FLOAT, __FILE__, __LINE__)
-#define MSG_WriteAngle16(x, y) _MSG_WriteBits(x, y, NULL, NET_ANGLE, __FILE__, __LINE__)
-#define MSG_WriteAngle32(x, y) _MSG_WriteBits(x, y, NULL, NET_FLOAT, __FILE__, __LINE__)
+#define MSG_WriteAngle16(x, y) _MSG_WriteAngle16(x, y, __FILE__, __LINE__)
+#define MSG_WriteAngle32(x, y) _MSG_WriteFloat(x, y, __FILE__, __LINE__)
 #define MSG_WritePos(x, y) _MSG_WritePos( x, y, __FILE__, __LINE__ )
 #define MSG_WriteData(x,y,z) _MSG_WriteData (x, y, z, __FILE__, __LINE__)
 #define MSG_WriteDeltaUsercmd(x, y, z) _MSG_WriteDeltaUsercmd (x, y, z, __FILE__, __LINE__)
@@ -208,10 +209,10 @@ void MSG_BeginReading (sizebuf_t *sb);
 #define MSG_ReadShort( x) _MSG_ReadBits( x, NET_SHORT, __FILE__, __LINE__ )
 #define MSG_ReadWord( x ) _MSG_ReadBits( x, NET_WORD, __FILE__, __LINE__ )
 #define MSG_ReadLong( x ) _MSG_ReadBits( x, NET_LONG, __FILE__, __LINE__ )
-#define MSG_ReadAngle16( x ) _MSG_ReadBits( x, NET_ANGLE, __FILE__, __LINE__ )
-#define MSG_ReadAngle32( x ) _MSG_ReadBits( x, NET_FLOAT, __FILE__, __LINE__ )
+#define MSG_ReadAngle32( x ) MSG_ReadFloat( x )
 float MSG_ReadFloat( sizebuf_t *msg );
 char *MSG_ReadString( sizebuf_t *sb );
+float MSG_ReadAngle16( sizebuf_t *msg );
 double MSG_ReadDouble( sizebuf_t *msg );
 char *MSG_ReadStringLine( sizebuf_t *sb );
 void MSG_ReadPos( sizebuf_t *sb, vec3_t pos );

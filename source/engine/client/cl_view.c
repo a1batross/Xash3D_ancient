@@ -185,10 +185,9 @@ void V_CalcRefDef( void )
 {
 	do
 	{
-		if( cl.refdef.nextView )
-			re->RenderFrame( &cl.refdef );
 		cls.dllFuncs.pfnCalcRefdef( &cl.refdef );
 		V_AddViewModel();
+		re->RenderFrame( &cl.refdef );
 	} while( cl.refdef.nextView );
 }
 
@@ -204,22 +203,17 @@ void V_RenderView( void )
 {
 	if( !cl.video_prepped ) return; // still loading
 
-	// an invalid frame will just use the exact previous refdef
-	// we can't use the old frame if the video mode has changed, though...
-	if( cl.frame.valid && (cl.force_refdef || !cl_paused->value ))
+	if( !cl.frame.valid )
 	{
-		cl.force_refdef = false;
-		V_ClearScene();
-
-		// build a refresh entity list and calc cl.sim*
-		// this also calls CL_CalcViewValues which loads
-		// refdef.forward, etc.
-		CL_AddEntities ();
-
-		V_SetupRefDef ();
-		V_CalcRefDef ();
+		SCR_FillRect( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, g_color_table[0] );
+		return;
 	}
-	re->RenderFrame( &cl.refdef );
+
+	V_ClearScene ();
+	CL_AddEntities ();
+
+	V_SetupRefDef ();
+	V_CalcRefDef ();
 }
 
 /*

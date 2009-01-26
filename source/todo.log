@@ -55,11 +55,13 @@ Beta 13.12.08
 24.ed_fields flags				OK
 25.install ALL missing models & sounds!		OK
 26.fixangle doesn't working correctly
+1. testing NET_ANGLE protocol			OK
+2. setup viewangles and angles on a server
 27.fixup viewmodel drawing			OK
 28.fixing r_pause_effect			OK
 29.dm_knot wrong entities			OK
 30.func_pendulum				OK
-31.weapon_egon & weapon_gauss
+31.weapon_egon & weapon_gauss			OK
 32.Com_LoadLibrary: searchpaths: game/bin, bin	OK
 33.prepare resources for pak			OK
 34.V_CalcRefDef export			OK
@@ -71,8 +73,9 @@ Beta 13.12.08
 40. FirstPerson RefDef			OK
 41. 3dsky surfaceParm			OK
 42. fixup sky rendering			OK
-43. beta-testing
-44. release 
+43. fixup sowtware mip-map generator		OK
+44. fixup sky rendering
+45. make color as unsigned_byte(4)
 
 
 Список доступных рендереров:  	Что в них интересного

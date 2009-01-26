@@ -352,6 +352,7 @@ void SV_GetChallenge( netadr_t from );
 void SV_DirectConnect( netadr_t from );
 void SV_PutClientInServer( edict_t *ent );
 void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd );
+void SV_SetAngle( edict_t *ent, const float *rgflAngles );
 void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg );
 void SV_ConnectionlessPacket( netadr_t from, sizebuf_t *msg );
 
@@ -387,6 +388,7 @@ void SV_SpawnEntities( const char *mapname, script_t *entities );
 edict_t* SV_AllocPrivateData( edict_t *ent, string_t className );
 string_t SV_AllocString( const char *szValue );
 const char *SV_GetString( string_t iString );
+void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float attn, int flags, int pitch );
 
 _inline edict_t *SV_EDICT_NUM( int n, const char * file, const int line )
 {

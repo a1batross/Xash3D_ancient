@@ -1327,7 +1327,7 @@ void R_BeginFrame( void )
 	if( r_texturefilter->modified || r_texturefilteranisotropy->modified || r_texturelodbias->modified )
 		R_SetTextureParameters();
 
-	// Set draw buffer
+	// set draw buffer
 	if( r_frontbuffer->integer )
 		pglDrawBuffer( GL_FRONT );
 	else pglDrawBuffer( GL_BACK );

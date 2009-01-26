@@ -714,10 +714,11 @@ void CFuncTeleport :: Touch( CBaseEntity *pOther )
 			float ydiff = pTarget->pev->angles.y - pLandmark->pev->angles.y;
 
 			// set new angle to face
-			pOther->pev->angles.y += ydiff;
+			pOther->pev->angles.y -= ydiff;
 			if( pOther->IsPlayer())
 			{
 				pOther->pev->angles.x = pOther->pev->viewangles.x;
+				SET_FIXANGLE( ENT( pOther->pev ), pOther->pev->angles );
 				pOther->pev->fixangle = TRUE;
 			}
 
@@ -753,6 +754,7 @@ void CFuncTeleport :: Touch( CBaseEntity *pOther )
 		pOther->pev->velocity = g_vecZero;
 		if( pOther->IsPlayer( ))
 		{
+			SET_FIXANGLE( ENT( pOther->pev ), pTarget->pev->angles );
 			pOther->pev->viewangles = pTarget->pev->angles;
 			pOther->pev->fixangle = TRUE;
 		}
@@ -761,7 +763,7 @@ void CFuncTeleport :: Touch( CBaseEntity *pOther )
 	ChangeCamera( pev->target ); // update PVS
 	pevToucher->flags &= ~FL_ONGROUND;
 	pevToucher->fixangle = TRUE;
-	pevToucher->teleport_time = 0.1;
+	pevToucher->teleport_time = gpGlobals->time + 0.1;
 
 	UTIL_FireTargets( pev->netname, pOther, this, USE_TOGGLE ); // fire target
 }

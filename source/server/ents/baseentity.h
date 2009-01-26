@@ -95,6 +95,13 @@ public:
 			m_iStyle = atoi(pkvd->szValue);
 			pkvd->fHandled = TRUE;
 		}
+		else if (FStrEq(pkvd->szKeyName, "angle"))
+		{
+			// quake legacy
+			if( pev->angles == g_vecZero )
+				pev->angles[1] = atof(pkvd->szValue);
+			pkvd->fHandled = TRUE;
+		}
 		else pkvd->fHandled = FALSE;
 	}
 	virtual int  Save( CSave &save );

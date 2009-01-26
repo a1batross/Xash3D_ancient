@@ -74,9 +74,9 @@ void CM_ModelBounds( cmodel_t *model, vec3_t mins, vec3_t maxs );
 float CM_FindFloor( vec3_t p0, float maxDist );
 void CM_SetOrigin( physbody_t *body, vec3_t origin );
 
-void CM_PlayerMove( entvars_t *pmove, usercmd_t *cmd, physbody_t *body, bool clientmove );
-void CM_ServerMove( entvars_t *pmove, usercmd_t *cmd, physbody_t *body );
-void CM_ClientMove( entvars_t *pmove, usercmd_t *cmd, physbody_t *body );
+void CM_PlayerMove( entity_state_t *pmove, usercmd_t *cmd, physbody_t *body, bool clientmove );
+void CM_ServerMove( entity_state_t *pmove, usercmd_t *cmd, physbody_t *body );
+void CM_ClientMove( entity_state_t *pmove, usercmd_t *cmd, physbody_t *body );
 
 void PolygonF_QuadForPlane( float *outpoints, float planenormalx, float planenormaly, float planenormalz, float planedist, float quadsize );
 void PolygonD_QuadForPlane( double *outpoints, double planenormalx, double planenormaly, double planenormalz, double planedist, double quadsize );

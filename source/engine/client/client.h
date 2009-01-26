@@ -74,7 +74,6 @@ typedef struct
 
 	bool		video_prepped;		// false if on new level or new ref dll
 	bool		audio_prepped;		// false if on new level or new snd dll
-	bool		force_refdef;		// vid has changed, so we can't use a paused refdef
 
 	int		parse_entities;		// index (not anded off) into cl_parse_entities[]
 
@@ -633,6 +632,7 @@ void UI_KeyEvent( int key );
 void UI_ShowMenu( void );
 void UI_HideMenu( void );
 void UI_Shutdown( void );
+void UI_Restart( void );
 void UI_Draw( void );
 
 //

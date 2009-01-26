@@ -191,11 +191,7 @@ void CL_LevelShot_f( void )
 {
 	string	checkname;	
 
-	if( !cl.need_levelshot )
-	{
-		Msg( "levelshot is not valid from the console\n" );
-		return;
-	}
+	if( !cl.need_levelshot ) return;
 
 	// check for exist
 	com.sprintf( checkname, "media/background/%s.png", cl.configstrings[CS_NAME] );

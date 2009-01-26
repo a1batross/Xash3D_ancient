@@ -431,28 +431,18 @@ send it to transform callback
 */
 void SV_PlayerMove( edict_t *player )
 {
-	entvars_t		pmove;
 	sv_client_t	*client;
 	physbody_t	*body;
 	usercmd_t		*cmd;
 
 	client = player->pvServerData->client;
-
-	pmove = player->v;
 	cmd = &client->lastcmd;
 	body = player->pvServerData->physbody;	// member body ptr
-	VectorCopy( player->pvServerData->s.delta_angles, pmove.delta_angles );
-	VectorCopy( player->pvServerData->s.viewangles, pmove.viewangles );
 
-	pe->PlayerMove( &pmove, cmd, body, false );	// server move
-
-	VectorCopy( pmove.viewangles, player->pvServerData->s.viewangles );
-
-	// save results of pmove
-	player->v = pmove;
+	pe->PlayerMove( &player->pvServerData->s, cmd, body, false );	// server move
 }
 
 void SV_PlaySound( edict_t *ed, float volume, float pitch, const char *sample )
 {
-	// FIXME: send sound
+	SV_StartSound( ed, CHAN_AUTO, sample, volume, ATTN_NORM, 0, pitch );
 }

@@ -269,7 +269,7 @@ void IN_ReloadDown(void) {IN_KeyDown(&in_reload);}
 void IN_ReloadUp(void) {IN_KeyUp(&in_reload);}
 void IN_MLookDown( void ){Cvar_SetValue( "cl_mouselook", 1 );}
 void IN_MLookUp( void ){ IN_CenterView(); Cvar_SetValue( "cl_mouselook", 0 );}
-void IN_CenterView (void) {cl.viewangles[PITCH] = -SHORT2ANGLE(cl.frame.ps.delta_angles[PITCH]);}
+void IN_CenterView (void){ cl.viewangles[PITCH] = -cl.frame.ps.delta_angles[PITCH]; }
 
 
 //==========================================================================
@@ -342,7 +342,7 @@ void CL_ClampPitch (void)
 {
 	float	pitch;
 
-	pitch = SHORT2ANGLE(cl.frame.ps.delta_angles[PITCH]);
+	pitch = cl.frame.ps.delta_angles[PITCH];
 	if( pitch > 180 ) pitch -= 360;
 
 	if( cl.viewangles[PITCH] + pitch < -360 ) cl.viewangles[PITCH] += 360; // wrapped
@@ -429,7 +429,7 @@ void CL_FinishMove( usercmd_t *cmd )
 	CL_ClampPitch();
 
 	for( i = 0; i < 3; i++ )
-		cmd->angles[i] = ANGLE2SHORT( cl.viewangles[i] );
+		cmd->angles[i] = cl.viewangles[i];
 
 	// HACKHACK: client lightlevel
 	cmd->lightlevel = (byte)cl_lightlevel->value;
