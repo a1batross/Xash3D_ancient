@@ -7,7 +7,7 @@
 
 /*
 =================
-R_GetPicSize
+R_DrawGetParms
 
 this is needed by some client drawing functions
 =================
@@ -147,7 +147,9 @@ void R_DrawStretchRaw( int x, int y, int w, int h, int rawWidth, int rawHeight, 
 	GL_BindTexture( r_rawTexture );
 
 	if( rawWidth == r_rawTexture->width && rawHeight == r_rawTexture->height )
+	{
 		pglTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, rawWidth, rawHeight, GL_RGBA, GL_UNSIGNED_BYTE, raw );
+	}
 	else
 	{
 		r_rawTexture->width = rawWidth;
@@ -172,7 +174,7 @@ void R_DrawStretchRaw( int x, int y, int w, int h, int rawWidth, int rawHeight, 
 	pglEnable( GL_TEXTURE_2D );
 
 	// draw it
-	pglColor4fv( gl_state.draw_color );
+	pglColor4ubv( gl_state.draw_color );
 
 	pglBegin( GL_QUADS );
 	pglTexCoord2f( 0, 0 );
@@ -244,7 +246,7 @@ void R_DrawScreenRect( float x, float y, float w, float h )
 
 	// draw it
 	pglBindTexture( gl_config.texRectangle, gl_state.screenTexture );
-	pglColor4fv( gl_state.draw_color );
+	pglColor4ubv( gl_state.draw_color );
 
 	pglBegin( GL_QUADS );
 	pglTexCoord2f( 0, h );
@@ -271,9 +273,9 @@ fills a box of pixels with a single color
 void R_DrawFill( float x, float y, float w, float h )
 {
 	pglDisable( GL_TEXTURE_2D );
-	pglColor4fv( gl_state.draw_color );
+	pglColor4ubv( gl_state.draw_color );
 	GL_Enable( GL_BLEND );
-	if(gl_state.draw_color[3] != 1.0f )
+	if( gl_state.draw_color[3] != 255 )
 		GL_BlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 	else GL_BlendFunc( GL_ONE, GL_ZERO );
 

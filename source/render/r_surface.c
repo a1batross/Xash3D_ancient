@@ -89,7 +89,7 @@ void R_DrawSurface( void )
 			GL_Binormal3fv( surf->binormal );
 			GL_Tangent3fv( surf->tangent );
 			GL_Normal3fv( surf->normal );
-			GL_Color4fv( v->color );
+			GL_Color4ubv( v->color );
 			GL_Vertex3fv( v->xyz );
 		}
 		GL_End();
@@ -186,7 +186,10 @@ static void R_AddSurfaceToList( surface_t *surf, ref_entity_t *entity )
 	// check for lightmap modification
 	if( r_dynamiclights->integer && (shader->flags & SHADER_HASLIGHTMAP))
 	{
-		if( surf->dlightFrame == r_frameCount ) lmNum = 255;
+		if( surf->dlightFrame == r_frameCount )
+		{
+			lmNum = 255;
+		}
 		else
 		{
 			for( map = 0; map < surf->numStyles; map++ )
@@ -505,9 +508,6 @@ void R_AddWorldToList( void )
 
 	// bump frame count
 	r_frameCount++;
-
-	// auto cycle the world frame for texture animation
-	r_worldEntity->frame = (int)(r_refdef.time * 2);
 
 	// clear world mins/maxs
 	ClearBounds( r_worldMins, r_worldMaxs );

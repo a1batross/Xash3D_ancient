@@ -245,7 +245,7 @@ typedef struct cdecal_s
 {
 	struct cdecal_s	*prev, *next;
 	int		time;
-	vec4_t		modulate;
+	rgba_t		modulate;
 	bool		alphaFade;
 	shader_t		shader;
 	int		numVerts;
@@ -326,7 +326,7 @@ CL_AddDecal
 called from render after clipping
 =================
 */
-void CL_AddDecal( vec3_t org, matrix3x3 m, shader_t s, vec4_t rgba, bool fade, decalFragment_t *df, const vec3_t *v )
+void CL_AddDecal( vec3_t org, matrix3x3 m, shader_t s, rgba_t rgba, bool fade, decalFragment_t *df, const vec3_t *v )
 {
 	cdecal_t	*decal;
 	vec3_t	delta;
@@ -382,7 +382,7 @@ void CL_AddDecals( void )
 
 			if( time < fadeTime )
 			{
-				c = 1.0 - ((float)time / fadeTime);
+				c = 255 - ((float)time / fadeTime);
 
 				for( i = 0; i < decal->numVerts; i++ )
 				{
@@ -428,11 +428,17 @@ pfnAddDecal
 void pfnAddDecal( float *org, float *dir, float *rgba, float rot, float rad, HSPRITE hSpr, int flags )
 {
 	bool	fade, temp;
+	rgba_t	color;
 
 	fade = (flags & DECAL_FADE) ? true : false;
 	temp = (flags & DECAL_TEMPORARY) ? true : false;
 
-	re->ImpactMark( org, dir, rot, rad, rgba, fade, hSpr, temp );	
+	color[0] = 255 * rgba[0];
+	color[1] = 255 * rgba[1];
+	color[2] = 255 * rgba[2];
+	color[3] = 255 * rgba[3];
+
+	re->ImpactMark( org, dir, rot, rad, color, fade, hSpr, temp );	
 }
 
 /*
@@ -544,7 +550,7 @@ void CL_AddParticles( void )
 {
 	cparticle_t	*p, *next;
 	cparticle_t	*active = NULL, *tail = NULL;
-	dword		modulate;
+	rgba_t		modulate;
 	vec3_t		origin, oldorigin, velocity, color;
 	vec3_t		ambientLight;
 	float		alpha, radius, length;
@@ -721,7 +727,10 @@ void CL_AddParticles( void )
 		}
 
 		// bound color and alpha and convert to byte
-		modulate = PackRGBA( color[0], color[1], color[2], alpha );
+		modulate[0] = bound( 0, 255 * color[0], 255 );
+		modulate[1] = bound( 0, 255 * color[1], 255 );
+		modulate[2] = bound( 0, 255 * color[2], 255 );
+		modulate[3] = bound( 0, 255 * alpha, 255 );
 
 		if( p->flags & PARTICLE_INSTANT )
 		{

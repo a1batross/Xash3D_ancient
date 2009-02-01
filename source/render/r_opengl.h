@@ -45,7 +45,8 @@ typedef uint GLhandleARB;
 #define GL_DEPTH_TEST			0x0B71
 
 #define GL_CULL_FACE			0x0B44
-
+#define GL_CW				0x0900
+#define GL_CCW				0x0901
 #define GL_BLEND				0x0BE2
 #define GL_ALPHA_TEST			0x0BC0
 
@@ -1057,6 +1058,8 @@ typedef struct
 
 	HINSTANCE hinstOpenGL;	// HINSTANCE for the OpenGL library
 
+	bool	software;		// software emulation uses RB_RenderShader()
+	bool	initialized;	// OpenGL subsystem started
 	bool	minidriver;
 	int	developer;	// engine developer level;
 

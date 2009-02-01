@@ -54,9 +54,7 @@ Beta 13.12.08
 23.first implement efxapi_t			OK
 24.ed_fields flags				OK
 25.install ALL missing models & sounds!		OK
-26.fixangle doesn't working correctly
-1. testing NET_ANGLE protocol			OK
-2. setup viewangles and angles on a server
+26.fixangle doesn't working correctly		OK
 27.fixup viewmodel drawing			OK
 28.fixing r_pause_effect			OK
 29.dm_knot wrong entities			OK
@@ -75,7 +73,10 @@ Beta 13.12.08
 42. fixup sky rendering			OK
 43. fixup sowtware mip-map generator		OK
 44. fixup sky rendering
-45. make color as unsigned_byte(4)
+45. make color as unsigned_byte(4)		OK
+46. RB_RenderShader()			OK
+47. fixup slowly rendering
+48. building uimenu.dll
 
 
 Список доступных рендереров:  	Что в них интересного

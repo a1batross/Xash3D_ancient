@@ -3919,10 +3919,9 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 		else if( shader->surfaceParm & SURF_ALPHA )
 		{
 			shader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
-			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
-			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 			shader->stages[0]->alphaFunc.func = GL_GREATER;
 			shader->stages[0]->alphaFunc.ref = 0.666;
+			shader->surfaceParm |= SURF_NOLIGHTMAP;
 	         		shader->sort = SORT_SEETHROUGH;
 		}
 		if( shader->surfaceParm & SURF_WARP )
@@ -3980,7 +3979,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 		{
 			shader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
 			shader->stages[0]->alphaFunc.func = GL_GREATER;
-			shader->stages[0]->alphaFunc.ref = 0.9;		// FIXME
+			shader->stages[0]->alphaFunc.ref = 0.666;		// FIXME
 			shader->sort = SORT_SEETHROUGH;
 		}
 		shader->stages[0]->bundles[0]->numTextures++;

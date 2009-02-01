@@ -16,7 +16,7 @@
 typedef struct
 {
 	vec3_t		point;
-	vec4_t		modulate;
+	rgba_t		modulate;
 	vec2_t		st;
 } polyVert_t;
 
@@ -49,7 +49,7 @@ typedef struct render_exp_s
 	// prepare frame to rendering
 	bool	(*AddRefEntity)( edict_t *pRefEntity, int ed_type, float lerp );
 	bool	(*AddDynLight)( vec3_t org, vec3_t color, float intensity );
-	bool	(*AddParticle)( shader_t shader, const vec3_t p1, const vec3_t p2, float rad, float len, float rot, int col );
+	bool	(*AddParticle)( shader_t shader, const vec3_t p1, const vec3_t p2, float rad, float len, float rot, rgba_t col );
 	bool	(*AddPolygon)( shader_t shader, int numVerts, const polyVert_t *verts );
 	bool	(*AddLightStyle)( int stylenum, vec3_t color );
 	void	(*ClearScene)( void );
@@ -59,7 +59,7 @@ typedef struct render_exp_s
 	void	(*EndFrame)( void );
 
 	// misc utilities
-	void	(*SetColor)( const float *rgba );
+	void	(*SetColor)( const void *color );
 	void	(*SetParms)( shader_t handle, kRenderMode_t rendermode, int frame );
 	void	(*GetParms)( int *w, int *h, int *frames, int frame, shader_t shader );
 	bool	(*ScrShot)( const char *filename, int shot_type ); // write screenshot with same name 
@@ -68,7 +68,7 @@ typedef struct render_exp_s
 	void	(*DrawFill)( float x, float y, float w, float h );
 	void	(*DrawStretchRaw)( int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw );
 	void	(*DrawStretchPic)( float x, float y, float w, float h, float s1, float t1, float s2, float t2, shader_t shader );
-	void	(*ImpactMark)( vec3_t org, vec3_t dir, float rot, float radius, vec4_t mod, bool fade, shader_t s, bool tmp );
+	void	(*ImpactMark)( vec3_t org, vec3_t dir, float rot, float radius, rgba_t mod, bool fade, shader_t s, bool tmp );
 
 } render_exp_t;
 
@@ -80,7 +80,7 @@ typedef struct render_imp_s
 	// client fundamental callbacks
 	void	(*UpdateScreen)( void );	// update screen while loading
 	void	(*StudioEvent)( dstudioevent_t *event, edict_t *ent );
-	void	(*AddDecal)( vec3_t org, matrix3x3 m, shader_t s, vec4_t rgba, bool fade, decalFragment_t *df, const vec3_t *v );
+	void	(*AddDecal)( vec3_t org, matrix3x3 m, shader_t s, rgba_t rgba, bool fade, decalFragment_t *df, const vec3_t *v );
 	void	(*ShowCollision)( cmdraw_t callback );	// debug
 	long	(*WndProc)( void *hWnd, uint uMsg, uint wParam, long lParam );
 	edict_t	*(*GetClientEdict)( int index );

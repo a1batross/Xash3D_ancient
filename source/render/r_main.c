@@ -67,6 +67,7 @@ cvar_t	*r_lockpvs;
 cvar_t	*r_frontbuffer;
 cvar_t	*r_showcluster;
 cvar_t	*r_showtris;
+cvar_t	*r_allow_software;
 cvar_t	*r_shownormals;
 cvar_t	*r_showtangentspace;
 cvar_t	*r_showmodelbounds;
@@ -83,6 +84,9 @@ cvar_t	*r_skipfrontend;
 cvar_t	*r_swapInterval;
 cvar_t	*r_vertexbuffers;
 cvar_t	*r_mode;
+cvar_t	*r_stencilbits;
+cvar_t	*r_colorbits;
+cvar_t	*r_depthbits;
 cvar_t	*r_testmode;
 cvar_t	*r_fullscreen;
 cvar_t	*r_caustics;
@@ -330,7 +334,6 @@ static void R_AddEntitiesToList( void )
 
 			switch( model->type )
 			{
-			case mod_world:
 			case mod_brush:
 				R_AddBrushModelToList( entity );
 				break;
@@ -616,10 +619,10 @@ R_QSortMeshes
 static void R_QSortMeshes( mesh_t *meshes, int numMeshes )
 {
 	static mesh_t	tmp;
-	static int	stack[4096];
+	static int64	stack[4096];
 	int		depth = 0;
-	int		L, R, l, r, median;
-	uint		pivot;
+	int64		L, R, l, r, median;
+	qword		pivot;
 
 	if( !numMeshes ) return;
 
@@ -709,6 +712,17 @@ static void R_ISortMeshes( mesh_t *meshes, int numMeshes )
 	}
 }
 
+void R_ClearMeshes( void )
+{
+	int	i;
+
+	for( i = 0; i < r_numEntities; i++ )
+	{
+		m_pCurrentEntity = &r_entities[i];
+		R_StudioClearMeshes();
+	}
+}
+
 /*
 =================
 R_AddMeshToList
@@ -734,7 +748,7 @@ void R_AddMeshToList( meshType_t meshType, void *mesh, ref_shader_t *shader, ref
 		m = &r_transMeshes[r_numTransMeshes++];
 	}
 
-	m->sortKey = (shader->sort<<28) | (shader->shadernum<<18) | ((entity - r_entities)<<8) | (infoKey);
+	m->sortKey = (shader->sort<<36) | (shader->shadernum<<20) | ((entity - r_entities)<<8) | (infoKey);
 	m->meshType = meshType;
 	m->mesh = mesh;
 }
@@ -908,6 +922,8 @@ void R_RenderView( const ref_params_t *fd )
 	R_DrawNullModels();
 
 	RB_DebugGraphics();
+	R_ClearMeshes();
+
 	R_BloomBlend( fd );
 }
 
@@ -1044,20 +1060,20 @@ static bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac
 	refent->index = pRefEntity->serialnumber;
 	refent->ent_type = ed_type;
 	refent->backlerp = 1.0f - lerpfrac;
-	refent->renderamt = pRefEntity->v.renderamt / 255.0f;
+	refent->renderamt = pRefEntity->v.renderamt;
 	refent->rendermode = pRefEntity->v.rendermode;
 	refent->body = pRefEntity->v.body;
 	refent->scale = pRefEntity->v.scale;
 	refent->colormap = pRefEntity->v.colormap;
 	refent->effects = pRefEntity->v.effects;
 	if( VectorIsNull( pRefEntity->v.rendercolor ))
-		VectorSet( refent->rendercolor, 1.0f, 1.0f, 1.0f );
-	else VectorDivide( pRefEntity->v.rendercolor, 255.0f, refent->rendercolor );
+		VectorSet( refent->rendercolor, 255, 255, 255 );
+	else VectorCopy( pRefEntity->v.rendercolor, refent->rendercolor );
 	refent->model = cl_models[pRefEntity->v.modelindex];
 	refent->movetype = pRefEntity->v.movetype;
 	refent->framerate = pRefEntity->v.framerate;
 	refent->prev.sequencetime = refent->animtime - refent->prev.animtime;
-				
+
 	// check model
 	if( !refent->model ) return false;
 	switch( refent->model->type )
@@ -1152,6 +1168,9 @@ static bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac
 
 	Matrix3x3_FromAngles( refent->angles, refent->matrix );
 
+	if(( refent->ent_type == ED_VIEWMODEL ) && ( r_lefthand->integer == 1 ))
+		VectorNegate( refent->matrix[1], refent->matrix[1] ); 
+
 	// copy controllers
 	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
 	{
@@ -1220,7 +1239,7 @@ static bool R_AddDynamicLight( vec3_t org, vec3_t color, float intensity )
 R_AddParticleToScene
 =================
 */
-bool R_AddParticleToScene( shader_t shader, const vec3_t org1, const vec3_t org2, float radius, float length, float rotate, int color )
+bool R_AddParticleToScene( shader_t shader, const vec3_t org1, const vec3_t org2, float radius, float length, float rotate, rgba_t color )
 {
 	particle_t	*p;
 
@@ -1238,7 +1257,7 @@ bool R_AddParticleToScene( shader_t shader, const vec3_t org1, const vec3_t org2
 	p->radius = radius;
 	p->length = length;
 	p->rotation = rotate;
-	Vector4Copy( UnpackRGBA( color ), p->modulate );
+	Vector4Copy( color, p->modulate );
 	r_numParticles++;
 
 	return true;

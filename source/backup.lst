@@ -10,6 +10,7 @@ backup.lst
 backup.bat
 release.bat
 launchers.bat
+history.log
 todo.log
 
 baserc\
@@ -41,6 +42,7 @@ server\global\
 server\monsters\
 vprogs\
 vsound\
+uimenu\
 xtools\
 xtools\bsplib
 xtools\ripper

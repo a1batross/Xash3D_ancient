@@ -71,5 +71,5 @@ if exist xtools\xtools.plg del /f /q xtools\xtools.plg
 echo 	     Build succeeded!
 echo Please wait. Xash is now loading
 cd D:\Xash3D\
-quake.exe -game xash -dev 3 -log +map dm_qstyle
+xash.exe -dev 3 -log +map dm_qstyle
 :done

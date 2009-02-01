@@ -7,8 +7,10 @@
 
 glwstate_t	glw_state;
 
+#define MAX_PFDS		256
 #define num_vidmodes	((int)(sizeof(vidmode) / sizeof(vidmode[0])) - 1)
 #define WINDOW_STYLE	(WS_OVERLAPPED|WS_BORDER|WS_CAPTION|WS_VISIBLE)
+#define GL_DRIVER_OPENGL	"OpenGL32"
 
 typedef enum
 {
@@ -57,7 +59,7 @@ static dllfunc_t wgl_funcs[] =
 {
 	{"wglChoosePixelFormat", (void **) &pwglChoosePixelFormat},
 	{"wglDescribePixelFormat", (void **) &pwglDescribePixelFormat},
-	{"wglGetPixelFormat", (void **) &pwglGetPixelFormat},
+//	{"wglGetPixelFormat", (void **) &pwglGetPixelFormat},
 	{"wglSetPixelFormat", (void **) &pwglSetPixelFormat},
 	{"wglSwapBuffers", (void **) &pwglSwapBuffers},
 	{"wglCreateContext", (void **) &pwglCreateContext},
@@ -86,55 +88,226 @@ bool R_DeleteContext( void )
 	return false;
 }
 
+/*
+=================
+R_ChoosePFD
+=================
+*/
+static int R_ChoosePFD( int colorBits, int depthBits, int stencilBits )
+{
+	PIXELFORMATDESCRIPTOR	PFDs[MAX_PFDS], *current, *selected;
+	int			i, numPFDs, pixelFormat = 0;
+	uint			flags = PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_DOUBLEBUFFER;
+
+	MsgDev( D_NOTE, "R_ChoosePFD( %i, %i, %i )\n", colorBits, depthBits, stencilBits);
+
+	// Count PFDs
+	if( glw_state.minidriver )
+		numPFDs = pwglDescribePixelFormat( glw_state.hDC, 0, 0, NULL );
+	else numPFDs = DescribePixelFormat( glw_state.hDC, 0, 0, NULL );
+
+	if( numPFDs > MAX_PFDS )
+	{
+		MsgDev( D_NOTE, "too many PFDs returned (%i > %i), reduce it\n", numPFDs, MAX_PFDS );
+		numPFDs = MAX_PFDS;
+	}
+	else if( numPFDs < 1 )
+	{
+		MsgDev( D_ERROR, "R_ChoosePFD failed\n" );
+		return 0;
+	}
+
+	MsgDev( D_NOTE, "R_ChoosePFD: %i PFDs found\n", numPFDs );
+
+	// run through all the PFDs, looking for the best match
+	for( i = 1, current = PFDs; i <= numPFDs; i++, current++ )
+	{
+		if( glw_state.minidriver )
+			pwglDescribePixelFormat( glw_state.hDC, i, sizeof( PIXELFORMATDESCRIPTOR ), current );
+		else DescribePixelFormat( glw_state.hDC, i, sizeof( PIXELFORMATDESCRIPTOR ), current );
+
+		// check acceleration
+		if(( current->dwFlags & PFD_GENERIC_FORMAT ) && !r_allow_software->integer )
+		{
+			MsgDev( D_NOTE, "PFD %i rejected, software acceleration\n", i );
+			continue;
+		}
+
+		// check flags
+		if(( current->dwFlags & flags ) != flags )
+		{
+			MsgDev( D_NOTE, "PFD %i rejected, improper flags (0x%x instead of 0x%x)\n", i, current->dwFlags, flags );
+			continue;
+		}
+
+		// Check pixel type
+		if( current->iPixelType != PFD_TYPE_RGBA )
+		{
+			MsgDev( D_NOTE, "PFD %i rejected, not RGBA\n", i );
+			continue;
+		}
+
+		// check color bits
+		if( current->cColorBits < colorBits )
+		{
+			MsgDev( D_NOTE, "PFD %i rejected, insufficient color bits (%i < %i)\n", i, current->cColorBits, colorBits );
+			continue;
+		}
+
+		// check depth bits
+		if( current->cDepthBits < depthBits )
+		{
+			MsgDev( D_NOTE, "PFD %i rejected, insufficient depth bits (%i < %i)\n", i, current->cDepthBits, depthBits );
+			continue;
+		}
+
+		// check stencil bits
+		if( current->cStencilBits < stencilBits )
+		{
+			MsgDev( D_NOTE, "PFD %i rejected, insufficient stencil bits (%i < %i)\n", i, current->cStencilBits, stencilBits );
+			continue;
+		}
+
+		// if we don't have a selected PFD yet, then use it
+		if( !pixelFormat )
+		{
+			selected = current;
+			pixelFormat = i;
+			continue;
+		}
+
+		if( colorBits != selected->cColorBits )
+		{
+			if( colorBits == current->cColorBits || current->cColorBits > selected->cColorBits )
+			{
+				selected = current;
+				pixelFormat = i;
+				continue;
+			}
+		}
+
+		if( depthBits != selected->cDepthBits )
+		{
+			if( depthBits == current->cDepthBits || current->cDepthBits > selected->cDepthBits )
+			{
+				selected = current;
+				pixelFormat = i;
+				continue;
+			}
+		}
+
+		if( stencilBits != selected->cStencilBits )
+		{
+			if( stencilBits == current->cStencilBits || current->cStencilBits > selected->cStencilBits )
+			{
+				selected = current;
+				pixelFormat = i;
+				continue;
+			}
+		}
+	}
+
+	if( !pixelFormat )
+	{
+		MsgDev( D_ERROR, "R_ChoosePFD: no hardware acceleration found\n" );
+		return 0;
+	}
+
+	if( selected->dwFlags & PFD_GENERIC_FORMAT )
+	{
+		if( selected->dwFlags & PFD_GENERIC_ACCELERATED )
+		{
+			MsgDev( D_NOTE, "R_ChoosePFD:: MCD acceleration found\n" );
+			glw_state.software = false;
+		}
+		else
+		{
+			MsgDev( D_NOTE, "R_ChoosePFD: using software emulation\n" );
+			glw_state.software = true;
+		}
+	}
+	else
+	{
+		MsgDev( D_NOTE, "using hardware acceleration\n");
+		glw_state.software = false;
+	}
+	MsgDev( D_LOAD, "R_ChoosePFD: PIXELFORMAT %i selected\n", pixelFormat );
+
+	return pixelFormat;
+}
+
 bool R_SetPixelformat( void )
 {
-	long	flags = PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_GENERIC_ACCELERATED|PFD_DOUBLEBUFFER;
-	int	pixelformat;	
+	PIXELFORMATDESCRIPTOR PFD;
+	int colorBits, depthBits, stencilBits;
+	int	pixelFormat;
 	size_t	gamma_size;
 	byte	*savedGamma;
-
-	PIXELFORMATDESCRIPTOR pfd =
-	{
-		sizeof(PIXELFORMATDESCRIPTOR),// size of this pfd
-		1,			// version number
-		flags,			// support window|OpenGL|generic accel|double buffer
-		PFD_TYPE_RGBA,		// RGBA type
-		32,			// 32-bit color depth
-		0, 0, 0, 0, 0, 0,		// color bits ignored
-		0, 0,			// no alpha buffer
-		0,			// no accumulation buffer
-		0, 0, 0, 0, 		// accum bits ignored
-		24,			// 24-bit z-buffer
-		8,			// 8-bit stencil buffer
-		0,			// no auxiliary buffer
-		PFD_MAIN_PLANE,		// main layer
-		0,			// reserved
-		0, 0, 0			// layer masks ignored
-	};
 
 	Sys_LoadLibrary( &opengl_dll );	// load opengl32.dll
 	if( !opengl_dll.link ) return false;
 
-    	if(( glw_state.hDC = GetDC( glw_state.hWnd )) == NULL )
-		return false;
+	glw_state.minidriver = false;	// FIXME
 
-	glw_state.minidriver = false;
 	if( glw_state.minidriver )
 	{
-		if(!(pixelformat = pwglChoosePixelFormat( glw_state.hDC, &pfd)))
+    		if(( glw_state.hDC = pwglGetCurrentDC()) == NULL )
 			return false;
-		if(!(pwglSetPixelFormat( glw_state.hDC, pixelformat, &pfd)))
-			return false;
-		pwglDescribePixelFormat( glw_state.hDC, pixelformat, sizeof( pfd ), &pfd );
 	}
 	else
 	{
-		if(!( pixelformat = ChoosePixelFormat( glw_state.hDC, &pfd )))
+    		if(( glw_state.hDC = GetDC( glw_state.hWnd )) == NULL )
 			return false;
-		if(!(SetPixelFormat( glw_state.hDC, pixelformat, &pfd )))
-			return false;
-		DescribePixelFormat( glw_state.hDC, pixelformat, sizeof( pfd ), &pfd );
 	}
+
+	// set color/depth/stencil
+	colorBits = (r_colorbits->integer) ? r_colorbits->integer : 32;
+	depthBits = (r_depthbits->integer) ? r_depthbits->integer : 24;
+	stencilBits = (r_stencilbits->integer) ? r_stencilbits->integer : 0;
+
+	// choose a pixel format
+	pixelFormat = R_ChoosePFD( colorBits, depthBits, stencilBits );
+	if( !pixelFormat )
+	{
+		// try again with default color/depth/stencil
+		if( colorBits > 16 || depthBits > 16 || stencilBits > 0 )
+			pixelFormat = R_ChoosePFD( 16, 16, 0 );
+		else pixelFormat = R_ChoosePFD( 32, 24, 0 );
+
+		if( !pixelFormat )
+		{
+			MsgDev( D_ERROR, "R_SetPixelformat: failed to find an appropriate PIXELFORMAT\n" );
+			ReleaseDC( glw_state.hWnd, glw_state.hDC );
+			glw_state.hDC = NULL;
+			return false;
+		}
+	}
+
+	// set the pixel format
+	if( glw_state.minidriver )
+	{
+		pwglDescribePixelFormat( glw_state.hDC, pixelFormat, sizeof( PIXELFORMATDESCRIPTOR ), &PFD );
+
+		if( !pwglSetPixelFormat( glw_state.hDC, pixelFormat, &PFD ))
+		{
+			MsgDev( D_ERROR, "R_SetPixelformat: wglSetPixelFormat failed\n" );
+			return R_DeleteContext();
+		}
+	}
+	else
+	{
+		DescribePixelFormat( glw_state.hDC, pixelFormat, sizeof( PIXELFORMATDESCRIPTOR ), &PFD );
+
+		if( !SetPixelFormat( glw_state.hDC, pixelFormat, &PFD ))
+		{
+			MsgDev( D_ERROR, "R_SetPixelformat: failed\n" );
+			return R_DeleteContext();
+		}
+	}
+
+	gl_config.color_bits = PFD.cColorBits;
+	gl_config.depth_bits = PFD.cDepthBits;
+	gl_config.stencil_bits = PFD.cStencilBits;
 
 	if(!(glw_state.hGLRC = pwglCreateContext( glw_state.hDC )))
 		return R_DeleteContext();
@@ -142,7 +315,7 @@ bool R_SetPixelformat( void )
 		return R_DeleteContext();
 
 	// print out PFD specifics 
-	MsgDev(D_NOTE, "GL PFD: color(%d-bits) Z(%d-bit)\n", ( int )pfd.cColorBits, ( int )pfd.cDepthBits );
+	MsgDev( D_NOTE, "GL PFD: color(%d-bits) Z(%d-bit)\n", ( int )PFD.cColorBits, ( int )PFD.cDepthBits );
 
 	// init gamma ramp
 	ZeroMemory( gl_state.stateRamp, sizeof(gl_state.stateRamp));
@@ -241,6 +414,7 @@ void R_Free_OpenGL( void )
 
 	// now all extensions are disabled
 	Mem_Set( gl_config.extension, 0, sizeof( gl_config.extension[0] ) * R_EXTCOUNT );
+	glw_state.initialized = false;
 }
 
 void R_SaveVideoMode( int vid_mode )
@@ -320,6 +494,11 @@ bool R_CreateWindow( int width, int height, bool fullscreen )
 	// init all the gl stuff for the window
 	if( !R_SetPixelformat( ))
 	{
+		ShowWindow( glw_state.hWnd, SW_HIDE );
+		DestroyWindow( glw_state.hWnd );
+		glw_state.hWnd = NULL;
+
+		UnregisterClass( "Xash Window", glw_state.hInst );
 		MsgDev( D_ERROR, "OpenGL driver not installed\n" );
 		return false;
 	}

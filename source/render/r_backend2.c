@@ -148,10 +148,10 @@ static void RB_SetTexCoord( GLfloat s, GLfloat t, GLfloat ls, GLfloat lt )
 
 static void RB_SetColor( GLfloat r, GLfloat g, GLfloat b, GLfloat a )
 {
-	ref.colorArray[ref.numVertex][0] = r;
-	ref.colorArray[ref.numVertex][1] = g;
-	ref.colorArray[ref.numVertex][2] = b;
-	ref.colorArray[ref.numVertex][3] = a;
+	ref.colorArray[ref.numVertex][0] = 255 * r;
+	ref.colorArray[ref.numVertex][1] = 255 * g;
+	ref.colorArray[ref.numVertex][2] = 255 * b;
+	ref.colorArray[ref.numVertex][3] = 255 * a;
 }
 
 static void RB_SetNormal( GLfloat x, GLfloat y, GLfloat z )
@@ -267,12 +267,18 @@ void GL_Color4fv( const GLfloat *v )
 
 void GL_Color4ub( GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha )
 {
-	GL_Color4fv(UnpackRGBA(MakeRGBA( red, green, blue, alpha )));
+	ref.colorArray[ref.numVertex][0] = red;
+	ref.colorArray[ref.numVertex][1] = green;
+	ref.colorArray[ref.numVertex][2] = blue;
+	ref.colorArray[ref.numVertex][3] = alpha;
 }
 
 void GL_Color4ubv( const GLubyte *v )
 {
-	GL_Color4fv(UnpackRGBA(BuffLittleLong( v )));
+	ref.colorArray[ref.numVertex][0] = v[0];
+	ref.colorArray[ref.numVertex][1] = v[1];
+	ref.colorArray[ref.numVertex][2] = v[2];
+	ref.colorArray[ref.numVertex][3] = v[3];
 }
 
 /*
@@ -576,15 +582,15 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 	case RGBGEN_IDENTITY:
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			ref.colorArray[i][0] = 1.0f;
-			ref.colorArray[i][1] = 1.0f;
-			ref.colorArray[i][2] = 1.0f;
+			ref.colorArray[i][0] = 255;
+			ref.colorArray[i][1] = 255;
+			ref.colorArray[i][2] = 255;
 		}
 		break;
 	case RGBGEN_IDENTITYLIGHTING:
 		if( gl_config.deviceSupportsGamma )
-			r = g = b = 1>>r_overbrightbits->integer;
-		else r = g = b = 1.0f;
+			r = g = b = 255 >> r_overbrightbits->integer;
+		else r = g = b = 255;
 
 		for( i = 0; i < ref.numVertex; i++ )
 		{
@@ -600,9 +606,9 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 
 		f = bound( 0.0, f, 1.0 );
 
-		r = 1.0f * f;
-		g = 1.0f * f;
-		b = 1.0f * f;
+		r = 255 * f;
+		g = 255 * f;
+		b = 255 * f;
 
 		for( i = 0; i < ref.numVertex; i++ )
 		{
@@ -618,9 +624,9 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 
 		f = bound(0.0, f, 1.0);
 			
-		r = 1.0f * (rgbGen->params[0] * f);
-		g = 1.0f * (rgbGen->params[1] * f);
-		b = 1.0f * (rgbGen->params[2] * f);
+		r = 255 * (rgbGen->params[0] * f);
+		g = 255 * (rgbGen->params[1] * f);
+		b = 255 * (rgbGen->params[2] * f);
 
 		for( i = 0; i < ref.numVertex; i++ )
 		{
@@ -634,9 +640,9 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 	case RGBGEN_ONEMINUSVERTEX:
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			ref.colorArray[i][0] = 1.0f - ref.colorArray[i][0];
-			ref.colorArray[i][1] = 1.0f - ref.colorArray[i][1];
-			ref.colorArray[i][2] = 1.0f - ref.colorArray[i][2];
+			ref.colorArray[i][0] = 255 - ref.colorArray[i][0];
+			ref.colorArray[i][1] = 255 - ref.colorArray[i][1];
+			ref.colorArray[i][2] = 255 - ref.colorArray[i][2];
 		}
 		break;
 	case RGBGEN_ENTITY:
@@ -661,9 +667,9 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 	case RGBGEN_ONEMINUSENTITY:
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			ref.colorArray[i][0] = 1.0f - m_pCurrentEntity->rendercolor[0];
-			ref.colorArray[i][1] = 1.0f - m_pCurrentEntity->rendercolor[1];
-			ref.colorArray[i][2] = 1.0f - m_pCurrentEntity->rendercolor[2];
+			ref.colorArray[i][0] = 255 - m_pCurrentEntity->rendercolor[0];
+			ref.colorArray[i][1] = 255 - m_pCurrentEntity->rendercolor[1];
+			ref.colorArray[i][2] = 255 - m_pCurrentEntity->rendercolor[2];
 		}
 		break;
 	case RGBGEN_LIGHTINGAMBIENT:
@@ -673,9 +679,9 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 		R_LightingDiffuse();
 		break;
 	case RGBGEN_CONST:
-		r = 1.0f * rgbGen->params[0];
-		g = 1.0f * rgbGen->params[1];
-		b = 1.0f * rgbGen->params[2];
+		r = 255 * rgbGen->params[0];
+		g = 255 * rgbGen->params[1];
+		b = 255 * rgbGen->params[2];
 
 		for( i = 0; i < ref.numVertex; i++ )
 		{
@@ -692,14 +698,14 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 	{
 	case ALPHAGEN_IDENTITY:
 		for( i = 0; i < ref.numVertex; i++ )
-			ref.colorArray[i][3] = 1.0f;
+			ref.colorArray[i][3] = 255;
 		break;
 	case ALPHAGEN_WAVE:
 		table = RB_TableForFunc(&alphaGen->func);
 		now = alphaGen->func.params[2] + alphaGen->func.params[3] * m_fShaderTime;
 		f = table[((int)(now * TABLE_SIZE)) & TABLE_MASK] * alphaGen->func.params[1] + alphaGen->func.params[0];
 		f = bound( 0.0, f, 1.0 );
-		a = 1.0f * f;
+		a = 255 * f;
 
 		for( i = 0; i < ref.numVertex; i++ )
 			ref.colorArray[i][3] = a;
@@ -709,7 +715,7 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 		now = alphaGen->func.params[2] + alphaGen->func.params[3] * m_fShaderTime;
 		f = table[((int)(now * TABLE_SIZE)) & TABLE_MASK] * alphaGen->func.params[1] + alphaGen->func.params[0];
 		f = bound( 0.0, f, 1.0 );
-		a = 1.0f * (alphaGen->params[0] * f);
+		a = 255 * (alphaGen->params[0] * f);
 
 		for( i = 0; i < ref.numVertex; i++ )
 			ref.colorArray[i][3] = a;
@@ -718,7 +724,7 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 		break;
 	case ALPHAGEN_ONEMINUSVERTEX:
 		for( i = 0; i < ref.numVertex; i++ )
-			ref.colorArray[i][3] = 1.0f - ref.colorArray[i][3];
+			ref.colorArray[i][3] = 255 - ref.colorArray[i][3];
 		break;
 	case ALPHAGEN_ENTITY:
 		switch( m_pCurrentEntity->rendermode )
@@ -739,7 +745,7 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 		break;
 	case ALPHAGEN_ONEMINUSENTITY:
 		for( i = 0; i < ref.numVertex; i++ )
-			ref.colorArray[i][3] = 1.0f - m_pCurrentEntity->renderamt;
+			ref.colorArray[i][3] = 255 - m_pCurrentEntity->renderamt;
 		break;
 	case ALPHAGEN_DOT:
 		if( !Matrix3x3_Compare( m_pCurrentEntity->matrix, matrix3x3_identity ))
@@ -750,7 +756,7 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 		{
 			f = DotProduct(vec, ref.normalArray[i] );
 			if( f < 0 ) f = -f;
-			ref.colorArray[i][3] = 1.0f * bound( alphaGen->params[0], f, alphaGen->params[1] );
+			ref.colorArray[i][3] = 255 * bound( alphaGen->params[0], f, alphaGen->params[1] );
 		}
 		break;
 	case ALPHAGEN_ONEMINUSDOT:
@@ -762,7 +768,7 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 		{
 			f = DotProduct(vec, ref.normalArray[i] );
 			if( f < 0 ) f = -f;
-			ref.colorArray[i][3] = bound( alphaGen->params[0], 1.0 - f, alphaGen->params[1]);
+			ref.colorArray[i][3] = bound( alphaGen->params[0], 255 - f, alphaGen->params[1]);
 		}
 		break;
 	case ALPHAGEN_FADE:
@@ -784,7 +790,7 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 
 			f = bound( alphaGen->params[0], f, alphaGen->params[1] ) - alphaGen->params[0];
 			f = f * alphaGen->params[2];
-			ref.colorArray[i][3] = bound( 0.0, 1.0 - f, 1.0 );
+			ref.colorArray[i][3] = 255 * bound( 0.0, 1.0 - f, 1.0 );
 		}
 		break;
 	case ALPHAGEN_LIGHTINGSPECULAR:
@@ -802,11 +808,11 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 
 			f = DotProduct( dir, ref.normalArray[i] );
 			f = pow( f, alphaGen->params[0] );
-			ref.colorArray[i][3] = 1.0f * bound( 0.0, f, 1.0 );
+			ref.colorArray[i][3] = 255 * bound( 0.0, f, 1.0 );
 		}
 		break;
 	case ALPHAGEN_CONST:
-		a = 1.0f * alphaGen->params[0];
+		a = 255 * alphaGen->params[0];
 
 		for( i = 0; i < ref.numVertex; i++ )
 			ref.colorArray[i][3] = a;
@@ -1351,9 +1357,9 @@ static void RB_RenderShaderARB( void )
 		RB_SetShaderStageState( stage );
 		RB_CalcVertexColors( stage );
 
-		RB_UpdateVertexBuffer( ref.colorBuffer, ref.colorArray, ref.numVertex * sizeof( vec4_t ));
+		RB_UpdateVertexBuffer( ref.colorBuffer, ref.colorArray, ref.numVertex * sizeof( rgba_t ));
 		pglEnableClientState( GL_COLOR_ARRAY );
-		pglColorPointer( 4, GL_FLOAT, 0, ref.colorBuffer->pointer );
+		pglColorPointer( 4, GL_UNSIGNED_BYTE, 0, ref.colorBuffer->pointer );
 	
 		for( j = 0; j < stage->numBundles; j++ )
 		{
@@ -1386,6 +1392,73 @@ static void RB_RenderShaderARB( void )
 
 	if(!GL_Support( R_ARB_VERTEX_BUFFER_OBJECT_EXT ) && GL_Support( R_CUSTOM_VERTEX_ARRAY_EXT ))
 		pglUnlockArraysEXT();
+}
+
+/*
+=================
+RB_RenderShader
+=================
+*/
+static void RB_RenderShader( void )
+{
+	shaderStage_t	*stage;
+	stageBundle_t	*bundle;
+	int		i, j, k, l;
+
+	pglDisableClientState( GL_VERTEX_ARRAY );
+	pglDisableClientState( GL_NORMAL_ARRAY );
+	pglDisableClientState( GL_COLOR_ARRAY );
+	pglDisableClientState( GL_TEXTURE_COORD_ARRAY );
+
+	RB_SetShaderState();
+	RB_DeformVertexes();
+
+	for( i = 0; i < m_pCurrentShader->numStages; i++ )
+	{
+		stage = m_pCurrentShader->stages[i];
+
+		RB_SetShaderStageState( stage );
+		RB_CalcVertexColors( stage );
+	
+		for( j = 0; j < stage->numBundles; j++ )
+		{
+			bundle = stage->bundles[j];
+
+			RB_SetupTextureUnit( bundle, j );
+			RB_CalcTextureCoords( bundle, j );
+		}
+
+		for( k = 0; k < ref.numIndex; k += 3 )
+		{
+			pglBegin( GL_TRIANGLES );
+
+			l = ref.indexArray[k+0];
+			pglTexCoord2f( ref.texCoordArray[0][l][0], ref.texCoordArray[0][l][1] );
+			pglNormal3fv( ref.normalArray[l]);
+			pglColor4ubv( ref.colorArray[l] );
+			pglVertex3fv( ref.vertexArray[l] );
+
+			l = ref.indexArray[k+1];
+			pglTexCoord2f( ref.texCoordArray[0][l][0], ref.texCoordArray[0][l][1] );
+			pglNormal3fv( ref.normalArray[l]);
+			pglColor4ubv( ref.colorArray[l] );
+			pglVertex3fv( ref.vertexArray[l] );
+
+			l = ref.indexArray[k+2];
+			pglTexCoord2f( ref.texCoordArray[0][l][0], ref.texCoordArray[0][l][1] );
+			pglNormal3fv( ref.normalArray[l]);
+			pglColor4ubv( ref.colorArray[l] );
+			pglVertex3fv( ref.vertexArray[l] );
+
+			pglEnd();
+		}
+
+		for( j = stage->numBundles - 1; j >= 0; j-- )
+		{
+			bundle = stage->bundles[j];
+			RB_CleanupTextureUnit( bundle, j );
+		}
+	}
 }
 
 /*
@@ -1560,7 +1633,7 @@ static void RB_DrawLine( int color, int numpoints, const float *points, const in
 		VectorSet( p1, points[i*3+0], points[i*3+1], points[i*3+2] );
 		if( r_physbdebug->integer == 1 ) ConvertPositionToGame( p1 );
  
-		pglColor4fv(UnpackRGBA( color ));
+		pglColor4ubv( (byte *)color );
 		pglVertex3fv( p0 );
 		pglVertex3fv( p1 );
  
@@ -1650,8 +1723,11 @@ void RB_RenderMesh( void )
 	r_stats.numIndices += ref.numIndex;
 	r_stats.totalIndices += ref.numIndex * m_pCurrentShader->numStages;
 
-	// render the shader
-	RB_RenderShaderARB();
+	// NOTE: too small models uses glBegin\glEnd for perfomance reason
+//	if( ref.numVertex < 512 ) 
+	if( glw_state.software )
+		RB_RenderShader();
+	else RB_RenderShaderARB();
 
 	// draw debug tools
 	if( r_showtris->integer || r_physbdebug->integer || r_shownormals->integer || r_showtangentspace->integer || r_showmodelbounds->integer )
@@ -1673,7 +1749,7 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 {
 	int		i;
 	mesh_t		*mesh;
-	ref_shader_t		*shader;
+	ref_shader_t	*shader;
 	ref_entity_t	*entity;
 	int		infoKey;
 	uint		sortKey = 0;
@@ -1700,8 +1776,8 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 			sortKey = mesh->sortKey;
 
 			// unpack sort key
-			shader = &r_shaders[(sortKey>>18) & (MAX_SHADERS - 1)];
-			entity = &r_entities[(sortKey >> 8) & MAX_ENTITIES-1];
+			shader = &r_shaders[(sortKey>>20) & (MAX_SHADERS - 1)];
+			entity = &r_entities[(sortKey>>8) & MAX_ENTITIES-1];
 			infoKey = sortKey & 255;
 
 			Com_Assert( shader == NULL );
@@ -1805,19 +1881,19 @@ void RB_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, 
 	RB_CheckMeshOverflow( 6, 4 );
 
 	GL_Begin( GL_QUADS );
-		GL_Color4fv( gl_state.draw_color );
+		GL_Color4ubv( gl_state.draw_color );
 		GL_TexCoord2f( sl, tl );
 		GL_Vertex2f( x, y );
 
-		GL_Color4fv( gl_state.draw_color );
+		GL_Color4ubv( gl_state.draw_color );
 		GL_TexCoord2f( sh, tl );
 		GL_Vertex2f( x + w, y );
 
-		GL_Color4fv( gl_state.draw_color );
+		GL_Color4ubv( gl_state.draw_color );
 		GL_TexCoord2f( sh, th );
 		GL_Vertex2f( x + w, y + h );
 
-		GL_Color4fv( gl_state.draw_color );
+		GL_Color4ubv( gl_state.draw_color );
 		GL_TexCoord2f( sl, th );
 		GL_Vertex2f( x, y + h );
 	GL_End();
@@ -1857,6 +1933,8 @@ RB_ShutdownBackend
 void RB_ShutdownBackend( void )
 {
 	int	i;
+
+	if( !glw_state.initialized ) return;
 
 	// disable arrays
 	if( GL_Support( R_ARB_MULTITEXTURE ))

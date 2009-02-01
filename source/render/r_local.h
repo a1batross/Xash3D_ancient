@@ -21,11 +21,13 @@ extern render_imp_t	 ri;
 extern byte *r_temppool;
 #define Host_Error			com.error
 
+typedef uint	elem_t;
+
 // limits
 #define MAX_TEXTURE_UNITS		8
 #define MAX_LIGHTMAPS		128
 #define MAX_PROGRAMS		512
-#define MAX_ENTITIES		1024
+#define MAX_ENTITIES		4096
 #define MAX_VERTEX_BUFFERS		2048
 #define MAX_POLYS			4096
 #define MAX_POLY_VERTS		16384
@@ -172,7 +174,7 @@ BRUSH MODELS
 #define SURF_LAVACAUSTICS		8
 
 #define CONTENTS_NODE		-1
-#define SKY_SIZE			8
+#define SKY_SIZE			16
 #define SKY_INDICES			(SKY_SIZE * SKY_SIZE * 6)
 #define SKY_VERTICES		((SKY_SIZE+1) * (SKY_SIZE+1))
 
@@ -201,7 +203,7 @@ typedef struct particle_s
 	float		radius;
 	float		length;
 	float		rotation;
-	vec4_t		modulate;
+	rgba_t		modulate;
 } particle_t;
 
 typedef struct
@@ -209,7 +211,7 @@ typedef struct
 	vec3_t		xyz;
 	vec2_t		st;
 	vec2_t		lm;
-	vec4_t		color;
+	rgba_t		color;
 } surfPolyVert_t;
 
 typedef struct surfPoly_s
@@ -484,6 +486,9 @@ typedef struct rmodel_s
 	dstudiohdr_t	*phdr;
           dstudiohdr_t	*thdr;
 	mstudiosurface_t	*studiofaces;
+	int		nummeshes;	// num alloceed meshes
+	int		numnorms;
+	int		numverts;
 
 	void		*extradata;	// model buffer
 
@@ -546,8 +551,8 @@ typedef struct ref_entity_s
 	
 	// misc
 	float		backlerp;		// 0.0 = current, 1.0 = old
-	vec3_t		rendercolor;	// hl1 rendercolor
-	float		renderamt;	// hl1 alphavalues
+	rgb_t		rendercolor;	// hl1 rendercolor
+	byte		renderamt;	// hl1 alphavalues
 	int		rendermode;	// hl1 rendermode
 	int		renderfx;		// server will be translate hl1 values into flags
 	int		colormap;		// q1 and hl1 model colormap (can applied for sprites)
@@ -561,6 +566,15 @@ typedef struct ref_entity_s
 	int		gaitsequence;	// client->sequence + yaw
 	float		gaitframe;	// client->frame + yaw
 	float		gaityaw;		// local value
+
+	mstudiomesh_t	*meshes;		// studio meshes
+	vec3_t		*points;		// global arrays
+	vec3_t		*normals;
+	vec2_t		*chrome;
+	mstudiomesh_t	*weaponmeshes;	// studio meshes
+	vec3_t		*weaponpoints;	// global arrays
+	vec3_t		*weaponnormals;
+	vec2_t		*weaponchrome;
 
 	// shader information
 	ref_shader_t	*shader;
@@ -579,6 +593,7 @@ bool	R_StudioComputeBBox( vec3_t bbox[8] );	// for drawing bounds
 void	R_StudioResetSequenceInfo( ref_entity_t *ent, dstudiohdr_t *hdr );
 float	R_StudioFrameAdvance( ref_entity_t *ent, float flInterval );
 void	R_StudioSetupModel( int body, int bodypart );
+void	R_StudioClearMeshes( void );
 void	R_InitModels( void );
 void	R_ShutdownModels( void );
 rmodel_t	*Mod_ForName( const char *name, bool crash );
@@ -598,7 +613,7 @@ DOOM1 STYLE AUTOMAP
 
 typedef struct radar_ent_s
 {
-	vec4_t	color;
+	rgba_t	color;
 	vec3_t	origin;  
 	vec3_t	angles;
 } radar_ent_t;
@@ -657,7 +672,6 @@ void		RB_CheckForErrors( const char *filename, const int fileline );
 void		R_EndFrame( void );
 bool		R_Init_OpenGL( void );
 void		R_Free_OpenGL( void );
-
 #define R_CheckForErrors() RB_CheckForErrors( __FILE__, __LINE__ )
 
 /*
@@ -682,7 +696,7 @@ typedef enum
 
 typedef struct
 {
-	uint		sortKey;
+	qword		sortKey;
 	meshType_t	meshType;
 	void		*mesh;
 } mesh_t;
@@ -792,7 +806,7 @@ bool		R_CullSphere( const vec3_t origin, float radius, int clipFlags );
 void		R_RotateForEntity( ref_entity_t *entity );
 void		R_AddMeshToList( meshType_t meshType, void *mesh, ref_shader_t *shader, ref_entity_t *entity, int infoKey );
 bool		R_AddPolyToScene( shader_t shader, int numVerts, const polyVert_t *verts );
-void		R_ImpactMark( vec3_t org, vec3_t dir, float rot, float radius, vec4_t rgba, bool fade, shader_t shader, bool temp );
+void		R_ImpactMark( vec3_t org, vec3_t dir, float rot, float radius, rgba_t rgba, bool fade, shader_t shader, bool temp );
 void		R_DrawSprite( void );
 void		R_DrawBeam( void );
 void		R_DrawParticle( void );
@@ -848,6 +862,7 @@ extern cvar_t	*r_lockpvs;
 extern cvar_t	*r_frontbuffer;
 extern cvar_t	*r_showcluster;
 extern cvar_t	*r_showtris;
+extern cvar_t	*r_allow_software;
 extern cvar_t	*r_shownormals;
 extern cvar_t	*r_showtextures;
 extern cvar_t	*r_showtangentspace;
@@ -864,6 +879,9 @@ extern cvar_t	*r_skipbackend;
 extern cvar_t	*r_skipfrontend;
 extern cvar_t	*r_swapInterval;
 extern cvar_t	*r_mode;
+extern cvar_t	*r_stencilbits;
+extern cvar_t	*r_colorbits;
+extern cvar_t	*r_depthbits;
 extern cvar_t	*r_testmode;
 extern cvar_t	*r_fullscreen;
 extern cvar_t	*r_caustics;

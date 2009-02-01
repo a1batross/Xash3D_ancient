@@ -23,12 +23,6 @@ typedef struct cl_priv_s	cl_priv_t;
 typedef struct sv_priv_s	sv_priv_t;
 typedef float		vec_t;
 
-// color packs
-typedef struct { uint b:5; uint g:6; uint r:5; } color16;
-typedef struct { byte r:8; byte g:8; byte b:8; } color24;
-typedef struct { byte r; byte g; byte b; byte a; } color32;
-
-
 #define DLLEXPORT		__declspec( dllexport )
 
 #ifndef NULL

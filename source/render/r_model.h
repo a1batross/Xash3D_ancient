@@ -20,7 +20,7 @@ typedef struct
 {
 	vec3_t		point;
 	vec2_t		st;
-	vec4_t		color;
+	rgba_t		color;
 } mstudiopoint_t;
 
 typedef struct mstudiosurface_s
@@ -36,9 +36,14 @@ typedef struct mstudiosurface_s
 
 typedef struct mstudiomesh_s
 {
-	mstudiosurface_t	*surfaces;
-	int		numSurfaces;
-	ref_shader_t	*shader;
+	float		s;
+	float		t;
+	int		flags;	// alternative texcoords, etc
+	vec3_t		*verts;	// pointer to globals vertices array
+	vec2_t		*chrome;	// pointer to global chrome coords array
+	short		*tricmds;	// triangle commands
+	int		numVerts;	// to avoid overflow
+	int		numTris;
 } mstudiomesh_t;
 
 #endif//R_MODEL_H

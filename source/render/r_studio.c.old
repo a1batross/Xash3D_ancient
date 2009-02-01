@@ -29,13 +29,14 @@ vec3_t m_pshadevector;		// shadow vector
 // lighting stuff
 vec3_t *m_pxformverts;
 vec3_t *m_pxformnorms;
-vec2_t *m_pxformchrome;
 vec3_t *m_pvlightvalues;
-mstudiomesh_t *m_pxmesh;
 vec3_t m_blightvec [MAXSTUDIOBONES];
+vec3_t g_xformverts[MAXSTUDIOVERTS];
+vec3_t g_xformnorms[MAXSTUDIOVERTS];
 vec3_t g_lightvalues[MAXSTUDIOVERTS];
 
 // chrome stuff
+float g_chrome[MAXSTUDIOVERTS][2];	// texture coords for surface normals
 int g_chromeage[MAXSTUDIOBONES];	// last time chrome vectors were updated
 vec3_t g_chromeup[MAXSTUDIOBONES];	// chrome vector "up" in bone reference frames
 vec3_t g_chromeright[MAXSTUDIOBONES];	// chrome vector "right" in bone reference frames
@@ -44,7 +45,6 @@ int m_fDoInterp;
 int m_pStudioModelCount;
 int m_nTopColor;			// palette substition for top and bottom of model			
 int m_nBottomColor;
-int m_iCurrentMesh;
 rmodel_t *m_pRenderModel;
 ref_entity_t *m_pCurrentEntity;
 dstudiomodel_t *m_pSubModel;
@@ -215,35 +215,6 @@ dstudiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
 	return (dstudiohdr_t *)buffer;
 }
 
-void R_StudioSetupVertexes( void )
-{
-	int	i, j;
-	int	numverts = 0;
-	int	numnorms = 0;
-	int	nummesh = 0;
-
-	// set global pointers
-	m_pStudioHeader = m_pLoadModel->phdr;
-          m_pTextureHeader = m_pLoadModel->thdr;
-
-	for( i = 0; i < m_pStudioHeader->numbodyparts; i++ )
-	{
-		m_pBodyPart = (dstudiobodyparts_t *)((byte *)m_pStudioHeader + m_pStudioHeader->bodypartindex) + i;
-
-		for( j = 0; j < m_pBodyPart->nummodels; j++ )
-		{
-			m_pSubModel = (dstudiomodel_t *)((byte *)m_pStudioHeader + m_pBodyPart->modelindex) + j;
-			numverts += m_pSubModel->numverts;
-			numnorms += m_pSubModel->numnorms;
-			nummesh += m_pSubModel->nummesh;
-		}
-	}
-
-	m_pLoadModel->numnorms = numnorms;
-	m_pLoadModel->numverts = numverts;
-	m_pLoadModel->nummeshes = nummesh;
-}
-
 void R_StudioLoadModel( rmodel_t *mod, const void *buffer )
 {
 	dstudiohdr_t	*phdr = R_StudioLoadHeader( mod, buffer );
@@ -269,8 +240,6 @@ void R_StudioLoadModel( rmodel_t *mod, const void *buffer )
 
 	R_StudioExtractBbox( phdr, 0, mod->mins, mod->maxs );
 	mod->registration_sequence = registration_sequence;
-
-	R_StudioSetupVertexes();
 }
 
 // extract bbox from animation
@@ -810,20 +779,11 @@ void R_StudioSetUpTransform( void )
 		// don't rotate player model, only aim
 		angles[PITCH] = 0;
 	}
-	else if( m_pCurrentEntity->ent_type == ED_VIEWMODEL )
-	{
-		// stupid quake bug
-		if( r_lefthand->integer == 1 )
-			angles[YAW] = -angles[YAW];
-	}
 	else if( m_pCurrentEntity->movetype != MOVETYPE_NONE ) 
 	{
 		VectorCopy( m_pCurrentEntity->angles, angles );
 	}
 	Matrix4x4_CreateFromEntity( m_protationmatrix, modelpos[0], modelpos[1], modelpos[2], angles[PITCH], angles[YAW], angles[ROLL], m_pCurrentEntity->scale );
-
-	if(( m_pCurrentEntity->ent_type == ED_VIEWMODEL ) && ( r_lefthand->integer == 1 ))
-		VectorNegate( m_protationmatrix[1], m_protationmatrix[1] ); 
 }
 
 
@@ -1236,53 +1196,67 @@ void R_StudioCalcAttachments( void )
 
 bool R_StudioComputeBBox( vec3_t bbox[8] )
 {
-	ref_entity_t	*e = m_pCurrentEntity;
-	int		i, seq = m_pCurrentEntity->sequence;
-	vec3_t		mins, maxs, tmp;
+	vec3_t vectors[3];
+	ref_entity_t *e = m_pCurrentEntity;
+	vec3_t mins, maxs, tmp, angles;
+	int i, seq = m_pCurrentEntity->sequence;
 
 	if(!R_ExtractBbox( seq, mins, maxs ))
 		return false;
 
 	// compute a full bounding box
-	for( i = 0; i < 8; i++ )
+	for ( i = 0; i < 8; i++ )
 	{
-		tmp[0] = (i & 1) ? mins[0] : maxs[0];
-		tmp[1] = (i & 2) ? mins[1] : maxs[1];
-		tmp[2] = (i & 4) ? mins[2] : maxs[2];
+		if ( i & 1 ) tmp[0] = mins[0];
+		else tmp[0] = maxs[0];
+		if ( i & 2 ) tmp[1] = mins[1];
+		else tmp[1] = maxs[1];
+		if ( i & 4 ) tmp[2] = mins[2];
+		else tmp[2] = maxs[2];
+		VectorCopy( tmp, bbox[i] );
+	}
 
-		// rotate and translate
-		Matrix3x3_Transform( e->matrix, tmp, bbox[i] );
-		VectorAdd( bbox[i], e->origin, bbox[i] );
+	// rotate the bounding box
+	VectorScale( e->angles, -1, angles );
+	AngleVectorsFLU( angles, vectors[0], vectors[1], vectors[2] );
+
+	for ( i = 0; i < 8; i++ )
+	{
+		VectorCopy( bbox[i], tmp );
+		bbox[i][0] = DotProduct( vectors[0], tmp );
+		bbox[i][1] = DotProduct( vectors[1], tmp );
+		bbox[i][2] = DotProduct( vectors[2], tmp );
+		VectorAdd( e->origin, bbox[i], bbox[i] );
 	}
 	return true;
 }
 
-static bool R_StudioCullModel( void )
+static bool R_StudioCheckBBox( void )
 {
-	int	i, j;
-	cplane_t	*plane;
-	vec3_t	bbox[8];
-	int	aggregatemask = ~0;
+	int i, j;
+	vec3_t bbox[8];
+
+	int aggregatemask = ~0;
 
 	if( m_pCurrentEntity->ent_type == ED_VIEWMODEL )
-		return false;          
+		return true;          
 	if(!R_StudioComputeBBox( bbox ))
-          	return true;
+          	return false;
 	
 	for ( i = 0; i < 8; i++ )
 	{
 		int mask = 0;
-		for( j = 0, plane = r_frustum; j < 4; j++, plane++ )
+		for ( j = 0; j < 4; j++ )
 		{
-			if( DotProduct( bbox[i], plane->normal ) - plane->dist < 0 )
-				mask |= (1<<j);
+			float dp = DotProduct( r_frustum[j].normal, bbox[i] );
+			if ( ( dp - r_frustum[j].dist ) < 0 ) mask |= ( 1 << j );
 		}
 		aggregatemask &= mask;
 	}
           
 	if ( aggregatemask )
-		return true;
-	return false;
+		return false;
+	return true;
 }
 
 /*
@@ -1395,62 +1369,62 @@ void R_StudioSetupChrome( float *pchrome, int bone, vec3_t normal )
 	pchrome[1] = (n + 1.0) * 32.0f;
 }
 
-void R_StudioSetRenderMode( ref_shader_t *m_pSkinShader )
+void R_StudioSetRenderMode( void )
 {
-	if( m_pSkinShader->stages[0]->renderMode != m_pCurrentEntity->rendermode )
+	if( m_pCurrentShader->stages[0]->renderMode != m_pCurrentEntity->rendermode )
 	{
 		switch( m_pCurrentEntity->rendermode )
 		{
 		case kRenderNormal:
-			m_pSkinShader->stages[0]->flags &= ~(SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAFUNC);
+			m_pCurrentShader->stages[0]->flags &= ~(SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAFUNC);
 			break;
 		case kRenderTransColor:
-			m_pSkinShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-			m_pSkinShader->stages[0]->blendFunc.src = GL_SRC_COLOR;
-			m_pSkinShader->stages[0]->blendFunc.dst = GL_ZERO;
+			m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+			m_pCurrentShader->stages[0]->blendFunc.src = GL_SRC_COLOR;
+			m_pCurrentShader->stages[0]->blendFunc.dst = GL_ZERO;
 			break;
 		case kRenderTransTexture:
-			m_pSkinShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-			m_pSkinShader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
-			m_pSkinShader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+			m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+			m_pCurrentShader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
+			m_pCurrentShader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 			break;
 		case kRenderGlow:
-			m_pSkinShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-			m_pSkinShader->stages[0]->blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
-			m_pSkinShader->stages[0]->blendFunc.dst = GL_ONE;
-			m_pSkinShader->stages[0]->flags &= ~SHADERSTAGE_DEPTHWRITE;
+			m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+			m_pCurrentShader->stages[0]->blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
+			m_pCurrentShader->stages[0]->blendFunc.dst = GL_ONE;
+			m_pCurrentShader->stages[0]->flags &= ~SHADERSTAGE_DEPTHWRITE;
 			break;
 		case kRenderTransAlpha:
-			m_pSkinShader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
-			m_pSkinShader->stages[0]->alphaFunc.func = GL_GREATER;
-			m_pSkinShader->stages[0]->alphaFunc.ref = 0.666;
-			m_pSkinShader->sort = SORT_SEETHROUGH;
+			m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
+			m_pCurrentShader->stages[0]->alphaFunc.func = GL_GREATER;
+			m_pCurrentShader->stages[0]->alphaFunc.ref = 0.666;
+			m_pCurrentShader->sort = SORT_SEETHROUGH;
 			break;
 		case kRenderTransAdd:
-			m_pSkinShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-			m_pSkinShader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
-			m_pSkinShader->stages[0]->blendFunc.dst = GL_ONE;
+			m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+			m_pCurrentShader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
+			m_pCurrentShader->stages[0]->blendFunc.dst = GL_ONE;
 			break;
 		}
-		m_pSkinShader->stages[0]->renderMode = m_pCurrentEntity->rendermode;
+		m_pCurrentShader->stages[0]->renderMode = m_pCurrentEntity->rendermode;
 	}
 }
 
 void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref )
 {
 	int	i, j;
-	float	*lv;
+	float	*av, *lv;
 	float	lv_tmp;
 	vec3_t	fbright = { 0.95f, 0.95f, 0.95f };
 	vec3_t	irgoggles = { 0.95f, 0.0f, 0.0f }; // predefined lightcolor
-	int	flags, numverts;
+	int	flags;
 
 	dstudiomesh_t *pmesh = (dstudiomesh_t *)((byte *)m_pStudioHeader + m_pSubModel->meshindex);
 	byte *pnormbone = ((byte *)m_pStudioHeader + m_pSubModel->norminfoindex);
 	vec3_t *pstudionorms = (vec3_t *)((byte *)m_pStudioHeader + m_pSubModel->normindex);
 
 	lv = (float *)m_pvlightvalues;
-	for( j = 0; j < m_pSubModel->nummesh; j++ ) 
+	for (j = 0; j < m_pSubModel->nummesh; j++) 
 	{
 		flags = ptexture[pskinref[pmesh[j].skinref]].flags;
 		
@@ -1460,42 +1434,57 @@ void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref )
                              
 			// FIXME: move this check out of the inner loop
 			if( flags & STUDIO_NF_CHROME )
-				R_StudioSetupChrome( m_pxformchrome[(float (*)[3])lv - m_pvlightvalues], *pnormbone, (float *)pstudionorms );
-			VectorScale( m_plightcolor, lv_tmp, lv );
+				R_StudioSetupChrome( g_chrome[(float (*)[3])lv - m_pvlightvalues], *pnormbone, (float *)pstudionorms );
+			VectorScale(m_plightcolor, lv_tmp, lv );
 		}
 	}
-
+		          
 	for( j = 0; j < m_pSubModel->nummesh; j++ ) 
 	{
-		ref_shader_t	*pshader;
-		mstudiomesh_t	*m_pMesh;
+		float		s, t;
 		short		*ptricmds;
+		ref_shader_t	*m_pSkinShader;
 
-		m_pMesh = m_pxmesh++;
 		pmesh = (dstudiomesh_t *)((byte *)m_pStudioHeader + m_pSubModel->meshindex) + j;
-		m_pMesh->tricmds = ptricmds = (short *)((byte *)m_pStudioHeader + pmesh->triindex);
-		numverts = 0;
+		ptricmds = (short *)((byte *)m_pStudioHeader + pmesh->triindex);
 
-		// calc vertexcount
+		flags = ptexture[pskinref[pmesh->skinref]].flags;
+		s = 1.0 / (float)ptexture[pskinref[pmesh->skinref]].width;
+		t = 1.0 / (float)ptexture[pskinref[pmesh->skinref]].height;
+		m_pSkinShader = &r_shaders[ptexture[pskinref[pmesh->skinref]].shader];
+
+		if( m_pCurrentShader != m_pSkinShader )
+			RB_RenderMesh();
+
+		m_pCurrentShader = m_pSkinShader;		
+		R_StudioSetRenderMode();
+
 		while( i = *(ptricmds++))
 		{
-			if( i < 0 ) i = -i;
-			for( ; i > 0; i--, ptricmds += 4, numverts++ );
+			if( i < 0 )
+			{
+				GL_Begin( GL_TRIANGLE_FAN );
+				i = -i;
+			}
+			else
+			{
+				GL_Begin( GL_TRIANGLE_STRIP );
+			}
+			
+			for( ; i > 0; i--, ptricmds += 4 )
+			{
+				if( flags & STUDIO_NF_CHROME )
+					GL_TexCoord2f( g_chrome[ptricmds[1]][0] * s, g_chrome[ptricmds[1]][1] * t );
+				else GL_TexCoord2f( ptricmds[2] * s, ptricmds[3] * t );
+
+				lv = m_pvlightvalues[ptricmds[1]];
+
+				GL_Normal3fv( vec3_origin );	// FIXME: apply normals
+				av = m_pxformverts[ptricmds[0]]; // verts
+                                        GL_Vertex3f( av[0], av[1], av[2] );
+			}
+			GL_End();
 		}
-
-		m_pMesh->flags = ptexture[pskinref[pmesh->skinref]].flags;
-		m_pMesh->s = 1.0 / (float)ptexture[pskinref[pmesh->skinref]].width;
-		m_pMesh->t = 1.0 / (float)ptexture[pskinref[pmesh->skinref]].height;
-		pshader = &r_shaders[ptexture[pskinref[pmesh->skinref]].shader];
-		m_pMesh->verts = m_pxformverts;
-		m_pMesh->chrome = m_pxformchrome;
-		m_pMesh->numTris = pmesh->numtris;
-		m_pMesh->numVerts = numverts;
-
-		R_StudioSetRenderMode( pshader );	// merge rendermode if needs
-
-		R_AddMeshToList( MESH_STUDIO, m_pMesh, pshader, m_pCurrentEntity, 0 );
-		m_iCurrentMesh++;
 	}
 }
 
@@ -1529,15 +1518,19 @@ void R_StudioDrawPoints ( void )
 		Matrix4x4_Transform( m_pbonestransform[pnormbone[i]], pstudionorms[i], m_pxformnorms[i]);
 	}
 
+	// hack the depth range to prevent view model from poking into walls
+	if( m_pCurrentEntity->ent_type == ED_VIEWMODEL ) pglDepthRange( 0.0, 0.3 );
+	if(( m_pCurrentEntity->ent_type == ED_VIEWMODEL ) && ( r_lefthand->value == 1.0F ))
+		VectorNegate( m_pCurrentEntity->matrix[1], m_pCurrentEntity->matrix[1] ); 
 	R_StudioDrawMeshes( ptexture, pskinref );
 
-	// move pointers
-	m_pxformverts += m_pSubModel->numverts;
-	m_pxformchrome += m_pSubModel->numverts;
+	// hack the depth range to prevent view model from poking into walls
+	if( m_pCurrentEntity->ent_type == ED_VIEWMODEL ) pglDepthRange( 0.0, 1.0 );
 }
 
 void R_StudioDrawBones( void )
 {
+
 	dstudiobone_t	*pbones = (dstudiobone_t *) ((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
 	vec3_t		point;
 	int		i;
@@ -1756,8 +1749,6 @@ void R_StudioRenderModel( void )
 {
 	int i;
 
-	m_iCurrentMesh = 0;
-
 	for( i = 0; i < m_pStudioHeader->numbodyparts; i++ )
 	{
 		R_StudioSetupModel( m_pCurrentEntity->body, i );
@@ -1788,40 +1779,16 @@ void R_StudioRenderModel( void )
 	}
 }
 
-void R_StudioSetupRender( rmodel_t *model, bool weaponmodel )
+void R_StudioSetupRender( void )
 {
 	// set global pointers
-	m_pRenderModel = model;
+	m_pRenderModel = m_pCurrentEntity->model;
 	m_pStudioHeader = m_pRenderModel->phdr;
           m_pTextureHeader = m_pRenderModel->thdr;
 
-	// allocate meshes
-	if( weaponmodel )
-	{
-		m_pCurrentEntity->weaponmeshes = Mem_Alloc( r_temppool, sizeof( mstudiomesh_t ) * m_pRenderModel->nummeshes );
-		m_pCurrentEntity->weaponpoints = Mem_Alloc( r_temppool, sizeof( vec3_t ) * m_pRenderModel->numverts );
-		m_pCurrentEntity->weaponnormals = Mem_Alloc( r_temppool, sizeof( vec3_t ) * m_pRenderModel->numnorms );
-		m_pCurrentEntity->weaponchrome = Mem_Alloc( r_temppool, sizeof( vec2_t ) * m_pRenderModel->numverts );
-
-		// set intermediate vertex buffers
-		m_pxmesh = m_pCurrentEntity->weaponmeshes;
-		m_pxformverts = m_pCurrentEntity->weaponpoints;
-		m_pxformnorms = m_pCurrentEntity->weaponnormals;
-		m_pxformchrome = m_pCurrentEntity->weaponchrome;
-	}
-	else
-	{
-		m_pCurrentEntity->meshes = Mem_Alloc( r_temppool, sizeof( mstudiomesh_t ) * m_pRenderModel->nummeshes );
-		m_pCurrentEntity->points = Mem_Alloc( r_temppool, sizeof( vec3_t ) * m_pRenderModel->numverts );
-		m_pCurrentEntity->normals = Mem_Alloc( r_temppool, sizeof( vec3_t ) * m_pRenderModel->numnorms );
-		m_pCurrentEntity->chrome = Mem_Alloc( r_temppool, sizeof( vec2_t ) * m_pRenderModel->numverts );
-
-		// set intermediate vertex buffers
-		m_pxmesh = m_pCurrentEntity->meshes;
-		m_pxformverts = m_pCurrentEntity->points;
-		m_pxformnorms = m_pCurrentEntity->normals;
-		m_pxformchrome = m_pCurrentEntity->chrome;
-	}
+	// set intermediate vertex buffers
+	m_pxformverts = &g_xformverts[0];
+	m_pxformnorms = &g_xformnorms[0];
 	m_pvlightvalues = &g_lightvalues[0];
 
 	// misc info
@@ -1845,13 +1812,13 @@ bool R_StudioDrawModel( int flags )
 		flags |= STUDIO_EVENTS;
 	}
 
-	R_StudioSetupRender( m_pCurrentEntity->model, false );	
+	R_StudioSetupRender ();	
 	R_StudioSetUpTransform ();
 
 	if( flags & STUDIO_RENDER )
 	{
 		// see if the bounding box lets us trivially reject, also sets
-		if( R_StudioCullModel( )) return 0;
+		if( !R_StudioCheckBBox( )) return 0;
 
 		m_pStudioModelCount++; // render data cache cookie
 
@@ -1906,17 +1873,17 @@ bool R_StudioDrawModel( int flags )
 		// draw weaponmodel for monsters
 		if( m_pCurrentEntity->weaponmodel )
 		{
-			ref_entity_t saveent;
-
-			R_StudioSetupRender( m_pCurrentEntity->weaponmodel, true );
-			saveent = *m_pCurrentEntity;
+			ref_entity_t saveent = *m_pCurrentEntity;
+			rmodel_t *pweaponmodel = m_pCurrentEntity->weaponmodel;
 
 			// get remap colors
 			m_nTopColor = m_pCurrentEntity->colormap & 0xFF;
 			m_nBottomColor = (m_pCurrentEntity->colormap & 0xFF00)>>8;
 			R_StudioSetRemapColors( m_nTopColor, m_nBottomColor );
 		
-			R_StudioMergeBones( m_pCurrentEntity->weaponmodel );
+			m_pStudioHeader = pweaponmodel->phdr;
+			m_pTextureHeader = pweaponmodel->thdr;
+			R_StudioMergeBones( pweaponmodel );
 			R_StudioSetupLighting( );
 
 			R_StudioRenderModel( );
@@ -2097,7 +2064,7 @@ int R_StudioDrawPlayer( int flags )
 	}
 
 	pplayer = ri.GetClientEdict( m_pCurrentEntity->index );
-	R_StudioSetupRender( m_pCurrentEntity->model, false );
+	R_StudioSetupRender();
 
 	// MsgDev( D_INFO, "DrawPlayer %d\n", m_pCurrentEntity->blending[0] );
 	// MsgDev( D_INFO, "DrawPlayer %d %d (%d)\n", r_framecount, pplayer->serialnumber, m_pCurrentEntity->sequence );
@@ -2134,7 +2101,8 @@ int R_StudioDrawPlayer( int flags )
 	if( flags & STUDIO_RENDER )
 	{
 		// see if the bounding box lets us trivially reject, also sets
-		if( R_StudioCullModel()) return 0;
+		if(!R_StudioCheckBBox())
+			return 0;
 
 		m_pStudioModelCount++; // render data cache cookie
 
@@ -2188,17 +2156,16 @@ int R_StudioDrawPlayer( int flags )
 
 		if( m_pCurrentEntity->weaponmodel )
 		{
-			ref_entity_t	saveent;
-
-			R_StudioSetupRender( m_pCurrentEntity->weaponmodel, true );
-			saveent = *m_pCurrentEntity;
-
+			ref_entity_t saveent = *m_pCurrentEntity;
+			rmodel_t *pweaponmodel = m_pCurrentEntity->weaponmodel;
 			// get remap colors
 			m_nTopColor = m_pCurrentEntity->colormap & 0xFF;
 			m_nBottomColor = (m_pCurrentEntity->colormap & 0xFF00)>>8;
 			R_StudioSetRemapColors( m_nTopColor, m_nBottomColor );
 
-			R_StudioMergeBones( m_pCurrentEntity->weaponmodel );
+			m_pStudioHeader = pweaponmodel->phdr;
+			m_pTextureHeader = pweaponmodel->thdr;
+			R_StudioMergeBones( pweaponmodel );
 			R_StudioSetupLighting( );
 
 			R_StudioRenderModel( );
@@ -2211,65 +2178,6 @@ int R_StudioDrawPlayer( int flags )
 
 void R_DrawStudioModel( void )
 {
-	mstudiomesh_t	*surf = m_pRenderMesh->mesh;
-	short		*ptricmds = surf->tricmds;
-	float		s, t, *av;
-	int		i;
-
-	s = surf->s;
-	t = surf->t;
-
-	// draw it
-	RB_CheckMeshOverflow( surf->numTris * 3, surf->numVerts );
-
-	m_pxformverts = surf->verts;
-	m_pxformchrome = surf->chrome;
-	while( i = *(ptricmds++))
-	{
-		if( i < 0 )
-		{
-			GL_Begin( GL_TRIANGLE_FAN );
-			i = -i;
-		}
-		else
-		{
-			GL_Begin( GL_TRIANGLE_STRIP );
-		}
-		for( ; i > 0; i--, ptricmds += 4 )
-		{
-			if( surf->flags & STUDIO_NF_CHROME )
-				GL_TexCoord2f( m_pxformchrome[ptricmds[1]][0] * s, m_pxformchrome[ptricmds[1]][1] * t );
-			else GL_TexCoord2f( ptricmds[2] * s, ptricmds[3] * t );
-
-			GL_Normal3fv( vec3_origin );	// FIXME: apply normals
-			av = m_pxformverts[ptricmds[0]];
-			GL_Vertex3f( av[0], av[1], av[2] );
-		}
-		GL_End();
-	}
-
-	// hack the depth range to prevent view model from poking into walls
-	if( m_pCurrentEntity->ent_type == ED_VIEWMODEL )
-	{
-		if( r_lefthand->integer == 1 )
-			pglFrontFace( GL_CW );
-		pglDepthRange( 0.0, 0.3 );
-	}
-
-	// flush
-	RB_RenderMesh();
-
-	// hack the depth range to prevent view model from poking into walls
-	if( m_pCurrentEntity->ent_type == ED_VIEWMODEL )
-	{
-		if( r_lefthand->integer == 1 )
-			pglFrontFace( GL_CCW );
-		pglDepthRange( 0, 1 );
-	}
-}
-
-void R_AddStudioModelToList( ref_entity_t *entity )
-{
 	if( m_pCurrentEntity->ent_type == ED_CLIENT )
 		R_StudioDrawPlayer( STUDIO_RENDER );
 	else R_StudioDrawModel( STUDIO_RENDER );
@@ -2277,26 +2185,16 @@ void R_AddStudioModelToList( ref_entity_t *entity )
 	R_StudioAddEntityToRadar( );
 }
 
+void R_AddStudioModelToList( ref_entity_t *entity )
+{
+	R_StudioSetupRender();
+	if( !R_StudioCheckBBox( )) return;
+	if( !entity->shader ) return;
+
+	// add it
+	R_AddMeshToList( MESH_STUDIO, NULL, entity->shader, entity, 0 );
+}
+
 void R_StudioClearMeshes( void )
 {
-	if( !m_pCurrentEntity ) return;
-
-	// clear old studio mdl meshes
-	if( m_pCurrentEntity->meshes ) Mem_Free( m_pCurrentEntity->meshes );
-	if( m_pCurrentEntity->points ) Mem_Free( m_pCurrentEntity->points );
-	if( m_pCurrentEntity->normals ) Mem_Free( m_pCurrentEntity->normals );
-	if( m_pCurrentEntity->chrome ) Mem_Free( m_pCurrentEntity->chrome );
-	if( m_pCurrentEntity->weaponmeshes ) Mem_Free( m_pCurrentEntity->weaponmeshes );
-	if( m_pCurrentEntity->weaponpoints ) Mem_Free( m_pCurrentEntity->weaponpoints );
-	if( m_pCurrentEntity->weaponnormals ) Mem_Free( m_pCurrentEntity->weaponnormals );
-	if( m_pCurrentEntity->weaponchrome ) Mem_Free( m_pCurrentEntity->weaponchrome );
-
-	m_pCurrentEntity->meshes = NULL;
-	m_pCurrentEntity->points = NULL;
-	m_pCurrentEntity->normals = NULL;
-	m_pCurrentEntity->chrome = NULL;
-	m_pCurrentEntity->weaponmeshes = NULL;
-	m_pCurrentEntity->weaponpoints = NULL;
-	m_pCurrentEntity->weaponnormals = NULL;
-	m_pCurrentEntity->weaponchrome = NULL;
 }

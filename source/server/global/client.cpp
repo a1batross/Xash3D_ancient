@@ -1137,13 +1137,13 @@ const char *GetGameDescription( void )
 {
 	char	token[256];
           char	szbuffer[128];
-	char	*pfile = (char *)LOAD_FILE( "liblist.gam", NULL );
+	char	*pfile = (char *)LOAD_FILE( "gameinfo.txt", NULL );
 
 	if( pfile )
 	{
 		while( pfile )
 		{
-			if( !stricmp( token, "game" )) 
+			if( !stricmp( token, "title" )) 
 			{                                          
 				pfile = COM_ParseFile(pfile, token);
 				sprintf( szbuffer, "%s ", token );

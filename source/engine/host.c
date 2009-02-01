@@ -96,7 +96,7 @@ void Host_InitRender( void )
 	} 
 
 	// video system not started, run dedicated server
-	if( !result ) Sys_NewInstance( va("#%s", GI->title), "Host_InitRender: fallback to dedicated mode\n" ); 
+	if( !result ) Sys_NewInstance( va("#%s", GI->gamedir ), "Host_InitRender: fallback to dedicated mode\n" ); 
 }
 
 void Host_FreeRender( void )

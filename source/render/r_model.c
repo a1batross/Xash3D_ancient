@@ -1357,8 +1357,8 @@ void R_InitModels( void )
 	r_worldEntity->ent_type = ED_NORMAL;
 	r_worldEntity->model = r_worldModel;
 	Matrix3x3_LoadIdentity( r_worldEntity->matrix );
-	VectorSet( r_worldEntity->rendercolor, 1.0f, 1.0f, 1.0f );
-	r_worldEntity->renderamt = 1.0f;		// i'm hope we don't want to see semisolid world :) 
+	VectorSet( r_worldEntity->rendercolor, 255, 255, 255 );
+	r_worldEntity->renderamt = 255;		// i'm hope we don't want to see semisolid world :) 
 	
 	R_StudioInit();
 }

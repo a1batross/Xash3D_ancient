@@ -24,8 +24,8 @@
 #define SHADER_STUDIO		5	// studio skins
 #define SHADER_SPRITE		6	// sprite frames
 
-#define MAX_SHADERS			1024
-#define SHADERS_HASH_SIZE		256
+#define MAX_SHADERS			4096
+#define SHADERS_HASH_SIZE		1024
 #define MAX_EXPRESSION_OPS		4096
 #define MAX_EXPRESSION_REGISTERS	4096
 #define MAX_PROGRAM_PARMS		16

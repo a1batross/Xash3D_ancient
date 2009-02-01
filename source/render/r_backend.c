@@ -97,7 +97,7 @@ void RB_InitVertexBuffers( void )
 	int	i;
 
 	ref.vertexBuffer = RB_AllocVertexBuffer( MAX_VERTEXES * sizeof(vec3_t), GL_STREAM_DRAW_ARB );
-	ref.colorBuffer = RB_AllocVertexBuffer( MAX_VERTEXES * sizeof(vec4_t), GL_STREAM_DRAW_ARB );
+	ref.colorBuffer = RB_AllocVertexBuffer( MAX_VERTEXES * sizeof(rgba_t), GL_STREAM_DRAW_ARB );
 	ref.normalBuffer = RB_AllocVertexBuffer( MAX_VERTEXES * sizeof(vec3_t), GL_STREAM_DRAW_ARB );
 	for( i = 0; i < MAX_TEXTURE_UNITS; i++ )
 		ref.texCoordBuffer[i] = RB_AllocVertexBuffer( MAX_VERTEXES * sizeof(vec3_t), GL_STREAM_DRAW_ARB );	

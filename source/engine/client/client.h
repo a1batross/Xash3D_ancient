@@ -583,7 +583,7 @@ void CL_ClearEffects( void );
 void CL_TestLights( void );
 void CL_TestEntities( void );
 void CL_StudioEvent( dstudioevent_t *event, edict_t *ent );
-void CL_AddDecal( vec3_t org, matrix3x3 m, shader_t s, vec4_t rgba, bool fade, decalFragment_t *df, const vec3_t *v );
+void CL_AddDecal( vec3_t org, matrix3x3 m, shader_t s, rgba_t rgba, bool fade, decalFragment_t *df, const vec3_t *v );
 edict_t *CL_GetEdictByIndex( int index );
 edict_t *CL_GetLocalPlayer( void );
 bool pfnAddParticle( cparticle_t *src, HSPRITE shader, int flags );

@@ -190,17 +190,6 @@ typedef struct
 	char		name[64];
 } s_sequencegroup_t;
 
-
-typedef struct
-{
-	byte r, g, b;
-} rgb_t;
-
-typedef struct
-{
-	byte b, g, r, x;
-} rgb2_t;
-
 typedef struct 
 {
 	char		name[64];

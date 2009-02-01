@@ -271,7 +271,7 @@ R_ImpactMark
 temporary marks will be inmediately passed to the renderer
 =================
 */
-void R_ImpactMark( vec3_t org, vec3_t dir, float rot, float radius, vec4_t rgba, bool fade, shader_t shader, bool temp )
+void R_ImpactMark( vec3_t org, vec3_t dir, float rot, float radius, rgba_t rgba, bool fade, shader_t shader, bool temp )
 {
 	int		i, j;
 	vec3_t		delta;

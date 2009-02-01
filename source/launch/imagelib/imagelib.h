@@ -11,6 +11,11 @@
 // skyorder_q2[6] = { 2, 3, 1, 0, 4, 5, }; // Quake, Half-Life skybox ordering
 // skyorder_ms[6] = { 4, 5, 1, 0, 2, 3  }; // Microsoft DDS ordering (reverse)
 
+// color packs
+typedef struct { uint b:5; uint g:6; uint r:5; } color16;
+typedef struct { byte r:8; byte g:8; byte b:8; } color24;
+typedef struct { byte r; byte g; byte b; byte a; } color32;
+
 // cubemap hints
 typedef enum
 {

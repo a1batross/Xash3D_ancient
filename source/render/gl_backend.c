@@ -41,6 +41,7 @@ static dllfunc_t opengl_110funcs[] =
 	{"glDepthFunc", (void **) &pglDepthFunc},
 	{"glDepthMask", (void **) &pglDepthMask},
 	{"glDepthRange", (void **) &pglDepthRange},
+	{"glFrontFace", (void **) &pglFrontFace},
 	{"glDrawElements", (void **) &pglDrawElements},
 	{"glColorMask", (void **) &pglColorMask},
 	{"glIndexPointer", (void **) &pglIndexPointer},
@@ -64,6 +65,8 @@ static dllfunc_t opengl_110funcs[] =
 	{"glVertex2f", (void **) &pglVertex2f},
 	{"glVertex3f", (void **) &pglVertex3f},
 	{"glVertex3fv", (void **) &pglVertex3fv},
+	{"glNormal3f", (void **) &pglNormal3f},
+	{"glNormal3fv", (void **) &pglNormal3fv},
 	{"glBegin", (void **) &pglBegin},
 	{"glEnd", (void **) &pglEnd},
 	{"glLineWidth", (void**) &pglLineWidth},
@@ -329,6 +332,9 @@ void GL_InitCommands( void )
 	r_width = Cvar_Get("width", "640", CVAR_READ_ONLY, "screen width" );
 	r_height = Cvar_Get("height", "480", CVAR_READ_ONLY, "screen height" );
 	r_mode = Cvar_Get( "r_mode", "0", CVAR_ARCHIVE, "display resolution mode" );
+	r_stencilbits = Cvar_Get( "r_stencilbits", "0", CVAR_ARCHIVE|CVAR_LATCH, "pixelformat stencil bits (0 - auto)" );
+	r_colorbits = Cvar_Get( "r_colorbits", "0", CVAR_ARCHIVE|CVAR_LATCH, "pixelformat color bits (0 - auto)" );
+	r_depthbits = Cvar_Get( "r_depthbits", "0", CVAR_ARCHIVE|CVAR_LATCH, "pixelformat depth bits (0 - auto)" );
 
 	r_check_errors = Cvar_Get("r_check_errors", "1", CVAR_ARCHIVE, "ignore video engine errors" );
 	r_lefthand = Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE, "viewmodel handedness" );
@@ -374,6 +380,7 @@ void GL_InitCommands( void )
 	r_showtris = Cvar_Get( "r_showtris", "0", 0, "show mesh triangles" );
 	r_lockpvs = Cvar_Get( "r_lockpvs", "0", 0, "lockpvs area at current point (pvs test)" );
 	r_fullscreen = Cvar_Get( "fullscreen", "0", CVAR_ARCHIVE, "set in 1 to enable fullscreen mode" );
+	r_allow_software = Cvar_Get( "gl_software", "0", CVAR_ARCHIVE, "allow software gl acceleration" );
 
 	r_nobind = Cvar_Get( "r_nobind", "0", CVAR_CHEAT, "disable all textures (perfomance test)" );
 	r_drawparticles = Cvar_Get( "r_drawparticles", "1", CVAR_CHEAT, "disable particles (perfomance test)" );
@@ -496,9 +503,6 @@ void GL_CheckExtension( const char *name, const dllfunc_t *funcs, const char *cv
 
 	MsgDev( D_NOTE, "GL_CheckExtension: %s ", name );
 
-	for( func = funcs; func && func->name; func++ )
-		*func->func = NULL;
-
 	if( cvarname )
 	{
 		// system config disable extensions
@@ -517,6 +521,10 @@ void GL_CheckExtension( const char *name, const dllfunc_t *funcs, const char *cv
 		MsgDev( D_NOTE, "- failed\n");
 		return;
 	}
+
+	// clear exports
+	for( func = funcs; func && func->name; func++ )
+		*func->func = NULL;
 
 	GL_SetExtension( r_ext, true ); // predict extension state
 	for( func = funcs; func && func->name != NULL; func++ )
@@ -676,6 +684,7 @@ void GL_InitExtensions( void )
 	flags |= IL_USE_LERPING;
 
 	Image_Init( NULL, flags );
+	glw_state.initialized = true;
 }
 
 /*
@@ -916,11 +925,17 @@ void GL_SetColor( const void *data )
 
 	if( color ) 
 	{
-		Vector4Set( gl_state.draw_color, color[0], color[1], color[2], color[3] );
+		gl_state.draw_color[0] = 255 * color[0];
+		gl_state.draw_color[1] = 255 * color[1];
+		gl_state.draw_color[2] = 255 * color[2];
+		gl_state.draw_color[3] = 255 * color[3];
 	}
 	else
 	{
-		Vector4Set( gl_state.draw_color, 1.0f, 1.0f, 1.0f, 1.0f );
+		gl_state.draw_color[0] = 255;
+		gl_state.draw_color[1] = 255;
+		gl_state.draw_color[2] = 255;
+		gl_state.draw_color[3] = 255;
 	}
 }
 
@@ -928,6 +943,12 @@ void GL_LoadMatrix( matrix4x4 source )
 {
 	gl_matrix	dest;
 
+#if 0
+	if( Matrix4x4_Compare( source, gl_state.matrix ))
+		return; // ident
+
+	Matrix4x4_Copy( gl_state.matrix, source );
+#endif
 	Matrix4x4_ToArrayFloatGL( source, dest );
 	pglLoadMatrixf( dest );
 }
@@ -1026,9 +1047,13 @@ void GL_SetDefaultState( void )
 	if(GL_Support( R_TEXTURECUBEMAP_EXT ))
 		pglDisable( GL_TEXTURE_CUBE_MAP_ARB );
 
+	Matrix4x4_LoadIdentity( gl_state.matrix );
 	pglDisable( GL_TEXTURE_2D );
-	Vector4Set( gl_state.draw_color, 1.0f, 1.0f, 1.0f, 1.0f );
-
+	gl_state.draw_color[0] = 255;
+	gl_state.draw_color[1] = 255;
+	gl_state.draw_color[2] = 255;
+	gl_state.draw_color[3] = 255;
+		
 	GL_UpdateSwapInterval();
 }
 

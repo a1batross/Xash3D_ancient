@@ -13,7 +13,7 @@
 R_LightNormalizeColor
 =================
 */
-void R_LightNormalizeColor( vec3_t in, vec4_t out )
+void R_LightNormalizeColor( vec3_t in, rgba_t out )
 {
 	float	max;
 
@@ -29,9 +29,9 @@ void R_LightNormalizeColor( vec3_t in, vec4_t out )
 
 	// rescale all the color components if the intensity of the greatest
 	// channel exceeds 1.0
-	if( max > 255.0f )
+	if( max > 1.0f )
 	{
-		max = (1.0f / max);
+		max = 255 * (1.0f / max);
 
 		out[0] = in[0] * max;
 		out[1] = in[1] * max;
@@ -39,11 +39,11 @@ void R_LightNormalizeColor( vec3_t in, vec4_t out )
 	}
 	else
 	{
-		out[0] = in[0] / 255;
-		out[1] = in[1] / 255;
-		out[2] = in[2] / 255;
+		out[0] = in[0] * 255;
+		out[1] = in[1] * 255;
+		out[2] = in[2] * 255;
 	}
-	out[3] = 1.0f;
+	out[3] = 255;
 }
 
 /*
@@ -269,7 +269,7 @@ void R_LightForPoint( const vec3_t point, vec3_t ambientLight )
 			if( !dist || dist > dl->intensity )
 				continue;
 
-			add = (dl->intensity - dist);
+			add = (dl->intensity - dist) * (1.0/255);
 			VectorMA( ambientLight, add, dl->color, ambientLight );
 		}
 	}
@@ -377,22 +377,23 @@ void R_LightingAmbient( void )
 	float		add, dist, radius;
 	int		i, l;
 	vec4_t		ambientLight;
+	rgba_t		color;
 
 	// Set to full bright if no light data
 	if( r_refdef.onlyClientDraw || !r_worldModel->lightData || !m_pCurrentEntity )
 	{
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			ref.colorArray[i][0] = 1.0f;
-			ref.colorArray[i][1] = 1.0f;
-			ref.colorArray[i][2] = 1.0f;
-			ref.colorArray[i][3] = 1.0f;
+			ref.colorArray[i][0] = 255;
+			ref.colorArray[i][1] = 255;
+			ref.colorArray[i][2] = 255;
+			ref.colorArray[i][3] = 255;
 		}
 		return;
 	}
 
 	// Get lighting at this point
-	VectorSet( end, m_pCurrentEntity->origin[0], m_pCurrentEntity->origin[1], m_pCurrentEntity->origin[2] - MAX_WORLD_COORD );
+	VectorSet( end, m_pCurrentEntity->origin[0], m_pCurrentEntity->origin[1], m_pCurrentEntity->origin[2] - WORLD_SIZE );
 	VectorSet( r_pointColor, 1, 1, 1 );
 
 	R_RecursiveLightPoint( r_worldModel->nodes, m_pCurrentEntity->origin, end );
@@ -429,14 +430,11 @@ void R_LightingAmbient( void )
 	}
 
 	// normalize
-	R_LightNormalizeColor( ambientLight, ambientLight );
+	R_LightNormalizeColor( ambientLight, color );
 
 	for( i = 0; i < ref.numVertex; i++ )
 	{
-		ref.colorArray[i][0] = ambientLight[0];
-		ref.colorArray[i][1] = ambientLight[1];
-		ref.colorArray[i][2] = ambientLight[2];
-		ref.colorArray[i][3] = 1.0f;
+		Vector4Copy( ambientLight, ref.colorArray[i] );
 	}
 }
 
@@ -458,10 +456,10 @@ void R_LightingDiffuse( void )
 	{
 		for( i = 0; i < ref.numVertex; i++ )
 		{
-			ref.colorArray[i][0] = 1.0f;
-			ref.colorArray[i][1] = 1.0f;
-			ref.colorArray[i][2] = 1.0f;
-			ref.colorArray[i][3] = 1.0f;
+			ref.colorArray[i][0] = 255;
+			ref.colorArray[i][1] = 255;
+			ref.colorArray[i][2] = 255;
+			ref.colorArray[i][3] = 255;
 		}
 		return;
 	}

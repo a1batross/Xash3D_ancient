@@ -55,7 +55,7 @@ typedef struct glstate_s
 	word		stateRamp[768];		// original gamma ramp
 	uint		screenTexture;
 
-	vec4_t		draw_color;		// current color
+	rgba_t		draw_color;		// current color
 	int		texNum[MAX_TEXTURE_UNITS];
 	int		texEnv[MAX_TEXTURE_UNITS];
 	uint		activeTMU;
@@ -70,6 +70,7 @@ typedef struct glstate_s
 	bool		blend;
 
 	// OpenGL current state
+	matrix4x4		matrix;
 	GLenum		cullMode;
 	GLfloat		offsetFactor;
 	GLfloat		offsetUnits;
@@ -106,6 +107,10 @@ typedef struct glconfig_s
 	GLfloat		max_lodbias;
 	GLint		texRectangle;
 
+	int		color_bits;
+	int		depth_bits;
+	int		stencil_bits;
+
 	bool		deviceSupportsGamma;
 	bool		fullscreen;
 	int		prev_mode;
@@ -124,8 +129,6 @@ BACKEND
 
 #define MAX_VERTEXES		4096
 #define MAX_ELEMENTS		MAX_VERTEXES * 6
-
-typedef uint elem_t;
 
 typedef struct ref_buffer_s
 {
@@ -169,7 +172,7 @@ typedef struct
 
 	// vbo source buffers
 	elem_t		indexArray[MAX_ELEMENTS];
-	vec4_t		colorArray[MAX_VERTEXES];
+	rgba_t		colorArray[MAX_VERTEXES];
 	vec3_t		vertexArray[MAX_VERTEXES];
 	vec3_t		normalArray[MAX_VERTEXES];
 	vec3_t		texCoordArray[MAX_TEXTURE_UNITS][MAX_VERTEXES];

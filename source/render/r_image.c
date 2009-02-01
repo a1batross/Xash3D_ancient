@@ -2877,7 +2877,7 @@ void RB_ShowTextures( void )
 {
 	texture_t		*image;
 	float		x, y, w, h;
-	int		i, j;
+	int		i, j, base_w, base_h;
 
 	if( !gl_state.orthogonal )
 	{
@@ -2887,31 +2887,32 @@ void RB_ShowTextures( void )
 	pglClear( GL_COLOR_BUFFER_BIT );
 	pglFinish();
 	pglEnable( GL_TEXTURE_2D );
-		
+
+	if( r_showtextures->integer == 1 )
+	{
+		base_w = 32;
+		base_h = 24;
+	}		
+	else
+	{
+		base_w = 16;
+		base_h = 12;
+	}
+
 	for( i = j = 0, image = r_textures; i < r_numTextures; i++, image++ )
 	{
 		if( !image->texnum ) continue;
 
 		// FIXME: make cases for system, 2d, bsp, sprite and model textures
-
 		if( r_showtextures->integer == 1 && image->flags & TF_STATIC )
 			continue;
 		if( r_showtextures->integer == 2 && !(image->flags & TF_STATIC ))
 			continue;
-		if( r_showtextures->integer == 3 && !(image->flags & TF_LIGHTMAP ))
-			continue;
 
-		w = r_width->integer / 10;
-		h = r_height->integer / 8;
-		x = j % 10 * w;
-		y = j / 10 * h;
-
-		// show in proportional size in mode 2
-		/*if( r_showtextures->integer == 2 )
-		{
-			w *= image->width / 512.0f;
-			h *= image->height / 512.0f;
-		}*/
+		w = r_width->integer / base_w;
+		h = r_height->integer / base_h;
+		x = j % base_w * w;
+		y = j / base_w * h;
 
 		pglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
 		GL_BindTexture( image );
@@ -3118,6 +3119,8 @@ void R_ShutdownTextures( void )
 {
 	int	i;
 	texture_t	*image;
+
+	if( !glw_state.initialized ) return;
 
 	for( i = MAX_TEXTURE_UNITS - 1; i >= 0; i-- )
 	{

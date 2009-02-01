@@ -219,6 +219,8 @@ void R_ShutdownPrograms( void )
 	program_t		*program;
 	int		i;
 
+	if( !glw_state.initialized ) return;
+
 	for( i = 0; i < r_numPrograms; i++ )
 	{
 		program = r_programs[i];
