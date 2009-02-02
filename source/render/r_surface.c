@@ -20,48 +20,6 @@ int		r_oldViewCluster, r_oldViewCluster2;
 int		numRadarEnts = 0;
 radar_ent_t	RadarEnts[MAX_RADAR_ENTS];
 
-void R_SurfaceRenderMode( void )
-{
-	if( m_pCurrentShader->stages[0]->renderMode == m_pCurrentEntity->rendermode )
-		return;
-
-	m_pCurrentShader->flags |= SHADER_SORT;
-
-	switch( m_pCurrentEntity->rendermode )
-	{
-	case kRenderTransColor:
-		m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-		m_pCurrentShader->stages[0]->blendFunc.src = GL_SRC_COLOR;
-		m_pCurrentShader->stages[0]->blendFunc.dst = GL_ZERO;
-		m_pCurrentShader->sort = SORT_OPAQUE;
-		break;
-	case kRenderTransTexture:
-		m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-		m_pCurrentShader->stages[0]->blendFunc.src = GL_SRC_COLOR;
-		m_pCurrentShader->stages[0]->blendFunc.dst = GL_SRC_ALPHA;
-		m_pCurrentShader->sort = SORT_BLEND;
-		break;
-	case kRenderTransAlpha:
-		m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
-		m_pCurrentShader->stages[0]->alphaFunc.func = GL_GREATER;
-		m_pCurrentShader->stages[0]->alphaFunc.ref = 0.666;
-		m_pCurrentShader->sort = SORT_SEETHROUGH;
-		break;
-	case kRenderTransAdd:
-		m_pCurrentShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-		m_pCurrentShader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
-		m_pCurrentShader->stages[0]->blendFunc.dst = GL_ONE;
-		m_pCurrentShader->sort = SORT_ADDITIVE;
-		break;
-	case kRenderNormal:
-	default:
-		m_pCurrentShader->sort = SORT_OPAQUE;
-		m_pCurrentShader->stages[0]->flags &= ~(SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAFUNC);
-		break;
-	}
-	m_pCurrentShader->stages[0]->renderMode = m_pCurrentEntity->rendermode;
-}
-
 /*
 =================
 R_DrawSurface
@@ -73,10 +31,6 @@ void R_DrawSurface( void )
 	surfPoly_t	*p;
 	surfPolyVert_t	*v;
 	int		i;
-
-	// HACKHACK: manually set rendermode for surfaces
-	if(!(m_pCurrentShader->flags & SHADER_EXTERNAL) && m_pCurrentEntity != r_worldEntity )
-		R_SurfaceRenderMode();
 
 	for( p = surf->poly; p; p = p->next )
 	{

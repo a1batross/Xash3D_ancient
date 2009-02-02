@@ -279,49 +279,6 @@ mspriteframe_t *R_GetSpriteFrame( ref_entity_t *ent )
 	return pspriteframe;
 }
 
-void R_SpriteSetRenderMode( ref_shader_t *m_pFrameShader )
-{
-	if( m_pFrameShader->stages[0]->renderMode != m_pCurrentEntity->rendermode )
-	{
-		switch( m_pCurrentEntity->rendermode )
-		{
-		case kRenderNormal:
-			m_pFrameShader->stages[0]->flags &= ~(SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAFUNC);
-			break;
-		case kRenderTransColor:
-			m_pFrameShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-			m_pFrameShader->stages[0]->blendFunc.src = GL_SRC_COLOR;
-			m_pFrameShader->stages[0]->blendFunc.dst = GL_ZERO;
-			break;
-		case kRenderTransTexture:
-			m_pFrameShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-			m_pFrameShader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
-			m_pFrameShader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
-			break;
-		case kRenderGlow:
-			m_pFrameShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-			m_pFrameShader->stages[0]->blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
-			m_pFrameShader->stages[0]->blendFunc.dst = GL_ONE;
-// FIXME: write flareOcclusionTest
-//			m_pFrameShader->stages[0]->flags &= ~SHADERSTAGE_DEPTHFUNC;
-			m_pFrameShader->stages[0]->depthFunc.func = 0;
-			break;
-		case kRenderTransAlpha:
-			m_pFrameShader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
-			m_pFrameShader->stages[0]->alphaFunc.func = GL_GREATER;
-			m_pFrameShader->stages[0]->alphaFunc.ref = 0.666;
-			m_pFrameShader->sort = SORT_SEETHROUGH;
-			break;
-		case kRenderTransAdd:
-			m_pFrameShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-			m_pFrameShader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
-			m_pFrameShader->stages[0]->blendFunc.dst = GL_ONE;
-			break;
-		}
-		m_pFrameShader->stages[0]->renderMode = m_pCurrentEntity->rendermode;
-	}
-}
-
 /*
 =================
 R_AddSpriteModelToList
@@ -343,8 +300,6 @@ void R_AddSpriteModelToList( ref_entity_t *entity )
 	entity->radius = frame->radius;
 	entity->rotation = 0;
 	entity->shader = &r_shaders[frame->shader];
-
-	R_SpriteSetRenderMode( entity->shader );
 
 	// add it
 	R_AddMeshToList( MESH_SPRITE, NULL, entity->shader, entity, 0 );
@@ -411,10 +366,14 @@ void R_DrawSpriteModel( void )
 
 	if((m_pCurrentEntity->rendermode == kRenderGlow) || (m_pCurrentShader->surfaceParm & SURF_GLOW))
 	{
-		float dist = VectorDistance( m_pCurrentEntity->origin, r_refdef.vieworg );
-		e->scale = bound( 1.0, dist * 0.005f, 10.0f );
-		alpha = bound( 0, dist / 1000, 1.0f );
-		e->renderamt = 255 * alpha;
+		if( ri.Trace( m_pCurrentEntity->origin, vec3_origin, vec3_origin, r_refdef.vieworg ))
+		{ 
+			float dist = VectorDistance( m_pCurrentEntity->origin, r_refdef.vieworg );
+			e->scale = bound( 1.0, dist * 0.005f, 10.0f );
+			alpha = bound( 0, dist / 1000, 1.0f );
+			e->renderamt = 255 * alpha;
+		}
+		else return; // occluded
 	}
 
 	// draw it

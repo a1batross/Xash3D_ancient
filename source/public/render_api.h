@@ -82,6 +82,7 @@ typedef struct render_imp_s
 	void	(*StudioEvent)( dstudioevent_t *event, edict_t *ent );
 	void	(*AddDecal)( vec3_t org, matrix3x3 m, shader_t s, rgba_t rgba, bool fade, decalFragment_t *df, const vec3_t *v );
 	void	(*ShowCollision)( cmdraw_t callback );	// debug
+	bool	(*Trace)( const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end );
 	long	(*WndProc)( void *hWnd, uint uMsg, uint wParam, long lParam );
 	edict_t	*(*GetClientEdict)( int index );
 	edict_t	*(*GetLocalPlayer)( void );

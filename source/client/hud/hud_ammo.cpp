@@ -276,9 +276,7 @@ void CHudAmmo :: Reset( void )
 
 	gpActiveSel = NULL;
 
-	if( gHUD.m_iHideHUDDisplay & ITEM_SUIT )
-		gHUD.m_iHideHUDDisplay = ITEM_SUIT;
-	else gHUD.m_iHideHUDDisplay = 0; 
+	gHUD.m_iHideHUDDisplay = 0; 
 
 	gWR.Reset();
 	gHR.Reset();
@@ -391,10 +389,11 @@ void WeaponsResource :: SelectSlot( int iSlot, int fAdvance, int iDirection )
 	if( gHUD.m_fPlayerDead || gHUD.m_iHideHUDDisplay & ( HIDEHUD_WEAPONS|HIDEHUD_ALL ))
 		return;
 
-	if( !(gHUD.m_iHideHUDDisplay & ITEM_SUIT ))
+	if(!(gHUD.m_iWeaponBits & ITEM_SUIT))
 		return;
 
-	if( !gHUD.m_iWeaponBits ) return;
+	if(!(gHUD.m_iWeaponBits & ~ITEM_SUIT))
+		return;
 
 	SET_KEYDEST( KEY_HUDMENU );
 
@@ -784,10 +783,10 @@ int CHudAmmo::Draw( float flTime )
 	int a, x, y, r, g, b;
 	int AmmoWidth;
 
-	if(!(gHUD.m_iHideHUDDisplay & ITEM_SUIT ))
+	if(!(gHUD.m_iWeaponBits & ITEM_SUIT))
 		return 1;
 
-	if( (gHUD.m_iHideHUDDisplay & ( HIDEHUD_WEAPONS | HIDEHUD_ALL )))
+	if((gHUD.m_iHideHUDDisplay & (HIDEHUD_WEAPONS|HIDEHUD_ALL)))
 		return 1;
 
 	// Draw Weapon Menu

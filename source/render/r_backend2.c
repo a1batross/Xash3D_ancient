@@ -562,6 +562,153 @@ static void RB_DeformVertexes( void )
 	}
 }
 
+static shaderStage_t *RB_SetShaderRenderMode( shaderStage_t *stage )
+{
+	static shaderStage_t currentStage;
+
+	if( !m_pCurrentEntity || !(m_pCurrentShader->flags & SHADER_RENDERMODE))
+		return stage;
+
+	currentStage = *stage;
+
+	switch( m_pCurrentEntity->rendermode )
+	{
+	case kRenderTransColor:
+		currentStage.flags |= SHADERSTAGE_BLENDFUNC;
+		currentStage.flags |= SHADERSTAGE_ALPHAGEN;
+		currentStage.flags |= SHADERSTAGE_RGBGEN;
+		currentStage.blendFunc.src = GL_SRC_COLOR;
+		currentStage.blendFunc.dst = GL_ZERO;
+		currentStage.alphaGen.type = ALPHAGEN_ENTITY;
+		currentStage.rgbGen.type = RGBGEN_ENTITY;
+		break;
+	case kRenderTransTexture:
+		currentStage.flags |= (SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAGEN|SHADERSTAGE_RGBGEN);
+		currentStage.alphaGen.type = ALPHAGEN_ENTITY;
+		currentStage.blendFunc.src = GL_SRC_ALPHA;
+		currentStage.blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+		currentStage.rgbGen.type = RGBGEN_VERTEX;
+		break;
+	case kRenderGlow:
+		currentStage.flags |= SHADERSTAGE_BLENDFUNC;
+		currentStage.flags |= SHADERSTAGE_ALPHAGEN;
+		currentStage.flags |= SHADERSTAGE_RGBGEN;
+		currentStage.blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
+		currentStage.blendFunc.dst = GL_ONE;
+		currentStage.flags &= ~SHADERSTAGE_DEPTHFUNC;
+		currentStage.depthFunc.func = 0;
+		break;
+	case kRenderTransAlpha:
+		currentStage.flags |= SHADERSTAGE_ALPHAFUNC;
+		currentStage.flags |= SHADERSTAGE_ALPHAGEN;
+		currentStage.flags |= SHADERSTAGE_RGBGEN;
+		currentStage.alphaFunc.func = GL_GREATER;
+		currentStage.alphaFunc.ref = 0.666;
+		currentStage.alphaGen.type = ALPHAGEN_ENTITY;
+		currentStage.rgbGen.type = RGBGEN_ENTITY;
+		break;
+	case kRenderTransAdd:
+		currentStage.flags |= (SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAGEN|SHADERSTAGE_RGBGEN);
+		currentStage.alphaGen.type = ALPHAGEN_ENTITY;
+		currentStage.rgbGen.type = RGBGEN_VERTEX;
+		currentStage.blendFunc.src = GL_SRC_ALPHA;
+		currentStage.blendFunc.dst = GL_ONE;
+		break;
+	case kRenderNormal:
+	default: return stage;
+	}
+	return &currentStage;
+}
+
+/*
+=================
+RB_SetupVertexProgram
+=================
+*/
+static void RB_SetupVertexProgram( shaderStage_t *stage )
+{
+	program_t	*program = stage->vertexProgram;
+
+	pglBindProgramARB( GL_VERTEX_PROGRAM_ARB, program->progNum );
+	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 0, r_origin[0], r_origin[1], r_origin[2], 0);
+	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 1, r_forward[0], r_forward[1], r_forward[2], 0 );
+	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 2, r_right[0], r_right[1], r_right[2], 0 );
+	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 3, r_up[0], r_up[1], r_up[2], 0 );
+	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 4, m_pCurrentEntity->origin[0], m_pCurrentEntity->origin[1], m_pCurrentEntity->origin[2], 0 );
+	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 5, m_pCurrentEntity->matrix[0][0], m_pCurrentEntity->matrix[0][1], m_pCurrentEntity->matrix[0][2], 0 );
+	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 6, m_pCurrentEntity->matrix[1][0], m_pCurrentEntity->matrix[1][1], m_pCurrentEntity->matrix[1][2], 0 );
+	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 7, m_pCurrentEntity->matrix[2][0], m_pCurrentEntity->matrix[2][1], m_pCurrentEntity->matrix[2][2], 0 );
+	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 8, m_fShaderTime, 0, 0, 0 );
+}
+
+/*
+=================
+RB_SetupFragmentProgram
+=================
+*/
+static void RB_SetupFragmentProgram( shaderStage_t *stage )
+{
+	program_t	*program = stage->fragmentProgram;
+
+	pglBindProgramARB( GL_FRAGMENT_PROGRAM_ARB, program->progNum );
+	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 0, r_origin[0], r_origin[1], r_origin[2], 0);
+	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 1, r_forward[0], r_forward[1], r_forward[2], 0 );
+	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 2, r_right[0], r_right[1], r_right[2], 0 );
+	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 3, r_up[0], r_up[1], r_up[2], 0 );
+	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 4, m_pCurrentEntity->origin[0], m_pCurrentEntity->origin[1], m_pCurrentEntity->origin[2], 0 );
+	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 5, m_pCurrentEntity->matrix[0][0], m_pCurrentEntity->matrix[0][1], m_pCurrentEntity->matrix[0][2], 0 );
+	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 6, m_pCurrentEntity->matrix[1][0], m_pCurrentEntity->matrix[1][1], m_pCurrentEntity->matrix[1][2], 0 );
+	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 7, m_pCurrentEntity->matrix[2][0], m_pCurrentEntity->matrix[2][1], m_pCurrentEntity->matrix[2][2], 0 );
+	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 8, m_fShaderTime, 0, 0, 0 );
+}
+
+/*
+=================
+RB_SetShaderStageState
+=================
+*/
+static void RB_SetShaderStageState( shaderStage_t *stage )
+{
+	if( stage->flags & SHADERSTAGE_VERTEXPROGRAM )
+	{
+		GL_Enable( GL_VERTEX_PROGRAM_ARB );
+		RB_SetupVertexProgram( stage );
+	}
+	else GL_Disable( GL_VERTEX_PROGRAM_ARB );
+
+	if( stage->flags & SHADERSTAGE_FRAGMENTPROGRAM )
+	{
+		GL_Enable( GL_FRAGMENT_PROGRAM_ARB );
+		RB_SetupFragmentProgram( stage );
+	}
+	else GL_Disable( GL_FRAGMENT_PROGRAM_ARB );
+
+	if( stage->flags & SHADERSTAGE_ALPHAFUNC )
+	{
+		GL_Enable( GL_ALPHA_TEST );
+		GL_AlphaFunc( stage->alphaFunc.func, stage->alphaFunc.ref );
+	}
+	else GL_Disable( GL_ALPHA_TEST );
+
+	if( stage->flags & SHADERSTAGE_BLENDFUNC )
+	{
+		GL_Enable( GL_BLEND );
+		GL_BlendFunc( stage->blendFunc.src, stage->blendFunc.dst );
+	}
+	else GL_Disable( GL_BLEND );
+
+	if( stage->flags & SHADERSTAGE_DEPTHFUNC )
+	{
+		GL_Enable( GL_DEPTH_TEST );
+		GL_DepthFunc( stage->depthFunc.func );
+	}
+	else GL_Disable( GL_DEPTH_TEST );
+
+	if( stage->flags & SHADERSTAGE_DEPTHWRITE )
+		GL_DepthMask( GL_TRUE );
+	else GL_DepthMask( GL_FALSE );
+}
+
 /*
 =================
 RB_CalcVertexColors
@@ -569,13 +716,20 @@ RB_CalcVertexColors
 */
 static void RB_CalcVertexColors( shaderStage_t *stage )
 {
-	rgbGen_t		*rgbGen = &stage->rgbGen;
-	alphaGen_t	*alphaGen = &stage->alphaGen;
+	rgbGen_t		*rgbGen;
+	alphaGen_t	*alphaGen;
+	shaderStage_t	*newStage;
 	vec3_t		vec, dir;
 	float		*table;
 	float		now, f;
 	byte		r, g, b, a;
 	int		i;
+
+	newStage = RB_SetShaderRenderMode( stage );
+	RB_SetShaderStageState( newStage );
+
+	rgbGen = &newStage->rgbGen;
+	alphaGen = &newStage->alphaGen;
 
 	switch( rgbGen->type )
 	{
@@ -1077,48 +1231,6 @@ static void RB_CalcTextureCoords( stageBundle_t *bundle, uint unit )
 
 /*
 =================
-RB_SetupVertexProgram
-=================
-*/
-static void RB_SetupVertexProgram( shaderStage_t *stage )
-{
-	program_t	*program = stage->vertexProgram;
-
-	pglBindProgramARB( GL_VERTEX_PROGRAM_ARB, program->progNum );
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 0, r_origin[0], r_origin[1], r_origin[2], 0);
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 1, r_forward[0], r_forward[1], r_forward[2], 0 );
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 2, r_right[0], r_right[1], r_right[2], 0 );
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 3, r_up[0], r_up[1], r_up[2], 0 );
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 4, m_pCurrentEntity->origin[0], m_pCurrentEntity->origin[1], m_pCurrentEntity->origin[2], 0 );
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 5, m_pCurrentEntity->matrix[0][0], m_pCurrentEntity->matrix[0][1], m_pCurrentEntity->matrix[0][2], 0 );
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 6, m_pCurrentEntity->matrix[1][0], m_pCurrentEntity->matrix[1][1], m_pCurrentEntity->matrix[1][2], 0 );
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 7, m_pCurrentEntity->matrix[2][0], m_pCurrentEntity->matrix[2][1], m_pCurrentEntity->matrix[2][2], 0 );
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 8, m_fShaderTime, 0, 0, 0 );
-}
-
-/*
-=================
-RB_SetupFragmentProgram
-=================
-*/
-static void RB_SetupFragmentProgram( shaderStage_t *stage )
-{
-	program_t	*program = stage->fragmentProgram;
-
-	pglBindProgramARB( GL_FRAGMENT_PROGRAM_ARB, program->progNum );
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 0, r_origin[0], r_origin[1], r_origin[2], 0);
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 1, r_forward[0], r_forward[1], r_forward[2], 0 );
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 2, r_right[0], r_right[1], r_right[2], 0 );
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 3, r_up[0], r_up[1], r_up[2], 0 );
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 4, m_pCurrentEntity->origin[0], m_pCurrentEntity->origin[1], m_pCurrentEntity->origin[2], 0 );
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 5, m_pCurrentEntity->matrix[0][0], m_pCurrentEntity->matrix[0][1], m_pCurrentEntity->matrix[0][2], 0 );
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 6, m_pCurrentEntity->matrix[1][0], m_pCurrentEntity->matrix[1][1], m_pCurrentEntity->matrix[1][2], 0 );
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 7, m_pCurrentEntity->matrix[2][0], m_pCurrentEntity->matrix[2][1], m_pCurrentEntity->matrix[2][2], 0 );
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 8, m_fShaderTime, 0, 0, 0 );
-}
-
-/*
-=================
 RB_SetupTextureCombiners
 =================
 */
@@ -1167,53 +1279,6 @@ static void RB_SetShaderState( void )
 		GL_PolygonOffset( r_offsetfactor->value, r_offsetunits->value );
 	}
 	else GL_Disable( GL_POLYGON_OFFSET_FILL );
-}
-
-/*
-=================
-RB_SetShaderStageState
-=================
-*/
-static void RB_SetShaderStageState( shaderStage_t *stage )
-{
-	if( stage->flags & SHADERSTAGE_VERTEXPROGRAM )
-	{
-		GL_Enable( GL_VERTEX_PROGRAM_ARB );
-		RB_SetupVertexProgram( stage );
-	}
-	else GL_Disable( GL_VERTEX_PROGRAM_ARB );
-
-	if( stage->flags & SHADERSTAGE_FRAGMENTPROGRAM )
-	{
-		GL_Enable( GL_FRAGMENT_PROGRAM_ARB );
-		RB_SetupFragmentProgram( stage );
-	}
-	else GL_Disable( GL_FRAGMENT_PROGRAM_ARB );
-
-	if( stage->flags & SHADERSTAGE_ALPHAFUNC )
-	{
-		GL_Enable( GL_ALPHA_TEST );
-		GL_AlphaFunc( stage->alphaFunc.func, stage->alphaFunc.ref );
-	}
-	else GL_Disable( GL_ALPHA_TEST );
-
-	if( stage->flags & SHADERSTAGE_BLENDFUNC )
-	{
-		GL_Enable( GL_BLEND );
-		GL_BlendFunc( stage->blendFunc.src, stage->blendFunc.dst );
-	}
-	else GL_Disable( GL_BLEND );
-
-	if( stage->flags & SHADERSTAGE_DEPTHFUNC )
-	{
-		GL_Enable( GL_DEPTH_TEST );
-		GL_DepthFunc( stage->depthFunc.func );
-	}
-	else GL_Disable( GL_DEPTH_TEST );
-
-	if( stage->flags & SHADERSTAGE_DEPTHWRITE )
-		GL_DepthMask( GL_TRUE );
-	else GL_DepthMask( GL_FALSE );
 }
 
 /*
@@ -1354,7 +1419,6 @@ static void RB_RenderShaderARB( void )
 	{
 		stage = m_pCurrentShader->stages[i];
 
-		RB_SetShaderStageState( stage );
 		RB_CalcVertexColors( stage );
 
 		RB_UpdateVertexBuffer( ref.colorBuffer, ref.colorArray, ref.numVertex * sizeof( rgba_t ));
@@ -1417,7 +1481,6 @@ static void RB_RenderShader( void )
 	{
 		stage = m_pCurrentShader->stages[i];
 
-		RB_SetShaderStageState( stage );
 		RB_CalcVertexColors( stage );
 	
 		for( j = 0; j < stage->numBundles; j++ )
@@ -1752,7 +1815,7 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 	ref_shader_t	*shader;
 	ref_entity_t	*entity;
 	int		infoKey;
-	uint		sortKey = 0;
+	qword		sortKey = 0;
 
 	if( r_skipbackend->integer || !numMeshes )
 		return;

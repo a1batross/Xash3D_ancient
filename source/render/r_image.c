@@ -1425,7 +1425,7 @@ static rgbdata_t *R_ParseScale( script_t *script, int *samples, texFlags_t *flag
 		return NULL;
 	}
 
-	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES, &token ))
+	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &token ))
 	{
 		MsgDev( D_WARN, "missing parameters for 'scale'\n" );
 		return NULL;

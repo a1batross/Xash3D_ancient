@@ -333,14 +333,20 @@ extern cvar_t *con_font;
 typedef struct
 {
 	// these values shared with dlight_t so don't move them
-	vec3_t	origin;
-	vec3_t	color;
-	float	radius;
+	vec3_t		origin;
+	union
+	{
+		vec3_t	color;		// dlight color
+		vec3_t	angles;		// spotlight angles
+	};
+	float		radius;
+	shader_t		texture;		// light image e.g. for flashlight
+	vec2_t		cone;		// spotlight cone
 
 	// cdlight_t private starts here
-	int	key;				// so entities can reuse same entry
-	float	die;				// stop lighting after this time
-	float	decay;				// drop this each second
+	int		key;		// so entities can reuse same entry
+	float		die;		// stop lighting after this time
+	float		decay;		// drop this each second
 } cdlight_t;
 
 extern	cdlight_t	cl_dlights[MAX_DLIGHTS];
@@ -477,6 +483,7 @@ void CL_InitEdict( edict_t *pEdict );
 void CL_FreeEdict( edict_t *pEdict );
 string_t CL_AllocString( const char *szValue );
 const char *CL_GetString( string_t iString );
+bool CL_RenderTrace( const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end );
 
 _inline edict_t *CL_EDICT_NUM( int n, const char *file, const int line )
 {

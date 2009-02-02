@@ -598,7 +598,6 @@ bool Cmd_CheckMapsList( void )
 					if( !com.strcmp( token.string, "classname" ))
 					{
 						Com_ReadToken( ents, 0, &token );
-						Msg("read token: %s\n", token.string );
 						if(!com.strcmp( token.string, "info_player_deathmatch" ))
 							num_spawnpoints++;
 						else if(!com.strcmp( token.string, "info_player_start" ))

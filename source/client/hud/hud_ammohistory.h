@@ -46,7 +46,7 @@ public:
 	}
 
 ///// WEAPON /////
-	int64		iOldWeaponBits;
+	int		iOldWeaponBits;
 
 	WEAPON *GetWeapon( int iId ) { return &rgWeapons[iId]; }
 	void AddWeapon( WEAPON *wp ) 

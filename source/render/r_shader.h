@@ -33,7 +33,7 @@
 #define SHADER_MAX_EXPRESSIONS	16
 #define SHADER_MAX_STAGES		8
 #define SHADER_MAX_TRANSFORMS		8
-#define SHADER_MAX_TEXTURES		16	// max frames
+#define SHADER_MAX_TEXTURES		256	// max frames
 #define SHADER_MAX_TCMOD		8
 
 // shader flags
@@ -56,7 +56,8 @@ typedef enum
 	SHADER_TESSSIZE		= BIT(14),
 	SHADER_SKYPARMS		= BIT(15),
 	SHADER_DEFORMVERTEXES	= BIT(16),
-}shaderFlags_t;
+	SHADER_RENDERMODE		= BIT(17),// allow to change rendermode from code
+} shaderFlags_t;
 
 // shader stage flags
 typedef enum
@@ -71,7 +72,6 @@ typedef enum
 	SHADERSTAGE_DETAIL		= BIT(7),
 	SHADERSTAGE_RGBGEN		= BIT(8),
 	SHADERSTAGE_ALPHAGEN	= BIT(10),
-	SHADERSTAGE_RENDERMODE	= BIT(11),	// allow to change rendermode from code
 } stageFlags_t;
 
 // stage bundle flags
@@ -390,7 +390,6 @@ typedef struct shaderStage_s
 {
 	bool		ignore;
 	int		conditionRegister;
-	int		renderMode;
 	uint		flags;
 
 	stageBundle_t	*bundles[MAX_TEXTURE_UNITS];

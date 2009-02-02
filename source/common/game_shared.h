@@ -12,12 +12,12 @@
 
 #define MAX_WEAPONS			64		// special for Ghoul[BB] mod support 
 #define MAX_AMMO_SLOTS  		32
+#define ITEM_SUIT			BIT( 31 )
 
 #define HIDEHUD_WEAPONS		BIT( 0 )
 #define HIDEHUD_FLASHLIGHT		BIT( 1 )
 #define HIDEHUD_ALL			BIT( 2 )
 #define HIDEHUD_HEALTH		BIT( 3 )
-#define ITEM_SUIT			BIT( 4 )
 
 enum ShakeCommand_t
 {

@@ -319,7 +319,7 @@ void CBasePlayer :: DeathSound( void )
 
 	// play one of the suit death alarms
 	//LRC- if no suit, then no flatline sound. (unless it's a deathmatch.)
-	if (!(m_iHideHUD & ITEM_SUIT) && !g_pGameRules->IsDeathmatch() )return;
+	if( !(pev->weapons & ITEM_SUIT) && !g_pGameRules->IsDeathmatch()) return;
 	EMIT_GROUPNAME_SUIT(ENT(pev), "HEV_DEAD");
 }
 
@@ -333,7 +333,7 @@ int CBasePlayer :: TakeHealth( float flHealth, int bitsDamageType )
 
 int CBasePlayer :: TakeArmor( float flArmor, int suit )
 {
-	if(!(m_iHideHUD & ITEM_SUIT)) return 0;
+	if(!(pev->weapons & ITEM_SUIT)) return 0;
 	
 	if(CBaseMonster::TakeArmor(flArmor ))
 	{
@@ -814,7 +814,7 @@ void CBasePlayer::RemoveAllItems( BOOL removeSuit )
 	pev->weaponmodel	= 0;
 	pev->weapons 	= 0;
 	
-	if ( removeSuit ) m_iHideHUD &= ~ITEM_SUIT;
+	if ( removeSuit ) pev->weapons &= ~ITEM_SUIT;
 
 	for ( i = 0; i < MAX_AMMO_SLOTS; i++)
 		m_rgAmmo[i] = 0;
@@ -2679,7 +2679,7 @@ void CBasePlayer::CheckSuitUpdate()
 	int isearch = m_iSuitPlayNext;
 
 	// Ignore suit updates if no suit
-	if (!(m_iHideHUD & ITEM_SUIT))
+	if (!(pev->weapons & ITEM_SUIT))
 		return;
 
 	// if in range of radiation source, ping geiger counter
@@ -2742,7 +2742,7 @@ void CBasePlayer::SetSuitUpdate(char *name, int fgroup, int iNoRepeatTime)
 
 
 	// Ignore suit updates if no suit
-	if (!(m_iHideHUD & ITEM_SUIT))
+	if (!(pev->weapons & ITEM_SUIT))
 		return;
 
 	if ( g_pGameRules->IsMultiplayer() )
@@ -3724,7 +3724,7 @@ void CBasePlayer :: FlashlightTurnOn( void )
           	return;
 	}
 
-	if (m_iHideHUD & ITEM_SUIT)
+	if( pev->weapons & ITEM_SUIT )
 	{
 		EMIT_SOUND_DYN( ENT(pev), CHAN_WEAPON, SOUND_FLASHLIGHT_ON, 1.0, ATTN_NORM, 0, PITCH_NORM );
 		SetBits(pev->effects, EF_DIMLIGHT);
@@ -3835,7 +3835,7 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 
 	case 101:
 	{
-		if(GiveOnlyAmmo)
+		if( GiveOnlyAmmo )
 		{
 			gEvilImpulse101 = TRUE;
 			GiveNamedItem( "item_suit" );	//player may don't give suit at first time

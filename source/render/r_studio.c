@@ -1395,47 +1395,6 @@ void R_StudioSetupChrome( float *pchrome, int bone, vec3_t normal )
 	pchrome[1] = (n + 1.0) * 32.0f;
 }
 
-void R_StudioSetRenderMode( ref_shader_t *m_pSkinShader )
-{
-	if( m_pSkinShader->stages[0]->renderMode != m_pCurrentEntity->rendermode )
-	{
-		switch( m_pCurrentEntity->rendermode )
-		{
-		case kRenderNormal:
-			m_pSkinShader->stages[0]->flags &= ~(SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAFUNC);
-			break;
-		case kRenderTransColor:
-			m_pSkinShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-			m_pSkinShader->stages[0]->blendFunc.src = GL_SRC_COLOR;
-			m_pSkinShader->stages[0]->blendFunc.dst = GL_ZERO;
-			break;
-		case kRenderTransTexture:
-			m_pSkinShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-			m_pSkinShader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
-			m_pSkinShader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
-			break;
-		case kRenderGlow:
-			m_pSkinShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-			m_pSkinShader->stages[0]->blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
-			m_pSkinShader->stages[0]->blendFunc.dst = GL_ONE;
-			m_pSkinShader->stages[0]->flags &= ~SHADERSTAGE_DEPTHWRITE;
-			break;
-		case kRenderTransAlpha:
-			m_pSkinShader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
-			m_pSkinShader->stages[0]->alphaFunc.func = GL_GREATER;
-			m_pSkinShader->stages[0]->alphaFunc.ref = 0.666;
-			m_pSkinShader->sort = SORT_SEETHROUGH;
-			break;
-		case kRenderTransAdd:
-			m_pSkinShader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-			m_pSkinShader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
-			m_pSkinShader->stages[0]->blendFunc.dst = GL_ONE;
-			break;
-		}
-		m_pSkinShader->stages[0]->renderMode = m_pCurrentEntity->rendermode;
-	}
-}
-
 void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref )
 {
 	int	i, j;
@@ -1491,8 +1450,6 @@ void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref )
 		m_pMesh->chrome = m_pxformchrome;
 		m_pMesh->numTris = pmesh->numtris;
 		m_pMesh->numVerts = numverts;
-
-		R_StudioSetRenderMode( pshader );	// merge rendermode if needs
 
 		R_AddMeshToList( MESH_STUDIO, m_pMesh, pshader, m_pCurrentEntity, 0 );
 		m_iCurrentMesh++;
@@ -2213,8 +2170,8 @@ void R_DrawStudioModel( void )
 {
 	mstudiomesh_t	*surf = m_pRenderMesh->mesh;
 	short		*ptricmds = surf->tricmds;
-	float		s, t, *av;
-	int		i;
+	int		i, vertex_state, tri_strip;
+	float		s, t;
 
 	s = surf->s;
 	t = surf->t;
@@ -2228,24 +2185,71 @@ void R_DrawStudioModel( void )
 	{
 		if( i < 0 )
 		{
-			GL_Begin( GL_TRIANGLE_FAN );
+			tri_strip = false;
+			vertex_state = 0;
 			i = -i;
 		}
 		else
 		{
-			GL_Begin( GL_TRIANGLE_STRIP );
+			vertex_state = 0;
+			tri_strip = true;
 		}
 		for( ; i > 0; i--, ptricmds += 4 )
 		{
 			if( surf->flags & STUDIO_NF_CHROME )
-				GL_TexCoord2f( m_pxformchrome[ptricmds[1]][0] * s, m_pxformchrome[ptricmds[1]][1] * t );
-			else GL_TexCoord2f( ptricmds[2] * s, ptricmds[3] * t );
+			{
+				ref.inTexCoordArray[ref.numVertex][0] = m_pxformchrome[ptricmds[1]][0] * s;
+				ref.inTexCoordArray[ref.numVertex][1] = m_pxformchrome[ptricmds[1]][1] * t;
+			}
+			else
+			{
+				ref.inTexCoordArray[ref.numVertex][0] = ptricmds[2] * s;
+				ref.inTexCoordArray[ref.numVertex][1] = ptricmds[3] * t;
+			}
 
-			GL_Normal3fv( vec3_origin );	// FIXME: apply normals
-			av = m_pxformverts[ptricmds[0]];
-			GL_Vertex3f( av[0], av[1], av[2] );
+			// FIXME: apply normals
+			ref.normalArray[ref.numVertex][0] = 0;
+			ref.normalArray[ref.numVertex][1] = 0;
+			ref.normalArray[ref.numVertex][2] = 0;
+
+			ref.vertexArray[ref.numVertex][0] = m_pxformverts[ptricmds[0]][0];
+			ref.vertexArray[ref.numVertex][1] = m_pxformverts[ptricmds[0]][1];
+			ref.vertexArray[ref.numVertex][2] = m_pxformverts[ptricmds[0]][2];
+
+			if( vertex_state++ < 3 )
+			{
+				ref.indexArray[ref.numIndex++] = ref.numVertex;
+                              }
+			else
+			{
+				if( tri_strip )
+				{
+					// flip triangles between clockwise and counter clockwise
+					if( vertex_state & 1 )
+					{
+						// draw triangle [n-2 n-1 n]
+						ref.indexArray[ref.numIndex++] = ref.numVertex - 2;
+						ref.indexArray[ref.numIndex++] = ref.numVertex - 1;
+						ref.indexArray[ref.numIndex++] = ref.numVertex;
+					}
+					else
+					{
+						// draw triangle [n-1 n-2 n]
+						ref.indexArray[ref.numIndex++] = ref.numVertex - 1;
+						ref.indexArray[ref.numIndex++] = ref.numVertex - 2;
+						ref.indexArray[ref.numIndex++] = ref.numVertex;
+					}
+				}
+				else
+				{
+					// draw triangle [0 n-1 n]
+					ref.indexArray[ref.numIndex++] = ref.numVertex - (vertex_state - 1);
+					ref.indexArray[ref.numIndex++] = ref.numVertex - 1;
+					ref.indexArray[ref.numIndex++] = ref.numVertex;
+				}
+			}
+			ref.numVertex++;
 		}
-		GL_End();
 	}
 
 	// hack the depth range to prevent view model from poking into walls

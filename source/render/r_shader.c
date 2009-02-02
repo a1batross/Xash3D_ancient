@@ -1462,6 +1462,17 @@ static bool R_ParseGeneralEntityMergable( ref_shader_t *shader, script_t *script
 
 /*
 =================
+R_ParseGeneralRenderMode
+=================
+*/
+static bool R_ParseGeneralRenderMode( ref_shader_t *shader, script_t *script )
+{
+	shader->flags |= SHADER_RENDERMODE;
+	return true;
+}
+
+/*
+=================
 R_ParseGeneralTessSize
 =================
 */
@@ -1704,12 +1715,6 @@ static bool R_ParseStageAlphaZeroClamp( ref_shader_t *shader, shaderStage_t *sta
 	stageBundle_t *bundle = stage->bundles[stage->numBundles - 1];
 	bundle->texWrap = TW_CLAMP_TO_ZERO_ALPHA;
 
-	return true;
-}
-
-static bool R_ParseStageRenderMode( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
-{
-	stage->flags |= SHADERSTAGE_RENDERMODE;
 	return true;
 }
 
@@ -3526,6 +3531,7 @@ static shaderGeneralCmd_t r_shaderGeneralCmds[] =
 { "alphaZeroClamp",	R_ParseGeneralAlphaZeroClamp	},
 {"noShadows",	R_ParseGeneralNoShadows	},
 {"nomarks",	R_ParseGeneralNoFragments	},
+{"renderMode",	R_ParseGeneralRenderMode,	},
 {"entityMergable",	R_ParseGeneralEntityMergable	},
 {"polygonOffset",	R_ParseGeneralPolygonOffset	},
 {"cull",		R_ParseGeneralCull		},
@@ -3549,7 +3555,6 @@ static shaderStageCmd_t r_shaderStageCmds[] =
 {"clamp",		R_ParseStageClamp		},
 {"zeroClamp",	R_ParseStageZeroClamp	},
 {"alphaZeroClamp",	R_ParseStageAlphaZeroClamp	},
-{"renderMode",	R_ParseStageRenderMode,	},
 {"animFrequency",	R_ParseStageAnimFrequency	},
 {"map",		R_ParseStageMap		},
 {"bumpMap",	R_ParseStageBumpMap		},
@@ -3924,6 +3929,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 			shader->surfaceParm |= SURF_NOLIGHTMAP;
 	         		shader->sort = SORT_SEETHROUGH;
 		}
+		else shader->flags |= SHADER_RENDERMODE; // never ovverrides custom surfaces
 		if( shader->surfaceParm & SURF_WARP )
 		{
 			shader->flags |= SHADER_TESSSIZE;
@@ -3954,7 +3960,9 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 		break;
 	case SHADER_STUDIO:
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
-		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( va( "Studio( \"%s\" )", shader->name ), NULL, 0, 0, 0, 0 );
+		if( shader->surfaceParm & SURF_ALPHA ) // ignore mips for alpha-textures
+			shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( va( "Studio( \"%s\" )", shader->name ), NULL, 0, 0, TF_LINEAR, TW_CLAMP );
+		else shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( va( "Studio( \"%s\" )", shader->name ), NULL, 0, 0, 0, 0 );
 		if( !shader->stages[0]->bundles[0]->textures[0] )
 		{
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
@@ -3965,23 +3973,28 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 		{
 			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
-			shader->stages[0]->blendFunc.dst = GL_ONE;
+			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 	         		shader->sort = SORT_BLEND;
 		}
 		else if( shader->surfaceParm & SURF_ADDITIVE )
 		{
-			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+			shader->stages[0]->flags |= (SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAGEN|SHADERSTAGE_RGBGEN);
+			shader->stages[0]->rgbGen.type = RGBGEN_IDENTITYLIGHTING;
+			shader->stages[0]->alphaGen.type = ALPHAGEN_IDENTITY;
 			shader->stages[0]->blendFunc.src = GL_ONE;
 			shader->stages[0]->blendFunc.dst = GL_ONE;
 	         		shader->sort = SORT_ADDITIVE;
 		}
 		else if( shader->surfaceParm & SURF_ALPHA )
 		{
-			shader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
+			shader->stages[0]->flags |= (SHADERSTAGE_ALPHAFUNC|SHADERSTAGE_ALPHAGEN|SHADERSTAGE_RGBGEN);
+			shader->stages[0]->rgbGen.type = RGBGEN_LIGHTINGAMBIENT;
+			shader->stages[0]->alphaGen.type = ALPHAGEN_IDENTITY;
 			shader->stages[0]->alphaFunc.func = GL_GREATER;
-			shader->stages[0]->alphaFunc.ref = 0.666;		// FIXME
+			shader->stages[0]->alphaFunc.ref = 0.666;
 			shader->sort = SORT_SEETHROUGH;
 		}
+		else shader->flags |= SHADER_RENDERMODE;
 		shader->stages[0]->bundles[0]->numTextures++;
 		shader->stages[0]->numBundles++;
 		shader->numStages++;
@@ -3989,7 +4002,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 	case SHADER_SPRITE:
 		if( r_spriteFrequency == 0.0f && r_numSpriteTextures == 8 )
 		{
-			// angled map
+			// store angled map into one bundle
 			shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
 			shader->stages[0]->bundles[0]->texType = TEX_ANGLEDMAP;
 
@@ -4003,7 +4016,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 		}
 		else if( r_numSpriteTextures > 1 )
 		{
-			// group frames
+			// store group frames into one bundle
 			shader->stages[0]->bundles[0]->flags |= (STAGEBUNDLE_MAP|STAGEBUNDLE_ANIMFREQUENCY);
 			shader->stages[0]->bundles[0]->animFrequency = r_spriteFrequency;
 			shader->stages[0]->bundles[0]->texType = TEX_GENERIC;
@@ -4069,6 +4082,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 			shader->stages[0]->alphaFunc.ref = 0.666;
 			shader->sort = SORT_SEETHROUGH;
 		}
+		shader->flags |= SHADER_RENDERMODE; // any sprite can overrided himself rendermode
 		shader->stages[0]->numBundles++;
 		shader->numStages++;
 		break;
@@ -4110,6 +4124,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 				shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
 			}
 		}
+		shader->flags |= SHADER_RENDERMODE; // client.dll uses rendermode
 		shader->stages[0]->rgbGen.type = RGBGEN_VERTEX;
 		shader->stages[0]->bundles[0]->numTextures++;
 		shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC|SHADERSTAGE_RGBGEN;

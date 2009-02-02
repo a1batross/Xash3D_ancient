@@ -735,6 +735,32 @@ void R_AddMeshToList( meshType_t meshType, void *mesh, ref_shader_t *shader, ref
 {
 	mesh_t	*m;
 
+	if( entity && (shader->flags & SHADER_RENDERMODE))
+	{
+		switch( entity->rendermode )
+		{
+		case kRenderTransColor:
+			shader->sort = SORT_DECAL;
+			break;
+		case kRenderTransTexture:
+			shader->sort = SORT_BLEND;
+			break;
+		case kRenderGlow:
+			shader->sort = SORT_ADDITIVE;
+			break;
+		case kRenderTransAlpha:
+			shader->sort = SORT_SEETHROUGH;
+			break;
+		case kRenderTransAdd:
+			shader->sort = SORT_ADDITIVE;
+			break;
+		case kRenderNormal:
+			shader->sort = SORT_OPAQUE;
+			break;
+		default: break; // leave unchanged
+		}
+	}
+
 	if( shader->sort <= SORT_DECAL )
 	{
 		if( r_numSolidMeshes == MAX_MESHES )
@@ -1060,10 +1086,10 @@ static bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac
 	refent->index = pRefEntity->serialnumber;
 	refent->ent_type = ed_type;
 	refent->backlerp = 1.0f - lerpfrac;
-	refent->renderamt = pRefEntity->v.renderamt;
 	refent->rendermode = pRefEntity->v.rendermode;
 	refent->body = pRefEntity->v.body;
 	refent->scale = pRefEntity->v.scale;
+	refent->renderamt = pRefEntity->v.renderamt;
 	refent->colormap = pRefEntity->v.colormap;
 	refent->effects = pRefEntity->v.effects;
 	if( VectorIsNull( pRefEntity->v.rendercolor ))

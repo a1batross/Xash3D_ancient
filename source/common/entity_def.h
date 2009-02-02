@@ -91,8 +91,8 @@ typedef struct entvars_s
 	float		fov;		// NET [player], client fov, used instead m_iFov
 	float		health;		// NET [player]
 	float		frags;
-	int64		weapons;		// NET [player], bit mask for available weapons
-	int64		items;		// from Q1, can use for holdable items or user flags 
+	int		weapons;		// NET [player], bit mask for available weapons
+	int		items;		// from Q1, can use for holdable items or user flags 
 	float		takedamage;
 	float		maxspeed;		// NET [player], uses to limit speed for current client
 
@@ -110,7 +110,7 @@ typedef struct entvars_s
 	edict_t		*groundentity;	// NET [all], only if FL_ONGROUND is set
 
 	int		spawnflags;	// spwanflags are used only during level loading
-	int64		flags;		// generic flags that can be send to client
+	int		flags;		// generic flags that can be send to client
 
 	short		colormap;		// lowbyte topcolor, highbyte bottomcolor
 	int		team;		// ENG [player], NET [player], for teamplay

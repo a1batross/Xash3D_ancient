@@ -352,7 +352,8 @@ void CFuncConveyor :: Spawn( void )
 	// smart field system ®
 	if( pev->speed == 0 ) pev->speed = 100;
 	pev->frags = pev->speed; // save initial speed
-	if( pev->spawnflags & SF_START_ON ) Use( this, this, USE_ON, 0 );
+	if( pev->spawnflags & SF_START_ON || FStringNull( pev->targetname ))
+		Use( this, this, USE_ON, 0 );
 }
 
 void CFuncConveyor :: TogglePhysic( BOOL enable )
@@ -1606,14 +1607,14 @@ void CWallCharger::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 			}
 		}
 
-		if((m_iState == STATE_DEAD) || (!(((CBasePlayer *)pActivator)->m_iHideHUD & ITEM_SUIT)))
+		if((m_iState == STATE_DEAD) || (!(((CBasePlayer *)pActivator)->pev->weapons & ITEM_SUIT)))
 		{
 			if (m_flSoundTime <= gpGlobals->time)
 			{
 				m_flSoundTime = gpGlobals->time + 0.62;
 				if (FClassnameIs(this, "func_recharge"))
 					EMIT_SOUND_DYN(ENT(pev), CHAN_STATIC, "items/suitchargeno1.wav", m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
-				else	EMIT_SOUND_DYN(ENT(pev), CHAN_STATIC, "items/medshotno1.wav", m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
+				else EMIT_SOUND_DYN(ENT(pev), CHAN_STATIC, "items/medshotno1.wav", m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
 				
 			}
 			return;

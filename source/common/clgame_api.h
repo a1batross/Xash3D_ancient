@@ -44,7 +44,7 @@ typedef struct client_data_s
 	vec3_t		angles;		// cl.viewangles
 
 	int		iKeyBits;		// Keyboard bits
-	int64		iWeaponBits;	// came from pev->weapons
+	int		iWeaponBits;	// came from pev->weapons
 	float		v_idlescale;	// view shake/rotate
 	float		mouse_sensitivity;	// used for menus
 	float		fov;		// field of view

@@ -67,7 +67,7 @@ static net_field_t ent_fields[] =
 { ES_FIELD(controller[8]),		NET_COLOR, false	},
 { ES_FIELD(controller[9]),		NET_COLOR, false	},
 { ES_FIELD(solid),			NET_BYTE,	 false	},
-{ ES_FIELD(flags),			NET_INT64, false	},	// misc edict flags
+{ ES_FIELD(flags),			NET_LONG,  false	},	// misc edict flags
 { ES_FIELD(movetype),		NET_BYTE,	 false	},
 { ES_FIELD(gravity),		NET_SHORT, false	},	// gravity multiplier
 { ES_FIELD(aiment),			NET_WORD,	 false	},	// entity index
@@ -102,9 +102,9 @@ static net_field_t ent_fields[] =
 { ES_FIELD(viewmodel),		NET_WORD,  false	},
 { ES_FIELD(maxspeed),		NET_FLOAT, false	},	// client maxspeed
 { ES_FIELD(fov),			NET_FLOAT, false	},	// client horizontal field of view
-{ ES_FIELD(weapons),		NET_INT64, false	},	// client weapon 0-64
+{ ES_FIELD(weapons),		NET_LONG,  false	},	// client weapon 0-64
 { ES_FIELD(health),			NET_FLOAT, false	},	// client health
-// revision 5. reserve for 7 fields without enlarge null_msg_size
+// revision 6. reserve for 5 fields without enlarge null_msg_size
 { NULL },							// terminator
 };
 

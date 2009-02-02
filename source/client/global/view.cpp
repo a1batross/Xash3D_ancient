@@ -883,8 +883,11 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 	V_ApplyShake( view->v.origin, view->v.angles, 0.9 );
 
 	for( i = 0; i < 3; i++ )
-		view->v.origin[i] += bob * 0.4 * pparams->forward[i];
-	view->v.origin[2] += bob;
+	{
+		view->v.origin[i] += bob * 0.2 * pparams->forward[i];
+		view->v.origin[i] += bob * 0.4 * pparams->right[i];
+	}
+	view->v.origin[2] += (bob * 0.01f);
 
 	view->v.angles[YAW] -= bob * 0.5;
 	view->v.angles[ROLL] -= bob * 1;

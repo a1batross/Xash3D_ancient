@@ -1015,7 +1015,7 @@ void GL_SetDefaultState( void )
 	pglDepthFunc( GL_LEQUAL );
 	pglDepthMask( GL_TRUE );
 
-	pglClearColor( 1.0, 0.0, 0.5, 0.5 );
+	pglClearColor( 0.5, 0.5, 0.5, 0.5 );
 	pglClearDepth( 1.0 );
 	pglClearStencil( 128 );
 

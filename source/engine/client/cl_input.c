@@ -439,6 +439,7 @@ void CL_FinishMove( usercmd_t *cmd )
 	// process commands with user dll's
 	cl.data.fov = cl.frame.ps.fov;
 	cl.data.iKeyBits = CL_ButtonBits( 0 );
+
 	cl.data.iWeaponBits = cl.frame.ps.weapons;
 	cl.data.mouse_sensitivity = cl.mouse_sens;
 	VectorCopy( cl.viewangles, cl.data.angles );

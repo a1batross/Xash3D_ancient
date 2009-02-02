@@ -83,8 +83,12 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 	if( unchanged ) *state = *old;
 	else MSG_ReadDeltaEntity( msg, old, state, newnum );
 
-	if( state->number == -1 ) return; // entity was delta removed
-
+	if( state->number == -1 )
+	{
+		// NOTE: not real removed, just out of view, use ent->free as marker
+		ent->free = true;
+		return; // entity was delta removed
+	}
 	cl.parse_entities++;
 	frame->num_entities++;
 
@@ -337,6 +341,7 @@ void CL_AddPacketEntities( frame_t *frame )
 		s1 = &cl_parse_entities[(frame->parse_entities + pnum)&(MAX_PARSE_ENTITIES-1)];
 		ent = EDICT_NUM( s1->number );
 
+		if( ent->free ) continue;
 		re->AddRefEntity( ent, s1->ed_type, cl.refdef.lerpfrac );
 	}
 }

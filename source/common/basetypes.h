@@ -23,6 +23,7 @@ typedef struct cl_priv_s	cl_priv_t;
 typedef struct sv_priv_s	sv_priv_t;
 typedef float		vec_t;
 
+#define _INTEGRAL_MAX_BITS	64
 #define DLLEXPORT		__declspec( dllexport )
 
 #ifndef NULL

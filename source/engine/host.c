@@ -83,6 +83,7 @@ void Host_InitRender( void )
 	ri.GetClientEdict = CL_GetEdictByIndex;
 	ri.GetLocalPlayer = CL_GetLocalPlayer;
 	ri.GetMaxClients = CL_GetMaxClients;
+	ri.Trace = CL_RenderTrace;
 	ri.WndProc = IN_WndProc;
           
 	Sys_LoadLibrary( &render_dll );

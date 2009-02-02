@@ -435,7 +435,7 @@ void CHalfLifeMultiplay :: PlayerSpawn( CBasePlayer *pPlayer )
 	BOOL		addDefault;
 	CBaseEntity	*pWeaponEntity = NULL;
           
-	pPlayer->m_iHideHUD |= ITEM_SUIT;
+	pPlayer->pev->weapons |= ITEM_SUIT;
 	
 	addDefault = TRUE;
 

@@ -69,6 +69,18 @@ static trace_t CL_TraceToss( edict_t *tossent, edict_t *ignore)
 
 /*
 ====================
+CL_RenderTrace
+
+simplified version of CL_Trace for renderer purposes
+====================
+*/
+bool CL_RenderTrace( const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end )
+{
+	return (CL_Trace( start, mins, maxs, end, MOVE_NORMAL, NULL, MASK_SOLID ).fraction == 1) ? true : false;
+}
+
+/*
+====================
 CL_GetLocalPlayer
 
 Render callback for studio models
@@ -278,10 +290,10 @@ void CL_ParseUserMessage( sizebuf_t *net_buffer, int svc_num )
 void CL_InitEdict( edict_t *pEdict )
 {
 	Com_Assert( pEdict == NULL );
-	Com_Assert( pEdict->pvClientData != NULL );
 
 	pEdict->v.pContainingEntity = pEdict; // make cross-links for consistency
-	pEdict->pvClientData = (cl_priv_t *)Mem_Alloc( cls.mempool,  sizeof( cl_priv_t ));
+	if( !pEdict->pvClientData )
+		pEdict->pvClientData = (cl_priv_t *)Mem_Alloc( cls.mempool,  sizeof( cl_priv_t ));
 	pEdict->serialnumber = NUM_FOR_EDICT( pEdict );	// merged on first update
 	pEdict->free = false;
 }

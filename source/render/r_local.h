@@ -184,9 +184,15 @@ BRUSH MODELS
 
 typedef struct dlight_s
 {
-	vec3_t	origin;
-	vec3_t	color;
-	float	intensity;
+	vec3_t		origin;
+	union
+	{
+		vec3_t	color;		// dlight color
+		vec3_t	angles;		// spotlight angles
+	};
+	float		intensity;
+	shader_t		texture;		// light image e.g. for flashlight
+	vec2_t		cone;		// spotlight cone
 } dlight_t;
 
 typedef struct lightstyle_s

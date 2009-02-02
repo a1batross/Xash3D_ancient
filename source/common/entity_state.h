@@ -73,9 +73,7 @@ typedef struct entity_state_s
 	int		sequence;		// animation sequence (0 - 255)
 	float		blending[16];	// studio animation blending
 	float		controller[16];	// studio bone controllers
-
-	// flags
-	int64		flags;		// v.flags
+	int		flags;		// v.flags
 	uint		effects;		// effect flags like q1 and hl1
 	int		renderfx;		// render effects same as hl1
 	float		renderamt;	// alpha value or like somewhat
@@ -95,7 +93,7 @@ typedef struct entity_state_s
 	int		weaponskin;	// weaponmodel skin
 	float		maxspeed;		// min( pev->maxspeed, sv_maxspeed->value )
 	float		health;		// client health (other parms can be send by custom messages)
-	int64		weapons;		// weapon flags
+	int		weapons;		// weapon flags
 	float		fov;		// horizontal field of view
 } entity_state_t;
 

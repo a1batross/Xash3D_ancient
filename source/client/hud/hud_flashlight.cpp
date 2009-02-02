@@ -89,13 +89,13 @@ int CHudFlashlight :: MsgFunc_Flashlight( const char *pszName,  int iSize, void 
 
 int CHudFlashlight :: Draw( float flTime )
 {
-	if( gHUD.m_iHideHUDDisplay & (HIDEHUD_FLASHLIGHT|HIDEHUD_ALL) )
+	if(gHUD.m_iHideHUDDisplay & (HIDEHUD_FLASHLIGHT|HIDEHUD_ALL))
 		return 1;
 
 	int r, g, b, x, y, a;
 	wrect_t rc;
 
-	if(!( gHUD.m_iHideHUDDisplay & ITEM_SUIT ))
+	if(!(gHUD.m_iWeaponBits & ITEM_SUIT))
 		return 1;
 
 	if( m_fOn )

@@ -198,14 +198,14 @@ class CItemSuit : public CItem
 		CBasePlayer *pPlayer = (CBasePlayer *)pOther;
 		if ( pPlayer->pev->deadflag != DEAD_NO ) return FALSE;
 
-		if ( pPlayer->m_iHideHUD & ITEM_SUIT )
+		if ( pPlayer->pev->weapons & ITEM_SUIT )
 			return FALSE;
 
 		if ( pev->spawnflags & 1 )//SF_SUIT_SHORTLOGON
 			EMIT_SOUND_SUIT(pPlayer->edict(), "!HEV_A0");	// short version of suit logon,
 		else	EMIT_SOUND_SUIT(pPlayer->edict(), "!HEV_AAx");	// long version of suit logon
                     
-		pPlayer->m_iHideHUD |= ITEM_SUIT;
+		pPlayer->pev->weapons |= ITEM_SUIT;
 		return TRUE;
 	}
 };
@@ -218,7 +218,7 @@ class CItemLongJump : public CItem
 	BOOL AddItem( CBaseEntity *pOther )
 	{
 		CBasePlayer *pPlayer = (CBasePlayer *)pOther;
-		if ( pPlayer->m_iHideHUD & ITEM_SUIT && !pPlayer->m_fLongJump)
+		if( pPlayer->pev->weapons & ITEM_SUIT && !pPlayer->m_fLongJump )
 		{
 			pPlayer->m_fLongJump = TRUE;// player now has longjump module
 			EMIT_SOUND_SUIT( pPlayer->edict(), "!HEV_A1" );

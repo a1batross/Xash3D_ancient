@@ -53,7 +53,7 @@ void R_DrawSetParms( shader_t handle, kRenderMode_t rendermode, int frame )
 		return;
 
 	// change rendermode if need
-	if( shader->stages[0]->flags & SHADERSTAGE_RENDERMODE && shader->stages[0]->renderMode != rendermode )
+	if( shader->flags & SHADER_RENDERMODE )
 	{
 		switch( rendermode )
 		{
@@ -79,7 +79,6 @@ void R_DrawSetParms( shader_t handle, kRenderMode_t rendermode, int frame )
 			shader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
 			shader->stages[0]->alphaFunc.func = GL_GREATER;
 			shader->stages[0]->alphaFunc.ref = 0.666;
-			shader->sort = SORT_SEETHROUGH;
 			break;
 		case kRenderTransAdd:
 			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
@@ -87,7 +86,6 @@ void R_DrawSetParms( shader_t handle, kRenderMode_t rendermode, int frame )
 			shader->stages[0]->blendFunc.dst = GL_ONE;
 			break;
 		}
-		shader->stages[0]->renderMode = rendermode;
 	}
 
 	if( !shader->stages[0]->numBundles || !shader->stages[0]->bundles[0]->numTextures )

@@ -664,7 +664,7 @@ public:
 		int	iHeight;
 	} m_scrinfo;
 		
-	int64	m_iWeaponBits;
+	int	m_iWeaponBits;
 	int	m_fPlayerDead;
 	int	m_iIntermission;
 
