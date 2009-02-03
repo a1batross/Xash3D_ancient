@@ -26,14 +26,12 @@ dll_info_t vsound_dll = { "vsound.dll", NULL, "CreateAPI", NULL, NULL, false, si
 
 cvar_t	*timescale;
 cvar_t	*host_serverstate;
-cvar_t	*host_frametime;
 cvar_t	*host_cheats;
 cvar_t	*host_maxfps;
 cvar_t	*host_maxclients;
 cvar_t	*host_registered;
 
 // these cvars will be duplicated on each client across network
-int Host_FrameTime( void ) { return (int)(bound( 10, Cvar_VariableValue( "host_frametime" ) * 1000, 100 )); }
 int Host_ServerState( void ) { return (int)Cvar_VariableValue( "host_serverstate" ); }
 int Host_MaxClients( void ) { return (int)bound( 1, Cvar_VariableValue( "host_maxclients" ), 255 ); }
 
@@ -200,11 +198,13 @@ Restart the video subsystem
 */
 void Host_VidRestart_f( void )
 {
+	host.state = HOST_RESTART;
 	S_StopAllSounds();		// don't let them loop during the restart
 	cl.video_prepped = false;
 
 	Host_FreeRender();		// release render.dll
 	Host_InitRender();		// load it again
+
 	SCR_RegisterShaders();	// reload 2d-shaders
 }
 
@@ -217,6 +217,7 @@ Restart the audio subsystem
 */
 void Host_SndRestart_f( void )
 {
+	host.state = HOST_RESTART;
 	S_StopAllSounds();		// don't let them loop during the restart
 	cl.audio_prepped = false;
 	
@@ -632,7 +633,6 @@ void Host_Init( int argc, char **argv)
 
 	host_cheats = Cvar_Get( "sv_cheats", "1", CVAR_SYSTEMINFO, "allow cheat variables to enable" );          
 	host_maxfps = Cvar_Get( "host_maxfps", "100", CVAR_ARCHIVE, "host fps upper limit" );
-	host_frametime = Cvar_Get("host_frametime", "0.1", CVAR_SERVERINFO, "host frametime (only for test!)" );
 	host_maxclients = Cvar_Get("host_maxclients", "1", CVAR_SERVERINFO|CVAR_LATCH, "server maxplayers limit" );
 	host_serverstate = Cvar_Get("host_serverstate", "0", CVAR_SERVERINFO, "displays current server state" );
 	host_registered = Cvar_Get( "registered", "1", CVAR_SYSTEMINFO, "indicate shareware version of game" );

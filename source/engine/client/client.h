@@ -44,6 +44,7 @@ typedef struct frame_s
 	bool		valid;			// cleared if delta parsing was invalid
 	int		serverframe;
 	int		servertime;		// server time the message is valid for (in msec)
+	int		frametime;		// server frametime
 	int		deltaframe;
 	byte		areabits[MAX_MAP_AREA_BYTES];	// portalarea visibility bits
 	int		num_entities;

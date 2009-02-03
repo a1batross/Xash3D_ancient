@@ -239,9 +239,11 @@ void CL_ParseFrame( sizebuf_t *msg )
 	frame_t		*old;
           
 	memset( &cl.frame, 0, sizeof(cl.frame));
+	cl.frame.frametime = MSG_ReadLong( msg );
 	cl.frame.serverframe = MSG_ReadLong( msg );
 	cl.frame.deltaframe = MSG_ReadLong( msg );
-	cl.frame.servertime = cl.frame.serverframe * Host_FrameTime();
+
+	cl.frame.servertime = cl.frame.serverframe * cl.frame.frametime;
 	cl.surpressCount = MSG_ReadByte( msg );
 
 	// If the frame is delta compressed from data that we
@@ -277,8 +279,8 @@ void CL_ParseFrame( sizebuf_t *msg )
 
 	// clamp time 
 	if( cl.time > cl.frame.servertime ) cl.time = cl.frame.servertime;
-	else if( cl.time < cl.frame.servertime - Host_FrameTime())
-		cl.time = cl.frame.servertime - Host_FrameTime();
+	else if( cl.time < cl.frame.servertime - cl.frame.frametime )
+		cl.time = cl.frame.servertime - cl.frame.frametime;
 
 	// read areabits
 	len = MSG_ReadByte( msg );

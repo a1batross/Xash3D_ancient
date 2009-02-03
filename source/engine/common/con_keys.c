@@ -1065,7 +1065,7 @@ CL_KeyEvent
 Called by the system for both key up and key down events
 ===================
 */
-void Key_Event( int key, bool down, uint time )
+void Key_Event( int key, bool down, uint time1 )
 {
 	char	*kb;
 	char	cmd[1024];
@@ -1163,7 +1163,7 @@ void Key_Event( int key, bool down, uint time )
 				if ( kb[i] == ';' || !kb[i] )
 				{
 					*buttonPtr = '\0';
-					if ( button[0] == '+')
+					if( button[0] == '+' )
 					{
 						// button commands add keynum and time as parms so that multiple
 						// sources can be discriminated and subframe corrected

@@ -226,7 +226,7 @@ MSG_WriteBits
 write # of bytes
 =======================
 */
-void _MSG_WriteBits( sizebuf_t *msg, int64 value, const char *name, int net_type, const char *filename, const int fileline )
+void _MSG_WriteBits( sizebuf_t *msg, int value, const char *name, int net_type, const char *filename, const int fileline )
 {
 	union { long l; float f; } dat;
 	byte *buf;
@@ -278,18 +278,6 @@ void _MSG_WriteBits( sizebuf_t *msg, int64 value, const char *name, int net_type
 		buf[0] = value & 0xff;
 		buf[1] = value>>8;
 		break;
-	case NET_INT64:
-	case NET_DOUBLE:
-		buf = MSG_GetSpace( msg, 8 );
-		buf[0] = (value>>0 ) & 0xff;
-		buf[1] = (value>>8 ) & 0xff;
-		buf[2] = (value>>16) & 0xff;
-		buf[3] = (value>>24) & 0xff;
-		buf[4] = (value>>32) & 0xff;
-		buf[5] = (value>>40) & 0xff;
-		buf[6] = (value>>48) & 0xff;
-		buf[7] = (value>>56);
-		break;
 	default:
 		Host_Error( "MSG_WriteBits: bad net.type (called at %s:%i)\n", filename, fileline );			
 		break;
@@ -315,10 +303,10 @@ MSG_ReadBits
 read # of bytes
 =======================
 */
-int64 _MSG_ReadBits( sizebuf_t *msg, int net_type, const char *filename, const int fileline )
+int _MSG_ReadBits( sizebuf_t *msg, int net_type, const char *filename, const int fileline )
 {
 	union { long l; float f; } dat;
-	int64 value = 0;
+	int value = 0;
 
 	switch( net_type )
 	{
@@ -357,11 +345,6 @@ int64 _MSG_ReadBits( sizebuf_t *msg, int net_type, const char *filename, const i
 		value = SHORT2ANGLE( value );
 		msg->readcount += 2;
 		break;		
-	case NET_INT64:
-	case NET_DOUBLE:
-		value = (int64)BuffLittleLong64(msg->data + msg->readcount);
-		msg->readcount += 8;
-		break;
 	default:
 		Host_Error( "MSG_ReadBits: bad net.type (called at %s:%i)\n", filename, fileline );			
 		break;
@@ -397,13 +380,6 @@ void _MSG_WriteFloat( sizebuf_t *sb, float f, const char *filename, int fileline
 	union { float f; int l; } dat;
 	dat.f = f;
 	_MSG_WriteBits( sb, dat.l, NWDesc[NET_FLOAT].name, NET_FLOAT, filename, fileline );
-}
-
-void _MSG_WriteDouble( sizebuf_t *sb, double f, const char *filename, int fileline )
-{
-	union { double f; int64 l; } dat;
-	dat.f = f;
-	_MSG_WriteBits( sb, dat.l, NWDesc[NET_DOUBLE].name, NET_DOUBLE, filename, fileline );
 }
 
 void _MSG_WriteString( sizebuf_t *sb, const char *s, const char *filename, int fileline )
@@ -456,13 +432,6 @@ float MSG_ReadAngle16( sizebuf_t *msg )
 {
 	union { float f; int l; } dat;
 	dat.l = MSG_ReadBits( msg, NET_ANGLE );
-	return dat.f;	
-}
-
-double MSG_ReadDouble( sizebuf_t *msg )
-{
-	union { double f; int64 l; } dat;
-	dat.l = MSG_ReadBits( msg, NET_DOUBLE );
 	return dat.f;	
 }
 

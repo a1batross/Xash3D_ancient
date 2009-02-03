@@ -18,8 +18,6 @@ enum net_types_e
 	NET_SCALE,
 	NET_COORD,
 	NET_COLOR,
-	NET_INT64,
-	NET_DOUBLE,
 	NET_TYPES,
 };
 
@@ -102,8 +100,6 @@ static const net_desc_t NWDesc[] =
 { NET_SCALE,	"Scale",	-128,		127	},
 { NET_COORD,	"Coord",	-262140,		262140	},
 { NET_COLOR,	"Color",	0,		255	},
-{ NET_INT64,	"int64",	0,		0	}, // can't overflow
-{ NET_DOUBLE,	"Double",	0,		0	}, // can't overflow
 };
 
 /*
@@ -169,8 +165,8 @@ void MSG_Init( sizebuf_t *buf, byte *data, size_t length );
 void MSG_Clear( sizebuf_t *buf );
 void MSG_Print( sizebuf_t *msg, const char *data );
 void MSG_Bitstream( sizebuf_t *buf, bool state );
-void _MSG_WriteBits( sizebuf_t *msg, int64 value, const char *name, int bits, const char *filename, const int fileline );
-int64 _MSG_ReadBits( sizebuf_t *msg, int bits, const char *filename, const int fileline );
+void _MSG_WriteBits( sizebuf_t *msg, int value, const char *name, int bits, const char *filename, const int fileline );
+int _MSG_ReadBits( sizebuf_t *msg, int bits, const char *filename, const int fileline );
 void _MSG_Begin( int dest, const char *filename, int fileline );
 void _MSG_WriteString( sizebuf_t *sb, const char *s, const char *filename, int fileline );
 void _MSG_WriteFloat( sizebuf_t *sb, float f, const char *filename, int fileline );

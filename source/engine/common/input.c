@@ -18,6 +18,7 @@ bool in_mouseparmsvalid;
 int  in_mouse_buttons;
 int  in_mouse_oldbuttonstate;
 int  window_center_x, window_center_y;
+uint in_mouse_wheel;
 RECT window_rect;
 POINT cur_pos;
 
@@ -106,6 +107,7 @@ void IN_StartupMouse( void )
 	in_mouse_buttons = 3;
 	in_mouseparmsvalid = SystemParametersInfo( SPI_GETMOUSE, 0, in_originalmouseparms, 0 );
 	in_mouseinitialized = true;
+	in_mouse_wheel = RegisterWindowMessage( "MSWHEEL_ROLLMSG" );
 }
 
 /*
@@ -211,7 +213,7 @@ void IN_MouseEvent( int mstate )
 		{
 			Sys_QueEvent( -1, SE_KEY, K_MOUSE1 + i, true, 0, NULL );
 		}
-		if ( !(mstate & (1<<i)) && (in_mouse_oldbuttonstate & (1<<i)) )
+		if(!(mstate & (1<<i)) && (in_mouse_oldbuttonstate & (1<<i)) )
 		{
 			Sys_QueEvent( -1, SE_KEY, K_MOUSE1 + i, false, 0, NULL );
 		}
@@ -287,8 +289,15 @@ long IN_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 {
 	int	 temp = 0;
 
+	if( uMsg == in_mouse_wheel )
+		uMsg = WM_MOUSEWHEEL;
+
 	switch( uMsg )
 	{
+	case WM_KILLFOCUS:
+		if( scr_fullscreen && scr_fullscreen->integer )
+			ShowWindow( host.hWnd, SW_SHOWMINNOACTIVE );
+		break;
 	case WM_MOUSEWHEEL:
 		if((short)HIWORD(wParam) > 0)
 		{
@@ -305,10 +314,7 @@ long IN_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 		host.hWnd = hWnd;
 		scr_xpos = Cvar_Get("r_xpos", "3", CVAR_ARCHIVE, "window position by horizontal" );
 		scr_ypos = Cvar_Get("r_ypos", "22", CVAR_ARCHIVE, "window position by vertical" );
-		scr_fullscreen = Cvar_Get("fullscreen", "0", CVAR_ARCHIVE | CVAR_LATCH, "set in 1 to enable fullscreen mode" );
-		break;
-	case WM_DESTROY:
-		host.hWnd = NULL;
+		scr_fullscreen = Cvar_Get( "fullscreen", "0", CVAR_ARCHIVE|CVAR_LATCH, "set in 1 to enable fullscreen mode" );
 		break;
 	case WM_CLOSE:
 		Cbuf_ExecuteText( EXEC_APPEND, "quit" );

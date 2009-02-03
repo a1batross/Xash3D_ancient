@@ -16,6 +16,7 @@ cvar_t	*zombietime;			// seconds to sink messages after disconnect
 
 cvar_t	*rcon_password;			// password for remote server commands
 
+cvar_t	*sv_frametime;
 cvar_t	*allow_download;
 cvar_t	*sv_airaccelerate;
 cvar_t	*sv_maxvelocity;
@@ -149,8 +150,8 @@ void SV_CheckTimeouts( void )
 	droppoint = svs.realtime - 1000 * timeout->value;
 	zombiepoint = svs.realtime - 1000 * zombietime->value;
 
-	if( host_frametime->modified )
-		Cvar_SetValue( "host_frametime", bound( 0.01f, host_frametime->value, 0.1f ));
+	if( sv_frametime->modified )
+		Cvar_SetValue( "sv_frametime", bound( 0.01f, sv_frametime->value, 0.1f ));
 
 	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
 	{
@@ -196,35 +197,27 @@ void SV_PrepWorldFrame( void )
 SV_RunGameFrame
 =================
 */
-void SV_RunGameFrame( float time )
+void SV_RunGameFrame( void )
 {
-	float	save_frametime;
-	float	timeleft = 0.1;
-	int	iterations = 0;
-
-	if( sv_paused->integer && Host_MaxClients() == 1 )
-		return;
-	if( sv.state != ss_active ) return;
-
-	// save old frametime in case we need restore it after run physics
-	save_frametime = sv.frametime;
-	// don't allow really long or short frames
-	sv.frametime = bound( 0.01, (1.0f / sv_fps->integer ), 0.1f );
-
-	for( iterations = 0; iterations < 10; iterations++ )
-	{
-		timeleft -= sv.frametime;
-		SV_Physics();
-		if( timeleft < (1.0f/100.0f)) break;
-	}
-	sv.frametime = save_frametime;
+	// we always need to bump framenum, even if we
+	// don't run the world, otherwise the delta
+	// compression can get confused when a client
+	// has the "current" frame
 	sv.framenum++;
-	
-	// never get more than one tic behind
-	if( sv.time * 1000 < svs.realtime )
+	sv.frametime = (sv_frametime->value * 1000); // 10 fps as default
+	sv.time = sv.framenum * sv.frametime;
+
+	if( sv.state != ss_active ) return;
+	if( !sv_paused->integer || Host_MaxClients() > 1 )
 	{
-		Msg ("sv highclamp\n");
-		svs.realtime = sv.time * 1000;
+		SV_Physics();
+
+		// never get more than one tic behind
+		if( sv.time < svs.realtime )
+		{
+			Msg( "sv highclamp\n" );
+			svs.realtime = sv.time;
+		}
 	}
 }
 
@@ -236,12 +229,9 @@ SV_Frame
 */
 void SV_Frame( dword time )
 {
-	dword	g_time;
-
 	// if server is not active, do nothing
 	if( !svs.initialized ) return;
 	svs.realtime += time;
-	g_time = sv.time * 1000;
 
 	// keep the random time dependent
 	rand ();
@@ -250,13 +240,13 @@ void SV_Frame( dword time )
 	SV_CheckTimeouts ();
 
 	// move autonomous things around if enough time has passed
-	if( svs.realtime < g_time )
+	if( svs.realtime < sv.time )
 	{
 		// never let the time get too far off
-		if((g_time - svs.realtime) > 100 )
+		if( sv.time - svs.realtime > sv.frametime )
 		{
 			Msg( "sv lowclamp\n" );
-			svs.realtime = g_time - 100;
+			svs.realtime = sv.time - sv.frametime;
 		}
 		return;
 	}
@@ -265,7 +255,7 @@ void SV_Frame( dword time )
 	SV_CalcPings ();
 
 	// let everything in the world think and move
-	SV_RunGameFrame ( time * 0.001f );
+	SV_RunGameFrame ();
 
 	// send messages back to the clients that had packets read this frame
 	SV_SendClientMessages ();
@@ -376,6 +366,7 @@ void SV_Init( void )
 	Cvar_Get ("sv_aim", "1", 0, "enable auto-aiming" );
 
 	sv_fps = Cvar_Get( "sv_fps", "60", CVAR_ARCHIVE, "running physics engine at" );
+	sv_frametime = Cvar_Get( "host_frametime", "0.1", CVAR_SERVERINFO, "host frametime (only for test!)" );
 	sv_stepheight = Cvar_Get( "sv_stepheight", DEFAULT_STEPHEIGHT, CVAR_ARCHIVE|CVAR_LATCH, "how high you can step up" );
 	sv_playersonly = Cvar_Get( "playersonly", "0", 0, "freezes time, except for players" );
 	hostname = Cvar_Get ("sv_hostname", "unnamed", CVAR_SERVERINFO | CVAR_ARCHIVE, "host name" );

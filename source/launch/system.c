@@ -1258,7 +1258,7 @@ sys_event_t Sys_GetEvent( void )
 	// pump the message loop
 	while( PeekMessage( &msg, NULL, 0, 0, PM_NOREMOVE ))
 	{
-		if(!GetMessage( &msg, NULL, 0, 0))
+		if(!GetMessage( &msg, NULL, 0, 0 ))
 		{
 			Sys.error = true;
 			Sys_Exit();

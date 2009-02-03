@@ -331,6 +331,7 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 	}
 
 	MSG_WriteByte( msg, svc_frame );
+	MSG_WriteLong( msg, sv.frametime );
 	MSG_WriteLong( msg, sv.framenum );
 	MSG_WriteLong( msg, lastframe );		// what we are delta'ing from
 	MSG_WriteByte( msg, cl->surpressCount );	// rate dropped packets

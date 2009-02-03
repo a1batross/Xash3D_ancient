@@ -263,6 +263,8 @@ void ClientPutInServer( edict_t *pEntity )
 
 	// Reset interpolation during first frame
 	pPlayer->pev->effects |= EF_NOINTERP;
+
+	g_startSuit = FALSE;
 }
 
 //// HOST_SAY

@@ -66,8 +66,8 @@ typedef struct server_s
 
 	bool		loadgame;		// client begins should reuse existing entity
 
-	float		time;		// always sv.framenum * 50 msec
-	float		frametime;
+	int		time;		// always sv.framenum * 50 msec
+	int		frametime;
 	int		framenum;
 	int		net_framenum;
 
@@ -236,7 +236,6 @@ typedef struct
 {
 	bool		initialized;		// sv_init has completed
 	dword		realtime;			// always increasing, no clamping, etc
-	float		timeleft;			// frametime * game_frames
 
 	char		mapname[CS_SIZE];		// current mapname 
 	char		comment[CS_SIZE];		// map name, e.t.c. 

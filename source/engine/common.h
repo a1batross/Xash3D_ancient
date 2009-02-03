@@ -66,7 +66,7 @@ typedef enum
 	HOST_ERROR,	// host stopped by error
 	HOST_SLEEP,	// sleeped by different reason, e.g. minimize window
 	HOST_NOFOCUS,	// same as HOST_FRAME, but disable mouse
-
+	HOST_RESTART,	// during the changes video mode
 } host_state;
 
 typedef enum
@@ -117,7 +117,6 @@ void Host_Main ( void );
 void Host_Free ( void );
 void Host_SetServerState( int state );
 int Host_ServerState( void );
-int Host_FrameTime( void );
 int Host_MaxClients( void );
 void Host_AbortCurrentFrame( void );
 dword Host_EventLoop( void );

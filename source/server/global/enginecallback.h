@@ -81,8 +81,6 @@ inline void MESSAGE_BEGIN( int msg_dest, int msg_type, const float *pOrigin = NU
 #define WRITE_ANGLE		(*g_engfuncs.pfnWriteAngle)
 #define WRITE_COORD		(*g_engfuncs.pfnWriteCoord)
 #define WRITE_FLOAT		(*g_engfuncs.pfnWriteFloat)
-#define WRITE_LONG64	(*g_engfuncs.pfnWriteLong64)
-#define WRITE_DOUBLE	(*g_engfuncs.pfnWriteDouble)
 #define WRITE_STRING	(*g_engfuncs.pfnWriteString)
 #define WRITE_ENTITY	(*g_engfuncs.pfnWriteEntity)
 #define CVAR_REGISTER	(*g_engfuncs.pfnCVarRegister)

@@ -215,7 +215,7 @@ void CLaserSpot::Spawn( void )
 	SetObjectClass( ED_NORMAL );
 
 	// laser dot settings
-	pev->movetype = MOVETYPE_FLY;
+	pev->movetype = MOVETYPE_NOCLIP;
 	pev->solid = SOLID_NOT;
 	pev->scale = 1.0;
 	pev->rendermode = kRenderGlow;
@@ -251,7 +251,7 @@ void CLaserSpot::Update( CBasePlayer *m_pPlayer )
 		
 	UTIL_MakeVectors( m_pPlayer->pev->viewangles );
 	UTIL_TraceLine( m_pPlayer->GetGunPosition(), m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 8192, dont_ignore_monsters, ENT(m_pPlayer->pev), &tr );
-	UTIL_SetOrigin( this, tr.vecEndPos + tr.vecPlaneNormal * 10 );
+	UTIL_SetOrigin( this, tr.vecEndPos );
 
 	if( UTIL_PointContents( tr.vecEndPos ) & CONTENTS_SKY && VARS( tr.pHit )->solid == SOLID_BSP ) 
 	{                     

@@ -93,14 +93,14 @@ void V_SetupRefDef( void )
 		cl.time = cl.frame.servertime;
 		cl.refdef.lerpfrac = 1.0f;
 	}
-	else if( cl.time < cl.frame.servertime - Host_FrameTime())
+	else if( cl.time < cl.frame.servertime - cl.frame.frametime )
 	{
 		if( cl_showclamp->integer )
-			MsgDev( D_NOTE, "cl_lowclamp %i\n", cl.frame.servertime - Host_FrameTime() - cl.time );
-		cl.time = cl.frame.servertime - Host_FrameTime();
+			MsgDev( D_NOTE, "cl_lowclamp %i\n", cl.frame.servertime - cl.frame.frametime - cl.time );
+		cl.time = cl.frame.servertime - cl.frame.frametime;
 		cl.refdef.lerpfrac = 0.0f;
 	}
-	else cl.refdef.lerpfrac = 1.0 - (cl.frame.servertime - cl.time) * 0.01f;
+	else cl.refdef.lerpfrac = 1.0 - (cl.frame.servertime - cl.time) * 0.01;
 
 	// UNDONE: temporary place for detect waterlevel
 	CL_CheckWater( clent );
@@ -157,7 +157,7 @@ void V_SetupRefDef( void )
 
 		// smooth out stair climbing
 		delta = cls.realtime - cl.predicted_step_time;
-		if( delta < Host_FrameTime()) cl.refdef.vieworg[2] -= cl.predicted_step * (Host_FrameTime() - delta) * 0.01f;
+		if( delta < cl.frame.frametime ) cl.refdef.vieworg[2] -= cl.predicted_step * (cl.frame.frametime - delta) * 0.01f;
 	}
 }
 
