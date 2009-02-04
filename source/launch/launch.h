@@ -55,7 +55,6 @@ typedef struct system_s
 	bool			hooked_out;
 	bool			stuffcmdsrun;
 	byte			packet_received[MAX_MSGLEN];	// network data
-	uint			msg_time;			// GetMessage time
 	char			ModuleName[4096];		// exe.filename
 
 	HINSTANCE			hInstance;
@@ -159,15 +158,15 @@ void Sys_Print(const char *pMsg);
 void Sys_Msg( const char *pMsg, ... );
 void Sys_MsgDev( int level, const char *pMsg, ... );
 sys_event_t Sys_GetEvent( void );
-void Sys_QueEvent( dword time, ev_type_t type, int value, int value2, int length, void *ptr );
+void Sys_QueEvent( ev_type_t type, int value, int value2, int length, void *ptr );
 int Sys_GetThreadWork( void );
-void Sys_ThreadWorkerFunction (int threadnum);
-void Sys_ThreadSetDefault (void);
+void Sys_ThreadWorkerFunction( int threadnum );
+void Sys_ThreadSetDefault( void );
 void Sys_ThreadLock( void );
 void Sys_ThreadUnlock( void );
 int Sys_GetNumThreads( void );
-void Sys_RunThreadsOnIndividual(int workcnt, bool showpacifier, void(*func)(int));
-void Sys_RunThreadsOn (int workcnt, bool showpacifier, void(*func)(int));
+void Sys_RunThreadsOnIndividual( int workcnt, bool showpacifier, void(*func)(int));
+void Sys_RunThreadsOn( int workcnt, bool showpacifier, void(*func)(int));
 
 #define Msg Sys_Msg
 #define MsgDev Sys_MsgDev

@@ -327,7 +327,7 @@ void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, b
 
 	// draw the cursor
 	if(!showCursor ) return;
-	if((int)(cls.realtime >> 8) & 1) return; // off blink
+	if((int)(host.realtime * 4) & 1) return; // off blink
 
 	if( key_overstrikeMode ) cursorChar = 11;
 	else cursorChar = 95;
@@ -1033,21 +1033,20 @@ void Key_AddKeyUpCommands( int key, char *kb )
 		if ( kb[i] == ';' || !kb[i] )
 		{
 			*buttonPtr = '\0';
-			if ( button[0] == '+')
+			if( button[0] == '+' )
 			{
-				// button commands add keynum and time as parms so that multiple
-				// sources can be discriminated and subframe corrected
-				com.sprintf(cmd, "-%s %i %i\n", button+1, key, time);
+				// button commands add keynum as a parm
+				com.sprintf( cmd, "-%s %i\n", button+1, key );
 				Cbuf_AddText (cmd);
 				keyevent = true;
 			}
 			else
 			{
-				if (keyevent)
+				if( keyevent )
 				{
 					// down-only command
-					Cbuf_AddText (button);
-					Cbuf_AddText ("\n");
+					Cbuf_AddText( button );
+					Cbuf_AddText( "\n" );
 				}
 			}
 			buttonPtr = button;
@@ -1065,7 +1064,7 @@ CL_KeyEvent
 Called by the system for both key up and key down events
 ===================
 */
-void Key_Event( int key, bool down, uint time1 )
+void Key_Event( int key, bool down )
 {
 	char	*kb;
 	char	cmd[1024];
@@ -1160,14 +1159,13 @@ void Key_Event( int key, bool down, uint time1 )
 			buttonPtr = button;
 			for ( i = 0; ; i++ )
 			{
-				if ( kb[i] == ';' || !kb[i] )
+				if( kb[i] == ';' || !kb[i] )
 				{
 					*buttonPtr = '\0';
 					if( button[0] == '+' )
 					{
-						// button commands add keynum and time as parms so that multiple
-						// sources can be discriminated and subframe corrected
-						com.sprintf( cmd, "%s %i %i\n", button, key, time );
+						// button commands add keynum as a parm
+						com.sprintf( cmd, "%s %i\n", button, key );
 						Cbuf_AddText( cmd );
 					}
 					else
@@ -1229,7 +1227,7 @@ void Key_ClearStates( void )
 	anykeydown = false;
 	for ( i = 0; i < 256; i++ )
 	{
-		if ( keys[i].down ) Key_Event( i, false, 0 );
+		if( keys[i].down ) Key_Event( i, false );
 		keys[i].down = 0;
 		keys[i].repeats = 0;
 	}

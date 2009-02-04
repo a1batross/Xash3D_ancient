@@ -910,7 +910,8 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 	if( pparams->smoothing && pparams->onground && pparams->origin[2] - oldz > 0 )
 	{
 		float steptime;
-		
+
+		ALERT( at_console, "smooth stair clibling\n" );		
 		steptime = pparams->time - lasttime;
 		if( steptime < 0 ) steptime = 0;
 

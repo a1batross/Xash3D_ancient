@@ -95,12 +95,12 @@ typedef struct host_parm_s
 	dword		errorframe;	// to avoid each-frame host error
 	string		finalmsg;		// server shutdown final message
 
-	dword		framecount;	// global framecount
-	dword		frametime[2];	// second value is old frametime
-	int		events_head;
-	int		events_tail;
-	sys_event_t	events[MAX_EVENTS];
+	double		frametime;	// time between engine frames
+	double		realframetime;	// the real frametime, before slowmo and clamping are applied
+	double		realtime;
+	double		oldrealtime;
 
+	dword		framecount;	// global framecount
 	HWND		hWnd;		// main window
 	int		developer;	// show all developer's message
 	word		max_edicts;
@@ -119,7 +119,6 @@ void Host_SetServerState( int state );
 int Host_ServerState( void );
 int Host_MaxClients( void );
 void Host_AbortCurrentFrame( void );
-dword Host_EventLoop( void );
 void Host_Print(const char *txt);
 void Host_Error( const char *error, ... );
 void Sys_Error( const char *msg, ... );
@@ -136,12 +135,12 @@ CLIENT / SERVER SYSTEMS
 
 void CL_Init( void );
 void CL_Shutdown( void );
-void CL_Frame( dword time );
+void CL_Frame( void );
 void CL_PacketEvent( netadr_t from, sizebuf_t *msg );
 
 void SV_Init( void );
 void SV_Shutdown( bool reconnect );
-void SV_Frame( dword time );
+void SV_Frame( void );
 void SV_PacketEvent( netadr_t from, sizebuf_t *msg );
 
 // exports
@@ -353,7 +352,7 @@ extern byte *zonepool;
 void CL_GetEntitySoundSpatialization( int ent, vec3_t origin, vec3_t velocity );
 bool SV_GetComment( char *comment, int savenum );
 int CL_PMpointcontents( vec3_t point );
-void CL_MouseEvent( int mx, int my, int time );
+void CL_MouseEvent( int mx, int my );
 void CL_AddLoopingSounds( void );
 void CL_RegisterSounds( void );
 void CL_Drop( void );

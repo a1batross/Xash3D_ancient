@@ -196,7 +196,7 @@ void CL_ReadDemoMessage( void )
 	if( cl_paused->value ) return;
 
 	// don't need another message yet
-	if( cl.time <= cl.frame.servertime )
+	if( cl.time <= cl.mtime[0] )
 		return;
 
 	// init the message
@@ -231,7 +231,7 @@ void CL_ReadDemoMessage( void )
 		return;
 	}
 
-	cls.connect_time = cls.realtime;
+	cls.connect_time = host.realtime;
 	buf.readcount = 0;
 	CL_ParseServerMessage( &buf );
 }

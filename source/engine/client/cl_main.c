@@ -213,20 +213,20 @@ void CL_CheckForResend (void)
 	}
 
 	// resend if we haven't gotten a reply yet
-	if(cls.demoplayback || cls.state != ca_connecting)
+	if( cls.demoplayback || cls.state != ca_connecting )
 		return;
-	if(cls.realtime - cls.connect_time < 3000) return;
+	if(( host.realtime - cls.connect_time ) < 3.0f ) return;
 
-	if(!NET_StringToAdr (cls.servername, &adr))
+	if( !NET_StringToAdr( cls.servername, &adr ))
 	{
 		MsgDev(D_INFO, "CL_CheckForResend: bad server address\n");
 		cls.state = ca_disconnected;
 		return;
 	}
-	if (adr.port == 0) adr.port = BigShort (PORT_SERVER);
-	cls.connect_time = cls.realtime; // for retransmit requests
-	Msg ("Connecting to %s...\n", cls.servername);
-	Netchan_OutOfBandPrint (NS_CLIENT, adr, "getchallenge\n");
+	if( adr.port == 0 ) adr.port = BigShort( PORT_SERVER );
+	cls.connect_time = host.realtime; // for retransmit requests
+	Msg( "Connecting to %s...\n", cls.servername );
+	Netchan_OutOfBandPrint( NS_CLIENT, adr, "getchallenge\n" );
 }
 
 
@@ -486,12 +486,12 @@ void CL_Reconnect_f (void)
 		return;
 	}
 
-	if (*cls.servername)
+	if( *cls.servername )
 	{
-		if (cls.state >= ca_connected)
+		if( cls.state >= ca_connected )
 		{
 			CL_Disconnect();
-			cls.connect_time = cls.realtime - 1500;
+			cls.connect_time = host.realtime - 1.5;
 		}
 		else cls.connect_time = MAX_HEARTBEAT; // fire immediately
 
@@ -511,7 +511,7 @@ void CL_GetServerList_f( void )
 
 	// send a broadcast packet
 	MsgDev( D_INFO, "status pinging broadcast...\n" );
-	cls.pingtime = cls.realtime;
+	cls.pingtime = host.realtime;
 
 	adr.type = NA_BROADCAST;
 	adr.port = BigShort( PORT_SERVER );
@@ -652,8 +652,8 @@ bool CL_ParseServerStatus( char *adr, char *info )
 	server->playerstr = copystring( va("%i/%i", server->numplayers, server->maxplayers ));
 
 	// add the ping
-	server->ping = cls.realtime - cls.pingtime;
-	server->pingstring = copystring( va("%ims", server->ping ));
+	server->ping = host.realtime - cls.pingtime;
+	server->pingstring = copystring( va( "%ims", server->ping ));
 	server->statusPacket = true;
 
 	// print information
@@ -873,7 +873,7 @@ void CL_PacketEvent( netadr_t from, sizebuf_t *msg )
 
 	if( msg->cursize >= 4 && *(int *)msg->data == -1 )
 	{
-		cls.netchan.last_received = cls.realtime;
+		cls.netchan.last_received = Sys_DoubleTime ();
 		CL_ConnectionlessPacket( from, msg );
 		return;
 	}
@@ -898,7 +898,7 @@ void CL_PacketEvent( netadr_t from, sizebuf_t *msg )
 		// the header is different lengths for reliable and unreliable messages
 		int headerBytes = msg->readcount;
 
-		cls.netchan.last_received = cls.realtime;
+		cls.netchan.last_received = Sys_DoubleTime ();
 		CL_ParseServerMessage( msg );
 
 		// we don't know if it is ok to save a demo message until
@@ -918,7 +918,7 @@ void CL_ReadPackets( void )
 	// check timeout
 	if( cls.state >= ca_connected && !cls.demoplayback )
 	{
-		if( cls.realtime - cls.netchan.last_received > cl_timeout->integer * 1000 )
+		if( host.realtime - cls.netchan.last_received > cl_timeout->value )
 		{
 			cl.timeoutcount++;
 			if( cl.timeoutcount > 5 ) // timeoutcount saves debugger
@@ -1078,7 +1078,6 @@ CL_InitLocal
 void CL_InitLocal (void)
 {
 	cls.state = ca_disconnected;
-	cls.realtime = Sys_Milliseconds();
 
 	CL_InitInput();
 
@@ -1175,7 +1174,7 @@ CL_SendCommand
 
 ==================
 */
-void CL_SendCommand (void)
+void CL_SendCommand( void )
 {
 	// send intentions now
 	CL_SendCmd ();
@@ -1190,21 +1189,17 @@ CL_Frame
 
 ==================
 */
-void CL_Frame( dword time )
+void CL_Frame( void )
 {
 	if( host.type == HOST_DEDICATED )
 		return;
 
 	// decide the simulation time
 	cl.oldtime = cl.time;
-	cl.time += time;		// can be merged by cl.frame.servertime 
-	cls.realtime += time;
-	cls.frametime = time * 0.001;
-
-	if( cls.frametime > (1.0f / 5)) cls.frametime = (1.0f / 5);
+	cl.time += host.frametime;		// can be merged by sv.time 
 
 	// if in the debugger last frame, don't timeout
-	if( time > 5000 ) cls.netchan.last_received = Sys_Milliseconds();
+	if( host.frametime > 5.0f ) cls.netchan.last_received = Sys_DoubleTime ();
 
 	// fetch results from server
 	CL_ReadPackets();

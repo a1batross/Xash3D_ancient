@@ -43,8 +43,6 @@ typedef struct frame_s
 {
 	bool		valid;			// cleared if delta parsing was invalid
 	int		serverframe;
-	int		servertime;		// server time the message is valid for (in msec)
-	int		frametime;		// server frametime
 	int		deltaframe;
 	byte		areabits[MAX_MAP_AREA_BYTES];	// portalarea visibility bits
 	int		num_entities;
@@ -106,15 +104,16 @@ typedef struct
 	// and teleport direction changes
 	vec3_t		viewangles;
 
-	dword		time;		// this is the time value that the client
-	dword		oldtime;		// cl.oldtime
+	double		mtime[2];		// the timestamp of the last two messages
+	double		time;		// this is the time value that the client
+	double		oldtime;		// cl.oldtime
 					// is rendering at.  always <= cls.realtime
 	ref_params_t	refdef;		// shared refdef
 	edict_t		viewent;		// viewmodel
 	client_data_t	data;		// hud data
 
 	// misc 2d drawing stuff
-	int		centerPrintTime;
+	float		centerPrintTime;
 	int		centerPrintCharWidth;
 	int		centerPrintY;
 	char		centerPrint[1024];
@@ -235,8 +234,7 @@ typedef struct
 	};
 	
 	int		framecount;
-	dword		realtime;			// always increasing, no clamping, etc
-	float		frametime;		// seconds since last frame
+	double		frametime;		// seconds since last frame
 
 	// connection information
 	string		servername;		// name of server from original connect
@@ -266,7 +264,7 @@ typedef struct
 	file_t		*demofile;
 	serverinfo_t	serverlist[MAX_SERVERS];	// servers to join
 	int		numservers;
-	int		pingtime;			// servers timebase
+	float		pingtime;			// servers timebase
 
 	// cursor mouse pos for uimenu
 	int		mouse_x;
@@ -419,6 +417,7 @@ extern render_exp_t		*re;
 
 void CL_Init( void );
 void CL_InitServerCommands( void );
+void CL_SendCommand( void );
 void CL_Disconnect (void);
 void CL_Disconnect_f (void);
 void CL_GetChallengePacket (void);
@@ -654,13 +653,13 @@ void Field_BigDraw( field_t *edit, int x, int y, int width, bool showCursor );
 
 bool Key_IsDown( int keynum );
 char *Key_IsBind( int keynum );
-void Key_Event (int key, bool down, uint time);
-void Key_Init (void);
-void Key_WriteBindings (file_t *f);
-void Key_SetBinding (int keynum, char *binding);
-void Key_ClearStates (void);
-char *Key_KeynumToString (int keynum);
-int Key_StringToKeynum (char *str);
+void Key_Event( int key, bool down );
+void Key_Init( void );
+void Key_WriteBindings( file_t *f );
+void Key_SetBinding( int keynum, char *binding );
+void Key_ClearStates( void );
+char *Key_KeynumToString( int keynum );
+int Key_StringToKeynum( char *str );
 int Key_GetKey( char *binding );
 void Key_EnumCmds_f( void );
 

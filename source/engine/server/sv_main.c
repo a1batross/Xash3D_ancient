@@ -13,10 +13,7 @@ cvar_t	*sv_fps;
 cvar_t	*sv_enforcetime;
 cvar_t	*timeout;				// seconds without any message
 cvar_t	*zombietime;			// seconds to sink messages after disconnect
-
 cvar_t	*rcon_password;			// password for remote server commands
-
-cvar_t	*sv_frametime;
 cvar_t	*allow_download;
 cvar_t	*sv_airaccelerate;
 cvar_t	*sv_maxvelocity;
@@ -118,7 +115,7 @@ void SV_PacketEvent( netadr_t from, sizebuf_t *msg )
 			// this is a valid, sequenced packet, so process it
 			if( cl->state != cs_zombie )
 			{
-				cl->lastmessage = svs.realtime; // don't timeout
+				cl->lastmessage = host.realtime; // don't timeout
 				SV_ExecuteClientMessage( cl, msg );
 			}
 		}
@@ -147,16 +144,13 @@ void SV_CheckTimeouts( void )
 	float		droppoint;
 	float		zombiepoint;
 
-	droppoint = svs.realtime - 1000 * timeout->value;
-	zombiepoint = svs.realtime - 1000 * zombietime->value;
-
-	if( sv_frametime->modified )
-		Cvar_SetValue( "sv_frametime", bound( 0.01f, sv_frametime->value, 0.1f ));
+	droppoint = host.realtime - timeout->value;
+	zombiepoint = host.realtime - zombietime->value;
 
 	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
 	{
 		// message times may be wrong across a changelevel
-		if( cl->lastmessage > svs.realtime ) cl->lastmessage = svs.realtime;
+		if( cl->lastmessage > host.realtime ) cl->lastmessage = host.realtime;
 		if( cl->state == cs_zombie && cl->lastmessage < zombiepoint )
 		{
 			cl->state = cs_free; // can now be reused
@@ -203,22 +197,10 @@ void SV_RunGameFrame( void )
 	// don't run the world, otherwise the delta
 	// compression can get confused when a client
 	// has the "current" frame
-	sv.framenum++;
-	sv.frametime = (sv_frametime->value * 1000); // 10 fps as default
-	sv.time = sv.framenum * sv.frametime;
 
-	if( sv.state != ss_active ) return;
-	if( !sv_paused->integer || Host_MaxClients() > 1 )
-	{
+	if( sv.state == ss_active && sv.frametime )
 		SV_Physics();
-
-		// never get more than one tic behind
-		if( sv.time < svs.realtime )
-		{
-			Msg( "sv highclamp\n" );
-			svs.realtime = sv.time;
-		}
-	}
+	sv.framenum++;
 }
 
 /*
@@ -227,29 +209,31 @@ SV_Frame
 
 ==================
 */
-void SV_Frame( dword time )
+void SV_Frame( void )
 {
+	static double frametimetotal = 0, lastservertime = 0;
+
 	// if server is not active, do nothing
 	if( !svs.initialized ) return;
-	svs.realtime += time;
+
+	frametimetotal += host.frametime;
+
+	// cap server at sys_ticrate in networked games
+	if((Host_MaxClients() > 1) && ((host.realtime - lastservertime) < host_ticrate->value))
+		return;
+
+	// run the world state
+	if( !sv_paused->integer || (Host_MaxClients() > 1))
+		sv.frametime = svgame.globals->frametime = frametimetotal;
+	else sv.frametime = 0;
+	frametimetotal = 0;
+	lastservertime = host.realtime;
 
 	// keep the random time dependent
 	rand ();
 
 	// check timeouts
 	SV_CheckTimeouts ();
-
-	// move autonomous things around if enough time has passed
-	if( svs.realtime < sv.time )
-	{
-		// never let the time get too far off
-		if( sv.time - svs.realtime > sv.frametime )
-		{
-			Msg( "sv lowclamp\n" );
-			svs.realtime = sv.time - sv.frametime;
-		}
-		return;
-	}
 
 	// update ping based on the last known frame from all clients
 	SV_CalcPings ();
@@ -287,27 +271,28 @@ void Master_Heartbeat( void )
 		return;		// only dedicated servers send heartbeats
 
 	// pgm post3.19 change, cvar pointer not validated before dereferencing
-	if (!public_server || !public_server->value)
+	if( !public_server || !public_server->value )
 		return;	// a private dedicated game
 
 	// check for time wraparound
-	if (svs.last_heartbeat > svs.realtime) svs.last_heartbeat = svs.realtime;
+	if( svs.last_heartbeat > host.realtime)
+		svs.last_heartbeat = host.realtime;
 
-	if( svs.realtime - svs.last_heartbeat < HEARTBEAT_SECONDS * 1000 )
-		return;		// not time to send yet
+	if(( host.realtime - svs.last_heartbeat ) < HEARTBEAT_SECONDS )
+		return; // not time to send yet
 
-	svs.last_heartbeat = svs.realtime;
+	svs.last_heartbeat = host.realtime;
 
 	// send the same string that we would give for a status OOB command
 	string = SV_StatusString();
 
 	// send to group master
-	for (i = 0; i < MAX_MASTERS; i++)
+	for( i = 0; i < MAX_MASTERS; i++ )
 	{
-		if (master_adr[i].port)
+		if( master_adr[i].port )
 		{
-			Msg ("Sending heartbeat to %s\n", NET_AdrToString (master_adr[i]));
-			Netchan_OutOfBandPrint (NS_SERVER, master_adr[i], "heartbeat\n%s", string);
+			Msg( "Sending heartbeat to %s\n", NET_AdrToString( master_adr[i] ));
+			Netchan_OutOfBandPrint( NS_SERVER, master_adr[i], "heartbeat\n%s", string );
 		}
 	}
 }
@@ -366,7 +351,6 @@ void SV_Init( void )
 	Cvar_Get ("sv_aim", "1", 0, "enable auto-aiming" );
 
 	sv_fps = Cvar_Get( "sv_fps", "60", CVAR_ARCHIVE, "running physics engine at" );
-	sv_frametime = Cvar_Get( "host_frametime", "0.1", CVAR_SERVERINFO, "host frametime (only for test!)" );
 	sv_stepheight = Cvar_Get( "sv_stepheight", DEFAULT_STEPHEIGHT, CVAR_ARCHIVE|CVAR_LATCH, "how high you can step up" );
 	sv_playersonly = Cvar_Get( "playersonly", "0", 0, "freezes time, except for players" );
 	hostname = Cvar_Get ("sv_hostname", "unnamed", CVAR_SERVERINFO | CVAR_ARCHIVE, "host name" );

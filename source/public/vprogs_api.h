@@ -173,7 +173,7 @@ typedef struct vprogs_exp_s
 	// compiler functions
 	void ( *PrepareDAT )( const char *dir, const char *name );
 	void ( *CompileDAT )( void );
-	void ( *Update )( dword time );		// refreshing compile, exec some programs e.t.c
+	void ( *Update )( void );			// refreshing compile, exec some programs e.t.c
 
 	// edict operations
 	pr_edict_t *(*AllocEdict)( void );

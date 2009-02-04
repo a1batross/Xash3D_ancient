@@ -66,8 +66,8 @@ typedef struct server_s
 
 	bool		loadgame;		// client begins should reuse existing entity
 
-	int		time;		// always sv.framenum * 50 msec
-	int		frametime;
+	double		time;		// always sv.framenum * 50 msec
+	double		frametime;
 	int		framenum;
 	int		net_framenum;
 
@@ -82,9 +82,6 @@ typedef struct server_s
 	sizebuf_t		multicast;
 	byte		multicast_buf[MAX_MSGLEN];
 
-	int		lastchecktime;
-	int		lastcheck;
-
 	bool		autosaved;
 } server_t;
 
@@ -95,9 +92,9 @@ typedef struct
 	int  		areabits_size;
 	int  		num_entities;
 	int  		first_entity;		// into the circular sv_packet_entities[]
-	int		msg_sent;			// time the message was transmitted
+	double		msg_sent;			// time the message was transmitted
 	int		msg_size;			// used to rate drop packets
-	int		latency;			// message latency time
+	double		latency;			// message latency time
 	int		index;			// client edict index
 } client_frame_t;
 
@@ -113,10 +110,9 @@ typedef struct sv_client_s
 	int		ping;
 	int		rate;
 	int		surpressCount;		// number of messages rate supressed
-	int		sendtime;			// time before send next packet
 
 	edict_t		*edict;			// EDICT_NUM(clientnum+1)
-	char		name[32];			// extracted from userinfo, high bits masked
+	char		name[32];			// extracted from userinfo, color string allowed
 
 	// The datagram is written to by sound calls, prints, temp ents, etc.
 	// It can be harmlessly overflowed.
@@ -130,8 +126,8 @@ typedef struct sv_client_s
 	int		downloadcount;		// bytes sent
 
 	int		skipframes;		// client synchronyze with phys frame
-	int		lastmessage;		// sv.framenum when packet was last received
-	int		lastconnect;
+	double		lastmessage;		// sv.framenum when packet was last received
+	double		lastconnect;
 
 	int		challenge;		// challenge of this user, randomly generated
 
@@ -191,7 +187,7 @@ typedef struct
 {
 	netadr_t		adr;
 	int		challenge;
-	int		time;
+	double		time;
 	bool		connected;
 } challenge_t;
 
@@ -235,7 +231,6 @@ typedef struct
 typedef struct
 {
 	bool		initialized;		// sv_init has completed
-	dword		realtime;			// always increasing, no clamping, etc
 
 	char		mapname[CS_SIZE];		// current mapname 
 	char		comment[CS_SIZE];		// map name, e.t.c. 
@@ -247,7 +242,7 @@ typedef struct
 	entity_state_t	*client_entities;		// [num_client_entities]
 	entity_state_t	*baselines;		// [host.max_edicts]
 
-	int		last_heartbeat;
+	double		last_heartbeat;
 	challenge_t	challenges[MAX_CHALLENGES];	// to prevent invalid IPs from connecting
 } server_static_t;
 
@@ -279,7 +274,7 @@ extern	cvar_t		*sv_rollspeed;
 extern	cvar_t		*sv_maxspeed;
 extern	cvar_t		*sv_physics;
 extern	cvar_t		*host_frametime;
-
+extern	cvar_t		*host_ticrate;
 extern	sv_client_t	*sv_client;
 
 //===========================================================

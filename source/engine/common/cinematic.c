@@ -608,7 +608,7 @@ byte *frame_data = NULL;
 uint frame_width;
 uint frame_height;
 int frame_num;
-int start_time;
+float start_time;
 float frame_rate;
 int frame_bpp;
 int cin_state;
@@ -655,7 +655,7 @@ void CIN_RunCinematic( void )
 		destframe = 0;
 		cin_state = cin_playback;
 	}
-	else destframe = (int)(((cls.realtime - start_time) * 0.001) * frame_rate);
+	else destframe = (int)((host.realtime - start_time) * frame_rate);
 
 	if( destframe < 0 ) destframe = 0;
 	if( destframe > frame_num )
@@ -736,7 +736,7 @@ bool CIN_PlayCinematic( const char *filename )
 	cin_state = cin_firstframe;
 	frame_num = -1;
 	frame_rate = dpv_getframerate( stream );
-	start_time = cls.realtime;
+	start_time = host.realtime;
 	com.strncpy( cls.servername, filename, sizeof(cls.servername));
 	cls.state = ca_cinematic;
 				

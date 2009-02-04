@@ -56,7 +56,7 @@ typedef struct
 	float	finalFrac;	// 0.0 to 1.0 lines of console to display
 
 	int	vislines;		// in scanlines
-	dword	times[NUM_CON_TIMES]; // cls.realtime time the line was generated for transparent notify lines
+	float	times[NUM_CON_TIMES]; // host.realtime the line was generated for transparent notify lines
 	vec4_t	color;
 
 } console_t;
@@ -135,10 +135,10 @@ Con_ClearNotify
 */
 void Con_ClearNotify( void )
 {
-	int		i;
+	int	i;
 	
 	for( i = 0; i < NUM_CON_TIMES; i++ )
-		con.times[i] = 0;
+		con.times[i] = 0.0f;
 }
 
 						
@@ -272,7 +272,7 @@ void Con_Linefeed( bool skipnotify )
 	if (con.current >= 0)
 	{
 		if( skipnotify ) con.times[con.current % NUM_CON_TIMES] = 0;
-		else con.times[con.current % NUM_CON_TIMES] = cls.realtime;
+		else con.times[con.current % NUM_CON_TIMES] = host.realtime;
 	}
 
 	con.x = 0;
@@ -359,7 +359,7 @@ void Con_Print( const char *txt )
 			if ( prev < 0 ) prev = NUM_CON_TIMES - 1;
 			con.times[prev] = 0;
 		}
-		else con.times[con.current % NUM_CON_TIMES] = cls.realtime;
+		else con.times[con.current % NUM_CON_TIMES] = host.realtime;
 	}
 }
 
@@ -403,7 +403,7 @@ void Con_DrawNotify( void )
 	int		x, v = 0;
 	short		*text;
 	int		i;
-	int		time;
+	float		time;
 	int		skip;
 	int		currentColor;
 
@@ -415,8 +415,8 @@ void Con_DrawNotify( void )
 		if( i < 0 ) continue;
 		time = con.times[i % NUM_CON_TIMES];
 		if( time == 0 ) continue;
-		time = cls.realtime - time;
-		if( time > con_notifytime->value * 1000 ) continue;
+		time = host.realtime - time;
+		if( time > con_notifytime->value ) continue;
 		text = con.text + (i % con.totallines) * con.linewidth;
 
 		for( x = 0; x < con.linewidth; x++)
@@ -606,14 +606,14 @@ void Con_RunConsole( void )
 
 	if (con.finalFrac < con.displayFrac)
 	{
-		con.displayFrac -= con_speed->value * cls.frametime;
-		if (con.finalFrac > con.displayFrac)
+		con.displayFrac -= con_speed->value * host.realframetime;
+		if( con.finalFrac > con.displayFrac )
 			con.displayFrac = con.finalFrac;
 	}
 	else if( con.finalFrac > con.displayFrac )
 	{
-		con.displayFrac += con_speed->value * cls.frametime;
-		if (con.finalFrac < con.displayFrac)
+		con.displayFrac += con_speed->value * host.realframetime;
+		if( con.finalFrac < con.displayFrac )
 			con.displayFrac = con.finalFrac;
 	}
 }

@@ -49,9 +49,9 @@ void SV_GetChallenge( netadr_t from )
 	if( i == MAX_CHALLENGES )
 	{
 		// this is the first time this client has asked for a challenge
-		svs.challenges[oldest].challenge = ((rand()<<16) ^ rand()) ^ svs.realtime;
+		svs.challenges[oldest].challenge = ((rand()<<16) ^ rand()) ^ (int)host.realtime;
 		svs.challenges[oldest].adr = from;
-		svs.challenges[oldest].time = svs.realtime;
+		svs.challenges[oldest].time = host.realtime;
 		svs.challenges[oldest].connected = false;
 		i = oldest;
 	}
@@ -96,7 +96,7 @@ void SV_DirectConnect( netadr_t from )
 		if( cl->state == cs_free ) continue;
 		if( NET_CompareBaseAdr(from, cl->netchan.remote_address) && (cl->netchan.qport == qport || from.port == cl->netchan.remote_address.port))
 		{
-			if(!NET_IsLocalAddress( from ) && (svs.realtime - cl->lastconnect) < (sv_reconnect_limit->integer * 1000))
+			if(!NET_IsLocalAddress( from ) && (host.realtime - cl->lastconnect) < sv_reconnect_limit->value )
 			{
 				MsgDev( D_INFO, "%s:reconnect rejected : too soon\n", NET_AdrToString( from ));
 				return;
@@ -199,8 +199,8 @@ gotnewcl:
 	MSG_Init( &newcl->datagram, newcl->datagram_buf, sizeof(newcl->datagram_buf));
 	
 	newcl->state = cs_connected;
-	newcl->lastmessage = svs.realtime;
-	newcl->lastconnect = svs.realtime;
+	newcl->lastmessage = host.realtime;
+	newcl->lastconnect = host.realtime;
 
 	// if this was the first client on the server, or the last client
 	// the server can hold, send a heartbeat to the master.
@@ -226,7 +226,7 @@ bool SV_ClientConnect( edict_t *ent, char *userinfo )
 	ent->v.flags = 0;
 
 	MsgDev(D_NOTE, "SV_ClientConnect()\n");
-	svgame.globals->time = (float)(sv.time * 0.001f);
+	svgame.globals->time = sv.time;
 	result = svgame.dllFuncs.pfnClientConnect( ent, userinfo );
 
 	return result;
@@ -251,7 +251,7 @@ void SV_DropClient( sv_client_t *drop )
 	MSG_WriteByte( &drop->netchan.message, svc_disconnect );
 
 	// let the game known about client state
-	svgame.globals->time = (float)(sv.time * 0.001f);
+	svgame.globals->time = sv.time;
 	svgame.dllFuncs.pfnClientDisconnect( drop->edict );
 
 	SV_FreeEdict( drop->edict );
@@ -496,7 +496,7 @@ void SV_PutClientInServer( edict_t *ent )
 	index = NUM_FOR_EDICT( ent ) - 1;
 	client = ent->pvServerData->client;
 
-	svgame.globals->time = (float)(sv.time * 0.001f);
+	svgame.globals->time = sv.time;
 	ent->pvServerData->s.ed_type = ED_CLIENT; // init edict type
 	ent->free = false;
 
@@ -830,8 +830,8 @@ static void SV_UpdateUserinfo_f( sv_client_t *cl )
 	SV_UserinfoChanged( cl );
 
 	// call prog code to allow overrides
-	svgame.globals->time = (float)(sv.time * 0.001f);
-	svgame.globals->frametime = (float)(sv.frametime * 0.001f);
+	svgame.globals->time = sv.time;
+	svgame.globals->frametime = sv.frametime;
 	svgame.dllFuncs.pfnClientUserInfoChanged( cl->edict, cl->userinfo );
 }
 
@@ -872,8 +872,8 @@ void SV_ExecuteClientCommand( sv_client_t *cl, char *s )
 	if( !u->name && sv.state == ss_active )
 	{
 		// custom client commands
-		svgame.globals->time = (float)(sv.time * 0.001f);
-		svgame.globals->frametime = (float)(sv.frametime * 0.001f);
+		svgame.globals->time = sv.time;
+		svgame.globals->frametime = sv.frametime;
 		svgame.dllFuncs.pfnClientCommand( cl->edict );
 	}
 }
@@ -1058,7 +1058,7 @@ void SV_DropPunchAngle( sv_client_t *cl )
 
 	len = VectorNormalizeLength( cl->edict->v.punchangle );
 
-	len -= 10 * (float)(sv.frametime * 0.001f);
+	len -= 10 * sv.frametime;
 	if( len < 0 ) len = 0;
 	VectorScale( cl->edict->v.punchangle, len, cl->edict->v.punchangle );
 }
@@ -1092,7 +1092,7 @@ void SV_UserFriction( sv_client_t *cl )
 
 	// apply friction
 	control = speed < 100 ? 100 : speed;
-	newspeed = speed - (float)(sv.frametime * 0.001f) * control * friction;
+	newspeed = speed - sv.frametime * control * friction;
 
 	if( newspeed < 0 ) newspeed = 0;
 	else newspeed /= speed;
@@ -1140,7 +1140,7 @@ void SV_Accelerate( sv_client_t *cl )
 	currentspeed = DotProduct( cl->edict->v.velocity, wishdir );
 	addspeed = wishspeed - currentspeed;
 	if( addspeed <= 0 ) return;
-	accelspeed = sv_accelerate->value * (float)(sv.frametime * 0.001f) * wishspeed;
+	accelspeed = sv_accelerate->value * sv.frametime * wishspeed;
 	if( accelspeed > addspeed ) accelspeed = addspeed;
 	for( i = 0; i < 3; i++ ) cl->edict->v.velocity[i] += accelspeed * wishdir[i];
 }
@@ -1156,7 +1156,7 @@ void SV_AirAccelerate( sv_client_t *cl, vec3_t wishveloc )
 	currentspeed = DotProduct( cl->edict->v.velocity, wishveloc );
 	addspeed = wishspd - currentspeed;
 	if( addspeed <= 0 ) return;
-	accelspeed = sv_accelerate->value * wishspeed * (float)(sv.frametime * 0.001f);
+	accelspeed = sv_accelerate->value * wishspeed * sv.frametime;
 	if( accelspeed > addspeed ) accelspeed = addspeed;
 
 	for( i = 0; i < 3; i++ ) cl->edict->v.velocity[i] += accelspeed * wishveloc[i];
@@ -1198,7 +1198,7 @@ void SV_WaterMove( sv_client_t *cl, usercmd_t *cmd )
 	speed = VectorLength( cl->edict->v.velocity );
 	if( speed )
 	{
-		newspeed = speed - (float)(sv.frametime * 0.001f) * speed * sv_friction->value;
+		newspeed = speed - sv.frametime * speed * sv_friction->value;
 		if( newspeed < 0 ) newspeed = 0;
 		temp = newspeed / speed;
 		VectorScale( cl->edict->v.velocity, temp, cl->edict->v.velocity );
@@ -1212,7 +1212,7 @@ void SV_WaterMove( sv_client_t *cl, usercmd_t *cmd )
 	if( addspeed <= 0 ) return;
 
 	VectorNormalize( wishvel );
-	accelspeed = sv_accelerate->value * wishspeed * (float)(sv.frametime * 0.001f);
+	accelspeed = sv_accelerate->value * wishspeed * sv.frametime;
 	if( accelspeed > addspeed ) accelspeed = addspeed;
 
 	for( i = 0; i < 3; i++ ) cl->edict->v.velocity[i] += accelspeed * wishvel[i];
@@ -1220,7 +1220,7 @@ void SV_WaterMove( sv_client_t *cl, usercmd_t *cmd )
 
 void SV_WaterJump( sv_client_t *cl )
 {
-	if((float)(sv.time * 0.001f) > cl->edict->v.teleport_time || !cl->edict->v.waterlevel )
+	if( sv.time > cl->edict->v.teleport_time || !cl->edict->v.waterlevel )
 	{
 		cl->edict->v.flags &= ~FL_WATERJUMP;
 		cl->edict->v.teleport_time = 0;
@@ -1248,8 +1248,8 @@ void SV_AirMove( sv_client_t *cl, usercmd_t *cmd )
 	fmove = cmd->forwardmove;
 	smove = cmd->sidemove;
 
-	// hack to not let you back into teleporter
-	if( (float)(sv.time * 0.001f) < cl->edict->v.teleport_time && fmove < 0 )
+	// HACKHACK to not let you back into teleporter
+	if( sv.time < cl->edict->v.teleport_time && fmove < 0 )
 		fmove = 0;
 
 	for( i = 0; i < 3; i++ ) wishvel[i] = forward[i] * fmove + right[i] * smove;
@@ -1366,10 +1366,10 @@ static void SV_UserMove( sv_client_t *cl, sizebuf_t *msg )
 {
 	usercmd_t	nullcmd;
 	usercmd_t	oldest, oldcmd, newcmd;
-	int	latency, net_drop;
-	int	checksumIndex, lastframe;
+	int	checksumIndex, lastframe, net_drop;
 	int	checksum, calculatedChecksum;
-	float	frametime[2];
+	double	frametime[2];
+	double	latency;
 
 	checksumIndex = msg->readcount;
 	checksum = MSG_ReadByte( msg );
@@ -1379,7 +1379,7 @@ static void SV_UserMove( sv_client_t *cl, sizebuf_t *msg )
 		cl->lastframe = lastframe;
 		if (cl->lastframe > 0)
 		{
-			latency = svs.realtime - cl->frames[cl->lastframe & UPDATE_MASK].msg_sent;
+			latency = host.realtime - cl->frames[cl->lastframe & UPDATE_MASK].msg_sent;
 			cl->frames[cl->lastframe & UPDATE_MASK].latency = latency;
 		}
 	}
@@ -1406,9 +1406,9 @@ static void SV_UserMove( sv_client_t *cl, sizebuf_t *msg )
 	if( !sv_paused->value )
 	{
 		frametime[0] = sv.frametime;
-		frametime[1] = (svgame.globals->frametime * 1000);
-		sv.frametime = newcmd.msec;
-		svgame.globals->frametime = (float)(sv.frametime * 0.001f);
+		frametime[1] = svgame.globals->frametime;
+		sv.frametime = (newcmd.msec * 0.001);
+		svgame.globals->frametime = sv.frametime;
 		
 		net_drop = cl->netchan.dropped;
 		if( net_drop < 20 )

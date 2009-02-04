@@ -228,6 +228,53 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 }
 
 /*
+===============
+CL_LerpPoint
+
+Determines the fraction between the last two messages that the objects
+should be put at.
+===============
+*/
+static float CL_LerpPoint( void )
+{
+	float	f, frac;
+
+	f = cl.mtime[0] - cl.mtime[1];
+
+	if( !f || clgame.maxClients == 1 )
+	{
+		cl.time = cl.mtime[0];		
+		return 1;
+	}
+
+	if( f > 0.1 )
+	{	
+		// dropped packet, or start of demo
+		cl.mtime[1] = cl.mtime[0] - 0.1;
+		f = 0.1;
+	}
+
+	frac = (cl.time - cl.mtime[1]) / f;
+	if( frac < 0 )
+	{
+		if( frac < -0.01 )
+		{
+			cl.time = cl.mtime[1];
+		}
+		frac = 0;
+	}
+	else if( frac > 1 )
+	{
+		if( frac > 1.01 )
+		{
+			cl.time = cl.mtime[0];
+		}
+		frac = 1;
+	}
+	return frac;
+}
+
+/*
 ================
 CL_ParseFrame
 ================
@@ -238,12 +285,11 @@ void CL_ParseFrame( sizebuf_t *msg )
 	edict_t		*clent;
 	frame_t		*old;
           
-	memset( &cl.frame, 0, sizeof(cl.frame));
-	cl.frame.frametime = MSG_ReadLong( msg );
+	memset( &cl.frame, 0, sizeof( cl.frame ));
+	cl.mtime[1] = cl.mtime[0];
+	cl.mtime[0] = MSG_ReadFloat( msg );
 	cl.frame.serverframe = MSG_ReadLong( msg );
 	cl.frame.deltaframe = MSG_ReadLong( msg );
-
-	cl.frame.servertime = cl.frame.serverframe * cl.frame.frametime;
 	cl.surpressCount = MSG_ReadByte( msg );
 
 	// If the frame is delta compressed from data that we
@@ -277,10 +323,7 @@ void CL_ParseFrame( sizebuf_t *msg )
 		else cl.frame.valid = true;	// valid delta parse
 	}
 
-	// clamp time 
-	if( cl.time > cl.frame.servertime ) cl.time = cl.frame.servertime;
-	else if( cl.time < cl.frame.servertime - cl.frame.frametime )
-		cl.time = cl.frame.servertime - cl.frame.frametime;
+	cl.refdef.lerpfrac = CL_LerpPoint ();
 
 	// read areabits
 	len = MSG_ReadByte( msg );

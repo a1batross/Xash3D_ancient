@@ -77,6 +77,10 @@ Beta 13.12.08
 46. RB_RenderShader()			OK
 47. fixup slowly rendering
 48. building uimenu.dll
+49. implement new timers			OK
+50. fixup network packets rate
+51. fixup stair climbing
+52. implement new user move system
 
 
 Список доступных рендереров:  	Что в них интересного

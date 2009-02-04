@@ -11,9 +11,9 @@
 #define UI_MAXEDICTS	(1 << 10) // should be enough for a menu
 
 bool ui_active = false;
-static dword credits_start_time;
-static dword credits_fade_time;
-static dword credits_show_time;
+static double credits_start_time;
+static double credits_fade_time;
+static double credits_show_time;
 static const char **credits;
 static char *creditsIndex[2048];
 static char *creditsBuffer;
@@ -89,17 +89,17 @@ void UI_VM_Begin( void )
 	PRVM_SetProg(PRVM_MENUPROG);
 
 	// set time
-	if( prog ) *prog->time = cls.realtime * 0.001f;
+	if( prog ) *prog->time = host.realtime;
 }
 
 void UI_KeyEvent( int key )
 {
-	const char *ascii = Key_KeynumToString(key);
+	const char *ascii = Key_KeynumToString( key );
 	UI_VM_Begin();
 
 	// setup args
 	PRVM_G_FLOAT(OFS_PARM0) = key;
-	prog->globals.ui->time = cls.realtime * 0.001f;
+	prog->globals.ui->time = host.realtime;
 	PRVM_G_INT(OFS_PARM1) = PRVM_SetEngineString(ascii);
 	PRVM_ExecuteProgram (prog->globals.ui->m_keydown, "m_keydown");
 }
@@ -110,7 +110,7 @@ void UI_Draw( void )
 		return;
 
 	UI_VM_Begin();
-	prog->globals.ui->time = cls.realtime * 0.001f;
+	prog->globals.ui->time = host.realtime;
 	PRVM_ExecuteProgram (prog->globals.ui->m_draw, "m_draw");
 	UI_DrawCredits(); // display game credits
 }
@@ -123,7 +123,7 @@ void UI_DrawCredits( void )
 
 	if( !credits_active ) return;
 
-	y = SCREEN_HEIGHT - (( cls.realtime - credits_start_time ) / 40.0f );
+	y = SCREEN_HEIGHT - (( host.realtime - credits_start_time ) * 40.0f );
 
 	// draw the credits
 	for ( i = 0; i < credit_numlines && credits[i]; i++, y += 20 )
@@ -134,8 +134,8 @@ void UI_DrawCredits( void )
 
 		if((y < (SCREEN_HEIGHT - BIGCHAR_HEIGHT) / 2) && i == credit_numlines - 1)
 		{
-			if(!credits_fade_time) credits_fade_time = cls.realtime;
-			color = CL_FadeColor( credits_fade_time * 0.001f, credits_show_time * 0.001f );
+			if( !credits_fade_time ) credits_fade_time = host.realtime;
+			color = CL_FadeColor( credits_fade_time, credits_show_time );
 			if( color ) SCR_DrawStringExt( x, (SCREEN_HEIGHT - BIGCHAR_HEIGHT)/2, 16, 16, credits[i], color, true );
 		}
 		else SCR_DrawStringExt( x, y, 16, 16, credits[i], white_color, false );
@@ -154,8 +154,8 @@ void UI_ShowMenu( void )
 	UI_VM_Begin();
 
 	ui_active = true;
-	prog->globals.ui->time = cls.realtime * 0.001f;
-	PRVM_ExecuteProgram (prog->globals.ui->m_show, "m_show");
+	prog->globals.ui->time = host.realtime;
+	PRVM_ExecuteProgram( prog->globals.ui->m_show, "m_show" );
 }
 
 void UI_HideMenu( void )
@@ -166,8 +166,8 @@ void UI_HideMenu( void )
 	
 	UI_VM_Begin();
 	ui_active = false;
-	prog->globals.ui->time = cls.realtime * 0.001f;
-	PRVM_ExecuteProgram (prog->globals.ui->m_hide, "m_hide");
+	prog->globals.ui->time = host.realtime;
+	PRVM_ExecuteProgram( prog->globals.ui->m_hide, "m_hide" );
 }
 
 void UI_Shutdown( void )
@@ -606,12 +606,12 @@ void runcredits( void )
 */
 void PF_runcredits( void )
 {
-	if(!VM_ValidateArgs( "runcredits", 0 ))
+	if( !VM_ValidateArgs( "runcredits", 0 ))
 		return;
 
 	// run credits
-	credits_start_time = cls.realtime;
-	credits_show_time = bound( 100, com.strlen(credits[credit_numlines - 1]) * 1000, 12000 );
+	credits_start_time = host.realtime;
+	credits_show_time = bound( 0.1, com.strlen(credits[credit_numlines - 1]), 12.0 );
 	credits_fade_time = 0;
 	credits_active = true;
 }
@@ -802,8 +802,8 @@ void UI_Init( void )
 	prog->error_cmd = VM_Error;
 	prog->filecrc = PROG_CRC_UIMENU;
 
-	PRVM_LoadProgs( va("%s/uimenu.dat", GI->vprogs_dir ));
-	*prog->time = cls.realtime * 0.001f;
+	PRVM_LoadProgs( va( "%s/uimenu.dat", GI->vprogs_dir ));
+	*prog->time = host.realtime;
 
 	PRVM_ExecuteProgram (prog->globals.ui->m_init, "m_init");
 	PRVM_End;

@@ -300,9 +300,9 @@ void PRVM_CompileProgs( void )
 	PR_FinishCompilation();          
 }
 
-void PRVM_Frame( dword time )
+void PRVM_Frame( void )
 {
-	if(setjmp(pr_int_error))
+	if( setjmp( pr_int_error ))
 		return;
 
 	switch( prvm_state )
@@ -336,7 +336,7 @@ void PRVM_Compile_f( void )
 	}
 	if( prvm_state != comp_inactive )
 	{
-		Msg("Compile already in progress, please wait\n" );
+		Msg( "Compile already in progress, please wait\n" );
 		return;
 	}
 	// engine already known about vprogs and vsource directory

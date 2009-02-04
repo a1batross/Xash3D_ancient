@@ -46,7 +46,7 @@ void CL_RunLightStyles( void )
 	int		i, ofs;
 	clightstyle_t	*ls;
 	
-	ofs = cl.time / 100;
+	ofs = (int)(cl.time * 10);
 	if( ofs == lastofs ) return;
 	lastofs = ofs;
 
@@ -181,8 +181,8 @@ void pfnAddDLight( const float *org, const float *rgb, float radius, float decay
 
 	VectorCopy( org, dl->origin );
 	VectorCopy( rgb, dl->color );
-	dl->die = cl.time + (time * 1000);
-	dl->decay = (decay * 1000);
+	dl->die = cl.time + time;
+	dl->decay = decay;
 	dl->radius = radius;
 }
 
@@ -207,7 +207,7 @@ void CL_RunDLights( void )
 			return;
 		}
 
-		dl->radius -= cls.frametime * dl->decay;
+		dl->radius -= host.frametime * dl->decay;
 		if( dl->radius < 0 ) dl->radius = 0;
 	}
 }
@@ -238,13 +238,13 @@ DECALS MANAGEMENT
 ==============================================================
 */
 #define MAX_DECAL_MARKS		2048
-#define DECAL_FADETIME		(30 * 1000)	// 30 seconds
-#define DECAL_STAYTIME		(120 * 1000)	// 120 seconds
+#define DECAL_FADETIME		30.0f	// 30 seconds
+#define DECAL_STAYTIME		120.0f	// 120 seconds
 
 typedef struct cdecal_s
 {
 	struct cdecal_s	*prev, *next;
-	int		time;
+	float		time;
 	rgba_t		modulate;
 	bool		alphaFade;
 	shader_t		shader;
@@ -359,8 +359,8 @@ CL_AddDecals
 void CL_AddDecals( void )
 {
 	cdecal_t	*decal, *next;
-	int	i, time, fadeTime;
-	float	c;
+	float	c, time, fadeTime;
+	int	i;
 
 	fadeTime = DECAL_FADETIME;	// 30 seconds
 
@@ -382,7 +382,7 @@ void CL_AddDecals( void )
 
 			if( time < fadeTime )
 			{
-				c = 255 - ((float)time / fadeTime);
+				c = 255 - (time / fadeTime);
 
 				for( i = 0; i < decal->numVerts; i++ )
 				{
@@ -398,7 +398,7 @@ void CL_AddDecals( void )
 
 		if( time < fadeTime )
 		{
-			c = (float)time / fadeTime;
+			c = time / fadeTime;
 
 			if( decal->alphaFade )
 			{
@@ -469,7 +469,7 @@ struct cparticle_s
 	cparticle_t	*next;
 	shader_t		shader;
 
-	int		time;
+	float		time;
 	int		flags;
 
 	vec3_t		oldorigin;
@@ -570,7 +570,7 @@ void CL_AddParticles( void )
 		// grab next now, so if the particle is freed we still have it
 		next = p->next;
 
-		time = (cl.time - p->time) * 0.001;
+		time = cl.time - p->time;
 		time2 = time * time;
 
 		alpha = p->alpha + p->alphaVelocity * time;
@@ -666,8 +666,8 @@ void CL_AddParticles( void )
 			if( trace.fraction != 0.0 && trace.fraction != 1.0 )
 			{
 				// reflect velocity
-				time = cl.time - (cls.frametime + cls.frametime * trace.fraction) * 1000;
-				time = (time - p->time) * 0.001;
+				time = cl.time - (host.frametime + host.frametime * trace.fraction);
+				time = time - p->time;
 
 				velocity[0] = p->velocity[0];
 				velocity[1] = p->velocity[1];

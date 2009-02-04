@@ -195,7 +195,7 @@ keep console cmds, network messages, mouse reletives and key buttons
 */
 typedef enum
 {
-	SE_NONE = 0,	// ev.time is still valid
+	SE_NONE = 0,	// end of events queue
 	SE_KEY,		// ev.value[0] is a key code, ev.value[1] is the down flag
 	SE_CHAR,		// ev.value[0] is an ascii char
 	SE_MOUSE,		// ev.value[0] and ev.value[1] are reletive signed x / y moves
@@ -205,7 +205,6 @@ typedef enum
 
 typedef struct
 {
-	dword	time;
 	ev_type_t	type;
 	int	value[2];
 	void	*data;
@@ -403,7 +402,7 @@ typedef struct stdilib_api_s
 	void (*exit)( void );				// normal silent termination
 	void (*sleep)( int msec );				// sleep for some msec
 	char *(*clipboard)( void );				// get clipboard data
-	void (*queevent)( dword time, ev_type_t type, int value, int value2, int length, void *ptr );
+	void (*queevent)( ev_type_t type, int value, int value2, int length, void *ptr );
 	sys_event_t (*getevent)( void );			// get system events
 
 	// crclib.c funcs

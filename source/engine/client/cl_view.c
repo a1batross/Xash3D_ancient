@@ -66,7 +66,7 @@ update refdef values each frame
 void V_SetupRefDef( void )
 {
 	int		i;
-	float		lerp, backlerp;
+	float		backlerp;
 	frame_t		*oldframe;
 	entity_state_t	*ps, *ops;
 	edict_t		*clent;
@@ -84,23 +84,6 @@ void V_SetupRefDef( void )
 	// see if the player entity was teleported this frame
 	if( ps->ed_flags & ESF_NO_PREDICTION )
 		ops = ps;	// don't interpolate
-	lerp = cl.refdef.lerpfrac;
-
-	if( cl.time > cl.frame.servertime )
-	{
-		if( cl_showclamp->integer )
-			MsgDev( D_NOTE, "cl_highclamp %i\n", cl.time - cl.frame.servertime );
-		cl.time = cl.frame.servertime;
-		cl.refdef.lerpfrac = 1.0f;
-	}
-	else if( cl.time < cl.frame.servertime - cl.frame.frametime )
-	{
-		if( cl_showclamp->integer )
-			MsgDev( D_NOTE, "cl_lowclamp %i\n", cl.frame.servertime - cl.frame.frametime - cl.time );
-		cl.time = cl.frame.servertime - cl.frame.frametime;
-		cl.refdef.lerpfrac = 0.0f;
-	}
-	else cl.refdef.lerpfrac = 1.0 - (cl.frame.servertime - cl.time) * 0.01;
 
 	// UNDONE: temporary place for detect waterlevel
 	CL_CheckWater( clent );
@@ -131,15 +114,15 @@ void V_SetupRefDef( void )
 	cl.refdef.num_entities = clgame.numEntities;
 	cl.refdef.max_entities = clgame.maxEntities;
 	cl.refdef.max_clients = clgame.maxClients;
-	cl.refdef.oldtime = (cl.oldtime * 0.001f);
-	cl.refdef.time = (cl.time * 0.001f); // cl.time for right lerping
-	cl.refdef.frametime = cls.frametime;
+	cl.refdef.oldtime = cl.oldtime;
+	cl.refdef.time = cl.time;		// cl.time for right lerping
+	cl.refdef.frametime = host.frametime;
 	cl.refdef.demoplayback = cls.demoplayback;
 	cl.refdef.demorecord = cls.demorecording;
 	cl.refdef.paused = cl_paused->integer;
 	cl.refdef.predicting = cl_predict->integer;
 	cl.refdef.waterlevel = clent->v.waterlevel;		
-	cl.refdef.smoothing = 0; // get rid of this
+	cl.refdef.smoothing = 1; // get rid of this
 	cl.refdef.nextView = 0;
 
 	// calculate the origin
@@ -148,7 +131,7 @@ void V_SetupRefDef( void )
 		// use predicted values
 		int delta;
 
-		backlerp = 1.0 - lerp;
+		backlerp = 1.0 - cl.refdef.lerpfrac;
 		for( i = 0; i < 3; i++ )
 		{
 			cl.refdef.vieworg[i] = cl.predicted_origin[i] + ops->viewoffset[i] 
@@ -156,8 +139,8 @@ void V_SetupRefDef( void )
 		}
 
 		// smooth out stair climbing
-		delta = cls.realtime - cl.predicted_step_time;
-		if( delta < cl.frame.frametime ) cl.refdef.vieworg[2] -= cl.predicted_step * (cl.frame.frametime - delta) * 0.01f;
+		delta = host.realtime - cl.predicted_step_time;
+		if( delta < host.frametime ) cl.refdef.vieworg[2] -= cl.predicted_step * (host.frametime - delta) * 0.01f;
 	}
 }
 

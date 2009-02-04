@@ -114,7 +114,7 @@ float *CL_FadeColor( float starttime, float endtime )
 	float		time, fade_time;
 
 	if( starttime == 0 ) return NULL;
-	time = (cls.realtime * 0.001f) - starttime;
+	time = host.realtime - starttime;
 	if( time >= endtime ) return NULL;
 
 	// fade time is 1/4 of endtime
@@ -144,11 +144,11 @@ void CL_DrawHUD( int state )
 	if( state == CL_ACTIVE && cl_paused->integer )
 		state = CL_PAUSED;
 
-	cls.dllFuncs.pfnRedraw( cl.time * 0.001f, state );
+	cls.dllFuncs.pfnRedraw( cl.time, state );
 
 	if( state == CL_ACTIVE )
 	{
-		cls.dllFuncs.pfnFrame( (double)cl.time * 0.001f );
+		cls.dllFuncs.pfnFrame( cl.time );
 	}
 }
 
@@ -312,7 +312,7 @@ void CL_FreeEdict( edict_t *pEdict )
 	pEdict->pvClientData = NULL;
 
 	// mark edict as freed
-	pEdict->freetime = cl.time * 0.001f;
+	pEdict->freetime = cl.time;
 	pEdict->serialnumber = 0;
 	pEdict->free = true;
 }
@@ -327,7 +327,7 @@ edict_t *CL_AllocEdict( void )
 		pEdict = EDICT_NUM( i );
 		// the first couple seconds of client time can involve a lot of
 		// freeing and allocating, so relax the replacement policy
-		if( pEdict->free && ( pEdict->freetime < 2.0f || ((cl.time * 0.001f) - pEdict->freetime) > 0.5f ))
+		if( pEdict->free && ( pEdict->freetime < 2.0f || (cl.time - pEdict->freetime) > 0.5f ))
 		{
 			CL_InitEdict( pEdict );
 			return pEdict;
@@ -687,7 +687,7 @@ void pfnDrawCenterPrint( void )
 	float	*color;
 
 	if( !cl.centerPrintTime ) return;
-	color = CL_FadeColor( cl.centerPrintTime * 0.001f, scr_centertime->value );
+	color = CL_FadeColor( cl.centerPrintTime, scr_centertime->value );
 	if( !color ) 
 	{
 		cl.centerPrintTime = 0;
@@ -735,7 +735,7 @@ void pfnCenterPrint( const char *text, int y, int charWidth )
 	char	*s;
 
 	com.strncpy( cl.centerPrint, text, sizeof( cl.centerPrint ));
-	cl.centerPrintTime = cls.realtime;
+	cl.centerPrintTime = host.realtime;
 	cl.centerPrintY = y;
 	cl.centerPrintCharWidth = charWidth;
 
@@ -829,7 +829,7 @@ pfnGetClientTime
 */
 float pfnGetClientTime( void )
 {
-	return cl.time * 0.001f;
+	return cl.time;
 }
 
 /*

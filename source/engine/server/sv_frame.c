@@ -331,7 +331,7 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 	}
 
 	MSG_WriteByte( msg, svc_frame );
-	MSG_WriteLong( msg, sv.frametime );
+	MSG_WriteFloat( msg, sv.time );		// send a servertime
 	MSG_WriteLong( msg, sv.framenum );
 	MSG_WriteLong( msg, lastframe );		// what we are delta'ing from
 	MSG_WriteByte( msg, cl->surpressCount );	// rate dropped packets
@@ -382,7 +382,7 @@ void SV_BuildClientFrame( sv_client_t *cl )
 
 	// this is the frame we are creating
 	frame = &cl->frames[sv.framenum & UPDATE_MASK];
-	frame->msg_sent = svs.realtime; // save it for ping calc later
+	frame->msg_sent = host.realtime; // save it for ping calc later
 
 	// clear everything in this snapshot
 	frame_ents.num_entities = c_fullsend = 0;
@@ -421,7 +421,7 @@ void SV_BuildClientFrame( sv_client_t *cl )
 
 		// this should never hit, map should always be restarted first in SV_Frame
 		if( svs.next_client_entities >= 0x7FFFFFFE )
-			Host_Error( "svs.next_client_entities wrapped (sv.time integer limit is out)\n" );
+			Host_Error( "svs.next_client_entities wrapped (sv.time limit is out)\n" );
 		frame->num_entities++;
 	}
 }
@@ -472,7 +472,7 @@ bool SV_SendClientDatagram( sv_client_t *cl )
 	// record the size for rate estimation
 	// record information about the message
 	cl->frames[cl->netchan.outgoing_sequence & UPDATE_MASK].msg_size = msg.cursize;
-	cl->frames[cl->netchan.outgoing_sequence & UPDATE_MASK].msg_sent = svs.realtime;
+	cl->frames[cl->netchan.outgoing_sequence & UPDATE_MASK].msg_sent = host.realtime;
 
 	return true;
 }
@@ -541,7 +541,7 @@ void SV_SendClientMessages( void )
 		else
 		{
 			// just update reliable if needed
-			if( cl->netchan.message.cursize || svs.realtime - cl->netchan.last_sent > 1000 )
+			if( cl->netchan.message.cursize || host.realtime - cl->netchan.last_sent > 1.0 )
 				Netchan_Transmit( &cl->netchan, 0, NULL );
 		}
 	}

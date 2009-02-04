@@ -396,7 +396,7 @@ void Sys_CreateInstance( void )
 	// export
 	launch_t	CreateHost, CreateBaserc;
 
-	srand(time(NULL));			// init random generator
+	srand( time( NULL ));		// init random generator
 	Sys_LoadLibrary( Sys.linked_dll );	// loading library if need
 
 	// pre initializations
@@ -677,7 +677,10 @@ double Sys_DoubleTime( void )
 	{
 		// warn if it's significant
 		if( newtime - Msec.oldtime < -0.01 )
-			MsgDev( D_ERROR, "Sys_DoubleTime: time stepped backwards (went from %f to %f, difference %f)\n", Msec.oldtime, newtime, newtime - Msec.oldtime );
+		{
+			MsgDev( D_ERROR, "Sys_DoubleTime: time stepped backwards\n" );
+			MsgDev( D_NOTE, "(went from %f to %f, difference %f)\n", Msec.oldtime, newtime, newtime - Msec.oldtime );
+		}
 	}
 	else Msec.curtime += newtime - Msec.oldtime;
 	Msec.oldtime = newtime;
@@ -761,9 +764,9 @@ Sys_Sleep
 freeze application for some time
 ================
 */
-void Sys_Sleep( int msec)
+void Sys_Sleep( int msec )
 {
-	msec = bound(1, msec, 1000 );
+	msec = bound( 1, msec, 1000 );
 	Sleep( msec );
 }
 
@@ -1207,7 +1210,7 @@ Ptr should either be null, or point to a block of data that can
 be freed by the game later.
 ================
 */
-void Sys_QueEvent( dword time, ev_type_t type, int value, int value2, int length, void *ptr )
+void Sys_QueEvent( ev_type_t type, int value, int value2, int length, void *ptr )
 {
 	sys_event_t	*ev;
 
@@ -1221,11 +1224,6 @@ void Sys_QueEvent( dword time, ev_type_t type, int value, int value2, int length
 	}
 	event_head++;
 
-	// presets
-	if( time == 0 ) time = Sys_Milliseconds();
-	else if( time == -1 ) time = Sys.msg_time;
-
-	ev->time = time;
 	ev->type = type;
 	ev->value[0] = value;
 	ev->value[1] = value2;
@@ -1263,7 +1261,6 @@ sys_event_t Sys_GetEvent( void )
 			Sys.error = true;
 			Sys_Exit();
 		}
-		Sys.msg_time = msg.time;
 		TranslateMessage(&msg );
       		DispatchMessage( &msg );
 	}
@@ -1278,7 +1275,7 @@ sys_event_t Sys_GetEvent( void )
 		len = com_strlen( s ) + 1;
 		b = Malloc( len );
 		com_strncpy( b, s, len - 1 );
-		Sys_QueEvent( 0, SE_CONSOLE, 0, 0, len, b );
+		Sys_QueEvent( SE_CONSOLE, 0, 0, len, b );
 	}
 
 	// check for network packets
@@ -1297,7 +1294,7 @@ sys_event_t Sys_GetEvent( void )
 			buf = Malloc( len );
 			*buf = adr;
 			Mem_Copy( buf + 1, &netmsg.data[netmsg.readcount], netmsg.cursize - netmsg.readcount );
-			Sys_QueEvent( 0, SE_PACKET, 0, 0, len, buf );
+			Sys_QueEvent( SE_PACKET, 0, 0, len, buf );
 		}
 	}
 	else if( !msg_init )
@@ -1315,7 +1312,6 @@ sys_event_t Sys_GetEvent( void )
 
 	// create an empty event to return
 	Mem_Set( &ev, 0, sizeof( ev ));
-	ev.time = timeGetTime();
 
 	return ev;
 }

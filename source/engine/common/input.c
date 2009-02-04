@@ -191,7 +191,7 @@ void IN_MouseMove( void )
 	my = current_pos.y - window_center_y;
 
 	if( !mx && !my ) return;
-	Sys_QueEvent( 0, SE_MOUSE, mx, my, 0, NULL );
+	Sys_QueEvent( SE_MOUSE, mx, my, 0, NULL );
 }
 
 /*
@@ -211,11 +211,11 @@ void IN_MouseEvent( int mstate )
 	{
 		if((mstate & (1<<i)) && !(in_mouse_oldbuttonstate & (1<<i)) )
 		{
-			Sys_QueEvent( -1, SE_KEY, K_MOUSE1 + i, true, 0, NULL );
+			Sys_QueEvent( SE_KEY, K_MOUSE1 + i, true, 0, NULL );
 		}
 		if(!(mstate & (1<<i)) && (in_mouse_oldbuttonstate & (1<<i)) )
 		{
-			Sys_QueEvent( -1, SE_KEY, K_MOUSE1 + i, false, 0, NULL );
+			Sys_QueEvent( SE_KEY, K_MOUSE1 + i, false, 0, NULL );
 		}
 	}	
 	in_mouse_oldbuttonstate = mstate;
@@ -299,15 +299,15 @@ long IN_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 			ShowWindow( host.hWnd, SW_SHOWMINNOACTIVE );
 		break;
 	case WM_MOUSEWHEEL:
-		if((short)HIWORD(wParam) > 0)
+		if((short)HIWORD(wParam) > 0 )
 		{
-			Sys_QueEvent( -1, SE_KEY, K_MWHEELUP, true, 0, NULL );
-			Sys_QueEvent( -1, SE_KEY, K_MWHEELUP, false, 0, NULL );
+			Sys_QueEvent( SE_KEY, K_MWHEELUP, true, 0, NULL );
+			Sys_QueEvent( SE_KEY, K_MWHEELUP, false, 0, NULL );
 		}
 		else
 		{
-			Sys_QueEvent( -1, SE_KEY, K_MWHEELDOWN, true, 0, NULL );
-			Sys_QueEvent( -1, SE_KEY, K_MWHEELDOWN, false, 0, NULL );
+			Sys_QueEvent( SE_KEY, K_MWHEELDOWN, true, 0, NULL );
+			Sys_QueEvent( SE_KEY, K_MWHEELDOWN, false, 0, NULL );
 		}
 		break;
 	case WM_CREATE:
@@ -382,14 +382,14 @@ long IN_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 		}
 		// intentional fallthrough
 	case WM_KEYDOWN:
-		Sys_QueEvent( -1, SE_KEY, Host_MapKey( lParam ), true, 0, NULL );
+		Sys_QueEvent( SE_KEY, Host_MapKey( lParam ), true, 0, NULL );
 		break;
 	case WM_SYSKEYUP:
 	case WM_KEYUP:
-		Sys_QueEvent( -1, SE_KEY, Host_MapKey( lParam ), false, 0, NULL );
+		Sys_QueEvent( SE_KEY, Host_MapKey( lParam ), false, 0, NULL );
 		break;
 	case WM_CHAR:
-		Sys_QueEvent( -1, SE_CHAR, wParam, 0, 0, NULL );
+		Sys_QueEvent( SE_CHAR, wParam, 0, 0, NULL );
 		break;
 	}
 	return DefWindowProc( hWnd, uMsg, wParam, lParam );

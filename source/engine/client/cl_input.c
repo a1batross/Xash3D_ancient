@@ -9,8 +9,6 @@
 typedef struct
 {
 	int	down[2];		// key nums holding it down
-	uint	downtime;		// msec timestamp
-	uint	msec;		// msec down this frame
 	int	state;
 } kbutton_t;
 
@@ -28,7 +26,6 @@ cvar_t	*cl_mouseaccel;
 cvar_t	*cl_sensitivity;
 cvar_t	*ui_sensitivity;
 cvar_t	*m_filter;		// mouse filtering
-uint	frame_msec;
 
 kbutton_t	in_left, in_right, in_forward, in_back;
 kbutton_t	in_lookup, in_lookdown, in_moveleft, in_moveright;
@@ -47,7 +44,7 @@ kbutton_t	in_up, in_down, in_reload;
 CL_MouseEvent
 =================
 */
-void CL_MouseEvent( int mx, int my, int time )
+void CL_MouseEvent( int mx, int my )
 {
 	cl.mouse_x[cl.mouse_step] += mx;
 	cl.mouse_y[cl.mouse_step] += my;
@@ -78,7 +75,7 @@ void CL_MouseMove( usercmd_t *cmd )
 	cl.mouse_x[cl.mouse_step] = 0;
 	cl.mouse_y[cl.mouse_step] = 0;
 
-	rate = com.sqrt( mx * mx + my * my ) / (float)frame_msec;
+	rate = com.sqrt( mx * mx + my * my ) / 0.5f;
 
 	if( cls.key_dest != key_menu )
 	{
@@ -152,12 +149,6 @@ void IN_KeyDown( kbutton_t *b )
 	}
 	
 	if( b->state & 1 ) return; // still down
-
-	// save timestamp
-	c = Cmd_Argv( 2 );
-	b->downtime = com.atoi(c);
-
-	if( !b->downtime ) b->downtime = host.frametime[0] - 100;	// 100 msec auto-repeat
 	b->state |= 1 + 2;	// down + impulse down
 }
 
@@ -165,7 +156,6 @@ void IN_KeyUp( kbutton_t *b )
 {
 	int	k;
 	char	*c;
-	uint	uptime;
 
 	c = Cmd_Argv( 1 );
 	if( c[0] ) k = com.atoi( c );
@@ -185,12 +175,6 @@ void IN_KeyUp( kbutton_t *b )
 
 	if(!(b->state & 1)) return; // still up (this should not happen)
 
-	// save timestamp
-	c = Cmd_Argv( 2 );
-	uptime = com.atoi(c);
-	if( uptime ) b->msec += uptime - b->downtime;
-	else b->msec += 10;
-          
 	b->state &= ~1; // now up
 	b->state |= 4; // impulse up
 }
@@ -199,38 +183,44 @@ void IN_KeyUp( kbutton_t *b )
 ===============
 CL_KeyState
 
-Returns the fraction of the frame that the key was down
+Returns 0.25 if a key was pressed and released during the frame,
+0.5 if it was pressed and held
+0 if held then released, and
+1.0 if held for the entire time
 ===============
 */
 float CL_KeyState( kbutton_t *key )
 {
 	float	val;
-	int	msec;
+	bool	impulsedown, impulseup, down;
+
+	impulsedown = key->state & 2;
+	impulseup = key->state & 4;
+	down = key->state & 1;
+	val = 0.0f;
+
+	if( impulsedown && !impulseup )
+	{
+		if( down ) val = 0.5;	// pressed and held this frame
+		else val = 0;		// I_Error ();
+	}
+	if( impulseup && !impulsedown )
+	{
+		if( down ) val = 0;		// I_Error ();
+		else val = 0;		// released this frame
+	}
+	if( !impulsedown && !impulseup )
+	{
+		if( down ) val = 1.0;	// held the entire frame
+		else val = 0;		// up the entire frame
+	}
+	if( impulsedown && impulseup )
+	{
+		if( down ) val = 0.75;	// released and re-pressed this frame
+		else val = 0.25;		// pressed and released this frame
+	}
 
 	key->state &= 1;		// clear impulses
-
-	msec = key->msec;
-	key->msec = 0;
-
-	if( key->state )
-	{	
-		// still down
-		msec += host.frametime[0] - key->downtime;
-		key->downtime = host.frametime[0];
-	}
-
-#if 0
-	if (msec)
-	{
-		Msg ("%i \n", msec);
-	}
-#endif
-
-	val = (float)msec / frame_msec;
-	if (val < 0)
-		val = 0;
-	if (val > 1)
-		val = 1;
 
 	return val;
 }
@@ -287,8 +277,8 @@ void CL_AdjustAngles( void )
 	if( cl.frame.ps.health <= 0 ) return;
 	
 	if( in_speed.state & 1 )
-		speed = cls.frametime * cl_anglespeedkey->value;
-	else speed = cls.frametime;
+		speed = host.frametime * cl_anglespeedkey->value;
+	else speed = host.frametime;
 
 	if(!(in_strafe.state & 1))
 	{
@@ -422,7 +412,8 @@ void CL_FinishMove( usercmd_t *cmd )
 	int	i, ms;
 
 	// send milliseconds of time to apply the move
-	ms = cls.frametime * 1000;
+	// FIXME: return sv.time to let server calculate ping
+	ms = host.frametime * 1000;
 	if( ms > 250 ) ms = 100; // time was unreasonable
 	cmd->msec = ms;
 
@@ -462,16 +453,10 @@ usercmd_t CL_CreateCmd( void )
 {
 	usercmd_t		cmd;
 
-	frame_msec = host.frametime[0] - host.frametime[1];
-	if( frame_msec < 1 ) frame_msec = 1;
-	if( frame_msec > 200 ) frame_msec = 200;
-
 	// get basic movement from mouse
 	CL_BaseMove( &cmd );
 	CL_MouseMove( &cmd );
 	CL_FinishMove( &cmd );
-
-	host.frametime[1] = host.frametime[0];
 
 	return cmd;
 }
@@ -510,7 +495,7 @@ void CL_SendCmd( void )
 
 	if( cls.state == ca_connected )
 	{
-		if (cls.netchan.message.cursize || cls.realtime - cls.netchan.last_sent > 1000 )
+		if( cls.netchan.message.cursize || host.realtime - cls.netchan.last_sent > 1.0 )
 			Netchan_Transmit( &cls.netchan, 0, NULL );	
 		return;
 	}

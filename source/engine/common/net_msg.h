@@ -247,8 +247,8 @@ typedef struct netchan_s
 	int			dropped;			// between last packet and previous
 	bool			compress;			// enable huffman compression
 
-	int			last_received;		// for timeouts
-	int			last_sent;		// for retransmits
+	double			last_received;		// for timeouts
+	double			last_sent;		// for retransmits
 
 	netadr_t			remote_address;
 	int			qport;			// qport value to write when transmitting

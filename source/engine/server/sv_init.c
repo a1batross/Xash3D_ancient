@@ -166,7 +166,6 @@ void SV_SpawnServer( const char *server, const char *savename )
 
 	// wipe the entire per-level structure
 	Mem_Set( &sv, 0, sizeof( sv ));
-	svs.realtime = 0;
 
 	// save name for levels that don't set message
 	com.strncpy( sv.configstrings[CS_NAME], server, CS_SIZE );
@@ -182,7 +181,7 @@ void SV_SpawnServer( const char *server, const char *savename )
 		svs.clients[i].lastframe = -1;
 	}
 
-	sv.time = 1000;
+	sv.time = 1.0;
 	
 	com.strncpy( sv.name, server, MAX_STRING );
 	FS_FileBase(server, sv.configstrings[CS_NAME]);
@@ -221,7 +220,7 @@ void SV_SpawnServer( const char *server, const char *savename )
 	// run two frames to allow everything to settle
 	for( i = 0; i < 2; i++ )
 	{
-		sv.frametime = 100;
+		sv.frametime = svgame.globals->frametime = host.frametime = 0.1;
 		SV_Physics();
 	}
 
