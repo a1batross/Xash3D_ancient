@@ -1758,7 +1758,7 @@ void R_StudioSetupRender( rmodel_t *model, bool weaponmodel )
 		m_pCurrentEntity->weaponmeshes = Mem_Alloc( r_temppool, sizeof( mstudiomesh_t ) * m_pRenderModel->nummeshes );
 		m_pCurrentEntity->weaponpoints = Mem_Alloc( r_temppool, sizeof( vec3_t ) * m_pRenderModel->numverts );
 		m_pCurrentEntity->weaponnormals = Mem_Alloc( r_temppool, sizeof( vec3_t ) * m_pRenderModel->numnorms );
-		m_pCurrentEntity->weaponchrome = Mem_Alloc( r_temppool, sizeof( vec2_t ) * m_pRenderModel->numverts );
+		m_pCurrentEntity->weaponchrome = Mem_Alloc( r_temppool, sizeof( vec3_t ) * m_pRenderModel->numverts );
 
 		// set intermediate vertex buffers
 		m_pxmesh = m_pCurrentEntity->weaponmeshes;
@@ -1771,7 +1771,7 @@ void R_StudioSetupRender( rmodel_t *model, bool weaponmodel )
 		m_pCurrentEntity->meshes = Mem_Alloc( r_temppool, sizeof( mstudiomesh_t ) * m_pRenderModel->nummeshes );
 		m_pCurrentEntity->points = Mem_Alloc( r_temppool, sizeof( vec3_t ) * m_pRenderModel->numverts );
 		m_pCurrentEntity->normals = Mem_Alloc( r_temppool, sizeof( vec3_t ) * m_pRenderModel->numnorms );
-		m_pCurrentEntity->chrome = Mem_Alloc( r_temppool, sizeof( vec2_t ) * m_pRenderModel->numverts );
+		m_pCurrentEntity->chrome = Mem_Alloc( r_temppool, sizeof( vec3_t ) * m_pRenderModel->numverts );
 
 		// set intermediate vertex buffers
 		m_pxmesh = m_pCurrentEntity->meshes;

@@ -61,6 +61,7 @@ enum svc_ops_e
 	svc_setangle,		// [short short short] set the view angle to this absolute value
 	svc_print,		// [byte] id [string] null terminated string
 	svc_crosshairangle,		// [short][short][short]
+	svc_time,			// [float] sv.time
 };
 
 // client to server
@@ -232,12 +233,11 @@ NET
 
 ==============================================================
 */
-bool NET_GetLoopPacket( netsrc_t sock, netadr_t *from, sizebuf_t *msg );
-void NET_SendPacket( netsrc_t sock, int length, void *data, netadr_t to );
-bool NET_StringToAdr( const char *s, netadr_t *a );
-bool NET_CompareBaseAdr( netadr_t a, netadr_t b );
-bool NET_CompareAdr( netadr_t a, netadr_t b );
-bool NET_IsLocalAddress( netadr_t adr );
+
+#define OLD_AVG			0.99			// total = oldtotal * OLD_AVG + new * (1 - OLD_AVG)
+#define MAX_LATENT			32
+#define MAX_BACKUP			200
+
 
 typedef struct netchan_s
 {
@@ -250,8 +250,20 @@ typedef struct netchan_s
 	double			last_received;		// for timeouts
 	double			last_sent;		// for retransmits
 
+	// the statistics are cleared at each client begin, because
+	// the server connecting process gives a bogus picture of the data
+	float			frame_latency;		// rolling average
+	float			frame_rate;
+
+	int			drop_count;		// dropped packets, cleared each level
+	int			good_count;		// cleared each level
+
 	netadr_t			remote_address;
 	int			qport;			// qport value to write when transmitting
+
+	// bandwidth estimator
+	double		cleartime;			// if realtime > nc->cleartime, free to go
+	double		rate;				// seconds / byte
 
 	// sequencing variables
 	int			incoming_sequence;
@@ -272,7 +284,15 @@ typedef struct netchan_s
 	int			reliable_length;
 	byte			reliable_buf[MAX_MSGLEN-16];		// unacked reliable message
 
+	// time and size data to calculate bandwidth
+	int			outgoing_size[MAX_LATENT];
+	double			outgoing_time[MAX_LATENT];
+
 } netchan_t;
+
+extern netadr_t		net_from;
+extern sizebuf_t		net_message;
+extern byte		net_message_buffer[MAX_MSGLEN];
 
 #define PROTOCOL_VERSION	36
 #define PORT_MASTER		27900

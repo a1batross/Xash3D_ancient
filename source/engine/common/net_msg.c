@@ -111,7 +111,7 @@ static net_field_t ent_fields[] =
 // probably usercmd_t never reached 32 field integer limit (in theory of course)
 static net_field_t cmd_fields[] =
 {
-{ CM_FIELD(msec),		NET_BYTE,  true	},
+{ CM_FIELD(time),		NET_FLOAT, true	},
 { CM_FIELD(angles[0]),	NET_ANGLE, false	},
 { CM_FIELD(angles[1]),	NET_ANGLE, false	},
 { CM_FIELD(angles[2]),	NET_ANGLE, false	},

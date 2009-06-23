@@ -47,7 +47,6 @@ typedef struct ref_params_s
 	edict_t		*onground;	// pointer to onground entity
 	byte		*areabits;	// come from server, contains visible areas list
 	int		waterlevel;
-	int		smoothing;
 
 	// input
 	vec3_t		velocity;

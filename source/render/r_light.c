@@ -370,14 +370,14 @@ void R_LightDir( const vec3_t origin, vec3_t lightDir )
 R_LightingAmbient
 =================
 */
-void R_LightingAmbient( void )
+void R_LightingAmbient( bool invLight )
 {
 	dlight_t		*dl;
 	vec3_t		end, dir;
 	float		add, dist, radius;
 	int		i, l;
 	vec4_t		ambientLight;
-	rgba_t		color;
+	rgba_t		color, one;
 
 	// Set to full bright if no light data
 	if( r_refdef.onlyClientDraw || !r_worldModel->lightData || !m_pCurrentEntity )
@@ -394,6 +394,7 @@ void R_LightingAmbient( void )
 
 	// Get lighting at this point
 	VectorSet( end, m_pCurrentEntity->origin[0], m_pCurrentEntity->origin[1], m_pCurrentEntity->origin[2] - WORLD_SIZE );
+	Vector4Set( one, 255, 255, 255, 255 );
 	VectorSet( r_pointColor, 1, 1, 1 );
 
 	R_RecursiveLightPoint( r_worldModel->nodes, m_pCurrentEntity->origin, end );
@@ -434,7 +435,9 @@ void R_LightingAmbient( void )
 
 	for( i = 0; i < ref.numVertex; i++ )
 	{
-		Vector4Copy( ambientLight, ref.colorArray[i] );
+		if( invLight )
+			Vector4Subtract( one, ambientLight, ref.colorArray[i] );
+		else Vector4Copy( ambientLight, ref.colorArray[i] );
 	}
 }
 
@@ -892,7 +895,9 @@ R_UpdateSurfaceLightmap
 void R_UpdateSurfaceLightmap( surface_t *surf )
 {
 	if( surf->dlightFrame == r_frameCount )
+	{
 		GL_BindTexture( r_dlightTexture );
+	}
 	else
 	{
 		GL_BindTexture( r_lightmapTextures[surf->lmNum] );

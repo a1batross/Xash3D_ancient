@@ -52,7 +52,7 @@ BOOL NewLevel = FALSE;
 float MsgDelay;
 user_messages_t gmsg;
 void LinkUserMessages( void );
-char text[128];
+char text[256];
 extern int g_teamplay;
 
 //messages affect only player
@@ -1141,22 +1141,24 @@ const char *GetGameDescription( void )
           char	szbuffer[128];
 	char	*pfile = (char *)LOAD_FILE( "gameinfo.txt", NULL );
 
+	memset( text, 0, sizeof( text ));
+
 	if( pfile )
 	{
 		while( pfile )
 		{
 			if( !stricmp( token, "title" )) 
 			{                                          
-				pfile = COM_ParseFile(pfile, token);
+				pfile = COM_ParseFile( pfile, token );
 				sprintf( szbuffer, "%s ", token );
-				strcat( text, szbuffer );
+				strncat( text, szbuffer, sizeof( text ));
 			}
 			else if( !stricmp( token, "version" )) 
 			{                                          
-				pfile = COM_ParseFile(pfile, token);
-				strcat( text, token );
+				pfile = COM_ParseFile( pfile, token );
+				strncat( text, token, sizeof( text ));
 			}
-			pfile = COM_ParseFile(pfile, token);
+			pfile = COM_ParseFile( pfile, token );
 		}
 		COM_FreeFile( pfile );
 		return text;
@@ -1221,8 +1223,8 @@ void LinkUserMessages( void )
 	gmsg.CamData = REG_USER_MSG("CamData", -1);
 	gmsg.Fsound = REG_USER_MSG("Fsound", -1);
 	gmsg.RainData = REG_USER_MSG("RainData", 16);
-	gmsg.AddScreen = REG_USER_MSG( "AddScreen", 1);
-	gmsg.AddPortal = REG_USER_MSG( "AddPortal", 1);
+	gmsg.AddScreen = REG_USER_MSG( "AddScreen", 2);
+	gmsg.AddPortal = REG_USER_MSG( "AddPortal", 2);
 	gmsg.HudText = REG_USER_MSG( "HudText", -1 );
 	gmsg.ShowGameTitle = REG_USER_MSG("GameTitle", 1);
 	gmsg.TempEntity = REG_USER_MSG( "TempEntity", -1);

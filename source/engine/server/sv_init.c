@@ -325,7 +325,8 @@ void SV_InitGame( void )
 		ent = EDICT_NUM( i + 1 );
 		ent->serialnumber = i + 1;
 		svs.clients[i].edict = ent;
-		Mem_Set( &svs.clients[i].lastcmd, 0, sizeof( svs.clients[i].lastcmd ));
+		Mem_Set( &svs.clients[i].cmd, 0, sizeof( svs.clients[i].cmd ));
+		svs.clients[i].num_cmds = 0;
 	}
 }
 

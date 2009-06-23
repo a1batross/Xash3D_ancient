@@ -28,6 +28,7 @@ float		m_fShaderTime;
 mesh_t		*m_pRenderMesh;
 ref_shader_t	*m_pCurrentShader;
 ref_entity_t	*m_pCurrentEntity;
+kRenderMode_t	m_iRenderMode;
 
 static GLenum	rb_drawMode;
 static GLboolean	rb_CheckFlush;
@@ -562,59 +563,220 @@ static void RB_DeformVertexes( void )
 	}
 }
 
+/*
+=================
+RB_SetShaderRenderMode
+
+UNDONE: not all cases are filled
+=================
+*/
 static shaderStage_t *RB_SetShaderRenderMode( shaderStage_t *stage )
 {
 	static shaderStage_t currentStage;
+	int mod_type = mod_bad; // mod_bad interpretate as orthogonal shader
 
-	if( !m_pCurrentEntity || !(m_pCurrentShader->flags & SHADER_RENDERMODE))
+	if(!(stage->flags & SHADERSTAGE_RENDERMODE))
 		return stage;
 
 	currentStage = *stage;
 
-	switch( m_pCurrentEntity->rendermode )
+	if( m_pRenderModel && !gl_state.orthogonal )
+		mod_type = m_pRenderModel->type;
+
+	switch( m_iRenderMode )
 	{
+	case kRenderNormal:
+		switch( mod_type )
+		{
+		case mod_bad:
+			currentStage.rgbGen.type = RGBGEN_IDENTITY;
+			currentStage.alphaGen.type = ALPHAGEN_IDENTITY;
+			break;
+		case mod_world:
+		case mod_brush:
+			// bsp surfaces uses lightmaps and ignore color values as well
+			currentStage.flags &= ~(SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAFUNC);
+			currentStage.flags |= (SHADERSTAGE_DEPTHFUNC|SHADERSTAGE_DEPTHWRITE);
+			currentStage.rgbGen.type = RGBGEN_IDENTITYLIGHTING;
+			currentStage.alphaGen.type = ALPHAGEN_IDENTITY;
+			break;
+		case mod_studio:
+			// UNDONE: wrote R_StudioLighting, change rgbGen to RGBGEN_VERTEX
+			// UNDONE: setup custom alpha channel for NF_ADDITIVE, change alphaGen to ALPHAGEN_VERTEX
+			currentStage.flags &= ~(SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAFUNC);
+			currentStage.rgbGen.type = RGBGEN_LIGHTINGAMBIENT;
+			currentStage.alphaGen.type = ALPHAGEN_IDENTITY;
+			break;
+		case mod_sprite:
+			currentStage.flags &= ~(SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAFUNC);
+			currentStage.rgbGen.type = RGBGEN_LIGHTINGAMBIENT;
+			currentStage.alphaGen.type = ALPHAGEN_IDENTITY;
+			break;
+		}
+		break;
 	case kRenderTransColor:
-		currentStage.flags |= SHADERSTAGE_BLENDFUNC;
-		currentStage.flags |= SHADERSTAGE_ALPHAGEN;
-		currentStage.flags |= SHADERSTAGE_RGBGEN;
-		currentStage.blendFunc.src = GL_SRC_COLOR;
-		currentStage.blendFunc.dst = GL_ZERO;
-		currentStage.alphaGen.type = ALPHAGEN_ENTITY;
-		currentStage.rgbGen.type = RGBGEN_ENTITY;
+		switch( mod_type )
+		{
+		case mod_bad:
+			currentStage.flags &= ~SHADERSTAGE_ALPHAFUNC;
+			currentStage.flags |= SHADERSTAGE_BLENDFUNC;
+			currentStage.rgbGen.type = RGBGEN_VERTEX;
+			currentStage.alphaGen.type = ALPHAGEN_VERTEX;
+			currentStage.blendFunc.src = GL_ZERO;
+			currentStage.blendFunc.dst = GL_SRC_COLOR;
+			break;
+		case mod_world:
+			currentStage.flags &= ~(SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAFUNC);
+			currentStage.flags |= (SHADERSTAGE_DEPTHFUNC|SHADERSTAGE_DEPTHWRITE);
+			currentStage.rgbGen.type = RGBGEN_IDENTITYLIGHTING;
+			currentStage.alphaGen.type = ALPHAGEN_IDENTITY;
+			break;
+		case mod_brush:
+		case mod_studio:
+		case mod_sprite:
+			break;
+		}
 		break;
 	case kRenderTransTexture:
-		currentStage.flags |= (SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAGEN|SHADERSTAGE_RGBGEN);
-		currentStage.alphaGen.type = ALPHAGEN_ENTITY;
-		currentStage.blendFunc.src = GL_SRC_ALPHA;
-		currentStage.blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
-		currentStage.rgbGen.type = RGBGEN_VERTEX;
+		switch( mod_type )
+		{
+		case mod_bad:
+			currentStage.flags &= ~SHADERSTAGE_ALPHAFUNC;
+			currentStage.flags |= SHADERSTAGE_BLENDFUNC;
+			currentStage.rgbGen.type = RGBGEN_VERTEX;
+			currentStage.alphaGen.type = ALPHAGEN_VERTEX;
+			currentStage.blendFunc.src = GL_SRC_ALPHA;
+			currentStage.blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+			break;
+		case mod_world:
+			currentStage.flags &= ~(SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAFUNC);
+			currentStage.flags |= (SHADERSTAGE_DEPTHFUNC|SHADERSTAGE_DEPTHWRITE);
+			currentStage.rgbGen.type = RGBGEN_IDENTITYLIGHTING;
+			currentStage.alphaGen.type = ALPHAGEN_IDENTITY;
+			break;
+		case mod_brush:
+			currentStage.flags &= ~(SHADERSTAGE_ALPHAFUNC|SHADERSTAGE_DEPTHWRITE);
+			currentStage.flags |= SHADERSTAGE_BLENDFUNC;
+			currentStage.rgbGen.type = RGBGEN_IDENTITYLIGHTING;
+			currentStage.alphaGen.type = ALPHAGEN_ENTITY;
+			currentStage.blendFunc.src = GL_SRC_ALPHA;
+			currentStage.blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+			break;
+		case mod_studio:
+		case mod_sprite:
+			break;
+		}
 		break;
 	case kRenderGlow:
-		currentStage.flags |= SHADERSTAGE_BLENDFUNC;
-		currentStage.flags |= SHADERSTAGE_ALPHAGEN;
-		currentStage.flags |= SHADERSTAGE_RGBGEN;
-		currentStage.blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
-		currentStage.blendFunc.dst = GL_ONE;
-		currentStage.flags &= ~SHADERSTAGE_DEPTHFUNC;
-		currentStage.depthFunc.func = 0;
+		switch( mod_type )
+		{
+		case mod_bad:
+			currentStage.flags &= ~SHADERSTAGE_ALPHAFUNC;
+			currentStage.flags |= SHADERSTAGE_BLENDFUNC;
+			currentStage.rgbGen.type = RGBGEN_VERTEX;
+			currentStage.alphaGen.type = ALPHAGEN_VERTEX;
+			currentStage.blendFunc.src = GL_SRC_ALPHA;
+			currentStage.blendFunc.dst = GL_ONE;
+			break;
+		case mod_world:
+		case mod_brush:
+			// completely ignore glow mode for world surfaces
+			currentStage.flags &= ~(SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAFUNC);
+			currentStage.flags |= (SHADERSTAGE_DEPTHFUNC|SHADERSTAGE_DEPTHWRITE);
+			currentStage.rgbGen.type = RGBGEN_IDENTITYLIGHTING;
+			currentStage.alphaGen.type = ALPHAGEN_IDENTITY;
+			break;
+		case mod_studio:
+		case mod_sprite:
+			currentStage.flags &= ~(SHADERSTAGE_ALPHAFUNC|SHADERSTAGE_DEPTHWRITE|SHADERSTAGE_DEPTHFUNC);
+			currentStage.flags |= SHADERSTAGE_BLENDFUNC;
+			currentStage.rgbGen.type = RGBGEN_IDENTITY;	// hl1 glow sprites ignores color
+			currentStage.alphaGen.type = ALPHAGEN_ENTITY;
+			currentStage.blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
+			currentStage.blendFunc.dst = GL_ONE;
+			break;
+		}
 		break;
 	case kRenderTransAlpha:
-		currentStage.flags |= SHADERSTAGE_ALPHAFUNC;
-		currentStage.flags |= SHADERSTAGE_ALPHAGEN;
-		currentStage.flags |= SHADERSTAGE_RGBGEN;
-		currentStage.alphaFunc.func = GL_GREATER;
-		currentStage.alphaFunc.ref = 0.666;
-		currentStage.alphaGen.type = ALPHAGEN_ENTITY;
-		currentStage.rgbGen.type = RGBGEN_ENTITY;
+		switch( mod_type )
+		{
+		case mod_bad:
+			currentStage.flags &= ~SHADERSTAGE_BLENDFUNC;
+			currentStage.flags |= SHADERSTAGE_ALPHAFUNC;
+			currentStage.rgbGen.type = RGBGEN_VERTEX;
+			currentStage.alphaGen.type = ALPHAGEN_VERTEX;
+			currentStage.alphaFunc.func = GL_GREATER;
+			currentStage.alphaFunc.ref = 0.666;
+			break;
+		case mod_world:
+			// always ignore transparent surfaces for world
+			currentStage.flags &= ~(SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAFUNC);
+			currentStage.flags |= (SHADERSTAGE_DEPTHFUNC|SHADERSTAGE_DEPTHWRITE);
+			currentStage.rgbGen.type = RGBGEN_IDENTITYLIGHTING;
+			currentStage.alphaGen.type = ALPHAGEN_IDENTITY;
+			break;
+		case mod_brush:
+			currentStage.flags &= ~SHADERSTAGE_BLENDFUNC;
+			currentStage.flags |= SHADERSTAGE_ALPHAFUNC;
+			currentStage.rgbGen.type = RGBGEN_IDENTITY;
+			currentStage.alphaGen.type = ALPHAGEN_IDENTITY;
+			currentStage.alphaFunc.func = GL_GREATER;
+			currentStage.alphaFunc.ref = 0.666;
+		case mod_studio:
+			// UNDONE: wrote R_StudioLighting, change rgbGen to RGBGEN_VERTEX
+			// UNDONE: setup custom alpha channel for NF_ADDITIVE, change alphaGen to ALPHAGEN_VERTEX
+			currentStage.flags &= ~SHADERSTAGE_BLENDFUNC;
+			currentStage.flags |= SHADERSTAGE_ALPHAFUNC;
+			currentStage.rgbGen.type = RGBGEN_LIGHTINGAMBIENT;
+			currentStage.alphaGen.type = ALPHAGEN_ENTITY;
+			currentStage.alphaFunc.func = GL_GREATER;
+			currentStage.alphaFunc.ref = 0.666;
+		case mod_sprite:
+			currentStage.flags &= ~SHADERSTAGE_BLENDFUNC;
+			currentStage.flags |= SHADERSTAGE_ALPHAFUNC;
+			currentStage.rgbGen.type = RGBGEN_LIGHTINGAMBIENT;
+			currentStage.alphaGen.type = ALPHAGEN_ENTITY;
+			currentStage.alphaFunc.func = GL_GREATER;
+			currentStage.alphaFunc.ref = 0.666;
+			break;
+		}
 		break;
 	case kRenderTransAdd:
-		currentStage.flags |= (SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAGEN|SHADERSTAGE_RGBGEN);
-		currentStage.alphaGen.type = ALPHAGEN_ENTITY;
-		currentStage.rgbGen.type = RGBGEN_VERTEX;
-		currentStage.blendFunc.src = GL_SRC_ALPHA;
-		currentStage.blendFunc.dst = GL_ONE;
+		switch( mod_type )
+		{
+		case mod_bad:
+			currentStage.flags &= ~SHADERSTAGE_ALPHAFUNC;
+			currentStage.flags |= SHADERSTAGE_BLENDFUNC;
+			currentStage.rgbGen.type = RGBGEN_VERTEX;
+			currentStage.alphaGen.type = ALPHAGEN_VERTEX;
+			currentStage.blendFunc.src = GL_SRC_ALPHA;
+			currentStage.blendFunc.dst = GL_ONE;
+			break;
+		case mod_world:
+			currentStage.flags &= ~(SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAFUNC);
+			currentStage.flags |= (SHADERSTAGE_DEPTHFUNC|SHADERSTAGE_DEPTHWRITE);
+			currentStage.rgbGen.type = RGBGEN_IDENTITYLIGHTING;
+			currentStage.alphaGen.type = ALPHAGEN_IDENTITY;
+			break;
+		case mod_brush:
+			currentStage.flags &= ~(SHADERSTAGE_ALPHAFUNC|SHADERSTAGE_DEPTHWRITE);
+			currentStage.flags |= SHADERSTAGE_BLENDFUNC;
+			currentStage.rgbGen.type = RGBGEN_IDENTITYLIGHTING;
+			currentStage.alphaGen.type = ALPHAGEN_ENTITY;
+			currentStage.blendFunc.src = GL_SRC_ALPHA;
+			currentStage.blendFunc.dst = GL_ONE;
+			break;
+		case mod_studio:
+		case mod_sprite:
+			currentStage.flags &= ~(SHADERSTAGE_ALPHAFUNC|SHADERSTAGE_DEPTHWRITE);
+			currentStage.flags |= SHADERSTAGE_BLENDFUNC;
+			currentStage.rgbGen.type = RGBGEN_IDENTITYLIGHTING;
+			currentStage.alphaGen.type = ALPHAGEN_ENTITY;
+			currentStage.blendFunc.src = GL_SRC_ALPHA;
+			currentStage.blendFunc.dst = GL_ONE;
+			break;
+		}
 		break;
-	case kRenderNormal:
 	default: return stage;
 	}
 	return &currentStage;
@@ -716,21 +878,21 @@ RB_CalcVertexColors
 */
 static void RB_CalcVertexColors( shaderStage_t *stage )
 {
-	rgbGen_t		*rgbGen;
-	alphaGen_t	*alphaGen;
-	shaderStage_t	*newStage;
+	rgbGen_t		*rgbGen = &stage->rgbGen;
+	alphaGen_t	*alphaGen = &stage->alphaGen;
+	shaderStage_t	*renderStage;
 	vec3_t		vec, dir;
 	float		*table;
 	float		now, f;
 	byte		r, g, b, a;
 	int		i;
 
-	newStage = RB_SetShaderRenderMode( stage );
-	RB_SetShaderStageState( newStage );
+	renderStage = RB_SetShaderRenderMode( stage );
+	RB_SetShaderStageState( renderStage );
 
-	rgbGen = &newStage->rgbGen;
-	alphaGen = &newStage->alphaGen;
-
+	rgbGen = &renderStage->rgbGen;
+	alphaGen = &renderStage->alphaGen;
+	
 	switch( rgbGen->type )
 	{
 	case RGBGEN_IDENTITY:
@@ -800,22 +962,11 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 		}
 		break;
 	case RGBGEN_ENTITY:
-		switch( m_pCurrentEntity->rendermode )
+		for( i = 0; i < ref.numVertex; i++ )
 		{
-		case kRenderNormal:
-		case kRenderTransAlpha:
-		case kRenderTransTexture:
-			break;
-		case kRenderGlow:
-		case kRenderTransAdd:
-		case kRenderTransColor:
-			for( i = 0; i < ref.numVertex; i++ )
-			{
-				ref.colorArray[i][0] = m_pCurrentEntity->rendercolor[0];
-				ref.colorArray[i][1] = m_pCurrentEntity->rendercolor[1];
-				ref.colorArray[i][2] = m_pCurrentEntity->rendercolor[2];
-			}
-			break;
+			ref.colorArray[i][0] = m_pCurrentEntity->rendercolor[0];
+			ref.colorArray[i][1] = m_pCurrentEntity->rendercolor[1];
+			ref.colorArray[i][2] = m_pCurrentEntity->rendercolor[2];
 		}
 		break;
 	case RGBGEN_ONEMINUSENTITY:
@@ -827,7 +978,7 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 		}
 		break;
 	case RGBGEN_LIGHTINGAMBIENT:
-		R_LightingAmbient();
+		R_LightingAmbient( (int)(rgbGen->params[0]) ? true : false );
 		break;
 	case RGBGEN_LIGHTINGDIFFUSE:
 		R_LightingDiffuse();
@@ -881,21 +1032,8 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 			ref.colorArray[i][3] = 255 - ref.colorArray[i][3];
 		break;
 	case ALPHAGEN_ENTITY:
-		switch( m_pCurrentEntity->rendermode )
-		{
-		case kRenderNormal:
-		case kRenderTransColor:
-			for( i = 0; i < ref.numVertex; i++ )
-				ref.colorArray[i][3] = 1.0f;
-			break;
-		case kRenderGlow:
-		case kRenderTransAdd:
-		case kRenderTransAlpha:
-		case kRenderTransTexture:
-			for( i = 0; i < ref.numVertex; i++ )
-				ref.colorArray[i][3] = m_pCurrentEntity->renderamt;
-			break;
-		}
+		for( i = 0; i < ref.numVertex; i++ )
+			ref.colorArray[i][3] = m_pCurrentEntity->renderamt;
 		break;
 	case ALPHAGEN_ONEMINUSENTITY:
 		for( i = 0; i < ref.numVertex; i++ )
@@ -1289,6 +1427,7 @@ RB_SetupTextureUnit
 static void RB_SetupTextureUnit( stageBundle_t *bundle, uint unit )
 {
 	int	angleframe;
+	int	animframe = 0;
 
 	GL_SelectTexture( unit );
 
@@ -1301,9 +1440,24 @@ static void RB_SetupTextureUnit( stageBundle_t *bundle, uint unit )
 		}
 		else if( bundle->flags & STAGEBUNDLE_FRAMES )
 		{
-			// manually changed
-			bundle->currentFrame = bound( 0, bundle->currentFrame, bundle->numTextures - 1 );
-			GL_BindTexture( bundle->textures[bundle->currentFrame] );
+			if( m_pCurrentEntity )
+			{
+				if( m_pCurrentEntity->model )
+				{
+					switch( m_pCurrentEntity->model->type )
+					{
+					case mod_brush:
+					case mod_world:
+						animframe = m_pCurrentEntity->frame;
+						break;
+					}
+				}
+			}
+			else if( gl_state.orthogonal )
+				animframe = gl_state.draw_frame;
+			// manually changed frames
+			animframe = bound( 0, animframe, bundle->numTextures - 1 );
+			GL_BindTexture( bundle->textures[animframe] );
 		}
 		else if( bundle->flags & STAGEBUNDLE_ANIMFREQUENCY )
 		{
@@ -1839,7 +1993,7 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 			sortKey = mesh->sortKey;
 
 			// unpack sort key
-			shader = &r_shaders[(sortKey>>20) & (MAX_SHADERS - 1)];
+			shader = &r_shaders[(sortKey>>18) & (MAX_SHADERS - 1)];
 			entity = &r_entities[(sortKey>>8) & MAX_ENTITIES-1];
 			infoKey = sortKey & 255;
 
@@ -1881,6 +2035,7 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 				else GL_LoadMatrix( r_worldMatrix );
 				m_pCurrentEntity = entity;
 				m_fShaderTime = r_refdef.time - entity->shaderTime;
+				m_iRenderMode = m_pCurrentEntity->rendermode;
 				m_pRenderModel = m_pCurrentEntity->model;
 			}
 		}
@@ -1943,6 +2098,9 @@ void RB_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, 
 	// check if the arrays will overflow
 	RB_CheckMeshOverflow( 6, 4 );
 
+	m_iRenderMode = gl_state.draw_rendermode;
+	m_pRenderModel = NULL;
+
 	GL_Begin( GL_QUADS );
 		GL_Color4ubv( gl_state.draw_color );
 		GL_TexCoord2f( sl, tl );
@@ -1980,6 +2138,7 @@ void RB_InitBackend( void )
 	m_pRenderModel = NULL;
 	m_fShaderTime = 0;
 	m_pCurrentEntity = NULL;
+	m_iRenderMode = kRenderNormal;
 	m_iInfoKey = -1;
 
 	// Set default GL state

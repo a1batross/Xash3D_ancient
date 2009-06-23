@@ -24,8 +24,8 @@
 #define SHADER_STUDIO		5	// studio skins
 #define SHADER_SPRITE		6	// sprite frames
 
-#define MAX_SHADERS			4096
-#define SHADERS_HASH_SIZE		1024
+#define MAX_SHADERS			1024
+#define SHADERS_HASH_SIZE		256	// MAX_SHADERS / 4
 #define MAX_EXPRESSION_OPS		4096
 #define MAX_EXPRESSION_REGISTERS	4096
 #define MAX_PROGRAM_PARMS		16
@@ -56,7 +56,7 @@ typedef enum
 	SHADER_TESSSIZE		= BIT(14),
 	SHADER_SKYPARMS		= BIT(15),
 	SHADER_DEFORMVERTEXES	= BIT(16),
-	SHADER_RENDERMODE		= BIT(17),// allow to change rendermode from code
+	SHADER_RENDERMODE		= BIT(17),
 } shaderFlags_t;
 
 // shader stage flags
@@ -71,7 +71,8 @@ typedef enum
 	SHADERSTAGE_DEPTHWRITE	= BIT(6),
 	SHADERSTAGE_DETAIL		= BIT(7),
 	SHADERSTAGE_RGBGEN		= BIT(8),
-	SHADERSTAGE_ALPHAGEN	= BIT(10),
+	SHADERSTAGE_ALPHAGEN	= BIT(9),
+	SHADERSTAGE_RENDERMODE	= BIT(10),	// allow to change rendermode from code
 } stageFlags_t;
 
 // stage bundle flags
@@ -158,24 +159,21 @@ typedef enum
 
 typedef enum
 {
-	SORT_BAD = 0,
-	SORT_SKY,
-	SORT_SUBVIEW,
-	SORT_OPAQUE,
-	SORT_DECAL,
-	SORT_SEETHROUGH,
-	SORT_BANNER,
-	SORT_UNDERWATER,
-	SORT_WATER,
-	SORT_INNERBLEND,
-	SORT_BLEND,
-	SORT_BLEND2,
-	SORT_BLEND3,
-	SORT_BLEND4,
-	SORT_OUTERBLEND,
-	SORT_ADDITIVE,
-	SORT_NEAREST,
-	SORT_POST_PROCESS
+	SORT_SUBVIEW	= 1,
+	SORT_SKY		= 2,
+	SORT_OPAQUE	= 3,
+	SORT_DECAL	= 4,
+	SORT_SEETHROUGH	= 5,
+	SORT_BANNER	= 6,
+	SORT_UNDERWATER	= 7,
+	SORT_WATER	= 8,
+	SORT_INNERBLEND	= 9,
+	SORT_BLEND	= 10,
+	SORT_BLEND2	= 11,
+	SORT_BLEND3	= 12,
+	SORT_OUTERBLEND	= 13,
+	SORT_ADDITIVE	= 14,
+	SORT_NEAREST	= 15
 } sort_t;
 
 typedef enum
@@ -374,7 +372,6 @@ typedef struct stageBundle_s
 	texture_t		*textures[SHADER_MAX_TEXTURES];
 	uint		numTextures;
 
-	int		currentFrame;
 	float		animFrequency;
 	int		cinematicHandle;
 
@@ -419,6 +416,7 @@ typedef struct ref_shader_s
 
 	cull_t		cull;
 	sort_t		sort;
+	sort_t		realsort;
 	uint		tessSize;
 	skyParms_t	skyParms;
 	deform_t		deform[SHADER_MAX_TRANSFORMS];

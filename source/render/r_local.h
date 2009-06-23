@@ -27,7 +27,7 @@ typedef uint	elem_t;
 #define MAX_TEXTURE_UNITS		8
 #define MAX_LIGHTMAPS		128
 #define MAX_PROGRAMS		512
-#define MAX_ENTITIES		4096
+#define MAX_ENTITIES		1024
 #define MAX_VERTEX_BUFFERS		2048
 #define MAX_POLYS			4096
 #define MAX_POLY_VERTS		16384
@@ -702,7 +702,7 @@ typedef enum
 
 typedef struct
 {
-	qword		sortKey;
+	uint		sortKey;
 	meshType_t	meshType;
 	void		*mesh;
 } mesh_t;
@@ -711,6 +711,7 @@ extern int	m_iInfoKey;
 extern float	m_fShaderTime;
 extern rmodel_t	*m_pLoadModel;
 extern mesh_t	*m_pRenderMesh;
+extern kRenderMode_t m_iRenderMode;
 extern rmodel_t	*m_pRenderModel;
 extern ref_shader_t	*m_pCurrentShader;
 extern ref_entity_t *m_pCurrentEntity;
@@ -801,7 +802,7 @@ mspriteframe_t	*R_GetSpriteFrame( ref_entity_t *ent );
 void		R_MarkLights( void );
 void		R_LightDir( const vec3_t origin, vec3_t lightDir );
 void		R_LightForPoint( const vec3_t point, vec3_t ambientLight );
-void		R_LightingAmbient( void );
+void		R_LightingAmbient( bool invLight );
 void		R_LightingDiffuse( void );
 void		R_BeginBuildingLightmaps( void );
 void		R_EndBuildingLightmaps( void );

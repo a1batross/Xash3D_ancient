@@ -286,8 +286,6 @@ void CL_ParseFrame( sizebuf_t *msg )
 	frame_t		*old;
           
 	memset( &cl.frame, 0, sizeof( cl.frame ));
-	cl.mtime[1] = cl.mtime[0];
-	cl.mtime[0] = MSG_ReadFloat( msg );
 	cl.frame.serverframe = MSG_ReadLong( msg );
 	cl.frame.deltaframe = MSG_ReadLong( msg );
 	cl.surpressCount = MSG_ReadByte( msg );

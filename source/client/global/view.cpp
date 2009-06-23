@@ -906,29 +906,38 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 	V_DropPunchAngle( pparams->frametime, ev_punchangle );
 
 	static float oldz = 0;
+	float newz;
 
-	if( pparams->smoothing && pparams->onground && pparams->origin[2] - oldz > 0 )
+	// stair smoothing
+	newz = pparams->vieworg[2];
+	oldz -= newz;
+	oldz += (pparams->time - pparams->oldtime) * 100.0f;	// speed of smooth
+	oldz = bound( -pparams->movevars->stepheight, oldz, 0 );
+	pparams->vieworg[2] += oldz;
+	view->v.origin[2] += oldz;
+	oldz += newz;
+/*
+	if( pparams->onground && pparams->vieworg[2] - oldz > 0 )
 	{
 		float steptime;
 
-		ALERT( at_console, "smooth stair clibling\n" );		
 		steptime = pparams->time - lasttime;
 		if( steptime < 0 ) steptime = 0;
 
 		oldz += steptime * 150;
-		if( oldz > pparams->origin[2])
-			oldz = pparams->origin[2];
-		if( pparams->origin[2] - oldz > pparams->movevars->stepheight )
-			oldz = pparams->origin[2] - pparams->movevars->stepheight;
-		pparams->vieworg[2] += oldz - pparams->origin[2];
-		view->v.origin[2] += oldz - pparams->origin[2];
+		if( oldz > pparams->vieworg[2])
+			oldz = pparams->vieworg[2];
+		if( pparams->vieworg[2] - oldz > pparams->movevars->stepheight )
+			oldz = pparams->vieworg[2] - pparams->movevars->stepheight;
+		pparams->vieworg[2] += oldz - pparams->vieworg[2];
+		view->v.origin[2] += oldz - pparams->vieworg[2];
 	}
-	else oldz = pparams->origin[2];
-
+	else oldz = pparams->vieworg[2];
+*/
 	static Vector lastorg;
 	Vector delta;
 
-	delta = pparams->origin - lastorg;
+	delta = pparams->vieworg - lastorg;
 
 	if( delta.Length() != 0.0 )
 	{
@@ -936,7 +945,7 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 		ViewInterp.OriginTime[ViewInterp.CurrentOrigin & ORIGIN_MASK] = pparams->time;
 		ViewInterp.CurrentOrigin++;
 
-		lastorg = pparams->origin;
+		lastorg = pparams->vieworg;
 	}
 	V_InterpolateOrigin( pparams ); // smooth moving in multiplayer
 

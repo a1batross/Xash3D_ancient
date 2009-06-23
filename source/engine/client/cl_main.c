@@ -387,9 +387,9 @@ void CL_Disconnect( void )
 	cls.state = ca_disconnected;
 }
 
-void CL_Disconnect_f (void)
+void CL_Disconnect_f( void )
 {
-	Host_Error("Disconnected from server\n");
+	Host_Error( "Disconnected from server\n" );
 }
 
 
@@ -779,12 +779,12 @@ void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 	Cmd_TokenizeString( s );
 	c = Cmd_Argv(0);
 
-	MsgDev(D_INFO, "CL_ConnectionlessPacket: %s : %s\n", NET_AdrToString( from ), c );
+	MsgDev( D_INFO, "CL_ConnectionlessPacket: %s : %s\n", NET_AdrToString( from ), c );
 
 	// server connection
-	if(!com.strcmp( c, "client_connect"))
+	if( !com.strcmp( c, "client_connect" ))
 	{
-		if (cls.state == ca_connected)
+		if( cls.state == ca_connected )
 		{
 			Msg ("Dup connect received.  Ignored.\n");
 			return;
@@ -888,7 +888,7 @@ void CL_PacketEvent( netadr_t from, sizebuf_t *msg )
 	}
 
 	// packet from server
-	if (!NET_CompareAdr( from, cls.netchan.remote_address))
+	if (!NET_CompareAdr( from, cls.netchan.remote_address ))
 	{
 		MsgDev( D_WARN, "CL_ReadPackets: %s:sequenced packet without connection\n", NET_AdrToString( from ));
 		return;
@@ -908,9 +908,19 @@ void CL_PacketEvent( netadr_t from, sizebuf_t *msg )
 	}
 }
 
+void CL_ReadNetMessage( void )
+{
+	while( NET_GetPacket( NS_CLIENT, &net_from, &net_message ))
+	{
+		CL_PacketEvent( net_from, &net_message );
+	}
+}
+
 void CL_ReadPackets( void )
 {
-	if( cls.demoplayback ) CL_ReadDemoMessage();
+	if( cls.demoplayback )
+		CL_ReadDemoMessage();
+	else CL_ReadNetMessage();
 
 	if(NET_IsLocalAddress( cls.netchan.remote_address ))
 		return;
@@ -1251,10 +1261,12 @@ void CL_Init( void )
 
 	Con_Init();	
 	VID_Init();
+
 	if( !CL_LoadProgs( "client" ))
-	{
 		Host_Error( "CL_InitGame: can't initialize client.dll\n" );
-	}
+
+	MSG_Init( &net_message, net_message_buffer, sizeof( net_message_buffer ));
+
 	UI_Init();
 	SCR_Init();
 	CL_InitLocal();

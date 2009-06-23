@@ -233,7 +233,6 @@ launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 	Com.Main = CommonMain;
 	Com.Free = FreeCommon;
 	Com.CPrint = BSP_PrintLog;
-	Com.MSG_Init = NULL;
 
 	return &Com;
 }

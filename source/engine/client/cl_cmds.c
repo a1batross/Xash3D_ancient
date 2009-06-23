@@ -226,13 +226,13 @@ timerefres [noflip]
 void SCR_TimeRefresh_f( void )
 {
 	int		i;
-	int		start, stop;
-	float		time;
+	double		start, stop;
+	double		time;
 
 	if ( cls.state != ca_active )
 		return;
 
-	start = Sys_Milliseconds();
+	start = Sys_DoubleTime();
 
 	if( Cmd_Argc() == 2 )
 	{	
@@ -240,8 +240,8 @@ void SCR_TimeRefresh_f( void )
 		re->BeginFrame();
 		for( i = 0; i < 128; i++ )
 		{
-			cl.refdef.viewangles[1] = i/128.0 * 360.0f;
-			re->RenderFrame (&cl.refdef);
+			cl.refdef.viewangles[1] = i / 128.0 * 360.0f;
+			re->RenderFrame( &cl.refdef );
 		}
 		re->EndFrame();
 	}
@@ -249,7 +249,7 @@ void SCR_TimeRefresh_f( void )
 	{
 		for( i = 0; i < 128; i++ )
 		{
-			cl.refdef.viewangles[1] = i/128.0 * 360.0f;
+			cl.refdef.viewangles[1] = i / 128.0 * 360.0f;
 
 			re->BeginFrame();
 			re->RenderFrame(&cl.refdef);
@@ -257,8 +257,8 @@ void SCR_TimeRefresh_f( void )
 		}
 	}
 
-	stop = Sys_Milliseconds();
-	time = (stop - start) / 1000.0f;
+	stop = Sys_DoubleTime ();
+	time = (stop - start);
 	Msg( "%f seconds (%f fps)\n", time, 128 / time );
 }
 
@@ -271,5 +271,5 @@ viewpos
 */
 void SCR_Viewpos_f( void )
 {
-	Msg("(%g %g %g)\n", cl.refdef.vieworg[0], cl.refdef.vieworg[1], cl.refdef.vieworg[2] );
+	Msg( "( %g %g %g )\n", cl.refdef.vieworg[0], cl.refdef.vieworg[1], cl.refdef.vieworg[2] );
 }

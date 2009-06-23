@@ -59,33 +59,13 @@ such as during the connection stage while waiting for the client to load,
 then a packet only needs to be delivered if there is something in the
 unacknowledged reliable
 */
-
-#define MAX_LOOPBACK		4
-#define MASK_LOOPBACK		(MAX_LOOPBACK - 1)
-
 cvar_t	*net_showpackets;
 cvar_t	*net_showdrop;
 cvar_t	*net_qport;
 
-static char *net_src[2] =
-{
-"client",
-"server"
-};
-
-typedef struct
-{
-	byte	data[MAX_MSGLEN];
-	int	datalen;
-} loopmsg_t;
-
-typedef struct
-{
-	loopmsg_t	msgs[MAX_LOOPBACK];
-	int	get, send;
-} loopback_t;
-
-loopback_t loopbacks[2];
+netadr_t	net_from;
+sizebuf_t	net_message;
+byte	net_message_buffer[MAX_MSGLEN];
 
 /*
 ===============
@@ -113,7 +93,7 @@ called to open a channel to a remote system
 */
 void Netchan_Setup( netsrc_t sock, netchan_t *chan, netadr_t adr, int qport )
 {
-	memset( chan, 0, sizeof(*chan));
+	Mem_Set( chan, 0, sizeof( *chan ));
 	
 	chan->sock = sock;
 	chan->remote_address = adr;
@@ -122,6 +102,7 @@ void Netchan_Setup( netsrc_t sock, netchan_t *chan, netadr_t adr, int qport )
 	chan->incoming_sequence = 0;
 	chan->outgoing_sequence = 1;
 	chan->compress = true;
+	chan->rate = 1.0f / 2500;	// inital value of rate
 
 	MSG_Init( &chan->message, chan->message_buf, sizeof(chan->message_buf));
 }
@@ -169,6 +150,20 @@ void Netchan_OutOfBandPrint( int net_socket, netadr_t adr, char *format, ... )
 
 /*
 ===============
+Netchan_CanPacket
+
+Returns true if the bandwidth choke isn't active
+================
+*/
+bool Netchan_CanPacket( netchan_t *chan )
+{
+	if( chan->cleartime < host.realtime + MAX_BACKUP * chan->rate )
+		return true;
+	return false;
+}
+
+/*
+===============
 Netchan_CanReliable
 
 Returns true if the last reliable message has acked
@@ -178,7 +173,7 @@ bool Netchan_CanReliable( netchan_t *chan )
 {
 	if( chan->reliable_length )
 		return false;	// waiting for ack
-	return true;
+	return Netchan_CanPacket( chan );
 }
 
 
@@ -195,6 +190,14 @@ bool Netchan_NeedReliable( netchan_t *chan )
 	// if the reliable transmit buffer is empty, copy the current message out
 	if( !chan->reliable_length && chan->message.cursize )
 		send_reliable = true;
+
+	if( !chan->reliable_length && chan->message.cursize )
+	{
+		Mem_Copy( chan->reliable_buf, chan->message_buf, chan->message.cursize );
+		chan->reliable_length = chan->message.cursize;
+		chan->message.cursize = 0;
+		chan->reliable_sequence ^= 1;
+	}
 
 	return send_reliable;
 }
@@ -226,14 +229,6 @@ void Netchan_Transmit( netchan_t *chan, int length, byte *data )
 	}
  
 	send_reliable = Netchan_NeedReliable( chan );
-
-	if( !chan->reliable_length && chan->message.cursize )
-	{
-		Mem_Copy( chan->reliable_buf, chan->message_buf, chan->message.cursize );
-		chan->reliable_length = chan->message.cursize;
-		chan->message.cursize = 0;
-		chan->reliable_sequence ^= 1;
-	}
 
 	// write the packet header
 	MSG_Init( &send, send_buf, sizeof(send_buf));
@@ -269,13 +264,23 @@ void Netchan_Transmit( netchan_t *chan, int length, byte *data )
 		if( !overflow ) MsgDev( D_WARN, "Netchan_Transmit: unreliable msg overflow\n" );
 		overflow = true;
 	}
+
 	if( chan->compress ) Huff_CompressPacket(&send, (chan->sock == NS_CLIENT) ? 10 : 8);
+
+	if( chan->cleartime < host.realtime )
+		chan->cleartime = host.realtime + send.cursize * chan->rate;
+	else chan->cleartime += send.cursize * chan->rate;
 
 	// send the datagram
 	NET_SendPacket( chan->sock, send.cursize, send.data, chan->remote_address );
 
 	if( net_showpackets->value )
+	{
+		if( chan->sock == NS_CLIENT ) MsgDev( D_INFO, "CL " );
+		else if( chan->sock == NS_SERVER ) MsgDev( D_INFO, "SV " );
+
 		MsgDev( D_INFO, "Netchan_Transmit: %4i : %sreliable\n", send.cursize, send_reliable ? "" : "un" );
+	}
 }
 
 /*
@@ -308,7 +313,43 @@ bool Netchan_Process( netchan_t *chan, sizebuf_t *msg )
 	sequence_ack &= ~(1<<31);	
 
 	if( net_showpackets->value )
+	{
+		if( chan->sock == NS_CLIENT ) MsgDev( D_INFO, "CL " );
+		else if( chan->sock == NS_SERVER ) MsgDev( D_INFO, "SV " );
+
 		MsgDev( D_INFO, "Netchan_Process: %4i : %sreliable\n", msg->cursize, recv_reliable ? "" : "un" );
+	}
+
+#if 0
+	// get a rate estimation
+	if( chan->outgoing_sequence - sequence_ack < MAX_LATENT )
+	{
+		int	i;
+		double	time, rate;
+	
+		i = sequence_ack & (MAX_LATENT - 1);
+		time = Sys_DoubleTime() - chan->outgoing_time[i];
+		time -= 0.1f;	// subtract 100 ms
+		if( time <= 0 )
+		{	
+			// gotta be a digital link for <100 ms ping
+			if( chan->rate > 1.0f / 5000 )
+				chan->rate = 1.0f / 5000;
+		}
+		else
+		{
+			if( chan->outgoing_size[i] < 512 )
+			{	
+				// only deal with small messages
+				rate = chan->outgoing_size[i] / time;
+				if( rate > 5000 ) rate = 5000;
+				rate = 1.0f / rate;
+				if( chan->rate > rate )
+					chan->rate = rate;
+			}
+		}
+	}
+#endif
 
 	// discard stale or duplicated packets
 	if( sequence <= chan->incoming_sequence )
@@ -339,185 +380,13 @@ bool Netchan_Process( netchan_t *chan, sizebuf_t *msg )
 	if( chan->compress ) Huff_DecompressPacket( msg, ( chan->sock == NS_SERVER) ? 10 : 8 );
 
 	// the message can now be read from the current message pointer
+	// update statistics counters
+	chan->frame_latency = chan->frame_latency * OLD_AVG + (chan->outgoing_sequence - sequence_ack) * (1.0 - OLD_AVG);
+	chan->frame_rate = chan->frame_rate * OLD_AVG + (Sys_DoubleTime() - chan->last_received) * (1.0 - OLD_AVG);		
+	chan->good_count += 1;
+
+	// the message can now be read from the current message pointer
 	chan->last_received = Sys_DoubleTime ();
-	return true;
-}
-
-/*
-=============================================================================
-
-		NET MISC HELPER FUNCTIONS
-
-=============================================================================
-*/
-/*
-===================
-NET_CompareBaseAdr
-
-Compares without the port
-===================
-*/
-bool NET_CompareBaseAdr( netadr_t a, netadr_t b )
-{
-	if( a.type != b.type ) return false;
-	if( a.type == NA_LOOPBACK ) return true;
-
-	if( a.type == NA_IP )
-	{
-		if(!memcmp(a.ip, b.ip, 4 ))
-			return true;
-		return false;
-	}
-	if (a.type == NA_IPX)
-	{
-		if((!memcmp( a.ipx, b.ipx, 10 )))
-			return true;
-		return false;
-	}
-	MsgDev( D_ERROR, "NET_CompareBaseAdr: bad address type\n" );
-	return false;
-}
-
-bool NET_CompareAdr( netadr_t a, netadr_t b )
-{
-	if( a.type != b.type )
-		return false;
-	if( a.type == NA_LOOPBACK )
-		return true;
-
-	if( a.type == NA_IP )
-	{
-		if((memcmp(a.ip, b.ip, 4 ) == 0) && a.port == b.port)
-			return true;
-		return false;
-	}
-	if( a.type == NA_IPX )
-	{
-		if((memcmp(a.ipx, b.ipx, 10) == 0) && a.port == b.port)
-			return true;
-		return false;
-	}
-	MsgDev( D_ERROR, "NET_CompareAdr: bad address type\n" );
-	return false;
-}
-
-bool NET_IsLocalAddress( netadr_t adr )
-{
-	return adr.type == NA_LOOPBACK;
-}
-
-/*
-=============================================================================
-
-LOOPBACK BUFFERS FOR LOCAL PLAYER
-
-=============================================================================
-*/
-bool NET_GetLoopPacket( netsrc_t sock, netadr_t *from, sizebuf_t *msg )
-{
-	int		i;
-	loopback_t	*loop;
-
-	loop = &loopbacks[sock];
-
-	if( loop->send - loop->get > MAX_LOOPBACK )
-		loop->get = loop->send - MAX_LOOPBACK;
-
-	if( loop->get >= loop->send )
-		return false;
-	i = loop->get & MASK_LOOPBACK;
-	loop->get++;
-
-	Mem_Copy( msg->data, loop->msgs[i].data, loop->msgs[i].datalen );
-	msg->cursize = loop->msgs[i].datalen;
-	memset( from, 0, sizeof(*from));
-	from->type = NA_LOOPBACK;
-	return true;
-
-}
-
-void NET_SendLoopPacket( netsrc_t sock, int length, void *data, netadr_t to )
-{
-	int		i;
-	loopback_t	*loop;
-
-	loop = &loopbacks[sock^1];
-
-	i = loop->send & MASK_LOOPBACK;
-	loop->send++;
-
-	Mem_Copy( loop->msgs[i].data, data, length );
-	loop->msgs[i].datalen = length;
-}
-
-/*
-=============================================================================
-
-		NETCHAN TRANSMIT\RECEIVED UTILS
-
-=============================================================================
-*/
-void NET_SendPacket( netsrc_t sock, int length, void *data, netadr_t to )
-{
-	// sequenced packets are shown in netchan, so just show oob
-	if( net_showpackets->integer && *(int *)data == -1 )
-		MsgDev( D_INFO, "send packet %4i\n", length);
-
-	if( to.type == NA_LOOPBACK )
-	{
-		NET_SendLoopPacket( sock, length, data, to );
-		return;
-	}
-
-	if( to.type == NA_BAD ) return;
-	Sys_SendPacket( length, data, to );
-}
-
-/*
-=============
-NET_StringToAdr
-
-Traps "localhost" for loopback, passes everything else to system
-=============
-*/
-bool NET_StringToAdr( const char *s, netadr_t *a )
-{
-	bool	r;
-	char	*port, base[MAX_SYSPATH];
-
-	if(!com.strcmp( s, "localhost" ))
-	{
-		memset( a, 0, sizeof(*a));
-		a->type = NA_LOOPBACK;
-		return true;
-	}
-
-	// look for a port number
-	com.strncpy( base, s, sizeof( base ));
-	port = com.strstr( base, ":" );
-	if( port )
-	{
-		*port = 0;
-		port++;
-	}
-
-	r = Sys_StringToAdr( base, a );
-
-	if( !r )
-	{
-		a->type = NA_BAD;
-		return false;
-	}
-
-	// inet_addr returns this if out of range
-	if( a->ip[0] == 255 && a->ip[1] == 255 && a->ip[2] == 255 && a->ip[3] == 255 )
-	{
-		a->type = NA_BAD;
-		return false;
-	}
-
-	if( port ) a->port = BigShort((short)com.atoi( port ));
-	else a->port = BigShort( PORT_SERVER );
 
 	return true;
 }

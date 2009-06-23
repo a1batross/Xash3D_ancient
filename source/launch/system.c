@@ -79,11 +79,16 @@ void Sys_GetStdAPI( void )
 	// network.c funcs
 	com.NET_Init = NET_Init;
 	com.NET_Shutdown = NET_Shutdown;
-	com.NET_ShowIP = NET_ShowIP;
 	com.NET_Config = NET_Config;
 	com.NET_AdrToString = NET_AdrToString;
-	com.NET_IsLANAddress = NET_IsLANAddress;
 	com.NET_StringToAdr = NET_StringToAdr;
+	com.NET_SendPacket = NET_SendPacket;
+	com.NET_IsLocalAddress = NET_IsLocalAddress;
+	com.NET_BaseAdrToString = NET_BaseAdrToString;
+	com.NET_StringToAdr = NET_StringToAdr;
+	com.NET_CompareAdr = NET_CompareAdr;
+	com.NET_CompareBaseAdr = NET_CompareBaseAdr;
+	com.NET_GetPacket = NET_GetPacket;
 	com.NET_SendPacket = NET_SendPacket;
 
 	// common functions
@@ -418,7 +423,6 @@ void Sys_CreateInstance( void )
 		Sys.Main = Host->Main;
 		Sys.Free = Host->Free;
 		Sys.CPrint = Host->CPrint;
-		Sys.MSG_Init = Host->MSG_Init;
 		if( baserc_dll.link )
 		{
 			CreateBaserc = (void *)baserc_dll.main;
@@ -441,11 +445,11 @@ void Sys_CreateInstance( void )
 	{
 	case HOST_NORMAL:
 		Con_ShowConsole( false );		// hide console
+		Cbuf_AddText( "exec init.rc\n" );	// execute startup config and cmdline
 	case HOST_DEDICATED:
-		Cbuf_AddText("exec init.rc\n");	// execute startup config and cmdline
 		Cbuf_Execute();
 		// if stuffcmds wasn't run, then init.rc is probably missing, use default
-		if(!Sys.stuffcmdsrun) Cbuf_ExecuteText( EXEC_NOW, "stuffcmds\n" );
+		if( !Sys.stuffcmdsrun ) Cbuf_ExecuteText( EXEC_NOW, "stuffcmds\n" );
 		break;
 	case HOST_DPVENC:
 	case HOST_BSPLIB:
@@ -874,7 +878,6 @@ void Sys_Init( void )
 	Sys.hInstance = (HINSTANCE)GetModuleHandle( NULL );
 
 	Sys_GetStdAPI();
-	Sys.MSG_Init = NULL;
 	Sys.Init = NullInit;
 	Sys.Main = NullFunc;
 	Sys.Free = NullFunc;
@@ -1242,9 +1245,6 @@ sys_event_t Sys_GetEvent( void )
 	MSG		msg;
 	sys_event_t	ev;
 	char		*s;
-	sizebuf_t		netmsg;
-	netadr_t		adr;
-	static bool	msg_init = false;
 	
 	// return if we have data
 	if( event_head > event_tail )
@@ -1276,31 +1276,6 @@ sys_event_t Sys_GetEvent( void )
 		b = Malloc( len );
 		com_strncpy( b, s, len - 1 );
 		Sys_QueEvent( SE_CONSOLE, 0, 0, len, b );
-	}
-
-	// check for network packets
-	if( Sys.MSG_Init )
-	{
-		msg_init = true;
-		Sys.MSG_Init( &netmsg, Sys.packet_received, sizeof( Sys.packet_received ));
-		if( NET_GetPacket( &adr, &netmsg ))
-		{
-			netadr_t		*buf;
-			int		len;
-
-			// copy out to a seperate buffer for qeueing
-			// the readcount stepahead is for SOCKS support
-			len = sizeof(netadr_t) + netmsg.cursize - netmsg.readcount;
-			buf = Malloc( len );
-			*buf = adr;
-			Mem_Copy( buf + 1, &netmsg.data[netmsg.readcount], netmsg.cursize - netmsg.readcount );
-			Sys_QueEvent( SE_PACKET, 0, 0, len, buf );
-		}
-	}
-	else if( !msg_init )
-	{
-		MsgDev( D_NOTE, "Sys_GetEvent: network support disabled\n" ); 
-		msg_init = true;
 	}
 
 	// return if we have data

@@ -1049,6 +1049,7 @@ void GL_SetDefaultState( void )
 
 	Matrix4x4_LoadIdentity( gl_state.matrix );
 	pglDisable( GL_TEXTURE_2D );
+	gl_state.draw_rendermode = kRenderNormal;
 	gl_state.draw_color[0] = 255;
 	gl_state.draw_color[1] = 255;
 	gl_state.draw_color[2] = 255;
@@ -1082,8 +1083,9 @@ void GL_Setup3D( void )
 	pglLoadMatrixf( gl_projectionMatrix );
 	pglMatrixMode( GL_MODELVIEW );
 
-	// Set state
+	// set state
 	gl_state.orthogonal = false;
+	gl_state.draw_rendermode = kRenderNormal;
 
 	GL_TexEnv( GL_MODULATE );
 	GL_Enable( GL_CULL_FACE );
@@ -1133,6 +1135,7 @@ void GL_Setup2D( void )
 
 	// Set state
 	gl_state.orthogonal = true;
+	gl_state.draw_rendermode = kRenderNormal;
 
 	GL_TexEnv( GL_MODULATE );
 

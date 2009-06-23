@@ -1152,7 +1152,7 @@ rmodel_t *Mod_ForName( const char *name, bool crash )
 	file = FS_Open( mod->name, "rb" );
 	if( !file )
 	{
-		if( crash ) Host_Error( "Mod_NumForName: %s not found\n", mod->name );
+		if( crash ) Host_Error( "Mod_ForName: %s not found\n", mod->name );
 		Mem_Set( mod->name, 0, sizeof( mod->name ));
 		return NULL;
 	}

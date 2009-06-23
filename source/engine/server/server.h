@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAX_MASTERS			8 			// max recipients for heartbeat packets
 #define LATENCY_COUNTS		16
 #define MAX_ENT_CLUSTERS		16
+#define CL_MAX_USERCMDS		16
 
 // classic quake flags
 #define SPAWNFLAG_NOT_EASY		0x00000100
@@ -104,12 +105,14 @@ typedef struct sv_client_s
 
 	char		userinfo[MAX_INFO_STRING];	// name, etc
 	int		lastframe;		// for delta compression
-	usercmd_t		lastcmd;			// for filling in big drops
-	usercmd_t		cmd;			// current user commands
+	usercmd_t		cmds[CL_MAX_USERCMDS];	// current user commands
+	usercmd_t		cmd;
+	int		num_cmds;			// number of received cmds
 
 	int		ping;
 	int		rate;
 	int		surpressCount;		// number of messages rate supressed
+	double		sendtime;			// time before send next packet
 
 	edict_t		*edict;			// EDICT_NUM(clientnum+1)
 	char		name[32];			// extracted from userinfo, color string allowed

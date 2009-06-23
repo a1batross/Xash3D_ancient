@@ -199,6 +199,7 @@ gotnewcl:
 	MSG_Init( &newcl->datagram, newcl->datagram_buf, sizeof(newcl->datagram_buf));
 	
 	newcl->state = cs_connected;
+	newcl->sendtime = host.realtime;
 	newcl->lastmessage = host.realtime;
 	newcl->lastconnect = host.realtime;
 
@@ -467,17 +468,12 @@ void SV_RemoteCommand( netadr_t from, sizebuf_t *msg )
 void SV_SetAngle( edict_t *ent, const float *rgflAngles )
 {
 	if( !ent || !ent->pvServerData || !ent->pvServerData->client ) return;
-#if 0
-	ent->pvServerData->s.delta_angles[0] = rgflAngles[0] - ent->pvServerData->client->lastcmd.angles[0];
-	ent->pvServerData->s.delta_angles[1] = rgflAngles[1] - ent->pvServerData->client->lastcmd.angles[1];
-	ent->pvServerData->s.delta_angles[2] = rgflAngles[2] - ent->pvServerData->client->lastcmd.angles[2];
-#else
+
 	MSG_Begin( svc_setangle );
 	MSG_WriteAngle32( &sv.multicast, rgflAngles[0] );
 	MSG_WriteAngle32( &sv.multicast, rgflAngles[1] );
 	MSG_WriteAngle32( &sv.multicast, rgflAngles[2] );
 	MSG_Send( MSG_ONE_R, vec3_origin, ent );
-#endif
 }
 
 /*
@@ -557,7 +553,8 @@ void SV_New_f( sv_client_t *cl )
 		ent = EDICT_NUM( playernum + 1 );
 		ent->serialnumber = playernum + 1;
 		cl->edict = ent;
-		Mem_Set( &cl->lastcmd, 0, sizeof(cl->lastcmd));
+		cl->num_cmds = 0;
+		Mem_Set( &cl->cmd, 0, sizeof( cl->cmd ));
 
 		// begin fetching configstrings
 		MSG_WriteByte( &cl->netchan.message, svc_stufftext );
@@ -791,7 +788,7 @@ void SV_UserinfoChanged( sv_client_t *cl )
 
 	// if the client is on the same subnet as the server and we aren't running an
 	// internet public server, assume they don't need a rate choke
-	if(NET_IsLANAddress( cl->netchan.remote_address ))
+	if(NET_IsLocalAddress( cl->netchan.remote_address ))
 	{
 		// lans should not rate limit
 		cl->rate = 99999;
@@ -1352,7 +1349,7 @@ void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 
 /*
 ==================
-SV_UserMove
+SV_ReadClientMove
 
 The message usually contains all the movement commands 
 that were in the last three packets, so that the information
@@ -1362,13 +1359,10 @@ On very fast clients, there may be multiple usercmd packed into
 each of the backup packets.
 ==================
 */
-static void SV_UserMove( sv_client_t *cl, sizebuf_t *msg )
+static void SV_ReadClientMove( sv_client_t *cl, sizebuf_t *msg )
 {
-	usercmd_t	nullcmd;
-	usercmd_t	oldest, oldcmd, newcmd;
-	int	checksumIndex, lastframe, net_drop;
+	int	i, checksumIndex, lastframe;
 	int	checksum, calculatedChecksum;
-	double	frametime[2];
 	double	latency;
 
 	checksumIndex = msg->readcount;
@@ -1384,14 +1378,17 @@ static void SV_UserMove( sv_client_t *cl, sizebuf_t *msg )
 		}
 	}
 
-	Mem_Set( &nullcmd, 0, sizeof( nullcmd ));
-	MSG_ReadDeltaUsercmd( msg, &nullcmd, &oldest);
-	MSG_ReadDeltaUsercmd( msg, &oldest, &oldcmd );
-	MSG_ReadDeltaUsercmd( msg, &oldcmd, &newcmd );
+	Mem_Set( &cl->cmds[0], 0, sizeof( usercmd_t ));
+	for( i = 0; i < 3; i++ )
+	{
+		MSG_ReadDeltaUsercmd( msg, &cl->cmds[i], &cl->cmds[i+1] );
+		cl->num_cmds++;
+	}
 
 	if( cl->state != cs_spawned )
 	{
 		cl->lastframe = -1;
+		cl->num_cmds = 0;
 		return;
 	}
 
@@ -1400,32 +1397,47 @@ static void SV_UserMove( sv_client_t *cl, sizebuf_t *msg )
 	if( calculatedChecksum != checksum )
 	{
 		MsgDev( D_ERROR, "SV_UserMove: failed command checksum for %s (%d != %d)\n", cl->name, calculatedChecksum, checksum );
-		return;
+		cl->num_cmds = 0;
 	}
+}
 
-	if( !sv_paused->value )
+void SV_ExecuteClientMoves( sv_client_t *cl )
+{
+	int	moveindex;
+	float	moveframetime;
+	double	oldframetime;
+	double	oldframetime2;
+
+	if( cl->num_cmds < 1 ) return;
+
+	// only start accepting input once the player is spawned
+	if( cl->state != cs_spawned ) return;
+
+	for( moveindex = 0; moveindex < cl->num_cmds; moveindex++ )
 	{
-		frametime[0] = sv.frametime;
-		frametime[1] = svgame.globals->frametime;
-		sv.frametime = (newcmd.msec * 0.001);
-		svgame.globals->frametime = sv.frametime;
-		
-		net_drop = cl->netchan.dropped;
-		if( net_drop < 20 )
+		usercmd_t *move = cl->cmds + moveindex;
+
+		move->time = max( move->time, cl->cmd.time ); // prevent backstepping of time
+		moveframetime = bound( 0, move->time - cl->cmd.time, min( 0.1, sv.frametime * 4 ));
+		cl->cmd = *move;
+
+		if( moveframetime <= 0 ) continue;
+		oldframetime = svgame.globals->frametime;
+		oldframetime2 = sv.frametime;
+			
+		// the server and qc frametime values must be changed temporarily
+		svgame.globals->frametime = sv.frametime = moveframetime;
+		// if move is more than 50ms, split it into two moves (this matches QWSV behavior and the client prediction)
+		if( sv.frametime > 0.05 )
 		{
-			while( net_drop > 2 )
-			{
-				SV_Physics_ClientMove( cl, &cl->lastcmd );
-				net_drop--;
-			}
-			if( net_drop > 1 ) SV_Physics_ClientMove( cl, &oldest );
-			if( net_drop > 0 ) SV_Physics_ClientMove( cl, &oldcmd );
+			svgame.globals->frametime = sv.frametime = moveframetime * 0.5f;
+			SV_Physics_ClientMove( cl, &cl->cmd );
 		}
-		SV_Physics_ClientMove( cl, &newcmd );
+			
+		SV_Physics_ClientMove( cl, &cl->cmd );
+		sv.frametime = oldframetime2;
+		svgame.globals->frametime = oldframetime;
 	}
-	sv.frametime = frametime[0];
-	svgame.globals->frametime = frametime[1];
-	cl->lastcmd = newcmd;
 }
 
 /*
@@ -1441,11 +1453,17 @@ void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg )
 	bool	move_issued = false;
 	char	*s;
 
+	cl->num_cmds = 0;
+
 	// read optional clientCommand strings
 	while( cl->state != cs_zombie )
 	{
 		c = MSG_ReadByte( msg );
-		if( c == -1 ) break;
+		if( c == -1 )
+		{
+			SV_ExecuteClientMoves( cl );
+			break;
+		}
 
 		switch( c )
 		{
@@ -1457,7 +1475,7 @@ void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg )
 		case clc_move:
 			if( move_issued ) return; // someone is trying to cheat...
 			move_issued = true;
-			SV_UserMove( cl, msg );
+			SV_ReadClientMove( cl, msg );
 			break;
 		case clc_stringcmd:	
 			s = MSG_ReadString( msg );

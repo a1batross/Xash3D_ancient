@@ -1722,7 +1722,7 @@ FS_SysFileExists
 Look for a file in the filesystem only
 ==================
 */
-bool FS_SysFileExists (const char *path)
+bool FS_SysFileExists( const char *path )
 {
 	int desc;
      

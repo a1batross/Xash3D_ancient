@@ -124,6 +124,14 @@ void SV_PacketEvent( netadr_t from, sizebuf_t *msg )
 	if( i != Host_MaxClients()) return;
 }
 
+void SV_ReadPackets( void )
+{
+	while( NET_GetPacket( NS_SERVER, &net_from, &net_message ))
+	{
+		SV_PacketEvent( net_from, &net_message );
+	}
+}
+
 /*
 ==================
 SV_CheckTimeouts
@@ -234,6 +242,9 @@ void SV_Frame( void )
 
 	// check timeouts
 	SV_CheckTimeouts ();
+
+	// read packets from clients
+	SV_ReadPackets ();
 
 	// update ping based on the last known frame from all clients
 	SV_CalcPings ();
@@ -376,6 +387,8 @@ void SV_Init( void )
 
 	// init game
 	SV_LoadProgs( "server" );
+
+	MSG_Init( &net_message, net_message_buffer, sizeof( net_message_buffer ));
 }
 
 /*

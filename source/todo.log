@@ -79,9 +79,10 @@ Beta 13.12.08
 48. building uimenu.dll
 49. implement new timers			OK
 50. fixup network packets rate
-51. fixup stair climbing
-52. implement new user move system
-
+51. fixup stair climbing			OK
+52. implement new user move system		OK
+53. finish RenderMode for shaders		OK
+54. q1/hl1 bsp format ?
 
 Список доступных рендереров:  	Что в них интересного
 0. Q3Fusion			(Mirrors, Portals)

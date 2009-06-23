@@ -81,11 +81,11 @@ typedef struct script_s script_t;	// script machine
 typedef struct { const char *name; void **func; } dllfunc_t; // Sys_LoadLibrary stuff
 typedef struct { int numfilenames; char **filenames; char *filenamesbuffer; } search_t;
 typedef struct { int ofs; int type; const char *name; } fields_t;	// prvm custom fields
-typedef void (*cmsave_t) (void* handle, const void* buffer, size_t size);
-typedef void (*cmdraw_t)( int color, int numpoints, const float *points, const int *elements );
+typedef void ( *cmsave_t )( void* handle, const void* buffer, size_t size );
+typedef void ( *cmdraw_t )( int color, int numpoints, const float *points, const int *elements );
 typedef void ( *setpair_t )( const char *key, const char *value, void *buffer, void *numpairs );
-typedef enum { NA_BAD, NA_LOOPBACK, NA_BROADCAST, NA_IP, NA_IPX, NA_BROADCAST_IPX } netadrtype_t;
 typedef enum { mod_bad, mod_world, mod_brush, mod_studio, mod_sprite } modtype_t;
+typedef enum { NA_LOOPBACK, NA_BROADCAST, NA_IP } netadrtype_t;
 typedef enum { NS_CLIENT, NS_SERVER } netsrc_t;
 typedef void ( *xcommand_t )( void );
 
@@ -200,7 +200,6 @@ typedef enum
 	SE_CHAR,		// ev.value[0] is an ascii char
 	SE_MOUSE,		// ev.value[0] and ev.value[1] are reletive signed x / y moves
 	SE_CONSOLE,	// ev.data is a char*
-	SE_PACKET		// ev.data is a netadr_t followed by data bytes to ev.length
 } ev_type_t;
 
 typedef struct
@@ -438,12 +437,15 @@ typedef struct stdilib_api_s
 	// network.c funcs
 	void (*NET_Init)( void );
 	void (*NET_Shutdown)( void );
-	void (*NET_ShowIP)( void );
 	void (*NET_Config)( bool net_enable );
 	char *(*NET_AdrToString)( netadr_t a );
-	bool (*NET_IsLANAddress)( netadr_t adr );
+	bool (*NET_IsLocalAddress)( netadr_t adr );
+	char *(*NET_BaseAdrToString)( const netadr_t a );
 	bool (*NET_StringToAdr)( const char *s, netadr_t *a );
-	void (*NET_SendPacket)( int length, const void *data, netadr_t to  );
+	bool (*NET_CompareAdr)( const netadr_t a, const netadr_t b );
+	bool (*NET_CompareBaseAdr)( const netadr_t a, const netadr_t b );
+	bool (*NET_GetPacket)( netsrc_t sock, netadr_t *from, sizebuf_t *msg );
+	void (*NET_SendPacket)( netsrc_t sock, size_t length, const void *data, netadr_t to );
 
 	// common functions
 	void (*Com_InitRootDir)( char *path );			// init custom rootdir 
@@ -738,12 +740,15 @@ network messages
 */
 #define NET_Init			com.NET_Init
 #define NET_Shutdown		com.NET_Shutdown
-#define NET_ShowIP			com.NET_ShowIP
 #define NET_Config			com.NET_Config
 #define NET_AdrToString		com.NET_AdrToString
-#define NET_IsLANAddress		com.NET_IsLANAddress
-#define Sys_StringToAdr		com.NET_StringToAdr
-#define Sys_SendPacket		com.NET_SendPacket
+#define NET_BaseAdrToString		com.NET_BaseAdrToString
+#define NET_IsLocalAddress		com.NET_IsLocalAddress
+#define NET_StringToAdr		com.NET_StringToAdr
+#define NET_SendPacket		com.NET_SendPacket
+#define NET_GetPacket		com.NET_GetPacket
+#define NET_CompareAdr		com.NET_CompareAdr
+#define NET_CompareBaseAdr		com.NET_CompareBaseAdr
 
 /*
 ===========================================

@@ -20,7 +20,6 @@ int  in_mouse_oldbuttonstate;
 int  window_center_x, window_center_y;
 uint in_mouse_wheel;
 RECT window_rect;
-POINT cur_pos;
 
 cvar_t *scr_xpos;		// X coordinate of window position
 cvar_t *scr_ypos;		// Y coordinate of window position

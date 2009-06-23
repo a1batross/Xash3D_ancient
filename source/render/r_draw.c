@@ -52,50 +52,16 @@ void R_DrawSetParms( shader_t handle, kRenderMode_t rendermode, int frame )
 	if( handle < 0 || handle > MAX_SHADERS || !(shader = &r_shaders[handle]) || !shader->numStages )
 		return;
 
-	// change rendermode if need
-	if( shader->flags & SHADER_RENDERMODE )
-	{
-		switch( rendermode )
-		{
-		case kRenderNormal:
-			shader->stages[0]->flags &= ~(SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAFUNC);
-			break;
-		case kRenderTransColor:
-			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-			shader->stages[0]->blendFunc.src = GL_ZERO;
-			shader->stages[0]->blendFunc.dst = GL_SRC_COLOR;
-			break;
-		case kRenderTransTexture:
-			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
-			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
-			break;
-		case kRenderGlow:
-			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-			shader->stages[0]->blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
-			shader->stages[0]->blendFunc.dst = GL_ONE;
-			break;
-		case kRenderTransAlpha:
-			shader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
-			shader->stages[0]->alphaFunc.func = GL_GREATER;
-			shader->stages[0]->alphaFunc.ref = 0.666;
-			break;
-		case kRenderTransAdd:
-			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
-			shader->stages[0]->blendFunc.dst = GL_ONE;
-			break;
-		}
-	}
+	gl_state.draw_rendermode = rendermode;
 
 	if( !shader->stages[0]->numBundles || !shader->stages[0]->bundles[0]->numTextures )
 		return;
 
 	// change frame if need
-	if( shader->stages[0]->bundles[0]->flags & STAGEBUNDLE_FRAMES && shader->stages[0]->bundles[0]->currentFrame != frame )
+	if( shader->stages[0]->bundles[0]->flags & STAGEBUNDLE_FRAMES )
 	{
 		// make sure what frame inbound
-		shader->stages[0]->bundles[0]->currentFrame = bound( 0, frame, shader->stages[0]->bundles[0]->numTextures - 1 );
+		gl_state.draw_frame = bound( 0, frame, shader->stages[0]->bundles[0]->numTextures - 1 );
 	}
 }
 
@@ -110,7 +76,7 @@ Call RB_RenderMesh to flush.
 void R_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, float sh, float th, shader_t handle )
 {
 	ref_shader_t *shader = tr.defaultShader;
-	
+
 	if( handle >= 0 && handle < MAX_SHADERS ) shader = &r_shaders[handle];
 	RB_DrawStretchPic( x, y, w, h, sl, tl, sh, th, shader );
 }

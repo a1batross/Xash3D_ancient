@@ -1283,11 +1283,9 @@ static bool R_ParseGeneralSort( ref_shader_t *shader, script_t *script )
 	else if( !com.stricmp( tok.string, "blend" )) shader->sort = SORT_BLEND;
 	else if( !com.stricmp( tok.string, "blend2" )) shader->sort = SORT_BLEND2;
 	else if( !com.stricmp( tok.string, "blend3" )) shader->sort = SORT_BLEND3;
-	else if( !com.stricmp( tok.string, "blend4" )) shader->sort = SORT_BLEND4;
 	else if( !com.stricmp( tok.string, "outerBlend" )) shader->sort = SORT_OUTERBLEND;
 	else if( !com.stricmp( tok.string, "additive" )) shader->sort = SORT_ADDITIVE;
 	else if( !com.stricmp( tok.string, "nearest" )) shader->sort = SORT_NEAREST;
-	else if( !com.stricmp( tok.string, "postProcess" )) shader->sort = SORT_POST_PROCESS;
 	else
 	{
 		shader->sort = com.atoi( tok.string );
@@ -1462,17 +1460,6 @@ static bool R_ParseGeneralEntityMergable( ref_shader_t *shader, script_t *script
 
 /*
 =================
-R_ParseGeneralRenderMode
-=================
-*/
-static bool R_ParseGeneralRenderMode( ref_shader_t *shader, script_t *script )
-{
-	shader->flags |= SHADER_RENDERMODE;
-	return true;
-}
-
-/*
-=================
 R_ParseGeneralTessSize
 =================
 */
@@ -1601,6 +1588,18 @@ static bool R_ParseStageIf( ref_shader_t *shader, shaderStage_t *stage, script_t
 	}
 	return true;
 }
+
+/*
+=================
+R_ParseStageRenderMode
+=================
+*/
+static bool R_ParseStageRenderMode( ref_shader_t *shader, shaderStage_t *stage, script_t *script )
+{
+	stage->flags |= SHADERSTAGE_RENDERMODE;
+	return true;
+}
+
 /*
 =================
 R_ParseStageNoPicMip
@@ -3297,7 +3296,14 @@ static bool R_ParseStageRgbGen( ref_shader_t *shader, shaderStage_t *stage, scri
 	else if( !com.stricmp( tok.string, "oneMinusEntity" ))
 		stage->rgbGen.type = RGBGEN_ONEMINUSENTITY;
 	else if( !com.stricmp( tok.string, "lightingAmbient" ))
+	{
 		stage->rgbGen.type = RGBGEN_LIGHTINGAMBIENT;
+		if( Com_ReadToken( script, false, &tok ))
+		{
+			if( !com.stricmp( tok.string, "invLight" ))
+				stage->rgbGen.params[0] = true;
+		}
+	}
 	else if( !com.stricmp( tok.string, "lightingDiffuse" ))
 		stage->rgbGen.type = RGBGEN_LIGHTINGDIFFUSE;
 	else if( !com.stricmp( tok.string, "const" ) || !com.stricmp( tok.string, "constant" ))
@@ -3521,17 +3527,16 @@ typedef struct
 static shaderGeneralCmd_t r_shaderGeneralCmds[] =
 {
 {"surfaceParm",	R_ParseGeneralSurfaceParm	},
-{ "noPicMip",	R_ParseGeneralNoPicmip	},
-{ "noCompress",	R_ParseGeneralNoCompress	},
-{ "highQuality",	R_ParseGeneralHighQuality	},
-{ "linear",	R_ParseGeneralLinear	},
-{ "nearest",	R_ParseGeneralNearest	},
-{ "clamp",	R_ParseGeneralClamp		},
-{ "zeroClamp",	R_ParseGeneralZeroClamp	},
-{ "alphaZeroClamp",	R_ParseGeneralAlphaZeroClamp	},
+{"noPicMip",	R_ParseGeneralNoPicmip	},
+{"noCompress",	R_ParseGeneralNoCompress	},
+{"highQuality",	R_ParseGeneralHighQuality	},
+{"linear",	R_ParseGeneralLinear	},
+{"nearest",	R_ParseGeneralNearest	},
+{"clamp",		R_ParseGeneralClamp		},
+{"zeroClamp",	R_ParseGeneralZeroClamp	},
+{"alphaZeroClamp",	R_ParseGeneralAlphaZeroClamp	},
 {"noShadows",	R_ParseGeneralNoShadows	},
 {"nomarks",	R_ParseGeneralNoFragments	},
-{"renderMode",	R_ParseGeneralRenderMode,	},
 {"entityMergable",	R_ParseGeneralEntityMergable	},
 {"polygonOffset",	R_ParseGeneralPolygonOffset	},
 {"cull",		R_ParseGeneralCull		},
@@ -3546,6 +3551,7 @@ static shaderGeneralCmd_t r_shaderGeneralCmds[] =
 static shaderStageCmd_t r_shaderStageCmds[] =
 {
 {"if",		R_ParseStageIf		},
+{"renderMode",	R_ParseStageRenderMode	},
 {"noPicMip",	R_ParseStageNoPicMip	},
 {"noCompress",	R_ParseStageNoCompress	},
 {"highQuality",	R_ParseStageHighQuality	},
@@ -3897,7 +3903,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 		break;
 	case SHADER_TEXTURE:
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
-		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, 0, 0, 0 );
+		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( va( "\"%s\"", shader->name ), buffer, bufsize, 0, 0, 0 );
 		if( !shader->stages[0]->bundles[0]->textures[0] )
 		{
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
@@ -3929,7 +3935,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 			shader->surfaceParm |= SURF_NOLIGHTMAP;
 	         		shader->sort = SORT_SEETHROUGH;
 		}
-		else shader->flags |= SHADER_RENDERMODE; // never ovverrides custom surfaces
+		else shader->stages[0]->flags |= SHADERSTAGE_RENDERMODE; // never ovverrides custom surfaces
 		if( shader->surfaceParm & SURF_WARP )
 		{
 			shader->flags |= SHADER_TESSSIZE;
@@ -3980,8 +3986,9 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 		{
 			shader->stages[0]->flags |= (SHADERSTAGE_BLENDFUNC|SHADERSTAGE_ALPHAGEN|SHADERSTAGE_RGBGEN);
 			shader->stages[0]->rgbGen.type = RGBGEN_IDENTITYLIGHTING;
-			shader->stages[0]->alphaGen.type = ALPHAGEN_IDENTITY;
-			shader->stages[0]->blendFunc.src = GL_ONE;
+			shader->stages[0]->alphaGen.type = ALPHAGEN_CONST;
+			shader->stages[0]->alphaGen.params[0] = 0.5;
+			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
 			shader->stages[0]->blendFunc.dst = GL_ONE;
 	         		shader->sort = SORT_ADDITIVE;
 		}
@@ -3994,7 +4001,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 			shader->stages[0]->alphaFunc.ref = 0.666;
 			shader->sort = SORT_SEETHROUGH;
 		}
-		else shader->flags |= SHADER_RENDERMODE;
+		else shader->stages[0]->flags |= SHADERSTAGE_RENDERMODE;
 		shader->stages[0]->bundles[0]->numTextures++;
 		shader->stages[0]->numBundles++;
 		shader->numStages++;
@@ -4082,7 +4089,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 			shader->stages[0]->alphaFunc.ref = 0.666;
 			shader->sort = SORT_SEETHROUGH;
 		}
-		shader->flags |= SHADER_RENDERMODE; // any sprite can overrided himself rendermode
+		shader->stages[0]->flags |= SHADERSTAGE_RENDERMODE; // any sprite can overrided himself rendermode
 		shader->stages[0]->numBundles++;
 		shader->numStages++;
 		break;
@@ -4095,10 +4102,10 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
 			shader->stages[0]->bundles[0]->textures[0] = r_defaultConchars;
 		}
+		shader->stages[0]->flags |= (SHADERSTAGE_BLENDFUNC|SHADERSTAGE_RGBGEN|SHADERSTAGE_ALPHAGEN);
 		shader->stages[0]->rgbGen.type = RGBGEN_VERTEX;
 		shader->stages[0]->alphaGen.type = ALPHAGEN_VERTEX;
 		shader->stages[0]->bundles[0]->numTextures++;
-		shader->stages[0]->flags |= (SHADERSTAGE_BLENDFUNC|SHADERSTAGE_RGBGEN|SHADERSTAGE_ALPHAGEN);
 		shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
 		shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 		shader->stages[0]->numBundles++;
@@ -4113,7 +4120,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 			byte	*buffer = FS_LoadInternal( shader->name + 1, &bufsize );
 			shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_NOPICMIP|TF_STATIC, TF_LINEAR, 0 );
 		}
-		else shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_NOPICMIP, TF_LINEAR, 0 );
+		else shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( va( "\"%s\"", shader->name ), buffer, bufsize, TF_NOPICMIP, TF_LINEAR, 0 );
 
 		if( !shader->stages[0]->bundles[0]->textures[0] )
 		{
@@ -4124,12 +4131,7 @@ static ref_shader_t *R_CreateDefaultShader( const char *name, int shaderType, ui
 				shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
 			}
 		}
-		shader->flags |= SHADER_RENDERMODE; // client.dll uses rendermode
-		shader->stages[0]->rgbGen.type = RGBGEN_VERTEX;
 		shader->stages[0]->bundles[0]->numTextures++;
-		shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC|SHADERSTAGE_RGBGEN;
-		shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
-		shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 		shader->stages[0]->numBundles++;
 		shader->numStages++;
 		break;
@@ -4380,6 +4382,10 @@ static void R_FinishShader( ref_shader_t *shader )
 				stage->ignore = true;
 		}
 
+		// for custom sorting
+		if( stage->flags & SHADERSTAGE_RENDERMODE )
+			shader->flags |= SHADER_RENDERMODE; 
+
 		// set rgbGen if unset
 		if(!(stage->flags & SHADERSTAGE_RGBGEN))
 		{
@@ -4391,18 +4397,19 @@ static void R_FinishShader( ref_shader_t *shader )
 			case SHADER_TEXTURE:
 				if((stage->flags & SHADERSTAGE_BLENDFUNC) && (stage->bundles[0]->texType != TEX_LIGHTMAP))
 					stage->rgbGen.type = RGBGEN_IDENTITYLIGHTING;
+				else if( stage->flags & SHADERSTAGE_RENDERMODE )
+					stage->rgbGen.type = RGBGEN_ENTITY;
 				else stage->rgbGen.type = RGBGEN_IDENTITY;
 				break;
 			case SHADER_STUDIO:
-				if( shader->surfaceParm & (SURF_ADDITIVE|SURF_GLOW))
-					stage->rgbGen.type = RGBGEN_IDENTITYLIGHTING;
+				if( stage->flags & SHADERSTAGE_RENDERMODE )
+					stage->rgbGen.type = RGBGEN_ENTITY;
 				else stage->rgbGen.type = RGBGEN_LIGHTINGAMBIENT;
 				break;
 			case SHADER_SPRITE:
 				if( shader->surfaceParm & (SURF_ALPHA|SURF_BLEND))
 					stage->rgbGen.type = RGBGEN_LIGHTINGAMBIENT;
-				else if( shader->surfaceParm & (SURF_ADDITIVE|SURF_GLOW))
-					stage->rgbGen.type = RGBGEN_ENTITY;
+				else stage->rgbGen.type = RGBGEN_ENTITY;
 				break;
 			case SHADER_NOMIP:
 			case SHADER_GENERIC:
@@ -4427,13 +4434,19 @@ static void R_FinishShader( ref_shader_t *shader )
 						stage->alphaGen.type = ALPHAGEN_VERTEX;
 					else stage->alphaGen.type = ALPHAGEN_IDENTITY;
 				}
+				else if( stage->flags & SHADERSTAGE_RENDERMODE )
+					stage->alphaGen.type = ALPHAGEN_ENTITY;
 				else stage->alphaGen.type = ALPHAGEN_IDENTITY;
 				break;
 			case SHADER_STUDIO:
-				stage->alphaGen.type = ALPHAGEN_ENTITY;
+				if( stage->flags & SHADERSTAGE_RENDERMODE )
+					stage->alphaGen.type = ALPHAGEN_ENTITY;
+				else stage->alphaGen.type = ALPHAGEN_IDENTITY;
 				break;
 			case SHADER_SPRITE:
-				stage->alphaGen.type = ALPHAGEN_ENTITY;
+				if( stage->flags & SHADERSTAGE_RENDERMODE )
+					stage->alphaGen.type = ALPHAGEN_ENTITY;
+				else stage->alphaGen.type = ALPHAGEN_IDENTITY;
 				break;
 			case SHADER_NOMIP:
 			case SHADER_GENERIC:
@@ -4534,6 +4547,9 @@ static void R_FinishShader( ref_shader_t *shader )
 			}
 		}
 	}
+
+	// member real sort for restore when rendermode is reset
+	shader->realsort = shader->sort;
 }
 
 /*

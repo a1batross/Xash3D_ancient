@@ -330,8 +330,10 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 		}
 	}
 
+	MSG_WriteByte( msg, svc_time );
+	MSG_WriteFloat( msg, sv.time );		// send a servertime before each frame
+
 	MSG_WriteByte( msg, svc_frame );
-	MSG_WriteFloat( msg, sv.time );		// send a servertime
 	MSG_WriteLong( msg, sv.framenum );
 	MSG_WriteLong( msg, lastframe );		// what we are delta'ing from
 	MSG_WriteByte( msg, cl->surpressCount );	// rate dropped packets
@@ -443,6 +445,9 @@ bool SV_SendClientDatagram( sv_client_t *cl )
 	byte		msg_buf[MAX_MSGLEN];
 	sizebuf_t		msg;
 
+	if( cl->sendtime > host.realtime )
+		return false;
+
 	SV_BuildClientFrame( cl );
 
 	MSG_Init( &msg, msg_buf, sizeof( msg_buf ));
@@ -473,6 +478,7 @@ bool SV_SendClientDatagram( sv_client_t *cl )
 	// record information about the message
 	cl->frames[cl->netchan.outgoing_sequence & UPDATE_MASK].msg_size = msg.cursize;
 	cl->frames[cl->netchan.outgoing_sequence & UPDATE_MASK].msg_sent = host.realtime;
+	cl->sendtime = host.realtime + host_ticrate->value; // FIXME: this relationship is totally wrong
 
 	return true;
 }
@@ -493,9 +499,6 @@ bool SV_RateDrop( sv_client_t *cl )
 	if( NET_IsLocalAddress( cl->netchan.remote_address ))
 		return false;
 	
-	if( NET_IsLANAddress( cl->netchan.remote_address ))
-		return false;
-
 	for( i = 0; i < UPDATE_BACKUP; i++ )
 		total += cl->frames[i].msg_size;
 

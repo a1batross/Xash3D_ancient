@@ -55,7 +55,6 @@ typedef struct glstate_s
 	word		stateRamp[768];		// original gamma ramp
 	uint		screenTexture;
 
-	rgba_t		draw_color;		// current color
 	int		texNum[MAX_TEXTURE_UNITS];
 	int		texEnv[MAX_TEXTURE_UNITS];
 	uint		activeTMU;
@@ -69,7 +68,7 @@ typedef struct glstate_s
 	bool		depth_test;
 	bool		blend;
 
-	// OpenGL current state
+	// OpenGL current state 3D
 	matrix4x4		matrix;
 	GLenum		cullMode;
 	GLfloat		offsetFactor;
@@ -81,6 +80,11 @@ typedef struct glstate_s
 	GLenum		depthFunc;
 	GLboolean		depthMask;
 	GLfloat		polygonoffset[2];
+
+	// additional params for orthogonal drawing
+	rgba_t		draw_color;
+	kRenderMode_t	draw_rendermode;	// rendermode for drawing
+	int		draw_frame;	// will be reset after each drawing
 } glstate_t;
 
 // contains constant values that are always

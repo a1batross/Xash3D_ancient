@@ -1428,20 +1428,12 @@ void SV_Physics_Step( edict_t *ent )
 		}
 		else
 		{
-			// freefall if not onground
-			int hitsound = ent->v.velocity[2] < sv_gravity->value * -0.1;
-
 			SV_AddGravity( ent );
 			SV_CheckVelocity( ent );
 			SV_FlyMove( ent, svgame.globals->frametime, NULL, SV_ContentsMask( ent ));
 			SV_LinkEdict( ent );
 
 			// just hit ground
-			if( hitsound && ent->v.flags & FL_ONGROUND )
-			{
-				Msg("Landing crash\n");
-				//SV_StartSound(ent, 0, sv_sound_land.string, 255, 1);
-			}
 			ent->pvServerData->forceupdate = true;
 		}
 	}

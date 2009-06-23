@@ -409,14 +409,10 @@ CL_FinishMove
 */
 void CL_FinishMove( usercmd_t *cmd )
 {
-	int	i, ms;
+	int	i;
 
-	// send milliseconds of time to apply the move
-	// FIXME: return sv.time to let server calculate ping
-	ms = host.frametime * 1000;
-	if( ms > 250 ) ms = 100; // time was unreasonable
-	cmd->msec = ms;
-
+	// so server can get ping times
+	cmd->time = cl.mtime[0];
 	CL_ClampPitch();
 
 	for( i = 0; i < 3; i++ )
@@ -476,21 +472,19 @@ void CL_SendCmd( void )
 	usercmd_t		*cmd, *oldcmd;
 	usercmd_t		nullcmd;
 	int		checksumIndex;
-	int		curtime;
 
 	// build a command even if not connected
 
 	// save this command off for prediction
 	i = cls.netchan.outgoing_sequence & (CMD_BACKUP-1);
 	cmd = &cl.cmds[i];
-	curtime = Sys_Milliseconds();
 	*cmd = CL_CreateCmd ();
 
-	if(cls.state == ca_disconnected || cls.state == ca_connecting)
+	if( cls.state == ca_disconnected || cls.state == ca_connecting )
 		return;
 
 	// ignore commands for demo mode
-	if(cls.state == ca_cinematic || cls.demoplayback)
+	if( cls.state == ca_cinematic || cls.demoplayback )
 		return;
 
 	if( cls.state == ca_connected )
@@ -501,7 +495,7 @@ void CL_SendCmd( void )
 	}
 
 	// send a userinfo update if needed
-	if (userinfo_modified)
+	if( userinfo_modified )
 	{
 		userinfo_modified = false;
 		MSG_WriteByte (&cls.netchan.message, clc_userinfo);

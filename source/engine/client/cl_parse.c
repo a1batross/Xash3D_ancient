@@ -509,6 +509,10 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 		case svc_print:
 			Con_Print( va( "^6%s\n", MSG_ReadString( msg )));
 			break;
+		case svc_time:
+			cl.mtime[1] = cl.mtime[0];
+			cl.mtime[0] = MSG_ReadFloat( msg );
+			break;
 		case svc_frame:
 			CL_ParseFrame( msg );
 			break;

@@ -285,11 +285,6 @@ Returns last event time
 void Host_EventLoop( void )
 {
 	sys_event_t	ev;
-	netadr_t		ev_from;
-	byte		bufData[MAX_MSGLEN];
-	sizebuf_t		buf;
-
-	MSG_Init( &buf, bufData, sizeof( bufData ));
 
 	while( 1 )
 	{
@@ -297,15 +292,7 @@ void Host_EventLoop( void )
 		switch( ev.type )
 		{
 		case SE_NONE:
-			// manually send packet events for the loopback channel
-			while( NET_GetLoopPacket( NS_CLIENT, &ev_from, &buf ))
-			{
-				CL_PacketEvent( ev_from, &buf );
-			}
-			while( NET_GetLoopPacket( NS_SERVER, &ev_from, &buf ))
-			{
-				SV_PacketEvent( ev_from, &buf );
-			}
+			// end of events
 			return;
 		case SE_KEY:
 			Key_Event( ev.value[0], ev.value[1] );
@@ -317,24 +304,7 @@ void Host_EventLoop( void )
 			CL_MouseEvent( ev.value[0], ev.value[1] );
 			break;
 		case SE_CONSOLE:
-			Cbuf_AddText(va( "%s\n", ev.data ));
-			break;
-		case SE_PACKET:
-			ev_from = *(netadr_t *)ev.data;
-			buf.cursize = ev.length - sizeof( ev_from );
-
-			// we must copy the contents of the message out, because
-			// the event buffers are only large enough to hold the
-			// exact payload, but channel messages need to be large
-			// enough to hold fragment reassembly
-			if((uint)buf.cursize > buf.maxsize )
-			{
-				MsgDev( D_WARN, "Host_EventLoop: oversize packet\n");
-				continue;
-			}
-			Mem_Copy( buf.data, (byte *)((netadr_t *)ev.data + 1), buf.cursize );
-			if ( SV_Active()) SV_PacketEvent( ev_from, &buf );
-			else CL_PacketEvent( ev_from, &buf );
+			Cbuf_AddText( va( "%s\n", ev.data ));
 			break;
 		default:
 			Host_Error( "Host_EventLoop: bad event type %i", ev.type );
@@ -417,10 +387,6 @@ void Host_Frame( double time )
 
 	Host_EventLoop ();	// process all system events
 	Cbuf_Execute ();	// execure commands
-
-	// if running the server locally, make intentions now
-	if( cls.state == ca_connected && SV_Active())
-		CL_SendCommand ();
 
 	SV_Frame (); // server frame
 	CL_Frame (); // client frame

@@ -162,7 +162,7 @@ static void Conv_FreeTracks( struct track_s track[] )
 
 	for( i = 0; i < 16; i++ )
 	{
-		if(track[i].data) Mem_Free( track[i].data ) ;
+		if( track[i].data ) Mem_Free( track[i].data ) ;
 	}
 }
 
@@ -192,7 +192,7 @@ static void Conv_WriteByte( char MIDItrack, char byte, struct track_s track[] )
 	else
 	{
 		Conv_FreeTracks( track );
-		Sys_Break("Not enough memory" );
+		Sys_Break( "not enough memory\n" );
 	}
 	track[MIDItrack].current++;
 }
@@ -379,7 +379,7 @@ static bool Conv_Mus2Mid( const char *musicname, byte *buffer, int bufsize )
 		case 5:
 		case 7:
 			Conv_FreeTracks( track );
-			MsgDev(D_ERROR, "Conv_Mus2Mid: bad event\n" );
+			MsgDev( D_ERROR, "Conv_Mus2Mid: bad event\n" );
 			return false;
         		default:
         			break;
@@ -402,7 +402,7 @@ static bool Conv_Mus2Mid( const char *musicname, byte *buffer, int bufsize )
 	}
 	if( ouch ) MsgDev(D_WARN, "Conv_Mus2Mid: %s.mus - end of file probably corrupted\n", musicname );
 
-	f = FS_Open(va("%s/%s.mid", gs_gamedir, musicname ), "wb" );
+	f = FS_Open(va( "%s/%s.mid", gs_gamedir, musicname ), "wb" );
 	file_mid = VFS_Open( f, "w" ); 
 
 	Conv_WriteMIDheader( file_mid, TrackCnt + 1, division );
@@ -411,7 +411,7 @@ static bool Conv_Mus2Mid( const char *musicname, byte *buffer, int bufsize )
 	for( i = 0; i < (int)TrackCnt; i++ )
 		Conv_WriteTrack( file_mid, i, track );
 	Conv_FreeTracks( track );
-	FS_Close(VFS_Close( file_mid ));
+	FS_Close( VFS_Close( file_mid ));
 	VFS_Close( file_mus );
 
 	return true;
@@ -573,7 +573,7 @@ void Skin_ProcessScript( const char *wad, const char *name )
 	{
 		// start from scratch
 		com.strncpy( flat.membername, name, 5 );		
-		flat.f = FS_Open( va("%s/%s/%s.qc", gs_gamedir, wad, flat.membername ), "w" );
+		flat.f = FS_Open( va( "%s/%s/%s.qc", gs_gamedir, wad, flat.membername ), "w" );
 		flat.in_progress = true;
 		flat.bounds[0] = flat.bounds[1] = 0;
 
@@ -587,7 +587,7 @@ void Skin_ProcessScript( const char *wad, const char *name )
 		FS_Printf( flat.f, "\n$spritename\t%s.spr\n", flat.membername );
 		FS_Print( flat.f,  "$type\t\tfacing_upright\n"  ); // constant
 		FS_Print( flat.f,  "$texture\t\talphatest\n");
-		FS_Print( flat.f,  "$noresample\n" );		// comment this commad by taste
+		FS_Print( flat.f,  "$noresample\n" );		// comment this command by taste
 	}
 }
 
@@ -648,7 +648,7 @@ bool ConvFLP( const char *name, byte *buffer, size_t filesize, const char *ext )
 	if( pic )
 	{
 		FS_SaveImage(va("%s/%s.%s", gs_gamedir, name, ext ), pic );
-		Msg("%s.flat\n", name ); // echo to console
+		Msg( "%s.flat\n", name ); // echo to console
 		FS_FreeImage( pic );
 		return true;
 	}
@@ -679,7 +679,7 @@ bool ConvFLT( const char *name, byte *buffer, size_t filesize, const char *ext )
 
 		FS_SaveImage( va("%s/%s.%s", gs_gamedir, savedname, ext ), pic );
 		Conv_CreateShader( savedname, pic, "flt", NULL, 0, 0 );
-		Msg("%s.flat\n", savedname ); // echo to console
+		Msg( "%s.flat\n", savedname ); // echo to console
 		FS_FreeImage( pic );
 		return true;
 	}
@@ -695,7 +695,7 @@ bool ConvMID( const char *name, byte *buffer, size_t filesize, const char *ext )
 {
 	if(Conv_Mus2Mid( name, buffer, filesize ))
 	{
-		Msg("%s.mus\n", name ); // echo to console
+		Msg( "%s.mus\n", name ); // echo to console
 		return true;
 	}
 	return false;

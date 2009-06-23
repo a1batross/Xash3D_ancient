@@ -573,7 +573,7 @@ void CFuncMonitor::StartMessage( CBasePlayer *pPlayer )
 {
 	//send monitor index
 	MESSAGE_BEGIN( MSG_ONE, gmsg.AddScreen, NULL, pPlayer->pev );
-		WRITE_BYTE( entindex() );
+		WRITE_SHORT( entindex() );
 	MESSAGE_END();
 	ChangeCamera( pev->target );
 }
@@ -671,7 +671,7 @@ void CFuncTeleport::StartMessage( CBasePlayer *pPlayer )
 {
 	//send portal index
 	MESSAGE_BEGIN( MSG_ONE, gmsg.AddPortal, NULL, pPlayer->pev );
-		WRITE_BYTE( entindex() );
+		WRITE_SHORT( entindex() );
 	MESSAGE_END();
 	ChangeCamera( pev->target );
 }
@@ -1342,7 +1342,7 @@ void CPendulum :: Think( void )
 		}
 
 		// FIXME: test
-		if( fabs(cos(wave)) < 0.05f )
+		if( fabs(cos(wave)) < 0.01f )
 		{
 			EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, STRING( pev->noise3 ), m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
 		}

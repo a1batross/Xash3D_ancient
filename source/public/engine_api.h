@@ -24,7 +24,7 @@
 // usercmd_t communication (a part of network protocol)
 typedef struct usercmd_s
 {
-	int		msec;
+	float		time;
 	int		angles[3];
 	int		forwardmove;
 	int		sidemove;
@@ -190,7 +190,6 @@ typedef struct launch_exp_s
 	void ( *Main ) ( void );				// host frame
 	void ( *Free ) ( void );				// close host
 	void (*CPrint) ( const char *msg );			// host print
-	void (*MSG_Init)( sizebuf_t *buf, byte *data, size_t len );	// MSG init network buffer
 } launch_exp_t;
 
 #endif//ENGINE_API_H

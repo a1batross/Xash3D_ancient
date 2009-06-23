@@ -337,7 +337,6 @@ bool Image_LoadLMP( const char *name, const byte *buffer, size_t filesize )
 	}
 
 	if(!Image_ValidSize( name )) return false;         
-	image.num_mips = 1;
 	image.num_layers = 1;
 
 	if( image.hint != IL_HINT_Q1 && filesize > (int)sizeof(lmp) + pixels )

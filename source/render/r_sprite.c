@@ -372,6 +372,7 @@ void R_DrawSpriteModel( void )
 			e->scale = bound( 1.0, dist * 0.005f, 10.0f );
 			alpha = bound( 0, dist / 1000, 1.0f );
 			e->renderamt = 255 * alpha;
+			if( e->renderamt >= 255 ) return; // faded
 		}
 		else return; // occluded
 	}

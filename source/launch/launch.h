@@ -80,7 +80,6 @@ typedef struct system_s
 	void ( *Main ) ( void ); // host frame
 	void ( *Free ) ( void ); // close host
 	void (*CPrint)( const char *msg ); // console print
-	void (*MSG_Init)( sizebuf_t *buf, byte *data, size_t length );
 } system_t;
 
 typedef struct timer_s
@@ -180,13 +179,15 @@ bool REG_SetValue( HKEY hKey, const char *SubKey, const char *Value, char *pBuff
 //
 void NET_Init( void );
 void NET_Shutdown( void );
-void NET_ShowIP( void );			// just for debug
 void NET_Config( bool net_enable );
-char *NET_AdrToString( netadr_t a );
-bool NET_IsLANAddress( netadr_t adr );
-bool NET_StringToAdr( const char *s, netadr_t *a );
-bool NET_GetPacket( netadr_t *net_from, sizebuf_t *net_message );
-void NET_SendPacket( int length, const void *data, netadr_t to );
+bool NET_IsLocalAddress( netadr_t adr );
+char *NET_AdrToString( const netadr_t a );
+char *NET_BaseAdrToString( const netadr_t a );
+bool NET_StringToAdr( const char *string, netadr_t *adr );
+bool NET_CompareAdr( const netadr_t a, const netadr_t b );
+bool NET_CompareBaseAdr( const netadr_t a, const netadr_t b );
+bool NET_GetPacket( netsrc_t sock, netadr_t *from, sizebuf_t *msg );
+void NET_SendPacket( netsrc_t sock, size_t length, const void *data, netadr_t to );
 
 //
 // stdlib.c

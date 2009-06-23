@@ -621,8 +621,8 @@ static void R_QSortMeshes( mesh_t *meshes, int numMeshes )
 	static mesh_t	tmp;
 	static int64	stack[4096];
 	int		depth = 0;
-	int64		L, R, l, r, median;
-	qword		pivot;
+	int		L, R, l, r, median;
+	uint		pivot;
 
 	if( !numMeshes ) return;
 
@@ -739,25 +739,20 @@ void R_AddMeshToList( meshType_t meshType, void *mesh, ref_shader_t *shader, ref
 	{
 		switch( entity->rendermode )
 		{
+		case kRenderTransTexture:
+		case kRenderGlow:
+		case kRenderTransAdd:
+			shader->sort = SORT_ADDITIVE;
+			break;
 		case kRenderTransColor:
 			shader->sort = SORT_DECAL;
-			break;
-		case kRenderTransTexture:
-			shader->sort = SORT_BLEND;
-			break;
-		case kRenderGlow:
-			shader->sort = SORT_ADDITIVE;
 			break;
 		case kRenderTransAlpha:
 			shader->sort = SORT_SEETHROUGH;
 			break;
-		case kRenderTransAdd:
-			shader->sort = SORT_ADDITIVE;
-			break;
 		case kRenderNormal:
-			shader->sort = SORT_OPAQUE;
+		default:	shader->sort = shader->realsort; // restore original
 			break;
-		default: break; // leave unchanged
 		}
 	}
 
@@ -774,7 +769,7 @@ void R_AddMeshToList( meshType_t meshType, void *mesh, ref_shader_t *shader, ref
 		m = &r_transMeshes[r_numTransMeshes++];
 	}
 
-	m->sortKey = (shader->sort<<36) | (shader->shadernum<<20) | ((entity - r_entities)<<8) | (infoKey);
+	m->sortKey = (shader->sort << 28) | (shader->shadernum << 18) | ((entity - r_entities) << 8) | (infoKey);
 	m->meshType = meshType;
 	m->mesh = mesh;
 }
@@ -1089,12 +1084,10 @@ static bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac
 	refent->rendermode = pRefEntity->v.rendermode;
 	refent->body = pRefEntity->v.body;
 	refent->scale = pRefEntity->v.scale;
-	refent->renderamt = pRefEntity->v.renderamt;
 	refent->colormap = pRefEntity->v.colormap;
 	refent->effects = pRefEntity->v.effects;
-	if( VectorIsNull( pRefEntity->v.rendercolor ))
-		VectorSet( refent->rendercolor, 255, 255, 255 );
-	else VectorCopy( pRefEntity->v.rendercolor, refent->rendercolor );
+	VectorCopy( pRefEntity->v.rendercolor, refent->rendercolor );
+	refent->renderamt = pRefEntity->v.renderamt;
 	refent->model = cl_models[pRefEntity->v.modelindex];
 	refent->movetype = pRefEntity->v.movetype;
 	refent->framerate = pRefEntity->v.framerate;
