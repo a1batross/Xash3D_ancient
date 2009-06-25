@@ -436,7 +436,7 @@ void SV_PlayerMove( edict_t *player )
 	usercmd_t		*cmd;
 
 	client = player->pvServerData->client;
-	cmd = &client->cmd;
+	cmd = &client->lastcmd;
 	body = player->pvServerData->physbody;	// member body ptr
 
 	pe->PlayerMove( &player->pvServerData->s, cmd, body, false );	// server move

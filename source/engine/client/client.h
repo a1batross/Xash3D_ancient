@@ -33,7 +33,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAX_SERVERS		64
 #define ColorIndex(c)	(((c) - '0') & 7)
 
-#define NUM_FOR_EDICT(e) ((int)((edict_t *)(e) - cls.edicts))
+#define NUM_FOR_EDICT(e) ((int)((edict_t *)(e) - clgame.edicts))
 #define EDICT_NUM( num ) CL_EDICT_NUM( num, __FILE__, __LINE__ )
 #define STRING( offset ) CL_GetString( offset )
 #define MAKE_STRING(str) CL_AllocString( str )
@@ -43,11 +43,12 @@ typedef struct frame_s
 {
 	bool		valid;			// cleared if delta parsing was invalid
 	int		serverframe;
+	double		servertime;
 	int		deltaframe;
 	byte		areabits[MAX_MAP_AREA_BYTES];	// portalarea visibility bits
 	int		num_entities;
 	int		parse_entities;		// non-masked index into cl_parse_entities array
-	entity_state_t	ps;
+	entity_state_t	ps;			// player state
 } frame_t;
 
 // console stuff
@@ -78,6 +79,7 @@ typedef struct
 
 	int		cmd_number;
 	usercmd_t		cmds[CMD_BACKUP];		// each mesage will send several old cmds
+	float		cmd_time[CMD_BACKUP];	// for netgraph ping calculation
 	int		predicted_origins[CMD_BACKUP][3];// for debug comparing against server
 
 	float		predicted_step;		// for stair up smoothing
@@ -124,7 +126,8 @@ typedef struct
 	// server state information
 	//
 	int		playernum;
-	int		servercount; // server identification for prespawns
+	int		servercount;			// server identification for prespawns
+	float		serverframetime;			// server frametime
 	char		configstrings[MAX_CONFIGSTRINGS][CS_SIZE];
 
 	// locally derived information from server state
@@ -204,6 +207,16 @@ typedef struct
 
 typedef struct
 {
+	void		*hInstance;		// pointer to client.dll
+	HUD_FUNCTIONS	dllFuncs;			// dll exported funcs
+	byte		*private;			// client.dll private pool
+
+	union
+	{
+		edict_t	*edicts;			// acess by edict number
+		void	*vp;			// acess by offset in bytes
+	};
+
 	int		maxClients;
 	int		numEntities;
 	int		maxEntities;
@@ -222,19 +235,15 @@ typedef struct
 
 	keydest_t		key_dest;
 
-	void		*game;			// pointer to client.dll
-	HUD_FUNCTIONS	dllFuncs;			// dll exported funcs
-	byte		*mempool;			// edicts pool
-	byte		*private;			// client.dll private pool
-
-	union
-	{
-		edict_t	*edicts;			// acess by edict number
-		void	*vp;			// acess by offset in bytes
-	};
+	byte		*mempool;			// client premamnent pool: edicts etc
 	
 	int		framecount;
 	double		frametime;		// seconds since last frame
+	double		realframetime;
+	double		realtime;
+
+	int		quakePort;		// a 16 bit value that allows quake servers
+						// to work around address translating routers
 
 	// connection information
 	string		servername;		// name of server from original connect
@@ -488,7 +497,7 @@ bool CL_RenderTrace( const vec3_t start, const vec3_t mins, const vec3_t maxs, c
 _inline edict_t *CL_EDICT_NUM( int n, const char *file, const int line )
 {
 	if((n >= 0) && (n < clgame.maxEntities))
-		return cls.edicts + n;
+		return clgame.edicts + n;
 	Host_Error( "CL_EDICT_NUM: bad number %i (called at %s:%i)\n", n, file, line );
 	return NULL;	
 }

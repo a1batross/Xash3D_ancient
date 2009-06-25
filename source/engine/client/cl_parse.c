@@ -233,7 +233,7 @@ void CL_ParseServerData( sizebuf_t *msg )
 	char		*str;
 	int		i;
 
-	MsgDev(D_INFO, "Serverdata packet received.\n");
+	MsgDev( D_INFO, "Serverdata packet received.\n" );
 
 	// wipe the client_t struct
 	CL_ClearState();
@@ -244,16 +244,17 @@ void CL_ParseServerData( sizebuf_t *msg )
 	cls.serverProtocol = i;
 
 	if( i != PROTOCOL_VERSION )
-		Host_Error("Server use invalid protocol (%i should be %i)\n", i, PROTOCOL_VERSION );
+		Host_Error( "Server use invalid protocol (%i should be %i)\n", i, PROTOCOL_VERSION );
 
 	cl.servercount = MSG_ReadLong( msg );
+	cl.serverframetime = MSG_ReadFloat( msg );
 	cl.playernum = MSG_ReadShort( msg );
 	str = MSG_ReadString( msg );
 
 	// get splash name
 	Cvar_Set( "cl_levelshot_name", va( "media/background/%s.png", str ));
 	Cvar_SetValue( "scr_loading", 0.0f ); // reset progress bar
-	if(!FS_FileExists( Cvar_VariableString( "cl_levelshot_name" ))) 
+	if( !FS_FileExists( Cvar_VariableString( "cl_levelshot_name" ))) 
 	{
 		Cvar_Set( "cl_levelshot_name", "" );
 		cl.need_levelshot = true; // make levelshot
@@ -451,10 +452,10 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 	// parse the message
 	while( 1 )
 	{
-		if( msg->readcount > msg->cursize )
+		if( msg->error )
 		{
 			Host_Error("CL_ParseServerMessage: Bad server message\n");
-			break;
+			return;
 		}
 
 		cmd = MSG_ReadByte( msg );

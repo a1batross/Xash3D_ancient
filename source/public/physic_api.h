@@ -44,6 +44,7 @@ typedef struct physic_exp_s
 	byte *(*ClusterPHS)( int cluster );
 	int (*PointLeafnum)( vec3_t p );
 	byte *(*FatPVS)( const vec3_t org, bool portal );
+	byte *(*FatPHS)( int cluster, bool portal );
 	int (*BoxLeafnums)( vec3_t mins, vec3_t maxs, int *list, int listsize, int *lastleaf );
 	int (*WriteAreaBits)( byte *buffer, int area, bool portal );
 	bool (*HeadnodeVisible)( int nodenum, byte *visbits );

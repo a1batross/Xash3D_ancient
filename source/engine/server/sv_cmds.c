@@ -16,10 +16,16 @@ SV_ClientPrintf
 Sends text across to be displayed if the level passes
 =================
 */
-void SV_ClientPrintf( sv_client_t *cl, char *fmt, ... )
+void SV_ClientPrintf( sv_client_t *cl, int level, char *fmt, ... )
 {
 	va_list	argptr;
 	char	string[MAX_SYSPATH];
+
+
+	if( level < cl->messagelevel )
+		return;
+	if( cl->edict && (cl->edict->v.flags & FL_FAKECLIENT ))
+		return;
 	
 	va_start( argptr, fmt );
 	com.vsprintf( string, fmt, argptr );
@@ -36,7 +42,7 @@ SV_BroadcastPrintf
 Sends text to all active clients
 =================
 */
-void SV_BroadcastPrintf( char *fmt, ... )
+void SV_BroadcastPrintf( int level, char *fmt, ... )
 {
 	char		string[MAX_SYSPATH];
 	va_list		argptr;
@@ -51,7 +57,10 @@ void SV_BroadcastPrintf( char *fmt, ... )
 	if( host.type == HOST_DEDICATED ) Msg( "%s", string );
 	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
 	{
+		if( level < cl->messagelevel ) continue;
 		if( cl->state != cs_spawned ) continue;
+		if( cl->edict && (cl->edict->v.flags & FL_FAKECLIENT ))
+			continue;
 		MSG_WriteByte( &cl->netchan.message, svc_print );
 		MSG_WriteString( &cl->netchan.message, string );
 	}
@@ -374,10 +383,10 @@ void SV_Kick_f( void )
 	}
 	if(!SV_SetPlayer()) return;
 
-	SV_BroadcastPrintf( "%s was kicked\n", sv_client->name );
-	SV_ClientPrintf( sv_client, "You were kicked from the game\n" );
+	SV_BroadcastPrintf( PRINT_HIGH, "%s was kicked\n", sv_client->name );
+	SV_ClientPrintf( sv_client, PRINT_HIGH, "You were kicked from the game\n" );
 	SV_DropClient( sv_client );
-	sv_client->lastmessage = host.realtime; // min case there is a funny zombie
+	sv_client->lastmessage = svs.realtime; // min case there is a funny zombie
 }
 
 /*
@@ -445,20 +454,20 @@ void SV_ConSay_f( void )
 
 	if(Cmd_Argc() < 2) return;
 
-	com.strncpy(text, "console: ", MAX_SYSPATH );
+	com.strncpy( text, "console: ", MAX_SYSPATH );
 	p = Cmd_Args();
 
-	if(*p == '"')
+	if( *p == '"' )
 	{
 		p++;
 		p[com.strlen(p) - 1] = 0;
 	}
-	com.strncat(text, p, MAX_SYSPATH );
+	com.strncat( text, p, MAX_SYSPATH );
 
-	for (i = 0, client = svs.clients; i < Host_MaxClients(); i++, client++)
+	for( i = 0, client = svs.clients; i < Host_MaxClients(); i++, client++ )
 	{
 		if( client->state != cs_spawned ) continue;
-		SV_ClientPrintf( client, "%s\n", text );
+		SV_ClientPrintf( client, PRINT_CHAT, "%s\n", text );
 	}
 }
 

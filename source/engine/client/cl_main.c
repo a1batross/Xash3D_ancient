@@ -335,7 +335,7 @@ void CL_ClearState( void )
 	CL_ClearEffects ();
 	CL_FreeEdicts();
 
-	if( cls.game ) cls.dllFuncs.pfnReset();
+	if( clgame.hInstance ) clgame.dllFuncs.pfnReset();
 
 	// wipe the entire cl structure
 	Mem_Set( &cl, 0, sizeof( cl ));
@@ -798,21 +798,21 @@ void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 	}
 
 	// server responding to a status broadcast
-	if(!com.strcmp( c, "info"))
+	if( !com.strcmp( c, "info" ))
 	{
 		CL_ParseStatusMessage( from, msg );
 		return;
 	}
 
 	// remote command from gui front end
-	if(!com.strcmp(c, "cmd"))
+	if( !com.strcmp( c, "cmd" ))
 	{
-		if(!NET_IsLocalAddress(from))
+		if(!NET_IsLocalAddress( from ))
 		{
-			Msg ("Command packet from remote host.  Ignored.\n");
+			Msg( "Command packet from remote host.  Ignored.\n" );
 			return;
 		}
-		ShowWindow( host.hWnd, SW_RESTORE);
+		ShowWindow( host.hWnd, SW_RESTORE );
 		SetForegroundWindow ( host.hWnd );
 		s = MSG_ReadString( msg );
 		Cbuf_AddText(s);
@@ -820,7 +820,7 @@ void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 		return;
 	}
 	// print command from somewhere
-	if (!com.strcmp(c, "print"))
+	if( !com.strcmp( c, "print" ))
 	{
 		// print command from somewhere
 		s = MSG_ReadString( msg );
@@ -830,14 +830,14 @@ void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 	}
 
 	// ping from somewhere
-	if (!com.strcmp(c, "ping"))
+	if( !com.strcmp(c, "ping" ))
 	{
 		Netchan_OutOfBandPrint( NS_CLIENT, from, "ack" );
 		return;
 	}
 
 	// challenge from the server we are connecting to
-	if (!com.strcmp(c, "challenge"))
+	if( !com.strcmp( c, "challenge" ))
 	{
 		cls.challenge = com.atoi(Cmd_Argv(1));
 		CL_SendConnectPacket();
@@ -845,7 +845,7 @@ void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 	}
 
 	// echo request from server
-	if (!com.strcmp(c, "echo"))
+	if( !com.strcmp( c, "echo" ))
 	{
 		Netchan_OutOfBandPrint( NS_CLIENT, from, "%s", Cmd_Argv(1) );
 		return;
@@ -853,66 +853,61 @@ void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 
 	// a disconnect message from the server, which will happen if the server
 	// dropped the connection but it is still getting packets from us
-	if(!com.strcmp( c, "disconnect" ))
+	if( !com.strcmp( c, "disconnect" ))
 	{
 		CL_Disconnect();
 		return;
 	}
-	Msg ("Unknown command.\n");
+
+	Msg( "Unknown command.\n" );
 }
 
 /*
 =================
-CL_ReadPackets
+CL_ReadNetMessage
 =================
 */
-void CL_PacketEvent( netadr_t from, sizebuf_t *msg )
-{
-	if( host.type == HOST_DEDICATED || cls.demoplayback )
-		return;
-
-	if( msg->cursize >= 4 && *(int *)msg->data == -1 )
-	{
-		cls.netchan.last_received = Sys_DoubleTime ();
-		CL_ConnectionlessPacket( from, msg );
-		return;
-	}
-
-	// can't be a valid sequenced packet	
-	if( cls.state < ca_connected ) return;
-
-	if( msg->cursize < 8 )
-	{
-		MsgDev( D_WARN, "%s: runt packet\n", NET_AdrToString( from ));
-		return;
-	}
-
-	// packet from server
-	if (!NET_CompareAdr( from, cls.netchan.remote_address ))
-	{
-		MsgDev( D_WARN, "CL_ReadPackets: %s:sequenced packet without connection\n", NET_AdrToString( from ));
-		return;
-	}
-	if(Netchan_Process( &cls.netchan, msg ))
-	{
-		// the header is different lengths for reliable and unreliable messages
-		int headerBytes = msg->readcount;
-
-		cls.netchan.last_received = Sys_DoubleTime ();
-		CL_ParseServerMessage( msg );
-
-		// we don't know if it is ok to save a demo message until
-		// after we have parsed the frame
-		if( cls.demorecording && !cls.demowaiting )
-			CL_WriteDemoMessage( msg, headerBytes );
-	}
-}
-
 void CL_ReadNetMessage( void )
 {
 	while( NET_GetPacket( NS_CLIENT, &net_from, &net_message ))
 	{
-		CL_PacketEvent( net_from, &net_message );
+		if( host.type == HOST_DEDICATED || cls.demoplayback )
+			return;
+
+		if( net_message.cursize >= 4 && *(int *)net_message.data == -1 )
+		{
+			CL_ConnectionlessPacket( net_from, &net_message );
+			return;
+		}
+
+		// can't be a valid sequenced packet	
+		if( cls.state < ca_connected ) return;
+
+		if( net_message.cursize < 8 )
+		{
+			MsgDev( D_WARN, "%s: runt packet\n", NET_AdrToString( net_from ));
+			return;
+		}
+
+		// packet from server
+		if( !NET_CompareAdr( net_from, cls.netchan.remote_address ))
+		{
+			MsgDev( D_WARN, "CL_ReadPackets: %s:sequenced packet without connection\n", NET_AdrToString( net_from ));
+			return;
+		}
+
+		if( Netchan_Process( &cls.netchan, &net_message ))
+		{
+			// the header is different lengths for reliable and unreliable messages
+			int headerBytes = net_message.readcount;
+
+			CL_ParseServerMessage( &net_message );
+
+			// we don't know if it is ok to save a demo message until
+			// after we have parsed the frame
+			if( cls.demorecording && !cls.demowaiting )
+				CL_WriteDemoMessage( &net_message, headerBytes );
+		}
 	}
 }
 
@@ -922,7 +917,8 @@ void CL_ReadPackets( void )
 		CL_ReadDemoMessage();
 	else CL_ReadNetMessage();
 
-	if(NET_IsLocalAddress( cls.netchan.remote_address ))
+	// singleplayer never has connection timeout
+	if( NET_IsLocalAddress( cls.netchan.remote_address ))
 		return;
           
 	// check timeout
@@ -930,8 +926,7 @@ void CL_ReadPackets( void )
 	{
 		if( host.realtime - cls.netchan.last_received > cl_timeout->value )
 		{
-			cl.timeoutcount++;
-			if( cl.timeoutcount > 5 ) // timeoutcount saves debugger
+			if( ++cl.timeoutcount > 5 ) // timeoutcount saves debugger
 			{
 				Msg ("\nServer connection timed out.\n");
 				CL_Disconnect();
@@ -1195,21 +1190,55 @@ void CL_SendCommand( void )
 
 /*
 ==================
+CL_MinFrameFrame
+==================
+*/
+double CL_MinFrameFrame( void )
+{
+	if( cls.state == ca_connected )
+		return 0.1f;		// don't flood packets out while connecting
+	if( cl_maxfps->integer )
+		return 1.0f / (double)cl_maxfps->integer;
+	return 0;
+}
+
+/*
+==================
 CL_Frame
 
 ==================
 */
-void CL_Frame( void )
+void CL_Frame( double time )
 {
+	static double	extratime = 0.001;
+	static double	trueframetime;
+	double		minframetime;
+	static int	lasttimecalled;
+
 	if( host.type == HOST_DEDICATED )
 		return;
 
+	extratime	+= time;
+
+	minframetime = CL_MinFrameFrame();
+	if( extratime < minframetime ) return;
+
 	// decide the simulation time
+	trueframetime = extratime - 0.001;
+	if( trueframetime < minframetime )
+		trueframetime = minframetime;
+	extratime -= trueframetime;
+
 	cl.oldtime = cl.time;
-	cl.time += host.frametime;		// can be merged by sv.time 
+	cl.time += time;		// can be merged by sv.time 
+	cls.frametime = trueframetime;
+	cls.realtime = host.realtime;
+
+	if( cls.frametime > (1.0f / 5))
+		cls.frametime = (1.0f / 5);
 
 	// if in the debugger last frame, don't timeout
-	if( host.frametime > 5.0f ) cls.netchan.last_received = Sys_DoubleTime ();
+	if( time > 5.0f ) cls.netchan.last_received = Sys_DoubleTime ();
 
 	// fetch results from server
 	CL_ReadPackets();

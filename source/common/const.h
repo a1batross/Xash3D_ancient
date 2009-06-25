@@ -60,6 +60,7 @@
 #define FL_KILLME			(1<<20)	// This entity is marked for death -- This allows the engine to kill ents at the appropriate time
 #define FL_DORMANT			(1<<21)	// Entity is dormant, no updates to client
 #define FL_POINTENTITY		(1<<22)	// this is point entity
+#define FL_FAKECLIENT		(1<<23)	// JAC: fake client, simulated server side; don't send network messages to them
 
 // pev->spawnflags
 #define SF_START_ON			(1<<0)
@@ -197,6 +198,12 @@ typedef enum
 #define EVENT_SCRIPTED		1000
 #define EVENT_SHARED		2000	// both client and server valid for playing
 #define EVENT_CLIENT		5000	// less than this value it's a server-side studio events
+
+// game print flags
+#define PRINT_LOW			0	// pickup messages
+#define PRINT_MEDIUM		1	// death messages
+#define PRINT_HIGH			2	// critical messages
+#define PRINT_CHAT			3	// chat messages
 
 // client screen state
 #define CL_DISCONNECTED		1	//

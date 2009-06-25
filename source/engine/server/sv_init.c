@@ -31,14 +31,14 @@ SV_FindIndex
 
 ================
 */
-int SV_FindIndex (const char *name, int start, int end, bool create)
+int SV_FindIndex( const char *name, int start, int end, bool create )
 {
 	int		i = 0;
 	
-	if(!name || !name[0]) return 0;
+	if( !name || !name[0] ) return 0;
 
 	for( i = 1; i < end && sv.configstrings[start+i][0]; i++ )
-		if(!com.strcmp(sv.configstrings[start+i], name))
+		if(!com.strcmp( sv.configstrings[start+i], name ))
 			return i;
 	if( !create ) return 0;
 	if( i == end ) 
@@ -325,8 +325,7 @@ void SV_InitGame( void )
 		ent = EDICT_NUM( i + 1 );
 		ent->serialnumber = i + 1;
 		svs.clients[i].edict = ent;
-		Mem_Set( &svs.clients[i].cmd, 0, sizeof( svs.clients[i].cmd ));
-		svs.clients[i].num_cmds = 0;
+		Mem_Set( &svs.clients[i].lastcmd, 0, sizeof( svs.clients[i].lastcmd ));
 	}
 }
 

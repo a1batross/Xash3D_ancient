@@ -102,7 +102,7 @@ void Netchan_Setup( netsrc_t sock, netchan_t *chan, netadr_t adr, int qport )
 	chan->incoming_sequence = 0;
 	chan->outgoing_sequence = 1;
 	chan->compress = true;
-	chan->rate = 1.0f / 2500;	// inital value of rate
+	chan->rate = 1.0f / 7500;	// inital value of rate
 
 	MSG_Init( &chan->message, chan->message_buf, sizeof(chan->message_buf));
 }

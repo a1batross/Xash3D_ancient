@@ -135,13 +135,11 @@ CLIENT / SERVER SYSTEMS
 
 void CL_Init( void );
 void CL_Shutdown( void );
-void CL_Frame( void );
-void CL_PacketEvent( netadr_t from, sizebuf_t *msg );
+void CL_Frame( double time );
 
 void SV_Init( void );
 void SV_Shutdown( bool reconnect );
-void SV_Frame( void );
-void SV_PacketEvent( netadr_t from, sizebuf_t *msg );
+void SV_Frame( double time );
 
 // exports
 void SV_Transform( edict_t *ed, const vec3_t origin, const matrix3x3 transform );

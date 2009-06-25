@@ -139,6 +139,7 @@ typedef struct sizebuf_s		// FIXME: rename to netbuf
 	int	maxsize;
 	int	cursize;
 	int	readcount;
+	bool	error;
 } sizebuf_t;
 
 /*
@@ -437,6 +438,7 @@ typedef struct stdilib_api_s
 	// network.c funcs
 	void (*NET_Init)( void );
 	void (*NET_Shutdown)( void );
+	void (*NET_Sleep)( uint msec );
 	void (*NET_Config)( bool net_enable );
 	char *(*NET_AdrToString)( netadr_t a );
 	bool (*NET_IsLocalAddress)( netadr_t adr );
@@ -740,6 +742,7 @@ network messages
 */
 #define NET_Init			com.NET_Init
 #define NET_Shutdown		com.NET_Shutdown
+#define NET_Sleep			com.NET_Sleep
 #define NET_Config			com.NET_Config
 #define NET_AdrToString		com.NET_AdrToString
 #define NET_BaseAdrToString		com.NET_BaseAdrToString

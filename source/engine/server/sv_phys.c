@@ -1592,12 +1592,12 @@ void SV_Physics_ClientEntity( edict_t *ent )
 	// don't do physics on disconnected clients, FrikBot relies on this
 	if( client->state != cs_spawned )
 	{
-		memset( &client->cmd, 0, sizeof(client->cmd));
+		memset( &client->lastcmd, 0, sizeof( client->lastcmd ));
 		return;
 	}
 
 	// don't run physics here if running asynchronously
-	if( client->skipframes <= 0 ) SV_ClientThink( client, &client->cmd );
+	if( client->skipframes <= 0 ) SV_ClientThink( client, &client->lastcmd );
 
 	// make sure the velocity is sane (not a NaN)
 	SV_CheckVelocity( ent );

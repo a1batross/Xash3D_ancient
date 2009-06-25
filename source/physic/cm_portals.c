@@ -6,6 +6,7 @@
 #include "cm_local.h"
 
 static byte fatpvs[MAX_MAP_LEAFS/8];
+static byte fatphs[MAX_MAP_LEAFS/8];
 
 /*
 ===============================================================================
@@ -123,6 +124,33 @@ byte *CM_FatPVS( const vec3_t org, bool portal )
 	}
 
 	return fatpvs;
+}
+
+/*
+============
+CM_FatPHS
+
+The client will interpolate the view position,
+so we can't use a single PVS point
+===========
+*/
+byte *CM_FatPHS( int cluster, bool portal )
+{
+	int	longs = (CM_NumClusters() + 31)>>5;
+
+	if( portal )
+	{
+		byte	*src;
+		int	i;
+
+		// or in all the other leaf bits
+		src = CM_ClusterPHS( cluster );
+		for( i = 0; i < longs; i++ )
+			((int *)fatphs)[i] |= ((int *)src)[i];
+	}
+	else Mem_Copy( fatphs, CM_ClusterPHS( cluster ), longs<<2 );
+
+	return fatphs;
 }
 
 /*

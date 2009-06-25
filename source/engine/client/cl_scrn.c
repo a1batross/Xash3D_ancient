@@ -395,7 +395,7 @@ void SCR_RegisterShaders( void )
 	}
 
 	// vid_state has changed
-	if( cls.game ) cls.dllFuncs.pfnVidInit();
+	if( clgame.hInstance ) clgame.dllFuncs.pfnVidInit();
 }
 
 /*

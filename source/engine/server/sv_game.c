@@ -1783,6 +1783,9 @@ void pfnClientCommand( edict_t* pEdict, char* szFmt, ... )
 		return;
 	}
 
+	if( pEdict->v.flags & FL_FAKECLIENT )
+		return;
+
 	client = svs.clients + i;
 	va_start( args, szFmt );
 	com.vsnprintf( buffer, MAX_STRING, szFmt, args );
@@ -2332,7 +2335,7 @@ void pfnServerPrint( const char *szMsg )
 		// while loading in-progress we can sending message
 		com.print( szMsg );	// only for local client
 	}
-	else SV_BroadcastPrintf( "%s", szMsg );
+	else SV_BroadcastPrintf( PRINT_HIGH, "%s", szMsg );
 }
 
 /*

@@ -180,7 +180,7 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 
 	// calculate the visible areas
 	frame->areabits_size = pe->WriteAreaBits( frame->areabits, clientarea, portal );
-	clientphs = pe->ClusterPHS( clientcluster );
+	clientphs = pe->FatPHS( clientcluster, portal );
 
 	for( e = 1; e < svgame.globals->numEntities; e++ )
 	{
@@ -340,7 +340,7 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 	cl->surpressCount = 0;
 
 	// send over the areabits
-	MSG_WriteByte( msg, frame->areabits_size );
+	MSG_WriteByte( msg, frame->areabits_size );	// never more than 255 bytes
 	MSG_WriteData( msg, frame->areabits, frame->areabits_size );
 
 	// just send an client index
@@ -384,7 +384,7 @@ void SV_BuildClientFrame( sv_client_t *cl )
 
 	// this is the frame we are creating
 	frame = &cl->frames[sv.framenum & UPDATE_MASK];
-	frame->msg_sent = host.realtime; // save it for ping calc later
+	frame->senttime = svs.realtime; // save it for ping calc later
 
 	// clear everything in this snapshot
 	frame_ents.num_entities = c_fullsend = 0;
@@ -445,9 +445,6 @@ bool SV_SendClientDatagram( sv_client_t *cl )
 	byte		msg_buf[MAX_MSGLEN];
 	sizebuf_t		msg;
 
-	if( cl->sendtime > host.realtime )
-		return false;
-
 	SV_BuildClientFrame( cl );
 
 	MSG_Init( &msg, msg_buf, sizeof( msg_buf ));
@@ -475,10 +472,7 @@ bool SV_SendClientDatagram( sv_client_t *cl )
 	Netchan_Transmit( &cl->netchan, msg.cursize, msg.data );
 
 	// record the size for rate estimation
-	// record information about the message
-	cl->frames[cl->netchan.outgoing_sequence & UPDATE_MASK].msg_size = msg.cursize;
-	cl->frames[cl->netchan.outgoing_sequence & UPDATE_MASK].msg_sent = host.realtime;
-	cl->sendtime = host.realtime + host_ticrate->value; // FIXME: this relationship is totally wrong
+	cl->message_size[sv.framenum % RATE_MESSAGES] = msg.cursize;
 
 	return true;
 }
@@ -498,14 +492,14 @@ bool SV_RateDrop( sv_client_t *cl )
 	// never drop over the loopback
 	if( NET_IsLocalAddress( cl->netchan.remote_address ))
 		return false;
-	
-	for( i = 0; i < UPDATE_BACKUP; i++ )
-		total += cl->frames[i].msg_size;
+
+	for( i = 0; i < RATE_MESSAGES; i++ )
+		total += cl->message_size[i];
 
 	if( total > cl->rate )
 	{
 		cl->surpressCount++;
-		cl->frames[cl->netchan.outgoing_sequence & UPDATE_MASK].msg_size = 0;
+		cl->message_size[sv.framenum % RATE_MESSAGES] = 0;
 		return true;
 	}
 	return false;
@@ -526,12 +520,15 @@ void SV_SendClientMessages( void )
 	{
 		if( !cl->state ) continue;
 
+		if( cl->edict && (cl->edict->v.flags & FL_FAKECLIENT))
+			continue;
+
 		// if the reliable message overflowed, drop the client
 		if( cl->netchan.message.overflowed )
 		{
 			MSG_Clear( &cl->netchan.message );
 			MSG_Clear( &cl->datagram );
-			SV_BroadcastPrintf( "%s overflowed\n", cl->name );
+			SV_BroadcastPrintf( PRINT_HIGH, "%s overflowed\n", cl->name );
 			SV_DropClient( cl );
 		}
 

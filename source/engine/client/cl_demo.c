@@ -58,6 +58,7 @@ void CL_WriteDemoHeader( const char *name )
 	MSG_WriteByte( &buf, svc_serverdata );
 	MSG_WriteLong( &buf, PROTOCOL_VERSION );
 	MSG_WriteLong( &buf, cl.servercount );
+	MSG_WriteLong( &buf, cl.serverframetime );
 	MSG_WriteShort( &buf, cl.playernum );
 	MSG_WriteString( &buf, cl.configstrings[CS_NAME] );
 
@@ -196,7 +197,7 @@ void CL_ReadDemoMessage( void )
 	if( cl_paused->value ) return;
 
 	// don't need another message yet
-	if( cl.time <= cl.mtime[0] )
+	if( cl.time <= cl.frame.servertime )
 		return;
 
 	// init the message

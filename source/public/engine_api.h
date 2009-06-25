@@ -24,7 +24,7 @@
 // usercmd_t communication (a part of network protocol)
 typedef struct usercmd_s
 {
-	float		time;
+	int		msec;
 	int		angles[3];
 	int		forwardmove;
 	int		sidemove;

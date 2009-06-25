@@ -27,10 +27,11 @@ cvar_t	*cl_sensitivity;
 cvar_t	*ui_sensitivity;
 cvar_t	*m_filter;		// mouse filtering
 
-kbutton_t	in_left, in_right, in_forward, in_back;
+kbutton_t	in_klook, in_left, in_right, in_forward, in_back;
 kbutton_t	in_lookup, in_lookdown, in_moveleft, in_moveright;
-kbutton_t	in_strafe, in_speed, in_use, in_attack, in_attack2;
-kbutton_t	in_up, in_down, in_reload;
+kbutton_t	in_strafe, in_speed, in_use, in_jump, in_attack, in_attack2;
+kbutton_t	in_up, in_down, in_duck, in_reload, in_alt1, in_score, in_break;
+int in_cancel = 0;
 
 /*
 ============================================================
@@ -225,6 +226,8 @@ float CL_KeyState( kbutton_t *key )
 	return val;
 }
 
+void IN_KLookDown( void ){ IN_KeyDown( &in_klook ); }
+void IN_KLookUp( void ){ IN_KeyUp( &in_klook ); }
 void IN_UpDown(void) {IN_KeyDown(&in_up);}
 void IN_UpUp(void) {IN_KeyUp(&in_up);}
 void IN_DownDown(void) {IN_KeyDown(&in_down);}
@@ -257,8 +260,19 @@ void IN_UseDown (void) {IN_KeyDown(&in_use);}
 void IN_UseUp (void) {IN_KeyUp(&in_use);}
 void IN_ReloadDown(void) {IN_KeyDown(&in_reload);}
 void IN_ReloadUp(void) {IN_KeyUp(&in_reload);}
-void IN_MLookDown( void ){Cvar_SetValue( "cl_mouselook", 1 );}
-void IN_MLookUp( void ){ IN_CenterView(); Cvar_SetValue( "cl_mouselook", 0 );}
+void IN_JumpDown(void) {IN_KeyDown( &in_jump ); }
+void IN_JumpUp(void) {IN_KeyUp( &in_jump ); }
+void IN_DuckDown(void){ IN_KeyDown( &in_duck ); }
+void IN_DuckUp(void){ IN_KeyUp( &in_duck ); }
+void IN_Alt1Down(void){ IN_KeyDown( &in_alt1 ); }
+void IN_Alt1Up(void) {IN_KeyUp( &in_alt1 ); }
+void IN_ScoreDown(void) {IN_KeyDown( &in_score ); }
+void IN_ScoreUp(void) {IN_KeyUp( &in_score ); }
+void IN_BreakDown(void) {IN_KeyDown( &in_break ); }
+void IN_BreakUp(void) {IN_KeyUp( &in_break ); }
+void IN_Cancel(void) { in_cancel = 1; } // special handling
+void IN_MLookDown(void) {Cvar_SetValue( "cl_mouselook", 1 );}
+void IN_MLookUp(void) {IN_CenterView(); Cvar_SetValue( "cl_mouselook", 0 );}
 void IN_CenterView (void){ cl.viewangles[PITCH] = -cl.frame.ps.delta_angles[PITCH]; }
 
 
@@ -277,13 +291,14 @@ void CL_AdjustAngles( void )
 	if( cl.frame.ps.health <= 0 ) return;
 	
 	if( in_speed.state & 1 )
-		speed = host.frametime * cl_anglespeedkey->value;
-	else speed = host.frametime;
+		speed = cls.frametime * cl_anglespeedkey->value;
+	else speed = cls.frametime;
 
 	if(!(in_strafe.state & 1))
 	{
 		cl.viewangles[YAW] -= speed * cl_yawspeed->value * CL_KeyState( &in_right );
 		cl.viewangles[YAW] += speed * cl_yawspeed->value * CL_KeyState( &in_left );
+		cl.viewangles[YAW] = anglemod( cl.viewangles[YAW] );
 	}
 	
 	cl.viewangles[PITCH] -= speed * cl_pitchspeed->value * CL_KeyState( &in_lookup );
@@ -359,19 +374,62 @@ int CL_ButtonBits( int bResetState )
 	if( in_use.state & 3 )
 		bits |= IN_USE;
 
-	if (in_speed.state & 3)
+	if( in_speed.state & 3 )
 		bits |= IN_RUN;
+
+	if( in_duck.state & 3 )
+		bits |= IN_DUCK;
+
+	if( in_jump.state & 3 )
+		bits |= IN_JUMP;
 
 	if( in_reload.state & 3)
 		bits |= IN_RELOAD;
 
+	if( in_forward.state & 3 )
+		bits |= IN_FORWARD;
+
+	if( in_back.state & 3 )
+		bits |= IN_BACK;
+
+	if( in_left.state & 3 )
+		bits |= IN_LEFT;
+	
+	if( in_right.state & 3 )
+		bits |= IN_RIGHT;
+	
+	if( in_moveleft.state & 3 )
+		bits |= IN_MOVELEFT;
+	
+	if( in_moveright.state & 3 )
+		bits |= IN_MOVERIGHT;
+
+	if( in_alt1.state & 3 )
+		bits |= IN_ALT1;
+
+	if( in_score.state & 3 )
+		bits |= IN_SCORE;
+
+	if( in_cancel )
+		bits |= IN_CANCEL;
+
 	if( bResetState )
 	{
-		in_attack.state &= ~2;
-		in_attack2.state &= ~2;	
-		in_use.state &= ~2;
 		in_speed.state &= ~2;
+		in_attack.state &= ~2;
+		in_duck.state &= ~2;
+		in_jump.state &= ~2;
+		in_forward.state &= ~2;
+		in_back.state &= ~2;
+		in_use.state &= ~2;
+		in_left.state &= ~2;
+		in_right.state &= ~2;
+		in_moveleft.state &= ~2;
+		in_moveright.state &= ~2;
+		in_attack2.state &= ~2;
 		in_reload.state &= ~2;
+		in_alt1.state &= ~2;
+		in_score.state &= ~2;
 	}
 	return bits;
 }
@@ -409,14 +467,16 @@ CL_FinishMove
 */
 void CL_FinishMove( usercmd_t *cmd )
 {
-	int	i;
+	int	ms;
 
-	// so server can get ping times
-	cmd->time = cl.mtime[0];
+	// send milliseconds of time to apply the move
+	ms = cls.frametime * 1000;
+	if( ms > 250 ) ms = 100;	// time was unreasonable
+
+	cmd->msec = ms;
 	CL_ClampPitch();
 
-	for( i = 0; i < 3; i++ )
-		cmd->angles[i] = cl.viewangles[i];
+	VectorCopy( cl.viewangles, cmd->angles );
 
 	// HACKHACK: client lightlevel
 	cmd->lightlevel = (byte)cl_lightlevel->value;
@@ -432,11 +492,13 @@ void CL_FinishMove( usercmd_t *cmd )
 	VectorCopy( cl.viewangles, cl.data.angles );
 	VectorCopy( cl.refdef.origin, cl.data.origin );
 
-	cls.dllFuncs.pfnUpdateClientData( &cl.data, ( cl.time * 0.001f ));
+	clgame.dllFuncs.pfnUpdateClientData( &cl.data, ( cl.time * 0.001f ));
 
 	CL_ResetButtonBits( cl.data.iKeyBits );
 	cl.refdef.fov_x = cl.data.fov;
 	cl.mouse_sens = cl.data.mouse_sensitivity;
+
+	in_cancel = 0;
 }
 
 
@@ -468,7 +530,6 @@ void CL_SendCmd( void )
 {
 	sizebuf_t		buf;
 	byte		data[128];
-	int		i;
 	usercmd_t		*cmd, *oldcmd;
 	usercmd_t		nullcmd;
 	int		checksumIndex;
@@ -476,8 +537,8 @@ void CL_SendCmd( void )
 	// build a command even if not connected
 
 	// save this command off for prediction
-	i = cls.netchan.outgoing_sequence & (CMD_BACKUP-1);
-	cmd = &cl.cmds[i];
+	cmd = &cl.cmds[cls.netchan.outgoing_sequence & (CMD_BACKUP-1)];
+	cl.cmd_time[cls.netchan.outgoing_sequence & (CMD_BACKUP-1)] = cls.realtime;
 	*cmd = CL_CreateCmd ();
 
 	if( cls.state == ca_disconnected || cls.state == ca_connecting )
@@ -489,7 +550,8 @@ void CL_SendCmd( void )
 
 	if( cls.state == ca_connected )
 	{
-		if( cls.netchan.message.cursize || host.realtime - cls.netchan.last_sent > 1.0 )
+		// jsut update reliable
+		if( cls.netchan.message.cursize || host.realtime - cls.netchan.last_sent > 1.0f )
 			Netchan_Transmit( &cls.netchan, 0, NULL );	
 		return;
 	}
@@ -514,29 +576,26 @@ void CL_SendCmd( void )
 	// got was, so the next message can be delta compressed
 	if (cl_nodelta->value || !cl.frame.valid || cls.demowaiting)
 	{
-		MSG_WriteLong (&buf, -1);	// no compression
+		MSG_WriteLong( &buf, -1 );	// no compression
 	}
 	else
 	{
-		MSG_WriteLong (&buf, cl.frame.serverframe);
+		MSG_WriteLong( &buf, cl.frame.serverframe );
 	}
 
 	// send this and the previous cmds in the message, so
 	// if the last packet was dropped, it can be recovered
-	i = (cls.netchan.outgoing_sequence-2) & (CMD_BACKUP-1);
-	cmd = &cl.cmds[i];
-	memset (&nullcmd, 0, sizeof(nullcmd));
-	MSG_WriteDeltaUsercmd (&buf, &nullcmd, cmd);
+	cmd = &cl.cmds[(cls.netchan.outgoing_sequence-2) & (CMD_BACKUP-1)];
+	Mem_Set( &nullcmd, 0, sizeof( nullcmd ));
+	MSG_WriteDeltaUsercmd( &buf, &nullcmd, cmd) ;
 	oldcmd = cmd;
 
-	i = (cls.netchan.outgoing_sequence-1) & (CMD_BACKUP-1);
-	cmd = &cl.cmds[i];
-	MSG_WriteDeltaUsercmd (&buf, oldcmd, cmd);
+	cmd = &cl.cmds[(cls.netchan.outgoing_sequence-1) & (CMD_BACKUP-1)];
+	MSG_WriteDeltaUsercmd( &buf, oldcmd, cmd );
 	oldcmd = cmd;
 
-	i = (cls.netchan.outgoing_sequence) & (CMD_BACKUP-1);
-	cmd = &cl.cmds[i];
-	MSG_WriteDeltaUsercmd (&buf, oldcmd, cmd);
+	cmd = &cl.cmds[(cls.netchan.outgoing_sequence) & (CMD_BACKUP-1)];
+	MSG_WriteDeltaUsercmd( &buf, oldcmd, cmd );
 
 	// calculate a checksum over the move commands
 	buf.data[checksumIndex] = CRC_Sequence( buf.data + checksumIndex + 1, buf.cursize - checksumIndex - 1, cls.netchan.outgoing_sequence);
@@ -594,12 +653,22 @@ void CL_InitInput( void )
 	Cmd_AddCommand ("-attack", IN_AttackUp, "stop firing");
 	Cmd_AddCommand ("+attack2", IN_Attack2Down, "begin alternate firing");
 	Cmd_AddCommand ("-attack2", IN_Attack2Up, "stop alternate firing");
-	Cmd_AddCommand ("+use", IN_UseDown, "use item (doors, monsters, inventory, etc" );
+	Cmd_AddCommand ("+use", IN_UseDown, "use item (doors, monsters, inventory, etc)" );
 	Cmd_AddCommand ("-use", IN_UseUp, "stop using item" );
+	Cmd_AddCommand ("+jump", IN_JumpDown, "jump" );
+	Cmd_AddCommand ("-jump", IN_JumpUp, "end jump (so you can jump again)");
+	Cmd_AddCommand ("+duck", IN_DuckDown, "duck" );
+	Cmd_AddCommand ("-duck", IN_DuckUp, "end duck (so you can duck again)");
+	Cmd_AddCommand ("+klook", IN_KLookDown, "activate keyboard looking mode, do not recenter view");
+	Cmd_AddCommand ("-klook", IN_KLookUp, "deactivate keyboard looking mode");
 	Cmd_AddCommand ("+reload", IN_ReloadDown, "reload current weapon" );
 	Cmd_AddCommand ("-reload", IN_ReloadUp, "continue reload weapon" );
 	Cmd_AddCommand ("+mlook", IN_MLookDown, "activate mouse looking mode, do not recenter view" );
 	Cmd_AddCommand ("-mlook", IN_MLookUp, "deactivate mouse looking mode" );
+	Cmd_AddCommand ("+alt1", IN_Alt1Down, "hold modyifycator" );
+	Cmd_AddCommand ("-alt1", IN_Alt1Up, "release modifycator" );
+	Cmd_AddCommand ("+break",IN_BreakDown, "cancel" );
+	Cmd_AddCommand ("-break",IN_BreakUp, "stop cancel" );
 }
 
 /*

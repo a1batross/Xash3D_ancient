@@ -167,7 +167,7 @@ void V_CalcRefDef( void )
 {
 	do
 	{
-		cls.dllFuncs.pfnCalcRefdef( &cl.refdef );
+		clgame.dllFuncs.pfnCalcRefdef( &cl.refdef );
 		V_AddViewModel();
 		re->RenderFrame( &cl.refdef );
 	} while( cl.refdef.nextView );

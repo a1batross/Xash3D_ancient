@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAX_MASTERS			8 			// max recipients for heartbeat packets
 #define LATENCY_COUNTS		16
 #define MAX_ENT_CLUSTERS		16
-#define CL_MAX_USERCMDS		16
+#define RATE_MESSAGES		10
 
 // classic quake flags
 #define SPAWNFLAG_NOT_EASY		0x00000100
@@ -72,6 +72,9 @@ typedef struct server_s
 	int		framenum;
 	int		net_framenum;
 
+	int		lastcheck;	// used by PF_checkclient
+	double		lastchecktime;	// for monster ai 
+
 	string		name;		// map name, or cinematic name
 	cmodel_t		*models[MAX_MODELS];
 	cmodel_t		*worldmodel;
@@ -88,14 +91,13 @@ typedef struct server_s
 
 typedef struct
 {
-	entity_state_t	ps;
+	entity_state_t	ps;			// player state
 	byte 		areabits[MAX_MAP_AREA_BYTES];	// portalarea visibility bits
 	int  		areabits_size;
 	int  		num_entities;
 	int  		first_entity;		// into the circular sv_packet_entities[]
-	double		msg_sent;			// time the message was transmitted
-	int		msg_size;			// used to rate drop packets
-	double		latency;			// message latency time
+	double		senttime;			// time the message was transmitted
+
 	int		index;			// client edict index
 } client_frame_t;
 
@@ -105,17 +107,25 @@ typedef struct sv_client_s
 
 	char		userinfo[MAX_INFO_STRING];	// name, etc
 	int		lastframe;		// for delta compression
-	usercmd_t		cmds[CL_MAX_USERCMDS];	// current user commands
-	usercmd_t		cmd;
-	int		num_cmds;			// number of received cmds
+	int		skipframes;		// client synchronyze with phys frame
+	usercmd_t		lastcmd;			// for filling in big drops
 
+	int		spectator;		// non-interactive
+
+	int		commandMsec;		// every seconds this is reset, if user
+	   					// commands exhaust it, assume time cheating
+
+	int		frame_latency[LATENCY_COUNTS];
 	int		ping;
-	int		rate;
+
+	int		message_size[RATE_MESSAGES];	// used to rate drop packets
+	float		rate;
+
 	int		surpressCount;		// number of messages rate supressed
-	double		sendtime;			// time before send next packet
 
 	edict_t		*edict;			// EDICT_NUM(clientnum+1)
 	char		name[32];			// extracted from userinfo, color string allowed
+	int		messagelevel;		// for filtering printed messages
 
 	// The datagram is written to by sound calls, prints, temp ents, etc.
 	// It can be harmlessly overflowed.
@@ -128,7 +138,6 @@ typedef struct sv_client_s
 	int		downloadsize;		// total bytes (can't use EOF because of paks)
 	int		downloadcount;		// bytes sent
 
-	int		skipframes;		// client synchronyze with phys frame
 	double		lastmessage;		// sv.framenum when packet was last received
 	double		lastconnect;
 
@@ -203,8 +212,8 @@ typedef struct
 	int		msg_realsize;		// left in bytes
 	int		msg_index;		// for debug messages
 	int		msg_dest;			// msg destination ( MSG_ONE, MSG_ALL etc )
-	edict_t		*msg_ent;
-	vec3_t		msg_org;
+	edict_t		*msg_ent;			// user message member entity
+	vec3_t		msg_org;			// user message member origin
 
 	void		*hInstance;		// pointer to server.dll
 
@@ -234,6 +243,7 @@ typedef struct
 typedef struct
 {
 	bool		initialized;		// sv_init has completed
+	double		realtime;			// always increasing, no clamping, etc
 
 	char		mapname[CS_SIZE];		// current mapname 
 	char		comment[CS_SIZE];		// map name, e.t.c. 
@@ -276,8 +286,7 @@ extern	cvar_t		*sv_rollangle;
 extern	cvar_t		*sv_rollspeed;
 extern	cvar_t		*sv_maxspeed;
 extern	cvar_t		*sv_physics;
-extern	cvar_t		*host_frametime;
-extern	cvar_t		*host_ticrate;
+extern	cvar_t		*sv_showclamp;
 extern	sv_client_t	*sv_client;
 
 //===========================================================
@@ -337,8 +346,8 @@ bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool set
 //
 void SV_SendClientMessages( void );
 void SV_AmbientSound( edict_t *entity, int soundindex, float volume, float attenuation );
-void SV_ClientPrintf( sv_client_t *cl, char *fmt, ... );
-void SV_BroadcastPrintf( char *fmt, ... );
+void SV_ClientPrintf( sv_client_t *cl, int level, char *fmt, ... );
+void SV_BroadcastPrintf( int level, char *fmt, ... );
 void SV_BroadcastCommand( char *fmt, ... );
 
 //
@@ -362,8 +371,8 @@ void SV_Newgame_f( void );
 //
 // sv_ents.c
 //
-void SV_WriteFrameToClient (sv_client_t *client, sizebuf_t *msg);
-void SV_BuildClientFrame (sv_client_t *client);
+void SV_WriteFrameToClient( sv_client_t *client, sizebuf_t *msg );
+void SV_BuildClientFrame( sv_client_t *client );
 void SV_UpdateEntityState( edict_t *ent, bool baseline );
 
 //
@@ -373,8 +382,8 @@ void SV_LoadProgs( const char *name );
 void SV_UnloadProgs( void );
 void SV_FreeEdicts( void );
 void SV_InitEdict( edict_t *pEdict );
-void SV_ConfigString (int index, const char *val);
-void SV_SetModel (edict_t *ent, const char *name);
+void SV_ConfigString( int index, const char *val );
+void SV_SetModel( edict_t *ent, const char *name );
 void SV_CreatePhysBody( edict_t *ent );
 void SV_SetPhysForce( edict_t *ent );
 void SV_SetMassCentre( edict_t *ent);

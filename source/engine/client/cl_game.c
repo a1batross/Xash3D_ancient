@@ -144,11 +144,11 @@ void CL_DrawHUD( int state )
 	if( state == CL_ACTIVE && cl_paused->integer )
 		state = CL_PAUSED;
 
-	cls.dllFuncs.pfnRedraw( cl.time, state );
+	clgame.dllFuncs.pfnRedraw( cl.time, state );
 
 	if( state == CL_ACTIVE )
 	{
-		cls.dllFuncs.pfnFrame( cl.time );
+		clgame.dllFuncs.pfnFrame( cl.time );
 	}
 }
 
@@ -277,7 +277,7 @@ void CL_ParseUserMessage( sizebuf_t *net_buffer, int svc_num )
 
 	// message with variable sizes receive an actual size as first byte
 	if( iSize == -1 ) iSize = MSG_ReadByte( net_buffer );
-	if( iSize > 0 ) pbuf = Mem_Alloc( cls.private, iSize );
+	if( iSize > 0 ) pbuf = Mem_Alloc( clgame.private, iSize );
 
 	// parse user message into buffer
 	MSG_ReadData( net_buffer, pbuf, iSize );
@@ -376,7 +376,7 @@ pfnMemAlloc
 */
 static void *pfnMemAlloc( size_t cb, const char *filename, const int fileline )
 {
-	return com.malloc( cls.private, cb, filename, fileline );
+	return com.malloc( clgame.private, cb, filename, fileline );
 }
 
 /*
@@ -1338,18 +1338,18 @@ Event callback for studio models
 */
 void CL_StudioEvent( dstudioevent_t *event, edict_t *pEdict )
 {
-	cls.dllFuncs.pfnStudioEvent( event, pEdict );
+	clgame.dllFuncs.pfnStudioEvent( event, pEdict );
 }
 
 void CL_UnloadProgs( void )
 {
 	// initialize game
-	cls.dllFuncs.pfnShutdown();
+	clgame.dllFuncs.pfnShutdown();
 
 	StringTable_Delete( clgame.hStringTable );
-	Com_FreeLibrary( cls.game );
+	Com_FreeLibrary( clgame.hInstance );
 	Mem_FreePool( &cls.mempool );
-	Mem_FreePool( &cls.private );
+	Mem_FreePool( &clgame.private );
 }
 
 bool CL_LoadProgs( const char *name )
@@ -1359,17 +1359,17 @@ bool CL_LoadProgs( const char *name )
 	edict_t			*e;
 	int			i;
 
-	if( cls.game ) CL_UnloadProgs();
+	if( clgame.hInstance ) CL_UnloadProgs();
 
 	// fill it in
 	Com_BuildPath( name, libpath );
 	cls.mempool = Mem_AllocPool( "Client Edicts Zone" );
-	cls.private = Mem_AllocPool( "Client Private Zone" );
+	clgame.private = Mem_AllocPool( "Client Private Zone" );
 
-	cls.game = Com_LoadLibrary( libpath );
-	if( !cls.game ) return false;
+	clgame.hInstance = Com_LoadLibrary( libpath );
+	if( !clgame.hInstance ) return false;
 
-	GetClientAPI = (CLIENTAPI)Com_GetProcAddress( cls.game, "CreateAPI" );
+	GetClientAPI = (CLIENTAPI)Com_GetProcAddress( clgame.hInstance, "CreateAPI" );
 
 	if( !GetClientAPI )
 	{
@@ -1377,7 +1377,7 @@ bool CL_LoadProgs( const char *name )
 		return false;
 	}
 
-	if( !GetClientAPI( &cls.dllFuncs, &gEngfuncs ))
+	if( !GetClientAPI( &clgame.dllFuncs, &gEngfuncs ))
 	{
 		MsgDev( D_ERROR, "CL_LoadProgs: can't init client API\n" );
 		return false;
@@ -1387,7 +1387,7 @@ bool CL_LoadProgs( const char *name )
 	clgame.hStringTable = StringTable_Create( "Client", 0x10000 );
 	clgame.maxEntities = host.max_edicts;	// FIXME: must come from CS_MAXENTITIES
 	clgame.maxClients = Host_MaxClients();
-	cls.edicts = Mem_Alloc( cls.mempool, sizeof( edict_t ) * clgame.maxEntities );
+	clgame.edicts = Mem_Alloc( cls.mempool, sizeof( edict_t ) * clgame.maxEntities );
 
 	// register svc_bad message
 	pfnHookUserMsg( "bad", NULL );
@@ -1407,7 +1407,7 @@ bool CL_LoadProgs( const char *name )
 		e->free = true; // mark all edicts as freed
 
 	// initialize game
-	cls.dllFuncs.pfnInit();
+	clgame.dllFuncs.pfnInit();
 
 	return true;
 }

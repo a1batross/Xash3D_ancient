@@ -199,7 +199,6 @@ gotnewcl:
 	MSG_Init( &newcl->datagram, newcl->datagram_buf, sizeof(newcl->datagram_buf));
 	
 	newcl->state = cs_connected;
-	newcl->sendtime = host.realtime;
 	newcl->lastmessage = host.realtime;
 	newcl->lastconnect = host.realtime;
 
@@ -249,7 +248,8 @@ void SV_DropClient( sv_client_t *drop )
 	if( drop->state == cs_zombie ) return;	// already dropped
 
 	// add the disconnect
-	MSG_WriteByte( &drop->netchan.message, svc_disconnect );
+	if(!( drop->edict && (drop->edict->v.flags & FL_FAKECLIENT )))
+		MSG_WriteByte( &drop->netchan.message, svc_disconnect );
 
 	// let the game known about client state
 	svgame.globals->time = sv.time;
@@ -295,6 +295,9 @@ void SV_BeginRedirect( netadr_t adr, int target, char *buffer, int buffersize, v
 
 void SV_FlushRedirect( netadr_t adr, int dest, char *buf )
 {
+	if( sv_client->edict && (sv_client->edict->v.flags & FL_FAKECLIENT))
+		return;
+
 	switch( dest )
 	{
 	case RD_PACKET:
@@ -543,6 +546,7 @@ void SV_New_f( sv_client_t *cl )
 	MSG_WriteByte( &cl->netchan.message, svc_serverdata );
 	MSG_WriteLong( &cl->netchan.message, PROTOCOL_VERSION);
 	MSG_WriteLong( &cl->netchan.message, svs.spawncount );
+	MSG_WriteFloat( &cl->netchan.message, sv.frametime );
 	MSG_WriteShort( &cl->netchan.message, playernum );
 	MSG_WriteString( &cl->netchan.message, sv.configstrings[CS_NAME] );
 
@@ -553,8 +557,7 @@ void SV_New_f( sv_client_t *cl )
 		ent = EDICT_NUM( playernum + 1 );
 		ent->serialnumber = playernum + 1;
 		cl->edict = ent;
-		cl->num_cmds = 0;
-		Mem_Set( &cl->cmd, 0, sizeof( cl->cmd ));
+		Mem_Set( &cl->lastcmd, 0, sizeof( cl->lastcmd ));
 
 		// begin fetching configstrings
 		MSG_WriteByte( &cl->netchan.message, svc_stufftext );
@@ -625,7 +628,7 @@ void SV_Baselines_f( sv_client_t *cl )
 	}
 	
 	// handle the case of a level changing while a client was connecting
-	if( com.atoi(Cmd_Argv(1)) != svs.spawncount )
+	if( com.atoi( Cmd_Argv( 1 )) != svs.spawncount )
 	{
 		MsgDev( D_INFO, "baselines from different level\n" );
 		SV_New_f( cl );
@@ -637,7 +640,7 @@ void SV_Baselines_f( sv_client_t *cl )
 	Mem_Set( &nullstate, 0, sizeof(nullstate));
 
 	// write a packet full of data
-	while( cl->netchan.message.cursize < MAX_MSGLEN/2 && start < host.max_edicts )
+	while( cl->netchan.message.cursize < MAX_MSGLEN / 2 && start < host.max_edicts )
 	{
 		base = &svs.baselines[start];
 		if( base->modelindex || base->soundindex || base->effects )
@@ -664,7 +667,7 @@ SV_Begin_f
 void SV_Begin_f( sv_client_t *cl )
 {
 	// handle the case of a level changing while a client was connecting
-	if( com.atoi(Cmd_Argv(1)) != svs.spawncount )
+	if( com.atoi( Cmd_Argv( 1 )) != svs.spawncount )
 	{
 		Msg( "begin from different level\n" );
 		SV_New_f( cl );
@@ -767,7 +770,7 @@ Dumps the serverinfo info string
 */
 void SV_ShowServerinfo_f( sv_client_t *cl )
 {
-	Info_Print(Cvar_Serverinfo());
+	Info_Print( Cvar_Serverinfo());
 }
 
 /*
@@ -786,32 +789,22 @@ void SV_UserinfoChanged( sv_client_t *cl )
 	// name for C code (make colored string)
 	com.snprintf( cl->name, sizeof(cl->name), "^2%s", Info_ValueForKey( cl->userinfo, "name"));
 
-	// if the client is on the same subnet as the server and we aren't running an
-	// internet public server, assume they don't need a rate choke
-	if(NET_IsLocalAddress( cl->netchan.remote_address ))
-	{
-		// lans should not rate limit
-		cl->rate = 99999;
-	}
-	else
-	{
-		val = Info_ValueForKey( cl->userinfo, "rate" );
-		if( com.strlen( val ))
-		{
-			i = com.atoi( val );
-			cl->rate = bound( 3000, i, 90000 );
-		}
-		else cl->rate = 3000;
-	}
 
-	// maintain the IP information
-	// this is set in SV_DirectConnect ( directly on the server, not transmitted ),
-	// may be lost when client updates it's userinfo the banning code relies on this being consistently present
-	if(!Info_ValueForKey (cl->userinfo, "ip"))
+	// rate command
+	val = Info_ValueForKey( cl->userinfo, "rate" );
+	if( com.strlen( val ))
 	{
-		if( !NET_IsLocalAddress(cl->netchan.remote_address ))
-			Info_SetValueForKey(cl->userinfo, "ip", NET_AdrToString(cl->netchan.remote_address));
-		else Info_SetValueForKey( cl->userinfo, "ip", "localhost" );
+		i = com.atoi( val );
+		cl->rate = i;
+		cl->rate = bound ( 100, cl->rate, 15000 );
+	}
+	else cl->rate = 5000;
+
+	// msg command
+	val = Info_ValueForKey( cl->userinfo, "msg" );
+	if( com.strlen( val ))
+	{
+		cl->messagelevel = com.atoi( val );
 	}
 }
 
@@ -961,6 +954,9 @@ void _MSG_Send( msgtype_t msg_type, vec3_t origin, const edict_t *ent, const cha
 		if( cl->state != cs_spawned && !reliable )
 			continue;
 
+		if( cl->edict && (cl->edict->v.flags & FL_FAKECLIENT))
+			continue;
+
 		if( mask )
 		{
 			area2 = pe->LeafArea( leafnum );
@@ -1001,13 +997,13 @@ void SV_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 	c = Cmd_Argv( 0 );
 	MsgDev( D_INFO, "SV_ConnectionlessPacket: %s : %s\n", NET_AdrToString(from), c);
 
-	if(!com.strcmp(c, "ping")) SV_Ping( from );
-	else if(!com.strcmp(c, "ack")) SV_Ack( from );
-	else if(!com.strcmp(c,"status")) SV_Status( from );
-	else if(!com.strcmp(c,"info")) SV_Info( from );
-	else if(!com.strcmp(c,"getchallenge")) SV_GetChallenge( from );
-	else if(!com.strcmp(c,"connect")) SV_DirectConnect( from );
-	else if(!com.strcmp(c, "rcon")) SV_RemoteCommand( from, msg );
+	if( !com.strcmp( c, "ping" )) SV_Ping( from );
+	else if( !com.strcmp( c, "ack" )) SV_Ack( from );
+	else if( !com.strcmp( c,"status" )) SV_Status( from );
+	else if( !com.strcmp( c,"info" )) SV_Info( from );
+	else if( !com.strcmp( c,"getchallenge" )) SV_GetChallenge( from );
+	else if( !com.strcmp( c,"connect" )) SV_DirectConnect( from );
+	else if( !com.strcmp( c, "rcon" )) SV_RemoteCommand( from, msg );
 	else MsgDev( D_ERROR, "bad connectionless packet from %s:\n%s\n", NET_AdrToString( from ), s );
 }
 
@@ -1291,14 +1287,22 @@ Also called by bot code
 void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 {
 	vec3_t	viewangles;
+
+	cl->commandMsec -= cmd->msec;
+
+	if( cl->commandMsec < 0 && sv_enforcetime->integer )
+	{
+		MsgDev( D_INFO, "commandMsec underflow from %s\n", cl->name );
+		return;
+	}
 	
-	cl->cmd = *cmd;
+	cl->lastcmd = *cmd;
 	cl->skipframes = 0;
 
 	// may have been kicked during the last usercmd
 	if( sv_paused->integer ) return;
 
-	SV_ApplyClientMove( cl, &cl->cmd );
+	SV_ApplyClientMove( cl, &cl->lastcmd );
 	// make sure the velocity is sane (not a NaN)
 	SV_CheckVelocity( cl->edict );
 
@@ -1336,11 +1340,11 @@ void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 	// walk
 	if((cl->edict->v.waterlevel >= 2) && (cl->edict->v.movetype != MOVETYPE_NOCLIP))
 	{
-		SV_WaterMove( cl, &cl->cmd );
+		SV_WaterMove( cl, &cl->lastcmd );
 		SV_CheckVelocity( cl->edict );
 		return;
 	}
-	SV_AirMove( cl, &cl->cmd );
+	SV_AirMove( cl, &cl->lastcmd );
 	SV_CheckVelocity( cl->edict );
 
 	VectorCopy( cl->edict->v.origin, cl->edict->pvServerData->s.origin );
@@ -1361,8 +1365,10 @@ each of the backup packets.
 */
 static void SV_ReadClientMove( sv_client_t *cl, sizebuf_t *msg )
 {
-	int	i, checksumIndex, lastframe;
+	int	checksumIndex, lastframe;
 	int	checksum, calculatedChecksum;
+	usercmd_t	nullcmd, oldest, oldcmd, newcmd;
+	int	net_drop;
 	double	latency;
 
 	checksumIndex = msg->readcount;
@@ -1371,24 +1377,21 @@ static void SV_ReadClientMove( sv_client_t *cl, sizebuf_t *msg )
 	if( lastframe != cl->lastframe )
 	{
 		cl->lastframe = lastframe;
-		if (cl->lastframe > 0)
+		if( cl->lastframe > 0 )
 		{
-			latency = host.realtime - cl->frames[cl->lastframe & UPDATE_MASK].msg_sent;
-			cl->frames[cl->lastframe & UPDATE_MASK].latency = latency;
+			latency = svs.realtime - cl->frames[cl->lastframe & UPDATE_MASK].senttime;
+			cl->frame_latency[cl->lastframe & (LATENCY_COUNTS-1)] = latency;
 		}
 	}
 
-	Mem_Set( &cl->cmds[0], 0, sizeof( usercmd_t ));
-	for( i = 0; i < 3; i++ )
-	{
-		MSG_ReadDeltaUsercmd( msg, &cl->cmds[i], &cl->cmds[i+1] );
-		cl->num_cmds++;
-	}
+	Mem_Set( &nullcmd, 0, sizeof( nullcmd ));
+	MSG_ReadDeltaUsercmd( msg, &nullcmd, &oldest );
+	MSG_ReadDeltaUsercmd( msg, &oldest, &oldcmd );
+	MSG_ReadDeltaUsercmd( msg, &oldcmd, &newcmd );
 
 	if( cl->state != cs_spawned )
 	{
 		cl->lastframe = -1;
-		cl->num_cmds = 0;
 		return;
 	}
 
@@ -1397,47 +1400,26 @@ static void SV_ReadClientMove( sv_client_t *cl, sizebuf_t *msg )
 	if( calculatedChecksum != checksum )
 	{
 		MsgDev( D_ERROR, "SV_UserMove: failed command checksum for %s (%d != %d)\n", cl->name, calculatedChecksum, checksum );
-		cl->num_cmds = 0;
+		return;
 	}
-}
 
-void SV_ExecuteClientMoves( sv_client_t *cl )
-{
-	int	moveindex;
-	float	moveframetime;
-	double	oldframetime;
-	double	oldframetime2;
-
-	if( cl->num_cmds < 1 ) return;
-
-	// only start accepting input once the player is spawned
-	if( cl->state != cs_spawned ) return;
-
-	for( moveindex = 0; moveindex < cl->num_cmds; moveindex++ )
+	if( !sv_paused->integer )
 	{
-		usercmd_t *move = cl->cmds + moveindex;
-
-		move->time = max( move->time, cl->cmd.time ); // prevent backstepping of time
-		moveframetime = bound( 0, move->time - cl->cmd.time, min( 0.1, sv.frametime * 4 ));
-		cl->cmd = *move;
-
-		if( moveframetime <= 0 ) continue;
-		oldframetime = svgame.globals->frametime;
-		oldframetime2 = sv.frametime;
-			
-		// the server and qc frametime values must be changed temporarily
-		svgame.globals->frametime = sv.frametime = moveframetime;
-		// if move is more than 50ms, split it into two moves (this matches QWSV behavior and the client prediction)
-		if( sv.frametime > 0.05 )
+		net_drop = cl->netchan.dropped;
+		if( net_drop < 20 )
 		{
-			svgame.globals->frametime = sv.frametime = moveframetime * 0.5f;
-			SV_Physics_ClientMove( cl, &cl->cmd );
+			while( net_drop > 2 )
+			{
+				SV_Physics_ClientMove( cl, &cl->lastcmd );
+				net_drop--;
+			}
+			if( net_drop > 1 ) SV_Physics_ClientMove( cl, &oldest );
+			if( net_drop > 0 ) SV_Physics_ClientMove( cl, &oldcmd );
+
 		}
-			
-		SV_Physics_ClientMove( cl, &cl->cmd );
-		sv.frametime = oldframetime2;
-		svgame.globals->frametime = oldframetime;
+		SV_Physics_ClientMove( cl, &newcmd );
 	}
+	cl->lastcmd = newcmd;
 }
 
 /*
@@ -1453,17 +1435,18 @@ void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg )
 	bool	move_issued = false;
 	char	*s;
 
-	cl->num_cmds = 0;
-
 	// read optional clientCommand strings
 	while( cl->state != cs_zombie )
 	{
 		c = MSG_ReadByte( msg );
-		if( c == -1 )
+		if( c == -1 ) break;
+
+		if( msg->error )
 		{
-			SV_ExecuteClientMoves( cl );
-			break;
-		}
+			MsgDev( D_ERROR, "SV_ReadClientMessage: badread\n" );
+			SV_DropClient( cl );
+			return;
+		}	
 
 		switch( c )
 		{

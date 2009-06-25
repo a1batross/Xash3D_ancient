@@ -155,7 +155,7 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 		newnum = MSG_ReadShort( msg );
 		if( !newnum ) break; // end of packet entities
 
-		if( msg->readcount > msg->cursize )
+		if( msg->error )
 			Host_Error("CL_ParsePacketEntities: end of message[%d > %d]\n", msg->readcount, msg->cursize );
 
 		while( newnum >= clgame.numEntities ) CL_AllocEdict();
@@ -274,6 +274,17 @@ static float CL_LerpPoint( void )
 	return frac;
 }
 
+static float CL_LerpPoint2( void )
+{
+	float	lerpfrac;
+
+	if( cl_paused->integer )
+		lerpfrac = 1.0f;
+	else lerpfrac = 1.0f - (cl.frame.servertime - cl.time) / (float)cl.serverframetime;
+
+	return lerpfrac;
+}
+
 /*
 ================
 CL_ParseFrame
@@ -286,8 +297,10 @@ void CL_ParseFrame( sizebuf_t *msg )
 	frame_t		*old;
           
 	memset( &cl.frame, 0, sizeof( cl.frame ));
+
 	cl.frame.serverframe = MSG_ReadLong( msg );
 	cl.frame.deltaframe = MSG_ReadLong( msg );
+	cl.frame.servertime = cl.frame.serverframe * cl.serverframetime;
 	cl.surpressCount = MSG_ReadByte( msg );
 
 	// If the frame is delta compressed from data that we
@@ -321,7 +334,10 @@ void CL_ParseFrame( sizebuf_t *msg )
 		else cl.frame.valid = true;	// valid delta parse
 	}
 
-	cl.refdef.lerpfrac = CL_LerpPoint ();
+	cl.refdef.lerpfrac = CL_LerpPoint2 ();
+
+	// clamp time
+	cl.time = bound( cl.frame.servertime - cl.serverframetime, cl.time, cl.frame.servertime );
 
 	// read areabits
 	len = MSG_ReadByte( msg );
@@ -402,7 +418,7 @@ void CL_AddEntities( void )
 		return;
 
 	CL_AddPacketEntities( &cl.frame );
-	cls.dllFuncs.pfnCreateEntities();
+	clgame.dllFuncs.pfnCreateEntities();
 
 	CL_AddParticles();
 	CL_AddDLights();

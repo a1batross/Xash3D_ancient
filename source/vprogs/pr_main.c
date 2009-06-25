@@ -300,7 +300,7 @@ void PRVM_CompileProgs( void )
 	PR_FinishCompilation();          
 }
 
-void PRVM_Frame( void )
+void PRVM_Frame( double time )
 {
 	if( setjmp( pr_int_error ))
 		return;

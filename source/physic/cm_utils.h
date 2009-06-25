@@ -50,6 +50,7 @@ void CM_SetAreaPortalState( int portalnum, bool open );
 
 bool CM_HeadnodeVisible( int nodenum, byte *visbits );
 byte *CM_FatPVS( const vec3_t org, bool portal );
+byte *CM_FatPHS( int cluster, bool portal );
 
 int CM_NumClusters( void );
 int CM_NumTextures( void );

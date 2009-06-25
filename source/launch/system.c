@@ -79,6 +79,7 @@ void Sys_GetStdAPI( void )
 	// network.c funcs
 	com.NET_Init = NET_Init;
 	com.NET_Shutdown = NET_Shutdown;
+	com.NET_Sleep = NET_Sleep;
 	com.NET_Config = NET_Config;
 	com.NET_AdrToString = NET_AdrToString;
 	com.NET_StringToAdr = NET_StringToAdr;

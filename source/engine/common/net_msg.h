@@ -14,7 +14,8 @@ enum net_types_e
 	NET_WORD,
 	NET_LONG,
 	NET_FLOAT,
-	NET_ANGLE,
+	NET_ANGLE8,	// angle 2 char
+	NET_ANGLE,	// angle 2 short
 	NET_SCALE,
 	NET_COORD,
 	NET_COLOR,
@@ -97,6 +98,7 @@ static const net_desc_t NWDesc[] =
 { NET_WORD,	"Word",	0,		65535	},
 { NET_LONG,	"Long",	0,		0	}, // can't overflow
 { NET_FLOAT,	"Float",	0,		0	}, // can't overflow
+{ NET_ANGLE8,	"Angle",	-360,		360	},
 { NET_ANGLE,	"Angle",	-360,		360	},
 { NET_SCALE,	"Scale",	-128,		127	},
 { NET_COORD,	"Coord",	-262140,		262140	},
@@ -114,6 +116,7 @@ static const net_desc_t NWDesc[] =
 #include "entity_state.h"
 
 #define ES_FIELD( x )		#x,(int)&((entity_state_t*)0)->x
+#define PS_FIELD( x )		#x,(int)&((player_state_t*)0)->x
 #define CM_FIELD( x )		#x,(int)&((usercmd_t*)0)->x
 
 // config strings are a general means of communication from
@@ -165,14 +168,15 @@ static const net_desc_t NWDesc[] =
 void MSG_Init( sizebuf_t *buf, byte *data, size_t length );
 void MSG_Clear( sizebuf_t *buf );
 void MSG_Print( sizebuf_t *msg, const char *data );
-void MSG_Bitstream( sizebuf_t *buf, bool state );
-void _MSG_WriteBits( sizebuf_t *msg, int value, const char *name, int bits, const char *filename, const int fileline );
-int _MSG_ReadBits( sizebuf_t *msg, int bits, const char *filename, const int fileline );
+void _MSG_WriteBits( sizebuf_t *msg, long value, const char *name, int bits, const char *filename, const int fileline );
+long _MSG_ReadBits( sizebuf_t *msg, int bits, const char *filename, const int fileline );
 void _MSG_Begin( int dest, const char *filename, int fileline );
 void _MSG_WriteString( sizebuf_t *sb, const char *s, const char *filename, int fileline );
 void _MSG_WriteFloat( sizebuf_t *sb, float f, const char *filename, int fileline );
 void _MSG_WriteDouble( sizebuf_t *sb, double f, const char *filename, int fileline );
+void _MSG_WriteAngle8( sizebuf_t *sb, float f, const char *filename, int fileline );
 void _MSG_WriteAngle16( sizebuf_t *sb, float f, const char *filename, int fileline );
+void _MSG_WriteCoord16( sizebuf_t *sb, float f, const char *filename, int fileline );
 void _MSG_WritePos( sizebuf_t *sb, vec3_t pos, const char *filename, int fileline );
 void _MSG_WriteData( sizebuf_t *sb, const void *data, size_t length, const char *filename, int fileline );
 void _MSG_WriteDeltaUsercmd( sizebuf_t *sb, struct usercmd_s *from, struct usercmd_s *cmd, const char *filename, const int fileline );
@@ -188,8 +192,9 @@ void _MSG_Send( msgtype_t to, vec3_t origin, const edict_t *ent, const char *fil
 #define MSG_WriteFloat(x,y) _MSG_WriteFloat(x, y, __FILE__, __LINE__)
 #define MSG_WriteDouble(x,y) _MSG_WriteDouble(x, y, __FILE__, __LINE__)
 #define MSG_WriteString(x,y) _MSG_WriteString (x, y, __FILE__, __LINE__)
-#define MSG_WriteCoord16(x, y) _MSG_WriteBits(x, y, NULL, NET_COORD, __FILE__, __LINE__)
-#define MSG_WriteCoord32(x, y) _MSG_WriteBits(x, y, NULL, NET_FLOAT, __FILE__, __LINE__)
+#define MSG_WriteCoord16(x, y) _MSG_WriteCoord16(x, y, __FILE__, __LINE__)
+#define MSG_WriteCoord32(x, y) _MSG_WriteFloat(x, y, __FILE__, __LINE__)
+#define MSG_WriteAngle8(x, y) _MSG_WriteAngle8(x, y, __FILE__, __LINE__)
 #define MSG_WriteAngle16(x, y) _MSG_WriteAngle16(x, y, __FILE__, __LINE__)
 #define MSG_WriteAngle32(x, y) _MSG_WriteFloat(x, y, __FILE__, __LINE__)
 #define MSG_WritePos(x, y) _MSG_WritePos( x, y, __FILE__, __LINE__ )
@@ -206,10 +211,13 @@ void MSG_BeginReading (sizebuf_t *sb);
 #define MSG_ReadShort( x) _MSG_ReadBits( x, NET_SHORT, __FILE__, __LINE__ )
 #define MSG_ReadWord( x ) _MSG_ReadBits( x, NET_WORD, __FILE__, __LINE__ )
 #define MSG_ReadLong( x ) _MSG_ReadBits( x, NET_LONG, __FILE__, __LINE__ )
+#define MSG_ReadCoord32( x ) MSG_ReadFloat( x )
 #define MSG_ReadAngle32( x ) MSG_ReadFloat( x )
 float MSG_ReadFloat( sizebuf_t *msg );
 char *MSG_ReadString( sizebuf_t *sb );
+float MSG_ReadAngle8( sizebuf_t *msg );
 float MSG_ReadAngle16( sizebuf_t *msg );
+float MSG_ReadCoord16( sizebuf_t *msg );
 double MSG_ReadDouble( sizebuf_t *msg );
 char *MSG_ReadStringLine( sizebuf_t *sb );
 void MSG_ReadPos( sizebuf_t *sb, vec3_t pos );
@@ -302,6 +310,7 @@ extern byte		net_message_buffer[MAX_MSGLEN];
 #define UPDATE_MASK		(UPDATE_BACKUP - 1)
 
 void Netchan_Init( void );
+bool Netchan_CanPacket( netchan_t *chan );
 void Netchan_Setup( netsrc_t sock, netchan_t *chan, netadr_t adr, int qport );
 bool Netchan_NeedReliable( netchan_t *chan );
 void Netchan_Transmit( netchan_t *chan, int length, byte *data );

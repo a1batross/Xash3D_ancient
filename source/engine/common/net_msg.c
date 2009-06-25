@@ -8,10 +8,10 @@
 #include "mathlib.h"
 
 // angles pack methods
-#define ANGLE2CHAR(x)	((int)((x)*256/360) & 255)
-#define CHAR2ANGLE(x)	((x)*(360.0/256))
-#define ANGLE2SHORT(x)	((int)((x)*65536/360) & 65535)
-#define SHORT2ANGLE(x)	((x)*(360.0/65536))
+#define ANGLE2CHAR(x)	((int)((x)*256 / 360) & 255)
+#define CHAR2ANGLE(x)	((x)*(360.0f / 256))
+#define ANGLE2SHORT(x)	((int)((x)*65536 / 360) & 65535)
+#define SHORT2ANGLE(x)	((x)*(360.0f / 65536))
 
 static net_field_t ent_fields[] =
 {
@@ -111,7 +111,7 @@ static net_field_t ent_fields[] =
 // probably usercmd_t never reached 32 field integer limit (in theory of course)
 static net_field_t cmd_fields[] =
 {
-{ CM_FIELD(time),		NET_FLOAT, true	},
+{ CM_FIELD(msec),		NET_BYTE,  true	},
 { CM_FIELD(angles[0]),	NET_ANGLE, false	},
 { CM_FIELD(angles[1]),	NET_ANGLE, false	},
 { CM_FIELD(angles[2]),	NET_ANGLE, false	},
@@ -226,7 +226,7 @@ MSG_WriteBits
 write # of bytes
 =======================
 */
-void _MSG_WriteBits( sizebuf_t *msg, int value, const char *name, int net_type, const char *filename, const int fileline )
+void _MSG_WriteBits( sizebuf_t *msg, long value, const char *name, int net_type, const char *filename, const int fileline )
 {
 	union { long l; float f; } dat;
 	byte *buf;
@@ -238,17 +238,16 @@ void _MSG_WriteBits( sizebuf_t *msg, int value, const char *name, int net_type, 
 		msg->overflowed = true;
 		return;
 	}
+	dat.l = value;
 
 	switch( net_type )
 	{
 	case NET_SCALE:
-		dat.l = value;
 		value = dat.f * 4;	
 		buf = MSG_GetSpace( msg, 1 );
 		buf[0] = value;
 		break;
 	case NET_COLOR:
-		dat.l = value;
 		value = bound( 0, dat.f, 255 );
 		buf = MSG_GetSpace( msg, 1 );
 		buf[0] = value;
@@ -272,8 +271,19 @@ void _MSG_WriteBits( sizebuf_t *msg, int value, const char *name, int net_type, 
 		buf[2] = (value>>16) & 0xff;
 		buf[3] = (value>>24);
 		break;
+	case NET_ANGLE8:
+		value = ANGLE2CHAR( value );
+		buf = MSG_GetSpace( msg, 1 );
+		buf[0] = value;
+		break;
 	case NET_ANGLE:
 		value = ANGLE2SHORT( value );
+		buf = MSG_GetSpace( msg, 2 );
+		buf[0] = value & 0xff;
+		buf[1] = value>>8;
+		break;
+	case NET_COORD:
+		value = dat.f * 8;	
 		buf = MSG_GetSpace( msg, 2 );
 		buf[0] = value & 0xff;
 		buf[1] = value>>8;
@@ -303,46 +313,54 @@ MSG_ReadBits
 read # of bytes
 =======================
 */
-int _MSG_ReadBits( sizebuf_t *msg, int net_type, const char *filename, const int fileline )
+long _MSG_ReadBits( sizebuf_t *msg, int net_type, const char *filename, const int fileline )
 {
 	union { long l; float f; } dat;
-	int value = 0;
+	long value = 0;
 
 	switch( net_type )
 	{
 	case NET_SCALE:
 		value = (signed char)(msg->data[msg->readcount]);
 		dat.f = value * 0.25f;
-		value = dat.l;
 		msg->readcount += 1;
 		break;
 	case NET_COLOR:
 		value = (byte)(msg->data[msg->readcount]);
 		dat.f = value;
-		value = dat.l;
 		msg->readcount += 1;
 		break;
 	case NET_CHAR:
-		value = (signed char)msg->data[msg->readcount];
+		dat.l = (signed char)msg->data[msg->readcount];
 		msg->readcount += 1;
 		break;
 	case NET_BYTE:
-		value = (byte)msg->data[msg->readcount];
+		dat.l = (byte)msg->data[msg->readcount];
 		msg->readcount += 1;
 		break;
 	case NET_WORD:
 	case NET_SHORT:
-		value = (short)BuffLittleShort(msg->data + msg->readcount);
+		dat.l = (short)BuffLittleShort(msg->data + msg->readcount);
 		msg->readcount += 2;
 		break;
 	case NET_LONG:
 	case NET_FLOAT:
-		value = (long)BuffLittleLong(msg->data + msg->readcount);
+		dat.l = (long)BuffLittleLong(msg->data + msg->readcount);
 		msg->readcount += 4;
 		break;
+	case NET_ANGLE8:
+		value = (unsigned char)msg->data[msg->readcount];
+		dat.l = CHAR2ANGLE( value );
+		msg->readcount += 1;
+		break;
 	case NET_ANGLE:
-		value = (word)BuffLittleShort(msg->data + msg->readcount);
-		value = SHORT2ANGLE( value );
+		value = (unsigned short)BuffLittleShort( msg->data + msg->readcount );
+		dat.l = SHORT2ANGLE( value );
+		msg->readcount += 2;
+		break;		
+	case NET_COORD:
+		value = (short)BuffLittleShort( msg->data + msg->readcount );
+		dat.f = value * 0.125f;
 		msg->readcount += 2;
 		break;		
 	default:
@@ -350,9 +368,19 @@ int _MSG_ReadBits( sizebuf_t *msg, int net_type, const char *filename, const int
 		break;
 	}
 
-	// end of message
+	value = dat.l;
+
+	// end of message or error reading
 	if( msg->readcount > msg->cursize )
+	{
+		if(( msg->readcount - msg->cursize ) > 1 )
+		{
+			MsgDev( D_ERROR, "MSG_Read%s: ", NWDesc[net_type].name );
+			MsgDev( D_ERROR, "msg total size %i, reading %i\n", msg->cursize, msg->readcount );
+			msg->error = true;
+		}
 		return -1;
+	}
 	return value;
 }
 
@@ -368,11 +396,25 @@ int _MSG_ReadBits( sizebuf_t *msg, int net_type, const char *filename, const int
    writing functions
 =======================
 */
+void _MSG_WriteAngle8( sizebuf_t *sb, float f, const char *filename, int fileline )
+{
+	union { float f; int l; } dat;
+	dat.f = f;
+	_MSG_WriteBits( sb, dat.l, NWDesc[NET_ANGLE8].name, NET_ANGLE8, filename, fileline );
+}
+
 void _MSG_WriteAngle16( sizebuf_t *sb, float f, const char *filename, int fileline )
 {
 	union { float f; int l; } dat;
 	dat.f = f;
 	_MSG_WriteBits( sb, dat.l, NWDesc[NET_ANGLE].name, NET_ANGLE, filename, fileline );
+}
+
+void _MSG_WriteCoord16( sizebuf_t *sb, float f, const char *filename, int fileline )
+{
+	union { float f; int l; } dat;
+	dat.f = f;
+	_MSG_WriteBits( sb, dat.l, NWDesc[NET_COORD].name, NET_COORD, filename, fileline );
 }
 
 void _MSG_WriteFloat( sizebuf_t *sb, float f, const char *filename, int fileline )
@@ -411,9 +453,9 @@ void _MSG_WriteString( sizebuf_t *sb, const char *s, const char *filename, int f
 
 void _MSG_WritePos( sizebuf_t *sb, vec3_t pos, const char *filename, int fileline )
 {
-	_MSG_WriteBits( sb, pos[0], NWDesc[NET_FLOAT].name, NET_FLOAT, filename, fileline );
-	_MSG_WriteBits( sb, pos[1], NWDesc[NET_FLOAT].name, NET_FLOAT, filename, fileline );
-	_MSG_WriteBits( sb, pos[2], NWDesc[NET_FLOAT].name, NET_FLOAT, filename, fileline );
+	_MSG_WriteFloat( sb, pos[0], filename, fileline );
+	_MSG_WriteFloat( sb, pos[1], filename, fileline );
+	_MSG_WriteFloat( sb, pos[2], filename, fileline );
 }
 
 /*
@@ -428,11 +470,25 @@ float MSG_ReadFloat( sizebuf_t *msg )
 	return dat.f;	
 }
 
+float MSG_ReadAngle8( sizebuf_t *msg )
+{
+	union { float f; int l; } dat;
+	dat.l = MSG_ReadBits( msg, NET_ANGLE8 );
+	return dat.f;	
+}
+
 float MSG_ReadAngle16( sizebuf_t *msg )
 {
 	union { float f; int l; } dat;
 	dat.l = MSG_ReadBits( msg, NET_ANGLE );
 	return dat.f;	
+}
+
+float MSG_ReadCoord16( sizebuf_t *msg )
+{
+	union { float f; int l; } dat;
+	dat.l = MSG_ReadBits( msg, NET_COORD );
+	return dat.f;
 }
 
 char *MSG_ReadString( sizebuf_t *msg )
@@ -492,9 +548,9 @@ void MSG_ReadData( sizebuf_t *msg, void *data, size_t length )
 
 void MSG_ReadPos( sizebuf_t *msg_read, vec3_t pos )
 {
-	pos[0] = MSG_ReadBits(msg_read, NET_FLOAT );
-	pos[1] = MSG_ReadBits(msg_read, NET_FLOAT );
-	pos[2] = MSG_ReadBits(msg_read, NET_FLOAT );
+	pos[0] = MSG_ReadFloat( msg_read );
+	pos[1] = MSG_ReadFloat( msg_read );
+	pos[2] = MSG_ReadFloat( msg_read );
 }
 
 /*
