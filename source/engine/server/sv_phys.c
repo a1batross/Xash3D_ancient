@@ -1771,5 +1771,5 @@ void SV_Physics( void )
 	// decrement svgame.globals->numEntities if the highest number entities died
 	for( ; EDICT_NUM( svgame.globals->numEntities - 1)->free; svgame.globals->numEntities-- );
 
-	if( !sv_playersonly->integer ) sv.time += sv.frametime;
+//	if( !sv_playersonly->integer ) sv.time += sv.frametime;
 }

@@ -334,7 +334,7 @@ void CL_ParseFrame( sizebuf_t *msg )
 		else cl.frame.valid = true;	// valid delta parse
 	}
 
-	cl.refdef.lerpfrac = CL_LerpPoint2 ();
+	cl.refdef.lerpfrac = CL_LerpPoint ();
 
 	// clamp time
 	cl.time = bound( cl.frame.servertime - cl.serverframetime, cl.time, cl.frame.servertime );

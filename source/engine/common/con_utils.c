@@ -54,7 +54,9 @@ bool Cmd_GetMapList( const char *s, char *completedname, int length )
 
 		if( com.stricmp( ext, "bsp" )) continue;
 		com.strncpy( message, "^1error^7", sizeof( message ));
-		wad = WAD_Open( t->filenames[i], "rb" );
+		if( WAD_Check( t->filenames[i] ) == 1 )
+			wad = WAD_Open( t->filenames[i], "rb" );
+		else wad = NULL;
 	
 		if( wad )
 		{
@@ -75,19 +77,19 @@ bool Cmd_GetMapList( const char *s, char *completedname, int length )
 
 		switch( ver )
 		{
-		case 39:  com.strncpy((char *)buf, "Xash 3D", sizeof(buf)); break;
-		default:	com.strncpy((char *)buf, "??", sizeof(buf)); break;
+		case 39:  com.strncpy( buf, "Xash 3D", sizeof( buf )); break;
+		default:	com.strncpy( buf, "??", sizeof( buf )); break;
 		}
-		Msg("%16s (%s) ^3%s^7\n", matchbuf, buf, message );
+		Msg( "%16s (%s) ^3%s^7\n", matchbuf, buf, message );
 		nummaps++;
 	}
-	Msg("\n^3 %i maps found.\n", nummaps );
+	Msg( "\n^3 %i maps found.\n", nummaps );
 	Mem_Free( t );
 
 	// cut shortestMatch to the amount common with s
 	for( i = 0; matchbuf[i]; i++ )
 	{
-		if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
+		if(com.tolower( completedname[i] ) != com.tolower( matchbuf[i] ))
 			completedname[i] = 0;
 	}
 	return true;
@@ -109,33 +111,32 @@ bool Cmd_GetFontList( const char *s, char *completedname, int length )
 	t = FS_Search(va("gfx/fonts/%s*.*", s ), true);
 	if(!t) return false;
 
-	FS_FileBase(t->filenames[0], matchbuf ); 
-	if(completedname && length) com.strncpy( completedname, matchbuf, length );
+	FS_FileBase( t->filenames[0], matchbuf ); 
+	if( completedname && length ) com.strncpy( completedname, matchbuf, length );
 	if( t->numfilenames == 1 ) return true;
 
-	for(i = 0, numfonts = 0; i < t->numfilenames; i++)
+	for( i = 0, numfonts = 0; i < t->numfilenames; i++ )
 	{
 		const char *ext = FS_FileExtension( t->filenames[i] ); 
 
-		if( com.stricmp(ext, "png" ) && com.stricmp(ext, "dds" ) && com.stricmp(ext, "tga" ))
+		if( com.stricmp( ext, "png" ) && com.stricmp( ext, "dds" ) && com.stricmp( ext, "tga" ))
 			continue;
-		FS_FileBase(t->filenames[i], matchbuf );
-		Msg("%16s\n", matchbuf );
+		FS_FileBase( t->filenames[i], matchbuf );
+		Msg( "%16s\n", matchbuf );
 		numfonts++;
 	}
-	Msg("\n^3 %i fonts found.\n", numfonts );
-	Mem_Free(t);
+	Msg( "\n^3 %i fonts found.\n", numfonts );
+	Mem_Free( t );
 
 	// cut shortestMatch to the amount common with s
-	if(completedname && length)
+	if( completedname && length )
 	{
 		for( i = 0; matchbuf[i]; i++ )
 		{
-			if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
+			if(com.tolower( completedname[i] ) != com.tolower( matchbuf[i] ))
 				completedname[i] = 0;
 		}
 	}
-
 	return true;
 }
 
@@ -152,35 +153,34 @@ bool Cmd_GetDemoList( const char *s, char *completedname, int length )
 	string		matchbuf;
 	int		i, numdems;
 
-	t = FS_Search(va("demos/%s*.dem", s ), true);
-	if(!t) return false;
+	t = FS_Search( va( "demos/%s*.dem", s ), true);
+	if( !t ) return false;
 
-	FS_FileBase(t->filenames[0], matchbuf ); 
-	if(completedname && length) com.strncpy( completedname, matchbuf, length );
-	if(t->numfilenames == 1) return true;
+	FS_FileBase( t->filenames[0], matchbuf ); 
+	if( completedname && length ) com.strncpy( completedname, matchbuf, length );
+	if( t->numfilenames == 1 ) return true;
 
-	for(i = 0, numdems = 0; i < t->numfilenames; i++)
+	for( i = 0, numdems = 0; i < t->numfilenames; i++ )
 	{
 		const char *ext = FS_FileExtension( t->filenames[i] ); 
 
-		if( com.stricmp(ext, "dem" )) continue;
-		FS_FileBase(t->filenames[i], matchbuf );
-		Msg("%16s\n", matchbuf );
+		if( com.stricmp( ext, "dem" )) continue;
+		FS_FileBase( t->filenames[i], matchbuf );
+		Msg( "%16s\n", matchbuf );
 		numdems++;
 	}
-	Msg("\n^3 %i demos found.\n", numdems );
-	Mem_Free(t);
+	Msg( "\n^3 %i demos found.\n", numdems );
+	Mem_Free( t );
 
 	// cut shortestMatch to the amount common with s
-	if(completedname && length)
+	if( completedname && length )
 	{
 		for( i = 0; matchbuf[i]; i++ )
 		{
-			if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
+			if( com.tolower( completedname[i] ) != com.tolower( matchbuf[i] ))
 				completedname[i] = 0;
 		}
 	}
-
 	return true;
 }
 
@@ -197,31 +197,31 @@ bool Cmd_GetProgsList( const char *s, char *completedname, int length )
 	string		matchbuf;
 	int		i, numprogs;
 
-	t = FS_Search(va("%s/%s*.dat", GI->vprogs_dir, s ), true);
+	t = FS_Search( va( "%s/%s*.dat", GI->vprogs_dir, s ), true);
 	if( !t ) return false;
 
 	FS_FileBase( t->filenames[0], matchbuf ); 
-	if(completedname && length) com.strncpy( completedname, matchbuf, length );
+	if( completedname && length ) com.strncpy( completedname, matchbuf, length );
 	if( t->numfilenames == 1 ) return true;
 
-	for(i = 0, numprogs = 0; i < t->numfilenames; i++)
+	for( i = 0, numprogs = 0; i < t->numfilenames; i++ )
 	{
 		const char *ext = FS_FileExtension( t->filenames[i] ); 
 
-		if( com.stricmp(ext, "dat" )) continue;
-		FS_FileBase(t->filenames[i], matchbuf );
-		Msg("%16s\n", matchbuf );
+		if( com.stricmp( ext, "dat" )) continue;
+		FS_FileBase( t->filenames[i], matchbuf );
+		Msg( "%16s\n", matchbuf );
 		numprogs++;
 	}
-	Msg("\n^3 %i progs found.\n", numprogs );
-	Mem_Free(t);
+	Msg( "\n^3 %i progs found.\n", numprogs );
+	Mem_Free( t );
 
 	// cut shortestMatch to the amount common with s
 	if( completedname && length )
 	{
 		for( i = 0; matchbuf[i]; i++ )
 		{
-			if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
+			if( com.tolower( completedname[i] ) != com.tolower( matchbuf[i] ))
 				completedname[i] = 0;
 		}
 	}

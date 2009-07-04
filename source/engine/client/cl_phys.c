@@ -391,7 +391,7 @@ void CL_PredictMovement (void)
 		if( step > 63 && step < 160 )
 		{
 			cl.predicted_step = step;
-			cl.predicted_step_time = host.realtime - host.frametime * 500;
+			cl.predicted_step_time = cls.realtime - cls.frametime * 500;
 		}
 	}
 

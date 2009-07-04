@@ -1845,12 +1845,12 @@ static void RB_DrawLine( int color, int numpoints, const float *points, const in
 	VectorSet( p0, points[i*3+0], points[i*3+1], points[i*3+2] );
 	if( r_physbdebug->integer == 1 ) ConvertPositionToGame( p0 );
 
-	for (i = 0; i < numpoints; i ++)
+	for( i = 0; i < numpoints; i++ )
 	{
 		VectorSet( p1, points[i*3+0], points[i*3+1], points[i*3+2] );
 		if( r_physbdebug->integer == 1 ) ConvertPositionToGame( p1 );
  
-		pglColor4ubv( (byte *)color );
+		pglColor4fv( UnpackRGBA( color ));
 		pglVertex3fv( p0 );
 		pglVertex3fv( p1 );
  

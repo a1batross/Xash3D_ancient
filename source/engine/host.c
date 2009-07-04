@@ -323,33 +323,11 @@ Returns false if the time is too short to run a frame
 */
 bool Host_FilterTime( double time )
 {
-	double timecap, timeleft;
-
 	host.realtime += time;
 
-	if( timescale->value < 0.0f )
-		Cvar_SetValue( "timescale", 0.0f );
-	if( host_minfps->integer < 10 )
-		Cvar_SetValue( "host_minfps", 10.0f );
-	if( host_maxfps->integer < host_minfps->integer )
-		Cvar_SetValue( "host_maxfps", host_minfps->integer );
+	if( host.realtime - host.oldrealtime < 1.0 / host_maxfps->value )
+		return false; // framerate is too high
 
-	// check if framerate is too high
-	// default to sys_ticrate (server framerate - presumably low) unless we have a good reason to run faster
-	timecap = host_ticrate->value;
-	if( host.state == HOST_FRAME )
-		timecap = 1.0 / host_maxfps->integer;
-
-	timeleft = host.oldrealtime + timecap - host.realtime;
-	if( timeleft > 0 )
-	{
-		// don't totally hog the CPU
-		if( timeleft >= 0.02 )
-			Sys_Sleep( 1 );
-		return false;
-	}
-
-	// LordHavoc: copy into host_realframetime as well
 	host.realframetime = host.frametime = host.realtime - host.oldrealtime;
 	host.oldrealtime = host.realtime;
 
@@ -358,14 +336,12 @@ bool Host_FilterTime( double time )
 		host.frametime = host_framerate->value;
 	}
 	else
-	{
-		// don't allow really short frames
-		if( host.frametime > (1.0 / host_minfps->value ))
-			host.frametime = (1.0 / host_minfps->value);
+	{	// don't allow really long or short frames
+		if( host.frametime > 0.1f )
+			host.frametime = 0.1f;
+		if( host.frametime < 0.001f )
+			host.frametime = 0.001f;
 	}
-
-	host.frametime = bound( 0, host.frametime * timescale->value, 0.1f );
-
 	return true;
 }
 
@@ -386,7 +362,7 @@ void Host_Frame( double time )
 		return;
 
 	Host_EventLoop ();	// process all system events
-	Cbuf_Execute ();	// execure commands
+	Cbuf_Execute ();	// execute commands
 
 	SV_Frame ( time ); // server frame
 	CL_Frame ( time ); // client frame

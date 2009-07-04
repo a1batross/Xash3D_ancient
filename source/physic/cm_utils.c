@@ -11,12 +11,12 @@ long _ftol2( double dblSource )
 	return _ftol( dblSource );
 }
 
-void* Palloc (int size )
+void* Palloc( int size )
 {
 	return Mem_Alloc( physpool, size );
 }
 
-void Pfree (void *ptr, int size )
+void Pfree( void *ptr, int size )
 {
 	if( ptr ) Mem_Free( ptr );
 }

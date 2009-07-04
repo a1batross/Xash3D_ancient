@@ -101,8 +101,8 @@ void CL_ScreenshotGetName( int lastnum, char *filename )
 {
 	int	a, b, c, d;
 
-	if(!filename) return;
-	if(lastnum < 0 || lastnum > 9999)
+	if( !filename ) return;
+	if( lastnum < 0 || lastnum > 9999 )
 	{
 		// bound
 		com.sprintf( filename, "scrshots/%s/shot9999.%s", cl.configstrings[CS_NAME], SCRSHOT_TYPE );
@@ -140,10 +140,10 @@ void CL_ScreenShot_f( void )
 	string	checkname;
 
 	// scan for a free filename
-	for (i = 0; i <= 9999; i++ )
+	for( i = 0; i <= 9999; i++ )
 	{
 		CL_ScreenshotGetName( i, checkname );
-		if(!FS_FileExists( checkname )) break;
+		if( !FS_FileExists( checkname )) break;
 	}
 
 	Con_ClearNotify();
@@ -154,9 +154,9 @@ void CL_EnvShot_f( void )
 {
 	string	basename;
 
-	if(Cmd_Argc() < 2)
+	if( Cmd_Argc() < 2 )
 	{
-		Msg("Usage: envshot <shotname>\n");
+		Msg( "Usage: envshot <shotname>\n" );
 		return;
 	}
 
@@ -169,9 +169,9 @@ void CL_SkyShot_f( void )
 {
 	string	basename;
 
-	if(Cmd_Argc() < 2)
+	if( Cmd_Argc() < 2 )
 	{
-		Msg("Usage: envshot <shotname>\n");
+		Msg( "Usage: envshot <shotname>\n" );
 		return;
 	}
 
@@ -210,7 +210,7 @@ void CL_SetSky_f( void )
 {
 	if(Cmd_Argc() < 2)
 	{
-		Msg("Usage: sky <shadername>\n");
+		Msg( "Usage: sky <shadername>\n" );
 		return;
 	}
 	re->RegisterShader( Cmd_Argv(1), SHADER_SKY );
@@ -252,7 +252,7 @@ void SCR_TimeRefresh_f( void )
 			cl.refdef.viewangles[1] = i / 128.0 * 360.0f;
 
 			re->BeginFrame();
-			re->RenderFrame(&cl.refdef);
+			re->RenderFrame( &cl.refdef );
 			re->EndFrame();
 		}
 	}
