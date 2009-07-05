@@ -113,6 +113,7 @@ typedef struct sv_client_s
 	int		spectator;		// non-interactive
 
 	int		commandMsec;		// every seconds this is reset, if user
+	bool		send_message;		// set on frames a datagram arived on
 	   					// commands exhaust it, assume time cheating
 
 	int		frame_latency[LATENCY_COUNTS];

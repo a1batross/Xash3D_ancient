@@ -78,7 +78,7 @@ Beta 13.12.08
 47. fixup slowly rendering
 48. building uimenu.dll
 49. implement new timers			OK
-50. fixup network packets rate		OK
+50. fixup network packets rate
 51. fixup stair climbing			OK
 52. implement new user move system		OK
 53. finish RenderMode for shaders		OK

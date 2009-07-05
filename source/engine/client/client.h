@@ -239,7 +239,6 @@ typedef struct
 	
 	int		framecount;
 	double		frametime;		// seconds since last frame
-	double		realframetime;
 	double		realtime;
 
 	int		quakePort;		// a 16 bit value that allows quake servers

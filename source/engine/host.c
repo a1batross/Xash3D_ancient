@@ -364,9 +364,9 @@ void Host_Frame( double time )
 	Host_EventLoop ();	// process all system events
 	Cbuf_Execute ();	// execute commands
 
-	SV_Frame ( time ); // server frame
-	CL_Frame ( time ); // client frame
-	VM_Frame ( time ); // vprogs frame
+	SV_Frame ( host.frametime ); // server frame
+	CL_Frame ( host.frametime ); // client frame
+	VM_Frame ( host.frametime ); // vprogs frame
 
 	host.framecount++;
 }

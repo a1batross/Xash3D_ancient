@@ -116,7 +116,7 @@ void V_SetupRefDef( void )
 	cl.refdef.max_clients = clgame.maxClients;
 	cl.refdef.oldtime = cl.oldtime;
 	cl.refdef.time = cl.time;		// cl.time for right lerping
-	cl.refdef.frametime = host.frametime;
+	cl.refdef.frametime = cls.frametime;
 	cl.refdef.demoplayback = cls.demoplayback;
 	cl.refdef.demorecord = cls.demorecording;
 	cl.refdef.paused = cl_paused->integer;
@@ -138,8 +138,8 @@ void V_SetupRefDef( void )
 		}
 
 		// smooth out stair climbing
-		delta = host.realtime - cl.predicted_step_time;
-		if( delta < host.frametime ) cl.refdef.vieworg[2] -= cl.predicted_step * (host.frametime - delta) * 0.01f;
+		delta = cls.realtime - cl.predicted_step_time;
+		if( delta < cl.serverframetime ) cl.refdef.vieworg[2] -= cl.predicted_step * (cl.serverframetime - delta) * 0.01f;
 	}
 }
 

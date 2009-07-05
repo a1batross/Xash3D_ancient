@@ -244,32 +244,32 @@ static float CL_LerpPoint( void )
 	if( !f || clgame.maxClients == 1 )
 	{
 		cl.time = cl.mtime[0];		
-		return 1;
+		return 1.0f;
 	}
 
 	if( f > 0.1 )
 	{	
 		// dropped packet, or start of demo
-		cl.mtime[1] = cl.mtime[0] - 0.1;
-		f = 0.1;
+		cl.mtime[1] = cl.mtime[0] - 0.1f;
+		f = 0.1f;
 	}
 
 	frac = (cl.time - cl.mtime[1]) / f;
 	if( frac < 0 )
 	{
-		if( frac < -0.01 )
+		if( frac < -0.01f )
 		{
 			cl.time = cl.mtime[1];
 		}
 		frac = 0;
 	}
-	else if( frac > 1 )
+	else if( frac > 1.0f )
 	{
-		if( frac > 1.01 )
+		if( frac > 1.01f )
 		{
 			cl.time = cl.mtime[0];
 		}
-		frac = 1;
+		frac = 1.0f;
 	}
 	return frac;
 }
@@ -278,10 +278,27 @@ static float CL_LerpPoint2( void )
 {
 	float	lerpfrac;
 
+	// clamp time
+	if( cl.time > cl.frame.servertime )
+	{
+		if( cl_showclamp->integer )
+			Msg( "cl highclamp %g\n", cl.time - cl.frame.servertime );
+		cl.time = cl.frame.servertime;
+		lerpfrac = 1.0f;
+	}
+	else if( cl.time < cl.frame.servertime - cl.serverframetime )
+	{
+		if( cl_showclamp->integer )
+			Msg( "cl lowclamp %g\n", cl.frame.servertime - cl.serverframetime - cl.time );
+		cl.time = cl.frame.servertime - cl.serverframetime;
+		lerpfrac = 0.0f;
+	}
+	else lerpfrac = 1.0f - (cl.frame.servertime - cl.time) * 0.01f;
+#if 0
 	if( cl_paused->integer )
 		lerpfrac = 1.0f;
 	else lerpfrac = 1.0f - (cl.frame.servertime - cl.time) / (float)cl.serverframetime;
-
+#endif
 	return lerpfrac;
 }
 
@@ -296,12 +313,13 @@ void CL_ParseFrame( sizebuf_t *msg )
 	edict_t		*clent;
 	frame_t		*old;
           
-	memset( &cl.frame, 0, sizeof( cl.frame ));
+	Mem_Set( &cl.frame, 0, sizeof( cl.frame ));
 
 	cl.frame.serverframe = MSG_ReadLong( msg );
+	cl.serverframetime = MSG_ReadFloat( msg );
 	cl.frame.deltaframe = MSG_ReadLong( msg );
-	cl.frame.servertime = cl.frame.serverframe * cl.serverframetime;
 	cl.surpressCount = MSG_ReadByte( msg );
+	cl.frame.servertime = cl.mtime[0];	// same as servertime
 
 	// If the frame is delta compressed from data that we
 	// no longer have available, we must suck up the rest of
@@ -334,10 +352,12 @@ void CL_ParseFrame( sizebuf_t *msg )
 		else cl.frame.valid = true;	// valid delta parse
 	}
 
-	cl.refdef.lerpfrac = CL_LerpPoint ();
+	cl.refdef.lerpfrac = CL_LerpPoint();
 
-	// clamp time
-	cl.time = bound( cl.frame.servertime - cl.serverframetime, cl.time, cl.frame.servertime );
+	// clamp time 
+	if( cl.time > cl.frame.servertime ) cl.time = cl.frame.servertime;
+	else if( cl.time < cl.frame.servertime - cl.serverframetime )
+		cl.time = cl.frame.servertime - cl.serverframetime;
 
 	// read areabits
 	len = MSG_ReadByte( msg );

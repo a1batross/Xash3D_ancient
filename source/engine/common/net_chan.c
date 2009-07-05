@@ -102,9 +102,9 @@ void Netchan_Setup( netsrc_t sock, netchan_t *chan, netadr_t adr, int qport )
 	chan->incoming_sequence = 0;
 	chan->outgoing_sequence = 1;
 	chan->compress = true;
-	chan->rate = 1.0f / 7500;	// inital value of rate
+	chan->rate = 1.0f / 3500;	// inital value of rate
 
-	MSG_Init( &chan->message, chan->message_buf, sizeof(chan->message_buf));
+	MSG_Init( &chan->message, chan->message_buf, sizeof( chan->message_buf ));
 }
 
 /*
@@ -274,7 +274,7 @@ void Netchan_Transmit( netchan_t *chan, int length, byte *data )
 	// send the datagram
 	NET_SendPacket( chan->sock, send.cursize, send.data, chan->remote_address );
 
-	if( net_showpackets->value )
+	if( net_showpackets->integer )
 	{
 		if( chan->sock == NS_CLIENT ) MsgDev( D_INFO, "CL " );
 		else if( chan->sock == NS_SERVER ) MsgDev( D_INFO, "SV " );
@@ -312,7 +312,7 @@ bool Netchan_Process( netchan_t *chan, sizebuf_t *msg )
 	sequence &= ~(1<<31);
 	sequence_ack &= ~(1<<31);	
 
-	if( net_showpackets->value )
+	if( net_showpackets->integer )
 	{
 		if( chan->sock == NS_CLIENT ) MsgDev( D_INFO, "CL " );
 		else if( chan->sock == NS_SERVER ) MsgDev( D_INFO, "SV " );

@@ -947,7 +947,7 @@ CL_Userinfo_f
 */
 void CL_Userinfo_f (void)
 {
-	Msg( "User info settings:" );
+	Msg( "User info settings:\n" );
 	Info_Print( Cvar_Userinfo());
 }
 
@@ -1115,7 +1115,7 @@ void CL_InitLocal (void)
 
 	cl_shownet = Cvar_Get ("cl_shownet", "0", 0, "client show network packets" );
 	cl_showmiss = Cvar_Get ("cl_showmiss", "0", 0, "client show network errors" );
-	cl_showclamp = Cvar_Get ("showclamp", "0", 0, "show client clamping" );
+	cl_showclamp = Cvar_Get ("cl_showclamp", "0", CVAR_ARCHIVE, "show client clamping" );
 	cl_timeout = Cvar_Get ("cl_timeout", "120", 0, "connect timeout (in-seconds)" );
 
 	rcon_client_password = Cvar_Get ("rcon_password", "", 0, "remote control client password" );
@@ -1190,52 +1190,22 @@ void CL_SendCommand( void )
 
 /*
 ==================
-CL_MinFrameFrame
-==================
-*/
-double CL_MinFrameFrame( void )
-{
-	if( cls.state == ca_connected )
-		return 0.1f;		// don't flood packets out while connecting
-	if( cl_maxfps->integer )
-		return 1.0f / (double)cl_maxfps->integer;
-	return 0;
-}
-
-/*
-==================
 CL_Frame
 
 ==================
 */
 void CL_Frame( double time )
 {
-	static double	extratime = 0.001;
-	static double	trueframetime;
-	double		minframetime;
-	static int	lasttimecalled;
-
 	if( host.type == HOST_DEDICATED )
 		return;
 
-	extratime	+= time;
-
-	minframetime = CL_MinFrameFrame();
-	if( extratime < minframetime ) return;
-
 	// decide the simulation time
-	trueframetime = extratime - 0.001;
-	if( trueframetime < minframetime )
-		trueframetime = minframetime;
-	extratime -= trueframetime;
-
 	cl.oldtime = cl.time;
-	cl.time += time;		// can be merged by sv.time 
-	cls.frametime = trueframetime;
-	cls.realtime = host.realtime;
+	cl.time += time;		// can be merged by cl.frame.servertime 
+	cls.realtime += time;
+	cls.frametime = time;
 
-	if( cls.frametime > (1.0f / 5))
-		cls.frametime = (1.0f / 5);
+	if( cls.frametime > (1.0f / 5)) cls.frametime = (1.0f / 5);
 
 	// if in the debugger last frame, don't timeout
 	if( time > 5.0f ) cls.netchan.last_received = Sys_DoubleTime ();

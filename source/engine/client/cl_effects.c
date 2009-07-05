@@ -207,7 +207,7 @@ void CL_RunDLights( void )
 			return;
 		}
 
-		dl->radius -= host.frametime * dl->decay;
+		dl->radius -= cls.frametime * dl->decay;
 		if( dl->radius < 0 ) dl->radius = 0;
 	}
 }
@@ -666,7 +666,7 @@ void CL_AddParticles( void )
 			if( trace.fraction != 0.0 && trace.fraction != 1.0 )
 			{
 				// reflect velocity
-				time = cl.time - (host.frametime + host.frametime * trace.fraction);
+				time = cl.time - (cls.frametime + cls.frametime * trace.fraction);
 				time = time - p->time;
 
 				velocity[0] = p->velocity[0];

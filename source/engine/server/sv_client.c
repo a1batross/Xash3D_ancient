@@ -789,7 +789,6 @@ void SV_UserinfoChanged( sv_client_t *cl )
 	// name for C code (make colored string)
 	com.snprintf( cl->name, sizeof(cl->name), "^2%s", Info_ValueForKey( cl->userinfo, "name"));
 
-
 	// rate command
 	val = Info_ValueForKey( cl->userinfo, "rate" );
 	if( com.strlen( val ))
@@ -1434,6 +1433,11 @@ void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg )
 	int	c, stringCmdCount = 0;
 	bool	move_issued = false;
 	char	*s;
+
+	// make sure the reply sequence number matches the incoming sequence number 
+	if( cl->netchan.incoming_sequence >= cl->netchan.outgoing_sequence )
+		cl->netchan.outgoing_sequence = cl->netchan.incoming_sequence;
+	else cl->send_message = false; // don't reply, sequences have slipped	
 
 	// read optional clientCommand strings
 	while( cl->state != cs_zombie )
