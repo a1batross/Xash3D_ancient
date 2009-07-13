@@ -579,7 +579,6 @@ void CL_CheckVelocity( edict_t *ent );
 bool CL_CheckWater( edict_t *ent );
 int CL_PointContents( const vec3_t point );
 int CL_ContentsMask( const edict_t *passedict );
-bool CL_AmbientLevel( const vec3_t point, float *volumes );
 trace_t CL_Trace( const vec3_t s1, const vec3_t m1, const vec3_t m2, const vec3_t s2, int type, edict_t *e, int mask );
 
 //
@@ -598,7 +597,6 @@ void CL_ClearEffects( void );
 void CL_TestLights( void );
 void CL_TestEntities( void );
 void CL_StudioEvent( dstudioevent_t *event, edict_t *ent );
-void CL_AddDecal( vec3_t org, matrix3x3 m, shader_t s, rgba_t rgba, bool fade, decalFragment_t *df, const vec3_t *v );
 edict_t *CL_GetEdictByIndex( int index );
 edict_t *CL_GetLocalPlayer( void );
 bool pfnAddParticle( cparticle_t *src, HSPRITE shader, int flags );

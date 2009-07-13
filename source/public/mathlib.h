@@ -45,6 +45,7 @@
 #define VectorScale(in, scale, out) ((out)[0] = (in)[0] * (scale),(out)[1] = (in)[1] * (scale),(out)[2] = (in)[2] * (scale))
 #define Vector4Scale(in, scale, out) ((out)[0] = (in)[0] * (scale),(out)[1] = (in)[1] * (scale),(out)[2] = (in)[2] * (scale),(out)[3] = (in)[3] * (scale))
 #define VectorMultiply(a,b,c) ((c)[0]=(a)[0]*(b)[0],(c)[1]=(a)[1]*(b)[1],(c)[2]=(a)[2]*(b)[2])
+#define VectorCompare(v1,v2)	((v1)[0]==(v2)[0] && (v1)[1]==(v2)[1] && (v1)[2]==(v2)[2])
 #define VectorDivide( in, d, out ) VectorScale( in, (1.0f / (d)), out )
 #define VectorMax(a) ( max((a)[0], max((a)[1], (a)[2])) )
 #define VectorAvg(a) ( ((a)[0] + (a)[1] + (a)[2]) / 3 )
@@ -53,8 +54,9 @@
 #define VectorDistance(a, b) (sqrt(VectorDistance2(a,b)))
 #define VectorDistance2(a, b) (((a)[0] - (b)[0]) * ((a)[0] - (b)[0]) + ((a)[1] - (b)[1]) * ((a)[1] - (b)[1]) + ((a)[2] - (b)[2]) * ((a)[2] - (b)[2]))
 #define VectorAverage(a,b,o)	((o)[0]=((a)[0]+(b)[0])*0.5,(o)[1]=((a)[1]+(b)[1])*0.5,(o)[2]=((a)[2]+(b)[2])*0.5)
+#define Vector2Set(v, x, y) ((v)[0]=(x),(v)[1]=(y))
 #define VectorSet(v, x, y, z) ((v)[0]=(x),(v)[1]=(y),(v)[2]=(z))
-#define Vector4Set(v, x, y, z, w) {v[0] = x; v[1] = y; v[2] = z; v[3] = w;}
+#define Vector4Set(v, a, b, c, d) ((v)[0]=(a),(v)[1]=(b),(v)[2]=(c),(v)[3] = (d))
 #define VectorClear(x) ((x)[0]=(x)[1]=(x)[2]=0)
 #define Vector4Clear(x) ((x)[0]=(x)[1]=(x)[2]=(x)[3]=0)
 #define VectorLerp( v1, lerp, v2, c ) ((c)[0] = (v1)[0] + (lerp) * ((v2)[0] - (v1)[0]), (c)[1] = (v1)[1] + (lerp) * ((v2)[1] - (v1)[1]), (c)[2] = (v1)[2] + (lerp) * ((v2)[2] - (v1)[2]))
@@ -211,16 +213,6 @@ _inline bool VectorIsNull( const vec3_t v )
 	return true;		
 }
 
-_inline bool VectorCompare (const vec3_t v1, const vec3_t v2)
-{
-	int		i;
-	
-	for (i = 0; i < 3; i++ )
-		if (fabs(v1[i] - v2[i]) > EQUAL_EPSILON)
-			return false;
-	return true;
-}
-
 _inline void CrossProduct( vec3_t v1, vec3_t v2, vec3_t cross )
 {
 	cross[0] = v1[1]*v2[2] - v1[2]*v2[1];
@@ -235,7 +227,7 @@ _inline void ClearBounds( vec3_t mins, vec3_t maxs )
 	maxs[0] = maxs[1] = maxs[2] = -999999;
 }
 
-_inline void AddPointToBounds( vec3_t v, vec3_t mins, vec3_t maxs )
+_inline void AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs )
 {
 	float	val;
 	int	i;
@@ -260,6 +252,24 @@ _inline void VectorVectors(vec3_t forward, vec3_t right, vec3_t up)
 	VectorMA(right, -d, forward, right);
 	VectorNormalize(right);
 	CrossProduct(right, forward, up);
+}
+
+// similar to MakeNormalVectors but for rotational matrices
+// (FIXME: weird, what's the diff between this and VectorVectors?)
+_inline void NormalVectorToAxis( const vec3_t forward, vec3_t axis[3] )
+{
+	VectorCopy( forward, axis[0] );
+	if( forward[0] || forward[1] )
+	{
+		VectorSet( axis[1], forward[1], -forward[0], 0 );
+		VectorNormalize( axis[1] );
+		CrossProduct( axis[0], axis[1], axis[2] );
+	}
+	else
+	{
+		VectorSet( axis[1], 1, 0, 0 );
+		VectorSet( axis[2], 0, 1, 0 );
+	}
 }
 
 _inline void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
@@ -537,6 +547,27 @@ _inline float *UnpackRGBA( dword icolor )
 }
 
 /*
+===============
+ColorNormalize
+===============
+*/
+_inline float ColorNormalize( const float *in, vec3_t out )
+{
+	float	f = max( max( in[0], in[1] ), in[2] );
+
+	if( f > 1.0f )
+	{
+		f = 1.0f / f;
+		out[0] = in[0] * f;
+		out[1] = in[1] * f;
+		out[2] = in[2] * f;
+	}
+	else VectorCopy( in, out );
+
+	return f;
+}
+
+/*
 =================
 BoundsIntersect
 =================
@@ -635,6 +666,92 @@ _inline float RadiusFromBounds( vec3_t mins, vec3_t maxs )
 	return VectorLength( corner );
 }
 
+/*
+====================
+RotatePointAroundVector
+====================
+*/
+_inline void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees )
+{
+	float	t0, t1;
+	float	angle, c, s;
+	vec3_t	vr, vu, vf;
+
+	angle = DEG2RAD( degrees );
+	c = cos( angle );
+	s = sin( angle );
+	VectorCopy( dir, vf );
+	VectorVectors( vf, vr, vu );
+
+	t0 = vr[0] *  c + vu[0] * -s;
+	t1 = vr[0] *  s + vu[0] *  c;
+	dst[0] = (t0 * vr[0] + t1 * vu[0] + vf[0] * vf[0]) * point[0]
+	       + (t0 * vr[1] + t1 * vu[1] + vf[0] * vf[1]) * point[1]
+	       + (t0 * vr[2] + t1 * vu[2] + vf[0] * vf[2]) * point[2];
+
+	t0 = vr[1] *  c + vu[1] * -s;
+	t1 = vr[1] *  s + vu[1] *  c;
+	dst[1] = (t0 * vr[0] + t1 * vu[0] + vf[1] * vf[0]) * point[0]
+	       + (t0 * vr[1] + t1 * vu[1] + vf[1] * vf[1]) * point[1]
+	       + (t0 * vr[2] + t1 * vu[2] + vf[1] * vf[2]) * point[2];
+
+	t0 = vr[2] *  c + vu[2] * -s;
+	t1 = vr[2] *  s + vu[2] *  c;
+	dst[2] = (t0 * vr[0] + t1 * vu[0] + vf[2] * vf[0]) * point[0]
+	       + (t0 * vr[1] + t1 * vu[1] + vf[2] * vf[1]) * point[1]
+	       + (t0 * vr[2] + t1 * vu[2] + vf[2] * vf[2]) * point[2];
+}
+
+// assumes "src" is normalized
+_inline void PerpendicularVector( vec3_t dst, const vec3_t src )
+{
+	// LordHavoc: optimized to death and beyond
+	int	pos;
+	float	minelem;
+
+	if( src[0] )
+	{
+		dst[0] = 0;
+		if( src[1] )
+		{
+			dst[1] = 0;
+			if( src[2] )
+			{
+				dst[2] = 0;
+				pos = 0;
+				minelem = fabs( src[0] );
+				if( fabs(src[1]) < minelem )
+				{
+					pos = 1;
+					minelem = fabs( src[1] );
+				}
+				if( fabs( src[2]) < minelem )
+					pos = 2;
+
+				dst[pos] = 1;
+				dst[0] -= src[pos] * src[0];
+				dst[1] -= src[pos] * src[1];
+				dst[2] -= src[pos] * src[2];
+
+				// normalize the result
+				VectorNormalize( dst );
+			}
+			else dst[2] = 1;
+		}
+		else
+		{
+			dst[1] = 1;
+			dst[2] = 0;
+		}
+	}
+	else
+	{
+		dst[0] = 1;
+		dst[1] = 0;
+		dst[2] = 0;
+	}
+}
+
 _inline float LerpAngle( float a2, float a1, float frac )
 {
 	if( a1 - a2 > 180 ) a1 -= 360;
@@ -674,6 +791,8 @@ _inline int NearestPOW( int value, bool roundDown )
 	return n;
 }
 
+static vec3_t axis_identity[3] = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } };
+static quat_t quat_identity = { 0, 0, 0, 1 };
 static vec3_t vec3_origin = { 0, 0, 0 };
 static vec3_t vec3_angles = { 0, 0, 0 };
 static vec4_t vec4_origin = { 0, 0, 0, 0 };

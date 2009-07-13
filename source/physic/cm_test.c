@@ -64,6 +64,24 @@ LEAF LISTING
 
 ======================================================================
 */
+void CM_StoreLeafs( leaflist_t *ll, cnode_t *node )
+{
+	cleaf_t	*leaf = (cleaf_t *)node;
+
+	// store the lastLeaf even if the list is overflowed
+	if( leaf->cluster != -1 )
+	{
+		ll->lastleaf = leaf - cm.leafs;
+	}
+
+	if( ll->count >= ll->maxcount )
+	{
+		ll->overflowed = true;
+		return;
+	}
+	ll->list[ll->count++] = leaf - cm.leafs;
+}
+
 /*
 =============
 CM_BoxLeafnums
@@ -80,15 +98,7 @@ void CM_BoxLeafnums_r( leaflist_t *ll, cnode_t *node )
 	{
 		if( node->plane == NULL )
 		{
-			cleaf_t	*leaf = (cleaf_t *)node;
-
-			// it's a leaf!
-			if( ll->count >= ll->maxcount)
-			{
-				ll->overflowed = true;
-				return;
-			}
-			ll->list[ll->count++] = leaf - cm.leafs;
+			CM_StoreLeafs( ll, node );
 			return;
 		}
 	
@@ -105,8 +115,6 @@ void CM_BoxLeafnums_r( leaflist_t *ll, cnode_t *node )
 		else
 		{
 			// go down both
-			if( ll->topnode == -1 )
-				ll->topnode = node - cm.nodes;
 			CM_BoxLeafnums_r( ll, node->children[0] );
 			node = node->children[1];
 		}
@@ -118,7 +126,7 @@ void CM_BoxLeafnums_r( leaflist_t *ll, cnode_t *node )
 CM_BoxLeafnums
 ==================
 */
-int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsize, int *topnode )
+int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsize, int *lastleaf )
 {
 	leaflist_t	ll;
 
@@ -128,12 +136,12 @@ int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsiz
 	ll.count = 0;
 	ll.maxcount = listsize;
 	ll.list = list;
-	ll.topnode = -1;
+	ll.lastleaf = 0;
 	ll.overflowed = false;
 
 	CM_BoxLeafnums_r( &ll, cm.nodes );
 
-	if( topnode ) *topnode = ll.topnode;
+	if( lastleaf ) *lastleaf = ll.lastleaf;
 	return ll.count;
 }
 
@@ -205,20 +213,4 @@ int CM_TransformedPointContents( const vec3_t p, cmodel_t *model, const vec3_t o
 		p_l[2] = DotProduct( temp, up );
 	}
 	return CM_PointContents( p_l, model );
-}
-
-bool CM_AmbientSounds( const vec3_t p, float *volumes, cmodel_t *model )
-{
-	cleaf_t	*leaf;
-
-	if( !volumes ) return false;	
-	leaf = cm.leafs + CM_PointLeafnum( p );
-	if( leaf )
-	{
-		Mem_Copy( volumes, leaf->ambient_level, sizeof( float ) * NUM_AMBIENTS );
-		return true;
-	}
-
-	Mem_Set( volumes, 0x00, sizeof( volumes ));
-	return false;
 }

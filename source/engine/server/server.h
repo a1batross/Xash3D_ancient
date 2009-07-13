@@ -161,7 +161,7 @@ struct sv_priv_s
 	link_t			area;		// linked to a division node or leaf
 	struct sv_client_s		*client;		// filled for player ents
 	int			clipmask;		// trace info
-	int			headnode;		// unused if num_clusters != -1
+	int			lastcluster;	// unused if num_clusters != -1
 	int			linkcount;
 	int			num_clusters;	// if -1, use headnode instead
 	int			clusternums[MAX_ENT_CLUSTERS];

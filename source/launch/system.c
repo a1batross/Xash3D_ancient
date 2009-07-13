@@ -129,6 +129,9 @@ void Sys_GetStdAPI( void )
 	com.Com_ReadDword = PS_GetUnsigned;		// unsigned integer
 	com.Com_ReadLong = PS_GetInteger;		// signed integer
 
+	com.PatchEval = Patch_Evaluate;		// evaluate patch
+	com.PatchFlat = Patch_GetFlatness;		// get flatness for patch
+
 	com.Com_Search = FS_Search;			// returned list of founded files
 	com.Com_HashKey = Com_HashKey;		// returns hash key for a string (generic fucntion)
 	com.Com_LoadRes = Sys_LoadRes;		// get internal resource by name
@@ -166,6 +169,7 @@ void Sys_GetStdAPI( void )
 	com.fseek = FS_Seek;		// fseek, can seek in packfiles too
 	com.fremove = FS_Remove;		// like remove
 	com.ftell = FS_Tell;		// like a ftell
+	com.feof = FS_Eof;			// like a feof
 
 	// virtual filesystem
 	com.vfcreate = VFS_Create;		// create virtual stream
@@ -233,6 +237,7 @@ void Sys_GetStdAPI( void )
 	com.strncpy = com_strncpy;
 	com.strcpy = com_strcpy;
 	com.stralloc = com_stralloc;
+	com.is_digit = com_isdigit;
 	com.atoi = com_atoi;
 	com.atof = com_atof;
 	com.atov = com_atov;

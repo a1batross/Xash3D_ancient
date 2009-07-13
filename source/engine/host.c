@@ -79,12 +79,10 @@ void Host_InitRender( void )
           // studio callbacks
 	ri.UpdateScreen = SCR_UpdateScreen;
 	ri.StudioEvent = CL_StudioEvent;
-	ri.AddDecal = CL_AddDecal;
 	ri.ShowCollision = pe->DrawCollision;
 	ri.GetClientEdict = CL_GetEdictByIndex;
 	ri.GetLocalPlayer = CL_GetLocalPlayer;
 	ri.GetMaxClients = CL_GetMaxClients;
-	ri.Trace = CL_RenderTrace;
 	ri.WndProc = IN_WndProc;
           
 	Sys_LoadLibrary( &render_dll );
@@ -153,7 +151,6 @@ void Host_InitSound( void )
 	si.api_size = sizeof(vsound_imp_t);
 	si.GetSoundSpatialization = CL_GetEntitySoundSpatialization;
 	si.PointContents = CL_PointContents;
-	si.AmbientLevel = CL_AmbientLevel;
 	si.AddLoopingSounds = CL_AddLoopingSounds;
 
 	Sys_LoadLibrary( &vsound_dll );
@@ -492,7 +489,7 @@ void Host_FreeCommon( void )
 Host_Init
 =================
 */
-void Host_Init( int argc, char **argv)
+void Host_Init( int argc, char **argv )
 {
 	char	*s;
 
@@ -538,7 +535,11 @@ void Host_Init( int argc, char **argv)
 	SV_Init();
 	CL_Init();
 
-	if( host.type == HOST_DEDICATED ) Cmd_AddCommand ("quit", Sys_Quit, "quit the game" );
+	if( host.type == HOST_DEDICATED )
+	{
+		Cmd_AddCommand ( "quit", Sys_Quit, "quit the game" );
+		Cmd_AddCommand ( "exit", Sys_Quit, "quit the game" );
+	}
 	host.errorframe = 0;
 }
 

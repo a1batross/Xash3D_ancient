@@ -399,7 +399,7 @@ void SV_CopyTraceResult( TraceResult *out, trace_t trace )
 	VectorCopy( trace.plane.normal, out->vecPlaneNormal );
 
 	if( trace.surface )
-		out->pTexName = trace.surface->name;
+		out->pTexName = pe->GetTextureName( trace.surface->shadernum );
 	else out->pTexName = NULL;
 	out->pHit = trace.ent;
 }
@@ -418,7 +418,7 @@ void SV_CopyTraceToGlobal( trace_t *trace )
 	VectorCopy( trace->plane.normal, svgame.globals->trace_plane_normal );
 
 	if( trace->surface )
-		svgame.globals->trace_texture = trace->surface->name;
+		svgame.globals->trace_texture = pe->GetTextureName( trace->surface->shadernum );
 	else svgame.globals->trace_texture = NULL;
 	svgame.globals->trace_hitgroup = trace->hitgroup;
 }
@@ -1657,7 +1657,7 @@ static const char *pfnTraceTexture( edict_t *pTextureEntity, const float *v1, co
 	trace = SV_Trace( v1, vec3_origin, vec3_origin, v2, MOVE_NOMONSTERS, NULL, SV_ContentsMask( pTextureEntity ));
 
 	if( trace.surface )
-		return trace.surface->name;
+		return pe->GetTextureName( trace.surface->shadernum );
 	return NULL;
 }
 
@@ -2353,7 +2353,7 @@ void pfnAreaPortal( edict_t *pEdict, bool enable )
 		MsgDev( D_ERROR, "SV_AreaPortal: can't modify free entity\n" );
 		return;
 	}
-	pe->SetAreaPortalState( pEdict->v.skin, enable );
+	pe->SetAreaPortalState( pEdict->serialnumber, pEdict->pvServerData->areanum, pEdict->pvServerData->areanum2, enable );
 }
 
 /*
@@ -2538,18 +2538,88 @@ vaild map must contain one info_player_deatchmatch
 */
 int pfnIsMapValid( char *filename )
 {
-	wfile_t	*wad;
-	dheader_t	*hdr;
-	bool	valid;
-	
-	wad = WAD_Open( filename, "rb" );
-	if( !wad ) return false; 
+	file_t		*f;
+	string		entfilename;
+	int		ver = -1, lumpofs = 0, lumplen = 0;
+	script_t		*ents = NULL;
+	byte		buf[MAX_SYSPATH]; // 1 kb
+	bool		result = false;
+			
+	f = FS_Open( va( "maps/%s.bsp", filename ), "rb" );
 
-	hdr = (dheader_t *)WAD_Read( wad, LUMP_MAPINFO, NULL, TYPE_BINDATA );
-	valid = (LittleLong( hdr->flags ) & MAP_DEATHMATCH) ? true : false;
-	WAD_Close( wad );
+	if( f )
+	{
+		string	dm_entity;
 
-	return valid;
+		Mem_Set( buf, 0, MAX_SYSPATH );
+		FS_Read( f, buf, MAX_SYSPATH );
+
+		if( !memcmp( buf, "IBSP", 4 ) || !memcmp( buf, "RBSP", 4 ) || !memcmp( buf, "FBSP", 4 ))
+		{
+			dheader_t *header = (dheader_t *)buf;
+			ver = LittleLong(((int *)buf)[1]);
+
+			switch( ver )
+			{
+			case Q3IDBSP_VERSION:	// quake3 arena
+			case RTCWBSP_VERSION:	// return to castle wolfenstein
+			case RFIDBSP_VERSION:	// raven or qfusion bsp
+				lumpofs = LittleLong( header->lumps[LUMP_ENTITIES].fileofs );
+				lumplen = LittleLong( header->lumps[LUMP_ENTITIES].filelen );
+				break;
+			default:
+				FS_Close( f );
+				return false;
+			}
+		}
+		else
+		{
+			FS_Close( f );
+			return false;
+		}
+
+		com.strncpy( entfilename, va( "maps/%s.ent", filename ), sizeof( entfilename ));
+		ents = Com_OpenScript( entfilename, NULL, 0 );
+
+		if( !ents && lumplen >= 10 )
+		{
+			char *entities = NULL;
+		
+			FS_Seek( f, lumpofs, SEEK_SET );
+			entities = (char *)Z_Malloc( lumplen + 1 );
+			FS_Read( f, entities, lumplen );
+			ents = Com_OpenScript( "ents", entities, lumplen + 1 );
+			Mem_Free( entities ); // no reason to keep it
+		}
+
+		if( ents )
+		{
+			// if there are entities to parse, a missing message key just
+			// means there is no title, so clear the message string now
+			token_t	token;
+
+			dm_entity[0] = 0;
+			while( Com_ReadToken( ents, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &token ))
+			{
+				if( !com.strcmp( token.string, "{" )) continue;
+				else if( !com.strcmp( token.string, "}" )) break;
+				else if( !com.strcmp( token.string, "classname" ))
+				{
+					// check classname for deathmath entity
+					Com_ReadString( ents, false, dm_entity );
+					if( !com.stricmp( GI->dm_entity, dm_entity ))
+					{
+						// FIXME: use count of spawnpoints as returned result ?
+						result = true;
+						break;						
+					}
+				}
+			}
+			Com_CloseScript( ents );
+		}
+		if( f ) FS_Close( f );
+	}
+	return result;
 }
 
 /*

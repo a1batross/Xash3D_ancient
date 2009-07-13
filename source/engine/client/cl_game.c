@@ -168,7 +168,7 @@ void CL_CopyTraceResult( TraceResult *out, trace_t trace )
 	VectorCopy( trace.plane.normal, out->vecPlaneNormal );
 
 	if( trace.surface )
-		out->pTexName = trace.surface->name;
+		out->pTexName = pe->GetTextureName( trace.surface->shadernum );
 	else out->pTexName = NULL;
 	out->pHit = trace.ent;
 }
@@ -970,7 +970,7 @@ static const char *pfnTraceTexture( edict_t *pTextureEntity, const float *v1, co
 	trace = CL_Trace( v1, vec3_origin, vec3_origin, v2, MOVE_NOMONSTERS, NULL, CL_ContentsMask( pTextureEntity ));
 
 	if( trace.surface )
-		return trace.surface->name;
+		return pe->GetTextureName( trace.surface->shadernum );
 	return NULL;
 }
 

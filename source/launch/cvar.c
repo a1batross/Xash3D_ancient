@@ -295,21 +295,40 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 			MsgDev(D_INFO, "%s is system variable.\n", var_name);
 			return var;
 		}
-		if( var->flags & CVAR_LATCH )
+		if( var->flags & (CVAR_LATCH|CVAR_LATCH_VIDEO))
 		{
 			if( var->latched_string )
 			{
-				if(!com_strcmp(value, var->latched_string))
+				if(!com.strcmp( value, var->latched_string ))
 					return var;
 				Mem_Free( var->latched_string );
 			}
 			else
 			{
-				if (!com_strcmp(value, var->string))
+				if (!com.strcmp( value, var->string ))
 					return var;
 			}
-			MsgDev(D_INFO, "%s will be changed after restarting.\n", var_name);
-			var->latched_string = copystring(value);
+
+			if( Cvar_VariableInteger( "host_serverstate" ))
+			{
+				MsgDev( D_INFO, "%s will be changed upon restarting.\n", var->name );
+				var->latched_string = copystring( value );
+			}
+			else
+			{
+				if( var->flags & CVAR_LATCH_VIDEO )
+				{
+					MsgDev( D_INFO, "%s will be changed upon restarting video.\n", var->name );
+					var->latched_string = copystring( value );
+				}
+				else
+				{
+					Mem_Free( var->string );		// free the old value string
+					var->string = copystring( value );
+					var->value = com.atof( var->string );
+					var->integer = com.atoi( var->string );
+				}
+			}
 			var->modified = true;
 			var->modificationCount++;
 			return var;
@@ -324,22 +343,22 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 	{
 		if( var->latched_string )
 		{
-			Mem_Free(var->latched_string);
+			Mem_Free( var->latched_string );
 			var->latched_string = NULL;
 		}
 	}
 
  	// nothing to change
-	if(!com_strcmp(value, var->string)) return var;
+	if(!com.strcmp( value, var->string )) return var;
 
 	var->modified = true;
 	var->modificationCount++;
 	
 	// free the old value string
-	Mem_Free (var->string);
-	var->string = copystring(value);
-	var->value = com_atof (var->string);
-	var->integer = com_atoi(var->string);
+	Mem_Free( var->string );
+	var->string = copystring( value );
+	var->value = com.atof( var->string );
+	var->integer = com.atoi( var->string );
 
 	return var;
 }
@@ -431,18 +450,18 @@ void Cvar_SetCheatState( void )
 	cvar_t	*var;
 
 	// set all default vars to the safe value
-	for ( var = cvar_vars; var; var = var->next )
+	for( var = cvar_vars; var; var = var->next )
 	{
 		if( var->flags & CVAR_CHEAT )
 		{
 			// the CVAR_LATCHED|CVAR_CHEAT vars might escape the reset here 
 			// because of a different var->latched_string
-			if(var->latched_string)
+			if( var->latched_string )
 			{
-				Mem_Free(var->latched_string);
+				Mem_Free( var->latched_string );
 				var->latched_string = NULL;
 			}
-			if(com_strcmp(var->reset_string, var->string))
+			if( com.strcmp( var->reset_string, var->string ))
 			{
 				Cvar_Set( var->name, var->reset_string );
 			}
@@ -462,20 +481,20 @@ bool Cvar_Command( void )
 	cvar_t	*v;
 
 	// check variables
-	v = Cvar_FindVar (Cmd_Argv(0));
-	if (!v) return false;
+	v = Cvar_FindVar( Cmd_Argv( 0 ));
+	if( !v ) return false;
 
 	// perform a variable print or set
 	if( Cmd_Argc() == 1 )
 	{
-		if(v->flags & CVAR_INIT) Msg("%s: %s\n", v->name, v->string );
-		else Msg("%s: %s ( ^3%s^7 )\n", v->name, v->string, v->reset_string );
+		if( v->flags & CVAR_INIT ) Msg( "%s: %s\n", v->name, v->string );
+		else Msg( "%s: %s ( ^3%s^7 )\n", v->name, v->string, v->reset_string );
 		if ( v->latched_string ) Msg( "%s: %s\n", v->name, v->latched_string );
 		return true;
 	}
 
 	// set the value if forcing isn't required
-	Cvar_Set2 (v->name, Cmd_Argv(1), false);
+	Cvar_Set2( v->name, Cmd_Argv(1), false );
 	return true;
 }
 
@@ -492,14 +511,14 @@ void Cvar_Toggle_f( void )
 
 	if( Cmd_Argc() != 2 )
 	{
-		Msg("usage: toggle <variable>\n");
+		Msg( "Usage: toggle <variable>\n" );
 		return;
 	}
 
 	v = Cvar_VariableValue(Cmd_Argv( 1 ));
 	v = !v;
 
-	Cvar_Set2 (Cmd_Argv(1), va("%i", v), false);
+	Cvar_Set2( Cmd_Argv( 1 ), va( "%i", v ), false );
 }
 
 /*
@@ -516,23 +535,23 @@ void Cvar_Set_f( void )
 	char	combined[MAX_STRING_TOKENS];
 
 	c = Cmd_Argc();
-	if ( c < 3 )
+	if( c < 3 )
 	{
-		Msg("usage: set <variable> <value>\n");
+		Msg( "Usage: set <variable> <value>\n" );
 		return;
 	}
 	combined[0] = 0;
 
-	for ( i = 2; i < c; i++ )
+	for( i = 2; i < c; i++ )
 	{
-		len = strlen( Cmd_Argv(i) + 1 );
+		len = com.strlen( Cmd_Argv(i) + 1 );
 		if ( l + len >= MAX_STRING_TOKENS - 2 )
 			break;
 		com.strcat( combined, Cmd_Argv(i));
 		if ( i != c-1 ) com.strcat( combined, " " );
 		l += len;
 	}
-	Cvar_Set2 (Cmd_Argv(1), combined, false);
+	Cvar_Set2( Cmd_Argv( 1 ), combined, false );
 }
 
 /*
@@ -546,14 +565,14 @@ void Cvar_SetU_f( void )
 {
 	cvar_t	*v;
 
-	if ( Cmd_Argc() != 3 )
+	if( Cmd_Argc() != 3 )
 	{
-		Msg("usage: setu <variable> <value>\n");
+		Msg( "Usage: setu <variable> <value>\n" );
 		return;
 	}
 
 	Cvar_Set_f();
-	v = Cvar_FindVar( Cmd_Argv(1));
+	v = Cvar_FindVar( Cmd_Argv( 1 ));
 
 	if( !v ) return;
 	v->flags |= CVAR_USERINFO;
@@ -570,15 +589,15 @@ void Cvar_SetS_f( void )
 {
 	cvar_t	*v;
 
-	if ( Cmd_Argc() != 3 )
+	if( Cmd_Argc() != 3 )
 	{
-		Msg("usage: sets <variable> <value>\n");
+		Msg( "Usage: sets <variable> <value>\n" );
 		return;
 	}
 	Cvar_Set_f();
-	v = Cvar_FindVar( Cmd_Argv(1));
+	v = Cvar_FindVar( Cmd_Argv( 1 ));
 
-	if ( !v ) return;
+	if( !v ) return;
 	v->flags |= CVAR_SERVERINFO;
 }
 
@@ -593,15 +612,16 @@ void Cvar_SetA_f( void )
 {
 	cvar_t	*v;
 
-	if ( Cmd_Argc() != 3 )
+	if( Cmd_Argc() != 3 )
 	{
-		Msg("usage: seta <variable> <value>\n");
+		Msg( "Usage: seta <variable> <value>\n" );
 		return;
 	}
 
 	Cvar_Set_f();
-	v = Cvar_FindVar( Cmd_Argv( 1 ) );
-	if ( !v ) return;
+	v = Cvar_FindVar( Cmd_Argv( 1 ));
+
+	if( !v ) return;
 	v->flags |= CVAR_ARCHIVE;
 }
 
@@ -616,11 +636,11 @@ void Cvar_SetC_f( void )
 {
 	if( Cmd_Argc() != 3 )
 	{
-		Msg("usage: setc <variable> <value>\n");
+		Msg( "Usage: setc <variable> <value>\n" );
 		return;
 	}
 
-	Cvar_FullSet( Cmd_Argv(1), Cmd_Argv(2), CVAR_SYSTEMINFO );
+	Cvar_FullSet( Cmd_Argv( 1 ), Cmd_Argv( 2 ), CVAR_SYSTEMINFO );
 }
 
 /*
@@ -630,9 +650,9 @@ Cvar_Reset_f
 */
 void Cvar_Reset_f( void )
 {
-	if ( Cmd_Argc() != 2 )
+	if( Cmd_Argc() != 2 )
 	{
-		Msg("usage: reset <variable>\n");
+		Msg( "Usage: reset <variable>\n" );
 		return;
 	}
 	Cvar_Reset( Cmd_Argv( 1 ));
@@ -657,30 +677,34 @@ void Cvar_List_f( void )
 		if( match && !Cmd_FilterToken( match, var->name, false ))
 			continue;
 
-		if (var->flags & CVAR_SERVERINFO) Msg("S");
-		else Msg(" ");
+		if( var->flags & CVAR_SERVERINFO ) Msg( "S" );
+		else Msg( " " );
 
-		if (var->flags & CVAR_USERINFO) Msg("U");
-		else Msg(" ");
+		if( var->flags & CVAR_USERINFO ) Msg( "U" );
+		else Msg( " " );
 
-		if (var->flags & CVAR_READ_ONLY) Msg("R");
-		else Msg(" ");
+		if( var->flags & CVAR_READ_ONLY ) Msg( "R" );
+		else Msg( " " );
 
-		if (var->flags & CVAR_INIT) Msg("I");
-		else Msg(" ");
+		if( var->flags & CVAR_INIT ) Msg( "I" );
+		else Msg( " " );
 
-		if (var->flags & CVAR_ARCHIVE) Msg("A");
-		else Msg(" ");
+		if( var->flags & CVAR_ARCHIVE ) Msg( "A" );
+		else Msg( " " );
 
-		if (var->flags & CVAR_LATCH) Msg("L");
-		else Msg(" ");
+		if( var->flags & CVAR_LATCH ) Msg( "L" );
+		else Msg( " " );
 
-		if (var->flags & CVAR_CHEAT) Msg("C");
-		else Msg(" ");
-		Msg (" %s \"%s\"\n", var->name, var->string);
+		if( var->flags & CVAR_LATCH_VIDEO ) Msg( "V" );
+		else Msg( " " );
+
+		if( var->flags & CVAR_CHEAT ) Msg( "C" );
+		else Msg( " " );
+		Msg(" %s \"%s\"\n", var->name, var->string );
 	}
-	Msg("\n%i total cvars\n", i );
-	Msg("%i cvar indexes\n", cvar_numIndexes );
+
+	Msg( "\n%i total cvars\n", i );
+	Msg( "%i cvar indexes\n", cvar_numIndexes );
 }
 
 /*
@@ -704,14 +728,14 @@ void Cvar_Restart_f( void )
 
 		// don't mess with rom values, or some inter-module
 		// communication will get broken (com_cl_running, etc)
-		if ( var->flags & ( CVAR_READ_ONLY|CVAR_INIT|CVAR_SYSTEMINFO ))
+		if( var->flags & ( CVAR_READ_ONLY|CVAR_INIT|CVAR_SYSTEMINFO ))
 		{
 			prev = &var->next;
 			continue;
 		}
 
 		// throw out any variables the user created
-		if ( var->flags & CVAR_USER_CREATED )
+		if( var->flags & CVAR_USER_CREATED )
 		{
 			*prev = var->next;
 			if( var->name ) Mem_Free( var->name );
@@ -744,14 +768,42 @@ void Cvar_Latched_f( void )
 
 	prev = &cvar_vars;
 
+	while( 1 )
+	{
+		var = *prev;
+		if( !var ) break;
+
+		if( var->flags & CVAR_LATCH && var->latched_string )
+		{
+			Cvar_FullSet( var->name, var->latched_string, var->flags );
+			Mem_Free( var->latched_string );
+			var->latched_string = NULL;
+		}
+		prev = &var->next;
+	}
+}
+
+/*
+============
+Cvar_Latched_f
+
+Now all latched video strings is valid
+============
+*/
+void Cvar_LatchedVideo_f( void )
+{
+	cvar_t	*var;
+	cvar_t	**prev;
+
+	prev = &cvar_vars;
+
 	while ( 1 )
 	{
 		var = *prev;
 		if( !var ) break;
 
-		if ( var->flags & CVAR_LATCH && var->latched_string )
+		if( var->flags & CVAR_LATCH_VIDEO && var->latched_string )
 		{
-			Msg("set %s = %s\n", var->name, var->latched_string );
 			Cvar_FullSet( var->name, var->latched_string, var->flags );
 			Mem_Free( var->latched_string );
 			var->latched_string = NULL;
@@ -771,8 +823,8 @@ void Cvar_Init( void )
 {
 	cvar_vars = NULL;
 	cvar_numIndexes = cvar_modifiedFlags = 0;
-	ZeroMemory( cvar_indexes, sizeof(cvar_t)*MAX_CVARS );
-	ZeroMemory( hashTable, sizeof(*hashTable) * FILE_HASH_SIZE );
+	ZeroMemory( cvar_indexes, sizeof( cvar_t ) * MAX_CVARS );
+	ZeroMemory( hashTable, sizeof(*hashTable ) * FILE_HASH_SIZE );
 
 	Cmd_AddCommand ("toggle", Cvar_Toggle_f, "toggles a console variable's values (use for more info)" );
 	Cmd_AddCommand ("set", Cvar_Set_f, "create or change the value of a console variable" );
@@ -782,6 +834,7 @@ void Cvar_Init( void )
 	Cmd_AddCommand ("seta", Cvar_SetA_f, "create or change the value of a console variable that will be saved to vars.rc");
 	Cmd_AddCommand ("reset", Cvar_Reset_f, "reset any type variable to initial value" );
 	Cmd_AddCommand ("latch", Cvar_Latched_f, "apply latched values" );
+	Cmd_AddCommand ("vidlatch", Cvar_LatchedVideo_f, "apply latched values for renderer" );
 	Cmd_AddCommand ("cvarlist", Cvar_List_f, "display all console variables beginning with the specified prefix" );
 	Cmd_AddCommand ("unsetall", Cvar_Restart_f, "reset all console variables to their default values" );
 

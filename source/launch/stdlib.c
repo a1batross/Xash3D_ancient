@@ -45,6 +45,21 @@ void com_strlwr(const char *in, char *out)
 }
 
 /*
+==============
+isdigit
+==============
+*/
+bool com_isdigit( const char *str )
+{
+	if( str && *str )
+	{
+		while( isdigit( *str )) str++;
+		if( !*str ) return true;
+	}
+	return false;
+}
+
+/*
 ============
 strlen
 

@@ -404,7 +404,6 @@ int UTIL_ConvertContents( int hl_contents )
 		case -4: return CONTENTS_SLIME;
 		case -5: return CONTENTS_LAVA;
 		case -6: return CONTENTS_SKY;
-		case -16: return CONTENTS_LADDER;
 		case -19: return CONTENTS_FOG;
 	}
 	return CONTENTS_NONE;

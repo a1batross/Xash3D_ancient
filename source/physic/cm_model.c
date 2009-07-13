@@ -24,22 +24,12 @@ int registration_sequence = 0;
 */
 void CM_GetPoint( int index, vec3_t out )
 {
-	int vert_index;
-	int edge_index = cm.surfedges[index];
-
-	if(edge_index > 0) vert_index = cm.edges[edge_index].v[0];
-	else vert_index = cm.edges[-edge_index].v[1];
-	CM_ConvertPositionToMeters( out, cm.vertices[vert_index].point );
+	CM_ConvertPositionToMeters( out, cm.vertices[index].v );
 }
 
 void CM_GetPoint2( int index, vec3_t out )
 {
-	int vert_index;
-	int edge_index = cm.surfedges[index];
-
-	if(edge_index > 0) vert_index = cm.edges[edge_index].v[0];
-	else vert_index = cm.edges[-edge_index].v[1];
-	CM_ConvertDimensionToMeters( out, cm.vertices[vert_index].point );
+	CM_ConvertDimensionToMeters( out, cm.vertices[index].v );
 }
 
 /*
@@ -74,6 +64,7 @@ void CM_FreeModel( cmodel_t *mod )
 	mod = NULL;
 }
 
+const void *CM_VisData( void ) { return cm.pvs; }
 int CM_NumTextures( void ) { return cm.numshaders; }
 int CM_NumClusters( void ) { return cm.numclusters; }
 int CM_NumInlineModels( void ) { return cms.numbmodels; }
@@ -94,7 +85,7 @@ BSP_CreateMeshBuffer
 */
 void BSP_CreateMeshBuffer( int modelnum )
 {
-	dsurface_t	*m_surface;
+	csurface_t	*m_surface;
 	int		d, i, j, k;
 	int		flags;
 
@@ -107,7 +98,6 @@ void BSP_CreateMeshBuffer( int modelnum )
 	else loadmodel->type = mod_world; // level static geometry
 	loadmodel->TraceBox = CM_TraceBmodel;
 	loadmodel->PointContents = CM_PointContents;
-	loadmodel->AmbientLevel = CM_AmbientSounds;
 
 	// because world loading collision tree from LUMP_COLLISION
 	if( modelnum < 1 ) return;
@@ -116,22 +106,22 @@ void BSP_CreateMeshBuffer( int modelnum )
 
 	for( d = 0, i = loadmodel->firstface; d < loadmodel->numfaces; i++, d++ )
 	{
-		vec3_t *face;
-
 		m_surface = cm.surfaces + i;
-		flags = cm.shaders[cm.texinfo[m_surface->texinfo].shadernum].surfaceflags;
-		k = m_surface->firstedge;
+		flags = cm.shaders[m_surface->shadernum].flags;
+		k = m_surface->firstvertex;
 
-		// sky is noclip for all physobjects
+		// current implementation not supported meshes or patches
+		if( m_surface->surfaceType != MST_PLANAR ) continue;
+
+		// FIXME: sky is noclip for all physobjects
 		if( flags & SURF_SKY ) continue;
-		face = Mem_Alloc( loadmodel->mempool, m_surface->numedges * sizeof( vec3_t ));
-		for(j = 0; j < m_surface->numedges; j++ ) 
+
+		for( j = 0; j < m_surface->numvertices; j++ ) 
 		{
 			// because it's not a collision tree, just triangle mesh
 			CM_GetPoint2( k+j, studio.m_pVerts[studio.numverts] );
 			studio.numverts++;
 		}
-		if( face ) Mem_Free( face ); // faces with 0 edges ?
 	}
 	if( studio.numverts )
 	{
@@ -144,16 +134,15 @@ void BSP_CreateMeshBuffer( int modelnum )
 	}
 }
 
-void BSP_LoadModels( wfile_t *l )
+void BSP_LoadModels( lump_t *l )
 {
 	dmodel_t	*in;
 	cmodel_t	*out;
-	size_t	filelen;
 	int	i, j, n, c, count;
 
-	in = (void *)WAD_Read( l, LUMP_MODELS, &filelen, TYPE_BINDATA );
-	if( filelen % sizeof( *in )) Host_Error( "BSP_LoadModels: funny lump size\n" );
-	count = filelen / sizeof( *in );
+	in = (void *)(cms.base + l->fileofs);
+	if( l->filelen % sizeof( *in )) Host_Error( "BSP_LoadModels: funny lump size\n" );
+	count = l->filelen / sizeof( *in );
 
 	if( count < 1 ) Host_Error( "Map %s without models\n", cm.name );
 	if( count > MAX_MODELS ) Host_Error( "Map %s has too many models\n", cm.name );
@@ -200,49 +189,22 @@ void BSP_LoadModels( wfile_t *l )
 BSP_LoadShaders
 =================
 */
-void BSP_LoadShaders( wfile_t *l )
+void BSP_LoadShaders( lump_t *l )
 {
 	dshader_t		*in;
-	csurface_t	*out;
-	size_t		filelen;
+	cshader_t		*out;
 	int 		i;
 
-	in = (void *)WAD_Read( l, LUMP_SHADERS, &filelen, TYPE_BINDATA );
-	if( filelen % sizeof( *in )) Host_Error( "BSP_LoadShaders: funny lump size\n" );
-	cm.numshaders = filelen / sizeof(*in);
-	cm.shaders = out = (csurface_t *)Mem_Alloc( cmappool, cm.numshaders * sizeof( *out ));
+	in = ( void * )(cms.base + l->fileofs);
+	if( l->filelen % sizeof( *in )) Host_Error( "BSP_LoadShaders: funny lump size\n" );
+	cm.numshaders = l->filelen / sizeof( *in );
+	cm.shaders = out = (cshader_t *)Mem_Alloc( cmappool, cm.numshaders * sizeof( *out ));
 
 	for( i = 0; i < cm.numshaders; i++, in++, out++)
 	{
 		com.strncpy( out->name, in->name, MAX_SHADERPATH );
-		out->contentflags = LittleLong( in->contentFlags );
-		out->surfaceflags = LittleLong( in->surfaceFlags );
-	}
-}
-
-/*
-=================
-BSP_LoadTexinfo
-=================
-*/
-void BSP_LoadTexinfo( wfile_t *l )
-{
-	dtexinfo_t	*in, *out;
-	size_t		filelen;
-	int 		i, count;
-
-	in = (void *)WAD_Read( l, LUMP_TEXINFO, &filelen, TYPE_BINDATA );
-	if( filelen % sizeof( *in )) Host_Error( "BSP_LoadTexinfo: funny lump size\n" );
-	count = filelen / sizeof( *in );
-
-	out = cm.texinfo = (dtexinfo_t *)Mem_Alloc( cmappool, count * sizeof( *out ));
-	cm.numtexinfo = count;
-
-	// store shaders indextable only
-	for ( i = 0; i < count; i++, in++, out++)
-	{
-		out->shadernum = LittleLong( in->shadernum );
-		out->value = LittleLong( in->value );
+		out->contents = LittleLong( in->contentFlags );
+		out->flags = LittleLong( in->surfaceFlags );
 	}
 }
 
@@ -251,16 +213,15 @@ void BSP_LoadTexinfo( wfile_t *l )
 BSP_LoadNodes
 =================
 */
-void BSP_LoadNodes( wfile_t *l )
+void BSP_LoadNodes( lump_t *l )
 {
 	dnode_t	*in;
 	cnode_t	*out;
-	size_t	filelen;
 	int	i, j, n, count;
 	
-	in = (void *)WAD_Read( l, LUMP_NODES, &filelen, TYPE_BINDATA );
-	if( filelen % sizeof( *in )) Host_Error( "BSP_LoadNodes: funny lump size\n" );
-	count = filelen / sizeof( *in );
+	in = (void *)(cms.base + l->fileofs);
+	if( l->filelen % sizeof( *in )) Host_Error( "BSP_LoadNodes: funny lump size\n" );
+	count = l->filelen / sizeof( *in );
 
 	if( count < 1 ) Host_Error( "Map %s has no nodes\n", cm.name );
 	out = cm.nodes = (cnode_t *)Mem_Alloc( cmappool, count * sizeof( *out ));
@@ -306,17 +267,16 @@ void BSP_LoadNodes( wfile_t *l )
 BSP_LoadBrushes
 =================
 */
-void BSP_LoadBrushes( wfile_t *l )
+void BSP_LoadBrushes( lump_t *l )
 {
-	dbrush_t	*in;
-	cbrush_t	*out;
-	size_t	filelen;
-	int	i, j, n, count, maxplanes = 0;
-	cplanef_t	*planes = NULL;
+	dbrush_t		*in;
+	cbrush_t		*out;
+	int		i, j, n, count, maxplanes = 0;
+	cplanef_t		*planes = NULL;
 	
-	in = (void *)WAD_Read( l, LUMP_BRUSHES, &filelen, TYPE_BINDATA );
-	if( filelen % sizeof( *in )) Host_Error( "BSP_LoadBrushes: funny lump size\n" );
-	count = filelen / sizeof( *in );
+	in = (void *)(cms.base + l->fileofs);
+	if( l->filelen % sizeof( *in )) Host_Error( "BSP_LoadBrushes: funny lump size\n" );
+	count = l->filelen / sizeof( *in );
 	out = cm.brushes = (cbrush_t *)Mem_Alloc( cmappool, (count + 1) * sizeof( *out ));
 	cm.numbrushes = count;
 
@@ -327,7 +287,7 @@ void BSP_LoadBrushes( wfile_t *l )
 		n = LittleLong( in->shadernum );
 		if( n < 0 || n >= cm.numshaders )
 			Host_Error( "BSP_LoadBrushes: invalid shader index %i (brush %i)\n", n, i );
-		out->contents = cm.shaders[n].contentflags;
+		out->contents = cm.shaders[n].contents;
 		CM_BoundBrush( out );
 
 		// make a list of mplane_t structs to construct a colbrush from
@@ -340,8 +300,8 @@ void BSP_LoadBrushes( wfile_t *l )
 		{
 			VectorCopy( cm.brushsides[out->firstbrushside + j].plane->normal, planes[j].normal );
 			planes[j].dist = cm.brushsides[out->firstbrushside + j].plane->dist;
-			planes[j].surfaceflags = cm.brushsides[out->firstbrushside + j].shader->surfaceflags;
-			planes[j].surface = cm.brushsides[out->firstbrushside + j].shader;
+			planes[j].surfaceflags = cm.brushsides[out->firstbrushside + j].shader->flags;
+			planes[j].surface = cm.brushsides[out->firstbrushside + j].surface;
 		}
 		// make the colbrush from the planes
 		out->colbrushf = CM_CollisionNewBrushFromPlanes( cmappool, out->numsides, planes, out->contents );
@@ -353,15 +313,14 @@ void BSP_LoadBrushes( wfile_t *l )
 BSP_LoadLeafSurffaces
 =================
 */
-void BSP_LoadLeafSurfaces( wfile_t *l )
+void BSP_LoadLeafSurfaces( lump_t *l )
 {
 	dleafface_t	*in, *out;
 	int		i, n, count;
-	size_t		filelen;
 	
-	in = (void *)WAD_Read( l, LUMP_LEAFFACES, &filelen, TYPE_BINDATA );
-	if( filelen % sizeof( *in )) Host_Error( "BSP_LoadLeafFaces: funny lump size\n" );
-	count = filelen / sizeof( *in );
+	in = (void *)(cms.base + l->fileofs);
+	if( l->filelen % sizeof( *in )) Host_Error( "BSP_LoadLeafFaces: funny lump size\n" );
+	count = l->filelen / sizeof( *in );
 
 	out = cm.leafsurfaces = (dword *)Mem_Alloc( cmappool, count * sizeof( *out ));
 	cm.numleafsurfaces = count;
@@ -380,15 +339,14 @@ void BSP_LoadLeafSurfaces( wfile_t *l )
 BSP_LoadLeafBrushes
 =================
 */
-void BSP_LoadLeafBrushes( wfile_t *l )
+void BSP_LoadLeafBrushes( lump_t *l )
 {
 	dleafbrush_t	*in, *out;
 	int		i, count;
-	size_t		filelen;
 	
-	in = (void *)WAD_Read( l, LUMP_LEAFBRUSHES, &filelen, TYPE_BINDATA );
-	if( filelen % sizeof( *in )) Host_Error( "BSP_LoadLeafBrushes: funny lump size\n" );
-	count = filelen / sizeof( *in );
+	in = (void *)(cms.base + l->fileofs);
+	if( l->filelen % sizeof( *in )) Host_Error( "BSP_LoadLeafBrushes: funny lump size\n" );
+	count = l->filelen / sizeof( *in );
 
 	if( count < 1 ) Host_Error( "Map %s with no leaf brushes\n", cm.name );
 	out = cm.leafbrushes = (dleafbrush_t *)Mem_Alloc( cmappool, count * sizeof( *out ));
@@ -402,42 +360,39 @@ void BSP_LoadLeafBrushes( wfile_t *l )
 BSP_LoadLeafs
 =================
 */
-void BSP_LoadLeafs( wfile_t *l )
+void BSP_LoadLeafs( lump_t *l )
 {
 	dleaf_t 	*in;
 	cleaf_t	*out;
 	int	i, j, n, c, count;
-	int	emptyleaf = -1;
-	size_t	filelen;
 		
-	in = (void *)WAD_Read( l, LUMP_LEAFS, &filelen, TYPE_BINDATA );
-	if( filelen % sizeof( *in )) Host_Error( "BSP_LoadLeafs: funny lump size\n" );
+	in = (void *)(cms.base + l->fileofs);
+	if( l->filelen % sizeof( *in )) Host_Error( "BSP_LoadLeafs: funny lump size\n" );
 
-	count = filelen / sizeof( *in );
+	count = l->filelen / sizeof( *in );
 	if( count < 1 ) Host_Error( "Map %s with no leafs\n", cm.name );
 	out = cm.leafs = (cleaf_t *)Mem_Alloc( cmappool, count * sizeof(*out));
-	cm.numleafs = count;
 	cm.numclusters = 0;
+	cm.numleafs = count;
+	cm.numareas = 1;
 
 	for( i = 0; i < count; i++, in++, out++)
 	{
 		out->parent = NULL;
 		out->plane = NULL;
-		out->contents = LittleLong( in->contents );
 		out->cluster = LittleLong( in->cluster );
 		out->area = LittleLong( in->area );
+
 		if( out->cluster >= cm.numclusters )
 			cm.numclusters = out->cluster + 1;
+		if( out->area >= cm.numareas )
+			cm.numareas = out->area + 1;
 		for( j = 0; j < 3; j++ )
 		{
 			// yes the mins/maxs are ints
 			out->mins[j] = LittleLong( in->mins[j] ) - 1;
 			out->maxs[j] = LittleLong( in->maxs[j] ) + 1;
 		}
-
-		for( j = 0; j < NUM_AMBIENTS; j++ )
-			out->ambient_level[j] = (float)(in->sounds[j] / 255.0f);
-
 		n = LittleLong( in->firstleafsurface );
 		c = LittleLong( in->numleafsurfaces );
 		if( n < 0 || n + c > cm.numleafsurfaces )
@@ -452,21 +407,7 @@ void BSP_LoadLeafs( wfile_t *l )
 		out->numleafbrushes = c;
 	}
 
-	// probably any wall it's liquid ?
-	if( cm.leafs[0].contents != CONTENTS_SOLID )
-		Host_Error("Map %s with leaf 0 is not CONTENTS_SOLID\n", cm.name );
-
-	for( i = 1; i < count; i++ )
-	{
-		if( !cm.leafs[i].contents )
-		{
-			emptyleaf = i;
-			break;
-		}
-	}
-
-	// stuck into brushes
-	if( emptyleaf == -1 ) Host_Error( "Map %s does not have an empty leaf\n", cm.name );
+	cm.areas = Mem_Alloc( cmappool, cm.numareas * sizeof( *cm.areas ));
 }
 
 /*
@@ -474,17 +415,16 @@ void BSP_LoadLeafs( wfile_t *l )
 BSP_LoadPlanes
 =================
 */
-void BSP_LoadPlanes( wfile_t *l )
+void BSP_LoadPlanes( lump_t *l )
 {
 	dplane_t	*in;
 	cplane_t	*out;
 	int	i, j, count;
-	size_t	filelen;
 	
-	in = (void *)WAD_Read( l, LUMP_PLANES, &filelen, TYPE_BINDATA );
-	if( filelen % sizeof( *in )) Host_Error( "BSP_LoadPlanes: funny lump size\n" );
+	in = (void *)(cms.base + l->fileofs);
+	if( l->filelen % sizeof( *in )) Host_Error( "BSP_LoadPlanes: funny lump size\n" );
 
-	count = filelen / sizeof( *in );
+	count = l->filelen / sizeof( *in );
 	if( count < 1 ) Host_Error( "Map %s with no planes\n", cm.name );
 	out = cm.planes = (cplane_t *)Mem_Alloc( cmappool, count * sizeof( *out ));
 	cm.numplanes = count;
@@ -503,80 +443,53 @@ void BSP_LoadPlanes( wfile_t *l )
 BSP_LoadBrushSides
 =================
 */
-void BSP_LoadBrushSides( wfile_t *l )
+void IBSP_LoadBrushSides( lump_t *l )
 {
-	dbrushside_t 	*in;
+	dbrushsideq_t 	*in;
 	cbrushside_t	*out;
 	int		i, j, num,count;
-	size_t		filelen;
 
-	in = (void *)WAD_Read( l, LUMP_BRUSHSIDES, &filelen, TYPE_BINDATA );
-	if( filelen % sizeof( *in )) Host_Error( "BSP_LoadBrushSides: funny lump size\n" );
+	in = (void *)(cms.base + l->fileofs);
+	if( l->filelen % sizeof( *in )) Host_Error( "BSP_LoadBrushSides: funny lump size\n" );
 
-	count = filelen / sizeof( *in );
+	count = l->filelen / sizeof( *in );
 	out = cm.brushsides = (cbrushside_t *)Mem_Alloc( cmappool, count * sizeof( *out ));
 	cm.numbrushsides = count;
 
 	for ( i = 0; i < count; i++, in++, out++)
 	{
-		num = LittleLong(in->planenum);
+		num = LittleLong( in->planenum );
 		out->plane = cm.planes + num;
-		j = LittleLong( in->texinfo );
-		j = bound( 0, j, cm.numtexinfo - 1 );
-		out->shader = cm.shaders + cm.texinfo[j].shadernum;
+		j = LittleLong( in->shadernum );
+		j = bound( 0, j, cm.numshaders - 1 );
+		out->shader = cm.shaders + j;
+		out->surface = NULL;
 	}
 }
 
-/*
-=================
-BSP_LoadAreas
-=================
-*/
-void BSP_LoadAreas( wfile_t *l )
+void RBSP_LoadBrushSides( lump_t *l )
 {
-	darea_t 		*in;
-	carea_t		*out;
-	int		i, count;
-	size_t		filelen;
+	dbrushsider_t 	*in;
+	cbrushside_t	*out;
+	int		i, j, num,count;
 
-	in = (void *)WAD_Read( l, LUMP_AREAS, &filelen, TYPE_BINDATA );
-	if( filelen % sizeof( *in )) Host_Error( "BSP_LoadAreas: funny lump size\n" );
+	in = (void *)(cms.base + l->fileofs);
+	if( l->filelen % sizeof( *in )) Host_Error( "BSP_LoadBrushSides: funny lump size\n" );
 
-	count = filelen / sizeof( *in );
-  	out = cm.areas = (carea_t *)Mem_Alloc( cmappool, count * sizeof( *out ));
-	cm.numareas = count;
+	count = l->filelen / sizeof( *in );
+	out = cm.brushsides = (cbrushside_t *)Mem_Alloc( cmappool, count * sizeof( *out ));
+	cm.numbrushsides = count;
 
-	for( i = 0; i < count; i++, in++, out++ )
+	for ( i = 0; i < count; i++, in++, out++)
 	{
-		out->numareaportals = LittleLong( in->numareaportals );
-		out->firstareaportal = LittleLong( in->firstareaportal );
-		out->floodvalid = 0;
-		out->floodnum = 0;
-	}
-}
-
-/*
-=================
-BSP_LoadAreaPortals
-=================
-*/
-void BSP_LoadAreaPortals( wfile_t *l )
-{
-	dareaportal_t	*in, *out;
-	int		i, count;
-	size_t		filelen;
-
-	in = (void *)WAD_Read( l, LUMP_AREAPORTALS, &filelen, TYPE_BINDATA );
-	if( filelen % sizeof( *in )) Host_Error( "BSP_LoadAreaPortals: funny lump size\n" );
-
-	count = filelen / sizeof( *in );
-	out = cm.areaportals = (dareaportal_t *)Mem_Alloc( cmappool, count * sizeof( *out ));
-	cm.numareaportals = count;
-
-	for( i = 0; i < count; i++, in++, out++ )
-	{
-		out->portalnum = LittleLong( in->portalnum );
-		out->otherarea = LittleLong( in->otherarea );
+		num = LittleLong( in->planenum );
+		out->plane = cm.planes + num;
+		j = LittleLong( in->shadernum );
+		j = bound( 0, j, cm.numshaders - 1 );
+		out->shader = cm.shaders + j;
+		j = LittleLong( in->surfacenum );
+		j = bound( 0, j, cm.numsurfaces - 1 );
+		out->surface = cm.surfaces + j;
 	}
 }
 
@@ -585,27 +498,22 @@ void BSP_LoadAreaPortals( wfile_t *l )
 BSP_LoadVisibility
 =================
 */
-void BSP_LoadVisibility( wfile_t *l )
+void BSP_LoadVisibility( lump_t *l )
 {
-	size_t	i, filelen;
-	byte	*in;
+	byte	*visbase;
 
-	in = WAD_Read( l, LUMP_VISIBILITY, &filelen, TYPE_BINDATA );
-	if( !filelen ) return;
+	cm.visdata_size = l->filelen;
+	if( !cm.visdata_size ) return;
 
-	cm.visbase = (byte *)Mem_Alloc( cmappool, filelen );
-	Mem_Copy( cm.visbase, in, filelen );
+	visbase = Mem_Alloc( cmappool, cm.visdata_size );
+	Mem_Copy( visbase, (void * )(cms.base + l->fileofs), cm.visdata_size );
 
-	cm.vis = (dvis_t *)cm.visbase; // conversion
-	cm.vis->numclusters = LittleLong( cm.vis->numclusters );
-	for( i = 0; i < cm.vis->numclusters; i++ )
-	{
-		cm.vis->bitofs[i][0] = LittleLong( cm.vis->bitofs[i][0] );
-		cm.vis->bitofs[i][1] = LittleLong( cm.vis->bitofs[i][1] );
-	}
+	cm.pvs = (dvis_t *)visbase;
+	cm.pvs->numclusters = LittleLong( cm.pvs->numclusters );
+	cm.pvs->rowsize = LittleLong( cm.pvs->rowsize );
 
-	if( cm.numclusters != cm.vis->numclusters )
-		Host_Error( "BSP_LoadVisibility: mismatch vis and leaf clusters (%i should be %i)\n", cm.vis->numclusters, cm.numclusters );
+	if( cm.numclusters != cm.pvs->numclusters )
+		Host_Error( "BSP_LoadVisibility: mismatch vis and leaf clusters (%i should be %i)\n", cm.pvs->numclusters, cm.numclusters );
 }
 
 /*
@@ -613,14 +521,12 @@ void BSP_LoadVisibility( wfile_t *l )
 BSP_LoadEntityString
 =================
 */
-void BSP_LoadEntityString( wfile_t *l )
+void BSP_LoadEntityString( lump_t *l )
 {
-	size_t	filelen;
 	byte	*in;
 
-	in = WAD_Read( l, LUMP_ENTITIES, &filelen, TYPE_SCRIPT );
-	cm.entityscript = Com_OpenScript( LUMP_ENTITIES, in, filelen );
-	cm.checksum = LittleLong(Com_BlockChecksum( in, filelen ));
+	in = (void *)(cms.base + l->fileofs);
+	cm.entityscript = Com_OpenScript( LUMP_ENTITIES, in, l->filelen );
 }
 
 /*
@@ -628,88 +534,92 @@ void BSP_LoadEntityString( wfile_t *l )
 BSP_LoadVerts
 =================
 */
-void BSP_LoadVertexes( wfile_t *l )
+void IBSP_LoadVertexes( lump_t *l )
 {
-	dvertex_t		*in;
-	size_t		filelen;
-	int		count;
+	dvertexq_t	*in;
+	cpointf_t		*out;
+	int		i, count;
 
-	in = (void *)WAD_Read( l, LUMP_VERTEXES, &filelen, TYPE_BINDATA );
-	if( filelen % sizeof( *in )) Host_Error( "BSP_LoadVertexes: funny lump size\n" );
+	in = (void *)(cms.base + l->fileofs);
+	if( l->filelen % sizeof( *in )) Host_Error( "BSP_LoadVertexes: funny lump size\n" );
 
-	count = filelen / sizeof( *in );
-	cm.vertices = Mem_Alloc( cmappool, count * sizeof( *in ));
-	Mem_Copy( cm.vertices, in, count * sizeof( *in ));
+	count = l->filelen / sizeof( *in );
+	cm.vertices = out = Mem_Alloc( cmappool, count * sizeof( *out ));
 
-	SwapBlock((int *)cm.vertices, sizeof( *in ) * count );
+	for( i = 0; i < count; i++, in++ )
+	{
+		out[i].v[0] = LittleFloat( in->point[0] );
+		out[i].v[1] = LittleFloat( in->point[1] );
+		out[i].v[2] = LittleFloat( in->point[2] );
+	}
 }
 
-/*
-=================
-BSP_LoadEdges
-=================
-*/
-void BSP_LoadEdges( wfile_t *l )
+void RBSP_LoadVertexes( lump_t *l )
 {
-	dedge_t	*in;
-	size_t	filelen;
-	int 	count;
+	dvertexr_t	*in;
+	cpointf_t		*out;
+	int		i, count;
 
-	in = (void *)WAD_Read( l, LUMP_EDGES, &filelen, TYPE_BINDATA );
-	if( filelen % sizeof( *in )) Host_Error( "BSP_LoadEdges: funny lump size\n" );
+	in = (void *)(cms.base + l->fileofs);
+	if( l->filelen % sizeof( *in )) Host_Error( "BSP_LoadVertexes: funny lump size\n" );
 
-	count = filelen / sizeof( *in );
-	cm.edges = Mem_Alloc( cmappool, count * sizeof( *in ));
-	Mem_Copy( cm.edges, in, count * sizeof( *in ));
+	count = l->filelen / sizeof( *in );
+	cm.vertices = out = Mem_Alloc( cmappool, count * sizeof( *out ));
 
-	SwapBlock( (int *)cm.edges, sizeof(*in) * count );
+	for( i = 0; i < count; i++, in++ )
+	{
+		out[i].v[0] = LittleFloat( in->point[0] );
+		out[i].v[1] = LittleFloat( in->point[1] );
+		out[i].v[2] = LittleFloat( in->point[2] );
+	}
 }
-
-/*
-=================
-BSP_LoadSurfedges
-=================
-*/
-void BSP_LoadSurfedges( wfile_t *l )
-{	
-	dsurfedge_t	*in;
-	size_t		filelen;
-	int		count;
-	
-	in = (void *)WAD_Read( l, LUMP_SURFEDGES, &filelen, TYPE_BINDATA );
-	if( filelen % sizeof( *in )) Host_Error( "BSP_LoadSurfedges: funny lump size\n" );
-
-	count = filelen / sizeof( *in );
-	if( count < 1 ) Host_Error( "BSP_LoadSurfedges: map without surfedges\n" );
-	cm.surfedges = Mem_Alloc( cmappool, count * sizeof( *in ));	
-	Mem_Copy( cm.surfedges, in, count * sizeof( *in ));
-
-	SwapBlock((int *)cm.surfedges, sizeof( *in ) * count );
-}
-
 
 /*
 =================
 BSP_LoadSurfaces
 =================
 */
-void BSP_LoadSurfaces( wfile_t *l )
+void IBSP_LoadSurfaces( lump_t *l )
 {
-	dsurface_t	*in, *out;
-	size_t		filelen;
+	dsurfaceq_t	*in;
+	csurface_t	*out;
 	int		i;
 
-	in = (void *)WAD_Read( l, LUMP_SURFACES, &filelen, TYPE_BINDATA );
-	if( filelen % sizeof( *in )) Host_Error( "BSP_LoadSurfaces: funny lump size\n" );
+	in = (void *)(cms.base + l->fileofs);
+	if( l->filelen % sizeof( *in )) Host_Error( "BSP_LoadSurfaces: funny lump size\n" );
 
-	cm.numsurfaces = filelen / sizeof( *in );
-	cm.surfaces = out = Mem_Alloc( cmappool, cm.numsurfaces * sizeof( *in ));	
+	cm.numsurfaces = l->filelen / sizeof( *in );
+	cm.surfaces = out = Mem_Alloc( cmappool, cm.numsurfaces * sizeof( *out ));	
 
 	for( i = 0; i < cm.numsurfaces; i++, in++, out++)
 	{
-		out->firstedge = LittleLong( in->firstedge );
-		out->numedges = LittleLong( in->numedges );		
-		out->texinfo = LittleLong( in->texinfo );
+		out->shadernum = LittleLong( in->shadernum );
+		out->surfaceType = LittleLong( in->facetype );		
+		out->firstvertex = LittleLong( in->firstvert );
+		out->numvertices = LittleLong( in->numverts );
+//		out->numtriangles = LittleLong( in->numelems ) / 3;
+	}
+}
+
+void RBSP_LoadSurfaces( lump_t *l )
+{
+	dsurfacer_t	*in;
+	csurface_t	*out;
+	int		i;
+
+	in = (void *)(cms.base + l->fileofs);
+	if( l->filelen % sizeof( *in )) Host_Error( "BSP_LoadSurfaces: funny lump size\n" );
+
+	cm.numsurfaces = l->filelen / sizeof( *in );
+	cm.surfaces = out = Mem_Alloc( cmappool, cm.numsurfaces * sizeof( *out ));	
+
+	for( i = 0; i < cm.numsurfaces; i++, in++, out++)
+	{
+		out->shadernum = LittleLong( in->shadernum );
+		out->surfaceType = LittleLong( in->facetype );		
+		out->firstvertex = LittleLong( in->firstvert );
+		out->numvertices = LittleLong( in->numverts );
+//		out->numtriangles = LittleLong( in->numelems ) / 3;
 	}
 }
 
@@ -718,13 +628,9 @@ void BSP_LoadSurfaces( wfile_t *l )
 BSP_LoadCollision
 =================
 */
-void BSP_LoadCollision( wfile_t *l )
+void BSP_LoadCollision( lump_t *l )
 {
-	size_t	filelen;
-	byte	*in;	
-
-	in = (void *)WAD_Read( l, LUMP_COLLISION, &filelen, TYPE_BINDATA );
-	if( filelen ) cms.world_tree = VFS_Create( in, filelen );	
+	cms.world_tree = VFS_Create( cms.base + l->fileofs, l->filelen );
 }
 
 static void BSP_RecursiveFindNumLeafs( cnode_t *node )
@@ -771,12 +677,11 @@ static void BSP_RecursiveSetParent( cnode_t *node, cnode_t *parent )
 		// check if this leaf contains any collision surfaces (patches)
 		for( i = 0; i < leaf->numleafsurfaces; i++ )
 		{
-			dsurface_t *m_surface = cm.surfaces + leaf->firstleafsurface[i];
-			csurface_t *surface = cm.shaders + cm.texinfo[m_surface->texinfo].shadernum;
-			if( surface->numtriangles )
+			csurface_t *m_surface = cm.surfaces + leaf->firstleafsurface[i];
+			if( m_surface->numtriangles )
 			{
 				leaf->havepatches = true;
-				leaf->contents |= surface->contentflags;
+				leaf->contents |= cm.shaders[m_surface->shadernum].contents;
 			}
 		}
 	}
@@ -798,7 +703,7 @@ void BSP_BeginBuildTree( void )
 
 void BSP_AddCollisionFace( int facenum )
 {
-	dsurface_t	*m_surface;
+	csurface_t	*m_surface;
 	int		j, k;
 	int		flags;
 
@@ -809,8 +714,8 @@ void BSP_AddCollisionFace( int facenum )
 	}
           
 	m_surface = cm.surfaces + facenum;
-	flags = cm.shaders[cm.texinfo[m_surface->texinfo].shadernum].surfaceflags;
-	k = m_surface->firstedge;
+	flags = cm.shaders[m_surface->shadernum].flags;
+	k = m_surface->firstvertex;
 	
 	// sky is noclip for all physobjects
 	if( flags & SURF_SKY ) return;
@@ -818,7 +723,7 @@ void BSP_AddCollisionFace( int facenum )
 	if( cm_use_triangles->integer )
 	{
 		// convert polygon to triangles
-		for( j = 0; j < m_surface->numedges - 2; j++ )
+		for( j = 0; j < m_surface->numvertices - 2; j++ )
 		{
 			vec3_t	face[3]; // triangle
 			CM_GetPoint( k,	face[0] );
@@ -829,18 +734,18 @@ void BSP_AddCollisionFace( int facenum )
 	}
 	else
 	{
-		vec3_t *face = Mem_Alloc( cmappool, m_surface->numedges * sizeof( vec3_t ));
-		for(j = 0; j < m_surface->numedges; j++ ) CM_GetPoint( k+j, face[j] );
-		NewtonTreeCollisionAddFace( cms.collision, m_surface->numedges, (float *)face[0], sizeof(vec3_t), 1);
+		vec3_t *face = Mem_Alloc( cmappool, m_surface->numvertices * sizeof( vec3_t ));
+		for(j = 0; j < m_surface->numvertices; j++ ) CM_GetPoint( k+j, face[j] );
+		NewtonTreeCollisionAddFace( cms.collision, m_surface->numvertices, (float *)face[0], sizeof(vec3_t), 1);
 		if( face ) Mem_Free( face ); // polygons with 0 edges ?
 	}
 }
 
 void BSP_EndBuildTree( void )
 {
-	if( app_name == HOST_BSPLIB ) Msg("Optimize collision tree..." );
+	if( app_name == HOST_BSPLIB ) Msg( "Optimize collision tree..." );
 	NewtonTreeCollisionEndBuild( cms.collision, true );
-	if( app_name == HOST_BSPLIB ) Msg(" done\n");
+	if( app_name == HOST_BSPLIB ) Msg( " done\n" );
 }
 
 static void BSP_LoadTree( vfile_t* handle, void* buffer, size_t size )
@@ -848,17 +753,19 @@ static void BSP_LoadTree( vfile_t* handle, void* buffer, size_t size )
 	VFS_Read( handle, buffer, size );
 }
 
-void CM_LoadBSP( wfile_t *handle )
+void CM_LoadBSP( const void *buffer )
 {
+	dheader_t		header;
+
+	header = *(dheader_t *)buffer;
+	cms.base = (byte *)buffer;
+
 	// bsplib uses light version of loading
-	BSP_LoadVertexes( handle );
-	BSP_LoadEdges( handle );
-	BSP_LoadSurfedges( handle );
-	BSP_LoadShaders( handle );
-	BSP_LoadTexinfo( handle );
-	BSP_LoadSurfaces( handle );
-	BSP_LoadModels( handle );
-	BSP_LoadCollision( handle );
+	IBSP_LoadVertexes( &header.lumps[LUMP_VERTEXES] );
+	BSP_LoadShaders( &header.lumps[LUMP_SHADERS] );
+	IBSP_LoadSurfaces( &header.lumps[LUMP_SURFACES] );
+	BSP_LoadModels( &header.lumps[LUMP_MODELS] );
+	BSP_LoadCollision( &header.lumps[LUMP_COLLISION] );
 	cms.loaded = true;
 }
 
@@ -882,7 +789,7 @@ void CM_MakeCollisionTree( void )
 
 	if( !cms.loaded ) Host_Error( "CM_MakeCollisionTree: map not loaded\n" );
 	if( cms.collision ) return; // already generated
-	if( app_name == HOST_BSPLIB ) Msg("Building collision tree...\n" );
+	if( app_name == HOST_BSPLIB ) Msg( "Building collision tree...\n" );
 
 	BSP_BeginBuildTree();
 
@@ -950,8 +857,8 @@ void CM_FreeWorld( void )
 	{
 		// and physical body release too
 		NewtonDestroyBody( gWorld, cms.body );
-		cms.body = NULL;
 		cms.collision = NULL;
+		cms.body = NULL;
 	}
 	cms.loaded = false;
 }
@@ -965,11 +872,9 @@ Loads in the map and all submodels
 */
 cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksum )
 {
+	uint		*buf;
 	dheader_t		*hdr;
-
-	// make sure what old map released
-	if( cms.handle ) WAD_Close( cms.handle );
-	cms.handle = NULL;
+	size_t		length;
 
 	if( !com.strlen( name ))
 	{
@@ -980,17 +885,17 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 		return &cms.bmodels[0];
 	}
 
-	if(!com.strcmp( cm.name, name ) && cms.loaded )
+	if( !com.strcmp( cm.name, name ) && cms.loaded )
 	{
 		// singleplayer mode: server already loading map
 		*checksum = cm.checksum;
 		if( !clientload )
 		{
-			// rebuild portals for server
-			Mem_Set( cms.portalopen, 0, sizeof( cms.portalopen ));
+			// rebuild portals for server ...
+			Mem_Set( cm.areaportals, 0, sizeof( cm.areaportals ));
 			CM_FloodAreaConnections();
 
-			// and reset entity script
+			// ... and reset entity script
 			Com_ResetScript( cm.entityscript );
 		}
 		// still have the right version
@@ -1001,53 +906,60 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 	registration_sequence++;	// all models are invalid
 
 	// load the newmap
-	cms.handle = WAD_Open( name, "rb" );
-	if( !cms.handle ) Host_Error( "Couldn't load %s\n", name );
+	buf = (uint *)FS_LoadFile( name, &length );
+	if( !buf ) Host_Error( "Couldn't load %s\n", name );
 
-	hdr = (dheader_t *)WAD_Read( cms.handle, LUMP_MAPINFO, NULL, TYPE_BINDATA );
+	hdr = (dheader_t *)buf;
 	if( !hdr ) Host_Error( "CM_LoadMap: %s couldn't read header\n", name ); 
 
-	hdr->ident = LittleLong( hdr->ident );
-	hdr->version = LittleLong( hdr->version );
+	*checksum = cm.checksum = LittleLong( Com_BlockChecksum( buf, length ));
+	hdr = (dheader_t *)buf;
+	SwapBlock(( int *)hdr, sizeof( dheader_t ));	
+	cms.base = (byte *)buf;
 
-	if( hdr->ident != IDBSPMODHEADER )
-		Host_Error( "CM_LoadMap: %s is not a IBSP file\n", name );
-	if( hdr->version != BSPMOD_VERSION )
-		Host_Error( "CM_LoadMap: %s has wrong version number (%i should be %i)\n", name, hdr->version, BSPMOD_VERSION );
+	if( !memcmp( buf, "IBSP", 4 ) || !memcmp( buf, "RBSP", 4 ) || !memcmp( buf, "FBSP", 4 ))
+	{
+		switch( hdr->version )
+		{
+		case Q3IDBSP_VERSION:	// quake3 arena
+		case RTCWBSP_VERSION:	// return to castle wolfenstein
+		case RFIDBSP_VERSION:	// raven or qfusion bsp
+			break;
+		default:
+			Host_Error( "CM_LoadMap: %s has wrong version number (%i should be %i)\n", name, hdr->version, Q3IDBSP_VERSION );		
+			break;
+		}
+	}
+	else Host_Error( "CM_LoadMap: %s is not a IBSP, RBSP or FBSP file\n", name );
 
 	// load into heap
-	BSP_LoadEntityString( cms.handle );
-	BSP_LoadShaders( cms.handle );
-	BSP_LoadTexinfo( cms.handle );
-	BSP_LoadPlanes( cms.handle );
-	BSP_LoadBrushSides( cms.handle );
-	BSP_LoadBrushes( cms.handle );
-	BSP_LoadVertexes( cms.handle );
-	BSP_LoadEdges( cms.handle );
-	BSP_LoadSurfedges( cms.handle );
-	BSP_LoadSurfaces( cms.handle );		// used only for generate NewtonCollisionTree
-	BSP_LoadLeafBrushes( cms.handle );
-	BSP_LoadLeafSurfaces( cms.handle );
-	BSP_LoadLeafs( cms.handle );
-	BSP_LoadNodes( cms.handle );
-	BSP_LoadAreas( cms.handle );
-	BSP_LoadAreaPortals( cms.handle );
-	BSP_LoadVisibility( cms.handle );
-	BSP_LoadModels( cms.handle );
-	BSP_LoadCollision( cms.handle );
+	BSP_LoadEntityString( &hdr->lumps[LUMP_ENTITIES] );
+	BSP_LoadShaders( &hdr->lumps[LUMP_SHADERS] );
+	BSP_LoadPlanes( &hdr->lumps[LUMP_PLANES] );
+	IBSP_LoadBrushSides( &hdr->lumps[LUMP_BRUSHSIDES] );
+	BSP_LoadBrushes( &hdr->lumps[LUMP_BRUSHES] );
+	IBSP_LoadVertexes( &hdr->lumps[LUMP_VERTEXES] );
+	IBSP_LoadSurfaces( &hdr->lumps[LUMP_SURFACES] );		// used only for generate NewtonCollisionTree
+	BSP_LoadLeafBrushes( &hdr->lumps[LUMP_LEAFBRUSHES] );
+	BSP_LoadLeafSurfaces( &hdr->lumps[LUMP_LEAFSURFACES] );
+	BSP_LoadLeafs( &hdr->lumps[LUMP_LEAFS] );
+	BSP_LoadNodes( &hdr->lumps[LUMP_NODES] );
+	BSP_LoadVisibility( &hdr->lumps[LUMP_VISIBILITY] );
+	BSP_LoadModels( &hdr->lumps[LUMP_MODELS] );
+//	BSP_LoadCollision( &hdr->lumps[LUMP_COLLISION] );
 	cms.loaded = true;
 
 	BSP_RecursiveFindNumLeafs( cm.nodes );
 	BSP_RecursiveSetParent( cm.nodes, NULL );
 
 	CM_LoadWorld();		// load physics collision
-	*checksum = cm.checksum;	// checksum of ents lump
-	WAD_Close( cms.handle );	// release map buffer
-	cms.handle = NULL;
+	Mem_Free( buf );		// release map buffer
 
 	com.strncpy( cm.name, name, MAX_STRING );
-	Mem_Set( cms.portalopen, 0, sizeof( cms.portalopen ));
+
+	Mem_Set( cm.areaportals, 0, sizeof( cm.areaportals ));
 	CM_FloodAreaConnections();
+	CM_CalcPHS ();
 
 	return &cms.bmodels[0];
 }
@@ -1128,7 +1040,7 @@ int CM_StudioExtractBbox( dstudiohdr_t *phdr, int sequence, float *mins, float *
 
 void CM_GetBodyCount( void )
 {
-	if(studio.hdr)
+	if( studio.hdr )
 	{
 		studio.bodypart = (dstudiobodyparts_t *)((byte *)studio.hdr + studio.hdr->bodypartindex);
 		studio.bodycount = studio.bodypart->nummodels;
@@ -1389,7 +1301,7 @@ bool CM_SpriteModel( byte *buffer, uint filesize )
 
 bool CM_BrushModel( byte *buffer, uint filesize )
 {
-	MsgDev( D_WARN, "CM_BrushModel: not implemented\n");
+	MsgDev( D_WARN, "CM_BrushModel: not implemented\n" );
 	return false;
 }
 

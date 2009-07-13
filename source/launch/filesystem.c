@@ -1315,6 +1315,9 @@ void FS_CreateGameInfo( const char *filename )
 	com.strncat( buffer, "// directory for progs binary and source", MAX_SYSPATH );
 	com.strncat( buffer, "\nvprogsdir\t\t\"vprogs\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nsourcedir\t\t\"source\"", MAX_SYSPATH );
+	com.strncat( buffer, "\nsp_spawn\t\t\"info_player_start\"", MAX_SYSPATH );
+	com.strncat( buffer, "\ndm_spawn\t\t\"info_player_deathmatch\"", MAX_SYSPATH );
+	com.strncat( buffer, "\nteam_spawn\t\t\"info_player_coop\"", MAX_SYSPATH );
 	
 	FS_WriteFile( filename, buffer, com.strlen( buffer ));
 	Mem_Free( buffer );
@@ -1365,6 +1368,18 @@ void FS_LoadGameInfo( const char *filename )
 		else if( !com.stricmp( token.string, "title" ))
 		{
 			PS_GetString( script, false, GI.title, sizeof( GI.title ));
+		}
+		else if( !com.stricmp( token.string, "sp_spawn" ))
+		{
+			PS_GetString( script, false, GI.sp_entity, sizeof( GI.sp_entity ));
+		}
+		else if( !com.stricmp( token.string, "dm_spawn" ))
+		{
+			PS_GetString( script, false, GI.dm_entity, sizeof( GI.dm_entity ));
+		}
+		else if( !com.stricmp( token.string, "team_spawn" ))
+		{
+			PS_GetString( script, false, GI.team_entity, sizeof( GI.team_entity ));
 		}
 		else if( !com.stricmp( token.string, "startmap" ))
 		{
@@ -2361,13 +2376,20 @@ FS_Tell
 Give the current position in a file
 ====================
 */
-fs_offset_t FS_Tell (file_t* file)
+fs_offset_t FS_Tell( file_t* file )
 {
 	if( !file ) return 0;
 	return file->position - file->buff_len + file->buff_ind;
 }
 
-bool FS_Eof( file_t* file)
+/*
+====================
+FS_Eof
+
+indicates at reached end of file
+====================
+*/
+bool FS_Eof( file_t* file )
 {
 	if( !file ) return true;
 	return (file->position == file->real_length) ? true : false;
@@ -3084,21 +3106,21 @@ bool VFS_Eof( vfile_t* file)
 
 /*
 ====================
-FS_Getc
+VFS_Getc
 
 Get the next character of a file
 ====================
 */
-int VFS_Getc(vfile_t *file)
+int VFS_Getc( vfile_t *file )
 {
 	char c;
 
-	if(!VFS_Read (file, &c, 1))
+	if(!VFS_Read( file, &c, 1 ))
 		return EOF;
 	return c;
 }
 
-int VFS_Gets(vfile_t* file, byte *string, size_t bufsize )
+int VFS_Gets( vfile_t* file, byte *string, size_t bufsize )
 {
 	int	c, end = 0;
 
@@ -3190,7 +3212,7 @@ file_t *VFS_Close( vfile_t *file )
 	}
 	handle = file->handle; // keep real handle
 
-	if( file->buff )Mem_Free( file->buff );
+	if( file->buff ) Mem_Free( file->buff );
 	Mem_Free( file ); // himself
 
 	return handle;

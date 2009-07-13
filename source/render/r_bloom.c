@@ -1,63 +1,86 @@
-//=======================================================================
-//			Copyright XashXT Group 2007 ©
-//		     r_bloom.c - lighting post process effect
-//=======================================================================
+/*
+Copyright (C) Forest Hale
+Copyright (C) 2006-2007 German Garcia
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+*/
+
+// r_bloom.c: 2D lighting post process effect
 
 #include "r_local.h"
-#include "mathlib.h"
+
+/*
+==============================================================================
+
+LIGHT BLOOMS
+
+==============================================================================
+*/
 
 static float Diamond8x[8][8] =
-{ 
-		0.0f, 0.0f, 0.0f, 0.1f, 0.1f, 0.0f, 0.0f, 0.0f, 
-		0.0f, 0.0f, 0.2f, 0.3f, 0.3f, 0.2f, 0.0f, 0.0f, 
-		0.0f, 0.2f, 0.4f, 0.6f, 0.6f, 0.4f, 0.2f, 0.0f, 
-		0.1f, 0.3f, 0.6f, 0.9f, 0.9f, 0.6f, 0.3f, 0.1f, 
-		0.1f, 0.3f, 0.6f, 0.9f, 0.9f, 0.6f, 0.3f, 0.1f, 
-		0.0f, 0.2f, 0.4f, 0.6f, 0.6f, 0.4f, 0.2f, 0.0f, 
-		0.0f, 0.0f, 0.2f, 0.3f, 0.3f, 0.2f, 0.0f, 0.0f, 
-		0.0f, 0.0f, 0.0f, 0.1f, 0.1f, 0.0f, 0.0f, 0.0f
+{
+	{ 0.0f, 0.0f, 0.0f, 0.1f, 0.1f, 0.0f, 0.0f, 0.0f, },
+	{ 0.0f, 0.0f, 0.2f, 0.3f, 0.3f, 0.2f, 0.0f, 0.0f, },
+	{ 0.0f, 0.2f, 0.4f, 0.6f, 0.6f, 0.4f, 0.2f, 0.0f, },
+	{ 0.1f, 0.3f, 0.6f, 0.9f, 0.9f, 0.6f, 0.3f, 0.1f, },
+	{ 0.1f, 0.3f, 0.6f, 0.9f, 0.9f, 0.6f, 0.3f, 0.1f, },
+	{ 0.0f, 0.2f, 0.4f, 0.6f, 0.6f, 0.4f, 0.2f, 0.0f, },
+	{ 0.0f, 0.0f, 0.2f, 0.3f, 0.3f, 0.2f, 0.0f, 0.0f, },
+	{ 0.0f, 0.0f, 0.0f, 0.1f, 0.1f, 0.0f, 0.0f, 0.0f }
 };
 
 static float Diamond6x[6][6] =
-{ 
-		0.0f, 0.0f, 0.1f, 0.1f, 0.0f, 0.0f, 
-		0.0f, 0.3f, 0.5f, 0.5f, 0.3f, 0.0f,  
-		0.1f, 0.5f, 0.9f, 0.9f, 0.5f, 0.1f, 
-		0.1f, 0.5f, 0.9f, 0.9f, 0.5f, 0.1f, 
-		0.0f, 0.3f, 0.5f, 0.5f, 0.3f, 0.0f, 
-		0.0f, 0.0f, 0.1f, 0.1f, 0.0f, 0.0f
+{
+	{ 0.0f, 0.0f, 0.1f, 0.1f, 0.0f, 0.0f, },
+	{ 0.0f, 0.3f, 0.5f, 0.5f, 0.3f, 0.0f, },
+	{ 0.1f, 0.5f, 0.9f, 0.9f, 0.5f, 0.1f, },
+	{ 0.1f, 0.5f, 0.9f, 0.9f, 0.5f, 0.1f, },
+	{ 0.0f, 0.3f, 0.5f, 0.5f, 0.3f, 0.0f, },
+	{ 0.0f, 0.0f, 0.1f, 0.1f, 0.0f, 0.0f }
 };
 
 static float Diamond4x[4][4] =
-{  
-		0.3f, 0.4f, 0.4f, 0.3f,  
-		0.4f, 0.9f, 0.9f, 0.4f, 
-		0.4f, 0.9f, 0.9f, 0.4f, 
-		0.3f, 0.4f, 0.4f, 0.3f
+{
+	{ 0.3f, 0.4f, 0.4f, 0.3f, },
+	{ 0.4f, 0.9f, 0.9f, 0.4f, },
+	{ 0.4f, 0.9f, 0.9f, 0.4f, },
+	{ 0.3f, 0.4f, 0.4f, 0.3f }
 };
-
 
 static int BLOOM_SIZE;
 
-
-texture_t *r_bloomscreentexture;
-texture_t *r_bloomeffecttexture;
-texture_t *r_bloombackuptexture;
-texture_t *r_bloomdownsamplingtexture;
+static image_t *r_bloomscreentexture;
+static image_t *r_bloomeffecttexture;
+static image_t *r_bloombackuptexture;
+static image_t *r_bloomdownsamplingtexture;
 
 static int r_screendownsamplingtexture_size;
 static int screen_texture_width, screen_texture_height;
-static int r_screenbackuptexture_size;
+static int r_screenbackuptexture_width, r_screenbackuptexture_height;
 
-//current refdef size:
+// current refdef size:
 static int curView_x;
 static int curView_y;
 static int curView_width;
 static int curView_height;
 
-//texture coordinates of screen data inside screentexture
-static float screenText_tcw;
-static float screenText_tch;
+// texture coordinates of screen data inside screentexture
+static float screenTex_tcw;
+static float screenTex_tch;
 
 static int sample_width;
 static int sample_height;
@@ -66,54 +89,23 @@ static int sample_height;
 static float sampleText_tcw;
 static float sampleText_tch;
 
-// this macro is in sample size workspace coordinates
-#define R_Bloom_SamplePass( xpos, ypos )\
-	pglBegin(GL_QUADS);\
-	pglTexCoord2f( 0, sampleText_tch);\
-	pglVertex2f( xpos, ypos);\
-	pglTexCoord2f( 0, 0);\
-	pglVertex2f( xpos, ypos+sample_height);\
-	pglTexCoord2f( sampleText_tcw, 0); \
-	pglVertex2f( xpos+sample_width, ypos+sample_height);\
-	pglTexCoord2f(sampleText_tcw, sampleText_tch);\
-	pglVertex2f(xpos+sample_width, ypos);\
-	pglEnd();
-	
-#define R_Bloom_Quad( x, y, width, height, textwidth, textheight )\
-	pglBegin(GL_QUADS);\
-	pglTexCoord2f( 0, textheight);\
-	pglVertex2f( x, y);\
-	pglTexCoord2f( 0, 0);\
-	pglVertex2f( x, y+height);\
-	pglTexCoord2f( textwidth, 0);\
-	pglVertex2f( x+width, y+height);\
-	pglTexCoord2f( textwidth, textheight);\
-	pglVertex2f( x+width, y);\
-	pglEnd();
-
-
-
 /*
 =================
 R_Bloom_InitBackUpTexture
 =================
 */
-void R_Bloom_InitBackUpTexture( int width, int height )
+static void R_Bloom_InitBackUpTexture( int width, int height )
 {
-	rgbdata_t	r_bloom;
+	byte *data;
 
-	Mem_Set( &r_bloom, 0, sizeof( rgbdata_t ));
-	r_bloom.width = width;
-	r_bloom.height = height;
-	r_bloom.type = PF_RGBA_GN;
-	r_bloom.size = width * height * 4;
-	r_bloom.flags = 0;
-	r_bloom.numMips = 1;
-	r_bloom.palette = NULL;
-	r_bloom.buffer = r_framebuffer;
+	data = Mem_Alloc( r_temppool, width * height * 4 );
 
-	r_screenbackuptexture_size = width;
-	r_bloombackuptexture = R_LoadTexture( "*r_bloombackuptexture", &r_bloom, 3, TF_STATIC|TF_NOPICMIP, TF_LINEAR, TW_CLAMP );
+	r_screenbackuptexture_width = width;
+	r_screenbackuptexture_height = height;
+
+	r_bloombackuptexture = R_LoadPic( "***r_bloombackuptexture***", &data, width, height, IT_CLAMP|IT_NOMIPMAP|IT_NOCOMPRESS|IT_NOPICMIP, 3 );
+
+	Mem_Free( data );
 }
 
 /*
@@ -121,43 +113,30 @@ void R_Bloom_InitBackUpTexture( int width, int height )
 R_Bloom_InitEffectTexture
 =================
 */
-void R_Bloom_InitEffectTexture( void )
+static void R_Bloom_InitEffectTexture( void )
 {
-	float	bloomsizecheck;
-	rgbdata_t	r_bloomfx;
+	byte *data;
+	int		limit;
 
-	Mem_Set(&r_bloomfx, 0, sizeof(rgbdata_t));
-	
-	if( (int)r_bloom_sample_size->value < 32 )
-		Cvar_SetValue ("r_bloom_sample_size", 32);
-
-	//make sure bloom size is a power of 2
-	BLOOM_SIZE = (int)r_bloom_sample_size->value;
-	bloomsizecheck = (float)BLOOM_SIZE;
-	while(bloomsizecheck > 1.0f) bloomsizecheck /= 2.0f;
-	if( bloomsizecheck != 1.0f )
-	{
-		BLOOM_SIZE = 32;
-		while( BLOOM_SIZE < (int)r_bloom_sample_size->value )
-			BLOOM_SIZE *= 2;
-	}
+	if( r_bloom_sample_size->integer < 32 )
+		Cvar_Set( "r_bloom_sample_size", "32" );
 
 	// make sure bloom size doesn't have stupid values
-	if( BLOOM_SIZE > screen_texture_width || BLOOM_SIZE > screen_texture_height )
-		BLOOM_SIZE = min( screen_texture_width, screen_texture_height );
+	limit = min( r_bloom_sample_size->integer, min( screen_texture_width, screen_texture_height ) );
 
-	if( BLOOM_SIZE != (int)r_bloom_sample_size->value )
-		Cvar_SetValue ("r_bloom_sample_size", BLOOM_SIZE);
+	if( glConfig.ext.texture_non_power_of_two )
+		BLOOM_SIZE = limit;
+	else	// make sure bloom size is a power of 2
+		for( BLOOM_SIZE = 32; (BLOOM_SIZE<<1) <= limit; BLOOM_SIZE <<= 1 );
 
-	r_bloomfx.width = BLOOM_SIZE;
-	r_bloomfx.height = BLOOM_SIZE;
-	r_bloomfx.size = BLOOM_SIZE * BLOOM_SIZE * 4;
-	r_bloomfx.type = PF_RGBA_GN;
-	r_bloomfx.flags = 0;
-	r_bloomfx.numMips = 1;
-	r_bloomfx.palette = NULL;
-	r_bloomfx.buffer = r_framebuffer;
-	r_bloomeffecttexture = R_LoadTexture( "*r_bloomeffecttexture", &r_bloomfx, 3, TF_STATIC|TF_NOPICMIP, TF_LINEAR, TW_REPEAT );
+	if( BLOOM_SIZE != r_bloom_sample_size->integer )
+		Cvar_Set( "r_bloom_sample_size", va( "%i", BLOOM_SIZE ) );
+
+	data = Mem_Alloc( r_temppool, BLOOM_SIZE * BLOOM_SIZE * 4 );
+
+	r_bloomeffecttexture = R_LoadPic( "***r_bloomeffecttexture***", &data, BLOOM_SIZE, BLOOM_SIZE, IT_CLAMP|IT_NOMIPMAP|IT_NOCOMPRESS|IT_NOPICMIP, 3 );
+
+	Mem_Free( data );
 }
 
 /*
@@ -165,84 +144,134 @@ void R_Bloom_InitEffectTexture( void )
 R_Bloom_InitTextures
 =================
 */
-void R_Bloom_InitTextures( void )
+static void R_Bloom_InitTextures( void )
 {
-	int	size;
-	rgbdata_t	r_bloomscr, r_downsample;
+	byte *data;
+	int size;
 
-	Mem_Set( &r_bloomscr, 0, sizeof( rgbdata_t ));
-	Mem_Set( &r_downsample, 0, sizeof( rgbdata_t ));
+	if( glConfig.ext.texture_non_power_of_two )
+	{
+		screen_texture_width = glState.width;
+		screen_texture_height = glState.height;
+	}
+	else
+	{
+		// find closer power of 2 to screen size 
+		for (screen_texture_width = 1;screen_texture_width < glState.width;screen_texture_width <<= 1);
+		for (screen_texture_height = 1;screen_texture_height < glState.height;screen_texture_height <<= 1);
+	}
 
-	// find closer power of 2 to screen size 
-	screen_texture_width = NearestPOW( r_width->integer, true );
-	screen_texture_height = NearestPOW( r_height->integer, true );
+	// disable blooms if we can't handle a texture of that size
+	if( screen_texture_width > glConfig.maxTextureSize || screen_texture_height > glConfig.maxTextureSize )
+	{
+		screen_texture_width = screen_texture_height = 0;
+		Cvar_Set( "r_bloom", "0" );
+		MsgDev( D_WARN, "'R_InitBloomScreenTexture' too high resolution for light bloom, effect disabled\n" );
+		return;
+	}
 
 	// init the screen texture
 	size = screen_texture_width * screen_texture_height * 4;
-	Mem_Set( r_framebuffer, 255, size );
-
-	r_bloomscr.width = screen_texture_width;
-	r_bloomscr.height = screen_texture_height;
-	r_bloomscr.type = PF_RGBA_GN;
-	r_bloomscr.flags = 0;
-	r_bloomscr.palette = NULL;
-	r_bloomscr.buffer = r_framebuffer;
-	r_bloomscr.numMips = 1;
-	r_bloomscr.size = screen_texture_width * screen_texture_height * 4;
-	r_bloomscreentexture = R_LoadTexture( "*r_bloomscreentexture", &r_bloomscr, 3, TF_STATIC|TF_NOPICMIP, TF_LINEAR, TW_CLAMP );
+	data = Mem_Alloc( r_temppool, size );
+	Mem_Set( data, 255, size );
+	r_bloomscreentexture = R_LoadPic( "***r_bloomscreentexture***", &data, screen_texture_width, screen_texture_height, IT_CLAMP|IT_NOMIPMAP|IT_NOCOMPRESS|IT_NOPICMIP, 3 );
+	Mem_Free( data );
 
 	// validate bloom size and init the bloom effect texture
-	R_Bloom_InitEffectTexture ();
+	R_Bloom_InitEffectTexture();
 
 	// if screensize is more than 2x the bloom effect texture, set up for stepped downsampling
 	r_bloomdownsamplingtexture = NULL;
 	r_screendownsamplingtexture_size = 0;
-	if( r_width->integer > (BLOOM_SIZE * 2) && !r_bloom_fast_sample->value )
+
+	if( (glState.width > (BLOOM_SIZE * 2) || glState.height > (BLOOM_SIZE * 2)) && !r_bloom_fast_sample->integer )
 	{
-		r_screendownsamplingtexture_size = (int)(BLOOM_SIZE * 2);
-		r_downsample.width = r_screendownsamplingtexture_size;
-		r_downsample.height = r_screendownsamplingtexture_size;
-		r_downsample.type = PF_RGBA_GN;
-		r_downsample.size = r_screendownsamplingtexture_size * r_screendownsamplingtexture_size * 4;
-		r_downsample.flags = 0;
-		r_downsample.palette = NULL;
-		r_downsample.buffer = r_framebuffer;
-		r_downsample.numMips = 1;
-		r_bloomdownsamplingtexture = R_LoadTexture( "*r_bloomdownsampletexture", &r_downsample, 3, TF_STATIC|TF_NOPICMIP, TF_LINEAR, TW_CLAMP );
+		r_screendownsamplingtexture_size = (int)( BLOOM_SIZE * 2 );
+		data = Mem_Alloc( r_temppool, r_screendownsamplingtexture_size * r_screendownsamplingtexture_size * 4 );
+		r_bloomdownsamplingtexture = R_LoadPic( "***r_bloomdownsamplingtexture***", &data, r_screendownsamplingtexture_size, r_screendownsamplingtexture_size, IT_CLAMP|IT_NOMIPMAP|IT_NOCOMPRESS|IT_NOPICMIP, 3 );
+		Mem_Free( data );
 	}
 
-	// Init the screen backup texture
+	// init the screen backup texture
 	if( r_screendownsamplingtexture_size )
 		R_Bloom_InitBackUpTexture( r_screendownsamplingtexture_size, r_screendownsamplingtexture_size );
-	else R_Bloom_InitBackUpTexture( BLOOM_SIZE, BLOOM_SIZE );
-	
+	else
+		R_Bloom_InitBackUpTexture( BLOOM_SIZE, BLOOM_SIZE );
 }
 
+/*
+=================
+R_InitBloomTextures
+=================
+*/
+void R_InitBloomTextures( void )
+{
+	BLOOM_SIZE = 0;
+	if( !r_bloom->integer )
+		return;
+	R_Bloom_InitTextures();
+}
+
+/*
+=================
+R_Bloom_SamplePass
+=================
+*/
+static _inline void R_Bloom_SamplePass( int xpos, int ypos )
+{
+	qglBegin( GL_QUADS );
+	qglTexCoord2f( 0, sampleText_tch );
+	qglVertex2f( xpos, ypos );
+	qglTexCoord2f( 0, 0 );
+	qglVertex2f( xpos, ypos+sample_height );
+	qglTexCoord2f( sampleText_tcw, 0 );
+	qglVertex2f( xpos+sample_width, ypos+sample_height );
+	qglTexCoord2f( sampleText_tcw, sampleText_tch );
+	qglVertex2f( xpos+sample_width, ypos );
+	qglEnd();
+}
+
+/*
+=================
+R_Bloom_Quad
+=================
+*/
+static _inline void R_Bloom_Quad( int x, int y, int w, int h, float texwidth, float texheight )
+{
+	qglBegin( GL_QUADS );
+	qglTexCoord2f( 0, texheight );
+	qglVertex2f( x, glState.height-h-y );
+	qglTexCoord2f( 0, 0 );
+	qglVertex2f( x, glState.height-y );
+	qglTexCoord2f( texwidth, 0 );
+	qglVertex2f( x+w, glState.height-y );
+	qglTexCoord2f( texwidth, texheight );
+	qglVertex2f( x+w, glState.height-h );
+	qglEnd();
+}
 
 /*
 =================
 R_Bloom_DrawEffect
 =================
 */
-void R_Bloom_DrawEffect( void )
+static void R_Bloom_DrawEffect( void )
 {
-	GL_BindTexture( r_bloomeffecttexture );  
-	GL_Enable( GL_BLEND );
-	GL_BlendFunc( GL_ONE, GL_ONE );
-	pglColor4f(r_bloom_alpha->value, r_bloom_alpha->value, r_bloom_alpha->value, 1.0f);
+	GL_Bind( 0, r_bloomeffecttexture );
 	GL_TexEnv( GL_MODULATE );
-	pglBegin(GL_QUADS);							
-	pglTexCoord2f(	0,			sampleText_tch	);	
-	pglVertex2f(	curView_x,		curView_y		);				
-	pglTexCoord2f(	0,			0		);				
-	pglVertex2f(	curView_x,		curView_y + curView_height	);	
-	pglTexCoord2f(	sampleText_tcw,		0		);				
-	pglVertex2f(	curView_x + curView_width,	curView_y + curView_height	);	
-	pglTexCoord2f(	sampleText_tcw,		sampleText_tch	);	
-	pglVertex2f(	curView_x + curView_width,	curView_y		);				
-	pglEnd();
-	
-	GL_Disable( GL_BLEND );
+	GL_SetState( GLSTATE_NO_DEPTH_TEST|GLSTATE_SRCBLEND_ONE|GLSTATE_DSTBLEND_ONE );
+	qglColor4f( r_bloom_alpha->value, r_bloom_alpha->value, r_bloom_alpha->value, 1.0f );
+
+	qglBegin( GL_QUADS );
+	qglTexCoord2f( 0, sampleText_tch );
+	qglVertex2f( curView_x, curView_y );
+	qglTexCoord2f( 0, 0 );
+	qglVertex2f( curView_x, curView_y+curView_height );
+	qglTexCoord2f( sampleText_tcw, 0 );
+	qglVertex2f( curView_x+curView_width, curView_y+curView_height );
+	qglTexCoord2f( sampleText_tcw, sampleText_tch );
+	qglVertex2f( curView_x+curView_width, curView_y );
+	qglEnd();
 }
 
 /*
@@ -250,145 +279,143 @@ void R_Bloom_DrawEffect( void )
 R_Bloom_GeneratexDiamonds
 =================
 */
-void R_Bloom_GeneratexDiamonds( void )
+static void R_Bloom_GeneratexDiamonds( void )
 {
-	int		i, j;
-	static float	intensity;
+	int i, j, k;
+	float intensity, scale, *diamond;
 
-	//set up sample size workspace
-	pglViewport( 0, 0, sample_width, sample_height );
-	pglMatrixMode( GL_PROJECTION );
-	pglLoadIdentity ();
-	pglOrtho( 0, sample_width, sample_height, 0, -10, 100 );
-	pglMatrixMode( GL_MODELVIEW );
-	pglLoadIdentity ();
+	// set up sample size workspace
+	qglScissor( 0, 0, sample_width, sample_height );
+	qglViewport( 0, 0, sample_width, sample_height );
+	qglMatrixMode( GL_PROJECTION );
+	qglLoadIdentity();
+	qglOrtho( 0, sample_width, sample_height, 0, -10, 100 );
+	qglMatrixMode( GL_MODELVIEW );
+	qglLoadIdentity();
 
 	// copy small scene into r_bloomeffecttexture
-	GL_BindTexture( r_bloomeffecttexture );
-	pglCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, sample_width, sample_height);
+	GL_Bind( 0, r_bloomeffecttexture );
+	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, sample_width, sample_height );
 
 	// start modifying the small scene corner
-	pglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
-	GL_Enable( GL_BLEND );
+	qglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
 
 	// darkening passes
-	if( r_bloom_darken->value )
+	if( r_bloom_darken->integer )
 	{
-		GL_BlendFunc( GL_DST_COLOR, GL_ZERO );
 		GL_TexEnv( GL_MODULATE );
-		
-		for( i = 0; i < r_bloom_darken->value; i++ )
-		{
+		GL_SetState( GLSTATE_NO_DEPTH_TEST|GLSTATE_SRCBLEND_DST_COLOR|GLSTATE_DSTBLEND_ZERO );
+
+		for( i = 0; i < r_bloom_darken->integer; i++ )
 			R_Bloom_SamplePass( 0, 0 );
-		}
-		pglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, sample_width, sample_height );
+		qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, sample_width, sample_height );
 	}
 
 	// bluring passes
-	GL_BlendFunc( GL_ONE, GL_ONE );
-	
-	if( r_bloom_diamond_size->value > 7 || r_bloom_diamond_size->value <= 3)
-	{
-		if( r_bloom_diamond_size->integer != 8 ) Cvar_SetValue( "r_bloom_diamond_size", 8 );
+	GL_SetState( GLSTATE_NO_DEPTH_TEST|GLSTATE_SRCBLEND_ONE|GLSTATE_DSTBLEND_ONE_MINUS_SRC_COLOR );
 
-		for( i = 0; i < r_bloom_diamond_size->value; i++ )
+	if( r_bloom_diamond_size->integer > 7 || r_bloom_diamond_size->integer <= 3 )
+	{
+		if( r_bloom_diamond_size->integer != 8 )
+			Cvar_Set( "r_bloom_diamond_size", "8" );
+	}
+	else if( r_bloom_diamond_size->integer > 5 )
+	{
+		if( r_bloom_diamond_size->integer != 6 )
+			Cvar_Set( "r_bloom_diamond_size", "6" );
+	}
+	else if( r_bloom_diamond_size->integer > 3 )
+	{
+		if( r_bloom_diamond_size->integer != 4 )
+			Cvar_Set( "r_bloom_diamond_size", "4" );
+	}
+
+	switch( r_bloom_diamond_size->integer )
+	{
+	case 4:
+		k = 2;
+		diamond = &Diamond4x[0][0];
+		scale = r_bloom_intensity->value * 0.8f;
+		break;
+	case 6:
+		k = 3;
+		diamond = &Diamond6x[0][0];
+		scale = r_bloom_intensity->value * 0.5f;
+		break;
+	default:
+//	case 8:
+		k = 4;
+		diamond = &Diamond8x[0][0];
+		scale = r_bloom_intensity->value * 0.3f;
+		break;
+	}
+
+	for( i = 0; i < r_bloom_diamond_size->integer; i++ )
+	{
+		for( j = 0; j < r_bloom_diamond_size->integer; j++, diamond++ )
 		{
-			for( j = 0; j < r_bloom_diamond_size->value; j++ )
-			{
-				intensity = r_bloom_intensity->value * 0.3 * Diamond8x[i][j];
-				if( intensity < 0.01f ) continue;
-				pglColor4f( intensity, intensity, intensity, 1.0);
-				R_Bloom_SamplePass( i-4, j-4 );
-			}
+			intensity =  *diamond * scale;
+			if( intensity < 0.01f )
+				continue;
+
+			qglColor4f( intensity, intensity, intensity, 1.0 );
+			R_Bloom_SamplePass( i - k, j - k );
 		}
 	}
-	else if( r_bloom_diamond_size->value > 5 )
-	{
-		if( r_bloom_diamond_size->value != 6 ) Cvar_SetValue( "r_bloom_diamond_size", 6 );
 
-		for( i = 0; i < r_bloom_diamond_size->value; i++ )
-		{
-			for( j = 0; j < r_bloom_diamond_size->value; j++ )
-			{
-				intensity = r_bloom_intensity->value * 0.5 * Diamond6x[i][j];
-				if( intensity < 0.01f ) continue;
-				pglColor4f( intensity, intensity, intensity, 1.0 );
-				R_Bloom_SamplePass( i-3, j-3 );
-			}
-		}
-	}
-	else if( r_bloom_diamond_size->value > 3 )
-	{
-		if( (int)r_bloom_diamond_size->value != 4 ) Cvar_SetValue( "r_bloom_diamond_size", 4 );
-
-		for( i = 0; i < r_bloom_diamond_size->value; i++ )
-		{
-			for( j = 0; j < r_bloom_diamond_size->value; j++ )
-			{
-				intensity = r_bloom_intensity->value * 0.8f * Diamond4x[i][j];
-				if( intensity < 0.01f ) continue;
-				pglColor4f( intensity, intensity, intensity, 1.0 );
-				R_Bloom_SamplePass( i-2, j-2 );
-			}
-		}
-	}
-	
-	pglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, sample_width, sample_height );
+	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, sample_width, sample_height );
 
 	// restore full screen workspace
-	pglViewport( 0, 0, r_width->integer, r_height->integer );
-	pglMatrixMode( GL_PROJECTION );
-	pglLoadIdentity();
-	pglOrtho( 0, r_width->integer, r_height->integer, 0, -10, 100 );
-	pglMatrixMode( GL_MODELVIEW );
-	pglLoadIdentity();
-}											
+	qglScissor( 0, 0, glState.width, glState.height );
+	qglViewport( 0, 0, glState.width, glState.height );
+	qglMatrixMode( GL_PROJECTION );
+	qglLoadIdentity();
+	qglOrtho( 0, glState.width, glState.height, 0, -10, 100 );
+	qglMatrixMode( GL_MODELVIEW );
+	qglLoadIdentity();
+}
 
 /*
 =================
 R_Bloom_DownsampleView
 =================
 */
-void R_Bloom_DownsampleView( void )
+static void R_Bloom_DownsampleView( void )
 {
-	pglDisable( GL_BLEND );
-	pglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
+	qglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
 
-	// stepped downsample
 	if( r_screendownsamplingtexture_size )
 	{
-		int	midsample_width = r_screendownsamplingtexture_size * sampleText_tcw;
-		int	midsample_height = r_screendownsamplingtexture_size * sampleText_tch;
-		
-		//copy the screen and draw resized
-		GL_BindTexture( r_bloomscreentexture );
-		pglCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, curView_x, r_height->integer - (curView_y + curView_height), curView_width, curView_height);
-		R_Bloom_Quad( 0,  r_height->integer-midsample_height, midsample_width, midsample_height, screenText_tcw, screenText_tch  );
-		
-		// now copy into Downsampling (mid-sized) texture
-		GL_BindTexture( r_bloomdownsamplingtexture );
-		pglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, midsample_width, midsample_height );
+		// stepped downsample
+		int midsample_width = ( r_screendownsamplingtexture_size * sampleText_tcw );
+		int midsample_height = ( r_screendownsamplingtexture_size * sampleText_tch );
+
+		// copy the screen and draw resized
+		GL_Bind( 0, r_bloomscreentexture );
+		qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, curView_x, glState.height - ( curView_y + curView_height ), curView_width, curView_height );
+		R_Bloom_Quad( 0, 0, midsample_width, midsample_height, screenTex_tcw, screenTex_tch );
+
+		// now copy into downsampling (mid-sized) texture
+		GL_Bind( 0, r_bloomdownsamplingtexture );
+		qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, midsample_width, midsample_height );
 
 		// now draw again in bloom size
-		pglColor4f( 0.5f, 0.5f, 0.5f, 1.0f );
-		R_Bloom_Quad( 0,  r_height->integer-sample_height, sample_width, sample_height, sampleText_tcw, sampleText_tch );
-		
-		// now blend the big screen texture into the bloom generation space (hoping it adds some blur)
-		GL_Enable( GL_BLEND );
-		GL_BlendFunc( GL_ONE, GL_ONE );
-		pglColor4f( 0.5f, 0.5f, 0.5f, 1.0f );
-		GL_BindTexture( r_bloomscreentexture );
-		R_Bloom_Quad( 0,  r_height->integer-sample_height, sample_width, sample_height, screenText_tcw, screenText_tch );
-		pglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
-		GL_Disable( GL_BLEND );
+		qglColor4f( 0.5f, 0.5f, 0.5f, 1.0f );
+		R_Bloom_Quad( 0, 0, sample_width, sample_height, sampleText_tcw, sampleText_tch );
 
+		// now blend the big screen texture into the bloom generation space (hoping it adds some blur)
+		GL_SetState( GLSTATE_NO_DEPTH_TEST|GLSTATE_SRCBLEND_ONE|GLSTATE_DSTBLEND_ONE );
+
+		GL_Bind( 0, r_bloomscreentexture );
+		R_Bloom_Quad( 0, 0, sample_width, sample_height, screenTex_tcw, screenTex_tch );
+		qglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
 	}
 	else
 	{
 		// downsample simple
-		GL_BindTexture( r_bloomscreentexture );
-		pglCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, curView_x, r_height->integer - (curView_y + curView_height), curView_width, curView_height);
-		R_Bloom_Quad( 0, r_height->integer-sample_height, sample_width, sample_height, screenText_tcw, screenText_tch );
+		GL_Bind( 0, r_bloomscreentexture );
+		qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, curView_x, glState.height - ( curView_y + curView_height ), curView_width, curView_height );
+		R_Bloom_Quad( 0, 0, sample_width, sample_height, screenTex_tcw, screenTex_tch );
 	}
 }
 
@@ -399,71 +426,70 @@ R_BloomBlend
 */
 void R_BloomBlend( const ref_params_t *fd )
 {
-	if( !r_bloom->value ) return;
-	if( r_refdef.nextView ) return;
+	if( !( fd->rdflags & RDF_BLOOM ) || !r_bloom->integer )
+		return;
+
+	if( !BLOOM_SIZE )
+		R_Bloom_InitTextures();
+
 	if( screen_texture_width < BLOOM_SIZE || screen_texture_height < BLOOM_SIZE )
 		return;
-	
-	// set up full screen workspace
-	pglViewport( 0, 0, r_width->integer, r_height->integer );
-	GL_Disable( GL_DEPTH_TEST );
-	pglMatrixMode( GL_PROJECTION );
-	pglLoadIdentity ();
-	pglOrtho(0, r_width->integer, r_height->integer, 0, -10, 100);
-	pglMatrixMode( GL_MODELVIEW );
-	pglLoadIdentity ();
-	GL_Disable( GL_CULL_FACE );
-	GL_DepthMask( GL_FALSE );
-	GL_Disable( GL_BLEND );
-	pglEnable( GL_TEXTURE_2D );
 
-	pglColor4f( 1, 1, 1, 1 );
+	// set up full screen workspace
+	qglScissor( 0, 0, glState.width, glState.height );
+	qglViewport( 0, 0, glState.width, glState.height );
+	qglMatrixMode( GL_PROJECTION );
+	qglLoadIdentity();
+	qglOrtho( 0, glState.width, glState.height, 0, -10, 100 );
+	qglMatrixMode( GL_MODELVIEW );
+	qglLoadIdentity();
+
+	GL_Cull( 0 );
+	GL_SetState( GLSTATE_NO_DEPTH_TEST );
+
+	qglColor4f( 1, 1, 1, 1 );
 
 	// set up current sizes
 	curView_x = fd->viewport[0];
 	curView_y = fd->viewport[1];
 	curView_width = fd->viewport[2];
 	curView_height = fd->viewport[3];
-	screenText_tcw = ((float)fd->viewport[2] / (float)screen_texture_width);
-	screenText_tch = ((float)fd->viewport[3] / (float)screen_texture_height);
-	if( fd->viewport[3] > fd->viewport[2] )
+
+	screenTex_tcw = ( (float)curView_width / (float)screen_texture_width );
+	screenTex_tch = ( (float)curView_height / (float)screen_texture_height );
+	if( curView_height > curView_width )
 	{
-		sampleText_tcw = ((float)fd->viewport[2] / (float)fd->viewport[3]);
+		sampleText_tcw = ( (float)curView_width / (float)curView_height );
 		sampleText_tch = 1.0f;
 	}
 	else
 	{
 		sampleText_tcw = 1.0f;
-		sampleText_tch = ((float)fd->viewport[3] / (float)fd->viewport[2]);
+		sampleText_tch = ( (float)curView_height / (float)curView_width );
 	}
-	sample_width = BLOOM_SIZE * sampleText_tcw;
-	sample_height = BLOOM_SIZE * sampleText_tch;
-	
-	//copy the screen space we'll use to work into the backup texture
-	GL_BindTexture( r_bloombackuptexture );
-	pglCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, r_screenbackuptexture_size * sampleText_tcw, r_screenbackuptexture_size * sampleText_tch);
+
+	sample_width = ( BLOOM_SIZE * sampleText_tcw );
+	sample_height = ( BLOOM_SIZE * sampleText_tch );
+
+	// copy the screen space we'll use to work into the backup texture
+	GL_Bind( 0, r_bloombackuptexture );
+	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, r_screenbackuptexture_width, r_screenbackuptexture_height );
 
 	// create the bloom image
 	R_Bloom_DownsampleView();
 	R_Bloom_GeneratexDiamonds();
 
 	// restore the screen-backup to the screen
-	GL_Disable( GL_BLEND );
-	GL_BindTexture( r_bloombackuptexture );
-	pglColor4f( 1, 1, 1, 1 );
-	R_Bloom_Quad( 0, 
-		r_height->integer - (r_screenbackuptexture_size * sampleText_tch),
-		r_screenbackuptexture_size * sampleText_tcw,
-		r_screenbackuptexture_size * sampleText_tch,
-		sampleText_tcw, sampleText_tch );
+	GL_SetState( GLSTATE_NO_DEPTH_TEST );
+	GL_Bind( 0, r_bloombackuptexture );
+
+	qglColor4f( 1, 1, 1, 1 );
+
+	R_Bloom_Quad( 0, 0, r_screenbackuptexture_width, r_screenbackuptexture_height, 1.0f, 1.0f );
+
+	qglScissor( RI.scissor[0], RI.scissor[1], RI.scissor[2], RI.scissor[3] );
 
 	R_Bloom_DrawEffect();
-	
-	GL_BlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-	pglEnable( GL_TEXTURE_2D );
-	GL_Enable( GL_DEPTH_TEST );
-	pglColor4f(1,1,1,1);
-	GL_DepthMask( GL_TRUE );
+
+	qglViewport( RI.viewport[0], RI.viewport[1], RI.viewport[2], RI.viewport[3] );
 }
-
-

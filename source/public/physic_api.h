@@ -20,7 +20,7 @@ typedef struct physic_exp_s
 	bool (*Init)( void );				// init all physic systems
 	void (*Shutdown)( void );				// shutdown all render systems
 
-	void (*LoadBSP)( wfile_t *wad );			// load bspdata ( bsplib use this )
+	void (*LoadBSP)( const void *buffer );			// load bspdata ( bsplib use this )
 	void (*FreeBSP)( void );				// free bspdata
 	void (*WriteCollisionLump)( file_t *f, cmsave_t callback );	// write collision data into LUMP_COLLISION
 
@@ -33,11 +33,12 @@ typedef struct physic_exp_s
 
 	void (*SetAreaPortals)( byte *portals, size_t size );
 	void (*GetAreaPortals)( byte **portals, size_t *size );
-	void (*SetAreaPortalState)( int portalnum, bool open );
+	void (*SetAreaPortalState)( int portalnum, int area, int otherarea, bool open );
 
 	int (*NumClusters)( void );
 	int (*NumTextures)( void );
 	int (*NumBmodels )( void );
+	const void *(*VisData)( void );
 	script_t *(*GetEntityScript)( void );
 	const char *(*GetTextureName)( int index );
 	byte *(*ClusterPVS)( int cluster );
@@ -47,7 +48,6 @@ typedef struct physic_exp_s
 	byte *(*FatPHS)( int cluster, bool portal );
 	int (*BoxLeafnums)( vec3_t mins, vec3_t maxs, int *list, int listsize, int *lastleaf );
 	int (*WriteAreaBits)( byte *buffer, int area, bool portal );
-	bool (*HeadnodeVisible)( int nodenum, byte *visbits );
 	int (*LeafCluster)( int leafnum );
 	int (*LeafArea)( int leafnum );
 	bool (*AreasConnected)( int area1, int area2 );

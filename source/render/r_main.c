@@ -1,1056 +1,2311 @@
-//=======================================================================
-//			Copyright XashXT Group 2007 ©
-//			r_main.c - opengl render core
-//=======================================================================
+/*
+Copyright (C) 1997-2001 Id Software, Inc.
+Copyright (C) 2002-2007 Victor Luchits
 
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+*/
+
+// r_main.c
+
+#include <stdio.h>		// sscanf
 #include "r_local.h"
 #include "mathlib.h"
-#include "matrix_lib.h"
-#include "const.h"
+#include "quatlib.h"
 
 render_imp_t	ri;
 stdlib_api_t	com;
 
-byte		*r_temppool;
-matrix4x4		r_worldMatrix;
-matrix4x4		r_entityMatrix;
+ref_model_t	*r_worldmodel;
+mbrushmodel_t	*r_worldbrushmodel;
 
-gl_matrix		gl_projectionMatrix;
-gl_matrix		gl_entityMatrix;
-gl_matrix		gl_textureMatrix;
-cplane_t		r_frustum[4];
-float		r_frameTime;
-mesh_t		r_solidMeshes[MAX_MESHES];
-int		r_numSolidMeshes;
-mesh_t		r_transMeshes[MAX_MESHES];
-int		r_numTransMeshes;
-ref_entity_t	*r_nullModels[MAX_ENTITIES];
-rmodel_t		*cl_models[MAX_MODELS];		// client replacement modeltable
-lightstyle_t	r_lightStyles[MAX_LIGHTSTYLES];
-ref_entity_t	r_entities[MAX_ENTITIES];
-int		r_numEntities;
-dlight_t		r_dlights[MAX_DLIGHTS];
-int		r_numDLights;
-particle_t	r_particles[MAX_PARTICLES];
-int		r_numParticles;
-poly_t		r_polys[MAX_POLYS];
-int		r_numPolys;
-polyVert_t	r_polyVerts[MAX_POLY_VERTS];
-int		r_numPolyVerts;
-int		r_numNullModels;
-ref_params_t	r_refdef;
-refstats_t	r_stats;
-byte		*r_framebuffer;			// pause frame buffer
-float		r_pause_alpha;
-glconfig_t	gl_config;
-glstate_t		gl_state;
+float gldepthmin, gldepthmax;
 
-// view matrix
-vec3_t		r_forward;
-vec3_t		r_right;
-vec3_t		r_up;
-vec3_t		r_origin;
+mapconfig_t mapConfig;
 
-cvar_t	*r_check_errors;
-cvar_t	*r_himodels;
-cvar_t	*r_norefresh;
-cvar_t	*r_novis;
-cvar_t	*r_nocull;
-cvar_t	*r_nobind;
-cvar_t	*r_drawworld;
-cvar_t	*r_drawentities;
-cvar_t	*r_drawparticles;
-cvar_t	*r_drawpolys;
-cvar_t	*r_fullbright;
-cvar_t	*r_lightmap;
-cvar_t	*r_lockpvs;
-cvar_t	*r_frontbuffer;
-cvar_t	*r_showcluster;
-cvar_t	*r_showtris;
-cvar_t	*r_allow_software;
-cvar_t	*r_shownormals;
-cvar_t	*r_showtangentspace;
-cvar_t	*r_showmodelbounds;
-cvar_t	*r_showshadowvolumes;
-cvar_t	*r_showtextures;
-cvar_t	*r_offsetfactor;
-cvar_t	*r_offsetunits;
-cvar_t	*r_debugsort;
-cvar_t	*r_speeds;
-cvar_t	*r_singleshader;
-cvar_t	*r_showlightmaps;
-cvar_t	*r_skipbackend;
-cvar_t	*r_skipfrontend;
-cvar_t	*r_swapInterval;
-cvar_t	*r_vertexbuffers;
-cvar_t	*r_mode;
-cvar_t	*r_stencilbits;
-cvar_t	*r_colorbits;
-cvar_t	*r_depthbits;
-cvar_t	*r_testmode;
-cvar_t	*r_fullscreen;
-cvar_t	*r_caustics;
-cvar_t	*r_minimap;
-cvar_t	*r_minimap_size;
-cvar_t	*r_minimap_zoom;
-cvar_t	*r_minimap_style;
-cvar_t	*r_pause;
-cvar_t	*r_width;
-cvar_t	*r_height;
-cvar_t	*r_refreshrate;
-cvar_t	*r_bitdepth;
-cvar_t	*r_overbrightbits;
-cvar_t	*r_shadows;
-cvar_t	*r_caustics;
-cvar_t	*r_dynamiclights;
-cvar_t	*r_modulate;
-cvar_t	*r_ambientscale;
-cvar_t	*r_directedscale;
-cvar_t	*r_intensity;
-cvar_t	*r_texturebits;
-cvar_t	*r_texturefilter;
-cvar_t	*r_texturefilteranisotropy;
-cvar_t	*r_texturelodbias;
-cvar_t	*r_max_normal_texsize;
-cvar_t	*r_max_texsize;
-cvar_t	*r_round_down;
-cvar_t	*r_detailtextures;
-cvar_t	*r_compress_normal_textures;
-cvar_t	*r_compress_textures;
-cvar_t	*r_lefthand;
-cvar_t	*r_bloom;
-cvar_t	*r_bloom_alpha;
-cvar_t	*r_bloom_diamond_size;
-cvar_t	*r_bloom_intensity;
-cvar_t	*r_bloom_darken;
-cvar_t	*r_bloom_sample_size;
-cvar_t	*r_bloom_fast_sample;
-cvar_t	*r_motionblur_intens;
-cvar_t	*r_motionblur;
-cvar_t	*r_mirroralpha;
-cvar_t	*r_interpolate;
-cvar_t	*r_physbdebug;
-cvar_t	*r_pause_bw;
-cvar_t	*r_lightlevel;	// FIXME: This is a HACK to get the client's light level
+refinst_t RI, prevRI;
+ref_params_t r_lastRefdef;
 
-cvar_t	*gl_finish;
-cvar_t	*gl_clear;
-cvar_t	*vid_gamma;
+image_t	*r_cintexture;      // cinematic texture
+image_t	*r_portaltexture;   // portal view
+image_t	*r_portaltexture2;  // refraction image for distortions
+image_t	*r_notexture;       // use for bad textures
+image_t	*r_particletexture; // little dot for particles
+image_t	*r_whitetexture;
+image_t	*r_blacktexture;
+image_t *r_blankbumptexture;
+image_t	*r_dlighttexture;
+image_t	*r_fogtexture;
+image_t	*r_coronatexture;
+image_t	*r_shadowmapTextures[MAX_SHADOWGROUPS];
 
+static int r_numnullentities;
+static ref_entity_t	*r_nullentities[MAX_EDICTS];
+ref_model_t *cl_models[MAX_MODELS];		// client replacement modeltable
+static int r_numbmodelentities;
+static ref_entity_t	*r_bmodelentities[MAX_EDICTS];
+
+static byte r_entVisBits[MAX_EDICTS/8];
+
+int r_pvsframecount;    // bumped when going to a new PVS
+int r_framecount;       // used for dlight push checking
+
+int c_brush_polys, c_world_leafs;
+
+int r_mark_leaves, r_world_node;
+int r_add_polys, r_add_entities;
+int r_sort_meshes, r_draw_meshes;
+
+msurface_t *r_debug_surface;
+
+char r_speeds_msg[MAX_RSPEEDSMSGSIZE];
+
+//
+// screen size info
+//
+unsigned int r_numEntities;
+ref_entity_t r_entities[MAX_ENTITIES];
+ref_entity_t *r_worldent = &r_entities[0];
+
+unsigned int r_numDlights;
+dlight_t r_dlights[MAX_DLIGHTS];
+
+unsigned int r_numPolys;
+poly_t r_polys[MAX_POLYS];
+
+lightstyle_t r_lightStyles[MAX_LIGHTSTYLES];
+
+int r_viewcluster, r_oldviewcluster;
+
+float r_farclip_min, r_farclip_bias = 64.0f;
 
 /*
 =================
-R_CullBox
-
-Returns true if the box is completely outside the frustum
+GL_Cull
 =================
 */
-bool R_CullBox( const vec3_t mins, const vec3_t maxs, int clipFlags )
+void GL_Cull( int cull )
 {
-	cplane_t	*plane;
-	int	i;
-	
-	if( r_nocull->integer )
-		return false;
-
-	for( i = 0, plane = r_frustum; i < 4; i++, plane++ )
-	{
-		if(!(clipFlags & (1<<i))) continue;
-                    if( BoxOnPlaneSide( mins, maxs, plane ) == SIDE_ON )
-			return true;
-	}
-	return false;
-}
-
-/*
-=================
-R_CullSphere
-
-Returns true if the sphere is completely outside the frustum
-=================
-*/
-bool R_CullSphere( const vec3_t origin, float radius, int clipFlags )
-{
-	cplane_t	*plane;
-	int	i;
-	
-	if( r_nocull->integer )
-		return false;
-
-	for( i = 0, plane = r_frustum; i < 4; i++, plane++ )
-	{
-		if(!(clipFlags & (1<<i)))
-			continue;
-		if( DotProduct( origin, plane->normal ) - plane->dist <= -radius )
-			return true;
-	}
-	return false;
-}
-
-/*
-=================
-R_RotateForEntity
-=================
-*/
-void R_RotateForEntity( ref_entity_t *e )
-{
-	matrix4x4		rotMatrix;
-#if 0
-	// classic slow version (used for debug)
-	Matrix4x4_LoadIdentity( rotMatrix );
-	Matrix4x4_ConcatTranslate( rotMatrix, e->origin[0],  e->origin[1],  e->origin[2] );
-	Matrix4x4_ConcatRotate( rotMatrix,  e->angles[1],  0, 0, 1 );
-	Matrix4x4_ConcatRotate( rotMatrix, -e->angles[0],  0, 1, 0 );
-	Matrix4x4_ConcatRotate( rotMatrix, -e->angles[2],  1, 0, 0 );
-	Matrix4x4_Concat( r_entityMatrix, r_worldMatrix, rotMatrix );
-#else
-	Matrix4x4_FromMatrix3x3( rotMatrix, e->matrix );
-	Matrix4x4_SetOrigin( rotMatrix, e->origin[0], e->origin[1], e->origin[2] );
-	Matrix4x4_Concat( r_entityMatrix, r_worldMatrix, rotMatrix );
-#endif
-	GL_LoadMatrix( r_entityMatrix );
-}
-
-
-// =====================================================================
-
-/*
-=================
-R_DrawBeam
-=================
-*/
-void R_DrawBeam( void )
-{
-	vec3_t	axis[3];
-	float	length;
-	int		i;
-
-	// find orientation vectors
-	VectorSubtract( r_refdef.vieworg, m_pCurrentEntity->origin, axis[0] );
-	VectorSubtract( m_pCurrentEntity->prev.origin, m_pCurrentEntity->origin, axis[1] );// FIXME
-
-	CrossProduct( axis[0], axis[1], axis[2] );
-	VectorNormalizeFast( axis[2] );
-
-	// find normal
-	CrossProduct( axis[1], axis[2], axis[0] );
-	VectorNormalizeFast( axis[0] );
-
-	// scale by radius
-	VectorScale( axis[2], m_pCurrentEntity->frame / 2, axis[2] );
-
-	// find segment length
-	length = VectorLength( axis[1] ) / m_pCurrentEntity->prev.frame;
-
-	// draw it
-	RB_CheckMeshOverflow( 6, 4 );
-	
-	for( i = 2; i < 4; i++ )
-	{
-		ref.indexArray[ref.numIndex++] = ref.numVertex + 0;
-		ref.indexArray[ref.numIndex++] = ref.numVertex + i-1;
-		ref.indexArray[ref.numIndex++] = ref.numVertex + i;
-	}
-
-	ref.vertexArray[ref.numVertex+0][0] = m_pCurrentEntity->origin[0] + axis[2][0];
-	ref.vertexArray[ref.numVertex+0][1] = m_pCurrentEntity->origin[1] + axis[2][1];
-	ref.vertexArray[ref.numVertex+0][2] = m_pCurrentEntity->origin[2] + axis[2][2];
-	ref.vertexArray[ref.numVertex+1][0] = m_pCurrentEntity->prev.origin[0] + axis[2][0];
-	ref.vertexArray[ref.numVertex+1][1] = m_pCurrentEntity->prev.origin[1] + axis[2][1];
-	ref.vertexArray[ref.numVertex+1][2] = m_pCurrentEntity->prev.origin[2] + axis[2][2];
-	ref.vertexArray[ref.numVertex+2][0] = m_pCurrentEntity->prev.origin[0] - axis[2][0];
-	ref.vertexArray[ref.numVertex+2][1] = m_pCurrentEntity->prev.origin[1] - axis[2][1];
-	ref.vertexArray[ref.numVertex+2][2] = m_pCurrentEntity->prev.origin[2] - axis[2][2];
-	ref.vertexArray[ref.numVertex+3][0] = m_pCurrentEntity->origin[0] - axis[2][0];
-	ref.vertexArray[ref.numVertex+3][1] = m_pCurrentEntity->origin[1] - axis[2][1];
-	ref.vertexArray[ref.numVertex+3][2] = m_pCurrentEntity->origin[2] - axis[2][2];
-
-	ref.inTexCoordArray[ref.numVertex+0][0] = 0;
-	ref.inTexCoordArray[ref.numVertex+0][1] = 0;
-	ref.inTexCoordArray[ref.numVertex+1][0] = length;
-	ref.inTexCoordArray[ref.numVertex+1][1] = 0;
-	ref.inTexCoordArray[ref.numVertex+2][0] = length;
-	ref.inTexCoordArray[ref.numVertex+2][1] = 1;
-	ref.inTexCoordArray[ref.numVertex+3][0] = 0;
-	ref.inTexCoordArray[ref.numVertex+3][1] = 1;
-
-	for( i = 0; i < 4; i++ )
-	{
-		ref.normalArray[ref.numVertex][0] = axis[0][0];
-		ref.normalArray[ref.numVertex][1] = axis[0][1];
-		ref.normalArray[ref.numVertex][2] = axis[0][2];
-		ref.colorArray[ref.numVertex][0] = m_pCurrentEntity->rendercolor[0];
-		ref.colorArray[ref.numVertex][1] = m_pCurrentEntity->rendercolor[1];
-		ref.colorArray[ref.numVertex][2] = m_pCurrentEntity->rendercolor[2];
-		ref.colorArray[ref.numVertex][3] = m_pCurrentEntity->renderamt;
-		ref.numVertex++;
-	}
-}
-
-/*
-=================
-R_AddBeamToList
-=================
-*/
-static void R_AddBeamToList( ref_entity_t *entity )
-{
-	R_AddMeshToList( MESH_BEAM, NULL, entity->shader, entity, 0 );
-}
-
-/*
-=================
-R_AddEntitiesToList
-=================
-*/
-static void R_AddEntitiesToList( void )
-{
-	ref_entity_t	*entity;
-	rmodel_t		*model;
-	int		i;
-
-	if( !r_drawentities->integer || r_numEntities == 1 )
+	if( glState.faceCull == cull )
 		return;
 
-	r_stats.numEntities += (r_numEntities - 1);
-
-	for( i = 1, entity = &r_entities[1]; i < r_numEntities; i++, entity++ )
+	if( !cull )
 	{
-		switch( entity->ent_type )
-		{
-		case ED_MOVER:
-		case ED_NORMAL:
-		case ED_CLIENT:
-		case ED_MONSTER:
-		case ED_BSPBRUSH:
-		case ED_VIEWMODEL:
-		case ED_RIGIDBODY:
-			m_pCurrentEntity = entity;
-			model = m_pRenderModel = entity->model;
-			if( !model || model->type == mod_bad )
-			{
-				r_nullModels[r_numNullModels++] = entity;
-				break;
-			}
+		qglDisable( GL_CULL_FACE );
+		glState.faceCull = 0;
+		return;
+	}
 
-			switch( model->type )
+	if( !glState.faceCull )
+		qglEnable( GL_CULL_FACE );
+	qglCullFace( cull );
+	glState.faceCull = cull;
+}
+
+/*
+=================
+GL_SetState
+=================
+*/
+void GL_SetState( int state )
+{
+	int diff;
+
+	if( glState.in2DMode )
+		state |= GLSTATE_NO_DEPTH_TEST;
+	if( state & GLSTATE_NO_DEPTH_TEST )
+		state &= ~( GLSTATE_DEPTHWRITE|GLSTATE_DEPTHFUNC_EQ );
+
+	diff = glState.flags ^ state;
+	if( !diff )
+		return;
+
+	if( diff & ( GLSTATE_BLEND_MTEX|GLSTATE_SRCBLEND_MASK|GLSTATE_DSTBLEND_MASK ) )
+	{
+		if( state & ( GLSTATE_SRCBLEND_MASK|GLSTATE_DSTBLEND_MASK ) )
+		{
+			int blendsrc, blenddst;
+
+			switch( state & GLSTATE_SRCBLEND_MASK )
 			{
-			case mod_brush:
-				R_AddBrushModelToList( entity );
+			case GLSTATE_SRCBLEND_ZERO:
+				blendsrc = GL_ZERO;
 				break;
-			case mod_studio:
-				R_AddStudioModelToList( entity );
+			case GLSTATE_SRCBLEND_DST_COLOR:
+				blendsrc = GL_DST_COLOR;
 				break;
-			case mod_sprite:
-				R_AddSpriteModelToList( entity );
+			case GLSTATE_SRCBLEND_ONE_MINUS_DST_COLOR:
+				blendsrc = GL_ONE_MINUS_DST_COLOR;
+				break;
+			case GLSTATE_SRCBLEND_SRC_ALPHA:
+				blendsrc = GL_SRC_ALPHA;
+				break;
+			case GLSTATE_SRCBLEND_ONE_MINUS_SRC_ALPHA:
+				blendsrc = GL_ONE_MINUS_SRC_ALPHA;
+				break;
+			case GLSTATE_SRCBLEND_DST_ALPHA:
+				blendsrc = GL_DST_ALPHA;
+				break;
+			case GLSTATE_SRCBLEND_ONE_MINUS_DST_ALPHA:
+				blendsrc = GL_ONE_MINUS_DST_ALPHA;
 				break;
 			default:
-				Host_Error( "R_AddEntitiesToList: bad model type (%i)\n", model->type );
+			case GLSTATE_SRCBLEND_ONE:
+				blendsrc = GL_ONE;
+				break;
 			}
-			break;
-		case ED_BEAM:
-			R_AddBeamToList( entity );
-			break;
-		default:
-			Host_Error( "R_AddEntitiesToList: bad entity type (%i)\n", entity->ent_type );
-		}
-	}
-}
 
-/*
-=================
-R_DrawNullModels
-=================
-*/
-static void R_DrawNullModels( void )
-{
-	ref_entity_t	*entity;
-	vec3_t		points[3];
-	int		i;
+			switch( state & GLSTATE_DSTBLEND_MASK )
+			{
+			case GLSTATE_DSTBLEND_ONE:
+				blenddst = GL_ONE;
+				break;
+			case GLSTATE_DSTBLEND_SRC_COLOR:
+				blenddst = GL_SRC_COLOR;
+				break;
+			case GLSTATE_DSTBLEND_ONE_MINUS_SRC_COLOR:
+				blenddst = GL_ONE_MINUS_SRC_COLOR;
+				break;
+			case GLSTATE_DSTBLEND_SRC_ALPHA:
+				blenddst = GL_SRC_ALPHA;
+				break;
+			case GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA:
+				blenddst = GL_ONE_MINUS_SRC_ALPHA;
+				break;
+			case GLSTATE_DSTBLEND_DST_ALPHA:
+				blenddst = GL_DST_ALPHA;
+				break;
+			case GLSTATE_DSTBLEND_ONE_MINUS_DST_ALPHA:
+				blenddst = GL_ONE_MINUS_DST_ALPHA;
+				break;
+			default:
+			case GLSTATE_DSTBLEND_ZERO:
+				blenddst = GL_ZERO;
+				break;
+			}
 
-	if (!r_numNullModels)
-		return;
+			if( state & GLSTATE_BLEND_MTEX )
+			{
+				if( glState.currentEnvModes[glState.currentTMU] != GL_REPLACE )
+					qglEnable( GL_BLEND );
+				else
+					qglDisable( GL_BLEND );
+			}
+			else
+			{
+				qglEnable( GL_BLEND );
+			}
 
-	GL_LoadMatrix( r_worldMatrix );
-
-	// Set the state
-	GL_Enable(GL_CULL_FACE);
-	GL_Disable(GL_POLYGON_OFFSET_FILL);
-	GL_Disable(GL_VERTEX_PROGRAM_ARB);
-	GL_Disable(GL_FRAGMENT_PROGRAM_ARB);
-	GL_Disable(GL_ALPHA_TEST);
-	GL_Enable(GL_BLEND);
-	GL_Enable(GL_DEPTH_TEST);
-
-	GL_CullFace(GL_FRONT);
-	GL_BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	GL_DepthFunc(GL_LEQUAL);
-	GL_DepthMask(GL_FALSE);
-
-	// Draw them
-	for( i = 0; i < r_numNullModels; i++ )
-	{
-		entity = r_nullModels[i];
-
-		VectorMA( entity->origin, 15, entity->matrix[0], points[0] );
-		VectorMA( entity->origin, -15, entity->matrix[1], points[1] );
-		VectorMA( entity->origin, 15, entity->matrix[2], points[2] );
-
-		pglBegin( GL_LINES );
-
-		pglColor4f( 1.0f, 0.0f, 0.0f, 0.5f );
-		pglVertex3fv( entity->origin );
-		pglVertex3fv( points[0] );
-
-		pglColor4f( 0, 1.0f, 0, 0.5f );
-		pglVertex3fv( entity->origin );
-		pglVertex3fv( points[1] );
-
-		pglColor4f( 0, 0, 1.0f, 0.5f );
-		pglVertex3fv( entity->origin );
-		pglVertex3fv( points[2] );
-
-		pglEnd();
-	}
-	r_numNullModels = 0;
-}
-
-/*
-=================
-R_DrawParticle
-=================
-*/
-void R_DrawParticle( void )
-{
-	particle_t	*particle = m_pRenderMesh->mesh;
-	vec3_t		axis[3];
-	int		i;
-
-	// Draw it
-	RB_CheckMeshOverflow( 6, 4 );
-	
-	for( i = 2; i < 4; i++ )
-	{
-		ref.indexArray[ref.numIndex++] = ref.numVertex + 0;
-		ref.indexArray[ref.numIndex++] = ref.numVertex + i-1;
-		ref.indexArray[ref.numIndex++] = ref.numVertex + i;
-	}
-
-	if( particle->length != 1 )
-	{
-		// find orientation vectors
-		VectorSubtract( r_refdef.vieworg, particle->origin1, axis[0] );
-		VectorSubtract( particle->origin2, particle->origin1, axis[1] );
-		CrossProduct( axis[0], axis[1], axis[2] );
-
-		VectorNormalizeFast( axis[1] );
-		VectorNormalizeFast( axis[2] );
-
-		// find normal
-		CrossProduct( axis[1], axis[2], axis[0] );
-		VectorNormalizeFast( axis[0] );
-
-		VectorMA( particle->origin1, -particle->length, axis[1], particle->origin2 );
-		VectorScale( axis[2], particle->radius, axis[2] );
-
-		ref.vertexArray[ref.numVertex+0][0] = particle->origin2[0] + axis[2][0];
-		ref.vertexArray[ref.numVertex+0][1] = particle->origin2[1] + axis[2][1];
-		ref.vertexArray[ref.numVertex+0][2] = particle->origin2[2] + axis[2][2];
-		ref.vertexArray[ref.numVertex+1][0] = particle->origin1[0] + axis[2][0];
-		ref.vertexArray[ref.numVertex+1][1] = particle->origin1[1] + axis[2][1];
-		ref.vertexArray[ref.numVertex+1][2] = particle->origin1[2] + axis[2][2];
-		ref.vertexArray[ref.numVertex+2][0] = particle->origin1[0] - axis[2][0];
-		ref.vertexArray[ref.numVertex+2][1] = particle->origin1[1] - axis[2][1];
-		ref.vertexArray[ref.numVertex+2][2] = particle->origin1[2] - axis[2][2];
-		ref.vertexArray[ref.numVertex+3][0] = particle->origin2[0] - axis[2][0];
-		ref.vertexArray[ref.numVertex+3][1] = particle->origin2[1] - axis[2][1];
-		ref.vertexArray[ref.numVertex+3][2] = particle->origin2[2] - axis[2][2];
-	}
-	else
-	{
-		if( particle->rotation )
-		{
-			// Rotate it around its normal
-			RotatePointAroundVector( axis[1], r_forward, r_right, particle->rotation );
-			CrossProduct( r_forward, axis[1], axis[2] );
-
-			// The normal should point at the viewer
-			VectorNegate( r_forward, axis[0] );
-
-			// Scale the axes by radius
-			VectorScale( axis[1], particle->radius, axis[1] );
-			VectorScale( axis[2], particle->radius, axis[2] );
+			qglBlendFunc( blendsrc, blenddst );
 		}
 		else
 		{
-			// the normal should point at the viewer
-			VectorNegate( r_forward, axis[0] );
-
-			// scale the axes by radius
-			VectorScale( r_right, particle->radius, axis[1] );
-			VectorScale( r_up, particle->radius, axis[2] );
+			qglDisable( GL_BLEND );
 		}
-
-		ref.vertexArray[ref.numVertex+0][0] = particle->origin1[0] + axis[1][0] + axis[2][0];
-		ref.vertexArray[ref.numVertex+0][1] = particle->origin1[1] + axis[1][1] + axis[2][1];
-		ref.vertexArray[ref.numVertex+0][2] = particle->origin1[2] + axis[1][2] + axis[2][2];
-		ref.vertexArray[ref.numVertex+1][0] = particle->origin1[0] - axis[1][0] + axis[2][0];
-		ref.vertexArray[ref.numVertex+1][1] = particle->origin1[1] - axis[1][1] + axis[2][1];
-		ref.vertexArray[ref.numVertex+1][2] = particle->origin1[2] - axis[1][2] + axis[2][2];
-		ref.vertexArray[ref.numVertex+2][0] = particle->origin1[0] - axis[1][0] - axis[2][0];
-		ref.vertexArray[ref.numVertex+2][1] = particle->origin1[1] - axis[1][1] - axis[2][1];
-		ref.vertexArray[ref.numVertex+2][2] = particle->origin1[2] - axis[1][2] - axis[2][2];
-		ref.vertexArray[ref.numVertex+3][0] = particle->origin1[0] + axis[1][0] - axis[2][0];
-		ref.vertexArray[ref.numVertex+3][1] = particle->origin1[1] + axis[1][1] - axis[2][1];
-		ref.vertexArray[ref.numVertex+3][2] = particle->origin1[2] + axis[1][2] - axis[2][2];
 	}
 
-	ref.inTexCoordArray[ref.numVertex+0][0] = 0;
-	ref.inTexCoordArray[ref.numVertex+0][1] = 0;
-	ref.inTexCoordArray[ref.numVertex+1][0] = 1;
-	ref.inTexCoordArray[ref.numVertex+1][1] = 0;
-	ref.inTexCoordArray[ref.numVertex+2][0] = 1;
-	ref.inTexCoordArray[ref.numVertex+2][1] = 1;
-	ref.inTexCoordArray[ref.numVertex+3][0] = 0;
-	ref.inTexCoordArray[ref.numVertex+3][1] = 1;
-
-	for( i = 0; i < 4; i++ )
+	if( diff & GLSTATE_ALPHAFUNC )
 	{
-		ref.normalArray[ref.numVertex][0] = axis[0][0];
-		ref.normalArray[ref.numVertex][1] = axis[0][1];
-		ref.normalArray[ref.numVertex][2] = axis[0][2];
-		Vector4Copy( particle->modulate, ref.colorArray[ref.numVertex] ); 
-		ref.numVertex++;
+		if( state & GLSTATE_ALPHAFUNC )
+		{
+			if( !( glState.flags & GLSTATE_ALPHAFUNC ) )
+				qglEnable( GL_ALPHA_TEST );
+
+			if( state & GLSTATE_AFUNC_GT0 )
+				qglAlphaFunc( GL_GREATER, 0 );
+			else if( state & GLSTATE_AFUNC_LT128 )
+				qglAlphaFunc( GL_LESS, 0.5f );
+			else
+				qglAlphaFunc( GL_GEQUAL, 0.5f );
+		}
+		else
+		{
+			qglDisable( GL_ALPHA_TEST );
+		}
 	}
+
+	if( diff & GLSTATE_DEPTHFUNC_EQ )
+	{
+		if( state & GLSTATE_DEPTHFUNC_EQ )
+			qglDepthFunc( GL_EQUAL );
+		else
+			qglDepthFunc( GL_LEQUAL );
+	}
+
+	if( diff & GLSTATE_DEPTHWRITE )
+	{
+		if( state & GLSTATE_DEPTHWRITE )
+			qglDepthMask( GL_TRUE );
+		else
+			qglDepthMask( GL_FALSE );
+	}
+
+	if( diff & GLSTATE_NO_DEPTH_TEST )
+	{
+		if( state & GLSTATE_NO_DEPTH_TEST )
+			qglDisable( GL_DEPTH_TEST );
+		else
+			qglEnable( GL_DEPTH_TEST );
+	}
+
+	if( diff & GLSTATE_OFFSET_FILL )
+	{
+		if( state & GLSTATE_OFFSET_FILL )
+			qglEnable( GL_POLYGON_OFFSET_FILL );
+		else
+			qglDisable( GL_POLYGON_OFFSET_FILL );
+	}
+
+	glState.flags = state;
 }
 
 /*
 =================
-R_AddParticlesToList
+GL_FrontFace
 =================
 */
-static void R_AddParticlesToList( void )
+void GL_FrontFace( int front )
 {
-	particle_t	*particle;
-	vec3_t		vec;
-	int			i;
+	qglFrontFace( front ? GL_CW : GL_CCW );
+	glState.frontFace = front;
+}
 
-	if( !r_drawparticles->integer || !r_numParticles )
+/*
+=============
+R_TransformEntityBBox
+=============
+*/
+void R_TransformEntityBBox( ref_entity_t *e, vec3_t mins, vec3_t maxs, vec3_t bbox[8], bool local )
+{
+	int i;
+	vec3_t axis[3], tmp;
+
+	if( e == r_worldent )
+		local = false;
+	if( local )
+		Matrix_Transpose( e->axis, axis );	// switch row-column order
+
+	// rotate local bounding box and compute the full bounding box
+	for( i = 0; i < 8; i++ )
+	{
+		vec_t *corner = bbox[i];
+
+		corner[0] = ( ( i & 1 ) ? mins[0] : maxs[0] );
+		corner[1] = ( ( i & 2 ) ? mins[1] : maxs[1] );
+		corner[2] = ( ( i & 4 ) ? mins[2] : maxs[2] );
+
+		if( local )
+		{
+			Matrix_TransformVector( axis, corner, tmp );
+			VectorAdd( tmp, e->origin, corner );
+		}
+	}
+}
+
+/*
+=============
+R_LoadIdentity
+=============
+*/
+void R_LoadIdentity( void )
+{
+	Matrix4_Identity( RI.objectMatrix );
+	Matrix4_Copy( RI.worldviewMatrix, RI.modelviewMatrix );
+	qglLoadMatrixf( RI.modelviewMatrix );
+}
+
+/*
+=============
+R_RotateForEntity
+=============
+*/
+void R_RotateForEntity( ref_entity_t *e )
+{
+	if( e == r_worldent )
+	{
+		R_LoadIdentity();
 		return;
-
-	r_stats.numParticles += r_numParticles;
-
-	for (i = 0, particle = r_particles; i < r_numParticles; i++, particle++ )
-	{
-		// cull
-		if( !r_nocull->integer )
-		{
-			VectorSubtract( particle->origin1, r_refdef.vieworg, vec );
-			VectorNormalizeFast( vec );
-
-			if( DotProduct( vec, r_forward ) < 0 )
-				continue;
-		}
-
-		// add it
-		R_AddMeshToList( MESH_PARTICLE, particle, particle->shader, r_worldEntity, 0 );
-	}
-}
-
-/*
-=================
-R_DrawPoly
-=================
-*/
-void R_DrawPoly( void )
-{
-	poly_t		*poly = m_pRenderMesh->mesh;
-	polyVert_t	*vert;
-	int			i;
-
-	RB_CheckMeshOverflow((poly->numVerts - 2) * 3, poly->numVerts );
-
-	for( i = 2; i < poly->numVerts; i++ )
-	{
-		ref.indexArray[ref.numIndex++] = ref.numVertex + 0;
-		ref.indexArray[ref.numIndex++] = ref.numVertex + i-1;
-		ref.indexArray[ref.numIndex++] = ref.numVertex + i;
-	}
-	for( i = 0, vert = poly->verts; i < poly->numVerts; i++, vert++ )
-	{
-		ref.vertexArray[ref.numVertex][0] = vert->point[0];
-		ref.vertexArray[ref.numVertex][1] = vert->point[1];
-		ref.vertexArray[ref.numVertex][2] = vert->point[2];
-		ref.inTexCoordArray[ref.numVertex][0] = vert->st[0];
-		ref.inTexCoordArray[ref.numVertex][1] = vert->st[1];
-		ref.colorArray[ref.numVertex][0] = vert->modulate[0];
-		ref.colorArray[ref.numVertex][1] = vert->modulate[1];
-		ref.colorArray[ref.numVertex][2] = vert->modulate[2];
-		ref.colorArray[ref.numVertex][3] = vert->modulate[3];
-		ref.numVertex++;
-	}
-}
-
-/*
-=================
-R_AddPolysToList
-=================
-*/
-static void R_AddPolysToList( void )
-{
-	poly_t	*poly;
-	int	i;
-
-	if( !r_drawpolys->integer || !r_numPolys )
-		return;
-
-	r_stats.numPolys += r_numPolys;
-	for( i = 0, poly = r_polys; i < r_numPolys; i++, poly++ )
-		R_AddMeshToList( MESH_POLY, poly, poly->shader, r_worldEntity, 0 );
-}
-
-// =====================================================================
-
-
-/*
-=================
-R_QSortMeshes
-=================
-*/
-static void R_QSortMeshes( mesh_t *meshes, int numMeshes )
-{
-	static mesh_t	tmp;
-	static int64	stack[4096];
-	int		depth = 0;
-	int		L, R, l, r, median;
-	uint		pivot;
-
-	if( !numMeshes ) return;
-
-	L = 0;
-	R = numMeshes - 1;
-
-start:
-	l = L;
-	r = R;
-
-	median = (L + R) >> 1;
-
-	if( meshes[L].sortKey > meshes[median].sortKey )
-	{
-		if( meshes[L].sortKey < meshes[R].sortKey ) 
-			median = L;
-	} 
-	else if( meshes[R].sortKey < meshes[median].sortKey )
-		median = R;
-
-	pivot = meshes[median].sortKey;
-
-	while( l < r )
-	{
-		while( meshes[l].sortKey < pivot )
-			l++;
-		while( meshes[r].sortKey > pivot )
-			r--;
-
-		if( l <= r )
-		{
-			tmp = meshes[r];
-			meshes[r] = meshes[l];
-			meshes[l] = tmp;
-
-			l++;
-			r--;
-		}
 	}
 
-	if((L < r) && (depth < 4096))
+	if( e->scale != 1.0f )
 	{
-		stack[depth++] = l;
-		stack[depth++] = R;
-		R = r;
-		goto start;
-	}
-
-	if( l < R )
-	{
-		L = l;
-		goto start;
-	}
-
-	if( depth )
-	{
-		R = stack[--depth];
-		L = stack[--depth];
-		goto start;
-	}
-}
-
-/*
-=================
-R_ISortMeshes
-=================
-*/
-static void R_ISortMeshes( mesh_t *meshes, int numMeshes )
-{
-	static mesh_t	tmp;
-	int		i, j;
-
-	if( !numMeshes ) return;
-
-	for( i = 1; i < numMeshes; i++ )
-	{
-		tmp = meshes[i];
-		j = i - 1;
-
-		while((j >= 0) && (meshes[j].sortKey > tmp.sortKey))
-		{
-			meshes[j+1] = meshes[j];
-			j--;
-		}
-
-		if( i != j+1 ) meshes[j+1] = tmp;
-	}
-}
-
-void R_ClearMeshes( void )
-{
-	int	i;
-
-	for( i = 0; i < r_numEntities; i++ )
-	{
-		m_pCurrentEntity = &r_entities[i];
-		R_StudioClearMeshes();
-	}
-}
-
-/*
-=================
-R_AddMeshToList
-
-Calculates sort key and stores info used for sorting and batching.
-All 3D geometry passes this function.
-=================
-*/
-void R_AddMeshToList( meshType_t meshType, void *mesh, ref_shader_t *shader, ref_entity_t *entity, int infoKey )
-{
-	mesh_t	*m;
-
-	if( entity && (shader->flags & SHADER_RENDERMODE))
-	{
-		switch( entity->rendermode )
-		{
-		case kRenderTransTexture:
-		case kRenderGlow:
-		case kRenderTransAdd:
-			shader->sort = SORT_ADDITIVE;
-			break;
-		case kRenderTransColor:
-			shader->sort = SORT_DECAL;
-			break;
-		case kRenderTransAlpha:
-			shader->sort = SORT_SEETHROUGH;
-			break;
-		case kRenderNormal:
-		default:	shader->sort = shader->realsort; // restore original
-			break;
-		}
-	}
-
-	if( shader->sort <= SORT_DECAL )
-	{
-		if( r_numSolidMeshes == MAX_MESHES )
-			Host_Error( "R_AddMeshToList: MAX_MESHES hit\n" );
-		m = &r_solidMeshes[r_numSolidMeshes++];
+		RI.objectMatrix[0] = e->axis[0][0] * e->scale;
+		RI.objectMatrix[1] = e->axis[0][1] * e->scale;
+		RI.objectMatrix[2] = e->axis[0][2] * e->scale;
+		RI.objectMatrix[4] = e->axis[1][0] * e->scale;
+		RI.objectMatrix[5] = e->axis[1][1] * e->scale;
+		RI.objectMatrix[6] = e->axis[1][2] * e->scale;
+		RI.objectMatrix[8] = e->axis[2][0] * e->scale;
+		RI.objectMatrix[9] = e->axis[2][1] * e->scale;
+		RI.objectMatrix[10] = e->axis[2][2] * e->scale;
 	}
 	else
 	{
-		if( r_numTransMeshes == MAX_MESHES )
-			Host_Error( "R_AddMeshToList: MAX_MESHES hit\n" );
-		m = &r_transMeshes[r_numTransMeshes++];
+		RI.objectMatrix[0] = e->axis[0][0];
+		RI.objectMatrix[1] = e->axis[0][1];
+		RI.objectMatrix[2] = e->axis[0][2];
+		RI.objectMatrix[4] = e->axis[1][0];
+		RI.objectMatrix[5] = e->axis[1][1];
+		RI.objectMatrix[6] = e->axis[1][2];
+		RI.objectMatrix[8] = e->axis[2][0];
+		RI.objectMatrix[9] = e->axis[2][1];
+		RI.objectMatrix[10] = e->axis[2][2];
 	}
 
-	m->sortKey = (shader->sort << 28) | (shader->shadernum << 18) | ((entity - r_entities) << 8) | (infoKey);
-	m->meshType = meshType;
-	m->mesh = mesh;
+	RI.objectMatrix[3] = 0;
+	RI.objectMatrix[7] = 0;
+	RI.objectMatrix[11] = 0;
+	RI.objectMatrix[12] = e->origin[0];
+	RI.objectMatrix[13] = e->origin[1];
+	RI.objectMatrix[14] = e->origin[2];
+	RI.objectMatrix[15] = 1.0;
+
+	Matrix4_MultiplyFast( RI.worldviewMatrix, RI.objectMatrix, RI.modelviewMatrix );
+	qglLoadMatrixf( RI.modelviewMatrix );
 }
 
+/*
+=============
+R_TranslateForEntity
+=============
+*/
+void R_TranslateForEntity( ref_entity_t *e )
+{
+	if( e == r_worldent )
+	{
+		R_LoadIdentity();
+		return;
+	}
 
-// =====================================================================
+	Matrix4_Identity( RI.objectMatrix );
+
+	RI.objectMatrix[12] = e->origin[0];
+	RI.objectMatrix[13] = e->origin[1];
+	RI.objectMatrix[14] = e->origin[2];
+
+	Matrix4_MultiplyFast( RI.worldviewMatrix, RI.objectMatrix, RI.modelviewMatrix );
+	qglLoadMatrixf( RI.modelviewMatrix );
+}
+
+/*
+=============
+R_LerpTag
+=============
+*/
+bool R_LerpTag( orientation_t *orient, const ref_model_t *mod, int oldframe, int frame, float lerpfrac, const char *name )
+{
+	if( !orient )
+		return false;
+
+	VectorClear( orient->origin );
+	Matrix_Identity( orient->axis );
+
+	if( !name )
+		return false;
+
+	if( mod->type == mod_alias )
+		return R_AliasModelLerpTag( orient, mod->extradata, oldframe, frame, lerpfrac, name );
+
+	return false;
+}
+
+/*
+=============
+R_FogForSphere
+=============
+*/
+mfog_t *R_FogForSphere( const vec3_t centre, const float radius )
+{
+	int i, j;
+	mfog_t *fog;
+	cplane_t *plane;
+
+	if( !r_worldmodel || ( RI.refdef.rdflags & RDF_NOWORLDMODEL ) || !r_worldbrushmodel->numfogs )
+		return NULL;
+	if( RI.params & RP_SHADOWMAPVIEW )
+		return NULL;
+	if( r_worldbrushmodel->globalfog )
+		return r_worldbrushmodel->globalfog;
+
+	fog = r_worldbrushmodel->fogs;
+	for( i = 0; i < r_worldbrushmodel->numfogs; i++, fog++ )
+	{
+		if( !fog->shader )
+			continue;
+
+		plane = fog->planes;
+		for( j = 0; j < fog->numplanes; j++, plane++ )
+		{
+			// if completely in front of face, no intersection
+			if( PlaneDiff( centre, plane ) > radius )
+				break;
+		}
+
+		if( j == fog->numplanes )
+			return fog;
+	}
+
+	return NULL;
+}
+
+/*
+=============
+R_CompletelyFogged
+=============
+*/
+bool R_CompletelyFogged( mfog_t *fog, vec3_t origin, float radius )
+{
+	// note that fog->distanceToEye < 0 is always true if
+	// globalfog is not NULL and we're inside the world boundaries
+	if( fog && fog->shader && RI.fog_dist_to_eye[fog-r_worldbrushmodel->fogs] < 0 )
+	{
+		float vpnDist = ( ( RI.viewOrigin[0] - origin[0] ) * RI.vpn[0] + ( RI.viewOrigin[1] - origin[1] ) * RI.vpn[1] + ( RI.viewOrigin[2] - origin[2] ) * RI.vpn[2] );
+		return ( ( vpnDist + radius ) / fog->shader->fog_dist ) < -1;
+	}
+
+	return false;
+}
+
+/*
+=============================================================
+
+CUSTOM COLORS
+
+=============================================================
+*/
+
+static rgba_t r_customColors[NUM_CUSTOMCOLORS];
+
 /*
 =================
-R_SetFrustum
+R_InitCustomColors
 =================
 */
-static void R_SetFrustum( void )
+void R_InitCustomColors( void )
 {
-	int	i;
+	memset( r_customColors, 255, sizeof( r_customColors ) );
+}
 
-	// build the transformation matrix for the given view angles
-	VectorCopy( r_refdef.vieworg, r_origin );
+/*
+=================
+R_SetCustomColor
+=================
+*/
+void R_SetCustomColor( int num, int r, int g, int b )
+{
+	if( num < 0 || num >= NUM_CUSTOMCOLORS )
+		return;
+	Vector4Set( r_customColors[num], (byte)r, (byte)g, (byte)b, 255 );
+}
+/*
+=================
+R_GetCustomColor
+=================
+*/
+int R_GetCustomColor( int num )
+{
+	if( num < 0 || num >= NUM_CUSTOMCOLORS )
+		return MakeRGBA( 255, 255, 255, 255 );
+	return *(int *)r_customColors[num];
+}
 
-	AngleVectorsFLU( r_refdef.viewangles, r_forward, r_right, r_up );
+/*
+=============================================================
 
-	RotatePointAroundVector( r_frustum[0].normal, r_up, r_forward, -(90 - r_refdef.fov_x / 2));
-	RotatePointAroundVector( r_frustum[1].normal, r_up, r_forward, 90 - r_refdef.fov_x / 2);
-	RotatePointAroundVector( r_frustum[2].normal, r_right, r_forward, 90 - r_refdef.fov_y / 2);
-	RotatePointAroundVector( r_frustum[3].normal, r_right, r_forward, -(90 - r_refdef.fov_y / 2));
+SPRITE MODELS AND FLARES
+
+=============================================================
+*/
+
+static vec4_t spr_xyz[4] = { {0,0,0,1}, {0,0,0,1}, {0,0,0,1}, {0,0,0,1} };
+static vec2_t spr_st[4] = { {0, 1}, {0, 0}, {1,0}, {1,1} };
+static rgba_t spr_color[4];
+static mesh_t spr_mesh = { 4, spr_xyz, spr_xyz, NULL, spr_st, { 0, 0, 0, 0 }, { spr_color, spr_color, spr_color, spr_color }, 6, NULL };
+
+/*
+=================
+R_PushSprite
+=================
+*/
+static bool R_PushSprite( const meshbuffer_t *mb, float rotation, float right, float left, float up, float down )
+{
+	int i, features;
+	vec3_t point;
+	vec3_t v_right, v_up;
+	ref_entity_t *e = RI.currententity;
+	ref_shader_t *shader;
+
+	if( rotation )
+	{
+		RotatePointAroundVector( v_right, RI.vpn, RI.vright, rotation );
+		CrossProduct( RI.vpn, v_right, v_up );
+	}
+	else
+	{
+		VectorCopy( RI.vright, v_right );
+		VectorCopy( RI.vup, v_up );
+	}
+
+	VectorScale( v_up, down, point );
+	VectorMA( point, -left, v_right, spr_xyz[0] );
+	VectorMA( point, -right, v_right, spr_xyz[3] );
+
+	VectorScale( v_up, up, point );
+	VectorMA( point, -left, v_right, spr_xyz[1] );
+	VectorMA( point, -right, v_right, spr_xyz[2] );
+
+	if( e->scale != 1.0f )
+	{
+		for( i = 0; i < 4; i++ )
+			VectorScale( spr_xyz[i], e->scale, spr_xyz[i] );
+	}
+
+	MB_NUM2SHADER( mb->shaderkey, shader );
+
+	// the code below is disgusting, but some q3a shaders use 'rgbgen vertex'
+	// and 'alphagen vertex' for effects instead of 'rgbgen entity' and 'alphagen entity'
+	if( shader->features & MF_COLORS )
+	{
+		for( i = 0; i < 4; i++ )
+			Vector4Copy( e->color, spr_color[i] );
+	}
+
+	features = MF_NOCULL | MF_TRIFAN | shader->features;
+	if( r_shownormals->integer )
+		features |= MF_NORMALS;
+
+	if( shader->flags & SHADER_ENTITY_MERGABLE )
+	{
+		for( i = 0; i < 4; i++ )
+			VectorAdd( spr_xyz[i], e->origin, spr_xyz[i] );
+		R_PushMesh( &spr_mesh, features );
+		return false;
+	}
+
+	R_PushMesh( &spr_mesh, MF_NONBATCHED | features );
+	return true;
+}
+
+/*
+=================
+R_PushFlareSurf
+=================
+*/
+static void R_PushFlareSurf( const meshbuffer_t *mb )
+{
+	int i;
+	vec4_t color;
+	vec3_t origin, point, v;
+	float radius = r_flaresize->value, colorscale, depth;
+	float up = radius, down = -radius, left = -radius, right = radius;
+	mbrushmodel_t *bmodel = ( mbrushmodel_t * )RI.currentmodel->extradata;
+	msurface_t *surf = &bmodel->surfaces[mb->infokey - 1];
+	ref_shader_t *shader;
+
+	if( RI.currentmodel != r_worldmodel )
+	{
+		Matrix_TransformVector( RI.currententity->axis, surf->origin, origin );
+		VectorAdd( origin, RI.currententity->origin, origin );
+	}
+	else
+	{
+		VectorCopy( surf->origin, origin );
+	}
+	R_TransformToScreen_Vec3( origin, v );
+
+	if( v[0] < RI.refdef.viewport[0] || v[0] > RI.refdef.viewport[0] + RI.refdef.viewport[2] )
+		return;
+	if( v[1] < RI.refdef.viewport[1] || v[1] > RI.refdef.viewport[1] + RI.refdef.viewport[3] )
+		return;
+
+	qglReadPixels( (int)( v[0] /* + 0.5f*/ ), (int)( v[1] /* + 0.5f*/ ), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth );
+	if( depth + 1e-4 < v[2] )
+		return; // occluded
+
+	VectorCopy( origin, origin );
+
+	VectorMA( origin, down, RI.vup, point );
+	VectorMA( point, -left, RI.vright, spr_xyz[0] );
+	VectorMA( point, -right, RI.vright, spr_xyz[3] );
+
+	VectorMA( origin, up, RI.vup, point );
+	VectorMA( point, -left, RI.vright, spr_xyz[1] );
+	VectorMA( point, -right, RI.vright, spr_xyz[2] );
+
+	colorscale = 255.0 / r_flarefade->value;
+	Vector4Set( color,
+		surf->color[0] * colorscale,
+		surf->color[1] * colorscale,
+		surf->color[2] * colorscale,
+		255 );
+	for( i = 0; i < 4; i++ )
+		color[i] = bound( 0, color[i], 255 );
+
+	for( i = 0; i < 4; i++ )
+		Vector4Copy( color, spr_color[i] );
+
+	MB_NUM2SHADER( mb->shaderkey, shader );
+
+	R_PushMesh( &spr_mesh, MF_NOCULL | MF_TRIFAN | shader->features );
+}
+
+/*
+=================
+R_PushCorona
+=================
+*/
+static void R_PushCorona( const meshbuffer_t *mb )
+{
+	int i;
+	vec4_t color;
+	vec3_t origin, point;
+	dlight_t *light = r_dlights + ( -mb->infokey - 1 );
+	float radius = light->intensity, colorscale;
+	float up = radius, down = -radius, left = -radius, right = radius;
+	ref_shader_t *shader;
+
+	VectorCopy( light->origin, origin );
+
+	VectorMA( origin, down, RI.vup, point );
+	VectorMA( point, -left, RI.vright, spr_xyz[0] );
+	VectorMA( point, -right, RI.vright, spr_xyz[3] );
+
+	VectorMA( origin, up, RI.vup, point );
+	VectorMA( point, -left, RI.vright, spr_xyz[1] );
+	VectorMA( point, -right, RI.vright, spr_xyz[2] );
+
+	colorscale = 255.0 * bound( 0, r_coronascale->value, 1.0 );
+	Vector4Set( color,
+		light->color[0] * colorscale,
+		light->color[1] * colorscale,
+		light->color[2] * colorscale,
+		255 );
+	for( i = 0; i < 4; i++ )
+		color[i] = bound( 0, color[i], 255 );
+
+	for( i = 0; i < 4; i++ )
+		Vector4Copy( color, spr_color[i] );
+
+	MB_NUM2SHADER( mb->shaderkey, shader );
+
+	R_PushMesh( &spr_mesh, MF_NOCULL | MF_TRIFAN | shader->features );
+}
+
+#ifdef QUAKE2_JUNK
+/*
+=================
+R_PushSpriteModel
+=================
+*/
+bool R_PushSpriteModel( const meshbuffer_t *mb )
+{
+	sframe_t *frame;
+	smodel_t *psprite;
+	ref_entity_t *e = RI.currententity;
+	ref_model_t	*model = e->model;
+
+	psprite = ( smodel_t * )model->extradata;
+	frame = psprite->frames + e->frame;
+
+	return R_PushSprite( mb, e->rotation, frame->origin_x, frame->origin_x - frame->width, frame->height - frame->origin_y, -frame->origin_y );
+}
+#endif
+
+/*
+=================
+R_PushSpritePoly
+=================
+*/
+bool R_PushSpritePoly( const meshbuffer_t *mb )
+{
+	ref_entity_t *e = RI.currententity;
+
+	if( ( mb->sortkey & 3 ) == MB_CORONA )
+	{
+		R_PushCorona( mb );
+		return false;
+	}
+	if( mb->infokey > 0 )
+	{
+		R_PushFlareSurf( mb );
+		return false;
+	}
+
+	return R_PushSprite( mb, e->rotation, -e->radius, e->radius, e->radius, -e->radius );
+}
+
+#ifdef QUAKE2_JUNK
+/*
+=================
+R_AddSpriteModelToList
+=================
+*/
+static void R_AddSpriteModelToList( ref_entity_t *e )
+{
+	sframe_t *frame;
+	smodel_t *psprite;
+	ref_model_t	*model = e->model;
+	float dist;
+	meshbuffer_t *mb;
+
+	if( !( psprite = ( ( smodel_t * )model->extradata ) ) )
+		return;
+
+	dist =
+		( e->origin[0] - RI.refdef.vieworg[0] ) * RI.vpn[0] +
+		( e->origin[1] - RI.refdef.vieworg[1] ) * RI.vpn[1] +
+		( e->origin[2] - RI.refdef.vieworg[2] ) * RI.vpn[2];
+	if( dist < 0 )
+		return; // cull it because we don't want to sort unneeded things
+
+	e->frame %= psprite->numframes;
+	frame = psprite->frames + e->frame;
+
+	if( RI.refdef.rdflags & ( RDF_PORTALINVIEW|RDF_SKYPORTALINVIEW ) || ( RI.params & RP_SKYPORTALVIEW ) )
+	{
+		if( R_VisCullSphere( e->origin, frame->radius ) )
+			return;
+	}
+
+	// select skin
+	if( e->customShader )
+		mb = R_AddMeshToList( MB_MODEL, R_FogForSphere( e->origin, frame->radius ), e->customShader, -1 );
+	else
+		mb = R_AddMeshToList( MB_MODEL, R_FogForSphere( e->origin, frame->radius ), frame->shader, -1 );
+	if( mb )
+		mb->shaderkey |= ( bound( 1, 0x4000 - (unsigned int)dist, 0x4000 - 1 ) << 12 );
+}
+#endif
+
+/*
+=================
+R_AddSpritePolyToList
+=================
+*/
+static void R_AddSpritePolyToList( ref_entity_t *e )
+{
+	float dist;
+	meshbuffer_t *mb;
+
+	dist =
+		( e->origin[0] - RI.refdef.vieworg[0] ) * RI.vpn[0] +
+		( e->origin[1] - RI.refdef.vieworg[1] ) * RI.vpn[1] +
+		( e->origin[2] - RI.refdef.vieworg[2] ) * RI.vpn[2];
+	if( dist < 0 )
+		return; // cull it because we don't want to sort unneeded things
+	if( RI.refdef.rdflags & ( RDF_PORTALINVIEW|RDF_SKYPORTALINVIEW ) || ( RI.params & RP_SKYPORTALVIEW ) )
+	{
+		if( R_VisCullSphere( e->origin, e->radius ) )
+			return;
+	}
+
+	mb = R_AddMeshToList( MB_SPRITE, R_FogForSphere( e->origin, e->radius ), e->customShader, -1 );
+	if( mb )
+		mb->shaderkey |= ( bound( 1, 0x4000 - (unsigned int)dist, 0x4000 - 1 ) << 12 );
+}
+
+/*
+=================
+R_SpriteOverflow
+=================
+*/
+bool R_SpriteOverflow( void )
+{
+	return R_MeshOverflow( &spr_mesh );
+}
+
+//==================================================================================
+
+static vec4_t pic_xyz[4] = { {0,0,0,1}, {0,0,0,1}, {0,0,0,1}, {0,0,0,1} };
+static vec2_t pic_st[4];
+static rgba_t pic_colors[4];
+static mesh_t pic_mesh = { 4, pic_xyz, pic_xyz, NULL, pic_st, { 0, 0, 0, 0 }, { pic_colors, pic_colors, pic_colors, pic_colors }, 6, NULL };
+static meshbuffer_t pic_mbuffer;
+
+/*
+===============
+R_Set2DMode
+===============
+*/
+void R_Set2DMode( bool enable )
+{
+	if( enable )
+	{
+		if( glState.in2DMode )
+			return;
+
+		// set 2D virtual screen size
+		qglScissor( 0, 0, glState.width, glState.height );
+		qglViewport( 0, 0, glState.width, glState.height );
+		qglMatrixMode( GL_PROJECTION );
+		qglLoadIdentity();
+		qglOrtho( 0, glState.width, glState.height, 0, -99999, 99999 );
+		qglMatrixMode( GL_MODELVIEW );
+		qglLoadIdentity();
+
+		GL_Cull( 0 );
+		GL_SetState( GLSTATE_NO_DEPTH_TEST );
+
+		qglColor4f( 1, 1, 1, 1 );
+
+		glState.in2DMode = true;
+		RI.currententity = RI.previousentity = NULL;
+		RI.currentmodel = NULL;
+
+		pic_mbuffer.infokey = -1;
+		pic_mbuffer.shaderkey = 0;
+	}
+	else
+	{
+		if( pic_mbuffer.infokey != -1 )
+		{
+			R_RenderMeshBuffer( &pic_mbuffer );
+			pic_mbuffer.infokey = -1;
+		}
+
+		glState.in2DMode = false;
+	}
+}
+
+/*
+===============
+R_DrawStretchPic
+===============
+*/
+void R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, shader_t shadernum )
+{
+	int		bcolor;
+	ref_shader_t	*shader = &r_shaders[shadernum];	// FIXME: check bounds
+
+	if( !shader ) return;
+
+	// lower-left
+	Vector2Set( pic_xyz[0], x, y );
+	Vector2Set( pic_st[0], s1, t1 );
+	Vector4Set( pic_colors[0], R_FloatToByte( glState.draw_color[0] ), R_FloatToByte( glState.draw_color[1] ), 
+		R_FloatToByte( glState.draw_color[2] ), R_FloatToByte( glState.draw_color[3] ));
+	bcolor = *(int *)pic_colors[0];
+
+	// lower-right
+	Vector2Set( pic_xyz[1], x+w, y );
+	Vector2Set( pic_st[1], s2, t1 );
+	*(int *)pic_colors[1] = bcolor;
+
+	// upper-right
+	Vector2Set( pic_xyz[2], x+w, y+h );
+	Vector2Set( pic_st[2], s2, t2 );
+	*(int *)pic_colors[2] = bcolor;
+
+	// upper-left
+	Vector2Set( pic_xyz[3], x, y+h );
+	Vector2Set( pic_st[3], s1, t2 );
+	*(int *)pic_colors[3] = bcolor;
+
+	if( pic_mbuffer.shaderkey != (int)shader->sortkey || -pic_mbuffer.infokey-1+4 > MAX_ARRAY_VERTS )
+	{
+		if( pic_mbuffer.shaderkey )
+		{
+			pic_mbuffer.infokey = -1;
+			R_RenderMeshBuffer( &pic_mbuffer );
+		}
+	}
+
+	pic_mbuffer.infokey -= 4;
+	pic_mbuffer.shaderkey = shader->sortkey;
+
+	// upload video right before rendering
+	if( shader->flags & SHADER_VIDEOMAP )
+		R_UploadCinematicShader( shader );
+
+	R_PushMesh( &pic_mesh, MF_TRIFAN | shader->features | ( r_shownormals->integer ? MF_NORMALS : 0 ) );
+}
+
+/*
+=============
+R_DrawStretchRaw
+=============
+*/
+void R_DrawStretchRaw( int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw )
+{
+	int samples = 3;
+
+	GL_Bind( 0, r_cintexture );
+
+	R_Upload32( &data, cols, rows, IT_CINEMATIC, NULL, NULL, &samples, ( cols == r_cintexture->width && rows == r_cintexture->height ) );
+
+	r_cintexture->width = cols;
+	r_cintexture->height = rows;
+
+	qglBegin( GL_QUADS );
+	qglTexCoord2f( 0, 0 );
+	qglVertex2f( x, y );
+	qglTexCoord2f( 1, 0 );
+	qglVertex2f( x + w, y );
+	qglTexCoord2f( 1, 1 );
+	qglVertex2f( x + w, y + h );
+	qglTexCoord2f( 0, 1 );
+	qglVertex2f( x, y + h );
+	qglEnd();
+}
+
+/*
+============
+R_PolyBlend
+============
+*/
+static void R_PolyBlend( void )
+{
+	if( !r_polyblend->integer )
+		return;
+	if( RI.refdef.blend[3] < 0.01f )
+		return;
+
+	qglMatrixMode( GL_PROJECTION );
+	qglLoadIdentity();
+	qglOrtho( 0, 1, 1, 0, -99999, 99999 );
+
+	qglMatrixMode( GL_MODELVIEW );
+	qglLoadIdentity();
+
+	GL_Cull( 0 );
+	GL_SetState( GLSTATE_NO_DEPTH_TEST|GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA );
+
+	qglDisable( GL_TEXTURE_2D );
+
+	qglColor4fv( RI.refdef.blend );
+
+	qglBegin( GL_TRIANGLES );
+	qglVertex2f( -5, -5 );
+	qglVertex2f( 10, -5 );
+	qglVertex2f( -5, 10 );
+	qglEnd();
+
+	qglEnable( GL_TEXTURE_2D );
+
+	qglColor4f( 1, 1, 1, 1 );
+}
+
+/*
+===============
+R_ApplySoftwareGamma
+===============
+*/
+static void R_ApplySoftwareGamma( void )
+{
+	double f, div;
+
+	// apply software gamma
+	if( !r_ignorehwgamma->integer )
+		return;
+
+	qglMatrixMode( GL_PROJECTION );
+	qglLoadIdentity();
+	qglOrtho( 0, 1, 1, 0, -99999, 99999 );
+
+	qglMatrixMode( GL_MODELVIEW );
+	qglLoadIdentity();
+
+	GL_Cull( 0 );
+	GL_SetState( GLSTATE_NO_DEPTH_TEST | GLSTATE_SRCBLEND_DST_COLOR | GLSTATE_DSTBLEND_ONE );
+
+	qglDisable( GL_TEXTURE_2D );
+
+	if( r_overbrightbits->integer > 0 )
+		div = 0.5 * (double)( 1 << r_overbrightbits->integer );
+	else
+		div = 0.5;
+	f = div + r_gamma->value;
+	f = bound( 0.1f, f, 5.0f );
+
+	qglBegin( GL_TRIANGLES );
+
+	while( f >= 1.01f )
+	{
+		if( f >= 2 )
+			qglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
+		else
+			qglColor4f( f - 1.0f, f - 1.0f, f - 1.0f, 1.0f );
+
+		qglVertex2f( -5, -5 );
+		qglVertex2f( 10, -5 );
+		qglVertex2f( -5, 10 );
+		f *= 0.5;
+	}
+
+	qglEnd();
+
+	qglEnable( GL_TEXTURE_2D );
+
+	qglColor4f( 1, 1, 1, 1 );
+}
+
+//=============================================================================
+
+#ifdef HARDWARE_OUTLINES
+
+static ref_shader_t *r_outlineShader;
+
+/*
+===============
+R_InitOutlines
+===============
+*/
+void R_InitOutlines( void )
+{
+	r_outlineShader = R_LoadShader( "celloutline/default", SHADER_OUTLINE, false, 0, SHADER_INVALID );
+}
+
+/*
+===============
+R_AddModelMeshOutline
+===============
+*/
+void R_AddModelMeshOutline( unsigned int modhandle, mfog_t *fog, int meshnum )
+{
+	meshbuffer_t *mb = R_AddMeshToList( MB_MODEL, fog, r_outlineShader, -( meshnum+1 ) );
+	if( mb )
+		mb->LODModelHandle = modhandle;
+}
+#endif
+
+//=======================================================================
+
+/*
+===============
+R_SetupFrustum
+===============
+*/
+static void R_SetupFrustum( void )
+{
+	int i;
+	vec3_t farPoint;
+
+	// 0 - left
+	// 1 - right
+	// 2 - down
+	// 3 - up
+	// 4 - farclip
+
+	// rotate RI.vpn right by FOV_X/2 degrees
+	RotatePointAroundVector( RI.frustum[0].normal, RI.vup, RI.vpn, -( 90-RI.refdef.fov_x / 2 ) );
+	// rotate RI.vpn left by FOV_X/2 degrees
+	RotatePointAroundVector( RI.frustum[1].normal, RI.vup, RI.vpn, 90-RI.refdef.fov_x / 2 );
+	// rotate RI.vpn up by FOV_X/2 degrees
+	RotatePointAroundVector( RI.frustum[2].normal, RI.vright, RI.vpn, 90-RI.refdef.fov_y / 2 );
+	// rotate RI.vpn down by FOV_X/2 degrees
+	RotatePointAroundVector( RI.frustum[3].normal, RI.vright, RI.vpn, -( 90 - RI.refdef.fov_y / 2 ) );
+	// negate forward vector
+	VectorNegate( RI.vpn, RI.frustum[4].normal );
 
 	for( i = 0; i < 4; i++ )
 	{
-		r_frustum[i].dist = DotProduct( r_refdef.vieworg, r_frustum[i].normal );
-		PlaneClassify( &r_frustum[i] );
+		RI.frustum[i].dist = DotProduct( RI.viewOrigin, RI.frustum[i].normal );
+		PlaneClassify( &RI.frustum[i] );
 	}
+
+	VectorMA( RI.viewOrigin, RI.farClip, RI.vpn, farPoint );
+	RI.frustum[i].dist = DotProduct( farPoint, RI.frustum[i].normal );
+	PlaneClassify( &RI.frustum[i] );
 }
 
 /*
-=================
-R_SetFarClip
-=================
+===============
+R_FarClip
+===============
 */
-static float R_SetFarClip( void )
+static float R_FarClip( void )
 {
-	float	farDist, dirDist, worldDist = 0;
-	int	i;
+	float farclip_dist;
 
-	if( r_refdef.onlyClientDraw ) return 4096.0f;
-
-	dirDist = DotProduct( r_refdef.vieworg, r_forward );
-	farDist = dirDist + 256.0;
-
-	for( i = 0; i < 3; i++ )
+	if( r_worldmodel && !( RI.refdef.rdflags & RDF_NOWORLDMODEL ) )
 	{
-		if( r_forward[i] < 0 )
-			worldDist += (r_worldMins[i] * r_forward[i]);
-		else worldDist += (r_worldMaxs[i] * r_forward[i]);
+		int i;
+		float dist;
+		vec3_t tmp;
+
+		farclip_dist = 0;
+		for( i = 0; i < 8; i++ )
+		{
+			tmp[0] = ( ( i & 1 ) ? RI.visMins[0] : RI.visMaxs[0] );
+			tmp[1] = ( ( i & 2 ) ? RI.visMins[1] : RI.visMaxs[1] );
+			tmp[2] = ( ( i & 4 ) ? RI.visMins[2] : RI.visMaxs[2] );
+
+			dist = VectorDistance2( tmp, RI.viewOrigin );
+			farclip_dist = max( farclip_dist, dist );
+		}
+
+		farclip_dist = sqrt( farclip_dist );
+
+		if( r_worldbrushmodel->globalfog )
+		{
+			float fogdist = r_worldbrushmodel->globalfog->shader->fog_dist;
+			if( farclip_dist > fogdist )
+				farclip_dist = fogdist;
+			else
+				RI.clipFlags &= ~16;
+		}
+	}
+	else
+	{
+		farclip_dist = 2048;
 	}
 
-	if( farDist < worldDist ) farDist = worldDist;
-	return farDist - dirDist + 256.0;
+	return max( r_farclip_min, farclip_dist ) + r_farclip_bias;
 }
 
 /*
-=================
-R_SetMatrices
-=================
+=============
+R_SetupProjectionMatrix
+=============
 */
-static void R_SetMatrices( void )
+static void R_SetupProjectionMatrix( const ref_params_t *rd, mat4x4_t m )
 {
-	float	xMax, xMin, yMax, yMin;
-	float	xDiv, yDiv, zDiv;
-	float	zNear, zFar;
-	
-	zNear = 4.0;
-	zFar = R_SetFarClip();
+	GLdouble xMin, xMax, yMin, yMax, zNear, zFar;
 
-	xMax = zNear * tan(r_refdef.fov_x * M_PI / 360.0);
-	xMin = -xMax;
+	if( rd->rdflags & RDF_NOWORLDMODEL )
+		RI.farClip = 2048;
+	else
+		RI.farClip = R_FarClip();
 
-	yMax = zNear * tan(r_refdef.fov_y * M_PI / 360.0);
+	zNear = Z_NEAR;
+	zFar = RI.farClip;
+
+	yMax = zNear *tan( rd->fov_y *M_PI / 360.0 );
 	yMin = -yMax;
 
-	xDiv = 1.0 / (xMax - xMin);
-	yDiv = 1.0 / (yMax - yMin);
-	zDiv = 1.0 / (zFar - zNear);
+	xMax = zNear *tan( rd->fov_x *M_PI / 360.0 );
+	xMin = -xMax;
 
-	gl_projectionMatrix[ 0] = (2.0 * zNear) * xDiv;
-	gl_projectionMatrix[ 1] = 0.0;
-	gl_projectionMatrix[ 2] = 0.0;
-	gl_projectionMatrix[ 3] = 0.0;
-	gl_projectionMatrix[ 4] = 0.0;
-	gl_projectionMatrix[ 5] = (2.0 * zNear) * yDiv;
-	gl_projectionMatrix[ 6] = 0.0;
-	gl_projectionMatrix[ 7] = 0.0;
-	gl_projectionMatrix[ 8] = (xMax + xMin) * xDiv;
-	gl_projectionMatrix[ 9] = (yMax + yMin) * yDiv;
-	gl_projectionMatrix[10] = -(zNear + zFar) * zDiv;
-	gl_projectionMatrix[11] = -1.0;
-	gl_projectionMatrix[12] = 0.0;
-	gl_projectionMatrix[13] = 0.0;
-	gl_projectionMatrix[14] = -(2.0 * zNear * zFar) * zDiv;
-	gl_projectionMatrix[15] = 0.0;
+	xMin += -( 2 * glState.cameraSeparation ) / zNear;
+	xMax += -( 2 * glState.cameraSeparation ) / zNear;
 
-#if 0
-	// classic slow version (used for debug)
-	Matrix4x4_LoadIdentity( r_worldMatrix );
-	Matrix4x4_ConcatRotate( r_worldMatrix, -90, 1, 0, 0 );	    // put Z going up
-	Matrix4x4_ConcatRotate( r_worldMatrix,	90, 0, 0, 1 );	    // put Z going up
-	Matrix4x4_ConcatRotate( r_worldMatrix, -r_refdef.viewangles[2],  1, 0, 0 );
-	Matrix4x4_ConcatRotate( r_worldMatrix, -r_refdef.viewangles[0],  0, 1, 0 );
-	Matrix4x4_ConcatRotate( r_worldMatrix, -r_refdef.viewangles[1],  0, 0, 1 );
-	Matrix4x4_ConcatTranslate( r_worldMatrix, -r_refdef.vieworg[0],  -r_refdef.vieworg[1],  -r_refdef.vieworg[2] );
-#else
-	Matrix4x4_CreateModelview_FromAxis( r_worldMatrix, r_forward, r_right, r_up, r_origin );
-#endif
-	gl_textureMatrix[ 0] = r_right[0];
-	gl_textureMatrix[ 1] = -r_right[1];
-	gl_textureMatrix[ 2] = -r_right[2];
-	gl_textureMatrix[ 3] = 0.0;
-	gl_textureMatrix[ 4] = -r_up[0];
-	gl_textureMatrix[ 5] = r_up[1];
-	gl_textureMatrix[ 6] = r_up[2];
-	gl_textureMatrix[ 7] = 0.0;
-	gl_textureMatrix[ 8] = r_forward[0];
-	gl_textureMatrix[ 9] = -r_forward[1];
-	gl_textureMatrix[10] = -r_forward[2];
-	gl_textureMatrix[11] = 0.0;
-	gl_textureMatrix[12] = 0.0;
-	gl_textureMatrix[13] = 0.0;
-	gl_textureMatrix[14] = 0.0;
-	gl_textureMatrix[15] = 1.0;
+	m[0] = ( 2.0 * zNear ) / ( xMax - xMin );
+	m[1] = 0.0f;
+	m[2] = 0.0f;
+	m[3] = 0.0f;
+	m[4] = 0.0f;
+	m[5] = ( 2.0 * zNear ) / ( yMax - yMin );
+	m[6] = 0.0f;
+	m[7] = 0.0f;
+	m[8] = ( xMax + xMin ) / ( xMax - xMin );
+	m[9] = ( yMax + yMin ) / ( yMax - yMin );
+	m[10] = -( zFar + zNear ) / ( zFar - zNear );
+	m[11] = -1.0f;
+	m[12] = 0.0f;
+	m[13] = 0.0f;
+	m[14] = -( 2.0 * zFar * zNear ) / ( zFar - zNear );
+	m[15] = 0.0f;
 }
 
 /*
-=================
+=============
+R_SetupModelviewMatrix
+=============
+*/
+static void R_SetupModelviewMatrix( const ref_params_t *rd, mat4x4_t m )
+{
+#if 0
+	Matrix4_Identity( m );
+	Matrix4_Rotate( m, -90, 1, 0, 0 );
+	Matrix4_Rotate( m, 90, 0, 0, 1 );
+#else
+	Vector4Set( &m[0], 0, 0, -1, 0 );
+	Vector4Set( &m[4], -1, 0, 0, 0 );
+	Vector4Set( &m[8], 0, 1, 0, 0 );
+	Vector4Set( &m[12], 0, 0, 0, 1 );
+#endif
+	Matrix4_Rotate( m, -rd->viewangles[2], 1, 0, 0 );
+	Matrix4_Rotate( m, -rd->viewangles[0], 0, 1, 0 );
+	Matrix4_Rotate( m, -rd->viewangles[1], 0, 0, 1 );
+	Matrix4_Translate( m, -rd->vieworg[0], -rd->vieworg[1], -rd->vieworg[2] );
+}
+
+/*
+===============
+R_SetupFrame
+===============
+*/
+static void R_SetupFrame( void )
+{
+	mleaf_t *leaf;
+
+	// build the transformation matrix for the given view angles
+	VectorCopy( RI.refdef.vieworg, RI.viewOrigin );
+	AngleVectors( RI.refdef.viewangles, RI.viewAxis[0], RI.viewAxis[1], RI.viewAxis[2] );
+	RI.vpn = RI.viewAxis[0];
+	RI.vright = RI.viewAxis[1];
+	RI.vup = RI.viewAxis[2];
+
+	if( RI.params & RP_SHADOWMAPVIEW )
+		return;
+
+	r_framecount++;
+
+	RI.lod_dist_scale_for_fov = tan( RI.refdef.fov_x * ( M_PI/180 ) * 0.5f );
+
+	// current viewcluster
+	if( !( RI.refdef.rdflags & RDF_NOWORLDMODEL ) )
+	{
+		VectorCopy( r_worldmodel->mins, RI.visMins );
+		VectorCopy( r_worldmodel->maxs, RI.visMaxs );
+
+		if( !( RI.params & RP_OLDVIEWCLUSTER ) )
+		{
+			r_oldviewcluster = r_viewcluster;
+			leaf = Mod_PointInLeaf( RI.pvsOrigin, r_worldmodel );
+			r_viewcluster = leaf->cluster;
+		}
+	}
+}
+
+/*
+===============
+R_SetupViewMatrices
+===============
+*/
+static void R_SetupViewMatrices( void )
+{
+	R_SetupModelviewMatrix( &RI.refdef, RI.worldviewMatrix );
+	if( RI.params & RP_SHADOWMAPVIEW )
+	{
+		int i;
+		float x1, x2, y1, y2;
+		int ix1, ix2, iy1, iy2;
+		int sizex = RI.refdef.viewport[2], sizey = RI.refdef.viewport[3];
+		int diffx, diffy;
+		shadowGroup_t *group = RI.shadowGroup;
+
+		R_SetupProjectionMatrix( &RI.refdef, RI.projectionMatrix );
+		Matrix4_Multiply( RI.projectionMatrix, RI.worldviewMatrix, RI.worldviewProjectionMatrix );
+
+		// compute optimal fov to increase depth precision (so that shadow group objects are
+		// as close to the nearplane as possible)
+		// note that it's suboptimal to use bbox calculated in worldspace (FIXME)
+		x1 = y1 = 999999;
+		x2 = y2 = -999999;
+		for( i = 0; i < 8; i++ )
+		{                   // compute and rotate a full bounding box
+			vec3_t v, tmp;
+
+			tmp[0] = ( ( i & 1 ) ? group->mins[0] : group->maxs[0] );
+			tmp[1] = ( ( i & 2 ) ? group->mins[1] : group->maxs[1] );
+			tmp[2] = ( ( i & 4 ) ? group->mins[2] : group->maxs[2] );
+
+			// transform to screen
+			R_TransformToScreen_Vec3( tmp, v );
+			x1 = min( x1, v[0] ); y1 = min( y1, v[1] );
+			x2 = max( x2, v[0] ); y2 = max( y2, v[1] );
+		}
+
+		// give it 1 pixel gap on both sides
+		ix1 = x1 - 1.0f; ix2 = x2 + 1.0f;
+		iy1 = y1 - 1.0f; iy2 = y2 + 1.0f;
+
+		diffx = sizex - min( ix1, sizex - ix2 ) * 2;
+		diffy = sizey - min( iy1, sizey - iy2 ) * 2;
+
+		// adjust fov
+		RI.refdef.fov_x = 2 * RAD2DEG( atan( (float)diffx / (float)sizex ) );
+		RI.refdef.fov_y = 2 * RAD2DEG( atan( (float)diffy / (float)sizey ) );
+	}
+	R_SetupProjectionMatrix( &RI.refdef, RI.projectionMatrix );
+	if( RI.params & RP_MIRRORVIEW )
+		RI.projectionMatrix[0] = -RI.projectionMatrix[0];
+	Matrix4_Multiply( RI.projectionMatrix, RI.worldviewMatrix, RI.worldviewProjectionMatrix );
+}
+
+/*
+=============
+R_Clear
+=============
+*/
+static void R_Clear( int bitMask )
+{
+	int bits;
+
+	bits = GL_DEPTH_BUFFER_BIT;
+
+	if( !( RI.refdef.rdflags & RDF_NOWORLDMODEL ) && r_fastsky->integer )
+		bits |= GL_COLOR_BUFFER_BIT;
+	if( glState.stencilEnabled && ( r_shadows->integer >= SHADOW_PLANAR ) )
+		bits |= GL_STENCIL_BUFFER_BIT;
+
+	bits &= bitMask;
+
+	if( bits & GL_STENCIL_BUFFER_BIT )
+		qglClearStencil( 128 );
+
+	if( bits & GL_COLOR_BUFFER_BIT )
+	{
+		byte *color = r_worldmodel && !( RI.refdef.rdflags & RDF_NOWORLDMODEL ) && r_worldbrushmodel->globalfog ?
+			r_worldbrushmodel->globalfog->shader->fog_color : mapConfig.environmentColor;
+		qglClearColor( (float)color[0]*( 1.0/255.0 ), (float)color[1]*( 1.0/255.0 ), (float)color[2]*( 1.0/255.0 ), 1 );
+	}
+
+	qglClear( bits );
+
+	gldepthmin = 0;
+	gldepthmax = 1;
+	qglDepthRange( gldepthmin, gldepthmax );
+}
+
+/*
+=============
+R_SetupGL
+=============
+*/
+static void R_SetupGL( void )
+{
+	qglScissor( RI.scissor[0], RI.scissor[1], RI.scissor[2], RI.scissor[3] );
+	qglViewport( RI.viewport[0], RI.viewport[1], RI.viewport[2], RI.viewport[3] );
+
+	qglMatrixMode( GL_PROJECTION );
+	qglLoadMatrixf( RI.projectionMatrix );
+
+	qglMatrixMode( GL_MODELVIEW );
+	qglLoadMatrixf( RI.worldviewMatrix );
+
+	if( RI.params & RP_CLIPPLANE )
+	{
+		GLdouble clip[4];
+		cplane_t *p = &RI.clipPlane;
+
+		clip[0] = p->normal[0];
+		clip[1] = p->normal[1];
+		clip[2] = p->normal[2];
+		clip[3] = -p->dist;
+
+		qglClipPlane( GL_CLIP_PLANE0, clip );
+		qglEnable( GL_CLIP_PLANE0 );
+	}
+
+	if( RI.params & RP_FLIPFRONTFACE )
+		GL_FrontFace( !glState.frontFace );
+
+	if( RI.params & RP_SHADOWMAPVIEW )
+	{
+		qglShadeModel( GL_FLAT );
+		qglColorMask( 0, 0, 0, 0 );
+		qglPolygonOffset( 1, 4 );
+		if( prevRI.params & RP_CLIPPLANE )
+			qglDisable( GL_CLIP_PLANE0 );
+	}
+
+	GL_Cull( GL_FRONT );
+	GL_SetState( GLSTATE_DEPTHWRITE );
+}
+
+/*
+=============
+R_EndGL
+=============
+*/
+static void R_EndGL( void )
+{
+	if( RI.params & RP_SHADOWMAPVIEW )
+	{
+		qglPolygonOffset( -1, -2 );
+		qglColorMask( 1, 1, 1, 1 );
+		qglShadeModel( GL_SMOOTH );
+		if( prevRI.params & RP_CLIPPLANE )
+			qglEnable( GL_CLIP_PLANE0 );
+	}
+
+	if( RI.params & RP_FLIPFRONTFACE )
+		GL_FrontFace( !glState.frontFace );
+
+	if( RI.params & RP_CLIPPLANE )
+		qglDisable( GL_CLIP_PLANE0 );
+}
+
+
+/*
+=============
+R_CategorizeEntities
+=============
+*/
+static void R_CategorizeEntities( void )
+{
+	unsigned int i;
+
+	r_numnullentities = 0;
+	r_numbmodelentities = 0;
+
+	if( !r_drawentities->integer )
+		return;
+
+	for( i = 1; i < r_numEntities; i++ )
+	{
+		RI.previousentity = RI.currententity;
+		RI.currententity = &r_entities[i];
+
+		if( RI.currententity->rtype != RT_MODEL )
+			continue;
+
+		RI.currentmodel = RI.currententity->model;
+		if( !RI.currentmodel )
+		{
+			r_nullentities[r_numnullentities++] = RI.currententity;
+			continue;
+		}
+
+		switch( RI.currentmodel->type )
+		{
+		case mod_brush:
+			r_bmodelentities[r_numbmodelentities++] = RI.currententity;
+			break;
+		case mod_alias:
+		case mod_studio:
+			if( !( RI.currententity->renderfx & ( RF_NOSHADOW|RF_PLANARSHADOW ) ) )
+				R_AddShadowCaster( RI.currententity ); // build groups and mark shadow casters
+			break;
+#ifdef QUAKE2_JUNK
+		case mod_sprite:
+			break;
+#endif
+		default:
+			Host_Error( "%s: bad modeltype\n", RI.currentmodel->name );
+			break;
+		}
+	}
+}
+
+/*
+=============
+R_CullEntities
+=============
+*/
+static void R_CullEntities( void )
+{
+	unsigned int i;
+	ref_entity_t *e;
+	bool culled;
+
+	memset( r_entVisBits, 0, sizeof( r_entVisBits ) );
+	if( !r_drawentities->integer )
+		return;
+
+	for( i = 1; i < r_numEntities; i++ )
+	{
+		RI.previousentity = RI.currententity;
+		RI.currententity = e = &r_entities[i];
+		culled = true;
+
+		switch( e->rtype )
+		{
+		case RT_MODEL:
+			if( !e->model )
+				break;
+			switch( e->model->type )
+			{
+			case mod_alias:
+				culled = R_CullAliasModel( e );
+				break;
+			case mod_studio:
+				culled = R_CullSkeletalModel( e );
+				break;
+			case mod_brush:
+				culled = R_CullBrushModel( e );
+				break;
+#ifdef QUAKE2_JUNK
+			case mod_sprite:
+				culled = false;
+				break;
+#endif
+			default:
+				break;
+			}
+			break;
+		case RT_SPRITE:
+			culled = ( e->radius <= 0 ) || ( e->customShader == NULL );
+			break;
+		default:
+			break;
+		}
+
+		if( !culled )
+			r_entVisBits[i>>3] |= ( 1<<( i&7 ) );
+	}
+}
+
+/*
+=============
+R_DrawNullModel
+=============
+*/
+static void R_DrawNullModel( void )
+{
+	qglBegin( GL_LINES );
+
+	qglColor4f( 1, 0, 0, 0.5 );
+	qglVertex3fv( RI.currententity->origin );
+	qglVertex3f( RI.currententity->origin[0] + RI.currententity->axis[0][0] * 15,
+		RI.currententity->origin[1] + RI.currententity->axis[0][1] * 15,
+		RI.currententity->origin[2] + RI.currententity->axis[0][2] * 15 );
+
+	qglColor4f( 0, 1, 0, 0.5 );
+	qglVertex3fv( RI.currententity->origin );
+	qglVertex3f( RI.currententity->origin[0] - RI.currententity->axis[1][0] * 15,
+		RI.currententity->origin[1] - RI.currententity->axis[1][1] * 15,
+		RI.currententity->origin[2] - RI.currententity->axis[1][2] * 15 );
+
+	qglColor4f( 0, 0, 1, 0.5 );
+	qglVertex3fv( RI.currententity->origin );
+	qglVertex3f( RI.currententity->origin[0] + RI.currententity->axis[2][0] * 15,
+		RI.currententity->origin[1] + RI.currententity->axis[2][1] * 15,
+		RI.currententity->origin[2] + RI.currententity->axis[2][2] * 15 );
+
+	qglEnd();
+}
+
+/*
+=============
+R_DrawBmodelEntities
+=============
+*/
+static void R_DrawBmodelEntities( void )
+{
+	int i, j;
+
+	for( i = 0; i < r_numbmodelentities; i++ )
+	{
+		RI.previousentity = RI.currententity;
+		RI.currententity = r_bmodelentities[i];
+		j = RI.currententity - r_entities;
+		if( r_entVisBits[j>>3] & ( 1<<( j&7 ) ) )
+			R_AddBrushModelToList( RI.currententity );
+	}
+}
+
+/*
+=============
+R_DrawRegularEntities
+=============
+*/
+static void R_DrawRegularEntities( void )
+{
+	unsigned int i;
+	ref_entity_t *e;
+	bool shadowmap = ( ( RI.params & RP_SHADOWMAPVIEW ) != 0 );
+
+	for( i = 1; i < r_numEntities; i++ )
+	{
+		RI.previousentity = RI.currententity;
+		RI.currententity = e = &r_entities[i];
+
+		if( shadowmap )
+		{
+			if( e->flags & RF_NOSHADOW )
+				continue;
+			if( r_entShadowBits[i] & RI.shadowGroup->bit )
+				goto add; // shadow caster
+		}
+		if( !( r_entVisBits[i>>3] & ( 1<<( i&7 ) ) ) )
+			continue;
+
+add:
+		switch( e->rtype )
+		{
+		case RT_MODEL:
+			RI.currentmodel = e->model;
+			switch( RI.currentmodel->type )
+			{
+			case mod_alias:
+				R_AddAliasModelToList( e );
+				break;
+			case mod_studio:
+				R_AddSkeletalModelToList( e );
+				break;
+#ifdef QUAKE2_JUNK
+			case mod_sprite:
+				if( !shadowmap )
+					R_AddSpriteModelToList( e );
+				break;
+#endif
+			default:
+				break;
+			}
+			break;
+		case RT_SPRITE:
+			if( !shadowmap )
+				R_AddSpritePolyToList( e );
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+/*
+=============
+R_DrawNullEntities
+=============
+*/
+static void R_DrawNullEntities( void )
+{
+	int i;
+
+	if( !r_numnullentities )
+		return;
+
+	qglDisable( GL_TEXTURE_2D );
+	GL_SetState( GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA );
+
+	// draw non-transparent first
+	for( i = 0; i < r_numnullentities; i++ )
+	{
+		RI.previousentity = RI.currententity;
+		RI.currententity = r_nullentities[i];
+
+		if( RI.params & RP_MIRRORVIEW )
+		{
+			if( RI.currententity->flags & RF_WEAPONMODEL )
+				continue;
+		}
+		else
+		{
+			if( RI.currententity->flags & RF_VIEWERMODEL )
+				continue;
+		}
+		R_DrawNullModel();
+	}
+
+	qglEnable( GL_TEXTURE_2D );
+}
+
+/*
+=============
+R_DrawEntities
+=============
+*/
+static void R_DrawEntities( void )
+{
+	bool shadowmap = ( ( RI.params & RP_SHADOWMAPVIEW ) != 0 );
+
+	if( !r_drawentities->integer )
+		return;
+
+	if( !shadowmap )
+	{
+		R_CullEntities(); // mark visible entities in r_entVisBits
+
+		R_CullShadowmapGroups();
+	}
+
+	// we don't mark bmodel entities in RP_SHADOWMAPVIEW, only individual surfaces
+	R_DrawBmodelEntities();
+
+	if( OCCLUSION_QUERIES_ENABLED( RI ) )
+	{
+		R_EndOcclusionPass();
+	}
+
+	if( RI.params & RP_ENVVIEW )
+		return;
+
+	if( !shadowmap )
+		R_DrawShadowmaps(); // render to depth textures, mark shadowed entities and surfaces
+	else if( !( RI.params & RP_WORLDSURFVISIBLE ) || ( prevRI.shadowBits & RI.shadowGroup->bit ) )
+		return; // we're supposed to cast shadows but there are no visible surfaces for this light, so stop
+	// or we've already drawn and captured textures for this group
+
+	R_DrawRegularEntities();
+}
+
+
+/*
+===============
+R_RenderDebugSurface
+===============
+*/
+void R_RenderDebugSurface( void )
+{
+	trace_t tr;
+	vec3_t forward;
+	vec3_t start, end;
+
+	if( RI.params & RP_NONVIEWERREF || RI.refdef.rdflags & RDF_NOWORLDMODEL )
+		return;
+
+	r_debug_surface = NULL;
+	if( r_speeds->integer != 4 )
+		return;
+
+	VectorCopy( RI.vpn, forward );
+	VectorCopy( RI.viewOrigin, start );
+	VectorMA( start, 4096, forward, end );
+
+	r_debug_surface = R_TraceLine( &tr, start, end, 0 );
+	if( r_debug_surface && r_debug_surface->mesh && !r_showtris->integer )
+	{
+		RI.previousentity = NULL;
+		RI.currententity = (ref_entity_t *)tr.gp;
+
+		R_ClearMeshList( RI.meshlist );
+		R_AddMeshToList( MB_MODEL, NULL, r_debug_surface->shader, r_debug_surface - r_worldbrushmodel->surfaces + 1 );
+		R_DrawTriangleOutlines( true, false );
+	}
+}
+
+/*
+================
 R_RenderView
-=================
+
+RI.refdef must be set before the first call
+================
 */
 void R_RenderView( const ref_params_t *fd )
 {
-	if( r_skipfrontend->integer )
+	int msec = 0;
+	bool shadowMap = RI.params & RP_SHADOWMAPVIEW ? true : false;
+
+	RI.refdef = *fd;
+
+	R_ClearMeshList( RI.meshlist );
+
+	if( !r_worldmodel && !( RI.refdef.rdflags & RDF_NOWORLDMODEL ) )
+		Host_Error( "R_RenderView: NULL worldmodel\n" );
+
+	R_SetupFrame();
+
+	// we know the farclip so adjust fov before setting up the frustum
+	if( shadowMap )
+	{
+		R_SetupViewMatrices();
+	}
+	else if( OCCLUSION_QUERIES_ENABLED( RI ) )
+	{
+		R_SetupViewMatrices();
+
+		R_SetupGL();
+
+		R_Clear( ~( GL_STENCIL_BUFFER_BIT|GL_COLOR_BUFFER_BIT ) );
+
+		R_BeginOcclusionPass();
+	}
+
+	R_SetupFrustum();
+
+	if( r_speeds->integer )
+		msec = Sys_Milliseconds();
+	R_MarkLeaves();
+	if( r_speeds->integer )
+		r_mark_leaves += ( Sys_Milliseconds() - msec );
+
+	R_DrawWorld();
+
+	// we know the the farclip at this point after determining visible world leafs
+	if( !shadowMap )
+	{
+		R_SetupViewMatrices();
+
+		R_DrawCoronas();
+
+		if( r_speeds->integer )
+			msec = Sys_Milliseconds();
+		R_AddPolysToList();
+		if( r_speeds->integer )
+			r_add_polys += ( Sys_Milliseconds() - msec );
+	}
+
+	if( r_speeds->integer )
+		msec = Sys_Milliseconds();
+	R_DrawEntities();
+	if( r_speeds->integer )
+		r_add_entities += ( Sys_Milliseconds() - msec );
+
+	if( shadowMap )
+	{
+		if( !( RI.params & RP_WORLDSURFVISIBLE ) )
+			return; // we didn't cast shadows on anything, so stop
+		if( prevRI.shadowBits & RI.shadowGroup->bit )
+			return; // already drawn
+	}
+
+	if( r_speeds->integer )
+		msec = Sys_Milliseconds();
+	R_SortMeshes();
+	if( r_speeds->integer )
+		r_sort_meshes += ( Sys_Milliseconds() - msec );
+
+	R_DrawPortals();
+
+	if( r_portalonly->integer && !( RI.params & ( RP_MIRRORVIEW|RP_PORTALVIEW ) ) )
 		return;
 
-	r_numSolidMeshes = 0;
-	r_numTransMeshes = 0;
+	R_SetupGL();
 
-	r_refdef = *fd;
-	// set up frustum
-	R_SetFrustum();
+	R_Clear( shadowMap ? ~( GL_STENCIL_BUFFER_BIT|GL_COLOR_BUFFER_BIT ) : ~0 );
 
-	// build mesh lists
-	R_AddWorldToList();
-	R_AddEntitiesToList();
-	R_AddParticlesToList();
-	R_AddPolysToList();
+	if( r_speeds->integer )
+		msec = Sys_Milliseconds();
+	R_DrawMeshes();
+	if( r_speeds->integer )
+		r_draw_meshes += ( Sys_Milliseconds() - msec );
 
-	// sort mesh lists
-	R_QSortMeshes( r_solidMeshes, r_numSolidMeshes );
-	R_ISortMeshes( r_transMeshes, r_numTransMeshes );
+	R_BackendCleanUpTextureUnits();
 
-	// set up matrices
-	R_SetMatrices();
+	R_DrawTriangleOutlines( r_showtris->integer ? true : false, r_shownormals->integer ? true : false );
 
-	// go into 3D mode
-	GL_Setup3D();
+	R_RenderDebugSurface ();
 
-	// render everything
-	RB_RenderMeshes( r_solidMeshes, r_numSolidMeshes );
+	R_DrawNullEntities();
 
-	// R_RenderShadows();
-
-	RB_RenderMeshes( r_transMeshes, r_numTransMeshes );
-
-	// finish up
-	R_DrawNullModels();
-
-	RB_DebugGraphics();
-	R_ClearMeshes();
-
-	R_BloomBlend( fd );
+	R_EndGL();
 }
 
-// FIXME: copy screen into texRecatngle then draw as normal quad
-void RB_DrawPauseScreen( void )
+//=======================================================================
+
+/*
+===============
+R_UpdateSwapInterval
+===============
+*/
+static void R_UpdateSwapInterval( void )
 {
-	// don't apply post effects for custom window
-	if( r_refdef.onlyClientDraw ) return;
-
-	if( r_pause->modified )
+	if( r_swapinterval->modified )
 	{
-		// reset saturation value
-		if( !r_pause->value )
-			r_pause_alpha = 0.0f;
-		r_pause->modified = false;
-	}
-	if( !r_pause->value ) return;          
-	if( r_pause_alpha < 1.0f ) r_pause_alpha += 0.03f;
+		r_swapinterval->modified = false;
 
-	if( r_pause_alpha <= 1.0f || r_lefthand->modified )
-	{
-		int	k = r_pause_alpha * 255.0f;
-		int	i, s, r, g, b;
-
-		pglFlush();
-		pglReadPixels( 0, 0, r_width->integer, r_height->integer, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer );
-		for (i = 0; i < r_width->integer * r_height->integer * 3; i+=3)
+		if( !glState.stereoEnabled )
 		{
-			r = r_framebuffer[i+0];
-			g = r_framebuffer[i+1];
-			b = r_framebuffer[i+2];
-			s = (r + 2 * g + b) * k>>2; // simply bw recomputing
-			r_framebuffer[i+0] = (r*(255-k)+s)>>8;
-			r_framebuffer[i+1] = (g*(255-k)+s)>>8;
-			r_framebuffer[i+2] = (b*(255-k)+s)>>8;
+			if( qglSwapInterval )
+				qglSwapInterval( r_swapinterval->integer );
 		}
-		r_lefthand->modified = false;
 	}
-
-	// set custom orthogonal mode
-	pglMatrixMode( GL_PROJECTION );
-	pglLoadIdentity ();
-	pglOrtho( 0, r_width->integer, 0, r_height->integer, 0, 1.0f );
-	pglMatrixMode( GL_MODELVIEW );
-	pglLoadIdentity ();
-
-	pglDisable( GL_TEXTURE_2D );
-	pglRasterPos2f( 0, 0 );
-	pglDrawPixels( r_width->integer, r_height->integer, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer );
-	pglFlush();
-	pglEnable( GL_TEXTURE_2D );
 }
 
 /*
-=================
+===============
+R_UpdateHWGamma
+===============
+*/
+static void R_UpdateHWGamma( void )
+{
+	int i, v;
+	double invGamma, div;
+	unsigned short gammaRamp[3*256];
+
+	if( !glState.hwGamma )
+		return;
+
+	invGamma = 1.0 / bound( 0.5, r_gamma->value, 3 );
+	div = (double)( 1 << max( 0, r_overbrightbits->integer ) ) / 255.5;
+
+	for( i = 0; i < 256; i++ )
+	{
+		v = ( int )( 65535.0 * pow( ( (double)i + 0.5 ) * div, invGamma ) + 0.5 );
+		gammaRamp[i] = gammaRamp[i + 256] = gammaRamp[i + 512] = ( ( unsigned short )bound( 0, v, 65535 ) );
+	}
+
+	GLimp_SetGammaRamp( 256, gammaRamp );
+}
+
+/*
+===============
+R_BeginFrame
+===============
+*/
+void R_BeginFrame( void )
+{
+	glState.cameraSeparation = 0.0f;
+
+	if( gl_finish->integer && gl_delayfinish->integer )
+	{
+		// flush any remaining 2D bits
+//		R_Set2DMode( false );
+
+		// apply software gamma
+//		R_ApplySoftwareGamma ();
+
+		qglFinish();
+
+		GLimp_EndFrame();
+	}
+
+	GLimp_BeginFrame();
+
+	if( r_environment_color->modified )
+	{
+		VectorClear( mapConfig.environmentColor );
+		mapConfig.environmentColor[3] = 255;
+
+		if( r_environment_color->string[0] )
+		{
+			int r, g, b;
+
+			if( sscanf( r_environment_color->string, "%i %i %i", &r, &g, &b ) == 3 )
+			{
+				mapConfig.environmentColor[0] = bound( 0, r, 255 );
+				mapConfig.environmentColor[1] = bound( 0, g, 255 );
+				mapConfig.environmentColor[2] = bound( 0, b, 255 );
+			}
+			else
+			{
+				Cvar_Set( "r_environment_color", "" );
+			}
+		}
+
+		r_environment_color->modified = false;
+	}
+
+	if( r_clear->integer )
+	{
+		rgba_t color;
+		
+		Vector4Copy( mapConfig.environmentColor, color );
+		qglClearColor( color[0]*( 1.0/255.0 ), color[1]*( 1.0/255.0 ), color[2]*( 1.0/255.0 ), 1 );
+		qglClear( GL_COLOR_BUFFER_BIT );
+	}
+
+	// update gamma
+	if( r_gamma->modified )
+	{
+		r_gamma->modified = false;
+		R_UpdateHWGamma();
+	}
+
+	// run cinematic passes on shaders
+	R_RunAllCinematics();
+
+	// go into 2D mode
+	R_Set2DMode( true );
+
+	// draw buffer stuff
+	if( gl_drawbuffer->modified )
+	{
+		gl_drawbuffer->modified = false;
+
+		if( glState.cameraSeparation == 0 || !glState.stereoEnabled )
+		{
+			if( com.stricmp( gl_drawbuffer->string, "GL_FRONT" ) == 0 )
+				qglDrawBuffer( GL_FRONT );
+			else
+				qglDrawBuffer( GL_BACK );
+		}
+	}
+
+	// texturemode stuff
+	if( r_texturemode->modified )
+	{
+		R_TextureMode( r_texturemode->string );
+		r_texturemode->modified = false;
+	}
+
+	// swapinterval stuff
+	R_UpdateSwapInterval();
+}
+
+
+/*
+====================
 R_ClearScene
-=================
+====================
 */
 void R_ClearScene( void )
 {
 	r_numEntities = 1;
-	r_numDLights = 0;
-	r_numParticles = 0;
+	r_numDlights = 0;
 	r_numPolys = 0;
-	r_numPolyVerts = 0;
+	RI.previousentity = NULL;
+	RI.currententity = r_worldent;
+	RI.currentmodel = r_worldmodel;
 }
 
 /*
-====================
-R_SetLightLevel
-
-HACKHACK
-====================
+=====================
+R_AddPolyToScene
+=====================
 */
-void R_SetLightLevel( void )
+bool R_AddPolyToScene( const poly_t *poly )
 {
-	vec3_t	shadelight;
-
-	if( r_refdef.onlyClientDraw ) return;
-
-	// save off light value for server to look at (BIG HACK!)
-	R_LightForPoint( r_refdef.vieworg, shadelight );
-
-	// pick the greatest component, which should be the same
-	// as the mono value returned by software
-	if( shadelight[0] > shadelight[1] )
+	if(( r_numPolys < MAX_POLYS ) && poly && poly->numverts )
 	{
-		if( shadelight[0] > shadelight[2] )
-			r_lightlevel->value = 150 * shadelight[0];
-		else r_lightlevel->value = 150 * shadelight[2];
-	}
-	else
-	{
-		if( shadelight[1] > shadelight[2] )
-			r_lightlevel->value = 150 * shadelight[1];
-		else r_lightlevel->value = 150 * shadelight[2];
-	}
+		poly_t *dp = &r_polys[r_numPolys++];
 
+		*dp = *poly;
+		if( dp->numverts > MAX_POLY_VERTS )
+			dp->numverts = MAX_POLY_VERTS;
+		return true;
+	}
+	return false;
 }
 
 /*
-=================
-R_AddEntityToScene
-=================
+=====================
+R_AddLightStyleToScene
+=====================
 */
-static bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac )
+void R_AddLightStyleToScene( int style, float r, float g, float b )
+{
+	lightstyle_t *ls;
+
+	if( style < 0 || style > MAX_LIGHTSTYLES )
+		Host_Error( "R_AddLightStyleToScene: bad light style %i\n", style );
+
+	ls = &r_lightStyles[style];
+	ls->rgb[0] = max( 0, r );
+	ls->rgb[1] = max( 0, g );
+	ls->rgb[2] = max( 0, b );
+}
+
+/*
+===============
+R_RenderScene
+===============
+*/
+void R_RenderScene( const ref_params_t *fd )
+{
+	// flush any remaining 2D bits
+	R_Set2DMode( false );
+
+	if( r_norefresh->integer )
+		return;
+
+	R_BackendStartFrame();
+
+	if( !( fd->rdflags & RDF_NOWORLDMODEL ) )
+	{
+		r_lastRefdef = *fd;
+	}
+
+	c_brush_polys = 0;
+	c_world_leafs = 0;
+
+	r_mark_leaves =
+		r_add_polys =
+		r_add_entities =
+		r_sort_meshes =
+		r_draw_meshes =
+		r_world_node = 0;
+
+	RI.params = RP_NONE;
+	RI.refdef = *fd;
+	RI.farClip = 0;
+	RI.clipFlags = 15;
+	if( r_worldmodel && !( RI.refdef.rdflags & RDF_NOWORLDMODEL ) && r_worldbrushmodel->globalfog )
+	{
+		RI.farClip = r_worldbrushmodel->globalfog->shader->fog_dist;
+		RI.farClip = max( r_farclip_min, RI.farClip ) + r_farclip_bias;
+		RI.clipFlags |= 16;
+	}
+	RI.meshlist = &r_worldlist;
+	RI.shadowBits = 0;
+	RI.shadowGroup = NULL;
+
+	// adjust field of view for widescreen
+	if( glState.wideScreen && !( fd->rdflags & RDF_NOFOVADJUSTMENT ) )
+		AdjustFov( &RI.refdef.fov_x, &RI.refdef.fov_y, glState.width, glState.height, false );
+
+	Vector4Set( RI.scissor, fd->viewport[0], glState.height - fd->viewport[3] - fd->viewport[1], fd->viewport[2], fd->viewport[3] );
+	Vector4Set( RI.viewport, fd->viewport[0], glState.height - fd->viewport[3] - fd->viewport[1], fd->viewport[2], fd->viewport[3] );
+	VectorCopy( fd->vieworg, RI.pvsOrigin );
+	VectorCopy( fd->vieworg, RI.lodOrigin );
+
+	if( gl_finish->integer && !gl_delayfinish->integer && !( fd->rdflags & RDF_NOWORLDMODEL ) )
+		qglFinish();
+
+	R_ClearShadowmaps();
+
+	R_CategorizeEntities();
+
+	R_RenderView( fd );
+
+	R_BloomBlend( fd );
+
+	R_PolyBlend();
+
+	R_BackendEndFrame();
+
+	R_Set2DMode( true );
+}
+
+/*
+===============
+R_BeginFrame
+===============
+*/
+void R_EndFrame( void )
+{
+	// flush any remaining 2D bits
+	R_Set2DMode( false );
+
+	// cleanup texture units
+	R_BackendCleanUpTextureUnits();
+
+	// apply software gamma
+	R_ApplySoftwareGamma();
+
+	// free temporary image buffers
+	R_FreeImageBuffers ();
+
+	if( gl_finish->integer && gl_delayfinish->integer )
+	{
+		qglFlush();
+		return;
+	}
+
+	GLimp_EndFrame();
+}
+
+/*
+===============
+R_SpeedsMessage
+===============
+*/
+const char *R_SpeedsMessage( char *out, size_t size )
+{
+	if( out )
+		com.strncpy( out, r_speeds_msg, size );
+	return out;
+}
+
+//==================================================================================
+
+/*
+=============
+R_TransformToScreen_Vec3
+=============
+*/
+void R_TransformToScreen_Vec3( vec3_t in, vec3_t out )
+{
+	vec4_t temp, temp2;
+
+	temp[0] = in[0];
+	temp[1] = in[1];
+	temp[2] = in[2];
+	temp[3] = 1.0f;
+	Matrix4_Multiply_Vector( RI.worldviewProjectionMatrix, temp, temp2 );
+
+	if( !temp2[3] )
+		return;
+
+	out[0] = ( temp2[0] / temp2[3] + 1.0f ) * 0.5f * RI.refdef.viewport[2];
+	out[1] = ( temp2[1] / temp2[3] + 1.0f ) * 0.5f * RI.refdef.viewport[3];
+	out[2] = ( temp2[2] / temp2[3] + 1.0f ) * 0.5f;
+}
+
+/*
+=============
+R_TransformVectorToScreen
+=============
+*/
+void R_TransformVectorToScreen( const ref_params_t *rd, const vec3_t in, vec2_t out )
+{
+	mat4x4_t p, m;
+	vec4_t temp, temp2;
+
+	if( !rd || !in || !out )
+		return;
+
+	temp[0] = in[0];
+	temp[1] = in[1];
+	temp[2] = in[2];
+	temp[3] = 1.0f;
+
+	R_SetupProjectionMatrix( rd, p );
+	R_SetupModelviewMatrix( rd, m );
+
+	Matrix4_Multiply_Vector( m, temp, temp2 );
+	Matrix4_Multiply_Vector( p, temp2, temp );
+
+	if( !temp[3] )
+		return;
+
+	out[0] = rd->viewport[0] + ( temp[0] / temp[3] + 1.0f ) * rd->viewport[2] * 0.5f;
+	out[1] = rd->viewport[1] + ( temp[1] / temp[3] + 1.0f ) * rd->viewport[3] * 0.5f;
+}
+
+//==================================================================================
+
+/*
+=============
+R_TraceLine
+=============
+*/
+msurface_t *R_TraceLine( trace_t *tr, const vec3_t start, const vec3_t end, int surfumask )
+{
+	int i;
+	msurface_t *surf;
+
+	// trace against world
+	surf = R_TransformedTraceLine( tr, start, end, r_worldent, surfumask );
+
+	// trace against bmodels
+	for( i = 0; i < r_numbmodelentities; i++ )
+	{
+		trace_t t2;
+		msurface_t *s2;
+
+		s2 = R_TransformedTraceLine( &t2, start, end, r_bmodelentities[i], surfumask );
+		if( t2.fraction < tr->fraction )
+		{
+			*tr = t2;	// closer impact point
+			surf = s2;
+		}
+	}
+
+	return surf;
+}
+
+bool R_UploadModel( const char *name, int index )
+{
+	ref_model_t	*mod;
+
+	// this array used by AddEntityToScene
+	mod = R_RegisterModel( name );
+	cl_models[index] = mod;
+
+	return (mod != NULL);	
+}
+
+shader_t Mod_RegisterShader( const char *name, int shaderType )
+{
+	ref_shader_t	*src;
+
+	if( !glState.initializedMedia )
+		return 0;
+
+	switch( shaderType )
+	{
+	case SHADER_FONT:
+	case SHADER_NOMIP:
+		src = R_RegisterPic( name );
+		break;
+	case SHADER_SKYBOX:
+	case SHADER_GENERIC:
+		src = R_RegisterShader( name );
+		break;
+	default:
+		MsgDev( D_WARN, "Mod_RegisterShader: invalid shader type (%i)\n", shaderType );	
+		return 0;
+	}
+	return src - r_shaders;
+}
+
+bool R_AddLightStyle( int stylenum, vec3_t color )
+{
+	if( stylenum < 0 || stylenum > MAX_LIGHTSTYLES )
+		return false; // invalid lightstyle
+
+	R_AddLightStyleToScene( stylenum, color[0], color[1], color[2] );
+	return true;
+}
+
+bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac )
 {
 	ref_entity_t	*refent;
 	int		i;
@@ -1099,7 +2354,7 @@ static bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac
 	{
 	case mod_brush: break;
 	case mod_studio:
-		if( !refent->model->phdr )
+		if( !refent->model->extradata )
 			return false;
 		break;
 	case mod_sprite:		
@@ -1131,11 +2386,11 @@ static bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac
 			{
 				pRefEntity->v.frame = refent->frame = 0;
 				refent->sequence = pRefEntity->v.sequence;
-				R_StudioResetSequenceInfo( refent, refent->model->phdr );
+//				R_StudioResetSequenceInfo( refent, refent->model->phdr );
 			}
 			else
 			{
-				R_StudioFrameAdvance( refent, 0 );
+//				R_StudioFrameAdvance( refent, 0 );
 
 				if( refent->m_fSequenceFinished )
 				{
@@ -1176,7 +2431,7 @@ static bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac
 	if( refent->effects & EF_ROTATE )
 	{	
 		// some bonus items auto-rotate
-		VectorSet( refent->angles, 0, anglemod( r_refdef.time / 10), 0 );
+		VectorSet( refent->angles, 0, anglemod( RI.refdef.time / 10), 0 );
 	}
 	else
 	{	
@@ -1185,10 +2440,10 @@ static bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac
 			refent->angles[i] = LerpAngle( pRefEntity->v.oldangles[i], pRefEntity->v.angles[i], lerpfrac );
 	}
 
-	Matrix3x3_FromAngles( refent->angles, refent->matrix );
+	AngleVectorsFLU( refent->angles, refent->axis[0], refent->axis[1], refent->axis[2] );
 
 	if(( refent->ent_type == ED_VIEWMODEL ) && ( r_lefthand->integer == 1 ))
-		VectorNegate( refent->matrix[1], refent->matrix[1] ); 
+		VectorNegate( refent->axis[1], refent->axis[1] ); 
 
 	// copy controllers
 	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
@@ -1224,280 +2479,65 @@ static bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac
 		}
 	}
 
-	if( !refent->shader ) refent->shader = tr.defaultShader;
-
 	// add entity
 	r_numEntities++;
 
 	return true;
 }
 
-/*
-=================
-R_AddLightToScene
-=================
-*/
-static bool R_AddDynamicLight( vec3_t org, vec3_t color, float intensity )
+bool R_AddDynamicLight( vec3_t org, vec3_t color, float intensity )
 {
 	dlight_t	*dl;
 
-	if( r_numDLights >= MAX_DLIGHTS )
+	if(( r_numDlights >= MAX_DLIGHTS ) || (intensity == 0) || ( !color[0] || !color[1] || !color[2] ))
 		return false;
 
-	dl = &r_dlights[r_numDLights];
+	dl = &r_dlights[r_numDlights++];
+
 	VectorCopy( org, dl->origin );
 	VectorCopy( color, dl->color );
-	dl->intensity = intensity;
-	r_numDLights++;
+	dl->intensity = intensity * DLIGHT_SCALE;
+	dl->shader = NULL; // FIXME;
+
+	R_LightBounds( org, dl->intensity, dl->mins, dl->maxs );
 
 	return true;
 }
 
-/*
-=================
-R_AddParticleToScene
-=================
-*/
-bool R_AddParticleToScene( shader_t shader, const vec3_t org1, const vec3_t org2, float radius, float length, float rotate, rgba_t color )
+void GL_SetColor( const void *data )
 {
-	particle_t	*p;
+	float *color = (float *)data;
 
-	if( r_numParticles >= MAX_PARTICLES )
-		return false;
-
-	p = &r_particles[r_numParticles];
-
-	if( shader > 0 )
-		p->shader = &r_shaders[shader];
-	else p->shader = tr.particleShader;
-
-	VectorCopy( org1, p->origin1 );
-	VectorCopy( org2, p->origin2 );
-	p->radius = radius;
-	p->length = length;
-	p->rotation = rotate;
-	Vector4Copy( color, p->modulate );
-	r_numParticles++;
-
-	return true;
+	if( color ) Vector4Copy( color, glState.draw_color );
+	else Vector4Set( glState.draw_color, 1.0f, 1.0f, 1.0f, 1.0f );
 }
 
-static bool R_AddLightStyle( int style, vec3_t color )
+void R_DrawSetParms( shader_t handle, kRenderMode_t rendermode, int frame )
 {
-	lightstyle_t	*ls;
-
-	if( style < 0 || style > MAX_LIGHTSTYLES )
-		return false; // invalid lightstyle
-
-	ls = &r_lightStyles[style];
-	ls->white = color[0] + color[1] + color[2];
-	VectorCopy( color, ls->rgb );
-
-	return true;
 }
 
-/*
-=================
-R_AddPolyToScene
-=================
-*/
-bool R_AddPolyToScene( shader_t shader, int numVerts, const polyVert_t *verts )
+void R_DrawGetParms( int *w, int *h, int *f, int frame, shader_t shader )
 {
-	poly_t	*poly;
+	if( !w && !h && !f ) return;
 
-	if( r_numPolys >= MAX_POLYS || r_numPolyVerts + numVerts > MAX_POLY_VERTS )
-		return false;
-
-	poly = &r_polys[r_numPolys++];
-	poly->shader = r_shaders + shader;
-	poly->numVerts = numVerts;
-	poly->verts = &r_polyVerts[r_numPolyVerts];
-	Mem_Copy( poly->verts, verts, numVerts * sizeof( polyVert_t ));
-	r_numPolyVerts += numVerts;
-	return true;
+	// assume error
+	if( w ) *w = 0;
+	if( h ) *h = 0;
+	if( f ) *f = 1;
 }
 
-
-/*
-=================
-R_RenderFrame
-=================
-*/
-void R_RenderFrame( ref_params_t *rd )
+void R_DrawFill( float x, float y, float w, float h )
 {
-	if( r_norefresh->integer )
-		return;
-
-	r_refdef = *rd;
-
-	if( !r_refdef.onlyClientDraw )
-	{
-		if( !r_worldModel ) Host_Error( "R_RenderScene: NULL worldmodel\n" );
-	}
-
-	// Make sure all 2D stuff is flushed
-	RB_RenderMesh();
-
-	// render view
-	R_RenderView( rd );
-
-	// go into 2D mode
-	GL_Setup2D();
 }
 
-/*
-=================
-R_BeginFrame
-=================
-*/
-void R_BeginFrame( void )
+void R_LightForPoint( const vec3_t point, vec3_t ambientLight )
 {
-	// clear r_speeds statistics
-	Mem_Set( &r_stats, 0, sizeof( refstats_t ));
+	vec4_t	ambient;
 
-	if( vid_gamma->modified )
-	{
-		vid_gamma->modified = false;
-		GL_UpdateGammaRamp();
-	}
-
-	// update texture parameters
-	if( r_texturefilter->modified || r_texturefilteranisotropy->modified || r_texturelodbias->modified )
-		R_SetTextureParameters();
-
-	// set draw buffer
-	if( r_frontbuffer->integer )
-		pglDrawBuffer( GL_FRONT );
-	else pglDrawBuffer( GL_BACK );
-
-	// clear screen if desired
-	if( gl_clear->integer )
-	{
-		GL_DepthMask( GL_TRUE );
-
-		pglClearColor( 1.0, 0.0, 0.5, 0.5 );
-		pglClear( GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT );
-	}
-
-	// Go into 2D mode
-	GL_Setup2D();
-
-	// check for errors
-	if( r_check_errors->integer ) R_CheckForErrors();
+	R_LightForOrigin( point, NULL, ambient, NULL, 64.0f );
+	VectorCopy( ambient, ambientLight );
 }
-
-/*
-=================
-R_EndFrame
-=================
-*/
-void R_EndFrame( void )
-{
-	// make sure all 2D stuff is flushed
-	RB_RenderMesh();
-
-	// Swap the buffers
-	if( !r_frontbuffer->integer )
-	{
-		if( !pwglSwapBuffers( glw_state.hDC ))
-			Sys_Break("R_EndFrame() - SwapBuffers() failed!\n" );
-	}
-
-	// print r_speeds statistics
-	if( r_speeds->integer )
-	{
-		switch( r_speeds->integer )
-		{
-		case 1:
-			Msg("%i/%i shaders/stages %i meshes %i leafs %i verts %i/%i tris\n", r_stats.numShaders, r_stats.numStages, r_stats.numMeshes, r_stats.numLeafs, r_stats.numVertices, (r_stats.numIndices / 3), (r_stats.totalIndices / 3));
-			break;
-		case 2:
-			Msg("%i entities %i dlights %i particles %i polys\n", r_stats.numEntities, r_stats.numDLights, r_stats.numParticles, r_stats.numPolys);
-			break;
-		}
-	}
-
-	// check for errors
-	if( r_check_errors->integer ) R_CheckForErrors();
-}
-
-bool R_UploadModel( const char *name, int index )
-{
-	rmodel_t	*mod;
-
-	// this array used by AddEntityToScene
-	mod = R_RegisterModel( name );
-	cl_models[index] = mod;
-
-	return (mod != NULL);	
-}
-
-shader_t Mod_RegisterShader( const char *name, int shaderType )
-{
-	shader_t	shader = tr.defaultShader->shadernum;
-
-	if( shaderType >= SHADER_SKY && shaderType <= SHADER_GENERIC )
-		shader = R_FindShader( name, shaderType, 0 )->shadernum;
-	else MsgDev( D_WARN, "Mod_RegisterShader: invalid shader type (%i)\n", shaderType );
-	if( shaderType == SHADER_SKY ) R_SetupSky( name, 0, vec3_origin );
-
-	return shader;
-}
-
-/*
-=================
-R_Init
-=================
-*/
-bool R_Init( bool full )
-{
-	if( full )
-	{
-		GL_InitBackend();
-
-		// create the window and set up the context
-		if( !R_Init_OpenGL())
-		{
-			R_Free_OpenGL();
-			return false;
-		}
-		GL_InitExtensions();
-	}
-
-	RB_InitBackend();
-
-	R_InitTextures();
-	R_InitPrograms();
-	R_InitShaders();
-	R_InitModels();
-	R_CheckForErrors();
-
-	return true;
-}
-
-/*
-=================
-R_Shutdown
-=================
-*/
-void R_Shutdown( bool full )
-{
-	R_ShutdownModels();
-	R_ShutdownShaders();
-	R_ShutdownPrograms();
-	R_ShutdownTextures();
-
-	RB_ShutdownBackend();
-
-	if( full )
-	{
-		GL_ShutdownBackend();
-
-		// shut down OS specific OpenGL stuff like contexts, etc.
-		R_Free_OpenGL();
-	}
-}
-
+		
 /*
 @@@@@@@@@@@@@@@@@@@@@
 CreateAPI
@@ -1528,12 +2568,11 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	re.AddLightStyle = R_AddLightStyle;
 	re.AddRefEntity = R_AddEntityToScene;
 	re.AddDynLight = R_AddDynamicLight;
-	re.AddParticle = R_AddParticleToScene;
 	re.AddPolygon = R_AddPolyToScene;
 	re.ClearScene = R_ClearScene;
 
 	re.BeginFrame = R_BeginFrame;
-	re.RenderFrame = R_RenderFrame;
+	re.RenderFrame = R_RenderScene;
 	re.EndFrame = R_EndFrame;
 
 	re.SetColor = GL_SetColor;
@@ -1545,7 +2584,7 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	re.DrawFill = R_DrawFill;
 	re.DrawStretchRaw = R_DrawStretchRaw;
 	re.DrawStretchPic = R_DrawStretchPic;
-	re.ImpactMark = R_ImpactMark;
+	re.GetFragments = R_GetClippedFragments;
 
 	return &re;
 }

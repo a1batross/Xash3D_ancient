@@ -78,6 +78,16 @@
 #define EF_LIGHT			(1<<9)	// dynamic light (rockets use)
 #define EF_ANIMATE			(1<<10)	// do client animate (ignore v.frame)
 
+// entity_state_t->renderfx flags (temp)
+#define RF_FULLBRIGHT		1	// always draw full intensity
+#define RF_NOSHADOW			2
+#define RF_VIEWERMODEL		4	// don't draw through eyes, only mirrors
+#define RF_WEAPONMODEL		8	// only draw through eyes and depth hack
+#define RF_CULLHACK			16
+#define RF_FORCENOLOD		32
+#define RF_PLANARSHADOW		64
+#define RF_OCCLUSIONTEST		128
+
 // pev->takedamage
 #define DAMAGE_NO			0	// can't be damaged
 #define DAMAGE_YES			1	// attempt to damage

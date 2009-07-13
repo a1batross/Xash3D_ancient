@@ -206,6 +206,7 @@ size_t com_strcat(char *dst, const char *src );
 size_t com_strncpy(char *dst, const char *src, size_t siz);
 size_t com_strcpy(char *dst, const char *src );
 char *com_stralloc(byte *mempool, const char *s, const char *filename, int fileline);
+bool com_isdigit( const char *str );
 int com_atoi(const char *str);
 float com_atof(const char *str);
 void com_atov( float *vec, const char *str, size_t siz );
@@ -366,7 +367,8 @@ bool FS_FileExists (const char *filename);
 bool FS_Remove( const char *path );
 int FS_UnGetc (file_t* file, byte c);
 void FS_StripExtension (char *path);
-fs_offset_t FS_Tell (file_t* file);
+fs_offset_t FS_Tell( file_t* file );
+bool FS_Eof( file_t* file );
 void FS_Purge (file_t* file);
 int FS_Close (file_t* file);
 int FS_Getc (file_t* file);
@@ -495,6 +497,12 @@ bool PS_EndOfScript( script_t *script );
 
 script_t	*PS_LoadScript( const char *filename, const char *buf, size_t size );
 void	PS_FreeScript( script_t *script );
+
+//
+// parselib.c
+//
+void Patch_Evaluate( const float *p, int *numcp, const int *tess, float *dest, int comp );
+void Patch_GetFlatness( float maxflat, const float *points, int comp, const int *patch_cp, int *flat );
 
 //
 // imglib.c

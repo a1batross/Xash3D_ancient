@@ -28,6 +28,7 @@
 typedef vec_t		vec2_t[2];
 typedef vec_t		vec3_t[3];
 typedef vec_t		vec4_t[4];
+typedef vec_t		quat_t[4];
 typedef byte		rgba_t[4];	// unsigned byte colorpack
 typedef byte		rgb_t[3];		// unsigned byte colorpack
 typedef vec_t		matrix3x3[3][3];
@@ -84,7 +85,7 @@ typedef struct { int ofs; int type; const char *name; } fields_t;	// prvm custom
 typedef void ( *cmsave_t )( void* handle, const void* buffer, size_t size );
 typedef void ( *cmdraw_t )( int color, int numpoints, const float *points, const int *elements );
 typedef void ( *setpair_t )( const char *key, const char *value, void *buffer, void *numpairs );
-typedef enum { mod_bad, mod_world, mod_brush, mod_studio, mod_sprite } modtype_t;
+typedef enum { mod_bad, mod_world, mod_brush, mod_alias, mod_studio, mod_sprite } modtype_t;
 typedef enum { NA_LOOPBACK, NA_BROADCAST, NA_IP } netadrtype_t;
 typedef enum { NS_CLIENT, NS_SERVER } netsrc_t;
 typedef void ( *xcommand_t )( void );
@@ -121,6 +122,7 @@ typedef enum
 	CVAR_TEMP		= BIT(8),	// can be set even when cheats are disabled, but is not archived
 	CVAR_CHEAT	= BIT(9),	// can not be changed if cheats are disabled
 	CVAR_NORESTART	= BIT(10),// do not clear when a cvar_restart is issued
+	CVAR_LATCH_VIDEO	= BIT(11),// save changes until render restart
 } cvar_flags_t;
 
 typedef struct
@@ -236,6 +238,9 @@ typedef struct gameinfo_s
 	int	cpunum;		// count of cpu's
 	float	cpufreq;		// cpu frequency in MHz
 
+	string	sp_entity;	// e.g. info_player_start
+	string	dm_entity;	// e.g. info_player_deathmatch
+	string	team_entity;	// e.g. info_player_coop
 	string	vprogs_dir;	// default progs directory 
 	string	source_dir;	// default source directory
 	string	imglib_mode;	// formats to using
@@ -487,7 +492,11 @@ typedef struct stdilib_api_s
 	bool (*Com_ReadDword)( script_t *script, int flags, uint *value );		// unsigned integer
 	bool (*Com_ReadLong)( script_t *script, int flags, int *value );		// signed integer
 
-	search_t *(*Com_Search)(const char *pattern, int casecmp );	// returned list of found files
+	// patch extension
+	void (*PatchEval)( const float *p, int *numcp, const int *tess, float *dest, int comp );
+	void (*PatchFlat)( float maxflat, const float *points, int comp, const int *patch_cp, int *flat );
+
+	search_t *(*Com_Search)( const char *pattern, int casecmp ); // returned list of found files
 	uint (*Com_HashKey)( const char *string, uint hashSize );	// returns hash key for a string
 	byte *(*Com_LoadRes)( const char *filename, size_t *size );	// find internal resource in baserc.dll 
 
@@ -525,6 +534,7 @@ typedef struct stdilib_api_s
 	int (*fseek)(file_t* file, fs_offset_t offset, int whence);		// fseek, can seek in packfiles too
 	bool (*fremove)( const char *path );				// remove sepcified file
 	long (*ftell)(file_t* file);					// like a ftell
+	bool (*feof)(file_t* file);					// like a feof
 
 	// virtual filesystem
 	vfile_t *(*vfcreate)( const byte *buffer, size_t buffsize );	// create virtual stream
@@ -593,6 +603,7 @@ typedef struct stdilib_api_s
 	size_t (*strncpy)(char *dst, const char *src, size_t n);		// copy string to existing buffer
 	size_t (*strcpy)(char *dst, const char *src);			// copy string to existing buffer
 	char *(*stralloc)(byte *mp,const char *in,const char *file,int line);	// create buffer and copy string here
+	bool (*is_digit)( const char *str );				// check string for digits
 	int (*atoi)(const char *str);					// convert string to integer
 	float (*atof)(const char *str);				// convert string to float
 	void (*atov)( float *dst, const char *src, size_t n );		// convert string to vector
@@ -725,6 +736,7 @@ filesystem manager
 #define FS_Print			com.fprint
 #define FS_Seek			com.fseek
 #define FS_Tell			com.ftell
+#define FS_Eof			com.feof
 #define FS_Getc			com.fgetc
 #define FS_Gets			com.fgets
 #define FS_Delete			com.fremove
@@ -817,6 +829,14 @@ wadstorage filesystem manager
 #define WAD_Close			com.wfclose
 #define WAD_Write			com.wfwrite
 #define WAD_Read			com.wfread
+
+/*
+===========================================
+bezier curves patchlib
+===========================================
+*/
+#define Patch_Evaluate		com.PatchEval
+#define Patch_GetFlatness		com.PatchFlat
 
 /*
 ===========================================

@@ -82,7 +82,10 @@ Beta 13.12.08
 51. fixup stair climbing			OK
 52. implement new user move system		OK
 53. finish RenderMode for shaders		OK
-54. q1/hl1 bsp format ?
+54. q3/rbsp bsp format			OK
+55. dedicated conolse hanging commands
+56. renderer viewport bug
+57. shutdown crash
 
 Список доступных рендереров:  	Что в них интересного
 0. Q3Fusion			(Mirrors, Portals)

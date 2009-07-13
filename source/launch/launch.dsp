@@ -192,6 +192,10 @@ SOURCE=.\parselib.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\patch.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\stdlib.c
 # End Source File
 # Begin Source File

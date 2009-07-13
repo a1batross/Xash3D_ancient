@@ -237,68 +237,32 @@ DECALS MANAGEMENT
 
 ==============================================================
 */
-#define MAX_DECAL_MARKS		2048
-#define DECAL_FADETIME		30.0f	// 30 seconds
-#define DECAL_STAYTIME		120.0f	// 120 seconds
+#define MAX_DECALS			256
+#define MAX_DECAL_VERTS		128
+#define MAX_DECAL_FRAGMENTS		64
 
 typedef struct cdecal_s
 {
 	struct cdecal_s	*prev, *next;
-	float		time;
-	rgba_t		modulate;
-	bool		alphaFade;
+
+	float		die;				// remove after this time
+	float		fadetime;
+	float		fadefreq;
+	bool		fadealpha;
+
+	vec4_t		color;
 	shader_t		shader;
-	int		numVerts;
-	polyVert_t	verts[MAX_VERTS_ON_POLY];
-	vec3_t		origin;
+
+	poly_t		*poly;
 } cdecal_t;
 
-static cdecal_t	cl_activeDecals;
-static cdecal_t	*cl_freeDecals;
-static cdecal_t	cl_decalList[MAX_DECAL_MARKS];
+static cdecal_t cl_decals[MAX_DECALS];
+static cdecal_t cl_decals_headnode, *cl_free_decals;
 
-/*
-=================
-CL_FreeDecal
-=================
-*/
-static void CL_FreeDecal( cdecal_t *decal )
-{
-	if( !decal->prev ) return;
-
-	decal->prev->next = decal->next;
-	decal->next->prev = decal->prev;
-
-	decal->next = cl_freeDecals;
-	cl_freeDecals = decal;
-}
-
-/*
-=================
-CL_AllocDecal
-
-will always succeed, even if it requires freeing an old active mark
-=================
-*/
-static cdecal_t *CL_AllocDecal( void )
-{
-	cdecal_t	*decal;
-
-	if( !cl_freeDecals )
-		CL_FreeDecal( cl_activeDecals.prev );
-
-	decal = cl_freeDecals;
-	cl_freeDecals = cl_freeDecals->next;
-
-	Mem_Set( decal, 0, sizeof( cdecal_t ));
-
-	decal->next = cl_activeDecals.next;
-	decal->prev = &cl_activeDecals;
-	cl_activeDecals.next->prev = decal;
-	cl_activeDecals.next = decal;
-
-	return decal;
-}
+static poly_t cl_decal_polys[MAX_DECALS];
+static vec3_t cl_decal_verts[MAX_DECALS][MAX_DECAL_VERTS];
+static vec2_t cl_decal_stcoords[MAX_DECALS][MAX_DECAL_VERTS];
+static rgba_t cl_decal_colors[MAX_DECALS][MAX_DECAL_VERTS];
 
 /*
 =================
@@ -309,45 +273,160 @@ void CL_ClearDecals( void )
 {
 	int	i;
 
-	Mem_Set( cl_decalList, 0, sizeof( cl_decalList ));
+	Mem_Set( cl_decals, 0, sizeof( cl_decals ));
 
-	cl_activeDecals.next = &cl_activeDecals;
-	cl_activeDecals.prev = &cl_activeDecals;
-	cl_freeDecals = cl_decalList;
+	// link decals
+	cl_free_decals = cl_decals;
+	cl_decals_headnode.prev = &cl_decals_headnode;
+	cl_decals_headnode.next = &cl_decals_headnode;
 
-	for( i = 0; i < MAX_DECAL_MARKS - 1; i++ )
-		cl_decalList[i].next = &cl_decalList[i+1];
+	for( i = 0; i < MAX_DECALS; i++ )
+	{
+		if( i < MAX_DECALS - 1 )
+			cl_decals[i].next = &cl_decals[i+1];
+
+		cl_decals[i].poly = &cl_decal_polys[i];
+		cl_decals[i].poly->verts = cl_decal_verts[i];
+		cl_decals[i].poly->stcoords = cl_decal_stcoords[i];
+		cl_decals[i].poly->colors = cl_decal_colors[i];
+	}
 }
 
 /*
 =================
-CL_AddDecal
+CL_AllocDecal
 
-called from render after clipping
+Returns either a free decal or the oldest one
 =================
 */
-void CL_AddDecal( vec3_t org, matrix3x3 m, shader_t s, rgba_t rgba, bool fade, decalFragment_t *df, const vec3_t *v )
+cdecal_t *CL_AllocDecal( void )
 {
-	cdecal_t	*decal;
-	vec3_t	delta;
-	int	i;
+	cdecal_t	*dl;
 
-	decal = CL_AllocDecal();
-	VectorCopy( org, decal->origin );
-	decal->time = cl.time;
-	Vector4Copy( rgba, decal->modulate );
-	decal->alphaFade = fade;
-	decal->shader = s;
-	decal->numVerts = df->numVerts;
+	if( cl_free_decals )
+	{	
+		// take a free decal if possible
+		dl = cl_free_decals;
+		cl_free_decals = dl->next;
+	}
+	else
+	{	
+		// grab the oldest one otherwise
+		dl = cl_decals_headnode.prev;
+		dl->prev->next = dl->next;
+		dl->next->prev = dl->prev;
+	}
 
-	for( i = 0; i < df->numVerts; i++ )
+	// put the decal at the start of the list
+	dl->prev = &cl_decals_headnode;
+	dl->next = cl_decals_headnode.next;
+	dl->next->prev = dl;
+	dl->prev->next = dl;
+
+	return dl;
+}
+
+/*
+=================
+CL_FreeDecal
+=================
+*/
+void CL_FreeDecal( cdecal_t *dl )
+{
+	// remove from linked active list
+	dl->prev->next = dl->next;
+	dl->next->prev = dl->prev;
+
+	// insert into linked free list
+	dl->next = cl_free_decals;
+	cl_free_decals = dl;
+}
+
+/*
+=================
+CL_SpawnDecal
+=================
+*/
+void CL_SpawnDecal( vec3_t origin, vec3_t dir, float orient, float radius, float r, float g, float b, float a, float die, float fadetime, bool fadealpha, shader_t shader )
+{
+	int		i, j;
+	cdecal_t		*dl;
+	poly_t		*poly;
+	vec3_t		axis[3];
+	vec3_t		verts[MAX_DECAL_VERTS];
+	rgba_t		color;
+	fragment_t	*fr, fragments[MAX_DECAL_FRAGMENTS];
+	int		numfragments;
+	float		dietime, fadefreq;
+
+	// invalid decal
+	if( radius <= 0 || VectorCompare( dir, vec3_origin ))
+		return;
+
+	// calculate orientation matrix
+	VectorNormalize2( dir, axis[0] );
+	PerpendicularVector( axis[1], axis[0] );
+	RotatePointAroundVector( axis[2], axis[0], axis[1], orient );
+	CrossProduct( axis[0], axis[2], axis[1] );
+
+	numfragments = re->GetFragments( origin, radius, axis, MAX_DECAL_VERTS, verts, MAX_DECAL_FRAGMENTS, fragments );
+
+	// no valid fragments
+	if( !numfragments ) return;
+
+	// clamp and scale colors
+	if( r < 0 ) r = 0; else if( r > 1 ) r = 255; else r *= 255;
+	if( g < 0 ) g = 0; else if( g > 1 ) g = 255; else g *= 255;
+	if( b < 0 ) b = 0; else if( b > 1 ) b = 255; else b *= 255;
+	if( a < 0 ) a = 0; else if( a > 1 ) a = 255; else a *= 255;
+
+	color[0] = (byte)( r );
+	color[1] = (byte)( g );
+	color[2] = (byte)( b );
+	color[3] = (byte)( a );
+
+	radius = 0.5f / radius;
+	VectorScale( axis[1], radius, axis[1] );
+	VectorScale( axis[2], radius, axis[2] );
+
+	dietime = cl.time + die;
+	fadefreq = min( fadetime, die );
+	fadetime = cl.time + (die - min( fadetime, die ));
+
+	for( i = 0, fr = fragments; i < numfragments; i++, fr++ )
 	{
-		VectorCopy( v[df->firstVert + i], decal->verts[i].point );
+		if( fr->numverts > MAX_DECAL_VERTS )
+			return;
+		else if( fr->numverts <= 0 )
+			continue;
 
-		VectorSubtract( decal->verts[i].point, org, delta );
-		decal->verts[i].st[0] = 0.5 + DotProduct( delta, m[1] );
-		decal->verts[i].st[1] = 0.5 + DotProduct( delta, m[2] );
-		Vector4Copy( rgba, decal->verts[i].modulate );
+		// allocate decal
+		dl = CL_AllocDecal ();
+		dl->die = dietime;
+		dl->fadetime = fadetime;
+		dl->fadefreq = fadefreq;
+		dl->fadealpha = fadealpha;
+		dl->shader = shader;
+		dl->color[0] = r; 
+		dl->color[1] = g;
+		dl->color[2] = b;
+		dl->color[3] = a;
+
+		// setup polygon for drawing
+		poly = dl->poly;
+		poly->shadernum = shader;
+		poly->numverts = fr->numverts;
+		poly->fognum = fr->fognum;
+
+		for( j = 0; j < fr->numverts; j++ ) {
+			vec3_t v;
+
+			VectorCopy( verts[fr->firstvert+j], poly->verts[j] );
+			VectorSubtract( poly->verts[j], origin, v );
+			poly->stcoords[j][0] = DotProduct( v, axis[1] ) + 0.5f;
+			poly->stcoords[j][1] = DotProduct( v, axis[2] ) + 0.5f;
+			*( int * )poly->colors[j] = *( int * )color;
+		}
 	}
 }
 
@@ -358,64 +437,50 @@ CL_AddDecals
 */
 void CL_AddDecals( void )
 {
-	cdecal_t	*decal, *next;
-	float	c, time, fadeTime;
-	int	i;
+	int		i;
+	float		fade;
+	cdecal_t		*dl, *next, *hnode;
+	poly_t		*poly;
+	rgba_t		color;
 
-	fadeTime = DECAL_FADETIME;	// 30 seconds
-
-	for( decal = cl_activeDecals.next; decal != &cl_activeDecals; decal = next )
+	// add decals in first-spawed - first-drawn order
+	hnode = &cl_decals_headnode;
+	for( dl = hnode->prev; dl != hnode; dl = next )
 	{
-		// crab next now, so if the decal is freed we still have it
-		next = decal->next;
+		next = dl->prev;
 
-		if( cl.time >= decal->time + DECAL_STAYTIME )
+		// it's time to DIE
+		if( dl->die <= cl.time )
 		{
-			CL_FreeDecal( decal );
+			CL_FreeDecal( dl );
 			continue;
 		}
+		poly = dl->poly;
 
-		// HACKHACK: fade out glowing energy decals
-		if( decal->shader == re->RegisterShader( "particles/energy", SHADER_GENERIC ))
+		// fade out
+		if( dl->fadetime < cl.time )
 		{
-			time = cl.time - decal->time;
+			fade = (dl->die - cl.time) * dl->fadefreq;
 
-			if( time < fadeTime )
+			if( dl->fadealpha )
 			{
-				c = 255 - (time / fadeTime);
-
-				for( i = 0; i < decal->numVerts; i++ )
-				{
-					decal->verts[i].modulate[0] = decal->modulate[0] * c;
-					decal->verts[i].modulate[1] = decal->modulate[1] * c;
-					decal->verts[i].modulate[2] = decal->modulate[2] * c;
-				}
-			}
-		}
-
-		// fade out with time
-		time = decal->time + DECAL_STAYTIME - cl.time;
-
-		if( time < fadeTime )
-		{
-			c = time / fadeTime;
-
-			if( decal->alphaFade )
-			{
-				for( i = 0; i < decal->numVerts; i++ )
-					decal->verts[i].modulate[3] = decal->modulate[3] * c;
+				color[0] = ( byte )( dl->color[0] );
+				color[1] = ( byte )( dl->color[1] );
+				color[2] = ( byte )( dl->color[2] );
+				color[3] = ( byte )( dl->color[3] * fade );
 			}
 			else
 			{
-				for( i = 0; i < decal->numVerts; i++ )
-				{
-					decal->verts[i].modulate[0] = decal->modulate[0] * c;
-					decal->verts[i].modulate[1] = decal->modulate[1] * c;
-					decal->verts[i].modulate[2] = decal->modulate[2] * c;
-				}
+				color[0] = ( byte )( dl->color[0] * fade );
+				color[1] = ( byte )( dl->color[1] * fade );
+				color[2] = ( byte )( dl->color[2] * fade );
+				color[3] = ( byte )( dl->color[3] );
 			}
+
+			for( i = 0; i < poly->numverts; i++ )
+				*( int * )poly->colors[i] = *( int * )color;
 		}
-		re->AddPolygon( decal->shader, decal->numVerts, decal->verts );
+		re->AddPolygon( poly );
 	}
 }
 
@@ -428,17 +493,11 @@ pfnAddDecal
 void pfnAddDecal( float *org, float *dir, float *rgba, float rot, float rad, HSPRITE hSpr, int flags )
 {
 	bool	fade, temp;
-	rgba_t	color;
 
 	fade = (flags & DECAL_FADE) ? true : false;
 	temp = (flags & DECAL_TEMPORARY) ? true : false;
 
-	color[0] = 255 * rgba[0];
-	color[1] = 255 * rgba[1];
-	color[2] = 255 * rgba[2];
-	color[3] = 255 * rgba[3];
-
-	re->ImpactMark( org, dir, rot, rad, color, fade, hSpr, temp );	
+	CL_SpawnDecal( org, dir, rot, rad, rgba[0], rgba[1], rgba[2], rgba[3], 120.0f, 30.0f, fade, hSpr );
 }
 
 /*
@@ -464,6 +523,8 @@ struct cparticle_s
 	float		lengthVelocity;
 	float		rotation;
 	float		bounceFactor;
+	float		scale;
+	bool		fog;
 
 	// this part are private for engine
 	cparticle_t	*next;
@@ -473,6 +534,11 @@ struct cparticle_s
 	int		flags;
 
 	vec3_t		oldorigin;
+
+	poly_t		poly;
+	vec3_t		pVerts[4];
+	vec2_t		pStcoords[4];
+	rgba_t		pColor[4];
 };
 
 cparticle_t *cl_active_particles, *cl_free_particles;
@@ -555,7 +621,7 @@ void CL_AddParticles( void )
 	vec3_t		ambientLight;
 	float		alpha, radius, length;
 	float		time, time2, gravity, dot;
-	vec3_t		mins, maxs;
+	vec3_t		mins, maxs, corner;
 	int		contents;
 	trace_t		trace;
 
@@ -739,10 +805,30 @@ void CL_AddParticles( void )
 			p->alphaVelocity = 0;
 		}
 
-		// send the particle to the renderer
-		re->AddParticle( p->shader, origin, oldorigin, radius, length, p->rotation, modulate );
-	}
+		*(int *)p->pColor[0] = *(int *)modulate[0];
+		*(int *)p->pColor[1] = *(int *)modulate[1];
+		*(int *)p->pColor[2] = *(int *)modulate[2];
+		*(int *)p->pColor[3] = *(int *)modulate[3];
 
+		corner[0] = origin[0];
+		corner[1] = origin[1] - 0.5f * p->scale;
+		corner[2] = origin[2] - 0.5f * p->scale;
+
+		VectorSet( p->pVerts[0], corner[0], corner[1] + p->scale, corner[2] + p->scale );
+		VectorSet( p->pVerts[1], corner[0], corner[1], corner[2] + p->scale );
+		VectorSet( p->pVerts[2], corner[0], corner[1], corner[2] );
+		VectorSet( p->pVerts[3], corner[0], corner[1] + p->scale, corner[2] );
+
+		p->poly.numverts = 4;
+		p->poly.verts = p->pVerts;
+		p->poly.stcoords = p->pStcoords;
+		p->poly.colors = p->pColor;
+		p->poly.shadernum = p->shader;
+		p->poly.fognum = p->fog ? 0 : -1;
+
+		// send the particle to the renderer
+		re->AddPolygon( &p->poly );
+	}
 	cl_active_particles = active;
 }
 
@@ -776,6 +862,8 @@ bool pfnAddParticle( cparticle_t *src, HSPRITE shader, int flags )
 	VectorCopy( src->color, p->color );
 	VectorCopy( src->colorVelocity, p->colorVelocity );
 	p->alpha = src->alpha;
+	p->scale = 1.0f;
+	p->fog = false;
 
 	p->radius = src->radius;
 	p->length = src->length;

@@ -17,8 +17,15 @@
 
 typedef struct cpointf_s
 {
-	float v[3];
+	float		v[3];
 } cpointf_t;
+
+typedef struct
+{
+	string		name;
+	int		contents;
+	int		flags;
+} cshader_t;
 
 typedef struct cplanef_s
 {
@@ -31,16 +38,16 @@ typedef struct cplanef_s
 typedef struct cbrushf_s
 {
 	
-	int	contents;		// the content flags of this brush
-	int	numplanes;	// the number of bounding planes on this brush
-	int	numpoints;	// the number of corner points on this brush
-	int	numtriangles;	// the number of renderable triangles on this brush
-	cplanef_t	*planes;		// array of bounding planes on this brush
-	cpointf_t *points;		// array of corner points on this brush
-	int	*elements;	// renderable triangles, as int[3] elements indexing the points
-	int	markframe;	// used to avoid tracing against the same brush more than once
-	vec3_t	mins;		// culling box
-	vec3_t	maxs;
+	int		contents;		// the content flags of this brush
+	int		numplanes;	// the number of bounding planes on this brush
+	int		numpoints;	// the number of corner points on this brush
+	int		numtriangles;	// the number of renderable triangles on this brush
+	cplanef_t		*planes;		// array of bounding planes on this brush
+	cpointf_t 	*points;		// array of corner points on this brush
+	int		*elements;	// renderable triangles, as int[3] elements indexing the points
+	int		markframe;	// used to avoid tracing against the same brush more than once
+	vec3_t		mins;		// culling box
+	vec3_t		maxs;
 } cbrushf_t;
 
 typedef struct cbspnode_s
@@ -88,13 +95,13 @@ typedef struct cleaf_s
 	int		numleafbrushes;
 	int 		numleafsurfaces;
 	int		*firstleafsurface;
-	float		ambient_level[NUM_AMBIENTS];
 } cleaf_t;
 
 typedef struct
 {
 	cplane_t		*plane;
-	csurface_t	*shader;
+	csurface_t	*surface;
+	cshader_t		*shader;
 } cbrushside_t;
 
 typedef struct
@@ -110,10 +117,17 @@ typedef struct
 typedef struct
 {
 	int		numareaportals;
-	int		firstareaportal;
+	int		areaportals[MAX_MAP_AREAPORTALS];
 	int		floodnum;		// if two areas have equal floodnums, they are connected
 	int		floodvalid;
 } carea_t;
+
+typedef struct
+{
+	bool		open;
+	int		area;
+	int		otherarea;
+} careaportal_t;
 
 typedef struct material_info_s
 {
@@ -152,18 +166,15 @@ typedef struct clipmap_s
 	dleafbrush_t	*leafbrushes;
 	dleafface_t	*leafsurfaces;
 	cnode_t		*nodes;		// 6 extra planes for box hull
-	dvertex_t		*vertices;
-	dedge_t		*edges;
-	dsurface_t	*surfaces;	// source collision data
-	dsurfedge_t	*surfedges;
-	dtexinfo_t	*texinfo;
+	cpointf_t		*vertices;
+	csurface_t	*surfaces;	// source collision data
 	cbrush_t		*brushes;
 	cbrushside_t	*brushsides;
-	byte		*visbase;		// vis offset
-	dvis_t		*vis;
-	csurface_t	*shaders;
+	dvis_t		*pvs;
+	dvis_t		*phs;
+	cshader_t		*shaders;
 	carea_t		*areas;
-	dareaportal_t	*areaportals;
+	careaportal_t	areaportals[MAX_MAP_AREAPORTALS];
 
 	int		numbrushsides;
 	int		numleafbrushes;
@@ -180,16 +191,16 @@ typedef struct clipmap_s
 	int		floodvalid;
 	int		numareas;
 
+	size_t		visdata_size;
 	matrix4x4		matrix;		// world matrix
 } clipmap_t;
 
 typedef struct clipmap_static_s
 {
-	wfile_t		*handle;
+	byte		*base;
 
-	byte		pvsrow[MAX_MAP_LEAFS/8];
-	byte		phsrow[MAX_MAP_LEAFS/8];
 	byte		portalopen[MAX_MAP_AREAPORTALS];
+	byte		nullrow[MAX_MAP_LEAFS/8];
 
 	// brush, studio and sprite models
 	cmodel_t		cmodels[MAX_MODELS];
@@ -245,7 +256,7 @@ typedef struct leaflist_s
 	int		*list;
 	vec3_t		mins;
 	vec3_t		maxs;
-	int		topnode;		// for overflows where each leaf can't be stored individually
+	int		lastleaf;		// for overflows where each leaf can't be stored individually
 } leaflist_t;
 
 extern clipmap_t		cm;
@@ -276,7 +287,6 @@ extern float	*m_upVector;
 int CM_PointLeafnum_r( const vec3_t p, cnode_t *node );
 int CM_PointLeafnum( const vec3_t p );
 void CM_StoreBrushes( leaflist_t *ll, cnode_t *node );
-bool CM_AmbientSounds( const vec3_t p, float *volumes, cmodel_t *model );
 int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsize, int *lastleaf );
 int CM_BoxBrushes( const vec3_t mins, const vec3_t maxs, cbrush_t **list, int listsize );
 cmodel_t *CM_TempBoxModel( const vec3_t mins, const vec3_t maxs, bool capsule );

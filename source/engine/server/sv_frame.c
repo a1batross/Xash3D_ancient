@@ -245,25 +245,29 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 		if( !force )
 		{ 
 			// check individual leafs
-			if( svent->num_clusters == -1 )
+			if( !svent->num_clusters ) continue;
+			for( i = l = 0; i < svent->num_clusters && !force; i++ )
 			{
-				// too many leafs for individual check, go by headnode
-				if( !pe->HeadnodeVisible( svent->headnode, bitvector ))
-				{
-					continue;
-				}
+				l = svent->clusternums[i];
+				if( bitvector[l>>3] & (1<<(l & 7)))
+					break;
 			}
-			else
+
+			// if we haven't found it to be visible,
+			// check overflow clusters that coudln't be stored
+			if( i == svent->num_clusters )
 			{
-				// check individual leafs
-				for( i = 0; i < svent->num_clusters; i++ )
+				if( svent->lastcluster )
 				{
-					l = svent->clusternums[i];
-					if( bitvector[l>>3] & (1<<(l & 7)))
-						break;
+					for( ; l <= svent->lastcluster; l++ )
+					{
+						if( bitvector[l>>3] & (1<<(l & 7)))
+							break;
+					}
+					if( l == svent->lastcluster )
+						continue;	// not visible
 				}
-				if( i == ent->pvServerData->num_clusters )
-					continue;	// not visible
+				else continue;
 			}
 		}
 

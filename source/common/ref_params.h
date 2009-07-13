@@ -14,6 +14,14 @@ typedef struct latched_params_s
 	vec3_t		punchangle;
 } latched_params_t;
 
+typedef struct
+{
+	float		fov;
+	float		scale;
+	vec3_t		vieworg;
+	vec3_t		viewanglesOffset;
+} skyportal_t;
+
 typedef struct ref_params_s
 {
 	// output
@@ -36,6 +44,7 @@ typedef struct ref_params_s
 	latched_params_t	prev;
 
 	// misc
+	int		rdflags;
 	BOOL		intermission;
 	BOOL		demoplayback;
 	BOOL		demorecord;
@@ -43,12 +52,15 @@ typedef struct ref_params_s
 	BOOL		thirdperson;	// thirdperson mode
 	BOOL		predicting;	// client movement predicting is running
 	int		onlyClientDraw;	// 1 - don't draw worldmodel
-	int		nextView;		// num V_RenderView passes
+	int		nextView;		// num RenderView passes
 	edict_t		*onground;	// pointer to onground entity
 	byte		*areabits;	// come from server, contains visible areas list
 	int		waterlevel;
 
+	skyportal_t	skyportal;
+
 	// input
+	float		blend[4];		// rgba 0-1 full screen blend
 	vec3_t		velocity;
 	vec3_t		cl_viewangles;	// predicted angles
 	vec3_t		angles;		// viewangles that came from server

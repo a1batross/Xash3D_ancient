@@ -28,7 +28,7 @@ _inline void CM_ConvertDimensionToMeters( vec3_t out, vec3_t in )
 	out[2] = LittleFloat(INCH2METER(in[2]));
 }
 
-void CM_LoadBSP( wfile_t *wad );
+void CM_LoadBSP( const void *buffer );
 void CM_FreeBSP( void );
 
 void CM_LoadWorld( void );
@@ -46,12 +46,13 @@ void CM_EndRegistration ( void );
 
 void CM_SetAreaPortals( byte *portals, size_t size );
 void CM_GetAreaPortals( byte **portals, size_t *size );
-void CM_SetAreaPortalState( int portalnum, bool open );
+void CM_SetAreaPortalState( int portalnum, int area, int otherarea, bool open );
 
-bool CM_HeadnodeVisible( int nodenum, byte *visbits );
 byte *CM_FatPVS( const vec3_t org, bool portal );
 byte *CM_FatPHS( int cluster, bool portal );
+void CM_CalcPHS( void );
 
+const void *CM_VisData( void );
 int CM_NumClusters( void );
 int CM_NumTextures( void );
 int CM_NumInlineModels( void );

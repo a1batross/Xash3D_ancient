@@ -5,9 +5,11 @@
 
 #include "xtools.h"
 #include "utils.h"
-#include "bsplib.h"
 #include "mdllib.h"
 #include "vprogs_api.h"
+#include "xtools.h"
+#include "engine_api.h"
+#include "mathlib.h"
 
 dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(vprogs_exp_t) };
 vprogs_exp_t *PRVM;
@@ -25,6 +27,7 @@ size_t	error_bmp_size;
 static	double start, end;
 uint	app_name = HOST_OFFLINE;
 bool	enable_log = false;
+file_t	*bsplog = NULL;
 
 void ClrMask( void )
 {
@@ -53,7 +56,6 @@ so do it manually
 */
 void InitCommon( int argc, char **argv )
 {
-	string	source, gamedir;
 	int	imageflags = 0;
 	launch_t	CreateVprogs;
 
@@ -72,7 +74,7 @@ void InitCommon( int argc, char **argv )
 
 		// initialize ImageLibrary
 		start = Sys_DoubleTime();
-		PrepareBSPModel( gamedir, source );
+		//PrepareBSPModel( gs_basedir, gs_filename );
 		break;
 	case HOST_QCCLIB:
 		Sys_LoadLibrary( &vprogs_dll );	// load qcclib
@@ -135,7 +137,7 @@ void CommonMain( void )
 		break;
 	case HOST_BSPLIB: 
 		AddMask( "*.map" );
-		CompileBSPModel(); 
+		//CompileBSPModel(); 
 		break;
 	case HOST_WADLIB:
 		CompileMod = CompileWad3Archive;
@@ -232,7 +234,7 @@ launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 	Com.Init = InitCommon;
 	Com.Main = CommonMain;
 	Com.Free = FreeCommon;
-	Com.CPrint = BSP_PrintLog;
+	Com.CPrint = NULL;
 
 	return &Com;
 }

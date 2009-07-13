@@ -32,7 +32,6 @@ typedef enum
 } qctype_t;
 
 bool Com_ValidScript( const char *token, qctype_t script_type );
-float ColorNormalize( const vec3_t in, vec3_t out );
 
 // misc
 bool CompileStudioModel( byte *mempool, const char *name, byte parms );

@@ -31,10 +31,12 @@ bool InitPhysics( void )
 
 	// check developer mode
 	if( FS_GetParmFromCmdLine("-dev", dev_level ))
-		ph.developer = com.atoi(dev_level);
+		ph.developer = com.atoi( dev_level );
 
 	CM_CollisionInit();
 	CM_InitMaterials();
+
+	Mem_Set( cms.nullrow, 0xFF, MAX_MAP_LEAFS / 8 );
 
 	cm_noareas = Cvar_Get( "cm_noareas", "0", 0, "ignore clipmap areas" );
 	cm_use_triangles = Cvar_Get("cm_convert_polygons", "1", CVAR_SYSTEMINFO, "convert bsp polygons to triangles, slowly but more safety way" );
@@ -43,7 +45,6 @@ bool InitPhysics( void )
 	cm_physics_model = Cvar_Get("cm_physic", "1", CVAR_ARCHIVE|CVAR_LATCH, "change physic model: 0 - Classic Quake Physic, 1 - Physics Engine" );
 	cm_debugdraw = Cvar_Get( "cm_debugdraw", "0", CVAR_ARCHIVE, "draw physics hulls" );
 	cm_novis = Cvar_Get( "r_novis", "0", 0, "ignore vis information (perfomance test)" );
-	cms.handle = NULL;
 
 	return true;
 }
@@ -90,10 +91,10 @@ physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs 
 	Phys.GetAreaPortals = CM_GetAreaPortals;
 	Phys.SetAreaPortalState = CM_SetAreaPortalState;
 
-	Phys.HeadnodeVisible = CM_HeadnodeVisible;
 	Phys.FatPVS = CM_FatPVS;
 	Phys.FatPHS = CM_FatPHS;
 
+	Phys.VisData = CM_VisData;
 	Phys.NumClusters = CM_NumClusters;
 	Phys.NumTextures = CM_NumTextures;
 	Phys.NumBmodels = CM_NumInlineModels;

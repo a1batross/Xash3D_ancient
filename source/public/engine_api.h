@@ -10,7 +10,7 @@
 //
 // engine constant limits, touching networking protocol modify with precaution
 //
-#define MAX_DLIGHTS			128	// dynamic lights (per one frame)
+#define MAX_DLIGHTS			32	// dynamic lights (per one frame)
 #define MAX_LIGHTSTYLES		256	// can't be blindly increased
 #define MAX_DECALS			256	// server decal indexes
 #define MAX_USER_MESSAGES		200	// another 56 messages reserved for engine routines
@@ -47,14 +47,14 @@ ENGINE TRACE FORMAT
 #define PLANE_X		0	// 0 - 2 are axial planes
 #define PLANE_Y		1	// 3 needs alternate calc
 #define PLANE_Z		2
+#define PLANE_NONAXIAL	3
 
 typedef struct cplane_s
 {
 	vec3_t	normal;
 	float	dist;
-	byte	type;		// for fast side tests
-	byte	signbits;		// signx + (signy<<1) + (signz<<1)
-	byte	pad[2];		// padding bytes
+	short	type;		// for fast side tests
+	short	signbits;		// signx + (signy<<1) + (signz<<1)
 } cplane_t;
 
 typedef struct cmesh_s
@@ -93,21 +93,20 @@ typedef struct cmodel_s
 	// custom traces for various model types
 	void (*TraceBox)( const vec3_t, const vec3_t, const vec3_t, const vec3_t, struct cmodel_s*, struct trace_s*, int );
 	int (*PointContents)( const vec3_t point, struct cmodel_s *model );
-	bool (*AmbientLevel)( const vec3_t point, float *volumes, struct cmodel_s *model );
 } cmodel_t;
 
 typedef struct csurface_s
 {
-	string	name;
-	int	surfaceflags;
-	int	contentflags;
-	int	value;
+	int	shadernum;
+	int	surfaceType;
 
 	vec3_t	mins;
 	vec3_t	maxs;
 
 	// patches support
 	int	numtriangles;
+
+	int	firstvertex;
 	int	numvertices;
 	int	*indices;
 	float	*vertices;
@@ -130,7 +129,12 @@ typedef struct trace_s
 	int		surfaceflags;
 	int		hitgroup;		// hit a studiomodel hitgroup #
 	int		flags;		// misc trace flags
-	edict_t		*ent;		// not set by CM_*() functions
+
+	union
+	{
+		edict_t	*ent;		// not set by CM_*() functions
+		void	*gp;		// render traceline use this		
+	};
 } trace_t;
 
 _inline void PlaneClassify( cplane_t *p )
@@ -152,13 +156,52 @@ _inline void PlaneClassify( cplane_t *p )
 }
 
 /*
+=================
+CategorizePlane
+
+A slightly more complex version of SignbitsForPlane and PlaneTypeForNormal,
+which also tries to fix possible floating point glitches (like -0.00000 cases)
+=================
+*/
+_inline void CategorizePlane( cplane_t *plane )
+{
+	int	i;
+
+	plane->signbits = 0;
+	plane->type = PLANE_NONAXIAL;
+
+	for( i = 0; i < 3; i++ )
+	{
+		if( plane->normal[i] < 0 )
+		{
+			plane->signbits |= 1<<i;
+			if( plane->normal[i] == -1.0f )
+			{
+				plane->signbits = (1<<i);
+				plane->normal[0] = plane->normal[1] = plane->normal[2] = 0;
+				plane->normal[i] = -1.0f;
+				break;
+			}
+		}
+		else if( plane->normal[i] == 1.0f )
+		{
+			plane->type = i;
+			plane->signbits = 0;
+			plane->normal[0] = plane->normal[1] = plane->normal[2] = 0;
+			plane->normal[i] = 1.0f;
+			break;
+		}
+	}
+}
+
+/*
 ==============
 BoxOnPlaneSide (engine fast version)
 
 Returns SIDE_FRONT, SIDE_BACK, or SIDE_ON
 ==============
 */
-_inline int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, cplane_t *p )
+_inline int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
 {
 	if (p->type < 3) return ((emaxs[p->type] >= p->dist) | ((emins[p->type] < p->dist) << 1));
 	switch( p->signbits )

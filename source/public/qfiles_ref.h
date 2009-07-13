@@ -163,12 +163,18 @@ BRUSH MODELS
 */
 
 // header
-#define BSPMOD_VERSION	39
+#define Q3IDBSP_VERSION	46
+#define RTCWBSP_VERSION	47
+#define RFIDBSP_VERSION	1	// both raven bsp and qfusion bsp
+
 #define IDBSPMODHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'I') // little-endian "IBSP"
+#define RBBSPMODHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'R') // little-endian "RBSP"
+#define QFBSPMODHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'F') // little-endian "FBSP"
 
 // 32 bit limits
 #define MAX_MAP_AREA_BYTES		MAX_MAP_AREAS / 8	// bit vector of area visibility
 #define MAX_MAP_AREAS		0x100		// don't increase this
+#define MAX_MAP_FOGS		0x100
 #define MAX_MAP_MODELS		0x2000		// mesh models and sprites too
 #define MAX_MAP_AREAPORTALS		0x400
 #define MAX_MAP_ENTITIES		0x2000
@@ -184,8 +190,7 @@ BRUSH MODELS
 #define MAX_MAP_LEAFFACES		0x20000
 #define MAX_MAP_LEAFBRUSHES		0x40000
 #define MAX_MAP_PORTALS		0x20000
-#define MAX_MAP_EDGES		0x80000
-#define MAX_MAP_SURFEDGES		0x80000
+#define MAX_MAP_INDICES		0x80000
 #define MAX_MAP_ENTSTRING		0x80000
 #define MAX_MAP_LIGHTING		0x800000
 #define MAX_MAP_VISIBILITY		0x800000
@@ -205,6 +210,7 @@ BRUSH MODELS
 #define MAX_BUILD_SIDES		512	// per one brush. (don't touch!)
 #define LM_SAMPLE_SIZE		16	// q1, q2, q3 default value (lightmap resoultion)
 #define LM_STYLES			4	// MAXLIGHTMAPS
+#define LM_BYTES			3	// RGB format
 #define LS_NORMAL			0x00
 #define LS_UNUSED			0xFE
 #define LS_NONE			0xFF
@@ -212,81 +218,82 @@ BRUSH MODELS
 #define MAX_LIGHT_STYLES		64
 #define MAX_SWITCHED_LIGHTS		32
 
-typedef enum
-{
-	AMBIENT_SKY = 0,		// windfly1.wav
-	AMBIENT_WATER,
-	AMBIENT_SLIME,
-	AMBIENT_LAVA,
-	NUM_AMBIENTS		// automatic ambient sounds
-} bsp_sounds_t;
-
 // lump names
-#define LUMP_MAPINFO		"mapinfo"
-#define LUMP_ENTITIES		"entities"
-#define LUMP_SHADERS		"shaders"		// contains shader name and dims
-#define LUMP_PLANES			"planes"
-#define LUMP_LEAFS			"leafs"
-#define LUMP_LEAFFACES		"leafsurfaces"	// marksurfaces
-#define LUMP_LEAFBRUSHES		"leafbrushes"
-#define LUMP_NODES			"nodes"
-#define LUMP_VERTEXES		"vertexes"
-#define LUMP_EDGES			"edges"
-#define LUMP_SURFEDGES		"surfedges"
-#define LUMP_TEXINFO		"texinfo"
-#define LUMP_SURFACES		"surfaces"
-#define LUMP_MODELS			"bmodels"		// bsp brushmodels
-#define LUMP_BRUSHES		"brushes"
-#define LUMP_BRUSHSIDES		"brushsides"
-#define LUMP_VISIBILITY		"visdata"
-#define LUMP_LIGHTING		"lightdata"
-#define LUMP_COLLISION		"collision"	// prepared newton collision tree
-#define LUMP_LIGHTGRID		"lightgrid"	// private server.dat for current map
-#define LUMP_AREAS			"areas"
-#define LUMP_AREAPORTALS		"areaportals"
+typedef struct
+{
+	int		fileofs, filelen;
+} lump_t;
 
-#define MAP_SINGLEPLAYER		BIT(0)
-#define MAP_DEATHMATCH		BIT(1)		// Classic DeathMatch
-#define MAP_COOPERATIVE		BIT(2)		// Cooperative mode
-#define MAP_TEAMPLAY_CTF		BIT(3)		// teamplay Capture The Flag
-#define MAP_TEAMPLAY_DOM		BIT(4)		// teamplay dominate
-#define MAP_LASTMANSTANDING		BIT(5)
+#define LUMP_ENTITIES		0
+#define LUMP_SHADERS		1
+#define LUMP_PLANES			2
+#define LUMP_NODES			3
+#define LUMP_LEAFS			4
+#define LUMP_LEAFSURFACES		5
+#define LUMP_LEAFBRUSHES		6
+#define LUMP_MODELS			7
+#define LUMP_BRUSHES		8
+#define LUMP_BRUSHSIDES		9
+#define LUMP_VERTEXES		10
+#define LUMP_ELEMENTS		11
+#define LUMP_FOGS			12
+#define LUMP_SURFACES		13
+#define LUMP_LIGHTING		14
+#define LUMP_LIGHTGRID		15
+#define LUMP_VISIBILITY		16
+#define LUMP_LIGHTARRAY		17
+#define LUMP_COLLISION		18		// Xash extra lump
+#define HEADER_LUMPS		18		// 16 for IDBSP
 
 typedef enum
 {
 	SURF_NONE			= 0,		// just a mask for source tabulation
-	SURF_LIGHT		= BIT(0),		// value will hold the light strength
+	SURF_NODAMAGE		= BIT(0),		// never give falling damage
 	SURF_SLICK		= BIT(1),		// effects game physics
 	SURF_SKY			= BIT(2),		// don't draw, but add to skybox
-	SURF_WARP			= BIT(3),		// turbulent water warp
-	SURF_TRANS		= BIT(4),		// translucent
-	SURF_BLEND		= BIT(5),		// same as blend
-	SURF_ALPHA		= BIT(6),		// alphatest
-	SURF_ADDITIVE		= BIT(7),		// additive surface
-	SURF_NODRAW		= BIT(8),		// don't bother referencing the texture
-	SURF_HINT			= BIT(9),		// make a primary bsp splitter
-	SURF_SKIP			= BIT(10),	// completely ignore, allowing non-closed brushes
-	SURF_NULL			= BIT(11),	// remove face after compile
-	SURF_NOLIGHTMAP		= BIT(12),	// don't place lightmap for this surface
-	SURF_MIRROR		= BIT(12),	// remove face after compile
-	SURF_CHROME		= BIT(13),	// chrome surface effect
-	SURF_GLOW			= BIT(14),	// sprites glow
-	SURF_3DSKY		= BIT(15),	// sky portal
+	SURF_LADDER		= BIT(3),		// this is ladder surface
+	SURF_NOIMPACT		= BIT(4),		// don't make missile explosions
+	SURF_NOMARKS		= BIT(5),		// don't leave missile marks
+	SURF_WARP			= BIT(6),		// turbulent water warping
+	SURF_NODRAW		= BIT(7),		// don't generate a drawsurface at all
+	SURF_HINT			= BIT(8),		// make a primary bsp splitter
+	SURF_SKIP			= BIT(9),		// completely ignore, allowing non-closed brushes
+	SURF_NOLIGHTMAP		= BIT(10),	// don't place lightmap for this surface
+	SURF_POINTLIGHT		= BIT(11),	// generate lighting info at vertexes
+	SURF_METALSTEPS		= BIT(12),	// REMOVE? clanking footsteps
+	SURF_NOSTEPS		= BIT(13),		// REMOVE? no footstep sounds
+	SURF_NONSOLID		= BIT(14),	// don't collide against curves with this set
+	SURF_LIGHTFILTER		= BIT(15),	// act as a light filter during q3map -light
+	SURF_ALPHASHADOW		= BIT(16),	// do per-pixel light shadow casting in q3map
+	SURF_NODLIGHT		= BIT(17),	// never add dynamic lights
+	SURF_DUST			= BIT(18),	// REMOVE? leave a dust trail when walking on this surface
+	SURF_BLEND		= BIT(19),
+	SURF_ALPHA		= BIT(20),
+	SURF_ADDITIVE		= BIT(21),
+	SURF_GLOW			= BIT(22),
 } surfaceType_t;
+
+enum
+{
+	MST_BAD = 0,
+	MST_PLANAR,
+	MST_PATCH,
+	MST_TRISURF,
+	MST_FLARE,
+	MST_FOLIAGE
+};
 
 typedef struct
 {
 	int	ident;
 	int	version;	
-	char	message[64];	// map message
-	int	flags;		// map flags
-	int	reserved[13];	// future expansions
+	lump_t	lumps[HEADER_LUMPS];
 } dheader_t;
 
 typedef struct
 {
-	float	mins[3];
-	float	maxs[3];
+	vec3_t	mins;
+	vec3_t	maxs;
 	int	firstsurface;	// submodels just draw faces 
 	int	numsurfaces;	// without walking the bsp tree
 	int	firstbrush;	// physics stuff
@@ -296,15 +303,27 @@ typedef struct
 typedef struct
 {
 	char	name[64];		// shader name
-	int	size[2];		// general size for current s\t coords (used for replace texture)
 	int	surfaceFlags;	// surface flags (can be replaced)
 	int	contentFlags;	// texture contents (can be replaced)
 } dshader_t;
 
 typedef struct
 {
-	float	point[3];
-} dvertex_t;
+	vec3_t	point;
+	vec2_t	tex_st;		// texture coords
+	vec2_t	lm_st;		// lightmap texture coords
+	vec3_t	normal;		// normal
+	byte	color[4];		// color used for vertex lighting
+} dvertexq_t;
+
+typedef struct
+{
+	vec3_t	point;
+	vec2_t	tex_st;
+	vec2_t	lm_st[LM_STYLES];
+	vec3_t	normal;
+	byte	color[LM_STYLES][4];
+} dvertexr_t;
 
 typedef struct
 {
@@ -318,29 +337,13 @@ typedef struct
 	int	children[2];	// negative numbers are -(leafs+1), not nodes
 	int	mins[3];		// for frustom culling
 	int	maxs[3];
-	int	firstsurface;
-	int	numsurfaces;	// counting both sides
 } dnode_t;
 
-typedef struct
-{
-	float	vecs[2][4];	// [s/t][xyz offset] texture s\t
-	int	shadernum;	// shader number in LUMP_SHADERS array
-	int	value;		// FIXME: eliminate this ? used by qrad, not engine
-} dtexinfo_t;
-
-typedef struct
-{
-	int	v[2];		// vertex numbers
-} dedge_t;
-
-typedef int	dsurfedge_t;
 typedef dword	dleafface_t;
 typedef dword	dleafbrush_t;
 
 typedef struct
 {
-	int	contents;		// or of all brushes (not needed?)
 	int	cluster;
 	int	area;
 	int	mins[3];		// for frustum culling
@@ -349,14 +352,20 @@ typedef struct
 	int	numleafsurfaces;
 	int	firstleafbrush;
 	int	numleafbrushes;
-	byte	sounds[NUM_AMBIENTS];
 } dleaf_t;
 
 typedef struct
 {
 	int	planenum;		// facing out of the leaf
-	int	texinfo;		// surface description
-} dbrushside_t;
+	int	shadernum;	// surface description
+} dbrushsideq_t;
+
+typedef struct
+{
+	int	planenum;		// facing out of the leaf
+	int	shadernum;	// surface description
+	int	surfacenum;
+} dbrushsider_t;
 
 typedef struct
 {
@@ -367,43 +376,83 @@ typedef struct
 
 typedef struct
 {
+	char	shader[64];
+	int	brushnum;
+	int	visibleside;
+} dfog_t;
+
+typedef struct
+{
 	int	numclusters;
-	int	bitofs[8][2];	// bitofs[numclusters][2]
+	int	rowsize;
+	byte	data[1];		// unbounded
 } dvis_t;
 
 typedef struct
 {
-	vec3_t	mins;
-	vec3_t	size;
-	int	bounds[4];	// world bounds
-	int	numpoints;	// lightgrid[points]
-} dlightgrid_t;
+	byte	ambient[3];
+	byte	diffuse[3];
+	byte	direction[2];
+} dlightgridq_t;
 
 typedef struct
 {
-	int	planenum;
-	int	side;
-
-	int	firstedge;
-	int	numedges;	
-	int	texinfo;		// number in LUMP_TEXINFO array
-
-	// lighting info
+	byte	ambient[LM_STYLES][3];
+	byte	diffuse[LM_STYLES][3];
 	byte	styles[LM_STYLES];
-	int	lightofs;		// start of [numstyles*surfsize] samples
-} dsurface_t;
+	byte	direction[2];
+} dlightgridr_t;
 
 typedef struct
 {
-	int	portalnum;
-	int	otherarea;
-} dareaportal_t;
+	int	shadernum;
+	int	fognum;
+	int	facetype;
+
+	int	firstvert;
+	int	numverts;
+	uint	firstelem;
+	int	numelems;
+
+	int	lm_texnum;	// lightmap info
+	int	lm_offset[2];
+	int	lm_size[2];
+
+	vec3_t	origin;		// MST_FLARE only
+
+	vec3_t	mins;
+	vec3_t	maxs;		// MST_PATCH and MST_TRISURF only
+	vec3_t	normal;		// MST_PLANAR only
+
+	int	patch_cp[2];	// patch control point dimensions
+} dsurfaceq_t;
 
 typedef struct
 {
-	int	numareaportals;
-	int	firstareaportal;
-} darea_t;
+	int	shadernum;
+	int	fognum;
+	int	facetype;
+
+	int	firstvert;
+	int	numverts;
+	uint	firstelem;
+	int	numelems;
+
+	byte	lightmapStyles[LM_STYLES];
+	byte	vertexStyles[LM_STYLES];
+
+	int	lm_texnum[LM_STYLES];	// lightmap info
+	int	lm_offset[LM_STYLES][2];
+	int	lm_size[2];
+
+	vec3_t	origin;		// FACETYPE_FLARE only
+
+	vec3_t	mins;
+	vec3_t	maxs;		// FACETYPE_PATCH and FACETYPE_TRISURF only
+	vec3_t	normal;		// FACETYPE_PLANAR only
+
+	int	patch_cp[2];	// patch control point dimensions
+} dsurfacer_t;
 
 /*
 ==============================================================================
@@ -524,6 +573,208 @@ typedef struct
 #include "studio_ref.h"
 
 /*
+========================================================================
+
+.MD3 model file format
+
+========================================================================
+*/
+
+#define IDMD3HEADER			(('3'<<24)+('P'<<16)+('D'<<8)+'I') // little-endian "IDP3"
+
+#define MD3_ALIAS_VERSION		15
+#define MD3_ALIAS_MAX_LODS		4
+
+#define MD3_MAX_TRIANGLES		8192	// per mesh
+#define MD3_MAX_VERTS		4096	// per mesh
+#define MD3_MAX_SHADERS		256	// per mesh
+#define MD3_MAX_FRAMES		1024	// per model
+#define MD3_MAX_MESHES		32	// per model
+#define MD3_MAX_TAGS		16	// per frame
+#define MD3_MAX_PATH		64
+
+// vertex scales
+#define MD3_XYZ_SCALE		(1.0f/64)
+
+typedef struct
+{
+	float		st[2];
+} dmd3coord_t;
+
+typedef struct
+{
+	short		point[3];
+	byte		norm[2];
+} dmd3vertex_t;
+
+typedef struct
+{
+	float		mins[3];
+	float		maxs[3];
+	float		translate[3];
+	float		radius;
+	char		creator[16];
+} dmd3frame_t;
+
+typedef struct
+{
+	char		name[MD3_MAX_PATH];		// tag name
+	float		origin[3];
+	float		axis[3][3];
+} dmd3tag_t;
+
+typedef struct 
+{
+	char		name[MD3_MAX_PATH];
+	int		unused;			// shader
+} dmd3skin_t;
+
+typedef struct
+{
+	int		id;
+	char		name[MD3_MAX_PATH];
+	int		flags;
+	int		num_frames;
+	int		num_skins;
+	int		num_verts;
+	int		num_tris;
+	int		ofs_elems;
+	int		ofs_skins;
+	int		ofs_tcs;
+	int		ofs_verts;
+	int		meshsize;
+} dmd3mesh_t;
+
+typedef struct
+{
+	int		id;
+	int		version;
+	char		filename[MD3_MAX_PATH];
+	int		flags;
+	int		num_frames;
+	int		num_tags;
+	int		num_meshes;
+	int		num_skins;
+	int		ofs_frames;
+	int		ofs_tags;
+	int		ofs_meshes;
+	int		ofs_end;
+} dmd3header_t;
+
+/*
+========================================================================
+
+.SKM and .SKP models file formats
+
+========================================================================
+*/
+
+#define SKMHEADER			(('1'<<24)+('M'<<16)+('K'<<8)+'S') // little-endian "SKM1"
+
+#define SKM_MAX_NAME		64
+#define SKM_MAX_MESHES		32
+#define SKM_MAX_FRAMES		65536
+#define SKM_MAX_TRIS		65536
+#define SKM_MAX_VERTS		(SKM_MAX_TRIS * 3)
+#define SKM_MAX_BONES		256
+#define SKM_MAX_SHADERS		256
+#define SKM_MAX_FILESIZE		16777216
+#define SKM_MAX_ATTACHMENTS		SKM_MAX_BONES
+#define SKM_MAX_LODS		4
+
+// model format related flags
+#define SKM_BONEFLAG_ATTACH		1
+#define SKM_MODELTYPE		2	// (hierarchical skeletal pose)
+
+typedef struct
+{
+	char			id[4];	// SKMHEADER
+	uint			type;
+	uint			filesize;	// size of entire model file
+
+	uint			num_bones;
+	uint			num_meshes;
+
+	// this offset is relative to the file
+	uint			ofs_meshes;
+} dskmheader_t;
+
+// there may be more than one of these
+typedef struct
+{
+	// these offsets are relative to the file
+	char			shadername[SKM_MAX_NAME];		// name of the shader to use
+	char			meshname[SKM_MAX_NAME];
+
+	uint			num_verts;
+	uint			num_tris;
+	uint			num_references;
+	uint			ofs_verts;	
+	uint			ofs_texcoords;
+	uint			ofs_indices;
+	uint			ofs_references;
+} dskmmesh_t;
+
+// one or more of these per vertex
+typedef struct
+{
+	float			origin[3];		// vertex location (these blend)
+	float			influence;		// influence fraction (these must add up to 1)
+	float			normal[3];		// surface normal (these blend)
+	uint			bonenum;	// number of the bone
+} dskmbonevert_t;
+
+// variable size, parsed sequentially
+typedef struct
+{
+	uint			numweights;
+	// immediately followed by 1 or more ddpmbonevert_t structures
+	dskmbonevert_t		verts[1];
+} dskmvertex_t;
+
+typedef struct
+{
+	float			st[2];
+} dskmcoord_t;
+
+typedef struct
+{
+	char			id[4];				// SKMHEADER
+	uint			type;
+	uint			filesize;	// size of entire model file
+
+	uint			num_bones;
+	uint			num_frames;
+
+	// these offsets are relative to the file
+	uint			ofs_bones;
+	uint			ofs_frames;
+} dskpheader_t;
+
+// one per bone
+typedef struct
+{
+	// name examples: upperleftarm leftfinger1 leftfinger2 hand, etc
+	char			name[SKM_MAX_NAME];
+	signed int		parent;		// parent bone number
+	uint			flags;		// flags for the bone
+} dskpbone_t;
+
+typedef struct
+{
+	float			quat[4];
+	float			origin[3];
+} dskpbonepose_t;
+
+// immediately followed by bone positions for the frame
+typedef struct
+{
+	// name examples: idle_1 idle_2 idle_3 shoot_1 shoot_2 shoot_3, etc
+	char			name[SKM_MAX_NAME];
+	uint			ofs_bonepositions;
+} dskpframe_t;
+
+/*
 ==============================================================================
 SAVE FILE
 
@@ -532,7 +783,7 @@ included global, and both (client & server) pent list
 */
 #define LUMP_CFGSTRING	"configstrings"
 #define LUMP_AREASTATE	"areaportals"
-#define LUMP_ENTITIES	"entities"	// entvars + CBase->fields
+#define LUMP_BASEENTS	"entities"	// entvars + CBase->fields
 #define LUMP_ENTTABLE	"enttable"	// entity transition table
 #define LUMP_ADJACENCY	"adjacency"	// Save Header + ADJACENCY
 #define LUMP_GLOBALS	"global_data"	// Game Header + Global State

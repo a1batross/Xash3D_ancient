@@ -115,11 +115,13 @@ static void CM_TraceLine_r( trace_t *trace, cmodel_t *model, cnode_t *node, cons
 		// line trace the curves
 		for( i = 0; i < leaf->numleafsurfaces; i++ )
 		{
-			surface = cm.shaders + cm.texinfo[cm.surfaces[leaf->firstleafsurface[i]].texinfo].shadernum;
+			cshader_t	*shader;
+			surface = cm.surfaces + leaf->firstleafsurface[i];
+			shader = cm.shaders + surface->shadernum;
 			if( surface->numtriangles && surface->markframe != markframe && BoxesOverlap(nodesegmentmins, nodesegmentmaxs, surface->mins, surface->maxs))
 			{
 				surface->markframe = markframe;
-				CM_CollisionTraceLineTriangleMeshFloat( trace, linestart, lineend, surface->numtriangles, surface->indices, surface->vertices, surface->contentflags, surface->surfaceflags, surface, segmentmins, segmentmaxs );
+				CM_CollisionTraceLineTriangleMeshFloat( trace, linestart, lineend, surface->numtriangles, surface->indices, surface->vertices, shader->contents, shader->flags, surface, segmentmins, segmentmaxs );
 			}
 		}
 	}
@@ -192,11 +194,14 @@ static void CM_TraceBrush_r( trace_t *trace, cmodel_t *model, cnode_t *node, con
 	{
 		for( i = 0; i < leaf->numleafsurfaces; i++ )
 		{
-			surface = cm.shaders + cm.texinfo[cm.surfaces[leaf->firstleafsurface[i]].texinfo].shadernum;
+			cshader_t	*shader;
+			surface = cm.surfaces + leaf->firstleafsurface[i];
+			shader = cm.shaders + surface->shadernum;
+
 			if( surface->numtriangles && surface->markframe != markframe && BoxesOverlap( nodesegmentmins, nodesegmentmaxs, surface->mins, surface->maxs ))
 			{
 				surface->markframe = markframe;
-				CM_CollisionTraceBrushTriangleMeshFloat( trace, thisbrush_start, thisbrush_end, surface->numtriangles, surface->indices, surface->vertices, surface->contentflags, surface->surfaceflags, surface, segmentmins, segmentmaxs );
+				CM_CollisionTraceBrushTriangleMeshFloat( trace, thisbrush_start, thisbrush_end, surface->numtriangles, surface->indices, surface->vertices, shader->contents, shader->flags, surface, segmentmins, segmentmaxs );
 			}
 		}
 	}
@@ -242,8 +247,11 @@ void CM_TraceBmodel( const vec3_t start, const vec3_t end, const vec3_t mins, co
 					if( brush->colbrushf ) CM_CollisionTraceLineBrushFloat( trace, start, end, brush->colbrushf, brush->colbrushf );
 				for( i = 0, j = model->firstface; i < model->numfaces; i++, j++ )
 				{
-					surface = cm.shaders + cm.texinfo[cm.surfaces[j].texinfo].shadernum;
-					if( surface->numtriangles ) CM_CollisionTraceLineTriangleMeshFloat( trace, start, end, surface->numtriangles, surface->indices, surface->vertices, surface->contentflags, surface->surfaceflags, surface, segmentmins, segmentmaxs );
+					cshader_t	*shader;
+					surface = cm.surfaces + j;
+					shader = cm.shaders + surface->shadernum;
+
+					if( surface->numtriangles ) CM_CollisionTraceLineTriangleMeshFloat( trace, start, end, surface->numtriangles, surface->indices, surface->vertices, shader->contents, shader->flags, surface, segmentmins, segmentmaxs );
 				}
 			}
 			else CM_TraceLine_r( trace, model, cm.nodes, start, end, 0, 1, start, end, ++markframe, segmentmins, segmentmaxs );
@@ -276,8 +284,11 @@ void CM_TraceBmodel( const vec3_t start, const vec3_t end, const vec3_t mins, co
 				if( brush->colbrushf ) CM_CollisionTraceBrushBrushFloat( trace, thisbrush_start, thisbrush_end, brush->colbrushf, brush->colbrushf );
 			for( i = 0, j = model->firstface; i < model->numfaces; i++, j++ )
 			{
-				surface = cm.shaders + cm.texinfo[cm.surfaces[j].texinfo].shadernum;
-				if( surface->numtriangles ) CM_CollisionTraceLineTriangleMeshFloat( trace, start, end, surface->numtriangles, surface->indices, surface->vertices, surface->contentflags, surface->surfaceflags, surface, segmentmins, segmentmaxs );
+				cshader_t	*shader;
+				surface = cm.surfaces + j;
+				shader = cm.shaders + surface->shadernum;
+					
+				if( surface->numtriangles ) CM_CollisionTraceLineTriangleMeshFloat( trace, start, end, surface->numtriangles, surface->indices, surface->vertices, shader->contents, shader->flags, surface, segmentmins, segmentmaxs );
 			}
 		}
 		else CM_TraceBrush_r( trace, model, cm.nodes, thisbrush_start, thisbrush_end, ++markframe, segmentmins, segmentmaxs );

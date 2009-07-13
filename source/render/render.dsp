@@ -114,7 +114,19 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\gl_backend.c
+SOURCE=.\cin.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\glw_imp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\qgl_win.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_alias.c
 # End Source File
 # Begin Source File
 
@@ -122,19 +134,15 @@ SOURCE=.\r_backend.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\r_backend2.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\r_bloom.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\r_draw.c
+SOURCE=.\r_cin.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\r_fragment.c
+SOURCE=.\r_cull.c
 # End Source File
 # Begin Source File
 
@@ -150,7 +158,11 @@ SOURCE=.\r_main.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\r_misc.c
+SOURCE=.\r_math.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_mesh.c
 # End Source File
 # Begin Source File
 
@@ -158,7 +170,7 @@ SOURCE=.\r_model.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\r_opengl.c
+SOURCE=.\r_poly.c
 # End Source File
 # Begin Source File
 
@@ -166,7 +178,23 @@ SOURCE=.\r_program.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\r_register.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\r_shader.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_shadow.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_skin.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_skm.c
 # End Source File
 # Begin Source File
 
@@ -174,19 +202,7 @@ SOURCE=.\r_sky.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\r_sprite.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\r_studio.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\r_surface.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\r_utils.c
+SOURCE=.\r_surf.c
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -194,15 +210,51 @@ SOURCE=.\r_utils.c
 # PROP Default_Filter "h;hpp;hxx;hm;inl;fi;fd"
 # Begin Source File
 
+SOURCE=.\cin.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\glw_win.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\qgl.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_backend.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_glimp.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\r_local.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\r_opengl.h
+SOURCE=.\r_math.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\warpsin.h
+SOURCE=.\r_mesh.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_model.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_public.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_shader.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_shadow.h
 # End Source File
 # End Group
 # End Target

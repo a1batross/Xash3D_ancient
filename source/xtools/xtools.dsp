@@ -114,22 +114,6 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\bsplib\ambient.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\brushbsp.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\bspfile.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\bsplib.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\ripper\conv_bsplumps.c
 # End Source File
 # Begin Source File
@@ -154,59 +138,7 @@ SOURCE=.\ripper\conv_sprite.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\csg.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\dpvencoder.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\faces.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\flow.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\leakfile.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\lightmap.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\map.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\patches.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\portals.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\prtfile.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\qbsp3.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\qrad3.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\qvis3.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\shaders.c
 # End Source File
 # Begin Source File
 
@@ -222,31 +154,11 @@ SOURCE=.\studio_utils.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\textures.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\trace.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\tree.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\utils.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\wadlib.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\winding.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\writebsp.c
 # End Source File
 # Begin Source File
 
@@ -256,10 +168,6 @@ SOURCE=.\xtools.c
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
-# Begin Source File
-
-SOURCE=.\bsplib\bsplib.h
-# End Source File
 # Begin Source File
 
 SOURCE=.\mdllib.h

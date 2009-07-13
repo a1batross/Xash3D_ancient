@@ -162,8 +162,6 @@ extern cvar_t *s_alDevice;
 extern cvar_t *s_soundfx;
 extern cvar_t *s_musicvolume;
 extern cvar_t *s_check_errors;
-extern cvar_t *s_ambientvolume;
-extern sound_t ambient_sfx[NUM_AMBIENTS];
 
 bool S_Init( void *hInst );
 void S_Shutdown( void );
@@ -180,7 +178,6 @@ int S_StartLocalSound( const char *name, float volume, float pitch, const float 
 sfx_t *S_GetSfxByHandle( sound_t handle );
 void S_StreamBackgroundTrack( void );
 void S_StopBackgroundTrack( void );
-void S_InitAmbientSounds( void );
 void S_ClearSoundBuffer( void );
 bool S_LoadSound( sfx_t *sfx );
 void S_StartStreaming( void );

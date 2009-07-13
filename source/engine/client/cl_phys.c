@@ -316,14 +316,6 @@ int CL_PointContents( const vec3_t point )
 	return 0;
 }
 
-bool CL_AmbientLevel( const vec3_t point, float *volumes )
-{
-	// get world supercontents at this point
-	if( cl.worldmodel && cl.worldmodel->AmbientLevel )
-		return cl.worldmodel->AmbientLevel( point, volumes, cl.worldmodel );
-	return 0;
-}
-
 /*
 =================
 CL_PredictMovement

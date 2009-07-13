@@ -7,7 +7,6 @@
 #include "s_stream.h"
 
 #define MAX_SFX		4096
-sound_t ambient_sfx[NUM_AMBIENTS];
 static sfx_t s_knownSfx[MAX_SFX];
 static int s_numSfx = 0;
 int s_registration_sequence = 0;
@@ -620,8 +619,6 @@ void S_BeginRegistration( void )
 {
 	s_registration_sequence++;
 	s_registering = true;
-
-	S_InitAmbientSounds();
 }
 
 /*
@@ -709,16 +706,4 @@ void S_FreeSounds( void )
 
 	Mem_Set( s_knownSfx, 0, sizeof(s_knownSfx));
 	s_numSfx = 0;
-}
-
-void S_InitAmbientSounds( void )
-{
-	if( s_ambientvolume->value == 0.0f )
-		return;
-
-	// FIXME: create external script for replace this sounds
-	ambient_sfx[AMBIENT_SKY] = S_RegisterSound( "ambience/wind2.wav" );
-	ambient_sfx[AMBIENT_WATER] = S_RegisterSound( "ambience/water1.wav" );
-	ambient_sfx[AMBIENT_SLIME] = S_RegisterSound( "misc/null.wav" );
-	ambient_sfx[AMBIENT_LAVA] = S_RegisterSound( "misc/null.wav" );
 }

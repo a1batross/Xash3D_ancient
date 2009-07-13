@@ -729,7 +729,7 @@ void CL_PrepVideo( void )
 	Msg( "CL_PrepRefresh: %s\n", cl.configstrings[CS_NAME] );
 	// let the render dll load the map
 	FS_FileBase( cl.configstrings[CS_MODELS+1], mapname ); 
-	re->BeginRegistration( mapname ); // load map
+	re->BeginRegistration( mapname, pe->VisData()); // load map
 	SCR_RegisterShaders(); // update with new sequence
 	SCR_UpdateScreen();
 

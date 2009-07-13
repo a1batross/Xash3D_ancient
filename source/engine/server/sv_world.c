@@ -17,8 +17,8 @@ FIXME: this use of "area" is different from the bsp file use
 */
 #define EDICT_FROM_AREA( l )		EDICT_NUM( l->entnum )
 #define MAX_TOTAL_ENT_LEAFS		128
-#define AREA_NODES			32
-#define AREA_DEPTH			4
+#define AREA_NODES			64
+#define AREA_DEPTH			5
 
 typedef struct areanode_s
 {
@@ -226,7 +226,7 @@ void SV_LinkEdict( edict_t *ent )
 	int		num_leafs;
 	int		i, j;
 	int		area;
-	int		topnode;
+	int		lastleaf;
 	sv_priv_t		*sv_ent;
 
 	sv_ent = ent->pvServerData;
@@ -252,7 +252,7 @@ void SV_LinkEdict( edict_t *ent )
 	sv_ent->areanum2 = 0;
 
 	// get all leafs, including solids
-	num_leafs = pe->BoxLeafnums( ent->v.absmin, ent->v.absmax, leafs, MAX_TOTAL_ENT_LEAFS, &topnode );
+	num_leafs = pe->BoxLeafnums( ent->v.absmin, ent->v.absmax, leafs, MAX_TOTAL_ENT_LEAFS, &lastleaf );
 
 	// if none of the leafs were inside the map, the
 	// entity is outside the world and can be considered unlinked
@@ -280,36 +280,32 @@ void SV_LinkEdict( edict_t *ent )
 		}
 	}
 
-	if( num_leafs >= MAX_TOTAL_ENT_LEAFS )
+	sv_ent->lastcluster = -1;
+	sv_ent->num_clusters = 0;
+
+	for( i = 0; i < num_leafs; i++ )
 	{
-		// assume we missed some leafs, and mark by headnode
-		sv_ent->num_clusters = -1;
-		sv_ent->headnode = topnode;
-	}
-	else
-	{
-		sv_ent->num_clusters = 0;
-		for( i = 0; i < num_leafs; i++ )
+		if( clusters[i] == -1 )
+			continue;		// not a visible leaf
+		for( j = 0; j < i; j++ )
 		{
-			if( clusters[i] == -1 ) continue; // not a visible leaf
-			for( j = 0; j < i; j++ )
-			{
-				if( clusters[j] == clusters[i] )
-					break;
+			if( clusters[j] == clusters[i] )
+				break;
+		}
+		if( j == i )
+		{
+			if( sv_ent->num_clusters == MAX_ENT_CLUSTERS )
+			{	
+				// we missed some leafs, so store the last visible cluster
+				sv_ent->lastcluster = pe->LeafCluster( lastleaf );
+				break;
 			}
-			if( j == i )
-			{
-				if( sv_ent->num_clusters == MAX_ENT_CLUSTERS )
-				{
-					// assume we missed some leafs, and mark by headnode
-					sv_ent->num_clusters = -1;
-					sv_ent->headnode = topnode;
-					break;
-				}
-				sv_ent->clusternums[sv_ent->num_clusters++] = clusters[i];
-			}
+			sv_ent->clusternums[sv_ent->num_clusters++] = clusters[i];
 		}
 	}
+
+	// if first time, make sure old_origin is valid
+	if( !sv_ent->linkcount ) VectorCopy( ent->v.origin, ent->v.oldorigin );
 
 	ent->pvServerData->linkcount++;
 	ent->pvServerData->s.ed_flags |= ESF_LINKEDICT;	// change edict state on a client too...
@@ -371,9 +367,7 @@ void SV_AreaEdicts_r( areanode_t *node, area_t *ap )
 		check = EDICT_FROM_AREA( l );
 
 		if( check->v.solid == SOLID_NOT ) continue; // deactivated
-		if( check->v.absmin[0] > ap->maxs[0] || check->v.absmin[1] > ap->maxs[1]
-		 || check->v.absmin[2] > ap->maxs[2] || check->v.absmax[0] < ap->mins[0]
-		 || check->v.absmax[1] < ap->mins[1] || check->v.absmax[2] < ap->mins[2] )
+		if( !BoundsIntersect( check->v.absmin, check->v.absmax, ap->mins, ap->maxs ))
 			continue;	// not touching
 
 		if( ap->count == ap->maxcount )

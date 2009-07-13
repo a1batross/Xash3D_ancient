@@ -25,8 +25,6 @@ cvar_t	*s_soundfx;
 cvar_t	*s_check_errors;
 cvar_t	*s_volume;	// master volume
 cvar_t	*s_musicvolume;	// background track volume
-cvar_t	*s_ambientvolume;
-cvar_t	*s_ambientfade;
 cvar_t	*s_pause;
 cvar_t	*s_minDistance;
 cvar_t	*s_maxDistance;
@@ -566,36 +564,8 @@ void S_AddEnvironmentEffects( const vec3_t position )
 }
 
 /*
-===================
-S_UpdateAmbientSounds
-===================
-*/
-void S_UpdateAmbientSounds( int clientnum, const vec3_t position )
-{
-	float		volumes[NUM_AMBIENTS];
-	float		volume;
-	sfx_t		*ambient;
-	int		i;
-
-	if( !si.AmbientLevel( position, volumes ) || !s_ambientvolume->value )
-		return;
-
-	for( i = 0; i < NUM_AMBIENTS; i++ )
-	{
-		// no sound
-		ambient = S_GetSfxByHandle( ambient_sfx[i] );
-		if( !ambient ) continue;
-
-		volume = s_ambientvolume->value * volumes[i];
-		if( volume < 0.03 ) continue; // not hearable
-		S_AddLoopingSound( clientnum, ambient_sfx[i], volume, ATTN_NORM );
-	}
-}
-
-
-/*
 =================
- S_Update
+S_Update
 
 Called once each time through the main loop
 =================
@@ -639,9 +609,6 @@ void S_Update( int clientnum, const vec3_t position, const vec3_t velocity, cons
 
 	// Stream background track
 	S_StreamBackgroundTrack();
-
-	// Add ambient sounds (like q1)
-	S_UpdateAmbientSounds( clientnum, position );
 
 	// Add looping sounds
 	si.AddLoopingSounds();
@@ -787,15 +754,13 @@ bool S_Init( void *hInst )
 	s_rolloffFactor = Cvar_Get("s_rollofffactor", "1.0", CVAR_ARCHIVE, "3d sound rolloff factor" );
 	s_dopplerFactor = Cvar_Get("s_dopplerfactor", "1.0", CVAR_ARCHIVE, "cutoff doppler effect value" );
 	s_dopplerVelocity = Cvar_Get("s_dopplervelocity", "10976.0", CVAR_ARCHIVE, "doppler effect maxvelocity" );
-	s_ambientvolume = Cvar_Get( "s_ambientlevel", "0.3", CVAR_ARCHIVE, "world ambient sounds volume" );
-	s_ambientfade = Cvar_Get( "s_ambientfade", "100", CVAR_ARCHIVE, "speed to fading ambient sounds" );
 	s_pause = Cvar_Get( "paused", "0", 0, "sound engine pause" );
 
-	Cmd_AddCommand("playsound", S_PlaySound_f, "playing a specified sound file" );
-	Cmd_AddCommand("music", S_Music_f, "starting a background track" );
-	Cmd_AddCommand("s_stop", S_StopSound_f, "stop all sounds" );
-	Cmd_AddCommand("s_info", S_SoundInfo_f, "print sound system information" );
-	Cmd_AddCommand("soundlist", S_SoundList_f, "display loaded sounds" );
+	Cmd_AddCommand( "playsound", S_PlaySound_f, "playing a specified sound file" );
+	Cmd_AddCommand( "music", S_Music_f, "starting a background track" );
+	Cmd_AddCommand( "s_stop", S_StopSound_f, "stop all sounds" );
+	Cmd_AddCommand( "s_info", S_SoundInfo_f, "print sound system information" );
+	Cmd_AddCommand( "soundlist", S_SoundList_f, "display loaded sounds" );
 
 	if( !host_sound->integer )
 	{

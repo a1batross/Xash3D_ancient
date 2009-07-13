@@ -143,10 +143,9 @@ static void SV_SaveEngineData( wfile_t *f )
 	string_t		csbuffer[MAX_CONFIGSTRINGS];
 
 	// save areaportals state
-	portalstate = Z_Malloc( MAX_MAP_AREAPORTALS );
 	pe->GetAreaPortals( &portalstate, &portalsize );
 	SV_AddSaveLump( f, LUMP_AREASTATE, portalstate, portalsize, true );
-	if( portalstate ) Mem_Free( portalstate ); // release portalinfo
+	if( portalstate ) Mem_Free( portalstate ); // allocated in physic.dll
 
 	// make sure what all configstrings are passes through StringTable system
 	for( i = 0; i < MAX_CONFIGSTRINGS; i++ )

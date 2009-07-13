@@ -2193,8 +2193,6 @@ LINK_ENTITY_TO_CLASS( func_ladder, CLadder );
 void CLadder :: Precache( void )
 {
 	pev->solid = SOLID_NOT;
-	pev->contents = CONTENTS_LADDER;
-
 	pev->effects |= EF_NODRAW;
 }
 

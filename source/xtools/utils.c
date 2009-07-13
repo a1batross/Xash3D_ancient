@@ -6,33 +6,10 @@
 #include "xtools.h"
 #include "byteorder.h"
 #include "utils.h"
-#include "bsplib.h"
 #include "mdllib.h"
 
 string	gs_basedir;	// initial dir before loading gameinfo.txt (used for compilers too)
 string	gs_filename;	// used for compilers only
-
-float ColorNormalize( const vec3_t in, vec3_t out )
-{
-	float	max, scale;
-
-#if 0
-	max = VectorMax( in );
-#else
-	max = in[0];
-	if( in[1] > max ) max = in[1];
-	if( in[2] > max ) max = in[2];
-#endif
-	if( max == 0 )
-	{
-		out[0] = out[1] = out[2] = 1.0f;
-		return 0;
-	}
-
-	scale = 1.0f / max;
-	VectorScale( in, scale, out );
-	return max;
-}
 
 /*
 ================

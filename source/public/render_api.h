@@ -8,23 +8,37 @@
 #include "ref_params.h"
 
 // shader types used for shader loading
-#define SHADER_SKY			0	// sky box shader
-#define SHADER_FONT			1	// speical case for displayed fonts
+#define SHADER_SKYBOX		0	// sky box shader
+#define SHADER_FONT			1	// special case for displayed fonts
 #define SHADER_NOMIP		2	// 2d images
 #define SHADER_GENERIC		3	// generic shader
 
 typedef struct
 {
-	vec3_t		point;
-	rgba_t		modulate;
-	vec2_t		st;
-} polyVert_t;
+	int		numverts;
+	vec3_t		*verts;
+	vec2_t		*stcoords;
+	rgba_t		*colors;
+
+	union
+	{
+		struct ref_shader_s	*shader;
+		shader_t		shadernum;
+	};
+
+	int		fognum;
+	vec3_t		normal;
+} poly_t;
 
 typedef struct
 {
-	int		firstVert;
-	int		numVerts;
-} decalFragment_t;
+	int		firstvert;
+	int		numverts;	// can't exceed MAX_POLY_VERTS
+	int		fognum;	// -1 - do not bother adding fog later at rendering stage
+	   			//  0 - determine fog later
+	   			// >0 - valid fog volume number returned by R_GetClippedFragments
+	vec3_t		normal;
+} fragment_t;
 
 /*
 ==============================================================================
@@ -41,7 +55,7 @@ typedef struct render_exp_s
 	bool	(*Init)( bool full );	// init all render systems
 	void	(*Shutdown)( bool full );	// shutdown all render systems
 
-	void	(*BeginRegistration)( const char *map );
+	void	(*BeginRegistration)( const char *map, const dvis_t *visData );
 	bool	(*RegisterModel)( const char *name, int cl_index ); // also build replacement index table
 	shader_t	(*RegisterShader)( const char *name, int shaderType );
 	void	(*EndRegistration)( const char *skyname );
@@ -49,8 +63,7 @@ typedef struct render_exp_s
 	// prepare frame to rendering
 	bool	(*AddRefEntity)( edict_t *pRefEntity, int ed_type, float lerp );
 	bool	(*AddDynLight)( vec3_t org, vec3_t color, float intensity );
-	bool	(*AddParticle)( shader_t shader, const vec3_t p1, const vec3_t p2, float rad, float len, float rot, rgba_t col );
-	bool	(*AddPolygon)( shader_t shader, int numVerts, const polyVert_t *verts );
+	bool	(*AddPolygon)( const poly_t *poly );
 	bool	(*AddLightStyle)( int stylenum, vec3_t color );
 	void	(*ClearScene)( void );
 
@@ -68,8 +81,7 @@ typedef struct render_exp_s
 	void	(*DrawFill)( float x, float y, float w, float h );
 	void	(*DrawStretchRaw)( int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw );
 	void	(*DrawStretchPic)( float x, float y, float w, float h, float s1, float t1, float s2, float t2, shader_t shader );
-	void	(*ImpactMark)( vec3_t org, vec3_t dir, float rot, float radius, rgba_t mod, bool fade, shader_t s, bool tmp );
-
+	int	(*GetFragments)( const vec3_t org, float rad, vec3_t axis[3], int maxverts, vec3_t *verts, int maxfrags, fragment_t *frags );
 } render_exp_t;
 
 typedef struct render_imp_s
@@ -80,7 +92,6 @@ typedef struct render_imp_s
 	// client fundamental callbacks
 	void	(*UpdateScreen)( void );	// update screen while loading
 	void	(*StudioEvent)( dstudioevent_t *event, edict_t *ent );
-	void	(*AddDecal)( vec3_t org, matrix3x3 m, shader_t s, rgba_t rgba, bool fade, decalFragment_t *df, const vec3_t *v );
 	void	(*ShowCollision)( cmdraw_t callback );	// debug
 	bool	(*Trace)( const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end );
 	long	(*WndProc)( void *hWnd, uint uMsg, uint wParam, long lParam );
