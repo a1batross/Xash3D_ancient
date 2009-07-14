@@ -1712,7 +1712,8 @@ void R_ShutdownImages( void )
 	R_FreeImageBuffers ();
 
 	for( i = 0; i < r_numImages; i++ )
-		Mem_Free( images[i].name );
+		if( images[i].name )
+			Mem_Free( images[i].name );
 
 	if( r_imagePathBuf )
 		Mem_Free( r_imagePathBuf );

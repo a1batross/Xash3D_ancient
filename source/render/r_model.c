@@ -790,11 +790,12 @@ Mod_LoadShaderrefs
 */
 static void Mod_LoadShaderrefs( const lump_t *l )
 {
-	int i, count;
-	int contents;
-	dshader_t *in;
-	mshaderref_t *out;
-
+	int		i, count;
+	int		contents;
+	dshader_t		*in;
+	mshaderref_t	*out;
+	cvar_t		*scr_loading = Cvar_Get( "scr_loading", "0", 0, "loading bar progress" );
+	
 	in = ( void * )( mod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) )
 		Host_Error( "Mod_LoadShaderrefs: funny lump size in %s\n", loadmodel->name );
@@ -806,6 +807,9 @@ static void Mod_LoadShaderrefs( const lump_t *l )
 
 	for( i = 0; i < count; i++, in++, out++ )
 	{
+		Cvar_SetValue( "scr_loading", scr_loading->value + 50.0f / count );
+		if( ri.UpdateScreen ) ri.UpdateScreen();
+
 		com.strncpy( out->name, in->name, sizeof( out->name ) );
 		out->flags = LittleLong( in->surfaceFlags );
 		contents = LittleLong( in->contentFlags );

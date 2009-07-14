@@ -15,6 +15,25 @@
 #define CAPSULE_MODEL_HANDLE	MAX_MODELS - 2
 #define BOX_MODEL_HANDLE	MAX_MODELS - 1
 
+enum
+{
+PATCH_LOD_COLLISION = 0,
+PATCH_LOD_VISUAL,
+PATCH_LODS_NUM
+};
+
+typedef struct patchinfo_s
+{
+	int	xsize;
+	int	ysize;
+
+	struct
+	{
+		int	xtess;
+		int	ytess;
+	} lods[PATCH_LODS_NUM];
+} patchinfo_t;
+
 typedef struct cpointf_s
 {
 	float		v[3];
@@ -166,7 +185,7 @@ typedef struct clipmap_s
 	dleafbrush_t	*leafbrushes;
 	dleafface_t	*leafsurfaces;
 	cnode_t		*nodes;		// 6 extra planes for box hull
-	cpointf_t		*vertices;
+	vec3_t		*vertices;
 	csurface_t	*surfaces;	// source collision data
 	cbrush_t		*brushes;
 	cbrushside_t	*brushsides;
@@ -179,10 +198,11 @@ typedef struct clipmap_s
 	int		numbrushsides;
 	int		numleafbrushes;
 	int		numleafsurfaces;
-	int		numtexinfo;
+	int		numtriangles;
 	int		numplanes;
 	int		numnodes;
 	int		numleafs;		// allow leaf funcs to be called without a map
+	int		numverts;
 	int		numshaders;
 	int		numbrushes;
 	int		numsurfaces;
@@ -327,6 +347,12 @@ cbrushf_t *CM_CollisionBrushForBox( const matrix4x4 matrix, const vec3_t mins, c
 void CM_CollisionBoundingBoxOfBrushTraceSegment( const cbrushf_t *start, const cbrushf_t *end, vec3_t mins, vec3_t maxs, float startfrac, float endfrac );
 float CM_CollisionClipTrace_LineSphere( double *linestart, double *lineend, double *sphereorigin, double sphereradius, double *impactpoint, double *impactnormal );
 void CM_CollisionTraceLineTriangleFloat( trace_t *trace, const vec3_t linestart, const vec3_t lineend, const float *point0, const float *point1, const float *point2, int supercontents, int surfaceflags, csurface_t *texture );
+void CM_PatchTesselateFloat( int numcomponents, int outputstride, float *outputvertices, int patchwidth, int patchheight, int inputstride, float *patchvertices, int tesselationwidth, int tesselationheight );
+int CM_PatchAdjustTesselation( int numcomponents, patchinfo_t *patch1, float *patchvertices1, patchinfo_t *patch2, float *patchvertices2 );
+int CM_PatchTesselationOnX( int patchwidth, int patchheight, int components, const float *in, float tolerance );
+int CM_PatchTesselationOnY( int patchwidth, int patchheight, int components, const float *in, float tolerance );
+void CM_PatchTriangleElements( int *elements, int width, int height, int firstvertex );
+int CM_PatchDimForTess( int size, int tess );
 
 // traces a box move against a single entity
 // mins and maxs are relative

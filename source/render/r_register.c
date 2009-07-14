@@ -1118,6 +1118,8 @@ void R_Shutdown( bool full )
 		// free shaders, models, etc.
 		R_FreeMedia();
 
+		Mem_FreePool( &r_temppool );
+
 		// shutdown rendering backend
 		R_BackendShutdown();
 

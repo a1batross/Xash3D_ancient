@@ -2039,6 +2039,7 @@ bool R_AddPolyToScene( const poly_t *poly )
 		*dp = *poly;
 		if( dp->numverts > MAX_POLY_VERTS )
 			dp->numverts = MAX_POLY_VERTS;
+		dp->shader = &r_shaders[poly->shadernum];
 		return true;
 	}
 	return false;

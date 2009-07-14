@@ -85,7 +85,8 @@ Beta 13.12.08
 54. q3/rbsp bsp format			OK
 55. dedicated conolse hanging commands
 56. renderer viewport bug
-57. shutdown crash
+57. shutdown crash				OK
+58. physic.dll finish collisions
 
 Список доступных рендереров:  	Что в них интересного
 0. Q3Fusion			(Mirrors, Portals)
