@@ -21,7 +21,7 @@ typedef struct patchtess_s
 {
 	patchinfo_t	info;
 
-	// Auxiliary data used only by patch loading code in Mod_Q3BSP_LoadFaces
+	// Auxiliary data used only by patch loading code in BSP_LoadSurfaces
 	int		surface_id;
 	float		lodgroup[6];
 	float		*originalvertex3f;
@@ -50,26 +50,6 @@ void CM_GetPoint( int index, vec3_t out )
 void CM_GetPoint2( int index, vec3_t out )
 {
 	CM_ConvertDimensionToMeters( out, cm.vertices[index] );
-}
-
-/*
-=================
-CM_BoundBrush
-=================
-*/
-void CM_BoundBrush( cbrush_t *b )
-{
-	cbrushside_t	*sides;
-	sides = &cm.brushsides[b->firstbrushside];
-
-	b->bounds[0][0] = -sides[0].plane->dist;
-	b->bounds[1][0] = sides[1].plane->dist;
-
-	b->bounds[0][1] = -sides[2].plane->dist;
-	b->bounds[1][1] = sides[3].plane->dist;
-
-	b->bounds[0][2] = -sides[4].plane->dist;
-	b->bounds[1][2] = sides[5].plane->dist;
 }
 
 void CM_SnapVertices( int numcomponents, int numvertices, float *vertices, float snap )
@@ -125,7 +105,7 @@ int CM_NumTextures( void ) { return cm.numshaders; }
 int CM_NumClusters( void ) { return cm.numclusters; }
 int CM_NumInlineModels( void ) { return cms.numbmodels; }
 script_t *CM_EntityScript( void ) { return cm.entityscript; }
-const char *CM_TexName( int index ) { return cm.shaders[index].name; }
+const char *CM_TexName( int index ){ return cm.shaders[index].name; }
 
 /*
 ===============================================================================
@@ -344,7 +324,6 @@ void BSP_LoadBrushes( lump_t *l )
 		if( n < 0 || n >= cm.numshaders )
 			Host_Error( "BSP_LoadBrushes: invalid shader index %i (brush %i)\n", n, i );
 		out->contents = cm.shaders[n].contents;
-		CM_BoundBrush( out );
 
 		// make a list of mplane_t structs to construct a colbrush from
 		if( maxplanes < out->numsides )
@@ -504,7 +483,8 @@ void IBSP_LoadBrushSides( lump_t *l )
 {
 	dbrushsideq_t 	*in;
 	cbrushside_t	*out;
-	int		i, j, num,count;
+	csurface_t	*surf;
+	int		i, j, shadernum, count;
 
 	in = (void *)(cms.base + l->fileofs);
 	if( l->filelen % sizeof( *in )) Host_Error( "BSP_LoadBrushSides: funny lump size\n" );
@@ -515,12 +495,19 @@ void IBSP_LoadBrushSides( lump_t *l )
 
 	for ( i = 0; i < count; i++, in++, out++)
 	{
-		num = LittleLong( in->planenum );
-		out->plane = cm.planes + num;
-		j = LittleLong( in->shadernum );
-		j = bound( 0, j, cm.numshaders - 1 );
-		out->shader = cm.shaders + j;
-		out->surface = NULL;
+		out->plane = cm.planes + LittleLong( in->planenum );
+		shadernum = bound( 0, LittleLong( in->shadernum ), cm.numshaders - 1 );
+		out->shader = cm.shaders + shadernum;
+
+		for( j = 0, surf = cm.surfaces; j < cm.numsurfaces; j++, surf++ )
+		{
+			if( surf->shadernum == shadernum )
+			{
+				// HACKHACK: only name matched, not vertices
+				out->surface = surf;
+				break;
+			}
+		}
 	}
 }
 
@@ -633,90 +620,35 @@ void RBSP_LoadVertexes( lump_t *l )
 
 /*
 =================
-BSP_LoadEdges
-=================
-*/
-void BSP_LoadIndexes( lump_t *l )
-{
-	int	*in, count;
-
-	in = (void *)(cms.base + l->fileofs);
-	if( l->filelen % sizeof( *in )) Host_Error( "BSP_LoadIndices: funny lump size\n" );
-	count = l->filelen / sizeof( *in );
-
-	// just for get number of triangles
-	cm.numtriangles = count / 3;
-}
-
-/*
-=================
 BSP_LoadSurfaces
 =================
 */
 void IBSP_LoadSurfaces( lump_t *l )
 {
-	dsurfaceq_t	*in, *oldin;
-	csurface_t	*out, *oldout;
-	int		i, j, type;
-	int		firstvertex, numverts, firstelem, numtriangles, finalvertices, finaltriangles;
-	int		patchsize[2], xtess, ytess, cxtess, cytess, finalwidth, finalheight;
+	dsurfaceq_t	*in;
+	csurface_t	*out;
+	int		i, j;
+	int		finalvertices, finaltriangles, patchsize[2], cxtess, cytess, finalwidth, finalheight;
+	int		patchtesscount = 0;
 	float		*originalvertex3f;
 	patchtess_t	*patchtess = NULL;
-	int		patchtesscount = 0;
 	bool		again;
 		
-	in = oldin = (void *)(cms.base + l->fileofs);
+	in = (void *)(cms.base + l->fileofs);
 	if( l->filelen % sizeof( *in )) Host_Error( "BSP_LoadSurfaces: funny lump size\n" );
 
 	cm.numsurfaces = l->filelen / sizeof( *in );
-	cm.surfaces = out = oldout = Mem_Alloc( cmappool, cm.numsurfaces * sizeof( *out ));	
+	cm.surfaces = out = Mem_Alloc( cmappool, cm.numsurfaces * sizeof( *out ));	
 
 	if( cm.numsurfaces > 0 )
-		patchtess = (patchtess_t*) Mem_Alloc( cmappool, cm.numsurfaces * sizeof( *patchtess ));
-
-	Msg( "BSP_LoadSurfaces\n" );
+		patchtess = (patchtess_t *)Mem_Alloc( cmappool, cm.numsurfaces * sizeof( *patchtess ));
 
 	for( i = 0; i < cm.numsurfaces; i++, in++, out++)
 	{
-		type = LittleLong( in->facetype );
-
-		// check face type first
-		switch( type )
-		{
-		case MST_PLANAR:
-		case MST_PATCH:
-		case MST_TRISURF:
-		case MST_FLARE:
-			break;
-		default:
-			MsgDev( D_ERROR, "BSP_LoadSurfaces: face #%i: unknown face type %i\n", i, type );
-			continue;
-		}
-
-		out->surfaceType = type;
+		out->surfaceType = LittleLong( in->facetype );
 		out->shadernum = LittleLong( in->shadernum );
 
-		firstvertex = LittleLong( in->firstvert );
-		numverts = LittleLong( in->numverts );
-		firstelem = LittleLong( in->firstelem );
-		numtriangles = LittleLong( in->numelems ) / 3;
-
-		if( numtriangles * 3 != LittleLong( in->numelems ))
-		{
-			MsgDev( D_ERROR, "BSP_LoadSurfaces: face #%i (texture \"%s\"): numelements %i is not a multiple of 3\n", i, CM_TexName( out->shadernum ), LittleLong( in->numelems ));
-			continue;
-		}
-		if( firstvertex < 0 || firstvertex + numverts > cm.numverts )
-		{
-			MsgDev( D_ERROR, "BSP_LoadSurfaces: face #%i (texture \"%s\"): invalid vertex range %i : %i (%i vertices)\n", i, CM_TexName( out->shadernum ), firstvertex, firstvertex + numverts, cm.numverts );
-			continue;
-		}
-		if( firstelem < 0 || firstelem + numtriangles * 3 > cm.numtriangles * 3 )
-		{
-			MsgDev( D_ERROR, "BSP_LoadSurfaces: face #%i (texture \"%s\"): invalid element range %i : %i (%i elements)\n", i, CM_TexName( out->shadernum ), firstelem, firstelem + numtriangles * 3, cm.numtriangles * 3);
-			continue;
-		}
-		switch( type )
+		switch( out->surfaceType )
 		{
 		case MST_PLANAR:
 		case MST_TRISURF:
@@ -724,31 +656,26 @@ void IBSP_LoadSurfaces( lump_t *l )
 		case MST_PATCH:
 			patchsize[0] = LittleLong( in->patch_cp[0] );
 			patchsize[1] = LittleLong( in->patch_cp[1] );
-			if( numverts != (patchsize[0] * patchsize[1]) || patchsize[0] < 3 || patchsize[1] < 3 || !(patchsize[0] & 1) || !(patchsize[1] & 1) || patchsize[0] * patchsize[1] >= 4225 )
+			if( LittleLong( in->numverts ) != (patchsize[0] * patchsize[1]) || patchsize[0] < 3 || patchsize[1] < 3 || !(patchsize[0] & 1) || !(patchsize[1] & 1) || patchsize[0] * patchsize[1] >= 4225 )
 			{
 				MsgDev( D_ERROR, "BSP_LoadSurfaces: face #%i (texture \"%s\"): invalid patchsize %ix%i\n", i, CM_TexName( out->shadernum ), patchsize[0], patchsize[1]);
 				continue;
 			}
-			originalvertex3f = (float *)(cm.vertices + firstvertex);
+			originalvertex3f = (float *)(cm.vertices + in->firstvert);
+
+			// setup a bounding box
+			VectorCopy( in->mins, out->mins );
+			VectorCopy( in->maxs, out->maxs );
 		
 			// convert patch to MST_TRISURF
-			xtess = CM_PatchTesselationOnX( patchsize[0], patchsize[1], 3, originalvertex3f, 15.0f );
-			ytess = CM_PatchTesselationOnY( patchsize[0], patchsize[1], 3, originalvertex3f, 15.0f );
-			xtess = bound( 0, xtess, 1024 );
-			ytess = bound( 0, ytess, 1024 );
-
 			cxtess = CM_PatchTesselationOnX( patchsize[0], patchsize[1], 3, originalvertex3f, 15.0f );
 			cytess = CM_PatchTesselationOnY( patchsize[0], patchsize[1], 3, originalvertex3f, 15.0f );
 			cxtess = bound( 0, cxtess, 1024 );
 			cytess = bound( 0, cytess, 1024 );
 
-			Msg( "PatchTesselation: [%i] %i, %i (triangles %i)\n", i, cxtess, cytess, numtriangles );
-
 			// store it for the LOD grouping step
 	 		patchtess[patchtesscount].info.xsize = patchsize[0];
 	 		patchtess[patchtesscount].info.ysize = patchsize[1];
-	 		patchtess[patchtesscount].info.lods[PATCH_LOD_VISUAL].xtess = xtess;
-	 		patchtess[patchtesscount].info.lods[PATCH_LOD_VISUAL].ytess = ytess;
 	 		patchtess[patchtesscount].info.lods[PATCH_LOD_COLLISION].xtess = cxtess;
 	 		patchtess[patchtesscount].info.lods[PATCH_LOD_COLLISION].ytess = cytess;
 	
@@ -766,8 +693,8 @@ void IBSP_LoadSurfaces( lump_t *l )
 			continue;
 		}
 
-		out->firstvertex = firstvertex;	
-		out->numvertices = numverts;
+		out->firstvertex = LittleLong( in->firstvert );	
+		out->numvertices = LittleLong( in->numverts );
 	}		
 
 	// fix patches tesselations so that they make no seams
@@ -787,13 +714,10 @@ void IBSP_LoadSurfaces( lump_t *l )
 		}
 	} while( again );
 
-	in = oldin;
-	out = oldout;
+	in = (void *)(cms.base + l->fileofs);
 
-	for( i = 0; i < cm.numsurfaces; i++, in++, out++)
+	for( i = 0, out = cm.surfaces; i < cm.numsurfaces; i++, in++, out++)
 	{
-		firstvertex = LittleLong( in->firstvert );
-
 		switch( out->surfaceType )
 		{
 		case MST_PLANAR:
@@ -802,24 +726,169 @@ void IBSP_LoadSurfaces( lump_t *l )
 		case MST_PATCH:
 			patchsize[0] = LittleLong( in->patch_cp[0] );
 			patchsize[1] = LittleLong( in->patch_cp[1] );
-			originalvertex3f = (float *)(cm.vertices + firstvertex);
+			originalvertex3f = (float *)(cm.vertices + out->firstvertex);
 
-			xtess = ytess = cxtess = cytess = -1;
+			cxtess = cytess = -1;
 			for( j = 0; j < patchtesscount; ++j )
 			{
 				if( patchtess[j].surface_id == i )
 				{
-					xtess = patchtess[j].info.lods[PATCH_LOD_VISUAL].xtess;
-					ytess = patchtess[j].info.lods[PATCH_LOD_VISUAL].ytess;
 					cxtess = patchtess[j].info.lods[PATCH_LOD_COLLISION].xtess;
 					cytess = patchtess[j].info.lods[PATCH_LOD_COLLISION].ytess;
 					break;
 				}
 			}
-			if( xtess == -1 )
+			if( cxtess == -1 )
 			{
 				MsgDev( D_ERROR, "patch %d isn't preprocessed?!?\n", i );
-				xtess = ytess = cxtess = cytess = 0;
+				cxtess = cytess = 0;
+			}
+			// build the lower quality collision geometry
+			finalwidth = CM_PatchDimForTess( patchsize[0], cxtess );
+			finalheight = CM_PatchDimForTess( patchsize[1], cytess );
+			finalvertices = finalwidth * finalheight;
+			finaltriangles = (finalwidth - 1) * (finalheight - 1) * 2;
+
+			out->vertices = (float *)Mem_Alloc( cmappool, sizeof( float[3] ) * finalvertices );
+			out->indices = (int *)Mem_Alloc( cmappool, sizeof( int[3] ) * finaltriangles );
+			out->numvertices = finalvertices;
+			out->numtriangles = finaltriangles;
+			CM_PatchTesselateFloat( 3, sizeof( float[3] ), out->vertices, patchsize[0], patchsize[1], sizeof( float[3] ), originalvertex3f, cxtess, cytess );
+			CM_PatchTriangleElements( out->indices, finalwidth, finalheight, 0 );
+
+			CM_SnapVertices( 3, out->numvertices, out->vertices, 1 );
+
+			out->numtriangles = CM_RemoveDegenerateTriangles( out->numtriangles, out->indices, out->indices, out->vertices );
+			break;
+		case MST_FLARE:
+			continue;
+		default:
+			MsgDev( D_ERROR, "BSP_LoadSurfaces: face #%i: unknown face type %i\n", i, out->surfaceType );
+			continue;
+		}
+	}
+	if( patchtess ) Mem_Free( patchtess );
+}
+
+void RBSP_LoadSurfaces( lump_t *l )
+{
+	dsurfacer_t	*in;
+	csurface_t	*out;
+	int		i, j;
+	int		finalvertices, finaltriangles, patchsize[2], cxtess, cytess, finalwidth, finalheight;
+	int		patchtesscount = 0;
+	float		*originalvertex3f;
+	patchtess_t	*patchtess = NULL;
+	bool		again;
+		
+	in = (void *)(cms.base + l->fileofs);
+	if( l->filelen % sizeof( *in )) Host_Error( "BSP_LoadSurfaces: funny lump size\n" );
+
+	cm.numsurfaces = l->filelen / sizeof( *in );
+	cm.surfaces = out = Mem_Alloc( cmappool, cm.numsurfaces * sizeof( *out ));	
+
+	if( cm.numsurfaces > 0 )
+		patchtess = (patchtess_t *)Mem_Alloc( cmappool, cm.numsurfaces * sizeof( *patchtess ));
+
+	for( i = 0; i < cm.numsurfaces; i++, in++, out++)
+	{
+		out->surfaceType = LittleLong( in->facetype );
+		out->shadernum = LittleLong( in->shadernum );
+
+		switch( out->surfaceType )
+		{
+		case MST_PLANAR:
+		case MST_TRISURF:
+			break;	// no processing necessary
+		case MST_PATCH:
+			patchsize[0] = LittleLong( in->patch_cp[0] );
+			patchsize[1] = LittleLong( in->patch_cp[1] );
+			if( LittleLong( in->numverts ) != (patchsize[0] * patchsize[1]) || patchsize[0] < 3 || patchsize[1] < 3 || !(patchsize[0] & 1) || !(patchsize[1] & 1) || patchsize[0] * patchsize[1] >= 4225 )
+			{
+				MsgDev( D_ERROR, "BSP_LoadSurfaces: face #%i (texture \"%s\"): invalid patchsize %ix%i\n", i, CM_TexName( out->shadernum ), patchsize[0], patchsize[1]);
+				continue;
+			}
+			originalvertex3f = (float *)(cm.vertices + in->firstvert);
+
+			// setup a bounding box
+			VectorCopy( in->mins, out->mins );
+			VectorCopy( in->maxs, out->maxs );
+		
+			// convert patch to MST_TRISURF
+			cxtess = CM_PatchTesselationOnX( patchsize[0], patchsize[1], 3, originalvertex3f, 15.0f );
+			cytess = CM_PatchTesselationOnY( patchsize[0], patchsize[1], 3, originalvertex3f, 15.0f );
+			cxtess = bound( 0, cxtess, 1024 );
+			cytess = bound( 0, cytess, 1024 );
+
+			// store it for the LOD grouping step
+	 		patchtess[patchtesscount].info.xsize = patchsize[0];
+	 		patchtess[patchtesscount].info.ysize = patchsize[1];
+	 		patchtess[patchtesscount].info.lods[PATCH_LOD_COLLISION].xtess = cxtess;
+	 		patchtess[patchtesscount].info.lods[PATCH_LOD_COLLISION].ytess = cytess;
+	
+			patchtess[patchtesscount].surface_id = i;
+			patchtess[patchtesscount].lodgroup[0] = in->mins[0];
+			patchtess[patchtesscount].lodgroup[1] = in->mins[1];
+			patchtess[patchtesscount].lodgroup[2] = in->mins[2];
+			patchtess[patchtesscount].lodgroup[3] = in->maxs[0];
+			patchtess[patchtesscount].lodgroup[4] = in->maxs[1];
+			patchtess[patchtesscount].lodgroup[5] = in->maxs[2];
+			patchtess[patchtesscount].originalvertex3f = originalvertex3f;
+			patchtesscount++;
+		case MST_FLARE:
+			// ignore collisions at all
+			continue;
+		}
+
+		out->firstvertex = LittleLong( in->firstvert );	
+		out->numvertices = LittleLong( in->numverts );
+	}		
+
+	// fix patches tesselations so that they make no seams
+	do
+	{
+		again = false;
+		for( i = 0; i < patchtesscount; ++i )
+		{
+			for( j = i+1; j < patchtesscount; ++j )
+			{
+				if( !PATCHTESS_SAME_LODGROUP( patchtess[i], patchtess[j] ))
+					continue;
+
+				if( CM_PatchAdjustTesselation( 3, &patchtess[i].info, patchtess[i].originalvertex3f, &patchtess[j].info, patchtess[j].originalvertex3f ))
+					again = true;
+			}
+		}
+	} while( again );
+
+	in = (void *)(cms.base + l->fileofs);
+
+	for( i = 0, out = cm.surfaces; i < cm.numsurfaces; i++, in++, out++)
+	{
+		switch( out->surfaceType )
+		{
+		case MST_PLANAR:
+		case MST_TRISURF:
+			break;
+		case MST_PATCH:
+			patchsize[0] = LittleLong( in->patch_cp[0] );
+			patchsize[1] = LittleLong( in->patch_cp[1] );
+			originalvertex3f = (float *)(cm.vertices + out->firstvertex);
+
+			cxtess = cytess = -1;
+			for( j = 0; j < patchtesscount; ++j )
+			{
+				if( patchtess[j].surface_id == i )
+				{
+					cxtess = patchtess[j].info.lods[PATCH_LOD_COLLISION].xtess;
+					cytess = patchtess[j].info.lods[PATCH_LOD_COLLISION].ytess;
+					break;
+				}
+			}
+			if( cxtess == -1 )
+			{
+				MsgDev( D_ERROR, "patch %d isn't preprocessed?!?\n", i );
+				cxtess = cytess = 0;
 			}
 			// build the lower quality collision geometry
 			finalwidth = CM_PatchDimForTess( patchsize[0], cxtess );
@@ -842,37 +911,11 @@ void IBSP_LoadSurfaces( lump_t *l )
 		case MST_FLARE:
 			continue;
 		default:
-			MsgDev( D_ERROR, "BSP_LoadSurfaces: face #%i: unknown face type %i\n", i, type );
+			MsgDev( D_ERROR, "BSP_LoadSurfaces: face #%i: unknown face type %i\n", i, out->surfaceType );
 			continue;
 		}
-
-		// calculate a bounding box
-		VectorCopy( in->mins, out->mins );
-		VectorCopy( in->maxs, out->maxs );
 	}
 	if( patchtess ) Mem_Free( patchtess );
-}
-
-void RBSP_LoadSurfaces( lump_t *l )
-{
-	dsurfacer_t	*in;
-	csurface_t	*out;
-	int		i;
-
-	in = (void *)(cms.base + l->fileofs);
-	if( l->filelen % sizeof( *in )) Host_Error( "BSP_LoadSurfaces: funny lump size\n" );
-
-	cm.numsurfaces = l->filelen / sizeof( *in );
-	cm.surfaces = out = Mem_Alloc( cmappool, cm.numsurfaces * sizeof( *out ));	
-
-	for( i = 0; i < cm.numsurfaces; i++, in++, out++)
-	{
-		out->shadernum = LittleLong( in->shadernum );
-		out->surfaceType = LittleLong( in->facetype );		
-		out->firstvertex = LittleLong( in->firstvert );
-		out->numvertices = LittleLong( in->numverts );
-//		out->numtriangles = LittleLong( in->numelems ) / 3;
-	}
 }
 
 /*
@@ -932,7 +975,6 @@ static void BSP_RecursiveSetParent( cnode_t *node, cnode_t *parent )
 			csurface_t *m_surface = cm.surfaces + leaf->firstleafsurface[i];
 			if( m_surface->numtriangles )
 			{
-				Msg( "FOUND COLLISION PATCH\n" );
 				leaf->havepatches = true;
 				leaf->contents |= cm.shaders[m_surface->shadernum].contents;
 			}
@@ -1015,7 +1057,6 @@ void CM_LoadBSP( const void *buffer )
 
 	// bsplib uses light version of loading
 	IBSP_LoadVertexes( &header.lumps[LUMP_VERTEXES] );
-	BSP_LoadIndexes( &header.lumps[LUMP_ELEMENTS] );
 	BSP_LoadShaders( &header.lumps[LUMP_SHADERS] );
 	IBSP_LoadSurfaces( &header.lumps[LUMP_SURFACES] );
 	BSP_LoadModels( &header.lumps[LUMP_MODELS] );
@@ -1129,6 +1170,7 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 	uint		*buf;
 	dheader_t		*hdr;
 	size_t		length;
+	bool		extended;
 
 	if( !com.strlen( name ))
 	{
@@ -1171,30 +1213,42 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 	SwapBlock(( int *)hdr, sizeof( dheader_t ));	
 	cms.base = (byte *)buf;
 
-	if( !memcmp( buf, "IBSP", 4 ) || !memcmp( buf, "RBSP", 4 ) || !memcmp( buf, "FBSP", 4 ))
+	// call the apropriate loader
+	switch( LittleLong(*(uint *)buf ))
 	{
-		switch( hdr->version )
-		{
-		case Q3IDBSP_VERSION:	// quake3 arena
-		case RTCWBSP_VERSION:	// return to castle wolfenstein
-		case RFIDBSP_VERSION:	// raven or qfusion bsp
-			break;
-		default:
-			Host_Error( "CM_LoadMap: %s has wrong version number (%i should be %i)\n", name, hdr->version, Q3IDBSP_VERSION );		
-			break;
-		}
+	case QFBSPMODHEADER:
+	case RBBSPMODHEADER:
+		if( hdr->version == RFIDBSP_VERSION )
+			extended = true;
+		else Host_Error( "CM_LoadMap: %s has wrong version number (%i should be %i)\n", name, hdr->version, RFIDBSP_VERSION );	
+		break;
+	case IDBSPMODHEADER:
+		if( hdr->version == Q3IDBSP_VERSION || Q3IDBSP_VERSION == RTCWBSP_VERSION )
+			extended = false;
+		else Host_Error( "CM_LoadMap: %s has wrong version number (%i should be %i)\n", name, hdr->version, Q3IDBSP_VERSION );	
+		break;
+	default:
+		Host_Error( "CM_LoadMap: %s is not a IBSP, RBSP or FBSP file\n", name );
+		break;
 	}
-	else Host_Error( "CM_LoadMap: %s is not a IBSP, RBSP or FBSP file\n", name );
 
 	// load into heap
 	BSP_LoadEntityString( &hdr->lumps[LUMP_ENTITIES] );
 	BSP_LoadShaders( &hdr->lumps[LUMP_SHADERS] );
 	BSP_LoadPlanes( &hdr->lumps[LUMP_PLANES] );
-	IBSP_LoadBrushSides( &hdr->lumps[LUMP_BRUSHSIDES] );
+	if( extended )
+	{
+		RBSP_LoadVertexes( &hdr->lumps[LUMP_VERTEXES] );
+		RBSP_LoadSurfaces( &hdr->lumps[LUMP_SURFACES] );		// used only for generate NewtonCollisionTree
+		RBSP_LoadBrushSides( &hdr->lumps[LUMP_BRUSHSIDES] );
+	}
+	else
+	{
+		IBSP_LoadVertexes( &hdr->lumps[LUMP_VERTEXES] );
+		IBSP_LoadSurfaces( &hdr->lumps[LUMP_SURFACES] );		// used only for generate NewtonCollisionTree
+		IBSP_LoadBrushSides( &hdr->lumps[LUMP_BRUSHSIDES] );
+	}
 	BSP_LoadBrushes( &hdr->lumps[LUMP_BRUSHES] );
-	IBSP_LoadVertexes( &hdr->lumps[LUMP_VERTEXES] );
-	BSP_LoadIndexes( &hdr->lumps[LUMP_ELEMENTS] );
-	IBSP_LoadSurfaces( &hdr->lumps[LUMP_SURFACES] );		// used only for generate NewtonCollisionTree
 	BSP_LoadLeafBrushes( &hdr->lumps[LUMP_LEAFBRUSHES] );
 	BSP_LoadLeafSurfaces( &hdr->lumps[LUMP_LEAFSURFACES] );
 	BSP_LoadLeafs( &hdr->lumps[LUMP_LEAFS] );

@@ -84,9 +84,11 @@ Beta 13.12.08
 53. finish RenderMode for shaders		OK
 54. q3/rbsp bsp format			OK
 55. dedicated conolse hanging commands
-56. renderer viewport bug
+56. renderer areabits bug
 57. shutdown crash				OK
-58. physic.dll finish collisions
+58. physic.dll finish collisions		OK
+59. raven bsp supports			OK
+60. fixup render times			OK
 
 Список доступных рендереров:  	Что в них интересного
 0. Q3Fusion			(Mirrors, Portals)

@@ -220,7 +220,7 @@ void CM_TraceBmodel( const vec3_t start, const vec3_t end, const vec3_t mins, co
 	trace->realfraction = 1;
 	trace->contentsmask = contentsmask;
 
-	if((VectorLength2( mins ) + VectorLength2( maxs)) == 0)
+	if(VectorLength2( mins ) + VectorLength2( maxs ) == 0 )
 	{
 		if(VectorCompare( start, end ))
 		{

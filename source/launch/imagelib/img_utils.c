@@ -237,9 +237,11 @@ static const loadformat_t load_xash051[] =
 { "textures/%s%s.%s", "dds", Image_LoadDDS, IL_HINT_NO },	// cubemaps, depthmaps, 2d textures
 { "textures/%s%s.%s", "png", Image_LoadPNG, IL_HINT_NO },	// levelshot save as .png
 { "textures/%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// screenshots, etc
+{ "textures/%s%s.%s", "jpg", Image_LoadJPG, IL_HINT_NO },	// 2d textures
 { "%s%s.%s", "dds", Image_LoadDDS, IL_HINT_NO },	// cubemaps, depthmaps, 2d textures
 { "%s%s.%s", "png", Image_LoadPNG, IL_HINT_NO },	// levelshot save as .png
 { "%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// screenshots, etc
+{ "%s%s.%s", "jpg", Image_LoadJPG, IL_HINT_NO },	// 2d textures
 { "%s%s.%s", "mip", Image_LoadMIP, IL_HINT_HL },	// hl textures (WorldCraft support)
 { "%s%s.%s", "mdl", Image_LoadMDL, IL_HINT_HL },	// hl studio model skins
 { "%s%s.%s", "spr", Image_LoadSPR, IL_HINT_HL },	// hl sprite frames

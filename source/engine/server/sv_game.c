@@ -398,9 +398,7 @@ void SV_CopyTraceResult( TraceResult *out, trace_t trace )
 	VectorCopy( trace.endpos, out->vecEndPos );
 	VectorCopy( trace.plane.normal, out->vecPlaneNormal );
 
-	if( trace.surface )
-		out->pTexName = pe->GetTextureName( trace.surface->shadernum );
-	else out->pTexName = NULL;
+	out->pTexName = trace.pTexName;
 	out->pHit = trace.ent;
 }
 
@@ -417,9 +415,7 @@ void SV_CopyTraceToGlobal( trace_t *trace )
 	VectorCopy( trace->endpos, svgame.globals->trace_endpos );
 	VectorCopy( trace->plane.normal, svgame.globals->trace_plane_normal );
 
-	if( trace->surface )
-		svgame.globals->trace_texture = pe->GetTextureName( trace->surface->shadernum );
-	else svgame.globals->trace_texture = NULL;
+	svgame.globals->trace_texture = trace->pTexName;
 	svgame.globals->trace_hitgroup = trace->hitgroup;
 }
 
@@ -1656,9 +1652,7 @@ static const char *pfnTraceTexture( edict_t *pTextureEntity, const float *v1, co
 
 	trace = SV_Trace( v1, vec3_origin, vec3_origin, v2, MOVE_NOMONSTERS, NULL, SV_ContentsMask( pTextureEntity ));
 
-	if( trace.surface )
-		return pe->GetTextureName( trace.surface->shadernum );
-	return NULL;
+	return trace.pTexName;
 }
 
 /*

@@ -942,12 +942,13 @@ void CM_CollisionTraceBrushBrushFloat( trace_t *trace, const cbrushf_t *thisbrus
 		{
 			trace->contents = thatbrush_start->contents;
 			trace->surfaceflags = hitsurfaceflags;
-			trace->surface = hitsurface;
 			trace->realfraction = bound(0, enterfrac, 1);
 			trace->fraction = bound(0, enterfrac2, 1);
 			if( cm_prefernudgedfraction->integer )
 				trace->realfraction = trace->fraction;
 			VectorCopy( newimpactnormal, trace->plane.normal );
+			if( hitsurface == NULL ) trace->pTexName = NULL; 
+			else trace->pTexName = cm.shaders[hitsurface->shadernum].name;
 		}
 	}
 	else
@@ -1056,12 +1057,13 @@ void CM_CollisionTraceLineBrushFloat( trace_t *trace, const vec3_t linestart, co
 		{
 			trace->contents = thatbrush_start->contents;
 			trace->surfaceflags = hitsurfaceflags;
-			trace->surface = hitsurface;
 			trace->realfraction = bound( 0, enterfrac, 1 );
 			trace->fraction = bound( 0, enterfrac2, 1 );
 			if( cm_prefernudgedfraction->integer )
 				trace->realfraction = trace->fraction;
 			VectorCopy( newimpactnormal, trace->plane.normal );
+			if( hitsurface == NULL ) trace->pTexName = NULL; 
+			else trace->pTexName = cm.shaders[hitsurface->shadernum].name;
 		}
 	}
 	else
@@ -1336,7 +1338,8 @@ cbrushf_t *CM_CollisionBrushForBox( const matrix4x4 matrix, const vec3_t mins, c
 	brush->maxs[1] += 1;
 	brush->maxs[2] += 1;
 
-	CM_CollisionValidateBrush( brush );
+// FIXME: re-enable this
+//	CM_CollisionValidateBrush( brush );
 
 	return brush;
 }
@@ -1526,7 +1529,8 @@ void CM_CollisionTraceLineTriangleFloat( trace_t *trace, const vec3_t linestart,
 
 	trace->contents = supercontents;
 	trace->surfaceflags = surfaceflags;
-	trace->surface = surface;
+	if( surface == NULL ) trace->pTexName = NULL;
+	else trace->pTexName = cm.shaders[surface->shadernum].name;
 }
 
 cbsp_t *CM_CollisionCreateCollisionBSP( byte *mempool )
@@ -1706,7 +1710,7 @@ void CM_CollisionCombineTraces( trace_t *cliptrace, const trace_t *trace, edict_
 		cliptrace->ent = touch;
 		cliptrace->contents = trace->contents;
 		cliptrace->surfaceflags = trace->surfaceflags;
-		cliptrace->surface = trace->surface;
+		cliptrace->pTexName = trace->pTexName;
 	}
 	cliptrace->contents |= trace->contents;
 }

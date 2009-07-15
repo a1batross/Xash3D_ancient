@@ -2526,7 +2526,7 @@ void R_RenderMeshBuffer( const meshbuffer_t *mb )
 
 	if( glState.in2DMode )
 	{
-		r_currentShaderTime = (double)Sys_Milliseconds();
+		r_currentShaderTime = Sys_DoubleTime();
 	}
 	else
 	{
@@ -2534,11 +2534,9 @@ void R_RenderMeshBuffer( const meshbuffer_t *mb )
 		if( RI.currententity )
 		{
 			r_currentShaderTime -= (double)RI.currententity->shaderTime;
-			if( r_currentShaderTime < 0 )
-				r_currentShaderTime = 0;
+			if( r_currentShaderTime < 0 ) r_currentShaderTime = 0;
 		}
 	}
-	r_currentShaderTime *= 0.001;
 
 	if( !r_triangleOutlines )
 		R_SetShaderState();

@@ -95,24 +95,6 @@ typedef struct cmodel_s
 	int (*PointContents)( const vec3_t point, struct cmodel_s *model );
 } cmodel_t;
 
-typedef struct csurface_s
-{
-	int	shadernum;
-	int	surfaceType;
-
-	vec3_t	mins;
-	vec3_t	maxs;
-
-	// patches support
-	int	numtriangles;
-
-	int	firstvertex;
-	int	numvertices;
-	int	*indices;
-	float	*vertices;
-	int	markframe;
-} csurface_t;
-
 typedef struct trace_s
 {
 	bool		allsolid;		// if true, plane is not valid
@@ -122,7 +104,7 @@ typedef struct trace_s
 	float		realfraction;	// like fraction but is not nudged away from the surface
 	vec3_t		endpos;		// final position
 	cplane_t		plane;		// surface normal at impact
-	csurface_t	*surface;		// surface hit
+	const char	*pTexName;	// texturename
 	int		contents;		// contents on other side of surface hit
 	int		startcontents;
 	int		contentsmask;

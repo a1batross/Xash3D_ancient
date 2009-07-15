@@ -18,7 +18,6 @@
 enum
 {
 PATCH_LOD_COLLISION = 0,
-PATCH_LOD_VISUAL,
 PATCH_LODS_NUM
 };
 
@@ -46,6 +45,25 @@ typedef struct
 	int		flags;
 } cshader_t;
 
+typedef struct csurface_s
+{
+	int	shadernum;
+	int	surfaceType;
+
+	vec3_t	mins;
+	vec3_t	maxs;
+
+	// patches support
+	int	numtriangles;
+
+	int	firstvertex;
+	int	numvertices;
+	int	*indices;
+	float	*vertices;
+
+	int	markframe;
+} csurface_t;
+
 typedef struct cplanef_s
 {
 	csurface_t	*surface;
@@ -56,7 +74,6 @@ typedef struct cplanef_s
 
 typedef struct cbrushf_s
 {
-	
 	int		contents;		// the content flags of this brush
 	int		numplanes;	// the number of bounding planes on this brush
 	int		numpoints;	// the number of corner points on this brush
@@ -127,9 +144,7 @@ typedef struct
 {
 	int		contents;
 	int		numsides;
-	vec3_t		bounds[2];
 	int		firstbrushside;
-	int		checkcount;	// to avoid repeated testings
 	cbrushf_t		*colbrushf;	// float plane collision
 } cbrush_t;
 
@@ -198,7 +213,6 @@ typedef struct clipmap_s
 	int		numbrushsides;
 	int		numleafbrushes;
 	int		numleafsurfaces;
-	int		numtriangles;
 	int		numplanes;
 	int		numnodes;
 	int		numleafs;		// allow leaf funcs to be called without a map
