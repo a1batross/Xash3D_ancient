@@ -59,6 +59,7 @@ typedef struct entity_state_s
 	vec3_t		maxs;
 	vec3_t		velocity;		// for predicting & tracing
 	vec3_t		avelocity;	// for predicting & tracing
+	vec3_t		oldorigin;	// portal pvs, lerping state, etc
 	int		contents;		// for predicting & tracing on client
 
 	// model state

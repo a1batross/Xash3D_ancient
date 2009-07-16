@@ -133,12 +133,12 @@ void R_AddDynamicLights( unsigned int dlightbits, int state )
 	if( glConfig.ext.texture3D )
 	{
 		GL_EnableTexGen( GL_R, GL_OBJECT_LINEAR );
-		qglDisable( GL_TEXTURE_2D );
-		qglEnable( GL_TEXTURE_3D );
+		pglDisable( GL_TEXTURE_2D );
+		pglEnable( GL_TEXTURE_3D );
 	}
 	else
 	{
-		qglEnable( GL_TEXTURE_2D );
+		pglEnable( GL_TEXTURE_2D );
 	}
 
 	for( i = 0, light = r_dlights; i < r_numDlights; i++, light++ )
@@ -188,57 +188,57 @@ void R_AddDynamicLights( unsigned int dlightbits, int state )
 
 		GL_Bind( 0, r_dlighttexture );
 		GL_LoadTexMatrix( m );
-		qglColor4f( light->color[0], light->color[1], light->color[2], 255 );
+		pglColor4f( light->color[0], light->color[1], light->color[2], 255 );
 
 		xyzFallof[0][0] = inverseIntensity;
 		xyzFallof[0][3] = -dlorigin[0] * inverseIntensity;
-		qglTexGenfv( GL_S, GL_OBJECT_PLANE, xyzFallof[0] );
+		pglTexGenfv( GL_S, GL_OBJECT_PLANE, xyzFallof[0] );
 
 		xyzFallof[1][1] = inverseIntensity;
 		xyzFallof[1][3] = -dlorigin[1] * inverseIntensity;
-		qglTexGenfv( GL_T, GL_OBJECT_PLANE, xyzFallof[1] );
+		pglTexGenfv( GL_T, GL_OBJECT_PLANE, xyzFallof[1] );
 
 		xyzFallof[2][2] = inverseIntensity;
 		xyzFallof[2][3] = -dlorigin[2] * inverseIntensity;
 
 		if( glConfig.ext.texture3D )
 		{
-			qglTexGenfv( GL_R, GL_OBJECT_PLANE, xyzFallof[2] );
+			pglTexGenfv( GL_R, GL_OBJECT_PLANE, xyzFallof[2] );
 		}
 		else
 		{
 			GL_Bind( 1, r_dlighttexture );
 			GL_LoadTexMatrix( m );
 
-			qglTexGenfv( GL_S, GL_OBJECT_PLANE, xyzFallof[2] );
-			qglTexGenfv( GL_T, GL_OBJECT_PLANE, xyzFallof[3] );
+			pglTexGenfv( GL_S, GL_OBJECT_PLANE, xyzFallof[2] );
+			pglTexGenfv( GL_T, GL_OBJECT_PLANE, xyzFallof[3] );
 		}
 
 		if( numTempElems )
 		{
 			if( glConfig.ext.draw_range_elements )
-				qglDrawRangeElementsEXT( GL_TRIANGLES, 0, r_backacc.numVerts, numTempElems, GL_UNSIGNED_INT, tempElemsArray );
+				pglDrawRangeElementsEXT( GL_TRIANGLES, 0, r_backacc.numVerts, numTempElems, GL_UNSIGNED_INT, tempElemsArray );
 			else
-				qglDrawElements( GL_TRIANGLES, numTempElems, GL_UNSIGNED_INT, tempElemsArray );
+				pglDrawElements( GL_TRIANGLES, numTempElems, GL_UNSIGNED_INT, tempElemsArray );
 		}
 		else
 		{
 			if( glConfig.ext.draw_range_elements )
-				qglDrawRangeElementsEXT( GL_TRIANGLES, 0, r_backacc.numVerts, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );
+				pglDrawRangeElementsEXT( GL_TRIANGLES, 0, r_backacc.numVerts, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );
 			else
-				qglDrawElements( GL_TRIANGLES, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );
+				pglDrawElements( GL_TRIANGLES, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );
 		}
 	}
 
 	if( glConfig.ext.texture3D )
 	{
 		GL_EnableTexGen( GL_R, 0 );
-		qglDisable( GL_TEXTURE_3D );
-		qglEnable( GL_TEXTURE_2D );
+		pglDisable( GL_TEXTURE_3D );
+		pglEnable( GL_TEXTURE_2D );
 	}
 	else
 	{
-		qglDisable( GL_TEXTURE_2D );
+		pglDisable( GL_TEXTURE_2D );
 		GL_SelectTexture( 0 );
 	}
 }

@@ -346,14 +346,14 @@ void R_DrawSky( ref_shader_t *shader )
 	m[13] = 0;
 	m[14] = 0;
 	m[15] = 1.0;
-	qglLoadMatrixf( m );
+	pglLoadMatrixf( m );
 
 	gldepthmin = 1;
 	gldepthmax = 1;
-	qglDepthRange( gldepthmin, gldepthmax );
+	pglDepthRange( gldepthmin, gldepthmax );
 
 	if( RI.params & RP_CLIPPLANE )
-		qglDisable( GL_CLIP_PLANE0 );
+		pglDisable( GL_CLIP_PLANE0 );
 
 	// it can happen that sky surfaces have no fog hull specified
 	// yet there's a global fog hull (see wvwq3dm7)
@@ -396,14 +396,14 @@ void R_DrawSky( ref_shader_t *shader )
 		R_DrawSkyBox( skydome, skydome->nearboxShaders );
 
 	if( RI.params & RP_CLIPPLANE )
-		qglEnable( GL_CLIP_PLANE0 );
+		pglEnable( GL_CLIP_PLANE0 );
 
 	Matrix4_Copy( oldm, RI.modelviewMatrix );
-	qglLoadMatrixf( RI.worldviewMatrix );
+	pglLoadMatrixf( RI.worldviewMatrix );
 
 	gldepthmin = 0;
 	gldepthmax = 1;
-	qglDepthRange( gldepthmin, gldepthmax );
+	pglDepthRange( gldepthmin, gldepthmax );
 
 	r_skyfog = NULL;
 }

@@ -136,7 +136,7 @@ int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsiz
 	ll.count = 0;
 	ll.maxcount = listsize;
 	ll.list = list;
-	ll.lastleaf = 0;
+	ll.lastleaf = -1;
 	ll.overflowed = false;
 
 	CM_BoxLeafnums_r( &ll, cm.nodes );

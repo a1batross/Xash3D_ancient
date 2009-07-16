@@ -1746,7 +1746,8 @@ void SV_Physics( void )
 		ent = EDICT_NUM( i );
 		if( ent->free ) continue;
 
-		VectorCopy( ent->v.origin, ent->v.oldorigin );
+		if( ent->pvServerData->s.ed_type != ED_PORTAL )
+			VectorCopy( ent->v.origin, ent->v.oldorigin );
 		if(i <= Host_MaxClients());// SV_Physics_ClientEntity( ent );
 		else if( !sv_playersonly->integer ) SV_Physics_Entity( ent );
 	}

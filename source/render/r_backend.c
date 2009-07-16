@@ -125,7 +125,7 @@ void R_BackendInit( void )
 
 	R_BackendResetPassMask();
 
-	qglEnableClientState( GL_VERTEX_ARRAY );
+	pglEnableClientState( GL_VERTEX_ARRAY );
 
 	if( !r_ignorehwgamma->integer )
 		r_identityLighting = (int)( 255.0f / pow( 2, max( 0, floor( r_overbrightbits->value ) ) ) );
@@ -432,18 +432,18 @@ void R_LockArrays( int numverts )
 
 	if( !glConfig.ext.vertex_buffer_object )
 	{
-		qglVertexPointer( 3, GL_FLOAT, 16, vertsArray );
+		pglVertexPointer( 3, GL_FLOAT, 16, vertsArray );
 
 		if( r_features & MF_ENABLENORMALS )
 		{
 			r_normalsEnabled = true;
-			qglEnableClientState( GL_NORMAL_ARRAY );
-			qglNormalPointer( GL_FLOAT, 16, normalsArray );
+			pglEnableClientState( GL_NORMAL_ARRAY );
+			pglNormalPointer( GL_FLOAT, 16, normalsArray );
 		}
 	}
 
 	if( glConfig.ext.compiled_vertex_array )
-		qglLockArraysEXT( 0, numverts );
+		pglLockArraysEXT( 0, numverts );
 
 	r_arraysLocked = true;
 }
@@ -459,12 +459,12 @@ void R_UnlockArrays( void )
 		return;
 
 	if( glConfig.ext.compiled_vertex_array )
-		qglUnlockArraysEXT();
+		pglUnlockArraysEXT();
 
 	if( r_normalsEnabled )
 	{
 		r_normalsEnabled = false;
-		qglDisableClientState( GL_NORMAL_ARRAY );
+		pglDisableClientState( GL_NORMAL_ARRAY );
 	}
 	r_arraysLocked = false;
 }
@@ -503,25 +503,25 @@ void R_FlushArrays( void )
 
 	if( r_backacc.numColors == 1 )
 	{
-		qglColor4ubv( colorArray[0] );
+		pglColor4ubv( colorArray[0] );
 	}
 	else if( r_backacc.numColors > 1 )
 	{
-		qglEnableClientState( GL_COLOR_ARRAY );
+		pglEnableClientState( GL_COLOR_ARRAY );
 		if( !glConfig.ext.vertex_buffer_object )
-			qglColorPointer( 4, GL_UNSIGNED_BYTE, 0, colorArray );
+			pglColorPointer( 4, GL_UNSIGNED_BYTE, 0, colorArray );
 	}
 
 	if( r_drawelements->integer || glState.in2DMode || RI.refdef.rdflags & RDF_NOWORLDMODEL )
 	{
 		if( glConfig.ext.draw_range_elements )
-			qglDrawRangeElementsEXT( GL_TRIANGLES, 0, r_backacc.numVerts, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );
+			pglDrawRangeElementsEXT( GL_TRIANGLES, 0, r_backacc.numVerts, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );
 		else
-			qglDrawElements( GL_TRIANGLES, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );
+			pglDrawElements( GL_TRIANGLES, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );
 	}
 
 	if( r_backacc.numColors > 1 )
-		qglDisableClientState( GL_COLOR_ARRAY );
+		pglDisableClientState( GL_COLOR_ARRAY );
 
 	r_backacc.c_totalTris += r_backacc.numElems / 3;
 	r_backacc.c_totalFlushes++;
@@ -554,7 +554,7 @@ static void R_CleanUpTextureUnits( int last )
 		GL_DisableAllTexGens();
 		GL_SetTexCoordArrayMode( 0 );
 
-		qglDisable( GL_TEXTURE_2D );
+		pglDisable( GL_TEXTURE_2D );
 		GL_SelectTexture( i - 1 );
 	}
 }
@@ -939,7 +939,7 @@ static bool R_VertexTCBase( const shaderpass_t *pass, int unit, mat4x4_t matrix 
 
 		if( !glConfig.ext.vertex_buffer_object )
 		{
-			qglTexCoordPointer( 2, GL_FLOAT, 0, coordsArray );
+			pglTexCoordPointer( 2, GL_FLOAT, 0, coordsArray );
 			return true;
 		}
 		break;
@@ -948,7 +948,7 @@ static bool R_VertexTCBase( const shaderpass_t *pass, int unit, mat4x4_t matrix 
 
 		if( !glConfig.ext.vertex_buffer_object )
 		{
-			qglTexCoordPointer( 2, GL_FLOAT, 0, lightmapCoordsArray[r_lightmapStyleNum[unit]] );
+			pglTexCoordPointer( 2, GL_FLOAT, 0, lightmapCoordsArray[r_lightmapStyleNum[unit]] );
 			return true;
 		}
 		break;
@@ -982,7 +982,7 @@ static bool R_VertexTCBase( const shaderpass_t *pass, int unit, mat4x4_t matrix 
 
 			if( !glConfig.ext.vertex_buffer_object )
 			{
-				qglTexCoordPointer( 2, GL_FLOAT, 0, tUnitCoordsArray[unit] );
+				pglTexCoordPointer( 2, GL_FLOAT, 0, tUnitCoordsArray[unit] );
 				return true;
 			}
 			break;
@@ -1007,8 +1007,8 @@ static bool R_VertexTCBase( const shaderpass_t *pass, int unit, mat4x4_t matrix 
 			GL_EnableTexGen( GL_T, GL_OBJECT_LINEAR );
 			GL_EnableTexGen( GL_R, 0 );
 			GL_EnableTexGen( GL_Q, 0 );
-			qglTexGenfv( GL_S, GL_OBJECT_PLANE, genVector[0] );
-			qglTexGenfv( GL_T, GL_OBJECT_PLANE, genVector[1] );
+			pglTexGenfv( GL_S, GL_OBJECT_PLANE, genVector[0] );
+			pglTexGenfv( GL_T, GL_OBJECT_PLANE, genVector[1] );
 			return false;
 		}
 	case TC_GEN_PROJECTION:
@@ -1041,10 +1041,10 @@ static bool R_VertexTCBase( const shaderpass_t *pass, int unit, mat4x4_t matrix 
 			GL_EnableTexGen( GL_R, GL_OBJECT_LINEAR );
 			GL_EnableTexGen( GL_Q, GL_OBJECT_LINEAR );
 
-			qglTexGenfv( GL_S, GL_OBJECT_PLANE, genVector[0] );
-			qglTexGenfv( GL_T, GL_OBJECT_PLANE, genVector[1] );
-			qglTexGenfv( GL_R, GL_OBJECT_PLANE, genVector[2] );
-			qglTexGenfv( GL_Q, GL_OBJECT_PLANE, genVector[3] );
+			pglTexGenfv( GL_S, GL_OBJECT_PLANE, genVector[0] );
+			pglTexGenfv( GL_T, GL_OBJECT_PLANE, genVector[1] );
+			pglTexGenfv( GL_R, GL_OBJECT_PLANE, genVector[2] );
+			pglTexGenfv( GL_Q, GL_OBJECT_PLANE, genVector[3] );
 			return false;
 		}
 
@@ -1148,7 +1148,7 @@ static bool R_VertexTCBase( const shaderpass_t *pass, int unit, mat4x4_t matrix 
 
 			if( !glConfig.ext.vertex_buffer_object )
 			{
-				qglTexCoordPointer( 2, GL_FLOAT, 0, tUnitCoordsArray[unit] );
+				pglTexCoordPointer( 2, GL_FLOAT, 0, tUnitCoordsArray[unit] );
 				return false;
 			}
 			break;
@@ -1159,7 +1159,7 @@ static bool R_VertexTCBase( const shaderpass_t *pass, int unit, mat4x4_t matrix 
 
 		if( !glConfig.ext.vertex_buffer_object )
 		{
-			qglTexCoordPointer( 4, GL_FLOAT, 0, sVectorsArray );
+			pglTexCoordPointer( 4, GL_FLOAT, 0, sVectorsArray );
 			return true;
 		}
 		break;
@@ -1272,7 +1272,7 @@ static void R_BindShaderpass( const shaderpass_t *pass, image_t *tex, int unit )
 
 	GL_Bind( unit, tex );
 	if( unit && !pass->program )
-		qglEnable( GL_TEXTURE_2D );
+		pglEnable( GL_TEXTURE_2D );
 	GL_SetTexCoordArrayMode( ( tex->flags & IT_CUBEMAP ? GL_TEXTURE_CUBE_MAP_ARB : GL_TEXTURE_COORD_ARRAY ) );
 
 	identityMatrix = R_VertexTCBase( pass, unit, result );
@@ -1842,21 +1842,21 @@ void R_RenderMeshCombined( void )
 			// this way it can be possible to use GL_DECAL in both texture-units, while still looking good
 			// normal mutlitexturing would multiply the alpha-channel which looks ugly
 			GL_TexEnv( GL_COMBINE_ARB );
-			qglTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, GL_INTERPOLATE_ARB );
-			qglTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_ALPHA_ARB, GL_ADD );
+			pglTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, GL_INTERPOLATE_ARB );
+			pglTexEnvi( GL_TEXTURE_ENV, GL_COMBINE_ALPHA_ARB, GL_ADD );
 
-			qglTexEnvi( GL_TEXTURE_ENV, GL_SOURCE0_RGB_ARB, GL_TEXTURE );
-			qglTexEnvi( GL_TEXTURE_ENV, GL_OPERAND0_RGB_ARB, GL_SRC_COLOR );
-			qglTexEnvi( GL_TEXTURE_ENV, GL_SOURCE0_ALPHA_ARB, GL_TEXTURE );
-			qglTexEnvi( GL_TEXTURE_ENV, GL_OPERAND0_ALPHA_ARB, GL_SRC_ALPHA );
+			pglTexEnvi( GL_TEXTURE_ENV, GL_SOURCE0_RGB_ARB, GL_TEXTURE );
+			pglTexEnvi( GL_TEXTURE_ENV, GL_OPERAND0_RGB_ARB, GL_SRC_COLOR );
+			pglTexEnvi( GL_TEXTURE_ENV, GL_SOURCE0_ALPHA_ARB, GL_TEXTURE );
+			pglTexEnvi( GL_TEXTURE_ENV, GL_OPERAND0_ALPHA_ARB, GL_SRC_ALPHA );
 
-			qglTexEnvi( GL_TEXTURE_ENV, GL_SOURCE1_RGB_ARB, GL_PREVIOUS_ARB );
-			qglTexEnvi( GL_TEXTURE_ENV, GL_OPERAND1_RGB_ARB, GL_SRC_COLOR );
-			qglTexEnvi( GL_TEXTURE_ENV, GL_SOURCE1_ALPHA_ARB, GL_PREVIOUS_ARB );
-			qglTexEnvi( GL_TEXTURE_ENV, GL_OPERAND1_ALPHA_ARB, GL_SRC_ALPHA );
+			pglTexEnvi( GL_TEXTURE_ENV, GL_SOURCE1_RGB_ARB, GL_PREVIOUS_ARB );
+			pglTexEnvi( GL_TEXTURE_ENV, GL_OPERAND1_RGB_ARB, GL_SRC_COLOR );
+			pglTexEnvi( GL_TEXTURE_ENV, GL_SOURCE1_ALPHA_ARB, GL_PREVIOUS_ARB );
+			pglTexEnvi( GL_TEXTURE_ENV, GL_OPERAND1_ALPHA_ARB, GL_SRC_ALPHA );
 
-			qglTexEnvi( GL_TEXTURE_ENV, GL_SOURCE2_RGB_ARB, GL_TEXTURE );
-			qglTexEnvi( GL_TEXTURE_ENV, GL_OPERAND2_RGB_ARB, GL_SRC_ALPHA );
+			pglTexEnvi( GL_TEXTURE_ENV, GL_SOURCE2_RGB_ARB, GL_TEXTURE );
+			pglTexEnvi( GL_TEXTURE_ENV, GL_OPERAND2_RGB_ARB, GL_SRC_ALPHA );
 		}
 		else
 		{
@@ -2100,7 +2100,7 @@ static void R_RenderMeshGLSL_Material( void )
 	object = R_GetProgramObject( program );
 	if( object )
 	{
-		qglUseProgramObjectARB( object );
+		pglUseProgramObjectARB( object );
 
 		// update uniforms
 		R_UpdateProgramUniforms( program, RI.viewOrigin, vec3_origin, lightDir, ambient, diffuse, lightStyle, 
@@ -2108,7 +2108,7 @@ static void R_RenderMeshGLSL_Material( void )
 
 		R_FlushArrays();
 
-		qglUseProgramObjectARB( 0 );
+		pglUseProgramObjectARB( 0 );
 	}
 
 	if( breakIntoPasses )
@@ -2204,14 +2204,14 @@ static void R_RenderMeshGLSL_Distortion( void )
 	object = R_GetProgramObject( program );
 	if( object )
 	{
-		qglUseProgramObjectARB( object );
+		pglUseProgramObjectARB( object );
 
 		R_UpdateProgramUniforms( program, RI.viewOrigin, vec3_origin, vec3_origin, NULL, NULL, NULL,
 			frontPlane, r_portaltexture->upload_width, r_portaltexture->upload_height, 0, 0 );
 
 		R_FlushArrays();
 
-		qglUseProgramObjectARB( 0 );
+		pglUseProgramObjectARB( 0 );
 	}
 }
 
@@ -2246,8 +2246,8 @@ static void R_RenderMeshGLSL_Shadowmap( void )
 
 		R_BindShaderpass( pass, r_currentCastGroup->depthTexture, 0 );
 
-		qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE_ARB, GL_COMPARE_R_TO_TEXTURE_ARB );
-		qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC_ARB, GL_LEQUAL );
+		pglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE_ARB, GL_COMPARE_R_TO_TEXTURE_ARB );
+		pglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC_ARB, GL_LEQUAL );
 
 		// calculate the fragment color
 		R_ModifyColor( pass );
@@ -2256,7 +2256,7 @@ static void R_RenderMeshGLSL_Shadowmap( void )
 		state = r_currentShaderState | ( pass->flags & r_currentShaderPassMask ) | GLSTATE_BLEND_MTEX;
 		GL_SetState( state );
 
-		qglUseProgramObjectARB( object );
+		pglUseProgramObjectARB( object );
 
 		R_UpdateProgramUniforms( program, RI.viewOrigin, vec3_origin, vec3_origin, NULL, NULL, NULL, true,
 			r_currentCastGroup->depthTexture->upload_width, r_currentCastGroup->depthTexture->upload_height, 
@@ -2264,9 +2264,9 @@ static void R_RenderMeshGLSL_Shadowmap( void )
 
 		R_FlushArrays();
 
-		qglUseProgramObjectARB( 0 );
+		pglUseProgramObjectARB( 0 );
 
-		qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE_ARB, GL_NONE );
+		pglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE_ARB, GL_NONE );
 	}
 }
 
@@ -2306,14 +2306,14 @@ static void R_RenderMeshGLSL_Outline( void )
 	state = r_currentShaderState | ( pass->flags & r_currentShaderPassMask ) | GLSTATE_BLEND_MTEX;
 	GL_SetState( state );
 
-	qglUseProgramObjectARB( object );
+	pglUseProgramObjectARB( object );
 
 	R_UpdateProgramUniforms( program, RI.viewOrigin, vec3_origin, vec3_origin, NULL, NULL, NULL, true,
 		0, 0, RI.currententity->outlineHeight * r_outlines_scale->value, 0 );
 
 	R_FlushArrays();
 
-	qglUseProgramObjectARB( 0 );
+	pglUseProgramObjectARB( 0 );
 
 	GL_Cull( faceCull );
 }
@@ -2710,7 +2710,7 @@ void R_RenderMeshBuffer( const meshbuffer_t *mb )
 
 	R_ClearArrays();
 
-	qglMatrixMode( GL_MODELVIEW );
+	pglMatrixMode( GL_MODELVIEW );
 }
 
 /*
@@ -2723,7 +2723,7 @@ void R_BackendCleanUpTextureUnits( void )
 	R_CleanUpTextureUnits( 1 );
 
 	GL_LoadIdentityTexMatrix();
-	qglMatrixMode( GL_MODELVIEW );
+	pglMatrixMode( GL_MODELVIEW );
 
 	GL_DisableAllTexGens();
 	GL_SetTexCoordArrayMode( 0 );
@@ -2757,12 +2757,12 @@ R_BackendBeginTriangleOutlines
 void R_BackendBeginTriangleOutlines( void )
 {
 	r_triangleOutlines = true;
-	qglColor4fv( colorWhite );
+	pglColor4fv( colorWhite );
 
 	GL_Cull( 0 );
 	GL_SetState( GLSTATE_NO_DEPTH_TEST );
-	qglDisable( GL_TEXTURE_2D );
-	qglPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+	pglDisable( GL_TEXTURE_2D );
+	pglPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 }
 
 /*
@@ -2773,10 +2773,10 @@ R_BackendEndTriangleOutlines
 void R_BackendEndTriangleOutlines( void )
 {
 	r_triangleOutlines = false;
-	qglColor4fv( colorWhite );
+	pglColor4fv( colorWhite );
 	GL_SetState( 0 );
-	qglEnable( GL_TEXTURE_2D );
-	qglPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+	pglEnable( GL_TEXTURE_2D );
+	pglPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 }
 
 /*
@@ -2792,15 +2792,15 @@ static _inline void R_SetColorForOutlines( void )
 	{
 	case MB_MODEL:
 		if( r_currentMeshBuffer->infokey < 0 )
-			qglColor4fv( colorRed );
+			pglColor4fv( colorRed );
 		else
-			qglColor4fv( colorWhite );
+			pglColor4fv( colorWhite );
 		break;
 	case MB_SPRITE:
-		qglColor4fv( colorBlue );
+		pglColor4fv( colorBlue );
 		break;
 	case MB_POLY:
-		qglColor4fv( colorGreen );
+		pglColor4fv( colorGreen );
 		break;
 	}
 }
@@ -2816,9 +2816,9 @@ static void R_DrawTriangles( void )
 		R_SetColorForOutlines();
 
 	if( glConfig.ext.draw_range_elements )
-		qglDrawRangeElementsEXT( GL_TRIANGLES, 0, r_backacc.numVerts, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );
+		pglDrawRangeElementsEXT( GL_TRIANGLES, 0, r_backacc.numVerts, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );
 	else
-		qglDrawElements( GL_TRIANGLES, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );
+		pglDrawElements( GL_TRIANGLES, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );
 }
 
 /*
@@ -2833,13 +2833,51 @@ static void R_DrawNormals( void )
 	if( r_shownormals->integer == 2 )
 		R_SetColorForOutlines();
 
-	qglBegin( GL_LINES );
+	pglBegin( GL_LINES );
 	for( i = 0; i < r_backacc.numVerts; i++ )
 	{
-		qglVertex3fv( vertsArray[i] );
-		qglVertex3f( vertsArray[i][0] + normalsArray[i][0],
+		pglVertex3fv( vertsArray[i] );
+		pglVertex3f( vertsArray[i][0] + normalsArray[i][0],
 			vertsArray[i][1] + normalsArray[i][1],
 			vertsArray[i][2] + normalsArray[i][2] );
 	}
-	qglEnd();
+	pglEnd();
+}
+
+static void R_DrawLine( int color, int numpoints, const float *points, const int *elements )
+{
+	int	i = numpoints - 1;
+	vec3_t	p0, p1;
+
+	VectorSet( p0, points[i*3+0], points[i*3+1], points[i*3+2] );
+	if( r_physbdebug->integer == 1 ) ConvertPositionToGame( p0 );
+
+	for( i = 0; i < numpoints; i++ )
+	{
+		VectorSet( p1, points[i*3+0], points[i*3+1], points[i*3+2] );
+		if( r_physbdebug->integer == 1 ) ConvertPositionToGame( p1 );
+ 
+		pglColor4fv( UnpackRGBA( color ));
+		pglVertex3fv( p0 );
+		pglVertex3fv( p1 );
+ 
+ 		VectorCopy( p1, p0 );
+ 	}
+}
+
+/*
+================
+R_DrawPhysDebug
+================
+*/
+void R_DrawPhysDebug( void )
+{
+	if( r_physbdebug->integer )
+	{
+		// physic debug
+		pglLoadMatrixf( RI.worldviewMatrix );
+		pglBegin( GL_LINES );
+		ri.ShowCollision( R_DrawLine );
+		pglEnd();
+	}
 }

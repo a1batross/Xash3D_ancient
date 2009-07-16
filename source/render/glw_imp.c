@@ -109,7 +109,7 @@ static bool VerifyDriver( void )
 {
 	char buffer[1024];
 
-	com.strncpy( buffer, qglGetString( GL_RENDERER ), sizeof(buffer) );
+	com.strncpy( buffer, pglGetString( GL_RENDERER ), sizeof(buffer) );
 	com.strlwr( buffer, buffer );
 	if ( strcmp( buffer, "gdi generic" ) == 0 )
 		if ( !glw_state.mcd_accelerated )
@@ -396,11 +396,11 @@ int GLimp_SetMode( int mode, bool fullscreen )
 */
 void GLimp_Shutdown( void )
 {
-	if ( qwglMakeCurrent && !qwglMakeCurrent( NULL, NULL ) )
+	if ( pwglMakeCurrent && !pwglMakeCurrent( NULL, NULL ) )
 		Msg ( "ref_gl::R_Shutdown() - wglMakeCurrent failed\n");
 	if ( glw_state.hGLRC )
 	{
-		if ( qwglDeleteContext && !qwglDeleteContext( glw_state.hGLRC ) )
+		if ( pwglDeleteContext && !pwglDeleteContext( glw_state.hGLRC ) )
 			Msg ( "ref_gl::R_Shutdown() - wglDeleteContext failed\n");
 		glw_state.hGLRC = NULL;
 	}
@@ -549,17 +549,17 @@ int GLimp_InitGL (void)
 
 	if ( glw_state.minidriver )
 	{
-		if ( (pixelformat = qwglChoosePixelFormat( glw_state.hDC, &pfd)) == 0 )
+		if ( (pixelformat = pwglChoosePixelFormat( glw_state.hDC, &pfd)) == 0 )
 		{
-			Msg ( "GLimp_Init() - qwglChoosePixelFormat failed\n");
+			Msg ( "GLimp_Init() - pwglChoosePixelFormat failed\n");
 			return false;
 		}
-		if ( qwglSetPixelFormat( glw_state.hDC, pixelformat, &pfd) == FALSE )
+		if ( pwglSetPixelFormat( glw_state.hDC, pixelformat, &pfd) == FALSE )
 		{
-			Msg ( "GLimp_Init() - qwglSetPixelFormat failed\n");
+			Msg ( "GLimp_Init() - pwglSetPixelFormat failed\n");
 			return false;
 		}
-		qwglDescribePixelFormat( glw_state.hDC, pixelformat, sizeof( pfd ), &pfd );
+		pwglDescribePixelFormat( glw_state.hDC, pixelformat, sizeof( pfd ), &pfd );
 	}
 	else
 	{
@@ -604,15 +604,15 @@ int GLimp_InitGL (void)
 	** startup the OpenGL subsystem by creating a context and making
 	** it current
 	*/
-	if ( ( glw_state.hGLRC = qwglCreateContext( glw_state.hDC ) ) == 0 )
+	if ( ( glw_state.hGLRC = pwglCreateContext( glw_state.hDC ) ) == 0 )
 	{
-		Msg ( "GLimp_Init() - qwglCreateContext failed\n");
+		Msg ( "GLimp_Init() - pwglCreateContext failed\n");
 		goto fail;
 	}
 
-    if ( !qwglMakeCurrent( glw_state.hDC, glw_state.hGLRC ) )
+    if ( !pwglMakeCurrent( glw_state.hDC, glw_state.hGLRC ) )
 	{
-		Msg ( "GLimp_Init() - qwglMakeCurrent failed\n");
+		Msg ( "GLimp_Init() - pwglMakeCurrent failed\n");
 		goto fail;
 	}
 
@@ -632,7 +632,7 @@ int GLimp_InitGL (void)
 fail:
 	if ( glw_state.hGLRC )
 	{
-		qwglDeleteContext( glw_state.hGLRC );
+		pwglDeleteContext( glw_state.hGLRC );
 		glw_state.hGLRC = NULL;
 	}
 
@@ -649,8 +649,8 @@ fail:
 */
 bool GLimp_GetGammaRamp( size_t stride, unsigned short *ramp )
 {
-	if( qwglGetDeviceGammaRamp3DFX ) {
-		if( qwglGetDeviceGammaRamp3DFX( glw_state.hDC, ramp ) )
+	if( pwglGetDeviceGammaRamp3DFX ) {
+		if( pwglGetDeviceGammaRamp3DFX( glw_state.hDC, ramp ) )
 			return true;
 	}
 
@@ -665,10 +665,50 @@ bool GLimp_GetGammaRamp( size_t stride, unsigned short *ramp )
 */
 void GLimp_SetGammaRamp( size_t stride, unsigned short *ramp )
 {
-	if( qwglGetDeviceGammaRamp3DFX )
-		qwglSetDeviceGammaRamp3DFX( glw_state.hDC, ramp );
+	if( pwglGetDeviceGammaRamp3DFX )
+		pwglSetDeviceGammaRamp3DFX( glw_state.hDC, ramp );
 	else
 		SetDeviceGammaRamp( glw_state.hDC, ramp );
+}
+/*
+=================
+RB_CheckForErrors
+=================
+*/
+
+void R_CheckForErrors( const char *filename, const int fileline )
+{
+	int	err;
+	char	*str;
+
+	if((err = pglGetError()) == GL_NO_ERROR )
+		return;
+
+	switch( err )
+	{
+	case GL_STACK_OVERFLOW:
+		str = "GL_STACK_OVERFLOW";
+		break;
+	case GL_STACK_UNDERFLOW:
+		str = "GL_STACK_UNDERFLOW";
+		break;
+	case GL_INVALID_ENUM:
+		str = "GL_INVALID_ENUM";
+		break;
+	case GL_INVALID_VALUE:
+		str = "GL_INVALID_VALUE";
+		break;
+	case GL_INVALID_OPERATION:
+		str = "GL_INVALID_OPERATION";
+		break;
+	case GL_OUT_OF_MEMORY:
+		str = "GL_OUT_OF_MEMORY";
+		break;
+	default:
+		str = "UNKNOWN ERROR";
+		break;
+	}
+	Host_Error( "R_CheckForErrors: %s (called at %s:%i)\n", str, filename, fileline );
 }
 
 /*
@@ -688,15 +728,15 @@ void GLimp_BeginFrame( void )
 
 	if ( glState.cameraSeparation < 0 && glState.stereoEnabled )
 	{
-		qglDrawBuffer( GL_BACK_LEFT );
+		pglDrawBuffer( GL_BACK_LEFT );
 	}
 	else if ( glState.cameraSeparation > 0 && glState.stereoEnabled )
 	{
-		qglDrawBuffer( GL_BACK_RIGHT );
+		pglDrawBuffer( GL_BACK_RIGHT );
 	}
 	else
 	{
-		qglDrawBuffer( GL_BACK );
+		pglDrawBuffer( GL_BACK );
 	}
 }
 
@@ -709,14 +749,11 @@ void GLimp_BeginFrame( void )
 */
 void GLimp_EndFrame (void)
 {
-	int		err;
-
-	err = qglGetError();
-	assert( err == GL_NO_ERROR );
+	R_CheckForErrors( __FILE__, __LINE__ );
 
 	if ( com.stricmp( gl_drawbuffer->string, "GL_BACK" ) == 0 )
 	{
-		if ( !qwglSwapBuffers( glw_state.hDC ) )
+		if ( !pwglSwapBuffers( glw_state.hDC ) )
 			Host_Error( "GLimp_EndFrame() - SwapBuffers() failed!\n" );
 	}
 }

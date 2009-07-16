@@ -1734,3 +1734,22 @@ void CM_CollisionDrawForEachBrush( void )
 		}
 	}
 }
+
+void CM_CollisionDrawForEachSurface( void )
+{
+	csurface_t	*draw;
+	int		i, j, color; 
+
+	for( i = 0; i < cms.numbmodels; i++ )
+	{
+		for( j = 0; j < cms.bmodels[i].numfaces; j++ )
+		{
+			draw = &cm.surfaces[cms.bmodels[i].firstface + j];
+			if( !draw || !draw->numtriangles ) continue;
+
+			if( i == 0 ) color = PackRGBA( 1, 0.7f, 0, 1 );	// world
+			else color = PackRGBA( 1, 0.1f, 0.1f, 1 );
+			ph.debug_line( color, draw->numvertices, (float *)&draw->vertices[0], (int *)&draw->indices );
+		}
+	}
+}

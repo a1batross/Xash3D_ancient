@@ -54,10 +54,10 @@ extern stdlib_api_t		com;		// engine toolbox
 
 #define QGL_EXTERN
 
-#define QGL_FUNC(type,name,params) type (APIENTRY * q##name) params;
-#define QGL_EXT(type,name,params) type (APIENTRY * q##name) params;
-#define QGL_WGL(type,name,params) type (APIENTRY * q##name) params;
-#define QGL_WGL_EXT(type,name,params) type (APIENTRY * q##name) params;
+#define QGL_FUNC(type,name,params) type (APIENTRY * p##name) params;
+#define QGL_EXT(type,name,params) type (APIENTRY * p##name) params;
+#define QGL_WGL(type,name,params) type (APIENTRY * p##name) params;
+#define QGL_WGL_EXT(type,name,params) type (APIENTRY * p##name) params;
 #define QGL_GLX(type,name,params)
 #define QGL_GLX_EXT(type,name,params)
 
@@ -70,8 +70,8 @@ extern stdlib_api_t		com;		// engine toolbox
 #undef QGL_EXT
 #undef QGL_FUNC
 
-static const char *_qglGetGLWExtensionsString( void );
-static const char *_qglGetGLWExtensionsStringInit( void );
+static const char *_pglGetGLWExtensionsString( void );
+static const char *_pglGetGLWExtensionsStringInit( void );
 
 /*
 ** QGL_Shutdown
@@ -84,12 +84,12 @@ void QGL_Shutdown( void )
 		FreeLibrary( glw_state.hinstOpenGL );
 	glw_state.hinstOpenGL = NULL;
 
-	qglGetGLWExtensionsString = NULL;
+	pglGetGLWExtensionsString = NULL;
 
-#define QGL_FUNC(type,name,params) (q##name) = NULL;
-#define QGL_EXT(type,name,params) (q##name) = NULL;
-#define QGL_WGL(type,name,params) (q##name) = NULL;
-#define QGL_WGL_EXT(type,name,params) (q##name) = NULL;
+#define QGL_FUNC(type,name,params) (p##name) = NULL;
+#define QGL_EXT(type,name,params) (p##name) = NULL;
+#define QGL_WGL(type,name,params) (p##name) = NULL;
+#define QGL_WGL_EXT(type,name,params) (p##name) = NULL;
 #define QGL_GLX(type,name,params)
 #define QGL_GLX_EXT(type,name,params)
 
@@ -108,7 +108,7 @@ void QGL_Shutdown( void )
 /*
 ** QGL_Init
 **
-** This is responsible for binding our qgl function pointers to 
+** This is responsible for binding our pgl function pointers to 
 ** the appropriate GL stuff. In Windows this means doing a 
 ** LoadLibrary and a bunch of calls to GetProcAddress. On other
 ** operating systems we need to do the right thing, whatever that
@@ -127,12 +127,12 @@ bool QGL_Init( const char *dllname )
 		return false;
 	}
 
-#define QGL_FUNC(type,name,params) (q##name) = ( void * )GetProcAddress( glw_state.hinstOpenGL, #name ); \
-	if( !(q##name) ) { MsgDev( D_ERROR, "QGL_Init: Failed to get address for %s\n", #name ); return false; }
-#define QGL_EXT(type,name,params) (q##name) = NULL;
-#define QGL_WGL(type,name,params) (q##name) = ( void * )GetProcAddress( glw_state.hinstOpenGL, #name ); \
-	if( !(q##name) ) { MsgDev( D_ERROR, "QGL_Init: Failed to get address for %s\n", #name ); return false; }
-#define QGL_WGL_EXT(type,name,params) (q##name) = NULL;
+#define QGL_FUNC(type,name,params) (p##name) = ( void * )GetProcAddress( glw_state.hinstOpenGL, #name ); \
+	if( !(p##name) ) { MsgDev( D_ERROR, "QGL_Init: Failed to get address for %s\n", #name ); return false; }
+#define QGL_EXT(type,name,params) (p##name) = NULL;
+#define QGL_WGL(type,name,params) (p##name) = ( void * )GetProcAddress( glw_state.hinstOpenGL, #name ); \
+	if( !(p##name) ) { MsgDev( D_ERROR, "QGL_Init: Failed to get address for %s\n", #name ); return false; }
+#define QGL_WGL_EXT(type,name,params) (p##name) = NULL;
 #define QGL_GLX(type,name,params)
 #define QGL_GLX_EXT(type,name,params)
 
@@ -145,31 +145,31 @@ bool QGL_Init( const char *dllname )
 #undef QGL_EXT
 #undef QGL_FUNC
 
-	qglGetGLWExtensionsString = _qglGetGLWExtensionsStringInit;
+	pglGetGLWExtensionsString = _pglGetGLWExtensionsStringInit;
 
 	return true;
 }
 
 /*
-** qglGetProcAddress
+** pglGetProcAddress
 */
-void *qglGetProcAddress( const GLubyte *procName ) {
-	return (void *)qwglGetProcAddress( (LPCSTR)procName );
+void *pglGetProcAddress( const GLubyte *procName ) {
+	return (void *)pwglGetProcAddress( (LPCSTR)procName );
 }
 
 /*
-** qglGetGLWExtensionsString
+** pglGetGLWExtensionsString
 */
-static const char *_qglGetGLWExtensionsStringInit( void )
+static const char *_pglGetGLWExtensionsStringInit( void )
 {
-	qwglGetExtensionsStringEXT = ( void * )qglGetProcAddress( (const GLubyte *)"wglGetExtensionsStringEXT" );
-	qglGetGLWExtensionsString = _qglGetGLWExtensionsString;
-	return qglGetGLWExtensionsString ();
+	pwglGetExtensionsStringEXT = ( void * )pglGetProcAddress( (const GLubyte *)"wglGetExtensionsStringEXT" );
+	pglGetGLWExtensionsString = _pglGetGLWExtensionsString;
+	return pglGetGLWExtensionsString ();
 }
 
-static const char *_qglGetGLWExtensionsString( void )
+static const char *_pglGetGLWExtensionsString( void )
 {
-	if( qwglGetExtensionsStringEXT )
-		return qwglGetExtensionsStringEXT ();
+	if( pwglGetExtensionsStringEXT )
+		return pwglGetExtensionsStringEXT ();
 	return NULL;
 }

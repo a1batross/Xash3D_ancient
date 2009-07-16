@@ -85,6 +85,8 @@ void R_BackendCleanUpTextureUnits( void );
 void R_BackendSetPassMask( int mask );
 void R_BackendResetPassMask( void );
 
+void R_DrawPhysDebug( void );
+
 void R_LockArrays( int numverts );
 void R_UnlockArrays( void );
 void R_UnlockArrays( void );

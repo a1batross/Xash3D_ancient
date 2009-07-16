@@ -81,8 +81,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 QGL_EXTERN	bool	QGL_Init( const char *dllname );
 QGL_EXTERN	void		QGL_Shutdown( void );
 
-QGL_EXTERN	void		*qglGetProcAddress( const GLubyte * );
-QGL_EXTERN	const char	*(*qglGetGLWExtensionsString)( void );
+QGL_EXTERN	void		*pglGetProcAddress( const GLubyte * );
+QGL_EXTERN	const char	*(*pglGetGLWExtensionsString)( void );
 
 /*
 ** extension constants

@@ -967,11 +967,7 @@ setup_and_render:
 		NormalVectorToAxis( A[0], A );
 
 		// build portal_dest-to-world rotation matrix
-#if 0
-		ByteToDir( ent->frame, portal_plane->normal );
-#else
-		AngleVectors( vec3_origin, portal_plane->normal, NULL, NULL );
-#endif
+		VectorCopy( ent->movedir, portal_plane->normal );
 		NormalVectorToAxis( portal_plane->normal, B );
 		Matrix_Transpose( B, C );
 
@@ -1049,11 +1045,11 @@ setup_and_render:
 	{
 		GL_Cull( 0 );
 		GL_SetState( GLSTATE_NO_DEPTH_TEST );
-		qglColor4f( 1, 1, 1, 1 );
+		pglColor4f( 1, 1, 1, 1 );
 
 		// grab the results from framebuffer
 		GL_Bind( 0, *captureTexture );
-		qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, RI.refdef.viewport[0], RI.refdef.viewport[1], ( *captureTexture )->upload_width, ( *captureTexture )->upload_height );
+		pglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, RI.refdef.viewport[0], RI.refdef.viewport[1], ( *captureTexture )->upload_width, ( *captureTexture )->upload_height );
 		RI.params |= ( refraction ? RP_PORTALCAPTURED2 : RP_PORTALCAPTURED );
 	}
 

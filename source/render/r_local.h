@@ -299,6 +299,7 @@ extern cvar_t *r_ignorehwgamma;
 extern cvar_t *r_overbrightbits;
 extern cvar_t *r_mapoverbrightbits;
 extern cvar_t *r_lefthand;
+extern cvar_t *r_physbdebug;
 
 extern cvar_t *r_flares;
 extern cvar_t *r_flaresize;

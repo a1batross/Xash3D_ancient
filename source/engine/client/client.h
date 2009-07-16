@@ -110,6 +110,7 @@ typedef struct
 	double		time;		// this is the time value that the client
 	double		oldtime;		// cl.oldtime
 					// is rendering at.  always <= cls.realtime
+	int		render_flags;	// clearing at end of frame
 	ref_params_t	refdef;		// shared refdef
 	edict_t		viewent;		// viewmodel
 	client_data_t	data;		// hud data

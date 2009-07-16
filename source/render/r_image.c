@@ -78,14 +78,14 @@ void GL_SelectTexture( int tmu )
 
 	glState.currentTMU = tmu;
 
-	if( qglActiveTextureARB )
+	if( pglActiveTextureARB )
 	{
-		qglActiveTextureARB( tmu + GL_TEXTURE0_ARB );
-		qglClientActiveTextureARB( tmu + GL_TEXTURE0_ARB );
+		pglActiveTextureARB( tmu + GL_TEXTURE0_ARB );
+		pglClientActiveTextureARB( tmu + GL_TEXTURE0_ARB );
 	}
-	else if( qglSelectTextureSGIS )
+	else if( pglSelectTextureSGIS )
 	{
-		qglSelectTextureSGIS( tmu + GL_TEXTURE0_SGIS );
+		pglSelectTextureSGIS( tmu + GL_TEXTURE0_SGIS );
 	}
 }
 
@@ -93,7 +93,7 @@ void GL_TexEnv( GLenum mode )
 {
 	if( mode != ( GLenum )glState.currentEnvModes[glState.currentTMU] )
 	{
-		qglTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, mode );
+		pglTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, mode );
 		glState.currentEnvModes[glState.currentTMU] = ( int )mode;
 	}
 }
@@ -109,17 +109,17 @@ void GL_Bind( int tmu, image_t *tex )
 
 	glState.currentTextures[tmu] = tex->texnum;
 	if( tex->flags & IT_CUBEMAP )
-		qglBindTexture( GL_TEXTURE_CUBE_MAP_ARB, tex->texnum );
+		pglBindTexture( GL_TEXTURE_CUBE_MAP_ARB, tex->texnum );
 	else if( tex->depth != 1 )
-		qglBindTexture( GL_TEXTURE_3D, tex->texnum );
+		pglBindTexture( GL_TEXTURE_3D, tex->texnum );
 	else
-		qglBindTexture( GL_TEXTURE_2D, tex->texnum );
+		pglBindTexture( GL_TEXTURE_2D, tex->texnum );
 }
 
 void GL_LoadTexMatrix( const mat4x4_t m )
 {
-	qglMatrixMode( GL_TEXTURE );
-	qglLoadMatrixf( m );
+	pglMatrixMode( GL_TEXTURE );
+	pglLoadMatrixf( m );
 	glState.texIdentityMatrix[glState.currentTMU] = false;
 }
 
@@ -127,8 +127,8 @@ void GL_LoadIdentityTexMatrix( void )
 {
 	if( !glState.texIdentityMatrix[glState.currentTMU] )
 	{
-		qglMatrixMode( GL_TEXTURE );
-		qglLoadIdentity();
+		pglMatrixMode( GL_TEXTURE );
+		pglLoadIdentity();
 		glState.texIdentityMatrix[glState.currentTMU] = true;
 	}
 }
@@ -164,16 +164,16 @@ void GL_EnableTexGen( int coord, int mode )
 	{
 		if( !( glState.genSTEnabled[tmu] & bit ) )
 		{
-			qglEnable( gen );
+			pglEnable( gen );
 			glState.genSTEnabled[tmu] |= bit;
 		}
-		qglTexGeni( coord, GL_TEXTURE_GEN_MODE, mode );
+		pglTexGeni( coord, GL_TEXTURE_GEN_MODE, mode );
 	}
 	else
 	{
 		if( glState.genSTEnabled[tmu] & bit )
 		{
-			qglDisable( gen );
+			pglDisable( gen );
 			glState.genSTEnabled[tmu] &= ~bit;
 		}
 	}
@@ -194,14 +194,14 @@ void GL_SetTexCoordArrayMode( int mode )
 	if( cmode != bit )
 	{
 		if( cmode == 1 )
-			qglDisableClientState( GL_TEXTURE_COORD_ARRAY );
+			pglDisableClientState( GL_TEXTURE_COORD_ARRAY );
 		else if( cmode == 2 )
-			qglDisable( GL_TEXTURE_CUBE_MAP_ARB );
+			pglDisable( GL_TEXTURE_CUBE_MAP_ARB );
 
 		if( bit == 1 )
-			qglEnableClientState( GL_TEXTURE_COORD_ARRAY );
+			pglEnableClientState( GL_TEXTURE_COORD_ARRAY );
 		else if( bit == 2 )
-			qglEnable( GL_TEXTURE_CUBE_MAP_ARB );
+			pglEnable( GL_TEXTURE_CUBE_MAP_ARB );
 
 		glState.texCoordArrayMode[tmu] = bit;
 	}
@@ -256,18 +256,18 @@ void R_TextureMode( char *string )
 
 		if( glt->flags & IT_DEPTH )
 		{
-			qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_depth );
-			qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_depth );
+			pglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_depth );
+			pglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_depth );
 		}
 		else if( !( glt->flags & IT_NOMIPMAP ) )
 		{
-			qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min );
-			qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max );
+			pglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min );
+			pglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max );
 		}
 		else
 		{
-			qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_max );
-			qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max );
+			pglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_max );
+			pglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max );
 		}
 	}
 }
@@ -755,44 +755,44 @@ void R_Upload32( byte **data, int width, int height, int flags, int *upload_widt
 
 	if( flags & IT_DEPTH )
 	{
-		qglTexParameteri( target, GL_TEXTURE_MIN_FILTER, gl_filter_depth );
-		qglTexParameteri( target, GL_TEXTURE_MAG_FILTER, gl_filter_depth );
+		pglTexParameteri( target, GL_TEXTURE_MIN_FILTER, gl_filter_depth );
+		pglTexParameteri( target, GL_TEXTURE_MAG_FILTER, gl_filter_depth );
 
 		if( glConfig.ext.texture_filter_anisotropic )
-			qglTexParameteri( target, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1 );
+			pglTexParameteri( target, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1 );
 	}
 	else if( !( flags & IT_NOMIPMAP ) )
 	{
-		qglTexParameteri( target, GL_TEXTURE_MIN_FILTER, gl_filter_min );
-		qglTexParameteri( target, GL_TEXTURE_MAG_FILTER, gl_filter_max );
+		pglTexParameteri( target, GL_TEXTURE_MIN_FILTER, gl_filter_min );
+		pglTexParameteri( target, GL_TEXTURE_MAG_FILTER, gl_filter_max );
 
 		if( glConfig.ext.texture_filter_anisotropic )
-			qglTexParameteri( target, GL_TEXTURE_MAX_ANISOTROPY_EXT, glConfig.curTextureFilterAnisotropic );
+			pglTexParameteri( target, GL_TEXTURE_MAX_ANISOTROPY_EXT, glConfig.curTextureFilterAnisotropic );
 	}
 	else
 	{
-		qglTexParameteri( target, GL_TEXTURE_MIN_FILTER, gl_filter_max );
-		qglTexParameteri( target, GL_TEXTURE_MAG_FILTER, gl_filter_max );
+		pglTexParameteri( target, GL_TEXTURE_MIN_FILTER, gl_filter_max );
+		pglTexParameteri( target, GL_TEXTURE_MAG_FILTER, gl_filter_max );
 
 		if( glConfig.ext.texture_filter_anisotropic )
-			qglTexParameteri( target, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1 );
+			pglTexParameteri( target, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1 );
 	}
 
 	// clamp if required
 	if( !( flags & IT_CLAMP ) )
 	{
-		qglTexParameteri( target, GL_TEXTURE_WRAP_S, GL_REPEAT );
-		qglTexParameteri( target, GL_TEXTURE_WRAP_T, GL_REPEAT );
+		pglTexParameteri( target, GL_TEXTURE_WRAP_S, GL_REPEAT );
+		pglTexParameteri( target, GL_TEXTURE_WRAP_T, GL_REPEAT );
 	}
 	else if( glConfig.ext.texture_edge_clamp )
 	{
-		qglTexParameteri( target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-		qglTexParameteri( target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+		pglTexParameteri( target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+		pglTexParameteri( target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
 	}
 	else
 	{
-		qglTexParameteri( target, GL_TEXTURE_WRAP_S, GL_CLAMP );
-		qglTexParameteri( target, GL_TEXTURE_WRAP_T, GL_CLAMP );
+		pglTexParameteri( target, GL_TEXTURE_WRAP_S, GL_CLAMP );
+		pglTexParameteri( target, GL_TEXTURE_WRAP_T, GL_CLAMP );
 	}
 
 	if( ( scaledWidth == width ) && ( scaledHeight == height ) && ( flags & IT_NOMIPMAP ) )
@@ -800,12 +800,12 @@ void R_Upload32( byte **data, int width, int height, int flags, int *upload_widt
 		if( subImage )
 		{
 			for( i = 0; i < numTextures; i++, target2++ )
-				qglTexSubImage2D( target2, 0, 0, 0, scaledWidth, scaledHeight, format, GL_UNSIGNED_BYTE, data[i] );
+				pglTexSubImage2D( target2, 0, 0, 0, scaledWidth, scaledHeight, format, GL_UNSIGNED_BYTE, data[i] );
 		}
 		else
 		{
 			for( i = 0; i < numTextures; i++, target2++ )
-				qglTexImage2D( target2, 0, comp, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE, data[i] );
+				pglTexImage2D( target2, 0, comp, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE, data[i] );
 		}
 	}
 	else
@@ -835,12 +835,12 @@ void R_Upload32( byte **data, int width, int height, int flags, int *upload_widt
 
 			// automatic mipmaps generation
 			if( !( flags & IT_NOMIPMAP ) && mip && driverMipmap )
-				qglTexParameteri( target2, GL_GENERATE_MIPMAP_SGIS, GL_TRUE );
+				pglTexParameteri( target2, GL_GENERATE_MIPMAP_SGIS, GL_TRUE );
 
 			if( subImage )
-				qglTexSubImage2D( target2, 0, 0, 0, scaledWidth, scaledHeight, format, GL_UNSIGNED_BYTE, mip );
+				pglTexSubImage2D( target2, 0, 0, 0, scaledWidth, scaledHeight, format, GL_UNSIGNED_BYTE, mip );
 			else
-				qglTexImage2D( target2, 0, comp, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE, mip );
+				pglTexImage2D( target2, 0, comp, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE, mip );
 
 			// mipmaps generation
 			if( !( flags & IT_NOMIPMAP ) && mip && !driverMipmap )
@@ -863,9 +863,9 @@ void R_Upload32( byte **data, int width, int height, int flags, int *upload_widt
 					miplevel++;
 
 					if( subImage )
-						qglTexSubImage2D( target2, miplevel, 0, 0, w, h, format, GL_UNSIGNED_BYTE, mip );
+						pglTexSubImage2D( target2, miplevel, 0, 0, w, h, format, GL_UNSIGNED_BYTE, mip );
 					else
-						qglTexImage2D( target2, miplevel, comp, w, h, 0, format, GL_UNSIGNED_BYTE, mip );
+						pglTexImage2D( target2, miplevel, comp, w, h, 0, format, GL_UNSIGNED_BYTE, mip );
 				}
 			}
 		}
@@ -907,45 +907,45 @@ void R_Upload32_3D_Fast( byte **data, int width, int height, int depth, int flag
 
 	if( !( flags & IT_NOMIPMAP ) )
 	{
-		qglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, gl_filter_min );
-		qglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, gl_filter_max );
+		pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, gl_filter_min );
+		pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, gl_filter_max );
 
 		if( glConfig.ext.texture_filter_anisotropic )
-			qglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MAX_ANISOTROPY_EXT, glConfig.curTextureFilterAnisotropic );
+			pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MAX_ANISOTROPY_EXT, glConfig.curTextureFilterAnisotropic );
 	}
 	else
 	{
-		qglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, gl_filter_max );
-		qglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, gl_filter_max );
+		pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, gl_filter_max );
+		pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, gl_filter_max );
 
 		if( glConfig.ext.texture_filter_anisotropic )
-			qglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1 );
+			pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1 );
 	}
 
 	// clamp if required
 	if( !( flags & IT_CLAMP ) )
 	{
-		qglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-		qglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT );
-		qglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT );
+		pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+		pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+		pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT );
 	}
 	else if( glConfig.ext.texture_edge_clamp )
 	{
-		qglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-		qglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-		qglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE );
+		pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+		pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+		pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE );
 	}
 	else
 	{
-		qglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP );
-		qglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP );
-		qglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP );
+		pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP );
+		pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP );
+		pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP );
 	}
 
 	if( subImage )
-		qglTexSubImage3D( GL_TEXTURE_3D, 0, 0, 0, 0, scaledWidth, scaledHeight, scaledDepth, GL_RGBA, GL_UNSIGNED_BYTE, data[0] );
+		pglTexSubImage3D( GL_TEXTURE_3D, 0, 0, 0, 0, scaledWidth, scaledHeight, scaledDepth, GL_RGBA, GL_UNSIGNED_BYTE, data[0] );
 	else
-		qglTexImage3D( GL_TEXTURE_3D, 0, comp, scaledWidth, scaledHeight, scaledDepth, 0, GL_RGBA, GL_UNSIGNED_BYTE, data[0] );
+		pglTexImage3D( GL_TEXTURE_3D, 0, comp, scaledWidth, scaledHeight, scaledDepth, 0, GL_RGBA, GL_UNSIGNED_BYTE, data[0] );
 }
 
 /*
@@ -976,7 +976,7 @@ static _inline image_t *R_InitPic( const char *name, byte **pic, int width, int 
 	image->hash_next = images_hash[image_cur_hash];
 	images_hash[image_cur_hash] = image;
 
-	qglDeleteTextures( 1, &image->texnum );
+	pglDeleteTextures( 1, &image->texnum );
 	GL_Bind( 0, image );
 
 	if( depth == 1 )
@@ -1209,7 +1209,7 @@ bool VID_ScreenShot( const char *filename, bool levelshot )
 	r_shot->buffer = Mem_Alloc( r_temppool, glState.width * glState.height * 3 );
 
 	// get screen frame
-	qglReadPixels( 0, 0, glState.width, glState.height, GL_RGB, GL_UNSIGNED_BYTE, r_shot->buffer );
+	pglReadPixels( 0, 0, glState.width, glState.height, GL_RGB, GL_UNSIGNED_BYTE, r_shot->buffer );
 
 	if( levelshot ) flags |= IMAGE_RESAMPLE;
 //	else VID_ImageAdjustGamma( r_shot->buffer, r_shot->width, r_shot->height ); // adjust brightness
@@ -1256,7 +1256,7 @@ bool VID_CubemapShot( const char *base, uint size, bool skyshot )
 		if( skyshot ) R_DrawCubemapView( r_lastRefdef.vieworg, r_skyBoxAngles[i], size );
 		else R_DrawCubemapView( r_lastRefdef.vieworg, r_cubeMapAngles[i], size );
 
-		qglReadPixels( 0, glState.height - size, size, size, GL_RGB, GL_UNSIGNED_BYTE, temp );
+		pglReadPixels( 0, glState.height - size, size, size, GL_RGB, GL_UNSIGNED_BYTE, temp );
 		Mem_Copy( buffer + (size * size * 3 * i), temp, size * size * 3 );
 	}
 

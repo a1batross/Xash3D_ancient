@@ -3213,6 +3213,12 @@ edict_t *EntSelectSpawnPoint( CBaseEntity *pPlayer )
 		pSpot = UTIL_FindEntityByClassname(NULL, "info_player_start");
 		if ( !FNullEnt(pSpot) )
 			goto ReturnSpot;
+
+		// q3a maps doesn't contain info_player_start
+		// TEST for q3dm0
+		pSpot = UTIL_FindEntityByClassname(NULL, "info_player_deathmatch");
+		if ( !FNullEnt(pSpot) )
+			goto ReturnSpot;
 	}
 	else
 	{
@@ -3224,7 +3230,7 @@ edict_t *EntSelectSpawnPoint( CBaseEntity *pPlayer )
 ReturnSpot:
 	if ( FNullEnt( pSpot ) )
 	{
-		ALERT(at_error, "PutClientInServer: no info_player_start on level");
+		ALERT( at_error, "PutClientInServer: no info_player_start on level\n" );
 		return INDEXENT(0);
 	}
 

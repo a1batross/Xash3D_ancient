@@ -142,6 +142,71 @@ void CInfoIntermission::Think ( void )
 	}
 }
 
+//=========================================================
+// 		portal surfaces
+//=========================================================
+class CPortalSurface : public CPointEntity
+{
+	void Spawn( void );
+	void Think( void );
+	void PostActivate( void );
+};
+
+void CPortalSurface :: Spawn( void )
+{
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NOCLIP;
+
+	SetObjectClass( ED_PORTAL );
+	UTIL_SetOrigin( this, pev->origin );
+	pev->modelindex = 1;	// world
+          
+	SetNextThink( 1 );// let targets spawn!
+}
+
+void CPortalSurface :: Think( void )
+{
+	if( FNullEnt( pev->owner ))
+		pev->oldorigin = pev->origin;
+	else pev->oldorigin = pev->owner->v.origin;
+
+	SetNextThink( 0.1f );
+}
+
+void CPortalSurface :: PostActivate( void )
+{
+	Vector		dir;
+	CBaseEntity	*pTarget, *pOwner;
+
+	SetNextThink( 0 );
+
+	if( FStringNull( pev->target ))
+		return;	// mirror
+
+	pOwner = UTIL_FindEntityByTargetname( NULL, STRING( pev->target ));
+	if( !pOwner )
+	{
+		ALERT( at_warning, "Couldn't find target for %s\n", STRING( pev->classname ));
+		UTIL_Remove( this );
+		return;
+	}
+
+	pev->owner = pOwner->edict();
+	// pev->effects |= EF_ROTATE;
+
+	// see if the portal_camera has a target
+	if( !FStringNull( pOwner->pev->target ))
+		pTarget = UTIL_FindEntityByTargetname( NULL, STRING( pOwner->pev->target ));
+	else pTarget = NULL;
+
+	if( pTarget )
+	{
+		pev->movedir = pTarget->pev->origin - pOwner->pev->origin;
+		pev->movedir.Normalize();
+	}
+	else UTIL_LinearVector( pOwner );
+}
+
 //====================================================================
 //			multisource
 //====================================================================
@@ -236,11 +301,14 @@ void CMultiSource::Register(void)
 
 LINK_ENTITY_TO_CLASS( infodecal, CDecal );
 LINK_ENTITY_TO_CLASS( info_target, CInfoTarget );
+LINK_ENTITY_TO_CLASS( target_position, CPointEntity );
 LINK_ENTITY_TO_CLASS( info_teleport_destination, CPointEntity );
+LINK_ENTITY_TO_CLASS( misc_portal_surface, CPortalSurface );
 LINK_ENTITY_TO_CLASS( info_null, CNullEntity);
 LINK_ENTITY_TO_CLASS( info_texlights, CNullEntity);
 LINK_ENTITY_TO_CLASS( info_compile_parameters, CNullEntity);
 LINK_ENTITY_TO_CLASS( info_intermission, CInfoIntermission );
 LINK_ENTITY_TO_CLASS( info_player_deathmatch, CBaseDMStart);
 LINK_ENTITY_TO_CLASS( info_player_start, CPointEntity);
+LINK_ENTITY_TO_CLASS( misc_portal_camera, CPointEntity);
 LINK_ENTITY_TO_CLASS( info_landmark, CPointEntity);

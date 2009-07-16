@@ -99,6 +99,7 @@ cvar_t *r_3dlabs_broken;
 cvar_t *r_lodbias;
 cvar_t *r_lodscale;
 cvar_t *r_lefthand;
+cvar_t *r_physbdebug;
 
 cvar_t *r_environment_color;
 cvar_t *r_stencilbits;
@@ -156,7 +157,7 @@ typedef struct
 static void R_FinalizeGLExtensions( void );
 
 #define GL_EXTENSION_FUNC_EXT(name,func) { name, (void ** const)func }
-#define GL_EXTENSION_FUNC(name) GL_EXTENSION_FUNC_EXT("gl"#name,&(qgl##name))
+#define GL_EXTENSION_FUNC(name) GL_EXTENSION_FUNC_EXT("gl"#name,&(pgl##name))
 
 /* GL_ARB_multitexture */
 static const gl_extension_func_t gl_ext_multitexture_ARB_funcs[] =
@@ -196,7 +197,7 @@ static const gl_extension_func_t gl_ext_texture3D_EXT_funcs[] =
 static const gl_extension_func_t gl_ext_draw_range_elements_EXT_funcs[] =
 {
 	 GL_EXTENSION_FUNC(DrawRangeElementsEXT)
-	,GL_EXTENSION_FUNC_EXT("glDrawRangeElements",&qglDrawRangeElementsEXT)
+	,GL_EXTENSION_FUNC_EXT("glDrawRangeElements",&pglDrawRangeElementsEXT)
 	,GL_EXTENSION_FUNC_EXT(NULL,NULL)
 };
 
@@ -272,7 +273,7 @@ static const gl_extension_func_t gl_ext_occlusion_query_ARB_funcs[] =
 /* WGL_EXT_swap_interval */
 static const gl_extension_func_t wgl_ext_swap_interval_EXT_funcs[] =
 {
-	 GL_EXTENSION_FUNC_EXT("wglSwapIntervalEXT",&qglSwapInterval)
+	 GL_EXTENSION_FUNC_EXT("wglSwapIntervalEXT",&pglSwapInterval)
 	,GL_EXTENSION_FUNC_EXT(NULL,NULL)
 };
 
@@ -283,7 +284,7 @@ static const gl_extension_func_t wgl_ext_swap_interval_EXT_funcs[] =
 /* GLX_SGI_occlusion_query */
 static const gl_extension_func_t glx_ext_swap_control_SGI_funcs[] =
 {
-	 GL_EXTENSION_FUNC_EXT("glXSwapIntervalSGI",&qglSwapInterval)
+	 GL_EXTENSION_FUNC_EXT("glXSwapIntervalSGI",&pglSwapInterval)
 
 	,GL_EXTENSION_FUNC_EXT(NULL,NULL)
 };
@@ -306,8 +307,8 @@ static const gl_extension_func_t gl_ext_multitexture_SGIS_funcs[] =
 /* WGL_3DFX_gamma_control */
 static const gl_extension_func_t wgl_ext_gamma_control_3DFX_funcs[] =
 {
-	 GL_EXTENSION_FUNC_EXT("wglGetDeviceGammaRamp3DFX",&qwglGetDeviceGammaRamp3DFX)
-	,GL_EXTENSION_FUNC_EXT("wglSetDeviceGammaRamp3DFX",&qwglSetDeviceGammaRamp3DFX)
+	 GL_EXTENSION_FUNC_EXT("wglGetDeviceGammaRamp3DFX",&pwglGetDeviceGammaRamp3DFX)
+	,GL_EXTENSION_FUNC_EXT("wglSetDeviceGammaRamp3DFX",&pwglSetDeviceGammaRamp3DFX)
 	,GL_EXTENSION_FUNC_EXT(NULL,NULL)
 };
 
@@ -434,7 +435,7 @@ void R_RegisterGLExtensions( void )
 		if( func )
 		{
 			do {
-				*(func->pointer) = ( void * )qglGetProcAddress( (const GLubyte *)func->name );
+				*(func->pointer) = ( void * )pglGetProcAddress( (const GLubyte *)func->name );
 				if( !*(func->pointer) )
 					break;
 			} while( (++func)->name );
@@ -496,7 +497,7 @@ static void R_FinalizeGLExtensions( void )
 	int	flags = 0;
 
 	glConfig.maxTextureSize = 0;
-	qglGetIntegerv( GL_MAX_TEXTURE_SIZE, &glConfig.maxTextureSize );
+	pglGetIntegerv( GL_MAX_TEXTURE_SIZE, &glConfig.maxTextureSize );
 	if( glConfig.maxTextureSize <= 0 )
 		glConfig.maxTextureSize = 256;
 
@@ -506,21 +507,21 @@ static void R_FinalizeGLExtensions( void )
 	/* GL_ARB_texture_cube_map */
 	glConfig.maxTextureCubemapSize = 0;
 	if( glConfig.ext.texture_cube_map )
-		qglGetIntegerv( GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB, &glConfig.maxTextureCubemapSize );
+		pglGetIntegerv( GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB, &glConfig.maxTextureCubemapSize );
 	if( glConfig.maxTextureCubemapSize <= 1 )
 		glConfig.ext.texture_cube_map = false;
 
 	/* GL_EXT_texture3D */
 	glConfig.maxTextureSize3D = 0;
 	if( glConfig.ext.texture3D )
-		qglGetIntegerv( GL_MAX_3D_TEXTURE_SIZE, &glConfig.maxTextureSize3D );
+		pglGetIntegerv( GL_MAX_3D_TEXTURE_SIZE, &glConfig.maxTextureSize3D );
 	if( glConfig.maxTextureSize3D <= 1 )
 		glConfig.ext.texture3D = false;
 
 	/* GL_ARB_multitexture */
 	glConfig.maxTextureUnits = 1;
 	if( glConfig.ext.multitexture ) {
-		qglGetIntegerv( GL_MAX_TEXTURE_UNITS, &glConfig.maxTextureUnits );
+		pglGetIntegerv( GL_MAX_TEXTURE_UNITS, &glConfig.maxTextureUnits );
 		glConfig.maxTextureUnits = bound( 1, glConfig.maxTextureUnits, MAX_TEXTURE_UNITS );
 	}
 	if( glConfig.maxTextureUnits == 1 )
@@ -529,7 +530,7 @@ static void R_FinalizeGLExtensions( void )
 	/* GL_EXT_texture_filter_anisotropic */
 	glConfig.maxTextureFilterAnisotropic = 0;
 	if( strstr( glConfig.extensionsString, "GL_EXT_texture_filter_anisotropic" ) )
-		qglGetIntegerv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glConfig.maxTextureFilterAnisotropic );
+		pglGetIntegerv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glConfig.maxTextureFilterAnisotropic );
 
 	Cvar_Get( "gl_ext_texture_filter_anisotropic_max", "0", CVAR_INIT, "textures anisotropic filter" );
 	Cvar_Set( "gl_ext_texture_filter_anisotropic_max", va( "%i", glConfig.maxTextureFilterAnisotropic ) );
@@ -575,6 +576,7 @@ void R_Register( void )
 	r_skymip = Cvar_Get( "r_skymip", "0", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "reduces resolution of skybox textures by powers of 2" );
 	r_polyblend = Cvar_Get( "r_polyblend", "1", 0, "tints view while underwater, hurt, etc" );
 	r_lefthand = Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE, "viewmodel handedness" );
+	r_physbdebug = Cvar_Get( "cm_debugdraw", "0", CVAR_ARCHIVE, "draw physics hulls" );
 
 	r_bloom = Cvar_Get( "r_bloom", "0", CVAR_ARCHIVE, "enable or disable bloom-effect" );
 	r_bloom_alpha = Cvar_Get( "r_bloom_alpha", "0.2", CVAR_ARCHIVE, "bloom alpha multiplier" );
@@ -794,46 +796,46 @@ static void R_SetGLDefaults( void )
 {
 	int i;
 
-	qglFinish();
+	pglFinish();
 
-	qglClearColor( 1, 0, 0.5, 0.5 );
+	pglClearColor( 1, 0, 0.5, 0.5 );
 
-	qglEnable( GL_DEPTH_TEST );
-	qglDisable( GL_CULL_FACE );
-	qglEnable( GL_SCISSOR_TEST );
-	qglDepthFunc( GL_LEQUAL );
-	qglDepthMask( GL_FALSE );
+	pglEnable( GL_DEPTH_TEST );
+	pglDisable( GL_CULL_FACE );
+	pglEnable( GL_SCISSOR_TEST );
+	pglDepthFunc( GL_LEQUAL );
+	pglDepthMask( GL_FALSE );
 
-	qglColor4f( 1, 1, 1, 1 );
+	pglColor4f( 1, 1, 1, 1 );
 
 	if( glState.stencilEnabled )
 	{
-		qglDisable( GL_STENCIL_TEST );
-		qglStencilMask( ( GLuint ) ~0 );
-		qglStencilFunc( GL_EQUAL, 128, 0xFF );
-		qglStencilOp( GL_KEEP, GL_KEEP, GL_INCR );
+		pglDisable( GL_STENCIL_TEST );
+		pglStencilMask( ( GLuint ) ~0 );
+		pglStencilFunc( GL_EQUAL, 128, 0xFF );
+		pglStencilOp( GL_KEEP, GL_KEEP, GL_INCR );
 	}
 
 	// enable gouraud shading
-	qglShadeModel( GL_SMOOTH );
+	pglShadeModel( GL_SMOOTH );
 
-	qglPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-	qglPolygonOffset( -1, -2 );
+	pglPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+	pglPolygonOffset( -1, -2 );
 
 	// properly disable multitexturing at startup
 	for( i = glConfig.maxTextureUnits-1; i > 0; i-- )
 	{
 		GL_SelectTexture( i );
 		GL_TexEnv( GL_MODULATE );
-		qglDisable( GL_BLEND );
-		qglDisable( GL_TEXTURE_2D );
+		pglDisable( GL_BLEND );
+		pglDisable( GL_TEXTURE_2D );
 	}
 
 	GL_SelectTexture( 0 );
-	qglDisable( GL_BLEND );
-	qglDisable( GL_ALPHA_TEST );
-	qglDisable( GL_POLYGON_OFFSET_FILL );
-	qglEnable( GL_TEXTURE_2D );
+	pglDisable( GL_BLEND );
+	pglDisable( GL_ALPHA_TEST );
+	pglDisable( GL_POLYGON_OFFSET_FILL );
+	pglEnable( GL_TEXTURE_2D );
 
 	GL_Cull( 0 );
 	GL_FrontFace( 0 );
@@ -843,11 +845,11 @@ static void R_SetGLDefaults( void )
 
 	R_TextureMode( r_texturemode->string );
 
-	qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min );
-	qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max );
+	pglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min );
+	pglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max );
 
-	qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-	qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+	pglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+	pglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
 }
 
 /*
@@ -910,7 +912,7 @@ int R_InitRender( void *hinstance, void *hWnd, bool verbose )
 	driver = gl_driver->string;
 
 	// initialize our QGL dynamic bindings
-init_qgl:
+init_pgl:
 	if( !QGL_Init( gl_driver->string ) )
 	{
 		QGL_Shutdown();
@@ -919,7 +921,7 @@ init_qgl:
 		if( com.strcmp( gl_driver->string, "opengl32.dll" ))
 		{
 			Cvar_Set( gl_driver->name, "opengl32.dll" );
-			goto init_qgl;
+			goto init_pgl;
 		}
 
 		return false;
@@ -943,11 +945,11 @@ init_qgl:
 	/*
 	** get our various GL strings
 	*/
-	glConfig.vendorString = (const char *)qglGetString( GL_VENDOR );
-	glConfig.rendererString = (const char *)qglGetString( GL_RENDERER );
-	glConfig.versionString = (const char *)qglGetString( GL_VERSION );
-	glConfig.extensionsString = (const char *)qglGetString( GL_EXTENSIONS );
-	glConfig.glwExtensionsString = (const char *)qglGetGLWExtensionsString ();
+	glConfig.vendorString = (const char *)pglGetString( GL_VENDOR );
+	glConfig.rendererString = (const char *)pglGetString( GL_RENDERER );
+	glConfig.versionString = (const char *)pglGetString( GL_VERSION );
+	glConfig.extensionsString = (const char *)pglGetString( GL_EXTENSIONS );
+	glConfig.glwExtensionsString = (const char *)pglGetGLWExtensionsString ();
 
 	if( !glConfig.vendorString ) glConfig.vendorString = "";
 	if( !glConfig.rendererString ) glConfig.rendererString = "";
@@ -1013,7 +1015,7 @@ init_qgl:
 
 	R_ClearScene();
 
-	err = qglGetError();
+	err = pglGetError();
 	if( err != GL_NO_ERROR )
 		Msg( "glGetError() = 0x%x\n", err );
 

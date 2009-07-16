@@ -922,7 +922,7 @@ void R_DrawAliasModel( const meshbuffer_t *mb )
 
 	// hack the depth range to prevent view model from poking into walls
 	if( e->flags & RF_WEAPONMODEL )
-		qglDepthRange( gldepthmin, gldepthmin + 0.3 * ( gldepthmax - gldepthmin ) );
+		pglDepthRange( gldepthmin, gldepthmin + 0.3 * ( gldepthmax - gldepthmin ) );
 
 	// backface culling for left-handed weapons
 	if( e->flags & RF_CULLHACK )
@@ -934,7 +934,7 @@ void R_DrawAliasModel( const meshbuffer_t *mb )
 	R_DrawAliasFrameLerp( mb, e->backlerp );
 
 	if( e->flags & RF_WEAPONMODEL )
-		qglDepthRange( gldepthmin, gldepthmax );
+		pglDepthRange( gldepthmin, gldepthmax );
 
 	if( e->flags & RF_CULLHACK )
 		GL_FrontFace( !glState.frontFace );

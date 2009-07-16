@@ -30,11 +30,11 @@ void CL_UpdateEntityFields( edict_t *ent )
 	ent->v.gaitsequence = ent->pvClientData->current.gaitsequence;
 	ent->v.body = ent->pvClientData->current.body;
 	ent->v.skin = ent->pvClientData->current.skin;
+	ent->v.effects = ent->pvClientData->current.effects;
 	VectorCopy( ent->pvClientData->current.rendercolor, ent->v.rendercolor );
 	VectorCopy( ent->pvClientData->current.velocity, ent->v.velocity );
 	VectorCopy( ent->pvClientData->current.origin, ent->v.origin );
 	VectorCopy( ent->pvClientData->current.angles, ent->v.angles );
-	VectorCopy( ent->pvClientData->prev.origin, ent->v.oldorigin );
 	VectorCopy( ent->pvClientData->prev.angles, ent->v.oldangles );
 	VectorCopy( ent->pvClientData->current.mins, ent->v.mins );
 	VectorCopy( ent->pvClientData->current.maxs, ent->v.maxs );
@@ -51,6 +51,20 @@ void CL_UpdateEntityFields( edict_t *ent )
 	ent->v.movetype = ent->pvClientData->current.movetype;
 	ent->v.flags = ent->pvClientData->current.flags;
 	if( ent->v.scale == 0.0f ) ent->v.scale = 1.0f;
+
+	switch( ent->pvClientData->current.ed_type )
+	{
+	case ED_PORTAL:
+	case ED_MOVER:
+	case ED_BSPBRUSH:
+		ByteToDir( ent->pvClientData->current.skin, ent->v.movedir );
+		VectorCopy( ent->pvClientData->current.oldorigin, ent->v.oldorigin );
+		break;
+	default:
+		VectorCopy( ent->pvClientData->prev.origin, ent->v.oldorigin );
+		VectorClear( ent->v.movedir );
+		break;
+	}
 
 	for( i = 0; i < MAXSTUDIOBLENDS; i++ )
 		ent->v.blending[i] = ent->pvClientData->current.blending[i]; 
@@ -421,7 +435,11 @@ void CL_AddPacketEntities( frame_t *frame )
 		ent = EDICT_NUM( s1->number );
 
 		if( ent->free ) continue;
-		re->AddRefEntity( ent, s1->ed_type, cl.refdef.lerpfrac );
+		if( re->AddRefEntity( ent, s1->ed_type, cl.refdef.lerpfrac ))
+		{
+			if( s1->ed_type == ED_PORTAL && !VectorCompare( ent->v.origin, ent->v.oldorigin ))
+				cl.render_flags |= 16;	// TEST
+		}
 	}
 }
 
@@ -436,6 +454,8 @@ void CL_AddEntities( void )
 {
 	if( cls.state != ca_active )
 		return;
+
+	cl.render_flags = 0;
 
 	CL_AddPacketEntities( &cl.frame );
 	clgame.dllFuncs.pfnCreateEntities();

@@ -996,6 +996,7 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 	to->framerate = pNet->pev->framerate;
 	to->flags = pNet->pev->flags;
 	to->rendercolor = pNet->pev->rendercolor;
+	to->oldorigin = pNet->pev->oldorigin;
 
 	// studio model sequence
 	if( pNet->pev->sequence != -1 ) to->sequence = pNet->pev->sequence;
@@ -1005,12 +1006,6 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 		// copy blendings and bone ctrlrs
 		to->blending[i] = pNet->pev->blending[i];
 		to->controller[i] = pNet->pev->controller[i];
-	}
-
-	if( to->ed_type == ED_MOVER || to->ed_type == ED_BSPBRUSH )
-	{
-		// these needs to right calculate direction of scroll texture
-		to->velocity = pNet->pev->movedir;
 	}
 	if( to->ed_type == ED_CLIENT )
 	{

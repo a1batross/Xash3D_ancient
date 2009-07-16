@@ -86,6 +86,9 @@ static net_field_t ent_fields[] =
 { ES_FIELD(rendercolor[0]),		NET_COLOR, false	},	// stateflags_t #2 (4 bytes)
 { ES_FIELD(rendercolor[1]),		NET_COLOR, false	},
 { ES_FIELD(rendercolor[2]),		NET_COLOR, false	},
+{ ES_FIELD(oldorigin[0]),		NET_FLOAT, true	},
+{ ES_FIELD(oldorigin[1]),		NET_FLOAT, true	},
+{ ES_FIELD(oldorigin[2]),		NET_FLOAT, true	},
 { ES_FIELD(rendermode),		NET_BYTE,  false	},	// render mode (legacy stuff)
 { ES_FIELD(delta_angles[0]),		NET_ANGLE, false	},
 { ES_FIELD(delta_angles[1]),		NET_ANGLE, false	},

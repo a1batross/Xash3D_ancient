@@ -305,7 +305,8 @@ void SV_LinkEdict( edict_t *ent )
 	}
 
 	// if first time, make sure old_origin is valid
-	if( !sv_ent->linkcount ) VectorCopy( ent->v.origin, ent->v.oldorigin );
+	if( !sv_ent->linkcount && sv_ent->s.ed_type != ED_PORTAL )
+		VectorCopy( ent->v.origin, ent->v.oldorigin );
 
 	ent->pvServerData->linkcount++;
 	ent->pvServerData->s.ed_flags |= ESF_LINKEDICT;	// change edict state on a client too...

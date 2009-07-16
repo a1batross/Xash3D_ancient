@@ -1065,6 +1065,8 @@ edict_t* pfnFindEntityByString( edict_t *pStartEdict, const char *pszField, cons
 		f = EOFS( globalname );
 	else if( !com.strcmp( pszField, "targetname" ))
 		f = EOFS( targetname );
+	else if( !com.strcmp( pszField, "target" ))
+		f = EOFS( target );
 	else if( !com.strcmp( pszField, "netname" ))
 		f = EOFS( netname );
 	else if( !com.strcmp( pszField, "model" ))

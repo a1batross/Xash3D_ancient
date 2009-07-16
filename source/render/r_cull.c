@@ -310,7 +310,7 @@ void R_InitOcclusionQueries( void )
 	if( !glConfig.ext.occlusion_query )
 		return;
 
-	qglGenQueriesARB( MAX_OQ_TOTAL, r_occlusionQueries );
+	pglGenQueriesARB( MAX_OQ_TOTAL, r_occlusionQueries );
 
 	meshbuf->sortkey = MB_ENTITY2NUM( r_worldent ) | MB_MODEL;
 	meshbuf->shaderkey = r_occlusionShader->sortkey;
@@ -335,9 +335,9 @@ void R_BeginOcclusionPass( void )
 
 	R_ClearSurfOcclusionQueryKeys();
 
-	qglShadeModel( GL_FLAT );
-	qglColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
-	qglDisable( GL_TEXTURE_2D );
+	pglShadeModel( GL_FLAT );
+	pglColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
+	pglDisable( GL_TEXTURE_2D );
 }
 
 /*
@@ -358,13 +358,13 @@ void R_EndOcclusionPass( void )
 	R_BackendResetCounters();
 
 	if( r_occlusion_queries_finish->integer )
-		qglFinish();
+		pglFinish();
 	else
-		qglFlush();
+		pglFlush();
 
-	qglShadeModel( GL_SMOOTH );
-	qglEnable( GL_TEXTURE_2D );
-	qglColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+	pglShadeModel( GL_SMOOTH );
+	pglEnable( GL_TEXTURE_2D );
+	pglColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
 }
 
 /*
@@ -471,7 +471,7 @@ int R_IssueOcclusionQuery( int query, ref_entity_t *e, vec3_t mins, vec3_t maxs 
 	mesh.elems = indices;
 	r_occlusionShader->flags &= ~( SHADER_CULL_BACK | SHADER_CULL_FRONT );
 
-	qglBeginQueryARB( GL_SAMPLES_PASSED_ARB, r_occlusionQueries[query] );
+	pglBeginQueryARB( GL_SAMPLES_PASSED_ARB, r_occlusionQueries[query] );
 
 	R_TransformEntityBBox( e, mins, maxs, bbox, false );
 	for( i = 0; i < 8; i++ )
@@ -482,7 +482,7 @@ int R_IssueOcclusionQuery( int query, ref_entity_t *e, vec3_t mins, vec3_t maxs 
 	R_PushMesh( &mesh, MF_NONBATCHED|MF_NOCULL );
 	R_RenderMeshBuffer( &r_occluderMB );
 
-	qglEndQueryARB( GL_SAMPLES_PASSED_ARB );
+	pglEndQueryARB( GL_SAMPLES_PASSED_ARB );
 
 	return query;
 }
@@ -515,21 +515,21 @@ unsigned int R_GetOcclusionQueryResult( int query, bool wait )
 
 	query = r_occlusionQueries[query];
 
-	qglGetQueryObjectivARB( query, GL_QUERY_RESULT_AVAILABLE_ARB, &available );
+	pglGetQueryObjectivARB( query, GL_QUERY_RESULT_AVAILABLE_ARB, &available );
 	if( !available && wait )
 	{
 		int n = 0;
 		do
 		{
 			n++;
-			qglGetQueryObjectivARB( query, GL_QUERY_RESULT_AVAILABLE_ARB, &available );
+			pglGetQueryObjectivARB( query, GL_QUERY_RESULT_AVAILABLE_ARB, &available );
 		} while( !available && ( n < 10000 ) );
 	}
 
 	if( !available )
 		return 0;
 
-	qglGetQueryObjectuivARB( query, GL_QUERY_RESULT_ARB, &sampleCount );
+	pglGetQueryObjectuivARB( query, GL_QUERY_RESULT_ARB, &sampleCount );
 
 	return sampleCount;
 }
@@ -565,6 +565,6 @@ void R_ShutdownOcclusionQueries( void )
 	if( !glConfig.ext.occlusion_query )
 		return;
 
-	qglDeleteQueriesARB( MAX_OQ_TOTAL, r_occlusionQueries );
+	pglDeleteQueriesARB( MAX_OQ_TOTAL, r_occlusionQueries );
 	r_occludersQueued = false;
 }

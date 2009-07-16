@@ -251,7 +251,7 @@ typedef struct clipmap_static_s
 	collide_info_t	touch_info;	// global info about two touching objects
 	bool		loaded;		// map is loaded?
 	bool		tree_build;	// phys tree is created ?
-	vfile_t		*world_tree;	// pre-calcualated collision tree (worldmodel only)
+	file_t		*world_tree;	// pre-calcualated collision tree (worldmodel only)
 	trace_t		trace;		// contains result of last trace
 	int		checkcount;
 
@@ -388,6 +388,7 @@ void CM_CollisionClipToWorld( trace_t *trace, cmodel_t *model, const vec3_t star
 // updates fraction, endpos, plane and surface info if new fraction is shorter
 void CM_CollisionCombineTraces( trace_t *cliptrace, const trace_t *trace, edict_t *touch, bool is_bmodel );
 void CM_CollisionDrawForEachBrush( void );
+void CM_CollisionDrawForEachSurface( void );
 void CM_CollisionInit( void );
 
 #endif//CM_LOCAL_H

@@ -33,5 +33,6 @@ void DebugShowCollision( cmdraw_t callback  )
 	if( cm_debugdraw->integer == 2 )
 	{
 		CM_CollisionDrawForEachBrush();
+		CM_CollisionDrawForEachSurface();
 	}
 }

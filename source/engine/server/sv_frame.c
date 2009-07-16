@@ -53,6 +53,15 @@ void SV_UpdateEntityState( edict_t *ent, bool baseline )
 		ent->pvServerData->s.classname = SV_ClassIndex( STRING( ent->v.classname ));
 
 	svgame.dllFuncs.pfnUpdateEntityState( &ent->pvServerData->s, ent, baseline );
+
+	switch( ent->pvServerData->s.ed_type )
+	{
+	case ED_MOVER:
+	case ED_BSPBRUSH:
+	case ED_PORTAL:
+		ent->pvServerData->s.skin = DirToByte( ent->v.movedir );
+		break;
+	}
 }
 
 /*
@@ -132,7 +141,8 @@ void SV_EmitPacketEntities( client_frame_t *from, client_frame_t *to, sizebuf_t 
 			// in any bytes being emited if the entity has not changed at all
 			// note that players are always 'newentities', this updates their oldorigin always
 			// and prevents warping
-			MSG_WriteDeltaEntity( oldent, newent, msg, false, (newent->ed_type == ED_CLIENT));
+			MSG_WriteDeltaEntity( oldent, newent, msg, false,
+			(newent->ed_type == ED_CLIENT) || (newent->ed_type == ED_PORTAL));
 			oldindex++;
 			newindex++;
 			continue;
@@ -238,7 +248,7 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 			}
 		}
 
-		if( svent->s.ed_type == ED_AMBIENT )
+		if( svent->s.ed_type == ED_AMBIENT || svent->s.ed_type == ED_PORTAL )
 			bitvector = clientphs;
 		else bitvector = clientpvs;
 
@@ -291,7 +301,11 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 
 		// if its a portal entity, add everything visible from its camera position
 		if( svent->s.ed_type == ED_PORTAL || svent->s.ed_type == ED_SKYPORTAL )
-			SV_AddEntitiesToPacket( svent->s.origin, frame, ents, true );
+		{
+			// don't merge pvs for mirrors
+			if( !VectorCompare( svent->s.origin, svent->s.oldorigin ))
+				SV_AddEntitiesToPacket( svent->s.oldorigin, frame, ents, true );
+		}
 	}
 }
 

@@ -327,7 +327,7 @@ void CBaseMover :: ComplexMoveDoneNow( void )
 void CBaseDoor::Spawn( )
 {
 	Precache();
-          if(!IsRotatingDoor())UTIL_LinearVector( this );
+          if(!IsRotatingDoor()) UTIL_LinearVector( this );
 	CBaseBrush::Spawn();
 
 	//make illusionary door 
@@ -364,7 +364,7 @@ void CBaseDoor::Spawn( )
 	if (pev->speed == 0) pev->speed = 100;//default speed
 	m_iState = STATE_OFF;
 
-	if ( IsRotatingDoor() && FBitSet (pev->spawnflags, SF_DOOR_START_OPEN))
+	if( IsRotatingDoor() && FBitSet (pev->spawnflags, SF_DOOR_START_OPEN))
 	{
 		pev->angles = m_vecAngle2;
 		Vector vecSav = m_vecAngle1;
@@ -376,16 +376,18 @@ void CBaseDoor::Spawn( )
 
 void CBaseDoor :: PostSpawn( void )
 {
-	if (m_pParent) m_vecPosition1 = pev->origin - m_pParent->pev->origin;
+	if( m_pParent ) m_vecPosition1 = pev->origin - m_pParent->pev->origin;
 	else m_vecPosition1 = pev->origin;
 
 	// Subtract 2 from size because the engine expands bboxes by 1 in all directions
 	m_vecPosition2 = m_vecPosition1 + (pev->movedir * (fabs( pev->movedir.x * (pev->size.x-2) ) + fabs( pev->movedir.y * (pev->size.y-2) ) + fabs( pev->movedir.z * (pev->size.z-2) ) - m_flLip));
 
-	ASSERTSZ(m_vecPosition1 != m_vecPosition2, "door start/end positions are equal");
-	if ( FBitSet (pev->spawnflags, SF_DOOR_START_OPEN) )
+	ASSERTSZ( m_vecPosition1 != m_vecPosition2, "door start/end positions are equal" );
+	if( FBitSet( pev->spawnflags, SF_DOOR_START_OPEN ))
 	{	
-		if (m_pParent)
+		SET_AREAPORTAL( edict(), TRUE );
+
+		if( m_pParent )
 		{
 			m_vecSpawnOffset = m_vecSpawnOffset + (m_vecPosition2 + m_pParent->pev->origin) - pev->origin;
 			UTIL_AssignOrigin(this, m_vecPosition2 + m_pParent->pev->origin);
@@ -524,6 +526,8 @@ void CBaseDoor::DoorGoUp( void )
           SetTouch( NULL );
 	
 	UTIL_FireTargets( pev->target, m_hActivator, this, USE_ON );
+	SET_AREAPORTAL( edict(), TRUE );
+
 	if(IsRotatingDoor()) 
 	{
 		int sign = 1;
@@ -590,6 +594,8 @@ void CBaseDoor::DoorHitBottom( void )
 	if (!(pev->spawnflags & SF_DOOR_START_OPEN))
 		UTIL_FireTargets( pev->netname, m_hActivator, this, USE_TOGGLE );
 	UTIL_FireTargets( pev->target, m_hActivator, this, USE_TOGGLE );
+
+	SET_AREAPORTAL( edict(), FALSE );
 }
 
 void CBaseDoor::Blocked( CBaseEntity *pOther )

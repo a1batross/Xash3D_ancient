@@ -417,7 +417,7 @@ void BSP_LoadLeafs( lump_t *l )
 		out->parent = NULL;
 		out->plane = NULL;
 		out->cluster = LittleLong( in->cluster );
-		out->area = LittleLong( in->area );
+		out->area = LittleLong( in->area ) + 1;
 
 		if( out->cluster >= cm.numclusters )
 			cm.numclusters = out->cluster + 1;
@@ -662,11 +662,7 @@ void IBSP_LoadSurfaces( lump_t *l )
 				continue;
 			}
 			originalvertex3f = (float *)(cm.vertices + in->firstvert);
-
-			// setup a bounding box
-			VectorCopy( in->mins, out->mins );
-			VectorCopy( in->maxs, out->maxs );
-		
+	
 			// convert patch to MST_TRISURF
 			cxtess = CM_PatchTesselationOnX( patchsize[0], patchsize[1], 3, originalvertex3f, 15.0f );
 			cytess = CM_PatchTesselationOnY( patchsize[0], patchsize[1], 3, originalvertex3f, 15.0f );
@@ -688,11 +684,15 @@ void IBSP_LoadSurfaces( lump_t *l )
 			patchtess[patchtesscount].lodgroup[5] = in->maxs[2];
 			patchtess[patchtesscount].originalvertex3f = originalvertex3f;
 			patchtesscount++;
+			break;
 		case MST_FLARE:
 			// ignore collisions at all
 			continue;
 		}
 
+		// setup a bounding box
+		VectorCopy( in->mins, out->mins );
+		VectorCopy( in->maxs, out->maxs );
 		out->firstvertex = LittleLong( in->firstvert );	
 		out->numvertices = LittleLong( in->numverts );
 	}		
@@ -810,10 +810,6 @@ void RBSP_LoadSurfaces( lump_t *l )
 			}
 			originalvertex3f = (float *)(cm.vertices + in->firstvert);
 
-			// setup a bounding box
-			VectorCopy( in->mins, out->mins );
-			VectorCopy( in->maxs, out->maxs );
-		
 			// convert patch to MST_TRISURF
 			cxtess = CM_PatchTesselationOnX( patchsize[0], patchsize[1], 3, originalvertex3f, 15.0f );
 			cytess = CM_PatchTesselationOnY( patchsize[0], patchsize[1], 3, originalvertex3f, 15.0f );
@@ -840,6 +836,9 @@ void RBSP_LoadSurfaces( lump_t *l )
 			continue;
 		}
 
+		// setup a bounding box
+		VectorCopy( in->mins, out->mins );
+		VectorCopy( in->maxs, out->maxs );
 		out->firstvertex = LittleLong( in->firstvert );	
 		out->numvertices = LittleLong( in->numverts );
 	}		
@@ -923,9 +922,27 @@ void RBSP_LoadSurfaces( lump_t *l )
 BSP_LoadCollision
 =================
 */
-void BSP_LoadCollision( lump_t *l )
+void BSP_LoadCollision( void )
 {
-	cms.world_tree = VFS_Create( cms.base + l->fileofs, l->filelen );
+	string	clipfile;
+	int	map_checksum;
+
+	com.strncpy( clipfile, cm.name, MAX_STRING );
+	FS_StripExtension( clipfile );
+	FS_DefaultExtension( clipfile, ".cm" );
+
+	cms.world_tree = FS_Open( clipfile, "rb" );
+
+	if( !cms.world_tree ) return;
+	FS_Read( cms.world_tree, &map_checksum, sizeof( int ));
+
+	if( map_checksum != cm.checksum )
+	{
+		// failed checksum, needs to rebuild
+		MsgDev( D_NOTE, "BSP_LoadCollision: map %s changed, rebuild collision tree\n", cm.name );
+		FS_Close( cms.world_tree );
+		cms.world_tree = NULL;
+	}
 }
 
 static void BSP_RecursiveFindNumLeafs( cnode_t *node )
@@ -1043,9 +1060,9 @@ void BSP_EndBuildTree( void )
 	if( app_name == HOST_BSPLIB ) Msg( " done\n" );
 }
 
-static void BSP_LoadTree( vfile_t* handle, void* buffer, size_t size )
+static void BSP_LoadTree( file_t* handle, void* buffer, size_t size )
 {
-	VFS_Read( handle, buffer, size );
+	FS_Read( handle, buffer, size );
 }
 
 void CM_LoadBSP( const void *buffer )
@@ -1060,7 +1077,7 @@ void CM_LoadBSP( const void *buffer )
 	BSP_LoadShaders( &header.lumps[LUMP_SHADERS] );
 	IBSP_LoadSurfaces( &header.lumps[LUMP_SURFACES] );
 	BSP_LoadModels( &header.lumps[LUMP_MODELS] );
-	BSP_LoadCollision( &header.lumps[LUMP_COLLISION] );
+	BSP_LoadCollision();
 	cms.loaded = true;
 }
 
@@ -1078,9 +1095,16 @@ void CM_FreeBSP( void )
 	}
 }
 
+static void CM_AddCollision( file_t *f, const void* buffer, size_t size )
+{
+	FS_Write( f, buffer, size ); 
+}
+
 void CM_MakeCollisionTree( void )
 {
 	int	i, world = 0; // world index
+	string	clipfile;
+	file_t	*file;
 
 	if( !cms.loaded ) Host_Error( "CM_MakeCollisionTree: map not loaded\n" );
 	if( cms.collision ) return; // already generated
@@ -1094,6 +1118,17 @@ void CM_MakeCollisionTree( void )
 	else for( i = 0; i < cms.bmodels[world].numfaces; i++ ) BSP_AddCollisionFace( i );
 
 	BSP_EndBuildTree();
+
+	com.strncpy( clipfile, cm.name, MAX_STRING );
+	FS_StripExtension( clipfile );
+	FS_DefaultExtension( clipfile, ".cm" );
+
+	file = FS_Open( clipfile, "wb" );
+	if( !file ) return;
+
+	FS_Write( file, &cm.checksum, sizeof( int )); // save current checksum
+	NewtonTreeCollisionSerialize( cms.collision, CM_AddCollision, file );
+	FS_Close( file );
 }
 
 void CM_SaveCollisionTree( file_t *f, cmsave_t callback )
@@ -1106,7 +1141,7 @@ void CM_LoadCollisionTree( void )
 {
 	if( !cms.world_tree ) return;
 	cms.collision = NewtonCreateTreeCollisionFromSerialization( gWorld, NULL, BSP_LoadTree, cms.world_tree );
-	VFS_Close( cms.world_tree );
+	FS_Close( cms.world_tree );
 }
 
 void CM_LoadWorld( void )
@@ -1232,6 +1267,8 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 		break;
 	}
 
+	com.strncpy( cm.name, name, MAX_STRING );
+
 	// load into heap
 	BSP_LoadEntityString( &hdr->lumps[LUMP_ENTITIES] );
 	BSP_LoadShaders( &hdr->lumps[LUMP_SHADERS] );
@@ -1255,7 +1292,7 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 	BSP_LoadNodes( &hdr->lumps[LUMP_NODES] );
 	BSP_LoadVisibility( &hdr->lumps[LUMP_VISIBILITY] );
 	BSP_LoadModels( &hdr->lumps[LUMP_MODELS] );
-//	BSP_LoadCollision( &hdr->lumps[LUMP_COLLISION] );
+	BSP_LoadCollision();
 	cms.loaded = true;
 
 	BSP_RecursiveFindNumLeafs( cm.nodes );
@@ -1263,8 +1300,6 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 
 	CM_LoadWorld();		// load physics collision
 	Mem_Free( buf );		// release map buffer
-
-	com.strncpy( cm.name, name, MAX_STRING );
 
 	Mem_Set( cm.areaportals, 0, sizeof( cm.areaportals ));
 	CM_FloodAreaConnections();

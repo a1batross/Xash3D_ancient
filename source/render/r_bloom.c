@@ -219,16 +219,16 @@ R_Bloom_SamplePass
 */
 static _inline void R_Bloom_SamplePass( int xpos, int ypos )
 {
-	qglBegin( GL_QUADS );
-	qglTexCoord2f( 0, sampleText_tch );
-	qglVertex2f( xpos, ypos );
-	qglTexCoord2f( 0, 0 );
-	qglVertex2f( xpos, ypos+sample_height );
-	qglTexCoord2f( sampleText_tcw, 0 );
-	qglVertex2f( xpos+sample_width, ypos+sample_height );
-	qglTexCoord2f( sampleText_tcw, sampleText_tch );
-	qglVertex2f( xpos+sample_width, ypos );
-	qglEnd();
+	pglBegin( GL_QUADS );
+	pglTexCoord2f( 0, sampleText_tch );
+	pglVertex2f( xpos, ypos );
+	pglTexCoord2f( 0, 0 );
+	pglVertex2f( xpos, ypos+sample_height );
+	pglTexCoord2f( sampleText_tcw, 0 );
+	pglVertex2f( xpos+sample_width, ypos+sample_height );
+	pglTexCoord2f( sampleText_tcw, sampleText_tch );
+	pglVertex2f( xpos+sample_width, ypos );
+	pglEnd();
 }
 
 /*
@@ -238,16 +238,16 @@ R_Bloom_Quad
 */
 static _inline void R_Bloom_Quad( int x, int y, int w, int h, float texwidth, float texheight )
 {
-	qglBegin( GL_QUADS );
-	qglTexCoord2f( 0, texheight );
-	qglVertex2f( x, glState.height-h-y );
-	qglTexCoord2f( 0, 0 );
-	qglVertex2f( x, glState.height-y );
-	qglTexCoord2f( texwidth, 0 );
-	qglVertex2f( x+w, glState.height-y );
-	qglTexCoord2f( texwidth, texheight );
-	qglVertex2f( x+w, glState.height-h );
-	qglEnd();
+	pglBegin( GL_QUADS );
+	pglTexCoord2f( 0, texheight );
+	pglVertex2f( x, glState.height-h-y );
+	pglTexCoord2f( 0, 0 );
+	pglVertex2f( x, glState.height-y );
+	pglTexCoord2f( texwidth, 0 );
+	pglVertex2f( x+w, glState.height-y );
+	pglTexCoord2f( texwidth, texheight );
+	pglVertex2f( x+w, glState.height-h );
+	pglEnd();
 }
 
 /*
@@ -260,18 +260,18 @@ static void R_Bloom_DrawEffect( void )
 	GL_Bind( 0, r_bloomeffecttexture );
 	GL_TexEnv( GL_MODULATE );
 	GL_SetState( GLSTATE_NO_DEPTH_TEST|GLSTATE_SRCBLEND_ONE|GLSTATE_DSTBLEND_ONE );
-	qglColor4f( r_bloom_alpha->value, r_bloom_alpha->value, r_bloom_alpha->value, 1.0f );
+	pglColor4f( r_bloom_alpha->value, r_bloom_alpha->value, r_bloom_alpha->value, 1.0f );
 
-	qglBegin( GL_QUADS );
-	qglTexCoord2f( 0, sampleText_tch );
-	qglVertex2f( curView_x, curView_y );
-	qglTexCoord2f( 0, 0 );
-	qglVertex2f( curView_x, curView_y+curView_height );
-	qglTexCoord2f( sampleText_tcw, 0 );
-	qglVertex2f( curView_x+curView_width, curView_y+curView_height );
-	qglTexCoord2f( sampleText_tcw, sampleText_tch );
-	qglVertex2f( curView_x+curView_width, curView_y );
-	qglEnd();
+	pglBegin( GL_QUADS );
+	pglTexCoord2f( 0, sampleText_tch );
+	pglVertex2f( curView_x, curView_y );
+	pglTexCoord2f( 0, 0 );
+	pglVertex2f( curView_x, curView_y+curView_height );
+	pglTexCoord2f( sampleText_tcw, 0 );
+	pglVertex2f( curView_x+curView_width, curView_y+curView_height );
+	pglTexCoord2f( sampleText_tcw, sampleText_tch );
+	pglVertex2f( curView_x+curView_width, curView_y );
+	pglEnd();
 }
 
 /*
@@ -285,20 +285,20 @@ static void R_Bloom_GeneratexDiamonds( void )
 	float intensity, scale, *diamond;
 
 	// set up sample size workspace
-	qglScissor( 0, 0, sample_width, sample_height );
-	qglViewport( 0, 0, sample_width, sample_height );
-	qglMatrixMode( GL_PROJECTION );
-	qglLoadIdentity();
-	qglOrtho( 0, sample_width, sample_height, 0, -10, 100 );
-	qglMatrixMode( GL_MODELVIEW );
-	qglLoadIdentity();
+	pglScissor( 0, 0, sample_width, sample_height );
+	pglViewport( 0, 0, sample_width, sample_height );
+	pglMatrixMode( GL_PROJECTION );
+	pglLoadIdentity();
+	pglOrtho( 0, sample_width, sample_height, 0, -10, 100 );
+	pglMatrixMode( GL_MODELVIEW );
+	pglLoadIdentity();
 
 	// copy small scene into r_bloomeffecttexture
 	GL_Bind( 0, r_bloomeffecttexture );
-	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, sample_width, sample_height );
+	pglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, sample_width, sample_height );
 
 	// start modifying the small scene corner
-	qglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
+	pglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
 
 	// darkening passes
 	if( r_bloom_darken->integer )
@@ -308,7 +308,7 @@ static void R_Bloom_GeneratexDiamonds( void )
 
 		for( i = 0; i < r_bloom_darken->integer; i++ )
 			R_Bloom_SamplePass( 0, 0 );
-		qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, sample_width, sample_height );
+		pglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, sample_width, sample_height );
 	}
 
 	// bluring passes
@@ -358,21 +358,21 @@ static void R_Bloom_GeneratexDiamonds( void )
 			if( intensity < 0.01f )
 				continue;
 
-			qglColor4f( intensity, intensity, intensity, 1.0 );
+			pglColor4f( intensity, intensity, intensity, 1.0 );
 			R_Bloom_SamplePass( i - k, j - k );
 		}
 	}
 
-	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, sample_width, sample_height );
+	pglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, sample_width, sample_height );
 
 	// restore full screen workspace
-	qglScissor( 0, 0, glState.width, glState.height );
-	qglViewport( 0, 0, glState.width, glState.height );
-	qglMatrixMode( GL_PROJECTION );
-	qglLoadIdentity();
-	qglOrtho( 0, glState.width, glState.height, 0, -10, 100 );
-	qglMatrixMode( GL_MODELVIEW );
-	qglLoadIdentity();
+	pglScissor( 0, 0, glState.width, glState.height );
+	pglViewport( 0, 0, glState.width, glState.height );
+	pglMatrixMode( GL_PROJECTION );
+	pglLoadIdentity();
+	pglOrtho( 0, glState.width, glState.height, 0, -10, 100 );
+	pglMatrixMode( GL_MODELVIEW );
+	pglLoadIdentity();
 }
 
 /*
@@ -382,7 +382,7 @@ R_Bloom_DownsampleView
 */
 static void R_Bloom_DownsampleView( void )
 {
-	qglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
+	pglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
 
 	if( r_screendownsamplingtexture_size )
 	{
@@ -392,15 +392,15 @@ static void R_Bloom_DownsampleView( void )
 
 		// copy the screen and draw resized
 		GL_Bind( 0, r_bloomscreentexture );
-		qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, curView_x, glState.height - ( curView_y + curView_height ), curView_width, curView_height );
+		pglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, curView_x, glState.height - ( curView_y + curView_height ), curView_width, curView_height );
 		R_Bloom_Quad( 0, 0, midsample_width, midsample_height, screenTex_tcw, screenTex_tch );
 
 		// now copy into downsampling (mid-sized) texture
 		GL_Bind( 0, r_bloomdownsamplingtexture );
-		qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, midsample_width, midsample_height );
+		pglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, midsample_width, midsample_height );
 
 		// now draw again in bloom size
-		qglColor4f( 0.5f, 0.5f, 0.5f, 1.0f );
+		pglColor4f( 0.5f, 0.5f, 0.5f, 1.0f );
 		R_Bloom_Quad( 0, 0, sample_width, sample_height, sampleText_tcw, sampleText_tch );
 
 		// now blend the big screen texture into the bloom generation space (hoping it adds some blur)
@@ -408,13 +408,13 @@ static void R_Bloom_DownsampleView( void )
 
 		GL_Bind( 0, r_bloomscreentexture );
 		R_Bloom_Quad( 0, 0, sample_width, sample_height, screenTex_tcw, screenTex_tch );
-		qglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
+		pglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
 	}
 	else
 	{
 		// downsample simple
 		GL_Bind( 0, r_bloomscreentexture );
-		qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, curView_x, glState.height - ( curView_y + curView_height ), curView_width, curView_height );
+		pglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, curView_x, glState.height - ( curView_y + curView_height ), curView_width, curView_height );
 		R_Bloom_Quad( 0, 0, sample_width, sample_height, screenTex_tcw, screenTex_tch );
 	}
 }
@@ -436,18 +436,18 @@ void R_BloomBlend( const ref_params_t *fd )
 		return;
 
 	// set up full screen workspace
-	qglScissor( 0, 0, glState.width, glState.height );
-	qglViewport( 0, 0, glState.width, glState.height );
-	qglMatrixMode( GL_PROJECTION );
-	qglLoadIdentity();
-	qglOrtho( 0, glState.width, glState.height, 0, -10, 100 );
-	qglMatrixMode( GL_MODELVIEW );
-	qglLoadIdentity();
+	pglScissor( 0, 0, glState.width, glState.height );
+	pglViewport( 0, 0, glState.width, glState.height );
+	pglMatrixMode( GL_PROJECTION );
+	pglLoadIdentity();
+	pglOrtho( 0, glState.width, glState.height, 0, -10, 100 );
+	pglMatrixMode( GL_MODELVIEW );
+	pglLoadIdentity();
 
 	GL_Cull( 0 );
 	GL_SetState( GLSTATE_NO_DEPTH_TEST );
 
-	qglColor4f( 1, 1, 1, 1 );
+	pglColor4f( 1, 1, 1, 1 );
 
 	// set up current sizes
 	curView_x = fd->viewport[0];
@@ -473,7 +473,7 @@ void R_BloomBlend( const ref_params_t *fd )
 
 	// copy the screen space we'll use to work into the backup texture
 	GL_Bind( 0, r_bloombackuptexture );
-	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, r_screenbackuptexture_width, r_screenbackuptexture_height );
+	pglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, r_screenbackuptexture_width, r_screenbackuptexture_height );
 
 	// create the bloom image
 	R_Bloom_DownsampleView();
@@ -483,13 +483,13 @@ void R_BloomBlend( const ref_params_t *fd )
 	GL_SetState( GLSTATE_NO_DEPTH_TEST );
 	GL_Bind( 0, r_bloombackuptexture );
 
-	qglColor4f( 1, 1, 1, 1 );
+	pglColor4f( 1, 1, 1, 1 );
 
 	R_Bloom_Quad( 0, 0, r_screenbackuptexture_width, r_screenbackuptexture_height, 1.0f, 1.0f );
 
-	qglScissor( RI.scissor[0], RI.scissor[1], RI.scissor[2], RI.scissor[3] );
+	pglScissor( RI.scissor[0], RI.scissor[1], RI.scissor[2], RI.scissor[3] );
 
 	R_Bloom_DrawEffect();
 
-	qglViewport( RI.viewport[0], RI.viewport[1], RI.viewport[2], RI.viewport[3] );
+	pglViewport( RI.viewport[0], RI.viewport[1], RI.viewport[2], RI.viewport[3] );
 }

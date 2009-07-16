@@ -166,17 +166,17 @@ void R_PlanarShadowPass( int state )
 	GL_SetTexCoordArrayMode( 0 );
 
 	GL_SetState( state );
-	qglColor4f( 0, 0, 0, bound( 0.0f, r_shadows_alpha->value, 1.0f ) );
+	pglColor4f( 0, 0, 0, bound( 0.0f, r_shadows_alpha->value, 1.0f ) );
 
-	qglDisable( GL_TEXTURE_2D );
+	pglDisable( GL_TEXTURE_2D );
 	if( glState.stencilEnabled )
-		qglEnable( GL_STENCIL_TEST );
+		pglEnable( GL_STENCIL_TEST );
 
 	R_FlushArrays();
 
 	if( glState.stencilEnabled )
-		qglDisable( GL_STENCIL_TEST );
-	qglEnable( GL_TEXTURE_2D );
+		pglDisable( GL_STENCIL_TEST );
+	pglEnable( GL_TEXTURE_2D );
 }
 
 /*
@@ -477,7 +477,7 @@ void R_DrawShadowmaps( void )
 		{	// capture results from framebuffer into depth texture
 			prevRI.shadowBits |= group->bit;
 			GL_Bind( 0, group->depthTexture );
-			qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, RI.refdef.viewport[0], RI.refdef.viewport[1], textureWidth, textureHeight );
+			pglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, RI.refdef.viewport[0], RI.refdef.viewport[1], textureWidth, textureHeight );
 		}
 
 		Matrix4_Copy( RI.worldviewProjectionMatrix, group->worldviewProjectionMatrix );

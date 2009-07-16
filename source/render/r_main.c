@@ -104,14 +104,14 @@ void GL_Cull( int cull )
 
 	if( !cull )
 	{
-		qglDisable( GL_CULL_FACE );
+		pglDisable( GL_CULL_FACE );
 		glState.faceCull = 0;
 		return;
 	}
 
 	if( !glState.faceCull )
-		qglEnable( GL_CULL_FACE );
-	qglCullFace( cull );
+		pglEnable( GL_CULL_FACE );
+	pglCullFace( cull );
 	glState.faceCull = cull;
 }
 
@@ -200,20 +200,20 @@ void GL_SetState( int state )
 			if( state & GLSTATE_BLEND_MTEX )
 			{
 				if( glState.currentEnvModes[glState.currentTMU] != GL_REPLACE )
-					qglEnable( GL_BLEND );
+					pglEnable( GL_BLEND );
 				else
-					qglDisable( GL_BLEND );
+					pglDisable( GL_BLEND );
 			}
 			else
 			{
-				qglEnable( GL_BLEND );
+				pglEnable( GL_BLEND );
 			}
 
-			qglBlendFunc( blendsrc, blenddst );
+			pglBlendFunc( blendsrc, blenddst );
 		}
 		else
 		{
-			qglDisable( GL_BLEND );
+			pglDisable( GL_BLEND );
 		}
 	}
 
@@ -222,51 +222,51 @@ void GL_SetState( int state )
 		if( state & GLSTATE_ALPHAFUNC )
 		{
 			if( !( glState.flags & GLSTATE_ALPHAFUNC ) )
-				qglEnable( GL_ALPHA_TEST );
+				pglEnable( GL_ALPHA_TEST );
 
 			if( state & GLSTATE_AFUNC_GT0 )
-				qglAlphaFunc( GL_GREATER, 0 );
+				pglAlphaFunc( GL_GREATER, 0 );
 			else if( state & GLSTATE_AFUNC_LT128 )
-				qglAlphaFunc( GL_LESS, 0.5f );
+				pglAlphaFunc( GL_LESS, 0.5f );
 			else
-				qglAlphaFunc( GL_GEQUAL, 0.5f );
+				pglAlphaFunc( GL_GEQUAL, 0.5f );
 		}
 		else
 		{
-			qglDisable( GL_ALPHA_TEST );
+			pglDisable( GL_ALPHA_TEST );
 		}
 	}
 
 	if( diff & GLSTATE_DEPTHFUNC_EQ )
 	{
 		if( state & GLSTATE_DEPTHFUNC_EQ )
-			qglDepthFunc( GL_EQUAL );
+			pglDepthFunc( GL_EQUAL );
 		else
-			qglDepthFunc( GL_LEQUAL );
+			pglDepthFunc( GL_LEQUAL );
 	}
 
 	if( diff & GLSTATE_DEPTHWRITE )
 	{
 		if( state & GLSTATE_DEPTHWRITE )
-			qglDepthMask( GL_TRUE );
+			pglDepthMask( GL_TRUE );
 		else
-			qglDepthMask( GL_FALSE );
+			pglDepthMask( GL_FALSE );
 	}
 
 	if( diff & GLSTATE_NO_DEPTH_TEST )
 	{
 		if( state & GLSTATE_NO_DEPTH_TEST )
-			qglDisable( GL_DEPTH_TEST );
+			pglDisable( GL_DEPTH_TEST );
 		else
-			qglEnable( GL_DEPTH_TEST );
+			pglEnable( GL_DEPTH_TEST );
 	}
 
 	if( diff & GLSTATE_OFFSET_FILL )
 	{
 		if( state & GLSTATE_OFFSET_FILL )
-			qglEnable( GL_POLYGON_OFFSET_FILL );
+			pglEnable( GL_POLYGON_OFFSET_FILL );
 		else
-			qglDisable( GL_POLYGON_OFFSET_FILL );
+			pglDisable( GL_POLYGON_OFFSET_FILL );
 	}
 
 	glState.flags = state;
@@ -279,7 +279,7 @@ GL_FrontFace
 */
 void GL_FrontFace( int front )
 {
-	qglFrontFace( front ? GL_CW : GL_CCW );
+	pglFrontFace( front ? GL_CW : GL_CCW );
 	glState.frontFace = front;
 }
 
@@ -324,7 +324,7 @@ void R_LoadIdentity( void )
 {
 	Matrix4_Identity( RI.objectMatrix );
 	Matrix4_Copy( RI.worldviewMatrix, RI.modelviewMatrix );
-	qglLoadMatrixf( RI.modelviewMatrix );
+	pglLoadMatrixf( RI.modelviewMatrix );
 }
 
 /*
@@ -374,7 +374,7 @@ void R_RotateForEntity( ref_entity_t *e )
 	RI.objectMatrix[15] = 1.0;
 
 	Matrix4_MultiplyFast( RI.worldviewMatrix, RI.objectMatrix, RI.modelviewMatrix );
-	qglLoadMatrixf( RI.modelviewMatrix );
+	pglLoadMatrixf( RI.modelviewMatrix );
 }
 
 /*
@@ -397,7 +397,7 @@ void R_TranslateForEntity( ref_entity_t *e )
 	RI.objectMatrix[14] = e->origin[2];
 
 	Matrix4_MultiplyFast( RI.worldviewMatrix, RI.objectMatrix, RI.modelviewMatrix );
-	qglLoadMatrixf( RI.modelviewMatrix );
+	pglLoadMatrixf( RI.modelviewMatrix );
 }
 
 /*
@@ -631,7 +631,7 @@ static void R_PushFlareSurf( const meshbuffer_t *mb )
 	if( v[1] < RI.refdef.viewport[1] || v[1] > RI.refdef.viewport[1] + RI.refdef.viewport[3] )
 		return;
 
-	qglReadPixels( (int)( v[0] /* + 0.5f*/ ), (int)( v[1] /* + 0.5f*/ ), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth );
+	pglReadPixels( (int)( v[0] /* + 0.5f*/ ), (int)( v[1] /* + 0.5f*/ ), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth );
 	if( depth + 1e-4 < v[2] )
 		return; // occluded
 
@@ -848,18 +848,18 @@ void R_Set2DMode( bool enable )
 			return;
 
 		// set 2D virtual screen size
-		qglScissor( 0, 0, glState.width, glState.height );
-		qglViewport( 0, 0, glState.width, glState.height );
-		qglMatrixMode( GL_PROJECTION );
-		qglLoadIdentity();
-		qglOrtho( 0, glState.width, glState.height, 0, -99999, 99999 );
-		qglMatrixMode( GL_MODELVIEW );
-		qglLoadIdentity();
+		pglScissor( 0, 0, glState.width, glState.height );
+		pglViewport( 0, 0, glState.width, glState.height );
+		pglMatrixMode( GL_PROJECTION );
+		pglLoadIdentity();
+		pglOrtho( 0, glState.width, glState.height, 0, -99999, 99999 );
+		pglMatrixMode( GL_MODELVIEW );
+		pglLoadIdentity();
 
 		GL_Cull( 0 );
 		GL_SetState( GLSTATE_NO_DEPTH_TEST );
 
-		qglColor4f( 1, 1, 1, 1 );
+		pglColor4f( 1, 1, 1, 1 );
 
 		glState.in2DMode = true;
 		RI.currententity = RI.previousentity = NULL;
@@ -949,16 +949,16 @@ void R_DrawStretchRaw( int x, int y, int w, int h, int cols, int rows, byte *dat
 	r_cintexture->width = cols;
 	r_cintexture->height = rows;
 
-	qglBegin( GL_QUADS );
-	qglTexCoord2f( 0, 0 );
-	qglVertex2f( x, y );
-	qglTexCoord2f( 1, 0 );
-	qglVertex2f( x + w, y );
-	qglTexCoord2f( 1, 1 );
-	qglVertex2f( x + w, y + h );
-	qglTexCoord2f( 0, 1 );
-	qglVertex2f( x, y + h );
-	qglEnd();
+	pglBegin( GL_QUADS );
+	pglTexCoord2f( 0, 0 );
+	pglVertex2f( x, y );
+	pglTexCoord2f( 1, 0 );
+	pglVertex2f( x + w, y );
+	pglTexCoord2f( 1, 1 );
+	pglVertex2f( x + w, y + h );
+	pglTexCoord2f( 0, 1 );
+	pglVertex2f( x, y + h );
+	pglEnd();
 }
 
 /*
@@ -973,29 +973,29 @@ static void R_PolyBlend( void )
 	if( RI.refdef.blend[3] < 0.01f )
 		return;
 
-	qglMatrixMode( GL_PROJECTION );
-	qglLoadIdentity();
-	qglOrtho( 0, 1, 1, 0, -99999, 99999 );
+	pglMatrixMode( GL_PROJECTION );
+	pglLoadIdentity();
+	pglOrtho( 0, 1, 1, 0, -99999, 99999 );
 
-	qglMatrixMode( GL_MODELVIEW );
-	qglLoadIdentity();
+	pglMatrixMode( GL_MODELVIEW );
+	pglLoadIdentity();
 
 	GL_Cull( 0 );
 	GL_SetState( GLSTATE_NO_DEPTH_TEST|GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 
-	qglDisable( GL_TEXTURE_2D );
+	pglDisable( GL_TEXTURE_2D );
 
-	qglColor4fv( RI.refdef.blend );
+	pglColor4fv( RI.refdef.blend );
 
-	qglBegin( GL_TRIANGLES );
-	qglVertex2f( -5, -5 );
-	qglVertex2f( 10, -5 );
-	qglVertex2f( -5, 10 );
-	qglEnd();
+	pglBegin( GL_TRIANGLES );
+	pglVertex2f( -5, -5 );
+	pglVertex2f( 10, -5 );
+	pglVertex2f( -5, 10 );
+	pglEnd();
 
-	qglEnable( GL_TEXTURE_2D );
+	pglEnable( GL_TEXTURE_2D );
 
-	qglColor4f( 1, 1, 1, 1 );
+	pglColor4f( 1, 1, 1, 1 );
 }
 
 /*
@@ -1011,17 +1011,17 @@ static void R_ApplySoftwareGamma( void )
 	if( !r_ignorehwgamma->integer )
 		return;
 
-	qglMatrixMode( GL_PROJECTION );
-	qglLoadIdentity();
-	qglOrtho( 0, 1, 1, 0, -99999, 99999 );
+	pglMatrixMode( GL_PROJECTION );
+	pglLoadIdentity();
+	pglOrtho( 0, 1, 1, 0, -99999, 99999 );
 
-	qglMatrixMode( GL_MODELVIEW );
-	qglLoadIdentity();
+	pglMatrixMode( GL_MODELVIEW );
+	pglLoadIdentity();
 
 	GL_Cull( 0 );
 	GL_SetState( GLSTATE_NO_DEPTH_TEST | GLSTATE_SRCBLEND_DST_COLOR | GLSTATE_DSTBLEND_ONE );
 
-	qglDisable( GL_TEXTURE_2D );
+	pglDisable( GL_TEXTURE_2D );
 
 	if( r_overbrightbits->integer > 0 )
 		div = 0.5 * (double)( 1 << r_overbrightbits->integer );
@@ -1030,26 +1030,26 @@ static void R_ApplySoftwareGamma( void )
 	f = div + r_gamma->value;
 	f = bound( 0.1f, f, 5.0f );
 
-	qglBegin( GL_TRIANGLES );
+	pglBegin( GL_TRIANGLES );
 
 	while( f >= 1.01f )
 	{
 		if( f >= 2 )
-			qglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
+			pglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
 		else
-			qglColor4f( f - 1.0f, f - 1.0f, f - 1.0f, 1.0f );
+			pglColor4f( f - 1.0f, f - 1.0f, f - 1.0f, 1.0f );
 
-		qglVertex2f( -5, -5 );
-		qglVertex2f( 10, -5 );
-		qglVertex2f( -5, 10 );
+		pglVertex2f( -5, -5 );
+		pglVertex2f( 10, -5 );
+		pglVertex2f( -5, 10 );
 		f *= 0.5;
 	}
 
-	qglEnd();
+	pglEnd();
 
-	qglEnable( GL_TEXTURE_2D );
+	pglEnable( GL_TEXTURE_2D );
 
-	qglColor4f( 1, 1, 1, 1 );
+	pglColor4f( 1, 1, 1, 1 );
 }
 
 //=============================================================================
@@ -1346,20 +1346,20 @@ static void R_Clear( int bitMask )
 	bits &= bitMask;
 
 	if( bits & GL_STENCIL_BUFFER_BIT )
-		qglClearStencil( 128 );
+		pglClearStencil( 128 );
 
 	if( bits & GL_COLOR_BUFFER_BIT )
 	{
 		byte *color = r_worldmodel && !( RI.refdef.rdflags & RDF_NOWORLDMODEL ) && r_worldbrushmodel->globalfog ?
 			r_worldbrushmodel->globalfog->shader->fog_color : mapConfig.environmentColor;
-		qglClearColor( (float)color[0]*( 1.0/255.0 ), (float)color[1]*( 1.0/255.0 ), (float)color[2]*( 1.0/255.0 ), 1 );
+		pglClearColor( (float)color[0]*( 1.0/255.0 ), (float)color[1]*( 1.0/255.0 ), (float)color[2]*( 1.0/255.0 ), 1 );
 	}
 
-	qglClear( bits );
+	pglClear( bits );
 
 	gldepthmin = 0;
 	gldepthmax = 1;
-	qglDepthRange( gldepthmin, gldepthmax );
+	pglDepthRange( gldepthmin, gldepthmax );
 }
 
 /*
@@ -1369,14 +1369,14 @@ R_SetupGL
 */
 static void R_SetupGL( void )
 {
-	qglScissor( RI.scissor[0], RI.scissor[1], RI.scissor[2], RI.scissor[3] );
-	qglViewport( RI.viewport[0], RI.viewport[1], RI.viewport[2], RI.viewport[3] );
+	pglScissor( RI.scissor[0], RI.scissor[1], RI.scissor[2], RI.scissor[3] );
+	pglViewport( RI.viewport[0], RI.viewport[1], RI.viewport[2], RI.viewport[3] );
 
-	qglMatrixMode( GL_PROJECTION );
-	qglLoadMatrixf( RI.projectionMatrix );
+	pglMatrixMode( GL_PROJECTION );
+	pglLoadMatrixf( RI.projectionMatrix );
 
-	qglMatrixMode( GL_MODELVIEW );
-	qglLoadMatrixf( RI.worldviewMatrix );
+	pglMatrixMode( GL_MODELVIEW );
+	pglLoadMatrixf( RI.worldviewMatrix );
 
 	if( RI.params & RP_CLIPPLANE )
 	{
@@ -1388,8 +1388,8 @@ static void R_SetupGL( void )
 		clip[2] = p->normal[2];
 		clip[3] = -p->dist;
 
-		qglClipPlane( GL_CLIP_PLANE0, clip );
-		qglEnable( GL_CLIP_PLANE0 );
+		pglClipPlane( GL_CLIP_PLANE0, clip );
+		pglEnable( GL_CLIP_PLANE0 );
 	}
 
 	if( RI.params & RP_FLIPFRONTFACE )
@@ -1397,11 +1397,11 @@ static void R_SetupGL( void )
 
 	if( RI.params & RP_SHADOWMAPVIEW )
 	{
-		qglShadeModel( GL_FLAT );
-		qglColorMask( 0, 0, 0, 0 );
-		qglPolygonOffset( 1, 4 );
+		pglShadeModel( GL_FLAT );
+		pglColorMask( 0, 0, 0, 0 );
+		pglPolygonOffset( 1, 4 );
 		if( prevRI.params & RP_CLIPPLANE )
-			qglDisable( GL_CLIP_PLANE0 );
+			pglDisable( GL_CLIP_PLANE0 );
 	}
 
 	GL_Cull( GL_FRONT );
@@ -1417,18 +1417,18 @@ static void R_EndGL( void )
 {
 	if( RI.params & RP_SHADOWMAPVIEW )
 	{
-		qglPolygonOffset( -1, -2 );
-		qglColorMask( 1, 1, 1, 1 );
-		qglShadeModel( GL_SMOOTH );
+		pglPolygonOffset( -1, -2 );
+		pglColorMask( 1, 1, 1, 1 );
+		pglShadeModel( GL_SMOOTH );
 		if( prevRI.params & RP_CLIPPLANE )
-			qglEnable( GL_CLIP_PLANE0 );
+			pglEnable( GL_CLIP_PLANE0 );
 	}
 
 	if( RI.params & RP_FLIPFRONTFACE )
 		GL_FrontFace( !glState.frontFace );
 
 	if( RI.params & RP_CLIPPLANE )
-		qglDisable( GL_CLIP_PLANE0 );
+		pglDisable( GL_CLIP_PLANE0 );
 }
 
 
@@ -1548,27 +1548,27 @@ R_DrawNullModel
 */
 static void R_DrawNullModel( void )
 {
-	qglBegin( GL_LINES );
+	pglBegin( GL_LINES );
 
-	qglColor4f( 1, 0, 0, 0.5 );
-	qglVertex3fv( RI.currententity->origin );
-	qglVertex3f( RI.currententity->origin[0] + RI.currententity->axis[0][0] * 15,
+	pglColor4f( 1, 0, 0, 0.5 );
+	pglVertex3fv( RI.currententity->origin );
+	pglVertex3f( RI.currententity->origin[0] + RI.currententity->axis[0][0] * 15,
 		RI.currententity->origin[1] + RI.currententity->axis[0][1] * 15,
 		RI.currententity->origin[2] + RI.currententity->axis[0][2] * 15 );
 
-	qglColor4f( 0, 1, 0, 0.5 );
-	qglVertex3fv( RI.currententity->origin );
-	qglVertex3f( RI.currententity->origin[0] - RI.currententity->axis[1][0] * 15,
+	pglColor4f( 0, 1, 0, 0.5 );
+	pglVertex3fv( RI.currententity->origin );
+	pglVertex3f( RI.currententity->origin[0] - RI.currententity->axis[1][0] * 15,
 		RI.currententity->origin[1] - RI.currententity->axis[1][1] * 15,
 		RI.currententity->origin[2] - RI.currententity->axis[1][2] * 15 );
 
-	qglColor4f( 0, 0, 1, 0.5 );
-	qglVertex3fv( RI.currententity->origin );
-	qglVertex3f( RI.currententity->origin[0] + RI.currententity->axis[2][0] * 15,
+	pglColor4f( 0, 0, 1, 0.5 );
+	pglVertex3fv( RI.currententity->origin );
+	pglVertex3f( RI.currententity->origin[0] + RI.currententity->axis[2][0] * 15,
 		RI.currententity->origin[1] + RI.currententity->axis[2][1] * 15,
 		RI.currententity->origin[2] + RI.currententity->axis[2][2] * 15 );
 
-	qglEnd();
+	pglEnd();
 }
 
 /*
@@ -1661,7 +1661,7 @@ static void R_DrawNullEntities( void )
 	if( !r_numnullentities )
 		return;
 
-	qglDisable( GL_TEXTURE_2D );
+	pglDisable( GL_TEXTURE_2D );
 	GL_SetState( GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 
 	// draw non-transparent first
@@ -1683,7 +1683,7 @@ static void R_DrawNullEntities( void )
 		R_DrawNullModel();
 	}
 
-	qglEnable( GL_TEXTURE_2D );
+	pglEnable( GL_TEXTURE_2D );
 }
 
 /*
@@ -1862,6 +1862,8 @@ void R_RenderView( const ref_params_t *fd )
 
 	R_RenderDebugSurface ();
 
+	R_DrawPhysDebug ();
+
 	R_DrawNullEntities();
 
 	R_EndGL();
@@ -1882,8 +1884,8 @@ static void R_UpdateSwapInterval( void )
 
 		if( !glState.stereoEnabled )
 		{
-			if( qglSwapInterval )
-				qglSwapInterval( r_swapinterval->integer );
+			if( pglSwapInterval )
+				pglSwapInterval( r_swapinterval->integer );
 		}
 	}
 }
@@ -1931,7 +1933,7 @@ void R_BeginFrame( void )
 		// apply software gamma
 //		R_ApplySoftwareGamma ();
 
-		qglFinish();
+		pglFinish();
 
 		GLimp_EndFrame();
 	}
@@ -1967,8 +1969,8 @@ void R_BeginFrame( void )
 		rgba_t color;
 		
 		Vector4Copy( mapConfig.environmentColor, color );
-		qglClearColor( color[0]*( 1.0/255.0 ), color[1]*( 1.0/255.0 ), color[2]*( 1.0/255.0 ), 1 );
-		qglClear( GL_COLOR_BUFFER_BIT );
+		pglClearColor( color[0]*( 1.0/255.0 ), color[1]*( 1.0/255.0 ), color[2]*( 1.0/255.0 ), 1 );
+		pglClear( GL_COLOR_BUFFER_BIT );
 	}
 
 	// update gamma
@@ -1992,9 +1994,9 @@ void R_BeginFrame( void )
 		if( glState.cameraSeparation == 0 || !glState.stereoEnabled )
 		{
 			if( com.stricmp( gl_drawbuffer->string, "GL_FRONT" ) == 0 )
-				qglDrawBuffer( GL_FRONT );
+				pglDrawBuffer( GL_FRONT );
 			else
-				qglDrawBuffer( GL_BACK );
+				pglDrawBuffer( GL_BACK );
 		}
 	}
 
@@ -2117,7 +2119,7 @@ void R_RenderScene( const ref_params_t *fd )
 	VectorCopy( fd->vieworg, RI.lodOrigin );
 
 	if( gl_finish->integer && !gl_delayfinish->integer && !( fd->rdflags & RDF_NOWORLDMODEL ) )
-		qglFinish();
+		pglFinish();
 
 	R_ClearShadowmaps();
 
@@ -2155,7 +2157,7 @@ void R_EndFrame( void )
 
 	if( gl_finish->integer && gl_delayfinish->integer )
 	{
-		qglFlush();
+		pglFlush();
 		return;
 	}
 
@@ -2306,61 +2308,25 @@ bool R_AddLightStyle( int stylenum, vec3_t color )
 	return true;
 }
 
-bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac )
+bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type, float lerpfrac )
 {
-	ref_entity_t	*refent;
-	int		i;
-
-	if( !pRefEntity || !pRefEntity->v.modelindex )
-		return false; // if set to invisible, skip
-	if( r_numEntities >= MAX_ENTITIES ) return false;
-
-	refent = &r_entities[r_numEntities];
-
-	if( pRefEntity->v.effects & EF_NODRAW )
-		return true; // done
-
-	// filter ents
-	switch( ed_type )
-	{
-	case ED_MOVER:
-	case ED_CLIENT:
-	case ED_NORMAL:
-	case ED_MONSTER:
-	case ED_BSPBRUSH:
-	case ED_RIGIDBODY:
-	case ED_VIEWMODEL: break;
-	default: return false;
-	}
-
-	// copy state to render
-	refent->index = pRefEntity->serialnumber;
-	refent->ent_type = ed_type;
-	refent->backlerp = 1.0f - lerpfrac;
-	refent->rendermode = pRefEntity->v.rendermode;
-	refent->body = pRefEntity->v.body;
-	refent->scale = pRefEntity->v.scale;
-	refent->colormap = pRefEntity->v.colormap;
-	refent->effects = pRefEntity->v.effects;
-	VectorCopy( pRefEntity->v.rendercolor, refent->rendercolor );
-	refent->renderamt = pRefEntity->v.renderamt;
-	refent->model = cl_models[pRefEntity->v.modelindex];
-	refent->movetype = pRefEntity->v.movetype;
-	refent->framerate = pRefEntity->v.framerate;
-	refent->prev.sequencetime = refent->animtime - refent->prev.animtime;
+	int	i;
 
 	// check model
 	if( !refent->model ) return false;
+
 	switch( refent->model->type )
 	{
 	case mod_brush: break;
 	case mod_studio:
 		if( !refent->model->extradata )
 			return false;
+		refent->rtype = RT_MODEL;
 		break;
 	case mod_sprite:		
 		if( !refent->model->extradata )
 			return false;
+		refent->rtype = RT_SPRITE;
 		break;
 	case mod_bad: // let the render drawing null model
 		break;
@@ -2369,14 +2335,7 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac )
 	// setup latchedvars
 	VectorCopy( pRefEntity->v.oldorigin, refent->prev.origin );
 	VectorCopy( pRefEntity->v.oldangles, refent->prev.angles );
-		
-	// interpolate origin
-	for( i = 0; i < 3; i++ )
-		refent->origin[i] = LerpPoint( pRefEntity->v.oldorigin[i], pRefEntity->v.origin[i], lerpfrac );
 
-	refent->skin = pRefEntity->v.skin;
-	refent->renderfx = pRefEntity->v.renderfx;
-	
 	// do animate
 	if( refent->effects & EF_ANIMATE )
 	{
@@ -2421,12 +2380,14 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac )
 		refent->sequence = pRefEntity->v.sequence;
 	}
 
+	refent->prev.sequencetime = refent->animtime - refent->prev.animtime;
 	refent->weaponmodel = cl_models[pRefEntity->v.weaponmodel];
+
 	if( refent->ent_type == ED_MOVER || refent->ent_type == ED_BSPBRUSH )
 	{
-		// store conveyor movedir in pev->velocity
-		VectorNormalize2( pRefEntity->v.velocity, refent->movedir );
+		VectorNormalize2( pRefEntity->v.movedir, refent->movedir );
 	}
+	else VectorClear( refent->movedir );
 
 	// calculate angles
 	if( refent->effects & EF_ROTATE )
@@ -2441,7 +2402,11 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac )
 			refent->angles[i] = LerpAngle( pRefEntity->v.oldangles[i], pRefEntity->v.angles[i], lerpfrac );
 	}
 
+	// interpolate origin
+	for( i = 0; i < 3; i++ )
+		refent->origin[i] = LerpPoint( pRefEntity->v.oldorigin[i], pRefEntity->v.origin[i], lerpfrac );
 	AngleVectorsFLU( refent->angles, refent->axis[0], refent->axis[1], refent->axis[2] );
+	VectorClear( refent->origin2 );
 
 	if(( refent->ent_type == ED_VIEWMODEL ) && ( r_lefthand->integer == 1 ))
 		VectorNegate( refent->axis[1], refent->axis[1] ); 
@@ -2479,11 +2444,85 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac )
 		// and ignore all other unset ents
 		}
 	}
+	return true;
+}
+
+bool R_AddPortalEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type, float lerpfrac )
+{
+	refent->rtype = RT_PORTALSURFACE;
+
+	VectorClear( refent->angles );
+	Matrix_Identity( refent->axis );
+	VectorCopy( pRefEntity->v.movedir, refent->movedir );
+	VectorCopy( pRefEntity->v.origin, refent->origin );
+	VectorCopy( pRefEntity->v.oldorigin, refent->origin2 );
+
+	// calculate angles
+	if( refent->effects & EF_ROTATE )
+		Matrix_Rotate( refent->axis, 5 * sin(( 0.25f + RI.refdef.time * 50 * 0.01 ) * M_PI2 ), 1, 0, 0 );
+	return true;
+}
+
+bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac )
+{
+	ref_entity_t	*refent;
+	bool		result = false;
+
+	if( !pRefEntity || !pRefEntity->v.modelindex )
+		return false; // if set to invisible, skip
+	if( r_numEntities >= MAX_ENTITIES ) return false;
+
+	refent = &r_entities[r_numEntities];
+
+	if( pRefEntity->v.effects & EF_NODRAW )
+		return true; // done
+
+	// filter ents
+	switch( ed_type )
+	{
+	case ED_MOVER:
+	case ED_PORTAL:
+	case ED_CLIENT:
+	case ED_NORMAL:
+	case ED_MONSTER:
+	case ED_BSPBRUSH:
+	case ED_RIGIDBODY:
+	case ED_VIEWMODEL: break;
+	default: return false;
+	}
+
+	// copy state to render
+	refent->index = pRefEntity->serialnumber;
+	refent->ent_type = ed_type;
+	refent->backlerp = 1.0f - lerpfrac;
+	refent->rendermode = pRefEntity->v.rendermode;
+	refent->body = pRefEntity->v.body;
+	refent->skin = pRefEntity->v.skin;
+	refent->scale = pRefEntity->v.scale;
+	refent->colormap = pRefEntity->v.colormap;
+	refent->effects = pRefEntity->v.effects;
+	refent->renderfx = pRefEntity->v.renderfx;
+	VectorCopy( pRefEntity->v.rendercolor, refent->rendercolor );
+	refent->renderamt = pRefEntity->v.renderamt;
+	refent->model = cl_models[pRefEntity->v.modelindex];
+	refent->movetype = pRefEntity->v.movetype;
+	refent->framerate = pRefEntity->v.framerate;
+
+	// setup rtype
+	switch( ed_type )
+	{
+	case ED_PORTAL:
+		result = R_AddPortalEntity( pRefEntity, refent, ed_type, lerpfrac );
+		break;
+	default:
+		result = R_AddGenericEntity( pRefEntity, refent, ed_type, lerpfrac );
+		break;
+	}
 
 	// add entity
 	r_numEntities++;
 
-	return true;
+	return result;
 }
 
 bool R_AddDynamicLight( vec3_t org, vec3_t color, float intensity )

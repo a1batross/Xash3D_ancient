@@ -122,7 +122,7 @@ void V_SetupRefDef( void )
 	cl.refdef.paused = cl_paused->integer;
 	cl.refdef.predicting = cl_predict->integer;
 	cl.refdef.waterlevel = clent->v.waterlevel;		
-	cl.refdef.rdflags = 0;
+	cl.refdef.rdflags = cl.render_flags | 4; // bloom
 	cl.refdef.nextView = 0;
 
 	// calculate the origin

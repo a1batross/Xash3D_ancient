@@ -143,20 +143,20 @@ static void R_DeleteGLSLProgram( glsl_program_t *program )
 {
 	if( program->vertexShader )
 	{
-		qglDetachObjectARB( program->object, program->vertexShader );
-		qglDeleteObjectARB( program->vertexShader );
+		pglDetachObjectARB( program->object, program->vertexShader );
+		pglDeleteObjectARB( program->vertexShader );
 		program->vertexShader = 0;
 	}
 
 	if( program->fragmentShader )
 	{
-		qglDetachObjectARB( program->object, program->fragmentShader );
-		qglDeleteObjectARB( program->fragmentShader );
+		pglDetachObjectARB( program->object, program->fragmentShader );
+		pglDeleteObjectARB( program->fragmentShader );
 		program->fragmentShader = 0;
 	}
 
 	if( program->object )
-		qglDeleteObjectARB( program->object );
+		pglDeleteObjectARB( program->object );
 
 	if( program->name )
 		Mem_Free( program->name );
@@ -173,30 +173,30 @@ static int R_CompileGLSLShader( int program, const char *programName, const char
 {
 	int shader, compiled;
 
-	shader = qglCreateShaderObjectARB( (GLenum)shaderType );
+	shader = pglCreateShaderObjectARB( (GLenum)shaderType );
 	if( !shader )
 		return 0;
 
 	// if lengths is NULL, then each string is assumed to be null-terminated
-	qglShaderSourceARB( shader, numStrings, strings, NULL );
-	qglCompileShaderARB( shader );
-	qglGetObjectParameterivARB( shader, GL_OBJECT_COMPILE_STATUS_ARB, &compiled );
+	pglShaderSourceARB( shader, numStrings, strings, NULL );
+	pglCompileShaderARB( shader );
+	pglGetObjectParameterivARB( shader, GL_OBJECT_COMPILE_STATUS_ARB, &compiled );
 
 	if( !compiled )
 	{
 		char log[4096];
 
-		qglGetInfoLogARB( shader, sizeof( log ) - 1, NULL, log );
+		pglGetInfoLogARB( shader, sizeof( log ) - 1, NULL, log );
 		log[sizeof( log ) - 1] = 0;
 
 		if( log[0] )
 			MsgDev( D_ERROR, "Failed to compile %s shader for program %s:\n%s\n", shaderName, programName, log );
 
-		qglDeleteObjectARB( shader );
+		pglDeleteObjectARB( shader );
 		return 0;
 	}
 
-	qglAttachObjectARB( program, shader );
+	pglAttachObjectARB( program, shader );
 
 	return shader;
 }
@@ -926,7 +926,7 @@ int R_RegisterGLSLProgram( const char *name, const char *string, unsigned int fe
 	}
 
 	program = r_glslprograms + i;
-	program->object = qglCreateProgramObjectARB();
+	program->object = pglCreateProgramObjectARB();
 	if( !program->object )
 	{
 		error = 1;
@@ -969,13 +969,13 @@ int R_RegisterGLSLProgram( const char *name, const char *string, unsigned int fe
 	}
 
 	// link
-	qglLinkProgramARB( program->object );
-	qglGetObjectParameterivARB( program->object, GL_OBJECT_LINK_STATUS_ARB, &linked );
+	pglLinkProgramARB( program->object );
+	pglGetObjectParameterivARB( program->object, GL_OBJECT_LINK_STATUS_ARB, &linked );
 	if( !linked )
 	{
 		char log[8192];
 
-		qglGetInfoLogARB( program->object, sizeof( log ), NULL, log );
+		pglGetInfoLogARB( program->object, sizeof( log ), NULL, log );
 		log[sizeof( log ) - 1] = 0;
 
 		if( log[0] )
@@ -995,9 +995,9 @@ done:
 
 	if( program->object )
 	{
-		qglUseProgramObjectARB( program->object );
+		pglUseProgramObjectARB( program->object );
 		R_GetProgramUniformLocations( program );
-		qglUseProgramObjectARB( 0 );
+		pglUseProgramObjectARB( 0 );
 	}
 
 	return ( program - r_glslprograms ) + 1;
@@ -1069,43 +1069,43 @@ void R_UpdateProgramUniforms( int elem, vec3_t eyeOrigin,
 	glsl_program_t *program = r_glslprograms + elem - 1;
 
 	if( program->locEyeOrigin >= 0 && eyeOrigin )
-		qglUniform3fARB( program->locEyeOrigin, eyeOrigin[0], eyeOrigin[1], eyeOrigin[2] );
+		pglUniform3fARB( program->locEyeOrigin, eyeOrigin[0], eyeOrigin[1], eyeOrigin[2] );
 
 	if( program->locLightOrigin >= 0 && lightOrigin )
-		qglUniform3fARB( program->locLightOrigin, lightOrigin[0], lightOrigin[1], lightOrigin[2] );
+		pglUniform3fARB( program->locLightOrigin, lightOrigin[0], lightOrigin[1], lightOrigin[2] );
 	if( program->locLightDir >= 0 && lightDir )
-		qglUniform3fARB( program->locLightDir, lightDir[0], lightDir[1], lightDir[2] );
+		pglUniform3fARB( program->locLightDir, lightDir[0], lightDir[1], lightDir[2] );
 
 	if( program->locLightAmbient >= 0 && ambient )
-		qglUniform3fARB( program->locLightAmbient, ambient[0], ambient[1], ambient[2] );
+		pglUniform3fARB( program->locLightAmbient, ambient[0], ambient[1], ambient[2] );
 	if( program->locLightDiffuse >= 0 && diffuse )
-		qglUniform3fARB( program->locLightDiffuse, diffuse[0], diffuse[1], diffuse[2] );
+		pglUniform3fARB( program->locLightDiffuse, diffuse[0], diffuse[1], diffuse[2] );
 
 	if( program->locGlossIntensity >= 0 )
-		qglUniform1fARB( program->locGlossIntensity, r_lighting_glossintensity->value );
+		pglUniform1fARB( program->locGlossIntensity, r_lighting_glossintensity->value );
 	if( program->locGlossExponent >= 0 )
-		qglUniform1fARB( program->locGlossExponent, r_lighting_glossexponent->value );
+		pglUniform1fARB( program->locGlossExponent, r_lighting_glossexponent->value );
 
 	if( program->locOffsetMappingScale >= 0 )
-		qglUniform1fARB( program->locOffsetMappingScale, offsetmappingScale );
+		pglUniform1fARB( program->locOffsetMappingScale, offsetmappingScale );
 
 #ifdef HARDWARE_OUTLINES
 	if( program->locOutlineHeight >= 0 )
-		qglUniform1fARB( program->locOutlineHeight, projDistance );
+		pglUniform1fARB( program->locOutlineHeight, projDistance );
 	if( program->locOutlineCutOff >= 0 )
-		qglUniform1fARB( program->locOutlineCutOff, max( 0, r_outlines_cutoff->value ) );
+		pglUniform1fARB( program->locOutlineCutOff, max( 0, r_outlines_cutoff->value ) );
 #endif
 
 	if( program->locFrontPlane >= 0 )
-		qglUniform1fARB( program->locFrontPlane, frontPlane ? 1 : -1 );
+		pglUniform1fARB( program->locFrontPlane, frontPlane ? 1 : -1 );
 
 	if( program->locTextureWidth >= 0 )
-		qglUniform1fARB( program->locTextureWidth, TexWidth );
+		pglUniform1fARB( program->locTextureWidth, TexWidth );
 	if( program->locTextureHeight >= 0 )
-		qglUniform1fARB( program->locTextureHeight, TexHeight );
+		pglUniform1fARB( program->locTextureHeight, TexHeight );
 
 	if( program->locProjDistance >= 0 )
-		qglUniform1fARB( program->locProjDistance, projDistance );
+		pglUniform1fARB( program->locProjDistance, projDistance );
 
 	if( superLightStyle )
 	{
@@ -1116,15 +1116,15 @@ void R_UpdateProgramUniforms( int elem, vec3_t eyeOrigin,
 			vec_t *rgb = r_lightStyles[superLightStyle->lightmapStyles[i]].rgb;
 
 			if( program->locDeluxemapOffset[i] >= 0 )
-				qglUniform1fARB( program->locDeluxemapOffset[i], superLightStyle->stOffset[i][0] );
+				pglUniform1fARB( program->locDeluxemapOffset[i], superLightStyle->stOffset[i][0] );
 			if( program->loclsColor[i] >= 0 )
-				qglUniform3fARB( program->loclsColor[i], rgb[0], rgb[1], rgb[2] );
+				pglUniform3fARB( program->loclsColor[i], rgb[0], rgb[1], rgb[2] );
 		}
 
 		for( ; i < LM_STYLES; i++ )
 		{
 			if( program->loclsColor[i] >= 0 )
-				qglUniform3fARB( program->loclsColor[i], 0, 0, 0 );
+				pglUniform3fARB( program->loclsColor[i], 0, 0, 0 );
 		}
 	}
 }
@@ -1148,76 +1148,76 @@ static void R_GetProgramUniformLocations( glsl_program_t *program )
 			locShadowmapTexture;
 	char	uniformName[128];
 
-	program->locEyeOrigin = qglGetUniformLocationARB( program->object, "EyeOrigin" );
-	program->locLightDir = qglGetUniformLocationARB( program->object, "LightDir" );
-	program->locLightOrigin = qglGetUniformLocationARB( program->object, "LightOrigin" );
-	program->locLightAmbient = qglGetUniformLocationARB( program->object, "LightAmbient" );
-	program->locLightDiffuse = qglGetUniformLocationARB( program->object, "LightDiffuse" );
+	program->locEyeOrigin = pglGetUniformLocationARB( program->object, "EyeOrigin" );
+	program->locLightDir = pglGetUniformLocationARB( program->object, "LightDir" );
+	program->locLightOrigin = pglGetUniformLocationARB( program->object, "LightOrigin" );
+	program->locLightAmbient = pglGetUniformLocationARB( program->object, "LightAmbient" );
+	program->locLightDiffuse = pglGetUniformLocationARB( program->object, "LightDiffuse" );
 
-	locBaseTexture = qglGetUniformLocationARB( program->object, "BaseTexture" );
-	locNormalmapTexture = qglGetUniformLocationARB( program->object, "NormalmapTexture" );
-	locGlossTexture = qglGetUniformLocationARB( program->object, "GlossTexture" );
-	locDecalTexture = qglGetUniformLocationARB( program->object, "DecalTexture" );
+	locBaseTexture = pglGetUniformLocationARB( program->object, "BaseTexture" );
+	locNormalmapTexture = pglGetUniformLocationARB( program->object, "NormalmapTexture" );
+	locGlossTexture = pglGetUniformLocationARB( program->object, "GlossTexture" );
+	locDecalTexture = pglGetUniformLocationARB( program->object, "DecalTexture" );
 
-	locDuDvMapTexture = qglGetUniformLocationARB( program->object, "DuDvMapTexture" );
-	locReflectionTexture = qglGetUniformLocationARB( program->object, "ReflectionTexture" );
-	locRefractionTexture = qglGetUniformLocationARB( program->object, "RefractionTexture" );
+	locDuDvMapTexture = pglGetUniformLocationARB( program->object, "DuDvMapTexture" );
+	locReflectionTexture = pglGetUniformLocationARB( program->object, "ReflectionTexture" );
+	locRefractionTexture = pglGetUniformLocationARB( program->object, "RefractionTexture" );
 
-	locShadowmapTexture = qglGetUniformLocationARB( program->object, "ShadowmapTexture" );
+	locShadowmapTexture = pglGetUniformLocationARB( program->object, "ShadowmapTexture" );
 
 	for( i = 0; i < LM_STYLES; i++ )
 	{
 		com.snprintf( uniformName, sizeof( uniformName ), "LightmapTexture%i", i );
-		locLightmapTexture[i] = qglGetUniformLocationARB( program->object, uniformName );
+		locLightmapTexture[i] = pglGetUniformLocationARB( program->object, uniformName );
 
 		com.snprintf( uniformName, sizeof( uniformName ), "DeluxemapOffset%i", i );
-		program->locDeluxemapOffset[i] = qglGetUniformLocationARB( program->object, uniformName );
+		program->locDeluxemapOffset[i] = pglGetUniformLocationARB( program->object, uniformName );
 
 		com.snprintf( uniformName, sizeof( uniformName ), "lsColor%i", i );
-		program->loclsColor[i] = qglGetUniformLocationARB( program->object, uniformName );
+		program->loclsColor[i] = pglGetUniformLocationARB( program->object, uniformName );
 	}
 
-	program->locGlossIntensity = qglGetUniformLocationARB( program->object, "GlossIntensity" );
-	program->locGlossExponent = qglGetUniformLocationARB( program->object, "GlossExponent" );
+	program->locGlossIntensity = pglGetUniformLocationARB( program->object, "GlossIntensity" );
+	program->locGlossExponent = pglGetUniformLocationARB( program->object, "GlossExponent" );
 
-	program->locOffsetMappingScale = qglGetUniformLocationARB( program->object, "OffsetMappingScale" );
+	program->locOffsetMappingScale = pglGetUniformLocationARB( program->object, "OffsetMappingScale" );
 
 #ifdef HARDWARE_OUTLINES
-	program->locOutlineHeight = qglGetUniformLocationARB( program->object, "OutlineHeight" );
-	program->locOutlineCutOff = qglGetUniformLocationARB( program->object, "OutlineCutOff" );
+	program->locOutlineHeight = pglGetUniformLocationARB( program->object, "OutlineHeight" );
+	program->locOutlineCutOff = pglGetUniformLocationARB( program->object, "OutlineCutOff" );
 #endif
 
-	program->locFrontPlane = qglGetUniformLocationARB( program->object, "FrontPlane" );
+	program->locFrontPlane = pglGetUniformLocationARB( program->object, "FrontPlane" );
 
-	program->locTextureWidth = qglGetUniformLocationARB( program->object, "TextureWidth" );
-	program->locTextureHeight = qglGetUniformLocationARB( program->object, "TextureHeight" );
+	program->locTextureWidth = pglGetUniformLocationARB( program->object, "TextureWidth" );
+	program->locTextureHeight = pglGetUniformLocationARB( program->object, "TextureHeight" );
 
-	program->locProjDistance = qglGetUniformLocationARB( program->object, "ProjDistance" );
+	program->locProjDistance = pglGetUniformLocationARB( program->object, "ProjDistance" );
 
 	if( locBaseTexture >= 0 )
-		qglUniform1iARB( locBaseTexture, 0 );
+		pglUniform1iARB( locBaseTexture, 0 );
 	if( locDuDvMapTexture >= 0 )
-		qglUniform1iARB( locDuDvMapTexture, 0 );
+		pglUniform1iARB( locDuDvMapTexture, 0 );
 
 	if( locNormalmapTexture >= 0 )
-		qglUniform1iARB( locNormalmapTexture, 1 );
+		pglUniform1iARB( locNormalmapTexture, 1 );
 	if( locGlossTexture >= 0 )
-		qglUniform1iARB( locGlossTexture, 2 );
+		pglUniform1iARB( locGlossTexture, 2 );
 	if( locDecalTexture >= 0 )
-		qglUniform1iARB( locDecalTexture, 3 );
+		pglUniform1iARB( locDecalTexture, 3 );
 
 	if( locReflectionTexture >= 0 )
-		qglUniform1iARB( locReflectionTexture, 2 );
+		pglUniform1iARB( locReflectionTexture, 2 );
 	if( locRefractionTexture >= 0 )
-		qglUniform1iARB( locRefractionTexture, 3 );
+		pglUniform1iARB( locRefractionTexture, 3 );
 
 	if( locShadowmapTexture >= 0 )
-		qglUniform1iARB( locShadowmapTexture, 0 );
+		pglUniform1iARB( locShadowmapTexture, 0 );
 
 	for( i = 0; i < LM_STYLES; i++ )
 	{
 		if( locLightmapTexture[i] >= 0 )
-			qglUniform1iARB( locLightmapTexture[i], i+4 );
+			pglUniform1iARB( locLightmapTexture[i], i+4 );
 	}
 }
 
