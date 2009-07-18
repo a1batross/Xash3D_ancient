@@ -115,10 +115,10 @@ void R_AddDynamicLights( unsigned int dlightbits, int state )
 	r_backacc.numColors = 0;
 
 	// we multitexture or texture3D support for dynamic lights
-	if( !glConfig.ext.texture3D && !glConfig.ext.multitexture )
+	if( !GL_Support( R_TEXTURE_3D_EXT ) && !GL_Support( R_ARB_MULTITEXTURE ))
 		return;
 
-	for( i = 0; i < (unsigned)( glConfig.ext.texture3D ? 1 : 2 ); i++ )
+	for( i = 0; i < (unsigned)( GL_Support( R_TEXTURE_3D_EXT ) ? 1 : 2 ); i++ )
 	{
 		GL_SelectTexture( i );
 		GL_TexEnv( GL_MODULATE );
@@ -130,7 +130,7 @@ void R_AddDynamicLights( unsigned int dlightbits, int state )
 		GL_EnableTexGen( GL_Q, 0 );
 	}
 
-	if( glConfig.ext.texture3D )
+	if( GL_Support( R_TEXTURE_3D_EXT ))
 	{
 		GL_EnableTexGen( GL_R, GL_OBJECT_LINEAR );
 		pglDisable( GL_TEXTURE_2D );
@@ -201,7 +201,7 @@ void R_AddDynamicLights( unsigned int dlightbits, int state )
 		xyzFallof[2][2] = inverseIntensity;
 		xyzFallof[2][3] = -dlorigin[2] * inverseIntensity;
 
-		if( glConfig.ext.texture3D )
+		if( GL_Support( R_TEXTURE_3D_EXT ))
 		{
 			pglTexGenfv( GL_R, GL_OBJECT_PLANE, xyzFallof[2] );
 		}
@@ -216,21 +216,21 @@ void R_AddDynamicLights( unsigned int dlightbits, int state )
 
 		if( numTempElems )
 		{
-			if( glConfig.ext.draw_range_elements )
+			if( GL_Support( R_DRAW_RANGEELEMENTS_EXT ))
 				pglDrawRangeElementsEXT( GL_TRIANGLES, 0, r_backacc.numVerts, numTempElems, GL_UNSIGNED_INT, tempElemsArray );
 			else
 				pglDrawElements( GL_TRIANGLES, numTempElems, GL_UNSIGNED_INT, tempElemsArray );
 		}
 		else
 		{
-			if( glConfig.ext.draw_range_elements )
+			if( GL_Support( R_DRAW_RANGEELEMENTS_EXT ))
 				pglDrawRangeElementsEXT( GL_TRIANGLES, 0, r_backacc.numVerts, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );
 			else
 				pglDrawElements( GL_TRIANGLES, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );
 		}
 	}
 
-	if( glConfig.ext.texture3D )
+	if( GL_Support( R_TEXTURE_3D_EXT ))
 	{
 		GL_EnableTexGen( GL_R, 0 );
 		pglDisable( GL_TEXTURE_3D );
@@ -824,7 +824,7 @@ void R_BuildLightmaps( int numLightmaps, int w, int h, const byte *data, mlightm
 	if( !mapConfig.lightmapsPacking )
 		size = max( w, h );
 	else
-		for( size = 1; ( size < r_lighting_maxlmblocksize->integer ) && ( size < glConfig.maxTextureSize ); size <<= 1 ) ;
+		for( size = 1; ( size < r_lighting_maxlmblocksize->integer ) && ( size < glConfig.max_2d_texture_size ); size <<= 1 ) ;
 
 	if( mapConfig.deluxeMappingEnabled && ( ( size == w ) || ( size == h ) ) )
 	{

@@ -879,7 +879,7 @@ void R_Set2DMode( bool enable )
 		glState.in2DMode = false;
 	}
 }
-
+int num_adds = 0;
 /*
 ===============
 R_DrawStretchPic
@@ -890,7 +890,8 @@ void R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, f
 	int		bcolor;
 	ref_shader_t	*shader = &r_shaders[shadernum];	// FIXME: check bounds
 
-	if( !shader ) return;
+//	if( !shader )
+	return;
 
 	// lower-left
 	Vector2Set( pic_xyz[0], x, y );
@@ -1188,9 +1189,6 @@ static void R_SetupProjectionMatrix( const ref_params_t *rd, mat4x4_t m )
 
 	xMax = zNear *tan( rd->fov_x *M_PI / 360.0 );
 	xMin = -xMax;
-
-	xMin += -( 2 * glState.cameraSeparation ) / zNear;
-	xMax += -( 2 * glState.cameraSeparation ) / zNear;
 
 	m[0] = ( 2.0 * zNear ) / ( xMax - xMin );
 	m[1] = 0.0f;
@@ -1870,52 +1868,6 @@ void R_RenderView( const ref_params_t *fd )
 }
 
 //=======================================================================
-
-/*
-===============
-R_UpdateSwapInterval
-===============
-*/
-static void R_UpdateSwapInterval( void )
-{
-	if( r_swapinterval->modified )
-	{
-		r_swapinterval->modified = false;
-
-		if( !glState.stereoEnabled )
-		{
-			if( pglSwapInterval )
-				pglSwapInterval( r_swapinterval->integer );
-		}
-	}
-}
-
-/*
-===============
-R_UpdateHWGamma
-===============
-*/
-static void R_UpdateHWGamma( void )
-{
-	int i, v;
-	double invGamma, div;
-	unsigned short gammaRamp[3*256];
-
-	if( !glState.hwGamma )
-		return;
-
-	invGamma = 1.0 / bound( 0.5, r_gamma->value, 3 );
-	div = (double)( 1 << max( 0, r_overbrightbits->integer ) ) / 255.5;
-
-	for( i = 0; i < 256; i++ )
-	{
-		v = ( int )( 65535.0 * pow( ( (double)i + 0.5 ) * div, invGamma ) + 0.5 );
-		gammaRamp[i] = gammaRamp[i + 256] = gammaRamp[i + 512] = ( ( unsigned short )bound( 0, v, 65535 ) );
-	}
-
-	GLimp_SetGammaRamp( 256, gammaRamp );
-}
-
 /*
 ===============
 R_BeginFrame
@@ -1923,8 +1875,6 @@ R_BeginFrame
 */
 void R_BeginFrame( void )
 {
-	glState.cameraSeparation = 0.0f;
-
 	if( gl_finish->integer && gl_delayfinish->integer )
 	{
 		// flush any remaining 2D bits
@@ -1935,10 +1885,22 @@ void R_BeginFrame( void )
 
 		pglFinish();
 
-		GLimp_EndFrame();
+		R_CheckForErrors ();
+
+		// Swap the buffers
+		if( !r_frontbuffer->integer )
+		{
+			if( !pwglSwapBuffers( glw_state.hDC ))
+				Sys_Break( "R_EndFrame() - SwapBuffers() failed!\n" );
+		}
 	}
 
-	GLimp_BeginFrame();
+	pglDrawBuffer( GL_BACK );
+
+	if( r_colorbits->modified )
+	{
+		r_colorbits->modified = false;
+	}
 
 	if( r_environment_color->modified )
 	{
@@ -1977,7 +1939,7 @@ void R_BeginFrame( void )
 	if( r_gamma->modified )
 	{
 		r_gamma->modified = false;
-		R_UpdateHWGamma();
+		GL_UpdateGammaRamp();
 	}
 
 	// run cinematic passes on shaders
@@ -1987,17 +1949,13 @@ void R_BeginFrame( void )
 	R_Set2DMode( true );
 
 	// draw buffer stuff
-	if( gl_drawbuffer->modified )
+	if( r_frontbuffer->modified )
 	{
-		gl_drawbuffer->modified = false;
+		r_frontbuffer->modified = false;
 
-		if( glState.cameraSeparation == 0 || !glState.stereoEnabled )
-		{
-			if( com.stricmp( gl_drawbuffer->string, "GL_FRONT" ) == 0 )
-				pglDrawBuffer( GL_FRONT );
-			else
-				pglDrawBuffer( GL_BACK );
-		}
+		if( r_frontbuffer->integer )
+			pglDrawBuffer( GL_FRONT );
+		else pglDrawBuffer( GL_BACK );
 	}
 
 	// texturemode stuff
@@ -2008,7 +1966,7 @@ void R_BeginFrame( void )
 	}
 
 	// swapinterval stuff
-	R_UpdateSwapInterval();
+	GL_UpdateSwapInterval();
 }
 
 
@@ -2138,7 +2096,7 @@ void R_RenderScene( const ref_params_t *fd )
 
 /*
 ===============
-R_BeginFrame
+R_EndFrame
 ===============
 */
 void R_EndFrame( void )
@@ -2161,7 +2119,14 @@ void R_EndFrame( void )
 		return;
 	}
 
-	GLimp_EndFrame();
+	R_CheckForErrors ();
+
+	// Swap the buffers
+	if( !r_frontbuffer->integer )
+	{
+		if( !pwglSwapBuffers( glw_state.hDC ))
+			Sys_Break( "R_EndFrame() - SwapBuffers() failed!\n" );
+	}
 }
 
 /*
@@ -2426,7 +2391,10 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 	}
 
 	if( refent->ent_type == ED_CLIENT )
+	{
 		refent->gaitsequence = pRefEntity->v.gaitsequence;
+		refent->flags |= RF_OCCLUSIONTEST;
+	}
 	else refent->gaitsequence = 0;
 
 	// because entity without models never added to scene

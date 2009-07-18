@@ -209,7 +209,7 @@ bool V_PreRender( void )
 {
 	// too early
 	if( !re ) return false;
-		
+
 	re->BeginFrame();
 	return true;
 }

@@ -36,8 +36,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 # define ALIGN(x)
 #endif
 
-#include "r_glimp.h"
 #include "r_public.h"
+#include "r_opengl.h"
 
 extern stdlib_api_t		com;		// engine toolbox
 extern render_imp_t		ri;
@@ -285,6 +285,9 @@ extern ref_entity_t	*r_worldent;
 extern ref_model_t *r_worldmodel;
 extern mbrushmodel_t *r_worldbrushmodel;
 
+extern cvar_t *r_colorbits;
+extern cvar_t *r_depthbits;
+extern cvar_t *r_stencilbits;
 extern cvar_t *r_norefresh;
 extern cvar_t *r_drawentities;
 extern cvar_t *r_drawworld;
@@ -300,6 +303,11 @@ extern cvar_t *r_overbrightbits;
 extern cvar_t *r_mapoverbrightbits;
 extern cvar_t *r_lefthand;
 extern cvar_t *r_physbdebug;
+extern cvar_t *r_check_errors;
+extern cvar_t *r_allow_software;
+extern cvar_t *r_frontbuffer;
+extern cvar_t *r_width;
+extern cvar_t *r_height;
 
 extern cvar_t *r_flares;
 extern cvar_t *r_flaresize;
@@ -374,7 +382,7 @@ extern cvar_t *r_skymip;
 extern cvar_t *r_clear;
 extern cvar_t *r_polyblend;
 extern cvar_t *r_lockpvs;
-extern cvar_t *r_swapinterval;
+extern cvar_t *r_swapInterval;
 
 extern cvar_t *gl_finish;
 extern cvar_t *gl_delayfinish;
@@ -383,6 +391,7 @@ extern cvar_t *gl_extensions;
 
 extern cvar_t *vid_fullscreen;
 extern cvar_t *vid_multiscreen_head;
+extern cvar_t *vid_displayfrequency;
 
 //====================================================================
 
@@ -446,7 +455,7 @@ enum
 
 #define OCCLUSION_QUERIES_CVAR_HACK( RI ) ( !(r_occlusion_queries->integer == 2 && r_shadows->integer != SHADOW_MAPPING) \
 											|| ((RI).refdef.rdflags & RDF_PORTALINVIEW) )
-#define OCCLUSION_QUERIES_ENABLED( RI )	( glConfig.ext.occlusion_query && r_occlusion_queries->integer && r_drawentities->integer \
+#define OCCLUSION_QUERIES_ENABLED( RI )	( GL_Support( R_OCCLUSION_QUERIES_EXT ) && r_occlusion_queries->integer && r_drawentities->integer \
 											&& !((RI).params & RP_NONVIEWERREF) && !((RI).refdef.rdflags & RDF_NOWORLDMODEL) \
 											&& OCCLUSION_QUERIES_CVAR_HACK( RI ) )
 #define OCCLUSION_OPAQUE_SHADER( s )	( ((s)->sort == SHADER_SORT_OPAQUE ) && ((s)->flags & SHADER_DEPTHWRITE ) && !(s)->numdeforms )
@@ -656,6 +665,11 @@ msurface_t *R_TransformedTraceLine( trace_t *tr, const vec3_t start, const vec3_
 void		R_Restart( void );
 void		R_Shutdown( bool verbose );
 
+//
+// r_opengl.c
+//
+void R_CheckForErrors_( const char *filename, const int fileline );
+#define R_CheckForErrors() R_CheckForErrors_( __FILE__, __LINE__ )
 
 //
 // r_surf.c

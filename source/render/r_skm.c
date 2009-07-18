@@ -298,7 +298,7 @@ void Mod_LoadSkeletalModel( ref_model_t *mod, ref_model_t *parent, void *buffer 
 		poutmesh->bones = ( unsigned int * )( ( byte * )poutmesh->influences + sizeof( *poutmesh->influences ) * SKM_MAX_WEIGHTS * poutmesh->numverts );
 
 		size = sizeof( vec4_t ) + sizeof( vec4_t ); // xyz and normals
-		if( glConfig.ext.GLSL )
+		if( GL_Support( R_SHADER_GLSL100_EXT ))
 			size += sizeof( vec4_t );       // s-vectors
 
 		size *= ( poutmesh->numverts+1 );       // pad by one additional vertex for prefetching
@@ -419,7 +419,7 @@ void Mod_LoadSkeletalModel( ref_model_t *mod, ref_model_t *parent, void *buffer 
 		//
 		// build S and T vectors
 		//
-		if( glConfig.ext.GLSL )
+		if( GL_Support( R_SHADER_GLSL100_EXT ))
 		{
 			poutmesh->sVectorsArray = ( vec4_t * )( ( byte * )poutmesh->normalsArray + sizeof( vec4_t ) * ( poutmesh->numverts+1 ) );
 			R_BuildTangentVectors( poutmesh->numverts, poutmesh->xyzArray, poutmesh->normalsArray, poutmesh->stArray,
@@ -1074,7 +1074,7 @@ static void R_DrawBonesFrameLerp( const meshbuffer_t *mb, float backlerp )
 			features |= MF_NORMALS;
 #ifdef HARDWARE_OUTLINES
 		if( e->outlineHeight )
-			features |= MF_NORMALS|(glConfig.ext.GLSL ? MF_ENABLENORMALS : 0);
+			features |= MF_NORMALS|(GL_Support( R_SHADER_GLSL100_EXT ) ? MF_ENABLENORMALS : 0);
 #endif
 	}
 

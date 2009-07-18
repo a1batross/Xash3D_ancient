@@ -91,6 +91,7 @@ Beta 13.12.08
 60. fixup render times			OK
 61. fixup portal rendering			OK
 62. return old-xash renderer initialization
+63. portal rendering angles
 
 Список доступных рендереров:  	Что в них интересного
 0. Q3Fusion			(Mirrors, Portals)

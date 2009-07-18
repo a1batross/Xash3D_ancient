@@ -89,14 +89,14 @@ void R_InitGLSLPrograms( void )
 
 	memset( r_glslprograms, 0, sizeof( r_glslprograms ) );
 
-	if( !glConfig.ext.GLSL )
+	if( !GL_Support( R_SHADER_GLSL100_EXT ))
 		return;
 
 	r_glslProgramsPool = Mem_AllocPool( "GLSL Programs" );
 
-	if( glConfig.ext.GLSL_branching )
+	if( GL_Support( R_GLSL_BRANCHING ))
 		features |= PROGRAM_APPLY_BRANCHING;
-	if( glConfig.ext.GLSL_no_half_types )
+	if( GL_Support( R_GLSL_NO_HALF_TYPES ))
 		features |= PROGRAM_APPLY_NO_HALF_TYPES;
 
 	// register programs that are most likely to be used
@@ -888,7 +888,7 @@ int R_RegisterGLSLProgram( const char *name, const char *string, unsigned int fe
 	const char		*vertexShaderStrings[MAX_DEFINES_FEATURES+2];
 	const char		*fragmentShaderStrings[MAX_DEFINES_FEATURES+2];
 
-	if( !glConfig.ext.GLSL )
+	if( !GL_Support( R_SHADER_GLSL100_EXT ))
 		return 0; // fail early
 
 	parent = NULL;
@@ -1233,7 +1233,7 @@ void R_ShutdownGLSLPrograms( void )
 
 	if( !r_glslProgramsPool )
 		return;
-	if( !glConfig.ext.GLSL )
+	if( !GL_Support( R_SHADER_GLSL100_EXT ))
 		return;
 
 	for( i = 0, program = r_glslprograms; i < MAX_GLSL_PROGRAMS; i++, program++ )

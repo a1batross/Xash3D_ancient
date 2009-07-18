@@ -495,19 +495,19 @@ static bool Shader_ParseConditions( const char **ptr, ref_shader_t *shader )
 		if( !conditions[numConditions].operand )
 		{
 			if( !com.stricmp( tok, "maxTextureSize" ) )
-				conditions[numConditions].operand = ( int  )glConfig.maxTextureSize;
+				conditions[numConditions].operand = ( int  )glConfig.max_2d_texture_size;
 			else if( !com.stricmp( tok, "maxTextureCubemapSize" ) )
-				conditions[numConditions].operand = ( int )glConfig.maxTextureCubemapSize;
+				conditions[numConditions].operand = ( int )glConfig.max_cubemap_texture_size;
 			else if( !com.stricmp( tok, "maxTextureUnits" ) )
-				conditions[numConditions].operand = ( int )glConfig.maxTextureUnits;
+				conditions[numConditions].operand = ( int )glConfig.max_texture_units;
 			else if( !com.stricmp( tok, "textureCubeMap" ) )
-				conditions[numConditions].operand = ( int )glConfig.ext.texture_cube_map;
+				conditions[numConditions].operand = ( int )GL_Support( R_TEXTURECUBEMAP_EXT );
 			else if( !com.stricmp( tok, "textureEnvCombine" ) )
-				conditions[numConditions].operand = ( int )glConfig.ext.texture_env_combine;
+				conditions[numConditions].operand = ( int )GL_Support( R_COMBINE_EXT );
 			else if( !com.stricmp( tok, "textureEnvDot3" ) )
-				conditions[numConditions].operand = ( int )glConfig.ext.GLSL;
+				conditions[numConditions].operand = ( int )GL_Support( R_SHADER_GLSL100_EXT );
 			else if( !com.stricmp( tok, "GLSL" ) )
-				conditions[numConditions].operand = ( int )glConfig.ext.GLSL;
+				conditions[numConditions].operand = ( int )GL_Support( R_SHADER_GLSL100_EXT );
 			else if( !com.stricmp( tok, "deluxeMaps" ) || !com.stricmp( tok, "deluxe" ) )
 				conditions[numConditions].operand = ( int )mapConfig.deluxeMappingEnabled;
 			else if( !com.stricmp( tok, "portalMaps" ) )
@@ -1145,7 +1145,7 @@ static void Shaderpass_CubeMapExt( ref_shader_t *shader, shaderpass_t *pass, int
 	pass->anim_fps = 0;
 	pass->flags &= ~( SHADERPASS_LIGHTMAP|SHADERPASS_DLIGHT|SHADERPASS_PORTALMAP );
 
-	if( !glConfig.ext.texture_cube_map )
+	if( !GL_Support( R_TEXTURECUBEMAP_EXT ))
 	{
 		MsgDev( D_WARN, "Shader %s has an unsupported cubemap stage: %s.\n", shader->name );
 		pass->anim_frames[0] = r_notexture;
@@ -1216,7 +1216,7 @@ static void Shaderpass_NormalMap( ref_shader_t *shader, shaderpass_t *pass, cons
 	char *token;
 	float bumpScale = 0;
 
-	if( !glConfig.ext.GLSL )
+	if( !GL_Support( R_SHADER_GLSL100_EXT ))
 	{
 		MsgDev( D_WARN, "shader %s has a normalmap stage, while GLSL is not supported\n", shader->name );
 		Shader_SkipLine( ptr );
@@ -1257,7 +1257,7 @@ static void Shaderpass_Material( ref_shader_t *shader, shaderpass_t *pass, const
 	char *token;
 	float bumpScale = 0;
 
-	if( !glConfig.ext.GLSL )
+	if( !GL_Support( R_SHADER_GLSL100_EXT ))
 	{
 		MsgDev( D_WARN, "shader %s has a normalmap stage, while GLSL is not supported\n", shader->name );
 		Shader_SkipLine( ptr );
@@ -1373,7 +1373,7 @@ static void Shaderpass_Distortion( ref_shader_t *shader, shaderpass_t *pass, con
 	char *token;
 	float bumpScale = 0;
 
-	if( !glConfig.ext.GLSL || !r_portalmaps->integer )
+	if( !GL_Support( R_SHADER_GLSL100_EXT ) || !r_portalmaps->integer )
 	{
 		MsgDev( D_WARN, "shader %s has a distortion stage, while GLSL is not supported\n", shader->name );
 		Shader_SkipLine( ptr );
@@ -2631,7 +2631,7 @@ ref_shader_t *R_LoadShader( const char *name, int type, bool forceDefault, int a
 			pass->anim_frames[0] = Shader_FindImage( s, shortname, addFlags, 0 );
 
 			// load default GLSL program if there's a bumpmap was found
-			if( ( r_lighting_models_followdeluxe->integer ? mapConfig.deluxeMappingEnabled : glConfig.ext.GLSL )
+			if( ( r_lighting_models_followdeluxe->integer ? mapConfig.deluxeMappingEnabled : GL_Support( R_SHADER_GLSL100_EXT ))
 				&& Shaderpass_LoadMaterial( &materialImages[0], &materialImages[1], &materialImages[2], shortname, addFlags, 1 ) )
 			{
 				pass->rgbgen.type = RGB_GEN_IDENTITY;

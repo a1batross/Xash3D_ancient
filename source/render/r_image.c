@@ -71,7 +71,7 @@ int gl_filter_depth = GL_LINEAR;
 
 void GL_SelectTexture( int tmu )
 {
-	if( !glConfig.ext.multitexture )
+	if( !GL_Support( R_ARB_MULTITEXTURE ))
 		return;
 	if( tmu == glState.currentTMU )
 		return;
@@ -631,7 +631,7 @@ static int R_TextureFormat( int samples, bool noCompress )
 {
 	int bits = r_texturebits->integer;
 
-	if( glConfig.ext.texture_compression && !noCompress )
+	if( GL_Support( R_TEXTURE_COMPRESSION_EXT ) && !noCompress )
 	{
 		if( samples == 3 )
 			return GL_COMPRESSED_RGB_ARB;
@@ -669,7 +669,7 @@ void R_Upload32( byte **data, int width, int height, int flags, int *upload_widt
 
 	Com_Assert( samples == NULL );
 
-	if( glConfig.ext.texture_non_power_of_two )
+	if( GL_Support( R_ARB_TEXTURE_NPOT_EXT ))
 	{
 		scaledWidth = width;
 		scaledHeight = height;
@@ -699,16 +699,16 @@ void R_Upload32( byte **data, int width, int height, int flags, int *upload_widt
 		numTextures = 6;
 		target = GL_TEXTURE_CUBE_MAP_ARB;
 		target2 = GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB;
-		scaledWidth = bound( 1, scaledWidth, glConfig.maxTextureCubemapSize );
-		scaledHeight = bound( 1, scaledHeight, glConfig.maxTextureCubemapSize );
+		scaledWidth = bound( 1, scaledWidth, glConfig.max_cubemap_texture_size );
+		scaledHeight = bound( 1, scaledHeight, glConfig.max_cubemap_texture_size );
 	}
 	else
 	{
 		numTextures = 1;
 		target = GL_TEXTURE_2D;
 		target2 = GL_TEXTURE_2D;
-		scaledWidth = bound( 1, scaledWidth, glConfig.maxTextureSize );
-		scaledHeight = bound( 1, scaledHeight, glConfig.maxTextureSize );
+		scaledWidth = bound( 1, scaledWidth, glConfig.max_2d_texture_size );
+		scaledHeight = bound( 1, scaledHeight, glConfig.max_2d_texture_size );
 	}
 
 	if( upload_width )
@@ -758,7 +758,7 @@ void R_Upload32( byte **data, int width, int height, int flags, int *upload_widt
 		pglTexParameteri( target, GL_TEXTURE_MIN_FILTER, gl_filter_depth );
 		pglTexParameteri( target, GL_TEXTURE_MAG_FILTER, gl_filter_depth );
 
-		if( glConfig.ext.texture_filter_anisotropic )
+		if( GL_Support( R_ANISOTROPY_EXT ))
 			pglTexParameteri( target, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1 );
 	}
 	else if( !( flags & IT_NOMIPMAP ) )
@@ -766,16 +766,16 @@ void R_Upload32( byte **data, int width, int height, int flags, int *upload_widt
 		pglTexParameteri( target, GL_TEXTURE_MIN_FILTER, gl_filter_min );
 		pglTexParameteri( target, GL_TEXTURE_MAG_FILTER, gl_filter_max );
 
-		if( glConfig.ext.texture_filter_anisotropic )
-			pglTexParameteri( target, GL_TEXTURE_MAX_ANISOTROPY_EXT, glConfig.curTextureFilterAnisotropic );
+		if( GL_Support( R_ANISOTROPY_EXT ))
+			pglTexParameterf( target, GL_TEXTURE_MAX_ANISOTROPY_EXT, glConfig.cur_texture_anisotropy );
 	}
 	else
 	{
 		pglTexParameteri( target, GL_TEXTURE_MIN_FILTER, gl_filter_max );
 		pglTexParameteri( target, GL_TEXTURE_MAG_FILTER, gl_filter_max );
 
-		if( glConfig.ext.texture_filter_anisotropic )
-			pglTexParameteri( target, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1 );
+		if( GL_Support( R_ANISOTROPY_EXT ))
+			pglTexParameterf( target, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1.0f );
 	}
 
 	// clamp if required
@@ -784,7 +784,7 @@ void R_Upload32( byte **data, int width, int height, int flags, int *upload_widt
 		pglTexParameteri( target, GL_TEXTURE_WRAP_S, GL_REPEAT );
 		pglTexParameteri( target, GL_TEXTURE_WRAP_T, GL_REPEAT );
 	}
-	else if( glConfig.ext.texture_edge_clamp )
+	else if( GL_Support( R_CLAMPTOEDGE_EXT ))
 	{
 		pglTexParameteri( target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
 		pglTexParameteri( target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
@@ -810,7 +810,7 @@ void R_Upload32( byte **data, int width, int height, int flags, int *upload_widt
 	}
 	else
 	{
-		bool driverMipmap = glConfig.ext.generate_mipmap && !(flags & IT_CUBEMAP);
+		bool driverMipmap = GL_Support( R_SGIS_MIPMAPS_EXT ) && !(flags & IT_CUBEMAP);
 
 		for( i = 0; i < numTextures; i++, target2++ )
 		{
@@ -893,7 +893,7 @@ void R_Upload32_3D_Fast( byte **data, int width, int height, int depth, int flag
 
 	if( width != scaledWidth || height != scaledHeight || depth != scaledDepth )
 		Host_Error( "R_Upload32_3D: bad texture dimensions (not a power of 2)\n" );
-	if( scaledWidth > glConfig.maxTextureSize3D || scaledHeight > glConfig.maxTextureSize3D || scaledDepth > glConfig.maxTextureSize3D )
+	if( scaledWidth > glConfig.max_3d_texture_size || scaledHeight > glConfig.max_3d_texture_size || scaledDepth > glConfig.max_3d_texture_size )
 		Host_Error( "R_Upload32_3D: texture is too large (resizing is not supported)\n" );
 
 	if( upload_width )
@@ -910,16 +910,16 @@ void R_Upload32_3D_Fast( byte **data, int width, int height, int depth, int flag
 		pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, gl_filter_min );
 		pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, gl_filter_max );
 
-		if( glConfig.ext.texture_filter_anisotropic )
-			pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MAX_ANISOTROPY_EXT, glConfig.curTextureFilterAnisotropic );
+		if( GL_Support( R_ANISOTROPY_EXT ))
+			pglTexParameterf( GL_TEXTURE_3D, GL_TEXTURE_MAX_ANISOTROPY_EXT, glConfig.cur_texture_anisotropy );
 	}
 	else
 	{
 		pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, gl_filter_max );
 		pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, gl_filter_max );
 
-		if( glConfig.ext.texture_filter_anisotropic )
-			pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1 );
+		if( GL_Support( R_ANISOTROPY_EXT ))
+			pglTexParameterf( GL_TEXTURE_3D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1.0f );
 	}
 
 	// clamp if required
@@ -929,7 +929,7 @@ void R_Upload32_3D_Fast( byte **data, int width, int height, int depth, int flag
 		pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT );
 		pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT );
 	}
-	else if( glConfig.ext.texture_edge_clamp )
+	else if( GL_Support( R_CLAMPTOEDGE_EXT ))
 	{
 		pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
 		pglTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
@@ -978,7 +978,7 @@ static _inline image_t *R_InitPic( const char *name, byte **pic, int width, int 
 
 	pglDeleteTextures( 1, &image->texnum );
 	GL_Bind( 0, image );
-
+	
 	if( depth == 1 )
 		R_Upload32( pic, width, height, flags, &image->upload_width, &image->upload_height, &image->samples, false );
 	else
@@ -1159,7 +1159,7 @@ image_t	*R_FindImage( const char *name, const char *suffix, int flags, float bum
 
 			if( flags & IT_NORMALMAP )
 			{
-				if( (samples == 3) && glConfig.ext.GLSL )
+				if( (samples == 3) && GL_Support( R_SHADER_GLSL100_EXT ))
 					samples = R_MergeNormalmapDepthmap( pathname, pic, width, height );
 			}
 			else if( flags & IT_HEIGHTMAP )
@@ -1345,7 +1345,7 @@ static byte *R_InitDynamicLightTexture( int *w, int *h, int *depth, int *flags, 
 	//
 	// dynamic light texture
 	//
-	if( glConfig.ext.texture3D )
+	if( GL_Support( R_TEXTURE_3D_EXT ))
 	{
 		size = 32;
 		*depth = size;
@@ -1561,14 +1561,17 @@ static void R_InitScreenTexture( image_t **texture, const char *name, int id, in
 	int limit;
 	int width, height;
 
-	limit = glConfig.maxTextureSize;
+	limit = glConfig.max_2d_texture_size;
 	if( size )
 		limit = min( limit, size );
 
-	if( glConfig.ext.texture_non_power_of_two ) {
+	if( GL_Support( R_ARB_TEXTURE_NPOT_EXT ))
+	{
 		width = min( screenWidth, limit );
 		height = min( screenHeight, limit );
-	} else {
+	}
+	else
+	{
 		limit = min( limit, min( screenWidth, screenHeight ) );
 		for( size = 2; size <= limit; size <<= 1 );
 		width = height = size >> 1;
@@ -1654,7 +1657,6 @@ static void R_InitBuiltinTextures( void )
 		{ "***r_particletexture***", &r_particletexture, R_InitParticleTexture },
 		{ "***r_fogtexture***", &r_fogtexture, R_InitFogTexture },
 		{ "***r_coronatexture***", &r_coronatexture, R_InitCoronaTexture },
-
 		{ NULL, NULL, NULL }
 	};
 	size_t i, num_builtin_textures = sizeof( textures ) / sizeof( textures[0] ) - 1;

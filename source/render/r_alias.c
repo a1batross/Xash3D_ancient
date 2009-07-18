@@ -49,13 +49,13 @@ static void Mod_AliasBuildMeshesForFrame0( ref_model_t *mod )
 		maliasmesh_t *mesh = &aliasmodel->meshes[k];
 
 		size = sizeof( vec4_t ) + sizeof( vec4_t ); // xyz and normals
-		if( glConfig.ext.GLSL )
+		if( GL_Support( R_SHADER_GLSL100_EXT ))
 			size += sizeof( vec4_t );       // s-vectors
 		size *= mesh->numverts;
 
 		mesh->xyzArray = ( vec4_t * )Mod_Malloc( mod, size );
 		mesh->normalsArray = ( vec4_t * )( ( byte * )mesh->xyzArray + mesh->numverts * sizeof( vec4_t ) );
-		if( glConfig.ext.GLSL )
+		if( GL_Support( R_SHADER_GLSL100_EXT ))
 			mesh->sVectorsArray = ( vec4_t * )( ( byte * )mesh->normalsArray + mesh->numverts * sizeof( vec4_t ) );
 
 		for( i = 0; i < mesh->numverts; i++ )
@@ -67,7 +67,7 @@ static void Mod_AliasBuildMeshesForFrame0( ref_model_t *mod )
 			mesh->normalsArray[i][3] = 0;
 		}
 
-		if( glConfig.ext.GLSL )
+		if( GL_Support( R_SHADER_GLSL100_EXT ))
 			R_BuildTangentVectors( mesh->numverts, mesh->xyzArray, mesh->normalsArray, mesh->stArray, mesh->numtris, mesh->elems, mesh->sVectorsArray );
 	}
 }
@@ -785,7 +785,7 @@ static void R_DrawAliasFrameLerp( const meshbuffer_t *mb, float backlerp )
 			features |= MF_NORMALS;
 #ifdef HARDWARE_OUTLINES
 		if( e->outlineHeight )
-			features |= MF_NORMALS|(glConfig.ext.GLSL ? MF_ENABLENORMALS : 0);
+			features |= MF_NORMALS|(GL_Support( R_SHADER_GLSL100_EXT ) ? MF_ENABLENORMALS : 0);
 #endif
 	}
 

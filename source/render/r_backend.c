@@ -430,7 +430,7 @@ void R_LockArrays( int numverts )
 	if( r_arraysLocked )
 		return;
 
-	if( !glConfig.ext.vertex_buffer_object )
+	if( !GL_Support( R_ARB_VERTEX_BUFFER_OBJECT_EXT ))
 	{
 		pglVertexPointer( 3, GL_FLOAT, 16, vertsArray );
 
@@ -442,7 +442,7 @@ void R_LockArrays( int numverts )
 		}
 	}
 
-	if( glConfig.ext.compiled_vertex_array )
+	if( GL_Support( R_CUSTOM_VERTEX_ARRAY_EXT ))
 		pglLockArraysEXT( 0, numverts );
 
 	r_arraysLocked = true;
@@ -458,7 +458,7 @@ void R_UnlockArrays( void )
 	if( !r_arraysLocked )
 		return;
 
-	if( glConfig.ext.compiled_vertex_array )
+	if(GL_Support( R_CUSTOM_VERTEX_ARRAY_EXT ))
 		pglUnlockArraysEXT();
 
 	if( r_normalsEnabled )
@@ -508,13 +508,13 @@ void R_FlushArrays( void )
 	else if( r_backacc.numColors > 1 )
 	{
 		pglEnableClientState( GL_COLOR_ARRAY );
-		if( !glConfig.ext.vertex_buffer_object )
+		if( !GL_Support( R_ARB_VERTEX_BUFFER_OBJECT_EXT ))
 			pglColorPointer( 4, GL_UNSIGNED_BYTE, 0, colorArray );
 	}
 
 	if( r_drawelements->integer || glState.in2DMode || RI.refdef.rdflags & RDF_NOWORLDMODEL )
 	{
-		if( glConfig.ext.draw_range_elements )
+		if( GL_Support( R_DRAW_RANGEELEMENTS_EXT ))
 			pglDrawRangeElementsEXT( GL_TRIANGLES, 0, r_backacc.numVerts, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );
 		else
 			pglDrawElements( GL_TRIANGLES, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );
@@ -937,7 +937,7 @@ static bool R_VertexTCBase( const shaderpass_t *pass, int unit, mat4x4_t matrix 
 	case TC_GEN_BASE:
 		GL_DisableAllTexGens();
 
-		if( !glConfig.ext.vertex_buffer_object )
+		if( !GL_Support( R_ARB_VERTEX_BUFFER_OBJECT_EXT ))
 		{
 			pglTexCoordPointer( 2, GL_FLOAT, 0, coordsArray );
 			return true;
@@ -946,7 +946,7 @@ static bool R_VertexTCBase( const shaderpass_t *pass, int unit, mat4x4_t matrix 
 	case TC_GEN_LIGHTMAP:
 		GL_DisableAllTexGens();
 
-		if( !glConfig.ext.vertex_buffer_object )
+		if( !GL_Support( R_ARB_VERTEX_BUFFER_OBJECT_EXT ))
 		{
 			pglTexCoordPointer( 2, GL_FLOAT, 0, lightmapCoordsArray[r_lightmapStyleNum[unit]] );
 			return true;
@@ -980,7 +980,7 @@ static bool R_VertexTCBase( const shaderpass_t *pass, int unit, mat4x4_t matrix 
 
 			GL_DisableAllTexGens();
 
-			if( !glConfig.ext.vertex_buffer_object )
+			if( !GL_Support( R_ARB_VERTEX_BUFFER_OBJECT_EXT ))
 			{
 				pglTexCoordPointer( 2, GL_FLOAT, 0, tUnitCoordsArray[unit] );
 				return true;
@@ -1146,7 +1146,7 @@ static bool R_VertexTCBase( const shaderpass_t *pass, int unit, mat4x4_t matrix 
 
 			GL_DisableAllTexGens();
 
-			if( !glConfig.ext.vertex_buffer_object )
+			if( !GL_Support( R_ARB_VERTEX_BUFFER_OBJECT_EXT ))
 			{
 				pglTexCoordPointer( 2, GL_FLOAT, 0, tUnitCoordsArray[unit] );
 				return false;
@@ -1157,7 +1157,7 @@ static bool R_VertexTCBase( const shaderpass_t *pass, int unit, mat4x4_t matrix 
 	case TC_GEN_SVECTORS:
 		GL_DisableAllTexGens();
 
-		if( !glConfig.ext.vertex_buffer_object )
+		if( !GL_Support( R_ARB_VERTEX_BUFFER_OBJECT_EXT ))
 		{
 			pglTexCoordPointer( 4, GL_FLOAT, 0, sVectorsArray );
 			return true;
@@ -1900,9 +1900,9 @@ static void R_RenderMeshGLSL_Material( void )
 	else	// no alpha in normalmap, don't bother with offset mapping
 		offsetmappingScale = 0;
 
-	if( glConfig.ext.GLSL_branching )
+	if( GL_Support( R_GLSL_BRANCHING ))
 		programFeatures |= PROGRAM_APPLY_BRANCHING;
-	if( glConfig.ext.GLSL_no_half_types )
+	if( GL_Support( R_GLSL_NO_HALF_TYPES ))
 		programFeatures |= PROGRAM_APPLY_NO_HALF_TYPES;
 	if( RI.params & RP_CLIPPLANE )
 		programFeatures |= PROGRAM_APPLY_CLIPPING;
@@ -2155,9 +2155,9 @@ static void R_RenderMeshGLSL_Distortion( void )
 	if( !( RI.params & ( RP_PORTALCAPTURED|RP_PORTALCAPTURED2 ) ) )
 		return;
 
-	if( glConfig.ext.GLSL_branching )
+	if( GL_Support( R_GLSL_BRANCHING ))
 		programFeatures |= PROGRAM_APPLY_BRANCHING;
-	if( glConfig.ext.GLSL_no_half_types )
+	if( GL_Support( R_GLSL_NO_HALF_TYPES ))
 		programFeatures |= PROGRAM_APPLY_NO_HALF_TYPES;
 	if( RI.params & RP_CLIPPLANE )
 		programFeatures |= PROGRAM_APPLY_CLIPPING;
@@ -2225,7 +2225,7 @@ static void R_RenderMeshGLSL_Shadowmap( void )
 	int i;
 	int state;
 	int program, object;
-	int programFeatures = glConfig.ext.GLSL_branching ? PROGRAM_APPLY_BRANCHING : 0;
+	int programFeatures = GL_Support( R_GLSL_BRANCHING ) ? PROGRAM_APPLY_BRANCHING : 0;
 	shaderpass_t *pass = r_accumPasses[0];
 
 	if( r_shadows_pcf->integer == 2 )
@@ -2281,7 +2281,7 @@ static void R_RenderMeshGLSL_Outline( void )
 	int faceCull;
 	int state;
 	int program, object;
-	int programFeatures = glConfig.ext.GLSL_branching ? PROGRAM_APPLY_BRANCHING : 0;
+	int programFeatures = GL_Support( R_GLSL_BRANCHING ) ? PROGRAM_APPLY_BRANCHING : 0;
 	shaderpass_t *pass = r_accumPasses[0];
 
 	if( RI.params & RP_CLIPPLANE )
@@ -2382,7 +2382,7 @@ static void R_RenderAccumulatedPasses( void )
 
 	if( r_numAccumPasses == 1 )
 		R_RenderMeshGeneric();
-	else if( glConfig.ext.texture_env_combine )
+	else if( GL_Support( R_COMBINE_EXT ))
 		R_RenderMeshCombined();
 	else
 		R_RenderMeshMultitextured();
@@ -2406,7 +2406,7 @@ static void R_AccumulatePass( shaderpass_t *pass )
 
 	// see if there are any free texture units
 	renderNow = ( pass->flags & ( SHADERPASS_DLIGHT|SHADERPASS_STENCILSHADOW ) ) || pass->program;
-	accumulate = ( r_numAccumPasses < glConfig.maxTextureUnits ) && !renderNow;
+	accumulate = ( r_numAccumPasses < glConfig.max_texture_units ) && !renderNow;
 
 	if( accumulate )
 	{
@@ -2439,23 +2439,23 @@ static void R_AccumulatePass( shaderpass_t *pass )
 			{
 				prevMode = R_ShaderpassBlendmode( prevPass->flags );
 
-				if( glConfig.ext.texture_env_combine )
+				if( GL_Support( R_COMBINE_EXT ))
 				{
 					if( prevMode == GL_REPLACE )
-						accumulate = ( mode == GL_ADD ) ? glConfig.ext.texture_env_add : true;
+						accumulate = ( mode == GL_ADD ) ? GL_Support( R_TEXTURE_ENV_ADD_EXT ) : true;
 					else if( prevMode == GL_ADD )
-						accumulate = ( mode == GL_ADD ) && glConfig.ext.texture_env_add;
+						accumulate = ( mode == GL_ADD ) && GL_Support( R_TEXTURE_ENV_ADD_EXT );
 					else if( prevMode == GL_MODULATE )
 						accumulate = ( mode == GL_MODULATE || mode == GL_REPLACE );
 					else
 						accumulate = false;
 				}
-				else /* if( glConfig.ext.multitexture )*/
+				else /* if( GL_Support( R_ARB_MULTITEXTURE ))*/
 				{
 					if( prevMode == GL_REPLACE )
-						accumulate = ( mode == GL_ADD ) ? glConfig.ext.texture_env_add : ( mode != GL_DECAL );
+						accumulate = ( mode == GL_ADD ) ? GL_Support( R_TEXTURE_ENV_ADD_EXT ) : ( mode != GL_DECAL );
 					else if( prevMode == GL_ADD )
-						accumulate = ( mode == GL_ADD ) && glConfig.ext.texture_env_add;
+						accumulate = ( mode == GL_ADD ) && GL_Support( R_TEXTURE_ENV_ADD_EXT );
 					else if( prevMode == GL_MODULATE )
 						accumulate = ( mode == GL_MODULATE || mode == GL_REPLACE );
 					else
@@ -2689,7 +2689,7 @@ void R_RenderMeshBuffer( const meshbuffer_t *mb )
 		R_AccumulatePass( &r_GLSLpasses[3] );
 
 #ifdef HARDWARE_OUTLINES
-	if( glConfig.ext.GLSL && RI.currententity && RI.currententity->outlineHeight && r_outlines_scale->value > 0
+	if( GL_Support( R_SHADER_GLSL100_EXT ) && RI.currententity && RI.currententity->outlineHeight && r_outlines_scale->value > 0
 		&& ( r_currentShader->sort == SHADER_SORT_OPAQUE ) && ( r_currentShader->flags & SHADER_CULL_FRONT )  )
 		R_AccumulatePass( &r_GLSLpassOutline );
 #endif
@@ -2815,7 +2815,7 @@ static void R_DrawTriangles( void )
 	if( r_showtris->integer == 2 )
 		R_SetColorForOutlines();
 
-	if( glConfig.ext.draw_range_elements )
+	if( GL_Support( R_DRAW_RANGEELEMENTS_EXT ))
 		pglDrawRangeElementsEXT( GL_TRIANGLES, 0, r_backacc.numVerts, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );
 	else
 		pglDrawElements( GL_TRIANGLES, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );

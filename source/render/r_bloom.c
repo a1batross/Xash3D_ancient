@@ -124,7 +124,7 @@ static void R_Bloom_InitEffectTexture( void )
 	// make sure bloom size doesn't have stupid values
 	limit = min( r_bloom_sample_size->integer, min( screen_texture_width, screen_texture_height ) );
 
-	if( glConfig.ext.texture_non_power_of_two )
+	if( GL_Support( R_ARB_TEXTURE_NPOT_EXT ))
 		BLOOM_SIZE = limit;
 	else	// make sure bloom size is a power of 2
 		for( BLOOM_SIZE = 32; (BLOOM_SIZE<<1) <= limit; BLOOM_SIZE <<= 1 );
@@ -149,7 +149,7 @@ static void R_Bloom_InitTextures( void )
 	byte *data;
 	int size;
 
-	if( glConfig.ext.texture_non_power_of_two )
+	if( GL_Support( R_ARB_TEXTURE_NPOT_EXT ))
 	{
 		screen_texture_width = glState.width;
 		screen_texture_height = glState.height;
@@ -162,7 +162,7 @@ static void R_Bloom_InitTextures( void )
 	}
 
 	// disable blooms if we can't handle a texture of that size
-	if( screen_texture_width > glConfig.maxTextureSize || screen_texture_height > glConfig.maxTextureSize )
+	if( screen_texture_width > glConfig.max_2d_texture_size || screen_texture_height > glConfig.max_2d_texture_size )
 	{
 		screen_texture_width = screen_texture_height = 0;
 		Cvar_Set( "r_bloom", "0" );

@@ -118,14 +118,6 @@ SOURCE=.\cin.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\glw_imp.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\qgl_win.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\r_alias.c
 # End Source File
 # Begin Source File
@@ -167,6 +159,10 @@ SOURCE=.\r_mesh.c
 # Begin Source File
 
 SOURCE=.\r_model.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_opengl.c
 # End Source File
 # Begin Source File
 
@@ -214,19 +210,7 @@ SOURCE=.\cin.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\glw_win.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\qgl.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\r_backend.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\r_glimp.h
 # End Source File
 # Begin Source File
 
@@ -243,6 +227,10 @@ SOURCE=.\r_mesh.h
 # Begin Source File
 
 SOURCE=.\r_model.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_opengl.h
 # End Source File
 # Begin Source File
 

@@ -307,7 +307,7 @@ void R_InitOcclusionQueries( void )
 	if( !r_occlusionShader )
 		r_occlusionShader = R_LoadShader( "***r_occlusion***", SHADER_OPAQUE_OCCLUDER, false, 0, SHADER_INVALID );
 
-	if( !glConfig.ext.occlusion_query )
+	if( !GL_Support( R_OCCLUSION_QUERIES_EXT ))
 		return;
 
 	pglGenQueriesARB( MAX_OQ_TOTAL, r_occlusionQueries );
@@ -562,7 +562,7 @@ void R_ShutdownOcclusionQueries( void )
 {
 	r_occlusionShader = NULL;
 
-	if( !glConfig.ext.occlusion_query )
+	if( !GL_Support( R_OCCLUSION_QUERIES_EXT ))
 		return;
 
 	pglDeleteQueriesARB( MAX_OQ_TOTAL, r_occlusionQueries );

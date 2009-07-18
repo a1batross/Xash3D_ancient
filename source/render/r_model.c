@@ -529,7 +529,7 @@ static void Mod_CheckDeluxemaps( const lump_t *l, byte *lmData )
 	}
 
 	mapConfig.deluxeMaps = true;
-	if( glConfig.ext.GLSL )
+	if(GL_Support( R_SHADER_GLSL100_EXT ))
 		mapConfig.deluxeMappingEnabled = true;
 }
 

@@ -249,7 +249,7 @@ bool R_AddShadowCaster( ref_entity_t *ent )
 
 	if( r_shadows->integer != SHADOW_MAPPING || RI.refdef.rdflags & RDF_NOWORLDMODEL )
 		return false;
-	if( !glConfig.ext.GLSL || !glConfig.ext.depth_texture || !glConfig.ext.shadow )
+	if( !GL_Support( R_SHADER_GLSL100_EXT ) || !GL_Support( R_DEPTH_TEXTURE ) || !GL_Support( R_SHADOW_EXT ))
 		return false;
 
 	VectorCopy( ent->lightingOrigin, origin );

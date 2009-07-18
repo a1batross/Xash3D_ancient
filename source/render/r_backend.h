@@ -261,4 +261,130 @@ static _inline bool R_InvalidMesh( const mesh_t *mesh )
 
 void R_RenderMeshBuffer( const meshbuffer_t *mb );
 
+/*
+=======================================================================
+
+ GL STATE MACHINE
+
+=======================================================================
+*/
+typedef enum
+{
+	R_OPENGL_110 = 0,		// base
+	R_SGIS_MIPMAPS_EXT,
+	R_WGL_SWAPCONTROL,
+	R_WGL_3DFX_GAMMA_CONTROL,
+	R_COMBINE_EXT,
+	R_DRAW_RANGEELEMENTS_EXT,
+	R_ARB_MULTITEXTURE,
+	R_LOCKARRAYS_EXT,
+	R_TEXTURE_3D_EXT,
+	R_TEXTURECUBEMAP_EXT,
+	R_DOT3_ARB_EXT,
+	R_CLAMPTOEDGE_EXT,
+	R_ANISOTROPY_EXT,
+	R_BLEND_MINMAX_EXT,
+	R_STENCILTWOSIDE_EXT,
+	R_BLEND_SUBTRACT_EXT,
+	R_SHADER_OBJECTS_EXT,
+	R_SHADER_GLSL100_EXT,
+	R_VERTEX_SHADER_EXT,	// glsl vertex program
+	R_FRAGMENT_SHADER_EXT,	// glsl fragment program	
+	R_VERTEX_PROGRAM_EXT,	// cg vertex program
+	R_FRAGMENT_PROGRAM_EXT,	// cg fragment program
+	R_EXT_POINTPARAMETERS,
+	R_SEPARATESTENCIL_EXT,
+	R_ARB_TEXTURE_NPOT_EXT,
+	R_ARB_VERTEX_BUFFER_OBJECT_EXT,
+	R_CUSTOM_VERTEX_ARRAY_EXT,
+	R_TEXTURE_COMPRESSION_EXT,
+	R_TEXTURE_ENV_ADD_EXT,
+	R_CLAMP_TEXBORDER_EXT,
+	R_OCCLUSION_QUERIES_EXT,
+	R_DEPTH_TEXTURE,
+	R_SHADOW_EXT,
+	R_TEXTURE_LODBIAS,
+	R_GLSL_NO_HALF_TYPES,	// fake extension
+	R_GLSL_BRANCHING,		// fake extension
+	R_EXTCOUNT
+} ref_glext_t;
+
+typedef struct
+{
+	const char	*renderer_string;		// ptrs to OpenGL32.dll, use with caution
+	const char	*vendor_string;
+	const char	*version_string;
+
+	// list of supported extensions
+	const char	*extensions_string;
+	byte		extension[R_EXTCOUNT];
+
+	int		max_texture_units;
+	GLint		max_2d_texture_size;
+	GLint		max_2d_rectangle_size;
+	GLint		max_3d_texture_size;
+	GLint		max_cubemap_texture_size;
+	GLint		texRectangle;
+
+	GLfloat		max_texture_anisotropy;
+	GLfloat		cur_texture_anisotropy;
+	GLfloat		max_texture_lodbias;
+
+	int		color_bits;
+	int		depth_bits;
+	int		stencil_bits;
+
+	bool		allowCDS;
+	bool		deviceSupportsGamma;
+	bool		fullscreen;
+	int		prev_mode;
+} glconfig_t;
+
+typedef struct
+{
+	int				flags;
+
+	word		gammaRamp[768];		// current gamma ramp
+	word		stateRamp[768];		// original gamma ramp
+
+	int				width, height;
+	bool		fullScreen;
+	bool		wideScreen;
+
+	bool		initializedMedia;
+
+	int				currentTMU;
+	GLuint			*currentTextures;
+	int				*currentEnvModes;
+	bool		*texIdentityMatrix;
+	int				*genSTEnabled;			// 0 - disabled, OR 1 - S, OR 2 - T, OR 4 - R
+	int				*texCoordArrayMode;		// 0 - disabled, 1 - enabled, 2 - cubemap
+	vec4_t		draw_color;
+
+	int				faceCull;
+	int				frontFace;
+
+	bool		stencilEnabled;
+	bool		in2DMode;
+
+	bool		hwGamma;
+	unsigned short	orignalGammaRamp[3*256];
+} glstate_t;
+
+extern glconfig_t	glConfig;
+extern glstate_t	glState;
+
+// r_register.c
+void GL_InitBackend( void );
+bool GL_Support( int r_ext );
+void GL_InitExtensions( void );
+void GL_ShutdownBackend( void );
+void GL_UpdateSwapInterval( void );
+void GL_UpdateGammaRamp( void );
+void GL_SetExtension( int r_ext, int enable );
+void GL_BuildGammaTable( void );
+
+bool R_Init_OpenGL( void );
+void R_Free_OpenGL( void );
+
 #endif /*__R_BACKEND_H__*/
