@@ -54,7 +54,7 @@ void MakeSkyVec( float x, float y, float z, int axis, vec3_t v );
 R_CreateSkydome
 ==============
 */
-skydome_t *R_CreateSkydome( float skyheight, ref_shader_t **farboxShaders, ref_shader_t	**nearboxShaders )
+skydome_t *R_CreateSkydome( float skyheight, ref_shader_t **farboxShaders, ref_shader_t **nearboxShaders )
 {
 	int i, size;
 	mesh_t *mesh;
@@ -66,8 +66,8 @@ skydome_t *R_CreateSkydome( float skyheight, ref_shader_t **farboxShaders, ref_s
 	buffer = Shader_Malloc( size );
 
 	skydome = ( skydome_t * )buffer;
-	memcpy( skydome->farboxShaders, farboxShaders, sizeof( ref_shader_t * ) * 6 );
-	memcpy( skydome->nearboxShaders, nearboxShaders, sizeof( ref_shader_t * ) * 6 );
+	memcpy( skydome->farboxShaders, farboxShaders, sizeof( shader_t * ) * 6 );
+	memcpy( skydome->nearboxShaders, nearboxShaders, sizeof( shader_t * ) * 6 );
 	buffer += sizeof( skydome_t );
 
 	skydome->meshes = ( mesh_t * )buffer;
@@ -255,8 +255,8 @@ Draw dummy skybox side to prevent the HOM effect
 */
 static void R_DrawBlackBottom( skydome_t *skydome )
 {
-	int features;
-	ref_shader_t *shader;
+	int		features;
+	ref_shader_t	*shader;
 
 	// FIXME: register another shader instead maybe?
 	shader = R_OcclusionShader ();
@@ -305,9 +305,9 @@ void R_DrawSky( ref_shader_t *shader )
 		vmax = (int)( ( RI.skyMaxs[1][i]+1.0f )*0.5f*(float)( SIDE_SIZE-1 ) ) + 1;
 
 		umin = bound( 0, umin, SIDE_SIZE-1 );
-		umin = bound( 0, umax, SIDE_SIZE-1 );
-		umin = bound( 0, vmin, SIDE_SIZE-1 );
-		umin = bound( 0, vmax, SIDE_SIZE-1 );
+		umax = bound( 0, umax, SIDE_SIZE-1 );
+		vmin = bound( 0, vmin, SIDE_SIZE-1 );
+		vmax = bound( 0, vmax, SIDE_SIZE-1 );
 
 		// Box elems in tristrip order
 		elem = skydome->meshes[i].elems;

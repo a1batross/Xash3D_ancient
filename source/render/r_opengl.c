@@ -424,6 +424,9 @@ void R_SaveVideoMode( int vid_mode )
 {
 	int	i = bound( 0, vid_mode, num_vidmodes ); // check range
 
+	glState.width = vidmode[i].width;
+	glState.height = vidmode[i].height;
+
 	Cvar_FullSet( "width", va( "%i", vidmode[i].width ), CVAR_READ_ONLY );
 	Cvar_FullSet( "height", va( "%i", vidmode[i].height ), CVAR_READ_ONLY );
 	Cvar_SetValue( "r_mode", i ); // merge if out of bounds

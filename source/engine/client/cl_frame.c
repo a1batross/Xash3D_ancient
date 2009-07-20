@@ -43,6 +43,7 @@ void CL_UpdateEntityFields( edict_t *ent )
 	ent->v.rendermode = ent->pvClientData->current.rendermode; 
 	ent->v.renderamt = ent->pvClientData->current.renderamt; 
 	ent->v.renderfx = ent->pvClientData->current.renderfx; 
+	ent->v.fov = ent->pvClientData->current.fov; 
 	ent->v.scale = ent->pvClientData->current.scale; 
 	ent->v.weapons = ent->pvClientData->current.weapons;
 	ent->v.gravity = ent->pvClientData->current.gravity;
@@ -59,6 +60,13 @@ void CL_UpdateEntityFields( edict_t *ent )
 	case ED_BSPBRUSH:
 		ByteToDir( ent->pvClientData->current.skin, ent->v.movedir );
 		VectorCopy( ent->pvClientData->current.oldorigin, ent->v.oldorigin );
+		break;
+	case ED_SKYPORTAL:
+		// setup sky portal
+		VectorCopy( ent->v.origin, cl.refdef.skyportal.vieworg ); 
+		VectorSet( cl.refdef.skyportal.viewanglesOffset, 0, cl.time * ent->v.angles[1], 0 );
+		cl.refdef.skyportal.fov = ent->v.fov;
+		cl.refdef.skyportal.scale = 1.0f / ent->v.scale;	// never divided by zero
 		break;
 	default:
 		VectorCopy( ent->pvClientData->prev.origin, ent->v.oldorigin );
@@ -440,6 +448,9 @@ void CL_AddPacketEntities( frame_t *frame )
 			if( s1->ed_type == ED_PORTAL && !VectorCompare( ent->v.origin, ent->v.oldorigin ))
 				cl.render_flags |= 16;	// TEST
 		}
+		// NOTE: skyportal entity never added to rendering
+		if( s1->ed_type == ED_SKYPORTAL )
+			cl.render_flags |= 32;		// TEST
 	}
 }
 

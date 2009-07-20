@@ -109,6 +109,7 @@ public:
 	void PostSpawn( void );
 };
 LINK_ENTITY_TO_CLASS( env_sky, CEnvSky );
+LINK_ENTITY_TO_CLASS( props_skyportal, CEnvSky );
 
 void CEnvSky :: PostSpawn( void )
 {
@@ -117,13 +118,14 @@ void CEnvSky :: PostSpawn( void )
 
 void CEnvSky :: StartMessage( CBasePlayer *pPlayer )
 {
+#if 0
 	MESSAGE_BEGIN( MSG_ONE, gmsg.SetSky, NULL, pPlayer->pev );
 		WRITE_BYTE( 1 ); // mode
 		WRITE_COORD( pev->origin.x ); // view position
 		WRITE_COORD( pev->origin.y );
 		WRITE_COORD( pev->origin.z );
 	MESSAGE_END();
-
+#endif
 }
 
 //=======================================================================

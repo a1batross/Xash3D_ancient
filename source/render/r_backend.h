@@ -368,7 +368,6 @@ typedef struct
 	bool		in2DMode;
 
 	bool		hwGamma;
-	unsigned short	orignalGammaRamp[3*256];
 } glstate_t;
 
 extern glconfig_t	glConfig;

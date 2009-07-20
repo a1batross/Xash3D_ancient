@@ -302,9 +302,14 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 		// if its a portal entity, add everything visible from its camera position
 		if( svent->s.ed_type == ED_PORTAL || svent->s.ed_type == ED_SKYPORTAL )
 		{
-			// don't merge pvs for mirrors
-			if( !VectorCompare( svent->s.origin, svent->s.oldorigin ))
-				SV_AddEntitiesToPacket( svent->s.oldorigin, frame, ents, true );
+			if( svent->s.ed_type == ED_PORTAL )
+			{
+				// don't merge pvs for mirrors
+				if( !VectorCompare( svent->s.origin, svent->s.oldorigin ))
+					SV_AddEntitiesToPacket( svent->s.oldorigin, frame, ents, true );
+			}
+			else if( svent->s.ed_type == ED_SKYPORTAL )
+				SV_AddEntitiesToPacket( svent->s.origin, frame, ents, true );
 		}
 	}
 }

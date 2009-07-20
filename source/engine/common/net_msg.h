@@ -138,6 +138,7 @@ static const net_desc_t NWDesc[] =
 #define CS_AIRACCELERATE		12	// accel when jumping
 #define CS_ACCELERATE		13	// accel when running
 #define CS_FRICTION			14	// default client friction
+
 // reserved strings
 #define CS_MODELS			32				// configstrings starts here
 #define CS_SOUNDS			(CS_MODELS+MAX_MODELS)		// sound names

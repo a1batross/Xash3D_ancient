@@ -1022,6 +1022,11 @@ void GL_InitExtensions( void )
 
 	Image_Init( NULL, flags );
 	glw_state.initialized = true;
+
+	// gl_ext_vertex_buffer_object is crashy..
+	// FIXME: QFusion render bug
+	Cvar_Set( "gl_vertex_buffer_object", "0" );
+	GL_SetExtension( R_ARB_VERTEX_BUFFER_OBJECT_EXT, false );
 }
 
 /*
@@ -1084,8 +1089,6 @@ static void R_FreeMedia( void )
 
 bool R_Init( bool full )
 {
-	bool	result = false;
-
 	if( full )
 	{
 		GL_InitBackend();

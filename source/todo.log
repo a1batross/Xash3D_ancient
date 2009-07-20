@@ -72,7 +72,7 @@ Beta 13.12.08
 41. 3dsky surfaceParm			OK
 42. fixup sky rendering			OK
 43. fixup sowtware mip-map generator		OK
-44. fixup sky rendering
+44. fixup sky rendering			OK
 45. make color as unsigned_byte(4)		OK
 46. RB_RenderShader()			OK
 47. fixup slowly rendering
@@ -90,8 +90,9 @@ Beta 13.12.08
 59. raven bsp supports			OK
 60. fixup render times			OK
 61. fixup portal rendering			OK
-62. return old-xash renderer initialization
+62. return old-xash renderer initialization	OK
 63. portal rendering angles
+64.
 
 Список доступных рендереров:  	Что в них интересного
 0. Q3Fusion			(Mirrors, Portals)

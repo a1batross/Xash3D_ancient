@@ -890,8 +890,7 @@ void R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, f
 	int		bcolor;
 	ref_shader_t	*shader = &r_shaders[shadernum];	// FIXME: check bounds
 
-//	if( !shader )
-	return;
+	if( !shader ) return;
 
 	// lower-left
 	Vector2Set( pic_xyz[0], x, y );
@@ -1922,7 +1921,6 @@ void R_BeginFrame( void )
 				Cvar_Set( "r_environment_color", "" );
 			}
 		}
-
 		r_environment_color->modified = false;
 	}
 
@@ -1934,7 +1932,6 @@ void R_BeginFrame( void )
 		pglClearColor( color[0]*( 1.0/255.0 ), color[1]*( 1.0/255.0 ), color[2]*( 1.0/255.0 ), 1 );
 		pglClear( GL_COLOR_BUFFER_BIT );
 	}
-
 	// update gamma
 	if( r_gamma->modified )
 	{
