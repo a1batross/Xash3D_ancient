@@ -92,14 +92,6 @@ Beta 13.12.08
 61. fixup portal rendering			OK
 62. return old-xash renderer initialization	OK
 63. portal rendering angles
-64.
+64. ImageLoading from old render
 
-Список доступных рендереров:  	Что в них интересного
-0. Q3Fusion			(Mirrors, Portals)
-1. MhQuake			(Caustics)
-2. Xash 0.45			(Mirrors, Portals, Monitors, Rain, Sky)
-3. Paranoia			(Sky, Light)
-4. Quake2XP			(Effects, Glass, Shadows)
-5. Tenebrae			(Mirrors, Cubemap Projection, Bump)
-6. Darkplaces			ALL!!!!!!!!!!!!!!!111111111111
-7. Qfusion			(portals)
+

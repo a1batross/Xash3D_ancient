@@ -549,7 +549,7 @@ static void R_CleanUpTextureUnits( int last )
 {
 	int i;
 
-	for( i = glState.currentTMU; i > last - 1; i-- )
+	for( i = glState.activeTMU; i > last - 1; i-- )
 	{
 		GL_DisableAllTexGens();
 		GL_SetTexCoordArrayMode( 0 );
@@ -1246,7 +1246,7 @@ static void R_ApplyTCMods( const shaderpass_t *pass, mat4x4_t result )
 R_ShaderpassTex
 ==============
 */
-static _inline image_t *R_ShaderpassTex( const shaderpass_t *pass, int unit )
+static _inline texture_t *R_ShaderpassTex( const shaderpass_t *pass, int unit )
 {
 	if( pass->anim_fps )
 		return pass->anim_frames[(int)( pass->anim_fps * r_currentShaderTime ) % pass->anim_numframes];
@@ -1262,7 +1262,7 @@ static _inline image_t *R_ShaderpassTex( const shaderpass_t *pass, int unit )
 R_BindShaderpass
 ================
 */
-static void R_BindShaderpass( const shaderpass_t *pass, image_t *tex, int unit )
+static void R_BindShaderpass( const shaderpass_t *pass, texture_t *tex, int unit )
 {
 	mat4x4_t m1, m2, result;
 	bool identityMatrix;
@@ -1273,7 +1273,7 @@ static void R_BindShaderpass( const shaderpass_t *pass, image_t *tex, int unit )
 	GL_Bind( unit, tex );
 	if( unit && !pass->program )
 		pglEnable( GL_TEXTURE_2D );
-	GL_SetTexCoordArrayMode( ( tex->flags & IT_CUBEMAP ? GL_TEXTURE_CUBE_MAP_ARB : GL_TEXTURE_COORD_ARRAY ) );
+	GL_SetTexCoordArrayMode( ( tex->flags & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP_ARB : GL_TEXTURE_COORD_ARRAY ) );
 
 	identityMatrix = R_VertexTCBase( pass, unit, result );
 
@@ -1879,7 +1879,7 @@ static void R_RenderMeshGLSL_Material( void )
 	bool breakIntoPasses = false;
 	int program, object;
 	int programFeatures = 0;
-	image_t *base, *normalmap, *glossmap, *decalmap;
+	texture_t *base, *normalmap, *glossmap, *decalmap;
 	mat4x4_t unused;
 	vec3_t lightDir = { 0.0f, 0.0f, 0.0f };
 	vec4_t ambient = { 0.0f, 0.0f, 0.0f, 0.0f }, diffuse = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -1953,7 +1953,7 @@ static void R_RenderMeshGLSL_Material( void )
 			{
 				r_GLSLpasses[1].anim_frames[2] = r_GLSLpasses[2].anim_frames[2] = NULL; // no specular
 				r_GLSLpasses[1].anim_frames[3] = r_GLSLpasses[2].anim_frames[3] = NULL; // no decal
-				r_GLSLpasses[1].anim_frames[6] = r_GLSLpasses[6].anim_frames[2] = ( (image_t *)1 ); // no ambient (HACK HACK HACK)
+				r_GLSLpasses[1].anim_frames[6] = r_GLSLpasses[6].anim_frames[2] = ( (texture_t *)1 ); // no ambient (HACK HACK HACK)
 			}
 		}
 	}
@@ -2149,7 +2149,7 @@ static void R_RenderMeshGLSL_Distortion( void )
 	int programFeatures = 0;
 	mat4x4_t unused;
 	shaderpass_t *pass = r_accumPasses[0];
-	image_t *portaltexture, *portaltexture2;
+	texture_t *portaltexture, *portaltexture2;
 	bool frontPlane;
 
 	if( !( RI.params & ( RP_PORTALCAPTURED|RP_PORTALCAPTURED2 ) ) )
@@ -2207,7 +2207,7 @@ static void R_RenderMeshGLSL_Distortion( void )
 		pglUseProgramObjectARB( object );
 
 		R_UpdateProgramUniforms( program, RI.viewOrigin, vec3_origin, vec3_origin, NULL, NULL, NULL,
-			frontPlane, r_portaltexture->upload_width, r_portaltexture->upload_height, 0, 0 );
+			frontPlane, r_portaltexture->width, r_portaltexture->height, 0, 0 );
 
 		R_FlushArrays();
 
@@ -2259,7 +2259,7 @@ static void R_RenderMeshGLSL_Shadowmap( void )
 		pglUseProgramObjectARB( object );
 
 		R_UpdateProgramUniforms( program, RI.viewOrigin, vec3_origin, vec3_origin, NULL, NULL, NULL, true,
-			r_currentCastGroup->depthTexture->upload_width, r_currentCastGroup->depthTexture->upload_height, 
+			r_currentCastGroup->depthTexture->width, r_currentCastGroup->depthTexture->height, 
 			r_currentCastGroup->projDist, 0 );
 
 		R_FlushArrays();

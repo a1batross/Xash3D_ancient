@@ -49,7 +49,7 @@ bool Image_LoadPCX( const char *name, const byte *buffer, size_t filesize )
 	if(!Image_ValidSize( name )) return false;
 	palette = (byte *)buffer + filesize - 768;
 
-	image.num_layers = 1;
+	image.depth = 1;
 	image.num_mips = 1;
 
 	s = image.width * image.height;

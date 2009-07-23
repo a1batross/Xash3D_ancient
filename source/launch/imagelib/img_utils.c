@@ -591,7 +591,7 @@ void Image_CopyParms( rgbdata_t *src )
 
 	image.width = src->width;
 	image.height = src->height;
-	image.num_layers = src->numLayers;
+	image.depth = src->depth;
 	image.num_mips = src->numMips;
 	image.type = src->type;
 	image.flags = src->flags;
@@ -1296,7 +1296,7 @@ rgbdata_t *Image_DecompressInternal( rgbdata_t *pic )
 	Image_CopyParms( pic );
 
 	if( image.flags & IMAGE_CUBEMAP ) numsides = 6;
-	Image_SetPixelFormat( image.width, image.height, image.num_layers ); // setup
+	Image_SetPixelFormat( image.width, image.height, image.depth ); // setup
 	image.size = image.ptr = 0;
 	if( image.cmd_flags & IL_IGNORE_MIPS ) image.cur_mips = 1;
 	else image.cur_mips = image.num_mips;

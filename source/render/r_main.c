@@ -39,19 +39,6 @@ mapconfig_t mapConfig;
 refinst_t RI, prevRI;
 ref_params_t r_lastRefdef;
 
-image_t	*r_cintexture;      // cinematic texture
-image_t	*r_portaltexture;   // portal view
-image_t	*r_portaltexture2;  // refraction image for distortions
-image_t	*r_notexture;       // use for bad textures
-image_t	*r_particletexture; // little dot for particles
-image_t	*r_whitetexture;
-image_t	*r_blacktexture;
-image_t *r_blankbumptexture;
-image_t	*r_dlighttexture;
-image_t	*r_fogtexture;
-image_t	*r_coronatexture;
-image_t	*r_shadowmapTextures[MAX_SHADOWGROUPS];
-
 static int r_numnullentities;
 static ref_entity_t	*r_nullentities[MAX_EDICTS];
 ref_model_t *cl_models[MAX_MODELS];		// client replacement modeltable
@@ -199,7 +186,7 @@ void GL_SetState( int state )
 
 			if( state & GLSTATE_BLEND_MTEX )
 			{
-				if( glState.currentEnvModes[glState.currentTMU] != GL_REPLACE )
+				if( glState.currentEnvModes[glState.activeTMU] != GL_REPLACE )
 					pglEnable( GL_BLEND );
 				else
 					pglDisable( GL_BLEND );
@@ -828,13 +815,6 @@ bool R_SpriteOverflow( void )
 }
 
 //==================================================================================
-
-static vec4_t pic_xyz[4] = { {0,0,0,1}, {0,0,0,1}, {0,0,0,1}, {0,0,0,1} };
-static vec2_t pic_st[4];
-static rgba_t pic_colors[4];
-static mesh_t pic_mesh = { 4, pic_xyz, pic_xyz, NULL, pic_st, { 0, 0, 0, 0 }, { pic_colors, pic_colors, pic_colors, pic_colors }, 6, NULL };
-static meshbuffer_t pic_mbuffer;
-
 /*
 ===============
 R_Set2DMode
@@ -879,87 +859,7 @@ void R_Set2DMode( bool enable )
 		glState.in2DMode = false;
 	}
 }
-int num_adds = 0;
-/*
-===============
-R_DrawStretchPic
-===============
-*/
-void R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, shader_t shadernum )
-{
-	int		bcolor;
-	ref_shader_t	*shader = &r_shaders[shadernum];	// FIXME: check bounds
 
-	if( !shader ) return;
-
-	// lower-left
-	Vector2Set( pic_xyz[0], x, y );
-	Vector2Set( pic_st[0], s1, t1 );
-	Vector4Set( pic_colors[0], R_FloatToByte( glState.draw_color[0] ), R_FloatToByte( glState.draw_color[1] ), 
-		R_FloatToByte( glState.draw_color[2] ), R_FloatToByte( glState.draw_color[3] ));
-	bcolor = *(int *)pic_colors[0];
-
-	// lower-right
-	Vector2Set( pic_xyz[1], x+w, y );
-	Vector2Set( pic_st[1], s2, t1 );
-	*(int *)pic_colors[1] = bcolor;
-
-	// upper-right
-	Vector2Set( pic_xyz[2], x+w, y+h );
-	Vector2Set( pic_st[2], s2, t2 );
-	*(int *)pic_colors[2] = bcolor;
-
-	// upper-left
-	Vector2Set( pic_xyz[3], x, y+h );
-	Vector2Set( pic_st[3], s1, t2 );
-	*(int *)pic_colors[3] = bcolor;
-
-	if( pic_mbuffer.shaderkey != (int)shader->sortkey || -pic_mbuffer.infokey-1+4 > MAX_ARRAY_VERTS )
-	{
-		if( pic_mbuffer.shaderkey )
-		{
-			pic_mbuffer.infokey = -1;
-			R_RenderMeshBuffer( &pic_mbuffer );
-		}
-	}
-
-	pic_mbuffer.infokey -= 4;
-	pic_mbuffer.shaderkey = shader->sortkey;
-
-	// upload video right before rendering
-	if( shader->flags & SHADER_VIDEOMAP )
-		R_UploadCinematicShader( shader );
-
-	R_PushMesh( &pic_mesh, MF_TRIFAN | shader->features | ( r_shownormals->integer ? MF_NORMALS : 0 ) );
-}
-
-/*
-=============
-R_DrawStretchRaw
-=============
-*/
-void R_DrawStretchRaw( int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw )
-{
-	int samples = 3;
-
-	GL_Bind( 0, r_cintexture );
-
-	R_Upload32( &data, cols, rows, IT_CINEMATIC, NULL, NULL, &samples, ( cols == r_cintexture->width && rows == r_cintexture->height ) );
-
-	r_cintexture->width = cols;
-	r_cintexture->height = rows;
-
-	pglBegin( GL_QUADS );
-	pglTexCoord2f( 0, 0 );
-	pglVertex2f( x, y );
-	pglTexCoord2f( 1, 0 );
-	pglVertex2f( x + w, y );
-	pglTexCoord2f( 1, 1 );
-	pglVertex2f( x + w, y + h );
-	pglTexCoord2f( 0, 1 );
-	pglVertex2f( x, y + h );
-	pglEnd();
-}
 
 /*
 ============
@@ -1956,11 +1856,9 @@ void R_BeginFrame( void )
 	}
 
 	// texturemode stuff
-	if( r_texturemode->modified )
-	{
-		R_TextureMode( r_texturemode->string );
-		r_texturemode->modified = false;
-	}
+	// update texture parameters
+	if( gl_texturemode->modified || gl_texture_anisotropy->modified || gl_texture_lodbias ->modified )
+		R_SetTextureParameters();
 
 	// swapinterval stuff
 	GL_UpdateSwapInterval();
@@ -2089,6 +1987,8 @@ void R_RenderScene( const ref_params_t *fd )
 	R_BackendEndFrame();
 
 	R_Set2DMode( true );
+
+	R_ShowTextures();
 }
 
 /*
@@ -2106,9 +2006,6 @@ void R_EndFrame( void )
 
 	// apply software gamma
 	R_ApplySoftwareGamma();
-
-	// free temporary image buffers
-	R_FreeImageBuffers ();
 
 	if( gl_finish->integer && gl_delayfinish->integer )
 	{
@@ -2370,8 +2267,12 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 	AngleVectorsFLU( refent->angles, refent->axis[0], refent->axis[1], refent->axis[2] );
 	VectorClear( refent->origin2 );
 
-	if(( refent->ent_type == ED_VIEWMODEL ) && ( r_lefthand->integer == 1 ))
-		VectorNegate( refent->axis[1], refent->axis[1] ); 
+	if( refent->ent_type == ED_VIEWMODEL )
+	{
+		if( r_lefthand->integer == 1 )
+			VectorNegate( refent->axis[1], refent->axis[1] ); 
+		refent->flags |= RF_WEAPONMODEL|RF_CULLHACK;
+	}
 
 	// copy controllers
 	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
@@ -2515,24 +2416,6 @@ void GL_SetColor( const void *data )
 
 	if( color ) Vector4Copy( color, glState.draw_color );
 	else Vector4Set( glState.draw_color, 1.0f, 1.0f, 1.0f, 1.0f );
-}
-
-void R_DrawSetParms( shader_t handle, kRenderMode_t rendermode, int frame )
-{
-}
-
-void R_DrawGetParms( int *w, int *h, int *f, int frame, shader_t shader )
-{
-	if( !w && !h && !f ) return;
-
-	// assume error
-	if( w ) *w = 0;
-	if( h ) *h = 0;
-	if( f ) *f = 1;
-}
-
-void R_DrawFill( float x, float y, float w, float h )
-{
 }
 
 void R_LightForPoint( const vec3_t point, vec3_t ambientLight )

@@ -29,7 +29,7 @@ typedef struct r_cinhandle_s
 	unsigned int	id;
 	char			*name;
 	cinematics_t	*cin;
-	image_t			*image;
+	texture_t			*image;
 	struct r_cinhandle_s *prev, *next;
 } r_cinhandle_t;
 
@@ -174,17 +174,26 @@ static cinematics_t *R_OpenCinematics( char *filename )
 R_ResampleCinematicFrame
 ==================
 */
-static image_t *R_ResampleCinematicFrame( r_cinhandle_t *handle )
+static texture_t *R_ResampleCinematicFrame( r_cinhandle_t *handle )
 {
-	image_t			*image;
+	texture_t		*image;
 	cinematics_t	*cin = handle->cin;
+	static rgbdata_t	r_cin;
 
 	if( !cin->pic )
 		return NULL;
 
 	if( !handle->image )
 	{
-		handle->image = R_LoadPic( handle->name, &cin->pic, cin->width, cin->height, IT_CINEMATIC, 3 );
+		r_cin.width = cin->width;
+		r_cin.height = cin->height;
+		r_cin.type = PF_RGB_24;
+		r_cin.size = cin->width * cin->height * 3;
+		r_cin.flags = 0;
+		r_cin.palette = NULL;
+		r_cin.buffer = cin->pic;
+		r_cin.numMips = 1;
+		handle->image = R_LoadTexture( handle->name, &r_cin, 3, TF_CINEMATIC );
 		cin->new_frame = false;
 	}
 
@@ -195,14 +204,12 @@ static image_t *R_ResampleCinematicFrame( r_cinhandle_t *handle )
 
 	image = handle->image;
 	GL_Bind( 0, image );
-	if( image->width != cin->width || image->height != cin->height )
-		R_Upload32( &cin->pic, image->width, image->height, IT_CINEMATIC, 
-		&(image->upload_width), &(image->upload_height), &(image->samples), false );
-	else
-		R_Upload32( &cin->pic, image->width, image->height, IT_CINEMATIC, 
-		&(image->upload_width), &(image->upload_height), &(image->samples), true );
-	image->width = cin->width;
-	image->height = cin->height;
+	if( image->srcWidth != cin->width || image->srcHeight != cin->height )
+		R_Upload32( &cin->pic, image->srcWidth, image->srcHeight, TF_CINEMATIC, &(image->width), &(image->height), &(image->samples), false );
+	else R_Upload32( &cin->pic, image->srcWidth, image->srcHeight, TF_CINEMATIC, &(image->width), &(image->height), &(image->samples), true );
+
+	image->srcWidth = cin->width;
+	image->srcHeight = cin->height;
 
 	return image;
 }
@@ -217,7 +224,7 @@ R_CinList_f
 void R_CinList_f( void )
 {
 	cinematics_t *cin;
-	image_t *image;
+	texture_t *image;
 	r_cinhandle_t *handle, *hnode;
 
 	Msg( "Active cintematics:" );
@@ -235,10 +242,9 @@ void R_CinList_f( void )
 		image = handle->image;
 		Com_Assert( cin == NULL );
 
-		if( image && (cin->width != image->upload_width || cin->height != image->upload_height) )
-			Msg( "%s %i(%i)x%i(%i) f:%i\n", cin->name, cin->width, image->upload_width, cin->height, image->upload_height, cin->frame );
-		else
-			Msg( "%s %ix%i f:%i\n", cin->name, cin->width, cin->height, cin->frame );
+		if( image && (cin->width != image->width || cin->height != image->height) )
+			Msg( "%s %i(%i)x%i(%i) f:%i\n", cin->name, cin->width, image->width, cin->height, image->height, cin->frame );
+		else Msg( "%s %ix%i f:%i\n", cin->name, cin->width, cin->height, cin->frame );
 
 		handle = handle->next;
 	} while( handle != hnode );
@@ -295,7 +301,7 @@ void R_RunAllCinematics( void )
 R_UploadCinematics
 ==================
 */
-image_t *R_UploadCinematics( unsigned int id )
+texture_t *R_UploadCinematics( unsigned int id )
 {
 	Com_Assert( (id > 0 && id <= MAX_CINEMATICS) == 0 );
 	return R_ResampleCinematicFrame( r_cinematics + id - 1 );

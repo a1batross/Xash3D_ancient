@@ -41,7 +41,7 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 	// check for tga file
 	if(!Image_ValidSize( name )) return false;
 
-	image.num_layers = 1;
+	image.depth = 1;
 	image.num_mips = 1;
 	image.type = PF_RGBA_32; // always exctracted to 32-bit buffer
 

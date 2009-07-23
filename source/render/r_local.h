@@ -56,46 +56,52 @@ model skin
 sprite frame
 wall texture
 pic
-
 */
-
-enum
+typedef enum
 {
-	IT_NONE
-	,IT_CLAMP			= 1<<0
-	,IT_NOMIPMAP		= 1<<1
-	,IT_NOPICMIP		= 1<<2
-	,IT_SKY				= 1<<3
-	,IT_CUBEMAP			= 1<<4
-	,IT_HEIGHTMAP		= 1<<5
-	,IT_FLIPX			= 1<<6
-	,IT_FLIPY			= 1<<7
-	,IT_FLIPDIAGONAL	= 1<<8
-	,IT_NORGB			= 1<<9
-	,IT_NOALPHA			= 1<<10
-	,IT_NOCOMPRESS		= 1<<11
-	,IT_DEPTH			= 1<<12
-	,IT_NORMALMAP		= 1<<13
-};
+	TF_STATIC		= BIT(0),		// don't free until Shader_FreeUnused()
+	TF_NOPICMIP	= BIT(1),		// ignore r_picmip resample rules
+	TF_UNCOMPRESSED	= BIT(2),		// don't compress texture in video memory
+	TF_CUBEMAP	= BIT(3),		// it's cubemap texture
+	TF_HEIGHTMAP	= BIT(4),		// needs to convert into normalmap
+	TF_NORMALMAP	= BIT(5),		// needs to be merged with depthmap
+	TF_DEPTHMAP	= BIT(6),		// custom texture filter used
+	TF_INTENSITY	= BIT(7),
+	TF_ALPHA		= BIT(8),
+	TF_NORGB		= BIT(9),		// QFusion legacy. convert to funcs?
+	TF_NOALPHA	= BIT(10),
+	TF_SKYSIDE	= BIT(11),
+	TF_CLAMP		= BIT(12),
+	TF_NOMIPMAP	= BIT(13),
+} texFlags_t;
 
-#define IT_CINEMATIC		( IT_NOPICMIP|IT_NOMIPMAP|IT_CLAMP|IT_NOCOMPRESS )
-#define IT_PORTALMAP		( IT_NOMIPMAP|IT_NOCOMPRESS|IT_NOPICMIP|IT_CLAMP )
-#define IT_SHADOWMAP		( IT_NOMIPMAP|IT_NOCOMPRESS|IT_NOPICMIP|IT_CLAMP|IT_NOCOMPRESS|IT_DEPTH )
+#define TF_CINEMATIC		( TF_NOPICMIP|TF_UNCOMPRESSED|TF_CLAMP|TF_NOMIPMAP )
+#define TF_PORTALMAP		( TF_NOMIPMAP|TF_UNCOMPRESSED|TF_NOPICMIP|TF_CLAMP )
+#define TF_SHADOWMAP		( TF_NOMIPMAP|TF_UNCOMPRESSED|TF_NOPICMIP|TF_CLAMP|TF_DEPTHMAP )
 
-typedef struct image_s
+typedef struct texture_s
 {
-	char			*name;						// game path, not including extension
-	char			extension[8];				// file extension
-	int				flags;
-	GLuint			texnum;						// gl texture binding
-	int				width, height, depth;		// source image
-	int				upload_width, 
-					upload_height,
-					upload_depth;				// after power of two and picmip
-	int				samples;
-	float			bumpScale;
-	struct image_s	*hash_next;
-} image_t;
+	string		name;		// game path, including extension
+	int		srcWidth;		// source dims, used for mipmap loading
+	int		srcHeight;
+
+	int		width;		// upload width\height
+	int		height;
+	int		depth;		// upload framecount or depth
+
+	texFlags_t	flags;
+	pixformat_t	type;		// PFDesc[type].glType
+	size_t		size;		// upload size for debug targets
+
+	GLint		format;		// PFDesc[type].glType
+	GLuint		target;		// glTarget
+	GLuint		texnum;		// gl texture binding
+	GLint		samples;		// gl samples
+	GLfloat		bumpScale;	// uploading bumpscale
+
+	int		touchFrame;	// 0 = free
+	struct texture_s	*nextHash;
+} texture_t;
 
 enum
 {
@@ -230,19 +236,19 @@ typedef struct
 
 extern char *r_cubemapSuff[6];
 
-extern image_t *r_cintexture;
-extern image_t *r_portaltexture;
-extern image_t *r_portaltexture2;
-extern image_t *r_notexture;
-extern image_t *r_whitetexture;
-extern image_t *r_blacktexture;
-extern image_t *r_blankbumptexture;
-extern image_t *r_particletexture;
-extern image_t *r_dlighttexture;
-extern image_t *r_fogtexture;
-extern image_t *r_coronatexture;
-extern image_t *r_lightmapTextures[];
-extern image_t *r_shadowmapTextures[];
+extern texture_t *r_cintexture;
+extern texture_t *r_portaltexture;
+extern texture_t *r_portaltexture2;
+extern texture_t *r_notexture;
+extern texture_t *r_whitetexture;
+extern texture_t *r_blacktexture;
+extern texture_t *r_blankbumptexture;
+extern texture_t *r_particletexture;
+extern texture_t *r_dlighttexture;
+extern texture_t *r_fogtexture;
+extern texture_t *r_coronatexture;
+extern texture_t *r_lightmapTextures[];
+extern texture_t *r_shadowmapTextures[];
 
 extern int r_pvsframecount;
 extern int r_framecount;
@@ -255,6 +261,7 @@ extern int r_sort_meshes, r_draw_meshes;
 extern msurface_t *r_debug_surface;
 
 extern int gl_filter_min, gl_filter_max;
+extern int registration_sequence;
 
 #define MAX_RSPEEDSMSGSIZE	1024
 extern char r_speeds_msg[MAX_RSPEEDSMSGSIZE];
@@ -320,6 +327,7 @@ extern cvar_t *r_subdivisions;
 extern cvar_t *r_faceplanecull;
 extern cvar_t *r_showtris;
 extern cvar_t *r_shownormals;
+extern cvar_t *r_showtextures;
 extern cvar_t *r_draworder;
 
 extern cvar_t *r_fastsky;
@@ -374,7 +382,11 @@ extern cvar_t *r_lodscale;
 extern cvar_t *r_environment_color;
 extern cvar_t *r_gamma;
 extern cvar_t *r_texturebits;
-extern cvar_t *r_texturemode;
+extern cvar_t *gl_texturemode;
+extern cvar_t *gl_texture_anisotropy;
+extern cvar_t *gl_texture_lodbias;
+extern cvar_t *gl_round_down;
+extern cvar_t *gl_compress_textures;
 extern cvar_t *r_mode;
 extern cvar_t *r_nobind;
 extern cvar_t *r_picmip;
@@ -439,7 +451,7 @@ void		R_ShutdownCinematics( void );
 uint		R_StartCinematics( const char *arg );
 void		R_FreeCinematics( uint id );
 void		R_RunAllCinematics( void );
-image_t		*R_UploadCinematics( uint id );
+texture_t		*R_UploadCinematics( uint id );
 
 //
 // r_cull.c
@@ -474,10 +486,21 @@ void		R_EndOcclusionPass( void );
 void		R_ShutdownOcclusionQueries( void );
 
 //
+// r_draw.c
+//
+extern meshbuffer_t  pic_mbuffer;
+
+void R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, shader_t shadernum );
+void R_DrawStretchRaw( int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw );
+void R_DrawSetParms( shader_t handle, kRenderMode_t rendermode, int frame );
+void R_DrawGetParms( int *w, int *h, int *f, int frame, shader_t shader );
+void R_DrawFill( float x, float y, float w, float h );
+
+//
 // r_image.c
 //
-void		GL_SelectTexture( int tmu );
-void		GL_Bind( int tmu, image_t *tex );
+void		GL_SelectTexture( GLenum tmu );
+void		GL_Bind( GLenum tmu, texture_t *tex );
 void		GL_TexEnv( GLenum mode );
 void		GL_LoadTexMatrix( const mat4x4_t m );
 void		GL_LoadIdentityTexMatrix( void );
@@ -486,20 +509,17 @@ void		GL_SetTexCoordArrayMode( int mode );
 
 void		R_InitImages( void );
 void		R_ShutdownImages( void );
-void		R_InitPortalTexture( image_t **texture, int id, int screenWidth, int screenHeight );
-void		R_InitShadowmapTexture( image_t **texture, int id, int screenWidth, int screenHeight );
+void		R_InitPortalTexture( texture_t **texture, int id, int screenWidth, int screenHeight );
+void		R_InitShadowmapTexture( texture_t **texture, int id, int screenWidth, int screenHeight );
 void		R_FreeImageBuffers( void );
 
-void		R_ScreenShot_f( void );
-void		R_EnvShot_f( void );
-void		R_ImageList_f( void );
-void		R_TextureMode( char *string );
+void		R_TextureList_f( void );
+void		R_SetTextureParameters( void );
+void		R_ShowTextures( void );
 
-image_t		*R_LoadPic( const char *name, byte **pic, int width, int height, int flags, int samples );
-image_t		*R_FindImage( const char *name, const char *suffix, int flags, float bumpScale );
-
-void		R_Upload32( byte **data, int width, int height, int flags, int *upload_width, int *upload_height,
-					   int *samples, bool subImage );
+void		R_Upload32( byte **data, int width, int height, int flags, int *upload_width, int *upload_height, int *samples, bool subImage );
+texture_t		*R_LoadTexture( const char *name, rgbdata_t *pic, int samples, texFlags_t flags );
+texture_t		*R_FindTexture( const char *name, const byte *buf, size_t size, texFlags_t flags, float bumpScale );
 
 //
 // r_light.c
@@ -531,6 +551,7 @@ void		R_DrawCoronas( void );
 void		GL_Cull( int cull );
 void		GL_SetState( int state );
 void		GL_FrontFace( int front );
+void		R_Set2DMode( bool enable );
 
 void		R_BeginFrame( void );
 void		R_EndFrame( void );

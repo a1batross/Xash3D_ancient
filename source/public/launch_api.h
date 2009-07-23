@@ -374,7 +374,7 @@ typedef struct rgbdata_s
 {
 	int	width;		// image width
 	int	height;		// image height
-	word	numLayers;	// multi-layer volume
+	word	depth;	// multi-layer volume
 	byte	numMips;		// mipmap count
 	byte	bitsCount;	// RGB bits count
 	word	type;		// compression type

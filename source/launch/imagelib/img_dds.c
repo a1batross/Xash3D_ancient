@@ -938,7 +938,7 @@ bool Image_DXTWriteHeader( vfile_t *f, rgbdata_t *pix )
 	dwFlags2 |= DDS_FOURCC;
 	dwMipCount = pix->numMips;
 	if( dwMipCount > 1 ) dwFlags1 |= DDS_MIPMAPCOUNT;
-	if( pix->numLayers > 1 ) dwFlags1 |= DDS_DEPTH;
+	if( pix->depth > 1 ) dwFlags1 |= DDS_DEPTH;
 
 	switch( pix->type )
 	{
@@ -1061,9 +1061,9 @@ bool Image_DXTWriteHeader( vfile_t *f, rgbdata_t *pix )
 	dwLinearSize = Image_DXTGetLinearSize( pix->type, pix->width, pix->height, 1, pix->bitsCount / 8 );
 	VFS_Write( f, &dwLinearSize, sizeof( uint ));
 
-	if( pix->numLayers > 1 )
+	if( pix->depth > 1 )
 	{
-		dwDepth = pix->numLayers;
+		dwDepth = pix->depth;
 		VFS_Write( f, &dwDepth, sizeof( uint ));
 		dwCaps2 |= DDS_VOLUME;
 	}
@@ -1385,7 +1385,7 @@ uint Image_DXTCalcSize( const char *name, dds_t *hdr, size_t filesize )
 	size_t buffsize = 0;
 	int w = image.width;
 	int h = image.height;
-	int d = image.num_layers;
+	int d = image.depth;
 
 	if( hdr->dsCaps.dwCaps2 & DDS_CUBEMAP ) 
 	{
@@ -2390,7 +2390,7 @@ bool Image_LoadDDS( const char *name, const byte *buffer, size_t filesize )
 	image.width = header.dwWidth;
 	image.height = header.dwHeight;
 	image.bits_count = header.dsPixelFormat.dwRGBBitCount;
-	if( header.dwFlags & DDS_DEPTH) image.num_layers = header.dwDepth;
+	if( header.dwFlags & DDS_DEPTH) image.depth = header.dwDepth;
 	if(!Image_ValidSize( name )) return false;
 
 	Image_DXTGetPixelFormat( &header ); // and image type too :)
@@ -2415,7 +2415,7 @@ bool Image_LoadDDS( const char *name, const byte *buffer, size_t filesize )
 		// if hardware loader is absent or image not power of two
 		// or user want load current side from cubemap we run software decompressing
 		if( image.flags & IMAGE_CUBEMAP ) numsides = 6;
-		Image_SetPixelFormat( image.width, image.height, image.num_layers ); // setup
+		Image_SetPixelFormat( image.width, image.height, image.depth ); // setup
 		image.size = image.ptr = 0;
 		if( image.cmd_flags & IL_IGNORE_MIPS )
 			image.cur_mips = 1;

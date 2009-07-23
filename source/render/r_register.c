@@ -51,6 +51,7 @@ cvar_t *r_subdivisions;
 cvar_t *r_faceplanecull;
 cvar_t *r_showtris;
 cvar_t *r_shownormals;
+cvar_t *r_showtextures;
 cvar_t *r_draworder;
 cvar_t *r_width;
 cvar_t *r_height;
@@ -112,7 +113,11 @@ cvar_t *r_gamma;
 cvar_t *r_colorbits;
 cvar_t *r_depthbits;
 cvar_t *r_texturebits;
-cvar_t *r_texturemode;
+cvar_t *gl_texturemode;
+cvar_t *gl_texture_anisotropy;
+cvar_t *gl_texture_lodbias;
+cvar_t *gl_round_down;
+cvar_t *gl_compress_textures;
 cvar_t *r_mode;
 cvar_t *r_picmip;
 cvar_t *r_skymip;
@@ -475,12 +480,12 @@ void R_RenderInfo_f( void )
 		Msg("GL_MAX_RECTANGLE_TEXTURE_SIZE_NV: %i\n", glConfig.max_2d_rectangle_size );
 
 	Msg("\n");
-	Msg("MODE: %i, %i x %i %s\n", r_mode->integer, r_width->integer, r_height->integer, (glConfig.fullscreen) ? "fullscreen" : "windowed" );
+	Msg("MODE: %i, %i x %i %s\n", r_mode->integer, r_width->integer, r_height->integer, (glState.fullScreen) ? "fullscreen" : "windowed" );
 	Msg("GAMMA: %s w/ %i overbright bits\n", (glConfig.deviceSupportsGamma) ? "hardware" : "software", (glConfig.deviceSupportsGamma) ? r_overbrightbits->integer : 0 );
 	Msg("\n");
 	Msg( "CDS: %s\n", glConfig.allowCDS ? "enabled" : "disabled" );
 	Msg( "PICMIP: %i\n", r_picmip->integer );
-	Msg( "TEXTUREMODE: %s\n", r_texturemode->string );
+	Msg( "TEXTUREMODE: %s\n", gl_texturemode->string );
 	Msg( "VERTICAL SYNC: %s\n", r_swapInterval->integer ? "enabled" : "disabled" );
 }
 
@@ -538,6 +543,7 @@ void GL_InitCommands( void )
 	r_subdivisions = Cvar_Get( "r_subdivisions", "4", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "bezier curve subdivision" );
 	r_faceplanecull = Cvar_Get( "r_faceplanecull", "1", CVAR_ARCHIVE, "culling face planes" );
 	r_shownormals = Cvar_Get( "r_shownormals", "0", CVAR_CHEAT, "show mesh normals" );
+	r_showtextures = Cvar_Get("r_showtextures", "0", CVAR_CHEAT, "show all uploaded textures" );
 	r_draworder = Cvar_Get( "r_draworder", "0", CVAR_CHEAT, "ignore mesh sorting" );
 
 	r_fastsky = Cvar_Get( "r_fastsky", "0", CVAR_ARCHIVE, "enable algorhytem fo fast sky rendering (for old machines)" );
@@ -581,14 +587,18 @@ void GL_InitCommands( void )
 	r_outlines_cutoff = Cvar_Get( "r_outlines_cutoff", "712", CVAR_ARCHIVE, "cutoff factor" );
 #endif
 
-	r_lodbias = Cvar_Get( "r_lodbias", "0", CVAR_ARCHIVE, "textures lod bias" );
-	r_lodscale = Cvar_Get( "r_lodscale", "5.0", CVAR_ARCHIVE, "LOD scale factor" );
+	r_lodbias = Cvar_Get( "r_lodbias", "0", CVAR_ARCHIVE, "md3 or skm lod bias" );
+	r_lodscale = Cvar_Get( "r_lodscale", "5.0", CVAR_ARCHIVE, "md3 or skm LOD scale factor" );
 
 	r_gamma = Cvar_Get( "r_gamma", "1.0", CVAR_ARCHIVE, "gamma amount" );
 	r_colorbits = Cvar_Get( "r_colorbits", "0", CVAR_ARCHIVE | CVAR_LATCH_VIDEO, "pixelformat color bits (0 - auto)" );
 	r_depthbits = Cvar_Get( "r_depthbits", "0", CVAR_ARCHIVE | CVAR_LATCH_VIDEO, "pixelformat depth bits (0 - auto)" );
 	r_texturebits = Cvar_Get( "r_texturebits", "0", CVAR_ARCHIVE | CVAR_LATCH_VIDEO, "no description" );
-	r_texturemode = Cvar_Get( "r_texturemode", "GL_LINEAR_MIPMAP_LINEAR", CVAR_ARCHIVE, "texture filter" );
+	gl_texturemode = Cvar_Get( "gl_texturemode", "GL_LINEAR_MIPMAP_LINEAR", CVAR_ARCHIVE, "texture filter" );
+	gl_texture_anisotropy = Cvar_Get( "r_anisotropy", "2.0", CVAR_ARCHIVE | CVAR_LATCH_VIDEO, "textures anisotropic filter" );
+	gl_texture_lodbias = Cvar_Get( "r_texture_lodbias", "0.0", CVAR_ARCHIVE, "LOD bias for mipmapped textures" );
+	gl_round_down = Cvar_Get( "gl_round_down", "0", CVAR_SYSTEMINFO, "down size non-power of two textures" );
+	gl_compress_textures = Cvar_Get( "gl_compress_textures", "0", CVAR_ARCHIVE|CVAR_LATCH, "compress textures in video memory" ); 
 	r_stencilbits = Cvar_Get( "r_stencilbits", "8", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "pixelformat stencil bits (0 - auto)" );
 	r_check_errors = Cvar_Get("r_check_errors", "1", CVAR_ARCHIVE, "ignore video engine errors" );
 	r_swapInterval = Cvar_Get( "r_swapInterval", "0", CVAR_ARCHIVE,  "time beetween frames (in msec)" );
@@ -606,7 +616,7 @@ void GL_InitCommands( void )
 	vid_displayfrequency = Cvar_Get ( "vid_displayfrequency", "0", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "fullscreen refresh rate" );
 	vid_fullscreen = Cvar_Get( "fullscreen", "0", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "set in 1 to enable fullscreen mode" );
 
-	Cmd_AddCommand( "imagelist", R_ImageList_f, "display loaded textures list" );
+	Cmd_AddCommand( "texturelist", R_TextureList_f, "display loaded textures list" );
 	Cmd_AddCommand( "shaderlist", R_ShaderList_f, "display loaded shaders list" );
 	Cmd_AddCommand( "shaderdump", R_ShaderDump_f, "dump shaders into text file" );
 	Cmd_AddCommand( "modellist", Mod_Modellist_f, "display loaded models list" );
@@ -866,10 +876,10 @@ static void GL_SetDefaults( void )
 	GL_SetState( GLSTATE_DEPTHWRITE );
 	GL_TexEnv( GL_MODULATE );
 
-	R_TextureMode( r_texturemode->string );
+	R_SetTextureParameters();
 
-	pglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min );
-	pglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max );
+	pglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+	pglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 
 	pglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
 	pglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
@@ -941,7 +951,7 @@ void GL_InitExtensions( void )
 	if(!GL_Support( R_CLAMPTOEDGE_EXT )) GL_CheckExtension("GL_SGIS_texture_edge_clamp", NULL, "gl_clamp_to_edge", R_CLAMPTOEDGE_EXT );
 
 	glConfig.max_texture_anisotropy = 0.0f;
-	GL_CheckExtension( "GL_EXT_texture_filter_anisotropic", NULL, "gl_texture_anisotropy", R_ANISOTROPY_EXT );
+	GL_CheckExtension( "GL_EXT_texture_filter_anisotropic", NULL, "gl_ext_anisotropic_filter", R_ANISOTROPY_EXT );
 	if(GL_Support( R_ANISOTROPY_EXT )) pglGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glConfig.max_texture_anisotropy );
 
 	GL_CheckExtension( "GL_EXT_texture_lod_bias", NULL, "gl_ext_texture_lodbias", R_TEXTURE_LODBIAS );
@@ -1011,11 +1021,7 @@ void GL_InitExtensions( void )
 		else glConfig.allowCDS = true;
 	}
 
-	Cvar_Set( "gl_texture_anisotropy", va( "%f", glConfig.max_texture_anisotropy ));
-
-	glConfig.cur_texture_anisotropy = Cvar_VariableValue( "gl_texture_anisotropy" );
-	glConfig.cur_texture_anisotropy = bound( 0, glConfig.cur_texture_anisotropy, glConfig.max_texture_anisotropy );
-
+	Cvar_Set( "r_anisotropy", va( "%f", bound( 0, gl_texture_anisotropy->value, glConfig.max_texture_anisotropy )));
 
 	if( GL_Support( R_TEXTURE_COMPRESSION_EXT )) flags |= IL_DDS_HARDWARE;
 	flags |= IL_USE_LERPING;
@@ -1045,7 +1051,7 @@ static void R_InitMedia( void )
 	R_InitGLSLPrograms();
 	R_InitImages();
 	R_InitCinematics ();
-	R_InitShaders( true );
+	R_InitShaders((glw_state.developer <= 3));
 	R_InitModels();
 	R_InitSkinFiles();
 	R_InitCoronas();

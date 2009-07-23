@@ -68,6 +68,7 @@ typedef struct
 	void ( *loader )( ref_model_t *mod, ref_model_t *parent, void *buffer );
 } modelformatdescriptor_t;
 
+int registration_sequence;
 static ref_model_t *loadmodel;
 static int loadmodel_numverts;
 static vec4_t *loadmodel_xyz_array;                       // vertexes

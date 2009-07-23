@@ -254,7 +254,7 @@ R_InitCoronas
 */
 void R_InitCoronas( void )
 {
-	r_coronaShader = R_LoadShader( "***r_coronatexture***", SHADER_BSP_FLARE, true, IT_NOMIPMAP|IT_NOPICMIP|IT_NOCOMPRESS|IT_CLAMP, SHADER_INVALID );
+	r_coronaShader = R_LoadShader( "***r_coronatexture***", SHADER_BSP_FLARE, true, TF_NOMIPMAP|TF_NOPICMIP|TF_UNCOMPRESSED|TF_CLAMP, SHADER_INVALID );
 }
 
 /*
@@ -690,15 +690,17 @@ R_PackLightmaps
 */
 static int R_PackLightmaps( int num, int w, int h, int size, int stride, bool deluxe, const char *name, const byte *data, mlightmapRect_t *rects )
 {
-	int i, x, y, root;
-	byte *block;
-	image_t *image;
-	int rectX, rectY, rectSize;
-	int maxX, maxY, max, xStride;
-	double tw, th, tx, ty;
-	mlightmapRect_t *rect;
-	char uploadName[128];
+	int		i, x, y, root;
+	byte		*block;
+	texture_t 	*image;
+	int		rectX, rectY, rectSize;
+	int		maxX, maxY, max, xStride;
+	double		tw, th, tx, ty;
+	mlightmapRect_t	*rect;
+	rgbdata_t		r_image;
+	char		uploadName[128];
 
+	Mem_Set( &r_image, 0, sizeof( rgbdata_t ));
 	maxX = r_maxLightmapBlockSize / w;
 	maxY = r_maxLightmapBlockSize / h;
 	max = min( maxX, maxY );
@@ -711,7 +713,15 @@ static int R_PackLightmaps( int num, int w, int h, int size, int stride, bool de
 		// process as it is
 		R_BuildLightmap( w, h, deluxe, data, r_lightmapBuffer, w * 4 );
 
-		image = R_LoadPic( uploadName, (byte **)( &r_lightmapBuffer ), w, h, IT_CLAMP|IT_NOPICMIP|IT_NOMIPMAP, LM_BYTES );
+		r_image.width = w;
+		r_image.height = h;
+		r_image.type = PF_RGB_24;
+		r_image.size = w * h * LM_BYTES;
+		r_image.flags = 0;
+		r_image.depth = r_image.numMips = 1;
+		r_image.palette = NULL;
+		r_image.buffer = r_lightmapBuffer;
+		image = R_LoadTexture( uploadName, &r_image, LM_BYTES, TF_NOPICMIP|TF_CLAMP|TF_NOMIPMAP );
 
 		r_lightmapTextures[r_numUploadedLightmaps] = image;
 		if( rects )
@@ -797,7 +807,15 @@ static int R_PackLightmaps( int num, int w, int h, int size, int stride, bool de
 		}
 	}
 
-	image = R_LoadPic( uploadName, (byte **)( &r_lightmapBuffer ), rectX * w, rectY * h, IT_CLAMP|IT_NOPICMIP|IT_NOMIPMAP|IT_NOCOMPRESS, LM_BYTES );
+	r_image.width = rectX * w;
+	r_image.height = rectY * h;
+	r_image.type = PF_RGB_24;
+	r_image.size = r_image.width * r_image.height * LM_BYTES;
+	r_image.depth = r_image.numMips = 1;
+	r_image.flags = 0;
+	r_image.palette = NULL;
+	r_image.buffer = r_lightmapBuffer;
+	image = R_LoadTexture( uploadName, &r_image, LM_BYTES, TF_NOPICMIP|TF_UNCOMPRESSED|TF_CLAMP|TF_NOMIPMAP );
 
 	r_lightmapTextures[r_numUploadedLightmaps] = image;
 	if( rects )

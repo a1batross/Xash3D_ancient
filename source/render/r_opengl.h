@@ -1088,7 +1088,13 @@ BOOL  ( WINAPI * pwglSetDeviceGammaRampEXT ) ( const unsigned char *pRed, const 
 BOOL  ( WINAPI * pwglGetDeviceGammaRamp3DFX )( HDC, WORD * );
 BOOL  ( WINAPI * pwglSetDeviceGammaRamp3DFX )( HDC, WORD * );
 
-extern int GL_TEXTURE0, GL_TEXTURE1;
+enum
+{
+	GL_TEXTURE0 = 0,
+	GL_TEXTURE1,
+	GL_TEXTURE2,
+	GL_TEXTURE3
+};
 
 typedef struct
 {

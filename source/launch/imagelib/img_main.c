@@ -108,7 +108,7 @@ void Image_Reset( void )
 	image.source_width = image.source_height = 0;
 	image.bits_count = image.flags = 0;
 	image.num_sides = 0;
-	image.num_layers = 1;
+	image.depth = 1;
 	image.source_type = 0;
 	image.num_mips = 0;
 	image.filter = CB_HINT_NO;
@@ -153,7 +153,7 @@ rgbdata_t *ImagePack( void )
 		pack->size = image.size;
 	}
 
-	pack->numLayers = image.num_layers;
+	pack->depth = image.depth;
 	pack->numMips = image.num_mips;
 	pack->bitsCount = image.bits_count;
 	pack->flags = image.flags;
@@ -241,8 +241,8 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 {
           const char	*ext = FS_FileExtension( filename );
 	string		path, loadname, sidename;
-	bool		anyformat = !com_stricmp( ext, "" ) ? true : false;
 	bool		dds_installed = false; // current loadformats list supported dds
+	bool		anyformat = true;
 	int		i, filesize = 0;
 	const loadformat_t	*format;
 	const cubepack_t	*cmap;
@@ -253,7 +253,21 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 #endif
 	Image_Reset(); // clear old image
 	com.strncpy( loadname, filename, sizeof( loadname ));
-	FS_StripExtension( loadname ); // remove extension if needed
+
+	if( com.stricmp( ext, "" ))
+	{
+		// we needs to compare file extension with list of supported formats
+		// and be sure what is real extension, not a filename with dot
+		for( format = image.loadformats; format && format->formatstring; format++ )
+		{
+			if( !com.stricmp( format->ext, ext ))
+			{
+				FS_StripExtension( loadname );
+				anyformat = false;
+				break;
+			}
+		}
+	}
 
 	// HACKHACK: skip any checks, load file from buffer
 	if( filename[0] == '#' && buffer && size ) goto load_internal;

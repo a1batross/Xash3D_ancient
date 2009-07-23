@@ -491,7 +491,7 @@ bool Image_LoadJPG( const char *name, const byte *buffer, size_t filesize )
 
 	image.rgba = jpg_file.data;
 	image.type = PF_RGBA_32;
-	image.num_layers = 1;
+	image.depth = 1;
 	image.num_mips = 1;
 
 	return true;

@@ -63,10 +63,10 @@ static float Diamond4x[4][4] =
 
 static int BLOOM_SIZE;
 
-static image_t *r_bloomscreentexture;
-static image_t *r_bloomeffecttexture;
-static image_t *r_bloombackuptexture;
-static image_t *r_bloomdownsamplingtexture;
+static texture_t *r_bloomscreentexture;
+static texture_t *r_bloomeffecttexture;
+static texture_t *r_bloombackuptexture;
+static texture_t *r_bloomdownsamplingtexture;
 
 static int r_screendownsamplingtexture_size;
 static int screen_texture_width, screen_texture_height;
@@ -96,16 +96,23 @@ R_Bloom_InitBackUpTexture
 */
 static void R_Bloom_InitBackUpTexture( int width, int height )
 {
-	byte *data;
+	rgbdata_t	r_bloom;
 
-	data = Mem_Alloc( r_temppool, width * height * 4 );
-
+	Mem_Set( &r_bloom, 0, sizeof( rgbdata_t ));
 	r_screenbackuptexture_width = width;
 	r_screenbackuptexture_height = height;
 
-	r_bloombackuptexture = R_LoadPic( "***r_bloombackuptexture***", &data, width, height, IT_CLAMP|IT_NOMIPMAP|IT_NOCOMPRESS|IT_NOPICMIP, 3 );
+	r_bloom.width = width;
+	r_bloom.height = height;
+	r_bloom.type = PF_RGBA_GN;
+	r_bloom.size = width * height * 4;
+	r_bloom.depth = r_bloom.numMips = 1;
+	r_bloom.flags = 0;
+	r_bloom.palette = NULL;
+	r_bloom.buffer = Mem_Alloc( r_temppool, width * height * 4 );
 
-	Mem_Free( data );
+	r_bloombackuptexture = R_LoadTexture( "***r_bloombackuptexture***", &r_bloom, 3, TF_STATIC|TF_UNCOMPRESSED|TF_NOPICMIP|TF_CLAMP|TF_NOMIPMAP );
+	Mem_Free( r_bloom.buffer );
 }
 
 /*
@@ -115,9 +122,11 @@ R_Bloom_InitEffectTexture
 */
 static void R_Bloom_InitEffectTexture( void )
 {
-	byte *data;
-	int		limit;
+	int	limit;
+	rgbdata_t	r_bloomfx;
 
+	Mem_Set( &r_bloomfx, 0, sizeof( rgbdata_t ));
+	
 	if( r_bloom_sample_size->integer < 32 )
 		Cvar_Set( "r_bloom_sample_size", "32" );
 
@@ -132,11 +141,17 @@ static void R_Bloom_InitEffectTexture( void )
 	if( BLOOM_SIZE != r_bloom_sample_size->integer )
 		Cvar_Set( "r_bloom_sample_size", va( "%i", BLOOM_SIZE ) );
 
-	data = Mem_Alloc( r_temppool, BLOOM_SIZE * BLOOM_SIZE * 4 );
+	r_bloomfx.width = BLOOM_SIZE;
+	r_bloomfx.height = BLOOM_SIZE;
+	r_bloomfx.size = BLOOM_SIZE * BLOOM_SIZE * 4;
+	r_bloomfx.type = PF_RGBA_GN;
+	r_bloomfx.flags = 0;
+	r_bloomfx.numMips = r_bloomfx.depth = 1;
+	r_bloomfx.palette = NULL;
+	r_bloomfx.buffer = Mem_Alloc( r_temppool, BLOOM_SIZE * BLOOM_SIZE * 4 );
 
-	r_bloomeffecttexture = R_LoadPic( "***r_bloomeffecttexture***", &data, BLOOM_SIZE, BLOOM_SIZE, IT_CLAMP|IT_NOMIPMAP|IT_NOCOMPRESS|IT_NOPICMIP, 3 );
-
-	Mem_Free( data );
+	r_bloomeffecttexture = R_LoadTexture( "***r_bloomeffecttexture***", &r_bloomfx, 3, TF_STATIC|TF_UNCOMPRESSED|TF_NOPICMIP|TF_CLAMP|TF_NOMIPMAP );
+	Mem_Free( r_bloomfx.buffer );
 }
 
 /*
@@ -146,8 +161,11 @@ R_Bloom_InitTextures
 */
 static void R_Bloom_InitTextures( void )
 {
-	byte *data;
-	int size;
+	int	size;
+	rgbdata_t	r_bloomscr, r_downsample;
+
+	Mem_Set( &r_bloomscr, 0, sizeof( rgbdata_t ));
+	Mem_Set( &r_downsample, 0, sizeof( rgbdata_t ));
 
 	if( GL_Support( R_ARB_TEXTURE_NPOT_EXT ))
 	{
@@ -172,10 +190,19 @@ static void R_Bloom_InitTextures( void )
 
 	// init the screen texture
 	size = screen_texture_width * screen_texture_height * 4;
-	data = Mem_Alloc( r_temppool, size );
-	Mem_Set( data, 255, size );
-	r_bloomscreentexture = R_LoadPic( "***r_bloomscreentexture***", &data, screen_texture_width, screen_texture_height, IT_CLAMP|IT_NOMIPMAP|IT_NOCOMPRESS|IT_NOPICMIP, 3 );
-	Mem_Free( data );
+
+	r_bloomscr.width = screen_texture_width;
+	r_bloomscr.height = screen_texture_height;
+	r_bloomscr.type = PF_RGBA_GN;
+	r_bloomscr.flags = 0;
+	r_bloomscr.palette = NULL;
+	r_bloomscr.numMips = r_bloomscr.depth = 1;
+	r_bloomscr.size = size;
+	r_bloomscr.buffer = Mem_Alloc( r_temppool, size );
+	Mem_Set( r_bloomscr.buffer, 255, size );
+
+	r_bloomscreentexture = R_LoadTexture( "***r_bloomscreentexture***", &r_bloomscr, 3, TF_STATIC|TF_UNCOMPRESSED|TF_NOPICMIP|TF_CLAMP|TF_NOMIPMAP );
+	Mem_Free( r_bloomscr.buffer );
 
 	// validate bloom size and init the bloom effect texture
 	R_Bloom_InitEffectTexture();
@@ -184,19 +211,26 @@ static void R_Bloom_InitTextures( void )
 	r_bloomdownsamplingtexture = NULL;
 	r_screendownsamplingtexture_size = 0;
 
-	if( (glState.width > (BLOOM_SIZE * 2) || glState.height > (BLOOM_SIZE * 2)) && !r_bloom_fast_sample->integer )
+	if(( glState.width > (BLOOM_SIZE * 2) || glState.height > (BLOOM_SIZE * 2)) && !r_bloom_fast_sample->integer )
 	{
 		r_screendownsamplingtexture_size = (int)( BLOOM_SIZE * 2 );
-		data = Mem_Alloc( r_temppool, r_screendownsamplingtexture_size * r_screendownsamplingtexture_size * 4 );
-		r_bloomdownsamplingtexture = R_LoadPic( "***r_bloomdownsamplingtexture***", &data, r_screendownsamplingtexture_size, r_screendownsamplingtexture_size, IT_CLAMP|IT_NOMIPMAP|IT_NOCOMPRESS|IT_NOPICMIP, 3 );
-		Mem_Free( data );
+		r_downsample.width = r_screendownsamplingtexture_size;
+		r_downsample.height = r_screendownsamplingtexture_size;
+		r_downsample.type = PF_RGBA_GN;
+		r_downsample.size = r_screendownsamplingtexture_size * r_screendownsamplingtexture_size * 4;
+		r_downsample.flags = 0;
+		r_downsample.palette = NULL;
+		r_downsample.buffer = Mem_Alloc( r_temppool, r_downsample.size );
+		r_downsample.numMips = r_downsample.depth = 1;
+
+		r_bloomdownsamplingtexture = R_LoadTexture( "***r_bloomdownsamplingtexture***", &r_downsample, 3, TF_STATIC|TF_NOPICMIP|TF_UNCOMPRESSED|TF_CLAMP|TF_NOMIPMAP );
+		Mem_Free( r_downsample.buffer );
 	}
 
 	// init the screen backup texture
 	if( r_screendownsamplingtexture_size )
 		R_Bloom_InitBackUpTexture( r_screendownsamplingtexture_size, r_screendownsamplingtexture_size );
-	else
-		R_Bloom_InitBackUpTexture( BLOOM_SIZE, BLOOM_SIZE );
+	else R_Bloom_InitBackUpTexture( BLOOM_SIZE, BLOOM_SIZE );
 }
 
 /*

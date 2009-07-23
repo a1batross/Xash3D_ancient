@@ -184,7 +184,7 @@ void *SPR_ConvertFrame( const char *name, const char *ext, void *pin, int framen
 		pix->width = width;
 		pix->height = height;
 		pix->size = pixels; 
-		pix->numLayers = 1;
+		pix->depth = 1;
 		pix->numMips = 1;
 		pix->buffer = fout;
 	}

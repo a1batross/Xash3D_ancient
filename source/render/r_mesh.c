@@ -839,7 +839,7 @@ static bool R_DrawPortalSurface( void )
 	cplane_t *portal_plane = &r_portal_plane, *original_plane = &r_original_portal_plane;
 	ref_shader_t *shader = r_portal_shader;
 	bool mirror, refraction = false;
-	image_t **captureTexture;
+	texture_t **captureTexture;
 	int captureTextureID;
 	bool doReflection, doRefraction;
 
@@ -1019,8 +1019,8 @@ setup_and_render:
 		R_InitPortalTexture( captureTexture, captureTextureID, r_lastRefdef.viewport[2], r_lastRefdef.viewport[3] );
 
 		x = y = 0;
-		w = ( *captureTexture )->upload_width;
-		h = ( *captureTexture )->upload_height;
+		w = ( *captureTexture )->width;
+		h = ( *captureTexture )->height;
 		RI.refdef.viewport[2] = w;
 		RI.refdef.viewport[3] = h;
 		Vector4Set( RI.viewport, RI.refdef.viewport[0], RI.refdef.viewport[1], w, h );
@@ -1049,7 +1049,7 @@ setup_and_render:
 
 		// grab the results from framebuffer
 		GL_Bind( 0, *captureTexture );
-		pglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, RI.refdef.viewport[0], RI.refdef.viewport[1], ( *captureTexture )->upload_width, ( *captureTexture )->upload_height );
+		pglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, RI.refdef.viewport[0], RI.refdef.viewport[1], ( *captureTexture )->width, ( *captureTexture )->height );
 		RI.params |= ( refraction ? RP_PORTALCAPTURED2 : RP_PORTALCAPTURED );
 	}
 

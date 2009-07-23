@@ -126,7 +126,7 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 	}
 
 	pb += biTrueWidth;
-	image.num_layers = image.num_mips = 1;
+	image.depth = image.num_mips = 1;
 	image.type = PF_INDEXED_32; // 32 bit palette
 	Image_GetPaletteBMP( image.palette );
 

@@ -41,7 +41,7 @@ bool Image_LoadPAL( const char *name, const byte *buffer, size_t filesize )
 
 	image.rgba = NULL;	// only palette, not real image
 	image.size = 1024;	// expanded palette
-	image.num_mips = image.num_layers = 0;
+	image.num_mips = image.depth = 0;
 	image.width = image.height = 0;
 	
 	return true;
@@ -91,7 +91,7 @@ bool Image_LoadMDL( const char *name, const byte *buffer, size_t filesize )
 	fin = (byte *)pin->index;	// setup buffer
 
 	if(!Image_LumpValidSize( name )) return false;
-	image.num_layers = 1;
+	image.depth = 1;
 	image.type = PF_INDEXED_32;	// 32-bit palete
 
 	return FS_AddMipmapToPack( fin, image.width, image.height );
@@ -132,7 +132,7 @@ bool Image_LoadSPR( const char *name, const byte *buffer, size_t filesize )
 
 	// sorry, can't validate palette rendermode
 	if(!Image_LumpValidSize( name )) return false;
-	image.num_layers = 1;
+	image.depth = 1;
 	image.type = PF_INDEXED_32;	// 32-bit palete
 
 	// detect alpha-channel by palette type
@@ -178,7 +178,7 @@ bool Image_LoadWAL( const char *name, const byte *buffer, size_t filesize )
 		return false;
 	}
 
-	image.num_layers = 1;
+	image.depth = 1;
 	image.type = PF_INDEXED_32;	// 32-bit palete
 	fin = buffer + ofs[0];
 
@@ -233,7 +233,7 @@ bool Image_LoadFLT( const char *name, const byte *buffer, size_t filesize )
 	if(!Image_LumpValidSize( name )) return false;
 	Data = (byte *)Mem_Alloc( Sys.imagepool, image.width * image.height );
 	Mem_Set( Data, 247, image.width * image.height ); // set default transparency
-	image.num_layers = 1;
+	image.depth = 1;
 
 	for( column_loop = 0; column_loop < image.width; column_loop++ )
 	{
@@ -337,7 +337,7 @@ bool Image_LoadLMP( const char *name, const byte *buffer, size_t filesize )
 	}
 
 	if(!Image_ValidSize( name )) return false;         
-	image.num_layers = 1;
+	image.depth = 1;
 
 	if( image.hint != IL_HINT_Q1 && filesize > (int)sizeof(lmp) + pixels )
 	{
@@ -385,7 +385,7 @@ bool Image_LoadMIP( const char *name, const byte *buffer, size_t filesize )
 	if(!Image_ValidSize( name )) return false;
 	for(i = 0; i < 4; i++) ofs[i] = LittleLong(mip.offsets[i]);
 	pixels = image.width * image.height;
-	image.num_layers = 1;
+	image.depth = 1;
 
 	if( image.hint != IL_HINT_Q1 && filesize >= (int)sizeof(mip) + ((pixels * 85)>>6) + sizeof(short) + 768)
 	{

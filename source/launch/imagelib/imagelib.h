@@ -66,7 +66,7 @@ typedef struct imglib_s
 	// current 2d image state
 	int		width;
 	int		height;
-	byte		num_layers;	// num layers in
+	byte		depth;	// num layers in
 	byte		num_mips;		// build mipmaps
 	uint		type;		// main type switcher
 	uint		flags;		// additional image flags

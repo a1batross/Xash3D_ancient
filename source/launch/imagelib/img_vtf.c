@@ -121,7 +121,7 @@ size_t Image_VTFCalcImageSize( vtf_t *hdr, bool oldformat )
 
 	if( image.flags & IMAGE_CUBEMAP ) numSides = (oldformat) ? 6 : CB_FACECOUNT;
 	for( i = 0; i < image.num_mips; i++ )
-		buffsize += Image_VTFCalcMipmapSize( hdr, i ) * image.num_layers * numSides;
+		buffsize += Image_VTFCalcMipmapSize( hdr, i ) * image.depth * numSides;
 	return buffsize;
 }
 
@@ -161,7 +161,7 @@ void Image_VTFSwapBuffer( vtf_t *hdr, const byte *input, size_t input_size, bool
 	// NOTE: src = buffer + sizeof(vtf_t) + lowResSize;
 	for( i = 0; i < image.num_mips; i++ )
 	{
-		for( j = 0; j < image.num_layers; j++ )
+		for( j = 0; j < image.depth; j++ )
 		{
 			for( k = 0; k < numSides; k++ )
 			{
@@ -250,7 +250,7 @@ bool Image_LoadVTF( const char *name, const byte *buffer, size_t filesize )
 
 	vtfFormat = LittleLong( vtf.imageFormat );
 	image.type = Image_VTFFormat( vtfFormat );
-	image.num_layers = LittleLong( vtf.num_frames );
+	image.depth = LittleLong( vtf.num_frames );
 	image.num_mips = LittleLong( vtf.numMipLevels );
 
 	if( image.type == PF_UNKNOWN )
@@ -289,7 +289,7 @@ bool Image_LoadVTF( const char *name, const byte *buffer, size_t filesize )
 		// if hardware loader is absent or image not power of two
 		// or user want load current side from cubemap we run software decompressing
 		if( image.flags & IMAGE_CUBEMAP ) numsides = 6;
-		Image_SetPixelFormat( image.width, image.height, image.num_layers ); // setup
+		Image_SetPixelFormat( image.width, image.height, image.depth ); // setup
 		image.size = image.ptr = 0;
 		image.cur_mips = image.num_mips;
 		image.num_mips = 0; // clear mipcount

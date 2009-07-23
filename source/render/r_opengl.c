@@ -25,33 +25,28 @@ typedef struct vidmode_s
 	const char	*desc;
 	int		width; 
 	int		height;
-	float		pixelheight;
+	bool		wideScreen;
 } vidmode_t;
 
 vidmode_t vidmode[] =
 {
-{"Mode  0: 4x3",	640,	480,	1	},
-{"Mode  1: 4x3",	800,	600,	1	},
-{"Mode  2: 4x3",	1024,	768,	1	},
-{"Mode  3: 4x3",	1152,	864,	1	},
-{"Mode  4: 4x3",	1280,	960,	1	},
-{"Mode  5: 4x3",	1400,	1050,	1	},
-{"Mode  6: 4x3",	1600,	1200,	1	},
-{"Mode  7: 4x3",	1920,	1440,	1	},
-{"Mode  8: 4x3",	2048,	1536,	1	},
-{"Mode  9: 14x9",	840,	540,	1	},
-{"Mode 10: 14x9",	1680,	1080,	1	},
-{"Mode 11: 16x9",	640,	360,	1	},
-{"Mode 12: 16x9",	683,	384,	1	},
-{"Mode 13: 16x9",	960,	540,	1	},
-{"Mode 14: 16x9",	1280,	720,	1	},
-{"Mode 15: 16x9",	1366,	768,	1	},
-{"Mode 16: 16x9",	1920,	1080,	1	},
-{"Mode 17: 16x9",	2560,	1440,	1	},
-{"Mode 18: NTSC",	360,	240,	1.125f	},
-{"Mode 19: NTSC",	720,	480,	1.125f	},
-{"Mode 20: PAL ",	360,	283,	0.9545f	},
-{"Mode 21: PAL ",	720,	566,	0.9545f	},
+{"Mode  0: 4x3",	640,	480,	false	},
+{"Mode  1: 4x3",	800,	600,	false	},
+{"Mode  2: 4x3",	960,	720,	false	},
+{"Mode  3: 4x3",	1024,	768,	false	},
+{"Mode  4: 4x3",	1152,	864,	false	},
+{"Mode  5: 4x3",	1280,	800,	false	},
+{"Mode  6: 4x3",	1280,	960,	false	},
+{"Mode  7: 4x3",	1280,	1024,	false	},
+{"Mode  8: 4x3",	1600,	1200,	false	},
+{"Mode  9: 4x3",	2048,	1536,	false	},
+
+{"Mode 10: 16x9",	856,	480,	true	},
+{"Mode 11: 16x9",	1024,	576,	true	},
+{"Mode 12: 16x9",	1440,	900,	true	},
+{"Mode 13: 16x9",	1680,	1050,	true	},
+{"Mode 14: 16x9",	1920,	1200,	true	},
+{"Mode 15: 16x9",	2560,	1600,	true	},
 {NULL,		0,	0,	0	},
 };
 
@@ -238,11 +233,11 @@ static int R_ChoosePFD( int colorBits, int depthBits, int stencilBits )
 
 bool R_SetPixelformat( void )
 {
-	PIXELFORMATDESCRIPTOR PFD;
-	int colorBits, depthBits, stencilBits;
-	int	pixelFormat;
-	size_t	gamma_size;
-	byte	*savedGamma;
+	PIXELFORMATDESCRIPTOR	PFD;
+	int			colorBits, depthBits, stencilBits;
+	int			pixelFormat;
+	size_t			gamma_size;
+	byte			*savedGamma;
 
 	Sys_LoadLibrary( &opengl_dll );	// load opengl32.dll
 	if( !opengl_dll.link ) return false;
@@ -408,10 +403,10 @@ void R_Free_OpenGL( void )
 	}
 	UnregisterClass( "Xash Window", glw_state.hInst );
 
-	if( glConfig.fullscreen )
+	if( glState.fullScreen )
 	{
 		ChangeDisplaySettings( 0, 0 );
-		glConfig.fullscreen = false;
+		glState.fullScreen = false;
 	}
 	Sys_FreeLibrary( &opengl_dll );
 
@@ -426,6 +421,7 @@ void R_SaveVideoMode( int vid_mode )
 
 	glState.width = vidmode[i].width;
 	glState.height = vidmode[i].height;
+	glState.wideScreen = vidmode[i].wideScreen;
 
 	Cvar_FullSet( "width", va( "%i", vidmode[i].width ), CVAR_READ_ONLY );
 	Cvar_FullSet( "height", va( "%i", vidmode[i].height ), CVAR_READ_ONLY );
@@ -536,10 +532,16 @@ rserr_t R_ChangeDisplaySettings( int vid_mode, bool fullscreen )
 		dm.dmPelsWidth = width;
 		dm.dmPelsHeight = height;
 		dm.dmFields = DM_PELSWIDTH|DM_PELSHEIGHT;
+
+		if( vid_displayfrequency->integer > 0 )
+		{
+			dm.dmFields |= DM_DISPLAYFREQUENCY;
+			dm.dmDisplayFrequency = vid_displayfrequency->integer;
+		}
 		
 		if( ChangeDisplaySettings( &dm, CDS_FULLSCREEN ) == DISP_CHANGE_SUCCESSFUL )
 		{
-			glConfig.fullscreen = true;
+			glState.fullScreen = true;
 			if( !R_CreateWindow( width, height, true ))
 				return rserr_invalid_mode;
 			return rserr_ok;
@@ -559,7 +561,7 @@ rserr_t R_ChangeDisplaySettings( int vid_mode, bool fullscreen )
 			if( ChangeDisplaySettings( &dm, CDS_FULLSCREEN ) != DISP_CHANGE_SUCCESSFUL )
 			{
 				ChangeDisplaySettings( 0, 0 );
-				glConfig.fullscreen = false;
+				glState.fullScreen = false;
 				if( !R_CreateWindow( width, height, false ))
 					return rserr_invalid_mode;
 				return rserr_invalid_fullscreen;
@@ -568,7 +570,7 @@ rserr_t R_ChangeDisplaySettings( int vid_mode, bool fullscreen )
 			{
 				if( !R_CreateWindow( width, height, true ))
 					return rserr_invalid_mode;
-				glConfig.fullscreen = true;
+				glState.fullScreen = true;
 				return rserr_ok;
 			}
 		}
@@ -576,7 +578,7 @@ rserr_t R_ChangeDisplaySettings( int vid_mode, bool fullscreen )
 	else
 	{
 		ChangeDisplaySettings( 0, 0 );
-		glConfig.fullscreen = false;
+		glState.fullScreen = false;
 		if( !R_CreateWindow( width, height, false ))
 			return rserr_invalid_mode;
 	}

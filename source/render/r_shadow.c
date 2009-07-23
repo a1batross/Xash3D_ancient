@@ -440,11 +440,11 @@ void R_DrawShadowmaps( void )
 		// allocate/resize the texture if needed
 		R_InitShadowmapTexture( &( r_shadowmapTextures[i] ), i, width, height );
 
-		Com_Assert( (r_shadowmapTextures[i] && r_shadowmapTextures[i]->upload_width && r_shadowmapTextures[i]->upload_height) == 0 );
+		Com_Assert( (r_shadowmapTextures[i] && r_shadowmapTextures[i]->width && r_shadowmapTextures[i]->height) == 0 );
 
 		group->depthTexture = r_shadowmapTextures[i];
-		textureWidth = group->depthTexture->upload_width;
-		textureHeight = group->depthTexture->upload_height;
+		textureWidth = group->depthTexture->width;
+		textureHeight = group->depthTexture->height;
 
 		// default to fov 90, R_SetupFrame will most likely alter the values to give depth more precision
 		RI.refdef.viewport[2] = textureWidth;

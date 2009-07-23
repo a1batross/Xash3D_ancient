@@ -138,6 +138,10 @@ SOURCE=.\r_cull.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\r_draw.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\r_image.c
 # End Source File
 # Begin Source File

@@ -327,7 +327,6 @@ typedef struct
 	GLint		texRectangle;
 
 	GLfloat		max_texture_anisotropy;
-	GLfloat		cur_texture_anisotropy;
 	GLfloat		max_texture_lodbias;
 
 	int		color_bits;
@@ -336,7 +335,6 @@ typedef struct
 
 	bool		allowCDS;
 	bool		deviceSupportsGamma;
-	bool		fullscreen;
 	int		prev_mode;
 } glconfig_t;
 
@@ -353,16 +351,16 @@ typedef struct
 
 	bool		initializedMedia;
 
-	int				currentTMU;
-	GLuint			*currentTextures;
-	int				*currentEnvModes;
+	int		activeTMU;
+	GLuint		*currentTextures;
+	GLenum		*currentEnvModes;
 	bool		*texIdentityMatrix;
-	int				*genSTEnabled;			// 0 - disabled, OR 1 - S, OR 2 - T, OR 4 - R
-	int				*texCoordArrayMode;		// 0 - disabled, 1 - enabled, 2 - cubemap
+	int		*genSTEnabled;			// 0 - disabled, OR 1 - S, OR 2 - T, OR 4 - R
+	int		*texCoordArrayMode;		// 0 - disabled, 1 - enabled, 2 - cubemap
 	vec4_t		draw_color;
 
-	int				faceCull;
-	int				frontFace;
+	int		faceCull;
+	int		frontFace;
 
 	bool		stencilEnabled;
 	bool		in2DMode;

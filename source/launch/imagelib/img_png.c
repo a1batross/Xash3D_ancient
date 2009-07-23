@@ -208,7 +208,7 @@ bool Image_LoadPNG( const char *name, const byte *buffer, size_t filesize )
 	image.width = png.width;
 	image.height = png.height;
 	image.rgba = png.Data;
-	image.num_layers = 1;
+	image.depth = 1;
 	image.num_mips = 1;
 
 	return true;
