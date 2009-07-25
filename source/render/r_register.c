@@ -201,6 +201,7 @@ static dllfunc_t opengl_110funcs[] =
 	{"glTexCoord4f", (void **) &pglTexCoord4f},
 	{"glTexGenf", (void **) &pglTexGenf},
 	{"glTexGenfv", (void **) &pglTexGenfv},
+	{"glTexGeni", (void **) &pglTexGeni},
 	{"glVertex2f", (void **) &pglVertex2f},
 	{"glVertex3f", (void **) &pglVertex3f},
 	{"glVertex3fv", (void **) &pglVertex3fv},

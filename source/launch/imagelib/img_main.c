@@ -341,17 +341,18 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 			// NOTE: all loaders must keep sides in one format for all
 			for( format = image.loadformats; format && format->formatstring; format++ )
 			{
-				if( anyformat || !com_stricmp( ext, format->ext ))
+				if( anyformat || !com.stricmp( ext, format->ext ))
 				{
 					com_sprintf( path, format->formatstring, loadname, cmap->type[i].suf, format->ext );
 					image.hint = cmap->type[i].hint; // side hint
+
 					f = FS_LoadFile( path, &filesize );
 					if( f && filesize > 0 )
 					{
 						// this name will be used only for tell user about problems 
 						if( format->loadfunc( path, f, filesize ))
 						{         
-							com_snprintf( sidename, MAX_STRING, "%s%s.%s", loadname, cmap->type[i].suf, format->ext );
+							com.snprintf( sidename, MAX_STRING, "%s%s.%s", loadname, cmap->type[i].suf, format->ext );
 							if( FS_AddSideToPack( sidename, cmap->type[i].flags )) // process flags to flip some sides
 								break; // loaded
 						}
@@ -378,11 +379,14 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 		if( image.num_sides != 6 )
 		{
 			// unexpected errors ?
-			if( image.cubemap ) Mem_Free( image.cubemap );
+			if( image.cubemap )
+				Mem_Free( image.cubemap );
 			Image_Reset();
 		}
-		else break; // all done
+		else break;
 	}
+	if( image.cubemap )
+		return ImagePack(); // all done
 
 load_internal:
 	for( format = image.loadformats; format && format->formatstring; format++ )

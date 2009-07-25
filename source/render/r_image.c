@@ -48,10 +48,10 @@ const vec3_t r_cubeMapAngles[6] =
 {
 {   0, 180,  90},
 {   0,   0, 270},
+{ -90, 270,   0},
+{  90,  90,   0},
 {   0,  90, 180},
 {   0, 270,   0},
-{ -90, 270,   0},
-{  90,  90,   0}
 };
 
 const vec3_t r_skyBoxAngles[6] =
@@ -641,9 +641,9 @@ R_BuildMipMap
 Operates in place, quartering the size of the texture
 =================
 */
-static void R_BuildMipMap( byte *in, int width, int height, bool isNormalMap )
+static byte *R_BuildMipMap( const byte *in, int width, int height, bool isNormalMap )
 {
-	byte	*out = in;
+	byte	*out = (byte *)in;
 	vec3_t	normal;
 	int	x, y;
 
@@ -682,6 +682,7 @@ static void R_BuildMipMap( byte *in, int width, int height, bool isNormalMap )
 			}
 		}
 	}
+	return out;
 }
 
 /*
@@ -689,7 +690,7 @@ static void R_BuildMipMap( byte *in, int width, int height, bool isNormalMap )
 R_ResampleTexture
 =================
 */
-static void R_ResampleTexture( byte *source, int inWidth, int inHeight, int outWidth, int outHeight, bool isNormalMap )
+static void R_ResampleTexture( const byte *source, int inWidth, int inHeight, int outWidth, int outHeight, bool isNormalMap )
 {
 	uint	frac, fracStep;
 	uint	*in = (uint *)source;
@@ -843,7 +844,7 @@ bool R_GetPixelFormat( const char *name, rgbdata_t *pic, uint tex_flags )
 		}
 	}
 
-	if( image_desc.tflags & TF_NOPICMIP )
+	if( image_desc.tflags & TF_NOMIPMAP )
 	{
 		// don't build mips for sky and hud pics
 		image_desc.MipCount = 1; // and ignore it to load
@@ -2611,7 +2612,7 @@ GL_GenerateMipmaps
 sgis generate mipmap
 ===============
 */
-void GL_GenerateMipmaps( byte *buffer, texture_t *tex, int side )
+void GL_GenerateMipmaps( const byte *buffer, texture_t *tex, int side )
 {
 	int	mipLevel;
 	int	mipWidth, mipHeight;
@@ -2643,7 +2644,7 @@ void GL_GenerateMipmaps( byte *buffer, texture_t *tex, int side )
 	while( mipWidth > 1 || mipHeight > 1 )
 	{
 		// Build the mipmap
-		R_BuildMipMap( buffer, mipWidth, mipHeight, (tex->flags & TF_NORMALMAP));
+		buffer = R_BuildMipMap( buffer, mipWidth, mipHeight, (tex->flags & TF_NORMALMAP));
 
 		mipWidth = (mipWidth+1)>>1;
 		mipHeight = (mipHeight+1)>>1;
@@ -2704,11 +2705,11 @@ void GL_TexFilter( texture_t *tex )
 
 static void R_UploadTexture( rgbdata_t *pic, texture_t *tex )
 {
-	uint	mipsize = 0, offset = 0;
-	bool	dxtformat = true;
-	bool	compress;
-	int	i, j, w, h, d;
-	byte	*buf, *data;
+	uint		mipsize = 0, offset = 0;
+	bool		dxtformat = true;
+	bool		compress;
+	int		i, j, w, h, d;
+	const byte	*buf, *data, *bufend;
 
 	tex->width = tex->srcWidth;
 	tex->height = tex->srcHeight;
@@ -2733,21 +2734,29 @@ static void R_UploadTexture( rgbdata_t *pic, texture_t *tex )
 	pglGenTextures( 1, &tex->texnum );
 	GL_Bind( GL_TEXTURE0, tex );
 
+	buf = pic->buffer;
+	bufend = pic->buffer + pic->size;
+
 	// uploading texture into video memory
-	for( i = 0, buf = pic->buffer; i < image_desc.numSides; i++, buf += offset )
+	for( offset = i = 0; i < image_desc.numSides; i++ )
 	{
-		R_SetPixelFormat( image_desc.width, image_desc.height, image_desc.depth );
+		R_SetPixelFormat( tex->width, tex->height, tex->depth );
 		w = image_desc.width, h = image_desc.height, d = image_desc.depth;
 		offset = image_desc.SizeOfFile; // member side offset
 
-		for( j = 0; j < image_desc.MipCount; j++, buf += mipsize )
+		if( buf >= bufend ) Host_Error( "R_UploadTexture: %s image buffer overflow\n", tex->name );
+
+		for( mipsize = j = 0; j < image_desc.MipCount; j++ )
 		{
 			R_SetPixelFormat( w, h, d );
 			mipsize = image_desc.SizeOfFile; // member mipsize offset
 			tex->size += mipsize;
 
 			// copy or resample the texture
-			if( tex->width == tex->srcWidth && tex->height == tex->srcHeight ) data = buf;
+			if( tex->width == tex->srcWidth && tex->height == tex->srcHeight )
+			{
+				data = buf;
+			}
 			else
 			{
 				R_ResampleTexture( buf, tex->srcWidth, tex->srcHeight, tex->width, tex->height, (tex->flags & TF_NORMALMAP));
@@ -2758,13 +2767,19 @@ static void R_UploadTexture( rgbdata_t *pic, texture_t *tex )
 			else
 			{
 				if( image_desc.depth == 1 )
+				{
+					if( tex->flags & TF_CUBEMAP ) Msg( "CM Side %i [%ix%ix%i]\n", i, w, h, d );
 					pglTexImage2D( image_desc.texTarget + i, j, tex->format, tex->width, tex->height, 0, image_desc.glFormat, image_desc.glType, data );
+				}
 				else pglTexImage3D( image_desc.texTarget, j, tex->format, tex->width, tex->height, tex->depth, 0, image_desc.glFormat, image_desc.glType, data );
 				if( j == 0 && !GL_Support( R_SGIS_MIPMAPS_EXT )) GL_GenerateMipmaps( data, tex, i );
 			}                              
 			w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; // calc size of next mip
-			if( r_check_errors->integer ) R_CheckForErrors();
+			if( image_desc.MipCount > 1 ) buf += mipsize;
+
+			R_CheckForErrors();
 		}
+		if( image_desc.numSides > 1 ) buf += offset;
 	}
 }
 

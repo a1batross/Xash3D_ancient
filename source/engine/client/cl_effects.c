@@ -538,7 +538,7 @@ struct cparticle_s
 	poly_t		poly;
 	vec3_t		pVerts[4];
 	vec2_t		pStcoords[4];
-	rgba_t		pColor[4];
+	rgba_t		pColor;
 };
 
 cparticle_t *cl_active_particles, *cl_free_particles;
@@ -805,10 +805,7 @@ void CL_AddParticles( void )
 			p->alphaVelocity = 0;
 		}
 
-		*(int *)p->pColor[0] = *(int *)modulate[0];
-		*(int *)p->pColor[1] = *(int *)modulate[1];
-		*(int *)p->pColor[2] = *(int *)modulate[2];
-		*(int *)p->pColor[3] = *(int *)modulate[3];
+		VectorCopy( modulate, p->pColor );
 
 		corner[0] = origin[0];
 		corner[1] = origin[1] - 0.5f * p->scale;
@@ -822,7 +819,7 @@ void CL_AddParticles( void )
 		p->poly.numverts = 4;
 		p->poly.verts = p->pVerts;
 		p->poly.stcoords = p->pStcoords;
-		p->poly.colors = p->pColor;
+		p->poly.colors = &p->pColor;
 		p->poly.shadernum = p->shader;
 		p->poly.fognum = p->fog ? 0 : -1;
 
@@ -935,7 +932,7 @@ void CL_TestLights( void )
 	Mem_Set( &dl, 0, sizeof( cdlight_t ));
 	V_ClearScene();
 	
-	for( i = 0; i < 32; i++ )
+	for( i = 0; i < min( cl_testlights->integer, 32 ); i++ )
 	{
 		r = 64 * ( (i%4) - 1.5 );
 		f = 64 * (i/4) + 128;
@@ -947,6 +944,7 @@ void CL_TestLights( void )
 		dl.color[1] = (((i%6)+1) & 2)>>1;
 		dl.color[2] = (((i%6)+1) & 4)>>2;
 		dl.radius = 200;
+
 		re->AddDynLight( dl.origin, dl.color, dl.radius ); 
 	}
 }

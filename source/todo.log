@@ -92,6 +92,8 @@ Beta 13.12.08
 61. fixup portal rendering			OK
 62. return old-xash renderer initialization	OK
 63. portal rendering angles
-64. ImageLoading from old render
+64. ImageLoading from old render		OK
+65. envshot, skyshot swap angles to right pos
+66. ShaderSystem from old render
 
 

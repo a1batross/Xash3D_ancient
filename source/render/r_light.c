@@ -91,7 +91,6 @@ unsigned int R_AddSurfDlighbits( msurface_t *surf, unsigned int dlightbits )
 			}
 		}
 	}
-
 	return dlightbits;
 }
 

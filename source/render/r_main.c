@@ -2395,7 +2395,7 @@ bool R_AddDynamicLight( vec3_t org, vec3_t color, float intensity )
 {
 	dlight_t	*dl;
 
-	if(( r_numDlights >= MAX_DLIGHTS ) || (intensity == 0) || ( !color[0] || !color[1] || !color[2] ))
+	if(( r_numDlights >= MAX_DLIGHTS ) || (intensity == 0) || ( VectorIsNull( color )))
 		return false;
 
 	dl = &r_dlights[r_numDlights++];
@@ -2421,8 +2421,9 @@ void GL_SetColor( const void *data )
 void R_LightForPoint( const vec3_t point, vec3_t ambientLight )
 {
 	vec4_t	ambient;
+	vec3_t	dir;
 
-	R_LightForOrigin( point, NULL, ambient, NULL, 64.0f );
+	R_LightForOrigin( point, dir, ambient, NULL, 64.0f );
 	VectorCopy( ambient, ambientLight );
 }
 		

@@ -905,7 +905,6 @@ void RBSP_LoadSurfaces( lump_t *l )
 			CM_SnapVertices( 3, out->numvertices, out->vertices, 1 );
 
 			out->numtriangles = CM_RemoveDegenerateTriangles( out->numtriangles, out->indices, out->indices, out->vertices );
-			Msg( "Genarate patch with %i triangles\n", out->numtriangles );
 			break;
 		case MST_FLARE:
 			continue;

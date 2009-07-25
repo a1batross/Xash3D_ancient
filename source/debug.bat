@@ -72,5 +72,5 @@ if exist xtools\xtools.plg del /f /q xtools\xtools.plg
 echo 	     Build succeeded!
 echo Please wait. Xash is now loading
 cd D:\Xash3D\
-xash.exe -log -dev 3 +map newmap
+quake3.exe -log -dev 3 +map wamphi1
 :done
