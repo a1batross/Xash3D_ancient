@@ -687,7 +687,7 @@ static int Shader_SetImageFlags( ref_shader_t *shader )
 {
 	int flags = 0;
 
-	if( shader->flags & SHADER_SKY )
+	if( shader->flags & SHADER_SKYPARMS )
 		flags |= TF_SKYSIDE;
 	if( r_shaderNoMipMaps )
 		flags |= TF_NOMIPMAP;
@@ -856,7 +856,7 @@ static void Shader_SkyParms( ref_shader_t *shader, shaderpass_t *pass, const cha
 	Shader_ParseSkySides( ptr, nearboxShaders, false );
 
 	r_skydomes[shaderNum] = R_CreateSkydome( skyheight, farboxShaders, nearboxShaders );
-	shader->flags |= SHADER_SKY;
+	shader->flags |= SHADER_SKYPARMS;
 	shader->sort = SHADER_SORT_SKY;
 }
 
@@ -1920,7 +1920,7 @@ void Shader_FreeShader( ref_shader_t *shader )
 	shaderpass_t *pass;
 
 	shaderNum = shader - r_shaders;
-	if( ( shader->flags & SHADER_SKY ) && r_skydomes[shaderNum] )
+	if( ( shader->flags & SHADER_SKYPARMS ) && r_skydomes[shaderNum] )
 	{
 		R_FreeSkydome( r_skydomes[shaderNum] );
 		r_skydomes[shaderNum] = NULL;
@@ -2079,7 +2079,7 @@ static void Shader_Readpass( ref_shader_t *shader, const char **ptr )
 		break;
 	}
 
-	if( ( shader->flags & SHADER_SKY ) && ( shader->flags & SHADER_DEPTHWRITE ) )
+	if( ( shader->flags & SHADER_SKYPARMS ) && ( shader->flags & SHADER_DEPTHWRITE ) )
 	{
 		if( pass->flags & GLSTATE_DEPTHWRITE )
 			pass->flags &= ~GLSTATE_DEPTHWRITE;
@@ -2368,7 +2368,7 @@ void Shader_Finish( ref_shader_t *s )
 			}
 		}
 
-		if( !( s->flags & SHADER_SKY ) && !s->sort )
+		if( !( s->flags & SHADER_SKYPARMS ) && !s->sort )
 		{
 			if( s->flags & SHADER_DEPTHWRITE || ( opaque != -1 && s->passes[opaque].flags & GLSTATE_ALPHAFUNC ) )
 				s->sort = SHADER_SORT_ALPHATEST;
@@ -2407,7 +2407,7 @@ void Shader_Finish( ref_shader_t *s )
 				s->sort = SHADER_SORT_ALPHATEST;
 		}
 
-		if( !( pass->flags & GLSTATE_DEPTHWRITE ) && !( s->flags & SHADER_SKY ) )
+		if( !( pass->flags & GLSTATE_DEPTHWRITE ) && !( s->flags & SHADER_SKYPARMS ) )
 		{
 			pass->flags |= GLSTATE_DEPTHWRITE;
 			s->flags |= SHADER_DEPTHWRITE;
@@ -2417,7 +2417,7 @@ void Shader_Finish( ref_shader_t *s )
 	if( !s->sort )
 		s->sort = SHADER_SORT_OPAQUE;
 
-	if( ( s->flags & SHADER_SKY ) && ( s->flags & SHADER_DEPTHWRITE ) )
+	if( ( s->flags & SHADER_SKYPARMS ) && ( s->flags & SHADER_DEPTHWRITE ) )
 		s->flags &= ~SHADER_DEPTHWRITE;
 
 	Shader_SetFeatures( s );
@@ -2638,7 +2638,7 @@ ref_shader_t *R_LoadShader( const char *name, int type, bool forceDefault, int a
 			s->type = SHADER_FARBOX;
 			s->features = MF_STCOORDS;
 			s->sort = SHADER_SORT_SKY;
-			s->flags = SHADER_SKY;
+			s->flags = SHADER_SKYPARMS;
 			s->numpasses = 1;
 			s->name = Shader_Malloc( length + 1 + sizeof( shaderpass_t ) * s->numpasses );
 			strcpy( s->name, shortname );
@@ -2655,7 +2655,7 @@ ref_shader_t *R_LoadShader( const char *name, int type, bool forceDefault, int a
 			s->features = MF_STCOORDS;
 			s->sort = SHADER_SORT_SKY;
 			s->numpasses = 1;
-			s->flags = SHADER_SKY;
+			s->flags = SHADER_SKYPARMS;
 			s->name = Shader_Malloc( length + 1 + sizeof( shaderpass_t ) * s->numpasses );
 			strcpy( s->name, shortname );
 			s->passes = ( shaderpass_t * )( ( byte * )s->name + length + 1 );

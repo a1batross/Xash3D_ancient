@@ -1904,7 +1904,7 @@ static void Mod_Finish( const lump_t *faces, const lump_t *light, vec3_t gridSiz
 		{
 			if( globalFog && surf->mesh && surf->fog != testFog )
 			{
-				if( !( surf->shader->flags & SHADER_SKY ) && !surf->shader->fog_dist )
+				if( !( surf->shader->flags & SHADER_SKYPARMS ) && !surf->shader->fog_dist )
 					globalFog = false;
 			}
 
@@ -1929,7 +1929,7 @@ static void Mod_Finish( const lump_t *faces, const lump_t *light, vec3_t gridSiz
 		{
 			if( globalFog && surf->mesh && surf->fog != testFog )
 			{
-				if( !( surf->shader->flags & SHADER_SKY ) && !surf->shader->fog_dist )
+				if( !( surf->shader->flags & SHADER_SKYPARMS ) && !surf->shader->fog_dist )
 					globalFog = false;
 			}
 

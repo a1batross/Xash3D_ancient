@@ -46,7 +46,7 @@ bool R_SurfPotentiallyLit( msurface_t *surf )
 		return false;
 
 	shader = surf->shader;
-	if( ( shader->flags & ( SHADER_SKY|SHADER_FLARE ) ) || !shader->numpasses )
+	if( ( shader->flags & ( SHADER_SKYPARMS|SHADER_FLARE ) ) || !shader->numpasses )
 		return false;
 
 	return ( surf->mesh && ( surf->facetype != MST_FLARE ) /* && (surf->facetype != MST_TRISURF)*/ );

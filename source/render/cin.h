@@ -65,18 +65,18 @@ typedef struct
 
 	bool		new_frame;
 
-	int			s_rate;
-	int			s_width;
-	int			s_channels;
+	int		s_rate;
+	int		s_width;
+	int		s_channels;
 
-	int			width;
-	int			height;
+	int		width;
+	int		height;
 
-	file_t			*file;
-	int			headerlen;
+	file_t		*file;
+	int		headerlen;
 
-	unsigned int time;				// Sys_Milliseconds for first cinematic frame
-	unsigned int frame;
+	float		time;		// Sys_Milliseconds for first cinematic frame
+	uint		frame;
 
 	byte		*pic;
 	byte		*pic_pending;

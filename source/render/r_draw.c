@@ -70,16 +70,23 @@ void R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, f
 R_DrawStretchRaw
 =============
 */
-void R_DrawStretchRaw( int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw )
+void R_DrawStretchRaw( int x, int y, int w, int h, int cols, int rows, const byte *data, bool redraw )
 {
 	int samples = 3;
 
 	GL_Bind( 0, r_cintexture );
 
-	R_Upload32( &data, cols, rows, TF_CINEMATIC, NULL, NULL, &samples, ( cols == r_cintexture->srcWidth && rows == r_cintexture->srcHeight ) );
-
-	r_cintexture->srcWidth = cols;
-	r_cintexture->srcHeight = rows;
+	if( cols == r_cintexture->width && rows == r_cintexture->height )
+	{
+		pglTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, cols, rows, GL_RGBA, GL_UNSIGNED_BYTE, data );
+	}
+	else
+	{
+		r_cintexture->width = cols;
+		r_cintexture->height = rows;
+		pglTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, cols, rows, 0, GL_RGBA, GL_UNSIGNED_BYTE, data );
+	}
+	R_CheckForErrors();
 
 	pglBegin( GL_QUADS );
 	pglTexCoord2f( 0, 0 );

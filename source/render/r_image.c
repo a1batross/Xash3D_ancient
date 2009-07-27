@@ -3381,12 +3381,20 @@ void R_InitShadowmapTexture( texture_t **texture, int id, int screenWidth, int s
 R_InitCinematicTexture
 ==================
 */
-static void R_InitCinematicTexture( void )
+static rgbdata_t *R_InitCinematicTexture( int *flags, int *samples )
 {
-	// reserve a dummy texture slot
-	r_cintexture = &r_textures[r_numTextures++];
-	pglGenTextures( 1, &r_cintexture->texnum );
-	r_cintexture->depth = 1;
+	// light corona texture
+	r_image.width = r_image.height = 256;
+	r_image.numMips = r_image.depth = 1;
+	r_image.buffer = data2D;
+	r_image.flags = IMAGE_HAS_COLOR;
+	r_image.type = PF_RGBA_32;
+	r_image.size = r_image.width * r_image.height * 4;
+
+	*flags = TF_STATIC|TF_NOMIPMAP|TF_NOPICMIP|TF_UNCOMPRESSED|TF_CLAMP;
+	*samples = 4;
+
+	return &r_image;
 }
 
 /*
@@ -3418,6 +3426,7 @@ static void R_InitBuiltinTextures( void )
 		{ "***r_particletexture***", &r_particletexture, R_InitParticleTexture },
 		{ "***r_fogtexture***", &r_fogtexture, R_InitFogTexture },
 		{ "***r_coronatexture***", &r_coronatexture, R_InitCoronaTexture },
+		{ "***r_cintexture***", &r_cintexture, R_InitCinematicTexture },
 		{ NULL, NULL, NULL }
 	};
 	size_t i, num_builtin_textures = sizeof( textures ) / sizeof( textures[0] ) - 1;
@@ -3553,7 +3562,6 @@ void R_InitImages( void )
 	// set texture parameters
 	R_SetTextureParameters();
 
-	R_InitCinematicTexture();
 	R_InitBuiltinTextures();
 	R_InitBloomTextures();
 }

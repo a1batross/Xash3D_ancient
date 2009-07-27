@@ -139,7 +139,7 @@ static meshbuffer_t *R_AddSurfaceToList( msurface_t *surf, unsigned int clipflag
 		return NULL;
 
 	shader = ((r_drawworld->integer == 2) ? R_OcclusionShader() : surf->shader);
-	if( shader->flags & SHADER_SKY )
+	if( shader->flags & SHADER_SKYPARMS )
 	{
 		bool vis = R_AddSkySurface( surf );
 		if( ( RI.params & RP_NOSKY ) && vis )

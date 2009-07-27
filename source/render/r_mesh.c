@@ -316,7 +316,7 @@ static void R_BatchMeshBuffer( const meshbuffer_t *mb, const meshbuffer_t *nextm
 		case mod_brush:
 			MB_NUM2SHADER( mb->shaderkey, shader );
 
-			if( shader->flags & SHADER_SKY )
+			if( shader->flags & SHADER_SKYPARMS )
 			{	// draw sky
 				if( !( RI.params & RP_NOSKY ) )
 					R_DrawSky( shader );
@@ -516,7 +516,7 @@ void R_DrawPortals( void )
 		{
 			MB_NUM2SHADER( mb->shaderkey, shader );
 
-			if( shader->flags & SHADER_SKY )
+			if( shader->flags & SHADER_SKYPARMS )
 			{
 				R_DrawSky( shader );
 				RI.params |= RP_NOSKY;

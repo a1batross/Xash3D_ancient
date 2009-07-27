@@ -1090,7 +1090,7 @@ static bool R_VertexTCBase( const shaderpass_t *pass, int unit, mat4x4_t matrix 
 			// distance to fog
 			dist = RI.fog_dist_to_eye[r_texFog-r_worldbrushmodel->fogs];
 
-			if( r_currentShader->flags & SHADER_SKY )
+			if( r_currentShader->flags & SHADER_SKYPARMS )
 			{
 				if( dist > 0 )
 					VectorMA( RI.viewOrigin, -dist, fogPlane->normal, viewtofog );
@@ -1640,7 +1640,7 @@ void R_ModifyColor( const shaderpass_t *pass )
 		fogShaderDistScale = 1.0 / (r_colorFog->shader->fog_dist - r_colorFog->shader->fog_clearDist);
 		dist = RI.fog_dist_to_eye[r_colorFog-r_worldbrushmodel->fogs];
 
-		if( r_currentShader->flags & SHADER_SKY )
+		if( r_currentShader->flags & SHADER_SKYPARMS )
 		{
 			if( dist > 0 )
 				VectorScale( fogPlane->normal, -dist, viewtofog );
@@ -2572,7 +2572,7 @@ void R_RenderMeshBuffer( const meshbuffer_t *mb )
 
 	// can we fog the geometry with alpha texture?
 	r_texFog = ( fog && ( ( r_currentShader->sort <= SHADER_SORT_ALPHATEST &&
-		( r_currentShader->flags & ( SHADER_DEPTHWRITE|SHADER_SKY ) ) ) || r_currentShader->fog_dist ) ) ? fog : NULL;
+		( r_currentShader->flags & ( SHADER_DEPTHWRITE|SHADER_SKYPARMS ) ) ) || r_currentShader->fog_dist ) ) ? fog : NULL;
 
 	// check if the fog volume is present but we can't use alpha texture
 	r_colorFog = ( fog && !r_texFog ) ? fog : NULL;
@@ -2697,7 +2697,7 @@ void R_RenderMeshBuffer( const meshbuffer_t *mb )
 	if( r_texFog && r_texFog->shader )
 	{
 		r_fogPass.anim_frames[0] = r_fogtexture;
-		if( !r_currentShader->numpasses || r_currentShader->fog_dist || ( r_currentShader->flags & SHADER_SKY ) )
+		if( !r_currentShader->numpasses || r_currentShader->fog_dist || ( r_currentShader->flags & SHADER_SKYPARMS ) )
 			r_fogPass.flags &= ~GLSTATE_DEPTHFUNC_EQ;
 		else
 			r_fogPass.flags |= GLSTATE_DEPTHFUNC_EQ;

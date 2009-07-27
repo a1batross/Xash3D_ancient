@@ -213,7 +213,7 @@ void CL_SetSky_f( void )
 		Msg( "Usage: sky <shadername>\n" );
 		return;
 	}
-	re->RegisterShader( Cmd_Argv(1), SHADER_SKYBOX );
+	re->RegisterShader( Cmd_Argv(1), SHADER_SKY );
 }
 
 /*

@@ -366,7 +366,7 @@ void CL_ParseConfigString( sizebuf_t *msg )
 	// do something apropriate 
 	if( i == CS_SKYNAME && cl.video_prepped )
 	{
-		re->RegisterShader( cl.configstrings[CS_SKYNAME], SHADER_SKYBOX );
+		re->RegisterShader( cl.configstrings[CS_SKYNAME], SHADER_SKY );
 	}
 	else if( i > CS_BACKGROUND_TRACK && i < CS_MODELS )
 	{

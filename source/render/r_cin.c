@@ -79,13 +79,13 @@ R_RunRoQ
 */
 static void R_RunRoQ( cinematics_t *cin )
 {
-	unsigned int frame;
+	uint	frame;
 
-	frame = (Sys_Milliseconds () - cin->time) * (float)(RoQ_FRAMERATE) / 1000;
+	frame = (RI.refdef.time - cin->time) * (float)(RoQ_FRAMERATE);
 	if( frame <= cin->frame )
 		return;
 	if( frame > cin->frame + 1 )
-		cin->time = Sys_Milliseconds () - cin->frame * 1000 / RoQ_FRAMERATE;
+		cin->time = RI.refdef.time - cin->frame / RoQ_FRAMERATE;
 
 	cin->pic = cin->pic_pending;
 	cin->pic_pending = R_ReadNextRoQFrame( cin );
@@ -95,7 +95,7 @@ static void R_RunRoQ( cinematics_t *cin )
 		FS_Seek( cin->file, cin->headerlen, SEEK_SET );
 		cin->frame = 0;
 		cin->pic_pending = R_ReadNextRoQFrame( cin );
-		cin->time = Sys_Milliseconds ();
+		cin->time = RI.refdef.time;
 	}
 
 	cin->new_frame = true;
@@ -163,7 +163,7 @@ static cinematics_t *R_OpenCinematics( char *filename )
 	cin->headerlen = FS_Tell( cin->file );
 	cin->frame = 0;
 	cin->pic = cin->pic_pending = R_ReadNextRoQFrame( cin );
-	cin->time = Sys_Milliseconds ();
+	cin->time = RI.refdef.time;
 	cin->new_frame = true;
 
 	return cin;
@@ -192,7 +192,7 @@ static texture_t *R_ResampleCinematicFrame( r_cinhandle_t *handle )
 		r_cin.flags = 0;
 		r_cin.palette = NULL;
 		r_cin.buffer = cin->pic;
-		r_cin.numMips = 1;
+		r_cin.numMips = r_cin.depth = 1;
 		handle->image = R_LoadTexture( handle->name, &r_cin, 3, TF_CINEMATIC );
 		cin->new_frame = false;
 	}
@@ -205,8 +205,8 @@ static texture_t *R_ResampleCinematicFrame( r_cinhandle_t *handle )
 	image = handle->image;
 	GL_Bind( 0, image );
 	if( image->srcWidth != cin->width || image->srcHeight != cin->height )
-		R_Upload32( &cin->pic, image->srcWidth, image->srcHeight, TF_CINEMATIC, &(image->width), &(image->height), &(image->samples), false );
-	else R_Upload32( &cin->pic, image->srcWidth, image->srcHeight, TF_CINEMATIC, &(image->width), &(image->height), &(image->samples), true );
+		pglTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, image->srcWidth, image->srcHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, cin->pic );
+	else pglTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, image->srcWidth, image->srcHeight, GL_RGBA, GL_UNSIGNED_BYTE, cin->pic );
 
 	image->srcWidth = cin->width;
 	image->srcHeight = cin->height;

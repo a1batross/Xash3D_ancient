@@ -8,10 +8,10 @@
 #include "ref_params.h"
 
 // shader types used for shader loading
-#define SHADER_SKYBOX		0	// sky box shader
-#define SHADER_FONT			1	// special case for displayed fonts
-#define SHADER_NOMIP		2	// 2d images
-#define SHADER_GENERIC		3	// generic shader
+#define SHADER_SKY			1	// sky box shader
+#define SHADER_FONT			2	// special case for displayed fonts
+#define SHADER_NOMIP		3	// 2d images
+#define SHADER_GENERIC		4	// generic shader
 
 typedef struct
 {

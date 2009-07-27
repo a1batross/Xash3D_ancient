@@ -49,7 +49,7 @@ enum
 enum
 {
 	SHADER_DEPTHWRITE				= 1 << 0,
-	SHADER_SKY						= 1 << 1,
+	SHADER_SKYPARMS					= 1 << 1,
 	SHADER_POLYGONOFFSET			= 1 << 2,
 	SHADER_CULL_FRONT				= 1 << 3,
 	SHADER_CULL_BACK				= 1 << 4,

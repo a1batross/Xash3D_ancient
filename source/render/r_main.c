@@ -2147,7 +2147,7 @@ shader_t Mod_RegisterShader( const char *name, int shaderType )
 	case SHADER_NOMIP:
 		src = R_RegisterPic( name );
 		break;
-	case SHADER_SKYBOX:
+	case SHADER_SKY:
 	case SHADER_GENERIC:
 		src = R_RegisterShader( name );
 		break;

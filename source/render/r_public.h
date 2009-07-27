@@ -193,7 +193,7 @@ void		R_AddLightToScene( const vec3_t org, float intensity, float r, float g, fl
 bool		R_AddPolyToScene( const poly_t *poly );
 void		R_AddLightStyleToScene( int style, float r, float g, float b );
 void		R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, shader_t shader );
-void		R_DrawStretchRaw( int x, int y, int w, int h, int cols, int rows, byte *data, int frame );
+void		R_DrawStretchRaw( int x, int y, int w, int h, int cols, int rows, const byte *data, bool redraw );
 
 void		R_SetCustomColor( int num, int r, int g, int b );
 void		R_LightForOrigin( const vec3_t origin, vec3_t dir, vec4_t ambient, vec4_t diffuse, float radius );
