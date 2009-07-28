@@ -438,11 +438,11 @@ void R_DrawShadowmaps( void )
 		RI.params = RP_SHADOWMAPVIEW|RP_FLIPFRONTFACE|RP_OLDVIEWCLUSTER; // make sure RP_WORLDSURFVISIBLE isn't set
 
 		// allocate/resize the texture if needed
-		R_InitShadowmapTexture( &( r_shadowmapTextures[i] ), i, width, height );
+		R_InitShadowmapTexture( &( tr.shadowmapTextures[i] ), i, width, height );
 
-		Com_Assert( (r_shadowmapTextures[i] && r_shadowmapTextures[i]->width && r_shadowmapTextures[i]->height) == 0 );
+		Com_Assert( (tr.shadowmapTextures[i] && tr.shadowmapTextures[i]->width && tr.shadowmapTextures[i]->height) == 0 );
 
-		group->depthTexture = r_shadowmapTextures[i];
+		group->depthTexture = tr.shadowmapTextures[i];
 		textureWidth = group->depthTexture->width;
 		textureHeight = group->depthTexture->height;
 

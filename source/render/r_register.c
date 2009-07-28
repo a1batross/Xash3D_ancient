@@ -529,7 +529,7 @@ void GL_InitCommands( void )
 	r_bloom_sample_size = Cvar_Get( "r_bloom_sample_size", "320", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "bloom rendering viewport size (must be power of two)" );
 	r_bloom_fast_sample = Cvar_Get( "r_bloom_fast_sample", "0", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "enable fast bloom pass" );
 
-	r_environment_color = Cvar_Get( "r_environment_color", "0 0 0", CVAR_ARCHIVE, "map environment light color" );
+	r_environment_color = Cvar_Get( "r_environment_color", "128 128 128", CVAR_ARCHIVE, "map environment light color" );
 	r_ignorehwgamma = Cvar_Get( "r_ignorehwgamma", "0", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "ignore hardware gamma (e.g. not support)" );
 	r_overbrightbits = Cvar_Get( "r_overbrightbits", "1", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "renderer overbright bits" );
 	r_mapoverbrightbits = Cvar_Get( "r_mapoverbrightbits", "2", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "current map overbright bits" );
@@ -591,7 +591,7 @@ void GL_InitCommands( void )
 	r_lodbias = Cvar_Get( "r_lodbias", "0", CVAR_ARCHIVE, "md3 or skm lod bias" );
 	r_lodscale = Cvar_Get( "r_lodscale", "5.0", CVAR_ARCHIVE, "md3 or skm LOD scale factor" );
 
-	r_gamma = Cvar_Get( "r_gamma", "1.0", CVAR_ARCHIVE, "gamma amount" );
+	r_gamma = Cvar_Get( "vid_gamma", "1.0", CVAR_ARCHIVE, "gamma amount" );
 	r_colorbits = Cvar_Get( "r_colorbits", "0", CVAR_ARCHIVE | CVAR_LATCH_VIDEO, "pixelformat color bits (0 - auto)" );
 	r_depthbits = Cvar_Get( "r_depthbits", "0", CVAR_ARCHIVE | CVAR_LATCH_VIDEO, "pixelformat depth bits (0 - auto)" );
 	r_texturebits = Cvar_Get( "r_texturebits", "0", CVAR_ARCHIVE | CVAR_LATCH_VIDEO, "no description" );
@@ -632,7 +632,7 @@ void GL_RemoveCommands( void )
 	Cmd_RemoveCommand( "shaderlist" );
 	Cmd_RemoveCommand( "shaderdump" );
 	Cmd_RemoveCommand( "modellist" );
-	Cmd_RemoveCommand( "imagelist" );
+	Cmd_RemoveCommand( "texturelist" );
 	Cmd_RemoveCommand( "glslprogramlist" );
 	Cmd_RemoveCommand( "glslprogramdump" );
 	Cmd_RemoveCommand( "r_info");
@@ -755,7 +755,8 @@ void GL_BuildGammaTable( void )
 
 void GL_UpdateGammaRamp( void )
 {
-	if( !glState.hwGamma ) return;
+	if( r_ignorehwgamma->integer ) return;
+	if( !glConfig.deviceSupportsGamma ) return;
 
 	GL_BuildGammaTable();
 

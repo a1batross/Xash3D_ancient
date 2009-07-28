@@ -20,8 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef __R_SHADOW_H__
 #define __R_SHADOW_H__
 
-#define MAX_SHADOWGROUPS    32
-
 typedef struct shadowGroup_s
 {
 	unsigned int		bit;

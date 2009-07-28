@@ -60,7 +60,8 @@ vec2_t *coordsArray;
 vec2_t *lightmapCoordsArray[LM_STYLES];
 rgba_t colorArray[MAX_ARRAY_VERTS];
 
-rbackacc_t r_backacc;
+ref_globals_t tr;
+ref_backacc_t r_backacc;
 
 bool r_triangleOutlines;
 
@@ -1251,10 +1252,10 @@ static _inline texture_t *R_ShaderpassTex( const shaderpass_t *pass, int unit )
 	if( pass->anim_fps )
 		return pass->anim_frames[(int)( pass->anim_fps * r_currentShaderTime ) % pass->anim_numframes];
 	if( pass->flags & SHADERPASS_LIGHTMAP )
-		return r_lightmapTextures[r_superLightStyle->lightmapNum[r_lightmapStyleNum[unit]]];
+		return tr.lightmapTextures[r_superLightStyle->lightmapNum[r_lightmapStyleNum[unit]]];
 	if( pass->flags & SHADERPASS_PORTALMAP )
-		return r_portaltexture;
-	return ( pass->anim_frames[0] ? pass->anim_frames[0] : r_notexture );
+		return tr.portaltexture1;
+	return ( pass->anim_frames[0] ? pass->anim_frames[0] : tr.defaultTexture );
 }
 
 /*
@@ -1754,7 +1755,7 @@ static void R_SetShaderState( void )
 	state = 0;
 	if( r_currentShader->flags & SHADER_POLYGONOFFSET || RI.params & RP_SHADOWMAPVIEW )
 		state |= GLSTATE_OFFSET_FILL;
-	if( r_currentShader->flags & SHADER_FLARE )
+	if( r_currentShader->type == SHADER_FLARE )
 		state |= GLSTATE_NO_DEPTH_TEST;
 	r_currentShaderState = state;
 }
@@ -1918,7 +1919,7 @@ static void R_RenderMeshGLSL_Material( void )
 		if( r_lightmap->integer || ( r_currentDlightBits && !pass->anim_frames[5] ) )
 		{
 			if( !srcAlpha )
-				base = r_whitetexture;		// white
+				base = tr.whiteTexture;		// white
 			else
 				programFeatures |= PROGRAM_APPLY_BASETEX_ALPHA_ONLY;
 		}
@@ -2034,7 +2035,7 @@ static void R_RenderMeshGLSL_Material( void )
 				programFeatures |= ( PROGRAM_APPLY_LIGHTSTYLE0 << i );
 
 				r_lightmapStyleNum[i+4] = i;
-				GL_Bind( i+4, r_lightmapTextures[r_superLightStyle->lightmapNum[i]] ); // lightmap
+				GL_Bind( i+4, tr.lightmapTextures[r_superLightStyle->lightmapNum[i]] ); // lightmap
 				GL_SetTexCoordArrayMode( GL_TEXTURE_COORD_ARRAY );
 				R_VertexTCBase( pass, i+4, unused );
 			}
@@ -2144,15 +2145,15 @@ R_RenderMeshGLSL_Distortion
 */
 static void R_RenderMeshGLSL_Distortion( void )
 {
-	int state, tcgen;
-	int program, object;
-	int programFeatures = 0;
-	mat4x4_t unused;
-	shaderpass_t *pass = r_accumPasses[0];
-	texture_t *portaltexture, *portaltexture2;
-	bool frontPlane;
+	int		state, tcgen;
+	int		program, object;
+	int		programFeatures = 0;
+	mat4x4_t		unused;
+	shaderpass_t	*pass = r_accumPasses[0];
+	texture_t		*portaltexture1, *portaltexture2;
+	bool		frontPlane;
 
-	if( !( RI.params & ( RP_PORTALCAPTURED|RP_PORTALCAPTURED2 ) ) )
+	if( !( RI.params & ( RP_PORTALCAPTURED|RP_PORTALCAPTURED2 )))
 		return;
 
 	if( GL_Support( R_GLSL_BRANCHING ))
@@ -2162,8 +2163,8 @@ static void R_RenderMeshGLSL_Distortion( void )
 	if( RI.params & RP_CLIPPLANE )
 		programFeatures |= PROGRAM_APPLY_CLIPPING;
 
-	portaltexture = ( RI.params & RP_PORTALCAPTURED ) ? r_portaltexture : r_blacktexture;
-	portaltexture2 = ( RI.params & RP_PORTALCAPTURED2 ) ? r_portaltexture2 : r_blacktexture;
+	portaltexture1 = ( RI.params & RP_PORTALCAPTURED ) ? tr.portaltexture1 : tr.blackTexture;
+	portaltexture2 = ( RI.params & RP_PORTALCAPTURED2 ) ? tr.portaltexture2 : tr.blackTexture;
 
 	frontPlane = (PlaneDiff( RI.viewOrigin, &RI.portalPlane ) > 0 ? true : false);
 
@@ -2185,7 +2186,8 @@ static void R_RenderMeshGLSL_Distortion( void )
 	GL_SetState( state );
 
 	if( pass->anim_frames[1] /* && ( RI.params & RP_PORTALCAPTURED )*/ )
-	{	// eyeDot
+	{	
+		// eyeDot
 		programFeatures |= PROGRAM_APPLY_EYEDOT;
 
 		pass->tcgen = TC_GEN_SVECTORS;
@@ -2194,7 +2196,7 @@ static void R_RenderMeshGLSL_Distortion( void )
 		R_VertexTCBase( pass, 1, unused );
 	}
 
-	GL_Bind( 2, portaltexture );            // reflection
+	GL_Bind( 2, portaltexture1 );           // reflection
 	GL_Bind( 3, portaltexture2 );           // refraction
 
 	pass->tcgen = tcgen;    // restore original tcgen
@@ -2207,7 +2209,7 @@ static void R_RenderMeshGLSL_Distortion( void )
 		pglUseProgramObjectARB( object );
 
 		R_UpdateProgramUniforms( program, RI.viewOrigin, vec3_origin, vec3_origin, NULL, NULL, NULL,
-			frontPlane, r_portaltexture->width, r_portaltexture->height, 0, 0 );
+			frontPlane, tr.portaltexture1->width, tr.portaltexture1->height, 0, 0 );
 
 		R_FlushArrays();
 
@@ -2577,7 +2579,7 @@ void R_RenderMeshBuffer( const meshbuffer_t *mb )
 	// check if the fog volume is present but we can't use alpha texture
 	r_colorFog = ( fog && !r_texFog ) ? fog : NULL;
 
-	if( r_currentShader->flags & SHADER_FLARE )
+	if( r_currentShader->type == SHADER_FLARE )
 		r_currentDlightBits = 0;
 	else
 		r_currentDlightBits = surf ? mb->dlightbits : 0;
@@ -2696,7 +2698,7 @@ void R_RenderMeshBuffer( const meshbuffer_t *mb )
 
 	if( r_texFog && r_texFog->shader )
 	{
-		r_fogPass.anim_frames[0] = r_fogtexture;
+		r_fogPass.anim_frames[0] = tr.fogTexture;
 		if( !r_currentShader->numpasses || r_currentShader->fog_dist || ( r_currentShader->flags & SHADER_SKYPARMS ) )
 			r_fogPass.flags &= ~GLSTATE_DEPTHFUNC_EQ;
 		else

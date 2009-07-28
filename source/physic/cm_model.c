@@ -1257,7 +1257,7 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 		else Host_Error( "CM_LoadMap: %s has wrong version number (%i should be %i)\n", name, hdr->version, RFIDBSP_VERSION );	
 		break;
 	case IDBSPMODHEADER:
-		if( hdr->version == Q3IDBSP_VERSION || Q3IDBSP_VERSION == RTCWBSP_VERSION )
+		if( hdr->version == Q3IDBSP_VERSION || hdr->version == RTCWBSP_VERSION )
 			extended = false;
 		else Host_Error( "CM_LoadMap: %s has wrong version number (%i should be %i)\n", name, hdr->version, Q3IDBSP_VERSION );	
 		break;

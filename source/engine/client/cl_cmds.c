@@ -192,9 +192,8 @@ void CL_LevelShot_f( void )
 	string	checkname;	
 
 	if( !cl.need_levelshot ) return;
-
 	// check for exist
-	com.sprintf( checkname, "media/background/%s.png", cl.configstrings[CS_NAME] );
+	com.sprintf( checkname, "levelshots/%s.png", cl.configstrings[CS_NAME] );
 	if( !FS_FileExists( checkname )) re->ScrShot( checkname, true );
 	cl.need_levelshot = false; // done
 }

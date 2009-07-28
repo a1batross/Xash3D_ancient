@@ -17,12 +17,13 @@ meshbuffer_t  pic_mbuffer;
 R_DrawStretchPic
 ===============
 */
-void R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, shader_t shadernum )
+void R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, shader_t handle )
 {
 	int		bcolor;
-	ref_shader_t	*shader = &r_shaders[shadernum];	// FIXME: check bounds
+	ref_shader_t	*shader;
 
-	if( !shader ) return;
+	if( handle < 0 || handle > MAX_SHADERS || !(shader = &r_shaders[handle]))
+		return;
 
 	// lower-left
 	Vector2Set( pic_xyz[0], x, y );
@@ -59,10 +60,8 @@ void R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, f
 	pic_mbuffer.shaderkey = shader->sortkey;
 
 	// upload video right before rendering
-	if( shader->flags & SHADER_VIDEOMAP )
-		R_UploadCinematicShader( shader );
-
-	R_PushMesh( &pic_mesh, MF_TRIFAN | shader->features | ( r_shownormals->integer ? MF_NORMALS : 0 ) );
+	if( shader->flags & SHADER_VIDEOMAP ) R_UploadCinematicShader( shader );
+	R_PushMesh( &pic_mesh, MF_TRIFAN|shader->features | ( r_shownormals->integer ? MF_NORMALS : 0 ));
 }
 
 /*
@@ -74,16 +73,16 @@ void R_DrawStretchRaw( int x, int y, int w, int h, int cols, int rows, const byt
 {
 	int samples = 3;
 
-	GL_Bind( 0, r_cintexture );
+	GL_Bind( 0, tr.cinTexture );
 
-	if( cols == r_cintexture->width && rows == r_cintexture->height )
+	if( cols == tr.cinTexture->width && rows == tr.cinTexture->height )
 	{
 		pglTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, cols, rows, GL_RGBA, GL_UNSIGNED_BYTE, data );
 	}
 	else
 	{
-		r_cintexture->width = cols;
-		r_cintexture->height = rows;
+		tr.cinTexture->width = cols;
+		tr.cinTexture->height = rows;
 		pglTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, cols, rows, 0, GL_RGBA, GL_UNSIGNED_BYTE, data );
 	}
 	R_CheckForErrors();
@@ -100,14 +99,10 @@ void R_DrawStretchRaw( int x, int y, int w, int h, int cols, int rows, const byt
 	pglEnd();
 }
 
-void R_DrawSetParms( shader_t handle, kRenderMode_t rendermode, int frame )
-{
-}
-
 void R_DrawGetParms( int *w, int *h, int *f, int frame, shader_t handle )
 {
-	ref_shader_t *shader;
-	int cur = 0;
+	ref_shader_t	*shader;
+	int		cur = 0;
 
 	if( !w && !h && !f ) return;
 
@@ -128,6 +123,26 @@ void R_DrawGetParms( int *w, int *h, int *f, int frame, shader_t handle )
 	if( w ) *w = (int)shader->passes[0].anim_frames[cur]->srcWidth;
 	if( h ) *h = (int)shader->passes[0].anim_frames[cur]->srcHeight;
 	if( f ) *f = (int)shader->passes[0].anim_numframes;
+}
+
+void R_DrawSetParms( shader_t handle, kRenderMode_t rendermode, int frame )
+{
+	ref_shader_t	*shader;
+
+	if( handle < 0 || handle > MAX_SHADERS || !(shader = &r_shaders[handle]) || !shader->numpasses )
+		return;
+
+	glState.draw_rendermode = rendermode;
+
+	if( !shader->passes[0].anim_numframes )
+		return;
+
+	// change frame if need
+//	if( shader->passes[0].flags & SHADERSTAGE_FRAMES )
+	{
+		// make sure what frame inbound
+		glState.draw_frame = bound( 0, frame, shader->passes[0].anim_numframes - 1 );
+	}
 }
 
 void R_DrawFill( float x, float y, float w, float h )

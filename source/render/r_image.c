@@ -8,7 +8,6 @@
 #include "mathlib.h"
 #include "const.h"
 
-#define MAX_TEXTURES		4096
 #define TEXTURES_HASH_SIZE		64
 
 static rgbdata_t *R_LoadImage( script_t *script, const char *name, const byte *buf, size_t size, int *samples, texFlags_t *flags );
@@ -22,27 +21,12 @@ static byte	r_glowTable[256][3];	// auto LUMA table
 static byte	r_gammaTable[256];		// adjust screenshot gamma
 
 static texture_t	r_textures[MAX_TEXTURES];
-texture_t		*r_lightmapTextures[MAX_TEXTURES];
 static texture_t	*r_texturesHashTable[TEXTURES_HASH_SIZE];
 static int	r_numTextures;
 static byte	*r_imagepool;		// immediate buffers
 static byte	*r_texpool;		// texture_t permanent chain
 static byte	data2D[256*256*4];
 static rgbdata_t	r_image;			// generic pixelbuffer used for internal textures
-	
-texture_t		*r_cintexture;      	// cinematic texture
-texture_t		*r_portaltexture;   	// portal view
-texture_t		*r_portaltexture2;  	// refraction image for distortions
-texture_t		*r_notexture;       	// use for bad textures
-texture_t		*r_particletexture; 	// little dot for particles
-texture_t		*r_whitetexture;
-texture_t		*r_blacktexture;
-texture_t		*r_blankbumptexture;
-texture_t		*r_dlighttexture;
-texture_t		*r_fogtexture;
-texture_t		*r_coronatexture;
-texture_t		*r_defaultConchars;
-texture_t		*r_shadowmapTextures[MAX_SHADOWGROUPS];
 
 const vec3_t r_cubeMapAngles[6] =
 {
@@ -85,6 +69,7 @@ static struct
 	GLuint		glTarget;
 	GLuint		glSamples;
 	GLuint		texTarget;
+	texType_t		texType;
 
 	uint		tflags;	// TF_ flags	
 	uint		flags;	// IMAGE_ flags
@@ -126,7 +111,7 @@ void GL_Bind( GLenum tmu, texture_t *texture )
 {
 	GL_SelectTexture( tmu );
 
-	if( r_nobind->integer ) texture = r_notexture;	// performance evaluation option
+	if( r_nobind->integer ) texture = tr.defaultTexture;	// performance evaluation option
 	if( glState.currentTextures[tmu] == texture->texnum )
 		return;
 
@@ -564,7 +549,6 @@ void R_RoundImageDimensions( int *width, int *height, int *depth )
 	if( GL_Support( R_ARB_TEXTURE_NPOT_EXT ))
 		return; // nothing to resample
 
-
 	if( *depth > 1 && !GL_Support( R_TEXTURE_3D_EXT ))
 		return; // nothing to resample
 
@@ -863,6 +847,15 @@ bool R_GetPixelFormat( const char *name, rgbdata_t *pic, uint tex_flags )
 	h = image_desc.height;
 	d = image_desc.depth;
 	s = w * h * d;
+
+	// apply texture type (R_ShowTextures uses it)
+	if( image_desc.format == PF_RGBA_GN )
+		image_desc.texType = TEX_SYSTEM;
+	else if( image_desc.tflags & (TF_NOPICMIP|TF_NOMIPMAP))
+		image_desc.texType = TEX_NOMIP;
+	else if( image_desc.tflags & TF_SKYSIDE )
+		image_desc.texType = TEX_SKYBOX;
+	else image_desc.texType = TEX_GENERIC;
 
 	// calc immediate buffers
 	R_RoundImageDimensions( &w, &h, &d );
@@ -1349,7 +1342,7 @@ static rgbdata_t *R_HeightMap( rgbdata_t *in, float bumpScale )
 	// make sure what we processing RGBA image
 	in = R_ForceImageToRGBA( in );
 	width = in->width, height = in->height;
-	out = image_desc.source;
+	out = image_desc.source = Mem_Realloc( r_temppool, image_desc.source, width * height * 4 );
 
 	if( !bumpScale ) bumpScale = 1.0f;
 	bumpScale *= max( 0, r_lighting_bumpscale->value );
@@ -2235,7 +2228,7 @@ static rgbdata_t *R_ParseScrapBlock( script_t *script, int *samples, texFlags_t 
 	Com_ReadToken( script, 0, &token );
 	if( com.stricmp( token.string, "(" ))
 	{
-		MsgDev( D_WARN, "expected '(', found '%s' instead for 'makeGlow'\n", token.string );
+		MsgDev( D_WARN, "expected '(', found '%s' instead for 'scrapBlock'\n", token.string );
 		return NULL;
 	}
 
@@ -2520,11 +2513,7 @@ static rgbdata_t *R_ParseDepthmap( script_t *script, int *samples, texFlags_t *f
 	}
 
 	pic2 = R_LoadImage( script, token.string, NULL, 0, &samples2, flags );
-	if( !pic2 )
-	{
-		FS_FreeImage( pic1 );
-		return NULL;
-	}
+	if( !pic2 ) return pic1; // don't free normalmap
 
 	Com_ReadToken( script, 0, &token );
 	if( com.stricmp( token.string, ")" ))
@@ -2541,9 +2530,8 @@ static rgbdata_t *R_ParseDepthmap( script_t *script, int *samples, texFlags_t *f
 		MsgDev( D_WARN, "images for 'mergeDepthmap' have mismatched dimensions [%ix%i] != [%ix%i]\n",
 			pic1->width, pic1->height, pic2->width, pic2->height );
 
-		FS_FreeImage( pic1 );
 		FS_FreeImage( pic2 );
-		return NULL;
+		return pic1; // don't free normalmap
 	}
 
 	*samples = 4;
@@ -2767,10 +2755,7 @@ static void R_UploadTexture( rgbdata_t *pic, texture_t *tex )
 			else
 			{
 				if( image_desc.depth == 1 )
-				{
-					if( tex->flags & TF_CUBEMAP ) Msg( "CM Side %i [%ix%ix%i]\n", i, w, h, d );
 					pglTexImage2D( image_desc.texTarget + i, j, tex->format, tex->width, tex->height, 0, image_desc.glFormat, image_desc.glType, data );
-				}
 				else pglTexImage3D( image_desc.texTarget, j, tex->format, tex->width, tex->height, tex->depth, 0, image_desc.glFormat, image_desc.glType, data );
 				if( j == 0 && !GL_Support( R_SGIS_MIPMAPS_EXT )) GL_GenerateMipmaps( data, tex, i );
 			}                              
@@ -2805,7 +2790,7 @@ texture_t *R_LoadTexture( const char *name, rgbdata_t *pic, int samples, texFlag
 		if( r_numTextures == MAX_TEXTURES )
 		{
 			MsgDev( D_ERROR, "R_LoadTexture: gl textures is out\n" );
-			return r_notexture;
+			return tr.defaultTexture;
 		}
 		r_numTextures++;
 	}
@@ -2817,7 +2802,7 @@ texture_t *R_LoadTexture( const char *name, rgbdata_t *pic, int samples, texFlag
 	texture->srcWidth = pic->width;
 	texture->srcHeight = pic->height;
 	texture->depth = pic->depth;
-	texture->touchFrame = registration_sequence;
+	texture->touchFrame = tr.registration_sequence;
 	if( samples <= 0 )
 		texture->samples = R_GetSamples( pic->flags );
 	else texture->samples = samples;
@@ -2826,6 +2811,7 @@ texture_t *R_LoadTexture( const char *name, rgbdata_t *pic, int samples, texFlag
 	R_GetPixelFormat( name, pic, flags );
 	texture->flags = image_desc.tflags;
 	texture->target = image_desc.glTarget;
+	texture->texType = image_desc.texType;
 	texture->type = image_desc.format;
 
 	R_UploadTexture( pic, texture );
@@ -2845,7 +2831,7 @@ texture_t *R_LoadTexture( const char *name, rgbdata_t *pic, int samples, texFlag
 R_FindTexture
 =================
 */
-texture_t *R_FindTexture( const char *name, const byte *buf, size_t size, texFlags_t flags, float bumpScale )
+texture_t *R_FindTexture( const char *name, const byte *buf, size_t size, texFlags_t flags )
 {
 	texture_t		*texture;
 	script_t		*script;
@@ -2873,11 +2859,9 @@ texture_t *R_FindTexture( const char *name, const byte *buf, size_t size, texFla
 
 			if( texture->flags != flags )
 				MsgDev( D_WARN, "reused texture '%s' with mixed flags parameter (%p should be %p)\n", name, texture->flags, flags );
-			if( texture->bumpScale != bumpScale )
-				MsgDev( D_WARN, "reused texture '%s' with another bumpScale parameter (%p should be %p)\n", name, texture->bumpScale, bumpScale );
 
 			// prolonge registration
-			texture->touchFrame = registration_sequence;
+			texture->touchFrame = tr.registration_sequence;
 			return texture;
 		}
 	}
@@ -2949,6 +2933,31 @@ SCREEN SHOTS
 
 ==============================================================================
 */
+/*
+================
+VID_ImageAdjustGamma
+================
+*/
+void VID_ImageAdjustGamma( byte *in, uint width, uint height )
+{
+	int	i, c = width * height;
+	float	g = 1.0f / bound( 0.5f, r_gamma->value, 3.0f );
+	byte	*p = in;
+
+	// screenshots gamma	
+	for( i = 0; i < 256; i++ )
+	{
+		if ( g == 1 ) r_gammaTable[i] = i;
+		else r_gammaTable[i] = bound( 0, 255 * pow((i + 0.5)/255.5f, g ) + 0.5, 255);
+	}
+	for( i = 0; i < c; i++, p += 3 )
+	{
+		p[0] = r_gammaTable[p[0]];
+		p[1] = r_gammaTable[p[1]];
+		p[2] = r_gammaTable[p[2]];
+	}
+}
+
 bool VID_ScreenShot( const char *filename, bool levelshot )
 {
 	rgbdata_t *r_shot;
@@ -2969,7 +2978,7 @@ bool VID_ScreenShot( const char *filename, bool levelshot )
 	pglReadPixels( 0, 0, glState.width, glState.height, GL_RGB, GL_UNSIGNED_BYTE, r_shot->buffer );
 
 	if( levelshot ) flags |= IMAGE_RESAMPLE;
-//	else VID_ImageAdjustGamma( r_shot->buffer, r_shot->width, r_shot->height ); // adjust brightness
+	else VID_ImageAdjustGamma( r_shot->buffer, r_shot->width, r_shot->height ); // adjust brightness
 	Image_Process( &r_shot, 512, 384, flags );
 
 	// write image
@@ -3058,7 +3067,7 @@ static rgbdata_t *R_InitNoTexture( int *flags, int *samples )
 	r_image.numMips = r_image.depth = 1;
 	r_image.buffer = data2D;
 	r_image.flags = IMAGE_HAS_COLOR;
-	r_image.type = PF_RGBA_32;
+	r_image.type = PF_RGBA_GN;
 	r_image.size = r_image.width * r_image.height * 4;
 
 	*flags = 0;
@@ -3103,7 +3112,7 @@ static rgbdata_t *R_InitDynamicLightTexture( int *flags, int *samples )
 	r_image.numMips =  1;
 	r_image.buffer = data2D;
 	r_image.flags = IMAGE_HAS_COLOR;
-	r_image.type = PF_RGBA_32;
+	r_image.type = PF_RGBA_GN;
 	r_image.size = r_image.width * r_image.height * r_image.depth * 4;
 
 
@@ -3170,7 +3179,7 @@ static rgbdata_t *R_InitParticleTexture( int *flags, int *samples )
 	r_image.numMips = r_image.depth = 1;
 	r_image.buffer = data2D;
 	r_image.flags = (IMAGE_HAS_COLOR|IMAGE_HAS_ALPHA);
-	r_image.type = PF_RGBA_32;
+	r_image.type = PF_RGBA_GN;
 	r_image.size = r_image.width * r_image.height * 4;
 
 	*flags = TF_NOPICMIP|TF_NOMIPMAP;
@@ -3248,7 +3257,7 @@ static rgbdata_t *R_InitFogTexture( int *flags, int *samples )
 	r_image.numMips = r_image.depth = 1;
 	r_image.buffer = data2D;
 	r_image.flags = IMAGE_HAS_COLOR;
-	r_image.type = PF_RGBA_32;
+	r_image.type = PF_RGBA_GN;
 	r_image.size = r_image.width * r_image.height * 4;
 
 	*flags = TF_NOMIPMAP|TF_CLAMP;
@@ -3281,7 +3290,7 @@ static rgbdata_t *R_InitCoronaTexture( int *flags, int *samples )
 	r_image.numMips = r_image.depth = 1;
 	r_image.buffer = data2D;
 	r_image.flags = IMAGE_HAS_COLOR;
-	r_image.type = PF_RGBA_32;
+	r_image.type = PF_RGBA_GN;
 	r_image.size = r_image.width * r_image.height * 4;
 
 	*flags = TF_NOMIPMAP|TF_NOPICMIP|TF_UNCOMPRESSED|TF_CLAMP;
@@ -3388,7 +3397,7 @@ static rgbdata_t *R_InitCinematicTexture( int *flags, int *samples )
 	r_image.numMips = r_image.depth = 1;
 	r_image.buffer = data2D;
 	r_image.flags = IMAGE_HAS_COLOR;
-	r_image.type = PF_RGBA_32;
+	r_image.type = PF_RGBA_GN;
 	r_image.size = r_image.width * r_image.height * 4;
 
 	*flags = TF_STATIC|TF_NOMIPMAP|TF_NOPICMIP|TF_UNCOMPRESSED|TF_CLAMP;
@@ -3418,15 +3427,15 @@ static void R_InitBuiltinTextures( void )
 	}
 	textures[] =
 	{
-		{ "***r_notexture***", &r_notexture, R_InitNoTexture },
-		{ "***r_whitetexture***", &r_whitetexture, R_InitWhiteTexture },
-		{ "***r_blacktexture***", &r_blacktexture, R_InitBlackTexture },
-		{ "***r_blankbumptexture***", &r_blankbumptexture, R_InitBlankBumpTexture },
-		{ "***r_dlighttexture***", &r_dlighttexture, R_InitDynamicLightTexture },
-		{ "***r_particletexture***", &r_particletexture, R_InitParticleTexture },
-		{ "***r_fogtexture***", &r_fogtexture, R_InitFogTexture },
-		{ "***r_coronatexture***", &r_coronatexture, R_InitCoronaTexture },
-		{ "***r_cintexture***", &r_cintexture, R_InitCinematicTexture },
+		{ "*default", &tr.defaultTexture, R_InitNoTexture },
+		{ "*fog", &tr.fogTexture, R_InitFogTexture },
+		{ "*white", &tr.whiteTexture, R_InitWhiteTexture },
+		{ "*black", &tr.blackTexture, R_InitBlackTexture },
+		{ "*blankbump", &tr.blankbumpTexture, R_InitBlankBumpTexture },
+		{ "*dlight", &tr.dlightTexture, R_InitDynamicLightTexture },
+		{ "*particle", &tr.particleTexture, R_InitParticleTexture },
+		{ "*corona", &tr.coronaTexture, R_InitCoronaTexture },
+		{ "*cintexture", &tr.cinTexture, R_InitCinematicTexture },
 		{ NULL, NULL, NULL }
 	};
 	size_t i, num_builtin_textures = sizeof( textures ) / sizeof( textures[0] ) - 1;
@@ -3434,6 +3443,7 @@ static void R_InitBuiltinTextures( void )
 	for( i = 0; i < num_builtin_textures; i++ )
 	{
 		Mem_Set( &r_image, 0, sizeof( rgbdata_t ));
+		Mem_Set( data2D, 0xFF, sizeof( data2D ));
 
 		pic = textures[i].init( &flags, &samples );
 		Com_Assert( pic == NULL );
@@ -3442,11 +3452,11 @@ static void R_InitBuiltinTextures( void )
 		if( textures[i].image )
 			*( textures[i].image ) = image;
 	}
-	r_portaltexture = NULL;
-	r_portaltexture2 = NULL;
+	tr.portaltexture1 = NULL;
+	tr.portaltexture2 = NULL;
 
 	data = FS_LoadInternal( "default.dds", &datasize );
-	r_defaultConchars = R_FindTexture( "#default.dds", data, datasize, TF_NOPICMIP|TF_STATIC|TF_NOMIPMAP, 0 );
+	tr.defaultConchars = R_FindTexture( "#default.dds", data, datasize, TF_NOPICMIP|TF_STATIC|TF_NOMIPMAP );
 }
 
 /*
@@ -3474,26 +3484,14 @@ void R_ShowTextures( void )
 	pglClear( GL_COLOR_BUFFER_BIT );
 	pglFinish();
 
-	if( r_showtextures->integer == 1 )
-	{
-		base_w = 32;
-		base_h = 24;
-	}		
-	else
-	{
-		base_w = 16;
-		base_h = 12;
-	}
+	base_w = 16;
+	base_h = 12;
 
 	for( i = j = 0, image = r_textures; i < r_numTextures; i++, image++ )
 	{
-		if( !image->texnum || image == r_cintexture )
-			continue;
+		if( !image->texnum ) continue;
 
-		// FIXME: make cases for system, 2d, bsp, sprite and model textures
-		if( r_showtextures->integer == 1 && image->flags & TF_STATIC )
-			continue;
-		if( r_showtextures->integer == 2 && !(image->flags & TF_STATIC ))
+		if( image->texType != r_showtextures->integer )
 			continue;
 
 		w = glState.width / base_w;
@@ -3537,7 +3535,7 @@ void R_InitImages( void )
 	r_imagepool = Mem_AllocPool( "Immediate TexturePool" );	// for scaling and resampling
 
 	r_numTextures = 0;
-	registration_sequence = 1;
+	tr.registration_sequence = 1;
 	Mem_Set( r_textures, 0, sizeof( r_textures ));
 	Mem_Set( r_texturesHashTable, 0, sizeof( r_texturesHashTable ));
 
@@ -3594,14 +3592,14 @@ void R_ShutdownImages( void )
 		pglDeleteTextures( 1, &image->texnum );
 	}
 
-	Mem_Set( r_lightmapTextures, 0, sizeof( r_lightmapTextures ) );
-	Mem_Set( r_shadowmapTextures, 0, sizeof( texture_t * ) * MAX_SHADOWGROUPS );
+	Mem_Set( tr.lightmapTextures, 0, sizeof( tr.lightmapTextures ));
+	Mem_Set( tr.shadowmapTextures, 0, sizeof( tr.shadowmapTextures ));
 	Mem_Set( r_texturesHashTable, 0, sizeof( r_texturesHashTable ));
 	Mem_Set( r_textures, 0, sizeof( r_textures ));
 
 	r_numTextures = 0;
-	r_portaltexture = NULL;
-	r_portaltexture2 = NULL;
+	tr.portaltexture1 = NULL;
+	tr.portaltexture2 = NULL;
 }
 
 // to be removed

@@ -564,7 +564,7 @@ void V_RenderPlaque( void )
 	const char *levelshot;
 
 	levelshot = CVAR_GET_STRING( "cl_levelshot_name" );
-	if( !strcmp( levelshot, "" )) levelshot = "<black>";
+	if( !strcmp( levelshot, "" )) levelshot = "$blackimage";
 
 	// logo that shows up while upload next level
 	DrawImageRectangle( SPR_Load( levelshot ));

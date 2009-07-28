@@ -27,43 +27,43 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAX_SHADER_TCMODS			8
 
 // shader types
-enum
-{
-	SHADER_INVALID = -1,
-	SHADER_UNKNOWN,
-	SHADER_BSP,
-	SHADER_BSP_VERTEX,
-	SHADER_BSP_FLARE,
-	SHADER_MD3,
-	SHADER_2D,
-	SHADER_FARBOX,
-	SHADER_NEARBOX,
-	SHADER_PLANAR_SHADOW,
-	SHADER_OPAQUE_OCCLUDER
+#define SHADER_INVALID		-1
+#define SHADER_UNKNOWN		0
+#define SHADER_SKY			1
+#define SHADER_FONT			2
+#define SHADER_NOMIP		3
+#define SHADER_GENERIC		4
+#define SHADER_TEXTURE		5
+#define SHADER_VERTEX		6
+#define SHADER_FLARE		7
+#define SHADER_MD3			8
+#define SHADER_FARBOX		9
+#define SHADER_NEARBOX		10
+#define SHADER_PLANAR_SHADOW		11
+#define SHADER_OPAQUE_OCCLUDER	12
 #ifdef HARDWARE_OUTLINES
-	,SHADER_OUTLINE
+#define SHADER_OUTLINE		13
 #endif
-};
 
 // shader flags
 enum
 {
-	SHADER_DEPTHWRITE				= 1 << 0,
-	SHADER_SKYPARMS					= 1 << 1,
-	SHADER_POLYGONOFFSET			= 1 << 2,
-	SHADER_CULL_FRONT				= 1 << 3,
-	SHADER_CULL_BACK				= 1 << 4,
-	SHADER_VIDEOMAP					= 1 << 5,
-	SHADER_MATERIAL					= 1 << 6,
-	SHADER_DEFORMV_NORMAL			= 1 << 7,
-	SHADER_ENTITY_MERGABLE			= 1 << 8,
-	SHADER_FLARE					= 1 << 9,
-	SHADER_AUTOSPRITE				= 1 << 10,
-	SHADER_NO_MODULATIVE_DLIGHTS	= 1 << 11,
-	SHADER_LIGHTMAP					= 1 << 12,
-	SHADER_PORTAL					= 1 << 13,
-	SHADER_PORTAL_CAPTURE			= 1 << 14,
-	SHADER_PORTAL_CAPTURE2			= 1 << 15
+	SHADER_DEPTHWRITE		= BIT(0),
+	SHADER_SKYPARMS		= BIT(1),
+	SHADER_POLYGONOFFSET	= BIT(2),
+	SHADER_CULL_FRONT		= BIT(3),
+	SHADER_CULL_BACK		= BIT(4),
+	SHADER_VIDEOMAP		= BIT(5),
+	SHADER_MATERIAL		= BIT(6),
+	SHADER_DEFORMV_NORMAL	= BIT(7),
+	SHADER_ENTITY_MERGABLE	= BIT(8),
+	SHADER_AUTOSPRITE		= BIT(9),
+	SHADER_NO_MODULATIVE_DLIGHTS	= BIT(10),
+	SHADER_LIGHTMAP		= BIT(11),
+	SHADER_PORTAL		= BIT(12),
+	SHADER_PORTAL_CAPTURE1	= BIT(13),
+	SHADER_PORTAL_CAPTURE2	= BIT(14),
+	SHADER_PORTAL_CAPTURE	= SHADER_PORTAL_CAPTURE1|SHADER_PORTAL_CAPTURE1,
 };
 
 // sorting
@@ -203,76 +203,76 @@ enum
 
 typedef struct
 {
-	unsigned short		type;			// SHADER_FUNC enum
-	float				args[4];		// offset, amplitude, phase_offset, rate
+	word	type;		// SHADER_FUNC enum
+	float	args[4];		// offset, amplitude, phase_offset, rate
 } shaderfunc_t;
 
 typedef struct
 {
-	unsigned short		type;
-	float				args[6];
+	word	type;
+	float	args[6];
 } tcmod_t;
 
 typedef struct
 {
-	unsigned short		type;
-	float				*args;
-	shaderfunc_t		*func;
+	word		type;
+	float		*args;
+	shaderfunc_t	*func;
 } colorgen_t;
 
 typedef struct
 {
-	unsigned short		type;
-	float				args[4];
-	shaderfunc_t		func;
+	word		type;
+	float		args[4];
+	shaderfunc_t	func;
 } deformv_t;
 
 // Per-pass rendering state information
 typedef struct
 {
-	unsigned int		flags;
+	uint		flags;
 
-	colorgen_t			rgbgen;
-	colorgen_t			alphagen;
+	colorgen_t	rgbgen;
+	colorgen_t	alphagen;
 
-	unsigned short		tcgen;
-	vec_t				*tcgenVec;
+	word		tcgen;
+	vec_t		*tcgenVec;
 
-	unsigned short		numtcmods;
-	tcmod_t				*tcmods;
+	word		numtcmods;
+	tcmod_t		*tcmods;
 
-	unsigned int		cin;
+	uint		cin;
 
-	const char			*program;
-	unsigned short		program_type;
+	const char	*program;
+	word		program_type;
 
-	float				anim_fps;						// animation frames per sec
-	unsigned short		anim_numframes;
-	texture_t				*anim_frames[MAX_SHADER_ANIM_FRAMES];	// texture refs
+	float		anim_fps;				// animation frames per sec
+	word		anim_numframes;
+	texture_t		*anim_frames[MAX_SHADER_ANIM_FRAMES];	// texture refs
 } shaderpass_t;
 
 // Shader information
 typedef struct ref_shader_s
 {
-	char				*name;
+	char		*name;
 
-	unsigned short		flags;
-	unsigned short		features;
-	unsigned int		sort;
-	unsigned int		sortkey;
+	word		flags;
+	word		features;
+	uint		sort;
+	uint		sortkey;
 
-	int					type;
+	int		type;
 
-	unsigned short		numpasses;
-	shaderpass_t		*passes;
+	word		numpasses;
+	shaderpass_t	*passes;
 
-	unsigned short		numdeforms;
-	deformv_t			*deforms;
+	word		numdeforms;
+	deformv_t		*deforms;
 
-	rgba_t				fog_color;
-	float				fog_dist, fog_clearDist;
+	rgba_t		fog_color;
+	float		fog_dist, fog_clearDist;
 
-	float				offsetmapping_scale;
+	float		offsetmapping_scale;
 
 	struct ref_shader_s		*hash_next;
 } ref_shader_t;

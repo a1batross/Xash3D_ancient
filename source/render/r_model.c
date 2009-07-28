@@ -68,7 +68,6 @@ typedef struct
 	void ( *loader )( ref_model_t *mod, ref_model_t *parent, void *buffer );
 } modelformatdescriptor_t;
 
-int registration_sequence;
 static ref_model_t *loadmodel;
 static int loadmodel_numverts;
 static vec4_t *loadmodel_xyz_array;                       // vertexes
@@ -1096,24 +1095,22 @@ static _inline void Mod_LoadFaceCommon( const dsurfacer_t *in, msurface_t *out )
 	shaderref = loadmodel_shaderrefs + shadernum;
 
 	if( out->facetype == MST_FLARE )
-		shaderType = SHADER_BSP_FLARE;
+		shaderType = SHADER_FLARE;
 	else if( /*out->facetype == FACETYPE_TRISURF || */ lightmaps[0] < 0 || lightmapStyles[0] == 255 )
-		shaderType = SHADER_BSP_VERTEX;
+		shaderType = SHADER_VERTEX;
 	else
-		shaderType = SHADER_BSP;
+		shaderType = SHADER_TEXTURE;
 
 	if( !shaderref->shader )
 	{
 		shaderref->shader = R_LoadShader( shaderref->name, shaderType, false, 0, SHADER_INVALID );
 		out->shader = shaderref->shader;
-		if( out->facetype == MST_FLARE )
-			out->shader->flags |= SHADER_FLARE; // force SHADER_FLARE flag
 	}
 	else
 	{
 		// some q3a maps specify a lightmap shader for surfaces that do not have a lightmap,
 		// workaround that... see pukka3tourney2 for example
-		if( ( shaderType == SHADER_BSP_VERTEX && ( shaderref->shader->flags & SHADER_LIGHTMAP ) &&
+		if( ( shaderType == SHADER_VERTEX && ( shaderref->shader->flags & SHADER_LIGHTMAP ) &&
 			( shaderref->shader->passes[0].flags & SHADERPASS_LIGHTMAP ) ) )
 			out->shader = R_LoadShader( shaderref->name, shaderType, false, 0, shaderref->shader->type );
 		else
@@ -1396,19 +1393,18 @@ static void Mod_LoadLeafs( const lump_t *l, const lump_t *msLump )
 		{
 			out->mins[j] = (float)LittleLong( in->mins[j] );
 			out->maxs[j] = (float)LittleLong( in->maxs[j] );
-			if( out->mins[j] > out->maxs[j] )
-				badBounds = true;
+			if( out->mins[j] > out->maxs[j] ) badBounds = true;
 		}
 		out->cluster = LittleLong( in->cluster );
 
-		if( i && ( badBounds || VectorCompare( out->mins, out->maxs ) ) )
+		if( i && ( badBounds || VectorCompare( out->mins, out->maxs )))
 		{
-			MsgDev( D_WARN, "bad leaf %i bounds:\n", i );
-			MsgDev( D_WARN, "mins: %i %i %i\n", Q_rint( out->mins[0] ), Q_rint( out->mins[1] ), Q_rint( out->mins[2] ) );
-			MsgDev( D_WARN, "maxs: %i %i %i\n", Q_rint( out->maxs[0] ), Q_rint( out->maxs[1] ), Q_rint( out->maxs[2] ) );
-			MsgDev( D_WARN, "cluster: %i\n", LittleLong( in->cluster ) );
-			MsgDev( D_WARN, "surfaces: %i\n", LittleLong( in->numleafsurfaces ) );
-			MsgDev( D_WARN, "brushes: %i\n", LittleLong( in->numleafbrushes ) );
+			MsgDev( D_NOTE, "bad leaf %i bounds:\n", i );
+			MsgDev( D_NOTE, "mins: %i %i %i\n", Q_rint( out->mins[0] ), Q_rint( out->mins[1] ), Q_rint( out->mins[2] ) );
+			MsgDev( D_NOTE, "maxs: %i %i %i\n", Q_rint( out->maxs[0] ), Q_rint( out->maxs[1] ), Q_rint( out->maxs[2] ) );
+			MsgDev( D_NOTE, "cluster: %i\n", LittleLong( in->cluster ) );
+			MsgDev( D_NOTE, "surfaces: %i\n", LittleLong( in->numleafsurfaces ));
+			MsgDev( D_NOTE, "brushes: %i\n", LittleLong( in->numleafbrushes ));
 			out->cluster = -1;
 		}
 
@@ -1424,7 +1420,7 @@ static void Mod_LoadLeafs( const lump_t *l, const lump_t *msLump )
 		numMarkSurfaces = LittleLong( in->numleafsurfaces );
 		if( !numMarkSurfaces )
 		{
-			//			out->cluster = -1;
+			// out->cluster = -1;
 			continue;
 		}
 
@@ -1840,16 +1836,15 @@ Mod_Finish
 */
 static void Mod_Finish( const lump_t *faces, const lump_t *light, vec3_t gridSize, vec3_t ambient, vec3_t outline )
 {
-	int i, j;
-	msurface_t *surf;
-	mfog_t *testFog;
-	bool globalFog;
+	int		i, j;
+	msurface_t	*surf;
+	mfog_t		*testFog;
+	bool		globalFog;
 
 	// set up lightgrid
 	if( gridSize[0] < 1 || gridSize[1] < 1 || gridSize[2] < 1 )
 		VectorSet( loadbmodel->gridSize, 64, 64, 128 );
-	else
-		VectorCopy( gridSize, loadbmodel->gridSize );
+	else VectorCopy( gridSize, loadbmodel->gridSize );
 
 	for( j = 0; j < 3; j++ )
 	{
@@ -1915,7 +1910,7 @@ static void Mod_Finish( const lump_t *faces, const lump_t *light, vec3_t gridSiz
 	}
 	else
 	{
-		dsurfacer_t rdf;
+		dsurfacer_t	rdf;
 		dsurfaceq_t	*in = ( void * )( mod_base + faces->fileofs );
 
 		rdf.lightmapStyles[0] = rdf.vertexStyles[0] = 0;

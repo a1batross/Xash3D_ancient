@@ -231,6 +231,7 @@ CL_ParseServerData
 void CL_ParseServerData( sizebuf_t *msg )
 {
 	char		*str;
+	const char	*levelshot_ext[] = { "tga", "jpg", "png" };
 	int		i;
 
 	MsgDev( D_INFO, "Serverdata packet received.\n" );
@@ -252,9 +253,13 @@ void CL_ParseServerData( sizebuf_t *msg )
 	str = MSG_ReadString( msg );
 
 	// get splash name
-	Cvar_Set( "cl_levelshot_name", va( "media/background/%s.png", str ));
+	Cvar_Set( "cl_levelshot_name", va( "levelshots/%s", str ));
 	Cvar_SetValue( "scr_loading", 0.0f ); // reset progress bar
-	if( !FS_FileExists( Cvar_VariableString( "cl_levelshot_name" ))) 
+
+	for( i = 0; i < 3; i++ )
+		if( FS_FileExists( va( "%s.%s", cl_levelshot_name->string, levelshot_ext[i] ))) 
+			break;
+	if( i == 3 )
 	{
 		Cvar_Set( "cl_levelshot_name", "" );
 		cl.need_levelshot = true; // make levelshot

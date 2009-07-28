@@ -663,12 +663,12 @@ FIXME: make this buffer size safe someday
 */
 char *va( const char *format, ... )
 {
-	va_list argptr;
-	static char string[16][1024], *s;
-	static int stringindex = 0;
+	va_list		argptr;
+	static char	string[256][1024], *s;	// g-cont. 256 temporary strings should be enough...
+	static int	stringindex = 0;
 
 	s = string[stringindex];
-	stringindex = (stringindex + 1) & 15;
+	stringindex = (stringindex + 1) & 255;
 	va_start( argptr, format );
 	com_vsnprintf( s, sizeof(string[0]), format, argptr );
 	va_end( argptr );

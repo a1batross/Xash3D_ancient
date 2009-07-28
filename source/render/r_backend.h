@@ -20,7 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef __R_BACKEND_H__
 #define __R_BACKEND_H__
 
-#define MAX_ARRAY_VERTS			4096
+#define MAX_TEXTURES		4096
+#define MAX_ARRAY_VERTS		4096
 #define MAX_ARRAY_ELEMENTS		MAX_ARRAY_VERTS*6
 #define MAX_ARRAY_TRIANGLES		MAX_ARRAY_ELEMENTS/3
 #define MAX_ARRAY_NEIGHBORS		MAX_ARRAY_TRIANGLES*3
@@ -36,7 +37,8 @@ enum
 	VBO_ENDMARKER
 };
 
-#define MAX_VERTEX_BUFFER_OBJECTS   VBO_ENDMARKER+MAX_TEXTURE_UNITS-1
+#define MAX_SHADOWGROUPS    		32
+#define MAX_VERTEX_BUFFER_OBJECTS	VBO_ENDMARKER+MAX_TEXTURE_UNITS-1
 
 extern ALIGN( 16 ) vec4_t inVertsArray[MAX_ARRAY_VERTS];
 extern ALIGN( 16 ) vec4_t inNormalsArray[MAX_ARRAY_VERTS];
@@ -63,11 +65,42 @@ extern int r_features;
 
 typedef struct
 {
-	unsigned int numVerts, numElems, numColors;
-	unsigned int c_totalVerts, c_totalTris, c_totalFlushes, c_totalKeptLocks;
-} rbackacc_t;
+	uint	numVerts;
+	uint	numElems;
+	uint	numColors;
 
-extern rbackacc_t r_backacc;
+	uint	c_totalVerts;
+	uint	c_totalTris;
+	uint	c_totalFlushes;
+	uint	c_totalKeptLocks;
+} ref_backacc_t;
+
+typedef struct
+{
+	// renderer global variables
+	int		registration_sequence;
+
+	// builtin textures
+	texture_t		*cinTexture;      	// cinematic texture
+	texture_t		*portaltexture1;   	// portal view
+	texture_t		*portaltexture2;  	// refraction image for distortions
+	texture_t		*defaultTexture;   	// use for bad textures
+	texture_t		*particleTexture; 	// little dot for particles
+	texture_t		*whiteTexture;
+	texture_t		*blackTexture;
+	texture_t		*blankbumpTexture;
+	texture_t		*dlightTexture;
+	texture_t		*fogTexture;
+	texture_t		*coronaTexture;
+	texture_t		*defaultConchars;
+	texture_t		*shadowmapTextures[MAX_SHADOWGROUPS];
+	texture_t		*lightmapTextures[MAX_TEXTURES];
+
+	// builtin shaders
+} ref_globals_t;
+
+extern ref_globals_t tr;
+extern ref_backacc_t r_backacc;
 
 //===================================================================
 
@@ -345,7 +378,7 @@ typedef struct
 	word		gammaRamp[768];		// current gamma ramp
 	word		stateRamp[768];		// original gamma ramp
 
-	int				width, height;
+	int		width, height;
 	bool		fullScreen;
 	bool		wideScreen;
 
@@ -355,17 +388,17 @@ typedef struct
 	GLuint		*currentTextures;
 	GLenum		*currentEnvModes;
 	bool		*texIdentityMatrix;
-	int		*genSTEnabled;			// 0 - disabled, OR 1 - S, OR 2 - T, OR 4 - R
+	int		*genSTEnabled;		// 0 - disabled, OR 1 - S, OR 2 - T, OR 4 - R
 	int		*texCoordArrayMode;		// 0 - disabled, 1 - enabled, 2 - cubemap
 	vec4_t		draw_color;
+	kRenderMode_t	draw_rendermode;		// rendermode for drawing
+	int		draw_frame;		// will be reset after each drawing
 
 	int		faceCull;
 	int		frontFace;
 
 	bool		stencilEnabled;
 	bool		in2DMode;
-
-	bool		hwGamma;
 } glstate_t;
 
 extern glconfig_t	glConfig;

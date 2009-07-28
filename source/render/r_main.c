@@ -1808,7 +1808,7 @@ void R_BeginFrame( void )
 
 		if( r_environment_color->string[0] )
 		{
-			int r, g, b;
+			int	r, g, b;
 
 			if( sscanf( r_environment_color->string, "%i %i %i", &r, &g, &b ) == 3 )
 			{
@@ -2145,12 +2145,12 @@ shader_t Mod_RegisterShader( const char *name, int shaderType )
 	{
 	case SHADER_FONT:
 	case SHADER_NOMIP:
-		src = R_RegisterPic( name );
+		src = R_LoadShader( name, shaderType, false, TF_CLAMP|TF_NOMIPMAP|TF_NOPICMIP, SHADER_INVALID );
+		break;
+	case SHADER_GENERIC:
+		src = R_LoadShader( name, shaderType, false, 0, SHADER_INVALID );
 		break;
 	case SHADER_SKY:
-	case SHADER_GENERIC:
-		src = R_RegisterShader( name );
-		break;
 	default:
 		MsgDev( D_WARN, "Mod_RegisterShader: invalid shader type (%i)\n", shaderType );	
 		return 0;

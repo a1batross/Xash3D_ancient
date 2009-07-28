@@ -274,7 +274,7 @@ void R_AddModelMeshToList( unsigned int modhandle, mfog_t *fog, ref_shader_t *sh
 		mb->LODModelHandle = modhandle;
 
 #ifdef HARDWARE_OUTLINES
-	if( !glConfig.ext.GLSL && RI.currententity->outlineHeight/* && !(RI.params & RP_SHADOWMAPVIEW)*/ )
+	if( !GL_Support( R_SHADER_GLSL100_EXT ) && RI.currententity->outlineHeight/* && !(RI.params & RP_SHADOWMAPVIEW)*/ )
 	{
 		if( ( shader->sort == SHADER_SORT_OPAQUE ) && ( shader->flags & SHADER_CULL_FRONT ) )
 			R_AddModelMeshOutline( modhandle, fog, meshnum );
@@ -491,7 +491,7 @@ void R_DrawPortals( void )
 					{
 						num_meshes--;
 
-						if( r_fastsky->integer && !( shader->flags & (SHADER_PORTAL_CAPTURE|SHADER_PORTAL_CAPTURE2) ) )
+						if( r_fastsky->integer && !( shader->flags & SHADER_PORTAL_CAPTURE ) )
 							continue;
 
 						if( !R_AddPortalSurface( mb ) )
@@ -847,11 +847,11 @@ static bool R_DrawPortalSurface( void )
 		return false;
 
 	doReflection = doRefraction = true;
-	if( shader->flags & SHADER_PORTAL_CAPTURE )
+	if( shader->flags & SHADER_PORTAL_CAPTURE1 )
 	{
 		shaderpass_t *pass;
 
-		captureTexture = &r_portaltexture;
+		captureTexture = &tr.portaltexture1;
 		captureTextureID = 1;
 
 		for( i = 0, pass = shader->passes; i < shader->numpasses; i++, pass++ )
@@ -883,7 +883,7 @@ static bool R_DrawPortalSurface( void )
 		// even if we're behind the portal, we still need to capture
 		// the second portal image for refraction
 		refraction = true;
-		captureTexture = &r_portaltexture2;
+		captureTexture = &tr.portaltexture2;
 		captureTextureID = 2;
 		if( dist < 0 )
 		{
@@ -1056,7 +1056,7 @@ setup_and_render:
 	if( doRefraction && !refraction && ( shader->flags & SHADER_PORTAL_CAPTURE2 ) )
 	{
 		refraction = true;
-		captureTexture = &r_portaltexture2;
+		captureTexture = &tr.portaltexture2;
 		captureTextureID = 2;
 		goto setup_and_render;
 	}

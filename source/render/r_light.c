@@ -46,7 +46,7 @@ bool R_SurfPotentiallyLit( msurface_t *surf )
 		return false;
 
 	shader = surf->shader;
-	if( ( shader->flags & ( SHADER_SKYPARMS|SHADER_FLARE ) ) || !shader->numpasses )
+	if( shader->flags & SHADER_SKYPARMS || shader->type == SHADER_FLARE || !shader->numpasses )
 		return false;
 
 	return ( surf->mesh && ( surf->facetype != MST_FLARE ) /* && (surf->facetype != MST_TRISURF)*/ );
@@ -185,7 +185,7 @@ void R_AddDynamicLights( unsigned int dlightbits, int state )
 
 		inverseIntensity = 1 / light->intensity;
 
-		GL_Bind( 0, r_dlighttexture );
+		GL_Bind( 0, tr.dlightTexture );
 		GL_LoadTexMatrix( m );
 		pglColor4f( light->color[0], light->color[1], light->color[2], 255 );
 
@@ -206,7 +206,7 @@ void R_AddDynamicLights( unsigned int dlightbits, int state )
 		}
 		else
 		{
-			GL_Bind( 1, r_dlighttexture );
+			GL_Bind( 1, tr.dlightTexture );
 			GL_LoadTexMatrix( m );
 
 			pglTexGenfv( GL_S, GL_OBJECT_PLANE, xyzFallof[2] );
@@ -253,7 +253,7 @@ R_InitCoronas
 */
 void R_InitCoronas( void )
 {
-	r_coronaShader = R_LoadShader( "***r_coronatexture***", SHADER_BSP_FLARE, true, TF_NOMIPMAP|TF_NOPICMIP|TF_UNCOMPRESSED|TF_CLAMP, SHADER_INVALID );
+	r_coronaShader = R_LoadShader( "*corona", SHADER_FLARE, true, TF_NOMIPMAP|TF_NOPICMIP|TF_UNCOMPRESSED|TF_CLAMP, SHADER_INVALID );
 }
 
 /*
@@ -722,7 +722,7 @@ static int R_PackLightmaps( int num, int w, int h, int size, int stride, bool de
 		r_image.buffer = r_lightmapBuffer;
 		image = R_LoadTexture( uploadName, &r_image, LM_BYTES, TF_NOPICMIP|TF_CLAMP|TF_NOMIPMAP );
 
-		r_lightmapTextures[r_numUploadedLightmaps] = image;
+		tr.lightmapTextures[r_numUploadedLightmaps] = image;
 		if( rects )
 		{
 			rects[0].texNum = r_numUploadedLightmaps;
@@ -816,7 +816,7 @@ static int R_PackLightmaps( int num, int w, int h, int size, int stride, bool de
 	r_image.buffer = r_lightmapBuffer;
 	image = R_LoadTexture( uploadName, &r_image, LM_BYTES, TF_NOPICMIP|TF_UNCOMPRESSED|TF_CLAMP|TF_NOMIPMAP );
 
-	r_lightmapTextures[r_numUploadedLightmaps] = image;
+	tr.lightmapTextures[r_numUploadedLightmaps] = image;
 	if( rects )
 	{
 		for( i = 0, rect = rects; i < num; i++, rect += stride )
