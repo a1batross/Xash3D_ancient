@@ -111,6 +111,7 @@ typedef struct
 	double		oldtime;		// cl.oldtime
 					// is rendering at.  always <= cls.realtime
 	int		render_flags;	// clearing at end of frame
+	bool		old_areabits;	// a bit who indicated RDF_OLDAREABITS
 	ref_params_t	refdef;		// shared refdef
 	edict_t		viewent;		// viewmodel
 	client_data_t	data;		// hud data

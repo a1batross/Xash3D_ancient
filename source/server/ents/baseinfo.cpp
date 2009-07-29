@@ -115,7 +115,8 @@ void CInfoIntermission :: Spawn( void )
 
 void CInfoIntermission::PostActivate( void )
 {
-	pTarget = UTIL_FindEntityByTargetname( NULL, STRING( pev->target ));
+	if( FStrEq( STRING( pev->classname ), "info_intermission" ))
+		pTarget = UTIL_FindEntityByTargetname( NULL, STRING( pev->target ));
 	if( !pev->speed ) pev->speed = 100;
 }
 
@@ -128,6 +129,12 @@ void CInfoIntermission::KeyValue( KeyValueData *pkvd )
 		// Quake1 intermission angles
 		UTIL_StringToVector( tmp, pkvd->szValue );
 		if( tmp != g_vecZero ) pev->angles = tmp;
+		pkvd->fHandled = TRUE;
+	}
+	else if( FStrEq( pkvd->szKeyName, "roll" ))
+	{
+		// Quake3 portal camera
+		pev->frame = atof( pkvd->szValue ) / 360.0f;
 		pkvd->fHandled = TRUE;
 	}
 	else CBaseEntity::KeyValue( pkvd );
@@ -192,7 +199,17 @@ void CPortalSurface :: PostActivate( void )
 	}
 
 	pev->owner = pOwner->edict();
-	// pev->effects |= EF_ROTATE;
+
+	// q3a swinging camera support
+	if( pOwner->pev->spawnflags & 1 )
+		pev->framerate = 25;
+	else if( pOwner->pev->spawnflags & 2 )
+		pev->framerate = 75;
+	if( pOwner->pev->spawnflags & 4 )
+		pev->effects &= ~EF_ROTATE;
+	else pev->effects |= EF_ROTATE;
+
+	pev->frame = pOwner->pev->frame; // rollangle
 
 	// see if the portal_camera has a target
 	if( !FStringNull( pOwner->pev->target ))
@@ -204,7 +221,11 @@ void CPortalSurface :: PostActivate( void )
 		pev->movedir = pTarget->pev->origin - pOwner->pev->origin;
 		pev->movedir.Normalize();
 	}
-	else UTIL_LinearVector( pOwner );
+	else 
+	{
+		pev->angles = pOwner->pev->angles;
+		UTIL_LinearVector( this );
+	}
 }
 
 //====================================================================
@@ -308,7 +329,7 @@ LINK_ENTITY_TO_CLASS( info_null, CNullEntity);
 LINK_ENTITY_TO_CLASS( info_texlights, CNullEntity);
 LINK_ENTITY_TO_CLASS( info_compile_parameters, CNullEntity);
 LINK_ENTITY_TO_CLASS( info_intermission, CInfoIntermission );
+LINK_ENTITY_TO_CLASS( misc_portal_camera, CInfoIntermission);
 LINK_ENTITY_TO_CLASS( info_player_deathmatch, CBaseDMStart);
 LINK_ENTITY_TO_CLASS( info_player_start, CPointEntity);
-LINK_ENTITY_TO_CLASS( misc_portal_camera, CPointEntity);
 LINK_ENTITY_TO_CLASS( info_landmark, CPointEntity);

@@ -13,6 +13,14 @@
 #define SHADER_NOMIP		3	// 2d images
 #define SHADER_GENERIC		4	// generic shader
 
+// refdef flags
+#define RDF_NOWORLDMODEL		BIT(0) 	// used for player configuration screen
+#define RDF_OLDAREABITS		BIT(1) 	// forces R_MarkLeaves if not set
+#define RDF_PORTALINVIEW		BIT(2)	// cull entities using vis too because pvs\areabits are merged serverside
+#define RDF_SKYPORTALINVIEW		BIT(3)	// draw skyportal instead of regular sky
+#define RDF_NOFOVADJUSTMENT		BIT(4)	// do not adjust fov for widescreen
+#define RDF_WORLDOUTLINES		BIT(5)	// draw cell outlines for world surfaces
+
 typedef struct
 {
 	int		numverts;

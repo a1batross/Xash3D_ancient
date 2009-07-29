@@ -266,7 +266,7 @@ void R_AddBrushModelToList( ref_entity_t *e )
 		{
 			if( psurf->visframe != r_framecount )
 				continue;
-			if( ( psurf->shader->sort >= SHADER_SORT_OPAQUE ) && ( psurf->shader->sort <= SHADER_SORT_BANNER ) )
+			if( ( psurf->shader->sort >= SORT_OPAQUE ) && ( psurf->shader->sort <= SORT_BANNER ) )
 			{
 				if( prevRI.surfmbuffers[psurf - r_worldbrushmodel->surfaces] )
 				{
@@ -430,7 +430,7 @@ static void R_MarkShadowLeafSurfaces( msurface_t **mark, unsigned int clipflags 
 			continue;
 
 		// this surface is visible in previous RI, not marked as shadowed...
-		if( ( surf->shader->sort >= SHADER_SORT_OPAQUE ) && ( surf->shader->sort <= SHADER_SORT_ALPHATEST ) )
+		if( ( surf->shader->sort >= SORT_OPAQUE ) && ( surf->shader->sort <= SORT_ALPHATEST ) )
 		{	// ...is opaque
 			if( !R_CullSurface( surf, clipflags ) )
 			{	// and is visible to the light source too

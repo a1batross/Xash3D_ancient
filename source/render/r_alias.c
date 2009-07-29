@@ -800,7 +800,7 @@ static void R_DrawAliasFrameLerp( const meshbuffer_t *mb, float backlerp )
 			&& ( pe->backlerp == e->backlerp || e->frame == e->oldframe ) )
 		{
 			unlockVerts = ( ( ( features & MF_DEFORMVS ) /* && (e->shaderTime != pe->shaderTime)*/ ) );
-			calcNormals = ( calcNormals && ( shader->features & SHADER_DEFORMV_NORMAL ) );
+			calcNormals = ( calcNormals && ( shader->features & SHADER_DEFORM_NORMAL ) );
 		}
 	}
 
@@ -1015,13 +1015,13 @@ bool R_CullAliasModel( ref_entity_t *e )
 			for( j = 0; j < mesh->numskins; j++ )
 			{
 				shader = mesh->skins[j].shader;
-				if( shader && shader->sort <= SHADER_SORT_ALPHATEST )
+				if( shader && shader->sort <= SORT_ALPHATEST )
 					break;
 				shader = NULL;
 			}
 		}
 
-		if( shader && ( shader->sort <= SHADER_SORT_ALPHATEST ) )
+		if( shader && ( shader->sort <= SORT_ALPHATEST ) )
 		{
 			mb = R_AddMeshToList( MB_MODEL, NULL, R_PlanarShadowShader(), -( i+1 ) );
 			if( mb )

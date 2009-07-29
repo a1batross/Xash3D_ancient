@@ -460,7 +460,7 @@ R_BloomBlend
 */
 void R_BloomBlend( const ref_params_t *fd )
 {
-	if( !( fd->rdflags & RDF_BLOOM ) || !r_bloom->integer )
+	if( !r_bloom->integer )
 		return;
 
 	if( !BLOOM_SIZE )

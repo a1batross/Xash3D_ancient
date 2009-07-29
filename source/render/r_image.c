@@ -802,7 +802,7 @@ bool R_GetPixelFormat( const char *name, rgbdata_t *pic, uint tex_flags )
 	else if( image_desc.depth > 1 )
 	{
 		if( GL_Support( R_TEXTURE_3D_EXT ))
-			image_desc.texTarget = GL_TEXTURE_3D;
+			image_desc.texTarget = image_desc.glTarget = GL_TEXTURE_3D;
 		else MsgDev( D_ERROR, "R_GetPixelFormat: GL_TEXTURE_3D isn't supported\n" );
 	}
 	else if( image_desc.tflags & TF_CUBEMAP )
@@ -3119,23 +3119,23 @@ static rgbdata_t *R_InitDynamicLightTexture( int *flags, int *samples )
 	*flags = TF_NOPICMIP|TF_NOMIPMAP|TF_CLAMP|TF_UNCOMPRESSED;
 	*samples = 3;
 
-	for( x = 0; x < size; x++ )
+	for( x = 0; x < r_image.width; x++ )
 	{
-		for( y = 0; y < size; y++ )
+		for( y = 0; y < r_image.height; y++ )
 		{
 			for( z = 0; z < r_image.depth; z++ )
 			{
-				v[0] = ( ( x + 0.5f ) * ( 2.0f / (float)size ) - 1.0f );
-				v[1] = ( ( y + 0.5f ) * ( 2.0f / (float)size ) - 1.0f );
+				v[0] = (( x + 0.5f ) * ( 2.0f / (float)size ) - 1.0f );
+				v[1] = (( y + 0.5f ) * ( 2.0f / (float)size ) - 1.0f );
 				if( r_image.depth > 1 ) v[2] = (( z + 0.5f ) * ( 2.0f / (float)size ) - 1.0f );
 
 				intensity = 1.0f - com.sqrt( DotProduct( v, v ) );
 				if( intensity > 0 ) intensity = intensity * intensity * 215.5f;
 				d = bound( 0, intensity, 255 );
 
-				data2D[(( z * size + y ) * size + x ) * 4 + 0] = d;
-				data2D[(( z * size + y ) * size + x ) * 4 + 1] = d;
-				data2D[(( z * size + y ) * size + x ) * 4 + 2] = d;
+				data2D[((z * size + y) * size + x) * 4 + 0] = d;
+				data2D[((z * size + y) * size + x) * 4 + 1] = d;
+				data2D[((z * size + y) * size + x) * 4 + 2] = d;
 			}
 		}
 	}

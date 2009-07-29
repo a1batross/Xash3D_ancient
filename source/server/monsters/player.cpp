@@ -3215,7 +3215,6 @@ edict_t *EntSelectSpawnPoint( CBaseEntity *pPlayer )
 			goto ReturnSpot;
 
 		// q3a maps doesn't contain info_player_start
-		// TEST for q3dm0
 		pSpot = UTIL_FindEntityByClassname(NULL, "info_player_deathmatch");
 		if ( !FNullEnt(pSpot) )
 			goto ReturnSpot;

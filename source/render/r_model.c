@@ -1111,7 +1111,7 @@ static _inline void Mod_LoadFaceCommon( const dsurfacer_t *in, msurface_t *out )
 		// some q3a maps specify a lightmap shader for surfaces that do not have a lightmap,
 		// workaround that... see pukka3tourney2 for example
 		if( ( shaderType == SHADER_VERTEX && ( shaderref->shader->flags & SHADER_LIGHTMAP ) &&
-			( shaderref->shader->passes[0].flags & SHADERPASS_LIGHTMAP ) ) )
+			( shaderref->shader->passes[0].flags & SHADERSTAGE_LIGHTMAP ) ) )
 			out->shader = R_LoadShader( shaderref->name, shaderType, false, 0, shaderref->shader->type );
 		else
 			out->shader = shaderref->shader;

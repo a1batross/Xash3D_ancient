@@ -51,7 +51,6 @@ void CL_UpdateEntityFields( edict_t *ent )
 	ent->v.solid = ent->pvClientData->current.solid;
 	ent->v.movetype = ent->pvClientData->current.movetype;
 	ent->v.flags = ent->pvClientData->current.flags;
-	if( ent->v.scale == 0.0f ) ent->v.scale = 1.0f;
 
 	switch( ent->pvClientData->current.ed_type )
 	{
@@ -66,7 +65,7 @@ void CL_UpdateEntityFields( edict_t *ent )
 		VectorCopy( ent->v.origin, cl.refdef.skyportal.vieworg ); 
 		VectorSet( cl.refdef.skyportal.viewanglesOffset, 0, cl.time * ent->v.angles[1], 0 );
 		cl.refdef.skyportal.fov = ent->v.fov;
-		cl.refdef.skyportal.scale = 1.0f / ent->v.scale;	// never divided by zero
+		cl.refdef.skyportal.scale = (ent->v.scale ? 1.0f / ent->v.scale : 0);
 		break;
 	default:
 		VectorCopy( ent->pvClientData->prev.origin, ent->v.oldorigin );
@@ -78,7 +77,9 @@ void CL_UpdateEntityFields( edict_t *ent )
 		ent->v.blending[i] = ent->pvClientData->current.blending[i]; 
 	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
 		ent->v.controller[i] = ent->pvClientData->current.controller[i]; 
-	
+
+	// g-cont. moveed here because we may needs apply null scale to skyportal
+	if( ent->v.scale == 0.0f ) ent->v.scale = 1.0f;	
 	if( ent->pvClientData->current.aiment )
 		ent->v.aiment = EDICT_NUM( ent->pvClientData->current.aiment );
 	else ent->v.aiment = NULL;
@@ -385,6 +386,10 @@ void CL_ParseFrame( sizebuf_t *msg )
 	len = MSG_ReadByte( msg );
 	MSG_ReadData( msg, &cl.frame.areabits, len );
 
+	if( old && !memcmp( old->areabits, cl.frame.areabits, sizeof( cl.frame.areabits )))
+		cl.old_areabits = true;
+	else cl.old_areabits = false;
+
 	// read clientindex
 	cmd = MSG_ReadByte( msg );
 	if( cmd != svc_playerinfo ) Host_Error( "CL_ParseFrame: not clientindex\n" );
@@ -446,12 +451,15 @@ void CL_AddPacketEntities( frame_t *frame )
 		if( re->AddRefEntity( ent, s1->ed_type, cl.refdef.lerpfrac ))
 		{
 			if( s1->ed_type == ED_PORTAL && !VectorCompare( ent->v.origin, ent->v.oldorigin ))
-				cl.render_flags |= 16;	// TEST
+				cl.render_flags |= RDF_PORTALINVIEW;
 		}
 		// NOTE: skyportal entity never added to rendering
-		if( s1->ed_type == ED_SKYPORTAL )
-			cl.render_flags |= 32;		// TEST
+		if( s1->ed_type == ED_SKYPORTAL ) cl.render_flags |= RDF_SKYPORTALINVIEW;
 	}
+
+	if( cl.old_areabits )
+		cl.render_flags |= RDF_OLDAREABITS;
+	cl.old_areabits = true;	// predict state if new frame come from delta
 }
 
 /*

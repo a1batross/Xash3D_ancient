@@ -2318,14 +2318,19 @@ bool R_AddPortalEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type, 
 	refent->rtype = RT_PORTALSURFACE;
 
 	VectorClear( refent->angles );
-	Matrix_Identity( refent->axis );
 	VectorCopy( pRefEntity->v.movedir, refent->movedir );
 	VectorCopy( pRefEntity->v.origin, refent->origin );
 	VectorCopy( pRefEntity->v.oldorigin, refent->origin2 );
 
-	// calculate angles
 	if( refent->effects & EF_ROTATE )
-		Matrix_Rotate( refent->axis, 5 * sin(( 0.25f + RI.refdef.time * 50 * 0.01 ) * M_PI2 ), 1, 0, 0 );
+	{
+		float	phase = pRefEntity->v.frame;
+		float	speed = (pRefEntity->v.framerate ? pRefEntity->v.framerate : 50.0f);
+		refent->angles[ROLL] = 5 * sin(( phase + RI.refdef.time * speed * 0.01f ) * M_PI2);
+	}
+
+	// calculate angles
+	AngleVectorsFLU( refent->angles, refent->axis[0], refent->axis[1], refent->axis[2] );
 	return true;
 }
 
@@ -2373,6 +2378,7 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac )
 	refent->model = cl_models[pRefEntity->v.modelindex];
 	refent->movetype = pRefEntity->v.movetype;
 	refent->framerate = pRefEntity->v.framerate;
+	refent->flags = 0;
 
 	// setup rtype
 	switch( ed_type )

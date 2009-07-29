@@ -91,15 +91,17 @@ Beta 13.12.08
 60. fixup render times			OK
 61. fixup portal rendering			OK
 62. return old-xash renderer initialization	OK
-63. portal rendering angles
+63. portal rendering angles			OK
 64. ImageLoading from old render		OK
 65. envshot, skyshot swap angles to right pos
 66. ShaderSystem from old render
 67. fixup NPOT textures loading (screen textures)
 68. add new shader types			OK
-69. implement oldareabits
+69. implement oldareabits			OK
 70. repair fog texture			OK
 71. fixup hardware gamma adjusting		OK
 72. screenshots VID_AdjustGamma		OK
+73. shaders pasring
+74. fixup 3D textures loading			OK
 
 

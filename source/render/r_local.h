@@ -462,7 +462,7 @@ enum
 #define OCCLUSION_QUERIES_ENABLED( RI )	( GL_Support( R_OCCLUSION_QUERIES_EXT ) && r_occlusion_queries->integer && r_drawentities->integer \
 											&& !((RI).params & RP_NONVIEWERREF) && !((RI).refdef.rdflags & RDF_NOWORLDMODEL) \
 											&& OCCLUSION_QUERIES_CVAR_HACK( RI ) )
-#define OCCLUSION_OPAQUE_SHADER( s )	( ((s)->sort == SHADER_SORT_OPAQUE ) && ((s)->flags & SHADER_DEPTHWRITE ) && !(s)->numdeforms )
+#define OCCLUSION_OPAQUE_SHADER( s )	( ((s)->sort == SORT_OPAQUE ) && ((s)->flags & SHADER_DEPTHWRITE ) && !(s)->numdeforms )
 #define OCCLUSION_TEST_ENTITY( e )		( ((e)->flags & (RF_OCCLUSIONTEST|RF_WEAPONMODEL)) == RF_OCCLUSIONTEST )
 
 void		R_InitOcclusionQueries( void );

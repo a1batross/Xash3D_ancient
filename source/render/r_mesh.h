@@ -71,12 +71,12 @@ typedef struct mesh_s
 #define MB_FOG2NUM( fog )			( (fog) ? ((((int)((fog) - r_worldbrushmodel->fogs))+1) << 2) : 0 )
 #define MB_NUM2FOG( num, fog )		( (fog) = r_worldbrushmodel->fogs+(((num)>>2) & 0xFF), (fog) = ( (fog) == r_worldbrushmodel->fogs ? NULL : (fog)-1 ) )
 
-#define MB_ENTITY2NUM( ent )		( (int)((ent)-r_entities)<<20 )
-#define MB_NUM2ENTITY( num, ent )	( ent = r_entities+(((num)>>20)&1023) )
+#define MB_ENTITY2NUM( ent )			((int)((ent)-r_entities)<<20 )
+#define MB_NUM2ENTITY( num, ent )		( ent = r_entities+(((num)>>20)&1023))
 
 #define MB_SHADER2NUM( s )			( (s)->sort << 26 ) | ((s) - r_shaders )
 #define MB_NUM2SHADER( num, s )		( (s) = r_shaders + ((num) & 0xFFF) )
-#define MB_NUM2SHADERSORT( num )	( ((num) >> 26) & 0x1F )
+#define MB_NUM2SHADERSORT( num )		( ((num) >> 26) & 0x1F )
 
 #define MIN_RENDER_MESHES			2048
 

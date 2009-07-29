@@ -69,7 +69,7 @@ Quicksort
 */
 static void R_QSortMeshBuffers( meshbuffer_t *meshes, int Li, int Ri )
 {
-	int li, RI, stackdepth = 0, total = Ri + 1;
+	int li, ri, stackdepth = 0, total = Ri + 1;
 	meshbuffer_t median, tempbuf;
 	int lstack[QSORT_MAX_STACKDEPTH], rstack[QSORT_MAX_STACKDEPTH];
 
@@ -77,7 +77,7 @@ mark0:
 	if( Ri - Li > 8 )
 	{
 		li = Li;
-		RI = Ri;
+		ri = Ri;
 
 		R_MBCopy( meshes[( Li+Ri ) >> 1], median );
 
@@ -94,27 +94,27 @@ mark0:
 		do
 		{
 			while( R_MBCmp( median, meshes[li] ) ) li++;
-			while( R_MBCmp( meshes[RI], median ) ) RI--;
+			while( R_MBCmp( meshes[ri], median ) ) ri--;
 
-			if( li <= RI )
+			if( li <= ri )
 			{
-				R_MBCopy( meshes[RI], tempbuf );
-				R_MBCopy( meshes[li], meshes[RI] );
+				R_MBCopy( meshes[ri], tempbuf );
+				R_MBCopy( meshes[li], meshes[ri] );
 				R_MBCopy( tempbuf, meshes[li] );
 
 				li++;
-				RI--;
+				ri--;
 			}
 		}
-		while( li < RI );
+		while( li < ri );
 
-		if( ( Li < RI ) && ( stackdepth < QSORT_MAX_STACKDEPTH ) )
+		if( ( Li < ri ) && ( stackdepth < QSORT_MAX_STACKDEPTH ) )
 		{
 			lstack[stackdepth] = li;
 			rstack[stackdepth] = Ri;
 			stackdepth++;
 			li = Li;
-			Ri = RI;
+			Ri = ri;
 			goto mark0;
 		}
 
@@ -127,7 +127,7 @@ mark0:
 	if( stackdepth )
 	{
 		--stackdepth;
-		Ri = RI = rstack[stackdepth];
+		Ri = ri = rstack[stackdepth];
 		Li = li = lstack[stackdepth];
 		goto mark0;
 	}
@@ -135,15 +135,15 @@ mark0:
 	for( li = 1; li < total; li++ )
 	{
 		R_MBCopy( meshes[li], tempbuf );
-		RI = li - 1;
+		ri = li - 1;
 
-		while( ( RI >= 0 ) && ( R_MBCmp( meshes[RI], tempbuf ) ) )
+		while( ( ri >= 0 ) && ( R_MBCmp( meshes[ri], tempbuf ) ) )
 		{
-			R_MBCopy( meshes[RI], meshes[RI+1] );
-			RI--;
+			R_MBCopy( meshes[ri], meshes[ri+1] );
+			ri--;
 		}
-		if( li != RI+1 )
-			R_MBCopy( tempbuf, meshes[RI+1] );
+		if( li != ri+1 )
+			R_MBCopy( tempbuf, meshes[ri+1] );
 	}
 }
 
@@ -219,7 +219,7 @@ meshbuffer_t *R_AddMeshToList( int type, mfog_t *fog, ref_shader_t *shader, int 
 		return NULL;
 
 	list = RI.meshlist;
-	if( shader->sort > SHADER_SORT_OPAQUE )
+	if( shader->sort > SORT_OPAQUE )
 	{
 		if( list->num_translucent_meshes >= list->max_translucent_meshes )	// reallocate if needed
 			list->max_translucent_meshes = R_ReAllocMeshList( &list->meshbuffer_translucent, MIN_RENDER_MESHES/2, list->max_translucent_meshes );
@@ -276,7 +276,7 @@ void R_AddModelMeshToList( unsigned int modhandle, mfog_t *fog, ref_shader_t *sh
 #ifdef HARDWARE_OUTLINES
 	if( !GL_Support( R_SHADER_GLSL100_EXT ) && RI.currententity->outlineHeight/* && !(RI.params & RP_SHADOWMAPVIEW)*/ )
 	{
-		if( ( shader->sort == SHADER_SORT_OPAQUE ) && ( shader->flags & SHADER_CULL_FRONT ) )
+		if( ( shader->sort == SORT_OPAQUE ) && ( shader->flags & SHADER_CULL_FRONT ) )
 			R_AddModelMeshOutline( modhandle, fog, meshnum );
 	}
 #endif
@@ -735,12 +735,15 @@ static bool R_AddPortalSurface( const meshbuffer_t *mb )
 	oplane.dist += DotProduct( ent->origin, oplane.normal );
 	CategorizePlane( &oplane );
 
-	if( !Matrix_Compare( ent->axis, axis_identity ) )
+	if( !Matrix_Compare( ent->axis, axis_identity ))
 	{
 		Matrix_Transpose( ent->axis, entity_rotation );
-		Matrix_TransformVector( entity_rotation, mesh->xyzArray[mesh->elems[0]], v[0] ); VectorMA( ent->origin, ent->scale, v[0], v[0] );
-		Matrix_TransformVector( entity_rotation, mesh->xyzArray[mesh->elems[1]], v[1] ); VectorMA( ent->origin, ent->scale, v[1], v[1] );
-		Matrix_TransformVector( entity_rotation, mesh->xyzArray[mesh->elems[2]], v[2] ); VectorMA( ent->origin, ent->scale, v[2], v[2] );
+		Matrix_TransformVector( entity_rotation, mesh->xyzArray[mesh->elems[0]], v[0] );
+		VectorMA( ent->origin, ent->scale, v[0], v[0] );
+		Matrix_TransformVector( entity_rotation, mesh->xyzArray[mesh->elems[1]], v[1] );
+		VectorMA( ent->origin, ent->scale, v[1], v[1] );
+		Matrix_TransformVector( entity_rotation, mesh->xyzArray[mesh->elems[2]], v[2] );
+		VectorMA( ent->origin, ent->scale, v[2], v[2] );
 		PlaneFromPoints( v, &plane );
 		CategorizePlane( &plane );
 	}
@@ -751,7 +754,7 @@ static bool R_AddPortalSurface( const meshbuffer_t *mb )
 
 	if( ( dist = PlaneDiff( RI.viewOrigin, &plane ) ) <= BACKFACE_EPSILON )
 	{
-		if( !( shader->flags & SHADER_PORTAL_CAPTURE2 ) )
+		if( !( shader->flags & SHADER_PORTAL_CAPTURE2 ))
 			return true;
 	}
 
@@ -759,7 +762,7 @@ static bool R_AddPortalSurface( const meshbuffer_t *mb )
 	// by an alphagen portal stage
 	for( i = 0; i < shader->numpasses; i++ )
 	{
-		if( shader->passes[i].alphagen.type == ALPHA_GEN_PORTAL )
+		if( shader->passes[i].alphagen.type == ALPHAGEN_PORTAL )
 		{
 			if( dist > ( 1.0/shader->passes[i].alphagen.args[0] ) )
 				return true; // completely alpha'ed out
@@ -777,9 +780,9 @@ static bool R_AddPortalSurface( const meshbuffer_t *mb )
 	VectorAdd( mins, maxs, centre );
 	VectorScale( centre, 0.5, centre );
 
-	if( r_portal_shader && ( shader != r_portal_shader ) )
+	if( r_portal_shader && ( shader != r_portal_shader ))
 	{
-		if( VectorDistance2( RI.viewOrigin, centre ) > VectorDistance2( RI.viewOrigin, r_portal_centre ) )
+		if( VectorDistance2( RI.viewOrigin, centre ) > VectorDistance2( RI.viewOrigin, r_portal_centre ))
 			return true;
 		VectorClear( r_portal_plane.normal );
 		ClearBounds( r_portal_mins, r_portal_maxs );
@@ -849,7 +852,7 @@ static bool R_DrawPortalSurface( void )
 	doReflection = doRefraction = true;
 	if( shader->flags & SHADER_PORTAL_CAPTURE1 )
 	{
-		shaderpass_t *pass;
+		ref_stage_t *pass;
 
 		captureTexture = &tr.portaltexture1;
 		captureTextureID = 1;
@@ -858,9 +861,9 @@ static bool R_DrawPortalSurface( void )
 		{
 			if( pass->program && pass->program_type == PROGRAM_TYPE_DISTORTION )
 			{
-				if( ( pass->alphagen.type == ALPHA_GEN_CONST && pass->alphagen.args[0] == 1 ) )
+				if( ( pass->alphagen.type == ALPHAGEN_CONST && pass->alphagen.args[0] == 1 ) )
 					doRefraction = false;
-				else if( ( pass->alphagen.type == ALPHA_GEN_CONST && pass->alphagen.args[0] == 0 ) )
+				else if( ( pass->alphagen.type == ALPHAGEN_CONST && pass->alphagen.args[0] == 0 ) )
 					doReflection = false;
 				break;
 			}
@@ -1109,7 +1112,7 @@ void R_DrawSkyPortal( skyportal_t *skyportal, vec3_t mins, vec3_t maxs )
 
 	VectorAdd( RI.refdef.viewangles, skyportal->viewanglesOffset, RI.refdef.viewangles );
 
-	RI.refdef.rdflags &= ~( RDF_UNDERWATER|RDF_SKYPORTALINVIEW );
+	RI.refdef.rdflags &= ~RDF_SKYPORTALINVIEW;
 	if( skyportal->fov )
 	{
 		RI.refdef.fov_x = skyportal->fov;

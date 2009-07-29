@@ -930,9 +930,8 @@ void CL_TestLights( void )
 		return;
 
 	Mem_Set( &dl, 0, sizeof( cdlight_t ));
-	V_ClearScene();
 	
-	for( i = 0; i < min( cl_testlights->integer, 32 ); i++ )
+	for( i = 0; i < 32; i++ )
 	{
 		r = 64 * ( (i%4) - 1.5 );
 		f = 64 * (i/4) + 128;
@@ -945,7 +944,8 @@ void CL_TestLights( void )
 		dl.color[2] = (((i%6)+1) & 4)>>2;
 		dl.radius = 200;
 
-		re->AddDynLight( dl.origin, dl.color, dl.radius ); 
+		if( !re->AddDynLight( dl.origin, dl.color, dl.radius ))
+			break; 
 	}
 }
 

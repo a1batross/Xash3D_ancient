@@ -1354,7 +1354,7 @@ bool R_CullSkeletalModel( ref_entity_t *e )
 		else if( mesh->skin.shader )
 			shader = mesh->skin.shader;
 
-		if( shader && ( shader->sort <= SHADER_SORT_ALPHATEST ) )
+		if( shader && ( shader->sort <= SORT_ALPHATEST ) )
 		{
 			mb = R_AddMeshToList( MB_MODEL, NULL, R_PlanarShadowShader(), -( i+1 ) );
 			if( mb )

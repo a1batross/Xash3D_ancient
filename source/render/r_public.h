@@ -26,16 +26,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAX_POLY_VERTS			3000
 #define MAX_POLYS				2048
 
-// refdef flags
-#define RDF_UNDERWATER		1 	// warp the screen as apropriate
-#define RDF_NOWORLDMODEL		2 	// used for player configuration screen
-#define RDF_BLOOM			4 	// FIXME?
-#define RDF_OLDAREABITS		8 	// forces R_MarkLeaves if not set
-#define RDF_PORTALINVIEW		16	// cull entities using vis too because pvs\areabits are merged serverside
-#define RDF_SKYPORTALINVIEW		32	// draw skyportal instead of regular sky
-#define RDF_NOFOVADJUSTMENT		64	// do not adjust fov for widescreen
-#define RDF_WORLDOUTLINES		128	// draw cell outlines for world surfaces
-
 // skm flags
 #define SKM_ATTACHMENT_BONE	1
 

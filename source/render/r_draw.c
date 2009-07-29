@@ -114,15 +114,15 @@ void R_DrawGetParms( int *w, int *h, int *f, int frame, shader_t handle )
 	if( handle < 0 || handle > MAX_SHADERS || !(shader = &r_shaders[handle]))
 		return;
 
-	if( !shader->numpasses || !shader->passes[0].anim_frames[0] )
+	if( !shader->numpasses || !shader->passes[0].textures[0] )
 		return;
 
-	if( shader->passes[0].anim_frames[0] && shader->passes[0].anim_numframes && frame > 0 )
-		cur = bound( 0, frame, shader->passes[0].anim_numframes );
+	if( shader->passes[0].textures[0] && shader->passes[0].num_textures && frame > 0 )
+		cur = bound( 0, frame, shader->passes[0].num_textures );
 
-	if( w ) *w = (int)shader->passes[0].anim_frames[cur]->srcWidth;
-	if( h ) *h = (int)shader->passes[0].anim_frames[cur]->srcHeight;
-	if( f ) *f = (int)shader->passes[0].anim_numframes;
+	if( w ) *w = (int)shader->passes[0].textures[cur]->srcWidth;
+	if( h ) *h = (int)shader->passes[0].textures[cur]->srcHeight;
+	if( f ) *f = (int)shader->passes[0].num_textures;
 }
 
 void R_DrawSetParms( shader_t handle, kRenderMode_t rendermode, int frame )
@@ -134,14 +134,14 @@ void R_DrawSetParms( shader_t handle, kRenderMode_t rendermode, int frame )
 
 	glState.draw_rendermode = rendermode;
 
-	if( !shader->passes[0].anim_numframes )
+	if( !shader->passes[0].num_textures )
 		return;
 
 	// change frame if need
 //	if( shader->passes[0].flags & SHADERSTAGE_FRAMES )
 	{
 		// make sure what frame inbound
-		glState.draw_frame = bound( 0, frame, shader->passes[0].anim_numframes - 1 );
+		glState.draw_frame = bound( 0, frame, shader->passes[0].num_textures - 1 );
 	}
 }
 
