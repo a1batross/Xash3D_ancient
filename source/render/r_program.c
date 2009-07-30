@@ -34,36 +34,30 @@ typedef struct
 
 typedef struct
 {
-	char			*name;
-	unsigned int	features;
-	const char		*string;
+	char		*name;
+	uint		features;
+	const char	*string;
 
-	int				object;
-	int				vertexShader;
-	int				fragmentShader;
+	int		object;
+	int		vertexShader;
+	int		fragmentShader;
 
-	int				locEyeOrigin,
-					locLightDir,
-					locLightOrigin,
-					locLightAmbient,
-					locLightDiffuse,
-
-					locGlossIntensity,
-					locGlossExponent,
-
-					locOffsetMappingScale,
-#ifdef HARDWARE_OUTLINES
-					locOutlineHeight,
-					locOutlineCutOff,
-#endif
-					locFrontPlane,
-					locTextureWidth,
-					locTextureHeight,
-					locProjDistance,
-
-					locDeluxemapOffset[LM_STYLES],
-					loclsColor[LM_STYLES]
-	;
+	int		locEyeOrigin;
+	int   		locLightDir;
+	int	   	locLightOrigin;
+	int	   	locLightAmbient;
+	int	   	locLightDiffuse;
+	int	   	locGlossIntensity;
+	int	   	locGlossExponent;
+	int	   	locOffsetMappingScale;
+	int	   	locOutlineHeight;
+	int	   	locOutlineCutOff;
+	int	   	locFrontPlane;
+	int	   	locTextureWidth;
+	int	   	locTextureHeight;
+	int   		locProjDistance;
+	int		locDeluxemapOffset[LM_STYLES];
+	int  		loclsColor[LM_STYLES];
 } glsl_program_t;
 
 static glsl_program_t r_glslprograms[MAX_GLSL_PROGRAMS];
@@ -74,9 +68,7 @@ static void R_GetProgramUniformLocations( glsl_program_t *program );
 static const char *r_defaultGLSLProgram;
 static const char *r_defaultDistortionGLSLProgram;
 static const char *r_defaultShadowmapGLSLProgram;
-#ifdef HARDWARE_OUTLINES
 static const char *r_defaultOutlineGLSLProgram;
-#endif
 
 /*
 ================
@@ -114,9 +106,7 @@ void R_InitGLSLPrograms( void )
 
 	R_RegisterGLSLProgram( DEFAULT_GLSL_SHADOWMAP_PROGRAM, r_defaultShadowmapGLSLProgram, 0|features );
 
-#ifdef HARDWARE_OUTLINES
 	R_RegisterGLSLProgram( DEFAULT_GLSL_OUTLINE_PROGRAM, r_defaultOutlineGLSLProgram, 0|features );
-#endif
 }
 
 /*
@@ -788,7 +778,6 @@ static const char *r_defaultShadowmapGLSLProgram =
 "#endif // FRAGMENT_SHADER\n"
 "\n";
 
-#ifdef HARDWARE_OUTLINES
 static const char *r_defaultOutlineGLSLProgram =
 "// " APPLICATION " GLSL shader\n"
 "\n"
@@ -837,7 +826,6 @@ static const char *r_defaultOutlineGLSLProgram =
 "\n"
 "#endif // FRAGMENT_SHADER\n"
 "\n";
-#endif
 
 /*
 ================
@@ -1050,9 +1038,7 @@ void R_ProgramDump_f( void )
 	DUMP_PROGRAM( defaultGLSLProgram );
 	DUMP_PROGRAM( defaultDistortionGLSLProgram );
 	DUMP_PROGRAM( defaultShadowmapGLSLProgram );
-#ifdef HARDWARE_OUTLINES
 	DUMP_PROGRAM( defaultOutlineGLSLProgram );
-#endif
 }
 #undef DUMP_PROGRAM
 
@@ -1061,10 +1047,8 @@ void R_ProgramDump_f( void )
 R_UpdateProgramUniforms
 ================
 */
-void R_UpdateProgramUniforms( int elem, vec3_t eyeOrigin,
-							 vec3_t lightOrigin, vec3_t lightDir, vec4_t ambient, vec4_t diffuse,
-							 superLightStyle_t *superLightStyle, bool frontPlane, int TexWidth, int TexHeight,
-							 float projDistance, float offsetmappingScale )
+void R_UpdateProgramUniforms( int elem, vec3_t eyeOrigin, vec3_t lightOrigin, vec3_t lightDir, vec4_t ambient, vec4_t diffuse,
+	superLightStyle_t *superLightStyle, bool frontPlane, int TexWidth, int TexHeight, float projDistance, float offsetmappingScale )
 {
 	glsl_program_t *program = r_glslprograms + elem - 1;
 
@@ -1089,12 +1073,10 @@ void R_UpdateProgramUniforms( int elem, vec3_t eyeOrigin,
 	if( program->locOffsetMappingScale >= 0 )
 		pglUniform1fARB( program->locOffsetMappingScale, offsetmappingScale );
 
-#ifdef HARDWARE_OUTLINES
 	if( program->locOutlineHeight >= 0 )
 		pglUniform1fARB( program->locOutlineHeight, projDistance );
 	if( program->locOutlineCutOff >= 0 )
 		pglUniform1fARB( program->locOutlineCutOff, max( 0, r_outlines_cutoff->value ) );
-#endif
 
 	if( program->locFrontPlane >= 0 )
 		pglUniform1fARB( program->locFrontPlane, frontPlane ? 1 : -1 );
@@ -1109,7 +1091,7 @@ void R_UpdateProgramUniforms( int elem, vec3_t eyeOrigin,
 
 	if( superLightStyle )
 	{
-		int i;
+		int	i;
 
 		for( i = 0; i < LM_STYLES && superLightStyle->lightmapStyles[i] != 255; i++ )
 		{
@@ -1182,10 +1164,8 @@ static void R_GetProgramUniformLocations( glsl_program_t *program )
 
 	program->locOffsetMappingScale = pglGetUniformLocationARB( program->object, "OffsetMappingScale" );
 
-#ifdef HARDWARE_OUTLINES
 	program->locOutlineHeight = pglGetUniformLocationARB( program->object, "OutlineHeight" );
 	program->locOutlineCutOff = pglGetUniformLocationARB( program->object, "OutlineCutOff" );
-#endif
 
 	program->locFrontPlane = pglGetUniformLocationARB( program->object, "FrontPlane" );
 

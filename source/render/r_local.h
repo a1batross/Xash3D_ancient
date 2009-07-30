@@ -21,8 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef __R_LOCAL_H__
 #define __R_LOCAL_H__
 
-#define HARDWARE_OUTLINES
-
 #include <windows.h>
 #include "launch_api.h"
 #include "qfiles_ref.h"
@@ -361,12 +359,9 @@ extern cvar_t *r_bloom_intensity;
 extern cvar_t *r_bloom_darken;
 extern cvar_t *r_bloom_sample_size;
 extern cvar_t *r_bloom_fast_sample;
-
-#ifdef HARDWARE_OUTLINES
 extern cvar_t *r_outlines_world;
 extern cvar_t *r_outlines_scale;
 extern cvar_t *r_outlines_cutoff;
-#endif
 
 extern cvar_t *r_lodbias;
 extern cvar_t *r_lodscale;
@@ -462,8 +457,8 @@ enum
 #define OCCLUSION_QUERIES_ENABLED( RI )	( GL_Support( R_OCCLUSION_QUERIES_EXT ) && r_occlusion_queries->integer && r_drawentities->integer \
 											&& !((RI).params & RP_NONVIEWERREF) && !((RI).refdef.rdflags & RDF_NOWORLDMODEL) \
 											&& OCCLUSION_QUERIES_CVAR_HACK( RI ) )
-#define OCCLUSION_OPAQUE_SHADER( s )	( ((s)->sort == SORT_OPAQUE ) && ((s)->flags & SHADER_DEPTHWRITE ) && !(s)->numdeforms )
-#define OCCLUSION_TEST_ENTITY( e )		( ((e)->flags & (RF_OCCLUSIONTEST|RF_WEAPONMODEL)) == RF_OCCLUSIONTEST )
+#define OCCLUSION_OPAQUE_SHADER( s )	(((s)->sort == SORT_OPAQUE ) && ((s)->flags & SHADER_DEPTHWRITE ) && !(s)->numDeforms )
+#define OCCLUSION_TEST_ENTITY( e )	(((e)->flags & (RF_OCCLUSIONTEST|RF_WEAPONMODEL)) == RF_OCCLUSIONTEST )
 
 void		R_InitOcclusionQueries( void );
 void		R_BeginOcclusionPass( void );
@@ -573,12 +568,10 @@ bool	R_PushSpritePoly( const meshbuffer_t *mb );
 #define NUM_CUSTOMCOLORS	16
 void		R_InitCustomColors( void );
 void		R_SetCustomColor( int num, int r, int g, int b );
-int			R_GetCustomColor( int num );
+int		R_GetCustomColor( int num );
 
-#ifdef HARDWARE_OUTLINES
 void		R_InitOutlines( void );
 void		R_AddModelMeshOutline( unsigned int modhandle, mfog_t *fog, int meshnum );
-#endif
 
 msurface_t *R_TraceLine( trace_t *tr, const vec3_t start, const vec3_t end, int surfumask );
 
@@ -781,12 +774,10 @@ enum
 
 typedef struct
 {
-	int				pow2MapOvrbr;
+	int		pow2MapOvrbr;
 
-	float			ambient[3];
-#ifdef HARDWARE_OUTLINES
+	float		ambient[3];
 	rgba_t		outlineColor;
-#endif
 	rgba_t		environmentColor;
 
 	bool		lightmapsPacking;

@@ -511,11 +511,12 @@ void IBSP_LoadBrushSides( lump_t *l )
 	}
 }
 
-void RBSP_LoadBrushSides( lump_t *l )
+static void RBSP_LoadBrushSides( lump_t *l, bool raven_bsp )
 {
 	dbrushsider_t 	*in;
 	cbrushside_t	*out;
-	int		i, j, num,count;
+	csurface_t	*surf;
+	int		i, j, shadernum, count;
 
 	in = (void *)(cms.base + l->fileofs);
 	if( l->filelen % sizeof( *in )) Host_Error( "BSP_LoadBrushSides: funny lump size\n" );
@@ -526,14 +527,28 @@ void RBSP_LoadBrushSides( lump_t *l )
 
 	for ( i = 0; i < count; i++, in++, out++)
 	{
-		num = LittleLong( in->planenum );
-		out->plane = cm.planes + num;
-		j = LittleLong( in->shadernum );
-		j = bound( 0, j, cm.numshaders - 1 );
-		out->shader = cm.shaders + j;
-		j = LittleLong( in->surfacenum );
-		j = bound( 0, j, cm.numsurfaces - 1 );
-		out->surface = cm.surfaces + j;
+		out->plane = cm.planes + LittleLong( in->planenum );
+		shadernum = bound( 0, LittleLong( in->shadernum ), cm.numshaders - 1 );
+		out->shader = cm.shaders + shadernum;
+
+		if( raven_bsp )
+		{
+			j = LittleLong( in->surfacenum );
+			j = bound( 0, j, cm.numsurfaces - 1 );
+			out->surface = cm.surfaces + j;
+		}
+		else
+		{
+			for( j = 0, surf = cm.surfaces; j < cm.numsurfaces; j++, surf++ )
+			{
+				if( surf->shadernum == shadernum )
+				{
+					// HACKHACK: only name matched, not vertices
+					out->surface = surf;
+					break;
+				}
+			}
+		}
 	}
 }
 
@@ -1257,7 +1272,7 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 		else Host_Error( "CM_LoadMap: %s has wrong version number (%i should be %i)\n", name, hdr->version, RFIDBSP_VERSION );	
 		break;
 	case IDBSPMODHEADER:
-		if( hdr->version == Q3IDBSP_VERSION || hdr->version == RTCWBSP_VERSION )
+		if( hdr->version == Q3IDBSP_VERSION || hdr->version == RTCWBSP_VERSION || hdr->version == IGIDBSP_VERSION )
 			extended = false;
 		else Host_Error( "CM_LoadMap: %s has wrong version number (%i should be %i)\n", name, hdr->version, Q3IDBSP_VERSION );	
 		break;
@@ -1276,13 +1291,16 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 	{
 		RBSP_LoadVertexes( &hdr->lumps[LUMP_VERTEXES] );
 		RBSP_LoadSurfaces( &hdr->lumps[LUMP_SURFACES] );		// used only for generate NewtonCollisionTree
-		RBSP_LoadBrushSides( &hdr->lumps[LUMP_BRUSHSIDES] );
+		RBSP_LoadBrushSides( &hdr->lumps[LUMP_BRUSHSIDES], true );
 	}
 	else
 	{
 		IBSP_LoadVertexes( &hdr->lumps[LUMP_VERTEXES] );
 		IBSP_LoadSurfaces( &hdr->lumps[LUMP_SURFACES] );		// used only for generate NewtonCollisionTree
-		IBSP_LoadBrushSides( &hdr->lumps[LUMP_BRUSHSIDES] );
+
+		if( hdr->version == IGIDBSP_VERSION )
+			RBSP_LoadBrushSides( &hdr->lumps[LUMP_BRUSHSIDES], false );
+		else IBSP_LoadBrushSides( &hdr->lumps[LUMP_BRUSHSIDES] );
 	}
 	BSP_LoadBrushes( &hdr->lumps[LUMP_BRUSHES] );
 	BSP_LoadLeafBrushes( &hdr->lumps[LUMP_LEAFBRUSHES] );

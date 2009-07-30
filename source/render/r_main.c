@@ -953,11 +953,7 @@ static void R_ApplySoftwareGamma( void )
 }
 
 //=============================================================================
-
-#ifdef HARDWARE_OUTLINES
-
 static ref_shader_t *r_outlineShader;
-
 /*
 ===============
 R_InitOutlines
@@ -976,11 +972,8 @@ R_AddModelMeshOutline
 void R_AddModelMeshOutline( unsigned int modhandle, mfog_t *fog, int meshnum )
 {
 	meshbuffer_t *mb = R_AddMeshToList( MB_MODEL, fog, r_outlineShader, -( meshnum+1 ) );
-	if( mb )
-		mb->LODModelHandle = modhandle;
+	if( mb ) mb->LODModelHandle = modhandle;
 }
-#endif
-
 //=======================================================================
 
 /*

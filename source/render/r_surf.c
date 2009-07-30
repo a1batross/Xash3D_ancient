@@ -97,19 +97,16 @@ bool R_CullSurface( msurface_t *surf, unsigned int clipflags )
 		return true;
 	}
 
-	if( surf->facetype == MST_PLANAR && r_faceplanecull->integer
-#ifdef HARDWARE_OUTLINES
-		&& !RI.currententity->outlineHeight
-#endif
-		&& ( shader->flags & ( SHADER_CULL_FRONT|SHADER_CULL_BACK ) ) )
+	if( surf->facetype == MST_PLANAR && r_faceplanecull->integer &&
+		!RI.currententity->outlineHeight && ( shader->flags & (SHADER_CULL_FRONT|SHADER_CULL_BACK)))
 	{
 		// Vic: I hate q3map2. I really do.
-		if( !VectorCompare( surf->plane->normal, vec3_origin ) )
+		if( !VectorCompare( surf->plane->normal, vec3_origin ))
 		{
 			float dist;
 
 			dist = PlaneDiff( modelorg, surf->plane );
-			if( ( shader->flags & SHADER_CULL_FRONT ) || ( RI.params & RP_MIRRORVIEW ) )
+			if( ( shader->flags & SHADER_CULL_FRONT ) || ( RI.params & RP_MIRRORVIEW ))
 			{
 				if( dist <= BACKFACE_EPSILON )
 					return true;
@@ -121,8 +118,7 @@ bool R_CullSurface( msurface_t *surf, unsigned int clipflags )
 			}
 		}
 	}
-
-	return ( clipflags && R_CullBox( surf->mins, surf->maxs, clipflags ) );
+	return ( clipflags && R_CullBox( surf->mins, surf->maxs, clipflags ));
 }
 
 /*
@@ -224,18 +220,16 @@ R_AddBrushModelToList
 */
 void R_AddBrushModelToList( ref_entity_t *e )
 {
-	unsigned int i;
-	bool rotated;
+	uint		i;
+	bool		rotated;
 	ref_model_t	*model = e->model;
-	mbrushmodel_t *bmodel = ( mbrushmodel_t * )model->extradata;
-	msurface_t *psurf;
-	unsigned int dlightbits;
-	meshbuffer_t *mb;
+	mbrushmodel_t	*bmodel = ( mbrushmodel_t * )model->extradata;
+	msurface_t	*psurf;
+	uint		dlightbits;
+	meshbuffer_t	*mb;
 
-#ifdef HARDWARE_OUTLINES
 	e->outlineHeight = r_worldent->outlineHeight;
 	Vector4Copy( r_worldent->outlineRGBA, e->outlineColor );
-#endif
 
 	rotated = !Matrix_Compare( e->axis, axis_identity );
 	VectorSubtract( RI.refdef.vieworg, e->origin, modelorg );
@@ -577,18 +571,16 @@ void R_DrawWorld( void )
 	RI.previousentity = NULL;
 	RI.currententity = r_worldent;
 	RI.currentmodel = RI.currententity->model;
-#ifdef HARDWARE_OUTLINES
-	if( (RI.refdef.rdflags & RDF_WORLDOUTLINES) && (r_viewcluster != -1) )
+
+	if( (RI.refdef.rdflags & RDF_WORLDOUTLINES) && (r_viewcluster != -1))
 		RI.currententity->outlineHeight = max( 0.0f, r_outlines_world->value );
-	else
-		RI.currententity->outlineHeight = 0.0f;
+	else RI.currententity->outlineHeight = 0.0f;
 	Vector4Copy( mapConfig.outlineColor, RI.currententity->outlineColor );
-#endif
 
 	if( !( RI.params & RP_SHADOWMAPVIEW ) )
 	{
 		R_AllocMeshbufPointers( &RI );
-		memset( RI.surfmbuffers, 0, r_worldbrushmodel->numsurfaces * sizeof( meshbuffer_t * ) );
+		Mem_Set( RI.surfmbuffers, 0, r_worldbrushmodel->numsurfaces * sizeof( meshbuffer_t * ));
 
 		R_CalcDistancesToFogVolumes();
 	}

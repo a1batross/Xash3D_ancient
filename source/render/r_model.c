@@ -33,6 +33,7 @@ enum
 {
 BSP_IDBSP = 0,
 BSP_RAVEN,
+BSP_IGBSP,
 };
 
 typedef struct
@@ -48,6 +49,7 @@ bspFormatDesc_t bspFormats[] =
 {
 { QFBSPMODHEADER, RFIDBSP_VERSION, 512, 512, BSP_RAVEN },
 { IDBSPMODHEADER, Q3IDBSP_VERSION, 128, 128, BSP_IDBSP },
+{ IDBSPMODHEADER, IGIDBSP_VERSION, 128, 128, BSP_IGBSP },
 { IDBSPMODHEADER, RTCWBSP_VERSION, 128, 128, BSP_IDBSP },
 { RBBSPMODHEADER, RFIDBSP_VERSION, 128, 128, BSP_RAVEN }
 };
@@ -1110,8 +1112,8 @@ static _inline void Mod_LoadFaceCommon( const dsurfacer_t *in, msurface_t *out )
 	{
 		// some q3a maps specify a lightmap shader for surfaces that do not have a lightmap,
 		// workaround that... see pukka3tourney2 for example
-		if( ( shaderType == SHADER_VERTEX && ( shaderref->shader->flags & SHADER_LIGHTMAP ) &&
-			( shaderref->shader->passes[0].flags & SHADERSTAGE_LIGHTMAP ) ) )
+		if( ( shaderType == SHADER_VERTEX && ( shaderref->shader->flags & SHADER_HASLIGHTMAP ) &&
+			( shaderref->shader->stages[0].flags & SHADERSTAGE_LIGHTMAP )))
 			out->shader = R_LoadShader( shaderref->name, shaderType, false, 0, shaderref->shader->type );
 		else
 			out->shader = shaderref->shader;
@@ -1287,7 +1289,7 @@ static void Mod_LoadFogs( const lump_t *l, const lump_t *brLump, const lump_t *b
 	if( brLump->filelen % sizeof( *inbrushes ) )
 		Host_Error( "Mod_LoadBrushes: funny lump size in %s\n", loadmodel->name );
 
-	if( mod_bspFormat->flags & BSP_RAVEN )
+	if( mod_bspFormat->flags & (BSP_RAVEN|BSP_IGBSP))
 	{
 		inrbrushsides = ( void * )( mod_base + brSidesLump->fileofs );
 		if( brSidesLump->filelen % sizeof( *inrbrushsides ) )
@@ -1324,28 +1326,27 @@ static void Mod_LoadFogs( const lump_t *l, const lump_t *brLump, const lump_t *b
 			continue;
 		}
 
-		if( mod_bspFormat->flags & BSP_RAVEN )
+		if( mod_bspFormat->flags & (BSP_RAVEN|BSP_IGBSP))
 			rbrushside = inrbrushsides + p;
-		else
-			brushside = inbrushsides + p;
+		else brushside = inbrushsides + p;
 
 		p = LittleLong( in->visibleside );
 		out->numplanes = LittleLong( brush->numsides );
 		out->planes = Mod_Malloc( loadmodel, out->numplanes * sizeof( cplane_t ) );
 
-		if( mod_bspFormat->flags & BSP_RAVEN )
+		if( mod_bspFormat->flags & (BSP_RAVEN|BSP_IGBSP))
 		{
 			if( p != -1 )
 				out->visibleplane = loadbmodel->planes + LittleLong( rbrushside[p].planenum );
 			for( j = 0; j < out->numplanes; j++ )
-				out->planes[j] = *( loadbmodel->planes + LittleLong( rbrushside[j].planenum ) );
+				out->planes[j] = *( loadbmodel->planes + LittleLong( rbrushside[j].planenum ));
 		}
 		else
 		{
 			if( p != -1 )
 				out->visibleplane = loadbmodel->planes + LittleLong( brushside[p].planenum );
 			for( j = 0; j < out->numplanes; j++ )
-				out->planes[j] = *( loadbmodel->planes + LittleLong( brushside[j].planenum ) );
+				out->planes[j] = *( loadbmodel->planes + LittleLong( brushside[j].planenum ));
 		}
 	}
 }
@@ -1660,25 +1661,20 @@ static void Mod_LoadEntities( const lump_t *l, vec3_t gridSize, vec3_t ambient, 
 {
 	int	n;
 	bool	isworld;
+	float	celcolorf[3] = { 0, 0, 0 };
 	float	gridsizef[3] = { 0, 0, 0 }, colorf[3] = { 0, 0, 0 }, ambientf = 0;
 	char	key[MAX_KEY], value[MAX_VALUE];
 	token_t	token;
 	script_t	*ents;
-#ifdef HARDWARE_OUTLINES
-	float celcolorf[3] = { 0, 0, 0 };
-#endif
 
 	Com_Assert( gridSize == NULL );
 	Com_Assert( ambient == NULL );
-#ifdef HARDWARE_OUTLINES
 	Com_Assert( outline == NULL );
-#endif
 
 	VectorClear( gridSize );
 	VectorClear( ambient );
-#ifdef HARDWARE_OUTLINES
 	VectorClear( outline );
-#endif
+
 	ents = Com_OpenScript( LUMP_ENTITIES, (char *)mod_base + l->fileofs, l->filelen );
 	if( !ents ) return;
 
@@ -1738,7 +1734,6 @@ static void Mod_LoadEntities( const lump_t *l, vec3_t gridSize, vec3_t ambient, 
 					VectorCopy( colori, colorf );
 				}
 			}
-#ifdef HARDWARE_OUTLINES
 			else if( !com.strcmp( key, "_outlinecolor" ) )
 			{
 				n = sscanf( value, "%f %f %f", &celcolorf[0], &celcolorf[1], &celcolorf[2] );
@@ -1749,7 +1744,6 @@ static void Mod_LoadEntities( const lump_t *l, vec3_t gridSize, vec3_t ambient, 
 					VectorCopy( celcolori, celcolorf );
 				}
 			}
-#endif
 		}
 
 		if( isworld )
@@ -1759,11 +1753,10 @@ static void Mod_LoadEntities( const lump_t *l, vec3_t gridSize, vec3_t ambient, 
 			if( VectorCompare( colorf, vec3_origin ))
 				VectorSet( colorf, 1.0, 1.0, 1.0 );
 			VectorScale( colorf, ambientf, ambient );
-#ifdef HARDWARE_OUTLINES
+
 			if( max( celcolorf[0], max( celcolorf[1], celcolorf[2] ) ) > 1.0f )
 				VectorScale( celcolorf, 1.0f / 255.0f, celcolorf ); // [0..1] RGB -> [0..255] RGB
 			VectorCopy( celcolorf, outline );
-#endif
 			break;
 		}
 	}
@@ -1860,11 +1853,9 @@ static void Mod_Finish( const lump_t *faces, const lump_t *light, vec3_t gridSiz
 	for( i = 0; i < 3; i++ )
 		mapConfig.ambient[i] = bound( 0, ambient[i]*( (float)( 1 << mapConfig.pow2MapOvrbr )/255.0f ), 1 );
 
-#ifdef HARDWARE_OUTLINES
 	for( i = 0; i < 3; i++ )
 		mapConfig.outlineColor[i] = (byte)(bound( 0, outline[i]*255.0f, 255 ));
 	mapConfig.outlineColor[3] = 255;
-#endif
 
 	R_SortSuperLightStyles();
 
@@ -1992,27 +1983,23 @@ void Mod_LoadBrushModel( ref_model_t *mod, ref_model_t *parent, void *buffer )
 	Mod_LoadEntities( &header->lumps[LUMP_ENTITIES], gridSize, ambient, outline );
 	if( mod_bspFormat->flags & BSP_RAVEN )
 		Mod_LoadVertexes_RBSP( &header->lumps[LUMP_VERTEXES] );
-	else
-		Mod_LoadVertexes( &header->lumps[LUMP_VERTEXES] );
+	else Mod_LoadVertexes( &header->lumps[LUMP_VERTEXES] );
 	Mod_LoadElems( &header->lumps[LUMP_ELEMENTS] );
 	Mod_LoadLighting( &header->lumps[LUMP_LIGHTING], &header->lumps[LUMP_SURFACES] );
 	if( mod_bspFormat->flags & BSP_RAVEN )
 		Mod_LoadLightgrid_RBSP( &header->lumps[LUMP_LIGHTGRID] );
-	else
-		Mod_LoadLightgrid( &header->lumps[LUMP_LIGHTGRID] );
+	else Mod_LoadLightgrid( &header->lumps[LUMP_LIGHTGRID] );
 	Mod_LoadShaderrefs( &header->lumps[LUMP_SHADERS] );
 	Mod_LoadPlanes( &header->lumps[LUMP_PLANES] );
 	Mod_LoadFogs( &header->lumps[LUMP_FOGS], &header->lumps[LUMP_BRUSHES], &header->lumps[LUMP_BRUSHSIDES] );
-	if( mod_bspFormat->flags & BSP_RAVEN )
+	if( mod_bspFormat->flags & (BSP_RAVEN|BSP_IGBSP))
 		Mod_LoadFaces_RBSP( &header->lumps[LUMP_SURFACES] );
-	else
-		Mod_LoadFaces( &header->lumps[LUMP_SURFACES] );
+	else Mod_LoadFaces( &header->lumps[LUMP_SURFACES] );
 	Mod_LoadLeafs( &header->lumps[LUMP_LEAFS], &header->lumps[LUMP_LEAFSURFACES] );
 	Mod_LoadNodes( &header->lumps[LUMP_NODES] );
 	if( mod_bspFormat->flags & BSP_RAVEN )
 		Mod_LoadLightArray_RBSP( &header->lumps[LUMP_LIGHTARRAY] );
-	else
-		Mod_LoadLightArray();
+	else Mod_LoadLightArray();
 
 	Mod_Finish( &header->lumps[LUMP_SURFACES], &header->lumps[LUMP_LIGHTING], gridSize, ambient, outline );
 
@@ -2027,7 +2014,7 @@ void Mod_LoadBrushModel( ref_model_t *mod, ref_model_t *parent, void *buffer )
 		bmodel = ( mbrushmodel_t * )starmod->extradata;
 
 		memcpy( starmod, mod, sizeof( ref_model_t ) );
-		memcpy( bmodel, mod->extradata, sizeof( mbrushmodel_t ) );
+		memcpy( bmodel, mod->extradata, sizeof( mbrushmodel_t ));
 
 		bmodel->firstmodelsurface = bmodel->surfaces + bm->firstface;
 		bmodel->nummodelsurfaces = bm->numfaces;
@@ -2118,9 +2105,7 @@ void R_BeginRegistration( const char *mapname, const dvis_t *visData )
 	mapConfig.deluxeMappingEnabled = false;
 
 	VectorClear( mapConfig.ambient );
-#ifdef HARDWARE_OUTLINES
 	VectorClear( mapConfig.outlineColor );
-#endif
 
 	com.sprintf( fullname, "maps/%s.bsp", mapname );
 
@@ -2131,7 +2116,7 @@ void R_BeginRegistration( const char *mapname, const dvis_t *visData )
 
 		mapConfig.lightmapsPacking = true;
 
-		com.strncpy( lightmapsPath, fullname, sizeof( lightmapsPath ) );
+		com.strncpy( lightmapsPath, fullname, sizeof( lightmapsPath ));
 		p = com.strrchr( lightmapsPath, '.' );
 		if( p )
 		{

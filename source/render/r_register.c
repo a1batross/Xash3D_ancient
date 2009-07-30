@@ -582,11 +582,9 @@ void GL_InitCommands( void )
 	r_shadows_pcf = Cvar_Get( "r_shadows_pcf", "0", CVAR_ARCHIVE, "allow pcf filtration" );
 	r_shadows_self_shadow = Cvar_Get( "r_shadows_self_shadow", "0", CVAR_ARCHIVE, "allow self-shadowing" );
 
-#ifdef HARDWARE_OUTLINES
 	r_outlines_world = Cvar_Get( "r_outlines_world", "1.8", CVAR_ARCHIVE, "cel-shading world outline thinkness" );
 	r_outlines_scale = Cvar_Get( "r_outlines_scale", "1", CVAR_ARCHIVE, "outilines scale" );
 	r_outlines_cutoff = Cvar_Get( "r_outlines_cutoff", "712", CVAR_ARCHIVE, "cutoff factor" );
-#endif
 
 	r_lodbias = Cvar_Get( "r_lodbias", "0", CVAR_ARCHIVE, "md3 or skm lod bias" );
 	r_lodscale = Cvar_Get( "r_lodscale", "5.0", CVAR_ARCHIVE, "md3 or skm LOD scale factor" );
@@ -1053,16 +1051,14 @@ static void R_InitMedia( void )
 	R_InitGLSLPrograms();
 	R_InitImages();
 	R_InitCinematics ();
-	R_InitShaders((glw_state.developer <= 3));
+	R_InitShaders();
 	R_InitModels();
 	R_InitSkinFiles();
 	R_InitCoronas();
 	R_InitShadows();
 	R_InitOcclusionQueries();
 	R_InitCustomColors ();
-#ifdef HARDWARE_OUTLINES
 	R_InitOutlines ();
-#endif
 
 	GL_SetDefaultTexState ();
 

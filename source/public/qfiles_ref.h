@@ -165,6 +165,7 @@ BRUSH MODELS
 // header
 #define Q3IDBSP_VERSION	46
 #define RTCWBSP_VERSION	47
+#define IGIDBSP_VERSION	48	// extended brushides
 #define RFIDBSP_VERSION	1	// both raven bsp and qfusion bsp
 
 #define IDBSPMODHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'I') // little-endian "IBSP"
@@ -364,7 +365,12 @@ typedef struct
 {
 	int	planenum;		// facing out of the leaf
 	int	shadernum;	// surface description
-	int	surfacenum;
+
+	union
+	{
+		int	surfacenum;
+		int	surfaceflags;
+	};
 } dbrushsider_t;
 
 typedef struct

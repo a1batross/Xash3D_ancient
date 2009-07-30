@@ -160,14 +160,12 @@ typedef struct entity_s
 	float			radius;			// used as RT_SPRITE's radius
 	float			rotation;
 
-#ifdef HARDWARE_OUTLINES
 	float			outlineHeight;
 	union
 	{
 		rgba_t		outlineColor;
 		rgba_t		outlineRGBA;
 	};
-#endif
 } ref_entity_t;
 
 void		R_ModelBounds( const struct ref_model_s *model, vec3_t mins, vec3_t maxs );

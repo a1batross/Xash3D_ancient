@@ -1072,10 +1072,8 @@ static void R_DrawBonesFrameLerp( const meshbuffer_t *mb, float backlerp )
 	{
 		if( ( features & MF_SVECTORS ) || r_shownormals->integer )
 			features |= MF_NORMALS;
-#ifdef HARDWARE_OUTLINES
 		if( e->outlineHeight )
 			features |= MF_NORMALS|(GL_Support( R_SHADER_GLSL100_EXT ) ? MF_ENABLENORMALS : 0);
-#endif
 	}
 
 	// not sure if it's really needed

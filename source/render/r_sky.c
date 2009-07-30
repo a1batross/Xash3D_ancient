@@ -265,12 +265,11 @@ static void R_DrawBlackBottom( skydome_t *skydome )
 	if( r_shownormals->integer )
 		features |= MF_NORMALS;
 
-	// HACK HACK HACK
-	// skies ought not to write to depth buffer
+	// HACKHACK skies ought not to write to depth buffer
 	shader->flags &= ~SHADER_DEPTHWRITE;
-	shader->passes[0].flags &= ~GLSTATE_DEPTHWRITE;
+	shader->stages[0].glState &= ~GLSTATE_DEPTHWRITE;
 	R_DrawSkySide( skydome, 5, shader, features );
-	shader->passes[0].flags |= GLSTATE_DEPTHWRITE;
+	shader->stages[0].glState |= GLSTATE_DEPTHWRITE;
 	shader->flags |= SHADER_DEPTHWRITE;
 }
 
@@ -365,7 +364,7 @@ void R_DrawSky( ref_shader_t *shader )
 	else
 		R_DrawBlackBottom( skydome );
 
-	if( shader->numpasses )
+	if( shader->num_stages )
 	{
 		bool flush = false;
 		int features = shader->features;

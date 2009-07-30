@@ -273,13 +273,11 @@ void R_AddModelMeshToList( unsigned int modhandle, mfog_t *fog, ref_shader_t *sh
 	if( mb )
 		mb->LODModelHandle = modhandle;
 
-#ifdef HARDWARE_OUTLINES
 	if( !GL_Support( R_SHADER_GLSL100_EXT ) && RI.currententity->outlineHeight/* && !(RI.params & RP_SHADOWMAPVIEW)*/ )
 	{
-		if( ( shader->sort == SORT_OPAQUE ) && ( shader->flags & SHADER_CULL_FRONT ) )
+		if(( shader->sort == SORT_OPAQUE ) && ( shader->flags & SHADER_CULL_FRONT ))
 			R_AddModelMeshOutline( modhandle, fog, meshnum );
 	}
-#endif
 }
 
 /*
@@ -329,10 +327,8 @@ static void R_BatchMeshBuffer( const meshbuffer_t *mb, const meshbuffer_t *nextm
 			features = shader->features;
 			if( r_shownormals->integer )
 				features |= MF_NORMALS;
-#ifdef HARDWARE_OUTLINES
 			if( ent->outlineHeight )
 				features |= (MF_NORMALS|MF_ENABLENORMALS);
-#endif
 			features |= r_superLightStyles[surf->superLightStyle].features;
 
 			if( features & MF_NONBATCHED )
@@ -760,11 +756,11 @@ static bool R_AddPortalSurface( const meshbuffer_t *mb )
 
 	// check if we are too far away and the portal view is obscured
 	// by an alphagen portal stage
-	for( i = 0; i < shader->numpasses; i++ )
+	for( i = 0; i < shader->num_stages; i++ )
 	{
-		if( shader->passes[i].alphagen.type == ALPHAGEN_PORTAL )
+		if( shader->stages[i].alphaGen.type == ALPHAGEN_PORTAL )
 		{
-			if( dist > ( 1.0/shader->passes[i].alphagen.args[0] ) )
+			if( dist > ( 1.0f / shader->stages[i].alphaGen.args[0] ) )
 				return true; // completely alpha'ed out
 		}
 	}
@@ -857,13 +853,13 @@ static bool R_DrawPortalSurface( void )
 		captureTexture = &tr.portaltexture1;
 		captureTextureID = 1;
 
-		for( i = 0, pass = shader->passes; i < shader->numpasses; i++, pass++ )
+		for( i = 0, pass = shader->stages; i < shader->num_stages; i++, pass++ )
 		{
 			if( pass->program && pass->program_type == PROGRAM_TYPE_DISTORTION )
 			{
-				if( ( pass->alphagen.type == ALPHAGEN_CONST && pass->alphagen.args[0] == 1 ) )
+				if( ( pass->alphaGen.type == ALPHAGEN_CONST && pass->alphaGen.args[0] == 1 ) )
 					doRefraction = false;
-				else if( ( pass->alphagen.type == ALPHAGEN_CONST && pass->alphagen.args[0] == 0 ) )
+				else if( ( pass->alphaGen.type == ALPHAGEN_CONST && pass->alphaGen.args[0] == 0 ) )
 					doReflection = false;
 				break;
 			}

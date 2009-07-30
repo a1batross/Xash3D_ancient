@@ -46,7 +46,7 @@ bool R_SurfPotentiallyLit( msurface_t *surf )
 		return false;
 
 	shader = surf->shader;
-	if( shader->flags & SHADER_SKYPARMS || shader->type == SHADER_FLARE || !shader->numpasses )
+	if( shader->flags & SHADER_SKYPARMS || shader->type == SHADER_FLARE || !shader->num_stages )
 		return false;
 
 	return ( surf->mesh && ( surf->facetype != MST_FLARE ) /* && (surf->facetype != MST_TRISURF)*/ );
@@ -117,7 +117,7 @@ void R_AddDynamicLights( unsigned int dlightbits, int state )
 	if( !GL_Support( R_TEXTURE_3D_EXT ) && !GL_Support( R_ARB_MULTITEXTURE ))
 		return;
 
-	for( i = 0; i < (unsigned)( GL_Support( R_TEXTURE_3D_EXT ) ? 1 : 2 ); i++ )
+	for( i = 0; i < (uint)( GL_Support( R_TEXTURE_3D_EXT ) ? 1 : 2 ); i++ )
 	{
 		GL_SelectTexture( i );
 		GL_TexEnv( GL_MODULATE );
