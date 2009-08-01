@@ -40,12 +40,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define SHADER_TEXTURE		5
 #define SHADER_VERTEX		6
 #define SHADER_FLARE		7
-#define SHADER_MD3			8
-#define SHADER_FARBOX		9
-#define SHADER_NEARBOX		10
-#define SHADER_PLANAR_SHADOW		11
-#define SHADER_OPAQUE_OCCLUDER	12
-#define SHADER_OUTLINE		13
+#define SHADER_ALIAS		8
+#define SHADER_STUDIO		9
+#define SHADER_SPRITE		10
+#define SHADER_FARBOX		11
+#define SHADER_NEARBOX		12
+#define SHADER_PLANAR_SHADOW		13
+#define SHADER_OPAQUE_OCCLUDER	14
+#define SHADER_OUTLINE		15
 
 // shader flags
 typedef enum
@@ -84,10 +86,11 @@ enum
 	SHADERSTAGE_DLIGHT		= BIT(6),
 	SHADERSTAGE_PORTALMAP	= BIT(7),
 	SHADERSTAGE_STENCILSHADOW	= BIT(8),
-	SHADERSTAGE_BLEND_REPLACE	= BIT(9),
-	SHADERSTAGE_BLEND_MODULATE	= BIT(10),
-	SHADERSTAGE_BLEND_ADD	= BIT(11),
-	SHADERSTAGE_BLEND_DECAL	= BIT(12)
+	SHADERSTAGE_RENDERMODE	= BIT(9),
+	SHADERSTAGE_BLEND_REPLACE	= BIT(10),
+	SHADERSTAGE_BLEND_MODULATE	= BIT(11),
+	SHADERSTAGE_BLEND_ADD	= BIT(12),
+	SHADERSTAGE_BLEND_DECAL	= BIT(13)
 } stageFlags_t;
 
 #define SHADERSTAGE_BLENDMODE		(SHADERSTAGE_BLEND_REPLACE|SHADERSTAGE_BLEND_MODULATE|SHADERSTAGE_BLEND_ADD|SHADERSTAGE_BLEND_DECAL)
@@ -138,8 +141,8 @@ typedef enum
 	RGBGEN_EXACT_VERTEX,
 	RGBGEN_LIGHTING_DIFFUSE_ONLY,
 	RGBGEN_LIGHTING_AMBIENT_ONLY,
-	RGBGEN_FOG,
 	RGBGEN_CUSTOM,
+	RGBGEN_FOG,		// followed extensions only for internal use
 	RGBGEN_OUTLINE,
 	RGBGEN_ENVIRONMENT
 } rgbGenType_t;
@@ -162,7 +165,7 @@ typedef enum
 	ALPHAGEN_ONE_MINUS_FADE,
 	ALPHAGEN_DOT,
 	ALPHAGEN_ONE_MINUS_DOT,
-	ALPHAGEN_OUTLINE
+	ALPHAGEN_OUTLINE			// only for internal use
 } alphaGenType_t;
 
 // texture coordinates generation
@@ -294,7 +297,8 @@ typedef struct ref_shader_s
 {
 	char		*name;
 	word		type;
-	
+
+	shader_t		shadernum;	// 0 = free	
 	uint		flags;
 	word		features;
 	sort_t		sort;
@@ -315,16 +319,18 @@ typedef struct ref_shader_s
 
 	float		offsetmapping_scale;
 
+	struct ref_script_s	*cache;
 	struct ref_shader_s	*nextHash;
 } ref_shader_t;
 
 // memory management
-extern byte	*r_shadersmempool;
-extern ref_shader_t	r_shaders[MAX_SHADERS];
-extern skydome_t	*r_skydomes[MAX_SHADERS];
+extern byte		*r_shaderpool;
+extern ref_shader_t		r_shaders[MAX_SHADERS];
+extern skydome_t		*r_skydomes[MAX_SHADERS];
 
+#define Shader_CopyString( str )	com.stralloc( r_shaderpool, str, __FILE__, __LINE__ )
 #define Shader_Sortkey( shader, sort )	((( sort )<<26 )|( shader - r_shaders ))
-#define Shader_Malloc( size )		Mem_Alloc( r_shadersmempool, size )
+#define Shader_Malloc( size )		Mem_Alloc( r_shaderpool, size )
 #define Shader_Free( data )		Mem_Free( data )
 
 
@@ -333,7 +339,6 @@ void R_ShutdownShaders( void );
 void R_UploadCinematicShader( const ref_shader_t *shader );
 void R_DeformvBBoxForShader( const ref_shader_t *shader, vec3_t ebbox );
 void R_ShaderList_f( void );
-void R_ShaderDump_f( void );
 ref_shader_t *R_LoadShader( const char *name, int type, bool forceDefault, int addFlags, int ignoreType );
 
 

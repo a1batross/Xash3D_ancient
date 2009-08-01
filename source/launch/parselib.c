@@ -1103,7 +1103,7 @@ bool PS_GetDouble( script_t *script, int flags, double *value )
 			PS_ScriptError( script, flags, "expected float value, found '%s'", token.string );
 			return false;
 		}
-		*value = -token.floatValue;
+		if( value ) *value = -token.floatValue;
 		return true;
 	}
 
@@ -1113,7 +1113,7 @@ bool PS_GetDouble( script_t *script, int flags, double *value )
 		return false;
 	}
 
-	*value = token.floatValue;
+	if( value ) *value = token.floatValue;
 	return true;
 }
 
@@ -1139,7 +1139,7 @@ bool PS_GetFloat( script_t *script, int flags, float *value )
 			PS_ScriptError( script, flags, "expected float value, found '%s'", token.string );
 			return false;
 		}
-		*value = -((float)token.floatValue);
+		if( value ) *value = -((float)token.floatValue);
 		return true;
 	}
 
@@ -1149,7 +1149,7 @@ bool PS_GetFloat( script_t *script, int flags, float *value )
 		return false;
 	}
 
-	*value = (float)token.floatValue;
+	if( value ) *value = (float)token.floatValue;
 	return true;
 }
 
@@ -1171,7 +1171,7 @@ bool PS_GetUnsigned( script_t *script, int flags, uint *value )
 		return false;
 	}
 
-	*value = token.integerValue;
+	if( value ) *value = token.integerValue;
 	return true;
 }
 
@@ -1198,7 +1198,7 @@ bool PS_GetInteger( script_t *script, int flags, int *value )
 			return false;
 		}
 
-		*value = -((int)token.integerValue);
+		if( value ) *value = -((int)token.integerValue);
 		return true;
 	}
 
@@ -1208,7 +1208,7 @@ bool PS_GetInteger( script_t *script, int flags, int *value )
 		return false;
 	}
 
-	*value = (int)token.integerValue;
+	if( value ) *value = (int)token.integerValue;
 	return true;
 }
 

@@ -91,6 +91,7 @@ typedef struct
 	texture_t		*blankbumpTexture;
 	texture_t		*dlightTexture;
 	texture_t		*fogTexture;
+	texture_t		*skyTexture;
 	texture_t		*coronaTexture;
 	texture_t		*defaultConchars;
 	texture_t		*shadowmapTextures[MAX_SHADOWGROUPS];

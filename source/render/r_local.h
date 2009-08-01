@@ -498,7 +498,7 @@ void		R_InitImages( void );
 void		R_ShutdownImages( void );
 void		R_InitPortalTexture( texture_t **texture, int id, int screenWidth, int screenHeight );
 void		R_InitShadowmapTexture( texture_t **texture, int id, int screenWidth, int screenHeight );
-void		R_FreeImageBuffers( void );
+void		R_FreeImage( texture_t *image );
 
 void		R_TextureList_f( void );
 void		R_SetTextureParameters( void );
