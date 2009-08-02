@@ -359,11 +359,27 @@ void R_TextureList_f( void )
 		case GL_COMPRESSED_INTENSITY_ARB:
 			Msg( "CI    " );
 			break;
+		case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+		case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+			Msg( "DXT1  " );
+			break;
+		case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+			Msg( "DXT3  " );
+			break;
+		case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+			Msg( "DXT5  " );
+			break;
+		case GL_RGBA:
+			Msg( "RGBA  " );
+			break;
 		case GL_RGBA8:
 			Msg( "RGBA8 " );
 			break;
 		case GL_RGBA4:
 			Msg( "RGBA4 " );
+			break;
+		case GL_RGB:
+			Msg( "RGB   " );
 			break;
 		case GL_RGB8:
 			Msg( "RGB8  " );
@@ -3241,6 +3257,32 @@ static rgbdata_t *R_InitBlankBumpTexture( int *flags, int *samples )
 
 /*
 ==================
+R_InitSkyTexture
+==================
+*/
+static rgbdata_t *R_InitSkyTexture( int *flags, int *samples )
+{
+	int	i;
+
+	// skybox texture
+	for( i = 0; i < 256; i++ )
+		((uint *)&data2D)[i] = LittleLong( 0xFFFFDEB5 );
+
+	*flags = TF_NOPICMIP|TF_UNCOMPRESSED;
+	*samples = 3;
+
+	r_image.numMips = r_image.depth = 1;
+	r_image.buffer = data2D;
+	r_image.width = r_image.height = 16;
+	r_image.size = r_image.width * r_image.height * 4;
+	r_image.flags = IMAGE_HAS_COLOR;
+	r_image.type = PF_RGBA_GN;
+
+	return &r_image;
+}
+
+/*
+==================
 R_InitFogTexture
 ==================
 */
@@ -3429,6 +3471,7 @@ static void R_InitBuiltinTextures( void )
 	{
 		{ "*default", &tr.defaultTexture, R_InitNoTexture },
 		{ "*fog", &tr.fogTexture, R_InitFogTexture },
+		{ "*sky", &tr.skyTexture, R_InitSkyTexture },
 		{ "*white", &tr.whiteTexture, R_InitWhiteTexture },
 		{ "*black", &tr.blackTexture, R_InitBlackTexture },
 		{ "*blankbump", &tr.blankbumpTexture, R_InitBlankBumpTexture },
@@ -3589,7 +3632,7 @@ void R_ShutdownImages( void )
 	for( i = 0, image = r_textures; i < r_numTextures; i++, image++ )
 	{
 		if( !image->texnum ) continue;
-		pglDeleteTextures( 1, &image->texnum );
+		R_FreeImage( image );
 	}
 
 	Mem_Set( tr.lightmapTextures, 0, sizeof( tr.lightmapTextures ));

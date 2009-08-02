@@ -685,11 +685,10 @@ void UTIL_ChangeLevel( const char *szNextMap, const char *szNextSpot )
 	char path[128];
 	
 	sprintf(path, "maps/%s.bsp", st_szNextMap);
-	byte *data = LOAD_FILE(path, NULL);
-	if (data)
+
+	if( FILE_EXISTS( path ))
 	{
 		UTIL_ClearPTR();
-		FREE_FILE( data );
 		DevMsg( "CHANGE LEVEL: %s %s\n", st_szNextMap, st_szNextSpot );
 		CHANGE_LEVEL( st_szNextMap, st_szNextSpot );
 	}

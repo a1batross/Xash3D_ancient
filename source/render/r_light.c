@@ -838,16 +838,18 @@ void R_BuildLightmaps( int numLightmaps, int w, int h, const byte *data, mlightm
 	int numBlocks, size, stride;
 	const byte *lmData;
 
-	if( !mapConfig.lightmapsPacking )
-		size = max( w, h );
-	else
-		for( size = 1; ( size < r_lighting_maxlmblocksize->integer ) && ( size < glConfig.max_2d_texture_size ); size <<= 1 ) ;
+	if( !mapConfig.lightmapsPacking ) size = max( w, h );
+	else for( size = 1; ( size < r_lighting_maxlmblocksize->integer ) && ( size < glConfig.max_2d_texture_size ); size <<= 1 );
 
 	if( mapConfig.deluxeMappingEnabled && ( ( size == w ) || ( size == h ) ) )
 	{
 		MsgDev( D_WARN, "Lightmap blocks larger than %ix%i aren't supported, deluxemaps will be disabled\n", size, size );
 		mapConfig.deluxeMappingEnabled = false;
 	}
+
+	// free old lightmaps
+	for( i = 0; i < r_numUploadedLightmaps; i++ )
+		if( tr.lightmapTextures[i] ) R_FreeImage( tr.lightmapTextures[i] );
 
 	r_maxLightmapBlockSize = size;
 	size = w * h * LM_BYTES;

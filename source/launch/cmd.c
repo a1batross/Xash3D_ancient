@@ -403,7 +403,7 @@ void Cmd_Exec_f (void)
 	}
 
 	com.snprintf( rcpath, MAX_STRING, "config/%s", Cmd_Argv(1)); 
-	FS_DefaultExtension(rcpath, ".rc" ); // append as default
+	FS_DefaultExtension( rcpath, ".rc" ); // append as default
 
 	f = FS_LoadFile(rcpath, &len );
 	if (!f)

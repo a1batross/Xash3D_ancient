@@ -1319,16 +1319,17 @@ rgbdata_t *Image_DecompressInternal( rgbdata_t *pic )
 	return ImagePack();
 }
 
-void Image_Process( rgbdata_t **pix, int width, int height, uint flags )
+bool Image_Process( rgbdata_t **pix, int width, int height, uint flags )
 {
 	rgbdata_t	*pic = *pix;
+	bool	result = true;
 	byte	*out;
 				
 	// check for buffers
 	if( !pic || !pic->buffer )
 	{
 		MsgDev( D_WARN, "Image_Process: NULL image\n" );
-		return;
+		return false;
 	}
 
 	if( flags & IMAGE_MAKE_LUMA )
@@ -1378,6 +1379,9 @@ void Image_Process( rgbdata_t **pix, int width, int height, uint flags )
 			Mem_Free( pic->buffer );		// free original image buffer
 			pic->buffer = Image_Copy( pic->size );	// unzone buffer (don't touch image.tempbuffer)
 		}
+		else result = false; // not a resampled or filled
 	}
 	*pix = pic;
+
+	return result;
 }

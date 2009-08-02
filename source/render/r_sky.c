@@ -25,49 +25,48 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mathlib.h"
 
 #define SIDE_SIZE   9
-#define POINTS_LEN  ( SIDE_SIZE*SIDE_SIZE )
-#define ELEM_LEN    ( ( SIDE_SIZE-1 )*( SIDE_SIZE-1 )*6 )
+#define POINTS_LEN	( SIDE_SIZE * SIDE_SIZE )
+#define ELEM_LEN	(( SIDE_SIZE-1 ) * ( SIDE_SIZE-1 ) * 6 )
 
-#define SPHERE_RAD  10.0
-#define EYE_RAD     9.0
+#define SPHERE_RAD	10.0f
+#define EYE_RAD	9.0f
 
-#define SCALE_S	    4.0  // Arbitrary (?) texture scaling factors
-#define SCALE_T	    4.0
+#define SCALE_S	4.0f  // arbitrary (?) texture scaling factors
+#define SCALE_T	4.0f
 
 #define BOX_SIZE    1.0f
 #define BOX_STEP    BOX_SIZE / ( SIDE_SIZE-1 ) * 2.0f
 
-elem_t	r_skydome_elems[6][ELEM_LEN];
-meshbuffer_t r_skydome_mbuffer;
+elem_t		r_skydome_elems[6][ELEM_LEN];
+meshbuffer_t	r_skydome_mbuffer;
 
-static mfog_t *r_skyfog;
-static msurface_t *r_warpface;
+static mfog_t	*r_skyfog;
+static msurface_t	*r_warpface;
 static bool	r_warpfacevis;
 
 static void Gen_BoxSide( skydome_t *skydome, int side, vec3_t orig, vec3_t drow, vec3_t dcol, float skyheight );
+static void MakeSkyVec( float x, float y, float z, int axis, vec3_t v );
 static void Gen_Box( skydome_t *skydome, float skyheight );
-
-void MakeSkyVec( float x, float y, float z, int axis, vec3_t v );
 
 /*
 ==============
 R_CreateSkydome
 ==============
 */
-skydome_t *R_CreateSkydome( float skyheight, ref_shader_t **farboxShaders, ref_shader_t **nearboxShaders )
+skydome_t *R_CreateSkydome( byte *mempool, float skyheight, ref_shader_t **farboxShaders, ref_shader_t **nearboxShaders )
 {
-	int i, size;
-	mesh_t *mesh;
-	skydome_t *skydome;
-	byte *buffer;
+	int	i, size;
+	mesh_t	*mesh;
+	skydome_t	*skydome;
+	byte	*buffer;
 
 	size = sizeof( skydome_t ) + sizeof( mesh_t ) * 6 + sizeof( vec4_t ) * POINTS_LEN * 6 +
 		sizeof( vec4_t ) * POINTS_LEN * 6 + sizeof( vec2_t ) * POINTS_LEN * 11;
-	buffer = Shader_Malloc( size );
+	buffer = Mem_Alloc( mempool, size );
 
 	skydome = ( skydome_t * )buffer;
-	memcpy( skydome->farboxShaders, farboxShaders, sizeof( shader_t * ) * 6 );
-	memcpy( skydome->nearboxShaders, nearboxShaders, sizeof( shader_t * ) * 6 );
+	Mem_Copy( skydome->farboxShaders, farboxShaders, sizeof( ref_shader_t* ) * 6 );
+	Mem_Copy( skydome->nearboxShaders, nearboxShaders, sizeof( ref_shader_t* ) * 6 );
 	buffer += sizeof( skydome_t );
 
 	skydome->meshes = ( mesh_t * )buffer;
@@ -100,7 +99,7 @@ R_FreeSkydome
 */
 void R_FreeSkydome( skydome_t *skydome )
 {
-	Shader_Free( skydome );
+	if( skydome ) Mem_Free( skydome );
 }
 
 /*
@@ -110,15 +109,14 @@ Gen_Box
 */
 static void Gen_Box( skydome_t *skydome, float skyheight )
 {
-	int axis;
-	vec3_t orig, drow, dcol;
+	int	axis;
+	vec3_t	orig, drow, dcol;
 
 	for( axis = 0; axis < 6; axis++ )
 	{
 		MakeSkyVec( -BOX_SIZE, -BOX_SIZE, BOX_SIZE, axis, orig );
 		MakeSkyVec( 0, BOX_STEP, 0, axis, drow );
 		MakeSkyVec( BOX_STEP, 0, 0, axis, dcol );
-
 		Gen_BoxSide( skydome, axis, orig, drow, dcol, skyheight );
 	}
 }
@@ -280,22 +278,20 @@ R_DrawSky
 */
 void R_DrawSky( ref_shader_t *shader )
 {
-	int i;
-	vec3_t mins, maxs;
-	mat4x4_t m, oldm;
-	elem_t *elem;
-	skydome_t *skydome = r_skydomes[shader-r_shaders] ? r_skydomes[shader-r_shaders] : NULL;
-	meshbuffer_t *mbuffer = &r_skydome_mbuffer;
-	int u, v, umin, umax, vmin, vmax;
+	int		i;
+	vec3_t		mins, maxs;
+	mat4x4_t		m, oldm;
+	elem_t		*elem;
+	skydome_t		*skydome = shader->skyParms ? shader->skyParms : NULL;
+	meshbuffer_t	*mbuffer = &r_skydome_mbuffer;
+	int		u, v, umin, umax, vmin, vmax;
 
-	if( !skydome )
-		return;
+	if( !skydome ) return;
 
 	ClearBounds( mins, maxs );
 	for( i = 0; i < 6; i++ )
 	{
-		if( RI.skyMins[0][i] >= RI.skyMaxs[0][i] ||
-			RI.skyMins[1][i] >= RI.skyMaxs[1][i] )
+		if( RI.skyMins[0][i] >= RI.skyMaxs[0][i] || RI.skyMins[1][i] >= RI.skyMaxs[1][i] )
 			continue;
 
 		umin = (int)( ( RI.skyMins[0][i]+1.0f )*0.5f*(float)( SIDE_SIZE-1 ) );

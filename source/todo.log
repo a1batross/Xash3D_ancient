@@ -11,6 +11,9 @@ fopen завешивает приложение, при попытке создать файл в несуществующей директори
 возвращал.
 fopen завешивает приложение, даже если перепутать местами + и a, при установке режима!
 
+Memory Leaks:
+Filesystem Pool растет на 4 килобайта после смены карты
+
 Отложенные задачи:
 1. Поддержка loop для ogg vorbis
 2. переписать studiomdl для использования VFS
@@ -103,6 +106,10 @@ Beta 13.12.08
 72. screenshots VID_AdjustGamma		OK
 73. shaders pasring				OK
 74. fixup 3D textures loading			OK
-75. ignore shader errors - just throw warnings 
+75. ignore shader errors - just throw warnings	OK
+76. launch.dll ->release gl_invalid_enum
+77. debug shader_free_unused mechanism		OK
+78. fix changemap errors
+79. memory trash in render.dll 
 
 

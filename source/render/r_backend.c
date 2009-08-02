@@ -1245,7 +1245,7 @@ R_ShaderpassTex
 */
 static _inline texture_t *R_ShaderpassTex( const ref_stage_t *pass, int unit )
 {
-	if( pass->animFrequency )
+	if( pass->flags & SHADERSTAGE_ANIMFREQUENCY && pass->animFrequency && pass->num_textures )
 		return pass->textures[(int)( pass->animFrequency * r_currentShaderTime ) % pass->num_textures];
 	if( pass->flags & SHADERSTAGE_LIGHTMAP )
 		return tr.lightmapTextures[r_superLightStyle->lightmapNum[r_lightmapStyleNum[unit]]];

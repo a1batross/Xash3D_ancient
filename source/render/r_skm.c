@@ -122,7 +122,7 @@ void Mod_LoadSkeletalPose( char *name, ref_model_t *mod, void *buffer )
 Mod_LoadSkeletalModel
 =================
 */
-void Mod_LoadSkeletalModel( ref_model_t *mod, ref_model_t *parent, void *buffer )
+void Mod_LoadSkeletalModel( ref_model_t *mod, ref_model_t *parent, const void *buffer )
 {
 	unsigned int i, j, k, l, m;
 	vec_t *v, *n;
@@ -506,6 +506,7 @@ void Mod_LoadSkeletalModel( ref_model_t *mod, ref_model_t *parent, void *buffer 
 
 	Mem_Free( basepose );
 	mod->type = mod_studio;
+	mod->touchFrame = tr.registration_sequence; // register model
 }
 
 /*

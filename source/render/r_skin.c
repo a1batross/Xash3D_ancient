@@ -34,9 +34,129 @@ typedef struct skinfile_s
 	int					numpairs;
 } skinfile_t;
 
-char *COM_ParseExt( const char **data_p, bool nl );
 static skinfile_t r_skinfiles[MAX_SKINFILES];
 static byte *r_skinsPool;
+
+// Com_ParseExt it's temporary stuff
+#define	MAX_TOKEN_CHARS	1024
+char	com_token[MAX_TOKEN_CHARS];
+
+/*
+==============
+COM_ParseExt
+
+Parse a token out of a string
+==============
+*/
+char *COM_ParseExt( const char **data_p, bool nl )
+{
+	int		c;
+	int		len;
+	const char	*data;
+	bool 		newlines = false;
+
+	data = *data_p;
+	len = 0;
+	com_token[0] = 0;
+
+	if (!data)
+	{
+		*data_p = NULL;
+		return "";
+	}
+
+// skip whitespace
+skipwhite:
+	while ( (c = *data) <= ' ')
+	{
+		if (c == 0)
+		{
+			*data_p = NULL;
+			return "";
+		}
+		if (c == '\n')
+			newlines = true;
+		data++;
+	}
+
+	if ( newlines && !nl )
+	{
+		*data_p = data;
+		return com_token;
+	}
+
+	// skip // comments
+	if (c == '/' && data[1] == '/')
+	{
+		data += 2;
+
+		while (*data && *data != '\n')
+			data++;
+		goto skipwhite;
+	}
+
+	// skip /* */ comments
+	if (c == '/' && data[1] == '*')
+	{
+		data += 2;
+
+		while (1)
+		{
+			if (!*data)
+				break;
+			if (*data != '*' || *(data+1) != '/')
+				data++;
+			else
+			{
+				data += 2;
+				break;
+			}
+		}
+		goto skipwhite;
+	}
+
+	// handle quoted strings specially
+	if (c == '\"')
+	{
+		data++;
+		while (1)
+		{
+			c = *data++;
+			if (c=='\"' || !c)
+			{
+				if (len == MAX_TOKEN_CHARS)
+					len = 0;
+				com_token[len] = 0;
+				*data_p = data;
+				return com_token;
+			}
+			if (len < MAX_TOKEN_CHARS)
+			{
+				com_token[len] = c;
+				len++;
+			}
+		}
+	}
+
+// parse a regular word
+	do
+	{
+		if (len < MAX_TOKEN_CHARS)
+		{
+			com_token[len] = c;
+			len++;
+		}
+		data++;
+		c = *data;
+	} while (c>32);
+
+	if (len == MAX_TOKEN_CHARS)
+		len = 0;
+	com_token[len] = 0;
+
+	*data_p = data;
+	return com_token;
+}
 
 /*
 ================

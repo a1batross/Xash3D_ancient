@@ -323,7 +323,8 @@ bool R_SetPixelformat( void )
 	{
 		// saved gamma not found or corrupted file
 		FS_WriteFile( "config/gamma.rc", glState.stateRamp, sizeof(glState.stateRamp));
-		Msg( "gamma.rc initialized\n" );
+		MsgDev( D_NOTE, "gamma.rc initialized\n" );
+		if( savedGamma ) Mem_Free( savedGamma );
 	}
 	else
 	{
@@ -375,6 +376,7 @@ bool R_SetPixelformat( void )
 			MsgDev( D_NOTE, "R_SetPixelformat: restore original gamma after crash\n" );
 			Mem_Copy( glState.stateRamp, savedGamma, sizeof( glState.gammaRamp ));			
 		}
+		Mem_Free( savedGamma );
 	}
 	r_gamma->modified = true;
 

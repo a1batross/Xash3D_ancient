@@ -58,11 +58,11 @@ bool R_SurfPotentiallyVisible( msurface_t *surf )
 R_CullSurface
 =================
 */
-bool R_CullSurface( msurface_t *surf, unsigned int clipflags )
+bool R_CullSurface( msurface_t *surf, uint clipflags )
 {
 	ref_shader_t *shader = surf->shader;
 
-	if( ( shader->flags & SHADER_SKY ) && r_fastsky->integer )
+	if(( shader->flags & SHADER_SKY ) && r_fastsky->integer )
 		return true;
 	if( r_nocull->integer )
 		return false;
@@ -591,8 +591,7 @@ void R_DrawWorld( void )
 
 	if( r_nocull->integer )
 		clipflags = 0;
-	else
-		clipflags = RI.clipFlags;
+	else clipflags = RI.clipFlags;
 
 	if( r_dynamiclight->integer != 1 || r_fullbright->integer )
 		dlightbits = 0;

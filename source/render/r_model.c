@@ -27,7 +27,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quatlib.h"
 #include "byteorder.h"
 
-#define Q_rint(x)	((x) < 0 ? ((int)((x)-0.5f)) : ((int)((x)+0.5f)))
+#define Q_rint(x)			((x) < 0 ? ((int)((x)-0.5f)) : ((int)((x)+0.5f)))
+#define Mod_CopyString( m, str )	com.stralloc( (m)->mempool, str, __FILE__, __LINE__ )
 
 enum
 {
@@ -58,74 +59,55 @@ int numBspFormats = sizeof( bspFormats ) / sizeof( bspFormats[0] );
 
 typedef struct
 {
-	char name[MAX_SHADERPATH];
-	int flags;
-	ref_shader_t *shader;
+	char		name[MAX_SHADERPATH];
+	ref_shader_t	*shader;
+	int		flags;
 } mshaderref_t;
 
 typedef struct
 {
 	int	ident;
 	int	maxLods;
-	void ( *loader )( ref_model_t *mod, ref_model_t *parent, void *buffer );
+	void	(*loader)( ref_model_t *mod, ref_model_t *parent, const void *buffer );
 } modelformatdescriptor_t;
 
 static ref_model_t *loadmodel;
 static int loadmodel_numverts;
-static vec4_t *loadmodel_xyz_array;                       // vertexes
-static vec4_t *loadmodel_normals_array;                   // normals
-static vec2_t *loadmodel_st_array;                        // texture coords
-static vec2_t *loadmodel_lmst_array[LM_STYLES];       // lightmap texture coords
-static rgba_t *loadmodel_colors_array[LM_STYLES];     // colors used for vertex lighting
+static vec4_t	*loadmodel_xyz_array;		// vertexes
+static vec4_t	*loadmodel_normals_array;		// normals
+static vec2_t	*loadmodel_st_array;		// texture coords
+static vec2_t	*loadmodel_lmst_array[LM_STYLES];	// lightmap texture coords
+static rgba_t	*loadmodel_colors_array[LM_STYLES];	// colors used for vertex lighting
+static dshader_t	*loadmodel_shaders[MAX_MAP_SHADERS];	// hold contents and texture size
+static int	loadmodel_numsurfelems;
+static elem_t	*loadmodel_surfelems;
 
-static int loadmodel_numsurfelems;
-static elem_t *loadmodel_surfelems;
+static int		loadmodel_numlightmaps;
+static mlightmapRect_t	*loadmodel_lightmapRects;
+static int		loadmodel_numshaderrefs;
+static mshaderref_t		*loadmodel_shaderrefs;
 
-static int loadmodel_numlightmaps;
-static mlightmapRect_t *loadmodel_lightmapRects;
-
-static int loadmodel_numshaderrefs;
-static mshaderref_t *loadmodel_shaderrefs;
-
-void Mod_LoadAliasMD3Model( ref_model_t *mod, ref_model_t *parent, void *buffer );
-void Mod_LoadSkeletalModel( ref_model_t *mod, ref_model_t *parent, void *buffer );
-void Mod_LoadBrushModel( ref_model_t *mod, ref_model_t *parent, void *buffer );
+void Mod_LoadAliasMD3Model( ref_model_t *mod, ref_model_t *parent, const void *buffer );
+void Mod_LoadSkeletalModel( ref_model_t *mod, ref_model_t *parent, const void *buffer );
+void Mod_LoadBrushModel( ref_model_t *mod, ref_model_t *parent, const void *buffer );
 
 ref_model_t *Mod_LoadModel( ref_model_t *mod, bool crash );
 
-static byte mod_novis[MAX_MAP_LEAFS/8];
-
-#define	MAX_MOD_KNOWN	512*4
-static ref_model_t mod_known[MAX_MOD_KNOWN];
-static int mod_numknown;
-static int modfilelen;
-
-static bspFormatDesc_t *mod_bspFormat;
-
-// the inline * models from the current map are kept separate
-static ref_model_t *mod_inline;
-
-static byte *mod_mempool;
+static ref_model_t		*r_inlinemodels = NULL;
+static byte		mod_novis[MAX_MAP_LEAFS/8];
+static ref_model_t		r_models[MAX_MODELS];
+static int		r_nummodels;
+static bspFormatDesc_t	*mod_bspFormat;
+static byte		*mod_mempool;
 
 static modelformatdescriptor_t mod_supportedformats[] =
 {
-	// Quake III Arena .md3 models
-	{ IDMD3HEADER, MD3_ALIAS_MAX_LODS, Mod_LoadAliasMD3Model },
-
-	// Skeletal models
-	{ SKMHEADER, SKM_MAX_LODS, Mod_LoadSkeletalModel },
-
-	// Quake III Arena .bsp models
-	{ IDBSPMODHEADER, 0, Mod_LoadBrushModel },
-
-	// SOF2 and JK2 .bsp models
-	{ RBBSPMODHEADER, 0, Mod_LoadBrushModel },
-
-	// qfusion .bsp models
-	{ QFBSPMODHEADER, 0, Mod_LoadBrushModel },
-
-	// trailing NULL
-	{ 0, 0, NULL }
+{ IDMD3HEADER,	MD3_ALIAS_MAX_LODS,	Mod_LoadAliasMD3Model	}, // Quake III Arena .md3 models
+{ SKMHEADER,	SKM_MAX_LODS,	Mod_LoadSkeletalModel	}, // Skeletal models
+{ IDBSPMODHEADER,	0,		Mod_LoadBrushModel		}, // Quake III Arena .bsp models
+{ RBBSPMODHEADER,	0,		Mod_LoadBrushModel		}, // SOF2 and JK2 .bsp models
+{ QFBSPMODHEADER,	0,		Mod_LoadBrushModel		}, // QFusion .bsp models
+{ 0, 		0,		NULL			}  // terminator
 };
 
 static int mod_numsupportedformats = sizeof( mod_supportedformats ) / sizeof( mod_supportedformats[0] ) - 1;
@@ -182,20 +164,54 @@ Mod_Modellist_f
 */
 void Mod_Modellist_f( void )
 {
-	int i;
+	int		i, nummodels;
 	ref_model_t	*mod;
 
 	Msg( "\n" );
 	Msg( "-----------------------------------\n" );
 
-	for( i = 0, mod = mod_known; i < mod_numknown; i++, mod++ )
+	for( i = nummodels = 0, mod = r_models; i < r_nummodels; i++, mod++ )
 	{
-		if( !mod->name ) break;
+		if( !mod->name ) continue; // free slot
 		Msg( "%s%s\n", mod->name, (mod->type == mod_bad) ? " (DEFAULTED)" : "" );
+		nummodels++;
 	}
+
 	Msg( "-----------------------------------\n" );
-	Msg( "%i total models\n", mod_numknown );
-	Msg( "\n");
+	Msg( "%i total models\n", nummodels );
+	Msg( "\n" );
+}
+
+/*
+================
+Mod_FreeModel
+================
+*/
+void Mod_FreeModel( ref_model_t *mod )
+{
+	if( !mod || !mod->mempool ) return;
+
+	Mem_FreePool( &mod->mempool );
+	Mem_Set( mod, 0, sizeof( *mod ));
+}
+
+/*
+================
+Mod_FreeAll
+================
+*/
+void Mod_FreeAll( void )
+{
+	int	i;
+
+	if( r_inlinemodels )
+	{
+		Mem_Free( r_inlinemodels );
+		r_inlinemodels = NULL;
+	}
+
+	for( i = 0; i < r_nummodels; i++ )
+		Mod_FreeModel( &r_models[i] );
 }
 
 /*
@@ -205,8 +221,11 @@ R_InitModels
 */
 void R_InitModels( void )
 {
-	memset( mod_novis, 0xff, sizeof( mod_novis ) );
+	Mem_Set( mod_novis, 0xff, sizeof( mod_novis ));
 	mod_mempool = Mem_AllocPool( "Models" );
+	r_nummodels = 0;
+
+//	R_StudioInit();
 }
 
 /*
@@ -216,29 +235,16 @@ R_ShutdownModels
 */
 void R_ShutdownModels( void )
 {
-	int i;
+	if( !mod_mempool ) return;
 
-	if( !mod_mempool )
-		return;
-
-	if( mod_inline )
-	{
-		Mem_Free( mod_inline );
-		mod_inline = NULL;
-	}
-
-	for( i = 0; i < mod_numknown; i++ )
-	{
-		if( mod_known[i].mempool )
-			Mem_FreePool( &mod_known[i].mempool );
-	}
+//	R_StudioShutdown();
+	Mod_FreeAll();
 
 	r_worldmodel = NULL;
 	r_worldbrushmodel = NULL;
 
-	mod_numknown = 0;
-	memset( mod_known, 0, sizeof( mod_known ) );
-
+	r_nummodels = 0;
+	Mem_Set( r_models, 0, sizeof( r_models ));
 	Mem_FreePool( &mod_mempool );
 }
 
@@ -249,13 +255,12 @@ Mod_StripLODSuffix
 */
 void Mod_StripLODSuffix( char *name )
 {
-	int len, lodnum;
+	int	len, lodnum;
 
-	len = strlen( name );
-	if( len <= 2 )
-		return;
+	len = com.strlen( name );
+	if( len <= 2 ) return;
 
-	lodnum = atoi( &name[len - 1] );
+	lodnum = com.atoi( &name[len - 1] );
 	if( lodnum < MD3_ALIAS_MAX_LODS )
 	{
 		if( name[len-2] == '_' )
@@ -268,42 +273,22 @@ void Mod_StripLODSuffix( char *name )
 Mod_FindSlot
 ==================
 */
-static ref_model_t *Mod_FindSlot( const char *name, const char *shortname )
+static ref_model_t *Mod_FindSlot( const char *name )
 {
-	int i;
-	ref_model_t	*mod, *best;
-	size_t shortlen = shortname ? strlen( shortname ) : 0;
+	ref_model_t	*mod;
+	int		i;
 
-	//
-	// search the currently loaded models
-	//
-	for( i = 0, mod = mod_known, best = NULL; i < mod_numknown; i++, mod++ )
-	{
-		if( !com.stricmp( mod->name, name ) )
-			return mod;
-
-		if( ( mod->type == mod_bad ) && shortlen )
-		{
-			if( !com.strnicmp( mod->name, shortname, shortlen ) )
-			{                                               // same basename, different extension
-				best = mod;
-				shortlen = 0;
-			}
-		}
-	}
-
-	//
-	// return best candidate
-	//
-	if( best )
-		return best;
-
-	//
 	// find a free model slot spot
-	//
-	if( mod_numknown == MAX_MOD_KNOWN )
-		Host_Error( "mod_numknown == MAX_MOD_KNOWN\n" );
-	return &mod_known[mod_numknown];
+	for( i = 0, mod = r_models; i < r_nummodels; i++, mod++ )
+		if( !mod->name ) break; // free spot
+
+	if( i == r_nummodels )
+	{
+		if( r_nummodels == MAX_MODELS )
+			Host_Error( "Mod_ForName: MAX_MODELS limit exceeded\n" );
+		r_nummodels++;
+	}
+	return mod;
 }
 
 /*
@@ -311,9 +296,9 @@ static ref_model_t *Mod_FindSlot( const char *name, const char *shortname )
 Mod_Handle
 ==================
 */
-unsigned int Mod_Handle( ref_model_t *mod )
+uint Mod_Handle( ref_model_t *mod )
 {
-	return mod - mod_known;
+	return mod - r_models;
 }
 
 /*
@@ -321,9 +306,32 @@ unsigned int Mod_Handle( ref_model_t *mod )
 Mod_ForHandle
 ==================
 */
-ref_model_t *Mod_ForHandle( unsigned int elem )
+ref_model_t *Mod_ForHandle( uint handle )
 {
-	return mod_known + elem;
+	return r_models + handle;
+}
+
+/*
+=================
+Mod_UpdateShaders
+
+update shader and associated textures
+=================
+*/
+static void Mod_UpdateShaders( ref_model_t *mod )
+{
+	ref_shader_t	*shader;
+	int		i;
+
+	if( !mod || !mod->name )
+		return;
+
+	for( i = 0; i < mod->numshaders; i++ )
+	{
+		shader = mod->shaders[i];
+		if( !shader || !shader->name ) continue;
+		Shader_TouchImages( shader, false );
+	}
 }
 
 /*
@@ -335,60 +343,55 @@ Loads in a model for the given name
 */
 ref_model_t *Mod_ForName( const char *name, bool crash )
 {
-	int i;
-	ref_model_t	*mod, *lod;
-	uint		*buf;
-	string		shortname, lodname;
-	const char	*extension;
-	modelformatdescriptor_t *descr;
+	int			i;
+	ref_model_t		*mod, *lod;
+	uint			*buf;
+	const char         		*ext;
+	string			shortname, lodname;
+	modelformatdescriptor_t	*descr;
 
 	if( !name[0] ) Host_Error( "Mod_ForName: NULL name\n" );
 
-	//
 	// inline models are grabbed only from worldmodel
-	//
 	if( name[0] == '*' )
 	{
-		i = atoi( name+1 );
+		i = com.atoi( name + 1 );
 		if( i < 1 || !r_worldmodel || i >= r_worldbrushmodel->numsubmodels )
-			Host_Error( "bad inline model number\n" );
-		return &mod_inline[i];
+		{
+			MsgDev( D_ERROR, "bad inline model number %i\n", i );
+			return NULL;
+		}
+		return &r_inlinemodels[i];
 	}
 
-	com.strncpy( shortname, name, sizeof( shortname ));
-	FS_StripExtension( shortname );
-	extension = &name[strlen( shortname )+1];
+	// search the currently loaded models
+	for( i = 0, mod = r_models; i < r_nummodels; i++, mod++ )
+	{
+		if( !mod->name ) continue;
+		if( !com.strcmp( mod->name, name ))
+		{
+			// prolonge registration
+			mod->touchFrame = tr.registration_sequence;
+			return mod;
+		}
+	}
 
-	mod = Mod_FindSlot( name, shortname );
-	if( mod->name && !strcmp( mod->name, name ) )
-		return mod->type != mod_bad ? mod : NULL;
+	mod = Mod_FindSlot( name );
 
-	//
+	Com_Assert( mod == NULL );
+
 	// load the file
-	//
-	buf = (uint *)FS_LoadFile( name, &modfilelen );
-	if( !buf && crash )
-		Host_Error( "Mod_NumForName: %s not found\n", name );
+	buf = (uint *)FS_LoadFile( name, NULL );
+	if( !buf && crash ) Host_Error( "Mod_ForName: %s not found\n", name );
 
-	if( mod->mempool )  // overwrite
-		Mem_FreePool( &mod->mempool );
-	else
-		mod_numknown++;
-
-	mod->type = mod_bad;
-	mod->mempool = Mem_AllocPool( va( "^1%s^7", name ));
-	mod->name = Mod_Malloc( mod, strlen( name ) + 1 );
-	strcpy( mod->name, name );
+	// return the NULL model
+	if( !buf ) return NULL;
 
 	loadmodel = mod;
 	loadmodel_xyz_array = NULL;
 	loadmodel_surfelems = NULL;
 	loadmodel_lightmapRects = NULL;
 	loadmodel_shaderrefs = NULL;
-
-	// return the NULL model
-	if( !buf )
-		return NULL;
 
 	// call the apropriate loader
 	descr = mod_supportedformats;
@@ -397,12 +400,16 @@ ref_model_t *Mod_ForName( const char *name, bool crash )
 		if( LittleLong(*(uint *)buf) == descr->ident )
 			break;
 	}
-
 	if( i == mod_numsupportedformats )
 	{
-		MsgDev( D_ERROR, "Mod_NumForName: unknown fileid for %s\n", mod->name );
+		MsgDev( D_ERROR, "Mod_NumForName: unknown fileid for %s\n", name );
+		Mem_Free( buf );
 		return NULL;
 	}
+
+	mod->type = mod_bad;
+	mod->mempool = Mem_AllocPool( va( "^1%s^7", name ));
+	mod->name = Mod_CopyString( mod, name );
 
 	descr->loader( mod, NULL, buf );
 	Mem_Free( buf );
@@ -410,40 +417,39 @@ ref_model_t *Mod_ForName( const char *name, bool crash )
 	if( !descr->maxLods )
 		return mod;
 
-	//
+	com.strncpy( shortname, name, sizeof( shortname ));
+	ext = FS_FileExtension( name );
+	FS_StripExtension( shortname );
+
 	// load level-of-detail models
-	//
-	mod->numlods = 0;
-	for( i = 0; i < descr->maxLods; i++ )
+	for( i = mod->numlods = 0; i < descr->maxLods; i++ )
 	{
-		com.snprintf( lodname, sizeof( lodname ), "%s_%i.%s", shortname, i+1, extension );
+		com.snprintf( lodname, sizeof( lodname ), "%s_%i.%s", shortname, i+1, ext );
 		buf = (uint *)FS_LoadFile( lodname, NULL );
 		if( !buf || LittleLong(*(uint *)buf) != descr->ident )
 			break;
 
-		lod = mod->lods[i] = Mod_FindSlot( lodname, NULL );
-		if( lod->name && !strcmp( lod->name, lodname ) )
+		lod = mod->lods[i] = Mod_FindSlot( lodname );
+		if( lod->name && !com.strcmp( lod->name, lodname ))
 			continue;
 
 		lod->type = mod_bad;
-		lod->mempool = Mem_AllocPool( va( "^2%s^7", lodname ));
-		lod->name = Mod_Malloc( lod, com.strlen( lodname ) + 1 );
-		com.strcpy( lod->name, lodname );
+		lod->mempool = Mem_AllocPool( va( "^4%s^7", lodname ));
+		lod->name = Mod_CopyString( lod, name );
 
 		loadmodel = lod;
 		loadmodel_xyz_array = NULL;
 		loadmodel_surfelems = NULL;
 		loadmodel_lightmapRects = NULL;
 		loadmodel_shaderrefs = NULL;
-		mod_numknown++;
 
 		descr->loader( lod, mod, buf );
 		Mem_Free( buf );
 
 		mod->numlods++;
 	}
-
 	loadmodel = mod;
+
 	return mod;
 }
 
@@ -455,8 +461,8 @@ BRUSHMODEL LOADING
 ===============================================================================
 */
 
-static byte *mod_base;
-static mbrushmodel_t *loadbmodel;
+static byte		*mod_base;
+static mbrushmodel_t	*loadbmodel;
 
 /*
 =================
@@ -750,19 +756,19 @@ Mod_LoadSubmodels
 */
 static void Mod_LoadSubmodels( const lump_t *l )
 {
-	int i, j, count;
-	dmodel_t *in;
-	mmodel_t *out;
-	mbrushmodel_t *bmodel;
+	int		i, j, count;
+	dmodel_t		*in;
+	mmodel_t		*out;
+	mbrushmodel_t	*bmodel;
 
 	in = ( void * )( mod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) )
 		Host_Error( "Mod_LoadSubmodels: funny lump size in %s\n", loadmodel->name );
 	count = l->filelen / sizeof( *in );
-	out = Mod_Malloc( loadmodel, count*sizeof( *out ) );
+	out = Mod_Malloc( loadmodel, count * sizeof( *out ));
 
-	mod_inline = Mod_Malloc( loadmodel, count*( sizeof( *mod_inline )+sizeof( *bmodel ) ) );
-	loadmodel->extradata = bmodel = ( mbrushmodel_t * )( ( byte * )mod_inline + count*sizeof( *mod_inline ) );
+	r_inlinemodels = Mod_Malloc( loadmodel, count * ( sizeof( *r_inlinemodels ) + sizeof( *bmodel )));
+	loadmodel->extradata = bmodel = (mbrushmodel_t *)((byte*)r_inlinemodels + count * sizeof( *r_inlinemodels ));
 
 	loadbmodel = bmodel;
 	loadbmodel->submodels = out;
@@ -770,7 +776,7 @@ static void Mod_LoadSubmodels( const lump_t *l )
 
 	for( i = 0; i < count; i++, in++, out++ )
 	{
-		mod_inline[i].extradata = bmodel + i;
+		r_inlinemodels[i].extradata = bmodel + i;
 
 		for( j = 0; j < 3; j++ )
 		{
@@ -803,6 +809,9 @@ static void Mod_LoadShaderrefs( const lump_t *l )
 		Host_Error( "Mod_LoadShaderrefs: funny lump size in %s\n", loadmodel->name );
 	count = l->filelen / sizeof( *in );
 	out = Mod_Malloc( loadmodel, count*sizeof( *out ) );
+
+	loadmodel->shaders = Mod_Malloc( loadmodel, count * sizeof( ref_shader_t* ));
+	loadmodel->numshaders = count;
 
 	loadmodel_shaderrefs = out;
 	loadmodel_numshaderrefs = count;
@@ -1760,6 +1769,7 @@ static void Mod_LoadEntities( const lump_t *l, vec3_t gridSize, vec3_t ambient, 
 			break;
 		}
 	}
+	Com_CloseScript( ents );
 }
 
 /*
@@ -1859,6 +1869,10 @@ static void Mod_Finish( const lump_t *faces, const lump_t *light, vec3_t gridSiz
 
 	R_SortSuperLightStyles();
 
+	// make shader links
+	for( i = 0; i < loadmodel_numshaderrefs; i++ )
+		loadmodel->shaders[i] = loadmodel_shaderrefs[i].shader;
+
 	for( i = 0, testFog = loadbmodel->fogs; i < loadbmodel->numfogs; testFog++, i++ )
 	{
 		if( !testFog->shader )
@@ -1932,14 +1946,10 @@ static void Mod_Finish( const lump_t *faces, const lump_t *light, vec3_t gridSiz
 		MsgDev( D_INFO, "Global fog detected: %s\n", testFog->shader->name );
 	}
 
-	if( loadmodel_xyz_array )
-		Mod_Free( loadmodel_xyz_array );
-	if( loadmodel_surfelems )
-		Mod_Free( loadmodel_surfelems );
-	if( loadmodel_lightmapRects )
-		Mod_Free( loadmodel_lightmapRects );
-	if( loadmodel_shaderrefs )
-		Mod_Free( loadmodel_shaderrefs );
+	if( loadmodel_xyz_array ) Mod_Free( loadmodel_xyz_array );
+	if( loadmodel_surfelems ) Mod_Free( loadmodel_surfelems );
+	if( loadmodel_lightmapRects ) Mod_Free( loadmodel_lightmapRects );
+	if( loadmodel_shaderrefs ) Mod_Free( loadmodel_shaderrefs );
 
 	Mod_SetParent( loadbmodel->nodes, NULL );
 }
@@ -1949,17 +1959,15 @@ static void Mod_Finish( const lump_t *faces, const lump_t *light, vec3_t gridSiz
 Mod_LoadBrushModel
 =================
 */
-void Mod_LoadBrushModel( ref_model_t *mod, ref_model_t *parent, void *buffer )
+void Mod_LoadBrushModel( ref_model_t *mod, ref_model_t *parent, const void *buffer )
 {
-	int i;
-	int version;
-	dheader_t *header;
-	mmodel_t *bm;
-	vec3_t gridSize, ambient, outline;
+	int	i, version;
+	dheader_t	*header;
+	mmodel_t	*bm;
+	vec3_t	gridSize, ambient, outline;
 
 	mod->type = mod_brush;
-	if( mod != mod_known )
-		Host_Error( "Loaded a brush model after the world\n" );
+	if( mod != r_models ) Host_Error( "loaded a brush model after the world\n" );
 
 	header = (dheader_t *)buffer;
 
@@ -2002,19 +2010,20 @@ void Mod_LoadBrushModel( ref_model_t *mod, ref_model_t *parent, void *buffer )
 	else Mod_LoadLightArray();
 
 	Mod_Finish( &header->lumps[LUMP_SURFACES], &header->lumps[LUMP_LIGHTING], gridSize, ambient, outline );
+	mod->touchFrame = tr.registration_sequence; // register model
 
 	// set up the submodels
 	for( i = 0; i < loadbmodel->numsubmodels; i++ )
 	{
 		ref_model_t	*starmod;
-		mbrushmodel_t *bmodel;
+		mbrushmodel_t	*bmodel;
 
 		bm = &loadbmodel->submodels[i];
-		starmod = &mod_inline[i];
-		bmodel = ( mbrushmodel_t * )starmod->extradata;
+		starmod = &r_inlinemodels[i];
+		bmodel = (mbrushmodel_t *)starmod->extradata;
 
-		memcpy( starmod, mod, sizeof( ref_model_t ) );
-		memcpy( bmodel, mod->extradata, sizeof( mbrushmodel_t ));
+		Mem_Copy( starmod, mod, sizeof( ref_model_t ));
+		Mem_Copy( bmodel, mod->extradata, sizeof( mbrushmodel_t ));
 
 		bmodel->firstmodelsurface = bmodel->surfaces + bm->firstface;
 		bmodel->nummodelsurfaces = bm->numfaces;
@@ -2024,10 +2033,8 @@ void Mod_LoadBrushModel( ref_model_t *mod, ref_model_t *parent, void *buffer )
 		VectorCopy( bm->mins, starmod->mins );
 		starmod->radius = bm->radius;
 
-		if( i == 0 )
-			*mod = *starmod;
-		else
-			bmodel->numsubmodels = 0;
+		if( i == 0 ) *mod = *starmod;
+		else bmodel->numsubmodels = 0;
 	}
 }
 
@@ -2082,6 +2089,7 @@ void Mod_LoadSpriteModel( ref_model_t *mod, ref_model_t *parent, void *buffer )
 	}
 
 	mod->type = mod_sprite;
+	mod->touchFrame = tr.registration_sequence; // register model
 }
 
 #endif
@@ -2099,6 +2107,7 @@ void R_BeginRegistration( const char *mapname, const dvis_t *visData )
 {
 	string	fullname;
 
+	tr.registration_sequence++;
 	mapConfig.pow2MapOvrbr = 0;
 	mapConfig.lightmapsPacking = false;
 	mapConfig.deluxeMaps = false;
@@ -2109,6 +2118,19 @@ void R_BeginRegistration( const char *mapname, const dvis_t *visData )
 
 	com.sprintf( fullname, "maps/%s.bsp", mapname );
 
+	// explicitly free the old map if different
+	if( com.strcmp( r_models[0].name, fullname ))
+	{
+		Mod_FreeModel( &r_models[0] );
+		RI.surfmbuffers = NULL;
+	}
+	else
+	{
+		// update progress bar
+		Cvar_SetValue( "scr_loading", 50.0f );
+		if( ri.UpdateScreen ) ri.UpdateScreen();
+	}
+	
 	if( r_lighting_packlightmaps->integer )
 	{
 		string	lightmapsPath;
@@ -2130,17 +2152,20 @@ void R_BeginRegistration( const char *mapname, const dvis_t *visData )
 		}
 	}
 
-	r_farclip_min = Z_NEAR; // sky shaders will most likely modify this value
+	r_farclip_min = Z_NEAR;		// sky shaders will most likely modify this value
 	r_environment_color->modified = true;
 
 	r_worldmodel = Mod_ForName( fullname, true );
-	r_worldbrushmodel = ( mbrushmodel_t * )r_worldmodel->extradata;
-	r_worldbrushmodel->vis = ( dvis_t * )visData;
+	r_worldbrushmodel = (mbrushmodel_t *)r_worldmodel->extradata;
+	r_worldbrushmodel->vis = (dvis_t *)visData;
 
 	r_worldent->scale = 1.0f;
 	r_worldent->model = r_worldmodel;
 	r_worldent->rtype = RT_MODEL;
+	r_worldent->ent_type = ED_NORMAL;
+	r_worldent->renderamt = 255;		// i'm hope we don't want to see semisolid world :) 
 	Matrix_Identity( r_worldent->axis );
+	Mod_UpdateShaders( r_worldmodel );
 
 	r_framecount = 1;
 	r_oldviewcluster = r_viewcluster = -1;  // force markleafs
@@ -2148,6 +2173,16 @@ void R_BeginRegistration( const char *mapname, const dvis_t *visData )
 
 void R_EndRegistration( const char *skyname )
 {
+	int		i;
+	ref_model_t	*mod;
+
+	for( i = 0, mod = r_models; i < r_nummodels; i++, mod++ )
+	{
+		if( !mod->name ) continue;
+		if( mod->touchFrame != tr.registration_sequence )
+			Mod_FreeModel( mod );
+	}
+	R_ShaderFreeUnused();
 }
 
 /*
@@ -2155,9 +2190,14 @@ void R_EndRegistration( const char *skyname )
 R_RegisterModel
 =================
 */
-struct ref_model_s *R_RegisterModel( const char *name )
+ref_model_t *R_RegisterModel( const char *name )
 {
-	return Mod_ForName( name, false );
+	ref_model_t	*mod;
+	
+	mod = Mod_ForName( name, false );
+	Mod_UpdateShaders( mod );
+
+	return mod;
 }
 
 /*

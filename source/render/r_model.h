@@ -353,25 +353,24 @@ typedef struct
 
 typedef struct ref_model_s
 {
-	char			*name;
-
+	char		*name;
 	modtype_t		type;
 
-	//
 	// volume occupied by the model graphics
-	//
-	vec3_t			mins, maxs;
-	float			radius;
+	vec3_t		mins, maxs;
+	float		radius;
 
-	//
 	// memory representation pointer
-	//
-	void			*extradata;
+	byte		*mempool;
+	void		*extradata;
 
-	int				numlods;
+	int		touchFrame;
+	int		numlods;
 	struct ref_model_s	*lods[MOD_MAX_LODS];
 
-	byte		*mempool;
+	// shader pointers for refresh registration_sequence
+	int		numshaders;
+	ref_shader_t	**shaders;
 } ref_model_t;
 
 //============================================================================

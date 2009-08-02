@@ -343,7 +343,7 @@ byte *FS_LoadFile (const char *path, fs_offset_t *filesizeptr );
 bool FS_WriteFile (const char *filename, const void *data, fs_offset_t len);
 
 rgbdata_t *FS_LoadImage( const char *name, const byte *buffer, size_t size );
-void Image_Process( rgbdata_t **pix, int w, int h, uint flags );
+bool Image_Process( rgbdata_t **pix, int w, int h, uint flags );
 bool FS_SaveImage( const char *name, rgbdata_t *image );
 bpc_desc_t *Image_GetPixelFormat( pixformat_t type );
 void FS_FreeImage( rgbdata_t *pack );

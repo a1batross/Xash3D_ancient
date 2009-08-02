@@ -396,7 +396,6 @@ int CBasePlayerWeapon :: ParseWeaponFile( ItemInfo *II, const char *filename )
 	if( !pfile )
 	{
  		ALERT( at_warning, "Weapon info file for %s not found!\n", STRING( pev->netname ));
- 		COM_FreeFile( pfile );
  		UTIL_Remove( this );
  		return 0;
 	}

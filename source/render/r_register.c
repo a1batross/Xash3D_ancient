@@ -617,6 +617,7 @@ void GL_InitCommands( void )
 
 	Cmd_AddCommand( "texturelist", R_TextureList_f, "display loaded textures list" );
 	Cmd_AddCommand( "shaderlist", R_ShaderList_f, "display loaded shaders list" );
+	Cmd_AddCommand( "shaderdump", R_ShaderDump_f, "dump specified shader into console" );
 	Cmd_AddCommand( "modellist", Mod_Modellist_f, "display loaded models list" );
 	Cmd_AddCommand( "r_info", R_RenderInfo_f, "display openGL supported extensions" );
 	Cmd_AddCommand( "glslprogramlist", R_ProgramList_f, "display loaded GLSL shaders list" );

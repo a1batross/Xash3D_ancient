@@ -285,11 +285,13 @@ void Cmd_Load( void )
 	int		flags = 0;
 	token_t		token;
 
-	Com_ReadString( spriteqc, false, framename );
+	Com_ReadString( spriteqc, SC_PARSE_GENERIC, framename );
 
 	if( frame ) FS_FreeImage( frame );
 	frame = FS_LoadImage( framename, error_bmp, error_bmp_size );
 	if( !frame ) Sys_Break( "unable to load %s\n", framename ); // no error.bmp, missing frame...
+	if( frame->type != PF_INDEXED_24 && frame->type != PF_INDEXED_32 )
+		Sys_Break( "%s it's a not indexed image!\n", framename );
 	Image_Process( &frame, 0, 0, IMAGE_PALTO24 ); 
 	if( sprite.numframes == 0 ) Mem_Copy( base_pal, frame->palette, sizeof( base_pal ));
 	else if( memcmp( base_pal, frame->palette, sizeof( base_pal )))
@@ -321,7 +323,7 @@ void Cmd_Frame( void )
 	int		org_x, org_y;
 	int		pixels, linedelta;
 	bool		resampled = false;
-	dspriteframe_t		*pframe;
+	dspriteframe_t	*pframe;
 	byte		*fin, *plump;
 
 	if( !frame || !frame->buffer ) Sys_Break( "frame not loaded\n" );
@@ -333,15 +335,16 @@ void Cmd_Frame( void )
 	Com_ReadLong( spriteqc, false, &w );
 	Com_ReadLong( spriteqc, false, &h );
 
-	if((xl & 0x07)||(yl & 0x07)||(w & 0x07)||(h & 0x07))
+	// merge bounds
+	if( xl <= 0 || xl > frame->width ) xl = 0;
+	if( yl <= 0 || yl > frame->width ) yl = 0;
+	if( w <= 0 || w > frame->width ) w = frame->width;
+	if( h <= 0 || h > frame->height ) h = frame->height;
+
+	if((xl & 0x07)||(yl & 0x07)||(w & 0x07)||(h & 0x07) || need_resample )
 	{
-		if( need_resample )
-		{
-			Image_Process( &frame, resample_w, resample_h, IMAGE_RESAMPLE ); 
-			if( resample_w == frame->width && resample_h == frame->height )
-				resampled = true;
-		}
-		MsgDev( D_NOTE, "frame dimensions not multiples of 8\n" );
+		resampled = Image_Process( &frame, resample_w, resample_h, IMAGE_RESAMPLE ); 
+		if( !resampled ) MsgDev( D_NOTE, "frame dimensions not multiples of 8\n" );
 	}
 	if((w > MAX_FRAME_DIM) || (h > MAX_FRAME_DIM))
 		Sys_Break( "sprite has a dimension longer than %d\n", MAX_FRAME_DIM );
@@ -474,6 +477,8 @@ void Cmd_Group( bool angled )
                     }
 
 		if( !com.stricmp( token.string, "{" )) is_started = 1;
+		else if( !com.stricmp( token.string, "groupstart" )) is_started = 1;
+		else if( !com.stricmp( token.string, "groupend" )) break; // end of group
 		else if( !com.stricmp( token.string, "}" )) break; // end of group
 		else if( !com.stricmp( token.string, "$framerate" )) Cmd_Framerate();
 		else if( !com.stricmp( token.string, "$resample" )) Cmd_Resample();

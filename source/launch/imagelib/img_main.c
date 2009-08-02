@@ -291,6 +291,7 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 					Mem_Free(f); // release buffer
 					return ImagePack(); // loaded
 				}
+				else Mem_Free(f); // release buffer 
 			}
 		}
 	}

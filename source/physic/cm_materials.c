@@ -139,5 +139,7 @@ void CM_InitMaterials( void )
 			NewtonMaterialSetCollisionCallback( gWorld, i, j, NULL, Callback_ContactBegin, Callback_ContactProcess, Callback_ContactEnd );
 		}
 	}
+
 	Msg( "num materials %d\n", cms.num_materials );
+	Com_CloseScript( materials );
 }

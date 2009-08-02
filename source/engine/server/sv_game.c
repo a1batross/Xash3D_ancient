@@ -2903,8 +2903,6 @@ bool SV_ParseEdict( script_t *script, edict_t *ent )
 	const char	*classname = NULL;
 	token_t		token;
 
-	svgame.temppool = Mem_AllocPool( "SV Temp Strings" );
-
 	// go through all the dictionary pairs
 	while( 1 )
 	{	
@@ -2949,8 +2947,6 @@ bool SV_ParseEdict( script_t *script, edict_t *ent )
 		pkvd[i].szClassName = (char *)classname;
 		svgame.dllFuncs.pfnKeyValue( ent, &pkvd[i] );
 	}
-	Mem_FreePool( &svgame.temppool );
-
 	return true;
 }
 
@@ -3066,7 +3062,7 @@ void SV_UnloadProgs( void )
 	Com_FreeLibrary( svgame.hInstance );
 	Mem_FreePool( &svgame.mempool );
 	Mem_FreePool( &svgame.private );
-
+	Mem_FreePool( &svgame.temppool );
 	svgame.hInstance = NULL;
 }
 
@@ -3085,7 +3081,7 @@ void SV_LoadProgs( const char *name )
 	Com_BuildPath( name, libpath );
 	svgame.mempool = Mem_AllocPool( "Server Edicts Zone" );
 	svgame.private = Mem_AllocPool( "Server Private Zone" );
-
+	svgame.temppool = Mem_AllocPool( "Server Temp Strings" );
 	svgame.hInstance = Com_LoadLibrary( libpath );
 
 	if( !svgame.hInstance )

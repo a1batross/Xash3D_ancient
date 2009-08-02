@@ -215,7 +215,7 @@ void BSP_LoadModels( lump_t *l )
 		if( n < 0 || n + c > cm.numbrushes )
 			Host_Error( "BSP_LoadModels: invalid brush range %i : %i (%i brushes)\n", n, n+c, cm.numsurfaces );
 		com.strncpy( out->name, va("*%i", i ), sizeof(out->name));
-		out->mempool = Mem_AllocPool( va("^2%s", out->name )); // difference with render and cm pools
+		out->mempool = Mem_AllocPool( va("^3%s^7", out->name )); // difference with render and cm pools
 		BSP_CreateMeshBuffer( i ); // bsp physic
 	}
 }
@@ -1714,7 +1714,7 @@ cmodel_t *CM_RegisterModel( const char *name )
 
 	com.strncpy( mod->name, name, sizeof(mod->name));
 	buf = FS_LoadFile( name, &size );
-	if(!buf)
+	if( !buf )
 	{
 		MsgDev( D_ERROR, "CM_LoadModel: %s not found\n", name );
 		Mem_Set(mod->name, 0, sizeof(mod->name));

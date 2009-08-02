@@ -340,6 +340,7 @@ void Mod_LoadAliasMD2Model( ref_model_t *mod, ref_model_t *parent, void *buffer 
 			continue;
 		poutskin->shader = R_RegisterSkin( ( char * )pinmodel + LittleLong( pinmodel->ofs_skins ) + i*MD2_MAX_SKINNAME );
 	}
+	mod->touchFrame = tr.registration_sequence; // register model
 }
 
 #endif
@@ -357,7 +358,7 @@ MD3 MODELS
 Mod_LoadAliasMD3Model
 =================
 */
-void Mod_LoadAliasMD3Model( ref_model_t *mod, ref_model_t *parent, void *buffer )
+void Mod_LoadAliasMD3Model( ref_model_t *mod, ref_model_t *parent, const void *buffer )
 {
 	int version, i, j, l;
 	int bufsize, numverts;
@@ -578,6 +579,7 @@ void Mod_LoadAliasMD3Model( ref_model_t *mod, ref_model_t *parent, void *buffer 
 		AddPointToBounds( poutframe->maxs, mod->mins, mod->maxs );
 		mod->radius = max( mod->radius, poutframe->radius );
 	}
+	mod->touchFrame = tr.registration_sequence; // register model
 }
 
 /*

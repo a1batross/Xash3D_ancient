@@ -166,9 +166,6 @@ static void SV_SaveServerData( wfile_t *f )
 	save_header_t	shdr;
 	game_header_t	ghdr;
 
-	// initialize local mempool
-	svgame.temppool = Mem_AllocPool( "Save Pool" );
-
 	// initialize SAVERESTOREDATA
 	Mem_Set( &svgame.SaveData, 0, sizeof( SAVERESTOREDATA ));
 	svgame.SaveData.bufferSize = 0x80000;	// reserve 512K for now
@@ -267,7 +264,6 @@ static void SV_SaveServerData( wfile_t *f )
 	// do cleanup operations
 	Mem_Set( &svgame.SaveData, 0, sizeof( SAVERESTOREDATA ));
 	svgame.globals->pSaveData = NULL;
-	Mem_FreePool( &svgame.temppool );
 }
 
 /*
@@ -393,9 +389,6 @@ void SV_ReadGlobals( wfile_t *l )
 	SAVERESTOREDATA	*pSaveData;
 	game_header_t	ghdr;
 
-	// initialize local mempool
-	svgame.temppool = Mem_AllocPool( "Restore Pool" );
-
 	// initialize SAVERESTOREDATA
 	Mem_Set( &svgame.SaveData, 0, sizeof( SAVERESTOREDATA ));
 	svgame.SaveData.tokenCount = 0xFFF;	// assume a maximum of 4K-1 symbol table entries
@@ -496,7 +489,6 @@ void SV_ReadEntities( wfile_t *l )
 	// do cleanup operations
 	Mem_Set( &svgame.SaveData, 0, sizeof( SAVERESTOREDATA ));
 	svgame.globals->pSaveData = NULL;
-	Mem_FreePool( &svgame.temppool );
 }
 
 /*

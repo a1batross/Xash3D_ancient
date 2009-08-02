@@ -439,6 +439,7 @@ void PF_loadfromfile( void )
 	if( !data ) PRVM_G_FLOAT(OFS_RETURN) = false;
 
 	PRVM_ED_LoadFromFile( data );
+	if( data ) Mem_Free( data );
 	PRVM_G_FLOAT(OFS_RETURN) = true;
 }
 

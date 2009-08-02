@@ -17,8 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-#ifndef __R_SHADER_H__
-#define __R_SHADER_H__
+#ifndef R_SHADER_H
+#define R_SHADER_H
 
 #define MAX_SHADERS			4096
 #define SHADERS_HASH_SIZE		256
@@ -323,23 +323,21 @@ typedef struct ref_shader_s
 	struct ref_shader_s	*nextHash;
 } ref_shader_t;
 
-// memory management
-extern byte		*r_shaderpool;
 extern ref_shader_t		r_shaders[MAX_SHADERS];
-extern skydome_t		*r_skydomes[MAX_SHADERS];
-
-#define Shader_CopyString( str )	com.stralloc( r_shaderpool, str, __FILE__, __LINE__ )
-#define Shader_Sortkey( shader, sort )	((( sort )<<26 )|( shader - r_shaders ))
-#define Shader_Malloc( size )		Mem_Alloc( r_shaderpool, size )
-#define Shader_Free( data )		Mem_Free( data )
-
 
 void R_InitShaders( void );
 void R_ShutdownShaders( void );
-void R_UploadCinematicShader( const ref_shader_t *shader );
-void R_DeformvBBoxForShader( const ref_shader_t *shader, vec3_t ebbox );
 void R_ShaderList_f( void );
+void R_ShaderDump_f( void );
 ref_shader_t *R_LoadShader( const char *name, int type, bool forceDefault, int addFlags, int ignoreType );
 
+// misc utilities
+void R_ShaderFreeUnused( void );
+void Shader_TouchImages( ref_shader_t *shader, bool free_unused );
+void R_ShaderSetSpriteTexture( texture_t *mipTex );
+void R_ShaderSetRenderMode( kRenderMode_t mode );
+void R_ShaderAddSpriteIntervals( float interval );
+void R_UploadCinematicShader( const ref_shader_t *shader );
+void R_DeformvBBoxForShader( const ref_shader_t *shader, vec3_t ebbox );
 
-#endif /*__R_SHADER_H__*/
+#endif // R_SHADER_H

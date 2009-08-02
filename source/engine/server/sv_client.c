@@ -512,6 +512,7 @@ void SV_PutClientInServer( edict_t *ent )
 
 	SV_LinkEdict( ent ); // m_pmatrix calculated here, so we need call this before pe->CreatePlayer
 	ent->pvServerData->physbody = pe->CreatePlayer( ent, SV_GetModelPtr( ent ), ent->v.origin, ent->v.m_pmatrix );
+	Mem_EmptyPool( svgame.temppool ); // all tempstrings can be freed now
 }
 
 /*

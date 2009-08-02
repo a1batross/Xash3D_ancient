@@ -571,7 +571,7 @@ typedef struct stdilib_api_s
 	void (*ImglibSetup)( const char *formats, const uint flags );	// set main attributes
 	rgbdata_t *(*ImageLoad)( const char *, const byte *, size_t );	// load image from disk or buffer
 	bool (*ImageSave)( const char *name, rgbdata_t *image );		// save image into specified format
-	void (*ImageConvert)( rgbdata_t **pix, int w, int h, uint flags );	// image manipulations
+	bool (*ImageConvert)( rgbdata_t **pix, int w, int h, uint flags );	// image manipulations
 	bpc_desc_t *(*ImagePFDesc)( pixformat_t imagetype );		// get const info about specified fmt
  	void (*ImageFree)( rgbdata_t *pack );				// release image buffer
 

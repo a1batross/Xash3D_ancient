@@ -205,8 +205,12 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags, const 
 			Cvar_Set2( var_name, s, true );
 			Mem_Free( s );
 		}
-		// update description if needs
-		if( var_desc ) var->description = copystring(var_desc);
+		if( var_desc )
+		{
+			// update description if needs
+			if( var->description ) Mem_Free( var->description );
+			var->description = copystring( var_desc );
+		}
 		return var;
 	}
 

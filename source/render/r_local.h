@@ -714,10 +714,10 @@ void		R_SkeletalGetBonePose( const ref_model_t *mod, int bonenum, int frame, bon
 //
 // r_warp.c
 //
-skydome_t	*R_CreateSkydome( float skyheight, ref_shader_t **farboxShaders, ref_shader_t	**nearboxShaders );
-void		R_FreeSkydome( skydome_t *skydome );
-void		R_ClearSkyBox( void );
-void		R_DrawSky( ref_shader_t *shader );
+skydome_t	*R_CreateSkydome( byte *mempool, float skyheight, ref_shader_t **farboxShaders, ref_shader_t **nearboxShaders );
+void	R_FreeSkydome( skydome_t *skydome );
+void	R_ClearSkyBox( void );
+void	R_DrawSky( ref_shader_t *shader );
 bool	R_AddSkySurface( msurface_t *fa );
 
 //====================================================================

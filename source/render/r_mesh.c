@@ -572,7 +572,7 @@ void R_AllocMeshbufPointers( refinst_t *RI )
 {
 	Com_Assert( r_worldmodel == NULL );
 	if( !RI->surfmbuffers )
-		RI->surfmbuffers = Mem_Alloc( r_meshlistmempool, r_worldbrushmodel->numsurfaces * sizeof( meshbuffer_t * ) );
+		RI->surfmbuffers = Mem_Alloc( r_worldmodel->mempool, r_worldbrushmodel->numsurfaces * sizeof( meshbuffer_t* ));
 }
 
 /*
