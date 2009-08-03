@@ -253,22 +253,12 @@ Draw dummy skybox side to prevent the HOM effect
 */
 static void R_DrawBlackBottom( skydome_t *skydome )
 {
-	int		features;
-	ref_shader_t	*shader;
+	int	features;
 
-	// FIXME: register another shader instead maybe?
-	shader = R_OcclusionShader ();
-
-	features = shader->features;
+	features = tr.defaultShader->features;
 	if( r_shownormals->integer )
 		features |= MF_NORMALS;
-
-	// HACKHACK skies ought not to write to depth buffer
-	shader->flags &= ~SHADER_DEPTHWRITE;
-	shader->stages[0].glState &= ~GLSTATE_DEPTHWRITE;
-	R_DrawSkySide( skydome, 5, shader, features );
-	shader->stages[0].glState |= GLSTATE_DEPTHWRITE;
-	shader->flags |= SHADER_DEPTHWRITE;
+	R_DrawSkySide( skydome, 5, tr.defaultShader, features );
 }
 
 /*
@@ -370,8 +360,7 @@ void R_DrawSky( ref_shader_t *shader )
 
 		for( i = 0; i < 5; i++ )
 		{
-			if( RI.skyMins[0][i] >= RI.skyMaxs[0][i] ||
-				RI.skyMins[1][i] >= RI.skyMaxs[1][i] )
+			if( RI.skyMins[0][i] >= RI.skyMaxs[0][i] || RI.skyMins[1][i] >= RI.skyMaxs[1][i] )
 				continue;
 
 			flush = true;
@@ -382,9 +371,7 @@ void R_DrawSky( ref_shader_t *shader )
 			skydome->meshes[i].stArray = skydome->sphereStCoords[i];
 			R_PushMesh( &skydome->meshes[i], features );
 		}
-
-		if( flush )
-			R_RenderMeshBuffer( mbuffer );
+		if( flush ) R_RenderMeshBuffer( mbuffer );
 	}
 
 	if( skydome->nearboxShaders[0] )

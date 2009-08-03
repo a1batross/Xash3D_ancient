@@ -1134,12 +1134,13 @@ const char *GetGameDescription( void )
 {
 	char	token[256];
           char	szbuffer[128];
-	char	*pfile = (char *)LOAD_FILE( "gameinfo.txt", NULL );
+	char	*afile, *pfile = (char *)LOAD_FILE( "gameinfo.txt", NULL );
 
 	memset( text, 0, sizeof( text ));
 
 	if( pfile )
 	{
+		afile = pfile;
 		while( pfile )
 		{
 			if( !stricmp( token, "title" )) 
@@ -1155,7 +1156,7 @@ const char *GetGameDescription( void )
 			}
 			pfile = COM_ParseFile( pfile, token );
 		}
-		COM_FreeFile( pfile );
+		COM_FreeFile( afile );
 		return text;
 	}
 	return "Half-Life";

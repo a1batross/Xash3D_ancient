@@ -175,6 +175,107 @@ static void R_ISortMeshBuffers( meshbuffer_t *meshes, int num_meshes )
 }
 
 /*
+=======================================================================
+
+VERTEX BUFFERS
+
+=======================================================================
+*/
+/*
+=================
+R_UpdateVertexBuffer
+=================
+*/
+void R_UpdateVertexBuffer( ref_buffer_t *vertexBuffer, const void *data, size_t size )
+{
+	if( !GL_Support( R_ARB_VERTEX_BUFFER_OBJECT_EXT ))
+	{
+		vertexBuffer->pointer = (char *)data;
+		return;
+	}
+
+	if( !r_vertexbuffers->integer )
+	{
+		vertexBuffer->pointer = (char *)data;
+		pglBindBufferARB( GL_ARRAY_BUFFER_ARB, 0 );
+		return;
+	}
+
+	vertexBuffer->pointer = NULL;
+	pglBindBufferARB( GL_ARRAY_BUFFER_ARB, vertexBuffer->bufNum );
+	pglBufferSubDataARB( GL_ARRAY_BUFFER_ARB, 0, size, data );
+}
+
+/*
+=================
+R_AllocVertexBuffer
+=================
+*/
+ref_buffer_t *R_AllocVertexBuffer( size_t size, GLuint usage )
+{
+	ref_buffer_t	*vertexBuffer;
+
+	if( tr.numVertexBufferObjects == MAX_VERTEX_BUFFER_OBJECTS )
+		Host_Error( "RB_AllocVertexBuffer: MAX_VERTEX_BUFFER_OBJECTS limit exceeds\n" );
+
+	vertexBuffer = &tr.vertexBufferObjects[tr.numVertexBufferObjects++];
+
+	vertexBuffer->pointer = NULL;
+	vertexBuffer->size = size;
+	vertexBuffer->usage = usage;
+
+	if(!GL_Support( R_ARB_VERTEX_BUFFER_OBJECT_EXT ))
+		return vertexBuffer;
+
+	pglGenBuffersARB( 1, &vertexBuffer->bufNum );
+	pglBindBufferARB( GL_ARRAY_BUFFER_ARB, vertexBuffer->bufNum );
+	pglBufferDataARB( GL_ARRAY_BUFFER_ARB, vertexBuffer->size, NULL, vertexBuffer->usage );
+
+	return vertexBuffer;
+}
+
+/*
+=================
+R_InitVertexBuffers
+=================
+*/
+void R_InitVertexBuffers( void )
+{
+	int	i;
+
+	tr.vertexBuffer = R_AllocVertexBuffer( MAX_ARRAY_VERTS * sizeof( vec4_t ), GL_STREAM_DRAW_ARB );
+	tr.colorsBuffer = R_AllocVertexBuffer( MAX_ARRAY_VERTS * sizeof( rgba_t ), GL_STREAM_DRAW_ARB );
+	tr.normalBuffer = R_AllocVertexBuffer( MAX_ARRAY_VERTS * sizeof( vec4_t ), GL_STREAM_DRAW_ARB );
+	for( i = 0; i < MAX_TEXTURE_UNITS; i++ )
+		tr.tcoordBuffer[i] = R_AllocVertexBuffer( MAX_ARRAY_VERTS * sizeof( vec4_t ), GL_STREAM_DRAW_ARB );	
+}
+
+/*
+=================
+R_ShutdownVertexBuffers
+=================
+*/
+void R_ShutdownVertexBuffers( void )
+{
+	ref_buffer_t	*vertexBuffer;
+	int		i;
+
+	if( !GL_Support( R_ARB_VERTEX_BUFFER_OBJECT_EXT ))
+	{
+		Mem_Set( tr.vertexBufferObjects, 0, sizeof( tr.vertexBufferObjects ));
+		tr.numVertexBufferObjects = 0;
+		return;
+	}
+
+	pglBindBufferARB( GL_ARRAY_BUFFER_ARB, 0 );
+	for( i = 0, vertexBuffer = tr.vertexBufferObjects; i < tr.numVertexBufferObjects; i++, vertexBuffer++ )
+		pglDeleteBuffersARB( 1, &vertexBuffer->bufNum );
+
+	Mem_Set( tr.vertexBufferObjects, 0, sizeof( tr.vertexBufferObjects ));
+	tr.numVertexBufferObjects = 0;
+} 
+
+/*
 =================
 R_ReAllocMeshList
 =================
@@ -364,7 +465,6 @@ static void R_BatchMeshBuffer( const meshbuffer_t *mb, const meshbuffer_t *nextm
 		case mod_alias:
 			R_DrawAliasModel( mb );
 			break;
-#ifdef QUAKE2_JUNK
 		case mod_sprite:
 			R_PushSpriteModel( mb );
 
@@ -372,9 +472,7 @@ static void R_BatchMeshBuffer( const meshbuffer_t *mb, const meshbuffer_t *nextm
 			R_TranslateForEntity( RI.currententity );
 			R_RenderMeshBuffer( mb );
 			break;
-#endif
 		case mod_studio:
-			R_DrawSkeletalModel( mb );
 			break;
 		default:
 			Com_Assert( 1 );    // shut up compiler

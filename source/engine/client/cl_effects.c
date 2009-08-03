@@ -226,7 +226,7 @@ void CL_AddDLights( void )
 	dl = cl_dlights;
 	for( i = 0; i < MAX_DLIGHTS; i++, dl++ )
 	{
-		if( dl->radius ) re->AddDynLight( dl->origin, dl->color, dl->radius );
+		if( dl->radius ) re->AddDynLight( dl->origin, dl->color, dl->radius, -1 );
 	}
 }
 
@@ -917,7 +917,7 @@ void CL_TestEntities( void )
 ================
 CL_TestLights
 
-If cl_testlights is set, create 32 lights models
+if cl_testlights is set, create 32 lights models
 ================
 */
 void CL_TestLights( void )
@@ -944,7 +944,7 @@ void CL_TestLights( void )
 		dl.color[2] = (((i%6)+1) & 4)>>2;
 		dl.radius = 200;
 
-		if( !re->AddDynLight( dl.origin, dl.color, dl.radius ))
+		if( !re->AddDynLight( dl.origin, dl.color, dl.radius, -1 ))
 			break; 
 	}
 }

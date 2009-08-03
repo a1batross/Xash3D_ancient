@@ -76,11 +76,9 @@ typedef enum
 	TF_DEPTHMAP	= BIT(5),		// custom texture filter used
 	TF_INTENSITY	= BIT(5),
 	TF_ALPHA		= BIT(6),
-	TF_NORGB		= BIT(7),		// QFusion legacy. convert to funcs?
-	TF_NOALPHA	= BIT(8),
-	TF_SKYSIDE	= BIT(9),
-	TF_CLAMP		= BIT(10),
-	TF_NOMIPMAP	= BIT(11),
+	TF_SKYSIDE	= BIT(7),
+	TF_CLAMP		= BIT(8),
+	TF_NOMIPMAP	= BIT(9),
 } texFlags_t;
 
 #define TF_CINEMATIC		( TF_NOPICMIP|TF_UNCOMPRESSED|TF_CLAMP|TF_NOMIPMAP )
@@ -298,6 +296,7 @@ extern cvar_t *r_lerpmodels;
 extern cvar_t *r_ignorehwgamma;
 extern cvar_t *r_overbrightbits;
 extern cvar_t *r_mapoverbrightbits;
+extern cvar_t *r_vertexbuffers;
 extern cvar_t *r_lefthand;
 extern cvar_t *r_physbdebug;
 extern cvar_t *r_check_errors;
@@ -504,7 +503,6 @@ void		R_TextureList_f( void );
 void		R_SetTextureParameters( void );
 void		R_ShowTextures( void );
 
-void		R_Upload32( byte **data, int width, int height, int flags, int *upload_width, int *upload_height, int *samples, bool subImage );
 texture_t		*R_LoadTexture( const char *name, rgbdata_t *pic, int samples, texFlags_t flags );
 texture_t		*R_FindTexture( const char *name, const byte *buf, size_t size, texFlags_t flags );
 
@@ -668,8 +666,9 @@ msurface_t *R_TransformedTraceLine( trace_t *tr, const vec3_t start, const vec3_
 //
 // r_register.c
 //
-void		R_Restart( void );
-void		R_Shutdown( bool verbose );
+void R_NewMap( void );
+bool R_Init( bool full );
+void R_Shutdown( bool full );
 
 //
 // r_opengl.c
@@ -700,16 +699,6 @@ void		R_ShutdownSkinFiles( void );
 struct skinfile_s *R_SkinFile_Load( const char *name );
 struct skinfile_s *R_RegisterSkinFile( const char *name );
 ref_shader_t	*R_FindShaderForSkinFile( const struct skinfile_s *skinfile, const char *meshname );
-
-//
-// r_skm.c
-//
-bool	R_CullSkeletalModel( ref_entity_t *e );
-void		R_AddSkeletalModelToList( ref_entity_t *e );
-void		R_DrawSkeletalModel( const meshbuffer_t *mb );
-float		R_SkeletalModelBBox( ref_entity_t *e, vec3_t mins, vec3_t maxs );
-int			R_SkeletalGetBoneInfo( const ref_model_t *mod, int bonenum, char *name, size_t name_size, int *flags );
-void		R_SkeletalGetBonePose( const ref_model_t *mod, int bonenum, int frame, bonepose_t *bonepose );
 
 //
 // r_warp.c

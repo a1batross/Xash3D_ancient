@@ -298,7 +298,7 @@ client_sprite_t *SPR_GetList( const char *psz, int *piCount )
 		*piCount = iSprCount;
 		return NULL;
 	}
-	
+
 	char *token;
 	const char *plist = pfile;
 	int depth = 0;
@@ -564,7 +564,7 @@ void V_RenderPlaque( void )
 	const char *levelshot;
 
 	levelshot = CVAR_GET_STRING( "cl_levelshot_name" );
-	if( !strcmp( levelshot, "" )) levelshot = "$blackimage";
+	if( !strcmp( levelshot, "" )) levelshot = "*black";
 
 	// logo that shows up while upload next level
 	DrawImageRectangle( SPR_Load( levelshot ));

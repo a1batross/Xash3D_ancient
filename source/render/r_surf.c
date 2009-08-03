@@ -335,10 +335,10 @@ R_RecursiveWorldNode
 */
 static void R_RecursiveWorldNode( mnode_t *node, unsigned int clipflags, unsigned int dlightbits )
 {
-	unsigned int i, newDlightbits;
-	unsigned int bit;
-	const cplane_t *clipplane;
-	mleaf_t	*pleaf;
+	uint		i, newDlightbits;
+	const cplane_t	*clipplane;
+	int		clipped;
+	mleaf_t		*pleaf;
 
 	while( 1 )
 	{
@@ -347,18 +347,16 @@ static void R_RecursiveWorldNode( mnode_t *node, unsigned int clipflags, unsigne
 
 		if( clipflags )
 		{
-			for( i = sizeof( RI.frustum )/sizeof( RI.frustum[0] ), bit = 1, clipplane = RI.frustum; i > 0; i--, bit<<=1, clipplane++ )
+			for( i = 0, clipplane = RI.frustum; i < 6; i++, clipplane++ )
 			{
-				if( clipflags & bit )
-				{
-					int clipped = BoxOnPlaneSide( node->mins, node->maxs, clipplane );
-					if( clipped == 2 )
-						return;
-					if( clipped == 1 )
-						clipflags &= ~bit; // node is entirely on screen
-				}
+				if(!(clipflags & (1<<i)))
+					continue;
+
+				clipped = BoxOnPlaneSide( node->mins, node->maxs, clipplane );
+				if( clipped == 2 ) return;
+				if( clipped == 1 ) clipflags &= ~(1<<i);
 			}
-		}
+	}
 
 		if( !node->plane )
 			break;
@@ -368,16 +366,16 @@ static void R_RecursiveWorldNode( mnode_t *node, unsigned int clipflags, unsigne
 		{
 			float dist;
 
-			for( i = 0, bit = 1; i < r_numDlights; i++, bit <<= 1 )
+			for( i = 0; i < r_numDlights; i++ )
 			{
-				if( !( dlightbits & bit ) )
+				if( !( dlightbits & (1<<i)))
 					continue;
 
 				dist = PlaneDiff( r_dlights[i].origin, node->plane );
 				if( dist < -r_dlights[i].intensity )
-					dlightbits &= ~bit;
+					dlightbits &= ~(1<<i);
 				if( dist < r_dlights[i].intensity )
-					newDlightbits |= bit;
+					newDlightbits |= (1<<i);
 			}
 		}
 
@@ -442,10 +440,10 @@ R_LinearShadowLeafs
 */
 static void R_LinearShadowLeafs( void )
 {
-	unsigned int i, j;
-	unsigned int cpf, bit;
-	const cplane_t *clipplane;
-	mleaf_t	*pleaf;
+	uint		i, j;
+	uint		cpf;
+	const cplane_t	*clipplane;
+	mleaf_t		*pleaf;
 
 	for( j = r_worldbrushmodel->numleafs, pleaf = r_worldbrushmodel->leafs; j > 0; j--, pleaf++ )
 	{
@@ -455,16 +453,15 @@ static void R_LinearShadowLeafs( void )
 			continue;
 
 		cpf = RI.clipFlags;
-		for( i = sizeof( RI.frustum )/sizeof( RI.frustum[0] ), bit = 1, clipplane = RI.frustum; i > 0; i--, bit<<=1, clipplane++ )
+
+		for( i = 0, clipplane = RI.frustum; i < 6; i++, clipplane++ )
 		{
 			int clipped = BoxOnPlaneSide( pleaf->mins, pleaf->maxs, clipplane );
-			if( clipped == 2 )
-				break;
-			if( clipped == 1 )
-				cpf &= ~bit;	// leaf is entirely on screen
+			if( clipped == 2 ) break;
+			if( clipped == 1 ) cpf &= ~(1<<i);
 		}
-
-		if( !i ) {
+		if( !i )
+		{
 			R_MarkShadowLeafSurfaces( pleaf->firstVisSurface, cpf );
 			c_world_leafs++;
 		}

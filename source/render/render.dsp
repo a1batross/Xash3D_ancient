@@ -194,10 +194,6 @@ SOURCE=.\r_skin.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\r_skm.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\r_sky.c
 # End Source File
 # Begin Source File

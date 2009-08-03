@@ -467,10 +467,16 @@ void BSP_LoadPlanes( lump_t *l )
 
 	for( i = 0; i < count; i++, in++, out++ )
 	{
-		for( j = 0; j < 3; j++ ) 
-			out->normal[j] = LittleFloat(in->normal[j]);
+		out->signbits = 0;
+		out->type = PLANE_NONAXIAL;
+
+		for( j = 0; j < 3; j++ )
+		{
+			out->normal[j] = LittleFloat( in->normal[j] );
+			if( out->normal[j] < 0.0f ) out->signbits |= (1<<j);
+			if( out->normal[j] == 1.0f ) out->type = j;
+		}
 		out->dist = LittleFloat( in->dist );
-		PlaneClassify( out ); // automatic plane classify		
 	}
 }
 

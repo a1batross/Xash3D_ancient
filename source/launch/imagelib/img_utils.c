@@ -615,12 +615,12 @@ bool Image_Copy8bitRGBA( const byte *in, byte *out, int pixels )
 
 	if( !image.d_currentpal )
 	{
-		MsgDev(D_ERROR,"Image_Copy8bitRGBA: no palette set\n");
+		MsgDev( D_ERROR, "Image_Copy8bitRGBA: no palette set\n" );
 		return false;
 	}
 	if( !in )
 	{
-		MsgDev(D_ERROR,"Image_Copy8bitRGBA: no input image\n");
+		MsgDev( D_ERROR, "Image_Copy8bitRGBA: no input image\n" );
 		return false;
 	}
 
@@ -1181,11 +1181,11 @@ byte *Image_FloodInternal( const byte *indata, int inwidth, int inheight, int ou
 Image_Flip
 ================
 */
-byte *Image_FlipInternal( const byte *in, int *srcwidth, int *srcheight, int type, int flags )
+byte *Image_FlipInternal( const byte *in, word *srcwidth, word *srcheight, int type, int flags )
 {
 	int	i, x, y;
-	int	width = *srcwidth;
-	int	height = *srcheight; 
+	word	width = *srcwidth;
+	word	height = *srcheight; 
 	int	samples = PFDesc[type].bpp;
 	bool	flip_x = ( flags & IMAGE_FLIP_X ) ? true : false;
 	bool	flip_y = ( flags & IMAGE_FLIP_Y ) ? true : false;
@@ -1290,6 +1290,7 @@ rgbdata_t *Image_DecompressInternal( rgbdata_t *pic )
 	case PF_RGBA_GN:
 	case PF_RGBA_32:
 	case PF_ABGR_128F:
+		pic->type = PF_RGBA_32;
 		return pic; // just change type
 	}
 
@@ -1303,15 +1304,17 @@ rgbdata_t *Image_DecompressInternal( rgbdata_t *pic )
 	image.num_mips = 0; // clear mipcount
 	buf = image.rgba;
 
-	for( i = 0, offset = 0; i < numsides; i++, buf += offset )
+	for( i = 0, offset = 0; i < numsides; i++ )
 	{
 		Image_SetPixelFormat( image.curwidth, image.curheight, image.curdepth );
 		offset = image.SizeOfFile; // move pointer
 
 		Image_DecompressDDS( buf, target + i );
+		buf += offset;
 	}
 	// now we can change type to RGBA
-	if( image.filter != CB_HINT_NO ) image.flags &= ~IMAGE_CUBEMAP; // side extracted
+	if( image.filter != CB_HINT_NO )
+		image.flags &= ~IMAGE_CUBEMAP; // side extracted
 	image.type = PF_RGBA_32;
 
 	FS_FreeImage( pic );	// free original

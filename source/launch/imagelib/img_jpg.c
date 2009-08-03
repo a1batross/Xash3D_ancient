@@ -310,7 +310,7 @@ int jpeg_readmarkers( void )
 
 void jpeg_decompress( void )
 {
-	// decompress jpeg file (Baseline algorithm)
+	// decompress jpeg file (baseline algorithm)
 	register int x, y, i, j, k, l, c;
 	int X, Y, H, V, plane, scaleh[3], scalev[3];
     	static float vector[64], dct[64];

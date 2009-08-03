@@ -62,12 +62,12 @@ bool Image_LoadPCX( const char *name, const byte *buffer, size_t filesize )
 		for (x = 0; x < image.width && fin < enddata;)
 		{
 			dataByte = *fin++;
-			if(dataByte >= 0xC0)
+			if( dataByte >= 0xC0 )
 			{
-				if (fin >= enddata) break;
+				if( fin >= enddata ) break;
 				x2 = x + (dataByte & 0x3F);
 				dataByte = *fin++;
-				if (x2 > image.width) x2 = image.width; // technically an error
+				if( x2 > image.width ) x2 = image.width; // technically an error
 				while(x < x2) pix[x++] = dataByte;
 			}
 			else pix[x++] = dataByte;

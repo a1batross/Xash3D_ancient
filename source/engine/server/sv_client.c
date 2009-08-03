@@ -513,6 +513,8 @@ void SV_PutClientInServer( edict_t *ent )
 	SV_LinkEdict( ent ); // m_pmatrix calculated here, so we need call this before pe->CreatePlayer
 	ent->pvServerData->physbody = pe->CreatePlayer( ent, SV_GetModelPtr( ent ), ent->v.origin, ent->v.m_pmatrix );
 	Mem_EmptyPool( svgame.temppool ); // all tempstrings can be freed now
+
+	MsgDev( D_INFO, "level loaded at %g sec\n", Sys_DoubleTime() - svs.timestart );
 }
 
 /*
@@ -739,10 +741,11 @@ void SV_BeginDownload_f( sv_client_t *cl )
 	if( !allow_download->integer || !cl->download )
 	{
 		MsgDev( D_ERROR, "SV_BeginDownload_f: couldn't download %s to %s\n", name, cl->name );
-		if( cl->download ) cl->download = NULL;
+		if( cl->download ) Mem_Free( cl->download );
 		MSG_WriteByte( &cl->netchan.message, svc_download );
 		MSG_WriteShort( &cl->netchan.message, -1 );
 		MSG_WriteByte( &cl->netchan.message, 0 );
+		cl->download = NULL;
 		return;
 	}
 

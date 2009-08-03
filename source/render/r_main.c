@@ -691,7 +691,6 @@ static void R_PushCorona( const meshbuffer_t *mb )
 	R_PushMesh( &spr_mesh, MF_NOCULL | MF_TRIFAN | shader->features );
 }
 
-#ifdef QUAKE2_JUNK
 /*
 =================
 R_PushSpriteModel
@@ -709,7 +708,6 @@ bool R_PushSpriteModel( const meshbuffer_t *mb )
 
 	return R_PushSprite( mb, e->rotation, frame->origin_x, frame->origin_x - frame->width, frame->height - frame->origin_y, -frame->origin_y );
 }
-#endif
 
 /*
 =================
@@ -734,7 +732,6 @@ bool R_PushSpritePoly( const meshbuffer_t *mb )
 	return R_PushSprite( mb, e->rotation, -e->radius, e->radius, e->radius, -e->radius );
 }
 
-#ifdef QUAKE2_JUNK
 /*
 =================
 R_AddSpriteModelToList
@@ -775,7 +772,6 @@ static void R_AddSpriteModelToList( ref_entity_t *e )
 	if( mb )
 		mb->shaderkey |= ( bound( 1, 0x4000 - (unsigned int)dist, 0x4000 - 1 ) << 12 );
 }
-#endif
 
 /*
 =================
@@ -1005,13 +1001,15 @@ static void R_SetupFrustum( void )
 
 	for( i = 0; i < 4; i++ )
 	{
+		RI.frustum[i].type = PLANE_NONAXIAL;
 		RI.frustum[i].dist = DotProduct( RI.viewOrigin, RI.frustum[i].normal );
-		PlaneClassify( &RI.frustum[i] );
+		RI.frustum[i].signbits = SignbitsForPlane( &RI.frustum[i] );
 	}
 
 	VectorMA( RI.viewOrigin, RI.farClip, RI.vpn, farPoint );
+	RI.frustum[i].type = PLANE_NONAXIAL;
 	RI.frustum[i].dist = DotProduct( farPoint, RI.frustum[i].normal );
-	PlaneClassify( &RI.frustum[i] );
+	RI.frustum[i].signbits = SignbitsForPlane( &RI.frustum[i] );
 }
 
 /*
@@ -1362,10 +1360,8 @@ static void R_CategorizeEntities( void )
 			if( !( RI.currententity->renderfx & ( RF_NOSHADOW|RF_PLANARSHADOW ) ) )
 				R_AddShadowCaster( RI.currententity ); // build groups and mark shadow casters
 			break;
-#ifdef QUAKE2_JUNK
 		case mod_sprite:
 			break;
-#endif
 		default:
 			Host_Error( "%s: bad modeltype\n", RI.currentmodel->name );
 			break;
@@ -1405,18 +1401,15 @@ static void R_CullEntities( void )
 				culled = R_CullAliasModel( e );
 				break;
 			case mod_studio:
-				culled = R_CullSkeletalModel( e );
+				culled = true;
 				break;
 			case mod_brush:
 				culled = R_CullBrushModel( e );
 				break;
-#ifdef QUAKE2_JUNK
 			case mod_sprite:
 				culled = false;
 				break;
-#endif
-			default:
-				break;
+			default:	break;
 			}
 			break;
 		case RT_SPRITE:
@@ -1517,16 +1510,12 @@ add:
 				R_AddAliasModelToList( e );
 				break;
 			case mod_studio:
-				R_AddSkeletalModelToList( e );
 				break;
-#ifdef QUAKE2_JUNK
 			case mod_sprite:
 				if( !shadowmap )
 					R_AddSpriteModelToList( e );
 				break;
-#endif
-			default:
-				break;
+			default:	break;
 			}
 			break;
 		case RT_SPRITE:
@@ -2390,19 +2379,21 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac )
 	return result;
 }
 
-bool R_AddDynamicLight( vec3_t org, vec3_t color, float intensity )
+bool R_AddDynamicLight( vec3_t org, vec3_t color, float intensity, shader_t handle )
 {
-	dlight_t	*dl;
+	dlight_t		*dl;
+	ref_shader_t	*shader;
 
 	if(( r_numDlights >= MAX_DLIGHTS ) || (intensity == 0) || ( VectorIsNull( color )))
 		return false;
-
+	if( handle < 0 || handle > MAX_SHADERS || !(shader = &r_shaders[handle])->name)
+		shader = NULL;
 	dl = &r_dlights[r_numDlights++];
 
 	VectorCopy( org, dl->origin );
 	VectorCopy( color, dl->color );
 	dl->intensity = intensity * DLIGHT_SCALE;
-	dl->shader = NULL; // FIXME;
+	dl->shader = shader;
 
 	R_LightBounds( org, dl->intensity, dl->mins, dl->maxs );
 

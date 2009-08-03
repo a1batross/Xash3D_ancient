@@ -22,14 +22,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "r_local.h"
 
-#define APPLICATION		"Xash3D"
-#define MAX_GLSL_PROGRAMS	1024
+#define APPLICATION			"Xash3D"
+#define MAX_GLSL_PROGRAMS		1024
+#define R_GLSLProgramCopyString( str )	com.stralloc( r_glslProgramsPool, str, __FILE__, __LINE__ )
 
 typedef struct
 {
-	int				bit;
-	const char		*define;
-	const char		*suffix;
+	int		bit;
+	const char	*define;
+	const char	*suffix;
 } glsl_feature_t;
 
 typedef struct
@@ -77,9 +78,9 @@ R_InitGLSLPrograms
 */
 void R_InitGLSLPrograms( void )
 {
-	int features = 0;
+	int	features = 0;
 
-	memset( r_glslprograms, 0, sizeof( r_glslprograms ) );
+	Mem_Set( r_glslprograms, 0, sizeof( r_glslprograms ));
 
 	if( !GL_Support( R_SHADER_GLSL100_EXT ))
 		return;
@@ -111,21 +112,6 @@ void R_InitGLSLPrograms( void )
 
 /*
 ================
-R_GLSLProgramCopyString
-================
-*/
-static char *R_GLSLProgramCopyString( const char *in )
-{
-	char *out;
-
-	out = Mem_Alloc( r_glslProgramsPool, ( strlen( in ) + 1 ) );
-	strcpy( out, in );
-
-	return out;
-}
-
-/*
-================
 R_DeleteGLSLProgram
 ================
 */
@@ -151,7 +137,7 @@ static void R_DeleteGLSLProgram( glsl_program_t *program )
 	if( program->name )
 		Mem_Free( program->name );
 
-	memset( program, 0, sizeof( glsl_program_t ) );
+	Mem_Set( program, 0, sizeof( glsl_program_t ));
 }
 
 /*
@@ -1008,10 +994,10 @@ R_ProgramList_f
 */
 void R_ProgramList_f( void )
 {
-	int				i;
+	int		i;
 	glsl_program_t	*program;
-	string			fullName;
-	const char		**header;
+	string		fullName;
+	const char	**header;
 
 	Msg( "------------------\n" );
 	for( i = 0, program = r_glslprograms; i < MAX_GLSL_PROGRAMS; i++, program++ )
@@ -1020,7 +1006,7 @@ void R_ProgramList_f( void )
 			break;
 
 		com.strncpy( fullName, program->name, sizeof( fullName ) );
-		header = R_ProgramFeatures2Defines( program->features, fullName, sizeof( fullName ) );
+		header = R_ProgramFeatures2Defines( program->features, fullName, sizeof( fullName ));
 
 		Msg( " %3i %s\n", i+1, fullName );
 	}
@@ -1118,16 +1104,11 @@ R_GetProgramUniformLocations
 */
 static void R_GetProgramUniformLocations( glsl_program_t *program )
 {
-	int		i;
-	int		locBaseTexture,
-			locNormalmapTexture,
-			locGlossTexture,
-			locDecalTexture,
-			locLightmapTexture[LM_STYLES],
-			locDuDvMapTexture,
-			locReflectionTexture,
-			locRefractionTexture,
-			locShadowmapTexture;
+	int	i;
+	int	locBaseTexture, locNormalmapTexture, locGlossTexture;
+	int	locDecalTexture, locLightmapTexture[LM_STYLES];
+	int	locDuDvMapTexture, locReflectionTexture;
+	int	locRefractionTexture, locShadowmapTexture;
 	char	uniformName[128];
 
 	program->locEyeOrigin = pglGetUniformLocationARB( program->object, "EyeOrigin" );
@@ -1174,25 +1155,17 @@ static void R_GetProgramUniformLocations( glsl_program_t *program )
 
 	program->locProjDistance = pglGetUniformLocationARB( program->object, "ProjDistance" );
 
-	if( locBaseTexture >= 0 )
-		pglUniform1iARB( locBaseTexture, 0 );
-	if( locDuDvMapTexture >= 0 )
-		pglUniform1iARB( locDuDvMapTexture, 0 );
+	if( locBaseTexture >= 0 ) pglUniform1iARB( locBaseTexture, 0 );
+	if( locDuDvMapTexture >= 0 ) pglUniform1iARB( locDuDvMapTexture, 0 );
 
-	if( locNormalmapTexture >= 0 )
-		pglUniform1iARB( locNormalmapTexture, 1 );
-	if( locGlossTexture >= 0 )
-		pglUniform1iARB( locGlossTexture, 2 );
-	if( locDecalTexture >= 0 )
-		pglUniform1iARB( locDecalTexture, 3 );
+	if( locNormalmapTexture >= 0 ) pglUniform1iARB( locNormalmapTexture, 1 );
+	if( locGlossTexture >= 0 ) pglUniform1iARB( locGlossTexture, 2 );
+	if( locDecalTexture >= 0 ) pglUniform1iARB( locDecalTexture, 3 );
 
-	if( locReflectionTexture >= 0 )
-		pglUniform1iARB( locReflectionTexture, 2 );
-	if( locRefractionTexture >= 0 )
-		pglUniform1iARB( locRefractionTexture, 3 );
+	if( locReflectionTexture >= 0 ) pglUniform1iARB( locReflectionTexture, 2 );
+	if( locRefractionTexture >= 0 ) pglUniform1iARB( locRefractionTexture, 3 );
 
-	if( locShadowmapTexture >= 0 )
-		pglUniform1iARB( locShadowmapTexture, 0 );
+	if( locShadowmapTexture >= 0 ) pglUniform1iARB( locShadowmapTexture, 0 );
 
 	for( i = 0; i < LM_STYLES; i++ )
 	{
@@ -1208,8 +1181,8 @@ R_ShutdownGLSLPrograms
 */
 void R_ShutdownGLSLPrograms( void )
 {
-	int i;
-	glsl_program_t *program;
+	int		i;
+	glsl_program_t	*program;
 
 	if( !r_glslProgramsPool )
 		return;

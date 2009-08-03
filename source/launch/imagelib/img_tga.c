@@ -12,31 +12,31 @@ Image_LoadTGA
 */
 bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 {
-	int	x, y, pix_inc, row_inc;
-	int	red, green, blue, alpha;
-	int	runlen, alphabits;
-	byte	*p, *pixbuf;
-	const byte *fin, *enddata;
-	byte	palette[256*4];
+	int	i, columns, rows, row_inc, row, col;
+	byte	*buf_p, *pixbuf, *targa_rgba;
+	byte	palette[256][4], red = 0, green = 0, blue = 0, alpha = 0;
+	int	readpixelcount, pixelcount;
+	bool	compressed;
 	tga_t	targa_header;
 
 	if( filesize < sizeof( tga_t ))
 		return false;
 
-	fin = buffer;
-	enddata = fin + filesize;
+	buf_p = (byte *)buffer;
+	targa_header.id_length = *buf_p++;
+	targa_header.colormap_type = *buf_p++;
+	targa_header.image_type = *buf_p++;
 
-	targa_header.id_length = *fin++;
-	targa_header.colormap_type = *fin++;
-	targa_header.image_type = *fin++;
-
-	targa_header.colormap_index = BuffLittleShort( fin ); fin += 2;
-	targa_header.colormap_length = BuffLittleShort( fin ); fin += 2;
-	targa_header.colormap_size = *fin++;
-	targa_header.x_origin = BuffLittleShort( fin ); fin += 2;
-	targa_header.y_origin = BuffLittleShort( fin ); fin += 2;
-	targa_header.width = image.width = BuffLittleShort( fin ); fin += 2;
-	targa_header.height = image.height = BuffLittleShort( fin );fin += 2;
+	targa_header.colormap_index = buf_p[0] + buf_p[1] * 256;		buf_p += 2;
+	targa_header.colormap_length = buf_p[0] + buf_p[1] * 256;		buf_p += 2;
+	targa_header.colormap_size = *buf_p;				buf_p += 1;
+	targa_header.x_origin = LittleShort( *((short *)buf_p ));		buf_p += 2;
+	targa_header.y_origin = LittleShort( *((short *)buf_p ));		buf_p += 2;
+	targa_header.width = image.width = LittleShort(*((short *)buf_p));	buf_p += 2;
+	targa_header.height = image.height = LittleShort(*((short *)buf_p));	buf_p += 2;
+	targa_header.pixel_size = *buf_p++;
+	targa_header.attributes = *buf_p++;
+	if( targa_header.id_length != 0 ) buf_p += targa_header.id_length;	// skip TARGA image comment
 
 	// check for tga file
 	if(!Image_ValidSize( name )) return false;
@@ -45,328 +45,155 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 	image.num_mips = 1;
 	image.type = PF_RGBA_32; // always exctracted to 32-bit buffer
 
-	targa_header.pixel_size = *fin++;
-	targa_header.attributes = *fin++;
-	// end of header
- 
-	// skip TARGA image comment ( usually 0 bytes )
-	fin += targa_header.id_length;
-
-	// read/skip the colormap if present (note: according to the TARGA spec it
-	// can be present even on truecolor or greyscale images, just not used by
-	// the image data)
-	if( targa_header.colormap_type )
+	if( targa_header.image_type == 1 || targa_header.image_type == 9 )
 	{
-		if( targa_header.colormap_length > 256 )
+		// uncompressed colormapped image
+		if( targa_header.pixel_size != 8 )
 		{
-			MsgDev( D_ERROR, "Image_LoadTGA: only up to 256 colormap_length supported\n" );
+			MsgDev( D_WARN, "Image_LoadTGA: (%s) Only 8 bit images supported for type 1 and 9\n", name );
+			return false;
+		}
+		if( targa_header.colormap_length != 256 )
+		{
+			MsgDev( D_WARN, "Image_LoadTGA: (%s) Only 8 bit colormaps are supported for type 1 and 9\n", name );
 			return false;
 		}
 		if( targa_header.colormap_index )
 		{
-			MsgDev( D_ERROR, "Image_LoadTGA: colormap_index not supported\n" );
+			MsgDev( D_WARN, "Image_LoadTGA: (%s) colormap_index is not supported for type 1 and 9\n", name );
 			return false;
 		}
 		if( targa_header.colormap_size == 24 )
 		{
-			for( x = 0; x < targa_header.colormap_length; x++ )
+			for( i = 0; i < targa_header.colormap_length; i++ )
 			{
-				palette[x*4+2] = *fin++;
-				palette[x*4+1] = *fin++;
-				palette[x*4+0] = *fin++;
-				palette[x*4+3] = 255;
+				palette[i][2] = *buf_p++;
+				palette[i][1] = *buf_p++;
+				palette[i][0] = *buf_p++;
+				palette[i][3] = 255;
 			}
 		}
 		else if( targa_header.colormap_size == 32 )
 		{
-			for( x = 0; x < targa_header.colormap_length; x++ )
+			for( i = 0; i < targa_header.colormap_length; i++ )
 			{
-				palette[x*4+2] = *fin++;
-				palette[x*4+1] = *fin++;
-				palette[x*4+0] = *fin++;
-				palette[x*4+3] = *fin++;
+				palette[i][2] = *buf_p++;
+				palette[i][1] = *buf_p++;
+				palette[i][0] = *buf_p++;
+				palette[i][3] = *buf_p++;
 			}
 		}
 		else
 		{
-			Msg("Image_LoadTGA: Only 32 and 24 bit colormap_size supported\n");
+			MsgDev( D_WARN, "Image_LoadTGA: (%s) only 24 and 32 bit colormaps are supported for type 1 and 9\n", name );
 			return false;
 		}
 	}
-
-	// check our pixel_size restrictions according to image_type
-	switch (targa_header.image_type & ~8)
+	else if( targa_header.image_type == 2 || targa_header.image_type == 10 )
 	{
-	case 2:
-		if( targa_header.pixel_size != 24 && targa_header.pixel_size != 32 )
+		// uncompressed or RLE compressed RGB
+		if( targa_header.pixel_size != 32 && targa_header.pixel_size != 24 )
 		{
-			MsgDev(D_ERROR, "LoadTGA: (%s) have unsupported pixel size '%d', for type '%d'\n", name, targa_header.pixel_size, targa_header.image_type );
+			MsgDev( D_WARN, "Image_LoadTGA: (%s) Only 32 or 24 bit images supported for type 2 and 10\n", name );
 			return false;
 		}
-		break;
-	case 3:
-		// set up a palette to make the loader easier
-		for( x = 0; x < 256; x++ )
-		{
-			palette[x*4+2] = x;
-			palette[x*4+1] = x;
-			palette[x*4+0] = x;
-			palette[x*4+3] = 255;
-		}
-		// fall through to colormap case
-	case 1:
+	}
+	else if( targa_header.image_type == 3 || targa_header.image_type == 11 )
+	{
+		// uncompressed greyscale
 		if( targa_header.pixel_size != 8 )
 		{
-			MsgDev( D_ERROR, "Image_LoadTGA: only 8bit pixel size for type 1, 3, 9, and 11 images supported\n" );
+			MsgDev( D_WARN, "Image_LoadTGA: (%s) Only 8 bit images supported for type 3 and 11\n", name );
 			return false;
 		}
-		break;
-	default:
-		MsgDev(D_ERROR, "Image_LoadTGA: (%s) is unsupported image type '%i'\n", name, targa_header.image_type );
-		return false;
 	}
 
-	if( targa_header.attributes & 0x10 )
-	{
-		MsgDev( D_WARN, "Image_LoadTGA: (%s): top right and bottom right origin are not supported\n", name );
-		return false;
-	}
+	columns = targa_header.width;
+	rows = targa_header.height;
 
-	// number of attribute bits per pixel, we only support 0 or 8
-	alphabits = targa_header.attributes & 0x0F;
-	if( alphabits != 8 && alphabits != 0 )
-	{
-		MsgDev( D_WARN, "LoadTGA: (%s) have invalid attributes '%i'\n", name, alphabits );
-		return false;
-	}
-
-	image.flags |= alphabits ? IMAGE_HAS_ALPHA : 0;
 	image.size = image.width * image.height * 4;
-	image.rgba = Mem_Alloc( Sys.imagepool, image.size );
+	targa_rgba = image.rgba = Mem_Alloc( Sys.imagepool, image.size );
 
-	// If bit 5 of attributes isn't set, the image has been stored from bottom to top
-	if(!(targa_header.attributes & 0x20))
+	// if bit 5 of attributes isn't set, the image has been stored from bottom to top
+	if( targa_header.attributes & 0x20 )
 	{
-		pixbuf = image.rgba + (image.height - 1) * image.width * 4;
-		row_inc = -image.width * 4 * 2;
+		pixbuf = targa_rgba;
+		row_inc = 0;
 	}
 	else
 	{
-		pixbuf = image.rgba;
-		row_inc = 0;
+		pixbuf = targa_rgba + ( rows - 1 ) * columns * 4;
+		row_inc = -columns * 4 * 2;
 	}
 
-	x = y = 0;
-	red = green = blue = alpha = 255;
-	pix_inc = 1;
-	if((targa_header.image_type & ~8) == 2) pix_inc = targa_header.pixel_size / 8;
-
-	switch( targa_header.image_type )
+	compressed = ( targa_header.image_type == 9 || targa_header.image_type == 10 || targa_header.image_type == 11 );
+	for( row = col = 0; row < rows; )
 	{
-	case 1: // colormapped, uncompressed
-	case 3: // greyscale, uncompressed
-		if( fin + image.width * image.height * pix_inc > enddata )
-			break;
-		for( y = 0; y < image.height; y++, pixbuf += row_inc )
-		{
-			for( x = 0; x < image.width; x++ )
-			{
-				p = palette + *fin++ * 4;
-				*pixbuf++ = p[0];
-				*pixbuf++ = p[1];
-				*pixbuf++ = p[2];
-				*pixbuf++ = p[3];
-			}
-		}
-		break;
-	case 2:
-		// BGR or BGRA, uncompressed
-		if( fin + image.width * image.height * pix_inc > enddata )
-			break;
-		if( targa_header.pixel_size == 32 && alphabits )
-		{
-			for( y = 0;y < image.height;y++, pixbuf += row_inc )
-			{
-				for( x = 0;x < image.width;x++, fin += pix_inc )
-				{
-					*pixbuf++ = fin[2];
-					*pixbuf++ = fin[1];
-					*pixbuf++ = fin[0];
-					*pixbuf++ = fin[3];
+		pixelcount = 0x10000;
+		readpixelcount = 0x10000;
 
-					if( fin[2] != fin[1] || fin[1] != fin[0] )
-						image.flags |= IMAGE_HAS_COLOR;
-				}
-			}
-		}
-		else // 24 bits
+		if( compressed )
 		{
-			for( y = 0; y < image.height; y++, pixbuf += row_inc )
-			{
-				for( x = 0;x < image.width; x++, fin += pix_inc )
-				{
-					*pixbuf++ = fin[2];
-					*pixbuf++ = fin[1];
-					*pixbuf++ = fin[0];
-					*pixbuf++ = 255;
-
-					if( fin[2] != fin[1] || fin[1] != fin[0] )
-						image.flags |= IMAGE_HAS_COLOR;
-				}
-			}
+			pixelcount = *buf_p++;
+			if( pixelcount & 0x80 )  // run-length packet
+				readpixelcount = 1;
+			pixelcount = 1 + ( pixelcount & 0x7f );
 		}
-		break;
-	case 9: // colormapped, RLE
-	case 11: // greyscale, RLE
-		for( y = 0; y < image.height; y++, pixbuf += row_inc )
+
+		while( pixelcount-- && ( row < rows ) )
 		{
-			for( x = 0; x < image.width; )
+			if( readpixelcount-- > 0 )
 			{
-				if( fin >= enddata ) break; // error - truncated file
-				runlen = *fin++;
-				if( runlen & 0x80 )
+				switch( targa_header.image_type )
 				{
-					// RLE - all pixels the same color
-					runlen += 1 - 0x80;
-					if( fin + pix_inc > enddata )
-						break; // error - truncated file
-					if( x + runlen > image.width )
-						break; // error - line exceeds width
-					p = palette + *fin++ * 4;
-					red = p[0];
-					green = p[1];
-					blue = p[2];
-					alpha = p[3];
-					for( ; runlen--; x++ )
+				case 1:
+				case 9:
+					// colormapped image
+					blue = *buf_p++;
+					red = palette[blue][0];
+					green = palette[blue][1];
+					alpha = palette[blue][3];
+					blue = palette[blue][2];
+					if( alpha != 255 ) image.flags |= IMAGE_HAS_ALPHA;
+					break;
+				case 2:
+				case 10:
+					// 24 or 32 bit image
+					blue = *buf_p++;
+					green = *buf_p++;
+					red = *buf_p++;
+					alpha = 255;
+					if( targa_header.pixel_size == 32 )
 					{
-						*pixbuf++ = red;
-						*pixbuf++ = green;
-						*pixbuf++ = blue;
-						*pixbuf++ = alpha;
+						alpha = *buf_p++;
+						if( alpha != 255 )
+							image.flags |= IMAGE_HAS_ALPHA;
 					}
-				}
-				else
-				{
-					// uncompressed - all pixels different color
-					runlen++;
-					if( fin + pix_inc * runlen > enddata )
-						break; // error - truncated file
-					if( x + runlen > image.width )
-						break; // error - line exceeds width
-					for( ; runlen--; x++ )
-					{
-						p = palette + *fin++ * 4;
-						*pixbuf++ = p[0];
-						*pixbuf++ = p[1];
-						*pixbuf++ = p[2];
-						*pixbuf++ = p[3];
-
-						if( p[0] != p[1] || p[1] != p[2] )
-							image.flags |= IMAGE_HAS_COLOR;
-					}
+					break;
+				case 3:
+				case 11:
+					// greyscale image
+					blue = green = red = *buf_p++;
+					alpha = 255;
+					break;
 				}
 			}
-		}
-		break;
-	case 10:
-		// BGR or BGRA, RLE
-		if( targa_header.pixel_size == 32 && alphabits )
-		{
-			for( y = 0; y < image.height; y++, pixbuf += row_inc )
-			{
-				for (x = 0; x < image.width; )
-				{                           
-					if( fin >= enddata ) break; // error - truncated file
-					runlen = *fin++;
-					if( runlen & 0x80 )
-					{
-						// RLE - all pixels the same color
-						runlen += 1 - 0x80;
-						if( fin + pix_inc > enddata ) break; // error - truncated file
-						if( x + runlen > image.width) break; // error - line exceeds width
-						red = fin[2];
-						green = fin[1];
-						blue = fin[0];
-						alpha = fin[3];
-						fin += pix_inc;
-						for( ; runlen--; x++)
-						{
-							*pixbuf++ = red;
-							*pixbuf++ = green;
-							*pixbuf++ = blue;
-							*pixbuf++ = alpha;
-						}
-					}
-					else
-					{
-						// uncompressed - all pixels different color
-						runlen++;
-						if( fin + pix_inc * runlen > enddata ) break; // error - truncated file
-						if( x + runlen > image.width ) break; // error - line exceeds width
-						for( ;runlen--; x++, fin += pix_inc )
-						{
-							*pixbuf++ = fin[2];
-							*pixbuf++ = fin[1];
-							*pixbuf++ = fin[0];
-							*pixbuf++ = fin[3];
 
-							if( fin[2] != fin[1] || fin[1] != fin[0] )
-								image.flags |= IMAGE_HAS_COLOR;
-						}
-					}
-				}
+			if( red != green || green != blue )
+				image.flags |= IMAGE_HAS_COLOR;
+
+			*pixbuf++ = red;
+			*pixbuf++ = green;
+			*pixbuf++ = blue;
+			*pixbuf++ = alpha;
+			if( ++col == columns )
+			{
+				// run spans across rows
+				row++;
+				col = 0;
+				pixbuf += row_inc;
 			}
 		}
-		else
-		{
-			for( y = 0; y < image.height; y++, pixbuf += row_inc )
-			{
-				for (x = 0; x < image.width; )
-				{
-					if( fin >= enddata ) break; // error - truncated file
-					runlen = *fin++;
-					if( runlen & 0x80 )
-					{
-						// RLE - all pixels the same color
-						runlen += 1 - 0x80;
-						if( fin + pix_inc > enddata ) break; // error - truncated file
-						if( x + runlen > image.width )break; // error - line exceeds width
-						red = fin[2];
-						green = fin[1];
-						blue = fin[0];
-						alpha = 255;
-						fin += pix_inc;
-						for( ;runlen--; x++ )
-						{
-							*pixbuf++ = red;
-							*pixbuf++ = green;
-							*pixbuf++ = blue;
-							*pixbuf++ = alpha;
-						}
-					}
-					else
-					{
-						// uncompressed - all pixels different color
-						runlen++;
-						if( fin + pix_inc * runlen > enddata ) break; // error - truncated file
-						if( x + runlen > image.width ) break; // error - line exceeds width
-						for ( ; runlen--; x++, fin += pix_inc)
-						{
-							*pixbuf++ = fin[2];
-							*pixbuf++ = fin[1];
-							*pixbuf++ = fin[0];
-							*pixbuf++ = 255;
-
-							if( fin[2] != fin[1] || fin[1] != fin[0] )
-								image.flags |= IMAGE_HAS_COLOR;
-						}
-					}
-				}
-			}
-		}
-		break;
-	// unknown image_type
-	default:  return false;
 	}
 	return true;
 }

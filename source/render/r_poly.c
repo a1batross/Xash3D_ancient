@@ -502,11 +502,11 @@ int R_GetClippedFragments( const vec3_t origin, float radius, vec3_t axis[3], in
 
 		VectorCopy( axis[i], fragmentPlanes[i*2].normal );
 		fragmentPlanes[i*2].dist = d - radius;
-		PlaneClassify( &fragmentPlanes[i*2] );
+		fragmentPlanes[i*2].type = PlaneTypeForNormal( fragmentPlanes[i*2].normal );
 
 		VectorNegate( axis[i], fragmentPlanes[i*2+1].normal );
 		fragmentPlanes[i*2+1].dist = -d - radius;
-		PlaneClassify( &fragmentPlanes[i*2+1] );
+		fragmentPlanes[i*2+1].type = PlaneTypeForNormal( fragmentPlanes[i*2+1].normal );
 	}
 
 	R_RecursiveFragmentNode ();

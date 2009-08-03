@@ -160,6 +160,7 @@ void SV_SpawnServer( const char *server, const char *savename )
 
 	Msg( "SpawnServer [%s]\n", server );
 
+	svs.timestart = Sys_DoubleTime ();
 	svs.spawncount++; // any partially connected client will be restarted
 	sv.state = ss_dead;
 	Host_SetServerState( sv.state );

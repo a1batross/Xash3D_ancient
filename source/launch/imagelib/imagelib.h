@@ -64,9 +64,9 @@ typedef struct imglib_s
 	const saveformat_t	*saveformats;
 
 	// current 2d image state
-	int		width;
-	int		height;
-	byte		depth;	// num layers in
+	word		width;
+	word		height;
+	word		depth;		// num layers in
 	byte		num_mips;		// build mipmaps
 	uint		type;		// main type switcher
 	uint		flags;		// additional image flags
@@ -499,7 +499,7 @@ extern const bpc_desc_t PFDesc[];
 
 void Image_RoundDimensions( int *scaled_width, int *scaled_height );
 byte *Image_ResampleInternal( const void *indata, int inwidth, int inheight, int outwidth, int outheight, int intype );
-byte *Image_FlipInternal( const byte *in, int *srcwidth, int *srcheight, int type, int flags );
+byte *Image_FlipInternal( const byte *in, word *srcwidth, word *srcheight, int type, int flags );
 void Image_FreeImage( rgbdata_t *pack );
 void Image_Save( const char *filename, rgbdata_t *pix );
 size_t Image_DXTGetLinearSize( int type, int width, int height, int depth, int rgbcount );

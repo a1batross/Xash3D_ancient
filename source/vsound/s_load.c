@@ -261,6 +261,7 @@ static bool S_LoadWAV( const char *name, byte **wav, wavinfo_t *info )
 		if( samples < info->samples )
 		{
 			MsgDev( D_ERROR, "S_LoadWAV: %s has a bad loop length\n", name );
+			Mem_Free( buffer );
 			return false;
 		}
 	}

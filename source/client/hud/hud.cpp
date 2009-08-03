@@ -123,7 +123,7 @@ void CHud :: VidInit( void )
 		}
 		else
 		{
-			ALERT( at_warning, "hud.shader couldn't load\n" );
+			ALERT( at_warning, "hud.txt couldn't load\n" );
 			CVAR_SET_FLOAT( "hud_draw", 0 );
 			return;
 		}
@@ -283,7 +283,7 @@ int CHud :: Redraw( float flTime )
 			if( !m_iIntermission )
 			{
 				if(( pList->p->m_iFlags & HUD_ACTIVE ) && !(m_iHideHUDDisplay & HIDEHUD_ALL ))
-					pList->p->Draw(flTime);
+					pList->p->Draw( flTime );
 			}
 			else
 			{

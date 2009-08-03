@@ -26,20 +26,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAX_POLY_VERTS			3000
 #define MAX_POLYS				2048
 
-// skm flags
-#define SKM_ATTACHMENT_BONE	1
-
 typedef struct 
 {
 	vec3_t			axis[3];
 	vec3_t			origin;
 } orientation_t;
-
-typedef struct
-{
-	quat_t			quat;
-	vec3_t			origin;
-} bonepose_t;
 
 typedef struct
 {
@@ -132,13 +123,11 @@ typedef struct entity_s
 	vec3_t			movedir;		// forward vector that computed on a server
 	vec3_t			origin, origin2;
 	vec3_t			lightingOrigin;
-	bonepose_t		*boneposes;		// pretransformed boneposes for current frame
 
 	/*
 	** previous data for lerping
 	*/
 	int			oldframe;
-	bonepose_t		*oldboneposes;	// pretransformed boneposes for old frame
 
 	/*
 	** texturing
@@ -171,35 +160,22 @@ typedef struct entity_s
 void		R_ModelBounds( const struct ref_model_s *model, vec3_t mins, vec3_t maxs );
 
 struct ref_model_s *R_RegisterModel( const char *name );
-struct ref_shader_s *R_RegisterPic( const char *name );
-struct ref_shader_s *R_RegisterShader( const char *name );
-struct ref_shader_s *R_RegisterSkin( const char *name );
 struct skinfile_s *R_RegisterSkinFile( const char *name );
 
-void		R_ClearScene( void );
-void		R_AddLightToScene( const vec3_t org, float intensity, float r, float g, float b, const struct ref_shader_s *shader );
-bool		R_AddPolyToScene( const poly_t *poly );
-void		R_AddLightStyleToScene( int style, float r, float g, float b );
-void		R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, shader_t shader );
-void		R_DrawStretchRaw( int x, int y, int w, int h, int cols, int rows, const byte *data, bool redraw );
+void	R_ClearScene( void );
+void	R_AddLightToScene( const vec3_t org, float intensity, float r, float g, float b, const struct ref_shader_s *shader );
+bool	R_AddPolyToScene( const poly_t *poly );
+void	R_AddLightStyleToScene( int style, float r, float g, float b );
+void	R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, shader_t shader );
+void	R_DrawStretchRaw( int x, int y, int w, int h, int cols, int rows, const byte *data, bool redraw );
+void	R_SetCustomColor( int num, int r, int g, int b );
+void	R_LightForOrigin( const vec3_t origin, vec3_t dir, vec4_t ambient, vec4_t diffuse, float radius );
+bool	R_LerpTag( orientation_t *orient, const struct ref_model_s *mod, int oldframe, int frame, float lerpfrac, const char *name );
+int	R_GetClippedFragments( const vec3_t origin, float radius, vec3_t axis[3], int maxfverts, vec3_t *fverts, 
+					  int maxfragments, fragment_t *fragments );
 
-void		R_SetCustomColor( int num, int r, int g, int b );
-void		R_LightForOrigin( const vec3_t origin, vec3_t dir, vec4_t ambient, vec4_t diffuse, float radius );
-
-bool	R_LerpTag( orientation_t *orient, const struct ref_model_s *mod, int oldframe, int frame, float lerpfrac,
-					  const char *name );
-
-int			R_SkeletalGetNumBones( const struct ref_model_s *mod, int *numFrames );
-int			R_SkeletalGetBoneInfo( const struct ref_model_s *mod, int bone, char *name, size_t name_size, int *flags );
-void		R_SkeletalGetBonePose( const struct ref_model_s *mod, int bone, int frame, bonepose_t *bonepose );
-
-int		R_GetClippedFragments( const vec3_t origin, float radius, vec3_t axis[3], int maxfverts, vec3_t *fverts, 
-								  int maxfragments, fragment_t *fragments );
-
-void		R_TransformVectorToScreen( const ref_params_t *rd, const vec3_t in, vec2_t out );
-
+void	R_TransformVectorToScreen( const ref_params_t *rd, const vec3_t in, vec2_t out );
 const char	*R_SpeedsMessage( char *out, size_t size );
-void		GLimp_AppActivate( bool active );
 
 // Xash renderer exports
 bool R_Init( bool full );

@@ -1447,7 +1447,7 @@ void Image_SetPixelFormat( int width, int height, int depth )
 	image.SizeOfPlane = image.bps * image.curheight;
 	image.SizeOfData = image.SizeOfPlane * image.curdepth;
 
-	// NOTE: size of current miplevel or cubemap side, not total (filesize - sizeof(header))
+	// NOTE: size of current miplevel or cubemap side, not total (filesize - sizeof( header ))
 	image.SizeOfFile = Image_DXTGetLinearSize( image.type, width, height, depth, image.bits_count / 8 );
 }
 
@@ -2224,12 +2224,13 @@ bool Image_DecompressRGBA( uint target, int level, int intformat, uint width, ui
 	switch( PFDesc[intformat].format )
 	{
 	case PF_RGB_16:
-		for( i = 0, col = (color16 *)fin; i < width * height; i++, col += sizeof( color16 ))
+		for( i = 0, col = (color16 *)fin; i < width * height; i++ )
 		{
 			fout[(i<<2)+0] = col->r << 3;
 			fout[(i<<2)+1] = col->g << 2;
 			fout[(i<<2)+2] = col->b << 3;
 			fout[(i<<2)+3] = 255;
+			col += sizeof( color16 );
 		}
 		break;	
 	case PF_RGB_24:
@@ -2273,13 +2274,14 @@ bool Image_DecompressRGBA( uint target, int level, int intformat, uint width, ui
 
 void Image_DecompressDDS( const byte *buffer, uint target )
 {
-	int i, size = 0;
-	int w = image.curwidth;
-	int h = image.curheight;
-	int d = image.curdepth;
+	int	i, size = 0;
+	int	w = image.curwidth;
+	int	h = image.curheight;
+	int	d = image.curdepth;
 
 	// filter by cubemap side
-	if( image.filter != CB_HINT_NO && image.filter != target ) return;
+	if( image.filter != CB_HINT_NO && image.filter != target )
+		return;
 
 	switch( image.type )
 	{
@@ -2315,7 +2317,7 @@ void Image_DecompressDDS( const byte *buffer, uint target )
 	default: Sys_Error( "Image_DecompressDDS: unknown image format\n" );
 	}
 
-	for( i = 0; i < image.cur_mips; i++, buffer += size )
+	for( i = 0; i < image.cur_mips; i++ )
 	{
 		Image_SetPixelFormat( w, h, d );
 		size = image.SizeOfFile;
@@ -2323,6 +2325,7 @@ void Image_DecompressDDS( const byte *buffer, uint target )
 		if(!image.decompress( target, i, image.type, w, h, size, buffer ))
 			break; // there were errors
 		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; // calc size of next mip
+		buffer += size;
 	}
 }
 
@@ -2351,7 +2354,6 @@ bool Image_ForceDecompress( void )
 	case PF_ATI1N: return true;	// hey, how called your OpenGL extension, ATI ?
 	case PF_ATI2N: return true;
 	}
-
 	return false;
 }
 

@@ -1397,6 +1397,7 @@ void UTIL_PrecacheResourse( void )
 	char *pfile = (char *)LOAD_FILE( "scripts/precache.txt", NULL );
 	if( pfile )
 	{
+		char *afile = pfile;
 		while( pfile )
 		{
 			if( !stricmp( token, "entity" )) 
@@ -1436,7 +1437,7 @@ void UTIL_PrecacheResourse( void )
 			}
 			pfile = COM_ParseFile( pfile, token );
 		}
-		COM_FreeFile( pfile );
+		COM_FreeFile( afile );
 	}
 }
 

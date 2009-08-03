@@ -125,7 +125,7 @@ void Image_Reset( void )
 
 rgbdata_t *ImagePack( void )
 {
-	rgbdata_t *pack = Mem_Alloc( Sys.imagepool, sizeof(rgbdata_t));
+	rgbdata_t	*pack = Mem_Alloc( Sys.imagepool, sizeof( rgbdata_t ));
 
 	if( image.cubemap && image.num_sides != 6 )
 	{
@@ -158,6 +158,7 @@ rgbdata_t *ImagePack( void )
 	pack->bitsCount = image.bits_count;
 	pack->flags = image.flags;
 	pack->palette = image.palette;
+
 	return pack;
 }
 
@@ -355,7 +356,10 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 						{         
 							com.snprintf( sidename, MAX_STRING, "%s%s.%s", loadname, cmap->type[i].suf, format->ext );
 							if( FS_AddSideToPack( sidename, cmap->type[i].flags )) // process flags to flip some sides
+							{
+								Mem_Free( f );
 								break; // loaded
+							}
 						}
 						Mem_Free( f );
 					}

@@ -377,7 +377,6 @@ static void R_Bloom_GeneratexDiamonds( void )
 		scale = r_bloom_intensity->value * 0.5f;
 		break;
 	default:
-//	case 8:
 		k = 4;
 		diamond = &Diamond8x[0][0];
 		scale = r_bloom_intensity->value * 0.3f;

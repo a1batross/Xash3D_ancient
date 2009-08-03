@@ -297,6 +297,37 @@ void AdjustFov( float *fov_x, float *fov_y, float width, float height, bool lock
 
 /*
 =================
+SignbitsForPlane
+
+fast box on planeside test
+=================
+*/
+int SignbitsForPlane( const cplane_t *out )
+{
+	int	bits, i;
+
+	for( i = bits = 0; i < 3; i++ )
+		if( out->normal[i] < 0.0f ) bits |= 1<<i;
+	return bits;
+}
+
+/*
+=================
+PlaneTypeForNormal
+=================
+*/
+int PlaneTypeForNormal( const vec3_t normal )
+{
+	// NOTE: should these have an epsilon around 1.0?		
+	if( normal[0] >= 1.0f ) return PLANE_X;
+	if( normal[1] >= 1.0f ) return PLANE_Y;
+	if( normal[2] >= 1.0f ) return PLANE_Z;
+	return PLANE_NONAXIAL;
+}
+
+
+/*
+=================
 PlaneFromPoints
 =================
 */
@@ -309,7 +340,4 @@ void PlaneFromPoints( vec3_t verts[3], cplane_t *plane )
 	CrossProduct( v2, v1, plane->normal );
 	VectorNormalize( plane->normal );
 	plane->dist = DotProduct( verts[0], plane->normal );
-
-	// FIXME: needs to a plane classify ?
-	//PlaneClassify( plane );
 }

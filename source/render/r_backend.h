@@ -31,9 +31,7 @@ enum
 	VBO_VERTS,
 	VBO_NORMALS,
 	VBO_COLORS,
-//	VBO_INDEXES,
 	VBO_TC0,
-
 	VBO_ENDMARKER
 };
 
@@ -55,30 +53,41 @@ extern vec4_t *sVectorsArray;
 extern vec2_t *coordsArray;
 extern vec2_t *lightmapCoordsArray[LM_STYLES];
 extern rgba_t colorArray[MAX_ARRAY_VERTS];
-
-extern int r_numVertexBufferObjects;
-extern GLuint r_vertexBufferObjects[MAX_VERTEX_BUFFER_OBJECTS];
-
 extern int r_features;
 
 //===================================================================
+typedef struct ref_buffer_s
+{
+	byte		*pointer;
+	int		size;
+	uint		usage;
+	uint		bufNum;
+} ref_buffer_t;
 
 typedef struct
 {
-	uint	numVerts;
-	uint	numElems;
-	uint	numColors;
+	uint		numVerts;
+	uint		numElems;
+	uint		numColors;
 
-	uint	c_totalVerts;
-	uint	c_totalTris;
-	uint	c_totalFlushes;
-	uint	c_totalKeptLocks;
+	uint		c_totalVerts;
+	uint		c_totalTris;
+	uint		c_totalFlushes;
+	uint		c_totalKeptLocks;
 } ref_backacc_t;
 
 typedef struct
 {
 	// renderer global variables
 	int		registration_sequence;
+
+	// vbo stuff
+	int		numVertexBufferObjects;
+	ref_buffer_t	vertexBufferObjects[MAX_VERTEX_BUFFER_OBJECTS];
+	ref_buffer_t	*vertexBuffer;
+	ref_buffer_t	*normalBuffer;
+	ref_buffer_t	*colorsBuffer;
+	ref_buffer_t	*tcoordBuffer[MAX_TEXTURE_UNITS];
 
 	// builtin textures
 	texture_t		*cinTexture;      	// cinematic texture
@@ -98,6 +107,7 @@ typedef struct
 	texture_t		*lightmapTextures[MAX_TEXTURES];
 
 	// builtin shaders
+	ref_shader_t	*defaultShader;	// generic black texture
 } ref_globals_t;
 
 extern ref_globals_t tr;
@@ -120,6 +130,11 @@ void R_BackendSetPassMask( int mask );
 void R_BackendResetPassMask( void );
 
 void R_DrawPhysDebug( void );
+
+void R_InitVertexBuffers( void );
+void R_ShutdownVertexBuffers( void );
+ref_buffer_t *R_AllocVertexBuffer( size_t size, GLuint usage );
+void R_UpdateVertexBuffer( ref_buffer_t *vertexBuffer, const void *data, size_t size );
 
 void R_LockArrays( int numverts );
 void R_UnlockArrays( void );
@@ -386,14 +401,15 @@ typedef struct
 	bool		initializedMedia;
 
 	int		activeTMU;
-	GLuint		*currentTextures;
-	GLenum		*currentEnvModes;
-	bool		*texIdentityMatrix;
-	int		*genSTEnabled;		// 0 - disabled, OR 1 - S, OR 2 - T, OR 4 - R
-	int		*texCoordArrayMode;		// 0 - disabled, 1 - enabled, 2 - cubemap
+	GLuint		currentTextures[MAX_TEXTURE_UNITS];
+	GLenum		currentEnvModes[MAX_TEXTURE_UNITS];
+	GLboolean		texIdentityMatrix[MAX_TEXTURE_UNITS];
+	GLint		genSTEnabled[MAX_TEXTURE_UNITS];	// 0 - disabled, OR 1 - S, OR 2 - T, OR 4 - R
+	GLint		texCoordArrayMode[MAX_TEXTURE_UNITS];	// 0 - disabled, 1 - enabled, 2 - cubemap
+
 	vec4_t		draw_color;
-	kRenderMode_t	draw_rendermode;		// rendermode for drawing
-	int		draw_frame;		// will be reset after each drawing
+	kRenderMode_t	draw_rendermode;			// rendermode for drawing
+	int		draw_frame;			// will be reset after each drawing
 
 	int		faceCull;
 	int		frontFace;

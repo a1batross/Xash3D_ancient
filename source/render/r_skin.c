@@ -20,143 +20,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "r_local.h"
 
+#define SkinFile_CopyString( str )	com.stralloc( r_skinsPool, str, __FILE__, __LINE__ )
+
 typedef struct
 {
-	char				*meshname;
-	ref_shader_t			*shader;
+	char		*meshname;
+	ref_shader_t	*shader;
 } mesh_shader_pair_t;
 
 typedef struct skinfile_s
 {
-	char				*name;
-
+	char		*name;
 	mesh_shader_pair_t	*pairs;
-	int					numpairs;
+	int		numpairs;
 } skinfile_t;
 
-static skinfile_t r_skinfiles[MAX_SKINFILES];
-static byte *r_skinsPool;
-
-// Com_ParseExt it's temporary stuff
-#define	MAX_TOKEN_CHARS	1024
-char	com_token[MAX_TOKEN_CHARS];
-
-/*
-==============
-COM_ParseExt
-
-Parse a token out of a string
-==============
-*/
-char *COM_ParseExt( const char **data_p, bool nl )
-{
-	int		c;
-	int		len;
-	const char	*data;
-	bool 		newlines = false;
-
-	data = *data_p;
-	len = 0;
-	com_token[0] = 0;
-
-	if (!data)
-	{
-		*data_p = NULL;
-		return "";
-	}
-
-// skip whitespace
-skipwhite:
-	while ( (c = *data) <= ' ')
-	{
-		if (c == 0)
-		{
-			*data_p = NULL;
-			return "";
-		}
-		if (c == '\n')
-			newlines = true;
-		data++;
-	}
-
-	if ( newlines && !nl )
-	{
-		*data_p = data;
-		return com_token;
-	}
-
-	// skip // comments
-	if (c == '/' && data[1] == '/')
-	{
-		data += 2;
-
-		while (*data && *data != '\n')
-			data++;
-		goto skipwhite;
-	}
-
-	// skip /* */ comments
-	if (c == '/' && data[1] == '*')
-	{
-		data += 2;
-
-		while (1)
-		{
-			if (!*data)
-				break;
-			if (*data != '*' || *(data+1) != '/')
-				data++;
-			else
-			{
-				data += 2;
-				break;
-			}
-		}
-		goto skipwhite;
-	}
-
-	// handle quoted strings specially
-	if (c == '\"')
-	{
-		data++;
-		while (1)
-		{
-			c = *data++;
-			if (c=='\"' || !c)
-			{
-				if (len == MAX_TOKEN_CHARS)
-					len = 0;
-				com_token[len] = 0;
-				*data_p = data;
-				return com_token;
-			}
-			if (len < MAX_TOKEN_CHARS)
-			{
-				com_token[len] = c;
-				len++;
-			}
-		}
-	}
-
-// parse a regular word
-	do
-	{
-		if (len < MAX_TOKEN_CHARS)
-		{
-			com_token[len] = c;
-			len++;
-		}
-		data++;
-		c = *data;
-	} while (c>32);
-
-	if (len == MAX_TOKEN_CHARS)
-		len = 0;
-	com_token[len] = 0;
-
-	*data_p = data;
-	return com_token;
-}
+static skinfile_t	r_skinfiles[MAX_SKINFILES];
+static byte	*r_skinsPool;
 
 /*
 ================
@@ -166,23 +46,7 @@ R_InitSkinFiles
 void R_InitSkinFiles( void )
 {
 	r_skinsPool = Mem_AllocPool( "Skins" );
-
-	memset( r_skinfiles, 0, sizeof( r_skinfiles ) );
-}
-
-/*
-================
-SkinFile_CopyString
-================
-*/
-static char *SkinFile_CopyString( const char *in )
-{
-	char *out;
-
-	out = Mem_Alloc( r_skinsPool, ( strlen( in ) + 1 ) );
-	strcpy( out, in );
-
-	return out;
+	Mem_Set( r_skinfiles, 0, sizeof( r_skinfiles ));
 }
 
 /*
@@ -192,15 +56,14 @@ SkinFile_FreeSkinFile
 */
 static void SkinFile_FreeSkinFile( skinfile_t *skinfile )
 {
-	int i;
+	int	i;
 
 	for( i = 0; i < skinfile->numpairs; i++ )
 		Mem_Free( skinfile->pairs[i].meshname );
 
 	Mem_Free( skinfile->pairs );
 	Mem_Free( skinfile->name );
-
-	memset( skinfile, 0, sizeof( skinfile_t ) );
+	Mem_Set( skinfile, 0, sizeof( skinfile_t ));
 }
 
 /*
@@ -232,33 +95,40 @@ SkinFile_ParseBuffer
 */
 static int SkinFile_ParseBuffer( char *buffer, mesh_shader_pair_t *pairs )
 {
-	int numpairs;
-	char *ptr, *t, *token;
+	int	numpairs;
+	string	skinname;
+	string	meshname;
+	script_t	*script;
+	token_t	tok;
 
-	ptr = buffer;
+	script = Com_OpenScript( "skinfile", buffer, com.strlen( buffer ));
 	numpairs = 0;
 
-	while( ptr )
+	while( 1 )
 	{
-		token = COM_ParseExt( &ptr, false );
-		if( !token[0] )
-			continue;
-
-		t = strchr( token, ',' );
-		if( !t )
-			continue;
-		if( *( t+1 ) == '\0' || *( t+1 ) == '\n' )
-			continue;
+		if( !Com_ReadToken( script, SC_ALLOW_NEWLINES, &tok )) // skip tag
+			break;
+		if( !com.strcmp( tok.string, "," ))
+		{
+			if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES, &tok ))
+				continue;	// tag without shadername
+			com.strncpy( skinname, tok.string, sizeof( skinname ));
+			FS_StripExtension( skinname );
+		}
+		else
+		{
+			com.strncpy( meshname, tok.string, sizeof( meshname ));
+			continue;	// waiting for ','
+		}
 
 		if( pairs )
 		{
-			*t = 0;
-			pairs[numpairs].meshname = SkinFile_CopyString( token );
-			pairs[numpairs].shader = R_RegisterSkin( token + strlen( token ) + 1 );
+			pairs[numpairs].meshname = SkinFile_CopyString( meshname );
+			pairs[numpairs].shader = R_LoadShader( skinname, SHADER_ALIAS, false, 0, SHADER_INVALID );
 		}
-
 		numpairs++;
 	}
+	Com_CloseScript( script );
 
 	return numpairs;
 }

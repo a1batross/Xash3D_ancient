@@ -88,7 +88,6 @@ static int		loadmodel_numshaderrefs;
 static mshaderref_t		*loadmodel_shaderrefs;
 
 void Mod_LoadAliasMD3Model( ref_model_t *mod, ref_model_t *parent, const void *buffer );
-void Mod_LoadSkeletalModel( ref_model_t *mod, ref_model_t *parent, const void *buffer );
 void Mod_LoadBrushModel( ref_model_t *mod, ref_model_t *parent, const void *buffer );
 
 ref_model_t *Mod_LoadModel( ref_model_t *mod, bool crash );
@@ -102,8 +101,7 @@ static byte		*mod_mempool;
 
 static modelformatdescriptor_t mod_supportedformats[] =
 {
-{ IDMD3HEADER,	MD3_ALIAS_MAX_LODS,	Mod_LoadAliasMD3Model	}, // Quake III Arena .md3 models
-{ SKMHEADER,	SKM_MAX_LODS,	Mod_LoadSkeletalModel	}, // Skeletal models
+{ ALIASMODHEADER,	MD3_ALIAS_MAX_LODS,	Mod_LoadAliasMD3Model	}, // Quake III Arena .md3 models
 { IDBSPMODHEADER,	0,		Mod_LoadBrushModel		}, // Quake III Arena .bsp models
 { RBBSPMODHEADER,	0,		Mod_LoadBrushModel		}, // SOF2 and JK2 .bsp models
 { QFBSPMODHEADER,	0,		Mod_LoadBrushModel		}, // QFusion .bsp models
@@ -422,7 +420,7 @@ ref_model_t *Mod_ForName( const char *name, bool crash )
 	FS_StripExtension( shortname );
 
 	// load level-of-detail models
-	for( i = mod->numlods = 0; i < descr->maxLods; i++ )
+	for( mod->numlods = i = 0; i < descr->maxLods; i++ )
 	{
 		com.snprintf( lodname, sizeof( lodname ), "%s_%i.%s", shortname, i+1, ext );
 		buf = (uint *)FS_LoadFile( lodname, NULL );
@@ -1322,7 +1320,7 @@ static void Mod_LoadFogs( const lump_t *l, const lump_t *brLump, const lump_t *b
 
 	for( i = 0; i < count; i++, in++, out++ )
 	{
-		out->shader = R_RegisterShader( in->shader );
+		out->shader = R_LoadShader( in->shader, SHADER_TEXTURE, false, 0, SHADER_INVALID );
 		p = LittleLong( in->brushnum );
 		if( p == -1 )
 			continue;
@@ -2037,63 +2035,6 @@ void Mod_LoadBrushModel( ref_model_t *mod, ref_model_t *parent, const void *buff
 		else bmodel->numsubmodels = 0;
 	}
 }
-
-#ifdef QUAKE2_JUNK
-
-/*
-==============================================================================
-
-SPRITE MODELS
-
-==============================================================================
-*/
-
-/*
-=================
-Mod_LoadSpriteModel
-=================
-*/
-void Mod_LoadSpriteModel( ref_model_t *mod, ref_model_t *parent, void *buffer )
-{
-	int i;
-	dsprite_t *sprin;
-	smodel_t *sprout;
-	dsprframe_t *sprinframe;
-	sframe_t *sproutframe;
-
-	sprin = (dsprite_t *)buffer;
-
-	if( LittleLong( sprin->version ) != SPRITE_VERSION )
-		Host_Error( ERR_DROP, "%s has wrong version number (%i should be %i)",
-		mod->name, LittleLong( sprin->version ), SPRITE_VERSION );
-
-	mod->extradata = sprout = Mod_Malloc( mod, sizeof( smodel_t ) );
-	sprout->numframes = LittleLong( sprin->numframes );
-
-	sprinframe = sprin->frames;
-	sprout->frames = sproutframe = Mod_Malloc( mod, sizeof( sframe_t ) * sprout->numframes );
-
-	mod->radius = 0;
-	ClearBounds( mod->mins, mod->maxs );
-
-	// byte swap everything
-	for( i = 0; i < sprout->numframes; i++, sprinframe++, sproutframe++ )
-	{
-		sproutframe->width = LittleLong( sprinframe->width );
-		sproutframe->height = LittleLong( sprinframe->height );
-		sproutframe->origin_x = LittleLong( sprinframe->origin_x );
-		sproutframe->origin_y = LittleLong( sprinframe->origin_y );
-		sproutframe->shader = R_RegisterPic( sprinframe->name );
-		sproutframe->radius = sqrt( sproutframe->width * sproutframe->width + sproutframe->height * sproutframe->height );
-		mod->radius = max( mod->radius, sproutframe->radius );
-	}
-
-	mod->type = mod_sprite;
-	mod->touchFrame = tr.registration_sequence; // register model
-}
-
-#endif
-
 //=============================================================================
 
 /*
@@ -2122,7 +2063,7 @@ void R_BeginRegistration( const char *mapname, const dvis_t *visData )
 	if( com.strcmp( r_models[0].name, fullname ))
 	{
 		Mod_FreeModel( &r_models[0] );
-		RI.surfmbuffers = NULL;
+		R_NewMap ();
 	}
 	else
 	{

@@ -288,10 +288,18 @@ bool R_AddShadowCaster( ref_entity_t *ent )
 	r_numShadowGroups++;
 add:
 	// get model bounds
-	if( ent->model->type == mod_alias )
+	switch( ent->model->type )
+	{
+	case mod_alias:
 		R_AliasModelBBox( ent, mins, maxs );
-	else
-		R_SkeletalModelBBox( ent, mins, maxs );
+		break;
+	case mod_studio:
+		break;
+	default:
+		VectorClear( mins );
+		VectorClear( maxs );
+		break;
+	}
 
 	for( i = 0; i < 3; i++ )
 	{

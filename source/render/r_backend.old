@@ -22,22 +22,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mathlib.h"
 #include "quatlib.h"
 
-#define FTABLE_SIZE_POW		10
-#define FTABLE_SIZE			( 1<<FTABLE_SIZE_POW )
-#define FTABLE_CLAMP( x )		(((uint)( ( x )*FTABLE_SIZE ) & ( FTABLE_SIZE-1 )))
-#define FTABLE_EVALUATE( table, x )	(( table )[FTABLE_CLAMP( x )] )
+#define FTABLE_SIZE_POW	10
+#define FTABLE_SIZE	( 1<<FTABLE_SIZE_POW )
+#define FTABLE_CLAMP( x ) ( ( (unsigned int)( ( x )*FTABLE_SIZE ) & ( FTABLE_SIZE-1 ) ) )
+#define FTABLE_EVALUATE( table, x ) ( ( table )[FTABLE_CLAMP( x )] )
 
-static float			r_sintable[FTABLE_SIZE];
-static float			r_sintableByte[256];
-static float			r_triangletable[FTABLE_SIZE];
-static float			r_squaretable[FTABLE_SIZE];
-static float			r_sawtoothtable[FTABLE_SIZE];
-static float			r_inversesawtoothtable[FTABLE_SIZE];
+static float r_sintable[FTABLE_SIZE];
+static float r_sintableByte[256];
+static float r_triangletable[FTABLE_SIZE];
+static float r_squaretable[FTABLE_SIZE];
+static float r_sawtoothtable[FTABLE_SIZE];
+static float r_inversesawtoothtable[FTABLE_SIZE];
 
-#define NOISE_SIZE			256
-#define NOISE_VAL( a )	  	r_noiseperm[( a ) & ( NOISE_SIZE - 1 )]
-#define NOISE_INDEX( x, y, z, t )	NOISE_VAL( x + NOISE_VAL( y + NOISE_VAL( z + NOISE_VAL( t ) ) ) )
-#define NOISE_LERP( a, b, w )		( a * ( 1.0f - w ) + b * w )
+#define NOISE_SIZE	256
+#define NOISE_VAL( a )	  r_noiseperm[( a ) & ( NOISE_SIZE - 1 )]
+#define NOISE_INDEX( x, y, z, t ) NOISE_VAL( x + NOISE_VAL( y + NOISE_VAL( z + NOISE_VAL( t ) ) ) )
+#define NOISE_LERP( a, b, w ) ( a * ( 1.0f - w ) + b * w )
 
 static float r_noisetable[NOISE_SIZE];
 static int r_noiseperm[NOISE_SIZE];
@@ -49,6 +49,7 @@ elem_t inElemsArray[MAX_ARRAY_ELEMENTS];
 vec2_t inCoordsArray[MAX_ARRAY_VERTS];
 vec2_t inLightmapCoordsArray[LM_STYLES][MAX_ARRAY_VERTS];
 rgba_t inColorsArray[LM_STYLES][MAX_ARRAY_VERTS];
+
 vec2_t tUnitCoordsArray[MAX_TEXTURE_UNITS][MAX_ARRAY_VERTS];
 
 elem_t *elemsArray;
@@ -75,8 +76,8 @@ static int r_lightmapStyleNum[MAX_TEXTURE_UNITS];
 static superLightStyle_t *r_superLightStyle;
 
 static const meshbuffer_t *r_currentMeshBuffer;
-static uint r_currentDlightBits;
-static uint r_currentShadowBits;
+static unsigned int r_currentDlightBits;
+static unsigned int r_currentShadowBits;
 static const ref_shader_t *r_currentShader;
 static double r_currentShaderTime;
 static int r_currentShaderState;
@@ -933,13 +934,13 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 		GL_DisableAllTexGens();
 
 		R_UpdateVertexBuffer( tr.tcoordBuffer[unit], coordsArray, r_backacc.numVerts * sizeof( vec2_t ));
-		pglTexCoordPointer( 2, GL_FLOAT, 0, tr.tcoordBuffer[unit]->pointer );
+		pglTexCoordPointer( 2, GL_FLOAT, 0, coordsArray );
 		return true;
 	case TCGEN_LIGHTMAP:
 		GL_DisableAllTexGens();
 
 		R_UpdateVertexBuffer( tr.tcoordBuffer[unit], lightmapCoordsArray[r_lightmapStyleNum[unit]], r_backacc.numVerts * sizeof( vec2_t ));
-		pglTexCoordPointer( 2, GL_FLOAT, 0, tr.tcoordBuffer[unit]->pointer );
+		pglTexCoordPointer( 2, GL_FLOAT, 0, lightmapCoordsArray[r_lightmapStyleNum[unit]] );
 		return true;
 	case TCGEN_ENVIRONMENT:
 		{
@@ -969,7 +970,7 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 			GL_DisableAllTexGens();
 
 			R_UpdateVertexBuffer( tr.tcoordBuffer[unit], tUnitCoordsArray, r_backacc.numVerts * sizeof( vec2_t ));
-			pglTexCoordPointer( 2, GL_FLOAT, 0, tr.tcoordBuffer[unit]->pointer );
+			pglTexCoordPointer( 2, GL_FLOAT, 0, tUnitCoordsArray[unit] );
 			return true;
 		}
 
@@ -1132,14 +1133,14 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 			GL_DisableAllTexGens();
 
 			R_UpdateVertexBuffer( tr.tcoordBuffer[unit], tUnitCoordsArray, r_backacc.numVerts * sizeof( vec2_t ));
-			pglTexCoordPointer( 2, GL_FLOAT, 0, tr.tcoordBuffer[unit]->pointer );
+			pglTexCoordPointer( 2, GL_FLOAT, 0, tUnitCoordsArray[unit] );
 			return false;
 		}
 
 	case TCGEN_SVECTORS:
 		GL_DisableAllTexGens();
 		R_UpdateVertexBuffer( tr.tcoordBuffer[unit], sVectorsArray, r_backacc.numVerts * sizeof( vec4_t ));
-		pglTexCoordPointer( 4, GL_FLOAT, 0, tr.tcoordBuffer[unit]->pointer );
+		pglTexCoordPointer( 4, GL_FLOAT, 0, sVectorsArray );
 		return true;
 	case TCGEN_PROJECTION_SHADOW:
 		GL_SetTexCoordArrayMode( 0 );

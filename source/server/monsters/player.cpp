@@ -3859,23 +3859,24 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 		{
 			gEvilImpulse101 = TRUE;
 			char *pfile = (char *)LOAD_FILE( "scripts/impulse101.txt", NULL );
-			int ItemName [256];
+			int ItemName[256];
 			int count = 0;
 			char token[32];
 
-			if(pfile)
+			if( pfile )
 			{
-				while ( pfile )
+				char *afile = pfile;
+				while( pfile )
 				{
-					//parsing impulse101.txt
-					pfile = COM_ParseFile(pfile, token);
-					if(strlen(token))
+					// parsing impulse101.txt
+					pfile = COM_ParseFile( pfile, token );
+					if(strlen( token ))
 					{
-						ItemName[ count ] = ALLOC_STRING( (char *)token );
+						ItemName[count] = ALLOC_STRING( (char *)token );
 						count++;
 					}
 				}
-				COM_FreeFile( pfile );
+				COM_FreeFile( afile );
 				for( int i = 0; i < count; i++ )
 					GiveNamedItem( (char *)STRING( ItemName[i]) );
 			}

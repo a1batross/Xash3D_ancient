@@ -72,279 +72,6 @@ static void Mod_AliasBuildMeshesForFrame0( ref_model_t *mod )
 	}
 }
 
-
-#ifdef QUAKE2_JUNK
-
-/*
-==============================================================================
-
-MD2 MODELS
-
-==============================================================================
-*/
-
-/*
-=================
-Mod_AliasCalculateVertexNormals
-=================
-*/
-static void Mod_AliasCalculateVertexNormals( int numElems, elem_t *elems, int numVerts, maliasvertex_t *v )
-{
-	int i, j, k, vertRemap[MD2_MAX_VERTS];
-	vec3_t dir1, dir2, normal, trnormals[MD2_MAX_TRIANGLES];
-	int numUniqueVerts, uniqueVerts[MD2_MAX_VERTS];
-	byte latlongs[MD2_MAX_VERTS][2];
-
-	// count unique verts
-	for( i = 0, numUniqueVerts = 0; i < numVerts; i++ )
-	{
-		for( j = 0; j < numUniqueVerts; j++ )
-		{
-			if( VectorCompare( v[uniqueVerts[j]].point, v[i].point ) )
-			{
-				vertRemap[i] = j;
-				break;
-			}
-		}
-
-		if( j == numUniqueVerts )
-		{
-			vertRemap[i] = numUniqueVerts;
-			uniqueVerts[numUniqueVerts++] = i;
-		}
-	}
-
-	for( i = 0, j = 0; i < numElems; i += 3, j++ )
-	{
-		// calculate two mostly perpendicular edge directions
-		VectorSubtract( v[elems[i+0]].point, v[elems[i+1]].point, dir1 );
-		VectorSubtract( v[elems[i+2]].point, v[elems[i+1]].point, dir2 );
-
-		// we have two edge directions, we can calculate a third vector from
-		// them, which is the direction of the surface normal
-		CrossProduct( dir1, dir2, trnormals[j] );
-		VectorNormalize( trnormals[j] );
-	}
-
-	// sum all triangle normals
-	for( i = 0; i < numUniqueVerts; i++ )
-	{
-		VectorClear( normal );
-
-		for( j = 0, k = 0; j < numElems; j += 3, k++ )
-		{
-			if( vertRemap[elems[j+0]] == i || vertRemap[elems[j+1]] == i || vertRemap[elems[j+2]] == i )
-				VectorAdd( normal, trnormals[k], normal );
-		}
-
-		VectorNormalize( normal );
-		NormToLatLong( normal, latlongs[i] );
-	}
-
-	// copy normals back
-	for( i = 0; i < numVerts; i++ )
-		*(short *)v[i].latlong = *(short *)latlongs[vertRemap[i]];
-}
-
-/*
-=================
-Mod_LoadAliasMD2Model
-=================
-*/
-void Mod_LoadAliasMD2Model( ref_model_t *mod, ref_model_t *parent, void *buffer )
-{
-	int i, j, k;
-	int version, framesize;
-	float skinwidth, skinheight;
-	int numverts, numelems;
-	int indremap[MD2_MAX_TRIANGLES*3];
-	elem_t ptempelem[MD2_MAX_TRIANGLES*3], ptempstelem[MD2_MAX_TRIANGLES*3];
-	dmd2_t *pinmodel;
-	dstvert_t *pinst;
-	dtriangle_t *pintri;
-	daliasframe_t *pinframe;
-	elem_t *poutelem;
-	maliasmodel_t *poutmodel;
-	maliasmesh_t *poutmesh;
-	vec2_t *poutcoord;
-	maliasframe_t *poutframe;
-	maliasvertex_t *poutvertex;
-	maliasskin_t *poutskin;
-
-	pinmodel = ( dmd2_t * )buffer;
-	version = LittleLong( pinmodel->version );
-	framesize = LittleLong( pinmodel->framesize );
-
-	if( version != MD2_ALIAS_VERSION )
-		Host_Error( ERR_DROP, "%s has wrong version number (%i should be %i)",
-		mod->name, version, MD2_ALIAS_VERSION );
-
-	mod->type = mod_alias;
-	mod->aliasmodel = poutmodel = Mod_Malloc( mod, sizeof( maliasmodel_t ) );
-	mod->radius = 0;
-	ClearBounds( mod->mins, mod->maxs );
-
-	// byte swap the header fields and sanity check
-	skinwidth = LittleLong( pinmodel->skinwidth );
-	skinheight = LittleLong( pinmodel->skinheight );
-
-	if( skinwidth <= 0 )
-		Host_Error( ERR_DROP, "model %s has invalid skin width", mod->name );
-	if( skinheight <= 0 )
-		Host_Error( ERR_DROP, "model %s has invalid skin height", mod->name );
-
-	poutmodel->numframes = LittleLong( pinmodel->num_frames );
-	poutmodel->numskins = LittleLong( pinmodel->num_skins );
-
-	if( poutmodel->numframes > MD2_MAX_FRAMES )
-		Host_Error( ERR_DROP, "model %s has too many frames", mod->name );
-	else if( poutmodel->numframes <= 0 )
-		Host_Error( ERR_DROP, "model %s has no frames", mod->name );
-	if( poutmodel->numskins > MD2_MAX_SKINS )
-		Host_Error( ERR_DROP, "model %s has too many skins", mod->name );
-	else if( poutmodel->numskins < 0 )
-		Host_Error( ERR_DROP, "model %s has invalid number of skins", mod->name );
-
-	poutmodel->numtags = 0;
-	poutmodel->tags = NULL;
-	poutmodel->nummeshes = 1;
-
-	poutmesh = poutmodel->meshes = Mod_Malloc( mod, sizeof( maliasmesh_t ) );
-	Q_strncpyz( poutmesh->name, "default", MD3_MAX_PATH );
-
-	poutmesh->numverts = LittleLong( pinmodel->num_xyz );
-	poutmesh->numtris = LittleLong( pinmodel->num_tris );
-
-	if( poutmesh->numverts <= 0 )
-		Host_Error( "model %s has no vertices\n", mod->name );
-	else if( poutmesh->numverts > MD2_MAX_VERTS )
-		Host_Error( "model %s has too many vertices\n", mod->name );
-	if( poutmesh->numtris > MD2_MAX_TRIANGLES )
-		Host_Error( "model %s has too many triangles\n", mod->name );
-	else if( poutmesh->numtris <= 0 )
-		Host_Error( "model %s has no triangles\n", mod->name );
-
-	numelems = poutmesh->numtris * 3;
-	poutelem = poutmesh->elems = Mod_Malloc( mod, numelems * sizeof( elem_t ) );
-
-	//
-	// load triangle lists
-	//
-	pintri = ( dtriangle_t * )( ( byte * )pinmodel + LittleLong( pinmodel->ofs_tris ) );
-	pinst = ( dstvert_t * ) ( ( byte * )pinmodel + LittleLong( pinmodel->ofs_st ) );
-
-	for( i = 0, k = 0; i < poutmesh->numtris; i++, k += 3 )
-	{
-		for( j = 0; j < 3; j++ )
-		{
-			ptempelem[k+j] = ( elem_t )LittleShort( pintri[i].index_xyz[j] );
-			ptempstelem[k+j] = ( elem_t )LittleShort( pintri[i].index_st[j] );
-		}
-	}
-
-	//
-	// build list of unique vertexes
-	//
-	numverts = 0;
-	memset( indremap, -1, MD2_MAX_TRIANGLES * 3 * sizeof( int ) );
-
-	for( i = 0; i < numelems; i++ )
-	{
-		if( indremap[i] != -1 )
-			continue;
-
-		// remap duplicates
-		for( j = i + 1; j < numelems; j++ )
-		{
-			if( ( ptempelem[j] == ptempelem[i] )
-				&& ( pinst[ptempstelem[j]].s == pinst[ptempstelem[i]].s )
-				&& ( pinst[ptempstelem[j]].t == pinst[ptempstelem[i]].t ) )
-			{
-				indremap[j] = i;
-				poutelem[j] = numverts;
-			}
-		}
-
-		// add unique vertex
-		indremap[i] = i;
-		poutelem[i] = numverts++;
-	}
-
-	MsgDev( "%s: remapped %i verts to %i (%i tris)\n", mod->name, poutmesh->numverts, numverts, poutmesh->numtris );
-
-	poutmesh->numverts = numverts;
-
-	//
-	// load base s and t vertices
-	//
-	poutcoord = poutmesh->stArray = Mod_Malloc( mod, numverts * sizeof( vec2_t ) );
-
-	for( i = 0; i < numelems; i++ )
-	{
-		if( indremap[i] == i )
-		{
-			poutcoord[poutelem[i]][0] = ( (float)LittleShort( pinst[ptempstelem[i]].s ) + 0.5 ) / skinwidth;
-			poutcoord[poutelem[i]][1] = ( (float)LittleShort( pinst[ptempstelem[i]].t ) + 0.5 ) / skinheight;
-		}
-	}
-
-	//
-	// load the frames
-	//
-	poutframe = poutmodel->frames = Mod_Malloc( mod, poutmodel->numframes * ( sizeof( maliasframe_t ) + numverts * sizeof( maliasvertex_t ) ) );
-	poutvertex = poutmesh->vertexes = ( maliasvertex_t *)( ( byte * )poutframe + poutmodel->numframes * sizeof( maliasframe_t ) );
-
-	for( i = 0; i < poutmodel->numframes; i++, poutframe++, poutvertex += numverts )
-	{
-		pinframe = ( daliasframe_t * )( ( byte * )pinmodel + LittleLong( pinmodel->ofs_frames ) + i * framesize );
-
-		for( j = 0; j < 3; j++ )
-		{
-			poutframe->scale[j] = LittleFloat( pinframe->scale[j] );
-			poutframe->translate[j] = LittleFloat( pinframe->translate[j] );
-		}
-
-		for( j = 0; j < numelems; j++ )
-		{                               // verts are all 8 bit, so no swapping needed
-			if( indremap[j] == j )
-			{
-				poutvertex[poutelem[j]].point[0] = (short)pinframe->verts[ptempelem[j]].v[0];
-				poutvertex[poutelem[j]].point[1] = (short)pinframe->verts[ptempelem[j]].v[1];
-				poutvertex[poutelem[j]].point[2] = (short)pinframe->verts[ptempelem[j]].v[2];
-			}
-		}
-
-		Mod_AliasCalculateVertexNormals( numelems, poutelem, numverts, poutvertex );
-
-		VectorCopy( poutframe->translate, poutframe->mins );
-		VectorMA( poutframe->translate, 255, poutframe->scale, poutframe->maxs );
-		poutframe->radius = RadiusFromBounds( poutframe->mins, poutframe->maxs );
-
-		mod->radius = max( mod->radius, poutframe->radius );
-		AddPointToBounds( poutframe->mins, mod->mins, mod->maxs );
-		AddPointToBounds( poutframe->maxs, mod->mins, mod->maxs );
-	}
-
-	//
-	// build S and T vectors for frame 0
-	//
-	Mod_AliasBuildMeshesForFrame0( mod );
-
-
-	// register all skins
-	poutskin = poutmodel->skins = Mod_Malloc( mod, poutmodel->numskins * sizeof( maliasskin_t ) );
-
-	for( i = 0; i < poutmodel->numskins; i++, poutskin++ )
-	{
-		if( LittleLong( pinmodel->ofs_skins ) == -1 )
-			continue;
-		poutskin->shader = R_RegisterSkin( ( char * )pinmodel + LittleLong( pinmodel->ofs_skins ) + i*MD2_MAX_SKINNAME );
-	}
-	mod->touchFrame = tr.registration_sequence; // register model
-}
-
-#endif
-
 /*
 ==============================================================================
 
@@ -469,9 +196,9 @@ void Mod_LoadAliasMD3Model( ref_model_t *mod, ref_model_t *parent, const void *b
 	poutmesh = poutmodel->meshes = ( maliasmesh_t * )buf;
 	for( i = 0; i < poutmodel->nummeshes; i++, poutmesh++ )
 	{
-		if( pinmesh->id != IDMD3HEADER )
+		if( pinmesh->id != ALIASMODHEADER )
 			Host_Error( "mesh %s in model %s has wrong id (%s should be %s)\n",
-			pinmesh->name, mod->name, pinmesh->id, IDMD3HEADER );
+			pinmesh->name, mod->name, pinmesh->id, ALIASMODHEADER );
 
 		com.strncpy( poutmesh->name, pinmesh->name, MD3_MAX_PATH );
 
@@ -505,7 +232,8 @@ void Mod_LoadAliasMD3Model( ref_model_t *mod, ref_model_t *parent, const void *b
 		poutskin = poutmesh->skins = ( maliasskin_t * )buf; buf += sizeof( maliasskin_t ) * poutmesh->numskins;
 		for( j = 0; j < poutmesh->numskins; j++, pinskin++, poutskin++ )
 		{
-			poutskin->shader = R_RegisterSkin( pinskin->name );
+			FS_StripExtension( pinskin->name );
+			poutskin->shader = R_LoadShader( pinskin->name, SHADER_ALIAS, false, 0, SHADER_INVALID );
 			R_DeformvBBoxForShader( poutskin->shader, ebbox );
 		}
 
@@ -1006,10 +734,6 @@ bool R_CullAliasModel( ref_entity_t *e )
 			shader = R_FindShaderForSkinFile( e->customSkin, mesh->name );
 		else if( e->customShader )
 			shader = e->customShader;
-#ifdef QUAKE2_JUNK
-		else if( ( e->skinNum >= 0 ) && ( e->skinNum < aliasmodel->numskins ) )
-			shader = aliasmodel->skins[e->skinNum].shader;
-#endif
 		else if( mesh->numskins )
 		{
 			for( j = 0; j < mesh->numskins; j++ )
@@ -1089,10 +813,6 @@ void R_AddAliasModelToList( ref_entity_t *e )
 			shader = R_FindShaderForSkinFile( e->customSkin, mesh->name );
 		else if( e->customShader )
 			shader = e->customShader;
-#ifdef QUAKE2_JUNK
-		else if( ( e->skinNum >= 0 ) && ( e->skinNum < aliasmodel->numskins ) )
-			shader = aliasmodel->skins[e->skinNum].shader;
-#endif
 		else if( mesh->numskins )
 		{
 			for( j = 0; j < mesh->numskins; j++ )

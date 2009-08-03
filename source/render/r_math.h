@@ -26,7 +26,7 @@ extern const mat4x4_t mat4x4_identity;
 
 void		Matrix4_Identity( mat4x4_t m );
 void		Matrix4_Copy( const mat4x4_t m1, mat4x4_t m2 );
-bool	Matrix4_Compare( const mat4x4_t m1, const mat4x4_t m2 );
+bool		Matrix4_Compare( const mat4x4_t m1, const mat4x4_t m2 );
 void		Matrix4_Multiply( const mat4x4_t m1, const mat4x4_t m2, mat4x4_t out );
 void		Matrix4_MultiplyFast( const mat4x4_t m1, const mat4x4_t m2, mat4x4_t out );
 void		Matrix4_Rotate( mat4x4_t m, vec_t angle, vec_t x, vec_t y, vec_t z );
@@ -46,5 +46,7 @@ void		Matrix4_Stretch2D( mat4x4_t m, vec_t s, vec_t t );
 float		CalcFov( float fov_x, float width, float height );
 void		AdjustFov( float *fov_x, float *fov_y, float width, float height, bool lock_x );
 void		PlaneFromPoints( vec3_t verts[3], cplane_t *plane );
+int		SignbitsForPlane( const cplane_t *out );
+int		PlaneTypeForNormal( const vec3_t normal );
 
 #endif /*__R_MATH_H__*/

@@ -111,7 +111,7 @@ size_t Image_VTFCalcMipmapSize( vtf_t *hdr, int mipNum )
 ================
 Image_VTFCalcImageSize
 
-main image size not included header or lowres
+main image size without header and lowres
 ================
 */
 size_t Image_VTFCalcImageSize( vtf_t *hdr, bool oldformat ) 
@@ -201,7 +201,7 @@ void Image_VTFSwapBuffer( vtf_t *hdr, const byte *input, size_t input_size, bool
 	Mem_Copy((byte *)input, image.tempbuffer, out_size );
 	if( ignore_mips ) image.num_mips = 1;
 	if( texture ) Mem_Free( texture );
-	image.size = out_size; // merge out size
+	image.size = out_size; // merge out size (minus envmap or identical)
 }
 
 /*
@@ -235,7 +235,8 @@ bool Image_LoadVTF( const char *name, const byte *buffer, size_t filesize )
 	}
 
 	i = LittleLong( vtf.ver_minor );
-	if( i == VTF_SUBVERSION0 && vtf.hdr_size == 64 ) oldformat = true; // 7.0 hasn't envmap for cubemap images
+	if( i == VTF_SUBVERSION0 && vtf.hdr_size == 64 )
+		oldformat = true;		// 7.0 hasn't envmap for cubemap images
 	// all other subversions are valid
 
 	image.width = LittleShort( vtf.width );

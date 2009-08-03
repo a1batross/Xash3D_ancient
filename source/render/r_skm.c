@@ -284,7 +284,8 @@ void Mod_LoadSkeletalModel( ref_model_t *mod, ref_model_t *parent, const void *b
 		com.strncpy( poutmesh->name, pinmesh->meshname, sizeof( poutmesh->name ) );
 		Mod_StripLODSuffix( poutmesh->name );
 
-		poutmesh->skin.shader = R_RegisterSkin( pinmesh->shadername );
+		FS_StripExtension( pinmesh->shadername );
+		poutmesh->skin.shader = R_LoadShader( pinmesh->shadername, SHADER_ALIAS, false, 0, SHADER_INVALID );
 		R_DeformvBBoxForShader( poutmesh->skin.shader, ebbox );
 
 		pinreferences = ( elem_t *)( ( byte * )pinmodel + LittleLong( pinmesh->ofs_references ) );

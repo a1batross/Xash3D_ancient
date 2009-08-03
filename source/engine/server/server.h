@@ -245,6 +245,7 @@ typedef struct
 {
 	bool		initialized;		// sv_init has completed
 	double		realtime;			// always increasing, no clamping, etc
+	double		timestart;		// just for profiling
 
 	char		mapname[CS_SIZE];		// current mapname 
 	char		comment[CS_SIZE];		// map name, e.t.c. 

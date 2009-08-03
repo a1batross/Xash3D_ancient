@@ -41,6 +41,7 @@ cvar_t *r_ignorehwgamma;
 cvar_t *r_check_errors;
 cvar_t *r_overbrightbits;
 cvar_t *r_mapoverbrightbits;
+cvar_t *r_vertexbuffers;
 cvar_t *r_flares;
 cvar_t *r_flaresize;
 cvar_t *r_flarefade;
@@ -533,6 +534,7 @@ void GL_InitCommands( void )
 	r_ignorehwgamma = Cvar_Get( "r_ignorehwgamma", "0", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "ignore hardware gamma (e.g. not support)" );
 	r_overbrightbits = Cvar_Get( "r_overbrightbits", "1", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "renderer overbright bits" );
 	r_mapoverbrightbits = Cvar_Get( "r_mapoverbrightbits", "2", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "current map overbright bits" );
+	r_vertexbuffers = Cvar_Get( "r_vertexbuffers", "0", CVAR_ARCHIVE, "store vertex data in VBOs" );
 
 	r_detailtextures = Cvar_Get( "r_detailtextures", "1", CVAR_ARCHIVE, "enable or disable detail textures" );
 	r_flares = Cvar_Get( "r_flares", "0", CVAR_ARCHIVE, "enable flares rendering" );
@@ -550,7 +552,7 @@ void GL_InitCommands( void )
 	r_fastsky = Cvar_Get( "r_fastsky", "0", CVAR_ARCHIVE, "enable algorhytem fo fast sky rendering (for old machines)" );
 	r_portalonly = Cvar_Get( "r_portalonly", "0", 0, "render only portals" );
 	r_portalmaps = Cvar_Get( "r_portalmaps", "1", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "use portal maps for portal rendering" );
-	r_portalmaps_maxtexsize = Cvar_Get( "r_portalmaps_maxtexsize", "800", CVAR_ARCHIVE, "portal maps texture dims" );
+	r_portalmaps_maxtexsize = Cvar_Get( "r_portalmaps_maxtexsize", "512", CVAR_ARCHIVE, "portal maps texture dims" );
 
 	r_allow_software = Cvar_Get( "r_allow_software", "0", 0, "allow OpenGL software emulation" );
 	r_3dlabs_broken = Cvar_Get( "r_3dlabs_broken", "1", CVAR_ARCHIVE, "3dLabs renderer issues" );
@@ -650,7 +652,7 @@ void GL_InitBackend( void )
 	if(FS_GetParmFromCmdLine( "-dev", dev_level ))
 		glw_state.developer = com.atoi( dev_level );
 
-	GL_SetDefaultState(); // FIXME stupid name for allocate arrays
+	GL_SetDefaultState();
 }
 
 void GL_ShutdownBackend( void )
@@ -800,21 +802,7 @@ GL_SetDefaultState
 */
 static void GL_SetDefaultState( void )
 {
-	// FIXME: dynamically allocate these?
-	static GLuint	r_currentTextures[MAX_TEXTURE_UNITS];
-	static int	r_currentEnvModes[MAX_TEXTURE_UNITS];
-	static bool	r_texIdentityMatrix[MAX_TEXTURE_UNITS];
-	static int	r_genSTEnabled[MAX_TEXTURE_UNITS];
-	static int	r_texCoordArrayMode[MAX_TEXTURE_UNITS];
-
 	Mem_Set( &glState, 0, sizeof( glState ));
-
-	glState.currentTextures = r_currentTextures;
-	glState.currentEnvModes = r_currentEnvModes;
-	glState.texIdentityMatrix = r_texIdentityMatrix;
-	glState.genSTEnabled = r_genSTEnabled;
-	glState.texCoordArrayMode = r_texCoordArrayMode;
-
 	GL_SetDefaultTexState ();
 
 	glState.initializedMedia = false;
@@ -1028,11 +1016,6 @@ void GL_InitExtensions( void )
 
 	Image_Init( NULL, flags );
 	glw_state.initialized = true;
-
-	// gl_ext_vertex_buffer_object is crashy..
-	// FIXME: QFusion render bug
-	Cvar_Set( "gl_vertex_buffer_object", "0" );
-	GL_SetExtension( R_ARB_VERTEX_BUFFER_OBJECT_EXT, false );
 }
 
 /*
@@ -1136,4 +1119,26 @@ void R_Shutdown( bool full )
 		// shut down OS specific OpenGL stuff like contexts, etc.
 		R_Free_OpenGL();
 	}
+}
+
+/*
+===============
+R_NewMap
+
+do some cleanup operations
+===============
+*/
+void R_NewMap( void )
+{
+	R_ShutdownOcclusionQueries();
+	R_FreeMeshLists();
+
+	R_InitMeshLists();
+	R_InitOcclusionQueries();
+
+	R_InitLightStyles();	// clear lightstyles
+	R_InitCustomColors();	// clear custom colors
+
+	GL_SetDefaultTexState ();
+	Mem_Set( &RI, 0, sizeof( refinst_t ));	
 }

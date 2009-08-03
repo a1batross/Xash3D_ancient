@@ -372,12 +372,12 @@ typedef enum
 
 typedef struct rgbdata_s
 {
-	int	width;		// image width
-	int	height;		// image height
-	word	depth;	// multi-layer volume
+	word	width;		// image width
+	word	height;		// image height
+	word	depth;		// multi-layer volume
 	byte	numMips;		// mipmap count
 	byte	bitsCount;	// RGB bits count
-	word	type;		// compression type
+	uint	type;		// compression type
 	uint	flags;		// misc image flags
 	byte	*palette;		// palette if present
 	byte	*buffer;		// image buffer

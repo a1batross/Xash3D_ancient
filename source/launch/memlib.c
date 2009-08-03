@@ -1408,9 +1408,10 @@ void _mem_printlist( size_t minallocationsize )
 	Mem_Check();
 
 	Msg("memory pool list:\n""  ^3size                    name\n");
-	for (pool = poolchain; pool; pool = pool->next)
+	for( pool = poolchain; pool; pool = pool->next )
 	{
-		Msg("%5luk (%5luk actual) %s (%+3li byte change)\n", (dword) ((pool->totalsize + 1023) / 1024), (dword)((pool->realsize + 1023) / 1024), pool->name, (long)pool->totalsize - pool->lastchecksize );
+		// poolnames can contain color symbols, make sure what color is reset
+		Msg( "%5luk (%5luk actual) %s (^7%+3li byte change)\n", (dword) ((pool->totalsize + 1023) / 1024), (dword)((pool->realsize + 1023) / 1024), pool->name, (long)pool->totalsize - pool->lastchecksize );
 		pool->lastchecksize = pool->totalsize;
 		for( mem = pool->chain; mem; mem = mem->next )
 			if( mem->size >= minallocationsize )

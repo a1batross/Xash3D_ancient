@@ -243,72 +243,10 @@ typedef struct
 /*
 ==============================================================================
 
-SKELETAL MODELS
+STUDIO MODELS
 
 ==============================================================================
 */
-
-//
-// in memory representation
-//
-#define SKM_MAX_WEIGHTS		4
-
-//
-// in memory representation
-//
-typedef struct
-{
-	ref_shader_t		*shader;
-} mskskin_t;
-
-typedef struct
-{
-	char			name[SKM_MAX_NAME];
-
-	float			*influences;
-	unsigned int	*bones;
-
-	unsigned int	numverts;
-	vec4_t			*xyzArray;
-	vec4_t			*normalsArray;
-	vec2_t			*stArray;
-	vec4_t			*sVectorsArray;
-
-	unsigned int	numtris;
-	elem_t			*elems;
-
-	unsigned int	numreferences;
-	unsigned int	*references;
-
-	mskskin_t		skin;
-} mskmesh_t;
-
-typedef struct
-{
-	char			name[SKM_MAX_NAME];
-	signed int		parent;
-	unsigned int	flags;
-} mskbone_t;
-
-typedef struct
-{
-	vec3_t			mins, maxs;
-	float			radius;
-	bonepose_t		*boneposes;
-} mskframe_t;
-
-typedef struct
-{
-	unsigned int	numbones;
-	mskbone_t		*bones;
-
-	unsigned int	nummeshes;
-	mskmesh_t		*meshes;
-
-	unsigned int	numframes;
-	mskframe_t		*frames;
-	bonepose_t		*invbaseposes;
-} mskmodel_t;
 
 /*
 ==============================================================================
@@ -317,31 +255,26 @@ SPRITE MODELS
 
 ==============================================================================
 */
-
-#ifdef QUAKE2_JUNK
-
 //
 // in memory representation
 //
 typedef struct
 {
-	int				width, height;
-	int				origin_x, origin_y;             // raster coordinates inside pic
+	int		width, height;
+	int		origin_x, origin_y;             // raster coordinates inside pic
 
-	char			name[SPRITE_MAX_NAME];
-	ref_shader_t		*shader;
+	char		name[64];
+	ref_shader_t	*shader;
 
-	float			mins[3], maxs[3];
-	float			radius;
+	float		mins[3], maxs[3];
+	float		radius;
 } sframe_t;
 
 typedef struct
 {
-	int				numframes;
+	int		numframes;
 	sframe_t		*frames;
 } smodel_t;
-
-#endif
 
 //===================================================================
 
@@ -379,18 +312,15 @@ void		R_InitModels( void );
 void		R_ShutdownModels( void );
 
 void		Mod_ClearAll( void );
-ref_model_t		*Mod_ForName( const char *name, bool crash );
+ref_model_t	*Mod_ForName( const char *name, bool crash );
 mleaf_t		*Mod_PointInLeaf( float *p, ref_model_t *model );
 byte		*Mod_ClusterPVS( int cluster, ref_model_t *model );
+uint		Mod_Handle( ref_model_t *mod );
+ref_model_t	*Mod_ForHandle( unsigned int elem );
 
-unsigned int Mod_Handle( ref_model_t *mod );
-ref_model_t		*Mod_ForHandle( unsigned int elem );
-
-#define		Mod_Malloc( mod, size ) Mem_Alloc( ( mod )->mempool, size )
+#define		Mod_Malloc( mod, size ) Mem_Alloc(( mod )->mempool, size )
 #define		Mod_Free( data ) Mem_Free( data )
-
 void		Mod_StripLODSuffix( char *name );
-
 void		Mod_Modellist_f( void );
 
 #endif /*__R_MODEL_H__*/

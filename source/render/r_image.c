@@ -276,10 +276,6 @@ void R_SetTextureParameters( void )
 	for( i = 0, texture = r_textures; i < r_numTextures; i++, texture++ )
 	{
 		if( !texture->texnum ) continue;	// free slot
-
-		
-			continue;
-
 		GL_Bind( GL_TEXTURE0, texture );
 
 		if( texture->flags & TF_DEPTHMAP )
@@ -558,12 +554,9 @@ static void R_TextureFormat( texture_t *tex, bool compress )
 	}
 }
 
-void R_RoundImageDimensions( int *width, int *height, int *depth )
+void R_RoundImageDimensions( int *width, int *height, int *depth, bool force )
 {
 	int	scaledWidth, scaledHeight, scaledDepth;
-
-	if( GL_Support( R_ARB_TEXTURE_NPOT_EXT ))
-		return; // nothing to resample
 
 	if( *depth > 1 && !GL_Support( R_TEXTURE_3D_EXT ))
 		return; // nothing to resample
@@ -572,10 +565,13 @@ void R_RoundImageDimensions( int *width, int *height, int *depth )
 	scaledHeight = *height;
 	scaledDepth = *depth;
 
-	// find nearest power of two, rounding down if desired
-	scaledWidth = NearestPOW( scaledWidth, gl_round_down->integer );
-	scaledHeight = NearestPOW( scaledHeight, gl_round_down->integer );
-	scaledDepth = NearestPOW( scaledDepth, gl_round_down->integer );
+	if( force || !GL_Support( R_ARB_TEXTURE_NPOT_EXT ))
+	{
+		// find nearest power of two, rounding down if desired
+		scaledWidth = NearestPOW( scaledWidth, gl_round_down->integer );
+		scaledHeight = NearestPOW( scaledHeight, gl_round_down->integer );
+		scaledDepth = NearestPOW( scaledDepth, gl_round_down->integer );
+	}
 
 	if( image_desc.tflags & TF_SKYSIDE )
 	{
@@ -874,7 +870,7 @@ bool R_GetPixelFormat( const char *name, rgbdata_t *pic, uint tex_flags )
 	else image_desc.texType = TEX_GENERIC;
 
 	// calc immediate buffers
-	R_RoundImageDimensions( &w, &h, &d );
+	R_RoundImageDimensions( &w, &h, &d, false );
 
 	image_desc.source = Mem_Alloc( r_imagepool, s * 4 );		// source buffer
 	image_desc.scaled = Mem_Alloc( r_imagepool, w * h * d * 4 );	// scaled buffer
@@ -1540,6 +1536,37 @@ static rgbdata_t *R_IncludeDepthmap( rgbdata_t *in1, rgbdata_t *in2 )
 
 	return in1;
 }
+
+/*
+================
+R_ClearPixels
+
+clear specified area: color or alpha
+================
+*/
+static rgbdata_t *R_ClearPixels( rgbdata_t *in, bool clearAlpha )
+{
+	int	i;
+	byte	*pic;
+
+	// make sure what we processing RGBA images
+	in = R_ForceImageToRGBA( in );
+	pic = in->buffer;
+
+	if( clearAlpha )
+	{
+		for( i = 0; i < in->width * in->height && in->flags & IMAGE_HAS_ALPHA; i++ )
+			pic[(i<<2)+3] = 0xFF;
+	}
+	else
+	{
+		// clear color or greyscale image otherwise
+		for( i = 0; i < in->width * in->height; i++ )
+			pic[(i<<2)+0] = pic[(i<<2)+1] = pic[(i<<2)+2] = 0xFF;
+	}
+	return in;
+}
+
 
 /*
 =================
@@ -2528,6 +2555,7 @@ static rgbdata_t *R_ParseDepthmap( script_t *script, int *samples, texFlags_t *f
 		return NULL;
 	}
 
+	*samples = 3;
 	pic2 = R_LoadImage( script, token.string, NULL, 0, &samples2, flags );
 	if( !pic2 ) return pic1; // don't free normalmap
 
@@ -2556,6 +2584,65 @@ static rgbdata_t *R_ParseDepthmap( script_t *script, int *samples, texFlags_t *f
 	*flags |= TF_ALPHA;	// store depthmap in alpha-channel
 
 	return R_IncludeDepthmap( pic1, pic2 );
+}
+
+/*
+=================
+R_ParseClearPixels
+=================
+*/
+static rgbdata_t *R_ParseClearPixels( script_t *script, int *samples, texFlags_t *flags )
+{
+	token_t	token;
+	rgbdata_t *pic;
+	bool	clearAlpha;
+
+	Com_ReadToken( script, 0, &token );
+	if( com.stricmp( token.string, "(" ))
+	{
+		MsgDev( D_WARN, "expected '(', found '%s' instead for 'clearPixels'\n", token.string );
+		return NULL;
+	}
+
+	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES, &token ))
+	{
+		MsgDev( D_WARN, "missing parameters for 'clearPixels'\n" );
+		return NULL;
+	}
+
+	pic = R_LoadImage( script, token.string, NULL, 0, samples, flags );
+	if( !pic ) return NULL;
+
+	Com_ReadToken( script, 0, &token );
+	if( !com.stricmp( token.string, "alpha" ))
+	{
+		Com_ReadToken( script, 0, &token );
+		clearAlpha = true;
+	}
+	else if( !com.stricmp( token.string, "color" ))
+	{
+		Com_ReadToken( script, 0, &token );
+		clearAlpha = false;
+	}
+	else if( !com.stricmp( token.string, ")" ))
+	{
+		Com_SaveToken( script, &token );
+		clearAlpha = false;	// clear color as default
+	}
+	else Com_ReadToken( script, 0, &token ); // skip unknown token
+	
+	if( com.stricmp( token.string, ")" ))
+	{
+		MsgDev( D_WARN, "expected ')', found '%s' instead for 'clearPixels'\n", token.string );
+		FS_FreeImage( pic );
+		return NULL;
+	}
+
+	*samples = clearAlpha ? 3 : 1;
+	if( clearAlpha ) *flags &= ~TF_ALPHA;
+	*flags &= ~TF_INTENSITY;
+
+	return R_ClearPixels( pic, clearAlpha );
 }
 
 /*
@@ -2595,6 +2682,8 @@ static rgbdata_t *R_LoadImage( script_t *script, const char *name, const byte *b
 		return R_ParseSmoothNormals( script, samples, flags );
 	else if( !com.stricmp( name, "mergeDepthmap" ))
 		return R_ParseDepthmap( script, samples, flags );
+	else if( !com.stricmp( name, "clearPixels" ))
+		return R_ParseClearPixels( script, samples, flags );
 	else if( !com.stricmp( name, "Studio" ))
 		return R_ParseStudioSkin( script, samples, flags );
 	else if( !com.stricmp( name, "Sprite" ))
@@ -2661,7 +2750,15 @@ void GL_GenerateMipmaps( const byte *buffer, texture_t *tex, int side )
 void GL_TexFilter( texture_t *tex )
 {
 	// set texture filter
-	if( tex->flags & TF_NOMIPMAP )
+	if( tex->flags & TF_DEPTHMAP )
+	{
+		pglTexParameteri( tex->target, GL_TEXTURE_MIN_FILTER, r_textureDepthFilter );
+		pglTexParameteri( tex->target, GL_TEXTURE_MAG_FILTER, r_textureDepthFilter );
+
+		if( GL_Support( R_ANISOTROPY_EXT ))
+			pglTexParameterf( tex->target, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1.0f );
+	}
+	else if( tex->flags & TF_NOMIPMAP )
 	{
 		pglTexParameteri( tex->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 		pglTexParameteri( tex->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
@@ -2717,7 +2814,7 @@ static void R_UploadTexture( rgbdata_t *pic, texture_t *tex )
 
 	tex->width = tex->srcWidth;
 	tex->height = tex->srcHeight;
-	R_RoundImageDimensions( &tex->width, &tex->height, &tex->depth );
+	R_RoundImageDimensions( &tex->width, &tex->height, &tex->depth, false );
 
 	// check if it should be compressed
 	if( !gl_compress_textures->integer || (tex->flags & TF_UNCOMPRESSED))
@@ -2734,7 +2831,6 @@ static void R_UploadTexture( rgbdata_t *pic, texture_t *tex )
 	case PF_DXT5: tex->format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT; break;
 	default: dxtformat = false; break;
 	}
-
 	pglGenTextures( 1, &tex->texnum );
 	GL_Bind( GL_TEXTURE0, tex );
 
@@ -3357,7 +3453,7 @@ static rgbdata_t *R_InitCoronaTexture( int *flags, int *samples )
 R_InitScreenTexture
 ==================
 */
-static void R_InitScreenTexture( texture_t **texture, const char *name, int id, int screenWidth, int screenHeight, int size, int flags, int samples )
+static void R_InitScreenTexture( texture_t **ptr, const char *name, int id, int screenWidth, int screenHeight, int size, int flags, int samples )
 {
 	int	limit;
 	int	width, height;
@@ -3367,43 +3463,36 @@ static void R_InitScreenTexture( texture_t **texture, const char *name, int id, 
 	limit = glConfig.max_2d_texture_size;
 	if( size ) limit = min( limit, size );
 
-	if( GL_Support( R_ARB_TEXTURE_NPOT_EXT ))
-	{
-		width = min( screenWidth, limit );
-		height = min( screenHeight, limit );
-	}
-	else
-	{
-		limit = min( limit, min( screenWidth, screenHeight ));
-		for( size = 2; size <= limit; size <<= 1 );
-		width = height = size >> 1;
-	}
+	limit = min( limit, min( screenWidth, screenHeight ));
+	for( size = 2; size <= limit; size <<= 1 );
+	width = height = size >> 1;
 
-	if( !( *texture ) || ( *texture )->width != width || ( *texture )->height != height )
+	if( !(*ptr) || (*ptr)->width != width || (*ptr)->height != height )
 	{
 		byte	*data = NULL;
 
-		if( !*texture )
+		if( !*ptr )
 		{
-			string	uploadName;
+			string	name;
 
-			com.snprintf( uploadName, sizeof( uploadName ), "***%s%i***", name, id );
+			com.snprintf( name, sizeof( name ), "***%s%i***", name, id );
 
 			r_screen.width = width;
 			r_screen.height = height;
-			r_screen.depth = r_screen.numMips = 1;
                               r_screen.type = PF_RGB_24;
 			r_screen.buffer = data;
+			r_screen.depth = r_screen.numMips = 1;
 			r_screen.size = width * height * samples;
-			*texture = R_LoadTexture( uploadName, &r_screen, samples, flags );
+			*ptr = R_LoadTexture( name, &r_screen, samples, flags );
 			return;
 		}
 
-		GL_Bind( 0, *texture );
-		( *texture )->width = width;
-		( *texture )->height = height;
-		R_Upload32( &data, width, height, flags, &( ( *texture )->width ), &( ( *texture )->height ),
-			&( ( *texture )->samples ), false );
+		GL_Bind( 0, *ptr );
+		(*ptr)->width = width;
+		(*ptr)->height = height;
+		R_RoundImageDimensions(&((*ptr)->width), &((*ptr)->height), &((*ptr)->depth), true );
+		pglTexImage2D( GL_TEXTURE_2D, 0, (*ptr)->format, (*ptr)->width, (*ptr)->height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL );
+		GL_TexFilter( *ptr );
 	}
 }
 
@@ -3643,254 +3732,4 @@ void R_ShutdownImages( void )
 	r_numTextures = 0;
 	tr.portaltexture1 = NULL;
 	tr.portaltexture2 = NULL;
-}
-
-// to be removed
-/*
-===============
-R_UploadFormat
-===============
-*/
-static int R_UploadFormat( int samples, bool noCompress )
-{
-	int bits = r_texturebits->integer;
-
-	if( GL_Support( R_TEXTURE_COMPRESSION_EXT ) && !noCompress )
-	{
-		if( samples == 3 )
-			return GL_COMPRESSED_RGB_ARB;
-		return GL_COMPRESSED_RGBA_ARB;
-	}
-
-	if( samples == 3 )
-	{
-		if( bits == 16 )
-			return GL_RGB5;
-		else if( bits == 32 )
-			return GL_RGB8;
-		return GL_RGB;
-	}
-
-	if( bits == 16 )
-		return GL_RGBA4;
-	else if( bits == 32 )
-		return GL_RGBA8;
-	return GL_RGBA;
-}
-
-/*
-===============
-R_Upload32
-===============
-*/
-void R_Upload32( byte **data, int width, int height, int flags, int *upload_width, int *upload_height, int *samples, bool subImage )
-{
-	int	i, c, comp, format;
-	int	target, target2;
-	int	numTextures;
-	uint	*scaled = NULL;
-	int	scaledWidth, scaledHeight;
-
-	Com_Assert( samples == NULL );
-
-	if( GL_Support( R_ARB_TEXTURE_NPOT_EXT ))
-	{
-		scaledWidth = width;
-		scaledHeight = height;
-	}
-	else
-	{
-		for( scaledWidth = 1; scaledWidth < width; scaledWidth <<= 1 );
-		for( scaledHeight = 1; scaledHeight < height; scaledHeight <<= 1 );
-	}
-
-	if( flags & TF_SKYSIDE )
-	{
-		// let people sample down the sky textures for speed
-		scaledWidth >>= r_skymip->integer;
-		scaledHeight >>= r_skymip->integer;
-	}
-	else if( !( flags & TF_NOPICMIP ) )
-	{
-		// let people sample down the world textures for speed
-		scaledWidth >>= r_picmip->integer;
-		scaledHeight >>= r_picmip->integer;
-	}
-
-	// don't ever bother with > maxSize textures
-	if( flags & TF_CUBEMAP )
-	{
-		numTextures = 6;
-		target = GL_TEXTURE_CUBE_MAP_ARB;
-		target2 = GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB;
-		scaledWidth = bound( 1, scaledWidth, glConfig.max_cubemap_texture_size );
-		scaledHeight = bound( 1, scaledHeight, glConfig.max_cubemap_texture_size );
-	}
-	else
-	{
-		numTextures = 1;
-		target = GL_TEXTURE_2D;
-		target2 = GL_TEXTURE_2D;
-		scaledWidth = bound( 1, scaledWidth, glConfig.max_2d_texture_size );
-		scaledHeight = bound( 1, scaledHeight, glConfig.max_2d_texture_size );
-	}
-
-	if( upload_width )
-		*upload_width = scaledWidth;
-	if( upload_height )
-		*upload_height = scaledHeight;
-
-	// scan the texture for any non-255 alpha
-	if( flags & ( TF_NORGB|TF_NOALPHA ) )
-	{
-		byte *scan;
-
-		if( flags & TF_NORGB )
-		{
-			for( i = 0; i < numTextures && data[i]; i++ )
-			{
-				scan = ( byte * )data[i];
-				for( c = width * height; c > 0; c--, scan += 4 )
-					scan[0] = scan[1] = scan[2] = 255;
-			}
-		}
-		else if( *samples == 4 )
-		{
-			for( i = 0; i < numTextures && data[i]; i++ )
-			{
-				scan = ( byte * )data[i] + 3;
-				for( c = width * height; c > 0; c--, scan += 4 )
-					*scan = 255;
-			}
-			*samples = 3;
-		}
-	}
-
-	if( flags & TF_DEPTHMAP )
-	{
-		comp = GL_DEPTH_COMPONENT;
-		format = GL_DEPTH_COMPONENT;
-	}
-	else
-	{
-		comp = R_UploadFormat( *samples, flags & TF_UNCOMPRESSED );
-		format = GL_RGBA;
-	}
-
-	if( flags & TF_DEPTHMAP )
-	{
-		pglTexParameteri( target, GL_TEXTURE_MIN_FILTER, r_textureDepthFilter );
-		pglTexParameteri( target, GL_TEXTURE_MAG_FILTER, r_textureDepthFilter );
-
-		if( GL_Support( R_ANISOTROPY_EXT ))
-			pglTexParameteri( target, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1 );
-	}
-	else if( !( flags & TF_NOMIPMAP ) )
-	{
-		pglTexParameteri( target, GL_TEXTURE_MIN_FILTER, r_textureMinFilter );
-		pglTexParameteri( target, GL_TEXTURE_MAG_FILTER, r_textureMagFilter );
-
-		if( GL_Support( R_ANISOTROPY_EXT ))
-			pglTexParameterf( target, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_texture_anisotropy->value );
-	}
-	else
-	{
-		pglTexParameteri( target, GL_TEXTURE_MIN_FILTER, r_textureMagFilter );
-		pglTexParameteri( target, GL_TEXTURE_MAG_FILTER, r_textureMagFilter );
-
-		if( GL_Support( R_ANISOTROPY_EXT ))
-			pglTexParameterf( target, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1.0f );
-	}
-
-	// clamp if required
-	if( !( flags & TF_CLAMP ) )
-	{
-		pglTexParameteri( target, GL_TEXTURE_WRAP_S, GL_REPEAT );
-		pglTexParameteri( target, GL_TEXTURE_WRAP_T, GL_REPEAT );
-	}
-	else if( GL_Support( R_CLAMPTOEDGE_EXT ))
-	{
-		pglTexParameteri( target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-		pglTexParameteri( target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-	}
-	else
-	{
-		pglTexParameteri( target, GL_TEXTURE_WRAP_S, GL_CLAMP );
-		pglTexParameteri( target, GL_TEXTURE_WRAP_T, GL_CLAMP );
-	}
-
-	if(( scaledWidth == width ) && ( scaledHeight == height ) && ( flags & TF_NOMIPMAP ))
-	{
-		if( subImage )
-		{
-			for( i = 0; i < numTextures; i++, target2++ )
-				pglTexSubImage2D( target2, 0, 0, 0, scaledWidth, scaledHeight, format, GL_UNSIGNED_BYTE, data[i] );
-		}
-		else
-		{
-			for( i = 0; i < numTextures; i++, target2++ )
-				pglTexImage2D( target2, 0, comp, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE, data[i] );
-		}
-	}
-	else
-	{
-		bool driverMipmap = GL_Support( R_SGIS_MIPMAPS_EXT ) && !(flags & TF_CUBEMAP);
-
-		for( i = 0; i < numTextures; i++, target2++ )
-		{
-			unsigned int *mip;
-
-			if( scaledWidth == width && scaledHeight == height && driverMipmap )
-			{
-				mip = (uint *)(data[i]);
-			}
-			else
-			{
-				mip = NULL;
-
-				// resample the texture
-				if( data[i] )
-				{
-					R_ResampleTexture( data[i], width, height, scaledWidth, scaledHeight, false );
-					mip = (uint *)image_desc.scaled;
-				}
-			}
-
-			// automatic mipmaps generation
-			if( !( flags & TF_NOMIPMAP ) && mip && driverMipmap )
-				pglTexParameteri( target2, GL_GENERATE_MIPMAP_SGIS, GL_TRUE );
-
-			if( subImage )
-				pglTexSubImage2D( target2, 0, 0, 0, scaledWidth, scaledHeight, format, GL_UNSIGNED_BYTE, mip );
-			else
-				pglTexImage2D( target2, 0, comp, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE, mip );
-
-			// mipmaps generation
-			if( !( flags & TF_NOMIPMAP ) && mip && !driverMipmap )
-			{
-				int w, h;
-				int miplevel = 0;
-
-				w = scaledWidth;
-				h = scaledHeight;
-				while( w > 1 || h > 1 )
-				{
-					R_BuildMipMap( (byte *)mip, w, h, false );
-
-					w >>= 1;
-					h >>= 1;
-					if( w < 1 )
-						w = 1;
-					if( h < 1 )
-						h = 1;
-					miplevel++;
-
-					if( subImage )
-						pglTexSubImage2D( target2, miplevel, 0, 0, w, h, format, GL_UNSIGNED_BYTE, mip );
-					else
-						pglTexImage2D( target2, miplevel, comp, w, h, 0, format, GL_UNSIGNED_BYTE, mip );
-				}
-			}
-		}
-	}
 }

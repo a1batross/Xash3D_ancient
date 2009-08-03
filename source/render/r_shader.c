@@ -1444,10 +1444,10 @@ static bool Shaderpass_NormalMap( ref_shader_t *shader, ref_stage_t *pass, scrip
 
 static bool Shaderpass_Material( ref_shader_t *shader, ref_stage_t *pass, script_t *script )
 {
-	int	flags;
-	float	bumpScale = 0;
-	string	name;
-	token_t	tok;
+	int		flags;
+	float		bumpScale = 0;
+	const char	*name;
+	token_t		tok;
 
 	if( !GL_Support( R_SHADER_GLSL100_EXT ))
 	{
@@ -1469,17 +1469,24 @@ static bool Shaderpass_Material( ref_shader_t *shader, ref_stage_t *pass, script
 		pass->flags &= ~(SHADERSTAGE_ANIMFREQUENCY|SHADERSTAGE_FRAMES);
 	}
 
-	com.strncpy( name, tok.string, sizeof( name ));
 	flags = Shader_SetImageFlags( shader );
 	
-	while( 1 )
-	{
-		if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &tok ))
-			break;
+	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &tok ));
+		return false;
 
-		com.strncat( name, " ", sizeof( name ));
-		com.strncat( name, tok.string, sizeof( name ));
+	if( !com.stricmp( tok.string, "$rgb" ))
+	{
+		if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &tok ));
+			return false;
+		name = va( "clearPixels( \"%s\", alpha );", tok.string );
 	}
+	else if( !com.stricmp( tok.string, "$alpha" ))
+	{
+		if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &tok ));
+			return false;
+		name = va( "clearPixels( \"%s\", color );", tok.string );
+	}
+	else name = tok.string;
 
 	pass->textures[0] = Shader_FindImage( shader, name, flags );
 	if( pass->textures[0] == tr.defaultTexture )
@@ -2398,6 +2405,11 @@ void R_ShaderDump_f( void )
 	Msg( "^1%s%s\n", name, cache->buffer );
 }
 
+void R_RegisterBuiltinShaders( void )
+{
+	tr.defaultShader = R_LoadShader( "*black", SHADER_NOMIP, true, (TF_NOMIPMAP|TF_NOPICMIP), SHADER_UNKNOWN );
+}
+
 void R_InitShaders( void )
 {
 	script_t	*script;
@@ -2432,6 +2444,8 @@ void R_InitShaders( void )
 	r_spriteFrequency = 0.0f;
 	r_numSpriteTextures = 0;
 	r_spriteRenderMode = kRenderNormal;
+
+	R_RegisterBuiltinShaders ();
 }
 
 void Shader_TouchImages( ref_shader_t *shader, bool free_unused )
@@ -3518,14 +3532,14 @@ ref_shader_t *R_LoadShader( const char *name, int type, bool forceDefault, int a
 	shortname[length] = 0;
 
 	// see if already loaded
-	hashKey = Com_HashKey( name, SHADERS_HASH_SIZE );
+	hashKey = Com_HashKey( shortname, SHADERS_HASH_SIZE );
 
 	for( shader = r_shadersHash[hashKey]; shader; shader = shader->nextHash )
 	{
 		if( shader->type != type || ( shader->type == ignoreType ))
 			continue;
 
-		if( !com.stricmp( shader->name, name ))
+		if( !com.stricmp( shader->name, shortname ))
 		{
 			// prolonge registration
 			Shader_TouchImages( shader, false );
@@ -3634,21 +3648,4 @@ void R_ShaderSetRenderMode( kRenderMode_t mode )
 void R_ShaderAddSpriteIntervals( float interval )
 {
 	r_spriteFrequency += interval;
-}
-
-
-// FIXME: get rid of this
-ref_shader_t *R_RegisterPic( const char *name )
-{
-	return R_LoadShader( name, SHADER_NOMIP, false, 0, SHADER_INVALID );
-}
-
-ref_shader_t *R_RegisterShader( const char *name )
-{
-	return R_LoadShader( name, SHADER_TEXTURE, false, 0, SHADER_INVALID );
-}
-
-ref_shader_t *R_RegisterSkin( const char *name )
-{
-	return R_LoadShader( name, SHADER_ALIAS, false, 0, SHADER_INVALID );
 }

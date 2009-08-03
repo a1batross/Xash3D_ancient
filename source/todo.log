@@ -11,9 +11,6 @@ fopen завешивает приложение, при попытке создать файл в несуществующей директори
 возвращал.
 fopen завешивает приложение, даже если перепутать местами + и a, при установке режима!
 
-Memory Leaks:
-Filesystem Pool растет на 4 килобайта после смены карты
-
 Отложенные задачи:
 1. Поддержка loop для ogg vorbis
 2. переписать studiomdl для использования VFS
@@ -98,7 +95,7 @@ Beta 13.12.08
 64. ImageLoading from old render		OK
 65. envshot, skyshot swap angles to right pos
 66. ShaderSystem from old render		OK
-67. fixup NPOT textures loading (screen textures)
+67. fixup NPOT textures loading (screen textures)	OK
 68. add new shader types			OK
 69. implement oldareabits			OK
 70. repair fog texture			OK
@@ -107,9 +104,16 @@ Beta 13.12.08
 73. shaders pasring				OK
 74. fixup 3D textures loading			OK
 75. ignore shader errors - just throw warnings	OK
-76. launch.dll ->release gl_invalid_enum
+76. launch.dll ->release gl_invalid_enum	OK
 77. debug shader_free_unused mechanism		OK
-78. fix changemap errors
-79. memory trash in render.dll 
-
-
+78. fix changemap errors			OK
+79. memory trash in render.dll		OK
+80. implement $rgb, $alpha			OK
+89. get rid of R_Upload32			OK
+90. get rid of Com_ParseExt			OK
+91. Xash backend extensions
+92. implement VBO				OK
+93. implement sky rotate
+94. make default sky shader, R_SetupSky
+95. support for custom tables (external)
+96. implement sprite format 

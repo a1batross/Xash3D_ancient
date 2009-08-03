@@ -591,10 +591,11 @@ private:
 	// when the hud.txt and associated sprites are loaded. freed in ~CHud()
 	HSPRITE *m_rghSprites; // the sprites loaded from hud.txt
 	wrect_t *m_rgrcRects;
+	wrect_t nullRect;
 	char *m_rgszSpriteNames;
 public:
 	HSPRITE GetSprite( int index ) { return (index < 0) ? 0 : m_rghSprites[index]; }
-	wrect_t& GetSpriteRect( int index ) { return m_rgrcRects[index]; }
+	wrect_t& GetSpriteRect( int index ) { return (index < 0) ? nullRect : m_rgrcRects[index]; }
 	int InitMessages( void ); // init hud messages
 	int GetSpriteIndex( const char *SpriteName );
 

@@ -154,12 +154,12 @@ bool Image_LoadWAL( const char *name, const byte *buffer, size_t filesize )
 	int	i, flags, value, contents; // wal additional parms
 	const byte *fin;
 
-	if( filesize < (int)sizeof(wal))
+	if( filesize < (int)sizeof( wal ))
 	{
 		MsgDev( D_ERROR, "Image_LoadWAL: file (%s) have invalid size\n", name );
 		return false;
 	}
-	Mem_Copy( &wal, buffer, sizeof(wal));
+	Mem_Copy( &wal, buffer, sizeof( wal ));
 
 	flags = LittleLong(wal.flags);
 	value = LittleLong(wal.value);
@@ -215,7 +215,7 @@ bool Image_LoadFLT( const char *name, const byte *buffer, size_t filesize )
 	if( Sys.app_name == HOST_NORMAL && !fs_wadsupport->integer )
 		return false;
 
-	if(filesize < (int)sizeof(flat))
+	if(filesize < (int)sizeof( flat ))
 	{
 		MsgDev( D_ERROR, "Image_LoadFLAT: file (%s) have invalid size\n", name );
 		return false;
@@ -322,7 +322,7 @@ bool Image_LoadLMP( const char *name, const byte *buffer, size_t filesize )
 	else
 	{
 		fin = (byte *)buffer;
-		Mem_Copy(&lmp, fin, sizeof(lmp));
+		Mem_Copy( &lmp, fin, sizeof( lmp ));
 		image.width = LittleLong( lmp.width );
 		image.height = LittleLong( lmp.height );
 		rendermode = LUMP_NORMAL;
@@ -379,11 +379,11 @@ bool Image_LoadMIP( const char *name, const byte *buffer, size_t filesize )
 		return false;
 	}
 
-	Mem_Copy( &mip, buffer, sizeof(mip));
-	image.width = LittleLong(mip.width);
-	image.height = LittleLong(mip.height);
+	Mem_Copy( &mip, buffer, sizeof( mip ));
+	image.width = LittleLong( mip.width );
+	image.height = LittleLong( mip.height );
 	if(!Image_ValidSize( name )) return false;
-	for(i = 0; i < 4; i++) ofs[i] = LittleLong(mip.offsets[i]);
+	for( i = 0; i < 4; i++ ) ofs[i] = LittleLong( mip.offsets[i] );
 	pixels = image.width * image.height;
 	image.depth = 1;
 
