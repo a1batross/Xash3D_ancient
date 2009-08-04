@@ -92,8 +92,8 @@ static void R_LoadTable( const char *name, tableFlags_t flags, size_t size, floa
 		Host_Error( "R_LoadTable: MAX_TABLES limit exceeds\n" );
 
 	// fill it in
-	r_tables[r_numTables++] = table = Mem_Alloc( r_shaderpool, sizeof( table_t ));
-	com.strncpy( table->name, name, sizeof( table->name ));
+	table = r_tables[r_numTables++] = Mem_Alloc( r_shaderpool, sizeof( table_t ));
+	table->name = Shader_CopyString( name );
 	table->index = r_numTables - 1;
 	table->flags = flags;
 	table->size = size;
@@ -274,7 +274,7 @@ static bool R_ParseTable( script_t *script, tableFlags_t flags )
 R_LookupTable
 =================
 */
-static float R_LookupTable( int tableIndex, float index )
+float R_LookupTable( int tableIndex, float index )
 {
 	table_t	*table;
 	float	frac, value;
@@ -307,6 +307,27 @@ static float R_LookupTable( int tableIndex, float index )
 
 	return value;
 }
+
+/*
+=================
+R_GetTableByHandle
+=================
+*/
+float *R_GetTableByHandle( int tableIndex )
+{
+	table_t	*table;
+
+	if( tableIndex < 0 || tableIndex >= r_numTables )
+	{
+		MsgDev( D_ERROR, "R_GetTableByHandle: out of range\n" );
+		return NULL;
+	}
+	table = r_tables[tableIndex];
+
+	if( !table ) return NULL;
+	return table->values;
+}
+
 
 /*
 =======================================================================
@@ -637,9 +658,12 @@ static bool Shader_ParseSkySides( script_t *script, ref_shader_t *shader, ref_sh
 static bool Shader_ParseFunc( script_t *script, waveFunc_t *func, ref_shader_t *shader )
 {
 	token_t	tok;
+	table_t	*tb;
 
 	if( !Com_ReadToken( script, false, &tok ))
 		return false;
+
+	func->tableIndex = -1;
 
 	if( !com.stricmp( tok.string, "0" )) func->type = WAVEFORM_SIN;
 	else if( !com.stricmp( tok.string, "sin" )) func->type = WAVEFORM_SIN;
@@ -649,9 +673,18 @@ static bool Shader_ParseFunc( script_t *script, waveFunc_t *func, ref_shader_t *
 	else if( !com.stricmp( tok.string, "inverseSawtooth" )) func->type = WAVEFORM_INVERSESAWTOOTH;
 	else if( !com.stricmp( tok.string, "noise" )) func->type = WAVEFORM_NOISE;
 	else
-	{
-		MsgDev( D_WARN, "unknown waveform '%s' in shader '%s', defaulting to sin\n", tok.string, shader->name );
-		func->type = WAVEFORM_SIN;
+	{	// check for custom table
+		tb = R_FindTable( tok.string );
+		if( tb )
+		{
+			func->type = WAVEFORM_TABLE;
+			func->tableIndex = tb->index;
+		}
+		else
+		{
+			MsgDev( D_WARN, "unknown waveform '%s' in shader '%s', defaulting to sin\n", tok.string, shader->name );
+			func->type = WAVEFORM_SIN;
+		}
 	}
 
 	if( !Shader_ParseVector( script, func->args, 4 ))
@@ -2065,6 +2098,7 @@ static bool Shaderpass_TcMod( ref_shader_t *shader, ref_stage_t *pass, script_t 
 		}
 
 		tcMod->args[0] = func.type;
+		tcMod->args[5] = func.tableIndex;
 		for( i = 1; i < 5; i++ )
 			tcMod->args[i] = func.args[i-1];
 		tcMod->type = TCMOD_STRETCH;
@@ -2352,7 +2386,10 @@ void R_ShaderList_f( void )
 			Msg( "?? %i", shader->type );
 			break;
 		}
-		Msg( " %s\n", shader->name );
+		Msg( " %s", shader->name );
+		if( shader->flags & SHADER_DEFAULTED )
+			Msg( "  DEFAULTED\n" );
+		else Msg( "\n" );
 		shaderCount++;
 	}
 
@@ -3504,6 +3541,7 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 
 	// calculate sortkey
 	shader->sortkey = Shader_Sortkey( shader, shader->sort );
+	shader->flags |= SHADER_DEFAULTED;
 
 	// add to hash table
 	hashKey = Com_HashKey( shortname, SHADERS_HASH_SIZE );

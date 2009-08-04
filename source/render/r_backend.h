@@ -80,6 +80,7 @@ typedef struct
 {
 	// renderer global variables
 	int		registration_sequence;
+	kRenderMode_t	iRenderMode;
 
 	// vbo stuff
 	int		numVertexBufferObjects;

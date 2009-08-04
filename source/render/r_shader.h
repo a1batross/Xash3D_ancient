@@ -70,6 +70,7 @@ typedef enum
 	SHADER_PORTAL_CAPTURE1	= BIT(15),
 	SHADER_PORTAL_CAPTURE2	= BIT(16),
 	SHADER_RENDERMODE		= BIT(17),
+	SHADER_DEFAULTED		= BIT(18),
 	SHADER_PORTAL_CAPTURE	= (SHADER_PORTAL_CAPTURE1|SHADER_PORTAL_CAPTURE1),
 	SHADER_CULL		= (SHADER_CULL_FRONT|SHADER_CULL_BACK)
 } shaderFlags_t;
@@ -121,7 +122,8 @@ typedef enum
 	WAVEFORM_SAWTOOTH,
 	WAVEFORM_INVERSESAWTOOTH,
 	WAVEFORM_NOISE,
-	WAVEFORM_CONSTANT
+	WAVEFORM_CONSTANT,
+	WAVEFORM_TABLE			// custom table
 } waveForm_t;
 
 // RGB colors generation
@@ -237,6 +239,7 @@ typedef struct table_s
 typedef struct
 {
 	waveForm_t	type;		// SHADER_FUNC enum
+	uint		tableIndex;	// valid only for WAVEFORM_TABLE
 	float		args[4];		// offset, amplitude, phase_offset, rate
 } waveFunc_t;
 
@@ -333,6 +336,8 @@ ref_shader_t *R_LoadShader( const char *name, int type, bool forceDefault, int a
 
 // misc utilities
 void R_ShaderFreeUnused( void );
+float R_LookupTable( int tableIndex, float index );
+float *R_GetTableByHandle( int tableIndex );
 void Shader_TouchImages( ref_shader_t *shader, bool free_unused );
 void R_ShaderSetSpriteTexture( texture_t *mipTex );
 void R_ShaderSetRenderMode( kRenderMode_t mode );

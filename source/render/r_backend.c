@@ -33,6 +33,10 @@ static float			r_triangletable[FTABLE_SIZE];
 static float			r_squaretable[FTABLE_SIZE];
 static float			r_sawtoothtable[FTABLE_SIZE];
 static float			r_inversesawtoothtable[FTABLE_SIZE];
+static float			r_warpsintable[256] =
+{
+#include "warpsin.h"
+};
 
 #define NOISE_SIZE			256
 #define NOISE_VAL( a )	  	r_noiseperm[( a ) & ( NOISE_SIZE - 1 )]
@@ -59,10 +63,10 @@ vec2_t *coordsArray;
 vec2_t *lightmapCoordsArray[LM_STYLES];
 rgba_t colorArray[MAX_ARRAY_VERTS];
 
-ref_globals_t tr;
-ref_backacc_t r_backacc;
+ref_globals_t	tr;
+ref_backacc_t	r_backacc;
 
-bool r_triangleOutlines;
+bool		r_triangleOutlines;
 
 static vec4_t	colorWhite = { 1.0f, 1.0f, 1.0f, 1.0f };
 static vec4_t	colorRed	=  { 1.0f, 0.0f, 0.0f, 1.0f };
@@ -109,25 +113,24 @@ R_BackendInit
 */
 void R_BackendInit( void )
 {
-	int i;
-	float t;
+	int	i;
+	float	t;
 
 	r_numAccumPasses = 0;
 
 	r_arraysLocked = false;
 	r_triangleOutlines = false;
+	tr.iRenderMode = kRenderNormal;
 
 	R_ClearArrays();
 	R_InitVertexBuffers();
-
 	R_BackendResetPassMask();
 
 	pglEnableClientState( GL_VERTEX_ARRAY );
 
 	if( !r_ignorehwgamma->integer )
-		r_identityLighting = (int)( 255.0f / pow( 2, max( 0, floor( r_overbrightbits->value ) ) ) );
-	else
-		r_identityLighting = 255;
+		r_identityLighting = (int)( 255.0f / pow( 2, max( 0, floor( r_overbrightbits->value ))));
+	else r_identityLighting = 255;
 
 	// build lookup tables
 	for( i = 0; i < FTABLE_SIZE; i++ )
@@ -136,41 +139,34 @@ void R_BackendInit( void )
 
 		r_sintable[i] = sin( t * M_PI2 );
 
-		if( t < 0.25 )
-			r_triangletable[i] = t * 4.0;
-		else if( t < 0.75 )
-			r_triangletable[i] = 2 - 4.0 * t;
-		else
-			r_triangletable[i] = ( t - 0.75 ) * 4.0 - 1.0;
+		if( t < 0.25f ) r_triangletable[i] = t * 4.0f;
+		else if( t < 0.75f ) r_triangletable[i] = 2 - 4.0f * t;
+		else r_triangletable[i] = ( t - 0.75f ) * 4.0f - 1.0f;
 
-		if( t < 0.5 )
-			r_squaretable[i] = 1.0f;
-		else
-			r_squaretable[i] = -1.0f;
+		if( t < 0.5f ) r_squaretable[i] = 1.0f;
+		else r_squaretable[i] = -1.0f;
 
 		r_sawtoothtable[i] = t;
-		r_inversesawtoothtable[i] = 1.0 - t;
+		r_inversesawtoothtable[i] = 1.0f - t;
 	}
 
 	for( i = 0; i < 256; i++ )
-		r_sintableByte[i] = sin( (float)i / 255.0 * M_PI2 );
+		r_sintableByte[i] = sin((float)i / 255.0f * M_PI2 );
 
 	// init the noise table
-	srand( 1001 );
-
 	for( i = 0; i < NOISE_SIZE; i++ )
 	{
-		r_noisetable[i] = (float)( ( ( rand() / (float)RAND_MAX ) * 2.0 - 1.0 ) );
-		r_noiseperm[i] = (unsigned char)( rand() / (float)RAND_MAX * 255 );
+		r_noisetable[i] = Com_RandomFloat( -1.0f, 1.0f );
+		r_noiseperm[i] = Com_RandomLong( 0, 255 );
 	}
 
 	// init dynamic lights pass
-	memset( &r_dlightsPass, 0, sizeof( ref_stage_t ) );
+	Mem_Set( &r_dlightsPass, 0, sizeof( ref_stage_t ) );
 	r_dlightsPass.flags = SHADERSTAGE_DLIGHT;
 	r_dlightsPass.glState = GLSTATE_DEPTHFUNC_EQ|GLSTATE_SRCBLEND_DST_COLOR|GLSTATE_DSTBLEND_ONE;
 
 	// init fog pass
-	memset( &r_fogPass, 0, sizeof( ref_stage_t ) );
+	Mem_Set( &r_fogPass, 0, sizeof( ref_stage_t ) );
 	r_fogPass.tcgen = TCGEN_FOG;
 	r_fogPass.rgbGen.type = RGBGEN_FOG;
 	r_fogPass.alphaGen.type = ALPHAGEN_IDENTITY;
@@ -192,7 +188,7 @@ void R_BackendInit( void )
 	}
 
 	// init optional GLSL program passes
-	memset( r_GLSLpasses, 0, sizeof( r_GLSLpasses ) );
+	Mem_Set( r_GLSLpasses, 0, sizeof( r_GLSLpasses ) );
 	r_GLSLpasses[0].flags = SHADERSTAGE_DLIGHT|SHADERSTAGE_BLEND_ADD;
 	r_GLSLpasses[0].glState = GLSTATE_DEPTHFUNC_EQ|GLSTATE_SRCBLEND_ONE|GLSTATE_DSTBLEND_ONE;
 
@@ -248,11 +244,11 @@ R_LatLongToNorm
 */
 void R_LatLongToNorm( const byte latlong[2], vec3_t out )
 {
-	float sin_a, sin_b, cos_a, cos_b;
+	float	sin_a, sin_b, cos_a, cos_b;
 
-	cos_a = r_sintableByte[( latlong[0] + 64 ) & 255];
+	cos_a = r_sintableByte[(latlong[0] + 64) & 255];
 	sin_a = r_sintableByte[latlong[0]];
-	cos_b = r_sintableByte[( latlong[1] + 64 ) & 255];
+	cos_b = r_sintableByte[(latlong[1] + 64) & 255];
 	sin_b = r_sintableByte[latlong[1]];
 
 	VectorSet( out, cos_b * sin_a, sin_b * sin_a, cos_a );
@@ -263,7 +259,7 @@ void R_LatLongToNorm( const byte latlong[2], vec3_t out )
 R_TableForFunc
 ==============
 */
-static float *R_TableForFunc( unsigned int func )
+static float *R_TableForFunc( uint func )
 {
 	switch( func )
 	{
@@ -277,16 +273,25 @@ static float *R_TableForFunc( unsigned int func )
 		return r_sawtoothtable;
 	case WAVEFORM_INVERSESAWTOOTH:
 		return r_inversesawtoothtable;
-
 	case WAVEFORM_NOISE:
 		return r_sintable;  // default to sintable
+	default:
+		return NULL;
 	}
-
-	// assume error
-	Host_Error( "R_TableForFunc: unknown function\n" );
-
-	return NULL;
 }
+
+static float R_TableEvaluate( waveFunc_t func, float index )
+{
+	float *table = R_TableForFunc( func.type );
+
+	if( table == NULL )
+	{
+		if( func.type == WAVEFORM_TABLE )
+			return R_LookupTable( func.tableIndex, index );
+		return 1.0f; // assume error
+	}
+	return FTABLE_EVALUATE( table, index );
+} 
 
 /*
 ==============
@@ -295,11 +300,11 @@ R_BackendGetNoiseValue
 */
 float R_BackendGetNoiseValue( float x, float y, float z, float t )
 {
-	int i;
-	int ix, iy, iz, it;
-	float fx, fy, fz, ft;
-	float front[4], back[4];
-	float fvalue, bvalue, value[2], finalvalue;
+	int	i;
+	int	ix, iy, iz, it;
+	float	fx, fy, fz, ft;
+	float	front[4], back[4];
+	float	fvalue, bvalue, value[2], finalvalue;
 
 	ix = ( int )floor( x );
 	fx = x - ix;
@@ -326,7 +331,6 @@ float R_BackendGetNoiseValue( float x, float y, float z, float t )
 		bvalue = NOISE_LERP( NOISE_LERP( back[0], back[1], fx ), NOISE_LERP( back[2], back[3], fx ), fy );
 		value[i] = NOISE_LERP( fvalue, bvalue, fz );
 	}
-
 	finalvalue = NOISE_LERP( value[0], value[1], ft );
 
 	return finalvalue;
@@ -339,7 +343,7 @@ R_BackendResetCounters
 */
 void R_BackendResetCounters( void )
 {
-	memset( &r_backacc, 0, sizeof( r_backacc ) );
+	Mem_Set( &r_backacc, 0, sizeof( r_backacc ));
 }
 
 /*
@@ -546,7 +550,7 @@ R_CleanUpTextureUnits
 */
 static void R_CleanUpTextureUnits( int last )
 {
-	int i;
+	int	i;
 
 	for( i = glState.activeTMU; i > last - 1; i-- )
 	{
@@ -568,7 +572,6 @@ void R_DeformVertices( void )
 	uint		i, j, k;
 	double		args[4], temp;
 	float		deflect, *quad[4];
-	const float	*table;
 	const deform_t	*deformv;
 	vec3_t		tv, rot_centre;
 
@@ -579,15 +582,12 @@ void R_DeformVertices( void )
 		{
 		case DEFORM_NONE:
 			break;
-
 		case DEFORM_WAVE:
-			table = R_TableForFunc( deformv->func.type );
-
 			// Deflect vertex along its normal by wave amount
 			if( deformv->func.args[3] == 0 )
 			{
 				temp = deformv->func.args[2];
-				deflect = FTABLE_EVALUATE( table, temp ) * deformv->func.args[1] + deformv->func.args[0];
+				deflect = R_TableEvaluate( deformv->func, temp ) * deformv->func.args[1] + deformv->func.args[0];
 
 				for( j = 0; j < r_backacc.numVerts; j++ )
 					VectorMA( inVertsArray[j], deflect, inNormalsArray[j], inVertsArray[j] );
@@ -602,12 +602,11 @@ void R_DeformVertices( void )
 				for( j = 0; j < r_backacc.numVerts; j++ )
 				{
 					temp = args[2] + args[3] * ( inVertsArray[j][0] + inVertsArray[j][1] + inVertsArray[j][2] );
-					deflect = FTABLE_EVALUATE( table, temp ) * args[1] + args[0];
+					deflect = R_TableEvaluate( deformv->func, temp ) * args[1] + args[0];
 					VectorMA( inVertsArray[j], deflect, inNormalsArray[j], inVertsArray[j] );
 				}
 			}
 			break;
-
 		case DEFORM_NORMAL:
 			// without this * 0.1f deformation looks wrong, although q3a doesn't have it
 			args[0] = deformv->func.args[3] * r_currentShaderTime * 0.1f;
@@ -622,16 +621,13 @@ void R_DeformVertices( void )
 				VectorNormalizeFast( inNormalsArray[j] );
 			}
 			break;
-
 		case DEFORM_MOVE:
-			table = R_TableForFunc( deformv->func.type );
 			temp = deformv->func.args[2] + r_currentShaderTime * deformv->func.args[3];
-			deflect = FTABLE_EVALUATE( table, temp ) * deformv->func.args[1] + deformv->func.args[0];
+			deflect = R_TableEvaluate( deformv->func, temp ) * deformv->func.args[1] + deformv->func.args[0];
 
 			for( j = 0; j < r_backacc.numVerts; j++ )
 				VectorMA( inVertsArray[j], deflect, deformv->args, inVertsArray[j] );
 			break;
-
 		case DEFORM_BULGE:
 			args[0] = deformv->args[0];
 			args[1] = deformv->args[1];
@@ -644,7 +640,6 @@ void R_DeformVertices( void )
 				VectorMA( inVertsArray[j], deflect, inNormalsArray[j], inVertsArray[j] );
 			}
 			break;
-
 		case DEFORM_AUTOSPRITE:
 			{
 				vec4_t *v;
@@ -709,7 +704,6 @@ void R_DeformVertices( void )
 				}
 			}
 			break;
-
 		case DEFORM_AUTOSPRITE2:
 			if( r_backacc.numElems % 6 )
 				break;
@@ -842,11 +836,9 @@ void R_DeformVertices( void )
 				}
 			}
 			break;
-
 		case DEFORM_PROJECTION_SHADOW:
 			R_DeformVPlanarShadow( r_backacc.numVerts, inVertsArray[0] );
 			break;
-
 		case DEFORM_AUTOPARTICLE:
 			{
 				float scale;
@@ -972,7 +964,6 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 			pglTexCoordPointer( 2, GL_FLOAT, 0, tr.tcoordBuffer[unit]->pointer );
 			return true;
 		}
-
 	case TCGEN_VECTOR:
 		{
 			GLfloat genVector[2][4];
@@ -1032,7 +1023,6 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 			pglTexGenfv( GL_Q, GL_OBJECT_PLANE, genVector[3] );
 			return false;
 		}
-
 	case TCGEN_REFLECTION_CELLSHADE:
 		if( RI.currententity && !( RI.params & RP_SHADOWMAPVIEW ) )
 		{
@@ -1056,7 +1046,6 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 		GL_EnableTexGen( GL_R, GL_REFLECTION_MAP_ARB );
 		GL_EnableTexGen( GL_Q, 0 );
 		return true;
-
 	case TCGEN_FOG:
 		{
 			int fogPtype;
@@ -1135,7 +1124,6 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 			pglTexCoordPointer( 2, GL_FLOAT, 0, tr.tcoordBuffer[unit]->pointer );
 			return false;
 		}
-
 	case TCGEN_SVECTORS:
 		GL_DisableAllTexGens();
 		R_UpdateVertexBuffer( tr.tcoordBuffer[unit], sVectorsArray, r_backacc.numVerts * sizeof( vec4_t ));
@@ -1159,10 +1147,10 @@ R_ApplyTCMods
 static void R_ApplyTCMods( const ref_stage_t *pass, mat4x4_t result )
 {
 	int		i;
-	const float	*table;
 	double		t1, t2, sint, cost;
 	mat4x4_t		m1, m2;
 	const tcMod_t	*tcmod;
+	waveFunc_t	func;
 
 	for( i = 0, tcmod = pass->tcMods; i < pass->numtcMods; i++, tcmod++ )
 	{
@@ -1181,14 +1169,15 @@ static void R_ApplyTCMods( const ref_stage_t *pass, mat4x4_t result )
 			Matrix4_Scale2D( result, tcmod->args[0], tcmod->args[1] );
 			break;
 		case TCMOD_TURB:
-			t1 = ( 1.0 / 4.0 );
+			t1 = ( 1.0f / 4.0f );
 			t2 = tcmod->args[2] + r_currentShaderTime * tcmod->args[3];
 			Matrix4_Scale2D( result, 1 + ( tcmod->args[1] * R_FastSin( t2 ) + tcmod->args[0] ) * t1, 1 + ( tcmod->args[1] * R_FastSin( t2 + 0.25 ) + tcmod->args[0] ) * t1 );
 			break;
 		case TCMOD_STRETCH:
-			table = R_TableForFunc( tcmod->args[0] );
+			func.type = (uint)tcmod->args[0];
+			func.tableIndex = (uint)tcmod->args[5];
 			t2 = tcmod->args[3] + r_currentShaderTime * tcmod->args[4];
-			t1 = FTABLE_EVALUATE( table, t2 ) * tcmod->args[2] + tcmod->args[1];
+			t1 = R_TableEvaluate( func, t2 ) * tcmod->args[2] + tcmod->args[1];
 			t1 = t1 ? 1.0f / t1 : 1.0f;
 			t2 = 0.5f - 0.5f * t1;
 			Matrix4_Stretch2D( result, t1, t2 );
@@ -1197,7 +1186,8 @@ static void R_ApplyTCMods( const ref_stage_t *pass, mat4x4_t result )
 			t1 = tcmod->args[0] * r_currentShaderTime;
 			t2 = tcmod->args[1] * r_currentShaderTime;
 			if( pass->program_type != PROGRAM_TYPE_DISTORTION )
-			{	// HACK HACK HACK
+			{	
+				// HACKHACK
 				t1 = t1 - floor( t1 );
 				t2 = t2 - floor( t2 );
 			}
@@ -1232,21 +1222,210 @@ static _inline texture_t *R_ShaderpassTex( const ref_stage_t *pass, int unit )
 }
 
 /*
+=================
+RB_SetShaderRenderMode
+
+UNDONE: not all cases are filled
+=================
+*/
+static void R_ShaderpassRenderMode( ref_stage_t *pass )
+{
+	int	mod_type = mod_bad; // mod_bad interpretate as orthogonal shader
+
+	if(!(pass->flags & SHADERSTAGE_RENDERMODE))
+		return;
+
+	if( RI.currentmodel && !glState.in2DMode )
+		mod_type = RI.currentmodel->type;
+
+	switch( tr.iRenderMode )
+	{
+	case kRenderNormal:
+		switch( mod_type )
+		{
+		case mod_bad:
+			pass->rgbGen.type = RGBGEN_IDENTITY;
+			pass->alphaGen.type = ALPHAGEN_IDENTITY;
+			break;
+		case mod_world:
+		case mod_brush:
+			// bsp surfaces uses lightmaps and ignore color values as well
+			pass->glState &= ~(GLSTATE_BLENDFUNC|GLSTATE_ALPHAFUNC);
+			pass->glState |= GLSTATE_DEPTHWRITE;
+			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
+			pass->alphaGen.type = ALPHAGEN_IDENTITY;
+			break;
+		case mod_studio:
+			// UNDONE: wrote R_StudioLighting, change rgbGen to RGBGEN_VERTEX
+			// UNDONE: setup custom alpha channel for NF_ADDITIVE, change alphaGen to ALPHAGEN_VERTEX
+			pass->glState &= ~(GLSTATE_BLENDFUNC|GLSTATE_ALPHAFUNC);
+			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
+			pass->alphaGen.type = ALPHAGEN_IDENTITY;
+			break;
+		case mod_sprite:
+			pass->glState &= ~(GLSTATE_BLENDFUNC|GLSTATE_ALPHAFUNC);
+			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
+			pass->alphaGen.type = ALPHAGEN_IDENTITY;
+			break;
+		}
+		break;
+	case kRenderTransColor:
+		switch( mod_type )
+		{
+		case mod_bad:
+			pass->glState &= ~GLSTATE_ALPHAFUNC;
+			pass->glState |= (GLSTATE_SRCBLEND_ZERO|GLSTATE_DSTBLEND_SRC_COLOR);
+			pass->rgbGen.type = RGBGEN_VERTEX;
+			pass->alphaGen.type = ALPHAGEN_VERTEX;
+			break;
+		case mod_world:
+			pass->glState &= ~(GLSTATE_BLENDFUNC|GLSTATE_ALPHAFUNC);
+			pass->glState |= GLSTATE_DEPTHWRITE;
+			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
+			pass->alphaGen.type = ALPHAGEN_IDENTITY;
+			break;
+		case mod_brush:
+		case mod_studio:
+		case mod_sprite:
+			break;
+		}
+		break;
+	case kRenderTransTexture:
+		switch( mod_type )
+		{
+		case mod_bad:
+			pass->glState &= ~GLSTATE_ALPHAFUNC;
+			pass->glState |= (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA);
+			pass->rgbGen.type = RGBGEN_VERTEX;
+			pass->alphaGen.type = ALPHAGEN_VERTEX;
+			break;
+		case mod_world:
+			pass->glState &= ~(GLSTATE_BLENDFUNC|GLSTATE_ALPHAFUNC);
+			pass->glState |= GLSTATE_DEPTHWRITE;
+			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
+			pass->alphaGen.type = ALPHAGEN_IDENTITY;
+			break;
+		case mod_brush:
+			pass->glState &= ~(GLSTATE_DEPTHWRITE|GLSTATE_ALPHAFUNC);
+			pass->glState |= (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA);
+			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
+			pass->alphaGen.type = ALPHAGEN_ENTITY;
+			break;
+		case mod_studio:
+		case mod_sprite:
+			break;
+		}
+		break;
+	case kRenderGlow:
+		switch( mod_type )
+		{
+		case mod_bad:
+			pass->glState &= ~GLSTATE_ALPHAFUNC;
+			pass->glState |= (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
+			pass->rgbGen.type = RGBGEN_VERTEX;
+			pass->alphaGen.type = ALPHAGEN_VERTEX;
+			break;
+		case mod_world:
+		case mod_brush:
+			// completely ignore glow mode for world surfaces
+			pass->glState &= ~(GLSTATE_BLENDFUNC|GLSTATE_ALPHAFUNC);
+			pass->glState |= GLSTATE_DEPTHWRITE;
+			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
+			pass->alphaGen.type = ALPHAGEN_IDENTITY;
+			break;
+		case mod_studio:
+		case mod_sprite:
+			pass->glState &= ~(GLSTATE_ALPHAFUNC|GLSTATE_DEPTHWRITE|GLSTATE_DEPTHFUNC_EQ);
+			pass->glState |= (GLSTATE_SRCBLEND_ONE_MINUS_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
+			pass->rgbGen.type = RGBGEN_IDENTITY;	// hl1 glow sprites ignores color
+			pass->alphaGen.type = ALPHAGEN_ENTITY;
+			break;
+		}
+		break;
+	case kRenderTransAlpha:
+		switch( mod_type )
+		{
+		case mod_bad:
+			pass->glState &= ~GLSTATE_BLENDFUNC;
+			pass->glState |= GLSTATE_AFUNC_GE128;
+			pass->rgbGen.type = RGBGEN_VERTEX;
+			pass->alphaGen.type = ALPHAGEN_VERTEX;
+			break;
+		case mod_world:
+			// always ignore transparent surfaces for world
+			pass->glState &= ~(GLSTATE_BLENDFUNC|GLSTATE_ALPHAFUNC);
+			pass->glState |= GLSTATE_DEPTHWRITE;
+			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
+			pass->alphaGen.type = ALPHAGEN_IDENTITY;
+			break;
+		case mod_brush:
+			pass->glState &= ~GLSTATE_BLENDFUNC;
+			pass->glState |= GLSTATE_AFUNC_GE128;
+			pass->rgbGen.type = RGBGEN_IDENTITY;
+			pass->alphaGen.type = ALPHAGEN_IDENTITY;
+		case mod_studio:
+			// UNDONE: wrote R_StudioLighting, change rgbGen to RGBGEN_VERTEX
+			// UNDONE: setup custom alpha channel for NF_ADDITIVE, change alphaGen to ALPHAGEN_VERTEX
+			pass->glState &= ~GLSTATE_BLENDFUNC;
+			pass->glState |= GLSTATE_AFUNC_GE128;
+			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
+			pass->alphaGen.type = ALPHAGEN_ENTITY;
+		case mod_sprite:
+			pass->glState &= ~GLSTATE_BLENDFUNC;
+			pass->glState |= GLSTATE_AFUNC_GE128;
+			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
+			pass->alphaGen.type = ALPHAGEN_ENTITY;
+			break;
+		}
+		break;
+	case kRenderTransAdd:
+		switch( mod_type )
+		{
+		case mod_bad:
+			pass->glState &= ~GLSTATE_ALPHAFUNC;
+			pass->glState |= (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
+			pass->rgbGen.type = RGBGEN_VERTEX;
+			pass->alphaGen.type = ALPHAGEN_VERTEX;
+			break;
+		case mod_world:
+			pass->glState &= ~(GLSTATE_BLENDFUNC|GLSTATE_ALPHAFUNC);
+			pass->glState |= GLSTATE_DEPTHWRITE;
+			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
+			pass->alphaGen.type = ALPHAGEN_IDENTITY;
+			break;
+		case mod_brush:
+			pass->glState &= ~(GLSTATE_ALPHAFUNC|GLSTATE_DEPTHWRITE);
+			pass->glState |= (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
+			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
+			pass->alphaGen.type = ALPHAGEN_ENTITY;
+			break;
+		case mod_studio:
+		case mod_sprite:
+			pass->glState &= ~(GLSTATE_ALPHAFUNC|GLSTATE_DEPTHWRITE);
+			pass->glState |= (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
+			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
+			pass->alphaGen.type = ALPHAGEN_ENTITY;
+			break;
+		}
+		break;
+	}
+}
+
+/*
 ================
 R_BindShaderpass
 ================
 */
 static void R_BindShaderpass( const ref_stage_t *pass, texture_t *tex, int unit )
 {
-	mat4x4_t m1, m2, result;
-	bool identityMatrix;
+	mat4x4_t	m1, m2, result;
+	bool	identityMatrix;
 
-	if( !tex )
-		tex = R_ShaderpassTex( pass, unit );
+	if( !tex ) tex = R_ShaderpassTex( pass, unit );
 
 	GL_Bind( unit, tex );
 	if( unit && !pass->program ) pglEnable( GL_TEXTURE_2D );
-	GL_SetTexCoordArrayMode( ( tex->flags & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP_ARB : GL_TEXTURE_COORD_ARRAY ));
+	GL_SetTexCoordArrayMode(( tex->flags & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP_ARB : GL_TEXTURE_COORD_ARRAY ));
 
 	identityMatrix = R_VertexTCBase( pass, unit, result );
 
@@ -1267,8 +1446,7 @@ static void R_BindShaderpass( const ref_stage_t *pass, texture_t *tex, int unit 
 
 	if( identityMatrix )
 		GL_LoadIdentityTexMatrix();
-	else
-		GL_LoadTexMatrix( result );
+	else GL_LoadTexMatrix( result );
 }
 
 /*
@@ -1279,9 +1457,9 @@ R_ModifyColor
 void R_ModifyColor( const ref_stage_t *pass )
 {
 	uint		i;
+	float		a;
 	int		c, bits;
 	double		temp;
-	float		*table, a;
 	vec3_t		t, v, style;
 	byte		*bArray, *inArray, rgba[4] = { 255, 255, 255, 255 };
 	bool		noArray, identityAlpha, entityAlpha;
@@ -1297,18 +1475,18 @@ void R_ModifyColor( const ref_stage_t *pass )
 	if( pass->rgbGen.type == RGBGEN_IDENTITY_LIGHTING )
 	{
 		entityAlpha = identityAlpha = false;
-		memset( bArray, r_identityLighting, sizeof( rgba_t ) * r_backacc.numColors );
+		Mem_Set( bArray, r_identityLighting, sizeof( rgba_t ) * r_backacc.numColors );
 	}
 	else if( pass->rgbGen.type == RGBGEN_EXACT_VERTEX )
 	{
 		entityAlpha = identityAlpha = false;
-		memcpy( bArray, inArray, sizeof( rgba_t ) * r_backacc.numColors );
+		Mem_Copy( bArray, inArray, sizeof( rgba_t ) * r_backacc.numColors );
 	}
 	else
 	{
 		entityAlpha = false;
 		identityAlpha = true;
-		memset( bArray, 255, sizeof( rgba_t ) * r_backacc.numColors );
+		Mem_Set( bArray, 255, sizeof( rgba_t ) * r_backacc.numColors );
 
 		switch( pass->rgbGen.type )
 		{
@@ -1330,9 +1508,8 @@ void R_ModifyColor( const ref_stage_t *pass )
 			}
 			else
 			{
-				table = R_TableForFunc( rgbgenfunc->type );
 				temp = r_currentShaderTime * rgbgenfunc->args[3] + rgbgenfunc->args[2];
-				temp = FTABLE_EVALUATE( table, temp ) * rgbgenfunc->args[1] + rgbgenfunc->args[0];
+				temp = R_TableEvaluate( *rgbgenfunc, temp ) * rgbgenfunc->args[1] + rgbgenfunc->args[0];
 			}
 
 			temp = temp * rgbgenfunc->args[1] + rgbgenfunc->args[0];
@@ -1389,7 +1566,7 @@ void R_ModifyColor( const ref_stage_t *pass )
 				float *tc;
 				vec3_t temp[MAX_ARRAY_VERTS];
 
-				memset( temp, 0, sizeof( vec3_t ) * r_backacc.numColors );
+				Mem_Set( temp, 0, sizeof( vec3_t ) * r_backacc.numColors );
 
 				for( j = 0; j < LM_STYLES && r_superLightStyle->vertexStyles[j] != 255; j++ )
 				{
@@ -1504,9 +1681,8 @@ void R_ModifyColor( const ref_stage_t *pass )
 		}
 		else
 		{
-			table = R_TableForFunc( alphagenfunc->type );
 			a = alphagenfunc->args[2] + r_currentShaderTime * alphagenfunc->args[3];
-			a = FTABLE_EVALUATE( table, a );
+			a = R_TableEvaluate( *alphagenfunc, a );
 		}
 
 		a = a * alphagenfunc->args[1] + alphagenfunc->args[0];
@@ -1734,6 +1910,7 @@ void R_RenderMeshGeneric( void )
 {
 	const ref_stage_t *pass = r_accumPasses[0];
 
+	R_ShaderpassRenderMode( (ref_stage_t *)pass );
 	R_BindShaderpass( pass, NULL, 0 );
 	R_ModifyColor( pass );
 

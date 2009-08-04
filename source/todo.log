@@ -111,9 +111,10 @@ Beta 13.12.08
 80. implement $rgb, $alpha			OK
 89. get rid of R_Upload32			OK
 90. get rid of Com_ParseExt			OK
-91. Xash backend extensions
+91. implement rendermodes
 92. implement VBO				OK
 93. implement sky rotate
 94. make default sky shader, R_SetupSky
-95. support for custom tables (external)
-96. implement sprite format 
+95. support for custom tables (external)	OK
+96. implement sprite format
+97. fix fog color on q3tourney5 
