@@ -178,8 +178,6 @@ typedef enum
 	TCGEN_LIGHTMAP,
 	TCGEN_ENVIRONMENT,
 	TCGEN_VECTOR,
-	TCGEN_LIGHTVECTOR,
-	TCGEN_HALFANGLE,
 	TCGEN_WARP,
 	TCGEN_REFLECTION,
 	TCGEN_FOG,
@@ -270,6 +268,15 @@ typedef struct
 	waveFunc_t	func;
 } deform_t;
 
+typedef struct old_stage_s
+{
+	uint		flags;
+	uint		glState;			// GLSTATE_ flags
+
+	rgbGen_t		rgbGen;
+	alphaGen_t	alphaGen;
+} old_stage_t;
+
 // Per-pass rendering state information
 typedef struct ref_stage_s
 {
@@ -278,6 +285,8 @@ typedef struct ref_stage_s
 
 	rgbGen_t		rgbGen;
 	alphaGen_t	alphaGen;
+
+	old_stage_t	prev;
 
 	word		tcgen;
 	vec_t		*tcgenVec;

@@ -296,7 +296,7 @@ void CL_TeleportParticles( const Vector org )
 void CL_PlaceDecal( Vector pos, Vector dir, float scale, HSPRITE hDecal )
 {
 	float	rgba[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	int	flags = DECAL_FADE;
+	int	flags = DECAL_FADEALPHA;
 
 	g_engfuncs.pEfxAPI->R_SetDecal( pos, dir, rgba, RANDOM_LONG( 0, 360 ), scale, hDecal, flags );
 }
@@ -328,6 +328,7 @@ void HUD_ParseTempEntity( void )
 		pos.z = READ_COORD();
 		READ_SHORT(); // FIXME: skip entindex
 		g_engfuncs.pEfxAPI->CL_FindExplosionPlane( pos, 10, dir );
+		CL_BulletParticles( pos, Vector( 0, 0, -1 ));
 		CL_PlaceDecal( pos, dir, 10, g_engfuncs.pEfxAPI->CL_DecalIndex( READ_BYTE() ));
 		break;
 	case TE_DECAL:

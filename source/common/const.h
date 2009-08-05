@@ -75,18 +75,12 @@
 #define EF_NODRAW			(1<<6)	// don't draw entity
 #define EF_ROTATE			(1<<7)	// rotate bonus item
 #define EF_MINLIGHT			(1<<8)	// allways have some light (viewmodel)
-#define EF_LIGHT			(1<<9)	// dynamic light (rockets use)
-#define EF_ANIMATE			(1<<10)	// do client animate (ignore v.frame)
-
-// entity_state_t->renderfx flags (temp)
-#define RF_FULLBRIGHT		1	// always draw full intensity
-#define RF_NOSHADOW			2
-#define RF_VIEWERMODEL		4	// don't draw through eyes, only mirrors
-#define RF_WEAPONMODEL		8	// only draw through eyes and depth hack
-#define RF_CULLHACK			16
-#define RF_FORCENOLOD		32
-#define RF_PLANARSHADOW		64
-#define RF_OCCLUSIONTEST		128
+#define EF_FULLBRIGHT		(1<<9)	// completely ignore light values
+#define EF_LIGHT			(1<<10)	// dynamic light (rockets use)
+#define EF_ANIMATE			(1<<11)	// do client animate (ignore v.frame)
+#define EF_NOSHADOW			(1<<12)	// ignore shadow for this entity
+#define EF_PLANARSHADOW		(1<<13)	// use fast planarshadow method instead of shadow casters
+#define EF_OCCLUSIONTEST		(1<<14)	// use occlusion test for this entity (e.g. glares)
 
 // pev->takedamage
 #define DAMAGE_NO			0	// can't be damaged
@@ -236,8 +230,8 @@ typedef enum
 #define PARTICLE_INSTANT		(1<<5)
 
 // built-in decals flags
-#define DECAL_FADE			(1<<0)	// fade decal when lifetime is expired
-#define DECAL_TEMPORARY		(1<<1)
+#define DECAL_FADEALPHA		(1<<0)	// fade decal by alpha instead color
+#define DECAL_FADEENERGY	(1<<1)	// fade decal energy balls
 
 // basic console charwidths
 #define TINYCHAR_WIDTH		(SMALLCHAR_WIDTH)

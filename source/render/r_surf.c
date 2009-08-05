@@ -229,7 +229,7 @@ void R_AddBrushModelToList( ref_entity_t *e )
 	meshbuffer_t	*mb;
 
 	e->outlineHeight = r_worldent->outlineHeight;
-	Vector4Copy( r_worldent->outlineRGBA, e->outlineColor );
+	Vector4Copy( r_worldent->outlineColor, e->outlineColor );
 
 	rotated = !Matrix_Compare( e->axis, axis_identity );
 	VectorSubtract( RI.refdef.vieworg, e->origin, modelorg );

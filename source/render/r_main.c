@@ -527,23 +527,55 @@ static mesh_t spr_mesh = { 4, spr_xyz, spr_xyz, NULL, spr_st, { 0, 0, 0, 0 }, { 
 R_PushSprite
 =================
 */
-static bool R_PushSprite( const meshbuffer_t *mb, float rotation, float right, float left, float up, float down )
+static bool R_PushSprite( const meshbuffer_t *mb, int type, float right, float left, float up, float down )
 {
-	int i, features;
-	vec3_t point;
-	vec3_t v_right, v_up;
-	ref_entity_t *e = RI.currententity;
-	ref_shader_t *shader;
+	int		i, features;
+	vec3_t		v_forward, v_right, v_up;
+	ref_entity_t	*e = RI.currententity;
+	float		angle, sr, cr;
+	ref_shader_t	*shader;
+	vec3_t		point;
 
-	if( rotation )
+	switch( type )
 	{
-		RotatePointAroundVector( v_right, RI.vpn, RI.vright, rotation );
-		CrossProduct( RI.vpn, v_right, v_up );
-	}
-	else
-	{
+	case SPR_ORIENTED:
+		VectorCopy( e->axis[0], v_forward );
+		VectorCopy( e->axis[1], v_right );
+		VectorCopy( e->axis[2], v_up );
+		VectorScale( v_forward, 0.01f, v_forward ); // to avoid z-fighting
+		VectorSubtract( e->origin, v_forward, e->origin );
+		break;
+	case SPR_FACING_UPRIGHT:
+		VectorSet( v_right, e->origin[1] - RI.viewOrigin[1], -(e->origin[0] - RI.viewOrigin[0]), 0 );
+		VectorSet( v_up, 0, 0, 1 );
+		VectorNormalize( v_right );
+		break;
+	case SPR_FWD_PARALLEL_UPRIGHT:
+		VectorSet( v_right, RI.vpn[1], -RI.vpn[0], 0 );
+		VectorSet( v_up, 0, 0, 1 );
+		break;
+	case SPR_FWD_PARALLEL_ORIENTED:
+		angle = e->angles[ROLL] * (M_PI * 2.0f/360.0f);
+		sr = com.sin( angle );
+		cr = com.cos( angle );
+		for( i = 0; i < 3; i++ )
+		{
+			v_right[i] = (RI.vright[i] * cr + RI.vup[i] * sr);
+			v_up[i] = RI.vright[i] * -sr + RI.vup[i] * cr;
+		}
+		break;
+	default:
+		if( e->spriteshader && e->angles[PITCH] )
+		{
+			RotatePointAroundVector( v_right, RI.vpn, RI.vright, e->angles[PITCH] );
+			CrossProduct( RI.vpn, v_right, v_up );
+			break;
+		}
+		// intentional fallthrough
+	case SPR_FWD_PARALLEL: // normal sprite
 		VectorCopy( RI.vright, v_right );
 		VectorCopy( RI.vup, v_up );
+		break;
 	}
 
 	VectorScale( v_up, down, point );
@@ -567,7 +599,7 @@ static bool R_PushSprite( const meshbuffer_t *mb, float rotation, float right, f
 	if( shader->features & MF_COLORS )
 	{
 		for( i = 0; i < 4; i++ )
-			Vector4Copy( e->color, spr_color[i] );
+			Vector4Set( spr_color[i], e->rendercolor[0], e->rendercolor[1], e->rendercolor[2], e->renderamt );
 	}
 
 	features = MF_NOCULL | MF_TRIFAN | shader->features;
@@ -698,15 +730,15 @@ R_PushSpriteModel
 */
 bool R_PushSpriteModel( const meshbuffer_t *mb )
 {
-	sframe_t *frame;
-	smodel_t *psprite;
-	ref_entity_t *e = RI.currententity;
+	mspriteframe_t	*frame;
+	msprite_t		*psprite;
+	ref_entity_t	*e = RI.currententity;
 	ref_model_t	*model = e->model;
 
-	psprite = ( smodel_t * )model->extradata;
-	frame = psprite->frames + e->frame;
+	psprite = (msprite_t * )model->extradata;
+	frame = R_GetSpriteFrame( e );
 
-	return R_PushSprite( mb, e->rotation, frame->origin_x, frame->origin_x - frame->width, frame->height - frame->origin_y, -frame->origin_y );
+	return R_PushSprite( mb, psprite->type, frame->left, frame->right, frame->down, frame->up );
 }
 
 /*
@@ -728,8 +760,7 @@ bool R_PushSpritePoly( const meshbuffer_t *mb )
 		R_PushFlareSurf( mb );
 		return false;
 	}
-
-	return R_PushSprite( mb, e->rotation, -e->radius, e->radius, e->radius, -e->radius );
+	return R_PushSprite( mb, -1, -e->radius, e->radius, e->radius, -e->radius );
 }
 
 /*
@@ -739,38 +770,46 @@ R_AddSpriteModelToList
 */
 static void R_AddSpriteModelToList( ref_entity_t *e )
 {
-	sframe_t *frame;
-	smodel_t *psprite;
+	mspriteframe_t	*frame;
+	msprite_t		*psprite;
 	ref_model_t	*model = e->model;
-	float dist;
-	meshbuffer_t *mb;
+	ref_shader_t	*shader;
+	float		dist;
+	meshbuffer_t	*mb;
 
-	if( !( psprite = ( ( smodel_t * )model->extradata ) ) )
+	if(!( psprite = (( msprite_t* )model->extradata )))
 		return;
 
-	dist =
-		( e->origin[0] - RI.refdef.vieworg[0] ) * RI.vpn[0] +
-		( e->origin[1] - RI.refdef.vieworg[1] ) * RI.vpn[1] +
-		( e->origin[2] - RI.refdef.vieworg[2] ) * RI.vpn[2];
-	if( dist < 0 )
-		return; // cull it because we don't want to sort unneeded things
+	dist = (e->origin[0] - RI.refdef.vieworg[0]) * RI.vpn[0] + (e->origin[1] - RI.refdef.vieworg[1]) * RI.vpn[1] + (e->origin[2] - RI.refdef.vieworg[2]) * RI.vpn[2];
+	if( dist < 0 ) return; // cull it because we don't want to sort unneeded things
 
-	e->frame %= psprite->numframes;
-	frame = psprite->frames + e->frame;
+	frame = R_GetSpriteFrame( e );
+	shader = &r_shaders[frame->shader];
 
-	if( RI.refdef.rdflags & ( RDF_PORTALINVIEW|RDF_SKYPORTALINVIEW ) || ( RI.params & RP_SKYPORTALVIEW ) )
+	if( e->rendermode == kRenderGlow )
 	{
-		if( R_VisCullSphere( e->origin, frame->radius ) )
+		trace_t	tr;
+
+		/*
+		if( R_TraceLine( &tr, e->origin, RI.viewOrigin, SURF_NONSOLID ) == NULL )
+		{ 
+			float dist = VectorDistance( e->origin, RI.viewOrigin );
+			e->scale = bound( 1.0, dist * 0.005f, 10.0f );
+			e->renderamt = 255 * bound( 0, dist / 1000, 1.0f );
+			if( e->renderamt >= 255 ) return; // faded
+		}
+		else return; // occluded
+		*/
+	}
+			
+	if( RI.refdef.rdflags & (RDF_PORTALINVIEW|RDF_SKYPORTALINVIEW) || ( RI.params & RP_SKYPORTALVIEW ))
+	{
+		if( R_VisCullSphere( e->origin, frame->radius ))
 			return;
 	}
 
-	// select skin
-	if( e->customShader )
-		mb = R_AddMeshToList( MB_MODEL, R_FogForSphere( e->origin, frame->radius ), e->customShader, -1 );
-	else
-		mb = R_AddMeshToList( MB_MODEL, R_FogForSphere( e->origin, frame->radius ), frame->shader, -1 );
-	if( mb )
-		mb->shaderkey |= ( bound( 1, 0x4000 - (unsigned int)dist, 0x4000 - 1 ) << 12 );
+	mb = R_AddMeshToList( MB_MODEL, R_FogForSphere( e->origin, frame->radius ), shader, -1 );
+	if( mb ) mb->shaderkey |= ( bound( 1, 0x4000 - (uint)dist, 0x4000 - 1 )<<12 );
 }
 
 /*
@@ -780,24 +819,20 @@ R_AddSpritePolyToList
 */
 static void R_AddSpritePolyToList( ref_entity_t *e )
 {
-	float dist;
-	meshbuffer_t *mb;
+	float 		dist;
+	meshbuffer_t	*mb;
 
-	dist =
-		( e->origin[0] - RI.refdef.vieworg[0] ) * RI.vpn[0] +
-		( e->origin[1] - RI.refdef.vieworg[1] ) * RI.vpn[1] +
-		( e->origin[2] - RI.refdef.vieworg[2] ) * RI.vpn[2];
-	if( dist < 0 )
-		return; // cull it because we don't want to sort unneeded things
+	dist = (e->origin[0] - RI.refdef.vieworg[0]) * RI.vpn[0] + (e->origin[1] - RI.refdef.vieworg[1]) * RI.vpn[1] + (e->origin[2] - RI.refdef.vieworg[2]) * RI.vpn[2];
+	if( dist < 0 ) return; // cull it because we don't want to sort unneeded things
+
 	if( RI.refdef.rdflags & ( RDF_PORTALINVIEW|RDF_SKYPORTALINVIEW ) || ( RI.params & RP_SKYPORTALVIEW ) )
 	{
 		if( R_VisCullSphere( e->origin, e->radius ) )
 			return;
 	}
 
-	mb = R_AddMeshToList( MB_SPRITE, R_FogForSphere( e->origin, e->radius ), e->customShader, -1 );
-	if( mb )
-		mb->shaderkey |= ( bound( 1, 0x4000 - (unsigned int)dist, 0x4000 - 1 ) << 12 );
+	mb = R_AddMeshToList( MB_SPRITE, R_FogForSphere( e->origin, e->radius ), e->spriteshader, -1 );
+	if( mb ) mb->shaderkey |= ( bound( 1, 0x4000 - (unsigned int)dist, 0x4000 - 1 ) << 12 );
 }
 
 /*
@@ -1353,11 +1388,12 @@ static void R_CategorizeEntities( void )
 		switch( RI.currentmodel->type )
 		{
 		case mod_brush:
+		case mod_world:
 			r_bmodelentities[r_numbmodelentities++] = RI.currententity;
 			break;
 		case mod_alias:
 		case mod_studio:
-			if( !( RI.currententity->renderfx & ( RF_NOSHADOW|RF_PLANARSHADOW ) ) )
+			if(!( RI.currententity->flags & (EF_NOSHADOW|EF_PLANARSHADOW)))
 				R_AddShadowCaster( RI.currententity ); // build groups and mark shadow casters
 			break;
 		case mod_sprite:
@@ -1404,6 +1440,7 @@ static void R_CullEntities( void )
 				culled = true;
 				break;
 			case mod_brush:
+			case mod_world:
 				culled = R_CullBrushModel( e );
 				break;
 			case mod_sprite:
@@ -1413,7 +1450,7 @@ static void R_CullEntities( void )
 			}
 			break;
 		case RT_SPRITE:
-			culled = ( e->radius <= 0 ) || ( e->customShader == NULL );
+			culled = ( e->radius <= 0 ) || ( e->spriteshader == NULL );
 			break;
 		default:
 			break;
@@ -1491,7 +1528,7 @@ static void R_DrawRegularEntities( void )
 
 		if( shadowmap )
 		{
-			if( e->flags & RF_NOSHADOW )
+			if( e->flags & EF_NOSHADOW )
 				continue;
 			if( r_entShadowBits[i] & RI.shadowGroup->bit )
 				goto add; // shadow caster
@@ -1551,12 +1588,12 @@ static void R_DrawNullEntities( void )
 
 		if( RI.params & RP_MIRRORVIEW )
 		{
-			if( RI.currententity->flags & RF_WEAPONMODEL )
+			if( RI.currententity->ent_type == ED_VIEWMODEL )
 				continue;
 		}
 		else
 		{
-			if( RI.currententity->flags & RF_VIEWERMODEL )
+			if( RP_LOCALCLIENT( RI.currententity ))
 				continue;
 		}
 		R_DrawNullModel();
@@ -2158,6 +2195,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 
 	switch( refent->model->type )
 	{
+	case mod_world:
 	case mod_brush: break;
 	case mod_studio:
 		if( !refent->model->extradata )
@@ -2167,7 +2205,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 	case mod_sprite:		
 		if( !refent->model->extradata )
 			return false;
-		refent->rtype = RT_SPRITE;
+		refent->rtype = RT_MODEL;
 		break;
 	case mod_bad: // let the render drawing null model
 		break;
@@ -2176,9 +2214,10 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 	// setup latchedvars
 	VectorCopy( pRefEntity->v.oldorigin, refent->prev.origin );
 	VectorCopy( pRefEntity->v.oldangles, refent->prev.angles );
+	VectorCopy( pRefEntity->v.origin, refent->lightingOrigin );
 
 	// do animate
-	if( refent->effects & EF_ANIMATE )
+	if( refent->flags & EF_ANIMATE )
 	{
 		switch( refent->model->type )
 		{
@@ -2208,6 +2247,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 			break;
 		case mod_sprite:
 		case mod_brush:
+		case mod_world:
 			break;
 		}
           }
@@ -2231,7 +2271,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 	else VectorClear( refent->movedir );
 
 	// calculate angles
-	if( refent->effects & EF_ROTATE )
+	if( refent->flags & EF_ROTATE )
 	{	
 		// some bonus items auto-rotate
 		VectorSet( refent->angles, 0, anglemod( RI.refdef.time / 10), 0 );
@@ -2253,7 +2293,6 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 	{
 		if( r_lefthand->integer == 1 )
 			VectorNegate( refent->axis[1], refent->axis[1] ); 
-		refent->flags |= RF_WEAPONMODEL|RF_CULLHACK;
 	}
 
 	// copy controllers
@@ -2273,7 +2312,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 	if( refent->ent_type == ED_CLIENT )
 	{
 		refent->gaitsequence = pRefEntity->v.gaitsequence;
-		refent->flags |= RF_OCCLUSIONTEST;
+		refent->flags |= EF_OCCLUSIONTEST;
 	}
 	else refent->gaitsequence = 0;
 
@@ -2283,6 +2322,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 		switch( refent->model->type )
 		{
 		case mod_brush:
+		case mod_world:
 			refent->ent_type = ED_BSPBRUSH;
 			break;
 		case mod_studio:
@@ -2304,7 +2344,7 @@ bool R_AddPortalEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type, 
 	VectorCopy( pRefEntity->v.origin, refent->origin );
 	VectorCopy( pRefEntity->v.oldorigin, refent->origin2 );
 
-	if( refent->effects & EF_ROTATE )
+	if( refent->flags & EF_ROTATE )
 	{
 		float	phase = pRefEntity->v.frame;
 		float	speed = (pRefEntity->v.framerate ? pRefEntity->v.framerate : 50.0f);
@@ -2353,14 +2393,13 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac )
 	refent->skin = pRefEntity->v.skin;
 	refent->scale = pRefEntity->v.scale;
 	refent->colormap = pRefEntity->v.colormap;
-	refent->effects = pRefEntity->v.effects;
+	refent->flags = pRefEntity->v.effects;
 	refent->renderfx = pRefEntity->v.renderfx;
 	VectorCopy( pRefEntity->v.rendercolor, refent->rendercolor );
 	refent->renderamt = pRefEntity->v.renderamt;
 	refent->model = cl_models[pRefEntity->v.modelindex];
 	refent->movetype = pRefEntity->v.movetype;
 	refent->framerate = pRefEntity->v.framerate;
-	refent->flags = 0;
 
 	// setup rtype
 	switch( ed_type )

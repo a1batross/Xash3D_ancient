@@ -258,23 +258,35 @@ SPRITE MODELS
 //
 // in memory representation
 //
-typedef struct
+typedef struct mspriteframe_s
 {
-	int		width, height;
-	int		origin_x, origin_y;             // raster coordinates inside pic
-
-	char		name[64];
-	ref_shader_t	*shader;
-
-	float		mins[3], maxs[3];
+	int		width;
+	int		height;
+	float		up, down, left, right;
 	float		radius;
-} sframe_t;
+	shader_t		shader;
+} mspriteframe_t;
 
 typedef struct
 {
 	int		numframes;
-	sframe_t		*frames;
-} smodel_t;
+	float		*intervals;
+	mspriteframe_t	*frames[1];
+} mspritegroup_t;
+
+typedef struct
+{
+	frametype_t	type;
+	mspriteframe_t	*frameptr;
+} mspriteframedesc_t;
+
+typedef struct
+{
+	int		type;
+	int		rendermode;
+	int		numframes;
+	mspriteframedesc_t	frames[1];
+} msprite_t;
 
 //===================================================================
 

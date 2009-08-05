@@ -118,14 +118,14 @@ int CHudRedeemer :: Draw( float flTime )
 		// disable fade
 		SetScreenFade( Vector( 1, 1, 1 ), 0, 0, 0, FFADE_OUT );
 	}
-	else if( m_iHudMode == 1 )		// draw videocamera screen
+	else if( m_iHudMode == 4 )		// draw videocamera screen
 	{         
-		// play at 15fps
+		// play at 1.5 fps
 		frame = (int)(flTime * 1.5f) % SPR_Frames( m_hCamRec );
                     
 		// draw interlaces
 		SPR_Set( m_hCamera, 16, 96, 16, 64 ); // give this value from breaklight.bsp (xash03)
-		SPR_DrawAdditive( frame, 0, 0, ScreenWidth, ScreenHeight );
+		SPR_DrawAdditive( 0, 0, 0, ScreenWidth, ScreenHeight );
 
 		// draw recorder icon
 		SPR_Set( m_hCamRec, 255, 0, 0, 255 ); // give this value from breaklight.bsp (xash03)

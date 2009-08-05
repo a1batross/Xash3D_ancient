@@ -83,9 +83,9 @@ bool R_CullPlanarShadow( ref_entity_t *e, vec3_t mins, vec3_t maxs, bool occlusi
 	vec3_t bbox[8], newmins, newmaxs;
 	trace_t tr;
 
-	if( e->flags & ( RF_NOSHADOW|RF_WEAPONMODEL ) )
+	if((e->flags & EF_NOSHADOW) || (e->ent_type == ED_VIEWMODEL))
 		return true;
-	if( e->flags & RF_VIEWERMODEL )
+	if( RP_LOCALCLIENT( e ))
 		return false;
 
 	R_GetShadowImpactAndDir( e, &tr, lightdir );
@@ -308,7 +308,7 @@ add:
 	}
 
 	r_entShadowBits[ent - r_entities] |= group->bit;
-	if( ent->flags & RF_WEAPONMODEL )
+	if( ent->ent_type == ED_VIEWMODEL )
 		return true;
 
 	// rotate local bounding box and compute the full bounding box for this group

@@ -406,12 +406,14 @@ static void R_BatchMeshBuffer( const meshbuffer_t *mb, const meshbuffer_t *nextm
 	}
 
 	type = mb->sortkey & 3;
+	tr.iRenderMode = RI.currententity->rendermode;
 
 	switch( type )
 	{
 	case MB_MODEL:
 		switch( ent->model->type )
 		{
+		case mod_world:
 		case mod_brush:
 			MB_NUM2SHADER( mb->shaderkey, shader );
 

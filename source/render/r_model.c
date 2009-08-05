@@ -87,8 +87,9 @@ static mlightmapRect_t	*loadmodel_lightmapRects;
 static int		loadmodel_numshaderrefs;
 static mshaderref_t		*loadmodel_shaderrefs;
 
-void Mod_LoadAliasMD3Model( ref_model_t *mod, ref_model_t *parent, const void *buffer );
-void Mod_LoadBrushModel( ref_model_t *mod, ref_model_t *parent, const void *buffer );
+void Mod_SpriteLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer );
+void Mod_AliasLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer );
+void Mod_BrushLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer );
 
 ref_model_t *Mod_LoadModel( ref_model_t *mod, bool crash );
 
@@ -101,11 +102,12 @@ static byte		*mod_mempool;
 
 static modelformatdescriptor_t mod_supportedformats[] =
 {
-{ ALIASMODHEADER,	MD3_ALIAS_MAX_LODS,	Mod_LoadAliasMD3Model	}, // Quake III Arena .md3 models
-{ IDBSPMODHEADER,	0,		Mod_LoadBrushModel		}, // Quake III Arena .bsp models
-{ RBBSPMODHEADER,	0,		Mod_LoadBrushModel		}, // SOF2 and JK2 .bsp models
-{ QFBSPMODHEADER,	0,		Mod_LoadBrushModel		}, // QFusion .bsp models
-{ 0, 		0,		NULL			}  // terminator
+{ IDSPRITEHEADER,	0,		Mod_SpriteLoadModel	}, // Half-Life sprite models
+{ ALIASMODHEADER,	MD3_ALIAS_MAX_LODS,	Mod_AliasLoadModel	}, // Quake III Arena .md3 models
+{ IDBSPMODHEADER,	0,		Mod_BrushLoadModel	}, // Quake III Arena .bsp models
+{ RBBSPMODHEADER,	0,		Mod_BrushLoadModel	}, // SOF2 and JK2 .bsp models
+{ QFBSPMODHEADER,	0,		Mod_BrushLoadModel	}, // QFusion .bsp models
+{ 0, 		0,		NULL		}  // terminator
 };
 
 static int mod_numsupportedformats = sizeof( mod_supportedformats ) / sizeof( mod_supportedformats[0] ) - 1;
@@ -1954,10 +1956,10 @@ static void Mod_Finish( const lump_t *faces, const lump_t *light, vec3_t gridSiz
 
 /*
 =================
-Mod_LoadBrushModel
+Mod_BrushLoadModel
 =================
 */
-void Mod_LoadBrushModel( ref_model_t *mod, ref_model_t *parent, const void *buffer )
+void Mod_BrushLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer )
 {
 	int	i, version;
 	dheader_t	*header;
@@ -2099,6 +2101,7 @@ void R_BeginRegistration( const char *mapname, const dvis_t *visData )
 	r_worldmodel = Mod_ForName( fullname, true );
 	r_worldbrushmodel = (mbrushmodel_t *)r_worldmodel->extradata;
 	r_worldbrushmodel->vis = (dvis_t *)visData;
+	r_worldmodel->type = mod_world;
 
 	r_worldent->scale = 1.0f;
 	r_worldent->model = r_worldmodel;

@@ -245,13 +245,12 @@ typedef struct cdecal_s
 {
 	struct cdecal_s	*prev, *next;
 
-	float		die;				// remove after this time
+	float		die;			// remove after this time
+	float		time;			// time when decal is placed
 	float		fadetime;
 	float		fadefreq;
-	bool		fadealpha;
-
-	vec4_t		color;
-	shader_t		shader;
+	word		flags;
+	rgba_t		color;
 
 	poly_t		*poly;
 } cdecal_t;
@@ -347,7 +346,7 @@ void CL_FreeDecal( cdecal_t *dl )
 CL_SpawnDecal
 =================
 */
-void CL_SpawnDecal( vec3_t origin, vec3_t dir, float orient, float radius, float r, float g, float b, float a, float die, float fadetime, bool fadealpha, shader_t shader )
+void CL_SpawnDecal( vec3_t org, vec3_t dir, float rot, float rad, float *col, float die, float fadetime, word flags, shader_t handle )
 {
 	int		i, j;
 	cdecal_t		*dl;
@@ -360,37 +359,32 @@ void CL_SpawnDecal( vec3_t origin, vec3_t dir, float orient, float radius, float
 	float		dietime, fadefreq;
 
 	// invalid decal
-	if( radius <= 0 || VectorCompare( dir, vec3_origin ))
+	if( rad <= 0 || VectorCompare( dir, vec3_origin ))
 		return;
 
 	// calculate orientation matrix
 	VectorNormalize2( dir, axis[0] );
 	PerpendicularVector( axis[1], axis[0] );
-	RotatePointAroundVector( axis[2], axis[0], axis[1], orient );
+	RotatePointAroundVector( axis[2], axis[0], axis[1], rot );
 	CrossProduct( axis[0], axis[2], axis[1] );
 
-	numfragments = re->GetFragments( origin, radius, axis, MAX_DECAL_VERTS, verts, MAX_DECAL_FRAGMENTS, fragments );
+	numfragments = re->GetFragments( org, rad, axis, MAX_DECAL_VERTS, verts, MAX_DECAL_FRAGMENTS, fragments );
 
 	// no valid fragments
 	if( !numfragments ) return;
 
 	// clamp and scale colors
-	if( r < 0 ) r = 0; else if( r > 1 ) r = 255; else r *= 255;
-	if( g < 0 ) g = 0; else if( g > 1 ) g = 255; else g *= 255;
-	if( b < 0 ) b = 0; else if( b > 1 ) b = 255; else b *= 255;
-	if( a < 0 ) a = 0; else if( a > 1 ) a = 255; else a *= 255;
+	color[0] = (byte)bound( 0, col[0] * 255, 255 );
+	color[1] = (byte)bound( 0, col[1] * 255, 255 );
+	color[2] = (byte)bound( 0, col[2] * 255, 255 );
+	color[3] = (byte)bound( 0, col[3] * 255, 255 );
 
-	color[0] = (byte)( r );
-	color[1] = (byte)( g );
-	color[2] = (byte)( b );
-	color[3] = (byte)( a );
-
-	radius = 0.5f / radius;
-	VectorScale( axis[1], radius, axis[1] );
-	VectorScale( axis[2], radius, axis[2] );
+	rad = 0.5f / rad;
+	VectorScale( axis[1], rad, axis[1] );
+	VectorScale( axis[2], rad, axis[2] );
 
 	dietime = cl.time + die;
-	fadefreq = min( fadetime, die );
+	fadefreq = 1.0f / min( fadetime, die );
 	fadetime = cl.time + (die - min( fadetime, die ));
 
 	for( i = 0, fr = fragments; i < numfragments; i++, fr++ )
@@ -402,19 +396,16 @@ void CL_SpawnDecal( vec3_t origin, vec3_t dir, float orient, float radius, float
 
 		// allocate decal
 		dl = CL_AllocDecal ();
+		Vector4Copy( color, dl->color );
 		dl->die = dietime;
+		dl->time = cl.time;
 		dl->fadetime = fadetime;
 		dl->fadefreq = fadefreq;
-		dl->fadealpha = fadealpha;
-		dl->shader = shader;
-		dl->color[0] = r; 
-		dl->color[1] = g;
-		dl->color[2] = b;
-		dl->color[3] = a;
+		dl->flags = flags;
 
 		// setup polygon for drawing
 		poly = dl->poly;
-		poly->shadernum = shader;
+		poly->shadernum = handle;
 		poly->numverts = fr->numverts;
 		poly->fognum = fr->fognum;
 
@@ -422,7 +413,7 @@ void CL_SpawnDecal( vec3_t origin, vec3_t dir, float orient, float radius, float
 			vec3_t v;
 
 			VectorCopy( verts[fr->firstvert+j], poly->verts[j] );
-			VectorSubtract( poly->verts[j], origin, v );
+			VectorSubtract( poly->verts[j], org, v );
 			poly->stcoords[j][0] = DotProduct( v, axis[1] ) + 0.5f;
 			poly->stcoords[j][1] = DotProduct( v, axis[2] ) + 0.5f;
 			*( int * )poly->colors[j] = *( int * )color;
@@ -457,12 +448,25 @@ void CL_AddDecals( void )
 		}
 		poly = dl->poly;
 
+		if( dl->flags & DECAL_FADEENERGY )
+		{
+			float	time = cl.time - dl->time;
+
+			if( time < dl->fadetime )
+			{
+				fade = 255 - (time / dl->fadetime);
+				color[0] = ( byte )( dl->color[0] * fade );
+				color[1] = ( byte )( dl->color[1] * fade );
+				color[2] = ( byte )( dl->color[2] * fade );
+			}
+		}
+
 		// fade out
 		if( dl->fadetime < cl.time )
 		{
 			fade = (dl->die - cl.time) * dl->fadefreq;
 
-			if( dl->fadealpha )
+			if( dl->flags & DECAL_FADEALPHA )
 			{
 				color[0] = ( byte )( dl->color[0] );
 				color[1] = ( byte )( dl->color[1] );
@@ -492,12 +496,7 @@ pfnAddDecal
 */
 void pfnAddDecal( float *org, float *dir, float *rgba, float rot, float rad, HSPRITE hSpr, int flags )
 {
-	bool	fade, temp;
-
-	fade = (flags & DECAL_FADE) ? true : false;
-	temp = (flags & DECAL_TEMPORARY) ? true : false;
-
-	CL_SpawnDecal( org, dir, rot, rad, rgba[0], rgba[1], rgba[2], rgba[3], 120.0f, 30.0f, fade, hSpr );
+	CL_SpawnDecal( org, dir, rot, rad, rgba, 120.0f, 30.0f, flags, hSpr );
 }
 
 /*
@@ -538,7 +537,7 @@ struct cparticle_s
 	poly_t		poly;
 	vec3_t		pVerts[4];
 	vec2_t		pStcoords[4];
-	rgba_t		pColor;
+	rgba_t		pColor[4];
 };
 
 cparticle_t *cl_active_particles, *cl_free_particles;
@@ -601,9 +600,9 @@ void CL_ClearParticles( void )
 
 	for( i = 0; i < NUMVERTEXNORMALS; i++ )
 	{
-		cl_particle_velocities[i][0] = (rand() & 255) * 0.01;
-		cl_particle_velocities[i][1] = (rand() & 255) * 0.01;
-		cl_particle_velocities[i][2] = (rand() & 255) * 0.01;
+		cl_particle_velocities[i][0] = (rand() & 255) * 0.01f;
+		cl_particle_velocities[i][1] = (rand() & 255) * 0.01f;
+		cl_particle_velocities[i][2] = (rand() & 255) * 0.01f;
 	}
 }
 
@@ -805,7 +804,10 @@ void CL_AddParticles( void )
 			p->alphaVelocity = 0;
 		}
 
-		VectorCopy( modulate, p->pColor );
+		*(int *)p->pColor[0] = *(int *)modulate;
+		*(int *)p->pColor[1] = *(int *)modulate;
+		*(int *)p->pColor[2] = *(int *)modulate;
+		*(int *)p->pColor[3] = *(int *)modulate;
 
 		corner[0] = origin[0];
 		corner[1] = origin[1] - 0.5f * p->scale;
@@ -819,7 +821,7 @@ void CL_AddParticles( void )
 		p->poly.numverts = 4;
 		p->poly.verts = p->pVerts;
 		p->poly.stcoords = p->pStcoords;
-		p->poly.colors = &p->pColor;
+		p->poly.colors = p->pColor;
 		p->poly.shadernum = p->shader;
 		p->poly.fognum = p->fog ? 0 : -1;
 

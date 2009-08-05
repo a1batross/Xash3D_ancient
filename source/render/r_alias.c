@@ -82,10 +82,10 @@ MD3 MODELS
 
 /*
 =================
-Mod_LoadAliasMD3Model
+Mod_AliasLoadModel
 =================
 */
-void Mod_LoadAliasMD3Model( ref_model_t *mod, ref_model_t *parent, const void *buffer )
+void Mod_AliasLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer )
 {
 	int version, i, j, l;
 	int bufsize, numverts;
@@ -317,11 +317,10 @@ R_AliasModelLOD
 */
 static ref_model_t *R_AliasModelLOD( ref_entity_t *e )
 {
-	int lod;
-	float dist;
+	int	lod;
+	float	dist;
 
-	if( !e->model->numlods || ( e->flags & RF_FORCENOLOD ) )
-		return e->model;
+	if( !e->model->numlods ) return e->model;
 
 	dist = DistanceFast( e->origin, RI.viewOrigin );
 	dist *= RI.lod_dist_scale_for_fov;
@@ -331,8 +330,7 @@ static ref_model_t *R_AliasModelLOD( ref_entity_t *e )
 		lod /= r_lodscale->integer;
 	lod += r_lodbias->integer;
 
-	if( lod < 1 )
-		return e->model;
+	if( lod < 1 ) return e->model;
 	return e->model->lods[min( lod, e->model->numlods )-1];
 }
 
@@ -357,21 +355,17 @@ static void R_AliasModelLerpBBox( ref_entity_t *e, ref_model_t *mod )
 
 	if( ( e->frame >= aliasmodel->numframes ) || ( e->frame < 0 ) )
 	{
-#ifndef WSW_RELEASE
-		MsgDev( D_ERROR, "R_DrawAliasModel %s: no such frame %d\n", mod->name, e->frame );
-#endif
+		MsgDev( D_ERROR, "R_DrawAliasModel %s: no such frame %g\n", mod->name, e->frame );
 		e->frame = 0;
 	}
-	if( ( e->oldframe >= aliasmodel->numframes ) || ( e->oldframe < 0 ) )
+	if( ( e->prev.frame >= aliasmodel->numframes ) || ( e->prev.frame < 0 ) )
 	{
-#ifndef WSW_RELEASE
-		MsgDev( D_ERROR, "R_DrawAliasModel %s: no such oldframe %d\n", mod->name, e->oldframe );
-#endif
-		e->oldframe = 0;
+		MsgDev( D_ERROR, "R_DrawAliasModel %s: no such oldframe %g\n", mod->name, e->prev.frame );
+		e->prev.frame = 0;
 	}
 
-	pframe = aliasmodel->frames + e->frame;
-	poldframe = aliasmodel->frames + e->oldframe;
+	pframe = aliasmodel->frames + (int)e->frame;
+	poldframe = aliasmodel->frames + (int)e->prev.frame;
 
 	// compute axially aligned mins and maxs
 	if( pframe == poldframe )
@@ -411,9 +405,9 @@ R_AliasModelLerpTag
 */
 bool R_AliasModelLerpTag( orientation_t *orient, maliasmodel_t *aliasmodel, int oldframenum, int framenum, float lerpfrac, const char *name )
 {
-	int i;
-	quat_t quat;
-	maliastag_t *tag, *oldtag;
+	int		i;
+	quat_t		quat;
+	maliastag_t	*tag, *oldtag;
 
 	// find the appropriate tag
 	for( i = 0; i < aliasmodel->numtags; i++ )
@@ -431,16 +425,12 @@ bool R_AliasModelLerpTag( orientation_t *orient, maliasmodel_t *aliasmodel, int 
 	// ignore invalid frames
 	if( ( framenum >= aliasmodel->numframes ) || ( framenum < 0 ) )
 	{
-#ifndef WSW_RELEASE
 		MsgDev( D_ERROR, "R_AliasModelLerpTag %s: no such oldframe %i\n", name, framenum );
-#endif
 		framenum = 0;
 	}
 	if( ( oldframenum >= aliasmodel->numframes ) || ( oldframenum < 0 ) )
 	{
-#ifndef WSW_RELEASE
 		MsgDev( D_ERROR, "R_AliasModelLerpTag %s: no such oldframe %i\n", name, oldframenum );
-#endif
 		oldframenum = 0;
 	}
 
@@ -495,8 +485,8 @@ static void R_DrawAliasFrameLerp( const meshbuffer_t *mb, float backlerp )
 		return;
 	mesh = model->meshes + meshnum;
 
-	frame = model->frames + e->frame;
-	oldframe = model->frames + e->oldframe;
+	frame = model->frames + (int)e->frame;
+	oldframe = model->frames + (int)e->prev.frame;
 	for( i = 0; i < 3; i++ )
 		move[i] = frame->translate[i] + ( oldframe->translate[i] - frame->translate[i] ) * backlerp;
 
@@ -518,17 +508,15 @@ static void R_DrawAliasFrameLerp( const meshbuffer_t *mb, float backlerp )
 	}
 
 	calcNormals = calcSTVectors = false;
-	calcNormals = ( ( features & MF_NORMALS ) != 0 ) && ( ( e->frame != 0 ) || ( e->oldframe != 0 ) );
+	calcNormals = (( features & MF_NORMALS ) != 0 ) && (( e->frame != 0 ) || ( e->prev.frame != 0 ));
 
 	if( alias_framecount == r_framecount && RI.previousentity && RI.previousentity->model == e->model && alias_prevmesh == mesh && alias_prevshader == shader )
 	{
 		ref_entity_t *pe = RI.previousentity;
-		if( pe->frame == e->frame
-			&& pe->oldframe == e->oldframe
-			&& ( pe->backlerp == e->backlerp || e->frame == e->oldframe ) )
+		if( pe->frame == e->frame && pe->prev.frame == e->prev.frame && ( pe->backlerp == e->backlerp || e->frame == e->prev.frame ))
 		{
-			unlockVerts = ( ( ( features & MF_DEFORMVS ) /* && (e->shaderTime != pe->shaderTime)*/ ) );
-			calcNormals = ( calcNormals && ( shader->features & SHADER_DEFORM_NORMAL ) );
+			unlockVerts = ((( features & MF_DEFORMVS )));
+			calcNormals = ( calcNormals && ( shader->features & SHADER_DEFORM_NORMAL ));
 		}
 	}
 
@@ -541,7 +529,7 @@ static void R_DrawAliasFrameLerp( const meshbuffer_t *mb, float backlerp )
 
 	if( unlockVerts )
 	{
-		if( !e->frame && !e->oldframe )
+		if( !e->frame && !e->prev.frame )
 		{
 			calcVerts = false;
 
@@ -552,14 +540,14 @@ static void R_DrawAliasFrameLerp( const meshbuffer_t *mb, float backlerp )
 					R_LatLongToNorm( v->latlong, inNormalsArray[i] );
 			}
 		}
-		else if( e->frame == e->oldframe )
+		else if( e->frame == e->prev.frame )
 		{
 			calcVerts = true;
 
 			for( i = 0; i < 3; i++ )
 				frontv[i] = frame->scale[i];
 
-			v = mesh->vertexes + e->frame * mesh->numverts;
+			v = mesh->vertexes + (int)e->frame * mesh->numverts;
 			for( i = 0; i < mesh->numverts; i++, v++ )
 			{
 				Vector4Set( inVertsArray[i],
@@ -581,8 +569,8 @@ static void R_DrawAliasFrameLerp( const meshbuffer_t *mb, float backlerp )
 				frontv[i] = ( 1.0f - backlerp ) * frame->scale[i];
 			}
 
-			v = mesh->vertexes + e->frame * mesh->numverts;
-			ov = mesh->vertexes + e->oldframe * mesh->numverts;
+			v = mesh->vertexes + (int)e->frame * mesh->numverts;
+			ov = mesh->vertexes + (int)e->prev.frame * mesh->numverts;
 			for( i = 0; i < mesh->numverts; i++, v++, ov++ )
 			{
 				Vector4Set( inVertsArray[i],
@@ -649,23 +637,28 @@ void R_DrawAliasModel( const meshbuffer_t *mb )
 	}
 
 	// hack the depth range to prevent view model from poking into walls
-	if( e->flags & RF_WEAPONMODEL )
+	if( e->ent_type == ED_VIEWMODEL )
+	{
 		pglDepthRange( gldepthmin, gldepthmin + 0.3 * ( gldepthmax - gldepthmin ) );
 
-	// backface culling for left-handed weapons
-	if( e->flags & RF_CULLHACK )
-		GL_FrontFace( !glState.frontFace );
+		// backface culling for left-handed weapons
+		if( r_lefthand->integer == 1 )
+			GL_FrontFace( !glState.frontFace );
+          }
 
 	if( !r_lerpmodels->integer )
 		e->backlerp = 0;
 
 	R_DrawAliasFrameLerp( mb, e->backlerp );
 
-	if( e->flags & RF_WEAPONMODEL )
+	if( e->ent_type == ED_VIEWMODEL )
+	{
 		pglDepthRange( gldepthmin, gldepthmax );
 
-	if( e->flags & RF_CULLHACK )
-		GL_FrontFace( !glState.frontFace );
+		// backface culling for left-handed weapons
+		if( r_lefthand->integer == 1 )
+			GL_FrontFace( !glState.frontFace );
+	}
 }
 
 /*
@@ -721,7 +714,7 @@ bool R_CullAliasModel( ref_entity_t *e )
 		R_IssueOcclusionQuery( R_GetOcclusionQueryNum( OQ_ENTITY, e - r_entities ), e, alias_mins, alias_maxs );
 
 	if( ( RI.refdef.rdflags & RDF_NOWORLDMODEL )
-		|| ( r_shadows->integer != SHADOW_PLANAR && !( r_shadows->integer == SHADOW_MAPPING && ( e->flags & RF_PLANARSHADOW ) ) )
+		|| ( r_shadows->integer != SHADOW_PLANAR && !( r_shadows->integer == SHADOW_MAPPING && ( e->flags & EF_PLANARSHADOW )))
 		|| R_CullPlanarShadow( e, alias_mins, alias_maxs, query ) )
 		return frustum; // entity is not in PVS or shadow is culled away by frustum culling
 
@@ -730,10 +723,8 @@ bool R_CullAliasModel( ref_entity_t *e )
 	{
 		shader = NULL;
 
-		if( e->customSkin )
-			shader = R_FindShaderForSkinFile( e->customSkin, mesh->name );
-		else if( e->customShader )
-			shader = e->customShader;
+		if( e->skinfile )
+			shader = R_FindShaderForSkinFile( e->skinfile, mesh->name );
 		else if( mesh->numskins )
 		{
 			for( j = 0; j < mesh->numskins; j++ )
@@ -745,11 +736,10 @@ bool R_CullAliasModel( ref_entity_t *e )
 			}
 		}
 
-		if( shader && ( shader->sort <= SORT_ALPHATEST ) )
+		if( shader && ( shader->sort <= SORT_ALPHATEST ))
 		{
-			mb = R_AddMeshToList( MB_MODEL, NULL, R_PlanarShadowShader(), -( i+1 ) );
-			if( mb )
-				mb->LODModelHandle = modhandle;
+			mb = R_AddMeshToList( MB_MODEL, NULL, R_PlanarShadowShader(), -( i+1 ));
+			if( mb ) mb->LODModelHandle = modhandle;
 		}
 	}
 
@@ -781,7 +771,7 @@ void R_AddAliasModelToList( ref_entity_t *e )
 		{
 			if( !r_shadows_self_shadow->integer )
 				r_entShadowBits[entnum] &= ~RI.shadowGroup->bit;
-			if( e->flags & RF_WEAPONMODEL )
+			if( e->ent_type == ED_VIEWMODEL )
 				return;
 		}
 		else
@@ -796,10 +786,10 @@ void R_AddAliasModelToList( ref_entity_t *e )
 	{
 		fog = R_FogForSphere( e->origin, alias_radius );
 #if 0
-		if( !( e->flags & RF_WEAPONMODEL ) && fog )
+		if( !( e->ent_type == ED_VIEWMODEL ) && fog )
 		{
 			R_AliasModelLerpBBox( e, mod );
-			if( R_CompletelyFogged( fog, e->origin, alias_radius ) )
+			if( R_CompletelyFogged( fog, e->origin, alias_radius ))
 				return;
 		}
 #endif
@@ -809,22 +799,16 @@ void R_AddAliasModelToList( ref_entity_t *e )
 	{
 		shader = NULL;
 
-		if( e->customSkin )
-			shader = R_FindShaderForSkinFile( e->customSkin, mesh->name );
-		else if( e->customShader )
-			shader = e->customShader;
+		if( e->skinfile ) shader = R_FindShaderForSkinFile( e->skinfile, mesh->name );
 		else if( mesh->numskins )
 		{
 			for( j = 0; j < mesh->numskins; j++ )
 			{
 				shader = mesh->skins[j].shader;
-				if( shader )
-					R_AddModelMeshToList( modhandle, fog, shader, i );
+				if( shader ) R_AddModelMeshToList( modhandle, fog, shader, i );
 			}
 			continue;
 		}
-
-		if( shader )
-			R_AddModelMeshToList( modhandle, fog, shader, i );
+		if( shader ) R_AddModelMeshToList( modhandle, fog, shader, i );
 	}
 }

@@ -76,44 +76,43 @@ typedef struct entity_s
 	int			index;		// viewmodel has entindex -1
 	refEntityType_t		rtype;
 
-	struct ref_model_s		*model;			// opaque type outside refresh
-	struct ref_model_s		*weaponmodel;		// opaque type outside refresh
+	struct ref_model_s		*model;		// opaque type outside refresh
+	struct ref_model_s		*weaponmodel;	// opaque type outside refresh
+	struct skinfile_s		*skinfile;	// registered .skin file
 
-	latchedvars_t	prev;		// previous frame values for lerping
+	latchedvars_t		prev;		// previous frame values for lerping
 
-	int		flags;
+	float			framerate;	// custom framerate
+          float			animtime;		// lerping animtime	
+	float			frame;		// also used as RF_BEAM's diameter
 
-	float		framerate;	// custom framerate
-          float		animtime;		// lerping animtime	
-	int		frame;		// also used as RF_BEAM's diameter
+	int			body;
+	int			skin;
 
-	int		body;
-	int		skin;
+	float			blending[MAXSTUDIOBLENDS];
+	vec3_t			attachment[MAXSTUDIOATTACHMENTS];
+	float			controller[MAXSTUDIOCONTROLLERS];
+	mouth_t			mouth;		// for synchronizing mouth movements.
 
-	float		blending[MAXSTUDIOBLENDS];
-	vec3_t		attachment[MAXSTUDIOATTACHMENTS];
-	float		controller[MAXSTUDIOCONTROLLERS];
-	mouth_t		mouth;		// for synchronizing mouth movements.
+	int			gaitsequence;	// client->sequence + yaw
+	float			gaitframe;	// client->frame + yaw
+	float			gaityaw;		// local value
 
-	int		gaitsequence;	// client->sequence + yaw
-	float		gaitframe;	// client->frame + yaw
-	float		gaityaw;		// local value
-
-          int		movetype;		// entity moving type
-	int		sequence;
-	float		scale;
+          int			movetype;		// entity moving type
+	int			sequence;
+	float			scale;
 
 	// misc
-	float		backlerp;		// 0.0 = current, 1.0 = old
-	rgb_t		rendercolor;	// hl1 rendercolor
-	byte		renderamt;	// hl1 alphavalues
-	int		rendermode;	// hl1 rendermode
-	int		renderfx;		// server will be translate hl1 values into flags
-	int		colormap;		// q1 and hl1 model colormap (can applied for sprites)
-	int		effects;		// q1 effect flags, EF_ROTATE, EF_DIMLIGHT etc
+	float			backlerp;		// 0.0 = current, 1.0 = old
+	rgb_t			rendercolor;	// hl1 rendercolor
+	byte			renderamt;	// hl1 alphavalues
+	int			rendermode;	// hl1 rendermode
+	int			renderfx;		// server will be translate hl1 values into flags
+	int			colormap;		// q1 and hl1 model colormap (can applied for sprites)
+	int			flags;		// q1 effect flags, EF_ROTATE, EF_DIMLIGHT etc
 
-	int		m_fSequenceLoops;
-	int		m_fSequenceFinished;
+	int			m_fSequenceLoops;
+	int			m_fSequenceFinished;
 
 	/*
 	** most recent data
@@ -124,37 +123,14 @@ typedef struct entity_s
 	vec3_t			origin, origin2;
 	vec3_t			lightingOrigin;
 
-	/*
-	** previous data for lerping
-	*/
-	int			oldframe;
+	// RT_SPRITE stuff
+	struct ref_shader_s		*spriteshader;	// client drawing stuff
+	float			radius;		// used as RT_SPRITE's radius
 
-	/*
-	** texturing
-	*/
-	int			skinNum;
-	struct skinfile_s		*customSkin;	// registered .skin file
-	struct ref_shader_s		*customShader;	// NULL for inline skin
-
-	/*
-	** misc
-	*/
-	float			shaderTime;
-	union
-	{
-		rgba_t		color;
-		rgba_t		shaderRGBA;
-	};
-
-	float			radius;			// used as RT_SPRITE's radius
-	float			rotation;
-
+	// outilne stuff
 	float			outlineHeight;
-	union
-	{
-		rgba_t		outlineColor;
-		rgba_t		outlineRGBA;
-	};
+	rgba_t			outlineColor;
+
 } ref_entity_t;
 
 void		R_ModelBounds( const struct ref_model_s *model, vec3_t mins, vec3_t maxs );

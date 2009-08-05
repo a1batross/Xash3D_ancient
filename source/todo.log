@@ -111,10 +111,13 @@ Beta 13.12.08
 80. implement $rgb, $alpha			OK
 89. get rid of R_Upload32			OK
 90. get rid of Com_ParseExt			OK
-91. implement rendermodes
+91. implement rendermodes			OK
 92. implement VBO				OK
 93. implement sky rotate
 94. make default sky shader, R_SetupSky
 95. support for custom tables (external)	OK
-96. implement sprite format
-97. fix fog color on q3tourney5 
+96. implement sprite format			OK
+97. fix fog color in release build
+98. fix crash with FOG2NUM in release build
+99. rewrote RF_* flags			OK
+100. implement pglBegin for perfomance testing 

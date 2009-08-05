@@ -228,26 +228,25 @@ R_CullModel
 */
 int R_CullModel( ref_entity_t *e, vec3_t mins, vec3_t maxs, float radius )
 {
-	if( e->flags & RF_WEAPONMODEL )
+	if( e->ent_type == ED_VIEWMODEL )
 	{
 		if( RI.params & RP_NONVIEWERREF )
 			return 1;
 		return 0;
 	}
 
-	if( e->flags & RF_VIEWERMODEL )
+	if( RP_LOCALCLIENT( e ))
 	{
-		//if( !(RI.params & RP_NONVIEWERREF) )
-		if( !( RI.params & ( RP_MIRRORVIEW|RP_SHADOWMAPVIEW ) ) )
+		if(!( RI.params & ( RP_MIRRORVIEW|RP_SHADOWMAPVIEW )))
 			return 1;
 	}
 
 	if( R_CullSphere( e->origin, radius, RI.clipFlags ) )
 		return 1;
 
-	if( RI.refdef.rdflags & ( RDF_PORTALINVIEW|RDF_SKYPORTALINVIEW ) || ( RI.params & RP_SKYPORTALVIEW ) )
+	if( RI.refdef.rdflags & (RDF_PORTALINVIEW|RDF_SKYPORTALINVIEW) || (RI.params & RP_SKYPORTALVIEW))
 	{
-		if( R_VisCullSphere( e->origin, radius ) )
+		if( R_VisCullSphere( e->origin, radius ))
 			return 2;
 	}
 

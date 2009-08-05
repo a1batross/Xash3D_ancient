@@ -762,7 +762,7 @@ msurface_t *R_TransformedTraceLine( trace_t *tr, const vec3_t start, const vec3_
 	model = test->model;
 	if( model )
 	{
-		if( model->type == mod_brush )
+		if( model->type == mod_world || model->type == mod_brush )
 		{
 			mbrushmodel_t *bmodel = ( mbrushmodel_t * )model->extradata;
 			vec3_t temp, start_l, end_l, axis[3];
@@ -784,7 +784,7 @@ msurface_t *R_TransformedTraceLine( trace_t *tr, const vec3_t start, const vec3_
 
 			// world uses a recursive approach using BSP tree, submodels
 			// just walk the list of surfaces linearly
-			if( test->model == r_worldmodel )
+			if( test->model->type == mod_world )
 				R_RecursiveHullCheck( bmodel->nodes, start_l, end_l );
 			else if( BoundsIntersect( model->mins, model->maxs, trace_absmins, trace_absmaxs ) )
 				R_TraceAgainstBmodel( bmodel );

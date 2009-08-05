@@ -1754,6 +1754,7 @@ static bool Shaderpass_RGBGen( ref_shader_t *shader, ref_stage_t *pass, script_t
 	else
 	{
 		MsgDev( D_WARN, "unknown 'rgbGen' parameter '%s' in shader '%s'\n", tok.string, shader->name );
+		pass->rgbGen.type = RGBGEN_IDENTITY;
 		Shader_SkipLine( script );
 		return true;
 	}
@@ -1779,6 +1780,7 @@ static bool Shaderpass_AlphaGen( ref_shader_t *shader, ref_stage_t *pass, script
 		if( !pass->alphaGen.args[0] ) pass->alphaGen.args[0] = 256.0f;
 		pass->alphaGen.args[0] = 1.0f / pass->alphaGen.args[0];
 	}
+	else if( !com.stricmp( tok.string, "identity" )) pass->alphaGen.type = ALPHAGEN_IDENTITY;
 	else if( !com.stricmp( tok.string, "vertex" )) pass->alphaGen.type = ALPHAGEN_VERTEX;
 	else if( !com.stricmp( tok.string, "oneMinusVertex" )) pass->alphaGen.type = ALPHAGEN_ONE_MINUS_VERTEX;
 	else if( !com.stricmp( tok.string, "entity" )) pass->alphaGen.type = ALPHAGEN_ENTITY;
@@ -1888,6 +1890,7 @@ static bool Shaderpass_AlphaGen( ref_shader_t *shader, ref_stage_t *pass, script
 	else
 	{
 		MsgDev( D_WARN, "unknown 'alphaGen' parameter '%s' in shader '%s'\n", tok.string, shader->name );
+		pass->alphaGen.type = ALPHAGEN_IDENTITY;
 		Shader_SkipLine( script );
 		return true;
 	}
@@ -2056,8 +2059,8 @@ static bool Shaderpass_TcMod( ref_shader_t *shader, ref_stage_t *pass, script_t 
 			return false;
 		}
 		tcMod->args[0] = -tcMod->args[0] / 360.0f;
-		if( !tcMod->args[0] ) return false;
 		Com_ReadFloat( script, false, NULL );	// skip second parm if present
+		if( !tcMod->args[0] ) return true;
 		tcMod->type = TCMOD_ROTATE;
 	}
 	else if( !com.stricmp( tok.string, "scale" ))
@@ -2096,7 +2099,6 @@ static bool Shaderpass_TcMod( ref_shader_t *shader, ref_stage_t *pass, script_t 
 			MsgDev( D_ERROR, "missing waveform parameters for 'tcMod stretch' in shader '%s'\n", shader->name );
 			return false;
 		}
-
 		tcMod->args[0] = func.type;
 		tcMod->args[5] = func.tableIndex;
 		for( i = 1; i < 5; i++ )
@@ -2171,10 +2173,6 @@ static bool Shaderpass_TcGen( ref_shader_t *shader, ref_stage_t *pass, script_t 
 	}
 	else if( !com.stricmp( tok.string, "warp" ))
 		pass->tcgen = TCGEN_WARP;
-	else if( !com.stricmp( tok.string, "lightVector" ))
-		pass->tcgen = TCGEN_LIGHTVECTOR;
-	else if( !com.stricmp( tok.string, "halfAngle" ))
-		pass->tcgen = TCGEN_HALFANGLE;
 	else if( !com.stricmp( tok.string, "reflection" ))
 		pass->tcgen = TCGEN_REFLECTION;
 	else if( !com.stricmp( tok.string, "normal"))
@@ -2305,7 +2303,7 @@ static void Shader_ParseFile( script_t *script, const char *name )
 
 static ref_script_t *Shader_GetCache( const char *name, int type, uint hashKey )
 {
-	ref_script_t	*cache;
+	ref_script_t	*cache = NULL;
 
 	// see if there's a script for this shader
 	for( cache = r_shaderScriptsHash[hashKey]; cache; cache = cache->nextHash )
@@ -2316,7 +2314,6 @@ static ref_script_t *Shader_GetCache( const char *name, int type, uint hashKey )
 			if( cache->type == type ) break;
 		}
 	}
-
 	return cache;
 }
 
@@ -2439,7 +2436,7 @@ void R_ShaderDump_f( void )
 	}
 
 	Msg( "found in %s:\n\n", cache->source );
-	Msg( "^1%s%s\n", name, cache->buffer );
+	Msg( "^2%s%s\n", name, cache->buffer );
 }
 
 void R_RegisterBuiltinShaders( void )
@@ -2507,7 +2504,7 @@ void Shader_TouchImages( ref_shader_t *shader, bool free_unused )
 			// prolonge registration for all shader textures
 			texture = stage->textures[j];
 
-			if( !texture || !texture->name[0] ) continue;
+			if( !texture || !texture->texnum ) continue;
 			if( texture->flags & TF_STATIC ) continue;
 			if( free_unused && texture->touchFrame != tr.registration_sequence )
 				R_FreeImage( texture );
@@ -2797,7 +2794,22 @@ static bool Shader_ParseShader( ref_shader_t *shader, script_t *script )
 	return false;
 }
 
-void Shader_SetFeatures( ref_shader_t *s )
+static void Shader_SetRenderMode( ref_shader_t *s )
+{
+	int		i;
+	ref_stage_t	*pass;
+
+	for( i = 0, pass = s->stages; i < s->num_stages; i++, pass++ )
+	{
+		pass->prev.glState = pass->glState;
+		pass->prev.flags = pass->flags;
+		pass->prev.rgbGen = pass->rgbGen;
+		pass->prev.alphaGen = pass->alphaGen;
+	}
+	s->realsort = s->sort;
+}
+
+static void Shader_SetFeatures( ref_shader_t *s )
 {
 	int i;
 	ref_stage_t *pass;
@@ -2828,6 +2840,9 @@ void Shader_SetFeatures( ref_shader_t *s )
 	{
 		if( pass->program && ( pass->program_type == PROGRAM_TYPE_MATERIAL || pass->program_type == PROGRAM_TYPE_DISTORTION ) )
 			s->features |= MF_NORMALS|MF_SVECTORS|MF_LMCOORDS|MF_ENABLENORMALS;
+
+		if( pass->flags & SHADERSTAGE_RENDERMODE )
+			s->features |= MF_COLORS;
 
 		switch( pass->rgbGen.type )
 		{
@@ -2959,7 +2974,7 @@ void Shader_Finish( ref_shader_t *s )
 			pass->rgbGen.func = NULL;
 		}
 
-		if( pass->alphaGen.type == ALPHAGEN_WAVE )
+		if( pass->alphaGen.type == ALPHAGEN_WAVE  || pass->rgbGen.type == ALPHAGEN_ALPHAWAVE )
 		{
 			pass->alphaGen.func = ( waveFunc_t * )buffer; buffer += sizeof( waveFunc_t );
 			Mem_Copy( pass->alphaGen.func, r_currentPasses[i].alphaGen.func, sizeof( waveFunc_t ));
@@ -3091,6 +3106,7 @@ void Shader_Finish( ref_shader_t *s )
 	if(( s->flags & SHADER_SKYPARMS ) && ( s->flags & SHADER_DEPTHWRITE ))
 		s->flags &= ~SHADER_DEPTHWRITE;
 
+	Shader_SetRenderMode( s );
 	Shader_SetFeatures( s );
 
  	// refresh registration sequence
@@ -3246,7 +3262,7 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		else if( r_numSpriteTextures > 1 )
 		{
 			// store group frames into one stage
-			pass->flags |= SHADERSTAGE_ANIMFREQUENCY;
+			pass->flags |= SHADERSTAGE_FRAMES;
 			pass->animFrequency = r_spriteFrequency;
 
 			for( i = 0; i < r_numSpriteTextures; i++ )
@@ -3261,6 +3277,7 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		{
 			// single frame
 			pass->textures[0] = r_spriteTexture[0];
+			pass->num_textures++;
 
 			if( !pass->textures[0] )
 			{
@@ -3301,7 +3318,6 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 			shader->sort = SORT_ALPHATEST;
 			break;
 		}
-		shader->num_stages++; 
 
 		// reset parms
 		r_numSpriteTextures = 0;
@@ -3357,8 +3373,8 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
 			pass->textures[0] = tr.defaultTexture;
 		}
-		pass->rgbGen.type = RGBGEN_VERTEX;
-		pass->alphaGen.type = ALPHAGEN_VERTEX;
+		pass->rgbGen.type = RGBGEN_IDENTITY;
+		pass->alphaGen.type = ALPHAGEN_IDENTITY;
 		pass->tcgen = TCGEN_BASE;
 		pass->num_textures++;
 		break;
@@ -3535,6 +3551,8 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		pass->num_textures++;
 		break;
 	}
+
+	Shader_SetRenderMode( shader );
 
  	// refresh registration sequence
  	Shader_TouchImages( shader, false );

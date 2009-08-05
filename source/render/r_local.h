@@ -146,17 +146,17 @@ enum
 
 #define BACKFACE_EPSILON		0.01
 
-#define Z_NEAR					4
+#define Z_NEAR			4
 
-#define	SIDE_FRONT				0
-#define	SIDE_BACK				1
-#define	SIDE_ON					2
+#define	SIDE_FRONT		0
+#define	SIDE_BACK			1
+#define	SIDE_ON			2
 
-#define RP_NONE					0x0
-#define RP_MIRRORVIEW			0x1     // lock pvs at vieworg
-#define RP_PORTALVIEW			0x2
-#define RP_ENVVIEW				0x4
-#define RP_NOSKY				0x8
+#define RP_NONE			0x0
+#define RP_MIRRORVIEW		0x1     // lock pvs at vieworg
+#define RP_PORTALVIEW		0x2
+#define RP_ENVVIEW			0x4
+#define RP_NOSKY			0x8
 #define RP_SKYPORTALVIEW		0x10
 #define RP_PORTALCAPTURED		0x20
 #define RP_PORTALCAPTURED2		0x40
@@ -164,11 +164,12 @@ enum
 #define RP_SHADOWMAPVIEW		0x100
 #define RP_FLIPFRONTFACE		0x200
 #define RP_WORLDSURFVISIBLE		0x400
-#define RP_CLIPPLANE			0x800
-#define RP_TRISOUTLINES			0x1000
-#define RP_SHOWNORMALS			0x2000
+#define RP_CLIPPLANE		0x800
+#define RP_TRISOUTLINES		0x1000
+#define RP_SHOWNORMALS		0x2000
 
-#define RP_NONVIEWERREF			( RP_PORTALVIEW|RP_MIRRORVIEW|RP_ENVVIEW|RP_SKYPORTALVIEW|RP_SHADOWMAPVIEW )
+#define RP_NONVIEWERREF		( RP_PORTALVIEW|RP_MIRRORVIEW|RP_ENVVIEW|RP_SKYPORTALVIEW|RP_SHADOWMAPVIEW )
+#define RP_LOCALCLIENT(e)		((e)->index == ri.GetLocalPlayer()->serialnumber )
 
 //====================================================
 
@@ -457,17 +458,17 @@ enum
 											&& !((RI).params & RP_NONVIEWERREF) && !((RI).refdef.rdflags & RDF_NOWORLDMODEL) \
 											&& OCCLUSION_QUERIES_CVAR_HACK( RI ) )
 #define OCCLUSION_OPAQUE_SHADER( s )	(((s)->sort == SORT_OPAQUE ) && ((s)->flags & SHADER_DEPTHWRITE ) && !(s)->numDeforms )
-#define OCCLUSION_TEST_ENTITY( e )	(((e)->flags & (RF_OCCLUSIONTEST|RF_WEAPONMODEL)) == RF_OCCLUSIONTEST )
+#define OCCLUSION_TEST_ENTITY( e )	(((e)->flags & EF_OCCLUSIONTEST) || ((e)->ent_type == ED_VIEWMODEL))
 
 void		R_InitOcclusionQueries( void );
 void		R_BeginOcclusionPass( void );
 ref_shader_t	*R_OcclusionShader( void );
 void		R_AddOccludingSurface( msurface_t *surf, ref_shader_t *shader );
-int			R_GetOcclusionQueryNum( int type, int key );
-int			R_IssueOcclusionQuery( int query, ref_entity_t *e, vec3_t mins, vec3_t maxs );
-bool	R_OcclusionQueryIssued( int query );
-unsigned int R_GetOcclusionQueryResult( int query, bool wait );
-bool	R_GetOcclusionQueryResultBool( int type, int key, bool wait );
+int		R_GetOcclusionQueryNum( int type, int key );
+int		R_IssueOcclusionQuery( int query, ref_entity_t *e, vec3_t mins, vec3_t maxs );
+bool		R_OcclusionQueryIssued( int query );
+uint		R_GetOcclusionQueryResult( int query, bool wait );
+bool		R_GetOcclusionQueryResultBool( int type, int key, bool wait );
 void		R_EndOcclusionPass( void );
 void		R_ShutdownOcclusionQueries( void );
 
@@ -543,13 +544,13 @@ void		R_EndFrame( void );
 void		R_RenderView( const ref_params_t *fd );
 const char *R_SpeedsMessage( char *out, size_t size );
 
-bool	R_CullBox( const vec3_t mins, const vec3_t maxs, const unsigned int clipflags );
-bool	R_CullSphere( const vec3_t centre, const float radius, const unsigned int clipflags );
+bool	R_CullBox( const vec3_t mins, const vec3_t maxs, const uint clipflags );
+bool	R_CullSphere( const vec3_t centre, const float radius, const uint clipflags );
 bool	R_VisCullBox( const vec3_t mins, const vec3_t maxs );
 bool	R_VisCullSphere( const vec3_t origin, float radius );
-int			R_CullModel( ref_entity_t *e, vec3_t mins, vec3_t maxs, float radius );
+int	R_CullModel( ref_entity_t *e, vec3_t mins, vec3_t maxs, float radius );
 
-mfog_t		*R_FogForSphere( const vec3_t centre, const float radius );
+mfog_t	*R_FogForSphere( const vec3_t centre, const float radius );
 bool	R_CompletelyFogged( mfog_t *fog, vec3_t origin, float radius );
 
 void		R_LoadIdentity( void );
@@ -663,6 +664,13 @@ int			R_GetClippedFragments( const vec3_t origin, float radius, vec3_t axis[3], 
 								  vec3_t *fverts, int maxfragments, fragment_t *fragments );
 msurface_t *R_TransformedTraceLine( trace_t *tr, const vec3_t start, const vec3_t end, ref_entity_t *test, int surfumask );
 
+//
+// r_sprite.c
+//
+
+mspriteframe_t *R_GetSpriteFrame( ref_entity_t *ent );
+
+//
 //
 // r_register.c
 //

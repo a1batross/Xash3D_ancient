@@ -970,7 +970,7 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 
 			for( i = 0; i < 3; i++ )
 			{
-				genVector[0][i] = pass->tcgenVec[i];
+				genVector[0][i] = pass->tcgenVec[i+0];
 				genVector[1][i] = pass->tcgenVec[i+4];
 			}
 			genVector[0][3] = genVector[1][3] = 0;
@@ -1023,6 +1023,15 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 			pglTexGenfv( GL_Q, GL_OBJECT_PLANE, genVector[3] );
 			return false;
 		}
+	case TCGEN_WARP:
+		for( i = 0; i < r_backacc.numVerts; i++ )
+		{
+			coordsArray[i][0] += r_warpsintable[((int)((inCoordsArray[i][1] * 8.0 + r_currentShaderTime) * (256.0/M_PI2))) & 255] * (1.0/64);
+			coordsArray[i][1] += r_warpsintable[((int)((inCoordsArray[i][0] * 8.0 + r_currentShaderTime) * (256.0/M_PI2))) & 255] * (1.0/64);
+		}
+		R_UpdateVertexBuffer( tr.tcoordBuffer[unit], coordsArray, r_backacc.numVerts * sizeof( vec2_t ));
+		pglTexCoordPointer( 2, GL_FLOAT, 0, tr.tcoordBuffer[unit]->pointer );
+		return true;
 	case TCGEN_REFLECTION_CELLSHADE:
 		if( RI.currententity && !( RI.params & RP_SHADOWMAPVIEW ) )
 		{
@@ -1044,6 +1053,12 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 		GL_EnableTexGen( GL_S, GL_REFLECTION_MAP_ARB );
 		GL_EnableTexGen( GL_T, GL_REFLECTION_MAP_ARB );
 		GL_EnableTexGen( GL_R, GL_REFLECTION_MAP_ARB );
+		GL_EnableTexGen( GL_Q, 0 );
+		return true;
+	case TCGEN_NORMAL:
+		GL_EnableTexGen( GL_S, GL_NORMAL_MAP_ARB );
+		GL_EnableTexGen( GL_T, GL_NORMAL_MAP_ARB );
+		GL_EnableTexGen( GL_R, GL_NORMAL_MAP_ARB );
 		GL_EnableTexGen( GL_Q, 0 );
 		return true;
 	case TCGEN_FOG:
@@ -1147,7 +1162,7 @@ R_ApplyTCMods
 static void R_ApplyTCMods( const ref_stage_t *pass, mat4x4_t result )
 {
 	int		i;
-	double		t1, t2, sint, cost;
+	double		f, t1, t2, sint, cost;
 	mat4x4_t		m1, m2;
 	const tcMod_t	*tcmod;
 	waveFunc_t	func;
@@ -1156,6 +1171,9 @@ static void R_ApplyTCMods( const ref_stage_t *pass, mat4x4_t result )
 	{
 		switch( tcmod->type )
 		{
+		case TCMOD_TRANSLATE:
+			Matrix4_Translate2D( result, tcmod->args[0], tcmod->args[1] );
+			break;
 		case TCMOD_ROTATE:
 			cost = tcmod->args[0] * r_currentShaderTime;
 			sint = R_FastSin( cost );
@@ -1199,6 +1217,20 @@ static void R_ApplyTCMods( const ref_stage_t *pass, mat4x4_t result )
 			Matrix4_Copy2D( result, m1 );
 			Matrix4_Multiply2D( m2, m1, result );
 			break;
+		case TCMOD_CONVEYOR:
+			if( RI.currententity->framerate == 0.0f ) return;
+			f = (RI.currententity->framerate * r_currentShaderTime) * 0.0039; // magic number :-)
+			t1 = RI.currententity->movedir[0];
+			t2 = RI.currententity->movedir[1];
+
+			t1 = f * t1;
+			t1 -= floor( t1 );
+			t2 = f * t2;
+			t2 -= floor( t2 );
+
+			result[12] -= t1;
+			result[13] += t2;                              
+			break;
 		default:
 			break;
 		}
@@ -1212,6 +1244,25 @@ R_ShaderpassTex
 */
 static _inline texture_t *R_ShaderpassTex( const ref_stage_t *pass, int unit )
 {
+	if( pass->flags & SHADERSTAGE_ANGLEDMAP )
+	{
+		if( !RI.currententity ) return pass->textures[0];	// assume error
+		return pass->textures[(int)((RI.refdef.viewangles[1] - RI.currententity->angles[1])/360 * 8 + 0.5 - 4) & 7];
+	}
+	if( pass->flags & SHADERSTAGE_FRAMES )
+	{
+		if( glState.in2DMode )
+			return pass->textures[bound( 0, glState.draw_frame, pass->num_textures - 1)];
+		else if( RI.currententity && RI.currententity->model )
+		{
+			switch( RI.currententity->model->type )
+			{
+			case mod_brush:
+			case mod_world:
+				return pass->textures[bound( 0, (int)RI.currententity->frame, pass->num_textures - 1)];
+			}
+		}
+	}
 	if( pass->flags & SHADERSTAGE_ANIMFREQUENCY && pass->animFrequency && pass->num_textures )
 		return pass->textures[(int)( pass->animFrequency * r_currentShaderTime ) % pass->num_textures];
 	if( pass->flags & SHADERSTAGE_LIGHTMAP )
@@ -1232,7 +1283,7 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 {
 	int	mod_type = mod_bad; // mod_bad interpretate as orthogonal shader
 
-	if(!(pass->flags & SHADERSTAGE_RENDERMODE))
+	if(!( pass->flags & SHADERSTAGE_RENDERMODE ))
 		return;
 
 	if( RI.currentmodel && !glState.in2DMode )
@@ -1241,50 +1292,24 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 	switch( tr.iRenderMode )
 	{
 	case kRenderNormal:
-		switch( mod_type )
-		{
-		case mod_bad:
-			pass->rgbGen.type = RGBGEN_IDENTITY;
-			pass->alphaGen.type = ALPHAGEN_IDENTITY;
-			break;
-		case mod_world:
-		case mod_brush:
-			// bsp surfaces uses lightmaps and ignore color values as well
-			pass->glState &= ~(GLSTATE_BLENDFUNC|GLSTATE_ALPHAFUNC);
-			pass->glState |= GLSTATE_DEPTHWRITE;
-			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
-			pass->alphaGen.type = ALPHAGEN_IDENTITY;
-			break;
-		case mod_studio:
-			// UNDONE: wrote R_StudioLighting, change rgbGen to RGBGEN_VERTEX
-			// UNDONE: setup custom alpha channel for NF_ADDITIVE, change alphaGen to ALPHAGEN_VERTEX
-			pass->glState &= ~(GLSTATE_BLENDFUNC|GLSTATE_ALPHAFUNC);
-			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
-			pass->alphaGen.type = ALPHAGEN_IDENTITY;
-			break;
-		case mod_sprite:
-			pass->glState &= ~(GLSTATE_BLENDFUNC|GLSTATE_ALPHAFUNC);
-			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
-			pass->alphaGen.type = ALPHAGEN_IDENTITY;
-			break;
-		}
-		break;
+		// restore real state
+		pass->glState = pass->prev.glState;
+		pass->flags = pass->prev.flags;
+		pass->rgbGen = pass->prev.rgbGen;
+		pass->alphaGen = pass->prev.alphaGen;
+		break;		
 	case kRenderTransColor:
 		switch( mod_type )
 		{
 		case mod_bad:
-			pass->glState &= ~GLSTATE_ALPHAFUNC;
-			pass->glState |= (GLSTATE_SRCBLEND_ZERO|GLSTATE_DSTBLEND_SRC_COLOR);
+			pass->glState = (GLSTATE_SRCBLEND_ZERO|GLSTATE_DSTBLEND_SRC_COLOR);
+			pass->flags = SHADERSTAGE_BLEND_DECAL;
 			pass->rgbGen.type = RGBGEN_VERTEX;
 			pass->alphaGen.type = ALPHAGEN_VERTEX;
 			break;
 		case mod_world:
-			pass->glState &= ~(GLSTATE_BLENDFUNC|GLSTATE_ALPHAFUNC);
-			pass->glState |= GLSTATE_DEPTHWRITE;
-			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
-			pass->alphaGen.type = ALPHAGEN_IDENTITY;
-			break;
 		case mod_brush:
+		case mod_alias:
 		case mod_studio:
 		case mod_sprite:
 			break;
@@ -1294,23 +1319,14 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 		switch( mod_type )
 		{
 		case mod_bad:
-			pass->glState &= ~GLSTATE_ALPHAFUNC;
-			pass->glState |= (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA);
+			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA);
+			pass->flags = SHADERSTAGE_BLEND_MODULATE;
 			pass->rgbGen.type = RGBGEN_VERTEX;
 			pass->alphaGen.type = ALPHAGEN_VERTEX;
 			break;
 		case mod_world:
-			pass->glState &= ~(GLSTATE_BLENDFUNC|GLSTATE_ALPHAFUNC);
-			pass->glState |= GLSTATE_DEPTHWRITE;
-			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
-			pass->alphaGen.type = ALPHAGEN_IDENTITY;
-			break;
 		case mod_brush:
-			pass->glState &= ~(GLSTATE_DEPTHWRITE|GLSTATE_ALPHAFUNC);
-			pass->glState |= (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA);
-			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
-			pass->alphaGen.type = ALPHAGEN_ENTITY;
-			break;
+		case mod_alias:
 		case mod_studio:
 		case mod_sprite:
 			break;
@@ -1320,24 +1336,19 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 		switch( mod_type )
 		{
 		case mod_bad:
-			pass->glState &= ~GLSTATE_ALPHAFUNC;
-			pass->glState |= (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
+			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
+			pass->flags = SHADERSTAGE_BLEND_ADD;
 			pass->rgbGen.type = RGBGEN_VERTEX;
 			pass->alphaGen.type = ALPHAGEN_VERTEX;
 			break;
 		case mod_world:
 		case mod_brush:
-			// completely ignore glow mode for world surfaces
-			pass->glState &= ~(GLSTATE_BLENDFUNC|GLSTATE_ALPHAFUNC);
-			pass->glState |= GLSTATE_DEPTHWRITE;
-			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
-			pass->alphaGen.type = ALPHAGEN_IDENTITY;
-			break;
+		case mod_alias:
 		case mod_studio:
+			break;
 		case mod_sprite:
-			pass->glState &= ~(GLSTATE_ALPHAFUNC|GLSTATE_DEPTHWRITE|GLSTATE_DEPTHFUNC_EQ);
-			pass->glState |= (GLSTATE_SRCBLEND_ONE_MINUS_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
-			pass->rgbGen.type = RGBGEN_IDENTITY;	// hl1 glow sprites ignores color
+			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE|GLSTATE_NO_DEPTH_TEST);
+			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;	// sprites ignore color in 'add' mode
 			pass->alphaGen.type = ALPHAGEN_ENTITY;
 			break;
 		}
@@ -1346,35 +1357,15 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 		switch( mod_type )
 		{
 		case mod_bad:
-			pass->glState &= ~GLSTATE_BLENDFUNC;
-			pass->glState |= GLSTATE_AFUNC_GE128;
+			pass->glState = GLSTATE_AFUNC_GE128;
 			pass->rgbGen.type = RGBGEN_VERTEX;
 			pass->alphaGen.type = ALPHAGEN_VERTEX;
 			break;
 		case mod_world:
-			// always ignore transparent surfaces for world
-			pass->glState &= ~(GLSTATE_BLENDFUNC|GLSTATE_ALPHAFUNC);
-			pass->glState |= GLSTATE_DEPTHWRITE;
-			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
-			pass->alphaGen.type = ALPHAGEN_IDENTITY;
-			break;
 		case mod_brush:
-			pass->glState &= ~GLSTATE_BLENDFUNC;
-			pass->glState |= GLSTATE_AFUNC_GE128;
-			pass->rgbGen.type = RGBGEN_IDENTITY;
-			pass->alphaGen.type = ALPHAGEN_IDENTITY;
+		case mod_alias:
 		case mod_studio:
-			// UNDONE: wrote R_StudioLighting, change rgbGen to RGBGEN_VERTEX
-			// UNDONE: setup custom alpha channel for NF_ADDITIVE, change alphaGen to ALPHAGEN_VERTEX
-			pass->glState &= ~GLSTATE_BLENDFUNC;
-			pass->glState |= GLSTATE_AFUNC_GE128;
-			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
-			pass->alphaGen.type = ALPHAGEN_ENTITY;
 		case mod_sprite:
-			pass->glState &= ~GLSTATE_BLENDFUNC;
-			pass->glState |= GLSTATE_AFUNC_GE128;
-			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
-			pass->alphaGen.type = ALPHAGEN_ENTITY;
 			break;
 		}
 		break;
@@ -1382,33 +1373,33 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 		switch( mod_type )
 		{
 		case mod_bad:
-			pass->glState &= ~GLSTATE_ALPHAFUNC;
-			pass->glState |= (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
+			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
+			pass->flags = SHADERSTAGE_BLEND_ADD;
 			pass->rgbGen.type = RGBGEN_VERTEX;
 			pass->alphaGen.type = ALPHAGEN_VERTEX;
 			break;
 		case mod_world:
-			pass->glState &= ~(GLSTATE_BLENDFUNC|GLSTATE_ALPHAFUNC);
-			pass->glState |= GLSTATE_DEPTHWRITE;
-			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
-			pass->alphaGen.type = ALPHAGEN_IDENTITY;
-			break;
 		case mod_brush:
-			pass->glState &= ~(GLSTATE_ALPHAFUNC|GLSTATE_DEPTHWRITE);
-			pass->glState |= (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
-			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
-			pass->alphaGen.type = ALPHAGEN_ENTITY;
-			break;
+		case mod_alias:
 		case mod_studio:
+			break;
 		case mod_sprite:
-			pass->glState &= ~(GLSTATE_ALPHAFUNC|GLSTATE_DEPTHWRITE);
-			pass->glState |= (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
-			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
+			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
+			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;	// sprites ignore color in 'add' mode
 			pass->alphaGen.type = ALPHAGEN_ENTITY;
 			break;
 		}
 		break;
 	}
+
+	// restore some flags
+	pass->flags |= SHADERSTAGE_RENDERMODE;
+	if( pass->prev.flags & SHADERSTAGE_ANIMFREQUENCY )
+		pass->flags |= SHADERSTAGE_ANIMFREQUENCY;
+	if( pass->prev.flags & SHADERSTAGE_FRAMES )
+		pass->flags |= SHADERSTAGE_FRAMES;
+	if( pass->prev.flags & SHADERSTAGE_ANGLEDMAP )
+		pass->flags |= SHADERSTAGE_ANGLEDMAP;
 }
 
 /*
@@ -1501,6 +1492,7 @@ void R_ModifyColor( const ref_stage_t *pass )
 				*(int *)bArray = c;
 			break;
 		case RGBGEN_WAVE:
+		case RGBGEN_COLORWAVE:
 			rgbgenfunc = pass->rgbGen.func;
 			if( rgbgenfunc->type == WAVEFORM_NOISE )
 			{
@@ -1521,10 +1513,13 @@ void R_ModifyColor( const ref_stage_t *pass )
 				*(int *)bArray = c;
 			break;
 		case RGBGEN_ENTITY:
+			rgba[0] = RI.currententity->rendercolor[0];
+			rgba[1] = RI.currententity->rendercolor[1];
+			rgba[2] = RI.currententity->rendercolor[2];
 			entityAlpha = true;
-			identityAlpha = ( RI.currententity->color[3] == 255 );
+			identityAlpha = ( RI.currententity->renderamt == 255 );
 
-			for( i = 0, c = *(int *)RI.currententity->color; i < r_backacc.numColors; i++, bArray += 4 )
+			for( i = 0, c = *(int *)rgba; i < r_backacc.numColors; i++, bArray += 4 )
 				*(int *)bArray = c;
 			break;
 		case RGBGEN_OUTLINE:
@@ -1534,9 +1529,9 @@ void R_ModifyColor( const ref_stage_t *pass )
 				*(int *)bArray = c;
 			break;
 		case RGBGEN_ONE_MINUS_ENTITY:
-			rgba[0] = 255 - RI.currententity->color[0];
-			rgba[1] = 255 - RI.currententity->color[1];
-			rgba[2] = 255 - RI.currententity->color[2];
+			rgba[0] = 255 - RI.currententity->rendercolor[0];
+			rgba[1] = 255 - RI.currententity->rendercolor[1];
+			rgba[2] = 255 - RI.currententity->rendercolor[2];
 
 			for( i = 0, c = *(int *)rgba; i < r_backacc.numColors; i++, bArray += 4 )
 				*(int *)bArray = c;
@@ -1608,10 +1603,9 @@ void R_ModifyColor( const ref_stage_t *pass )
 			{
 				vec4_t diffuse;
 
-				if( RI.currententity->flags & RF_FULLBRIGHT )
+				if( RI.currententity->flags & EF_FULLBRIGHT )
 					VectorSet( diffuse, 1, 1, 1 );
-				else
-					R_LightForOrigin( RI.currententity->lightingOrigin, t, NULL, diffuse, RI.currentmodel->radius * RI.currententity->scale );
+				else R_LightForOrigin( RI.currententity->lightingOrigin, t, NULL, diffuse, RI.currentmodel->radius * RI.currententity->scale );
 
 				rgba[0] = R_FloatToByte( diffuse[0] );
 				rgba[1] = R_FloatToByte( diffuse[1] );
@@ -1626,10 +1620,9 @@ void R_ModifyColor( const ref_stage_t *pass )
 			{
 				vec4_t ambient;
 
-				if( RI.currententity->flags & RF_FULLBRIGHT )
+				if( RI.currententity->flags & EF_FULLBRIGHT )
 					VectorSet( ambient, 1, 1, 1 );
-				else
-					R_LightForOrigin( RI.currententity->lightingOrigin, t, ambient, NULL, RI.currentmodel->radius * RI.currententity->scale );
+				else R_LightForOrigin( RI.currententity->lightingOrigin, t, ambient, NULL, RI.currentmodel->radius * RI.currententity->scale );
 
 				rgba[0] = R_FloatToByte( ambient[0] );
 				rgba[1] = R_FloatToByte( ambient[1] );
@@ -1663,8 +1656,7 @@ void R_ModifyColor( const ref_stage_t *pass )
 	switch( pass->alphaGen.type )
 	{
 	case ALPHAGEN_IDENTITY:
-		if( identityAlpha )
-			break;
+		if( identityAlpha ) break;
 		for( i = 0; i < r_backacc.numColors; i++, bArray += 4 )
 			bArray[3] = 255;
 		break;
@@ -1674,6 +1666,7 @@ void R_ModifyColor( const ref_stage_t *pass )
 			bArray[3] = c;
 		break;
 	case ALPHAGEN_WAVE:
+	case ALPHAGEN_ALPHAWAVE:
 		alphagenfunc = pass->alphaGen.func;
 		if( alphagenfunc->type == WAVEFORM_NOISE )
 		{
@@ -1710,10 +1703,14 @@ void R_ModifyColor( const ref_stage_t *pass )
 			bArray[3] = 255 - inArray[3];
 		break;
 	case ALPHAGEN_ENTITY:
-		if( entityAlpha )
-			break;
+		if( entityAlpha ) break;
 		for( i = 0; i < r_backacc.numColors; i++, bArray += 4 )
-			bArray[3] = RI.currententity->color[3];
+			bArray[3] = RI.currententity->renderamt;
+		break;
+	case  ALPHAGEN_ONE_MINUS_ENTITY:
+		rgba[3] = 255 - RI.currententity->renderamt;
+		for( i = 0; i < r_backacc.numColors; i++, bArray += 4 )
+			bArray[3] = rgba[3];
 		break;
 	case ALPHAGEN_OUTLINE:
 		for( i = 0; i < r_backacc.numColors; i++, bArray += 4 )
@@ -1721,10 +1718,9 @@ void R_ModifyColor( const ref_stage_t *pass )
 		break;
 	case ALPHAGEN_SPECULAR:
 		VectorSubtract( RI.viewOrigin, RI.currententity->origin, t );
-		if( !Matrix_Compare( RI.currententity->axis, axis_identity ) )
+		if( !Matrix_Compare( RI.currententity->axis, axis_identity ))
 			Matrix_TransformVector( RI.currententity->axis, t, v );
-		else
-			VectorCopy( t, v );
+		else VectorCopy( t, v );
 
 		for( i = 0; i < r_backacc.numColors; i++, bArray += 4 )
 		{
@@ -1738,13 +1734,12 @@ void R_ModifyColor( const ref_stage_t *pass )
 	case ALPHAGEN_DOT:
 		if( !Matrix_Compare( RI.currententity->axis, axis_identity ) )
 			Matrix_TransformVector( RI.currententity->axis, RI.vpn, v );
-		else
-			VectorCopy( RI.vpn, v );
+		else VectorCopy( RI.vpn, v );
 
 		for( i = 0; i < r_backacc.numColors; i++, bArray += 4 )
 		{
 			a = DotProduct( v, inNormalsArray[i] ); if( a < 0 ) a = -a;
-			bArray[3] = R_FloatToByte( bound( pass->alphaGen.args[0], a, pass->alphaGen.args[1] ) );
+			bArray[3] = R_FloatToByte( bound( pass->alphaGen.args[0], a, pass->alphaGen.args[1] ));
 		}
 		break;
 	case ALPHAGEN_ONE_MINUS_DOT:
@@ -1755,9 +1750,32 @@ void R_ModifyColor( const ref_stage_t *pass )
 
 		for( i = 0; i < r_backacc.numColors; i++, bArray += 4 )
 		{
-			a = DotProduct( v, inNormalsArray[i] ); if( a < 0 ) a = -a;a = 1.0f - a;
-			bArray[3] = R_FloatToByte( bound( pass->alphaGen.args[0], a, pass->alphaGen.args[1] ) );
+			a = DotProduct( v, inNormalsArray[i] ); if( a < 0 ) a = -a; a = 1.0f - a;
+			bArray[3] = R_FloatToByte( bound( pass->alphaGen.args[0], a, pass->alphaGen.args[1] ));
 		}
+		break;
+	case ALPHAGEN_FADE:
+		for( i = 0; i < r_backacc.numColors; i++, bArray += 4 )
+		{
+			VectorAdd( vertsArray[i], RI.currententity->origin, v );
+			a = VectorDistance( v, RI.viewOrigin );
+
+			a = bound( pass->alphaGen.args[0], a, pass->alphaGen.args[1] ) - pass->alphaGen.args[0];
+			a = a * pass->alphaGen.args[2];
+			bArray[3] = R_FloatToByte( bound( 0.0, a, 1.0 ));
+		}
+		break;
+	case ALPHAGEN_ONE_MINUS_FADE:
+		for( i = 0; i < r_backacc.numColors; i++, bArray += 4 )
+		{
+			VectorAdd( vertsArray[i], RI.currententity->origin, v );
+			a = VectorDistance( v, RI.viewOrigin );
+
+			a = bound( pass->alphaGen.args[0], a, pass->alphaGen.args[1] ) - pass->alphaGen.args[0];
+			a = a * pass->alphaGen.args[2];
+			bArray[3] = R_FloatToByte( bound( 0.0, 1.0 - a, 1.0 ));
+		}
+		break;
 	default:
 		break;
 	}
@@ -1910,7 +1928,6 @@ void R_RenderMeshGeneric( void )
 {
 	const ref_stage_t *pass = r_accumPasses[0];
 
-	R_ShaderpassRenderMode( (ref_stage_t *)pass );
 	R_BindShaderpass( pass, NULL, 0 );
 	R_ModifyColor( pass );
 
@@ -2218,7 +2235,7 @@ static void R_RenderMeshGLSL_Material( void )
 		}
 		else if( RI.currententity )
 		{
-			if( RI.currententity->flags & RF_FULLBRIGHT )
+			if( RI.currententity->flags & EF_FULLBRIGHT )
 			{
 				Vector4Set( ambient, 1, 1, 1, 1 );
 				Vector4Set( diffuse, 1, 1, 1, 1 );
@@ -2548,6 +2565,8 @@ static void R_AccumulatePass( ref_stage_t *pass )
 	if( ( RI.params & RP_SHADOWMAPVIEW ) && !( pass->glState & GLSTATE_DEPTHWRITE ))
 		return;
 
+	R_ShaderpassRenderMode( pass );
+
 	// see if there are any free texture units
 	renderNow = ( pass->flags & ( SHADERSTAGE_DLIGHT|SHADERSTAGE_STENCILSHADOW ) ) || pass->program;
 	accumulate = ( r_numAccumPasses < glConfig.max_texture_units ) && !renderNow;
@@ -2661,27 +2680,14 @@ void R_RenderMeshBuffer( const meshbuffer_t *mb )
 	}
 
 	surf = mb->infokey > 0 ? &r_worldbrushmodel->surfaces[mb->infokey-1] : NULL;
-	if( surf )
-		r_superLightStyle = &r_superLightStyles[surf->superLightStyle];
-	else
-		r_superLightStyle = NULL;
+	if( surf ) r_superLightStyle = &r_superLightStyles[surf->superLightStyle];
+	else r_superLightStyle = NULL;
 	r_currentMeshBuffer = mb;
 
 	MB_NUM2SHADER( mb->shaderkey, r_currentShader );
 
-	if( glState.in2DMode )
-	{
-		r_currentShaderTime = Sys_DoubleTime();
-	}
-	else
-	{
-		r_currentShaderTime = (double)RI.refdef.time;
-		if( RI.currententity )
-		{
-			r_currentShaderTime -= (double)RI.currententity->shaderTime;
-			if( r_currentShaderTime < 0 ) r_currentShaderTime = 0;
-		}
-	}
+	if( glState.in2DMode ) r_currentShaderTime = Sys_DoubleTime();
+	else r_currentShaderTime = (double)RI.refdef.time;
 
 	if( !r_triangleOutlines )
 		R_SetShaderState();

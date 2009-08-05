@@ -198,6 +198,10 @@ SOURCE=.\r_sky.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\r_sprite.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\r_surf.c
 # End Source File
 # End Group

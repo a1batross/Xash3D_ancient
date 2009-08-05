@@ -56,16 +56,16 @@ enum
 
 typedef struct mesh_s
 {
-	int					numVertexes;
-	vec4_t				*xyzArray;
-	vec4_t				*normalsArray;
-	vec4_t				*sVectorsArray;
-	vec2_t				*stArray;
-	vec2_t				*lmstArray[LM_STYLES];
-	rgba_t			*colorsArray[LM_STYLES];
+	int		numVertexes;
+	vec4_t		*xyzArray;
+	vec4_t		*normalsArray;
+	vec4_t		*sVectorsArray;
+	vec2_t		*stArray;
+	vec2_t		*lmstArray[LM_STYLES];
+	rgba_t		*colorsArray[LM_STYLES];
 
-	int					numElems;
-	elem_t				*elems;
+	int		numElems;
+	elem_t		*elems;
 } mesh_t;
 
 #define MB_FOG2NUM( fog )			( (fog) ? ((((int)((fog) - r_worldbrushmodel->fogs))+1) << 2) : 0 )
@@ -82,28 +82,28 @@ typedef struct mesh_s
 
 typedef struct
 {
-	int					shaderkey;
-	unsigned int		sortkey;
-	int					infokey;			// surface number or mesh number
+	int		shaderkey;
+	uint		sortkey;
+	int		infokey;			// surface number or mesh number
 	union
 	{
-		int				lastPoly;
-		unsigned int	dlightbits;
-		unsigned int	LODModelHandle;
+		int	lastPoly;
+		uint	dlightbits;
+		uint	LODModelHandle;
 	};
-	unsigned int		shadowbits;
+	uint		shadowbits;
 } meshbuffer_t;
 
 typedef struct
 {
-	int					num_opaque_meshes, max_opaque_meshes;
+	int			num_opaque_meshes, max_opaque_meshes;
 	meshbuffer_t		*meshbuffer_opaque;
 
-	int					num_translucent_meshes, max_translucent_meshes;
+	int			num_translucent_meshes, max_translucent_meshes;
 	meshbuffer_t		*meshbuffer_translucent;
 
-	int					num_portal_opaque_meshes;
-	int					num_portal_translucent_meshes;
+	int			num_portal_opaque_meshes;
+	int			num_portal_translucent_meshes;
 } meshlist_t;
 
 enum

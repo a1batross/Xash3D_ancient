@@ -57,8 +57,8 @@ void R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, f
 	}
 
 	tr.iRenderMode = glState.draw_rendermode;
-	pic_mbuffer.infokey -= 4;
 	pic_mbuffer.shaderkey = shader->sortkey;
+	pic_mbuffer.infokey -= 4;
 
 	// upload video right before rendering
 	if( shader->flags & SHADER_VIDEOMAP ) R_UploadCinematicShader( shader );

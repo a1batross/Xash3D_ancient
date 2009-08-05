@@ -488,11 +488,11 @@ void R_LightForEntity( ref_entity_t *e, byte *bArray )
 	vec3_t lightDirs[MAX_DLIGHTS], direction, temp;
 	vec4_t ambient, diffuse;
 
-	if( ( e->flags & RF_FULLBRIGHT ) || r_fullbright->value )
+	if(( e->flags & EF_FULLBRIGHT ) || r_fullbright->value )
 		return;
 
 	// probably weird shader, see mpteam4 for example
-	if( !e->model || ( e->model->type == mod_brush ) )
+	if( !e->model || ( e->model->type == mod_brush ) || (e->model->type == mod_world ))
 		return;
 
 	R_LightForOrigin( e->lightingOrigin, temp, ambient, diffuse, 0 );

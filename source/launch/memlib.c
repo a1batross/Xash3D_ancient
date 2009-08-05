@@ -63,7 +63,7 @@ typedef struct mempool_s
 	struct mempool_s	*next;		// linked into global mempool list
 	const char	*filename;	// file name and line where Mem_AllocPool was called
 	int		fileline;
-	char		name[32];		// name of the pool
+	char		name[64];		// name of the pool
 	uint		sentinel2;	// should always be MEMHEADER_SENTINEL1
 } mempool_t;
 
