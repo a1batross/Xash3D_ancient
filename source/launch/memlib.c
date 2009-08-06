@@ -884,13 +884,13 @@ loop1:
 
 void *_mem_alloc( byte *poolptr, size_t size, const char *filename, int fileline )
 {
-	int i, j, k, needed, endbit, largest;
-	memclump_t *clump, **clumpchainpointer;
-	memheader_t *mem;
-	mempool_t *pool = (mempool_t *)((byte *)poolptr);
-	if (size <= 0) return NULL;
+	int		i, j, k, needed, endbit, largest;
+	memclump_t	*clump, **clumpchainpointer;
+	memheader_t	*mem;
+	mempool_t		*pool = (mempool_t *)((byte *)poolptr);
 
-	if (poolptr == NULL) Sys_Error("Mem_Alloc: pool == NULL (alloc at %s:%i)\n", filename, fileline);
+	if( size <= 0 ) return NULL;
+	if( poolptr == NULL ) Sys_Error( "Mem_Alloc: pool == NULL (alloc at %s:%i)\n", filename, fileline );
 	pool->totalsize += size;
 
 	if (size < 4096)

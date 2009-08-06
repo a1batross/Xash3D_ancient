@@ -35,61 +35,59 @@ BRUSH MODELS
 
 ==============================================================================
 */
-
-
 //
 // in memory representation
 //
 typedef struct
 {
-	vec3_t			mins, maxs;
-	float			radius;
-	int				firstface, numfaces;
+	vec3_t		mins, maxs;
+	float		radius;
+	int		firstface, numfaces;
 } mmodel_t;
 
 typedef struct
 {
-	ref_shader_t		*shader;
+	ref_shader_t	*shader;
 	cplane_t		*visibleplane;
 
-	int				numplanes;
+	int		numplanes;
 	cplane_t		*planes;
 } mfog_t;
 
 typedef struct
 {
-	int				visframe;			// should be drawn when node is crossed
-	int				facetype, flags;
+	int		visframe;			// should be drawn when node is crossed
+	int		facetype;
+	int		flags;
 
-	ref_shader_t		*shader;
-	mesh_t			*mesh;
-	mfog_t			*fog;
+	ref_shader_t	*shader;
+	mesh_t		*mesh;
+	mfog_t		*fog;
 	cplane_t		*plane;
 
 	union
 	{
-		float		origin[3];
-		float		mins[3];
+		float	origin[3];
+		float	mins[3];
 	};
 	union
 	{
-		float		maxs[3];
-		float		color[3];
+		float	maxs[3];
+		float	color[3];
 	};
 
-	int				superLightStyle;
-	int				fragmentframe;		// for multi-check avoidance
+	int		superLightStyle;
+	int		fragmentframe;		// for multi-check avoidance
 } msurface_t;
 
 typedef struct mnode_s
 {
 	// common with leaf
 	cplane_t		*plane;
+	int		pvsframe;
 
-	int				pvsframe;
-
-	float			mins[3];
-	float			maxs[3];			// for bounding box culling
+	float		mins[3];
+	float		maxs[3];		// for bounding box culling
 
 	struct mnode_s	*parent;
 
@@ -101,72 +99,71 @@ typedef struct mleaf_s
 {
 	// common with node
 	cplane_t		*plane;
+	int		pvsframe;
 
-	int				pvsframe;
+	float		mins[3];
+	float		maxs[3];		// for bounding box culling
 
-	float			mins[3];
-	float			maxs[3];			// for bounding box culling
-
-	struct			mnode_s *parent;
+	struct mnode_s	*parent;
 
 	// leaf specific
-	int				visframe;
-	int				cluster, area;
+	int		visframe;
+	int		cluster, area;
 
-	msurface_t		**firstVisSurface;
-	msurface_t		**firstFragmentSurface;
+	msurface_t	**firstVisSurface;
+	msurface_t	**firstFragmentSurface;
 } mleaf_t;
 
 typedef struct
 {
-	byte			ambient[LM_STYLES][3];
-	byte			diffuse[LM_STYLES][3];
-	byte			styles[LM_STYLES];
-	byte			direction[2];
+	byte		ambient[LM_STYLES][3];
+	byte		diffuse[LM_STYLES][3];
+	byte		styles[LM_STYLES];
+	byte		direction[2];
 } mgridlight_t;
 
 typedef struct
 {
-	int				texNum;
-	float			texMatrix[2][2];
+	int		texNum;
+	float		texMatrix[2][2];
 } mlightmapRect_t;
 
 typedef struct
 {
-	dvis_t			*vis;
+	dvis_t		*vis;
 
-	int				numsubmodels;
+	int		numsubmodels;
 	mmodel_t		*submodels;
 
-	int				nummodelsurfaces;
-	msurface_t		*firstmodelsurface;
+	int		nummodelsurfaces;
+	msurface_t	*firstmodelsurface;
 
-	int				numplanes;
+	int		numplanes;
 	cplane_t		*planes;
 
-	int				numleafs;			// number of visible leafs, not counting 0
-	mleaf_t			*leafs;
-	mleaf_t			**visleafs;
+	int		numleafs;			// number of visible leafs, not counting 0
+	mleaf_t		*leafs;
+	mleaf_t		**visleafs;
 
-	int				numnodes;
-	mnode_t			*nodes;
+	int		numnodes;
+	mnode_t		*nodes;
 
-	int				numsurfaces;
-	msurface_t		*surfaces;
+	int		numsurfaces;
+	msurface_t	*surfaces;
 
-	int				numlightgridelems;
+	int		numlightgridelems;
 	mgridlight_t	*lightgrid;
 
-	int				numlightarrayelems;
+	int		numlightarrayelems;
 	mgridlight_t	**lightarray;
 
-	int				numfogs;
-	mfog_t			*fogs;
-	mfog_t			*globalfog;
+	int		numfogs;
+	mfog_t		*fogs;
+	mfog_t		*globalfog;
 
-	vec3_t			gridSize;
-	vec3_t			gridMins;
-	int				gridBounds[4];
+	vec3_t		gridSize;
+	vec3_t		gridMins;
+	int		gridBounds[4];
 } mbrushmodel_t;
 
 /*

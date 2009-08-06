@@ -18,12 +18,12 @@ typedef struct suffix_s
 
 static const suffix_t skybox_3ds[6] =
 {
-{ "ft", IMAGE_FLIP_X, CB_HINT_POSX },
-{ "bk", IMAGE_FLIP_Y, CB_HINT_NEGX },
-{ "rt", IMAGE_ROT_90, CB_HINT_POSY },
-{ "lf", IMAGE_ROT270, CB_HINT_NEGY },
-{ "up", IMAGE_ROT_90, CB_HINT_POSZ },
-{ "dn", IMAGE_ROT_90, CB_HINT_NEGZ },
+{ "_ft", IMAGE_FLIP_X, CB_HINT_POSX },
+{ "_bk", IMAGE_FLIP_Y, CB_HINT_NEGX },
+{ "_up", IMAGE_ROT_90, CB_HINT_POSZ },
+{ "_dn", IMAGE_ROT_90, CB_HINT_NEGZ },
+{ "_rt", IMAGE_ROT_90, CB_HINT_POSY },
+{ "_lf", IMAGE_ROT270, CB_HINT_NEGY },
 };
 
 static const suffix_t cubemap_v1[6] =
@@ -312,6 +312,7 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 				if( !com.strnicmp( suffix, cmap->type[i].suf, suflen ))
 				{
 					com.strncpy( path, loadname, com.strlen( loadname ) - suflen + 1 );
+					Msg( "path %s - %s\n", path, suffix );
 					FS_DefaultExtension( path, ".dds" );
 					image.filter = cmap->type[i].hint;	// install side hint
 					f = FS_LoadFile( path, &filesize );

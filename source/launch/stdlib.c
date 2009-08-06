@@ -432,6 +432,63 @@ int com_strcmp (const char *s1, const char *s2)
 }
 
 /*
+==============
+Q_WildCmpAfterStar
+==============
+*/
+static bool com_starcmp( const char *pattern, const char *text )
+{
+	char		c, c1;
+	const char	*p = pattern, *t = text;
+
+	while(( c = *p++ ) == '?' || c == '*' )
+	{
+		if( c == '?' && *t++ == '\0' )
+			return false;
+	}
+
+	if( c == '\0' ) return true;
+
+	for( c1 = ((c == '\\') ? *p : c); ; )
+	{
+		if( com_tolower( *t ) == c1 && com_stricmpext( p - 1, t ))
+			return true;
+		if( *t++ == '\0' ) return false;
+	}
+}
+
+/*
+==============
+stricmpext
+==============
+*/
+bool com_stricmpext( const char *pattern, const char *text )
+{
+	char	c;
+
+	while( (c = *pattern++) != '\0' )
+	{
+		switch( c )
+		{
+			case '?':
+				if( *text++ == '\0' )
+					return false;
+				break;
+			case '\\':
+				if( com_tolower( *pattern++ ) != com_tolower( *text++ ))
+					return false;
+				break;
+			case '*':
+				return com_starcmp( pattern, text );
+			default:
+				if( com_tolower( c ) != com_tolower( *text++ ))
+					return false;
+		}
+	}
+	return (*text == '\0');
+}
+
+/*
 ====================
 timestamp
 ====================

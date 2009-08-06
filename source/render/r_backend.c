@@ -1249,7 +1249,7 @@ static _inline texture_t *R_ShaderpassTex( const ref_stage_t *pass, int unit )
 		if( !RI.currententity ) return pass->textures[0];	// assume error
 		return pass->textures[(int)((RI.refdef.viewangles[1] - RI.currententity->angles[1])/360 * 8 + 0.5 - 4) & 7];
 	}
-	if( pass->flags & SHADERSTAGE_FRAMES )
+	if( pass->flags & SHADERSTAGE_FRAMES && !(pass->flags & SHADERSTAGE_ANIMFREQUENCY))
 	{
 		if( glState.in2DMode )
 			return pass->textures[bound( 0, glState.draw_frame, pass->num_textures - 1)];
@@ -2679,6 +2679,8 @@ void R_RenderMeshBuffer( const meshbuffer_t *mb )
 		return;
 	}
 
+	Com_Assert( mb == NULL );
+
 	surf = mb->infokey > 0 ? &r_worldbrushmodel->surfaces[mb->infokey-1] : NULL;
 	if( surf ) r_superLightStyle = &r_superLightStyles[surf->superLightStyle];
 	else r_superLightStyle = NULL;
@@ -2714,12 +2716,10 @@ void R_RenderMeshBuffer( const meshbuffer_t *mb )
 	}
 
 	// extract the fog volume number from sortkey
-	if( !r_worldmodel )
-		fog = NULL;
-	else
-		MB_NUM2FOG( mb->sortkey, fog );
-	if( fog && !fog->shader )
-		fog = NULL;
+	if( !r_worldmodel ) fog = NULL;
+	else if( r_worldbrushmodel->numfogs ) MB_NUM2FOG( mb->sortkey, fog );
+	else fog = NULL;
+	if( fog && !fog->shader ) fog = NULL;
 
 	// can we fog the geometry with alpha texture?
 	r_texFog = ( fog && ( ( r_currentShader->sort <= SORT_ALPHATEST &&

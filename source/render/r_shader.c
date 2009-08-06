@@ -958,6 +958,7 @@ static bool Shader_FogParms( ref_shader_t *shader, ref_stage_t *pass, script_t *
 	if( !r_ignorehwgamma->integer )
 		div = 1.0f / pow( 2, max( 0, floor( r_overbrightbits->value )));
 	else div = 1.0f;
+	if( IS_NAN( div )) div = 1.0f; // FIXME: strange bug
 
 	Vector4Set( shader->fog_color, 0, 0, 0, 0 );
 	shader->fog_dist = shader->fog_clearDist = 0;

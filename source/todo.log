@@ -83,7 +83,7 @@ Beta 13.12.08
 52. implement new user move system		OK
 53. finish RenderMode for shaders		OK
 54. q3/rbsp bsp format			OK
-55. dedicated conolse hanging commands
+55. dedicated conolse hanging commands		OK
 56. renderer areabits bug			OK
 57. shutdown crash				OK
 58. physic.dll finish collisions		OK
@@ -93,7 +93,7 @@ Beta 13.12.08
 62. return old-xash renderer initialization	OK
 63. portal rendering angles			OK
 64. ImageLoading from old render		OK
-65. envshot, skyshot swap angles to right pos
+65. envshot, skyshot swap angles to right pos	OK
 66. ShaderSystem from old render		OK
 67. fixup NPOT textures loading (screen textures)	OK
 68. add new shader types			OK
@@ -113,11 +113,11 @@ Beta 13.12.08
 90. get rid of Com_ParseExt			OK
 91. implement rendermodes			OK
 92. implement VBO				OK
-93. implement sky rotate
-94. make default sky shader, R_SetupSky
+93. implement sky rotate, sky shader, etc
+94. implement studio format
 95. support for custom tables (external)	OK
 96. implement sprite format			OK
-97. fix fog color in release build
-98. fix crash with FOG2NUM in release build
+97. fix fog color in release build		OK
+98. fix crash in release build
 99. rewrote RF_* flags			OK
-100. implement pglBegin for perfomance testing 
+100. implement JpegLib ? 

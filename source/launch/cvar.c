@@ -671,14 +671,14 @@ void Cvar_List_f( void )
 {
 	cvar_t	*var;
 	char	*match;
-	int	i = 0;
+	int	i = 0, j = 0;
 
 	if( Cmd_Argc() > 1 ) match = Cmd_Argv(1);
 	else match = NULL;
 
 	for( var = cvar_vars; var; var = var->next, i++ )
 	{
-		if( match && !Cmd_FilterToken( match, var->name, false ))
+		if( match && !com_stricmpext( match, var->name ))
 			continue;
 
 		if( var->flags & CVAR_SERVERINFO ) Msg( "S" );
@@ -705,10 +705,11 @@ void Cvar_List_f( void )
 		if( var->flags & CVAR_CHEAT ) Msg( "C" );
 		else Msg( " " );
 		Msg(" %s \"%s\"\n", var->name, var->string );
+		j++;
 	}
 
-	Msg( "\n%i total cvars\n", i );
-	Msg( "%i cvar indexes\n", cvar_numIndexes );
+	Msg( "\n%i cvars\n", j );
+	Msg( "%i total cvars\n", i );
 }
 
 /*

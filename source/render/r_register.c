@@ -1012,7 +1012,7 @@ void GL_InitExtensions( void )
 	Cvar_Set( "r_anisotropy", va( "%f", bound( 0, gl_texture_anisotropy->value, glConfig.max_texture_anisotropy )));
 
 	if( GL_Support( R_TEXTURE_COMPRESSION_EXT )) flags |= IL_DDS_HARDWARE;
-	flags |= IL_USE_LERPING;
+	flags |= IL_USE_LERPING|IL_ALLOW_OVERWRITE;
 
 	Image_Init( NULL, flags );
 	glw_state.initialized = true;

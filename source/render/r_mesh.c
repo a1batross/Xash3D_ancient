@@ -484,11 +484,8 @@ static void R_BatchMeshBuffer( const meshbuffer_t *mb, const meshbuffer_t *nextm
 	case MB_SPRITE:
 	case MB_CORONA:
 		nonMergable = R_PushSpritePoly( mb );
-		if( nonMergable
-			|| !nextmb
-			|| ( ( nextmb->shaderkey & 0xFC000FFF ) != ( mb->shaderkey & 0xFC000FFF ) )
-			|| ( ( nextmb->sortkey & 0xFFFFF ) != ( mb->sortkey & 0xFFFFF ) )
-			|| R_SpriteOverflow() )
+		if( nonMergable || !nextmb || (( nextmb->shaderkey & 0xFC000FFF ) != ( mb->shaderkey & 0xFC000FFF ))
+		|| (( nextmb->sortkey & 0xFFFFF ) != ( mb->sortkey & 0xFFFFF )) || R_SpriteOverflow() )
 		{
 			if( !nonMergable )
 			{

@@ -268,10 +268,6 @@ typedef enum
 	SURF_ALPHASHADOW		= BIT(16),	// do per-pixel light shadow casting in q3map
 	SURF_NODLIGHT		= BIT(17),	// never add dynamic lights
 	SURF_DUST			= BIT(18),	// REMOVE? leave a dust trail when walking on this surface
-	SURF_BLEND		= BIT(19),
-	SURF_ALPHA		= BIT(20),
-	SURF_ADDITIVE		= BIT(21),
-	SURF_GLOW			= BIT(22),
 } surfaceType_t;
 
 enum
@@ -365,12 +361,7 @@ typedef struct
 {
 	int	planenum;		// facing out of the leaf
 	int	shadernum;	// surface description
-
-	union
-	{
-		int	surfacenum;
-		int	surfaceflags;
-	};
+	int	surfacenum;
 } dbrushsider_t;
 
 typedef struct

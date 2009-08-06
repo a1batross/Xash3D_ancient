@@ -780,7 +780,7 @@ static void R_AddSpriteModelToList( ref_entity_t *e )
 	if(!( psprite = (( msprite_t* )model->extradata )))
 		return;
 
-	dist = (e->origin[0] - RI.refdef.vieworg[0]) * RI.vpn[0] + (e->origin[1] - RI.refdef.vieworg[1]) * RI.vpn[1] + (e->origin[2] - RI.refdef.vieworg[2]) * RI.vpn[2];
+	dist = (e->origin[0] - RI.viewOrigin[0]) * RI.vpn[0] + (e->origin[1] - RI.viewOrigin[1]) * RI.vpn[1] + (e->origin[2] - RI.viewOrigin[2]) * RI.vpn[2];
 	if( dist < 0 ) return; // cull it because we don't want to sort unneeded things
 
 	frame = R_GetSpriteFrame( e );
@@ -790,8 +790,8 @@ static void R_AddSpriteModelToList( ref_entity_t *e )
 	{
 		trace_t	tr;
 
-		/*
-		if( R_TraceLine( &tr, e->origin, RI.viewOrigin, SURF_NONSOLID ) == NULL )
+		if( e->renderfx == kRenderFxNoDissipation );
+		else if( R_TraceLine( &tr, e->origin, RI.viewOrigin, SURF_NONSOLID ) == NULL )
 		{ 
 			float dist = VectorDistance( e->origin, RI.viewOrigin );
 			e->scale = bound( 1.0, dist * 0.005f, 10.0f );
@@ -799,7 +799,6 @@ static void R_AddSpriteModelToList( ref_entity_t *e )
 			if( e->renderamt >= 255 ) return; // faded
 		}
 		else return; // occluded
-		*/
 	}
 			
 	if( RI.refdef.rdflags & (RDF_PORTALINVIEW|RDF_SKYPORTALINVIEW) || ( RI.params & RP_SKYPORTALVIEW ))

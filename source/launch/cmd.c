@@ -171,139 +171,6 @@ void Cbuf_Execute( void )
 		Cmd_ExecuteString( line );		
 	}
 }
-
-/*
-============
-Cmd_StringContains
-============
-*/
-char *Cmd_StringContains( char *str1, char *str2, int casecmp )
-{
-	int	len, i, j;
-
-	len = com.strlen(str1) - com.strlen(str2);
-
-	for (i = 0; i <= len; i++, str1++)
-	{
-		for (j = 0; str2[j]; j++)
-		{
-			if (casecmp)
-			{
-				if (str1[j] != str2[j]) break;
-			}
-			else
-			{
-				if(com.toupper(str1[j]) != com.toupper(str2[j]))
-					break;
-			}
-		}
-		if (!str2[j]) return str1;
-	}
-	return NULL;
-}
-
-/*
-============
-Cmd_FilterToken
-============
-*/
-bool Cmd_FilterToken( char *filter, char *name, int casecmp )
-{
-	char	buf[MAX_MSGLEN];
-	char	*ptr;
-	int	i, found;
-
-	while(*filter)
-	{
-		if(*filter == '*')
-		{
-			filter++;
-			for (i = 0; *filter; i++)
-			{
-				if (*filter == '*' || *filter == '?')
-					break;
-				buf[i] = *filter;
-				filter++;
-			}
-			buf[i] = '\0';
-			if (com.strlen(buf))
-			{
-				ptr = Cmd_StringContains(name, buf, casecmp);
-				if (!ptr) return false;
-				name = ptr + com.strlen(buf);
-			}
-		}
-		else if (*filter == '?')
-		{
-			filter++;
-			name++;
-		}
-		else if (*filter == '[' && *(filter+1) == '[')
-		{
-			filter++;
-		}
-		else if (*filter == '[')
-		{
-			filter++;
-			found = false;
-			while(*filter && !found)
-			{
-				if (*filter == ']' && *(filter+1) != ']') break;
-				if (*(filter+1) == '-' && *(filter+2) && (*(filter+2) != ']' || *(filter+3) == ']'))
-				{
-					if (casecmp)
-					{
-						if (*name >= *filter && *name <= *(filter+2)) found = true;
-					}
-					else
-					{
-						if (com.toupper(*name) >= com.toupper(*filter) && com.toupper(*name) <= com.toupper(*(filter+2)))
-							found = true;
-					}
-					filter += 3;
-				}
-				else
-				{
-					if (casecmp)
-					{
-						if (*filter == *name) found = true;
-					}
-					else
-					{
-						if (com.toupper(*filter) == com.toupper(*name)) found = true;
-					}
-					filter++;
-				}
-			}
-			if (!found) return false;
-			while(*filter)
-			{
-				if (*filter == ']' && *(filter+1) != ']')
-					break;
-				filter++;
-			}
-			filter++;
-			name++;
-		}
-		else
-		{
-			if (casecmp)
-			{
-				if (*filter != *name)
-					return false;
-			}
-			else
-			{
-				if (com.toupper(*filter) != com.toupper(*name))
-					return false;
-			}
-			filter++;
-			name++;
-		}
-	}
-	return true;
-}
-
 /*
 ==============================================================================
 
@@ -712,7 +579,7 @@ void Cmd_ExecuteString( const char *text )
 
 			// perform the action
 			if( !cmd->function )
-				Cmd_ExecuteString(va("cmd %s", text));
+				Cmd_ExecuteString( va( "cmd %s", text ));
 			else cmd->function();
 			return;
 		}
@@ -721,8 +588,12 @@ void Cmd_ExecuteString( const char *text )
 	// check cvars
 	if( Cvar_Command()) return;
 
-	// all unrecognized commands will be forwarded to a server
-	Cmd_ExecuteString( va("cmd %s", text ));
+	if( Sys.app_name == HOST_NORMAL )
+	{
+		// all unrecognized commands will be forwarded to a server
+		Cmd_ExecuteString( va( "cmd %s", text ));
+	}
+	else Msg( "Unknown command \"%s\"\n", text );
 }
 
 /*
@@ -736,17 +607,17 @@ void Cmd_List_f( void )
 	int		i = 0;
 	char		*match;
 
-	if(Cmd_Argc() > 1) match = Cmd_Argv( 1 );
+	if( Cmd_Argc() > 1 ) match = Cmd_Argv( 1 );
 	else match = NULL;
 
 	for( cmd = cmd_functions; cmd; cmd = cmd->next )
 	{
-		if( match && !Cmd_FilterToken( match, cmd->name, false ))
+		if( match && !com_stricmpext( match, cmd->name ))
 			continue;
-		Msg("%s\n", cmd->name);
+		Msg( "%s\n", cmd->name );
 		i++;
 	}
-	Msg("%i commands\n", i);
+	Msg( "%i commands\n", i );
 }
 
 /*

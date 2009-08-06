@@ -1287,35 +1287,35 @@ Mod_LoadFogs
 */
 static void Mod_LoadFogs( const lump_t *l, const lump_t *brLump, const lump_t *brSidesLump )
 {
-	int i, j, count, p;
-	dfog_t *in;
-	mfog_t *out;
-	dbrush_t *inbrushes, *brush;
-	dbrushsideq_t *inbrushsides = NULL, *brushside = NULL;
-	dbrushsider_t *inrbrushsides = NULL, *rbrushside = NULL;
+	int		i, j, count, p;
+	dfog_t		*in;
+	mfog_t		*out;
+	dbrush_t		*inbrushes, *brush;
+	dbrushsideq_t	*inbrushsides = NULL, *brushside = NULL;
+	dbrushsider_t	*inrbrushsides = NULL, *rbrushside = NULL;
 
 	inbrushes = ( void * )( mod_base + brLump->fileofs );
-	if( brLump->filelen % sizeof( *inbrushes ) )
+	if( brLump->filelen % sizeof( *inbrushes ))
 		Host_Error( "Mod_LoadBrushes: funny lump size in %s\n", loadmodel->name );
 
 	if( mod_bspFormat->flags & (BSP_RAVEN|BSP_IGBSP))
 	{
-		inrbrushsides = ( void * )( mod_base + brSidesLump->fileofs );
+		inrbrushsides = (void *)(mod_base + brSidesLump->fileofs);
 		if( brSidesLump->filelen % sizeof( *inrbrushsides ) )
 			Host_Error( "Mod_LoadBrushsides: funny lump size in %s\n", loadmodel->name );
 	}
 	else
 	{
-		inbrushsides = ( void * )( mod_base + brSidesLump->fileofs );
+		inbrushsides = (void *)(mod_base + brSidesLump->fileofs);
 		if( brSidesLump->filelen % sizeof( *inbrushsides ) )
 			Host_Error( "Mod_LoadBrushsides: funny lump size in %s\n", loadmodel->name );
 	}
 
-	in = ( void * )( mod_base + l->fileofs );
-	if( l->filelen % sizeof( *in ) )
+	in = (void *)(mod_base + l->fileofs);
+	if( l->filelen % sizeof( *in ))
 		Host_Error( "Mod_LoadFogs: funny lump size in %s\n", loadmodel->name );
 	count = l->filelen / sizeof( *in );
-	out = Mod_Malloc( loadmodel, count*sizeof( *out ) );
+	out = Mod_Malloc( loadmodel, count * sizeof( *out ));
 
 	loadbmodel->fogs = out;
 	loadbmodel->numfogs = count;
@@ -1341,19 +1341,17 @@ static void Mod_LoadFogs( const lump_t *l, const lump_t *brLump, const lump_t *b
 
 		p = LittleLong( in->visibleside );
 		out->numplanes = LittleLong( brush->numsides );
-		out->planes = Mod_Malloc( loadmodel, out->numplanes * sizeof( cplane_t ) );
+		out->planes = Mod_Malloc( loadmodel, out->numplanes * sizeof( cplane_t ));
 
 		if( mod_bspFormat->flags & (BSP_RAVEN|BSP_IGBSP))
 		{
-			if( p != -1 )
-				out->visibleplane = loadbmodel->planes + LittleLong( rbrushside[p].planenum );
+			if( p != -1 ) out->visibleplane = loadbmodel->planes + LittleLong( rbrushside[p].planenum );
 			for( j = 0; j < out->numplanes; j++ )
 				out->planes[j] = *( loadbmodel->planes + LittleLong( rbrushside[j].planenum ));
 		}
 		else
 		{
-			if( p != -1 )
-				out->visibleplane = loadbmodel->planes + LittleLong( brushside[p].planenum );
+			if( p != -1 ) out->visibleplane = loadbmodel->planes + LittleLong( brushside[p].planenum );
 			for( j = 0; j < out->numplanes; j++ )
 				out->planes[j] = *( loadbmodel->planes + LittleLong( brushside[j].planenum ));
 		}

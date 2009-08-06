@@ -72,7 +72,22 @@ R_DrawStretchRaw
 */
 void R_DrawStretchRaw( int x, int y, int w, int h, int cols, int rows, const byte *data, bool redraw )
 {
-	int samples = 3;
+	if( !GL_Support( R_ARB_TEXTURE_NPOT_EXT ))
+	{
+		int	width = 1, height = 1;
+	
+		// check the dimensions
+		while( width < cols ) width <<= 1;
+		while( height < rows ) height <<= 1;
+
+		if( cols != width || rows != height )
+			Host_Error( "R_DrawStretchRaw: size is not a power of two (%i x %i)\n", cols, rows );
+	}
+
+	if( cols > glConfig.max_2d_texture_size )
+		Host_Error( "R_DrawStretchRaw: size exceeds hardware limits (%i > %i)\n", cols, glConfig.max_2d_texture_size ); 
+	if( rows > glConfig.max_2d_texture_size )
+		Host_Error( "R_DrawStretchRaw: size exceeds hardware limits (%i > %i)\n", rows, glConfig.max_2d_texture_size );
 
 	GL_Bind( 0, tr.cinTexture );
 
@@ -87,6 +102,7 @@ void R_DrawStretchRaw( int x, int y, int w, int h, int cols, int rows, const byt
 		pglTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, cols, rows, 0, GL_RGBA, GL_UNSIGNED_BYTE, data );
 	}
 	R_CheckForErrors();
+	if( redraw ) return;
 
 	pglBegin( GL_QUADS );
 	pglTexCoord2f( 0, 0 );
