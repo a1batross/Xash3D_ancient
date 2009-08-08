@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "r_local.h"
 #include "mathlib.h"
-#include "quatlib.h"
+#include "matrix_lib.h"
 
 static mesh_t poly_mesh;
 
@@ -766,7 +766,7 @@ msurface_t *R_TransformedTraceLine( trace_t *tr, const vec3_t start, const vec3_
 		{
 			mbrushmodel_t *bmodel = ( mbrushmodel_t * )model->extradata;
 			vec3_t temp, start_l, end_l, axis[3];
-			bool rotated = !Matrix_Compare( test->axis, axis_identity );
+			bool rotated = !Matrix3x3_Compare( test->axis, matrix3x3_identity );
 
 			// transform
 			VectorSubtract( start, test->origin, start_l );
@@ -774,9 +774,9 @@ msurface_t *R_TransformedTraceLine( trace_t *tr, const vec3_t start, const vec3_
 			if( rotated )
 			{
 				VectorCopy( start_l, temp );
-				Matrix_TransformVector( test->axis, temp, start_l );
+				Matrix3x3_Transform( test->axis, temp, start_l );
 				VectorCopy( end_l, temp );
-				Matrix_TransformVector( test->axis, temp, end_l );
+				Matrix3x3_Transform( test->axis, temp, end_l );
 			}
 
 			VectorCopy( start_l, trace_start );
@@ -792,9 +792,9 @@ msurface_t *R_TransformedTraceLine( trace_t *tr, const vec3_t start, const vec3_
 			// transform back
 			if( rotated && trace_fraction != 1 )
 			{
-				Matrix_Transpose( test->axis, axis );
+				Matrix3x3_Transpose( axis, test->axis );
 				VectorCopy( tr->plane.normal, temp );
-				Matrix_TransformVector( axis, temp, trace_plane.normal );
+				Matrix3x3_Transform( axis, temp, trace_plane.normal );
 			}
 		}
 	}

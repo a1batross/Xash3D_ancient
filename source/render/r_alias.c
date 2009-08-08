@@ -182,7 +182,7 @@ void Mod_AliasLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buff
 				pouttag->origin[j] = LittleFloat( pintag->origin[j] );
 			}
 
-			Matrix_Quat( axis, pouttag->quat );
+			Quat_FromAxis( axis, pouttag->quat );
 			Quat_Normalize( pouttag->quat );
 
 			com.strncpy( pouttag->name, pintag->name, MD3_MAX_PATH );

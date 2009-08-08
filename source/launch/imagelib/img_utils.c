@@ -10,6 +10,7 @@ cvar_t *image_profile;
 cvar_t *gl_round_down;
 cvar_t *fs_textures;
 cvar_t *png_compression;
+cvar_t *jpg_quality;
 
 #define LERPBYTE(i)		r = resamplerow1[i];out[i] = (byte)((((resamplerow2[i] - r) * lerp)>>16) + r)
 
@@ -285,6 +286,7 @@ static const saveformat_t save_xash048[] =
 static const saveformat_t save_xash051[] =
 {
 { "%s%s.%s", "tga", Image_SaveTGA },		// tga screenshots
+{ "%s%s.%s", "jpg", Image_SaveJPG },		// tga levelshots or screenshots
 { "%s%s.%s", "png", Image_SavePNG },		// png levelshots
 { "%s%s.%s", "dds", Image_SaveDDS },		// dds envshots
 { NULL, NULL, NULL }
@@ -298,7 +300,9 @@ void Image_Init( void )
 	gl_round_down = Cvar_Get( "gl_round_down", "0", CVAR_SYSTEMINFO, "down size non-power of two textures" );
 	fs_textures = Cvar_Get( "fs_textures_path", "textures", CVAR_SYSTEMINFO, "textures default folder" );
 	png_compression = Cvar_Get( "png_compression", "9", CVAR_SYSTEMINFO, "pnglib compression level" );
+	jpg_quality = Cvar_Get( "jpg_quality", "7", CVAR_SYSTEMINFO, "jpglib quality level" );
 	Cvar_SetValue( "png_compression", bound( 0, png_compression->integer, 9 ));
+	Cvar_SetValue( "jpg_quality", bound( 0, jpg_quality->integer, 10 ));
 
 	// install image formats (can be re-install later by Image_Setup)
 	switch( Sys.app_name )

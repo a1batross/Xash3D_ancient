@@ -104,25 +104,6 @@ void Matrix4_MultiplyFast( const mat4x4_t m1, const mat4x4_t m2, mat4x4_t out )
 	out[15] = 1.0f;
 }
 
-void Matrix_FromQuaternion( const quat_t q, mat4x4_t out )
-{
-	vec_t wx, wy, wz, xx, yy, yz, xy, xz, zz, x2, y2, z2;
-
-	x2 = q[0] + q[0]; y2 = q[1] + q[1]; z2 = q[2] + q[2];
-
-	xx = q[0] * x2; yy = q[1] * y2; zz = q[2] * z2;
-	out[0] = 1.0f - yy - zz; out[5] = 1.0f - xx - zz; out[10] = 1.0f - xx - yy;
-
-	yz = q[1] * z2; wx = q[3] * x2;
-	out[9] = yz - wx; out[6] = yz + wx;
-
-	xy = q[0] * y2; wz = q[3] * z2;
-	out[4] = xy - wz; out[1] = xy + wz;
-
-	xz = q[0] * z2; wy = q[3] * y2;
-	out[8] = xz + wy; out[2] = xz - wy;
-}
-
 void Matrix4_Rotate( mat4x4_t m, vec_t angle, vec_t x, vec_t y, vec_t z )
 {
 	mat4x4_t t, b;

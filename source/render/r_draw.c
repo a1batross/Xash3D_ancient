@@ -14,6 +14,19 @@ meshbuffer_t  pic_mbuffer;
 
 /*
 ===============
+R_DrawSetColor
+===============
+*/
+void R_DrawSetColor( const void *data )
+{
+	float *color = (float *)data;
+
+	if( color ) Vector4Copy( color, glState.draw_color );
+	else Vector4Set( glState.draw_color, 1.0f, 1.0f, 1.0f, 1.0f );
+}
+
+/*
+===============
 R_DrawStretchPic
 ===============
 */

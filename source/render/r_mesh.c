@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "r_local.h"
 #include "mathlib.h"
-#include "quatlib.h"
+#include "matrix_lib.h"
 
 #define	    QSORT_MAX_STACKDEPTH    2048
 
@@ -418,8 +418,9 @@ static void R_BatchMeshBuffer( const meshbuffer_t *mb, const meshbuffer_t *nextm
 			MB_NUM2SHADER( mb->shaderkey, shader );
 
 			if( shader->flags & SHADER_SKYPARMS )
-			{	// draw sky
-				if( !( RI.params & RP_NOSKY ) )
+			{
+				// draw sky
+				if(!( RI.params & RP_NOSKY ))
 					R_DrawSky( shader );
 				return;
 			}
@@ -792,15 +793,15 @@ static vec3_t r_portal_mins, r_portal_maxs, r_portal_centre;
 
 static bool R_AddPortalSurface( const meshbuffer_t *mb )
 {
-	int i;
-	float dist;
-	ref_entity_t *ent;
-	ref_shader_t *shader;
-	msurface_t *surf;
-	cplane_t plane, oplane;
-	mesh_t *mesh;
-	vec3_t mins, maxs, centre;
-	vec3_t v[3], entity_rotation[3];
+	int		i;
+	float		dist;
+	ref_entity_t	*ent;
+	ref_shader_t	*shader;
+	msurface_t	*surf;
+	cplane_t		plane, oplane;
+	mesh_t		*mesh;
+	vec3_t		mins, maxs, centre;
+	vec3_t		v[3], entity_rotation[3];
 
 	if( !mb )
 	{
@@ -812,8 +813,7 @@ static bool R_AddPortalSurface( const meshbuffer_t *mb )
 	}
 
 	MB_NUM2ENTITY( mb->sortkey, ent );
-	if( !ent->model )
-		return false;
+	if( !ent->model ) return false;
 
 	surf = mb->infokey > 0 ? &r_worldbrushmodel->surfaces[mb->infokey-1] : NULL;
 	if( !surf || !( mesh = surf->mesh ) || !mesh->xyzArray )
@@ -828,14 +828,14 @@ static bool R_AddPortalSurface( const meshbuffer_t *mb )
 	oplane.dist += DotProduct( ent->origin, oplane.normal );
 	CategorizePlane( &oplane );
 
-	if( !Matrix_Compare( ent->axis, axis_identity ))
+	if( !Matrix3x3_Compare( ent->axis, matrix3x3_identity ))
 	{
-		Matrix_Transpose( ent->axis, entity_rotation );
-		Matrix_TransformVector( entity_rotation, mesh->xyzArray[mesh->elems[0]], v[0] );
+		Matrix3x3_Transpose( entity_rotation, ent->axis );
+		Matrix3x3_Transform( entity_rotation, mesh->xyzArray[mesh->elems[0]], v[0] );
 		VectorMA( ent->origin, ent->scale, v[0], v[0] );
-		Matrix_TransformVector( entity_rotation, mesh->xyzArray[mesh->elems[1]], v[1] );
+		Matrix3x3_Transform( entity_rotation, mesh->xyzArray[mesh->elems[1]], v[1] );
 		VectorMA( ent->origin, ent->scale, v[1], v[1] );
-		Matrix_TransformVector( entity_rotation, mesh->xyzArray[mesh->elems[2]], v[2] );
+		Matrix3x3_Transform( entity_rotation, mesh->xyzArray[mesh->elems[2]], v[2] );
 		VectorMA( ent->origin, ent->scale, v[2], v[2] );
 		PlaneFromPoints( v, &plane );
 		CategorizePlane( &plane );
@@ -882,7 +882,7 @@ static bool R_AddPortalSurface( const meshbuffer_t *mb )
 	}
 	r_portal_shader = shader;
 
-	if( !Matrix_Compare( ent->axis, axis_identity ) )
+	if( !Matrix3x3_Compare( ent->axis, matrix3x3_identity ))
 	{
 		r_portal_ent = ent;
 		r_portal_plane = plane;
@@ -894,7 +894,7 @@ static bool R_AddPortalSurface( const meshbuffer_t *mb )
 
 	if( !VectorCompare( r_portal_plane.normal, vec3_origin ) && !( VectorCompare( plane.normal, r_portal_plane.normal ) && plane.dist == r_portal_plane.dist ) )
 	{
-		if( VectorDistance2( RI.viewOrigin, centre ) > VectorDistance2( RI.viewOrigin, r_portal_centre ) )
+		if( VectorDistance2( RI.viewOrigin, centre ) > VectorDistance2( RI.viewOrigin, r_portal_centre ))
 			return true;
 		VectorClear( r_portal_plane.normal );
 		ClearBounds( r_portal_mins, r_portal_maxs );
@@ -1046,7 +1046,7 @@ setup_and_render:
 			VectorNormalize( M[i] );
 		}
 
-		Matrix_EulerAngles( M, angles );
+		Matrix3x3_ToAngles( M, angles, true );
 		angles[ROLL] = -angles[ROLL];
 
 		RI.params = RP_MIRRORVIEW|RP_FLIPFRONTFACE;
@@ -1055,8 +1055,8 @@ setup_and_render:
 	}
 	else
 	{
-		vec3_t tvec;
-		vec3_t A[3], B[3], C[3], rot[3];
+		vec3_t	tvec;
+		vec3_t	A[3], B[3], C[3], rot[3];
 
 		// build world-to-portal rotation matrix
 		VectorNegate( portal_plane->normal, A[0] );
@@ -1065,21 +1065,19 @@ setup_and_render:
 		// build portal_dest-to-world rotation matrix
 		VectorCopy( ent->movedir, portal_plane->normal );
 		NormalVectorToAxis( portal_plane->normal, B );
-		Matrix_Transpose( B, C );
+		Matrix3x3_Transpose( C, B );
 
 		// multiply to get world-to-world rotation matrix
-		Matrix_Multiply( C, A, rot );
+		Matrix3x3_Concat( rot, C, A );
 
 		// translate view origin
 		VectorSubtract( RI.viewOrigin, ent->origin, tvec );
-		Matrix_TransformVector( rot, tvec, origin );
+		Matrix3x3_Transform( rot, tvec, origin );
 		VectorAdd( origin, ent->origin2, origin );
 
-		for( i = 0; i < 3; i++ )
-			Matrix_TransformVector( A, RI.viewAxis[i], rot[i] );
-		Matrix_Multiply( ent->axis, rot, B );
-		for( i = 0; i < 3; i++ )
-			Matrix_TransformVector( C, B[i], A[i] );
+		for( i = 0; i < 3; i++ ) Matrix3x3_Transform( A, RI.viewAxis[i], rot[i] );
+		Matrix3x3_Concat( B, ent->axis, rot );
+		for( i = 0; i < 3; i++ ) Matrix3x3_Transform( C, B[i], A[i] );
 
 		// set up portal_plane
 //		VectorCopy( A[0], portal_plane->normal );
@@ -1087,7 +1085,7 @@ setup_and_render:
 		CategorizePlane( portal_plane );
 
 		// calculate Euler angles for our rotation matrix
-		Matrix_EulerAngles( A, angles );
+		Matrix3x3_ToAngles( A, angles, true );
 
 		// for portals, vis data is taken from portal origin, not
 		// view origin, because the view point moves around and

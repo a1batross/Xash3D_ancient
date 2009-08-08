@@ -218,55 +218,16 @@ typedef struct tga_s
 
 ========================================================================
 */
-typedef struct huffman_table_s
-{
-	// Huffman coding tables
-	byte	bits[16];
-	byte	hval[256];
-	byte	size[256];
-	word	code[256];
-} huffman_table_t;
+// defined in image_jpg.c
 
-typedef struct jpg_s
-{
-	// not a real header
-	file_t	*file;		// file
-	byte	*buffer;		// jpg buffer
-	
-	int	width;		// width image
-	int	height;		// height image
-	byte	*data;		// image
-	int	data_precision;	// bit per component
-	int	num_components;	// number component
-	int	restart_interval;	// restart interval
-	bool	progressive_mode;	// progressive format
+/*
+========================================================================
 
-	struct
-	{
-		int     id;	// identifier
-		int     h;	// horizontal sampling factor
-		int     v;	// vertical sampling factor
-		int     t;	// quantization table selector
-		int     td;	// DC table selector
-		int     ta;	// AC table selector
-	} component_info[3];	// RGB (alpha not supported)
-    
-	huffman_table_t hac[4];	// AC table
-	huffman_table_t hdc[4];	// DC table
+.PNG image format
 
-	int	qtable[4][64];	// quantization table
-
-	struct
-	{
-		int     ss,se;	// progressive jpeg spectral selection
-		int     ah,al;	// progressive jpeg successive approx
-	} scan;
-
-	int	dc[3];
-	int	curbit;
-	byte	curbyte;
-
-} jpg_t;
+========================================================================
+*/
+// defined in image_png.c
 
 /*
 ========================================================================
@@ -494,6 +455,7 @@ extern imglib_t image;
 extern cvar_t *img_oldformats;
 extern cvar_t *fs_wadsupport;
 extern cvar_t *png_compression;
+extern cvar_t *jpg_quality;
 extern byte *fs_mempool;
 extern const bpc_desc_t PFDesc[];
 
@@ -546,6 +508,7 @@ bool Image_SaveTGA( const char *name, rgbdata_t *pix );
 bool Image_SaveDDS( const char *name, rgbdata_t *pix );
 bool Image_SaveBMP( const char *name, rgbdata_t *pix );
 bool Image_SavePNG( const char *name, rgbdata_t *pix );
+bool Image_SaveJPG( const char *name, rgbdata_t *pix );
 bool Image_SavePCX( const char *name, rgbdata_t *pix );
 
 //

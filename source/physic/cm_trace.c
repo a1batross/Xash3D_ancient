@@ -275,8 +275,8 @@ void CM_TraceBmodel( const vec3_t start, const vec3_t end, const vec3_t mins, co
 		VectorAdd(end, mins, boxendmins);
 		VectorAdd(end, maxs, boxendmaxs);
 
-		thisbrush_start = CM_CollisionBrushForBox( identitymatrix, boxstartmins, boxstartmaxs, 0, 0, NULL );
-		thisbrush_end = CM_CollisionBrushForBox( identitymatrix, boxendmins, boxendmaxs, 0, 0, NULL );
+		thisbrush_start = CM_CollisionBrushForBox( matrix4x4_identity, boxstartmins, boxstartmaxs, 0, 0, NULL );
+		thisbrush_end = CM_CollisionBrushForBox( matrix4x4_identity, boxendmins, boxendmaxs, 0, 0, NULL );
 
 		if( model && model->type == mod_brush )
 		{
@@ -333,8 +333,8 @@ void CM_TraceStudio( const vec3_t start, const vec3_t end, const vec3_t mins, co
 		VectorAdd(end, mins, boxendmins);
 		VectorAdd(end, maxs, boxendmaxs);
 
-		thisbrush_start = CM_CollisionBrushForBox( identitymatrix, boxstartmins, boxstartmaxs, 0, 0, NULL );
-		thisbrush_end = CM_CollisionBrushForBox( identitymatrix, boxendmins, boxendmaxs, 0, 0, NULL );
+		thisbrush_start = CM_CollisionBrushForBox( matrix4x4_identity, boxstartmins, boxstartmaxs, 0, 0, NULL );
+		thisbrush_end = CM_CollisionBrushForBox( matrix4x4_identity, boxendmins, boxendmaxs, 0, 0, NULL );
 		CM_CollisionTraceBrushTriangleMeshFloat( trace, thisbrush_start, thisbrush_end, mod->col[0]->numtris, mod->col[0]->indices, (const float *)mod->col[0]->verts, CONTENTS_SOLID, 0, NULL, segmentmins, segmentmaxs );
 	}
 }

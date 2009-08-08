@@ -24,25 +24,28 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "r_local.h"
 #include "mathlib.h"
 
-#define SIDE_SIZE   9
-#define POINTS_LEN	( SIDE_SIZE * SIDE_SIZE )
-#define ELEM_LEN	(( SIDE_SIZE-1 ) * ( SIDE_SIZE-1 ) * 6 )
+#define MAX_CLIP_VERTS	64
+#define SIDE_SIZE   	9
+#define POINTS_LEN		( SIDE_SIZE * SIDE_SIZE )
+#define ELEM_LEN		(( SIDE_SIZE-1 ) * ( SIDE_SIZE-1 ) * 6 )
 
-#define SPHERE_RAD	10.0f
-#define EYE_RAD	9.0f
+#define SPHERE_RAD		10.0f
+#define EYE_RAD		9.0f
 
-#define SCALE_S	4.0f  // arbitrary (?) texture scaling factors
-#define SCALE_T	4.0f
+#define SCALE_S		4.0f  // arbitrary (?) texture scaling factors
+#define SCALE_T		4.0f
+#define ST_MIN		1.0f / 512f
+#define ST_MAX		511.0f / 512f
 
-#define BOX_SIZE    1.0f
-#define BOX_STEP    BOX_SIZE / ( SIDE_SIZE-1 ) * 2.0f
+#define BOX_SIZE    	1.0f
+#define BOX_STEP    	BOX_SIZE / ( SIDE_SIZE-1 ) * 2.0f
 
-elem_t		r_skydome_elems[6][ELEM_LEN];
-meshbuffer_t	r_skydome_mbuffer;
+elem_t			r_skydome_elems[6][ELEM_LEN];
+meshbuffer_t		r_skydome_mbuffer;
 
-static mfog_t	*r_skyfog;
-static msurface_t	*r_warpface;
-static bool	r_warpfacevis;
+static mfog_t		*r_skyfog;
+static msurface_t		*r_warpface;
+static bool		r_warpfacevis;
 
 static void Gen_BoxSide( skydome_t *skydome, int side, vec3_t orig, vec3_t drow, vec3_t dcol, float skyheight );
 static void MakeSkyVec( float x, float y, float z, int axis, vec3_t v );
@@ -61,7 +64,7 @@ skydome_t *R_CreateSkydome( byte *mempool, float skyheight, ref_shader_t **farbo
 	byte	*buffer;
 
 	size = sizeof( skydome_t ) + sizeof( mesh_t ) * 6 + sizeof( vec4_t ) * POINTS_LEN * 6 +
-		sizeof( vec4_t ) * POINTS_LEN * 6 + sizeof( vec2_t ) * POINTS_LEN * 11;
+		sizeof( vec4_t ) * POINTS_LEN * 6 + sizeof( vec2_t ) * POINTS_LEN * 12;
 	buffer = Mem_Alloc( mempool, size );
 
 	skydome = ( skydome_t * )buffer;
@@ -77,10 +80,7 @@ skydome_t *R_CreateSkydome( byte *mempool, float skyheight, ref_shader_t **farbo
 		mesh->numVertexes = POINTS_LEN;
 		mesh->xyzArray = ( vec4_t * )buffer; buffer += sizeof( vec4_t ) * POINTS_LEN;
 		mesh->normalsArray = ( vec4_t * )buffer; buffer += sizeof( vec4_t ) * POINTS_LEN;
-		if( i != 5 )
-		{
-			skydome->sphereStCoords[i] = ( vec2_t * )buffer; buffer += sizeof( vec2_t ) * POINTS_LEN;
-		}
+		skydome->sphereStCoords[i] = ( vec2_t * )buffer; buffer += sizeof( vec2_t ) * POINTS_LEN;
 		skydome->linearStCoords[i] = ( vec2_t * )buffer; buffer += sizeof( vec2_t ) * POINTS_LEN;
 
 		mesh->numElems = ELEM_LEN;
@@ -134,10 +134,10 @@ through the box verts to the sphere to find the texture coordinates.
 */
 static void Gen_BoxSide( skydome_t *skydome, int side, vec3_t orig, vec3_t drow, vec3_t dcol, float skyheight )
 {
-	vec3_t pos, w, row, norm;
-	float *v, *n, *st = NULL, *st2;
-	int r, c;
-	float t, d, d2, b, b2, q[2], s;
+	vec3_t	pos, w, row, norm;
+	float	*v, *n, *st, *st2;
+	float	t, d, d2, b, b2, q[2], s;
+	int	r, c;
 
 	s = 1.0 / ( SIDE_SIZE-1 );
 	d = EYE_RAD; // sphere center to camera distance
@@ -149,14 +149,10 @@ static void Gen_BoxSide( skydome_t *skydome, int side, vec3_t orig, vec3_t drow,
 
 	v = skydome->meshes[side].xyzArray[0];
 	n = skydome->meshes[side].normalsArray[0];
-	if( side != 5 )
-		st = skydome->sphereStCoords[side][0];
+	st = skydome->sphereStCoords[side][0];
 	st2 = skydome->linearStCoords[side][0];
 
 	VectorCopy( orig, row );
-
-//	CrossProduct( dcol, drow, norm );
-//	VectorNormalize( norm );
 	VectorClear( norm );
 
 	for( r = 0; r < SIDE_SIZE; r++ )
@@ -176,17 +172,14 @@ static void Gen_BoxSide( skydome_t *skydome, int side, vec3_t orig, vec3_t drow,
 			w[0] *= t;
 			w[1] *= t;
 
-			if( st )
-			{
-				// use x and y on sphere as s and t
-				// minus is here so skies scoll in correct (Q3A's) direction
-				st[0] = -w[0] * q[0];
-				st[1] = -w[1] * q[1];
+			// use x and y on sphere as s and t
+			// minus is here so skies scoll in correct (Q3A's) direction
+			st[0] = -w[0] * q[0];
+			st[1] = -w[1] * q[1];
 
-				// avoid bilerp seam
-				st[0] = ( bound( -1, st[0], 1 ) + 1.0 ) * 0.5;
-				st[1] = ( bound( -1, st[1], 1 ) + 1.0 ) * 0.5;
-			}
+			// avoid bilerp seam
+			st[0] = ( bound( -1, st[0], 1 ) + 1.0 ) * 0.5;
+			st[1] = ( bound( -1, st[1], 1 ) + 1.0 ) * 0.5;
 
 			st2[0] = c * s;
 			st2[1] = 1.0 - r * s;
@@ -196,10 +189,9 @@ static void Gen_BoxSide( skydome_t *skydome, int side, vec3_t orig, vec3_t drow,
 
 			v += 4;
 			n += 4;
-			if( st ) st += 2;
+			st += 2;
 			st2 += 2;
 		}
-
 		VectorAdd( row, drow, row );
 	}
 }
@@ -213,8 +205,7 @@ static void R_DrawSkySide( skydome_t *skydome, int side, ref_shader_t *shader, i
 {
 	meshbuffer_t *mbuffer = &r_skydome_mbuffer;
 
-	if( RI.skyMins[0][side] >= RI.skyMaxs[0][side] ||
-		RI.skyMins[1][side] >= RI.skyMaxs[1][side] )
+	if( RI.skyMins[0][side] >= RI.skyMaxs[0][side] || RI.skyMins[1][side] >= RI.skyMaxs[1][side] )
 		return;
 
 	mbuffer->shaderkey = shader->sortkey;
@@ -233,8 +224,8 @@ R_DrawSkyBox
 */
 static void R_DrawSkyBox( skydome_t *skydome, ref_shader_t **shaders )
 {
-	int i, features;
-	const int skytexorder[6] = { SKYBOX_RIGHT, SKYBOX_FRONT, SKYBOX_LEFT, SKYBOX_BACK, SKYBOX_TOP, SKYBOX_BOTTOM };
+	int	i, features;
+	const int	skytexorder[6] = { SKYBOX_RIGHT, SKYBOX_FRONT, SKYBOX_LEFT, SKYBOX_BACK, SKYBOX_TOP, SKYBOX_BOTTOM };
 
 	features = shaders[0]->features;
 	if( r_shownormals->integer )
@@ -272,11 +263,13 @@ void R_DrawSky( ref_shader_t *shader )
 	vec3_t		mins, maxs;
 	mat4x4_t		m, oldm;
 	elem_t		*elem;
-	skydome_t		*skydome = shader->skyParms ? shader->skyParms : NULL;
+	skydome_t		*skydome;
 	meshbuffer_t	*mbuffer = &r_skydome_mbuffer;
 	int		u, v, umin, umax, vmin, vmax;
 
-	if( !skydome ) return;
+	if( !shader ) return;
+	skydome = shader->skyParms ? shader->skyParms : NULL;
+	if( !skydome) return;
 
 	ClearBounds( mins, maxs );
 	for( i = 0; i < 6; i++ )
@@ -284,17 +277,17 @@ void R_DrawSky( ref_shader_t *shader )
 		if( RI.skyMins[0][i] >= RI.skyMaxs[0][i] || RI.skyMins[1][i] >= RI.skyMaxs[1][i] )
 			continue;
 
-		umin = (int)( ( RI.skyMins[0][i]+1.0f )*0.5f*(float)( SIDE_SIZE-1 ) );
-		umax = (int)( ( RI.skyMaxs[0][i]+1.0f )*0.5f*(float)( SIDE_SIZE-1 ) ) + 1;
-		vmin = (int)( ( RI.skyMins[1][i]+1.0f )*0.5f*(float)( SIDE_SIZE-1 ) );
-		vmax = (int)( ( RI.skyMaxs[1][i]+1.0f )*0.5f*(float)( SIDE_SIZE-1 ) ) + 1;
+		umin = (int)(( RI.skyMins[0][i] + 1.0f ) * 0.5f * (float)( SIDE_SIZE-1 ));
+		umax = (int)(( RI.skyMaxs[0][i] + 1.0f ) * 0.5f * (float)( SIDE_SIZE-1 )) + 1;
+		vmin = (int)(( RI.skyMins[1][i] + 1.0f ) * 0.5f * (float)( SIDE_SIZE-1 ));
+		vmax = (int)(( RI.skyMaxs[1][i] + 1.0f ) * 0.5f * (float)( SIDE_SIZE-1 )) + 1;
 
 		umin = bound( 0, umin, SIDE_SIZE-1 );
 		umax = bound( 0, umax, SIDE_SIZE-1 );
 		vmin = bound( 0, vmin, SIDE_SIZE-1 );
 		vmax = bound( 0, vmax, SIDE_SIZE-1 );
 
-		// Box elems in tristrip order
+		// box elems in tristrip order
 		elem = skydome->meshes[i].elems;
 		for( v = vmin; v < vmax; v++ )
 		{
@@ -311,7 +304,7 @@ void R_DrawSky( ref_shader_t *shader )
 		AddPointToBounds( skydome->meshes[i].xyzArray[vmin*SIDE_SIZE+umin], mins, maxs );
 		AddPointToBounds( skydome->meshes[i].xyzArray[vmax*SIDE_SIZE+umax], mins, maxs );
 
-		skydome->meshes[i].numElems = ( vmax-vmin )*( umax-umin )*6;
+		skydome->meshes[i].numElems = ( vmax-vmin )*( umax-umin ) * 6;
 	}
 
 	VectorAdd( mins, RI.viewOrigin, mins );
@@ -327,9 +320,13 @@ void R_DrawSky( ref_shader_t *shader )
 	Matrix4_Copy( RI.modelviewMatrix, oldm );
 	Matrix4_Copy( RI.worldviewMatrix, RI.modelviewMatrix );
 	Matrix4_Copy( RI.worldviewMatrix, m );
-	m[12] = 0;
-	m[13] = 0;
-	m[14] = 0;
+
+	if( shader->skySpeed )
+	{
+		float	angle = shader->skySpeed * RI.refdef.time;
+		Matrix4_Rotate( m, angle, shader->skyAxis[0], shader->skyAxis[1], shader->skyAxis[2] );
+	}
+	m[12] = m[13] = m[14] = 0.0f;
 	m[15] = 1.0;
 	pglLoadMatrixf( m );
 
@@ -342,13 +339,11 @@ void R_DrawSky( ref_shader_t *shader )
 
 	// it can happen that sky surfaces have no fog hull specified
 	// yet there's a global fog hull (see wvwq3dm7)
-	if( !r_skyfog )
-		r_skyfog = r_worldbrushmodel->globalfog;
+	if( !r_skyfog ) r_skyfog = r_worldbrushmodel->globalfog;
 
 	if( skydome->farboxShaders[0] )
 		R_DrawSkyBox( skydome, skydome->farboxShaders );
-	else
-		R_DrawBlackBottom( skydome );
+	else R_DrawBlackBottom( skydome );
 
 	if( shader->num_stages )
 	{
@@ -358,7 +353,7 @@ void R_DrawSky( ref_shader_t *shader )
 		if( r_shownormals->integer )
 			features |= MF_NORMALS;
 
-		for( i = 0; i < 5; i++ )
+		for( i = 0; i < 6; i++ )
 		{
 			if( RI.skyMins[0][i] >= RI.skyMaxs[0][i] || RI.skyMins[1][i] >= RI.skyMaxs[1][i] )
 				continue;
@@ -434,11 +429,11 @@ DrawSkyPolygon
 */
 void DrawSkyPolygon( int nump, vec3_t vecs )
 {
-	int i, j;
-	vec3_t v, av;
-	float s, t, dv;
-	int axis;
-	float *vp;
+	int	i, j;
+	vec3_t	v, av;
+	float	s, t, dv;
+	int	axis;
+	float	*vp;
 
 	// decide which face it maps to
 	VectorClear( v );
@@ -450,12 +445,11 @@ void DrawSkyPolygon( int nump, vec3_t vecs )
 	av[1] = fabs( v[1] );
 	av[2] = fabs( v[2] );
 
-	if( ( av[0] > av[1] ) && ( av[0] > av[2] ) )
+	if(( av[0] > av[1] ) && ( av[0] > av[2] ))
 		axis = ( v[0] < 0 ) ? 1 : 0;
-	else if( ( av[1] > av[2] ) && ( av[1] > av[0] ) )
+	else if(( av[1] > av[2] ) && ( av[1] > av[0] ))
 		axis = ( v[1] < 0 ) ? 3 : 2;
-	else
-		axis = ( v[2] < 0 ) ? 5 : 4;
+	else axis = ( v[2] < 0 ) ? 5 : 4;
 
 	if( !r_skyfog )
 		r_skyfog = r_warpface->fog;
@@ -467,7 +461,7 @@ void DrawSkyPolygon( int nump, vec3_t vecs )
 		j = vec_to_st[axis][2];
 		dv = ( j > 0 ) ? vecs[j - 1] : -vecs[-j - 1];
 
-		if( dv < 0.001 )
+		if( dv < 0.001f )
 			continue; // don't divide by zero
 
 		dv = 1.0f / dv;
@@ -478,18 +472,12 @@ void DrawSkyPolygon( int nump, vec3_t vecs )
 		j = vec_to_st[axis][1];
 		t = ( j < 0 ) ? -vecs[-j -1] * dv : vecs[j-1] * dv;
 
-		if( s < RI.skyMins[0][axis] )
-			RI.skyMins[0][axis] = s;
-		if( t < RI.skyMins[1][axis] )
-			RI.skyMins[1][axis] = t;
-		if( s > RI.skyMaxs[0][axis] )
-			RI.skyMaxs[0][axis] = s;
-		if( t > RI.skyMaxs[1][axis] )
-			RI.skyMaxs[1][axis] = t;
+		if( s < RI.skyMins[0][axis] ) RI.skyMins[0][axis] = s;
+		if( t < RI.skyMins[1][axis] ) RI.skyMins[1][axis] = t;
+		if( s > RI.skyMaxs[0][axis] ) RI.skyMaxs[0][axis] = s;
+		if( t > RI.skyMaxs[1][axis] ) RI.skyMaxs[1][axis] = t;
 	}
 }
-
-#define	MAX_CLIP_VERTS	64
 
 /*
 ==============
@@ -498,22 +486,23 @@ ClipSkyPolygon
 */
 void ClipSkyPolygon( int nump, vec3_t vecs, int stage )
 {
-	float *norm;
-	float *v;
-	bool front, back;
-	float d, e;
-	float dists[MAX_CLIP_VERTS + 1];
-	int sides[MAX_CLIP_VERTS + 1];
-	vec3_t newv[2][MAX_CLIP_VERTS + 1];
-	int newc[2];
-	int i, j;
+	float	*norm;
+	float	*v;
+	bool	front, back;
+	float	d, e;
+	float	dists[MAX_CLIP_VERTS + 1];
+	int	sides[MAX_CLIP_VERTS + 1];
+	vec3_t	newv[2][MAX_CLIP_VERTS + 1];
+	int	newc[2];
+	int	i, j;
 
 	if( nump > MAX_CLIP_VERTS )
 		Host_Error( "ClipSkyPolygon: MAX_CLIP_VERTS\n" );
 
 loc1:
 	if( stage == 6 )
-	{	// fully clipped, so draw it
+	{	
+		// fully clipped, so draw it
 		DrawSkyPolygon( nump, vecs );
 		return;
 	}
@@ -541,7 +530,8 @@ loc1:
 	}
 
 	if( !front || !back )
-	{	// not clipped
+	{	
+		// not clipped
 		stage++;
 		goto loc1;
 	}
@@ -598,15 +588,25 @@ R_AddSkySurface
 */
 bool R_AddSkySurface( msurface_t *fa )
 {
-	int i;
-	vec4_t *vert;
+	int	i;
+	vec4_t	*vert;
 	elem_t	*elem;
-	mesh_t *mesh;
-	vec3_t verts[4];
+	mesh_t	*mesh;
+	vec3_t	verts[4];
 
 	// calculate vertex values for sky box
 	r_warpface = fa;
 	r_warpfacevis = false;
+
+	if( fa->shader->skySpeed )
+	{
+		// HACK: force full sky to draw when rotating
+		for( i = 0; i < 6; i++ )
+		{
+			RI.skyMins[0][i] = RI.skyMins[1][i] = -1;
+			RI.skyMaxs[0][i] = RI.skyMaxs[1][i] = 1;
+		}
+	}
 
 	mesh = fa->mesh;
 	elem = mesh->elems;
@@ -618,7 +618,6 @@ bool R_AddSkySurface( msurface_t *fa )
 		VectorSubtract( vert[elem[2]], RI.viewOrigin, verts[2] );
 		ClipSkyPolygon( 3, verts[0], 0 );
 	}
-
 	return r_warpfacevis;
 }
 
@@ -629,7 +628,7 @@ R_ClearSkyBox
 */
 void R_ClearSkyBox( void )
 {
-	int i;
+	int	i;
 
 	RI.params |= RP_NOSKY;
 	for( i = 0; i < 6; i++ )
@@ -641,8 +640,8 @@ void R_ClearSkyBox( void )
 
 void MakeSkyVec( float x, float y, float z, int axis, vec3_t v )
 {
-	int j, k;
-	vec3_t b;
+	int	j, k;
+	vec3_t	b;
 
 	b[0] = x;
 	b[1] = y;
@@ -651,9 +650,7 @@ void MakeSkyVec( float x, float y, float z, int axis, vec3_t v )
 	for( j = 0; j < 3; j++ )
 	{
 		k = st_to_vec[axis][j];
-		if( k < 0 )
-			v[j] = -b[-k - 1];
-		else
-			v[j] = b[k - 1];
+		if( k < 0 ) v[j] = -b[-k-1];
+		else v[j] = b[k-1];
 	}
 }

@@ -113,11 +113,13 @@ Beta 13.12.08
 90. get rid of Com_ParseExt			OK
 91. implement rendermodes			OK
 92. implement VBO				OK
-93. implement sky rotate, sky shader, etc
+93. implement sky rotate, sky shader, etc	OK
 94. implement studio format
 95. support for custom tables (external)	OK
 96. implement sprite format			OK
-97. fix fog color in release build		OK
+97. fix fog in release build
 98. fix crash in release build
 99. rewrote RF_* flags			OK
-100. implement JpegLib ? 
+100. implement JpegLib			OK
+101. replace Matrix_ with Matrix3x3_		OK
+102. replace Matrix4_ with Matrix4x4_ ?

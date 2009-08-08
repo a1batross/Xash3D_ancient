@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "r_local.h"
 #include "mathlib.h"
-#include "quatlib.h"
+#include "matrix_lib.h"
 
 static vec3_t modelorg;       // relative to viewpoint
 static vec3_t modelmins;
@@ -78,7 +78,7 @@ bool R_CullSurface( msurface_t *surf, uint clipflags )
 
 			if( RI.currentmodel != r_worldmodel )
 			{
-				Matrix_TransformVector( RI.currententity->axis, surf->origin, origin );
+				Matrix3x3_Transform( RI.currententity->axis, surf->origin, origin );
 				VectorAdd( origin, RI.currententity->origin, origin );
 			}
 			else
@@ -138,7 +138,7 @@ static meshbuffer_t *R_AddSurfaceToList( msurface_t *surf, unsigned int clipflag
 	if( shader->flags & SHADER_SKYPARMS )
 	{
 		bool vis = R_AddSkySurface( surf );
-		if( ( RI.params & RP_NOSKY ) && vis )
+		if(( RI.params & RP_NOSKY ) && vis )
 		{
 			R_AddMeshToList( MB_MODEL, surf->fog, shader, surf - r_worldbrushmodel->surfaces + 1 );
 			RI.params &= ~RP_NOSKY;
@@ -176,7 +176,7 @@ bool R_CullBrushModel( ref_entity_t *e )
 	if( bmodel->nummodelsurfaces == 0 )
 		return true;
 
-	if( !Matrix_Compare( e->axis, axis_identity ) )
+	if( !Matrix3x3_Compare( e->axis, matrix3x3_identity ))
 	{
 		rotated = true;
 		for( i = 0; i < 3; i++ )
@@ -231,14 +231,14 @@ void R_AddBrushModelToList( ref_entity_t *e )
 	e->outlineHeight = r_worldent->outlineHeight;
 	Vector4Copy( r_worldent->outlineColor, e->outlineColor );
 
-	rotated = !Matrix_Compare( e->axis, axis_identity );
+	rotated = !Matrix3x3_Compare( e->axis, matrix3x3_identity );
 	VectorSubtract( RI.refdef.vieworg, e->origin, modelorg );
 	if( rotated )
 	{
 		vec3_t temp;
 
 		VectorCopy( modelorg, temp );
-		Matrix_TransformVector( e->axis, temp, modelorg );
+		Matrix3x3_Transform( e->axis, temp, modelorg );
 	}
 
 	dlightbits = 0;

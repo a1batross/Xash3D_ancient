@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "stdio.h"		// sscanf
 #include "r_local.h"
 #include "mathlib.h"
-#include "quatlib.h"
+#include "matrix_lib.h"
 #include "byteorder.h"
 
 #define Q_rint(x)			((x) < 0 ? ((int)((x)-0.5f)) : ((int)((x)+0.5f)))
@@ -808,7 +808,7 @@ static void Mod_LoadShaderrefs( const lump_t *l )
 	if( l->filelen % sizeof( *in ) )
 		Host_Error( "Mod_LoadShaderrefs: funny lump size in %s\n", loadmodel->name );
 	count = l->filelen / sizeof( *in );
-	out = Mod_Malloc( loadmodel, count*sizeof( *out ) );
+	out = Mod_Malloc( loadmodel, count*sizeof( *out ));
 
 	loadmodel->shaders = Mod_Malloc( loadmodel, count * sizeof( ref_shader_t* ));
 	loadmodel->numshaders = count;
@@ -824,7 +824,7 @@ static void Mod_LoadShaderrefs( const lump_t *l )
 		com.strncpy( out->name, in->name, sizeof( out->name ) );
 		out->flags = LittleLong( in->surfaceFlags );
 		contents = LittleLong( in->contentFlags );
-		if( contents & ( MASK_WATER|CONTENTS_FOG ) )
+		if( contents & ( MASK_WATER|CONTENTS_FOG ))
 			out->flags |= SURF_NOMARKS;
 		out->shader = NULL;
 	}
@@ -1124,13 +1124,17 @@ static _inline void Mod_LoadFaceCommon( const dsurfacer_t *in, msurface_t *out )
 		if( ( shaderType == SHADER_VERTEX && ( shaderref->shader->flags & SHADER_HASLIGHTMAP ) &&
 			( shaderref->shader->stages[0].flags & SHADERSTAGE_LIGHTMAP )))
 			out->shader = R_LoadShader( shaderref->name, shaderType, false, 0, shaderref->shader->type );
-		else
-			out->shader = shaderref->shader;
+		else out->shader = shaderref->shader;
 	}
 
 	out->flags = shaderref->flags;
-	R_DeformvBBoxForShader( out->shader, ebbox );
+	if( tr.currentSkyShader == NULL && (out->flags & SURF_SKY || out->shader->flags & SHADER_SKYPARMS ))
+	{
+		// because sky shader may missing skyParms, but always has surfaceparm 'sky'
+		tr.currentSkyShader = out->shader;
+	}
 
+	R_DeformvBBoxForShader( out->shader, ebbox );
 	fognum = LittleLong( in->fognum );
 	if( fognum != -1 && ( fognum < loadbmodel->numfogs ) )
 	{
@@ -2062,6 +2066,7 @@ void R_BeginRegistration( const char *mapname, const dvis_t *visData )
 	// explicitly free the old map if different
 	if( com.strcmp( r_models[0].name, fullname ))
 	{
+		tr.currentSkyShader = NULL;	// invalidate sky shader
 		Mod_FreeModel( &r_models[0] );
 		R_NewMap ();
 	}
@@ -2106,7 +2111,7 @@ void R_BeginRegistration( const char *mapname, const dvis_t *visData )
 	r_worldent->rtype = RT_MODEL;
 	r_worldent->ent_type = ED_NORMAL;
 	r_worldent->renderamt = 255;		// i'm hope we don't want to see semisolid world :) 
-	Matrix_Identity( r_worldent->axis );
+	Matrix3x3_LoadIdentity( r_worldent->axis );
 	Mod_UpdateShaders( r_worldmodel );
 
 	r_framecount = 1;
@@ -2117,6 +2122,12 @@ void R_EndRegistration( const char *skyname )
 {
 	int		i;
 	ref_model_t	*mod;
+
+	if( skyname && com.strncmp( skyname, "<skybox>", 8 ))
+	{
+		// half-life or quake2 skybox-style
+		R_SetupSky( skyname );
+	}
 
 	for( i = 0, mod = r_models; i < r_nummodels; i++, mod++ )
 	{

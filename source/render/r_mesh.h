@@ -118,9 +118,9 @@ enum
 
 typedef struct
 {
-	mesh_t				*meshes;
-	vec2_t				*sphereStCoords[5];
-	vec2_t				*linearStCoords[6];
+	mesh_t			*meshes;
+	vec2_t			*sphereStCoords[6];
+	vec2_t			*linearStCoords[6];
 
 	struct ref_shader_s		*farboxShaders[6];
 	struct ref_shader_s		*nearboxShaders[6];

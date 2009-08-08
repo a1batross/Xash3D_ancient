@@ -6,7 +6,7 @@
 #include "common.h"
 #include "client.h"
 
-#define SCRSHOT_TYPE	"tga"
+#define SCRSHOT_TYPE	"jpg"
 
 /*
 ================
@@ -193,7 +193,7 @@ void CL_LevelShot_f( void )
 
 	if( !cl.need_levelshot ) return;
 	// check for exist
-	com.sprintf( checkname, "levelshots/%s.png", cl.configstrings[CS_NAME] );
+	com.sprintf( checkname, "levelshots/%s.jpg", cl.configstrings[CS_NAME] );
 	if( !FS_FileExists( checkname )) re->ScrShot( checkname, true );
 	cl.need_levelshot = false; // done
 }
@@ -207,7 +207,7 @@ Set a specific sky and rotation speed
 */
 void CL_SetSky_f( void )
 {
-	if(Cmd_Argc() < 2)
+	if( Cmd_Argc() < 2 )
 	{
 		Msg( "Usage: sky <shadername>\n" );
 		return;

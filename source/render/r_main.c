@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdio.h>		// sscanf
 #include "r_local.h"
 #include "mathlib.h"
-#include "quatlib.h"
+#include "matrix_lib.h"
 
 render_imp_t	ri;
 stdlib_api_t	com;
@@ -277,26 +277,24 @@ R_TransformEntityBBox
 */
 void R_TransformEntityBBox( ref_entity_t *e, vec3_t mins, vec3_t maxs, vec3_t bbox[8], bool local )
 {
-	int i;
-	vec3_t axis[3], tmp;
+	int	i;
+	vec3_t	axis[3], tmp;
 
-	if( e == r_worldent )
-		local = false;
-	if( local )
-		Matrix_Transpose( e->axis, axis );	// switch row-column order
+	if( e == r_worldent ) local = false;
+	if( local ) Matrix3x3_Transpose( axis, e->axis );	// switch row-column order
 
 	// rotate local bounding box and compute the full bounding box
 	for( i = 0; i < 8; i++ )
 	{
 		vec_t *corner = bbox[i];
 
-		corner[0] = ( ( i & 1 ) ? mins[0] : maxs[0] );
-		corner[1] = ( ( i & 2 ) ? mins[1] : maxs[1] );
-		corner[2] = ( ( i & 4 ) ? mins[2] : maxs[2] );
+		corner[0] = (( i & 1 ) ? mins[0] : maxs[0] );
+		corner[1] = (( i & 2 ) ? mins[1] : maxs[1] );
+		corner[2] = (( i & 4 ) ? mins[2] : maxs[2] );
 
 		if( local )
 		{
-			Matrix_TransformVector( axis, corner, tmp );
+			Matrix3x3_Transform( axis, corner, tmp );
 			VectorAdd( tmp, e->origin, corner );
 		}
 	}
@@ -398,10 +396,9 @@ bool R_LerpTag( orientation_t *orient, const ref_model_t *mod, int oldframe, int
 		return false;
 
 	VectorClear( orient->origin );
-	Matrix_Identity( orient->axis );
+	Matrix3x3_LoadIdentity( orient->axis );
 
-	if( !name )
-		return false;
+	if( !name ) return false;
 
 	if( mod->type == mod_alias )
 		return R_AliasModelLerpTag( orient, mod->extradata, oldframe, frame, lerpfrac, name );
@@ -625,24 +622,21 @@ R_PushFlareSurf
 */
 static void R_PushFlareSurf( const meshbuffer_t *mb )
 {
-	int i;
-	vec4_t color;
-	vec3_t origin, point, v;
-	float radius = r_flaresize->value, colorscale, depth;
-	float up = radius, down = -radius, left = -radius, right = radius;
-	mbrushmodel_t *bmodel = ( mbrushmodel_t * )RI.currentmodel->extradata;
-	msurface_t *surf = &bmodel->surfaces[mb->infokey - 1];
-	ref_shader_t *shader;
+	int		i;
+	vec4_t		color;
+	vec3_t		origin, point, v;
+	float		radius = r_flaresize->value, colorscale, depth;
+	float		up = radius, down = -radius, left = -radius, right = radius;
+	mbrushmodel_t	*bmodel = ( mbrushmodel_t * )RI.currentmodel->extradata;
+	msurface_t	*surf = &bmodel->surfaces[mb->infokey - 1];
+	ref_shader_t	*shader;
 
 	if( RI.currentmodel != r_worldmodel )
 	{
-		Matrix_TransformVector( RI.currententity->axis, surf->origin, origin );
+		Matrix3x3_Transform( RI.currententity->axis, surf->origin, origin );
 		VectorAdd( origin, RI.currententity->origin, origin );
 	}
-	else
-	{
-		VectorCopy( surf->origin, origin );
-	}
+	else VectorCopy( surf->origin, origin );
 	R_TransformToScreen_Vec3( origin, v );
 
 	if( v[0] < RI.refdef.viewport[0] || v[0] > RI.refdef.viewport[0] + RI.refdef.viewport[2] )
@@ -650,9 +644,8 @@ static void R_PushFlareSurf( const meshbuffer_t *mb )
 	if( v[1] < RI.refdef.viewport[1] || v[1] > RI.refdef.viewport[1] + RI.refdef.viewport[3] )
 		return;
 
-	pglReadPixels( (int)( v[0] /* + 0.5f*/ ), (int)( v[1] /* + 0.5f*/ ), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth );
-	if( depth + 1e-4 < v[2] )
-		return; // occluded
+	pglReadPixels((int)( v[0] ), (int)( v[1] ), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth );
+	if( depth + 1e-4 < v[2] ) return; // occluded
 
 	VectorCopy( origin, origin );
 
@@ -2169,6 +2162,8 @@ shader_t Mod_RegisterShader( const char *name, int shaderType )
 		src = R_LoadShader( name, shaderType, false, 0, SHADER_INVALID );
 		break;
 	case SHADER_SKY:
+		src = R_SetupSky( name );
+		break;
 	default:
 		MsgDev( D_WARN, "Mod_RegisterShader: invalid shader type (%i)\n", shaderType );	
 		return 0;
@@ -2285,7 +2280,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 	// interpolate origin
 	for( i = 0; i < 3; i++ )
 		refent->origin[i] = LerpPoint( pRefEntity->v.oldorigin[i], pRefEntity->v.origin[i], lerpfrac );
-	AngleVectorsFLU( refent->angles, refent->axis[0], refent->axis[1], refent->axis[2] );
+	Matrix3x3_FromAngles( refent->angles, refent->axis );
 	VectorClear( refent->origin2 );
 
 	if( refent->ent_type == ED_VIEWMODEL )
@@ -2351,7 +2346,7 @@ bool R_AddPortalEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type, 
 	}
 
 	// calculate angles
-	AngleVectorsFLU( refent->angles, refent->axis[0], refent->axis[1], refent->axis[2] );
+	Matrix3x3_FromAngles( refent->angles, refent->axis );
 	return true;
 }
 
@@ -2438,14 +2433,6 @@ bool R_AddDynamicLight( vec3_t org, vec3_t color, float intensity, shader_t hand
 	return true;
 }
 
-void GL_SetColor( const void *data )
-{
-	float *color = (float *)data;
-
-	if( color ) Vector4Copy( color, glState.draw_color );
-	else Vector4Set( glState.draw_color, 1.0f, 1.0f, 1.0f, 1.0f );
-}
-
 void R_LightForPoint( const vec3_t point, vec3_t ambientLight )
 {
 	vec4_t	ambient;
@@ -2492,7 +2479,7 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	re.RenderFrame = R_RenderScene;
 	re.EndFrame = R_EndFrame;
 
-	re.SetColor = GL_SetColor;
+	re.SetColor = R_DrawSetColor;
 	re.GetParms = R_DrawGetParms;
 	re.SetParms = R_DrawSetParms;
 	re.ScrShot = VID_ScreenShot;

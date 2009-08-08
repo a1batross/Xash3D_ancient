@@ -611,6 +611,48 @@ static bool Shader_SkipConditionBlock( script_t *script )
 }
 
 //===========================================================================
+static bool Shader_CheckSkybox( const char *name )
+{
+	const char	*skybox_ext[4] = { "tga", "jpg", "png", "dds" };
+	int		i, j, num_checked_sides;
+	const char	*sidename;
+	string		loadname;
+
+	com.strncpy( loadname, name, sizeof( loadname ));
+	FS_StripExtension( loadname );                                     
+	if( loadname[com.strlen( loadname ) - 1] == '_' )
+		loadname[com.strlen( loadname ) - 1] = '\0';
+
+	if( FS_FileExists( va( "%s.dds", loadname )))
+		return true;
+
+	if( FS_FileExists( va( "%s_.dds", loadname )))
+		return true;
+
+	// complex cubemap pack not found, search for skybox images				
+	for( i = 0; i < 4; i++ )
+	{	
+		num_checked_sides = 0;
+		for( j = 0; j < 6; j++ )
+		{         
+			// build side name
+			sidename = va( "%s_%s.%s", loadname, r_skyBoxSuffix[j], skybox_ext[i] );
+			if( FS_FileExists( sidename )) num_checked_sides++;
+
+		}
+		if( num_checked_sides == 6 )
+			return true; // image exists
+		for( j = 0; j < 6; j++ )
+		{         
+			// build side name
+			sidename = va( "%s%s.%s", loadname, r_skyBoxSuffix[j], skybox_ext[i] );
+			if( FS_FileExists( sidename )) num_checked_sides++;
+		}
+		if( num_checked_sides == 6 )
+			return true; // images exists
+	}
+	return false;
+}
 
 static bool Shader_ParseSkySides( script_t *script, ref_shader_t *shader, ref_shader_t **shaders, bool farbox )
 {
@@ -640,6 +682,9 @@ static bool Shader_ParseSkySides( script_t *script, ref_shader_t *shader, ref_sh
 	if( com.stricmp( tok.string, "-" ) && com.stricmp( tok.string, "full" ))
 	{
 		shaderType = ( farbox ? SHADER_FARBOX : SHADER_NEARBOX );
+		if( tok.string[com.strlen( tok.string ) - 1] == '_' )
+			tok.string[com.strlen( tok.string ) - 1] = '\0';
+
 		for( i = 0; i < 6; i++ )
 		{
 			com.snprintf( name, sizeof( name ), "%s_%s", tok.string, r_skyBoxSuffix[i] );
@@ -647,10 +692,24 @@ static bool Shader_ParseSkySides( script_t *script, ref_shader_t *shader, ref_sh
 			if( !image ) break;
 			shaders[i] = R_LoadShader( image->name, shaderType, true, image->flags, SHADER_INVALID );
 		}
-
 		if( i == 6 ) return true;
-		Mem_Set( shaders, 0, sizeof( ref_shader_t * ) * 6 );
-		return false;
+
+		for( i = 0; i < 6; i++ )
+		{
+			com.snprintf( name, sizeof( name ), "%s%s", tok.string, r_skyBoxSuffix[i] );
+			image = R_FindTexture( name, NULL, 0, TF_CLAMP|TF_NOMIPMAP|TF_SKYSIDE );
+			if( !image ) break;
+			shaders[i] = R_LoadShader( image->name, shaderType, true, image->flags, SHADER_INVALID );
+		}
+		if( i == 6 ) return true;
+
+		// create default skybox
+		for( i = 0; i < 6; i++ )
+		{
+			image = tr.skyTexture;
+			shaders[i] = R_LoadShader( image->name, shaderType, true, image->flags, SHADER_INVALID );
+		}
+		return true;
 	}
 	return true;
 }
@@ -995,6 +1054,31 @@ static bool Shader_FogParms( ref_shader_t *shader, ref_stage_t *pass, script_t *
 	return true;
 }
 
+static bool Shader_SkyRotate( ref_shader_t *shader, ref_stage_t *pass, script_t *script )
+{
+	VectorSet( shader->skyAxis, 0.0f, 0.0f, 1.0f );
+	shader->skySpeed = 0.0f;
+
+	// clear dist is optionally parm
+	if( !Com_ReadFloat( script, false, &shader->skySpeed ))
+	{
+		MsgDev( D_ERROR, "missing sky speed for 'skyRotate' in shader '%s'\n", shader->name );
+		return false;
+	}
+
+	if( !Shader_ParseVector( script, shader->skyAxis, 3 ))	// skyAxis is optionally
+	{
+		VectorSet( shader->skyAxis, 0.0f, 0.0f, 1.0f );
+		return true;
+	}
+
+	if( VectorIsNull( shader->skyAxis ))
+		VectorSet( shader->skyAxis, 0.0f, 0.0f, 1.0f );	
+	VectorNormalize( shader->skyAxis );
+
+	return true;
+}
+
 static bool Shader_Sort( ref_shader_t *shader, ref_stage_t *pass, script_t *script )
 {
 	token_t	tok;
@@ -1111,7 +1195,8 @@ static const ref_parsekey_t shaderkeys[] =
 { "endif",		Shader_Endif		},
 { "portal",		Shader_Portal		},
 { "fogvars",		Shader_FogParms		}, // RTCW fog params
-{ "skyparms",		Shader_SkyParms		},
+{ "skyParms",		Shader_SkyParms		},
+{ "skyRotate",		Shader_SkyRotate		},
 { "fogparms",		Shader_FogParms		},
 { "tessSize",		Shader_TessSize		},
 { "nopicmip",		Shader_shaderNoPicMip	},
@@ -2340,9 +2425,13 @@ void R_ShaderList_f( void )
 		switch( shader->type )
 		{
 		case SHADER_SKY:
-		case SHADER_FARBOX:
-		case SHADER_NEARBOX:
 			Msg( "sky  " );
+			break;
+		case SHADER_FARBOX:
+			Msg( "far  " );
+			break;
+		case SHADER_NEARBOX:
+			Msg( "near " );
 			break;
 		case SHADER_TEXTURE:
 			Msg( "bsp  " );
@@ -2468,6 +2557,7 @@ void R_InitShaders( void )
 		}
 
 		// parse this file
+		MsgDev( D_LOAD, "loading shaderfile '%s'\n", t->filenames[i] );
 		Shader_ParseFile( script, t->filenames[i] );
 		Com_CloseScript( script );
 	}
@@ -2561,6 +2651,13 @@ void Shader_FreeShader( ref_shader_t *shader )
 	handle = shader - r_shaders;
 	if(( shader->flags & SHADER_SKYPARMS ) && shader->skyParms )
 	{
+		for( i = 0; i < 6; i++ )
+		{
+			if( shader->skyParms->farboxShaders[i] )
+				Shader_FreeShader( shader->skyParms->farboxShaders[i] );
+			if( shader->skyParms->nearboxShaders[i] )
+				Shader_FreeShader( shader->skyParms->nearboxShaders[i] );
+		}
 		R_FreeSkydome( shader->skyParms );
 		shader->skyParms = NULL;
 	}
@@ -3151,6 +3248,8 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 {
 	ref_stage_t	*pass;
 	texture_t		*materialImages[MAX_STAGE_TEXTURES];
+	script_t		*script;
+	char		*skyParms;
 	uint		i, hashKey;
 
 	// make a default shader
@@ -3379,6 +3478,17 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		pass->tcgen = TCGEN_BASE;
 		pass->num_textures++;
 		break;
+	case SHADER_SKY:
+		shader->type = SHADER_SKY;
+		shader->name = Shader_Malloc( length + 1 );
+		strcpy( shader->name, shortname );
+		// create simple sky parms, to do Shader_SkyParms parsing it properly
+		skyParms = va( "%s - -", shortname );
+		script = Com_OpenScript( "skybox", skyParms, com.strlen( skyParms ));
+		Shader_SkyParms( shader, NULL, script );
+		Com_Assert( shader->skyParms == NULL );
+		Com_CloseScript( script );
+		break;
 	case SHADER_FARBOX:
 		shader->type = SHADER_FARBOX;
 		shader->features = MF_STCOORDS;
@@ -3408,7 +3518,7 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		shader->stages = ( ref_stage_t * )( ( byte * )shader->name + length + 1 );
 		pass = &shader->stages[0];
 		pass->flags = SHADERSTAGE_NOCOLORARRAY|SHADERSTAGE_BLEND_DECAL;
-		pass->glState = GLSTATE_ALPHAFUNC|GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA;
+		pass->glState = GLSTATE_ALPHAFUNC|GLSTATE_SRCBLEND_DST_COLOR|GLSTATE_DSTBLEND_SRC_COLOR;
 		pass->textures[0] = R_FindTexture( shortname, NULL, 0, addFlags|TF_CLAMP|TF_NOMIPMAP );
 		pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
 		pass->alphaGen.type = ALPHAGEN_IDENTITY;
@@ -3705,4 +3815,133 @@ void R_ShaderSetRenderMode( kRenderMode_t mode )
 void R_ShaderAddSpriteIntervals( float interval )
 {
 	r_spriteFrequency += interval;
+}
+
+/*
+=================
+R_SetupSky
+=================
+*/
+ref_shader_t *R_SetupSky( const char *name )
+{
+	string		loadname;
+	bool		shader_valid = false;
+	bool		force_default = false;
+	int		index;
+
+	if( name && name[0] )
+	{
+		ref_script_t	*cache;
+		ref_shader_t	*shader;
+		uint		hashKey;
+
+		com.strncpy( loadname, name, sizeof( loadname ));
+	
+		// make sure what new shader it's a skyShader and existing
+		hashKey = Com_HashKey( loadname, SHADERS_HASH_SIZE );
+
+		for( shader = r_shadersHash[hashKey]; shader; shader = shader->nextHash )
+		{
+			if( !com.stricmp( shader->name, loadname ))
+				break;
+		}
+		if( shader )
+		{
+			// already loaded, check parms
+			if( shader->flags & SHADER_SKYPARMS && shader->skyParms )
+				shader_valid = true;
+		}
+		else
+		{
+			cache = Shader_GetCache( loadname, SHADER_INVALID, hashKey );
+			if( cache )
+			{
+				script_t	*script = Com_OpenScript( cache->name, cache->buffer, cache->size );
+				token_t	tok;
+
+				while( Com_ReadToken( script, SC_ALLOW_NEWLINES, &tok ))
+				{
+					if( !com.stricmp( "skyParms", tok.string ))
+					{
+						// check only far skybox images for existing
+						// because near skybox without far will be ignored by engine
+						 if( Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &tok ))
+						 {
+							if( com.stricmp( "-", tok.string ))
+							{
+								if( Shader_CheckSkybox( tok.string ))
+								{
+									shader_valid = true;
+									break;
+								}
+							}
+							else
+							{
+								shader_valid = true;
+								break; // new shader just reset skybox
+						 	}
+						 }
+					}
+					else if( !com.stricmp( "surfaceParm", tok.string ))
+					{
+						// check only far skybox images for existing
+						// because near skybox without far will be ignored by engine
+						if( Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &tok ))
+						{
+							if( !com.stricmp( "sky", tok.string ))
+							{
+								shader_valid = true;
+								break; // yes it's q3-style skyshader
+							}
+						}
+					}
+				}
+				Com_CloseScript( script );          
+			}
+			else
+			{
+				if( !Shader_CheckSkybox( loadname ))
+				{
+					com.strncpy( loadname, va( "env/%s", name ), sizeof( loadname ));
+					if(!Shader_CheckSkybox( loadname ))
+					{
+						com.strncpy( loadname, va( "gfx/env/%s", name ), sizeof( loadname ));
+						if( Shader_CheckSkybox( loadname ))
+							shader_valid = true;
+					}
+					else shader_valid = true;
+				}
+				else shader_valid = true;
+				force_default = true;
+			}
+		}
+	}
+	else
+	{
+		// NULL names force to get current sky shader by user requesting
+		return (tr.currentSkyShader) ? tr.currentSkyShader : tr.defaultShader;
+	}
+
+	if( !shader_valid )
+	{
+		MsgDev( D_ERROR, "R_SetupSky: 'couldn't find shader '%s'\n", name );  
+		return (tr.currentSkyShader) ? tr.currentSkyShader : tr.defaultShader;				
+	}
+
+	if( tr.currentSkyShader == NULL )
+	{
+		if( !r_worldmodel ) MsgDev( D_ERROR, "R_SetupSky: map not loaded\n" );
+		else MsgDev( D_ERROR, "R_SetupSky: map %s not contain sky surfaces\n", r_worldmodel->name );  
+		return (tr.currentSkyShader) ? tr.currentSkyShader : tr.defaultShader;
+	}
+
+	index = tr.currentSkyShader->shadernum;
+	Shader_FreeShader( tr.currentSkyShader ); // release old sky
+
+	// new sky shader
+	tr.currentSkyShader = R_LoadShader( loadname, SHADER_SKY, force_default, 0, SHADER_INVALID );
+	if( index != tr.currentSkyShader->shadernum )
+		MsgDev( D_ERROR, "R_SetupSky: mismatch shader indexes %i != %i\n", index, tr.currentSkyShader->shadernum );
+
+	return tr.currentSkyShader;
 }

@@ -241,6 +241,7 @@ bool Image_SaveTGA( const char *name, rgbdata_t *pix )
 	case PF_BGRA_32: pixel_size = 4; break;	
 	default:
 		MsgDev( D_ERROR, "Image_SaveTGA: unsupported image type %s\n", PFDesc[pix->type].name );
+		Mem_Free( buffer );
 		return false;
 	}
 

@@ -1355,9 +1355,9 @@ void CM_CollisionClipTrace_BrushBox( trace_t *trace, const vec3_t cmins, const v
 	VectorAdd( end, mins, endmins );
 	VectorAdd( end, maxs, endmaxs );
 
-	boxbrush = CM_CollisionBrushForBox( identitymatrix, cmins, cmaxs, supercontents, surfaceflags, surface );
-	thisbrush_start = CM_CollisionBrushForBox( identitymatrix, startmins, startmaxs, 0, 0, NULL );
-	thisbrush_end = CM_CollisionBrushForBox( identitymatrix, endmins, endmaxs, 0, 0, NULL );
+	boxbrush = CM_CollisionBrushForBox( matrix4x4_identity, cmins, cmaxs, supercontents, surfaceflags, surface );
+	thisbrush_start = CM_CollisionBrushForBox( matrix4x4_identity, startmins, startmaxs, 0, 0, NULL );
+	thisbrush_end = CM_CollisionBrushForBox( matrix4x4_identity, endmins, endmaxs, 0, 0, NULL );
 
 	Mem_Set( trace, 0, sizeof(trace_t));
 	trace->contentsmask = hitsupercontentsmask;

@@ -182,7 +182,6 @@ void CPortalSurface :: Think( void )
 
 void CPortalSurface :: PostActivate( void )
 {
-	Vector		dir;
 	CBaseEntity	*pTarget, *pOwner;
 
 	SetNextThink( 0 );

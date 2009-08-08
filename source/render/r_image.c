@@ -6,6 +6,7 @@
 #include "r_local.h"
 #include "byteorder.h"
 #include "mathlib.h"
+#include "matrix_lib.h"
 #include "const.h"
 
 #define TEXTURES_HASH_SIZE		64
@@ -28,24 +29,30 @@ static byte	*r_texpool;		// texture_t permanent chain
 static byte	data2D[256*256*4];
 static rgbdata_t	r_image;			// generic pixelbuffer used for internal textures
 
-const vec3_t r_cubeMapAngles[6] =
+typedef struct envmap_s
 {
-{   0,   0,   90 },	// px
-{   0, 180,  -90 },	// nx
-{   0,  90,    0 },	// py
-{   0, 270,  180 },	// ny
-{ -90, 180,  -90 },	// pz
-{  90, 180,   90 },	// nz
+	vec3_t	angles;
+	int	flags;
+} envmap_t;
+
+const envmap_t r_skyBoxInfo[6] =
+{
+{{   0, 270, 180}, IMAGE_FLIP_X },
+{{   0,  90, 180}, IMAGE_FLIP_X },
+{{ -90,   0, 180}, IMAGE_FLIP_X },
+{{  90,   0, 180}, IMAGE_FLIP_X },
+{{   0,   0, 180}, IMAGE_FLIP_X },
+{{   0, 180, 180}, IMAGE_FLIP_X },
 };
 
-const vec3_t r_skyBoxAngles[6] =
+const envmap_t r_envMapInfo[6] =
 {
-{   0,  90,   180},	// ft
-{   0, 270,   180},	// bk
-{ -90,   0,   180},	// up
-{  90,   0,   180},	// dn
-{   0,   0,   180},	// rt
-{   0, 180,   180},	// lf	
+{{  0,   0,  90}, 0 },
+{{  0, 180, -90}, 0 },
+{{  0,  90,   0}, 0 },
+{{  0, 270, 180}, 0 },
+{{-90, 180, -90}, 0 },
+{{ 90, 180,  90}, 0 }
 };
 
 static struct
@@ -124,6 +131,14 @@ void GL_LoadTexMatrix( const mat4x4_t m )
 	pglMatrixMode( GL_TEXTURE );
 	pglLoadMatrixf( m );
 	glState.texIdentityMatrix[glState.activeTMU] = false;
+}
+
+void GL_LoadMatrix( matrix4x4 source )
+{
+	GLfloat	dest[16];
+
+	Matrix4x4_ToArrayFloatGL( source, dest );
+	pglLoadMatrixf( dest );
 }
 
 void GL_LoadIdentityTexMatrix( void )
@@ -3079,6 +3094,7 @@ bool VID_ScreenShot( const char *filename, bool levelshot )
 	r_shot = Mem_Alloc( r_temppool, sizeof( rgbdata_t ));
 	r_shot->width = glState.width;
 	r_shot->height = glState.height;
+	r_shot->flags = IMAGE_HAS_COLOR;
 	r_shot->type = PF_RGB_24;
 	r_shot->size = r_shot->width * r_shot->height * PFDesc( r_shot->type )->bpp;
 	r_shot->palette = NULL;
@@ -3106,11 +3122,11 @@ VID_CubemapShot
 */
 bool VID_CubemapShot( const char *base, uint size, bool skyshot )
 {
-	rgbdata_t		*r_shot;
+	rgbdata_t		*r_shot, *r_side;
 	byte		*temp = NULL;
 	byte		*buffer = NULL;
 	string		basename;
-	int		i = 1, result;
+	int		i = 1, flags, result;
 
 	if( RI.refdef.onlyClientDraw || !r_worldmodel )
 		return false;
@@ -3128,20 +3144,36 @@ bool VID_CubemapShot( const char *base, uint size, bool skyshot )
 	// alloc space
 	temp = Mem_Alloc( r_temppool, size * size * 3 );
 	buffer = Mem_Alloc( r_temppool, size * size * 3 * 6 );
+	r_shot = Mem_Alloc( r_temppool, sizeof( rgbdata_t ));
+	r_side = Mem_Alloc( r_temppool, sizeof( rgbdata_t ));
 
 	for( i = 0; i < 6; i++ )
 	{
-		if( skyshot ) R_DrawCubemapView( r_lastRefdef.vieworg, r_skyBoxAngles[i], size );
-		else R_DrawCubemapView( r_lastRefdef.vieworg, r_cubeMapAngles[i], size );
-
+		if( skyshot )
+		{
+			R_DrawCubemapView( r_lastRefdef.vieworg, r_skyBoxInfo[i].angles, size );
+			flags = r_skyBoxInfo[i].flags;
+		}
+		else
+		{
+			R_DrawCubemapView( r_lastRefdef.vieworg, r_envMapInfo[i].angles, size );
+			flags = r_envMapInfo[i].flags;
+                    }
 		pglReadPixels( 0, glState.height - size, size, size, GL_RGB, GL_UNSIGNED_BYTE, temp );
-		Mem_Copy( buffer + (size * size * 3 * i), temp, size * size * 3 );
+		r_side->flags = IMAGE_HAS_COLOR;
+		r_side->width = r_side->height = size;
+		r_side->type = PF_RGB_24;
+		r_side->size = r_side->width * r_side->height * 3;
+		r_side->depth = r_side->numMips = 1;
+		r_side->buffer = temp;
+
+		if( flags ) Image_Process( &r_side, 0, 0, flags );
+		Mem_Copy( buffer + (size * size * 3 * i), r_side->buffer, size * size * 3 );
 	}
 
 	RI.params &= ~RP_ENVVIEW;
 
-	r_shot = Mem_Alloc( r_temppool, sizeof( rgbdata_t ));
-	r_shot->flags |= IMAGE_CUBEMAP;
+	r_shot->flags |= IMAGE_CUBEMAP|IMAGE_HAS_COLOR;
 	r_shot->width = size;
 	r_shot->height = size;
 	r_shot->type = PF_RGB_24;
@@ -3155,11 +3187,11 @@ bool VID_CubemapShot( const char *base, uint size, bool skyshot )
 	com.strncpy( basename, base, MAX_STRING );
 	FS_StripExtension( basename );
 	FS_DefaultExtension( basename, ".dds" );
-	
+
 	// write image as dds packet
 	result = FS_SaveImage( basename, r_shot );
 	FS_FreeImage( r_shot );
-	Mem_Free( temp );
+	FS_FreeImage( r_side );
 
 	return result;
 }

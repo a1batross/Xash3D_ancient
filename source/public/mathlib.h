@@ -106,6 +106,9 @@ _inline float rsqrt( float number )
 	int	i;
 	float	x, y;
 
+	if( number == 0.0f )
+		return 0.0f;
+
 	x = number * 0.5f;
 	i = *(int *)&number;	// evil floating point bit level hacking
 	i = 0x5f3759df - (i >> 1);	// what the fuck?
@@ -792,7 +795,6 @@ _inline int NearestPOW( int value, bool roundDown )
 	return n;
 }
 
-static vec3_t axis_identity[3] = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } };
 static quat_t quat_identity = { 0, 0, 0, 1 };
 static vec3_t vec3_origin = { 0, 0, 0 };
 static vec3_t vec3_angles = { 0, 0, 0 };

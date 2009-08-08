@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "r_local.h"
 #include "mathlib.h"
-#include "quatlib.h"
+#include "matrix_lib.h"
 
 #define FTABLE_SIZE_POW		10
 #define FTABLE_SIZE			( 1<<FTABLE_SIZE_POW )
@@ -653,8 +653,8 @@ void R_DeformVertices( void )
 
 				if( RI.currententity && (RI.currentmodel != r_worldmodel) )
 				{
-					Matrix_TransformVector( RI.currententity->axis, RI.vright, v_right );
-					Matrix_TransformVector( RI.currententity->axis, RI.vup, v_up );
+					Matrix3x3_Transform( RI.currententity->axis, RI.vright, v_right );
+					Matrix3x3_Transform( RI.currententity->axis, RI.vup, v_up );
 				}
 				else
 				{
@@ -781,7 +781,7 @@ void R_DeformVertices( void )
 
 				if( !len[long_axis] )
 					break;
-				len[long_axis] = Q_RSqrt( len[long_axis] );
+				len[long_axis] = rsqrt( len[long_axis] );
 				VectorScale( m0[long_axis], len[long_axis], axis );
 
 				if( DotProduct( m0[long_axis], m0[short_axis] ) )
@@ -796,7 +796,7 @@ void R_DeformVertices( void )
 				{
 					if( !len[short_axis] )
 						break;
-					len[short_axis] = Q_RSqrt( len[short_axis] );
+					len[short_axis] = rsqrt( len[short_axis] );
 					VectorScale( m0[short_axis], len[short_axis], m0[0] );
 					VectorCopy( axis, m0[1] );
 					CrossProduct( m0[0], m0[1], m0[2] );
@@ -805,11 +805,11 @@ void R_DeformVertices( void )
 				for( j = 0; j < 3; j++ )
 					rot_centre[j] = ( quad[0][j] + quad[1][j] + quad[2][j] + quad[3][j] ) * 0.25;
 
-				if( RI.currententity && ( RI.currentmodel != r_worldmodel ) )
+				if( RI.currententity && ( RI.currentmodel != r_worldmodel ))
 				{
 					VectorAdd( RI.currententity->origin, rot_centre, tv );
 					VectorSubtract( RI.viewOrigin, tv, tmp );
-					Matrix_TransformVector( RI.currententity->axis, tmp, tv );
+					Matrix3x3_Transform( RI.currententity->axis, tmp, tv );
 				}
 				else
 				{
@@ -825,13 +825,13 @@ void R_DeformVertices( void )
 				VectorCopy( axis, m1[1] );
 				CrossProduct( m1[1], m1[2], m1[0] );
 
-				Matrix_Transpose( m1, m2 );
-				Matrix_Multiply( m2, m0, result );
+				Matrix3x3_Transpose( m2, m1 );
+				Matrix3x3_Concat( result, m2, m0 );
 
 				for( j = 0; j < 4; j++ )
 				{
 					VectorSubtract( quad[j], rot_centre, tv );
-					Matrix_TransformVector( result, tv, quad[j] );
+					Matrix3x3_Transform( result, tv, quad[j] );
 					VectorAdd( rot_centre, quad[j], quad[j] );
 				}
 			}
@@ -847,12 +847,11 @@ void R_DeformVertices( void )
 				if( r_backacc.numElems % 6 )
 					break;
 
-				if( RI.currententity && ( RI.currentmodel != r_worldmodel ) )
+				if( RI.currententity && ( RI.currentmodel != r_worldmodel ))
 					Matrix4_Matrix( RI.modelviewMatrix, m1 );
-				else
-					Matrix4_Matrix( RI.worldviewMatrix, m1 );
+				else Matrix4_Matrix( RI.worldviewMatrix, m1 );
 
-				Matrix_Transpose( m1, m2 );
+				Matrix3x3_Transpose( m2, m1 );
 
 				for( k = 0; k < r_backacc.numElems; k += 6 )
 				{
@@ -866,21 +865,19 @@ void R_DeformVertices( void )
 
 						if( !VectorCompare( quad[3], quad[0] ) &&
 							!VectorCompare( quad[3], quad[1] ) &&
-							!VectorCompare( quad[3], quad[2] ) )
+							!VectorCompare( quad[3], quad[2] ))
 						{
 							break;
 						}
 					}
 
-					Matrix_FromPoints( quad[0], quad[1], quad[2], m0 );
-					Matrix_Multiply( m2, m0, result );
+					Matrix3x3_FromPoints( quad[0], quad[1], quad[2], m0 );
+					Matrix3x3_Concat( result, m2, m0 );
 
 					// hack a scale up to keep particles from disappearing
 					scale = ( quad[0][0] - RI.viewOrigin[0] ) * RI.vpn[0] + ( quad[0][1] - RI.viewOrigin[1] ) * RI.vpn[1] + ( quad[0][2] - RI.viewOrigin[2] ) * RI.vpn[2];
-					if( scale < 20 )
-						scale = 1.5;
-					else
-						scale = 1.5 + scale * 0.006f;
+					if( scale < 20 ) scale = 1.5;
+					else scale = 1.5 + scale * 0.006f;
 
 					for( j = 0; j < 3; j++ )
 						rot_centre[j] = ( quad[0][j] + quad[1][j] + quad[2][j] + quad[3][j] ) * 0.25;
@@ -888,7 +885,7 @@ void R_DeformVertices( void )
 					for( j = 0; j < 4; j++ )
 					{
 						VectorSubtract( quad[j], rot_centre, tv );
-						Matrix_TransformVector( result, tv, quad[j] );
+						Matrix3x3_Transform( result, tv, quad[j] );
 						VectorMA( rot_centre, scale, quad[j], quad[j] );
 					}
 				}
@@ -941,10 +938,10 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 			if( glState.in2DMode )
 				return true;
 
-			if( !( RI.params & RP_SHADOWMAPVIEW ) )
+			if( !( RI.params & RP_SHADOWMAPVIEW ))
 			{
 				VectorSubtract( RI.viewOrigin, RI.currententity->origin, projection );
-				Matrix_TransformVector( RI.currententity->axis, projection, transform );
+				Matrix3x3_Transform( RI.currententity->axis, projection, transform );
 
 				outCoords = tUnitCoordsArray[unit][0];
 				for( i = 0, n = normalsArray[0]; i < r_backacc.numVerts; i++, outCoords += 2, n += 4 )
@@ -953,14 +950,14 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 					VectorNormalizeFast( projection );
 
 					depth = DotProduct( n, projection ); depth += depth;
-					outCoords[0] = 0.5 + ( n[1] * depth - projection[1] ) * 0.5;
-					outCoords[1] = 0.5 - ( n[2] * depth - projection[2] ) * 0.5;
+					outCoords[0] = 0.5 + ( n[1] * depth - projection[1] ) * 0.5f;
+					outCoords[1] = 0.5 - ( n[2] * depth - projection[2] ) * 0.5f;
 				}
 			}
 
 			GL_DisableAllTexGens();
 
-			R_UpdateVertexBuffer( tr.tcoordBuffer[unit], tUnitCoordsArray, r_backacc.numVerts * sizeof( vec2_t ));
+			R_UpdateVertexBuffer( tr.tcoordBuffer[unit], tUnitCoordsArray[unit], r_backacc.numVerts * sizeof( vec2_t ));
 			pglTexCoordPointer( 2, GL_FLOAT, 0, tr.tcoordBuffer[unit]->pointer );
 			return true;
 		}
@@ -1043,7 +1040,7 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 			Matrix4_Identity( m );
 
 			// rotate direction
-			Matrix_TransformVector( RI.currententity->axis, dir, &m[0] );
+			Matrix3x3_Transform( RI.currententity->axis, dir, &m[0] );
 			VectorNormalizeLength( &m[0] );
 
 			VectorVectors( &m[0], &m[4], &m[8] );
@@ -1718,8 +1715,8 @@ void R_ModifyColor( const ref_stage_t *pass )
 		break;
 	case ALPHAGEN_SPECULAR:
 		VectorSubtract( RI.viewOrigin, RI.currententity->origin, t );
-		if( !Matrix_Compare( RI.currententity->axis, axis_identity ))
-			Matrix_TransformVector( RI.currententity->axis, t, v );
+		if( !Matrix3x3_Compare( RI.currententity->axis, matrix3x3_identity ))
+			Matrix3x3_Transform( RI.currententity->axis, t, v );
 		else VectorCopy( t, v );
 
 		for( i = 0; i < r_backacc.numColors; i++, bArray += 4 )
@@ -1732,8 +1729,8 @@ void R_ModifyColor( const ref_stage_t *pass )
 		}
 		break;
 	case ALPHAGEN_DOT:
-		if( !Matrix_Compare( RI.currententity->axis, axis_identity ) )
-			Matrix_TransformVector( RI.currententity->axis, RI.vpn, v );
+		if( !Matrix3x3_Compare( RI.currententity->axis, matrix3x3_identity ))
+			Matrix3x3_Transform( RI.currententity->axis, RI.vpn, v );
 		else VectorCopy( RI.vpn, v );
 
 		for( i = 0; i < r_backacc.numColors; i++, bArray += 4 )
@@ -1743,10 +1740,9 @@ void R_ModifyColor( const ref_stage_t *pass )
 		}
 		break;
 	case ALPHAGEN_ONE_MINUS_DOT:
-		if( !Matrix_Compare( RI.currententity->axis, axis_identity ) )
-			Matrix_TransformVector( RI.currententity->axis, RI.vpn, v );
-		else
-			VectorCopy( RI.vpn, v );
+		if( !Matrix3x3_Compare( RI.currententity->axis, matrix3x3_identity ))
+			Matrix3x3_Transform( RI.currententity->axis, RI.vpn, v );
+		else VectorCopy( RI.vpn, v );
 
 		for( i = 0; i < r_backacc.numColors; i++, bArray += 4 )
 		{
@@ -2253,7 +2249,7 @@ static void R_RenderMeshGLSL_Material( void )
 				}
 
 				// rotate direction
-				Matrix_TransformVector( RI.currententity->axis, temp, lightDir );
+				Matrix3x3_Transform( RI.currententity->axis, temp, lightDir );
 			}
 		}
 	}

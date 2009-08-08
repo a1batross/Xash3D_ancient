@@ -107,8 +107,9 @@ typedef struct
 	texture_t		*shadowmapTextures[MAX_SHADOWGROUPS];
 	texture_t		*lightmapTextures[MAX_TEXTURES];
 
-	// builtin shaders
+	// utility shaders
 	ref_shader_t	*defaultShader;	// generic black texture
+	ref_shader_t	*currentSkyShader;	// ponter to sky shader for current map 
 } ref_globals_t;
 
 extern ref_globals_t tr;

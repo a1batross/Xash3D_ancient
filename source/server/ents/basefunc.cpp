@@ -34,6 +34,7 @@ public:
 	virtual int ObjectCaps( void ) { return CBaseEntity :: ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
 };
 LINK_ENTITY_TO_CLASS( func_wall, CFuncWall );
+LINK_ENTITY_TO_CLASS( func_static, CFuncWall );
 LINK_ENTITY_TO_CLASS( func_wall_toggle, CFuncWall );
 LINK_ENTITY_TO_CLASS( func_illusionary, CFuncWall );
 

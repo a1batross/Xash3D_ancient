@@ -16,7 +16,17 @@ typedef struct suffix_s
 	image_hint_t	hint;
 } suffix_t;
 
-static const suffix_t skybox_3ds[6] =
+static const suffix_t skybox_qv1[6] =
+{
+{ "ft", IMAGE_FLIP_X, CB_HINT_POSX },
+{ "bk", IMAGE_FLIP_Y, CB_HINT_NEGX },
+{ "up", IMAGE_ROT_90, CB_HINT_POSZ },
+{ "dn", IMAGE_ROT_90, CB_HINT_NEGZ },
+{ "rt", IMAGE_ROT_90, CB_HINT_POSY },
+{ "lf", IMAGE_ROT270, CB_HINT_NEGY },
+};
+
+static const suffix_t skybox_qv2[6] =
 {
 { "_ft", IMAGE_FLIP_X, CB_HINT_POSX },
 { "_bk", IMAGE_FLIP_Y, CB_HINT_NEGX },
@@ -54,7 +64,8 @@ typedef struct cubepack_s
 
 static const cubepack_t load_cubemap[] =
 {
-{ "3Ds Sky ", skybox_3ds },
+{ "3Ds Sky1", skybox_qv1 },
+{ "3Ds Sky2", skybox_qv2 },
 { "3Ds Cube", cubemap_v2 },
 { "Tenebrae", cubemap_v1 },		// FIXME: remove this ?
 { NULL, NULL },
@@ -312,7 +323,6 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 				if( !com.strnicmp( suffix, cmap->type[i].suf, suflen ))
 				{
 					com.strncpy( path, loadname, com.strlen( loadname ) - suflen + 1 );
-					Msg( "path %s - %s\n", path, suffix );
 					FS_DefaultExtension( path, ".dds" );
 					image.filter = cmap->type[i].hint;	// install side hint
 					f = FS_LoadFile( path, &filesize );

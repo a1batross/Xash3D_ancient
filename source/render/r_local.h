@@ -477,6 +477,7 @@ void		R_ShutdownOcclusionQueries( void );
 //
 extern meshbuffer_t  pic_mbuffer;
 
+void R_DrawSetColor( const void *data );
 void R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, shader_t shadernum );
 void R_DrawStretchRaw( int x, int y, int w, int h, int cols, int rows, const byte *data, bool redraw );
 void R_DrawSetParms( shader_t handle, kRenderMode_t rendermode, int frame );
@@ -489,6 +490,7 @@ void R_DrawFill( float x, float y, float w, float h );
 void		GL_SelectTexture( GLenum tmu );
 void		GL_Bind( GLenum tmu, texture_t *tex );
 void		GL_TexEnv( GLenum mode );
+void		GL_LoadMatrix( matrix4x4 source );
 void		GL_LoadTexMatrix( const mat4x4_t m );
 void		GL_LoadIdentityTexMatrix( void );
 void		GL_EnableTexGen( int coord, int mode );
@@ -709,13 +711,14 @@ struct skinfile_s *R_RegisterSkinFile( const char *name );
 ref_shader_t	*R_FindShaderForSkinFile( const struct skinfile_s *skinfile, const char *meshname );
 
 //
-// r_warp.c
+// r_sky.c
 //
-skydome_t	*R_CreateSkydome( byte *mempool, float skyheight, ref_shader_t **farboxShaders, ref_shader_t **nearboxShaders );
-void	R_FreeSkydome( skydome_t *skydome );
-void	R_ClearSkyBox( void );
-void	R_DrawSky( ref_shader_t *shader );
-bool	R_AddSkySurface( msurface_t *fa );
+skydome_t		*R_CreateSkydome( byte *mempool, float skyheight, ref_shader_t **farboxShaders, ref_shader_t **nearboxShaders );
+void		R_FreeSkydome( skydome_t *skydome );
+void		R_ClearSkyBox( void );
+void		R_DrawSky( ref_shader_t *shader );
+bool		R_AddSkySurface( msurface_t *fa );
+ref_shader_t	*R_SetupSky( const char *name );
 
 //====================================================================
 

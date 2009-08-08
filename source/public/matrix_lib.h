@@ -6,7 +6,6 @@
 #define MATRIX_LIB_H
 
 //#define OPENGL_STYLE		// TODO: enable OpenGL style someday
-//#define	RHAND_STYLE		// right hand style euler engles
 
 /*
 	Quake engine tranformation matrix
@@ -130,7 +129,7 @@ _inline void Matrix3x3_FromMatrix4x4( matrix3x3 out, const matrix4x4 in )
 #endif
 }
 
-_inline void Matrix3x3_ToAngles( const matrix3x3 matrix, vec3_t out )
+_inline void Matrix3x3_ToAngles( const matrix3x3 matrix, vec3_t out, bool rhand )
 {
 	double	pitch, cpitch, yaw, roll;
 
@@ -141,22 +140,16 @@ _inline void Matrix3x3_ToAngles( const matrix3x3 matrix, vec3_t out )
 	{
 		cpitch = 1.0f / cpitch;
 		pitch = RAD2DEG( pitch );
-#ifdef RHAND_STYLE
-		yaw = RAD2DEG( com.atan2( matrix[0][1] * cpitch, matrix[0][0] * cpitch ));
-#else
-		yaw = RAD2DEG( com.atan2((-1)*-matrix[0][1] * cpitch, matrix[0][0] * cpitch ));
-#endif
+		if( rhand ) yaw = RAD2DEG( com.atan2( matrix[0][1] * cpitch, matrix[0][0] * cpitch ));
+		else yaw = RAD2DEG( com.atan2((-1)*-matrix[0][1] * cpitch, matrix[0][0] * cpitch ));
 		roll = RAD2DEG( com.atan2( -matrix[1][2] * cpitch, matrix[2][2] * cpitch ));
 	}
 	else
 	{
 		pitch = matrix[0][2] > 0 ? -90.0f : 90.0f;
 		yaw = RAD2DEG( atan2( matrix[1][0], -matrix[1][1] ));
-#ifdef RHAND_STYLE
-		roll = 180;
-#else
-		roll = 0;
-#endif
+		if( rhand ) roll = 180;
+		else roll = 0;
 	}
 
 	out[PITCH] = pitch;
@@ -283,9 +276,9 @@ _inline void Matrix3x3_ConcatRotate( matrix3x3 out, double angle, double x, doub
 
 ========================================================================
 */
-#define Matrix4x4_LoadIdentity( mat )	Matrix4x4_Copy( mat, identitymatrix )
+#define Matrix4x4_LoadIdentity( mat )	Matrix4x4_Copy( mat, matrix4x4_identity )
 
-static const matrix4x4 identitymatrix =
+static const matrix4x4 matrix4x4_identity =
 {
 { 1, 0, 0, 0 },	// PITCH
 { 0, 1, 0, 0 },	// YAW
@@ -304,7 +297,7 @@ static const matrix4x4 matrix4x4_halfidentity =
 _inline void Matrix4x4_Copy( matrix4x4 out, const matrix4x4 in )
 {
 	// FIXME: replace with Mem_Copy
-	memcpy( out, in, sizeof(matrix4x4));
+	memcpy( out, in, sizeof( matrix4x4 ));
 }
 
 _inline void Matrix4x4_TransformPoint( const matrix4x4 in, vec3_t point )

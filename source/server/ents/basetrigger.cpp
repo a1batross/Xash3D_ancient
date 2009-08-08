@@ -281,8 +281,8 @@ class CTriggerPush : public CBaseTrigger
 {
 	void Spawn( void )
 	{
-                    if ( pev->angles == g_vecZero ) pev->angles.y = 360;
-                    if (pev->speed == 0) pev->speed = 100;
+                    if( pev->angles == g_vecZero ) pev->angles.y = 360;
+                    if( pev->speed == 0 ) pev->speed = 100;
                     UTIL_LinearVector( this );
                     
 		if ( FBitSet (pev->spawnflags, 2) ) pev->solid = SOLID_NOT;
@@ -293,7 +293,25 @@ class CTriggerPush : public CBaseTrigger
 		SetBits( pev->effects, EF_NODRAW );
 		UTIL_SetOrigin( this, pev->origin );
 	}
-	void Use ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+	void PostActivate( void )
+	{
+		Vector		dir;
+		CBaseEntity	*pOwner;
+	
+		if( FStringNull( pev->target ))
+			return;	// dir set with angles
+
+		pOwner = UTIL_FindEntityByTargetname( NULL, STRING( pev->target ));
+		if( !pOwner ) return; // dir set with angles
+
+		if( FClassnameIs( pOwner->pev, "target_position" ))
+		{
+			pev->owner = pOwner->edict();
+			pev->movedir = pOwner->pev->origin - ((pev->absmin + pev->absmax) * 0.5f);
+			pev->movedir.Normalize();
+		}
+	}
+	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 	{
 		if( pev->solid == SOLID_NOT )
 		{
@@ -314,13 +332,13 @@ class CTriggerPush : public CBaseTrigger
 			return;
 		}
                     
-		if ( pOther->pev->solid != SOLID_NOT && pOther->pev->solid != SOLID_BSP )
+		if( pOther->pev->solid != SOLID_NOT && pOther->pev->solid != SOLID_BSP )
 		{
-			// Instant trigger, just transfer velocity and remove
-			if (FBitSet(pev->spawnflags, 1))
+			// instant trigger, just transfer velocity and remove
+			if( FBitSet( pev->spawnflags, 1 ))
 			{
 				pOther->pev->velocity = pOther->pev->velocity + (pev->speed * pev->movedir);
-				if ( pOther->pev->velocity.z > 0 ) pOther->pev->flags &= ~FL_ONGROUND;
+				if( pOther->pev->velocity.z > 0 ) pOther->pev->flags &= ~FL_ONGROUND;
 				UTIL_Remove( this );
 			}
 			else

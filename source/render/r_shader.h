@@ -325,6 +325,9 @@ typedef struct ref_shader_s
 	deform_t		*deforms;
 
 	skydome_t		*skyParms;
+	vec3_t		skyAxis;
+	float		skySpeed;
+	
 	rgba_t		fog_color;
 	float		fog_dist;
 	float		fog_clearDist;

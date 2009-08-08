@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "r_local.h"
 #include "mathlib.h"
-#include "quatlib.h"
+#include "matrix_lib.h"
 
 /*
 =============================================================
@@ -135,8 +135,8 @@ void R_DeformVPlanarShadow( int numV, float *v )
 
 	R_GetShadowImpactAndDir( e, &tr, lightdir );
 
-	Matrix_TransformVector( e->axis, lightdir, lightdir2 );
-	Matrix_TransformVector( e->axis, tr.plane.normal, planenormal );
+	Matrix3x3_Transform( e->axis, lightdir, lightdir2 );
+	Matrix3x3_Transform( e->axis, tr.plane.normal, planenormal );
 	VectorScale( planenormal, e->scale, planenormal );
 
 	VectorSubtract( tr.endpos, e->origin, point );
@@ -468,7 +468,7 @@ void R_DrawShadowmaps( void )
 		VectorNormalizeFast( lightdir );
 
 		NormalVectorToAxis( lightdir, M );
-		Matrix_EulerAngles( M, angles );
+		Matrix3x3_ToAngles( M, angles, true );
 
 		for( j = 0; j < 3; j++ )
 			RI.refdef.viewangles[j] = anglemod( angles[j] );

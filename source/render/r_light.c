@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "r_local.h"
 #include "mathlib.h"
-#include "quatlib.h"
+#include "matrix_lib.h"
 
 /*
 =============================================================================
@@ -68,7 +68,7 @@ void R_LightBounds( const vec3_t origin, float intensity, vec3_t mins, vec3_t ma
 R_AddSurfDlighbits
 =============
 */
-unsigned int R_AddSurfDlighbits( msurface_t *surf, unsigned int dlightbits )
+uint R_AddSurfDlighbits( msurface_t *surf, unsigned int dlightbits )
 {
 	unsigned int k, bit;
 	dlight_t *lt;
@@ -99,7 +99,7 @@ unsigned int R_AddSurfDlighbits( msurface_t *surf, unsigned int dlightbits )
 R_AddDynamicLights
 =================
 */
-void R_AddDynamicLights( unsigned int dlightbits, int state )
+void R_AddDynamicLights( uint dlightbits, int state )
 {
 	unsigned int i, j, numTempElems;
 	bool cullAway;
@@ -121,7 +121,7 @@ void R_AddDynamicLights( unsigned int dlightbits, int state )
 	{
 		GL_SelectTexture( i );
 		GL_TexEnv( GL_MODULATE );
-		GL_SetState( state | ( i ? 0 : GLSTATE_BLEND_MTEX ) );
+		GL_SetState( state | ( i ? 0 : GLSTATE_BLEND_MTEX ));
 		GL_SetTexCoordArrayMode( 0 );
 		GL_EnableTexGen( GL_S, GL_OBJECT_LINEAR );
 		GL_EnableTexGen( GL_T, GL_OBJECT_LINEAR );
@@ -146,33 +146,32 @@ void R_AddDynamicLights( unsigned int dlightbits, int state )
 			continue; // not lit by this light
 
 		VectorSubtract( light->origin, RI.currententity->origin, dlorigin );
-		if( !Matrix_Compare( RI.currententity->axis, axis_identity ) )
+		if( !Matrix3x3_Compare( RI.currententity->axis, matrix3x3_identity ))
 		{
 			VectorCopy( dlorigin, tvec );
-			Matrix_TransformVector( RI.currententity->axis, tvec, dlorigin );
+			Matrix3x3_Transform( RI.currententity->axis, tvec, dlorigin );
 		}
 
 		shader = light->shader;
 		if( shader && ( shader->flags & SHADER_CULL_BACK ) )
 			cullAway = true;
-		else
-			cullAway = false;
+		else cullAway = false;
 
 		numTempElems = 0;
 		if( cullAway )
 		{
 			for( j = 0; j < r_backacc.numElems; j += 3 )
 			{
-				v1 = ( float * )( vertsArray + elemsArray[j+0] );
-				v2 = ( float * )( vertsArray + elemsArray[j+1] );
-				v3 = ( float * )( vertsArray + elemsArray[j+2] );
+				v1 = (float *)( vertsArray + elemsArray[j+0] );
+				v2 = (float *)( vertsArray + elemsArray[j+1] );
+				v3 = (float *)( vertsArray + elemsArray[j+2] );
 
 				normal[0] = ( v1[1] - v2[1] ) * ( v3[2] - v2[2] ) - ( v1[2] - v2[2] ) * ( v3[1] - v2[1] );
 				normal[1] = ( v1[2] - v2[2] ) * ( v3[0] - v2[0] ) - ( v1[0] - v2[0] ) * ( v3[2] - v2[2] );
 				normal[2] = ( v1[0] - v2[0] ) * ( v3[1] - v2[1] ) - ( v1[1] - v2[1] ) * ( v3[0] - v2[0] );
 				dist = ( dlorigin[0] - v1[0] ) * normal[0] + ( dlorigin[1] - v1[1] ) * normal[1] + ( dlorigin[2] - v1[2] ) * normal[2];
 
-				if( dist <= 0 || dist * Q_RSqrt( DotProduct( normal, normal ) ) >= light->intensity )
+				if( dist <= 0 || dist * rsqrt( DotProduct( normal, normal ) ) >= light->intensity )
 					continue;
 
 				tempElemsArray[numTempElems++] = elemsArray[j+0];
@@ -217,15 +216,13 @@ void R_AddDynamicLights( unsigned int dlightbits, int state )
 		{
 			if( GL_Support( R_DRAW_RANGEELEMENTS_EXT ))
 				pglDrawRangeElementsEXT( GL_TRIANGLES, 0, r_backacc.numVerts, numTempElems, GL_UNSIGNED_INT, tempElemsArray );
-			else
-				pglDrawElements( GL_TRIANGLES, numTempElems, GL_UNSIGNED_INT, tempElemsArray );
+			else pglDrawElements( GL_TRIANGLES, numTempElems, GL_UNSIGNED_INT, tempElemsArray );
 		}
 		else
 		{
 			if( GL_Support( R_DRAW_RANGEELEMENTS_EXT ))
 				pglDrawRangeElementsEXT( GL_TRIANGLES, 0, r_backacc.numVerts, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );
-			else
-				pglDrawElements( GL_TRIANGLES, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );
+			else pglDrawElements( GL_TRIANGLES, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );
 		}
 	}
 
@@ -507,7 +504,7 @@ void R_LightForEntity( ref_entity_t *e, byte *bArray )
 	}
 
 	// rotate direction
-	Matrix_TransformVector( e->axis, temp, direction );
+	Matrix3x3_Transform( e->axis, temp, direction );
 
 	// see if we are affected by dynamic lights
 	dlightbits = 0;
@@ -566,7 +563,7 @@ void R_LightForEntity( ref_entity_t *e, byte *bArray )
 			dir = lightDirs[lnum];
 
 			// rotate
-			Matrix_TransformVector( e->axis, dir, dlorigin );
+			Matrix3x3_Transform( e->axis, dir, dlorigin );
 			intensity8 = dl->intensity * 8 * e->scale;
 
 			cArray = tempColorsArray[0];
@@ -578,7 +575,7 @@ void R_LightForEntity( ref_entity_t *e, byte *bArray )
 				if( add > 0 )
 				{
 					dot = DotProduct( dir, dir );
-					add *= ( intensity8 / dot ) *Q_RSqrt( dot );
+					add *= ( intensity8 / dot ) * rsqrt( dot );
 					VectorMA( cArray, add, dl->color, cArray );
 				}
 			}
