@@ -333,6 +333,7 @@ typedef struct ref_shader_s
 	float		fog_clearDist;
 
 	float		offsetmapping_scale;
+	float		tessSize;		// used for tcGen warp
 
 	struct ref_script_s	*cache;
 	struct ref_shader_s	*nextHash;

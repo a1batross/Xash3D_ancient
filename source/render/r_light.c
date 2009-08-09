@@ -101,17 +101,18 @@ R_AddDynamicLights
 */
 void R_AddDynamicLights( uint dlightbits, int state )
 {
-	unsigned int i, j, numTempElems;
-	bool cullAway;
-	const dlight_t *light;
-	const ref_shader_t *shader;
-	vec3_t tvec, dlorigin, normal;
-	elem_t tempElemsArray[MAX_ARRAY_ELEMENTS];
-	float inverseIntensity, *v1, *v2, *v3, dist;
-	const mat4x4_t m = { 0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0.5, 0, 0.5, 0.5, 0.5, 1 };
-	GLfloat xyzFallof[4][4] = { { 1, 0, 0, 0 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 0 } };
+	uint		i, j, numTempElems;
+	bool		cullAway;
+	const dlight_t	*light;
+	const ref_shader_t	*shader;
+	vec3_t		tvec, dlorigin, normal;
+	elem_t		tempElemsArray[MAX_ARRAY_ELEMENTS];
+	float		inverseIntensity, *v1, *v2, *v3, dist;
+	GLfloat		xyzFallof[4][4] = {{ 1, 0, 0, 0 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 0 }};
+	matrix4x4		m;
 
 	r_backacc.numColors = 0;
+	Matrix4x4_BuildLightIdentity( m );
 
 	// we multitexture or texture3D support for dynamic lights
 	if( !GL_Support( R_TEXTURE_3D_EXT ) && !GL_Support( R_ARB_MULTITEXTURE ))

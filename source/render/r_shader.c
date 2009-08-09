@@ -1158,7 +1158,7 @@ static bool Shader_SurfaceParm( ref_shader_t *shader, ref_stage_t *pass, script_
 
 static bool Shader_TessSize( ref_shader_t *shader, ref_stage_t *pass, script_t *script )
 {
-	Com_SkipRestOfLine( script );
+	Com_ReadFloat( script, false, &shader->tessSize );
 	return true;
 }
 
@@ -3095,6 +3095,12 @@ void Shader_Finish( ref_shader_t *s )
 			Vector4Copy( &r_currentPasses[i].tcgenVec[0], &pass->tcgenVec[0] );
 			Vector4Copy( &r_currentPasses[i].tcgenVec[4], &pass->tcgenVec[4] );
 		}
+
+		if( pass->tcgen == TCGEN_WARP && s->tessSize == 0.0f )
+		{
+			MsgDev( D_WARN, "shader '%s' has pass with 'tcGen warp' without specified 'tessSize'\n", s->name );
+			pass->tcgen = TCGEN_BASE;
+		}
 	}
 
 	if( s->numDeforms )
@@ -3703,11 +3709,16 @@ ref_shader_t *R_LoadShader( const char *name, int type, bool forceDefault, int a
 
 	for( shader = r_shadersHash[hashKey]; shader; shader = shader->nextHash )
 	{
-		if( shader->type != type || ( shader->type == ignoreType ))
-			continue;
+		if( shader->type == ignoreType ) continue;
 
 		if( !com.stricmp( shader->name, shortname ))
 		{
+			if( shader->type != type )
+			{
+				if( shader->flags & SHADER_SKYPARMS )
+					MsgDev( D_WARN, "reused shader '%s' with mixed types (%i should be %i)\n", shortname, shader->type, type );
+				else continue;
+                              }
 			// prolonge registration
 			Shader_TouchImages( shader, false );
 			return shader;

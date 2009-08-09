@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "r_local.h"
 #include "mathlib.h"
+#include "matrix_lib.h"
 
 #define MAX_CLIP_VERTS	64
 #define SIDE_SIZE   	9
@@ -261,7 +262,7 @@ void R_DrawSky( ref_shader_t *shader )
 {
 	int		i;
 	vec3_t		mins, maxs;
-	mat4x4_t		m, oldm;
+	matrix4x4		m, oldm;
 	elem_t		*elem;
 	skydome_t		*skydome;
 	meshbuffer_t	*mbuffer = &r_skydome_mbuffer;
@@ -317,18 +318,18 @@ void R_DrawSky( ref_shader_t *shader )
 	}
 
 	// center skydome on camera to give the illusion of a larger space
-	Matrix4_Copy( RI.modelviewMatrix, oldm );
-	Matrix4_Copy( RI.worldviewMatrix, RI.modelviewMatrix );
-	Matrix4_Copy( RI.worldviewMatrix, m );
+	Matrix4x4_Copy( oldm, RI.modelviewMatrix );
+	Matrix4x4_Copy( RI.modelviewMatrix, RI.worldviewMatrix );
+	Matrix4x4_Copy( m, RI.worldviewMatrix );
 
 	if( shader->skySpeed )
 	{
 		float	angle = shader->skySpeed * RI.refdef.time;
-		Matrix4_Rotate( m, angle, shader->skyAxis[0], shader->skyAxis[1], shader->skyAxis[2] );
+		Matrix4x4_ConcatRotate( m, angle, shader->skyAxis[0], shader->skyAxis[1], shader->skyAxis[2] );
 	}
-	m[12] = m[13] = m[14] = 0.0f;
-	m[15] = 1.0;
-	pglLoadMatrixf( m );
+	Matrix4x4_SetOrigin( m, 0, 0, 0 );
+	m[3][3] = 1.0f;
+	GL_LoadMatrix( m );
 
 	gldepthmin = 1;
 	gldepthmax = 1;
@@ -375,8 +376,8 @@ void R_DrawSky( ref_shader_t *shader )
 	if( RI.params & RP_CLIPPLANE )
 		pglEnable( GL_CLIP_PLANE0 );
 
-	Matrix4_Copy( oldm, RI.modelviewMatrix );
-	pglLoadMatrixf( RI.worldviewMatrix );
+	Matrix4x4_Copy( RI.modelviewMatrix, oldm );
+	GL_LoadMatrix( RI.worldviewMatrix );
 
 	gldepthmin = 0;
 	gldepthmax = 1;

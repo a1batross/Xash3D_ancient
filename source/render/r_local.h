@@ -219,12 +219,12 @@ typedef struct
 	unsigned int	clipFlags;
 	vec3_t			visMins, visMaxs;
 
-	mat4x4_t		objectMatrix;
-	mat4x4_t		worldviewMatrix;
-	mat4x4_t		modelviewMatrix;			// worldviewMatrix * objectMatrix
+	matrix4x4		objectMatrix;
+	matrix4x4		worldviewMatrix;
+	matrix4x4		modelviewMatrix;			// worldviewMatrix * objectMatrix
 
-	mat4x4_t		projectionMatrix;
-	mat4x4_t		worldviewProjectionMatrix;	// worldviewMatrix * projectionMatrix
+	matrix4x4		projectionMatrix;
+	matrix4x4		worldviewProjectionMatrix;	// worldviewMatrix * projectionMatrix
 
 	float			skyMins[2][6];
 	float			skyMaxs[2][6];
@@ -490,8 +490,8 @@ void R_DrawFill( float x, float y, float w, float h );
 void		GL_SelectTexture( GLenum tmu );
 void		GL_Bind( GLenum tmu, texture_t *tex );
 void		GL_TexEnv( GLenum mode );
-void		GL_LoadMatrix( matrix4x4 source );
-void		GL_LoadTexMatrix( const mat4x4_t m );
+void		GL_LoadMatrix( const matrix4x4 source );
+void		GL_LoadTexMatrix( const matrix4x4 m );
 void		GL_LoadIdentityTexMatrix( void );
 void		GL_EnableTexGen( int coord, int mode );
 void		GL_SetTexCoordArrayMode( int mode );

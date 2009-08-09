@@ -710,22 +710,20 @@ void R_DeformVertices( void )
 
 			for( k = 0; k < r_backacc.numElems; k += 6 )
 			{
-				int long_axis = 0, short_axis = 0;
-				vec3_t axis, tmp;
-				float len[3];
-				vec3_t m0[3], m1[3], m2[3], result[3];
+				int	long_axis = 0, short_axis = 0;
+				vec3_t	axis, tmp;
+				float	len[3];
+				vec3_t	m0[3], m1[3], m2[3], result[3];
 
-				quad[0] = ( float * )( inVertsArray + elemsArray[k+0] );
-				quad[1] = ( float * )( inVertsArray + elemsArray[k+1] );
-				quad[2] = ( float * )( inVertsArray + elemsArray[k+2] );
+				quad[0] = (float *)(inVertsArray + elemsArray[k+0]);
+				quad[1] = (float *)(inVertsArray + elemsArray[k+1]);
+				quad[2] = (float *)(inVertsArray + elemsArray[k+2]);
 
 				for( j = 2; j >= 0; j-- )
 				{
-					quad[3] = ( float * )( inVertsArray + elemsArray[k+3+j] );
+					quad[3] = (float *)(inVertsArray + elemsArray[k+3+j]);
 
-					if( !VectorCompare( quad[3], quad[0] ) &&
-						!VectorCompare( quad[3], quad[1] ) &&
-						!VectorCompare( quad[3], quad[2] ) )
+					if( !VectorCompare( quad[3], quad[0] ) && !VectorCompare( quad[3], quad[1] ) && !VectorCompare( quad[3], quad[2] ))
 					{
 						break;
 					}
@@ -739,7 +737,7 @@ void R_DeformVertices( void )
 				len[1] = DotProduct( m0[1], m0[1] );
 				len[2] = DotProduct( m0[2], m0[2] );
 
-				if( ( len[2] > len[1] ) && ( len[2] > len[0] ) )
+				if(( len[2] > len[1] ) && ( len[2] > len[0] ))
 				{
 					if( len[1] > len[0] )
 					{
@@ -752,7 +750,7 @@ void R_DeformVertices( void )
 						short_axis = 1;
 					}
 				}
-				else if( ( len[1] > len[2] ) && ( len[1] > len[0] ) )
+				else if(( len[1] > len[2] ) && ( len[1] > len[0] ))
 				{
 					if( len[2] > len[0] )
 					{
@@ -765,7 +763,7 @@ void R_DeformVertices( void )
 						short_axis = 2;
 					}
 				}
-				else if( ( len[0] > len[1] ) && ( len[0] > len[2] ) )
+				else if(( len[0] > len[1] ) && ( len[0] > len[2] ))
 				{
 					if( len[2] > len[1] )
 					{
@@ -779,8 +777,7 @@ void R_DeformVertices( void )
 					}
 				}
 
-				if( !len[long_axis] )
-					break;
+				if( !len[long_axis] ) break;
 				len[long_axis] = rsqrt( len[long_axis] );
 				VectorScale( m0[long_axis], len[long_axis], axis );
 
@@ -789,13 +786,11 @@ void R_DeformVertices( void )
 					VectorCopy( axis, m0[1] );
 					if( axis[0] || axis[1] )
 						VectorVectors( m0[1], m0[0], m0[2] );
-					else
-						VectorVectors( m0[1], m0[2], m0[0] );
+					else VectorVectors( m0[1], m0[2], m0[0] );
 				}
 				else
 				{
-					if( !len[short_axis] )
-						break;
+					if( !len[short_axis] ) break;
 					len[short_axis] = rsqrt( len[short_axis] );
 					VectorScale( m0[short_axis], len[short_axis], m0[0] );
 					VectorCopy( axis, m0[1] );
@@ -841,15 +836,15 @@ void R_DeformVertices( void )
 			break;
 		case DEFORM_AUTOPARTICLE:
 			{
-				float scale;
-				vec3_t m0[3], m1[3], m2[3], result[3];
+				float	scale;
+				vec3_t	m0[3], m1[3], m2[3], result[3];
 
 				if( r_backacc.numElems % 6 )
 					break;
 
 				if( RI.currententity && ( RI.currentmodel != r_worldmodel ))
-					Matrix4_Matrix( RI.modelviewMatrix, m1 );
-				else Matrix4_Matrix( RI.worldviewMatrix, m1 );
+					Matrix3x3_FromMatrix4x4( m1, RI.modelviewMatrix );
+				else Matrix3x3_FromMatrix4x4( m1, RI.worldviewMatrix );
 
 				Matrix3x3_Transpose( m2, m1 );
 
@@ -863,9 +858,7 @@ void R_DeformVertices( void )
 					{
 						quad[3] = ( float * )( inVertsArray + elemsArray[k+3+j] );
 
-						if( !VectorCompare( quad[3], quad[0] ) &&
-							!VectorCompare( quad[3], quad[1] ) &&
-							!VectorCompare( quad[3], quad[2] ))
+						if( !VectorCompare( quad[3], quad[0] ) && !VectorCompare( quad[3], quad[1] ) && !VectorCompare( quad[3], quad[2] ))
 						{
 							break;
 						}
@@ -892,13 +885,12 @@ void R_DeformVertices( void )
 			}
 			break;
 		case DEFORM_OUTLINE:
-			// Deflect vertex along its normal by outline amount
+			// deflect vertex along its normal by outline amount
 			deflect = RI.currententity->outlineHeight * r_outlines_scale->value;
 			for( j = 0; j < r_backacc.numVerts; j++ )
 				VectorMA( inVertsArray[j], deflect, inNormalsArray[j], inVertsArray[j] );
 			break;
-		default:
-			break;
+		default:	break;
 		}
 	}
 }
@@ -908,13 +900,13 @@ void R_DeformVertices( void )
 R_VertexTCBase
 ==============
 */
-static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
+static bool R_VertexTCBase( const ref_stage_t *pass, int unit, matrix4x4 matrix )
 {
-	unsigned int i;
-	float *outCoords;
-	bool identityMatrix = false;
+	uint	i;
+	float	*outCoords;
+	bool	identityMatrix = false;
 
-	Matrix4_Identity( matrix );
+	Matrix4x4_LoadIdentity( matrix );
 
 	switch( pass->tcgen )
 	{
@@ -932,8 +924,8 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 		return true;
 	case TCGEN_ENVIRONMENT:
 		{
-			float depth, *n;
-			vec3_t projection, transform;
+			float	depth, *n;
+			vec3_t	projection, transform;
 
 			if( glState.in2DMode )
 				return true;
@@ -972,8 +964,7 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 			}
 			genVector[0][3] = genVector[1][3] = 0;
 
-			matrix[12] = pass->tcgenVec[3];
-			matrix[13] = pass->tcgenVec[7];
+			Matrix4x4_SetOrigin2D( matrix, pass->tcgenVec[3], pass->tcgenVec[7] );
 
 			GL_SetTexCoordArrayMode( 0 );
 			GL_EnableTexGen( GL_S, GL_OBJECT_LINEAR );
@@ -986,20 +977,20 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 		}
 	case TCGEN_PROJECTION:
 		{
-			mat4x4_t m1, m2;
-			GLfloat genVector[4][4];
+			matrix4x4	m1, m2;
+			GLfloat	genVector[4][4];
 
 			GL_SetTexCoordArrayMode( 0 );
 
-			Matrix4_Copy( RI.worldviewProjectionMatrix, matrix );
+			Matrix4x4_Copy( matrix, RI.worldviewProjectionMatrix );
 
-			Matrix4_Identity( m1 );
-			Matrix4_Scale( m1, 0.5, 0.5, 0.5 );
-			Matrix4_Multiply( m1, matrix, m2 );
+			Matrix4x4_LoadIdentity( m1 );
+			Matrix4x4_ConcatScale( m1, 0.5 );
+			Matrix4x4_Concat( m2, m1, matrix );
 
-			Matrix4_Identity( m1 );
-			Matrix4_Translate( m1, 0.5, 0.5, 0.5 );
-			Matrix4_Multiply( m1, m2, matrix );
+			Matrix4x4_LoadIdentity( m1 );
+			Matrix4x4_ConcatTranslate( m1, 0.5, 0.5, 0.5 );
+			Matrix4x4_Concat( matrix, m1, m2 );
 
 			for( i = 0; i < 4; i++ )
 			{
@@ -1021,10 +1012,10 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 			return false;
 		}
 	case TCGEN_WARP:
-		for( i = 0; i < r_backacc.numVerts; i++ )
+		for( i = 0; r_currentShader->tessSize != 0.0f && i < r_backacc.numVerts; i++ )
 		{
-			coordsArray[i][0] += r_warpsintable[((int)((inCoordsArray[i][1] * 8.0 + r_currentShaderTime) * (256.0/M_PI2))) & 255] * (1.0/64);
-			coordsArray[i][1] += r_warpsintable[((int)((inCoordsArray[i][0] * 8.0 + r_currentShaderTime) * (256.0/M_PI2))) & 255] * (1.0/64);
+			coordsArray[i][0] += r_warpsintable[((int)((inCoordsArray[i][1] * 8.0 + r_currentShaderTime) * (256.0/M_PI2))) & 255] * (1.0 / r_currentShader->tessSize );
+			coordsArray[i][1] += r_warpsintable[((int)((inCoordsArray[i][0] * 8.0 + r_currentShaderTime) * (256.0/M_PI2))) & 255] * (1.0 / r_currentShader->tessSize );
 		}
 		R_UpdateVertexBuffer( tr.tcoordBuffer[unit], coordsArray, r_backacc.numVerts * sizeof( vec2_t ));
 		pglTexCoordPointer( 2, GL_FLOAT, 0, tr.tcoordBuffer[unit]->pointer );
@@ -1032,19 +1023,18 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 	case TCGEN_REFLECTION_CELLSHADE:
 		if( RI.currententity && !( RI.params & RP_SHADOWMAPVIEW ) )
 		{
-			vec3_t dir;
-			mat4x4_t m;
+			vec3_t		dir, vpn, vright, vup;
+			matrix4x4		m;
 
 			R_LightForOrigin( RI.currententity->lightingOrigin, dir, NULL, NULL, RI.currentmodel->radius * RI.currententity->scale );
 
-			Matrix4_Identity( m );
-
 			// rotate direction
-			Matrix3x3_Transform( RI.currententity->axis, dir, &m[0] );
-			VectorNormalizeLength( &m[0] );
+			Matrix3x3_Transform( RI.currententity->axis, dir, vpn );
+			VectorNormalizeLength( vpn );
+			VectorVectors( vpn, vright, vup );
 
-			VectorVectors( &m[0], &m[4], &m[8] );
-			Matrix4_Transpose( m, matrix );
+			Matrix4x4_FromVectors( m, vpn, vright, vup, vec3_origin );
+			Matrix4x4_Transpose( matrix, m );
 		}
 	case TCGEN_REFLECTION:
 		GL_EnableTexGen( GL_S, GL_REFLECTION_MAP_ARB );
@@ -1060,33 +1050,28 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 		return true;
 	case TCGEN_FOG:
 		{
-			int fogPtype;
-			cplane_t *fogPlane;
-			ref_shader_t *fogShader;
-			vec3_t viewtofog;
-			float fogNormal[3], vpnNormal[3];
-			float dist, vdist, fogDist, vpnDist;
+			int		fogPtype;
+			cplane_t		*fogPlane;
+			ref_shader_t	*fogShader;
+			vec3_t		viewtofog;
+			float		fogNormal[3], vpnNormal[3];
+			float		dist, vdist, fogDist, vpnDist;
 
 			fogPlane = r_texFog->visibleplane;
 			fogShader = r_texFog->shader;
 
-			matrix[0] = matrix[5] = 1.0/(fogShader->fog_dist - fogShader->fog_clearDist);
-			matrix[13] = 1.5f/(float)FOG_TEXTURE_HEIGHT;
+			matrix[0][0] = matrix[1][1] = 1.0 / (fogShader->fog_dist - fogShader->fog_clearDist);
+			Matrix4x4_SetOrigin2D( matrix, 0, 1.5f / (float)FOG_TEXTURE_HEIGHT );
 
 			// distance to fog
 			dist = RI.fog_dist_to_eye[r_texFog-r_worldbrushmodel->fogs];
 
 			if( r_currentShader->flags & SHADER_SKYPARMS )
 			{
-				if( dist > 0 )
-					VectorMA( RI.viewOrigin, -dist, fogPlane->normal, viewtofog );
-				else
-					VectorCopy( RI.viewOrigin, viewtofog );
+				if( dist > 0 ) VectorMA( RI.viewOrigin, -dist, fogPlane->normal, viewtofog );
+				else VectorCopy( RI.viewOrigin, viewtofog );
 			}
-			else
-			{
-				VectorCopy( RI.currententity->origin, viewtofog );
-			}
+			else VectorCopy( RI.currententity->origin, viewtofog );
 
 			// some math tricks to take entity's rotation matrix into account
 			// for fog texture coordinates calculations:
@@ -1107,24 +1092,21 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 
 			outCoords = tUnitCoordsArray[unit][0];
 			if( dist < 0 )
-			{	// camera is inside the fog brush
+			{	
+				// camera is inside the fog brush
 				for( i = 0; i < r_backacc.numVerts; i++, outCoords += 2 )
 				{
 					outCoords[0] = DotProduct( vertsArray[i], vpnNormal ) - vpnDist;
-					if( fogPtype < 3 )
-						outCoords[1] = -( vertsArray[i][fogPtype] - fogDist );
-					else
-						outCoords[1] = -( DotProduct( vertsArray[i], fogNormal ) - fogDist );
+					if( fogPtype < 3 ) outCoords[1] = -( vertsArray[i][fogPtype] - fogDist );
+					else outCoords[1] = -( DotProduct( vertsArray[i], fogNormal ) - fogDist );
 				}
 			}
 			else
 			{
 				for( i = 0; i < r_backacc.numVerts; i++, outCoords += 2 )
 				{
-					if( fogPtype < 3 )
-						vdist = vertsArray[i][fogPtype] - fogDist;
-					else
-						vdist = DotProduct( vertsArray[i], fogNormal ) - fogDist;
+					if( fogPtype < 3 ) vdist = vertsArray[i][fogPtype] - fogDist;
+					else vdist = DotProduct( vertsArray[i], fogNormal ) - fogDist;
 					outCoords[0] = ( ( vdist < 0 ) ? ( DotProduct( vertsArray[i], vpnNormal ) - vpnDist ) * vdist / ( vdist - dist ) : 0.0f );
 					outCoords[1] = -vdist;
 				}
@@ -1144,7 +1126,7 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 	case TCGEN_PROJECTION_SHADOW:
 		GL_SetTexCoordArrayMode( 0 );
 		GL_DisableAllTexGens();
-		Matrix4_Multiply( r_currentCastGroup->worldviewProjectionMatrix, RI.objectMatrix, matrix );
+		Matrix4x4_Concat( matrix, r_currentCastGroup->worldviewProjectionMatrix, RI.objectMatrix );
 		break;
 	default:	break;
 	}
@@ -1156,11 +1138,11 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, mat4x4_t matrix )
 R_ApplyTCMods
 ================
 */
-static void R_ApplyTCMods( const ref_stage_t *pass, mat4x4_t result )
+static void R_ApplyTCMods( const ref_stage_t *pass, matrix4x4 result )
 {
 	int		i;
 	double		f, t1, t2, sint, cost;
-	mat4x4_t		m1, m2;
+	matrix4x4		m1, m2;
 	const tcMod_t	*tcmod;
 	waveFunc_t	func;
 
@@ -1169,24 +1151,23 @@ static void R_ApplyTCMods( const ref_stage_t *pass, mat4x4_t result )
 		switch( tcmod->type )
 		{
 		case TCMOD_TRANSLATE:
-			Matrix4_Translate2D( result, tcmod->args[0], tcmod->args[1] );
+			Matrix4x4_Translate2D( result, tcmod->args[0], tcmod->args[1] );
 			break;
 		case TCMOD_ROTATE:
 			cost = tcmod->args[0] * r_currentShaderTime;
 			sint = R_FastSin( cost );
 			cost = R_FastSin( cost + 0.25 );
-			m2[0] =  cost, m2[1] = sint, m2[12] =  0.5f * ( sint - cost + 1 );
-			m2[4] = -sint, m2[5] = cost, m2[13] = -0.5f * ( sint + cost - 1 );
-			Matrix4_Copy2D( result, m1 );
-			Matrix4_Multiply2D( m2, m1, result );
+			Matrix4x4_Setup2D( m2, cost, sint, -sint, cost, 0.5f*(sint-cost+1), -0.5f*(sint+cost-1));
+			Matrix4x4_Copy2D( m1, result );
+			Matrix4x4_Concat2D( result, m2, m1 );
 			break;
 		case TCMOD_SCALE:
-			Matrix4_Scale2D( result, tcmod->args[0], tcmod->args[1] );
+			Matrix4x4_Scale2D( result, tcmod->args[0], tcmod->args[1] );
 			break;
 		case TCMOD_TURB:
 			t1 = ( 1.0f / 4.0f );
 			t2 = tcmod->args[2] + r_currentShaderTime * tcmod->args[3];
-			Matrix4_Scale2D( result, 1 + ( tcmod->args[1] * R_FastSin( t2 ) + tcmod->args[0] ) * t1, 1 + ( tcmod->args[1] * R_FastSin( t2 + 0.25 ) + tcmod->args[0] ) * t1 );
+			Matrix4x4_Scale2D( result, 1 + ( tcmod->args[1] * R_FastSin( t2 ) + tcmod->args[0] ) * t1, 1 + ( tcmod->args[1] * R_FastSin( t2 + 0.25 ) + tcmod->args[0] ) * t1 );
 			break;
 		case TCMOD_STRETCH:
 			func.type = (uint)tcmod->args[0];
@@ -1195,7 +1176,7 @@ static void R_ApplyTCMods( const ref_stage_t *pass, mat4x4_t result )
 			t1 = R_TableEvaluate( func, t2 ) * tcmod->args[2] + tcmod->args[1];
 			t1 = t1 ? 1.0f / t1 : 1.0f;
 			t2 = 0.5f - 0.5f * t1;
-			Matrix4_Stretch2D( result, t1, t2 );
+			Matrix4x4_Stretch2D( result, t1, t2 );
 			break;
 		case TCMOD_SCROLL:
 			t1 = tcmod->args[0] * r_currentShaderTime;
@@ -1206,13 +1187,12 @@ static void R_ApplyTCMods( const ref_stage_t *pass, mat4x4_t result )
 				t1 = t1 - floor( t1 );
 				t2 = t2 - floor( t2 );
 			}
-			Matrix4_Translate2D( result, t1, t2 );
+			Matrix4x4_Translate2D( result, t1, t2 );
 			break;
 		case TCMOD_TRANSFORM:
-			m2[0] = tcmod->args[0], m2[1] = tcmod->args[2], m2[12] = tcmod->args[4],
-				m2[5] = tcmod->args[1], m2[4] = tcmod->args[3], m2[13] = tcmod->args[5];
-			Matrix4_Copy2D( result, m1 );
-			Matrix4_Multiply2D( m2, m1, result );
+			Matrix4x4_Setup2D( m2, tcmod->args[0], tcmod->args[2], tcmod->args[3], tcmod->args[1], tcmod->args[4], tcmod->args[5] );
+			Matrix4x4_Copy2D( m1, result );
+			Matrix4x4_Concat2D( result, m1, m2 );
 			break;
 		case TCMOD_CONVEYOR:
 			if( RI.currententity->framerate == 0.0f ) return;
@@ -1225,11 +1205,9 @@ static void R_ApplyTCMods( const ref_stage_t *pass, mat4x4_t result )
 			t2 = f * t2;
 			t2 -= floor( t2 );
 
-			result[12] -= t1;
-			result[13] += t2;                              
+			Matrix4x4_Translate2D( result, -t1, t2 );
 			break;
-		default:
-			break;
+		default: break;
 		}
 	}
 }
@@ -1406,7 +1384,7 @@ R_BindShaderpass
 */
 static void R_BindShaderpass( const ref_stage_t *pass, texture_t *tex, int unit )
 {
-	mat4x4_t	m1, m2, result;
+	matrix4x4	m1, m2, result;
 	bool	identityMatrix;
 
 	if( !tex ) tex = R_ShaderpassTex( pass, unit );
@@ -1425,9 +1403,9 @@ static void R_BindShaderpass( const ref_stage_t *pass, texture_t *tex, int unit 
 
 	if( pass->tcgen == TCGEN_REFLECTION || pass->tcgen == TCGEN_REFLECTION_CELLSHADE )
 	{
-		Matrix4_Transpose( RI.modelviewMatrix, m1 );
-		Matrix4_Copy( result, m2 );
-		Matrix4_Multiply( m2, m1, result );
+		Matrix4x4_Transpose( m1, RI.modelviewMatrix );
+		Matrix4x4_Copy( m2, result );
+		Matrix4x4_Concat( result, m2, m1 );
 		GL_LoadTexMatrix( result );
 		return;
 	}
@@ -2030,18 +2008,18 @@ R_RenderMeshGLSL_Material
 */
 static void R_RenderMeshGLSL_Material( void )
 {
-	int i, tcgen;
-	int state;
-	bool breakIntoPasses = false;
-	int program, object;
-	int programFeatures = 0;
-	texture_t *base, *normalmap, *glossmap, *decalmap;
-	mat4x4_t unused;
-	vec3_t lightDir = { 0.0f, 0.0f, 0.0f };
-	vec4_t ambient = { 0.0f, 0.0f, 0.0f, 0.0f }, diffuse = { 0.0f, 0.0f, 0.0f, 0.0f };
-	float offsetmappingScale;
-	superLightStyle_t *lightStyle;
-	ref_stage_t *pass = r_accumPasses[0];
+	int		i, tcgen;
+	int		state;
+	bool		breakIntoPasses = false;
+	int		program, object;
+	int		programFeatures = 0;
+	texture_t		*base, *normalmap, *glossmap, *decalmap;
+	matrix4x4		unused;
+	vec3_t		lightDir = { 0.0f, 0.0f, 0.0f };
+	vec4_t		ambient = { 0.0f, 0.0f, 0.0f, 0.0f }, diffuse = { 0.0f, 0.0f, 0.0f, 0.0f };
+	float		offsetmappingScale;
+	superLightStyle_t	*lightStyle;
+	ref_stage_t	*pass = r_accumPasses[0];
 
 	// handy pointers
 	base = pass->textures[0];
@@ -2307,7 +2285,7 @@ static void R_RenderMeshGLSL_Distortion( void )
 	int		state, tcgen;
 	int		program, object;
 	int		programFeatures = 0;
-	mat4x4_t		unused;
+	matrix4x4		unused;
 	ref_stage_t	*pass = r_accumPasses[0];
 	texture_t		*portaltexture1, *portaltexture2;
 	bool		frontPlane;
@@ -2713,8 +2691,8 @@ void R_RenderMeshBuffer( const meshbuffer_t *mb )
 
 	// extract the fog volume number from sortkey
 	if( !r_worldmodel ) fog = NULL;
-	else if( r_worldbrushmodel->numfogs ) MB_NUM2FOG( mb->sortkey, fog );
-	else fog = NULL;
+	else MB_NUM2FOG( mb->sortkey, fog );
+
 	if( fog && !fog->shader ) fog = NULL;
 
 	// can we fog the geometry with alpha texture?
@@ -3015,7 +2993,7 @@ void R_DrawPhysDebug( void )
 	if( r_physbdebug->integer )
 	{
 		// physic debug
-		pglLoadMatrixf( RI.worldviewMatrix );
+		GL_LoadMatrix( RI.worldviewMatrix );
 		pglBegin( GL_LINES );
 		ri.ShowCollision( R_DrawLine );
 		pglEnd();

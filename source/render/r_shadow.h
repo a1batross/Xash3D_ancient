@@ -23,17 +23,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 typedef struct shadowGroup_s
 {
 	unsigned int		bit;
-	texture_t				*depthTexture;
+	texture_t			*depthTexture;
 
-	vec3_t				origin;
-//	int					cluster;
-	byte				*vis;
+	vec3_t			origin;
+//	int			cluster;
+	byte			*vis;
 
-	float				projDist;
-	vec3_t				mins, maxs;
+	float			projDist;
+	vec3_t			mins, maxs;
 
-	mat4x4_t			worldviewProjectionMatrix;
-	struct shadowGroup_s *hashNext;
+	matrix4x4			worldviewProjectionMatrix;
+	struct shadowGroup_s	*hashNext;
 } shadowGroup_t;
 
 extern int r_numShadowGroups;

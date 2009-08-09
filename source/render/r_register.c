@@ -1138,7 +1138,10 @@ void R_NewMap( void )
 
 	R_InitLightStyles();	// clear lightstyles
 	R_InitCustomColors();	// clear custom colors
+	R_InitCoronas();		// update corona shader (because we can't make it static)
 
 	GL_SetDefaultTexState ();
 	Mem_Set( &RI, 0, sizeof( refinst_t ));	
+	r_worldbrushmodel = NULL;	// during loading process
+	r_worldmodel = NULL;
 }

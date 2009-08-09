@@ -126,14 +126,14 @@ void GL_Bind( GLenum tmu, texture_t *texture )
 	pglBindTexture( texture->target, texture->texnum );
 }
 
-void GL_LoadTexMatrix( const mat4x4_t m )
+void GL_LoadTexMatrix( const matrix4x4 m )
 {
 	pglMatrixMode( GL_TEXTURE );
-	pglLoadMatrixf( m );
+	GL_LoadMatrix( m );
 	glState.texIdentityMatrix[glState.activeTMU] = false;
 }
 
-void GL_LoadMatrix( matrix4x4 source )
+void GL_LoadMatrix( const matrix4x4 source )
 {
 	GLfloat	dest[16];
 

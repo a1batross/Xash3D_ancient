@@ -117,9 +117,9 @@ Beta 13.12.08
 94. implement studio format
 95. support for custom tables (external)	OK
 96. implement sprite format			OK
-97. fix fog in release build
-98. fix crash in release build
+97. fix fog in release build			OK
+98. fix crash in release build		OK
 99. rewrote RF_* flags			OK
 100. implement JpegLib			OK
 101. replace Matrix_ with Matrix3x3_		OK
-102. replace Matrix4_ with Matrix4x4_ ?
+102. replace Matrix4_ with Matrix4x4_ 		OK

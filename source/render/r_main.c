@@ -307,9 +307,9 @@ R_LoadIdentity
 */
 void R_LoadIdentity( void )
 {
-	Matrix4_Identity( RI.objectMatrix );
-	Matrix4_Copy( RI.worldviewMatrix, RI.modelviewMatrix );
-	pglLoadMatrixf( RI.modelviewMatrix );
+	Matrix4x4_LoadIdentity( RI.objectMatrix );
+	Matrix4x4_Copy( RI.modelviewMatrix, RI.worldviewMatrix );
+	GL_LoadMatrix( RI.modelviewMatrix );
 }
 
 /*
@@ -324,42 +324,14 @@ void R_RotateForEntity( ref_entity_t *e )
 		R_LoadIdentity();
 		return;
 	}
-
-	if( e->scale != 1.0f )
-	{
-		RI.objectMatrix[0] = e->axis[0][0] * e->scale;
-		RI.objectMatrix[1] = e->axis[0][1] * e->scale;
-		RI.objectMatrix[2] = e->axis[0][2] * e->scale;
-		RI.objectMatrix[4] = e->axis[1][0] * e->scale;
-		RI.objectMatrix[5] = e->axis[1][1] * e->scale;
-		RI.objectMatrix[6] = e->axis[1][2] * e->scale;
-		RI.objectMatrix[8] = e->axis[2][0] * e->scale;
-		RI.objectMatrix[9] = e->axis[2][1] * e->scale;
-		RI.objectMatrix[10] = e->axis[2][2] * e->scale;
-	}
-	else
-	{
-		RI.objectMatrix[0] = e->axis[0][0];
-		RI.objectMatrix[1] = e->axis[0][1];
-		RI.objectMatrix[2] = e->axis[0][2];
-		RI.objectMatrix[4] = e->axis[1][0];
-		RI.objectMatrix[5] = e->axis[1][1];
-		RI.objectMatrix[6] = e->axis[1][2];
-		RI.objectMatrix[8] = e->axis[2][0];
-		RI.objectMatrix[9] = e->axis[2][1];
-		RI.objectMatrix[10] = e->axis[2][2];
-	}
-
-	RI.objectMatrix[3] = 0;
-	RI.objectMatrix[7] = 0;
-	RI.objectMatrix[11] = 0;
-	RI.objectMatrix[12] = e->origin[0];
-	RI.objectMatrix[13] = e->origin[1];
-	RI.objectMatrix[14] = e->origin[2];
-	RI.objectMatrix[15] = 1.0;
-
-	Matrix4_MultiplyFast( RI.worldviewMatrix, RI.objectMatrix, RI.modelviewMatrix );
-	pglLoadMatrixf( RI.modelviewMatrix );
+#if 1
+	Matrix4x4_FromMatrix3x3( RI.objectMatrix, e->axis, e->scale );
+	Matrix4x4_SetOrigin( RI.objectMatrix, e->origin[0], e->origin[1], e->origin[2] );
+#else
+	Matrix4x4_CreateFromEntity( RI.objectMatrix, e->origin[0], e->origin[1], e->origin[2], e->angles[PITCH], e->angles[YAW], e->angles[ROLL], e->scale );
+#endif
+	Matrix4x4_ConcatTransforms( RI.modelviewMatrix, RI.worldviewMatrix, RI.objectMatrix );
+	GL_LoadMatrix( RI.modelviewMatrix );
 }
 
 /*
@@ -375,14 +347,10 @@ void R_TranslateForEntity( ref_entity_t *e )
 		return;
 	}
 
-	Matrix4_Identity( RI.objectMatrix );
-
-	RI.objectMatrix[12] = e->origin[0];
-	RI.objectMatrix[13] = e->origin[1];
-	RI.objectMatrix[14] = e->origin[2];
-
-	Matrix4_MultiplyFast( RI.worldviewMatrix, RI.objectMatrix, RI.modelviewMatrix );
-	pglLoadMatrixf( RI.modelviewMatrix );
+	Matrix4x4_LoadIdentity( RI.objectMatrix );
+	Matrix4x4_SetOrigin( RI.objectMatrix, e->origin[0], e->origin[1], e->origin[2] );
+	Matrix4x4_ConcatTransforms( RI.modelviewMatrix, RI.worldviewMatrix, RI.objectMatrix );
+	GL_LoadMatrix( RI.modelviewMatrix );
 }
 
 /*
@@ -459,7 +427,6 @@ bool R_CompletelyFogged( mfog_t *fog, vec3_t origin, float radius )
 		float vpnDist = ( ( RI.viewOrigin[0] - origin[0] ) * RI.vpn[0] + ( RI.viewOrigin[1] - origin[1] ) * RI.vpn[1] + ( RI.viewOrigin[2] - origin[2] ) * RI.vpn[2] );
 		return ( ( vpnDist + radius ) / fog->shader->fog_dist ) < -1;
 	}
-
 	return false;
 }
 
@@ -658,11 +625,7 @@ static void R_PushFlareSurf( const meshbuffer_t *mb )
 	VectorMA( point, -right, RI.vright, spr_xyz[2] );
 
 	colorscale = 255.0 / r_flarefade->value;
-	Vector4Set( color,
-		surf->color[0] * colorscale,
-		surf->color[1] * colorscale,
-		surf->color[2] * colorscale,
-		255 );
+	Vector4Set( color, surf->color[0] * colorscale, surf->color[1] * colorscale, surf->color[2] * colorscale, 255 );
 	for( i = 0; i < 4; i++ )
 		color[i] = bound( 0, color[i], 255 );
 
@@ -700,11 +663,7 @@ static void R_PushCorona( const meshbuffer_t *mb )
 	VectorMA( point, -right, RI.vright, spr_xyz[2] );
 
 	colorscale = 255.0 * bound( 0, r_coronascale->value, 1.0 );
-	Vector4Set( color,
-		light->color[0] * colorscale,
-		light->color[1] * colorscale,
-		light->color[2] * colorscale,
-		255 );
+	Vector4Set( color, light->color[0] * colorscale, light->color[1] * colorscale, light->color[2] * colorscale, 255 );
 	for( i = 0; i < 4; i++ )
 		color[i] = bound( 0, color[i], 255 );
 
@@ -1089,7 +1048,7 @@ static float R_FarClip( void )
 R_SetupProjectionMatrix
 =============
 */
-static void R_SetupProjectionMatrix( const ref_params_t *rd, mat4x4_t m )
+static void R_SetupProjectionMatrix( const ref_params_t *rd, matrix4x4 m )
 {
 	GLdouble xMin, xMax, yMin, yMax, zNear, zFar;
 
@@ -1107,22 +1066,7 @@ static void R_SetupProjectionMatrix( const ref_params_t *rd, mat4x4_t m )
 	xMax = zNear *tan( rd->fov_x *M_PI / 360.0 );
 	xMin = -xMax;
 
-	m[0] = ( 2.0 * zNear ) / ( xMax - xMin );
-	m[1] = 0.0f;
-	m[2] = 0.0f;
-	m[3] = 0.0f;
-	m[4] = 0.0f;
-	m[5] = ( 2.0 * zNear ) / ( yMax - yMin );
-	m[6] = 0.0f;
-	m[7] = 0.0f;
-	m[8] = ( xMax + xMin ) / ( xMax - xMin );
-	m[9] = ( yMax + yMin ) / ( yMax - yMin );
-	m[10] = -( zFar + zNear ) / ( zFar - zNear );
-	m[11] = -1.0f;
-	m[12] = 0.0f;
-	m[13] = 0.0f;
-	m[14] = -( 2.0 * zFar * zNear ) / ( zFar - zNear );
-	m[15] = 0.0f;
+	Matrix4x4_CreateProjection( m, xMax, xMin, yMax, yMin, zNear, zFar );
 }
 
 /*
@@ -1130,22 +1074,19 @@ static void R_SetupProjectionMatrix( const ref_params_t *rd, mat4x4_t m )
 R_SetupModelviewMatrix
 =============
 */
-static void R_SetupModelviewMatrix( const ref_params_t *rd, mat4x4_t m )
+static void R_SetupModelviewMatrix( const ref_params_t *rd, matrix4x4 m )
 {
 #if 0
-	Matrix4_Identity( m );
-	Matrix4_Rotate( m, -90, 1, 0, 0 );
-	Matrix4_Rotate( m, 90, 0, 0, 1 );
+	Matrix4x4_LoadIdentity( m );
+	Matrix4x4_ConcatRotate( m, -90, 1, 0, 0 );
+	Matrix4x4_ConcatRotate( m, 90, 0, 0, 1 );
 #else
-	Vector4Set( &m[0], 0, 0, -1, 0 );
-	Vector4Set( &m[4], -1, 0, 0, 0 );
-	Vector4Set( &m[8], 0, 1, 0, 0 );
-	Vector4Set( &m[12], 0, 0, 0, 1 );
+	Matrix4x4_CreateModelview( m );
 #endif
-	Matrix4_Rotate( m, -rd->viewangles[2], 1, 0, 0 );
-	Matrix4_Rotate( m, -rd->viewangles[0], 0, 1, 0 );
-	Matrix4_Rotate( m, -rd->viewangles[1], 0, 0, 1 );
-	Matrix4_Translate( m, -rd->vieworg[0], -rd->vieworg[1], -rd->vieworg[2] );
+	Matrix4x4_ConcatRotate( m, -rd->viewangles[2], 1, 0, 0 );
+	Matrix4x4_ConcatRotate( m, -rd->viewangles[0], 0, 1, 0 );
+	Matrix4x4_ConcatRotate( m, -rd->viewangles[1], 0, 0, 1 );
+	Matrix4x4_ConcatTranslate( m, -rd->vieworg[0], -rd->vieworg[1], -rd->vieworg[2] );
 }
 
 /*
@@ -1204,7 +1145,7 @@ static void R_SetupViewMatrices( void )
 		shadowGroup_t *group = RI.shadowGroup;
 
 		R_SetupProjectionMatrix( &RI.refdef, RI.projectionMatrix );
-		Matrix4_Multiply( RI.projectionMatrix, RI.worldviewMatrix, RI.worldviewProjectionMatrix );
+		Matrix4x4_Concat( RI.worldviewProjectionMatrix, RI.projectionMatrix, RI.worldviewMatrix );
 
 		// compute optimal fov to increase depth precision (so that shadow group objects are
 		// as close to the nearplane as possible)
@@ -1212,9 +1153,10 @@ static void R_SetupViewMatrices( void )
 		x1 = y1 = 999999;
 		x2 = y2 = -999999;
 		for( i = 0; i < 8; i++ )
-		{                   // compute and rotate a full bounding box
+		{                   
 			vec3_t v, tmp;
 
+			// compute and rotate a full bounding box
 			tmp[0] = ( ( i & 1 ) ? group->mins[0] : group->maxs[0] );
 			tmp[1] = ( ( i & 2 ) ? group->mins[1] : group->maxs[1] );
 			tmp[2] = ( ( i & 4 ) ? group->mins[2] : group->maxs[2] );
@@ -1237,9 +1179,8 @@ static void R_SetupViewMatrices( void )
 		RI.refdef.fov_y = 2 * RAD2DEG( atan( (float)diffy / (float)sizey ) );
 	}
 	R_SetupProjectionMatrix( &RI.refdef, RI.projectionMatrix );
-	if( RI.params & RP_MIRRORVIEW )
-		RI.projectionMatrix[0] = -RI.projectionMatrix[0];
-	Matrix4_Multiply( RI.projectionMatrix, RI.worldviewMatrix, RI.worldviewProjectionMatrix );
+	if( RI.params & RP_MIRRORVIEW ) RI.projectionMatrix[0][0] = -RI.projectionMatrix[0][0];
+	Matrix4x4_Concat( RI.worldviewProjectionMatrix, RI.projectionMatrix, RI.worldviewMatrix );
 }
 
 /*
@@ -1288,10 +1229,10 @@ static void R_SetupGL( void )
 	pglViewport( RI.viewport[0], RI.viewport[1], RI.viewport[2], RI.viewport[3] );
 
 	pglMatrixMode( GL_PROJECTION );
-	pglLoadMatrixf( RI.projectionMatrix );
+	GL_LoadMatrix( RI.projectionMatrix );
 
 	pglMatrixMode( GL_MODELVIEW );
-	pglLoadMatrixf( RI.worldviewMatrix );
+	GL_LoadMatrix( RI.worldviewMatrix );
 
 	if( RI.params & RP_CLIPPLANE )
 	{
@@ -2061,14 +2002,14 @@ void R_TransformToScreen_Vec3( vec3_t in, vec3_t out )
 	temp[1] = in[1];
 	temp[2] = in[2];
 	temp[3] = 1.0f;
-	Matrix4_Multiply_Vector( RI.worldviewProjectionMatrix, temp, temp2 );
+	Matrix4x4_ConcatVector( RI.worldviewProjectionMatrix, temp, temp2 );
 
 	if( !temp2[3] )
 		return;
 
-	out[0] = ( temp2[0] / temp2[3] + 1.0f ) * 0.5f * RI.refdef.viewport[2];
-	out[1] = ( temp2[1] / temp2[3] + 1.0f ) * 0.5f * RI.refdef.viewport[3];
-	out[2] = ( temp2[2] / temp2[3] + 1.0f ) * 0.5f;
+	out[0] = (temp2[0] / temp2[3] + 1.0f) * 0.5f * RI.refdef.viewport[2];
+	out[1] = (temp2[1] / temp2[3] + 1.0f) * 0.5f * RI.refdef.viewport[3];
+	out[2] = (temp2[2] / temp2[3] + 1.0f) * 0.5f;
 }
 
 /*
@@ -2078,7 +2019,7 @@ R_TransformVectorToScreen
 */
 void R_TransformVectorToScreen( const ref_params_t *rd, const vec3_t in, vec2_t out )
 {
-	mat4x4_t p, m;
+	matrix4x4 p, m;
 	vec4_t temp, temp2;
 
 	if( !rd || !in || !out )
@@ -2092,8 +2033,8 @@ void R_TransformVectorToScreen( const ref_params_t *rd, const vec3_t in, vec2_t 
 	R_SetupProjectionMatrix( rd, p );
 	R_SetupModelviewMatrix( rd, m );
 
-	Matrix4_Multiply_Vector( m, temp, temp2 );
-	Matrix4_Multiply_Vector( p, temp2, temp );
+	Matrix4x4_ConcatVector( m, temp, temp2 );
+	Matrix4x4_ConcatVector( p, temp2, temp );
 
 	if( !temp[3] )
 		return;

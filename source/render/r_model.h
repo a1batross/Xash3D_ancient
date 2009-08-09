@@ -328,6 +328,7 @@ uint		Mod_Handle( ref_model_t *mod );
 ref_model_t	*Mod_ForHandle( unsigned int elem );
 
 #define		Mod_Malloc( mod, size ) Mem_Alloc(( mod )->mempool, size )
+#define		Mod_Realloc( mod, data, size ) Mem_Realloc(( mod )->mempool, data, size )
 #define		Mod_Free( data ) Mem_Free( data )
 void		Mod_StripLODSuffix( char *name );
 void		Mod_Modellist_f( void );

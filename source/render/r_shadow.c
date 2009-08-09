@@ -488,7 +488,7 @@ void R_DrawShadowmaps( void )
 			pglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, RI.refdef.viewport[0], RI.refdef.viewport[1], textureWidth, textureHeight );
 		}
 
-		Matrix4_Copy( RI.worldviewProjectionMatrix, group->worldviewProjectionMatrix );
+		Matrix4x4_Copy( group->worldviewProjectionMatrix, RI.worldviewProjectionMatrix );
 	}
 
 	oldRI.shadowBits |= prevRI.shadowBits;  // set shadowBits for all RI's so that we won't

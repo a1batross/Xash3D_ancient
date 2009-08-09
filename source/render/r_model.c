@@ -1109,8 +1109,7 @@ static _inline void Mod_LoadFaceCommon( const dsurfacer_t *in, msurface_t *out )
 		shaderType = SHADER_FLARE;
 	else if( /*out->facetype == FACETYPE_TRISURF || */ lightmaps[0] < 0 || lightmapStyles[0] == 255 )
 		shaderType = SHADER_VERTEX;
-	else
-		shaderType = SHADER_TEXTURE;
+	else shaderType = SHADER_TEXTURE;
 
 	if( !shaderref->shader )
 	{
@@ -1323,13 +1322,14 @@ static void Mod_LoadFogs( const lump_t *l, const lump_t *brLump, const lump_t *b
 
 	loadbmodel->fogs = out;
 	loadbmodel->numfogs = count;
+	loadmodel->numshaders += count;
+	loadmodel->shaders = Mod_Realloc( loadmodel, loadmodel->shaders, loadmodel->numshaders * sizeof( ref_shader_t* ));
 
 	for( i = 0; i < count; i++, in++, out++ )
 	{
 		out->shader = R_LoadShader( in->shader, SHADER_TEXTURE, false, 0, SHADER_INVALID );
 		p = LittleLong( in->brushnum );
-		if( p == -1 )
-			continue;
+		if( p == -1 ) continue;
 
 		brush = inbrushes + p;
 		p = LittleLong( brush->firstside );
@@ -1875,12 +1875,13 @@ static void Mod_Finish( const lump_t *faces, const lump_t *light, vec3_t gridSiz
 	for( i = 0; i < loadmodel_numshaderrefs; i++ )
 		loadmodel->shaders[i] = loadmodel_shaderrefs[i].shader;
 
-	for( i = 0, testFog = loadbmodel->fogs; i < loadbmodel->numfogs; testFog++, i++ )
+	for( j = 0, testFog = loadbmodel->fogs; j < loadbmodel->numfogs; testFog++, j++, i++ )
 	{
-		if( !testFog->shader )
-			continue;
-		if( testFog->visibleplane )
-			continue;
+		// update fog shaders even if missing
+		if( i < loadmodel->numshaders ) loadmodel->shaders[i] = testFog->shader;
+
+		if( !testFog->shader ) continue;
+		if( testFog->visibleplane ) continue;
 
 		testFog->visibleplane = Mod_Malloc( loadmodel, sizeof( cplane_t ) );
 		VectorSet( testFog->visibleplane->normal, 0, 0, 1 );
