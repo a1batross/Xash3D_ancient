@@ -73,12 +73,14 @@ typedef struct latchedvars_s
 typedef struct entity_s
 {
 	edtype_t			ent_type;		// entity type
+	uint			renderframe;	// keep current render frame
 	int			index;		// viewmodel has entindex -1
 	refEntityType_t		rtype;
 
 	struct ref_model_s		*model;		// opaque type outside refresh
 	struct ref_model_s		*weaponmodel;	// opaque type outside refresh
 	struct skinfile_s		*skinfile;	// registered .skin file
+	void			*extradata;	// boneposes for studio models otherwise NULL
 
 	latchedvars_t		prev;		// previous frame values for lerping
 

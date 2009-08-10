@@ -127,13 +127,8 @@ enum
 
 #define VID_DEFAULTMODE			"4"
 
-#ifdef CGAMEGETLIGHTORIGIN
-#define SHADOW_PLANAR			2
-#else
-#define SHADOW_PLANAR			1
-#endif
-
-#define SHADOW_MAPPING			( SHADOW_PLANAR+1 )
+#define SHADOW_PLANAR		1
+#define SHADOW_MAPPING		2
 
 //===================================================================
 
@@ -170,6 +165,25 @@ enum
 
 #define RP_NONVIEWERREF		( RP_PORTALVIEW|RP_MIRRORVIEW|RP_ENVVIEW|RP_SKYPORTALVIEW|RP_SHADOWMAPVIEW )
 #define RP_LOCALCLIENT(e)		((e)->index == ri.GetLocalPlayer()->serialnumber )
+
+/*
+=======================================================================
+
+DOOM1 STYLE AUTOMAP
+
+=======================================================================
+*/
+#define MAX_RADAR_ENTS		1024
+
+typedef struct radar_ent_s
+{
+	rgba_t	color;
+	vec3_t	origin;  
+	vec3_t	angles;
+} radar_ent_t;
+
+extern int	numRadarEnts;
+extern radar_ent_t	RadarEnts[MAX_RADAR_ENTS];
 
 //====================================================
 
@@ -320,6 +334,7 @@ extern cvar_t *r_shownormals;
 extern cvar_t *r_showtextures;
 extern cvar_t *r_draworder;
 
+extern cvar_t *r_minimap;
 extern cvar_t *r_fastsky;
 extern cvar_t *r_portalonly;
 extern cvar_t *r_portalmaps;
@@ -365,6 +380,7 @@ extern cvar_t *r_outlines_cutoff;
 
 extern cvar_t *r_lodbias;
 extern cvar_t *r_lodscale;
+extern cvar_t *r_himodels;
 
 extern cvar_t *r_environment_color;
 extern cvar_t *r_gamma;
@@ -671,6 +687,18 @@ msurface_t *R_TransformedTraceLine( trace_t *tr, const vec3_t start, const vec3_
 //
 
 mspriteframe_t *R_GetSpriteFrame( ref_entity_t *ent );
+
+//
+// r_studio.c
+//
+void R_AddStudioModelToList( ref_entity_t *e );
+void R_DrawStudioModel( const meshbuffer_t *mb );
+void R_StudioResetSequenceInfo( ref_entity_t *ent, dstudiohdr_t *hdr );
+float R_StudioFrameAdvance( ref_entity_t *ent, float flInterval );
+bool R_CullStudioModel( ref_entity_t *e );
+void R_StudioFreeBoneposes( void );
+void R_StudioInit( void );
+void R_StudioShutdown( void );
 
 //
 //

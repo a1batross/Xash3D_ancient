@@ -237,7 +237,7 @@ int R_CullModel( ref_entity_t *e, vec3_t mins, vec3_t maxs, float radius )
 
 	if( RP_LOCALCLIENT( e ))
 	{
-		if(!( RI.params & ( RP_MIRRORVIEW|RP_SHADOWMAPVIEW )))
+		if(!( RI.params & ( RP_MIRRORVIEW|RP_SHADOWMAPVIEW )) && !RI.refdef.thirdperson )
 			return 1;
 	}
 

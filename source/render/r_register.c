@@ -50,6 +50,7 @@ cvar_t *r_coronascale;
 cvar_t *r_detailtextures;
 cvar_t *r_subdivisions;
 cvar_t *r_faceplanecull;
+cvar_t *r_minimap;
 cvar_t *r_showtris;
 cvar_t *r_shownormals;
 cvar_t *r_showtextures;
@@ -105,6 +106,7 @@ cvar_t *r_3dlabs_broken;
 
 cvar_t *r_lodbias;
 cvar_t *r_lodscale;
+cvar_t *r_himodels;
 cvar_t *r_lefthand;
 cvar_t *r_physbdebug;
 
@@ -548,6 +550,7 @@ void GL_InitCommands( void )
 	r_shownormals = Cvar_Get( "r_shownormals", "0", CVAR_CHEAT, "show mesh normals" );
 	r_showtextures = Cvar_Get("r_showtextures", "0", CVAR_CHEAT, "show all uploaded textures" );
 	r_draworder = Cvar_Get( "r_draworder", "0", CVAR_CHEAT, "ignore mesh sorting" );
+	r_minimap = Cvar_Get( "r_minimap", "0", CVAR_ARCHIVE, "draw minimap at right bottom corner of screen" );
 
 	r_fastsky = Cvar_Get( "r_fastsky", "0", CVAR_ARCHIVE, "enable algorhytem fo fast sky rendering (for old machines)" );
 	r_portalonly = Cvar_Get( "r_portalonly", "0", 0, "render only portals" );
@@ -590,6 +593,7 @@ void GL_InitCommands( void )
 
 	r_lodbias = Cvar_Get( "r_lodbias", "0", CVAR_ARCHIVE, "md3 or skm lod bias" );
 	r_lodscale = Cvar_Get( "r_lodscale", "5.0", CVAR_ARCHIVE, "md3 or skm LOD scale factor" );
+	r_himodels = Cvar_Get( "cl_himodels", "1", CVAR_ARCHIVE, "draw high-resolution player models in multiplayer" );
 
 	r_gamma = Cvar_Get( "vid_gamma", "1.0", CVAR_ARCHIVE, "gamma amount" );
 	r_colorbits = Cvar_Get( "r_colorbits", "0", CVAR_ARCHIVE | CVAR_LATCH_VIDEO, "pixelformat color bits (0 - auto)" );

@@ -1362,15 +1362,14 @@ static void R_CullEntities( void )
 		switch( e->rtype )
 		{
 		case RT_MODEL:
-			if( !e->model )
-				break;
+			if( !e->model ) break;
 			switch( e->model->type )
 			{
 			case mod_alias:
 				culled = R_CullAliasModel( e );
 				break;
 			case mod_studio:
-				culled = true;
+				culled = R_CullStudioModel( e );
 				break;
 			case mod_brush:
 			case mod_world:
@@ -1480,6 +1479,7 @@ add:
 				R_AddAliasModelToList( e );
 				break;
 			case mod_studio:
+				R_AddStudioModelToList( e );
 				break;
 			case mod_sprite:
 				if( !shadowmap )
@@ -1953,6 +1953,9 @@ void R_EndFrame( void )
 	// flush any remaining 2D bits
 	R_Set2DMode( false );
 
+	// release model boneposes
+	R_StudioFreeBoneposes ();
+
 	// cleanup texture units
 	R_BackendCleanUpTextureUnits();
 
@@ -2131,21 +2134,24 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 	switch( refent->model->type )
 	{
 	case mod_world:
-	case mod_brush: break;
-	case mod_studio:
+	case mod_brush:
 		if( !refent->model->extradata )
 			return false;
-		refent->rtype = RT_MODEL;
+		refent->scale = 1.0f; // ignore scale for brush models
+		break;
+	case mod_studio:
+		if( !refent->model->phdr )
+			return false;
 		break;
 	case mod_sprite:		
 		if( !refent->model->extradata )
 			return false;
-		refent->rtype = RT_MODEL;
 		break;
 	case mod_bad: // let the render drawing null model
 		break;
 	}
-
+	refent->rtype = RT_MODEL;
+		
 	// setup latchedvars
 	VectorCopy( pRefEntity->v.oldorigin, refent->prev.origin );
 	VectorCopy( pRefEntity->v.oldangles, refent->prev.angles );
@@ -2161,11 +2167,11 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 			{
 				pRefEntity->v.frame = refent->frame = 0;
 				refent->sequence = pRefEntity->v.sequence;
-//				R_StudioResetSequenceInfo( refent, refent->model->phdr );
+				R_StudioResetSequenceInfo( refent, refent->model->phdr );
 			}
 			else
 			{
-//				R_StudioFrameAdvance( refent, 0 );
+				R_StudioFrameAdvance( refent, 0 );
 
 				if( refent->m_fSequenceFinished )
 				{
@@ -2181,6 +2187,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 			}
 			break;
 		case mod_sprite:
+		case mod_alias:
 		case mod_brush:
 		case mod_world:
 			break;
@@ -2262,6 +2269,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 			break;
 		case mod_studio:
 		case mod_sprite:		
+		case mod_alias:
 			refent->ent_type = ED_NORMAL;
           		break;
 		// and ignore all other unset ents

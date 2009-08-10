@@ -244,6 +244,16 @@ STUDIO MODELS
 
 ==============================================================================
 */
+typedef struct mstudioboneposes_s
+{
+	matrix4x4	pbonestransform[MAXSTUDIOBONES];
+	matrix4x4	plighttransform[MAXSTUDIOBONES];
+	matrix4x4	pcachedbones[MAXSTUDIOBONES];		// cached bones
+	matrix4x4	pcachedlight[MAXSTUDIOBONES];		// cached lights
+	char	pcachednames[MAXSTUDIOBONES][32];	// cached bonenames
+
+	int	numbones;				// actual bonecount e->model
+} mstudioboneposes_t;
 
 /*
 ==============================================================================
@@ -306,6 +316,12 @@ typedef struct ref_model_s
 	byte		*mempool;
 	void		*extradata;
 
+	// FIXME!!!! use extradata instead
+	dstudiohdr_t	*phdr;
+          dstudiohdr_t	*thdr;
+	int		numsubmodels;
+	void		*submodels;
+	
 	int		touchFrame;
 	int		numlods;
 	struct ref_model_s	*lods[MOD_MAX_LODS];

@@ -774,6 +774,7 @@ static int Shader_SetImageFlags( ref_shader_t *shader )
 static texture_t *Shader_FindImage( ref_shader_t *shader, const char *name, int flags )
 {
 	texture_t		*image;
+	string		srcpath;
 
 	if( !com.stricmp( name, "$whiteimage" ) || !com.stricmp( name, "*white" ))
 		return tr.whiteTexture;
@@ -791,12 +792,13 @@ static texture_t *Shader_FindImage( ref_shader_t *shader, const char *name, int 
 		return tr.whiteTexture;
 	}
 
-	FS_StripExtension( (char *)name ); // FIXME: stupid quake3 bug!!!
+	com.strncpy( srcpath, name, sizeof( srcpath ));
+	if( shader->type != SHADER_STUDIO ) FS_StripExtension( srcpath );
 
-	image = R_FindTexture( va( "\"%s\"", name ), NULL, 0, flags );
+	image = R_FindTexture( srcpath, NULL, 0, flags );
 	if( !image )
 	{
-		MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", name, shader->name );
+		MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", srcpath, shader->name );
 		return tr.defaultTexture;
 	}
 	return image;
@@ -3343,6 +3345,60 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 			shader->flags |= SHADER_MATERIAL;
 		}
 		break;
+	case SHADER_STUDIO:
+		shader->type = SHADER_STUDIO;
+		shader->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT;
+		shader->features = MF_STCOORDS;
+		shader->num_stages = 1;
+		shader->name = Shader_Malloc( length + 1 + sizeof( ref_stage_t ) * shader->num_stages );
+		strcpy( shader->name, shortname );
+		shader->stages = ( ref_stage_t * )(( byte * )shader->name + length + 1 );
+		pass = &shader->stages[0];
+		pass->tcgen = TCGEN_BASE;
+
+		if( r_spriteRenderMode == kRenderTransAlpha ) // ignore mips for alpha-textures
+			pass->textures[0] = R_FindTexture( va( "Studio( \"%s\" );", shader->name ), NULL, 0, addFlags|TF_CLAMP|TF_NOMIPMAP );
+		else pass->textures[0] = R_FindTexture( va( "Studio( \"%s\" );", shader->name ), NULL, 0, addFlags );
+		if( !pass->textures[0] )
+		{
+			MsgDev( D_WARN, "couldn't find studio texture for shader '%s', using default...\n", shader->name );
+			pass->textures[0] = tr.defaultTexture;
+		}
+		pass->num_textures++;
+  		
+		switch( r_spriteRenderMode )
+		{
+		case kRenderTransTexture:
+			// normal transparency
+			pass->flags |= SHADERSTAGE_BLEND_MODULATE;
+			pass->glState = GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA|GLSTATE_DEPTHWRITE;
+			pass->alphaGen.type = ALPHAGEN_ENTITY;
+			pass->rgbGen.type = RGBGEN_ENTITY;
+	         		shader->sort = SORT_ADDITIVE;
+			break;
+		case kRenderTransAdd:
+			pass->flags |= SHADERSTAGE_BLEND_ADD;
+			pass->glState = GLSTATE_SRCBLEND_ONE_MINUS_SRC_ALPHA|GLSTATE_DSTBLEND_ONE|GLSTATE_DEPTHWRITE;
+			pass->alphaGen.type = ALPHAGEN_ENTITY;
+			pass->rgbGen.type = RGBGEN_ENTITY;
+			shader->sort = SORT_ADDITIVE;
+			break;
+		case kRenderTransAlpha:
+			pass->flags |= SHADERSTAGE_BLEND_DECAL;
+			pass->glState = GLSTATE_AFUNC_GE128|GLSTATE_DEPTHWRITE;
+			pass->alphaGen.type = ALPHAGEN_ENTITY;
+			pass->rgbGen.type = RGBGEN_ENTITY;
+			shader->sort = SORT_ALPHATEST;
+			break;
+		default:
+			pass->flags |= SHADERSTAGE_RENDERMODE; // any studio model can overrided himself rendermode
+			pass->glState = GLSTATE_DEPTHWRITE;
+			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;//_AMBIENT_ONLY;
+			pass->alphaGen.type = ALPHAGEN_IDENTITY;
+			shader->sort = SORT_OPAQUE;
+			break;
+		}
+		break;
 	case SHADER_SPRITE:
 		shader->type = SHADER_SPRITE;
 		shader->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT|SHADER_RENDERMODE;
@@ -3424,11 +3480,6 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 			shader->sort = SORT_ALPHATEST;
 			break;
 		}
-
-		// reset parms
-		r_numSpriteTextures = 0;
-		r_spriteFrequency = 0.0f;
-		r_spriteRenderMode = kRenderNormal;
 		break;
 	case SHADER_FONT:
 		shader->type = SHADER_FONT;
@@ -3668,6 +3719,11 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		pass->num_textures++;
 		break;
 	}
+
+	// reset parms
+	r_numSpriteTextures = 0;
+	r_spriteFrequency = 0.0f;
+	r_spriteRenderMode = kRenderNormal;
 
 	Shader_SetRenderMode( shader );
 

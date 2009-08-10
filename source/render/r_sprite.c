@@ -240,7 +240,7 @@ mspriteframe_t *R_GetSpriteFrame( ref_entity_t *ent )
 	float		*pintervals, fullinterval, targettime, time;
 
 	psprite = ent->model->extradata;
-	frame = ent->frame;
+	frame = (int)ent->frame;
 
 	if((frame >= psprite->numframes) || (frame < 0))
 	{

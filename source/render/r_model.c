@@ -88,6 +88,7 @@ static int		loadmodel_numshaderrefs;
 static mshaderref_t		*loadmodel_shaderrefs;
 
 void Mod_SpriteLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer );
+void Mod_StudioLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer );
 void Mod_AliasLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer );
 void Mod_BrushLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer );
 
@@ -103,6 +104,7 @@ static byte		*mod_mempool;
 static modelformatdescriptor_t mod_supportedformats[] =
 {
 { IDSPRITEHEADER,	0,		Mod_SpriteLoadModel	}, // Half-Life sprite models
+{ IDSTUDIOHEADER,	0,		Mod_StudioLoadModel	}, // Half-Life studio models
 { ALIASMODHEADER,	MD3_ALIAS_MAX_LODS,	Mod_AliasLoadModel	}, // Quake III Arena .md3 models
 { IDBSPMODHEADER,	0,		Mod_BrushLoadModel	}, // Quake III Arena .bsp models
 { RBBSPMODHEADER,	0,		Mod_BrushLoadModel	}, // SOF2 and JK2 .bsp models
@@ -225,7 +227,7 @@ void R_InitModels( void )
 	mod_mempool = Mem_AllocPool( "Models" );
 	r_nummodels = 0;
 
-//	R_StudioInit();
+	R_StudioInit();
 }
 
 /*
@@ -237,7 +239,7 @@ void R_ShutdownModels( void )
 {
 	if( !mod_mempool ) return;
 
-//	R_StudioShutdown();
+	R_StudioShutdown();
 	Mod_FreeAll();
 
 	r_worldmodel = NULL;

@@ -25,9 +25,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mathlib.h"
 #include "matrix_lib.h"
 
-static vec3_t modelorg;       // relative to viewpoint
-static vec3_t modelmins;
-static vec3_t modelmaxs;
+static vec3_t	modelorg;       // relative to viewpoint
+static vec3_t	modelmins;
+static vec3_t	modelmaxs;
+int		numRadarEnts = 0;
+radar_ent_t	RadarEnts[MAX_RADAR_ENTS];
 
 /*
 =============================================================
