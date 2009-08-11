@@ -80,7 +80,6 @@ typedef struct entity_s
 	struct ref_model_s		*model;		// opaque type outside refresh
 	struct ref_model_s		*weaponmodel;	// opaque type outside refresh
 	struct skinfile_s		*skinfile;	// registered .skin file
-	void			*extradata;	// boneposes for studio models otherwise NULL
 
 	latchedvars_t		prev;		// previous frame values for lerping
 

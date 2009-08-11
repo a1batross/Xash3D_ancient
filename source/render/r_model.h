@@ -244,16 +244,6 @@ STUDIO MODELS
 
 ==============================================================================
 */
-typedef struct mstudioboneposes_s
-{
-	matrix4x4	pbonestransform[MAXSTUDIOBONES];
-	matrix4x4	plighttransform[MAXSTUDIOBONES];
-	matrix4x4	pcachedbones[MAXSTUDIOBONES];		// cached bones
-	matrix4x4	pcachedlight[MAXSTUDIOBONES];		// cached lights
-	char	pcachednames[MAXSTUDIOBONES][32];	// cached bonenames
-
-	int	numbones;				// actual bonecount e->model
-} mstudioboneposes_t;
 
 /*
 ==============================================================================

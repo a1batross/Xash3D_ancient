@@ -19,19 +19,20 @@
 
 #define STUDIO_API_VERSION		0.2
 
-matrix4x4		*m_pbonestransform;
-matrix4x4		*m_plighttransform;
+matrix4x4		m_pbonestransform [MAXSTUDIOBONES];
+matrix4x4		m_plighttransform [MAXSTUDIOBONES];
 matrix4x4		m_protationmatrix;
 static mesh_t	studio_mesh;
 
-vec3_t m_plightcolor;		// ambient light color
-vec3_t m_plightvec;			// ambleint light vector
-vec3_t m_pshadevector;		// shadow vector
-vec3_t studio_mins, studio_maxs;
-float studio_radius;
+vec3_t		m_plightcolor;		// ambient light color
+vec3_t		m_plightvec;			// ambleint light vector
+vec3_t		m_pshadevector;		// shadow vector
+vec3_t		studio_mins, studio_maxs;
+float		studio_radius;
 
 // lighting stuff
 vec3_t *m_pxformverts;
+vec3_t *m_pxformnorms;
 vec3_t *m_pvlightvalues;
 vec3_t m_blightvec [MAXSTUDIOBONES];
 vec3_t g_xformverts[MAXSTUDIOVERTS];
@@ -52,6 +53,11 @@ dstudiomodel_t *m_pSubModel;
 dstudiohdr_t *m_pStudioHeader;
 dstudiohdr_t *m_pTextureHeader;
 dstudiobodyparts_t *m_pBodyPart;
+
+int m_nCachedBones;			// number of bones in cache
+char m_nCachedBoneNames[MAXSTUDIOBONES][32];
+matrix4x4 m_rgCachedBonesTransform [MAXSTUDIOBONES];
+matrix4x4 m_rgCachedLightTransform [MAXSTUDIOBONES];
 
 // sprite model used for drawing studio model chrome
 ref_model_t *m_pChromeSprite;
@@ -114,6 +120,11 @@ int R_StudioExtractBbox( dstudiohdr_t *phdr, int sequence, float *mins, float *m
 	VectorCopy( pseqdesc[sequence].bbmax, maxs );
 
 	return 1;
+}
+
+void R_StudioModelBBox( ref_entity_t *e, vec3_t mins, vec3_t maxs )
+{
+	R_StudioExtractBbox( e->model->phdr, e->sequence, mins, maxs );
 }
 
 /*
@@ -683,7 +694,6 @@ void R_StudioSetUpTransform( ref_entity_t *e )
 {
 	int		i;
 	vec3_t		angles;
-	mstudioboneposes_t	*poses;
 
 	VectorCopy( e->angles, angles );
 
@@ -726,13 +736,6 @@ void R_StudioSetUpTransform( ref_entity_t *e )
 	}
 
 	Matrix4x4_CreateFromEntity( m_protationmatrix, 0.0f, 0.0f, 0.0f, angles[PITCH], angles[YAW], angles[ROLL], e->scale );
-
-	// create boneposes array
-	poses = ( mstudioboneposes_t *)Mem_Alloc( r_studiopool, sizeof( mstudioboneposes_t ));
-	e->extradata = (void *)poses;
-
-	m_pbonestransform = poses->pbonestransform;
-	m_plighttransform = poses->plighttransform;
 }
 
 
@@ -1039,18 +1042,15 @@ StudioSaveBones
 */
 void R_StudioSaveBones( ref_entity_t *e )
 {
-	int		i;
-	dstudiobone_t	*pbones = (dstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
-	mstudioboneposes_t	*poses = (mstudioboneposes_t *)e->extradata;
+	int i;
+	dstudiobone_t *pbones = (dstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
+	m_nCachedBones = m_pStudioHeader->numbones;
 
-	Com_Assert( poses == NULL );
-
-	poses->numbones = m_pStudioHeader->numbones;
-	for( i = 0; i < poses->numbones; i++ ) 
+	for( i = 0; i < m_pStudioHeader->numbones; i++ ) 
 	{
-		Matrix4x4_Copy( poses->pcachedbones[i], poses->pbonestransform[i] );
-		Matrix4x4_Copy( poses->pcachedlight[i], poses->plighttransform[i] );
-		com.strcpy( poses->pcachednames[i], pbones[i].name );
+		com.strncpy( m_nCachedBoneNames[i], pbones[i].name, 32 );
+		Matrix4x4_Copy( m_rgCachedBonesTransform[i], m_pbonestransform[i] );
+		Matrix4x4_Copy( m_rgCachedLightTransform[i], m_plighttransform[i] );
 	}
 }
 
@@ -1065,8 +1065,7 @@ float R_StudioMergeBones ( ref_entity_t *e, ref_model_t *m_pSubModel )
 	int		i, j;
 	double		f;
 	int		do_hunt = true;
-	mstudioboneposes_t	*poses = (mstudioboneposes_t *)e->extradata;
-	
+
 	dstudiobone_t	*pbones;
 	dstudioseqdesc_t	*pseqdesc;
 	dstudioanim_t	*panim;
@@ -1074,8 +1073,6 @@ float R_StudioMergeBones ( ref_entity_t *e, ref_model_t *m_pSubModel )
 
 	static vec4_t	q[MAXSTUDIOBONES];
 	static float	pos[MAXSTUDIOBONES][3];
-
-	Com_Assert( poses == NULL );
 
 	if( e->sequence >= m_pStudioHeader->numseq ) e->sequence = 0;
 	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + e->sequence;
@@ -1093,16 +1090,16 @@ float R_StudioMergeBones ( ref_entity_t *e, ref_model_t *m_pSubModel )
 
 	for( i = 0; i < m_pStudioHeader->numbones; i++ ) 
 	{
-		for( j = 0; j < poses->numbones; j++ )
+		for( j = 0; j < m_nCachedBones; j++ )
 		{
-			if( !com.stricmp( pbones[i].name, poses->pcachednames[j] ))
+			if( !com.stricmp( pbones[i].name, m_nCachedBoneNames[j] ))
 			{
-				Matrix4x4_Copy( m_pbonestransform[i], poses->pcachedbones[j] );
-				Matrix4x4_Copy( m_plighttransform[i], poses->pcachedlight[j] );
+				Matrix4x4_Copy( m_pbonestransform[i], m_rgCachedBonesTransform[j] );
+				Matrix4x4_Copy( m_plighttransform[i], m_rgCachedLightTransform[j] );
 				break;
 			}
 		}
-		if( j >= poses->numbones )
+		if( j >= m_nCachedBones )
 		{
 			Matrix4x4_FromOriginQuat( bonematrix, pos[i][0], pos[i][1], pos[i][2], q[i][0], q[i][1], q[i][2], q[i][3] );
 			if( pbones[i].parent == -1 ) 
@@ -1326,14 +1323,14 @@ void R_StudioSetupChrome( float *pchrome, int bone, vec3_t normal )
 void R_StudioDrawMesh( const meshbuffer_t *mb, int meshnum, dstudiotexture_t * ptexture, short *pskinref )
 {
 	int		i;
-	float		*av, *lv;
+	float		*av, *nv, *lv;
 	float		lv_tmp;
 	float		s, t;
 	short		*ptricmds;
 	ref_shader_t	*m_pSkinShader, *shader;
 	ref_entity_t	*e = RI.currententity;
 	int		flags, features;
-	bool		unlockVerts, calcVerts, calcNormals, calcSTVectors;
+	bool		tri_strip, calcNormals, calcSTVectors;
 	dstudiomesh_t	*pmesh = (dstudiomesh_t *)((byte *)m_pStudioHeader + m_pSubModel->meshindex);
 	byte		*pnormbone = ((byte *)m_pStudioHeader + m_pSubModel->norminfoindex);
 	vec3_t		*pstudionorms = (vec3_t *)((byte *)m_pStudioHeader + m_pSubModel->normindex);
@@ -1341,7 +1338,8 @@ void R_StudioDrawMesh( const meshbuffer_t *mb, int meshnum, dstudiotexture_t * p
 	static dstudiomesh_t	*studio_prevmesh;
 	static ref_shader_t		*studio_prevshader;
 	static int	max_vertexes = 0;
-		
+	int		vertexState = 0;
+			
 	if( studio_riparams != RI.params || RI.params & RP_SHADOWMAPVIEW )
 	{
 		studio_riparams = RI.params; // do not try to lock arrays between RI updates
@@ -1390,7 +1388,6 @@ void R_StudioDrawMesh( const meshbuffer_t *mb, int meshnum, dstudiotexture_t * p
 		ref_entity_t *pe = RI.previousentity;
 		if( pe->frame == RI.currententity->frame && pe->prev.frame == RI.currententity->prev.frame && ( pe->backlerp == RI.currententity->backlerp || RI.currententity->frame == RI.currententity->prev.frame ))
 		{
-			unlockVerts = ((( features & MF_DEFORMVS )));
 			calcNormals = ( calcNormals && ( shader->features & SHADER_DEFORM_NORMAL ));
 		}
 	}
@@ -1404,72 +1401,63 @@ void R_StudioDrawMesh( const meshbuffer_t *mb, int meshnum, dstudiotexture_t * p
 	studio_prevshader = shader;
 	studio_framecount = r_framecount;
 
-	unlockVerts = true;
-	if( unlockVerts )
+	while( i = *(ptricmds++))
 	{
-		int	vertexState = 0;
-		bool	tri_strip;
-
-		while( i = *(ptricmds++))
+		if( i < 0 )
 		{
-			if( i < 0 )
-			{
-				i = -i;
-				tri_strip = false;
-			}
-			else tri_strip = true;
-			vertexState = 0;
+			i = -i;
+			tri_strip = false;
+		}
+		else tri_strip = true;
+		vertexState = 0;
 			
-			for( ; i > 0; i--, ptricmds += 4 )
-			{
-				if( flags & STUDIO_NF_CHROME )
-					Vector2Set( inCoordsArray[r_backacc.numVerts], g_chrome[ptricmds[1]][0] * s, g_chrome[ptricmds[1]][1] * t );
-				else Vector2Set( inCoordsArray[r_backacc.numVerts], ptricmds[2] * s, ptricmds[3] * t );
+		for( ; i > 0; i--, ptricmds += 4 )
+		{
+			if( flags & STUDIO_NF_CHROME )
+				Vector2Set( inCoordsArray[r_backacc.numVerts], g_chrome[ptricmds[1]][0] * s, g_chrome[ptricmds[1]][1] * t );
+			else Vector2Set( inCoordsArray[r_backacc.numVerts], ptricmds[2] * s, ptricmds[3] * t );
 
-				lv = m_pvlightvalues[ptricmds[1]];
-				//inColorsArray[0][r_backacc.numVerts][0] = (lv[0] * 255);
-				//inColorsArray[0][r_backacc.numVerts][1] = (lv[1] * 255);
-				//inColorsArray[0][r_backacc.numVerts][2] = (lv[2] * 255);
-				//inColorsArray[0][r_backacc.numVerts][3] = 255;
+			lv = m_pvlightvalues[ptricmds[1]];
+			//inColorsArray[0][r_backacc.numVerts][0] = (lv[0] * 255);
+			//inColorsArray[0][r_backacc.numVerts][1] = (lv[1] * 255);
+			//inColorsArray[0][r_backacc.numVerts][2] = (lv[2] * 255);
+			//inColorsArray[0][r_backacc.numVerts][3] = 255;
 				
-				if( vertexState++ < 3 )
+			if( vertexState++ < 3 )
+			{
+				inElemsArray[r_backacc.numElems++] = r_backacc.numVerts;
+			}
+			else if( tri_strip )
+			{
+				// flip triangles between clockwise and counter clockwise
+				if( vertexState & 1 )
 				{
-					inElemsArray[r_backacc.numElems++] = r_backacc.numVerts;
-				}
-				else if( tri_strip )
-				{
-					// flip triangles between clockwise and counter clockwise
-					if( vertexState & 1 )
-					{
-						// draw triangle [n-2 n-1 n]
-						inElemsArray[r_backacc.numElems++] = r_backacc.numVerts - 2;
-						inElemsArray[r_backacc.numElems++] = r_backacc.numVerts - 1;
-						inElemsArray[r_backacc.numElems++] = r_backacc.numVerts;
-					}
-					else
-					{
-						// draw triangle [n-1 n-2 n]
-						inElemsArray[r_backacc.numElems++] = r_backacc.numVerts - 1;
-						inElemsArray[r_backacc.numElems++] = r_backacc.numVerts - 2;
-						inElemsArray[r_backacc.numElems++] = r_backacc.numVerts;
-					}
-				}
-				else
-				{
-					// draw triangle fan [0 n-1 n]
-					inElemsArray[r_backacc.numElems++] = r_backacc.numVerts - ( vertexState - 1 );
+					// draw triangle [n-2 n-1 n]
+					inElemsArray[r_backacc.numElems++] = r_backacc.numVerts - 2;
 					inElemsArray[r_backacc.numElems++] = r_backacc.numVerts - 1;
 					inElemsArray[r_backacc.numElems++] = r_backacc.numVerts;
 				}
-				av = m_pxformverts[ptricmds[0]]; // verts
-				Vector4Set( inVertsArray[r_backacc.numVerts], av[0], av[1], av[2], 1.0f );
-				r_backacc.numVerts++;
+				else
+				{
+					// draw triangle [n-1 n-2 n]
+					inElemsArray[r_backacc.numElems++] = r_backacc.numVerts - 1;
+					inElemsArray[r_backacc.numElems++] = r_backacc.numVerts - 2;
+					inElemsArray[r_backacc.numElems++] = r_backacc.numVerts;
+				}
 			}
+			else
+			{
+				// draw triangle fan [0 n-1 n]
+				inElemsArray[r_backacc.numElems++] = r_backacc.numVerts - ( vertexState - 1 );
+				inElemsArray[r_backacc.numElems++] = r_backacc.numVerts - 1;
+				inElemsArray[r_backacc.numElems++] = r_backacc.numVerts;
+			}
+			nv = m_pxformnorms[ptricmds[1]]; // normals
+			av = m_pxformverts[ptricmds[0]]; // verts
+			//VectorSet( inNormalsArray[r_backacc.numVerts], nv[0], nv[1], nv[3] );
+			Vector4Set( inVertsArray[r_backacc.numVerts], av[0], av[1], av[2], 1.0f );
+			r_backacc.numVerts++;
 		}
-	}
-	else
-	{
-		features |= MF_KEEPLOCK;
 	}
 
 	if( max_vertexes < r_backacc.numVerts )
@@ -1727,27 +1715,19 @@ void R_StudioRenderModel( void )
 	}
 }
 
-static void R_StudioSetupRender( ref_entity_t *e, ref_model_t *mod, bool draw )
+static void R_StudioSetupRender( ref_entity_t *e, ref_model_t *mod )
 {
-	mstudioboneposes_t	*poses;
-
 	// set global pointers
 	m_pStudioHeader = mod->phdr;
           m_pTextureHeader = mod->thdr;
 
 	// set intermediate vertex buffers
 	m_pxformverts = &g_xformverts[0];
+	m_pxformnorms = &g_xformnorms[0];
  	m_pvlightvalues = &g_lightvalues[0];
 
 	// misc info
 	m_fDoInterp = (RI.currententity->flags & EF_NOINTERP) ? false : true;
-
-	if( draw )
-	{
-		poses = (mstudioboneposes_t *)e->extradata;
-		m_pbonestransform = poses->pbonestransform;
-		m_plighttransform = poses->plighttransform;
-	}
 }
 
 /*
@@ -2007,7 +1987,7 @@ int R_StudioDrawPlayer( ref_entity_t *e, int flags )
 	if( pplayer->serialnumber < 0 || pplayer->serialnumber > ri.GetMaxClients())
 		return 0;
 
-	if( pplayer->v.gaitsequence )
+	if( pplayer->v.gaitsequence > 0 )
 	{
 		vec3_t	orig_angles;
 
@@ -2127,32 +2107,43 @@ void R_StudioDrawPoints( const meshbuffer_t *mb )
 	ref_entity_t	*e = RI.currententity;
 	dstudiotexture_t	*ptexture;
 	short		*pskinref;
-	bool		transform = false;
+	static int	old_model = 0;
+	static int	old_submodel = 0;
+	static ref_entity_t	*old_entity = NULL;
+	bool		doTransform = false;
+	bool		doBonesSetup = false;
 
 	modelnum = (infokey & 0xFF);
 	meshnum = ((infokey & 0xFF00)>>8);
 
-	if( meshnum == 0 ) transform = true;
-	if( MB_NUM2SHADERSORT( mb->shaderkey ) >= SORT_ADDITIVE )
-		transform = true;
+	if( mb->LODModelHandle != old_model || old_entity != RI.currententity )
+	{
+		if( mb->LODModelHandle != old_model )
+			old_model = mb->LODModelHandle;
+		if( old_entity != RI.currententity )
+			old_entity = RI.currententity;
+		doBonesSetup = doTransform = true;
+	}
+	if( modelnum != old_submodel )
+	{
+		old_submodel = modelnum;
+		doTransform = true;
+	}
 
-	if( e->model && Mod_ForHandle( mb->LODModelHandle ) == e->model )
+	if( doBonesSetup )
 	{
 		// first we need to precalculate all bones for model and place result into entity->extradata
 		// also we can pre-calc attachments and events if need
-		if( modelnum == 0 && meshnum == 0 )
+		if( e->weaponmodel && Mod_ForHandle( mb->LODModelHandle ) == e->weaponmodel )
+		{ 
+			R_StudioMergeBones( e, Mod_ForHandle( mb->LODModelHandle ));
+			R_StudioCalcAttachments( e );
+		}
+		else
 		{
 			if( e->ent_type == ED_CLIENT )
 				R_StudioDrawPlayer( e, STUDIO_RENDER );
 			else R_StudioDrawModel( e, STUDIO_RENDER );
-		}
-	}
-	else if( e->weaponmodel && Mod_ForHandle( mb->LODModelHandle ) == e->weaponmodel )
-	{ 
-		if( modelnum == 0 && meshnum == 0 )
-		{
-			R_StudioMergeBones( e, Mod_ForHandle( mb->LODModelHandle ));
-			R_StudioCalcAttachments( e );
 		}
 	}
 
@@ -2169,9 +2160,18 @@ void R_StudioDrawPoints( const meshbuffer_t *mb )
 	if( m_skinnum != 0 && m_skinnum < m_pTextureHeader->numskinfamilies )
 		pskinref += (m_skinnum * m_pTextureHeader->numskinref);
 
-	for( i = 0; transform && i < m_pSubModel->numverts; i++ )
+	if( doTransform )
 	{
-		Matrix4x4_Transform( m_pbonestransform[pvertbone[i]], pstudioverts[i], m_pxformverts[i]);
+		for( i = 0; i < m_pSubModel->numverts; i++ )
+		{
+			Matrix4x4_Transform( m_pbonestransform[pvertbone[i]], pstudioverts[i], m_pxformverts[i]);
+		}
+/*
+		for( i = 0; i < m_pSubModel->numnorms; i++ )
+		{
+			Matrix4x4_Transform( m_pbonestransform[pnormbone[i]], pstudionorms[i], m_pxformnorms[i]);
+		}
+*/
 	}
 	R_StudioDrawMesh( mb, meshnum, ptexture, pskinref );
 }
@@ -2182,7 +2182,7 @@ void R_DrawStudioModel( const meshbuffer_t *mb )
 	ref_model_t	*mod = Mod_ForHandle( mb->LODModelHandle );
 	int		meshnum = -mb->infokey - 1;
 
-	R_StudioSetupRender( e, mod, true );
+	R_StudioSetupRender( e, mod );
 
 	if( OCCLUSION_QUERIES_ENABLED( RI ) && OCCLUSION_TEST_ENTITY( e ))
 	{
@@ -2224,7 +2224,7 @@ bool R_CullStudioModel( ref_entity_t *e )
 	short		*pskinref;
 	meshbuffer_t	*mb;
 	
-	R_StudioSetupRender( e, e->model, false );
+	R_StudioSetupRender( e, e->model );
 
 	if( !e->model->phdr )
 		return true;
@@ -2274,7 +2274,7 @@ bool R_CullStudioModel( ref_entity_t *e )
 	{
 		// add weaponmodel
 		modhandle = Mod_Handle( e->weaponmodel );
-		R_StudioSetupRender( e, e->weaponmodel, false );
+		R_StudioSetupRender( e, e->weaponmodel );
 		ptexture = (dstudiotexture_t *)((byte *)m_pTextureHeader + m_pTextureHeader->textureindex);
 		for( i = 0; i < m_pStudioHeader->numbodyparts; i++ )
 		{
@@ -2312,7 +2312,7 @@ void R_AddStudioModelToList( ref_entity_t *e )
 	short		*pskinref;
 	int		i, j;
 
-	R_StudioSetupRender( e, e->model, false );
+	R_StudioSetupRender( e, e->model );
 	if( !e->model->phdr ) return;
 
 	if(!R_ExtractBbox( e->sequence, studio_mins, studio_maxs )) return; // invalid sequence
@@ -2373,7 +2373,7 @@ void R_AddStudioModelToList( ref_entity_t *e )
 	{
 		// add weaponmodel
 		modhandle = Mod_Handle( e->weaponmodel );
-		R_StudioSetupRender( e, e->weaponmodel, false );
+		R_StudioSetupRender( e, e->weaponmodel );
 		ptexture = (dstudiotexture_t *)((byte *)m_pTextureHeader + m_pTextureHeader->textureindex);
 		for( i = 0; i < m_pStudioHeader->numbodyparts; i++ )
 		{

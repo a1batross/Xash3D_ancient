@@ -1701,7 +1701,9 @@ void R_RenderView( const ref_params_t *fd )
 
 	if( r_speeds->integer )
 		msec = Sys_Milliseconds();
+
 	R_DrawMeshes();
+
 	if( r_speeds->integer )
 		r_draw_meshes += ( Sys_Milliseconds() - msec );
 

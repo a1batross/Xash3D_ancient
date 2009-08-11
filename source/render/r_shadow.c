@@ -294,6 +294,7 @@ add:
 		R_AliasModelBBox( ent, mins, maxs );
 		break;
 	case mod_studio:
+		R_StudioModelBBox( ent, mins, maxs );
 		break;
 	default:
 		VectorClear( mins );

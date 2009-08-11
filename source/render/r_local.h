@@ -695,6 +695,7 @@ void R_AddStudioModelToList( ref_entity_t *e );
 void R_DrawStudioModel( const meshbuffer_t *mb );
 void R_StudioResetSequenceInfo( ref_entity_t *ent, dstudiohdr_t *hdr );
 float R_StudioFrameAdvance( ref_entity_t *ent, float flInterval );
+void R_StudioModelBBox( ref_entity_t *e, vec3_t mins, vec3_t maxs );
 bool R_CullStudioModel( ref_entity_t *e );
 void R_StudioFreeBoneposes( void );
 void R_StudioInit( void );

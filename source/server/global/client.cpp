@@ -1035,7 +1035,8 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 		to->punch_angles = pNet->pev->punchangle;
 
 		// playermodel sequence, that will be playing on a client
-		to->gaitsequence = pNet->pev->gaitsequence;
+		if( pNet->pev->gaitsequence != -1 )
+			to->gaitsequence = pNet->pev->gaitsequence;
 		if( pNet->pev->weaponmodel != iStringNull )
 			to->weaponmodel = MODEL_INDEX( STRING( pNet->pev->weaponmodel ));
 		else to->weaponmodel = 0;
