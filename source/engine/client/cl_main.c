@@ -1022,8 +1022,8 @@ void CL_RequestNextDownload( void )
 			while( precache_check < TEXTURE_CNT )
 			{
 				int n = precache_check++ - ENV_CNT - 1;
-				if( n & 1 ) com.sprintf( fn, "gfx/env/%s.dds", cl.configstrings[CS_SKYNAME] ); // cubemap pack
-				else com.sprintf( fn, "gfx/env/%s%s.tga", cl.configstrings[CS_SKYNAME], env_suf[n/2] );
+				if( n & 1 ) com.sprintf( fn, "env/%s.dds", cl.configstrings[CS_SKYNAME] ); // cubemap pack
+				else com.sprintf( fn, "env/%s%s.tga", cl.configstrings[CS_SKYNAME], env_suf[n/2] );
 				if(!CL_CheckOrDownloadFile( fn )) return; // started a download
 			}
 		}

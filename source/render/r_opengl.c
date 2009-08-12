@@ -309,6 +309,10 @@ bool R_SetPixelformat( void )
 	if(!(pwglMakeCurrent( glw_state.hDC, glw_state.hGLRC )))
 		return R_DeleteContext();
 
+	if( PFD.cStencilBits != 0 )
+		glState.stencilEnabled = true;
+	else glState.stencilEnabled = false;
+
 	// print out PFD specifics 
 	MsgDev( D_NOTE, "GL PFD: color(%d-bits) Z(%d-bit)\n", ( int )PFD.cColorBits, ( int )PFD.cDepthBits );
 

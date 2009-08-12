@@ -3393,7 +3393,7 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		default:
 			pass->flags |= SHADERSTAGE_RENDERMODE; // any studio model can overrided himself rendermode
 			pass->glState = GLSTATE_DEPTHWRITE;
-			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;//_AMBIENT_ONLY;
+			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
 			pass->alphaGen.type = ALPHAGEN_IDENTITY;
 			shader->sort = SORT_OPAQUE;
 			break;
@@ -3593,14 +3593,13 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		strcpy( shader->name, shortname );
 		shader->deforms = ( deform_t * )( ( byte * )shader->name + length + 1 );
 		shader->deforms[0].type = DEFORM_PROJECTION_SHADOW;
-		shader->stages = ( ref_stage_t * )( ( byte * )shader->deforms + shader->numDeforms * sizeof( deform_t ) );
+		shader->stages = ( ref_stage_t * )((byte *)shader->deforms + shader->numDeforms * sizeof( deform_t ) );
 		pass = &shader->stages[0];
 		pass->flags = SHADERSTAGE_NOCOLORARRAY|SHADERSTAGE_STENCILSHADOW|SHADERSTAGE_BLEND_DECAL;
 		pass->glState = GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA;
 		pass->rgbGen.type = RGBGEN_IDENTITY;
 		pass->alphaGen.type = ALPHAGEN_IDENTITY;
 		pass->tcgen = TCGEN_NONE;
-		pass->num_textures++;
 		break;
 	case SHADER_OPAQUE_OCCLUDER:
 		shader->type = SHADER_OPAQUE_OCCLUDER;
@@ -3970,12 +3969,8 @@ ref_shader_t *R_SetupSky( const char *name )
 				if( !Shader_CheckSkybox( loadname ))
 				{
 					com.strncpy( loadname, va( "env/%s", name ), sizeof( loadname ));
-					if(!Shader_CheckSkybox( loadname ))
-					{
-						com.strncpy( loadname, va( "gfx/env/%s", name ), sizeof( loadname ));
-						if( Shader_CheckSkybox( loadname ))
+					if( Shader_CheckSkybox( loadname ))
 							shader_valid = true;
-					}
 					else shader_valid = true;
 				}
 				else shader_valid = true;

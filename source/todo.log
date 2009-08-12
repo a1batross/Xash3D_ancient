@@ -123,4 +123,6 @@ Beta 13.12.08
 100. implement JpegLib			OK
 101. replace Matrix_ with Matrix3x3_		OK
 102. replace Matrix4_ with Matrix4x4_ 		OK
-103. fixup studio culling
+103. fixup studio culling			OK
+103. fixup player blending
+104. sorting folder resources

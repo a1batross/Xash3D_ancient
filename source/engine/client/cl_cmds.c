@@ -161,7 +161,7 @@ void CL_EnvShot_f( void )
 	}
 
 	Con_ClearNotify();
-	com.snprintf( basename, MAX_STRING, "gfx/env/%s", Cmd_Argv( 1 ));
+	com.snprintf( basename, MAX_STRING, "env/%s", Cmd_Argv( 1 ));
 	re->EnvShot( basename, cl_envshot_size->integer, false );
 }
 
@@ -176,7 +176,7 @@ void CL_SkyShot_f( void )
 	}
 
 	Con_ClearNotify();
-	com.snprintf( basename, MAX_STRING, "gfx/env/%s", Cmd_Argv( 1 ));
+	com.snprintf( basename, MAX_STRING, "env/%s", Cmd_Argv( 1 ));
 	re->EnvShot( basename, cl_envshot_size->integer, true );
 }
 

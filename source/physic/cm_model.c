@@ -944,14 +944,13 @@ BSP_LoadCollision
 */
 void BSP_LoadCollision( void )
 {
-	string	clipfile;
+	string	clipfile, clippath;
 	int	map_checksum;
 
-	com.strncpy( clipfile, cm.name, MAX_STRING );
-	FS_StripExtension( clipfile );
-	FS_DefaultExtension( clipfile, ".cm" );
+	FS_FileBase( cm.name, clipfile );
+	com.snprintf( clippath, sizeof( clippath ), "maps/clipmaps/%s.bin", clipfile );
 
-	cms.world_tree = FS_Open( clipfile, "rb" );
+	cms.world_tree = FS_Open( clippath, "rb" );
 
 	if( !cms.world_tree ) return;
 	FS_Read( cms.world_tree, &map_checksum, sizeof( int ));
@@ -1123,7 +1122,7 @@ static void CM_AddCollision( file_t *f, const void* buffer, size_t size )
 void CM_MakeCollisionTree( void )
 {
 	int	i, world = 0; // world index
-	string	clipfile;
+	string	clipfile, clippath;
 	file_t	*file;
 
 	if( !cms.loaded ) Host_Error( "CM_MakeCollisionTree: map not loaded\n" );
@@ -1139,11 +1138,10 @@ void CM_MakeCollisionTree( void )
 
 	BSP_EndBuildTree();
 
-	com.strncpy( clipfile, cm.name, MAX_STRING );
-	FS_StripExtension( clipfile );
-	FS_DefaultExtension( clipfile, ".cm" );
+	FS_FileBase( cm.name, clipfile );
+	com.snprintf( clippath, sizeof( clippath ), "maps/clipmaps/%s.bin", clipfile );
 
-	file = FS_Open( clipfile, "wb" );
+	file = FS_Open( clippath, "wb" );
 	if( !file ) return;
 
 	FS_Write( file, &cm.checksum, sizeof( int )); // save current checksum

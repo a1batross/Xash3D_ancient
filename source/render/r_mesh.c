@@ -188,6 +188,8 @@ R_UpdateVertexBuffer
 */
 void R_UpdateVertexBuffer( ref_buffer_t *vertexBuffer, const void *data, size_t size )
 {
+	Com_Assert( vertexBuffer == NULL );
+
 	if( !GL_Support( R_ARB_VERTEX_BUFFER_OBJECT_EXT ))
 	{
 		vertexBuffer->pointer = (char *)data;

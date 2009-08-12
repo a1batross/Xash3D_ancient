@@ -1,0 +1,64 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: launch - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1F9D.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "imagelib" /I "../public" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\launch\!debug/" /Fo"..\temp\launch\!debug/" /Fd"..\temp\launch\!debug/" /FD /GZ /c 
+"D:\Xash3D\src_main\launch\filesystem.c"
+]
+Creating command line "cl.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1F9D.tmp" 
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1F9E.tmp" with contents
+[
+zlib.lib png.lib jpg.lib user32.lib gdi32.lib advapi32.lib winmm.lib /nologo /dll /incremental:yes /pdb:"..\temp\launch\!debug/launch.pdb" /debug /machine:I386 /nodefaultlib:"libc.lib" /out:"..\temp\launch\!debug/launch.dll" /implib:"..\temp\launch\!debug/launch.lib" /pdbtype:sept /libpath:"./imagelib" 
+"\Xash3D\src_main\temp\launch\!debug\cmd.obj"
+"\Xash3D\src_main\temp\launch\!debug\console.obj"
+"\Xash3D\src_main\temp\launch\!debug\cpuinfo.obj"
+"\Xash3D\src_main\temp\launch\!debug\crclib.obj"
+"\Xash3D\src_main\temp\launch\!debug\cvar.obj"
+"\Xash3D\src_main\temp\launch\!debug\export.obj"
+"\Xash3D\src_main\temp\launch\!debug\filesystem.obj"
+"\Xash3D\src_main\temp\launch\!debug\img_bmp.obj"
+"\Xash3D\src_main\temp\launch\!debug\img_dds.obj"
+"\Xash3D\src_main\temp\launch\!debug\img_jpg.obj"
+"\Xash3D\src_main\temp\launch\!debug\img_main.obj"
+"\Xash3D\src_main\temp\launch\!debug\img_pcx.obj"
+"\Xash3D\src_main\temp\launch\!debug\img_png.obj"
+"\Xash3D\src_main\temp\launch\!debug\img_tga.obj"
+"\Xash3D\src_main\temp\launch\!debug\img_utils.obj"
+"\Xash3D\src_main\temp\launch\!debug\img_vtf.obj"
+"\Xash3D\src_main\temp\launch\!debug\img_wad.obj"
+"\Xash3D\src_main\temp\launch\!debug\memlib.obj"
+"\Xash3D\src_main\temp\launch\!debug\network.obj"
+"\Xash3D\src_main\temp\launch\!debug\parselib.obj"
+"\Xash3D\src_main\temp\launch\!debug\patch.obj"
+"\Xash3D\src_main\temp\launch\!debug\stdlib.obj"
+"\Xash3D\src_main\temp\launch\!debug\system.obj"
+"\Xash3D\src_main\temp\launch\!debug\utils.obj"
+]
+Creating command line "link.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1F9E.tmp"
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1F9F.bat" with contents
+[
+@echo off
+copy \Xash3D\src_main\temp\launch\!debug\launch.dll "D:\Xash3D\bin\launch.dll"
+]
+Creating command line "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1F9F.bat"
+Compiling...
+filesystem.c
+Linking...
+   Creating library ..\temp\launch\!debug/launch.lib and object ..\temp\launch\!debug/launch.exp
+<h3>Output Window</h3>
+Performing Custom Build Step on \Xash3D\src_main\temp\launch\!debug\launch.dll
+Скопировано файлов:         1.
+
+
+
+<h3>Results</h3>
+launch.dll - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

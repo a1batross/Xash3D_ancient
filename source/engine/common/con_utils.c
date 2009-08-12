@@ -815,5 +815,5 @@ void Key_EnumCmds_f( void )
 		FS_Close( f );
 	}
 	else MsgDev( D_ERROR, "Couldn't write help.txt.\n");
-	Msg( "write docs/help.txt" );
+	Msg( "write docs/help.txt\n" );
 }

@@ -1114,7 +1114,7 @@ static bool R_VertexTCBase( const ref_stage_t *pass, int unit, matrix4x4 matrix 
 
 			GL_DisableAllTexGens();
 
-			R_UpdateVertexBuffer( tr.tcoordBuffer[unit], tUnitCoordsArray, r_backacc.numVerts * sizeof( vec2_t ));
+			R_UpdateVertexBuffer( tr.tcoordBuffer[unit], tUnitCoordsArray[unit], r_backacc.numVerts * sizeof( vec2_t ));
 			pglTexCoordPointer( 2, GL_FLOAT, 0, tr.tcoordBuffer[unit]->pointer );
 			return false;
 		}

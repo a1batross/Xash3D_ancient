@@ -1013,7 +1013,7 @@ void SV_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 void SV_ApplyClientMove( sv_client_t *cl, usercmd_t *cmd )
 {
 	int		i;
-	float		temp;
+	float		temp, pitch;
 	edict_t		*ent = cl->edict;
 
 	ent->v.button = cmd->buttons; // initialize buttons
@@ -1031,11 +1031,14 @@ void SV_ApplyClientMove( sv_client_t *cl, usercmd_t *cmd )
 		ent->v.viewangles[i] = temp;
 	}
 
+	pitch = ent->pvServerData->s.delta_angles[PITCH];
+	if( pitch > 180 ) pitch -= 360;
+
 	// don't let the player look up or down more than 90 degrees
-	if( ent->v.viewangles[PITCH] > 89 && ent->v.viewangles[PITCH] < 180 )
-		ent->v.viewangles[PITCH] = 89;
-	else if( ent->v.viewangles[PITCH] < 271 && ent->v.viewangles[PITCH] >= 180 )
-		ent->v.viewangles[PITCH] = 271;
+	if( ent->v.viewangles[PITCH] + pitch < -360 ) ent->v.viewangles[PITCH] += 360; // wrapped
+	if( ent->v.viewangles[PITCH] + pitch > 360 ) ent->v.viewangles[PITCH] -= 360; // wrapped
+	if( ent->v.viewangles[PITCH] + pitch > 89 ) ent->v.viewangles[PITCH] = 89 - pitch;
+	if( ent->v.viewangles[PITCH] + pitch < -89 ) ent->v.viewangles[PITCH] = -89 - pitch;
 
 	if( ent->v.flags & FL_DUCKING && ent->v.flags & FL_ONGROUND )
 	{
@@ -1329,7 +1332,7 @@ void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 	cl->edict->v.viewangles[ROLL] = SV_CalcRoll( viewangles, cl->edict->v.velocity) * 4;
 	if( !cl->edict->v.fixangle )
 	{
-		cl->edict->v.angles[PITCH] = -viewangles[PITCH]/3;
+		cl->edict->v.angles[PITCH] = -viewangles[PITCH] / 3;
 		cl->edict->v.angles[YAW] = viewangles[YAW];
 	}
 

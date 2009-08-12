@@ -557,7 +557,6 @@ void PF_loadcredits( void )
 	
 	if(!creditsBuffer)
 	{
-Msg( "load credits\n" );
 		// load credits if needed
 		creditsBuffer = FS_LoadFile( s, &count );
 		if( count )

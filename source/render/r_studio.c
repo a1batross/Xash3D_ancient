@@ -19,8 +19,8 @@
 
 #define STUDIO_API_VERSION		0.2
 
-matrix4x4		m_pbonestransform [MAXSTUDIOBONES];
-matrix4x4		m_plighttransform [MAXSTUDIOBONES];
+matrix4x4		m_pbonestransform[MAXSTUDIOBONES];
+matrix4x4		m_plighttransform[MAXSTUDIOBONES];
 matrix4x4		m_protationmatrix;
 static mesh_t	studio_mesh;
 
@@ -31,13 +31,12 @@ vec3_t		studio_mins, studio_maxs;
 float		studio_radius;
 
 // lighting stuff
-vec3_t *m_pxformverts;
-vec3_t *m_pxformnorms;
-vec3_t *m_pvlightvalues;
-vec3_t m_blightvec [MAXSTUDIOBONES];
-vec3_t g_xformverts[MAXSTUDIOVERTS];
-vec3_t g_xformnorms[MAXSTUDIOVERTS];
-vec3_t g_lightvalues[MAXSTUDIOVERTS];
+vec3_t		*m_pxformverts;
+vec3_t		*m_pvlightvalues;
+vec3_t		m_blightvec [MAXSTUDIOBONES];
+vec3_t		g_lightvalues[MAXSTUDIOVERTS];
+vec3_t		g_xformverts[MAXSTUDIOMODELS][MAXSTUDIOVERTS];	// cache for current rendering model
+bool		g_cachestate[MAXSTUDIOMODELS];		// true if vertices already transformed
 
 // chrome stuff
 float g_chrome[MAXSTUDIOVERTS][2];	// texture coords for surface normals
@@ -667,19 +666,19 @@ void R_StudioPlayerBlend( dstudioseqdesc_t *pseqdesc, float *pBlend, float *pPit
 
 	if( *pBlend < pseqdesc->blendstart[0] )
 	{
-		*pPitch -= pseqdesc->blendstart[0] / 3.0;
-		*pBlend = 0;
+		*pPitch -= pseqdesc->blendstart[0] / 3.0f;
+		*pBlend = 0.0f;
 	}
 	else if( *pBlend > pseqdesc->blendend[0] )
 	{
-		*pPitch -= pseqdesc->blendend[0] / 3.0;
-		*pBlend = 255;
+		*pPitch -= pseqdesc->blendend[0] / 3.0f;
+		*pBlend = 255.0f;
 	}
 	else
 	{
 		if( pseqdesc->blendend[0] - pseqdesc->blendstart[0] < 0.1f ) // catch qc error
 			*pBlend = 127;
-		else *pBlend = 255 * (*pBlend - pseqdesc->blendstart[0]) / (pseqdesc->blendend[0] - pseqdesc->blendstart[0]);
+		else *pBlend = 255.0f * (*pBlend - pseqdesc->blendstart[0]) / (pseqdesc->blendend[0] - pseqdesc->blendstart[0]);
 		*pPitch = 0;
 	}
 }
@@ -1065,7 +1064,7 @@ float R_StudioMergeBones ( ref_entity_t *e, ref_model_t *m_pSubModel )
 	int		i, j;
 	double		f;
 	int		do_hunt = true;
-
+	int		sequence = e->sequence;
 	dstudiobone_t	*pbones;
 	dstudioseqdesc_t	*pseqdesc;
 	dstudioanim_t	*panim;
@@ -1074,8 +1073,9 @@ float R_StudioMergeBones ( ref_entity_t *e, ref_model_t *m_pSubModel )
 	static vec4_t	q[MAXSTUDIOBONES];
 	static float	pos[MAXSTUDIOBONES][3];
 
-	if( e->sequence >= m_pStudioHeader->numseq ) e->sequence = 0;
-	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + e->sequence;
+	// weaponmodel can't change e->sequence!
+	if( sequence >= m_pStudioHeader->numseq ) sequence = 0;
+	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + sequence;
 
 	f = R_StudioEstimateFrame( pseqdesc );
 
@@ -1323,7 +1323,7 @@ void R_StudioSetupChrome( float *pchrome, int bone, vec3_t normal )
 void R_StudioDrawMesh( const meshbuffer_t *mb, int meshnum, dstudiotexture_t * ptexture, short *pskinref )
 {
 	int		i;
-	float		*av, *nv, *lv;
+	float		*av, *lv;
 	float		lv_tmp;
 	float		s, t;
 	short		*ptricmds;
@@ -1452,9 +1452,7 @@ void R_StudioDrawMesh( const meshbuffer_t *mb, int meshnum, dstudiotexture_t * p
 				inElemsArray[r_backacc.numElems++] = r_backacc.numVerts - 1;
 				inElemsArray[r_backacc.numElems++] = r_backacc.numVerts;
 			}
-			nv = m_pxformnorms[ptricmds[1]]; // normals
 			av = m_pxformverts[ptricmds[0]]; // verts
-			//VectorSet( inNormalsArray[r_backacc.numVerts], nv[0], nv[1], nv[3] );
 			Vector4Set( inVertsArray[r_backacc.numVerts], av[0], av[1], av[2], 1.0f );
 			r_backacc.numVerts++;
 		}
@@ -1722,8 +1720,6 @@ static void R_StudioSetupRender( ref_entity_t *e, ref_model_t *mod )
           m_pTextureHeader = mod->thdr;
 
 	// set intermediate vertex buffers
-	m_pxformverts = &g_xformverts[0];
-	m_pxformnorms = &g_xformnorms[0];
  	m_pvlightvalues = &g_lightvalues[0];
 
 	// misc info
@@ -2107,23 +2103,32 @@ void R_StudioDrawPoints( const meshbuffer_t *mb )
 	ref_entity_t	*e = RI.currententity;
 	dstudiotexture_t	*ptexture;
 	short		*pskinref;
-	static int	old_model = 0;
-	static int	old_submodel = 0;
-	static ref_entity_t	*old_entity = NULL;
+	static int	old_model;
+	static int	old_submodel;
+	static ref_entity_t	*old_entity;
+	static int	studio_framecount = 0;
 	bool		doTransform = false;
 	bool		doBonesSetup = false;
 
 	modelnum = (infokey & 0xFF);
 	meshnum = ((infokey & 0xFF00)>>8);
 
+	if( studio_framecount != r_framecount )
+	{
+		// invalidate at new frame to takes update
+		old_model = old_submodel = 0;
+		old_entity = NULL;
+		studio_framecount = r_framecount;
+	}
+
+	R_StudioSetupRender( e, Mod_ForHandle( mb->LODModelHandle ));
+
 	if( mb->LODModelHandle != old_model || old_entity != RI.currententity )
 	{
-		if( mb->LODModelHandle != old_model )
-			old_model = mb->LODModelHandle;
-		if( old_entity != RI.currententity )
-			old_entity = RI.currententity;
+		Mem_Set( g_cachestate, 0, sizeof( g_cachestate )); // model has changed - clear the cache
 		doBonesSetup = doTransform = true;
 	}
+
 	if( modelnum != old_submodel )
 	{
 		old_submodel = modelnum;
@@ -2136,15 +2141,27 @@ void R_StudioDrawPoints( const meshbuffer_t *mb )
 		// also we can pre-calc attachments and events if need
 		if( e->weaponmodel && Mod_ForHandle( mb->LODModelHandle ) == e->weaponmodel )
 		{ 
+			// Damn! R_SortMeshes insert between model and weaponmodel something else
+			if( old_entity != RI.currententity )
+			{
+				R_StudioSetupRender( e, e->model );
+				if( e->ent_type == ED_CLIENT )
+					R_StudioDrawPlayer( e, STUDIO_RENDER );
+				else R_StudioDrawModel( e, STUDIO_RENDER );
+			}
+			R_StudioSetupRender( e, Mod_ForHandle( mb->LODModelHandle ));
 			R_StudioMergeBones( e, Mod_ForHandle( mb->LODModelHandle ));
 			R_StudioCalcAttachments( e );
 		}
 		else
 		{
+			R_StudioSetupRender( e, Mod_ForHandle( mb->LODModelHandle ));
 			if( e->ent_type == ED_CLIENT )
 				R_StudioDrawPlayer( e, STUDIO_RENDER );
 			else R_StudioDrawModel( e, STUDIO_RENDER );
 		}
+		if( mb->LODModelHandle != old_model ) old_model = mb->LODModelHandle;
+		if( old_entity != RI.currententity ) old_entity = RI.currententity;
 	}
 
 	R_StudioSetupModel( RI.currententity->body, modelnum );
@@ -2162,16 +2179,14 @@ void R_StudioDrawPoints( const meshbuffer_t *mb )
 
 	if( doTransform )
 	{
-		for( i = 0; i < m_pSubModel->numverts; i++ )
+		m_pxformverts = g_xformverts[modelnum];
+
+		if( !g_cachestate[modelnum] )
 		{
-			Matrix4x4_Transform( m_pbonestransform[pvertbone[i]], pstudioverts[i], m_pxformverts[i]);
+			for( i = 0; i < m_pSubModel->numverts; i++ )
+				Matrix4x4_Transform( m_pbonestransform[pvertbone[i]], pstudioverts[i], m_pxformverts[i]);
+			g_cachestate[modelnum] = true;
 		}
-/*
-		for( i = 0; i < m_pSubModel->numnorms; i++ )
-		{
-			Matrix4x4_Transform( m_pbonestransform[pnormbone[i]], pstudionorms[i], m_pxformnorms[i]);
-		}
-*/
 	}
 	R_StudioDrawMesh( mb, meshnum, ptexture, pskinref );
 }
@@ -2179,10 +2194,7 @@ void R_StudioDrawPoints( const meshbuffer_t *mb )
 void R_DrawStudioModel( const meshbuffer_t *mb )
 {
 	ref_entity_t	*e = RI.currententity;
-	ref_model_t	*mod = Mod_ForHandle( mb->LODModelHandle );
 	int		meshnum = -mb->infokey - 1;
-
-	R_StudioSetupRender( e, mod );
 
 	if( OCCLUSION_QUERIES_ENABLED( RI ) && OCCLUSION_TEST_ENTITY( e ))
 	{
