@@ -1,12 +1,43 @@
-//=======================================================================
-//			Copyright XashXT Group 2008 ©
-//		    	  bsp_tree.c - node bsp tree
-//=======================================================================
+/* -------------------------------------------------------------------------------
 
-#include "bsplib.h"
-#include "const.h"
+Copyright (C) 1999-2007 id Software, Inc. and contributors.
+For a list of contributors, see the accompanying CONTRIBUTORS file.
 
-extern int	c_nodes;
+This file is part of GtkRadiant.
+
+GtkRadiant is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+GtkRadiant is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with GtkRadiant; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+----------------------------------------------------------------------------------
+
+This code has been altered significantly from its original form, to support
+several games based on the Quake III Arena engine, in the form of "Q3Map2."
+
+------------------------------------------------------------------------------- */
+
+
+
+/* marker */
+#define TREE_C
+
+
+
+/* dependencies */
+#include "q3map2.h"
+
+
+
 
 void RemovePortalFromNode (portal_t *portal, node_t *l);
 
@@ -66,8 +97,6 @@ FreeTree_r
 */
 void FreeTree_r (node_t *node)
 {
-	face_t		*f, *nextf;
-
 	// free children
 	if (node->planenum != PLANENUM_LEAF)
 	{
@@ -78,20 +107,11 @@ void FreeTree_r (node_t *node)
 	// free bspbrushes
 	FreeBrushList (node->brushlist);
 
-	// free faces
-	for (f=node->faces ; f ; f=nextf)
-	{
-		nextf = f->next;
-		FreeFace (f);
-	}
-
 	// free the node
 	if (node->volume)
 		FreeBrush (node->volume);
 
-	if (GetNumThreads() == 1)
-		c_nodes--;
-	Mem_Free (node);
+	Mem_Free( node );
 }
 
 
@@ -100,99 +120,39 @@ void FreeTree_r (node_t *node)
 FreeTree
 =============
 */
-void FreeTree (tree_t *tree)
+void FreeTree( tree_t *tree )
 {
-	FreeTreePortals_r (tree->headnode);
-	FreeTree_r (tree->headnode);
-	Mem_Free (tree);
+	FreeTreePortals_r( tree->headnode );
+	FreeTree_r( tree->headnode );
+	Mem_Free( tree );
 }
 
 //===============================================================
 
-void PrintTree_r (node_t *node, int depth)
+void PrintTree_r( node_t *node, int depth )
 {
 	int		i;
 	plane_t	*plane;
-	bspbrush_t	*bb;
+	brush_t	*bb;
 
-	for (i=0 ; i<depth ; i++)Msg ("  ");
+	for (i=0 ; i<depth ; i++)
+		Msg("  ");
 	if (node->planenum == PLANENUM_LEAF)
 	{
-		if (!node->brushlist) Msg ("NULL\n");
+		if (!node->brushlist) Msg( "NULL\n" );
 		else
 		{
 			for (bb=node->brushlist ; bb ; bb=bb->next)
-				Msg ("%i ", bb->original->brushnum);
-			Msg ("\n");
+				Msg("%d ", bb->original->brushNum);
+			Msg("\n");
 		}
 		return;
 	}
 
 	plane = &mapplanes[node->planenum];
-	Msg ("#%i (%5.2f %5.2f %5.2f):%5.2f\n", node->planenum,
+	Msg("#%d (%5.2f %5.2f %5.2f):%5.2f\n", node->planenum,
 		plane->normal[0], plane->normal[1], plane->normal[2],
 		plane->dist);
 	PrintTree_r (node->children[0], depth+1);
 	PrintTree_r (node->children[1], depth+1);
-}
-
-/*
-=========================================================
-
-NODES THAT DON'T SEPERATE DIFFERENT CONTENTS CAN BE PRUNED
-
-=========================================================
-*/
-
-int	c_pruned;
-
-/*
-============
-PruneNodes_r
-============
-*/
-void PruneNodes_r (node_t *node)
-{
-	bspbrush_t		*b, *next;
-
-	if (node->planenum == PLANENUM_LEAF)
-		return;
-	PruneNodes_r (node->children[0]);
-	PruneNodes_r (node->children[1]);
-
-	if ( (node->children[0]->contents & CONTENTS_SOLID)
-	&& (node->children[1]->contents & CONTENTS_SOLID) )
-	{
-		if (node->faces)
-			Sys_Error ("node->faces seperating CONTENTS_SOLID");
-		if (node->children[0]->faces || node->children[1]->faces)
-			Sys_Error ("!node->faces with children");
-
-		// FIXME: free stuff
-		node->planenum = PLANENUM_LEAF;
-		node->contents = CONTENTS_SOLID;
-		node->detail_seperator = false;
-
-		if (node->brushlist)
-			Sys_Error ("PruneNodes: node->brushlist");
-
-		// combine brush lists
-		node->brushlist = node->children[1]->brushlist;
-
-		for (b=node->children[0]->brushlist ; b ; b=next)
-		{
-			next = b->next;
-			b->next = node->brushlist;
-			node->brushlist = b;
-		}
-
-		c_pruned++;
-	}
-}
-
-
-void PruneNodes (node_t *node)
-{
-	c_pruned = 0;
-	PruneNodes_r (node);
 }

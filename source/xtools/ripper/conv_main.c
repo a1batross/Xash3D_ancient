@@ -39,20 +39,20 @@ convformat_t convert_formats[] =
 
 convformat_t convert_formats32[] =
 {
-	{"%s.%s", "spr", ConvSPR, "tga" },	// quake1/half-life sprite
+	{"%s.%s", "spr", ConvSPR, "png" },	// quake1/half-life sprite
 	{"%s.%s","spr32",ConvSPR, "dds" },	// spr32 sprite
 	{"%s.%s", "sp2", ConvSPR, "dds" },	// quake2 sprite
-	{"%s.%s", "jpg", ConvJPG, "png" },	// quake3 textures
+	{"%s.%s", "jpg", ConvJPG, "jpg" },	// quake3 textures
 	{"%s.%s", "bmp", ConvBMP, "dds" },	// 8-bit maps with alpha-cnahnel	
 	{"%s.%s", "pcx", ConvPCX, "png" },	// quake2 pics
-	{"%s.%s", "flt", ConvFLT, "png" },	// doom1 textures
-	{"%s.%s", "flp", ConvFLP, "png" },	// doom1 menu pics
-	{"%s.%s", "mip", ConvMIP, "png" },	// Quake1/Half-Life textures
+	{"%s.%s", "flt", ConvFLT, "jpg" },	// doom1 textures
+	{"%s.%s", "flp", ConvFLP, "jpg" },	// doom1 menu pics
+	{"%s.%s", "mip", ConvMIP, "jpg" },	// Quake1/Half-Life textures
 	{"%s.%s", "lmp", ConvLMP, "png" },	// Quake1/Half-Life gfx
-	{"%s.%s", "wal", ConvWAL, "png" },	// Quake2 textures
+	{"%s.%s", "wal", ConvWAL, "jpg" },	// Quake2 textures
 	{"%s.%s", "vtf", ConvVTF, "dds" },	// Half-Life 2 materials
 	{"%s.%s", "skn", ConvSKN, "png" },	// doom1 sprite models
-	{"%s.%s", "bsp", ConvBSP, "png" },	// Quake1\Half-Life map textures
+	{"%s.%s", "bsp", ConvBSP, "jpg" },	// Quake1\Half-Life map textures
 	{"%s.%s", "mus", ConvMID, "mid" },	// doom1\2 music files
 	{"%s.%s", "txt", ConvRAW, "txt" },	// (hidden) Xash-extract scripts
 	{"%s.%s", "dat", ConvRAW, "dat" },	// (hidden) Xash-extract progs

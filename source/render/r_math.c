@@ -88,21 +88,6 @@ int SignbitsForPlane( const cplane_t *out )
 
 /*
 =================
-PlaneTypeForNormal
-=================
-*/
-int PlaneTypeForNormal( const vec3_t normal )
-{
-	// NOTE: should these have an epsilon around 1.0?		
-	if( normal[0] >= 1.0f ) return PLANE_X;
-	if( normal[1] >= 1.0f ) return PLANE_Y;
-	if( normal[2] >= 1.0f ) return PLANE_Z;
-	return PLANE_NONAXIAL;
-}
-
-
-/*
-=================
 PlaneFromPoints
 =================
 */

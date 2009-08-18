@@ -1,95 +1,100 @@
-//=======================================================================
-//			Copyright XashXT Group 2007 ©
-//		    	   map.c - parse map script
-//=======================================================================
+/* -------------------------------------------------------------------------------
 
-#include "bsplib.h"
-#include "const.h"
+Copyright (C) 1999-2007 id Software, Inc. and contributors.
+For a list of contributors, see the accompanying CONTRIBUTORS file.
 
-extern bool onlyents;
+This file is part of GtkRadiant.
 
-#define PLANE_HASHES	1024
-#define MAPTYPE()		Msg( "map type: %s\n", g_sMapType[g_brushtype] )
-#define NORMAL_EPSILON	0.00001
-#define DIST_EPSILON	0.01
+GtkRadiant is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
 
-script_t		*mapfile;
-int		nummapbrushes;
-mapbrush_t	mapbrushes[MAX_MAP_BRUSHES];
-int		nummapbrushsides;
-side_t		brushsides[MAX_MAP_SIDES];
-brush_texture_t	side_brushtextures[MAX_MAP_SIDES];
-int		nummapplanes;
-plane_t		mapplanes[MAX_MAP_PLANES];
-plane_t		*planehash[PLANE_HASHES];
-vec3_t		map_mins, map_maxs, map_size;
-int		g_mapversion;
-int		g_brushtype;
+GtkRadiant is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-int		c_boxbevels;
-int		c_edgebevels;
-int		c_areaportals;
-int		c_clipbrushes;
+You should have received a copy of the GNU General Public License
+along with GtkRadiant; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-const char *g_sMapType[BRUSH_COUNT] =
-{
-"unknown",
-"Worldcraft 2.1",
-"Valve Hammer 3.4",
-"Radiant",
-"QuArK"
-};
+----------------------------------------------------------------------------------
 
-/*
-=============================================================================
+This code has been altered significantly from its original form, to support
+several games based on the Quake III Arena engine, in the form of "Q3Map2."
 
-PLANE FINDING
+------------------------------------------------------------------------------- */
 
-=============================================================================
-*/
-/*
-=================
-PlaneTypeForNormal
-=================
-*/
-int PlaneTypeForNormal( vec3_t normal )
-{
-	// NOTE: should these have an epsilon around 1.0?
-	if(fabs(normal[0]) == 1.0) return PLANE_X;
-	if(fabs(normal[1]) == 1.0) return PLANE_Y;
-	if(fabs(normal[2]) == 1.0) return PLANE_Z;
-	
-	return 3;
-}
+
+
+/* marker */
+#define MAP_C
+
+
+
+/* dependencies */
+#include "q3map2.h"
+
+
+
+/* FIXME: remove these vars */
+
+/* undefine to make plane finding use linear sort (note: really slow) */
+#define	USE_HASHING
+#define	PLANE_HASHES	8192
+
+plane_t	*planehash[ PLANE_HASHES ];
+
+int	c_boxbevels;
+int	c_edgebevels;
+int	c_areaportals;
+int	c_detail;
+int	c_structural;
+
+
 
 /*
-================
-PlaneEqual
-================
+PlaneEqual()
+ydnar: replaced with variable epsilon for djbob
 */
+
+#define	NORMAL_EPSILON	0.00001
+#define	DIST_EPSILON	0.01
+
 bool PlaneEqual( plane_t *p, vec3_t normal, vec_t dist )
 {
 	float	ne, de;
-
-	ne = NORMAL_EPSILON;
-	de = DIST_EPSILON;
-
-	if( fabs(p->normal[0] - normal[0]) < ne && fabs(p->normal[1] - normal[1]) < ne
-	&& fabs(p->normal[2] - normal[2]) < ne && fabs(p->dist - dist) < de )
+	
+	
+	/* get local copies */
+	ne = normalEpsilon;
+	de = distanceEpsilon;
+	
+	/* compare */
+	if( fabs( p->dist - dist ) <= de &&
+		fabs( p->normal[ 0 ] - normal[ 0 ] ) <= ne &&
+		fabs( p->normal[ 1 ] - normal[ 1 ] ) <= ne &&
+		fabs( p->normal[ 2 ] - normal[ 2 ] ) <= ne )
 		return true;
+	
+	/* different */
 	return false;
 }
 
+
+
 /*
-================
-AddPlaneToHash
-================
+AddPlaneToHash()
 */
+
 void AddPlaneToHash( plane_t *p )
 {
-	uint	hash;
+	int		hash;
 
-	hash = (PLANE_HASHES - 1) & (int)fabs( p->dist );
+	
+	hash = (PLANE_HASHES - 1) & (int) fabs( p->dist );
+
 	p->hash_chain = planehash[hash];
 	planehash[hash] = p;
 }
@@ -99,344 +104,492 @@ void AddPlaneToHash( plane_t *p )
 CreateNewFloatPlane
 ================
 */
-int CreateNewFloatPlane( vec3_t normal, vec_t dist )
+int CreateNewFloatPlane (vec3_t normal, vec_t dist)
 {
 	plane_t	*p, temp;
 
-	if( VectorLength(normal) < 0.5 )
+	if (VectorLength(normal) < 0.5)
 	{
-		MsgDev( D_ERROR, "CreateNewFloatPlane: bad normal\n");
+		Msg( "FloatPlane: bad normal\n");
 		return -1;
 	}
 
 	// create a new plane
-	if( nummapplanes + 2 > MAX_MAP_PLANES )
-		Sys_Error( "MAX_MAP_PLANES limit exceeded\n" );
+	if( nummapplanes + 2 > MAX_MAP_PLANES ) Sys_Error( "MAX_MAP_PLANES limit exceeded\n" );
 
 	p = &mapplanes[nummapplanes];
-	VectorCopy( normal, p->normal );
+	VectorCopy (normal, p->normal);
 	p->dist = dist;
-	p->type = (p+1)->type = PlaneTypeForNormal( p->normal );
+	p->type = (p+1)->type = PlaneTypeForNormal (p->normal);
 
-	VectorSubtract( vec3_origin, normal, (p+1)->normal );
+	VectorSubtract (vec3_origin, normal, (p+1)->normal);
 	(p+1)->dist = -dist;
 
 	nummapplanes += 2;
 
-	// always put axial planes facing positive first
-	if( p->type < 3 )
+	// allways put axial planes facing positive first
+	if (p->type < 3)
 	{
-		if( p->normal[0] < 0 || p->normal[1] < 0 || p->normal[2] < 0 )
+		if (p->normal[0] < 0 || p->normal[1] < 0 || p->normal[2] < 0)
 		{
 			// flip order
 			temp = *p;
 			*p = *(p+1);
 			*(p+1) = temp;
 
-			AddPlaneToHash( p+0 );
-			AddPlaneToHash( p+1 );
+			AddPlaneToHash (p);
+			AddPlaneToHash (p+1);
 			return nummapplanes - 1;
 		}
 	}
 
-	AddPlaneToHash( p+0 );
-	AddPlaneToHash( p+1 );
+	AddPlaneToHash (p);
+	AddPlaneToHash (p+1);
 	return nummapplanes - 2;
 }
 
+
+
 /*
-==============
-SnapVector
-==============
+SnapNormal()
+snaps a near-axial normal vector
 */
-void SnapVector( vec3_t normal )
+
+void SnapNormal( vec3_t normal )
 {
-	int	i;
+	int		i;
 
 	for( i = 0; i < 3; i++ )
 	{
-		if( fabs(normal[i] - 1) < NORMAL_EPSILON )
+		if( fabs( normal[ i ] - 1 ) < normalEpsilon )
 		{
 			VectorClear( normal );
-			normal[i] = 1;
+			normal[ i ] = 1;
 			break;
 		}
-		if( fabs(normal[i] - -1) < NORMAL_EPSILON )
+		if( fabs( normal[ i ] - -1 ) < normalEpsilon )
 		{
 			VectorClear( normal );
-			normal[i] = -1;
+			normal[ i ] = -1;
 			break;
 		}
 	}
 }
 
-/*
-==============
-SnapPlane
-==============
-*/
-void SnapPlane( vec3_t normal, float *dist )
-{
-	SnapVector( normal );
 
-	if( fabs( *dist - floor( *dist + 0.5 )) < DIST_EPSILON )
-		*dist = floor( *dist + 0.5 );
+
+/*
+SnapPlane()
+snaps a plane to normal/distance epsilons
+*/
+
+void SnapPlane( vec3_t normal, vec_t *dist )
+{
+// SnapPlane disabled by LordHavoc because it often messes up collision
+// brushes made from triangles of embedded models, and it has little effect
+// on anything else (axial planes are usually derived from snapped points)
+/*
+  SnapPlane reenabled by namespace because of multiple reports of
+  q3map2-crashes which were triggered by this patch.
+*/
+	SnapNormal( normal );
+
+	if( fabs( *dist - Q_rint( *dist ) ) < distanceEpsilon )
+		*dist = Q_rint( *dist );
 }
 
+
+
 /*
-=============
-FindFloatPlane
-
-=============
+FindFloatPlane()
+ydnar: changed to allow a number of test points to be supplied that
+must be within an epsilon distance of the plane
 */
-int FindFloatPlane( vec3_t normal, float dist )
+
+int FindFloatPlane( vec3_t normal, vec_t dist, int numPoints, vec3_t *points )
+
+#ifdef USE_HASHING
+
 {
-	int	i, h;
-	uint	hash;
+	int		i, j, hash, h;
 	plane_t	*p;
-
+	vec_t	d;
+	
+	
+	/* hash the plane */
 	SnapPlane( normal, &dist );
-	hash = (PLANE_HASHES - 1) & (int)fabs( dist );
-
-	// search the border bins as well
+	hash = (PLANE_HASHES - 1) & (int) fabs( dist );
+	
+	/* search the border bins as well */
 	for( i = -1; i <= 1; i++ )
 	{
-		h = (hash+i)&(PLANE_HASHES-1);
-		for( p = planehash[h]; p; p = p->hash_chain )
+		h = (hash + i) & (PLANE_HASHES - 1);
+		for( p = planehash[ h ]; p != NULL; p = p->hash_chain )
 		{
-			if( PlaneEqual( p, normal, dist ))
+			/* do standard plane compare */
+			if( !PlaneEqual( p, normal, dist ) )
+				continue;
+			
+			/* ydnar: uncomment the following line for old-style plane finding */
+			//%	return p - mapplanes;
+			
+			/* ydnar: test supplied points against this plane */
+			for( j = 0; j < numPoints; j++ )
+			{
+				d = DotProduct( points[ j ], normal ) - dist;
+				if( fabs( d ) > distanceEpsilon )
+					break;
+			}
+			
+			/* found a matching plane */
+			if( j >= numPoints )
 				return p - mapplanes;
 		}
 	}
+	
+	/* none found, so create a new one */
 	return CreateNewFloatPlane( normal, dist );
 }
 
+#else
+
+{
+	int		i;
+	plane_t	*p;
+	
+
+	SnapPlane( normal, &dist );
+	for( i = 0, p = mapplanes; i < nummapplanes; i++, p++ )
+	{
+		if( PlaneEqual( p, normal, dist ) )
+			return i;
+	}
+	
+	return CreateNewFloatPlane( normal, dist );
+}
+
+#endif
+
 /*
-================
+=====================
 PlaneFromPoints
-================
+
+Returns false if the triangle is degenrate.
+The normal will point out of the clock for clockwise ordered points
+=====================
 */
-int PlaneFromPoints( vec_t *p0, vec_t *p1, vec_t *p2 )
+bool PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c )
+{
+	vec3_t	d1, d2;
+
+	VectorSubtract( b, a, d1 );
+	VectorSubtract( c, a, d2 );
+	CrossProduct( d2, d1, plane );
+	if( VectorNormalizeLength( plane ) == 0 )
+	{
+		return false;
+	}
+
+	plane[3] = DotProduct( a, plane );
+	return true;
+}
+
+/*
+MapPlaneFromPoints()
+takes 3 points and finds the plane they lie in
+*/
+
+int MapPlaneFromPoints( vec3_t *p )
 {
 	vec3_t	t1, t2, normal;
 	vec_t	dist;
-
-	VectorSubtract( p0, p1, t1 );
-	VectorSubtract( p2, p1, t2 );
+	
+	
+	/* calc plane normal */
+	VectorSubtract( p[ 0 ], p[ 1 ], t1 );
+	VectorSubtract( p[ 2 ], p[ 1 ], t2 );
 	CrossProduct( t1, t2, normal );
 	VectorNormalize( normal );
-	dist = DotProduct( p0, normal );
-
-	return FindFloatPlane( normal, dist );
+	
+	/* calc plane distance */
+	dist = DotProduct( p[ 0 ], normal );
+	
+	/* store the plane */
+	return FindFloatPlane( normal, dist, 3, p );
 }
 
-void CntString( int cnt, char *contents )
-{
-	contents[0] = '\0';
 
-	if( cnt & CONTENTS_SOLID ) com.strcat( contents, "solid " );
-	if( cnt & CONTENTS_WINDOW) com.strcat( contents, "window " );
-	if( cnt & CONTENTS_AUX ) com.strcat( contents, "aux " );
-	if( cnt & CONTENTS_LAVA) com.strcat( contents, "lava " );
-	if( cnt & CONTENTS_SLIME) com.strcat( contents, "slime " );
-	if( cnt & CONTENTS_WATER) com.strcat( contents, "water " );
-	if( cnt & CONTENTS_SKY) com.strcat( contents, "sky " );
 
-	if( cnt & CONTENTS_MIST) com.strcat( contents, "mist " );
-	if( cnt & CONTENTS_FOG) com.strcat( contents, "fog " );
-	if( cnt & CONTENTS_AREAPORTAL) com.strcat( contents, "areaportal " );
-	if( cnt & CONTENTS_PLAYERCLIP) com.strcat( contents, "playerclip " );
-	if( cnt & CONTENTS_MONSTERCLIP) com.strcat( contents, " monsterclip " );
-	if( cnt & CONTENTS_CLIP) com.strcat( contents, "clip " );
-	if( cnt & CONTENTS_ORIGIN) com.strcat( contents, " origin" );
-	if( cnt & CONTENTS_BODY) Sys_Error("\nCONTENTS_BODY detected\n" );
-	if( cnt & CONTENTS_CORPSE) Sys_Error("\nCONTENTS_CORPSE detected\n" );
-	if( cnt & CONTENTS_DETAIL) com.strcat( contents, " detail " );
-	if( cnt & CONTENTS_TRANSLUCENT) com.strcat( contents, "translucent " );
-	if( cnt & CONTENTS_LADDER) com.strcat( contents, "ladder " );
-	if( cnt & CONTENTS_TRIGGER) com.strcat( contents, "trigger " );
-}
-
-//====================================================================
 /*
-===========
-BrushContents
-===========
+SetBrushContents()
+the content flags and compile flags on all sides of a brush should be the same
 */
-int BrushContents( mapbrush_t *b )
+
+void SetBrushContents( brush_t *b )
 {
-	int	contents;
-	int	i, trans;
-	string	cnt1, cnt2;
-	side_t	*s;
-
-	s = &b->original_sides[0];
-	b->shadernum = texinfo[s->texinfo].shadernum;
-	trans = dshaders[texinfo[s->texinfo].shadernum].surfaceFlags;
-	contents = s->contents;
-
+	int			contentFlags, compileFlags;
+	side_t		*s;
+	int			i;
+	bool	mixed;
+	
+	
+	/* get initial compile flags from first side */
+	s = &b->sides[ 0 ];
+	contentFlags = s->contentFlags;
+	compileFlags = s->compileFlags;
+	b->contentShader = s->shaderInfo;
+	mixed = false;
+	
+	/* get the content/compile flags for every side in the brush */
 	for( i = 1; i < b->numsides; i++, s++ )
 	{
-		s = &b->original_sides[i];
-		trans |= dshaders[texinfo[s->texinfo].shadernum].surfaceFlags;
-		if(( s->contents != contents ) && !( trans & (SURF_NODRAW|SURF_SKY|SURF_3DSKY)))
-		{
-			CntString( s->contents, cnt1 );
-			CntString( contents, cnt2 );
-
-			// nodraw textures are ignored
-			MsgDev( D_WARN, "Entity %i, Brush %i: mixed face contents ( %s) and ( %s)\n", b->entitynum, b->brushnum, cnt1, cnt2 );
-			break;
-		}
+		s = &b->sides[ i ];
+		if( s->shaderInfo == NULL )
+			continue;
+		if( s->contentFlags != contentFlags || s->compileFlags != compileFlags )
+			mixed = true;
 	}
+	
+	/* ydnar: getting rid of this stupid warning */
+	//%	if( mixed )
+	//%		MsgDev( D_WARN,"Entity %i, Brush %i: mixed face contentFlags\n", b->entitynum, b->brushnum );
 
-	// if any side is translucent, mark the contents
-	// and change solid to window
-	if( trans & (SURF_TRANS|SURF_BLEND))
+	/* check for detail & structural */
+	if( (compileFlags & C_DETAIL) && (compileFlags & C_STRUCTURAL) )
 	{
-		contents |= CONTENTS_TRANSLUCENT;
-		if( contents & CONTENTS_SOLID )
-		{
-			contents &= ~CONTENTS_SOLID;
-			contents |= CONTENTS_WINDOW;
-		}
+		MsgDev( D_WARN, "Entity %i, Brush %i: mixed CONTENTS_DETAIL and CONTENTS_STRUCTURAL\n", mapEnt->mapEntityNum, entitySourceBrushes );
+		compileFlags &= ~C_DETAIL;
 	}
-	return contents;
+	
+	/* the fulldetail flag will cause detail brushes to be treated like normal brushes */
+	if( fulldetail ) compileFlags &= ~C_DETAIL;
+	
+	/* all translucent brushes that aren't specifically made structural will be detail */
+	if( (compileFlags & C_TRANSLUCENT) && !(compileFlags & C_STRUCTURAL) )
+		compileFlags |= C_DETAIL;
+	
+	/* detail? */
+	if( compileFlags & C_DETAIL )
+	{
+		c_detail++;
+		b->detail = true;
+	}
+	else
+	{
+		c_structural++;
+		b->detail = false;
+	}
+	
+	/* opaque? */
+	if( compileFlags & C_TRANSLUCENT )
+		b->opaque = false;
+	else
+		b->opaque = true;
+	
+	/* areaportal? */
+	if( compileFlags & C_AREAPORTAL )
+		c_areaportals++;
+	
+	/* set brush flags */
+	b->contentFlags = contentFlags;
+	b->compileFlags = compileFlags;
 }
 
 
-//============================================================================
 
 /*
-=================
-AddBrushBevels
-
-Adds any additional planes necessary to allow the brush to be expanded
-against axial bounding boxes
-=================
+AddBrushBevels()
+adds any additional planes necessary to allow the brush being
+built to be expanded against axial bounding boxes
+ydnar 2003-01-20: added mrelusive fixes
 */
-void AddBrushBevels( mapbrush_t *b )
+
+void AddBrushBevels( void )
 {
 	int		axis, dir;
 	int		i, j, k, l, order;
 	side_t		sidetemp;
-	brush_texture_t	tdtemp;
 	side_t		*s, *s2;
+	winding_t		*w, *w2;
 	vec3_t		normal;
 	float		dist;
-	winding_t		*w, *w2;
 	vec3_t		vec, vec2;
-	float		d;
+	float		d, minBack;
 
+	//
 	// add the axial planes
-	for( axis = order = 0; axis < 3; axis++ )
-	{
-		for( dir = -1; dir <= 1; dir += 2, order++ )
-		{
+	//
+	order = 0;
+	for ( axis = 0; axis < 3; axis++ ) {
+		for ( dir = -1; dir <= 1; dir += 2, order++ ) {
 			// see if the plane is allready present
-			for( i = 0, s = b->original_sides; i < b->numsides; i++, s++ )
+			for ( i = 0, s = buildBrush->sides; i < buildBrush->numsides; i++, s++ )
 			{
-				if( mapplanes[s->planenum].normal[axis] == dir )
-					break;
+				/* ydnar: testing disabling of mre code */
+				#if 0
+					if ( dir > 0 ) {
+						if ( mapplanes[s->planenum].normal[axis] >= 0.9999f ) {
+							break;
+						}
+					}
+					else {
+						if ( mapplanes[s->planenum].normal[axis] <= -0.9999f ) {
+							break;
+						}
+					}
+				#else
+					if( (dir > 0 && mapplanes[ s->planenum ].normal[ axis ] == 1.0f ) ||
+						(dir < 0 && mapplanes[ s->planenum ].normal[ axis ] == -1.0f) )
+						break;
+				#endif
 			}
 
-			if( i == b->numsides )
-			{	
+			if( i == buildBrush->numsides )
+			{
 				// add a new side
-				if( nummapbrushsides == MAX_MAP_BRUSHSIDES )
-					Sys_Error( "MAX_MAP_BRUSHSIDES limit exceeded\n" );
-				nummapbrushsides++;
-				b->numsides++;
-				VectorClear( normal );
+				if ( buildBrush->numsides == MAX_BUILD_SIDES )
+				{
+					Sys_Break( "Entity %i, Brush %i MAX_BUILD_SIDES\n", buildBrush->entityNum, buildBrush->brushNum );
+				}
+				memset( s, 0, sizeof( *s ) );
+				buildBrush->numsides++;
+				VectorClear (normal);
 				normal[axis] = dir;
-				if( dir == 1 ) dist = b->maxs[axis];
-				else dist = -b->mins[axis];
-				s->planenum = FindFloatPlane( normal, dist );
-				s->texinfo = b->original_sides[0].texinfo;
-				s->contents = b->original_sides[0].contents;
+
+				if( dir == 1 )
+				{
+					/* ydnar: adding bevel plane snapping for fewer bsp planes */
+					if( bevelSnap > 0 )
+						dist = floor( buildBrush->maxs[ axis ] / bevelSnap ) * bevelSnap;
+					else
+						dist = buildBrush->maxs[ axis ];
+				}
+				else
+				{
+					/* ydnar: adding bevel plane snapping for fewer bsp planes */
+					if( bevelSnap > 0 )
+						dist = -ceil( buildBrush->mins[ axis ] / bevelSnap ) * bevelSnap;
+					else
+						dist = -buildBrush->mins[ axis ];
+				}
+
+				s->planenum = FindFloatPlane( normal, dist, 0, NULL );
+				s->contentFlags = buildBrush->sides[ 0 ].contentFlags;
 				s->bevel = true;
 				c_boxbevels++;
 			}
 
 			// if the plane is not in it canonical order, swap it
-			if( i != order )
-			{
-				sidetemp = b->original_sides[order];
-				b->original_sides[order] = b->original_sides[i];
-				b->original_sides[i] = sidetemp;
-
-				j = b->original_sides - brushsides;
-				tdtemp = side_brushtextures[j+order];
-				side_brushtextures[j+order] = side_brushtextures[j+i];
-				side_brushtextures[j+i] = tdtemp;
+			if ( i != order ) {
+				sidetemp = buildBrush->sides[order];
+				buildBrush->sides[order] = buildBrush->sides[i];
+				buildBrush->sides[i] = sidetemp;
 			}
 		}
 	}
 
+	//
 	// add the edge bevels
-	if( b->numsides == 6 ) return; // pure axial
+	//
+	if ( buildBrush->numsides == 6 ) {
+		return;		// pure axial
+	}
 
 	// test the non-axial plane edges
-	for( i = 6; i < b->numsides; i++ )
-	{
-		s = b->original_sides + i;
+	for ( i = 6; i < buildBrush->numsides; i++ ) {
+		s = buildBrush->sides + i;
 		w = s->winding;
-		if( !w ) continue;
-
-		for( j = 0; j < w->numpoints; j++ )
-		{
-			k = (j+1) % w->numpoints;
+		if ( !w ) {
+			continue;
+		}
+		for ( j = 0; j < w->numpoints; j++) {
+			k = (j+1)%w->numpoints;
 			VectorSubtract( w->p[j], w->p[k], vec );
-			if( VectorNormalizeLength( vec ) < 0.5f ) continue;
-			SnapVector( vec );
-			for( k = 0; k < 3; k++ )
-				if( vec[k] == -1 || vec[k] == 1 )
+			if ( VectorNormalizeLength( vec ) < 0.5f )
+			{
+				continue;
+			}
+			SnapNormal( vec );
+			for ( k = 0; k < 3; k++ ) {
+				if ( vec[k] == -1.0f || vec[k] == 1.0f || (vec[k] == 0.0f && vec[(k+1)%3] == 0.0f) ) {
 					break;	// axial
-			if( k != 3 ) continue;	// only test non-axial edges
+				}
+			}
+			if ( k != 3 ) {
+				continue;	// only test non-axial edges
+			}
+
+			/* debug code */
+			//%	Msg( "-------------\n" );
 
 			// try the six possible slanted axials from this edge
-			for( axis = 0; axis < 3; axis++ )
-			{
-				for( dir = -1; dir <= 1; dir += 2 )
-				{
+			for ( axis = 0; axis < 3; axis++ ) {
+				for ( dir = -1; dir <= 1; dir += 2 ) {
 					// construct a plane
 					VectorClear( vec2 );
 					vec2[axis] = dir;
 					CrossProduct( vec, vec2, normal );
-					if( VectorNormalizeLength( normal ) < 0.5f ) continue;
+					if ( VectorNormalizeLength( normal ) < 0.5f )
+					{
+						continue;
+					}
 					dist = DotProduct( w->p[j], normal );
-
+					
 					// if all the points on all the sides are
 					// behind this plane, it is a proper edge bevel
-					for( k = 0; k < b->numsides; k++ )
-					{
+					for ( k = 0; k < buildBrush->numsides; k++ ) {
+
 						// if this plane has allready been used, skip it
-						if( PlaneEqual( &mapplanes[b->original_sides[k].planenum], normal, dist ))
+						if ( PlaneEqual( &mapplanes[buildBrush->sides[k].planenum], normal, dist ) ) {
 							break;
-
-						w2 = b->original_sides[k].winding;
-						if( !w2 ) continue;
-
-						for( l = 0; l < w2->numpoints; l++ )
-						{
-							d = DotProduct( w2->p[l], normal ) - dist;
-							if( d > 0.1f ) break; // point in front
 						}
-						if( l != w2->numpoints ) break;
+
+						w2 = buildBrush->sides[k].winding;
+						if ( !w2 ) {
+							continue;
+						}
+						minBack = 0.0f;
+						for ( l = 0; l < w2->numpoints; l++ ) {
+							d = DotProduct( w2->p[l], normal ) - dist;
+							if ( d > 0.1f ) {
+								break;	// point in front
+							}
+							if ( d < minBack ) {
+								minBack = d;
+							}
+						}
+						// if some point was at the front
+						if ( l != w2->numpoints ) {
+							break;
+						}
+
+						// if no points at the back then the winding is on the bevel plane
+						if ( minBack > -0.1f ) {
+							//%	Msg( "On bevel plane\n" );
+							break;
+						}
 					}
 
-					if( k != b->numsides ) continue; // wasn't part of the outer hull
+					if ( k != buildBrush->numsides ) {
+						continue;	// wasn't part of the outer hull
+					}
+					
+					/* debug code */
+					//%	Msg( "n = %f %f %f\n", normal[ 0 ], normal[ 1 ], normal[ 2 ] );
+					
 					// add this plane
-					if( nummapbrushsides == MAX_MAP_BRUSHSIDES )
-						Sys_Error( "MAX_MAP_BRUSHSIDES limit exceeded\n" );
-					nummapbrushsides++;
-					s2 = &b->original_sides[b->numsides];
-					s2->planenum = FindFloatPlane( normal, dist );
-					s2->texinfo = b->original_sides[0].texinfo;
-					s2->contents = b->original_sides[0].contents;
+					if( buildBrush->numsides == MAX_BUILD_SIDES )
+					{
+						Sys_Break( "Entity %i, Brush %i MAX_BUILD_SIDES\n", buildBrush->entityNum, buildBrush->brushNum );
+					}
+					s2 = &buildBrush->sides[buildBrush->numsides];
+					buildBrush->numsides++;
+					memset( s2, 0, sizeof( *s2 ) );
+
+					s2->planenum = FindFloatPlane( normal, dist, 1, &w->p[ j ] );
+					s2->contentFlags = buildBrush->sides[0].contentFlags;
 					s2->bevel = true;
 					c_edgebevels++;
-					b->numsides++;
 				}
 			}
 		}
@@ -444,622 +597,1064 @@ void AddBrushBevels( mapbrush_t *b )
 }
 
 
+
 /*
-================
-MakeBrushWindings
-
-makes basewindigs for sides and mins / maxs for the brush
-================
+FinishBrush()
+produces a final brush based on the buildBrush->sides array
+and links it to the current entity
 */
-bool MakeBrushWindings( mapbrush_t *ob )
+
+brush_t *FinishBrush( void )
 {
-	int		i, j;
-	winding_t		*w;
-	side_t		*side;
-	plane_t		*plane;
+	brush_t		*b;
+	
+	
+	/* create windings for sides and bounds for brush */
+	if ( !CreateBrushWindings( buildBrush ) )
+		return NULL;
 
-	ClearBounds( ob->mins, ob->maxs );
-
-	for( i = 0; i < ob->numsides; i++ )
+	/* origin brushes are removed, but they set the rotation origin for the rest of the brushes in the entity.
+	   after the entire entity is parsed, the planenums and texinfos will be adjusted for the origin brush */
+	if( buildBrush->compileFlags & C_ORIGIN )
 	{
-		plane = &mapplanes[ob->original_sides[i].planenum];
-		w = BaseWindingForPlane( plane->normal, plane->dist );
-		for( j = 0; j < ob->numsides && w; j++ )
-		{
-			if( i == j ) continue;
-			if( ob->original_sides[j].bevel ) continue;
-			plane = &mapplanes[ob->original_sides[j].planenum^1];
-			ChopWindingInPlace( &w, plane->normal, plane->dist, 0 );
-		}
+		char	string[ 32 ];
+		vec3_t	origin;
 
-		side = &ob->original_sides[i];
-		side->winding = w;
-		if( w )
+		if( numEntities == 1 )
 		{
-			side->visible = true;
-			for( j = 0; j < w->numpoints; j++ )
-				AddPointToBounds( w->p[j], ob->mins, ob->maxs );
+			Msg( "Entity %i, Brush %i: origin brushes not allowed in world\n", 
+				mapEnt->mapEntityNum, entitySourceBrushes );
+			return NULL;
+		}
+		
+		VectorAdd (buildBrush->mins, buildBrush->maxs, origin);
+		VectorScale (origin, 0.5, origin);
+
+		com.sprintf( string, "%i %i %i", (int) origin[ 0 ], (int) origin[ 1 ], (int) origin[ 2 ] );
+		SetKeyValue( &entities[ numEntities - 1 ], "origin", string);
+
+		VectorCopy( origin, entities[ numEntities - 1 ].origin);
+
+		/* don't keep this brush */
+		return NULL;
+	}
+	
+	/* determine if the brush is an area portal */
+	if( buildBrush->compileFlags & C_AREAPORTAL )
+	{
+		if( numEntities != 1 )
+		{
+			Msg ("Entity %i, Brush %i: areaportals only allowed in world\n", numEntities - 1, entitySourceBrushes );
+			return NULL;
 		}
 	}
-
-	for( i = 0; i < 3; i++ )
+	
+	/* add bevel planes */
+	AddBrushBevels();
+	
+	/* keep it */
+	b = CopyBrush( buildBrush );
+	
+	/* set map entity and brush numbering */
+	b->entityNum = mapEnt->mapEntityNum;
+	b->brushNum = entitySourceBrushes;
+	
+	/* set original */
+	b->original = b;
+	
+	/* link opaque brushes to head of list, translucent brushes to end */
+	if( b->opaque || mapEnt->lastBrush == NULL )
 	{
-		if( ob->mins[i] < MIN_WORLD_COORD || ob->maxs[i] > MAX_WORLD_COORD )
-			return false;
-		if( ob->mins[i] >= ob->maxs[i] )
-			return false;
+		b->next = mapEnt->brushes;
+		mapEnt->brushes = b;
+		if( mapEnt->lastBrush == NULL )
+			mapEnt->lastBrush = b;
 	}
-	return true;
+	else
+	{
+		b->next = NULL;
+		mapEnt->lastBrush->next = b;
+		mapEnt->lastBrush = b;
+	}
+	
+	/* link colorMod volume brushes to the entity directly */
+	if( b->contentShader != NULL &&
+		b->contentShader->colorMod != NULL &&
+		b->contentShader->colorMod->type == CM_VOLUME )
+	{
+		b->nextColorModBrush = mapEnt->colorModBrushes;
+		mapEnt->colorModBrushes = b;
+	}
+	
+	/* return to sender */
+	return b;
 }
 
 
+
 /*
-=================
-ParseBrush
-=================
+TextureAxisFromPlane()
+determines best orthagonal axis to project a texture onto a wall
+(must be identical in radiant!)
 */
-void ParseBrush( bsp_entity_t *mapent )
+
+vec3_t	baseaxis[18] =
 {
-	mapbrush_t	*b;
-	int		i,j, k;
-	int		mt;
-	side_t		*side, *s2;
-	int		planenum;
-	vec_t		planepts[3][3];	// quark used float coords
-	token_t		token;
-	bsp_shader_t	*si;
-	brush_texture_t	td;
+	{0,0,1}, {1,0,0}, {0,-1,0},			// floor
+	{0,0,-1}, {1,0,0}, {0,-1,0},		// ceiling
+	{1,0,0}, {0,1,0}, {0,0,-1},			// west wall
+	{-1,0,0}, {0,1,0}, {0,0,-1},		// east wall
+	{0,1,0}, {1,0,0}, {0,0,-1},			// south wall
+	{0,-1,0}, {1,0,0}, {0,0,-1}			// north wall
+};
 
-	if( nummapbrushes == MAX_MAP_BRUSHES ) Sys_Break( "MAX_MAP_BRUSHES limit exceeded\n");
-	if( g_brushtype == BRUSH_RADIANT ) Com_CheckToken( mapfile, "{" );
+void TextureAxisFromPlane( plane_t *pln, vec3_t xv, vec3_t yv )
+{
+	int		bestaxis;
+	vec_t	dot,best;
+	int		i;
+	
+	best = 0;
+	bestaxis = 0;
+	
+	for (i=0 ; i<6 ; i++)
+	{
+		dot = DotProduct (pln->normal, baseaxis[i*3]);
+		if( dot > best + 0.0001f )	/* ydnar: bug 637 fix, suggested by jmonroe */
+		{
+			best = dot;
+			bestaxis = i;
+		}
+	}
+	
+	VectorCopy (baseaxis[bestaxis*3+1], xv);
+	VectorCopy (baseaxis[bestaxis*3+2], yv);
+}
 
-	b = &mapbrushes[nummapbrushes];
-	b->original_sides = &brushsides[nummapbrushsides];
-	b->entitynum = num_entities-1;
-	b->brushnum = nummapbrushes - mapent->firstbrush;
 
+
+/*
+QuakeTextureVecs()
+creates world-to-texture mapping vecs for crappy quake plane arrangements
+*/
+
+void QuakeTextureVecs( plane_t *plane, vec_t shift[ 2 ], vec_t rotate, vec_t scale[ 2 ], vec_t mappingVecs[ 2 ][ 4 ] )
+{
+	vec3_t	vecs[2];
+	int		sv, tv;
+	vec_t	ang, sinv, cosv;
+	vec_t	ns, nt;
+	int		i, j;
+	
+	
+	TextureAxisFromPlane(plane, vecs[0], vecs[1]);
+	
+	if (!scale[0])
+		scale[0] = 1;
+	if (!scale[1])
+		scale[1] = 1;
+
+	// rotate axis
+	if (rotate == 0)
+		{ sinv = 0 ; cosv = 1; }
+	else if (rotate == 90)
+		{ sinv = 1 ; cosv = 0; }
+	else if (rotate == 180)
+		{ sinv = 0 ; cosv = -1; }
+	else if (rotate == 270)
+		{ sinv = -1 ; cosv = 0; }
+	else
+	{	
+		ang = rotate / 180 * M_PI;
+		sinv = sin(ang);
+		cosv = cos(ang);
+	}
+
+	if (vecs[0][0])
+		sv = 0;
+	else if (vecs[0][1])
+		sv = 1;
+	else
+		sv = 2;
+				
+	if (vecs[1][0])
+		tv = 0;
+	else if (vecs[1][1])
+		tv = 1;
+	else
+		tv = 2;
+					
+	for (i=0 ; i<2 ; i++) {
+		ns = cosv * vecs[i][sv] - sinv * vecs[i][tv];
+		nt = sinv * vecs[i][sv] +  cosv * vecs[i][tv];
+		vecs[i][sv] = ns;
+		vecs[i][tv] = nt;
+	}
+
+	for (i=0 ; i<2 ; i++)
+		for (j=0 ; j<3 ; j++)
+			mappingVecs[i][j] = vecs[i][j] / scale[i];
+
+	mappingVecs[0][3] = shift[0];
+	mappingVecs[1][3] = shift[1];
+}
+
+
+
+/*
+ParseRawBrush()
+parses the sides into buildBrush->sides[], nothing else.
+no validation, back plane removal, etc.
+
+Timo - 08/26/99
+added brush epairs parsing ( ignoring actually )
+Timo - 08/04/99
+added exclusive brush primitive parsing
+Timo - 08/08/99
+support for old brush format back in
+NOTE: it would be "cleaner" to have seperate functions to parse between old and new brushes
+*/
+
+static void ParseRawBrush( bool onlyLights )
+{
+	side_t			*side;
+	vec3_t			planePoints[ 3 ];
+	int				planenum;
+	shaderInfo_t	*si;
+	vec_t			shift[ 2 ];
+	vec_t			rotate;
+	vec_t			scale[ 2 ];
+	char			name[ MAX_QPATH ];
+	char			shader[ MAX_QPATH ];
+	int				flags;
+	
+	
+	/* initial setup */
+	buildBrush->numsides = 0;
+	buildBrush->detail = false;
+	
+	/* bp */
+	if( g_bBrushPrimit == BPRIMIT_NEWBRUSHES )
+		MatchToken( "{" );
+	
+	/* parse sides */
 	while( 1 )
 	{
-		if( !Com_ReadToken( mapfile, SC_ALLOW_NEWLINES|SC_COMMENT_SEMICOLON, &token ))
+		if( !GetToken( true ) )
 			break;
-		if( !com.stricmp( token.string, "}" )) break;
-		if( g_brushtype == BRUSH_RADIANT )
+		if( !strcmp( token, "}" ) )
+			break;
+		 
+		/* ttimo : bp: here we may have to jump over brush epairs (only used in editor) */
+		if( g_bBrushPrimit == BPRIMIT_NEWBRUSHES )
 		{
 			while( 1 )
 			{
-				if( com.strcmp( token.string, "(" ))
-					Com_ReadToken( mapfile, 0, &token );
-				else break;
-				Com_ReadToken( mapfile, SC_ALLOW_NEWLINES, &token );
+				if( strcmp( token, "(" ) )
+					GetToken( false );
+				else
+					break;
+				GetToken( true );
 			}
 		}
-
-		if( nummapbrushsides == MAX_MAP_BRUSHSIDES )
-			Sys_Break( "MAX_MAP_BRUSHSIDES limit exceeded\n" );
-		Com_SaveToken( mapfile, &token );
-		side = &brushsides[nummapbrushsides];
-
-		// read the three point plane definition
-		Com_Parse1DMatrix( mapfile, 3, planepts[0] );
-		Com_Parse1DMatrix( mapfile, 3, planepts[1] );
-		Com_Parse1DMatrix( mapfile, 3, planepts[2] );
-
-		if( g_brushtype == BRUSH_RADIANT )
-			Com_Parse2DMatrix( mapfile, 2, 3, (float *)td.vects.radiant.matrix );
-
-		// read the texturedef
-		Com_ReadToken( mapfile, SC_ALLOW_PATHNAMES|SC_PARSE_GENERIC, &token );
-		com.strncpy( td.name, token.string, sizeof( td.name ));
-
-		if( g_brushtype == BRUSH_WORLDCRAFT_22 ) // Worldcraft 2.2+
-                    {
-			// texture U axis
-			Com_ReadToken( mapfile, 0, &token );
-			if( com.strcmp( token.string, "[")) Sys_Break( "missing '[' in texturedef (U)\n" );
-			Com_ReadFloat( mapfile, false, &td.vects.hammer.UAxis[0] );
-			Com_ReadFloat( mapfile, false, &td.vects.hammer.UAxis[1] );
-			Com_ReadFloat( mapfile, false, &td.vects.hammer.UAxis[2] );
-			Com_ReadFloat( mapfile, false, &td.vects.hammer.shift[0] );
-			Com_ReadToken( mapfile, 0, &token );
-			if( com.strcmp( token.string, "]")) Sys_Break( "missing ']' in texturedef (U)\n" );
-
-			// texture V axis
-			Com_ReadToken( mapfile, 0, &token );
-			if( com.strcmp( token.string, "[")) Sys_Break( "missing '[' in texturedef (V)\n" );
-			Com_ReadFloat( mapfile, false, &td.vects.hammer.VAxis[0] );
-			Com_ReadFloat( mapfile, false, &td.vects.hammer.VAxis[1] );
-			Com_ReadFloat( mapfile, false, &td.vects.hammer.VAxis[2] );
-			Com_ReadFloat( mapfile, false, &td.vects.hammer.shift[1] );
-			Com_ReadToken( mapfile, 0, &token );
-			if( com.strcmp( token.string, "]")) Sys_Break( "missing ']' in texturedef (V)\n");
-
-			// texture rotation is implicit in U/V axes.
-			Com_ReadToken( mapfile, 0, &token );
-			td.vects.hammer.rotate = 0;
-
-			// texure scale
-			// texure scale
-			Com_ReadFloat( mapfile, false, &td.vects.hammer.scale[0] );
-			Com_ReadFloat( mapfile, false, &td.vects.hammer.scale[1] );
-                    }
-		else if( g_brushtype == BRUSH_WORLDCRAFT_21 || g_brushtype == BRUSH_QUARK )
+		UnGetToken();
+		
+		/* test side count */
+		if( buildBrush->numsides >= MAX_BUILD_SIDES )
+			Sys_Break( "Entity %i, Brush %i MAX_BUILD_SIDES\n", buildBrush->entityNum, buildBrush->brushNum );
+		
+		/* add side */
+		side = &buildBrush->sides[ buildBrush->numsides ];
+		memset( side, 0, sizeof( *side ) );
+		buildBrush->numsides++;
+		
+		/* read the three point plane definition */
+		Parse1DMatrix( 3, planePoints[ 0 ] );
+		Parse1DMatrix( 3, planePoints[ 1 ] );
+		Parse1DMatrix( 3, planePoints[ 2 ] );
+		
+		/* bp: read the texture matrix */
+		if( g_bBrushPrimit == BPRIMIT_NEWBRUSHES )
+			Parse2DMatrix( 2, 3, (float*) side->texMat );
+		
+		/* read shader name */
+		GetToken( false );
+		strcpy( name, token );
+		
+		/* bp */
+		if( g_bBrushPrimit == BPRIMIT_OLDBRUSHES )
 		{
-			// worldcraft 2.1-, old Radiant, QuArK
-			Com_ReadFloat( mapfile, false, &td.vects.hammer.shift[0] );
-			Com_ReadFloat( mapfile, false, &td.vects.hammer.shift[1] );
-			Com_ReadFloat( mapfile, false, &td.vects.hammer.rotate );
-			Com_ReadFloat( mapfile, false, &td.vects.hammer.scale[0] );
-			Com_ReadFloat( mapfile, SC_COMMENT_SEMICOLON, &td.vects.hammer.scale[1] );
-                    }
-
-		// hidden q2/q3 legacy, but can be used
-                    if( g_brushtype != BRUSH_QUARK && Com_ReadToken( mapfile, SC_COMMENT_SEMICOLON, &token ))
-		{
-			// overwrite shader values directly from .map file
-			Com_SaveToken( mapfile, &token );
-			Com_ReadLong( mapfile, false, &td.contents );
-			Com_ReadLong( mapfile, false, &td.flags );
-			Com_ReadLong( mapfile, false, &td.value );
+			GetToken( false );
+			shift[ 0 ] = atof( token );
+			GetToken( false );
+			shift[ 1 ] = atof( token );
+			GetToken( false );
+			rotate = atof( token );	
+			GetToken( false );
+			scale[ 0 ] = atof( token );
+			GetToken( false );
+			scale[ 1 ] = atof( token );
 		}
-
-		if( mapfile->TXcommand == '1' || mapfile->TXcommand == '2' )
-		{
-			// we are QuArK mode and need to translate some numbers to align textures its way
-			// from QuArK, the texture vectors are given directly from the three points
-			vec3_t          TexPt[2];
-			float           dot22, dot23, dot33, mdet, aa, bb, dd;
-			int             k;
-
-			g_brushtype = BRUSH_QUARK;
-			k = mapfile->TXcommand - '0';
-			for( j = 0; j < 3; j++ )
-			{
-				TexPt[1][j] = (planepts[k][j] - planepts[0][j]) * (1.0/128.0);
-            		}
-
-			k = 3 - k;
-			for( j = 0; j < 3; j++ )
-			{
-				TexPt[0][j] = (planepts[k][j] - planepts[0][j]) * (1.0/128.0);
-			}
-
-			dot22 = DotProduct( TexPt[0], TexPt[0] );
-			dot23 = DotProduct( TexPt[0], TexPt[1] );
-			dot33 = DotProduct( TexPt[1], TexPt[1] );
-			mdet = dot22 * dot33 - dot23 * dot23;
-			if( mdet < 1E-6 && mdet > -1E-6 )
-			{
-				aa = bb = dd = 0;
-				MsgDev( D_WARN, "Degenerate QuArK-style brush texture : Entity %i, Brush %i\n", b->entitynum, b->brushnum );
-			}
-			else
-			{
-				mdet = 1.0 / mdet;
-				aa = dot33 * mdet;
-				bb = -dot23 * mdet;
-				dd = dot22 * mdet;
-			}
-			for( j = 0; j < 3; j++ )
-			{
-				td.vects.quark.vecs[0][j] = aa * TexPt[0][j] + bb * TexPt[1][j];
-				td.vects.quark.vecs[1][j] = -(bb * TexPt[0][j] + dd * TexPt[1][j]);
-			}
-			td.vects.quark.vecs[0][3] = -DotProduct( td.vects.quark.vecs[0], planepts[0] );
-			td.vects.quark.vecs[1][3] = -DotProduct( td.vects.quark.vecs[1], planepts[0] );
-		}
-
-		td.brush_type = g_brushtype;	// member map type
-		td.flags = td.contents = td.value = 0;	// reset all values before setting
-		side->contents = side->surf = 0;
-
-		// get size from miptex info
-		mt = FindMiptex( td.name );
-		td.size[0] = dshaders[mt].size[0];
-		td.size[1] = dshaders[mt].size[1];
-
-		// get flags and contents from shader
-		// FIXME: rewote this relationship
-		si = FindShader( td.name );
-		if( si )
-		{
-			side->contents = td.contents = si->contents;
-			side->surf = td.flags = si->surfaceFlags;
-			td.value = si->intensity;
-		}
+		
+		/* set default flags and values */
+		com.sprintf( shader, "textures/%s", name );
+		if( onlyLights )
+			si = &shaderInfo[ 0 ];
 		else
+			si = ShaderInfoForShader( shader );
+		side->shaderInfo = si;
+		side->surfaceFlags = si->surfaceFlags;
+		side->contentFlags = si->contentFlags;
+		side->compileFlags = si->compileFlags;
+		side->value = si->value;
+		
+		/* ydnar: gs mods: bias texture shift */
+		if( si->globalTexture == false )
 		{
-			side->contents = td.contents;
-			side->surf = td.flags;
+			shift[ 0 ] -= (floor( shift[ 0 ] / si->shaderWidth ) * si->shaderWidth);
+			shift[ 1 ] -= (floor( shift[ 1 ] / si->shaderHeight ) * si->shaderHeight);
 		}
+		
+		/*
+			historically, there are 3 integer values at the end of a brushside line in a .map file.
+			in quake 3, the only thing that mattered was the first of these three values, which
+			was previously the content flags. and only then did a single bit matter, the detail
+			bit. because every game has its own special flags for specifying detail, the
+			traditionally game-specified CONTENTS_DETAIL flag was overridden for Q3Map 2.3.0
+			by C_DETAIL, defined in q3map2.h. the value is exactly as it was before, but
+			is stored in compileFlags, as opposed to contentFlags, for multiple-game
+			portability. :sigh:
+		*/
+		
+		if( TokenAvailable() )
+		{
+			/* get detail bit from map content flags */
+			GetToken( false );
+			flags = atoi( token );
+			if( flags & C_DETAIL )
+				side->compileFlags |= C_DETAIL;
+			
+			/* historical */
+			GetToken( false );
+			//% td.flags = atoi( token );
+			GetToken( false );
+			//% td.value = atoi( token );
+		}
+		
+		/* find the plane number */
+		planenum = MapPlaneFromPoints( planePoints );
+		side->planenum = planenum;
+		
+		/* bp: get the texture mapping for this texturedef / plane combination */
+		if( g_bBrushPrimit == BPRIMIT_OLDBRUSHES )
+			QuakeTextureVecs( &mapplanes[ planenum ], shift, rotate, scale, side->vecs );
+	}
+	
+	/* bp */
+	if( g_bBrushPrimit == BPRIMIT_NEWBRUSHES )
+	{
+		UnGetToken();
+		MatchToken( "}" );
+		MatchToken( "}" );
+	}
+}
 
-		// translucent objects are automatically classified as detail
-		if( side->surf & ( SURF_TRANS|SURF_BLEND ))
-		{
-			side->contents |= CONTENTS_DETAIL;
-			td.contents |= CONTENTS_DETAIL;
-		}
-		if( side->contents & CONTENTS_CLIP )
-		{
-			side->contents |= CONTENTS_DETAIL;
-			td.contents |= CONTENTS_DETAIL;
-		}
-		if(!(side->contents & ((LAST_VISIBLE_CONTENTS - 1)|CONTENTS_PLAYERCLIP|CONTENTS_MONSTERCLIP|CONTENTS_MIST)))
-		{
-			side->contents |= CONTENTS_SOLID;
-			td.contents |= CONTENTS_SOLID;
-		}
-		// hints and skips are never detail, and have no content
-		if( side->surf & ( SURF_HINT|SURF_SKIP ))
-		{
-			side->contents = td.contents = 0;
-			side->surf &= ~CONTENTS_DETAIL;
-			td.flags &= ~CONTENTS_DETAIL;
-		}
 
-		// Msg( "flags %p, value %d, contents %p\n", td.flags, td.value, side->contents );
 
-		// find the plane number
-		planenum = PlaneFromPoints( planepts[0], planepts[1], planepts[2] );
-		if( planenum == -1 )
+/*
+RemoveDuplicateBrushPlanes
+returns false if the brush has a mirrored set of planes,
+meaning it encloses no volume.
+also removes planes without any normal
+*/
+
+bool RemoveDuplicateBrushPlanes( brush_t *b )
+{
+	int	i, j, k;
+	side_t	*sides;
+
+	sides = b->sides;
+
+	for ( i = 1 ; i < b->numsides ; i++ ) {
+
+		// check for a degenerate plane
+		if( sides[i].planenum == -1 )
 		{
-			MsgDev( D_ERROR, "Entity %i, Brush %i: plane with no normal\n", b->entitynum, b->brushnum );
+			Sys_Break( "Entity %i, Brush %i degenerate plane\n", b->entityNum, b->brushNum );
+			// remove it
+			for ( k = i + 1 ; k < b->numsides ; k++ )
+			{
+				sides[k-1] = sides[k];
+			}
+			b->numsides--;
+			i--;
 			continue;
 		}
 
-		if( g_brushtype == BRUSH_RADIANT )
-		{
-			float	m[2][3], vecs[2][4];
-			float	a, ac, as, bc, bs;
-			plane_t	*plane = mapplanes + planenum;
-		
-			Mem_Copy( m, td.vects.radiant.matrix, sizeof (m )); // save outside 
-
-			// calculate proper texture vectors from GTKRadiant/Doom3 brushprimitives matrix
-			a = -com.atan2( plane->normal[2], com.sqrt( plane->normal[0] * plane->normal[0] + plane->normal[1] * plane->normal[1] ));
-			ac = com.cos( a );
-			as = com.sin( a );
-			a = com.atan2( plane->normal[1], plane->normal[0] );
-			bc = com.cos( a );
-			bs = com.sin( a );
-
-			vecs[0][0] = -bs;
-			vecs[0][1] = bc;
-			vecs[0][2] = 0.0f;
-			vecs[0][3] = 0;	// FIXME: set to 1.0f ?
-			vecs[1][0] = -as*bc;
-			vecs[1][1] = -as*bs;
-			vecs[1][2] = -ac;
-			vecs[1][3] = 0;	// FIXME: set to 1.0f ?
-
-			td.vects.quark.vecs[0][0] = m[0][0] * vecs[0][0] + m[0][1] * vecs[1][0];
-			td.vects.quark.vecs[0][1] = m[0][0] * vecs[0][1] + m[0][1] * vecs[1][1];
-			td.vects.quark.vecs[0][2] = m[0][0] * vecs[0][2] + m[0][1] * vecs[1][2];
-			td.vects.quark.vecs[0][3] = m[0][0] * vecs[0][3] + m[0][1] * vecs[1][3] + m[0][2];
-			td.vects.quark.vecs[1][0] = m[1][0] * vecs[0][0] + m[1][1] * vecs[1][0];
-			td.vects.quark.vecs[1][1] = m[1][0] * vecs[0][1] + m[1][1] * vecs[1][1];
-			td.vects.quark.vecs[1][2] = m[1][0] * vecs[0][2] + m[1][1] * vecs[1][2];
-			td.vects.quark.vecs[1][3] = m[1][0] * vecs[0][3] + m[1][1] * vecs[1][3] + m[1][2];
-		}
-
-		// see if the plane has been used already
-		for( k = 0; k < b->numsides; k++ )
-		{
-			s2 = b->original_sides + k;
-			if( s2->planenum == planenum )
+		// check for duplication and mirroring
+		for ( j = 0 ; j < i ; j++ ) {
+			if ( sides[i].planenum == sides[j].planenum )
 			{
-				Msg( "Entity %i, Brush %i: duplicate plane\n", b->entitynum, b->brushnum );
+				Sys_Break( "Entity %i, Brush %i duplicate plane", b->entityNum, b->brushNum );
+				// remove the second duplicate
+				for ( k = i + 1 ; k < b->numsides ; k++ ) {
+					sides[k-1] = sides[k];
+				}
+				b->numsides--;
+				i--;
 				break;
 			}
-			if( s2->planenum == ( planenum^1 ))
+
+			if ( sides[i].planenum == (sides[j].planenum ^ 1) )
 			{
-				Msg( "Entity %i, Brush %i: mirrored plane\n", b->entitynum, b->brushnum );
-				break;
+				// mirror plane, brush is invalid
+				Sys_Break( "Entity %i, Brush %i mirrored plane", b->entityNum, b->brushNum );
+				return false;
 			}
 		}
-		if( k != b->numsides ) continue; // duplicated
-
-		// keep this side
-		side = b->original_sides + b->numsides;
-		side->planenum = planenum;
-		side->texinfo = TexinfoForBrushTexture( &mapplanes[planenum], &td, vec3_origin );
-		// save the td off in case there is an origin brush and we
-		// have to recalculate the texinfo
-		side_brushtextures[nummapbrushsides] = td;
-
-		nummapbrushsides++;
-		b->numsides++;
 	}
-
-	if( g_brushtype == BRUSH_RADIANT )
-	{
-		Com_SaveToken( mapfile, &token );
-		Com_CheckToken( mapfile, "}" );
-		Com_CheckToken( mapfile, "}" );
-	}
-
-	// get the content for the entire brush
-	b->contents = BrushContents( b );
-
-	// create windings for sides and bounds for brush
-	if( !MakeBrushWindings( b ))
-	{
-		// brush outside of the world, remove
-		b->numsides = 0;
-		return;
-	}
-
-	// brushes that will not be visible at all will never be
-	// used as bsp splitters
-	if( b->contents & CONTENTS_CLIP )
-	{
-		c_clipbrushes++;
-		for( i = 0; i < b->numsides; i++ )
-			b->original_sides[i].texinfo = TEXINFO_NODE;
-	}
-
-	// origin brushes are removed, but they set
-	// the rotation origin for the rest of the brushes
-	// in the entity.  After the entire entity is parsed,
-	// the planenums and texinfos will be adjusted for
-	// the origin brush
-	if( b->contents & CONTENTS_ORIGIN )
-	{
-		vec3_t	size, movedir, origin;
-		char	string[32];
-
-		if( num_entities == 1 )
-		{
-			// g-cont. rotating world it's a interesting idea, hmm.....
-			MsgDev( D_WARN, "Entity %i, Brush %i: origin brushes not allowed in world", b->entitynum, b->brushnum );
-			return;
-		}
-
-		// calcualte movedir (Xash 0.4 style)
-		VectorAverage( b->mins, b->maxs, origin );
-		VectorSubtract( b->maxs, b->mins, size );
-
-		if( size[2] > size[0] && size[2] > size[1] )
-            		VectorSet( movedir, 0, 1, 0 );	// x-rotate
-		else if( size[1] > size[2] && size[1] > size[0] )
-            		VectorSet( movedir, 1, 0, 0 );	// y-rotate
-		else if( size[0] > size[2] && size[0] > size[1] )
-			VectorSet( movedir, 0, 0, 1 );	// z-rotate
-		else VectorClear( movedir ); // custom movedir
-
-		if(!VectorIsNull( movedir ))
-		{
-			com.sprintf( string, "%i %i %i", (int)movedir[0], (int)movedir[1], (int)movedir[2] );
-			SetKeyValue( &entities[b->entitynum], "movedir", string );
-		}
-		if(!VectorIsNull( origin ))
-		{
-			com.sprintf( string, "%i %i %i", (int)origin[0], (int)origin[1], (int)origin[2] );
-			SetKeyValue( &entities[b->entitynum], "origin", string );
-			VectorCopy( origin, entities[num_entities - 1].origin );
-		}
-
-		// don't keep this brush
-		b->numsides = 0;
-		return;
-	}
-
-	AddBrushBevels( b );
-
-	nummapbrushes++;
-	mapent->numbrushes++;		
-}
-
-/*
-================
-MoveBrushesToWorld
-
-Takes all of the brushes from the current entity and
-adds them to the world's brush list.
-
-Used by func_group and func_areaportal
-================
-*/
-void MoveBrushesToWorld( bsp_entity_t *mapent )
-{
-	int			newbrushes;
-	int			worldbrushes;
-	mapbrush_t	*temp;
-	int			i;
-
-	// this is pretty gross, because the brushes are expected to be
-	// in linear order for each entity
-
-	newbrushes = mapent->numbrushes;
-	worldbrushes = entities[0].numbrushes;
-	if( newbrushes == 0 ) return;
-
-	temp = Malloc( newbrushes * sizeof( mapbrush_t ));
-	Mem_Copy( temp, mapbrushes + mapent->firstbrush, newbrushes * sizeof( mapbrush_t ));
-
-	// make space to move the brushes (overlapped copy)
-	memmove( mapbrushes + worldbrushes + newbrushes, mapbrushes + worldbrushes,
-		sizeof( mapbrush_t ) * ( nummapbrushes - worldbrushes - newbrushes ));
-
-	// copy the new brushes down
-	Mem_Copy( mapbrushes + worldbrushes, temp, sizeof( mapbrush_t ) * newbrushes );
-
-	// fix up indexes
-	entities[0].numbrushes += newbrushes;
-	for( i = 1; i < num_entities; i++ )
-		entities[i].firstbrush += newbrushes;
-	Mem_Free( temp );
-
-	mapent->numbrushes = 0;
-}
-
-/*
-================
-ParseMapEntity
-================
-*/
-bool ParseMapEntity( void )
-{
-	bsp_entity_t	*mapent;
-	token_t		token;
-	epair_t		*e;
-	side_t		*s;
-	int		i, j;
-	int		startbrush, startsides;
-	float		newdist;
-	mapbrush_t	*b;
-
-	if( !Com_ReadToken( mapfile, SC_ALLOW_NEWLINES|SC_COMMENT_SEMICOLON, &token ))
-		return false; // end of .map file
-	if( com.stricmp( token.string, "{" )) Sys_Break( "ParseEntity: found %s instead {\n", token.string );
-	if( num_entities == MAX_MAP_ENTITIES ) Sys_Break( "MAX_MAP_ENTITIES limit exceeded\n");
-
-	startbrush = nummapbrushes;
-	startsides = nummapbrushsides;
-
-	mapent = &entities[num_entities];
-	num_entities++;
-	Mem_Set( mapent, 0, sizeof( *mapent ));
-	mapent->firstbrush = nummapbrushes;
-	mapent->numbrushes = 0;
-
-	while( 1 )
-	{
-		if( !Com_ReadToken( mapfile, SC_ALLOW_NEWLINES|SC_COMMENT_SEMICOLON, &token ))
-			Sys_Break( "ParseEntity: EOF without closing brace\n" );
-		if( !com.stricmp( token.string, "}" )) break;
-		if( !com.stricmp( token.string, "{" ))
-		{
-			// parse a brush or patch
-			if( !Com_ReadToken( mapfile, SC_ALLOW_NEWLINES, &token )) break;
-			if( !com.stricmp( token.string, "patchDef2" ))
-			{
-				g_brushtype = BRUSH_RADIANT;
-				Com_SkipBracedSection( mapfile, 0 );
-			}
-			else if( !com.stricmp( token.string, "terrainDef" ))
-			{
-				g_brushtype = BRUSH_RADIANT;
-				Com_SkipBracedSection( mapfile, 0 );
-			}
-			else if( !com.stricmp( token.string, "brushDef" ))
-			{
-				g_brushtype = BRUSH_RADIANT;
-				ParseBrush( mapent );	// parse brush primitive
-			}
-			else
-			{
-				// predict state
-				if( g_brushtype == BRUSH_UNKNOWN )
-					g_brushtype = BRUSH_WORLDCRAFT_21;
-				// QuArK or WorldCraft map
-				Com_SaveToken( mapfile, &token );
-				ParseBrush( mapent );
-			}
-		}
-		else
-		{
-			// parse a key / value pair
-			e = ParseEpair( mapfile, &token );
-			if( !com.strcmp( e->key, "mapversion" ))
-			{
-				if( com.atoi( e->value ) == VALVE_FORMAT )
-					g_brushtype = BRUSH_WORLDCRAFT_22;
-				else g_brushtype = BRUSH_WORLDCRAFT_21;
-			}
-			e->next = mapent->epairs;
-			mapent->epairs = e;
-		}
-	}
-
-	GetVectorForKey( mapent, "origin", mapent->origin );
-
-	// if there was an origin brush, offset all of the planes and texinfo
-	if( mapent->origin[0] || mapent->origin[1] || mapent->origin[2] )
-	{
-		for( i = 0; i < mapent->numbrushes; i++ )
-		{
-			b = &mapbrushes[mapent->firstbrush + i];
-			for( j = 0; j < b->numsides; j++ )
-			{
-				s = &b->original_sides[j];
-				newdist = mapplanes[s->planenum].dist - DotProduct (mapplanes[s->planenum].normal, mapent->origin);
-				s->planenum = FindFloatPlane( mapplanes[s->planenum].normal, newdist );
-				s->texinfo = TexinfoForBrushTexture( &mapplanes[s->planenum], &side_brushtextures[s-brushsides], mapent->origin );
-			}
-			MakeBrushWindings( b );
-		}
-	}
-
-	// group entities are just for editor convenience
-	// toss all brushes into the world entity
-	if( !com.strcmp( "func_detail", ValueForKey( mapent, "classname" )))
-	{
-		for( i = 0; i < mapent->numbrushes; i++ )
-		{
-			b = &mapbrushes[mapent->firstbrush + i];
-			b->contents |= CONTENTS_DETAIL;
-		}
-		MoveBrushesToWorld( mapent );
-		mapent->numbrushes = 0;
-		mapent->epairs = NULL; // not a leak, mempool will freeing this memory at shutdown
-		return true;
-	}
-
-	// areaportal entities move their brushes, but don't eliminate the entity
-	if( !com.strcmp( "func_areaportal", ValueForKey( mapent, "classname" )))
-	{
-		char	str[128];
-
-		if (mapent->numbrushes != 1)
-			Sys_Error ("Entity %i: func_areaportal can only be a single brush", num_entities-1);
-
-		b = &mapbrushes[nummapbrushes-1];
-		b->contents = CONTENTS_AREAPORTAL;
-		c_areaportals++;
-		mapent->areaportalnum = c_areaportals;
-		// set the portal number as "skin"
-		com.sprintf( str, "%i", c_areaportals );
-		SetKeyValue( mapent, "skin", str );
-		MoveBrushesToWorld( mapent );
-		return true;
-	}
-
 	return true;
 }
 
-//===================================================================
+
 
 /*
-================
-LoadMapFile
-================
+ParseBrush()
+parses a brush out of a map file and sets it up
 */
-void LoadMapFile( void )
-{		
-	int	i;
 
-	g_brushtype = BRUSH_UNKNOWN;	
-	nummapbrushsides = 0;
-	num_entities = 0;
-
-	mapfile = Com_OpenScript( va( "maps/%s.map", gs_filename ), NULL, 0 );
-	if( !mapfile ) Sys_Break( "can't loading map file %s.map\n", gs_filename );	
+static void ParseBrush( bool onlyLights )
+{
+	brush_t	*b;
 	
-	while(ParseMapEntity( ));
-
-	Com_CloseScript( mapfile );
-	ClearBounds( map_mins, map_maxs );
-	for( i = 0; i < entities[0].numbrushes; i++ )
+	
+	/* parse the brush out of the map */
+	ParseRawBrush( onlyLights );
+	
+	/* only go this far? */
+	if( onlyLights ) return;
+	
+	/* set some defaults */
+	buildBrush->portalareas[ 0 ] = -1;
+	buildBrush->portalareas[ 1 ] = -1;
+	buildBrush->entityNum = numMapEntities - 1;
+	buildBrush->brushNum = entitySourceBrushes;
+	
+	/* if there are mirrored planes, the entire brush is invalid */
+	if( !RemoveDuplicateBrushPlanes( buildBrush ) )
+		return;
+	
+	/* get the content for the entire brush */
+	SetBrushContents( buildBrush );
+	
+	/* allow detail brushes to be removed */
+	if( nodetail && (buildBrush->compileFlags & C_DETAIL) )
 	{
-		AddPointToBounds( mapbrushes[i].mins, map_mins, map_maxs );
-		AddPointToBounds( mapbrushes[i].maxs, map_mins, map_maxs );
+		//%	FreeBrush( buildBrush );
+		return;
 	}
-	VectorSubtract( map_maxs, map_mins, map_size );
-	MsgDev( D_INFO, "%5i brushes\n", nummapbrushes );
-	MsgDev( D_INFO, "%5i clipbrushes\n", c_clipbrushes );
-	MsgDev( D_INFO, "%5i total sides\n", nummapbrushsides );
-	MsgDev( D_INFO, "%5i entities\n", num_entities );
-	MsgDev( D_INFO, "%5i planes\n", nummapplanes );
-	MsgDev( D_INFO, "%5i areaportals\n", c_areaportals );
-	MsgDev( D_INFO, "world size %5.0f %5.0f %5.0f\n", map_size[0], map_size[1], map_size[2] );
+	
+	/* allow liquid brushes to be removed */
+	if( nowater && (buildBrush->compileFlags & C_LIQUID ) )
+	{
+		//%	FreeBrush( buildBrush );
+		return;
+	}
+	
+	/* ydnar: allow hint brushes to be removed */
+	if( noHint && (buildBrush->compileFlags & C_HINT) )
+	{
+		//%	FreeBrush( buildBrush );
+		return;
+	}
+	
+	/* finish the brush */
+	b = FinishBrush();
+}
+
+
+
+/*
+MoveBrushesToWorld()
+takes all of the brushes from the current entity and
+adds them to the world's brush list
+(used by func_group)
+*/
+
+void MoveBrushesToWorld( entity_t *ent )
+{
+	brush_t		*b, *next;
+	parseMesh_t	*pm;
+
+	
+	/* move brushes */
+	for( b = ent->brushes; b != NULL; b = next )
+	{
+		/* get next brush */
+		next = b->next;
+		
+		/* link opaque brushes to head of list, translucent brushes to end */
+		if( b->opaque || entities[ 0 ].lastBrush == NULL )
+		{
+			b->next = entities[ 0 ].brushes;
+			entities[ 0 ].brushes = b;
+			if( entities[ 0 ].lastBrush == NULL )
+				entities[ 0 ].lastBrush = b;
+		}
+		else
+		{
+			b->next = NULL;
+			entities[ 0 ].lastBrush->next = b;
+			entities[ 0 ].lastBrush = b;
+		}
+	}
+	ent->brushes = NULL;
+	
+	/* ydnar: move colormod brushes */
+	if( ent->colorModBrushes != NULL )
+	{
+		for( b = ent->colorModBrushes; b->nextColorModBrush != NULL; b = b->nextColorModBrush );
+		
+		b->nextColorModBrush = entities[ 0 ].colorModBrushes;
+		entities[ 0 ].colorModBrushes = ent->colorModBrushes;
+		
+		ent->colorModBrushes = NULL;
+	}
+	
+	/* move patches */
+	if( ent->patches != NULL )
+	{
+		for( pm = ent->patches; pm->next != NULL; pm = pm->next );
+		
+		pm->next = entities[ 0 ].patches;
+		entities[ 0 ].patches = ent->patches;
+		
+		ent->patches = NULL;
+	}
+}
+
+
+
+/*
+AdjustBrushesForOrigin()
+*/
+
+void AdjustBrushesForOrigin( entity_t *ent )
+{
+	
+	int			i;
+	side_t		*s;
+	vec_t		newdist;
+	brush_t		*b;
+	parseMesh_t	*p;
+	
+	
+	/* walk brush list */
+	for( b = ent->brushes; b != NULL; b = b->next )
+	{
+		/* offset brush planes */
+		for( i = 0; i < b->numsides; i++)
+		{
+			/* get brush side */
+			s = &b->sides[ i ];
+			
+			/* offset side plane */
+			newdist = mapplanes[ s->planenum ].dist - DotProduct( mapplanes[ s->planenum ].normal, ent->origin );
+			
+			/* find a new plane */
+			s->planenum = FindFloatPlane( mapplanes[ s->planenum ].normal, newdist, 0, NULL );
+		}
+		
+		/* rebuild brush windings (ydnar: just offsetting the winding above should be fine) */
+		CreateBrushWindings( b );
+	}
+	
+	/* walk patch list */
+	for( p = ent->patches; p != NULL; p = p->next )
+	{
+		for( i = 0; i < (p->mesh.width * p->mesh.height); i++ )
+			VectorSubtract( p->mesh.verts[ i ].xyz, ent->origin, p->mesh.verts[ i ].xyz );
+	}
+}
+
+
+
+/*
+SetEntityBounds() - ydnar
+finds the bounds of an entity's brushes (necessary for terrain-style generic metashaders)
+*/
+
+void SetEntityBounds( entity_t *e )
+{
+	int			i;
+	brush_t	*b;
+	parseMesh_t	*p;
+	vec3_t		mins, maxs;
+	const char	*value;
+
+	
+	
+
+	/* walk the entity's brushes/patches and determine bounds */
+	ClearBounds( mins, maxs );
+	for( b = e->brushes; b; b = b->next )
+	{
+		AddPointToBounds( b->mins, mins, maxs );
+		AddPointToBounds( b->maxs, mins, maxs );
+	}
+	for( p = e->patches; p; p = p->next )
+	{
+		for( i = 0; i < (p->mesh.width * p->mesh.height); i++ )
+			AddPointToBounds( p->mesh.verts[ i ].xyz, mins, maxs );
+	}
+	
+	/* try to find explicit min/max key */
+	value = ValueForKey( e, "min" ); 
+	if( value[ 0 ] != '\0' )
+		GetVectorForKey( e, "min", mins );
+	value = ValueForKey( e, "max" ); 
+	if( value[ 0 ] != '\0' )
+		GetVectorForKey( e, "max", maxs );
+	
+	/* store the bounds */
+	for( b = e->brushes; b; b = b->next )
+	{
+		VectorCopy( mins, b->eMins );
+		VectorCopy( maxs, b->eMaxs );
+	}
+	for( p = e->patches; p; p = p->next )
+	{
+		VectorCopy( mins, p->eMins );
+		VectorCopy( maxs, p->eMaxs );
+	}
+}
+
+
+
+/*
+LoadEntityIndexMap() - ydnar
+based on LoadAlphaMap() from terrain.c, a little more generic
+*/
+
+void LoadEntityIndexMap( entity_t *e )
+{
+	int		i, size, numLayers;
+	const char	*value, *indexMapFilename, *shader;
+	char		offset[ 4096 ], *search, *space;
+	rgbdata_t		*image;
+	byte		*pixels;
+	uint		*pixels32;
+	indexMap_t	*im;
+	brush_t		*b;
+	parseMesh_t	*p;
+	
+	
+	/* this only works with bmodel ents */
+	if( e->brushes == NULL && e->patches == NULL )
+		return;
+	
+	/* determine if there is an index map (support legacy "alphamap" key as well) */
+	value = ValueForKey( e, "_indexmap" );
+	if( value[ 0 ] == '\0' )
+		value = ValueForKey( e, "alphamap" );
+	if( value[ 0 ] == '\0' )
+		return;
+	indexMapFilename = value;
+	
+	/* get number of layers (support legacy "layers" key as well) */
+	value = ValueForKey( e, "_layers" );
+	if( value[ 0 ] == '\0' )
+		value = ValueForKey( e, "layers" );
+	if( value[ 0 ] == '\0' )
+	{
+		Msg( "WARNING: Entity with index/alpha map \"%s\" has missing \"_layers\" or \"layers\" key\n", indexMapFilename );
+		Msg( "Entity will not be textured properly. Check your keys/values.\n" );
+		return;
+	}
+	numLayers = atoi( value );
+	if( numLayers < 1 )
+	{
+		Msg( "WARNING: Entity with index/alpha map \"%s\" has < 1 layer (%d)\n", indexMapFilename, numLayers );
+		Msg( "Entity will not be textured properly. Check your keys/values.\n" );
+		return;
+	}
+	
+	/* get base shader name (support legacy "shader" key as well) */
+	value = ValueForKey( mapEnt, "_shader" );
+	if( value[ 0 ] == '\0' )
+		value = ValueForKey( e, "shader" );
+	if( value[ 0 ] == '\0' )
+	{
+		Msg( "WARNING: Entity with index/alpha map \"%s\" has missing \"_shader\" or \"shader\" key\n", indexMapFilename );
+		Msg( "Entity will not be textured properly. Check your keys/values.\n" );
+		return;
+	}
+	shader = value;
+	
+	/* note it */
+	MsgDev( D_NOTE, "Entity %d (%s) has shader index map \"%s\"\n",  mapEnt->mapEntityNum, ValueForKey( e, "classname" ), indexMapFilename );
+
+	image = FS_LoadImage( indexMapFilename, NULL, 0 );
+	if( !image ) return;
+
+	Image_Process( &image, 0, 0, IMAGE_FORCE_RGBA );
+	
+	size = image->width * image->height;
+	pixels = Malloc( size );
+	pixels32 = (uint *)image->buffer;
+
+	for( i = 0; i < size; i++ )
+	{
+		pixels[i] = ((pixels32[i] & 0xFF) * numLayers) / 256;
+		if( pixels[i] >= numLayers ) pixels[i] = numLayers - 1;
+	}
+
+	// the index map must be at least 2x2 pixels
+	if( image->width < 2 || image->height < 2 )
+	{
+		Msg( "WARNING: Entity with index/alpha map \"%s\" is smaller than 2x2 pixels\n", indexMapFilename );
+		Msg( "Entity will not be textured properly. Check your keys/values.\n" );
+		FS_FreeImage( image );
+		return;
+	}
+
+	/* create a new index map */
+	im = Malloc( sizeof( *im ));
+	
+	/* set it up */
+	im->w = image->width;
+	im->h = image->height;
+	im->numLayers = numLayers;
+	strcpy( im->name, indexMapFilename );
+	strcpy( im->shader, shader );
+	im->pixels = pixels;
+	
+	/* get height offsets */
+	value = ValueForKey( mapEnt, "_offsets" );
+	if( value[ 0 ] == '\0' )
+		value = ValueForKey( e, "offsets" );
+	if( value[ 0 ] != '\0' )
+	{
+		/* value is a space-seperated set of numbers */
+		strcpy( offset, value );
+		search = offset;
+		
+		/* get each value */
+		for( i = 0; i < 256 && *search != '\0'; i++ )
+		{
+			space = strstr( search, " " );
+			if( space != NULL ) *space = '\0';
+			im->offsets[i] = com.atof( search );
+			if( space == NULL ) break;
+			search = space + 1;
+		}
+	}
+	
+	/* store the index map in every brush/patch in the entity */
+	for( b = e->brushes; b != NULL; b = b->next )
+		b->im = im;
+	for( p = e->patches; p != NULL; p = p->next )
+		p->im = im;
+
+	FS_FreeImage( image );
+}
+
+/*
+ParseMapEntity()
+parses a single entity out of a map file
+*/
+
+static bool ParseMapEntity( bool onlyLights )
+{
+	epair_t		*ep;
+	const char	*classname, *value;
+	float		lightmapScale;
+	char		shader[ MAX_QPATH ];
+	shaderInfo_t	*celShader = NULL;
+	brush_t		*brush;
+	parseMesh_t	*patch;
+	bool		funcGroup;
+	int		castShadows, recvShadows;
+	
+	
+	/* eof check */
+	if( !GetToken( true ) )
+		return false;
+	
+	/* conformance check */
+	if( strcmp( token, "{" ) )
+	{
+		Msg( "WARNING: ParseEntity: { not found, found %s on line %d - last entity was at: <%4.2f, %4.2f, %4.2f>...\n"
+			"Continuing to process map, but resulting BSP may be invalid.\n",
+			token, scriptline, entities[ numEntities ].origin[ 0 ], entities[ numEntities ].origin[ 1 ], entities[ numEntities ].origin[ 2 ] );
+		return false;
+	}
+	
+	/* range check */
+	if( numEntities >= MAX_MAP_ENTITIES ) Sys_Break( "numEntities == MAX_MAP_ENTITIES\n" );
+	
+	/* setup */
+	entitySourceBrushes = 0;
+	mapEnt = &entities[ numEntities ];
+	numEntities++;
+	memset( mapEnt, 0, sizeof( *mapEnt ));
+	
+	/* ydnar: true entity numbering */
+	mapEnt->mapEntityNum = numMapEntities;
+	numMapEntities++;
+	
+	/* loop */
+	while( 1 )
+	{
+		/* get initial token */
+		if( !GetToken( true ) )
+		{
+			Msg( "WARNING: ParseEntity: EOF without closing brace\n"
+				"Continuing to process map, but resulting BSP may be invalid.\n" );
+			return false;
+		}
+		
+		if( !strcmp( token, "}" ) )
+			break;
+		
+		if( !strcmp( token, "{" ) )
+		{
+			/* parse a brush or patch */
+			if( !GetToken( true ) )
+				break;
+			
+			/* check */
+			if( !strcmp( token, "patchDef2" ) )
+			{
+				numMapPatches++;
+				ParsePatch( onlyLights );
+			}
+			else if( !strcmp( token, "terrainDef" ) )
+			{
+				//% ParseTerrain();
+				MsgDev( D_WARN, "Terrain entity parsing not supported in this build.\n" );	/* ydnar */
+			}
+			else if( !strcmp( token, "brushDef" ) )
+			{
+				if( g_bBrushPrimit == BPRIMIT_OLDBRUSHES )
+					Sys_Break( "Old brush format not allowed in new brush format map\n" );
+				g_bBrushPrimit = BPRIMIT_NEWBRUSHES;
+				
+				/* parse brush primitive */
+				ParseBrush( onlyLights );
+			}
+			else
+			{
+				if( g_bBrushPrimit == BPRIMIT_NEWBRUSHES )
+					Sys_Break( "New brush format not allowed in old brush format map\n" );
+				g_bBrushPrimit = BPRIMIT_OLDBRUSHES;
+				
+				/* parse old brush format */
+				UnGetToken();
+				ParseBrush( onlyLights );
+			}
+			entitySourceBrushes++;
+		}
+		else
+		{
+			/* parse a key / value pair */
+			ep = ParseEPair();
+			
+			/* ydnar: 2002-07-06 fixed wolf bug with empty epairs */
+			if( ep->key[ 0 ] != '\0' && ep->value[ 0 ] != '\0' )
+			{
+				ep->next = mapEnt->epairs;
+				mapEnt->epairs = ep;
+			}
+		}
+	}
+	
+	/* ydnar: get classname */
+	classname = ValueForKey( mapEnt, "classname" );
+	
+	/* ydnar: only lights? */
+	if( onlyLights && com.strnicmp( classname, "light", 5 ) )
+	{
+		numEntities--;
+		return true;
+	}
+	
+	/* ydnar: determine if this is a func_group */
+	if( !com.stricmp( "func_group", classname ) )
+		funcGroup = true;
+	else
+		funcGroup = false;
+	
+	/* worldspawn (and func_groups) default to cast/recv shadows in worldspawn group */
+	if( funcGroup || mapEnt->mapEntityNum == 0 )
+	{
+		//%	Msg( "World:  %d\n", mapEnt->mapEntityNum );
+		castShadows = WORLDSPAWN_CAST_SHADOWS;
+		recvShadows = WORLDSPAWN_RECV_SHADOWS;
+	}
+	
+	/* other entities don't cast any shadows, but recv worldspawn shadows */
+	else
+	{
+		//%	Msg( "Entity: %d\n", mapEnt->mapEntityNum );
+		castShadows = ENTITY_CAST_SHADOWS;
+		recvShadows = ENTITY_RECV_SHADOWS;
+	}
+	
+	/* get explicit shadow flags */
+	GetEntityShadowFlags( mapEnt, NULL, &castShadows, &recvShadows );
+	
+	/* ydnar: get lightmap scaling value for this entity */
+	if( strcmp( "", ValueForKey( mapEnt, "lightmapscale" ) ) ||
+		strcmp( "", ValueForKey( mapEnt, "_lightmapscale" ) ) )
+	{
+		/* get lightmap scale from entity */
+		lightmapScale = FloatForKey( mapEnt, "lightmapscale" );
+		if( lightmapScale <= 0.0f )
+			lightmapScale = FloatForKey( mapEnt, "_lightmapscale" );
+		if( lightmapScale > 0.0f )
+			Msg( "Entity %d (%s) has lightmap scale of %.4f\n", mapEnt->mapEntityNum, classname, lightmapScale );
+	}
+	else
+		lightmapScale = 0.0f;
+	
+	/* ydnar: get cel shader :) for this entity */
+	value = ValueForKey( mapEnt, "_celshader" );
+	if( value[ 0 ] == '\0' )	
+		value = ValueForKey( &entities[ 0 ], "_celshader" );
+	if( value[ 0 ] != '\0' )
+	{
+		com.sprintf( shader, "textures/%s", value );
+		celShader = ShaderInfoForShader( shader );
+		Msg( "Entity %d (%s) has cel shader %s\n", mapEnt->mapEntityNum, classname, celShader->shader );
+	}
+	else
+		celShader = NULL;
+	
+	/* attach stuff to everything in the entity */
+	for( brush = mapEnt->brushes; brush != NULL; brush = brush->next )
+	{
+		brush->entityNum = mapEnt->mapEntityNum;
+		brush->castShadows = castShadows;
+		brush->recvShadows = recvShadows;
+		brush->lightmapScale = lightmapScale;
+		brush->celShader = celShader;
+	}
+	
+	for( patch = mapEnt->patches; patch != NULL; patch = patch->next )
+	{
+		patch->entityNum = mapEnt->mapEntityNum;
+		patch->castShadows = castShadows;
+		patch->recvShadows = recvShadows;
+		patch->lightmapScale = lightmapScale;
+		patch->celShader = celShader;
+	}
+	
+	/* ydnar: gs mods: set entity bounds */
+	SetEntityBounds( mapEnt );
+	
+	/* ydnar: gs mods: load shader index map (equivalent to old terrain alphamap) */
+	LoadEntityIndexMap( mapEnt );
+	
+	/* get entity origin and adjust brushes */
+	GetVectorForKey( mapEnt, "origin", mapEnt->origin );
+	if( mapEnt->origin[ 0 ] || mapEnt->origin[ 1 ] || mapEnt->origin[ 2 ] )
+		AdjustBrushesForOrigin( mapEnt );
+
+	/* group_info entities are just for editor grouping (fixme: leak!) */
+	if( !com.stricmp( "group_info", classname ) )
+	{
+		numEntities--;
+		return true;
+	}
+	
+	/* group entities are just for editor convenience, toss all brushes into worldspawn */
+	if( funcGroup )
+	{
+		MoveBrushesToWorld( mapEnt );
+		numEntities--;
+		return true;
+	}
+	
+	/* done */
+	return true;
+}
+
+
+
+/*
+LoadMapFile()
+loads a map file into a list of entities
+*/
+
+void LoadMapFile( char *filename, bool onlyLights )
+{		
+	brush_t		*b;
+	int		oldNumEntities, numMapBrushes;
+	
+	
+	/* note it */
+	MsgDev( D_NOTE, "--- LoadMapFile ---\n" );
+	Msg( "Loading %s\n", filename );
+	
+	/* hack */
+	if( !FS_FileExists( filename ))
+		Sys_Break( "can't open %s\n", filename );
+	
+	/* load the map file */
+	LoadScriptFile( filename, -1 );
+	
+	/* setup */
+	if( onlyLights )
+		oldNumEntities = numEntities;
+	else numEntities = 0;
+	
+	/* initial setup */
+	numMapDrawSurfs = 0;
+	c_detail = 0;
+	g_bBrushPrimit = BPRIMIT_UNDEFINED;
+	
+	/* allocate a very large temporary brush for building the brushes as they are loaded */
+	buildBrush = AllocBrush( MAX_BUILD_SIDES );
+	
+	/* parse the map file */
+	while( ParseMapEntity( onlyLights ) );
+	
+	/* light loading */
+	if( onlyLights )
+	{
+		/* emit some statistics */
+		MsgDev( D_NOTE, "%9d light entities\n", numEntities - oldNumEntities );
+	}
+	else
+	{
+		/* set map bounds */
+		ClearBounds( mapMins, mapMaxs );
+		for( b = entities[ 0 ].brushes; b; b = b->next )
+		{
+			AddPointToBounds( b->mins, mapMins, mapMaxs );
+			AddPointToBounds( b->maxs, mapMins, mapMaxs );
+		}
+		
+		/* get brush counts */
+		numMapBrushes = CountBrushList( entities[ 0 ].brushes );
+		if( (float) c_detail / (float) numMapBrushes < 0.10f && numMapBrushes > 500 )
+			Msg( "WARNING: Over 90 percent structural map detected. Compile time may be adversely affected.\n" );
+		
+		/* emit some statistics */
+		MsgDev( D_NOTE, "%9d total world brushes\n", numMapBrushes );
+		MsgDev( D_NOTE, "%9d detail brushes\n", c_detail );
+		MsgDev( D_NOTE, "%9d patches\n", numMapPatches);
+		MsgDev( D_NOTE, "%9d boxbevels\n", c_boxbevels);
+		MsgDev( D_NOTE, "%9d edgebevels\n", c_edgebevels);
+		MsgDev( D_NOTE, "%9d entities\n", numEntities );
+		MsgDev( D_NOTE, "%9d planes\n", nummapplanes);
+		Msg( "%9d areaportals\n", c_areaportals);
+		Msg( "Size: %5.0f, %5.0f, %5.0f to %5.0f, %5.0f, %5.0f\n",
+			mapMins[ 0 ], mapMins[ 1 ], mapMins[ 2 ],
+			mapMaxs[ 0 ], mapMaxs[ 1 ], mapMaxs[ 2 ]);
+		
+		/* write bogus map */
+		if( fakemap ) WriteBSPBrushMap( "fakemap.map", entities[ 0 ].brushes );
+	}
 }

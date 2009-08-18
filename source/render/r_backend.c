@@ -1322,7 +1322,7 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 		case mod_studio:
 			break;
 		case mod_sprite:
-			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE|GLSTATE_NO_DEPTH_TEST);
+			pass->glState = (GLSTATE_SRCBLEND_ONE_MINUS_SRC_ALPHA|GLSTATE_DSTBLEND_ONE|GLSTATE_NO_DEPTH_TEST);
 			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;	// sprites ignore color in 'add' mode
 			pass->alphaGen.type = ALPHAGEN_ENTITY;
 			break;
@@ -1578,7 +1578,7 @@ void R_ModifyColor( const ref_stage_t *pass )
 			{
 				vec4_t diffuse;
 
-				if( RI.currententity->flags & EF_FULLBRIGHT )
+				if( RI.currententity->flags & EF_FULLBRIGHT || !r_worldbrushmodel->lightgrid )
 					VectorSet( diffuse, 1, 1, 1 );
 				else R_LightForOrigin( RI.currententity->lightingOrigin, t, NULL, diffuse, RI.currentmodel->radius * RI.currententity->scale );
 
@@ -1595,8 +1595,8 @@ void R_ModifyColor( const ref_stage_t *pass )
 			{
 				vec4_t ambient;
 
-				if( RI.currententity->flags & EF_FULLBRIGHT )
-					VectorSet( ambient, 1, 1, 1 );
+				if( RI.currententity->flags & EF_FULLBRIGHT || !r_worldbrushmodel->lightgrid )
+					VectorSet( ambient, 1.0f, 1.0f, 1.0f );
 				else R_LightForOrigin( RI.currententity->lightingOrigin, t, ambient, NULL, RI.currentmodel->radius * RI.currententity->scale );
 
 				rgba[0] = R_FloatToByte( ambient[0] );

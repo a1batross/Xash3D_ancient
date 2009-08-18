@@ -942,6 +942,9 @@ bool PS_ReadToken( script_t *script, scFlags_t flags, token_t *token )
 {
 	token_t	dummy;
 
+	// parselib requries token always
+	if( !token ) token = &dummy;
+
 	// if there is a token available (from PS_FreeToken)
 	if( script->tokenAvailable )
 	{
@@ -949,9 +952,6 @@ bool PS_ReadToken( script_t *script, scFlags_t flags, token_t *token )
 		Mem_Copy( token, &script->token, sizeof( token_t ));
 		return true;
 	}
-
-	// parselib requries token always
-	if( !token ) token = &dummy;
 
 	// clear token
 	token->type = TT_EMPTY;

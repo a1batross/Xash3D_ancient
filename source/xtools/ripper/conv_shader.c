@@ -73,7 +73,7 @@ bool Conv_WriteShader( const char *shaderpath, const char *imagepath, rgbdata_t 
 	FS_FileBase( imagepath, lumpname );
 	FS_FileBase( temp, qcname );
 	FS_FileBase( temp, wadname );
-	com.snprintf( shadername, MAX_STRING, "%s/%s", qcname, lumpname );
+	com.snprintf( shadername, MAX_STRING, "%s/%s", temp, lumpname );
 	FS_DefaultExtension( qcname, ".qc" );
 	FS_DefaultExtension( wadname, ".wad" ); // check for wad later
 	com.snprintf( qcpath, MAX_STRING, "%s/%s/$%s", gs_gamedir, temp, qcname );
@@ -169,16 +169,15 @@ check_shader:
 	else if( contents & CONTENTS_PLAYERCLIP ) FS_Print( f, "\tsurfaceparm\tplayerclip\n" );
 	else if( contents & CONTENTS_WINDOW ) FS_Print( f, "\tsurfaceparm\twindow\n" );
 	else if( contents & CONTENTS_ORIGIN ) FS_Print( f, "\tsurfaceparm\torigin\n" );
-	else if( contents & CONTENTS_TRANSLUCENT ) FS_Print( f, "\tsurfaceparm\ttranslucent\n" );
+	else if( contents & CONTENTS_TRANSLUCENT ) FS_Print( f, "\tsurfaceparm\ttrans\n" );
 	else if( contents & CONTENTS_AREAPORTAL ) FS_Print( f, "\tsurfaceparm\tareaportal\n" );
 	else if( contents & CONTENTS_TRIGGER )  FS_Print( f, "\tsurfaceparm\ttrigger\n" );
 	else if( contents & CONTENTS_DETAIL ) FS_Print( f, "\tsurfaceparm\tdetail\n" );
 
 	if( flags & SURF_LIGHT )
 	{
-		FS_Print( f, "\tsurfaceparm\tlight\n" );
-		if(!VectorIsNull( rad )) FS_Printf(f, "\trad_color\t\t%.f %.f %.f\n", rad[0], rad[1], rad[2] );
-		if( scale ) FS_Printf(f, "\trad_intensity\t%.f\n", scale );
+		if(!VectorIsNull( rad )) FS_Printf(f, "\tq3map_lightRGB\t%g %g %g\n", rad[0], rad[1], rad[2] );
+		if( scale ) FS_Printf(f, "\tq3map_surfacelight\t%.f\n", scale );
 		if( !num_anims )
 		{
 			FS_Printf( f, "\t{\n\t\tmap\t%s\n\t}\n", shadername );
@@ -188,6 +187,7 @@ check_shader:
 
 	if( flags & SURF_WARP )
 	{
+		FS_Print( f, "\tq3map_globaltexture\n" );
 		FS_Print( f, "\tsurfaceparm\tnoLightMap\n" );
 		FS_Print( f, "\ttessSize\t\t64\n\n" );
 
@@ -199,7 +199,6 @@ check_shader:
 		else if(contents & CONTENTS_LAVA)
 			FS_Print( f, "\tsurfaceparm\tlava\n" );
 		else FS_Print( f, "\tsurfaceparm\twater\n" );
-		FS_Print( f, "\tsurfaceparm\twarp\n" );
 
 		FS_Printf( f, "\t{\n\t\tmap\t%s\n", shadername );	// save basemap
 		if( flags & (SURF_TRANS33|SURF_TRANS66))
@@ -213,7 +212,6 @@ check_shader:
 	else if( flags & SURF_SKY ) FS_Print( f, "\tsurfaceparm\tsky\n" );
 	else if( flags & SURF_HINT ) FS_Print( f, "\tsurfaceparm\thint\n" );
 	else if( flags & SURF_SKIP ) FS_Print( f, "\tsurfaceparm\tskip\n" );
-	else if( flags & SURF_MIRROR ) FS_Print( f, "\tsurfaceparm\tmirror\n" );
 	else if( flags & (SURF_TRANS33|SURF_TRANS66))
 	{
 		FS_Printf( f, "\t{\n\t\tmap\t%s\n\n", shadername );	// save basemap
@@ -228,7 +226,7 @@ check_shader:
 		FS_Print( f, "\t\tAlphaGen\tidentity\n\t}\n" ); 
 		lightmap_stage = true;
 	}
-	else if( flags & SURF_NODRAW ) FS_Print( f, "\tsurfaceparm\tnull\n" );
+	else if( flags & SURF_NODRAW ) FS_Print( f, "\tsurfaceparm\tnodraw\n" );
 
 	if( num_anims )
 	{
@@ -398,6 +396,8 @@ void Conv_ShaderGetFlags( const char *imagename, const char *shadername, const c
 	}
 	else if( game_family == GAME_QUAKE2 )
 	{
+/*
+		// this code it's totally wrong, disabled for now
 		if( animcount && !com.strlen( anim ))
 		{
 			// end of chain, dump now
@@ -426,6 +426,7 @@ void Conv_ShaderGetFlags( const char *imagename, const char *shadername, const c
 			if( animcount == i ) com.strncpy( animmap[animcount++], anim, MAX_STRING );
 		}
 		// UNDONE: remove some flags
+*/
 	}
 }
 
@@ -475,6 +476,7 @@ bool Conv_CreateShader( const char *name, rgbdata_t *pic, const char *ext, const
 				radiocity[1] += fin[1];
 				radiocity[2] += fin[2];
 			}
+			texels *= 4;
 			break;
 		case PF_BGRA_32:
 		case PF_ABGR_64:
@@ -484,6 +486,7 @@ bool Conv_CreateShader( const char *name, rgbdata_t *pic, const char *ext, const
 				radiocity[1] += fin[1];
 				radiocity[2] += fin[0];
 			}
+			texels *= 4;
 			break;
 		case PF_RGB_24:
 			for( j = 0; j < texels; j++, fin += 3 )
@@ -492,6 +495,7 @@ bool Conv_CreateShader( const char *name, rgbdata_t *pic, const char *ext, const
 				radiocity[1] += fin[1];
 				radiocity[2] += fin[2];
 			}
+			texels *= 3;
 			break;			
 		case PF_INDEXED_24:
 		case PF_INDEXED_32:
@@ -510,7 +514,11 @@ bool Conv_CreateShader( const char *name, rgbdata_t *pic, const char *ext, const
 		for( j = 0; j < 3; j++ )
 			radiocity[j] /= texels;
 		scale = ColorNormalize( radiocity, radiocity );
-		VectorScale( radiocity, 255.0f, radiocity );
+		if( scale < 0.5f )
+		{
+			scale *= 2.0f;
+			VectorScale( radiocity, scale, radiocity );
+		}
 		intencity = texels * 255.0 / scale; // basic intensity value
 	}
 	return Conv_WriteShader( shaderpath, imagepath, pic, radiocity, intencity, flags, contents );

@@ -544,6 +544,7 @@ void SV_InitOperatorCommands( void )
 	Cmd_AddCommand( "clientinfo", SV_ClientInfo_f, "print user infostring (player num required)" );
 
 	Cmd_AddCommand( "map", SV_Map_f, "start new level" );
+	Cmd_AddCommand( "devmap", SV_Map_f, "start new level" );
 	Cmd_AddCommand( "newgame", SV_Newgame_f, "begin new game" );
 	Cmd_AddCommand( "changelevel", SV_ChangeLevel_f, "changing level" );
 	Cmd_AddCommand( "restart", SV_Restart_f, "restarting current level" );

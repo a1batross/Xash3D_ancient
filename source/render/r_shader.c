@@ -67,7 +67,6 @@ static bool		r_shaderHasDlightPass;
 
 #define Shader_FreePassCinematics( s )	if((s)->cinHandle ) { R_FreeCinematics((s)->cinHandle ); (s)->cinHandle = 0; }
 #define Shader_CopyString( str )	com.stralloc( r_shaderpool, str, __FILE__, __LINE__ )
-#define Shader_Sortkey( shader, sort )	((( sort )<<26 )|( shader - r_shaders ))
 #define Shader_Malloc( size )		Mem_Alloc( r_shaderpool, size )
 #define Shader_Free( data )		Mem_Free( data )
 
@@ -2559,7 +2558,7 @@ void R_InitShaders( void )
 		}
 
 		// parse this file
-		MsgDev( D_LOAD, "loading shaderfile '%s'\n", t->filenames[i] );
+		MsgDev( D_LOAD, "%s\n", t->filenames[i] );
 		Shader_ParseFile( script, t->filenames[i] );
 		Com_CloseScript( script );
 	}
@@ -2724,6 +2723,8 @@ void Shader_SetBlendmode( ref_stage_t *pass )
 		pass->flags |= SHADERSTAGE_BLEND_ADD;
 	else if( blendsrc == GLSTATE_SRCBLEND_SRC_ALPHA && blenddst == GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA )
 		pass->flags |= SHADERSTAGE_BLEND_DECAL;
+	else if( blendsrc == GLSTATE_DSTBLEND_SRC_COLOR && blenddst == GLSTATE_SRCBLEND_DST_COLOR )
+		pass->flags |= SHADERSTAGE_BLEND_DECAL;	// for detail textures
 }
 
 static bool Shader_ParseCommand( ref_shader_t *shader, script_t *script, const char *command )
@@ -3372,8 +3373,8 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 			// normal transparency
 			pass->flags |= SHADERSTAGE_BLEND_MODULATE;
 			pass->glState = GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA|GLSTATE_DEPTHWRITE;
+			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
 			pass->alphaGen.type = ALPHAGEN_ENTITY;
-			pass->rgbGen.type = RGBGEN_ENTITY;
 	         		shader->sort = SORT_ADDITIVE;
 			break;
 		case kRenderTransAdd:
@@ -3386,8 +3387,8 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		case kRenderTransAlpha:
 			pass->flags |= SHADERSTAGE_BLEND_DECAL;
 			pass->glState = GLSTATE_AFUNC_GE128|GLSTATE_DEPTHWRITE;
+			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
 			pass->alphaGen.type = ALPHAGEN_ENTITY;
-			pass->rgbGen.type = RGBGEN_ENTITY;
 			shader->sort = SORT_ALPHATEST;
 			break;
 		default:
@@ -3469,7 +3470,7 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 			break;
 		case kRenderGlow:
 			pass->flags |= SHADERSTAGE_BLEND_ADD;
-			pass->glState = GLSTATE_SRCBLEND_ONE_MINUS_SRC_ALPHA|GLSTATE_DSTBLEND_ONE|GLSTATE_DEPTHWRITE;
+			pass->glState = GLSTATE_SRCBLEND_ONE_MINUS_SRC_ALPHA|GLSTATE_DSTBLEND_ONE|GLSTATE_NO_DEPTH_TEST;
 			pass->alphaGen.type = ALPHAGEN_ENTITY;
 			pass->rgbGen.type = RGBGEN_ENTITY;
 			shader->sort = SORT_ADDITIVE;
@@ -4006,4 +4007,12 @@ ref_shader_t *R_SetupSky( const char *name )
 		MsgDev( D_ERROR, "R_SetupSky: mismatch shader indexes %i != %i\n", index, tr.currentSkyShader->shadernum );
 
 	return tr.currentSkyShader;
+}
+
+void R_FreeSky( void )
+{
+	if( tr.currentSkyShader == NULL ) return;	// already freed
+
+	Shader_FreeShader( tr.currentSkyShader );
+	tr.currentSkyShader = NULL;
 }

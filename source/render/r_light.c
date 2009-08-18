@@ -299,21 +299,20 @@ R_LightForOrigin
 */
 void R_LightForOrigin( const vec3_t origin, vec3_t dir, vec4_t ambient, vec4_t diffuse, float radius )
 {
-	int i, j;
-	int k, s;
-	int vi[3], elem[4];
-	float dot, t[8];
-	vec3_t vf, vf2, tdir;
-	vec3_t ambientLocal, diffuseLocal;
-	vec_t *gridSize, *gridMins;
-	int *gridBounds;
-	mgridlight_t **lightarray;
+	int		i, j;
+	int		k, s;
+	int		vi[3], elem[4];
+	float		dot, t[8];
+	vec3_t		vf, vf2, tdir;
+	vec3_t		ambientLocal, diffuseLocal;
+	vec_t		*gridSize, *gridMins;
+	int		*gridBounds;
+	mgridlight_t	**lightarray;
 
 	VectorSet( ambientLocal, 0, 0, 0 );
 	VectorSet( diffuseLocal, 0, 0, 0 );
 
-	if( !r_worldmodel /* || (RI.refdef.rdflags & RDF_NOWORLDMODEL)*/ ||
-		!r_worldbrushmodel->lightgrid || !r_worldbrushmodel->numlightgridelems )
+	if( !r_worldmodel || !r_worldbrushmodel->lightgrid || !r_worldbrushmodel->numlightgridelems )
 	{
 		VectorSet( dir, 0.5f, 0.2f, -1.0f );
 		goto dynamic;
@@ -702,7 +701,7 @@ static int R_PackLightmaps( int num, int w, int h, int size, int stride, bool de
 	maxY = r_maxLightmapBlockSize / h;
 	max = min( maxX, maxY );
 
-	MsgDev( D_NOTE, "Packing %i lightmap(s) -> ", num );
+	MsgDev( D_NOTE, "Packing %i lightmap%s -> ", num, (num > 1) ? "s" : "" );
 	com.snprintf( uploadName, sizeof( uploadName ), "%s%i", name, r_numUploadedLightmaps );
 
 	if( !max || num == 1 || !mapConfig.lightmapsPacking /* || !r_lighting_packlightmaps->integer*/ )
@@ -873,7 +872,7 @@ void R_BuildLightmaps( int numLightmaps, int w, int h, const byte *data, mlightm
 	if( r_lightmapBuffer )
 		Mem_Free( r_lightmapBuffer );
 
-	MsgDev( D_NOTE, "Packed %i lightmap blocks into %i texture(s)\n", numBlocks, r_numUploadedLightmaps );
+	MsgDev( D_NOTE, "Packed %i lightmap blocks into %i texture%s\n", numBlocks, r_numUploadedLightmaps, (r_numUploadedLightmaps > 1) ? "s" : "" );
 }
 
 /*

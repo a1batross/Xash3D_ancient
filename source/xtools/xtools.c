@@ -74,6 +74,7 @@ void InitCommon( int argc, char **argv )
 
 		// initialize ImageLibrary
 		start = Sys_DoubleTime();
+		Q3MapMain( argc, argv );
 		//PrepareBSPModel( gs_basedir, gs_filename );
 		break;
 	case HOST_QCCLIB:
@@ -197,7 +198,7 @@ void CommonMain( void )
 elapced_time:
 	end = Sys_DoubleTime();
 	Msg( "%5.3f seconds elapsed\n", end - start );
-	if( numCompiledMods > 1) Msg( "total %d files proceed\n", numCompiledMods );
+	if( numCompiledMods > 1 ) Msg( "total %d files proceed\n", numCompiledMods );
 }
 
 void FreeCommon( void )

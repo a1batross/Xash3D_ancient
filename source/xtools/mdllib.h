@@ -13,8 +13,7 @@
 #define FLOAT_START		99999.0
 #define FLOAT_END		-99999.0
 #define MAGIC		123322
-#define Kalloc(size)	Mem_Alloc(studiopool, size)		
-#define Realloc(ptr, size)	Mem_Realloc(studiopool, ptr, size)
+#define Kalloc( size )	Mem_Alloc( studiopool, size )		
 
 typedef struct
 {

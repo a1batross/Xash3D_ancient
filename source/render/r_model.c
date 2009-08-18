@@ -27,7 +27,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "matrix_lib.h"
 #include "byteorder.h"
 
-#define Q_rint(x)			((x) < 0 ? ((int)((x)-0.5f)) : ((int)((x)+0.5f)))
 #define Mod_CopyString( m, str )	com.stralloc( (m)->mempool, str, __FILE__, __LINE__ )
 
 enum
@@ -193,6 +192,7 @@ void Mod_FreeModel( ref_model_t *mod )
 {
 	if( !mod || !mod->mempool ) return;
 
+	if( mod == r_worldmodel ) R_FreeSky();
 	Mem_FreePool( &mod->mempool );
 	Mem_Set( mod, 0, sizeof( *mod ));
 }
@@ -334,6 +334,9 @@ static void Mod_UpdateShaders( ref_model_t *mod )
 		if( !shader || !shader->name ) continue;
 		Shader_TouchImages( shader, false );
 	}
+
+	if( mod == r_worldmodel && tr.currentSkyShader )
+		Shader_TouchImages( tr.currentSkyShader, false );
 }
 
 /*
@@ -415,6 +418,13 @@ ref_model_t *Mod_ForName( const char *name, bool crash )
 
 	descr->loader( mod, NULL, buf );
 	Mem_Free( buf );
+
+	if( mod->type == mod_bad )
+	{
+		// check for loading problems
+		Mod_FreeModel( mod );
+		return NULL;
+	}
 
 	if( !descr->maxLods )
 		return mod;
@@ -1568,9 +1578,9 @@ Mod_LoadLightgrid
 */
 static void Mod_LoadLightgrid( const lump_t *l )
 {
-	int i, j, count;
-	dlightgridq_t *in;
-	mgridlight_t *out;
+	int		i, j, count;
+	dlightgridq_t	*in;
+	mgridlight_t	*out;
 
 	in = ( void * )( mod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) )
@@ -1628,11 +1638,11 @@ Mod_LoadLightArray
 */
 static void Mod_LoadLightArray( void )
 {
-	int i, count;
-	mgridlight_t **out;
+	int		i, count;
+	mgridlight_t	**out;
 
 	count = loadbmodel->numlightgridelems;
-	out = Mod_Malloc( loadmodel, sizeof( *out )*count );
+	out = Mod_Malloc( loadmodel, sizeof( *out ) * count );
 
 	loadbmodel->lightarray = out;
 	loadbmodel->numlightarrayelems = count;
@@ -2069,7 +2079,6 @@ void R_BeginRegistration( const char *mapname, const dvis_t *visData )
 	// explicitly free the old map if different
 	if( com.strcmp( r_models[0].name, fullname ))
 	{
-		tr.currentSkyShader = NULL;	// invalidate sky shader
 		Mod_FreeModel( &r_models[0] );
 		R_NewMap ();
 	}

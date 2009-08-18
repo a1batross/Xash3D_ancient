@@ -1256,8 +1256,7 @@ void SV_AirMove( sv_client_t *cl, usercmd_t *cmd )
 	if((int)cl->edict->v.movetype != MOVETYPE_WALK )
 		wishvel[2] += cmd->upmove;
 
-	VectorCopy( wishvel, wishdir );
-	wishspeed = VectorNormalizeLength( wishdir );
+	wishspeed = VectorNormalizeLength2( wishvel, wishdir );
 	if( wishspeed > sv_maxspeed->value )
 	{
 		temp = sv_maxspeed->value / wishspeed;

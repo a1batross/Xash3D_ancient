@@ -180,7 +180,7 @@ dstudiohdr_t *R_StudioLoadHeader( ref_model_t *mod, const uint *buffer )
 void Mod_StudioLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer )
 {
 	dstudiohdr_t	*phdr = R_StudioLoadHeader( mod, buffer );
-	dstudiohdr_t	*thdr;
+	dstudiohdr_t	*thdr = NULL;
 	void		*texbuf;
 	
 	if( !phdr ) return; // there were problems
@@ -191,7 +191,7 @@ void Mod_StudioLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buf
 	{
 		texbuf = FS_LoadFile( R_ExtName( mod ), NULL ); // use buffer again
 		if( texbuf ) thdr = R_StudioLoadHeader( mod, texbuf );
-		else MsgDev( D_WARN, "textures for %s not found!\n", mod->name ); 
+		else MsgDev( D_ERROR, "textures for %s not found!\n", mod->name ); 
 
 		if( !thdr ) return; // there were problems
 		mod->thdr = (dstudiohdr_t *)Mem_Alloc( mod->mempool, LittleLong( thdr->length ));
@@ -1366,7 +1366,7 @@ void R_StudioDrawMesh( const meshbuffer_t *mb, int meshnum, dstudiotexture_t * p
 		if( RI.currententity->outlineHeight )
 			features |= MF_NORMALS|(GL_Support( R_SHADER_GLSL100_EXT ) ? MF_ENABLENORMALS : 0);
 	}
-		
+
 	for( i = 0; i < pmesh[meshnum].numnorms; i++, lv += 3, pstudionorms++, pnormbone++)
 	{
 		R_StudioLighting (&lv_tmp, *pnormbone, flags, (float *)pstudionorms);
@@ -1471,7 +1471,7 @@ void R_StudioDrawMesh( const meshbuffer_t *mb, int meshnum, dstudiotexture_t * p
 	studio_mesh.xyzArray = inVertsArray;
 
 	R_TranslateForEntity( RI.currententity );
-	R_PushMesh( &studio_mesh, features );
+// FIXME!	R_PushMesh( &studio_mesh, features );
 	R_RenderMeshBuffer( mb );
 }
 
@@ -2122,6 +2122,7 @@ void R_StudioDrawPoints( const meshbuffer_t *mb )
 	}
 
 	R_StudioSetupRender( e, Mod_ForHandle( mb->LODModelHandle ));
+	if( m_pStudioHeader->numbodyparts == 0 ) return; // nothing to draw
 
 	if( mb->LODModelHandle != old_model || old_entity != RI.currententity )
 	{

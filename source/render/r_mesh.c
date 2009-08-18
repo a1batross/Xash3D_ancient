@@ -315,11 +315,32 @@ All 3D-geometry passes this function.
 */
 meshbuffer_t *R_AddMeshToList( int type, mfog_t *fog, ref_shader_t *shader, int infokey )
 {
-	meshlist_t *list;
-	meshbuffer_t *meshbuf;
+	meshlist_t	*list;
+	meshbuffer_t	*meshbuf;
 
-	if( !shader )
-		return NULL;
+	if( !shader ) return NULL;
+
+	if( RI.currententity && (shader->flags & SHADER_RENDERMODE))
+	{
+		switch( RI.currententity->rendermode )
+		{
+		case kRenderTransTexture:
+		case kRenderGlow:
+		case kRenderTransAdd:
+			shader->sort = SORT_ADDITIVE;
+			break;
+		case kRenderTransColor:
+			shader->sort = SORT_DECAL;
+			break;
+		case kRenderTransAlpha:
+			shader->sort = SORT_ALPHATEST;
+			break;
+		case kRenderNormal:
+		default:	shader->sort = shader->realsort; // restore original
+			break;
+		}
+		shader->sortkey = Shader_Sortkey( shader, shader->sort );	// update sortkey too
+	}
 
 	list = RI.meshlist;
 	if( shader->sort > SORT_OPAQUE )

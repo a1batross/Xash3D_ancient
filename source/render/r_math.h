@@ -24,6 +24,30 @@ float		CalcFov( float fov_x, float width, float height );
 void		AdjustFov( float *fov_x, float *fov_y, float width, float height, bool lock_x );
 void		PlaneFromPoints( vec3_t verts[3], cplane_t *plane );
 int		SignbitsForPlane( const cplane_t *out );
-int		PlaneTypeForNormal( const vec3_t normal );
+
+/*
+===============
+ColorNormalize
+===============
+*/
+_inline float ColorNormalize( const float *in, vec3_t out )
+{
+	float	f = max( max( in[0], in[1] ), in[2] );
+
+	if( f > 1.0f )
+	{
+		f = 1.0f / f;
+		out[0] = in[0] * f;
+		out[1] = in[1] * f;
+		out[2] = in[2] * f;
+	}
+	else
+	{
+		out[0] = in[0];
+		out[1] = in[1];
+		out[2] = in[2];
+	}
+	return f;
+}
 
 #endif /*__R_MATH_H__*/

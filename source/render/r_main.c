@@ -740,10 +740,13 @@ static void R_AddSpriteModelToList( ref_entity_t *e )
 
 	if( e->rendermode == kRenderGlow )
 	{
-		trace_t	tr;
+		trace_t		tr;
+		msurface_t	*surf;
+
+		surf = R_TraceLine( &tr, e->origin, RI.viewOrigin, 0 );
 
 		if( e->renderfx == kRenderFxNoDissipation );
-		else if( R_TraceLine( &tr, e->origin, RI.viewOrigin, SURF_NONSOLID ) == NULL )
+		else if( surf == NULL && tr.fraction == 1.0f )
 		{ 
 			float dist = VectorDistance( e->origin, RI.viewOrigin );
 			e->scale = bound( 1.0, dist * 0.005f, 10.0f );

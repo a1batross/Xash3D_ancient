@@ -658,11 +658,13 @@ static byte *R_BuildMipMap( const byte *in, int width, int height, bool isNormal
 	vec3_t	normal;
 	int	x, y;
 
-	width <<= 2;
-	height >>= 1;
-
 	if( isNormalMap )
 	{
+		width <<= 2;
+		height >>= 1;
+
+		if( width == 1 && height == 1 ) return out; // e.g. blankbump
+
 		for( y = 0; y < height; y++, in += width )
 		{
 			for( x = 0; x < width; x += 8, in += 8, out += 4 )
@@ -682,6 +684,21 @@ static byte *R_BuildMipMap( const byte *in, int width, int height, bool isNormal
 	}
 	else
 	{
+		width >>= 1;
+		height >>= 1;
+	
+		if( width == 0 || height == 0 ) // some of last iterations
+		{
+			width += height; // get largest
+			for( x = 0; x < width; x++, in += 8, out += 4 )
+			{
+				out[0] = ( in[0] + in[4] )>>1;
+				out[1] = ( in[1] + in[5] )>>1;
+				out[2] = ( in[2] + in[6] )>>1;
+				out[3] = ( in[3] + in[7] )>>1;
+			}
+			return out;
+		}
 		for( y = 0; y < height; y++, in += width )
 		{
 			for( x = 0; x < width; x += 8, in += 8, out += 4 )
@@ -1544,10 +1561,17 @@ static rgbdata_t *R_IncludeDepthmap( rgbdata_t *in1, rgbdata_t *in2 )
 
 	pic1 = in1->buffer;
 	pic2 = in2->buffer;
-	for( i = in1->width * in1->height - 1; i > 0; i--, pic1 += 4, pic2 += 4 )
-		pic1[3] = ((int)pic2[0] + (int)pic2[1] + (int)pic2[2]) / 3;
+	for( i = (in1->width * in1->height) - 1; i > 0; i--, pic1 += 4, pic2 += 4 )
+	{
+		if( in2->flags & IMAGE_HAS_COLOR )
+			pic1[3] = ((int)pic2[0] + (int)pic2[1] + (int)pic2[2]) / 3;
+		else if( in2->flags & IMAGE_HAS_ALPHA )
+			pic1[3] = pic2[3];
+		else pic1[3] = pic2[0];
+	}
 
 	FS_FreeImage( in2 );
+	in1->flags |= (IMAGE_HAS_COLOR|IMAGE_HAS_ALPHA);
 
 	return in1;
 }
@@ -2595,8 +2619,6 @@ static rgbdata_t *R_ParseDepthmap( script_t *script, int *samples, texFlags_t *f
 
 	*samples = 4;
 	*flags &= ~TF_INTENSITY;
-	*flags |= TF_DEPTHMAP;
-	*flags |= TF_ALPHA;	// store depthmap in alpha-channel
 
 	return R_IncludeDepthmap( pic1, pic2 );
 }

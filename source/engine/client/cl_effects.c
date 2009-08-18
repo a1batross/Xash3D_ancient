@@ -409,7 +409,8 @@ void CL_SpawnDecal( vec3_t org, vec3_t dir, float rot, float rad, float *col, fl
 		poly->numverts = fr->numverts;
 		poly->fognum = fr->fognum;
 
-		for( j = 0; j < fr->numverts; j++ ) {
+		for( j = 0; j < fr->numverts; j++ )
+		{
 			vec3_t v;
 
 			VectorCopy( verts[fr->firstvert+j], poly->verts[j] );

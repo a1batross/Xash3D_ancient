@@ -29,6 +29,7 @@
 #define STUDIO_TO_RAD	(M_PI / 32768.0)
 #define nanmask		(255<<23)
 
+#define Q_rint(x)		((x) < 0 ? ((int)((x)-0.5f)) : ((int)((x)+0.5f)))
 #define IS_NAN(x)		(((*(int *)&x)&nanmask)==nanmask)
 #define RANDOM_LONG(MIN, MAX)	((rand() & 32767) * (((MAX)-(MIN)) * (1.0f / 32767.0f)) + (MIN))
 #define RANDOM_FLOAT(MIN,MAX)	(((float)rand() / RAND_MAX) * ((MAX)-(MIN)) + (MIN))
@@ -188,23 +189,25 @@ _inline void VectorBound(const float min, vec3_t v, const float max)
 }
 
 // FIXME: convert to #define
-_inline float VectorNormalizeLength( vec3_t v )
+_inline float VectorNormalizeLength2( const vec3_t v, vec3_t out )
 {
-	float length, ilength;
+	float	length, ilength;
 
-	length = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
-	length = sqrt (length);
+	length = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+	length = rsqrt( length );
 
 	if( length )
 	{
-		ilength = 1/length;
-		v[0] *= ilength;
-		v[1] *= ilength;
-		v[2] *= ilength;
+		ilength = 1.0f / length;
+		out[0] = v[0] * ilength;
+		out[1] = v[1] * ilength;
+		out[2] = v[2] * ilength;
 	}
-	return length;
+	else out[0] = out[1] = out[2] = 0.0f;
 
+	return length;
 }
+#define VectorNormalizeLength( v )	VectorNormalizeLength2((v), (v))
 
 _inline bool VectorIsNull( const vec3_t v )
 {
@@ -548,27 +551,6 @@ _inline float *UnpackRGBA( dword icolor )
 	color[3] = ((icolor & 0xFF000000) >> 24) / 255.0f;
 
 	return color;
-}
-
-/*
-===============
-ColorNormalize
-===============
-*/
-_inline float ColorNormalize( const float *in, vec3_t out )
-{
-	float	f = max( max( in[0], in[1] ), in[2] );
-
-	if( f > 1.0f )
-	{
-		f = 1.0f / f;
-		out[0] = in[0] * f;
-		out[1] = in[1] * f;
-		out[2] = in[2] * f;
-	}
-	else VectorCopy( in, out );
-
-	return f;
 }
 
 /*

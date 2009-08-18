@@ -340,6 +340,7 @@ typedef struct ref_shader_s
 } ref_shader_t;
 
 extern ref_shader_t		r_shaders[MAX_SHADERS];
+#define Shader_Sortkey( shader, sort )	((( sort )<<26 )|( shader - r_shaders ))
 
 void R_InitShaders( void );
 void R_ShutdownShaders( void );

@@ -1,540 +1,640 @@
-//=======================================================================
-//			Copyright XashXT Group 2008 ©
-//		        bsp_emit.c - emit bsp nodes and leafs
-//=======================================================================
+/* -------------------------------------------------------------------------------
 
-#include "bsplib.h"
-#include "const.h"
+Copyright (C) 1999-2007 id Software, Inc. and contributors.
+For a list of contributors, see the accompanying CONTRIBUTORS file.
 
-int	c_nofaces;
-int	c_facenodes;
+This file is part of GtkRadiant.
+
+GtkRadiant is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+GtkRadiant is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with GtkRadiant; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+----------------------------------------------------------------------------------
+
+This code has been altered significantly from its original form, to support
+several games based on the Quake III Arena engine, in the form of "Q3Map2."
+
+------------------------------------------------------------------------------- */
+
+
+
+/* marker */
+#define WRITEBSP_C
+
+
+
+/* dependencies */
+#include "q3map2.h"
+
+
 
 /*
-============
-EmitPlanes
-
-There is no oportunity to discard planes, because all of the original
-brushes will be saved in the map.
-============
+EmitShader()
+emits a bsp shader entry
 */
+
+int	EmitShader( const char *shader, int *contentFlags, int *surfaceFlags )
+{
+	int				i;
+	shaderInfo_t	*si;
+	
+	
+	/* handle special cases */
+	if( shader == NULL )
+		shader = "noshader";
+	
+	/* try to find an existing shader */
+	for( i = 0; i < numBSPShaders; i++ )
+	{
+		/* ydnar: handle custom surface/content flags */
+		if( surfaceFlags != NULL && bspShaders[ i ].surfaceFlags != *surfaceFlags )
+			continue;
+		if( contentFlags != NULL && bspShaders[ i ].contentFlags != *contentFlags )
+			continue;
+		
+		/* compare name */
+		if( !com.stricmp( shader, bspShaders[ i ].shader ) )
+			return i;
+	}
+	
+	/* get shaderinfo */
+	si = ShaderInfoForShader( shader );
+	
+	/* emit a new shader */
+	if( i == MAX_MAP_SHADERS ) Sys_Error( "MAX_MAP_SHADERS limit exceeded\n" );
+	numBSPShaders++;
+	strcpy( bspShaders[ i ].shader, shader );
+	bspShaders[ i ].surfaceFlags = si->surfaceFlags;
+	bspShaders[ i ].contentFlags = si->contentFlags;
+	
+	/* handle custom content/surface flags */
+	if( surfaceFlags != NULL )
+		bspShaders[ i ].surfaceFlags = *surfaceFlags;
+	if( contentFlags != NULL )
+		bspShaders[ i ].contentFlags = *contentFlags;
+	
+	/* recursively emit any damage shaders */
+	if( si->damageShader != NULL && si->damageShader[ 0 ] != '\0' )
+	{
+		MsgDev( D_ERROR, "Shader %s has damage shader %s\n", si->shader, si->damageShader );
+		EmitShader( si->damageShader, NULL, NULL );
+	}
+	
+	/* return it */
+	return i;
+}
+
+
+
+/*
+EmitPlanes()
+there is no oportunity to discard planes, because all of the original
+brushes will be saved in the map
+*/
+
 void EmitPlanes( void )
 {
-	int		i;
-	dplane_t		*dp;
+	int			i;
+	bspPlane_t	*bp;
 	plane_t		*mp;
-
+	
+	
+	/* walk plane list */
 	mp = mapplanes;
 	for( i = 0; i < nummapplanes; i++, mp++ )
 	{
-		dp = &dplanes[numplanes];
-		VectorCopy( mp->normal, dp->normal );
-		dp->dist = mp->dist;
-		numplanes++;
+		bp = &bspPlanes[ numBSPPlanes ];
+		VectorCopy( mp->normal, bp->normal );
+		bp->dist = mp->dist;
+		numBSPPlanes++;
 	}
+	
+	/* emit some statistics */
+	MsgDev( D_NOTE, "%9d BSP planes\n", numBSPPlanes );
 }
 
-
-//========================================================
-
-void EmitMarkFace (dleaf_t *leaf_p, face_t *f)
-{
-	int			i;
-	int			facenum;
-
-	while (f->merged)
-		f = f->merged;
-
-	if (f->split[0])
-	{
-		EmitMarkFace (leaf_p, f->split[0]);
-		EmitMarkFace (leaf_p, f->split[1]);
-		return;
-	}
-
-	facenum = f->outputnumber;
-	if (facenum == -1)
-		return;	// degenerate face
-
-	if( facenum < 0 || facenum >= numsurfaces)
-		Sys_Error ("Bad leafface");
-	for (i=leaf_p->firstleafsurface ; i<numleafsurfaces ; i++)
-		if (dleafsurfaces[i] == facenum)
-			break;		// merged out face
-	if (i == numleafsurfaces)
-	{
-		if( numleafsurfaces >= MAX_MAP_LEAFFACES )
-			Sys_Error( "MAX_MAP_LEAFFACES limit exceeded\n" );
-
-		dleafsurfaces[numleafsurfaces] =  facenum;
-		numleafsurfaces++;
-	}
-
-}
 
 
 /*
-==================
-EmitLeaf
-==================
+EmitLeaf()
+emits a leafnode to the bsp file
 */
+
 void EmitLeaf( node_t *node )
 {
-	dleaf_t		*leaf_p;
-	portal_t		*p;
-	int		s;
-	face_t		*f;
-	bspbrush_t	*b;
-	int		i, brushnum;
+	bspLeaf_t		*leaf_p;
+	brush_t			*b;
+	drawSurfRef_t	*dsr;
 
-	// emit a leaf
-	if( numleafs >= MAX_MAP_LEAFS )
-		Sys_Error( "MAX_MAP_LEAFS  limit exceeded\n" );
+	
+	/* check limits */
+	if( numBSPLeafs >= MAX_MAP_LEAFS )
+		Sys_Error( "MAX_MAP_LEAFS limit exceeded\n" );
 
-	leaf_p = &dleafs[numleafs];
-	numleafs++;
+	leaf_p = &bspLeafs[numBSPLeafs];
+	numBSPLeafs++;
 
-	leaf_p->contents = node->contents;
 	leaf_p->cluster = node->cluster;
 	leaf_p->area = node->area;
 
-	//
-	// write bounding box info
-	//	
-	VectorCopy (node->mins, leaf_p->mins);
-	VectorCopy (node->maxs, leaf_p->maxs);
+	/* emit bounding box */
+	VectorCopy( node->mins, leaf_p->mins );
+	VectorCopy( node->maxs, leaf_p->maxs );
 	
-	//
-	// write the leafbrushes
-	//
-	leaf_p->firstleafbrush = numleafbrushes;
+	/* emit leaf brushes */
+	leaf_p->firstBSPLeafBrush = numBSPLeafBrushes;
 	for( b = node->brushlist; b; b = b->next )
 	{
-		if( numleafbrushes >= MAX_MAP_LEAFBRUSHES )
-			Sys_Error( "MAX_MAP_LEAFBRUSHES limit exceeded\n" );
-
-		brushnum = b->original - mapbrushes;
-		for( i = leaf_p->firstleafbrush; i < numleafbrushes; i++ )
-			if( dleafbrushes[i] == brushnum ) break;
-
-		if( i == numleafbrushes )
+		/* something is corrupting brushes */
+		if( (size_t) b < 256 )
 		{
-			dleafbrushes[numleafbrushes] = brushnum;
-			numleafbrushes++;
+			MsgDev( D_WARN, "node brush list corrupted (0x%08X)\n", b );
+			break;
 		}
-	}
-	leaf_p->numleafbrushes = numleafbrushes - leaf_p->firstleafbrush;
-
-	// write the leaffaces
-	if( leaf_p->contents & CONTENTS_SOLID )
-		return; // no leaffaces in solids
-
-	leaf_p->firstleafsurface = numleafsurfaces;
-
-	for (p = node->portals ; p ; p = p->next[s])	
-	{
-		s = (p->nodes[1] == node);
-		f = p->face[s];
-		if (!f)
-			continue;	// not a visible portal
-
-		EmitMarkFace (leaf_p, f);
+		//%	if( b->guard != 0xDEADBEEF )
+		//%		Msg( "Brush %6d: 0x%08X Guard: 0x%08X Next: 0x%08X Original: 0x%08X Sides: %d\n", b->brushNum, b, b, b->next, b->original, b->numsides );
+		
+		if( numBSPLeafBrushes >= MAX_MAP_LEAFBRUSHES )
+			Sys_Error( "MAX_MAP_LEAFBRUSHES limit exceeded\n" );
+		bspLeafBrushes[ numBSPLeafBrushes ] = b->original->outputNum;
+		numBSPLeafBrushes++;
 	}
 	
-	leaf_p->numleafsurfaces = numleafsurfaces - leaf_p->firstleafsurface;
+	leaf_p->numBSPLeafBrushes = numBSPLeafBrushes - leaf_p->firstBSPLeafBrush;
+	
+	/* emit leaf surfaces */
+	if( node->opaque )
+		return;
+	
+	/* add the drawSurfRef_t drawsurfs */
+	leaf_p->firstBSPLeafSurface = numBSPLeafSurfaces;
+	for ( dsr = node->drawSurfReferences; dsr; dsr = dsr->nextRef )
+	{
+		if( numBSPLeafSurfaces >= MAX_MAP_LEAFFACES )
+			Sys_Error( "MAX_MAP_LEAFFACES limit exceeded\n" );
+		bspLeafSurfaces[ numBSPLeafSurfaces ] = dsr->outputNum;
+		numBSPLeafSurfaces++;			
+	}
+	
+	leaf_p->numBSPLeafSurfaces = numBSPLeafSurfaces - leaf_p->firstBSPLeafSurface;
 }
 
 
 /*
-==================
-EmitFace
-==================
+EmitDrawNode_r()
+recursively emit the bsp nodes
 */
-void EmitFace( face_t *f )
+
+int EmitDrawNode_r( node_t *node )
 {
-	dsurface_t	*df;
-	int		i;
-	int		e;
-
-	f->outputnumber = -1;
-
-	if( f->numpoints < 3 )
+	bspNode_t	*n;
+	int			i;
+	
+	
+	/* check for leafnode */
+	if( node->planenum == PLANENUM_LEAF )
 	{
-		return;		// degenerated
+		EmitLeaf( node );
+		return -numBSPLeafs;
 	}
-	if( f->merged || f->split[0] || f->split[1] )
-	{
-		return;		// not a final face
-	}
-
-	// save output number so leaffaces can use
-	f->outputnumber = numsurfaces;
-
-	if( numsurfaces >= MAX_MAP_SURFACES )
-		Sys_Error( "MAX_MAP_SURFACES limit exceeded\n" );
-	df = &dsurfaces[numsurfaces];
-	numsurfaces++;
-
-	// planenum is used by qlight, but not quake
-	df->planenum = f->planenum & (~1);
-	df->side = f->planenum & 1;
-
-	df->firstedge = numsurfedges;
-	df->numedges = f->numpoints;
-	df->texinfo = f->texinfo;
-	for( i = 0; i < f->numpoints; i++ )
-	{
-		e = GetEdge2( f->vertexnums[i], f->vertexnums[(i+1)%f->numpoints], f );
-		if( numsurfedges >= MAX_MAP_SURFEDGES )
-			Sys_Error( "MAX_MAP_SURFEDGES limit exceeded\n" );
-		dsurfedges[numsurfedges] = e;
-		numsurfedges++;
-	}
-}
-
-/*
-============
-EmitDrawingNode_r
-============
-*/
-int EmitDrawNode_r (node_t *node)
-{
-	dnode_t	*n;
-	face_t	*f;
-	int		i;
-
-	if (node->planenum == PLANENUM_LEAF)
-	{
-		EmitLeaf (node);
-		return -numleafs;
-	}
-
-	// emit a node	
-	if( numnodes == MAX_MAP_NODES )
+	
+	/* emit a node */
+	if( numBSPNodes == MAX_MAP_NODES )
 		Sys_Error( "MAX_MAP_NODES limit exceeded\n" );
-	n = &dnodes[numnodes];
-	numnodes++;
-
-	VectorCopy( node->mins, n->mins );
-	VectorCopy( node->maxs, n->maxs );
+	n = &bspNodes[ numBSPNodes ];
+	numBSPNodes++;
+	
+	VectorCopy (node->mins, n->mins);
+	VectorCopy (node->maxs, n->maxs);
 
 	if( node->planenum & 1 )
-		Sys_Error ("WriteDrawNodes_r: odd planenum");
-	n->planenum = node->planenum;
-	n->firstsurface = numsurfaces;
+		Sys_Error( "WriteDrawNodes_r: odd planenum\n" );
+	n->planeNum = node->planenum;
 
-	if (!node->faces)
-		c_nofaces++;
-	else
-		c_facenodes++;
-
-	for( f = node->faces; f; f = f->next )
-		EmitFace (f);
-
-	n->numsurfaces = numsurfaces - n->firstsurface;
-
+	//
 	// recursively output the other nodes
-	for( i = 0; i < 2; i++ )
+	//	
+	for (i=0 ; i<2 ; i++)
 	{
-		if( node->children[i]->planenum == PLANENUM_LEAF )
+		if (node->children[i]->planenum == PLANENUM_LEAF)
 		{
-			n->children[i] = -(numleafs + 1);
-			EmitLeaf( node->children[i] );
+			n->children[i] = -(numBSPLeafs + 1);
+			EmitLeaf (node->children[i]);
 		}
 		else
 		{
-			n->children[i] = numnodes;	
-			EmitDrawNode_r( node->children[i] );
+			n->children[i] = numBSPNodes;	
+			EmitDrawNode_r (node->children[i]);
 		}
 	}
-	return n - dnodes;
+
+	return n - bspNodes;
 }
 
-//=========================================================
 
-
-/*
-============
-WriteBSP
-
-Wirte Binary Spacing Partition Tree
-============
-*/
-void WriteBSP( node_t *headnode )
-{
-	int	oldsurfaces;
-
-	c_nofaces = 0;
-	c_facenodes = 0;
-
-	oldsurfaces = numsurfaces;
-	EmitDrawNode_r( headnode );
-	EmitAreaPortals( headnode );
-}
-
-//===========================================================
 
 /*
 ============
 SetModelNumbers
 ============
 */
-void SetModelNumbers( void )
+void SetModelNumbers (void)
 {
-	int	i, models = 1;
+	int		i;
+	int		models;
+	char	value[10];
 
-	for( i = 1; i < num_entities; i++ )
-	{
-		if( entities[i].numbrushes )
-		{
-			SetKeyValue( &entities[i], "model", va( "*%i", models ));
+	models = 1;
+	for ( i=1 ; i<numEntities ; i++ ) {
+		if ( entities[i].brushes || entities[i].patches ) {
+			com.sprintf ( value, "*%i", models );
 			models++;
+			SetKeyValue (&entities[i], "model", value);
 		}
 	}
+
 }
 
+
+
+
 /*
-============
-SetLightStyles
-============
+SetLightStyles()
+sets style keys for entity lights
 */
+
 void SetLightStyles( void )
 {
-	char		*t;
-	bsp_entity_t	*e;
-	int		i, j, k, style, stylenum = 0;
-	char		lightTargets[MAX_SWITCHED_LIGHTS][64];
-	int		lightStyles[MAX_SWITCHED_LIGHTS];
-
-	// any light that is controlled (has a targetname)
-	// must have a unique style number generated for it
-	for( i = 1; i < num_entities; i++ )
+	int			i, j, style, numStyles;
+	bool		keepLights;
+	const char	*t;
+	entity_t	*e;
+	epair_t		*ep, *next;
+	char		value[ 10 ];
+	char		lightTargets[ MAX_SWITCHED_LIGHTS ][ 64 ];
+	int			lightStyles[ MAX_SWITCHED_LIGHTS ];
+	
+	
+	/* ydnar: determine if we keep lights in the bsp */
+	t = ValueForKey( &entities[ 0 ], "_keepLights" );
+	keepLights = (t[ 0 ] == '1') ? true : false;
+	
+	/* any light that is controlled (has a targetname) must have a unique style number generated for it */
+	numStyles = 0;
+	for( i = 1; i < numEntities; i++ )
 	{
-		e = &entities[i];
+		e = &entities[ i ];
 
 		t = ValueForKey( e, "classname" );
-		if( com.strncmp( t, "light", 5 ))
-		{
-			if(!com.strncmp( t, "func_light", 10 ))
-			{
-				// may create func_light family 
-				// e.g. func_light_fluoro, func_light_broken etc
-				k = com.atoi(ValueForKey( e, "spawnflags" ));
-				if( k & SF_START_ON ) t = "-2"; // initially on
-				else t = "-1"; // initially off
-			}
-			else t = ValueForKey( e, "style" );
-			
-			switch( com.atoi( t ))
-			{
-			case 0: continue; // not a light, no style, generally pretty boring
-			case -1: // normal switchable texlight (start off)
-				SetKeyValue( e, "style", va( "%i", 32 + stylenum ));
-				stylenum++;
-				continue;
-			case -2: // backwards switchable texlight (start on)
-				SetKeyValue(e, "style", va( "%i", -(32 + stylenum )));
-				stylenum++;
-				continue;
-			default: continue; // nothing to set
-			}
-                    }
+		if( com.strnicmp( t, "light", 5 ) )
+			continue;
 		t = ValueForKey( e, "targetname" );
-		if( !t[0] ) continue;
-
-		// get existing style
+		if( t[ 0 ] == '\0' )
+		{
+			/* ydnar: strip the light from the BSP file */
+			if( keepLights == false )
+			{
+				ep = e->epairs;
+				while( ep != NULL )
+				{
+					next = ep->next;
+					Mem_Free( ep->key );
+					Mem_Free( ep->value );
+					Mem_Free( ep );
+					ep = next;
+				}
+				e->epairs = NULL;
+				numStrippedLights++;
+			}
+			
+			/* next light */
+			continue;
+		}
+		
+		/* get existing style */
 		style = IntForKey( e, "style" );
 		if( style < LS_NORMAL || style > LS_NONE )
-			Sys_Break( "Invalid lightstyle (%d) on entity %d\n", style, i );
+			Sys_Break( "Invalid lightstyle (%d) on entity %d", style, i );
 		
-		// find this targetname
-		for( j = 0; j < stylenum; j++ )
-		{
-			if( lightStyles[j] == style && !com.strcmp( lightTargets[j], t ))
+		/* find this targetname */
+		for( j = 0; j < numStyles; j++ )
+			if( lightStyles[ j ] == style && !strcmp( lightTargets[ j ], t ) )
 				break;
-		}
-		if( j == stylenum )
+		
+		/* add a new style */
+		if( j >= numStyles )
 		{
-			if( stylenum == MAX_SWITCHED_LIGHTS )
-			{
-				MsgDev( D_WARN, "switchable lightstyles limit (%i) exceeded at entity #%i\n", 64, i );
-				break; // nothing to process
-			}
-			com.strncpy( lightTargets[j], t, MAX_SHADERPATH );
-			lightStyles[j] = style;
-			stylenum++;
+			if( numStyles == MAX_SWITCHED_LIGHTS )
+				Sys_Break( "MAX_SWITCHED_LIGHTS (%d) exceeded, reduce the number of lights with targetnames", MAX_SWITCHED_LIGHTS );
+			com.strcpy( lightTargets[ j ], t );
+			lightStyles[ j ] = style;
+			numStyles++;
 		}
-		SetKeyValue( e, "style", va( "%i", 32 + j ));
+		
+		/* set explicit style */
+		com.sprintf( value, "%d", 32 + j );
+		SetKeyValue( e, "style", value );
+		
+		/* set old style */
+		if( style != LS_NORMAL )
+		{
+			com.sprintf( value, "%d", style );
+			SetKeyValue( e, "switch_style", value );
+		}
 	}
+	
+	/* emit some statistics */
+	MsgDev( D_INFO, "%9d light entities stripped\n", numStrippedLights );
 }
 
-//===========================================================
+
 
 /*
-============
-EmitBrushes
-============
+BeginBSPFile()
+starts a new bsp file
 */
-void EmitBrushes( void )
-{
-	int		i, j, bnum, s, x;
-	dbrush_t		*db;
-	mapbrush_t	*b;
-	dbrushside_t	*cp;
-	vec3_t		normal;
-	vec_t		dist;
-	int		planenum;
 
-	numbrushsides = 0;
-	numbrushes = nummapbrushes;
-
-	for( bnum = 0; bnum < nummapbrushes; bnum++ )
-	{
-		b = &mapbrushes[bnum];
-		db = &dbrushes[bnum];
-
-		db->shadernum = b->shadernum;
-		db->firstside = numbrushsides;
-		db->numsides = b->numsides;
-		for( j = 0; j < b->numsides; j++ )
-		{
-			if( numbrushsides == MAX_MAP_BRUSHSIDES )
-				Sys_Error( "MAX_MAP_BRUSHSIDES limit exceeded\n" );
-			cp = &dbrushsides[numbrushsides];
-			numbrushsides++;
-			cp->planenum = b->original_sides[j].planenum;
-			cp->texinfo = b->original_sides[j].texinfo;
-		}
-
-		// add any axis planes not contained in the brush to bevel off corners
-		for( x = 0; x < 3; x++ )
-			for (s=-1 ; s<=1 ; s+=2)
-			{
-				// add the plane
-				VectorCopy (vec3_origin, normal);
-				normal[x] = s;
-				if (s == -1)
-					dist = -b->mins[x];
-				else
-					dist = b->maxs[x];
-				planenum = FindFloatPlane (normal, dist);
-				for( i = 0; i < b->numsides; i++ )
-					if( b->original_sides[i].planenum == planenum )
-						break;
-				if( i == b->numsides )
-				{
-					if( numbrushsides >= MAX_MAP_BRUSHSIDES )
-						Sys_Error( "MAX_MAP_BRUSHSIDES limit exceeded\n" );
-
-					dbrushsides[numbrushsides].planenum = planenum;
-					dbrushsides[numbrushsides].texinfo = dbrushsides[numbrushsides-1].texinfo;
-					numbrushsides++;
-					db->numsides++;
-				}
-			}
-
-	}
-
-}
-
-//===========================================================
-
-/*
-==================
-BeginBSPFile
-==================
-*/
 void BeginBSPFile( void )
 {
-	// these values may actually be initialized
-	// if the file existed when loaded, so clear them explicitly
-
-	nummodels = 0;
-	numsurfaces = 0;
-	numnodes = 0;
-	numbrushsides = 0;
-	numvertexes = 0;
-	numleafsurfaces = 0;
-	numleafbrushes = 0;
-	numsurfedges = 0;
-	numedges = 1;	// edge 0 is not used, because 0 can't be negated
-	numvertexes = 1;	// leave vertex 0 as an error
-	numleafs = 1;	// leave leaf 0 as an error
-
-	dleafs[0].contents = CONTENTS_SOLID;
+	/* these values may actually be initialized if the file existed when loaded, so clear them explicitly */
+	numBSPModels = 0;
+	numBSPNodes = 0;
+	numBSPBrushSides = 0;
+	numBSPLeafSurfaces = 0;
+	numBSPLeafBrushes = 0;
+	
+	/* leave leaf 0 as an error, because leafs are referenced as negative number nodes */
+	numBSPLeafs = 1;
+	
+	
+	/* ydnar: gs mods: set the first 6 drawindexes to 0 1 2 2 1 3 for triangles and quads */
+	numBSPDrawIndexes = 6;
+	bspDrawIndexes[ 0 ] = 0;
+	bspDrawIndexes[ 1 ] = 1;
+	bspDrawIndexes[ 2 ] = 2;
+	bspDrawIndexes[ 3 ] = 0;
+	bspDrawIndexes[ 4 ] = 2;
+	bspDrawIndexes[ 5 ] = 3;
 }
 
 
+
 /*
-============
-EndBSPFile
-============
+EndBSPFile()
+finishes a new bsp and writes to disk
 */
+
 void EndBSPFile( void )
 {
-	EmitBrushes ();
-	EmitPlanes ();
-	UnparseEntities ();
+	char	path[ 1024 ];
+	
 
-	// write the map
-	WriteBSPFile();
+	MsgDev( D_NOTE, "--- EndBSPFile ---\n" );
+
+	EmitPlanes();
+	
+	numBSPEntities = numEntities;
+	UnparseEntities();
+	
+	/* write the surface extra file */
+	WriteSurfaceExtraFile( source );
+	
+	/* write the bsp */
+	com.sprintf( path, "%s.bsp", source );
+	Msg( "Writing %s\n", path );
+	WriteBSPFile( path );
 }
 
 
+
 /*
-==================
-BeginModel
-==================
+EmitBrushes()
+writes the brush list to the bsp
 */
-int	firstmodleaf;
-extern	int firstmodeledge;
-extern	int firstmodelface;
+
+void EmitBrushes( brush_t *brushes, int *firstBrush, int *numBrushes )
+{
+	int				j;
+	brush_t			*b;
+	bspBrush_t		*db;
+	bspBrushSide_t	*cp;
+	
+	
+	/* set initial brush */
+	if( firstBrush != NULL )
+		*firstBrush = numBSPBrushes;
+	if( numBrushes != NULL )
+		*numBrushes = 0;
+	
+	/* walk list of brushes */
+	for( b = brushes; b != NULL; b = b->next )
+	{
+		/* check limits */
+		if( numBSPBrushes == MAX_MAP_BRUSHES )
+			Sys_Error( "MAX_MAP_BRUSHES limit exceeded\n" );
+		
+		/* get bsp brush */
+		b->outputNum = numBSPBrushes;
+		db = &bspBrushes[ numBSPBrushes ];
+		numBSPBrushes++;
+		if( numBrushes != NULL )
+			(*numBrushes)++;
+		
+		db->shaderNum = EmitShader( b->contentShader->shader, &b->contentShader->contentFlags, &b->contentShader->surfaceFlags );
+		db->firstSide = numBSPBrushSides;
+		
+		/* walk sides */
+		db->numSides = 0;
+		for( j = 0; j < b->numsides; j++ )
+		{
+			/* set output number to bogus initially */
+			b->sides[ j ].outputNum = -1;
+			
+			/* check count */
+			if( numBSPBrushSides == MAX_MAP_BRUSHSIDES )
+				Sys_Break( "MAX_MAP_BRUSHSIDES limit exceeded\n" );
+			
+			/* emit side */
+			b->sides[ j ].outputNum = numBSPBrushSides;
+			cp = &bspBrushSides[ numBSPBrushSides ];
+			db->numSides++;
+			numBSPBrushSides++;
+			cp->planeNum = b->sides[ j ].planenum;
+			
+			/* emit shader */
+			if( b->sides[ j ].shaderInfo )
+				cp->shaderNum = EmitShader( b->sides[ j ].shaderInfo->shader, &b->sides[ j ].shaderInfo->contentFlags, &b->sides[ j ].shaderInfo->surfaceFlags );
+			else
+				cp->shaderNum = EmitShader( NULL, NULL, NULL );
+		}
+	}
+}
+
+
+
+/*
+EmitFogs() - ydnar
+turns map fogs into bsp fogs
+*/
+
+void EmitFogs( void )
+{
+	int			i, j;
+	
+	
+	/* setup */
+	numBSPFogs = numMapFogs;
+	
+	/* walk list */
+	for( i = 0; i < numMapFogs; i++ )
+	{
+		/* set shader */
+		strcpy( bspFogs[ i ].shader, mapFogs[ i ].si->shader );
+		
+		/* global fog doesn't have an associated brush */
+		if( mapFogs[ i ].brush == NULL )
+		{
+			bspFogs[ i ].brushNum = -1;
+			bspFogs[ i ].visibleSide = -1;
+		}
+		else
+		{
+			/* set brush */
+			bspFogs[ i ].brushNum = mapFogs[ i ].brush->outputNum;
+			
+			/* try to use forced visible side */
+			if( mapFogs[ i ].visibleSide >= 0 )
+			{
+				bspFogs[ i ].visibleSide = mapFogs[ i ].visibleSide;
+				continue;
+			}
+			
+			/* find visible side */
+			for( j = 0; j < 6; j++ )
+			{
+				if( mapFogs[ i ].brush->sides[ j ].visibleHull != NULL )
+				{
+					MsgDev( D_WARN, "Fog %d has visible side %d\n", i, j );
+					bspFogs[ i ].visibleSide = j;
+					break;
+				}
+			}
+		}
+	}
+}
+
+
+
+/*
+BeginModel()
+sets up a new brush model
+*/
 
 void BeginModel( void )
 {
-	dmodel_t		*mod;
-	mapbrush_t	*b;
-	bsp_entity_t	*e;
-	int		j, start, end;
+	bspModel_t	*mod;
+	brush_t		*b;
+	entity_t	*e;
 	vec3_t		mins, maxs;
-
-	if( nummodels == MAX_MAP_MODELS )
+	vec3_t		lgMins, lgMaxs;		/* ydnar: lightgrid mins/maxs */
+	parseMesh_t	*p;
+	int			i;
+	
+	
+	/* test limits */
+	if( numBSPModels == MAX_MAP_MODELS )
 		Sys_Error( "MAX_MAP_MODELS limit exceeded\n" );
-	mod = &dmodels[nummodels];
-
-	mod->firstsurface = numsurfaces;
-	firstmodleaf = numleafs;
-	firstmodeledge = numedges;
-	firstmodelface = numsurfaces;
-
-	// bound the brushes
-	e = &entities[entity_num];
-	mod->firstbrush = start = e->firstbrush;
-	mod->numbrushes = e->numbrushes;
-	end = start + e->numbrushes;
-	ClearBounds (mins, maxs);
-
-	for( j = start; j < end; j++ )
+	
+	/* get model and entity */
+	mod = &bspModels[ numBSPModels ];
+	e = &entities[ mapEntityNum ];
+	
+	/* ydnar: lightgrid mins/maxs */
+	ClearBounds( lgMins, lgMaxs );
+	
+	/* bound the brushes */
+	ClearBounds( mins, maxs );
+	for ( b = e->brushes; b; b = b->next )
 	{
-		b = &mapbrushes[j];
-		if (!b->numsides) continue; // not a real brush (origin brush)
+		/* ignore non-real brushes (origin, etc) */
+		if( b->numsides == 0 )
+			continue;
 		AddPointToBounds( b->mins, mins, maxs );
 		AddPointToBounds( b->maxs, mins, maxs );
+		
+		/* ydnar: lightgrid bounds */
+		if( b->compileFlags & C_LIGHTGRID )
+		{
+			AddPointToBounds( b->mins, lgMins, lgMaxs );
+			AddPointToBounds( b->maxs, lgMins, lgMaxs );
+		}
 	}
-	VectorCopy( mins, mod->mins );
-	VectorCopy( maxs, mod->maxs );
+	
+	/* bound patches */
+	for( p = e->patches; p; p = p->next )
+	{
+		for( i = 0; i < (p->mesh.width * p->mesh.height); i++ )
+			AddPointToBounds( p->mesh.verts[i].xyz, mins, maxs );
+	}
+	
+	/* ydnar: lightgrid mins/maxs */
+	if( lgMins[ 0 ] < 99999 )
+	{
+		/* use lightgrid bounds */
+		VectorCopy( lgMins, mod->mins );
+		VectorCopy( lgMaxs, mod->maxs );
+	}
+	else
+	{
+		/* use brush/patch bounds */
+		VectorCopy( mins, mod->mins );
+		VectorCopy( maxs, mod->maxs );
+	}
+	
+	/* note size */
+	MsgDev( D_NOTE, "BSP bounds: { %f %f %f } { %f %f %f }\n", mins[ 0 ], mins[ 1 ], mins[ 2 ], maxs[ 0 ], maxs[ 1 ], maxs[ 2 ] );
+	MsgDev( D_NOTE, "Lightgrid bounds: { %f %f %f } { %f %f %f }\n", lgMins[ 0 ], lgMins[ 1 ], lgMins[ 2 ], lgMaxs[ 0 ], lgMaxs[ 1 ], lgMaxs[ 2 ] );
+	
+	/* set firsts */
+	mod->firstBSPSurface = numBSPDrawSurfaces;
+	mod->firstBSPBrush = numBSPBrushes;
 }
 
 
-/*
-==================
-EndModel
-==================
-*/
-void EndModel( void )
-{
-	dmodel_t	*mod;
 
-	mod = &dmodels[nummodels];
-	mod->numsurfaces = numsurfaces - mod->firstsurface;
-	nummodels++;
+
+/*
+EndModel()
+finish a model's processing
+*/
+
+void EndModel( entity_t *e, node_t *headnode )
+{
+	bspModel_t	*mod;
+	
+	
+	/* note it */
+	MsgDev( D_NOTE, "--- EndModel ---\n" );
+	
+	/* emit the bsp */
+	mod = &bspModels[ numBSPModels ];
+	EmitDrawNode_r( headnode );
+	
+	/* set surfaces and brushes */
+	mod->numBSPSurfaces = numBSPDrawSurfaces - mod->firstBSPSurface;
+	mod->firstBSPBrush = e->firstBrush;
+	mod->numBSPBrushes = e->numBrushes;
+	
+	/* increment model count */
+	numBSPModels++;
 }

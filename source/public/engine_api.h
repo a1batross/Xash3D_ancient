@@ -159,6 +159,22 @@ _inline void CategorizePlane( cplane_t *plane )
 }
 
 /*
+=================
+PlaneTypeForNormal
+=================
+*/
+_inline int PlaneTypeForNormal( const vec3_t normal )
+{
+	if( normal[0] == 1.0 || normal[0] == -1.0 )
+		return PLANE_X;
+	if( normal[1] == 1.0 || normal[1] == -1.0 )
+		return PLANE_Y;
+	if( normal[2] == 1.0 || normal[2] == -1.0 )
+		return PLANE_Z;
+	return PLANE_NONAXIAL;
+}
+
+/*
 ==============
 BoxOnPlaneSide (engine fast version)
 

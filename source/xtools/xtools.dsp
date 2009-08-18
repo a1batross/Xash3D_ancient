@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PLATFORM_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "./" /I "../public" /I "bsplib" /I "ripper" /I "../common" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "./" /I "../public" /I "bsplib" /I "models" /I "ripper" /I "../common" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -80,7 +80,7 @@ SOURCE="$(InputPath)"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PLATFORM_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "../public" /I "bsplib" /I "ripper" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "../public" /I "bsplib" /I "models" /I "ripper" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /GZ /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -114,6 +114,34 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\bsplib\brush.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\brush_primit.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\bsp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\bspfile_abstract.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\bspfile_ibsp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\bspfile_rbsp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\bsplib.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\ripper\conv_bsplumps.c
 # End Source File
 # Begin Source File
@@ -138,7 +166,143 @@ SOURCE=.\ripper\conv_sprite.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\bsplib\convert_ase.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\convert_map.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\decals.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\dpvencoder.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\facebsp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\fog.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\image.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\leakfile.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\light.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\light_bounce.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\light_trace.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\light_ydnar.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\lightmaps_ydnar.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\map.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\md5.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\mesh.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\model.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\patch.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\path_init.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\models\picointernal.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\models\picomodel.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\models\picomodules.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\models\pm_3ds.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\models\pm_ase.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\models\pm_fm.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\models\pm_md2.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\models\pm_md3.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\models\pm_mdc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\models\pm_ms3d.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\models\pm_obj.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\polylib.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\portals.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\prtfile.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\scriplib.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\shaders.c
 # End Source File
 # Begin Source File
 
@@ -154,11 +318,51 @@ SOURCE=.\studio_utils.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\bsplib\surface.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\surface_extra.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\surface_foliage.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\surface_fur.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\surface_meta.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\tjunction.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\tree.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\utils.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\bsplib\vis.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\visflow.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\wadlib.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\writebsp.c
 # End Source File
 # Begin Source File
 
@@ -170,7 +374,67 @@ SOURCE=.\xtools.c
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
+SOURCE=.\bsplib\game_ef.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\game_etut.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\game_ja.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\game_jk2.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\game_qfusion.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\game_quake3.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\game_sof2.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\game_tenebrae.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\game_tremulous.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\game_wolf.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\game_wolfet.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\mdllib.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\models\picointernal.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\models\picomodel.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\models\pm_fm.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\q3map2.h
 # End Source File
 # Begin Source File
 

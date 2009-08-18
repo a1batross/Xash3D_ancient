@@ -322,19 +322,6 @@ _inline void Matrix4x4_TransformPoint( const matrix4x4 in, vec3_t point )
 	float	out1, out2, out3;
 #ifdef OPENGL_STYLE
 	out1 =  in[0][0] * point[0];
-	out2 =  in[0][1] * point[0];
-	out3 =  in[0][2] * point[0];
-	out1 += in[1][0] * point[1];
-	out2 += in[1][1] * point[1];
-	out3 += in[1][2] * point[1];
-	out1 += in[2][0] * point[2];
-	out2 += in[2][1] * point[2];
-	out3 += in[2][2] * point[2];
-	out1 += in[3][0];
-	out2 += in[3][1];
-	out3 += in[3][2];
-#else
-	out1 =  in[0][0] * point[0];
 	out2 =  in[1][0] * point[0];
 	out3 =  in[2][0] * point[0];
 	out1 += in[0][1] * point[1];
@@ -346,10 +333,52 @@ _inline void Matrix4x4_TransformPoint( const matrix4x4 in, vec3_t point )
 	out1 += in[0][3];
 	out2 += in[1][3];
 	out3 += in[2][3];
+#else
+	out1 =  in[0][0] * point[0];
+	out2 =  in[0][1] * point[0];
+	out3 =  in[0][2] * point[0];
+	out1 += in[1][0] * point[1];
+	out2 += in[1][1] * point[1];
+	out3 += in[1][2] * point[1];
+	out1 += in[2][0] * point[2];
+	out2 += in[2][1] * point[2];
+	out3 += in[2][2] * point[2];
+	out1 += in[3][0];
+	out2 += in[3][1];
+	out3 += in[3][2];
 #endif
 	point[0] = out1;
 	point[1] = out2;
 	point[2] = out3;
+}
+
+_inline void Matrix4x4_TransformNormal( const matrix4x4 matrix, vec3_t normal )
+{
+	float	out1, out2, out3;
+#ifdef OPENGL_STYLE
+	out1 =  matrix[0][0] * normal[0];
+	out2 =  matrix[1][0] * normal[0];
+	out3 =  matrix[2][0] * normal[0];
+	out1 += matrix[0][1] * normal[1];
+	out2 += matrix[1][1] * normal[1];
+	out3 += matrix[2][1] * normal[1];
+	out1 += matrix[0][2] * normal[2];
+	out2 += matrix[1][2] * normal[2];
+	out3 += matrix[2][2] * normal[2];
+#else
+	out1 =  matrix[0][0] * normal[0];
+	out2 =  matrix[0][1] * normal[0];
+	out3 =  matrix[0][2] * normal[0];
+	out1 += matrix[1][0] * normal[1];
+	out2 += matrix[1][1] * normal[1];
+	out3 += matrix[1][2] * normal[1];
+	out1 += matrix[2][0] * normal[2];
+	out2 += matrix[2][1] * normal[2];
+	out3 += matrix[2][2] * normal[2];
+#endif
+	normal[0] = out1;
+	normal[1] = out2;
+	normal[2] = out3;
 }
 
 _inline void Matrix4x4_Transform3x3( const matrix4x4 in, const float v[3], float out[3] )
@@ -1659,6 +1688,188 @@ _inline void Matrix4x4_Stretch2D( matrix4x4 out, vec_t s, vec_t t )
 #endif
 }
 
+_inline void Matrix4x4_FromEulerAngles( matrix4x4 out, const vec3_t euler, euler_t order )
+{
+	double		cx, sx, cy, sy, cz, sz;
+	matrix4x4		temp, temp2;
+			
+	cx = cos( DEG2RAD( euler[0] ));
+	sx = sin( DEG2RAD( euler[0] ));
+	cy = cos( DEG2RAD( euler[1] ));
+	sy = sin( DEG2RAD( euler[1] ));
+	cz = cos( DEG2RAD( euler[2] ));
+	sz = sin( DEG2RAD( euler[2] ));
+
+	switch( order )
+	{
+	case eXYZ:
+#ifdef OPENGL_STYLE
+		out[1][0] = (float)(cy*sz);
+		out[2][0] = (float)-sy;
+		out[0][1] = (float)(sx*sy*cz + cx*-sz);
+		out[2][1] = (float)(sx*cy);
+		out[0][2] = (float)(cx*sy*cz + sx*sz);
+		out[1][2] = (float)(cx*sy*sz + -sx*cz);
+#else
+		out[0][1] = (float)(cy*sz);
+		out[0][2] = (float)-sy;
+		out[1][0] = (float)(sx*sy*cz + cx*-sz);
+		out[1][2] = (float)(sx*cy);
+		out[2][0] = (float)(cx*sy*cz + sx*sz);
+		out[2][1] = (float)(cx*sy*sz + -sx*cz);
+#endif
+		out[0][0] = (float)(cy*cz);
+		out[1][1] = (float)(sx*sy*sz + cx*cz);
+		out[2][2] = (float)(cx*cy);
+		out[0][3] = out[1][3] = out[2][3] = out[3][0] = out[3][1] = out[3][2] = 0.0f;
+		out[3][3] =  1.0f;
+		break;
+	case eYZX:
+		Matrix4x4_LoadIdentity( out );
+		out[0][0] = out[2][2] = (float)cy;
+#ifdef OPENGL_STYLE
+		out[2][0] = (float)-sy;
+		out[0][2] = (float) sy;
+#else
+		out[0][2] = (float)-sy;
+		out[2][0] = (float) sy;
+#endif
+		Matrix4x4_LoadIdentity( temp );
+		temp[1][1] = temp[2][2] = (float)cx;
+#ifdef OPENGL_STYLE
+		temp[2][1] = (float) sx;
+		temp[1][2] = (float)-sx;
+#else
+		temp[1][2] = (float) sx;
+		temp[2][1] = (float)-sx;
+#endif
+		Matrix4x4_Concat( temp2, out, temp );
+		Matrix4x4_Copy( out, temp2 );
+		Matrix4x4_LoadIdentity( temp );
+		temp[0][0] = temp[1][1] = (float)cz;
+#ifdef OPENGL_STYLE
+		temp[1][0] = (float) sz;
+		temp[0][1] = (float)-sz;
+#else
+		temp[0][1] = (float) sz;
+		temp[1][0] = (float)-sz;
+#endif
+		Matrix4x4_Concat( temp2, out, temp );
+		Matrix4x4_Copy( out, temp2 );
+		break;
+	case eZXY:
+		Matrix4x4_LoadIdentity( out );
+		out[0][0] = out[1][1] = (float)cz;
+#ifdef OPENGL_STYLE
+		out[1][0] = (float) sz;
+		out[0][1] = (float)-sz;
+#else
+		out[0][1] = (float) sz;
+		out[1][0] = (float)-sz;
+#endif
+		Matrix4x4_LoadIdentity( temp );
+		temp[1][1] = temp[2][2] = (float) cx;
+#ifdef OPENGL_STYLE
+		temp[2][1] = (float) sx;
+		temp[1][2] = (float)-sx;
+#else
+		temp[1][2] = (float) sx;
+		temp[2][1] = (float)-sx;
+#endif
+		Matrix4x4_Concat( temp2, out, temp );
+		Matrix4x4_Copy( out, temp2 );
+		Matrix4x4_LoadIdentity( temp );
+		temp[0][0] = temp[2][2] = (float)cy;
+#ifdef OPENGL_STYLE
+		temp[2][0] = (float)-sy;
+		temp[0][2] = (float) sy;
+#else
+		temp[0][2] = (float)-sy;
+		temp[2][0] = (float) sy;
+#endif
+		Matrix4x4_Concat( temp2, out, temp );
+		Matrix4x4_Copy( out, temp2 );
+		break;
+	case eXZY:
+		Matrix4x4_LoadIdentity( out );
+		out[1][1] = out[2][2] = (float)cx;
+#ifdef OPENGL_STYLE
+		out[2][1] = (float) sx;
+		out[1][2] = (float)-sx;
+#else
+		out[1][2] = (float) sx;
+		out[2][1] = (float)-sx;
+#endif
+		Matrix4x4_LoadIdentity( temp );
+		temp[0][0] = temp[1][1] = (float)cz;
+#ifdef OPENGL_STYLE
+		temp[1][0] = (float) sz;
+		temp[0][1] = (float)-sz;
+#else
+		temp[0][1] = (float) sz;
+		temp[1][0] = (float)-sz;
+#endif
+		Matrix4x4_Concat( temp2, out, temp );
+		Matrix4x4_Copy( out, temp2 );
+		Matrix4x4_LoadIdentity( temp );
+		temp[0][0] = temp[2][2] = (float) cy;
+#ifdef OPENGL_STYLE
+		temp[2][0] = (float)-sy;
+		temp[0][2] = (float) sy;
+#else
+		temp[0][2] = (float)-sy;
+		temp[2][0] = (float) sy;
+#endif
+		Matrix4x4_Concat( temp2, out, temp );
+		Matrix4x4_Copy( out, temp2 );
+		break;
+	case eYXZ:
+		out[0][0] = (float)(cy*cz + sx*sy*-sz);
+		out[1][1] = (float)(cx*cz);
+		out[2][2] = (float)(cx*cy);
+#ifdef OPENGL_STYLE
+		out[1][0] = (float)(cy*sz + sx*sy*cz);
+		out[2][0] = (float)(-cx*sy);
+		out[0][1] = (float)(cx*-sz);
+		out[2][1] = (float)(sx);
+		out[0][2] = (float)(sy*cz + -sx*cy*-sz);
+		out[1][2] = (float)(sy*sz + -sx*cy*cz);
+#else
+		out[0][1] = (float)(cy*sz + sx*sy*cz);
+		out[0][2] = (float)(-cx*sy);
+		out[1][0] = (float)(cx*-sz);
+		out[1][2] = (float)(sx);
+		out[2][0] = (float)(sy*cz + -sx*cy*-sz);
+		out[2][1] = (float)(sy*sz + -sx*cy*cz);
+#endif
+		out[0][3] = out[1][3] = out[2][3] = out[3][0] = out[3][1] = out[3][2] = 0.0f;
+		out[3][3] =  1.0f;
+		break;
+	case eZYX:
+		out[0][0] = (float)(cy*cz);
+		out[1][1] = (float)(sx*sy*-sz + cx*cz);
+		out[2][2] = (float)(cx*cy);
+#ifdef OPENGL_STYLE
+		out[1][0] = (float)(sx*sy*cz + cx*sz);
+		out[2][0] = (float)(cx*-sy*cz + sx*sz);
+		out[0][1] = (float)(cy*-sz);
+		out[2][1] = (float)(cx*-sy*-sz + sx*cz);
+		out[0][2] = (float)sy;
+		out[1][2] = (float)(-sx*cy);
+#else
+		out[0][1] = (float)(sx*sy*cz + cx*sz);
+		out[0][2] = (float)(cx*-sy*cz + sx*sz);
+		out[1][0] = (float)(cy*-sz);
+		out[1][2] = (float)(cx*-sy*-sz + sx*cz);
+		out[2][0] = (float)sy;
+		out[2][1] = (float)(-sx*cy);
+#endif
+		out[0][3] = out[1][3] = out[2][3] = out[3][0] = out[3][1] = out[3][2] = 0.0f;
+		out[3][3] =  1.0f;
+		break;
+	}
+}
+
 _inline void Matrix4x4_ConcatScale( matrix4x4 out, float x )
 {
 	matrix4x4	base, temp;
@@ -1686,6 +1897,15 @@ _inline void Matrix4x4_ConcatRotate( matrix4x4 out, float angle, float x, float 
 	Matrix4x4_Concat( out, base, temp );
 }
 
+_inline void Matrix4x4_ConcatEulerAngles( matrix4x4 out, const vec3_t euler, euler_t order )
+{
+	matrix4x4	base, temp;
+
+	Matrix4x4_Copy( base, out );
+	Matrix4x4_FromEulerAngles( temp, euler, order );
+	Matrix4x4_Concat( out, base, temp );
+}
+
 _inline void Matrix4x4_ConcatScale3( matrix4x4 out, float x, float y, float z )
 {
 	matrix4x4  base, temp;
@@ -1695,18 +1915,15 @@ _inline void Matrix4x4_ConcatScale3( matrix4x4 out, float x, float y, float z )
 	Matrix4x4_Concat( out, base, temp );
 }
 
-_inline void Matrix4x4_Pivot( matrix4x4 m, const vec3_t org, const vec3_t ang, const vec3_t scale, const vec3_t pivot )
+_inline void Matrix4x4_Pivot( matrix4x4 m, const vec3_t org, const vec3_t ang, euler_t order, const vec3_t scale, const vec3_t pv )
 {
 	vec3_t	temp;
 
-	VectorAdd( pivot, org, temp );
-	Matrix4x4_LoadIdentity( m );
+	VectorAdd( pv, org, temp );
 	Matrix4x4_ConcatTranslate( m, temp[0], temp[1], temp[2] );
-	Matrix4x4_ConcatRotate( m, ang[0], 1, 0, 0 );
-	Matrix4x4_ConcatRotate( m, ang[1], 0, 1, 0 );
-	Matrix4x4_ConcatRotate( m, ang[2], 0, 0, 1 );
+	Matrix4x4_ConcatEulerAngles( m, ang, order );
 	Matrix4x4_ConcatScale3( m, scale[0], scale[1], scale[2] );
-	VectorNegate( pivot, temp );
+	VectorNegate( pv, temp );
 	Matrix4x4_ConcatTranslate( m, temp[0], temp[1], temp[2] );
 }
 

@@ -268,9 +268,9 @@ typedef enum
 	SURF_ALPHASHADOW		= BIT(16),	// do per-pixel light shadow casting in q3map
 	SURF_NODLIGHT		= BIT(17),	// never add dynamic lights
 	SURF_DUST			= BIT(18),	// REMOVE? leave a dust trail when walking on this surface
-} surfaceType_t;
+} surfaceFlags_t;
 
-enum
+typedef enum
 {
 	MST_BAD = 0,
 	MST_PLANAR,
@@ -278,7 +278,7 @@ enum
 	MST_TRISURF,
 	MST_FLARE,
 	MST_FOLIAGE
-};
+} bspSurfaceType_t;
 
 typedef struct
 {

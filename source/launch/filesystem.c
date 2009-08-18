@@ -1280,6 +1280,7 @@ FS_Rescan
 */
 void FS_Rescan( void )
 {
+	MsgDev( D_NOTE, "FS_Rescan( %s )\n", GI.title );
 	FS_ClearSearchPath();
 
 	FS_AddGameHierarchy( GI.basedir );
@@ -1289,6 +1290,53 @@ void FS_Rescan( void )
 void FS_Rescan_f( void )
 {
 	FS_Rescan();
+}
+
+void FS_CreatePathesList( void )
+{
+	file_t	*f;
+
+	// make simple pathes.rc
+	f = FS_Open( "pathes.rc", "w" );
+	if( !f ) return; // not fatal for us
+
+	FS_Printf (f, "//=======================================================================\n");
+	FS_Printf (f, "//\t\t\tCopyright XashXT Group %s ©\n", com.timestamp( TIME_YEAR_ONLY ));
+	FS_Printf (f, "//\t\t      pathes.rc - executable associations\n");
+	FS_Printf (f, "//=======================================================================\n");
+	FS_Printf (f, "\n");
+	FS_Printf (f, "// executable name\t\tlinked basedir\n");
+	FS_Printf (f, "quake.exe\t\t\tid1\n" );
+	FS_Printf (f, "quake2.exe\t\tbaseq2\n" );
+	FS_Printf (f, "quake3.exe\t\tbaseq3\n" );
+	FS_Printf (f, "hl.exe\t\t\tvalve\n" );
+	FS_Close (f);	
+}
+
+void FS_ApplyBaseDir( void )
+{
+	script_t	*script;
+	token_t	tok;
+
+	if(!FS_FileExists( "pathes.rc" )) FS_CreatePathesList();
+	script = PS_LoadScript( "pathes.rc", NULL, 0 );
+	if( !script ) return; // use standard methods
+
+	while( PS_ReadToken( script, SC_ALLOW_NEWLINES|SC_ALLOW_PATHNAMES, &tok ))
+	{
+		FS_StripExtension( tok.string ); // cutoff .exe if present
+		if( !com.stricmp( tok.string, gs_basedir ))
+		{
+			if( PS_ReadToken( script, SC_ALLOW_PATHNAMES, &tok ))
+			{
+				// install new basedir
+				com.strncpy( gs_basedir, tok.string, sizeof( gs_basedir ));
+				break;
+			}
+			else MsgDev( D_ERROR, "missing associated directory with %s.exe", gs_basedir );
+		}
+	}
+	PS_FreeScript( script );
 }
 
 void FS_ResetGameInfo( void )
@@ -1317,7 +1365,7 @@ void FS_CreateGameInfo( const char *filename )
 	com.strncat( buffer, "\nsourcedir\t\t\"source\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nsp_spawn\t\t\"info_player_start\"", MAX_SYSPATH );
 	com.strncat( buffer, "\ndm_spawn\t\t\"info_player_deathmatch\"", MAX_SYSPATH );
-	com.strncat( buffer, "\nteam_spawn\t\t\"info_player_coop\"", MAX_SYSPATH );
+	com.strncat( buffer, "\nteam_spawn\t\"info_player_coop\"", MAX_SYSPATH );
 	
 	FS_WriteFile( filename, buffer, com.strlen( buffer ));
 	Mem_Free( buffer );
@@ -1332,6 +1380,9 @@ void FS_LoadGameInfo( const char *filename )
 
 	// lock uplevel of gamedir for read\write
 	fs_ext_path = false;
+
+	Com_Assert( filename == NULL );
+	MsgDev( D_NOTE, "FS_LoadGameInfo: [%s]\n", filename );
 
 	// prepare to loading
 	FS_ClearSearchPath();
@@ -1455,6 +1506,8 @@ void FS_Init( void )
 				com.strcpy( gs_basedir, fs_defaultdir->string );
 			else if( Sys_GetModuleName( gs_basedir, MAX_SYSPATH ));
 			else com.strcpy( gs_basedir, fs_defaultdir->string ); // default dir
+
+			FS_ApplyBaseDir();	// check for associated folders
 		}
 		// checked nasty path: "bin" it's a reserved word
 		if( FS_CheckNastyPath( gs_basedir, true ) || !com.stricmp( "bin", gs_basedir ))
@@ -1562,20 +1615,20 @@ void FS_UpdateConfig( void )
 	file_t	*f;
 
 	if( Sys.app_state == SYS_ERROR ) return;
-	// only normal and bsplib instance can change config.dll
+	// only normal and bsplib instance can change config.rc
 	if( Sys.app_name != HOST_NORMAL && Sys.app_name != HOST_BSPLIB ) return;
 	com.strncpy( fs_gamedir, "bin", sizeof( fs_gamedir ));	// set write directory for system config
-	f = FS_Open( "config.dll", "w" );
+	f = FS_Open( "config.rc", "w" );
 	if( f )
 	{
 		FS_Printf (f, "//=======================================================================\n");
 		FS_Printf (f, "//\t\t\tCopyright XashXT Group %s ©\n", com.timestamp( TIME_YEAR_ONLY ));
-		FS_Printf (f, "//\t\t      system.rc - archive of system cvars\n");
+		FS_Printf (f, "//\t\t      config.rc - archive of system cvars\n");
 		FS_Printf (f, "//=======================================================================\n");
 		FS_WriteVariables( f );
 		FS_Close (f);	
 	}                                                
-	else MsgDev( D_NOTE, "can't update config.dll.\n" );
+	else MsgDev( D_ERROR, "can't update config.rc.\n" );
 }
 
 /*

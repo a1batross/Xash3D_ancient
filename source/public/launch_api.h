@@ -87,6 +87,7 @@ typedef void ( *cmdraw_t )( int color, int numpoints, const float *points, const
 typedef void ( *setpair_t )( const char *key, const char *value, void *buffer, void *numpairs );
 typedef enum { mod_bad, mod_world, mod_brush, mod_alias, mod_studio, mod_sprite } modtype_t;
 typedef enum { NA_LOOPBACK, NA_BROADCAST, NA_IP } netadrtype_t;
+typedef enum { eXYZ, eYZX, eZXY, eXZY, eYXZ, eZYX } euler_t;
 typedef enum { NS_CLIENT, NS_SERVER } netsrc_t;
 typedef void ( *xcommand_t )( void );
 
@@ -114,7 +115,7 @@ typedef enum
 	CVAR_ARCHIVE	= BIT(0),	// set to cause it to be saved to vars.rc
 	CVAR_USERINFO	= BIT(1),	// added to userinfo  when changed
 	CVAR_SERVERINFO	= BIT(2),	// added to serverinfo when changed
-	CVAR_SYSTEMINFO	= BIT(3),	// don't changed from console, saved into config.dll
+	CVAR_SYSTEMINFO	= BIT(3),	// don't changed from console, saved into config.rc
 	CVAR_INIT		= BIT(4), // don't allow change from console at all, but can be set from the command line
 	CVAR_LATCH	= BIT(5),	// save changes until server restart
 	CVAR_READ_ONLY	= BIT(6),	// display only, cannot be set by user at all
@@ -640,6 +641,9 @@ typedef struct stdilib_api_s
 typedef void *(*launch_t)( stdlib_api_t*, void* );
 typedef struct { size_t api_size; } generic_api_t;
 
+// moved here to enable assertation feature in launch.dll
+#define Com_Assert( x )		if( x ) com.abort( "assert failed at %s:%i\n", __FILE__, __LINE__ );
+
 #ifndef LAUNCH_DLL
 /*
 ==============================================================================
@@ -897,7 +901,6 @@ misc utils
 #define StringTable_GetName		com.st_getname
 #define StringTable_Load		com.st_load
 #define StringTable_Save		com.st_save
-#define Com_Assert( x )		if( x ) com.abort( "assert failed at %s:%i\n", __FILE__, __LINE__ );
 
 /*
 ===========================================

@@ -1666,7 +1666,7 @@ bool CM_SpriteModel( byte *buffer, uint filesize )
 
 bool CM_BrushModel( byte *buffer, uint filesize )
 {
-	MsgDev( D_WARN, "CM_BrushModel: not implemented\n" );
+	Host_Error( "CM_BrushModel: not implemented\n" );
 	return false;
 }
 
@@ -1677,10 +1677,10 @@ cmodel_t *CM_RegisterModel( const char *name )
 	cmodel_t	*mod;
 
 	if( !name[0] ) return NULL;
-	if(name[0] == '*') 
+	if( name[0] == '*' ) 
 	{
-		i = com.atoi( name + 1);
-		if( i < 1 || !cms.loaded || i >= cms.numbmodels)
+		i = com.atoi( name + 1 );
+		if( i < 1 || !cms.loaded || i >= cms.numbmodels )
 		{
 			MsgDev(D_WARN, "CM_InlineModel: bad submodel number %d\n", i );
 			return NULL;
@@ -1689,11 +1689,16 @@ cmodel_t *CM_RegisterModel( const char *name )
 		cms.bmodels[i].registration_sequence = registration_sequence;
 		return &cms.bmodels[i];
 	}
+
+	// FIXME: use registration_sequence for worldmodel
+	if( !com.strcmp( name, cm.name ))
+		return &cms.bmodels[0];
+
 	for( i = 0; i < cms.numcmodels; i++ )
           {
 		mod = &cms.cmodels[i];
-		if(!mod->name[0]) continue;
-		if(!com.strcmp( name, mod->name ))
+		if( !mod->name[0] ) continue;
+		if( !com.strcmp( name, mod->name ))
 		{
 			// prolonge registration
 			mod->registration_sequence = registration_sequence;
@@ -1703,9 +1708,7 @@ cmodel_t *CM_RegisterModel( const char *name )
 
 	// find a free model slot spot
 	for( i = 0, mod = cms.cmodels; i < cms.numcmodels; i++, mod++)
-	{
 		if( !mod->name[0] ) break; // free spot
-	}
 	if( i == cms.numcmodels )
 	{
 		if( cms.numcmodels == MAX_MODELS )
@@ -1716,7 +1719,7 @@ cmodel_t *CM_RegisterModel( const char *name )
 		cms.numcmodels++;
 	}
 
-	com.strncpy( mod->name, name, sizeof(mod->name));
+	com.strncpy( mod->name, name, sizeof( mod->name ));
 	buf = FS_LoadFile( name, &size );
 	if( !buf )
 	{
@@ -1726,7 +1729,7 @@ cmodel_t *CM_RegisterModel( const char *name )
 	}
 
 
-	MsgDev( D_NOTE, "CM_LoadModel: load %s\n", name );
+	MsgDev( D_NOTE, "CM_LoadModel: %s\n", name );
 	mod->mempool = Mem_AllocPool( va("^2%s^7", mod->name ));
 	loadmodel = mod;
 
@@ -1740,7 +1743,7 @@ cmodel_t *CM_RegisterModel( const char *name )
 		CM_SpriteModel( buf, size );
 		break;
 	case IDBSPMODHEADER:
-		CM_BrushModel( buf, size );//FIXME
+		CM_BrushModel( buf, size );
 		break;
 	}
 	Mem_Free( buf ); 

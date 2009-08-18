@@ -293,17 +293,10 @@ void Cmd_SystemCfg_f( void )
 	char	*f;
 	size_t	len;
 
-	// immitate loading normal PE-file
-	MsgDev(D_NOTE, "Sys_LoadLibrary: Loading %s", "config.dll" );
-	f = FS_LoadFile( "config.dll", &len );
-	if( !f )
-	{
-		MsgDev(D_NOTE, " - failed\n");
-		return;
-	}
-          MsgDev(D_NOTE, " - ok\n");
-	Cbuf_InsertText(f);
-	Mem_Free(f);
+	f = FS_LoadFile( "config.rc", &len );
+	if( !f ) return;
+	Cbuf_InsertText( f );
+	Mem_Free( f );
 }
 
 /*
