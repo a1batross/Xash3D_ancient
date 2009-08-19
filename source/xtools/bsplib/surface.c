@@ -3237,7 +3237,7 @@ int AddSurfaceModels( mapDrawSurface_t *ds )
 				src.height = ds->patchHeight;
 				src.verts = ds->verts;
 				//%	subdivided = SubdivideMesh( src, 8.0f, 512 );
-				iterations = IterationsForCurve( ds->longestCurve, patchSubdivisions );
+				iterations = IterationsForCurve( ds->longestCurve, patch_subdivide->integer );
 				subdivided = SubdivideMesh2( src, iterations );
 				
 				/* fit it to the curve and remove colinear verts on rows/columns */

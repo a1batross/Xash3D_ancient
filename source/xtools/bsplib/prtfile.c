@@ -273,19 +273,19 @@ void WritePortalFile( tree_t *tree )
 	MsgDev( D_NOTE, "--- WritePortalFile ---\n" );
 	
 	// write the file
-	com.sprintf( filename, "%s.prt", source );
+	com.sprintf( filename, "maps/%s.prt", source );
 	Msg( "writing %s\n", filename );
 	pf = FS_Open( filename, "w" );
 
 	if( !pf ) Sys_Error( "error opening %s\n", filename );
 		
-	FS_Printf (pf, "%s\n", PORTALfile_t);
-	FS_Printf (pf, "%i\n", num_visclusters);
-	FS_Printf (pf, "%i\n", num_visportals);
-	FS_Printf (pf, "%i\n", num_solidfaces);
+	FS_Printf( pf, "%s\n", PORTALfile_t );
+	FS_Printf( pf, "%i\n", num_visclusters );
+	FS_Printf( pf, "%i\n", num_visportals );
+	FS_Printf( pf, "%i\n", num_solidfaces );
 
-	WritePortalFile_r(tree->headnode);
-	WriteFaceFile_r(tree->headnode);
+	WritePortalFile_r( tree->headnode );
+	WriteFaceFile_r( tree->headnode );
 
 	FS_Close( pf );
 }

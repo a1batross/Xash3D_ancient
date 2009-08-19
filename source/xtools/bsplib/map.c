@@ -36,13 +36,7 @@ several games based on the Quake III Arena engine, in the form of "Q3Map2."
 /* dependencies */
 #include "q3map2.h"
 
-
-
-/* FIXME: remove these vars */
-
-/* undefine to make plane finding use linear sort (note: really slow) */
-#define	USE_HASHING
-#define	PLANE_HASHES	8192
+#define PLANE_HASHES	8192
 
 plane_t	*planehash[ PLANE_HASHES ];
 
@@ -207,13 +201,10 @@ must be within an epsilon distance of the plane
 */
 
 int FindFloatPlane( vec3_t normal, vec_t dist, int numPoints, vec3_t *points )
-
-#ifdef USE_HASHING
-
 {
 	int		i, j, hash, h;
-	plane_t	*p;
-	vec_t	d;
+	plane_t		*p;
+	vec_t		d;
 	
 	
 	/* hash the plane */
@@ -250,25 +241,6 @@ int FindFloatPlane( vec3_t normal, vec_t dist, int numPoints, vec3_t *points )
 	/* none found, so create a new one */
 	return CreateNewFloatPlane( normal, dist );
 }
-
-#else
-
-{
-	int		i;
-	plane_t	*p;
-	
-
-	SnapPlane( normal, &dist );
-	for( i = 0, p = mapplanes; i < nummapplanes; i++, p++ )
-	{
-		if( PlaneEqual( p, normal, dist ) )
-			return i;
-	}
-	
-	return CreateNewFloatPlane( normal, dist );
-}
-
-#endif
 
 /*
 =====================

@@ -147,9 +147,6 @@ constants
 
 /* vis */
 #define	VIS_HEADER_SIZE			8
-
-#define SEPERATORCACHE			/* seperator caching helps a bit */
-
 #define	PORTALFILE				"PRT1"
 
 #define	MAX_PORTALS				32768
@@ -1122,10 +1119,8 @@ typedef struct pstack_s
 
 	visPlane_t			portalplane;
 	int depth;
-#ifdef SEPERATORCACHE
 	visPlane_t			seperators[ 2 ][ MAX_SEPERATORS ];
 	int					numseperators[ 2 ];
-#endif
 }
 pstack_t;
 
@@ -1320,32 +1315,31 @@ rawGridPoint_t;
 
 typedef struct surfaceInfo_s
 {
-	bspModel_t			*model;
-	shaderInfo_t		*si;
-	rawLightmap_t		*lm;
-	int					parentSurfaceNum, childSurfaceNum;
-	int					entityNum, castShadows, recvShadows, sampleSize, patchIterations;
-	float				longestCurve;
-	float				*plane;
-	vec3_t				axis, mins, maxs;
-	bool			hasLightmap, approximated;
-	int					firstSurfaceCluster, numSurfaceClusters;
-}
-surfaceInfo_t;
+	bspModel_t	*model;
+	shaderInfo_t	*si;
+	rawLightmap_t	*lm;
+	int		parentSurfaceNum, childSurfaceNum;
+	int		entityNum, castShadows, recvShadows, sampleSize, patchIterations;
+	float		longestCurve;
+	float		*plane;
+	vec3_t		axis, mins, maxs;
+	bool		hasLightmap, approximated;
+	int		firstSurfaceCluster, numSurfaceClusters;
+} surfaceInfo_t;
 
-
-
-/* -------------------------------------------------------------------------------
+/*
+-------------------------------------------------------------------------------
 
 prototypes
 
-------------------------------------------------------------------------------- */
+-------------------------------------------------------------------------------
+*/
 
-/* main.c */
-vec_t						Random( void );
-int							BSPInfo( int count, char **fileNames );
-int							ScaleBSPMain( int argc, char **argv );
-int							ConvertMain( int argc, char **argv );
+/* bsplib.c */
+float		Random( void );
+int		BSPInfo( int count, char **fileNames );
+int		ScaleBSPMain( int argc, char **argv );
+int		ConvertMain( int argc, char **argv );
 
 /* md5.c */
 typedef struct
@@ -1360,21 +1354,16 @@ void MD5_Update( MD5_CTX *ctx, const byte *buf, uint len );
 void MD5_Final( MD5_CTX *ctx, byte digest[16] );
 dword MD5_BlockChecksum( const void *data, int length );
 
-/* path_init.c */
-game_t						*GetGame( char *arg );
-void						InitPaths( int *argc, char **argv );
-
-
 /* bsp.c */
-int							BSPMain( int argc, char **argv );
+int	BSPMain( int argc, char **argv );
 
 
 /* convert_map.c */
-int							ConvertBSPToMap( char *bspName );
+int	ConvertBSPToMap( char *bspName );
 
 
 /* convert_ase.c */
-int							ConvertBSPToASE( char *bspName );
+int	ConvertBSPToASE( char *bspName );
 
 
 /* brush.c */
@@ -1496,12 +1485,14 @@ tree_t						*FaceBSP( face_t *list );
 
 
 /* model.c */
-void						PicoPrintFunc( int level, const char *str );
-void						PicoLoadFileFunc( char *name, byte **buffer, int *bufSize );
-picoModel_t					*FindModel( char *name, int frame );
-picoModel_t					*LoadModel( char *name, int frame );
-void						InsertModel( char *name, int frame, matrix4x4 transform, remap_t *remap, shaderInfo_t *celShader, int eNum, int castShadows, int recvShadows, int spawnFlags, float lightmapScale );
-void						AddTriangleModels( entity_t *e );
+void		*PicoMalloc( size_t size );
+void		PicoFree( void *mem );
+void		PicoPrintFunc( int level, const char *str );
+void		PicoLoadFileFunc( char *name, byte **buffer, int *bufSize );
+picoModel_t	*FindModel( char *name, int frame );
+picoModel_t	*LoadModel( char *name, int frame );
+void		InsertModel( char *name, int frame, matrix4x4 transform, remap_t *remap, shaderInfo_t *celShader, int eNum, int castShadows, int recvShadows, int spawnFlags, float lightmapScale );
+void		AddTriangleModels( entity_t *e );
 
 
 /* surface.c */
@@ -1576,11 +1567,11 @@ void						ComputeAxisBase( vec3_t normal, vec3_t texX, vec3_t texY);
 
 
 /* vis.c */
-fixedWinding_t				*NewFixedWinding( int points );
-int							VisMain( int argc, char **argv );
+fixedWinding_t		*NewFixedWinding( int points );
+int			VisMain( int argc, char **argv );
 
 /* visflow.c */
-int							CountBits( byte *bits, int numbits );
+int			CountBits( byte *bits, int numbits );
 void						PassageFlow( int portalnum );
 void						CreatePassages( int portalnum );
 void						PassageMemory( void );
@@ -1592,11 +1583,11 @@ void						PassagePortalFlow( int portalnum );
 
 
 /* light.c  */
-float						PointToPolygonFormFactor( const vec3_t point, const vec3_t normal, const winding_t *w );
-int							LightContributionToSample( light_trace_t *trace );
-void						LightingAtSample( light_trace_t *trace, byte styles[ MAX_LIGHTMAPS ], vec3_t colors[ MAX_LIGHTMAPS ] );
-int							LightContributionToPoint( light_trace_t *trace );
-int							LightMain( int argc, char **argv );
+float		PointToPolygonFormFactor( const vec3_t point, const vec3_t normal, const winding_t *w );
+int		LightContributionToSample( light_trace_t *trace );
+void		LightingAtSample( light_trace_t *trace, byte styles[MAX_LIGHTMAPS], vec3_t colors[MAX_LIGHTMAPS] );
+int		LightContributionToPoint( light_trace_t *trace );
+int		LightMain( int argc, char **argv );
 
 
 /* light_trace.c */
@@ -1643,8 +1634,8 @@ void						CreateTraceLightsForSurface( int num, light_trace_t *trace );
 /* lightmaps_ydnar.c */
 void						ExportLightmaps( void );
 
-int							ExportLightmapsMain( int argc, char **argv );
-int							ImportLightmapsMain( int argc, char **argv );
+int		ExportLightmapsMain( int argc, char **argv );
+int		ImportLightmapsMain( int argc, char **argv );
 
 void						SetupSurfaceLightmaps( void );
 void						StitchSurfaceLightmaps( void );
@@ -1801,7 +1792,7 @@ Q_EXTERN bool			noHint Q_ASSIGN( false );				/* ydnar */
 Q_EXTERN bool			renameModelShaders Q_ASSIGN( false );	/* ydnar */
 Q_EXTERN bool			skyFixHack Q_ASSIGN( false );			/* ydnar */
 
-Q_EXTERN int				patchSubdivisions Q_ASSIGN( 8 );		/* ydnar: -patchmeta subdivisions */
+Q_EXTERN cvar_t			*patch_subdivide;
 
 Q_EXTERN int				maxLMSurfaceVerts Q_ASSIGN( 64 );		/* ydnar */
 Q_EXTERN int				maxSurfaceVerts Q_ASSIGN( 999 );		/* ydnar */

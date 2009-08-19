@@ -37,6 +37,9 @@ several games based on the Quake III Arena engine, in the form of "Q3Map2."
 #include "q3map2.h"
 #include "byteorder.h"
 
+bool	(*BspFunc)( int argc, char **argv );
+int	com_argc;
+char	**com_argv;
 
 /*
 Random()
@@ -48,69 +51,41 @@ vec_t Random( void )
 	return (vec_t) rand() / RAND_MAX;
 }
 
-/*
-ExitQ3Map()
-cleanup routine
-*/
+void Bsp_PrintLog( const char *pMsg )
+{
+	if( !enable_log ) return;
+	if( !bsplog ) bsplog = FS_Open( va( "maps/%s.log", gs_filename ), "wb" );
+	FS_Print( bsplog, pMsg );
+}
 
-static void ExitQ3Map( void )
+/*
+GetGame() - ydnar
+gets the game_t based on a -game argument
+returns NULL if no match found
+*/
+game_t *GetGame( char *arg )
+{
+	int	i = 0;
+	
+	if( arg == NULL || arg[ 0 ] == '\0' )
+		return NULL;
+
+	while( games[i].arg != NULL )
+	{
+		if( !com.stricmp( arg, games[i].arg ))
+			return &games[i];
+		i++;
+	}
+	return NULL;
+}
+
+
+void Bsp_Shutdown( void )
 {
 	BSPFilesCleanup();
 	if( mapDrawSurfs != NULL )
 		Mem_Free( mapDrawSurfs );
 }
-
-/*
-FixClipMap()
-resets an clipmap checksum to match the given BSP
-*/
-int FixClipMap( int argc, char **argv )
-{
-	int	length, checksum;
-	void	*buffer;
-	file_t	*file;
-	char	clipmap[MAX_SYSPATH];
-	
-	/* arg checking */
-	if( argc < 2 )
-	{
-		Msg( "Usage: q3map -fixaas [-v] <mapname>\n" );
-		return 0;
-	}
-	
-	/* do some path mangling */
-	strcpy( source, argv[argc-1] );
-	FS_StripExtension( source );
-	FS_DefaultExtension( source, ".bsp" );
-	
-	Msg( "--- FixClipMap ---\n" );
-	
-	Msg( "Loading %s\n", source );
-	buffer = FS_LoadFile( source, &length );
-	if( !buffer ) Sys_Break( "can't load %s\n", source );
-	
-	/* create bsp checksum */
-	Msg( "Creating checksum...\n" );
-	checksum = LittleLong( Com_BlockChecksum( buffer, length ));
-	Mem_Free( buffer );
-	
-	/* mangle name */
-	FS_FileBase( source, source );
-	com.sprintf( clipmap, "maps/clipmaps/%s.bin", source );
-	
-	/* fix it */
-	file = FS_Open( clipmap, "r+b" );
-	if( !file ) return 1;
-
-	FS_Seek( file, 0, SEEK_SET );
-	if( FS_Write( file, &checksum, sizeof( int )) != sizeof( int ))
-		Sys_Break( "Error writing checksum to %s\n", clipmap );
-	FS_Close( file );
-	
-	return 0;
-}
-
-
 
 /*
 AnalyzeBSP() - ydnar
@@ -528,128 +503,66 @@ int ConvertBSPMain( int argc, char **argv )
 	return convertFunc( source );
 }
 
+void InitGameType( void )
+{
 
+}
 
 /*
 main()
 q3map mojo...
 */
 
-bool Q3MapMain( int argc, char **argv )
+bool PrepareBSPModel( int argc, char **argv )
 {
-	int	i, r;
-	double	start, end;
-	
-	
-	/* we want consistent 'randomness' */
-	srand( 0 );
-	
-	/* start timer */
-	start = Sys_DoubleTime();
+	int	i;
 
-	/* this was changed to emit version number over the network */
+	srand( 0 );
+
+	com_argc = argc;
+	com_argv = argv;
+	
 	Msg( Q3MAP_VERSION "\n" );
+	Msg( "%s\n", Q3MAP_MOTD );
+
+	// check for general parms
+	if( FS_CheckParm( "-force" )) force = true;
+	patch_subdivide = Cvar_Get( "bsp_patch_subdivide", "8", CVAR_SYSTEMINFO, "bsplib patch subdivisions" );
+	Cvar_SetValue( "bsp_patch_subdivide", bound( 1, patch_subdivide->integer, 128 )); 	
 	
-	/* set exit call */
-	atexit( ExitQ3Map );
-	
-	/* read general options first */
-	for( i = 1; i < argc; i++ )
-	{
-		/* force */
-		if( !strcmp( argv[ i ], "-force" ) )
-		{
-			force = true;
-			argv[ i ] = NULL;
-		}
-		
-		/* patch subdivisions */
-		else if( !strcmp( argv[ i ], "-subdivisions" ) )
-		{
-			argv[ i ] = NULL;
-			i++;
-			patchSubdivisions = atoi( argv[ i ] );
-			argv[ i ] = NULL;
-			if( patchSubdivisions <= 0 )
-				patchSubdivisions = 1;
-		}
-	}
-	
-	/* init model library */
+	// init model library
 	PicoInit();
-	PicoSetMallocFunc( NULL );
-	PicoSetFreeFunc( NULL );
+	PicoSetMallocFunc( PicoMalloc );
+	PicoSetFreeFunc( PicoFree );
 	PicoSetPrintFunc( PicoPrintFunc );
 	PicoSetLoadFileFunc( PicoLoadFileFunc );
-	PicoSetFreeFileFunc( NULL );
-	
-	/* generate sinusoid jitter table */
+	PicoSetFreeFileFunc( PicoFree );
+		
+	// generate sinusoidal jitter table
 	for( i = 0; i < MAX_JITTERS; i++ )
 		jitters[ i ] = sin( i * 139.54152147 );
 	
-	/* we print out two versions, q3map's main version (since it evolves a bit out of GtkRadiant)
-	   and we put the GtkRadiant version to make it easy to track with what version of Radiant it was built with */
-	Msg( "Q3Map         - v1.0r (c) 1999 Id Software Inc.\n" );
-	Msg( "Q3Map (ydnar) - v" Q3MAP_VERSION "\n" );
-	Msg( "%s\n", Q3MAP_MOTD );
-	
-	/* ydnar: new path initialization */
-	InitPaths( &argc, argv );
-	
-	/* check if we have enough options left to attempt something */
-	if( argc < 2 ) Sys_Break( "Usage: %s [general options] [options] mapfile", argv[ 0 ] );
-	
-	/* fixaas */
-	if( !strcmp( argv[ 1 ], "-fixclip" ) )
-		r = FixClipMap( argc - 1, argv + 1 );
-	
-	/* analyze */
-	else if( !strcmp( argv[ 1 ], "-analyze" ) )
-		r = AnalyzeBSP( argc - 1, argv + 1 );
-	
-	/* info */
-	else if( !strcmp( argv[ 1 ], "-info" ) )
-		r = BSPInfo( argc - 2, argv + 2 );
-	
-	/* vis */
-	else if( !strcmp( argv[ 1 ], "-vis" ) )
-		r = VisMain( argc - 1, argv + 1 );
-	
-	/* light */
-	else if( !strcmp( argv[ 1 ], "-light" ) )
-		r = LightMain( argc - 1, argv + 1 );
-	
-	/* vlight */
-	else if( !strcmp( argv[ 1 ], "-vlight" ) )
-	{
-		Msg( "WARNING: VLight is no longer supported, defaulting to -light -fast instead\n\n" );
-		argv[ 1 ] = "-fast";	/* eek a hack */
-		r = LightMain( argc, argv );
-	}
-	
-	/* ydnar: lightmap export */
-	else if( !strcmp( argv[ 1 ], "-export" ) )
-		r = ExportLightmapsMain( argc - 1, argv + 1 );
-	
-	/* ydnar: lightmap import */
-	else if( !strcmp( argv[ 1 ], "-import" ) )
-		r = ImportLightmapsMain( argc - 1, argv + 1 );
-	
-	/* ydnar: bsp scaling */
-	else if( !strcmp( argv[ 1 ], "-scale" ) )
-		r = ScaleBSPMain( argc - 1, argv + 1 );
-	
-	/* ydnar: bsp conversion */
-	else if( !strcmp( argv[ 1 ], "-convert" ) )
-		r = ConvertBSPMain( argc - 1, argv + 1 );
-	
-	/* ydnar: otherwise create a bsp */
-	else
-		r = BSPMain( argc, argv );
-	
-	/* emit time */
-	end = Sys_DoubleTime();
-	Msg( "%9.0f seconds elapsed\n", end - start );
-	
-	return r;
+	game = &games[0];	// defaulting to Q3A ...
+	FS_LoadGameInfo( "gameinfo.txt" );
+	BspFunc = NULL;
+	enable_log = true;
+
+	if( FS_CheckParm( "-analyze" )) BspFunc = AnalyzeBSP;
+	else if( FS_CheckParm( "-info" )) BspFunc = BSPInfo;
+	else if( FS_CheckParm( "-vis" )) BspFunc = VisMain;
+	else if( FS_CheckParm( "-light" )) BspFunc = LightMain;
+	else if( FS_CheckParm( "-export" )) BspFunc = ExportLightmapsMain;
+	else if( FS_CheckParm( "-import" )) BspFunc = ImportLightmapsMain;
+	else if( FS_CheckParm( "-scale" )) BspFunc = ScaleBSPMain;
+	else if( FS_CheckParm( "-convert" )) BspFunc = ConvertBSPMain;
+	else BspFunc = BSPMain;
+
+	return true;
+}
+
+bool CompileBSPModel ( void )
+{
+	if( !BspFunc ) return false;
+
+	return BspFunc( com_argc, com_argv );
 }

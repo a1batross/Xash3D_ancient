@@ -1487,7 +1487,7 @@ void FS_Init( void )
 	Cmd_AddCommand( "fs_path", FS_Path_f, "show filesystem search pathes" );
 	Cmd_AddCommand( "fs_clearpaths", FS_ClearPaths_f, "clear filesystem search pathes" );
 	fs_wadsupport = Cvar_Get( "fs_wadsupport", "0", CVAR_SYSTEMINFO, "enable wad-archive support" );
-	fs_defaultdir = Cvar_Get( "fs_defaultdir", "tmpQuArK", CVAR_SYSTEMINFO, "engine default directory" );
+	fs_defaultdir = Cvar_Get( "fs_defaultdir", "tmpQuArK", CVAR_SYSTEMINFO, "user-game default directory" );
 
 	Cbuf_ExecuteText( EXEC_NOW, "systemcfg\n" );
 	Cbuf_Execute(); // apply system cvars immediately

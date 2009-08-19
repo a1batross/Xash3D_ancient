@@ -217,18 +217,18 @@ void PR_InitCompile( const char *name )
 	}
 }
 
-void PRVM_Init( int argc, char **argv )
+void PRVM_Init( const int argc, const char **argv )
 {
 	char	dev_level[4];
 
 	com_argc = argc;
-	com_argv = argv;
+	com_argv = (char **)argv;
 
 	qccpool = Mem_AllocPool( "VM progs" );
 	host_instance = g_Instance;
 
-	if(FS_GetParmFromCmdLine("-dev", dev_level ))
-		prvm_developer = com.atoi(dev_level);
+	if( FS_GetParmFromCmdLine( "-dev", dev_level ))
+		prvm_developer = com.atoi( dev_level );
 
 	Cmd_AddCommand("prvm_edict", PRVM_ED_PrintEdict_f, "print all data about an entity number in the selected VM (server, client, uimenu)");
 	Cmd_AddCommand("prvm_edicts", PRVM_ED_PrintEdicts_f, "set a property on an entity number in the selected VM (server, client, uimenu)");

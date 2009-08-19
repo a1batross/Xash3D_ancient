@@ -470,7 +470,7 @@ void ProcessDecals( void )
 			if( distance > 0.125f )
 			{
 				/* tesselate the patch */
-				iterations = IterationsForCurve( p->longestCurve, patchSubdivisions );
+				iterations = IterationsForCurve( p->longestCurve, patch_subdivide->integer );
 				subdivided = SubdivideMesh2( p->mesh, iterations );
 				
 				/* fit it to the curve and remove colinear verts on rows/columns */
@@ -720,7 +720,7 @@ static void ProjectDecalOntoPatch( decalProjector_t *dp, mapDrawSurface_t *ds )
 	src.width = ds->patchWidth;
 	src.height = ds->patchHeight;
 	src.verts = ds->verts;
-	iterations = IterationsForCurve( ds->longestCurve, patchSubdivisions );
+	iterations = IterationsForCurve( ds->longestCurve, patch_subdivide->integer );
 	subdivided = SubdivideMesh2( src, iterations );
 	
 	/* fit it to the curve and remove colinear verts on rows/columns */

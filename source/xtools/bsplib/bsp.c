@@ -622,8 +622,8 @@ handles creation of a bsp from a map file
 
 int BSPMain( int argc, char **argv )
 {
-	int			i;
-	char		path[ 1024 ], tempSource[ 1024 ];
+	int	i;
+	char	path[ 1024 ];
 	bool	onlyents = false;
 	
 	
@@ -633,8 +633,6 @@ int BSPMain( int argc, char **argv )
 	SetDrawSurfacesBuffer();
 	mapDrawSurfs = Malloc( sizeof( mapDrawSurface_t ) * MAX_MAP_DRAW_SURFS );
 	numMapDrawSurfs = 0;
-	
-	tempSource[ 0 ] = '\0';
 	
 	/* set standard game flags */
 	maxSurfaceVerts = game->maxSurfaceVerts;
@@ -649,10 +647,6 @@ int BSPMain( int argc, char **argv )
 			MsgDev( D_INFO, "Running entity-only compile\n" );
 			onlyents = true;
 		}
-		else if( !strcmp( argv[ i ], "-tempname" ) )
-			strcpy( tempSource, argv[ ++i ] );
-		else if( !strcmp( argv[ i ], "-tmpout" ) )
-			strcpy( outbase, "/tmp" );
 		else if( !strcmp( argv[ i ],  "-nowater" ) )
 		{
 			MsgDev( D_INFO, "Disabling water\n" );
@@ -837,7 +831,7 @@ int BSPMain( int argc, char **argv )
 		Sys_Break( "usage: q3map [options] mapfile" );
 	
 	/* copy source name */
-	strcpy( source, argv[i] );
+	strcpy( source, gs_filename );
 	FS_StripExtension( source );
 	
 	/* ydnar: set default sample size */
@@ -845,23 +839,12 @@ int BSPMain( int argc, char **argv )
 	
 	/* delete portal, line and surface files */
 	com.sprintf( path, "%s.prt", source );
-	remove( path );
+	FS_Delete( path );
 	com.sprintf( path, "%s.lin", source );
-	remove( path );
-	//%	com.sprintf( path, "%s.srf", source );	/* ydnar */
-	//%	remove( path );
-	
-	/* expand mapname */
-	strcpy( name, argv[i] );	
-	if( strcmp( name + strlen( name ) - 4, ".reg" ) )
-	{
-		/* if we are doing a full map, delete the last saved region map */
-		com.sprintf( path, "%s.reg", source );
-		remove( path );
-		FS_DefaultExtension( name, ".map" );	/* might be .reg */
-	}
-	
-	/* if onlyents, just grab the entites and resave */
+	FS_Delete( path );
+
+	com.snprintf( name, sizeof( name ), "maps/%s.map", gs_filename );	
+
 	if( onlyents )
 	{
 		OnlyEnts();
@@ -872,10 +855,7 @@ int BSPMain( int argc, char **argv )
 	LoadShaderInfo();
 	
 	/* load original file from temp spot in case it was renamed by the editor on the way in */
-	if( strlen( tempSource ) > 0 )
-		LoadMapFile( tempSource, false );
-	else
-		LoadMapFile( name, false );
+	LoadMapFile( name, false );
 	
 	/* ydnar: decal setup */
 	ProcessDecals();
@@ -895,11 +875,6 @@ int BSPMain( int argc, char **argv )
 	/* finish and write bsp */
 	EndBSPFile();
 	
-	/* remove temp map source file if appropriate */
-	if( strlen( tempSource ) > 0)
-		remove( tempSource );
-	
-	/* return to sender */
 	return 0;
 }
 

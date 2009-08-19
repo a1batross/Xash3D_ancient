@@ -112,9 +112,9 @@ extern host_parm_t host;
 // host.c
 //
 
-void Host_Init ( int argc, char **argv );
-void Host_Main ( void );
-void Host_Free ( void );
+void Host_Init( const int argc, const char **argv );
+void Host_Main( void );
+void Host_Free( void );
 void Host_SetServerState( int state );
 int Host_ServerState( void );
 int Host_MaxClients( void );

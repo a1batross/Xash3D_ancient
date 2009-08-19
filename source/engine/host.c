@@ -109,7 +109,7 @@ void Host_FreeRender( void )
 	Sys_FreeLibrary( &render_dll );
 }
 
-void Host_InitVprogs( int argc, char **argv )
+void Host_InitVprogs( const int argc, const char **argv )
 {
 	launch_t		CreateVprogs;  
 
@@ -458,7 +458,7 @@ static void Host_Crash_f (void)
 	*(int *)0 = 0xffffffff;
 }
 
-void Host_InitCommon( int argc, char **argv )
+void Host_InitCommon( const int argc, const char **argv )
 {
 	char	dev_level[4];
 
@@ -489,7 +489,7 @@ void Host_FreeCommon( void )
 Host_Init
 =================
 */
-void Host_Init( int argc, char **argv )
+void Host_Init( const int argc, const char **argv )
 {
 	char	*s;
 

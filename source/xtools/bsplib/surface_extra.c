@@ -239,9 +239,9 @@ void WriteSurfaceExtraFile( const char *path )
 	MsgDev( D_NOTE, "--- WriteSurfaceExtraFile ---\n" );
 	
 	/* open the file */
-	com.strcpy( srfPath, path );
+	com.snprintf( srfPath, sizeof( srfPath ), "maps/%s", path );
 	FS_StripExtension( srfPath );
-	com.strcat( srfPath, ".srf" );
+	FS_DefaultExtension( srfPath, ".srf" );
 	Msg( "Writing %s\n", srfPath );
 	sf = FS_Open( srfPath, "w" );
 	if( sf == NULL ) Sys_Error( "Error opening %s for writing", srfPath );
@@ -333,9 +333,9 @@ void LoadSurfaceExtraFile( const char *path )
 		return;
 	
 	/* load the file */
-	com.strcpy( srfPath, path );
+	com.snprintf( srfPath, sizeof( srfPath ), "maps/%s", path );
 	FS_StripExtension( srfPath );
-	com.strcat( srfPath, ".srf" );
+	FS_DefaultExtension( srfPath, ".srf" );
 	Msg( "Loading %s\n", srfPath );
 	buffer = (void *)FS_LoadFile( srfPath, &size );
 	if( size <= 0 )

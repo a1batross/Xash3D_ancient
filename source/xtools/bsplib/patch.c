@@ -334,8 +334,8 @@ void ParsePatch( bool onlyLights )
 		{
 			ExpandLongestCurve( &longestCurve, verts[ i * m.width + j ].xyz, verts[ i * m.width + (j + 1) ].xyz, verts[ i * m.width + (j + 2) ].xyz );		/* row */
 			ExpandLongestCurve( &longestCurve, verts[ i * m.width + j ].xyz, verts[ (i + 1) * m.width + j ].xyz, verts[ (i + 2) * m.width + j ].xyz );		/* col */
-			ExpandMaxIterations( &maxIterations, patchSubdivisions, verts[ i * m.width + j ].xyz, verts[ i * m.width + (j + 1) ].xyz, verts[ i * m.width + (j + 2) ].xyz );		/* row */
-			ExpandMaxIterations( &maxIterations, patchSubdivisions, verts[ i * m.width + j ].xyz, verts[ (i + 1) * m.width + j ].xyz, verts[ (i + 2) * m.width + j ].xyz  );	/* col */
+			ExpandMaxIterations( &maxIterations, patch_subdivide->integer, verts[ i * m.width + j ].xyz, verts[ i * m.width + (j + 1) ].xyz, verts[ i * m.width + (j + 2) ].xyz );		/* row */
+			ExpandMaxIterations( &maxIterations, patch_subdivide->integer, verts[ i * m.width + j ].xyz, verts[ (i + 1) * m.width + j ].xyz, verts[ (i + 2) * m.width + j ].xyz  );	/* col */
 		}
 	}
 	

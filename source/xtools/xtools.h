@@ -21,7 +21,9 @@ void ClosePlatform ( void ); // close host
 //	extragen export
 //=====================================
 bool ConvertResource( byte *mempool, const char *filename, byte parms );
+void Bsp_PrintLog( const char *pMsg );
 void Skin_FinalizeScript( void );
+void Bsp_Shutdown( void );
 void Conv_RunSearch( void );
 
 // shared tools

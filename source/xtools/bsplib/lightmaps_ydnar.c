@@ -946,7 +946,7 @@ void SetupSurfaceLightmaps( void )
 			info->recvShadows = GetSurfaceExtraRecvShadows( num );
 			info->sampleSize = GetSurfaceExtraSampleSize( num );
 			info->longestCurve = GetSurfaceExtraLongestCurve( num );
-			info->patchIterations = IterationsForCurve( info->longestCurve, patchSubdivisions );
+			info->patchIterations = IterationsForCurve( info->longestCurve, patch_subdivide->integer );
 			GetSurfaceExtraLightmapAxis( num, info->axis );
 			
 			/* mark parent */

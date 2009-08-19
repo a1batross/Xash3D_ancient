@@ -15,7 +15,8 @@ dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, true, siz
 vprogs_exp_t *PRVM;
 stdlib_api_t com;
 
-#define	MAX_SEARCHMASK	256
+#define MAX_SEARCHMASK	256
+
 string	searchmask[MAX_SEARCHMASK];
 int	num_searchmask = 0;
 string	gs_searchmask;
@@ -54,7 +55,7 @@ platform.dll needs for some setup operations
 so do it manually
 ==================
 */
-void InitCommon( int argc, char **argv )
+void InitCommon( const int argc, const char **argv )
 {
 	int	imageflags = 0;
 	launch_t	CreateVprogs;
@@ -70,12 +71,9 @@ void InitCommon( int argc, char **argv )
 			com.strncpy( gs_basedir, Cvar_VariableString( "fs_defaultdir" ), sizeof( gs_basedir ));
 		if( !FS_GetParmFromCmdLine( "+map", gs_filename ))
 			com.strncpy( gs_filename, "newmap", sizeof( gs_filename ));
-
-
 		// initialize ImageLibrary
 		start = Sys_DoubleTime();
-		Q3MapMain( argc, argv );
-		//PrepareBSPModel( gs_basedir, gs_filename );
+		PrepareBSPModel( (int)argc, (char **)argv );
 		break;
 	case HOST_QCCLIB:
 		Sys_LoadLibrary( &vprogs_dll );	// load qcclib
@@ -138,7 +136,7 @@ void CommonMain( void )
 		break;
 	case HOST_BSPLIB: 
 		AddMask( "*.map" );
-		//CompileBSPModel(); 
+		CompileBSPModel(); 
 		break;
 	case HOST_WADLIB:
 		CompileMod = CompileWad3Archive;
@@ -215,6 +213,7 @@ void FreeCommon( void )
 	}
 	else if( app_name == HOST_BSPLIB )
 	{
+		Bsp_Shutdown();
 		if( bsplog ) FS_Close( bsplog );
 	}
 
@@ -235,7 +234,7 @@ launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 	Com.Init = InitCommon;
 	Com.Main = CommonMain;
 	Com.Free = FreeCommon;
-	Com.CPrint = NULL;
+	Com.CPrint = Bsp_PrintLog;
 
 	return &Com;
 }

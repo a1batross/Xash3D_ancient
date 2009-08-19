@@ -328,7 +328,7 @@ void TriangulatePatchSurface( mapDrawSurface_t *ds )
 	src.height = ds->patchHeight;
 	src.verts = ds->verts;
 	//%	subdivided = SubdivideMesh( src, 8, 999 );
-	iterations = IterationsForCurve( ds->longestCurve, patchSubdivisions );
+	iterations = IterationsForCurve( ds->longestCurve, patch_subdivide->integer );
 	subdivided = SubdivideMesh2( src, iterations );	//%	ds->maxIterations
 	
 	/* fit it to the curve and remove colinear verts on rows/columns */
@@ -1017,8 +1017,8 @@ void SmoothMetaTriangles( void )
 	if( maxShadeAngle <= 0 )
 	{
 		MsgDev( D_INFO, "No smoothing angles specified, aborting\n" );
-		Mem_Free( shadeAngles );
-		Mem_Free( smoothed );
+		if( shadeAngles ) Mem_Free( shadeAngles );
+		if( smoothed ) Mem_Free( smoothed );
 		return;
 	}
 	

@@ -14,6 +14,7 @@ extern byte *basepool;
 extern byte *zonepool;
 extern bool enable_log;
 extern stdlib_api_t com;
+extern file_t *bsplog;
 
 #define Sys_Error			com.error
 #define Malloc( size )		Mem_Alloc( basepool, size )  
@@ -41,8 +42,7 @@ bool CompileStudioModel( byte *mempool, const char *name, byte parms );
 bool CompileSpriteModel( byte *mempool, const char *name, byte parms );
 bool CompileWad3Archive( byte *mempool, const char *name, byte parms );
 bool CompileDPVideo( byte *mempool, const char *name, byte parms );
-bool PrepareBSPModel( const char *dir, const char *name );
-bool Q3MapMain( int argc, char **argv );
+bool PrepareBSPModel( int argc, char **argv );
 bool CompileBSPModel( void );
 
 #endif//UTILS_H

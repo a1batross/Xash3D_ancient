@@ -224,14 +224,7 @@ CalcPortalVis
 */
 void CalcPortalVis (void)
 {
-#ifdef MREDEBUG
-	MsgDev( D_INFO, "%6d portals out of %d", 0, numportals*2);
-	//get rid of the counter
-	RunThreadsOnIndividual (numportals*2, false, PortalFlow);
-#else
 	RunThreadsOnIndividual (numportals*2, true, PortalFlow);
-#endif
-
 }
 
 /*
@@ -243,20 +236,11 @@ void CalcPassageVis(void)
 {
 	PassageMemory();
 
-#ifdef MREDEBUG
-	MsgDev( D_NOTE, "%6d portals out of %d", 0, numportals * 2 );
-	RunThreadsOnIndividual (numportals*2, false, CreatePassages);
-	MsgDev( D_NOTE, "\n" );
-	MsgDev( D_NOTE, "%6d portals out of %d", 0, numportals * 2 );
-	RunThreadsOnIndividual (numportals*2, false, PassageFlow);
-	MsgDev( D_NOTE, "\n" );
-#else
 	MsgDev( D_NOTE, "\n--- CreatePassages (%d) ---\n", numportals * 2 );
 	RunThreadsOnIndividual( numportals*2, true, CreatePassages );
 	
 	MsgDev( D_NOTE, "\n--- PassageFlow (%d) ---\n", numportals * 2 );
 	RunThreadsOnIndividual( numportals * 2, true, PassageFlow );
-#endif
 }
 
 /*
@@ -268,20 +252,11 @@ void CalcPassagePortalVis(void)
 {
 	PassageMemory();
 
-#ifdef MREDEBUG
-	MsgDev( D_NOTE, "%6d portals out of %d", 0, numportals * 2 );
-	RunThreadsOnIndividual (numportals*2, false, CreatePassages);
-	MsgDev( D_NOTE, "\n" );
-	MsgDev( D_NOTE, "%6d portals out of %d", 0, numportals * 2 );
-	RunThreadsOnIndividual (numportals*2, false, PassagePortalFlow);
-	MsgDev( D_NOTE, "\n" );
-#else
 	MsgDev( D_NOTE, "\n--- CreatePassages (%d) ---\n", numportals * 2 );
 	RunThreadsOnIndividual( numportals * 2, true, CreatePassages);
 	
 	MsgDev( D_NOTE, "\n--- PassagePortalFlow (%d) ---\n", numportals * 2 );
 	RunThreadsOnIndividual( numportals * 2, true, PassagePortalFlow );
-#endif
 }
 
 /*
@@ -1091,16 +1066,16 @@ int VisMain( int argc, char **argv )
 	
 
 	/* load the bsp */
-	com.sprintf( source, "%s%s", inbase, argv[ i ] );
+	com.sprintf( source, "maps/%s", gs_filename );
 	FS_StripExtension( source );
 	com.strcat( source, ".bsp" );
 	MsgDev( D_INFO,  "Loading %s\n", source );
 	LoadBSPFile( source );
 	
 	/* load the portal file */
-	com.sprintf( portalfile, "%s%s", inbase, argv[i] );
+	com.strcpy( portalfile, source );
 	FS_StripExtension( portalfile );
-	com.strcat( portalfile, ".prt" );
+	FS_DefaultExtension( portalfile, ".prt" );
 	MsgDev( D_INFO,  "Loading %s\n", portalfile );
 	LoadPortals( portalfile );
 	

@@ -1995,59 +1995,26 @@ static void ParseCustomInfoParms( void )
 
 /*
 LoadShaderInfo()
-the shaders are parsed out of shaderlist.txt from a main directory
-that is, if using -fs_game we ignore the shader scripts that might be in baseq3/
-on linux there's an additional twist, we actually merge the stuff from ~/.q3a/ and from the base dir
 */
-
-#define	MAX_SHADER_FILES	1024
 
 void LoadShaderInfo( void )
 {
+	search_t	*search;
 	int	i, numShaderFiles;
-	char	filename[MAX_SYSPATH];
-	char	*shaderFiles[ MAX_SHADER_FILES ];
 	
-	
-	/* rr2do2: parse custom infoparms first */
+	// parse custom infoparms first
 	if( useCustomInfoParms ) ParseCustomInfoParms();
-	
-	/* start with zero */
+
 	numShaderFiles = 0;
+	search = FS_Search( va( "%s/*.shader", game->shaderPath ), true );
+	if( !search ) return;
 	
-	/* load shader list */
-	com.sprintf( filename, "%s/shaderlist.txt", game->shaderPath );
-	LoadScriptFile( filename, 0 );
-		
-	/* parse it */
-	while( GetToken( true ) )
+	for( i = 0; i < search->numfilenames; i++ )
 	{
-		/* check for duplicate entries */
-		for( i = 0; i < numShaderFiles; i++ )
-			if( !strcmp( shaderFiles[ i ], token ) )
-				break;
-			
-		/* test limit */
-		if( i >= MAX_SHADER_FILES )
-			Sys_Error( "MAX_SHADER_FILES (%d) reached, trim your shaderlist.txt!", (int) MAX_SHADER_FILES );
-			
-		/* new shader file */
-		if( i == numShaderFiles )
-		{
-			shaderFiles[ numShaderFiles ] = Malloc( MAX_SYSPATH );
-			strcpy( shaderFiles[ numShaderFiles ], token );
-			numShaderFiles++;
-		}
+		ParseShaderFile( search->filenames[i] );
+		numShaderFiles++;
 	}
-	
-	/* parse the shader files */
-	for( i = 0; i < numShaderFiles; i++ )
-	{
-		com.sprintf( filename, "%s/%s.shader", game->shaderPath, shaderFiles[ i ] );
-		ParseShaderFile( filename );
-		Mem_Free( shaderFiles[ i ] );
-	}
-	
-	/* emit some statistics */
+	Mem_Free( search );
+
 	MsgDev( D_INFO, "%9d shaderInfo\n", numShaderInfo );
 }

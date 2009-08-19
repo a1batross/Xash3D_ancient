@@ -167,8 +167,8 @@ typedef struct vprogs_exp_s
 	// interface validator
 	size_t	api_size;				// must matched with sizeof(vprogs_api_t)
 
-	void ( *Init ) ( int argc, char **argv );	// init host
-	void ( *Free ) ( void );			// close host
+	void ( *Init )( const int argc, const char **argv );
+	void ( *Free )( void );
 
 	// compiler functions
 	void ( *PrepareDAT )( const char *dir, const char *name );

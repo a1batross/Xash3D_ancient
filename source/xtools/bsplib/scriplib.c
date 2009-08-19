@@ -65,14 +65,6 @@ void AddScriptToStack (const char *filename, int index)
 
   if (size == -1)
     Msg ("Script file %s was not found\n", script->filename);
-  else
-  {
-    if (index > 0)
-      Msg ("entering %s (%d)\n", script->filename, index+1);
-    else
-      Msg ("entering %s\n", script->filename);
-  }
-
   script->line = 1;
   script->script_p = script->buffer;
   script->end_p = script->buffer + size;

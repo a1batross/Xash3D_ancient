@@ -410,7 +410,7 @@ void EndBSPFile( void )
 	WriteSurfaceExtraFile( source );
 	
 	/* write the bsp */
-	com.sprintf( path, "%s.bsp", source );
+	com.sprintf( path, "maps/%s.bsp", source );
 	Msg( "Writing %s\n", path );
 	WriteBSPFile( path );
 }

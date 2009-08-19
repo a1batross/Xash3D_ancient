@@ -183,7 +183,7 @@ Returns SIDE_FRONT, SIDE_BACK, or SIDE_ON
 */
 _inline int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
 {
-	if (p->type < 3) return ((emaxs[p->type] >= p->dist) | ((emins[p->type] < p->dist) << 1));
+	if( p->type < 3 ) return ((emaxs[p->type] >= p->dist) | ((emins[p->type] < p->dist) << 1));
 	switch( p->signbits )
 	{
 	default:
@@ -209,7 +209,7 @@ typedef struct launch_exp_s
 	// interface validator
 	size_t	api_size;		// must matched with sizeof(launch_api_t)
 
-	void ( *Init ) ( int argc, char **argv );		// init host
+	void ( *Init ) ( const int argc, const char **argv );	// init host
 	void ( *Main ) ( void );				// host frame
 	void ( *Free ) ( void );				// close host
 	void (*CPrint) ( const char *msg );			// host print

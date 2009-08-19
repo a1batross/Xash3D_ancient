@@ -375,11 +375,10 @@ fixedWinding_t	*ClipToSeperators (fixedWinding_t *source, fixedWinding_t *pass, 
 				plane.dist = -plane.dist;
 			}
 
-#ifdef SEPERATORCACHE
 			stack->seperators[flipclip][stack->numseperators[flipclip]] = plane;
 			if (++stack->numseperators[flipclip] >= MAX_SEPERATORS)
 				Sys_Error("MAX_SEPERATORS");
-#endif
+
 			//MrE: fast check first
 			d = DotProduct (stack->portal->origin, plane.normal) - plane.dist;
 			//if completely at the back of the seperator plane
@@ -432,11 +431,8 @@ void RecursiveLeafFlow (int leafnum, threaddata_t *thread, pstack_t *prevstack)
 	stack.leaf = leaf;
 	stack.portal = NULL;
 	stack.depth = prevstack->depth + 1;
-
-#ifdef SEPERATORCACHE
 	stack.numseperators[0] = 0;
 	stack.numseperators[1] = 0;
-#endif
 
 	might = (long *)stack.mightsee;
 	vis = (long *)thread->base->portalvis;
@@ -580,7 +576,6 @@ void RecursiveLeafFlow (int leafnum, threaddata_t *thread, pstack_t *prevstack)
 			continue;
 		}
 
-#ifdef SEPERATORCACHE
 		if (stack.numseperators[0])
 		{
 			for (n = 0; n < stack.numseperators[0]; n++)
@@ -596,13 +591,9 @@ void RecursiveLeafFlow (int leafnum, threaddata_t *thread, pstack_t *prevstack)
 		{
 			stack.pass = ClipToSeperators (prevstack->source, prevstack->pass, stack.pass, false, &stack);
 		}
-#else
-		stack.pass = ClipToSeperators (stack.source, prevstack->pass, stack.pass, false, &stack);
-#endif
 		if (!stack.pass)
 			continue;
 
-#ifdef SEPERATORCACHE
 		if (stack.numseperators[1])
 		{
 			for (n = 0; n < stack.numseperators[1]; n++)
@@ -616,9 +607,6 @@ void RecursiveLeafFlow (int leafnum, threaddata_t *thread, pstack_t *prevstack)
 		{
 			stack.pass = ClipToSeperators (prevstack->pass, prevstack->source, stack.pass, true, &stack);
 		}
-#else
-		stack.pass = ClipToSeperators (prevstack->pass, stack.source, stack.pass, true, &stack);
-#endif
 		if (!stack.pass)
 			continue;
 
@@ -645,10 +633,6 @@ void PortalFlow (int portalnum)
 	int				i;
 	vportal_t		*p;
 	int				c_might, c_can;
-
-#ifdef MREDEBUG
-	Msg("\r%6d", portalnum);
-#endif
 
 	p = sorted_portals[portalnum];
 
@@ -773,10 +757,6 @@ void PassageFlow (int portalnum)
 	vportal_t		*p;
 //	int				c_might, c_can;
 
-#ifdef MREDEBUG
-	Msg("\r%6d", portalnum);
-#endif
-
 	p = sorted_portals[portalnum];
 
 	if (p->removed)
@@ -838,11 +818,8 @@ void RecursivePassagePortalFlow (vportal_t *portal, threaddata_t *thread, pstack
 	stack.leaf = leaf;
 	stack.portal = NULL;
 	stack.depth = prevstack->depth + 1;
-
-#ifdef SEPERATORCACHE
 	stack.numseperators[0] = 0;
 	stack.numseperators[1] = 0;
-#endif
 
 	vis = (long *)thread->base->portalvis;
 
@@ -972,7 +949,6 @@ void RecursivePassagePortalFlow (vportal_t *portal, threaddata_t *thread, pstack
 			continue;
 		}
 
-#ifdef SEPERATORCACHE
 		if (stack.numseperators[0])
 		{
 			for (n = 0; n < stack.numseperators[0]; n++)
@@ -988,13 +964,9 @@ void RecursivePassagePortalFlow (vportal_t *portal, threaddata_t *thread, pstack
 		{
 			stack.pass = ClipToSeperators (prevstack->source, prevstack->pass, stack.pass, false, &stack);
 		}
-#else
-		stack.pass = ClipToSeperators (stack.source, prevstack->pass, stack.pass, false, &stack);
-#endif
 		if (!stack.pass)
 			continue;
 
-#ifdef SEPERATORCACHE
 		if (stack.numseperators[1])
 		{
 			for (n = 0; n < stack.numseperators[1]; n++)
@@ -1008,9 +980,6 @@ void RecursivePassagePortalFlow (vportal_t *portal, threaddata_t *thread, pstack
 		{
 			stack.pass = ClipToSeperators (prevstack->pass, prevstack->source, stack.pass, true, &stack);
 		}
-#else
-		stack.pass = ClipToSeperators (prevstack->pass, stack.source, stack.pass, true, &stack);
-#endif
 		if (!stack.pass)
 			continue;
 
@@ -1035,10 +1004,6 @@ void PassagePortalFlow (int portalnum)
 	int				i;
 	vportal_t		*p;
 //	int				c_might, c_can;
-
-#ifdef MREDEBUG
-	Msg("\r%6d", portalnum);
-#endif
 
 	p = sorted_portals[portalnum];
 
@@ -1328,11 +1293,6 @@ void CreatePassages(int portalnum)
 	visPlane_t		seperators[MAX_SEPERATORS*2];
 	fixedWinding_t	*w;
 	fixedWinding_t	in, out, *res;
-	
-	
-#ifdef MREDEBUG
-	Msg("\r%6d", portalnum);
-#endif
 
 	portal = sorted_portals[portalnum];
 

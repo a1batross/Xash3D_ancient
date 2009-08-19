@@ -339,26 +339,13 @@ writes a bsp file
 
 void WriteBSPFile( const char *filename )
 {
-	char	tempname[ 1024 ];
-	time_t	tm;
-	
-	
-	/* dummy check */
 	if( game == NULL || game->write == NULL )
 		Sys_Break( "WriteBSPFile: unsupported BSP file format" );
-	
-	/* make fake temp name so existing bsp file isn't damaged in case write process fails */
-	time( &tm );
-	com.sprintf( tempname, "%s.%08X", filename, (int) tm );
-	
-	/* byteswap, write the bsp, then swap back so it can be manipulated further */
+
+	// byteswap, write the bsp, then swap back so it can be manipulated further
 	SwapBSPFile();
-	game->write( tempname );
+	game->write( filename );
 	SwapBSPFile();
-	
-	/* replace existing bsp file */
-	FS_Delete( filename );
-	rename( tempname, filename );
 }
 
 

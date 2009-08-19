@@ -38,6 +38,23 @@ several games based on the Quake III Arena engine, in the form of "Q3Map2."
 #include "matrix_lib.h"
 #include "stdio.h"		// sscanf
 
+/* 
+PicoMalloc()
+callback for picomodel.lib
+*/
+void *PicoMalloc( size_t size )
+{
+	return Malloc( size );
+}
+
+/* 
+PicoFree()
+callback for picomodel.lib
+*/
+void PicoFree( void *mem )
+{
+	Mem_Free( mem );
+}
 
 /* 
 PicoPrintFunc()
