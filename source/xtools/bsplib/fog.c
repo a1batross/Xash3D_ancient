@@ -568,9 +568,9 @@ void FogDrawSurfaces( entity_t *e )
 	}
 	
 	/* emit some statistics */
-	MsgDev( D_INFO, "%9d fog polygon fragments\n", numFogFragments );
-	MsgDev( D_INFO, "%9d fog patch fragments\n", numFogPatchFragments );
-	MsgDev( D_INFO, "%9d fogged drawsurfs\n", numFogged );
+	MsgDev( D_NOTE, "%9d fog polygon fragments\n", numFogFragments );
+	MsgDev( D_NOTE, "%9d fog patch fragments\n", numFogPatchFragments );
+	MsgDev( D_NOTE, "%9d fogged drawsurfs\n", numFogged );
 }
 
 
@@ -795,6 +795,6 @@ void CreateMapFogs( void )
 	}
 	
 	/* emit some stats */
-	MsgDev( D_INFO, "%9d fogs\n", numMapFogs );
+	MsgDev( D_NOTE, "%9d fogs\n", numMapFogs );
 }
 

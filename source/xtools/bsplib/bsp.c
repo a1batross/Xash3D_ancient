@@ -113,7 +113,7 @@ static void ProcessAdvertisements( void ) {
 		}
 	}
 
-	MsgDev( D_INFO, "%9d in-game advertisements\n", numBSPAds );
+	MsgDev( D_NOTE, "%9d in-game advertisements\n", numBSPAds );
 }
 
 /*
@@ -282,20 +282,17 @@ void ProcessWorldModel( void )
 			blockSize[ 2 ] = blockSize[ 0 ];
 		}
 	}
-	MsgDev( D_INFO, "block size = { %d %d %d }\n", blockSize[ 0 ], blockSize[ 1 ], blockSize[ 2 ] );
+	MsgDev( D_NOTE, "block size = { %d %d %d }\n", blockSize[ 0 ], blockSize[ 1 ], blockSize[ 2 ] );
 	
 	/* sof2: ignore leaks? */
 	value = ValueForKey( &entities[ 0 ], "_ignoreleaks" );	/* ydnar */
-	if( value[ 0 ] == '\0' )
-		value = ValueForKey( &entities[ 0 ], "ignoreleaks" );
-	if( value[ 0 ] == '1' )
-		ignoreLeaks = true;
-	else
-		ignoreLeaks = false;
+	if( value[0] == '\0' ) value = ValueForKey( &entities[0], "ignoreleaks" );
+	if( value[0] == '1' ) ignoreLeaks = true;
+	else ignoreLeaks = false;
 	
 	/* begin worldspawn model */
 	BeginModel();
-	e = &entities[ 0 ];
+	e = &entities[0];
 	e->firstDrawSurf = 0;
 	
 	/* ydnar: gs mods */
@@ -572,11 +569,9 @@ void ProcessModels( void )
 			continue;
 		
 		/* process the model */
-		MsgDev( D_INFO, "############### model %i ###############\n", numBSPModels );
-		if( mapEntityNum == 0 )
-			ProcessWorldModel();
-		else
-			ProcessSubModel();
+		MsgDev( D_NOTE, "--- %s (%i) ---\n", (mapEntityNum) ? "Model" : "World", numBSPModels );
+		if( mapEntityNum == 0 ) ProcessWorldModel();
+		else ProcessSubModel();
 	}
 	
 	/* write fogs */
@@ -853,7 +848,7 @@ int BSPMain( int argc, char **argv )
 	
 	/* load shaders */
 	LoadShaderInfo();
-	
+
 	/* load original file from temp spot in case it was renamed by the editor on the way in */
 	LoadMapFile( name, false );
 	

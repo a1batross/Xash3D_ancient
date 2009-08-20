@@ -2208,10 +2208,10 @@ int LightMain( int argc, char **argv )
 	}
 	
 	/* clean up map name */
-	com.strcpy( source, argv[i] );
+	com.sprintf( source, "maps/%s", gs_filename );
 	FS_StripExtension( source );
 	FS_DefaultExtension( source, ".bsp" );
-	com.strcpy( mapSource, argv[i] );
+	com.sprintf( mapSource, "maps/%s", gs_filename );
 	FS_StripExtension( mapSource );
 	FS_DefaultExtension( mapSource, ".map" );
 	

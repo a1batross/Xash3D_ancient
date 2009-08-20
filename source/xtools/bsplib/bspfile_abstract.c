@@ -407,9 +407,8 @@ strips low byte chars off the end of a string
 void StripTrailing( char *e )
 {
 	char	*s;
-	
-	
-	s = e + strlen( e ) - 1;
+
+	s = e + com.strlen( e ) - 1;
 	while( s >= e && *s <= 32 )
 	{
 		*s = 0;
@@ -417,176 +416,155 @@ void StripTrailing( char *e )
 	}
 }
 
-
-
 /*
-ParseEpair()
-parses a single quoted "key" "value" pair into an epair struct
-*/
+=================
+ParseEpair
 
-epair_t *ParseEPair( void )
+parses a single quoted "key" "value" pair into an epair struct
+=================
+*/
+epair_t *ParseEpair( script_t *script, token_t *token )
 {
-	epair_t		*e;
+	epair_t	*e;
+
+	e = Malloc( sizeof( epair_t ));
 	
-	
-	/* allocate and clear new epair */
-	e = Malloc( sizeof( epair_t ) );
-	
-	/* handle key */
-	if( strlen( token ) >= (MAX_KEY - 1) )
-		Sys_Break( "ParseEPair: token too long" );
-	
-	e->key = copystring( token );
-	GetToken( false );
-	
-	/* handle value */
-	if( strlen( token ) >= MAX_VALUE - 1 )
-		Sys_Break( "ParseEpar: token too long" );
-	e->value = copystring( token );
-	
-	/* strip trailing spaces that sometimes get accidentally added in the editor */
+	if( com.strlen( token->string ) >= MAX_KEY - 1 )
+		Sys_Break( "ParseEpair: key %s too long\n", token->string );
+	e->key = copystring( token->string );
+	Com_ReadToken( script, SC_PARSE_GENERIC, token );
+	if( com.strlen( token->string ) >= MAX_VALUE - 1 )
+		Sys_Break( "ParseEpair: value %s too long\n", token->string );
+	e->value = copystring( token->string );
+
+	// strip trailing spaces if needs
 	StripTrailing( e->key );
 	StripTrailing( e->value );
-	
-	/* return it */
+
 	return e;
 }
 
-
-
 /*
-ParseEntity()
-parses an entity's epairs
-*/
+================
+ParseEntity
 
+parses an entity's epairs
+================
+*/
 bool ParseEntity( void )
 {
 	epair_t		*e;
-	
-	
-	/* dummy check */
-	if( !GetToken( true ) )
+	token_t		token;
+
+	if( !Com_ReadToken( mapfile, SC_ALLOW_NEWLINES, &token ))
 		return false;
-	if( strcmp( token, "{" ) )
-		Sys_Break( "ParseEntity: { not found" );
-	if( numEntities == MAX_MAP_ENTITIES )
-		Sys_Break( "numEntities == MAX_MAP_ENTITIES" );
-	
-	/* create new entity */
-	mapEnt = &entities[ numEntities ];
+
+	if( com.stricmp( token.string, "{" )) Sys_Break( "ParseEntity: '{' not found\n" );
+	if( numEntities == MAX_MAP_ENTITIES ) Sys_Break( "MAX_MAP_ENTITIES limit exceeded\n" );
+
+	mapEnt = &entities[numEntities];
 	numEntities++;
-	
-	/* parse */
+
 	while( 1 )
 	{
-		if( !GetToken( true ) )
-			Sys_Break( "ParseEntity: EOF without closing brace" );
-		if( !EPAIR_STRCMP( token, "}" ) )
-			break;
-		e = ParseEPair();
+		if( !Com_ReadToken( mapfile, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &token ))
+			Sys_Break( "ParseEntity: EOF without closing brace\n" );
+		if( !com.stricmp( token.string, "}" )) break;
+		e = ParseEpair( mapfile, &token );
 		e->next = mapEnt->epairs;
 		mapEnt->epairs = e;
 	}
-	
-	/* return to sender */
 	return true;
 }
 
-
-
 /*
-ParseEntities()
-parses the bsp entity data string into entities
-*/
+================
+ParseEntities
 
+parses the bsp entity data string into entities
+================
+*/
 void ParseEntities( void )
 {
 	numEntities = 0;
-	ParseFromMemory( bspEntData, bspEntDataSize );
-	while( ParseEntity() );
-	
-	/* ydnar: set number of bsp entities in case a map is loaded on top */
+	mapfile = Com_OpenScript( "entities", bspEntData, bspEntDataSize );
+	if( mapfile )
+	{
+		while( ParseEntity( ));
+		Com_CloseScript( mapfile );
+	}
+
+	// set number of bsp entities in case a map is loaded on top
 	numBSPEntities = numEntities;
 }
 
-
-
 /*
-UnparseEntities()
-generates the dentdata string from all the entities.
+================
+UnparseEntities
+
+generates the bsp entity data string from all the entities
 this allows the utilities to add or remove key/value
 pairs to the data created by the map editor
+================
 */
-
 void UnparseEntities( void )
 {
-	int			i;
-	char		*buf, *end;
 	epair_t		*ep;
-	char		line[ 2048 ];
-	char		key[ 1024 ], value[ 1024 ];
+	char		*buf, *end;
+	char		line[2048];
+	char		key[MAX_KEY], value[MAX_VALUE];
 	const char	*value2;
+	int		i;
 	
-	
-	/* setup */
 	buf = bspEntData;
 	end = buf;
 	*end = 0;
 	
-	/* run through entity list */
+	// run through entity list
 	for( i = 0; i < numBSPEntities && i < numEntities; i++ )
 	{
-		/* get epair */
-		ep = entities[ i ].epairs;
-		if( ep == NULL )
-			continue;	/* ent got removed */
+		ep = entities[i].epairs;
+		if( !ep ) continue;	// ent got removed
 		
-		/* ydnar: certain entities get stripped from bsp file */
-		value2 = ValueForKey( &entities[ i ], "classname" );
-		if( !com.stricmp( value2, "misc_model" ) ||
-			!com.stricmp( value2, "_decal" ) ||
-			!com.stricmp( value2, "_skybox" ) )
+		// certain entities get stripped from bsp file
+		value2 = ValueForKey( &entities[i], "classname" );
+		if( !com.stricmp( value2, "misc_model" ) || !com.stricmp( value2, "_decal" ) || !com.stricmp( value2, "_skybox" ))
 			continue;
 		
-		/* add beginning brace */
-		strcat( end, "{\n" );
+		com.strcat( end, "{\n" );
 		end += 2;
 		
-		/* walk epair list */
 		for( ep = entities[ i ].epairs; ep != NULL; ep = ep->next )
 		{
-			/* copy and clean */
-			strcpy( key, ep->key );
+			com.strncpy( key, ep->key, MAX_KEY );
 			StripTrailing( key );
-			strcpy( value, ep->value );
+			com.strncpy( value, ep->value, MAX_VALUE );
 			StripTrailing( value );
 			
 			/* add to buffer */
-			com.sprintf( line, "\"%s\" \"%s\"\n", key, value );
-			strcat( end, line );
-			end += strlen( line );
+			com.snprintf( line, sizeof( line ), "\"%s\" \"%s\"\n", key, value );
+			com.strcat( end, line );
+			end += com.strlen( line );
 		}
 		
-		/* add trailing brace */
-		strcat( end,"}\n" );
+		com.strcat( end,"}\n" );
 		end += 2;
 		
-		/* check for overflow */
 		if( end > buf + MAX_MAP_ENTSTRING )
-			Sys_Break( "Entity text too long" );
+			Sys_Break( "Entity text too long\n" );
 	}
-	
-	/* set size */
 	bspEntDataSize = end - buf + 1;
 }
 
 
 
 /*
-PrintEntity()
-prints an entity's epairs to the console
-*/
+================
+PrintEntity
 
+prints an entity's epairs to the console
+================
+*/
 void PrintEntity( const entity_t *ent )
 {
 	epair_t	*ep;
@@ -598,22 +576,20 @@ void PrintEntity( const entity_t *ent )
 
 }
 
-
-
 /*
-SetKeyValue()
-sets an epair in an entity
-*/
+================
+SetKeyValue
 
+sets an epair in an entity
+================
+*/
 void SetKeyValue( entity_t *ent, const char *key, const char *value )
 {
 	epair_t	*ep;
 	
-	
-	/* check for existing epair */
 	for( ep = ent->epairs; ep != NULL; ep = ep->next )
 	{
-		if( !EPAIR_STRCMP( ep->key, key ) )
+		if( !com.strcmp( ep->key, key ))
 		{
 			Mem_Free( ep->value );
 			ep->value = copystring( value );
@@ -621,7 +597,6 @@ void SetKeyValue( entity_t *ent, const char *key, const char *value )
 		}
 	}
 	
-	/* create new epair */
 	ep = Malloc( sizeof( *ep ) );
 	ep->next = ent->epairs;
 	ent->epairs = ep;
@@ -632,150 +607,159 @@ void SetKeyValue( entity_t *ent, const char *key, const char *value )
 
 
 /*
-ValueForKey()
-gets the value for an entity key
-*/
+================
+ValueForKey
 
+gets the value for an entity key
+================
+*/
 const char *ValueForKey( const entity_t *ent, const char *key )
 {
 	epair_t	*ep;
+
+	if( !ent ) return "";
 	
-	
-	/* dummy check */
-	if( ent == NULL )
-		return "";
-	
-	/* walk epair list */
 	for( ep = ent->epairs; ep != NULL; ep = ep->next )
 	{
-		if( !EPAIR_STRCMP( ep->key, key ) )
+		if( !com.strcmp( ep->key, key ))
 			return ep->value;
 	}
-	
-	/* if no match, return empty string */
 	return "";
 }
 
 
 
 /*
-IntForKey()
-gets the integer point value for an entity key
-*/
+================
+IntForKey
 
+gets the integer point value for an entity key
+================
+*/
 int IntForKey( const entity_t *ent, const char *key )
 {
-	const char	*k;
-	
-	
-	k = ValueForKey( ent, key );
-	return atoi( k );
+	return com.atoi( ValueForKey( ent, key ));
 }
 
-
-
 /*
-FloatForKey()
+================
+FloatForKey
+
 gets the floating point value for an entity key
+================
 */
-
-vec_t FloatForKey( const entity_t *ent, const char *key )
+float FloatForKey( const entity_t *ent, const char *key )
 {
-	const char	*k;
-	
-	
-	k = ValueForKey( ent, key );
-	return atof( k );
+	return com.atof( ValueForKey( ent, key ));
 }
 
 
 
 /*
-GetVectorForKey()
-gets a 3-element vector value for an entity key
-*/
+================
+GetVectorForKey
 
+gets a 3-element vector value for an entity key
+================
+*/
 void GetVectorForKey( const entity_t *ent, const char *key, vec3_t vec )
 {
 	const char	*k;
 	double		v1, v2, v3;
-	
 
-	/* get value */
 	k = ValueForKey( ent, key );
 	
-	/* scanf into doubles, then assign, so it is vec_t size independent */
+	// scanf into doubles, then assign, so it is vec_t size independent
 	v1 = v2 = v3 = 0.0;
 	sscanf( k, "%lf %lf %lf", &v1, &v2, &v3 );
-	vec[ 0 ] = v1;
-	vec[ 1 ] = v2;
-	vec[ 2 ] = v3;
+	VectorSet( vec, v1, v2, v3 );
 }
 
 
 
 /*
-FindTargetEntity()
-finds an entity target
-*/
+================
+FindTargetEntity
 
+finds an entity target
+================
+*/
 entity_t *FindTargetEntity( const char *target )
 {
-	int			i;
+	int		i;
 	const char	*n;
-
 	
-	/* walk entity list */
 	for( i = 0; i < numEntities; i++ )
 	{
-		n = ValueForKey( &entities[ i ], "targetname" );
-		if ( !strcmp( n, target ) )
-			return &entities[ i ];
+		n = ValueForKey( &entities[i], "targetname" );
+		if( !com.strcmp( n, target )) return &entities[i];
 	}
-	
-	/* nada */
 	return NULL;
 }
 
-
-
 /*
-GetEntityShadowFlags() - ydnar
+================
+GetEntityShadowFlags
+
 gets an entity's shadow flags
 note: does not set them to defaults if the keys are not found!
+================
 */
-
 void GetEntityShadowFlags( const entity_t *ent, const entity_t *ent2, int *castShadows, int *recvShadows )
 {
 	const char	*value;
 	
-	
-	/* get cast shadows */
 	if( castShadows != NULL )
 	{
 		value = ValueForKey( ent, "_castShadows" );
-		if( value[ 0 ] == '\0' )
-			value = ValueForKey( ent, "_cs" );
-		if( value[ 0 ] == '\0' )
-			value = ValueForKey( ent2, "_castShadows" );
-		if( value[ 0 ] == '\0' )
-			value = ValueForKey( ent2, "_cs" );
-		if( value[ 0 ] != '\0' )
-			*castShadows = atoi( value );
+		if( value[0] == '\0' ) value = ValueForKey( ent, "_cs" );
+		if( value[0] == '\0' ) value = ValueForKey( ent2, "_castShadows" );
+		if( value[0] == '\0' ) value = ValueForKey( ent2, "_cs" );
+		if( value[0] != '\0' ) *castShadows = com.atoi( value );
 	}
 	
-	/* receive */
 	if( recvShadows != NULL )
 	{
 		value = ValueForKey( ent, "_receiveShadows" );
-		if( value[ 0 ] == '\0' )
-			value = ValueForKey( ent, "_rs" );
-		if( value[ 0 ] == '\0' )
-			value = ValueForKey( ent2, "_receiveShadows" );
-		if( value[ 0 ] == '\0' )
-			value = ValueForKey( ent2, "_rs" );
-		if( value[ 0 ] != '\0' )
-			*recvShadows = atoi( value );
+		if( value[0] == '\0' ) value = ValueForKey( ent, "_rs" );
+		if( value[0] == '\0' ) value = ValueForKey( ent2, "_receiveShadows" );
+		if( value[0] == '\0' ) value = ValueForKey( ent2, "_rs" );
+		if( value[0] != '\0' ) *recvShadows = com.atoi( value );
 	}
 }
 
+/*
+================
+Com_CheckToken
+
+================
+*/
+void Com_CheckToken( script_t *script, const char *match )
+{
+	token_t	token;
+	
+	Com_ReadToken( script, SC_ALLOW_NEWLINES, &token );
+
+	if( com.stricmp( token.string, match ))
+		Sys_Break( "Com_CheckToken: \"%s\" not found\n", match );
+}
+
+void Com_Parse1DMatrix( script_t *script, int x, float *m )
+{
+	int	i;
+
+	Com_CheckToken( script, "(" );
+	for( i = 0; i < x; i++ )
+		Com_ReadFloat( script, false, &m[i] );
+	Com_CheckToken( script, ")" );
+}
+
+void Com_Parse2DMatrix( script_t *script, int y, int x, float *m )
+{
+	int	i;
+
+	Com_CheckToken( script, "(" );
+	for( i = 0; i < y; i++ )
+		Com_Parse1DMatrix( script, x, m+i*x );
+	Com_CheckToken( script, ")" );
+}

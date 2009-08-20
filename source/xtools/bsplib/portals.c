@@ -500,10 +500,10 @@ void MakeTreePortals_r (node_t *node)
 	int		i;
 
 	CalcNodeBounds (node);
-	if (node->mins[0] >= node->maxs[0])
+	if( node->mins[0] >= node->maxs[0] )
 	{
-		MsgDev( D_WARN, "node without a volume\n");
-		MsgDev( D_WARN, "node has %d tiny portals\n", node->tinyportals);
+		MsgDev( D_WARN, "node without a volume\n" );
+		MsgDev( D_WARN, "node has %d tiny portals\n", node->tinyportals );
 		MsgDev( D_WARN, "node reference point %1.2f %1.2f %1.2f\n", node->referencepoint[0], node->referencepoint[1], node->referencepoint[2] );
 	}
 
@@ -537,8 +537,8 @@ void MakeTreePortals (tree_t *tree)
 	MakeHeadnodePortals( tree );
 	MakeTreePortals_r( tree->headnode );
 
-	MsgDev( D_INFO, "%9d tiny portals\n", c_tinyportals );
-	MsgDev( D_INFO, "%9d bad portals\n", c_badportals );	/* ydnar */
+	MsgDev( D_NOTE, "%9d tiny portals\n", c_tinyportals );
+	MsgDev( D_NOTE, "%9d bad portals\n", c_badportals );
 }
 
 /*
@@ -700,12 +700,12 @@ bool FloodEntities( tree_t *tree )
 
 		if(( !r || tree->outside_node.occupied ) && !tripped )
 		{
-			Msg( "Entity %i leaked\n", e->mapEntityNum );
+			Msg( "Warning: Entity %i leaked\n", e->mapEntityNum );
 			tripped = true;
 		}
 	}
 	
-	MsgDev( D_INFO, "%9d flooded leafs\n", c_floodedleafs );
+	MsgDev( D_NOTE, "%9d flooded leafs\n", c_floodedleafs );
 	
 	if( !inside ) MsgDev( D_WARN, "no entities in open -- no filling\n" );
 	else if( tree->outside_node.occupied )
@@ -888,7 +888,7 @@ void FloodAreas( tree_t *tree )
 	/* ydnar: fix this rather than just silence the warnings */
 	//%	CheckAreas_r( tree->headnode );
 
-	MsgDev( D_INFO, "%9d areas\n", c_areas );
+	MsgDev( D_NOTE, "%9d areas\n", c_areas );
 }
 
 
@@ -939,9 +939,9 @@ void FillOutside (node_t *headnode)
 
 	FillOutside_r( headnode );
 	
-	MsgDev( D_INFO,"%9d solid leafs\n", c_solid );
-	Msg( "%9d leafs filled\n", c_outside );
-	MsgDev( D_INFO, "%9d inside leafs\n", c_inside );
+	MsgDev( D_NOTE, "%9d solid leafs\n", c_solid );
+	MsgDev( D_NOTE, "%9d leafs filled\n", c_outside );
+	MsgDev( D_NOTE, "%9d inside leafs\n", c_inside );
 }
 
 

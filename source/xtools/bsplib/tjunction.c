@@ -709,9 +709,9 @@ void FixTJunctions( entity_t *ent )
 		e->dv[ 0 ]->lightmap[ 0 ][ 0 ] = AddEdge( e->dv[ 0 ]->xyz, e->dv[ 1 ]->xyz, true );
 	}
 
-	MsgDev( D_INFO, "%9d axial edge lines\n", axialEdgeLines );
-	MsgDev( D_INFO, "%9d non-axial edge lines\n", numEdgeLines - axialEdgeLines );
-	MsgDev( D_INFO, "%9d degenerate edges\n", c_degenerateEdges );
+	MsgDev( D_NOTE, "%9d axial edge lines\n", axialEdgeLines );
+	MsgDev( D_NOTE, "%9d non-axial edge lines\n", numEdgeLines - axialEdgeLines );
+	MsgDev( D_NOTE, "%9d degenerate edges\n", c_degenerateEdges );
 
 	// insert any needed vertexes
 	for( i = ent->firstDrawSurf; i < numMapDrawSurfs ; i++ )
@@ -742,10 +742,10 @@ void FixTJunctions( entity_t *ent )
 	}
 	
 	/* emit some statistics */
-	MsgDev( D_INFO, "%9d verts added for T-junctions\n", c_addedVerts );
-	MsgDev( D_INFO, "%9d total verts\n", c_totalVerts );
-	MsgDev( D_INFO, "%9d naturally ordered\n", c_natural );
-	MsgDev( D_INFO, "%9d rotated orders\n", c_rotate );
-	MsgDev( D_INFO, "%9d can't order\n", c_cant );
-	MsgDev( D_INFO, "%9d broken (degenerate) surfaces removed\n", c_broken );
+	MsgDev( D_NOTE, "%9d verts added for T-junctions\n", c_addedVerts );
+	MsgDev( D_NOTE, "%9d total verts\n", c_totalVerts );
+	MsgDev( D_NOTE, "%9d naturally ordered\n", c_natural );
+	MsgDev( D_NOTE, "%9d rotated orders\n", c_rotate );
+	MsgDev( D_NOTE, "%9d can't order\n", c_cant );
+	MsgDev( D_NOTE, "%9d broken (degenerate) surfaces removed\n", c_broken );
 }

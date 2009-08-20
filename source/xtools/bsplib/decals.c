@@ -540,7 +540,7 @@ void ProcessDecals( void )
 	}
 	
 	/* emit some stats */
-	MsgDev( D_INFO, "%9d decal projectors\n", numProjectors );
+	MsgDev( D_NOTE, "%9d decal projectors\n", numProjectors );
 }
 
 
@@ -892,9 +892,6 @@ void MakeEntityDecals( entity_t *e )
 		}
 	}
 	
-	/* print time */
-	MsgDev( D_INFO, " (%g)\n", (Sys_DoubleTime() - start ));
-	
-	/* emit some stats */
-	MsgDev( D_INFO, "%9d decal surfaces\n", numDecalSurfaces );
+	MsgDev( D_NOTE, " (%g) second elapsed\n", (Sys_DoubleTime() - start ));
+	MsgDev( D_NOTE, "%9d decal surfaces\n", numDecalSurfaces );
 }

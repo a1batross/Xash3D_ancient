@@ -57,11 +57,13 @@ dependencies
 #include "picomodel.h"
 #include "polylib.h"
 
-/* -------------------------------------------------------------------------------
+/*
+-------------------------------------------------------------------------------
 
 constants
 
-------------------------------------------------------------------------------- */
+-------------------------------------------------------------------------------
+*/
 
 /* general */
 #define MAX_QPATH				64
@@ -82,16 +84,16 @@ constants
 
 #define MAX_JITTERS				256
 
-
-/* epair parsing (note case-sensitivity directive) */
-#define CASE_INSENSITIVE_EPAIRS	1
-
-#if CASE_INSENSITIVE_EPAIRS
-	#define EPAIR_STRCMP		com.stricmp
-#else
-	#define EPAIR_STRCMP		com.strcmp
-#endif
-
+// supported map formats
+enum
+{
+	BRUSH_UNKNOWN = 0,
+	BRUSH_WORLDCRAFT_21,	// quake worldcraft  <= 2.1
+	BRUSH_WORLDCRAFT_22,	// half-life worldcraft >= 2.2
+	BRUSH_RADIANT,
+	BRUSH_QUARK,
+	BRUSH_COUNT
+};
 
 /* ydnar: compiler flags, because games have widely varying content/surface flags */
 #define C_SOLID					0x00000001
@@ -122,14 +124,14 @@ constants
 
 
 /* bsp */
-#define	MAX_PATCH_SIZE			32
-#define	MAX_BRUSH_SIDES			1024
+#define MAX_PATCH_SIZE		32
+#define MAX_BRUSH_SIDES		1024
 
-#define	MAX_EXPANDED_AXIS		128
+#define MAX_EXPANDED_AXIS		128
 
-#define	CLIP_EPSILON			0.1f
-#define	PLANESIDE_EPSILON		0.001f
-#define	PLANENUM_LEAF			-1
+#define CLIP_EPSILON		0.1f
+#define PLANESIDE_EPSILON		0.001f
+#define PLANENUM_LEAF		-1
 
 #define	HINT_PRIORITY			1000		/* ydnar: force hint splits first and antiportal/areaportal splits last */
 #define ANTIPORTAL_PRIORITY		-1000
@@ -139,11 +141,6 @@ constants
 #define	PSIDE_BACK				2
 #define	PSIDE_BOTH				(PSIDE_FRONT | PSIDE_BACK)
 #define	PSIDE_FACING			4
-
-#define BPRIMIT_UNDEFINED		0
-#define BPRIMIT_OLDBRUSHES		1
-#define BPRIMIT_NEWBRUSHES		2
-
 
 /* vis */
 #define	VIS_HEADER_SIZE			8
@@ -685,42 +682,56 @@ typedef struct face_s
 }
 face_t;
 
-
 typedef struct plane_s
 {
 	vec3_t				normal;
 	vec_t				dist;
 	int					type;
 	struct plane_s		*hash_chain;
-}
-plane_t;
+} plane_t;
 
+typedef struct
+{
+	vec3_t		UAxis;
+	vec3_t		VAxis;
+	float		shift[2];
+	float		rotate;
+	float		scale[2];
+} wrl_vecs;
+
+typedef struct
+{
+	float		vecs[2][4];
+} qrk_vecs;
+
+typedef union
+{
+	qrk_vecs		quark;
+	wrl_vecs		hammer;
+} vects_t;
 
 typedef struct side_s
 {
-	int					planenum;
+	int		planenum;
+	int		outputNum;	// set when the side is written to the file list
 	
-	int					outputNum;			/* set when the side is written to the file list */
-	
-	float				texMat[ 2 ][ 3 ];	/* brush primitive texture matrix */
-	float				vecs[ 2 ][ 4 ];		/* old-style texture coordinate mapping */
+	float		texMat[2][3];	// quake3 brush primitive texture matrix
+	float		vecs[2][4];	// classic texture coordinate mapping
 
-	winding_t			*winding;
-	winding_t			*visibleHull;		/* convex hull of all visible fragments */
+	winding_t		*winding;
+	winding_t		*visibleHull;	// convex hull of all visible fragments
 
-	shaderInfo_t		*shaderInfo;
+	shaderInfo_t	*shaderInfo;
 
-	int					contentFlags;		/* from shaderInfo */
-	int					surfaceFlags;		/* from shaderInfo */
-	int					compileFlags;		/* from shaderInfo */
-	int					value;				/* from shaderInfo */
+	int		contentFlags;	// from shaderInfo
+	int		surfaceFlags;	// from shaderInfo
+	int		compileFlags;	// from shaderInfo
+	int		value;		// from shaderInfo
 
-	bool			visible;			/* choose visble planes first */
-	bool			bevel;				/* don't ever use for bsp splitting, and don't bother making windings for it */
-	bool			culled;				/* ydnar: face culling */
-}
-side_t;
-
+	bool		visible;		// choose visble planes first
+	bool		bevel;		// don't ever use for bsp splitting, and don't bother making windings for it
+	bool		culled;		// face culling
+} side_t;
 
 typedef struct sideRef_s
 {
@@ -1407,7 +1418,7 @@ void						MakeMeshNormals( mesh_t in );
 void						PutMeshOnCurve( mesh_t in );
 
 /* map.c */
-void 		LoadMapFile( char *filename, bool onlyLights );
+void 		LoadMapFile( const char *filename, bool onlyLights );
 int		FindFloatPlane( vec3_t normal, vec_t dist, int numPoints, vec3_t *points );
 void		AddBrushBevels( void );
 bool		PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c );
@@ -1688,17 +1699,17 @@ void						LoadBSPFile( const char *filename );
 void						WriteBSPFile( const char *filename );
 void						PrintBSPFileSizes( void );
 
-epair_t						*ParseEPair( void );
-void						ParseEntities( void );
-void						UnparseEntities( void );
-void						PrintEntity( const entity_t *ent );
-void						SetKeyValue( entity_t *ent, const char *key, const char *value );
-const char					*ValueForKey( const entity_t *ent, const char *key );
-int							IntForKey( const entity_t *ent, const char *key );
-vec_t						FloatForKey( const entity_t *ent, const char *key );
-void						GetVectorForKey( const entity_t *ent, const char *key, vec3_t vec );
-entity_t					*FindTargetEntity( const char *target );
-void						GetEntityShadowFlags( const entity_t *ent, const entity_t *ent2, int *castShadows, int *recvShadows );
+epair_t 		*ParseEpair( script_t *script, token_t *token );
+void		ParseEntities( void );
+void		UnparseEntities( void );
+void		PrintEntity( const entity_t *ent );
+void		SetKeyValue( entity_t *ent, const char *key, const char *value );
+const char	*ValueForKey( const entity_t *ent, const char *key );
+int		IntForKey( const entity_t *ent, const char *key );
+float		FloatForKey( const entity_t *ent, const char *key );
+void		GetVectorForKey( const entity_t *ent, const char *key, vec3_t vec );
+entity_t		*FindTargetEntity( const char *target );
+void		GetEntityShadowFlags( const entity_t *ent, const entity_t *ent2, int *castShadows, int *recvShadows );
 
 
 /* bspfile_ibsp.c */
@@ -1845,9 +1856,6 @@ Q_EXTERN entity_t			*mapEnt;
 Q_EXTERN brush_t			*buildBrush;
 Q_EXTERN int				numActiveBrushes;
 Q_EXTERN int				g_bBrushPrimit;
-
-Q_EXTERN int				numStrippedLights Q_ASSIGN( 0 );
-
 
 /* surface stuff */
 Q_EXTERN mapDrawSurface_t	*mapDrawSurfs Q_ASSIGN( NULL );
@@ -2158,7 +2166,8 @@ abstracted bsp globals
 
 Q_EXTERN int				numEntities Q_ASSIGN( 0 );
 Q_EXTERN int				numBSPEntities Q_ASSIGN( 0 );
-Q_EXTERN entity_t			entities[ MAX_MAP_ENTITIES ];
+Q_EXTERN entity_t				entities[MAX_MAP_ENTITIES];
+Q_EXTERN script_t				*mapfile;
 
 Q_EXTERN int				numBSPModels Q_ASSIGN( 0 );
 Q_EXTERN bspModel_t			bspModels[ MAX_MAP_MODELS ];
@@ -2217,23 +2226,9 @@ Q_EXTERN bspFog_t			bspFogs[ MAX_MAP_FOGS ];
 Q_EXTERN int				numBSPAds Q_ASSIGN( 0 );
 Q_EXTERN bspAdvertisement_t	bspAds[ MAX_MAP_ADVERTISEMENTS ];
 
-// misc stuff (to be removed)
-Q_EXTERN char		token[MAX_SYSPATH];
+// parselib extensions (wroted especially for bsplib)
+void		Com_CheckToken( script_t *script, const char *match );
+void		Com_Parse1DMatrix( script_t *script, int x, float *m );
+void		Com_Parse2DMatrix( script_t *script, int y, int x, float *m );
 
-void LoadScriptFile (const char *filename, int index);
-void ParseFromMemory (char *buffer, int size);
-
-bool GetToken (bool crossline);
-void UnGetToken (void);
-bool TokenAvailable (void);
-
-void MatchToken( char *match );
-
-void Parse1DMatrix (int x, vec_t *m);
-void Parse2DMatrix (int y, int x, vec_t *m);
-void Parse3DMatrix (int z, int y, int x, vec_t *m);
-
-extern int scriptline;
-
-/* end marker */
 #endif

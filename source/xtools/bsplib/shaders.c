@@ -24,176 +24,151 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 This code has been altered significantly from its original form, to support
 several games based on the Quake III Arena engine, in the form of "Q3Map2."
 
-------------------------------------------------------------------------------- */
+-------------------------------------------------------------------------------
+*/
 
-
-
-/* marker */
 #define SHADERS_C
 
-
-
-/* dependencies */
 #include "q3map2.h"
 #include "stdio.h"	// sscanf
 
 
 /*
-ColorMod()
-routines for dealing with vertex color/alpha modification
-*/
+=================
+ColorMod
 
+routines for dealing with vertex color/alpha modification
+=================
+*/
 void ColorMod( colorMod_t *cm, int numVerts, bspDrawVert_t *drawVerts )
 {
-	int				i, j, k;
-	float			c;
-	vec4_t			mult, add;
+	int		i, j, k;
+	float		c;
+	vec4_t		mult, add;
 	bspDrawVert_t	*dv;
-	colorMod_t		*cm2;
+	colorMod_t	*cm2;
 	
-	
-	/* dummy check */
 	if( cm == NULL || numVerts < 1 || drawVerts == NULL )
 		return;
 	
-	
-	/* walk vertex list */
 	for( i = 0; i < numVerts; i++ )
 	{
-		/* get vertex */
-		dv = &drawVerts[ i ];
+		dv = &drawVerts[i];
 		
-		/* walk colorMod list */
 		for( cm2 = cm; cm2 != NULL; cm2 = cm2->next )
 		{
-			/* default */
 			VectorSet( mult, 1.0f, 1.0f, 1.0f );
-			mult[ 3 ] = 1.0f;
+			mult[3] = 1.0f;
 			VectorSet( add, 0.0f, 0.0f, 0.0f );
-			mult[ 3 ] = 0.0f;
+			mult[3] = 0.0f;
 			
-			/* switch on type */
 			switch( cm2->type )
 			{
-				case CM_COLOR_SET:
-					VectorClear( mult );
-					VectorScale( cm2->data, 255.0f, add );
-					break;
-				
-				case CM_ALPHA_SET:
-					mult[ 3 ] = 0.0f;
-					add[ 3 ] = cm2->data[ 0 ] * 255.0f;
-					break;
-				
-				case CM_COLOR_SCALE:
-					VectorCopy( cm2->data, mult );
-					break;
-				
-				case CM_ALPHA_SCALE:
-					mult[ 3 ] = cm2->data[ 0 ];
-					break;
-				
-				case CM_COLOR_DOT_PRODUCT:
-					c = DotProduct( dv->normal, cm2->data );
-					VectorSet( mult, c, c, c );
-					break;
-				
-				case CM_ALPHA_DOT_PRODUCT:
-					mult[ 3 ] = DotProduct( dv->normal, cm2->data );
-					break;
-				
-				case CM_COLOR_DOT_PRODUCT_2:
-					c = DotProduct( dv->normal, cm2->data );
-					c *= c;
-					VectorSet( mult, c, c, c );
-					break;
-				
-				case CM_ALPHA_DOT_PRODUCT_2:
-					mult[ 3 ] = DotProduct( dv->normal, cm2->data );
-					mult[ 3 ] *= mult[ 3 ];
-					break;
-				
-				default:
-					break;
+			case CM_COLOR_SET:
+				VectorClear( mult );
+				VectorScale( cm2->data, 255.0f, add );
+				break;
+			case CM_ALPHA_SET:
+				mult[3] = 0.0f;
+				add[3] = cm2->data[0] * 255.0f;
+				break;
+			case CM_COLOR_SCALE:
+				VectorCopy( cm2->data, mult );
+				break;
+			case CM_ALPHA_SCALE:
+				mult[3] = cm2->data[0];
+				break;
+			case CM_COLOR_DOT_PRODUCT:
+				c = DotProduct( dv->normal, cm2->data );
+				VectorSet( mult, c, c, c );
+				break;
+			case CM_ALPHA_DOT_PRODUCT:
+				mult[3] = DotProduct( dv->normal, cm2->data );
+				break;
+			case CM_COLOR_DOT_PRODUCT_2:
+				c = DotProduct( dv->normal, cm2->data );
+				c *= c;
+				VectorSet( mult, c, c, c );
+				break;
+			case CM_ALPHA_DOT_PRODUCT_2:
+				mult[3] = DotProduct( dv->normal, cm2->data );
+				mult[3] *= mult[3];
+				break;
+			default:	break;
 			}
 			
-			/* apply mod */
+			// apply mod
 			for( j = 0; j < MAX_LIGHTMAPS; j++ )
 			{
 				for( k = 0; k < 4; k++ )
 				{
-					c = (mult[ k ] * dv->color[ j ][ k ]) + add[ k ];
-					if( c < 0 )
-						c = 0;
-					else if( c > 255 )
-						c = 255;
-					dv->color[ j ][ k ] = c;
+					c = (mult[k] * dv->color[j][k]) + add[k];
+					dv->color[ j ][ k ] = bound( 0, c, 255 );
 				}
 			}
 		}
 	}
 }
 
-
-
 /*
-TCMod*()
-routines for dealing with a 3x3 texture mod matrix
-*/
+=================
+TCMod
 
-void TCMod( tcMod_t mod, float st[ 2 ] )
+routines for dealing with a 3x3 texture mod matrix
+=================
+*/
+void TCMod( tcMod_t mod, float st[2] )
 {
-	float	old[ 2 ];
-	
-	
-	old[ 0 ] = st[ 0 ];
-	old[ 1 ] = st[ 1 ];
-	st[ 0 ] = (mod[ 0 ][ 0 ] * old[ 0 ]) + (mod[ 0 ][ 1 ] * old[ 1 ]) + mod[ 0 ][ 2 ];
-	st[ 1 ] = (mod[ 1 ][ 0 ] * old[ 0 ]) + (mod[ 1 ][ 1 ] * old[ 1 ]) + mod[ 1 ][ 2 ];
+	float	old[2];
+
+	old[0] = st[0];
+	old[1] = st[1];
+	st[0] = (mod[0][0] * old[0]) + (mod[0][1] * old[1]) + mod[0][2];
+	st[1] = (mod[1][0] * old[0]) + (mod[1][1] * old[1]) + mod[1][2];
 }
 
 
 void TCModIdentity( tcMod_t mod )
 {
-	mod[ 0 ][ 0 ] = 1.0f;	mod[ 0 ][ 1 ] = 0.0f;	mod[ 0 ][ 2 ] = 0.0f;
-	mod[ 1 ][ 0 ] = 0.0f;	mod[ 1 ][ 1 ] = 1.0f;	mod[ 1 ][ 2 ] = 0.0f;
-	mod[ 2 ][ 0 ] = 0.0f;	mod[ 2 ][ 1 ] = 0.0f;	mod[ 2 ][ 2 ] = 1.0f;	/* this row is only used for multiples, not transformation */
+	mod[0][0] = 1.0f;
+	mod[0][1] = 0.0f;
+	mod[0][2] = 0.0f;
+	mod[1][0] = 0.0f;
+	mod[1][1] = 1.0f;
+	mod[1][2] = 0.0f;
+	mod[2][0] = 0.0f;
+	mod[2][1] = 0.0f;
+	mod[2][2] = 1.0f;	// this row is only used for multiples, not transformation
 }
-
 
 void TCModMultiply( tcMod_t a, tcMod_t b, tcMod_t out )
 {
-	int		i;
-	
-	
+	int	i;
+
 	for( i = 0; i < 3; i++ )
 	{
-		out[ i ][ 0 ] = (a[ i ][ 0 ] * b[ 0 ][ 0 ]) + (a[ i ][ 1 ] * b[ 1 ][ 0 ]) + (a[ i ][ 2 ] * b[ 2 ][ 0 ]);
-		out[ i ][ 1 ] = (a[ i ][ 0 ] * b[ 0 ][ 1 ]) + (a[ i ][ 1 ] * b[ 1 ][ 1 ]) + (a[ i ][ 2 ] * b[ 2 ][ 1 ]);
-		out[ i ][ 2 ] = (a[ i ][ 0 ] * b[ 0 ][ 2 ]) + (a[ i ][ 1 ] * b[ 1 ][ 2 ]) + (a[ i ][ 2 ] * b[ 2 ][ 2 ]);
+		out[i][0] = (a[i][0] * b[0][0]) + (a[i][1] * b[1][0]) + (a[i][2] * b[2][0]);
+		out[i][1] = (a[i][0] * b[0][1]) + (a[i][1] * b[1][1]) + (a[i][2] * b[2][1]);
+		out[i][2] = (a[i][0] * b[0][2]) + (a[i][1] * b[1][2]) + (a[i][2] * b[2][2]);
 	}
 }
 
-
 void TCModTranslate( tcMod_t mod, float s, float t )
 {
-	mod[ 0 ][ 2 ] += s;
-	mod[ 1 ][ 2 ] += t;
+	mod[0][2] += s;
+	mod[1][2] += t;
 }
-
 
 void TCModScale( tcMod_t mod, float s, float t )
 {
-	mod[ 0 ][ 0 ] *= s;
-	mod[ 1 ][ 1 ] *= t;
+	mod[0][0] *= s;
+	mod[1][1] *= t;
 }
-
 
 void TCModRotate( tcMod_t mod, float euler )
 {
 	tcMod_t	old, temp;
 	float	radians, sinv, cosv;
-	
 	
 	Mem_Copy( old, mod, sizeof( tcMod_t ));
 	TCModIdentity( temp );
@@ -210,62 +185,47 @@ void TCModRotate( tcMod_t mod, float euler )
 	TCModMultiply( old, temp, mod );
 }
 
-
-
 /*
-ApplySurfaceParm() - ydnar
-applies a named surfaceparm to the supplied flags
-*/
+=================
+ApplySurfaceParm
 
+applies a named surfaceparm to the supplied flags
+=================
+*/
 bool ApplySurfaceParm( char *name, int *contentFlags, int *surfaceFlags, int *compileFlags )
 {
 	int		i, fake;
 	surfaceParm_t	*sp;
 	
+	if( name == NULL ) name = "";
+	if( contentFlags == NULL ) contentFlags = &fake;
+	if( surfaceFlags == NULL ) surfaceFlags = &fake;
+	if( compileFlags == NULL ) compileFlags = &fake;
 	
-	/* dummy check */
-	if( name == NULL )
-		name = "";
-	if( contentFlags == NULL )
-		contentFlags = &fake;
-	if( surfaceFlags == NULL )
-		surfaceFlags = &fake;
-	if( compileFlags == NULL )
-		compileFlags = &fake;
-	
-	/* walk the current game's surfaceparms */
+	// walk the current game's surfaceparms
 	sp = game->surfaceParms;
 	while( sp->name != NULL )
 	{
-		/* match? */
-		if( !com.stricmp( name, sp->name ) )
+		if( !com.stricmp( name, sp->name ))
 		{
-			/* clear and set flags */
 			*contentFlags &= ~(sp->contentFlagsClear);
 			*contentFlags |= sp->contentFlags;
 			*surfaceFlags &= ~(sp->surfaceFlagsClear);
 			*surfaceFlags |= sp->surfaceFlags;
 			*compileFlags &= ~(sp->compileFlagsClear);
 			*compileFlags |= sp->compileFlags;
-			
-			/* return ok */
+		
 			return true;
 		}
-		
-		/* next */
 		sp++;
 	}
 	
-	/* check custom info parms */
 	for( i = 0; i < numCustSurfaceParms; i++ )
 	{
-		/* get surfaceparm */
-		sp = &custSurfaceParms[ i ];
+		sp = &custSurfaceParms[i];
 		
-		/* match? */
-		if( !com.stricmp( name, sp->name ) )
+		if( !com.stricmp( name, sp->name ))
 		{
-			/* clear and set flags */
 			*contentFlags &= ~(sp->contentFlagsClear);
 			*contentFlags |= sp->contentFlags;
 			*surfaceFlags &= ~(sp->surfaceFlagsClear);
@@ -273,90 +233,68 @@ bool ApplySurfaceParm( char *name, int *contentFlags, int *surfaceFlags, int *co
 			*compileFlags &= ~(sp->compileFlagsClear);
 			*compileFlags |= sp->compileFlags;
 			
-			/* return ok */
 			return true;
 		}
 	}
-	
-	/* no matching surfaceparm found */
 	return false;
 }
 
-
-
 /*
-BeginMapShaderFile() - ydnar
-erases and starts a new map shader script
-*/
+=================
+BeginMapShaderFile
 
+erases and starts a new map shader script
+=================
+*/
 void BeginMapShaderFile( const char *mapFile )
 {
-	char	base[ 1024 ];
-	int		len;
-	
+	char	base[MAX_SYSPATH];
 
-	/* dummy check */
-	mapName[ 0 ] = '\0';
-	mapShaderFile[ 0 ] = '\0';
-	if( mapFile == NULL || mapFile[ 0 ] == '\0' )
+	mapName[0] = '\0';
+	mapShaderFile[0] = '\0';
+	if( mapFile == NULL || mapFile[0] == '\0' )
 		return;
 	
-	/* copy map name */
-	strcpy( base, mapFile );
-	FS_StripExtension( base );
+	com.strncpy( base, mapFile, sizeof( base ));
+	FS_FileBase( base, mapName );
 	
-	/* extract map name */
-	len = strlen( base ) - 1;
-	while( len > 0 && base[ len ] != '/' && base[ len ] != '\\' )
-		len--;
-	strcpy( mapName, &base[ len + 1 ] );
-	base[ len ] = '\0';
-	if( len <= 0 )
-		return;
-	
-	/* append ../scripts/q3map2_<mapname>.shader */
+	// append ../scripts/q3map2_<mapname>.shader
 	com.sprintf( mapShaderFile, "%s/../%s/q3map2_%s.shader", base, game->shaderPath, mapName );
 	MsgDev( D_INFO, "Map has shader script %s\n", mapShaderFile );
 	
-	/* remove it */
 	FS_Delete( mapShaderFile );
 	
-	/* stop making warnings about missing images */
+	// stop making warnings about missing images
 	warnImage = false;
 }
 
-
-
 /*
-WriteMapShaderFile() - ydnar
-writes a shader to the map shader script
-*/
+=================
+WriteMapShaderFile
 
+writes a shader to the map shader script
+=================
+*/
 void WriteMapShaderFile( void )
 {
 	file_t		*file;
 	shaderInfo_t	*si;
 	int		i, num;
 	
-	
-	/* dummy check */
-	if( mapShaderFile[ 0 ] == '\0' )
+	if( mapShaderFile[0] == '\0' )
 		return;
 	
-	/* are there any custom shaders? */
 	for( i = 0, num = 0; i < numShaderInfo; i++ )
 	{
-		if( shaderInfo[ i ].custom ) 
+		if( shaderInfo[i].custom ) 
 			break;
 	}
 	if( i == numShaderInfo )
 		return;
 	
-	/* note it */
 	MsgDev( D_INFO, "--- WriteMapShaderFile ---\n");
-	MsgDev( D_INFO, "Writing %s", mapShaderFile );
+	Msg( "Writing %s", mapShaderFile );
 	
-	/* open shader file */
 	file = FS_Open( mapShaderFile, "w" );
 	if( file == NULL )
 	{
@@ -364,45 +302,32 @@ void WriteMapShaderFile( void )
 		return;
 	}
 	
-	/* print header */
-	FS_Printf( file,
-		"// Custom shader file for %s.bsp\n"
-		"// Generated by Q3Map2 (ydnar)\n"
-		"// Do not edit! This file is overwritten on recompiles.\n\n",
-		mapName );
+	FS_Printf( file, "// Custom shader file for %s.bsp\n" "// Generated by Xash BspLib\n" "// Do not edit! This file is overwritten on recompiles.\n\n", mapName );
 	
-	/* walk the shader list */
 	for( i = 0, num = 0; i < numShaderInfo; i++ )
 	{
-		/* get the shader and print it */
-		si = &shaderInfo[ i ];
-		if( si->custom == false || si->shaderText == NULL || si->shaderText[ 0 ] == '\0' )
+		si = &shaderInfo[i];
+		if( si->custom == false || si->shaderText == NULL || si->shaderText[0] == '\0' )
 			continue;
 		num++;
 
-		/* print it to the file */
 		FS_Printf( file, "%s%s\n", si->shader, si->shaderText );
-		//Msg( "%s%s\n", si->shader, si->shaderText ); /* FIXME: remove debugging code */
-		
 		MsgDev( D_INFO, "." );
 	}
-	
-	/* close the shader */
+
 	FS_Close( file );
-	
-	MsgDev( D_INFO, "\n" );
-	
-	/* print some stats */
-	MsgDev( D_INFO, "%9d custom shaders emitted\n", num );
+	MsgDev( D_INFO, "\n%9d custom shaders emitted\n", num );
 }
 
 
 
 /*
-CustomShader() - ydnar
-sets up a custom map shader
-*/
+=================
+CustomShader
 
+sets up a custom map shader
+=================
+*/
 shaderInfo_t *CustomShader( shaderInfo_t *si, char *find, char *replace )
 {
 	shaderInfo_t	*csi;
@@ -411,22 +336,18 @@ shaderInfo_t *CustomShader( shaderInfo_t *si, char *find, char *replace )
 	int		loc;
 	MD5_CTX		md5_Hash;
 	byte		digest[16];
-	char		*srcShaderText, temp[ 8192 ], shaderText[ 8192 ];	/* ydnar: fixme (make this bigger?) */
+	char		*srcShaderText;
+	static char 	temp[16384], shaderText[16384];
 	
+	if( si == NULL ) return ShaderInfoForShader( "default" );
 	
-	/* dummy check */
-	if( si == NULL )
-		return ShaderInfoForShader( "default" );
-	
-	/* default shader text source */
 	srcShaderText = si->shaderText;
 	
-	/* et: implicitMap */
 	if( si->implicitMap == IM_OPAQUE )
 	{
 		srcShaderText = temp;
 		com.sprintf( temp, "\n"
-			"{ // Q3Map2 defaulted (implicitMap)\n"
+			"{ // BspLib defaulted (implicitMap)\n"
 			"\t{\n"
 			"\t\tmap $lightmap\n"
 			"\t\trgbGen identity\n"
@@ -440,13 +361,11 @@ shaderInfo_t *CustomShader( shaderInfo_t *si, char *find, char *replace )
 			"}\n",
 			si->implicitImagePath );
 	}
-	
-	/* et: implicitMask */
 	else if( si->implicitMap == IM_MASKED )
 	{
 		srcShaderText = temp;
 		com.sprintf( temp, "\n"
-			"{ // Q3Map2 defaulted (implicitMask)\n"
+			"{ // BspLib defaulted (implicitMask)\n"
 			"\tcull none\n"
 			"\t{\n"
 			"\t\tmap %s\n"
@@ -469,13 +388,11 @@ shaderInfo_t *CustomShader( shaderInfo_t *si, char *find, char *replace )
 			si->implicitImagePath,
 			si->implicitImagePath );
 	}
-	
-	/* et: implicitBlend */
 	else if( si->implicitMap == IM_BLEND )
 	{
 		srcShaderText = temp;
 		com.sprintf( temp, "\n"
-			"{ // Q3Map2 defaulted (implicitBlend)\n"
+			"{ // BspLib defaulted (implicitBlend)\n"
 			"\tcull none\n"
 			"\t{\n"
 			"\t\tmap %s\n"
@@ -490,13 +407,11 @@ shaderInfo_t *CustomShader( shaderInfo_t *si, char *find, char *replace )
 			"}\n",
 			si->implicitImagePath );
 	}
-	
-	/* default shader text */
 	else if( srcShaderText == NULL )
 	{
 		srcShaderText = temp;
 		com.sprintf( temp, "\n"
-			"{ // Q3Map2 defaulted\n"
+			"{ // BspLib defaulted\n"
 			"\t{\n"
 			"\t\tmap $lightmap\n"
 			"\t\trgbGen identity\n"
@@ -511,286 +426,249 @@ shaderInfo_t *CustomShader( shaderInfo_t *si, char *find, char *replace )
 			si->shader );
 	}
 	
-	/* error check */
-	if( (strlen( mapName ) + 1 + 32) > MAX_QPATH )
+	if(( com.strlen( mapName ) + 1 + 32) > MAX_QPATH )
 		Sys_Break( "Custom shader name length (%d) exceeded. Shorten your map name.\n", MAX_QPATH );
 	
-	/* do some bad find-replace */
-	s = strstr( srcShaderText, find );
-	if( s == NULL )
-	{
-		//%	strcpy( shaderText, srcShaderText );
-		return si;	/* testing just using the existing shader if this fails */
-	}
+	s = com.strstr( srcShaderText, find );
+	if( s == NULL ) return si; // testing just using the existing shader if this fails
 	else
 	{
-		/* substitute 'find' with 'replace' */
 		loc = s - srcShaderText;
-		strcpy( shaderText, srcShaderText );
-		shaderText[ loc ] = '\0';
-		strcat( shaderText, replace );
-		strcat( shaderText, &srcShaderText[ loc + strlen( find ) ] );
+		com.strncpy( shaderText, srcShaderText, sizeof( shaderText ));
+		shaderText[loc] = '\0';
+		com.strcat( shaderText, replace );
+		com.strcat( shaderText, &srcShaderText[loc + com.strlen( find )] );
 	}
 	
-	/* make md5 hash of the shader text */
+	// make md5 hash of the shader text
 	MD5_Init( &md5_Hash );
 	MD5_Update( &md5_Hash, shaderText, com.strlen( shaderText ));
 	MD5_Final( &md5_Hash, digest );
 	
-	/* mangle hash into a shader name */
+	// mangle hash into a shader name
 	com.sprintf( shader, "%s/%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X", mapName,
-		digest[ 0 ], digest[ 1 ], digest[ 2 ], digest[ 3 ], digest[ 4 ], digest[ 5 ], digest[ 6 ], digest[ 7 ], 
-		digest[ 8 ], digest[ 9 ], digest[ 10 ], digest[ 11 ], digest[ 12 ], digest[ 13 ], digest[ 14 ], digest[ 15 ] );
+		digest[0], digest[1], digest[2], digest[3], digest[4], digest[5], digest[6], digest[7], 
+		digest[8], digest[9], digest[10], digest[11], digest[12], digest[13], digest[14], digest[15] );
 	
-	/* get shader */
 	csi = ShaderInfoForShader( shader );
 	
-	/* might be a preexisting shader */
-	if( csi->custom )
-		return csi;
+	if( csi->custom ) return csi;
 	
-	/* clone the existing shader and rename */
-	memcpy( csi, si, sizeof( shaderInfo_t ) );
-	strcpy( csi->shader, shader );
+	// clone the existing shader and rename
+	Mem_Copy( csi, si, sizeof( shaderInfo_t ));
+	com.strcpy( csi->shader, shader );
 	csi->custom = true;
-	
-	/* store new shader text */
 	csi->shaderText = copystring( shaderText );
 	
-	/* return it */
 	return csi;
 }
 
-
-
 /*
-EmitVertexRemapShader()
-adds a vertexremapshader key/value pair to worldspawn
-*/
+=================
+EmitVertexRemapShader
 
+adds a vertexremapshader key/value pair to worldspawn
+=================
+*/
 void EmitVertexRemapShader( char *from, char *to )
 {
 	MD5_CTX		md5_Hash;
-	byte		digest[ 16 ];
-	char		key[ 64 ], value[ 256 ];
+	byte		digest[16];
+	char		key[64], value[256];
 	
-	
-	/* dummy check */
-	if( from == NULL || from[ 0 ] == '\0' || to == NULL || to[ 0 ] == '\0' )
+	if( from == NULL || from[0] == '\0' || to == NULL || to[0] == '\0' )
 		return;
 	
-	/* build value */
 	com.sprintf( value, "%s;%s", from, to );
 	
-	/* make md5 hash */
 	MD5_Init( &md5_Hash );
 	MD5_Update( &md5_Hash, value, com.strlen( value ));
 	MD5_Final( &md5_Hash, digest );
 
-	/* make key (this is annoying, as vertexremapshader is precisely 17 characters,
-	   which is one too long, so we leave off the last byte of the md5 digest) */
+	// make key (this is annoying, as vertexremapshader is precisely 17 characters,
+	// which is one too long, so we leave off the last byte of the md5 digest)
 	com.sprintf( key, "vertexremapshader%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
-		digest[ 0 ], digest[ 1 ], digest[ 2 ], digest[ 3 ], digest[ 4 ], digest[ 5 ], digest[ 6 ], digest[ 7 ], 
-		digest[ 8 ], digest[ 9 ], digest[ 10 ], digest[ 11 ], digest[ 12 ], digest[ 13 ], digest[ 14 ] );	/* no: digest[ 15 ] */
+		digest[0], digest[1], digest[2], digest[3], digest[4], digest[5], digest[6], digest[7], 
+		digest[8], digest[9], digest[10], digest[11], digest[12], digest[13], digest[14] ); // no: digest[15]
 	
-	/* add key/value pair to worldspawn */
-	SetKeyValue( &entities[ 0 ], key, value );
+	// add key/value pair to worldspawn
+	SetKeyValue( &entities[0], key, value );
 }
 
 
 
 /*
-AllocShaderInfo()
-allocates and initializes a new shader
-*/
+=================
+AllocShaderInfo
 
+allocates and initializes a new shader
+=================
+*/
 static shaderInfo_t	*AllocShaderInfo( void )
 {
 	shaderInfo_t	*si;
 	
-	
-	/* allocate? */
 	if( shaderInfo == NULL )
 	{
 		shaderInfo = Malloc( sizeof( shaderInfo_t ) * MAX_SHADER_INFO );
 		numShaderInfo = 0;
 	}
 	
-	/* bounds check */
 	if( numShaderInfo == MAX_SHADER_INFO )
 		Sys_Break( "MAX_SHADER_INFO exceeded\n Remove some PK3 files or shader scripts from shaderlist.txt and try again\n" );
 	si = &shaderInfo[ numShaderInfo ];
 	numShaderInfo++;
 	
-	/* ydnar: clear to 0 first */
-	memset( si, 0, sizeof( shaderInfo_t ) );
+	Mem_Set( si, 0, sizeof( shaderInfo_t ));
 	
-	/* set defaults */
 	ApplySurfaceParm( "default", &si->contentFlags, &si->surfaceFlags, &si->compileFlags );
 	
 	si->backsplashFraction = DEF_BACKSPLASH_FRACTION;
 	si->backsplashDistance = DEF_BACKSPLASH_DISTANCE;
-	
 	si->bounceScale = DEF_RADIOSITY_BOUNCE;
-	
 	si->lightStyle = LS_NORMAL;
-	
 	si->polygonOffset = false;
-	
 	si->shadeAngleDegrees = 0.0f;
 	si->lightmapSampleSize = 0;
 	si->lightmapSampleOffset = DEFAULT_LIGHTMAP_SAMPLE_OFFSET;
 	si->patchShadows = false;
-	si->vertexShadows = true;	/* ydnar: changed default behavior */
+	si->vertexShadows = true;
 	si->forceSunlight = false;
 	si->vertexScale = 1.0;
 	si->notjunc = false;
 	
-	/* ydnar: set texture coordinate transform matrix to identity */
+	// set texture coordinate transform matrix to identity
 	TCModIdentity( si->mod );
 	
-	/* ydnar: lightmaps can now be > 128x128 in certain games or an externally generated tga */
+	// lightmaps can now be > 128x128 in certain games or an externally generated tga
 	si->lmCustomWidth = lmCustomSize;
 	si->lmCustomHeight = lmCustomSize;
 	
-	/* return to sender */
 	return si;
 }
 
-
-
 /*
-FinishShader() - ydnar
-sets a shader's width and height among other things
-*/
+=================
+FinishShader
 
+sets a shader's width and height among other things
+=================
+*/
 void FinishShader( shaderInfo_t *si )
 {
-	int		x, y;
-	float	st[ 2 ], o[ 2 ], dist, bestDist;
+	int	x, y;
+	float	st[2], o[2], dist, bestDist;
 	vec4_t	color, bestColor, delta;
 	
-
-	/* don't double-dip */
 	if( si->finished )
 		return;
 	
-	/* if they're explicitly set, copy from image size */
+	// if they're explicitly set, copy from image size
 	if( si->shaderWidth == 0 && si->shaderHeight == 0 )
 	{
 		si->shaderWidth = si->shaderImage->pic->width;
 		si->shaderHeight = si->shaderImage->pic->height;
 	}
 	
-	/* legacy terrain has explicit image-sized texture projection */
+	// legacy terrain has explicit image-sized texture projection
 	if( si->legacyTerrain && si->tcGen == false )
 	{
-		/* set xy texture projection */
+		// set xy texture projection
 		si->tcGen = true;
-		VectorSet( si->vecs[ 0 ], (1.0f / (si->shaderWidth * 0.5f)), 0, 0 );
-		VectorSet( si->vecs[ 1 ], 0, (1.0f / (si->shaderHeight * 0.5f)), 0 );
+		VectorSet( si->vecs[0], (1.0f / (si->shaderWidth * 0.5f )), 0.0f, 0.0f );
+		VectorSet( si->vecs[1], 0.0f, (1.0f / (si->shaderHeight * 0.5f )), 0.0f );
 	}
 	
-	/* find pixel coordinates best matching the average color of the image */
+	// find pixel coordinates best matching the average color of the image
 	bestDist = 99999999;
-	o[ 0 ] = 1.0f / si->shaderImage->pic->width;
-	o[ 1 ] = 1.0f / si->shaderImage->pic->height;
-	for( y = 0, st[ 1 ] = 0.0f; y < si->shaderImage->pic->height; y++, st[ 1 ] += o[ 1 ] )
+	o[0] = 1.0f / si->shaderImage->pic->width;
+	o[1] = 1.0f / si->shaderImage->pic->height;
+	for( y = 0, st[1] = 0.0f; y < si->shaderImage->pic->height; y++, st[1] += o[1] )
 	{
-		for( x = 0, st[ 0 ] = 0.0f; x < si->shaderImage->pic->width; x++, st[ 0 ] += o[ 0 ] )
+		for( x = 0, st[0] = 0.0f; x < si->shaderImage->pic->width; x++, st[0] += o[0] )
 		{
-			/* sample the shader image */
 			RadSampleImage( si->shaderImage->pic, st, color );
 			
-			/* determine error squared */
 			VectorSubtract( color, si->averageColor, delta );
-			delta[ 3 ] = color[ 3 ] - si->averageColor[ 3 ];
-			dist = delta[ 0 ] * delta[ 0 ] + delta[ 1 ] * delta[ 1 ] + delta[ 2 ] * delta[ 2 ] + delta[ 3 ] * delta[ 3 ];
+			delta[3] = color[3] - si->averageColor[3];
+			dist = DotProduct( delta, delta );
 			if( dist < bestDist )
 			{
 				VectorCopy( color, bestColor );
-				bestColor[ 3 ] = color[ 3 ];
-				si->stFlat[ 0 ] = st[ 0 ];
-				si->stFlat[ 1 ] = st[ 1 ];
+				bestColor[3] = color[3];
+				si->stFlat[0] = st[0];
+				si->stFlat[1] = st[1];
 			}
 		}
 	}
-	
-	/* set to finished */
 	si->finished = true;
 }
 
-
-
 /*
-LoadShaderImages()
-loads a shader's images
-ydnar: image.c made this a bit simpler
-*/
+=================
+LoadShaderImages
 
+loads a shader's images
+=================
+*/
 static void LoadShaderImages( shaderInfo_t *si )
 {
-	int			i, count;
-	float		color[ 4 ];
+	int	i, count;
+	float	color[4];
 	
-	
-	/* nodraw shaders don't need images */
+	// nodraw shaders don't need images
 	if( si->compileFlags & C_NODRAW )
+	{
 		si->shaderImage = ImageLoad( DEFAULT_IMAGE );
+	}
 	else
 	{
-		/* try to load editor image first */
+		// try to load editor image first
 		si->shaderImage = ImageLoad( si->editorImagePath );
 		
-		/* then try shadername */
-		if( si->shaderImage == NULL )
-			si->shaderImage = ImageLoad( si->shader );
+		// then try shadername
+		if( si->shaderImage == NULL ) si->shaderImage = ImageLoad( si->shader );
 		
-		/* then try implicit image path (note: new behavior!) */
-		if( si->shaderImage == NULL )
-			si->shaderImage = ImageLoad( si->implicitImagePath );
+		// then try implicit image path (note: new behavior!)
+		if( si->shaderImage == NULL ) si->shaderImage = ImageLoad( si->implicitImagePath );
 		
-		/* then try lightimage (note: new behavior!) */
-		if( si->shaderImage == NULL )
-			si->shaderImage = ImageLoad( si->lightImagePath );
+		// then try lightimage (note: new behavior!)
+		if( si->shaderImage == NULL ) si->shaderImage = ImageLoad( si->lightImagePath );
 		
-		/* otherwise, use default image */
+		// otherwise, use default image
 		if( si->shaderImage == NULL )
 		{
 			si->shaderImage = ImageLoad( DEFAULT_IMAGE );
-			if( warnImage && strcmp( si->shader, "noshader" ) )
+			if( warnImage && com.strcmp( si->shader, "noshader" ))
 				MsgDev( D_WARN, "Couldn't find image for shader %s\n", si->shader );
 		}
 		
-		/* load light image */
 		si->lightImage = ImageLoad( si->lightImagePath );
 		
-		/* load normalmap image (ok if this is NULL) */
+		// load normalmap image (ok if this is NULL)
 		si->normalImage = ImageLoad( si->normalImagePath );
 		if( si->normalImage != NULL )
 		{
-			MsgDev( D_INFO, "Shader %s has\n"
-								  "    NM %s\n", si->shader, si->normalImagePath );
+			MsgDev( D_INFO, "Shader %s has\n" "    NM %s\n", si->shader, si->normalImagePath );
 		}
 	}
 	
-	/* if no light image, use shader image */
-	if( si->lightImage == NULL )
-		si->lightImage = ImageLoad( si->shaderImage->name );
+	// if no light image, use shader image
+	if( si->lightImage == NULL ) si->lightImage = ImageLoad( si->shaderImage->name );
 	
-	/* create default and average colors */
+	// create default and average colors
 	count = si->lightImage->pic->width * si->lightImage->pic->height;
 	VectorClear( color );
-	color[ 3 ] = 0.0f;
+	color[3] = 0.0f;
 
 	Image_Process( &si->lightImage->pic, 0, 0, IMAGE_FORCE_RGBA ); // paranoid mode
 
 	for( i = 0; i < count; i++ )
 	{
-		color[ 0 ] += si->lightImage->pic->buffer[ i * 4 + 0 ];
-		color[ 1 ] += si->lightImage->pic->buffer[ i * 4 + 1 ];
-		color[ 2 ] += si->lightImage->pic->buffer[ i * 4 + 2 ];
-		color[ 3 ] += si->lightImage->pic->buffer[ i * 4 + 3 ];
+		color[0] += si->lightImage->pic->buffer[i * 4 + 0];
+		color[1] += si->lightImage->pic->buffer[i * 4 + 1];
+		color[2] += si->lightImage->pic->buffer[i * 4 + 2];
+		color[3] += si->lightImage->pic->buffer[i * 4 + 3];
 	}
 	
 	if( VectorLength( si->color ) <= 0.0f )
@@ -798,322 +676,295 @@ static void LoadShaderImages( shaderInfo_t *si )
 	VectorScale( color, (1.0f / count), si->averageColor );
 }
 
-
-
 /*
-ShaderInfoForShader()
-finds a shaderinfo for a named shader
-*/
+=================
+ShaderInfoForShader
 
+finds a shaderinfo for a named shader
+=================
+*/
 shaderInfo_t *ShaderInfoForShader( const char *shaderName )
 {
-	int				i;
+	int		i;
 	shaderInfo_t	*si;
-	char			shader[ MAX_QPATH ];
+	char		shader[MAX_QPATH];
 	
-	
-	/* dummy check */
-	if( shaderName == NULL || shaderName[ 0 ] == '\0' )
+	if( shaderName == NULL || shaderName[0] == '\0' )
 	{
 		MsgDev( D_WARN, "Null or empty shader name\n" );
 		shaderName = "missing";
 	}
 	
-	/* strip off extension */
-	strcpy( shader, shaderName );
+	com.strcpy( shader, shaderName );
 	FS_StripExtension( shader );
 	
-	/* search for it */
 	for( i = 0; i < numShaderInfo; i++ )
 	{
-		si = &shaderInfo[ i ];
+		si = &shaderInfo[i];
 		if( !com.stricmp( shader, si->shader ) )
 		{
-			/* load image if necessary */
 			if( si->finished == false )
 			{
 				LoadShaderImages( si );
 				FinishShader( si );
 			}
-			
-			/* return it */
 			return si;
 		}
 	}
 	
-	/* allocate a default shader */
+	// allocate a default shader
 	si = AllocShaderInfo();
-	strcpy( si->shader, shader );
+	com.strcpy( si->shader, shader );
 	LoadShaderImages( si );
 	FinishShader( si );
 	
-	/* return it */
 	return si;
 }
 
-
-
 /*
-GetTokenAppend() - ydnar
+=================
+GetTokenAppend
+
 gets a token and appends its text to the specified buffer
+=================
 */
 
-static int	oldScriptLine = 0;
-static int	tabDepth = 0;
+static int oldScriptLine = 0;
+static int tabDepth = 0;
 
-bool GetTokenAppend( char *buffer, bool crossline )
+bool GetTokenAppend( script_t *script, token_t *tok, char *buffer, bool crossline )
 {
-	bool	r;
-	int			i;
+	int	i, r;
 	
-	
-	/* get the token */
-	r = GetToken( crossline );
-	if( r == false || buffer == NULL || token[ 0 ] == '\0' )
+	r = Com_ReadToken( script, crossline|SC_PARSE_GENERIC, tok );
+	if( r == false || buffer == NULL || tok->string[0] == '\0' )
 		return r;
 	
-	/* pre-tabstops */
-	if( token[ 0 ] == '}' )
+	// pre-tabstops
+	if( !com.strcmp( tok->string, "}" ))
 		tabDepth--;
 	
-	/* append? */
-	if( oldScriptLine != scriptline )
+	// append?
+	if( oldScriptLine != tok->line )
 	{
-		strcat( buffer, "\n" );
+		com.strcat( buffer, "\n" );
 		for( i = 0; i < tabDepth; i++ )
-			strcat( buffer, "\t" );
+			com.strcat( buffer, "\t" );
 	}
-	else
-		strcat( buffer, " " );
-	oldScriptLine = scriptline;
-	strcat( buffer, token );
+	else com.strcat( buffer, " " );
+
+	oldScriptLine = tok->line;
+	com.strcat( buffer, tok->string );
 	
-	/* post-tabstops */
-	if( token[ 0 ] == '{' )
-		tabDepth++;
+	// post-tabstops
+	if(!com.strcmp( tok->string, "{" )) tabDepth++;
 	
-	/* return */
 	return r;
 }
 
-
-void Parse1DMatrixAppend( char *buffer, int x, vec_t *m )
+void Parse1DMatrixAppend( script_t *script, char *buffer, int x, vec_t *m )
 {
-	int		i;
+	int	i;
+	token_t	token;
 	
-	
-	if( !GetTokenAppend( buffer, true ) || strcmp( token, "(" ) )
-		Sys_Break( "Parse1DMatrixAppend(): line %d: ( not found!", scriptline );
+	if(!GetTokenAppend( script, &token, buffer, true ) || com.strcmp( token.string, "(" ))
+		Sys_Break( "Parse1DMatrixAppend(): line %d: ( not found!", token.line );
 	for( i = 0; i < x; i++ )
 	{
-		if( !GetTokenAppend( buffer, false ) )
-			Sys_Break( "Parse1DMatrixAppend(): line %d: Number not found!", scriptline );
-		m[ i ] = atof( token );
+		if( !GetTokenAppend( script, &token, buffer, false ))
+			Sys_Break( "Parse1DMatrixAppend(): line %d: Number not found!", token.line );
+		m[i] = com.atof( token.string );
 	}
-	if( !GetTokenAppend( buffer, true ) || strcmp( token, ")" ) )
-		Sys_Break( "Parse1DMatrixAppend(): line %d: ) not found!", scriptline );
+	if( !GetTokenAppend( script, &token, buffer, true ) || com.strcmp( token.string, ")" ))
+		Sys_Break( "Parse1DMatrixAppend(): line %d: ) not found!", token.line );
 }
 
-
-
-
 /*
-ParseShaderFile()
-parses a shader file into discrete shaderInfo_t
-*/
+=================
+ParseShaderFile
 
+parses a shader file into discrete shaderInfo_t
+=================
+*/
 static void ParseShaderFile( const char *filename )
 {
-	int				i, val;
-	shaderInfo_t	*si;
-	char			*suffix, temp[ 1024 ];
-	char			shaderText[ 8192 ];	/* ydnar: fixme (make this bigger?) */
+	int		i, val;
+	shaderInfo_t	*si = NULL;
+	char		*suffix, temp[MAX_SYSPATH];
+	static char	shaderText[16384];
+	script_t		*script;
+	token_t		token;
 	
+	shaderText[0] = '\0';
 	
-	/* init */
-	si = NULL;
-	shaderText[ 0 ] = '\0';
+	script = Com_OpenScript( filename, NULL, 0 );
+	if( !script ) return;
 	
-	/* load the shader */
-	LoadScriptFile( filename, 0 );
-	
-	/* tokenize it */
 	while( 1 )
 	{
-		/* copy shader text to the shaderinfo */
-		if( si != NULL && shaderText[ 0 ] != '\0' )
+		// copy shader text to the shaderinfo
+		if( si != NULL && shaderText[0] != '\0' )
 		{
-			strcat( shaderText, "\n" );
-			si->shaderText = Malloc( strlen( shaderText ) + 1 );
-			strcpy( si->shaderText, shaderText );
-			//%	if( VectorLength( si->vecs[ 0 ] ) )
-			//%		Msg( "%s\n", shaderText );
+			com.strcat( shaderText, "\n" );
+			si->shaderText = copystring( shaderText );
 		}
 		
-		/* ydnar: clear shader text buffer */
-		shaderText[ 0 ] = '\0';
+		shaderText[0] = '\0';	// this will be done only once for each shader
 		
-		/* test for end of file */
-		if( !GetToken( true ) )
+		// test for end of file
+		if(!Com_ReadToken( script, SC_ALLOW_NEWLINES|SC_ALLOW_PATHNAMES2, &token ))
 			break;
 		
-		/* shader name is initial token */
+		// shader name is initial token
 		si = AllocShaderInfo();
-		strcpy( si->shader, token );
+		com.strcpy( si->shader, token.string );
 		
-		/* ignore ":q3map" suffix */
-		suffix = strstr( si->shader, ":q3map" );
-		if( suffix != NULL )
-			*suffix = '\0';
+		// ignore ":q3map" suffix
+		suffix = com.strstr( si->shader, ":q3map" );
+		if( suffix != NULL ) *suffix = '\0';
 		
-		/* handle { } section */
-		if( !GetTokenAppend( shaderText, true ) )
+		// handle { } section
+		if( !GetTokenAppend( script, &token, shaderText, true ))
 			break;
-		if( strcmp( token, "{" ) )
+		if( com.strcmp( token.string, "{" ) )
 		{
-			if( si != NULL )
-				Sys_Break( "ParseShaderFile(): %s, line %d: { not found!\nFound instead: %s\nLast known shader: %s",
-					filename, scriptline, token, si->shader );
-			else
-				Sys_Break( "ParseShaderFile(): %s, line %d: { not found!\nFound instead: %s",
-					filename, scriptline, token );
+			if( si != NULL ) Sys_Break( "ParseShaderFile(): %s, line %d: { not found!\n" 
+			"found instead: %s\nLast known shader: %s", filename, token.line, token.string, si->shader );
+			else Sys_Break( "ParseShaderFile(): %s, line %d: { not found!\nFound instead: %s", filename, token.line, token.string );
 		}
 		
 		while( 1 )
 		{
-			/* get the next token */
-			if( !GetTokenAppend( shaderText, true ) )
+			// get the next token
+			if( !GetTokenAppend( script, &token, shaderText, true ))
 				break;
-			if( !strcmp( token, "}" ) )
+			if( !com.strcmp( token.string, "}" ))
 				break;
 			
 			
-			/* -----------------------------------------------------------------
+			/*
+			-----------------------------------------------------------------
 			   shader stages (passes)
-			   ----------------------------------------------------------------- */
+			-----------------------------------------------------------------
+			*/
 			
-			/* parse stage directives */
-			if( !strcmp( token, "{" ) )
+			// parse stage directives
+			if( !strcmp( token.string, "{" ))
 			{
 				si->hasPasses = true;
 				while( 1 )
 				{
-					if( !GetTokenAppend( shaderText, true ) )
+					if( !GetTokenAppend( script, &token, shaderText, true ))
 						break;
-					if( !strcmp( token, "}" ) )
+					if( !com.strcmp( token.string, "}" ))
 						break;
 					
-					/* only care about images if we don't have a editor/light image */
-					if( si->editorImagePath[ 0 ] == '\0' && si->lightImagePath[ 0 ] == '\0' && si->implicitImagePath[ 0 ] == '\0' )
+					// only care about images if we don't have a editor/light image
+					if( si->editorImagePath[0] == '\0' && si->lightImagePath[0] == '\0' && si->implicitImagePath[0] == '\0' )
 					{
-						/* digest any images */
-						if( !com.stricmp( token, "map" ) ||
-							!com.stricmp( token, "clampMap" ) ||
-							!com.stricmp( token, "animMap" ) ||
-							!com.stricmp( token, "clampAnimMap" ) ||
-							!com.stricmp( token, "clampMap" ) ||
-							!com.stricmp( token, "mapComp" ) ||
-							!com.stricmp( token, "mapNoComp" ) )
+						// digest any images
+						if( !com.stricmp( token.string, "map" ) || !com.stricmp( token.string, "clampMap" ) || !com.stricmp( token.string, "animMap" )
+						|| !com.stricmp( token.string, "clampAnimMap" ) || !com.stricmp( token.string, "clampMap" )
+						|| !com.stricmp( token.string, "mapComp" ) || !com.stricmp( token.string, "mapNoComp" ))
 						{
-							/* skip one token for animated stages */
-							if( !com.stricmp( token, "animMap" ) || !com.stricmp( token, "clampAnimMap" ) )
-								GetTokenAppend( shaderText, false );
+							// skip one token for animated stages
+							if( !com.stricmp( token.string, "animMap" ) || !com.stricmp( token.string, "clampAnimMap" ) )
+								GetTokenAppend( script, &token, shaderText, false );
 							
-							/* get an image */
-							GetTokenAppend( shaderText, false );
-							if( token[ 0 ] != '*' && token[ 0 ] != '$' )
+							// get an image
+							GetTokenAppend( script, &token, shaderText, false );
+							if( token.string[0] != '*' && token.string[0] != '$' )
 							{
-								strcpy( si->lightImagePath, token );
+								com.strcpy( si->lightImagePath, token.string );
 								FS_DefaultExtension( si->lightImagePath, ".tga" );
-								
-								/* debug code */
-								//%	MsgDev( D_INFO, "Deduced shader image: %s\n", si->lightImagePath );
 							}
 						}
 					}
 				}
 			}
 			
+			/*
+			-----------------------------------------------------------------
+			surfaceparm * directives
+			-----------------------------------------------------------------
+			*/
 			
-			/* -----------------------------------------------------------------
-			   surfaceparm * directives
-			   ----------------------------------------------------------------- */
-			
-			/* match surfaceparm */
-			else if( !com.stricmp( token, "surfaceparm" ) )
+			// match surfaceparm
+			else if( !com.stricmp( token.string, "surfaceparm" ))
 			{
-				GetTokenAppend( shaderText, false );
-				if( ApplySurfaceParm( token, &si->contentFlags, &si->surfaceFlags, &si->compileFlags ) == false )
-					MsgDev( D_WARN, "Unknown surfaceparm: \"%s\"\n", token );
+				GetTokenAppend( script, &token, shaderText, false );
+				if( !ApplySurfaceParm( token.string, &si->contentFlags, &si->surfaceFlags, &si->compileFlags ))
+					MsgDev( D_WARN, "unknown surfaceparm: \"%s\"\n", token.string );
 			}
 			
 			
-			/* -----------------------------------------------------------------
-			   game-related shader directives
-			   ----------------------------------------------------------------- */
+			/*
+			-----------------------------------------------------------------
+			game-related shader directives
+			-----------------------------------------------------------------
+			*/
 			
-			/* ydnar: fogparms (for determining fog volumes) */
-			else if( !com.stricmp( token, "fogparms" ) )
+			// fogparms (for determining fog volumes)
+			else if( !com.stricmp( token.string, "fogparms" ))
 				si->fogParms = true;
 			
-			/* ydnar: polygonoffset (for no culling) */
-			else if( !com.stricmp( token, "polygonoffset" ) )
+			// polygonoffset (for no culling)
+			else if( !com.stricmp( token.string, "polygonoffset" ))
 				si->polygonOffset = true;
 			
-			/* tesssize is used to force liquid surfaces to subdivide */
-			else if( !com.stricmp( token, "tessSize" ) || !com.stricmp( token, "q3map_tessSize" ) /* sof2 */ )
+			// tesssize is used to force liquid surfaces to subdivide
+			else if( !com.stricmp( token.string, "tessSize" ) || !com.stricmp( token.string, "q3map_tessSize" ))
 			{
-				GetTokenAppend( shaderText, false );
-				si->subdivisions = atof( token );
+				GetTokenAppend( script, &token, shaderText, false );
+				si->subdivisions = com.atof( token.string );
 			}
 			
-			/* cull none will set twoSided (ydnar: added disable too) */
-			else if ( !com.stricmp( token, "cull" ) )
+			// cull none will set twoSided
+			else if( !com.stricmp( token.string, "cull" ))
 			{
-				GetTokenAppend( shaderText, false );
-				if( !com.stricmp( token, "none" ) || !com.stricmp( token, "disable" ) || !com.stricmp( token, "twosided" ) )
+				GetTokenAppend( script, &token, shaderText, false );
+				if( !com.stricmp( token.string, "none" ) || !com.stricmp( token.string, "disable" ) || !com.stricmp( token.string, "twosided" ))
 					si->twoSided = true;
 			}
 			
-			/* deformVertexes autosprite[ 2 ]
-			   we catch this so autosprited surfaces become point
-			   lights instead of area lights */
-			else if( !com.stricmp( token, "deformVertexes" ) )
+			// deformVertexes autosprite[2] we catch this so autosprited surfaces become point
+			// lights instead of area lights
+			else if( !com.stricmp( token.string, "deformVertexes" ))
 			{
-				GetTokenAppend( shaderText, false );
+				GetTokenAppend( script, &token, shaderText, false );
 				
-				/* deformVertexes autosprite(2) */
-				if( !com.strnicmp( token, "autosprite", 10 ) )
+				// deformVertexes autosprite(2)
+				if( !com.strnicmp( token.string, "autosprite", 10 ))
 				{
-					/* set it as autosprite and detail */
+					// set it as autosprite and detail
 					si->autosprite = true;
 					ApplySurfaceParm( "detail", &si->contentFlags, &si->surfaceFlags, &si->compileFlags );
 					
-					/* ydnar: gs mods: added these useful things */
+					// added these useful things
 					si->noClip = true;
 					si->notjunc = true;
 				}
 				
-				/* deformVertexes move <x> <y> <z> <func> <base> <amplitude> <phase> <freq> (ydnar: for particle studio support) */
-				if( !com.stricmp( token, "move") )
+				// deformVertexes move <x> <y> <z> <func> <base> <amplitude> <phase> <freq> (for particle studio support)
+				if( !com.stricmp( token.string, "move" ))
 				{
 					vec3_t	amt, mins, maxs;
 					float	base, amp;
 					
+					GetTokenAppend( script, &token, shaderText, false );
+					amt[0] = com.atof( token.string );
+					GetTokenAppend( script, &token, shaderText, false );
+					amt[1] = com.atof( token.string );
+					GetTokenAppend( script, &token, shaderText, false );
+					amt[2] = com.atof( token.string );
 					
-					/* get move amount */
-					GetTokenAppend( shaderText, false );	amt[ 0 ] = atof( token );
-					GetTokenAppend( shaderText, false );	amt[ 1 ] = atof( token );
-					GetTokenAppend( shaderText, false );	amt[ 2 ] = atof( token );
+					GetTokenAppend( script, &token, shaderText, false );
 					
-					/* skip func */
-					GetTokenAppend( shaderText, false );
+					GetTokenAppend( script, &token, shaderText, false );
+					base = com.atof( token.string );
+					GetTokenAppend( script, &token, shaderText, false );
+					amp = com.atof( token.string );
 					
-					/* get base and amplitude */
-					GetTokenAppend( shaderText, false );	base = atof( token );
-					GetTokenAppend( shaderText, false );	amp = atof( token );
-					
-					/* calculate */
 					VectorScale( amt, base, mins );
 					VectorMA( mins, amp, amt, maxs );
 					VectorAdd( si->mins, mins, si->mins );
@@ -1121,500 +972,446 @@ static void ParseShaderFile( const char *filename )
 				} 
 			}
 			
-			/* light <value> (old-style flare specification) */
-			else if( !com.stricmp( token, "light" ) )
+			// light <value> (old-style flare specification)
+			else if( !com.stricmp( token.string, "light" ))
 			{
-				GetTokenAppend( shaderText, false );
+				GetTokenAppend( script, &token, shaderText, false );
 				si->flareShader = game->flareShader;
 			}
 			
-			/* ydnar: damageShader <shader> <health> (sof2 mods) */
-			else if( !com.stricmp( token, "damageShader" ) )
+			// damageShader <shader> <health> (sof2 mods)
+			else if( !com.stricmp( token.string, "damageShader" ))
 			{
-				GetTokenAppend( shaderText, false );
-				if( token[ 0 ] != '\0' )
+				GetTokenAppend( script, &token, shaderText, false );
+				if( token.string[0] != '\0' )
 				{
-					si->damageShader = Malloc( strlen( token ) + 1 );
-					strcpy( si->damageShader, token );
+					si->damageShader = Malloc( strlen( token.string ) + 1 );
+					strcpy( si->damageShader, token.string );
 				}
-				GetTokenAppend( shaderText, false );	/* don't do anything with health */
+				GetTokenAppend( script, &token, shaderText, false ); // don't do anything with health
 			}
 			
-			/* ydnar: enemy territory implicit shaders */
-			else if( !com.stricmp( token, "implicitMap" ) )
+			// enemy territory implicit shaders
+			else if( !com.stricmp( token.string, "implicitMap" ))
 			{
 				si->implicitMap = IM_OPAQUE;
-				GetTokenAppend( shaderText, false );
-				if( token[ 0 ] == '-' && token[ 1 ] == '\0' )
+				GetTokenAppend( script, &token, shaderText, false );
+				if( token.string[0] == '-' && token.string[1] == '\0' )
 					com.sprintf( si->implicitImagePath, "%s.tga", si->shader );
-				else
-					strcpy( si->implicitImagePath, token );
+				else com.strcpy( si->implicitImagePath, token.string );
 			}
-
-			else if( !com.stricmp( token, "implicitMask" ) )
+			else if( !com.stricmp( token.string, "implicitMask" ))
 			{
 				si->implicitMap = IM_MASKED;
-				GetTokenAppend( shaderText, false );
-				if( token[ 0 ] == '-' && token[ 1 ] == '\0' )
+				GetTokenAppend( script, &token, shaderText, false );
+				if( token.string[0] == '-' && token.string[1] == '\0' )
 					com.sprintf( si->implicitImagePath, "%s.tga", si->shader );
-				else
-					strcpy( si->implicitImagePath, token );
+				else com.strcpy( si->implicitImagePath, token.string );
 			}
-
-			else if( !com.stricmp( token, "implicitBlend" ) )
+			else if( !com.stricmp( token.string, "implicitBlend" ))
 			{
 				si->implicitMap = IM_MASKED;
-				GetTokenAppend( shaderText, false );
-				if( token[ 0 ] == '-' && token[ 1 ] == '\0' )
+				GetTokenAppend( script, &token, shaderText, false );
+				if( token.string[0] == '-' && token.string[1] == '\0' )
 					com.sprintf( si->implicitImagePath, "%s.tga", si->shader );
-				else
-					strcpy( si->implicitImagePath, token );
+				else com.strcpy( si->implicitImagePath, token.string );
 			}
 			
+			/*
+			-----------------------------------------------------------------
+			image directives
+			-----------------------------------------------------------------
+			*/
 			
-			/* -----------------------------------------------------------------
-			   image directives
-			   ----------------------------------------------------------------- */
-			
-			/* qer_editorimage <image> */
-			else if( !com.stricmp( token, "qer_editorImage" ) )
+			// qer_editorimage <image>
+			else if( !com.stricmp( token.string, "qer_editorImage" ))
 			{
-				GetTokenAppend( shaderText, false );
-				strcpy( si->editorImagePath, token );
+				GetTokenAppend( script, &token, shaderText, false );
+				strcpy( si->editorImagePath, token.string );
 				FS_DefaultExtension( si->editorImagePath, ".tga" );
 			}
 			
-			/* ydnar: q3map_normalimage <image> (bumpmapping normal map) */
-			else if( !com.stricmp( token, "q3map_normalImage" ) )
+			// q3map_normalimage <image> (bumpmapping normal map)
+			else if( !com.stricmp( token.string, "q3map_normalImage" ))
 			{
-				GetTokenAppend( shaderText, false );
-				strcpy( si->normalImagePath, token );
+				GetTokenAppend( script, &token, shaderText, false );
+				strcpy( si->normalImagePath, token.string );
 				FS_DefaultExtension( si->normalImagePath, ".tga" );
 			}
 			
-			/* q3map_lightimage <image> */
-			else if( !com.stricmp( token, "q3map_lightImage" ) )
+			// q3map_lightimage <image>
+			else if( !com.stricmp( token.string, "q3map_lightImage" ))
 			{
-				GetTokenAppend( shaderText, false );
-				strcpy( si->lightImagePath, token );
+				GetTokenAppend( script, &token, shaderText, false );
+				strcpy( si->lightImagePath, token.string );
 				FS_DefaultExtension( si->lightImagePath, ".tga" );
 			}
 			
-			/* ydnar: skyparms <outer image> <cloud height> <inner image> */
-			else if( !com.stricmp( token, "skyParms" ) )
+			// skyparms <outer image> <cloud height> <inner image>
+			else if( !com.stricmp( token.string, "skyParms" ) )
 			{
-				/* get image base */
-				GetTokenAppend( shaderText, false );
+				GetTokenAppend( script, &token, shaderText, false );
 				
-				/* ignore bogus paths */
-				if( com.stricmp( token, "-" ) && com.stricmp( token, "full" ) )
+				if( com.stricmp( token.string, "-" ) && com.stricmp( token.string, "full" ))
 				{
-					strcpy( si->skyParmsImageBase, token );
+					com.strcpy( si->skyParmsImageBase, token.string );
 					
-					/* use top image as sky light image */
-					if( si->lightImagePath[ 0 ] == '\0' )
-						com.sprintf( si->lightImagePath, "%s_up.tga", si->skyParmsImageBase );
+					// use top image as sky light image
+					if( si->lightImagePath[0] == '\0' )
+						com.sprintf( si->lightImagePath, "%sup.tga", si->skyParmsImageBase );
 				}
 				
-				/* skip rest of line */
-				GetTokenAppend( shaderText, false );
-				GetTokenAppend( shaderText, false );
+				// skip rest of line
+				GetTokenAppend( script, &token, shaderText, false );
+				GetTokenAppend( script, &token, shaderText, false );
 			}
 			
-			/* -----------------------------------------------------------------
-			   q3map_* directives
-			   ----------------------------------------------------------------- */
+			/*
+			-----------------------------------------------------------------
+			q3map_* directives
+			-----------------------------------------------------------------
+			*/
 			
-			/* q3map_sun <red> <green> <blue> <intensity> <degrees> <elevation>
-			   color will be normalized, so it doesn't matter what range you use
-			   intensity falls off with angle but not distance 100 is a fairly bright sun
-			   degree of 0 = from the east, 90 = north, etc.  altitude of 0 = sunrise/set, 90 = noon
-			   ydnar: sof2map has bareword 'sun' token, so we support that as well */
-			else if( !com.stricmp( token, "sun" ) /* sof2 */ || !com.stricmp( token, "q3map_sun" ) || !com.stricmp( token, "q3map_sunExt" ) )
+			// q3map_sun <red> <green> <blue> <intensity> <degrees> <elevation>
+			// color will be normalized, so it doesn't matter what range you use
+			// intensity falls off with angle but not distance 100 is a fairly bright sun
+			// degree of 0 = from the east, 90 = north, etc.  altitude of 0 = sunrise/set, 90 = noon
+			else if( !com.stricmp( token.string, "q3map_sun" ) || !com.stricmp( token.string, "q3map_sunExt" ))
 			{
-				float		a, b;
-				sun_t		*sun;
+				float	a, b;
+				sun_t	*sun;
 				bool	ext;
 				
-				
-				/* ydnar: extended sun directive? */
-				if( !com.stricmp( token, "q3map_sunext" ) )
+				// extended sun directive?
+				if( !com.stricmp( token.string, "q3map_sunext" ))
 					ext = true;
 				
-				/* allocate sun */
 				sun = Malloc( sizeof( *sun ) );
-				memset( sun, 0, sizeof( *sun ) );
-				
-				/* set style */
 				sun->style = si->lightStyle;
 				
-				/* get color */
-				GetTokenAppend( shaderText, false );
-				sun->color[ 0 ] = atof( token );
-				GetTokenAppend( shaderText, false );
-				sun->color[ 1 ] = atof( token );
-				GetTokenAppend( shaderText, false );
-				sun->color[ 2 ] = atof( token );
+				GetTokenAppend( script, &token, shaderText, false );
+				sun->color[0] = com.atof( token.string );
+				GetTokenAppend( script, &token, shaderText, false );
+				sun->color[1] = com.atof( token.string );
+				GetTokenAppend( script, &token, shaderText, false );
+				sun->color[2] = com.atof( token.string );
 				
-				/* normalize it */
 				VectorNormalize( sun->color );
 				
-				/* scale color by brightness */
-				GetTokenAppend( shaderText, false );
-				sun->photons = atof( token );
+				GetTokenAppend( script, &token, shaderText, false );
+				sun->photons = com.atof( token.string );
 				
-				/* get sun angle/elevation */
-				GetTokenAppend( shaderText, false );
-				a = atof( token );
+				// get sun angle/elevation
+				GetTokenAppend( script, &token, shaderText, false );
+				a = com.atof( token.string );
 				a = a / 180.0f * M_PI;
 				
-				GetTokenAppend( shaderText, false );
-				b = atof( token );
+				GetTokenAppend( script, &token, shaderText, false );
+				b = com.atof( token.string );
 				b = b / 180.0f * M_PI;
 				
-				sun->direction[ 0 ] = cos( a ) * cos( b );
-				sun->direction[ 1 ] = sin( a ) * cos( b );
-				sun->direction[ 2 ] = sin( b );
+				sun->direction[0] = com.cos( a ) * com.cos( b );
+				sun->direction[1] = com.sin( a ) * com.cos( b );
+				sun->direction[2] = com.sin( b );
 				
-				/* get filter radius from shader */
+				// get filter radius from shader
 				sun->filterRadius = si->lightFilterRadius;
 				
-				/* ydnar: get sun angular deviance/samples */
-				if( ext && TokenAvailable() )
+				// get sun angular deviance/samples
+				if( ext && GetTokenAppend( script, &token, shaderText, false ))
 				{
-					GetTokenAppend( shaderText, false );
-					sun->deviance = atof( token );
+					sun->deviance = com.atof( token.string );
 					sun->deviance = sun->deviance / 180.0f * M_PI;
 					
-					GetTokenAppend( shaderText, false );
-					sun->numSamples = atoi( token );
+					GetTokenAppend( script, &token, shaderText, false );
+					sun->numSamples = com.atoi( token.string );
 				}
 				
-				/* store sun */
 				sun->next = si->sun;
 				si->sun = sun;
 				
-				/* apply sky surfaceparm */
+				// apply sky surfaceparm
 				ApplySurfaceParm( "sky", &si->contentFlags, &si->surfaceFlags, &si->compileFlags );
 				
-				/* don't process any more tokens on this line */
+				// don't process any more tokens on this line
 				continue;
 			}
 
-			/* match q3map_ */
-			else if( !com.strnicmp( token, "q3map_", 6 ) )
+			// match q3map_
+			else if( !com.strnicmp( token.string, "q3map_", 6 ))
 			{
-				/* ydnar: q3map_baseShader <shader> (inherit this shader's parameters) */
-				if( !com.stricmp( token, "q3map_baseShader" ) )
+				// q3map_baseShader <shader> (inherit this shader's parameters)
+				if( !com.stricmp( token.string, "q3map_baseShader" ))
 				{
 					shaderInfo_t	*si2;
 					bool		oldWarnImage;
 					
-					
-					/* get shader */
-					GetTokenAppend( shaderText, false );
-					//%	MsgDev( D_INFO, "Shader %s has base shader %s\n", si->shader, token );
+					GetTokenAppend( script, &token, shaderText, false );
 					oldWarnImage = warnImage;
 					warnImage = false;
-					si2 = ShaderInfoForShader( token );
+					si2 = ShaderInfoForShader( token.string );
 					warnImage = oldWarnImage;
 					
-					/* subclass it */
+					// subclass it
 					if( si2 != NULL )
 					{
-						/* preserve name */
-						strcpy( temp, si->shader );
+						com.strcpy( temp, si->shader );
+						Mem_Copy( si, si2, sizeof( *si ));
 						
-						/* copy shader */
-						memcpy( si, si2, sizeof( *si ) );
-						
-						/* restore name and set to unfinished */
-						strcpy( si->shader, temp );
+						// restore name and set to unfinished
+						com.strcpy( si->shader, temp );
 						si->shaderWidth = 0;
 						si->shaderHeight = 0;
 						si->finished = false;
 					}
 				}
 				
-				/* ydnar: q3map_surfacemodel <path to model> <density> <min scale> <max scale> <min angle> <max angle> <oriented (0 or 1)> */
-				else if( !com.stricmp( token, "q3map_surfacemodel" ) )
+				// q3map_surfacemodel <path to model> <density> <min scale> <max scale> <min angle> <max angle> <oriented (0 or 1)>
+				else if( !com.stricmp( token.string, "q3map_surfacemodel" ))
 				{
 					surfaceModel_t	*model;
-					
-					
-					/* allocate new model and attach it */
-					model = Malloc( sizeof( *model ) );
-					memset( model, 0, sizeof( *model ) );
+
+					// allocate new model and attach it
+					model = Malloc( sizeof( *model ));
 					model->next = si->surfaceModel;
 					si->surfaceModel = model;
 						
-					/* get parameters */
-					GetTokenAppend( shaderText, false );
-					strcpy( model->model, token );
+					GetTokenAppend( script, &token, shaderText, false );
+					com.strcpy( model->model, token.string );
 					
-					GetTokenAppend( shaderText, false );
-					model->density = atof( token );
-					GetTokenAppend( shaderText, false );
-					model->odds = atof( token );
+					GetTokenAppend( script, &token, shaderText, false );
+					model->density = com.atof( token.string );
+					GetTokenAppend( script, &token, shaderText, false );
+					model->odds = com.atof( token.string );
 					
-					GetTokenAppend( shaderText, false );
-					model->minScale = atof( token );
-					GetTokenAppend( shaderText, false );
-					model->maxScale = atof( token );
+					GetTokenAppend( script, &token, shaderText, false );
+					model->minScale = com.atof( token.string );
+					GetTokenAppend( script, &token, shaderText, false );
+					model->maxScale = com.atof( token.string );
 					
-					GetTokenAppend( shaderText, false );
-					model->minAngle = atof( token );
-					GetTokenAppend( shaderText, false );
-					model->maxAngle = atof( token );
+					GetTokenAppend( script, &token, shaderText, false );
+					model->minAngle = com.atof( token.string );
+					GetTokenAppend( script, &token, shaderText, false );
+					model->maxAngle = com.atof( token.string );
 					
-					GetTokenAppend( shaderText, false );
-					model->oriented = (token[ 0 ] == '1' ? true : false);
+					GetTokenAppend( script, &token, shaderText, false );
+					model->oriented = (token.string[0] == '1' ? true : false);
 				}
 				
-				/* ydnar/sd: q3map_foliage <path to model> <scale> <density> <odds> <invert alpha (1 or 0)> */
-				else if( !com.stricmp( token, "q3map_foliage" ) )
+				// q3map_foliage <path to model> <scale> <density> <odds> <invert alpha (1 or 0)>
+				else if( !com.stricmp( token.string, "q3map_foliage" ))
 				{
 					foliage_t	*foliage;
 					
-					
-					/* allocate new foliage struct and attach it */
+					// allocate new foliage struct and attach it
 					foliage = Malloc( sizeof( *foliage ) );
-					memset( foliage, 0, sizeof( *foliage ) );
 					foliage->next = si->foliage;
 					si->foliage = foliage;
 					
-					/* get parameters */
-					GetTokenAppend( shaderText, false );
-					strcpy( foliage->model, token );
+					// get parameters
+					GetTokenAppend( script, &token, shaderText, false );
+					com.strcpy( foliage->model, token.string );
 					
-					GetTokenAppend( shaderText, false );
-					foliage->scale = atof( token );
-					GetTokenAppend( shaderText, false );
-					foliage->density = atof( token );
-					GetTokenAppend( shaderText, false );
-					foliage->odds = atof( token );
-					GetTokenAppend( shaderText, false );
-					foliage->inverseAlpha = atoi( token );
+					GetTokenAppend( script, &token, shaderText, false );
+					foliage->scale = com.atof( token.string );
+					GetTokenAppend( script, &token, shaderText, false );
+					foliage->density = com.atof( token.string );
+					GetTokenAppend( script, &token, shaderText, false );
+					foliage->odds = com.atof( token.string );
+					GetTokenAppend( script, &token, shaderText, false );
+					foliage->inverseAlpha = com.atoi( token.string );
 				}
 				
-				/* ydnar: q3map_bounce <value> (fraction of light to re-emit during radiosity passes) */
-				else if( !com.stricmp( token, "q3map_bounce" ) || !com.stricmp( token, "q3map_bounceScale" ) )
+				// q3map_bounce <value> (fraction of light to re-emit during radiosity passes)
+				else if( !com.stricmp( token.string, "q3map_bounce" ) || !com.stricmp( token.string, "q3map_bounceScale" ))
 				{
-					GetTokenAppend( shaderText, false );
-					si->bounceScale = atof( token );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->bounceScale = com.atof( token.string );
 				}
 
-				/* ydnar/splashdamage: q3map_skyLight <value> <iterations> */
-				else if( !com.stricmp( token, "q3map_skyLight" )  )
+				// q3map_skyLight <value> <iterations>
+				else if( !com.stricmp( token.string, "q3map_skyLight" ))
 				{
-					GetTokenAppend( shaderText, false );
-					si->skyLightValue = atof( token );
-					GetTokenAppend( shaderText, false );
-					si->skyLightIterations = atoi( token );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->skyLightValue = com.atof( token.string );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->skyLightIterations = com.atoi( token.string );
 					
 					/* clamp */
-					if( si->skyLightValue < 0.0f )
-						si->skyLightValue = 0.0f;
-					if( si->skyLightIterations < 2 )
-						si->skyLightIterations = 2;
+					if( si->skyLightValue < 0.0f ) si->skyLightValue = 0.0f;
+					if( si->skyLightIterations < 2 ) si->skyLightIterations = 2;
 				}
 				
-				/* q3map_surfacelight <value> */
-				else if( !com.stricmp( token, "q3map_surfacelight" )  )
+				// q3map_surfacelight <value>
+				else if( !com.stricmp( token.string, "q3map_surfacelight" ))
 				{
-					GetTokenAppend( shaderText, false );
-					si->value = atof( token );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->value = com.atof( token.string );
 				}
 				
-				/* q3map_lightStyle (sof2/jk2 lightstyle) */
-				else if( !com.stricmp( token, "q3map_lightStyle" ) )
+				// q3map_lightStyle (sof2/jk2 lightstyle)
+				else if( !com.stricmp( token.string, "q3map_lightStyle" ))
 				{
-					GetTokenAppend( shaderText, false );
-					val = atoi( token );
-					if( val < 0 )
-						val = 0;
-					else if( val > LS_NONE )
-						val = LS_NONE;
-					si->lightStyle = val;
+					GetTokenAppend( script, &token, shaderText, false );
+					val = com.atoi( token.string );
+					si->lightStyle = bound( 0, val, LS_NONE );
 				}
 				
-				/* wolf: q3map_lightRGB <red> <green> <blue> */
-				else if( !com.stricmp( token, "q3map_lightRGB" ) )
+				// wolf: q3map_lightRGB <red> <green> <blue>
+				else if( !com.stricmp( token.string, "q3map_lightRGB" ))
 				{
 					VectorClear( si->color );
-					GetTokenAppend( shaderText, false );
-					si->color[ 0 ] = atof( token );
-					GetTokenAppend( shaderText, false );
-					si->color[ 1 ] = atof( token );
-					GetTokenAppend( shaderText, false );
-					si->color[ 2 ] = atof( token );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->color[0] = com.atof( token.string );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->color[1] = com.atof( token.string );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->color[2] = com.atof( token.string );
 					ColorNormalize( si->color, si->color );
 				}
 				
-				/* q3map_lightSubdivide <value> */
-				else if( !com.stricmp( token, "q3map_lightSubdivide" )  )
+				// q3map_lightSubdivide <value>
+				else if( !com.stricmp( token.string, "q3map_lightSubdivide" ))
 				{
-					GetTokenAppend( shaderText, false );
-					si->lightSubdivide = atoi( token );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->lightSubdivide = atoi( token.string );
 				}
 				
-				/* q3map_backsplash <percent> <distance> */
-				else if( !com.stricmp( token, "q3map_backsplash" ) )
+				// q3map_backsplash <percent> <distance>
+				else if( !com.stricmp( token.string, "q3map_backsplash" ))
 				{
-					GetTokenAppend( shaderText, false );
-					si->backsplashFraction = atof( token ) * 0.01f;
-					GetTokenAppend( shaderText, false );
-					si->backsplashDistance = atof( token );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->backsplashFraction = com.atof( token.string ) * 0.01f;
+					GetTokenAppend( script, &token, shaderText, false );
+					si->backsplashDistance = com.atof( token.string );
 				}
 				
-				/* q3map_lightmapSampleSize <value> */
-				else if( !com.stricmp( token, "q3map_lightmapSampleSize" ) )
+				// q3map_lightmapSampleSize <value>
+				else if( !com.stricmp( token.string, "q3map_lightmapSampleSize" ))
 				{
-					GetTokenAppend( shaderText, false );
-					si->lightmapSampleSize = atoi( token );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->lightmapSampleSize = com.atoi( token.string );
 				}
 				
-				/* q3map_lightmapSampleSffset <value> */
-				else if( !com.stricmp( token, "q3map_lightmapSampleOffset" ) )
+				// q3map_lightmapSampleSffset <value>
+				else if( !com.stricmp( token.string, "q3map_lightmapSampleOffset" ))
 				{
-					GetTokenAppend( shaderText, false );
-					si->lightmapSampleOffset = atof( token );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->lightmapSampleOffset = com.atof( token.string );
 				}
 				
-				/* ydnar: q3map_lightmapFilterRadius <self> <other> */
-				else if( !com.stricmp( token, "q3map_lightmapFilterRadius" ) )
+				// q3map_lightmapFilterRadius <self> <other>
+				else if( !com.stricmp( token.string, "q3map_lightmapFilterRadius" ))
 				{
-					GetTokenAppend( shaderText, false );
-					si->lmFilterRadius = atof( token );
-					GetTokenAppend( shaderText, false );
-					si->lightFilterRadius = atof( token );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->lmFilterRadius = com.atof( token.string );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->lightFilterRadius = com.atof( token.string );
 				}
 				
-				/* ydnar: q3map_lightmapAxis [xyz] */
-				else if( !com.stricmp( token, "q3map_lightmapAxis" ) )
+				// q3map_lightmapAxis [xyz]
+				else if( !com.stricmp( token.string, "q3map_lightmapAxis" ))
 				{
-					GetTokenAppend( shaderText, false );
-					if( !com.stricmp( token, "x" ) )
-						VectorSet( si->lightmapAxis, 1, 0, 0 );
-					else if( !com.stricmp( token, "y" ) )
-						VectorSet( si->lightmapAxis, 0, 1, 0 );
-					else if( !com.stricmp( token, "z" ) )
-						VectorSet( si->lightmapAxis, 0, 0, 1 );
+					GetTokenAppend( script, &token, shaderText, false );
+					if( !com.stricmp( token.string, "x" )) VectorSet( si->lightmapAxis, 1, 0, 0 );
+					else if( !com.stricmp( token.string, "y" )) VectorSet( si->lightmapAxis, 0, 1, 0 );
+					else if( !com.stricmp( token.string, "z" )) VectorSet( si->lightmapAxis, 0, 0, 1 );
 					else
 					{
-						MsgDev( D_WARN, "Unknown value for lightmap axis: %s\n", token );
+						MsgDev( D_WARN, "Unknown value for lightmap axis: %s\n", token.string );
 						VectorClear( si->lightmapAxis );
 					}
 				}
 				
-				/* ydnar: q3map_lightmapSize <width> <height> (for autogenerated shaders + external tga lightmaps) */
-				else if( !com.stricmp( token, "q3map_lightmapSize" ) )
+				// q3map_lightmapSize <width> <height> (for autogenerated shaders + external tga lightmaps)
+				else if( !com.stricmp( token.string, "q3map_lightmapSize" ))
 				{
-					GetTokenAppend( shaderText, false );
-					si->lmCustomWidth = atoi( token );
-					GetTokenAppend( shaderText, false );
-					si->lmCustomHeight = atoi( token );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->lmCustomWidth = com.atoi( token.string );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->lmCustomHeight = com.atoi( token.string );
 					
-					/* must be a power of 2 */
-					if( ((si->lmCustomWidth - 1) & si->lmCustomWidth) ||
-						((si->lmCustomHeight - 1) & si->lmCustomHeight) )
+					// must be a power of 2
+					if(((si->lmCustomWidth - 1) & si->lmCustomWidth) || ((si->lmCustomHeight - 1) & si->lmCustomHeight))
 					{
-						MsgDev( D_WARN, "Non power-of-two lightmap size specified (%d, %d)\n",
-							 si->lmCustomWidth, si->lmCustomHeight );
+						MsgDev( D_WARN, "Non power-of-two lightmap size specified (%d, %d)\n", si->lmCustomWidth, si->lmCustomHeight );
 						si->lmCustomWidth = lmCustomSize;
 						si->lmCustomHeight = lmCustomSize;
 					}
 				}
 
-				/* ydnar: q3map_lightmapBrightness N (for autogenerated shaders + external tga lightmaps) */
-				else if( !com.stricmp( token, "q3map_lightmapBrightness" ) || !com.stricmp( token, "q3map_lightmapGamma" ) )
+				// q3map_lightmapBrightness N (for autogenerated shaders + external tga lightmaps)
+				else if( !com.stricmp( token.string, "q3map_lightmapBrightness" ) || !com.stricmp( token.string, "q3map_lightmapGamma" ))
 				{
-					GetTokenAppend( shaderText, false );
-					si->lmBrightness = atof( token );
-					if( si->lmBrightness < 0 )
-						si->lmBrightness = 1.0;
+					GetTokenAppend( script, &token, shaderText, false );
+					si->lmBrightness = com.atof( token.string );
+					if( si->lmBrightness < 0 ) si->lmBrightness = 1.0f;
 				}
 				
-				/* q3map_vertexScale (scale vertex lighting by this fraction) */
-				else if( !com.stricmp( token, "q3map_vertexScale" ) )
+				// q3map_vertexScale (scale vertex lighting by this fraction)
+				else if( !com.stricmp( token.string, "q3map_vertexScale" ))
 				{
-					GetTokenAppend( shaderText, false );
-					si->vertexScale = atof( token );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->vertexScale = com.atof( token.string );
 				}
 				
-				/* q3map_noVertexLight */
-				else if( !com.stricmp( token, "q3map_noVertexLight" )  )
+				// q3map_noVertexLight
+				else if( !com.stricmp( token.string, "q3map_noVertexLight" ))
 				{
 					si->noVertexLight = true;
 				}
 				
-				/* q3map_flare[Shader] <shader> */
-				else if( !com.stricmp( token, "q3map_flare" ) || !com.stricmp( token, "q3map_flareShader" ) )
+				// q3map_flare[Shader] <shader>
+				else if( !com.stricmp( token.string, "q3map_flare" ) || !com.stricmp( token.string, "q3map_flareShader" ))
 				{
-					GetTokenAppend( shaderText, false );
-					if( token[ 0 ] != '\0' )
-					{
-						si->flareShader = Malloc( strlen( token ) + 1 );
-						strcpy( si->flareShader, token );
-					}
+					GetTokenAppend( script, &token, shaderText, false );
+					if( token.string[0] != '\0' ) si->flareShader = copystring( token.string );
 				}
 				
-				/* q3map_backShader <shader> */
-				else if( !com.stricmp( token, "q3map_backShader" ) )
+				// q3map_backShader <shader>
+				else if( !com.stricmp( token.string, "q3map_backShader" ))
 				{
-					GetTokenAppend( shaderText, false );
-					if( token[ 0 ] != '\0' )
-					{
-						si->backShader = Malloc( strlen( token ) + 1 );
-						strcpy( si->backShader, token );
-					}
+					GetTokenAppend( script, &token, shaderText, false );
+					if( token.string[0] != '\0' ) si->backShader = copystring( token.string );
 				}
 				
-				/* ydnar: q3map_cloneShader <shader> */
-				else if ( !com.stricmp( token, "q3map_cloneShader" ) )
+				// q3map_cloneShader <shader>
+				else if ( !com.stricmp( token.string, "q3map_cloneShader" ))
 				{
-					GetTokenAppend( shaderText, false );
-					if( token[ 0 ] != '\0' )
-					{
-						si->cloneShader = Malloc( strlen( token ) + 1 );
-						strcpy( si->cloneShader, token );
-					}
+					GetTokenAppend( script, &token, shaderText, false );
+					if( token.string[0] != '\0' ) si->cloneShader = copystring( token.string );
 				}
 				
-				/* q3map_remapShader <shader> */
-				else if( !com.stricmp( token, "q3map_remapShader" ) )
+				// q3map_remapShader <shader>
+				else if( !com.stricmp( token.string, "q3map_remapShader" ) )
 				{
-					GetTokenAppend( shaderText, false );
-					if( token[ 0 ] != '\0' )
-					{
-						si->remapShader = Malloc( strlen( token ) + 1 );
-						strcpy( si->remapShader, token );
-					}
+					GetTokenAppend( script, &token, shaderText, false );
+					if( token.string[0] != '\0' ) si->remapShader = copystring( token.string );
 				}
 				
-				/* ydnar: q3map_offset <value> */
-				else if( !com.stricmp( token, "q3map_offset" ) )
+				// q3map_offset <value>
+				else if( !com.stricmp( token.string, "q3map_offset" ))
 				{
-					GetTokenAppend( shaderText, false );
-					si->offset = atof( token );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->offset = com.atof( token.string );
 				}
 				
-				/* ydnar: q3map_textureSize <width> <height> (substitute for q3map_lightimage derivation for terrain) */
-				else if( !com.stricmp( token, "q3map_fur" ) )
+				// q3map_fur <numLayers> <offset>
+				else if( !com.stricmp( token.string, "q3map_fur" ) )
 				{
-					GetTokenAppend( shaderText, false );
-					si->furNumLayers = atoi( token );
-					GetTokenAppend( shaderText, false );
-					si->furOffset = atof( token );
-					GetTokenAppend( shaderText, false );
-					si->furFade = atof( token );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->furNumLayers = com.atoi( token.string );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->furOffset = com.atof( token.string );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->furFade = com.atof( token.string );
 				}
 				
-				/* ydnar: gs mods: legacy support for terrain/terrain2 shaders */
-				else if( !com.stricmp( token, "q3map_terrain" ) )
+				// legacy support for terrain/terrain2 shaders
+				else if( !com.stricmp( token.string, "q3map_terrain" ))
 				{
-					/* team arena terrain is assumed to be nonplanar, with full normal averaging,
-					   passed through the metatriangle surface pipeline, with a lightmap axis on z */
+					// team arena terrain is assumed to be nonplanar, with full normal averaging,
+					// passed through the metatriangle surface pipeline, with a lightmap axis on z
 					si->legacyTerrain = true;
 					si->noClip = true;
 					si->notjunc = true;
@@ -1622,82 +1419,77 @@ static void ParseShaderFile( const char *filename )
 					si->nonplanar = true;
 					si->forceMeta = true;
 					si->shadeAngleDegrees = 179.0f;
-					//%	VectorSet( si->lightmapAxis, 0, 0, 1 );	/* ydnar 2002-09-21: turning this off for better lightmapping of cliff faces */
 				}
 				
-				/* ydnar: picomodel: q3map_forceMeta (forces brush faces and/or triangle models to go through the metasurface pipeline) */
-				else if( !com.stricmp( token, "q3map_forceMeta" ) )
+				// picomodel: q3map_forceMeta (forces brush faces and/or triangle models to go through the metasurface pipeline)
+				else if( !com.stricmp( token.string, "q3map_forceMeta" ))
 				{
 					si->forceMeta = true;
 				}
 				
-				/* ydnar: gs mods: q3map_shadeAngle <degrees> */
-				else if( !com.stricmp( token, "q3map_shadeAngle" ) )
+				// q3map_shadeAngle <degrees>
+				else if( !com.stricmp( token.string, "q3map_shadeAngle" ))
 				{
-					GetTokenAppend( shaderText, false );
-					si->shadeAngleDegrees = atof( token );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->shadeAngleDegrees = com.atof( token.string );
 				}
 				
-				/* ydnar: q3map_textureSize <width> <height> (substitute for q3map_lightimage derivation for terrain) */
-				else if( !com.stricmp( token, "q3map_textureSize" ) )
+				// q3map_textureSize <width> <height> (substitute for q3map_lightimage derivation for terrain)
+				else if( !com.stricmp( token.string, "q3map_textureSize" ))
 				{
-					GetTokenAppend( shaderText, false );
-					si->shaderWidth = atoi( token );
-					GetTokenAppend( shaderText, false );
-					si->shaderHeight = atoi( token );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->shaderWidth = com.atoi( token.string );
+					GetTokenAppend( script, &token, shaderText, false );
+					si->shaderHeight = com.atoi( token.string );
 				}
 				
-				/* ydnar: gs mods: q3map_tcGen <style> <parameters> */
-				else if( !com.stricmp( token, "q3map_tcGen" ) )
+				// q3map_tcGen <style> <parameters>
+				else if( !com.stricmp( token.string, "q3map_tcGen" ))
 				{
 					si->tcGen = true;
-					GetTokenAppend( shaderText, false );
+					GetTokenAppend( script, &token, shaderText, false );
 					
-					/* q3map_tcGen vector <s vector> <t vector> */
-					if( !com.stricmp( token, "vector" ) )
+					// q3map_tcGen vector <s vector> <t vector>
+					if( !com.stricmp( token.string, "vector" ) )
 					{
-						Parse1DMatrixAppend( shaderText, 3, si->vecs[ 0 ] );
-						Parse1DMatrixAppend( shaderText, 3, si->vecs[ 1 ] );
+						Parse1DMatrixAppend( script, shaderText, 3, si->vecs[0] );
+						Parse1DMatrixAppend( script, shaderText, 3, si->vecs[1] );
 					}
 					
-					/* q3map_tcGen ivector <1.0/s vector> <1.0/t vector> (inverse vector, easier for mappers to understand) */
-					else if( !com.stricmp( token, "ivector" ) )
+					// q3map_tcGen ivector <1.0/s vector> <1.0/t vector> (inverse vector, easier for mappers to understand)
+					else if( !com.stricmp( token.string, "ivector" ) )
 					{
-						Parse1DMatrixAppend( shaderText, 3, si->vecs[ 0 ] );
-						Parse1DMatrixAppend( shaderText, 3, si->vecs[ 1 ] );
+						Parse1DMatrixAppend( script, shaderText, 3, si->vecs[0] );
+						Parse1DMatrixAppend( script, shaderText, 3, si->vecs[1] );
 						for( i = 0; i < 3; i++ )
 						{
-							si->vecs[ 0 ][ i ] = si->vecs[ 0 ][ i ] ? 1.0 / si->vecs[ 0 ][ i ] : 0;
-							si->vecs[ 1 ][ i ] = si->vecs[ 1 ][ i ] ? 1.0 / si->vecs[ 1 ][ i ] : 0;
+							si->vecs[0][i] = si->vecs[0][i] ? 1.0 / si->vecs[0][i] : 0;
+							si->vecs[1][i] = si->vecs[1][i] ? 1.0 / si->vecs[1][i] : 0;
 						}
 					}
 					else
 					{
-						MsgDev( D_WARN, "Unknown q3map_tcGen method: %s\n", token );
-						VectorClear( si->vecs[ 0 ] );
-						VectorClear( si->vecs[ 1 ] );
+						MsgDev( D_WARN, "unknown q3map_tcGen method: %s\n", token.string );
+						VectorClear( si->vecs[0] );
+						VectorClear( si->vecs[1] );
 					}
 				}
 				
-				/* ydnar: gs mods: q3map_[color|rgb|alpha][Gen|Mod] <style> <parameters> */
-				else if( !com.stricmp( token, "q3map_colorGen" ) || !com.stricmp( token, "q3map_colorMod" ) ||
-					!com.stricmp( token, "q3map_rgbGen" ) || !com.stricmp( token, "q3map_rgbMod" ) ||
-					!com.stricmp( token, "q3map_alphaGen" ) || !com.stricmp( token, "q3map_alphaMod" ) )
+				// q3map_[color|rgb|alpha][Gen|Mod] <style> <parameters>
+				else if( !com.stricmp( token.string, "q3map_colorGen" ) || !com.stricmp( token.string, "q3map_colorMod" ) ||
+					!com.stricmp( token.string, "q3map_rgbGen" ) || !com.stricmp( token.string, "q3map_rgbMod" ) ||
+					!com.stricmp( token.string, "q3map_alphaGen" ) || !com.stricmp( token.string, "q3map_alphaMod" ))
 				{
 					colorMod_t	*cm, *cm2;
-					int			alpha;
+					int		alpha;
 					
 					
-					/* alphamods are colormod + 1 */
-					alpha = (!com.stricmp( token, "q3map_alphaGen" ) || !com.stricmp( token, "q3map_alphaMod" )) ? 1 : 0;
+					// alphamods are colormod + 1
+					alpha = (!com.stricmp( token.string, "q3map_alphaGen" ) || !com.stricmp( token.string, "q3map_alphaMod" )) ? 1 : 0;
 					
-					/* allocate new colormod */
 					cm = Malloc( sizeof( *cm ) );
-					memset( cm, 0, sizeof( *cm ) );
 					
-					/* attach to shader */
-					if( si->colorMod == NULL )
-						si->colorMod = cm;
+					if( si->colorMod == NULL ) si->colorMod = cm;
 					else
 					{
 						for( cm2 = si->colorMod; cm2 != NULL; cm2 = cm2->next )
@@ -1710,293 +1502,282 @@ static void ParseShaderFile( const char *filename )
 						}
 					}
 					
-					/* get type */
-					GetTokenAppend( shaderText, false );
+					GetTokenAppend( script, &token, shaderText, false );
 					
-					/* alpha set|const A */
-					if( alpha && (!com.stricmp( token, "set" ) || !com.stricmp( token, "const" )) )
+					// alpha set|const A
+					if( alpha && (!com.stricmp( token.string, "set" ) || !com.stricmp( token.string, "const" )))
 					{
 						cm->type = CM_ALPHA_SET;
-						GetTokenAppend( shaderText, false );
-						cm->data[ 0 ] = atof( token );
+						GetTokenAppend( script, &token, shaderText, false );
+						cm->data[0] = atof( token.string );
 					}
 					
-					/* color|rgb set|const ( X Y Z ) */
-					else if( !com.stricmp( token, "set" ) || !com.stricmp( token, "const" ) )
+					// color|rgb set|const ( X Y Z )
+					else if( !com.stricmp( token.string, "set" ) || !com.stricmp( token.string, "const" ) )
 					{
 						cm->type = CM_COLOR_SET;
-						Parse1DMatrixAppend( shaderText, 3, cm->data );
+						Parse1DMatrixAppend( script, shaderText, 3, cm->data );
 					}
 					
-					/* alpha scale A */
-					else if( alpha && !com.stricmp( token, "scale" ) )
+					// alpha scale A
+					else if( alpha && !com.stricmp( token.string, "scale" ))
 					{
 						cm->type = CM_ALPHA_SCALE;
-						GetTokenAppend( shaderText, false );
-						cm->data[ 0 ] = atof( token );
+						GetTokenAppend( script, &token, shaderText, false );
+						cm->data[0] = atof( token.string );
 					}
 					
-					/* color|rgb scale ( X Y Z ) */
-					else if( !com.stricmp( token, "scale" ) )
+					// color|rgb scale ( X Y Z )
+					else if( !com.stricmp( token.string, "scale" ))
 					{
 						cm->type = CM_COLOR_SCALE;
-						Parse1DMatrixAppend( shaderText, 3, cm->data );
+						Parse1DMatrixAppend( script, shaderText, 3, cm->data );
 					}
 					
-					/* dotProduct ( X Y Z ) */
-					else if( !com.stricmp( token, "dotProduct" ) )
+					// dotProduct ( X Y Z )
+					else if( !com.stricmp( token.string, "dotProduct" ))
 					{
 						cm->type = CM_COLOR_DOT_PRODUCT + alpha;
-						Parse1DMatrixAppend( shaderText, 3, cm->data );
+						Parse1DMatrixAppend( script, shaderText, 3, cm->data );
 					}
 					
-					/* dotProduct2 ( X Y Z ) */
-					else if( !com.stricmp( token, "dotProduct2" ) )
+					// dotProduct2 ( X Y Z )
+					else if( !com.stricmp( token.string, "dotProduct2" ))
 					{
 						cm->type = CM_COLOR_DOT_PRODUCT_2 + alpha;
-						Parse1DMatrixAppend( shaderText, 3, cm->data );
+						Parse1DMatrixAppend( script, shaderText, 3, cm->data );
 					}
 					
-					/* volume */
-					else if( !com.stricmp( token, "volume" ) )
+					// volume
+					else if( !com.stricmp( token.string, "volume" ))
 					{
-						/* special stub mode for flagging volume brushes */
+						// special stub mode for flagging volume brushes
 						cm->type = CM_VOLUME;
 					}
-					
-					/* unknown */
-					else
-						MsgDev( D_WARN, "Unknown colorMod method: %s\n", token );
+					else MsgDev( D_WARN, "unknown colorMod method: %s\n", token.string );
 				}
 				
-				/* ydnar: gs mods: q3map_tcMod <style> <parameters> */
-				else if( !com.stricmp( token, "q3map_tcMod" ) )
+				// q3map_tcMod <style> <parameters>
+				else if( !com.stricmp( token.string, "q3map_tcMod" ))
 				{
 					float	a, b;
 					
+					GetTokenAppend( script, &token, shaderText, false );
 					
-					GetTokenAppend( shaderText, false );
-					
-					/* q3map_tcMod [translate | shift | offset] <s> <t> */
-					if( !com.stricmp( token, "translate" ) || !com.stricmp( token, "shift" ) || !com.stricmp( token, "offset" ) )
+					// q3map_tcMod [translate | shift | offset] <s> <t>
+					if( !com.stricmp( token.string, "translate" ) || !com.stricmp( token.string, "shift" ) || !com.stricmp( token.string, "offset" ))
 					{
-						GetTokenAppend( shaderText, false );
-						a = atof( token );
-						GetTokenAppend( shaderText, false );
-						b = atof( token );
+						GetTokenAppend( script, &token, shaderText, false );
+						a = com.atof( token.string );
+						GetTokenAppend( script, &token, shaderText, false );
+						b = com.atof( token.string );
 						
 						TCModTranslate( si->mod, a, b );
 					}
 
-					/* q3map_tcMod scale <s> <t> */
-					else if( !com.stricmp( token, "scale" ) )
+					// q3map_tcMod scale <s> <t>
+					else if( !com.stricmp( token.string, "scale" ))
 					{
-						GetTokenAppend( shaderText, false );
-						a = atof( token );
-						GetTokenAppend( shaderText, false );
-						b = atof( token );
+						GetTokenAppend( script, &token, shaderText, false );
+						a = com.atof( token.string );
+						GetTokenAppend( script, &token, shaderText, false );
+						b = com.atof( token.string );
 						
 						TCModScale( si->mod, a, b );
 					}
 					
-					/* q3map_tcMod rotate <s> <t> (fixme: make this communitive) */
-					else if( !com.stricmp( token, "rotate" ) )
+					// q3map_tcMod rotate <s> <t> (FIXME: make this communitive)
+					else if( !com.stricmp( token.string, "rotate" ) )
 					{
-						GetTokenAppend( shaderText, false );
-						a = atof( token );
+						GetTokenAppend( script, &token, shaderText, false );
+						a = com.atof( token.string );
+
 						TCModRotate( si->mod, a );
 					}
-					else
-						MsgDev( D_WARN, "Unknown q3map_tcMod method: %s\n", token );
+					else MsgDev( D_WARN, "unknown q3map_tcMod method: %s\n", token.string );
 				}
 				
-				/* q3map_fogDir (direction a fog shader fades from transparent to opaque) */
-				else if( !com.stricmp( token, "q3map_fogDir" ) )
+				// q3map_fogDir (direction a fog shader fades from transparent to opaque)
+				else if( !com.stricmp( token.string, "q3map_fogDir" ))
 				{
-					Parse1DMatrixAppend( shaderText, 3, si->fogDir );
+					Parse1DMatrixAppend( script, shaderText, 3, si->fogDir );
 					VectorNormalize( si->fogDir );
 				}
 				
-				/* q3map_globaltexture */
-				else if( !com.stricmp( token, "q3map_globaltexture" )  )
+				// q3map_globaltexture
+				else if( !com.stricmp( token.string, "q3map_globaltexture" ))
 					si->globalTexture = true;
 				
-				/* ydnar: gs mods: q3map_nonplanar (make it a nonplanar merge candidate for meta surfaces) */
-				else if( !com.stricmp( token, "q3map_nonplanar" ) )
+				// q3map_nonplanar (make it a nonplanar merge candidate for meta surfaces)
+				else if( !com.stricmp( token.string, "q3map_nonplanar" ))
 					si->nonplanar = true;
 				
-				/* ydnar: gs mods: q3map_noclip (preserve original face winding, don't clip by bsp tree) */
-				else if( !com.stricmp( token, "q3map_noclip" ) )
+				// q3map_noclip (preserve original face winding, don't clip by bsp tree)
+				else if( !com.stricmp( token.string, "q3map_noclip" ))
 					si->noClip = true;
 				
-				/* q3map_notjunc */
-				else if( !com.stricmp( token, "q3map_notjunc" ) )
+				// q3map_notjunc
+				else if( !com.stricmp( token.string, "q3map_notjunc" ))
 					si->notjunc = true;
 				
-				/* q3map_nofog */
-				else if( !com.stricmp( token, "q3map_nofog" ) )
+				// q3map_nofog
+				else if( !com.stricmp( token.string, "q3map_nofog" ))
 					si->noFog = true;
 				
-				/* ydnar: gs mods: q3map_indexed (for explicit terrain-style indexed mapping) */
-				else if( !com.stricmp( token, "q3map_indexed" ) )
+				// q3map_indexed (for explicit terrain-style indexed mapping)
+				else if( !com.stricmp( token.string, "q3map_indexed" ))
 					si->indexed = true;
 				
-				/* ydnar: q3map_invert (inverts a drawsurface's facing) */
-				else if( !com.stricmp( token, "q3map_invert" ) )
+				// q3map_invert (inverts a drawsurface's facing)
+				else if( !com.stricmp( token.string, "q3map_invert" ))
 					si->invert = true;
 				
-				/* ydnar: gs mods: q3map_lightmapMergable (ok to merge non-planar */
-				else if( !com.stricmp( token, "q3map_lightmapMergable" ) )
+				// q3map_lightmapMergable (ok to merge non-planar)
+				else if( !com.stricmp( token.string, "q3map_lightmapMergable" ))
 					si->lmMergable = true;
 				
-				/* ydnar: q3map_nofast */
-				else if( !com.stricmp( token, "q3map_noFast" ) )
+				// q3map_nofast
+				else if( !com.stricmp( token.string, "q3map_noFast" ))
 					si->noFast = true;
 				
-				/* q3map_patchshadows */
-				else if( !com.stricmp( token, "q3map_patchShadows" ) )
+				// q3map_patchshadows
+				else if( !com.stricmp( token.string, "q3map_patchShadows" ))
 					si->patchShadows = true;
 				
-				/* q3map_vertexshadows */
-				else if( !com.stricmp( token, "q3map_vertexShadows" ) )
-					si->vertexShadows = true;	/* ydnar */
+				// q3map_vertexshadows
+				else if( !com.stricmp( token.string, "q3map_vertexShadows" ))
+					si->vertexShadows = true;
 				
-				/* q3map_novertexshadows */
-				else if( !com.stricmp( token, "q3map_noVertexShadows" ) )
-					si->vertexShadows = false;	/* ydnar */
+				// q3map_novertexshadows
+				else if( !com.stricmp( token.string, "q3map_noVertexShadows" ))
+					si->vertexShadows = false;
 				
-				/* q3map_splotchfix (filter dark lightmap luxels on lightmapped models) */
-				else if( !com.stricmp( token, "q3map_splotchfix" ) )
-					si->splotchFix = true;	/* ydnar */
+				// q3map_splotchfix (filter dark lightmap luxels on lightmapped models)
+				else if( !com.stricmp( token.string, "q3map_splotchfix" ))
+					si->splotchFix = true;
 				
-				/* q3map_forcesunlight */
-				else if( !com.stricmp( token, "q3map_forceSunlight" ) )
+				// q3map_forcesunlight
+				else if( !com.stricmp( token.string, "q3map_forceSunlight" ))
 					si->forceSunlight = true;
 				
-				/* q3map_onlyvertexlighting (sof2) */
-				else if( !com.stricmp( token, "q3map_onlyVertexLighting" ) )
+				// q3map_onlyvertexlighting (sof2)
+				else if( !com.stricmp( token.string, "q3map_onlyVertexLighting" ))
 					ApplySurfaceParm( "pointlight", &si->contentFlags, &si->surfaceFlags, &si->compileFlags );
 				
-				/* q3map_material (sof2) */
-				else if( !com.stricmp( token, "q3map_material" ) )
+				// q3map_material (sof2)
+				else if( !com.stricmp( token.string, "q3map_material" ))
 				{
-					GetTokenAppend( shaderText, false );
-					com.sprintf( temp, "*mat_%s", token );
-					if( ApplySurfaceParm( temp, &si->contentFlags, &si->surfaceFlags, &si->compileFlags ) == false )
-						MsgDev( D_WARN, "Unknown material \"%s\"\n", token );
+					GetTokenAppend( script, &token, shaderText, false );
+					com.sprintf( temp, "*mat_%s", token.string );
+					if( !ApplySurfaceParm( temp, &si->contentFlags, &si->surfaceFlags, &si->compileFlags ))
+						MsgDev( D_WARN, "Unknown material \"%s\"\n", token.string );
 				}
 				
-				/* ydnar: q3map_clipmodel (autogenerate clip brushes for model triangles using this shader) */
-				else if( !com.stricmp( token, "q3map_clipmodel" )  )
+				// q3map_clipmodel (autogenerate clip brushes for model triangles using this shader)
+				else if( !com.stricmp( token.string, "q3map_clipmodel" ))
 					si->clipModel = true;
 				
-				/* ydnar: q3map_styleMarker[2] */
-				else if( !com.stricmp( token, "q3map_styleMarker" ) )
+				// q3map_styleMarker[2]
+				else if( !com.stricmp( token.string, "q3map_styleMarker" ))
 					si->styleMarker = 1;
-				else if( !com.stricmp( token, "q3map_styleMarker2" ) )	/* uses depthFunc equal */
+				else if( !com.stricmp( token.string, "q3map_styleMarker2" )) // uses depthFunc equal
 					si->styleMarker = 2;
 				
-				/* ydnar: default to searching for q3map_<surfaceparm> */
-				else
-				{
-					//%	MsgDev( D_INFO, "Attempting to match %s with a known surfaceparm\n", token );
-					if( ApplySurfaceParm( &token[ 6 ], &si->contentFlags, &si->surfaceFlags, &si->compileFlags ) == false )
-						;//%	MsgDev( D_WARN, "Unknown q3map_* directive \"%s\"\n", token );
-				}
+				// default to searching for q3map_<surfaceparm>
+				else ApplySurfaceParm( &token.string[6], &si->contentFlags, &si->surfaceFlags, &si->compileFlags );
 			}
 			
 			
-			/* -----------------------------------------------------------------
-			   skip
-			   ----------------------------------------------------------------- */
+			/*
+			-----------------------------------------------------------------
+			skip
+			-----------------------------------------------------------------
+			*/
 			
-			/* ignore all other tokens on the line */
-			while( TokenAvailable() && GetTokenAppend( shaderText, false ) );
+			// ignore all other tokens on the line
+			Com_SkipRestOfLine( script );
 		}			
 	}
+	Com_CloseScript( script );
 }
 
 
 
 /*
-ParseCustomInfoParms() - rr2do2
-loads custom info parms file for mods
-*/
+=================
+ParseCustomInfoParms
 
+loads custom info parms file for mods
+=================
+*/
 static void ParseCustomInfoParms( void )
 {
-	bool parsedContent, parsedSurface;
+	bool	parsedContent, parsedSurface;
+	script_t	*script;
+	token_t	token;
 	
+	script = Com_OpenScript( "scripts/custinfoparms.txt", NULL, 0 );
+	if( !script ) return;
 	
-	/* file exists? */
-	if( !FS_FileExists( "scripts/custinfoparms.txt" ))
-		return;
-	
-	/* load it */
-	LoadScriptFile( "scripts/custinfoparms.txt", 0 );
-	
-	/* clear the array */
-	memset( custSurfaceParms, 0, sizeof( custSurfaceParms ) );
+	Mem_Set( custSurfaceParms, 0, sizeof( custSurfaceParms ));
 	numCustSurfaceParms = 0;
 	parsedContent = parsedSurface = false;
 	
-	/* parse custom contentflags */
-	MatchToken( "{" );
+	Com_CheckToken( script, "{" );
 	while ( 1 )
 	{
-		if ( !GetToken( true ) )
+		if( !Com_ReadToken( script, SC_ALLOW_NEWLINES, &token ))
 			break;
 
-		if ( !strcmp( token, "}" ) ) {
+		if( !com.strcmp( token.string, "}" ))
+		{
 			parsedContent = true;
 			break;
 		}
 
-		custSurfaceParms[ numCustSurfaceParms ].name = Malloc( MAX_SYSPATH );
-		strcpy( custSurfaceParms[ numCustSurfaceParms ].name, token );
-		GetToken( false );
-		sscanf( token, "%x", &custSurfaceParms[ numCustSurfaceParms ].contentFlags );
+		custSurfaceParms[numCustSurfaceParms].name = copystring( token.string );
+		Com_ReadToken( script, false, &token );
+		sscanf( token.string, "%x", &custSurfaceParms[numCustSurfaceParms].contentFlags );
 		numCustSurfaceParms++;
 	}
 	
-	/* any content? */
+	// any content?
 	if( !parsedContent )
 	{
 		MsgDev( D_WARN, "Couldn't find valid custom contentsflag section\n" );
 		return;
 	}
 	
-	/* parse custom surfaceflags */
-	MatchToken( "{" );
+	// parse custom surfaceflags
+	Com_CheckToken( script, "{" );
 	while( 1 )
 	{
-		if( !GetToken( true ) )
+		if( !Com_ReadToken( script, SC_ALLOW_NEWLINES, &token ))
 			break;
 
-		if( !strcmp( token, "}" ) )
+		if( !com.strcmp( token.string, "}" ))
 		{
 			parsedSurface = true;
 			break;
 		}
 
-		custSurfaceParms[ numCustSurfaceParms ].name = Malloc( MAX_SYSPATH );
-		strcpy( custSurfaceParms[ numCustSurfaceParms ].name, token );
-		GetToken( false );
-		sscanf( token, "%x", &custSurfaceParms[ numCustSurfaceParms ].surfaceFlags );
+		custSurfaceParms[numCustSurfaceParms].name = copystring( token.string );
+		Com_ReadToken( script, false, &token );
+		sscanf( token.string, "%x", &custSurfaceParms[numCustSurfaceParms].surfaceFlags );
 		numCustSurfaceParms++;
 	}
 	
-	/* any content? */
-	if( !parsedContent )
-		MsgDev( D_WARN, "Couldn't find valid custom surfaceflag section\n" );
+	// any content?
+	if( !parsedContent ) MsgDev( D_WARN, "Couldn't find valid custom surfaceflag section\n" );
 }
 
 	
 
 /*
-LoadShaderInfo()
+=================
+LoadShaderInfo
+=================
 */
-
 void LoadShaderInfo( void )
 {
 	search_t	*search;

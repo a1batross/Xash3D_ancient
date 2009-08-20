@@ -238,10 +238,6 @@ SOURCE=.\bsplib\patch.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\path_init.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\models\picointernal.c
 # End Source File
 # Begin Source File
@@ -295,10 +291,6 @@ SOURCE=.\bsplib\portals.c
 # Begin Source File
 
 SOURCE=.\bsplib\prtfile.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\scriplib.c
 # End Source File
 # Begin Source File
 

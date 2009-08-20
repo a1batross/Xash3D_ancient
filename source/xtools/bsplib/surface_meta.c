@@ -613,7 +613,7 @@ void MakeEntityMetaTriangles( entity_t *e )
 	
 	
 	/* note it */
-	MsgDev( D_INFO, "--- MakeEntityMetaTriangles ---\n" );
+	MsgDev( D_NOTE, "--- MakeEntityMetaTriangles ---\n" );
 	
 	/* init pacifier */
 	fOld = -1;
@@ -627,7 +627,7 @@ void MakeEntityMetaTriangles( entity_t *e )
 		if( f != fOld )
 		{
 			fOld = f;
-			MsgDev( D_INFO, "%d...", f );
+			MsgDev( D_NOTE, "%d...", f );
 		}
 		
 		/* get surface */
@@ -646,42 +646,36 @@ void MakeEntityMetaTriangles( entity_t *e )
 		/* switch on type */
 		switch( ds->type )
 		{
-			case SURFACE_FACE:
-			case SURFACE_DECAL:
-				StripFaceSurface( ds );
-				SurfaceToMetaTriangles( ds );
-				break;
-			
-			case SURFACE_PATCH:
-				TriangulatePatchSurface( ds );
-				break;
-			
-			case SURFACE_TRIANGLES:
-				break;
-			
-			case SURFACE_FORCED_META:
-			case SURFACE_META:
-				SurfaceToMetaTriangles( ds );
-				break;
-			
-			default:
-				break;
+		case SURFACE_FACE:
+		case SURFACE_DECAL:
+			StripFaceSurface( ds );
+			SurfaceToMetaTriangles( ds );
+			break;
+		case SURFACE_PATCH:
+			TriangulatePatchSurface( ds );
+			break;
+		case SURFACE_TRIANGLES:
+			break;
+		case SURFACE_FORCED_META:
+		case SURFACE_META:
+			SurfaceToMetaTriangles( ds );
+			break;
+		default:	break;
 		}
 	}
 	
-	/* print time */
-	if( (numMapDrawSurfs - e->firstDrawSurf) )
-		MsgDev( D_INFO, " (%g)\n", (Sys_DoubleTime() - start));
+	if( (numMapDrawSurfs - e->firstDrawSurf ))
+		MsgDev( D_NOTE, " (%g) seconds elapsed\n", (Sys_DoubleTime() - start));
 	
 	/* emit some stats */
-	MsgDev( D_INFO, "%9d total meta surfaces\n", numMetaSurfaces );
-	MsgDev( D_INFO, "%9d stripped surfaces\n", numStripSurfaces );
-	MsgDev( D_INFO, "%9d fanned surfaces\n", numFanSurfaces );
-	MsgDev( D_INFO, "%9d patch meta surfaces\n", numPatchMetaSurfaces );
-	MsgDev( D_INFO, "%9d meta verts\n", numMetaVerts );
-	MsgDev( D_INFO, "%9d meta triangles\n", numMetaTriangles );
+	MsgDev( D_NOTE, "%9d total meta surfaces\n", numMetaSurfaces );
+	MsgDev( D_NOTE, "%9d stripped surfaces\n", numStripSurfaces );
+	MsgDev( D_NOTE, "%9d fanned surfaces\n", numFanSurfaces );
+	MsgDev( D_NOTE, "%9d patch meta surfaces\n", numPatchMetaSurfaces );
+	MsgDev( D_NOTE, "%9d meta verts\n", numMetaVerts );
+	MsgDev( D_NOTE, "%9d meta triangles\n", numMetaTriangles );
 	
-	/* tidy things up */
+	// tidy things up
 	TidyEntitySurfaces( e );
 }
 
@@ -975,13 +969,8 @@ void SmoothMetaTriangles( void )
 	vec3_t			votes[ MAX_SAMPLES ];
 	double			start;
 	
-	
-	/* note it */
-	MsgDev( D_INFO, "--- SmoothMetaTriangles ---\n" );
-	
 	/* allocate shade angle table */
 	shadeAngles = Malloc( numMetaVerts * sizeof( float ) );
-	memset( shadeAngles, 0, numMetaVerts * sizeof( float ) );
 	
 	/* allocate smoothed table */
 	cs = (numMetaVerts / 8) + 1;
@@ -1016,13 +1005,14 @@ void SmoothMetaTriangles( void )
 	/* bail if no surfaces have a shade angle */
 	if( maxShadeAngle <= 0 )
 	{
-		MsgDev( D_INFO, "No smoothing angles specified, aborting\n" );
 		if( shadeAngles ) Mem_Free( shadeAngles );
 		if( smoothed ) Mem_Free( smoothed );
 		return;
 	}
+
+	MsgDev( D_NOTE, "--- SmoothMetaTriangles ---\n" );
 	
-	/* init pacifier */
+	// init pacifier
 	fOld = -1;
 	start = Sys_DoubleTime();
 	
@@ -1035,7 +1025,7 @@ void SmoothMetaTriangles( void )
 		if( f != fOld )
 		{
 			fOld = f;
-			MsgDev( D_INFO, "%d...", f );
+			MsgDev( D_NOTE, "%d...", f );
 		}
 		
 		/* already smoothed? */
@@ -1115,10 +1105,10 @@ void SmoothMetaTriangles( void )
 	Mem_Free( smoothed );
 	
 	/* print time */
-	MsgDev( D_INFO, " (%g)\n", (Sys_DoubleTime() - start) );
+	MsgDev( D_NOTE, " (%g) seconds elapsed\n", (Sys_DoubleTime() - start));
 
 	/* emit some stats */
-	MsgDev( D_INFO, "%9d smoothed vertexes\n", numSmoothed );
+	MsgDev( D_NOTE, "%9d smoothed vertexes\n", numSmoothed );
 }
 
 

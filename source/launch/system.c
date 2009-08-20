@@ -339,7 +339,7 @@ void Sys_LookupInstance( void )
 		com_sprintf( Sys.log_path, "engine.log", com_timestamp( TIME_NO_SECONDS )); // logs folder
 		com_strcpy(Sys.caption, va("Xash3D ver.%g", XASH_VERSION ));
 	}
-	else if(!com_strcmp(Sys.progname, "bsplib"))
+	else if( !com_strcmp( Sys.progname, "bsplib" ))
 	{
 		Sys.app_name = HOST_BSPLIB;
 		Sys.linked_dll = &xtools_dll;	// pointer to common.dll info
@@ -349,7 +349,7 @@ void Sys_LookupInstance( void )
 		// TEMPORARY HACK FOR DEBUG NEW BSPLIB
 		Sys.developer = 3;
 	}
-	else if(!com_strcmp(Sys.progname, "qcclib"))
+	else if( !com_strcmp( Sys.progname, "qcclib" ))
 	{
 		Sys.app_name = HOST_QCCLIB;
 		Sys.linked_dll = &xtools_dll;	// pointer to common.dll info

@@ -198,8 +198,8 @@ static void AddLightGridLumps( file_t *file, rbspHeader_t *header )
 	AddLump( file, (bspHeader_t*) header, LUMP_LIGHTARRAY, gridArray, (numGridArray * sizeof( *gridArray )) );
 	
 	/* free buffers */
-	Mem_Free( gridPoints );
-	Mem_Free( gridArray );
+	if( gridPoints ) Mem_Free( gridPoints );
+	if( gridArray ) Mem_Free( gridArray );
 }
 
 
@@ -316,7 +316,7 @@ void WriteRBSPFile( const char *filename )
 	
 	/* emit bsp size */
 	size = FS_Tell( file );
-	MsgDev( D_INFO, "Wrote %.1f MB (%d bytes)\n", (float) size / (1024 * 1024), size );
+	MsgDev( D_INFO, "Wrote %s\n", memprint( size ));
 	
 	/* write the completed header */
 	FS_Seek( file, 0, SEEK_SET );

@@ -275,21 +275,14 @@ sets style keys for entity lights
 
 void SetLightStyles( void )
 {
-	int			i, j, style, numStyles;
-	bool		keepLights;
+	int		i, j, style, numStyles;
 	const char	*t;
-	entity_t	*e;
-	epair_t		*ep, *next;
-	char		value[ 10 ];
-	char		lightTargets[ MAX_SWITCHED_LIGHTS ][ 64 ];
-	int			lightStyles[ MAX_SWITCHED_LIGHTS ];
+	entity_t		*e;
+	char		value[10];
+	char		lightTargets[MAX_SWITCHED_LIGHTS][64];
+	int		lightStyles[MAX_SWITCHED_LIGHTS];
 	
-	
-	/* ydnar: determine if we keep lights in the bsp */
-	t = ValueForKey( &entities[ 0 ], "_keepLights" );
-	keepLights = (t[ 0 ] == '1') ? true : false;
-	
-	/* any light that is controlled (has a targetname) must have a unique style number generated for it */
+	// any light that is controlled (has a targetname) must have a unique style number generated for it
 	numStyles = 0;
 	for( i = 1; i < numEntities; i++ )
 	{
@@ -299,36 +292,16 @@ void SetLightStyles( void )
 		if( com.strnicmp( t, "light", 5 ) )
 			continue;
 		t = ValueForKey( e, "targetname" );
-		if( t[ 0 ] == '\0' )
-		{
-			/* ydnar: strip the light from the BSP file */
-			if( keepLights == false )
-			{
-				ep = e->epairs;
-				while( ep != NULL )
-				{
-					next = ep->next;
-					Mem_Free( ep->key );
-					Mem_Free( ep->value );
-					Mem_Free( ep );
-					ep = next;
-				}
-				e->epairs = NULL;
-				numStrippedLights++;
-			}
-			
-			/* next light */
-			continue;
-		}
+		if( t[0] == '\0' ) continue;
 		
 		/* get existing style */
 		style = IntForKey( e, "style" );
 		if( style < LS_NORMAL || style > LS_NONE )
 			Sys_Break( "Invalid lightstyle (%d) on entity %d", style, i );
 		
-		/* find this targetname */
+		// find this targetname
 		for( j = 0; j < numStyles; j++ )
-			if( lightStyles[ j ] == style && !strcmp( lightTargets[ j ], t ) )
+			if( lightStyles[j] == style && !strcmp( lightTargets[j], t ))
 				break;
 		
 		/* add a new style */
@@ -352,9 +325,6 @@ void SetLightStyles( void )
 			SetKeyValue( e, "switch_style", value );
 		}
 	}
-	
-	/* emit some statistics */
-	MsgDev( D_INFO, "%9d light entities stripped\n", numStrippedLights );
 }
 
 

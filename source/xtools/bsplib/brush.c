@@ -618,8 +618,8 @@ void FilterDetailBrushesIntoTree( entity_t *e, tree_t *tree )
 	}
 	
 	/* emit some statistics */
-	MsgDev( D_INFO, "%9d detail brushes\n", c_unique );
-	MsgDev( D_INFO, "%9d cluster references\n", c_clusters );
+	MsgDev( D_NOTE, "%9d detail brushes\n", c_unique );
+	MsgDev( D_NOTE, "%9d cluster references\n", c_clusters );
 }
 
 /*
@@ -629,17 +629,19 @@ FilterStructuralBrushesIntoTree
 Mark the leafs as opaque and areaportals
 =====================
 */
-void FilterStructuralBrushesIntoTree( entity_t *e, tree_t *tree ) {
-	brush_t			*b, *newb;
-	int					r;
-	int					c_unique, c_clusters;
-	int					i;
+void FilterStructuralBrushesIntoTree( entity_t *e, tree_t *tree )
+{
+	brush_t	*b, *newb;
+	int	r;
+	int	c_unique, c_clusters;
+	int	i;
 
 	MsgDev( D_NOTE, "--- FilterStructuralBrushesIntoTree ---\n");
 
 	c_unique = 0;
 	c_clusters = 0;
-	for ( b = e->brushes ; b ; b = b->next ) {
+	for ( b = e->brushes ; b ; b = b->next )
+	{
 		if ( b->detail ) {
 			continue;
 		}
@@ -659,8 +661,8 @@ void FilterStructuralBrushesIntoTree( entity_t *e, tree_t *tree ) {
 	}
 	
 	/* emit some statistics */
-	MsgDev( D_INFO, "%9d structural brushes\n", c_unique );
-	MsgDev( D_INFO, "%9d cluster references\n", c_clusters );
+	MsgDev( D_NOTE, "%9d structural brushes\n", c_unique );
+	MsgDev( D_NOTE, "%9d cluster references\n", c_clusters );
 }
 
 

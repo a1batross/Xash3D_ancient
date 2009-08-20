@@ -893,7 +893,6 @@ void SetupSurfaceLightmaps( void )
 	numSurfaceClusters = 0;
 	maxSurfaceClusters = numBSPLeafSurfaces;
 	surfaceClusters = Malloc( maxSurfaceClusters * sizeof( *surfaceClusters ) );
-	memset( surfaceClusters, 0, maxSurfaceClusters * sizeof( *surfaceClusters ) );
 	
 	/* allocate a list for per-surface info */
 	surfaceInfos = Malloc( numBSPDrawSurfaces * sizeof( *surfaceInfos ) );

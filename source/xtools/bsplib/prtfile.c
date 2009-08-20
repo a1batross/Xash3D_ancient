@@ -246,7 +246,8 @@ void NumberLeafs_r (node_t *node)
 NumberClusters
 ================
 */
-void NumberClusters(tree_t *tree) {
+void NumberClusters( tree_t *tree )
+{
 	num_visclusters = 0;
 	num_visportals = 0;
 	num_solidfaces = 0;
@@ -256,9 +257,9 @@ void NumberClusters(tree_t *tree) {
 	// set the cluster field in every leaf and count the total number of portals
 	NumberLeafs_r (tree->headnode);
 
-	MsgDev( D_INFO, "%9d visclusters\n", num_visclusters );
-	MsgDev( D_INFO, "%9d visportals\n", num_visportals );
-	MsgDev( D_INFO, "%9d solidfaces\n", num_solidfaces );
+	MsgDev( D_NOTE, "%9d visclusters\n", num_visclusters );
+	MsgDev( D_NOTE, "%9d visportals\n", num_visportals );
+	MsgDev( D_NOTE, "%9d solidfaces\n", num_solidfaces );
 }
 
 /*

@@ -27,13 +27,14 @@ int	c_peak_windings;
 int	c_winding_allocs;
 int	c_winding_points;
 
-#define	BOGUS_RANGE	WORLD_SIZE
+#define BOGUS_RANGE		WORLD_SIZE
 
-void pw(winding_t *w)
+void pw( winding_t *w )
 {
-	int		i;
-	for (i=0 ; i<w->numpoints ; i++)
-		Msg("(%5.1f, %5.1f, %5.1f)\n",w->p[i][0], w->p[i][1],w->p[i][2]);
+	int	i;
+
+	for( i = 0; i < w->numpoints; i++ )
+		Msg( "(%5.1f, %5.1f, %5.1f)\n", w->p[i][0], w->p[i][1], w->p[i][2] );
 }
 
 
@@ -42,37 +43,39 @@ void pw(winding_t *w)
 AllocWinding
 =============
 */
-winding_t	*AllocWinding (int points)
+winding_t	*AllocWinding( int points )
 {
 	winding_t	*w;
-	int			s;
+	size_t	s;
 
-  if (points >= MAX_POINTS_ON_WINDING)
-    Sys_Error ("AllocWinding failed: MAX_POINTS_ON_WINDING exceeded");
+	if( points >= MAX_POINTS_ON_WINDING )
+		Sys_Error( "AllocWinding failed: MAX_POINTS_ON_WINDING exceeded\n" );
 
-	if (GetNumThreads() == 1)
+	if( GetNumThreads() == 1 )
 	{
 		c_winding_allocs++;
 		c_winding_points += points;
 		c_active_windings++;
-		if (c_active_windings > c_peak_windings)
+		if( c_active_windings > c_peak_windings )
 			c_peak_windings = c_active_windings;
 	}
-	s = sizeof(vec_t)*3*points + sizeof(int);
-	w = Malloc (s);
-	memset (w, 0, s); 
+
+	s = sizeof( int ) + sizeof( vec3_t ) * points;
+	w = malloc( s );
+	memset( w, 0, s );
+
 	return w;
 }
 
-void FreeWinding (winding_t *w)
+void FreeWinding( winding_t *w )
 {
-	if (*(unsigned *)w == 0xdeaddead)
-		Sys_Error ("FreeWinding: freed a freed winding");
-	*(unsigned *)w = 0xdeaddead;
+	if(*(uint *)w == 0xDEADDEAD )
+		Sys_Error( "FreeWinding: already freed\n" );
+	*(uint *)w = 0xDEADDEAD;
 
-	if (GetNumThreads() == 1)
+	if( GetNumThreads() == 1 )
 		c_active_windings--;
-	Mem_Free (w);
+	free( w );
 }
 
 /*

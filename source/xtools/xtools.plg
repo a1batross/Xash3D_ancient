@@ -6,13 +6,13 @@
 --------------------Configuration: xtools - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1BFD.tmp" with contents
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP2192.tmp" with contents
 [
 /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "../public" /I "bsplib" /I "models" /I "ripper" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\xtools\!debug/" /Fo"..\temp\xtools\!debug/" /Fd"..\temp\xtools\!debug/" /FD /GZ /c 
 "D:\Xash3D\src_main\xtools\bsplib\bsplib.c"
 ]
-Creating command line "cl.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1BFD.tmp" 
-Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1BFE.tmp" with contents
+Creating command line "cl.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP2192.tmp" 
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP2193.tmp" with contents
 [
 msvcrtd.lib user32.lib /nologo /dll /incremental:yes /pdb:"..\temp\xtools\!debug/xtools.pdb" /debug /machine:I386 /nodefaultlib:"libc.lib" /out:"..\temp\xtools\!debug/xtools.dll" /implib:"..\temp\xtools\!debug/xtools.lib" /pdbtype:sept 
 "\Xash3D\src_main\temp\xtools\!debug\brush.obj"
@@ -77,15 +77,14 @@ msvcrtd.lib user32.lib /nologo /dll /incremental:yes /pdb:"..\temp\xtools\!debug
 "\Xash3D\src_main\temp\xtools\!debug\pm_mdc.obj"
 "\Xash3D\src_main\temp\xtools\!debug\pm_ms3d.obj"
 "\Xash3D\src_main\temp\xtools\!debug\pm_obj.obj"
-"\Xash3D\src_main\temp\xtools\!debug\scriplib.obj"
 ]
-Creating command line "link.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1BFE.tmp"
-Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1BFF.bat" with contents
+Creating command line "link.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP2193.tmp"
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP2194.bat" with contents
 [
 @echo off
 copy \Xash3D\src_main\temp\xtools\!debug\xtools.dll "D:\Xash3D\bin\xtools.dll"
 ]
-Creating command line "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1BFF.bat"
+Creating command line "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP2194.bat"
 Compiling...
 bsplib.c
 Linking...

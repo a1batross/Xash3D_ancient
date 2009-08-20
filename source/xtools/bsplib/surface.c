@@ -289,12 +289,12 @@ deletes all empty or bad surfaces from the surface list
 
 void TidyEntitySurfaces( entity_t *e )
 {
-	int					i, j, deleted;
+	int		i, j, deleted;
 	mapDrawSurface_t	*out, *in;
 	
 	
 	/* note it */
-	MsgDev( D_INFO, "--- TidyEntitySurfaces ---\n" );
+	MsgDev( D_NOTE, "--- TidyEntitySurfaces ---\n" );
 	
 	/* walk the surface list */
 	deleted = 0;
@@ -319,15 +319,14 @@ void TidyEntitySurfaces( entity_t *e )
 		}
 		
 		/* copy if necessary */
-		if( i != j )
-			Mem_Copy( out, in, sizeof( mapDrawSurface_t ) );
+		if( i != j ) Mem_Copy( out, in, sizeof( mapDrawSurface_t ) );
 	}
 	
 	/* set the new number of drawsurfs */
 	numMapDrawSurfs = i;
 	
 	/* emit some stats */
-	MsgDev( D_INFO, "%9d empty or malformed surfaces deleted\n", deleted );
+	MsgDev( D_NOTE, "%9d empty or malformed surfaces deleted\n", deleted );
 }
 
 
@@ -658,7 +657,7 @@ void ClassifyEntitySurfaces( entity_t *e )
 	
 	
 	/* note it */
-	MsgDev( D_INFO, "--- ClassifyEntitySurfaces ---\n" );
+	MsgDev( D_NOTE, "--- ClassifyEntitySurfaces ---\n" );
 	
 	/* walk the surface list */
 	for( i = e->firstDrawSurf; i < numMapDrawSurfs; i++ )
@@ -949,7 +948,7 @@ mapDrawSurface_t *DrawSurfaceForSide( entity_t *e, brush_t *b, side_t *s, windin
 		}
 		
 		/* old quake-style texturing */
-		else if( g_bBrushPrimit == BPRIMIT_OLDBRUSHES )
+		else if( g_bBrushPrimit != BRUSH_RADIANT )
 		{
 			/* nearest-axial projection */
 			dv->st[ 0 ] = s->vecs[ 0 ][ 3 ] + DotProduct( s->vecs[ 0 ], vTranslated );
@@ -1374,17 +1373,15 @@ ydnar: and subdivide surfaces that exceed specified texture coordinate range
 
 void SubdivideFaceSurfaces( entity_t *e, tree_t *tree )
 {
-	int					i, j, numBaseDrawSurfs, fogNum;
+	int		i, j, numBaseDrawSurfs, fogNum;
 	mapDrawSurface_t	*ds;
-	brush_t				*brush;
-	side_t				*side;
-	shaderInfo_t		*si;
-	winding_t			*w;
-	float				range, size, subdivisions, s2;
+	brush_t		*brush;
+	side_t		*side;
+	shaderInfo_t	*si;
+	winding_t		*w;
+	float		range, size, subdivisions, s2;
 	
-	
-	/* note it */
-	MsgDev( D_INFO, "--- SubdivideFaceSurfaces ---\n" );
+	MsgDev( D_NOTE, "--- SubdivideFaceSurfaces ---\n" );
 	
 	/* walk the list of surfaces */
 	numBaseDrawSurfs = numMapDrawSurfs;
@@ -1584,15 +1581,13 @@ culls obscured or buried brushsides from the map
 
 void CullSides( entity_t *e )
 {
-	int			numPoints;
-	int			i, j, k, l, first, second, dir;
-	winding_t	*w1, *w2;
-	brush_t	*b1, *b2;
+	int		numPoints;
+	int		i, j, k, l, first, second, dir;
+	winding_t		*w1, *w2;
+	brush_t		*b1, *b2;
 	side_t		*side1, *side2;
 	
-	
-	/* note it */
-	MsgDev( D_INFO, "--- CullSides ---\n" );
+	MsgDev( D_NOTE, "--- CullSides ---\n" );
 	
 	g_numHiddenFaces = 0;
 	g_numCoinFaces = 0;
@@ -1740,8 +1735,8 @@ void CullSides( entity_t *e )
 	}
 	
 	/* emit some stats */
-	MsgDev( D_INFO, "%9d hidden faces culled\n", g_numHiddenFaces );
-	MsgDev( D_INFO, "%9d coincident faces culled\n", g_numCoinFaces );
+	MsgDev( D_NOTE, "%9d hidden faces culled\n", g_numHiddenFaces );
+	MsgDev( D_NOTE, "%9d coincident faces culled\n", g_numCoinFaces );
 }
 
 
@@ -1769,8 +1764,7 @@ void ClipSidesIntoTree( entity_t *e, tree_t *tree )
 	/* ydnar: cull brush sides */
 	CullSides( e );
 	
-	/* note it */
-	MsgDev( D_INFO, "--- ClipSidesIntoTree ---\n" );
+	MsgDev( D_NOTE, "--- ClipSidesIntoTree ---\n" );
 	
 	/* walk the brush list */
 	for( b = e->brushes; b; b = b->next )
@@ -3320,11 +3314,9 @@ adds surfacemodels to an entity's surfaces
 
 void AddEntitySurfaceModels( entity_t *e )
 {
-	int		i;
+	int	i;
 	
-	
-	/* note it */
-	MsgDev( D_INFO, "--- AddEntitySurfaceModels ---\n" );
+	MsgDev( D_NOTE, "--- AddEntitySurfaceModels ---\n" );
 	
 	/* walk the surface list */
 	for( i = e->firstDrawSurf; i < numMapDrawSurfs; i++ )
@@ -3394,16 +3386,14 @@ will have valid final indexes
 
 void FilterDrawsurfsIntoTree( entity_t *e, tree_t *tree )
 {
-	int					i, j;
+	int		i, j;
 	mapDrawSurface_t	*ds;
-	shaderInfo_t		*si;
-	vec3_t				origin, mins, maxs;
-	int					refs;
-	int					numSurfs, numRefs, numSkyboxSurfaces;
+	shaderInfo_t	*si;
+	vec3_t		origin, mins, maxs;
+	int		refs;
+	int		numSurfs, numRefs, numSkyboxSurfaces;
 	
-	
-	/* note it */
-	MsgDev( D_INFO, "--- FilterDrawsurfsIntoTree ---\n" );
+	MsgDev( D_NOTE, "--- FilterDrawsurfsIntoTree ---\n" );
 	
 	/* filter surfaces into the tree */
 	numSurfs = 0;
@@ -3482,72 +3472,43 @@ void FilterDrawsurfsIntoTree( entity_t *e, tree_t *tree )
 		/* ydnar: gs mods: handle the various types of surfaces */
 		switch( ds->type )
 		{
-			/* handle brush faces */
-			case SURFACE_FACE:
-			case SURFACE_DECAL:
-				if( refs == 0 )
-					refs = FilterFaceIntoTree( ds, tree );
-				if( refs > 0 )
-					EmitFaceSurface( ds );
-				break;
-			
-			/* handle patches */
-			case SURFACE_PATCH:
-				if( refs == 0 )
-					refs = FilterPatchIntoTree( ds, tree );
-				if( refs > 0 )
-					EmitPatchSurface( ds );
-				break;
-			
-			/* handle triangle surfaces */
-			case SURFACE_TRIANGLES:
-			case SURFACE_FORCED_META:
-			case SURFACE_META:
-				//%	MsgDev( D_INFO, "Surface %4d: [%1d] %4d verts %s\n", numSurfs, ds->planar, ds->numVerts, si->shader );
-				if( refs == 0 )
-					refs = FilterTrianglesIntoTree( ds, tree );
-				if( refs > 0 )
-					EmitTriangleSurface( ds );
-				break;
-			
-			/* handle foliage surfaces (splash damage/wolf et) */
-			case SURFACE_FOLIAGE:
-				//%	MsgDev( D_INFO, "Surface %4d: [%d] %4d verts %s\n", numSurfs, ds->numFoliageInstances, ds->numVerts, si->shader );
-				if( refs == 0 )
-					refs = FilterFoliageIntoTree( ds, tree );
-				if( refs > 0 )
-					EmitTriangleSurface( ds );
-				break;
-			
-			/* handle foghull surfaces */
-			case SURFACE_FOGHULL:
-				if( refs == 0 )
-					refs = AddReferenceToTree_r( ds, tree->headnode, false );
-				if( refs > 0 )
-					EmitTriangleSurface( ds );
-				break;
-			
-			/* handle flares */
-			case SURFACE_FLARE:
-				if( refs == 0 )
-					refs = FilterFlareSurfIntoTree( ds, tree );
-				if( refs > 0 )
-					EmitFlareSurface( ds );
-				break;
-			
-			/* handle shader-only surfaces */
-			case SURFACE_SHADER:
-				refs = 1;
-				EmitFlareSurface( ds );
-				break;
-			
-			/* no references */
-			default:
-				refs = 0;
-				break;
+		case SURFACE_FACE:
+		case SURFACE_DECAL:
+			if( refs == 0 ) refs = FilterFaceIntoTree( ds, tree );
+			if( refs > 0 ) EmitFaceSurface( ds );
+			break;
+		case SURFACE_PATCH:
+			if( refs == 0 ) refs = FilterPatchIntoTree( ds, tree );
+			if( refs > 0 ) EmitPatchSurface( ds );
+			break;
+		case SURFACE_TRIANGLES:
+		case SURFACE_FORCED_META:
+		case SURFACE_META:
+			if( refs == 0 ) refs = FilterTrianglesIntoTree( ds, tree );
+			if( refs > 0 ) EmitTriangleSurface( ds );
+			break;
+		case SURFACE_FOLIAGE:
+			if( refs == 0 ) refs = FilterFoliageIntoTree( ds, tree );
+			if( refs > 0 ) EmitTriangleSurface( ds );
+			break;
+		case SURFACE_FOGHULL:
+			if( refs == 0 ) refs = AddReferenceToTree_r( ds, tree->headnode, false );
+			if( refs > 0 ) EmitTriangleSurface( ds );
+			break;
+		case SURFACE_FLARE:
+			if( refs == 0 ) refs = FilterFlareSurfIntoTree( ds, tree );
+			if( refs > 0 ) EmitFlareSurface( ds );
+			break;
+		case SURFACE_SHADER:
+			refs = 1;
+			EmitFlareSurface( ds );
+			break;
+		default:
+			refs = 0;
+			break;
 		}
 		
-		/* tot up the references */
+		// tot up the references
 		if( refs > 0 )
 		{
 			/* tot up counts */
@@ -3556,7 +3517,6 @@ void FilterDrawsurfsIntoTree( entity_t *e, tree_t *tree )
 			
 			/* emit extra surface data */
 			SetSurfaceExtra( ds, numBSPDrawSurfaces - 1 );
-			//%	MsgDev( D_INFO, "%d verts %d indexes\n", ds->numVerts, ds->numIndexes );
 			
 			/* one last sanity check */
 			{
@@ -3580,17 +3540,13 @@ void FilterDrawsurfsIntoTree( entity_t *e, tree_t *tree )
 	}
 	
 	/* emit some statistics */
-	MsgDev( D_INFO, "%9d references\n", numRefs );
-	MsgDev( D_INFO, "%9d (%d) emitted drawsurfs\n", numSurfs, numBSPDrawSurfaces );
-	MsgDev( D_INFO, "%9d stripped face surfaces\n", numStripSurfaces );
-	MsgDev( D_INFO, "%9d fanned face surfaces\n", numFanSurfaces );
-	MsgDev( D_INFO, "%9d surface models generated\n", numSurfaceModels );
-	MsgDev( D_INFO, "%9d skybox surfaces generated\n", numSkyboxSurfaces );
+	MsgDev( D_NOTE, "%9d references\n", numRefs );
+	MsgDev( D_NOTE, "%9d (%d) emitted drawsurfs\n", numSurfs, numBSPDrawSurfaces );
+	MsgDev( D_NOTE, "%9d stripped face surfaces\n", numStripSurfaces );
+	MsgDev( D_NOTE, "%9d fanned face surfaces\n", numFanSurfaces );
+	MsgDev( D_NOTE, "%9d surface models generated\n", numSurfaceModels );
+	MsgDev( D_NOTE, "%9d skybox surfaces generated\n", numSkyboxSurfaces );
 	for( i = 0; i < NUM_SURFACE_TYPES; i++ )
-		MsgDev( D_INFO, "%9d %s surfaces\n", numSurfacesByType[ i ], surfaceTypes[ i ] );
-	
-	MsgDev( D_INFO, "%9d redundant indexes supressed, saving %d Kbytes\n", numRedundantIndexes, (numRedundantIndexes * 4 / 1024) );
+		MsgDev( D_NOTE, "%9d %s surfaces\n", numSurfacesByType[ i ], surfaceTypes[ i ] );
+	MsgDev( D_NOTE, "%9d redundant indexes supressed, saving %s\n", numRedundantIndexes, memprint( numRedundantIndexes * 4 ));
 }
-
-
-

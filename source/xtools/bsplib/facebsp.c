@@ -326,7 +326,7 @@ tree_t *FaceBSP( face_t *list )
 			AddPointToBounds( face->w->p[ i ], tree->mins, tree->maxs );
 		}
 	}
-	MsgDev( D_INFO, "%9d faces\n", count );
+	MsgDev( D_NOTE, "%9d faces\n", count );
 
 	tree->headnode = AllocNode();
 	VectorCopy( tree->mins, tree->headnode->mins );
@@ -335,7 +335,7 @@ tree_t *FaceBSP( face_t *list )
 
 	BuildFaceTree_r ( tree->headnode, list );
 
-	MsgDev( D_INFO, "%9d leafs\n", c_faceLeafs );
+	MsgDev( D_NOTE, "%9d leafs\n", c_faceLeafs );
 
 	return tree;
 }

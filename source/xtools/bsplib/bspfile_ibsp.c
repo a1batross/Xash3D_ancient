@@ -139,7 +139,7 @@ static void AddBrushSidesLump( file_t *file, ibspHeader_t *header )
 	AddLump( file, (bspHeader_t*) header, LUMP_BRUSHSIDES, buffer, size );
 	
 	/* free buffer */
-	Mem_Free( buffer );
+	if( buffer ) Mem_Free( buffer );
 }
 
 
@@ -272,7 +272,7 @@ static void AddDrawSurfacesLump( file_t *file, ibspHeader_t *header )
 	AddLump( file, (bspHeader_t*) header, LUMP_SURFACES, buffer, size );
 	
 	/* free buffer */
-	Mem_Free( buffer );
+	if( buffer ) Mem_Free( buffer );
 }
 
 
@@ -363,7 +363,7 @@ static void AddDrawVertsLump( file_t *file, ibspHeader_t *header )
 	AddLump( file, (bspHeader_t*) header, LUMP_DRAWVERTS, buffer, size );
 	
 	/* free buffer */
-	Mem_Free( buffer );
+	if( buffer ) Mem_Free( buffer );
 }
 
 
@@ -462,6 +462,7 @@ void LoadIBSPFile( const char *filename )
 	
 	/* load the file header */
 	header = (ibspHeader_t *)FS_LoadFile( filename, NULL );
+	if( !header ) Sys_Break( "couldn't load %s\n", filename );
 
 	/* swap the header (except the first 4 bytes) */
 	SwapBlock( (int*) ((byte*) header + sizeof( int )), sizeof( *header ) - sizeof( int ));
@@ -575,7 +576,7 @@ void WriteIBSPFile( const char *filename )
 
 	/* emit bsp size */
 	size = FS_Tell( file );
-	Msg( "Wrote %.1f MB (%d bytes)\n", (float) size / (1024 * 1024), size );
+	Msg( "Wrote %s\n", memprint( size ));
 	
 	/* write the completed header */
 	FS_Seek( file, 0, SEEK_SET );
