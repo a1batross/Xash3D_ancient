@@ -261,7 +261,7 @@ void CL_ParseServerData( sizebuf_t *msg )
 			break;
 	if( i == 3 )
 	{
-		Cvar_Set( "cl_levelshot_name", "*black" );	// render a black screen
+		Cvar_Set( "cl_levelshot_name", MAP_DEFAULT_SHADER );	// render a black screen
 		cl.need_levelshot = true;			// make levelshot
 	}
 	// seperate the printfs so the server message can have a color

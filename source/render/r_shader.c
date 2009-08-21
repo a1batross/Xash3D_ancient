@@ -1507,12 +1507,6 @@ static bool Shaderpass_NormalMap( ref_shader_t *shader, ref_stage_t *pass, scrip
 
 	Shader_FreePassCinematics( pass );
 
-	if( pass->num_textures )
-	{
-		MsgDev( D_ERROR, "mixed animations frames with normalmap '%s'\n", shader->name );
-		return false;
-	}
-
 	flags = Shader_SetImageFlags( shader );
 	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &tok ))
 	{
@@ -1700,7 +1694,9 @@ static bool Shaderpass_Distortion( ref_shader_t *shader, ref_stage_t *pass, scri
 
 	if( !GL_Support( R_SHADER_GLSL100_EXT ) || !r_portalmaps->integer )
 	{
-		MsgDev( D_ERROR, "shader %s has a distortion stage, while GLSL is not supported\n", shader->name );
+		if( !r_portalmaps->integer )
+			MsgDev( D_ERROR, "shader %s has a distortion stage, while portalmaps is disabled\n", shader->name );
+		else MsgDev( D_ERROR, "shader %s has a distortion stage, while GLSL is not supported\n", shader->name );
 		return false;
 	}
 
@@ -2532,7 +2528,7 @@ void R_ShaderDump_f( void )
 
 void R_RegisterBuiltinShaders( void )
 {
-	tr.defaultShader = R_LoadShader( "*black", SHADER_NOMIP, true, (TF_NOMIPMAP|TF_NOPICMIP), SHADER_UNKNOWN );
+	tr.defaultShader = R_LoadShader( MAP_DEFAULT_SHADER, SHADER_NOMIP, true, (TF_NOMIPMAP|TF_NOPICMIP), SHADER_UNKNOWN );
 }
 
 void R_InitShaders( void )

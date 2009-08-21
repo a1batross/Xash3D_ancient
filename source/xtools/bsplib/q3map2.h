@@ -66,7 +66,7 @@ constants
 */
 
 /* general */
-#define MAX_QPATH				64
+#define MAX_SHADERPATH				64
 
 #define MAX_IMAGES				512
 #define DEFAULT_IMAGE			"*default"
@@ -290,7 +290,7 @@ bspModel_t;
 
 typedef struct
 {
-	char		shader[ MAX_QPATH ];
+	char		shader[ MAX_SHADERPATH ];
 	int			surfaceFlags;
 	int			contentFlags;
 }
@@ -354,7 +354,7 @@ bspBrush_t;
 
 typedef struct
 {
-	char		shader[ MAX_QPATH ];
+	char		shader[ MAX_SHADERPATH ];
 	int			brushNum;
 	int			visibleSide;		/* the brush side that ray tests need to clip against (-1 == none) */
 }
@@ -413,7 +413,7 @@ typedef struct {
 	int			cellId;
 	vec3_t		normal;
 	vec3_t		rect[4];
-	char		model[ MAX_QPATH ];
+	char		model[ MAX_SHADERPATH ];
 } bspAdvertisement_t;
 
 
@@ -442,11 +442,6 @@ typedef struct surfaceParm_s
 
 typedef struct game_s
 {
-	char		*arg;			/* -game matches this */
-	char		*gamePath;		/* main game data dir */
-	char		*homeBasePath;		/* home sub-dir on unix */
-	char		*magic;			/* magic word for figuring out base path */
-	char		*shaderPath;		/* shader directory */
 	int		maxLMSurfaceVerts;		/* default maximum meta surface verts */
 	int		maxSurfaceVerts;		/* default maximum surface verts */
 	int		maxSurfaceIndexes;		/* default maximum surface indexes (tris * 3) */
@@ -458,7 +453,6 @@ typedef struct game_s
 	float		lightmapCompensate;		/* default lightmap compensate value */
 	char		*bspIdent;		/* 4-letter bsp file prefix */
 	int		bspVersion;		/* bsp version to use */
-	bool		lumpSwap;			/* cod-style len/ofs order */
 	bspFunc		load, write;		/* load/write function pointers */
 	surfaceParm_t	surfaceParms[128];		/* surfaceparm array */
 } game_t;
@@ -484,7 +478,7 @@ sun_t;
 typedef struct surfaceModel_s 
 {
 	struct surfaceModel_s	*next;
-	char				model[ MAX_QPATH ];
+	char				model[ MAX_SHADERPATH ];
 	float				density, odds;
 	float				minScale, maxScale;
 	float				minAngle, maxAngle;
@@ -497,7 +491,7 @@ surfaceModel_t;
 typedef struct foliage_s 
 {
 	struct foliage_s	*next;
-	char				model[ MAX_QPATH ];
+	char				model[ MAX_SHADERPATH ];
 	float				scale, density, odds;
 	bool			inverseAlpha;
 }
@@ -514,7 +508,7 @@ typedef struct remap_s
 {
 	struct remap_s		*next;
 	char				from[ 1024 ];
-	char				to[ MAX_QPATH ];
+	char				to[ MAX_SHADERPATH ];
 }
 remap_t;
 
@@ -559,7 +553,7 @@ implicitMap_t;
 
 typedef struct shaderInfo_s
 {
-	char				shader[ MAX_QPATH ];
+	char				shader[ MAX_SHADERPATH ];
 	int					surfaceFlags;
 	int					contentFlags;
 	int					compileFlags;
@@ -626,14 +620,14 @@ typedef struct shaderInfo_s
 	
 	float				vertexScale;					/* vertex light scale */
 	
-	char				skyParmsImageBase[ MAX_QPATH ];	/* ydnar: for skies */
+	char				skyParmsImageBase[ MAX_SHADERPATH ];	/* ydnar: for skies */
 	
-	char				editorImagePath[ MAX_QPATH ];	/* use this image to generate texture coordinates */
-	char				lightImagePath[ MAX_QPATH ];	/* use this image to generate color / averageColor */
-	char				normalImagePath[ MAX_QPATH ];	/* ydnar: normalmap image for bumpmapping */
+	char				editorImagePath[ MAX_SHADERPATH ];	/* use this image to generate texture coordinates */
+	char				lightImagePath[ MAX_SHADERPATH ];	/* use this image to generate color / averageColor */
+	char				normalImagePath[ MAX_SHADERPATH ];	/* ydnar: normalmap image for bumpmapping */
 	
 	implicitMap_t		implicitMap;					/* ydnar: enemy territory implicit shaders */
-	char				implicitImagePath[ MAX_QPATH ];
+	char				implicitImagePath[ MAX_SHADERPATH ];
 	
 	image_t				*shaderImage;
 	image_t				*lightImage;
@@ -745,7 +739,7 @@ sideRef_t;
 typedef struct indexMap_s
 {
 	int					w, h, numLayers;
-	char				name[ MAX_QPATH ], shader[ MAX_QPATH ];
+	char				name[ MAX_SHADERPATH ], shader[ MAX_SHADERPATH ];
 	float				offsets[ 256 ];
 	byte				*pixels;
 }
@@ -1746,17 +1740,9 @@ Q_EXTERN game_t				games[]
 {
 #include "game_quake3.h"
 ,
-#include "game_wolf.h"
+#include "game_xash.h"
 ,
-#include "game_wolfet.h"/* most be after game_wolf.h as they share defines! */
-,
-#include "game_etut.h"
-,
-#include "game_sof2.h"
-,
-#include "game_qfusion.h"	/* qfusion game */
-,
-{ NULL }	/* null game */
+{ 0 }	// terminator
 };
 #endif
 
@@ -1776,7 +1762,7 @@ Q_EXTERN int				numVertexRemaps Q_ASSIGN( 0 );
 Q_EXTERN surfaceParm_t		custSurfaceParms[ MAX_CUST_SURFACEPARMS ];
 Q_EXTERN int				numCustSurfaceParms Q_ASSIGN( 0 );
 
-Q_EXTERN char				mapName[ MAX_QPATH ];	/* ydnar: per-map custom shaders for larger lightmaps */
+Q_EXTERN char				mapName[ MAX_SHADERPATH ];	/* ydnar: per-map custom shaders for larger lightmaps */
 Q_EXTERN char				mapShaderFile[ 1024 ];
 Q_EXTERN bool			warnImage Q_ASSIGN( true );
 
@@ -1846,7 +1832,7 @@ Q_EXTERN int				entitySourceBrushes;
 Q_EXTERN plane_t			mapplanes[ MAX_MAP_PLANES ];	/* mapplanes[ num ^ 1 ] will always be the mirror or mapplanes[ num ] */
 Q_EXTERN int				nummapplanes;					/* nummapplanes will always be even */
 Q_EXTERN int				numMapPatches;
-Q_EXTERN vec3_t				mapMins, mapMaxs;
+Q_EXTERN vec3_t				mapMins, mapMaxs, mapSize;
 
 Q_EXTERN int				defaultFogNum Q_ASSIGN( -1 );	/* ydnar: cleaner fog handling */
 Q_EXTERN int				numMapFogs Q_ASSIGN( 0 );
@@ -1913,7 +1899,7 @@ Q_EXTERN bool			mergevis;
 Q_EXTERN bool			nosort;
 Q_EXTERN bool			saveprt;
 Q_EXTERN bool			hint;	/* ydnar */
-Q_EXTERN char				inbase[ MAX_QPATH ];
+Q_EXTERN char				inbase[ MAX_SHADERPATH ];
 
 /* other bits */
 Q_EXTERN int				totalvis;

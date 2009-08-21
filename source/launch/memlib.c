@@ -1059,7 +1059,7 @@ static void _mem_freeblock(memheader_t *mem, const char *filename, int fileline)
 
 void _mem_free(void *data, const char *filename, int fileline)
 {
-	if (data == NULL) Sys_Error("Mem_Free: data == NULL (called at %s:%i)\n", filename, fileline);
+	if( data == NULL ) Sys_Error( "Mem_Free: data == NULL (called at %s:%i)\n", filename, fileline);
 	_mem_freeblock((memheader_t *)((byte *) data - sizeof(memheader_t)), filename, fileline);
 }
 

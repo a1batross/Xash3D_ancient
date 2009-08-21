@@ -1300,6 +1300,11 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 			pass->alphaGen.type = ALPHAGEN_VERTEX;
 			break;
 		case mod_world:
+			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA);
+			pass->flags = SHADERSTAGE_BLEND_MODULATE;
+			pass->rgbGen.type = RGBGEN_VERTEX;
+			pass->alphaGen.type = ALPHAGEN_ENTITY;
+			break;
 		case mod_brush:
 		case mod_alias:
 		case mod_studio:
@@ -1355,6 +1360,10 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 			break;
 		case mod_world:
 		case mod_brush:
+			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
+			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
+			pass->alphaGen.type = ALPHAGEN_ENTITY;
+			break;
 		case mod_alias:
 		case mod_studio:
 			break;

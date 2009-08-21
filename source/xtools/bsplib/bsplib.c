@@ -65,17 +65,10 @@ returns NULL if no match found
 */
 game_t *GetGame( char *arg )
 {
-	int	i = 0;
-	
-	if( arg == NULL || arg[ 0 ] == '\0' )
-		return NULL;
-
-	while( games[i].arg != NULL )
-	{
-		if( !com.stricmp( arg, games[i].arg ))
-			return &games[i];
-		i++;
-	}
+	if( !com.stricmp( arg, "q3a" ))
+		return &games[0];
+	if( !com.stricmp( arg, "xash" ))
+		return &games[1];
 	return NULL;
 }
 
@@ -542,7 +535,7 @@ bool PrepareBSPModel( int argc, char **argv )
 	for( i = 0; i < MAX_JITTERS; i++ )
 		jitters[ i ] = sin( i * 139.54152147 );
 	
-	game = &games[0];	// defaulting to Q3A ...
+	game = &games[1];	// defaulting to Q3A ...
 	FS_LoadGameInfo( "gameinfo.txt" );
 	BspFunc = NULL;
 	enable_log = true;

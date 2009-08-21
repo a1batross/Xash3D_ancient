@@ -233,6 +233,9 @@ typedef enum
 #define DECAL_FADEALPHA		(1<<0)	// fade decal by alpha instead color
 #define DECAL_FADEENERGY	(1<<1)	// fade decal energy balls
 
+// engine built-in default shader
+#define MAP_DEFAULT_SHADER		"*black"
+
 // basic console charwidths
 #define TINYCHAR_WIDTH		(SMALLCHAR_WIDTH)
 #define TINYCHAR_HEIGHT		(SMALLCHAR_HEIGHT/2)

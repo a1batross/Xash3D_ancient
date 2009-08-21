@@ -345,9 +345,6 @@ void Sys_LookupInstance( void )
 		Sys.linked_dll = &xtools_dll;	// pointer to common.dll info
 		com_strcpy(Sys.log_path, "bsplib.log" ); // xash3d root directory
 		com_strcpy(Sys.caption, "Xash3D BSP Compiler");
-
-		// TEMPORARY HACK FOR DEBUG NEW BSPLIB
-		Sys.developer = 3;
 	}
 	else if( !com_strcmp( Sys.progname, "qcclib" ))
 	{

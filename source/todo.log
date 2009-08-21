@@ -129,4 +129,5 @@ Beta 13.12.08
 105. sorting sources folder			OK
 106. implement q3map2 into xtools.dll		OK
 107. implement shader sorting for rendermodes	OK
-108. prepare QuArK to Xash-ready
+108. prepare QuArK to Xash-ready		OK
+109. implement csg into bsplib

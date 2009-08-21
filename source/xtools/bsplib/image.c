@@ -106,14 +106,19 @@ image_t *ImageFind( const char *filename )
 	char	name[MAX_SYSPATH];
 	
 	
-	/* init */
 	ImageInit();
 	
-	/* dummy check */
+	// dummy check
 	if( filename == NULL || filename[0] == '\0' )
 		return NULL;
+
+	// FIXME: generate real images for it?
+	if( !com.stricmp( filename, "$whiteimage" ) || !com.stricmp( filename, "*white" ))
+		return &images[0];
+	if( !com.stricmp( filename, "$blackimage" ) || !com.stricmp( filename, "*black" ))
+		return &images[0];
 	
-	/* strip file extension off name */
+	// strip file extension off name
 	com.strcpy( name, filename );
 	FS_StripExtension( name );
 	

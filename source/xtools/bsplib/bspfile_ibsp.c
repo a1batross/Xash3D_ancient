@@ -574,14 +574,13 @@ void WriteIBSPFile( const char *filename )
 	/* advertisements */
 	AddLump( file, (bspHeader_t*) header, LUMP_ADVERTISEMENTS, bspAds, numBSPAds * sizeof( bspAdvertisement_t ));
 
-	/* emit bsp size */
+	// emit bsp size
 	size = FS_Tell( file );
-	Msg( "Wrote %s\n", memprint( size ));
+	Msg( "Writing %s ( %s )\n", filename, memprint( size ));
 	
-	/* write the completed header */
+	// write the completed header
 	FS_Seek( file, 0, SEEK_SET );
 	FS_Write( file, header, sizeof( *header ));
 	
-	/* close the file */
 	FS_Close( file );	
 }

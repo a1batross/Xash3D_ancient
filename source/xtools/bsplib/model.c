@@ -210,7 +210,7 @@ void InsertModel( char *name, int frame, matrix4x4 transform, remap_t *remap, sh
 	mapDrawSurface_t		*ds;
 	bspDrawVert_t		*dv;
 	char			*picoShaderName;
-	char			shaderName[ MAX_QPATH ];
+	char			shaderName[ MAX_SHADERPATH ];
 	picoVec_t			*xyz, *normal, *st;
 	byte			*color;
 	picoIndex_t		*indexes;
@@ -525,7 +525,7 @@ void AddTriangleModels( entity_t *e )
 	entity_t			*e2;
 	const char		*targetName;
 	const char		*target, *model, *value;
-	char			shader[ MAX_QPATH ];
+	char			shader[ MAX_SHADERPATH ];
 	shaderInfo_t		*celShader;
 	float			temp, baseLightmapScale, lightmapScale;
 	vec3_t			origin, scale, angles;

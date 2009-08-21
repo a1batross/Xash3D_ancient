@@ -131,7 +131,7 @@ static void AddLightGridLumps( file_t *file, rbspHeader_t *header )
 	numGridArray = numBSPGridPoints;
 	
 	/* for each bsp grid point, find an approximate twin */
-	MsgDev( D_INFO, "Storing lightgrid: %d points\n", numBSPGridPoints );
+	MsgDev( D_NOTE, "Storing lightgrid: %d points\n", numBSPGridPoints );
 	for( i = 0; i < numGridArray; i++ )
 	{
 		/* get points */
@@ -213,10 +213,10 @@ void LoadRBSPFile( const char *filename )
 {
 	rbspHeader_t	*header;
 	
-	
 	/* load the file header */
 	header = (rbspHeader_t *)FS_LoadFile( filename, NULL );
-
+	if( !header ) Sys_Break( "couldn't load %s\n", filename );
+	
 	/* swap the header (except the first 4 bytes) */
 	SwapBlock( (int*) ((byte*) header + sizeof( int )), sizeof( *header ) - sizeof( int ) );
 	
@@ -316,7 +316,7 @@ void WriteRBSPFile( const char *filename )
 	
 	/* emit bsp size */
 	size = FS_Tell( file );
-	MsgDev( D_INFO, "Wrote %s\n", memprint( size ));
+	Msg( "Writing %s ( %s )\n", filename, memprint( size ));
 	
 	/* write the completed header */
 	FS_Seek( file, 0, SEEK_SET );

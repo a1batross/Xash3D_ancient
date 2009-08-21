@@ -755,7 +755,7 @@ shaderInfo_t *GetIndexedShader( shaderInfo_t *parent, indexMap_t *im, int numPoi
 {
 	int				i;
 	byte			minShaderIndex, maxShaderIndex;
-	char			shader[ MAX_QPATH ];
+	char			shader[ MAX_SHADERPATH ];
 	shaderInfo_t	*si;
 	
 	
@@ -842,7 +842,7 @@ mapDrawSurface_t *DrawSurfaceForSide( entity_t *e, brush_t *b, side_t *s, windin
 	bool			indexed;
 	byte				shaderIndexes[ 256 ];
 	float				offsets[ 256 ];
-	char				tempShader[ MAX_QPATH ];
+	char				tempShader[ MAX_SHADERPATH ];
 
 	
 	/* ydnar: don't make a drawsurf for culled sides */
@@ -1654,16 +1654,27 @@ void CullSides( entity_t *e )
 					/* compare planes */
 					if( (side1->planenum & ~0x00000001) != (side2->planenum & ~0x00000001) )
 						continue;
+
+					// FIXME: get work					
+					if( (side1->compileFlags & C_LIQUID) && (side2->compileFlags & C_LIQUID))
+					{
+						if( mapplanes[side1->planenum].type == mapplanes[side2->planenum].type && mapplanes[side1->planenum].type != PLANE_Z )
+						{
+							Msg( "Cull sides %s and %s\n", side1->shaderInfo->shader, side2->shaderInfo->shader );
+							side1->culled = true;
+							side2->culled = true;
+							g_numCoinFaces++;
+							continue;
+						}
+					}
 					
-					/* get autosprite and polygonoffset status */
-					if( side1->shaderInfo &&
-						(side1->shaderInfo->autosprite || side1->shaderInfo->polygonOffset) )
+					// get autosprite and polygonoffset status
+					if( side1->shaderInfo && (side1->shaderInfo->autosprite || side1->shaderInfo->polygonOffset) )
 						continue;
-					if( side2->shaderInfo &&
-						(side2->shaderInfo->autosprite || side2->shaderInfo->polygonOffset) )
+					if( side2->shaderInfo && (side2->shaderInfo->autosprite || side2->shaderInfo->polygonOffset) )
 						continue;
 					
-					/* find first common point */
+					// find first common point
 					first = -1;
 					for( k = 0; k < numPoints; k++ )
 					{
@@ -1675,7 +1686,7 @@ void CullSides( entity_t *e )
 					}
 					if( first == -1 )
 						continue;
-					
+
 					/* find second common point (regardless of winding order) */
 					second = -1;
 					dir = 0;

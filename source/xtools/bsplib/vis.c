@@ -197,24 +197,21 @@ void ClusterMerge (int leafnum)
 		portalvector[pnum>>3] |= 1<<(pnum&7);
 	}
 
-	memset (uncompressed, 0, leafbytes);
+	Mem_Set( uncompressed, 0, leafbytes );
+
+	if( uncompressed[mergedleafnum>>3] & (1<<(mergedleafnum & 7 )))
+		Msg( "Leaf portals saw into leaf\n" );
 
 	uncompressed[mergedleafnum>>3] |= (1<<(mergedleafnum&7));
 	// convert portal bits to leaf bits
 	numvis = LeafVectorFromPortalVector (portalvector, uncompressed);
-
-//	if (uncompressed[leafnum>>3] & (1<<(leafnum&7)))
-//		MsgDev( D_WARN, "Leaf portals saw into leaf\n");
 		
 //	uncompressed[leafnum>>3] |= (1<<(leafnum&7));
 
 	numvis++;		// count the leaf itself
 
 	totalvis += numvis;
-
-	MsgDev( D_INFO, "cluster %4i : %4i visible\n", leafnum, numvis);
-
-	memcpy (bspVisBytes + VIS_HEADER_SIZE + leafnum*leafbytes, uncompressed, leafbytes);
+	Mem_Copy( bspVisBytes + VIS_HEADER_SIZE + leafnum * leafbytes, uncompressed, leafbytes );
 }
 
 /*

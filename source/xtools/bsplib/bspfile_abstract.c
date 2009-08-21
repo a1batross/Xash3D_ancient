@@ -216,8 +216,6 @@ void SwapBSPFile( void )
 			bspAds[ i ].rect[j][ 1 ] = LittleFloat( bspAds[ i ].rect[j][ 1 ] );
 			bspAds[ i ].rect[j][ 2 ] = LittleFloat( bspAds[ i ].rect[j][ 2 ] );
 		}
-
-		//bspAds[ i ].model[ MAX_QPATH ];
 	}
 }
 

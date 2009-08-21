@@ -499,12 +499,18 @@ void MakeTreePortals_r (node_t *node)
 {
 	int		i;
 
-	CalcNodeBounds (node);
+	CalcNodeBounds( node );
+
 	if( node->mins[0] >= node->maxs[0] )
 	{
 		MsgDev( D_WARN, "node without a volume\n" );
-		MsgDev( D_WARN, "node has %d tiny portals\n", node->tinyportals );
-		MsgDev( D_WARN, "node reference point %1.2f %1.2f %1.2f\n", node->referencepoint[0], node->referencepoint[1], node->referencepoint[2] );
+		if( node->tinyportals ) MsgDev( D_WARN, "node has %d tiny portals\n", node->tinyportals );
+
+		if( !VectorIsNull( node->referencepoint ))
+		{
+			float	*org = node->referencepoint;
+			MsgDev( D_WARN, "node reference point %1.2f %1.2f %1.2f\n", org[0], org[1], org[2] );
+		}
 	}
 
 	for (i=0 ; i<3 ; i++)
@@ -700,7 +706,11 @@ bool FloodEntities( tree_t *tree )
 
 		if(( !r || tree->outside_node.occupied ) && !tripped )
 		{
-			Msg( "Warning: Entity %i leaked\n", e->mapEntityNum );
+			vec3_t		org;
+			const char	*name = ValueForKey( e, "classname" );
+                              
+			GetVectorForKey( e, "origin", org );
+			Msg( "Warning: Entity %i ( %s at %g %g %g ) leaked\n", e->mapEntityNum, name, org[0], org[1], org[2] );
 			tripped = true;
 		}
 	}

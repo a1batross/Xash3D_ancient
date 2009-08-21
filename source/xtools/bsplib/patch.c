@@ -196,8 +196,8 @@ void ParsePatch( bool onlyLights )
 	float			info[5];
 	int			i, j, k;
 	parseMesh_t		*pm;
-	char			texture[MAX_QPATH];
-	char			shader[MAX_QPATH];
+	char			texture[MAX_SHADERPATH];
+	char			shader[MAX_SHADERPATH];
 	mesh_t			m;
 	token_t			token;
 	bspDrawVert_t		*verts;

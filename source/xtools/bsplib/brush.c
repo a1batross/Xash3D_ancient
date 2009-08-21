@@ -148,13 +148,11 @@ void FreeBrush( brush_t *b )
 FreeBrushList()
 frees a linked list of brushes
 */
-
 void FreeBrushList( brush_t *brushes )
 {
-	brush_t		*next;
-	
-	
-	/* walk brush list */
+	brush_t	*next;
+
+	// walk brush list
 	for( ; brushes != NULL; brushes = next )
 	{
 		next = brushes->next;
@@ -968,4 +966,42 @@ void SplitBrush( brush_t *brush, int planenum, brush_t **front, brush_t **back )
 	
 	*front = b[0];
 	*back = b[1];
+}
+
+/*
+===============
+SubtractBrush
+
+Returns a list of brushes that remain after B is subtracted from A.
+May by empty if A is contained inside B.
+The originals are undisturbed.
+
+a - b = out (list)
+===============
+*/
+brush_t *SubtractBrush( brush_t *a, brush_t *b )
+{
+	int	i;
+	brush_t	*front, *back;
+	brush_t	*out = NULL, *in = a;
+
+	for( i = 0; i < b->numsides && in; i++ )
+	{
+		SplitBrush( in, b->sides[i].planenum, &front, &back );
+		if( in != a ) FreeBrush( in );
+		if( front )
+		{	
+			// add to list
+			front->next = out;
+			out = front;
+		}
+		in = back;
+	}
+	if( in ) FreeBrush( in );
+	else
+	{	// didn't really intersect
+		FreeBrushList( out );
+		return a;
+	}
+	return out;
 }

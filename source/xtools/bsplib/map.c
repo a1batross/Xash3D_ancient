@@ -375,26 +375,8 @@ void AddBrushBevels( void )
 			// see if the plane is allready present
 			for( i = 0, s = buildBrush->sides; i < buildBrush->numsides; i++, s++ )
 			{
-				// testing disabling of mre code
-				// TESTING ALL CODE!!!
-#if 0
-				if( dir > 0 )
-				{
-					if( mapplanes[s->planenum].normal[axis] >= 0.9999f )
-						break;
-				}
-				else
-				{
-					if( mapplanes[s->planenum].normal[axis] <= -0.9999f )
-						break;
-				}
-#else
-				if((dir > 0 && mapplanes[s->planenum].normal[axis] == 1.0f) || (dir < 0 && mapplanes[s->planenum].normal[axis] == -1.0f))
+				if( mapplanes[s->planenum].normal[axis] == dir )
 					break;
-#endif
-				// original code from q3 map
-//				if( mapplanes[s->planenum].normal[axis] == (float)dir )
-//					break;
 			}
 
 			if( i == buildBrush->numsides )
@@ -682,8 +664,8 @@ static void ParseRawBrush( bool onlyLights )
 	side_t		*side;
 	float		planePoints[3][3];
 	int		planenum;
-	char 		name[MAX_QPATH];
-	char		shader[MAX_QPATH];
+	char 		name[MAX_SHADERPATH];
+	char		shader[MAX_SHADERPATH];
 	shaderInfo_t	*si;
 	token_t		token;
 	vects_t		vects;
@@ -1317,7 +1299,7 @@ static bool ParseMapEntity( bool onlyLights )
 	token_t		token;
 	const char	*classname, *value;
 	float		lightmapScale;
-	char		shader[ MAX_QPATH ];
+	char		shader[ MAX_SHADERPATH ];
 	shaderInfo_t	*celShader = NULL;
 	brush_t		*brush;
 	parseMesh_t	*patch;
@@ -1536,7 +1518,8 @@ void LoadMapFile( const char *filename, bool onlyLights )
 			AddPointToBounds( b->mins, mapMins, mapMaxs );
 			AddPointToBounds( b->maxs, mapMins, mapMaxs );
 		}
-		
+
+		VectorSubtract( mapMaxs, mapMins, mapSize );		
 		numMapBrushes = CountBrushList( entities[0].brushes );
 		if(( float )c_detail / (float) numMapBrushes < 0.10f && numMapBrushes > 500 )
 			MsgDev( D_WARN, "Over 90 percent structural map detected. Compile time may be adversely affected.\n" );
@@ -1549,7 +1532,7 @@ void LoadMapFile( const char *filename, bool onlyLights )
 		MsgDev( D_NOTE, "%9d entities\n", numEntities );
 		MsgDev( D_NOTE, "%9d planes\n", nummapplanes );
 		MsgDev( D_NOTE, "%9d areaportals\n", c_areaportals );
-		MsgDev( D_INFO, "Size: %5.0f, %5.0f, %5.0f to %5.0f, %5.0f, %5.0f\n", mapMins[0], mapMins[1], mapMins[2], mapMaxs[0], mapMaxs[1], mapMaxs[2]);
+		MsgDev( D_INFO, "World size: %5.0f, %5.0f, %5.0f\n", mapSize[0], mapSize[1], mapSize[2] );
 		
 		// write bogus map
 		if( fakemap ) WriteBSPBrushMap( "fakemap.map", entities[0].brushes );

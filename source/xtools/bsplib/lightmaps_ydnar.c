@@ -61,7 +61,7 @@ based on WriteTGA() from imagelib.c
 
 void WriteTGA24( char *filename, byte *data, int width, int height, bool flip )
 {
-	rgbdata_t		*pic, old;
+	rgbdata_t	*pic, old;
 
 	pic = &old;
 	pic->width = width;
@@ -78,7 +78,6 @@ void WriteTGA24( char *filename, byte *data, int width, int height, bool flip )
 	if( !flip ) Image_Process( &pic, 0, 0, IMAGE_FLIP_X );
 
 	if( !FS_SaveImage( filename, pic )) Sys_Error( "can't write %s", filename );
-	Mem_Free( pic );
 }
 
 

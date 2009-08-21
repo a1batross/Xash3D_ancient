@@ -248,18 +248,16 @@ erases and starts a new map shader script
 */
 void BeginMapShaderFile( const char *mapFile )
 {
-	char	base[MAX_SYSPATH];
-
 	mapName[0] = '\0';
 	mapShaderFile[0] = '\0';
+
 	if( mapFile == NULL || mapFile[0] == '\0' )
 		return;
 	
-	com.strncpy( base, mapFile, sizeof( base ));
-	FS_FileBase( base, mapName );
+	FS_FileBase( mapFile, mapName );
 	
 	// append ../scripts/q3map2_<mapname>.shader
-	com.sprintf( mapShaderFile, "%s/../%s/q3map2_%s.shader", base, game->shaderPath, mapName );
+	com.sprintf( mapShaderFile, "scripts/q3map2_%s.shader", mapName );
 	MsgDev( D_INFO, "Map has shader script %s\n", mapShaderFile );
 	
 	FS_Delete( mapShaderFile );
@@ -309,10 +307,8 @@ void WriteMapShaderFile( void )
 		si = &shaderInfo[i];
 		if( si->custom == false || si->shaderText == NULL || si->shaderText[0] == '\0' )
 			continue;
-		num++;
-
 		FS_Printf( file, "%s%s\n", si->shader, si->shaderText );
-		MsgDev( D_INFO, "." );
+		num++;
 	}
 
 	FS_Close( file );
@@ -331,7 +327,7 @@ sets up a custom map shader
 shaderInfo_t *CustomShader( shaderInfo_t *si, char *find, char *replace )
 {
 	shaderInfo_t	*csi;
-	char		shader[ MAX_QPATH ];
+	char		shader[ MAX_SHADERPATH ];
 	char		*s;
 	int		loc;
 	MD5_CTX		md5_Hash;
@@ -347,7 +343,7 @@ shaderInfo_t *CustomShader( shaderInfo_t *si, char *find, char *replace )
 	{
 		srcShaderText = temp;
 		com.sprintf( temp, "\n"
-			"{ // BspLib defaulted (implicitMap)\n"
+			"{\t\t// defaulted (implicitMap)\n"
 			"\t{\n"
 			"\t\tmap $lightmap\n"
 			"\t\trgbGen identity\n"
@@ -365,7 +361,7 @@ shaderInfo_t *CustomShader( shaderInfo_t *si, char *find, char *replace )
 	{
 		srcShaderText = temp;
 		com.sprintf( temp, "\n"
-			"{ // BspLib defaulted (implicitMask)\n"
+			"{\t\t// defaulted (implicitMask)\n"
 			"\tcull none\n"
 			"\t{\n"
 			"\t\tmap %s\n"
@@ -392,7 +388,7 @@ shaderInfo_t *CustomShader( shaderInfo_t *si, char *find, char *replace )
 	{
 		srcShaderText = temp;
 		com.sprintf( temp, "\n"
-			"{ // BspLib defaulted (implicitBlend)\n"
+			"{\t\t// defaulted (implicitBlend)\n"
 			"\tcull none\n"
 			"\t{\n"
 			"\t\tmap %s\n"
@@ -411,7 +407,7 @@ shaderInfo_t *CustomShader( shaderInfo_t *si, char *find, char *replace )
 	{
 		srcShaderText = temp;
 		com.sprintf( temp, "\n"
-			"{ // BspLib defaulted\n"
+			"{\t\t// defaulted\n"
 			"\t{\n"
 			"\t\tmap $lightmap\n"
 			"\t\trgbGen identity\n"
@@ -426,8 +422,8 @@ shaderInfo_t *CustomShader( shaderInfo_t *si, char *find, char *replace )
 			si->shader );
 	}
 	
-	if(( com.strlen( mapName ) + 1 + 32) > MAX_QPATH )
-		Sys_Break( "Custom shader name length (%d) exceeded. Shorten your map name.\n", MAX_QPATH );
+	if(( com.strlen( mapName ) + 1 + 32) > MAX_SHADERPATH )
+		Sys_Break( "Custom shader name length (%d) exceeded. Shorten your map name.\n", MAX_SHADERPATH );
 	
 	s = com.strstr( srcShaderText, find );
 	if( s == NULL ) return si; // testing just using the existing shader if this fails
@@ -639,7 +635,7 @@ static void LoadShaderImages( shaderInfo_t *si )
 		if( si->shaderImage == NULL )
 		{
 			si->shaderImage = ImageLoad( DEFAULT_IMAGE );
-			if( warnImage && com.strcmp( si->shader, "noshader" ))
+			if( warnImage && com.strcmp( si->shader, MAP_DEFAULT_SHADER ))
 				MsgDev( D_WARN, "Couldn't find image for shader %s\n", si->shader );
 		}
 		
@@ -687,7 +683,7 @@ shaderInfo_t *ShaderInfoForShader( const char *shaderName )
 {
 	int		i;
 	shaderInfo_t	*si;
-	char		shader[MAX_QPATH];
+	char		shader[MAX_SHADERPATH];
 	
 	if( shaderName == NULL || shaderName[0] == '\0' )
 	{
@@ -1787,7 +1783,7 @@ void LoadShaderInfo( void )
 	if( useCustomInfoParms ) ParseCustomInfoParms();
 
 	numShaderFiles = 0;
-	search = FS_Search( va( "%s/*.shader", game->shaderPath ), true );
+	search = FS_Search( "scripts/*.shader", true );
 	if( !search ) return;
 	
 	for( i = 0; i < search->numfilenames; i++ )

@@ -69,7 +69,7 @@ static void ProcessAdvertisements( void ) {
 			
 			modelKey = ValueForKey( &entities[ i ], "model" );
 
-			if( strlen( modelKey ) > MAX_QPATH - 1 ) {
+			if( strlen( modelKey ) > MAX_SHADERPATH - 1 ) {
 				Sys_Break( "Model Key for entity exceeds ad struct string length." );
 			} else {
 				if( numBSPAds < MAX_MAP_ADVERTISEMENTS ) {
@@ -265,12 +265,10 @@ void ProcessWorldModel( void )
 	
 	
 	/* sets integer blockSize from worldspawn "_blocksize" key if it exists */
-	value = ValueForKey( &entities[ 0 ], "_blocksize" );
-	if( value[ 0 ] == '\0' )
-		value = ValueForKey( &entities[ 0 ], "blocksize" );
-	if( value[ 0 ] == '\0' )
-		value = ValueForKey( &entities[ 0 ], "chopsize" );	/* sof2 */
-	if( value[ 0 ] != '\0' )
+	value = ValueForKey( &entities[0], "_blocksize" );
+	if( value[0] == '\0' ) value = ValueForKey( &entities[0], "blocksize" );
+	if( value[0] == '\0' ) value = ValueForKey( &entities[ 0 ], "chopsize" );	/* sof2 */
+	if( value[0] != '\0' )
 	{
 		/* scan 3 numbers */
 		s = sscanf( value, "%d %d %d", &blockSize[ 0 ], &blockSize[ 1 ], &blockSize[ 2 ] );
@@ -593,7 +591,7 @@ void OnlyEnts( void )
 	/* note it */
 	MsgDev( D_INFO, "--- OnlyEnts ---\n" );
 	
-	com.sprintf( out, "%s.bsp", source );
+	com.sprintf( out, "maps/%s.bsp", source );
 	LoadBSPFile( out );
 	numEntities = 0;
 
@@ -633,56 +631,21 @@ int BSPMain( int argc, char **argv )
 	maxSurfaceVerts = game->maxSurfaceVerts;
 	maxSurfaceIndexes = game->maxSurfaceIndexes;
 	emitFlares = game->emitFlares;
-	
+
+	if( FS_CheckParm( "-onlyents" )) onlyents = true;
+	if( FS_CheckParm( "-nowater" )) nowater = true;
+	if( FS_CheckParm( "-nodetail" )) nodetail = true;	
+	if( FS_CheckParm( "-fulldetail" )) fulldetail = true;
+	if( FS_CheckParm( "-nofog" )) nofog = true;
+	if( FS_CheckParm( "-nosubdivide" )) nosubdivide = true;
+	if( FS_CheckParm( "-leaktest" )) leaktest = true;
+	if( FS_CheckParm( "-nocurves" )) noCurveBrushes = true;
+	if( FS_CheckParm( "-notjunc" )) notjunc = true;
+
 	/* process arguments */
 	for( i = 1; i < (argc - 1); i++ )
 	{
-		if( !strcmp( argv[ i ], "-onlyents" ) )
-		{
-			MsgDev( D_INFO, "Running entity-only compile\n" );
-			onlyents = true;
-		}
-		else if( !strcmp( argv[ i ],  "-nowater" ) )
-		{
-			MsgDev( D_INFO, "Disabling water\n" );
-			nowater = true;
-		}
-		else if( !strcmp( argv[ i ],  "-nodetail" ) )
-		{
-			MsgDev( D_INFO, "Ignoring detail brushes\n") ;
-			nodetail = true;
-		}
-		else if( !strcmp( argv[ i ],  "-fulldetail" ) )
-		{
-			MsgDev( D_INFO, "Turning detail brushes into structural brushes\n" );
-			fulldetail = true;
-		}
-		else if( !strcmp( argv[ i ],  "-nofog" ) )
-		{
-			MsgDev( D_INFO, "Fog volumes disabled\n" );
-			nofog = true;
-		}
-		else if( !strcmp( argv[ i ],  "-nosubdivide" ) )
-		{
-			MsgDev( D_INFO, "Disabling brush face subdivision\n" );
-			nosubdivide = true;
-		}
-		else if( !strcmp( argv[ i ],  "-leaktest" ) )
-		{
-			MsgDev( D_INFO, "Leaktest enabled\n" );
-			leaktest = true;
-		}
-		else if( !strcmp( argv[ i ], "-nocurves" ) )
-		{
-			MsgDev( D_INFO, "Ignoring curved surfaces (patches)\n" );
-			noCurveBrushes = true;
-		}
-		else if( !strcmp( argv[ i ], "-notjunc" ) )
-		{
-			MsgDev( D_INFO, "T-junction fixing disabled\n" );
-			notjunc = true;
-		}
-		else if( !strcmp( argv[ i ], "-fakemap" ) )
+		if( !strcmp( argv[ i ], "-fakemap" ) )
 		{
 			MsgDev( D_INFO, "Generating fakemap.map\n" );
 			fakemap = true;
@@ -815,16 +778,8 @@ int BSPMain( int argc, char **argv )
 			MsgDev( D_INFO, "Debug portal surfaces enabled\n" );
 			debugPortals = true;
 		}
-		else if( !strcmp( argv[ i ], "-bsp" ) )
-			MsgDev( D_INFO, "-bsp argument unnecessary\n" );
-		else
-			MsgDev( D_INFO, "WARNING: Unknown option \"%s\"\n", argv[ i ] );
 	}
-	
-	/* fixme: print more useful usage here */
-	if( i != (argc - 1) )
-		Sys_Break( "usage: q3map [options] mapfile" );
-	
+
 	/* copy source name */
 	strcpy( source, gs_filename );
 	FS_StripExtension( source );

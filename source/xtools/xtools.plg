@@ -3,95 +3,9 @@
 <pre>
 <h1>Build Log</h1>
 <h3>
---------------------Configuration: xtools - Win32 Debug--------------------
+--------------------Configuration: xtools - Win32 Release--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP2192.tmp" with contents
-[
-/nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "../public" /I "bsplib" /I "models" /I "ripper" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\xtools\!debug/" /Fo"..\temp\xtools\!debug/" /Fd"..\temp\xtools\!debug/" /FD /GZ /c 
-"D:\Xash3D\src_main\xtools\bsplib\bsplib.c"
-]
-Creating command line "cl.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP2192.tmp" 
-Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP2193.tmp" with contents
-[
-msvcrtd.lib user32.lib /nologo /dll /incremental:yes /pdb:"..\temp\xtools\!debug/xtools.pdb" /debug /machine:I386 /nodefaultlib:"libc.lib" /out:"..\temp\xtools\!debug/xtools.dll" /implib:"..\temp\xtools\!debug/xtools.lib" /pdbtype:sept 
-"\Xash3D\src_main\temp\xtools\!debug\brush.obj"
-"\Xash3D\src_main\temp\xtools\!debug\brush_primit.obj"
-"\Xash3D\src_main\temp\xtools\!debug\bsp.obj"
-"\Xash3D\src_main\temp\xtools\!debug\bspfile_abstract.obj"
-"\Xash3D\src_main\temp\xtools\!debug\bspfile_ibsp.obj"
-"\Xash3D\src_main\temp\xtools\!debug\bspfile_rbsp.obj"
-"\Xash3D\src_main\temp\xtools\!debug\conv_bsplumps.obj"
-"\Xash3D\src_main\temp\xtools\!debug\conv_doom.obj"
-"\Xash3D\src_main\temp\xtools\!debug\conv_image.obj"
-"\Xash3D\src_main\temp\xtools\!debug\conv_main.obj"
-"\Xash3D\src_main\temp\xtools\!debug\conv_shader.obj"
-"\Xash3D\src_main\temp\xtools\!debug\conv_sprite.obj"
-"\Xash3D\src_main\temp\xtools\!debug\convert_ase.obj"
-"\Xash3D\src_main\temp\xtools\!debug\convert_map.obj"
-"\Xash3D\src_main\temp\xtools\!debug\decals.obj"
-"\Xash3D\src_main\temp\xtools\!debug\dpvencoder.obj"
-"\Xash3D\src_main\temp\xtools\!debug\facebsp.obj"
-"\Xash3D\src_main\temp\xtools\!debug\fog.obj"
-"\Xash3D\src_main\temp\xtools\!debug\image.obj"
-"\Xash3D\src_main\temp\xtools\!debug\leakfile.obj"
-"\Xash3D\src_main\temp\xtools\!debug\light.obj"
-"\Xash3D\src_main\temp\xtools\!debug\light_bounce.obj"
-"\Xash3D\src_main\temp\xtools\!debug\light_trace.obj"
-"\Xash3D\src_main\temp\xtools\!debug\light_ydnar.obj"
-"\Xash3D\src_main\temp\xtools\!debug\lightmaps_ydnar.obj"
-"\Xash3D\src_main\temp\xtools\!debug\map.obj"
-"\Xash3D\src_main\temp\xtools\!debug\mesh.obj"
-"\Xash3D\src_main\temp\xtools\!debug\model.obj"
-"\Xash3D\src_main\temp\xtools\!debug\patch.obj"
-"\Xash3D\src_main\temp\xtools\!debug\portals.obj"
-"\Xash3D\src_main\temp\xtools\!debug\prtfile.obj"
-"\Xash3D\src_main\temp\xtools\!debug\shaders.obj"
-"\Xash3D\src_main\temp\xtools\!debug\spritegen.obj"
-"\Xash3D\src_main\temp\xtools\!debug\studio.obj"
-"\Xash3D\src_main\temp\xtools\!debug\studio_utils.obj"
-"\Xash3D\src_main\temp\xtools\!debug\surface.obj"
-"\Xash3D\src_main\temp\xtools\!debug\surface_extra.obj"
-"\Xash3D\src_main\temp\xtools\!debug\surface_foliage.obj"
-"\Xash3D\src_main\temp\xtools\!debug\surface_fur.obj"
-"\Xash3D\src_main\temp\xtools\!debug\surface_meta.obj"
-"\Xash3D\src_main\temp\xtools\!debug\tjunction.obj"
-"\Xash3D\src_main\temp\xtools\!debug\tree.obj"
-"\Xash3D\src_main\temp\xtools\!debug\utils.obj"
-"\Xash3D\src_main\temp\xtools\!debug\vis.obj"
-"\Xash3D\src_main\temp\xtools\!debug\visflow.obj"
-"\Xash3D\src_main\temp\xtools\!debug\wadlib.obj"
-"\Xash3D\src_main\temp\xtools\!debug\writebsp.obj"
-"\Xash3D\src_main\temp\xtools\!debug\xtools.obj"
-"\Xash3D\src_main\temp\xtools\!debug\bsplib.obj"
-"\Xash3D\src_main\temp\xtools\!debug\md5.obj"
-"\Xash3D\src_main\temp\xtools\!debug\polylib.obj"
-"\Xash3D\src_main\temp\xtools\!debug\picointernal.obj"
-"\Xash3D\src_main\temp\xtools\!debug\picomodel.obj"
-"\Xash3D\src_main\temp\xtools\!debug\picomodules.obj"
-"\Xash3D\src_main\temp\xtools\!debug\pm_3ds.obj"
-"\Xash3D\src_main\temp\xtools\!debug\pm_ase.obj"
-"\Xash3D\src_main\temp\xtools\!debug\pm_fm.obj"
-"\Xash3D\src_main\temp\xtools\!debug\pm_md2.obj"
-"\Xash3D\src_main\temp\xtools\!debug\pm_md3.obj"
-"\Xash3D\src_main\temp\xtools\!debug\pm_mdc.obj"
-"\Xash3D\src_main\temp\xtools\!debug\pm_ms3d.obj"
-"\Xash3D\src_main\temp\xtools\!debug\pm_obj.obj"
-]
-Creating command line "link.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP2193.tmp"
-Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP2194.bat" with contents
-[
-@echo off
-copy \Xash3D\src_main\temp\xtools\!debug\xtools.dll "D:\Xash3D\bin\xtools.dll"
-]
-Creating command line "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP2194.bat"
-Compiling...
-bsplib.c
-Linking...
-   Creating library ..\temp\xtools\!debug/xtools.lib and object ..\temp\xtools\!debug/xtools.exp
-<h3>Output Window</h3>
-Performing Custom Build Step on \Xash3D\src_main\temp\xtools\!debug\xtools.dll
-Скопировано файлов:         1.
 
 
 

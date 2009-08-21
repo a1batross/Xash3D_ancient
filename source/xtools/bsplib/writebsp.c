@@ -49,9 +49,8 @@ int	EmitShader( const char *shader, int *contentFlags, int *surfaceFlags )
 	shaderInfo_t	*si;
 	
 	
-	/* handle special cases */
-	if( shader == NULL )
-		shader = "noshader";
+	// Xash default shader (engine supports this)
+	if( shader == NULL ) shader = MAP_DEFAULT_SHADER;
 	
 	/* try to find an existing shader */
 	for( i = 0; i < numBSPShaders; i++ )
@@ -381,7 +380,6 @@ void EndBSPFile( void )
 	
 	/* write the bsp */
 	com.sprintf( path, "maps/%s.bsp", source );
-	Msg( "Writing %s\n", path );
 	WriteBSPFile( path );
 }
 

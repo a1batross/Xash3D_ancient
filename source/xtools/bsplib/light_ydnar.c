@@ -1931,15 +1931,14 @@ void IlluminateRawLightmap( int rawLightmapNum )
 			/* style check */
 			for( lightmapNum = 0; lightmapNum < MAX_LIGHTMAPS; lightmapNum++ )
 			{
-				if( lm->styles[ lightmapNum ] == trace.light->style ||
-					lm->styles[ lightmapNum ] == LS_NONE )
+				if( lm->styles[lightmapNum] == trace.light->style || lm->styles[lightmapNum] == LS_NONE )
 					break;
 			}
 			
-			/* max of MAX_LIGHTMAPS (4) styles allowed to hit a surface/lightmap */
+			// max of MAX_LIGHTMAPS (4) styles allowed to hit a surface/lightmap
 			if( lightmapNum >= MAX_LIGHTMAPS )
 			{
-				Msg( "WARNING: Hit per-surface style limit (%d)\n", MAX_LIGHTMAPS );
+				MsgDev( D_NOTE, "Warning: too many styles on a face\n" );
 				continue;
 			}
 			
@@ -3355,7 +3354,7 @@ void SetupEnvelopes( bool forGrid, bool fastFlag )
 				numCulledLights++;
 				*owner = light->next;
 				if( light->w != NULL )
-					Mem_Free( light->w );
+					FreeWinding( light->w );
 				Mem_Free( light );
 				continue;
 			}
