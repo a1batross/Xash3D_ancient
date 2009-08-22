@@ -2202,7 +2202,7 @@ void StoreSurfaceLightmaps( void )
 	
 	
 	/* note it */
-	Msg( "--- StoreSurfaceLightmaps ---\n");
+	MsgDev( D_NOTE, "--- StoreSurfaceLightmaps ---\n");
 	
 	/* setup */
 	com.strcpy( dirname, source );
@@ -3059,16 +3059,16 @@ void StoreSurfaceLightmaps( void )
 		? 0
 		: (float) numUsed / (float) numStored;
 	
-	/* print stats */
-	Msg( "%9d luxels used\n", numUsed );
-	Msg( "%9d luxels stored (%3.2f percent efficiency)\n", numStored, efficiency * 100.0f );
-	Msg( "%9d solid surface lightmaps\n", numSolidLightmaps );
-	Msg( "%9d identical surface lightmaps, using %d luxels\n", numTwins, numTwinLuxels );
-	Msg( "%9d vertex forced surfaces\n", numSurfsVertexForced );
-	Msg( "%9d vertex approximated surfaces\n", numSurfsVertexApproximated );
-	Msg( "%9d BSP lightmaps\n", numBSPLightmaps );
-	Msg( "%9d total lightmaps\n", numOutLightmaps );
-	Msg( "%9d unique lightmap/shader combinations\n", numLightmapShaders );
+	// print stats
+	MsgDev( D_NOTE, "%9d luxels used\n", numUsed );
+	MsgDev( D_NOTE, "%9d luxels stored (%3.2f percent efficiency)\n", numStored, efficiency * 100.0f );
+	MsgDev( D_NOTE, "%9d solid surface lightmaps\n", numSolidLightmaps );
+	MsgDev( D_NOTE, "%9d identical surface lightmaps, using %d luxels\n", numTwins, numTwinLuxels );
+	MsgDev( D_NOTE, "%9d vertex forced surfaces\n", numSurfsVertexForced );
+	MsgDev( D_NOTE, "%9d vertex approximated surfaces\n", numSurfsVertexApproximated );
+	MsgDev( D_NOTE, "%9d BSP lightmaps\n", numBSPLightmaps );
+	MsgDev( D_NOTE, "%9d total lightmaps\n", numOutLightmaps );
+	MsgDev( D_NOTE, "%9d unique lightmap/shader combinations\n", numLightmapShaders );
 	
 	/* write map shader file */
 	WriteMapShaderFile();

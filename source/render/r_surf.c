@@ -70,7 +70,9 @@ bool R_CullSurface( msurface_t *surf, uint clipflags )
 		return false;
 	if( shader->flags & SHADER_AUTOSPRITE )
 		return false;
-
+	// never cull turblent or warp surfaces
+	if( shader->tessSize ) return false;
+		
 	// flare
 	if( surf->facetype == MST_FLARE )
 	{

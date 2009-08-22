@@ -3401,8 +3401,8 @@ void SetupEnvelopes( bool forGrid, bool fastFlag )
 	}
 	
 	/* emit some statistics */
-	Msg( "%9d total lights\n", numLights );
-	Msg( "%9d culled lights\n", numCulledLights );
+	MsgDev( D_NOTE, "%9d total lights\n", numLights );
+	MsgDev( D_NOTE, "%9d culled lights\n", numCulledLights );
 }
 
 

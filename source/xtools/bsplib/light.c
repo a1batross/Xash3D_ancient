@@ -218,42 +218,38 @@ creates lights from light entities
 
 void CreateEntityLights( void )
 {
-	int				i, j;
-	light_t			*light, *light2;
+	int		i, j;
+	light_t		*light, *light2;
 	entity_t		*e, *e2;
-	const char		*name;
-	const char		*target;
-	vec3_t			dest;
-	const char		*_color;
-	float			intensity, scale, deviance, filterRadius;
-	int				spawnflags, flags, numSamples;
-	bool		junior;
-
+	const char	*name;
+	const char	*target;
+	vec3_t		dest;
+	const char	*value;
+	float		intensity, scale, deviance, filterRadius;
+	int		spawnflags, flags, numSamples;
+	bool		junior, monolight;
+	double		vec[4], col[3];
 	
 	/* go throught entity list and find lights */
 	for( i = 0; i < numEntities; i++ )
 	{
-		/* get entity */
-		e = &entities[ i ];
+		e = &entities[i];
 		name = ValueForKey( e, "classname" );
 		
-		/* ydnar: check for lightJunior */
-		if( com.strnicmp( name, "lightJunior", 11 ) == 0 )
+		// check for lightJunior
+		if( !com.strnicmp( name, "lightJunior", 11 ))
 			junior = true;
-		else if( com.strnicmp( name, "light", 5 ) == 0 )
+		else if( !com.strnicmp( name, "light", 5 ))
 			junior = false;
-		else
-			continue;
+		else continue;
 		
-		/* lights with target names (and therefore styles) are only parsed from BSP */
+		// lights with target names (and therefore styles) are only parsed from BSP
 		target = ValueForKey( e, "targetname" );
-		if( target[ 0 ] != '\0' && i >= numBSPEntities )
+		if( target[0] != '\0' && i >= numBSPEntities )
 			continue;
 		
-		/* create a light */
 		numPointLights++;
-		light = Malloc( sizeof( *light ) );
-		memset( light, 0, sizeof( *light ) );
+		light = Malloc( sizeof( *light ));
 		light->next = lights;
 		lights = light;
 		
@@ -298,68 +294,100 @@ void CreateEntityLights( void )
 		
 		/* other flags (borrowed from wolf) */
 		
-		/* wolf dark light? */
-		if( (spawnflags & 4) || (spawnflags & 8) )
+		// wolf dark light
+		if(( spawnflags & 4 ) || ( spawnflags & 8 ))
 			flags |= LIGHT_DARK;
 		
-		/* nogrid? */
-		if( spawnflags & 16 )
-			flags &= ~LIGHT_GRID;
+		// disable lightgrid for this source
+		if( spawnflags & 16 ) flags &= ~LIGHT_GRID;
 		
-		/* junior? */
 		if( junior )
 		{
 			flags |= LIGHT_GRID;
 			flags &= ~LIGHT_SURFACES;
 		}
 		
-		/* store the flags */
 		light->flags = flags;
 		
-		/* ydnar: set fade key (from wolf) */
+		// set fade key (from wolf)
 		light->fade = 1.0f;
 		if( light->flags & LIGHT_ATTEN_LINEAR )
 		{
 			light->fade = FloatForKey( e, "fade" );
-			if( light->fade == 0.0f )
-				light->fade = 1.0f;
+			if( light->fade == 0.0f ) light->fade = 1.0f;
 		}
 		
-		/* ydnar: set angle scaling (from vlight) */
+		// set angle scaling (from vlight)
 		light->angleScale = FloatForKey( e, "_anglescale" );
-		if( light->angleScale != 0.0f )
-			light->flags |= LIGHT_ATTEN_ANGLE;
+		if( light->angleScale != 0.0f ) light->flags |= LIGHT_ATTEN_ANGLE;
 		
-		/* set origin */
-		GetVectorForKey( e, "origin", light->origin);
+		GetVectorForKey( e, "origin", light->origin );
 		light->style = IntForKey( e, "_style" );
-		if( light->style == LS_NORMAL )
-			light->style = IntForKey( e, "style" );
+		if( light->style == LS_NORMAL ) light->style = IntForKey( e, "style" );
 		if( light->style < LS_NORMAL || light->style >= LS_NONE )
 			Sys_Break( "Invalid lightstyle (%d) on entity %d", light->style, i );
 		
 		if( light->style != LS_NORMAL )
 			MsgDev( D_NOTE, "styled light found targeting %s\n **", target );
 
-		/* set light intensity */
-		intensity = FloatForKey( e, "_light" );
-		if( intensity == 0.0f )
-			intensity = FloatForKey( e, "light" );
-		if( intensity == 0.0f)
-			intensity = 300.0f;
-		
-		/* ydnar: set light scale (sof2) */
+		value = ValueForKey( e, "light" );
+		if( !value[0] ) value = ValueForKey( e, "_light" );
+
+		// assume default light color
+		VectorSet( light->color, 1.0f, 1.0f, 1.0f );
+		intensity = 300.0f;
+
+		if( value[0] )
+		{
+			switch( sscanf( value, "%lf %lf %lf %lf", &vec[0], &vec[1], &vec[2], &vec[3] ))
+			{
+			case 4:	// HalfLife light
+				VectorSet( light->color, vec[0], vec[1], vec[2] );
+				VectorDivide( light->color, 255.0f, light->color );
+				intensity = vec[3];
+				break;
+			case 3:	// Half-Life light_environment
+				VectorSet( light->intensity, vec[0], vec[1], vec[2] );
+				VectorDivide( light->color, 255.0f, light->color );
+				break;
+			case 1:	// Quake light
+				intensity = vec[0];
+				monolight = true;
+				break;
+			default:
+				MsgDev( D_WARN, "%s [%i]: '_light' key must be 1 (q1) or 3 or 4 (hl) numbers\n", name, i );
+				break;
+			}
+		}
+
+		// set light color
+		if( monolight )
+		{
+			value = ValueForKey( e, "color" );
+			if( !value[0] ) value = ValueForKey( e, "_color" );
+			if( value[0] )
+			{
+				if(sscanf( value, "%lf %lf %lf", &col[0], &col[1], &col[2] ) != 3 )
+				{
+					MsgDev( D_WARN, "light at %.0f %.0f %.0f:\ncolor must be given 3 values\n",
+					light->origin[0], light->origin[1], light->origin[2] );
+				}
+				VectorCopy( col, light->color );
+			}
+			else VectorScale( light->color, 0.5f, light->color );
+		}
+
+		ColorNormalize( light->color, light->color );
+
+		// set light scale (sof2)
 		scale = FloatForKey( e, "scale" );
-		if( scale == 0.0f )
-			scale = 1.0f;
+		if( scale == 0.0f ) scale = 1.0f;
 		intensity *= scale;
 		
 		/* ydnar: get deviance and samples */
 		deviance = FloatForKey( e, "_deviance" );
-		if( deviance == 0.0f )
-			deviance = FloatForKey( e, "_deviation" );
-		if( deviance == 0.0f )
-			deviance = FloatForKey( e, "_jitter" );
+		if( deviance == 0.0f ) deviance = FloatForKey( e, "_deviation" );
+		if( deviance == 0.0f ) deviance = FloatForKey( e, "_jitter" );
 		numSamples = IntForKey( e, "_samples" );
 		if( deviance < 0.0f || numSamples < 1 )
 		{
@@ -368,25 +396,13 @@ void CreateEntityLights( void )
 		}
 		intensity /= numSamples;
 		
-		/* ydnar: get filter radius */
+		// get filter radius
 		filterRadius = FloatForKey( e, "_filterradius" );
-		if( filterRadius == 0.0f )
-			filterRadius = FloatForKey( e, "_filteradius" );
-		if( filterRadius == 0.0f )
-			filterRadius = FloatForKey( e, "_filter" );
-		if( filterRadius < 0.0f )
-			filterRadius = 0.0f;
+		if( filterRadius == 0.0f ) filterRadius = FloatForKey( e, "_filteradius" );
+		if( filterRadius == 0.0f ) filterRadius = FloatForKey( e, "_filter" );
+		if( filterRadius < 0.0f ) filterRadius = 0.0f;
 		light->filterRadius = filterRadius;
-		
-		/* set light color */
-		_color = ValueForKey( e, "_color" );
-		if( _color && _color[ 0 ] )
-		{
-			sscanf( _color, "%f %f %f", &light->color[ 0 ], &light->color[ 1 ], &light->color[ 2 ] );
-			ColorNormalize( light->color, light->color );
-		}
-		else light->color[0] = light->color[1] = light->color[2] = 1.0f;
-		
+	
 		intensity = intensity * pointScale;
 		light->photons = intensity;
 		
@@ -1750,8 +1766,7 @@ int LightMain( int argc, char **argv )
 	char		mapSource[ 1024 ];
 	const char	*value;
 	
-	
-	/* note it */
+	enable_log = true;
 	Msg( "--- Light ---\n" );
 	
 	/* set standard game flags */
@@ -2206,7 +2221,7 @@ int LightMain( int argc, char **argv )
 		else MsgDev( D_WARN, "unknown argument \"%s\"\n", argv[i] );
 
 	}
-	
+
 	/* clean up map name */
 	com.sprintf( source, "maps/%s", gs_filename );
 	FS_StripExtension( source );

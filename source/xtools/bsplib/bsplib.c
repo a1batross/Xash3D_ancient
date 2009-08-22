@@ -54,7 +54,7 @@ vec_t Random( void )
 void Bsp_PrintLog( const char *pMsg )
 {
 	if( !enable_log ) return;
-	if( !bsplog ) bsplog = FS_Open( va( "maps/%s.log", gs_filename ), "wb" );
+	if( !bsplog ) bsplog = FS_Open( va( "maps/%s.log", gs_filename ), "ab" );
 	FS_Print( bsplog, pMsg );
 }
 
@@ -514,9 +514,6 @@ bool PrepareBSPModel( int argc, char **argv )
 
 	com_argc = argc;
 	com_argv = argv;
-	
-	Msg( Q3MAP_VERSION "\n" );
-	Msg( "%s\n", Q3MAP_MOTD );
 
 	// check for general parms
 	if( FS_CheckParm( "-force" )) force = true;
@@ -535,10 +532,9 @@ bool PrepareBSPModel( int argc, char **argv )
 	for( i = 0; i < MAX_JITTERS; i++ )
 		jitters[ i ] = sin( i * 139.54152147 );
 	
-	game = &games[1];	// defaulting to Q3A ...
+	game = &games[1];	// defaulting to Xash
 	FS_LoadGameInfo( "gameinfo.txt" );
 	BspFunc = NULL;
-	enable_log = true;
 
 	if( FS_CheckParm( "-analyze" )) BspFunc = AnalyzeBSP;
 	else if( FS_CheckParm( "-info" )) BspFunc = BSPInfo;

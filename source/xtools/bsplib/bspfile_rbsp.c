@@ -271,7 +271,6 @@ void WriteRBSPFile( const char *filename )
 {		
 	rbspHeader_t	outheader, *header;
 	file_t		*file;
-	time_t		t;
 	char		marker[MAX_SYSPATH];
 	int		size;
 	
@@ -290,10 +289,9 @@ void WriteRBSPFile( const char *filename )
 	file = FS_Open( filename, "wb" );
 	FS_Write( file, (bspHeader_t *)header, sizeof( *header ));	/* overwritten later */
 	
-	/* add marker lump */
-	time( &t );
-	com.sprintf( marker, "I LOVE MY Q3MAP2 %s on %s)", Q3MAP_VERSION, asctime( localtime( &t )));
-	AddLump( file, (bspHeader_t *) header, 0, marker, com.strlen( marker ) + 1 );
+	// add marker lump
+	com.sprintf( marker, "Written by Xash BspLib at %s)", timestamp( TIME_NO_SECONDS ));
+	AddLump( file, (bspHeader_t*) header, 0, marker, com.strlen( marker ) + 1 );
 	
 	/* add lumps */
 	AddLump( file, (bspHeader_t*) header, LUMP_SHADERS, bspShaders, numBSPShaders * sizeof( bspShader_t ) );

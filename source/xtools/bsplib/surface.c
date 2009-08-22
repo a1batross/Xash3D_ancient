@@ -1655,12 +1655,11 @@ void CullSides( entity_t *e )
 					if( (side1->planenum & ~0x00000001) != (side2->planenum & ~0x00000001) )
 						continue;
 
-					// FIXME: get work					
+					// FIXME: get work it properly					
 					if( (side1->compileFlags & C_LIQUID) && (side2->compileFlags & C_LIQUID))
 					{
 						if( mapplanes[side1->planenum].type == mapplanes[side2->planenum].type && mapplanes[side1->planenum].type != PLANE_Z )
 						{
-							Msg( "Cull sides %s and %s\n", side1->shaderInfo->shader, side2->shaderInfo->shader );
 							side1->culled = true;
 							side2->culled = true;
 							g_numCoinFaces++;

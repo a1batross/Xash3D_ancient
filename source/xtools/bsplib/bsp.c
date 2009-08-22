@@ -619,10 +619,6 @@ int BSPMain( int argc, char **argv )
 	char	path[ 1024 ];
 	bool	onlyents = false;
 	
-	
-	/* note it */
-	MsgDev( D_INFO, "--- BSP ---\n" );
-	
 	SetDrawSurfacesBuffer();
 	mapDrawSurfs = Malloc( sizeof( mapDrawSurface_t ) * MAX_MAP_DRAW_SURFS );
 	numMapDrawSurfs = 0;
@@ -788,18 +784,22 @@ int BSPMain( int argc, char **argv )
 	SetDefaultSampleSize( sampleSize );
 	
 	/* delete portal, line and surface files */
-	com.sprintf( path, "%s.prt", source );
+	com.sprintf( path, "%s/maps/%s.prt", com.GameInfo->gamedir, source );
 	FS_Delete( path );
-	com.sprintf( path, "%s.lin", source );
+	com.sprintf( path, "%s/maps/%s.lin", com.GameInfo->gamedir, source );
 	FS_Delete( path );
-
+	com.sprintf( path, "%s/maps/%s.log", com.GameInfo->gamedir, source );
+	FS_Delete( path );
 	com.snprintf( name, sizeof( name ), "maps/%s.map", gs_filename );	
+	enable_log = true;
 
 	if( onlyents )
 	{
 		OnlyEnts();
 		return 0;
 	}
+
+	MsgDev( D_INFO, "--- BSP ---\n" );
 	
 	/* load shaders */
 	LoadShaderInfo();

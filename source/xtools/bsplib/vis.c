@@ -1016,7 +1016,7 @@ int VisMain( int argc, char **argv )
 	char	portalfile[1024];
 	int	i;
 	
-	
+	enable_log = true;	
 	Msg( "--- Vis ---\n" );
 	
 	// process arguments
@@ -1073,7 +1073,7 @@ int VisMain( int argc, char **argv )
 	com.strcpy( portalfile, source );
 	FS_StripExtension( portalfile );
 	FS_DefaultExtension( portalfile, ".prt" );
-	MsgDev( D_INFO,  "Loading %s\n", portalfile );
+	Msg( "Loading %s\n", portalfile );
 	LoadPortals( portalfile );
 	
 	/* ydnar: exit if no portals, hence no vis */

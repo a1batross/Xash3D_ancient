@@ -26,25 +26,16 @@ several games based on the Quake III Arena engine, in the form of "Q3Map2."
 
 ------------------------------------------------------------------------------- */
 
-
-
-/* marker */
 #ifndef Q3MAP2_H
 #define Q3MAP2_H
 
-
-
-/* version */
-#define Q3MAP_VERSION	"2.5.17"
-#define Q3MAP_MOTD		"Last one turns the lights off"
-
-
-
-/* -------------------------------------------------------------------------------
+/*
+-------------------------------------------------------------------------------
 
 dependencies
 
-------------------------------------------------------------------------------- */
+-------------------------------------------------------------------------------
+*/
 
 /* platform-specific */
 #include <windows.h>
@@ -95,7 +86,7 @@ enum
 	BRUSH_COUNT
 };
 
-/* ydnar: compiler flags, because games have widely varying content/surface flags */
+// compiler flags, because games have widely varying content/surface flags
 #define C_SOLID					0x00000001
 #define C_TRANSLUCENT			0x00000002
 #define C_STRUCTURAL			0x00000004
@@ -1149,34 +1140,40 @@ light structures
 /* ydnar: new light struct with flags */
 typedef struct light_s
 {
-	struct light_s		*next;
+	struct light_s	*next;
 	
-	int					type;
-	int					flags;			/* ydnar: condensed all the booleans into one flags int */
-	shaderInfo_t		*si;
+	int		type;
+	int		flags;		// condensed all the booleans into one flags int
+	shaderInfo_t	*si;
 	
-	vec3_t				origin;
-	vec3_t				normal;			/* for surfaces, spotlights, and suns */
-	float				dist;			/* plane location along normal */
+	vec3_t		origin;
+	vec3_t		normal;		// for surfaces, spotlights, and suns
+	float		dist;		// plane location along normal
 	
-	float				photons;
-	int					style;
-	vec3_t				color;
-	float				radiusByDist;	/* for spotlights */
-	float				fade;			/* ydnar: from wolf, for linear lights */
-	float				angleScale;		/* ydnar: stolen from vlight for K */
+	float		photons;
+	int		style;
 
-	float				add;			/* ydnar: used for area lights */
-	float				envelope;		/* ydnar: units until falloff < tolerance */
-	float				envelope2;		/* ydnar: envelope squared (tiny optimization) */
-	vec3_t				mins, maxs;		/* ydnar: pvs envelope */
-	int					cluster;		/* ydnar: cluster light falls into */
+	union
+	{
+		vec3_t	color;
+		vec3_t	intensity;
+	};
+
+	float		radiusByDist;	// for spotlights
+	float		fade;		// from wolf, for linear lights
+	float		angleScale;	// stolen from vlight for K
+
+	float		add;		// used for area lights
+	float		envelope;		// units until falloff < tolerance
+	float		envelope2;	// envelope squared (tiny optimization)
+	vec3_t		mins, maxs;	// pvs envelope
+	int		cluster;		// cluster light falls into
 	
-	winding_t			*w;
-	vec3_t				emitColor;		/* full out-of-gamut value */
+	winding_t		*w;
+	vec3_t		emitColor;	// full out-of-gamut value
 	
-	float				falloffTolerance;	/* ydnar: minimum attenuation threshold */
-	float				filterRadius;	/* ydnar: lightmap filter radius in world units, 0 == default */
+	float		falloffTolerance;	// minimum attenuation threshold
+	float		filterRadius;	// lightmap filter radius in world units, 0 == default
 } light_t;
 
 

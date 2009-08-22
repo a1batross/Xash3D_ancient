@@ -56,7 +56,7 @@ game_t struct
 	12288,			// max surface indexes
 	true,			// flares
 	"engine/flare",		// default flare shader
-	false,			// wolf lighting model?
+	true,			// wolf lighting model?
 	128,			// lightmap width/height
 	1.0f,			// lightmap gamma
 	1.0f,			// lightmap compensate

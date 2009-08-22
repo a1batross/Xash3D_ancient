@@ -600,11 +600,19 @@ R_TraceAgainstSurface
 */
 static bool R_TraceAgainstSurface( msurface_t *surf )
 {
-	int i;
-	mesh_t *mesh = surf->mesh;
-	elem_t	*elem = mesh->elems;
-	vec4_t *verts = mesh->xyzArray;
-	float old_frac = trace_fraction;
+	int	i;
+	mesh_t	*mesh;
+	elem_t	*elem;
+	vec4_t	*verts;
+	float	old_frac = trace_fraction;
+
+	if( !surf ) return false;
+	mesh = surf->mesh;
+	if( !mesh ) return false;
+	elem = mesh->elems;
+	if( !elem ) return false;
+	verts = mesh->xyzArray;		
+	if( !verts ) return false;
 
 	// clip each triangle individually
 	for( i = 0; i < mesh->numElems; i += 3, elem += 3 )
