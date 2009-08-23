@@ -14,6 +14,7 @@ extern int HUD_VidInit( void );
 extern void HUD_Init( void );
 extern int HUD_Redraw( float flTime, int state );
 extern int HUD_UpdateClientData( client_data_t *cdata, float flTime );
+extern void HUD_UpdateEntityVars( edict_t *out, ref_params_t *view, const entity_state_t *in );
 extern void HUD_Reset( void );
 extern void HUD_Frame( double time );
 extern void HUD_Shutdown( void );

@@ -1,0 +1,49 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: vprogs - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP3953.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "../public" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\vprogs\!debug/" /Fo"..\temp\vprogs\!debug/" /Fd"..\temp\vprogs\!debug/" /FD /GZ /c 
+"D:\Xash3D\src_main\vprogs\pr_exec.c"
+"D:\Xash3D\src_main\vprogs\pr_lex.c"
+]
+Creating command line "cl.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP3953.tmp" 
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP3954.tmp" with contents
+[
+msvcrtd.lib /nologo /dll /incremental:yes /pdb:"..\temp\vprogs\!debug/vprogs.pdb" /debug /machine:I386 /out:"..\temp\vprogs\!debug/vprogs.dll" /implib:"..\temp\vprogs\!debug/vprogs.lib" /pdbtype:sept 
+"\Xash3D\src_main\temp\vprogs\!debug\pr_comp.obj"
+"\Xash3D\src_main\temp\vprogs\!debug\pr_edict.obj"
+"\Xash3D\src_main\temp\vprogs\!debug\pr_exec.obj"
+"\Xash3D\src_main\temp\vprogs\!debug\pr_lex.obj"
+"\Xash3D\src_main\temp\vprogs\!debug\pr_main.obj"
+"\Xash3D\src_main\temp\vprogs\!debug\pr_utils.obj"
+]
+Creating command line "link.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP3954.tmp"
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP3955.bat" with contents
+[
+@echo off
+copy \Xash3D\src_main\temp\vprogs\!debug\vprogs.dll "D:\Xash3D\bin\vprogs.dll"
+]
+Creating command line "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP3955.bat"
+Compiling...
+pr_exec.c
+pr_lex.c
+Generating Code...
+Linking...
+   Creating library ..\temp\vprogs\!debug/vprogs.lib and object ..\temp\vprogs\!debug/vprogs.exp
+<h3>Output Window</h3>
+Performing Custom Build Step on \Xash3D\src_main\temp\vprogs\!debug\vprogs.dll
+Скопировано файлов:         1.
+
+
+
+<h3>Results</h3>
+vprogs.dll - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

@@ -150,6 +150,7 @@ typedef struct
 	void	(*pfnInit)( void );
 	int	(*pfnRedraw)( float flTime, int state );
 	int	(*pfnUpdateClientData)( client_data_t *cdata, float flTime );
+	void	(*pfnUpdateEntityVars)( edict_t *out, ref_params_t *view, const struct entity_state_s *in );
 	void	(*pfnReset)( void );
 	void	(*pfnFrame)( double time );
 	void 	(*pfnShutdown)( void );

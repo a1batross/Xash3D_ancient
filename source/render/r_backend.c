@@ -1238,8 +1238,27 @@ static _inline texture_t *R_ShaderpassTex( const ref_stage_t *pass, int unit )
 			}
 		}
 	}
-	if( pass->flags & SHADERSTAGE_ANIMFREQUENCY && pass->animFrequency && pass->num_textures )
-		return pass->textures[(int)( pass->animFrequency * r_currentShaderTime ) % pass->num_textures];
+	if( pass->flags & SHADERSTAGE_ANIMFREQUENCY && pass->animFrequency[0] && pass->num_textures )
+	{
+		int	frame, numframes;
+
+		if( RI.currententity )
+		{
+			if( RI.currententity->frame )
+			{
+				numframes = bound( 1, pass->num_textures - pass->anim_offset, MAX_STAGE_TEXTURES - 1 );
+				frame = (int)( pass->animFrequency[1] * r_currentShaderTime ) % numframes;
+				frame += pass->anim_offset;	// bias
+			}
+			else
+			{
+				numframes = bound( 1, pass->anim_offset, MAX_STAGE_TEXTURES - 1 );
+				frame = (int)( pass->animFrequency[0] * r_currentShaderTime ) % numframes;
+			}
+		}
+		else frame = (int)( pass->animFrequency[0] * r_currentShaderTime ) % pass->num_textures;
+		return pass->textures[frame];
+	}
 	if( pass->flags & SHADERSTAGE_LIGHTMAP )
 		return tr.lightmapTextures[r_superLightStyle->lightmapNum[r_lightmapStyleNum[unit]]];
 	if( pass->flags & SHADERSTAGE_PORTALMAP )

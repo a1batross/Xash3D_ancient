@@ -150,22 +150,59 @@ public:
 	
 	inline Vector Normalize(void) const
 	{
-		float flLen = Length();
-		if (flLen == 0) return Vector(0,0,1); // ????
-		flLen = 1 / flLen;
-		return Vector(x * flLen, y * flLen, z * flLen);
+		float	flLen = Length();
+
+		if( flLen == 0 ) return Vector( 0, 0, 1 ); // ????
+		flLen = 1.0f / flLen;
+
+		return Vector( x * flLen, y * flLen, z * flLen );
 	}
-	vec_t	Dot(Vector const& vOther) const
+	vec_t Dot(Vector const& vOther) const
           {
           	return(x*vOther.x+y*vOther.y+z*vOther.z);
           }
-	vec_t	Distance( Vector const &vOther) const
+	vec_t Distance( Vector const &vOther) const
 	{
 		return sqrt((x - vOther.x) * (x - vOther.x) + (y - vOther.y) * (y - vOther.y) + (z - vOther.z) * (z - vOther.z));
 	}
-	Vector	Cross(const Vector &vOther) const
+	Vector Cross(const Vector &vOther) const
 	{
 		return Vector(y*vOther.z - z*vOther.y, z*vOther.x - x*vOther.z, x*vOther.y - y*vOther.x);
+	}
+	int DirToBits( void )
+	{
+		int	max, bits, numBits = 15; // pack as unsigned short ( state->skin supports this )
+		float	bias;
+
+		numBits /= 3;
+		max = ( 1 << ( numBits - 1 )) - 1;
+		bias = 0.5f / max;
+
+		bits = ((*(const unsigned long *)&( x )) >> 31) << ( numBits * 3 - 1 );
+		bits |= ((int)(( fabs( x ) + bias ) * max ) ) << ( numBits * 2 );
+		bits |= ((*(const unsigned long *)&( y )) >> 31) << ( numBits * 2 - 1 );
+		bits |= ((int)(( fabs( y ) + bias ) * max ) ) << ( numBits * 1 );
+		bits |= ((*(const unsigned long *)&( z )) >> 31) << ( numBits * 1 - 1 );
+		bits |= ((int)(( fabs( z ) + bias ) * max ) ) << ( numBits * 0 );
+
+		return bits;
+	}
+	Vector BitsToDir( int bits )
+	{
+		static	float sign[2] = { 1.0f, -1.0f };
+		int	max, numBits = 15;	// pack as unsigned short
+		float	invMax;
+
+		numBits /= 3;
+		max = ( 1 << ( numBits - 1 )) - 1;
+		invMax = 1.0f / max;
+
+		x = sign[(bits >> (numBits * 3 - 1 )) & 1] * ((bits >> (numBits * 2 )) & max) * invMax;
+		y = sign[(bits >> (numBits * 2 - 1 )) & 1] * ((bits >> (numBits * 1 )) & max) * invMax;
+		z = sign[(bits >> (numBits * 1 - 1 )) & 1] * ((bits >> (numBits * 0 )) & max) * invMax;
+		Normalize();
+
+		return *this;
 	}
 	inline Vector2D Make2D ( void ) const
 	{

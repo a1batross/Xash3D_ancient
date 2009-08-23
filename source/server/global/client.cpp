@@ -1058,8 +1058,10 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 			to->origin += midPoint;
 		}
 	}
-	else if( to->ed_type == ED_MOVER )
+	else if( to->ed_type == ED_MOVER || to->ed_type == ED_BSPBRUSH || to->ed_type == ED_PORTAL )
 	{
+		to->skin = pNet->pev->movedir.DirToBits();
+
 		// FIXME: send mins\maxs for sound spatialization and entity prediction ?
 	}
 }

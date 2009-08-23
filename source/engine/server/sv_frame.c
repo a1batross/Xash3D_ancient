@@ -46,22 +46,13 @@ Copy entvars into entity state
 */
 void SV_UpdateEntityState( edict_t *ent, bool baseline )
 {
-	// copy progs values to state
-	ent->pvServerData->s.number = ent->serialnumber;
-
 	if( !ent->pvServerData->s.classname )
 		ent->pvServerData->s.classname = SV_ClassIndex( STRING( ent->v.classname ));
 
 	svgame.dllFuncs.pfnUpdateEntityState( &ent->pvServerData->s, ent, baseline );
 
-	switch( ent->pvServerData->s.ed_type )
-	{
-	case ED_MOVER:
-	case ED_BSPBRUSH:
-	case ED_PORTAL:
-		ent->pvServerData->s.skin = DirToByte( ent->v.movedir );
-		break;
-	}
+	// always keep an actual
+	ent->pvServerData->s.number = ent->serialnumber;
 }
 
 /*

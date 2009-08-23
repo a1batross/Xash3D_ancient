@@ -299,7 +299,8 @@ typedef struct ref_stage_s
 	const char	*program;
 	word		program_type;
 
-	float		animFrequency;			// animation frames per sec
+	float		animFrequency[2];			// anim fps / alt anim fps
+	word		anim_offset;			// offset for alternative animation
 	word		num_textures;
 	texture_t		*textures[MAX_STAGE_TEXTURES];	// texture refs
 } ref_stage_t;

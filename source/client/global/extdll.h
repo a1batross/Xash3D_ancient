@@ -30,6 +30,7 @@
 
 // Shared header describing protocol between engine and DLLs
 #include "entity_def.h"
+#include "entity_state.h"
 #include "clgame_api.h"
 #include "game_shared.h"
 

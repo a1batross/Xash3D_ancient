@@ -15,76 +15,18 @@ FRAME PARSING
 */
 void CL_UpdateEntityFields( edict_t *ent )
 {
-	int	i;
-
-	// always keep an actual
-	ent->serialnumber = ent->pvClientData->current.number;
-
-	// copy state to progs
-	ent->v.classname = cl.edict_classnames[ent->pvClientData->current.classname];
-	ent->v.modelindex = ent->pvClientData->current.modelindex;
-	ent->v.weaponmodel = ent->pvClientData->current.weaponmodel;
-	ent->v.model = MAKE_STRING( cl.configstrings[CS_MODELS+ent->pvClientData->current.modelindex] ); 
-	ent->v.frame = ent->pvClientData->current.frame;
-	ent->v.sequence = ent->pvClientData->current.sequence;
-	ent->v.gaitsequence = ent->pvClientData->current.gaitsequence;
-	ent->v.body = ent->pvClientData->current.body;
-	ent->v.skin = ent->pvClientData->current.skin;
-	ent->v.effects = ent->pvClientData->current.effects;
-	VectorCopy( ent->pvClientData->current.rendercolor, ent->v.rendercolor );
-	VectorCopy( ent->pvClientData->current.velocity, ent->v.velocity );
-	VectorCopy( ent->pvClientData->current.origin, ent->v.origin );
-	VectorCopy( ent->pvClientData->current.angles, ent->v.angles );
+	// these fields user can overwrite if need
+	ent->v.model = MAKE_STRING( cl.configstrings[CS_MODELS+ent->pvClientData->current.modelindex] );
 	VectorCopy( ent->pvClientData->prev.angles, ent->v.oldangles );
-	VectorCopy( ent->pvClientData->current.mins, ent->v.mins );
-	VectorCopy( ent->pvClientData->current.maxs, ent->v.maxs );
-	ent->v.framerate = ent->pvClientData->current.framerate;
-	ent->v.colormap = ent->pvClientData->current.colormap; 
-	ent->v.rendermode = ent->pvClientData->current.rendermode; 
-	ent->v.renderamt = ent->pvClientData->current.renderamt; 
-	ent->v.renderfx = ent->pvClientData->current.renderfx; 
-	ent->v.fov = ent->pvClientData->current.fov; 
-	ent->v.scale = ent->pvClientData->current.scale; 
-	ent->v.weapons = ent->pvClientData->current.weapons;
-	ent->v.gravity = ent->pvClientData->current.gravity;
-	ent->v.health = ent->pvClientData->current.health;
-	ent->v.solid = ent->pvClientData->current.solid;
-	ent->v.movetype = ent->pvClientData->current.movetype;
-	ent->v.flags = ent->pvClientData->current.flags;
-
-	switch( ent->pvClientData->current.ed_type )
-	{
-	case ED_PORTAL:
-	case ED_MOVER:
-	case ED_BSPBRUSH:
-		ByteToDir( ent->pvClientData->current.skin, ent->v.movedir );
-		VectorCopy( ent->pvClientData->current.oldorigin, ent->v.oldorigin );
-		break;
-	case ED_SKYPORTAL:
-		// setup sky portal
-		VectorCopy( ent->v.origin, cl.refdef.skyportal.vieworg ); 
-		VectorSet( cl.refdef.skyportal.viewanglesOffset, 0, cl.time * ent->v.angles[1], 0 );
-		cl.refdef.skyportal.fov = ent->v.fov;
-		cl.refdef.skyportal.scale = (ent->v.scale ? 1.0f / ent->v.scale : 0);
-		break;
-	default:
-		VectorCopy( ent->pvClientData->prev.origin, ent->v.oldorigin );
-		VectorClear( ent->v.movedir );
-		break;
-	}
-
-	for( i = 0; i < MAXSTUDIOBLENDS; i++ )
-		ent->v.blending[i] = ent->pvClientData->current.blending[i]; 
-	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
-		ent->v.controller[i] = ent->pvClientData->current.controller[i]; 
-
-	// g-cont. moveed here because we may needs apply null scale to skyportal
-	if( ent->v.scale == 0.0f ) ent->v.scale = 1.0f;	
 	if( ent->pvClientData->current.aiment )
 		ent->v.aiment = EDICT_NUM( ent->pvClientData->current.aiment );
 	else ent->v.aiment = NULL;
 
-	ent->v.pContainingEntity = ent;
+	clgame.dllFuncs.pfnUpdateEntityVars( ent, &cl.refdef, &ent->pvClientData->current );
+
+	// always keep an actual (users can't replace this)
+	ent->serialnumber = ent->pvClientData->current.number;
+	ent->v.classname = cl.edict_classnames[ent->pvClientData->current.classname];
 }
 
 /*

@@ -781,43 +781,5 @@ static vec3_t vec3_origin = { 0, 0, 0 };
 static vec3_t vec3_angles = { 0, 0, 0 };
 static vec4_t vec4_origin = { 0, 0, 0, 0 };
 static vec3_t vec3_up = { 0.0f, 1.0f, 0.0f }; // unconverted up vector
-static vec3_t bytedirs[NUMVERTEXNORMALS] =
-{
-#include "anorms.h"
-};
-
-_inline int DirToByte( vec3_t dir )
-{
-	int	i, best = 0;
-	float	d, bestd = 0;
-	bool	normalized;
-
-	if( !dir || VectorCompare( dir, vec3_origin ))
-		return NUMVERTEXNORMALS;
-
-	if( DotProduct( dir, dir ) == 1 )
-		normalized = true;
-	else normalized = false;
-
-	for( i = 0; i < NUMVERTEXNORMALS; i++ )
-	{
-		d = DotProduct( dir, bytedirs[i] );
-		if(( d == 1 ) && normalized )
-			return i;
-		if( d > bestd )
-		{
-			bestd = d;
-			best = i;
-		}
-	}
-	return best;
-}
-
-_inline void ByteToDir( int b, vec3_t dir )
-{
-	if( b < 0 || b >= NUMVERTEXNORMALS )
-		VectorCopy( vec3_origin, dir );
-	else VectorCopy( bytedirs[b], dir );
-}
 
 #endif//BASEMATH_H

@@ -1251,13 +1251,31 @@ static bool Shaderpass_LoadMaterial( texture_t **normalmap, texture_t **glossmap
 
 static bool Shaderpass_AnimFrequency( ref_shader_t *shader, ref_stage_t *pass, script_t *script )
 {
-	if( !Com_ReadFloat( script, false, &pass->animFrequency ))
+	float	anim_fps;
+
+	if( !Com_ReadFloat( script, false, &anim_fps ))
 	{
 		MsgDev( D_ERROR, "missing parameters for 'animFrequency' in shader '%s\n", shader->name );
 		return false;
 	}
 
 	pass->flags |= SHADERSTAGE_ANIMFREQUENCY;
+	if( pass->num_textures )
+	{
+		if( pass->anim_offset )
+		{
+			// someone tired specify third anim sequence
+			MsgDev( D_ERROR, "too many 'animFrequency' declared in shader '%s\n", shader->name );
+			return false;
+		}
+		pass->animFrequency[1] = anim_fps;
+		pass->anim_offset = pass->num_textures;
+	}
+	else
+	{
+		pass->animFrequency[0] = anim_fps;
+		pass->anim_offset = 0;
+	}
 	return true;
 }
 
@@ -1292,7 +1310,8 @@ static bool Shaderpass_MapExt( ref_shader_t *shader, ref_stage_t *pass, int addF
 	{
 		pass->tcgen = TCGEN_LIGHTMAP;
 		pass->flags = ( pass->flags & ~(SHADERSTAGE_PORTALMAP|SHADERSTAGE_DLIGHT)) | SHADERSTAGE_LIGHTMAP;
-		pass->animFrequency = 0;
+		pass->animFrequency[0] = pass->animFrequency[1] = 0.0f;
+		pass->anim_offset = 0;
 		pass->textures[0] = NULL;
 		return true;
 	}
@@ -1300,7 +1319,8 @@ static bool Shaderpass_MapExt( ref_shader_t *shader, ref_stage_t *pass, int addF
 	{
 		pass->tcgen = TCGEN_BASE;
 		pass->flags = ( pass->flags & ~(SHADERSTAGE_LIGHTMAP|SHADERSTAGE_PORTALMAP)) | SHADERSTAGE_DLIGHT;
-		pass->animFrequency = 0;
+		pass->animFrequency[0] = pass->animFrequency[1] = 0.0f;
+		pass->anim_offset = 0;
 		pass->textures[0] = NULL;
 		r_shaderHasDlightPass = true;
 		return true;
@@ -1309,7 +1329,8 @@ static bool Shaderpass_MapExt( ref_shader_t *shader, ref_stage_t *pass, int addF
 	{
 		pass->tcgen = TCGEN_PROJECTION;
 		pass->flags = ( pass->flags & ~(SHADERSTAGE_LIGHTMAP|SHADERSTAGE_DLIGHT)) | SHADERSTAGE_PORTALMAP;
-		pass->animFrequency = 0;
+		pass->animFrequency[0] = pass->animFrequency[1] = 0.0f;
+		pass->anim_offset = 0;
 		pass->textures[0] = NULL;
 		if(( shader->flags & SHADER_PORTAL ) && ( shader->sort == SORT_PORTAL ))
 			shader->sort = 0; // reset sorting so we can figure it out later. FIXME?
@@ -1353,6 +1374,7 @@ static bool Shaderpass_MapExt( ref_shader_t *shader, ref_stage_t *pass, int addF
 static bool Shaderpass_AnimMapExt( ref_shader_t *shader, ref_stage_t *pass, int addFlags, script_t *script )
 {
 	int	flags;
+	float	anim_fps;
 	token_t	tok;
 
 	Shader_FreePassCinematics( pass );
@@ -1360,12 +1382,28 @@ static bool Shaderpass_AnimMapExt( ref_shader_t *shader, ref_stage_t *pass, int 
 
 	pass->tcgen = TCGEN_BASE;
 	pass->flags &= ~( SHADERSTAGE_LIGHTMAP|SHADERSTAGE_DLIGHT|SHADERSTAGE_PORTALMAP );
-	pass->num_textures = 0;
 
-	if( !Com_ReadFloat( script, false, &pass->animFrequency ))
+	if( !Com_ReadFloat( script, false, &anim_fps ))
 	{
 		MsgDev( D_ERROR, "missing 'AnimFrequency' parameter for 'animMap' in shader '%s\n", shader->name );
 		return false;
+	}
+
+	if( pass->num_textures )
+	{
+		if( pass->anim_offset )
+		{
+			// someone tired specify third anim sequence
+			MsgDev( D_ERROR, "too many 'animFrequency' declared in shader '%s\n", shader->name );
+			return false;
+		}
+		pass->animFrequency[1] = anim_fps;
+		pass->anim_offset = pass->num_textures;
+	}
+	else
+	{
+		pass->animFrequency[0] = anim_fps;
+		pass->anim_offset = 0;
 	}
 	pass->flags |= (SHADERSTAGE_ANIMFREQUENCY|SHADERSTAGE_FRAMES);
 
@@ -1381,7 +1419,8 @@ static bool Shaderpass_AnimMapExt( ref_shader_t *shader, ref_stage_t *pass, int 
 	{
 		MsgDev( D_WARN, "missing animation frames for 'animMap' in shader '%s'\n", shader->name );
 		pass->flags &= ~(SHADERSTAGE_ANIMFREQUENCY|SHADERSTAGE_FRAMES);
-		pass->animFrequency = 0;
+		pass->animFrequency[0] = pass->animFrequency[1] = 0.0f;
+		pass->anim_offset = 0;
 	}
 	return true;
 }
@@ -1487,7 +1526,8 @@ static bool Shaderpass_VideoMap( ref_shader_t *shader, ref_stage_t *pass, script
 	pass->tcgen = TCGEN_BASE;
 	pass->cinHandle = R_StartCinematics( tok.string );
 	pass->flags &= ~(SHADERSTAGE_LIGHTMAP|SHADERSTAGE_DLIGHT|SHADERSTAGE_PORTALMAP|SHADERSTAGE_ANIMFREQUENCY|SHADERSTAGE_FRAMES);
-	pass->animFrequency = 0;
+	pass->animFrequency[0] = pass->animFrequency[1] = 0.0f;
+	pass->anim_offset = 0;
 
 	return true;
 }
@@ -3422,7 +3462,7 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		{
 			// store group frames into one stage
 			pass->flags |= SHADERSTAGE_FRAMES;
-			pass->animFrequency = r_spriteFrequency;
+			pass->animFrequency[0] = r_spriteFrequency;
 
 			for( i = 0; i < r_numSpriteTextures; i++ )
 			{

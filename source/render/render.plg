@@ -3,62 +3,100 @@
 <pre>
 <h1>Build Log</h1>
 <h3>
---------------------Configuration: render - Win32 Release--------------------
+--------------------Configuration: render - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP32DD.tmp" with contents
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP394C.tmp" with contents
 [
-/nologo /MD /W3 /GX /O2 /I "../public" /I "../common" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /Fo"..\temp\render\!release/" /Fd"..\temp\render\!release/" /FD /c 
+/nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "../public" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\render\!debug/" /Fo"..\temp\render\!debug/" /Fd"..\temp\render\!debug/" /FD /c 
+"D:\Xash3D\src_main\render\cin.c"
+"D:\Xash3D\src_main\render\r_alias.c"
+"D:\Xash3D\src_main\render\r_backend.c"
+"D:\Xash3D\src_main\render\r_cull.c"
+"D:\Xash3D\src_main\render\r_draw.c"
+"D:\Xash3D\src_main\render\r_image.c"
+"D:\Xash3D\src_main\render\r_light.c"
+"D:\Xash3D\src_main\render\r_main.c"
+"D:\Xash3D\src_main\render\r_math.c"
+"D:\Xash3D\src_main\render\r_mesh.c"
+"D:\Xash3D\src_main\render\r_model.c"
+"D:\Xash3D\src_main\render\r_poly.c"
+"D:\Xash3D\src_main\render\r_register.c"
+"D:\Xash3D\src_main\render\r_shader.c"
+"D:\Xash3D\src_main\render\r_shadow.c"
+"D:\Xash3D\src_main\render\r_sky.c"
+"D:\Xash3D\src_main\render\r_sprite.c"
+"D:\Xash3D\src_main\render\r_studio.c"
 "D:\Xash3D\src_main\render\r_surf.c"
 ]
-Creating command line "cl.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP32DD.tmp" 
-Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP32DE.tmp" with contents
+Creating command line "cl.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP394C.tmp" 
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP394D.tmp" with contents
 [
-msvcrt.lib user32.lib gdi32.lib /nologo /subsystem:windows /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /out:"..\temp\render\!release/render.dll" /implib:"..\temp\render\!release/render.lib" /libpath:"../public/libs/" 
-"\Xash3D\src_main\temp\render\!release\cin.obj"
-"\Xash3D\src_main\temp\render\!release\r_alias.obj"
-"\Xash3D\src_main\temp\render\!release\r_backend.obj"
-"\Xash3D\src_main\temp\render\!release\r_bloom.obj"
-"\Xash3D\src_main\temp\render\!release\r_cin.obj"
-"\Xash3D\src_main\temp\render\!release\r_cull.obj"
-"\Xash3D\src_main\temp\render\!release\r_draw.obj"
-"\Xash3D\src_main\temp\render\!release\r_image.obj"
-"\Xash3D\src_main\temp\render\!release\r_light.obj"
-"\Xash3D\src_main\temp\render\!release\r_main.obj"
-"\Xash3D\src_main\temp\render\!release\r_math.obj"
-"\Xash3D\src_main\temp\render\!release\r_mesh.obj"
-"\Xash3D\src_main\temp\render\!release\r_model.obj"
-"\Xash3D\src_main\temp\render\!release\r_opengl.obj"
-"\Xash3D\src_main\temp\render\!release\r_poly.obj"
-"\Xash3D\src_main\temp\render\!release\r_program.obj"
-"\Xash3D\src_main\temp\render\!release\r_register.obj"
-"\Xash3D\src_main\temp\render\!release\r_shader.obj"
-"\Xash3D\src_main\temp\render\!release\r_shadow.obj"
-"\Xash3D\src_main\temp\render\!release\r_skin.obj"
-"\Xash3D\src_main\temp\render\!release\r_sky.obj"
-"\Xash3D\src_main\temp\render\!release\r_sprite.obj"
-"\Xash3D\src_main\temp\render\!release\r_studio.obj"
-"\Xash3D\src_main\temp\render\!release\r_surf.obj"
+msvcrtd.lib user32.lib gdi32.lib /nologo /subsystem:windows /dll /incremental:yes /pdb:"..\temp\render\!debug/render.pdb" /debug /machine:I386 /nodefaultlib:"msvcrt.lib" /out:"..\temp\render\!debug/render.dll" /implib:"..\temp\render\!debug/render.lib" /pdbtype:sept 
+"\Xash3D\src_main\temp\render\!debug\cin.obj"
+"\Xash3D\src_main\temp\render\!debug\r_alias.obj"
+"\Xash3D\src_main\temp\render\!debug\r_backend.obj"
+"\Xash3D\src_main\temp\render\!debug\r_bloom.obj"
+"\Xash3D\src_main\temp\render\!debug\r_cin.obj"
+"\Xash3D\src_main\temp\render\!debug\r_cull.obj"
+"\Xash3D\src_main\temp\render\!debug\r_draw.obj"
+"\Xash3D\src_main\temp\render\!debug\r_image.obj"
+"\Xash3D\src_main\temp\render\!debug\r_light.obj"
+"\Xash3D\src_main\temp\render\!debug\r_main.obj"
+"\Xash3D\src_main\temp\render\!debug\r_math.obj"
+"\Xash3D\src_main\temp\render\!debug\r_mesh.obj"
+"\Xash3D\src_main\temp\render\!debug\r_model.obj"
+"\Xash3D\src_main\temp\render\!debug\r_opengl.obj"
+"\Xash3D\src_main\temp\render\!debug\r_poly.obj"
+"\Xash3D\src_main\temp\render\!debug\r_program.obj"
+"\Xash3D\src_main\temp\render\!debug\r_register.obj"
+"\Xash3D\src_main\temp\render\!debug\r_shader.obj"
+"\Xash3D\src_main\temp\render\!debug\r_shadow.obj"
+"\Xash3D\src_main\temp\render\!debug\r_skin.obj"
+"\Xash3D\src_main\temp\render\!debug\r_sky.obj"
+"\Xash3D\src_main\temp\render\!debug\r_sprite.obj"
+"\Xash3D\src_main\temp\render\!debug\r_studio.obj"
+"\Xash3D\src_main\temp\render\!debug\r_surf.obj"
 ]
-Creating command line "link.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP32DE.tmp"
-Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP32DF.bat" with contents
+Creating command line "link.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP394D.tmp"
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP394E.bat" with contents
 [
 @echo off
-copy \Xash3D\src_main\temp\render\!release\render.dll "D:\Xash3D\bin\render.dll"
+copy \Xash3D\src_main\temp\render\!debug\render.dll "D:\Xash3D\bin\render.dll"
 ]
-Creating command line "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP32DF.bat"
+Creating command line "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP394E.bat"
 Compiling...
+cin.c
+r_alias.c
+r_backend.c
+r_cull.c
+r_draw.c
+r_image.c
+r_light.c
+r_main.c
+r_math.c
+r_mesh.c
+r_model.c
+r_poly.c
+r_register.c
+r_shader.c
+r_shadow.c
+r_sky.c
+r_sprite.c
+r_studio.c
 r_surf.c
+Generating Code...
 Linking...
-   Creating library ..\temp\render\!release/render.lib and object ..\temp\render\!release/render.exp
+   Creating library ..\temp\render\!debug/render.lib and object ..\temp\render\!debug/render.exp
+r_model.obj : error LNK2001: unresolved external symbol _Mod_QAliasLoadModel
+..\temp\render\!debug/render.dll : fatal error LNK1120: 1 unresolved externals
+Error executing link.exe.
 <h3>Output Window</h3>
-Performing Custom Build Step on \Xash3D\src_main\temp\render\!release\render.dll
-Скопировано файлов:         1.
 
 
 
 <h3>Results</h3>
-render.dll - 0 error(s), 0 warning(s)
+render.dll - 2 error(s), 0 warning(s)
 </pre>
 </body>
 </html>

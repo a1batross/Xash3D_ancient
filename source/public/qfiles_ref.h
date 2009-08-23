@@ -572,6 +572,129 @@ typedef struct
 /*
 ========================================================================
 
+.MDL alias model file format
+
+========================================================================
+*/
+
+/*
+==============================================================================
+
+ALIAS MODELS
+
+Alias models are position independent, so the cache manager can move them.
+==============================================================================
+*/
+#define QALIAS_VERSION	6	
+#define IDQALIASHEADER	(('O'<<24)+('P'<<16)+('D'<<8)+'I')
+
+#define DT_FACES_FRONT	0x0010
+#define ALIAS_ONSEAM	0x0020
+
+// built-in model effects
+#define AF_ROCKET		BIT(0)	// leave a trail
+#define AF_GRENADE		BIT(1)	// leave a trail
+#define AF_GIB		BIT(2)	// leave a trail
+#define AF_ROTATE		BIT(3)	// rotate (bonus items)
+#define AF_TRACER		BIT(4)	// green split trail
+#define AF_ZOMGIB		BIT(5)	// small blood trail
+#define AF_TRACER2		BIT(6)	// orange split trail + rotate
+#define AF_TRACER3		BIT(7)	// purple trail
+
+typedef enum
+{
+	ALIAS_SINGLE = 0,
+	ALIAS_GROUP
+} aliasframetype_t;
+
+typedef enum
+{
+	ALIAS_SKIN_SINGLE = 0,
+	ALIAS_SKIN_GROUP
+} aliasskintype_t;
+
+typedef struct
+{
+	int		ident;
+	int		version;
+	vec3_t		scale;
+	vec3_t		scale_origin;
+	float		boundingradius;
+	vec3_t		eyeposition;
+	int		numskins;
+	int		skinwidth;
+	int		skinheight;
+	int		numverts;
+	int		numtris;
+	int		numframes;
+	synctype_t	synctype;
+	int		flags;
+	float		size;
+} qaliashdr_t;
+
+typedef struct
+{
+	int		onseam;
+	int		s, t;
+} daliastexcoord_t;
+
+typedef struct
+{
+	int		facesfront;
+	int		vertindex[3];
+} daliastriangle_t;
+
+// This mirrors trivert_t in trilib.h, is present so Quake knows how to
+// load this data
+
+typedef struct
+{
+	byte		v[3];
+	byte		lightnormal;
+} daliastrivertx_t;
+
+typedef struct
+{
+	daliastrivertx_t	bboxmin;		// lightnormal isn't used
+	daliastrivertx_t	bboxmax;		// lightnormal isn't used
+	char		name[16];		// frame name from grabbing
+} daliasframe_t;
+
+typedef struct
+{
+	int		numframes;
+	daliastrivertx_t	bboxmin;		// lightnormal isn't used
+	daliastrivertx_t	bboxmax;		// lightnormal isn't used
+} daliasgroup_t;
+
+typedef struct
+{
+	int		numskins;
+} daliasskingroup_t;
+
+typedef struct
+{
+	float		interval;
+} daliasinterval_t;
+
+typedef struct
+{
+	float		interval;
+} daliasskininterval_t;
+
+typedef struct
+{
+	aliasframetype_t	type;
+} daliasframetype_t;
+
+typedef struct
+{
+	aliasskintype_t	type;
+} daliasskintype_t;
+
+/*
+========================================================================
+
 .MD3 model file format
 
 ========================================================================
