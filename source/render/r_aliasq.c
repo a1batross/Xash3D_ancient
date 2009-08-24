@@ -10,9 +10,236 @@
 
 static mesh_t alias_mesh;
 
-static vec3_t alias_mins;
-static vec3_t alias_maxs;
-static float alias_radius;
+static byte	alias_mins[3];
+static byte	alias_maxs[3];
+static float	alias_radius;
+maliashdr_t	*pheader;
+
+daliastexcoord_t	stverts[MAXALIASVERTS];
+mtriangle_t	triangles[MAXALIASTRIS];
+
+// a pose is a single set of vertexes. a frame may be an animating sequence of poses
+daliastrivertx_t	*poseverts[MAXALIASFRAMES];
+int		posenum;
+
+/*
+=================
+Mod_FloodFillSkin
+
+Fill background pixels so mipmapping doesn't have haloes - Ed
+=================
+*/
+
+typedef struct
+{
+	short	x, y;
+} floodfill_t;
+
+// must be a power of 2
+#define FLOODFILL_FIFO_SIZE	0x1000
+#define FLOODFILL_FIFO_MASK	(FLOODFILL_FIFO_SIZE - 1)
+
+#define FLOODFILL_STEP( off, dx, dy )				\
+{							\
+	if( pos[off] == fillcolor )				\
+	{						\
+		pos[off] = 255;				\
+		fifo[inpt].x = x + ( dx );			\
+		fifo[inpt].y = y + ( dy );			\
+		inpt = (inpt + 1) & FLOODFILL_FIFO_MASK;	\
+	}						\
+	else if( pos[off] != 255 ) fdc = pos[off];		\
+}
+
+/*
+=================
+Mod_AliasLoadFrame
+=================
+*/
+void *Mod_AliasLoadFrame( void *pin, maliasframedesc_t *frame )
+{
+	daliastrivertx_t	*pinframe;
+	daliasframe_t	*pdaliasframe;
+	int		i;	
+
+	pdaliasframe = (daliasframe_t *)pin;
+
+	com.strncpy( frame->name, pdaliasframe->name, sizeof( frame->name ));
+	frame->firstpose = posenum;
+	frame->numposes = 1;
+
+	for( i = 0; i < 3; i++ )
+	{
+		// these are byte values, so we don't have to worry about endianness
+		frame->bboxmin.v[i] = pdaliasframe->bboxmin.v[i];
+		frame->bboxmin.v[i] = pdaliasframe->bboxmax.v[i];
+
+		alias_mins[i] = min( alias_mins[i], frame->bboxmin.v[i] );
+		alias_maxs[i] = max( alias_maxs[i], frame->bboxmax.v[i] );
+	}
+
+	pinframe = (daliastrivertx_t *)(pdaliasframe + 1);
+
+	poseverts[posenum++] = pinframe;
+	pinframe += pheader->numverts;
+
+	return (void *)pinframe;
+}
+
+/*
+=================
+Mod_AliasLoadGroup
+=================
+*/
+void *Mod_AliasLoadGroup( void *pin,  maliasframedesc_t *frame )
+{
+	daliasgroup_t	*pingroup;
+	int		i, numframes;
+	daliasinterval_t	*pin_intervals;
+	void		*ptemp;
+	
+	pingroup = (daliasgroup_t *)pin;
+	numframes = LittleLong( pingroup->numframes );
+
+	frame->firstpose = posenum;
+	frame->numposes = numframes;
+
+	for( i = 0; i < 3; i++ )
+	{
+		// these are byte values, so we don't have to worry about endianness
+		frame->bboxmin.v[i] = pingroup->bboxmin.v[i];
+		frame->bboxmin.v[i] = pingroup->bboxmax.v[i];
+
+		alias_mins[i] = min( alias_mins[i], frame->bboxmin.v[i] );
+		alias_maxs[i] = max( alias_maxs[i], frame->bboxmax.v[i] );
+	}
+
+	pin_intervals = (daliasinterval_t *)(pingroup + 1);
+	frame->interval = LittleFloat( pin_intervals->interval );
+	pin_intervals += numframes;
+	ptemp = (void *)pin_intervals;
+
+	for( i = 0; i < numframes; i++ )
+	{
+		poseverts[posenum++] = (daliastrivertx_t *)((daliasframe_t *)ptemp + 1);
+		ptemp = (daliastrivertx_t *)((daliasframe_t *)ptemp + 1) + pheader->numverts;
+	}
+	return ptemp;
+}
+
+void Mod_FloodFillSkin( byte *skin, int skinwidth, int skinheight )
+{
+	byte		fillcolor = *skin; // assume this is the pixel to fill
+	floodfill_t	fifo[FLOODFILL_FIFO_SIZE];
+	int		inpt = 0, outpt = 0;
+	int		filledcolor = -1;
+	rgbdata_t		*pal = FS_LoadImage( "#normal.pal", NULL, 768 );	// null buffer force to get Q1 palette
+	uint		*d_8to24table = (uint *)pal->palette;
+	int		i;
+
+	if( filledcolor == -1 )
+	{
+		filledcolor = 0;
+		// attempt to find opaque black
+		for( i = 0; i < 256; ++i )
+		{
+			if( d_8to24table[i] == (255<<0)) // alpha 1.0
+			{
+				filledcolor = i;
+				break;
+			}
+		}
+	}
+
+	// can't fill to filled color or to transparent color (used as visited marker)
+	if(( fillcolor == filledcolor ) || ( fillcolor == 255 )) return;
+
+	fifo[inpt].x = 0, fifo[inpt].y = 0;
+	inpt = (inpt + 1) & FLOODFILL_FIFO_MASK;
+
+	while( outpt != inpt )
+	{
+		int	x = fifo[outpt].x, y = fifo[outpt].y;
+		int	fdc = filledcolor;
+		byte	*pos = &skin[x + skinwidth * y];
+
+		outpt = (outpt + 1) & FLOODFILL_FIFO_MASK;
+
+		if( x > 0 ) FLOODFILL_STEP( -1, -1, 0 );
+		if( x < skinwidth - 1 )  FLOODFILL_STEP( 1, 1, 0 );
+		if( y > 0 ) FLOODFILL_STEP( -skinwidth, 0, -1 );
+		if( y < skinheight - 1 ) FLOODFILL_STEP( skinwidth, 0, 1 );
+		skin[x + skinwidth * y] = fdc;
+	}
+	FS_FreeImage( pal );
+}
+
+/*
+===============
+Mod_AliasLoadSkins
+===============
+*/
+void *Mod_AliasLoadSkins( ref_model_t *mod, int numskins, daliasskintype_t *pskintype )
+{
+	int			i, j, k, s;
+	string			shadername;
+	byte			*skin;
+	byte			*texels;
+	int			groupskins;
+	daliasskingroup_t		*pinskingroup;
+	daliasskininterval_t	*pinskinintervals;
+	
+	skin = (byte *)(pskintype + 1);
+
+	if( numskins < 1 || numskins > MAX_SKINS )
+		Host_Error( "Mod_LoadAliasModel: Invalid # of skins: %d\n", numskins );
+
+	s = pheader->skinwidth * pheader->skinheight;
+
+	for( i = 0; i < numskins; i++ )
+	{
+		if( pskintype->type == SKIN_SINGLE )
+		{
+			Mod_FloodFillSkin( skin, pheader->skinwidth, pheader->skinheight );
+
+			// save 8 bit texels for the player model to remap
+			texels = Mod_Malloc( mod, s );
+			pheader->texels[i] = texels - (byte *)pheader;
+			Mem_Copy( texels, (byte *)(pskintype + 1), s );
+			com.sprintf( shadername, "%s_%i", mod->name, i );
+			pheader->skins[i][0] = pheader->skins[i][1] = pheader->skins[i][2] =
+			pheader->skins[i][3] = R_LoadShader( shadername, SHADER_ALIAS, 0, 0, -1 );
+			pskintype = (daliasskintype_t *)((byte *)(pskintype + 1) + s );
+		}
+		else
+		{
+			// animating skin group.  yuck.
+			pskintype++;
+			pinskingroup = (daliasskingroup_t *)pskintype;
+			groupskins = LittleLong( pinskingroup->numskins );
+			pinskinintervals = (daliasskininterval_t *)(pinskingroup + 1);
+
+			pskintype = (void *)(pinskinintervals + groupskins);
+
+			for( j = 0; j < groupskins; j++ )
+			{
+				Mod_FloodFillSkin( skin, pheader->skinwidth, pheader->skinheight );
+				if( j == 0 )
+				{
+					texels = Mod_Malloc( mod, s );
+					pheader->texels[i] = texels - (byte *)pheader;
+					Mem_Copy( texels, (byte *)(pskintype), s );
+				}
+				com.sprintf( shadername, "%s_%i_%i", mod->name, i, j );
+				pheader->skins[i][j&3] = R_LoadShader( shadername, SHADER_ALIAS, 0, 0, -1 );
+				pskintype = (daliasskintype_t *)((byte *)(pskintype) + s );
+			}
+			for( k = j; j < 4; j++ )
+				pheader->skins[i][j&3] = pheader->skins[i][j - k]; 
+		}
+	}
+	return (void *)pskintype;
+}
 
 /*
 =================
@@ -21,191 +248,116 @@ Mod_QAliasLoadModel
 */
 void Mod_QAliasLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer )
 {
-	int i, j, k;
-	int version, framesize;
-	float skinwidth, skinheight;
-	int numverts, numelems;
-	int indremap[MD2_MAX_TRIANGLES*3];
-	elem_t ptempelem[MD2_MAX_TRIANGLES*3], ptempstelem[MD2_MAX_TRIANGLES*3];
-	dmd2_t *pinmodel;
-	dstvert_t *pinst;
-	dtriangle_t *pintri;
-	daliasframe_t *pinframe;
-	elem_t *poutelem;
-	maliasmodel_t *poutmodel;
-	maliasmesh_t *poutmesh;
-	vec2_t *poutcoord;
-	maliasframe_t *poutframe;
-	maliasvertex_t *poutvertex;
-	maliasskin_t *poutskin;
+	int		i, j;
+	daliashdr_t	*pinmodel;
+	daliastexcoord_t	*pinstverts;
+	daliastriangle_t	*pintriangles;
+	int		version, numframes;
+	int		size;
+	daliasframetype_t	*pframetype;
+	daliasskintype_t	*pskintype;
 
-	pinmodel = ( dmd2_t * )buffer;
+	pinmodel = (daliashdr_t *)buffer;
+
 	version = LittleLong( pinmodel->version );
-	framesize = LittleLong( pinmodel->framesize );
+	if( version != QALIAS_VERSION )
+		Host_Error( "%s has wrong version number (%i should be %i)\n", mod->name, version, QALIAS_VERSION );
 
-	if( version != MD2_ALIAS_VERSION )
-		Com_Error( ERR_DROP, "%s has wrong version number (%i should be %i)",
-		mod->name, version, MD2_ALIAS_VERSION );
-
+	// allocate space for a working header, plus all the data except the frames,
+	// skin and group info
+	size = sizeof( maliashdr_t ) + (LittleLong( pinmodel->numframes ) - 1) * sizeof( pheader->frames[0] );
+	mod->extradata = pheader = Mod_Malloc( mod, size );
 	mod->type = mod_alias;
-	mod->aliasmodel = poutmodel = Mod_Malloc( mod, sizeof( maliasmodel_t ) );
-	mod->radius = 0;
-	ClearBounds( mod->mins, mod->maxs );
+	
+	// endian-adjust and copy the data, starting with the alias model header
+	pheader->flags = LittleLong( pinmodel->flags );
+	pheader->boundingradius = LittleFloat( pinmodel->boundingradius );
+	pheader->numskins = LittleLong( pinmodel->numskins );
+	pheader->skinwidth = LittleLong( pinmodel->skinwidth );
+	pheader->skinheight = LittleLong( pinmodel->skinheight );
 
-	// byte swap the header fields and sanity check
-	skinwidth = LittleLong( pinmodel->skinwidth );
-	skinheight = LittleLong( pinmodel->skinheight );
+	if( pheader->skinheight > MAX_LBM_HEIGHT || pheader->skinwidth > MAX_LBM_WIDTH )
+		Host_Error( "model %s has a skin taller than %dx%d\n", mod->name, MAX_LBM_WIDTH, MAX_LBM_HEIGHT );
 
-	if( skinwidth <= 0 )
-		Com_Error( ERR_DROP, "model %s has invalid skin width", mod->name );
-	if( skinheight <= 0 )
-		Com_Error( ERR_DROP, "model %s has invalid skin height", mod->name );
+	pheader->numverts = LittleLong( pinmodel->numverts );
 
-	poutmodel->numframes = LittleLong( pinmodel->num_frames );
-	poutmodel->numskins = LittleLong( pinmodel->num_skins );
+	if( pheader->numverts <= 0 ) Host_Error( "model %s has no vertices\n", mod->name );
+	if( pheader->numverts > MAXALIASVERTS ) Host_Error( "model %s has too many vertices\n", mod->name );
+	pheader->numtris = LittleLong( pinmodel->numtris );
+	if( pheader->numtris <= 0 ) Host_Error( "model %s has no triangles\n", mod->name );
 
-	if( poutmodel->numframes > MD2_MAX_FRAMES )
-		Com_Error( ERR_DROP, "model %s has too many frames", mod->name );
-	else if( poutmodel->numframes <= 0 )
-		Com_Error( ERR_DROP, "model %s has no frames", mod->name );
-	if( poutmodel->numskins > MD2_MAX_SKINS )
-		Com_Error( ERR_DROP, "model %s has too many skins", mod->name );
-	else if( poutmodel->numskins < 0 )
-		Com_Error( ERR_DROP, "model %s has invalid number of skins", mod->name );
+	pheader->numframes = LittleLong( pinmodel->numframes );
+	numframes = pheader->numframes;
+	if( numframes < 1 ) Host_Error( "Mod_LoadAliasModel: Invalid # of frames: %d\n", numframes );
 
-	poutmodel->numtags = 0;
-	poutmodel->tags = NULL;
-	poutmodel->nummeshes = 1;
+	pheader->size = LittleFloat( pinmodel->size ) * (1.0f / 11.0f);
+	pheader->synctype = LittleLong( pinmodel->synctype );
+	pheader->numframes = pheader->numframes;
 
-	poutmesh = poutmodel->meshes = Mod_Malloc( mod, sizeof( maliasmesh_t ) );
-	Q_strncpyz( poutmesh->name, "default", MD3_MAX_PATH );
-
-	poutmesh->numverts = LittleLong( pinmodel->num_xyz );
-	poutmesh->numtris = LittleLong( pinmodel->num_tris );
-
-	if( poutmesh->numverts <= 0 )
-		Com_Error( ERR_DROP, "model %s has no vertices", mod->name );
-	else if( poutmesh->numverts > MD2_MAX_VERTS )
-		Com_Error( ERR_DROP, "model %s has too many vertices", mod->name );
-	if( poutmesh->numtris > MD2_MAX_TRIANGLES )
-		Com_Error( ERR_DROP, "model %s has too many triangles", mod->name );
-	else if( poutmesh->numtris <= 0 )
-		Com_Error( ERR_DROP, "model %s has no triangles", mod->name );
-
-	numelems = poutmesh->numtris * 3;
-	poutelem = poutmesh->elems = Mod_Malloc( mod, numelems * sizeof( elem_t ) );
-
-	//
-	// load triangle lists
-	//
-	pintri = ( dtriangle_t * )( ( qbyte * )pinmodel + LittleLong( pinmodel->ofs_tris ) );
-	pinst = ( dstvert_t * ) ( ( qbyte * )pinmodel + LittleLong( pinmodel->ofs_st ) );
-
-	for( i = 0, k = 0; i < poutmesh->numtris; i++, k += 3 )
+	for( i = 0; i < 3; i++ )
 	{
-		for( j = 0; j < 3; j++ )
-		{
-			ptempelem[k+j] = ( elem_t )LittleShort( pintri[i].index_xyz[j] );
-			ptempstelem[k+j] = ( elem_t )LittleShort( pintri[i].index_st[j] );
-		}
+		pheader->scale[i] = LittleFloat( pinmodel->scale[i] );
+		pheader->scale_origin[i] = LittleFloat( pinmodel->scale_origin[i] );
+		pheader->eyeposition[i] = LittleFloat( pinmodel->eyeposition[i] );
 	}
 
-	//
-	// build list of unique vertexes
-	//
-	numverts = 0;
-	memset( indremap, -1, MD2_MAX_TRIANGLES * 3 * sizeof( int ) );
+	// load the skins
+	pskintype = (daliasskintype_t *)&pinmodel[1];
+	pskintype = Mod_AliasLoadSkins( mod, pheader->numskins, pskintype );
 
-	for( i = 0; i < numelems; i++ )
-	{
-		if( indremap[i] != -1 )
-			continue;
-
-		// remap duplicates
-		for( j = i + 1; j < numelems; j++ )
-		{
-			if( ( ptempelem[j] == ptempelem[i] )
-				&& ( pinst[ptempstelem[j]].s == pinst[ptempstelem[i]].s )
-				&& ( pinst[ptempstelem[j]].t == pinst[ptempstelem[i]].t ) )
-			{
-				indremap[j] = i;
-				poutelem[j] = numverts;
-			}
-		}
-
-		// add unique vertex
-		indremap[i] = i;
-		poutelem[i] = numverts++;
-	}
-
-	Com_DPrintf( "%s: remapped %i verts to %i (%i tris)\n", mod->name, poutmesh->numverts, numverts, poutmesh->numtris );
-
-	poutmesh->numverts = numverts;
-
-	//
 	// load base s and t vertices
-	//
-	poutcoord = poutmesh->stArray = Mod_Malloc( mod, numverts * sizeof( vec2_t ) );
+	pinstverts = (daliastexcoord_t *)pskintype;
 
-	for( i = 0; i < numelems; i++ )
+	for( i = 0; i < pheader->numverts; i++ )
 	{
-		if( indremap[i] == i )
-		{
-			poutcoord[poutelem[i]][0] = ( (float)LittleShort( pinst[ptempstelem[i]].s ) + 0.5 ) / skinwidth;
-			poutcoord[poutelem[i]][1] = ( (float)LittleShort( pinst[ptempstelem[i]].t ) + 0.5 ) / skinheight;
-		}
+		stverts[i].onseam = LittleLong( pinstverts[i].onseam );
+		stverts[i].s = LittleLong( pinstverts[i].s );
+		stverts[i].t = LittleLong( pinstverts[i].t );
 	}
 
-	//
-	// load the frames
-	//
-	poutframe = poutmodel->frames = Mod_Malloc( mod, poutmodel->numframes * ( sizeof( maliasframe_t ) + numverts * sizeof( maliasvertex_t ) ) );
-	poutvertex = poutmesh->vertexes = ( maliasvertex_t *)( ( qbyte * )poutframe + poutmodel->numframes * sizeof( maliasframe_t ) );
+	// load triangle lists
+	pintriangles = (daliastriangle_t *)&pinstverts[pheader->numverts];
 
-	for( i = 0; i < poutmodel->numframes; i++, poutframe++, poutvertex += numverts )
+	for( i = 0; i < pheader->numtris; i++)
 	{
-		pinframe = ( daliasframe_t * )( ( qbyte * )pinmodel + LittleLong( pinmodel->ofs_frames ) + i * framesize );
+		triangles[i].facesfront = LittleLong( pintriangles[i].facesfront );
 
 		for( j = 0; j < 3; j++ )
-		{
-			poutframe->scale[j] = LittleFloat( pinframe->scale[j] );
-			poutframe->translate[j] = LittleFloat( pinframe->translate[j] );
-		}
-
-		for( j = 0; j < numelems; j++ )
-		{                               // verts are all 8 bit, so no swapping needed
-			if( indremap[j] == j )
-			{
-				poutvertex[poutelem[j]].point[0] = (short)pinframe->verts[ptempelem[j]].v[0];
-				poutvertex[poutelem[j]].point[1] = (short)pinframe->verts[ptempelem[j]].v[1];
-				poutvertex[poutelem[j]].point[2] = (short)pinframe->verts[ptempelem[j]].v[2];
-			}
-		}
-
-		Mod_AliasCalculateVertexNormals( numelems, poutelem, numverts, poutvertex );
-
-		VectorCopy( poutframe->translate, poutframe->mins );
-		VectorMA( poutframe->translate, 255, poutframe->scale, poutframe->maxs );
-		poutframe->radius = RadiusFromBounds( poutframe->mins, poutframe->maxs );
-
-		mod->radius = max( mod->radius, poutframe->radius );
-		AddPointToBounds( poutframe->mins, mod->mins, mod->maxs );
-		AddPointToBounds( poutframe->maxs, mod->mins, mod->maxs );
+			triangles[i].vertindex[j] = LittleLong( pintriangles[i].vertindex[j] );
 	}
 
-	//
-	// build S and T vectors for frame 0
-	//
-	Mod_AliasBuildMeshesForFrame0( mod );
+	// load the frames
+	posenum = 0;
+	pframetype = (daliasframetype_t *)&pintriangles[pheader->numtris];
 
+	alias_mins[0] = alias_mins[1] = alias_mins[2] = 0xFF;
+	alias_maxs[0] = alias_maxs[1] = alias_maxs[2] = 0x00;
 
-	// register all skins
-	poutskin = poutmodel->skins = Mod_Malloc( mod, poutmodel->numskins * sizeof( maliasskin_t ) );
-
-	for( i = 0; i < poutmodel->numskins; i++, poutskin++ )
+	for( i = 0; i < numframes; i++ )
 	{
-		if( LittleLong( pinmodel->ofs_skins ) == -1 )
-			continue;
-		poutskin->shader = R_RegisterSkin( ( char * )pinmodel + LittleLong( pinmodel->ofs_skins ) + i*MD2_MAX_SKINNAME );
+		frametype_t	frametype;
+
+		frametype = LittleLong( pframetype->type );
+
+		switch( frametype )
+		{
+		case FRAME_SINGLE:
+			pframetype = (daliasframetype_t *)Mod_AliasLoadFrame( pframetype+1, &pheader->frames[i] );
+			break;
+		case FRAME_GROUP:
+			pframetype = (daliasframetype_t *)Mod_AliasLoadGroup( pframetype+1, &pheader->frames[i] );
+			break;
+		}
+		if( pframetype == NULL ) break; // technically an error
 	}
+
+	pheader->numposes = posenum;
+
+	for( i = 0; i < 3; i++ )
+	{
+		mod->mins[i] = alias_mins[i] * pheader->scale[i] + pheader->scale_origin[i];
+		mod->maxs[i] = alias_maxs[i] * pheader->scale[i] + pheader->scale_origin[i];
+	}
+	mod->radius = RadiusFromBounds( mod->mins, mod->maxs );
+	mod->touchFrame = tr.registration_sequence; // register model
 }

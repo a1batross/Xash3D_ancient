@@ -19,6 +19,7 @@ string		frame_prefix;
 uint		frame_type;
 uint		group_num;
 string		sp_name;
+bool		cull_none = false;
 ref_shader_t	**frames = NULL;
 	
 /*
@@ -52,9 +53,9 @@ dframetype_t *R_SpriteLoadFrame( ref_model_t *mod, void *pin, mspriteframe_t **p
 	tex = R_FindTexture( name, (byte *)pin, pinframe->width * pinframe->height, 0 );
 	*ppframe = pspriteframe;
 
-	R_ShaderSetSpriteTexture( tex );
+	R_ShaderSetSpriteTexture( tex, cull_none );
 
-	if( frame_type == SPR_SINGLE )
+	if( frame_type == FRAME_SINGLE )
 	{
 		com.snprintf( shadername, MAX_STRING, "sprites/%s.spr/%s_%i%i )", sp_name, frame_prefix, framenum/10, framenum%10 );
 		pspriteframe->shader = R_LoadShader( shadername, SHADER_SPRITE, true, tex->flags, SHADER_INVALID )->shadernum;
@@ -91,7 +92,7 @@ dframetype_t *R_SpriteLoadGroup( ref_model_t *mod, void * pin, mspriteframe_t **
 	{
 		*poutintervals = LittleFloat( pin_intervals->interval );
 		if( *poutintervals <= 0.0 ) *poutintervals = 1.0f; // set error value
-		if( frame_type == SPR_GROUP ) R_ShaderAddSpriteIntervals( *poutintervals );
+		if( frame_type == FRAME_GROUP ) R_ShaderAddSpriteIntervals( *poutintervals );
 		poutintervals++;
 		pin_intervals++;
 	}
@@ -142,6 +143,7 @@ void Mod_SpriteLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buf
 	psprite->type = LittleLong( pin->type );
 	psprite->rendermode = LittleLong( pin->texFormat );
 	psprite->numframes = numframes;
+	cull_none = (LittleLong( pin->facetype == SPR_CULL_NONE )) ? true : false;
 	mod->mins[0] = mod->mins[1] = -LittleLong( pin->bounds[0] ) / 2;
 	mod->maxs[0] = mod->maxs[1] = LittleLong( pin->bounds[0] ) / 2;
 	mod->mins[2] = -LittleLong( pin->bounds[1] ) / 2;
@@ -207,15 +209,15 @@ void Mod_SpriteLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buf
 			
 		switch( frametype )
 		{
-		case SPR_SINGLE:
+		case FRAME_SINGLE:
 			com.strncpy( frame_prefix, "one", MAX_STRING );
 			pframetype = R_SpriteLoadFrame(mod, pframetype + 1, &psprite->frames[i].frameptr, i );
 			break;
-		case SPR_GROUP:
+		case FRAME_GROUP:
 			com.strncpy( frame_prefix, "grp", MAX_STRING );
 			pframetype = R_SpriteLoadGroup(mod, pframetype + 1, &psprite->frames[i].frameptr, i );
 			break;
-		case SPR_ANGLED:
+		case FRAME_ANGLED:
 			com.strncpy( frame_prefix, "ang", MAX_STRING );
 			pframetype = R_SpriteLoadGroup(mod, pframetype + 1, &psprite->frames[i].frameptr, i );
 			break;
@@ -248,11 +250,11 @@ mspriteframe_t *R_GetSpriteFrame( ref_entity_t *ent )
 		frame = 0;
 	}
 
-	if( psprite->frames[frame].type == SPR_SINGLE )
+	if( psprite->frames[frame].type == FRAME_SINGLE )
 	{
 		pspriteframe = psprite->frames[frame].frameptr;
 	}
-	else if (psprite->frames[frame].type == SPR_GROUP) 
+	else if( psprite->frames[frame].type == FRAME_GROUP ) 
 	{
 		pspritegroup = (mspritegroup_t *)psprite->frames[frame].frameptr;
 		pintervals = pspritegroup->intervals;
@@ -271,7 +273,7 @@ mspriteframe_t *R_GetSpriteFrame( ref_entity_t *ent )
 		}
 		pspriteframe = pspritegroup->frames[i];
 	}
-	else if( psprite->frames[frame].type == SPR_ANGLED )
+	else if( psprite->frames[frame].type == FRAME_ANGLED )
 	{
 		// e.g. doom-style sprite monsters
 		int angleframe = (int)((RI.refdef.viewangles[1] - ent->angles[1])/360*8 + 0.5 - 4) & 7;

@@ -173,6 +173,70 @@ ALIAS MODELS
 
 ==============================================================================
 */
+#define MAX_SKINS		32
+
+typedef struct
+{
+	int		firstpose;
+	int		numposes;
+	float		interval;
+	daliastrivertx_t	bboxmin;
+	daliastrivertx_t	bboxmax;
+	int		frame;
+	char		name[16];
+} maliasframedesc_t;
+
+typedef struct
+{
+	daliastrivertx_t	bboxmin;
+	daliastrivertx_t	bboxmax;
+	int		frame;
+} maliasgroupdesc_t;
+
+typedef struct
+{
+	int		numframes;
+	int		intervals;
+	maliasgroupdesc_t	frames[1];	// variable sized
+} maliasgroup_t;
+
+typedef struct mtriangle_s
+{
+	int		facesfront;
+	int		vertindex[3];
+} mtriangle_t;
+
+typedef struct
+{
+	int		ident;
+	int		version;
+	vec3_t		scale;
+	vec3_t		scale_origin;
+	float		boundingradius;
+	vec3_t		eyeposition;
+	int		numskins;
+	int		skinwidth;
+	int		skinheight;
+	int		numverts;
+	int		numtris;
+	int		numframes;
+	synctype_t	synctype;
+	int		flags;
+	float		size;
+
+	int		numposes;
+	int		poseverts;
+	int		posedata;		// numposes*poseverts trivert_t
+	int		commands;		// gl command list with embedded s/t
+	ref_shader_t	*skins[MAX_SKINS][4];
+	int		texels[MAX_SKINS];	// only for player skins
+	maliasframedesc_t	frames[1];	// variable sized
+} maliashdr_t;
+
+extern	maliashdr_t	*pheader;
+extern	daliastexcoord_t	stverts[MAXALIASVERTS];
+extern	mtriangle_t	triangles[MAXALIASTRIS];
+extern	daliastrivertx_t	*poseverts[MAXALIASFRAMES];
 
 //
 // in memory representation

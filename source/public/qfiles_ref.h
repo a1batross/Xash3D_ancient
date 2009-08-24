@@ -61,9 +61,9 @@ typedef enum
 
 typedef enum
 {
-	SPR_SINGLE = 0,
-	SPR_GROUP,
-	SPR_ANGLED			// xash ext
+	FRAME_SINGLE = 0,
+	FRAME_GROUP,
+	FRAME_ANGLED			// xash ext
 } frametype_t;
 
 typedef enum
@@ -86,9 +86,8 @@ typedef enum
 
 typedef enum
 {
-	SPR_SINGLE_FACE = 0,		// oriented sprite will be draw with one face
-	SPR_DOUBLE_FACE,			// oriented sprite will be draw back face too
-	SPR_XCROSS_FACE,			// same like as flame in UT'99
+	SPR_CULL_FRONT = 0,			// oriented sprite will be draw with one face
+	SPR_CULL_NONE,			// oriented sprite will be draw back face too
 } facetype_t;
 
 typedef struct
@@ -591,6 +590,13 @@ Alias models are position independent, so the cache manager can move them.
 #define DT_FACES_FRONT	0x0010
 #define ALIAS_ONSEAM	0x0020
 
+// limits
+#define MAXALIASFRAMES	256	// a byte limit ?
+#define MAXALIASVERTS	2048
+#define MAXALIASTRIS	4096
+#define MAX_LBM_WIDTH	640
+#define MAX_LBM_HEIGHT	480
+
 // built-in model effects
 #define AF_ROCKET		BIT(0)	// leave a trail
 #define AF_GRENADE		BIT(1)	// leave a trail
@@ -603,15 +609,9 @@ Alias models are position independent, so the cache manager can move them.
 
 typedef enum
 {
-	ALIAS_SINGLE = 0,
-	ALIAS_GROUP
-} aliasframetype_t;
-
-typedef enum
-{
-	ALIAS_SKIN_SINGLE = 0,
-	ALIAS_SKIN_GROUP
-} aliasskintype_t;
+	SKIN_SINGLE = 0,
+	SKIN_GROUP,
+} skintype_t;
 
 typedef struct
 {
@@ -630,7 +630,7 @@ typedef struct
 	synctype_t	synctype;
 	int		flags;
 	float		size;
-} qaliashdr_t;
+} daliashdr_t;
 
 typedef struct
 {
@@ -684,12 +684,12 @@ typedef struct
 
 typedef struct
 {
-	aliasframetype_t	type;
+	frametype_t	type;
 } daliasframetype_t;
 
 typedef struct
 {
-	aliasskintype_t	type;
+	skintype_t	type;
 } daliasskintype_t;
 
 /*

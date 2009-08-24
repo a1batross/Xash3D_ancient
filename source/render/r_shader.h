@@ -354,7 +354,7 @@ void R_ShaderFreeUnused( void );
 float R_LookupTable( int tableIndex, float index );
 float *R_GetTableByHandle( int tableIndex );
 void Shader_TouchImages( ref_shader_t *shader, bool free_unused );
-void R_ShaderSetSpriteTexture( texture_t *mipTex );
+void R_ShaderSetSpriteTexture( texture_t *mipTex, bool twoSided );
 void R_ShaderSetRenderMode( kRenderMode_t mode );
 void R_ShaderAddSpriteIntervals( float interval );
 void R_UploadCinematicShader( const ref_shader_t *shader );

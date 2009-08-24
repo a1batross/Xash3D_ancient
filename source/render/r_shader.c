@@ -60,6 +60,7 @@ static texture_t	*r_spriteTexture[MAX_STAGE_TEXTURES];			// MAX_FRAMES in sprite
 static kRenderMode_t	r_spriteRenderMode;				// sprite or studiomodel rendermode
 static int		r_numSpriteTextures;       			// num textures in group
 static float		r_spriteFrequency;	       			// sprite group auto-animate
+static bool		r_spriteTwoSided;
 static bool		r_shaderNoMipMaps;
 static bool		r_shaderNoPicMip;
 static bool		r_shaderNoCompress;
@@ -2603,6 +2604,8 @@ void R_InitShaders( void )
 	// init sprite frames
 	for( i = 0; i < MAX_STAGE_TEXTURES; i++ )
 		r_spriteTexture[i] = tr.defaultTexture;
+
+	r_spriteTwoSided = 0;
 	r_spriteFrequency = 0.0f;
 	r_numSpriteTextures = 0;
 	r_spriteRenderMode = kRenderNormal;
@@ -3438,7 +3441,8 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		break;
 	case SHADER_SPRITE:
 		shader->type = SHADER_SPRITE;
-		shader->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT|SHADER_RENDERMODE;
+		shader->flags = SHADER_DEPTHWRITE|SHADER_RENDERMODE;
+		shader->flags |= (r_spriteTwoSided) ? 0 : SHADER_CULL_FRONT;
 		shader->features = MF_STCOORDS|MF_COLORS;
 		shader->num_stages = 1;
 		shader->name = Shader_Malloc( length + 1 + sizeof( ref_stage_t ) * shader->num_stages );
@@ -3757,6 +3761,7 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 	}
 
 	// reset parms
+	r_spriteTwoSided = 0;
 	r_numSpriteTextures = 0;
 	r_spriteFrequency = 0.0f;
 	r_spriteRenderMode = kRenderNormal;
@@ -3904,10 +3909,11 @@ void R_ShaderFreeUnused( void )
 	}
 }
 
-void R_ShaderSetSpriteTexture( texture_t *mipTex )
+void R_ShaderSetSpriteTexture( texture_t *mipTex, bool twoSided )
 {
 	if( r_numSpriteTextures >= MAX_STAGE_TEXTURES ) return;
 	r_spriteTexture[r_numSpriteTextures++] = mipTex;
+	r_spriteTwoSided = twoSided;
 }
 
 void R_ShaderSetRenderMode( kRenderMode_t mode )

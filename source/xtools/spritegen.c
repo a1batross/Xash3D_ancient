@@ -83,7 +83,7 @@ void WriteSprite( file_t *f )
 	for (i = 0; i < sprite.numframes; i++)
 	{
 		FS_Write( f, &frames[curframe].type, sizeof(frames[curframe].type));
-		if( frames[curframe].type == SPR_SINGLE )
+		if( frames[curframe].type == FRAME_SINGLE )
 		{
 			// single (non-grouped) frame
 			WriteFrame( f, curframe );
@@ -221,10 +221,9 @@ void Cmd_FaceType( void )
 
 	Com_ReadToken( spriteqc, 0, &token );
 
-	if( !com.stricmp( token.string, "normal")) sprite.facetype = SPR_SINGLE_FACE;
-	else if( !com.stricmp( token.string, "twoside")) sprite.facetype = SPR_DOUBLE_FACE;
-	else if( !com.stricmp( token.string, "xcross")) sprite.facetype = SPR_XCROSS_FACE;
-	else sprite.facetype = SPR_SINGLE_FACE; // default
+	if( !com.stricmp( token.string, "normal" )) sprite.facetype = SPR_CULL_FRONT;
+	else if( !com.stricmp( token.string, "twoside" )) sprite.facetype = SPR_CULL_NONE;
+	else sprite.facetype = SPR_CULL_FRONT; // default
 }
 
 
@@ -402,7 +401,7 @@ void Cmd_Frame( void )
 	plump = (byte *)Mem_Alloc( spritepool, sizeof(dspriteframe_t) + (w * h));
 	pframe = (dspriteframe_t *)plump;
 	frames[framecount].pdata = plump;
-	frames[framecount].type = SPR_SINGLE;
+	frames[framecount].type = FRAME_SINGLE;
 
 	pframe->origin[0] = org_x;
 	pframe->origin[1] = org_y;
@@ -464,7 +463,7 @@ void Cmd_Group( bool angled )
 
 	groupframe = framecount++;
 
-	frames[groupframe].type = angled ? SPR_ANGLED : SPR_GROUP;
+	frames[groupframe].type = angled ? FRAME_ANGLED : FRAME_GROUP;
 	need_resample = resample_w = resample_h = 0; // invalidate resample for group 
 	frames[groupframe].numgroupframes = 0;
 
@@ -564,7 +563,7 @@ void ResetSpriteInfo( void )
 	sprite.ident = IDSPRITEHEADER;
 	sprite.version = SPRITE_VERSION;
 	sprite.type = SPR_FWD_PARALLEL;
-	sprite.facetype = SPR_SINGLE_FACE;
+	sprite.facetype = SPR_CULL_FRONT;
 	sprite.synctype = ST_SYNC;
 }
 

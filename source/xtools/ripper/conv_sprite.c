@@ -446,7 +446,7 @@ bool ConvSPR( const char *name, byte *buffer, size_t filesize, const char *ext )
 	{
 		frametype_t frametype = LittleLong( pframetype->type );
 
-		if( frametype == SPR_SINGLE )
+		if( frametype == FRAME_SINGLE )
 			pframetype = (dframetype_t *)SPR_ConvertFrame( name, ext, (pframetype + 1), i, 0 );
 		else pframetype = (dframetype_t *)SPR_ConvertGroup( name, ext, (pframetype + 1), i );
 	}
