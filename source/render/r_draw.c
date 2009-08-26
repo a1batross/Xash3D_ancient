@@ -34,6 +34,7 @@ void R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, f
 {
 	int		bcolor;
 	ref_shader_t	*shader;
+	static int	oldframe;
 
 	if( handle < 0 || handle > MAX_SHADERS || !(shader = &r_shaders[handle]))
 		return;
@@ -76,6 +77,22 @@ void R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, f
 	// upload video right before rendering
 	if( shader->flags & SHADER_VIDEOMAP ) R_UploadCinematicShader( shader );
 	R_PushMesh( &pic_mesh, MF_TRIFAN|shader->features | ( r_shownormals->integer ? MF_NORMALS : 0 ));
+
+	if( oldframe != glState.draw_frame )
+	{
+		if( pic_mbuffer.shaderkey != (int)shader->sortkey )
+		{
+			// will be rendering on next call
+			oldframe = glState.draw_frame;
+			return;
+		}
+		if( pic_mbuffer.shaderkey )
+		{
+			pic_mbuffer.infokey = -1;
+			R_RenderMeshBuffer( &pic_mbuffer );
+		}
+		oldframe = glState.draw_frame;
+	}
 }
 
 /*
@@ -180,7 +197,7 @@ void R_DrawFill( float x, float y, float w, float h )
 	pglDisable( GL_TEXTURE_2D );
 	pglColor4fv( glState.draw_color );
 
-	if( glState.draw_color[3] != 255 )
+	if( glState.draw_color[3] != 1.0f )
 		GL_SetState( GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 	else GL_SetState( GLSTATE_SRCBLEND_ONE|GLSTATE_DSTBLEND_ZERO );
 

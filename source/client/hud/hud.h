@@ -15,6 +15,7 @@
 #define MIN_ALPHA		100
 
 #define HUDELEM_ACTIVE	1
+#define HUD_MAX_FADES	8		// can be blindly increased
 
 typedef struct
 {
@@ -34,6 +35,16 @@ typedef struct
 	Vector	appliedOffset;
 	float	appliedAngle;
 } ScreenShake;
+
+typedef struct
+{
+	float	fadeSpeed;	// How fast to fade (tics / second) (+ fade in, - fade out)
+	float	fadeEnd;		// When the fading hits maximum
+	float	fadeReset;	// When to reset to not fading (for fadeout and hold)
+	Vector	fadeColor;
+	float	fadeAlpha;
+	int	fadeFlags;	// Fading flags
+} ScreenFade;
 
 typedef struct
 {
@@ -422,6 +433,8 @@ public:
 	int Draw( float flTime );
 	int MsgFunc_WarHUD( const char *pszName,  int iSize, void *pbuf );
 	int m_iHudMode;
+	int m_iOldHudMode;
+
 private:
 	HSPRITE m_hSprite;
 	HSPRITE m_hCrosshair;
@@ -682,8 +695,15 @@ public:
 	int m_HUD_number_0;
 
 	// screen shake handler
-	ScreenShake m_Shake;
-	
+	ScreenShake	m_Shake;
+
+	// screen fade handler
+	ScreenFade	m_FadeList[HUD_MAX_FADES];
+
+	Vector		m_vFadeColor;
+	float		m_fFadeAlpha;
+	BOOL		m_bModulate;
+		
 	// error sprite
 	int m_HUD_error;
 	HSPRITE m_hHudError;

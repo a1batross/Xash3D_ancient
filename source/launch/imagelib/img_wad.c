@@ -32,6 +32,8 @@ bool Image_LoadPAL( const char *name, const byte *buffer, size_t filesize )
 			rendermode = LUMP_DECAL;
 		else if( com.stristr( name, "qfont" ))
 			rendermode = LUMP_QFONT;
+		else if( com.stristr( name, "quake" ))
+			buffer = NULL; // force to get Q1 palette
 	}
 
 	// NOTE: image.d_currentpal not cleared with Image_Reset()
@@ -57,17 +59,8 @@ bool Image_LoadMDL( const char *name, const byte *buffer, size_t filesize )
 	byte		*fin;
 	size_t		pixels;
 	dstudiotexture_t	*pin;
-	int		flags;
+	int		i, flags;
 
-	// check palette first
-	if( image.hint != IL_HINT_HL ) return false; // unknown mode rejected
-
-	if( !image.d_currentpal )
-	{
-		MsgDev( D_ERROR, "Image_LoadMDL: (%s) palette not installed\n", name );
-		return false;		
-	}
-	
 	pin = (dstudiotexture_t *)buffer;
 	flags = LittleLong( pin->flags );
 
@@ -75,20 +68,45 @@ bool Image_LoadMDL( const char *name, const byte *buffer, size_t filesize )
 	image.width = LittleLong( pin->width );
 	image.height = LittleLong( pin->height );
 	pixels = image.width * image.height;
-
-	if( filesize < pixels + sizeof( dstudiotexture_t ) + 768 )		
-	{
-		MsgDev( D_ERROR, "Image_LoadMDL: file (%s) have invalid size\n", pin->name );
-		return false;
-	}
-
-	if( flags & STUDIO_NF_TRANSPARENT )
-	{
-		if( image.d_rendermode != LUMP_TRANSPARENT )
-			MsgDev( D_WARN, "Image_LoadMDL: (%s) using normal palette for alpha-skin\n", pin->name );
-		image.flags |= IMAGE_HAS_ALPHA;
-	}
 	fin = (byte *)pin->index;	// setup buffer
+
+	if( image.hint != IL_HINT_Q1 && !( flags & STUDIO_NF_QUAKESKIN ))
+	{
+		// studio models setup
+		if( !image.d_currentpal )
+		{
+			MsgDev( D_ERROR, "Image_LoadMDL: (%s) palette not installed\n", name );
+			return false;		
+		}
+		if( flags & STUDIO_NF_TRANSPARENT )
+		{
+			if( image.d_rendermode != LUMP_TRANSPARENT )
+				MsgDev( D_WARN, "Image_LoadMDL: (%s) using normal pal for alpha-skin\n", name );
+			image.flags |= IMAGE_HAS_ALPHA;
+		}
+	}
+	else if( image.hint != IL_HINT_HL && flags & STUDIO_NF_QUAKESKIN )
+	{
+		// alias models setup
+		Image_GetPaletteQ1();
+
+		// check for luma pixels
+		for( i = 0; i < pixels; i++ )
+		{
+			if( fin[i] > 224 )
+			{
+				Msg( "%s has luma-pixels\n", name );
+				image.flags |= IMAGE_HAS_LUMA_Q1;
+				break;
+			}
+		}
+	}
+	else
+	{
+		if( image.hint == IL_HINT_NO )
+			MsgDev( D_ERROR, "Image_LoadMDL: lump (%s) is corrupted\n", name );
+		return false; // unknown or unsupported mode rejected
+	} 
 
 	if(!Image_LumpValidSize( name )) return false;
 	image.depth = 1;

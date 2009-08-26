@@ -124,7 +124,7 @@ static int SkinFile_ParseBuffer( char *buffer, mesh_shader_pair_t *pairs )
 		if( pairs )
 		{
 			pairs[numpairs].meshname = SkinFile_CopyString( meshname );
-			pairs[numpairs].shader = R_LoadShader( skinname, SHADER_ALIAS, false, 0, SHADER_INVALID );
+			pairs[numpairs].shader = R_LoadShader( skinname, SHADER_ALIAS_MD3, false, 0, SHADER_INVALID );
 		}
 		numpairs++;
 	}

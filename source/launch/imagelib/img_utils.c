@@ -244,9 +244,9 @@ static const loadformat_t load_xash051[] =
 { "%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// screenshots, etc
 { "%s%s.%s", "jpg", Image_LoadJPG, IL_HINT_NO },	// 2d textures
 { "%s%s.%s", "mip", Image_LoadMIP, IL_HINT_HL },	// hl textures (WorldCraft support)
-{ "%s%s.%s", "mdl", Image_LoadMDL, IL_HINT_HL },	// hl studio model skins
+{ "%s%s.%s", "mdl", Image_LoadMDL, IL_HINT_NO },	// hl or q1 model skins
 { "%s%s.%s", "spr", Image_LoadSPR, IL_HINT_HL },	// hl sprite frames
-{ "%s%s.%s", "pal", Image_LoadPAL, IL_HINT_HL },	// install studio palette
+{ "%s%s.%s", "pal", Image_LoadPAL, IL_HINT_NO },	// install palettes
 { NULL, NULL, NULL, IL_HINT_NO }
 };
 

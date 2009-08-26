@@ -233,7 +233,7 @@ void Mod_AliasLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buff
 		for( j = 0; j < poutmesh->numskins; j++, pinskin++, poutskin++ )
 		{
 			FS_StripExtension( pinskin->name );
-			poutskin->shader = R_LoadShader( pinskin->name, SHADER_ALIAS, false, 0, SHADER_INVALID );
+			poutskin->shader = R_LoadShader( pinskin->name, SHADER_ALIAS_MD3, false, 0, SHADER_INVALID );
 			R_DeformvBBoxForShader( poutskin->shader, ebbox );
 		}
 

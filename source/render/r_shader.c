@@ -56,11 +56,11 @@ static waveFunc_t	r_currentRGBgenFuncs[MAX_SHADER_STAGES], r_currentAlphagenFunc
 static tcMod_t	r_currentTcmods[MAX_SHADER_STAGES][MAX_SHADER_TCMODS];
 static vec4_t	r_currentTcGen[MAX_SHADER_STAGES][2];
 const char	*r_skyBoxSuffix[6] = { "rt", "bk", "lf", "ft", "up", "dn" }; // FIXME: get rid of this
-static texture_t	*r_spriteTexture[MAX_STAGE_TEXTURES];			// MAX_FRAMES in spritegen.c
-static kRenderMode_t	r_spriteRenderMode;				// sprite or studiomodel rendermode
-static int		r_numSpriteTextures;       			// num textures in group
-static float		r_spriteFrequency;	       			// sprite group auto-animate
-static bool		r_spriteTwoSided;
+static texture_t	*r_stageTexture[MAX_STAGE_TEXTURES];		// MAX_FRAMES in spritegen.c
+static kRenderMode_t	r_shaderRenderMode;			// sprite, alias or studiomodel rendermode
+static int		r_numStageTextures;			// num textures in group
+static float		r_stageAnimFrequency;		// for auto-animate groups
+static bool		r_shaderTwoSided;
 static bool		r_shaderNoMipMaps;
 static bool		r_shaderNoPicMip;
 static bool		r_shaderNoCompress;
@@ -2481,6 +2481,7 @@ void R_ShaderList_f( void )
 			Msg( "mdl  " );
 			break;
 		case SHADER_ALIAS:
+		case SHADER_ALIAS_MD3:
 			Msg( "alias" );
 			break;
 		case SHADER_FONT:
@@ -2603,12 +2604,12 @@ void R_InitShaders( void )
 
 	// init sprite frames
 	for( i = 0; i < MAX_STAGE_TEXTURES; i++ )
-		r_spriteTexture[i] = tr.defaultTexture;
+		r_stageTexture[i] = tr.defaultTexture;
 
-	r_spriteTwoSided = 0;
-	r_spriteFrequency = 0.0f;
-	r_numSpriteTextures = 0;
-	r_spriteRenderMode = kRenderNormal;
+	r_shaderTwoSided = 0;
+	r_stageAnimFrequency = 0.0f;
+	r_numStageTextures = 0;
+	r_shaderRenderMode = kRenderNormal;
 
 	R_RegisterBuiltinShaders ();
 }
@@ -3158,6 +3159,11 @@ void Shader_Finish( ref_shader_t *s )
 
 	for( i = 0, pass = s->stages; i < s->num_stages; i++, pass++ )
 	{
+		if( pass->flags & SHADERSTAGE_ANIMFREQUENCY && pass->anim_offset == 0 )
+		{
+			pass->anim_offset = pass->num_textures;	// alt-anim is missing
+			pass->animFrequency[1] = 0.0f;
+		}
 		if( pass->cinHandle )
 			s->flags |= SHADER_VIDEOMAP;
 		if( pass->flags & SHADERSTAGE_LIGHTMAP )
@@ -3350,8 +3356,8 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		pass->tcgen = TCGEN_BASE;
 		pass->num_textures++;
 		break;
-	case SHADER_ALIAS:
-		shader->type = SHADER_ALIAS;
+	case SHADER_ALIAS_MD3:
+		shader->type = SHADER_ALIAS_MD3;
 		shader->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT;
 		shader->features = MF_STCOORDS|MF_NORMALS;
 		shader->sort = SORT_OPAQUE;
@@ -3385,6 +3391,55 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 			shader->flags |= SHADER_MATERIAL;
 		}
 		break;
+	case SHADER_ALIAS:
+		shader->type = SHADER_ALIAS;
+		shader->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT;
+		shader->features = MF_STCOORDS;
+		shader->num_stages = 1;
+		shader->name = Shader_Malloc( length + 1 + sizeof( ref_stage_t ) * shader->num_stages );
+		strcpy( shader->name, shortname );
+		shader->stages = ( ref_stage_t * )(( byte * )shader->name + length + 1 );
+		pass = &shader->stages[0];
+		pass->tcgen = TCGEN_BASE;
+
+		if( r_numStageTextures > 1 )
+		{
+			// store group frames into one stage
+			pass->flags |= SHADERSTAGE_FRAMES;
+			if( r_stageAnimFrequency != 0.0f )
+			{
+				pass->flags |= SHADERSTAGE_ANIMFREQUENCY;
+				pass->animFrequency[0] = r_stageAnimFrequency;
+			}
+
+			for( i = 0; i < r_numStageTextures; i++ )
+			{
+				if( !r_stageTexture[i] ) pass->textures[i] = tr.defaultTexture;
+				else pass->textures[i] = r_stageTexture[i];
+				pass->num_textures++;
+			}
+			
+		}
+		else
+		{
+			// single frame
+			pass->textures[0] = r_stageTexture[0];
+			pass->num_textures++;
+
+			if( !pass->textures[0] )
+			{
+				MsgDev( D_WARN, "couldn't find alias skin for shader '%s', using default...\n", shader->name );
+				pass->textures[0] = tr.defaultTexture;
+			}
+		}
+
+		// NOTE: all alias models allow to change their rendermodes but using kRenderNormal as default  		
+		pass->flags |= SHADERSTAGE_RENDERMODE;
+		pass->glState = GLSTATE_DEPTHWRITE;
+		pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
+		pass->alphaGen.type = ALPHAGEN_IDENTITY;
+		shader->sort = SORT_OPAQUE;
+		break;
 	case SHADER_STUDIO:
 		shader->type = SHADER_STUDIO;
 		shader->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT;
@@ -3396,17 +3451,17 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		pass = &shader->stages[0];
 		pass->tcgen = TCGEN_BASE;
 
-		if( r_spriteRenderMode == kRenderTransAlpha ) // ignore mips for alpha-textures
+		if( r_shaderRenderMode == kRenderTransAlpha ) // ignore mips for alpha-textures
 			pass->textures[0] = R_FindTexture( va( "Studio( \"%s\" );", shader->name ), NULL, 0, addFlags|TF_CLAMP|TF_NOMIPMAP );
 		else pass->textures[0] = R_FindTexture( va( "Studio( \"%s\" );", shader->name ), NULL, 0, addFlags );
 		if( !pass->textures[0] )
 		{
-			MsgDev( D_WARN, "couldn't find studio texture for shader '%s', using default...\n", shader->name );
+			MsgDev( D_WARN, "couldn't find studio skin for shader '%s', using default...\n", shader->name );
 			pass->textures[0] = tr.defaultTexture;
 		}
 		pass->num_textures++;
   		
-		switch( r_spriteRenderMode )
+		switch( r_shaderRenderMode )
 		{
 		case kRenderTransTexture:
 			// normal transparency
@@ -3442,7 +3497,7 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 	case SHADER_SPRITE:
 		shader->type = SHADER_SPRITE;
 		shader->flags = SHADER_DEPTHWRITE|SHADER_RENDERMODE;
-		shader->flags |= (r_spriteTwoSided) ? 0 : SHADER_CULL_FRONT;
+		shader->flags |= (r_shaderTwoSided) ? 0 : SHADER_CULL_FRONT;
 		shader->features = MF_STCOORDS|MF_COLORS;
 		shader->num_stages = 1;
 		shader->name = Shader_Malloc( length + 1 + sizeof( ref_stage_t ) * shader->num_stages );
@@ -3450,28 +3505,31 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		shader->stages = (ref_stage_t *)( ( byte * )shader->name + length + 1 );
 		pass = &shader->stages[0];
 		pass->tcgen = TCGEN_BASE;
-		if( r_spriteFrequency == 0.0f && r_numSpriteTextures == 8 )
+		if( r_stageAnimFrequency == 0.0f && r_numStageTextures == 8 )
 		{
 			// store angled map into one bundle
 			pass->flags |= SHADERSTAGE_ANGLEDMAP;
 
 			for( i = 0; i < 8; i++ )
 			{
-				if( !r_spriteTexture[i] ) pass->textures[i] = tr.defaultTexture;
-				else pass->textures[i] = r_spriteTexture[i];
+				if( !r_stageTexture[i] ) pass->textures[i] = tr.defaultTexture;
+				else pass->textures[i] = r_stageTexture[i];
 				pass->num_textures++;
 			}
 		}
-		else if( r_numSpriteTextures > 1 )
+		else if( r_numStageTextures > 1 )
 		{
 			// store group frames into one stage
 			pass->flags |= SHADERSTAGE_FRAMES;
-			pass->animFrequency[0] = r_spriteFrequency;
-
-			for( i = 0; i < r_numSpriteTextures; i++ )
+			if( r_stageAnimFrequency != 0.0f )
 			{
-				if( !r_spriteTexture[i] ) pass->textures[i] = tr.defaultTexture;
-				else pass->textures[i] = r_spriteTexture[i];
+				pass->flags |= SHADERSTAGE_ANIMFREQUENCY;
+				pass->animFrequency[0] = r_stageAnimFrequency;
+			}
+			for( i = 0; i < r_numStageTextures; i++ )
+			{
+				if( !r_stageTexture[i] ) pass->textures[i] = tr.defaultTexture;
+				else pass->textures[i] = r_stageTexture[i];
 				pass->num_textures++;
 			}
 			
@@ -3479,7 +3537,7 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		else
 		{
 			// single frame
-			pass->textures[0] = r_spriteTexture[0];
+			pass->textures[0] = r_stageTexture[0];
 			pass->num_textures++;
 
 			if( !pass->textures[0] )
@@ -3491,7 +3549,7 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 
  		pass->flags |= SHADERSTAGE_RENDERMODE; // any sprite can overrided himself rendermode
                   
-		switch( r_spriteRenderMode )
+		switch( r_shaderRenderMode )
 		{
 		case kRenderTransTexture:
 			// normal transparency
@@ -3761,10 +3819,10 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 	}
 
 	// reset parms
-	r_spriteTwoSided = 0;
-	r_numSpriteTextures = 0;
-	r_spriteFrequency = 0.0f;
-	r_spriteRenderMode = kRenderNormal;
+	r_shaderTwoSided = 0;
+	r_numStageTextures = 0;
+	r_stageAnimFrequency = 0.0f;
+	r_shaderRenderMode = kRenderNormal;
 
 	Shader_SetRenderMode( shader );
 
@@ -3909,21 +3967,21 @@ void R_ShaderFreeUnused( void )
 	}
 }
 
-void R_ShaderSetSpriteTexture( texture_t *mipTex, bool twoSided )
+void R_ShaderAddStageTexture( texture_t *mipTex )
 {
-	if( r_numSpriteTextures >= MAX_STAGE_TEXTURES ) return;
-	r_spriteTexture[r_numSpriteTextures++] = mipTex;
-	r_spriteTwoSided = twoSided;
+	if( r_numStageTextures >= MAX_STAGE_TEXTURES ) return;
+	r_stageTexture[r_numStageTextures++] = mipTex;
 }
 
-void R_ShaderSetRenderMode( kRenderMode_t mode )
+void R_ShaderSetRenderMode( kRenderMode_t mode, bool twoSided )
 {
-	r_spriteRenderMode = mode;
+	r_shaderRenderMode = mode;
+	r_shaderTwoSided = twoSided;
 }
 
-void R_ShaderAddSpriteIntervals( float interval )
+void R_ShaderAddStageIntervals( float interval )
 {
-	r_spriteFrequency += interval;
+	r_stageAnimFrequency += interval;
 }
 
 /*

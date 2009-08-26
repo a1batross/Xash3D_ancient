@@ -2123,7 +2123,7 @@ static rgbdata_t *R_ParseMakeGlow( script_t *script, int *samples, texFlags_t *f
 	return R_MakeGlow( pic );
 }
 
-static rgbdata_t *R_ParseStudioSkin( script_t *script, int *samples, texFlags_t *flags )
+static rgbdata_t *R_ParseStudioSkin( script_t *script, const byte *buf, size_t size, int *samples, texFlags_t *flags )
 {
 	token_t		token;
 	rgbdata_t 	*pic;
@@ -2290,6 +2290,37 @@ static rgbdata_t *R_ParseSpriteFrame( script_t *script, const byte *buf, size_t 
 	if( com.stricmp( token.string, ")" ))
 	{
 		MsgDev( D_WARN, "expected ')', found '%s' instead for 'Sprite'\n", token.string );
+		FS_FreeImage( pic );
+		return NULL;
+	}
+	return pic;
+}
+
+static rgbdata_t *R_ParseAliasSkin( script_t *script, const byte *buf, size_t size, int *samples, texFlags_t *flags )
+{
+	token_t	token;
+	rgbdata_t *pic;
+
+	Com_ReadToken( script, 0, &token );
+	if( com.stricmp( token.string, "(" ))
+	{
+		MsgDev( D_WARN, "expected '(', found '%s' instead for 'Alias'\n", token.string );
+		return NULL;
+	}
+
+	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &token ))
+	{
+		MsgDev( D_WARN, "missing parameters for 'Alias'\n" );
+		return NULL;
+	}
+
+	pic = R_LoadImage( script, va( "#%s.mdl", token.string ), buf, size, samples, flags );
+	if( !pic ) return NULL;
+
+	Com_ReadToken( script, 0, &token );
+	if( com.stricmp( token.string, ")" ))
+	{
+		MsgDev( D_WARN, "expected ')', found '%s' instead for 'Alias'\n", token.string );
 		FS_FreeImage( pic );
 		return NULL;
 	}
@@ -2722,7 +2753,9 @@ static rgbdata_t *R_LoadImage( script_t *script, const char *name, const byte *b
 	else if( !com.stricmp( name, "clearPixels" ))
 		return R_ParseClearPixels( script, samples, flags );
 	else if( !com.stricmp( name, "Studio" ))
-		return R_ParseStudioSkin( script, samples, flags );
+		return R_ParseStudioSkin( script, buf, size, samples, flags );
+	else if( !com.stricmp( name, "Alias" ))
+		return R_ParseAliasSkin( script, buf, size, samples, flags );
 	else if( !com.stricmp( name, "Sprite" ))
 		return R_ParseSpriteFrame( script, buf, size, samples, flags );
 	else

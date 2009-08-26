@@ -48,6 +48,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define SHADER_PLANAR_SHADOW		13
 #define SHADER_OPAQUE_OCCLUDER	14
 #define SHADER_OUTLINE		15
+#define SHADER_ALIAS_MD3		16	// to be removed ...
 
 // shader flags
 typedef enum
@@ -354,9 +355,9 @@ void R_ShaderFreeUnused( void );
 float R_LookupTable( int tableIndex, float index );
 float *R_GetTableByHandle( int tableIndex );
 void Shader_TouchImages( ref_shader_t *shader, bool free_unused );
-void R_ShaderSetSpriteTexture( texture_t *mipTex, bool twoSided );
-void R_ShaderSetRenderMode( kRenderMode_t mode );
-void R_ShaderAddSpriteIntervals( float interval );
+void R_ShaderAddStageTexture( texture_t *mipTex );
+void R_ShaderSetRenderMode( kRenderMode_t mode, bool twoSided );
+void R_ShaderAddStageIntervals( float interval );
 void R_UploadCinematicShader( const ref_shader_t *shader );
 void R_DeformvBBoxForShader( const ref_shader_t *shader, vec3_t ebbox );
 

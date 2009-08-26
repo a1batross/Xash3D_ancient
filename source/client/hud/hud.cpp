@@ -75,7 +75,8 @@ void CHud :: VidInit( void )
 	m_hHudFont = 0;
 	spot = NULL; // clear intermission spot
 
-	Draw_VidInit();
+	Draw_VidInit ();
+	ClearAllFades ();
 
 	// setup screen info
 	m_scrinfo.iRealWidth = CVAR_GET_FLOAT( "width" );

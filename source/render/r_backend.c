@@ -1244,11 +1244,11 @@ static _inline texture_t *R_ShaderpassTex( const ref_stage_t *pass, int unit )
 
 		if( RI.currententity )
 		{
-			if( RI.currententity->frame )
+			if( RI.currententity->frame && pass->animFrequency[1] != 0.0f )
 			{
 				numframes = bound( 1, pass->num_textures - pass->anim_offset, MAX_STAGE_TEXTURES - 1 );
 				frame = (int)( pass->animFrequency[1] * r_currentShaderTime ) % numframes;
-				frame += pass->anim_offset;	// bias
+				frame = bound( 0, frame + pass->anim_offset, pass->num_textures ); // bias
 			}
 			else
 			{

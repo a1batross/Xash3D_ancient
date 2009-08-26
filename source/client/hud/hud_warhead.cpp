@@ -31,7 +31,7 @@ int CHudRedeemer :: VidInit( void )
 	m_hStatic = SPR_Load( "sprites/static.spr" );
 	m_hCamera = SPR_Load( "sprites/camera.spr" );
 
-	m_iHudMode = 0;
+	m_iHudMode = m_iOldHudMode = 0;
 	return 1;
 }
 
@@ -39,6 +39,8 @@ int CHudRedeemer :: MsgFunc_WarHUD( const char *pszName, int iSize, void *pbuf )
 {
 	BEGIN_READ( pszName, iSize, pbuf );
 	m_iHudMode = READ_BYTE();
+	m_iOldHudMode = -1;	// force to update
+	ClearPermanentFades ();
 	END_READ();
 
 	return 1;
@@ -55,7 +57,7 @@ int CHudRedeemer :: Draw( float flTime )
 	rc.right = ScreenWidth;
 	rc.bottom = ScreenHeight;
 
-	if( m_iHudMode == 1 )		// draw crosshair and readout
+	if( m_iHudMode == 1 ) // draw warhead screen (controllable rocket)
 	{
 		y = (ScreenWidth - GUIDE_S) / 2;
 		x = (ScreenHeight - GUIDE_S) / 2;
@@ -71,9 +73,14 @@ int CHudRedeemer :: Draw( float flTime )
 			SPR_DrawAdditive( 0, 0, yOffset, READOUT_S>>1, READOUT_S );
 			yOffset -= READOUT_S;
 		}
-		SetScreenFade( Vector( 1, 0, 0 ), 0.25, 0, 0, FFADE_STAYOUT ); // enable red fade
+
+		if( m_iOldHudMode != m_iHudMode )
+		{
+			// enable red fade
+			SetScreenFade( Vector( 255, 0, 0 ), 64, 0, 0, FFADE_STAYOUT );
+		}
 	}
-	else if( m_iHudMode == 2 )		// draw alpha noise
+	else if( m_iHudMode == 2 ) // draw warhead screen with alpha noise (underwater)
 	{
 		// play at 15fps
 		frame = (int)(flTime * 15) % SPR_Frames( m_hStatic );
@@ -82,9 +89,9 @@ int CHudRedeemer :: Draw( float flTime )
 		w = SPR_Width( m_hStatic, 0 );
 		h = SPR_Height( m_hStatic, 0 );
 
-		for( y = -(rand() % h); y < ScreenHeight; y += h )
+		for( y = -(RANDOM_LONG( 0, h )); y < ScreenHeight; y += h )
 		{ 
-			for( x = -(rand() % w); x < ScreenWidth; x += w )
+			for( x = -(RANDOM_LONG( 0, w )); x < ScreenWidth; x += w )
 			{ 
 				SPR_Set( m_hStatic, 255, 255, 255, 100 );
 				SPR_DrawAdditive( frame, x, y, NULL );
@@ -105,21 +112,26 @@ int CHudRedeemer :: Draw( float flTime )
 			SPR_DrawAdditive( 0, 0, yOffset, READOUT_S>>1, READOUT_S );
 			yOffset -= READOUT_S;
 		}
-		SetScreenFade( Vector( 1, 0, 0 ), 0.25, 0, 0, FFADE_STAYOUT ); // enable red fade
+
+		if( m_iOldHudMode != m_iHudMode )
+		{
+			// enable red fade
+			SetScreenFade( Vector( 255, 0, 0 ), 64, 0, 0, FFADE_STAYOUT );
+		}
 	}
-	else if( m_iHudMode == 3 )		// draw static noise
+	else if( m_iHudMode == 3 ) // draw static noise (self destroyed)
 	{         
 		// play at 15fps
 		frame = (int)(flTime * 15) % SPR_Frames( m_hStatic );
 
 		SPR_Set( m_hStatic, 255, 255, 255 );
 		SPR_Draw( frame, 0, 0, ScreenWidth, ScreenHeight );
-
-		// disable fade
-		SetScreenFade( Vector( 1, 1, 1 ), 0, 0, 0, FFADE_OUT );
 	}
-	else if( m_iHudMode == 4 )		// draw videocamera screen
+	else if( m_iHudMode == 4 ) 
 	{         
+		// HACKHACK draw videocamera screen
+		// g-cont. i'm lazy same as BUzer, i won't to create new class :)
+
 		// play at 1.5 fps
 		frame = (int)(flTime * 1.5f) % SPR_Frames( m_hCamRec );
                     
@@ -138,9 +150,8 @@ int CHudRedeemer :: Draw( float flTime )
 		x = ScreenWidth - (w * 1.5f);
 		y = w * 0.4f;
 		SPR_DrawAdditive( frame, x, y, w, h );
-				
-		// disable fade
-		SetScreenFade( Vector( 1, 1, 1 ), 0, 0, 0, FFADE_OUT );
 	}
+	m_iOldHudMode = m_iHudMode;
+
 	return 1;
 }

@@ -19,7 +19,6 @@ string		frame_prefix;
 uint		frame_type;
 uint		group_num;
 string		sp_name;
-bool		cull_none = false;
 ref_shader_t	**frames = NULL;
 	
 /*
@@ -53,7 +52,7 @@ dframetype_t *R_SpriteLoadFrame( ref_model_t *mod, void *pin, mspriteframe_t **p
 	tex = R_FindTexture( name, (byte *)pin, pinframe->width * pinframe->height, 0 );
 	*ppframe = pspriteframe;
 
-	R_ShaderSetSpriteTexture( tex, cull_none );
+	R_ShaderAddStageTexture( tex );
 
 	if( frame_type == FRAME_SINGLE )
 	{
@@ -92,7 +91,7 @@ dframetype_t *R_SpriteLoadGroup( ref_model_t *mod, void * pin, mspriteframe_t **
 	{
 		*poutintervals = LittleFloat( pin_intervals->interval );
 		if( *poutintervals <= 0.0 ) *poutintervals = 1.0f; // set error value
-		if( frame_type == FRAME_GROUP ) R_ShaderAddSpriteIntervals( *poutintervals );
+		if( frame_type == FRAME_GROUP ) R_ShaderAddStageIntervals( *poutintervals );
 		poutintervals++;
 		pin_intervals++;
 	}
@@ -123,6 +122,7 @@ void Mod_SpriteLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buf
 	msprite_t		*psprite;
 	dframetype_t	*pframetype;
 	int		i, size, numframes;
+	bool		twoSided;
 
 	pin = (dsprite_t *)buffer;
 	i = LittleLong( pin->version );
@@ -143,7 +143,7 @@ void Mod_SpriteLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buf
 	psprite->type = LittleLong( pin->type );
 	psprite->rendermode = LittleLong( pin->texFormat );
 	psprite->numframes = numframes;
-	cull_none = (LittleLong( pin->facetype == SPR_CULL_NONE )) ? true : false;
+	twoSided = (LittleLong( pin->facetype == SPR_CULL_NONE )) ? true : false;
 	mod->mins[0] = mod->mins[1] = -LittleLong( pin->bounds[0] ) / 2;
 	mod->maxs[0] = mod->maxs[1] = LittleLong( pin->bounds[0] ) / 2;
 	mod->mins[2] = -LittleLong( pin->bounds[1] ) / 2;
@@ -160,24 +160,24 @@ void Mod_SpriteLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buf
 		{
 		case SPR_ADDGLOW:
 			pal = FS_LoadImage( "#normal.pal", src, 768 );
-			R_ShaderSetRenderMode( kRenderGlow );
+			R_ShaderSetRenderMode( kRenderGlow, twoSided );
 			break;
 		case SPR_ADDITIVE:
 			pal = FS_LoadImage( "#normal.pal", src, 768 );
-			R_ShaderSetRenderMode( kRenderTransAdd );
+			R_ShaderSetRenderMode( kRenderTransAdd, twoSided );
 			break;
                     case SPR_INDEXALPHA:
 			pal = FS_LoadImage( "#decal.pal", src, 768 );
-			R_ShaderSetRenderMode( kRenderTransAlpha );
+			R_ShaderSetRenderMode( kRenderTransAlpha, twoSided );
 			break;
 		case SPR_ALPHTEST:		
 			pal = FS_LoadImage( "#transparent.pal", src, 768 );
-			R_ShaderSetRenderMode( kRenderTransAlpha );
+			R_ShaderSetRenderMode( kRenderTransAlpha, twoSided );
                               break;
 		case SPR_NORMAL:
 		default:
 			pal = FS_LoadImage( "#normal.pal", src, 768 );
-			R_ShaderSetRenderMode( kRenderNormal );
+			R_ShaderSetRenderMode( kRenderNormal, twoSided );
 			break;
 		}
 		pframetype = (dframetype_t *)(src + 768);

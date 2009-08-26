@@ -166,19 +166,7 @@ typedef struct
 	bool	noCrosshair;
 } draw_stuff_t;
 
-typedef struct
-{
-	float	fadeSpeed;	// How fast to fade (tics / second) (+ fade in, - fade out)
-	float	fadeEnd;		// When the fading hits maximum
-	float	fadeTotalEnd;	// Total End Time of the fade (used for FFADE_OUT)
-	float	fadeReset;	// When to reset to not fading (for fadeout and hold)
-	Vector	fadeColor;
-	float	fadealpha;
-	int	fadeFlags;	// Fading flags
-} screenfade_t;
-
 static draw_stuff_t ds;
-static screenfade_t sf;
 	
 int SPR_Frames( HSPRITE hPic )
 {
@@ -579,19 +567,162 @@ void V_RenderSplash( void )
 	DrawImageRectangle( SPR_Load( "gfx/shell/splash" )); 
 }
 
+//
+// hl2 fade - this supports multiple fading
+// FIXME: make Class CHudFade instead of C-style code?
+//
 void SetScreenFade( Vector fadeColor, float alpha, float duration, float holdTime, int fadeFlags )
 {
-	sf.fadeColor = fadeColor;
-	sf.fadealpha = alpha;
-	sf.fadeFlags = fadeFlags;
-	sf.fadeEnd = gHUD.m_flTime + duration;
-	sf.fadeTotalEnd = sf.fadeEnd + holdTime;
-	sf.fadeSpeed = duration / gHUD.m_flTimeDelta;
+	ScreenFade *sf = NULL;
+
+	for( int i = 0; i < HUD_MAX_FADES; i++ )
+	{
+		// search for free spot
+		if( gHUD.m_FadeList[i].fadeFlags == 0 )
+		{
+			sf = &gHUD.m_FadeList[i];
+			break;
+		}
+	}
+
+	if( !sf ) return; // no free fades found 
+
+	sf->fadeEnd = duration;
+	sf->fadeReset = holdTime;	
+	sf->fadeColor = fadeColor;
+	sf->fadeAlpha = alpha;
+	sf->fadeFlags = fadeFlags;
+	sf->fadeSpeed = 0;
+
+	// calc fade speed
+	if( duration > 0 )
+	{
+		if( fadeFlags & FFADE_OUT )
+		{
+			if( sf->fadeEnd )
+			{
+				sf->fadeSpeed = -(float)sf->fadeAlpha / sf->fadeEnd;
+			}
+
+			sf->fadeEnd += gHUD.m_flTime;
+			sf->fadeReset += sf->fadeEnd;
+		}
+		else
+		{
+			if( sf->fadeEnd )
+			{
+				sf->fadeSpeed = (float)sf->fadeAlpha / sf->fadeEnd;
+			}
+
+			sf->fadeReset += gHUD.m_flTime;
+			sf->fadeEnd += sf->fadeReset;
+		}
+	}
+
+	if( fadeFlags & FFADE_PURGE )
+	{
+		ClearAllFades();
+	}
 }
 
 void DrawScreenFade( void )
 {
-	// FIXME: implement
+	int	i, numFades = 0;
+	
+	// Cycle through all fades and remove any that have finished (work backwards)
+	for( i = HUD_MAX_FADES - 1; i >= 0; i-- )
+	{
+		ScreenFade *pFade = &gHUD.m_FadeList[i];
+
+		if( pFade->fadeFlags == 0 ) continue;	// free slot
+
+		// Keep pushing reset time out indefinitely
+		if( pFade->fadeFlags & FFADE_STAYOUT )
+		{
+			pFade->fadeReset = gHUD.m_flTime + 0.1f;
+		}
+
+		// All done?
+		if(( gHUD.m_flTime > pFade->fadeReset ) && ( gHUD.m_flTime > pFade->fadeEnd ))
+		{
+			// remove this Fade from the list
+			memset( pFade, 0, sizeof( ScreenFade ));
+		}
+	}
+
+	gHUD.m_bModulate = false;
+	gHUD.m_vFadeColor = Vector( 0, 0, 0 );
+	gHUD.m_fFadeAlpha = 0.0f;
+
+	// Cycle through all fades in the list and calculate the overall color/alpha
+	for ( i = 0; i < HUD_MAX_FADES; i++ )
+	{
+		ScreenFade *pFade = &gHUD.m_FadeList[i];
+
+		if( pFade->fadeFlags == 0 ) continue;	// free slot
+
+		// Color
+		gHUD.m_vFadeColor += pFade->fadeColor;
+
+		// Fading...
+		int iFadeAlpha;
+		if( pFade->fadeFlags & ( FFADE_OUT|FFADE_IN ))
+		{
+			iFadeAlpha = pFade->fadeSpeed * ( pFade->fadeEnd - gHUD.m_flTime );
+			if( pFade->fadeFlags & FFADE_OUT )
+			{
+				iFadeAlpha += pFade->fadeAlpha;
+			}
+			iFadeAlpha = min( iFadeAlpha, pFade->fadeAlpha );
+			iFadeAlpha = max( 0, iFadeAlpha );
+		}
+		else
+		{
+			iFadeAlpha = pFade->fadeAlpha;
+		}
+
+		// Use highest alpha
+		if( iFadeAlpha > gHUD.m_fFadeAlpha )
+		{
+			gHUD.m_fFadeAlpha = iFadeAlpha;
+		}
+
+		// Modulate?
+		if( pFade->fadeFlags & FFADE_MODULATE )
+		{
+			gHUD.m_bModulate = true;
+		}
+		numFades++;
+	}
+
+	// Divide colors
+	if( numFades ) gHUD.m_vFadeColor /= numFades;
+
+	if( gHUD.m_vFadeColor == Vector( 0, 0, 0 )) return;
+	const float *RGB = gHUD.m_vFadeColor;
+
+	FillRGBA( 0, 0, ScreenWidth, ScreenHeight, RGB[0], RGB[1], RGB[2], gHUD.m_fFadeAlpha );
+}
+
+void ClearPermanentFades( void )
+{
+	for( int i = HUD_MAX_FADES - 1; i >= 0; i-- )
+	{
+		ScreenFade *pFade = &gHUD.m_FadeList[i];
+		if( pFade->fadeFlags == 0 ) continue;	// free slot
+
+		if( pFade->fadeFlags & FFADE_STAYOUT )
+		{
+			// remove this Fade from the list
+			ALERT( at_console, "remove fade %i\n", i );
+			memset( pFade, 0, sizeof( ScreenFade ));
+		}
+	}
+}
+
+void ClearAllFades( void )
+{
+	memset( gHUD.m_FadeList, 0, sizeof( gHUD.m_FadeList ));
 }
 
 /*

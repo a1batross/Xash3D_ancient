@@ -134,12 +134,12 @@ Studio model loader
 void R_StudioSurfaceParm( dstudiotexture_t *tex )
 {
 	if( tex->flags & STUDIO_NF_TRANSPARENT )
-		R_ShaderSetRenderMode( kRenderTransAlpha );
+		R_ShaderSetRenderMode( kRenderTransAlpha, false );
 	else if( tex->flags & STUDIO_NF_ADDITIVE )
-		R_ShaderSetRenderMode( kRenderTransAdd );
+		R_ShaderSetRenderMode( kRenderTransAdd, false );
 	else if( tex->flags & STUDIO_NF_BLENDED )
-		R_ShaderSetRenderMode( kRenderTransTexture );
-	else R_ShaderSetRenderMode( kRenderNormal );
+		R_ShaderSetRenderMode( kRenderTransTexture, false );
+	else R_ShaderSetRenderMode( kRenderNormal, false );
 }
 
 dstudiohdr_t *R_StudioLoadHeader( ref_model_t *mod, const uint *buffer )

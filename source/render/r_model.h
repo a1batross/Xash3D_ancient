@@ -226,10 +226,9 @@ typedef struct
 
 	int		numposes;
 	int		poseverts;
-	int		posedata;		// numposes*poseverts trivert_t
+	int		posedata;		// numposes * poseverts trivert_t
 	int		commands;		// gl command list with embedded s/t
 	ref_shader_t	*skins[MAX_SKINS][4];
-	int		texels[MAX_SKINS];	// only for player skins
 	maliasframedesc_t	frames[1];	// variable sized
 } maliashdr_t;
 

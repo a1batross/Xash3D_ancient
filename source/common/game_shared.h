@@ -27,11 +27,12 @@ enum ShakeCommand_t
 	SHAKE_FREQUENCY,	// Modifies the frequency of an active screen shake for all players within the radius.
 };
 
-#define FFADE_IN		0x0000 // Just here so we don't pass 0 into the function
-#define FFADE_OUT		0x0001 // Fade out (not in)
-#define FFADE_MODULATE	0x0002 // Modulate (don't blend)
-#define FFADE_STAYOUT	0x0004 // ignores the duration, stays faded out until new ScreenFade message received
-#define FFADE_CUSTOMVIEW	0x0008 // fading only at custom viewing (don't sending this to engine )
+#define FFADE_IN		0x0001 // Fade in (not out)
+#define FFADE_OUT		0x0002 // Fade out (not in)
+#define FFADE_MODULATE	0x0004 // Modulate (don't blend)
+#define FFADE_STAYOUT	0x0008 // ignores the duration, stays faded out until new ScreenFade message received
+#define FFADE_CUSTOMVIEW	0x0010 // fading only at custom viewing (don't sending this to engine )
+#define FFADE_PURGE		0x0020 // Purges all other fades, replacing them with this one
 
 // camera flags
 #define CAMERA_ON		1

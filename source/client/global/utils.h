@@ -189,6 +189,8 @@ extern void HideCrosshair( bool hide );
 extern void DrawCrosshair( void );
 extern void DrawPause( void );
 extern void SetScreenFade( Vector fadeColor, float alpha, float duration, float holdTime, int fadeFlags );
+extern void ClearAllFades( void );
+extern void ClearPermanentFades( void );
 extern void DrawScreenFade( void );
 extern void DrawImageBar( float percent, const char *szSpriteName );
 extern void DrawImageBar( float percent, const char *szSpriteName, int x, int y );

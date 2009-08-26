@@ -133,7 +133,7 @@ void Mod_FloodFillSkin( byte *skin, int skinwidth, int skinheight )
 	floodfill_t	fifo[FLOODFILL_FIFO_SIZE];
 	int		inpt = 0, outpt = 0;
 	int		filledcolor = -1;
-	rgbdata_t		*pal = FS_LoadImage( "#normal.pal", NULL, 768 );	// null buffer force to get Q1 palette
+	rgbdata_t		*pal = FS_LoadImage( "#quake1.pal", skin, 768 );
 	uint		*d_8to24table = (uint *)pal->palette;
 	int		i;
 
@@ -183,18 +183,25 @@ void *Mod_AliasLoadSkins( ref_model_t *mod, int numskins, daliasskintype_t *pski
 {
 	int			i, j, k, s;
 	string			shadername;
+	string			modname;
 	byte			*skin;
-	byte			*texels;
 	int			groupskins;
 	daliasskingroup_t		*pinskingroup;
 	daliasskininterval_t	*pinskinintervals;
-	
+	dstudiotexture_t		*ptexture;	// apply studio header for alias texture	
+	texture_t			*tex;
+
+	FS_FileBase( mod->name, modname );	
 	skin = (byte *)(pskintype + 1);
 
 	if( numskins < 1 || numskins > MAX_SKINS )
 		Host_Error( "Mod_LoadAliasModel: Invalid # of skins: %d\n", numskins );
 
 	s = pheader->skinwidth * pheader->skinheight;
+	ptexture = Mod_Malloc( mod, sizeof( *ptexture ));
+	ptexture->height = pheader->skinheight;
+	ptexture->width = pheader->skinwidth;
+	ptexture->flags = STUDIO_NF_QUAKESKIN;	// indicates alias models
 
 	for( i = 0; i < numskins; i++ )
 	{
@@ -202,13 +209,13 @@ void *Mod_AliasLoadSkins( ref_model_t *mod, int numskins, daliasskintype_t *pski
 		{
 			Mod_FloodFillSkin( skin, pheader->skinwidth, pheader->skinheight );
 
-			// save 8 bit texels for the player model to remap
-			texels = Mod_Malloc( mod, s );
-			pheader->texels[i] = texels - (byte *)pheader;
-			Mem_Copy( texels, (byte *)(pskintype + 1), s );
-			com.sprintf( shadername, "%s_%i", mod->name, i );
+			com.sprintf( shadername, "%s.mdl/%s_%i.bmp", modname, modname, i );
+			com.sprintf( ptexture->name, "Alias( %s_%i )", modname, i );
+			ptexture->index = (int)skin;// don't copy, just set ptr
+			tex = R_FindTexture( ptexture->name, (byte *)ptexture, s, 0 );
+			R_ShaderAddStageTexture( tex );
 			pheader->skins[i][0] = pheader->skins[i][1] = pheader->skins[i][2] =
-			pheader->skins[i][3] = R_LoadShader( shadername, SHADER_ALIAS, 0, 0, -1 );
+			pheader->skins[i][3] = R_LoadShader( shadername, SHADER_ALIAS, false, tex->flags, SHADER_INVALID );
 			pskintype = (daliasskintype_t *)((byte *)(pskintype + 1) + s );
 		}
 		else
@@ -224,14 +231,12 @@ void *Mod_AliasLoadSkins( ref_model_t *mod, int numskins, daliasskintype_t *pski
 			for( j = 0; j < groupskins; j++ )
 			{
 				Mod_FloodFillSkin( skin, pheader->skinwidth, pheader->skinheight );
-				if( j == 0 )
-				{
-					texels = Mod_Malloc( mod, s );
-					pheader->texels[i] = texels - (byte *)pheader;
-					Mem_Copy( texels, (byte *)(pskintype), s );
-				}
-				com.sprintf( shadername, "%s_%i_%i", mod->name, i, j );
-				pheader->skins[i][j&3] = R_LoadShader( shadername, SHADER_ALIAS, 0, 0, -1 );
+				com.sprintf( shadername, "%s.mdl/%s_%i_%i", modname, modname, i, j );
+				com.sprintf( ptexture->name, "Alias( %s_%i_%i )", modname, i, j );
+				ptexture->index = (int)skin;// don't copy, just set ptr
+				tex = R_FindTexture( ptexture->name, (byte *)ptexture, s, 0 );
+				R_ShaderAddStageTexture( tex );
+				pheader->skins[i][j&3] = R_LoadShader( shadername, SHADER_ALIAS, false, tex->flags, SHADER_INVALID );
 				pskintype = (daliasskintype_t *)((byte *)(pskintype) + s );
 			}
 			for( k = j; j < 4; j++ )
@@ -267,7 +272,7 @@ void Mod_QAliasLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buf
 	// skin and group info
 	size = sizeof( maliashdr_t ) + (LittleLong( pinmodel->numframes ) - 1) * sizeof( pheader->frames[0] );
 	mod->extradata = pheader = Mod_Malloc( mod, size );
-	mod->type = mod_alias;
+	mod->type = mod_bad;	// temporary disabled
 	
 	// endian-adjust and copy the data, starting with the alias model header
 	pheader->flags = LittleLong( pinmodel->flags );
