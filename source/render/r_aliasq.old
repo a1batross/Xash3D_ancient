@@ -15,12 +15,6 @@ static float	alias_maxs[3];
 static float	alias_radius;
 maliashdr_t	*pheader;
 
-float	vertst[MAXALIASVERTS*2][2];
-int	vertusage[MAXALIASVERTS*2];
-int	vertonseam[MAXALIASVERTS*2];
-int	vertremap[MAXALIASVERTS*2];
-int	temptris[MAXALIASVERTS*2][3];
-
 typedef struct
 {
 	char		name[16];	// frame name
@@ -367,8 +361,9 @@ void Mod_QAliasLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buf
 	daliastriangle_t	*pintri;
 	daliasframetype_t	*pframetype;
 	daliasskintype_t	*pskintype;
+	int		indremap[MAXALIASTRIS*3];
+	elem_t		ptempelem[MAXALIASTRIS*3], ptempstelem[MAXALIASTRIS*3];
 	int		version, numverts, numelems;
-	float		scale_s, scale_t;
 	maliasmodel_t	*poutmodel;
 	maliasmesh_t	*poutmesh;
 	elem_t		*poutelem;
@@ -438,69 +433,58 @@ void Mod_QAliasLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buf
 	pinst = (daliastexcoord_t *)pskintype;
 	pintri = (daliastriangle_t *)&pinst[pheader->numverts];
 
-	scale_s = 1.0f / pheader->skinwidth;
-	scale_t = 1.0f / pheader->skinheight;
-	for( i = 0; i < pheader->numverts; i++ )
+	for( i = 0, k = 0; i < poutmesh->numtris; i++, k += 3 )
 	{
-		vertonseam[i] = LittleLong( pinst[i].onseam );
-		vertst[i][0] = LittleLong(pinst[i].s ) * scale_s;
-		vertst[i][1] = LittleLong(pinst[i].t ) * scale_t;
-		vertst[i+pheader->numverts][0] = vertst[i][0] + 0.5f;
-		vertst[i+pheader->numverts][1] = vertst[i][1];
-		vertusage[i] = 0;
-		vertusage[i+pheader->numverts] = 0;
-	}
-
-	// count the vertices used
-	for( i = 0; i < pheader->numverts * 2; i++ )
-		vertusage[i] = 0;
-	for( i = 0; i < pheader->numtris; i++ )
-	{
-		temptris[i][0] = LittleLong( pintri[i].vertindex[0] );
-		temptris[i][1] = LittleLong( pintri[i].vertindex[1] );
-		temptris[i][2] = LittleLong( pintri[i].vertindex[2] );
-		if( !LittleLong( pintri[i].facesfront )) // backface
+		for( j = 0; j < 3; j++ )
 		{
-			if( vertonseam[temptris[i][0]] ) temptris[i][0] += poutmesh->numtris;
-			if( vertonseam[temptris[i][1]] ) temptris[i][1] += poutmesh->numtris;
-			if( vertonseam[temptris[i][2]] ) temptris[i][2] += poutmesh->numtris;
+			// matches for vertexes and stcoords
+			ptempelem[k+j] = ( elem_t )LittleLong( pintri[i].vertindex[j] );
+			ptempstelem[k+j] = ( elem_t )LittleLong( pintri[i].vertindex[j] );
 		}
-		vertusage[temptris[i][0]]++;
-		vertusage[temptris[i][1]]++;
-		vertusage[temptris[i][2]]++;
 	}
 
-	// build remapping table and compact array
+	//
+	// build list of unique vertexes
+	//
 	numverts = 0;
-	for( i = 0; i < pheader->numverts * 2; i++ )
+	memset( indremap, -1, MAXALIASTRIS * 3 * sizeof( int ));
+
+	for( i = 0; i < numelems; i++ )
 	{
-		if( vertusage[i] )
+		if( indremap[i] != -1 )
+			continue;
+
+		// remap duplicates
+		for( j = i + 1; j < numelems; j++ )
 		{
-			vertremap[i] = numverts;
-			vertst[numverts][0] = vertst[i][0];
-			vertst[numverts][1] = vertst[i][1];
-			numverts++;
+			if( ( ptempelem[j] == ptempelem[i] )
+				&& ( pinst[ptempstelem[j]].s == pinst[ptempstelem[i]].s )
+				&& ( pinst[ptempstelem[j]].t == pinst[ptempstelem[i]].t )
+				&& ( pinst[ptempstelem[j]].onseam == pinst[ptempstelem[i]].onseam ))
+			{
+				indremap[j] = i;
+				poutelem[j] = numverts;
+			}
 		}
-		else vertremap[i] = -1; // not used at all
+
+		// add unique vertex
+		indremap[i] = i;
+		poutelem[i] = numverts++;
 	}
 
-	// remap the triangle references
-	for( i = 0; i < poutmesh->numtris; i++ )
-	{
-		poutelem[i*3+0] = vertremap[temptris[i][0]];
-		poutelem[i*3+1] = vertremap[temptris[i][1]];
-		poutelem[i*3+2] = vertremap[temptris[i][2]];
-	}
-
-	Msg( "%s: remapped %i verts to %i (%i tris)\n", mod->name, pheader->numverts, numverts, poutmesh->numtris );
+	Msg( "%s: remapped %i verts to %i (%i tris)\n", mod->name, poutmesh->numverts, numverts, poutmesh->numtris );
 	poutmesh->numverts = numverts;
 
 	// load base s and t vertices
-	poutcoord = poutmesh->stArray = Mod_Malloc( mod, poutmesh->numverts * sizeof( vec2_t ));
-	for( i = 0; i < poutmesh->numverts; i++ )
+	poutcoord = poutmesh->stArray = Mod_Malloc( mod, numelems * sizeof( vec2_t ));
+
+	for( i = 0; i < numelems; i++ )
 	{
-		poutcoord[i][0] = vertst[i][0];
-		poutcoord[i][1] = vertst[i][1];
+		if( indremap[i] == i )
+		{
+			poutcoord[poutelem[i]][0] = ((float)LittleShort( pinst[ptempstelem[i]].s ) + 0.5f ) / pheader->skinwidth;
+			poutcoord[poutelem[i]][1] = ((float)LittleShort( pinst[ptempstelem[i]].t ) + 0.5f ) / pheader->skinheight;
+		}
 	}
 
 	// load the frames
@@ -536,24 +520,15 @@ void Mod_QAliasLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buf
 			poutframe->scale[j] = LittleFloat( pinmodel->scale[j] );
 			poutframe->translate[j] = LittleFloat( pinmodel->scale_origin[j] );
 		}
-		for( j = 0; j < pheader->numverts; j++ )
+
+		for( j = 0; j < numelems; j++ )
 		{
 			// verts are all 8 bit, so no swapping needed
-			if( vertremap[j] < 0 && vertremap[j+pheader->numverts] < 0 )
-				continue;
-			k = vertremap[j]; // not onseam
-			if( k >= 0 )
+			if( indremap[j] == j )
 			{
-				poutvertex[k].point[0] = (short)frames[i].data[j].v[0];
-				poutvertex[k].point[1] = (short)frames[i].data[j].v[1];
-				poutvertex[k].point[2] = (short)frames[i].data[j].v[2];
-			}
-			k = vertremap[j+pheader->numverts]; // onseam
-			if( k >= 0 )
-			{
-				poutvertex[k].point[0] = (short)frames[i].data[j].v[0];
-				poutvertex[k].point[1] = (short)frames[i].data[j].v[1];
-				poutvertex[k].point[2] = (short)frames[i].data[j].v[2];
+				poutvertex[poutelem[j]].point[0] = (short)frames[i].data[ptempelem[j]].v[0];
+				poutvertex[poutelem[j]].point[1] = (short)frames[i].data[ptempelem[j]].v[1];
+				poutvertex[poutelem[j]].point[2] = (short)frames[i].data[ptempelem[j]].v[2];
 			}
 		}
 

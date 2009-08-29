@@ -590,7 +590,8 @@ CL_ClearParticles
 void CL_ClearParticles( void )
 {
 	int		i;
-	
+	cparticle_t	*p;
+		
 	cl_active_particles = NULL;
 	cl_free_particles = cl_particle_list;
 
@@ -605,6 +606,11 @@ void CL_ClearParticles( void )
 		cl_particle_velocities[i][1] = (rand() & 255) * 0.01f;
 		cl_particle_velocities[i][2] = (rand() & 255) * 0.01f;
 	}
+	for( i = 0, p = cl_particle_list; i < MAX_PARTICLES; i++, p++ )
+	{
+		p->pStcoords[0][0] = p->pStcoords[2][1] = p->pStcoords[1][0] = p->pStcoords[1][1] = 0;
+		p->pStcoords[0][1] = p->pStcoords[2][0] = p->pStcoords[3][0] = p->pStcoords[3][1] = 1;
+	}
 }
 
 /*
@@ -617,11 +623,11 @@ void CL_AddParticles( void )
 	cparticle_t	*p, *next;
 	cparticle_t	*active = NULL, *tail = NULL;
 	rgba_t		modulate;
-	vec3_t		origin, oldorigin, velocity, color;
-	vec3_t		ambientLight;
+	vec3_t		origin, oldorigin, velocity;
+	vec3_t		ambientLight, axis[3];
 	float		alpha, radius, length;
 	float		time, time2, gravity, dot;
-	vec3_t		mins, maxs, corner;
+	vec3_t		mins, maxs, color;
 	int		contents;
 	trace_t		trace;
 
@@ -793,10 +799,10 @@ void CL_AddParticles( void )
 		}
 
 		// bound color and alpha and convert to byte
-		modulate[0] = bound( 0, 255 * color[0], 255 );
-		modulate[1] = bound( 0, 255 * color[1], 255 );
-		modulate[2] = bound( 0, 255 * color[2], 255 );
-		modulate[3] = bound( 0, 255 * alpha, 255 );
+		modulate[0] = (byte)bound( 0, color[0] * 255, 255 );
+		modulate[1] = (byte)bound( 0, color[1] * 255, 255 );
+		modulate[2] = (byte)bound( 0, color[2] * 255, 255 );
+		modulate[3] = (byte)bound( 0, alpha * 255, 255 );
 
 		if( p->flags & PARTICLE_INSTANT )
 		{
@@ -810,14 +816,74 @@ void CL_AddParticles( void )
 		*(int *)p->pColor[2] = *(int *)modulate;
 		*(int *)p->pColor[3] = *(int *)modulate;
 
-		corner[0] = origin[0];
-		corner[1] = origin[1] - 0.5f * p->scale;
-		corner[2] = origin[2] - 0.5f * p->scale;
+		if( length != 1 )
+		{
+			// find orientation vectors
+			VectorSubtract( cl.refdef.vieworg, p->origin, axis[0] );
+			VectorSubtract( p->oldorigin, p->origin, axis[1] );
+			CrossProduct( axis[0], axis[1], axis[2] );
 
-		VectorSet( p->pVerts[0], corner[0], corner[1] + p->scale, corner[2] + p->scale );
-		VectorSet( p->pVerts[1], corner[0], corner[1], corner[2] + p->scale );
-		VectorSet( p->pVerts[2], corner[0], corner[1], corner[2] );
-		VectorSet( p->pVerts[3], corner[0], corner[1] + p->scale, corner[2] );
+			VectorNormalizeFast( axis[1] );
+			VectorNormalizeFast( axis[2] );
+
+			// find normal
+			CrossProduct( axis[1], axis[2], axis[0] );
+			VectorNormalizeFast( axis[0] );
+
+			VectorMA( p->origin, -length, axis[1], p->oldorigin );
+			VectorScale( axis[2], radius, axis[2] );
+
+			p->pVerts[0][0] = oldorigin[0] + axis[2][0];
+			p->pVerts[0][1] = oldorigin[1] + axis[2][1];
+			p->pVerts[0][2] = oldorigin[2] + axis[2][2];
+			p->pVerts[1][0] = origin[0] + axis[2][0];
+			p->pVerts[1][1] = origin[1] + axis[2][1];
+			p->pVerts[1][2] = origin[2] + axis[2][2];
+			p->pVerts[2][0] = origin[0] - axis[2][0];
+			p->pVerts[2][1] = origin[1] - axis[2][1];
+			p->pVerts[2][2] = origin[2] - axis[2][2];
+			p->pVerts[3][0] = oldorigin[0] - axis[2][0];
+			p->pVerts[3][1] = oldorigin[1] - axis[2][1];
+			p->pVerts[3][2] = oldorigin[2] - axis[2][2];
+		}
+		else
+		{
+			if( p->rotation )
+			{
+				// Rotate it around its normal
+				RotatePointAroundVector( axis[1], cl.refdef.forward, cl.refdef.right, p->rotation );
+				CrossProduct( cl.refdef.forward, axis[1], axis[2] );
+
+				// The normal should point at the viewer
+				VectorNegate( cl.refdef.forward, axis[0] );
+
+				// Scale the axes by radius
+				VectorScale( axis[1], radius, axis[1] );
+				VectorScale( axis[2], radius, axis[2] );
+			}
+			else
+			{
+				// the normal should point at the viewer
+				VectorNegate( cl.refdef.forward, axis[0] );
+
+				// scale the axes by radius
+				VectorScale( cl.refdef.right, radius, axis[1] );
+				VectorScale( cl.refdef.up, radius, axis[2] );
+			}
+
+			p->pVerts[0][0] = origin[0] + axis[1][0] + axis[2][0];
+			p->pVerts[0][1] = origin[1] + axis[1][1] + axis[2][1];
+			p->pVerts[0][2] = origin[2] + axis[1][2] + axis[2][2];
+			p->pVerts[1][0] = origin[0] - axis[1][0] + axis[2][0];
+			p->pVerts[1][1] = origin[1] - axis[1][1] + axis[2][1];
+			p->pVerts[1][2] = origin[2] - axis[1][2] + axis[2][2];
+			p->pVerts[2][0] = origin[0] - axis[1][0] - axis[2][0];
+			p->pVerts[2][1] = origin[1] - axis[1][1] - axis[2][1];
+			p->pVerts[2][2] = origin[2] - axis[1][2] - axis[2][2];
+			p->pVerts[3][0] = origin[0] + axis[1][0] - axis[2][0];
+			p->pVerts[3][1] = origin[1] + axis[1][1] - axis[2][1];
+			p->pVerts[3][2] = origin[2] + axis[1][2] - axis[2][2];
+		}
 
 		p->poly.numverts = 4;
 		p->poly.verts = p->pVerts;

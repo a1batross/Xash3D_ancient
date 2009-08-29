@@ -150,6 +150,13 @@ float READ_ANGLE( void )
 	return (float)(READ_SHORT() * (360.0 / 65536));
 }
 
+Vector READ_DIR( void )
+{
+	Vector	dir;
+
+	return dir.BitsToDir( READ_SHORT() ); 
+}
+
 //
 // Sprites draw stuff
 //

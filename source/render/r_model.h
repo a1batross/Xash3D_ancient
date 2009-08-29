@@ -287,13 +287,13 @@ typedef struct
 
 typedef struct
 {
-	int				numframes;
+	int		numframes;
 	maliasframe_t	*frames;
 
-	int				numtags;
-	maliastag_t		*tags;
+	int	 	numtags;
+	maliastag_t	*tags;
 
-	int				nummeshes;
+	int	 	nummeshes;
 	maliasmesh_t	*meshes;
 
 	int numskins;
@@ -364,6 +364,7 @@ typedef struct ref_model_s
 	// volume occupied by the model graphics
 	vec3_t		mins, maxs;
 	float		radius;
+	int		flags;		// effect flags
 
 	// memory representation pointer
 	byte		*mempool;

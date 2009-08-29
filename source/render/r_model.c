@@ -89,7 +89,6 @@ static mshaderref_t		*loadmodel_shaderrefs;
 void Mod_SpriteLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer );
 void Mod_StudioLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer );
 void Mod_QAliasLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer );
-void Mod_AliasLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer );
 void Mod_BrushLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer );
 
 ref_model_t *Mod_LoadModel( ref_model_t *mod, bool crash );
@@ -106,7 +105,6 @@ static modelformatdescriptor_t mod_supportedformats[] =
 { IDSPRITEHEADER,	0,		Mod_SpriteLoadModel	}, // Half-Life sprite models
 { IDSTUDIOHEADER,	0,		Mod_StudioLoadModel	}, // Half-Life studio models
 { IDQALIASHEADER,	0,		Mod_QAliasLoadModel	}, // Quake alias models
-{ ALIASMODHEADER,	MD3_ALIAS_MAX_LODS,	Mod_AliasLoadModel	}, // Quake III Arena .md3 models
 { IDBSPMODHEADER,	0,		Mod_BrushLoadModel	}, // Quake III Arena .bsp models
 { RBBSPMODHEADER,	0,		Mod_BrushLoadModel	}, // SOF2 and JK2 .bsp models
 { QFBSPMODHEADER,	0,		Mod_BrushLoadModel	}, // QFusion .bsp models

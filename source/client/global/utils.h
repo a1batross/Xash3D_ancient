@@ -164,6 +164,7 @@ extern float READ_FLOAT( void );
 extern char* READ_STRING( void );
 extern float READ_COORD( void );
 extern float READ_ANGLE( void );
+extern Vector READ_DIR( void );
 extern void END_READ( void );
 
 // drawing stuff

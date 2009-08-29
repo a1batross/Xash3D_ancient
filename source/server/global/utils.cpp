@@ -2657,7 +2657,7 @@ void UTIL_GunshotDecalTrace( TraceResult *pTrace, int decalNumber )
 	if ( index < 0 )
 		return;
 
-	if (pTrace->flFraction == 1.0)
+	if( pTrace->flFraction == 1.0 )
 		return;
 
 	MESSAGE_BEGIN( MSG_PAS, gmsg.TempEntity, pTrace->vecEndPos );
@@ -2665,7 +2665,8 @@ void UTIL_GunshotDecalTrace( TraceResult *pTrace, int decalNumber )
 		WRITE_COORD( pTrace->vecEndPos.x );
 		WRITE_COORD( pTrace->vecEndPos.y );
 		WRITE_COORD( pTrace->vecEndPos.z );
-		WRITE_SHORT( (short)ENTINDEX(pTrace->pHit) );
+		WRITE_DIR( pTrace->vecPlaneNormal );
+		WRITE_SHORT( (short)ENTINDEX( pTrace->pHit ));
 		WRITE_BYTE( index );
 	MESSAGE_END();
 }

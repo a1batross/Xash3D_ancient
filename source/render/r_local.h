@@ -427,6 +427,7 @@ static _inline byte R_FloatToByte( float x )
 
 float		R_FastSin( float t );
 void		R_LatLongToNorm( const byte latlong[2], vec3_t out );
+void		NormToLatLong( const vec3_t normal, byte latlong[2] );
 
 //====================================================================
 

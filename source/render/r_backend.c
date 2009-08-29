@@ -239,6 +239,38 @@ float R_FastSin( float t )
 
 /*
 =============
+NormToLatLong
+=============
+*/
+void NormToLatLong( const vec3_t normal, byte latlong[2] )
+{
+	// can't do atan2 (normal[1], normal[0])
+	if( normal[0] == 0 && normal[1] == 0 )
+	{
+		if( normal[2] > 0 )
+		{
+			latlong[0] = 0;	// acos ( 1 )
+			latlong[1] = 0;
+		}
+		else
+		{
+			latlong[0] = 128;	// acos ( -1 )
+			latlong[1] = 0;
+		}
+	}
+	else
+	{
+		int	angle;
+
+		angle = (int)(com.acos( normal[2]) * 255.0 / M_PI2 ) & 255;
+		latlong[0] = angle;
+		angle = (int)(com.atan2( normal[1], normal[0] ) * 255.0 / M_PI2 ) & 255;
+		latlong[1] = angle;
+	}
+}
+
+/*
+=============
 R_LatLongToNorm
 =============
 */

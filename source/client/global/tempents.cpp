@@ -166,6 +166,45 @@ void CL_BubbleParticles( const Vector org, int count, float magnitude )
 CL_BulletParticles
 =================
 */
+void CL_SparkParticles( const Vector org, const Vector dir )
+{
+	cparticle_t	src;
+	int		i, flags;
+
+	// sparks
+	flags = (PARTICLE_STRETCH|PARTICLE_BOUNCE|PARTICLE_FRICTION);
+
+	for( i = 0; i < 16; i++ )
+	{
+		src.origin.x = org[0] + dir[0] * 2 + RANDOM_FLOAT( -1, 1 );
+		src.origin.y = org[1] + dir[1] * 2 + RANDOM_FLOAT( -1, 1 );
+		src.origin.z = org[2] + dir[2] * 2 + RANDOM_FLOAT( -1, 1 );
+		src.velocity.x = dir[0] * 180 + RANDOM_FLOAT( -60, 60 );
+		src.velocity.y = dir[1] * 180 + RANDOM_FLOAT( -60, 60 );
+		src.velocity.z = dir[2] * 180 + RANDOM_FLOAT( -60, 60 );
+		src.accel.x = src.accel.y = 0;
+		src.accel.z = -120 + RANDOM_FLOAT( -60, 60 );
+		src.color = Vector( 1.0, 1.0f, 1.0f );
+		src.colorVelocity = Vector( 0, 0, 0 );
+		src.alpha = 1.0;
+		src.alphaVelocity = -8.0;
+		src.radius = 0.4 + RANDOM_FLOAT( -0.2, 0.2 );
+		src.radiusVelocity = 0;
+		src.length = 8 + RANDOM_FLOAT( -4, 4 );
+		src.lengthVelocity = 8 + RANDOM_FLOAT( -4, 4 );
+		src.rotation = 0;
+		src.bounceFactor = 0.2;
+
+		if( !g_engfuncs.pEfxAPI->R_AllocParticle( &src, gHUD.m_hSparks, flags ))
+			return;
+	}
+}
+
+/*
+=================
+CL_BulletParticles
+=================
+*/
 void CL_BulletParticles( const Vector org, const Vector dir )
 {
 	cparticle_t	src;
@@ -326,9 +365,9 @@ void HUD_ParseTempEntity( void )
 		pos.x = READ_COORD();
 		pos.y = READ_COORD();
 		pos.z = READ_COORD();
+		dir = READ_DIR();
 		READ_SHORT(); // FIXME: skip entindex
-		g_engfuncs.pEfxAPI->CL_FindExplosionPlane( pos, 10, dir );
-		CL_BulletParticles( pos, Vector( 0, 0, -1 ));
+		CL_BulletParticles( pos, dir );
 		CL_PlaceDecal( pos, dir, 2, g_engfuncs.pEfxAPI->CL_DecalIndex( READ_BYTE() ));
 		break;
 	case TE_DECAL:
@@ -355,6 +394,13 @@ void HUD_ParseTempEntity( void )
 		else CL_PlaceDecal( pos, dir, scale, g_engfuncs.pEfxAPI->CL_DecalIndexFromName( "{scorch2" )); 
 		if(!(flags & TE_EXPLFLAG_NODLIGHTS )) CL_AllocDLight( pos, 250.0f, 0.28f, 0.8f );
 		if(!(flags & TE_EXPLFLAG_NOSOUND )) CL_PlaySound( "weapons/explode3.wav", 1.0f, pos );
+		break;
+	case TE_SPARKS:
+		pos.x = READ_COORD();
+		pos.y = READ_COORD();
+		pos.z = READ_COORD();
+		g_engfuncs.pEfxAPI->CL_FindExplosionPlane( pos, 1.0f, dir );
+		CL_SparkParticles( pos, dir );
 		break;
 	case TE_TELEPORT:
 		pos.x = READ_COORD();

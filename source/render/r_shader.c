@@ -3394,7 +3394,7 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 	case SHADER_ALIAS:
 		shader->type = SHADER_ALIAS;
 		shader->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT;
-		shader->features = MF_STCOORDS;
+		shader->features = MF_STCOORDS|MF_NORMALS;
 		shader->num_stages = 1;
 		shader->name = Shader_Malloc( length + 1 + sizeof( ref_stage_t ) * shader->num_stages );
 		strcpy( shader->name, shortname );
@@ -3436,14 +3436,14 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		// NOTE: all alias models allow to change their rendermodes but using kRenderNormal as default  		
 		pass->flags |= SHADERSTAGE_RENDERMODE;
 		pass->glState = GLSTATE_DEPTHWRITE;
-		pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
+		pass->rgbGen.type = RGBGEN_LIGHTING_DIFFUSE;
 		pass->alphaGen.type = ALPHAGEN_IDENTITY;
 		shader->sort = SORT_OPAQUE;
 		break;
 	case SHADER_STUDIO:
 		shader->type = SHADER_STUDIO;
 		shader->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT;
-		shader->features = MF_STCOORDS;
+		shader->features = MF_STCOORDS|MF_NORMALS;
 		shader->num_stages = 1;
 		shader->name = Shader_Malloc( length + 1 + sizeof( ref_stage_t ) * shader->num_stages );
 		strcpy( shader->name, shortname );
@@ -3488,7 +3488,7 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		default:
 			pass->flags |= SHADERSTAGE_RENDERMODE; // any studio model can overrided himself rendermode
 			pass->glState = GLSTATE_DEPTHWRITE;
-			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
+			pass->rgbGen.type = RGBGEN_LIGHTING_DIFFUSE;
 			pass->alphaGen.type = ALPHAGEN_IDENTITY;
 			shader->sort = SORT_OPAQUE;
 			break;

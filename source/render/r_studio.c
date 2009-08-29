@@ -32,10 +32,12 @@ float		studio_radius;
 
 // lighting stuff
 vec3_t		*m_pxformverts;
+vec3_t		*m_pxformnorms;
 vec3_t		*m_pvlightvalues;
 vec3_t		m_blightvec [MAXSTUDIOBONES];
 vec3_t		g_lightvalues[MAXSTUDIOVERTS];
 vec3_t		g_xformverts[MAXSTUDIOMODELS][MAXSTUDIOVERTS];	// cache for current rendering model
+vec3_t		g_xformnorms[MAXSTUDIOMODELS][MAXSTUDIOVERTS];	// cache for current rendering model
 bool		g_cachestate[MAXSTUDIOMODELS];		// true if vertices already transformed
 
 // chrome stuff
@@ -1454,9 +1456,14 @@ void R_StudioDrawMesh( const meshbuffer_t *mb, int meshnum, dstudiotexture_t * p
 			}
 			av = m_pxformverts[ptricmds[0]]; // verts
 			Vector4Set( inVertsArray[r_backacc.numVerts], av[0], av[1], av[2], 1.0f );
+			lv = m_pxformnorms[ptricmds[1]]; // verts
+			VectorNormalizeFast( lv );
+			Vector4Set( inNormalsArray[r_backacc.numVerts], lv[0], lv[1], lv[2], 1.0f );
 			r_backacc.numVerts++;
 		}
 	}
+	if( calcSTVectors )
+		R_BuildTangentVectors( r_backacc.numVerts, inVertsArray, inNormalsArray, inCoordsArray, r_backacc.numElems / 3, inElemsArray, inSVectorsArray );
 
 	if( max_vertexes < r_backacc.numVerts )
 	{
@@ -2181,11 +2188,19 @@ void R_StudioDrawPoints( const meshbuffer_t *mb )
 	if( doTransform )
 	{
 		m_pxformverts = g_xformverts[modelnum];
+		m_pxformnorms = g_xformnorms[modelnum];
 
 		if( !g_cachestate[modelnum] )
 		{
 			for( i = 0; i < m_pSubModel->numverts; i++ )
-				Matrix4x4_Transform( m_pbonestransform[pvertbone[i]], pstudioverts[i], m_pxformverts[i]);
+			{
+				vec3_t	tmp;
+
+				VectorCopy( pstudionorms[i], tmp );
+				VectorNormalizeFast( tmp );
+				Matrix4x4_Transform( m_pbonestransform[pvertbone[i]], pstudioverts[i], m_pxformverts[i] );
+				Matrix4x4_Transform( m_pbonestransform[pvertbone[i]], tmp, m_pxformnorms[i] );
+			}
 			g_cachestate[modelnum] = true;
 		}
 	}

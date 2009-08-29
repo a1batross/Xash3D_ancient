@@ -355,27 +355,6 @@ void R_TranslateForEntity( ref_entity_t *e )
 
 /*
 =============
-R_LerpTag
-=============
-*/
-bool R_LerpTag( orientation_t *orient, const ref_model_t *mod, int oldframe, int frame, float lerpfrac, const char *name )
-{
-	if( !orient )
-		return false;
-
-	VectorClear( orient->origin );
-	Matrix3x3_LoadIdentity( orient->axis );
-
-	if( !name ) return false;
-
-	if( mod->type == mod_alias )
-		return R_AliasModelLerpTag( orient, mod->extradata, oldframe, frame, lerpfrac, name );
-
-	return false;
-}
-
-/*
-=============
 R_FogForSphere
 =============
 */
@@ -2146,6 +2125,10 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 		break;
 	case mod_studio:
 		if( !refent->model->phdr )
+			return false;
+		break;
+	case mod_alias:		
+		if( !refent->model->extradata )
 			return false;
 		break;
 	case mod_sprite:		

@@ -147,7 +147,6 @@ void	R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, f
 void	R_DrawStretchRaw( int x, int y, int w, int h, int cols, int rows, const byte *data, bool redraw );
 void	R_SetCustomColor( int num, int r, int g, int b );
 void	R_LightForOrigin( const vec3_t origin, vec3_t dir, vec4_t ambient, vec4_t diffuse, float radius );
-bool	R_LerpTag( orientation_t *orient, const struct ref_model_s *mod, int oldframe, int frame, float lerpfrac, const char *name );
 int	R_GetClippedFragments( const vec3_t origin, float radius, vec3_t axis[3], int maxfverts, vec3_t *fverts, 
 					  int maxfragments, fragment_t *fragments );
 
