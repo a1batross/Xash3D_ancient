@@ -19,9 +19,6 @@
 #define PACKFILE_FLAG_DEFLATED	(1<<1) // file compressed using the deflate algorithm
 #define FILE_BUFF_SIZE		2048
 
-// filesystem flags
-#define FS_READONLY_PATH		1
-
 typedef struct
 {
 	z_stream		zstream;
@@ -1057,7 +1054,8 @@ void FS_AddGameDirectory( const char *dir, int flags )
 	search_t		*wads;
 	int		i;
 
-	com.strncpy( fs_gamedir, dir, sizeof( fs_gamedir ));
+	if(!( flags & FS_NOWRITE_PATH ))
+		com.strncpy( fs_gamedir, dir, sizeof( fs_gamedir ));
 
 	stringlistinit( &list );
 	listdirectory( &list, dir );
@@ -1115,12 +1113,12 @@ void FS_AddGameDirectory( const char *dir, int flags )
 FS_AddGameHierarchy
 ================
 */
-void FS_AddGameHierarchy( const char *dir )
+void FS_AddGameHierarchy( const char *dir, int flags )
 {
 	// Add the common game directory
 	if( dir || *dir ) 
 	{
-		FS_AddGameDirectory( va( "%s%s/", fs_basedir, dir ), 0 );
+		FS_AddGameDirectory( va( "%s%s/", fs_basedir, dir ), flags );
 	}
 }
 
@@ -1197,7 +1195,7 @@ void FS_ClearSearchPath( void )
 	{
 		searchpath_t *search = fs_searchpaths;
 
-		if( search->flags & FS_READONLY_PATH )
+		if( search->flags & FS_STATIC_PATH )
 		{
 			// skip read-only pathes e.g. "bin"
 			if( search->next )
@@ -1283,8 +1281,8 @@ void FS_Rescan( void )
 	MsgDev( D_NOTE, "FS_Rescan( %s )\n", GI.title );
 	FS_ClearSearchPath();
 
-	FS_AddGameHierarchy( GI.basedir );
-	FS_AddGameHierarchy( GI.gamedir );
+	FS_AddGameHierarchy( GI.basedir, 0 );
+	FS_AddGameHierarchy( GI.gamedir, 0 );
 }
 
 void FS_Rescan_f( void )
@@ -1386,7 +1384,7 @@ void FS_LoadGameInfo( const char *filename )
 
 	// prepare to loading
 	FS_ClearSearchPath();
-	FS_AddGameHierarchy( gs_basedir );
+	FS_AddGameHierarchy( gs_basedir, 0 );
 
 	// create default gameinfo
 	if( !FS_FileExists( filename )) FS_CreateGameInfo( filename );
@@ -1481,7 +1479,7 @@ void FS_Init( void )
 	
 	FS_InitMemory();
 
-	FS_AddGameDirectory( "bin/", FS_READONLY_PATH ); // execute system config
+	FS_AddGameDirectory( "bin/", FS_STATIC_PATH ); // execute system config
 
 	Cmd_AddCommand( "fs_rescan", FS_Rescan_f, "rescan filesystem search pathes" );
 	Cmd_AddCommand( "fs_path", FS_Path_f, "show filesystem search pathes" );
@@ -1571,7 +1569,7 @@ void FS_InitRootDir( char *path )
 	fs_ext_path = true;
 
 	FS_ClearSearchPath();
-	FS_AddGameHierarchy( path );
+	FS_AddGameHierarchy( path, FS_STATIC_PATH );
 }
 
 bool FS_GetParmFromCmdLine( char *parm, char *out, size_t size )
@@ -1693,7 +1691,6 @@ static file_t* FS_SysOpen( const char* filepath, const char* mode )
 	}
 
 	file = (file_t *)Mem_Alloc( fs_mempool, sizeof( *file ));
-	Mem_Set( file, 0, sizeof( *file ));
 	file->ungetc = EOF;
 
 	file->handle = open (filepath, mod | opt, 0666);

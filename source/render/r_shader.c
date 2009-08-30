@@ -1835,10 +1835,10 @@ static bool Shaderpass_RGBGen( ref_shader_t *shader, ref_stage_t *pass, script_t
 	else if( !com.stricmp( tok.string, "oneMinusEntity" )) pass->rgbGen.type = RGBGEN_ONE_MINUS_ENTITY;
 	else if( !com.stricmp( tok.string, "vertex" )) pass->rgbGen.type = RGBGEN_VERTEX;
 	else if( !com.stricmp( tok.string, "oneMinusVertex" )) pass->rgbGen.type = RGBGEN_ONE_MINUS_VERTEX;
+	else if( !com.stricmp( tok.string, "lightingDiffuseOnly" )) pass->rgbGen.type = RGBGEN_LIGHTING_DIFFUSE_ONLY;
 	else if( !com.stricmp( tok.string, "lightingDiffuse" )) pass->rgbGen.type = RGBGEN_LIGHTING_DIFFUSE;
-	else if( !com.stricmp( tok.string, "lightingdiffuseonly" )) pass->rgbGen.type = RGBGEN_LIGHTING_DIFFUSE_ONLY;
 	else if( !com.stricmp( tok.string, "exactVertex" )) pass->rgbGen.type = RGBGEN_EXACT_VERTEX;
-	else if( !com.stricmp( tok.string, "lightingambientonly" )) 
+	else if( !com.stricmp( tok.string, "lightingAmbientOnly" )) 
 	{
 		// optional undocs parm 'invLight'
 		if( Com_ReadToken( script, false, &tok ))
@@ -3059,6 +3059,7 @@ void Shader_Finish( ref_shader_t *s )
 		s->sort = SORT_DECAL;
 
 	size += s->numDeforms * sizeof( deform_t ) + s->num_stages * sizeof( ref_stage_t );
+
 	for( i = 0, pass = r_currentPasses; i < s->num_stages; i++, pass++ )
 	{
 		// rgbgen args
@@ -3083,11 +3084,11 @@ void Shader_Finish( ref_shader_t *s )
 
 	buffer = Shader_Malloc( size );
 
-	s->name = ( char * )buffer; buffer += strlen( oldname ) + 1;
+	s->name = (char *)buffer; buffer += strlen( oldname ) + 1;
 	s->stages = ( ref_stage_t * )buffer; buffer += s->num_stages * sizeof( ref_stage_t );
 
-	strcpy( s->name, oldname );
-	Mem_Copy( s->stages, r_currentPasses, s->num_stages * sizeof( ref_stage_t ) );
+	com.strcpy( s->name, oldname );
+	Mem_Copy( s->stages, r_currentPasses, s->num_stages * sizeof( ref_stage_t ));
 
 	for( i = 0, pass = s->stages; i < s->num_stages; i++, pass++ )
 	{
@@ -3115,7 +3116,7 @@ void Shader_Finish( ref_shader_t *s )
 			pass->rgbGen.func = NULL;
 		}
 
-		if( pass->alphaGen.type == ALPHAGEN_WAVE  || pass->rgbGen.type == ALPHAGEN_ALPHAWAVE )
+		if( pass->alphaGen.type == ALPHAGEN_WAVE  || pass->alphaGen.type == ALPHAGEN_ALPHAWAVE )
 		{
 			pass->alphaGen.func = ( waveFunc_t * )buffer; buffer += sizeof( waveFunc_t );
 			Mem_Copy( pass->alphaGen.func, r_currentPasses[i].alphaGen.func, sizeof( waveFunc_t ));

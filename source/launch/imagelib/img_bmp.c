@@ -12,14 +12,13 @@ Image_LoadBMP
 */
 bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 {
-	byte	*buf_p, *pb, *pbBmpBits;
-	int	i, columns, rows;
-	RGBQUAD	rgrgbPalette[256];
-	dword	cbBmpBits;
-	dword	cbPalBytes;
-	dword	biTrueWidth;
-	bool	result = false;
+	byte	*buf_p, *pixbuf;
+	byte	palette[256][4];
+	int	i, columns, column, rows, row, bpp = 1;
+	int	cbPalBytes = 0;
 	bmp_t	bhdr;
+
+	if( filesize < sizeof( bhdr )) return false; 
 
 	buf_p = (byte *)buffer;
 	bhdr.id[0] = *buf_p++;
@@ -38,8 +37,7 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 	bhdr.vRes = LittleLong(*(long *)buf_p);			buf_p += 4;
 	bhdr.colors = LittleLong(*(long *)buf_p);		buf_p += 4;
 	bhdr.importantColors = LittleLong(*(long *)buf_p);	buf_p += 4;
-	Mem_Copy( bhdr.palette, buf_p, sizeof( bhdr.palette ));
-	
+
 	// bogus file header check
 	if( bhdr.reserved0 != 0 ) return false;
 
@@ -56,93 +54,136 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 		return false;
           }
           
-	// bogus bit depth?  Only 8-bit supported.
-	if( bhdr.bitsPerPixel != 8 )
+	// bogus bit depth?
+	if( bhdr.bitsPerPixel < 8 )
 	{
-		MsgDev( D_ERROR, "Image_LoadBMP: %d not a 8 bit image\n", bhdr.bitsPerPixel );
+		MsgDev( D_ERROR, "Image_LoadBMP: monochrome and 4-bit BMP files not supported (%s)\n", name );
 		return false;
 	}
 	
 	// bogus compression?  Only non-compressed supported.
 	if( bhdr.compression != BI_RGB ) 
 	{
-		MsgDev( D_ERROR, "Image_LoadBMP: it's compressed file\n");
+		MsgDev( D_ERROR, "Image_LoadBMP: only uncompressed BMP files supported (%s)\n", name );
 		return false;
 	}
+	
+	image.width = columns = bhdr.width;
+	image.height = rows = (bhdr.height < 0 ) ? -bhdr.height : bhdr.height;
 
-	image.width = bhdr.width;
-	image.height = bhdr.height;
 	if(!Image_ValidSize( name ))
 		return false;          
 
-	// figure out how many entires are actually in the table
-	if( bhdr.colors == 0 )
+	if( bhdr.bitsPerPixel == 8 )
 	{
-		bhdr.colors = 256;
-		cbPalBytes = (1 << bhdr.bitsPerPixel) * sizeof( RGBQUAD );
-	}
-	else cbPalBytes = bhdr.colors * sizeof( RGBQUAD );
-	Mem_Copy( rgrgbPalette, &bhdr.palette, cbPalBytes ); // read palette (bmih.biClrUsed entries)
-
-	// convert to a unpacked 1024 byte palette
-	pb = image.palette = Mem_Alloc( Sys.imagepool, 1024 );
-
-	// copy over used entries
-	for( i = 0; i < (int)bhdr.colors; i++ )
-	{
-		*pb++ = rgrgbPalette[i].rgbRed;
-		*pb++ = rgrgbPalette[i].rgbGreen;
-		*pb++ = rgrgbPalette[i].rgbBlue;
-		*pb++ = rgrgbPalette[i].rgbReserved;
-	}
-
-	// fill in unused entires will 0, 0, 0
-	for( i = bhdr.colors; i < 256; i++ ) 
-	{
-		*pb++ = 0;
-		*pb++ = 0;
-		*pb++ = 0;
-		*pb++ = 0;
-	}
-
-	// read bitmap bits (remainder of file)
-	columns = bhdr.width, rows = bhdr.height;
-	if ( rows < 0 ) rows = -rows;
-	cbBmpBits = columns * rows;
-          buf_p += 1024; // move pointer
-          
-	pb = buf_p;
-	pbBmpBits = Mem_Alloc( Sys.imagepool, cbBmpBits );
-
-	// data is actually stored with the width being rounded up to a multiple of 4
-	biTrueWidth = (bhdr.width + 3) & ~3;
-	
-	// reverse the order of the data.
-	pb += (bhdr.height - 1) * biTrueWidth;
-	for( i = 0; i < bhdr.height; i++ )
-	{
-		Mem_Copy( &pbBmpBits[biTrueWidth * i], pb, biTrueWidth );
-		pb -= biTrueWidth;
-	}
-
-	pb += biTrueWidth;
-	image.depth = image.num_mips = 1;
-	image.type = PF_INDEXED_32; // 32 bit palette
-	Image_GetPaletteBMP( image.palette );
-
-	// scan for transparency
-	for( i = 0; i < image.width * image.height; i++ )
-	{
-		if( pbBmpBits[i] == 255 )
+		// figure out how many entires are actually in the table
+		if( bhdr.colors == 0 )
 		{
-			image.flags |= IMAGE_HAS_ALPHA;
-			break;
+			bhdr.colors = 256;
+			cbPalBytes = (1 << bhdr.bitsPerPixel) * sizeof( RGBQUAD );
+		}
+		else cbPalBytes = bhdr.colors * sizeof( RGBQUAD );
+	}
+
+	if( image.cmd_flags & IL_KEEP_8BIT )
+	{
+		pixbuf = image.palette = Mem_Alloc( Sys.imagepool, 1024 );
+		image.flags |= IMAGE_HAS_COLOR;
+
+		Mem_Copy( palette, buf_p, cbPalBytes );
+ 
+		// bmp have a reversed palette colors
+		for( i = 0; i < bhdr.colors; i++ )
+		{
+			*pixbuf++ = palette[i][2];
+			*pixbuf++ = palette[i][1];
+			*pixbuf++ = palette[i][0];
+			*pixbuf++ = palette[i][3];
+		}
+		image.type = PF_INDEXED_32; // 32 bit palette
+	}
+	else
+	{
+		image.type = PF_RGBA_32;
+		bpp = 4;
+	}
+
+	buf_p += cbPalBytes;
+	columns = (bhdr.width + 3) & ~3;
+	image.size = (buffer + filesize) - buf_p;
+	image.rgba = Mem_Alloc( Sys.imagepool, image.size );
+
+	for( row = rows - 1; row >= 0; row-- )
+	{
+		pixbuf = image.rgba + (row * columns * bpp);
+
+		for( column = 0; column < columns; column++ )
+		{
+			byte	red, green, blue, alpha;
+			int	palIndex;
+			word	shortPixel;
+
+			switch( bhdr.bitsPerPixel )
+			{
+			case 8:
+				if( image.cmd_flags & IL_KEEP_8BIT )
+				{
+					palIndex = *buf_p++;
+					*pixbuf++ = palIndex;
+				}
+				else
+				{
+					palIndex = *buf_p++;
+					*pixbuf++ = palette[palIndex][2];
+					*pixbuf++ = palette[palIndex][1];
+					*pixbuf++ = palette[palIndex][0];
+					*pixbuf++ = palette[palIndex][3];
+				}
+				if( palIndex == 255 ) image.flags |= IMAGE_HAS_ALPHA;
+				break;
+			case 16:
+				shortPixel = *(word *)buf_p, buf_p += 2;
+				*pixbuf++ = blue = (shortPixel & ( 31 << 10 )) >> 7;
+				*pixbuf++ = green = (shortPixel & ( 31 << 5 )) >> 2;
+				*pixbuf++ = red = (shortPixel & ( 31 )) << 3;
+				*pixbuf++ = 0xff;
+				break;
+
+			case 24:
+				blue = *buf_p++;
+				green = *buf_p++;
+				red = *buf_p++;
+				*pixbuf++ = red;
+				*pixbuf++ = green;
+				*pixbuf++ = blue;
+				*pixbuf++ = 0xFF;
+				break;
+			case 32:
+				image.flags |= IMAGE_HAS_ALPHA;
+				blue = *buf_p++;
+				green = *buf_p++;
+				red = *buf_p++;
+				alpha = *buf_p++;
+				*pixbuf++ = red;
+				*pixbuf++ = green;
+				*pixbuf++ = blue;
+				*pixbuf++ = alpha;
+				break;
+			default:
+				MsgDev( D_ERROR, "Image_LoadBMP: illegal pixel_size (%s)\n", name );
+				Mem_Free( image.palette );
+				Mem_Free( image.rgba );
+				return false;
+			}
+			if(!( image.cmd_flags & IL_KEEP_8BIT ) && ( red != green || green != blue ))
+				image.flags |= IMAGE_HAS_COLOR;
 		}
 	}
 
-	result = FS_AddMipmapToPack( pbBmpBits, image.width, image.height );
-	Mem_Free( pbBmpBits );
-	return result;
+	image.depth = image.num_mips = 1;
+	Image_GetPaletteBMP( image.palette );
+
+	return true;
 }
 
 bool Image_SaveBMP( const char *name, rgbdata_t *pix )

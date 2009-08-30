@@ -564,7 +564,7 @@ void Image_ConvertPalTo24bit( rgbdata_t *pic )
 	}
 	if( pic->type == PF_INDEXED_24 )
 	{
-		MsgDev(D_ERROR,"Image_ConvertPalTo24bit: palette already converted\n");
+		MsgDev( D_ERROR, "Image_ConvertPalTo24bit: palette already converted\n" );
 		return;
 	}
 
@@ -1202,7 +1202,7 @@ byte *Image_FlipInternal( const byte *in, word *srcwidth, word *srcheight, int t
 	byte	*out;
 
 	// nothing to process
-	if(!(flags & IMAGE_FLIP_X|IMAGE_FLIP_Y|IMAGE_ROT_90 ))
+	if(!(flags & (IMAGE_FLIP_X|IMAGE_FLIP_Y|IMAGE_ROT_90)))
 		return (byte *)in;
 
 	switch( type )

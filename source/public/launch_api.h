@@ -385,6 +385,10 @@ typedef struct rgbdata_s
 	size_t	size;		// for bounds checking
 } rgbdata_t;
 
+// filesystem flags
+#define FS_STATIC_PATH	1	// FS_ClearSearchPath will be ignore this path
+#define FS_NOWRITE_PATH	2	// default behavior - last added gamedir set as writedir. This flag disables it
+
 /*
 ==============================================================================
 
@@ -458,7 +462,7 @@ typedef struct stdilib_api_s
 	// common functions
 	void (*Com_InitRootDir)( char *path );			// init custom rootdir 
 	void (*Com_LoadGameInfo)( const char *filename );		// gate game info from script file
-	void (*Com_AddGameHierarchy)(const char *dir);		// add base directory in search list
+	void (*Com_AddGameHierarchy)( const char *dir, int flags );	// add base directory in search list
 	void (*Com_AllowDirectPaths)( bool enable );		// allow direct paths e.g. C:\windows
 	int  (*Com_CheckParm)( const char *parm );		// check parm in cmdline  
 	bool (*Com_GetParm)( char *parm, char *out, size_t size );	// get parm from cmdline

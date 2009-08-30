@@ -5,6 +5,7 @@
 
 #include "mdllib.h"
 #include "matrix_lib.h"
+#include "stdio.h"		// sscanf
 
 bool		cdset;
 bool		ignore_errors;
@@ -71,7 +72,6 @@ vec3_t		eyeposition;
 vec3_t		defaultadjust;
 
 char		filename[MAX_SYSPATH];
-char		line[MAX_SYSPATH];
 string		pivotname[64];	// names of the pivot points
 string		defaulttexture[64];
 string		sourcetexture[64];
@@ -81,7 +81,12 @@ s_mesh_t		*pmesh;
 token_t		token;
 dstudiohdr_t	*phdr;
 dstudioseqhdr_t	*pseqhdr;
+file_t		*smdfile;
+char		line[2048];
+int		linecount;
 script_t		*studioqc;
+script_t		*studioincludes[32];
+int		numincludes;
 s_sequencegroup_t	sequencegroup;
 s_trianglevert_t	(*triangles)[3];
 s_model_t		*model[MAXSTUDIOMODELS];
@@ -1243,17 +1248,14 @@ void SimplifyModel( void )
 
 void Grab_Skin( s_texture_t *ptexture )
 {
-	string	filename;
 	rgbdata_t	*pic;
 
-	com.strncpy( filename, ptexture->name, MAX_STRING );
-
-	pic = FS_LoadImage( filename, error_bmp, error_bmp_size );
-	if( !pic ) Sys_Break( "unable to load %s\n", filename ); // no error.bmp, missing texture...
+	pic = FS_LoadImage( ptexture->name, error_bmp, error_bmp_size );
+	if( !pic ) Sys_Break( "unable to load %s\n", ptexture->name ); // no error.bmp, missing texture...
 	Image_Process( &pic, 0, 0, IMAGE_PALTO24 );
 
 	ptexture->ppal = Kalloc( 768 );
-	Mem_Copy( ptexture->ppal, pic->palette, sizeof(rgb_t) * 256 );
+	Mem_Copy( ptexture->ppal, pic->palette, sizeof( rgb_t ) * 256 );
 	ptexture->ppicture = Kalloc( pic->size );
 	Mem_Copy( ptexture->ppicture, pic->buffer, pic->size );
 	ptexture->srcwidth = pic->width;
@@ -1364,10 +1366,10 @@ void Build_Reference( s_model_t *pmodel)
 	}
 }
 
-void Grab_Triangles( script_t *script, s_model_t *pmodel )
+void Grab_Triangles( s_model_t *pmodel )
 {
 	int	i, j;
-	int	tcount = 0;	
+	int	tcount = 0, ncount = 0;	
 	vec3_t	vmin, vmax;
 
 	vmin[0] = vmin[1] = vmin[2] = 99999;
@@ -1378,7 +1380,7 @@ void Grab_Triangles( script_t *script, s_model_t *pmodel )
 	// load the base triangles
 	while ( 1 ) 
 	{
-		if( Com_ReadToken( script, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC|SC_PARSE_LINE, &token ))
+		if( FS_Gets( smdfile, line, sizeof( line )) != -1 )
 		{		
 			s_mesh_t		*pmesh;
 			char		texturename[64];
@@ -1387,24 +1389,27 @@ void Grab_Triangles( script_t *script, s_model_t *pmodel )
 			vec3_t		vert[3];
 			vec3_t		norm[3];
 
+			linecount++;
+
+			// check for end
+			if( !com.strcmp( "end\n", line )) return;
+
 			// strip off trailing smag
-			com.strncpy( texturename, token.string, 64 );
+			com.strncpy( texturename, line, sizeof( texturename ));
 			for( i = com.strlen( texturename ) - 1; i >= 0 && !isgraph( texturename[i] ); i-- );
 			texturename[i+1] = '\0';
-
-			if( !com.stricmp( texturename, "end" )) return; // triangles end
 
 			// funky texture overrides
 			for( i = 0; i < numrep; i++ )  
 			{
 				if( sourcetexture[i][0] == '\0' ) 
 				{
-					com.strncpy( texturename, defaulttexture[i], 64 );
+					com.strncpy( texturename, defaulttexture[i], sizeof( texturename ));
 					break;
 				}
 				if( !com.stricmp( texturename, sourcetexture[i] )) 
 				{
-					com.strncpy( texturename, defaulttexture[i], 64 );
+					com.strncpy( texturename, defaulttexture[i], sizeof( texturename ));
 					break;
 				}
 			}
@@ -1412,9 +1417,10 @@ void Grab_Triangles( script_t *script, s_model_t *pmodel )
 			{
 				// weird model problem, skip them
 				MsgDev( D_ERROR, "Grab_Triangles: triangle with invalid texname\n" );
-				Com_ReadToken( script, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC|SC_PARSE_LINE, &token );
-				Com_ReadToken( script, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC|SC_PARSE_LINE, &token );
-				Com_ReadToken( script, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC|SC_PARSE_LINE, &token );
+				FS_Gets( smdfile, line, sizeof( line ));
+				FS_Gets( smdfile, line, sizeof( line ));
+				FS_Gets( smdfile, line, sizeof( line ));
+				linecount += 3;
 				continue;
 			}
 
@@ -1422,56 +1428,53 @@ void Grab_Triangles( script_t *script, s_model_t *pmodel )
 
 			for( j = 0; j < 3; j++ ) 
 			{
-				s_vertex_t	p;
-				vec3_t		tmp;
-				s_normal_t	normal;
-
 				if( flip_triangles ) ptriv = lookup_triangle( pmesh, pmesh->numtris ) + 2 - j;
 				else ptriv = lookup_triangle( pmesh, pmesh->numtris ) + j;
+				
+				if( FS_Gets( smdfile, line, sizeof( line )) != -1 ) 
+				{
+					s_vertex_t	p;
+					vec3_t		tmp;
+					s_normal_t	normal;
 
-				// grab triangle info
-				Com_ReadLong( script, true, &bone );
-				Com_ReadFloat( script, false, &p.org[0] );
-				Com_ReadFloat( script, false, &p.org[1] );
-				Com_ReadFloat( script, false, &p.org[2] );
-				Com_ReadFloat( script, false, &normal.org[0] );
-				Com_ReadFloat( script, false, &normal.org[1] );
-				Com_ReadFloat( script, false, &normal.org[2] );
-				Com_ReadFloat( script, false, &ptriv->u );
-				Com_ReadFloat( script, false, &ptriv->v );
+					linecount++;
+					if( sscanf( line, "%d %f %f %f %f %f %f %f %f", &bone, &p.org[0], &p.org[1], &p.org[2], &normal.org[0], &normal.org[1], &normal.org[2], &ptriv->u, &ptriv->v ) == 9 ) 
+					{
+						// translate triangles
+						if( bone < 0 || bone >= pmodel->numbones ) 
+							Sys_Break( "bogus bone index %d \n%s line %d", bone, filename, token.line );
+						VectorCopy( p.org, vert[j] );
+						VectorCopy( normal.org, norm[j] );
 
-				// skip MilkShape additional info
-				Com_SkipRestOfLine( script );
-		                                        
-				// translate triangles
-				if( bone < 0 || bone >= pmodel->numbones ) 
-					Sys_Break( "bogus bone index %d \n%s line %d", bone, filename, token.line );
-				VectorCopy( p.org, vert[j] );
-				VectorCopy( normal.org, norm[j] );
+						p.bone = bone;
+						normal.bone = bone;
+						normal.skinref = pmesh->skinref;
 
-				p.bone = bone;
-				normal.bone = bone;
-				normal.skinref = pmesh->skinref;
+						if( p.org[2] < vmin[2] ) vmin[2] = p.org[2];
 
-				if( p.org[2] < vmin[2] ) vmin[2] = p.org[2];
+						adjust_vertex( p.org );
+						scale_vertex( p.org );
 
-				adjust_vertex( p.org );
-				scale_vertex( p.org );
+						// move vertex position to object space.
+						VectorSubtract( p.org, bonefixup[p.bone].worldorg, tmp );
+						Matrix4x4_Transform( bonefixup[p.bone].im, tmp, p.org );
 
-				// move vertex position to object space.
-				VectorSubtract( p.org, bonefixup[p.bone].worldorg, tmp );
-				Matrix4x4_Transform( bonefixup[p.bone].im, tmp, p.org );
+						// move normal to object space.
+						VectorCopy( normal.org, tmp );
+						Matrix4x4_Transform( bonefixup[p.bone].im, tmp, normal.org );
+						VectorNormalize( normal.org );
 
-				// move normal to object space.
-				VectorCopy( normal.org, tmp );
-				Matrix4x4_Transform( bonefixup[p.bone].im, tmp, normal.org );
-				VectorNormalize( normal.org );
-
-				ptriv->normindex = lookup_normal( pmodel, &normal );
-				ptriv->vertindex = lookup_vertex( pmodel, &p );
+						ptriv->normindex = lookup_normal( pmodel, &normal );
+						ptriv->vertindex = lookup_vertex( pmodel, &p );
                                         
-				// tag bone as being used
-				// pmodel->bone[bone].ref = 1;
+						// tag bone as being used
+						// pmodel->bone[bone].ref = 1;
+					}
+					else
+					{
+						Sys_Break( "%s: error on line %d: %s\n", filename, linecount, line );
+					}
+				}
 			}
 			pmodel->trimesh[tcount] = pmesh;
 			pmodel->trimap[tcount] = pmesh->numtris++;
@@ -1482,76 +1485,73 @@ void Grab_Triangles( script_t *script, s_model_t *pmodel )
 	if( vmin[2] != 0.0 ) MsgDev( D_NOTE, "Grab_Triangles: lowest vector at %f\n", vmin[2] );
 }
 
-void Grab_Skeleton( script_t *script, s_node_t *pnodes, s_bone_t *pbones )
+void Grab_Skeleton( s_node_t *pnodes, s_bone_t *pbones )
 {
+	float	x, y, z, xr, yr, zr;
+	char	cmd[1024];
 	int	index;
           int	time = 0;
 	
-	while ( 1 ) 
+	while( FS_Gets( smdfile, line, sizeof( line )) != -1 ) 
 	{
-		if( !Com_ReadToken( script, SC_ALLOW_NEWLINES, &token ))
-			break;
-		
-		if( !com.stricmp( token.string, "end" )) return; // skeleton end
-		else if( !com.stricmp( token.string, "time" ))
+		linecount++;
+		if( sscanf( line, "%d %f %f %f %f %f %f", &index, &x, &y, &z, &xr, &yr, &zr ) == 7 )
 		{
-			// check time
-			Com_ReadToken( script, 0, &token );
-			time += token.integerValue;
-			if( time > 0 ) MsgDev( D_WARN, "Grab_Skeleton: Warning! An animation file is probably used as a reference\n" ); 
-			continue;
-		}
-                    else
-                    {
-			// grab skeleton info
-			index = com.atoi( token.string );
-			Com_ReadFloat( script, false, &pbones[index].pos[0] );
-			Com_ReadFloat( script, false, &pbones[index].pos[1] );
-			Com_ReadFloat( script, false, &pbones[index].pos[2] );
+			pbones[index].pos[0] = x;
+			pbones[index].pos[1] = y;
+			pbones[index].pos[2] = z;
 
 			scale_vertex( pbones[index].pos );
-			if( pnodes[index].mirrored ) VectorScale( pbones[index].pos, -1.0, pbones[index].pos );
+
+			if (pnodes[index].mirrored)
+				VectorScale( pbones[index].pos, -1.0, pbones[index].pos );
 			
-			Com_ReadFloat( script, false, &pbones[index].rot[0] );			
-			Com_ReadFloat( script, false, &pbones[index].rot[1] );
-			Com_ReadFloat( script, false, &pbones[index].rot[2] );
+			pbones[index].rot[0] = xr;
+			pbones[index].rot[1] = yr;
+			pbones[index].rot[2] = zr;
 
 			clip_rotations( pbones[index].rot ); 
 		}
+		else if( sscanf( line, "%s %d", cmd, &index ))
+		{
+			if( !com.stricmp( cmd, "time" )) 
+			{
+				time += index;
+				if( time > 0 ) MsgDev( D_WARN, "Grab_Skeleton: Warning! An animation file is probably used as a reference\n" ); 
+			}
+			else if( !com.stricmp( cmd, "end" )) 
+				return;
+		}
 	}
-	Sys_Break( "Unexpected EOF %s at line %d\n", filename, token.line );
+	Sys_Break( "Unexpected EOF %s at line %d\n", filename, linecount );
 }
 
-int Grab_Nodes( script_t *script, s_node_t *pnodes )
+int Grab_Nodes( s_node_t *pnodes )
 {
 	int	i, index;
+	char	name[2048];
 	int	parent;
 	int	numbones = 0;
-	string	name;
 
-	while( 1 ) 
+	while( FS_Gets( smdfile, line, sizeof( line )) != -1 ) 
 	{
-		if(!Com_ReadToken( script, SC_ALLOW_NEWLINES, &token )) break;
-
-		// end of nodes description
-		if( !com.stricmp( token.string, "end" )) return numbones + 1;
-		
-		index = com.atoi( token.string );	// read bone index (we already have filled token)
-		Com_ReadString( script, false, name );
-		Com_ReadLong( script, false, &parent);	// read bone parent
-
-		com.strncpy( pnodes[index].name, name, sizeof(pnodes[index].name));
-		pnodes[index].parent = parent;
-		numbones = index;
-
-		// check for mirrored bones;
-		for( i = 0; i < nummirrored; i++ )
+		linecount++;
+		if( sscanf( line, "%d \"%[^\"]\" %d", &index, name, &parent ) == 3 )
 		{
-			if( !com.strcmp( name, mirrored[i] ))
-				pnodes[index].mirrored = 1;
+			com.strncpy( pnodes[index].name, name, sizeof( pnodes[index].name ));
+			pnodes[index].parent = parent;
+			numbones = index;
+
+			// check for mirrored bones;
+			for( i = 0; i < nummirrored; i++ )
+			{
+				if( !com.strcmp( name, mirrored[i] ))
+					pnodes[index].mirrored = 1;
+			}
+			if((!pnodes[index].mirrored) && parent != -1 )
+				pnodes[index].mirrored = pnodes[pnodes[index].parent].mirrored;
 		}
-		if((!pnodes[index].mirrored) && parent != -1 )
-			pnodes[index].mirrored = pnodes[pnodes[index].parent].mirrored;
+		else return numbones + 1;
 	}
 
 	Sys_Break( "Unexpected EOF %s at line %d\n", filename, token.line );
@@ -1560,40 +1560,40 @@ int Grab_Nodes( script_t *script, s_node_t *pnodes )
 
 void Grab_Studio( s_model_t *pmodel )
 {
-          script_t	*studio;
+	char	cmd[1024];
+	int	option;
 
 	com.strncpy( filename, pmodel->name, sizeof( filename ));
 
 	FS_DefaultExtension( filename, ".smd" );
-	studio = Com_OpenScript( filename, NULL, 0 );
-	if( !studio ) Sys_Break( "unable to open %s\n", filename );
+	smdfile = FS_Open( filename, "rb" );
+	if( !smdfile ) Sys_Break( "unable to open %s\n", filename );
 	Msg( "grabbing %s\n", filename );
+	linecount = 0;
 
-	while( 1 )
+	while( FS_Gets( smdfile, line, sizeof( line )) != -1 )
 	{
-		if( !Com_ReadToken( studio, SC_ALLOW_NEWLINES, &token )) break;
-
-		if( !com.stricmp( token.string, "version" ))
+		linecount++;
+		sscanf( line, "%s %d", cmd, &option );
+		if( !com.stricmp( cmd, "version" ))
 		{
-			int	option;
-			bool	result = Com_ReadLong( studio, false, &option );
-			if( option != 1 ) Sys_Break( "Grab_Studio: %s bad version file %i, %i\n", filename, option, result );
+			if( option != 1 ) Sys_Break( "Grab_Studio: %s bad version file %i\n", filename, option );
 		}
-		else if( !com.stricmp( token.string, "nodes" ))
+		else if( !com.stricmp( cmd, "nodes" ))
 		{
-			pmodel->numbones = Grab_Nodes( studio, pmodel->node );
+			pmodel->numbones = Grab_Nodes( pmodel->node );
 		}
-		else if( !com.stricmp( token.string, "skeleton" ))
+		else if( !com.stricmp( cmd, "skeleton" ))
 		{
-			Grab_Skeleton( studio, pmodel->node, pmodel->skeleton );
+			Grab_Skeleton( pmodel->node, pmodel->skeleton );
 		}
-		else if( !com.stricmp( token.string, "triangles" ))
+		else if( !com.stricmp( cmd, "triangles" ))
 		{
-			Grab_Triangles( studio, pmodel );
+			Grab_Triangles( pmodel );
 		}
-		else MsgDev( D_WARN, "Grab_Studio: unknown studio command %s at line %d\n", token.string, token.line );
+		else MsgDev( D_WARN, "Grab_Studio: %s unknown studio command %s at line %d\n", filename, cmd, linecount );
 	}
-	Com_CloseScript( studio );
+	FS_Close( smdfile );
 }
 
 /*
@@ -1627,7 +1627,7 @@ void Cmd_Modelname( void )
 
 void Option_Studio( void )
 {
-	if(!Com_ReadToken( studioqc, 0, &token )) return;
+	if(!Com_ReadToken( studioqc, SC_ALLOW_PATHNAMES, &token )) return;
 
 	model[nummodels] = Kalloc( sizeof( s_model_t ));
 	bodypart[numbodyparts].pmodel[bodypart[numbodyparts].nummodels] = model[nummodels];
@@ -1717,11 +1717,12 @@ void Cmd_Body( void )
 	numbodyparts++;
 }
 
-void Grab_Animation( script_t *script, s_animation_t *panim )
+void Grab_Animation( s_animation_t *panim )
 {
 	vec3_t	pos;
 	vec3_t	rot;
 	int	index;
+	char	cmd[2048];
 	int	t = -99999999;
 	int	start = 99999;
 	float	cz, sz;
@@ -1736,34 +1737,14 @@ void Grab_Animation( script_t *script, s_animation_t *panim )
 	cz = com.cos( zrotation );
 	sz = com.sin( zrotation );
 
-	while( 1 ) 
+	while( FS_Gets( smdfile, line, sizeof( line )) != -1 ) 
 	{
-		if(!Com_ReadToken( script, SC_ALLOW_NEWLINES, &token ))
-			break;
-
-		if( !com.stricmp( token.string, "end" ))
+		linecount++;
+		if( sscanf( line, "%d %f %f %f %f %f %f", &index, &pos[0], &pos[1], &pos[2], &rot[0], &rot[1], &rot[2] ) == 7 )
 		{
-			panim->startframe = start;
-			panim->endframe = end;
-			return;
-		}
-		else if( !com.stricmp( token.string, "time" ))
-		{
-			Com_ReadLong( script, false, &t );
-		}
-                    else
-                    {
-			index = com.atoi( token.string );
-			Com_ReadFloat( script, false, &pos[0] );
-			Com_ReadFloat( script, false, &pos[1] );
-			Com_ReadFloat( script, false, &pos[2] );
-			Com_ReadFloat( script, false, &rot[0] );
-			Com_ReadFloat( script, false, &rot[1] );
-			Com_ReadFloat( script, false, &rot[2] );
-
 			if( t >= panim->startframe && t <= panim->endframe )
 			{
-				if (panim->node[index].parent == -1)
+				if( panim->node[index].parent == -1 )
 				{
 					adjust_vertex( pos );
 					panim->pos[index][t][0] = cz * pos[0] - sz * pos[1];
@@ -1772,7 +1753,6 @@ void Grab_Animation( script_t *script, s_animation_t *panim )
 					rot[2] += zrotation; // rotate model
 				}
 				else VectorCopy( pos, panim->pos[index][t] );
-
 				if( t > end ) end = t;
 				if( t < start ) start = t;
 
@@ -1784,6 +1764,21 @@ void Grab_Animation( script_t *script, s_animation_t *panim )
 				VectorCopy( rot, panim->rot[index][t] );
 			}
 		}
+		else if( sscanf( line, "%s %d", cmd, &index ))
+		{
+			if( !com.stricmp( cmd, "time" )) 
+			{
+				t = index;
+			}
+			else if( !com.stricmp( cmd, "end" )) 
+			{
+				panim->startframe = start;
+				panim->endframe = end;
+				return;
+			}
+			else Sys_Break( "%s: error on line %d: %s\n", filename, linecount, line );
+		}
+		else Sys_Break( "%s: error on line %d: %s\n", filename, linecount, line );
 	}
 	Sys_Break( "unexpected EOF: %s.smd line %i\n", panim->name, token.line );
 }
@@ -1802,8 +1797,13 @@ void Shift_Animation( s_animation_t *panim )
 
 		ppos = Kalloc( size );
 		prot = Kalloc( size );
-		Mem_Move( studiopool, (void *)&ppos, &panim->pos[j][panim->startframe], size );
-		Mem_Move( studiopool, (void *)&prot, &panim->rot[j][panim->startframe], size );
+
+		memmove( ppos, &panim->pos[j][panim->startframe], size );
+		memmove( prot, &panim->rot[j][panim->startframe], size );
+
+		Mem_Free( panim->pos[j] );
+		Mem_Free( panim->rot[j] );
+
 		panim->pos[j] = ppos;
 		panim->rot[j] = prot;
 	}
@@ -1811,43 +1811,47 @@ void Shift_Animation( s_animation_t *panim )
 
 void Option_Animation( const char *name, s_animation_t *panim )
 {
-	script_t	*anim;
-	
+	char	cmd[2048];
+	int	option;
+			
 	com.strncpy( panim->name, name, sizeof( panim->name ));
 	com.strncpy( filename, panim->name, sizeof( filename ));
 
 	FS_DefaultExtension( filename, ".smd" );
-	anim = Com_OpenScript( filename, NULL, 0 );
-	if( !anim ) Sys_Break( "unable to open %s\n", filename );
+	smdfile = FS_Open( filename, "rb" );
+	if( !smdfile ) Sys_Break( "unable to open %s\n", filename );
+	linecount = 0;
 
-	while ( 1 )
+	while( FS_Gets( smdfile, line, sizeof( line )) != -1 )
 	{
-		if( !Com_ReadToken( anim, SC_ALLOW_NEWLINES, &token ))
-			break;
+		linecount++;
+		sscanf( line, "%s %d", cmd, &option );
 
-		if( !com.stricmp( token.string, "end" )) break;
-		else if( !com.stricmp( token.string, "version" ))
+		if( !com.stricmp( cmd, "version" ))
 		{
-			int	option;
-			Com_ReadLong( anim, false, &option );
 			if( option != 1 ) MsgDev( D_ERROR, "Grab_Animation: %s bad version file\n", filename );
 		}
-		else if( !com.stricmp( token.string, "nodes" ))
+		else if( !com.stricmp( cmd, "nodes" ))
 		{
-			panim->numbones = Grab_Nodes( anim, panim->node );
+			panim->numbones = Grab_Nodes( panim->node );
 		}
-		else if( !com.stricmp( token.string, "skeleton" ))
+		else if( !com.stricmp( cmd, "skeleton" ))
 		{
-			Grab_Animation( anim, panim );
+			Grab_Animation( panim );
 			Shift_Animation( panim );
 		}
 		else 
 		{
-			MsgDev( D_WARN, "Option_Animation: unknown studio command : %s\n", token.string );
-			Com_SkipRestOfLine( anim ); // skip other tokens at line
+			MsgDev( D_WARN, "Option_Animation: unknown studio command : %s\n", cmd );
+			while( FS_Gets( smdfile, line, sizeof( line )) != -1 )
+			{
+				linecount++;
+				if( !com.strncmp( line, "end", 3 ))
+					break;
+			}
 		}
 	}
-	Com_CloseScript( anim );
+	FS_Close( smdfile );
 }
 
 int Option_Motion( s_sequence_t *psequence )
@@ -2032,8 +2036,9 @@ static int Cmd_Sequence( void )
 		else if( !com.stricmp( token.string, "origin" )) Option_Origin();
 		else if( !com.stricmp( token.string, "rotate" )) Option_Rotate();
 		else if( !com.stricmp( token.string, "scale" )) Option_ScaleUp();
-		else if( !com.stricmp( token.string, "loop" )) sequence[numseq]->flags |= STUDIO_LOOPING;
-		else if( !com.stricmp( token.string, "frame" ))
+		else if( !com.stricmp( token.string, "loop" ) || !com.stricmp( token.string, "looping" ))
+			sequence[numseq]->flags |= STUDIO_LOOPING;
+		else if( !com.stricmp( token.string, "frame" ) || !com.stricmp( token.string, "frames" ))
 		{
 			Com_ReadLong( studioqc, false, &start );
 			Com_ReadLong( studioqc, false, &end );
@@ -2099,7 +2104,6 @@ static int Cmd_Sequence( void )
 		sequence[numseq]->panim[i]->endframe = end;
 		sequence[numseq]->panim[i]->flags = 0;
 		if( i == 0 ) Msg( "grabbing %s\n", filename );
-		else MsgDev( D_INFO, "adding %s[%i]\n", filename, numani );
 		Option_Animation( smdfilename[i], panimation[numani] );
 		numani++;
 	}
@@ -2287,7 +2291,8 @@ int Cmd_TextureGroup( void )
 		if( !com.stricmp( token.string, "{" )) depth++;
 		else if( !com.stricmp( token.string, "}" ))
 		{
-			if( --depth == 0 ) break;
+			depth--;
+			if( depth == 0 ) break;
 			group++;
 			index = 0;
 		}
@@ -2433,7 +2438,7 @@ void Cmd_CdSet( void )
 
 		cdset = true;
 		Com_ReadString( studioqc, false, path );		
-		FS_AddGameHierarchy( path );
+		FS_AddGameHierarchy( path, FS_NOWRITE_PATH );
 	}
 	else MsgDev( D_WARN, "$cd already set\n" );
 }
@@ -2453,7 +2458,7 @@ void Cmd_CdTextureSet( void )
 
 		cdtextureset++;
 		Com_ReadString( studioqc, false, path );
-		FS_AddGameHierarchy( path );
+		FS_AddGameHierarchy( path, FS_NOWRITE_PATH );
 	}
 	else MsgDev( D_WARN, "$cdtexture already set\n" );
 }
@@ -2468,6 +2473,22 @@ syntax: $debug
 void Cmd_DebugBuild( void )
 {
 	ignore_errors = true;
+}
+
+/*
+==============
+Cmd_DebugBuild
+
+syntax: $include "filename"
+==============
+*/
+void Cmd_Include( void )
+{
+	script_t	*include;
+
+	Com_ReadToken( studioqc, SC_ALLOW_PATHNAMES, &token );
+	include = Com_OpenScript( token.string, NULL, 0 );
+	studioqc = studioincludes[numincludes++] = include; // new script
 }
 
 void ResetModelInfo( void )
@@ -2509,12 +2530,20 @@ bool ParseModelScript( void )
 
 	while( 1 )
 	{
+		if( Com_EndOfScript( studioqc ))
+		{
+			Com_CloseScript( studioincludes[numincludes] );
+			studioincludes[numincludes] = NULL;
+			studioqc = studioincludes[--numincludes];
+			if( Com_EndOfScript( studioqc )) break;			
+		}
 		if( !Com_ReadToken( studioqc, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &token ))
 			break;
 
 		if( !com.stricmp( token.string, "$modelname" )) Cmd_Modelname ();
 		else if( !com.stricmp( token.string, "$cd")) Cmd_CdSet();
 		else if( !com.stricmp( token.string, "$debug")) Cmd_DebugBuild();
+		else if( !com.stricmp( token.string, "$include")) Cmd_Include();
 		else if( !com.stricmp( token.string, "$cdtexture")) Cmd_CdTextureSet();
 		else if( !com.stricmp( token.string, "$scale")) Cmd_ScaleUp ();
 		else if( !com.stricmp( token.string, "$rotate")) Cmd_Rotate();
@@ -2542,8 +2571,6 @@ bool ParseModelScript( void )
 		else if( !Com_ValidScript( token.string, QC_STUDIOMDL )) return false;
 		else Cmd_StudioUnknown( token.string );
 	}
-
-	Com_CloseScript( studioqc );
 
 	// process model
 	SetSkinValues();
@@ -2596,6 +2623,7 @@ void ClearModel( void )
 	stripcount = numcommands = numani = allverts = alltris = totalseconds = 0;
 	nummodels = split_textures = 0;
 
+	Mem_Set( studioincludes, 0, sizeof( studioincludes ));
 	Mem_Set( numtexturelayers, 0, sizeof(int) * 32 );
 	Mem_Set( numtexturereps, 0, sizeof(int) * 32 );
 	Mem_Set( bodypart, 0, sizeof(s_bodypart_t) * MAXSTUDIOBODYPARTS );
@@ -2605,7 +2633,7 @@ void ClearModel( void )
 bool CompileCurrentModel( const char *name )
 {
 	cdset = false;
-	cdtextureset = 0;
+	cdtextureset = numincludes = 0;
 	
 	if( name ) com.strcpy( gs_filename, name );
 	FS_DefaultExtension( gs_filename, ".qc" );
@@ -2616,6 +2644,7 @@ bool CompileCurrentModel( const char *name )
 	}
 
 	studioqc = Com_OpenScript( gs_filename, NULL, 0 );
+	studioincludes[numincludes++] = studioqc; // member base script
 	if( studioqc )
 	{
 		if( !ParseModelScript())
