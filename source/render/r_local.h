@@ -189,66 +189,65 @@ extern radar_ent_t	RadarEnts[MAX_RADAR_ENTS];
 
 typedef struct
 {
-	vec3_t			origin;
-	vec3_t			color;
-	vec3_t			mins, maxs;
-	float			intensity;
+	vec3_t		origin;
+	vec3_t		color;
+	vec3_t		mins, maxs;
+	float		intensity;
 	const ref_shader_t	*shader;
 } dlight_t;
 
 typedef struct
 {
-	int				features;
-	int				lightmapNum[LM_STYLES];
-	int				lightmapStyles[LM_STYLES];
-	int				vertexStyles[LM_STYLES];
-	float			stOffset[LM_STYLES][2];
+	int		features;
+	int		lightmapNum[LM_STYLES];
+	int		lightmapStyles[LM_STYLES];
+	int		vertexStyles[LM_STYLES];
+	float		stOffset[LM_STYLES][2];
 } superLightStyle_t;
 
 typedef struct
 {
-	int				params;					// rendering parameters
+	int		params;			// rendering parameters
 
-	ref_params_t		refdef;
-	int				scissor[4];
-	int				viewport[4];
-	meshlist_t		*meshlist;					// meshes to be rendered
-	meshbuffer_t	**surfmbuffers;				// pointers to meshbuffers of world surfaces
+	ref_params_t	refdef;
+	int		scissor[4];
+	int		viewport[4];
+	meshlist_t	*meshlist;		// meshes to be rendered
+	meshbuffer_t	**surfmbuffers;		// pointers to meshbuffers of world surfaces
 
-	unsigned int	shadowBits;
+	uint		shadowBits;
 	shadowGroup_t	*shadowGroup;
 
-	ref_entity_t		*currententity;
-	ref_model_t			*currentmodel;
-	ref_entity_t		*previousentity;
+	ref_entity_t	*currententity;
+	ref_model_t	*currentmodel;
+	ref_entity_t	*previousentity;
 
 	//
 	// view origin
 	//
-	vec3_t			viewOrigin;
-	vec3_t			viewAxis[3];
-	vec_t			*vup, *vpn, *vright;
+	vec3_t		viewOrigin;
+	vec3_t		viewAxis[3];
+	vec_t		*vup, *vpn, *vright;
 	cplane_t		frustum[6];
-	float			farClip;
+	float		farClip;
 	unsigned int	clipFlags;
-	vec3_t			visMins, visMaxs;
+	vec3_t		visMins, visMaxs;
 
 	matrix4x4		objectMatrix;
 	matrix4x4		worldviewMatrix;
-	matrix4x4		modelviewMatrix;			// worldviewMatrix * objectMatrix
+	matrix4x4		modelviewMatrix;		// worldviewMatrix * objectMatrix
 
 	matrix4x4		projectionMatrix;
 	matrix4x4		worldviewProjectionMatrix;	// worldviewMatrix * projectionMatrix
 
-	float			skyMins[2][6];
-	float			skyMaxs[2][6];
+	float		skyMins[2][6];
+	float		skyMaxs[2][6];
 
-	float			lod_dist_scale_for_fov;
+	float		lod_dist_scale_for_fov;
+	float		fog_dist_to_eye[MAX_MAP_FOGS];
 
-	float			fog_dist_to_eye[MAX_MAP_FOGS];
-
-	vec3_t			lodOrigin;
-	vec3_t			pvsOrigin;
+	vec3_t		lodOrigin;
+	vec3_t		pvsOrigin;
 	cplane_t		clipPlane;
 	cplane_t		portalPlane;
 } refinst_t;
@@ -381,6 +380,8 @@ extern cvar_t *r_outlines_cutoff;
 extern cvar_t *r_lodbias;
 extern cvar_t *r_lodscale;
 extern cvar_t *r_himodels;
+
+extern cvar_t *r_studio_bonelighting;
 
 extern cvar_t *r_environment_color;
 extern cvar_t *r_gamma;
@@ -694,11 +695,10 @@ mspriteframe_t *R_GetSpriteFrame( ref_entity_t *ent );
 //
 void R_AddStudioModelToList( ref_entity_t *e );
 void R_DrawStudioModel( const meshbuffer_t *mb );
-void R_StudioResetSequenceInfo( ref_entity_t *ent, dstudiohdr_t *hdr );
+void R_StudioResetSequenceInfo( ref_entity_t *ent );
 float R_StudioFrameAdvance( ref_entity_t *ent, float flInterval );
 void R_StudioModelBBox( ref_entity_t *e, vec3_t mins, vec3_t maxs );
 bool R_CullStudioModel( ref_entity_t *e );
-void R_StudioFreeBoneposes( void );
 void R_StudioInit( void );
 void R_StudioShutdown( void );
 

@@ -2309,20 +2309,19 @@ int FS_Gets( file_t* file, byte *string, size_t bufsize )
 	while( 1 )
 	{
 		c = FS_Getc( file );
-		if (c == '\r' || c == '\n' || c < 0)
+		if( c == '\r' || c == '\n' || c < 0 )
 			break;
-		if (end < bufsize - 1)
+		if( end < bufsize - 1 )
 			string[end++] = c;
 	}
 	string[end] = 0;
 
 	// remove \n following \r
-	if (c == '\r')
+	if( c == '\r' )
 	{
-		c = FS_Getc(file);
-		if (c != '\n') FS_UnGetc(file, (byte)c);
+		c = FS_Getc( file );
+		if( c != '\n' ) FS_UnGetc( file, (byte)c );
 	}
-	MsgDev(D_INFO, "FS_Gets: %s\n", string);
 
 	return c;
 }

@@ -307,6 +307,16 @@ STUDIO MODELS
 
 ==============================================================================
 */
+typedef struct mstudiomodel_s
+{
+	dstudiohdr_t	*phdr;
+          dstudiohdr_t	*thdr;
+
+	void		*submodels;
+	int		numsubmodels;
+	vec3_t		*m_pSVectors;	// UNDONE: calc SVectors on loading, simple transform on rendering
+
+} mstudiomodel_t;
 
 /*
 ==============================================================================
@@ -369,12 +379,6 @@ typedef struct ref_model_s
 	// memory representation pointer
 	byte		*mempool;
 	void		*extradata;
-
-	// FIXME!!!! use extradata instead
-	dstudiohdr_t	*phdr;
-          dstudiohdr_t	*thdr;
-	int		numsubmodels;
-	void		*submodels;
 	
 	int		touchFrame;
 	int		numlods;

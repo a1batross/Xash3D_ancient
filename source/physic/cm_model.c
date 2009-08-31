@@ -1541,22 +1541,14 @@ void CM_StudioGetVertices( void )
 {
 	int		i;
 	vec3_t		*pstudioverts;
-	vec3_t		*pstudionorms;
 	byte		*pvertbone;
-	byte		*pnormbone;
 
 	pvertbone = ((byte *)studio.hdr + studio.submodel->vertinfoindex);
-	pnormbone = ((byte *)studio.hdr + studio.submodel->norminfoindex);
 	pstudioverts = (vec3_t *)((byte *)studio.hdr + studio.submodel->vertindex);
-	pstudionorms = (vec3_t *)((byte *)studio.hdr + studio.submodel->normindex);
 
 	for( i = 0; i < studio.submodel->numverts; i++ )
 	{
-		Matrix4x4_Transform(  studio.bones[pvertbone[i]], pstudioverts[i], studio.vtransform[i]);
-	}
-	for( i = 0; i < studio.submodel->numnorms; i++ )
-	{
-		Matrix4x4_Transform( studio.bones[pnormbone[i]], pstudionorms[i], studio.ntransform[i]);
+		Matrix4x4_VectorTransform(  studio.bones[pvertbone[i]], pstudioverts[i], studio.vtransform[i]);
 	}
 	CM_StudioLookMeshes();
 }

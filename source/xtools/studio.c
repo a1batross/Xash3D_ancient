@@ -1123,7 +1123,7 @@ void SimplifyModel( void )
 				{
 					for( j = 0; j < model[k]->numverts; j++ )
 					{
-						Matrix4x4_Transform( bonetransform[model[k]->vert[j].bone], model[k]->vert[j].org, pos );
+						Matrix4x4_VectorTransform( bonetransform[model[k]->vert[j].bone], model[k]->vert[j].org, pos );
 
 						if (pos[0] < bmin[0]) bmin[0] = pos[0];
 						if (pos[1] < bmin[1]) bmin[1] = pos[1];
@@ -1360,7 +1360,7 @@ void Build_Reference( s_model_t *pmodel)
 			Matrix4x4_Transpose( bonefixup[i].im, bonefixup[i].m ); 
 
 			// calc true world coord.
-			Matrix4x4_Transform( bonefixup[parent].m, pmodel->skeleton[i].pos, p );
+			Matrix4x4_VectorTransform( bonefixup[parent].m, pmodel->skeleton[i].pos, p );
 			VectorAdd( p, bonefixup[parent].worldorg, bonefixup[i].worldorg );
 		}
 	}
@@ -1392,7 +1392,7 @@ void Grab_Triangles( s_model_t *pmodel )
 			linecount++;
 
 			// check for end
-			if( !com.strcmp( "end\n", line )) return;
+			if( !com.stricmp( "end", line )) return;
 
 			// strip off trailing smag
 			com.strncpy( texturename, line, sizeof( texturename ));
@@ -1457,11 +1457,11 @@ void Grab_Triangles( s_model_t *pmodel )
 
 						// move vertex position to object space.
 						VectorSubtract( p.org, bonefixup[p.bone].worldorg, tmp );
-						Matrix4x4_Transform( bonefixup[p.bone].im, tmp, p.org );
+						Matrix4x4_VectorTransform( bonefixup[p.bone].im, tmp, p.org );
 
 						// move normal to object space.
 						VectorCopy( normal.org, tmp );
-						Matrix4x4_Transform( bonefixup[p.bone].im, tmp, normal.org );
+						Matrix4x4_VectorTransform( bonefixup[p.bone].im, tmp, normal.org );
 						VectorNormalize( normal.org );
 
 						ptriv->normindex = lookup_normal( pmodel, &normal );

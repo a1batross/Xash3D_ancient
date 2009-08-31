@@ -1250,6 +1250,41 @@ static bool Shaderpass_LoadMaterial( texture_t **normalmap, texture_t **glossmap
 	return true;
 }
 
+static bool Shaderpass_StudioLoadMaterial( texture_t **normalmap, texture_t **glossmap, texture_t **decalmap, const char *name, int addFlags, float bumpScale )
+{
+	texture_t		*images[3];
+	
+	// set defaults
+	images[0] = images[1] = images[2] = NULL;
+
+	// load normalmap image
+	images[0] = R_FindTexture( va( "heightMap( Studio( \"%s_bump\" ), %g );", name, bumpScale ), NULL, 0, addFlags );
+	if( !images[0] )
+	{
+		images[0] = R_FindTexture( va( "mergeDepthmap( Studio( \"%s_norm\" ), Studio( \"%s_depth\" ));", name, name ), NULL, 0, (addFlags|TF_NORMALMAP));
+
+		if( !images[0] )
+		{
+			if( !r_lighting_diffuse2heightmap->integer )
+				return false;
+			images[0] = R_FindTexture( va( "heightMap( Studio( \"%s\" ), 2.0f );", name ), NULL, 0, addFlags );
+			if( !images[0] ) return false;
+		}
+	}
+
+	// load glossmap image
+	if( r_lighting_specular->integer )
+		images[1] = R_FindTexture( va( "Studio( %s_gloss )", name ), NULL, 0, addFlags );
+
+	images[2] = R_FindTexture( va( "Studio( %s_decal )", name ), NULL, 0, addFlags );
+
+	*normalmap = images[0];
+	*glossmap = images[1];
+	*decalmap = images[2];
+
+	return true;
+}
+
 static bool Shaderpass_AnimFrequency( ref_shader_t *shader, ref_stage_t *pass, script_t *script )
 {
 	float	anim_fps;
@@ -3443,7 +3478,7 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		break;
 	case SHADER_STUDIO:
 		shader->type = SHADER_STUDIO;
-		shader->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT;
+		shader->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT|SHADER_RENDERMODE;
 		shader->features = MF_STCOORDS|MF_NORMALS;
 		shader->num_stages = 1;
 		shader->name = Shader_Malloc( length + 1 + sizeof( ref_stage_t ) * shader->num_stages );
@@ -3493,6 +3528,24 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 			pass->alphaGen.type = ALPHAGEN_IDENTITY;
 			shader->sort = SORT_OPAQUE;
 			break;
+		}
+		// load default GLSL program if there's a bumpmap was found
+		if(( r_lighting_models_followdeluxe->integer ? mapConfig.deluxeMappingEnabled : GL_Support( R_SHADER_GLSL100_EXT ))
+			&& Shaderpass_StudioLoadMaterial( &materialImages[0], &materialImages[1], &materialImages[2], shortname, addFlags, 2.0f ))
+		{
+			shader->flags &= ~SHADER_RENDERMODE;
+			pass->flags &= ~SHADERSTAGE_RENDERMODE;
+			pass->rgbGen.type = RGBGEN_IDENTITY;
+			pass->program = DEFAULT_GLSL_PROGRAM;
+			pass->program_type = PROGRAM_TYPE_MATERIAL;
+			pass->textures[1] = materialImages[0]; // normalmap
+			pass->num_textures++;
+			pass->textures[2] = materialImages[1]; // glossmap
+			pass->num_textures++;
+			pass->textures[3] = materialImages[2]; // decalmap
+			pass->num_textures++;
+			shader->features |= MF_SVECTORS|MF_ENABLENORMALS;
+			shader->flags |= SHADER_MATERIAL;
 		}
 		break;
 	case SHADER_SPRITE:

@@ -143,7 +143,7 @@ void R_AddDynamicLights( uint dlightbits, int state )
 
 	for( i = 0, light = r_dlights; i < r_numDlights; i++, light++ )
 	{
-		if( !( dlightbits & ( 1<<i ) ) )
+		if(!( dlightbits & ( 1<<i )))
 			continue; // not lit by this light
 
 		VectorSubtract( light->origin, RI.currententity->origin, dlorigin );
@@ -154,7 +154,7 @@ void R_AddDynamicLights( uint dlightbits, int state )
 		}
 
 		shader = light->shader;
-		if( shader && ( shader->flags & SHADER_CULL_BACK ) )
+		if( shader && ( shader->flags & SHADER_CULL_BACK ))
 			cullAway = true;
 		else cullAway = false;
 
@@ -163,24 +163,23 @@ void R_AddDynamicLights( uint dlightbits, int state )
 		{
 			for( j = 0; j < r_backacc.numElems; j += 3 )
 			{
-				v1 = (float *)( vertsArray + elemsArray[j+0] );
-				v2 = (float *)( vertsArray + elemsArray[j+1] );
-				v3 = (float *)( vertsArray + elemsArray[j+2] );
+				v1 = (float *)(vertsArray + elemsArray[j+0]);
+				v2 = (float *)(vertsArray + elemsArray[j+1]);
+				v3 = (float *)(vertsArray + elemsArray[j+2]);
 
 				normal[0] = ( v1[1] - v2[1] ) * ( v3[2] - v2[2] ) - ( v1[2] - v2[2] ) * ( v3[1] - v2[1] );
 				normal[1] = ( v1[2] - v2[2] ) * ( v3[0] - v2[0] ) - ( v1[0] - v2[0] ) * ( v3[2] - v2[2] );
 				normal[2] = ( v1[0] - v2[0] ) * ( v3[1] - v2[1] ) - ( v1[1] - v2[1] ) * ( v3[0] - v2[0] );
-				dist = ( dlorigin[0] - v1[0] ) * normal[0] + ( dlorigin[1] - v1[1] ) * normal[1] + ( dlorigin[2] - v1[2] ) * normal[2];
+				dist = (dlorigin[0] - v1[0]) * normal[0] + (dlorigin[1] - v1[1]) * normal[1] + (dlorigin[2] - v1[2]) * normal[2];
 
-				if( dist <= 0 || dist * rsqrt( DotProduct( normal, normal ) ) >= light->intensity )
+				if( dist <= 0 || dist * rsqrt( DotProduct( normal, normal )) >= light->intensity )
 					continue;
 
 				tempElemsArray[numTempElems++] = elemsArray[j+0];
 				tempElemsArray[numTempElems++] = elemsArray[j+1];
 				tempElemsArray[numTempElems++] = elemsArray[j+2];
 			}
-			if( !numTempElems )
-				continue;
+			if( !numTempElems ) continue;
 		}
 
 		inverseIntensity = 1 / light->intensity;

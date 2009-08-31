@@ -1937,9 +1937,6 @@ void R_EndFrame( void )
 	// flush any remaining 2D bits
 	R_Set2DMode( false );
 
-	// release model boneposes
-	R_StudioFreeBoneposes ();
-
 	// cleanup texture units
 	R_BackendCleanUpTextureUnits();
 
@@ -2111,6 +2108,7 @@ bool R_AddLightStyle( int stylenum, vec3_t color )
 bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type, float lerpfrac )
 {
 	int	i;
+	vec3_t	center;
 
 	// check model
 	if( !refent->model ) return false;
@@ -2124,13 +2122,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 		refent->scale = 1.0f; // ignore scale for brush models
 		break;
 	case mod_studio:
-		if( !refent->model->phdr )
-			return false;
-		break;
 	case mod_alias:		
-		if( !refent->model->extradata )
-			return false;
-		break;
 	case mod_sprite:		
 		if( !refent->model->extradata )
 			return false;
@@ -2143,7 +2135,12 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 	// setup latchedvars
 	VectorCopy( pRefEntity->v.oldorigin, refent->prev.origin );
 	VectorCopy( pRefEntity->v.oldangles, refent->prev.angles );
-	VectorCopy( pRefEntity->v.origin, refent->lightingOrigin );
+
+	// setup light origin
+	if( refent->model ) VectorAverage( refent->model->mins, refent->model->maxs, center );
+	else VectorClear( center );
+	VectorAdd( pRefEntity->v.origin, center, refent->lightingOrigin );
+	if( refent->flags & EF_INVLIGHT ) refent->lightingOrigin[2] += center[2];
 
 	// do animate
 	if( refent->flags & EF_ANIMATE )
@@ -2155,7 +2152,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 			{
 				pRefEntity->v.frame = refent->frame = 0;
 				refent->sequence = pRefEntity->v.sequence;
-				R_StudioResetSequenceInfo( refent, refent->model->phdr );
+				R_StudioResetSequenceInfo( refent );
 			}
 			else
 			{

@@ -731,10 +731,20 @@ int lookup_texture( char *texturename )
 	texture[i] = Mem_Alloc( studiopool, sizeof(s_texture_t));
 	com.strncpy( texture[i]->name, texturename, sizeof(texture[i]->name));
 	
-	if(com.stristr( texturename, "chrome" ) != NULL)
-		texture[i]->flags = STUDIO_NF_FLATSHADE | STUDIO_NF_CHROME;
-	else if(com.stristr( texturename, "bright" ) != NULL)
-		texture[i]->flags = STUDIO_NF_FLATSHADE | STUDIO_NF_FULLBRIGHT;
+	if( com.stristr( texturename, "chrome" ))
+		texture[i]->flags = (STUDIO_NF_FLATSHADE|STUDIO_NF_CHROME);
+	else if( com.stristr( texturename, "bright" ))
+		texture[i]->flags = (STUDIO_NF_FLATSHADE|STUDIO_NF_FULLBRIGHT);
+	else if( com.stristr( texturename, "_norm" ))
+		texture[i]->flags = STUDIO_NF_NORMALMAP;
+	else if( com.stristr( texturename, "_bump" ) || com.stristr( texturename, "_depth" ))
+		texture[i]->flags = STUDIO_NF_BUMPMAP;
+	else if( com.stristr( texturename, "_gloss" ))
+		texture[i]->flags = STUDIO_NF_GLOSSMAP;
+	else if( com.stristr( texturename, "_decal" ))
+		texture[i]->flags = STUDIO_NF_DECALMAP;
+	else if( com.stristr( texturename, "_glow" ) || com.stristr( texturename, "_luma" ))
+		texture[i]->flags = STUDIO_NF_GLOWMAP;
 	else texture[i]->flags = 0;
 
 	numtextures++;

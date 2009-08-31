@@ -1561,6 +1561,7 @@ static rgbdata_t *R_IncludeDepthmap( rgbdata_t *in1, rgbdata_t *in2 )
 
 	pic1 = in1->buffer;
 	pic2 = in2->buffer;
+
 	for( i = (in1->width * in1->height) - 1; i > 0; i--, pic1 += 4, pic2 += 4 )
 	{
 		if( in2->flags & IMAGE_HAS_COLOR )

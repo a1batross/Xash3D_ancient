@@ -394,21 +394,7 @@ _inline void Matrix4x4_Transform3x3( const matrix4x4 in, const float v[3], float
 #endif
 }
 
-// same as Matrix4x4_Transform3x3 but transpose matrix before
-_inline void Matrix4x4_Rotate3x3( const matrix4x4 in, const float v[3], float out[3] )
-{
-#ifdef OPENGL_STYLE
-	out[0] = v[0] * in[0][0] + v[1] * in[0][1] + v[2] * in[0][2];
-	out[1] = v[0] * in[1][0] + v[1] * in[1][1] + v[2] * in[1][2];
-	out[2] = v[0] * in[2][0] + v[1] * in[2][1] + v[2] * in[2][2];
-#else
-	out[0] = v[0] * in[0][0] + v[1] * in[1][0] + v[2] * in[2][0];
-	out[1] = v[0] * in[0][1] + v[1] * in[1][1] + v[2] * in[2][1];
-	out[2] = v[0] * in[0][2] + v[1] * in[1][2] + v[2] * in[2][2];
-#endif
-}
-
-_inline void Matrix4x4_Transform( const matrix4x4 in, const float v[3], float out[3] )
+_inline void Matrix4x4_VectorTransform( const matrix4x4 in, const float v[3], float out[3] )
 {
 #ifdef OPENGL_STYLE
 	out[0] = v[0] * in[0][0] + v[1] * in[1][0] + v[2] * in[2][0] + in[3][0];
@@ -418,6 +404,32 @@ _inline void Matrix4x4_Transform( const matrix4x4 in, const float v[3], float ou
 	out[0] = v[0] * in[0][0] + v[1] * in[0][1] + v[2] * in[0][2] + in[0][3];
 	out[1] = v[0] * in[1][0] + v[1] * in[1][1] + v[2] * in[1][2] + in[1][3];
 	out[2] = v[0] * in[2][0] + v[1] * in[2][1] + v[2] * in[2][2] + in[2][3];
+#endif
+}
+
+_inline void Matrix4x4_VectorRotate( const matrix4x4 in, const float v[3], float out[3] )
+{
+#ifdef OPENGL_STYLE
+	out[0] = v[0] * in[0][0] + v[1] * in[1][0] + v[2] * in[2][0];
+	out[1] = v[0] * in[0][1] + v[1] * in[1][1] + v[2] * in[2][1];
+	out[2] = v[0] * in[0][2] + v[1] * in[1][2] + v[2] * in[2][2];
+#else
+	out[0] = v[0] * in[0][0] + v[1] * in[0][1] + v[2] * in[0][2];
+	out[1] = v[0] * in[1][0] + v[1] * in[1][1] + v[2] * in[1][2];
+	out[2] = v[0] * in[2][0] + v[1] * in[2][1] + v[2] * in[2][2];
+#endif
+}
+
+_inline void Matrix4x4_VectorIRotate( const matrix4x4 in, const float v[3], float out[3] )
+{
+#ifdef OPENGL_STYLE
+	out[0] = v[0] * in[0][0] + v[1] * in[0][1] + v[2] * in[0][2];
+	out[1] = v[0] * in[1][0] + v[1] * in[1][1] + v[2] * in[1][2];
+	out[2] = v[0] * in[2][0] + v[1] * in[2][1] + v[2] * in[2][2];
+#else
+	out[0] = v[0] * in[0][0] + v[1] * in[1][0] + v[2] * in[2][0];
+	out[1] = v[0] * in[0][1] + v[1] * in[1][1] + v[2] * in[2][1];
+	out[2] = v[0] * in[0][2] + v[1] * in[1][2] + v[2] * in[2][2];
 #endif
 }
 

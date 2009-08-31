@@ -205,7 +205,7 @@ int SV_PointContents( const vec3_t point )
 		if( !model || !model->PointContents ) continue;
 		Matrix4x4_CreateFromEntity( matrix, touch->v.origin[0], touch->v.origin[1], touch->v.origin[2], touch->v.angles[0], touch->v.angles[1], touch->v.angles[2], 1 );
 		Matrix4x4_Invert_Simple( imatrix, matrix );
-		Matrix4x4_Transform( imatrix, point, transformed);
+		Matrix4x4_VectorTransform( imatrix, point, transformed);
 		contents |= model->PointContents( transformed, model );
 	}
 

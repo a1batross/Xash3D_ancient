@@ -1233,7 +1233,7 @@ void CM_CollisionTraceBrushPolygonTransformFloat( trace_t *trace, const cbrushf_
 	polyf_brushstart.contents = supercontents;
 
 	for( i = 0; i < numpoints; i++ )
-		Matrix4x4_Transform( polygonmatrixstart, points + i * 3, polyf_brushstart.points[i].v );
+		Matrix4x4_VectorTransform( polygonmatrixstart, points + i * 3, polyf_brushstart.points[i].v );
 
 	polyf_brushend.numpoints = numpoints;
 	polyf_brushend.numplanes = numpoints + 2;
@@ -1242,7 +1242,7 @@ void CM_CollisionTraceBrushPolygonTransformFloat( trace_t *trace, const cbrushf_
 	polyf_brushend.contents = supercontents;
 
 	for( i = 0; i < numpoints; i++ )
-		Matrix4x4_Transform( polygonmatrixend, points + i * 3, polyf_brushend.points[i].v );
+		Matrix4x4_VectorTransform( polygonmatrixend, points + i * 3, polyf_brushend.points[i].v );
 
 	for( i = 0; i < polyf_brushstart.numplanes; i++ )
 	{
@@ -1298,7 +1298,7 @@ cbrushf_t *CM_CollisionBrushForBox( const matrix4x4 matrix, const vec3_t mins, c
 			v[0] = i & 1 ? maxs[0] : mins[0];
 			v[1] = i & 2 ? maxs[1] : mins[1];
 			v[2] = i & 4 ? maxs[2] : mins[2];
-			Matrix4x4_Transform( matrix, v, brush->points[i].v );
+			Matrix4x4_VectorTransform( matrix, v, brush->points[i].v );
 		}
 		// FIXME: optimize!
 		for( i = 0; i < 6; i++ )
@@ -1659,8 +1659,8 @@ void CM_CollisionClipToGenericEntity( trace_t *trace, cmodel_t *model, const vec
 	trace->fraction = trace->realfraction = 1;
 	VectorCopy( end, trace->endpos );
 
-	Matrix4x4_Transform( inversematrix, start, starttransformed );
-	Matrix4x4_Transform( inversematrix, end, endtransformed );
+	Matrix4x4_VectorTransform( inversematrix, start, starttransformed );
+	Matrix4x4_VectorTransform( inversematrix, end, endtransformed );
 
 	if( model && model->TraceBox )
 		model->TraceBox( starttransformed, endtransformed, mins, maxs, model, trace, hitsupercontentsmask );

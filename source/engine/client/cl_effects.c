@@ -1000,7 +1000,7 @@ void CL_TestLights( void )
 
 	Mem_Set( &dl, 0, sizeof( cdlight_t ));
 	
-	for( i = 0; i < 32; i++ )
+	for( i = 0; i < bound( 1, cl_testlights->integer, MAX_DLIGHTS ); i++ )
 	{
 		r = 64 * ( (i%4) - 1.5 );
 		f = 64 * (i/4) + 128;

@@ -49,6 +49,11 @@ Studio models are position independent, so the cache manager can move them.
 #define STUDIO_NF_BLENDED		0x0010	// rendering as semiblended
 #define STUDIO_NF_ADDITIVE		0x0020	// rendering with additive mode
 #define STUDIO_NF_TRANSPARENT		0x0040	// use texture with alpha channel
+#define STUDIO_NF_NORMALMAP		0x0080	// indexed normalmap
+#define STUDIO_NF_BUMPMAP		0x0100	// heightmap that can be used for parallax or normalmap
+#define STUDIO_NF_GLOSSMAP		0x0200	// glossmap
+#define STUDIO_NF_DECALMAP		0x0400	// decalmap (currently unused)
+#define STUDIO_NF_GLOWMAP		0x0800	// optional luma_texture
 #define STUDIO_NF_QUAKESKIN		0x8000	// special hack for determine alias skins
 
 // motion flags
