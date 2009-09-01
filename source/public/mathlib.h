@@ -51,9 +51,9 @@
 #define VectorDivide( in, d, out ) VectorScale( in, (1.0f / (d)), out )
 #define VectorMax(a) ( max((a)[0], max((a)[1], (a)[2])) )
 #define VectorAvg(a) ( ((a)[0] + (a)[1] + (a)[2]) / 3 )
-#define VectorLength(a) (sqrt(DotProduct(a, a)))
+#define VectorLength(a) (com.sqrt( DotProduct( a, a )))
 #define VectorLength2(a) (DotProduct(a, a))
-#define VectorDistance(a, b) (sqrt(VectorDistance2(a,b)))
+#define VectorDistance(a, b) (com.sqrt( VectorDistance2( a, b )))
 #define VectorDistance2(a, b) (((a)[0] - (b)[0]) * ((a)[0] - (b)[0]) + ((a)[1] - (b)[1]) * ((a)[1] - (b)[1]) + ((a)[2] - (b)[2]) * ((a)[2] - (b)[2]))
 #define VectorAverage(a,b,o)	((o)[0]=((a)[0]+(b)[0])*0.5,(o)[1]=((a)[1]+(b)[1])*0.5,(o)[2]=((a)[2]+(b)[2])*0.5)
 #define Vector2Set(v, x, y) ((v)[0]=(x),(v)[1]=(y))
@@ -62,8 +62,8 @@
 #define VectorClear(x) ((x)[0]=(x)[1]=(x)[2]=0)
 #define Vector4Clear(x) ((x)[0]=(x)[1]=(x)[2]=(x)[3]=0)
 #define VectorLerp( v1, lerp, v2, c ) ((c)[0] = (v1)[0] + (lerp) * ((v2)[0] - (v1)[0]), (c)[1] = (v1)[1] + (lerp) * ((v2)[1] - (v1)[1]), (c)[2] = (v1)[2] + (lerp) * ((v2)[2] - (v1)[2]))
-#define VectorNormalize( v ) { float ilength = (float)sqrt(DotProduct(v, v));if (ilength) ilength = 1.0f / ilength;v[0] *= ilength;v[1] *= ilength;v[2] *= ilength; }
-#define VectorNormalize2( v, dest ) {float ilength = (float) sqrt(DotProduct(v,v));if (ilength) ilength = 1.0f / ilength;dest[0] = v[0] * ilength;dest[1] = v[1] * ilength;dest[2] = v[2] * ilength; }
+#define VectorNormalize( v ) { float ilength = (float)com.sqrt(DotProduct(v, v));if (ilength) ilength = 1.0f / ilength;v[0] *= ilength;v[1] *= ilength;v[2] *= ilength; }
+#define VectorNormalize2( v, dest ) {float ilength = (float)com.sqrt(DotProduct(v,v));if (ilength) ilength = 1.0f / ilength;dest[0] = v[0] * ilength;dest[1] = v[1] * ilength;dest[2] = v[2] * ilength; }
 #define VectorNormalizeFast( v ) {float	ilength = (float)rsqrt(DotProduct(v,v)); v[0] *= ilength; v[1] *= ilength; v[2] *= ilength; }
 #define VectorNegate(x, y) {y[0] =-x[0]; y[1]=-x[1]; y[2]=-x[2];}
 #define VectorM(scale1, b1, c) ((c)[0] = (scale1) * (b1)[0],(c)[1] = (scale1) * (b1)[1],(c)[2] = (scale1) * (b1)[2])
@@ -193,7 +193,7 @@ _inline float VectorNormalizeLength2( const vec3_t v, vec3_t out )
 	float	length, ilength;
 
 	length = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
-	length = sqrt( length );
+	length = com.sqrt( length );
 
 	if( length )
 	{
@@ -280,34 +280,31 @@ _inline void NormalVectorToAxis( const vec3_t forward, vec3_t axis[3] )
 
 _inline void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 {
-	double angle, sr, sp, sy, cr, cp, cy;
+	float	angle, sr, sp, sy, cr, cp, cy;
 
 	angle = angles[YAW] * (M_PI*2 / 360);
-	sy = sin(angle);
-	cy = cos(angle);
+	com.sincos( angle, &sy, &cy );
 	angle = angles[PITCH] * (M_PI*2 / 360);
-	sp = sin(angle);
-	cp = cos(angle);
-	if (forward)
+	com.sincos( angle, &sp, &cp );
+	if( forward )
 	{
 		forward[0] = cp*cy;
 		forward[1] = cp*sy;
 		forward[2] = -sp;
 	}
-	if (right || up)
+	if( right || up )
 	{
-		if (angles[ROLL])
+		if( angles[ROLL] )
 		{
 			angle = angles[ROLL] * (M_PI*2 / 360);
-			sr = sin(angle);
-			cr = cos(angle);
-			if (right)
+			com.sincos( angle, &sr, &cr );
+			if( right )
 			{
 				right[0] = -1*(sr*sp*cy+cr*-sy);
 				right[1] = -1*(sr*sp*sy+cr*cy);
 				right[2] = -1*(sr*cp);
 			}
-			if (up)
+			if( up )
 			{
 				up[0] = (cr*sp*cy+-sr*-sy);
 				up[1] = (cr*sp*sy+-sr*cy);
@@ -316,13 +313,13 @@ _inline void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, ve
 		}
 		else
 		{
-			if (right)
+			if( right )
 			{
 				right[0] = sy;
 				right[1] = -cy;
 				right[2] = 0;
 			}
-			if (up)
+			if( up )
 			{
 				up[0] = (sp*cy);
 				up[1] = (sp*sy);
@@ -334,35 +331,32 @@ _inline void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, ve
 
 _inline void AngleVectorsFLU(const vec3_t angles, vec3_t forward, vec3_t left, vec3_t up)
 {
-	double	angle, sr, sp, sy, cr, cp, cy;
+	float	angle, sr, sp, sy, cr, cp, cy;
 
 	angle = angles[YAW] * (M_PI*2 / 360);
-	sy = sin(angle);
-	cy = cos(angle);
+	com.sincos( angle, &sy, &cy );
 	angle = angles[PITCH] * (M_PI*2 / 360);
-	sp = sin(angle);
-	cp = cos(angle);
+	com.sincos( angle, &sp, &cp );
 
-	if (forward)
+	if( forward )
 	{
 		forward[0] = cp*cy;
 		forward[1] = cp*sy;
 		forward[2] = -sp;
 	}
-	if (left || up)
+	if( left || up )
 	{
-		if (angles[ROLL])
+		if( angles[ROLL] )
 		{
 			angle = angles[ROLL] * (M_PI*2 / 360);
-			sr = sin(angle);
-			cr = cos(angle);
-			if (left)
+			com.sincos( angle, &sr, &cr );
+			if( left )
 			{
 				left[0] = sr*sp*cy+cr*-sy;
 				left[1] = sr*sp*sy+cr*cy;
 				left[2] = sr*cp;
 			}
-			if (up)
+			if( up )
 			{
 				up[0] = cr*sp*cy+-sr*-sy;
 				up[1] = cr*sp*sy+-sr*cy;
@@ -371,13 +365,13 @@ _inline void AngleVectorsFLU(const vec3_t angles, vec3_t forward, vec3_t left, v
 		}
 		else
 		{
-			if (left)
+			if( left )
 			{
 				left[0] = -sy;
 				left[1] = cy;
 				left[2] = 0;
 			}
-			if (up)
+			if( up )
 			{
 				up[0] = sp*cy;
 				up[1] = sp*sy;
@@ -405,14 +399,14 @@ _inline void MatrixAngles( matrix3x3 matrix, vec3_t angles )
 	
 	if ( xyDist > EQUAL_EPSILON )	// enough here to get angles?
 	{
-		angles[1] = RAD2DEG( atan2( forward[1], forward[0] ));
-		angles[0] = RAD2DEG( atan2( -forward[2], xyDist ));
-		angles[2] = RAD2DEG( atan2( -right[2], up[2] ));
+		angles[1] = RAD2DEG( com.atan2( forward[1], forward[0] ));
+		angles[0] = RAD2DEG( com.atan2( -forward[2], xyDist ));
+		angles[2] = RAD2DEG( com.atan2( -right[2], up[2] ));
 	}
 	else
 	{
-		angles[1] = RAD2DEG( atan2( right[0], -right[1] ) );
-		angles[0] = RAD2DEG( atan2( -forward[2], xyDist ) );
+		angles[1] = RAD2DEG( com.atan2( right[0], -right[1] ) );
+		angles[0] = RAD2DEG( com.atan2( -forward[2], xyDist ) );
 		angles[2] = 0;
 	}
 }
@@ -430,14 +424,11 @@ _inline void AngleQuaternion( float *angles, vec4_t q )
 
 	// FIXME: rescale the inputs to 1/2 angle
 	angle = angles[2] * 0.5;
-	sy = sin(angle);
-	cy = cos(angle);
+	com.sincos( angle, &sy, &cy );
 	angle = angles[1] * 0.5;
-	sp = sin(angle);
-	cp = cos(angle);
+	com.sincos( angle, &sp, &cp );
 	angle = angles[0] * 0.5;
-	sr = sin(angle);
-	cr = cos(angle);
+	com.sincos( angle, &sr, &cr );
 
 	q[0] = sr*cp*cy-cr*sp*sy; // X
 	q[1] = cr*sp*cy+sr*cp*sy; // Y
@@ -479,10 +470,10 @@ _inline void QuaternionSlerp( vec4_t p, vec4_t q, float t, vec4_t qt )
 	{
 		if ((1.0 - cosom) > 0.000001)
 		{
-			omega = acos( cosom );
-			sinom = sin( omega );
-			sclp = sin( (1.0 - t)*omega) / sinom;
-			sclq = sin( t*omega ) / sinom;
+			omega = com.acos( cosom );
+			sinom = com.sin( omega );
+			sclp = com.sin( (1.0 - t)*omega) / sinom;
+			sclq = com.sin( t*omega ) / sinom;
 		}
 		else
 		{
@@ -497,8 +488,8 @@ _inline void QuaternionSlerp( vec4_t p, vec4_t q, float t, vec4_t qt )
 		qt[1] = q[0];
 		qt[2] = -q[3];
 		qt[3] = q[2];
-		sclp = sin( (1.0 - t) * (0.5 * M_PI));
-		sclq = sin( t * (0.5 * M_PI));
+		sclp = com.sin( (1.0 - t) * (0.5 * M_PI));
+		sclq = com.sin( t * (0.5 * M_PI));
 		for (i = 0; i < 3; i++)
 		{
 			qt[i] = sclp * p[i] + sclq * qt[i];
@@ -663,8 +654,7 @@ _inline void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t
 	vec3_t	vr, vu, vf;
 
 	angle = DEG2RAD( degrees );
-	c = cos( angle );
-	s = sin( angle );
+	com.sincos( angle, &s, &c );
 	VectorCopy( dir, vf );
 	VectorVectors( vf, vr, vu );
 
@@ -776,10 +766,8 @@ _inline int NearestPOW( int value, bool roundDown )
 	return n;
 }
 
-static quat_t quat_identity = { 0, 0, 0, 1 };
 static vec3_t vec3_origin = { 0, 0, 0 };
 static vec3_t vec3_angles = { 0, 0, 0 };
-static vec4_t vec4_origin = { 0, 0, 0, 0 };
 static vec3_t vec3_up = { 0.0f, 1.0f, 0.0f }; // unconverted up vector
 
 #endif//BASEMATH_H

@@ -769,7 +769,8 @@ bool R_ScissorForPortal( ref_entity_t *ent, vec3_t mins, vec3_t maxs, int *x, in
 	x1 = y1 = 999999;
 	x2 = y2 = -999999;
 	for( i = 0; i < 8; i++ )
-	{                       // compute and rotate a full bounding box
+	{
+		// compute and rotate a full bounding box
 		vec_t *corner = bbox[i];
 		R_TransformToScreen_Vec3( corner, v );
 
@@ -1012,7 +1013,7 @@ static bool R_DrawPortalSurface( void )
 		}
 	}
 
-	if( !R_ScissorForPortal( r_portal_ent, r_portal_mins, r_portal_maxs, &x, &y, &w, &h ) )
+	if( !R_ScissorForPortal( r_portal_ent, r_portal_mins, r_portal_maxs, &x, &y, &w, &h ))
 		return false;
 
 	mirror = true; // default to mirror view
@@ -1194,7 +1195,7 @@ void R_DrawSkyPortal( skyportal_t *skyportal, vec3_t mins, vec3_t maxs )
 	int x, y, w, h;
 	refinst_t oldRI;
 
-	if( !R_ScissorForPortal( r_worldent, mins, maxs, &x, &y, &w, &h ) )
+	if( !R_ScissorForPortal( r_worldent, mins, maxs, &x, &y, &w, &h ))
 		return;
 
 	RI.previousentity = NULL;

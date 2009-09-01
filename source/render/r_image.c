@@ -652,19 +652,17 @@ R_BuildMipMap
 Operates in place, quartering the size of the texture
 =================
 */
-static byte *R_BuildMipMap( const byte *in, int width, int height, bool isNormalMap )
+static void R_BuildMipMap( byte *in, int width, int height, bool isNormalMap )
 {
-	byte	*out = (byte *)in;
+	byte	*out = in;
 	vec3_t	normal;
 	int	x, y;
 
+	width <<= 2;
+	height >>= 1;
+
 	if( isNormalMap )
 	{
-		width <<= 2;
-		height >>= 1;
-
-		if( width == 1 && height == 1 ) return out; // e.g. blankbump
-
 		for( y = 0; y < height; y++, in += width )
 		{
 			for( x = 0; x < width; x += 8, in += 8, out += 4 )
@@ -684,21 +682,6 @@ static byte *R_BuildMipMap( const byte *in, int width, int height, bool isNormal
 	}
 	else
 	{
-		width >>= 1;
-		height >>= 1;
-	
-		if( width == 0 || height == 0 ) // some of last iterations
-		{
-			width += height; // get largest
-			for( x = 0; x < width; x++, in += 8, out += 4 )
-			{
-				out[0] = ( in[0] + in[4] )>>1;
-				out[1] = ( in[1] + in[5] )>>1;
-				out[2] = ( in[2] + in[6] )>>1;
-				out[3] = ( in[3] + in[7] )>>1;
-			}
-			return out;
-		}
 		for( y = 0; y < height; y++, in += width )
 		{
 			for( x = 0; x < width; x += 8, in += 8, out += 4 )
@@ -710,7 +693,6 @@ static byte *R_BuildMipMap( const byte *in, int width, int height, bool isNormal
 			}
 		}
 	}
-	return out;
 }
 
 /*
@@ -2776,7 +2758,7 @@ GL_GenerateMipmaps
 sgis generate mipmap
 ===============
 */
-void GL_GenerateMipmaps( const byte *buffer, texture_t *tex, int side )
+void GL_GenerateMipmaps( byte *buffer, texture_t *tex, int side )
 {
 	int	mipLevel;
 	int	mipWidth, mipHeight;
@@ -2807,14 +2789,14 @@ void GL_GenerateMipmaps( const byte *buffer, texture_t *tex, int side )
 	// software mipmap generator
 	while( mipWidth > 1 || mipHeight > 1 )
 	{
-		// Build the mipmap
-		buffer = R_BuildMipMap( buffer, mipWidth, mipHeight, (tex->flags & TF_NORMALMAP));
+		// build the mipmap
+		R_BuildMipMap( buffer, mipWidth, mipHeight, (tex->flags & TF_NORMALMAP));
 
 		mipWidth = (mipWidth+1)>>1;
 		mipHeight = (mipHeight+1)>>1;
 		mipLevel++;
 
-		pglTexImage2D( image_desc.glTarget + side, mipLevel, tex->format, mipWidth, mipHeight, 0, image_desc.glFormat, image_desc.glType, buffer );
+		pglTexImage2D( image_desc.texTarget + side, mipLevel, tex->format, mipWidth, mipHeight, 0, image_desc.glFormat, image_desc.glType, buffer );
 	}
 }
 
@@ -2881,7 +2863,8 @@ static void R_UploadTexture( rgbdata_t *pic, texture_t *tex )
 	bool		dxtformat = true;
 	bool		compress;
 	int		i, j, w, h, d;
-	const byte	*buf, *data, *bufend;
+	byte		*buf, *data;
+	const byte	*bufend;
 
 	tex->width = tex->srcWidth;
 	tex->height = tex->srcHeight;

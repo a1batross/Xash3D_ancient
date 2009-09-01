@@ -84,14 +84,11 @@ _inline void Matrix3x3_FromAngles( const vec3_t angles, matrix3x3 out )
 	float	angle;
 
 	angle = DEG2RAD( angles[PITCH] );
-	sp = com.sin( angle );
-	cp = com.cos( angle );
+	com.sincos( angle, &sp, &cp );
 	angle = DEG2RAD( angles[YAW] );
-	sy = com.sin( angle );
-	cy = com.cos( angle );
+	com.sincos( angle, &sy, &cy );
 	angle = DEG2RAD( angles[ROLL] );
-	sr = com.sin( angle );
-	cr = com.cos( angle );
+	com.sincos( angle, &sr, &cr );
 
 	out[0][0] = cp*cy;
 	out[0][1] = cp*sy;
@@ -193,14 +190,13 @@ _inline void Matrix3x3_CreateRotate( matrix3x3 out, float angle, float x, float 
 	float	len, c, s;
 
 	len = x * x + y * y + z * z;
-	if( len != 0.0f ) len = 1.0f / sqrt( len );
+	if( len != 0.0f ) len = 1.0f / com.sqrt( len );
 	x *= len;
 	y *= len;
 	z *= len;
 
 	angle = DEG2RAD( angle );
-	c = com.cos( angle );
-	s = com.sin( angle );
+	com.sincos( angle, &s, &c );
 	
 	out[0][0] = x * x + c * (1 - x * x);
 	out[0][1] = x * y * (1 - c) + z * s;

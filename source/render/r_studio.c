@@ -176,7 +176,6 @@ dstudiohdr_t *R_StudioLoadHeader( ref_model_t *mod, const uint *buffer )
 			R_StudioSurfaceParm( &ptexture[i] );
 			com.snprintf( shadername, MAX_STRING, "%s/%s", mod->name, ptexture[i].name );
 			FS_StripExtension( shadername ); // doesn't produce shaders with .ext
-			Msg( "mod studio texture %s\n", shadername );
 			mod->shaders[i] = R_LoadShader( shadername, SHADER_STUDIO, 0, 0, SHADER_INVALID );
 			ptexture[i].shader = mod->shaders[i]->shadernum;
 		}
@@ -2064,7 +2063,8 @@ void R_StudioDrawPoints( const meshbuffer_t *mb )
 
 	if( mb->LODModelHandle != old_model || old_entity != RI.currententity )
 	{
-		Mem_Set( g_cachestate, 0, sizeof( g_cachestate )); // model has changed - clear the cache
+		if( mb->LODModelHandle != old_model )
+			Mem_Set( g_cachestate, 0, sizeof( g_cachestate )); // model has changed - clear the cache
 		doBonesSetup = doTransform = true;
 	}
 
