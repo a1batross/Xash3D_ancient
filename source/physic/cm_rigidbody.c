@@ -7,6 +7,7 @@
 #include "mathlib.h"
 #include "matrix_lib.h"
 #include "cm_local.h"
+#include "entity_def.h"
 
 physbody_t *Phys_CreateBody( edict_t *ed, cmodel_t *mod, const vec3_t org, const matrix3x3 m, int solid, int move )
 {
@@ -85,8 +86,11 @@ physbody_t *Phys_CreateBody( edict_t *ed, cmodel_t *mod, const vec3_t org, const
 		break;
 	case SOLID_BSP:
 	case SOLID_MESH:
-		vertices = pi.GetModelVerts( ed, &numvertices );
-		if(!vertices || !numvertices ) return NULL;
+		if( mod->col[bound( 0, ed->v.body, mod->numbodies )] == NULL )
+			CM_CreateMeshBuffer( mod );
+		if( mod->col[bound( 0, ed->v.body, mod->numbodies )] == NULL ) return NULL; // I_Error()
+		vertices = (float *)mod->col[bound( 0, ed->v.body, mod->numbodies )]->verts;
+		numvertices = mod->col[bound( 0, ed->v.body, mod->numbodies )]->numverts;
 		col = NewtonCreateConvexHull( gWorld, numvertices, vertices, sizeof(vec3_t), &offset[0][0] );
 		break;
 	default:

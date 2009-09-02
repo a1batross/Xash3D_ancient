@@ -132,7 +132,6 @@ Beta 13.12.09
 108. prepare QuArK to Xash-ready		OK
 109. implement q1 models instead of q3 models	OK
 110. loading textures for q1 models		OK
-111. implement SSE_Transform if possible
-112. finalize alias models
-113. clean up renderer sources
-114. reorganize MathLib.
+111. finalize alias models
+112. clean up renderer sources
+113. fixup debug tools			OK

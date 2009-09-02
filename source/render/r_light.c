@@ -300,9 +300,9 @@ void R_LightForOrigin( const vec3_t origin, vec3_t dir, vec4_t ambient, vec4_t d
 {
 	int		i, j;
 	int		k, s;
-	int		vi[3], elem[4];
 	float		dot, t[8];
 	vec3_t		vf, vf2, tdir;
+	int		vi[3], elem[4];
 	vec3_t		ambientLocal, diffuseLocal;
 	vec_t		*gridSize, *gridMins;
 	int		*gridBounds;
@@ -337,7 +337,7 @@ void R_LightForOrigin( const vec3_t origin, vec3_t dir, vec4_t ambient, vec4_t d
 
 	for( i = 0; i < 4; i++ )
 	{
-		if( elem[i] < 0 || elem[i] >= ( r_worldbrushmodel->numlightarrayelems-1 ) )
+		if( elem[i] < 0 || elem[i] >= ( r_worldbrushmodel->numlightarrayelems - 1 ))
 		{
 			VectorSet( dir, 0.5f, 0.2f, -1.0f );
 			goto dynamic;

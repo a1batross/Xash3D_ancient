@@ -89,7 +89,7 @@ typedef struct
 	{
 		int	lastPoly;
 		uint	dlightbits;
-		uint	LODModelHandle;
+		uint	modhandle;
 	};
 	uint		shadowbits;
 } meshbuffer_t;

@@ -394,8 +394,7 @@ void R_AddModelMeshToList( unsigned int modhandle, mfog_t *fog, ref_shader_t *sh
 	meshbuffer_t *mb;
 	
 	mb = R_AddMeshToList( MB_MODEL, fog, shader, -( meshnum+1 ) );
-	if( mb )
-		mb->LODModelHandle = modhandle;
+	if( mb ) mb->modhandle = modhandle;
 
 	if( !GL_Support( R_SHADER_GLSL100_EXT ) && RI.currententity->outlineHeight/* && !(RI.params & RP_SHADOWMAPVIEW)*/ )
 	{

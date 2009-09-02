@@ -90,6 +90,9 @@ typedef struct render_exp_s
 	void	(*DrawStretchRaw)( int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw );
 	void	(*DrawStretchPic)( float x, float y, float w, float h, float s1, float t1, float s2, float t2, shader_t shader );
 	int	(*GetFragments)( const vec3_t org, float rad, vec3_t axis[3], int maxverts, vec3_t *verts, int maxfrags, fragment_t *frags );
+	int	(*WorldToScreen)( const float *world, float *screen );
+	void	(*ScreenToWorld)( const float *screen, float *world );
+	bool 	(*RSpeedsMessage)( char *out, size_t size );
 } render_exp_t;
 
 typedef struct render_imp_s

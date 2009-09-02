@@ -222,6 +222,7 @@ V_PostRender
 */
 void V_PostRender( void )
 {
+	SCR_RSpeeds();
 	SCR_DrawNet();
 	SCR_DrawFPS();
 	UI_Draw();

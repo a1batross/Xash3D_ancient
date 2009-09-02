@@ -171,7 +171,7 @@ public:
 	}
 	int DirToBits( void )
 	{
-		int	max, bits, numBits = 15; // pack as unsigned short ( state->skin supports this )
+		int	max, bits, numBits = 8; // pack as unsigned char ( state->skin supports this )
 		float	bias;
 
 		numBits /= 3;
@@ -190,7 +190,7 @@ public:
 	Vector BitsToDir( int bits )
 	{
 		static	float sign[2] = { 1.0f, -1.0f };
-		int	max, numBits = 15;	// pack as unsigned short
+		int	max, numBits = 8;	// pack as unsigned char
 		float	invMax;
 
 		numBits /= 3;

@@ -637,9 +637,11 @@ void SV_InitEdict( edict_t *pEdict )
 {
 	Com_Assert( pEdict == NULL );
 	Com_Assert( pEdict->pvPrivateData != NULL );
+//	Com_Assert( pEdict->pvServerData != NULL );
 
 	pEdict->v.pContainingEntity = pEdict; // make cross-links for consistency
-	pEdict->pvServerData = (sv_priv_t *)Mem_Alloc( svgame.mempool, sizeof( sv_priv_t ));
+	if( !pEdict->pvServerData )	// FIXME
+		pEdict->pvServerData = (sv_priv_t *)Mem_Alloc( svgame.mempool, sizeof( sv_priv_t ));
 	pEdict->pvPrivateData = NULL;	// will be alloced later by pfnAllocPrivateData
 	pEdict->serialnumber = NUM_FOR_EDICT( pEdict );
 	pEdict->free = false;

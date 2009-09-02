@@ -36,7 +36,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 # define ALIGN(x)
 #endif
 
-#include "r_public.h"
 #include "r_opengl.h"
 
 extern stdlib_api_t		com;		// engine toolbox
@@ -45,9 +44,9 @@ extern byte		*r_temppool;
 #define Host_Error		com.error
 
 typedef unsigned int elem_t;
+typedef enum { RT_MODEL, RT_SPRITE, RT_PORTALSURFACE, NUM_RTYPES } refEntityType_t;
 
 /*
-
 skins will be outline flood filled and mip mapped
 pics and sprites with alpha will be outline flood filled
 pic won't be mip mapped
@@ -130,6 +129,10 @@ enum
 #define SHADOW_PLANAR		1
 #define SHADOW_MAPPING		2
 
+#define MAX_ENTITIES		2048
+#define MAX_POLY_VERTS		3000
+#define MAX_POLYS			2048
+
 //===================================================================
 
 #include "r_math.h"
@@ -198,12 +201,134 @@ typedef struct
 
 typedef struct
 {
+	float		rgb[3];	// 0.0 - 2.0
+
+} lightstyle_t;
+
+typedef struct
+{
 	int		features;
 	int		lightmapNum[LM_STYLES];
 	int		lightmapStyles[LM_STYLES];
 	int		vertexStyles[LM_STYLES];
 	float		stOffset[LM_STYLES][2];
 } superLightStyle_t;
+
+typedef struct
+{
+	byte		open;		// 0 = mouth closed, 255 = mouth agape
+	byte		sndcount;		// counter for running average
+	int		sndavg;		// running average
+} mouth_t;
+
+typedef struct latchedvars_s
+{
+	float		animtime;		// ???
+	float		sequencetime;
+	vec3_t		origin;		// edict->v.old_origin
+	vec3_t		angles;		
+
+	vec3_t		gaitorigin;
+	int		sequence;		// ???
+	float		frame;
+} latchedvars_t;
+
+typedef struct studiolatched_s
+{
+	float		blending[MAXSTUDIOBLENDS];
+	float		seqblending[MAXSTUDIOBLENDS];
+	float		controller[MAXSTUDIOCONTROLLERS];
+
+} studiolatched_t;
+
+typedef struct studiolight_s
+{
+	vec3_t		lightvec;			// light vector
+	vec4_t		lightcolor;		// ambient light color
+	vec4_t		lightdiffuse;		// diffuse light color
+
+	vec3_t		bonelightvec[MAXSTUDIOBONES];	// ambient lightvectors per bone
+	vec3_t		dynlightcolor[MAX_DLIGHTS];	// ambient dynamic light colors
+	vec3_t		dynlightvec[MAX_DLIGHTS][MAXSTUDIOBONES];
+	int		numdynlights;
+} studiolight_t;
+
+typedef struct studiovars_s
+{
+	studiolatched_t	prev;
+
+	mouth_t		mouth;			// for synchronizing mouth movements.
+	float		blending[MAXSTUDIOBLENDS];
+	float		controller[MAXSTUDIOCONTROLLERS];
+
+	// cached bones, valid only for current frame
+	char		bonenames[MAXSTUDIOBONES][32];// used for attached entities 
+	matrix4x4		*bonestransform;
+	int		numbones;
+
+	// StudioBoneLighting (fast but ugly)
+	studiolight_t	*light;			// FIXME: alloc match size not maximum
+} studiovars_t;
+
+typedef struct ref_entity_s
+{
+	edtype_t			ent_type;		// entity type
+	uint			m_nCachedFrameCount;// keep current render frame
+	int			index;		// viewmodel has entindex -1
+	refEntityType_t		rtype;
+
+	struct ref_model_s		*model;		// opaque type outside refresh
+	struct ref_model_s		*weaponmodel;	// opaque type outside refresh
+
+	latchedvars_t		prev;		// previous frame values for lerping
+
+	float			framerate;	// custom framerate
+          float			animtime;		// lerping animtime	
+	float			frame;		// also used as RF_BEAM's diameter
+
+	int			body;
+	int			skin;
+
+          int			movetype;		// entity moving type
+	int			sequence;
+	float			scale;
+
+	void			*extradata;	// studiomodel bones, etc
+
+	// misc
+	float			backlerp;		// 0.0 = current, 1.0 = old
+	rgb_t			rendercolor;	// hl1 rendercolor
+	byte			renderamt;	// hl1 alphavalues
+	int			rendermode;	// hl1 rendermode
+	int			renderfx;		// server will be translate hl1 values into flags
+	int			colormap;		// q1 and hl1 model colormap (can applied for sprites)
+	int			flags;		// q1 effect flags, EF_ROTATE, EF_DIMLIGHT etc
+
+	// EF_ANIMATE stuff
+	int			m_fSequenceLoops;
+	int			m_fSequenceFinished;
+
+	// client gait sequence (local stuff)
+	int			gaitsequence;	// client->sequence + yaw
+	float			gaitframe;	// client->frame + yaw
+	float			gaityaw;		// local value
+
+	// most recent data
+	vec3_t			axis[3];
+	vec3_t			angles;
+	vec3_t			movedir;		// forward vector that computed on a server
+	vec3_t			origin, origin2;
+	vec3_t			lightingOrigin;
+
+	// RT_SPRITE stuff
+	struct ref_shader_s		*spriteshader;	// client drawing stuff
+	float			radius;		// used as RT_SPRITE's radius
+
+	// outilne stuff
+	float			outlineHeight;
+	rgba_t			outlineColor;
+
+} ref_entity_t;
 
 typedef struct
 {
@@ -435,11 +560,9 @@ void		NormToLatLong( const vec3_t normal, byte latlong[2] );
 //
 // r_alias.c
 //
-bool	R_CullAliasModel( ref_entity_t *e );
+bool		R_CullAliasModel( ref_entity_t *e );
 void		R_AddAliasModelToList( ref_entity_t *e );
 void		R_DrawAliasModel( const meshbuffer_t *mb );
-bool	R_AliasModelLerpTag( orientation_t *orient, maliasmodel_t *aliasmodel, int framenum, int oldframenum,
-								float lerpfrac, const char *name );
 float		R_AliasModelBBox( ref_entity_t *e, vec3_t mins, vec3_t maxs );
 
 //
@@ -527,6 +650,9 @@ void		R_ShowTextures( void );
 texture_t		*R_LoadTexture( const char *name, rgbdata_t *pic, int samples, texFlags_t flags );
 texture_t		*R_FindTexture( const char *name, const byte *buf, size_t size, texFlags_t flags );
 
+bool		VID_ScreenShot( const char *filename, bool levelshot );
+bool		VID_CubemapShot( const char *base, uint size, bool skyshot );
+
 //
 // r_light.c
 //
@@ -536,33 +662,34 @@ texture_t		*R_FindTexture( const char *name, const byte *buf, size_t size, texFl
 extern int r_numSuperLightStyles;
 extern superLightStyle_t r_superLightStyles[MAX_SUPER_STYLES];
 
-void		R_LightBounds( const vec3_t origin, float intensity, vec3_t mins, vec3_t maxs );
+void	R_LightBounds( const vec3_t origin, float intensity, vec3_t mins, vec3_t maxs );
 bool	R_SurfPotentiallyLit( msurface_t *surf );
-unsigned int R_AddSurfDlighbits( msurface_t *surf, unsigned int dlightbits );
-void		R_AddDynamicLights( unsigned int dlightbits, int state );
-void		R_LightForEntity( ref_entity_t *e, byte *bArray );
-void		R_LightForOrigin( const vec3_t origin, vec3_t dir, vec4_t ambient, vec4_t diffuse, float radius );
-void		R_BuildLightmaps( int numLightmaps, int w, int h, const byte *data, mlightmapRect_t *rects );
-void		R_InitLightStyles( void );
-int			R_AddSuperLightStyle( const int *lightmaps, const byte *lightmapStyles, const byte *vertexStyles, 
+uint	R_AddSurfDlighbits( msurface_t *surf, unsigned int dlightbits );
+void	R_AddDynamicLights( unsigned int dlightbits, int state );
+void	R_LightForEntity( ref_entity_t *e, byte *bArray );
+void	R_LightForOrigin( const vec3_t origin, vec3_t dir, vec4_t ambient, vec4_t diffuse, float radius );
+void	R_BuildLightmaps( int numLightmaps, int w, int h, const byte *data, mlightmapRect_t *rects );
+void	R_InitLightStyles( void );
+int	R_AddSuperLightStyle( const int *lightmaps, const byte *lightmapStyles, const byte *vertexStyles, 
 								 mlightmapRect_t **lmRects );
-void		R_SortSuperLightStyles( void );
+void	R_SortSuperLightStyles( void );
 
-void		R_InitCoronas( void );
-void		R_DrawCoronas( void );
+void	R_InitCoronas( void );
+void	R_DrawCoronas( void );
 
 //
 // r_main.c
 //
-void		GL_Cull( int cull );
-void		GL_SetState( int state );
-void		GL_FrontFace( int front );
-void		R_Set2DMode( bool enable );
+void	GL_Cull( int cull );
+void	GL_SetState( int state );
+void	GL_FrontFace( int front );
+void	R_Set2DMode( bool enable );
 
-void		R_BeginFrame( void );
-void		R_EndFrame( void );
-void		R_RenderView( const ref_params_t *fd );
-const char *R_SpeedsMessage( char *out, size_t size );
+void	R_BeginFrame( void );
+void	R_EndFrame( void );
+void	R_RenderScene( const ref_params_t *fd );
+void	R_RenderView( const ref_params_t *fd );
+void	R_ClearScene( void );
 
 bool	R_CullBox( const vec3_t mins, const vec3_t maxs, const uint clipflags );
 bool	R_CullSphere( const vec3_t centre, const float radius, const uint clipflags );
@@ -573,12 +700,12 @@ int	R_CullModel( ref_entity_t *e, vec3_t mins, vec3_t maxs, float radius );
 mfog_t	*R_FogForSphere( const vec3_t centre, const float radius );
 bool	R_CompletelyFogged( mfog_t *fog, vec3_t origin, float radius );
 
-void		R_LoadIdentity( void );
-void		R_RotateForEntity( ref_entity_t *e );
-void		R_TranslateForEntity( ref_entity_t *e );
-void		R_TransformToScreen_Vec3( vec3_t in, vec3_t out );
-void		R_TransformVectorToScreen( const ref_params_t *rd, const vec3_t in, vec2_t out );
-void		R_TransformEntityBBox( ref_entity_t *e, vec3_t mins, vec3_t maxs, vec3_t bbox[8], bool local );
+void	R_LoadIdentity( void );
+void	R_RotateForEntity( ref_entity_t *e );
+void	R_TranslateForEntity( ref_entity_t *e );
+bool	R_TransformToScreen_Vec3( const vec3_t in, vec3_t out );
+void	R_TransformVectorToScreen( const ref_params_t *rd, const vec3_t in, vec2_t out );
+void	R_TransformEntityBBox( ref_entity_t *e, vec3_t mins, vec3_t maxs, vec3_t bbox[8], bool local );
 
 bool	R_SpriteOverflow( void );
 bool	R_PushSpriteModel( const meshbuffer_t *mb );
@@ -693,13 +820,17 @@ mspriteframe_t *R_GetSpriteFrame( ref_entity_t *ent );
 //
 // r_studio.c
 //
+extern byte *studiopool;
+
 void R_AddStudioModelToList( ref_entity_t *e );
 void R_DrawStudioModel( const meshbuffer_t *mb );
 void R_StudioResetSequenceInfo( ref_entity_t *ent );
 float R_StudioFrameAdvance( ref_entity_t *ent, float flInterval );
 void R_StudioModelBBox( ref_entity_t *e, vec3_t mins, vec3_t maxs );
 bool R_CullStudioModel( ref_entity_t *e );
+void R_StudioDrawDebug( void );
 void R_StudioInit( void );
+void R_StudioNewMap( void );
 void R_StudioShutdown( void );
 
 //
@@ -730,15 +861,6 @@ void		R_AddBrushModelToList( ref_entity_t *e );
 void		R_ClearSurfOcclusionQueryKeys( void );
 int			R_SurfOcclusionQueryKey( ref_entity_t *e, msurface_t *surf );
 void		R_SurfIssueOcclusionQueries( void );
-
-//
-// r_skin.c
-//
-void		R_InitSkinFiles( void );
-void		R_ShutdownSkinFiles( void );
-struct skinfile_s *R_SkinFile_Load( const char *name );
-struct skinfile_s *R_RegisterSkinFile( const char *name );
-ref_shader_t	*R_FindShaderForSkinFile( const struct skinfile_s *skinfile, const char *meshname );
 
 //
 // r_sky.c

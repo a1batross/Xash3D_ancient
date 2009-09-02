@@ -511,7 +511,7 @@ void GL_InitCommands( void )
 	r_novis = Cvar_Get( "r_novis", "0", 0, "ignore vis information (perfomance test)" );
 	r_nocull = Cvar_Get( "r_nocull", "0", 0, "ignore frustrum culling (perfomance test)" );
 	r_lerpmodels = Cvar_Get( "r_lerpmodels", "1", 0, "use lerping for alias and studio models" );
-	r_speeds = Cvar_Get( "r_speeds", "0", 0, "shows r_speeds" );
+	r_speeds = Cvar_Get( "r_speeds", "0", CVAR_ARCHIVE, "shows r_speeds" );
 	r_drawelements = Cvar_Get( "r_drawelements", "1", 0, "use gldrawElements or glDrawRangeElements" );
 	r_showtris = Cvar_Get( "r_showtris", "0", CVAR_CHEAT, "show mesh triangles" );
 	r_lockpvs = Cvar_Get( "r_lockpvs", "0", CVAR_CHEAT, "lockpvs area at current point (pvs test)" );
@@ -1015,6 +1015,9 @@ void GL_InitExtensions( void )
 
 	Cvar_Set( "r_anisotropy", va( "%f", bound( 0, gl_texture_anisotropy->value, glConfig.max_texture_anisotropy )));
 
+	// software mipmap generator does wrong result with NPOT textures ...
+	if( !GL_Support( R_SGIS_MIPMAPS_EXT )) GL_SetExtension( R_ARB_TEXTURE_NPOT_EXT, false );
+
 	if( GL_Support( R_TEXTURE_COMPRESSION_EXT )) flags |= IL_DDS_HARDWARE;
 	flags |= IL_USE_LERPING|IL_ALLOW_OVERWRITE;
 
@@ -1040,7 +1043,6 @@ static void R_InitMedia( void )
 	R_InitCinematics ();
 	R_InitShaders();
 	R_InitModels();
-	R_InitSkinFiles();
 	R_InitCoronas();
 	R_InitShadows();
 	R_InitOcclusionQueries();
@@ -1066,7 +1068,6 @@ static void R_FreeMedia( void )
 
 	R_ShutdownOcclusionQueries();
 	R_ShutdownShadows();
-	R_ShutdownSkinFiles();
 	R_ShutdownModels();
 	R_ShutdownShaders();
 	R_ShutdownCinematics ();
@@ -1143,6 +1144,7 @@ void R_NewMap( void )
 	R_InitLightStyles();	// clear lightstyles
 	R_InitCustomColors();	// clear custom colors
 	R_InitCoronas();		// update corona shader (because we can't make it static)
+	R_StudioNewMap ();		// free boneposes
 
 	GL_SetDefaultTexState ();
 	Mem_Set( &RI, 0, sizeof( refinst_t ));	

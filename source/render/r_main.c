@@ -426,7 +426,7 @@ R_InitCustomColors
 */
 void R_InitCustomColors( void )
 {
-	memset( r_customColors, 255, sizeof( r_customColors ) );
+	Mem_Set( r_customColors, 255, sizeof( r_customColors ));
 }
 
 /*
@@ -936,7 +936,7 @@ R_AddModelMeshOutline
 void R_AddModelMeshOutline( unsigned int modhandle, mfog_t *fog, int meshnum )
 {
 	meshbuffer_t *mb = R_AddMeshToList( MB_MODEL, fog, r_outlineShader, -( meshnum+1 ) );
-	if( mb ) mb->LODModelHandle = modhandle;
+	if( mb ) mb->modhandle = modhandle;
 }
 //=======================================================================
 
@@ -1327,11 +1327,11 @@ R_CullEntities
 */
 static void R_CullEntities( void )
 {
-	unsigned int i;
-	ref_entity_t *e;
-	bool culled;
+	uint		i;
+	ref_entity_t	*e;
+	bool		culled;
 
-	memset( r_entVisBits, 0, sizeof( r_entVisBits ) );
+	Mem_Set( r_entVisBits, 0, sizeof( r_entVisBits ));
 	if( !r_drawentities->integer )
 		return;
 
@@ -1695,6 +1695,8 @@ void R_RenderView( const ref_params_t *fd )
 
 	R_RenderDebugSurface ();
 
+	R_StudioDrawDebug ();
+
 	R_DrawPhysDebug ();
 
 	R_DrawNullEntities();
@@ -1964,11 +1966,13 @@ void R_EndFrame( void )
 R_SpeedsMessage
 ===============
 */
-const char *R_SpeedsMessage( char *out, size_t size )
+static bool R_SpeedsMessage( char *out, size_t size )
 {
-	if( out )
-		com.strncpy( out, r_speeds_msg, size );
-	return out;
+	if( r_speeds->integer <= 0 ) return false;
+	if( !out || !size ) return false;
+
+	com.strncpy( out, r_speeds_msg, size );
+	return true;
 }
 
 //==================================================================================
@@ -1978,22 +1982,23 @@ const char *R_SpeedsMessage( char *out, size_t size )
 R_TransformToScreen_Vec3
 =============
 */
-void R_TransformToScreen_Vec3( vec3_t in, vec3_t out )
+bool R_TransformToScreen_Vec3( const vec3_t in, vec3_t out )
 {
-	vec4_t temp, temp2;
+	vec4_t	temp, temp2;
 
 	temp[0] = in[0];
 	temp[1] = in[1];
 	temp[2] = in[2];
 	temp[3] = 1.0f;
-	Matrix4x4_ConcatVector( RI.worldviewProjectionMatrix, temp, temp2 );
 
-	if( !temp2[3] )
-		return;
+	Matrix4x4_ConcatVector( RI.worldviewProjectionMatrix, temp, temp2 );
+	if( !temp2[3] ) return true;	// Z-clipped
 
 	out[0] = (temp2[0] / temp2[3] + 1.0f) * 0.5f * RI.refdef.viewport[2];
 	out[1] = (temp2[1] / temp2[3] + 1.0f) * 0.5f * RI.refdef.viewport[3];
 	out[2] = (temp2[2] / temp2[3] + 1.0f) * 0.5f;
+
+	return false;
 }
 
 /*
@@ -2020,13 +2025,21 @@ void R_TransformVectorToScreen( const ref_params_t *rd, const vec3_t in, vec2_t 
 	Matrix4x4_ConcatVector( m, temp, temp2 );
 	Matrix4x4_ConcatVector( p, temp2, temp );
 
-	if( !temp[3] )
-		return;
+	if( !temp[3] ) return;
 
 	out[0] = rd->viewport[0] + ( temp[0] / temp[3] + 1.0f ) * rd->viewport[2] * 0.5f;
 	out[1] = rd->viewport[1] + ( temp[1] / temp[3] + 1.0f ) * rd->viewport[3] * 0.5f;
 }
 
+static void R_ScreenToWorld( const float *screen, float *world )
+{
+	// FIXME: implement
+}
+
+static bool R_WorldToScreen( const float *world, float *screen )
+{
+	return R_TransformToScreen_Vec3( world, screen );
+}
 //==================================================================================
 
 /*
@@ -2222,18 +2235,62 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 			VectorNegate( refent->axis[1], refent->axis[1] ); 
 	}
 
-	// copy controllers
-	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
+	if( refent->model->type == mod_studio )
 	{
-		refent->prev.controller[i] = refent->controller[i];
-		refent->controller[i] = pRefEntity->v.controller[i];
-	}
+		studiovars_t	*studio;
+		int		numbones = ((mstudiomodel_t *)refent->model->extradata)->phdr->numbones;
+			
+		if( !refent->extradata )
+			refent->extradata = (void *)Mem_Alloc( studiopool, sizeof( studiovars_t ));
+		studio = (studiovars_t *)refent->extradata;
 
-	// copy blends
-	for( i = 0; i < MAXSTUDIOBLENDS; i++ )
+		// copy controllers
+		for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
+		{
+			studio->prev.controller[i] = studio->controller[i];
+			studio->controller[i] = pRefEntity->v.controller[i];
+		}
+
+		// copy blends
+		for( i = 0; i < MAXSTUDIOBLENDS; i++ )
+		{
+			studio->prev.blending[i] = studio->blending[i];
+			studio->blending[i] = pRefEntity->v.blending[i];
+		}
+
+		if( !studio->bonestransform || studio->numbones != numbones )
+		{
+			size_t	cache_size = sizeof( matrix4x4 ) * numbones;
+			size_t	names_size = numbones * 32; // bonename length
+
+			// allocate or merge bones cache
+			studio->bonestransform = (matrix4x4 *)Mem_Realloc( studiopool, studio->bonestransform, cache_size );
+			studio->numbones = numbones;
+		}
+
+		if( r_studio_bonelighting->integer )
+		{
+			if( !studio->light )
+				studio->light = Mem_Alloc( studiopool, sizeof( studiolight_t ));
+		}
+		else
+		{
+			if( studio->light ) Mem_Free( studio->light );
+			studio->light = NULL;
+		}
+	}
+	else
 	{
-		refent->prev.blending[i] = refent->blending[i];
-		refent->blending[i] = pRefEntity->v.blending[i];
+		// entity has changed model, so no reason to keep this data
+		if( refent->extradata )
+		{
+			studiovars_t	*studio = (studiovars_t *)refent->extradata;
+		
+			if( studio->bonestransform ) Mem_Free( studio->bonestransform );
+			if( studio->light ) Mem_Free( studio->light );
+			Mem_Free( refent->extradata );
+		}
+		refent->extradata = NULL;
 	}
 
 	if( refent->ent_type == ED_CLIENT )
@@ -2423,6 +2480,9 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	re.DrawStretchRaw = R_DrawStretchRaw;
 	re.DrawStretchPic = R_DrawStretchPic;
 	re.GetFragments = R_GetClippedFragments;
+	re.ScreenToWorld = R_ScreenToWorld;
+	re.WorldToScreen = R_WorldToScreen;
+	re.RSpeedsMessage = R_SpeedsMessage;
 
 	return &re;
 }

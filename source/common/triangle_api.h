@@ -7,14 +7,13 @@
 
 typedef enum 
 {
-	TRI_FRONT = 0,
+	TRI_FRONT = 1,
 	TRI_BACK,
-	TRI_NONE,
 } TRI_CULL;
 
 typedef enum
 {
-	TRI_TRIANGLES = 0,
+	TRI_TRIANGLES = 1,
 	TRI_TRIANGLE_FAN,
 	TRI_TRIANGLE_STRIP,
 	TRI_POLYGON,
@@ -24,7 +23,8 @@ typedef enum
 
 typedef enum
 {
-	TRI_SHADER = 0,
+	TRI_NONE = 0,
+	TRI_SHADER,
 	TRI_CLIP_PLANE,
 } TRI_CAPS;
 

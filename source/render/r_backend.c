@@ -409,7 +409,7 @@ void R_BackendEndFrame( void )
 		case 1:
 		default:
 			com.snprintf( r_speeds_msg, sizeof( r_speeds_msg ),
-				"%4i wpoly %4i leafs %4i verts %4i tris %4i flushes %3i locks",
+				"%4i wpoly %4i leafs %4i verts\n%4i tris %4i flushes %4i locks",
 				c_brush_polys,
 				c_world_leafs,
 				r_backacc.c_totalVerts,
@@ -420,7 +420,7 @@ void R_BackendEndFrame( void )
 			break;
 		case 2:
 			com.snprintf( r_speeds_msg, sizeof( r_speeds_msg ),
-				"lvs: %5i  node: %5i  farclip: %6.f",
+				"lvs: %5i  node: %5i\nfarclip: %6.f",
 				r_mark_leaves,
 				r_world_node,
 				RI.farClip
@@ -428,7 +428,7 @@ void R_BackendEndFrame( void )
 			break;
 		case 3:
 			com.snprintf( r_speeds_msg, sizeof( r_speeds_msg ),
-				"polys\\ents: %5i\\%5i  sort\\draw: %5i\\%i",
+				"polys\\ents: %5i\\%5i\nsort\\draw: %5i\\%i",
 				r_add_polys, r_add_entities,
 				r_sort_meshes, r_draw_meshes
 			);
@@ -449,7 +449,7 @@ void R_BackendEndFrame( void )
 			break;
 		case 5:
 			com.snprintf( r_speeds_msg, sizeof( r_speeds_msg ),
-				"%.1f %.1f %.1f (%.1f,%.1f,%.1f)",
+				"%.1f %.1f %.1f\n(%.1f,%.1f,%.1f)",
 				RI.refdef.vieworg[0], RI.refdef.vieworg[1], RI.refdef.vieworg[2],
 				RI.refdef.viewangles[0], RI.refdef.viewangles[1], RI.refdef.viewangles[2]
 			);
@@ -2976,15 +2976,14 @@ R_SetColorForOutlines
 */
 static _inline void R_SetColorForOutlines( void )
 {
-	int type = r_currentMeshBuffer->sortkey & 3;
+	int	type = r_currentMeshBuffer->sortkey & 3;
 
 	switch( type )
 	{
 	case MB_MODEL:
 		if( r_currentMeshBuffer->infokey < 0 )
 			pglColor4fv( colorRed );
-		else
-			pglColor4fv( colorWhite );
+		else pglColor4fv( colorWhite );
 		break;
 	case MB_SPRITE:
 		pglColor4fv( colorBlue );
@@ -3017,7 +3016,7 @@ R_DrawNormals
 */
 static void R_DrawNormals( void )
 {
-	unsigned int i;
+	uint	i;
 
 	if( r_shownormals->integer == 2 )
 		R_SetColorForOutlines();
@@ -3062,9 +3061,14 @@ void R_DrawPhysDebug( void )
 	if( r_physbdebug->integer )
 	{
 		// physic debug
+		pglDisable( GL_TEXTURE_2D );
+		GL_SetState( GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA );
+
 		GL_LoadMatrix( RI.worldviewMatrix );
 		pglBegin( GL_LINES );
 		ri.ShowCollision( R_DrawLine );
+
 		pglEnd();
+		pglEnable( GL_TEXTURE_2D );
 	}
 }

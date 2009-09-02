@@ -43,9 +43,6 @@ typedef struct cl_globalvars_s cl_globalvars_t;
 typedef struct ui_globalvars_s ui_globalvars_t;
 typedef struct physbody_s	physbody_t;
 
-// FIXME: get rid of this
-typedef vec_t		gl_matrix[16];
-
 // platform instances
 typedef enum
 {	

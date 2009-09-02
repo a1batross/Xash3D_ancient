@@ -348,6 +348,41 @@ void SCR_DrawFPS( void )
 }
 
 /*
+================
+SCR_RSpeeds
+================
+*/
+void SCR_RSpeeds( void )
+{
+	char	msg[MAX_SYSPATH];
+
+	if( re->RSpeedsMessage( msg, sizeof( msg )))
+	{
+		int	x, y, height;
+		char	*p, *start, *end;
+		vec4_t	color;
+
+		x = SCREEN_WIDTH - 320;
+		y = 64;
+		height = SMALLCHAR_HEIGHT;
+		Vector4Set( color, 1.0f, 1.0f, 1.0f, 1.0f );
+
+		p = start = msg;
+		do
+		{
+			end = com.strchr( p, '\n' );
+			if( end ) msg[end-start] = '\0';
+
+			SCR_DrawStringExt( x, y, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, p, color, true );
+			y += height;
+
+			if( end ) p = end + 1;
+			else break;
+		} while( 1 );
+	}
+}
+
+/*
 ==================
 SCR_UpdateScreen
 

@@ -119,28 +119,17 @@ const char *CM_TexName( int index ){ return cm.shaders[index].name; }
 BSP_CreateMeshBuffer
 =================
 */
-void BSP_CreateMeshBuffer( int modelnum )
+void BSP_CreateMeshBuffer( cmodel_t *mod )
 {
 	csurface_t	*m_surface;
 	int		d, i, j, k;
 	int		flags;
 
-	// ignore world or bsplib instance
-	if( app_name == HOST_BSPLIB || modelnum >= cms.numbmodels )
-		return;
-
-	loadmodel = &cms.bmodels[modelnum];
-	if( modelnum ) loadmodel->type = mod_brush;
-	else loadmodel->type = mod_world; // level static geometry
-	loadmodel->TraceBox = CM_TraceBmodel;
-	loadmodel->PointContents = CM_PointContents;
-
-	// because world loading collision tree from LUMP_COLLISION
-	if( modelnum < 1 ) return;
+	if( mod->col[0] ) return; // already loaded
 	studio.m_pVerts = &studio.vertices[0]; // using studio vertex buffer for bmodels too
 	studio.numverts = 0; // clear current count
 
-	for( d = 0, i = loadmodel->firstface; d < loadmodel->numfaces; i++, d++ )
+	for( d = 0, i = mod->firstface; d < mod->numfaces; i++, d++ )
 	{
 		m_surface = cm.surfaces + i;
 		flags = cm.shaders[m_surface->shadernum].flags;
@@ -162,11 +151,11 @@ void BSP_CreateMeshBuffer( int modelnum )
 	if( studio.numverts )
 	{
 		// grab vertices
-		loadmodel->col[loadmodel->numbodies] = (cmesh_t *)Mem_Alloc( loadmodel->mempool, sizeof(*loadmodel->col[0]));
-		loadmodel->col[loadmodel->numbodies]->verts = Mem_Alloc( loadmodel->mempool, studio.numverts * sizeof(vec3_t));
-		Mem_Copy( loadmodel->col[loadmodel->numbodies]->verts, studio.m_pVerts, studio.numverts * sizeof(vec3_t));
-		loadmodel->col[loadmodel->numbodies]->numverts = studio.numverts;
-		loadmodel->numbodies++;
+		mod->col[mod->numbodies] = (cmesh_t *)Mem_Alloc( mod->mempool, sizeof(*mod->col[0]));
+		mod->col[mod->numbodies]->verts = Mem_Alloc( mod->mempool, studio.numverts * sizeof(vec3_t));
+		Mem_Copy( mod->col[loadmodel->numbodies]->verts, studio.m_pVerts, studio.numverts * sizeof(vec3_t));
+		mod->col[mod->numbodies]->numverts = studio.numverts;
+		mod->numbodies++;
 	}
 }
 
@@ -214,9 +203,16 @@ void BSP_LoadModels( lump_t *l )
 		out->numbrushes = c = LittleLong( in->numbrushes );
 		if( n < 0 || n + c > cm.numbrushes )
 			Host_Error( "BSP_LoadModels: invalid brush range %i : %i (%i brushes)\n", n, n+c, cm.numsurfaces );
-		com.strncpy( out->name, va("*%i", i ), sizeof(out->name));
+		com.strncpy( out->name, va("*%i", i ), sizeof( out->name ));
 		out->mempool = Mem_AllocPool( va("^3%s^7", out->name )); // difference with render and cm pools
-		BSP_CreateMeshBuffer( i ); // bsp physic
+
+		if( i >= cms.numbmodels ) continue;
+
+		loadmodel = &cms.bmodels[i];
+		if( i ) loadmodel->type = mod_brush;
+		else loadmodel->type = mod_world; // level static geometry
+		loadmodel->TraceBox = CM_TraceBmodel;
+		loadmodel->PointContents = CM_PointContents;
 	}
 }
 
@@ -1102,16 +1098,7 @@ void CM_LoadBSP( const void *buffer )
 
 void CM_FreeBSP( void )
 {
-	int	i;
-	cmodel_t	*mod;
-
 	CM_FreeWorld();
-
-	for( i = 0, mod = cms.cmodels; i < cms.numcmodels; i++, mod++)
-	{
-		if( !mod->name[0] ) continue;
-		CM_FreeModel( mod );
-	}
 }
 
 static void CM_AddCollision( file_t *f, const void* buffer, size_t size )
@@ -1334,9 +1321,9 @@ void CM_EndRegistration( void )
 	cmodel_t	*mod;
 	int	i;
 
-	for( i = 0, mod = &cms.cmodels[0]; i < cms.numcmodels; i++, mod++)
+	for( i = 0, mod = &cms.cmodels[0]; i < cms.numcmodels; i++, mod++ )
 	{
-		if(!mod->name[0]) continue;
+		if( !mod->name[0] ) continue;
 		if( mod->registration_sequence != registration_sequence )
 			CM_FreeModel( mod );
 	}
@@ -1553,26 +1540,39 @@ void CM_StudioGetVertices( void )
 	CM_StudioLookMeshes();
 }
 
-void CM_CreateMeshBuffer( byte *buffer )
+void CM_CreateMeshBuffer( cmodel_t *mod )
 {
 	int	i, j;
 
+	Com_Assert( mod == NULL );
+
+	switch( mod->type )
+	{
+	case mod_world:
+	case mod_brush:
+		BSP_CreateMeshBuffer( mod );
+		return;
+	case mod_studio:
+		break;
+	default:	return;
+	}
+
 	// setup global pointers
-	studio.hdr = (dstudiohdr_t *)buffer;
+	studio.hdr = (dstudiohdr_t *)mod->extradata;
 	studio.m_pVerts = &studio.vertices[0];
 
 	CM_GetBodyCount();
 
-	for( i = 0; i < studio.bodycount; i++)
+	for( i = 0; i < studio.bodycount; i++ )
 	{
 		// already loaded
-		if( loadmodel->col[i] ) continue;
+		if( mod->col[i] ) continue;
 
 		CM_StudioSetUpTransform();
 		CM_StudioSetupBones();
 
 		// lookup all bodies
-		for (j = 0; j < studio.hdr->numbodyparts; j++)
+		for( j = 0; j < studio.hdr->numbodyparts; j++ )
 		{
 			CM_StudioSetupModel( j, i );
 			CM_StudioGetVertices();
@@ -1589,6 +1589,24 @@ void CM_CreateMeshBuffer( byte *buffer )
 	}
 }
 
+void CM_FreeMeshBuffer( cmodel_t *mod )
+{
+	int	i;
+
+	Com_Assert( mod == NULL );
+
+	for( i = 0; i < mod->numbodies; i++ )
+	{
+		if( mod->col[i] )
+		{
+			if( mod->col[i]->verts ) Mem_Free( mod->col[i]->verts );
+			Mem_Free( mod->col[i] );		
+			mod->col[i] = NULL;
+		}
+	}
+	mod->numbodies = 0;
+}
+
 bool CM_StudioModel( byte *buffer, uint filesize )
 {
 	dstudiohdr_t	*phdr;
@@ -1603,6 +1621,7 @@ bool CM_StudioModel( byte *buffer, uint filesize )
 
 	loadmodel->numbodies = 0;
 	loadmodel->type = mod_studio;
+	loadmodel->registration_sequence = registration_sequence;
 	loadmodel->extradata = Mem_Alloc( loadmodel->mempool, filesize );
 	Mem_Copy( loadmodel->extradata, buffer, filesize );
 
@@ -1619,8 +1638,6 @@ bool CM_StudioModel( byte *buffer, uint filesize )
 	VectorCopy( loadmodel->maxs, loadmodel->rotatedmaxs );
 	VectorCopy( loadmodel->mins, loadmodel->yawmins );
 	VectorCopy( loadmodel->maxs, loadmodel->yawmaxs );
-
-	CM_CreateMeshBuffer( buffer ); // newton collision mesh
 
 	return true;
 }
@@ -1640,6 +1657,7 @@ bool CM_SpriteModel( byte *buffer, uint filesize )
 	loadmodel->type = mod_sprite;
 	loadmodel->numbodies = 0; // sprites don't have bodies
 	loadmodel->numframes = phdr->numframes;
+	loadmodel->registration_sequence = registration_sequence;
 	loadmodel->mins[0] = loadmodel->mins[1] = -phdr->bounds[0] / 2;
 	loadmodel->maxs[0] = loadmodel->maxs[1] = phdr->bounds[0] / 2;
 	loadmodel->mins[2] = -phdr->bounds[1] / 2;
@@ -1683,8 +1701,7 @@ cmodel_t *CM_RegisterModel( const char *name )
 	}
 
 	// FIXME: use registration_sequence for worldmodel
-	if( !com.strcmp( name, cm.name ))
-		return &cms.bmodels[0];
+	if( !com.strcmp( name, cm.name )) return &cms.bmodels[0];
 
 	for( i = 0; i < cms.numcmodels; i++ )
           {
@@ -1699,7 +1716,7 @@ cmodel_t *CM_RegisterModel( const char *name )
 	} 
 
 	// find a free model slot spot
-	for( i = 0, mod = cms.cmodels; i < cms.numcmodels; i++, mod++)
+	for( i = 0, mod = cms.cmodels; i < cms.numcmodels; i++, mod++ )
 		if( !mod->name[0] ) break; // free spot
 	if( i == cms.numcmodels )
 	{
@@ -1716,7 +1733,7 @@ cmodel_t *CM_RegisterModel( const char *name )
 	if( !buf )
 	{
 		MsgDev( D_ERROR, "CM_LoadModel: %s not found\n", name );
-		Mem_Set(mod->name, 0, sizeof(mod->name));
+		Mem_Set( mod->name, 0, sizeof( mod->name ));
 		return NULL;
 	}
 

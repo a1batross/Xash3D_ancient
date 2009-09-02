@@ -664,7 +664,7 @@ static void R_DrawAliasFrameLerp( const meshbuffer_t *mb, float backlerp )
 	maliasmesh_t *mesh;
 	maliasvertex_t *v, *ov;
 	ref_entity_t *e = RI.currententity;
-	ref_model_t	*mod = Mod_ForHandle( mb->LODModelHandle );
+	ref_model_t	*mod = Mod_ForHandle( mb->modhandle );
 	maliasmodel_t *model = ( maliasmodel_t * )mod->extradata;
 	ref_shader_t *shader;
 	static maliasmesh_t *alias_prevmesh;
@@ -918,9 +918,7 @@ bool R_CullAliasModel( ref_entity_t *e )
 	{
 		shader = NULL;
 
-		if( e->skinfile )
-			shader = R_FindShaderForSkinFile( e->skinfile, mesh->name );
-		else if(( e->skin >= 0 ) && ( e->skin < aliasmodel->numskins ))
+		if(( e->skin >= 0 ) && ( e->skin < aliasmodel->numskins ))
 			shader = aliasmodel->skins[e->skin].shader;
 		else if( mesh->numskins )
 		{
@@ -936,7 +934,7 @@ bool R_CullAliasModel( ref_entity_t *e )
 		if( shader && ( shader->sort <= SORT_ALPHATEST ))
 		{
 			mb = R_AddMeshToList( MB_MODEL, NULL, R_PlanarShadowShader(), -( i+1 ));
-			if( mb ) mb->LODModelHandle = modhandle;
+			if( mb ) mb->modhandle = modhandle;
 		}
 	}
 
@@ -995,8 +993,7 @@ void R_AddAliasModelToList( ref_entity_t *e )
 	{
 		shader = NULL;
 
-		if( e->skinfile ) shader = R_FindShaderForSkinFile( e->skinfile, mesh->name );
-		else if( ( e->skin >= 0 ) && ( e->skin < aliasmodel->numskins ))
+		if(( e->skin >= 0 ) && ( e->skin < aliasmodel->numskins ))
 			shader = aliasmodel->skins[e->skin].shader;
 		else if( mesh->numskins )
 		{

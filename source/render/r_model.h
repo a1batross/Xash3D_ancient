@@ -400,6 +400,9 @@ mleaf_t		*Mod_PointInLeaf( float *p, ref_model_t *model );
 byte		*Mod_ClusterPVS( int cluster, ref_model_t *model );
 uint		Mod_Handle( ref_model_t *mod );
 ref_model_t	*Mod_ForHandle( unsigned int elem );
+ref_model_t	*R_RegisterModel( const char *name );
+void		R_BeginRegistration( const char *model, const dvis_t *visData );
+void		R_EndRegistration( const char *skyname );
 
 #define		Mod_Malloc( mod, size ) Mem_Alloc(( mod )->mempool, size )
 #define		Mod_Realloc( mod, data, size ) Mem_Realloc(( mod )->mempool, data, size )

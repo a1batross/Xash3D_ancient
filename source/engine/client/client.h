@@ -556,6 +556,7 @@ void SCR_DrawSmallStringExt( int x, int y, const char *string, float *setColor, 
 void SCR_DrawStringExt( int x, int y, float w, float h, const char *string, float *setColor, bool forceColor );
 void SCR_DrawBigString( int x, int y, const char *s, float alpha );
 void SCR_DrawBigStringColor( int x, int y, const char *s, vec4_t color );
+void SCR_RSpeeds( void );
 void SCR_DrawFPS( void );
 void SCR_DrawNet( void );
 

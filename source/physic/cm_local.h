@@ -343,6 +343,13 @@ void Callback_ApplyTransform( const NewtonBody* body, const float* matrix );
 void CM_InitMaterials( void );
 
 //
+// cm_model.c
+//
+
+void CM_CreateMeshBuffer( cmodel_t *mod );
+void CM_FreeMeshBuffer( cmodel_t *mod );
+
+//
 // cm_collision.c
 //
 void CM_CollisionCalcPlanesForPolygonBrushFloat( cbrushf_t *brush );
