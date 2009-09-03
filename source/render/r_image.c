@@ -789,7 +789,7 @@ bool R_GetPixelFormat( const char *name, rgbdata_t *pic, uint tex_flags )
 	int	w, h, d, i, s, BlockSize;
 	size_t	mipsize, totalsize = 0;
 
-	if( !pic || !pic->buffer ) return false;
+	if( !pic ) return false; // pass images with NULL buffer (e.g. shadowmaps, portalmaps )
 	Mem_EmptyPool( r_imagepool ); // flush buffers		
 	Mem_Set( &image_desc, 0, sizeof( image_desc ));
 
@@ -3544,17 +3544,17 @@ static void R_InitScreenTexture( texture_t **ptr, const char *name, int id, int 
 
 		if( !*ptr )
 		{
-			string	name;
+			string	uploadName;
 
-			com.snprintf( name, sizeof( name ), "***%s%i***", name, id );
+			com.snprintf( uploadName, sizeof( uploadName ), "***%s%i***", name, id );
 
 			r_screen.width = width;
 			r_screen.height = height;
-                              r_screen.type = PF_RGB_24;
+                              r_screen.type = PF_LUMINANCE;
 			r_screen.buffer = data;
 			r_screen.depth = r_screen.numMips = 1;
 			r_screen.size = width * height * samples;
-			*ptr = R_LoadTexture( name, &r_screen, samples, flags );
+			*ptr = R_LoadTexture( uploadName, &r_screen, samples, flags );
 			return;
 		}
 

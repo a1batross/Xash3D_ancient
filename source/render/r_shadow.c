@@ -321,7 +321,7 @@ add:
 	VectorSubtract( group->mins, origin, mins );
 	VectorSubtract( group->maxs, origin, maxs );
 	radius = RadiusFromBounds( mins, maxs );
-	group->projDist = max( group->projDist, radius * ent->scale * 2 + min( r_shadows_projection_distance->value, 64 ) );
+	group->projDist = max( group->projDist, radius * ent->scale * 2 + min( r_shadows_projection_distance->value, 64 ));
 
 	return true;
 }

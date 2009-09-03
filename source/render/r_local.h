@@ -253,6 +253,15 @@ typedef struct studiolight_s
 	int		numdynlights;
 } studiolight_t;
 
+typedef struct studioverts_s
+{
+	vec3_t		*verts;
+	vec3_t		*norms;
+	int		numverts;
+	int		numnorms;
+	int		m_nCachedFrame;		// to avoid transform it twice
+} studioverts_t;
+
 typedef struct studiovars_s
 {
 	studiolatched_t	prev;
@@ -266,8 +275,10 @@ typedef struct studiovars_s
 	matrix4x4		*bonestransform;
 	int		numbones;
 
-	// StudioBoneLighting (fast but ugly)
+	// StudioBoneLighting (slow and ugly)
 	studiolight_t	*light;			// FIXME: alloc match size not maximum
+	studioverts_t	*mesh[MAXSTUDIOMODELS];
+	int		num_models;
 } studiovars_t;
 
 typedef struct ref_entity_s

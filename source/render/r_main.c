@@ -2152,8 +2152,8 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 	// setup light origin
 	if( refent->model ) VectorAverage( refent->model->mins, refent->model->maxs, center );
 	else VectorClear( center );
-	VectorAdd( pRefEntity->v.origin, center, refent->lightingOrigin );
-	if( refent->flags & EF_INVLIGHT ) refent->lightingOrigin[2] += center[2];
+	VectorCopy( pRefEntity->v.origin, refent->lightingOrigin );
+	if( refent->ent_type == ED_CLIENT ) refent->lightingOrigin[2] -= 32;
 
 	// do animate
 	if( refent->flags & EF_ANIMATE )
@@ -2288,6 +2288,15 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 		
 			if( studio->bonestransform ) Mem_Free( studio->bonestransform );
 			if( studio->light ) Mem_Free( studio->light );
+			for( i = 0; i < studio->num_models; i++ )
+			{
+				if( studio->mesh[i] )
+				{
+					if( studio->mesh[i]->verts ) Mem_Free( studio->mesh[i]->verts );
+					if( studio->mesh[i]->norms ) Mem_Free( studio->mesh[i]->norms );
+					Mem_Free( studio->mesh[i] );
+				}
+			}
 			Mem_Free( refent->extradata );
 		}
 		refent->extradata = NULL;

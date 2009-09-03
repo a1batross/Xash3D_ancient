@@ -1996,7 +1996,6 @@ void R_StudioDrawPoints( const meshbuffer_t *mb, ref_entity_t *e )
 	static int	studio_framecount = 0;
 	bool		doTransform = false;
 	bool		doBonesSetup = false;
-	bool		doForceTransform = false;
 
 	modelnum = (infokey & 0xFF);
 	meshnum = ((infokey & 0xFF00)>>8);
@@ -2016,7 +2015,11 @@ void R_StudioDrawPoints( const meshbuffer_t *mb, ref_entity_t *e )
 		return; // nothing to draw
 
 	if( mb->modhandle != old_model || old_entity != RI.currententity )
+	{
+		if( mb->modhandle != old_model )
+			Mem_Set( g_cachestate, 0, sizeof( g_cachestate )); // model has changed - clear the cache
 		doBonesSetup = doTransform = true;
+	}
 
 	if( modelnum != old_submodel )
 	{
@@ -2032,7 +2035,6 @@ void R_StudioDrawPoints( const meshbuffer_t *mb, ref_entity_t *e )
 		{ 
 			R_StudioSetupRender( e, Mod_ForHandle( mb->modhandle ));
 			R_StudioMergeBones( e, Mod_ForHandle( mb->modhandle ));
-			doForceTransform = true;
 		}
 		else
 		{
@@ -2055,12 +2057,12 @@ void R_StudioDrawPoints( const meshbuffer_t *mb, ref_entity_t *e )
 	s = 1.0f / (float)ptexture[pskinref[pmesh->skinref]].width;
 	t = 1.0f / (float)ptexture[pskinref[pmesh->skinref]].height;
 	flags = ptexture[pskinref[pmesh->skinref]].flags;
-#if 0
+/*
 	Msg( "StudioDrawPoints( entity %i, model %s, doBonesSetup %s, doTransform %s, skin %s, submodel %i, mesh %i\n",
 	e - r_entities, m_pStudioHeader->name, doBonesSetup ? "true" : "false", doTransform ? "true" : "false",
 	ptexture[pskinref[((dstudiomesh_t *)((byte *)m_pStudioHeader + m_pSubModel->meshindex) + meshnum)->skinref]].name,
 	modelnum, meshnum );
-#endif
+*/
 	// detect mesh features
 	features = MF_NONBATCHED | shader->features;
 	if( RI.params & RP_SHADOWMAPVIEW )
@@ -2079,41 +2081,16 @@ void R_StudioDrawPoints( const meshbuffer_t *mb, ref_entity_t *e )
 
 	if( doTransform )
 	{
-		studiovars_t	*studio = (studiovars_t *)e->extradata;
-
-		Com_Assert( studio == NULL );
-	
 		pvertbone = ((byte *)m_pStudioHeader + m_pSubModel->vertinfoindex);
 		pnormbone = ((byte *)m_pStudioHeader + m_pSubModel->norminfoindex);
 
 		pstudioverts = (vec3_t *)((byte *)m_pStudioHeader + m_pSubModel->vertindex);
 		pstudionorms = (vec3_t *)((byte *)m_pStudioHeader + m_pSubModel->normindex);
 
-		// initialize vertex cache
-		studio->num_models = m_pStudioHeader->numbodyparts;
+		m_pxformverts = g_xformverts[modelnum];
+		m_pxformnorms = g_xformnorms[modelnum];
 
-		if( !studio->mesh[modelnum] || studio->mesh[modelnum]->numverts != m_pSubModel->numverts || studio->mesh[modelnum]->numnorms != m_pSubModel->numnorms )
-		{
-			if( !studio->mesh[modelnum] )
-				studio->mesh[modelnum] = Mem_Alloc( studiopool, sizeof( studioverts_t ));
-			if( studio->mesh[modelnum]->numverts != m_pSubModel->numverts )
-			{
-				studio->mesh[modelnum]->verts = Mem_Realloc( studiopool, studio->mesh[modelnum]->verts, sizeof( vec3_t ) * m_pSubModel->numverts );
-				studio->mesh[modelnum]->numverts = m_pSubModel->numverts;
-				Msg( "realloc verts()\n" );
-			}
-			if( studio->mesh[modelnum]->numnorms != m_pSubModel->numnorms )
-			{
-				studio->mesh[modelnum]->norms = Mem_Realloc( studiopool, studio->mesh[modelnum]->norms, sizeof( vec3_t ) * m_pSubModel->numnorms );
-				studio->mesh[modelnum]->numnorms = m_pSubModel->numnorms;
-				Msg( "realloc norms()\n" );
-			}
-		} 
-
-		m_pxformverts = studio->mesh[modelnum]->verts;
-		m_pxformnorms = studio->mesh[modelnum]->norms;
-
-		if( studio->mesh[modelnum]->m_nCachedFrame != r_framecount || doForceTransform )
+		if( !g_cachestate[modelnum] )
 		{
 			dstudiomesh_t	*pmesh = (dstudiomesh_t *)((byte *)m_pStudioHeader + m_pSubModel->meshindex);
 			float		*lv = (float *)g_lightvalues;
@@ -2124,7 +2101,7 @@ void R_StudioDrawPoints( const meshbuffer_t *mb, ref_entity_t *e )
 			}
 			for( i = 0; ( i < m_pSubModel->numnorms ) && ( features & MF_NORMALS ); i++ )
 			{
-				Matrix4x4_VectorRotate( m_pbonestransform[pnormbone[i]], pstudionorms[i], m_pxformnorms[i] );
+				Matrix4x4_VectorIRotate( m_pbonestransform[pnormbone[i]], pstudionorms[i], m_pxformnorms[i] );
 			}
 			for( i = 0; i < m_pSubModel->nummesh; i++ ) 
 			{
@@ -2139,7 +2116,7 @@ void R_StudioDrawPoints( const meshbuffer_t *mb, ref_entity_t *e )
 						R_StudioSetupChrome( g_chrome[(float (*)[3])lv - g_lightvalues], *pnormbone, (float *)pstudionorms );
 				}
 			}
-			studio->mesh[modelnum]->m_nCachedFrame = r_framecount;
+			g_cachestate[modelnum] = true;
 		}
 	}
 	R_StudioDrawMesh( mb, ptricmds, s, t, features, flags );
