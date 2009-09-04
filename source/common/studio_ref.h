@@ -40,6 +40,7 @@ Studio models are position independent, so the cache manager can move them.
 // model global flags
 #define STUDIO_STATIC		0x0001	// model without anims
 #define STUDIO_RAGDOLL		0x0002	// ragdoll animation pose
+#define STUDIO_HAS_CHROME		0x0008	// if any of the textures have chrome on them
 
 // lighting & rendermode options
 #define STUDIO_NF_FLATSHADE		0x0001
@@ -81,16 +82,10 @@ Studio models are position independent, so the cache manager can move them.
 // sequence flags
 #define STUDIO_LOOPING		0x0001
 
-// render flags
-#define STUDIO_RENDER		0x0001
-#define STUDIO_EVENTS		0x0002
-#define STUDIO_MIRROR		0x0004	// a local player in mirror 
-
 // bone flags
 #define STUDIO_HAS_NORMALS		0x0001
 #define STUDIO_HAS_VERTICES		0x0002
 #define STUDIO_HAS_BBOX		0x0004
-#define STUDIO_HAS_CHROME		0x0008	// if any of the textures have chrome on them
 
 typedef struct
 {

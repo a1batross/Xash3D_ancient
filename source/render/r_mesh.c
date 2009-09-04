@@ -86,15 +86,15 @@ mark0:
 			if( R_MBCmp( meshes[Ri], meshes[Li] ) )
 				R_MBCopy( meshes[Li], median );
 		}
-		else if( R_MBCmp( median, meshes[Ri] ) )
+		else if( R_MBCmp( median, meshes[Ri] ))
 		{
 			R_MBCopy( meshes[Ri], median );
 		}
 
 		do
 		{
-			while( R_MBCmp( median, meshes[li] ) ) li++;
-			while( R_MBCmp( meshes[ri], median ) ) ri--;
+			while( R_MBCmp( median, meshes[li] )) li++;
+			while( R_MBCmp( meshes[ri], median )) ri--;
 
 			if( li <= ri )
 			{
@@ -105,10 +105,9 @@ mark0:
 				li++;
 				ri--;
 			}
-		}
-		while( li < ri );
+		} while( li < ri );
 
-		if( ( Li < ri ) && ( stackdepth < QSORT_MAX_STACKDEPTH ) )
+		if( ( Li < ri ) && ( stackdepth < QSORT_MAX_STACKDEPTH ))
 		{
 			lstack[stackdepth] = li;
 			rstack[stackdepth] = Ri;
@@ -137,7 +136,7 @@ mark0:
 		R_MBCopy( meshes[li], tempbuf );
 		ri = li - 1;
 
-		while( ( ri >= 0 ) && ( R_MBCmp( meshes[ri], tempbuf ) ) )
+		while(( ri >= 0 ) && ( R_MBCmp( meshes[ri], tempbuf )))
 		{
 			R_MBCopy( meshes[ri], meshes[ri+1] );
 			ri--;
@@ -156,15 +155,15 @@ Insertion sort
 */
 static void R_ISortMeshBuffers( meshbuffer_t *meshes, int num_meshes )
 {
-	int i, j;
-	meshbuffer_t tempbuf;
+	int		i, j;
+	meshbuffer_t	tempbuf;
 
 	for( i = 1; i < num_meshes; i++ )
 	{
 		R_MBCopy( meshes[i], tempbuf );
 		j = i - 1;
 
-		while( ( j >= 0 ) && ( R_MBCmp( meshes[j], tempbuf ) ) )
+		while(( j >= 0 ) && ( R_MBCmp( meshes[j], tempbuf )))
 		{
 			R_MBCopy( meshes[j], meshes[j+1] );
 			j--;
@@ -350,11 +349,10 @@ meshbuffer_t *R_AddMeshToList( int type, mfog_t *fog, ref_shader_t *shader, int 
 
 		if( shader->flags & SHADER_PORTAL )
 		{
-			if( RI.params & ( RP_MIRRORVIEW|RP_PORTALVIEW|RP_SKYPORTALVIEW ) )
+			if( RI.params & ( RP_MIRRORVIEW|RP_PORTALVIEW|RP_SKYPORTALVIEW ))
 				return NULL;
 			RI.meshlist->num_portal_translucent_meshes++;
 		}
-
 		meshbuf = &list->meshbuffer_translucent[list->num_translucent_meshes++];
 	}
 	else
@@ -368,7 +366,6 @@ meshbuffer_t *R_AddMeshToList( int type, mfog_t *fog, ref_shader_t *shader, int 
 				return NULL;
 			RI.meshlist->num_portal_opaque_meshes++;
 		}
-
 		meshbuf = &list->meshbuffer_opaque[list->num_opaque_meshes++];
 	}
 
@@ -389,7 +386,7 @@ meshbuffer_t *R_AddMeshToList( int type, mfog_t *fog, ref_shader_t *shader, int 
 R_AddMeshToList
 =================
 */
-void R_AddModelMeshToList( unsigned int modhandle, mfog_t *fog, ref_shader_t *shader, int meshnum )
+void R_AddModelMeshToList( uint modhandle, mfog_t *fog, ref_shader_t *shader, int meshnum )
 {
 	meshbuffer_t *mb;
 	
@@ -1041,8 +1038,8 @@ static bool R_DrawPortalSurface( void )
 
 setup_and_render:
 	RI.previousentity = NULL;
-	memcpy( &oldRI, &prevRI, sizeof( refinst_t ) );
-	memcpy( &prevRI, &RI, sizeof( refinst_t ) );
+	Mem_Copy( &oldRI, &prevRI, sizeof( refinst_t ) );
+	Mem_Copy( &prevRI, &RI, sizeof( refinst_t ) );
 
 	if( refraction )
 	{
@@ -1156,8 +1153,8 @@ setup_and_render:
 
 	r_portalSurfMbuffers = RI.surfmbuffers;
 
-	memcpy( &RI, &prevRI, sizeof( refinst_t ) );
-	memcpy( &prevRI, &oldRI, sizeof( refinst_t ) );
+	Mem_Copy( &RI, &prevRI, sizeof( refinst_t ) );
+	Mem_Copy( &prevRI, &oldRI, sizeof( refinst_t ) );
 
 	if( captureTexture )
 	{
@@ -1198,8 +1195,8 @@ void R_DrawSkyPortal( skyportal_t *skyportal, vec3_t mins, vec3_t maxs )
 		return;
 
 	RI.previousentity = NULL;
-	memcpy( &oldRI, &prevRI, sizeof( refinst_t ) );
-	memcpy( &prevRI, &RI, sizeof( refinst_t ) );
+	Mem_Copy( &oldRI, &prevRI, sizeof( refinst_t ) );
+	Mem_Copy( &prevRI, &RI, sizeof( refinst_t ) );
 
 	RI.params = ( RI.params|RP_SKYPORTALVIEW ) & ~( RP_OLDVIEWCLUSTER|RP_PORTALCAPTURED|RP_PORTALCAPTURED2 );
 	VectorCopy( skyportal->vieworg, RI.pvsOrigin );
@@ -1241,8 +1238,8 @@ void R_DrawSkyPortal( skyportal_t *skyportal, vec3_t mins, vec3_t maxs )
 	r_skyPortalSurfMbuffers = RI.surfmbuffers;
 	r_oldviewcluster = r_viewcluster = -1;		// force markleafs next frame
 
-	memcpy( &RI, &prevRI, sizeof( refinst_t ) );
-	memcpy( &prevRI, &oldRI, sizeof( refinst_t ) );
+	Mem_Copy( &RI, &prevRI, sizeof( refinst_t ) );
+	Mem_Copy( &prevRI, &oldRI, sizeof( refinst_t ) );
 }
 
 /*

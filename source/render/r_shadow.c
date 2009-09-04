@@ -413,8 +413,8 @@ void R_DrawShadowmaps( void )
 	height = r_lastRefdef.viewport[3];
 
 	RI.previousentity = NULL;
-	memcpy( &oldRI, &prevRI, sizeof( refinst_t ) );
-	memcpy( &prevRI, &RI, sizeof( refinst_t ) );
+	Mem_Copy( &oldRI, &prevRI, sizeof( refinst_t ) );
+	Mem_Copy( &prevRI, &RI, sizeof( refinst_t ) );
 	RI.refdef.rdflags &= ~RDF_SKYPORTALINVIEW;
 	lod_scale = tan( RI.refdef.fov_x * ( M_PI/180 ) * 0.5f );
 
@@ -493,8 +493,8 @@ void R_DrawShadowmaps( void )
 	}
 
 	oldRI.shadowBits |= prevRI.shadowBits;  // set shadowBits for all RI's so that we won't
-	memcpy( &RI, &prevRI, sizeof( refinst_t ) );
-	memcpy( &prevRI, &oldRI, sizeof( refinst_t ) );
+	Mem_Copy( &RI, &prevRI, sizeof( refinst_t ));
+	Mem_Copy( &prevRI, &oldRI, sizeof( refinst_t ));
 }
 
 //==================================================================================

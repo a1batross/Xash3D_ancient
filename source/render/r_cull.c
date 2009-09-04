@@ -99,23 +99,20 @@ R_CullSphere
 Returns true if the sphere is completely outside the frustum
 =================
 */
-bool R_CullSphere( const vec3_t centre, const float radius, const unsigned int clipflags )
+bool R_CullSphere( const vec3_t centre, const float radius, const uint clipflags )
 {
-	unsigned int i;
-	unsigned int bit;
+	uint	i, bit;
 	const cplane_t *p;
 
 	if( r_nocull->integer )
 		return false;
 
-	for( i = sizeof( RI.frustum )/sizeof( RI.frustum[0] ), bit = 1, p = RI.frustum; i > 0; i--, bit<<=1, p++ )
+	for( i = sizeof( RI.frustum ) / sizeof( RI.frustum[0] ), bit = 1, p = RI.frustum; i > 0; i--, bit <<= 1, p++ )
 	{
-		if( !( clipflags & bit ) )
-			continue;
+		if(!( clipflags & bit )) continue;
 		if( DotProduct( centre, p->normal ) - p->dist <= -radius )
 			return true;
 	}
-
 	return false;
 }
 
@@ -241,7 +238,13 @@ int R_CullModel( ref_entity_t *e, vec3_t mins, vec3_t maxs, float radius )
 			return 1;
 	}
 
-	if( R_CullSphere( e->origin, radius, RI.clipFlags ) )
+	if( RP_FOLLOWENTITY( e ) && RP_LOCALCLIENT( e->parent ) && !RI.refdef.thirdperson )
+	{
+		if(!( RI.params & ( RP_MIRRORVIEW|RP_SHADOWMAPVIEW )))
+			return 1;
+	}
+
+	if( R_CullSphere( e->origin, radius, RI.clipFlags ))
 		return 1;
 
 	if( RI.refdef.rdflags & (RDF_PORTALINVIEW|RDF_SKYPORTALINVIEW) || (RI.params & RP_SKYPORTALVIEW))

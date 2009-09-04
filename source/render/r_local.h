@@ -168,25 +168,7 @@ enum
 
 #define RP_NONVIEWERREF		( RP_PORTALVIEW|RP_MIRRORVIEW|RP_ENVVIEW|RP_SKYPORTALVIEW|RP_SHADOWMAPVIEW )
 #define RP_LOCALCLIENT(e)		(((e)->index == ri.GetLocalPlayer()->serialnumber))
-
-/*
-=======================================================================
-
-DOOM1 STYLE AUTOMAP
-
-=======================================================================
-*/
-#define MAX_RADAR_ENTS		1024
-
-typedef struct radar_ent_s
-{
-	rgba_t	color;
-	vec3_t	origin;  
-	vec3_t	angles;
-} radar_ent_t;
-
-extern int	numRadarEnts;
-extern radar_ent_t	RadarEnts[MAX_RADAR_ENTS];
+#define RP_FOLLOWENTITY(e)		(((e)->movetype == MOVETYPE_FOLLOW && (e)->parent))
 
 //====================================================
 
@@ -257,6 +239,8 @@ typedef struct studioverts_s
 {
 	vec3_t		*verts;
 	vec3_t		*norms;
+	vec3_t		*light;			// light values
+	vec2_t		*chrome;			// size match with numverts
 	int		numverts;
 	int		numnorms;
 	int		m_nCachedFrame;		// to avoid transform it twice
@@ -273,12 +257,14 @@ typedef struct studiovars_s
 	// cached bones, valid only for current frame
 	char		bonenames[MAXSTUDIOBONES][32];// used for attached entities 
 	matrix4x4		*bonestransform;
+	vec3_t		*chromeright;
+	vec3_t		*chromeup;
+	int		*chromeage;
 	int		numbones;
 
 	// StudioBoneLighting (slow and ugly)
 	studiolight_t	*light;			// FIXME: alloc match size not maximum
 	studioverts_t	*mesh[MAXSTUDIOMODELS];
-	int		num_models;
 } studiovars_t;
 
 typedef struct ref_entity_s
@@ -289,7 +275,7 @@ typedef struct ref_entity_s
 	refEntityType_t		rtype;
 
 	struct ref_model_s		*model;		// opaque type outside refresh
-	struct ref_model_s		*weaponmodel;	// opaque type outside refresh
+	struct ref_entity_s		*parent;		// link to parent entity (FOLLOW or weaponmodel)
 
 	latchedvars_t		prev;		// previous frame values for lerping
 
@@ -304,6 +290,7 @@ typedef struct ref_entity_s
 	int			sequence;
 	float			scale;
 
+	byte			*mempool;		// studio mempool
 	void			*extradata;	// studiomodel bones, etc
 
 	// misc
@@ -469,7 +456,6 @@ extern cvar_t *r_shownormals;
 extern cvar_t *r_showtextures;
 extern cvar_t *r_draworder;
 
-extern cvar_t *r_minimap;
 extern cvar_t *r_fastsky;
 extern cvar_t *r_portalonly;
 extern cvar_t *r_portalmaps;
@@ -831,8 +817,6 @@ mspriteframe_t *R_GetSpriteFrame( ref_entity_t *ent );
 //
 // r_studio.c
 //
-extern byte *studiopool;
-
 void R_AddStudioModelToList( ref_entity_t *e );
 void R_DrawStudioModel( const meshbuffer_t *mb );
 void R_StudioResetSequenceInfo( ref_entity_t *ent );

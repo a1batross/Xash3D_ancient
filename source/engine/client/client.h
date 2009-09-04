@@ -602,6 +602,7 @@ void CL_TestEntities( void );
 void CL_StudioEvent( dstudioevent_t *event, edict_t *ent );
 edict_t *CL_GetEdictByIndex( int index );
 edict_t *CL_GetLocalPlayer( void );
+void CL_StudioFxTransform( edict_t *ent, float transform[4][4] );
 bool pfnAddParticle( cparticle_t *src, HSPRITE shader, int flags );
 void pfnAddDecal( float *org, float *dir, float *rgba, float rot, float rad, HSPRITE hSpr, int flags );
 void pfnAddDLight( const float *org, const float *rgb, float radius, float decay, float time, int key );

@@ -224,7 +224,7 @@ static void RoQ_ApplyMotion4x4( cinematics_t *cin, int x, int y, byte mv, char m
 	dst = cin->vid_pic[0] + (y * cin->width + x) * 4; 
 
 	for( y = 0; y < 4; y++, src += cin->width * 4, dst += cin->width * 4 )
-		memcpy( dst, src, 4 * 4 );
+		Mem_Copy( dst, src, 4 * 4 );
 }
 
 /*
@@ -245,7 +245,7 @@ static void RoQ_ApplyMotion8x8( cinematics_t *cin, int x, int y, byte mv, char m
 	dst = cin->vid_pic[0] + (y * cin->width + x) * 4; 
 
 	for( y = 0; y < 8; y++, src += cin->width * 4, dst += cin->width * 4 )
-		memcpy( dst, src, 8 * 4 );
+		Mem_Copy( dst, src, 8 * 4 );
 }
 
 /*
@@ -359,7 +359,7 @@ byte *RoQ_ReadVideo( cinematics_t *cin )
 	if( cin->frame++ == 0 )
 	{
 		// copy initial values to back buffer for motion
-		memcpy ( cin->vid_pic[1], cin->vid_pic[0], cin->width * cin->height * 4 );
+		Mem_Copy( cin->vid_pic[1], cin->vid_pic[0], cin->width * cin->height * 4 );
 	}
 	else
 	{

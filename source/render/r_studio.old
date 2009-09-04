@@ -283,21 +283,6 @@ int R_StudioGetBodygroup( int iGroup )
 	return (RI.currententity->body / m_pBodyPart->base) % m_pBodyPart->nummodels;
 }
 
-void R_StudioAddEntityToRadar( ref_entity_t *e )
-{
-	if( r_minimap->integer < 2 ) return; 
-
-	if( numRadarEnts >= MAX_RADAR_ENTS ) return;
-	if( e->ent_type == ED_VIEWMODEL ) return;
-
-	if( e->ent_type == ED_MONSTER )
-		Vector4Set( RadarEnts[numRadarEnts].color, 255, 0, 128, 255 ); 
-	else Vector4Set( RadarEnts[numRadarEnts].color, 0, 255, 255, 128 ); 
-	VectorCopy( e->origin, RadarEnts[numRadarEnts].origin );
-	VectorCopy( e->angles, RadarEnts[numRadarEnts].angles );
-	numRadarEnts++;
-}
-
 /*
 ====================
 R_StudioGetSequenceInfo
@@ -2338,6 +2323,4 @@ void R_AddStudioModelToList( ref_entity_t *e )
 			}
 		}
 	}
-
-	R_StudioAddEntityToRadar( e );
 }

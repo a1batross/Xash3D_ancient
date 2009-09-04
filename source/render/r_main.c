@@ -307,9 +307,12 @@ R_LoadIdentity
 */
 void R_LoadIdentity( void )
 {
+	if( tr.modelviewIdentity ) return;
+
 	Matrix4x4_LoadIdentity( RI.objectMatrix );
 	Matrix4x4_Copy( RI.modelviewMatrix, RI.worldviewMatrix );
 	GL_LoadMatrix( RI.modelviewMatrix );
+	tr.modelviewIdentity = true;
 }
 
 /*
@@ -332,6 +335,7 @@ void R_RotateForEntity( ref_entity_t *e )
 #endif
 	Matrix4x4_ConcatTransforms( RI.modelviewMatrix, RI.worldviewMatrix, RI.objectMatrix );
 	GL_LoadMatrix( RI.modelviewMatrix );
+	tr.modelviewIdentity = false;
 }
 
 /*
@@ -351,6 +355,7 @@ void R_TranslateForEntity( ref_entity_t *e )
 	Matrix4x4_SetOrigin( RI.objectMatrix, e->origin[0], e->origin[1], e->origin[2] );
 	Matrix4x4_ConcatTransforms( RI.modelviewMatrix, RI.worldviewMatrix, RI.objectMatrix );
 	GL_LoadMatrix( RI.modelviewMatrix );
+	tr.modelviewIdentity = false;
 }
 
 /*
@@ -1370,8 +1375,7 @@ static void R_CullEntities( void )
 			break;
 		}
 
-		if( !culled )
-			r_entVisBits[i>>3] |= ( 1<<( i&7 ) );
+		if( !culled ) r_entVisBits[i>>3] |= ( 1<<( i&7 ));
 	}
 }
 
@@ -1600,8 +1604,8 @@ RI.refdef must be set before the first call
 */
 void R_RenderView( const ref_params_t *fd )
 {
-	int msec = 0;
-	bool shadowMap = RI.params & RP_SHADOWMAPVIEW ? true : false;
+	int	msec = 0;
+	bool	shadowMap = RI.params & RP_SHADOWMAPVIEW ? true : false;
 
 	RI.refdef = *fd;
 
@@ -2202,7 +2206,6 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 	}
 
 	refent->prev.sequencetime = refent->animtime - refent->prev.animtime;
-	refent->weaponmodel = cl_models[pRefEntity->v.weaponmodel];
 
 	if( refent->ent_type == ED_MOVER || refent->ent_type == ED_BSPBRUSH )
 	{
@@ -2238,10 +2241,11 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 	if( refent->model->type == mod_studio )
 	{
 		studiovars_t	*studio;
+		bool		hasChrome = (((mstudiomodel_t *)refent->model->extradata)->phdr->flags & STUDIO_HAS_CHROME) ? true : false;
 		int		numbones = ((mstudiomodel_t *)refent->model->extradata)->phdr->numbones;
 			
-		if( !refent->extradata )
-			refent->extradata = (void *)Mem_Alloc( studiopool, sizeof( studiovars_t ));
+		if( !refent->mempool ) refent->mempool = Mem_AllocPool( va( "Entity Pool %i", refent - r_entities ));
+		if( !refent->extradata ) refent->extradata = (void *)Mem_Alloc( refent->mempool, sizeof( studiovars_t ));
 		studio = (studiovars_t *)refent->extradata;
 
 		// copy controllers
@@ -2258,20 +2262,39 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 			studio->blending[i] = pRefEntity->v.blending[i];
 		}
 
-		if( !studio->bonestransform || studio->numbones != numbones )
+		if( studio->numbones != numbones )
 		{
 			size_t	cache_size = sizeof( matrix4x4 ) * numbones;
 			size_t	names_size = numbones * 32; // bonename length
 
 			// allocate or merge bones cache
-			studio->bonestransform = (matrix4x4 *)Mem_Realloc( studiopool, studio->bonestransform, cache_size );
-			studio->numbones = numbones;
+			studio->bonestransform = (matrix4x4 *)Mem_Realloc( refent->mempool, studio->bonestransform, cache_size );
 		}
 
+		if( hasChrome )
+		{
+			if( studio->numbones != numbones || !studio->chromeage || !studio->chromeright || !studio->chromeup )
+			{
+				// allocate or merge chrome cache
+				studio->chromeage = (int *)Mem_Realloc( refent->mempool, studio->chromeage, numbones * sizeof( int ));
+				studio->chromeright = (vec3_t *)Mem_Realloc( refent->mempool, studio->chromeright, numbones * sizeof( vec3_t ));
+				studio->chromeup = (vec3_t *)Mem_Realloc( refent->mempool, studio->chromeup, numbones * sizeof( vec3_t ));
+			}
+		}
+		else
+		{
+			if( studio->chromeage ) Mem_Free( studio->chromeage );
+			if( studio->chromeright ) Mem_Free( studio->chromeright );
+			if( studio->chromeup ) Mem_Free( studio->chromeup );
+			studio->chromeright = studio->chromeup = NULL;
+			studio->chromeage = NULL;
+		}
+		studio->numbones = numbones;
+			
 		if( r_studio_bonelighting->integer )
 		{
 			if( !studio->light )
-				studio->light = Mem_Alloc( studiopool, sizeof( studiolight_t ));
+				studio->light = Mem_Alloc( refent->mempool, sizeof( studiolight_t ));
 		}
 		else
 		{
@@ -2282,23 +2305,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 	else
 	{
 		// entity has changed model, so no reason to keep this data
-		if( refent->extradata )
-		{
-			studiovars_t	*studio = (studiovars_t *)refent->extradata;
-		
-			if( studio->bonestransform ) Mem_Free( studio->bonestransform );
-			if( studio->light ) Mem_Free( studio->light );
-			for( i = 0; i < studio->num_models; i++ )
-			{
-				if( studio->mesh[i] )
-				{
-					if( studio->mesh[i]->verts ) Mem_Free( studio->mesh[i]->verts );
-					if( studio->mesh[i]->norms ) Mem_Free( studio->mesh[i]->norms );
-					Mem_Free( studio->mesh[i] );
-				}
-			}
-			Mem_Free( refent->extradata );
-		}
+		if( refent->extradata ) Mem_EmptyPool( refent->mempool );
 		refent->extradata = NULL;
 	}
 
@@ -2394,6 +2401,7 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac )
 	refent->model = cl_models[pRefEntity->v.modelindex];
 	refent->movetype = pRefEntity->v.movetype;
 	refent->framerate = pRefEntity->v.framerate;
+	refent->parent = NULL;
 
 	// setup rtype
 	switch( ed_type )
@@ -2405,9 +2413,22 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac )
 		result = R_AddGenericEntity( pRefEntity, refent, ed_type, lerpfrac );
 		break;
 	}
-
-	// add entity
 	r_numEntities++;
+
+	// never adding child entity without parent
+	if( result && pRefEntity->v.weaponmodel && (refent->renderfx != kRenderFxDeadPlayer))
+	{
+		edict_t	FollowEntity = *pRefEntity;
+
+		// create attached entity
+		FollowEntity.v.modelindex = pRefEntity->v.weaponmodel;
+		FollowEntity.serialnumber = WMODEL_ENTINDEX;
+		FollowEntity.v.movetype = MOVETYPE_FOLLOW;
+		FollowEntity.v.weaponmodel = 0;
+
+		if( R_AddEntityToScene( &FollowEntity, ED_NORMAL, lerpfrac ))
+			r_entities[r_numEntities-1].parent = refent; // set parent			
+	}
 
 	return result;
 }

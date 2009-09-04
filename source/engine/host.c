@@ -79,6 +79,7 @@ void Host_InitRender( void )
           // studio callbacks
 	ri.UpdateScreen = SCR_UpdateScreen;
 	ri.StudioEvent = CL_StudioEvent;
+	ri.StudioFxTransform = CL_StudioFxTransform;
 	ri.ShowCollision = pe->DrawCollision;
 	ri.GetClientEdict = CL_GetEdictByIndex;
 	ri.GetLocalPlayer = CL_GetLocalPlayer;

@@ -23,11 +23,40 @@ edict_t *CL_GetEdictByIndex( int index )
 {
 	if( index < 0 || index > clgame.numEntities )
 	{
-		if( index == -1 ) return &cl.viewent;
+		if( index == VMODEL_ENTINDEX ) return &cl.viewent;
+		if( index == WMODEL_ENTINDEX ) return NULL;
 		MsgDev( D_ERROR, "CL_GetEntityByIndex: invalid entindex %i\n", index );
 		return NULL;
 	}
 	return EDICT_NUM( index );
+}
+
+/*
+====================
+Studio_FxTransform
+
+FIXME: move into client.dll
+====================
+*/
+void CL_StudioFxTransform( edict_t *ent, float transform[4][4] )
+{
+	if( ent->v.renderfx == kRenderFxHologram )
+	{
+		if(!Com_RandomLong( 0, 49 ))
+		{
+			int axis = Com_RandomLong( 0, 1 );
+			if( axis == 1 ) axis = 2; // choose between x & z
+			VectorScale( transform[axis], Com_RandomFloat( 1, 1.484 ), transform[axis] );
+		}
+		else if(!Com_RandomLong( 0, 49 ))
+		{
+			float offset;
+			int axis = Com_RandomLong( 0, 1 );
+			if( axis == 1 ) axis = 2; // choose between x & z
+			offset = Com_RandomFloat( -10, 10 );
+			transform[Com_RandomLong( 0, 2 )][3] += offset;
+		}
+	}
 }
 
 static trace_t CL_TraceToss( edict_t *tossent, edict_t *ignore)

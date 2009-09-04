@@ -355,7 +355,7 @@ unsigned int R_StartCinematics( const char *arg )
 	com.snprintf( uploadName, sizeof( uploadName ), "***r_cinematic%i***", handle->id-1 );
 	name_size = com.strlen( uploadName ) + 1;
 	handle->name = Cin_Malloc( name_size );
-	memcpy( handle->name, uploadName, name_size );
+	Mem_Copy( handle->name, uploadName, name_size );
 	handle->cin = cin;
 
 	// put handle at the start of the list

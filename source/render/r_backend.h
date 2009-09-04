@@ -90,6 +90,9 @@ typedef struct
 	ref_buffer_t	*colorsBuffer;
 	ref_buffer_t	*tcoordBuffer[MAX_TEXTURE_UNITS];
 
+	// OpenGL matrix states
+	bool		modelviewIdentity;
+
 	// builtin textures
 	texture_t		*cinTexture;      	// cinematic texture
 	texture_t		*portaltexture1;   	// portal view
@@ -209,10 +212,10 @@ static _inline void R_PushMesh( const mesh_t *mesh, int features )
 		if( features & MF_DEFORMVS )
 		{
 			if( mesh->xyzArray != inVertsArray )
-				memcpy( inVertsArray, mesh->xyzArray, numverts * sizeof( vec4_t ) );
+				Mem_Copy( inVertsArray, mesh->xyzArray, numverts * sizeof( vec4_t ) );
 
 			if( ( features & MF_NORMALS ) && mesh->normalsArray && ( mesh->normalsArray != inNormalsArray ) )
-				memcpy( inNormalsArray, mesh->normalsArray, numverts * sizeof( vec4_t ) );
+				Mem_Copy( inNormalsArray, mesh->normalsArray, numverts * sizeof( vec4_t ) );
 		}
 		else
 		{
@@ -246,44 +249,44 @@ static _inline void R_PushMesh( const mesh_t *mesh, int features )
 	else
 	{
 		if( mesh->xyzArray != inVertsArray )
-			memcpy( inVertsArray[r_backacc.numVerts], mesh->xyzArray, numverts * sizeof( vec4_t ) );
+			Mem_Copy( inVertsArray[r_backacc.numVerts], mesh->xyzArray, numverts * sizeof( vec4_t ) );
 
 		if( ( features & MF_NORMALS ) && mesh->normalsArray && (mesh->normalsArray != inNormalsArray ) )
-			memcpy( inNormalsArray[r_backacc.numVerts], mesh->normalsArray, numverts * sizeof( vec4_t ) );
+			Mem_Copy( inNormalsArray[r_backacc.numVerts], mesh->normalsArray, numverts * sizeof( vec4_t ) );
 
 		if( ( features & MF_STCOORDS ) && mesh->stArray && (mesh->stArray != inCoordsArray ) )
-			memcpy( inCoordsArray[r_backacc.numVerts], mesh->stArray, numverts * sizeof( vec2_t ) );
+			Mem_Copy( inCoordsArray[r_backacc.numVerts], mesh->stArray, numverts * sizeof( vec2_t ) );
 
 		if( ( features & MF_LMCOORDS ) && mesh->lmstArray[0] )
 		{
-			memcpy( inLightmapCoordsArray[0][r_backacc.numVerts], mesh->lmstArray[0], numverts * sizeof( vec2_t ) );
+			Mem_Copy( inLightmapCoordsArray[0][r_backacc.numVerts], mesh->lmstArray[0], numverts * sizeof( vec2_t ) );
 			if( features & MF_LMCOORDS1 )
 			{
-				memcpy( inLightmapCoordsArray[1][r_backacc.numVerts], mesh->lmstArray[1], numverts * sizeof( vec2_t ) );
+				Mem_Copy( inLightmapCoordsArray[1][r_backacc.numVerts], mesh->lmstArray[1], numverts * sizeof( vec2_t ) );
 				if( features & MF_LMCOORDS2 )
 				{
-					memcpy( inLightmapCoordsArray[2][r_backacc.numVerts], mesh->lmstArray[2], numverts * sizeof( vec2_t ) );
+					Mem_Copy( inLightmapCoordsArray[2][r_backacc.numVerts], mesh->lmstArray[2], numverts * sizeof( vec2_t ) );
 					if( features & MF_LMCOORDS3 )
-						memcpy( inLightmapCoordsArray[3][r_backacc.numVerts], mesh->lmstArray[3], numverts * sizeof( vec2_t ) );
+						Mem_Copy( inLightmapCoordsArray[3][r_backacc.numVerts], mesh->lmstArray[3], numverts * sizeof( vec2_t ) );
 				}
 			}
 		}
 
 		if( ( features & MF_SVECTORS ) && mesh->sVectorsArray && (mesh->sVectorsArray != inSVectorsArray ) )
-			memcpy( inSVectorsArray[r_backacc.numVerts], mesh->sVectorsArray, numverts * sizeof( vec4_t ) );
+			Mem_Copy( inSVectorsArray[r_backacc.numVerts], mesh->sVectorsArray, numverts * sizeof( vec4_t ) );
 	}
 
 	if( ( features & MF_COLORS ) && mesh->colorsArray[0] )
 	{
-		memcpy( inColorsArray[0][r_backacc.numVerts], mesh->colorsArray[0], numverts * sizeof( rgba_t ) );
+		Mem_Copy( inColorsArray[0][r_backacc.numVerts], mesh->colorsArray[0], numverts * sizeof( rgba_t ) );
 		if( features & MF_COLORS1 )
 		{
-			memcpy( inColorsArray[1][r_backacc.numVerts], mesh->colorsArray[1], numverts * sizeof( rgba_t ) );
+			Mem_Copy( inColorsArray[1][r_backacc.numVerts], mesh->colorsArray[1], numverts * sizeof( rgba_t ) );
 			if( features & MF_COLORS2 )
 			{
-				memcpy( inColorsArray[2][r_backacc.numVerts], mesh->colorsArray[2], numverts * sizeof( rgba_t ) );
+				Mem_Copy( inColorsArray[2][r_backacc.numVerts], mesh->colorsArray[2], numverts * sizeof( rgba_t ) );
 				if( features & MF_COLORS3 )
-					memcpy( inColorsArray[3][r_backacc.numVerts], mesh->colorsArray[3], numverts * sizeof( rgba_t ) );
+					Mem_Copy( inColorsArray[3][r_backacc.numVerts], mesh->colorsArray[3], numverts * sizeof( rgba_t ) );
 			}
 		}
 	}

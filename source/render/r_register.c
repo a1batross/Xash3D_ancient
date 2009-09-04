@@ -50,7 +50,6 @@ cvar_t *r_coronascale;
 cvar_t *r_detailtextures;
 cvar_t *r_subdivisions;
 cvar_t *r_faceplanecull;
-cvar_t *r_minimap;
 cvar_t *r_showtris;
 cvar_t *r_shownormals;
 cvar_t *r_showtextures;
@@ -550,7 +549,6 @@ void GL_InitCommands( void )
 	r_shownormals = Cvar_Get( "r_shownormals", "0", CVAR_CHEAT, "show mesh normals" );
 	r_showtextures = Cvar_Get("r_showtextures", "0", CVAR_CHEAT, "show all uploaded textures" );
 	r_draworder = Cvar_Get( "r_draworder", "0", CVAR_CHEAT, "ignore mesh sorting" );
-	r_minimap = Cvar_Get( "r_minimap", "0", CVAR_ARCHIVE, "draw minimap at right bottom corner of screen" );
 
 	r_fastsky = Cvar_Get( "r_fastsky", "0", CVAR_ARCHIVE, "enable algorhytem fo fast sky rendering (for old machines)" );
 	r_portalonly = Cvar_Get( "r_portalonly", "0", 0, "render only portals" );

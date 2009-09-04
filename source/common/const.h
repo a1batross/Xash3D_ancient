@@ -236,6 +236,10 @@ typedef enum
 // engine built-in default shader
 #define MAP_DEFAULT_SHADER		"*black"
 
+// client modelindexes
+#define VMODEL_ENTINDEX		-1	// can get viewmodel for local client
+#define WMODEL_ENTINDEX		-2	// engine always return NULL, only for internal use
+
 // basic console charwidths
 #define TINYCHAR_WIDTH		(SMALLCHAR_WIDTH)
 #define TINYCHAR_HEIGHT		(SMALLCHAR_HEIGHT/2)

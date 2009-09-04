@@ -138,7 +138,7 @@ mleaf_t *Mod_PointInLeaf( vec3_t p, ref_model_t *model )
 	}
 	while( node->plane != NULL );
 
-	return ( mleaf_t * )node;
+	return (mleaf_t *)node;
 }
 
 /*
@@ -1017,23 +1017,23 @@ static mesh_t *Mod_CreateMeshForSurface( const dsurfacer_t *in, msurface_t *out 
 			mesh->normalsArray = ( vec4_t * )buffer; buffer += numVerts * sizeof( vec4_t );
 			mesh->stArray = ( vec2_t * )buffer; buffer += numVerts * sizeof( vec2_t );
 
-			memcpy( mesh->xyzArray, loadmodel_xyz_array + firstVert, numVerts * sizeof( vec4_t ) );
-			memcpy( mesh->normalsArray, loadmodel_normals_array + firstVert, numVerts * sizeof( vec4_t ) );
-			memcpy( mesh->stArray, loadmodel_st_array + firstVert, numVerts * sizeof( vec2_t ) );
+			Mem_Copy( mesh->xyzArray, loadmodel_xyz_array + firstVert, numVerts * sizeof( vec4_t ) );
+			Mem_Copy( mesh->normalsArray, loadmodel_normals_array + firstVert, numVerts * sizeof( vec4_t ) );
+			Mem_Copy( mesh->stArray, loadmodel_st_array + firstVert, numVerts * sizeof( vec2_t ) );
 
 			for( j = 0; j < LM_STYLES && in->lightmapStyles[j] != 255; j++ )
 			{
 				mesh->lmstArray[j] = ( vec2_t * )buffer; buffer += numVerts * sizeof( vec2_t );
-				memcpy( mesh->lmstArray[j], loadmodel_lmst_array[j] + firstVert, numVerts * sizeof( vec2_t ) );
+				Mem_Copy( mesh->lmstArray[j], loadmodel_lmst_array[j] + firstVert, numVerts * sizeof( vec2_t ) );
 			}
 			for( j = 0; j < LM_STYLES && in->vertexStyles[j] != 255; j++ )
 			{
 				mesh->colorsArray[j] = ( rgba_t * )buffer; buffer += numVerts * sizeof( rgba_t );
-				memcpy( mesh->colorsArray[j], loadmodel_colors_array[j] + firstVert, numVerts * sizeof( rgba_t ) );
+				Mem_Copy( mesh->colorsArray[j], loadmodel_colors_array[j] + firstVert, numVerts * sizeof( rgba_t ) );
 			}
 
 			mesh->elems = ( elem_t * )buffer; buffer += numElems * sizeof( elem_t );
-			memcpy( mesh->elems, loadmodel_surfelems + firstElem, numElems * sizeof( elem_t ) );
+			Mem_Copy( mesh->elems, loadmodel_surfelems + firstElem, numElems * sizeof( elem_t ) );
 
 			if( createSTverts )
 			{
@@ -1628,7 +1628,7 @@ static void Mod_LoadLightgrid_RBSP( const lump_t *l )
 	loadbmodel->numlightgridelems = count;
 
 	// lightgrid is all 8 bit
-	memcpy( out, in, count*sizeof( *out ) );
+	Mem_Copy( out, in, count*sizeof( *out ) );
 }
 
 /*
