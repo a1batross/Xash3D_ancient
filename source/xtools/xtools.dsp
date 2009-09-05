@@ -178,10 +178,6 @@ SOURCE=.\bsplib\decals.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\dpvencoder.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\bsplib\facebsp.c
 # End Source File
 # Begin Source File
@@ -355,6 +351,10 @@ SOURCE=.\wadlib.c
 # Begin Source File
 
 SOURCE=.\bsplib\writebsp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ximage.c
 # End Source File
 # Begin Source File
 

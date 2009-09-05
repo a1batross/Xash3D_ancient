@@ -147,8 +147,7 @@ void R_DeformVPlanarShadow( int numV, float *v )
 	for( ; numV > 0; numV--, v += 4 )
 	{
 		dist = DotProduct( v, planenormal ) - planedist;
-		if( dist > 0 )
-			VectorMA( v, dist, lightdir2, v );
+		if( dist > 0 ) VectorMA( v, dist, lightdir2, v );
 	}
 }
 
@@ -398,13 +397,12 @@ R_DrawShadowmaps
 */
 void R_DrawShadowmaps( void )
 {
-	int i, j;
-	int width, height, textureWidth, textureHeight;
-	float lod_scale;
-	vec3_t angles;
-	vec3_t lightdir, M[3];
-	refinst_t oldRI;
-	shadowGroup_t *group;
+	int		i, j;
+	int		width, height, textureWidth, textureHeight;
+	vec3_t		angles;
+	vec3_t		lightdir, M[3];
+	refinst_t 	oldRI;
+	shadowGroup_t	*group;
 
 	if( !r_numShadowGroups )
 		return;
@@ -416,8 +414,6 @@ void R_DrawShadowmaps( void )
 	Mem_Copy( &oldRI, &prevRI, sizeof( refinst_t ) );
 	Mem_Copy( &prevRI, &RI, sizeof( refinst_t ) );
 	RI.refdef.rdflags &= ~RDF_SKYPORTALINVIEW;
-	lod_scale = tan( RI.refdef.fov_x * ( M_PI/180 ) * 0.5f );
-
 /*
 	// sort by clusternum (not really needed anymore, but oh well)
 	if( !r_shadowGroups_sorted ) {		// note: this breaks hash pointers
@@ -439,7 +435,6 @@ void R_DrawShadowmaps( void )
 		}
 
 		RI.farClip = group->projDist;
-		RI.lod_dist_scale_for_fov = lod_scale;
 		RI.clipFlags |= ( 1<<4 ); // clip by far plane too
 		RI.shadowBits = 0;      // no shadowing yet
 		RI.meshlist = &r_shadowlist;

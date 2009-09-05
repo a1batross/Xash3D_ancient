@@ -1113,7 +1113,6 @@ setup_and_render:
 		// might fly into (or behind) a wall
 		RI.params = RP_PORTALVIEW;
 		VectorCopy( ent->origin2, RI.pvsOrigin );
-		VectorCopy( ent->origin2, RI.lodOrigin );
 	}
 
 	RI.shadowGroup = NULL;

@@ -146,9 +146,9 @@ enum
 
 #define Z_NEAR			4
 
-#define	SIDE_FRONT		0
-#define	SIDE_BACK			1
-#define	SIDE_ON			2
+#define SIDE_FRONT			0
+#define SIDE_BACK			1
+#define SIDE_ON			2
 
 #define RP_NONE			0x0
 #define RP_MIRRORVIEW		0x1     // lock pvs at vieworg
@@ -169,6 +169,7 @@ enum
 #define RP_NONVIEWERREF		( RP_PORTALVIEW|RP_MIRRORVIEW|RP_ENVVIEW|RP_SKYPORTALVIEW|RP_SHADOWMAPVIEW )
 #define RP_LOCALCLIENT(e)		(((e)->index == ri.GetLocalPlayer()->serialnumber))
 #define RP_FOLLOWENTITY(e)		(((e)->movetype == MOVETYPE_FOLLOW && (e)->parent))
+#define MOD_ALLOWBUMP()		(r_lighting_models_followdeluxe->integer ? mapConfig.deluxeMappingEnabled : GL_Support( R_SHADER_GLSL100_EXT ))
 
 //====================================================
 
@@ -256,6 +257,7 @@ typedef struct studiovars_s
 
 	// cached bones, valid only for current frame
 	char		bonenames[MAXSTUDIOBONES][32];// used for attached entities 
+	matrix4x4		rotationmatrix;
 	matrix4x4		*bonestransform;
 	vec3_t		*chromeright;
 	vec3_t		*chromeup;
@@ -366,10 +368,8 @@ typedef struct
 	float		skyMins[2][6];
 	float		skyMaxs[2][6];
 
-	float		lod_dist_scale_for_fov;
 	float		fog_dist_to_eye[MAX_MAP_FOGS];
 
-	vec3_t		lodOrigin;
 	vec3_t		pvsOrigin;
 	cplane_t		clipPlane;
 	cplane_t		portalPlane;
@@ -378,6 +378,7 @@ typedef struct
 //====================================================
 extern int r_pvsframecount;
 extern int r_framecount;
+extern int r_framecount2;
 extern int c_brush_polys, c_world_leafs;
 
 extern int r_mark_leaves, r_world_node;
@@ -499,8 +500,6 @@ extern cvar_t *r_outlines_world;
 extern cvar_t *r_outlines_scale;
 extern cvar_t *r_outlines_cutoff;
 
-extern cvar_t *r_lodbias;
-extern cvar_t *r_lodscale;
 extern cvar_t *r_himodels;
 
 extern cvar_t *r_studio_bonelighting;
@@ -825,7 +824,8 @@ void R_StudioModelBBox( ref_entity_t *e, vec3_t mins, vec3_t maxs );
 bool R_CullStudioModel( ref_entity_t *e );
 void R_StudioDrawDebug( void );
 void R_StudioInit( void );
-void R_StudioNewMap( void );
+void R_StudioAllocExtradata( edict_t *in, ref_entity_t *e );
+void R_StudioFreeAllExtradata( void );
 void R_StudioShutdown( void );
 
 //

@@ -359,7 +359,7 @@ static void Mod_AliasBuildMeshesForFrame0( ref_model_t *mod )
 Mod_QAliasLoadModel
 =================
 */
-void Mod_QAliasLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer )
+void Mod_QAliasLoadModel( ref_model_t *mod, const void *buffer )
 {
 	int		i, j, k;
 	daliashdr_t	*pinmodel;

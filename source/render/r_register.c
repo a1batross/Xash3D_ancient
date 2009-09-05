@@ -103,8 +103,6 @@ cvar_t *r_outlines_cutoff;
 cvar_t *r_allow_software;
 cvar_t *r_3dlabs_broken;
 
-cvar_t *r_lodbias;
-cvar_t *r_lodscale;
 cvar_t *r_himodels;
 cvar_t *r_lefthand;
 cvar_t *r_physbdebug;
@@ -589,8 +587,6 @@ void GL_InitCommands( void )
 	r_outlines_scale = Cvar_Get( "r_outlines_scale", "1", CVAR_ARCHIVE, "outilines scale" );
 	r_outlines_cutoff = Cvar_Get( "r_outlines_cutoff", "712", CVAR_ARCHIVE, "cutoff factor" );
 
-	r_lodbias = Cvar_Get( "r_lodbias", "0", CVAR_ARCHIVE, "md3 or skm lod bias" );
-	r_lodscale = Cvar_Get( "r_lodscale", "5.0", CVAR_ARCHIVE, "md3 or skm LOD scale factor" );
 	r_himodels = Cvar_Get( "cl_himodels", "1", CVAR_ARCHIVE, "draw high-resolution player models in multiplayer" );
 
 	r_gamma = Cvar_Get( "vid_gamma", "1.0", CVAR_ARCHIVE, "gamma amount" );
@@ -1142,7 +1138,7 @@ void R_NewMap( void )
 	R_InitLightStyles();	// clear lightstyles
 	R_InitCustomColors();	// clear custom colors
 	R_InitCoronas();		// update corona shader (because we can't make it static)
-	R_StudioNewMap ();		// free boneposes
+	R_StudioFreeAllExtradata();	// free boneposes
 
 	GL_SetDefaultTexState ();
 	Mem_Set( &RI, 0, sizeof( refinst_t ));	

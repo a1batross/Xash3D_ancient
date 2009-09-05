@@ -287,8 +287,8 @@ NOTE: at this day we have ten instances
 6. "sprite" - sprite creator (requires qc. script)
 7. "studio" - Half-Life style models creator (requires qc. script) 
 8. "roqlib" - wad-file maker
-9. "ripper" - RESOURCE extraCTOR genERIC
-10."dpvenc" - dp video encoder
+9. "ripper" - resource EXTRActor GENeric
+10."ximage" - ImageLib Processng
 ==================
 */
 void Sys_LookupInstance( void )
@@ -383,15 +383,13 @@ void Sys_LookupInstance( void )
 		com_sprintf(Sys.log_path, "%s/decompile.log", sys_rootdir ); // default
 		com_strcpy(Sys.caption, va("Quake Recource Extractor ver.%g", XASH_VERSION ));
 	}
-	else if(!com_strcmp(Sys.progname, "dpvenc"))
+	else if(!com_strcmp(Sys.progname, "ximage"))
 	{
-		Sys.app_name = HOST_DPVENC;
+		Sys.app_name = HOST_XIMAGE;
 		Sys.con_readonly = true;
-		// don't show console as default
-		if( Sys.developer < D_NOTE ) Sys.con_showalways = false;
 		Sys.linked_dll = &xtools_dll;	// pointer to dpvenc.dll info
-		com_sprintf(Sys.log_path, "%s/movie.log", sys_rootdir ); // logs folder
-		com_strcpy(Sys.caption, "DarkPlaces Video Encoder" );
+		com_sprintf( Sys.log_path, "%s/image.log", sys_rootdir ); // logs folder
+		com_strcpy( Sys.caption, "Image Processing Tool" );
 	}
 	// share instance over all system
 	GI.instance = Sys.app_name;
@@ -415,7 +413,7 @@ void Sys_CreateInstance( void )
 	{
 	case HOST_NORMAL:
 	case HOST_DEDICATED:
-	case HOST_DPVENC:		
+	case HOST_XIMAGE:		
 	case HOST_BSPLIB:
 	case HOST_QCCLIB:
 	case HOST_SPRITE:
@@ -457,7 +455,7 @@ void Sys_CreateInstance( void )
 		// if stuffcmds wasn't run, then init.rc is probably missing, use default
 		if( !Sys.stuffcmdsrun ) Cbuf_ExecuteText( EXEC_NOW, "stuffcmds\n" );
 		break;
-	case HOST_DPVENC:
+	case HOST_XIMAGE:
 	case HOST_BSPLIB:
 	case HOST_QCCLIB:
 	case HOST_SPRITE:
@@ -469,7 +467,7 @@ void Sys_CreateInstance( void )
 		break;
 	}
 
-	Cmd_RemoveCommand( "setc" );	// potentially backdoor for change system settings
+	Cmd_RemoveCommand( "setc" );	// remove potentially backdoor for change system settings
 	Sys.app_state = SYS_FRAME;	// system is now active
 }
 

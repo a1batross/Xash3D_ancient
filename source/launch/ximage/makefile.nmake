@@ -7,14 +7,14 @@
 
 !include <win32.mak>
 
-MAINTARGET = dpvenc
+MAINTARGET = ximage
 OBJS       = $(MAINTARGET).obj
 RES       = $(MAINTARGET).rc
 
 default: $(MAINTARGET).exe
 
-$(MAINTARGET).exe: $(MAINTARGET).obj dpvenc.res
-	$(link) $(OBJS) dpvenc.res /out:"dpvenc.exe" /subsystem:windows /opt:nowin98 /nodefaultlib:"libc.lib"
+$(MAINTARGET).exe: $(MAINTARGET).obj ximage.res
+	$(link) $(OBJS) ximage.res /out:"ximage.exe" /subsystem:console /opt:nowin98 /nodefaultlib:"libc.lib"
 	@del $(MAINTARGET).obj $(MAINTARGET).lib $(MAINTARGET).exp $(MAINTARGET).res > nul
 	@copy $(MAINTARGET).exe D:\Xash3D\sdk_main\tools\$(MAINTARGET).exe
 	@del $(MAINTARGET).exe
@@ -24,5 +24,5 @@ clean:
 .cpp.obj: 
 	$(CC) $(CFLAGS) /c $<
 
-dpvenc.res : dpvenc.rc
-	$(RC) $(RCFLAGS) /r dpvenc.rc
+ximage.res : ximage.rc
+	$(RC) $(RCFLAGS) /r ximage.rc

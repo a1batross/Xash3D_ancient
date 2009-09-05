@@ -72,18 +72,12 @@ bool Image_LoadMDL( const char *name, const byte *buffer, size_t filesize )
 
 	if( image.hint != IL_HINT_Q1 && !( flags & STUDIO_NF_QUAKESKIN ))
 	{
-		// studio models setup
-		if( !image.d_currentpal )
-		{
-			MsgDev( D_ERROR, "Image_LoadMDL: (%s) palette not installed\n", name );
-			return false;		
-		}
 		if( flags & STUDIO_NF_TRANSPARENT )
 		{
-			if( image.d_rendermode != LUMP_TRANSPARENT )
-				MsgDev( D_WARN, "Image_LoadMDL: (%s) using normal pal for alpha-skin\n", name );
+			Image_GetPaletteLMP( fin + pixels, LUMP_TRANSPARENT );
 			image.flags |= IMAGE_HAS_ALPHA;
 		}
+		else Image_GetPaletteLMP( fin + pixels, LUMP_NORMAL );
 	}
 	else if( image.hint != IL_HINT_HL && flags & STUDIO_NF_QUAKESKIN )
 	{

@@ -56,7 +56,7 @@ typedef enum
 	HOST_STUDIO,	// "studio"	"studiomdl"
 	HOST_WADLIB,	// "wadlib"	"xwad"
 	HOST_RIPPER,	// "ripper"	"extragen"
-	HOST_DPVENC,	// "dpvenc"	"dpvenc"
+	HOST_XIMAGE,	// "ximage"	"ximage"
 	HOST_COUNTS,	// terminator
 } instance_t;
 

@@ -577,14 +577,18 @@ bool Image_SaveJPG( const char *name, rgbdata_t *pix )
 	if( FS_FileExists( name ) && !(image.cmd_flags & IL_ALLOW_OVERWRITE ))
 		return false; // already existed
 
+/*
 	if( pix->flags & IMAGE_HAS_ALPHA )
 	{
-		// save alpha if any
-		FS_StripExtension( (char *)name );
-		FS_DefaultExtension( (char *)name, ".png" );
-		return FS_SaveImage( name, pix );
-	}
+		string	tempname;
 
+		// save alpha if any
+		com.strncpy( tempname, name, sizeof( tempname ));
+		FS_StripExtension( tempname );
+		FS_DefaultExtension( tempname, ".png" );
+		return FS_SaveImage( tempname, pix );
+	}
+*/
 	// Open the file
 	file = FS_Open( name, "wb" );
 	if( !file ) return false;

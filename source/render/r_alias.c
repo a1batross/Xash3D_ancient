@@ -85,7 +85,7 @@ MD3 MODELS
 Mod_AliasLoadModel
 =================
 */
-void Mod_AliasLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer )
+void Mod_AliasLoadModel( ref_model_t *mod, const void *buffer )
 {
 	int version, i, j, l;
 	int bufsize, numverts;

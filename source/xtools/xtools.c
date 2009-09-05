@@ -14,6 +14,7 @@
 dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(vprogs_exp_t) };
 vprogs_exp_t *PRVM;
 stdlib_api_t com;
+char  **com_argv;
 
 #define MAX_SEARCHMASK	256
 
@@ -90,12 +91,15 @@ void InitCommon( const int argc, const char **argv )
 		start = Sys_DoubleTime();
 		PRVM->PrepareDAT( gs_basedir, gs_filename );	
 		break;
+	case HOST_XIMAGE:
+		imageflags |= (IL_USE_LERPING|IL_ALLOW_OVERWRITE|IL_IGNORE_MIPS);
+		com_argv = (char **)argv;
+		if( !FS_GetParmFromCmdLine( "-to", gs_filename ))
+			gs_filename[0] = '\0'; // will be set later
 	case HOST_SPRITE:
 	case HOST_STUDIO:
 	case HOST_WADLIB:
 		imageflags |= IL_KEEP_8BIT;
-	case HOST_DPVENC:
-		// initialize ImageLibrary
 		Image_Init( NULL, imageflags );
 	case HOST_RIPPER:
 		// blamk image for missed resources
@@ -142,9 +146,8 @@ void CommonMain( void )
 		CompileMod = CompileWad3Archive;
 		AddMask( "*.qc" );
 		break;
-	case HOST_DPVENC:
-		CompileMod = CompileDPVideo;
-		AddMask( "*.qc" );
+	case HOST_XIMAGE:
+		CompileMod = ConvertImages;
 		break;
 	case HOST_RIPPER:
 		CompileMod = ConvertResource;
@@ -160,10 +163,18 @@ void CommonMain( void )
 	if( !CompileMod ) goto elapced_time; // jump to shutdown
 
 	// using custom mask
-	if(FS_GetParmFromCmdLine( "-file", gs_searchmask ))
+	if( FS_GetParmFromCmdLine( "-file", gs_searchmask ))
 	{
 		ClrMask(); // clear all previous masks
 		AddMask( gs_searchmask ); // custom mask
+
+		if( app_name == HOST_XIMAGE && !gs_filename[0] )
+		{
+			const char	*ext = FS_FileExtension( gs_searchmask );
+                              
+			if( !com.strcmp( ext, "" ) || !com.strcmp( ext, "*" )); // blend mode
+			else com.strncpy( gs_filename, ext, sizeof( gs_filename ));
+		}
 	}
 	zonepool = Mem_AllocPool( "Zone Pool" );
 	Msg( "Converting ...\n\n" );

@@ -66,8 +66,7 @@ typedef struct
 typedef struct
 {
 	int	ident;
-	int	maxLods;
-	void	(*loader)( ref_model_t *mod, ref_model_t *parent, const void *buffer );
+	void	(*loader)( ref_model_t *mod, const void *buffer );
 } modelformatdescriptor_t;
 
 static ref_model_t *loadmodel;
@@ -86,10 +85,10 @@ static mlightmapRect_t	*loadmodel_lightmapRects;
 static int		loadmodel_numshaderrefs;
 static mshaderref_t		*loadmodel_shaderrefs;
 
-void Mod_SpriteLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer );
-void Mod_StudioLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer );
-void Mod_QAliasLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer );
-void Mod_BrushLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer );
+void Mod_SpriteLoadModel( ref_model_t *mod, const void *buffer );
+void Mod_StudioLoadModel( ref_model_t *mod, const void *buffer );
+void Mod_QAliasLoadModel( ref_model_t *mod, const void *buffer );
+void Mod_BrushLoadModel( ref_model_t *mod, const void *buffer );
 
 ref_model_t *Mod_LoadModel( ref_model_t *mod, bool crash );
 
@@ -102,13 +101,13 @@ static byte		*mod_mempool;
 
 static modelformatdescriptor_t mod_supportedformats[] =
 {
-{ IDSPRITEHEADER,	0,		Mod_SpriteLoadModel	}, // Half-Life sprite models
-{ IDSTUDIOHEADER,	0,		Mod_StudioLoadModel	}, // Half-Life studio models
-{ IDQALIASHEADER,	0,		Mod_QAliasLoadModel	}, // Quake alias models
-{ IDBSPMODHEADER,	0,		Mod_BrushLoadModel	}, // Quake III Arena .bsp models
-{ RBBSPMODHEADER,	0,		Mod_BrushLoadModel	}, // SOF2 and JK2 .bsp models
-{ QFBSPMODHEADER,	0,		Mod_BrushLoadModel	}, // QFusion .bsp models
-{ 0, 		0,		NULL		}  // terminator
+{ IDSPRITEHEADER,	Mod_SpriteLoadModel	}, // Half-Life sprite models
+{ IDSTUDIOHEADER,	Mod_StudioLoadModel	}, // Half-Life studio models
+{ IDQALIASHEADER,	Mod_QAliasLoadModel	}, // Quake alias models
+{ IDBSPMODHEADER,	Mod_BrushLoadModel	}, // Quake III Arena .bsp models
+{ RBBSPMODHEADER,	Mod_BrushLoadModel	}, // SOF2 and JK2 .bsp models
+{ QFBSPMODHEADER,	Mod_BrushLoadModel	}, // QFusion .bsp models
+{ 0, 		NULL		}  // terminator
 };
 
 static int mod_numsupportedformats = sizeof( mod_supportedformats ) / sizeof( mod_supportedformats[0] ) - 1;
@@ -251,26 +250,6 @@ void R_ShutdownModels( void )
 }
 
 /*
-=================
-Mod_StripLODSuffix
-=================
-*/
-void Mod_StripLODSuffix( char *name )
-{
-	int	len, lodnum;
-
-	len = com.strlen( name );
-	if( len <= 2 ) return;
-
-	lodnum = com.atoi( &name[len - 1] );
-	if( lodnum < MD3_ALIAS_MAX_LODS )
-	{
-		if( name[len-2] == '_' )
-			name[len-2] = 0;
-	}
-}
-
-/*
 ==================
 Mod_FindSlot
 ==================
@@ -349,10 +328,8 @@ Loads in a model for the given name
 ref_model_t *Mod_ForName( const char *name, bool crash )
 {
 	int			i;
-	ref_model_t		*mod, *lod;
+	ref_model_t		*mod;
 	uint			*buf;
-	const char         		*ext;
-	string			shortname, lodname;
 	modelformatdescriptor_t	*descr;
 
 	if( !name[0] ) Host_Error( "Mod_ForName: NULL name\n" );
@@ -416,7 +393,7 @@ ref_model_t *Mod_ForName( const char *name, bool crash )
 	mod->mempool = Mem_AllocPool( va( "^1%s^7", name ));
 	mod->name = Mod_CopyString( mod, name );
 
-	descr->loader( mod, NULL, buf );
+	descr->loader( mod, buf );
 	Mem_Free( buf );
 
 	if( mod->type == mod_bad )
@@ -425,43 +402,6 @@ ref_model_t *Mod_ForName( const char *name, bool crash )
 		Mod_FreeModel( mod );
 		return NULL;
 	}
-
-	if( !descr->maxLods )
-		return mod;
-
-	com.strncpy( shortname, name, sizeof( shortname ));
-	ext = FS_FileExtension( name );
-	FS_StripExtension( shortname );
-
-	// load level-of-detail models
-	for( mod->numlods = i = 0; i < descr->maxLods; i++ )
-	{
-		com.snprintf( lodname, sizeof( lodname ), "%s_%i.%s", shortname, i+1, ext );
-		buf = (uint *)FS_LoadFile( lodname, NULL );
-		if( !buf || LittleLong(*(uint *)buf) != descr->ident )
-			break;
-
-		lod = mod->lods[i] = Mod_FindSlot( lodname );
-		if( lod->name && !com.strcmp( lod->name, lodname ))
-			continue;
-
-		lod->type = mod_bad;
-		lod->mempool = Mem_AllocPool( va( "^4%s^7", lodname ));
-		lod->name = Mod_CopyString( lod, name );
-
-		loadmodel = lod;
-		loadmodel_xyz_array = NULL;
-		loadmodel_surfelems = NULL;
-		loadmodel_lightmapRects = NULL;
-		loadmodel_shaderrefs = NULL;
-
-		descr->loader( lod, mod, buf );
-		Mem_Free( buf );
-
-		mod->numlods++;
-	}
-	loadmodel = mod;
-
 	return mod;
 }
 
@@ -1974,7 +1914,7 @@ static void Mod_Finish( const lump_t *faces, const lump_t *light, vec3_t gridSiz
 Mod_BrushLoadModel
 =================
 */
-void Mod_BrushLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer )
+void Mod_BrushLoadModel( ref_model_t *mod, const void *buffer )
 {
 	int	i, version;
 	dheader_t	*header;
@@ -2126,7 +2066,7 @@ void R_BeginRegistration( const char *mapname, const dvis_t *visData )
 	Matrix3x3_LoadIdentity( r_worldent->axis );
 	Mod_UpdateShaders( r_worldmodel );
 
-	r_framecount = 1;
+	r_framecount = r_framecount2 = 1;
 	r_oldviewcluster = r_viewcluster = -1;  // force markleafs
 }
 

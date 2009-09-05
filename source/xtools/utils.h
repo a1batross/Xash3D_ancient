@@ -24,6 +24,7 @@ extern string gs_filename;
 extern string gs_basedir;
 extern byte *error_bmp;
 extern size_t error_bmp_size;
+extern char** com_argv;
 
 typedef enum
 {
@@ -41,7 +42,7 @@ void NormalToLatLong( const vec3_t normal, byte bytes[2] );
 bool CompileStudioModel( byte *mempool, const char *name, byte parms );
 bool CompileSpriteModel( byte *mempool, const char *name, byte parms );
 bool CompileWad3Archive( byte *mempool, const char *name, byte parms );
-bool CompileDPVideo( byte *mempool, const char *name, byte parms );
+bool ConvertImages( byte *mempool, const char *name, byte parms );
 bool PrepareBSPModel( int argc, char **argv );
 bool CompileBSPModel( void );
 

@@ -1250,41 +1250,6 @@ static bool Shaderpass_LoadMaterial( texture_t **normalmap, texture_t **glossmap
 	return true;
 }
 
-static bool Shaderpass_StudioLoadMaterial( texture_t **normalmap, texture_t **glossmap, texture_t **decalmap, const char *name, int addFlags, float bumpScale )
-{
-	texture_t		*images[3];
-	
-	// set defaults
-	images[0] = images[1] = images[2] = NULL;
-
-	// load normalmap image
-	images[0] = R_FindTexture( va( "heightMap( Studio( \"%s_bump\" ), %g );", name, bumpScale ), NULL, 0, addFlags );
-	if( !images[0] )
-	{
-		images[0] = R_FindTexture( va( "mergeDepthmap( Studio( \"%s_norm\" ), Studio( \"%s_depth\" ));", name, name ), NULL, 0, (addFlags|TF_NORMALMAP));
-
-		if( !images[0] )
-		{
-			if( !r_lighting_diffuse2heightmap->integer )
-				return false;
-			images[0] = R_FindTexture( va( "heightMap( Studio( \"%s\" ), 2.0f );", name ), NULL, 0, addFlags );
-			if( !images[0] ) return false;
-		}
-	}
-
-	// load glossmap image
-	if( r_lighting_specular->integer )
-		images[1] = R_FindTexture( va( "Studio( %s_gloss )", name ), NULL, 0, addFlags );
-
-	images[2] = R_FindTexture( va( "Studio( %s_decal )", name ), NULL, 0, addFlags );
-
-	*normalmap = images[0];
-	*glossmap = images[1];
-	*decalmap = images[2];
-
-	return true;
-}
-
 static bool Shaderpass_AnimFrequency( ref_shader_t *shader, ref_stage_t *pass, script_t *script )
 {
 	float	anim_fps;
@@ -2516,7 +2481,6 @@ void R_ShaderList_f( void )
 			Msg( "mdl  " );
 			break;
 		case SHADER_ALIAS:
-		case SHADER_ALIAS_MD3:
 			Msg( "alias" );
 			break;
 		case SHADER_FONT:
@@ -2601,6 +2565,11 @@ void R_ShaderDump_f( void )
 
 	Msg( "found in %s:\n\n", cache->source );
 	Msg( "^2%s%s\n", name, cache->buffer );
+}
+
+bool R_ShaderCheckCache( const char *name )
+{
+	return (Shader_GetCache( name, SHADER_INVALID, Com_HashKey( name, SHADERS_HASH_SIZE ))) ? true : false;
 }
 
 void R_RegisterBuiltinShaders( void )
@@ -3392,41 +3361,6 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		pass->tcgen = TCGEN_BASE;
 		pass->num_textures++;
 		break;
-	case SHADER_ALIAS_MD3:
-		shader->type = SHADER_ALIAS_MD3;
-		shader->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT;
-		shader->features = MF_STCOORDS|MF_NORMALS;
-		shader->sort = SORT_OPAQUE;
-		shader->num_stages = 1;
-		shader->name = Shader_Malloc( length + 1 + sizeof( ref_stage_t ) * shader->num_stages );
-		strcpy( shader->name, shortname );
-		shader->stages = ( ref_stage_t * )( ( byte * )shader->name + length + 1 );
-		pass = &shader->stages[0];
-		pass->flags = SHADERSTAGE_BLEND_MODULATE;
-		pass->glState = GLSTATE_DEPTHWRITE;
-		pass->rgbGen.type = RGBGEN_LIGHTING_DIFFUSE;
-		pass->alphaGen.type = ALPHAGEN_IDENTITY;
-		pass->tcgen = TCGEN_BASE;
-		pass->textures[0] = Shader_FindImage( shader, shortname, addFlags );
-		pass->num_textures++;
-
-		// load default GLSL program if there's a bumpmap was found
-		if( ( r_lighting_models_followdeluxe->integer ? mapConfig.deluxeMappingEnabled : GL_Support( R_SHADER_GLSL100_EXT ))
-			&& Shaderpass_LoadMaterial( &materialImages[0], &materialImages[1], &materialImages[2], shortname, addFlags, 1 ))
-		{
-			pass->rgbGen.type = RGBGEN_IDENTITY;
-			pass->program = DEFAULT_GLSL_PROGRAM;
-			pass->program_type = PROGRAM_TYPE_MATERIAL;
-			pass->textures[1] = materialImages[0]; // normalmap
-			pass->num_textures++;
-			pass->textures[2] = materialImages[1]; // glossmap
-			pass->num_textures++;
-			pass->textures[3] = materialImages[2]; // decalmap
-			pass->num_textures++;
-			shader->features |= MF_SVECTORS|MF_ENABLENORMALS;
-			shader->flags |= SHADER_MATERIAL;
-		}
-		break;
 	case SHADER_ALIAS:
 		shader->type = SHADER_ALIAS;
 		shader->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT;
@@ -3487,16 +3421,6 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		pass = &shader->stages[0];
 		pass->tcgen = TCGEN_BASE;
 
-		if( r_shaderRenderMode == kRenderTransAlpha ) // ignore mips for alpha-textures
-			pass->textures[0] = R_FindTexture( va( "Studio( \"%s\" );", shader->name ), NULL, 0, addFlags|TF_CLAMP|TF_NOMIPMAP );
-		else pass->textures[0] = R_FindTexture( va( "Studio( \"%s\" );", shader->name ), NULL, 0, addFlags );
-		if( !pass->textures[0] )
-		{
-			MsgDev( D_WARN, "couldn't find studio skin for shader '%s', using default...\n", shader->name );
-			pass->textures[0] = tr.defaultTexture;
-		}
-		pass->num_textures++;
-  		
 		switch( r_shaderRenderMode )
 		{
 		case kRenderTransTexture:
@@ -3529,23 +3453,36 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 			shader->sort = SORT_OPAQUE;
 			break;
 		}
-		// load default GLSL program if there's a bumpmap was found
-		if(( r_lighting_models_followdeluxe->integer ? mapConfig.deluxeMappingEnabled : GL_Support( R_SHADER_GLSL100_EXT ))
-			&& Shaderpass_StudioLoadMaterial( &materialImages[0], &materialImages[1], &materialImages[2], shortname, addFlags, 2.0f ))
+
+		if( MOD_ALLOWBUMP() && r_numStageTextures == 4 )
 		{
+			// material
 			shader->flags &= ~SHADER_RENDERMODE;
 			pass->flags &= ~SHADERSTAGE_RENDERMODE;
 			pass->rgbGen.type = RGBGEN_IDENTITY;
 			pass->program = DEFAULT_GLSL_PROGRAM;
 			pass->program_type = PROGRAM_TYPE_MATERIAL;
-			pass->textures[1] = materialImages[0]; // normalmap
+			pass->textures[0] = r_stageTexture[0]; // diffusemap
 			pass->num_textures++;
-			pass->textures[2] = materialImages[1]; // glossmap
+			pass->textures[1] = r_stageTexture[1]; // normalmap
 			pass->num_textures++;
-			pass->textures[3] = materialImages[2]; // decalmap
+			pass->textures[2] = (r_lighting_specular->integer) ? r_stageTexture[2] : NULL; // glossmap
+			pass->num_textures++;
+			pass->textures[3] = r_stageTexture[3]; // decalmap
 			pass->num_textures++;
 			shader->features |= MF_SVECTORS|MF_ENABLENORMALS;
 			shader->flags |= SHADER_MATERIAL;
+		}
+		else
+		{
+			pass->textures[0] = r_stageTexture[0];
+			pass->num_textures++;
+
+			if( !pass->textures[0] )
+			{
+				MsgDev( D_WARN, "couldn't find studio skin for shader '%s', using default...\n", shader->name );
+				pass->textures[0] = tr.defaultTexture;
+			}
 		}
 		break;
 	case SHADER_SPRITE:

@@ -273,6 +273,7 @@ _inline void Matrix3x3_ConcatRotate( matrix3x3 out, float angle, float x, float 
 ========================================================================
 */
 #define Matrix4x4_LoadIdentity( mat )	Matrix4x4_Copy( mat, matrix4x4_identity )
+#define Matrix4x4_Copy( out, in )	Mem_Copy( out, in, sizeof( matrix4x4 ))
 
 static const matrix4x4 matrix4x4_identity =
 {
@@ -305,12 +306,6 @@ _inline void Matrix4x4_BuildLightIdentity( matrix4x4 out )
 	out[3][1] = 0;
 	out[3][2] = 0;
 #endif
-}
-
-_inline void Matrix4x4_Copy( matrix4x4 out, const matrix4x4 in )
-{
-	// FIXME: replace with Mem_Copy
-	memcpy( out, in, sizeof( matrix4x4 ));
 }
 
 _inline void Matrix4x4_TransformPoint( const matrix4x4 in, vec3_t point )

@@ -18,8 +18,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-#ifndef __R_MODEL_H__
-#define __R_MODEL_H__
+#ifndef R_MODEL_H
+#define R_MODEL_H
 
 /*
 
@@ -242,46 +242,35 @@ extern	daliastrivertx_t	*poseverts[MAXALIASFRAMES];
 //
 typedef struct
 {
-	short			point[3];
-	byte			latlong[2];				// use bytes to keep 8-byte alignment
+	short	  	point[3];
+	byte	  	latlong[2];	// use bytes to keep 8-byte alignment
 } maliasvertex_t;
 
 typedef struct
 {
-	vec3_t			mins, maxs;
-	vec3_t			scale;
-	vec3_t			translate;
-	float			radius;
+	vec3_t	  	mins, maxs;
+	vec3_t	  	scale;
+	vec3_t	  	translate;
+	float	  	radius;
 } maliasframe_t;
 
 typedef struct
 {
-	char			name[MD3_MAX_PATH];
-	quat_t			quat;
-	vec3_t			origin;
-} maliastag_t;
-
-typedef struct
-{
-	ref_shader_t		*shader;
+	ref_shader_t	*shader;
 } maliasskin_t;
 
 typedef struct
 {
-	char			name[MD3_MAX_PATH];
-
-	int				numverts;
-	maliasvertex_t *vertexes;
-	vec2_t			*stArray;
-
-	vec4_t			*xyzArray;
-	vec4_t			*normalsArray;
-	vec4_t			*sVectorsArray;
-
-	int				numtris;
-	elem_t			*elems;
-
-	int				numskins;
+	char		name[MAX_SHADERPATH];
+	int		numverts;
+	maliasvertex_t	*vertexes;
+	vec2_t		*stArray;
+	vec4_t		*xyzArray;
+	vec4_t		*normalsArray;
+	vec4_t		*sVectorsArray;
+	int		numtris;
+	elem_t		*elems;
+	int		numskins;
 	maliasskin_t	*skins;
 } maliasmesh_t;
 
@@ -296,7 +285,7 @@ typedef struct
 	int	 	nummeshes;
 	maliasmesh_t	*meshes;
 
-	int numskins;
+	int		numskins;
 	maliasskin_t	*skins;
 } maliasmodel_t;
 
@@ -363,13 +352,12 @@ typedef struct
 //
 // Whole model
 //
-
-#define MOD_MAX_LODS	4
-
 typedef struct ref_model_s
 {
 	char		*name;
 	modtype_t		type;
+
+	int		touchFrame;	// registration sequence
 
 	// volume occupied by the model graphics
 	vec3_t		mins, maxs;
@@ -379,10 +367,6 @@ typedef struct ref_model_s
 	// memory representation pointer
 	byte		*mempool;
 	void		*extradata;
-	
-	int		touchFrame;
-	int		numlods;
-	struct ref_model_s	*lods[MOD_MAX_LODS];
 
 	// shader pointers for refresh registration_sequence
 	int		numshaders;
@@ -407,7 +391,6 @@ void		R_EndRegistration( const char *skyname );
 #define		Mod_Malloc( mod, size ) Mem_Alloc(( mod )->mempool, size )
 #define		Mod_Realloc( mod, data, size ) Mem_Realloc(( mod )->mempool, data, size )
 #define		Mod_Free( data ) Mem_Free( data )
-void		Mod_StripLODSuffix( char *name );
 void		Mod_Modellist_f( void );
 
-#endif /*__R_MODEL_H__*/
+#endif // R_MODEL_H

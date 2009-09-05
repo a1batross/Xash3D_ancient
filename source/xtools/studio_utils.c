@@ -738,7 +738,7 @@ int lookup_texture( char *texturename )
 	else if( com.stristr( texturename, "_norm" ))
 		texture[i]->flags = STUDIO_NF_NORMALMAP;
 	else if( com.stristr( texturename, "_bump" ) || com.stristr( texturename, "_depth" ))
-		texture[i]->flags = STUDIO_NF_BUMPMAP;
+		texture[i]->flags = STUDIO_NF_HEIGHTMAP;
 	else if( com.stristr( texturename, "_gloss" ))
 		texture[i]->flags = STUDIO_NF_GLOSSMAP;
 	else if( com.stristr( texturename, "_decal" ))

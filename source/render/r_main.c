@@ -47,8 +47,9 @@ static ref_entity_t	*r_bmodelentities[MAX_EDICTS];
 
 static byte r_entVisBits[MAX_EDICTS/8];
 
-int r_pvsframecount;    // bumped when going to a new PVS
-int r_framecount;       // used for dlight push checking
+int r_pvsframecount;	// bumped when going to a new PVS
+int r_framecount;		// used for dlight push checking
+int r_framecount2;		// used bonestransform checking
 
 int c_brush_polys, c_world_leafs;
 
@@ -1061,7 +1062,7 @@ static void R_SetupProjectionMatrix( const ref_params_t *rd, matrix4x4 m )
 R_SetupModelviewMatrix
 =============
 */
-static void R_SetupModelviewMatrix( const ref_params_t *rd, matrix4x4 m )
+void R_SetupModelviewMatrix( const ref_params_t *rd, matrix4x4 m )
 {
 #if 0
 	Matrix4x4_LoadIdentity( m );
@@ -1096,8 +1097,6 @@ static void R_SetupFrame( void )
 		return;
 
 	r_framecount++;
-
-	RI.lod_dist_scale_for_fov = tan( RI.refdef.fov_x * ( M_PI/180 ) * 0.5f );
 
 	// current viewcluster
 	if( !( RI.refdef.rdflags & RDF_NOWORLDMODEL ) )
@@ -1282,7 +1281,7 @@ R_CategorizeEntities
 */
 static void R_CategorizeEntities( void )
 {
-	unsigned int i;
+	uint	i;
 
 	r_numnullentities = 0;
 	r_numbmodelentities = 0;
@@ -1423,8 +1422,7 @@ static void R_DrawBmodelEntities( void )
 		RI.previousentity = RI.currententity;
 		RI.currententity = r_bmodelentities[i];
 		j = RI.currententity - r_entities;
-		if( r_entVisBits[j>>3] & ( 1<<( j&7 ) ) )
-			R_AddBrushModelToList( RI.currententity );
+		if( r_entVisBits[j>>3] & ( 1<<( j & 7 ))) R_AddBrushModelToList( RI.currententity );
 	}
 }
 
@@ -1435,9 +1433,9 @@ R_DrawRegularEntities
 */
 static void R_DrawRegularEntities( void )
 {
-	unsigned int i;
-	ref_entity_t *e;
-	bool shadowmap = ( ( RI.params & RP_SHADOWMAPVIEW ) != 0 );
+	uint		i;
+	ref_entity_t	*e;
+	bool		shadowmap = (( RI.params & RP_SHADOWMAPVIEW ) != 0 );
 
 	for( i = 1; i < r_numEntities; i++ )
 	{
@@ -1451,9 +1449,8 @@ static void R_DrawRegularEntities( void )
 			if( r_entShadowBits[i] & RI.shadowGroup->bit )
 				goto add; // shadow caster
 		}
-		if( !( r_entVisBits[i>>3] & ( 1<<( i&7 ) ) ) )
+		if(!( r_entVisBits[i>>3] & ( 1<<( i & 7 ))))
 			continue;
-
 add:
 		switch( e->rtype )
 		{
@@ -1528,22 +1525,21 @@ R_DrawEntities
 */
 static void R_DrawEntities( void )
 {
-	bool shadowmap = ( ( RI.params & RP_SHADOWMAPVIEW ) != 0 );
+	bool shadowmap = (( RI.params & RP_SHADOWMAPVIEW ) != 0 );
 
-	if( !r_drawentities->integer )
+	if( r_drawentities->integer <= 0 )
 		return;
 
 	if( !shadowmap )
 	{
 		R_CullEntities(); // mark visible entities in r_entVisBits
-
 		R_CullShadowmapGroups();
 	}
 
 	// we don't mark bmodel entities in RP_SHADOWMAPVIEW, only individual surfaces
 	R_DrawBmodelEntities();
 
-	if( OCCLUSION_QUERIES_ENABLED( RI ) )
+	if( OCCLUSION_QUERIES_ENABLED( RI ))
 	{
 		R_EndOcclusionPass();
 	}
@@ -1551,9 +1547,8 @@ static void R_DrawEntities( void )
 	if( RI.params & RP_ENVVIEW )
 		return;
 
-	if( !shadowmap )
-		R_DrawShadowmaps(); // render to depth textures, mark shadowed entities and surfaces
-	else if( !( RI.params & RP_WORLDSURFVISIBLE ) || ( prevRI.shadowBits & RI.shadowGroup->bit ) )
+	if( !shadowmap ) R_DrawShadowmaps(); // render to depth textures, mark shadowed entities and surfaces
+	else if(!( RI.params & RP_WORLDSURFVISIBLE ) || ( prevRI.shadowBits & RI.shadowGroup->bit ))
 		return; // we're supposed to cast shadows but there are no visible surfaces for this light, so stop
 	// or we've already drawn and captured textures for this group
 
@@ -1616,18 +1611,20 @@ void R_RenderView( const ref_params_t *fd )
 
 	R_SetupFrame();
 
+	r_framecount2++;
+
 	// we know the farclip so adjust fov before setting up the frustum
 	if( shadowMap )
 	{
 		R_SetupViewMatrices();
 	}
-	else if( OCCLUSION_QUERIES_ENABLED( RI ) )
+	else if( OCCLUSION_QUERIES_ENABLED( RI ))
 	{
 		R_SetupViewMatrices();
 
 		R_SetupGL();
 
-		R_Clear( ~( GL_STENCIL_BUFFER_BIT|GL_COLOR_BUFFER_BIT ) );
+		R_Clear( ~( GL_STENCIL_BUFFER_BIT|GL_COLOR_BUFFER_BIT ));
 
 		R_BeginOcclusionPass();
 	}
@@ -1649,49 +1646,43 @@ void R_RenderView( const ref_params_t *fd )
 
 		R_DrawCoronas();
 
-		if( r_speeds->integer )
-			msec = Sys_Milliseconds();
+		if( r_speeds->integer ) msec = Sys_Milliseconds();
 		R_AddPolysToList();
-		if( r_speeds->integer )
-			r_add_polys += ( Sys_Milliseconds() - msec );
+		if( r_speeds->integer ) r_add_polys += ( Sys_Milliseconds() - msec );
 	}
 
-	if( r_speeds->integer )
-		msec = Sys_Milliseconds();
+	if( r_speeds->integer ) msec = Sys_Milliseconds();
+
 	R_DrawEntities();
-	if( r_speeds->integer )
-		r_add_entities += ( Sys_Milliseconds() - msec );
+
+	if( r_speeds->integer ) r_add_entities += ( Sys_Milliseconds() - msec );
 
 	if( shadowMap )
 	{
-		if( !( RI.params & RP_WORLDSURFVISIBLE ) )
+		if(!( RI.params & RP_WORLDSURFVISIBLE ))
 			return; // we didn't cast shadows on anything, so stop
 		if( prevRI.shadowBits & RI.shadowGroup->bit )
 			return; // already drawn
 	}
 
-	if( r_speeds->integer )
-		msec = Sys_Milliseconds();
+	if( r_speeds->integer ) msec = Sys_Milliseconds();
 	R_SortMeshes();
-	if( r_speeds->integer )
-		r_sort_meshes += ( Sys_Milliseconds() - msec );
+	if( r_speeds->integer ) r_sort_meshes += ( Sys_Milliseconds() - msec );
 
 	R_DrawPortals();
 
-	if( r_portalonly->integer && !( RI.params & ( RP_MIRRORVIEW|RP_PORTALVIEW ) ) )
+	if( r_portalonly->integer && !( RI.params & ( RP_MIRRORVIEW|RP_PORTALVIEW )))
 		return;
 
 	R_SetupGL();
 
 	R_Clear( shadowMap ? ~( GL_STENCIL_BUFFER_BIT|GL_COLOR_BUFFER_BIT ) : ~0 );
 
-	if( r_speeds->integer )
-		msec = Sys_Milliseconds();
+	if( r_speeds->integer ) msec = Sys_Milliseconds();
 
 	R_DrawMeshes();
 
-	if( r_speeds->integer )
-		r_draw_meshes += ( Sys_Milliseconds() - msec );
+	if( r_speeds->integer ) r_draw_meshes += ( Sys_Milliseconds() - msec );
 
 	R_BackendCleanUpTextureUnits();
 
@@ -1875,7 +1866,7 @@ void R_RenderScene( const ref_params_t *fd )
 
 	R_BackendStartFrame();
 
-	if( !( fd->rdflags & RDF_NOWORLDMODEL ) )
+	if(!( fd->rdflags & RDF_NOWORLDMODEL ))
 	{
 		r_lastRefdef = *fd;
 	}
@@ -1883,12 +1874,7 @@ void R_RenderScene( const ref_params_t *fd )
 	c_brush_polys = 0;
 	c_world_leafs = 0;
 
-	r_mark_leaves =
-		r_add_polys =
-		r_add_entities =
-		r_sort_meshes =
-		r_draw_meshes =
-		r_world_node = 0;
+	r_mark_leaves = r_add_polys = r_add_entities = r_sort_meshes = r_draw_meshes = r_world_node = 0;
 
 	RI.params = RP_NONE;
 	RI.refdef = *fd;
@@ -1905,15 +1891,14 @@ void R_RenderScene( const ref_params_t *fd )
 	RI.shadowGroup = NULL;
 
 	// adjust field of view for widescreen
-	if( glState.wideScreen && !( fd->rdflags & RDF_NOFOVADJUSTMENT ) )
+	if( glState.wideScreen && !( fd->rdflags & RDF_NOFOVADJUSTMENT ))
 		AdjustFov( &RI.refdef.fov_x, &RI.refdef.fov_y, glState.width, glState.height, false );
 
 	Vector4Set( RI.scissor, fd->viewport[0], glState.height - fd->viewport[3] - fd->viewport[1], fd->viewport[2], fd->viewport[3] );
 	Vector4Set( RI.viewport, fd->viewport[0], glState.height - fd->viewport[3] - fd->viewport[1], fd->viewport[2], fd->viewport[3] );
 	VectorCopy( fd->vieworg, RI.pvsOrigin );
-	VectorCopy( fd->vieworg, RI.lodOrigin );
 
-	if( gl_finish->integer && !gl_delayfinish->integer && !( fd->rdflags & RDF_NOWORLDMODEL ) )
+	if( gl_finish->integer && !gl_delayfinish->integer && !( fd->rdflags & RDF_NOWORLDMODEL ))
 		pglFinish();
 
 	R_ClearShadowmaps();
@@ -2157,7 +2142,6 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 	if( refent->model ) VectorAverage( refent->model->mins, refent->model->maxs, center );
 	else VectorClear( center );
 	VectorCopy( pRefEntity->v.origin, refent->lightingOrigin );
-	if( refent->ent_type == ED_CLIENT ) refent->lightingOrigin[2] -= 32;
 
 	// do animate
 	if( refent->flags & EF_ANIMATE )
@@ -2240,67 +2224,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 
 	if( refent->model->type == mod_studio )
 	{
-		studiovars_t	*studio;
-		bool		hasChrome = (((mstudiomodel_t *)refent->model->extradata)->phdr->flags & STUDIO_HAS_CHROME) ? true : false;
-		int		numbones = ((mstudiomodel_t *)refent->model->extradata)->phdr->numbones;
-			
-		if( !refent->mempool ) refent->mempool = Mem_AllocPool( va( "Entity Pool %i", refent - r_entities ));
-		if( !refent->extradata ) refent->extradata = (void *)Mem_Alloc( refent->mempool, sizeof( studiovars_t ));
-		studio = (studiovars_t *)refent->extradata;
-
-		// copy controllers
-		for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
-		{
-			studio->prev.controller[i] = studio->controller[i];
-			studio->controller[i] = pRefEntity->v.controller[i];
-		}
-
-		// copy blends
-		for( i = 0; i < MAXSTUDIOBLENDS; i++ )
-		{
-			studio->prev.blending[i] = studio->blending[i];
-			studio->blending[i] = pRefEntity->v.blending[i];
-		}
-
-		if( studio->numbones != numbones )
-		{
-			size_t	cache_size = sizeof( matrix4x4 ) * numbones;
-			size_t	names_size = numbones * 32; // bonename length
-
-			// allocate or merge bones cache
-			studio->bonestransform = (matrix4x4 *)Mem_Realloc( refent->mempool, studio->bonestransform, cache_size );
-		}
-
-		if( hasChrome )
-		{
-			if( studio->numbones != numbones || !studio->chromeage || !studio->chromeright || !studio->chromeup )
-			{
-				// allocate or merge chrome cache
-				studio->chromeage = (int *)Mem_Realloc( refent->mempool, studio->chromeage, numbones * sizeof( int ));
-				studio->chromeright = (vec3_t *)Mem_Realloc( refent->mempool, studio->chromeright, numbones * sizeof( vec3_t ));
-				studio->chromeup = (vec3_t *)Mem_Realloc( refent->mempool, studio->chromeup, numbones * sizeof( vec3_t ));
-			}
-		}
-		else
-		{
-			if( studio->chromeage ) Mem_Free( studio->chromeage );
-			if( studio->chromeright ) Mem_Free( studio->chromeright );
-			if( studio->chromeup ) Mem_Free( studio->chromeup );
-			studio->chromeright = studio->chromeup = NULL;
-			studio->chromeage = NULL;
-		}
-		studio->numbones = numbones;
-			
-		if( r_studio_bonelighting->integer )
-		{
-			if( !studio->light )
-				studio->light = Mem_Alloc( refent->mempool, sizeof( studiolight_t ));
-		}
-		else
-		{
-			if( studio->light ) Mem_Free( studio->light );
-			studio->light = NULL;
-		}
+		R_StudioAllocExtradata( pRefEntity, refent );
 	}
 	else
 	{

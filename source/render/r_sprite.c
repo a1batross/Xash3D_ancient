@@ -115,7 +115,7 @@ dframetype_t *R_SpriteLoadGroup( ref_model_t *mod, void * pin, mspriteframe_t **
 	return (dframetype_t *)ptemp;
 }
 
-void Mod_SpriteLoadModel( ref_model_t *mod, ref_model_t *parent, const void *buffer )
+void Mod_SpriteLoadModel( ref_model_t *mod, const void *buffer )
 {
 	dsprite_t		*pin;
 	short		*numi;

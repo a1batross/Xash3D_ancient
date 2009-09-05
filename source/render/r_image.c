@@ -2135,8 +2135,15 @@ static rgbdata_t *R_ParseStudioSkin( script_t *script, const byte *buf, size_t s
 	com.snprintf( modelT_path, MAX_STRING, "%sT.mdl", model_path );
 	FS_DefaultExtension( model_path, ".mdl" );
 	FS_FileBase( token.string, skinname );
-	FS_DefaultExtension( skinname, ".bmp" );
 
+	if( buf && size )
+	{
+		// load it in
+		pic = R_LoadImage( script, va( "#%s.mdl", skinname ), buf, size, samples, flags );
+		if( !pic ) return NULL;
+		goto studio_done;
+          }
+	FS_DefaultExtension( skinname, ".bmp" );
 	f = FS_Open( model_path, "rb" );
 	if( !f )
 	{
@@ -2175,7 +2182,6 @@ static rgbdata_t *R_ParseStudioSkin( script_t *script, const byte *buf, size_t s
 		// all ok, can load model into memory
 		dstudiotexture_t	*ptexture, *tex;
 		size_t		mdl_size, tex_size;
-		rgbdata_t		*pal;
 		byte		*pin;
 		int		i;
 
@@ -2208,12 +2214,6 @@ static rgbdata_t *R_ParseStudioSkin( script_t *script, const byte *buf, size_t s
 		}
 		tex = ptexture + i;
 
-		// setup palette
-		if( tex->flags & STUDIO_NF_TRANSPARENT )
-			pal = FS_LoadImage( "#transparent.pal", pin + tex->index + (tex->width * tex->height), 768 );
-		else pal = FS_LoadImage( "#normal.pal", pin + tex->width * tex->height + tex->index, 768 );
-		FS_FreeImage( pal ); // external copy not needed 
-
 		// NOTE: replace index with pointer to start of imagebuffer, ImageLib expected it
 		tex->index = (int)pin + tex->index;
 		tex_size = sizeof( dstudiotexture_t ) + tex->width * tex->height + 768;
@@ -2237,6 +2237,7 @@ static rgbdata_t *R_ParseStudioSkin( script_t *script, const byte *buf, size_t s
 		return NULL;		
 	}
 
+studio_done:
 	Com_ReadToken( script, 0, &token );
 	if( com.stricmp( token.string, ")" ))
 	{
@@ -2244,7 +2245,6 @@ static rgbdata_t *R_ParseStudioSkin( script_t *script, const byte *buf, size_t s
 		FS_FreeImage( pic );
 		return NULL;
 	}
-
 	return pic;
 }
 
@@ -2395,7 +2395,7 @@ static rgbdata_t *R_ParseScrapBlock( script_t *script, int *samples, texFlags_t 
 R_ParseHeightMap
 =================
 */
-static rgbdata_t *R_ParseHeightMap( script_t *script, int *samples, texFlags_t *flags )
+static rgbdata_t *R_ParseHeightMap( script_t *script, const byte *buf, size_t size, int *samples, texFlags_t *flags )
 {
 	token_t	token;
 	rgbdata_t *pic;
@@ -2414,7 +2414,7 @@ static rgbdata_t *R_ParseHeightMap( script_t *script, int *samples, texFlags_t *
 		return NULL;
 	}
 
-	pic = R_LoadImage( script, token.string, NULL, 0, samples, flags );
+	pic = R_LoadImage( script, token.string, buf, size, samples, flags );
 	if( !pic ) return NULL;
 
 	Com_ReadToken( script, 0, &token );
@@ -2570,7 +2570,7 @@ static rgbdata_t *R_ParseSmoothNormals( script_t *script, int *samples, texFlags
 R_ParseDepthmap
 =================
 */
-static rgbdata_t *R_ParseDepthmap( script_t *script, int *samples, texFlags_t *flags )
+static rgbdata_t *R_ParseDepthmap( script_t *script, const byte *buf, size_t size, int *samples, texFlags_t *flags )
 {
 	token_t	token;
 	rgbdata_t	*pic1, *pic2;
@@ -2590,7 +2590,7 @@ static rgbdata_t *R_ParseDepthmap( script_t *script, int *samples, texFlags_t *f
 		return NULL;
 	}
 
-	pic1 = R_LoadImage( script, token.string, NULL, 0, &samples1, flags );
+	pic1 = R_LoadImage( script, token.string, buf, size, &samples1, flags );
 	if( !pic1 ) return NULL;
 
 	Com_ReadToken( script, 0, &token );
@@ -2609,7 +2609,7 @@ static rgbdata_t *R_ParseDepthmap( script_t *script, int *samples, texFlags_t *f
 	}
 
 	*samples = 3;
-	pic2 = R_LoadImage( script, token.string, NULL, 0, &samples2, flags );
+	pic2 = R_LoadImage( script, token.string, buf, size, &samples2, flags );
 	if( !pic2 ) return pic1; // don't free normalmap
 
 	Com_ReadToken( script, 0, &token );
@@ -2724,7 +2724,7 @@ static rgbdata_t *R_LoadImage( script_t *script, const char *name, const byte *b
 	else if( !com.stricmp( name, "makeGlow" ))
 		return R_ParseMakeGlow( script, samples, flags );
 	else if( !com.stricmp( name, "heightMap" ))
-		return R_ParseHeightMap( script, samples, flags );
+		return R_ParseHeightMap( script, buf, size, samples, flags );
 	else if( !com.stricmp( name, "ScrapBlock" ))
 		return R_ParseScrapBlock( script, samples, flags );
 	else if( !com.stricmp( name, "addNormals" ))
@@ -2732,7 +2732,7 @@ static rgbdata_t *R_LoadImage( script_t *script, const char *name, const byte *b
 	else if( !com.stricmp( name, "smoothNormals" ))
 		return R_ParseSmoothNormals( script, samples, flags );
 	else if( !com.stricmp( name, "mergeDepthmap" ))
-		return R_ParseDepthmap( script, samples, flags );
+		return R_ParseDepthmap( script, buf, size, samples, flags );
 	else if( !com.stricmp( name, "clearPixels" ))
 		return R_ParseClearPixels( script, samples, flags );
 	else if( !com.stricmp( name, "Studio" ))

@@ -250,6 +250,17 @@ static const loadformat_t load_xash051[] =
 { NULL, NULL, NULL, IL_HINT_NO }
 };
 
+static const loadformat_t load_ximage[] =
+{
+{ "%s%s.%s", "dds", Image_LoadDDS, IL_HINT_NO },	// cubemaps, depthmaps, 2d textures
+{ "%s%s.%s", "png", Image_LoadPNG, IL_HINT_NO },	// levelshot save as .png
+{ "%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// screenshots, etc
+{ "%s%s.%s", "jpg", Image_LoadJPG, IL_HINT_NO },	// 2d textures
+{ "%s%s.%s", "bmp", Image_LoadBMP, IL_HINT_NO },	// there all wad package types
+{ "%s%s.%s", "pcx", Image_LoadPCX, IL_HINT_NO }, 
+{ NULL, NULL, NULL, IL_HINT_NO }
+};
+
 /*
 =============================================================================
 
@@ -292,6 +303,17 @@ static const saveformat_t save_xash051[] =
 { NULL, NULL, NULL }
 };
 
+static const saveformat_t save_ximage[] =
+{
+{ "%s%s.%s", "tga", Image_SaveTGA },
+{ "%s%s.%s", "jpg", Image_SaveJPG },
+{ "%s%s.%s", "png", Image_SavePNG },
+{ "%s%s.%s", "dds", Image_SaveDDS },
+{ "%s%s.%s", "pcx", Image_SavePCX },
+{ "%s%s.%s", "bmp", Image_SaveBMP },
+{ NULL, NULL, NULL }
+};
+
 void Image_Init( void )
 {
 	// init pools
@@ -315,6 +337,10 @@ void Image_Init( void )
 		break;
 	case HOST_WADLIB:
 		image.loadformats = load_wadlib;
+		break;
+	case HOST_XIMAGE:
+		image.loadformats = load_ximage;
+		image.saveformats = save_ximage;
 		break;
 	case HOST_NORMAL:
 	case HOST_BSPLIB:
