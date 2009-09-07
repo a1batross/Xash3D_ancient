@@ -3277,8 +3277,8 @@ R_InitDynamicLightTexture
 static rgbdata_t *R_InitDynamicLightTexture( int *flags, int *samples )
 {
 	vec3_t	v = { 0, 0, 0 };
+	int	x, y, z, size, size2, halfsize;
 	float	intensity;
-	int	x, y, z, d, size;
 
 	// dynamic light texture
 	if( GL_Support( R_TEXTURE_3D_EXT ))
@@ -3287,7 +3287,7 @@ static rgbdata_t *R_InitDynamicLightTexture( int *flags, int *samples )
 	}
 	else
 	{
-		size = 64;
+		size = 128;
 		r_image.depth = 1;
 	}
 
@@ -3298,30 +3298,136 @@ static rgbdata_t *R_InitDynamicLightTexture( int *flags, int *samples )
 	r_image.type = PF_RGBA_GN;
 	r_image.size = r_image.width * r_image.height * r_image.depth * 4;
 
+	halfsize = size / 2;
+	intensity = halfsize * halfsize;
+	size2 = size * size;
 
 	*flags = TF_NOPICMIP|TF_NOMIPMAP|TF_CLAMP|TF_UNCOMPRESSED;
 	*samples = 3;
 
-	for( x = 0; x < r_image.width; x++ )
-	{
-		for( y = 0; y < r_image.height; y++ )
+	if( GL_Support( R_TEXTURE_3D_EXT ))
+	{		
+		for( x = 0; x < r_image.width; x++ )
 		{
-			for( z = 0; z < r_image.depth; z++ )
+			for( y = 0; y < r_image.height; y++ )
 			{
-				v[0] = (( x + 0.5f ) * ( 2.0f / (float)size ) - 1.0f );
-				v[1] = (( y + 0.5f ) * ( 2.0f / (float)size ) - 1.0f );
-				if( r_image.depth > 1 ) v[2] = (( z + 0.5f ) * ( 2.0f / (float)size ) - 1.0f );
+				for( z = 0; z < r_image.depth; z++ )
+				{
+					float	dist, att;
 
-				intensity = 1.0f - com.sqrt( DotProduct( v, v ) );
-				if( intensity > 0 ) intensity = intensity * intensity * 215.5f;
-				d = bound( 0, intensity, 255 );
+					v[0] = (float)x - halfsize;
+					v[1] = (float)y - halfsize;
+					v[2] = (float)z - halfsize;
 
-				data2D[((z * size + y) * size + x) * 4 + 0] = d;
-				data2D[((z * size + y) * size + x) * 4 + 1] = d;
-				data2D[((z * size + y) * size + x) * 4 + 2] = d;
+					dist = VectorLength( v );
+					if( dist > halfsize ) dist = halfsize;
+
+					if( x == 0 || y == 0 || z == 0 || x == size - 1 || y == size - 1 || z == size - 1 )
+						att = 0;
+					else att = (((dist * dist) / intensity) -1 ) * -255;
+
+					data2D[(x * size2 + y * size + z) * 4 + 0] = (byte)(att);
+					data2D[(x * size2 + y * size + z) * 4 + 1] = (byte)(att);
+					data2D[(x * size2 + y * size + z) * 4 + 2] = (byte)(att);
+				}
 			}
 		}
 	}
+	else
+	{
+		for( x = 0; x < size; x++ )
+		{
+			for( y = 0; y < size; y++ )
+			{
+				float	result;
+
+				if( x == size - 1 || x == 0 || y == size - 1 || y == 0 )
+					result = 255;
+				else
+				{
+					float	xf = ((float)x - 64 ) / 64.0f;
+					float	yf = ((float)y - 64 ) / 64.0f;
+					result = ((xf * xf) + (yf * yf)) * 255;
+					if( result > 255 ) result = 255;
+				}
+				data2D[(x*size+y)*4+0] = (byte)255 - result;
+				data2D[(x*size+y)*4+1] = (byte)255 - result;
+				data2D[(x*size+y)*4+2] = (byte)255 - result;
+			}
+		}
+	}
+	return &r_image;
+}
+
+/*
+==================
+R_InitSpotLightTexture
+==================
+*/
+static rgbdata_t *R_InitSpotLightTexture( int *flags, int *samples )
+{
+	*flags = TF_NOPICMIP|TF_NOMIPMAP|TF_CLAMP|TF_UNCOMPRESSED;
+	*samples = 0;
+
+	return FS_LoadImage( "textures/effects/flashlight.tga", NULL, 0 );	// UNDONE: test only 
+}
+
+/*
+==================
+R_InitNormalizeCubemap
+==================
+*/
+static rgbdata_t *R_InitNormalizeCubemap( int *flags, int *samples )
+{
+	int	i, x, y, size = 32;
+	byte	*dataCM = data2D;
+	float	s, t;
+	vec3_t	normal;
+
+	if( !GL_Support( R_TEXTURECUBEMAP_EXT ))
+		return NULL;
+
+	// normal cube map texture
+	for( i = 0; i < 6; i++ )
+	{
+		for( y = 0; y < size; y++ )
+		{
+			for( x = 0; x < size; x++ )
+			{
+				s = (((float)x + 0.5f) * (2.0f / size )) - 1.0f;
+				t = (((float)y + 0.5f) * (2.0f / size )) - 1.0f;
+
+				switch( i )
+				{
+				case 0: VectorSet( normal, 1.0f, -t, -s ); break;
+				case 1: VectorSet( normal, -1.0f, -t, s ); break;
+				case 2: VectorSet( normal, s,  1.0f,  t ); break;
+				case 3: VectorSet( normal, s, -1.0f, -t ); break;
+				case 4: VectorSet( normal, s, -t, 1.0f  ); break;
+				case 5: VectorSet( normal, -s, -t, -1.0f); break;
+				}
+
+				VectorNormalize( normal );
+
+				dataCM[4*(y*size+x)+0] = (byte)(128 + 127 * normal[0]);
+				dataCM[4*(y*size+x)+1] = (byte)(128 + 127 * normal[1]);
+				dataCM[4*(y*size+x)+2] = (byte)(128 + 127 * normal[2]);
+				dataCM[4*(y*size+x)+3] = 255;
+			}
+		}
+		dataCM += (size*size*4); // move pointer
+	}
+
+	*flags = (TF_STATIC|TF_NOPICMIP|TF_NOMIPMAP|TF_UNCOMPRESSED|TF_CUBEMAP|TF_CLAMP);
+	*samples = 3;
+
+	r_image.width = r_image.height = size;
+	r_image.numMips = r_image.depth = 1;
+	r_image.size = r_image.width * r_image.height * 4 * 6;
+	r_image.flags |= (IMAGE_CUBEMAP|IMAGE_HAS_COLOR); // yes it's cubemap
+	r_image.buffer = data2D;
+	r_image.type = PF_RGBA_GN;
+
 	return &r_image;
 }
 
@@ -3550,7 +3656,7 @@ static void R_InitScreenTexture( texture_t **ptr, const char *name, int id, int 
 
 			r_screen.width = width;
 			r_screen.height = height;
-                              r_screen.type = PF_LUMINANCE;
+                              r_screen.type = (samples == 1) ? PF_LUMINANCE : PF_RGB_24;
 			r_screen.buffer = data;
 			r_screen.depth = r_screen.numMips = 1;
 			r_screen.size = width * height * samples;
@@ -3636,6 +3742,8 @@ static void R_InitBuiltinTextures( void )
 		{ "*black", &tr.blackTexture, R_InitBlackTexture },
 		{ "*blankbump", &tr.blankbumpTexture, R_InitBlankBumpTexture },
 		{ "*dlight", &tr.dlightTexture, R_InitDynamicLightTexture },
+		{ "*dspotlight", &tr.dspotlightTexture, R_InitSpotLightTexture },
+          	{ "*normalize", &tr.normalizeTexture, R_InitNormalizeCubemap },
 		{ "*particle", &tr.particleTexture, R_InitParticleTexture },
 		{ "*corona", &tr.coronaTexture, R_InitCoronaTexture },
 		{ "*cintexture", &tr.cinTexture, R_InitCinematicTexture },

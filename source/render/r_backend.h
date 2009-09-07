@@ -103,6 +103,8 @@ typedef struct
 	texture_t		*blackTexture;
 	texture_t		*blankbumpTexture;
 	texture_t		*dlightTexture;
+	texture_t		*dspotlightTexture;
+	texture_t		*normalizeTexture;	// cubemap
 	texture_t		*fogTexture;
 	texture_t		*skyTexture;
 	texture_t		*coronaTexture;

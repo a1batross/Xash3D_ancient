@@ -68,11 +68,11 @@ void R_LightBounds( const vec3_t origin, float intensity, vec3_t mins, vec3_t ma
 R_AddSurfDlighbits
 =============
 */
-uint R_AddSurfDlighbits( msurface_t *surf, unsigned int dlightbits )
+uint R_AddSurfDlighbits( msurface_t *surf, uint dlightbits )
 {
-	unsigned int k, bit;
-	dlight_t *lt;
-	float dist;
+	uint	k, bit;
+	dlight_t	*lt;
+	float	dist;
 
 	for( k = 0, bit = 1, lt = r_dlights; k < r_numDlights; k++, bit <<= 1, lt++ )
 	{
@@ -86,7 +86,7 @@ uint R_AddSurfDlighbits( msurface_t *surf, unsigned int dlightbits )
 			}
 			else if( surf->facetype == MST_PATCH || surf->facetype == MST_TRISURF )
 			{
-				if( !BoundsIntersect( surf->mins, surf->maxs, lt->mins, lt->maxs ) )
+				if( !BoundsIntersect( surf->mins, surf->maxs, lt->mins, lt->maxs ))
 					dlightbits &= ~bit;
 			}
 		}
@@ -496,10 +496,10 @@ void R_LightForEntity( ref_entity_t *e, byte *bArray )
 	if( e->flags & EF_MINLIGHT )
 	{
 		for( i = 0; i < 3; i++ )
-			if( ambient[i] > 0.1 )
+			if( ambient[i] > 0.01 )
 				break;
 		if( i == 3 )
-			VectorSet( ambient, 0.1f, 0.1f, 0.1f );
+			VectorSet( ambient, 0.01f, 0.01f, 0.01f );
 	}
 
 	// rotate direction

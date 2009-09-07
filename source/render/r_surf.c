@@ -244,11 +244,11 @@ void R_AddBrushModelToList( ref_entity_t *e )
 	}
 
 	dlightbits = 0;
-	if( ( r_dynamiclight->integer == 1 ) && !r_fullbright->integer && !( RI.params & RP_SHADOWMAPVIEW ) )
+	if(( r_dynamiclight->integer == 1 ) && !r_fullbright->integer && !( RI.params & RP_SHADOWMAPVIEW ))
 	{
 		for( i = 0; i < r_numDlights; i++ )
 		{
-			if( BoundsIntersect( modelmins, modelmaxs, r_dlights[i].mins, r_dlights[i].maxs ) )
+			if( BoundsIntersect( modelmins, modelmaxs, r_dlights[i].mins, r_dlights[i].maxs ))
 				dlightbits |= ( 1<<i );
 		}
 	}
@@ -300,7 +300,7 @@ WORLD MODEL
 R_MarkLeafSurfaces
 ================
 */
-static void R_MarkLeafSurfaces( msurface_t **mark, unsigned int clipflags, unsigned int dlightbits )
+static void R_MarkLeafSurfaces( msurface_t **mark, uint clipflags, uint dlightbits )
 {
 	unsigned int newDlightbits;
 	msurface_t *surf;
@@ -335,7 +335,7 @@ static void R_MarkLeafSurfaces( msurface_t **mark, unsigned int clipflags, unsig
 R_RecursiveWorldNode
 ================
 */
-static void R_RecursiveWorldNode( mnode_t *node, unsigned int clipflags, unsigned int dlightbits )
+static void R_RecursiveWorldNode( mnode_t *node, uint clipflags, uint dlightbits )
 {
 	uint		i, newDlightbits;
 	const cplane_t	*clipplane;

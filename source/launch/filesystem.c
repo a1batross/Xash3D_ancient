@@ -1331,7 +1331,7 @@ void FS_ApplyBaseDir( void )
 				com.strncpy( gs_basedir, tok.string, sizeof( gs_basedir ));
 				break;
 			}
-			else MsgDev( D_ERROR, "missing associated directory with %s.exe", gs_basedir );
+			else MsgDev( D_ERROR, "missing associated directory with %s.exe\n", gs_basedir );
 		}
 	}
 	PS_FreeScript( script );

@@ -226,7 +226,7 @@ void CL_AddDLights( void )
 	dl = cl_dlights;
 	for( i = 0; i < MAX_DLIGHTS; i++, dl++ )
 	{
-		if( dl->radius ) re->AddDynLight( dl->origin, dl->color, dl->radius, -1 );
+		if( dl->radius ) re->AddDynLight( dl->origin, dl->color, dl->radius, dl->cone, -1 );
 	}
 }
 
@@ -991,30 +991,53 @@ if cl_testlights is set, create 32 lights models
 */
 void CL_TestLights( void )
 {
-	int	i, j;
-	float	f, r;
-	cdlight_t	dl;
+	int		i, j;
+	float		f, r;
+	cdlight_t		dl;
 
-	if( !cl_testlights->integer )
-		return;
-
-	Mem_Set( &dl, 0, sizeof( cdlight_t ));
-	
-	for( i = 0; i < bound( 1, cl_testlights->integer, MAX_DLIGHTS ); i++ )
+	if( cl_testflashlight->integer )
 	{
-		r = 64 * ( (i%4) - 1.5 );
-		f = 64 * (i/4) + 128;
+		vec3_t		end;
+		edict_t		*ed = CL_GetLocalPlayer();
+		int		cnt = CL_ContentsMask( ed );
+		static shader_t	flashlight_shader = 0;
+		trace_t		trace;
 
-		for( j = 0; j < 3; j++ )
-			dl.origin[j] = cl.refdef.vieworg[j] + cl.refdef.forward[j] * f + cl.refdef.right[j] * r;
+		Mem_Set( &dl, 0, sizeof( cdlight_t ));
 
-		dl.color[0] = ((i%6)+1) & 1;
-		dl.color[1] = (((i%6)+1) & 2)>>1;
-		dl.color[2] = (((i%6)+1) & 4)>>2;
-		dl.radius = 200;
+//		if( !flashlight_shader )
+//			flashlight_shader = re->RegisterShader( "flashlight", SHADER_GENERIC );
 
-		if( !re->AddDynLight( dl.origin, dl.color, dl.radius, -1 ))
-			break; 
+		VectorScale( cl.refdef.forward, 256, end );
+		VectorAdd( end, cl.refdef.vieworg, end );
+
+		trace = CL_Trace( cl.refdef.vieworg, vec3_origin, vec3_origin, end, MOVE_HITMODEL, ed, cnt );
+		VectorSet( dl.color, 1.0f, 1.0f, 1.0f );
+		dl.radius = 96;
+		VectorCopy( trace.endpos, dl.origin );
+
+		re->AddDynLight( dl.origin, dl.color, dl.radius, dl.cone, -1 );
+	}
+	if( cl_testlights->integer )
+	{
+		Mem_Set( &dl, 0, sizeof( cdlight_t ));
+	
+		for( i = 0; i < bound( 1, cl_testlights->integer, MAX_DLIGHTS ); i++ )
+		{
+			r = 64 * ( (i%4) - 1.5 );
+			f = 64 * (i/4) + 128;
+
+			for( j = 0; j < 3; j++ )
+				dl.origin[j] = cl.refdef.vieworg[j] + cl.refdef.forward[j] * f + cl.refdef.right[j] * r;
+
+			dl.color[0] = ((i%6)+1) & 1;
+			dl.color[1] = (((i%6)+1) & 2)>>1;
+			dl.color[2] = (((i%6)+1) & 4)>>2;
+			dl.radius = 200;
+
+			if( !re->AddDynLight( dl.origin, dl.color, dl.radius, NULL, -1 ))
+				break; 
+		}
 	}
 }
 

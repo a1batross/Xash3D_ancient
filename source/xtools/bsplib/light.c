@@ -280,16 +280,13 @@ void CreateEntityLights( void )
 			/* set default flags */
 			flags = LIGHT_WOLF_DEFAULT;
 			
-			/* inverse distance squared attenuation? */
-			if( spawnflags & 1 )
-			{
-				flags &= ~LIGHT_ATTEN_LINEAR;
-				flags |= LIGHT_ATTEN_ANGLE;
-			}
-			
+			// spawnflag 1 is reserved for START_OFF
 			/* angle attenuate? */
 			if( spawnflags & 2 )
+			{
 				flags |= LIGHT_ATTEN_ANGLE;
+				flags &= ~LIGHT_ATTEN_LINEAR;
+			}
 		}
 		
 		/* other flags (borrowed from wolf) */

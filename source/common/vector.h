@@ -11,6 +11,12 @@
 #include <stdio.h>
 
 #pragma warning( disable : 4244 )		// int or float down-conversion
+#define NUMVERTEXNORMALS		162
+
+static float bytedirs[NUMVERTEXNORMALS][3] =
+{
+#include "anorms.h"
+};
 
 #ifndef M_PI
 #define M_PI		(float)3.14159265358979323846
@@ -171,36 +177,36 @@ public:
 	}
 	int DirToBits( void )
 	{
-		int	max, bits, numBits = 8; // pack as unsigned char ( state->skin supports this )
-		float	bias;
+		int	i, best = 0;
+		float	d, bestd = 0;
+		BOOL	normalized = FALSE;
 
-		numBits /= 3;
-		max = ( 1 << ( numBits - 1 )) - 1;
-		bias = 0.5f / max;
+		if( x == 0 && y == 0 && z == 0 )
+			return NUMVERTEXNORMALS;
 
-		bits = ((*(const unsigned long *)&( x )) >> 31) << ( numBits * 3 - 1 );
-		bits |= ((int)(( fabs( x ) + bias ) * max ) ) << ( numBits * 2 );
-		bits |= ((*(const unsigned long *)&( y )) >> 31) << ( numBits * 2 - 1 );
-		bits |= ((int)(( fabs( y ) + bias ) * max ) ) << ( numBits * 1 );
-		bits |= ((*(const unsigned long *)&( z )) >> 31) << ( numBits * 1 - 1 );
-		bits |= ((int)(( fabs( z ) + bias ) * max ) ) << ( numBits * 0 );
+		if((x*x+y*y+z*z) == 1 )
+			normalized = TRUE;
 
-		return bits;
+		for( i = 0; i < NUMVERTEXNORMALS; i++ )
+		{
+			d = (x*bytedirs[i][0]+y*bytedirs[i][1]+z*bytedirs[i][2]);
+			if(( d == 1 ) && normalized )
+				return i;
+			if( d > bestd )
+			{
+				bestd = d;
+				best = i;
+			}
+		}
+		return best;
 	}
 	Vector BitsToDir( int bits )
 	{
-		static	float sign[2] = { 1.0f, -1.0f };
-		int	max, numBits = 8;	// pack as unsigned char
-		float	invMax;
-
-		numBits /= 3;
-		max = ( 1 << ( numBits - 1 )) - 1;
-		invMax = 1.0f / max;
-
-		x = sign[(bits >> (numBits * 3 - 1 )) & 1] * ((bits >> (numBits * 2 )) & max) * invMax;
-		y = sign[(bits >> (numBits * 2 - 1 )) & 1] * ((bits >> (numBits * 1 )) & max) * invMax;
-		z = sign[(bits >> (numBits * 1 - 1 )) & 1] * ((bits >> (numBits * 0 )) & max) * invMax;
-		Normalize();
+		if( bits < 0 || bits >= NUMVERTEXNORMALS )
+			return Vector( 0, 0, 0 );
+		x = bytedirs[bits][0];
+		y = bytedirs[bits][1];
+		z = bytedirs[bits][2];
 
 		return *this;
 	}

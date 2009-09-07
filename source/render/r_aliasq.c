@@ -5,7 +5,6 @@
 
 #include "r_local.h"
 #include "mathlib.h"
-#include "quatlib.h"
 #include "byteorder.h"
 
 static mesh_t alias_mesh;
@@ -406,12 +405,10 @@ void Mod_QAliasLoadModel( ref_model_t *mod, const void *buffer )
 	pheader->size = LittleFloat( pinmodel->size ) * (1.0f / 11.0f);
 	pheader->synctype = LittleLong( pinmodel->synctype );
 
-	poutmodel->numtags = 0;
-	poutmodel->tags = NULL;
 	poutmodel->nummeshes = 1;
 
 	poutmesh = poutmodel->meshes = Mod_Malloc( mod, sizeof( maliasmesh_t ));
-	com.strncpy( poutmesh->name, "default", MD3_MAX_PATH );
+	com.strncpy( poutmesh->name, "default", MAX_SHADERPATH );
 
 	for( i = 0; i < 3; i++ )
 	{

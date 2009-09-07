@@ -70,7 +70,7 @@ typedef struct render_exp_s
 
 	// prepare frame to rendering
 	bool	(*AddRefEntity)( edict_t *pRefEntity, int ed_type, float lerp );
-	bool	(*AddDynLight)( vec3_t org, vec3_t color, float intensity, shader_t shader );
+	bool	(*AddDynLight)( vec3_t org, vec3_t color, float rad, vec2_t cone, shader_t shader );
 	bool	(*AddPolygon)( const poly_t *poly );
 	bool	(*AddLightStyle)( int stylenum, vec3_t color );
 	void	(*ClearScene)( void );

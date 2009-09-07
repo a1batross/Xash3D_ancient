@@ -1779,8 +1779,7 @@ static bool Shaderpass_Distortion( ref_shader_t *shader, ref_stage_t *pass, scri
 			if( bumpScale )
 				pass->textures[1] = Shader_FindImage( shader, va( "heightMap( \"%s\", %g );", tok.string, bumpScale ), flags );
 			else pass->textures[1] = Shader_FindImage( shader, tok.string, flags );
-			if( pass->textures[1] == tr.defaultTexture )
-				MsgDev( D_WARN, "missing normalmap image '%s' in shader '%s'\n", tok.string, shader->name );
+			if( pass->textures[1] == tr.defaultTexture ) pass->textures[1] = NULL;
 			pass->num_textures++;
 		}
 	}
@@ -2983,7 +2982,7 @@ static void Shader_SetFeatures( ref_shader_t *s )
 
 	for( i = 0, pass = s->stages; i < s->num_stages; i++, pass++ )
 	{
-		if( pass->program && ( pass->program_type == PROGRAM_TYPE_MATERIAL || pass->program_type == PROGRAM_TYPE_DISTORTION ) )
+		if( pass->program && ( pass->program_type == PROGRAM_TYPE_MATERIAL || pass->program_type == PROGRAM_TYPE_DISTORTION ))
 			s->features |= MF_NORMALS|MF_SVECTORS|MF_LMCOORDS|MF_ENABLENORMALS;
 
 		if( pass->flags & SHADERSTAGE_RENDERMODE )

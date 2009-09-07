@@ -16,6 +16,7 @@ cvar_t *scr_width;
 cvar_t *scr_height;
 cvar_t *cl_testentities;
 cvar_t *cl_testlights;
+cvar_t *cl_testflashlight;
 cvar_t *cl_levelshot_name;
 cvar_t *cl_envshot_size;
 cvar_t *cl_font;
@@ -448,6 +449,7 @@ void SCR_Init( void )
 	scr_download = Cvar_Get("scr_download", "0", 0, "downloading bar progress" );
 	cl_testentities = Cvar_Get ("cl_testentities", "0", 0, "test client entities" );
 	cl_testlights = Cvar_Get ("cl_testlights", "0", 0, "test dynamic lights" );
+	cl_testflashlight = Cvar_Get ("cl_testflashlight", "0", 0, "test generic flashlight" );
 	cl_envshot_size = Cvar_Get( "cl_envshot_size", "256", CVAR_ARCHIVE, "envshot size of cube side" );
 	cl_font = Cvar_Get( "cl_font", "default", CVAR_ARCHIVE, "in-game messages font" );
 	

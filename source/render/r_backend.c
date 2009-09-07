@@ -1539,10 +1539,13 @@ void R_ModifyColor( const ref_stage_t *pass )
 				temp = R_TableEvaluate( *rgbgenfunc, temp ) * rgbgenfunc->args[1] + rgbgenfunc->args[0];
 			}
 
-			temp = temp * rgbgenfunc->args[1] + rgbgenfunc->args[0];
-			a = pass->rgbGen.args[0] * temp; rgba[0] = a <= 0 ? 0 : R_FloatToByte( a );
-			a = pass->rgbGen.args[1] * temp; rgba[1] = a <= 0 ? 0 : R_FloatToByte( a );
-			a = pass->rgbGen.args[2] * temp; rgba[2] = a <= 0 ? 0 : R_FloatToByte( a );
+			temp = bound( 0.0f, temp, 1.0f );
+			a = bound( 0.0f, pass->rgbGen.args[0] * temp, 1.0f );
+			rgba[0] = R_FloatToByte( a );
+			a = bound( 0.0f, pass->rgbGen.args[1] * temp, 1.0f );
+			rgba[1] = R_FloatToByte( a );
+			a = bound( 0.0f, pass->rgbGen.args[2] * temp, 1.0f );
+			rgba[2] = R_FloatToByte( a );
 
 			for( i = 0, c = *(int *)rgba; i < r_backacc.numColors; i++, bArray += 4 )
 				*(int *)bArray = c;

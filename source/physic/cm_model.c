@@ -1639,6 +1639,8 @@ bool CM_StudioModel( byte *buffer, uint filesize )
 	VectorCopy( loadmodel->mins, loadmodel->yawmins );
 	VectorCopy( loadmodel->maxs, loadmodel->yawmaxs );
 
+	loadmodel->TraceBox = CM_TraceStudio;
+
 	return true;
 }
 

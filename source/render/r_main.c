@@ -2340,7 +2340,8 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac )
 	r_numEntities++;
 
 	// never adding child entity without parent
-	if( result && pRefEntity->v.weaponmodel && (refent->renderfx != kRenderFxDeadPlayer))
+	// only studio models can have attached childrens
+	if( result && refent->model->type == mod_studio && pRefEntity->v.weaponmodel && (refent->renderfx != kRenderFxDeadPlayer))
 	{
 		edict_t	FollowEntity = *pRefEntity;
 
@@ -2357,7 +2358,7 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac )
 	return result;
 }
 
-bool R_AddDynamicLight( vec3_t org, vec3_t color, float intensity, shader_t handle )
+bool R_AddDynamicLight( vec3_t org, vec3_t color, float intensity, vec2_t cone, shader_t handle )
 {
 	dlight_t		*dl;
 	ref_shader_t	*shader;
@@ -2370,6 +2371,7 @@ bool R_AddDynamicLight( vec3_t org, vec3_t color, float intensity, shader_t hand
 
 	VectorCopy( org, dl->origin );
 	VectorCopy( color, dl->color );
+	if( cone ) Vector2Copy( cone, dl->cone );
 	dl->intensity = intensity * DLIGHT_SCALE;
 	dl->shader = shader;
 

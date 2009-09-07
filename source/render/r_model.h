@@ -279,9 +279,6 @@ typedef struct
 	int		numframes;
 	maliasframe_t	*frames;
 
-	int	 	numtags;
-	maliastag_t	*tags;
-
 	int	 	nummeshes;
 	maliasmesh_t	*meshes;
 

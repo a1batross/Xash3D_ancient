@@ -178,6 +178,7 @@ typedef struct
 	vec3_t		origin;
 	vec3_t		color;
 	vec3_t		mins, maxs;
+	vec2_t		cone;		// spotlight cone
 	float		intensity;
 	const ref_shader_t	*shader;
 } dlight_t;
