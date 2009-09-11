@@ -10,7 +10,6 @@
 // resources
 #include "images.h"
 #include "conback.h"
-#include "uimenu.h"
 
 stdlib_api_t com;
 
@@ -30,7 +29,6 @@ loadres_t load_resources[] =
 	{"default.dds", deffont_dds, sizeof(deffont_dds)},
 	{"conback.dds", conback_dds, sizeof(conback_dds)},
 	{"net.png", net_png, sizeof(net_png)},
-	{"uimenu.dat", uimenu_dat, sizeof(uimenu_dat)},	// FIXME: get rid of this
 	{NULL, NULL, 0 }
 };
 
@@ -67,7 +65,8 @@ baserc_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 	com = *input;
 
 	// generic functions
-	Com.api_size = sizeof(baserc_exp_t);
+	Com.api_size = sizeof( baserc_exp_t );
+	Com.com_size = sizeof( stdlib_api_t );
 	Com.LoadFile = RC_FindFile;
 
 	return &Com;

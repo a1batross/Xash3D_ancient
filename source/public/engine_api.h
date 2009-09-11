@@ -208,6 +208,7 @@ typedef struct launch_exp_s
 {
 	// interface validator
 	size_t	api_size;		// must matched with sizeof(launch_api_t)
+	size_t	com_size;		// must matched with sizeof(stdlib_api_t)
 
 	void ( *Init ) ( const int argc, const char **argv );	// init host
 	void ( *Main ) ( void );				// host frame

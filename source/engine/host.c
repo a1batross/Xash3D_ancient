@@ -19,10 +19,10 @@ stdlib_api_t	com, newcom;
 byte	*zonepool;
 char	*buildstring = __TIME__ " " __DATE__;
 
-dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(physic_exp_t) };
-dll_info_t render_dll = { "render.dll", NULL, "CreateAPI", NULL, NULL, false, sizeof(render_exp_t) };
-dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(vprogs_exp_t) };
-dll_info_t vsound_dll = { "vsound.dll", NULL, "CreateAPI", NULL, NULL, false, sizeof(vsound_exp_t) };
+dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, 1, sizeof(physic_exp_t), sizeof(stdlib_api_t) };
+dll_info_t render_dll = { "render.dll", NULL, "CreateAPI", NULL, NULL, 0, sizeof(render_exp_t), sizeof(stdlib_api_t) };
+dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, 1, sizeof(vprogs_exp_t), sizeof(stdlib_api_t) };
+dll_info_t vsound_dll = { "vsound.dll", NULL, "CreateAPI", NULL, NULL, 0, sizeof(vsound_exp_t), sizeof(stdlib_api_t) };
 
 cvar_t	*timescale;
 cvar_t	*host_serverstate;
@@ -232,21 +232,21 @@ void Host_ChangeGame_f( void )
 
 	if( Cmd_Argc() != 2 )
 	{
-		Msg("Usage: game <directory>\n");
+		Msg( "Usage: game <directory>\n" );
 		return;
 	}
 
 	// validate gamedir
-	for( i = 0; i < GI->numgamedirs; i++ )
+	for( i = 0; i < SI->numgames; i++ )
 	{
-		if(!com.stricmp(GI->gamedirs[i], Cmd_Argv(1)))
+		if( !com.stricmp( SI->games[i]->gamefolder, Cmd_Argv( 1 )))
 			break;
 	}
 
-	if( i == GI->numgamedirs ) Msg( "%s not exist\n", Cmd_Argv(1));
-	else if(!com.stricmp(GI->gamedir, Cmd_Argv(1)))
-		Msg( "%s already active\n", Cmd_Argv(1));	
-	else Sys_NewInstance( Cmd_Argv(1), "Host_ChangeGame\n" );
+	if( i == SI->numgames ) Msg( "%s not exist\n", Cmd_Argv( 1 ));
+	else if( !com.stricmp( GI->gamefolder, Cmd_Argv( 1 )))
+		Msg( "%s already active\n", Cmd_Argv( 1 ));	
+	else Sys_NewInstance( Cmd_Argv( 1 ), "Host_ChangeGame\n" );
 }
 
 void Host_Minimize_f( void )
@@ -261,8 +261,8 @@ VID_Init
 */
 void VID_Init( void )
 {
-	scr_width = Cvar_Get("width", "640", 0, "screen width" );
-	scr_height = Cvar_Get("height", "480", 0, "screen height" );
+	scr_width = Cvar_Get( "width", "640", 0, "screen width" );
+	scr_height = Cvar_Get( "height", "480", 0, "screen height" );
 
 	Cmd_AddCommand( "minimize", Host_Minimize_f, "minimize main window to tray" );
 	Cmd_AddCommand( "vid_restart", Host_VidRestart_f, "restarts video system" );
@@ -472,9 +472,9 @@ void Host_InitCommon( const int argc, const char **argv )
 	if( FS_GetParmFromCmdLine( "-dev", dev_level ))
 		host.developer = com.atoi( dev_level );
 
-	// TODO: init basedir here
-	FS_LoadGameInfo( "gameinfo.txt" );
-	zonepool = Mem_AllocPool("Zone Engine");
+	FS_LoadGameInfo();
+
+	zonepool = Mem_AllocPool( "Zone Engine" );
 
 	IN_Init();
 }
@@ -495,14 +495,14 @@ void Host_Init( const int argc, const char **argv )
 	char	*s;
 
 	host.state = HOST_INIT;	// initialzation started
-	host.type = g_Instance;
+	host.type = g_Instance();
 
 	Host_InitCommon( argc, argv );
 	Key_Init();
 
-	// get default configuration
-	Cbuf_AddText( "exec keys.rc\n" );
-	Cbuf_AddText( "exec vars.rc\n" );
+	// get default configuration (but disable for save default config)
+	if( FS_FileExists( "config/basekeys.rc" )) Cbuf_AddText( "exec keys.rc\n" );
+	if( FS_FileExists( "config/basevars.rc" )) Cbuf_AddText( "exec vars.rc\n" );
 	Cbuf_Execute();
 
 	// init commands and vars
@@ -536,10 +536,12 @@ void Host_Init( const int argc, const char **argv )
 	SV_Init();
 	CL_Init();
 
+	Host_WriteDefaultConfig ();
+
 	if( host.type == HOST_DEDICATED )
 	{
-		Cmd_AddCommand ( "quit", Sys_Quit, "quit the game" );
-		Cmd_AddCommand ( "exit", Sys_Quit, "quit the game" );
+		Cmd_AddCommand( "quit", Sys_Quit, "quit the game" );
+		Cmd_AddCommand( "exit", Sys_Quit, "quit the game" );
 	}
 	host.errorframe = 0;
 }

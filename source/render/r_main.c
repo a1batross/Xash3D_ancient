@@ -454,7 +454,7 @@ R_GetCustomColor
 int R_GetCustomColor( int num )
 {
 	if( num < 0 || num >= NUM_CUSTOMCOLORS )
-		return MakeRGBA( 255, 255, 255, 255 );
+		return 0xFFFFFFFF; // white color
 	return *(int *)r_customColors[num];
 }
 
@@ -2406,7 +2406,8 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	if( engfuncs ) ri = *engfuncs;
 
 	// generic functions
-	re.api_size = sizeof(render_exp_t);
+	re.api_size = sizeof( render_exp_t );
+	re.com_size = sizeof( stdlib_api_t );
 
 	re.Init = R_Init;
 	re.Shutdown = R_Shutdown;
@@ -2439,6 +2440,7 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	re.ScreenToWorld = R_ScreenToWorld;
 	re.WorldToScreen = R_WorldToScreen;
 	re.RSpeedsMessage = R_SpeedsMessage;
+	re.Support = GL_Support;
 
 	return &re;
 }

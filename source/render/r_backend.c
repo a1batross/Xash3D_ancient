@@ -2589,7 +2589,7 @@ static void R_RenderAccumulatedPasses( void )
 
 	if( r_numAccumPasses == 1 )
 		R_RenderMeshGeneric();
-	else if( GL_Support( R_COMBINE_EXT ))
+	else if( GL_Support( R_ENV_COMBINE_EXT ))
 		R_RenderMeshCombined();
 	else
 		R_RenderMeshMultitextured();
@@ -2648,7 +2648,7 @@ static void R_AccumulatePass( ref_stage_t *pass )
 			{
 				prevMode = R_ShaderpassBlendmode( prevPass->flags );
 
-				if( GL_Support( R_COMBINE_EXT ))
+				if( GL_Support( R_ENV_COMBINE_EXT ))
 				{
 					if( prevMode == GL_REPLACE )
 						accumulate = ( mode == GL_ADD ) ? GL_Support( R_TEXTURE_ENV_ADD_EXT ) : true;
@@ -3033,7 +3033,7 @@ static void R_DrawNormals( void )
 	pglEnd();
 }
 
-static void R_DrawLine( int color, int numpoints, const float *points, const int *elements )
+static void R_DrawLine( rgba_t color, int numpoints, const float *points, const int *elements )
 {
 	int	i = numpoints - 1;
 	vec3_t	p0, p1;
@@ -3046,7 +3046,8 @@ static void R_DrawLine( int color, int numpoints, const float *points, const int
 		VectorSet( p1, points[i*3+0], points[i*3+1], points[i*3+2] );
 		if( r_physbdebug->integer == 1 ) ConvertPositionToGame( p1 );
  
-		pglColor4fv( UnpackRGBA( color ));
+		if( color ) pglColor4ubv( color );
+		else  pglColor4ub( 255, 160, 0, 255 );
 		pglVertex3fv( p0 );
 		pglVertex3fv( p1 );
  

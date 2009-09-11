@@ -3124,10 +3124,11 @@ void VID_ImageAdjustGamma( byte *in, uint width, uint height )
 	}
 }
 
-bool VID_ScreenShot( const char *filename, bool levelshot )
+bool VID_ScreenShot( const char *filename, int shot_type )
 {
 	rgbdata_t *r_shot;
 	uint	flags = IMAGE_FLIP_Y;
+	int	width = 0, height = 0;
 	bool	result;
 
 	r_shot = Mem_Alloc( r_temppool, sizeof( rgbdata_t ));
@@ -3144,13 +3145,29 @@ bool VID_ScreenShot( const char *filename, bool levelshot )
 	// get screen frame
 	pglReadPixels( 0, 0, glState.width, glState.height, GL_RGB, GL_UNSIGNED_BYTE, r_shot->buffer );
 
-	if( levelshot ) flags |= IMAGE_RESAMPLE;
-	else VID_ImageAdjustGamma( r_shot->buffer, r_shot->width, r_shot->height ); // adjust brightness
-	Image_Process( &r_shot, 512, 384, flags );
+	switch( shot_type )
+	{
+	case VID_SCREENSHOT:
+		VID_ImageAdjustGamma( r_shot->buffer, r_shot->width, r_shot->height ); // adjust brightness
+		break;
+	case VID_LEVELSHOT:
+		flags |= IMAGE_RESAMPLE;
+		height = 384;
+		width = 512;
+		break;
+	case VID_SAVESHOT:
+		flags |= IMAGE_RESAMPLE;
+		height = 192;
+		width = 256;
+		break;
+	}
+
+	Image_Process( &r_shot, width, height, flags );
 
 	// write image
 	result = FS_SaveImage( filename, r_shot );
 	FS_FreeImage( r_shot );
+
 	return result;
 }
 
@@ -3178,7 +3195,7 @@ bool VID_CubemapShot( const char *base, uint size, bool skyshot )
 		return false;
 
 	// setup refdef
-	RI.params |= RP_ENVVIEW;		// do not render non-bmodel entities
+	RI.params |= RP_ENVVIEW;	// do not render non-bmodel entities
 
 	// alloc space
 	temp = Mem_Alloc( r_temppool, size * size * 3 );

@@ -169,7 +169,7 @@ typedef struct
 	// crosshair members
 	HSPRITE	hCrosshair;
 	wrect_t	rcCrosshair;
-	Vector	rgbCrosshair;
+	byte	rgbCrosshair[3];
 	bool	noCrosshair;
 } draw_stuff_t;
 
@@ -328,13 +328,13 @@ client_sprite_t *SPR_GetList( const char *psz, int *piCount )
 void SPR_Set( HSPRITE hPic, int r, int g, int b )
 {
 	ds.hSprite = hPic;
-	SetColor((r / 255.0f), (g / 255.0f), (b / 255.0f), 1.0f );
+	SetColor( r, g, b, 255 );
 }
 
 void SPR_Set( HSPRITE hPic, int r, int g, int b, int a )
 {
 	ds.hSprite = hPic;
-	SetColor((r / 255.0f), (g / 255.0f), (b / 255.0f), (a / 255.0f));
+	SetColor( r, g, b, a );
 }
 
 inline static void SPR_AdjustSize( float *x, float *y, float *w, float *h )
@@ -413,20 +413,14 @@ inline static void SPR_DrawGeneric( int frame, float x, float y, float width, fl
 void TextMessageDrawChar( int xpos, int ypos, int number, int r, int g, int b )
 {
 	// tune char size by taste
-	SetColor((r / 255.0f), (g / 255.0f), (b / 255.0f), 1.0f );
+	SetColor( r, g, b, 255 );
 	SPR_DrawChar( gHUD.m_hHudFont, xpos, ypos, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, number );
 }
 
 void FillRGBA( float x, float y, float width, float height, int r, int g, int b, int a )
 {
-	Vector	RGB;
-
-	RGB.x = (float)(r / 255.0f);
-	RGB.y = (float)(g / 255.0f);
-	RGB.z = (float)(b / 255.0f);
-
 	SPR_AdjustSize( &x, &y, &width, &height );
-	g_engfuncs.pfnFillRGBA( x, y, width, height, RGB, (float)(a / 255.0f));
+	g_engfuncs.pfnFillRGBA( x, y, width, height, r, g, b, a );
 }
 
 void SPR_Draw( int frame, int x, int y, const wrect_t *prc )
@@ -479,9 +473,9 @@ void SPR_DrawAdditive( int frame, int x, int y, int width, int height )
 
 void SetCrosshair( HSPRITE hspr, wrect_t rc, int r, int g, int b )
 {
-	ds.rgbCrosshair.x = (float)r / 255.0f;
-	ds.rgbCrosshair.y = (float)g / 255.0f;
-	ds.rgbCrosshair.z = (float)b / 255.0f;
+	ds.rgbCrosshair[0] = (byte)r;
+	ds.rgbCrosshair[1] = (byte)g;
+	ds.rgbCrosshair[2] = (byte)b;
 	ds.hCrosshair = hspr;
 	ds.rcCrosshair = rc;
 }
@@ -493,7 +487,7 @@ void HideCrosshair( bool hide )
 
 void DrawCrosshair( void )
 {
-	if( ds.hCrosshair == 0 || ds.noCrosshair )
+	if( ds.hCrosshair == 0 || ds.noCrosshair || !CVAR_GET_FLOAT( "cl_crosshair" ))
 		return;
 
 	int x = (ScreenWidth - (ds.rcCrosshair.right - ds.rcCrosshair.left)) / 2; 
@@ -505,7 +499,7 @@ void DrawCrosshair( void )
 
 	ds.hSprite = ds.hCrosshair;
 	SetParms( ds.hCrosshair, kRenderTransAlpha, 0 );
-	SetColor( ds.rgbCrosshair.x, ds.rgbCrosshair.y, ds.rgbCrosshair.z, 1.0f );
+	SetColor( ds.rgbCrosshair[0], ds.rgbCrosshair[1], ds.rgbCrosshair[2], 255 );
 	SPR_DrawGeneric( 0, x, y, -1, -1, &ds.rcCrosshair );
 }
 
@@ -795,11 +789,11 @@ FIXME: make this buffer size safe someday
 char *va( const char *format, ... )
 {
 	va_list argptr;
-	static char string[16][1024], *s;
+	static char string[32][1024], *s;
 	static int stringindex = 0;
 
 	s = string[stringindex];
-	stringindex = (stringindex + 1) & 15;
+	stringindex = (stringindex + 1) & 31;
 	va_start( argptr, format );
 	_vsnprintf( s, sizeof( string[0] ), format, argptr );
 	va_end( argptr );

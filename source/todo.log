@@ -76,7 +76,7 @@ Beta 13.12.09
 45. make color as unsigned_byte(4)		OK
 46. RB_RenderShader()			OK
 47. fixup slowly rendering			OK
-48. building uimenu.dll
+48. implement uimenu into engine.dll		OK
 49. implement new timers			OK
 50. fixup network packets rate
 51. fixup stair climbing			OK
@@ -138,3 +138,4 @@ Beta 13.12.09
 114. fixup shadowmaps			OK
 115. fixup CullStudioModel			OK
 116. create flashlight for player		OK
+117. re-organize refdef flags

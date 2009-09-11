@@ -62,7 +62,7 @@ static dllfunc_t winsock_funcs[] =
 	{ NULL, NULL }
 };
 
-dll_info_t winsock_dll = { "wsock32.dll", winsock_funcs, NULL, NULL, NULL, false, 0 };
+dll_info_t winsock_dll = { "wsock32.dll", winsock_funcs, NULL, NULL, NULL, false };
 
 typedef struct
 {
@@ -86,6 +86,7 @@ static cvar_t *net_hostport;
 static cvar_t *net_clientport;
 static cvar_t *net_showpackets;
 static int ip_sockets[2];
+void NET_Restart_f( void );
 
 bool NET_OpenWinSock( void )
 {
@@ -608,7 +609,7 @@ void NET_Sleep( uint msec )
 	int		i = 0;
 
 	if( Sys.app_name == HOST_NORMAL )
-		return; // we're not a server, just run full speed
+		return; // we're not a dedicated server, just run full speed
 
 	FD_ZERO( &fdset );
 
@@ -621,6 +622,34 @@ void NET_Sleep( uint msec )
 	timeout.tv_sec = msec / 1000;
 	timeout.tv_usec = (msec % 1000) * 1000;
 	pSelect( i+1, &fdset, NULL, NULL, &timeout );
+}
+
+/*
+=================
+NET_ShowIP_f
+=================
+*/
+void NET_ShowIP_f( void )
+{
+	string		s;
+	int		i;
+	struct hostent	*h;
+	struct in_addr	in;
+
+	pGetHostName( s, sizeof( s ));
+	if( !( h = pGetHostByName( s )))
+	{
+		Msg( "Can't get host\n" );
+		return;
+	}
+
+	Msg( "HostName: %s\n", h->h_name );
+
+	for( i = 0; h->h_addr_list[i]; i++ )
+	{
+		in.s_addr = *(int *)h->h_addr_list[i];
+		Msg( "IP: %s\n", pInet_Ntoa( in ));
+	}
 }
 
 /*
@@ -646,6 +675,8 @@ void NET_Init( void )
 	}
 
 	net_showpackets = Cvar_Get ("net_showpackets", "0", CVAR_TEMP, "show network packets" );
+	Cmd_AddCommand( "net_showip", NET_ShowIP_f,  "show hostname and ip's" );
+	Cmd_AddCommand( "net_restart", NET_Restart_f, "restart the network subsystem" );
 
 	winsockInitialized = true;
 	MsgDev( D_NOTE, "NET_Init()\n" );
@@ -661,8 +692,23 @@ void NET_Shutdown( void )
 {
 	if( !winsockInitialized )
 		return;
+
+	Cmd_RemoveCommand( "net_showip" );
+	Cmd_RemoveCommand( "net_restart" );
+
 	NET_Config( false );
 	pWSACleanup();
 	NET_FreeWinSock();
 	winsockInitialized = false;
+}
+
+/*
+=================
+NET_Restart_f
+=================
+*/
+void NET_Restart_f( void )
+{
+	NET_Shutdown();
+	NET_Init();
 }

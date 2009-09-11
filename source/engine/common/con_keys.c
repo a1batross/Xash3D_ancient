@@ -318,12 +318,11 @@ void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, b
 	// draw it
 	if ( size == SMALLCHAR_WIDTH )
 	{
-		vec4_t	color;
+		rgba_t	color = { 255, 255, 255, 255 };
 
-		Vector4Set( color, 1.0f, 1.0f, 1.0f, 1.0f );
 		SCR_DrawSmallStringExt( x, y, str, color, false );
 	}
-	else SCR_DrawBigString( x, y, str, 1.0 ); // draw big string with drop shadow
+	else SCR_DrawBigString( x, y, str, 255 ); // draw big string with drop shadow
 
 	// draw the cursor
 	if(!showCursor ) return;
@@ -334,12 +333,13 @@ void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, b
 
 	i = drawLen - (com.cstrlen(str) + 1);
 
-	if(size == SMALLCHAR_WIDTH) SCR_DrawSmallChar( x + (edit->cursor - prestep - i) * size, y, cursorChar );
+	if( size == SMALLCHAR_WIDTH )
+		SCR_DrawSmallChar( x + (edit->cursor - prestep - i) * size, y, cursorChar );
 	else
 	{
 		str[0] = cursorChar;
 		str[1] = 0;
-		SCR_DrawBigString( x + ( edit->cursor - prestep - i ) * size, y, str, 1.0 );
+		SCR_DrawBigString( x + ( edit->cursor - prestep - i ) * size, y, str, 255 );
 	}
 }
 
@@ -1102,7 +1102,7 @@ void Key_Event( int key, bool down )
 			return;
 		case key_game:
 		case key_console:
-			UI_ShowMenu();
+			UI_SetActiveMenu( UI_MAINMENU );
 			return;
 		case key_menu:
 			UI_KeyEvent( key );
@@ -1214,6 +1214,29 @@ void CL_CharEvent( int key )
 	}
 }
 
+/*
+=========
+Key_SetKeyDest
+=========
+*/
+void Key_SetKeyDest( int key_dest )
+{
+	switch( key_dest )
+	{
+	case key_game:
+		cls.key_dest = key_game;
+		break;
+	case key_menu:
+		cls.key_dest = key_menu;
+		break;
+	case key_message:
+		cls.key_dest = key_message;
+		break;
+	default:
+		Host_Error( "Key_SetKeyDest: wrong destination (%i)\n", key_dest );
+		break;
+	}
+}
 
 /*
 ===================

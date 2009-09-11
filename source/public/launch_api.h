@@ -19,6 +19,7 @@
 #define IsColorString( p )	( p && *(p) == STRING_COLOR_TAG && *((p)+1) && *((p)+1) != STRING_COLOR_TAG )
 #define bound(min, num, max)	((num) >= (min) ? ((num) < (max) ? (num) : (max)) : (min))
 #define MAX_STRING_TABLES	8	// seperately stringsystems
+#define MAX_MODS		128	// environment games that engine can keep visible
 #ifndef __cplusplus
 #define bool		BOOL	// sizeof( int )
 #endif
@@ -35,12 +36,9 @@ typedef vec_t		matrix3x3[3][3];
 typedef vec_t		matrix4x4[4][4];
 typedef char		string[MAX_STRING];
 typedef struct pr_edict_s	pr_edict_t;
-typedef struct cl_edict_s	cl_edict_t;
-typedef struct ui_edict_s	ui_edict_t;
-typedef struct cl_entvars_s	cl_entvars_t;
-typedef struct ui_entvars_s	ui_entvars_t;
-typedef struct cl_globalvars_s cl_globalvars_t;
-typedef struct ui_globalvars_s ui_globalvars_t;
+typedef struct sv_edict_s	sv_edict_t;
+typedef struct sv_entvars_s	sv_entvars_t;
+typedef struct sv_globalvars_s sv_globalvars_t;
 typedef struct physbody_s	physbody_t;
 
 // platform instances
@@ -80,7 +78,7 @@ typedef struct { const char *name; void **func; } dllfunc_t; // Sys_LoadLibrary 
 typedef struct { int numfilenames; char **filenames; char *filenamesbuffer; } search_t;
 typedef struct { int ofs; int type; const char *name; } fields_t;	// prvm custom fields
 typedef void ( *cmsave_t )( void* handle, const void* buffer, size_t size );
-typedef void ( *cmdraw_t )( int color, int numpoints, const float *points, const int *elements );
+typedef void ( *cmdraw_t )( rgba_t color, int numpoints, const float *points, const int *elements );
 typedef void ( *setpair_t )( const char *key, const char *value, void *buffer, void *numpairs );
 typedef enum { mod_bad, mod_world, mod_brush, mod_alias, mod_studio, mod_sprite } modtype_t;
 typedef enum { NA_LOOPBACK, NA_BROADCAST, NA_IP } netadrtype_t;
@@ -222,31 +220,37 @@ internal shared gameinfo structure (readonly for engine parts)
 typedef struct gameinfo_s
 {
 	// filesystem info
-	string	basedir;
-	string	gamedir;
-	string	startmap;
-	string	title;
-	string	username;		// OS current username
-	float	version;		// engine or mod version
-	
-	int	viewmode;
-	int	gamemode;
+	string		gamefolder;	// used for change game '-game x'
+	string		basedir;		// main game directory (like 'id1' for Quake or 'valve' for Half-Life)
+	string		gamedir;		// game directory (can be match with basedir, used as primary dir and as write path
+	string		vsrcdir;		// virtual machine source directory (qcc know when give source files)
+	string		startmap;		// map to start singleplayer game
+	string		title;		// Game Main Title
+	float		version;		// game version (optional)
 
-	// shared system info
-	int	cpunum;		// count of cpu's
-	float	cpufreq;		// cpu frequency in MHz
+	int		viewmode;
+	int		gamemode;
 
-	string	sp_entity;	// e.g. info_player_start
-	string	dm_entity;	// e.g. info_player_deathmatch
-	string	team_entity;	// e.g. info_player_coop
-	string	vprogs_dir;	// default progs directory 
-	string	source_dir;	// default source directory
-	string	imglib_mode;	// formats to using
+	string		sp_entity;	// e.g. info_player_start
+	string		dm_entity;	// e.g. info_player_deathmatch
+	string		ctf_entity;	// e.g. info_player_ctf
+	string		team_entity;	// e.g. info_player_team
 
-	string	gamedirs[128];	// environment folders (for change game from menu)
-	int	numgamedirs;
-	char	instance;		// global engine instance
+	string		imglib_mode;	// image formats to using (optional)
 } gameinfo_t;
+
+typedef struct sysinfo_s
+{
+	string		username;		// OS current username
+	float		version;		// engine version
+	int		cpunum;		// count of cpu's
+	float		cpufreq;		// cpu frequency in MHz
+	char		instance;		// global engine instance
+
+	gameinfo_t	*GameInfo;	// current GameInfo
+	gameinfo_t	*games[MAX_MODS];	// environment games (founded at each engine start)
+	int		numgames;
+} sysinfo_t;
 
 /*
 ========================================================================
@@ -270,6 +274,7 @@ typedef struct dll_info_s
 	bool		crash;	// crash if dll not found
 
 	size_t		api_size;	// interface size
+	size_t		com_size;	// main interface size == sizeof( stdilib_api_t )
 } dll_info_t;
 
 /*
@@ -395,9 +400,10 @@ STDLIB SYSTEM INTERFACE
 typedef struct stdilib_api_s
 {
 	// interface validator
-	size_t	api_size;					// must matched with sizeof(stdlib_api_t)
+	size_t		api_size;				// must matched with sizeof(launch_exp_t)
+	size_t		com_size;				// must matched with sizeof(stdlib_api_t)
 
-	gameinfo_t *GameInfo;				// user game info (filled by engine)
+	sysinfo_t		*SysInfo;				// engine sysinfo (filled by engine)
 
 	// base events
 	void (*instance)( const char *name, const char *fmsg );	// restart engine with new instance
@@ -458,7 +464,7 @@ typedef struct stdilib_api_s
 
 	// common functions
 	void (*Com_InitRootDir)( char *path );			// init custom rootdir 
-	void (*Com_LoadGameInfo)( const char *filename );		// gate game info from script file
+	void (*Com_LoadGameInfo)( void );			// initialize gameinfo.txt
 	void (*Com_AddGameHierarchy)( const char *dir, int flags );	// add base directory in search list
 	void (*Com_AllowDirectPaths)( bool enable );		// allow direct paths e.g. C:\windows
 	int  (*Com_CheckParm)( const char *parm );		// check parm in cmdline  
@@ -509,6 +515,7 @@ typedef struct stdilib_api_s
 	void (*Cvar_SetLatched)( const char *name, const char *value);
 	void (*Cvar_FullSet)( char *name, char *value, int flags );
 	void (*Cvar_SetValue )( const char *name, float value);
+	long (*Cvar_GetInteger)(const char *name);
 	float (*Cvar_GetValue )(const char *name);
 	char *(*Cvar_GetString)(const char *name);
 	cvar_t *(*Cvar_FindVar)(const char *name);
@@ -568,6 +575,7 @@ typedef struct stdilib_api_s
 	void*(*Com_GetProcAddress)( dll_info_t *dll, const char* name );	// gpa
 	double (*Com_DoubleTime)( void );				// hi-res timer
 	dword (*Com_Milliseconds)( void );				// hi-res timer
+	void (*Com_ShellExecute)( const char *p1, const char *p2, bool exit );// execute shell programs
 
 	// built-in imagelib functions
 	void (*ImglibSetup)( const char *formats, const uint flags );	// set main attributes
@@ -640,7 +648,7 @@ typedef struct stdilib_api_s
 
 // this is the only function actually exported at the linker level
 typedef void *(*launch_t)( stdlib_api_t*, void* );
-typedef struct { size_t api_size; } generic_api_t;
+typedef struct { size_t api_size; size_t com_size; } generic_api_t;
 
 // moved here to enable assertation feature in launch.dll
 #define Com_Assert( x )		if( x ) com.abort( "assert failed at %s:%i\n", __FILE__, __LINE__ );
@@ -745,9 +753,9 @@ filesystem manager
 #define FS_Getc			com.fgetc
 #define FS_Gets			com.fgets
 #define FS_Delete			com.fremove
-#define FS_Gamedir			com.GameInfo->gamedir
-#define FS_Title			com.GameInfo->title
-#define g_Instance			com.GameInfo->instance
+#define FS_Gamedir()		com.SysInfo->GameInfo->gamedir
+#define FS_Title()			com.SysInfo->GameInfo->title
+#define g_Instance()		com.SysInfo->instance
 #define FS_ClearSearchPath		com.Com_ClearSearchPath
 #define FS_CheckParm		com.Com_CheckParm
 #define FS_GetParmFromCmdLine( a, b )	com.Com_GetParm( a, b, sizeof( b ))
@@ -782,6 +790,7 @@ console variables
 #define Cvar_SetLatched		com.Cvar_SetLatched
 #define Cvar_SetValue		com.Cvar_SetValue
 #define Cvar_VariableValue		com.Cvar_GetValue
+#define Cvar_VariableInteger		com.Cvar_GetInteger
 #define Cvar_VariableString		com.Cvar_GetString
 #define Cvar_FindVar		com.Cvar_FindVar
 #define userinfo_modified		com.userinfo_modified
@@ -872,12 +881,14 @@ imglib manager
 misc utils
 ===========================================
 */
-#define GI			com.GameInfo
+#define SI			com.SysInfo
+#define GI			com.SysInfo->GameInfo
 #define Msg			com.printf
 #define MsgDev			com.dprintf
 #define Sys_LoadLibrary		com.Com_LoadLibrary
 #define Sys_FreeLibrary		com.Com_FreeLibrary
 #define Sys_GetProcAddress		com.Com_GetProcAddress
+#define Sys_ShellExecute		com.Com_ShellExecute
 #define Sys_NewInstance		com.instance
 #define Sys_Sleep			com.sleep
 #define Sys_Print			com.print

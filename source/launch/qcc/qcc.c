@@ -4,4 +4,4 @@
 
 #include "../rundll.h"
 
-Run( qcclib );
+Run32( qcclib );

@@ -45,16 +45,14 @@ struct pr_edict_s
 	{
 		void			*vp;	// generic edict
 		vm_edict_t		*ed;	// vm edict state 
-		cl_edict_t		*cl;	// cl edict state
-		vm_edict_t		*ui;	// ui edict state
+		sv_edict_t		*sv;	// sv edict state
 	} priv;
 
 	// QuakeC prog fields (stored in dynamically resized array)
 	union
 	{
 		void			*vp;	// generic entvars
-		cl_entvars_t		*cl;	// client entvars
-		ui_entvars_t		*ui;	// uimenu entvars
+		sv_entvars_t		*sv;	// server entvars
 	} progs;
 
 };
@@ -104,8 +102,7 @@ typedef struct prvm_prog_s
 	union
 	{
 		float			*gp;
-		cl_globalvars_t		*cl;
-		ui_globalvars_t		*ui;
+		sv_globalvars_t		*sv;
 	} globals;
 
 	int		maxknownstrings;
@@ -166,6 +163,7 @@ typedef struct vprogs_exp_s
 {
 	// interface validator
 	size_t	api_size;				// must matched with sizeof(vprogs_api_t)
+	size_t	com_size;				// must matched with sizeof(stdlib_api_t)
 
 	void ( *Init )( const int argc, const char **argv );
 	void ( *Free )( void );

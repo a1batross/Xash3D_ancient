@@ -112,7 +112,7 @@ typedef struct cvar_s
 
 extern system_t Sys;
 extern timer_t Msec;
-extern gameinfo_t GI;
+extern sysinfo_t SI;
 extern stdlib_api_t	com;
 
 //
@@ -145,6 +145,7 @@ void Sys_Exit( void );
 void Sys_Abort( void );
 bool Sys_LoadLibrary ( dll_info_t *dll );
 void* Sys_GetProcAddress ( dll_info_t *dll, const char* name );
+void Sys_ShellExecute( const char *path, const char *parms, bool exit );
 byte *Sys_LoadRes( const char *filename, size_t *size );
 bool Sys_FreeLibrary ( dll_info_t *dll );
 void Sys_WaitForQuit( void );
@@ -320,7 +321,7 @@ void FS_ClearSearchPath( void );
 void FS_AllowDirectPaths( bool enable );
 void FS_AddGameHierarchy( const char *dir, int flags );
 int FS_CheckParm( const char *parm );
-void FS_LoadGameInfo( const char *filename );
+void FS_LoadGameInfo( void );
 void FS_FileBase( const char *in, char *out );
 const char *FS_FileExtension( const char *in );
 void FS_DefaultExtension( char *path, const char *extension );
@@ -386,8 +387,9 @@ void Cvar_LookupVars( int checkbit, void *buffer, void *ptr, setpair_t callback 
 void Cvar_FullSet (char *var_name, char *value, int flags);
 void Cvar_SetLatched( const char *var_name, const char *value);
 void Cvar_SetValue( const char *var_name, float value);
-float Cvar_VariableValue (const char *var_name);
-char *Cvar_VariableString (const char *var_name);
+float Cvar_VariableValue(const char *var_name);
+int Cvar_VariableInteger(const char *var_name);
+char *Cvar_VariableString(const char *var_name);
 bool Cvar_Command (void);
 void Cvar_WriteVariables( file_t *f );
 void Cvar_Init (void);

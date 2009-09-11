@@ -497,30 +497,26 @@ word PR_WriteProgdefs( void )
 	if( host_instance == HOST_NORMAL || host_instance == HOST_DEDICATED )
 	{
 		// make sure what progs file will be placed into right directory
-		com.snprintf( progsoutname, MAX_SYSPATH, "%s/%s.dat", GI->vprogs_dir, header_name );
+		com.snprintf( progsoutname, MAX_SYSPATH, "bin/%s.dat", header_name );
 	}
 
 	switch( crc )
 	{
 	case 8505:
-		PR_Message("Xash3D unmodified server.dat\n");
-		if(!com.strcmp(progsoutname, "unknown.dat")) com.strcpy(progsoutname, "server.dat");
+		PR_Message( "Xash3D unmodified server.dat\n" );
+		if( !com.strcmp( progsoutname, "unknown.dat" )) com.strcpy( progsoutname, "server.dat" );
 		break;
 	case 3720:
-		PR_Message("Xash3D unmodified client.dat\n");
-		if(!com.strcmp(progsoutname, "unknown.dat")) com.strcpy(progsoutname, "client.dat");
+		PR_Message( "Xash3D unmodified client.dat\n" );
+		if( !com.strcmp( progsoutname, "unknown.dat" )) com.strcpy( progsoutname, "client.dat" );
 		break;		
-	case 2158:
-		PR_Message("Xash3D unmodified uimenu.dat\n");
-		if(!com.strcmp(progsoutname, "unknown.dat")) com.strcpy(progsoutname, "uimenu.dat");
-		break;
 	default:
-		PR_Message("Custom progs crc %d\n", crc );
-		if(!com.strcmp(progsoutname, "unknown.dat")) com.strcpy(progsoutname, "progs.dat");
+		PR_Message( "Custom progs crc %d\n", crc );
+		if( !com.strcmp( progsoutname, "unknown.dat" )) com.strcpy( progsoutname, "progs.dat" );
 		if( host_instance != HOST_QCCLIB ) break;
 		com.snprintf( path, MAX_STRING, "../%s_edict.h", lwr_prefix );
 		PR_Message( "writing %s\n", path ); // auto-determine
-		FS_WriteFile( path, file, com.strlen(file));
+		FS_WriteFile( path, file, com.strlen( file ));
 		break;
 	}
 	return crc;
@@ -851,9 +847,9 @@ byte *PR_LoadFile( char *filename, bool crash, int type )
 		if((path = com.strstr( filename, ".." )))
 		{
 			path += 2; // skip ..
-			com.snprintf( fullname, MAX_STRING, "%s%s", GI->source_dir, path );
+			com.snprintf( fullname, MAX_STRING, "%s%s", GI->vsrcdir, path );
 		}
-		else com.snprintf( fullname, MAX_STRING, "%s/%s/%s", GI->source_dir, sourcedir, filename );
+		else com.snprintf( fullname, MAX_STRING, "%s/%s/%s", GI->vsrcdir, sourcedir, filename );
 	}
 	else com.strncpy( fullname, filename, MAX_STRING );
  

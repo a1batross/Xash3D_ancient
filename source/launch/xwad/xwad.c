@@ -4,4 +4,4 @@
 
 #include "../rundll.h"
 
-Run( wadlib );
+Run32( wadlib );

@@ -11,7 +11,7 @@
 #include "engine_api.h"
 #include "mathlib.h"
 
-dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(vprogs_exp_t) };
+dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, 1, sizeof(vprogs_exp_t), sizeof(stdlib_api_t) };
 vprogs_exp_t *PRVM;
 stdlib_api_t com;
 char  **com_argv;
@@ -62,7 +62,7 @@ void InitCommon( const int argc, const char **argv )
 	launch_t	CreateVprogs;
 
 	basepool = Mem_AllocPool( "Common Pool" );
-	app_name = g_Instance;
+	app_name = g_Instance();
 	enable_log = false;
 
 	switch( app_name )
@@ -240,7 +240,8 @@ launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 	com = *input;
 
 	// generic functions
-	Com.api_size = sizeof(launch_exp_t);
+	Com.api_size = sizeof( launch_exp_t );
+	Com.com_size = sizeof( stdlib_api_t );
 
 	Com.Init = InitCommon;
 	Com.Main = CommonMain;

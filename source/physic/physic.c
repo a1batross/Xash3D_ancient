@@ -27,7 +27,7 @@ bool InitPhysics( void )
 	physpool = Mem_AllocPool( "Physic Pool" );
 	cmappool = Mem_AllocPool( "CM Zone" );
 	gWorld = NewtonCreate( Palloc, Pfree ); // alloc world
-	app_name = g_Instance;
+	app_name = g_Instance();
 
 	// check developer mode
 	if( FS_GetParmFromCmdLine("-dev", dev_level ))
@@ -74,8 +74,9 @@ physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs 
 	if(engfuncs) pi = *engfuncs;
 
 	// generic functions
-	Phys.api_size = sizeof(physic_exp_t);
-
+	Phys.api_size = sizeof( physic_exp_t );
+	Phys.com_size = sizeof( stdlib_api_t );
+	
 	Phys.Init = InitPhysics;
 	Phys.Shutdown = FreePhysics;
 	Phys.WriteCollisionLump = CM_SaveCollisionTree;

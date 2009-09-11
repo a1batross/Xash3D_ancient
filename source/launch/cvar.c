@@ -60,11 +60,11 @@ cvar_t *Cvar_FindVar( const char *var_name )
 	cvar_t	*var;
 	long	hash;
 
-	hash = Cvar_GetHashValue(var_name);
+	hash = Cvar_GetHashValue( var_name );
 	
-	for(var = hashTable[hash]; var; var = var->hash)
+	for( var = hashTable[hash]; var; var = var->hash )
 	{
-		if (!com_stricmp(var_name, var->name))
+		if (!com.stricmp( var_name, var->name ))
 			return var;
 	}
 	return NULL;
@@ -75,11 +75,12 @@ cvar_t *Cvar_FindVar( const char *var_name )
 Cvar_VariableValue
 ============
 */
-float Cvar_VariableValue(const char *var_name)
+float Cvar_VariableValue( const char *var_name )
 {
 	cvar_t	*var;
-	var = Cvar_FindVar(var_name);
-	if (!var) return 0;
+
+	var = Cvar_FindVar( var_name );
+	if( !var ) return 0;
 	return var->value;
 }
 
@@ -91,8 +92,9 @@ Cvar_VariableIntegerValue
 int Cvar_VariableInteger( const char *var_name )
 {
 	cvar_t	*var;
-	var = Cvar_FindVar(var_name);
-	if (!var) return 0;
+
+	var = Cvar_FindVar( var_name );
+	if( !var ) return 0;
 	return var->integer;
 }
 
@@ -427,9 +429,10 @@ void Cvar_SetValue( const char *var_name, float value )
 {
 	char	val[32];
 
-	if( value == (int)value ) com_sprintf (val, "%i", (int)value);
-	else com_sprintf (val, "%f", value);
-	Cvar_Set(var_name, val);
+	if( value == (int)value )
+		com.sprintf( val, "%i", (int)value );
+	else com.sprintf( val, "%f", value );
+	Cvar_Set( var_name, val );
 }
 
 /*

@@ -647,7 +647,7 @@ void		R_ShowTextures( void );
 texture_t		*R_LoadTexture( const char *name, rgbdata_t *pic, int samples, texFlags_t flags );
 texture_t		*R_FindTexture( const char *name, const byte *buf, size_t size, texFlags_t flags );
 
-bool		VID_ScreenShot( const char *filename, bool levelshot );
+bool		VID_ScreenShot( const char *filename, int shot_type );
 bool		VID_CubemapShot( const char *base, uint size, bool skyshot );
 
 //

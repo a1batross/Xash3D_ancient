@@ -22,7 +22,7 @@ typedef struct game_header_s
 {
 	int	mapCount;		// svs.mapcount
 	char	mapName[CS_SIZE];	// svs.mapname
-	char	comment[CS_SIZE];	// svs.comment
+	string	comment;		// svs.comment
 } game_header_t;
 
 static TYPEDESCRIPTION gSaveHeader[] =
@@ -37,7 +37,7 @@ static TYPEDESCRIPTION gGameHeader[] =
 {
 	DEFINE_FIELD( game_header_t, mapCount, FIELD_INTEGER ),
 	DEFINE_ARRAY( game_header_t, mapName, FIELD_CHARACTER, CS_SIZE ),
-	DEFINE_ARRAY( game_header_t, comment, FIELD_CHARACTER, CS_SIZE ),
+	DEFINE_ARRAY( game_header_t, comment, FIELD_CHARACTER, MAX_STRING ),
 };
 
 static TYPEDESCRIPTION gAdjacency[] =
@@ -188,7 +188,7 @@ static void SV_SaveServerData( wfile_t *f )
 	// initialize game header
 	ghdr.mapCount = svs.spawncount;
 	com.strncpy( ghdr.mapName, svs.mapname, CS_SIZE );
-	com.strncpy( ghdr.comment, svs.comment, CS_SIZE );
+	com.strncpy( ghdr.comment, svs.comment, MAX_STRING );
 
 	// initialize ENTITYTABLE
 	pSaveData->tableCount = svgame.globals->numEntities;
@@ -288,7 +288,7 @@ void SV_WriteSaveFile( const char *name, bool autosave )
 		return;
 	}
 
-	com.sprintf( path, "save/%s", name );
+	com.sprintf( path, "save/%s.bin", name );
 	savfile = WAD_Open( path, "wb" );
 
 	if( !savfile )
@@ -297,7 +297,11 @@ void SV_WriteSaveFile( const char *name, bool autosave )
 		return;
 	}
 
-	com.snprintf( svs.comment, CS_SIZE, "%s - %s", sv.configstrings[CS_NAME], timestamp( TIME_FULL ));
+	// split comment to sections
+	com.strncpy( svs.comment, sv.configstrings[CS_NAME], CS_SIZE );
+	com.strncpy( svs.comment + CS_SIZE, timestamp( TIME_DATE_ONLY ), CS_TIME );
+	com.strncpy( svs.comment + CS_SIZE + CS_TIME, timestamp( TIME_TIME_ONLY ), CS_TIME );
+	com.strncpy( svs.comment + CS_SIZE + (CS_TIME * 2), svs.mapname, CS_SIZE );
 	MsgDev( D_INFO, "Saving game..." );
 
 	// write lumps
@@ -306,6 +310,7 @@ void SV_WriteSaveFile( const char *name, bool autosave )
 	StringTable_Save( svgame.hStringTable, savfile );	// must be last
 
 	WAD_Close( savfile );
+	Cbuf_AddText( va( "saveshot %s\n", name ));	// write saveshot for preview 
 
 	MsgDev( D_INFO, "done.\n" );
 }

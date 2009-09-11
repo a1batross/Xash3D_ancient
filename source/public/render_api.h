@@ -13,6 +13,11 @@
 #define SHADER_NOMIP		3	// 2d images
 #define SHADER_GENERIC		4	// generic shader
 
+// screenshot types
+#define VID_SCREENSHOT		0
+#define VID_LEVELSHOT		1
+#define VID_SAVESHOT		2
+
 // refdef flags
 #define RDF_NOWORLDMODEL		BIT(0) 	// used for player configuration screen
 #define RDF_OLDAREABITS		BIT(1) 	// forces R_MarkLeaves if not set
@@ -20,6 +25,20 @@
 #define RDF_SKYPORTALINVIEW		BIT(3)	// draw skyportal instead of regular sky
 #define RDF_NOFOVADJUSTMENT		BIT(4)	// do not adjust fov for widescreen
 #define RDF_WORLDOUTLINES		BIT(5)	// draw cell outlines for world surfaces
+
+// render supported extensions
+#define R_WGL_SWAPCONTROL		1		
+#define R_HARDWARE_GAMMA_CONTROL	2	
+#define R_ARB_VERTEX_BUFFER_OBJECT_EXT	3
+#define R_ENV_COMBINE_EXT		4
+#define R_ARB_MULTITEXTURE		5
+#define R_TEXTURECUBEMAP_EXT		6
+#define R_DOT3_ARB_EXT		7
+#define R_ANISOTROPY_EXT		8
+#define R_TEXTURE_LODBIAS		9
+#define R_OCCLUSION_QUERIES_EXT	10
+#define R_TEXTURE_COMPRESSION_EXT	11
+#define R_SHADER_GLSL100_EXT		12
 
 typedef struct
 {
@@ -58,6 +77,7 @@ typedef struct render_exp_s
 {
 	// interface validator
 	size_t	api_size;			// must matched with sizeof(render_exp_t)
+	size_t	com_size;			// must matched with sizeof(stdlib_api_t)
 
 	// initialize
 	bool	(*Init)( bool full );	// init all render systems
@@ -80,7 +100,7 @@ typedef struct render_exp_s
 	void	(*EndFrame)( void );
 
 	// misc utilities
-	void	(*SetColor)( const void *color );
+	void	(*SetColor)( const rgba_t color );
 	void	(*SetParms)( shader_t handle, kRenderMode_t rendermode, int frame );
 	void	(*GetParms)( int *w, int *h, int *frames, int frame, shader_t shader );
 	bool	(*ScrShot)( const char *filename, int shot_type ); // write screenshot with same name 
@@ -93,6 +113,7 @@ typedef struct render_exp_s
 	int	(*WorldToScreen)( const float *world, float *screen );
 	void	(*ScreenToWorld)( const float *screen, float *world );
 	bool 	(*RSpeedsMessage)( char *out, size_t size );
+	bool	(*Support)( int extension );
 } render_exp_t;
 
 typedef struct render_imp_s

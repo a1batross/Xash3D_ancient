@@ -26,16 +26,16 @@ int g_console_field_width = 78;
 #define CON_TEXTSIZE	MAX_MSGLEN * 4	// 128 kb buffer
 
 // console color typeing
-vec4_t g_color_table[8] =
+rgba_t g_color_table[8] =
 {
-{0.0, 0.0, 0.0, 1.0},
-{1.0, 0.0, 0.0, 1.0},
-{0.0, 1.0, 0.0, 1.0},
-{1.0, 1.0, 0.0, 1.0},
-{0.0, 0.0, 1.0, 1.0},
-{0.0, 1.0, 1.0, 1.0},
-{1.0, 0.0, 1.0, 1.0},
-{1.0, 1.0, 1.0, 1.0},
+{  0,   0,   0, 255},
+{255,   0,   0, 255},
+{  0, 255,   0, 255},
+{255, 255,   0, 255},
+{  0,   0, 255, 255},
+{  0, 255, 255, 255},
+{255,   0, 255, 255},
+{255, 255, 255, 255},
 };
 
 typedef struct
@@ -57,7 +57,7 @@ typedef struct
 
 	int	vislines;		// in scanlines
 	float	times[NUM_CON_TIMES]; // host.realtime the line was generated for transparent notify lines
-	vec4_t	color;
+	rgba_t	color;
 
 } console_t;
 
@@ -70,7 +70,7 @@ Con_ToggleConsole_f
 */
 void Con_ToggleConsole_f( void )
 {
-	if(!host.developer) return;
+	if( !host.developer ) return;
 
 	Field_Clear( &g_consoleField );
 	g_consoleField.widthInChars = g_console_field_width;
@@ -79,14 +79,20 @@ void Con_ToggleConsole_f( void )
 
 	if( cls.key_dest == key_console )
 	{
-		UI_HideMenu();
+		if( cls.state == ca_disconnected )
+		{
+			// because console show as fullscreen when cleint is not connected
+			UI_SetActiveMenu( UI_MAINMENU );
+			cls.key_dest = key_menu;
+		}
 	}
 	else
 	{
-		UI_HideMenu();
+		if( cls.state == ca_disconnected )
+			UI_SetActiveMenu( UI_CLOSEMENU );
 		cls.key_dest = key_console;	
 
-		if(com.atoi(cl.configstrings[CS_MAXCLIENTS]) == 1 && Host_ServerState())
+		if( com.atoi(cl.configstrings[CS_MAXCLIENTS]) == 1 && Host_ServerState())
 			Cvar_SetValue( "paused", 1 );
 	}
 }
@@ -101,11 +107,11 @@ void Con_ToggleChat_f (void)
 	Field_Clear( &g_consoleField );
 	g_consoleField.widthInChars = g_console_field_width;
 
-	if (cls.key_dest == key_console)
+	if( cls.key_dest == key_console )
 	{
-		if (cls.state == ca_active)
+		if( cls.state == ca_active )
 		{
-			UI_HideMenu();
+			UI_SetActiveMenu( UI_CLOSEMENU );
 			cls.key_dest = key_game;
 		}
 	}
@@ -121,7 +127,7 @@ Con_Clear_f
 */
 void Con_Clear_f (void)
 {
-	int		i;
+	int	i;
 
 	for ( i = 0; i < CON_TEXTSIZE; i++ )
 		con.text[i] = (ColorIndex(COLOR_WHITE)<<8) | ' ';
@@ -439,12 +445,12 @@ void Con_DrawNotify( void )
 	{
 		if (chat_team)
 		{
-			SCR_DrawBigString (8, v, "say_team:", 1.0f );
+			SCR_DrawBigString (8, v, "say_team:", 255 );
 			skip = 11;
 		}
 		else
 		{
-			SCR_DrawBigString (8, v, "say:", 1.0f );
+			SCR_DrawBigString (8, v, "say:", 255 );
 			skip = 5;
 		}
 		Field_BigDraw( &chatField, skip * BIGCHAR_WIDTH, v, SCREEN_WIDTH - ( skip + 1 ) * BIGCHAR_WIDTH, true );
@@ -468,7 +474,7 @@ void Con_DrawSolidConsole (float frac)
 	int	row;
 	int	lines;
 	int	currentColor;
-	vec4_t	color;
+	rgba_t	color;
 	string	curtime;
 
 	lines = scr_height->integer * frac;
@@ -483,7 +489,7 @@ void Con_DrawSolidConsole (float frac)
 	if ( y < 1 ) y = 0;
 	else SCR_DrawPic( 0, y - SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, cls.consoleBack );
 
-	Vector4Set( color, 1, 0, 0, 1 );
+	MakeRGBA( color, 255, 0, 0, 255 );
 	SCR_FillRect( 0, y, SCREEN_WIDTH, 2, color );
 
 	// draw current time

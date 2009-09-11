@@ -275,10 +275,6 @@ typedef struct
 	serverinfo_t	serverlist[MAX_SERVERS];	// servers to join
 	int		numservers;
 	float		pingtime;			// servers timebase
-
-	// cursor mouse pos for uimenu
-	int		mouse_x;
-	int		mouse_y;
 } client_static_t;
 
 extern client_static_t	cls;
@@ -291,14 +287,11 @@ SCREEN CONSTS
 
 ==============================================================
 */
-extern vec4_t g_color_table[8];
+extern rgba_t g_color_table[8];
 
 //
 // cvars
 //
-extern	cvar_t	*cl_add_lights;
-extern	cvar_t	*cl_add_particles;
-extern	cvar_t	*cl_add_entities;
 extern	cvar_t	*cl_predict;
 extern	cvar_t	*cl_footsteps;
 extern	cvar_t	*cl_showfps;
@@ -321,8 +314,6 @@ extern	cvar_t	*cl_particlelod;
 
 extern	cvar_t	*lookspring;
 extern	cvar_t	*lookstrafe;
-extern	cvar_t	*cl_sensitivity;
-extern	cvar_t	*ui_sensitivity;
 
 extern	cvar_t	*m_pitch;
 extern	cvar_t	*m_yaw;
@@ -359,25 +350,18 @@ typedef struct
 	float		decay;		// drop this each second
 } cdlight_t;
 
-extern	cdlight_t	cl_dlights[MAX_DLIGHTS];
+extern cdlight_t		cl_dlights[MAX_DLIGHTS];
 
 // the cl_parse_entities must be large enough to hold UPDATE_BACKUP frames of
 // entities, so that when a delta compressed message arives from the server
 // it can be un-deltad from the original 
-#define	MAX_PARSE_ENTITIES	1024
-extern	entity_state_t	cl_parse_entities[MAX_PARSE_ENTITIES];
+#define MAX_PARSE_ENTITIES	1024
+
+extern entity_state_t	cl_parse_entities[MAX_PARSE_ENTITIES];
 
 //=============================================================================
 
 bool CL_CheckOrDownloadFile( const char *filename );
-
-void CL_TeleporterParticles (entity_state_t *ent);
-void CL_ParticleEffect (vec3_t org, vec3_t dir, int color, int count);
-void CL_ParticleEffect2 (vec3_t org, vec3_t dir, int color, int count);
-
-// RAFAEL
-void CL_ParticleEffect3 (vec3_t org, vec3_t dir, int color, int count);
-
 
 //=================================================
 //
@@ -394,7 +378,6 @@ void CL_ParseFrame( sizebuf_t *msg );
 
 void CL_ParseTempEnts( sizebuf_t *msg );
 void CL_ParseConfigString( sizebuf_t *msg );
-void CL_WriteConfiguration( void );
 void CL_SetLightstyle (int i);
 void CL_RunParticles (void);
 void CL_RunDLights (void);
@@ -416,6 +399,7 @@ void CL_Quit_f (void);
 void CL_ScreenShot_f( void );
 void CL_EnvShot_f( void );
 void CL_SkyShot_f( void );
+void CL_SaveShot_f( void );
 void CL_LevelShot_f( void );
 void CL_SetSky_f( void );
 void CL_SetFont_f( void );
@@ -478,7 +462,7 @@ void CL_FreeClientProgs( void );
 int CL_GetMaxClients( void );
 void CL_DrawHUD( int state );
 edict_t *CL_GetEdict( int entnum );
-float *CL_FadeColor( float starttime, float endtime );
+void CL_FadeAlpha( float starttime, float endtime, rgba_t color );
 void CL_FreeEdicts( void );
 
 //
@@ -550,13 +534,13 @@ void SCR_Shutdown( void );
 void SCR_RegisterShaders( void );
 void SCR_AdjustSize( float *x, float *y, float *w, float *h );
 void SCR_DrawPic( float x, float y, float width, float height, shader_t shader );
-void SCR_FillRect( float x, float y, float width, float height, const float *color );
+void SCR_FillRect( float x, float y, float width, float height, const rgba_t color );
 void SCR_DrawSmallChar( int x, int y, int ch );
 void SCR_DrawChar( int x, int y, float w, float h, int ch );
-void SCR_DrawSmallStringExt( int x, int y, const char *string, float *setColor, bool forceColor );
-void SCR_DrawStringExt( int x, int y, float w, float h, const char *string, float *setColor, bool forceColor );
-void SCR_DrawBigString( int x, int y, const char *s, float alpha );
-void SCR_DrawBigStringColor( int x, int y, const char *s, vec4_t color );
+void SCR_DrawSmallStringExt( int x, int y, const char *string, rgba_t setColor, bool forceColor );
+void SCR_DrawStringExt( int x, int y, float w, float h, const char *string, rgba_t setColor, bool forceColor );
+void SCR_DrawBigString( int x, int y, const char *s, byte alpha );
+void SCR_DrawBigStringColor( int x, int y, const char *s, rgba_t color );
 void SCR_RSpeeds( void );
 void SCR_DrawFPS( void );
 void SCR_DrawNet( void );
@@ -642,16 +626,17 @@ extern field_t chatField;
 //
 // cl_menu.c
 //
-extern bool ui_active;
+typedef enum { UI_CLOSEMENU, UI_MAINMENU, UI_INGAMEMENU } uiActiveMenu_t;
 
-void UI_Init( void );
-void UI_DrawCredits( void );
+void UI_UpdateMenu( float realtime );
 void UI_KeyEvent( int key );
-void UI_ShowMenu( void );
-void UI_HideMenu( void );
+void UI_MouseMove( int x, int y );
+void UI_SetActiveMenu( uiActiveMenu_t activeMenu );
+void UI_AddServerToList( netadr_t adr, const char *info );
+bool UI_IsVisible( void );
+void UI_Precache( void );
+void UI_Init( void );
 void UI_Shutdown( void );
-void UI_Restart( void );
-void UI_Draw( void );
 
 //
 // cl_keys.c
@@ -673,6 +658,7 @@ char *Key_KeynumToString( int keynum );
 int Key_StringToKeynum( char *str );
 int Key_GetKey( char *binding );
 void Key_EnumCmds_f( void );
+void Key_SetKeyDest( int key_dest );
 
 //
 // cl_cin.c

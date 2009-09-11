@@ -262,7 +262,6 @@ void IN_Frame( void )
 		return;
 	}
 
-	// uimenu.dat using mouse
 	if((!cl.video_prepped && cls.key_dest != key_menu) || cls.key_dest == key_console || cl_paused->integer )
 	{
 		if( !Cvar_VariableValue( "fullscreen" ))

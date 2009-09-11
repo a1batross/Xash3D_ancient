@@ -33,9 +33,6 @@ cvar_t	*cl_predict;
 cvar_t	*cl_showfps;
 cvar_t	*cl_maxfps;
 
-cvar_t	*cl_add_particles;
-cvar_t	*cl_add_lights;
-cvar_t	*cl_add_entities;
 cvar_t	*cl_particles;
 cvar_t	*cl_particlelod;
 
@@ -344,7 +341,7 @@ void CL_ClearState( void )
 	Cvar_SetValue( "scr_download", 0.0f );
 	Cvar_SetValue( "scr_loading", 0.0f );
 
-	UI_HideMenu();
+	UI_SetActiveMenu( UI_CLOSEMENU );
 }
 
 /*
@@ -531,7 +528,7 @@ static void CL_FreeServerInfo( serverinfo_t *server )
 	if( server->gamename ) Mem_Free( server->gamename );
 	if( server->netaddress ) Mem_Free( server->netaddress );
 	if( server->playerstr ) Mem_Free( server->playerstr );
-	if( server->pingstring ) Mem_Free( server->pingstring);
+	if( server->pingstring ) Mem_Free( server->pingstring );
 	memset( server, 0, sizeof(serverinfo_t));
 }
 
@@ -793,7 +790,7 @@ void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 		MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
 		MSG_Print( &cls.netchan.message, "new" );
 		cls.state = ca_connected;
-		UI_HideMenu();
+		UI_SetActiveMenu( UI_CLOSEMENU );
 		return;
 	}
 
@@ -1080,16 +1077,13 @@ void CL_Precache_f( void )
 CL_InitLocal
 =================
 */
-void CL_InitLocal (void)
+void CL_InitLocal( void )
 {
 	cls.state = ca_disconnected;
 
 	CL_InitInput();
 
 	// register our variables
-	cl_add_lights = Cvar_Get ("cl_lights", "1", 0, "disables dynamic lights" );
-	cl_add_particles = Cvar_Get ("cl_particles", "1", 0, "disables particles engine" );
-	cl_add_entities = Cvar_Get ("cl_entities", "1", 0, "disables client entities" );
 	cl_footsteps = Cvar_Get ("cl_footsteps", "1", 0, "disables player footsteps" );
 	cl_predict = Cvar_Get ("cl_predict", "1", CVAR_ARCHIVE, "disables client movement prediction" );
 	cl_maxfps = Cvar_Get ("cl_maxfps", "1000", 0, "maximum client fps" );
@@ -1154,6 +1148,7 @@ void CL_InitLocal (void)
 	Cmd_AddCommand ("envshot", CL_EnvShot_f, "takes a six-sides cubemap shot with specified name" );
 	Cmd_AddCommand ("skyshot", CL_SkyShot_f, "takes a six-sides envmap (skybox) shot with specified name" );
 	Cmd_AddCommand ("levelshot", CL_LevelShot_f, "same as \"screenshot\", used for create plaque images" );
+	Cmd_AddCommand ("saveshot", CL_SaveShot_f, "used for create save previews with LoadGame menu" );
 
 	Cmd_AddCommand ("connect", CL_Connect_f, "connect to a server by hostname" );
 	Cmd_AddCommand ("reconnect", CL_Reconnect_f, "reconnect to current level" );
@@ -1168,7 +1163,7 @@ void CL_InitLocal (void)
 
 	CL_InitServerCommands ();
 
-	UI_ShowMenu();
+	UI_SetActiveMenu( UI_MAINMENU );
 }
 
 //============================================================================
@@ -1288,7 +1283,7 @@ void CL_Shutdown( void )
 	if( host.type == HOST_DEDICATED ) return;
 	if( !cls.initialized ) return;
 
-	CL_WriteConfiguration(); 
+	Host_WriteConfig(); 
 	CL_UnloadProgs();
 	UI_Shutdown();
 	S_Shutdown();

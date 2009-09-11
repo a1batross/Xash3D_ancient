@@ -249,7 +249,7 @@ bool Cmd_GetProgsList( const char *s, char *completedname, int length )
 	string		matchbuf;
 	int		i, numprogs;
 
-	t = FS_Search( va( "%s/%s*.dat", GI->vprogs_dir, s ), true);
+	t = FS_Search( va( "bin%s*.dat", s ), true );
 	if( !t ) return false;
 
 	FS_FileBase( t->filenames[0], matchbuf ); 
@@ -294,7 +294,7 @@ bool Cmd_GetSourceList( const char *s, char *completedname, int length )
 	int		i, numworkspaces;
 
 	// NOTE: we want ignore folders without "progs.src" inside
-	t = FS_Search(va("%s/%s*", GI->source_dir, s ), true);
+	t = FS_Search(va("%s/%s*", GI->vsrcdir, s ), true);
 	if( !t ) return false;
 	if( t->numfilenames == 1 && !FS_FileExists(va("%s/progs.src", t->filenames[0] )))
 		return false;
@@ -560,10 +560,10 @@ bool Cmd_GetGamesList( const char *s, char *completedname, int length )
 	string	matchbuf;
 
 	// compare gamelist with current keyword
-	for( i = 0, numgamedirs = 0; i < GI->numgamedirs; i++ )
+	for( i = 0, numgamedirs = 0; i < SI->numgames; i++ )
 	{
-		if(( *s == '*' ) || !com.strnicmp(GI->gamedirs[i], s, com.strlen( s )))
-			com.strcpy( gamedirs[numgamedirs++], GI->gamedirs[i] ); 
+		if(( *s == '*' ) || !com.strnicmp( SI->games[i]->gamefolder, s, com.strlen( s )))
+			com.strcpy( gamedirs[numgamedirs++], SI->games[i]->gamefolder ); 
 	}
 
 	if( !numgamedirs ) return false;
@@ -681,7 +681,7 @@ bool Cmd_CheckMapsList( void )
 						else if( !com.strcmp( token.string, GI->sp_entity ))
 							num_spawnpoints++;
 					}
-					if( num_spawnpoints > 0 ) break; // valid map
+					if( num_spawnpoints > 1 ) break; // valid map
 				}
 				Com_CloseScript( ents );
 			}
@@ -761,12 +761,12 @@ void Cmd_WriteVariables( file_t *f )
 
 /*
 ===============
-CL_WriteConfiguration
+Host_WriteConfig
 
 Writes key bindings and archived cvars to config.cfg
 ===============
 */
-void CL_WriteConfiguration( void )
+void Host_WriteConfig( void )
 {
 	file_t	*f;
 
@@ -775,26 +775,67 @@ void CL_WriteConfiguration( void )
 	f = FS_Open( "config/keys.rc", "w" );
 	if( f )
 	{
-		FS_Printf (f, "//=======================================================================\n");
-		FS_Printf (f, "//\t\t\tCopyright XashXT Group %s ©\n", timestamp( TIME_YEAR_ONLY ));
-		FS_Printf (f, "//\t\t\tkeys.rc - current key bindings\n");
-		FS_Printf (f, "//=======================================================================\n");
-		Key_WriteBindings(f);
-		FS_Close (f);
+		FS_Printf( f, "//=======================================================================\n" );
+		FS_Printf( f, "//\t\t\tCopyright XashXT Group %s ©\n", timestamp( TIME_YEAR_ONLY ));
+		FS_Printf( f, "//\t\t\tkeys.rc - current key bindings\n" );
+		FS_Printf( f, "//=======================================================================\n" );
+		Key_WriteBindings( f );
+		FS_Close( f );
 	}
-	else MsgDev( D_ERROR, "Couldn't write keys.rc.\n");
+	else MsgDev( D_ERROR, "Couldn't write keys.rc.\n" );
 
 	f = FS_Open( "config/vars.rc", "w" );
 	if( f )
 	{
-		FS_Printf (f, "//=======================================================================\n");
-		FS_Printf (f, "//\t\t\tCopyright XashXT Group %s ©\n", timestamp( TIME_YEAR_ONLY ));
-		FS_Printf (f, "//\t\t\tvars.rc - archive of cvars\n");
-		FS_Printf (f, "//=======================================================================\n");
+		FS_Printf( f, "//=======================================================================\n");
+		FS_Printf( f, "//\t\t\tCopyright XashXT Group %s ©\n", timestamp( TIME_YEAR_ONLY ));
+		FS_Printf( f, "//\t\t\tvars.rc - archive of cvars\n" );
+		FS_Printf( f, "//=======================================================================\n" );
 		Cmd_WriteVariables(f);
 		FS_Close (f);	
 	}
-	else MsgDev( D_ERROR, "Couldn't write vars.rc.\n");
+	else MsgDev( D_ERROR, "Couldn't write vars.rc.\n" );
+}
+
+/*
+===============
+Host_WriteConfig
+
+Writes key bindings and archived cvars to config.cfg
+===============
+*/
+void Host_WriteDefaultConfig( void )
+{
+	file_t	*f;
+	bool	hasChanged = false;
+
+	if( !cls.initialized ) return;
+
+	if( !FS_FileExists( "config/basekeys.rc" ) && (f = FS_Open( "config/basekeys.rc", "w" )) != NULL )
+	{
+		FS_Printf( f, "//=======================================================================\n" );
+		FS_Printf( f, "//\t\t\tCopyright XashXT Group %s ©\n", timestamp( TIME_YEAR_ONLY ));
+		FS_Printf( f, "//\t\tbasekeys.rc - default key bindings\n" );
+		FS_Printf( f, "//=======================================================================\n" );
+		Key_WriteBindings( f );
+		FS_Close( f );
+		hasChanged = true;
+	}
+
+	if( !FS_FileExists( "config/basevars.rc" ) && (f = FS_Open( "config/basevars.rc", "w" )) != NULL )
+	{
+		FS_Printf( f, "//=======================================================================\n" );
+		FS_Printf( f, "//\t\t\tCopyright XashXT Group %s ©\n", timestamp( TIME_YEAR_ONLY ));
+		FS_Printf( f, "//\t\tbasevars.rc - archive of default cvar states\n" );
+		FS_Printf( f, "//=======================================================================\n" );
+		Cmd_WriteVariables( f );
+		FS_Close( f );	
+		hasChanged = true;
+	}
+
+	// restart the engine to apply keys.rc and vars.rc
+	// FIXME: this is potentially invoke infinity loop and stack overflow ?
+	if( hasChanged ) Sys_NewInstance( GI->gamedir, "Host_ChangeConfig\n" );
 }
 
 void Key_EnumCmds_f( void )

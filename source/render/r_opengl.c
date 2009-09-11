@@ -66,7 +66,7 @@ static dllfunc_t wgl_funcs[] =
 	{NULL, NULL}
 };
 
-dll_info_t opengl_dll = { "opengl32.dll", wgl_funcs, NULL, NULL, NULL, true, 0 };
+dll_info_t opengl_dll = { "opengl32.dll", wgl_funcs, NULL, NULL, NULL, true };
 
 bool R_DeleteContext( void )
 {
@@ -322,6 +322,10 @@ bool R_SetPixelformat( void )
 	if( pwglGetDeviceGammaRamp3DFX )
 		glConfig.deviceSupportsGamma = pwglGetDeviceGammaRamp3DFX( glw_state.hDC, glState.stateRamp );
 	else glConfig.deviceSupportsGamma = GetDeviceGammaRamp( glw_state.hDC, glState.stateRamp );
+
+	// share this extension so engine can grab them
+	GL_SetExtension( R_HARDWARE_GAMMA_CONTROL, glConfig.deviceSupportsGamma );
+
 	savedGamma = FS_LoadFile( "config/gamma.rc", &gamma_size );
 	if( !savedGamma || gamma_size != sizeof( glState.stateRamp ))
 	{
@@ -445,7 +449,7 @@ bool R_CreateWindow( int width, int height, bool fullscreen )
 	int		exstyle = 0;
 	static char	wndname[128];
 	
-	com.strcpy( wndname, GI->title );
+	com.strcpy( wndname, FS_Title());
 
 	// register the frame class
 	wc.style         = 0;

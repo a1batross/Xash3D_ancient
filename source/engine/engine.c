@@ -15,7 +15,8 @@ launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
          	static launch_exp_t Host;
 
 	com = *input;
-	Host.api_size = sizeof(launch_exp_t);
+	Host.api_size = sizeof( launch_exp_t );
+	Host.com_size = sizeof( stdlib_api_t );
 
 	Host.Init = Host_Init;
 	Host.Main = Host_Main;

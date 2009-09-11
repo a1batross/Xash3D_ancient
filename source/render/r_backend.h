@@ -324,46 +324,46 @@ void R_RenderMeshBuffer( const meshbuffer_t *mb );
 
 =======================================================================
 */
-typedef enum
-{
-	R_OPENGL_110 = 0,		// base
-	R_SGIS_MIPMAPS_EXT,
-	R_WGL_SWAPCONTROL,
-	R_WGL_3DFX_GAMMA_CONTROL,
-	R_COMBINE_EXT,
-	R_DRAW_RANGEELEMENTS_EXT,
-	R_ARB_MULTITEXTURE,
-	R_LOCKARRAYS_EXT,
-	R_TEXTURE_3D_EXT,
-	R_TEXTURECUBEMAP_EXT,
-	R_DOT3_ARB_EXT,
-	R_CLAMPTOEDGE_EXT,
-	R_ANISOTROPY_EXT,
-	R_BLEND_MINMAX_EXT,
-	R_STENCILTWOSIDE_EXT,
-	R_BLEND_SUBTRACT_EXT,
-	R_SHADER_OBJECTS_EXT,
-	R_SHADER_GLSL100_EXT,
-	R_VERTEX_SHADER_EXT,	// glsl vertex program
-	R_FRAGMENT_SHADER_EXT,	// glsl fragment program	
-	R_VERTEX_PROGRAM_EXT,	// cg vertex program
-	R_FRAGMENT_PROGRAM_EXT,	// cg fragment program
-	R_EXT_POINTPARAMETERS,
-	R_SEPARATESTENCIL_EXT,
-	R_ARB_TEXTURE_NPOT_EXT,
-	R_ARB_VERTEX_BUFFER_OBJECT_EXT,
-	R_CUSTOM_VERTEX_ARRAY_EXT,
-	R_TEXTURE_COMPRESSION_EXT,
-	R_TEXTURE_ENV_ADD_EXT,
-	R_CLAMP_TEXBORDER_EXT,
-	R_OCCLUSION_QUERIES_EXT,
-	R_DEPTH_TEXTURE,
-	R_SHADOW_EXT,
-	R_TEXTURE_LODBIAS,
-	R_GLSL_NO_HALF_TYPES,	// fake extension
-	R_GLSL_BRANCHING,		// fake extension
-	R_EXTCOUNT
-} ref_glext_t;
+// render supported extensions
+// this part are shared with engine.dll
+#define R_OPENGL_110		0	// base
+#define R_WGL_SWAPCONTROL		1		
+#define R_HARDWARE_GAMMA_CONTROL	2	
+#define R_ARB_VERTEX_BUFFER_OBJECT_EXT	3
+#define R_ENV_COMBINE_EXT		4
+#define R_ARB_MULTITEXTURE		5
+#define R_TEXTURECUBEMAP_EXT		6
+#define R_DOT3_ARB_EXT		7
+#define R_ANISOTROPY_EXT		8
+#define R_TEXTURE_LODBIAS		9
+#define R_OCCLUSION_QUERIES_EXT	10
+#define R_TEXTURE_COMPRESSION_EXT	11
+#define R_SHADER_GLSL100_EXT		12
+
+// this part are private for render.dll
+#define R_WGL_3DFX_GAMMA_CONTROL	13
+#define R_SGIS_MIPMAPS_EXT		14
+#define R_DRAW_RANGEELEMENTS_EXT	15
+#define R_LOCKARRAYS_EXT		16
+#define R_TEXTURE_3D_EXT		17
+#define R_CLAMPTOEDGE_EXT		18
+#define R_BLEND_MINMAX_EXT		19
+#define R_STENCILTWOSIDE_EXT		20
+#define R_BLEND_SUBTRACT_EXT		21
+#define R_SHADER_OBJECTS_EXT		22
+#define R_VERTEX_SHADER_EXT		23	// glsl vertex program
+#define R_FRAGMENT_SHADER_EXT		24	// glsl fragment program	
+#define R_EXT_POINTPARAMETERS		25
+#define R_SEPARATESTENCIL_EXT		26
+#define R_ARB_TEXTURE_NPOT_EXT	27
+#define R_CUSTOM_VERTEX_ARRAY_EXT	28
+#define R_TEXTURE_ENV_ADD_EXT		29
+#define R_CLAMP_TEXBORDER_EXT		30
+#define R_DEPTH_TEXTURE		31
+#define R_SHADOW_EXT		32
+#define R_GLSL_NO_HALF_TYPES		33	// fake extension
+#define R_GLSL_BRANCHING		34	// fake extension
+#define R_EXTCOUNT			35
 
 typedef struct
 {
@@ -414,7 +414,7 @@ typedef struct
 	GLint		genSTEnabled[MAX_TEXTURE_UNITS];	// 0 - disabled, OR 1 - S, OR 2 - T, OR 4 - R
 	GLint		texCoordArrayMode[MAX_TEXTURE_UNITS];	// 0 - disabled, 1 - enabled, 2 - cubemap
 
-	vec4_t		draw_color;
+	rgba_t		draw_color;
 	kRenderMode_t	draw_rendermode;			// rendermode for drawing
 	int		draw_frame;			// will be reset after each drawing
 

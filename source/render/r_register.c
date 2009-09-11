@@ -406,17 +406,6 @@ static dllfunc_t vertexshaderfuncs[] =
 	{NULL, NULL}
 };
 
-static dllfunc_t cgprogramfuncs[] =
-{
-	{"glBindProgramARB", (void **) &pglBindProgramARB},
-	{"glDeleteProgramsARB", (void **) &pglDeleteProgramsARB},
-	{"glGenProgramsARB", (void **) &pglGenProgramsARB},
-	{"glProgramStringARB", (void **) &pglProgramStringARB},
-	{"glProgramEnvParameter4fARB", (void **) &pglProgramEnvParameter4fARB},
-	{"glProgramLocalParameter4fARB", (void **) &pglProgramLocalParameter4fARB},
-	{NULL, NULL}
-};
-
 static dllfunc_t vbofuncs[] =
 {
 	{"glBindBufferARB"    , (void **) &pglBindBufferARB},
@@ -897,9 +886,9 @@ void GL_InitExtensions( void )
 	if(GL_Support( R_ARB_MULTITEXTURE ))
 	{
 		pglGetIntegerv( GL_MAX_TEXTURE_UNITS_ARB, &glConfig.max_texture_units );
-		GL_CheckExtension( "GL_ARB_texture_env_combine", NULL, "gl_texture_env_combine", R_COMBINE_EXT );
-		if(!GL_Support( R_COMBINE_EXT )) GL_CheckExtension("GL_EXT_texture_env_combine", NULL, "gl_texture_env_combine", R_COMBINE_EXT );
-		if(GL_Support( R_COMBINE_EXT )) GL_CheckExtension( "GL_ARB_texture_env_dot3", NULL, "gl_texture_env_dot3", R_DOT3_ARB_EXT );
+		GL_CheckExtension( "GL_ARB_texture_env_combine", NULL, "gl_texture_env_combine", R_ENV_COMBINE_EXT );
+		if(!GL_Support( R_ENV_COMBINE_EXT )) GL_CheckExtension("GL_EXT_texture_env_combine", NULL, "gl_texture_env_combine", R_ENV_COMBINE_EXT );
+		if(GL_Support( R_ENV_COMBINE_EXT )) GL_CheckExtension( "GL_ARB_texture_env_dot3", NULL, "gl_texture_env_dot3", R_DOT3_ARB_EXT );
 	}
 	else
 	{
@@ -957,8 +946,6 @@ void GL_InitExtensions( void )
 	// we don't care if it's an extension or not, they are identical functions, so keep it simple in the rendering code
 	if( pglDrawRangeElementsEXT == NULL ) pglDrawRangeElementsEXT = pglDrawRangeElements;
 
-	GL_CheckExtension( "GL_ARB_vertex_program", cgprogramfuncs, "gl_vertexprogram", R_VERTEX_PROGRAM_EXT );
-	GL_CheckExtension( "GL_ARB_fragment_program", cgprogramfuncs, "gl_fragmentprogram", R_FRAGMENT_PROGRAM_EXT );
 	GL_CheckExtension( "GL_ARB_texture_env_add", NULL, "gl_texture_env_add", R_TEXTURE_ENV_ADD_EXT );
 
 	// vp and fp shaders

@@ -119,9 +119,10 @@ void Host_SetServerState( int state );
 int Host_ServerState( void );
 int Host_MaxClients( void );
 void Host_AbortCurrentFrame( void );
-void Host_Print(const char *txt);
+void Host_WriteDefaultConfig( void );
+void Host_WriteConfig( void );
+void Host_Print( const char *txt );
 void Host_Error( const char *error, ... );
-void Sys_Error( const char *msg, ... );
 
 /*
 ==============================================================
@@ -296,13 +297,6 @@ void VM_FS_Open( void );
 void VM_FS_Close( void );
 void VM_FS_Gets( void );
 void VM_FS_Puts( void );
-void VM_precache_pic( void );
-void VM_drawcharacter( void );
-void VM_drawstring( void );
-void VM_drawpic( void );
-void VM_drawfill( void );
-void VM_drawmodel( void );
-void VM_getimagesize( void );
 void VM_min( void );
 void VM_max( void );
 void VM_bound( void );

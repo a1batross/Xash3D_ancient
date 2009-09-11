@@ -20,6 +20,7 @@ common\
 engine\
 engine\client\
 engine\server\
+engine\uimenu\
 engine\common\
 launch\
 launch\qcc\
@@ -41,7 +42,6 @@ server\global\
 server\monsters\
 vprogs\
 vsound\
-uimenu\
 xtools\
 xtools\bsplib
 xtools\ripper

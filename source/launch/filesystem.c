@@ -133,7 +133,7 @@ bool fs_ext_path = false; // attempt to read\write from ./ or ../ pathes
 bool fs_use_wads = false; // some utilities needs this
 cvar_t *fs_defaultdir;
 cvar_t *fs_wadsupport;
-gameinfo_t GI;
+sysinfo_t SI;
 
 /*
 =============================================================================
@@ -1278,11 +1278,11 @@ FS_Rescan
 */
 void FS_Rescan( void )
 {
-	MsgDev( D_NOTE, "FS_Rescan( %s )\n", GI.title );
+	MsgDev( D_NOTE, "FS_Rescan( %s )\n", SI.GameInfo->title );
 	FS_ClearSearchPath();
 
-	FS_AddGameHierarchy( GI.basedir, 0 );
-	FS_AddGameHierarchy( GI.gamedir, 0 );
+	FS_AddGameHierarchy( SI.GameInfo->basedir, 0 );
+	FS_AddGameHierarchy( SI.GameInfo->gamedir, 0 );
 }
 
 void FS_Rescan_f( void )
@@ -1337,15 +1337,10 @@ void FS_ApplyBaseDir( void )
 	PS_FreeScript( script );
 }
 
-void FS_ResetGameInfo( void )
+void FS_UpdateSysInfo( void )
 {
-	com.strcpy( GI.title, gs_basedir );	
-	com.strcpy( GI.basedir, gs_basedir );
-	com.strcpy( GI.gamedir, gs_basedir );
-	com.strcpy( GI.username, Sys_GetCurrentUser());
-	GI.version = XASH_VERSION;
-	GI.viewmode = 1;
-	GI.gamemode = 1;
+	com.strcpy( SI.username, Sys_GetCurrentUser());
+	SI.version = XASH_VERSION;
 }
 
 void FS_CreateGameInfo( const char *filename )
@@ -1359,37 +1354,35 @@ void FS_CreateGameInfo( const char *filename )
 	com.strncat( buffer, "gamemode\t\t\"singleplayer\"\r", MAX_SYSPATH );
 	com.strncat( buffer, "\nstartmap\t\t\"newmap\"\n\n", MAX_SYSPATH );
 	com.strncat( buffer, "// directory for progs binary and source", MAX_SYSPATH );
-	com.strncat( buffer, "\nvprogsdir\t\t\"vprogs\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nsourcedir\t\t\"source\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nsp_spawn\t\t\"info_player_start\"", MAX_SYSPATH );
 	com.strncat( buffer, "\ndm_spawn\t\t\"info_player_deathmatch\"", MAX_SYSPATH );
-	com.strncat( buffer, "\nteam_spawn\t\"info_player_coop\"", MAX_SYSPATH );
+	com.strncat( buffer, "\nctf_spawn\t\t\"info_player_ctf\"", MAX_SYSPATH );
+	com.strncat( buffer, "\nteam_spawn\t\"info_player_team\"", MAX_SYSPATH );
 	
 	FS_WriteFile( filename, buffer, com.strlen( buffer ));
 	Mem_Free( buffer );
 } 
 
-void FS_LoadGameInfo( const char *filename )
+/*
+================
+FS_ParseGameInfo
+================
+*/
+static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 {
-          bool	fs_modified = false;
 	script_t	*script = NULL;
 	string	fs_path;
 	token_t	token;
 
-	// lock uplevel of gamedir for read\write
-	fs_ext_path = false;
-
-	Com_Assert( filename == NULL );
-	MsgDev( D_NOTE, "FS_LoadGameInfo: [%s]\n", filename );
-
-	// prepare to loading
-	FS_ClearSearchPath();
-	FS_AddGameHierarchy( gs_basedir, 0 );
-
 	// create default gameinfo
-	if( !FS_FileExists( filename )) FS_CreateGameInfo( filename );
-	// now we have search path and can load gameinfo.txt
+//	if( !FS_FileExists( filename )) FS_CreateGameInfo( filename );
+
 	script = PS_LoadScript( filename, NULL, 0 );
+	if( !script ) return false;
+	if( !GameInfo ) return false;	// no dest
+
+	FS_ExtractFilePath( filename, GameInfo->gamefolder );
 
 	while( script )
 	{
@@ -1399,72 +1392,99 @@ void FS_LoadGameInfo( const char *filename )
 		if( !com.stricmp( token.string, "basedir" ))
 		{
 			PS_GetString( script, false, fs_path, MAX_STRING );
-			if( com.stricmp( fs_path, GI.basedir ) || com.stricmp( fs_path, GI.gamedir ))
-			{
-				com.strncpy( GI.basedir, fs_path, MAX_STRING );
-				fs_modified = true;
-			}
+			if( com.stricmp( fs_path, GameInfo->basedir ) || com.stricmp( fs_path, GameInfo->gamedir ))
+				com.strncpy( GameInfo->basedir, fs_path, MAX_STRING );
 		}
 		else if( !com.stricmp( token.string, "gamedir" ))
 		{
 			PS_GetString( script, false, fs_path, MAX_STRING );
-			if( com.stricmp( fs_path, GI.basedir ) || com.stricmp( fs_path, GI.gamedir ))
-			{
-				com.strncpy( GI.gamedir, fs_path, MAX_STRING );
-				fs_modified = true;
-			}
+			if( com.stricmp( fs_path, GameInfo->basedir ) || com.stricmp( fs_path, GameInfo->gamedir ))
+				com.strncpy( GameInfo->gamedir, fs_path, MAX_STRING );
 		}
 		else if( !com.stricmp( token.string, "title" ))
 		{
-			PS_GetString( script, false, GI.title, sizeof( GI.title ));
+			PS_GetString( script, false, GameInfo->title, sizeof( GameInfo->title ));
 		}
 		else if( !com.stricmp( token.string, "sp_spawn" ))
 		{
-			PS_GetString( script, false, GI.sp_entity, sizeof( GI.sp_entity ));
+			PS_GetString( script, false, GameInfo->sp_entity, sizeof( GameInfo->sp_entity ));
 		}
 		else if( !com.stricmp( token.string, "dm_spawn" ))
 		{
-			PS_GetString( script, false, GI.dm_entity, sizeof( GI.dm_entity ));
+			PS_GetString( script, false, GameInfo->dm_entity, sizeof( GameInfo->dm_entity ));
+		}
+		else if( !com.stricmp( token.string, "ctf_spawn" ))
+		{
+			PS_GetString( script, false, GameInfo->ctf_entity, sizeof( GameInfo->ctf_entity ));
 		}
 		else if( !com.stricmp( token.string, "team_spawn" ))
 		{
-			PS_GetString( script, false, GI.team_entity, sizeof( GI.team_entity ));
+			PS_GetString( script, false, GameInfo->team_entity, sizeof( GameInfo->team_entity ));
 		}
 		else if( !com.stricmp( token.string, "startmap" ))
 		{
-			PS_GetString( script, false, GI.startmap, sizeof( GI.startmap ));
+			PS_GetString( script, false, GameInfo->startmap, sizeof( GameInfo->startmap ));
 		}
 		else if( !com.stricmp( token.string, "version" ))
 		{
-			PS_GetFloat( script, false, &GI.version );
+			PS_GetFloat( script, false, &GameInfo->version );
 		}
 		else if( !com.stricmp( token.string, "viewmode" ))
 		{
 			PS_ReadToken( script, 0, &token );
 			if( !com.stricmp( token.string, "firstperson" ))
-				GI.viewmode = 1;
+				GameInfo->viewmode = 1;
 			else if( !com.stricmp( token.string, "thirdperson" ))
-				GI.viewmode = 2;
+				GameInfo->viewmode = 2;
 		}
-		else if( !com.stricmp( token.string, "gamemode" ))								
+		else if( !com.stricmp( token.string, "gamemode" ))
 		{
 			PS_ReadToken( script, 0, &token );
 			if( !com.stricmp( token.string, "singleplayer" ))
-				GI.gamemode = 1;
+				GameInfo->gamemode = 1;
 			else if( !com.stricmp( token.string, "multiplayer" ))
-				GI.gamemode = 2;
-		}
-		else if( !com.stricmp( token.string, "vprogsdir" ))
-		{
-			PS_GetString( script, false, GI.vprogs_dir, sizeof( GI.vprogs_dir ));
+				GameInfo->gamemode = 2;
 		}
 		else if( !com.stricmp( token.string, "sourcedir" ))
 		{
-			PS_GetString( script, false, GI.source_dir, sizeof( GI.source_dir ));
+			PS_GetString( script, false, GameInfo->vsrcdir, sizeof( GameInfo->vsrcdir ));
 		}
 	}
-	if( fs_modified ) FS_Rescan(); // create new filesystem
+
 	PS_FreeScript( script );
+	return true;
+}
+
+/*
+================
+FS_LoadGameInfo
+
+FIXME: create an argment that passed name of gamedir for soft-change games ?
+================
+*/
+void FS_LoadGameInfo( void )
+{
+	int	i;
+
+	// lock uplevel of gamedir for read\write
+	fs_ext_path = false;
+
+	MsgDev( D_NOTE, "FS_LoadGameInfo()\n" );
+
+	// clear any old pathes
+	FS_ClearSearchPath();
+
+	// validate gamedir
+	for( i = 0; i < SI.numgames; i++ )
+	{
+		if( !com.stricmp( SI.games[i]->gamefolder, gs_basedir ))
+			break;
+	}
+
+	Com_Assert( i == SI.numgames );
+
+	SI.GameInfo = SI.games[i];
+	FS_Rescan(); // create new filesystem
 }
 
 /*
@@ -1475,6 +1495,7 @@ FS_Init
 void FS_Init( void )
 {
 	stringlist_t	dirs;
+	string		filepath;
 	int		i;
 	
 	FS_InitMemory();
@@ -1493,10 +1514,10 @@ void FS_Init( void )
 	// ignore commandlineoption "-game" for other stuff
 	if( Sys.app_name == HOST_NORMAL || Sys.app_name == HOST_DEDICATED || Sys.app_name == HOST_BSPLIB )
 	{
-		stringlistinit(&dirs);
-		listdirectory(&dirs, "./");
-		stringlistsort(&dirs);
-		GI.numgamedirs = 0;
+		stringlistinit( &dirs );
+		listdirectory( &dirs, "./" );
+		stringlistsort( &dirs );
+		SI.numgames = 0;
 	
 		if( !FS_GetParmFromCmdLine( "-game", gs_basedir, sizeof( gs_basedir )))
 		{
@@ -1531,9 +1552,18 @@ void FS_Init( void )
 		FS_AddGameDirectory( "./", 0 );
 		for( i = 0; i < dirs.numstrings; i++ )
 		{
+			const char	*ext = FS_FileExtension( dirs.strings[i] );
+
+			if( com.stricmp( ext, "" ) || (!com.stricmp( dirs.strings[i], ".." ) && !fs_ext_path))
+				continue;
+
 			// make sure what it's real game directory
-			if( !FS_FileExists( va( "%s/gameinfo.txt", dirs.strings[i] ))) continue;
-			com.strncpy( GI.gamedirs[GI.numgamedirs++], dirs.strings[i], MAX_STRING );
+			com.snprintf( filepath, sizeof( filepath ), "%s/gameinfo.txt", dirs.strings[i] );
+
+			if( !SI.games[SI.numgames] )
+				SI.games[SI.numgames] = (gameinfo_t *)Mem_Alloc( fs_mempool, sizeof( gameinfo_t ));
+			if( FS_ParseGameInfo( filepath, SI.games[SI.numgames] ))
+				SI.numgames++; // added
 		}
 		stringlistfreecontents( &dirs );
 	}	
@@ -1550,7 +1580,7 @@ void FS_Init( void )
 		break;
 	}
 
-	FS_ResetGameInfo();
+	FS_UpdateSysInfo();
 	MsgDev( D_NOTE, "FS_Init: done\n" );
 }
 

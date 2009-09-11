@@ -39,10 +39,10 @@ void SCR_AdjustSize( float *x, float *y, float *w, float *h )
 	xscale = scr_width->integer / 640.0f;
 	yscale = scr_height->integer / 480.0f;
 
-	if(x) *x *= xscale;
-	if(y) *y *= yscale;
-	if(w) *w *= xscale;
-	if(h) *h *= yscale;
+	if( x ) *x *= xscale;
+	if( y ) *y *= yscale;
+	if( w ) *w *= xscale;
+	if( h ) *h *= yscale;
 }
 
 /*
@@ -52,7 +52,7 @@ SCR_FillRect
 Coordinates are 640*480 virtual values
 =================
 */
-void SCR_FillRect( float x, float y, float width, float height, const float *color )
+void SCR_FillRect( float x, float y, float width, float height, const rgba_t color )
 {
 	re->SetColor( color );
 	SCR_AdjustSize( &x, &y, &width, &height );
@@ -126,8 +126,8 @@ void SCR_DrawSmallChar( int x, int y, int ch )
 
 	ch &= 255;
 
-	if( ch == ' ' )return;
-	if(y < -SMALLCHAR_HEIGHT) return;
+	if( ch == ' ' ) return;
+	if( y < -SMALLCHAR_HEIGHT ) return;
 
 	frow = (ch >> 4)*0.0625f + (0.5f / 256.0f);
 	fcol = (ch & 15)*0.0625f + (0.5f / 256.0f);
@@ -146,21 +146,21 @@ to a fixed color.
 Coordinates are at 640 by 480 virtual resolution
 ==================
 */
-void SCR_DrawStringExt( int x, int y, float w, float h, const char *string, float *setColor, bool forceColor )
+void SCR_DrawStringExt( int x, int y, float w, float h, const char *string, rgba_t setColor, bool forceColor )
 {
-	vec4_t		color;
+	rgba_t		color;
 	const char	*s;
 	int		xx;
 
 	// draw the drop shadow
-	Vector4Set( color, 0.0f, 0.0f, 0.0f, setColor[3] );
+	MakeRGBA( color, 0, 0, 0, setColor[3] );
 	re->SetColor( color );
 	s = string;
 	xx = x;
 
-	while ( *s )
+	while( *s )
 	{
-		if(IsColorString( s ))
+		if( IsColorString( s ))
 		{
 			s += 2;
 			continue;
@@ -174,7 +174,7 @@ void SCR_DrawStringExt( int x, int y, float w, float h, const char *string, floa
 	s = string;
 	xx = x;
 	re->SetColor( setColor );
-	while ( *s )
+	while( *s )
 	{
 		if( IsColorString( s ))
 		{
@@ -194,15 +194,15 @@ void SCR_DrawStringExt( int x, int y, float w, float h, const char *string, floa
 	re->SetColor( NULL );
 }
 
-void SCR_DrawBigString( int x, int y, const char *s, float alpha )
+void SCR_DrawBigString( int x, int y, const char *s, byte alpha )
 {
-	float	color[4];
+	rgba_t	color;
 
-	Vector4Set( color, 1.0f, 1.0f, 1.0f, alpha );
+	MakeRGBA( color, 255, 255, 255, alpha );
 	SCR_DrawStringExt( x, y, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, s, color, false );
 }
 
-void SCR_DrawBigStringColor( int x, int y, const char *s, vec4_t color )
+void SCR_DrawBigStringColor( int x, int y, const char *s, rgba_t color )
 {
 	SCR_DrawStringExt( x, y, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, s, color, true );
 }
@@ -217,9 +217,9 @@ to a fixed color.
 Coordinates are at 640 by 480 virtual resolution
 ==================
 */
-void SCR_DrawSmallStringExt( int x, int y, const char *string, float *setColor, bool forceColor )
+void SCR_DrawSmallStringExt( int x, int y, const char *string, rgba_t setColor, bool forceColor )
 {
-	vec4_t		color;
+	rgba_t		color;
 	const char	*s;
 	int		xx;
 
@@ -318,7 +318,7 @@ void SCR_DrawFPS( void )
 	double		newtime;
 	bool		red = false; // fps too low
 	char		fpsstring[32];
-	float		*color;
+	byte		*color;
 
 	if( cls.state != ca_active ) return; 
 	if( !cl_showfps->integer ) return;
@@ -361,12 +361,12 @@ void SCR_RSpeeds( void )
 	{
 		int	x, y, height;
 		char	*p, *start, *end;
-		vec4_t	color;
+		rgba_t	color;
 
 		x = SCREEN_WIDTH - 320;
 		y = 64;
 		height = SMALLCHAR_HEIGHT;
-		Vector4Set( color, 1.0f, 1.0f, 1.0f, 1.0f );
+		MakeRGBA( color, 255, 255, 255, 255 );
 
 		p = start = msg;
 		do

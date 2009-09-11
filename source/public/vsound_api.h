@@ -21,6 +21,7 @@ typedef struct vsound_exp_s
 {
 	// interface validator
 	size_t	api_size;		// must matched with sizeof(vprogs_api_t)
+	size_t	com_size;		// must matched with sizeof(stdlib_api_t)
 
 	bool (*Init)( void *hInst );	// init sound
 	void (*Shutdown)( void );

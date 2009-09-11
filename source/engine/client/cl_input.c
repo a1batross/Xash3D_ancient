@@ -23,8 +23,7 @@ cvar_t	*cl_nodelta;
 cvar_t	*v_centermove;
 cvar_t	*v_centerspeed;
 cvar_t	*cl_mouseaccel;
-cvar_t	*cl_sensitivity;
-cvar_t	*ui_sensitivity;
+cvar_t	*m_sensitivity;
 cvar_t	*m_filter;		// mouse filtering
 
 kbutton_t	in_klook, in_left, in_right, in_forward, in_back;
@@ -82,7 +81,7 @@ void CL_MouseMove( usercmd_t *cmd )
 	{
 		if( cl.frame.ps.health <= 0 ) return;
 		if( cl.mouse_sens == 0.0f ) cl.mouse_sens = 1.0f;
-		accel_sensitivity = cl_sensitivity->value + rate * cl_mouseaccel->value;
+		accel_sensitivity = m_sensitivity->value + rate * cl_mouseaccel->value;
 		accel_sensitivity *= cl.mouse_sens; // scale by fov
 		mx *= accel_sensitivity;
 		my *= accel_sensitivity;
@@ -97,11 +96,10 @@ void CL_MouseMove( usercmd_t *cmd )
 		if( cl_mouselook->value ) cl.viewangles[PITCH] += m_pitch->value * my;
 		else if( in_strafe.state & 1 ) cmd->forwardmove = cmd->forwardmove - m_forward->value * my;
 	}
-	else
+	else if( UI_IsVisible( ))
 	{
-		accel_sensitivity = ui_sensitivity->value + rate * cl_mouseaccel->value;
-		cls.mouse_x = mx * accel_sensitivity;
-		cls.mouse_y = my * accel_sensitivity;
+		// if the menu is visible, move the menu cursor
+		UI_MouseMove( mx, my );
 	}
 }
 
@@ -271,8 +269,8 @@ void IN_ScoreUp(void) {IN_KeyUp( &in_score ); }
 void IN_BreakDown(void) {IN_KeyDown( &in_break ); }
 void IN_BreakUp(void) {IN_KeyUp( &in_break ); }
 void IN_Cancel(void) { in_cancel = 1; } // special handling
-void IN_MLookDown(void) {Cvar_SetValue( "cl_mouselook", 1 );}
-void IN_MLookUp(void) {IN_CenterView(); Cvar_SetValue( "cl_mouselook", 0 );}
+void IN_MLookDown(void) { Cvar_SetValue( "cl_mouselook", 1 ); }
+void IN_MLookUp(void) { IN_CenterView(); Cvar_SetValue( "cl_mouselook", 0 ); }
 void IN_CenterView (void){ cl.viewangles[PITCH] = -cl.frame.ps.delta_angles[PITCH]; }
 
 
@@ -613,8 +611,7 @@ void CL_InitInput( void )
 {
 	// mouse variables
 	m_filter = Cvar_Get("m_filter", "0", 0, "enable mouse filter" );
-	cl_sensitivity = Cvar_Get( "cl_sensitivity", "3", CVAR_ARCHIVE, "mouse in-game sensitivity" );
-	ui_sensitivity = Cvar_Get( "ui_sensitivity", "0.5", CVAR_ARCHIVE, "mouse in-menu sensitivity" );
+	m_sensitivity = Cvar_Get( "m_sensitivity", "3", CVAR_ARCHIVE, "mouse in-game sensitivity" );
 	cl_mouseaccel = Cvar_Get( "cl_mouseaccelerate", "0", CVAR_ARCHIVE, "mouse accelerate factor" ); 
 
 	// centering

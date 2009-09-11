@@ -225,7 +225,7 @@ void V_PostRender( void )
 	SCR_RSpeeds();
 	SCR_DrawNet();
 	SCR_DrawFPS();
-	UI_Draw();
+	UI_UpdateMenu( cls.realtime );
 	Con_DrawConsole();
 	re->EndFrame();
 }

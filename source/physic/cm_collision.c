@@ -1718,7 +1718,8 @@ void CM_CollisionCombineTraces( trace_t *cliptrace, const trace_t *trace, edict_
 void CM_CollisionDrawForEachBrush( void )
 {
 	cbrushf_t	*draw;
-	int	i, j, color; 
+	rgba_t	color;
+	int	i, j; 
 
 	if( !ph.debug_line ) return;
 
@@ -1728,8 +1729,8 @@ void CM_CollisionDrawForEachBrush( void )
 		{
 			draw = cm.brushes[cms.bmodels[i].firstbrush + j].colbrushf;
 			if( !draw ) continue;
-			if( i == 0 ) color = PackRGBA( 1, 0.7f, 0, 1 );	// world
-			else color = PackRGBA( 1, 0.1f, 0.1f, 1 );
+			if( i == 0 ) Vector4Set( color, 255, 178, 0, 255 );	// world
+			else Vector4Set( color, 255, 25, 25, 255 );
 			ph.debug_line( color, draw->numpoints, (float *)&draw->points->v[0], (int *)&draw->elements );
 		}
 	}
@@ -1738,7 +1739,8 @@ void CM_CollisionDrawForEachBrush( void )
 void CM_CollisionDrawForEachSurface( void )
 {
 	csurface_t	*draw;
-	int		i, j, color; 
+	rgba_t		color;
+	int		i, j; 
 
 	for( i = 0; i < cms.numbmodels; i++ )
 	{
@@ -1747,8 +1749,8 @@ void CM_CollisionDrawForEachSurface( void )
 			draw = &cm.surfaces[cms.bmodels[i].firstface + j];
 			if( !draw || !draw->numtriangles ) continue;
 
-			if( i == 0 ) color = PackRGBA( 1, 0.7f, 0, 1 );	// world
-			else color = PackRGBA( 1, 0.1f, 0.1f, 1 );
+			if( i == 0 ) Vector4Set( color, 255, 178, 0, 255 );	// world
+			else Vector4Set( color, 255, 25, 25, 255 );
 			ph.debug_line( color, draw->numvertices, (float *)&draw->vertices[0], (int *)&draw->indices );
 		}
 	}

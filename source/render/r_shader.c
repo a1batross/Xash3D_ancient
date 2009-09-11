@@ -503,7 +503,7 @@ static bool Shader_ParseConditions( script_t *script, ref_shader_t *shader )
 			else if( !com.stricmp( tok.string, "textureCubeMap" ))
 				conditions[numConditions].operand = GL_Support( R_TEXTURECUBEMAP_EXT );
 			else if( !com.stricmp( tok.string, "textureEnvCombine" ))
-				conditions[numConditions].operand = GL_Support( R_COMBINE_EXT );
+				conditions[numConditions].operand = GL_Support( R_ENV_COMBINE_EXT );
 			else if( !com.stricmp( tok.string, "textureEnvDot3" ))
 				conditions[numConditions].operand = GL_Support( R_SHADER_GLSL100_EXT );
 			else if( !com.stricmp( tok.string, "GLSL" ))

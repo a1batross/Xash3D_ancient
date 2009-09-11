@@ -118,7 +118,7 @@ static dllfunc_t openal_effects[] =
 	{ NULL, NULL }
 };
 
-dll_info_t openal_dll = { "openal32.dll", openal_funcs, NULL, NULL, NULL, false, 0 };
+dll_info_t openal_dll = { "openal32.dll", openal_funcs, NULL, NULL, NULL, false };
 
 alconfig_t al_config;
 alstate_t  al_state;

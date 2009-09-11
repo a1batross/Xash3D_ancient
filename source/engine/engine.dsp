@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "./" /I "common" /I "server" /I "client" /I "../public" /I "../common" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "./" /I "common" /I "server" /I "client" /I "uimenu" /I "../public" /I "../common" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -80,7 +80,7 @@ SOURCE="$(InputPath)"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /c
-# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "common" /I "server" /I "client" /I "../public" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /c
+# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "common" /I "server" /I "client" /I "uimenu" /I "../public" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -198,10 +198,6 @@ SOURCE=.\common\input.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\menu.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\common\net_chan.c
 # End Source File
 # Begin Source File
@@ -252,6 +248,98 @@ SOURCE=.\server\sv_save.c
 
 SOURCE=.\server\sv_world.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_advanced.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_audio.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_controls.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_credits.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_defaults.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_demos.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_gameoptions.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_gotosite.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_ingame.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_loadgame.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_main.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_menu.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_mods.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_multiplayer.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_network.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_options.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_performance.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_playersetup.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_qmenu.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_quit.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_savegame.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_singleplayer.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_video.c
+# End Source File
 # End Group
 # Begin Group "Header Files"
 
@@ -274,7 +362,7 @@ SOURCE=.\server\server.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\server\sv_edict.h
+SOURCE=.\uimenu\ui_local.h
 # End Source File
 # End Group
 # End Target

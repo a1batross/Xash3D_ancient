@@ -225,21 +225,21 @@ void PRVM_Init( const int argc, const char **argv )
 	com_argv = (char **)argv;
 
 	qccpool = Mem_AllocPool( "VM progs" );
-	host_instance = g_Instance;
+	host_instance = g_Instance();
 
 	if( FS_GetParmFromCmdLine( "-dev", dev_level ))
 		prvm_developer = com.atoi( dev_level );
 
-	Cmd_AddCommand("prvm_edict", PRVM_ED_PrintEdict_f, "print all data about an entity number in the selected VM (server, client, uimenu)");
-	Cmd_AddCommand("prvm_edicts", PRVM_ED_PrintEdicts_f, "set a property on an entity number in the selected VM (server, client, uimenu)");
-	Cmd_AddCommand("prvm_edictcount", PRVM_ED_Count_f, "prints number of active entities in the selected VM (server, client, uimenu)");
-	Cmd_AddCommand("prvm_profile", PRVM_Profile_f, "prints execution statistics about the most used QuakeC functions in the selected VM (server, client, uimenu)");
-	Cmd_AddCommand("prvm_fields", PRVM_Fields_f, "prints usage statistics on properties (how many entities have non-zero values) in the selected VM (server, client, menu)");
-	Cmd_AddCommand("prvm_globals", PRVM_Globals_f, "prints all global variables in the selected VM (server, client, uimenu)");
-	Cmd_AddCommand("prvm_global", PRVM_Global_f, "prints value of a specified global variable in the selected VM (server, client, uimenu)");
-	Cmd_AddCommand("prvm_globalset", PRVM_GlobalSet_f, "sets value of a specified global variable in the selected VM (server, client, uimenu)");
-	Cmd_AddCommand("prvm_edictset", PRVM_ED_EdictSet_f, "changes value of a specified property of a specified entity in the selected VM (server, client, uimenu)");
-	Cmd_AddCommand("prvm_printfunction", PRVM_PrintFunction_f, "prints a disassembly (QuakeC instructions) of the specified function in the selected VM (server, client, uimenu)");
+	Cmd_AddCommand("prvm_edict", PRVM_ED_PrintEdict_f, "print all data about an entity number in the selected VM (server, client)");
+	Cmd_AddCommand("prvm_edicts", PRVM_ED_PrintEdicts_f, "set a property on an entity number in the selected VM (server, client)");
+	Cmd_AddCommand("prvm_edictcount", PRVM_ED_Count_f, "prints number of active entities in the selected VM (server, client)");
+	Cmd_AddCommand("prvm_profile", PRVM_Profile_f, "prints execution statistics about the most used QuakeC functions in the selected VM (server, client)");
+	Cmd_AddCommand("prvm_fields", PRVM_Fields_f, "prints usage statistics on properties (how many entities have non-zero values) in the selected VM (server, client)");
+	Cmd_AddCommand("prvm_globals", PRVM_Globals_f, "prints all global variables in the selected VM (server, client)");
+	Cmd_AddCommand("prvm_global", PRVM_Global_f, "prints value of a specified global variable in the selected VM (server, client)");
+	Cmd_AddCommand("prvm_globalset", PRVM_GlobalSet_f, "sets value of a specified global variable in the selected VM (server, client)");
+	Cmd_AddCommand("prvm_edictset", PRVM_ED_EdictSet_f, "changes value of a specified property of a specified entity in the selected VM (server, client)");
+	Cmd_AddCommand("prvm_printfunction", PRVM_PrintFunction_f, "prints a disassembly (QuakeC instructions) of the specified function in the selected VM (server, client)");
 	Cmd_AddCommand("compile", PRVM_Compile_f, "compile specified VM (server, client, menu), changes will take affect after map restart");
 
 	// LordHavoc: optional runtime bounds checking (speed drain, but worth it for security, on by default - breaks most QCCX features (used by CRMod and others))
@@ -247,20 +247,6 @@ void PRVM_Init( const int argc, const char **argv )
 	prvm_traceqc = Cvar_Get( "prvm_traceqc", "0", 0, "enable tracing (only for debug)" );
 	prvm_statementprofiling = Cvar_Get ("prvm_statementprofiling", "0", 0, "counts how many times each QC statement has been executed" );
 	prvm_maxedicts = Cvar_Get( "host_maxedicts", "2048", CVAR_SYSTEMINFO, "user limit edicts number fof server, client and renderer, absolute limit 65535" );
-
-	if( host_instance == HOST_NORMAL || host_instance == HOST_DEDICATED )
-	{
-		size_t	size;
-		byte	*image;
-
-		// FIXME: get rid of this
-		// dump internal copies of progs into hdd if missing
-		if(!FS_FileExists(va("%s/uimenu.dat", GI->vprogs_dir)))
-		{
-			image = FS_LoadInternal( "uimenu.dat", &size );
-			if( size ) FS_WriteFile(va("%s/uimenu.dat", GI->vprogs_dir), image, size ); 
-		}
-	}
 }
 
 void PRVM_Shutdown( void )
@@ -348,8 +334,9 @@ vprogs_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 	com = *input;
 
 	// generic functions
-	vm.api_size = sizeof(vprogs_exp_t);
-
+	vm.api_size = sizeof( vprogs_exp_t );
+	vm.com_size = sizeof( stdlib_api_t );
+	
 	vm.Init = PRVM_Init;
 	vm.Free = PRVM_Shutdown;
 	vm.PrepareDAT = PRVM_PrepareProgs;

@@ -7,10 +7,10 @@
 
 void DebugShowGeometryCollision( const NewtonBody* body, int vertexCount, const float* faceVertec, int id ) 
 {    
-	int color;
+	rgba_t	color;
 
-	if( body == cms.body ) color = PackRGBA( 1, 0.7f, 0, 1 ); // world
-	else color = PackRGBA( 1, 0.1f, 0.1f, 1 );
+	if( body == cms.body ) Vector4Set( color, 255, 178, 0, 255 ); // world
+	else Vector4Set( color, 255, 25, 25, 255 );
 
 	ph.debug_line( color, vertexCount, faceVertec, NULL );
 } 

@@ -130,7 +130,7 @@ void SV_DirectConnect( netadr_t from )
 	{
 		// force the "ip" info key to "localhost"
 		Info_SetValueForKey( userinfo, "ip", "localhost" );
-		Info_SetValueForKey( userinfo, "name", GI->username ); // can be overwrited later
+		Info_SetValueForKey( userinfo, "name", SI->username ); // can be overwrited later
 	}
 
 	newcl = &temp;

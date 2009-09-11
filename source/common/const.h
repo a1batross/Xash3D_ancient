@@ -33,6 +33,29 @@
 #define CHAN_STREAM			5	// allocate stream channel from the static or dynamic area
 #define CHAN_STATIC			6	// allocate channel from the static area
 
+// global deatchmatch dmflags
+#define DF_NO_HEALTH		(1<<0)
+#define DF_NO_ITEMS			(1<<1)
+#define DF_WEAPONS_STAY		(1<<2)
+#define DF_NO_FALLING		(1<<3)
+#define DF_INSTANT_ITEMS		(1<<4)
+#define DF_SAME_LEVEL		(1<<5)
+#define DF_SKINTEAMS		(1<<6)
+#define DF_MODELTEAMS		(1<<7)
+#define DF_NO_FRIENDLY_FIRE		(1<<8)
+#define DF_SPAWN_FARTHEST		(1<<9)
+#define DF_FORCE_RESPAWN		(1<<10)
+#define DF_NO_ARMOR			(1<<11)
+#define DF_ALLOW_EXIT		(1<<12)
+#define DF_INFINITE_AMMO		(1<<13)
+#define DF_QUAD_DROP		(1<<14)
+#define DF_FIXED_FOV		(1<<15)
+#define DF_QUADFIRE_DROP		(1<<16)
+#define DF_NO_MINES			(1<<17)
+#define DF_NO_STACK_DOUBLE		(1<<18)
+#define DF_NO_NUKES			(1<<19)
+#define DF_NO_SPHERES		(1<<20)
+
 // common EDICT flags
 
 // pev->flags

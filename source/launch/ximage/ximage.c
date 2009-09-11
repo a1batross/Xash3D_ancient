@@ -4,4 +4,4 @@
 
 #include "../rundll.h"
 
-Run( ximage );
+Run32( ximage );

@@ -15,6 +15,7 @@ typedef struct physic_exp_s
 {
 	// interface validator
 	size_t	api_size;		// must matched with sizeof(physic_exp_t)
+	size_t	com_size;		// must matched with sizeof(stdlib_api_t)
 
 	// initialize
 	bool (*Init)( void );				// init all physic systems

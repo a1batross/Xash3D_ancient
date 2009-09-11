@@ -30,6 +30,7 @@ void CHud :: Init( void )
 	m_MOTD.Init();
 		
 	MsgFunc_ResetHUD( 0, 0, NULL );
+	CVAR_REGISTER( "cl_crosshair", "1", FCVAR_ARCHIVE, "show weapon chrosshair" );
 }
 
 CHud :: ~CHud( void )

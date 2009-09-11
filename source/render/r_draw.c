@@ -17,12 +17,10 @@ meshbuffer_t  pic_mbuffer;
 R_DrawSetColor
 ===============
 */
-void R_DrawSetColor( const void *data )
+void R_DrawSetColor( const rgba_t color )
 {
-	float *color = (float *)data;
-
 	if( color ) Vector4Copy( color, glState.draw_color );
-	else Vector4Set( glState.draw_color, 1.0f, 1.0f, 1.0f, 1.0f );
+	else Vector4Set( glState.draw_color, 255, 255, 255, 255 );
 }
 
 /*
@@ -42,8 +40,7 @@ void R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, f
 	// lower-left
 	Vector2Set( pic_xyz[0], x, y );
 	Vector2Set( pic_st[0], s1, t1 );
-	Vector4Set( pic_colors[0], R_FloatToByte( glState.draw_color[0] ), R_FloatToByte( glState.draw_color[1] ), 
-		R_FloatToByte( glState.draw_color[2] ), R_FloatToByte( glState.draw_color[3] ));
+	Vector4Copy( glState.draw_color, pic_colors[0] );
 	bcolor = *(int *)pic_colors[0];
 
 	// lower-right
@@ -195,9 +192,9 @@ void R_DrawSetParms( shader_t handle, kRenderMode_t rendermode, int frame )
 void R_DrawFill( float x, float y, float w, float h )
 {
 	pglDisable( GL_TEXTURE_2D );
-	pglColor4fv( glState.draw_color );
+	pglColor4ubv( glState.draw_color );
 
-	if( glState.draw_color[3] != 1.0f )
+	if( glState.draw_color[3] != 255 )
 		GL_SetState( GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 	else GL_SetState( GLSTATE_SRCBLEND_ONE|GLSTATE_DSTBLEND_ZERO );
 

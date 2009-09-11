@@ -20,9 +20,9 @@ launch_exp_t	*Host;	// callback to mainframe
 sys_event_t	event_que[MAX_QUED_EVENTS];
 int		event_head, event_tail;
 
-dll_info_t xtools_dll = { "xtools.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
-dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
-dll_info_t baserc_dll = { "baserc.dll", NULL, "CreateAPI", NULL, NULL, false, sizeof(baserc_exp_t)};
+dll_info_t xtools_dll = { "xtools.dll", NULL, "CreateAPI", NULL, NULL, 1, sizeof( launch_exp_t ), sizeof( stdlib_api_t ) };
+dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, 1, sizeof( launch_exp_t ), sizeof( stdlib_api_t ) };
+dll_info_t baserc_dll = { "baserc.dll", NULL, "CreateAPI", NULL, NULL, 0, sizeof( baserc_exp_t ), sizeof( stdlib_api_t ) };
 
 static const char *show_credits = "\n\n\n\n\tCopyright XashXT Group %s ©\n\t\
           All Rights Reserved\n\n\t           Visit www.xash.ru\n";
@@ -35,7 +35,8 @@ void NullPrint( const char *msg ) {}
 void Sys_GetStdAPI( void )
 {
 	// interface validator
-	com.api_size = sizeof(stdlib_api_t);
+	com.api_size = sizeof( stdlib_api_t );
+	com.com_size = sizeof( stdlib_api_t );
 
 	// base events
 	com.instance = Sys_NewInstance;
@@ -142,6 +143,7 @@ void Sys_GetStdAPI( void )
 	com.Cvar_SetLatched = Cvar_SetLatched;
 	com.Cvar_SetValue = Cvar_SetValue;
 	com.Cvar_SetString = Cvar_Set;
+	com.Cvar_GetInteger = Cvar_VariableInteger;
 	com.Cvar_GetValue = Cvar_VariableValue;
 	com.Cvar_GetString = Cvar_VariableString;
 	com.Cvar_LookupVars = Cvar_LookupVars;
@@ -199,6 +201,7 @@ void Sys_GetStdAPI( void )
 	com.Com_LoadLibrary = Sys_LoadLibrary;		// load library 
 	com.Com_FreeLibrary = Sys_FreeLibrary;		// free library
 	com.Com_GetProcAddress = Sys_GetProcAddress;	// gpa
+	com.Com_ShellExecute = Sys_ShellExecute;	// shell execute
 	com.Com_DoubleTime = Sys_DoubleTime;		// hi-res timer
 	com.Com_Milliseconds = Sys_Milliseconds;
 
@@ -269,7 +272,7 @@ void Sys_GetStdAPI( void )
 	com.st_clear = StringTable_ClearSystem;
 	com.st_remove = StringTable_DeleteSystem;
 
-	com.GameInfo = &GI;
+	com.SysInfo = &SI;
 }
 
 /*
@@ -392,7 +395,7 @@ void Sys_LookupInstance( void )
 		com_strcpy( Sys.caption, "Image Processing Tool" );
 	}
 	// share instance over all system
-	GI.instance = Sys.app_name;
+	SI.instance = Sys.app_name;
 }
 
 /*
@@ -724,19 +727,19 @@ create buffer, that contain clipboard
 */
 char *Sys_GetClipboardData( void )
 {
-	char *data = NULL;
-	char *cliptext;
+	char	*data = NULL;
+	char	*cliptext;
 
-	if ( OpenClipboard( NULL ) != 0 )
+	if( OpenClipboard( NULL ) != 0 )
 	{
 		HANDLE hClipboardData;
 
 		if(( hClipboardData = GetClipboardData( CF_TEXT )) != 0 )
 		{
-			if ( ( cliptext = GlobalLock( hClipboardData )) != 0 ) 
+			if(( cliptext = GlobalLock( hClipboardData )) != 0 ) 
 			{
 				data = Malloc( GlobalSize( hClipboardData ) + 1 );
-				com_strcpy( data, cliptext );
+				com.strcpy( data, cliptext );
 				GlobalUnlock( hClipboardData );
 			}
 		}
@@ -970,46 +973,46 @@ bool Sys_LoadLibrary ( dll_info_t *dll )
 	string		errorstring;
 
 	// check errors
-	if(!dll) return false;	// invalid desc
-	if(!dll->name) return false;	// nothing to load
-	if(dll->link) return true;	// already loaded
+	if( !dll ) return false;	// invalid desc
+	if( !dll->name ) return false;// nothing to load
+	if( dll->link ) return true;	// already loaded
 
-	MsgDev(D_NOTE, "Sys_LoadLibrary: Loading %s", dll->name );
+	MsgDev( D_NOTE, "Sys_LoadLibrary: Loading %s", dll->name );
 
-	if(dll->fcts) 
+	if( dll->fcts ) 
 	{
 		// lookup export table
-		for (func = dll->fcts; func && func->name != NULL; func++)
+		for( func = dll->fcts; func && func->name != NULL; func++ )
 			*func->func = NULL;
 	}
-	else if( dll->entry) native_lib = true;
+	else if( dll->entry ) native_lib = true;
 
-	if(!dll->link) dll->link = LoadLibrary ( va("bin/%s", dll->name));
-	if(!dll->link) dll->link = LoadLibrary ( dll->name ); // environment pathes
+	if( !dll->link ) dll->link = LoadLibrary ( va( "bin/%s", dll->name ));
+	if( !dll->link ) dll->link = LoadLibrary ( dll->name ); // environment pathes
 
-	// No DLL found
-	if (!dll->link) 
+	// no DLL found
+	if( !dll->link ) 
 	{
-		com_sprintf(errorstring, "Sys_LoadLibrary: couldn't load %s\n", dll->name );
+		com.sprintf( errorstring, "Sys_LoadLibrary: couldn't load %s\n", dll->name );
 		goto error;
 	}
 
-	if(native_lib)
+	if( native_lib )
 	{
-		if((dll->main = Sys_GetProcAddress(dll, dll->entry )) == 0)
+		if(( dll->main = Sys_GetProcAddress( dll, dll->entry )) == 0)
 		{
-			com_sprintf(errorstring, "Sys_LoadLibrary: %s has no valid entry point\n", dll->name );
+			com.sprintf( errorstring, "Sys_LoadLibrary: %s has no valid entry point\n", dll->name );
 			goto error;
 		}
 	}
 	else
 	{
 		// Get the function adresses
-		for(func = dll->fcts; func && func->name != NULL; func++)
+		for( func = dll->fcts; func && func->name != NULL; func++ )
 		{
-			if (!(*func->func = Sys_GetProcAddress(dll, func->name)))
+			if (!( *func->func = Sys_GetProcAddress( dll, func->name )))
 			{
-				com_sprintf(errorstring, "Sys_LoadLibrary: %s missing or invalid function (%s)\n", dll->name, func->name );
+				com.sprintf( errorstring, "Sys_LoadLibrary: %s missing or invalid function (%s)\n", dll->name, func->name );
 				goto error;
 			}
 		}
@@ -1020,33 +1023,38 @@ bool Sys_LoadLibrary ( dll_info_t *dll )
 		generic_api_t *check = NULL;
 
 		// NOTE: native dlls must support null import!
-		// e.g. see ..\common\platform.c for details
+		// e.g. see ..\engine\engine.c for details
 		check = (void *)dll->main( &com, NULL ); // first iface always stdlib_api_t
 
-		if(!check) 
+		if( !check ) 
 		{
-			com_sprintf(errorstring, "Sys_LoadLibrary: \"%s\" have no export\n", dll->name );
+			com.sprintf( errorstring, "Sys_LoadLibrary: \"%s\" have no export\n", dll->name );
 			goto error;
 		}
-		if(check->api_size != dll->api_size)
+		if( check->api_size != dll->api_size )
 		{
-			com_sprintf(errorstring, "Sys_LoadLibrary: \"%s\" mismatch interface size (%i should be %i)\n", dll->name, check->api_size, dll->api_size);
+			com.sprintf( errorstring, "Sys_LoadLibrary: \"%s\" mismatch interface size (%i should be %i)\n", dll->name, check->api_size, dll->api_size );
 			goto error;
 		}	
+		if( check->com_size != dll->com_size )
+		{
+			com.sprintf( errorstring, "Sys_LoadLibrary: \"%s\" mismatch stdlib api size (%i should be %i)\n", dll->name, check->com_size, dll->com_size);
+			goto error;
+		}
 	}
-          MsgDev(D_NOTE, " - ok\n");
+          MsgDev( D_NOTE, " - ok\n" );
 
 	return true;
 error:
-	MsgDev(D_NOTE, " - failed\n");
-	Sys_FreeLibrary ( dll ); // trying to free 
-	if(dll->crash) Sys_Error( errorstring );
+	MsgDev( D_NOTE, " - failed\n" );
+	Sys_FreeLibrary( dll ); // trying to free 
+	if( dll->crash ) Sys_Error( errorstring );
 	else MsgDev( D_ERROR, errorstring );			
 
 	return false;
 }
 
-void* Sys_GetProcAddress ( dll_info_t *dll, const char* name )
+void* Sys_GetProcAddress( dll_info_t *dll, const char* name )
 {
 	if(!dll || !dll->link) // invalid desc
 		return NULL;
@@ -1065,6 +1073,18 @@ bool Sys_FreeLibrary( dll_info_t *dll )
 	dll->link = NULL;
 
 	return true;
+}
+
+/*
+=================
+Sys_ShellExecute
+=================
+*/
+void Sys_ShellExecute( const char *path, const char *parms, bool exit )
+{
+	ShellExecute( NULL, "open", path, parms, NULL, SW_SHOW );
+
+	if( exit ) Sys_Exit();
 }
 
 byte *Sys_LoadRes( const char *filename, size_t *size )
@@ -1155,7 +1175,7 @@ void Sys_ThreadSetDefault( void )
 	if( numthreads == -1 ) // not set manually
 	{
 		// NOTE: we must init Plat_InitCPU() first
-		numthreads = GI.cpunum;
+		numthreads = SI.cpunum;
 		if( numthreads < 1 || numthreads > MAX_THREADS )
 			numthreads = 1;
 	}

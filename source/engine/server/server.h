@@ -248,7 +248,7 @@ typedef struct
 	double		timestart;		// just for profiling
 
 	char		mapname[CS_SIZE];		// current mapname 
-	char		comment[CS_SIZE];		// map name, e.t.c. 
+	string		comment;			// map name, e.t.c. 
 	int		spawncount;		// incremented each server start
 						// used to check late spawns
 	sv_client_t	*clients;			// [host_maxclients->integer]

@@ -262,16 +262,31 @@ SV_Save_f
 */
 void SV_Save_f( void )
 {
-	string	filename;
-
 	if( Cmd_Argc() != 2 )
 	{
 		Msg ("Usage: save <name>\n");
 		return;
 	}
+	SV_WriteSaveFile( Cmd_Argv( 1 ), false );
+}
 
-	com.snprintf( filename, MAX_STRING, "%s.bin", Cmd_Argv( 1 ));
-	SV_WriteSaveFile( filename, false );
+/*
+==============
+SV_Delete_f
+
+==============
+*/
+void SV_Delete_f( void )
+{
+	if( Cmd_Argc() != 2 )
+	{
+		Msg ("Usage: delete <name>\n");
+		return;
+	}
+
+	// delete save and saveshot
+	FS_Delete( va( "saves/%s.bin", Cmd_Argv( 1 )));
+	FS_Delete( va( "saves/%s.jpg", Cmd_Argv( 1 )));
 }
 
 /*
@@ -282,7 +297,7 @@ SV_AutoSave_f
 */
 void SV_AutoSave_f( void )
 {
-	SV_WriteSaveFile( "autosave.bin", true );
+	SV_WriteSaveFile( "autosave", true );
 }
 
 /*
@@ -325,7 +340,7 @@ void SV_ChangeLevel_f( void )
 			savedFree[i] = cl->edict->free;
 			cl->edict->free = true;
 		}
-		SV_WriteSaveFile( "autosave.bin", true );
+		SV_WriteSaveFile( "autosave", true );
 		// we must restore these for clients to transfer over correctly
 		for (i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++)
 			cl->edict->free = savedFree[i];
@@ -557,6 +572,7 @@ void SV_InitOperatorCommands( void )
 
 	Cmd_AddCommand( "save", SV_Save_f, "save the game to a file" );
 	Cmd_AddCommand( "load", SV_Load_f, "load a saved game file" );
+	Cmd_AddCommand( "delete", SV_Delete_f, "delete a saved game file and saveshot" );
 	Cmd_AddCommand( "autosave", SV_AutoSave_f, "save the game to 'autosave' file" );
 	Cmd_AddCommand( "killserver", SV_KillServer_f, "shutdown current server" );
 }
@@ -584,6 +600,7 @@ void SV_KillOperatorCommands( void )
 
 	Cmd_RemoveCommand( "save" );
 	Cmd_RemoveCommand( "load" );
+	Cmd_RemoveCommand( "delete" );
 	Cmd_RemoveCommand( "autosave" );
 	Cmd_RemoveCommand( "killserver" );
 }

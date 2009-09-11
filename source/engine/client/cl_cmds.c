@@ -147,7 +147,7 @@ void CL_ScreenShot_f( void )
 	}
 
 	Con_ClearNotify();
-	re->ScrShot( checkname, false );
+	re->ScrShot( checkname, VID_SCREENSHOT );
 }
 
 void CL_EnvShot_f( void )
@@ -194,8 +194,30 @@ void CL_LevelShot_f( void )
 	if( !cl.need_levelshot ) return;
 	// check for exist
 	com.sprintf( checkname, "levelshots/%s.jpg", cl.configstrings[CS_NAME] );
-	if( !FS_FileExists( checkname )) re->ScrShot( checkname, true );
+	if( !FS_FileExists( checkname )) re->ScrShot( checkname, VID_LEVELSHOT );
 	cl.need_levelshot = false; // done
+}
+
+/* 
+================== 
+CL_SaveShot_f
+
+mini-pic in loadgame menu
+================== 
+*/ 
+void CL_SaveShot_f( void )
+{
+	string	checkname;	
+
+	if( Cmd_Argc() < 2 )
+	{
+		Msg( "Usage: saveshot <savename>\n" );
+		return;
+	}
+
+	// check for exist
+	com.sprintf( checkname, "saves/%s.jpg", Cmd_Argv( 1 ));
+	if( !FS_FileExists( checkname )) re->ScrShot( checkname, VID_SAVESHOT );
 }
 
 /*

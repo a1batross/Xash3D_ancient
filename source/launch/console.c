@@ -30,8 +30,6 @@ typedef struct
 	HWND		hwndButtonSubmit;
 	HWND		hwndErrorBox;
 	HWND		hwndErrorText;
-	HBITMAP		hbmLogo;
-	HBITMAP		hbmClearBitmap;
 	HBRUSH		hbrEditBackground;
 	HBRUSH		hbrErrorBackground;
 	HFONT		hfBufferFont;
@@ -42,7 +40,7 @@ typedef struct
 	int		status;
 	int		windowWidth, windowHeight;
 	WNDPROC		SysInputLineWndProc;
-
+	size_t		outLen;
 } WinConData;
 static WinConData s_wcd;
 
@@ -197,18 +195,23 @@ Con_PrintW
 print into window console
 ================
 */
-void Con_PrintW(const char *pMsg)
+void Con_PrintW( const char *pMsg )
 {
+	size_t	len = com.strlen( pMsg );
+
 	// replace selection instead of appending if we're overflowing
-	if( com_strlen(pMsg) > 0x7fff )
+	s_wcd.outLen += len;
+	if( s_wcd.outLen >= 0x7fff )
 	{
 		SendMessage( s_wcd.hwndBuffer, EM_SETSEL, 0, -1 );
+		s_wcd.outLen = len;
 	} 
+
+	SendMessage( s_wcd.hwndBuffer, EM_REPLACESEL, 0, (LPARAM)pMsg );
 
 	// put this text into the windows console
 	SendMessage( s_wcd.hwndBuffer, EM_LINESCROLL, 0, 0xffff );
 	SendMessage( s_wcd.hwndBuffer, EM_SCROLLCARET, 0, 0 );
-	SendMessage( s_wcd.hwndBuffer, EM_REPLACESEL, 0, (LPARAM)pMsg );
 }
 
 

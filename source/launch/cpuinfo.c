@@ -493,8 +493,8 @@ void Sys_InitCPU( void )
 	double fFrequency = cpu.m_speed / 1000000.0;
 
 	// copy shared info
-	GI.cpufreq = (float)fFrequency;
-          GI.cpunum = cpu.m_usNumLogicCore;
+	SI.cpufreq = (float)fFrequency;
+          SI.cpunum = cpu.m_usNumLogicCore;
           
 	// Adjust to Ghz if nessecary:
 	if( fFrequency > 1000.0 )

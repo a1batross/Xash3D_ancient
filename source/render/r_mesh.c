@@ -755,10 +755,10 @@ Returns the on-screen scissor box for given bounding box in 3D-space.
 */
 bool R_ScissorForPortal( ref_entity_t *ent, vec3_t mins, vec3_t maxs, int *x, int *y, int *w, int *h )
 {
-	int i;
-	int ix1, iy1, ix2, iy2;
-	float x1, y1, x2, y2;
-	vec3_t v, bbox[8];
+	int	i;
+	int	ix1, iy1, ix2, iy2;
+	float	x1, y1, x2, y2;
+	vec3_t	v, bbox[8];
 
 	R_TransformEntityBBox( ent, mins, maxs, bbox, true );
 
@@ -771,28 +771,30 @@ bool R_ScissorForPortal( ref_entity_t *ent, vec3_t mins, vec3_t maxs, int *x, in
 		R_TransformToScreen_Vec3( corner, v );
 
 		if( v[2] < 0 || v[2] > 1 )
-		{                    // the test point is behind the nearclip plane
-			if( PlaneDiff( corner, &RI.frustum[0] ) < PlaneDiff( corner, &RI.frustum[1] ) )
+		{
+			// the test point is behind the nearclip plane
+			if( PlaneDiff( corner, &RI.frustum[0] ) < PlaneDiff( corner, &RI.frustum[1] ))
 				v[0] = 0;
-			else
-				v[0] = RI.refdef.viewport[2];
-			if( PlaneDiff( corner, &RI.frustum[2] ) < PlaneDiff( corner, &RI.frustum[3] ) )
+			else v[0] = RI.refdef.viewport[2];
+
+			if( PlaneDiff( corner, &RI.frustum[2] ) < PlaneDiff( corner, &RI.frustum[3] ))
 				v[1] = 0;
-			else
-				v[1] = RI.refdef.viewport[3];
+			else v[1] = RI.refdef.viewport[3];
 		}
 
-		x1 = min( x1, v[0] ); y1 = min( y1, v[1] );
-		x2 = max( x2, v[0] ); y2 = max( y2, v[1] );
+		x1 = min( x1, v[0] );
+		y1 = min( y1, v[1] );
+		x2 = max( x2, v[0] );
+		y2 = max( y2, v[1] );
 	}
 
-	ix1 = max( x1 - 1.0f, 0 ); ix2 = min( x2 + 1.0f, RI.refdef.viewport[2] );
-	if( ix1 >= ix2 )
-		return false; // FIXME
+	ix1 = max( x1 - 1.0f, 0 );
+	ix2 = min( x2 + 1.0f, RI.refdef.viewport[2] );
+	if( ix1 >= ix2 ) ix1 -= ix2; // return false; // FIXME
 
-	iy1 = max( y1 - 1.0f, 0 ); iy2 = min( y2 + 1.0f, RI.refdef.viewport[3] );
-	if( iy1 >= iy2 )
-		return false; // FIXME
+	iy1 = max( y1 - 1.0f, 0 );
+	iy2 = min( y2 + 1.0f, RI.refdef.viewport[3] );
+	if( iy1 >= iy2 ) iy1 -= iy2; // return false; // FIXME
 
 	*x = ix1;
 	*y = iy1;

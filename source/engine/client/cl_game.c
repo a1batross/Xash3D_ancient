@@ -134,29 +134,35 @@ int CL_GetMaxClients( void )
 
 /*
 ================
-CL_FadeColor
+CL_FadeAlpha
 ================
 */
-float *CL_FadeColor( float starttime, float endtime )
+void CL_FadeAlpha( float starttime, float endtime, rgba_t color )
 {
-	static vec4_t	color;
-	float		time, fade_time;
+	float	time, fade_time;
 
-	if( starttime == 0 ) return NULL;
-	time = host.realtime - starttime;
-	if( time >= endtime ) return NULL;
+	if( starttime == 0 )
+	{
+		MakeRGBA( color, 255, 255, 255, 255 );
+		return;
+	}
+	time = cls.realtime - starttime;
+	if( time >= endtime )
+	{
+		MakeRGBA( color, 255, 255, 255, 255 );
+		return;
+	}
 
 	// fade time is 1/4 of endtime
 	fade_time = endtime / 4;
 	fade_time = bound( 0.3f, fade_time, 10.0f );
 
-	// fade out
-	if((endtime - time) < fade_time)
-		color[3] = (endtime - time) * 1.0f / fade_time;
-	else color[3] = 1.0;
-	color[0] = color[1] = color[2] = 1.0f;
+	color[0] = color[1] = color[2] = 255;
 
-	return color;
+	// fade out
+	if(( endtime - time ) < fade_time )
+		color[3] = bound( 0, ((endtime - time) * 1.0f / fade_time) * 255, 255 );
+	else color[3] = 255;
 }
 
 void CL_DrawHUD( int state )
@@ -443,11 +449,14 @@ pfnFillRGBA
 
 =============
 */
-void pfnFillRGBA( int x, int y, int width, int height, const float *color, float alpha )
+void pfnFillRGBA( int x, int y, int width, int height, byte r, byte g, byte b, byte alpha )
 {
+	rgba_t	color;
+
 	if( !re ) return;
 
-	re->SetColor( GetRGBA( color[0], color[1], color[2], alpha ));
+	MakeRGBA( color, r, g, b, alpha );
+	re->SetColor( color );
 	re->DrawFill( x, y, width, height );
 	re->SetColor( NULL );
 }
@@ -472,10 +481,13 @@ pfnSetColor
 
 =============
 */
-void pfnSetColor( float r, float g, float b, float a )
+void pfnSetColor( byte r, byte g, byte b, byte a )
 {
+	rgba_t	color;
+
 	if( !re ) return; // render not initialized
-	re->SetColor( GetRGBA( r, g, b, a ));
+	MakeRGBA( color, r, g, b, a );
+	re->SetColor( color );
 }
 
 /*
@@ -711,11 +723,12 @@ void pfnDrawCenterPrint( void )
 {
 	char	*start;
 	int	l, x, y, w;
-	float	*color;
+	rgba_t	color;
 
 	if( !cl.centerPrintTime ) return;
-	color = CL_FadeColor( cl.centerPrintTime, scr_centertime->value );
-	if( !color ) 
+	CL_FadeAlpha( cl.centerPrintTime, scr_centertime->value, color );
+
+	if( *( int *)color == 0xFFFFFFFF ) 
 	{
 		cl.centerPrintTime = 0;
 		return;

@@ -62,9 +62,9 @@ typedef struct cl_enginefuncs_s
 
 	// screen handlers
 	HSPRITE	(*pfnLoadShader)( const char *szShaderName, int fShaderNoMip );
-	void	(*pfnFillRGBA)( int x, int y, int width, int height, const float *color, float alpha );
+	void	(*pfnFillRGBA)( int x, int y, int width, int height, byte r, byte g, byte b, byte alpha );
 	void	(*pfnDrawImageExt)( HSPRITE shader, float x, float y, float w, float h, float s1, float t1, float s2, float t2 );
-	void	(*pfnSetColor)( float r, float g, float b, float a );
+	void	(*pfnSetColor)( byte r, byte g, byte b, byte a );
 
 	// cvar handlers
 	cvar_t*	(*pfnRegisterVariable)( const char *szName, const char *szValue, int flags, const char *szDesc );

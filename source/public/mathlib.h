@@ -76,6 +76,7 @@
 #define BoxInsideBox(a,b,c,d) ((a)[0] >= (c)[0] && (b)[0] <= (d)[0] && (a)[1] >= (c)[1] && (b)[1] <= (d)[1] && (a)[2] >= (c)[2] && (b)[2] <= (d)[2])
 #define TriangleOverlapsBox( a, b, c, d, e ) (min((a)[0], min((b)[0], (c)[0])) < (e)[0] && max((a)[0], max((b)[0], (c)[0])) > (d)[0] && min((a)[1], min((b)[1], (c)[1])) < (e)[1] && max((a)[1], max((b)[1], (c)[1])) > (d)[1] && min((a)[2], min((b)[2], (c)[2])) < (e)[2] && max((a)[2], max((b)[2], (c)[2])) > (d)[2])
 #define TriangleNormal( a, b, c, n) ((n)[0] = ((a)[1] - (b)[1]) * ((c)[2] - (b)[2]) - ((a)[2] - (b)[2]) * ((c)[1] - (b)[1]), (n)[1] = ((a)[2] - (b)[2]) * ((c)[0] - (b)[0]) - ((a)[0] - (b)[0]) * ((c)[2] - (b)[2]), (n)[2] = ((a)[0] - (b)[0]) * ((c)[1] - (b)[1]) - ((a)[1] - (b)[1]) * ((c)[0] - (b)[0]))
+#define MakeRGBA( out, x, y, z, w ) Vector4Set( out, x, y, z, w )
 _inline float anglemod(const float a){ return(360.0/65536) * ((int)(a*(65536/360.0)) & 65535); }
 
 // NOTE: this code contain bug, what may invoked infinity loop
@@ -495,52 +496,6 @@ _inline void QuaternionSlerp( vec4_t p, vec4_t q, float t, vec4_t qt )
 			qt[i] = sclp * p[i] + sclq * qt[i];
 		}
 	}
-}
-
-_inline float *GetRGBA( float r, float g, float b, float a )
-{
-	static vec4_t	color;
-
-	Vector4Set( color, r, g, b, a );
-	return color;
-}
-
-_inline dword MakeRGBA( byte red, byte green, byte blue, byte alpha )
-{
-	byte	rgba[4];
-
-	rgba[0] = red;
-	rgba[1] = green;
-	rgba[2] = blue;
-	rgba[3] = alpha;
-
-	return (rgba[3] << 24) | (rgba[2] << 16) | (rgba[1] << 8) | rgba[0];
-}
-
-_inline dword PackRGBA( float red, float green, float blue, float alpha )
-{
-	byte	rgba[4];
-	
-	rgba[0] = bound( 0, 255 * red, 255 );
-	rgba[1] = bound( 0, 255 * green, 255 );
-	rgba[2] = bound( 0, 255 * blue, 255 );
-
-	if( alpha > 0.0f ) rgba[3] = bound( 0, 255 * alpha, 255 );
-	else rgba[3] = 0xFF; // fullbright
-
-	return (rgba[3] << 24) | (rgba[2] << 16) | (rgba[1] << 8) | rgba[0];
-}
-
-_inline float *UnpackRGBA( dword icolor )
-{
-	static vec4_t	color;
-
-	color[0] = ((icolor & 0x000000FF) >> 0 ) / 255.0f;
-	color[1] = ((icolor & 0x0000FF00) >> 8 ) / 255.0f;
-	color[2] = ((icolor & 0x00FF0000) >> 16) / 255.0f;
-	color[3] = ((icolor & 0xFF000000) >> 24) / 255.0f;
-
-	return color;
 }
 
 /*
