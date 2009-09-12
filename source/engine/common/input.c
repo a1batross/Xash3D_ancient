@@ -250,6 +250,8 @@ Called every frame, even if not generating commands
 */
 void IN_Frame( void )
 {
+	bool	shutdownMouse = false;
+
 	// if at a full screen console, don't update unless needed
 	if( host.state != HOST_FRAME || host.type == HOST_DEDICATED )
 		Sys_Sleep( 20 );
@@ -262,13 +264,19 @@ void IN_Frame( void )
 		return;
 	}
 
-	if((!cl.video_prepped && cls.key_dest != key_menu) || cls.key_dest == key_console || cl_paused->integer )
+	if( !cl.video_prepped && cls.key_dest != key_menu )
+		shutdownMouse = true; // release mouse during vid_restart
+	
+	if( cls.key_dest == key_console )
+		shutdownMouse = true; // release mouse when console is drawing
+
+	if( cl_paused->integer && cls.key_dest != key_menu )
+		shutdownMouse = true; // release mouse when game pause but menu
+
+	if( shutdownMouse && !Cvar_VariableInteger( "fullscreen" ))
 	{
-		if( !Cvar_VariableValue( "fullscreen" ))
-		{
-			IN_DeactivateMouse();
-			return;
-		}
+		IN_DeactivateMouse();
+		return;
 	}
 
 	IN_ActivateMouse();

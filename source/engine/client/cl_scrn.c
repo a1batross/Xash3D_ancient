@@ -265,9 +265,10 @@ bool SCR_PlayCinematic( char *name, int bits )
 	FS_DefaultExtension( path, ".dpv" );
 
 	S_StopAllSounds();
+	UI_SetActiveMenu( UI_CLOSEMENU );
 	//S_StartStreaming();
 
-	if(CIN_PlayCinematic( path ))
+	if( CIN_PlayCinematic( path ))
 	{
 		SCR_RunCinematic(); // load first frame
 		return true;

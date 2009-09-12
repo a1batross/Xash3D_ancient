@@ -71,6 +71,7 @@ Con_ToggleConsole_f
 void Con_ToggleConsole_f( void )
 {
 	if( !host.developer ) return;
+	if(UI_CreditsActive()) return;
 
 	Field_Clear( &g_consoleField );
 	g_consoleField.widthInChars = g_console_field_width;
@@ -79,17 +80,12 @@ void Con_ToggleConsole_f( void )
 
 	if( cls.key_dest == key_console )
 	{
-		if( cls.state == ca_disconnected )
-		{
-			// because console show as fullscreen when cleint is not connected
-			UI_SetActiveMenu( UI_MAINMENU );
-			cls.key_dest = key_menu;
-		}
+		UI_SetActiveMenu( UI_CLOSEMENU );
+		cls.key_dest = key_game;
 	}
 	else
 	{
-		if( cls.state == ca_disconnected )
-			UI_SetActiveMenu( UI_CLOSEMENU );
+		UI_SetActiveMenu( UI_CLOSEMENU );
 		cls.key_dest = key_console;	
 
 		if( com.atoi(cl.configstrings[CS_MAXCLIENTS]) == 1 && Host_ServerState())

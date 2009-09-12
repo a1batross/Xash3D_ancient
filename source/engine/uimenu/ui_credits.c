@@ -115,7 +115,7 @@ static void UI_Credits_DrawFunc( void )
 	int		i, y;
 	int		w = BIGCHAR_WIDTH;
 	int		h = BIGCHAR_HEIGHT;
-	rgba_t		color;
+	rgba_t		color = { 0, 0, 0, 0 };
 
 	// draw the background first
 	UI_DrawPic( 0, 0, 1024 * uiStatic.scaleX, 768 * uiStatic.scaleY, uiColorWhite, ART_BACKGROUND );
@@ -135,13 +135,16 @@ static void UI_Credits_DrawFunc( void )
 		{
 			if( !uiCredits.fadeTime ) uiCredits.fadeTime = uiStatic.realTime;
 			CL_FadeAlpha( uiCredits.fadeTime, uiCredits.showTime, color );
-			if(*( int *)color != 0xFFFFFFFF )
-				UI_DrawString( 0, (scr_height->integer - h) / 2, 1024 * uiStatic.scaleX, h, uiCredits.credits[i], color, true, w, h, 1, true );
+			if( color[3] ) UI_DrawString( 0, (scr_height->integer - h) / 2, 1024 * uiStatic.scaleX, h, uiCredits.credits[i], color, true, w, h, 1, true );
 		}
 		else UI_DrawString( 0, y, 1024 * uiStatic.scaleX, h, uiCredits.credits[i], uiColorWhite, false, w, h, 1, true );
 	}
 
-	if( y < 0 && !color ) uiCredits.active = false; // end of credits
+	if( y < 0 && !color[3] )
+	{
+		uiCredits.active = false; // end of credits
+		Cbuf_ExecuteText( EXEC_APPEND, "quit\n" );
+	}
 }
 
 /*

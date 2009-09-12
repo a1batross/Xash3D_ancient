@@ -149,7 +149,7 @@ void CL_FadeAlpha( float starttime, float endtime, rgba_t color )
 	time = cls.realtime - starttime;
 	if( time >= endtime )
 	{
-		MakeRGBA( color, 255, 255, 255, 255 );
+		MakeRGBA( color, 255, 255, 255, 0 );
 		return;
 	}
 

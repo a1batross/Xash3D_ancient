@@ -822,7 +822,7 @@ void Key_SetBinding( int keynum, char *binding )
 	if( keynum == -1 ) return;
 
 	// free old bindings
-	if( keys[ keynum ].binding )
+	if( keys[keynum].binding )
 	{
 		Mem_Free( keys[keynum].binding );
 		keys[keynum].binding = NULL;
@@ -840,9 +840,9 @@ Key_GetBinding
 */
 char *Key_GetBinding( int keynum )
 {
-	if ( keynum == -1 )
+	if( keynum == -1 )
 		return "";
-	return keys[ keynum ].binding;
+	return keys[keynum].binding;
 }
 
 /* 
@@ -1101,9 +1101,18 @@ void Key_Event( int key, bool down )
 			Key_Message( key );
 			return;
 		case key_game:
-		case key_console:
-			UI_SetActiveMenu( UI_MAINMENU );
+			if( cls.state == ca_cinematic )
+				SCR_StopCinematic();
+			else if( cls.state == ca_active )
+				UI_SetActiveMenu( UI_INGAMEMENU );
+			else UI_SetActiveMenu( UI_MAINMENU );
+			cls.key_dest = key_menu;
 			return;
+		case key_console:
+			if( cls.state == ca_active )
+				cls.key_dest = key_game;
+			else UI_SetActiveMenu( UI_MAINMENU );
+			break;
 		case key_menu:
 			UI_KeyEvent( key );
 			return;

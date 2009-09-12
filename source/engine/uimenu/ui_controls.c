@@ -63,46 +63,46 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ID_ZOOMVIEW			19
 
 
-#define ID_ALWAYSRUN		21
-#define ID_RUN			22
-#define ID_FORWARD			23
-#define ID_BACKWARD			24
-#define ID_STEPLEFT			25
-#define ID_STEPRIGHT		26
-#define ID_JUMP			27
-#define ID_CROUCH			28
-#define ID_LEFT			29
-#define ID_RIGHT			30
-#define ID_SIDESTEP			31
+#define ID_ALWAYSRUN		20
+#define ID_RUN			21
+#define ID_FORWARD			22
+#define ID_BACKWARD			23
+#define ID_STEPLEFT			24
+#define ID_STEPRIGHT		25
+#define ID_JUMP			26
+#define ID_CROUCH			27
+#define ID_LEFT			28
+#define ID_RIGHT			39
+#define ID_SIDESTEP			30
 
-#define ID_ATTACK			32
-#define ID_NEXTWEAP			33
-#define ID_PREVWEAP			34
-#define ID_BLASTER			35
-#define ID_SHOTGUN			36
-#define ID_SUPERSHOTGUN		37
-#define ID_MACHINEGUN		38
-#define ID_CHAINGUN			39
-#define ID_GRENADELAUNCHER		40
-#define ID_ROCKETLAUNCHER		41
-#define ID_HYPERBLASTER		42
-#define ID_RAILGUN			43
-#define ID_BFG			44
+#define ID_ATTACK			31
+#define ID_NEXTWEAP			32
+#define ID_PREVWEAP			33
+#define ID_BLASTER			34
+#define ID_SHOTGUN			35
+#define ID_SUPERSHOTGUN		36
+#define ID_MACHINEGUN		37
+#define ID_CHAINGUN			38
+#define ID_GRENADELAUNCHER		39
+#define ID_ROCKETLAUNCHER		40
+#define ID_HYPERBLASTER		41
+#define ID_RAILGUN			42
+#define ID_BFG			43
 
-#define ID_SHOWSCORES		45
-#define ID_USEITEM			46
-#define ID_NEXTITEM			47
-#define ID_PREVITEM			48
-#define ID_DROPITEM			49
-#define ID_FIELDCOMPUTER		50
-#define ID_INVENTORY		51
-#define ID_FLIPOFF			52
-#define ID_SALUTE			53
-#define ID_TAUNT			54
-#define ID_WAVE			55
-#define ID_POINT			56
-#define ID_CHAT			57
-#define ID_CHATTEAM			58
+#define ID_SHOWSCORES		44
+#define ID_USEITEM			45
+#define ID_NEXTITEM			46
+#define ID_PREVITEM			47
+#define ID_DROPITEM			48
+#define ID_FIELDCOMPUTER		49
+#define ID_INVENTORY		50
+#define ID_FLIPOFF			51
+#define ID_SALUTE			52
+#define ID_TAUNT			53
+#define ID_WAVE			54
+#define ID_POINT			55
+#define ID_CHAT			56
+#define ID_CHATTEAM			57
 
 static const char	*uiControlsYesNo[] = { "False", "True" };
 static const char	*uiControlsMouseAccel[] = { "None", "Low", "Medium", "High" };
@@ -276,7 +276,7 @@ static void UI_Controls_GetKeyBindings( char *command, int *twoKeys )
 	for( i = 0; i < 256; i++ )
 	{
 		b = Key_GetBinding( i );
-		if( !b[0] ) continue;
+		if( !b ) continue;
 
 		if( !com.stricmp( command, b ))
 		{
@@ -368,7 +368,7 @@ static void UI_Controls_UpdateConfig( void )
 	if( uiControls.waitingForKey )
 	{
 		// disable all controls
-		for( i = 6; i <= 58; i++ )
+		for( i = 6; i <= 57; i++ )
 			((menuCommon_s *)menu->items[i])->flags |= QMF_GRAYED;
 
 		// enable current control
@@ -377,7 +377,7 @@ static void UI_Controls_UpdateConfig( void )
 	}
 
 	// enable all controls
-	for( i = 6; i <= 58; i++ )
+	for( i = 6; i <= 57; i++ )
 		((menuCommon_s *)menu->items[i])->flags &= ~QMF_GRAYED;
 
 	com.snprintf( sensitivityText, sizeof(sensitivityText), "%i", (int)uiControls.mouseSpeed.curValue );
@@ -389,7 +389,7 @@ static void UI_Controls_UpdateConfig( void )
 	uiControls.alwaysRun.generic.name = uiControlsYesNo[(int)uiControls.alwaysRun.curValue];
 
 	// hide all controls
-	for( i = 11; i <= 58; i++ )
+	for( i = 11; i <= 57; i++ )
 		((menuCommon_s *)menu->items[i])->flags |= QMF_HIDDEN;
 
 	// Show the appropriate pics and controls for this section
@@ -428,7 +428,7 @@ static void UI_Controls_UpdateConfig( void )
 		uiControls.text1.pic = ART_TEXT_MISC;
 		uiControls.text2.pic = ART_TEXT_MISC2;
 
-		for( i = 45; i <= 58; i++ )
+		for( i = 45; i <= 57; i++ )
 			((menuCommon_s *)menu->items[i])->flags &= ~QMF_HIDDEN;
 		break;
 	}

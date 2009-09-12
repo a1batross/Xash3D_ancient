@@ -633,6 +633,7 @@ void UI_KeyEvent( int key );
 void UI_MouseMove( int x, int y );
 void UI_SetActiveMenu( uiActiveMenu_t activeMenu );
 void UI_AddServerToList( netadr_t adr, const char *info );
+bool UI_CreditsActive( void );
 bool UI_IsVisible( void );
 void UI_Precache( void );
 void UI_Init( void );

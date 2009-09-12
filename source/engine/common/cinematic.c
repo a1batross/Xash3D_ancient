@@ -634,6 +634,9 @@ void CIN_StopCinematic( void )
 		cin_state = cin_firstframe;
 		cls.state = ca_disconnected;
 	}
+
+	if( cls.state == ca_disconnected )
+		UI_SetActiveMenu( UI_MAINMENU );
 }
 
 /*

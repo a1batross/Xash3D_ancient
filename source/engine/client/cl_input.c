@@ -77,7 +77,12 @@ void CL_MouseMove( usercmd_t *cmd )
 
 	rate = com.sqrt( mx * mx + my * my ) / 0.5f;
 
-	if( cls.key_dest != key_menu )
+	if( UI_IsVisible( ))
+	{
+		// if the menu is visible, move the menu cursor
+		UI_MouseMove( mx, my );
+	}
+	else if( cls.key_dest != key_menu )
 	{
 		if( cl.frame.ps.health <= 0 ) return;
 		if( cl.mouse_sens == 0.0f ) cl.mouse_sens = 1.0f;
@@ -95,11 +100,6 @@ void CL_MouseMove( usercmd_t *cmd )
 
 		if( cl_mouselook->value ) cl.viewangles[PITCH] += m_pitch->value * my;
 		else if( in_strafe.state & 1 ) cmd->forwardmove = cmd->forwardmove - m_forward->value * my;
-	}
-	else if( UI_IsVisible( ))
-	{
-		// if the menu is visible, move the menu cursor
-		UI_MouseMove( mx, my );
 	}
 }
 

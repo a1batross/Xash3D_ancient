@@ -783,7 +783,7 @@ void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 	{
 		if( cls.state == ca_connected )
 		{
-			Msg ("Dup connect received.  Ignored.\n");
+			MsgDev( D_INFO, "dup connect received. ignored\n");
 			return;
 		}
 		Netchan_Setup( NS_CLIENT, &cls.netchan, from, Cvar_VariableValue( "net_qport" ));
