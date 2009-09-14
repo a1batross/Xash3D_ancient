@@ -6,6 +6,7 @@
 #define CLGAME_API_H
 
 typedef int		HSPRITE;					// handle to a graphic
+typedef struct usercmd_s	usercmd_t;
 typedef struct cparticle_s	cparticle_t;
 typedef struct ref_params_s	ref_params_t;
 typedef struct dstudioevent_s	dstudioevent_t;
@@ -158,7 +159,9 @@ typedef struct
 	void	(*pfnDrawTransparentTriangles)( void );
 	void	(*pfnCreateEntities)( void );
 	void	(*pfnStudioEvent)( const dstudioevent_t *event, edict_t *entity );
-	void	(*pfnCalcRefdef)( struct ref_params_s *parms );
+	void	(*pfnCalcRefdef)( ref_params_t *parms );
+	void	(*pfnStartPitchDrift)( void );
+	void	(*pfnStopPitchDrift)( void );
 } HUD_FUNCTIONS;
 
 typedef int (*CLIENTAPI)( HUD_FUNCTIONS *pFunctionTable, cl_enginefuncs_t* pEngfuncsFromEngine );

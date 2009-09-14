@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client.h"
 #include "byteorder.h"
 
-cvar_t	*freelook;
 cvar_t	*rcon_client_password;
 cvar_t	*rcon_address;
 
@@ -41,16 +40,6 @@ cvar_t	*cl_showmiss;
 cvar_t	*cl_showclamp;
 cvar_t	*cl_mouselook;
 cvar_t	*cl_paused;
-
-cvar_t	*lookspring;
-cvar_t	*lookstrafe;
-
-cvar_t	*m_pitch;
-cvar_t	*m_yaw;
-cvar_t	*m_forward;
-cvar_t	*m_side;
-
-cvar_t	*cl_lightlevel;
 
 //
 // userinfo
@@ -1084,48 +1073,36 @@ void CL_InitLocal( void )
 	CL_InitInput();
 
 	// register our variables
-	cl_footsteps = Cvar_Get ("cl_footsteps", "1", 0, "disables player footsteps" );
-	cl_predict = Cvar_Get ("cl_predict", "1", CVAR_ARCHIVE, "disables client movement prediction" );
-	cl_maxfps = Cvar_Get ("cl_maxfps", "1000", 0, "maximum client fps" );
+	cl_footsteps = Cvar_Get( "cl_footsteps", "1", 0, "disables player footsteps" );
+	cl_predict = Cvar_Get( "cl_predict", "1", CVAR_ARCHIVE, "disables client movement prediction" );
+	cl_maxfps = Cvar_Get( "cl_maxfps", "1000", 0, "maximum client fps" );
 	cl_particles = Cvar_Get( "cl_particles", "1", CVAR_ARCHIVE, "disables particle effects" );
 	cl_particlelod = Cvar_Get( "cl_lod_particle", "0", CVAR_ARCHIVE, "enables particle LOD (1, 2, 3)" );
 
-	cl_upspeed = Cvar_Get ("cl_upspeed", "200", 0, "client upspeed limit" );
-	cl_forwardspeed = Cvar_Get ("cl_forwardspeed", "200", 0, "client forward speed limit" );
-	cl_sidespeed = Cvar_Get ("cl_sidespeed", "200", 0, "client side-speed limit" );
-	cl_yawspeed = Cvar_Get ("cl_yawspeed", "140", 0, "client yaw speed" );
-	cl_pitchspeed = Cvar_Get ("cl_pitchspeed", "150", 0, "client pitch speed" );
-	cl_anglespeedkey = Cvar_Get ("cl_anglespeedkey", "1.5", 0, "client anglespeed" );
+	cl_upspeed = Cvar_Get( "cl_upspeed", "200", 0, "client upspeed limit" );
+	cl_forwardspeed = Cvar_Get( "cl_forwardspeed", "200", 0, "client forward speed limit" );
+	cl_backspeed = Cvar_Get( "cl_backspeed", "200", 0, "client bask speed limit" );
+	cl_sidespeed = Cvar_Get( "cl_sidespeed", "200", 0, "client side-speed limit" );
+	cl_yawspeed = Cvar_Get( "cl_yawspeed", "140", 0, "client yaw speed" );
+	cl_pitchspeed = Cvar_Get( "cl_pitchspeed", "150", 0, "client pitch speed" );
+	cl_anglespeedkey = Cvar_Get( "cl_anglespeedkey", "1.5", 0, "client anglespeed" );
+	cl_run = Cvar_Get( "cl_run", "0", CVAR_ARCHIVE, "keep client for always run mode" );
 
-	cl_run = Cvar_Get ("cl_run", "0", CVAR_ARCHIVE, "keep client for always run mode" );
-	cl_mouselook = Cvar_Get( "cl_mouselook", "1", CVAR_ARCHIVE, "enables mouse look" );
-	lookspring = Cvar_Get ("lookspring", "0", CVAR_ARCHIVE, "allow look spring" );
-	lookstrafe = Cvar_Get ("lookstrafe", "0", CVAR_ARCHIVE, "allow look strafe" );
+	cl_shownet = Cvar_Get( "cl_shownet", "0", 0, "client show network packets" );
+	cl_showmiss = Cvar_Get( "cl_showmiss", "0", 0, "client show network errors" );
+	cl_showclamp = Cvar_Get( "cl_showclamp", "0", CVAR_ARCHIVE, "show client clamping" );
+	cl_timeout = Cvar_Get( "cl_timeout", "120", 0, "connect timeout (in-seconds)" );
 
-	m_pitch = Cvar_Get ("m_pitch", "0.022", CVAR_ARCHIVE, "mouse pitch value" );
-	m_yaw = Cvar_Get ("m_yaw", "0.022", 0, "mouse yaw value" );
-	m_forward = Cvar_Get ("m_forward", "1", 0, "mouse forward speed" );
-	m_side = Cvar_Get ("m_side", "1", 0, "mouse side speed" );
+	rcon_client_password = Cvar_Get( "rcon_password", "", 0, "remote control client password" );
+	rcon_address = Cvar_Get( "rcon_address", "", 0, "remote control address" );
 
-	cl_shownet = Cvar_Get ("cl_shownet", "0", 0, "client show network packets" );
-	cl_showmiss = Cvar_Get ("cl_showmiss", "0", 0, "client show network errors" );
-	cl_showclamp = Cvar_Get ("cl_showclamp", "0", CVAR_ARCHIVE, "show client clamping" );
-	cl_timeout = Cvar_Get ("cl_timeout", "120", 0, "connect timeout (in-seconds)" );
-
-	rcon_client_password = Cvar_Get ("rcon_password", "", 0, "remote control client password" );
-	rcon_address = Cvar_Get ("rcon_address", "", 0, "remote control address" );
-
-	cl_lightlevel = Cvar_Get ("r_lightlevel", "0", 0, "no description" );
-
-	//
 	// userinfo
-	//
-	info_password = Cvar_Get ("password", "", CVAR_USERINFO, "player password" );
-	info_spectator = Cvar_Get ("spectator", "0", CVAR_USERINFO, "spectator mode" );
-	name = Cvar_Get ("name", "unnamed", CVAR_USERINFO | CVAR_ARCHIVE, "player name" );
-	rate = Cvar_Get ("rate", "25000", CVAR_USERINFO | CVAR_ARCHIVE, "player network rate" );	// FIXME
-	fov = Cvar_Get ("fov", "90", CVAR_USERINFO | CVAR_ARCHIVE, "client fov" );
-	cl_showfps = Cvar_Get ("cl_showfps", "1", CVAR_ARCHIVE, "show client fps" );
+	info_password = Cvar_Get( "password", "", CVAR_USERINFO, "player password" );
+	info_spectator = Cvar_Get( "spectator", "0", CVAR_USERINFO, "spectator mode" );
+	name = Cvar_Get( "name", "unnamed", CVAR_USERINFO | CVAR_ARCHIVE, "player name" );
+	rate = Cvar_Get( "rate", "25000", CVAR_USERINFO | CVAR_ARCHIVE, "player network rate" );	// FIXME
+	fov = Cvar_Get( "fov", "90", CVAR_USERINFO | CVAR_ARCHIVE, "client fov" );
+	cl_showfps = Cvar_Get( "cl_showfps", "1", CVAR_ARCHIVE, "show client fps" );
 
 	// register our commands
 	Cmd_AddCommand ("cmd", CL_ForwardToServer_f, "send a console commandline to the server" );

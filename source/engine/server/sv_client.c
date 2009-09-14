@@ -7,6 +7,8 @@
 #include "const.h"
 #include "server.h"
 
+#define MAX_FORWARD		6
+
 typedef struct ucmd_s
 {
 	const char	*name;
@@ -466,17 +468,6 @@ void SV_RemoteCommand( netadr_t from, sizebuf_t *msg )
 		Cmd_ExecuteString( remaining );
 	}
 	SV_EndRedirect();
-}
-
-void SV_SetAngle( edict_t *ent, const float *rgflAngles )
-{
-	if( !ent || !ent->pvServerData || !ent->pvServerData->client ) return;
-
-	MSG_Begin( svc_setangle );
-	MSG_WriteAngle32( &sv.multicast, rgflAngles[0] );
-	MSG_WriteAngle32( &sv.multicast, rgflAngles[1] );
-	MSG_WriteAngle32( &sv.multicast, rgflAngles[2] );
-	MSG_Send( MSG_ONE_R, vec3_origin, ent );
 }
 
 /*
@@ -1012,9 +1003,7 @@ void SV_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 
 void SV_ApplyClientMove( sv_client_t *cl, usercmd_t *cmd )
 {
-	int		i;
-	float		temp, pitch;
-	edict_t		*ent = cl->edict;
+	edict_t	*ent = cl->edict;
 
 	ent->v.button = cmd->buttons; // initialize buttons
 	if( cmd->upmove < 0 ) ent->v.button |= IN_DUCK;
@@ -1024,21 +1013,7 @@ void SV_ApplyClientMove( sv_client_t *cl, usercmd_t *cmd )
 	if( cmd->forwardmove > 0 ) ent->v.button |= IN_FORWARD;
 	if( cmd->forwardmove < 0 ) ent->v.button |= IN_BACK;
 
-	// circularly clamp the angles with deltas
-	for( i = 0; i < 3; i++ )
-	{
-		temp = cmd->angles[i] + ent->pvServerData->s.delta_angles[i];
-		ent->v.viewangles[i] = temp;
-	}
-
-	pitch = ent->pvServerData->s.delta_angles[PITCH];
-	if( pitch > 180 ) pitch -= 360;
-
-	// don't let the player look up or down more than 90 degrees
-	if( ent->v.viewangles[PITCH] + pitch < -360 ) ent->v.viewangles[PITCH] += 360; // wrapped
-	if( ent->v.viewangles[PITCH] + pitch > 360 ) ent->v.viewangles[PITCH] -= 360; // wrapped
-	if( ent->v.viewangles[PITCH] + pitch > 89 ) ent->v.viewangles[PITCH] = 89 - pitch;
-	if( ent->v.viewangles[PITCH] + pitch < -89 ) ent->v.viewangles[PITCH] = -89 - pitch;
+	VectorCopy( cmd->angles, ent->v.viewangles );
 
 	if( ent->v.flags & FL_DUCKING && ent->v.flags & FL_ONGROUND )
 	{
@@ -1123,6 +1098,72 @@ float SV_CalcRoll( vec3_t angles, vec3_t velocity )
 
 	return side*sign;
 
+}
+
+/*
+===============
+SV_SetIdealPitch
+===============
+*/
+void SV_SetIdealPitch( sv_client_t *cl )
+{
+	float	angleval, sinval, cosval;
+	trace_t	tr;
+	vec3_t	top, bottom;
+	float	z[MAX_FORWARD];
+	int	i, j;
+	int	step, dir, steps;
+	edict_t	*ent = cl->edict;
+
+	if( !( ent->v.flags & FL_ONGROUND ))
+		return;
+		
+	angleval = ent->v.angles[YAW] * M_PI * 2 / 360;
+	com.sincos( angleval, &sinval, &cosval );
+
+	for( i = 0; i < MAX_FORWARD; i++ )
+	{
+		top[0] = ent->v.origin[0] + cosval * (i + 3) * 12;
+		top[1] = ent->v.origin[1] + sinval * (i + 3) * 12;
+		top[2] = ent->v.origin[2] + ent->v.view_ofs[2];
+		
+		bottom[0] = top[0];
+		bottom[1] = top[1];
+		bottom[2] = top[2] - 160;
+		
+		tr = SV_Trace( top, vec3_origin, vec3_origin, bottom, MOVE_NOMONSTERS, ent, SV_ContentsMask( ent ));
+		if( tr.allsolid )
+			return;	// looking at a wall, leave ideal the way is was
+
+		if( tr.fraction == 1 )
+			return;	// near a dropoff
+		
+		z[i] = top[2] + tr.fraction * (bottom[2] - top[2]);
+	}
+	
+	dir = 0;
+	steps = 0;
+	for( j = 1; j < i; j++ )
+	{
+		step = z[j] - z[j-1];
+		if( step > -ON_EPSILON && step < ON_EPSILON )
+			continue;
+
+		if( dir && ( step-dir > ON_EPSILON || step-dir < -ON_EPSILON ))
+			return; // mixed changes
+
+		steps++;	
+		dir = step;
+	}
+	
+	if( !dir )
+	{
+		ent->v.ideal_pitch = 0;
+		return;
+	}
+	
+	if( steps < 2 ) return;
+	ent->v.ideal_pitch = -dir * sv_idealpitchscale->value;
 }
 
 /*
@@ -1328,10 +1369,10 @@ void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 	// angles
 	// show 1/3 the pitch angle and all the roll angle
 	VectorAdd( cl->edict->v.viewangles, cl->edict->v.punchangle, viewangles );
-	cl->edict->v.viewangles[ROLL] = SV_CalcRoll( viewangles, cl->edict->v.velocity) * 4;
+	cl->edict->v.viewangles[ROLL] = SV_CalcRoll( viewangles, cl->edict->v.velocity ) * 4;
 	if( !cl->edict->v.fixangle )
 	{
-		cl->edict->v.angles[PITCH] = -viewangles[PITCH] / 3;
+		cl->edict->v.angles[PITCH] = -(viewangles[PITCH] / 3);
 		cl->edict->v.angles[YAW] = viewangles[YAW];
 	}
 
@@ -1349,8 +1390,10 @@ void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 		SV_CheckVelocity( cl->edict );
 		return;
 	}
+
 	SV_AirMove( cl, &cl->lastcmd );
 	SV_CheckVelocity( cl->edict );
+	SV_SetIdealPitch( cl );
 
 	VectorCopy( cl->edict->v.origin, cl->edict->pvServerData->s.origin );
 	VectorCopy( cl->edict->v.velocity, cl->edict->pvServerData->s.velocity );

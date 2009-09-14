@@ -21,18 +21,6 @@
 #define MAX_EDICTS			65535	// absolute limit that never be reached, (do not edit!)
 #define MAX_VERTS_ON_POLY		10	// decal vertices
 
-// usercmd_t communication (a part of network protocol)
-typedef struct usercmd_s
-{
-	int		msec;
-	int		angles[3];
-	int		forwardmove;
-	int		sidemove;
-	int		upmove;
-	int		buttons;
-	int		lightlevel;
-} usercmd_t;
-
 /*
 ==============================================================================
 

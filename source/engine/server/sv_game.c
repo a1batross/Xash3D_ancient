@@ -2859,7 +2859,6 @@ static enginefuncs_t gEngfuncs =
 	pfnCRC_Final,		
 	pfnRandomLong,
 	pfnRandomFloat,
-	SV_SetAngle,
 	pfnCrosshairAngle,
 	pfnLoadFile,
 	pfnFOpen,

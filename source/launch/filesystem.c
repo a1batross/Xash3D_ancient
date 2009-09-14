@@ -1459,17 +1459,18 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 ================
 FS_LoadGameInfo
 
-FIXME: create an argment that passed name of gamedir for soft-change games ?
+can be passed null arg
 ================
 */
-void FS_LoadGameInfo( void )
+void FS_LoadGameInfo( const char *rootfolder )
 {
 	int	i;
 
 	// lock uplevel of gamedir for read\write
 	fs_ext_path = false;
 
-	MsgDev( D_NOTE, "FS_LoadGameInfo()\n" );
+	if( rootfolder ) com.strcpy( gs_basedir, rootfolder );
+	MsgDev( D_NOTE, "FS_LoadGameInfo( %s )\n", gs_basedir );
 
 	// clear any old pathes
 	FS_ClearSearchPath();
@@ -1666,6 +1667,14 @@ FS_Shutdown
 */
 void FS_Shutdown( void )
 {
+	int	i;
+
+	// release gamedirs
+	for( i = 0; i < SI.numgames; i++ )
+		if( SI.games[i] ) Mem_Free( SI.games[i] );
+
+	Mem_Set( &SI, 0, sizeof( SI ));
+
 	FS_ClearSearchPath();		// release all wad files too
 	FS_UpdateEnvironmentVariables(); 	// merge working directory
 	FS_UpdateConfig();

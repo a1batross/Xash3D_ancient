@@ -9,6 +9,7 @@
 #include "triangle_api.h"
 #include "pm_movevars.h"
 #include "studio_ref.h"
+#include "user_cmd.h"
 #include "hud.h"
 
 #define ORIGIN_BACKUP	64
@@ -30,13 +31,23 @@ typedef struct
 	int	CurrentAngle;
 } viewinterp_t;
 
+typedef struct pitchdrift_s
+{
+	int  	nodrift;
+	float	pitchvel;
+	float	driftmove;
+	float	laststop;
+} pitchdrift_t;
+
 static viewinterp_t ViewInterp;
+static pitchdrift_t pd;
 
 // view CVARS
 cvar_t	*scr_ofsx;
 cvar_t	*scr_ofsy;
 cvar_t	*scr_ofsz;
 cvar_t	*cl_vsmoothing;
+cvar_t	*cl_forwardspeed;
 cvar_t	*r_mirrors;
 cvar_t	*r_portals;
 cvar_t	*r_screens;
@@ -129,6 +140,7 @@ void V_Init( void )
 	scr_ofsz = g_engfuncs.pfnRegisterVariable( "scr_ofsz", "0", 0, "screen offset by Z" );
 
 	cl_vsmoothing = g_engfuncs.pfnRegisterVariable( "cl_vsmoothing", "0", 0, "enables lepring in multiplayer" );
+	cl_forwardspeed = g_engfuncs.pfnRegisterVariable( "cl_forwardspeed", "200", 0, "client forward speed limit" );
 
 	v_iyaw_cycle = g_engfuncs.pfnRegisterVariable( "v_iyaw_cycle", "2", 0, "viewing inverse yaw cycle" );
 	v_iroll_cycle = g_engfuncs.pfnRegisterVariable( "v_iroll_cycle", "0.5", 0, "viewing inverse roll cycle" );
@@ -138,7 +150,7 @@ void V_Init( void )
 	v_ipitch_level = g_engfuncs.pfnRegisterVariable( "v_iyaw_level", "0.3", 0, "viewing inverse pitch level" );
 
 	v_centermove = g_engfuncs.pfnRegisterVariable( "v_centermove", "0.15", 0, "center moving scale" );
-	v_centerspeed = g_engfuncs.pfnRegisterVariable( "v_centerspeed","500", 0, "center moving speed" );
+	v_centerspeed = g_engfuncs.pfnRegisterVariable( "v_centerspeed", "500", 0, "center moving speed" );
 
 	cl_bobcycle = g_engfuncs.pfnRegisterVariable( "cl_bobcycle","0.8", 0, "bob full cycle" );
 	cl_bob = g_engfuncs.pfnRegisterVariable( "cl_bob", "0.01", 0, "bob value" );
@@ -152,6 +164,86 @@ void V_Init( void )
 	r_portals = g_engfuncs.pfnRegisterVariable( "r_portals", "0", FCVAR_ARCHIVE, "enable portals rendering" );
 	r_screens = g_engfuncs.pfnRegisterVariable( "r_screens", "0", FCVAR_ARCHIVE, "enable screens rendering" );
 	r_debug = g_engfuncs.pfnRegisterVariable( "r_debug", "0", 0, "show renderer state" );
+}
+
+//==========================
+// V_StartPitchDrift
+//==========================
+void V_StartPitchDrift( void )
+{
+	if( pd.laststop == GetClientTime())
+		return;
+
+	if( pd.nodrift || !pd.pitchvel )
+	{
+		pd.pitchvel = v_centerspeed->value;
+		pd.nodrift = 0;
+		pd.driftmove = 0;
+	}
+}
+
+//==========================
+// V_StopPitchDrift
+//==========================
+void V_StopPitchDrift( void )
+{
+	pd.laststop = GetClientTime();
+	pd.nodrift = 1;
+	pd.pitchvel = 0;
+}
+
+//==========================
+// V_DriftPitch
+//==========================
+void V_DriftPitch( ref_params_t *pparams )
+{
+	float	delta, move;
+
+	if( pparams->movetype == MOVETYPE_NOCLIP || !pparams->onground || pparams->demoplayback )
+	{
+		pd.driftmove = 0;
+		pd.pitchvel = 0;
+		return;
+	}
+
+	if( pd.nodrift )
+	{
+		if( fabs( (float)pparams->cmd->forwardmove ) < cl_forwardspeed->value )
+			pd.driftmove = 0;
+		else pd.driftmove += pparams->frametime;
+		if( pd.driftmove > v_centermove->value ) V_StartPitchDrift();
+		return;
+	}
+	
+	delta = pparams->idealpitch - pparams->cl_viewangles[PITCH];
+
+	if( !delta )
+	{
+		pd.pitchvel = 0;
+		return;
+	}
+
+	move = pparams->frametime * pd.pitchvel;
+	pd.pitchvel += pparams->frametime * v_centerspeed->value;
+	
+	if( delta > 0 )
+	{
+		if( move > delta )
+		{
+			pd.pitchvel = 0;
+			move = delta;
+		}
+		pparams->cl_viewangles[PITCH] += move;
+	}
+	else if( delta < 0 )
+	{
+		if( move > -delta )
+		{
+			pd.pitchvel = 0;
+			move = -delta;
+		}
+		pparams->cl_viewangles[PITCH] -= move;
+	}
 }
 
 //==========================
@@ -831,6 +923,7 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 	edict_t *view = GetViewModel();
 	int i;
 
+	if( g_bFinalPass ) V_DriftPitch( pparams );
 	bob = V_CalcBob( pparams );
 
 	// refresh the position

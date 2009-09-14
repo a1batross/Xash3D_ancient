@@ -34,6 +34,8 @@ static HUD_FUNCTIONS gFunctionTable =
 	HUD_CreateEntities,
 	HUD_StudioEvent,
 	V_CalcRefdef,
+	V_StartPitchDrift,
+	V_StopPitchDrift,
 };
 
 //=======================================================================
@@ -72,7 +74,6 @@ int HUD_Redraw( float flTime, int state )
 	switch( state )
 	{
 	case CL_DISCONNECTED:
-		V_RenderSplash();
 		break;
 	case CL_LOADING:
 		V_RenderPlaque();
@@ -125,6 +126,7 @@ void HUD_UpdateEntityVars( edict_t *ent, ref_params_t *view, const entity_state_
 	ent->v.solid = state->solid;
 	ent->v.movetype = state->movetype;
 	ent->v.flags = state->flags;
+	ent->v.ideal_pitch = state->idealpitch;
 
 	switch( state->ed_type )
 	{

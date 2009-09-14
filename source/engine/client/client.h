@@ -99,13 +99,6 @@ typedef struct
 	int		mouse_step;
 	float		mouse_sens;
 
-	// the client maintains its own idea of view angles, which are
-	// sent to the server each frame.  It is cleared to 0 upon entering each level.
-	// the server sends a delta each frame which is added to the locally
-	// tracked view angles to account for standing on rotating objects,
-	// and teleport direction changes
-	vec3_t		viewangles;
-
 	double		mtime[2];		// the timestamp of the last two messages
 	double		time;		// this is the time value that the client
 	double		oldtime;		// cl.oldtime
@@ -297,6 +290,7 @@ extern	cvar_t	*cl_footsteps;
 extern	cvar_t	*cl_showfps;
 extern	cvar_t	*cl_upspeed;
 extern	cvar_t	*cl_forwardspeed;
+extern	cvar_t	*cl_backspeed;
 extern	cvar_t	*cl_sidespeed;
 extern	cvar_t	*cl_shownet;
 extern	cvar_t	*cl_yawspeed;
@@ -312,18 +306,9 @@ extern	cvar_t	*cl_showclamp;
 extern	cvar_t	*cl_particles;
 extern	cvar_t	*cl_particlelod;
 
-extern	cvar_t	*lookspring;
-extern	cvar_t	*lookstrafe;
-
-extern	cvar_t	*m_pitch;
-extern	cvar_t	*m_yaw;
-extern	cvar_t	*m_forward;
-extern	cvar_t	*m_side;
-extern	cvar_t	*cl_mouselook;
 extern	cvar_t	*cl_testentities;
 extern	cvar_t	*cl_testlights;
 extern	cvar_t	*cl_testflashlight;
-extern	cvar_t	*cl_lightlevel;	// FIXME HACK
 extern	cvar_t	*cl_paused;
 extern	cvar_t	*cl_levelshot_name;
 

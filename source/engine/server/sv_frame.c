@@ -49,6 +49,15 @@ void SV_UpdateEntityState( edict_t *ent, bool baseline )
 	if( !ent->pvServerData->s.classname )
 		ent->pvServerData->s.classname = SV_ClassIndex( STRING( ent->v.classname ));
 
+	if( ent->pvServerData->s.ed_type == ED_CLIENT && ent->v.fixangle )
+	{
+		MSG_Begin( svc_setangle );
+			MSG_WriteAngle32( &sv.multicast, ent->v.angles[0] );
+			MSG_WriteAngle32( &sv.multicast, ent->v.angles[1] );
+			MSG_WriteAngle32( &sv.multicast, 0 );
+		MSG_Send( MSG_ONE_R, vec3_origin, ent );
+	}
+
 	svgame.dllFuncs.pfnUpdateEntityState( &ent->pvServerData->s, ent, baseline );
 
 	// always keep an actual

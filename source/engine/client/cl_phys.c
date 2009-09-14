@@ -343,7 +343,7 @@ void CL_PredictMovement (void)
 	{	
 		// just set angles
 		for( i = 0; i < 3; i++ )
-			cl.predicted_angles[i] = cl.viewangles[i] + cl.frame.ps.delta_angles[i];
+			cl.predicted_angles[i] = cl.refdef.cl_viewangles[i];
 		return;
 	}
 

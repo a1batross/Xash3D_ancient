@@ -3429,11 +3429,9 @@ int CBasePlayer::Restore( CRestore &restore )
 		pev->origin = VARS(pentSpawnSpot)->origin + Vector(0,0,1);
 		pev->angles = VARS(pentSpawnSpot)->angles;
 	}
-	pev->viewangles.z = 0;	// Clear out roll
+	pev->viewangles.z = 0;		// clear out roll
 	pev->angles = pev->viewangles;
-
-	SET_FIXANGLE( ENT( pev ), pev->angles );
-	pev->fixangle = TRUE;           // turn this way immediately
+	pev->fixangle = TRUE;		// turn this way immediately
 
 	// Copied from spawn() for now
 	m_bloodColor	= BLOOD_COLOR_RED;

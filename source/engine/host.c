@@ -472,7 +472,7 @@ void Host_InitCommon( const int argc, const char **argv )
 	if( FS_GetParmFromCmdLine( "-dev", dev_level ))
 		host.developer = com.atoi( dev_level );
 
-	FS_LoadGameInfo();
+	FS_LoadGameInfo( NULL );
 
 	zonepool = Mem_AllocPool( "Zone Engine" );
 

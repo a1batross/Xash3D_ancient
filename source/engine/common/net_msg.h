@@ -22,6 +22,12 @@ enum net_types_e
 	NET_TYPES,
 };
 
+typedef union
+{
+	float	f;
+	long	l;
+} ftol_t;
+
 typedef struct net_desc_s
 {
 	int	type;	// pixelformat
@@ -113,6 +119,7 @@ static const net_desc_t NWDesc[] =
 ==========================================================
 */
 
+#include "user_cmd.h"
 #include "entity_state.h"
 
 #define ES_FIELD( x )		#x,(int)&((entity_state_t*)0)->x

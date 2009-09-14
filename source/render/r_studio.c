@@ -500,8 +500,10 @@ float R_StudioFrameAdvance( ref_entity_t *ent, float flInterval )
 		}
 	}
 	if( !ent->animtime ) flInterval = 0.0;
-	
-	ent->frame += flInterval * ent->framerate;
+
+	// stop auto-animation on pause
+	if( !r_paused->integer )	
+		ent->frame += flInterval * ent->framerate;
 	//ent->animtime = RI.refdef.time;
 
 	if( ent->frame < 0.0 || ent->frame >= 256.0 ) 

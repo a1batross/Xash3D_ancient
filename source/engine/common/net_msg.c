@@ -90,9 +90,6 @@ static net_field_t ent_fields[] =
 { ES_FIELD(oldorigin[1]),		NET_FLOAT, true	},
 { ES_FIELD(oldorigin[2]),		NET_FLOAT, true	},
 { ES_FIELD(rendermode),		NET_BYTE,  false	},	// render mode (legacy stuff)
-{ ES_FIELD(delta_angles[0]),		NET_ANGLE, false	},
-{ ES_FIELD(delta_angles[1]),		NET_ANGLE, false	},
-{ ES_FIELD(delta_angles[2]),		NET_ANGLE, false	},
 { ES_FIELD(punch_angles[0]),		NET_SCALE, false	},
 { ES_FIELD(punch_angles[1]),		NET_SCALE, false	},
 { ES_FIELD(punch_angles[2]),		NET_SCALE, false	},
@@ -102,6 +99,7 @@ static net_field_t ent_fields[] =
 { ES_FIELD(viewoffset[0]),		NET_SCALE, false	},
 { ES_FIELD(viewoffset[1]),		NET_SCALE, false	},
 { ES_FIELD(viewoffset[2]),		NET_SCALE, false	},
+{ ES_FIELD(idealpitch),		NET_SCALE, false	},
 { ES_FIELD(viewmodel),		NET_WORD,  false	},
 { ES_FIELD(maxspeed),		NET_FLOAT, false	},	// client maxspeed
 { ES_FIELD(fov),			NET_FLOAT, false	},	// client horizontal field of view
@@ -122,7 +120,6 @@ static net_field_t cmd_fields[] =
 { CM_FIELD(sidemove),	NET_SHORT, false	},
 { CM_FIELD(upmove),		NET_SHORT, false	},
 { CM_FIELD(buttons),	NET_SHORT, false	},
-{ CM_FIELD(lightlevel),	NET_BYTE,  false	},
 { NULL },
 };
 
@@ -231,8 +228,8 @@ write # of bytes
 */
 void _MSG_WriteBits( sizebuf_t *msg, long value, const char *name, int net_type, const char *filename, const int fileline )
 {
-	union { long l; float f; } dat;
-	byte *buf;
+	ftol_t	dat;
+	byte	*buf;
 
 	// this isn't an exact overflow check, but close enough
 	if( msg->maxsize - msg->cursize < 4 )
@@ -275,12 +272,16 @@ void _MSG_WriteBits( sizebuf_t *msg, long value, const char *name, int net_type,
 		buf[3] = (value>>24);
 		break;
 	case NET_ANGLE8:
-		value = ANGLE2CHAR( value );
+		if( dat.f > 360 ) dat.f -= 360; 
+		else if( dat.f < 0 ) dat.f += 360;
+		value = ANGLE2CHAR( dat.f );
 		buf = MSG_GetSpace( msg, 1 );
 		buf[0] = value;
 		break;
 	case NET_ANGLE:
-		value = ANGLE2SHORT( value );
+		if( dat.f > 360 ) dat.f -= 360; 
+		else if( dat.f < 0 ) dat.f += 360;
+		value = ANGLE2SHORT( dat.f );
 		buf = MSG_GetSpace( msg, 2 );
 		buf[0] = value & 0xff;
 		buf[1] = value>>8;
@@ -318,8 +319,8 @@ read # of bytes
 */
 long _MSG_ReadBits( sizebuf_t *msg, int net_type, const char *filename, const int fileline )
 {
-	union { long l; float f; } dat;
-	long value = 0;
+	ftol_t	dat;
+	long	value = 0;
 
 	switch( net_type )
 	{
@@ -343,22 +344,26 @@ long _MSG_ReadBits( sizebuf_t *msg, int net_type, const char *filename, const in
 		break;
 	case NET_WORD:
 	case NET_SHORT:
-		dat.l = (short)BuffLittleShort(msg->data + msg->readcount);
+		dat.l = (short)BuffLittleShort( msg->data + msg->readcount );
 		msg->readcount += 2;
 		break;
 	case NET_LONG:
 	case NET_FLOAT:
-		dat.l = (long)BuffLittleLong(msg->data + msg->readcount);
+		dat.l = (long)BuffLittleLong( msg->data + msg->readcount );
 		msg->readcount += 4;
 		break;
 	case NET_ANGLE8:
 		value = (unsigned char)msg->data[msg->readcount];
-		dat.l = CHAR2ANGLE( value );
+		dat.f = CHAR2ANGLE( value );
+		if( dat.f < -180 ) dat.f += 360; 
+		else if( dat.f > 180 ) dat.f -= 360;
 		msg->readcount += 1;
 		break;
 	case NET_ANGLE:
 		value = (unsigned short)BuffLittleShort( msg->data + msg->readcount );
-		dat.l = SHORT2ANGLE( value );
+		dat.f = SHORT2ANGLE( value );
+		if( dat.f < -180 ) dat.f += 360; 
+		else if( dat.f > 180 ) dat.f -= 360;
 		msg->readcount += 2;
 		break;		
 	case NET_COORD:

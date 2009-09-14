@@ -83,7 +83,10 @@ void V_SetupRefDef( void )
 
 	// see if the player entity was teleported this frame
 	if( ps->ed_flags & ESF_NO_PREDICTION )
+	{
+		cl.render_flags &= ~RDF_OLDAREABITS;
 		ops = ps;	// don't interpolate
+	}
 
 	// UNDONE: temporary place for detect waterlevel
 	CL_CheckWater( clent );
@@ -100,7 +103,6 @@ void V_SetupRefDef( void )
 	VectorCopy( ops->viewoffset, cl.refdef.prev.viewheight );
 	VectorCopy( ps->punch_angles, cl.refdef.punchangle );
 	VectorCopy( ops->punch_angles, cl.refdef.prev.punchangle );
-	VectorCopy( cl.predicted_angles, cl.refdef.cl_viewangles );
 
 	cl.refdef.movevars = &clgame.movevars;
 
@@ -111,6 +113,8 @@ void V_SetupRefDef( void )
 	cl.refdef.clientnum = cl.playernum; // not a entity num
 	cl.refdef.viewmodel = ps->viewmodel;
 	cl.refdef.health = ps->health;
+	cl.refdef.movetype = ps->movetype;
+	cl.refdef.idealpitch = ps->idealpitch;
 	cl.refdef.num_entities = clgame.numEntities;
 	cl.refdef.max_entities = clgame.maxEntities;
 	cl.refdef.max_clients = clgame.maxClients;

@@ -16,6 +16,7 @@ cvar_t	*zombietime;			// seconds to sink messages after disconnect
 cvar_t	*rcon_password;			// password for remote server commands
 cvar_t	*allow_download;
 cvar_t	*sv_airaccelerate;
+cvar_t	*sv_idealpitchscale;
 cvar_t	*sv_maxvelocity;
 cvar_t	*sv_gravity;
 cvar_t	*sv_stepheight;
@@ -417,6 +418,7 @@ void SV_Init( void )
 	sv_rollangle = Cvar_Get( "sv_rollangle", DEFAULT_ROLLANGLE, 0, "how much to tilt the view when strafing" );
 	sv_rollspeed = Cvar_Get( "sv_rollspeed", DEFAULT_ROLLSPEED, 0, "how much strafing is necessary to tilt the view" );
 	sv_airaccelerate = Cvar_Get("sv_airaccelerate", DEFAULT_AIRACCEL, CVAR_LATCH, "player accellerate in air" );
+	sv_idealpitchscale = Cvar_Get( "sv_idealpitchscale", "0.8", 0, "how much to look up/down slopes and stairs when not using freelook" );
 	sv_maxvelocity = Cvar_Get("sv_maxvelocity", DEFAULT_MAXVELOCITY, CVAR_LATCH, "max world velocity" );
           sv_gravity = Cvar_Get("sv_gravity", DEFAULT_GRAVITY, CVAR_LATCH, "world gravity" );
 	sv_maxspeed = Cvar_Get("sv_maxspeed", DEFAULT_MAXSPEED, 0, "maximum speed a player can accelerate to when on ground");

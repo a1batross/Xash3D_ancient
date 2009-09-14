@@ -82,7 +82,6 @@ typedef struct entity_state_s
 	int		rendermode;	// hl1 legacy stuff, working, but not needed
 
 	// client specific
-	vec3_t		delta_angles;	// add to command angles to get view direction 
 	vec3_t		punch_angles;	// add to view direction to get render angles 
 	vec3_t		viewangles;	// already calculated view angles on server-side
 	vec3_t		viewoffset;	// viewoffset over ground
@@ -92,6 +91,7 @@ typedef struct entity_state_s
 	int		weaponanim;	// weaponmodel sequence
 	int		weaponbody;	// weaponmodel body
 	int		weaponskin;	// weaponmodel skin
+	float		idealpitch;	// client idealpitch
 	float		maxspeed;		// min( pev->maxspeed, sv_maxspeed->value )
 	float		health;		// client health (other parms can be send by custom messages)
 	int		weapons;		// weapon flags

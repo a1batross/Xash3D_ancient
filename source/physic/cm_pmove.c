@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "cm_local.h"
+#include "user_cmd.h"
 #include "matrix_lib.h"
 
 int		characterID; 
@@ -61,9 +62,6 @@ are being updated isntead of a full move
 */
 void CM_UpdateViewAngles( entity_state_t *state, const usercmd_t *cmd )
 {
-	short	temp;
-	int	i;
-
 	if( state->flags & FL_FROZEN )
 	{
 		return;		// no view changes at all
@@ -74,23 +72,16 @@ void CM_UpdateViewAngles( entity_state_t *state, const usercmd_t *cmd )
 	}
 	if( state->ed_flags & ESF_NO_PREDICTION )
 	{
-		state->viewangles[YAW] = cmd->angles[YAW] - state->delta_angles[YAW];
+		state->viewangles[YAW] = cmd->angles[YAW];
 		state->viewangles[PITCH] = 0;
 		state->viewangles[ROLL] = 0;
 	}
 
-	// circularly clamp the angles with deltas
-	for( i = 0; i < 3; i++ )
-	{
-		temp = cmd->angles[i] + state->delta_angles[i];
-		state->viewangles[i] = temp;
-	}
+	VectorCopy( cmd->angles, state->viewangles ); 
 
-	// don't let the player look up or down more than 90 degrees
-	if( state->viewangles[PITCH] > 89 && state->viewangles[PITCH] < 180 )
-		state->viewangles[PITCH] = 89;
-	else if( state->viewangles[PITCH] < 271 && state->viewangles[PITCH] >= 180 )
-		state->viewangles[PITCH] = 271;
+	// don't let the player look up or down more than 80 degrees
+	state->viewangles[PITCH] = bound( -70, state->viewangles[PITCH], 80 );
+	state->viewangles[ROLL] = bound( -50, state->viewangles[ROLL], 50 );
 }
 
 

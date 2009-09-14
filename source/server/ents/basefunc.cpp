@@ -720,12 +720,11 @@ void CFuncTeleport :: Touch( CBaseEntity *pOther )
 			if( pOther->IsPlayer())
 			{
 				pOther->pev->angles.x = pOther->pev->viewangles.x;
-				SET_FIXANGLE( ENT( pOther->pev ), pOther->pev->angles );
 				pOther->pev->fixangle = TRUE;
 			}
 
 			// set new velocity
-			vecVA = UTIL_VecToAngles(pOther->pev->velocity);
+			vecVA = UTIL_VecToAngles( pOther->pev->velocity );
 			vecVA.y += ydiff;
 			UTIL_MakeVectors(vecVA);
 			pOther->pev->velocity = gpGlobals->v_forward * pOther->pev->velocity.Length();
@@ -756,7 +755,6 @@ void CFuncTeleport :: Touch( CBaseEntity *pOther )
 		pOther->pev->velocity = g_vecZero;
 		if( pOther->IsPlayer( ))
 		{
-			SET_FIXANGLE( ENT( pOther->pev ), pTarget->pev->angles );
 			pOther->pev->viewangles = pTarget->pev->angles;
 			pOther->pev->fixangle = TRUE;
 		}

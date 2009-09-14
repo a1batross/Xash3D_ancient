@@ -124,7 +124,7 @@ Beta 13.12.09
 101. replace Matrix_ with Matrix3x3_		OK
 102. replace Matrix4_ with Matrix4x4_ 		OK
 103. fixup studio culling			OK
-103. fixup client angles & blending
+103. fixup client angles & blending		OK
 104. sorting folder resources			OK
 105. sorting sources folder			OK
 106. implement q3map2 into xtools.dll		OK

@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "input.h"
 #include "client.h"
 
-#define ART_BACKGROUND	"gfx/shell/title_screen/title_backg"
+#define ART_BACKGROUND	"gfx/shell/splash"
 #define ART_LOGO		"gfx/shell/title_screen/q2e_logo"
 #define ART_SINGLEPLAYER	"gfx/shell/title_screen/singleplayer_n"
 #define ART_SINGLEPLAYER2	"gfx/shell/title_screen/singleplayer_s"

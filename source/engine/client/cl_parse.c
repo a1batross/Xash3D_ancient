@@ -418,9 +418,9 @@ set the view angle to this absolute value
 */
 void CL_ParseSetAngle( sizebuf_t *msg )
 {
-	cl.viewangles[0] = MSG_ReadAngle32( msg );
-	cl.viewangles[1] = MSG_ReadAngle32( msg );
-	cl.viewangles[2] = MSG_ReadAngle32( msg );
+	cl.refdef.cl_viewangles[0] = MSG_ReadAngle32( msg );
+	cl.refdef.cl_viewangles[1] = MSG_ReadAngle32( msg );
+	cl.refdef.cl_viewangles[2] = MSG_ReadAngle32( msg );
 }
 
 /*

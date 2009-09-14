@@ -274,6 +274,7 @@ extern	cvar_t		*sv_noreload;		// don't reload level state when reentering
 extern	cvar_t		*sv_airaccelerate;		// don't reload level state when reentering
 extern	cvar_t		*sv_accelerate;
 extern	cvar_t		*sv_friction;
+extern	cvar_t		*sv_idealpitchscale;
 extern	cvar_t		*sv_maxvelocity;
 extern	cvar_t		*sv_gravity;
 extern	cvar_t		*sv_fps;			// running server at
@@ -360,9 +361,9 @@ void SV_GetChallenge( netadr_t from );
 void SV_DirectConnect( netadr_t from );
 void SV_PutClientInServer( edict_t *ent );
 void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd );
-void SV_SetAngle( edict_t *ent, const float *rgflAngles );
 void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg );
 void SV_ConnectionlessPacket( netadr_t from, sizebuf_t *msg );
+void SV_SetIdealPitch( sv_client_t *cl );
 
 //
 // sv_ccmds.c

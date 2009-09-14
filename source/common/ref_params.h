@@ -40,6 +40,8 @@ typedef struct ref_params_s
 	float		time;		// client time
 	float		oldtime;		// studio lerping
 
+
+	usercmd_t		*cmd;		// last issued usercmd
 	movevars_t	*movevars;	// sv.movevars
 	latched_params_t	prev;
 
@@ -56,6 +58,7 @@ typedef struct ref_params_s
 	edict_t		*onground;	// pointer to onground entity
 	byte		*areabits;	// come from server, contains visible areas list
 	int		waterlevel;
+	int		movetype;		// client movetype
 
 	skyportal_t	skyportal;
 
@@ -66,10 +69,11 @@ typedef struct ref_params_s
 	vec3_t		angles;		// viewangles that came from server
 	vec3_t		origin;		// origin + viewheight = vieworg
 	vec3_t		viewheight;
-
+	float		idealpitch;
+	
 	int		health;
 	vec3_t		crosshairangle;	// pfnCrosshairAngle values from server
-	vec3_t		punchangle;	// recivied from server
+	vec3_t		punchangle;	// receivied from server
 	int		clientnum;
 	int		viewmodel;	// viewmodel index
 	int		num_entities;

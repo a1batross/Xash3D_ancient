@@ -1032,6 +1032,7 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 
 		to->viewoffset = pNet->pev->view_ofs; 
 		to->viewangles = pNet->pev->viewangles;
+		to->idealpitch = pNet->pev->ideal_pitch;
 		to->punch_angles = pNet->pev->punchangle;
 
 		// playermodel sequence, that will be playing on a client

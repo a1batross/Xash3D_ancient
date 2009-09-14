@@ -24,6 +24,8 @@ extern void HUD_CreateEntities( void );
 extern void HUD_StudioEvent( const dstudioevent_t *event, edict_t *entity );
 extern void HUD_ParseTempEntity( void );
 extern void V_CalcRefdef( ref_params_t *parms );
+extern void V_StartPitchDrift( void );
+extern void V_StopPitchDrift( void );
 extern void V_Init( void );
 
 #define VIEWPORT_SIZE	512
@@ -200,7 +202,6 @@ extern void DrawGenericBar( float percent, int x, int y, int w, int h );
 extern void Draw_VidInit( void );
 
 // from cl_view.c
-extern void V_RenderSplash( void );
 extern void V_RenderPlaque( void );
 extern edict_t *spot;
 

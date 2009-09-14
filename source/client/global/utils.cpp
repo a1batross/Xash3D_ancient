@@ -563,11 +563,6 @@ void V_RenderPlaque( void )
 	DrawImageBar( CVAR_GET_FLOAT( "scr_download" ), "m_download", (ScreenWidth-128)/2, ScreenHeight-60 );
 }
 
-void V_RenderSplash( void )
-{
-	DrawImageRectangle( SPR_Load( "gfx/shell/splash" )); 
-}
-
 //
 // hl2 fade - this supports multiple fading
 // FIXME: make Class CHudFade instead of C-style code?

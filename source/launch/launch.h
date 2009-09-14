@@ -321,7 +321,7 @@ void FS_ClearSearchPath( void );
 void FS_AllowDirectPaths( bool enable );
 void FS_AddGameHierarchy( const char *dir, int flags );
 int FS_CheckParm( const char *parm );
-void FS_LoadGameInfo( void );
+void FS_LoadGameInfo( const char *rootfolder );
 void FS_FileBase( const char *in, char *out );
 const char *FS_FileExtension( const char *in );
 void FS_DefaultExtension( char *path, const char *extension );

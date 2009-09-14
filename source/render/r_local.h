@@ -443,6 +443,7 @@ extern cvar_t *r_allow_software;
 extern cvar_t *r_frontbuffer;
 extern cvar_t *r_width;
 extern cvar_t *r_height;
+extern cvar_t *r_paused;
 
 extern cvar_t *r_flares;
 extern cvar_t *r_flaresize;

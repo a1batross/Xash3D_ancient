@@ -464,7 +464,7 @@ typedef struct stdilib_api_s
 
 	// common functions
 	void (*Com_InitRootDir)( char *path );			// init custom rootdir 
-	void (*Com_LoadGameInfo)( void );			// initialize gameinfo.txt
+	void (*Com_LoadGameInfo)( const char *rootfolder );	// initialize gamedir
 	void (*Com_AddGameHierarchy)( const char *dir, int flags );	// add base directory in search list
 	void (*Com_AllowDirectPaths)( bool enable );		// allow direct paths e.g. C:\windows
 	int  (*Com_CheckParm)( const char *parm );		// check parm in cmdline  

@@ -149,7 +149,6 @@ typedef struct enginefuncs_s
 	word	(*pfnCRC_Final)( word pulCRC );
 	long	(*pfnRandomLong)( long lLow, long lHigh );
 	float	(*pfnRandomFloat)( float flLow, float flHigh );
-	void	(*pfnFixAngle)( edict_t *pClient, const float *rgflAngles );
 	void	(*pfnCrosshairAngle)( const edict_t *pClient, float pitch, float yaw );
 	byte*	(*pfnLoadFile)( const char *filename, int *pLength );
 	void	*(*pfnFOpen)( const char* path, const char* mode );
