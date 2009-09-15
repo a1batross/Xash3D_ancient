@@ -358,7 +358,6 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 
 	MSG_WriteByte( msg, svc_frame );
 	MSG_WriteLong( msg, sv.framenum );
-	MSG_WriteFloat( msg, sv.frametime );
 	MSG_WriteLong( msg, lastframe );		// what we are delta'ing from
 	MSG_WriteByte( msg, cl->surpressCount );	// rate dropped packets
 	cl->surpressCount = 0;
@@ -509,7 +508,6 @@ Returns true if the client is over its current
 bandwidth estimation and should not be sent another packet
 =======================
 */
-#if 0
 bool SV_RateDrop( sv_client_t *cl )
 {
 	int	i, total = 0;
@@ -529,26 +527,6 @@ bool SV_RateDrop( sv_client_t *cl )
 	}
 	return false;
 }
-#else
-bool SV_RateDrop( sv_client_t *cl )
-{
-	// never drop over the loopback
-	if( NET_IsLocalAddress( cl->netchan.remote_address ))
-		return false;
-
-	// only send messages if the client has sent one
-	// and the bandwidth is not supressed
-	if( !cl->send_message ) return true;
-
-	cl->send_message = false;	// try putting this after choke?
-	if( !sv_paused->integer && !Netchan_CanPacket( &cl->netchan ))
-	{
-		cl->surpressCount++;
-		return true;	// bandwidth choke
-	}
-	return false;
-}
-#endif
 
 /*
 =======================
@@ -564,7 +542,6 @@ void SV_SendClientMessages( void )
 	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
 	{
 		if( !cl->state ) continue;
-		else cl->send_message = true;
 			
 		if( cl->edict && (cl->edict->v.flags & FL_FAKECLIENT))
 			continue;
@@ -576,8 +553,6 @@ void SV_SendClientMessages( void )
 			MSG_Clear( &cl->datagram );
 			SV_BroadcastPrintf( PRINT_HIGH, "%s overflowed\n", cl->name );
 			SV_DropClient( cl );
-			cl->send_message = true;
-			cl->netchan.cleartime = 0;	// don't supress this message
 		}
 
 		if( cl->state == cs_spawned )
@@ -589,7 +564,7 @@ void SV_SendClientMessages( void )
 		else
 		{
 			// just update reliable if needed
-			if( cl->netchan.message.cursize || host.realtime - cl->netchan.last_sent > 1.0 )
+			if( cl->netchan.message.cursize || svs.realtime - cl->netchan.last_sent > 1.0 )
 				Netchan_Transmit( &cl->netchan, 0, NULL );
 		}
 	}

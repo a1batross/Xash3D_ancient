@@ -911,8 +911,9 @@ void CBasePlayerWeapon :: SendWeaponAnim( int sequence, float fps )
 //=========================================================
 BOOL CBasePlayerWeapon :: DefaultDeploy( Activity sequence )
 {                                                       
-	if ( SUIT ) pev->body = TRUE;
-	else  pev->body = FALSE;
+	if( PLAYER_HAS_SUIT )
+		pev->body |= GORDON_SUIT;
+	else pev->body &= ~GORDON_SUIT;
 
 	m_iClientSkin = -1; // reset last skin info for new weapon
 	m_iClientBody = -1; // reset last skin info for new weapon
@@ -923,7 +924,7 @@ BOOL CBasePlayerWeapon :: DefaultDeploy( Activity sequence )
 		
 	if( SetAnimation( sequence ) != -1 )
 	{
-		SetNextAttack( SequenceDuration() + 0.5 );//delay before idle playing       
+		SetNextAttack( SequenceDuration() + 0.5 ); // delay before idle playing       
 		return TRUE;        
 	}
 
@@ -1756,7 +1757,7 @@ void CBasePlayerWeapon::ItemPostFrame( void )
 	else if(!(m_pPlayer->pev->button & (IN_ATTACK|IN_ATTACK2)))
 	{
 		// play sequence holster/deploy if player find or lose suit
-		if( ((SUIT) && !PLAYER_HAS_SUIT) || (!(SUIT) && PLAYER_HAS_SUIT))
+		if((PLAYER_HAS_SUIT && !PLAYER_DRAW_SUIT) || (!PLAYER_HAS_SUIT && PLAYER_DRAW_SUIT))
 		{
 			m_pPlayer->m_pActiveItem->Holster( );
 			m_pPlayer->QueueItem( this );

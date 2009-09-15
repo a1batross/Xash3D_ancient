@@ -56,7 +56,7 @@ typedef struct
 	float	finalFrac;	// 0.0 to 1.0 lines of console to display
 
 	int	vislines;		// in scanlines
-	float	times[NUM_CON_TIMES]; // host.realtime the line was generated for transparent notify lines
+	float	times[NUM_CON_TIMES]; // cls.realtime the line was generated for transparent notify lines
 	rgba_t	color;
 
 } console_t;
@@ -149,9 +149,11 @@ void Con_ClearNotify( void )
 Con_MessageMode_f
 ================
 */
-void Con_MessageMode_f (void)
+void Con_MessageMode_f( void )
 {
 	chat_team = false;
+	Field_Clear( &chatField );
+	chatField.widthInChars = 30;
 	cls.key_dest = key_message;
 }
 
@@ -163,6 +165,8 @@ Con_MessageMode2_f
 void Con_MessageMode2_f (void)
 {
 	chat_team = true;
+	Field_Clear( &chatField );
+	chatField.widthInChars = 25;
 	cls.key_dest = key_message;
 }
 
@@ -271,17 +275,17 @@ void Con_Linefeed( bool skipnotify )
 	int	i;
 
 	// mark time for transparent overlay
-	if (con.current >= 0)
+	if( con.current >= 0 )
 	{
 		if( skipnotify ) con.times[con.current % NUM_CON_TIMES] = 0;
-		else con.times[con.current % NUM_CON_TIMES] = host.realtime;
+		else con.times[con.current % NUM_CON_TIMES] = cls.realtime;
 	}
 
 	con.x = 0;
-	if (con.display == con.current) con.display++;
+	if( con.display == con.current ) con.display++;
 	con.current++;
-	for(i = 0; i < con.linewidth; i++)
-		con.text[(con.current%con.totallines)*con.linewidth+i] = (ColorIndex(COLOR_WHITE)<<8)|' ';
+	for( i = 0; i < con.linewidth; i++ )
+		con.text[(con.current % con.totallines) * con.linewidth+i] = (ColorIndex(COLOR_WHITE)<<8)|' ';
 }
 
 /*
@@ -358,10 +362,10 @@ void Con_Print( const char *txt )
 		if( skipnotify )
 		{
 			prev = con.current % NUM_CON_TIMES - 1;
-			if ( prev < 0 ) prev = NUM_CON_TIMES - 1;
+			if( prev < 0 ) prev = NUM_CON_TIMES - 1;
 			con.times[prev] = 0;
 		}
-		else con.times[con.current % NUM_CON_TIMES] = host.realtime;
+		else con.times[con.current % NUM_CON_TIMES] = cls.realtime;
 	}
 }
 
@@ -372,8 +376,6 @@ DRAWING
 
 ==============================================================================
 */
-
-
 /*
 ================
 Con_DrawInput
@@ -381,11 +383,12 @@ Con_DrawInput
 The input line scrolls horizontally if typing goes beyond the right edge
 ================
 */
-void Con_DrawInput (void)
+void Con_DrawInput( void )
 {
-	int		y;
+	int	y;
 
-	if (cls.key_dest != key_console) return; // don't draw anything (always draw if not active)
+	if( cls.key_dest != key_console )
+		return; // don't draw anything (always draw if not active)
 
 	y = con.vislines - ( SMALLCHAR_HEIGHT * 2 );
 	re->SetColor( con.color );
@@ -417,7 +420,7 @@ void Con_DrawNotify( void )
 		if( i < 0 ) continue;
 		time = con.times[i % NUM_CON_TIMES];
 		if( time == 0 ) continue;
-		time = host.realtime - time;
+		time = cls.realtime - time;
 		if( time > con_notifytime->value ) continue;
 		text = con.text + (i % con.totallines) * con.linewidth;
 
@@ -439,14 +442,14 @@ void Con_DrawNotify( void )
 	// draw the chat line
 	if( cls.key_dest == key_message )
 	{
-		if (chat_team)
+		if( chat_team )
 		{
-			SCR_DrawBigString (8, v, "say_team:", 255 );
+			SCR_DrawBigString ( 8, v, "Say team:", 255 );
 			skip = 11;
 		}
 		else
 		{
-			SCR_DrawBigString (8, v, "say:", 255 );
+			SCR_DrawBigString( 8, v, "Say:", 255 );
 			skip = 5;
 		}
 		Field_BigDraw( &chatField, skip * BIGCHAR_WIDTH, v, SCREEN_WIDTH - ( skip + 1 ) * BIGCHAR_WIDTH, true );
@@ -608,13 +611,13 @@ void Con_RunConsole( void )
 
 	if (con.finalFrac < con.displayFrac)
 	{
-		con.displayFrac -= con_speed->value * host.realframetime;
+		con.displayFrac -= con_speed->value * cls.realframetime;
 		if( con.finalFrac > con.displayFrac )
 			con.displayFrac = con.finalFrac;
 	}
 	else if( con.finalFrac > con.displayFrac )
 	{
-		con.displayFrac += con_speed->value * host.realframetime;
+		con.displayFrac += con_speed->value * cls.realframetime;
 		if( con.finalFrac < con.displayFrac )
 			con.displayFrac = con.finalFrac;
 	}

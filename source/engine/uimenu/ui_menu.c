@@ -914,7 +914,7 @@ void UI_AddServerToList( netadr_t adr, const char *info )
 
 	// add it to the list
 	uiStatic.serverAddresses[uiStatic.numServers] = adr;
-	com.strncpy(uiStatic.serverNames[uiStatic.numServers], info, sizeof( uiStatic.serverNames[uiStatic.numServers] ));
+	com.strncpy( uiStatic.serverNames[uiStatic.numServers], info, sizeof( uiStatic.serverNames[uiStatic.numServers] ));
 	uiStatic.numServers++;
 }
 

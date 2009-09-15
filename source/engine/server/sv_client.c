@@ -51,9 +51,9 @@ void SV_GetChallenge( netadr_t from )
 	if( i == MAX_CHALLENGES )
 	{
 		// this is the first time this client has asked for a challenge
-		svs.challenges[oldest].challenge = ((rand()<<16) ^ rand()) ^ (int)host.realtime;
+		svs.challenges[oldest].challenge = ((rand()<<16) ^ rand()) ^ (int)svs.realtime;
 		svs.challenges[oldest].adr = from;
-		svs.challenges[oldest].time = host.realtime;
+		svs.challenges[oldest].time = svs.realtime;
 		svs.challenges[oldest].connected = false;
 		i = oldest;
 	}
@@ -96,9 +96,9 @@ void SV_DirectConnect( netadr_t from )
 	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
 	{
 		if( cl->state == cs_free ) continue;
-		if( NET_CompareBaseAdr(from, cl->netchan.remote_address) && (cl->netchan.qport == qport || from.port == cl->netchan.remote_address.port))
+		if( NET_CompareBaseAdr( from, cl->netchan.remote_address ) && (cl->netchan.qport == qport || from.port == cl->netchan.remote_address.port))
 		{
-			if(!NET_IsLocalAddress( from ) && (host.realtime - cl->lastconnect) < sv_reconnect_limit->value )
+			if(!NET_IsLocalAddress( from ) && (svs.realtime - cl->lastconnect) < sv_reconnect_limit->value )
 			{
 				MsgDev( D_INFO, "%s:reconnect rejected : too soon\n", NET_AdrToString( from ));
 				return;
@@ -201,8 +201,8 @@ gotnewcl:
 	MSG_Init( &newcl->datagram, newcl->datagram_buf, sizeof(newcl->datagram_buf));
 	
 	newcl->state = cs_connected;
-	newcl->lastmessage = host.realtime;
-	newcl->lastconnect = host.realtime;
+	newcl->lastmessage = svs.realtime;
+	newcl->lastconnect = svs.realtime;
 
 	// if this was the first client on the server, or the last client
 	// the server can hold, send a heartbeat to the master.
@@ -555,7 +555,7 @@ void SV_New_f( sv_client_t *cl )
 
 		// begin fetching configstrings
 		MSG_WriteByte( &cl->netchan.message, svc_stufftext );
-		MSG_WriteString( &cl->netchan.message, va("cmd configstrings %i %i\n", svs.spawncount, 0 ));
+		MSG_WriteString( &cl->netchan.message, va( "cmd configstrings %i %i\n", svs.spawncount, 0 ));
 	}
 }
 
@@ -790,9 +790,9 @@ void SV_UserinfoChanged( sv_client_t *cl )
 	{
 		i = com.atoi( val );
 		cl->rate = i;
-		cl->rate = bound ( 100, cl->rate, 15000 );
+		cl->rate = bound ( 2500, cl->rate, 25000 );
 	}
-	else cl->rate = 5000;
+	else cl->rate = 5000; // default value (ISDN)
 
 	// msg command
 	val = Info_ValueForKey( cl->userinfo, "msg" );
@@ -1486,7 +1486,6 @@ void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg )
 	// make sure the reply sequence number matches the incoming sequence number 
 	if( cl->netchan.incoming_sequence >= cl->netchan.outgoing_sequence )
 		cl->netchan.outgoing_sequence = cl->netchan.incoming_sequence;
-	else cl->send_message = false; // don't reply, sequences have slipped	
 
 	// read optional clientCommand strings
 	while( cl->state != cs_zombie )

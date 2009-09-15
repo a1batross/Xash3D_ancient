@@ -1,6 +1,6 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//			sv_utils.c - server vm utils
+//			sv_main.c - server frame code
 //=======================================================================
 
 #include "common.h"
@@ -141,7 +141,6 @@ void SV_ReadPackets( void )
 			}
 			if( Netchan_Process( &cl->netchan, &net_message ))
 			{	
-				cl->send_message = true;	// reply at end of frame
 				// this is a valid, sequenced packet, so process it
 				if( cl->state != cs_zombie )
 				{
@@ -174,9 +173,6 @@ void SV_CheckTimeouts( void )
 	sv_client_t	*cl;
 	float		droppoint;
 	float		zombiepoint;
-
-	// don't allow really long or short frames
-	sv.frametime = bound( 0.01, host.frametime, 0.1f );
 
 	droppoint = svs.realtime - timeout->value;
 	zombiepoint = svs.realtime - zombietime->value;
@@ -234,12 +230,13 @@ void SV_RunGameFrame( void )
 	// don't run the world, otherwise the delta
 	// compression can get confused when a client
 	// has the "current" frame
-	sv.framenum++;
 
 	// don't run if paused
 	if( !sv_paused->integer || Host_MaxClients() > 1 )
 	{
-		if( sv.frametime ) SV_Physics();
+		sv.framenum++;
+		sv.time = sv.framenum * sv.frametime;
+		SV_Physics();
 
 		// never get more than one tic behind
 		if( sv.time < svs.realtime )
@@ -283,7 +280,7 @@ void SV_Frame( double time )
 				MsgDev( D_INFO, "sv lowclamp\n" );
 			svs.realtime = sv.time - sv.frametime;
 		}
-		NET_Sleep( (sv.time - svs.realtime) * 1000 );
+		NET_Sleep( sv.time - svs.realtime );
 		return;
 	}
 

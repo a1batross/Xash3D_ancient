@@ -278,10 +278,6 @@ typedef struct netchan_s
 	netadr_t			remote_address;
 	int			qport;			// qport value to write when transmitting
 
-	// bandwidth estimator
-	double		cleartime;			// if realtime > nc->cleartime, free to go
-	double		rate;				// seconds / byte
-
 	// sequencing variables
 	int			incoming_sequence;
 	int			incoming_acknowledged;
@@ -319,13 +315,11 @@ extern byte		net_message_buffer[MAX_MSGLEN];
 #define UPDATE_MASK		(UPDATE_BACKUP - 1)
 
 void Netchan_Init( void );
-bool Netchan_CanPacket( netchan_t *chan );
 void Netchan_Setup( netsrc_t sock, netchan_t *chan, netadr_t adr, int qport );
 bool Netchan_NeedReliable( netchan_t *chan );
 void Netchan_Transmit( netchan_t *chan, int length, byte *data );
 void Netchan_OutOfBand( int net_socket, netadr_t adr, int length, byte *data );
 void Netchan_OutOfBandPrint( int net_socket, netadr_t adr, char *format, ... );
 bool Netchan_Process( netchan_t *chan, sizebuf_t *msg );
-bool Netchan_CanReliable( netchan_t *chan );
 
 #endif//NET_MSG_H

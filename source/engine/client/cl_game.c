@@ -775,7 +775,7 @@ void pfnCenterPrint( const char *text, int y, int charWidth )
 	char	*s;
 
 	com.strncpy( cl.centerPrint, text, sizeof( cl.centerPrint ));
-	cl.centerPrintTime = host.realtime;
+	cl.centerPrintTime = cls.realtime;
 	cl.centerPrintY = y;
 	cl.centerPrintCharWidth = charWidth;
 
@@ -1424,7 +1424,7 @@ bool CL_LoadProgs( const char *name )
 	// 65535 unique strings should be enough ...
 	clgame.hStringTable = StringTable_Create( "Client", 0x10000 );
 	clgame.maxEntities = host.max_edicts;	// FIXME: must come from CS_MAXENTITIES
-	clgame.maxClients = Host_MaxClients();
+	clgame.maxClients = CL_GetMaxClients();
 	clgame.edicts = Mem_Alloc( cls.mempool, sizeof( edict_t ) * clgame.maxEntities );
 
 	// register svc_bad message

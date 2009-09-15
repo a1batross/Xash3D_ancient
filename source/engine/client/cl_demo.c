@@ -232,7 +232,7 @@ void CL_ReadDemoMessage( void )
 		return;
 	}
 
-	cls.connect_time = host.realtime;
+	cls.connect_time = cls.realtime;
 	buf.readcount = 0;
 	CL_ParseServerMessage( &buf );
 }

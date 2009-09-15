@@ -21,10 +21,10 @@ typedef struct keyname_s
 	char	*binding;		// default bind
 } keyname_t;
 
-field_t historyEditLines[COMMAND_HISTORY];
-field_t g_consoleField;
-field_t chatField;
-key_t keys[256];
+field_t	historyEditLines[COMMAND_HISTORY];
+field_t	g_consoleField;
+field_t	chatField;
+key_t	keys[256];
 
 int nextHistoryLine;// the last line in the history buffer, not masked
 int historyLine;	// the line being displayed from history buffer will be <= nextHistoryLine
@@ -325,8 +325,8 @@ void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, b
 	else SCR_DrawBigString( x, y, str, 255 ); // draw big string with drop shadow
 
 	// draw the cursor
-	if(!showCursor ) return;
-	if((int)(host.realtime * 4) & 1) return; // off blink
+	if( !showCursor ) return;
+	if((int)(cls.realtime * 4) & 1) return; // off blink
 
 	if( key_overstrikeMode ) cursorChar = 11;
 	else cursorChar = 95;
@@ -518,7 +518,7 @@ Key_Console
 Handles history and console scrollback
 ====================
 */
-void Key_Console(int key)
+void Key_Console( int key )
 {
 	// ctrl-L clears screen
 	if( key == 'l' && keys[K_CTRL].down )
@@ -564,14 +564,14 @@ void Key_Console(int key)
 	}
 
 	// command completion
-	if (key == K_TAB)
+	if( key == K_TAB )
 	{
-		Field_CompleteCommand(&g_consoleField);
+		Field_CompleteCommand( &g_consoleField );
 		return;
 	}
 
 	// command history (ctrl-p ctrl-n for unix style)
-	if ( (key == K_MWHEELUP && keys[K_SHIFT].down) || ( key == K_UPARROW ) || ( key == K_KP_UPARROW ) || (( com.tolower(key) == 'p' ) && keys[K_CTRL].down ))
+	if(( key == K_MWHEELUP && keys[K_SHIFT].down ) || ( key == K_UPARROW ) || ( key == K_KP_UPARROW ) || (( com.tolower(key) == 'p' ) && keys[K_CTRL].down ))
 	{
 		if ( nextHistoryLine - historyLine < COMMAND_HISTORY && historyLine > 0 )
 		{
@@ -669,13 +669,14 @@ void Key_Message( int key )
 	}
 	if( key == K_ENTER || key == K_KP_ENTER )
 	{
-		if ( chatField.buffer[0] && cls.state == ca_active )
+		if( chatField.buffer[0] && cls.state == ca_active )
 		{
-			if (chat_team) com.sprintf( buffer, "say_team \"%s\"\n", chatField.buffer );
+			if( chat_team )
+				com.sprintf( buffer, "say_team \"%s\"\n", chatField.buffer );
 			else com.sprintf( buffer, "say \"%s\"\n", chatField.buffer );
 
 			Cbuf_AddText( buffer );
-			Cbuf_AddText("\"\n");//exec
+			Cbuf_AddText( "\"\n" ); // exec
 		}
 		cls.key_dest = key_game;
 		Field_Clear( &chatField );
@@ -1210,14 +1211,14 @@ Normal keyboard characters, already shifted / capslocked / etc
 void CL_CharEvent( int key )
 {
 	// the console key should never be used as a char
-	if ( key == '`' || key == '~' ) return;
+	if( key == '`' || key == '~' ) return;
 
 	// distribute the key down event to the apropriate handler
 	if( cls.key_dest == key_console || cls.state == ca_disconnected )
 	{
 		Field_CharEvent( &g_consoleField, key );
 	}
-	else if(cls.key_dest == key_message)
+	else if( cls.key_dest == key_message )
 	{
 		Field_CharEvent( &chatField, key );
 	}

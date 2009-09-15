@@ -451,7 +451,7 @@ typedef struct stdilib_api_s
 	// network.c funcs
 	void (*NET_Init)( void );
 	void (*NET_Shutdown)( void );
-	void (*NET_Sleep)( uint msec );
+	void (*NET_Sleep)( float time );
 	void (*NET_Config)( bool net_enable );
 	char *(*NET_AdrToString)( netadr_t a );
 	bool (*NET_IsLocalAddress)( netadr_t adr );

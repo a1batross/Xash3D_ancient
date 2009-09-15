@@ -180,7 +180,7 @@ bool REG_SetValue( HKEY hKey, const char *SubKey, const char *Value, char *pBuff
 //
 void NET_Init( void );
 void NET_Shutdown( void );
-void NET_Sleep( uint msec );
+void NET_Sleep( float time );
 void NET_Config( bool net_enable );
 bool NET_IsLocalAddress( netadr_t adr );
 char *NET_AdrToString( const netadr_t a );

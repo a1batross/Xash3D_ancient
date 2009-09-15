@@ -167,6 +167,11 @@ void SV_SpawnServer( const char *server, const char *savename )
 
 	// wipe the entire per-level structure
 	Mem_Set( &sv, 0, sizeof( sv ));
+	svs.realtime = 0.0f;
+
+	if( sv_fps->value < 10 ) Cvar_Set( "sv_fps", "10" );	// too slow, also, netcode uses a byte
+	else if( sv_fps->value > 100 ) Cvar_Set( "sv_fps", "100" );	// abusive
+	sv.frametime = ( 1.0f / sv_fps->value );
 
 	// save name for levels that don't set message
 	com.strncpy( sv.configstrings[CS_NAME], server, CS_SIZE );
@@ -219,11 +224,7 @@ void SV_SpawnServer( const char *server, const char *savename )
 	svgame.dllFuncs.pfnServerActivate( EDICT_NUM( 0 ), svgame.globals->numEntities, svgame.globals->maxClients );
 
 	// run two frames to allow everything to settle
-	for( i = 0; i < 2; i++ )
-	{
-		sv.frametime = svgame.globals->frametime = host.frametime = 0.1;
-		SV_Physics();
-	}
+	for( i = 0; i < 2; i++ ) SV_Physics();
 
 	// all precaches are complete
 	sv.state = ss_active;

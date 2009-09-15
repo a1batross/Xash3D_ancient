@@ -15,7 +15,7 @@
 
 class CLaserSpot;
 
-//weapon flags
+// weapon flags
 #define ITEM_FLAG_SELECTONEMPTY	1  //this weapon can choose without ammo
 #define ITEM_FLAG_NOAUTORELOAD	2  //only manual reload
 #define ITEM_FLAG_NOAUTOSWITCHEMPTY	4  //don't switch from this weapon
@@ -25,9 +25,13 @@ class CLaserSpot;
 #define ITEM_FLAG_USEAUTOAIM		64 // weapon uses autoaim
 #define ITEM_FLAG_HIDEAMMO		128 // weapon uses autoaim
 
-#define SUIT			(m_pPlayer->pev->weapons & ITEM_SUIT)
-#define PLAYER_HAS_SUIT		(pev->body == 1)
-#define NUM_HANDS			2 // number of hands: barney and gordon
+// suit definitions
+#define BARNEY_SUIT			0	// just in case
+#define GORDON_SUIT			1	// gordon suit
+#define NUM_HANDS			2	// number of hands: barney and gordon
+
+#define PLAYER_HAS_SUIT		(m_pPlayer->pev->weapons & ITEM_SUIT)
+#define PLAYER_DRAW_SUIT		(pev->body & GORDON_SUIT)
 #define MAX_SHOOTSOUNDS		3 // max of four random shoot sounds
 
 enum {

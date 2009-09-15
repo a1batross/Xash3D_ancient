@@ -497,10 +497,13 @@ CL_FinishMove
 */
 void CL_FinishMove( usercmd_t *cmd )
 {
-	int	ms;
+	static double	extramsec = 0;
+	int		ms;
 
 	// send milliseconds of time to apply the move
-	ms = cls.frametime * 1000;
+	extramsec += cls.frametime * 1000;
+	ms = extramsec;
+	extramsec -= ms;		// fractional part is left for next frame
 	if( ms > 250 ) ms = 100;	// time was unreasonable
 
 	cmd->msec = ms;
@@ -578,7 +581,7 @@ void CL_SendCmd( void )
 	if( cls.state == ca_connected )
 	{
 		// jsut update reliable
-		if( cls.netchan.message.cursize || host.realtime - cls.netchan.last_sent > 1.0f )
+		if( cls.netchan.message.cursize || cls.realtime - cls.netchan.last_sent > 1.0f )
 			Netchan_Transmit( &cls.netchan, 0, NULL );	
 		return;
 	}

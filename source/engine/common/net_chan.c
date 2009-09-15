@@ -102,7 +102,6 @@ void Netchan_Setup( netsrc_t sock, netchan_t *chan, netadr_t adr, int qport )
 	chan->incoming_sequence = 0;
 	chan->outgoing_sequence = 1;
 	chan->compress = true;
-	chan->rate = 1.0f / 3500;	// inital value of rate
 
 	MSG_Init( &chan->message, chan->message_buf, sizeof( chan->message_buf ));
 }
@@ -147,35 +146,6 @@ void Netchan_OutOfBandPrint( int net_socket, netadr_t adr, char *format, ... )
 
 	Netchan_OutOfBand( net_socket, adr, com.strlen( string ), string );
 }
-
-/*
-===============
-Netchan_CanPacket
-
-Returns true if the bandwidth choke isn't active
-================
-*/
-bool Netchan_CanPacket( netchan_t *chan )
-{
-	if( chan->cleartime < host.realtime + MAX_BACKUP * chan->rate )
-		return true;
-	return false;
-}
-
-/*
-===============
-Netchan_CanReliable
-
-Returns true if the last reliable message has acked
-================
-*/
-bool Netchan_CanReliable( netchan_t *chan )
-{
-	if( chan->reliable_length )
-		return false;	// waiting for ack
-	return Netchan_CanPacket( chan );
-}
-
 
 bool Netchan_NeedReliable( netchan_t *chan )
 {
@@ -265,11 +235,7 @@ void Netchan_Transmit( netchan_t *chan, int length, byte *data )
 		overflow = true;
 	}
 
-	if( chan->compress ) Huff_CompressPacket(&send, (chan->sock == NS_CLIENT) ? 10 : 8);
-
-	if( chan->cleartime < host.realtime )
-		chan->cleartime = host.realtime + send.cursize * chan->rate;
-	else chan->cleartime += send.cursize * chan->rate;
+	if( chan->compress ) Huff_CompressPacket( &send, (chan->sock == NS_CLIENT) ? 10 : 8 );
 
 	// send the datagram
 	NET_SendPacket( chan->sock, send.cursize, send.data, chan->remote_address );
@@ -320,37 +286,6 @@ bool Netchan_Process( netchan_t *chan, sizebuf_t *msg )
 		MsgDev( D_INFO, "Netchan_Process: %4i : %sreliable\n", msg->cursize, recv_reliable ? "" : "un" );
 	}
 
-#if 0
-	// get a rate estimation
-	if( chan->outgoing_sequence - sequence_ack < MAX_LATENT )
-	{
-		int	i;
-		double	time, rate;
-	
-		i = sequence_ack & (MAX_LATENT - 1);
-		time = Sys_DoubleTime() - chan->outgoing_time[i];
-		time -= 0.1f;	// subtract 100 ms
-		if( time <= 0 )
-		{	
-			// gotta be a digital link for <100 ms ping
-			if( chan->rate > 1.0f / 5000 )
-				chan->rate = 1.0f / 5000;
-		}
-		else
-		{
-			if( chan->outgoing_size[i] < 512 )
-			{	
-				// only deal with small messages
-				rate = chan->outgoing_size[i] / time;
-				if( rate > 5000 ) rate = 5000;
-				rate = 1.0f / rate;
-				if( chan->rate > rate )
-					chan->rate = rate;
-			}
-		}
-	}
-#endif
-
 	// discard stale or duplicated packets
 	if( sequence <= chan->incoming_sequence )
 	{
@@ -363,6 +298,7 @@ bool Netchan_Process( netchan_t *chan, sizebuf_t *msg )
 	chan->dropped = sequence - (chan->incoming_sequence + 1);
 	if( chan->dropped > 0 )
 	{
+		chan->drop_count += 1;
 		if( net_showdrop->value )
 			MsgDev( D_WARN, "%s:dropped %i packets\n", NET_AdrToString( chan->remote_address ), chan->dropped );
 	}
@@ -379,8 +315,7 @@ bool Netchan_Process( netchan_t *chan, sizebuf_t *msg )
 	if( recv_reliable ) chan->incoming_reliable_sequence ^= 1;
 	if( chan->compress ) Huff_DecompressPacket( msg, ( chan->sock == NS_SERVER) ? 10 : 8 );
 
-	// the message can now be read from the current message pointer
-	// update statistics counters
+	// the message can now be read from the current message pointer update statistics counters
 	chan->frame_latency = chan->frame_latency * OLD_AVG + (chan->outgoing_sequence - sequence_ack) * (1.0 - OLD_AVG);
 	chan->frame_rate = chan->frame_rate * OLD_AVG + (Sys_DoubleTime() - chan->last_received) * (1.0 - OLD_AVG);		
 	chan->good_count += 1;

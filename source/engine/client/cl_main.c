@@ -201,7 +201,7 @@ void CL_CheckForResend (void)
 	// resend if we haven't gotten a reply yet
 	if( cls.demoplayback || cls.state != ca_connecting )
 		return;
-	if(( host.realtime - cls.connect_time ) < 3.0f ) return;
+	if(( cls.realtime - cls.connect_time ) < 3.0f ) return;
 
 	if( !NET_StringToAdr( cls.servername, &adr ))
 	{
@@ -210,7 +210,7 @@ void CL_CheckForResend (void)
 		return;
 	}
 	if( adr.port == 0 ) adr.port = BigShort( PORT_SERVER );
-	cls.connect_time = host.realtime; // for retransmit requests
+	cls.connect_time = cls.realtime; // for retransmit requests
 	Msg( "Connecting to %s...\n", cls.servername );
 	Netchan_OutOfBandPrint( NS_CLIENT, adr, "getchallenge\n" );
 }
@@ -456,10 +456,10 @@ CL_Reconnect_f
 The server is changing levels
 =================
 */
-void CL_Reconnect_f (void)
+void CL_Reconnect_f( void )
 {
-	//ZOID
-	//if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
+	// if we are downloading, we don't change!
+	// this so we don't suddenly stop downloading a map
 	if( cls.download ) return;
 
 	S_StopAllSounds ();
@@ -477,12 +477,12 @@ void CL_Reconnect_f (void)
 		if( cls.state >= ca_connected )
 		{
 			CL_Disconnect();
-			cls.connect_time = host.realtime - 1.5;
+			cls.connect_time = cls.realtime - 1.5f;
 		}
 		else cls.connect_time = MAX_HEARTBEAT; // fire immediately
 
 		cls.state = ca_connecting;
-		Msg ("reconnecting...\n");
+		Msg( "reconnecting...\n" );
 	}
 }
 
@@ -497,7 +497,7 @@ void CL_GetServerList_f( void )
 
 	// send a broadcast packet
 	MsgDev( D_INFO, "status pinging broadcast...\n" );
-	cls.pingtime = host.realtime;
+	cls.pingtime = cls.realtime;
 
 	adr.type = NA_BROADCAST;
 	adr.port = BigShort( PORT_SERVER );
@@ -638,7 +638,7 @@ bool CL_ParseServerStatus( char *adr, char *info )
 	server->playerstr = copystring( va("%i/%i", server->numplayers, server->maxplayers ));
 
 	// add the ping
-	server->ping = host.realtime - cls.pingtime;
+	server->ping = cls.realtime - cls.pingtime;
 	server->pingstring = copystring( va( "%ims", server->ping ));
 	server->statusPacket = true;
 
@@ -662,8 +662,9 @@ void CL_ParseStatusMessage( netadr_t from, sizebuf_t *msg )
 
 	s = MSG_ReadString( msg );
 
-	Msg ("%s\n", s);
-	CL_ParseServerStatus( NET_AdrToString(from), s );
+	Msg( "%s\n", s );
+	UI_AddServerToList( from, s );
+//	CL_ParseServerStatus( NET_AdrToString(from), s );
 }
 
 //===================================================================
@@ -910,11 +911,11 @@ void CL_ReadPackets( void )
 	// check timeout
 	if( cls.state >= ca_connected && !cls.demoplayback )
 	{
-		if( host.realtime - cls.netchan.last_received > cl_timeout->value )
+		if( cls.realtime - cls.netchan.last_received > cl_timeout->value )
 		{
 			if( ++cl.timeoutcount > 5 ) // timeoutcount saves debugger
 			{
-				Msg ("\nServer connection timed out.\n");
+				Msg( "\nServer connection timed out.\n" );
 				CL_Disconnect();
 				return;
 			}
@@ -1075,7 +1076,7 @@ void CL_InitLocal( void )
 	// register our variables
 	cl_footsteps = Cvar_Get( "cl_footsteps", "1", 0, "disables player footsteps" );
 	cl_predict = Cvar_Get( "cl_predict", "1", CVAR_ARCHIVE, "disables client movement prediction" );
-	cl_maxfps = Cvar_Get( "cl_maxfps", "1000", 0, "maximum client fps" );
+	cl_maxfps = Cvar_Get( "cl_maxfps", "100", CVAR_ARCHIVE, "maximum client fps (refresh framerate too)" );
 	cl_particles = Cvar_Get( "cl_particles", "1", CVAR_ARCHIVE, "disables particle effects" );
 	cl_particlelod = Cvar_Get( "cl_lod_particle", "0", CVAR_ARCHIVE, "enables particle LOD (1, 2, 3)" );
 
@@ -1090,7 +1091,7 @@ void CL_InitLocal( void )
 
 	cl_shownet = Cvar_Get( "cl_shownet", "0", 0, "client show network packets" );
 	cl_showmiss = Cvar_Get( "cl_showmiss", "0", 0, "client show network errors" );
-	cl_showclamp = Cvar_Get( "cl_showclamp", "0", CVAR_ARCHIVE, "show client clamping" );
+	cl_showclamp = Cvar_Get( "cl_showclamp", "1", 0, "show client clamping" );
 	cl_timeout = Cvar_Get( "cl_timeout", "120", 0, "connect timeout (in-seconds)" );
 
 	rcon_client_password = Cvar_Get( "rcon_password", "", 0, "remote control client password" );
@@ -1162,20 +1163,49 @@ void CL_SendCommand( void )
 
 /*
 ==================
+CL_CalcFrameTime
+==================
+*/
+double CL_CalcFrameTime( void )
+{
+	if( cls.state == ca_connected )
+		return 0.1f;		// don't flood packets out while connecting
+	if( cl_maxfps->value )
+		return 1.0 / (double)cl_maxfps->value;
+	return 0;
+}
+
+/*
+==================
 CL_Frame
 
 ==================
 */
 void CL_Frame( double time )
 {
+	static double	extratime = 0.001;
+	static double	frametime;
+	double		minframetime;
+
 	if( host.type == HOST_DEDICATED )
 		return;
+
+	extratime += time;
+
+	minframetime = CL_CalcFrameTime();
+	if( extratime < minframetime )
+		return;
+
+	// decide the simulation time
+	frametime = extratime - 0.001;
+	if( frametime < minframetime ) frametime = minframetime;
+	extratime -= frametime;
 
 	// decide the simulation time
 	cl.oldtime = cl.time;
 	cl.time += time;		// can be merged by cl.frame.servertime 
 	cls.realtime += time;
-	cls.frametime = time;
+	cls.realframetime = cls.frametime = frametime;
 
 	if( cls.frametime > (1.0f / 5)) cls.frametime = (1.0f / 5);
 

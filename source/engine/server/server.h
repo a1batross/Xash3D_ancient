@@ -113,14 +113,13 @@ typedef struct sv_client_s
 	int		spectator;		// non-interactive
 
 	int		commandMsec;		// every seconds this is reset, if user
-	bool		send_message;		// set on frames a datagram arived on
 	   					// commands exhaust it, assume time cheating
 
 	int		frame_latency[LATENCY_COUNTS];
 	int		ping;
 
 	int		message_size[RATE_MESSAGES];	// used to rate drop packets
-	float		rate;
+	int		rate;
 
 	int		surpressCount;		// number of messages rate supressed
 
