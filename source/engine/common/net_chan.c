@@ -188,6 +188,7 @@ void Netchan_Transmit( netchan_t *chan, int length, byte *data )
 	static bool	overflow = false;
 	byte		send_buf[MAX_MSGLEN];
 	bool		send_reliable;
+	size_t		size1, size2;
 	uint		w1, w2;
 
 	// check for message overflow
@@ -235,17 +236,24 @@ void Netchan_Transmit( netchan_t *chan, int length, byte *data )
 		overflow = true;
 	}
 
+	size1 = send.cursize;
 	if( chan->compress ) Huff_CompressPacket( &send, (chan->sock == NS_CLIENT) ? 10 : 8 );
+	size2 = send.cursize;
 
 	// send the datagram
 	NET_SendPacket( chan->sock, send.cursize, send.data, chan->remote_address );
 
 	if( net_showpackets->integer )
 	{
+		const char *s1, *s2;
+
 		if( chan->sock == NS_CLIENT ) MsgDev( D_INFO, "CL " );
 		else if( chan->sock == NS_SERVER ) MsgDev( D_INFO, "SV " );
 
-		MsgDev( D_INFO, "Netchan_Transmit: %4i : %sreliable\n", send.cursize, send_reliable ? "" : "un" );
+		s1 = memprint( size1 );	// uncompressed size
+		s2 = memprint( size2 );	// compressed size
+
+		MsgDev( D_INFO, "Netchan_Transmit: %s[%s] : %sreliable\n", s1, s2, send_reliable ? "" : "un" );
 	}
 }
 
@@ -261,6 +269,7 @@ bool Netchan_Process( netchan_t *chan, sizebuf_t *msg )
 {
 	uint	sequence, sequence_ack;
 	uint	reliable_ack, recv_reliable;
+	size_t	size1, size2;
 	int	qport;
 
 	// get sequence numbers		
@@ -277,14 +286,6 @@ bool Netchan_Process( netchan_t *chan, sizebuf_t *msg )
 
 	sequence &= ~(1<<31);
 	sequence_ack &= ~(1<<31);	
-
-	if( net_showpackets->integer )
-	{
-		if( chan->sock == NS_CLIENT ) MsgDev( D_INFO, "CL " );
-		else if( chan->sock == NS_SERVER ) MsgDev( D_INFO, "SV " );
-
-		MsgDev( D_INFO, "Netchan_Process: %4i : %sreliable\n", msg->cursize, recv_reliable ? "" : "un" );
-	}
 
 	// discard stale or duplicated packets
 	if( sequence <= chan->incoming_sequence )
@@ -313,7 +314,22 @@ bool Netchan_Process( netchan_t *chan, sizebuf_t *msg )
 	chan->incoming_acknowledged = sequence_ack;
 	chan->incoming_reliable_acknowledged = reliable_ack;
 	if( recv_reliable ) chan->incoming_reliable_sequence ^= 1;
+	size1 = msg->cursize;
 	if( chan->compress ) Huff_DecompressPacket( msg, ( chan->sock == NS_SERVER) ? 10 : 8 );
+	size2 = msg->cursize;
+
+	if( net_showpackets->integer )
+	{
+		const char *s1, *s2;
+
+		if( chan->sock == NS_CLIENT ) MsgDev( D_INFO, "CL " );
+		else if( chan->sock == NS_SERVER ) MsgDev( D_INFO, "SV " );
+
+		s1 = memprint( size2 );	// compressed size
+		s2 = memprint( size1 );	// uncompressed size
+
+		MsgDev( D_INFO, "Netchan_Process: %s[%s] : %sreliable\n", s1, s2, recv_reliable ? "" : "un" );
+	}
 
 	// the message can now be read from the current message pointer update statistics counters
 	chan->frame_latency = chan->frame_latency * OLD_AVG + (chan->outgoing_sequence - sequence_ack) * (1.0 - OLD_AVG);

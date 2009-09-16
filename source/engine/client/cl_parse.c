@@ -248,7 +248,6 @@ void CL_ParseServerData( sizebuf_t *msg )
 		Host_Error( "Server use invalid protocol (%i should be %i)\n", i, PROTOCOL_VERSION );
 
 	cl.servercount = MSG_ReadLong( msg );
-	cl.serverframetime = MSG_ReadFloat( msg );
 	cl.playernum = MSG_ReadShort( msg );
 	str = MSG_ReadString( msg );
 
@@ -262,7 +261,7 @@ void CL_ParseServerData( sizebuf_t *msg )
 	if( i == 3 )
 	{
 		Cvar_Set( "cl_levelshot_name", MAP_DEFAULT_SHADER );	// render a black screen
-		cl.need_levelshot = true;			// make levelshot
+		clgame.need_levelshot = true;				// make levelshot
 	}
 	// seperate the printfs so the server message can have a color
 	Msg("\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");
@@ -524,7 +523,6 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			break;
 		case svc_playerinfo:
 		case svc_packetentities:
-		case svc_deltapacketentities:
 			Host_Error( "CL_ParseServerMessage: out of place frame data\n" );
 			break;
 		case svc_bad:

@@ -191,11 +191,11 @@ void CL_LevelShot_f( void )
 {
 	string	checkname;	
 
-	if( !cl.need_levelshot ) return;
+	if( !clgame.need_levelshot ) return;
 	// check for exist
 	com.sprintf( checkname, "levelshots/%s.jpg", cl.configstrings[CS_NAME] );
 	if( !FS_FileExists( checkname )) re->ScrShot( checkname, VID_LEVELSHOT );
-	cl.need_levelshot = false; // done
+	clgame.need_levelshot = false; // done
 }
 
 /* 

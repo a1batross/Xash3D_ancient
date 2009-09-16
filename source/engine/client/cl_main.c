@@ -26,6 +26,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 cvar_t	*rcon_client_password;
 cvar_t	*rcon_address;
 
+cvar_t	*cl_maxpackets;
+cvar_t	*cl_packetdup;
 cvar_t	*cl_footsteps;
 cvar_t	*cl_timeout;
 cvar_t	*cl_predict;
@@ -35,6 +37,7 @@ cvar_t	*cl_maxfps;
 cvar_t	*cl_particles;
 cvar_t	*cl_particlelod;
 
+cvar_t	*cl_timenudge;
 cvar_t	*cl_shownet;
 cvar_t	*cl_showmiss;
 cvar_t	*cl_showclamp;
@@ -1079,6 +1082,8 @@ void CL_InitLocal( void )
 	cl_maxfps = Cvar_Get( "cl_maxfps", "100", CVAR_ARCHIVE, "maximum client fps (refresh framerate too)" );
 	cl_particles = Cvar_Get( "cl_particles", "1", CVAR_ARCHIVE, "disables particle effects" );
 	cl_particlelod = Cvar_Get( "cl_lod_particle", "0", CVAR_ARCHIVE, "enables particle LOD (1, 2, 3)" );
+	cl_maxpackets = Cvar_Get( "cl_maxpackets", "30", CVAR_ARCHIVE, "usercmds sending frequency rate" );
+	cl_packetdup = Cvar_Get( "cl_packetdup", "2", CVAR_ARCHIVE, "number of repeating packets (2 is Q2 default value)" );
 
 	cl_upspeed = Cvar_Get( "cl_upspeed", "200", 0, "client upspeed limit" );
 	cl_forwardspeed = Cvar_Get( "cl_forwardspeed", "200", 0, "client forward speed limit" );
@@ -1093,6 +1098,7 @@ void CL_InitLocal( void )
 	cl_showmiss = Cvar_Get( "cl_showmiss", "0", 0, "client show network errors" );
 	cl_showclamp = Cvar_Get( "cl_showclamp", "1", 0, "show client clamping" );
 	cl_timeout = Cvar_Get( "cl_timeout", "120", 0, "connect timeout (in-seconds)" );
+	cl_timenudge = Cvar_Get( "cl_timenudge", "0", CVAR_TEMP, "nudge server time to specified value" );
 
 	rcon_client_password = Cvar_Get( "rcon_password", "", 0, "remote control client password" );
 	rcon_address = Cvar_Get( "rcon_address", "", 0, "remote control address" );
@@ -1159,6 +1165,8 @@ void CL_SendCommand( void )
 
 	// resend a connection request if necessary
 	CL_CheckForResend ();
+
+	CL_SetClientTime ();
 }
 
 /*
@@ -1202,8 +1210,6 @@ void CL_Frame( double time )
 	extratime -= frametime;
 
 	// decide the simulation time
-	cl.oldtime = cl.time;
-	cl.time += time;		// can be merged by cl.frame.servertime 
 	cls.realtime += time;
 	cls.realframetime = cls.frametime = frametime;
 

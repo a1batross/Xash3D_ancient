@@ -50,24 +50,44 @@ void SV_CalcPings( void )
 	int		i, j;
 	sv_client_t	*cl;
 	int		total, count;
+	int		delta;
 
-	// clamp fps counter
 	for( i = 0; i < Host_MaxClients(); i++ )
 	{
 		cl = &svs.clients[i];
-		if( cl->state != cs_spawned ) continue;
-
-		total = count = 0;
-		for( j = 0; j < LATENCY_COUNTS; j++ )
+		if( cl->state != cs_spawned )
 		{
-			if( cl->frame_latency > 0 )
-			{
-				count++;
-				total += cl->frame_latency[j];
-			}
+			cl->ping = 999;
+			continue;
 		}
-		if( !count ) cl->ping = 0;
-		else cl->ping = total / count;
+		if( !cl->edict )
+		{
+			cl->ping = 999;
+			continue;
+		}
+		if( cl->edict->v.flags & FL_FAKECLIENT )
+		{
+			cl->ping = 0;
+			continue;
+		}
+
+		total = 0;
+		count = 0;
+		for( j = 0; j < UPDATE_BACKUP; j++ )
+		{
+			if( cl->frames[j].message_acked <= 0 )
+				continue;
+			delta = cl->frames[j].message_acked - cl->frames[j].message_sent;
+			count++;
+			total += delta;
+		}
+
+		if( count )
+		{
+			cl->ping = total / count;
+			if( cl->ping > 999 ) cl->ping = 999;
+		}
+		else cl->ping = 999;
 
 		// let the game dll know about the ping
 		cl->edict->pvServerData->client->ping = cl->ping;
@@ -220,6 +240,39 @@ void SV_PrepWorldFrame( void )
 }
 
 /*
+==================
+SV_CheckPaused
+==================
+*/
+bool SV_CheckPaused( void )
+{
+	int		i, count;
+	sv_client_t	*cl;
+
+	if( !sv_paused->integer )
+		return false;
+
+	// only pause if there is just a single client connected
+	for( i = count = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
+	{
+		if( cl->state >= cs_connected && !(cl->edict && cl->edict->v.flags & FL_FAKECLIENT))
+			count++;
+	}
+
+	if( count > 1 )
+	{
+		// don't pause
+		if( sv_paused->integer )
+			Cvar_Set( "sv_paused", "0" );
+		return false;
+	}
+
+	if( !sv_paused->integer )
+		Cvar_Set( "sv_paused", "1" );
+	return true;
+}
+
+/*
 =================
 SV_RunGameFrame
 =================
@@ -256,10 +309,13 @@ SV_Frame
 */
 void SV_Frame( double time )
 {
+	static double	timeResidual = 0.0f;
+
 	// if server is not active, do nothing
 	if( !svs.initialized ) return;
 
-	svs.realtime += time;
+	// allow pause if only the local client is connected
+	if( SV_CheckPaused()) return;
 
 	// keep the random time dependent
 	rand ();
@@ -270,28 +326,40 @@ void SV_Frame( double time )
 	// read packets from clients
 	SV_ReadPackets ();
 
-	// move autonomous things around if enough time has passed
-	if( svs.realtime < sv.time )
+	if( sv_fps->modified )
 	{
-		// never let the time get too far off
-		if( sv.time - svs.realtime > sv.frametime )
-		{
-			if( sv_showclamp->integer )
-				MsgDev( D_INFO, "sv lowclamp\n" );
-			svs.realtime = sv.time - sv.frametime;
-		}
-		NET_Sleep( sv.time - svs.realtime );
+		if( sv_fps->value < 10 ) Cvar_Set( "sv_fps", "10" );	// too slow, also, netcode uses a byte
+		else if( sv_fps->value > 100 ) Cvar_Set( "sv_fps", "100" );	// abusive
+		sv_fps->modified = false;
+	}
+
+	sv.frametime = (1.0f / sv_fps->value);
+	timeResidual += time;
+
+	if( host.type == HOST_DEDICATED && timeResidual < sv.frametime )
+	{
+		// NET_Sleep will give the OS time slices until either get a packet
+		// or time enough for a server frame has gone by
+		NET_Sleep( sv.frametime - timeResidual );
 		return;
 	}
 
 	// update ping based on the last known frame from all clients
 	SV_CalcPings ();
+	
+	// let everything in the world think and move
+	while( timeResidual >= sv.frametime )
+	{
+		timeResidual -= sv.frametime;
+		svs.realtime += sv.frametime;
+		sv.time += sv.frametime;
+
+		SV_Physics();
+		sv.framenum++;
+	}
 
 	// give the clients some timeslices
 	SV_GiveMsec ();
-
-	// let everything in the world think and move
-	SV_RunGameFrame ();
 
 	// send messages back to the clients that had packets read this frame
 	SV_SendClientMessages ();
@@ -402,7 +470,7 @@ void SV_Init( void )
 	Cvar_Get ("protocol", va("%i", PROTOCOL_VERSION), CVAR_SERVERINFO|CVAR_INIT, "displays server protocol version" );
 	Cvar_Get ("sv_aim", "1", 0, "enable auto-aiming" );
 
-	sv_fps = Cvar_Get( "sv_fps", "60", CVAR_ARCHIVE|CVAR_LATCH, "running physics engine at" );
+	sv_fps = Cvar_Get( "sv_fps", "60", CVAR_ARCHIVE, "running physics engine at" );
 	sv_stepheight = Cvar_Get( "sv_stepheight", DEFAULT_STEPHEIGHT, CVAR_ARCHIVE|CVAR_LATCH, "how high you can step up" );
 	sv_playersonly = Cvar_Get( "playersonly", "0", 0, "freezes time, except for players" );
 	hostname = Cvar_Get ("sv_hostname", "unnamed", CVAR_SERVERINFO | CVAR_ARCHIVE, "host name" );

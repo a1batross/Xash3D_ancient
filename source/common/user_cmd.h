@@ -9,6 +9,7 @@
 typedef struct usercmd_s
 {
 	int		msec;
+	float		servertime;
 	vec3_t		angles;
 	int		forwardmove;
 	int		sidemove;

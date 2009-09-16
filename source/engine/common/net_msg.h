@@ -60,9 +60,8 @@ enum svc_ops_e
 	svc_configstring,		// [short] [string]
 	svc_spawnbaseline,		// valid only at spawn		
 	svc_download,		// [short] size [size bytes]
-	svc_playerinfo,		// [...]
+	svc_playerinfo,		// [long]
 	svc_packetentities,		// [...]
-	svc_deltapacketentities,	// [...]
 	svc_frame,		// server frame
 	svc_sound,		// <see code>
 	svc_setangle,		// [short short short] set the view angle to this absolute value
@@ -79,6 +78,7 @@ enum clc_ops_e
 	// engine messages
 	clc_nop = 201, 		
 	clc_move,			// [[usercmd_t]
+	clc_deltamove,		// [[usercmd_t]
 	clc_userinfo,		// [[userinfo string]
 	clc_stringcmd,		// [string] message
 };

@@ -95,6 +95,7 @@ typedef struct entity_state_s
 	float		maxspeed;		// min( pev->maxspeed, sv_maxspeed->value )
 	float		health;		// client health (other parms can be send by custom messages)
 	int		weapons;		// weapon flags
+	float		cmdtime;		// prediction stuff
 	float		fov;		// horizontal field of view
 } entity_state_t;
 

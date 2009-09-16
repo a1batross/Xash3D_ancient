@@ -73,9 +73,9 @@ void V_SetupRefDef( void )
 
 	// find the previous frame to interpolate from
 	ps = &cl.frame.ps;
-	i = (cl.frame.serverframe - 1) & UPDATE_MASK;
+	i = (cl.frame.msgnum - 1) & UPDATE_MASK;
 	oldframe = &cl.frames[i];
-	if( oldframe->serverframe != cl.frame.serverframe-1 || !oldframe->valid )
+	if( oldframe->msgnum != cl.frame.msgnum - 1 || !oldframe->valid )
 		oldframe = &cl.frame; // previous frame was dropped or invalid
 	ops = &oldframe->ps;
 
@@ -144,7 +144,7 @@ void V_SetupRefDef( void )
 
 		// smooth out stair climbing
 		delta = cls.realtime - cl.predicted_step_time;
-		if( delta < cl.serverframetime ) cl.refdef.vieworg[2] -= cl.predicted_step * (cl.serverframetime - delta) * 0.01f;
+		if( delta < cl.frametime ) cl.refdef.vieworg[2] -= cl.predicted_step * (cl.frametime - delta) * 0.01f;
 	}
 }
 

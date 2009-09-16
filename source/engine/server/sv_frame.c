@@ -325,42 +325,38 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 	int		lastframe;
 
 	// this is the frame we are creating
-	frame = &cl->frames[sv.framenum & UPDATE_MASK];
+	frame = &cl->frames[cl->netchan.outgoing_sequence & UPDATE_MASK];
 
-	if( cl->lastframe <= 0 )
+	if( cl->deltamessage <= 0 || cl->state != cs_spawned )
 	{	
 		// client is asking for a retransmit
 		oldframe = NULL;
-		lastframe = -1;
+		lastframe = 0;
 	}
-	else if( sv.framenum - cl->lastframe >= (UPDATE_BACKUP - 3))
+	else if( cl->netchan.outgoing_sequence - cl->deltamessage >= (UPDATE_BACKUP - 3))
 	{
 		// client hasn't gotten a good message through in a long time
+		MsgDev( D_WARN, "%s: Delta request from out of date packet\n", cl->name );
 		oldframe = NULL;
-		lastframe = -1;
+		lastframe = 0;
 	}
 	else
 	{	// we have a valid message to delta from
-		oldframe = &cl->frames[cl->lastframe & UPDATE_MASK];
-		lastframe = cl->lastframe;
+		oldframe = &cl->frames[cl->deltamessage & UPDATE_MASK];
+		lastframe = cl->netchan.outgoing_sequence - cl->deltamessage;
 
 		// the snapshot's entities may still have rolled off the buffer, though
 		if( oldframe->first_entity <= svs.next_client_entities - svs.num_client_entities )
 		{
-			MsgDev( D_WARN, "%s: delta request from out of date entities.\n", cl->name );
+			MsgDev( D_WARN, "%s: delta request from out of date entities\n", cl->name );
 			oldframe = NULL;
 			lastframe = 0;
 		}
 	}
 
-	MSG_WriteByte( msg, svc_time );
-	MSG_WriteFloat( msg, sv.time );		// send a servertime before each frame
-
 	MSG_WriteByte( msg, svc_frame );
-	MSG_WriteLong( msg, sv.framenum );
-	MSG_WriteLong( msg, lastframe );		// what we are delta'ing from
-	MSG_WriteByte( msg, cl->surpressCount );	// rate dropped packets
-	cl->surpressCount = 0;
+	MSG_WriteFloat( msg, sv.time );		// send a servertime for each frame
+	MSG_WriteByte( msg, lastframe );		// what we are delta'ing from
 
 	// send over the areabits
 	MSG_WriteByte( msg, frame->areabits_size );	// never more than 255 bytes
@@ -406,8 +402,8 @@ void SV_BuildClientFrame( sv_client_t *cl )
 	sv.net_framenum++;
 
 	// this is the frame we are creating
-	frame = &cl->frames[sv.framenum & UPDATE_MASK];
-	frame->senttime = svs.realtime; // save it for ping calc later
+	frame = &cl->frames[cl->netchan.outgoing_sequence & UPDATE_MASK];
+	frame->message_sent = svs.realtime; // save it for ping calc later
 
 	// clear everything in this snapshot
 	frame_ents.num_entities = c_fullsend = 0;
@@ -459,6 +455,75 @@ FRAME UPDATES
 ===============================================================================
 */
 /*
+====================
+SV_RateMsec
+
+Return the number of msec a given size message is supposed
+to take to clear, based on the current rate
+====================
+*/
+#define HEADER_RATE_BYTES		10	// sequence, qport etc
+
+static float SV_RateTime( sv_client_t *cl, size_t msg_size )
+{
+	float	rate_time;
+
+	// individual messages will never be larger than fragment size
+	if( msg_size > MAX_MSGLEN ) msg_size = MAX_MSGLEN;
+
+	rate_time = (msg_size + HEADER_RATE_BYTES) / cl->rate;
+
+	return rate_time;
+}
+
+/*
+=======================
+SV_SendMessageToClient
+
+Called by SV_SendClientDatagram
+=======================
+*/
+void SV_SendMessageToClient( sizebuf_t *msg, sv_client_t *cl )
+{
+	float	rate_time;
+
+	// record information about the message
+	cl->frames[cl->netchan.outgoing_sequence & UPDATE_MASK].message_size = msg->cursize;
+	cl->frames[cl->netchan.outgoing_sequence & UPDATE_MASK].message_sent = svs.realtime;
+	cl->frames[cl->netchan.outgoing_sequence & UPDATE_MASK].message_acked = -1;
+
+	// send the datagram
+	Netchan_Transmit( &cl->netchan, msg->cursize, msg->data );
+
+	// set nextsnapshot based on rate and requested number of updates
+
+	// local clients get snapshots every frame
+	if( NET_IsLocalAddress( cl->netchan.remote_address ))
+	{
+		cl->nextsnapshot = svs.realtime + 0.1f;	// FIXME:  tune this value
+		return;
+	}
+	
+	// normal rate / snapshotMsec calculation
+	rate_time = SV_RateTime( cl, msg->cursize );
+
+	// never send more packets than this, no matter what the rate is at
+	if( rate_time < cl->snapshot_time ) rate_time = cl->snapshot_time;
+
+	cl->nextsnapshot = svs.realtime + rate_time;
+
+	// don't pile up empty snapshots while connecting
+	if ( cl->state != cs_spawned )
+	{
+		// a gigantic connection message may have already put the nextsnapshot
+		// more than a second away, so don't shorten it
+		// do shorten if client is downloading
+		if( !cl->download && cl->nextsnapshot < svs.realtime + 1.0f )
+			cl->nextsnapshot = svs.realtime + 1.0f;
+	}
+}
+
+/*
 =======================
 SV_SendClientDatagram
 =======================
@@ -491,41 +556,9 @@ bool SV_SendClientDatagram( sv_client_t *cl )
 		MSG_Clear( &msg );
 	}
 
-	// send the datagram
-	Netchan_Transmit( &cl->netchan, msg.cursize, msg.data );
-
-	// record the size for rate estimation
-	cl->message_size[sv.framenum % RATE_MESSAGES] = msg.cursize;
+	SV_SendMessageToClient( &msg, cl );
 
 	return true;
-}
-
-/*
-=======================
-SV_RateDrop
-
-Returns true if the client is over its current
-bandwidth estimation and should not be sent another packet
-=======================
-*/
-bool SV_RateDrop( sv_client_t *cl )
-{
-	int	i, total = 0;
-
-	// never drop over the loopback
-	if( NET_IsLocalAddress( cl->netchan.remote_address ))
-		return false;
-
-	for( i = 0; i < RATE_MESSAGES; i++ )
-		total += cl->message_size[i];
-
-	if( total > cl->rate )
-	{
-		cl->surpressCount++;
-		cl->message_size[sv.framenum % RATE_MESSAGES] = 0;
-		return true;
-	}
-	return false;
 }
 
 /*
@@ -557,14 +590,14 @@ void SV_SendClientMessages( void )
 
 		if( cl->state == cs_spawned )
 		{
-			// don't overrun bandwidth
-			if( SV_RateDrop( cl )) continue;
+			if( svs.realtime < cl->nextsnapshot )
+				continue;
 			SV_SendClientDatagram( cl );
 		}
 		else
 		{
 			// just update reliable if needed
-			if( cl->netchan.message.cursize || svs.realtime - cl->netchan.last_sent > 1.0 )
+			if( cl->netchan.message.cursize || svs.realtime - cl->netchan.last_sent > 1.0f )
 				Netchan_Transmit( &cl->netchan, 0, NULL );
 		}
 	}

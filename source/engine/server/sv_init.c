@@ -169,10 +169,6 @@ void SV_SpawnServer( const char *server, const char *savename )
 	Mem_Set( &sv, 0, sizeof( sv ));
 	svs.realtime = 0.0f;
 
-	if( sv_fps->value < 10 ) Cvar_Set( "sv_fps", "10" );	// too slow, also, netcode uses a byte
-	else if( sv_fps->value > 100 ) Cvar_Set( "sv_fps", "100" );	// abusive
-	sv.frametime = ( 1.0f / sv_fps->value );
-
 	// save name for levels that don't set message
 	com.strncpy( sv.configstrings[CS_NAME], server, CS_SIZE );
 	MSG_Init( &sv.multicast, sv.multicast_buf, sizeof( sv.multicast_buf ));
@@ -184,10 +180,12 @@ void SV_SpawnServer( const char *server, const char *savename )
 		// needs to reconnect
 		if( svs.clients[i].state > cs_connected )
 			svs.clients[i].state = cs_connected;
-		svs.clients[i].lastframe = -1;
+		svs.clients[i].deltamessage = -1;
+		svs.clients[i].nextsnapshot = svs.realtime;	// generate a snapshot immediately
 	}
 
 	sv.time = 1.0;
+	sv.frametime = 0.1f;
 	
 	com.strncpy( sv.name, server, MAX_STRING );
 	FS_FileBase(server, sv.configstrings[CS_NAME]);

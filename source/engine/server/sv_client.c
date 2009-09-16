@@ -203,7 +203,8 @@ gotnewcl:
 	newcl->state = cs_connected;
 	newcl->lastmessage = svs.realtime;
 	newcl->lastconnect = svs.realtime;
-
+	newcl->nextsnapshot = svs.realtime;
+	
 	// if this was the first client on the server, or the last client
 	// the server can hold, send a heartbeat to the master.
 	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
@@ -538,9 +539,8 @@ void SV_New_f( sv_client_t *cl )
 
 	// send the serverdata
 	MSG_WriteByte( &cl->netchan.message, svc_serverdata );
-	MSG_WriteLong( &cl->netchan.message, PROTOCOL_VERSION);
+	MSG_WriteLong( &cl->netchan.message, PROTOCOL_VERSION );
 	MSG_WriteLong( &cl->netchan.message, svs.spawncount );
-	MSG_WriteFloat( &cl->netchan.message, sv.frametime );
 	MSG_WriteShort( &cl->netchan.message, playernum );
 	MSG_WriteString( &cl->netchan.message, sv.configstrings[CS_NAME] );
 
@@ -629,9 +629,9 @@ void SV_Baselines_f( sv_client_t *cl )
 		return;
 	}
 	
-	start = com.atoi(Cmd_Argv(2));
+	start = com.atoi( Cmd_Argv( 2 ));
 
-	Mem_Set( &nullstate, 0, sizeof(nullstate));
+	Mem_Set( &nullstate, 0, sizeof( nullstate ));
 
 	// write a packet full of data
 	while( cl->netchan.message.cursize < MAX_MSGLEN / 2 && start < host.max_edicts )
@@ -646,7 +646,7 @@ void SV_Baselines_f( sv_client_t *cl )
 	}
 
 	if( start == host.max_edicts ) com.snprintf( baseline, MAX_STRING, "precache %i\n", svs.spawncount );
-	else com.snprintf( baseline, MAX_STRING, "cmd baselines %i %i\n",svs.spawncount, start );
+	else com.snprintf( baseline, MAX_STRING, "cmd baselines %i %i\n", svs.spawncount, start );
 
 	// send next command
 	MSG_WriteByte( &cl->netchan.message, svc_stufftext );
@@ -668,6 +668,7 @@ void SV_Begin_f( sv_client_t *cl )
 		return;
 	}
 	cl->state = cs_spawned;
+	cl->nextsnapshot = svs.realtime;	// generate a snapshot immediately
 	SV_PutClientInServer( cl->edict );
 }
 
@@ -789,10 +790,18 @@ void SV_UserinfoChanged( sv_client_t *cl )
 	if( com.strlen( val ))
 	{
 		i = com.atoi( val );
-		cl->rate = i;
-		cl->rate = bound ( 2500, cl->rate, 25000 );
+		cl->rate = bound ( 2500, i, 25000 );
 	}
 	else cl->rate = 5000; // default value (ISDN)
+
+	// snaps command
+	val = Info_ValueForKey( cl->userinfo, "snaps" );
+	if( com.strlen( val ))
+	{
+		i = com.atoi( val );
+		cl->snapshot_time = (1.0f / bound( 1, i, 30 ));
+	}
+	else cl->snapshot_time = 0.02f;
 
 	// msg command
 	val = Info_ValueForKey( cl->userinfo, "msg" );
@@ -1411,63 +1420,71 @@ On very fast clients, there may be multiple usercmd packed into
 each of the backup packets.
 ==================
 */
-static void SV_ReadClientMove( sv_client_t *cl, sizebuf_t *msg )
+static void SV_ReadClientMove( sv_client_t *cl, sizebuf_t *msg, bool noDelta )
 {
-	int	checksumIndex, lastframe;
-	int	checksum, calculatedChecksum;
-	usercmd_t	nullcmd, oldest, oldcmd, newcmd;
-	int	net_drop;
-	double	latency;
+	int		i, key, cmd_count;
+	int		checksum1, checksum2;
+	usercmd_t		cmds[UPDATE_BACKUP];
+	usercmd_t		*cmd, *oldcmd;
+	usercmd_t		nullcmd;
 
-	checksumIndex = msg->readcount;
-	checksum = MSG_ReadByte( msg );
-	lastframe = MSG_ReadLong( msg );
-	if( lastframe != cl->lastframe )
+	if( noDelta ) cl->deltamessage = -1;
+	else cl->deltamessage = cl->netchan.incoming_acknowledged;
+
+	key = msg->readcount;
+	checksum1 = MSG_ReadByte( msg );
+	cmd_count = MSG_ReadByte( msg );
+
+	if( cmd_count < 1 ) return;
+	if( cmd_count > UPDATE_BACKUP )
 	{
-		cl->lastframe = lastframe;
-		if( cl->lastframe > 0 )
-		{
-			latency = svs.realtime - cl->frames[cl->lastframe & UPDATE_MASK].senttime;
-			cl->frame_latency[cl->lastframe & (LATENCY_COUNTS-1)] = latency;
-		}
+		// force to server will be crashed
+		MsgDev( D_ERROR, "too many usercmds received\n" );
+		return;
 	}
 
 	Mem_Set( &nullcmd, 0, sizeof( nullcmd ));
-	MSG_ReadDeltaUsercmd( msg, &nullcmd, &oldest );
-	MSG_ReadDeltaUsercmd( msg, &oldest, &oldcmd );
-	MSG_ReadDeltaUsercmd( msg, &oldcmd, &newcmd );
+
+	for( i = 0, oldcmd = &nullcmd; i < cmd_count; i++ )
+	{
+		cmd = &cmds[i];
+		MSG_ReadDeltaUsercmd( msg, oldcmd, cmd );
+		oldcmd = cmd;
+	}
+
+	// save time for ping calculation
+	cl->frames[cl->netchan.incoming_acknowledged & UPDATE_MASK].message_acked = svs.realtime;
 
 	if( cl->state != cs_spawned )
 	{
-		cl->lastframe = -1;
+		cl->deltamessage = -1;
 		return;
 	}
 
 	// if the checksum fails, ignore the rest of the packet
-	calculatedChecksum = CRC_Sequence( msg->data + checksumIndex + 1, msg->readcount - checksumIndex - 1, cl->netchan.incoming_sequence );
-	if( calculatedChecksum != checksum )
+	checksum2 = CRC_Sequence( msg->data + key + 1, msg->readcount - key - 1, cl->netchan.incoming_sequence );
+	if( checksum2 != checksum1 )
 	{
-		MsgDev( D_ERROR, "SV_UserMove: failed command checksum for %s (%d != %d)\n", cl->name, calculatedChecksum, checksum );
+		MsgDev( D_ERROR, "SV_UserMove: failed command checksum for %s (%d != %d)\n", cl->name, checksum2, checksum1 );
 		return;
 	}
 
-	if( !sv_paused->integer )
+	// usually, the first couple commands will be duplicates
+	// of ones we have previously received, but the servertimes
+	// in the commands will cause them to be immediately discarded
+	for( i = 0; i < cmd_count; i++ )
 	{
-		net_drop = cl->netchan.dropped;
-		if( net_drop < 20 )
-		{
-			while( net_drop > 2 )
-			{
-				SV_Physics_ClientMove( cl, &cl->lastcmd );
-				net_drop--;
-			}
-			if( net_drop > 1 ) SV_Physics_ClientMove( cl, &oldest );
-			if( net_drop > 0 ) SV_Physics_ClientMove( cl, &oldcmd );
+		// if this is a cmd from before a map_restart ignore it
+		if( cmds[i].servertime > cmds[cmd_count-1].servertime )
+			continue;
 
-		}
-		SV_Physics_ClientMove( cl, &newcmd );
+		// don't execute if this is an old cmd which is already executed
+		// these old cmds are included when cl_packetdup > 0
+		if( cmds[i].servertime <= cl->lastcmd.servertime )
+			continue;
+
+		SV_Physics_ClientMove( cl, &cmds[i] );
 	}
-	cl->lastcmd = newcmd;
 }
 
 /*
@@ -1510,7 +1527,12 @@ void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg )
 		case clc_move:
 			if( move_issued ) return; // someone is trying to cheat...
 			move_issued = true;
-			SV_ReadClientMove( cl, msg );
+			SV_ReadClientMove( cl, msg, true );
+			break;
+		case clc_deltamove:
+			if( move_issued ) return; // someone is trying to cheat...
+			move_issued = true;
+			SV_ReadClientMove( cl, msg, false );
 			break;
 		case clc_stringcmd:	
 			s = MSG_ReadString( msg );
