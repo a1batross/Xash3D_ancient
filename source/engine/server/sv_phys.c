@@ -1676,15 +1676,12 @@ void SV_Physics_ClientMove( sv_client_t *client, usercmd_t *cmd )
 {
 	edict_t	*ent = client->edict;
 
-	// save current cmd
-	client->lastcmd = *cmd;
-
 	// call player physics, this needs the proper frametime
 	svgame.globals->frametime = sv.frametime;
 	SV_ClientThink( client, cmd );
 
 	// call standard client pre-think, with frametime = 0
-	svgame.globals->time = sv.time = cmd->servertime;
+	svgame.globals->time = sv.time;
 	svgame.globals->frametime = 0;
 	svgame.dllFuncs.pfnPlayerPreThink( ent );
 	svgame.globals->frametime = sv.frametime;
@@ -1721,7 +1718,7 @@ void SV_Physics_ClientMove( sv_client_t *client, usercmd_t *cmd )
 		SV_TouchTriggers( ent );
 
 	// call standard player post-think, with frametime = 0
-	svgame.globals->time = sv.time = svs.realtime;
+	svgame.globals->time = sv.time;
 	svgame.globals->frametime = 0;
 	svgame.dllFuncs.pfnPlayerPostThink( ent );
 	svgame.globals->frametime = sv.frametime;
@@ -1774,4 +1771,6 @@ void SV_Physics( void )
 
 	// decrement svgame.globals->numEntities if the highest number entities died
 	for( ; EDICT_NUM( svgame.globals->numEntities - 1)->free; svgame.globals->numEntities-- );
+
+	if( !sv_playersonly->integer ) sv.time += sv.frametime;
 }

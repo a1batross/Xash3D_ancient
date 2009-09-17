@@ -26,8 +26,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 cvar_t	*rcon_client_password;
 cvar_t	*rcon_address;
 
-cvar_t	*cl_maxpackets;
-cvar_t	*cl_packetdup;
 cvar_t	*cl_footsteps;
 cvar_t	*cl_timeout;
 cvar_t	*cl_predict;
@@ -37,7 +35,6 @@ cvar_t	*cl_maxfps;
 cvar_t	*cl_particles;
 cvar_t	*cl_particlelod;
 
-cvar_t	*cl_timenudge;
 cvar_t	*cl_shownet;
 cvar_t	*cl_showmiss;
 cvar_t	*cl_showclamp;
@@ -459,16 +456,15 @@ CL_Reconnect_f
 The server is changing levels
 =================
 */
-void CL_Reconnect_f( void )
+void CL_Reconnect_f (void)
 {
-	// if we are downloading, we don't change!
-	// this so we don't suddenly stop downloading a map
+	// if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
 	if( cls.download ) return;
 
 	S_StopAllSounds ();
 	if( cls.state == ca_connected )
 	{
-		Msg ("reconnecting...\n");
+		Msg( "reconnecting...\n" );
 		cls.state = ca_connected;
 		MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
 		MSG_Print( &cls.netchan.message, "new" );
@@ -665,9 +661,8 @@ void CL_ParseStatusMessage( netadr_t from, sizebuf_t *msg )
 
 	s = MSG_ReadString( msg );
 
-	Msg( "%s\n", s );
-	UI_AddServerToList( from, s );
-//	CL_ParseServerStatus( NET_AdrToString(from), s );
+	Msg ("%s\n", s);
+	CL_ParseServerStatus( NET_AdrToString(from), s );
 }
 
 //===================================================================
@@ -918,7 +913,7 @@ void CL_ReadPackets( void )
 		{
 			if( ++cl.timeoutcount > 5 ) // timeoutcount saves debugger
 			{
-				Msg( "\nServer connection timed out.\n" );
+				Msg ("\nServer connection timed out.\n");
 				CL_Disconnect();
 				return;
 			}
@@ -1079,11 +1074,9 @@ void CL_InitLocal( void )
 	// register our variables
 	cl_footsteps = Cvar_Get( "cl_footsteps", "1", 0, "disables player footsteps" );
 	cl_predict = Cvar_Get( "cl_predict", "1", CVAR_ARCHIVE, "disables client movement prediction" );
-	cl_maxfps = Cvar_Get( "cl_maxfps", "100", CVAR_ARCHIVE, "maximum client fps (refresh framerate too)" );
+	cl_maxfps = Cvar_Get( "cl_maxfps", "1000", 0, "maximum client fps" );
 	cl_particles = Cvar_Get( "cl_particles", "1", CVAR_ARCHIVE, "disables particle effects" );
 	cl_particlelod = Cvar_Get( "cl_lod_particle", "0", CVAR_ARCHIVE, "enables particle LOD (1, 2, 3)" );
-	cl_maxpackets = Cvar_Get( "cl_maxpackets", "30", CVAR_ARCHIVE, "usercmds sending frequency rate" );
-	cl_packetdup = Cvar_Get( "cl_packetdup", "2", CVAR_ARCHIVE, "number of repeating packets (2 is Q2 default value)" );
 
 	cl_upspeed = Cvar_Get( "cl_upspeed", "200", 0, "client upspeed limit" );
 	cl_forwardspeed = Cvar_Get( "cl_forwardspeed", "200", 0, "client forward speed limit" );
@@ -1096,9 +1089,8 @@ void CL_InitLocal( void )
 
 	cl_shownet = Cvar_Get( "cl_shownet", "0", 0, "client show network packets" );
 	cl_showmiss = Cvar_Get( "cl_showmiss", "0", 0, "client show network errors" );
-	cl_showclamp = Cvar_Get( "cl_showclamp", "1", 0, "show client clamping" );
+	cl_showclamp = Cvar_Get( "cl_showclamp", "0", CVAR_ARCHIVE, "show client clamping" );
 	cl_timeout = Cvar_Get( "cl_timeout", "120", 0, "connect timeout (in-seconds)" );
-	cl_timenudge = Cvar_Get( "cl_timenudge", "0", CVAR_TEMP, "nudge server time to specified value" );
 
 	rcon_client_password = Cvar_Get( "rcon_password", "", 0, "remote control client password" );
 	rcon_address = Cvar_Get( "rcon_address", "", 0, "remote control address" );
@@ -1165,22 +1157,6 @@ void CL_SendCommand( void )
 
 	// resend a connection request if necessary
 	CL_CheckForResend ();
-
-	CL_SetClientTime ();
-}
-
-/*
-==================
-CL_CalcFrameTime
-==================
-*/
-double CL_CalcFrameTime( void )
-{
-	if( cls.state == ca_connected )
-		return 0.1f;		// don't flood packets out while connecting
-	if( cl_maxfps->value )
-		return 1.0 / (double)cl_maxfps->value;
-	return 0;
 }
 
 /*
@@ -1191,29 +1167,17 @@ CL_Frame
 */
 void CL_Frame( double time )
 {
-	static double	extratime = 0.001;
-	static double	frametime;
-	double		minframetime;
-
 	if( host.type == HOST_DEDICATED )
 		return;
 
-	extratime += time;
-
-	minframetime = CL_CalcFrameTime();
-	if( extratime < minframetime )
-		return;
-
 	// decide the simulation time
-	frametime = extratime - 0.001;
-	if( frametime < minframetime ) frametime = minframetime;
-	extratime -= frametime;
-
-	// decide the simulation time
+	cl.oldtime = cl.time;
+	cl.time += time;		// can be merged by cl.frame.servertime 
 	cls.realtime += time;
-	cls.realframetime = cls.frametime = frametime;
+	cls.frametime = time;
 
-	if( cls.frametime > (1.0f / 5)) cls.frametime = (1.0f / 5);
+	cl.time = bound( cl.frame.servertime - cl.serverframetime, cl.time, cl.frame.servertime );
+	if( cls.frametime > 0.2f ) cls.frametime = 0.2f;
 
 	// if in the debugger last frame, don't timeout
 	if( time > 5.0f ) cls.netchan.last_received = Sys_DoubleTime ();

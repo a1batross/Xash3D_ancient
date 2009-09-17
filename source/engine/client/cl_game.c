@@ -725,18 +725,18 @@ void pfnDrawCenterPrint( void )
 	int	l, x, y, w;
 	rgba_t	color;
 
-	if( !clgame.centerPrintTime ) return;
-	CL_FadeAlpha( clgame.centerPrintTime, scr_centertime->value, color );
+	if( !cl.centerPrintTime ) return;
+	CL_FadeAlpha( cl.centerPrintTime, scr_centertime->value, color );
 
 	if( *( int *)color == 0xFFFFFFFF ) 
 	{
-		clgame.centerPrintTime = 0;
+		cl.centerPrintTime = 0;
 		return;
 	}
 
 	re->SetColor( color );
-	start = clgame.centerPrint;
-	y = clgame.centerPrintY - clgame.centerPrintLines * BIGCHAR_HEIGHT / 2;
+	start = cl.centerPrint;
+	y = cl.centerPrintY - cl.centerPrintLines * BIGCHAR_HEIGHT / 2;
 
 	while( 1 )
 	{
@@ -750,12 +750,12 @@ void pfnDrawCenterPrint( void )
 		}
 		linebuffer[l] = 0;
 
-		w = clgame.centerPrintCharWidth * com.cstrlen( linebuffer );
+		w = cl.centerPrintCharWidth * com.cstrlen( linebuffer );
 		x = ( SCREEN_WIDTH - w )>>1;
 
-		SCR_DrawStringExt( x, y, clgame.centerPrintCharWidth, BIGCHAR_HEIGHT, linebuffer, color, false );
+		SCR_DrawStringExt( x, y, cl.centerPrintCharWidth, BIGCHAR_HEIGHT, linebuffer, color, false );
 
-		y += clgame.centerPrintCharWidth * 1.5;
+		y += cl.centerPrintCharWidth * 1.5;
 		while( *start && ( *start != '\n' )) start++;
 		if( !*start ) break;
 		start++;
@@ -774,18 +774,18 @@ void pfnCenterPrint( const char *text, int y, int charWidth )
 {
 	char	*s;
 
-	com.strncpy( clgame.centerPrint, text, sizeof( clgame.centerPrint ));
-	clgame.centerPrintTime = cls.realtime;
-	clgame.centerPrintY = y;
-	clgame.centerPrintCharWidth = charWidth;
+	com.strncpy( cl.centerPrint, text, sizeof( cl.centerPrint ));
+	cl.centerPrintTime = cls.realtime;
+	cl.centerPrintY = y;
+	cl.centerPrintCharWidth = charWidth;
 
 	// count the number of lines for centering
-	clgame.centerPrintLines = 1;
-	s = clgame.centerPrint;
+	cl.centerPrintLines = 1;
+	s = cl.centerPrint;
 	while( *s )
 	{
 		if( *s == '\n' )
-			clgame.centerPrintLines++;
+			cl.centerPrintLines++;
 		s++;
 	}
 }
@@ -921,7 +921,7 @@ force to make levelshot
 */
 void pfnMakeLevelShot( void )
 {
-	if( !clgame.need_levelshot ) return;
+	if( !cl.need_levelshot ) return;
 
 	Con_ClearNotify();
 
@@ -1424,7 +1424,7 @@ bool CL_LoadProgs( const char *name )
 	// 65535 unique strings should be enough ...
 	clgame.hStringTable = StringTable_Create( "Client", 0x10000 );
 	clgame.maxEntities = host.max_edicts;	// FIXME: must come from CS_MAXENTITIES
-	clgame.maxClients = CL_GetMaxClients();
+	clgame.maxClients = Host_MaxClients();
 	clgame.edicts = Mem_Alloc( cls.mempool, sizeof( edict_t ) * clgame.maxEntities );
 
 	// register svc_bad message

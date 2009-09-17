@@ -1,6 +1,6 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//			sv_main.c - server frame code
+//			sv_utils.c - server vm utils
 //=======================================================================
 
 #include "common.h"
@@ -50,44 +50,24 @@ void SV_CalcPings( void )
 	int		i, j;
 	sv_client_t	*cl;
 	int		total, count;
-	int		delta;
 
+	// clamp fps counter
 	for( i = 0; i < Host_MaxClients(); i++ )
 	{
 		cl = &svs.clients[i];
-		if( cl->state != cs_spawned )
-		{
-			cl->ping = 999;
-			continue;
-		}
-		if( !cl->edict )
-		{
-			cl->ping = 999;
-			continue;
-		}
-		if( cl->edict->v.flags & FL_FAKECLIENT )
-		{
-			cl->ping = 0;
-			continue;
-		}
+		if( cl->state != cs_spawned ) continue;
 
-		total = 0;
-		count = 0;
-		for( j = 0; j < UPDATE_BACKUP; j++ )
+		total = count = 0;
+		for( j = 0; j < LATENCY_COUNTS; j++ )
 		{
-			if( cl->frames[j].message_acked <= 0 )
-				continue;
-			delta = cl->frames[j].message_acked - cl->frames[j].message_sent;
-			count++;
-			total += delta;
+			if( cl->frame_latency > 0 )
+			{
+				count++;
+				total += cl->frame_latency[j];
+			}
 		}
-
-		if( count )
-		{
-			cl->ping = total / count;
-			if( cl->ping > 999 ) cl->ping = 999;
-		}
-		else cl->ping = 999;
+		if( !count ) cl->ping = 0;
+		else cl->ping = total / count;
 
 		// let the game dll know about the ping
 		cl->edict->pvServerData->client->ping = cl->ping;
@@ -194,6 +174,16 @@ void SV_CheckTimeouts( void )
 	float		droppoint;
 	float		zombiepoint;
 
+	if( sv_fps->modified )
+	{
+		if( sv_fps->value < 10 ) Cvar_Set( "sv_fps", "10" ); // too slow, also, netcode uses a byte
+		else if( sv_fps->value > 90 ) Cvar_Set( "sv_fps", "90" ); // abusive
+		sv_fps->modified = false;
+	}
+
+	// calc sv.frametime
+	sv.frametime = ( 1.0f / sv_fps->value );
+
 	droppoint = svs.realtime - timeout->value;
 	zombiepoint = svs.realtime - zombietime->value;
 
@@ -263,12 +253,12 @@ bool SV_CheckPaused( void )
 	{
 		// don't pause
 		if( sv_paused->integer )
-			Cvar_Set( "sv_paused", "0" );
+			Cvar_Set( "paused", "0" );
 		return false;
 	}
 
 	if( !sv_paused->integer )
-		Cvar_Set( "sv_paused", "1" );
+		Cvar_Set( "paused", "1" );
 	return true;
 }
 
@@ -279,25 +269,18 @@ SV_RunGameFrame
 */
 void SV_RunGameFrame( void )
 {
-	// we always need to bump framenum, even if we
-	// don't run the world, otherwise the delta
-	// compression can get confused when a client
-	// has the "current" frame
-
 	// don't run if paused
-	if( !sv_paused->integer || Host_MaxClients() > 1 )
-	{
-		sv.framenum++;
-		sv.time = sv.framenum * sv.frametime;
-		SV_Physics();
+	if( SV_CheckPaused( )) return;
 
-		// never get more than one tic behind
-		if( sv.time < svs.realtime )
-		{
-			if( sv_showclamp->integer )
-				MsgDev( D_INFO, "sv highclamp\n" );
-			svs.realtime = sv.time;
-		}
+	sv.framenum++;
+	if( sv.frametime ) SV_Physics();
+
+	// never get more than one tic behind
+	if( sv.time < svs.realtime )
+	{
+		if( sv_showclamp->integer )
+			MsgDev( D_INFO, "sv highclamp\n" );
+		svs.realtime = sv.time;
 	}
 }
 
@@ -309,13 +292,10 @@ SV_Frame
 */
 void SV_Frame( double time )
 {
-	static double	timeResidual = 0.0f;
-
 	// if server is not active, do nothing
 	if( !svs.initialized ) return;
 
-	// allow pause if only the local client is connected
-	if( SV_CheckPaused()) return;
+	svs.realtime += time;
 
 	// keep the random time dependent
 	rand ();
@@ -326,40 +306,28 @@ void SV_Frame( double time )
 	// read packets from clients
 	SV_ReadPackets ();
 
-	if( sv_fps->modified )
+	// move autonomous things around if enough time has passed
+	if( svs.realtime < sv.time )
 	{
-		if( sv_fps->value < 10 ) Cvar_Set( "sv_fps", "10" );	// too slow, also, netcode uses a byte
-		else if( sv_fps->value > 100 ) Cvar_Set( "sv_fps", "100" );	// abusive
-		sv_fps->modified = false;
-	}
-
-	sv.frametime = (1.0f / sv_fps->value);
-	timeResidual += time;
-
-	if( host.type == HOST_DEDICATED && timeResidual < sv.frametime )
-	{
-		// NET_Sleep will give the OS time slices until either get a packet
-		// or time enough for a server frame has gone by
-		NET_Sleep( sv.frametime - timeResidual );
+		// never let the time get too far off
+		if( sv.time - svs.realtime > sv.frametime )
+		{
+			if( sv_showclamp->integer )
+				MsgDev( D_INFO, "sv lowclamp\n" );
+			svs.realtime = sv.time - sv.frametime;
+		}
+		NET_Sleep( sv.time - svs.realtime );
 		return;
 	}
 
 	// update ping based on the last known frame from all clients
 	SV_CalcPings ();
-	
-	// let everything in the world think and move
-	while( timeResidual >= sv.frametime )
-	{
-		timeResidual -= sv.frametime;
-		svs.realtime += sv.frametime;
-		sv.time += sv.frametime;
-
-		SV_Physics();
-		sv.framenum++;
-	}
 
 	// give the clients some timeslices
 	SV_GiveMsec ();
+
+	// let everything in the world think and move
+	SV_RunGameFrame ();
 
 	// send messages back to the clients that had packets read this frame
 	SV_SendClientMessages ();
@@ -470,7 +438,7 @@ void SV_Init( void )
 	Cvar_Get ("protocol", va("%i", PROTOCOL_VERSION), CVAR_SERVERINFO|CVAR_INIT, "displays server protocol version" );
 	Cvar_Get ("sv_aim", "1", 0, "enable auto-aiming" );
 
-	sv_fps = Cvar_Get( "sv_fps", "60", CVAR_ARCHIVE, "running physics engine at" );
+	sv_fps = Cvar_Get( "sv_fps", "72.1", CVAR_ARCHIVE, "running server physics at" );
 	sv_stepheight = Cvar_Get( "sv_stepheight", DEFAULT_STEPHEIGHT, CVAR_ARCHIVE|CVAR_LATCH, "how high you can step up" );
 	sv_playersonly = Cvar_Get( "playersonly", "0", 0, "freezes time, except for players" );
 	hostname = Cvar_Get ("sv_hostname", "unnamed", CVAR_SERVERINFO | CVAR_ARCHIVE, "host name" );

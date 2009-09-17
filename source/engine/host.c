@@ -24,8 +24,12 @@ dll_info_t render_dll = { "render.dll", NULL, "CreateAPI", NULL, NULL, 0, sizeof
 dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, 1, sizeof(vprogs_exp_t), sizeof(stdlib_api_t) };
 dll_info_t vsound_dll = { "vsound.dll", NULL, "CreateAPI", NULL, NULL, 0, sizeof(vsound_exp_t), sizeof(stdlib_api_t) };
 
+cvar_t	*timescale;
 cvar_t	*host_serverstate;
 cvar_t	*host_cheats;
+cvar_t	*host_maxfps;
+cvar_t	*host_minfps;
+cvar_t	*host_ticrate;
 cvar_t	*host_framerate;
 cvar_t	*host_maxclients;
 cvar_t	*host_registered;
@@ -309,6 +313,40 @@ void Host_EventLoop( void )
 }
 
 /*
+===================
+Host_FilterTime
+
+Returns false if the time is too short to run a frame
+===================
+*/
+bool Host_FilterTime( double time )
+{
+	host.time += time;
+
+	if( host_maxfps->modified )
+	{
+		if( host_maxfps->integer < 10 )
+			Cvar_Set( "host_maxfps", "10" );
+		else if( host_maxfps->integer > 1000 )
+			Cvar_Set( "host_maxfps", "1000" );
+		host_maxfps->modified = false;
+	}
+
+	if( host.time - host.oldtime < (1.0 / host_maxfps->value))
+		return false; // framerate is too high
+
+	host.frametime = host.time - host.oldtime;
+	host.oldtime = host.time;
+
+	if( host_framerate->value > 0 )
+		host.frametime = host_framerate->value;
+	host.frametime = bound( 0.001, host.frametime, 0.1 );
+
+	return true;
+
+}
+
+/*
 =================
 Host_Frame
 =================
@@ -318,16 +356,18 @@ void Host_Frame( double time )
 	if( setjmp( host.abortframe ))
 		return;
 
+	rand(); // keep the random time dependent
+
+	// decide the simulation time
+	if( !Host_FilterTime( time ))
+		return;
+
 	Host_EventLoop ();	// process all system events
 	Cbuf_Execute ();	// execute commands
 
-
-	if( host_framerate->value )
-		time = bound( 0.001, host_framerate->value, 1 );
-
-	SV_Frame ( time ); // server frame
-	CL_Frame ( time ); // client frame
-	VM_Frame ( time ); // vprogs frame
+	SV_Frame ( host.frametime ); // server frame
+	CL_Frame ( host.frametime ); // client frame
+	VM_Frame ( host.frametime ); // vprogs frame
 
 	host.framecount++;
 }
@@ -476,12 +516,16 @@ void Host_Init( const int argc, const char **argv )
           }
 
 	host_cheats = Cvar_Get( "sv_cheats", "1", CVAR_SYSTEMINFO, "allow cheat variables to enable" );
+	host_minfps = Cvar_Get( "host_minfps", "10", CVAR_ARCHIVE, "host fps lower limit" );
+	host_maxfps = Cvar_Get( "host_maxfps", "100", CVAR_ARCHIVE, "host fps upper limit" );
+	host_ticrate = Cvar_Get( "sys_ticrate", "0.0138889", CVAR_SYSTEMINFO, "how long a server frame is in seconds" );
 	host_framerate = Cvar_Get( "host_framerate", "0", 0, "locks frame timing to this value in seconds" );  
 	host_maxclients = Cvar_Get("host_maxclients", "1", CVAR_SERVERINFO|CVAR_LATCH, "server maxplayers limit" );
 	host_serverstate = Cvar_Get("host_serverstate", "0", CVAR_SERVERINFO, "displays current server state" );
 	host_registered = Cvar_Get( "registered", "1", CVAR_SYSTEMINFO, "indicate shareware version of game" );
+	timescale = Cvar_Get( "timescale", "1.0", 0, "slow-mo timescale" );
 
-	s = va( "^1Xash %g ^3%s", GI->version, buildstring );
+	s = va("^1Xash %g ^3%s", GI->version, buildstring );
 	Cvar_Get( "version", s, CVAR_SERVERINFO|CVAR_INIT, "engine current version" );
 
 	NET_Init();
@@ -520,7 +564,7 @@ void Host_Main( void )
 	while( host.type != HOST_OFFLINE )
 	{
 		IN_Frame();
-	
+
 		do
 		{
 			// timer resoultion at 1 msec
@@ -529,7 +573,6 @@ void Host_Main( void )
 		} while( time < 0.001 );
 
 		Host_Frame( time );
-
 		oldtime = newtime;
 	}
 }

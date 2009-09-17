@@ -167,7 +167,6 @@ void SV_SpawnServer( const char *server, const char *savename )
 
 	// wipe the entire per-level structure
 	Mem_Set( &sv, 0, sizeof( sv ));
-	svs.realtime = 0.0f;
 
 	// save name for levels that don't set message
 	com.strncpy( sv.configstrings[CS_NAME], server, CS_SIZE );
@@ -180,12 +179,10 @@ void SV_SpawnServer( const char *server, const char *savename )
 		// needs to reconnect
 		if( svs.clients[i].state > cs_connected )
 			svs.clients[i].state = cs_connected;
-		svs.clients[i].deltamessage = -1;
-		svs.clients[i].nextsnapshot = svs.realtime;	// generate a snapshot immediately
+		svs.clients[i].lastframe = -1;
 	}
 
 	sv.time = 1.0;
-	sv.frametime = 0.1f;
 	
 	com.strncpy( sv.name, server, MAX_STRING );
 	FS_FileBase(server, sv.configstrings[CS_NAME]);
@@ -222,7 +219,11 @@ void SV_SpawnServer( const char *server, const char *savename )
 	svgame.dllFuncs.pfnServerActivate( EDICT_NUM( 0 ), svgame.globals->numEntities, svgame.globals->maxClients );
 
 	// run two frames to allow everything to settle
-	for( i = 0; i < 2; i++ ) SV_Physics();
+	for( i = 0; i < 2; i++ )
+	{
+		sv.frametime = svgame.globals->frametime = host.frametime = 0.1;
+		SV_Physics();
+	}
 
 	// all precaches are complete
 	sv.state = ss_active;

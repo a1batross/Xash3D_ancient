@@ -60,10 +60,10 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 	// some data changes will force no lerping
 	if( state->ed_flags & ESF_NODELTA )
 	{
-		ent->pvClientData->msgnum = -1;
+		ent->pvClientData->serverframe = -99;
 	}
 
-	if( ent->pvClientData->msgnum != cl.frame.msgnum - 1 )
+	if( ent->pvClientData->serverframe != cl.frame.serverframe - 1 )
 	{	
 		// duplicate the current state so lerping doesn't hurt anything
 		ent->pvClientData->prev = *state;
@@ -73,10 +73,10 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 		ent->pvClientData->prev = ent->pvClientData->current;
 	}
 
-	ent->pvClientData->msgnum = cl.frame.msgnum;
+	ent->pvClientData->serverframe = cl.frame.serverframe;
 	ent->pvClientData->current = *state;
 
-	// update edict fields
+	// update prvm fields
 	CL_UpdateEntityFields( ent );
 }
 
@@ -200,207 +200,43 @@ Determines the fraction between the last two messages that the objects
 should be put at.
 ===============
 */
-static float CL_LerpPoint1( void )
+static float CL_LerpPoint( void )
 {
 	float	f, frac;
 
-	f = cl.time - cl.oldtime;
+	f = cl.mtime[0] - cl.mtime[1];
 
-	if( !f || SV_Active())
+	if( !f )
 	{
+		cl.time = cl.mtime[0];		
 		return 1.0f;
 	}
 
 	if( f > 0.1 )
 	{	
 		// dropped packet, or start of demo
-//		cl.mtime[1] = cl.mtime[0] - 0.1f;
+		cl.mtime[1] = cl.mtime[0] - 0.1f;
 		f = 0.1f;
 	}
 
-	frac = (cl.time - cl.oldtime) / f;
+	frac = (cl.time - cl.mtime[1]) / f;
 	if( frac < 0 )
 	{
 		if( frac < -0.01f )
 		{
-//			cl.time = cl.mtime[1];
+			cl.time = cl.mtime[1];
 		}
-		frac = 0.0f;
+		frac = 0;
 	}
 	else if( frac > 1.0f )
 	{
 		if( frac > 1.01f )
 		{
-//			cl.time = cl.mtime[0];
+			cl.time = cl.mtime[0];
 		}
 		frac = 1.0f;
 	}
 	return frac;
-}
-
-static float CL_LerpPoint2( void )
-{
-	float	lerpfrac;
-
-	// clamp time
-	if( cl.time > cl.frame.servertime )
-	{
-		if( cl_showclamp->integer ) Msg( "cl highclamp\n" );
-//		cl.time = cl.frame.servertime;
-		lerpfrac = 1.0f;
-	}
-	else if( cl.time < cl.frame.servertime - cl.frametime )
-	{
-		if( cl_showclamp->integer ) Msg( "cl lowclamp\n" );
-//		cl.time = cl.frame.servertime - cl.frametime;
-		lerpfrac = 0.0f;
-	}
-	else lerpfrac = 1.0f - (cl.frame.servertime - cl.time) / cl.frametime;
-
-	if( cl_paused->integer )
-		lerpfrac = 1.0f;
-
-	return lerpfrac;
-}
-
-/*
-==================
-CL_FirstSnapshot
-==================
-*/
-void CL_FirstSnapshot( void )
-{
-	cls.state = ca_active;
-
-	// set the timedelta so we are exactly on this first frame
-	cl.time_delta = cl.frame.servertime - cls.realtime;
-	cl.oldtime = cl.frame.servertime;
-
-	// getting a valid frame message ends the connection process
-	VectorCopy( cl.frame.ps.origin, cl.predicted_origin );
-	VectorCopy( cl.frame.ps.viewangles, cl.predicted_angles );
-}
-
-void CL_AdjustTimeDelta( void )
-{
-	float	newDelta;
-	float	deltaDelta;
-
-	cl.has_newframe = false;
-
-	// the delta never drifts when replaying a demo
-	if( cls.demoplayback ) return;
-
-	newDelta = cl.frame.servertime - cls.realtime;
-	deltaDelta = fabs( newDelta - cl.time_delta );
-
-	if( deltaDelta > 0.5f )
-	{
-		cl.time_delta = newDelta;
-		cl.oldtime = cl.frame.servertime;	// FIXME: is this a problem for cgame?
-		cl.time = cl.frame.servertime;
-		Msg( "<RESET> " );
-	}
-	else if( deltaDelta > 0.1f )
-	{
-		// fast adjust, cut the difference in half
-		cl.time_delta = ( cl.time_delta + newDelta ) / 2;
-	}
-	else
-	{
-		// slow drift adjust, only move 1 or 2 msec
-
-		// if any of the frames between this and the previous snapshot
-		// had to be extrapolated, nudge our sense of time back a little
-		// the granularity of +1 / -2 is too high for timescale modified frametimes
-		if( cl.frame_extrapolate )
-		{
-			cl.frame_extrapolate = false;
-			cl.time_delta -= 0.002f;
-		}
-		else
-		{
-			// otherwise, move our sense of time forward to minimize total latency
-			cl.time_delta += 0.001f;
-		}
-	}
-}
-
-/*
-================
-CL_SetClientTime
-
-set right client time and calc lerp value
-================
-*/
-void CL_SetClientTime( void )
-{
-	float	tn;
-
-	// getting a valid frame message ends the connection process
-	if( cls.state != ca_active )
-	{
-		if( cls.state != ca_connected ) return;
-
-		if( cls.demoplayback )
-		{
-			CL_ReadDemoMessage();
-		}
-		if( cl.has_newframe )
-		{
-			cl.has_newframe = false;
-			CL_FirstSnapshot();
-		}
-		if( cls.state != ca_active ) return;
-	}
-
-	// if we have gotten to this point, cl.snap is guaranteed to be valid
-	Com_Assert( !cl.frame.valid );
-
-	// allow pause in single player
-	if( SV_Active() && cl_paused->integer ) return;
-
-	// cl_timeNudge is a user adjustable cvar that allows more
-	// or less latency to be added in the interest of better 
-	// smoothness or better responsiveness.
-	tn = cl_timenudge->integer * 0.001f;
-	if( tn < -0.03f ) tn = -0.03f;
-	else if( tn > 0.03f ) tn = 0.03f;
-
-	cl.time = cls.realtime + cl.time_delta - tn;
-
-	cl.frametime = cl.time - cl.oldtime;
-	if( cl.frametime < 0 ) cl.frametime = 0;
-
-	// guarantee that time will never flow backwards, even if
-	// serverTimeDelta made an adjustment or cl_timeNudge was changed
-	if( cl.time < cl.oldtime ) cl.time = cl.oldtime;
-	cl.oldtime = cl.time;
-
-	// note if we are almost past the latest frame (without timeNudge),
-	// so we will try and adjust back a bit when the next snapshot arrives
-	if( cls.realtime + cl.time_delta >= cl.frame.servertime - 0.005f )
-		cl.frame_extrapolate = true;
-
-	// if we have gotten new snapshots, drift serverTimeDelta
-	// don't do this every frame, or a period of packet loss would
-	// make a huge adjustment
-	if( cl.has_newframe ) CL_AdjustTimeDelta();
-
-#if 1
-	cl.refdef.lerpfrac = CL_LerpPoint1();
-#else
-	// set cl.refdef.lerpfrac
-	if( cl.oldframe )
-	{
-		float	delta;
-
-		delta = (cl.frame.servertime - cl.oldframe->servertime);
-		if( delta == 0.0f ) cl.refdef.lerpfrac = 0.0f;
-		else cl.refdef.lerpfrac = (cl.time - cl.oldframe->servertime) / delta;
-	}
-	else cl.refdef.lerpfrac = 0.0f;
-#endif
 }
 
 /*
@@ -411,23 +247,20 @@ CL_ParseFrame
 void CL_ParseFrame( sizebuf_t *msg )
 {
 	int     		cmd, len, idx;
-	int		delta_num;
-	int		old_msgnum;
-	int		packet_num;
 	edict_t		*clent;
           
 	Mem_Set( &cl.frame, 0, sizeof( cl.frame ));
 
-	cl.frame.msgnum = cls.netchan.incoming_sequence;
-	cl.frame.servertime = MSG_ReadFloat( msg );
-	delta_num = MSG_ReadByte( msg );
+	cl.frame.serverframe = MSG_ReadLong( msg );
+	cl.serverframetime = MSG_ReadFloat( msg );
+	cl.frame.deltaframe = MSG_ReadLong( msg );
+	cl.surpressCount = MSG_ReadByte( msg );
+	cl.frame.servertime = cl.mtime[0];	// same as servertime
 
-	if( !delta_num ) cl.frame.deltaframe = -1;
-	else cl.frame.deltaframe = cl.frame.msgnum - delta_num;
-
-	// If the frame is delta compressed from data that we no longer
-	// have available, we must suck up the rest of the frame,
-	// but not use it, then ask for a non-compressed message 
+	// If the frame is delta compressed from data that we
+	// no longer have available, we must suck up the rest of
+	// the frame, but not use it, then ask for a non-compressed
+	// message 
 	if( cl.frame.deltaframe <= 0 )
 	{
 		cl.frame.valid = true;	// uncompressed frame
@@ -442,11 +275,11 @@ void CL_ParseFrame( sizebuf_t *msg )
 			// should never happen
 			MsgDev( D_INFO, "delta from invalid frame (not supposed to happen!).\n" );
 		}
-		if( cl.oldframe->msgnum != cl.frame.deltaframe )
+		if( cl.oldframe->serverframe != cl.frame.deltaframe )
 		{	
 			// The frame that the server did the delta from
 			// is too old, so we can't reconstruct it properly.
-			MsgDev( D_INFO, "delta frame too old.\n" );
+			MsgDev( D_INFO, "Delta frame too old.\n" );
 		}
 		else if( cl.parse_entities - cl.oldframe->parse_entities > MAX_PARSE_ENTITIES - 128 )
 		{
@@ -455,13 +288,11 @@ void CL_ParseFrame( sizebuf_t *msg )
 		else cl.frame.valid = true;	// valid delta parse
 	}
 
+	cl.time = bound( cl.frame.servertime - cl.serverframetime, cl.time, cl.frame.servertime );
+
 	// read areabits
 	len = MSG_ReadByte( msg );
 	MSG_ReadData( msg, &cl.frame.areabits, len );
-
-	if( cl.oldframe && !memcmp( cl.oldframe->areabits, cl.frame.areabits, sizeof( cl.frame.areabits )))
-		cl.render_flags |= RDF_OLDAREABITS;
-	else cl.render_flags &= ~RDF_OLDAREABITS;
 
 	// read clientindex
 	cmd = MSG_ReadByte( msg );
@@ -480,40 +311,20 @@ void CL_ParseFrame( sizebuf_t *msg )
 	if( cl.oldframe ) cl.frame.ps = MSG_ParseDeltaPlayer( &cl.oldframe->ps, &clent->pvClientData->current );
 	else cl.frame.ps = MSG_ParseDeltaPlayer( NULL, &clent->pvClientData->current );
 
-	// if not valid, dump the entire thing now that it has been properly read
-	if( !cl.frame.valid ) return;
-
-	// clear the valid flags of any snapshots between the last
-	// received and this one, so if there was a dropped packet
-	// it won't look like something valid to delta from next
-	// time we wrap around in the buffer
-	old_msgnum = cl.frame.msgnum + 1;
-	cl.frame.ping = 999;
-
-	if( cl.frame.msgnum - old_msgnum >= UPDATE_BACKUP )
-		old_msgnum = cl.frame.msgnum - UPDATE_MASK;
-	for( ; old_msgnum < cl.frame.msgnum; old_msgnum++ )
-		cl.frames[old_msgnum & UPDATE_MASK].valid = false;
-
-	// calculate ping time
-	for ( idx = 0; idx < UPDATE_BACKUP; idx++ )
-	{
-		packet_num = ( cls.netchan.outgoing_sequence - 1 - idx ) & UPDATE_MASK;
-		if( cl.frame.ps.cmdtime >= cl.outframes[packet_num].servertime )
-		{
-			cl.frame.ping = cls.realtime - cl.outframes[packet_num].realtime;
-			break;
-		}
-	}
-
-	if( cl_shownet->integer == 3 )
-		Msg( "   snapshot:%i  delta:%i  ping:%i\n", cl.frame.msgnum, cl.frame.deltaframe, cl.frame.ping );
-
 	// save the frame off in the backup array for later delta comparisons
-	cl.frames[cl.frame.msgnum & UPDATE_MASK] = cl.frame;
-	cl.has_newframe = true;
+	cl.frames[cl.frame.serverframe & UPDATE_MASK] = cl.frame;
 
-	CL_CheckPredictionError();
+	if( cl.frame.valid )
+	{
+		if( cls.state != ca_active )
+		{
+			cls.state = ca_active;
+			// getting a valid frame message ends the connection process
+			VectorCopy( cl.frame.ps.origin, cl.predicted_origin );
+			VectorCopy( cl.frame.ps.viewangles, cl.predicted_angles );
+		}
+		CL_CheckPredictionError();
+	}
 }
 
 /*
@@ -535,6 +346,11 @@ void CL_AddPacketEntities( frame_t *frame )
 	edict_t		*ent;
 	int		pnum;
 
+	if( cl_paused->integer )
+		cl.refdef.lerpfrac = 1.0f;
+	else cl.refdef.lerpfrac = 1.0 - (cl.frame.servertime - cl.time) / (float)cl.serverframetime;
+//	Msg( "cl.refdef.lerpfrac %g\n", cl.refdef.lerpfrac );
+
 	for( pnum = 0; pnum < frame->num_entities; pnum++ )
 	{
 		s1 = &cl_parse_entities[(frame->parse_entities + pnum)&(MAX_PARSE_ENTITIES-1)];
@@ -549,6 +365,9 @@ void CL_AddPacketEntities( frame_t *frame )
 		// NOTE: skyportal entity never added to rendering
 		if( s1->ed_type == ED_SKYPORTAL ) cl.render_flags |= RDF_SKYPORTALINVIEW;
 	}
+
+	if( cl.oldframe && !memcmp( cl.oldframe->areabits, cl.frame.areabits, sizeof( cl.frame.areabits )))
+		cl.render_flags |= RDF_OLDAREABITS;
 }
 
 /*
@@ -562,6 +381,8 @@ void CL_AddEntities( void )
 {
 	if( cls.state != ca_active )
 		return;
+
+	cl.render_flags = 0;
 
 	CL_AddPacketEntities( &cl.frame );
 	clgame.dllFuncs.pfnCreateEntities();

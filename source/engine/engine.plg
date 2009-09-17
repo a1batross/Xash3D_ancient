@@ -6,13 +6,13 @@
 --------------------Configuration: engine - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP7BE7.tmp" with contents
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP7FB0.tmp" with contents
 [
 /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "common" /I "server" /I "client" /I "uimenu" /I "../public" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\engine\!debug/" /Fo"..\temp\engine\!debug/" /Fd"..\temp\engine\!debug/" /FD /c 
 "D:\Xash3D\src_main\engine\client\cl_frame.c"
 ]
-Creating command line "cl.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP7BE7.tmp" 
-Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP7BE8.tmp" with contents
+Creating command line "cl.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP7FB0.tmp" 
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP7FB1.tmp" with contents
 [
 user32.lib msvcrtd.lib /nologo /subsystem:windows /dll /incremental:yes /pdb:"..\temp\engine\!debug/engine.pdb" /debug /machine:I386 /nodefaultlib:"msvcrt.lib" /out:"..\temp\engine\!debug/engine.dll" /implib:"..\temp\engine\!debug/engine.lib" /pdbtype:sept 
 "\Xash3D\src_main\temp\engine\!debug\cinematic.obj"
@@ -73,13 +73,13 @@ user32.lib msvcrtd.lib /nologo /subsystem:windows /dll /incremental:yes /pdb:"..
 "\Xash3D\src_main\temp\engine\!debug\ui_singleplayer.obj"
 "\Xash3D\src_main\temp\engine\!debug\ui_video.obj"
 ]
-Creating command line "link.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP7BE8.tmp"
-Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP7BE9.bat" with contents
+Creating command line "link.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP7FB1.tmp"
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP7FB2.bat" with contents
 [
 @echo off
 copy \Xash3D\src_main\temp\engine\!debug\engine.dll "D:\Xash3D\bin\engine.dll"
 ]
-Creating command line "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP7BE9.bat"
+Creating command line "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP7FB2.bat"
 Compiling...
 cl_frame.c
 Linking...

@@ -431,8 +431,8 @@ void SV_Status_f( void )
 
 		if( !cl->state ) continue;
 
-		Msg( "%3i ", i);
-		Msg( "%5i ", (int)cl->edict->v.frags );
+		Msg( "%3i ", i );
+		Msg( "%5i ", cl->edict->v.frags );
 
 		if( cl->state == cs_connected ) Msg( "Connect" );
 		else if( cl->state == cs_zombie ) Msg( "Zombie " );
@@ -444,7 +444,7 @@ void SV_Status_f( void )
 
 		Msg( "%s", cl->name );
 		l = 24 - com.strlen( cl->name );
-		for( j = 0; j < l; j++ ) Msg (" ");
+		for( j = 0; j < l; j++ ) Msg( " " );
 		Msg( "%g ", svs.realtime - cl->lastmessage );
 		s = NET_AdrToString( cl->netchan.remote_address );
 		Msg( "%s", s );
@@ -467,7 +467,7 @@ void SV_ConSay_f( void )
 	sv_client_t	*client;
 	int		i;
 
-	if( Cmd_Argc() < 2 ) return;
+	if(Cmd_Argc() < 2) return;
 
 	com.strncpy( text, "console: ", MAX_SYSPATH );
 	p = Cmd_Args();
@@ -491,7 +491,7 @@ void SV_ConSay_f( void )
 SV_Heartbeat_f
 ==================
 */
-void SV_Heartbeat_f( void )
+void SV_Heartbeat_f (void)
 {
 	svs.last_heartbeat = MAX_HEARTBEAT;
 }
@@ -505,7 +505,7 @@ Examine serverinfo string
 */
 void SV_ServerInfo_f( void )
 {
-	Msg( "Server info settings:\n" );
+	Msg("Server info settings:\n");
 	Info_Print( Cvar_Serverinfo());
 }
 

@@ -58,6 +58,7 @@ void CL_WriteDemoHeader( const char *name )
 	MSG_WriteByte( &buf, svc_serverdata );
 	MSG_WriteLong( &buf, PROTOCOL_VERSION );
 	MSG_WriteLong( &buf, cl.servercount );
+	MSG_WriteLong( &buf, cl.serverframetime );
 	MSG_WriteShort( &buf, cl.playernum );
 	MSG_WriteString( &buf, cl.configstrings[CS_NAME] );
 

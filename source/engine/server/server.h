@@ -68,7 +68,6 @@ typedef struct server_s
 	bool		loadgame;		// client begins should reuse existing entity
 
 	double		time;		// always sv.framenum * 50 msec
-	double		oldtime;		// prev.frame time
 	double		frametime;
 	int		framenum;
 	int		net_framenum;
@@ -93,17 +92,13 @@ typedef struct server_s
 typedef struct
 {
 	entity_state_t	ps;			// player state
-	int		index;			// client edict index
-
 	byte 		areabits[MAX_MAP_AREA_BYTES];	// portalarea visibility bits
 	int  		areabits_size;
 	int  		num_entities;
 	int  		first_entity;		// into the circular sv_packet_entities[]
+	double		senttime;			// time the message was transmitted
 
-	float		message_sent;		// time the message was transmitted
-	float		message_acked;		// time the message was acked
-	size_t		message_size;		// used to rate drop packets
-
+	int		index;			// client edict index
 } client_frame_t;
 
 typedef struct sv_client_s
@@ -111,15 +106,22 @@ typedef struct sv_client_s
 	cl_state_t	state;
 
 	char		userinfo[MAX_INFO_STRING];	// name, etc
+	int		lastframe;		// for delta compression
 	int		skipframes;		// client synchronyze with phys frame
 	usercmd_t		lastcmd;			// for filling in big drops
 
-	int		spectator;		// non-interactive (FIXME: make cs_spectator)
+	int		spectator;		// non-interactive
 
 	int		commandMsec;		// every seconds this is reset, if user
 	   					// commands exhaust it, assume time cheating
+
+	int		frame_latency[LATENCY_COUNTS];
 	int		ping;
-	int		rate;
+
+	int		message_size[RATE_MESSAGES];	// used to rate drop packets
+	float		rate;
+
+	int		surpressCount;		// number of messages rate supressed
 
 	edict_t		*edict;			// EDICT_NUM(clientnum+1)
 	char		name[32];			// extracted from userinfo, color string allowed
@@ -132,17 +134,14 @@ typedef struct sv_client_s
 
 	client_frame_t	frames[UPDATE_BACKUP];	// updates can be delta'd from here
 
-	byte		*download;	// file being downloaded
-	int		downloadsize;	// total bytes (can't use EOF because of paks)
-	int		downloadcount;	// bytes sent
+	byte		*download;		// file being downloaded
+	int		downloadsize;		// total bytes (can't use EOF because of paks)
+	int		downloadcount;		// bytes sent
 
-	int		deltamessage;	// frame last client usercmd message
-	double		lastmessage;	// sv.framenum when packet was last received
+	double		lastmessage;		// sv.framenum when packet was last received
 	double		lastconnect;
-	double		nextsnapshot;	// send another snapshot when svs.realtime >= nextsnapshot
-	float		snapshot_time;	// requests a snapshot every snapshot_time unless rate choked
 
-	int		challenge;	// challenge of this user, randomly generated
+	int		challenge;		// challenge of this user, randomly generated
 
 	netchan_t		netchan;
 } sv_client_t;

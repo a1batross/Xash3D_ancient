@@ -95,10 +95,14 @@ typedef struct host_parm_s
 	dword		errorframe;	// to avoid each-frame host error
 	string		finalmsg;		// server shutdown final message
 
+	double		time;
+	double		oldtime;
+	double		frametime;	// time between engine frames
+
 	dword		framecount;	// global framecount
 	HWND		hWnd;		// main window
 	int		developer;	// show all developer's message
-	word		max_edicts;	// FIXME
+	word		max_edicts;
 } host_parm_t;
 
 extern host_parm_t host;

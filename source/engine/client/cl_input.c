@@ -58,16 +58,8 @@ CL_MouseEvent
 */
 void CL_MouseEvent( int mx, int my )
 {
-	if( UI_IsVisible( ))
-	{
-		// if the menu is visible, move the menu cursor
-		UI_MouseMove( mx, my );
-	}
-	else
-	{
-		cl.mouse_x[cl.mouse_step] += mx;
-		cl.mouse_y[cl.mouse_step] += my;
-	}
+	cl.mouse_x[cl.mouse_step] += mx;
+	cl.mouse_y[cl.mouse_step] += my;
 }
 
 /*
@@ -97,30 +89,38 @@ void CL_MouseMove( usercmd_t *cmd )
 
 	rate = com.sqrt( mx * mx + my * my ) / 0.5f;
 
-	if( cl.frame.ps.health <= 0 ) return;
-	if( cl.data.mouse_sensitivity == 0.0f ) cl.data.mouse_sensitivity = 1.0f;
-	accel_sensitivity = m_sensitivity->value + rate * cl_mouseaccel->value;
-	accel_sensitivity *= cl.data.mouse_sensitivity; // scale by fov
-	mx *= accel_sensitivity;
-	my *= accel_sensitivity;
-
-	// add mouse X/Y movement to cmd
-	if(( in_strafe.state & 1 ) || (lookstrafe->integer && mlook_active))
-		cmd->sidemove += m_side->value * mx;
-	else cl.refdef.cl_viewangles[YAW] -= m_yaw->value * mx;
-
-	if( mlook_active ) clgame.dllFuncs.pfnStopPitchDrift();		
-
-	if( mlook_active && !( in_strafe.state & 1 ))
+	if( UI_IsVisible( ))
 	{
-		cl.refdef.cl_viewangles[PITCH] += m_pitch->value * my;
-		cl.refdef.cl_viewangles[PITCH] = bound( -70, cl.refdef.cl_viewangles[PITCH], 80 );
+		// if the menu is visible, move the menu cursor
+		UI_MouseMove( mx, my );
 	}
-	else
+	else if( cls.key_dest != key_menu )
 	{
-		if(( in_strafe.state & 1 ) && cl.frame.ps.movetype == MOVETYPE_NOCLIP )
-			cmd->upmove -= m_forward->value * my;
-		else cmd->forwardmove -= m_forward->value * my;
+		if( cl.frame.ps.health <= 0 ) return;
+		if( cl.mouse_sens == 0.0f ) cl.mouse_sens = 1.0f;
+		accel_sensitivity = m_sensitivity->value + rate * cl_mouseaccel->value;
+		accel_sensitivity *= cl.mouse_sens; // scale by fov
+		mx *= accel_sensitivity;
+		my *= accel_sensitivity;
+
+		// add mouse X/Y movement to cmd
+		if(( in_strafe.state & 1 ) || (lookstrafe->integer && mlook_active))
+			cmd->sidemove += m_side->value * mx;
+		else cl.refdef.cl_viewangles[YAW] -= m_yaw->value * mx;
+
+		if( mlook_active ) clgame.dllFuncs.pfnStopPitchDrift();		
+
+		if( mlook_active && !( in_strafe.state & 1 ))
+		{
+			cl.refdef.cl_viewangles[PITCH] += m_pitch->value * my;
+			cl.refdef.cl_viewangles[PITCH] = bound( -70, cl.refdef.cl_viewangles[PITCH], 80 );
+		}
+		else
+		{
+			if(( in_strafe.state & 1 ) && cl.frame.ps.movetype == MOVETYPE_NOCLIP )
+				cmd->upmove -= m_forward->value * my;
+			else cmd->forwardmove -= m_forward->value * my;
+		}
 	}
 }
 
@@ -497,21 +497,14 @@ CL_FinishMove
 */
 void CL_FinishMove( usercmd_t *cmd )
 {
-	static double	extramsec = 0;
-	int		ms;
+	int	ms;
 
 	// send milliseconds of time to apply the move
-	extramsec += cls.frametime * 1000;
-	ms = extramsec;
-	extramsec -= ms;		// fractional part is left for next frame
+	ms = cls.frametime * 1000;
 	if( ms > 250 ) ms = 100;	// time was unreasonable
 
 	cmd->msec = ms;
 
-	// send the current server time so the amount of movement
-	// can be determined without allowing cheating
-	cmd->servertime = cl.time;
-	
 	if( cls.key_dest == key_game )
 		cmd->buttons = CL_ButtonBits( 1 );
 
@@ -520,6 +513,8 @@ void CL_FinishMove( usercmd_t *cmd )
 	cl.data.iKeyBits = CL_ButtonBits( 0 );
 
 	cl.data.iWeaponBits = cl.frame.ps.weapons;
+	cl.data.mouse_sensitivity = cl.mouse_sens;
+
 	VectorCopy( cl.refdef.cl_viewangles, cmd->angles );
 	VectorCopy( cl.refdef.cl_viewangles, cl.data.angles );
 	VectorCopy( cl.refdef.origin, cl.data.origin );
@@ -528,6 +523,7 @@ void CL_FinishMove( usercmd_t *cmd )
 
 	CL_ResetButtonBits( cl.data.iKeyBits );
 	cl.refdef.fov_x = cl.data.fov;
+	cl.mouse_sens = cl.data.mouse_sensitivity;
 
 	in_cancel = 0;
 }
@@ -552,200 +548,6 @@ usercmd_t CL_CreateCmd( void )
 
 /*
 =================
-CL_CreateNewCommands
-
-Create a new usercmd_t structure for this frame
-=================
-*/
-void CL_CreateNewCommands( void )
-{
-	int	cmdnum;
-
-	// no need to create usercmds until we have a gamestate
-	if( cls.state < ca_connected ) return;
-
-	// reset render flags here, to can add RDF_OLDAREABITS without temp variables
-	cl.render_flags = 0;
-
-	// generate a command for this frame
-	cl.cmd_number++;
-	cmdnum = cl.cmd_number & CMD_MASK;
-	cl.cmds[cmdnum] = CL_CreateCmd();
-
-	if( freelook->modified )
-	{
-		if( !mlook_active && lookspring->value )
-			clgame.dllFuncs.pfnStartPitchDrift();
-	}
-
-	if( cls.state == ca_connected )
-	{
-		// jsut update reliable
-		if( cls.netchan.message.cursize || cls.realtime - cls.netchan.last_sent > 1.0f )
-			Netchan_Transmit( &cls.netchan, 0, NULL );	
-	}
-}
-
-/*
-=================
-CL_ReadyToSendPacket
-
-Returns qfalse if we are over the maxpackets limit
-and should choke back the bandwidth a bit by not sending
-a packet this frame.  All the commands will still get
-delivered in the next packet, but saving a header and
-getting more delta compression will reduce total bandwidth.
-=================
-*/
-bool CL_ReadyToSendPacket( void )
-{
-	int	old_packetnum;
-	float	delta;
-
-	// don't send anything if playing back a demo
-	if( cls.demoplayback || cls.state == ca_cinematic )
-		return false;
-
-	// if we are downloading, we send no less than 50ms between packets
-	if( cls.downloadtempname[0] && cls.realtime - cls.netchan.last_sent < 0.05f )
-		return false;
-
-	// if we don't have a valid gamestate yet, only send
-	// one packet a second
-	if( cls.state < ca_connected && !cls.downloadtempname[0] && cls.realtime - cls.netchan.last_sent < 1.0f )
-		return false;
-
-	// send every frame for loopbacks
-	if( NET_IsLocalAddress( cls.netchan.remote_address ))
-		return true;
-
-	// check for exceeding cl_maxpackets
-	if( cl_maxpackets->modified )
-	{
-		if( cl_maxpackets->integer < 15 )
-			Cvar_Set( "cl_maxpackets", "15" );
-		else if( cl_maxpackets->integer > 125 )
-			Cvar_Set( "cl_maxpackets", "125" );
-		cl_maxpackets->modified = false;
-	}
-
-	old_packetnum = (cls.netchan.outgoing_sequence - 1) & UPDATE_MASK;
-	delta = cls.realtime - cl.outframes[old_packetnum].realtime;
-
-	if( delta < (cl_maxpackets->integer * 0.001))
-	{
-		// the accumulated commands will go out in the next packet
-		return false;
-	}
-	return true;
-}
-
-/*
-===================
-CL_WritePacket
-
-Create and send the command packet to the server
-Including both the reliable commands and the usercmds
-
-During normal gameplay, a client packet will contain something like:
-
-1	clc_move
-1	command count
-<count * usercmds>
-===================
-*/
-void CL_WritePacket( void )
-{
-	sizebuf_t		buf;
-	byte		data[MAX_MSGLEN];
-	usercmd_t		*oldcmd;
-	usercmd_t		nullcmd;
-	int		packetnum, old_packetnum;
-	int		i, j, count, key;
-
-	// don't send anything if playing back a demo
-	if( cls.demoplayback || cls.state == ca_cinematic )
-		return;
-
-	Mem_Set( &nullcmd, 0, sizeof( nullcmd ));
-	oldcmd = &nullcmd;
-
-	// send a userinfo update if needed
-	if( userinfo_modified )
-	{
-		userinfo_modified = false;
-		MSG_WriteByte( &cls.netchan.message, clc_userinfo );
-		MSG_WriteString( &cls.netchan.message, Cvar_Userinfo( ));
-	}
-
-	MSG_Init( &buf, data, sizeof( data ));
-
-	// we want to send all the usercmds that were generated in the last
-	// few packet, so even if a couple packets are dropped in a row,
-	// all the cmds will make it to the server
-	if( cl_packetdup->modified )
-	{
-		if( cl_packetdup->integer < 0 )
-			Cvar_Set( "cl_packetdup", "0" );
-		else if( cl_packetdup->integer > 5 )
-			Cvar_Set( "cl_packetdup", "5" );
-		cl_packetdup->modified = false;
-	}
-	old_packetnum = (cls.netchan.outgoing_sequence - 1 - cl_packetdup->integer ) & UPDATE_MASK;
-	count = cl.cmd_number - cl.outframes[old_packetnum].cmd_number;
-	if( count > UPDATE_BACKUP )
-	{
-		count = UPDATE_BACKUP;
-		MsgDev( D_WARN, "MAX_USERCMDS limit exceeded\n" );
-	}
-
-	if( count >= 1 )
-	{
-		bool	noDelta = false;
-
-		if( cl_nodelta->integer ) noDelta = true;
-		if( !cl.frame.valid || cls.demowaiting || cls.netchan.incoming_sequence != cl.frame.msgnum )
-			 noDelta = true;
-
-		// begin a client move command		
-		if( noDelta ) MSG_WriteByte( &buf, clc_move );
-		else MSG_WriteByte( &buf, clc_deltamove );
-
-		// save the position for a checksum byte
-		key = buf.cursize;
-		MSG_WriteByte( &buf, 0 );
-
-		// write the command count
-		MSG_WriteByte( &buf, count );
-                    
-		if( cl_shownet->integer == 4 )
-			Msg( "    packet: %i %scmds\n", count, noDelta ? "" : "delta" );
-
-		// write all the commands, including the predicted command
-		for( i = 0; i < count; i++ )
-		{
-			j = (cl.cmd_number - count + i + 1) & CMD_MASK;
-			cl.refdef.cmd = &cl.cmds[j];
-			MSG_WriteDeltaUsercmd( &buf, oldcmd, cl.refdef.cmd );
-			oldcmd = cl.refdef.cmd;
-		}
-
-		// calculate a checksum over the move commands
-		buf.data[key] = CRC_Sequence( buf.data + key + 1, buf.cursize - key - 1, cls.netchan.outgoing_sequence );
-	}
-
-	// save out frames for ping calculation
-	packetnum = cls.netchan.outgoing_sequence & UPDATE_MASK;
-	cl.outframes[packetnum].realtime = cls.realtime;
-	cl.outframes[packetnum].servertime = oldcmd->servertime;
-	cl.outframes[packetnum].cmd_number = cl.cmd_number;
-
-	// deliver the message
-	Netchan_Transmit( &cls.netchan, buf.cursize, buf.data );
-}
-
-/*
-=================
 CL_SendCmd
 
 Called every frame to builds and sends a command packet to the server.
@@ -753,17 +555,86 @@ Called every frame to builds and sends a command packet to the server.
 */
 void CL_SendCmd( void )
 {
-	// don't send any message if not connected
-	if( cls.state < ca_connected ) return;
+	sizebuf_t		buf;
+	byte		data[128];
+	usercmd_t		*oldcmd;
+	usercmd_t		nullcmd;
+	int		checksumIndex;
 
-	// don't send commands if paused
-	if( cl_paused->integer ) return;
+	// build a command even if not connected
 
-	// we create commands even if a demo is playing,
-	CL_CreateNewCommands();
+	// save this command off for prediction
+	cl.refdef.cmd = &cl.cmds[cls.netchan.outgoing_sequence & (CMD_BACKUP-1)];
+	cl.cmd_time[cls.netchan.outgoing_sequence & (CMD_BACKUP-1)] = cls.realtime;
+	*cl.refdef.cmd = CL_CreateCmd ();
 
-	// don't send a packet if the last packet was sent too recently
-	if( CL_ReadyToSendPacket( )) CL_WritePacket();
+	if( cls.state == ca_disconnected || cls.state == ca_connecting )
+		return;
+
+	// ignore commands for demo mode
+	if( cls.state == ca_cinematic || cls.demoplayback )
+		return;
+
+	if( cls.state == ca_connected )
+	{
+		// jsut update reliable
+		if( cls.netchan.message.cursize || cls.realtime - cls.netchan.last_sent > 1.0f )
+			Netchan_Transmit( &cls.netchan, 0, NULL );	
+		return;
+	}
+
+	if( freelook->modified )
+	{
+		if( !mlook_active && lookspring->value )
+			clgame.dllFuncs.pfnStartPitchDrift();
+	}
+
+	// send a userinfo update if needed
+	if( userinfo_modified )
+	{
+		userinfo_modified = false;
+		MSG_WriteByte (&cls.netchan.message, clc_userinfo);
+		MSG_WriteString (&cls.netchan.message, Cvar_Userinfo());
+	}
+
+	// begin a client move command
+	MSG_Init( &buf, data, sizeof( data ));
+	MSG_WriteByte( &buf, clc_move );
+
+	// save the position for a checksum byte
+	checksumIndex = buf.cursize;
+	MSG_WriteByte( &buf, 0 );
+
+	// let the server know what the last frame we
+	// got was, so the next message can be delta compressed
+	if (cl_nodelta->value || !cl.frame.valid || cls.demowaiting)
+	{
+		MSG_WriteLong( &buf, -1 );	// no compression
+	}
+	else
+	{
+		MSG_WriteLong( &buf, cl.frame.serverframe );
+	}
+
+	// send this and the previous cmds in the message, so
+	// if the last packet was dropped, it can be recovered
+	cl.refdef.cmd = &cl.cmds[(cls.netchan.outgoing_sequence-2) & (CMD_BACKUP-1)];
+	Mem_Set( &nullcmd, 0, sizeof( nullcmd ));
+	MSG_WriteDeltaUsercmd( &buf, &nullcmd, cl.refdef.cmd );
+	oldcmd = cl.refdef.cmd;
+
+	cl.refdef.cmd = &cl.cmds[(cls.netchan.outgoing_sequence-1) & (CMD_BACKUP-1)];
+	MSG_WriteDeltaUsercmd( &buf, oldcmd, cl.refdef.cmd );
+	oldcmd = cl.refdef.cmd;
+
+	cl.refdef.cmd = &cl.cmds[(cls.netchan.outgoing_sequence) & (CMD_BACKUP-1)];
+	MSG_WriteDeltaUsercmd( &buf, oldcmd, cl.refdef.cmd );
+
+	// calculate a checksum over the move commands
+	buf.data[checksumIndex] = CRC_Sequence( buf.data + checksumIndex + 1, buf.cursize - checksumIndex - 1, cls.netchan.outgoing_sequence);
+
+	// deliver the message
+	Netchan_Transmit( &cls.netchan, buf.cursize, buf.data );
 }
 
 /*
@@ -774,88 +645,86 @@ CL_InitInput
 void CL_InitInput( void )
 {
 	// mouse variables
-	m_filter = Cvar_Get( "m_filter", "0", 0, "enable mouse filter" );
+	m_filter = Cvar_Get("m_filter", "0", 0, "enable mouse filter" );
 	m_sensitivity = Cvar_Get( "m_sensitivity", "3", CVAR_ARCHIVE, "mouse in-game sensitivity" );
 	cl_mouseaccel = Cvar_Get( "cl_mouseaccelerate", "0", CVAR_ARCHIVE, "mouse accelerate factor" ); 
 
 	// centering
-	v_centermove = Cvar_Get( "v_centermove", "0.15", 0, "client center moving" );
-	v_centerspeed = Cvar_Get( "v_centerspeed", "500",	0, "client center speed" );
-	cl_nodelta = Cvar_Get( "cl_nodelta", "0", 0, "disable delta-compression for usercommnds" );
+	v_centermove = Cvar_Get ("v_centermove", "0.15", 0, "client center moving" );
+	v_centerspeed = Cvar_Get ("v_centerspeed", "500",	0, "client center speed" );
+	cl_nodelta = Cvar_Get ("cl_nodelta", "0", 0, "disable delta-compression for usercommnds" );
 
 	freelook = Cvar_Get( "freelook", "1", CVAR_ARCHIVE, "enables mouse look" );
 	lookspring = Cvar_Get( "lookspring", "0", CVAR_ARCHIVE, "allow look spring" );
 	lookstrafe = Cvar_Get( "lookstrafe", "0", CVAR_ARCHIVE, "allow look strafe" );
 
-	m_pitch = Cvar_Get( "m_pitch", "0.022", CVAR_ARCHIVE, "mouse pitch value" );
-	m_yaw = Cvar_Get( "m_yaw", "0.022", 0, "mouse yaw value" );
-	m_forward = Cvar_Get( "m_forward", "1", 0, "mouse forward speed" );
-	m_side = Cvar_Get( "m_side", "1", 0, "mouse side speed" );
+	m_pitch = Cvar_Get ("m_pitch", "0.022", CVAR_ARCHIVE, "mouse pitch value" );
+	m_yaw = Cvar_Get ("m_yaw", "0.022", 0, "mouse yaw value" );
+	m_forward = Cvar_Get ("m_forward", "1", 0, "mouse forward speed" );
+	m_side = Cvar_Get ("m_side", "1", 0, "mouse side speed" );
 	
-	Cmd_AddCommand( "centerview", IN_CenterView, "gradually recenter view (stop looking up/down)" );
+	Cmd_AddCommand ("centerview", IN_CenterView, "gradually recenter view (stop looking up/down)" );
 
 	// input commands
-	Cmd_AddCommand( "+moveup", IN_UpDown, "swim upward" );
-	Cmd_AddCommand( "-moveup",IN_UpUp, "stop swimming upward" );
-	Cmd_AddCommand( "+movedown",IN_DownDown, "swim downward" );
-	Cmd_AddCommand( "-movedown",IN_DownUp, "stop swimming downward" );
-	Cmd_AddCommand( "+left",IN_LeftDown, "turn left" );
-	Cmd_AddCommand( "-left",IN_LeftUp, "stop turning left" );
-	Cmd_AddCommand( "+right",IN_RightDown, "turn right" );
-	Cmd_AddCommand( "-right",IN_RightUp, "stop turning right" );
-	Cmd_AddCommand( "+forward",IN_ForwardDown, "move forward" );
-	Cmd_AddCommand( "-forward",IN_ForwardUp, "stop moving forward" );
-	Cmd_AddCommand( "+back",IN_BackDown, "move backward" );
-	Cmd_AddCommand( "-back",IN_BackUp, "stop moving backward" );
-	Cmd_AddCommand( "+lookup", IN_LookupDown, "look upward" );
-	Cmd_AddCommand( "-lookup", IN_LookupUp, "stop looking upward" );
-	Cmd_AddCommand( "+lookdown", IN_LookdownDown, "look downward" );
-	Cmd_AddCommand( "-lookdown", IN_LookdownUp, "stop looking downward" );
-	Cmd_AddCommand( "+strafe", IN_StrafeDown, "activate strafing mode (move instead of turn)\n" );
-	Cmd_AddCommand( "-strafe", IN_StrafeUp, "deactivate strafing mode" );
-	Cmd_AddCommand( "+moveleft", IN_MoveleftDown, "strafe left" );
-	Cmd_AddCommand( "-moveleft", IN_MoveleftUp, "stop strafing left" );
-	Cmd_AddCommand( "+moveright", IN_MoverightDown, "strafe right" );
-	Cmd_AddCommand( "-moveright", IN_MoverightUp, "stop strafing right" );
-	Cmd_AddCommand( "+speed", IN_SpeedDown, "activate run mode (faster movement and turning)" );
-	Cmd_AddCommand( "-speed", IN_SpeedUp, "deactivate run mode" );
-	Cmd_AddCommand( "+attack", IN_AttackDown, "begin firing" );
-	Cmd_AddCommand( "-attack", IN_AttackUp, "stop firing" );
-	Cmd_AddCommand( "+attack2", IN_Attack2Down, "begin alternate firing" );
-	Cmd_AddCommand( "-attack2", IN_Attack2Up, "stop alternate firing" );
-	Cmd_AddCommand( "+use", IN_UseDown, "use item (doors, monsters, inventory, etc)" );
-	Cmd_AddCommand( "-use", IN_UseUp, "stop using item" );
-	Cmd_AddCommand( "+jump", IN_JumpDown, "jump" );
-	Cmd_AddCommand( "-jump", IN_JumpUp, "end jump (so you can jump again)" );
-	Cmd_AddCommand( "+duck", IN_DuckDown, "duck" );
-	Cmd_AddCommand( "-duck", IN_DuckUp, "end duck (so you can duck again)" );
-	Cmd_AddCommand( "+klook", IN_KLookDown, "activate keyboard looking mode, do not recenter view" );
-	Cmd_AddCommand( "-klook", IN_KLookUp, "deactivate keyboard looking mode" );
-	Cmd_AddCommand( "+reload", IN_ReloadDown, "reload current weapon" );
-	Cmd_AddCommand( "-reload", IN_ReloadUp, "continue reload weapon" );
-	Cmd_AddCommand( "+mlook", IN_MLookDown, "activate mouse looking mode, do not recenter view" );
-	Cmd_AddCommand( "-mlook", IN_MLookUp, "deactivate mouse looking mode" );
-	Cmd_AddCommand( "+alt1", IN_Alt1Down, "hold modyifycator" );
-	Cmd_AddCommand( "-alt1", IN_Alt1Up, "release modifycator" );
-	Cmd_AddCommand( "+break",IN_BreakDown, "cancel" );
-	Cmd_AddCommand( "-break",IN_BreakUp, "stop cancel" );
+	Cmd_AddCommand ("+moveup",IN_UpDown, "swim upward");
+	Cmd_AddCommand ("-moveup",IN_UpUp, "stop swimming upward");
+	Cmd_AddCommand ("+movedown",IN_DownDown, "swim downward");
+	Cmd_AddCommand ("-movedown",IN_DownUp, "stop swimming downward");
+	Cmd_AddCommand ("+left",IN_LeftDown, "turn left");
+	Cmd_AddCommand ("-left",IN_LeftUp, "stop turning left");
+	Cmd_AddCommand ("+right",IN_RightDown, "turn right");
+	Cmd_AddCommand ("-right",IN_RightUp, "stop turning right");
+	Cmd_AddCommand ("+forward",IN_ForwardDown, "move forward");
+	Cmd_AddCommand ("-forward",IN_ForwardUp, "stop moving forward");
+	Cmd_AddCommand ("+back",IN_BackDown, "move backward");
+	Cmd_AddCommand ("-back",IN_BackUp, "stop moving backward");
+	Cmd_AddCommand ("+lookup", IN_LookupDown, "look upward");
+	Cmd_AddCommand ("-lookup", IN_LookupUp, "stop looking upward");
+	Cmd_AddCommand ("+lookdown", IN_LookdownDown, "look downward");
+	Cmd_AddCommand ("-lookdown", IN_LookdownUp, "stop looking downward");
+	Cmd_AddCommand ("+strafe", IN_StrafeDown, "activate strafing mode (move instead of turn)\n");
+	Cmd_AddCommand ("-strafe", IN_StrafeUp, "deactivate strafing mode");
+	Cmd_AddCommand ("+moveleft", IN_MoveleftDown, "strafe left");
+	Cmd_AddCommand ("-moveleft", IN_MoveleftUp, "stop strafing left");
+	Cmd_AddCommand ("+moveright", IN_MoverightDown, "strafe right");
+	Cmd_AddCommand ("-moveright", IN_MoverightUp, "stop strafing right");
+	Cmd_AddCommand ("+speed", IN_SpeedDown, "activate run mode (faster movement and turning)");
+	Cmd_AddCommand ("-speed", IN_SpeedUp, "deactivate run mode");
+	Cmd_AddCommand ("+attack", IN_AttackDown, "begin firing");
+	Cmd_AddCommand ("-attack", IN_AttackUp, "stop firing");
+	Cmd_AddCommand ("+attack2", IN_Attack2Down, "begin alternate firing");
+	Cmd_AddCommand ("-attack2", IN_Attack2Up, "stop alternate firing");
+	Cmd_AddCommand ("+use", IN_UseDown, "use item (doors, monsters, inventory, etc)" );
+	Cmd_AddCommand ("-use", IN_UseUp, "stop using item" );
+	Cmd_AddCommand ("+jump", IN_JumpDown, "jump" );
+	Cmd_AddCommand ("-jump", IN_JumpUp, "end jump (so you can jump again)");
+	Cmd_AddCommand ("+duck", IN_DuckDown, "duck" );
+	Cmd_AddCommand ("-duck", IN_DuckUp, "end duck (so you can duck again)");
+	Cmd_AddCommand ("+klook", IN_KLookDown, "activate keyboard looking mode, do not recenter view");
+	Cmd_AddCommand ("-klook", IN_KLookUp, "deactivate keyboard looking mode");
+	Cmd_AddCommand ("+reload", IN_ReloadDown, "reload current weapon" );
+	Cmd_AddCommand ("-reload", IN_ReloadUp, "continue reload weapon" );
+	Cmd_AddCommand ("+mlook", IN_MLookDown, "activate mouse looking mode, do not recenter view" );
+	Cmd_AddCommand ("-mlook", IN_MLookUp, "deactivate mouse looking mode" );
+	Cmd_AddCommand ("+alt1", IN_Alt1Down, "hold modyifycator" );
+	Cmd_AddCommand ("-alt1", IN_Alt1Up, "release modifycator" );
+	Cmd_AddCommand ("+break",IN_BreakDown, "cancel" );
+	Cmd_AddCommand ("-break",IN_BreakUp, "stop cancel" );
 }
 
 /*
 ============
 CL_InitServerCommands
-
-FIXME: move this stuff into client.dll
 ============
 */
 void CL_InitServerCommands( void )
 {
-	Cmd_AddCommand( "impulse", NULL, "send impulse to a client" );
-	Cmd_AddCommand( "noclip", NULL, "enable or disable no clipping mode" );
-	Cmd_AddCommand( "fullupdate", NULL, "re-init HUD on start demo recording" );
-	Cmd_AddCommand( "give", NULL, "give specified item or weapon" );
-	Cmd_AddCommand( "intermission", NULL, "go to intermission" );
-	Cmd_AddCommand( "god", NULL, "classic cheat" );
+	Cmd_AddCommand ("impulse", NULL, "send impulse to a client" );
+	Cmd_AddCommand ("noclip", NULL, "enable or disable no clipping mode" );
+	Cmd_AddCommand ("fullupdate", NULL, "re-init HUD on start demo recording" );
+	Cmd_AddCommand ("give", NULL, "give specified item or weapon" );
+	Cmd_AddCommand ("intermission", NULL, "go to intermission" );
+	Cmd_AddCommand ("god", NULL, "classic cheat" );
 }
 
 /*
@@ -865,45 +734,41 @@ CL_ShutdownInput
 */
 void CL_ShutdownInput( void )
 {
-	Cmd_RemoveCommand( "centerview" );
+	Cmd_RemoveCommand ("centerview" );
 
 	// input commands
-	Cmd_RemoveCommand( "+moveup" );
-	Cmd_RemoveCommand( "-moveup" );
-	Cmd_RemoveCommand( "+movedown" );
-	Cmd_RemoveCommand( "-movedown" );
-	Cmd_RemoveCommand( "+left" );
-	Cmd_RemoveCommand( "-left" );
-	Cmd_RemoveCommand( "+right" );
-	Cmd_RemoveCommand( "-right" );
-	Cmd_RemoveCommand( "+forward" );
-	Cmd_RemoveCommand( "-forward" );
-	Cmd_RemoveCommand( "+back" );
-	Cmd_RemoveCommand( "-back" );
-	Cmd_RemoveCommand( "+lookup" );
-	Cmd_RemoveCommand( "-lookup" );
-	Cmd_RemoveCommand( "+lookdown" );
-	Cmd_RemoveCommand( "-lookdown" );
-	Cmd_RemoveCommand( "+strafe" );
-	Cmd_RemoveCommand( "-strafe" );
-	Cmd_RemoveCommand( "+moveleft" );
-	Cmd_RemoveCommand( "-moveleft" );
-	Cmd_RemoveCommand( "+moveright" );
-	Cmd_RemoveCommand( "-moveright" );
-	Cmd_RemoveCommand( "+speed" );
-	Cmd_RemoveCommand( "-speed" );
-	Cmd_RemoveCommand( "+attack" );
-	Cmd_RemoveCommand( "-attack" );
-	Cmd_RemoveCommand( "+attack2" );
-	Cmd_RemoveCommand( "-attack2" );
-	Cmd_RemoveCommand( "+reload" );
-	Cmd_RemoveCommand( "-reload" );
-	Cmd_RemoveCommand( "+use" );
-	Cmd_RemoveCommand( "-use" );
-	Cmd_RemoveCommand( "+mlook" );
-	Cmd_RemoveCommand( "-mlook" );
-	Cmd_RemoveCommand( "+alt1" );
-	Cmd_RemoveCommand( "-alt1" );
-	Cmd_RemoveCommand( "+break" );
-	Cmd_RemoveCommand( "-break" );
+	Cmd_RemoveCommand ("+moveup" );
+	Cmd_RemoveCommand ("-moveup" );
+	Cmd_RemoveCommand ("+movedown" );
+	Cmd_RemoveCommand ("-movedown" );
+	Cmd_RemoveCommand ("+left" );
+	Cmd_RemoveCommand ("-left" );
+	Cmd_RemoveCommand ("+right" );
+	Cmd_RemoveCommand ("-right" );
+	Cmd_RemoveCommand ("+forward" );
+	Cmd_RemoveCommand ("-forward" );
+	Cmd_RemoveCommand ("+back" );
+	Cmd_RemoveCommand ("-back" );
+	Cmd_RemoveCommand ("+lookup" );
+	Cmd_RemoveCommand ("-lookup" );
+	Cmd_RemoveCommand ("+lookdown" );
+	Cmd_RemoveCommand ("-lookdown" );
+	Cmd_RemoveCommand ("+strafe" );
+	Cmd_RemoveCommand ("-strafe" );
+	Cmd_RemoveCommand ("+moveleft" );
+	Cmd_RemoveCommand ("-moveleft" );
+	Cmd_RemoveCommand ("+moveright" );
+	Cmd_RemoveCommand ("-moveright" );
+	Cmd_RemoveCommand ("+speed" );
+	Cmd_RemoveCommand ("-speed" );
+	Cmd_RemoveCommand ("+attack" );
+	Cmd_RemoveCommand ("-attack" );
+	Cmd_RemoveCommand ("+attack2" );
+	Cmd_RemoveCommand ("-attack2" );
+	Cmd_RemoveCommand ("+reload" );
+	Cmd_RemoveCommand ("-reload" );
+	Cmd_RemoveCommand ("+use" );
+	Cmd_RemoveCommand ("-use" );
+	Cmd_RemoveCommand ("+mlook" );
+	Cmd_RemoveCommand ("-mlook" );
 }
