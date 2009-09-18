@@ -118,8 +118,8 @@ void V_SetupRefDef( void )
 	cl.refdef.num_entities = clgame.numEntities;
 	cl.refdef.max_entities = clgame.maxEntities;
 	cl.refdef.max_clients = clgame.maxClients;
-	cl.refdef.oldtime = cl.oldtime;
-	cl.refdef.time = cl.time;		// cl.time for right lerping
+	cl.refdef.oldtime = cl.oldtime * 0.001f;
+	cl.refdef.time = cl.time * 0.001f;		// cl.time for right lerping
 	cl.refdef.frametime = cls.frametime;
 	cl.refdef.demoplayback = cls.demoplayback;
 	cl.refdef.demorecord = cls.demorecording;
@@ -133,7 +133,7 @@ void V_SetupRefDef( void )
 	if( cl.refdef.predicting && !cl.refdef.demoplayback )
 	{	
 		// use predicted values
-		int delta;
+		int	delta;
 
 		backlerp = 1.0 - cl.refdef.lerpfrac;
 		for( i = 0; i < 3; i++ )
@@ -158,7 +158,7 @@ apply pre-calculated values
 void V_AddViewModel( void )
 {
 	if( !cl.viewent.v.modelindex || cl.refdef.nextView ) return;
-	re->AddRefEntity( &cl.viewent, ED_VIEWMODEL, cl.refdef.lerpfrac );
+	re->AddRefEntity( &cl.viewent, ED_VIEWMODEL );
 }
 
 /*

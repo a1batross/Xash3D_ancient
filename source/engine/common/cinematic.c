@@ -469,7 +469,6 @@ float dpv_getframerate( const void *stream )
 	return s->info_framerate;
 }
 
-
 static int dpv_convertpixels( dpvstream_t *s, void *imagedata, int imagebytesperrow )
 {
 	uint	a, x, y, width, height;
@@ -608,7 +607,7 @@ byte *frame_data = NULL;
 uint frame_width;
 uint frame_height;
 int frame_num;
-float start_time;
+int start_time;
 float frame_rate;
 int frame_bpp;
 int cin_state;
@@ -658,7 +657,7 @@ void CIN_RunCinematic( void )
 		destframe = 0;
 		cin_state = cin_playback;
 	}
-	else destframe = (int)((cls.realtime - start_time) * frame_rate);
+	else destframe = (int)(((cls.realtime - start_time) * 0.001f) * frame_rate);
 
 	if( destframe < 0 ) destframe = 0;
 	if( destframe > frame_num )

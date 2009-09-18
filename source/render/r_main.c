@@ -2107,9 +2107,8 @@ bool R_AddLightStyle( int stylenum, vec3_t color )
 	return true;
 }
 
-bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type, float lerpfrac )
+bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 {
-	int	i;
 	vec3_t	center;
 
 	// check model
@@ -2141,7 +2140,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 	// setup light origin
 	if( refent->model ) VectorAverage( refent->model->mins, refent->model->maxs, center );
 	else VectorClear( center );
-	VectorCopy( pRefEntity->v.origin, refent->lightingOrigin );
+	VectorAdd( pRefEntity->v.origin, center, refent->lightingOrigin );
 
 	// do animate
 	if( refent->flags & EF_ANIMATE )
@@ -2203,16 +2202,10 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 		// some bonus items auto-rotate
 		VectorSet( refent->angles, 0, anglemod( RI.refdef.time / 10), 0 );
 	}
-	else
-	{	
-		// interpolate angles
-		for( i = 0; i < 3; i++ )
-			refent->angles[i] = LerpAngle( pRefEntity->v.oldangles[i], pRefEntity->v.angles[i], lerpfrac );
-	}
+	else VectorCopy( pRefEntity->v.angles, refent->angles );
 
-	// interpolate origin
-	for( i = 0; i < 3; i++ )
-		refent->origin[i] = LerpPoint( pRefEntity->v.oldorigin[i], pRefEntity->v.origin[i], lerpfrac );
+	VectorCopy( pRefEntity->v.origin, refent->origin );
+
 	Matrix3x3_FromAngles( refent->angles, refent->axis );
 	VectorClear( refent->origin2 );
 
@@ -2260,7 +2253,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type,
 	return true;
 }
 
-bool R_AddPortalEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type, float lerpfrac )
+bool R_AddPortalEntity( edict_t *pRefEntity, ref_entity_t *refent )
 {
 	refent->rtype = RT_PORTALSURFACE;
 
@@ -2271,8 +2264,8 @@ bool R_AddPortalEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type, 
 
 	if( refent->flags & EF_ROTATE )
 	{
-		float	phase = pRefEntity->v.frame;
-		float	speed = (pRefEntity->v.framerate ? pRefEntity->v.framerate : 50.0f);
+		float phase = pRefEntity->v.frame;
+		float speed = (pRefEntity->v.framerate ? pRefEntity->v.framerate : 50.0f);
 		refent->angles[ROLL] = 5 * sin(( phase + RI.refdef.time * speed * 0.01f ) * M_PI2);
 	}
 
@@ -2281,7 +2274,7 @@ bool R_AddPortalEntity( edict_t *pRefEntity, ref_entity_t *refent, int ed_type, 
 	return true;
 }
 
-bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac )
+bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type )
 {
 	ref_entity_t	*refent;
 	bool		result = false;
@@ -2312,15 +2305,14 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac )
 	// copy state to render
 	refent->index = pRefEntity->serialnumber;
 	refent->ent_type = ed_type;
-	refent->backlerp = 1.0f - lerpfrac;
 	refent->rendermode = pRefEntity->v.rendermode;
+	VectorCopy( pRefEntity->v.rendercolor, refent->rendercolor );
 	refent->body = pRefEntity->v.body;
 	refent->skin = pRefEntity->v.skin;
 	refent->scale = pRefEntity->v.scale;
 	refent->colormap = pRefEntity->v.colormap;
 	refent->flags = pRefEntity->v.effects;
 	refent->renderfx = pRefEntity->v.renderfx;
-	VectorCopy( pRefEntity->v.rendercolor, refent->rendercolor );
 	refent->renderamt = pRefEntity->v.renderamt;
 	refent->model = cl_models[pRefEntity->v.modelindex];
 	refent->movetype = pRefEntity->v.movetype;
@@ -2331,10 +2323,10 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac )
 	switch( ed_type )
 	{
 	case ED_PORTAL:
-		result = R_AddPortalEntity( pRefEntity, refent, ed_type, lerpfrac );
+		result = R_AddPortalEntity( pRefEntity, refent );
 		break;
 	default:
-		result = R_AddGenericEntity( pRefEntity, refent, ed_type, lerpfrac );
+		result = R_AddGenericEntity( pRefEntity, refent );
 		break;
 	}
 	r_numEntities++;
@@ -2351,31 +2343,30 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, float lerpfrac )
 		FollowEntity.v.movetype = MOVETYPE_FOLLOW;
 		FollowEntity.v.weaponmodel = 0;
 
-		if( R_AddEntityToScene( &FollowEntity, ED_NORMAL, lerpfrac ))
+		if( R_AddEntityToScene( &FollowEntity, ED_NORMAL ))
 			r_entities[r_numEntities-1].parent = refent; // set parent			
 	}
-
 	return result;
 }
 
-bool R_AddDynamicLight( vec3_t org, vec3_t color, float intensity, vec2_t cone, shader_t handle )
+bool R_AddDynamicLight( const void *dlight )
 {
-	dlight_t		*dl;
+	dlight_t		*dl, *src = (dlight_t *)dlight;
 	ref_shader_t	*shader;
 
-	if(( r_numDlights >= MAX_DLIGHTS ) || (intensity == 0) || ( VectorIsNull( color )))
+	if(( r_numDlights >= MAX_DLIGHTS ) || (!src) || (src->intensity == 0) || ( VectorIsNull( src->color )))
 		return false;
-	if( handle < 0 || handle > MAX_SHADERS || !(shader = &r_shaders[handle])->name)
+	if( src->texture < 0 || src->texture > MAX_SHADERS || !(shader = &r_shaders[src->texture])->name)
 		shader = NULL;
 	dl = &r_dlights[r_numDlights++];
 
-	VectorCopy( org, dl->origin );
-	VectorCopy( color, dl->color );
-	if( cone ) Vector2Copy( cone, dl->cone );
-	dl->intensity = intensity * DLIGHT_SCALE;
+	VectorCopy( src->origin, dl->origin );
+	VectorCopy( src->color, dl->color );
+	Vector2Copy( src->cone, dl->cone );
+	dl->intensity = src->intensity * DLIGHT_SCALE;
 	dl->shader = shader;
 
-	R_LightBounds( org, dl->intensity, dl->mins, dl->maxs );
+	R_LightBounds( dl->origin, dl->intensity, dl->mins, dl->maxs );
 
 	return true;
 }

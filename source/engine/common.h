@@ -95,9 +95,9 @@ typedef struct host_parm_s
 	dword		errorframe;	// to avoid each-frame host error
 	string		finalmsg;		// server shutdown final message
 
-	double		time;
-	double		oldtime;
-	double		frametime;	// time between engine frames
+	long		time;
+	long		oldtime;
+	long		frametime;	// time between engine frames
 
 	dword		framecount;	// global framecount
 	HWND		hWnd;		// main window
@@ -135,11 +135,11 @@ CLIENT / SERVER SYSTEMS
 
 void CL_Init( void );
 void CL_Shutdown( void );
-void CL_Frame( double time );
+void CL_Frame( long time );
 
 void SV_Init( void );
 void SV_Shutdown( bool reconnect );
-void SV_Frame( double time );
+void SV_Frame( long time );
 
 // exports
 void SV_Transform( edict_t *ed, const vec3_t origin, const matrix3x3 transform );

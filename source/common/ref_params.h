@@ -14,7 +14,7 @@ typedef struct latched_params_s
 	vec3_t		punchangle;
 } latched_params_t;
 
-typedef struct
+typedef struct skyportal_s
 {
 	float		fov;
 	float		scale;

@@ -250,7 +250,7 @@ void SCR_TimeRefresh_f( void )
 	double		start, stop;
 	double		time;
 
-	if ( cls.state != ca_active )
+	if( cls.state != ca_active )
 		return;
 
 	start = Sys_DoubleTime();

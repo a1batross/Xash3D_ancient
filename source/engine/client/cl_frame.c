@@ -17,12 +17,8 @@ void CL_UpdateEntityFields( edict_t *ent )
 {
 	// these fields user can overwrite if need
 	ent->v.model = MAKE_STRING( cl.configstrings[CS_MODELS+ent->pvClientData->current.modelindex] );
-	VectorCopy( ent->pvClientData->prev.angles, ent->v.oldangles );
-	if( ent->pvClientData->current.aiment )
-		ent->v.aiment = EDICT_NUM( ent->pvClientData->current.aiment );
-	else ent->v.aiment = NULL;
 
-	clgame.dllFuncs.pfnUpdateEntityVars( ent, &cl.refdef, &ent->pvClientData->current );
+	clgame.dllFuncs.pfnUpdateEntityVars( ent, &cl.refdef.skyportal, &ent->pvClientData->current, &ent->pvClientData->prev );
 
 	// always keep an actual (users can't replace this)
 	ent->serialnumber = ent->pvClientData->current.number;
@@ -75,9 +71,6 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 
 	ent->pvClientData->serverframe = cl.frame.serverframe;
 	ent->pvClientData->current = *state;
-
-	// update prvm fields
-	CL_UpdateEntityFields( ent );
 }
 
 /*
@@ -252,7 +245,7 @@ void CL_ParseFrame( sizebuf_t *msg )
 	Mem_Set( &cl.frame, 0, sizeof( cl.frame ));
 
 	cl.frame.serverframe = MSG_ReadLong( msg );
-	cl.serverframetime = MSG_ReadFloat( msg );
+	cl.serverframetime = MSG_ReadLong( msg );
 	cl.frame.deltaframe = MSG_ReadLong( msg );
 	cl.surpressCount = MSG_ReadByte( msg );
 	cl.frame.servertime = cl.mtime[0];	// same as servertime
@@ -349,7 +342,6 @@ void CL_AddPacketEntities( frame_t *frame )
 	if( cl_paused->integer )
 		cl.refdef.lerpfrac = 1.0f;
 	else cl.refdef.lerpfrac = 1.0 - (cl.frame.servertime - cl.time) / (float)cl.serverframetime;
-//	Msg( "cl.refdef.lerpfrac %g\n", cl.refdef.lerpfrac );
 
 	for( pnum = 0; pnum < frame->num_entities; pnum++ )
 	{
@@ -357,7 +349,10 @@ void CL_AddPacketEntities( frame_t *frame )
 		ent = EDICT_NUM( s1->number );
 
 		if( ent->free ) continue;
-		if( re->AddRefEntity( ent, s1->ed_type, cl.refdef.lerpfrac ))
+
+		CL_UpdateEntityFields( ent );
+
+		if( re->AddRefEntity( ent, s1->ed_type ))
 		{
 			if( s1->ed_type == ED_PORTAL && !VectorCompare( ent->v.origin, ent->v.oldorigin ))
 				cl.render_flags |= RDF_PORTALINVIEW;
@@ -416,14 +411,9 @@ void CL_GetEntitySoundSpatialization( int entnum, vec3_t origin, vec3_t velocity
 
 	ent = EDICT_NUM( entnum );
 
-	// calculate origin
-	origin[0] = ent->pvClientData->prev.origin[0] + (ent->pvClientData->current.origin[0] - ent->pvClientData->prev.origin[0]) * cl.refdef.lerpfrac;
-	origin[1] = ent->pvClientData->prev.origin[1] + (ent->pvClientData->current.origin[1] - ent->pvClientData->prev.origin[1]) * cl.refdef.lerpfrac;
-	origin[2] = ent->pvClientData->prev.origin[2] + (ent->pvClientData->current.origin[2] - ent->pvClientData->prev.origin[2]) * cl.refdef.lerpfrac;
-
-	// calculate velocity
-	VectorSubtract( ent->pvClientData->current.origin, ent->pvClientData->prev.origin, velocity);
-	VectorScale(velocity, 10, velocity);
+	// setup origin and velocity
+	VectorCopy( ent->v.origin, origin );
+	VectorScale( ent->v.velocity, 10, velocity );
 
 	// if a brush model, offset the origin
 	if( VectorIsNull( origin ))

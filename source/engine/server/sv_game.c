@@ -664,7 +664,7 @@ void SV_FreeEdict( edict_t *pEdict )
 	pEdict->pvPrivateData = NULL;
 
 	// mark edict as freed
-	pEdict->freetime = sv.time;
+	pEdict->freetime = sv.time * 0.001f;
 	pEdict->v.nextthink = -1;
 	pEdict->serialnumber = 0;
 	pEdict->free = true;
@@ -680,7 +680,7 @@ edict_t *SV_AllocEdict( void )
 		pEdict = EDICT_NUM( i );
 		// the first couple seconds of server time can involve a lot of
 		// freeing and allocating, so relax the replacement policy
-		if( pEdict->free && ( pEdict->freetime < 2.0f || (sv.time - pEdict->freetime) > 0.5f ))
+		if( pEdict->free && ( pEdict->freetime < 2.0f || ((sv.time * 0.001f) - pEdict->freetime) > 0.5f ))
 		{
 			SV_InitEdict( pEdict );
 			return pEdict;
@@ -3034,7 +3034,7 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 	SV_ConfigString( CS_MAXEDICTS, Cvar_VariableString( "host_maxedicts" ));
 
 	svgame.globals->mapname = MAKE_STRING( sv.name );
-	svgame.globals->time = sv.time;
+	svgame.globals->time = sv.time * 0.001f;
 
 	// spawn the rest of the entities on the map
 	SV_LoadFromFile( entities );

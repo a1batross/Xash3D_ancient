@@ -28,7 +28,7 @@ typedef struct efxapi_s
 
 	int	(*R_AllocParticle)( cparticle_t *src, HSPRITE shader, int flags ); 
 	void	(*R_SetDecal)( float *org, float *dir, float *rgba, float rot, float rad, HSPRITE hSpr, int flags );
-	void	(*CL_AllocDLight)( const float *org, float *rgb, float rad, float decay, float time, int key ); 
+	void	(*CL_AllocDLight)( const float *org, float *rgb, float rad, float time, int flags, int key ); 
 	void	(*CL_FindExplosionPlane)( const float *origin, float radius, float *result );
 	int	(*CL_DecalIndexFromName)( const char *szDecalName );
 	int	(*CL_DecalIndex)( int id );

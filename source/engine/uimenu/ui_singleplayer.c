@@ -62,7 +62,7 @@ typedef struct
 	char		*missionsPtr[MAX_MISSIONS];
 
 	int		currentLevelShot;
-	float		fadeTime;
+	long		fadeTime;
 
 	int		currentSkill;
 
@@ -281,7 +281,7 @@ static void UI_SinglePlayer_Ownerdraw( void *self )
 
 		if( uiSinglePlayer.numMissions && uiSinglePlayer.missions[uiSinglePlayer.missionList.curItem].numLevelShots )
 		{
-			if( uiStatic.realTime - uiSinglePlayer.fadeTime >= 3.0f )
+			if( uiStatic.realTime - uiSinglePlayer.fadeTime >= 3000 )
 			{
 				uiSinglePlayer.fadeTime = uiStatic.realTime;
 
@@ -293,7 +293,7 @@ static void UI_SinglePlayer_Ownerdraw( void *self )
 			prev = uiSinglePlayer.currentLevelShot - 1;
 			if( prev < 0 ) prev = uiSinglePlayer.missions[uiSinglePlayer.missionList.curItem].numLevelShots - 1;
 
-			color[3] = bound( 0.0f, (float)(uiStatic.realTime - uiSinglePlayer.fadeTime), 1.0f ) * 255;
+			color[3] = bound( 0.0f, (float)(uiStatic.realTime - uiSinglePlayer.fadeTime) * 0.001f, 1.0f ) * 255;
 
 			UI_DrawPic( x, y, w, h, uiColorWhite, va("gfx/shell/menu_levelshots/%s", uiSinglePlayer.missions[uiSinglePlayer.missionList.curItem].levelShots[prev] ));
 			UI_DrawPic( x, y, w, h, color, va("gfx/shell/menu_levelshots/%s", uiSinglePlayer.missions[uiSinglePlayer.missionList.curItem].levelShots[uiSinglePlayer.currentLevelShot] ));

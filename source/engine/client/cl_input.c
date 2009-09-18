@@ -578,7 +578,7 @@ void CL_SendCmd( void )
 	if( cls.state == ca_connected )
 	{
 		// jsut update reliable
-		if( cls.netchan.message.cursize || cls.realtime - cls.netchan.last_sent > 1.0f )
+		if( cls.netchan.message.cursize || cls.realtime - cls.netchan.last_sent > 1000 )
 			Netchan_Transmit( &cls.netchan, 0, NULL );	
 		return;
 	}

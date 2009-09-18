@@ -163,7 +163,7 @@ void CL_SendConnectPacket (void)
 	netadr_t	adr;
 	int		port;
 
-	if(!NET_StringToAdr (cls.servername, &adr))
+	if( !NET_StringToAdr( cls.servername, &adr ))
 	{
 		MsgDev( D_INFO, "CL_SendConnectPacket: bad server address\n");
 		cls.connect_time = 0;
@@ -201,7 +201,7 @@ void CL_CheckForResend (void)
 	// resend if we haven't gotten a reply yet
 	if( cls.demoplayback || cls.state != ca_connecting )
 		return;
-	if(( cls.realtime - cls.connect_time ) < 3.0f ) return;
+	if(( cls.realtime - cls.connect_time ) < 3000 ) return;
 
 	if( !NET_StringToAdr( cls.servername, &adr ))
 	{
@@ -476,7 +476,7 @@ void CL_Reconnect_f (void)
 		if( cls.state >= ca_connected )
 		{
 			CL_Disconnect();
-			cls.connect_time = cls.realtime - 1.5f;
+			cls.connect_time = cls.realtime - 1500;
 		}
 		else cls.connect_time = MAX_HEARTBEAT; // fire immediately
 
@@ -909,11 +909,11 @@ void CL_ReadPackets( void )
 	// check timeout
 	if( cls.state >= ca_connected && !cls.demoplayback )
 	{
-		if( cls.realtime - cls.netchan.last_received > cl_timeout->value )
+		if( cls.realtime - cls.netchan.last_received > (cl_timeout->value * 1000))
 		{
 			if( ++cl.timeoutcount > 5 ) // timeoutcount saves debugger
 			{
-				Msg ("\nServer connection timed out.\n");
+				Msg( "\nServer connection timed out.\n" );
 				CL_Disconnect();
 				return;
 			}
@@ -1165,7 +1165,7 @@ CL_Frame
 
 ==================
 */
-void CL_Frame( double time )
+void CL_Frame( long time )
 {
 	if( host.type == HOST_DEDICATED )
 		return;
@@ -1174,13 +1174,13 @@ void CL_Frame( double time )
 	cl.oldtime = cl.time;
 	cl.time += time;		// can be merged by cl.frame.servertime 
 	cls.realtime += time;
-	cls.frametime = time;
+	cls.frametime = time * 0.001f;
 
 	cl.time = bound( cl.frame.servertime - cl.serverframetime, cl.time, cl.frame.servertime );
 	if( cls.frametime > 0.2f ) cls.frametime = 0.2f;
 
 	// if in the debugger last frame, don't timeout
-	if( time > 5.0f ) cls.netchan.last_received = Sys_DoubleTime ();
+	if( time > 5000 ) cls.netchan.last_received = Sys_Milliseconds();
 
 	// fetch results from server
 	CL_ReadPackets();

@@ -33,30 +33,26 @@ edict_t *CL_GetEdictByIndex( int index )
 
 /*
 ====================
+StudioEvent
+
+Event callback for studio models
+====================
+*/
+void CL_StudioEvent( dstudioevent_t *event, edict_t *pEdict )
+{
+	clgame.dllFuncs.pfnStudioEvent( event, pEdict );
+}
+
+/*
+====================
 Studio_FxTransform
 
-FIXME: move into client.dll
+apply fxtransforms for each studio bone
 ====================
 */
 void CL_StudioFxTransform( edict_t *ent, float transform[4][4] )
 {
-	if( ent->v.renderfx == kRenderFxHologram )
-	{
-		if(!Com_RandomLong( 0, 49 ))
-		{
-			int axis = Com_RandomLong( 0, 1 );
-			if( axis == 1 ) axis = 2; // choose between x & z
-			VectorScale( transform[axis], Com_RandomFloat( 1, 1.484 ), transform[axis] );
-		}
-		else if(!Com_RandomLong( 0, 49 ))
-		{
-			float offset;
-			int axis = Com_RandomLong( 0, 1 );
-			if( axis == 1 ) axis = 2; // choose between x & z
-			offset = Com_RandomFloat( -10, 10 );
-			transform[Com_RandomLong( 0, 2 )][3] += offset;
-		}
-	}
+	clgame.dllFuncs.pfnStudioFxTransform( ent, transform );
 }
 
 static trace_t CL_TraceToss( edict_t *tossent, edict_t *ignore)
@@ -146,7 +142,7 @@ void CL_FadeAlpha( float starttime, float endtime, rgba_t color )
 		MakeRGBA( color, 255, 255, 255, 255 );
 		return;
 	}
-	time = cls.realtime - starttime;
+	time = (cls.realtime * 0.001f) - starttime;
 	if( time >= endtime )
 	{
 		MakeRGBA( color, 255, 255, 255, 0 );
@@ -179,11 +175,11 @@ void CL_DrawHUD( int state )
 	if( state == CL_ACTIVE && cl_paused->integer )
 		state = CL_PAUSED;
 
-	clgame.dllFuncs.pfnRedraw( cl.time, state );
+	clgame.dllFuncs.pfnRedraw( cl.time * 0.001f, state );
 
 	if( state == CL_ACTIVE )
 	{
-		clgame.dllFuncs.pfnFrame( cl.time );
+		clgame.dllFuncs.pfnFrame( cl.time * 0.001f );
 	}
 }
 
@@ -326,7 +322,7 @@ void CL_InitEdict( edict_t *pEdict )
 
 	pEdict->v.pContainingEntity = pEdict; // make cross-links for consistency
 	if( !pEdict->pvClientData )
-		pEdict->pvClientData = (cl_priv_t *)Mem_Alloc( cls.mempool,  sizeof( cl_priv_t ));
+		pEdict->pvClientData = (cl_priv_t *)Mem_Alloc( cls.mempool, sizeof( cl_priv_t ));
 	pEdict->serialnumber = NUM_FOR_EDICT( pEdict );	// merged on first update
 	pEdict->free = false;
 }
@@ -345,7 +341,7 @@ void CL_FreeEdict( edict_t *pEdict )
 	pEdict->pvClientData = NULL;
 
 	// mark edict as freed
-	pEdict->freetime = cl.time;
+	pEdict->freetime = cl.time * 0.001f;
 	pEdict->serialnumber = 0;
 	pEdict->free = true;
 }
@@ -360,7 +356,7 @@ edict_t *CL_AllocEdict( void )
 		pEdict = EDICT_NUM( i );
 		// the first couple seconds of client time can involve a lot of
 		// freeing and allocating, so relax the replacement policy
-		if( pEdict->free && ( pEdict->freetime < 2.0f || (cl.time - pEdict->freetime) > 0.5f ))
+		if( pEdict->free && ( pEdict->freetime < 2.0f || ((cl.time * 0.001f) - pEdict->freetime) > 0.5f ))
 		{
 			CL_InitEdict( pEdict );
 			return pEdict;
@@ -560,7 +556,7 @@ void pfnHookUserMsg( const char *szMsgName, pfnUserMsgHook pfn )
 	// ignore blank names
 	if( !szMsgName || !*szMsgName ) return;	
 
-	// duplicate call can change msgFunc	
+	// second call can change msgFunc	
 	for( i = 0; i < clgame.numMessages; i++ )
 	{
 		msg = clgame.msg[i];	
@@ -775,7 +771,7 @@ void pfnCenterPrint( const char *text, int y, int charWidth )
 	char	*s;
 
 	com.strncpy( cl.centerPrint, text, sizeof( cl.centerPrint ));
-	cl.centerPrintTime = cls.realtime;
+	cl.centerPrintTime = cls.realtime * 0.001f;
 	cl.centerPrintY = y;
 	cl.centerPrintCharWidth = charWidth;
 
@@ -869,7 +865,18 @@ pfnGetClientTime
 */
 float pfnGetClientTime( void )
 {
-	return cl.time;
+	return cl.time * 0.001f;
+}
+
+/*
+=============
+pfnGetLerpFrac
+
+=============
+*/
+float pfnGetLerpFrac( void )
+{
+	return cl.refdef.lerpfrac;
 }
 
 /*
@@ -1338,6 +1345,7 @@ static cl_enginefuncs_t gEngfuncs =
 	CL_GetLocalPlayer,
 	pfnIsSpectateOnly,
 	pfnGetClientTime,
+	pfnGetLerpFrac,
 	pfnGetMaxClients,
 	pfnGetViewModel,
 	pfnGetModelPtr,
@@ -1366,18 +1374,6 @@ static cl_enginefuncs_t gEngfuncs =
 	&gTriApi,
 	&gEfxApi
 };
-
-/*
-====================
-StudioEvent
-
-Event callback for studio models
-====================
-*/
-void CL_StudioEvent( dstudioevent_t *event, edict_t *pEdict )
-{
-	clgame.dllFuncs.pfnStudioEvent( event, pEdict );
-}
 
 void CL_UnloadProgs( void )
 {

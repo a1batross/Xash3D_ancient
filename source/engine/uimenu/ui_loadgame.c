@@ -61,7 +61,7 @@ typedef struct
 	int		currentGame;
 
 	int		currentLevelShot;
-	float		fadeTime;
+	long		fadeTime;
 
 	menuFramework_s	menu;
 
@@ -257,7 +257,7 @@ static void UI_LoadGame_Ownerdraw( void *self )
 			{
 				string	pathTGA, pathJPG;
 
-				if( uiStatic.realTime - uiLoadGame.fadeTime >= 3.0f )
+				if( uiStatic.realTime - uiLoadGame.fadeTime >= 3000 )
 				{
 					uiLoadGame.fadeTime = uiStatic.realTime;
 
@@ -269,7 +269,7 @@ static void UI_LoadGame_Ownerdraw( void *self )
 				prev = uiLoadGame.currentLevelShot - 1;
 				if( prev < 0 ) prev = 2;
 
-				color[3] = bound( 0.0f, (float)(uiStatic.realTime - uiLoadGame.fadeTime), 1.0f ) * 255;
+				color[3] = bound( 0.0f, (float)(uiStatic.realTime - uiLoadGame.fadeTime) * 0.001f, 1.0f ) * 255;
 
 				com.snprintf( pathTGA, sizeof( pathTGA ), "gfx/shell/menu_levelshots/%s_1.tga", uiLoadGame.games[uiLoadGame.currentGame].map);
 				com.snprintf( pathJPG, sizeof( pathJPG ), "gfx/shell/menu_levelshots/%s_1.jpg", uiLoadGame.games[uiLoadGame.currentGame].map);

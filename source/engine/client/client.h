@@ -43,7 +43,7 @@ typedef struct frame_s
 {
 	bool		valid;			// cleared if delta parsing was invalid
 	int		serverframe;
-	double		servertime;
+	long		servertime;
 	int		deltaframe;
 	byte		areabits[MAX_MAP_AREA_BYTES];	// portalarea visibility bits
 	int		num_entities;
@@ -79,7 +79,7 @@ typedef struct
 
 	int		cmd_number;
 	usercmd_t		cmds[CMD_BACKUP];		// each mesage will send several old cmds
-	float		cmd_time[CMD_BACKUP];	// for netgraph ping calculation
+	long		cmd_time[CMD_BACKUP];	// for netgraph ping calculation
 	int		predicted_origins[CMD_BACKUP][3];// for debug comparing against server
 
 	float		predicted_step;		// for stair up smoothing
@@ -100,9 +100,9 @@ typedef struct
 	int		mouse_step;
 	float		mouse_sens;
 
-	double		mtime[2];		// the timestamp of the last two messages
-	double		time;		// this is the time value that the client
-	double		oldtime;		// cl.oldtime
+	long		mtime[2];		// the timestamp of the last two messages
+	long		time;		// this is the time value that the client
+	long		oldtime;		// cl.oldtime
 					// is rendering at.  always <= cls.realtime
 	int		render_flags;	// clearing at end of frame
 	ref_params_t	refdef;		// shared refdef
@@ -122,7 +122,7 @@ typedef struct
 	//
 	int		playernum;
 	int		servercount;			// server identification for prespawns
-	float		serverframetime;			// server frametime
+	long		serverframetime;			// server frametime
 	char		configstrings[MAX_CONFIGSTRINGS][CS_SIZE];
 
 	// locally derived information from server state
@@ -233,15 +233,15 @@ typedef struct
 	byte		*mempool;			// client premamnent pool: edicts etc
 	
 	int		framecount;
-	double		frametime;		// seconds since last frame
-	double		realtime;
+	float		frametime;		// seconds since last frame
+	long		realtime;
 
 	int		quakePort;		// a 16 bit value that allows quake servers
 						// to work around address translating routers
 
 	// connection information
 	string		servername;		// name of server from original connect
-	float		connect_time;		// for connection retransmits
+	long		connect_time;		// for connection retransmits
 
 	netchan_t		netchan;
 	int		serverProtocol;		// in case we are doing some kind of version hack
@@ -267,7 +267,7 @@ typedef struct
 	file_t		*demofile;
 	serverinfo_t	serverlist[MAX_SERVERS];	// servers to join
 	int		numservers;
-	float		pingtime;			// servers timebase
+	long		pingtime;			// servers timebase
 } client_static_t;
 
 extern client_static_t	cls;
@@ -285,57 +285,32 @@ extern rgba_t g_color_table[8];
 //
 // cvars
 //
-extern	cvar_t	*cl_predict;
-extern	cvar_t	*cl_footsteps;
-extern	cvar_t	*cl_showfps;
-extern	cvar_t	*cl_upspeed;
-extern	cvar_t	*cl_forwardspeed;
-extern	cvar_t	*cl_backspeed;
-extern	cvar_t	*cl_sidespeed;
-extern	cvar_t	*cl_shownet;
-extern	cvar_t	*cl_yawspeed;
-extern	cvar_t	*cl_pitchspeed;
-extern	cvar_t	*cl_envshot_size;
-extern	cvar_t	*cl_run;
-extern	cvar_t	*cl_font;
-
-extern	cvar_t	*cl_anglespeedkey;
-
-extern	cvar_t	*cl_showmiss;
-extern	cvar_t	*cl_showclamp;
-extern	cvar_t	*cl_particles;
-extern	cvar_t	*cl_particlelod;
-
-extern	cvar_t	*cl_testentities;
-extern	cvar_t	*cl_testlights;
-extern	cvar_t	*cl_testflashlight;
-extern	cvar_t	*cl_paused;
-extern	cvar_t	*cl_levelshot_name;
-
-extern cvar_t *scr_centertime;
-extern cvar_t *scr_showpause;
-extern cvar_t *con_font;
-
-typedef struct
-{
-	// these values shared with dlight_t so don't move them
-	vec3_t		origin;
-	union
-	{
-		vec3_t	color;		// dlight color
-		vec3_t	angles;		// spotlight angles
-	};
-	float		radius;
-	shader_t		texture;		// light image e.g. for flashlight
-	vec2_t		cone;		// spotlight cone
-
-	// cdlight_t private starts here
-	int		key;		// so entities can reuse same entry
-	float		die;		// stop lighting after this time
-	float		decay;		// drop this each second
-} cdlight_t;
-
-extern cdlight_t		cl_dlights[MAX_DLIGHTS];
+extern cvar_t	*cl_predict;
+extern cvar_t	*cl_footsteps;
+extern cvar_t	*cl_showfps;
+extern cvar_t	*cl_upspeed;
+extern cvar_t	*cl_forwardspeed;
+extern cvar_t	*cl_backspeed;
+extern cvar_t	*cl_sidespeed;
+extern cvar_t	*cl_shownet;
+extern cvar_t	*cl_yawspeed;
+extern cvar_t	*cl_pitchspeed;
+extern cvar_t	*cl_envshot_size;
+extern cvar_t	*cl_run;
+extern cvar_t	*cl_font;
+extern cvar_t	*cl_anglespeedkey;
+extern cvar_t	*cl_showmiss;
+extern cvar_t	*cl_showclamp;
+extern cvar_t	*cl_particles;
+extern cvar_t	*cl_particlelod;
+extern cvar_t	*cl_testentities;
+extern cvar_t	*cl_testlights;
+extern cvar_t	*cl_testflashlight;
+extern cvar_t	*cl_paused;
+extern cvar_t	*cl_levelshot_name;
+extern cvar_t	*scr_centertime;
+extern cvar_t	*scr_showpause;
+extern cvar_t	*con_font;
 
 // the cl_parse_entities must be large enough to hold UPDATE_BACKUP frames of
 // entities, so that when a delta compressed message arives from the server
@@ -563,7 +538,6 @@ void CL_AddLoopingSounds( void );
 //
 // cl_fx.c
 //
-cdlight_t *CL_AllocDlight( int key );
 void CL_AddParticles( void );
 void CL_AddDecals( void );
 void CL_ClearEffects( void );
@@ -575,7 +549,7 @@ edict_t *CL_GetLocalPlayer( void );
 void CL_StudioFxTransform( edict_t *ent, float transform[4][4] );
 bool pfnAddParticle( cparticle_t *src, HSPRITE shader, int flags );
 void pfnAddDecal( float *org, float *dir, float *rgba, float rot, float rad, HSPRITE hSpr, int flags );
-void pfnAddDLight( const float *org, const float *rgb, float radius, float decay, float time, int key );
+void pfnAddDLight( const float *org, const float *rgb, float radius, float time, int flags, int key );
 
 //
 // cl_pred.c
@@ -613,7 +587,7 @@ extern field_t chatField;
 //
 typedef enum { UI_CLOSEMENU, UI_MAINMENU, UI_INGAMEMENU } uiActiveMenu_t;
 
-void UI_UpdateMenu( float realtime );
+void UI_UpdateMenu( long realtime );
 void UI_KeyEvent( int key );
 void UI_MouseMove( int x, int y );
 void UI_SetActiveMenu( uiActiveMenu_t activeMenu );

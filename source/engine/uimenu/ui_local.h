@@ -59,8 +59,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define UI_CURSOR_SIZE		40
 
-#define UI_PULSE_DIVISOR		0.075
-#define UI_BLINK_TIME		0.25
+#define UI_PULSE_DIVISOR		75
+#define UI_BLINK_TIME		250
 #define UI_BLINK_MASK		499
 
 #define UI_SMALL_CHAR_WIDTH		10
@@ -253,7 +253,7 @@ typedef struct
 
 	int		cursorX;
 	int		cursorY;
-	float		realTime;
+	long		realTime;
 	bool		firstDraw;
 	bool		enterSound;
 	bool		visible;

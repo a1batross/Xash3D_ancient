@@ -139,4 +139,4 @@ Beta 13.12.09
 115. fixup CullStudioModel			OK
 116. create flashlight for player		OK
 117. re-organize refdef flags
-118. rewrite client lerping
+118. revise ref_params_t

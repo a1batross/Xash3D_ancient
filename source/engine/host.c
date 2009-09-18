@@ -290,7 +290,7 @@ void Host_EventLoop( void )
 		switch( ev.type )
 		{
 		case SE_NONE:
-			// end of events
+			Cbuf_Execute ();	// execute commands and done
 			return;
 		case SE_KEY:
 			Key_Event( ev.value[0], ev.value[1] );
@@ -319,7 +319,7 @@ Host_FilterTime
 Returns false if the time is too short to run a frame
 ===================
 */
-bool Host_FilterTime( double time )
+bool Host_FilterTime( long time )
 {
 	host.time += time;
 
@@ -332,7 +332,7 @@ bool Host_FilterTime( double time )
 		host_maxfps->modified = false;
 	}
 
-	if( host.time - host.oldtime < (1.0 / host_maxfps->value))
+	if( host.time - host.oldtime < (1000 / host_maxfps->integer))
 		return false; // framerate is too high
 
 	host.frametime = host.time - host.oldtime;
@@ -340,7 +340,7 @@ bool Host_FilterTime( double time )
 
 	if( host_framerate->value > 0 )
 		host.frametime = host_framerate->value;
-	host.frametime = bound( 0.001, host.frametime, 0.1 );
+	host.frametime = bound( 1, host.frametime, 100 );
 
 	return true;
 
@@ -351,7 +351,7 @@ bool Host_FilterTime( double time )
 Host_Frame
 =================
 */
-void Host_Frame( double time )
+void Host_Frame( long time )
 {
 	if( setjmp( host.abortframe ))
 		return;
@@ -363,7 +363,6 @@ void Host_Frame( double time )
 		return;
 
 	Host_EventLoop ();	// process all system events
-	Cbuf_Execute ();	// execute commands
 
 	SV_Frame ( host.frametime ); // server frame
 	CL_Frame ( host.frametime ); // client frame
@@ -556,9 +555,9 @@ Host_Main
 */
 void Host_Main( void )
 {
-	static double	time, oldtime, newtime;
+	static long	time, oldtime, newtime;
 
-	oldtime = Sys_DoubleTime();
+	oldtime = Sys_Milliseconds();
 
 	// main window message loop
 	while( host.type != HOST_OFFLINE )
@@ -568,9 +567,9 @@ void Host_Main( void )
 		do
 		{
 			// timer resoultion at 1 msec
-			newtime = Sys_DoubleTime ();
+			newtime = Sys_Milliseconds();
 			time = newtime - oldtime;
-		} while( time < 0.001 );
+		} while( time < 1 );
 
 		Host_Frame( time );
 		oldtime = newtime;

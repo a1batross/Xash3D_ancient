@@ -8,6 +8,7 @@
 typedef int		HSPRITE;					// handle to a graphic
 typedef struct usercmd_s	usercmd_t;
 typedef struct cparticle_s	cparticle_t;
+typedef struct skyportal_s	skyportal_t;
 typedef struct ref_params_s	ref_params_t;
 typedef struct dstudioevent_s	dstudioevent_t;
 typedef int (*pfnUserMsgHook)( const char *pszName, int iSize, void *pbuf );	// user message handle
@@ -107,6 +108,7 @@ typedef struct cl_enginefuncs_s
 	edict_t*	(*pfnGetLocalPlayer)( void );
 	int	(*pfnIsSpectateOnly)( void );		// returns 1 if the client is a spectator only
 	float	(*pfnGetClientTime)( void );
+	float	(*pfnGetLerpFrac)( void );
 	int	(*pfnGetMaxClients)( void );
 	edict_t*	(*pfnGetViewModel)( void );
 	void*	(*pfnGetModelPtr)( edict_t* pEdict );
@@ -151,7 +153,7 @@ typedef struct
 	void	(*pfnInit)( void );
 	int	(*pfnRedraw)( float flTime, int state );
 	int	(*pfnUpdateClientData)( client_data_t *cdata, float flTime );
-	void	(*pfnUpdateEntityVars)( edict_t *out, ref_params_t *view, const struct entity_state_s *in );
+	void	(*pfnUpdateEntityVars)( edict_t *out, skyportal_t *sky, const struct entity_state_s *in1, const struct entity_state_s *in2 );
 	void	(*pfnReset)( void );
 	void	(*pfnFrame)( double time );
 	void 	(*pfnShutdown)( void );
@@ -159,6 +161,7 @@ typedef struct
 	void	(*pfnDrawTransparentTriangles)( void );
 	void	(*pfnCreateEntities)( void );
 	void	(*pfnStudioEvent)( const dstudioevent_t *event, edict_t *entity );
+	void	(*pfnStudioFxTransform)( edict_t *pEdict, float transform[4][4] );
 	void	(*pfnCalcRefdef)( ref_params_t *parms );
 	void	(*pfnStartPitchDrift)( void );
 	void	(*pfnStopPitchDrift)( void );

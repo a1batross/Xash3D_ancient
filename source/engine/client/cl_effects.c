@@ -46,7 +46,7 @@ void CL_RunLightStyles( void )
 	int		i, ofs;
 	clightstyle_t	*ls;
 	
-	ofs = (int)(cl.time * 10);
+	ofs = cl.time / 100;
 	if( ofs == lastofs ) return;
 	lastofs = ofs;
 
@@ -99,6 +99,27 @@ DLIGHT MANAGEMENT
 
 ==============================================================
 */
+typedef struct
+{
+	// these values common with dlight_t so don't move them
+	vec3_t		origin;
+	union
+	{
+		vec3_t	color;		// dlight color
+		vec3_t	angles;		// spotlight angles
+	};
+	float		intensity;
+	shader_t		texture;		// light image e.g. for flashlight
+	vec2_t		cone;		// spotlight cone
+
+	// cdlight_t private starts here
+	int		key;		// so entities can reuse same entry
+	long		start;		// stop lighting after this time
+	long		end;		// drop this each second
+	float		radius;		// radius (not an intensity)
+	bool		fade;
+	bool		free;		// this light is unused at current time
+} cdlight_t;
 
 cdlight_t		cl_dlights[MAX_DLIGHTS];
 
@@ -120,39 +141,52 @@ CL_AllocDlight
 */
 cdlight_t *CL_AllocDlight( int key )
 {
-	int		i;
+	int		i, time, index;
 	cdlight_t		*dl;
 
 	// first look for an exact key match
 	if( key )
 	{
-		dl = cl_dlights;
-		for( i = 0; i < MAX_DLIGHTS; i++, dl++ )
+		for( i = 0, dl = cl_dlights; i < MAX_DLIGHTS; i++, dl++ )
 		{
 			if( dl->key == key )
 			{
+				// reuse this light
 				Mem_Set( dl, 0, sizeof( *dl ));
 				dl->key = key;
 				return dl;
 			}
 		}
 	}
-
-	// then look for anything else
-	dl = cl_dlights;
-	for( i = 0; i < MAX_DLIGHTS; i++, dl++ )
+	else
 	{
-		if( dl->die < cl.time )
+		for( i = 0, dl = cl_dlights; i < MAX_DLIGHTS; i++, dl++ )
 		{
-			Mem_Set( dl, 0, sizeof( *dl ));
-			dl->key = key;
-			return dl;
+			if( dl->free )
+			{
+				Mem_Set( dl, 0, sizeof( *dl ));
+				return dl;
+			}
 		}
 	}
 
-	dl = &cl_dlights[0];
+	// find the oldest light
+	time = cl.time;
+	index = 0;
+
+	for( i = 0, dl = cl_dlights; i < MAX_DLIGHTS; i++, dl++ )
+	{
+		if( dl->start < time )
+		{
+			time = dl->start;
+			index = i;
+		}
+	}
+
+	dl = &cl_dlights[index];
 	Mem_Set( dl, 0, sizeof( *dl ));
 	dl->key = key;
+
 	return dl;
 }
 
@@ -162,7 +196,7 @@ pfnAddDLight
 
 ===============
 */
-void pfnAddDLight( const float *org, const float *rgb, float radius, float decay, float time, int key )
+void pfnAddDLight( const float *org, const float *rgb, float radius, float time, int flags, int key )
 {
 	cdlight_t		*dl;
 
@@ -173,17 +207,15 @@ void pfnAddDLight( const float *org, const float *rgb, float radius, float decay
 	}
 
 	dl = CL_AllocDlight( key );
-	if( !dl )
-	{
-		MsgDev( D_ERROR, "CL_AddDLight: no free dlights\n" );
-		return;
-	}
+	dl->free = false;
+	dl->texture = -1;	// dlight
 
 	VectorCopy( org, dl->origin );
 	VectorCopy( rgb, dl->color );
-	dl->die = cl.time + time;
-	dl->decay = decay;
 	dl->radius = radius;
+	dl->start = cl.time;
+	dl->end = dl->start + (time * 1000);
+	dl->fade = (flags & DLIGHT_FADE) ? true : false;
 }
 
 
@@ -197,18 +229,22 @@ void CL_RunDLights( void )
 {
 	cdlight_t	*dl;
 	int	i;
-
+	
 	for( i = 0, dl = cl_dlights; i < MAX_DLIGHTS; i++, dl++ )
 	{
-		if( !dl->radius ) continue;
-		if( dl->die < cl.time )
+		if( dl->free ) continue;
+		if( cl.time >= dl->end )
 		{
-			dl->radius = 0;
+			dl->free = true;
 			return;
 		}
 
-		dl->radius -= cls.frametime * dl->decay;
-		if( dl->radius < 0 ) dl->radius = 0;
+		if( dl->fade )
+		{
+			dl->intensity = (float)(cl.time - dl->start) / (dl->end - dl->start);
+			dl->intensity = dl->radius * (1.0 - dl->intensity);
+		}
+		else dl->intensity = dl->radius; // const
 	}
 }
 
@@ -220,14 +256,11 @@ CL_AddDLights
 */
 void CL_AddDLights( void )
 {
-	int	i;
 	cdlight_t	*dl;
+	int	i;
 
-	dl = cl_dlights;
-	for( i = 0; i < MAX_DLIGHTS; i++, dl++ )
-	{
-		if( dl->radius ) re->AddDynLight( dl->origin, dl->color, dl->radius, dl->cone, -1 );
-	}
+	for( i = 0, dl = cl_dlights; i < MAX_DLIGHTS; i++, dl++ )
+		if( !dl->free ) re->AddDynLight( dl );
 }
 
 /*
@@ -245,12 +278,12 @@ typedef struct cdecal_s
 {
 	struct cdecal_s	*prev, *next;
 
-	float		die;			// remove after this time
-	float		time;			// time when decal is placed
-	float		fadetime;
+	long		die;			// remove after this time
+	long		time;			// time when decal is placed
+	long		fadetime;
 	float		fadefreq;
 	word		flags;
-	rgba_t		color;
+	vec4_t		color;
 
 	poly_t		*poly;
 } cdecal_t;
@@ -353,10 +386,10 @@ void CL_SpawnDecal( vec3_t org, vec3_t dir, float rot, float rad, float *col, fl
 	poly_t		*poly;
 	vec3_t		axis[3];
 	vec3_t		verts[MAX_DECAL_VERTS];
-	rgba_t		color;
 	fragment_t	*fr, fragments[MAX_DECAL_FRAGMENTS];
 	int		numfragments;
 	float		dietime, fadefreq;
+	rgba_t		color;
 
 	// invalid decal
 	if( rad <= 0 || VectorCompare( dir, vec3_origin ))
@@ -383,9 +416,9 @@ void CL_SpawnDecal( vec3_t org, vec3_t dir, float rot, float rad, float *col, fl
 	VectorScale( axis[1], rad, axis[1] );
 	VectorScale( axis[2], rad, axis[2] );
 
-	dietime = cl.time + die;
-	fadefreq = 1.0f / min( fadetime, die );
-	fadetime = cl.time + (die - min( fadetime, die ));
+	dietime = cl.time + (die * 1000);
+	fadefreq = 0.001f / min( fadetime, die );
+	fadetime = cl.time + (die - min( fadetime, die )) * 1000;
 
 	for( i = 0, fr = fragments; i < numfragments; i++, fr++ )
 	{
@@ -396,7 +429,7 @@ void CL_SpawnDecal( vec3_t org, vec3_t dir, float rot, float rad, float *col, fl
 
 		// allocate decal
 		dl = CL_AllocDecal ();
-		Vector4Copy( color, dl->color );
+		Vector4Copy( col, dl->color );
 		dl->die = dietime;
 		dl->time = cl.time;
 		dl->fadetime = fadetime;
@@ -417,7 +450,8 @@ void CL_SpawnDecal( vec3_t org, vec3_t dir, float rot, float rad, float *col, fl
 			VectorSubtract( poly->verts[j], org, v );
 			poly->stcoords[j][0] = DotProduct( v, axis[1] ) + 0.5f;
 			poly->stcoords[j][1] = DotProduct( v, axis[2] ) + 0.5f;
-			*( int * )poly->colors[j] = *( int * )color;
+			for( i = 0; i < poly->numverts; i++ )
+				*( int * )poly->colors[i] = *( int * )color;
 		}
 	}
 }
@@ -435,7 +469,7 @@ void CL_AddDecals( void )
 	poly_t		*poly;
 	rgba_t		color;
 
-	// add decals in first-spawed - first-drawn order
+	// add decals in first-spawned - first-drawn order
 	hnode = &cl_decals_headnode;
 	for( dl = hnode->prev; dl != hnode; dl = next )
 	{
@@ -456,10 +490,12 @@ void CL_AddDecals( void )
 			if( time < dl->fadetime )
 			{
 				fade = 255 - (time / dl->fadetime);
-				color[0] = ( byte )( dl->color[0] * fade );
-				color[1] = ( byte )( dl->color[1] * fade );
-				color[2] = ( byte )( dl->color[2] * fade );
+				color[0] = (byte)(( dl->color[0] * fade ) * 255);
+				color[1] = (byte)(( dl->color[1] * fade ) * 255);
+				color[2] = (byte)(( dl->color[2] * fade ) * 255);
 			}
+			for( i = 0; i < poly->numverts; i++ )
+				*( int * )poly->colors[i] = *( int * )color;
 		}
 
 		// fade out
@@ -469,19 +505,18 @@ void CL_AddDecals( void )
 
 			if( dl->flags & DECAL_FADEALPHA )
 			{
-				color[0] = ( byte )( dl->color[0] );
-				color[1] = ( byte )( dl->color[1] );
-				color[2] = ( byte )( dl->color[2] );
-				color[3] = ( byte )( dl->color[3] * fade );
+				color[0] = (byte)(( dl->color[0] ) * 255);
+				color[1] = (byte)(( dl->color[1] ) * 255);
+				color[2] = (byte)(( dl->color[2] ) * 255);
+				color[3] = (byte)(( dl->color[3] * fade ) * 255);
 			}
 			else
 			{
-				color[0] = ( byte )( dl->color[0] * fade );
-				color[1] = ( byte )( dl->color[1] * fade );
-				color[2] = ( byte )( dl->color[2] * fade );
-				color[3] = ( byte )( dl->color[3] );
+				color[0] = (byte)(( dl->color[0] * fade ) * 255);
+				color[1] = (byte)(( dl->color[1] * fade ) * 255);
+				color[2] = (byte)(( dl->color[2] * fade ) * 255);
+				color[3] = (byte)(( dl->color[3] ) * 255);
 			}
-
 			for( i = 0; i < poly->numverts; i++ )
 				*( int * )poly->colors[i] = *( int * )color;
 		}
@@ -530,7 +565,7 @@ struct cparticle_s
 	cparticle_t	*next;
 	shader_t		shader;
 
-	float		time;
+	int		time;
 	int		flags;
 
 	vec3_t		oldorigin;
@@ -642,7 +677,7 @@ void CL_AddParticles( void )
 		// grab next now, so if the particle is freed we still have it
 		next = p->next;
 
-		time = cl.time - p->time;
+		time = (cl.time - p->time) * 0.001f;
 		time2 = time * time;
 
 		alpha = p->alpha + p->alphaVelocity * time;
@@ -738,8 +773,8 @@ void CL_AddParticles( void )
 			if( trace.fraction != 0.0 && trace.fraction != 1.0 )
 			{
 				// reflect velocity
-				time = cl.time - (cls.frametime + cls.frametime * trace.fraction);
-				time = time - p->time;
+				time = cl.time - (cls.frametime + cls.frametime * trace.fraction) * 1000;
+				time = (time - p->time) * 0.001f;
 
 				velocity[0] = p->velocity[0];
 				velocity[1] = p->velocity[1];
@@ -978,7 +1013,7 @@ void CL_TestEntities( void )
 		ent.v.controller[0] = ent.v.controller[1] = 90.0f;
 		ent.v.controller[2] = ent.v.controller[3] = 180.0f;
 		ent.v.modelindex = cl.frame.ps.modelindex;
-		re->AddRefEntity( &ent, ED_NORMAL, 1.0f );
+		re->AddRefEntity( &ent, ED_NORMAL );
 	}
 }
 
@@ -1000,23 +1035,24 @@ void CL_TestLights( void )
 		vec3_t		end;
 		edict_t		*ed = CL_GetLocalPlayer();
 		int		cnt = CL_ContentsMask( ed );
-		static shader_t	flashlight_shader = 0;
+		static shader_t	flashlight_shader = -1;
 		trace_t		trace;
 
 		Mem_Set( &dl, 0, sizeof( cdlight_t ));
-
-//		if( !flashlight_shader )
-//			flashlight_shader = re->RegisterShader( "flashlight", SHADER_GENERIC );
-
+#if 0
+		if( flashlight_shader == -1 )
+			flashlight_shader = re->RegisterShader( "flashlight", SHADER_GENERIC );
+#endif
 		VectorScale( cl.refdef.forward, 256, end );
 		VectorAdd( end, cl.refdef.vieworg, end );
 
 		trace = CL_Trace( cl.refdef.vieworg, vec3_origin, vec3_origin, end, MOVE_HITMODEL, ed, cnt );
 		VectorSet( dl.color, 1.0f, 1.0f, 1.0f );
-		dl.radius = 96;
+		dl.intensity = 96;
+		dl.texture = flashlight_shader;
 		VectorCopy( trace.endpos, dl.origin );
 
-		re->AddDynLight( dl.origin, dl.color, dl.radius, dl.cone, -1 );
+		re->AddDynLight( &dl );
 	}
 	if( cl_testlights->integer )
 	{
@@ -1033,9 +1069,10 @@ void CL_TestLights( void )
 			dl.color[0] = ((i%6)+1) & 1;
 			dl.color[1] = (((i%6)+1) & 2)>>1;
 			dl.color[2] = (((i%6)+1) & 4)>>2;
-			dl.radius = 200;
+			dl.intensity = 200;
+			dl.texture = -1;
 
-			if( !re->AddDynLight( dl.origin, dl.color, dl.radius, NULL, -1 ))
+			if( !re->AddDynLight( &dl ))
 				break; 
 		}
 	}

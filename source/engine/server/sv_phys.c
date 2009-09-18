@@ -322,11 +322,11 @@ bool SV_RunThink( edict_t *ent )
 	float	thinktime;
 
 	thinktime = ent->v.nextthink;
-	if( thinktime <= 0 || thinktime > sv.time + svgame.globals->frametime )
+	if( thinktime <= 0 || thinktime > (sv.time * 0.001f) + svgame.globals->frametime )
 		return true;
 
-	if( thinktime < sv.time )		// don't let things stay in the past.
-		thinktime = sv.time;	// it is possible to start that way
+	if( thinktime < (sv.time * 0.001f))	// don't let things stay in the past.
+		thinktime = sv.time * 0.001f;	// it is possible to start that way
 					// by a trigger with a local time.
 	svgame.globals->time = thinktime;
 	ent->v.nextthink = 0;
@@ -348,7 +348,7 @@ void SV_Impact( edict_t *e1, trace_t *trace )
 
 	SV_CopyTraceToGlobal( trace );
 
-	svgame.globals->time = sv.time;
+	svgame.globals->time = sv.time * 0.001f;
 	if( !e1->free && !e2->free && e1->v.solid != SOLID_NOT )
 	{
 		svgame.dllFuncs.pfnTouch( e1, e2 );
@@ -387,7 +387,7 @@ void SV_TouchTriggers( edict_t *ent )
 	for( i = 0; i < num; i++ )
 	{
 		if( touch[i]->free ) continue;
-		svgame.globals->time = sv.time;
+		svgame.globals->time = sv.time * 0.001f;
 		svgame.dllFuncs.pfnTouch( touch[i], ent );
 	}
 }
@@ -912,7 +912,7 @@ void SV_Physics_Pusher( edict_t *ent )
 	if( thinktime > oldltime && thinktime <= ent->v.ltime )
 	{
 		ent->v.nextthink = 0;
-		svgame.globals->time = sv.time;
+		svgame.globals->time = sv.time * 0.001f;
 		svgame.dllFuncs.pfnThink( ent );
 	}
 }
@@ -1532,7 +1532,7 @@ Non moving objects can only think
 */
 void SV_Physics_None( edict_t *ent )
 {
-	if( ent->v.nextthink > 0 && ent->v.nextthink <= sv.time + svgame.globals->frametime )
+	if( ent->v.nextthink > 0 && ent->v.nextthink <= (sv.time * 0.001f) + svgame.globals->frametime )
 		SV_RunThink( ent );
 }
 
@@ -1601,11 +1601,11 @@ void SV_Physics_ClientEntity( edict_t *ent )
 
 	// make sure the velocity is sane (not a NaN)
 	SV_CheckVelocity( ent );
-	if( DotProduct( ent->v.velocity, ent->v.velocity ) < 0.0001 )
+	if( DotProduct( ent->v.velocity, ent->v.velocity ) < 0.0001f )
 		VectorClear( ent->v.velocity );
 
 	// call standard client pre-think
-	svgame.globals->time = sv.time;
+	svgame.globals->time = sv.time * 0.001f;
 	svgame.dllFuncs.pfnPlayerPreThink( ent );
 	SV_CheckVelocity( ent );
 
@@ -1668,7 +1668,7 @@ void SV_Physics_ClientEntity( edict_t *ent )
 		SV_TouchTriggers( ent );
 
 	// call standard player post-think
-	svgame.globals->time = sv.time;
+	svgame.globals->time = sv.time * 0.001f;
 	svgame.dllFuncs.pfnPlayerPostThink( ent );
 }
 
@@ -1677,14 +1677,14 @@ void SV_Physics_ClientMove( sv_client_t *client, usercmd_t *cmd )
 	edict_t	*ent = client->edict;
 
 	// call player physics, this needs the proper frametime
-	svgame.globals->frametime = sv.frametime;
+	svgame.globals->frametime = sv.frametime * 0.001f;
 	SV_ClientThink( client, cmd );
 
 	// call standard client pre-think, with frametime = 0
-	svgame.globals->time = sv.time;
+	svgame.globals->time = sv.time * 0.001f;
 	svgame.globals->frametime = 0;
 	svgame.dllFuncs.pfnPlayerPreThink( ent );
-	svgame.globals->frametime = sv.frametime;
+	svgame.globals->frametime = sv.frametime * 0.001f;
 
 	if( !sv_physics->integer )
 	{
@@ -1718,10 +1718,10 @@ void SV_Physics_ClientMove( sv_client_t *client, usercmd_t *cmd )
 		SV_TouchTriggers( ent );
 
 	// call standard player post-think, with frametime = 0
-	svgame.globals->time = sv.time;
+	svgame.globals->time = sv.time * 0.001f;
 	svgame.globals->frametime = 0;
 	svgame.dllFuncs.pfnPlayerPostThink( ent );
-	svgame.globals->frametime = sv.frametime;
+	svgame.globals->frametime = sv.frametime * 0.001f;
 }
 
 /*
@@ -1736,8 +1736,8 @@ void SV_Physics( void )
 	edict_t	*ent;
 
 	// let the progs know that a new frame has started
-	svgame.globals->time = sv.time;
-	svgame.globals->frametime = sv.frametime;
+	svgame.globals->time = sv.time * 0.001f;
+	svgame.globals->frametime = sv.frametime * 0.001f;
 	svgame.dllFuncs.pfnStartFrame();
 
 	// treat each object in turn
@@ -1755,7 +1755,7 @@ void SV_Physics( void )
 	// let everything in the world think and move
 	pe->Frame( svgame.globals->frametime );
 
-	svgame.globals->time = sv.time;
+	svgame.globals->time = sv.time * 0.001f;
 
 	// at end of frame kill all entities which supposed to it 
 	for( i = svgame.globals->maxClients + 1; i < svgame.globals->numEntities; i++ )

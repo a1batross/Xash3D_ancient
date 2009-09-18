@@ -948,7 +948,7 @@ void R_StudioSetUpTransform( ref_entity_t *e, bool trivial_accept )
 		}
 
 		// calculate frontlerp value
-		if( m_fDoInterp ) f = 1.0 - e->backlerp;
+		if( m_fDoInterp ) f = RI.refdef.lerpfrac;
 		else f = 0;
 
 		for( i = 0; i < 3; i++ )

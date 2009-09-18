@@ -254,7 +254,10 @@ typedef enum
 
 // built-in decals flags
 #define DECAL_FADEALPHA		(1<<0)	// fade decal by alpha instead color
-#define DECAL_FADEENERGY	(1<<1)	// fade decal energy balls
+#define DECAL_FADEENERGY		(1<<1)	// fade decal energy balls
+
+// built-in dlight flags
+#define DLIGHT_FADE			(1<<0)	// fade dlight at end of lifetime
 
 // engine built-in default shader
 #define MAP_DEFAULT_SHADER		"*black"

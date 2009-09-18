@@ -61,6 +61,7 @@ inline void CL_PlaySound( int iSound, float flVolume, Vector &pos, float pitch =
 #define GetLocalPlayer	(*g_engfuncs.pfnGetLocalPlayer)
 #define IsSpectateOnly	(*g_engfuncs.pfnIsSpectateOnly)
 #define GetClientTime	(*g_engfuncs.pfnGetClientTime)
+#define GetLerpFrac		(*g_engfuncs.pfnGetLerpFrac)
 #define GetMaxClients	(*g_engfuncs.pfnGetMaxClients)
 #define GetViewModel	(*g_engfuncs.pfnGetViewModel)
 #define GetModelPtr		(*g_engfuncs.pfnGetModelPtr)

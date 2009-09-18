@@ -354,11 +354,11 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 	}
 
 	MSG_WriteByte( msg, svc_time );
-	MSG_WriteFloat( msg, sv.time );		// send a servertime before each frame
+	MSG_WriteLong( msg, sv.time );		// send a servertime before each frame
 
 	MSG_WriteByte( msg, svc_frame );
 	MSG_WriteLong( msg, sv.framenum );
-	MSG_WriteFloat( msg, sv.frametime );
+	MSG_WriteLong( msg, sv.frametime );
 	MSG_WriteLong( msg, lastframe );		// what we are delta'ing from
 	MSG_WriteByte( msg, cl->surpressCount );	// rate dropped packets
 	cl->surpressCount = 0;
@@ -565,7 +565,7 @@ void SV_SendClientMessages( void )
 		else
 		{
 			// just update reliable if needed
-			if( cl->netchan.message.cursize || svs.realtime - cl->netchan.last_sent > 1.0f )
+			if( cl->netchan.message.cursize || svs.realtime - cl->netchan.last_sent > 1000 )
 				Netchan_Transmit( &cl->netchan, 0, NULL );
 		}
 	}

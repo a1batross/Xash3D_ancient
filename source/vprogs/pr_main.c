@@ -282,11 +282,11 @@ void PRVM_PrepareProgs( const char *dir, const char *name )
 void PRVM_CompileProgs( void )
 {
 	PR_BeginCompilation();
-	while(PR_ContinueCompile());
+	while( PR_ContinueCompile());
 	PR_FinishCompilation();          
 }
 
-void PRVM_Frame( double time )
+void PRVM_Frame( long time )
 {
 	if( setjmp( pr_int_error ))
 		return;

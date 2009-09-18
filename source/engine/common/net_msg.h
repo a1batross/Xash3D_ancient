@@ -67,7 +67,7 @@ enum svc_ops_e
 	svc_setangle,		// [short short short] set the view angle to this absolute value
 	svc_print,		// [byte] id [string] null terminated string
 	svc_crosshairangle,		// [short][short][short]
-	svc_time,			// [float] sv.time
+	svc_time,			// [long] sv.time
 };
 
 // client to server
@@ -250,11 +250,7 @@ NET
 
 ==============================================================
 */
-
-#define OLD_AVG			0.99			// total = oldtotal * OLD_AVG + new * (1 - OLD_AVG)
 #define MAX_LATENT			32
-#define MAX_BACKUP			200
-
 
 typedef struct netchan_s
 {
@@ -264,13 +260,8 @@ typedef struct netchan_s
 	int			dropped;			// between last packet and previous
 	bool			compress;			// enable huffman compression
 
-	double			last_received;		// for timeouts
-	double			last_sent;		// for retransmits
-
-	// the statistics are cleared at each client begin, because
-	// the server connecting process gives a bogus picture of the data
-	float			frame_latency;		// rolling average
-	float			frame_rate;
+	long			last_received;		// for timeouts
+	long			last_sent;		// for retransmits
 
 	int			drop_count;		// dropped packets, cleared each level
 	int			good_count;		// cleared each level
@@ -299,7 +290,7 @@ typedef struct netchan_s
 
 	// time and size data to calculate bandwidth
 	int			outgoing_size[MAX_LATENT];
-	double			outgoing_time[MAX_LATENT];
+	long			outgoing_time[MAX_LATENT];
 
 } netchan_t;
 

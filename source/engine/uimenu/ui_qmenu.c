@@ -302,7 +302,7 @@ void UI_ScrollList_Draw( menuScrollList_s *sl )
 			}
 			else if( sl->generic.flags & QMF_BLINKIFFOCUS )
 			{
-				if(( (int)uiStatic.realTime & UI_BLINK_MASK ) < UI_BLINK_TIME )
+				if(( uiStatic.realTime & UI_BLINK_MASK ) < UI_BLINK_TIME )
 				{
 					UI_DrawPic( upX, upY, arrowWidth, arrowHeight, (upFocus) ? sl->generic.focusColor : sl->generic.color, (upFocus) ? sl->upArrowFocus : sl->upArrow );
 					UI_DrawPic( downX, downY, arrowWidth, arrowHeight, (downFocus) ? sl->generic.focusColor : sl->generic.color, (downFocus) ? sl->downArrowFocus : sl->downArrow );
@@ -372,13 +372,13 @@ void UI_ScrollList_Draw( menuScrollList_s *sl )
 			rgba_t	color;
 
 			*(uint *)color = *(uint *)sl->generic.color;
-			color[3] = 255 * (0.5 + 0.5 * com.sin(uiStatic.realTime / UI_PULSE_DIVISOR));
+			color[3] = 255 * (0.5 + 0.5 * com.sin( uiStatic.realTime / UI_PULSE_DIVISOR ));
 
 			UI_DrawString( x, y, w, h, sl->itemNames[i], color, false, sl->generic.charWidth, sl->generic.charHeight, justify, shadow );
 		}
 		else if( sl->generic.flags & QMF_BLINKIFFOCUS )
 		{
-			if(((int)uiStatic.realTime & UI_BLINK_MASK) < UI_BLINK_TIME )
+			if(( uiStatic.realTime & UI_BLINK_MASK ) < UI_BLINK_TIME )
 				UI_DrawString( x, y, w, h, sl->itemNames[i], sl->generic.focusColor, false, sl->generic.charWidth, sl->generic.charHeight, justify, shadow );
 		}
 
@@ -610,7 +610,7 @@ void UI_SpinControl_Draw( menuSpinControl_s *sc )
 		rgba_t	color;
 
 		*(uint *)color = *(uint *)sc->generic.color;
-		color[3] = 255 * (0.5 + 0.5 * sin(uiStatic.realTime / UI_PULSE_DIVISOR));
+		color[3] = 255 * (0.5 + 0.5 * sin( uiStatic.realTime / UI_PULSE_DIVISOR ));
 
 		UI_DrawString( x, y, w, h, sc->generic.name, color, false, sc->generic.charWidth, sc->generic.charHeight, justify, shadow );
 		UI_DrawPic( leftX, leftY, arrowWidth, arrowHeight, (leftFocus) ? color : sc->generic.color, (leftFocus) ? sc->leftArrowFocus : sc->leftArrow );
@@ -618,7 +618,7 @@ void UI_SpinControl_Draw( menuSpinControl_s *sc )
 	}
 	else if( sc->generic.flags & QMF_BLINKIFFOCUS )
 	{
-		if(((int)uiStatic.realTime & UI_BLINK_MASK) < UI_BLINK_TIME )
+		if(( uiStatic.realTime & UI_BLINK_MASK ) < UI_BLINK_TIME )
 		{
 			UI_DrawString( x, y, w, h, sc->generic.name, sc->generic.focusColor, false, sc->generic.charWidth, sc->generic.charHeight, justify, shadow );
 			UI_DrawPic( leftX, leftY, arrowWidth, arrowHeight, (leftFocus) ? sc->generic.focusColor : sc->generic.color, (leftFocus) ? sc->leftArrowFocus : sc->leftArrow );
@@ -929,7 +929,7 @@ void UI_Field_Draw( menuField_s *f )
 	{
 		UI_DrawString( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, f->generic.color, false, f->generic.charWidth, f->generic.charHeight, justify, shadow );
 
-		if(((int)uiStatic.realTime & 499 ) < 0.25f )
+		if(( uiStatic.realTime & 499 ) < 250 )
 			UI_DrawString( x + (cursor*f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, "_", f->generic.color, true, f->generic.charWidth, f->generic.charHeight, 0, shadow );
 	}
 
@@ -937,7 +937,7 @@ void UI_Field_Draw( menuField_s *f )
 	{
 		UI_DrawString( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, f->generic.focusColor, false, f->generic.charWidth, f->generic.charHeight, justify, shadow );
 
-		if(((int)uiStatic.realTime & 499) < 0.25f )
+		if(( uiStatic.realTime & 499 ) < 250 )
 			UI_DrawString( x + (cursor*f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, "_", f->generic.focusColor, true, f->generic.charWidth, f->generic.charHeight, 0, shadow );
 	}
 	else if( f->generic.flags & QMF_PULSEIFFOCUS )
@@ -949,16 +949,16 @@ void UI_Field_Draw( menuField_s *f )
 
 		UI_DrawString( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, color, false, f->generic.charWidth, f->generic.charHeight, justify, shadow );
 
-		if(((int)uiStatic.realTime & 499) < 0.25f )
+		if(( uiStatic.realTime & 499 ) < 250 )
 			UI_DrawString( x + (cursor*f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, "_", color, true, f->generic.charWidth, f->generic.charHeight, 0, shadow );
 	}
 	else if( f->generic.flags & QMF_BLINKIFFOCUS )
 	{
-		if(((int)uiStatic.realTime & UI_BLINK_MASK) < UI_BLINK_TIME )
+		if(( uiStatic.realTime & UI_BLINK_MASK ) < UI_BLINK_TIME )
 		{
 			UI_DrawString( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, f->generic.focusColor, false, f->generic.charWidth, f->generic.charHeight, justify, shadow );
 
-			if(((int)uiStatic.realTime & 499) < 0.25f )
+			if(( uiStatic.realTime & 499 ) < 250 )
 				UI_DrawString( x + (cursor*f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, "_", f->generic.focusColor, true, f->generic.charWidth, f->generic.charHeight, 0, shadow );
 		}
 	}
@@ -967,7 +967,7 @@ void UI_Field_Draw( menuField_s *f )
 	{
 		UI_DrawString( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, f->generic.color, false, f->generic.charWidth, f->generic.charHeight, justify, shadow );
 
-		if(((int)uiStatic.realTime & 499) < 0.25f )
+		if(( uiStatic.realTime & 499 ) < 250 )
 			UI_DrawString( x + (cursor*f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, "_", f->generic.color, true, f->generic.charWidth, f->generic.charHeight, 0, shadow );
 	}
 }
@@ -1090,7 +1090,7 @@ void UI_Action_Draw( menuAction_s *a )
 	}
 	else if( a->generic.flags & QMF_BLINKIFFOCUS )
 	{
-		if(((int)uiStatic.realTime & UI_BLINK_MASK ) < UI_BLINK_TIME )
+		if(( uiStatic.realTime & UI_BLINK_MASK ) < UI_BLINK_TIME )
 			UI_DrawString( a->generic.x, a->generic.y, a->generic.width, a->generic.height, a->generic.name, a->generic.focusColor, false, a->generic.charWidth, a->generic.charHeight, justify, shadow );
 	}
 
@@ -1179,7 +1179,7 @@ void UI_Bitmap_Draw( menuBitmap_s *b )
 	}
 	else if( b->generic.flags & QMF_BLINKIFFOCUS )
 	{
-		if(((int)uiStatic.realTime & UI_BLINK_MASK ) < UI_BLINK_TIME )
+		if(( uiStatic.realTime & UI_BLINK_MASK ) < UI_BLINK_TIME )
 			UI_DrawPic( b->generic.x, b->generic.y, b->generic.width, b->generic.height, b->generic.focusColor, b->focusPic );
 	}
 

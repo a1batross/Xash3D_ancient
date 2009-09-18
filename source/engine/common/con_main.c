@@ -56,7 +56,7 @@ typedef struct
 	float	finalFrac;	// 0.0 to 1.0 lines of console to display
 
 	int	vislines;		// in scanlines
-	float	times[NUM_CON_TIMES]; // cls.realtime the line was generated for transparent notify lines
+	int	times[NUM_CON_TIMES]; // cls.realtime the line was generated for transparent notify lines
 	rgba_t	color;
 
 } console_t;
@@ -140,7 +140,7 @@ void Con_ClearNotify( void )
 	int	i;
 	
 	for( i = 0; i < NUM_CON_TIMES; i++ )
-		con.times[i] = 0.0f;
+		con.times[i] = 0;
 }
 
 						
@@ -408,7 +408,7 @@ void Con_DrawNotify( void )
 	int		x, v = 0;
 	short		*text;
 	int		i;
-	float		time;
+	int		time;
 	int		skip;
 	int		currentColor;
 
@@ -421,7 +421,7 @@ void Con_DrawNotify( void )
 		time = con.times[i % NUM_CON_TIMES];
 		if( time == 0 ) continue;
 		time = cls.realtime - time;
-		if( time > con_notifytime->value ) continue;
+		if( time > (con_notifytime->value * 1000)) continue;
 		text = con.text + (i % con.totallines) * con.linewidth;
 
 		for( x = 0; x < con.linewidth; x++)

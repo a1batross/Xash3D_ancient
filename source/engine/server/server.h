@@ -67,13 +67,13 @@ typedef struct server_s
 
 	bool		loadgame;		// client begins should reuse existing entity
 
-	double		time;		// always sv.framenum * 50 msec
-	double		frametime;
+	long		time;		// always sv.framenum * 50 msec
+	long		frametime;
 	int		framenum;
 	int		net_framenum;
 
 	int		lastcheck;	// used by PF_checkclient
-	double		lastchecktime;	// for monster ai 
+	long		lastchecktime;	// for monster ai 
 
 	string		name;		// map name, or cinematic name
 	cmodel_t		*models[MAX_MODELS];
@@ -96,7 +96,7 @@ typedef struct
 	int  		areabits_size;
 	int  		num_entities;
 	int  		first_entity;		// into the circular sv_packet_entities[]
-	double		senttime;			// time the message was transmitted
+	long		senttime;			// time the message was transmitted
 
 	int		index;			// client edict index
 } client_frame_t;
@@ -119,7 +119,7 @@ typedef struct sv_client_s
 	int		ping;
 
 	int		message_size[RATE_MESSAGES];	// used to rate drop packets
-	float		rate;
+	int		rate;
 
 	int		surpressCount;		// number of messages rate supressed
 
@@ -138,8 +138,8 @@ typedef struct sv_client_s
 	int		downloadsize;		// total bytes (can't use EOF because of paks)
 	int		downloadcount;		// bytes sent
 
-	double		lastmessage;		// sv.framenum when packet was last received
-	double		lastconnect;
+	long		lastmessage;		// sv.framenum when packet was last received
+	long		lastconnect;
 
 	int		challenge;		// challenge of this user, randomly generated
 
@@ -199,7 +199,7 @@ typedef struct
 {
 	netadr_t		adr;
 	int		challenge;
-	double		time;
+	long		time;
 	bool		connected;
 } challenge_t;
 
@@ -243,8 +243,8 @@ typedef struct
 typedef struct
 {
 	bool		initialized;		// sv_init has completed
-	double		realtime;			// always increasing, no clamping, etc
-	double		timestart;		// just for profiling
+	long		realtime;			// always increasing, no clamping, etc
+	long		timestart;		// just for profiling
 
 	char		mapname[CS_SIZE];		// current mapname 
 	string		comment;			// map name, e.t.c. 
@@ -256,7 +256,7 @@ typedef struct
 	entity_state_t	*client_entities;		// [num_client_entities]
 	entity_state_t	*baselines;		// [host.max_edicts]
 
-	double		last_heartbeat;
+	long		last_heartbeat;
 	challenge_t	challenges[MAX_CHALLENGES];	// to prevent invalid IPs from connecting
 } server_static_t;
 

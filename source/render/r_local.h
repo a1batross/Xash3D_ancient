@@ -175,18 +175,25 @@ enum
 
 typedef struct
 {
+	// these values common with dlight_t so don't move them
 	vec3_t		origin;
-	vec3_t		color;
-	vec3_t		mins, maxs;
+	union
+	{
+		vec3_t	color;		// dlight color
+		vec3_t	angles;		// spotlight angles
+	};
+	float		intensity;	// cdlight->radius
+	shader_t		texture;		// light image e.g. for flashlight
 	vec2_t		cone;		// spotlight cone
-	float		intensity;
+
+	// dlight_t private starts here
+	vec3_t		mins, maxs;
 	const ref_shader_t	*shader;
 } dlight_t;
 
 typedef struct
 {
 	float		rgb[3];	// 0.0 - 2.0
-
 } lightstyle_t;
 
 typedef struct
@@ -297,7 +304,6 @@ typedef struct ref_entity_s
 	void			*extradata;	// studiomodel bones, etc
 
 	// misc
-	float			backlerp;		// 0.0 = current, 1.0 = old
 	rgb_t			rendercolor;	// hl1 rendercolor
 	byte			renderamt;	// hl1 alphavalues
 	int			rendermode;	// hl1 rendermode

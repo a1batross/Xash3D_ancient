@@ -441,7 +441,8 @@ void SV_ReadEntities( wfile_t *l )
 	SV_ConfigString( CS_MAXCLIENTS, va( "%i", Host_MaxClients( )));
 	com.strncpy( sv.name, shdr.mapName, MAX_STRING );
 	svgame.globals->mapname = MAKE_STRING( sv.name );
-	svgame.globals->time = sv.time = shdr.time;
+	svgame.globals->time = shdr.time;
+	sv.time = svgame.globals->time * 1000; 
 	pSaveData->connectionCount = shdr.numConnections;
 
 	// read ADJACENCY sections

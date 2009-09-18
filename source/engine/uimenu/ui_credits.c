@@ -106,9 +106,9 @@ static uiCredits_t		uiCredits;
 
 
 /*
- =================
- UI_Credits_DrawFunc
- =================
+=================
+UI_Credits_DrawFunc
+=================
 */
 static void UI_Credits_DrawFunc( void )
 {
@@ -123,7 +123,7 @@ static void UI_Credits_DrawFunc( void )
 	// now draw the credits
 	UI_ScaleCoords( NULL, NULL, &w, &h );
 
-	y = SCREEN_HEIGHT - (( uiStatic.realTime - uiCredits.startTime ) * 40.0f );
+	y = SCREEN_HEIGHT - (((uiStatic.realTime * 0.001f) - uiCredits.startTime ) * 40.0f );
 
 	// draw the credits
 	for ( i = 0; i < uiCredits.numLines && uiCredits.credits[i]; i++, y += 20 )
@@ -133,7 +133,7 @@ static void UI_Credits_DrawFunc( void )
 
 		if(( y < (scr_height->integer - h) / 2 ) && i == uiCredits.numLines - 1 )
 		{
-			if( !uiCredits.fadeTime ) uiCredits.fadeTime = uiStatic.realTime;
+			if( !uiCredits.fadeTime ) uiCredits.fadeTime = (uiStatic.realTime * 0.001f);
 			CL_FadeAlpha( uiCredits.fadeTime, uiCredits.showTime, color );
 			if( color[3] ) UI_DrawString( 0, (scr_height->integer - h) / 2, 1024 * uiStatic.scaleX, h, uiCredits.credits[i], color, true, w, h, 1, true );
 		}
@@ -215,7 +215,7 @@ static void UI_Credits_Init( void )
 	}
 
 	// run credits
-	uiCredits.startTime = uiStatic.realTime;
+	uiCredits.startTime = (uiStatic.realTime * 0.001f);
 	uiCredits.showTime = bound( 0.1f, com.strlen( uiCredits.credits[uiCredits.numLines - 1]), 12.0f );
 	uiCredits.fadeTime = 0.0f; // will be determined later
 	uiCredits.active = true;

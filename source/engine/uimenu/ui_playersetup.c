@@ -244,7 +244,7 @@ static void UI_PlayerSetup_Ownerdraw( void *self )
 		VectorSet( ent.v.origin, 80, 0, 0 );
 		VectorCopy( ent.v.origin, ent.v.oldorigin );
 
-		re->AddRefEntity( &ent, ED_NORMAL, 1.0f );
+		re->AddRefEntity( &ent, ED_NORMAL );
 
 		// create and render the scene
 		refDef.viewport[0] = item->x + (item->width / 12);
@@ -255,7 +255,7 @@ static void UI_PlayerSetup_Ownerdraw( void *self )
 		refDef.fov_y = UI_PlayerSetup_CalcFov( refDef.fov_x, refDef.viewport[2], refDef.viewport[3] );
 		refDef.rdflags = RDF_NOWORLDMODEL;
 		refDef.oldtime = refDef.time;
-		refDef.time = uiStatic.realTime;
+		refDef.time = uiStatic.realTime * 0.001f;
 		re->RenderFrame( &refDef );
 	}
 	else

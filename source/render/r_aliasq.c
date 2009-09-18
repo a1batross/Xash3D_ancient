@@ -707,7 +707,7 @@ static void R_DrawAliasFrameLerp( const meshbuffer_t *mb, float backlerp )
 	if( alias_framecount == r_framecount && RI.previousentity && RI.previousentity->model == e->model && alias_prevmesh == mesh && alias_prevshader == shader )
 	{
 		ref_entity_t *pe = RI.previousentity;
-		if( pe->frame == e->frame && pe->prev.frame == e->prev.frame && ( pe->backlerp == e->backlerp || e->frame == e->prev.frame ))
+		if( pe->frame == e->frame && pe->prev.frame == e->prev.frame && e->frame == e->prev.frame )
 		{
 			unlockVerts = ((( features & MF_DEFORMVS )));
 			calcNormals = ( calcNormals && ( shader->features & SHADER_DEFORM_NORMAL ));
@@ -818,7 +818,8 @@ R_DrawAliasModel
 */
 void R_DrawAliasModel( const meshbuffer_t *mb )
 {
-	ref_entity_t *e = RI.currententity;
+	ref_entity_t	*e = RI.currententity;
+	float		backLerp;
 
 	if( OCCLUSION_QUERIES_ENABLED( RI ) && OCCLUSION_TEST_ENTITY( e ) )
 	{
@@ -841,9 +842,10 @@ void R_DrawAliasModel( const meshbuffer_t *mb )
           }
 
 	if( !r_lerpmodels->integer )
-		e->backlerp = 0;
+		backLerp = 0;
+	else backLerp = 1.0f - RI.refdef.lerpfrac;
 
-	R_DrawAliasFrameLerp( mb, e->backlerp );
+	R_DrawAliasFrameLerp( mb, backLerp );
 
 	if( e->ent_type == ED_VIEWMODEL )
 	{

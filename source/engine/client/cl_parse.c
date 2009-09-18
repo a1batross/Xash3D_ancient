@@ -248,7 +248,7 @@ void CL_ParseServerData( sizebuf_t *msg )
 		Host_Error( "Server use invalid protocol (%i should be %i)\n", i, PROTOCOL_VERSION );
 
 	cl.servercount = MSG_ReadLong( msg );
-	cl.serverframetime = MSG_ReadFloat( msg );
+	cl.serverframetime = MSG_ReadLong( msg );
 	cl.playernum = MSG_ReadShort( msg );
 	str = MSG_ReadString( msg );
 
@@ -517,7 +517,7 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			break;
 		case svc_time:
 			cl.mtime[1] = cl.mtime[0];
-			cl.mtime[0] = MSG_ReadFloat( msg );
+			cl.mtime[0] = MSG_ReadLong( msg );
 			break;
 		case svc_frame:
 			CL_ParseFrame( msg );

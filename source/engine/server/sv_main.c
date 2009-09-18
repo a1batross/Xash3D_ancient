@@ -6,6 +6,8 @@
 #include "common.h"
 #include "server.h"
 
+#define HEARTBEAT_SECONDS		300 * 1000 	// 300 seconds
+
 netadr_t	master_adr[MAX_MASTERS];	// address of group servers
 
 cvar_t	*sv_paused;
@@ -182,10 +184,10 @@ void SV_CheckTimeouts( void )
 	}
 
 	// calc sv.frametime
-	sv.frametime = ( 1.0f / sv_fps->value );
+	sv.frametime = ( 1000 / sv_fps->integer );
 
-	droppoint = svs.realtime - timeout->value;
-	zombiepoint = svs.realtime - zombietime->value;
+	droppoint = svs.realtime - (timeout->value * 1000);
+	zombiepoint = svs.realtime - (zombietime->value * 1000);
 
 	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
 	{
@@ -290,7 +292,7 @@ SV_Frame
 
 ==================
 */
-void SV_Frame( double time )
+void SV_Frame( long time )
 {
 	// if server is not active, do nothing
 	if( !svs.initialized ) return;
@@ -349,7 +351,6 @@ Send a message to the master every few minutes to
 let it know we are alive, and log information
 ================
 */
-#define	HEARTBEAT_SECONDS	300.0f
 void Master_Heartbeat( void )
 {
 	char	*string;
@@ -458,7 +459,7 @@ void SV_Init( void )
 	sv_accelerate = Cvar_Get( "sv_accelerate", DEFAULT_ACCEL, 0, "rate at which a player accelerates to sv_maxspeed" );
 	sv_friction = Cvar_Get( "sv_friction", DEFAULT_FRICTION, 0, "how fast you slow down" );
 	sv_physics = Cvar_Get( "cm_physic", "1", CVAR_ARCHIVE|CVAR_LATCH, "change physic model: 0 - Classic Quake Physic, 1 - Physics Engine" );
-	sv_showclamp = Cvar_Get( "sv_showclamp", "1", CVAR_ARCHIVE, "show server time clamping" );
+	sv_showclamp = Cvar_Get( "sv_showclamp", "1", 0, "show server time clamping" );
 	
 	public_server = Cvar_Get ("public", "0", 0, "change server type from private to public" );
 

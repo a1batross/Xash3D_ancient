@@ -160,7 +160,7 @@ void SV_SpawnServer( const char *server, const char *savename )
 
 	Msg( "SpawnServer [%s]\n", server );
 
-	svs.timestart = Sys_DoubleTime ();
+	svs.timestart = Sys_Milliseconds();
 	svs.spawncount++; // any partially connected client will be restarted
 	sv.state = ss_dead;
 	Host_SetServerState( sv.state );
@@ -182,7 +182,7 @@ void SV_SpawnServer( const char *server, const char *savename )
 		svs.clients[i].lastframe = -1;
 	}
 
-	sv.time = 1.0;
+	sv.time = 1000;
 	
 	com.strncpy( sv.name, server, MAX_STRING );
 	FS_FileBase(server, sv.configstrings[CS_NAME]);
@@ -221,7 +221,7 @@ void SV_SpawnServer( const char *server, const char *savename )
 	// run two frames to allow everything to settle
 	for( i = 0; i < 2; i++ )
 	{
-		sv.frametime = svgame.globals->frametime = host.frametime = 0.1;
+		sv.frametime = 100;
 		SV_Physics();
 	}
 
@@ -269,7 +269,7 @@ void SV_InitGame( void )
 	Cmd_ExecuteString( "latch\n" );
 	svs.initialized = true;
 
-	if( Cvar_VariableValue ("coop") && Cvar_VariableValue ( "deathmatch" ) && Cvar_VariableValue( "teamplay" ))
+	if( Cvar_VariableValue( "coop" ) && Cvar_VariableValue ( "deathmatch" ) && Cvar_VariableValue( "teamplay" ))
 	{
 		Msg("Deathmatch, Teamplay and Coop set, defaulting to Deathmatch\n");
 		Cvar_FullSet( "coop", "0",  CVAR_SERVERINFO|CVAR_LATCH );

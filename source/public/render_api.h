@@ -89,8 +89,8 @@ typedef struct render_exp_s
 	void	(*EndRegistration)( const char *skyname );
 
 	// prepare frame to rendering
-	bool	(*AddRefEntity)( edict_t *pRefEntity, int ed_type, float lerp );
-	bool	(*AddDynLight)( vec3_t org, vec3_t color, float rad, vec2_t cone, shader_t shader );
+	bool	(*AddRefEntity)( edict_t *pRefEntity, int ed_type );
+	bool	(*AddDynLight)( const void *dlight );
 	bool	(*AddPolygon)( const poly_t *poly );
 	bool	(*AddLightStyle)( int stylenum, vec3_t color );
 	void	(*ClearScene)( void );

@@ -111,7 +111,7 @@ void SV_SetMaster_f( void )
 
 	for( i = 1; i < MAX_MASTERS; i++ )
 	{ 
-		memset(&master_adr[i], 0, sizeof(master_adr[i]));
+		Mem_Set( &master_adr[i], 0, sizeof( master_adr[i] ));
 	}
 
 	// slot 0 will always contain the id master
@@ -385,18 +385,18 @@ Kick a user off of the server
 */
 void SV_Kick_f( void )
 {
-	if(Cmd_Argc() != 2)
+	if( Cmd_Argc() != 2 )
 	{
-		Msg ("Usage: kick <userid>\n");
+		Msg( "Usage: kick <userid>\n" );
 		return;
 	}
 
-	if(!svs.clients)
+	if( !svs.clients )
 	{
-		Msg("^3no server running.\n");
+		Msg( "^3no server running.\n" );
 		return;
 	}
-	if(!SV_SetPlayer()) return;
+	if( !SV_SetPlayer()) return;
 
 	SV_BroadcastPrintf( PRINT_HIGH, "%s was kicked\n", sv_client->name );
 	SV_ClientPrintf( sv_client, PRINT_HIGH, "You were kicked from the game\n" );
@@ -432,7 +432,7 @@ void SV_Status_f( void )
 		if( !cl->state ) continue;
 
 		Msg( "%3i ", i );
-		Msg( "%5i ", cl->edict->v.frags );
+		Msg( "%5i ", (int)cl->edict->v.frags );
 
 		if( cl->state == cs_connected ) Msg( "Connect" );
 		else if( cl->state == cs_zombie ) Msg( "Zombie " );
@@ -445,7 +445,7 @@ void SV_Status_f( void )
 		Msg( "%s", cl->name );
 		l = 24 - com.strlen( cl->name );
 		for( j = 0; j < l; j++ ) Msg( " " );
-		Msg( "%g ", svs.realtime - cl->lastmessage );
+		Msg( "%g ", (svs.realtime - cl->lastmessage) * 0.001f );
 		s = NET_AdrToString( cl->netchan.remote_address );
 		Msg( "%s", s );
 		l = 22 - com.strlen( s );

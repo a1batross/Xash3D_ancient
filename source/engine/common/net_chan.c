@@ -98,7 +98,7 @@ void Netchan_Setup( netsrc_t sock, netchan_t *chan, netadr_t adr, int qport )
 	chan->sock = sock;
 	chan->remote_address = adr;
 	chan->qport = qport;
-	chan->last_received = Sys_DoubleTime ();
+	chan->last_received = Sys_Milliseconds();
 	chan->incoming_sequence = 0;
 	chan->outgoing_sequence = 1;
 	chan->compress = true;
@@ -208,7 +208,7 @@ void Netchan_Transmit( netchan_t *chan, int length, byte *data )
 	w2 = (chan->incoming_sequence & ~(1<<31)) | (chan->incoming_reliable_sequence<<31);
 
 	chan->outgoing_sequence++;
-	chan->last_sent = Sys_DoubleTime ();
+	chan->last_sent = Sys_Milliseconds();
 
 	MSG_WriteLong( &send, w1 );
 	MSG_WriteLong( &send, w2 );
@@ -330,14 +330,10 @@ bool Netchan_Process( netchan_t *chan, sizebuf_t *msg )
 
 		MsgDev( D_INFO, "Netchan_Process: %s[%s] : %sreliable\n", s1, s2, recv_reliable ? "" : "un" );
 	}
-
-	// the message can now be read from the current message pointer update statistics counters
-	chan->frame_latency = chan->frame_latency * OLD_AVG + (chan->outgoing_sequence - sequence_ack) * (1.0 - OLD_AVG);
-	chan->frame_rate = chan->frame_rate * OLD_AVG + (Sys_DoubleTime() - chan->last_received) * (1.0 - OLD_AVG);		
 	chan->good_count += 1;
 
 	// the message can now be read from the current message pointer
-	chan->last_received = Sys_DoubleTime ();
+	chan->last_received = Sys_Milliseconds();
 
 	return true;
 }

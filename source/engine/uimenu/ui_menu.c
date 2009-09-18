@@ -430,7 +430,7 @@ UI_DrawMenu
 */
 void UI_DrawMenu( menuFramework_s *menu )
 {
-	static float	statusFadeTime;
+	static long	statusFadeTime;
 	static menuCommon_s	*lastItem;
 	rgba_t		color = {255, 255, 255, 255};
 	int		i;
@@ -482,7 +482,7 @@ void UI_DrawMenu( menuFramework_s *menu )
 	if( item && ( item->flags & QMF_HASMOUSEFOCUS ) && ( item->statusText != NULL ))
 	{
 		// fade it in, but wait a second
-		color[3] = bound( 0.0, ((uiStatic.realTime - statusFadeTime) - 1.0f), 1.0f ) * 255;
+		color[3] = bound( 0.0, ((uiStatic.realTime - statusFadeTime) - 1000) * 0.001f, 1.0f ) * 255;
 
 		UI_DrawString( 0, 720 * uiStatic.scaleY, 1024 * uiStatic.scaleX, 28 * uiStatic.scaleY, item->statusText, color, true,
 		UI_SMALL_CHAR_WIDTH * uiStatic.scaleX, UI_SMALL_CHAR_HEIGHT * uiStatic.scaleY, 1, true );
@@ -732,7 +732,7 @@ void UI_PopMenu( void )
 UI_UpdateMenu
 =================
 */
-void UI_UpdateMenu( float realTime )
+void UI_UpdateMenu( long realTime )
 {
 	if( !uiStatic.initialized )
 		return;

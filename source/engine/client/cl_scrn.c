@@ -326,7 +326,7 @@ void SCR_DrawFPS( void )
 	if( cl.need_levelshot ) return;
 	
 	newtime = Sys_DoubleTime();
-	if (newtime >= nexttime)
+	if( newtime >= nexttime )
 	{
 		framerate = framecount / (newtime - lasttime);
 		lasttime = newtime;

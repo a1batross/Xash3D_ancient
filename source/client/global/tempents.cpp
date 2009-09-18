@@ -57,6 +57,43 @@ void HUD_StudioEvent( const dstudioevent_t *event, edict_t *entity )
 	}
 }
 
+void HUD_StudioFxTransform( edict_t *ent, float transform[4][4] )
+{
+	switch( ent->v.renderfx )
+	{
+	case kRenderFxHologram:
+		if(!RANDOM_LONG( 0, 49 ))
+		{
+			int	axis = RANDOM_LONG( 0, 1 );
+			float	scale = RANDOM_FLOAT( 1, 1.484 );
+
+			if( axis == 1 ) axis = 2; // choose between x & z
+			transform[axis][0] *= scale;
+			transform[axis][1] *= scale;
+			transform[axis][2] *= scale;
+		}
+		else if(!RANDOM_LONG( 0, 49 ))
+		{
+			float offset;
+			int axis = RANDOM_LONG( 0, 1 );
+			if( axis == 1 ) axis = 2; // choose between x & z
+			offset = RANDOM_FLOAT( -10, 10 );
+			transform[RANDOM_LONG( 0, 2 )][3] += offset;
+		}
+		break;
+	case kRenderFxExplode:
+		float	scale;
+
+		scale = 1.0f + (gHUD.m_flTime - ent->v.animtime) * 10.0;
+		if( scale > 2 ) scale = 2; // don't blow up more than 200%
+		
+		transform[0][1] *= scale;
+		transform[1][1] *= scale;
+		transform[2][1] *= scale;
+		break;
+	}
+}
+
 /*
 =================
 CL_ExplosionParticles
@@ -335,16 +372,17 @@ void CL_TeleportParticles( const Vector org )
 void CL_PlaceDecal( Vector pos, Vector dir, float scale, HSPRITE hDecal )
 {
 	float	rgba[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	int	flags = 0;
+	int	flags = DECAL_FADEALPHA;
 
 	g_engfuncs.pEfxAPI->R_SetDecal( pos, dir, rgba, RANDOM_LONG( 0, 360 ), scale, hDecal, flags );
 }
 
-void CL_AllocDLight( Vector pos, float radius, float decay, float time )
+void CL_AllocDLight( Vector pos, float radius, float time, int flags )
 {
 	float	rgb[3] = { 1.0f, 1.0f, 1.0f };
 
-	g_engfuncs.pEfxAPI->CL_AllocDLight( pos, rgb, radius, decay, time, 0 );
+	if( radius <= 0 ) return;
+	g_engfuncs.pEfxAPI->CL_AllocDLight( pos, rgb, radius, time, flags, 0 );
 }
 
 void HUD_ParseTempEntity( void )
@@ -392,7 +430,7 @@ void HUD_ParseTempEntity( void )
 		if( RANDOM_LONG( 0, 1 ))
 			CL_PlaceDecal( pos, dir, scale, g_engfuncs.pEfxAPI->CL_DecalIndexFromName( "{scorch1" ));
 		else CL_PlaceDecal( pos, dir, scale, g_engfuncs.pEfxAPI->CL_DecalIndexFromName( "{scorch2" )); 
-		if(!(flags & TE_EXPLFLAG_NODLIGHTS )) CL_AllocDLight( pos, 250.0f, 0.28f, 0.8f );
+		if(!(flags & TE_EXPLFLAG_NODLIGHTS )) CL_AllocDLight( pos, 250.0f, 0.8f, DLIGHT_FADE );
 		if(!(flags & TE_EXPLFLAG_NOSOUND )) CL_PlaySound( "weapons/explode3.wav", 1.0f, pos );
 		break;
 	case TE_SPARKS:
@@ -417,7 +455,7 @@ void HUD_ParseTempEntity( void )
 		color.z = (float)READ_BYTE() / 255.0f;
 		time = (float)READ_BYTE() * 0.1f;
 		decay = (float)READ_BYTE() * 0.1f;
-		g_engfuncs.pEfxAPI->CL_AllocDLight( pos, color, radius, decay, time, 0 );
+		g_engfuncs.pEfxAPI->CL_AllocDLight( pos, color, radius, time, 0, 0 );
 		break;
 	}
 }
