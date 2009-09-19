@@ -78,7 +78,7 @@ Beta 13.12.09
 47. fixup slowly rendering			OK
 48. implement uimenu into engine.dll		OK
 49. implement new timers			OK
-50. fixup network packets rate
+50. fixup network packets rate		OK
 51. fixup stair climbing			OK
 52. implement new user move system		OK
 53. finish RenderMode for shaders		OK
@@ -138,5 +138,6 @@ Beta 13.12.09
 114. fixup shadowmaps			OK
 115. fixup CullStudioModel			OK
 116. create flashlight for player		OK
-117. re-organize refdef flags
-118. revise ref_params_t
+117. re-organize refdef flags			OK
+118. revise ref_params_t			OK
+119. fixup client smooth stair climbing

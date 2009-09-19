@@ -509,6 +509,9 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 		case svc_setangle:
 			CL_ParseSetAngle( msg );
 			break;
+		case svc_setview:
+			cl.refdef.viewentity = MSG_ReadWord( msg );
+			break;
 		case svc_crosshairangle:
 			CL_ParseCrosshairAngle( msg );
 			break;

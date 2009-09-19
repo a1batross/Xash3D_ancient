@@ -281,8 +281,6 @@ void CL_ParseFrame( sizebuf_t *msg )
 		else cl.frame.valid = true;	// valid delta parse
 	}
 
-	cl.time = bound( cl.frame.servertime - cl.serverframetime, cl.time, cl.frame.servertime );
-
 	// read areabits
 	len = MSG_ReadByte( msg );
 	MSG_ReadData( msg, &cl.frame.areabits, len );
@@ -339,9 +337,9 @@ void CL_AddPacketEntities( frame_t *frame )
 	edict_t		*ent;
 	int		pnum;
 
-	if( cl_paused->integer )
-		cl.refdef.lerpfrac = 1.0f;
-	else cl.refdef.lerpfrac = 1.0 - (cl.frame.servertime - cl.time) / (float)cl.serverframetime;
+	cl.time = bound( cl.frame.servertime - cl.serverframetime, cl.time, cl.frame.servertime );
+	if( cl_paused->integer ) cl.lerpFrac = 1.0f;
+	else cl.lerpFrac = 1.0 - (cl.frame.servertime - cl.time) / (float)cl.serverframetime;
 
 	for( pnum = 0; pnum < frame->num_entities; pnum++ )
 	{

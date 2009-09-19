@@ -94,10 +94,19 @@ int HUD_UpdateClientData( client_data_t *cdata, float flTime )
 	return gHUD.UpdateClientData( cdata, flTime );
 }
 
-void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t *state, const entity_state_t *prev )
+void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t *state, const entity_state_t *old )
 {
-	int	i;
-	float	m_fLerp = GetLerpFrac();
+	int			i;
+	float			m_fLerp;
+	const entity_state_t	*prev;
+
+	if( state->ed_flags & ESF_NODELTA )
+		prev = state;
+	else prev = old;
+
+	if( state->ed_type == ED_CLIENT && state->ed_flags & ESF_NO_PREDICTION )
+		m_fLerp = 1.0f;	// FIXME: use 0.0f ?
+	else m_fLerp = GetLerpFrac();
 
 	// copy state to progs
 	ent->v.modelindex = state->modelindex;
@@ -149,6 +158,13 @@ void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t 
 	switch( state->ed_type )
 	{
 	case ED_CLIENT:
+		if( ent == GetLocalPlayer())
+		{
+			edict_t	*viewent = GetViewModel();
+
+			// setup player viewmodel (only for local player!)
+			viewent->v.modelindex = state->viewmodel;
+		}
 		for( i = 0; i < 3; i++ )
 		{
 			ent->v.punchangle[i] = LerpAngle( prev->punch_angles[i], state->punch_angles[i], m_fLerp);

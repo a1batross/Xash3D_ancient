@@ -344,6 +344,8 @@ typedef struct
 	ref_params_t	refdef;
 	int		scissor[4];
 	int		viewport[4];
+	float		lerpFrac;			// lerpfraction
+
 	meshlist_t	*meshlist;		// meshes to be rendered
 	meshbuffer_t	**surfmbuffers;		// pointers to meshbuffers of world surfaces
 
@@ -362,7 +364,7 @@ typedef struct
 	vec_t		*vup, *vpn, *vright;
 	cplane_t		frustum[6];
 	float		farClip;
-	unsigned int	clipFlags;
+	uint		clipFlags;
 	vec3_t		visMins, visMaxs;
 
 	matrix4x4		objectMatrix;
@@ -598,9 +600,9 @@ enum
 };
 
 #define OCCLUSION_QUERIES_CVAR_HACK( RI ) ( !(r_occlusion_queries->integer == 2 && r_shadows->integer != SHADOW_MAPPING) \
-											|| ((RI).refdef.rdflags & RDF_PORTALINVIEW) )
+											|| ((RI).refdef.flags & RDF_PORTALINVIEW) )
 #define OCCLUSION_QUERIES_ENABLED( RI )	( GL_Support( R_OCCLUSION_QUERIES_EXT ) && r_occlusion_queries->integer && r_drawentities->integer \
-											&& !((RI).params & RP_NONVIEWERREF) && !((RI).refdef.rdflags & RDF_NOWORLDMODEL) \
+											&& !((RI).params & RP_NONVIEWERREF) && !((RI).refdef.flags & RDF_NOWORLDMODEL) \
 											&& OCCLUSION_QUERIES_CVAR_HACK( RI ) )
 #define OCCLUSION_OPAQUE_SHADER( s )	(((s)->sort == SORT_OPAQUE ) && ((s)->flags & SHADER_DEPTHWRITE ) && !(s)->numDeforms )
 #define OCCLUSION_TEST_ENTITY( e )	(((e)->flags & EF_OCCLUSIONTEST) || ((e)->ent_type == ED_VIEWMODEL))

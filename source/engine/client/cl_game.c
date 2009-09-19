@@ -870,13 +870,13 @@ float pfnGetClientTime( void )
 
 /*
 =============
-pfnGetLerpFrac
+CL_GetLerpFrac
 
 =============
 */
-float pfnGetLerpFrac( void )
+float CL_GetLerpFrac( void )
 {
-	return cl.refdef.lerpfrac;
+	return cl.lerpFrac;
 }
 
 /*
@@ -1345,7 +1345,7 @@ static cl_enginefuncs_t gEngfuncs =
 	CL_GetLocalPlayer,
 	pfnIsSpectateOnly,
 	pfnGetClientTime,
-	pfnGetLerpFrac,
+	CL_GetLerpFrac,
 	pfnGetMaxClients,
 	pfnGetViewModel,
 	pfnGetModelPtr,

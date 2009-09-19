@@ -3184,7 +3184,7 @@ bool VID_CubemapShot( const char *base, uint size, bool skyshot )
 	string		basename;
 	int		i = 1, flags, result;
 
-	if( RI.refdef.onlyClientDraw || !r_worldmodel )
+	if((RI.refdef.flags & RDF_NOWORLDMODEL) || !r_worldmodel )
 		return false;
 
 	// make sure the specified size is valid

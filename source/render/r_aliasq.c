@@ -843,7 +843,7 @@ void R_DrawAliasModel( const meshbuffer_t *mb )
 
 	if( !r_lerpmodels->integer )
 		backLerp = 0;
-	else backLerp = 1.0f - RI.refdef.lerpfrac;
+	else backLerp = 1.0f - RI.lerpFrac;
 
 	R_DrawAliasFrameLerp( mb, backLerp );
 
@@ -907,7 +907,7 @@ bool R_CullAliasModel( ref_entity_t *e )
 	if( !frustum && query )
 		R_IssueOcclusionQuery( R_GetOcclusionQueryNum( OQ_ENTITY, e - r_entities ), e, alias_mins, alias_maxs );
 
-	if( ( RI.refdef.rdflags & RDF_NOWORLDMODEL )
+	if( ( RI.refdef.flags & RDF_NOWORLDMODEL )
 		|| ( r_shadows->integer != SHADOW_PLANAR && !( r_shadows->integer == SHADOW_MAPPING && ( e->flags & EF_PLANARSHADOW )))
 		|| R_CullPlanarShadow( e, alias_mins, alias_maxs, query ) )
 		return frustum; // entity is not in PVS or shadow is culled away by frustum culling

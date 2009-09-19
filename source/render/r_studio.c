@@ -948,7 +948,7 @@ void R_StudioSetUpTransform( ref_entity_t *e, bool trivial_accept )
 		}
 
 		// calculate frontlerp value
-		if( m_fDoInterp ) f = RI.refdef.lerpfrac;
+		if( m_fDoInterp ) f = RI.lerpFrac;
 		else f = 0;
 
 		for( i = 0; i < 3; i++ )
@@ -1897,11 +1897,11 @@ void R_StudioDrawDebug( void )
 		if( RP_LOCALCLIENT( RI.currententity ))
 		{
 			// ignore localcient in firstperson mode
-			if( !RI.refdef.thirdperson && !( RI.params & ( RP_MIRRORVIEW|RP_SHADOWMAPVIEW )))
+			if(!(RI.refdef.flags & RDF_THIRDPERSON) && !( RI.params & ( RP_MIRRORVIEW|RP_SHADOWMAPVIEW )))
 				continue;
 		}
 
-		if( RP_FOLLOWENTITY( RI.currententity ) && RP_LOCALCLIENT( RI.currententity->parent ) && !RI.refdef.thirdperson )
+		if( RP_FOLLOWENTITY( RI.currententity ) && RP_LOCALCLIENT( RI.currententity->parent ) && !(RI.refdef.flags & RDF_THIRDPERSON ))
 		{
 			// ignore entities that linked to localcient
 			if(!( RI.params & ( RP_MIRRORVIEW|RP_SHADOWMAPVIEW )))
@@ -1945,9 +1945,7 @@ void R_StudioEstimateGait( ref_entity_t *e, edict_t *pplayer )
 	float	dt;
 	vec3_t	est_velocity;
 
-	dt = ( RI.refdef.time - RI.refdef.oldtime );
-	if( dt < 0 ) dt = 0.0f;
-	else if ( dt > 1.0 ) dt = 1.0f;
+	dt = bound( 0.0f, RI.refdef.frametime, 1.0f );
 
 	if( dt == 0 || e->m_nCachedFrameCount == r_framecount2 )
 	{
@@ -2024,9 +2022,7 @@ void R_StudioProcessGait( ref_entity_t *e, edict_t *pplayer, studiovars_t *pstud
 
 	// MsgDev( D_INFO, "%f %d\n", e->angles[PITCH], pstudio->blending[0] );
 
-	dt = (RI.refdef.time - RI.refdef.oldtime);
-	if( dt < 0 ) dt = 0.0f;
-	else if( dt > 1.0 ) dt = 1.0f;
+	dt = bound( 0.0f, RI.refdef.frametime, 1.0f );
 
 	R_StudioEstimateGait( e, pplayer );
 
@@ -2374,7 +2370,7 @@ bool R_CullStudioModel( ref_entity_t *e )
 	query = OCCLUSION_QUERIES_ENABLED( RI ) && OCCLUSION_TEST_ENTITY( e ) ? true : false;
 	if( !frustum && query ) R_IssueOcclusionQuery( R_GetOcclusionQueryNum( OQ_ENTITY, e - r_entities ), e, studio_mins, studio_maxs );
 
-	if((RI.refdef.rdflags & RDF_NOWORLDMODEL) || (r_shadows->integer != 1 && !(r_shadows->integer == 2 && (e->flags & EF_PLANARSHADOW))) || R_CullPlanarShadow( e, studio_mins, studio_maxs, query ))
+	if((RI.refdef.flags & RDF_NOWORLDMODEL) || (r_shadows->integer != 1 && !(r_shadows->integer == 2 && (e->flags & EF_PLANARSHADOW))) || R_CullPlanarShadow( e, studio_mins, studio_maxs, query ))
 		return frustum; // entity is not in PVS or shadow is culled away by frustum culling
 
 	R_StudioSetupRender( e, e->model );

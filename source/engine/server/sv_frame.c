@@ -51,11 +51,16 @@ void SV_UpdateEntityState( edict_t *ent, bool baseline )
 
 	if( ent->pvServerData->s.ed_type == ED_CLIENT && ent->v.fixangle )
 	{
-		MSG_Begin( svc_setangle );
-			MSG_WriteAngle32( &sv.multicast, ent->v.angles[0] );
-			MSG_WriteAngle32( &sv.multicast, ent->v.angles[1] );
-			MSG_WriteAngle32( &sv.multicast, 0 );
-		MSG_Send( MSG_ONE_R, vec3_origin, ent );
+		sv_client_t *client = ent->pvServerData->client;
+
+		if( client )
+		{
+			MSG_WriteByte( &client->netchan.message, svc_setangle );
+			MSG_WriteAngle32( &client->netchan.message, ent->v.angles[0] );
+			MSG_WriteAngle32( &client->netchan.message, ent->v.angles[1] );
+			MSG_WriteAngle32( &client->netchan.message, 0 );
+			MSG_Send( MSG_ONE_R, vec3_origin, client->edict );
+		}
 	}
 
 	svgame.dllFuncs.pfnUpdateEntityState( &ent->pvServerData->s, ent, baseline );

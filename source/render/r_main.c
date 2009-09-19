@@ -370,7 +370,7 @@ mfog_t *R_FogForSphere( const vec3_t centre, const float radius )
 	mfog_t *fog;
 	cplane_t *plane;
 
-	if( !r_worldmodel || ( RI.refdef.rdflags & RDF_NOWORLDMODEL ) || !r_worldbrushmodel->numfogs )
+	if( !r_worldmodel || ( RI.refdef.flags & RDF_NOWORLDMODEL ) || !r_worldbrushmodel->numfogs )
 		return NULL;
 	if( RI.params & RP_SHADOWMAPVIEW )
 		return NULL;
@@ -741,7 +741,7 @@ static void R_AddSpriteModelToList( ref_entity_t *e )
 		else return; // occluded
 	}
 			
-	if( RI.refdef.rdflags & (RDF_PORTALINVIEW|RDF_SKYPORTALINVIEW) || ( RI.params & RP_SKYPORTALVIEW ))
+	if( RI.refdef.flags & (RDF_PORTALINVIEW|RDF_SKYPORTALINVIEW) || ( RI.params & RP_SKYPORTALVIEW ))
 	{
 		if( R_VisCullSphere( e->origin, frame->radius ))
 			return;
@@ -764,7 +764,7 @@ static void R_AddSpritePolyToList( ref_entity_t *e )
 	dist = (e->origin[0] - RI.refdef.vieworg[0]) * RI.vpn[0] + (e->origin[1] - RI.refdef.vieworg[1]) * RI.vpn[1] + (e->origin[2] - RI.refdef.vieworg[2]) * RI.vpn[2];
 	if( dist < 0 ) return; // cull it because we don't want to sort unneeded things
 
-	if( RI.refdef.rdflags & ( RDF_PORTALINVIEW|RDF_SKYPORTALINVIEW ) || ( RI.params & RP_SKYPORTALVIEW ) )
+	if( RI.refdef.flags & ( RDF_PORTALINVIEW|RDF_SKYPORTALINVIEW ) || ( RI.params & RP_SKYPORTALVIEW ) )
 	{
 		if( R_VisCullSphere( e->origin, e->radius ) )
 			return;
@@ -995,7 +995,7 @@ static float R_FarClip( void )
 {
 	float farclip_dist;
 
-	if( r_worldmodel && !( RI.refdef.rdflags & RDF_NOWORLDMODEL ) )
+	if( r_worldmodel && !( RI.refdef.flags & RDF_NOWORLDMODEL ) )
 	{
 		int i;
 		float dist;
@@ -1040,7 +1040,7 @@ static void R_SetupProjectionMatrix( const ref_params_t *rd, matrix4x4 m )
 {
 	GLdouble xMin, xMax, yMin, yMax, zNear, zFar;
 
-	if( rd->rdflags & RDF_NOWORLDMODEL )
+	if( rd->flags & RDF_NOWORLDMODEL )
 		RI.farClip = 2048;
 	else
 		RI.farClip = R_FarClip();
@@ -1099,7 +1099,7 @@ static void R_SetupFrame( void )
 	r_framecount++;
 
 	// current viewcluster
-	if( !( RI.refdef.rdflags & RDF_NOWORLDMODEL ) )
+	if( !( RI.refdef.flags & RDF_NOWORLDMODEL ) )
 	{
 		VectorCopy( r_worldmodel->mins, RI.visMins );
 		VectorCopy( r_worldmodel->maxs, RI.visMaxs );
@@ -1180,7 +1180,7 @@ static void R_Clear( int bitMask )
 
 	bits = GL_DEPTH_BUFFER_BIT;
 
-	if( !( RI.refdef.rdflags & RDF_NOWORLDMODEL ) && r_fastsky->integer )
+	if( !( RI.refdef.flags & RDF_NOWORLDMODEL ) && r_fastsky->integer )
 		bits |= GL_COLOR_BUFFER_BIT;
 	if( glState.stencilEnabled && ( r_shadows->integer >= SHADOW_PLANAR ) )
 		bits |= GL_STENCIL_BUFFER_BIT;
@@ -1192,7 +1192,7 @@ static void R_Clear( int bitMask )
 
 	if( bits & GL_COLOR_BUFFER_BIT )
 	{
-		byte *color = r_worldmodel && !( RI.refdef.rdflags & RDF_NOWORLDMODEL ) && r_worldbrushmodel->globalfog ?
+		byte *color = r_worldmodel && !( RI.refdef.flags & RDF_NOWORLDMODEL ) && r_worldbrushmodel->globalfog ?
 			r_worldbrushmodel->globalfog->shader->fog_color : mapConfig.environmentColor;
 		pglClearColor( (float)color[0]*( 1.0/255.0 ), (float)color[1]*( 1.0/255.0 ), (float)color[2]*( 1.0/255.0 ), 1 );
 	}
@@ -1567,7 +1567,7 @@ void R_RenderDebugSurface( void )
 	vec3_t forward;
 	vec3_t start, end;
 
-	if( RI.params & RP_NONVIEWERREF || RI.refdef.rdflags & RDF_NOWORLDMODEL )
+	if( RI.params & RP_NONVIEWERREF || RI.refdef.flags & RDF_NOWORLDMODEL )
 		return;
 
 	r_debug_surface = NULL;
@@ -1606,7 +1606,7 @@ void R_RenderView( const ref_params_t *fd )
 
 	R_ClearMeshList( RI.meshlist );
 
-	if( !r_worldmodel && !( RI.refdef.rdflags & RDF_NOWORLDMODEL ) )
+	if( !r_worldmodel && !( RI.refdef.flags & RDF_NOWORLDMODEL ) )
 		Host_Error( "R_RenderView: NULL worldmodel\n" );
 
 	R_SetupFrame();
@@ -1866,7 +1866,7 @@ void R_RenderScene( const ref_params_t *fd )
 
 	R_BackendStartFrame();
 
-	if(!( fd->rdflags & RDF_NOWORLDMODEL ))
+	if(!( fd->flags & RDF_NOWORLDMODEL ))
 	{
 		r_lastRefdef = *fd;
 	}
@@ -1880,7 +1880,8 @@ void R_RenderScene( const ref_params_t *fd )
 	RI.refdef = *fd;
 	RI.farClip = 0;
 	RI.clipFlags = 15;
-	if( r_worldmodel && !( RI.refdef.rdflags & RDF_NOWORLDMODEL ) && r_worldbrushmodel->globalfog )
+	RI.lerpFrac = ri.GetLerpFrac();
+	if( r_worldmodel && !( RI.refdef.flags & RDF_NOWORLDMODEL ) && r_worldbrushmodel->globalfog )
 	{
 		RI.farClip = r_worldbrushmodel->globalfog->shader->fog_dist;
 		RI.farClip = max( r_farclip_min, RI.farClip ) + r_farclip_bias;
@@ -1891,14 +1892,14 @@ void R_RenderScene( const ref_params_t *fd )
 	RI.shadowGroup = NULL;
 
 	// adjust field of view for widescreen
-	if( glState.wideScreen && !( fd->rdflags & RDF_NOFOVADJUSTMENT ))
+	if( glState.wideScreen && !( fd->flags & RDF_NOFOVADJUSTMENT ))
 		AdjustFov( &RI.refdef.fov_x, &RI.refdef.fov_y, glState.width, glState.height, false );
 
 	Vector4Set( RI.scissor, fd->viewport[0], glState.height - fd->viewport[3] - fd->viewport[1], fd->viewport[2], fd->viewport[3] );
 	Vector4Set( RI.viewport, fd->viewport[0], glState.height - fd->viewport[3] - fd->viewport[1], fd->viewport[2], fd->viewport[3] );
 	VectorCopy( fd->vieworg, RI.pvsOrigin );
 
-	if( gl_finish->integer && !gl_delayfinish->integer && !( fd->rdflags & RDF_NOWORLDMODEL ))
+	if( gl_finish->integer && !gl_delayfinish->integer && !( fd->flags & RDF_NOWORLDMODEL ))
 		pglFinish();
 
 	R_ClearShadowmaps();

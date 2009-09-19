@@ -102,9 +102,9 @@ typedef struct
 
 	long		mtime[2];		// the timestamp of the last two messages
 	long		time;		// this is the time value that the client
-	long		oldtime;		// cl.oldtime
 					// is rendering at.  always <= cls.realtime
 	int		render_flags;	// clearing at end of frame
+	float		lerpFrac;		// interpolation value
 	ref_params_t	refdef;		// shared refdef
 	edict_t		viewent;		// viewmodel
 	client_data_t	data;		// hud data
@@ -433,6 +433,7 @@ bool CL_LoadProgs( const char *name );
 void CL_ParseUserMessage( sizebuf_t *msg, int svc_num );
 void CL_LinkUserMessage( char *pszName, const int svc_num );
 void CL_SortUserMessages( void );
+float CL_GetLerpFrac( void );
 edict_t *CL_AllocEdict( void );
 void CL_InitEdict( edict_t *pEdict );
 void CL_FreeEdict( edict_t *pEdict );

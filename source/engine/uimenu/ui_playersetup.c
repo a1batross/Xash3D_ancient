@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "common.h"
 #include "ui_local.h"
-
+#include "client.h"
 
 #define ART_BACKGROUND	"gfx/shell/misc/ui_sub_options"
 #define ART_BANNER		"gfx/shell/banners/playersetup_t"
@@ -253,9 +253,9 @@ static void UI_PlayerSetup_Ownerdraw( void *self )
 		refDef.viewport[3] = item->height - (item->height / 6);
 		refDef.fov_x = 40;
 		refDef.fov_y = UI_PlayerSetup_CalcFov( refDef.fov_x, refDef.viewport[2], refDef.viewport[3] );
-		refDef.rdflags = RDF_NOWORLDMODEL;
-		refDef.oldtime = refDef.time;
+		refDef.flags = RDF_NOWORLDMODEL;
 		refDef.time = uiStatic.realTime * 0.001f;
+		refDef.frametime = cls.frametime;
 		re->RenderFrame( &refDef );
 	}
 	else

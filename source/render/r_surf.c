@@ -198,7 +198,7 @@ bool R_CullBrushModel( ref_entity_t *e )
 			return true;
 	}
 
-	if( RI.refdef.rdflags & ( RDF_PORTALINVIEW|RDF_SKYPORTALINVIEW ) || ( RI.params & RP_SKYPORTALVIEW ) )
+	if( RI.refdef.flags & ( RDF_PORTALINVIEW|RDF_SKYPORTALINVIEW ) || ( RI.params & RP_SKYPORTALVIEW ))
 	{
 		if( rotated )
 		{
@@ -562,7 +562,7 @@ void R_DrawWorld( void )
 		return;
 	if( !r_worldmodel )
 		return;
-	if( RI.refdef.rdflags & RDF_NOWORLDMODEL )
+	if( RI.refdef.flags & RDF_NOWORLDMODEL )
 		return;
 
 	VectorCopy( RI.refdef.vieworg, modelorg );
@@ -571,7 +571,7 @@ void R_DrawWorld( void )
 	RI.currententity = r_worldent;
 	RI.currentmodel = RI.currententity->model;
 
-	if( (RI.refdef.rdflags & RDF_WORLDOUTLINES) && (r_viewcluster != -1))
+	if( r_outlines_world->integer && r_viewcluster != -1 )
 		RI.currententity->outlineHeight = max( 0.0f, r_outlines_world->value );
 	else RI.currententity->outlineHeight = 0.0f;
 	Vector4Copy( mapConfig.outlineColor, RI.currententity->outlineColor );
@@ -622,9 +622,9 @@ void R_MarkLeaves( void )
 	mnode_t *node;
 	int cluster;
 
-	if( RI.refdef.rdflags & RDF_NOWORLDMODEL )
+	if( RI.refdef.flags & RDF_NOWORLDMODEL )
 		return;
-	if( r_oldviewcluster == r_viewcluster && ( RI.refdef.rdflags & RDF_OLDAREABITS ) && !r_novis->integer && r_viewcluster != -1 )
+	if( r_oldviewcluster == r_viewcluster && ( RI.refdef.flags & RDF_OLDAREABITS ) && !r_novis->integer && r_viewcluster != -1 )
 		return;
 	if( RI.params & RP_SHADOWMAPVIEW )
 		return;

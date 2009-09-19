@@ -568,6 +568,13 @@ void SV_PutClientInServer( edict_t *ent )
 	{
 	}
 
+	if( !( ent->v.flags & FL_FAKECLIENT ))
+	{
+		MSG_WriteByte( &client->netchan.message, svc_setview );
+		MSG_WriteWord( &client->netchan.message, NUM_FOR_EDICT( client->edict ));
+		MSG_Send( MSG_ONE_R, NULL, client->edict );
+	}
+
 	SV_LinkEdict( ent ); // m_pmatrix calculated here, so we need call this before pe->CreatePlayer
 	ent->pvServerData->physbody = pe->CreatePlayer( ent, SV_GetModelPtr( ent ), ent->v.origin, ent->v.m_pmatrix );
 	Mem_EmptyPool( svgame.temppool ); // all tempstrings can be freed now

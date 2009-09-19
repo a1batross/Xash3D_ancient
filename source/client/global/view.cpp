@@ -285,13 +285,14 @@ void V_DropPunchAngle( float frametime, Vector &ev_punchangle )
 //==========================
 void V_CalcGunAngle( ref_params_t *pparams )
 {	
-	if( !pparams->viewmodel || pparams->fov_x > 135 ) return;
+	if( pparams->fov_x > 135 ) return;
 
 	edict_t	*viewent = GetViewModel();
 
+	if( !viewent->v.modelindex ) return;
+
 	viewent->serialnumber = -1;	// viewentity are handled with special number. don't change this
 	viewent->v.effects |= EF_MINLIGHT;
-	viewent->v.modelindex = pparams->viewmodel;
 
 	viewent->v.angles[YAW] = pparams->viewangles[YAW] + pparams->crosshairangle[YAW];
 	viewent->v.angles[PITCH] = pparams->viewangles[PITCH] + pparams->crosshairangle[PITCH] * 0.25;
@@ -309,7 +310,8 @@ void V_PreRender( ref_params_t *pparams )
 {
 	// input
 	pparams->intermission = gHUD.m_iIntermission;
-	pparams->thirdperson = gHUD.m_iCameraMode;
+	if( gHUD.m_iCameraMode ) pparams->flags |= RDF_THIRDPERSON;
+	else pparams->flags &= ~RDF_THIRDPERSON;
 
 	// output
 	gHUD.m_CrosshairAngles = pparams->crosshairangle;
@@ -347,7 +349,7 @@ float V_CalcBob( ref_params_t *pparams )
 	if( cycle < cl_bobup->value ) cycle = M_PI * cycle / cl_bobup->value;
 	else cycle = M_PI + M_PI * ( cycle - cl_bobup->value )/( 1.0 - cl_bobup->value );
 
-	vel = pparams->velocity;
+	vel = pparams->simvel;
 	vel[2] = 0;
 
 	bob = sqrt( vel[0] * vel[0] + vel[1] * vel[1] ) * cl_bob->value;
@@ -373,17 +375,21 @@ void V_AddIdle( ref_params_t *pparams )
 void V_CalcViewRoll( ref_params_t *pparams )
 {
 	float   sign, side, value;
+	edict_t *viewentity;
 	Vector  right;
 
-	if( pparams->health <= 0 )
+	viewentity = GetEntityByIndex( pparams->viewentity );
+	if( !viewentity ) return;
+
+	if( pparams->health <= 0 && ( pparams->viewheight[2] != 0 ))
 	{
-		GetViewModel()->v.modelindex = 0;	// clear viewmodel
+		GetViewModel()->v.modelindex = 0;	// clear the viewmodel
 		pparams->viewangles[ROLL] = 80;	// dead view angle
 		return;
 	}
 
-	AngleVectors( pparams->angles, NULL, right, NULL );
-	side = right.Dot( pparams->velocity );
+	AngleVectors( viewentity->v.angles, NULL, right, NULL );
+	side = right.Dot( pparams->simvel );
 	sign = side < 0 ? -1 : 1;
 	side = fabs( side );
 	value = pparams->movevars->rollangle;
@@ -496,14 +502,10 @@ void V_GetChasePos( ref_params_t *pparams, edict_t *ent, float *cl_angles, Vecto
 	else angles = cl_angles;
 
 	// refresh the position
-	if( !pparams->predicting || pparams->demoplayback )
+	if( !pparams->smoothing || pparams->demoplayback )
 	{
 		// use interpolated values
-		for( int i = 0; i < 3; i++ )
-		{
-			origin[i] = LerpPoint( pparams->prev.origin[i], pparams->origin[i], pparams->lerpfrac );
-			origin[i] += LerpPoint( pparams->prev.viewheight[i], pparams->viewheight[i], pparams->lerpfrac );
-		}
+		origin = pparams->simorg + pparams->viewheight;
 	}
 
 	origin[2] += 28; // DEFAULT_VIEWHEIGHT - some offset
@@ -560,17 +562,14 @@ void V_CalcCameraRefdef( ref_params_t *pparams )
 	 	if( viewentity )
 		{		 
 			dstudiohdr_t *viewmonster = (dstudiohdr_t *)GetModelPtr( viewentity );
-			int i;
 
-			for( i = 0; i < 3; i++ )
-				v_origin[i] = LerpPoint( viewentity->v.oldorigin[i], viewentity->v.origin[i], pparams->lerpfrac );
+			v_origin = viewentity->v.origin;
 
 			// calc monster view if supposed
 			if( gHUD.viewFlags & MONSTER_VIEW && viewmonster )
 				v_origin += viewmonster->eyeposition;
 
-			for( i = 0; i < 3; i++ )
-				v_angles[i] = LerpAngle( viewentity->v.oldangles[i], viewentity->v.angles[i], pparams->lerpfrac );
+			v_angles = viewentity->v.angles;
 
 			if( gHUD.viewFlags & INVERSE_X )	// inverse X coordinate
 				v_angles[0] = -v_angles[0];
@@ -795,7 +794,7 @@ float V_CalcWaterLevel( ref_params_t *pparams )
 		TraceResult tr;
 		Vector point;
 
-		TRACE_HULL( pparams->origin, Vector(-16,-16,-24), Vector(16,16,32), pparams->origin, 1, GetLocalPlayer(), &tr );
+		TRACE_HULL( pparams->simorg, Vector(-16,-16,-24), Vector(16,16,32), pparams->simorg, 1, GetLocalPlayer(), &tr );
 
 		if( tr.pHit && !stricmp( STRING( tr.pHit->v.classname ), "func_water" ))
 			waterDist += ( tr.pHit->v.scale * 16 );
@@ -845,7 +844,7 @@ float V_CalcWaterLevel( ref_params_t *pparams )
 void V_CalcScrOffset( ref_params_t *pparams )
 {
 	// don't allow cheats in multiplayer
-	if( pparams->max_clients > 1 ) return;
+	if( pparams->maxclients > 1 ) return;
 
 	for( int i = 0; i < 3; i++ )
 	{
@@ -865,7 +864,7 @@ void V_InterpolateOrigin( ref_params_t *pparams )
 	// view is the weapon model (only visible from inside body )
 	view = GetViewModel();
 
-	if( cl_vsmoothing->value && ( pparams->max_clients > 1 ))
+	if( cl_vsmoothing->value && ( pparams->maxclients > 1 ))
 	{
 		int i, foundidx;
 		float t;
@@ -897,8 +896,8 @@ void V_InterpolateOrigin( ref_params_t *pparams )
 				// don't interpolate large changes
 				if( delta.Length() < 64 )
 				{
-					delta = neworg - pparams->origin;
-					pparams->origin += delta;
+					delta = neworg - pparams->simorg;
+					pparams->simorg += delta;
 					pparams->vieworg += delta;
 					view->v.origin += delta;
 
@@ -927,28 +926,14 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 	bob = V_CalcBob( pparams );
 
 	// refresh the position
-	if( !pparams->predicting || pparams->demoplayback )
+	if( !pparams->smoothing || pparams->demoplayback )
 	{
 		// use interpolated values
-		for( i = 0; i < 3; i++ )
-		{
-			pparams->vieworg[i] = LerpPoint( pparams->prev.origin[i], pparams->origin[i], pparams->lerpfrac );
-			pparams->vieworg[i] += LerpPoint( pparams->prev.viewheight[i], pparams->viewheight[i], pparams->lerpfrac );
-		}
+		pparams->vieworg = pparams->simorg + pparams->viewheight;
 	}
 
-	if( pparams->demoplayback )
-	{
-		for( i = 0; i < 3; i++ )
-		{
-			pparams->viewangles[i] = LerpAngle( pparams->prev.angles[i], pparams->angles[i], pparams->lerpfrac );
-		}
-	}
-	else
-	{
-		// in-game use predicted values
-		pparams->viewangles = pparams->cl_viewangles;
-	}
+	// in-game use predicted values
+	pparams->viewangles = pparams->cl_viewangles;
 
 	pparams->vieworg[2] += ( bob );
 
@@ -992,25 +977,14 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 
 	if( g_bMirrorPass || g_bPortalPass || g_bScreenPass )
 		pparams->punchangle = -pparams->punchangle; // make inverse for mirror
-	for( i = 0; i < 3; i++ )
-		pparams->viewangles[i] += LerpAngle( pparams->prev.punchangle[i], pparams->punchangle[i], pparams->lerpfrac );
+	pparams->viewangles += pparams->punchangle;
 	
 	pparams->viewangles += ev_punchangle;
 	V_DropPunchAngle( pparams->frametime, ev_punchangle );
 
 	static float oldz = 0;
-	float newz;
 
-	// stair smoothing
-	newz = pparams->vieworg[2];
-	oldz -= newz;
-	oldz += (pparams->time - pparams->oldtime) * 100.0f;	// speed of smooth
-	oldz = bound( -pparams->movevars->stepheight, oldz, 0 );
-	pparams->vieworg[2] += oldz;
-	view->v.origin[2] += oldz;
-	oldz += newz;
-/*
-	if( pparams->onground && pparams->vieworg[2] - oldz > 0 )
+	if( !pparams->smoothing && pparams->onground && pparams->simorg[2] - oldz > 0 )
 	{
 		float steptime;
 
@@ -1026,7 +1000,7 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 		view->v.origin[2] += oldz - pparams->vieworg[2];
 	}
 	else oldz = pparams->vieworg[2];
-*/
+
 	static Vector lastorg;
 	Vector delta;
 
@@ -1034,7 +1008,7 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 
 	if( delta.Length() != 0.0 )
 	{
-		ViewInterp.Origins[ViewInterp.CurrentOrigin & ORIGIN_MASK] = pparams->origin;
+		ViewInterp.Origins[ViewInterp.CurrentOrigin & ORIGIN_MASK] = pparams->simorg;
 		ViewInterp.OriginTime[ViewInterp.CurrentOrigin & ORIGIN_MASK] = pparams->time;
 		ViewInterp.CurrentOrigin++;
 

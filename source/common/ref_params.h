@@ -5,15 +5,6 @@
 #ifndef REF_PARAMS_H
 #define REF_PARAMS_H
 
-// prev.state values to interpolate from
-typedef struct latched_params_s
-{
-	vec3_t		origin;
-	vec3_t		angles;
-	vec3_t		viewheight;
-	vec3_t		punchangle;
-} latched_params_t;
-
 typedef struct skyportal_s
 {
 	float		fov;
@@ -25,60 +16,59 @@ typedef struct skyportal_s
 typedef struct ref_params_s
 {
 	// output
-	int		viewport[4];	// x, y, width, height
 	vec3_t		vieworg;
 	vec3_t		viewangles;
-	float		fov_x;
-	float		fov_y;		// fov_y = V_CalcFov( fov_x, viewport[2], viewport[3] );
 
 	vec3_t		forward;
 	vec3_t		right;
 	vec3_t		up;
 	
 	float		frametime;	// client frametime
-	float		lerpfrac;		// between oldframe and frame
 	float		time;		// client time
-	float		oldtime;		// studio lerping
 
+	int		intermission;
+	int		paused;
+	int		spectator;
+	edict_t		*onground;	// pointer to onground entity
+	int		waterlevel;
+
+	vec3_t		simvel;		// client velocity (came from server)
+	vec3_t		simorg;		// client origin (without viewheight)
+
+	vec3_t		viewheight;
+	float		idealpitch;
+
+	vec3_t		cl_viewangles;	// predicted angles
+
+	int		health;
+	vec3_t		crosshairangle;	// pfnCrosshairAngle values from server
+	float		viewsize;
+
+	vec3_t		punchangle;	// receivied from server
+	int		maxclients;
+	int		viewentity;	// entity that set with svc_setview else localclient
+	int		num_entities;	// entities actual count (was int playernum;)
+	int		max_entities;
+	int		demoplayback;	
+	int		movetype;		// client movetype (was int hardware;)
+	int		smoothing;	// client movement predicting is running
 
 	usercmd_t		*cmd;		// last issued usercmd
 	movevars_t	*movevars;	// sv.movevars
-	latched_params_t	prev;
 
-	// misc
-	int		rdflags;
-	BOOL		intermission;
-	BOOL		demoplayback;
-	BOOL		demorecord;
-	BOOL		paused;
-	BOOL		thirdperson;	// thirdperson mode
-	BOOL		predicting;	// client movement predicting is running
-	int		onlyClientDraw;	// 1 - don't draw worldmodel
-	int		nextView;		// num RenderView passes
-	edict_t		*onground;	// pointer to onground entity
+	int		viewport[4];	// x, y, width, height
+	int		nextView;		// the renderer calls ClientDLL_CalcRefdef() and Renderview
+					// so long in cycles until this value is 0 (multiple views)
+	int		flags;		// renderer setup flags (was int onlyClientDraw;)
+
+	// Xash Renderer Specifics
 	byte		*areabits;	// come from server, contains visible areas list
-	int		waterlevel;
-	int		movetype;		// client movetype
-
-	skyportal_t	skyportal;
-
-	// input
+					// set it to NULL for disable area visibility
+	skyportal_t	skyportal;	// sky protal setup is done in HUD_UpdateEntityVars
 	float		blend[4];		// rgba 0-1 full screen blend
-	vec3_t		velocity;
-	vec3_t		cl_viewangles;	// predicted angles
-	vec3_t		angles;		// viewangles that came from server
-	vec3_t		origin;		// origin + viewheight = vieworg
-	vec3_t		viewheight;
-	float		idealpitch;
-	
-	int		health;
-	vec3_t		crosshairangle;	// pfnCrosshairAngle values from server
-	vec3_t		punchangle;	// receivied from server
-	int		clientnum;
-	int		viewmodel;	// viewmodel index
-	int		num_entities;
-	int		max_entities;
-	int		max_clients;
+
+	float		fov_x;
+	float		fov_y;		// fov_y = V_CalcFov( fov_x, viewport[2], viewport[3] );
 } ref_params_t;
 
 #endif//REF_PARAMS_H

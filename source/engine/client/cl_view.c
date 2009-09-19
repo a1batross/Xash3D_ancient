@@ -65,86 +65,56 @@ update refdef values each frame
 */
 void V_SetupRefDef( void )
 {
-	int		i;
-	float		backlerp;
-	frame_t		*oldframe;
-	entity_state_t	*ps, *ops;
 	edict_t		*clent;
 
-	// find the previous frame to interpolate from
-	ps = &cl.frame.ps;
-	i = (cl.frame.serverframe - 1) & UPDATE_MASK;
-	oldframe = &cl.frames[i];
-	if( oldframe->serverframe != cl.frame.serverframe-1 || !oldframe->valid )
-		oldframe = &cl.frame; // previous frame was dropped or invalid
-	ops = &oldframe->ps;
-
 	clent = EDICT_NUM( cl.playernum + 1 );
-
-	// see if the player entity was teleported this frame
-	if( ps->ed_flags & ESF_NO_PREDICTION )
-	{
-		cl.render_flags &= ~RDF_OLDAREABITS;
-		ops = ps;	// don't interpolate
-	}
 
 	// UNDONE: temporary place for detect waterlevel
 	CL_CheckWater( clent );
 
-	// interpolate field of view
-	cl.data.fov = ops->fov + cl.refdef.lerpfrac * ( ps->fov - ops->fov );
-
-	VectorCopy( ps->velocity, cl.refdef.velocity );
-	VectorCopy( ps->origin, cl.refdef.origin );
-	VectorCopy( ops->origin, cl.refdef.prev.origin );
-	VectorCopy( ps->angles, cl.refdef.angles );
-	VectorCopy( ops->angles, cl.refdef.prev.angles );
-	VectorCopy( ps->viewoffset, cl.refdef.viewheight );
-	VectorCopy( ops->viewoffset, cl.refdef.prev.viewheight );
-	VectorCopy( ps->punch_angles, cl.refdef.punchangle );
-	VectorCopy( ops->punch_angles, cl.refdef.prev.punchangle );
+	// get field of view
+	cl.refdef.fov_x = clent->v.fov;
+	VectorCopy( clent->v.velocity, cl.refdef.simvel );
+	VectorCopy( clent->v.origin, cl.refdef.simorg );
+	VectorCopy( clent->v.view_ofs, cl.refdef.viewheight );
+	VectorCopy( clent->v.punchangle, cl.refdef.punchangle );
 
 	cl.refdef.movevars = &clgame.movevars;
 
-	if( ps->flags & FL_ONGROUND )
-		cl.refdef.onground = EDICT_NUM( ps->groundent );
+	if( clent->v.flags & FL_ONGROUND )
+		cl.refdef.onground = clent->v.groundentity;
 	else cl.refdef.onground = NULL;
+
 	cl.refdef.areabits = cl.frame.areabits;
-	cl.refdef.clientnum = cl.playernum; // not a entity num
-	cl.refdef.viewmodel = ps->viewmodel;
-	cl.refdef.health = ps->health;
-	cl.refdef.movetype = ps->movetype;
-	cl.refdef.idealpitch = ps->idealpitch;
+	cl.refdef.health = clent->v.health;
+	cl.refdef.movetype = clent->v.movetype;
+	cl.refdef.idealpitch = clent->v.ideal_pitch;
 	cl.refdef.num_entities = clgame.numEntities;
 	cl.refdef.max_entities = clgame.maxEntities;
-	cl.refdef.max_clients = clgame.maxClients;
-	cl.refdef.oldtime = cl.oldtime * 0.001f;
-	cl.refdef.time = cl.time * 0.001f;		// cl.time for right lerping
+	cl.refdef.maxclients = clgame.maxClients;
+	cl.refdef.time = cl.time * 0.001f;
 	cl.refdef.frametime = cls.frametime;
 	cl.refdef.demoplayback = cls.demoplayback;
-	cl.refdef.demorecord = cls.demorecording;
 	cl.refdef.paused = cl_paused->integer;
-	cl.refdef.predicting = cl_predict->integer;
+	cl.refdef.smoothing = cl_predict->integer;
 	cl.refdef.waterlevel = clent->v.waterlevel;		
-	cl.refdef.rdflags = cl.render_flags;
+	cl.refdef.flags = cl.render_flags;
 	cl.refdef.nextView = 0;
 
 	// calculate the origin
-	if( cl.refdef.predicting && !cl.refdef.demoplayback )
+	if( cl.refdef.smoothing && !cl.refdef.demoplayback )
 	{	
 		// use predicted values
-		int	delta;
+		int	i, delta;
+		float	backlerp = 1.0 - cl.lerpFrac;
 
-		backlerp = 1.0 - cl.refdef.lerpfrac;
 		for( i = 0; i < 3; i++ )
-		{
-			cl.refdef.vieworg[i] = cl.predicted_origin[i] + ops->viewoffset[i] 
-				+ cl.refdef.lerpfrac * (ps->viewoffset[i] - ops->viewoffset[i]) - backlerp * cl.prediction_error[i];
-		}
+			cl.refdef.vieworg[i] = cl.predicted_origin[i] + cl.refdef.viewheight[i] - backlerp * cl.prediction_error[i];
 
 		// smooth out stair climbing
 		delta = cls.realtime - cl.predicted_step_time;
-		if( delta < cl.serverframetime ) cl.refdef.vieworg[2] -= cl.predicted_step * (cl.serverframetime - delta) * 0.01f;
+		if( delta < cl.serverframetime )
+			cl.refdef.vieworg[2] -= cl.predicted_step * ((cl.serverframetime - delta) / (float)cl.serverframetime);
 	}
 }
 
@@ -157,8 +127,8 @@ apply pre-calculated values
 */
 void V_AddViewModel( void )
 {
-	if( !cl.viewent.v.modelindex || cl.refdef.nextView ) return;
-	re->AddRefEntity( &cl.viewent, ED_VIEWMODEL );
+	if( cl.viewent.v.modelindex && !cl.refdef.nextView )
+		re->AddRefEntity( &cl.viewent, ED_VIEWMODEL );
 }
 
 /*

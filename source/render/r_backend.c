@@ -402,7 +402,7 @@ void R_BackendEndFrame( void )
 	// clean up texture units
 	R_CleanUpTextureUnits( 1 );
 
-	if( r_speeds->integer && !( RI.refdef.rdflags & RDF_NOWORLDMODEL ) )
+	if( r_speeds->integer && !( RI.refdef.flags & RDF_NOWORLDMODEL ) )
 	{
 		switch( r_speeds->integer )
 		{
@@ -548,7 +548,7 @@ void R_FlushArrays( void )
 		pglColorPointer( 4, GL_UNSIGNED_BYTE, 0, tr.colorsBuffer->pointer );
 	}
 
-	if( r_drawelements->integer || glState.in2DMode || RI.refdef.rdflags & RDF_NOWORLDMODEL )
+	if( r_drawelements->integer || glState.in2DMode || RI.refdef.flags & RDF_NOWORLDMODEL )
 	{
 		if( GL_Support( R_DRAW_RANGEELEMENTS_EXT ))
 			pglDrawRangeElementsEXT( GL_TRIANGLES, 0, r_backacc.numVerts, r_backacc.numElems, GL_UNSIGNED_INT, elemsArray );

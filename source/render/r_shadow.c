@@ -221,7 +221,7 @@ void R_ClearShadowmaps( void )
 {
 	r_numShadowGroups = 0;
 
-	if( r_shadows->integer != SHADOW_MAPPING || RI.refdef.rdflags & RDF_NOWORLDMODEL )
+	if( r_shadows->integer != SHADOW_MAPPING || RI.refdef.flags & RDF_NOWORLDMODEL )
 		return;
 
 	// clear all possible values, should be called once per scene
@@ -246,7 +246,7 @@ bool R_AddShadowCaster( ref_entity_t *ent )
 	mleaf_t *leaf;
 	vec3_t mins, maxs, bbox[8];
 
-	if( r_shadows->integer != SHADOW_MAPPING || RI.refdef.rdflags & RDF_NOWORLDMODEL )
+	if( r_shadows->integer != SHADOW_MAPPING || RI.refdef.flags & RDF_NOWORLDMODEL )
 		return false;
 	if( !GL_Support( R_SHADER_GLSL100_EXT ) || !GL_Support( R_DEPTH_TEXTURE ) || !GL_Support( R_SHADOW_EXT ))
 		return false;
@@ -363,7 +363,7 @@ void R_CullShadowmapGroups( void )
 	vec3_t mins, maxs;
 	shadowGroup_t *group;
 
-	if( RI.refdef.rdflags & RDF_NOWORLDMODEL )
+	if( RI.refdef.flags & RDF_NOWORLDMODEL )
 		return;
 
 	memset( r_shadowCullBits, 0, sizeof( r_shadowCullBits ) );
@@ -413,7 +413,7 @@ void R_DrawShadowmaps( void )
 	RI.previousentity = NULL;
 	Mem_Copy( &oldRI, &prevRI, sizeof( refinst_t ) );
 	Mem_Copy( &prevRI, &RI, sizeof( refinst_t ) );
-	RI.refdef.rdflags &= ~RDF_SKYPORTALINVIEW;
+	RI.refdef.flags &= ~RDF_SKYPORTALINVIEW;
 /*
 	// sort by clusternum (not really needed anymore, but oh well)
 	if( !r_shadowGroups_sorted ) {		// note: this breaks hash pointers

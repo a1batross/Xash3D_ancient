@@ -259,6 +259,14 @@ typedef enum
 // built-in dlight flags
 #define DLIGHT_FADE			(1<<0)	// fade dlight at end of lifetime
 
+// renderer flags
+#define RDF_NOWORLDMODEL		(1<<0) 	// used for player configuration screen
+#define RDF_OLDAREABITS		(1<<1) 	// forces R_MarkLeaves if not set
+#define RDF_PORTALINVIEW		(1<<2)	// cull entities using vis too because pvs\areabits are merged serverside
+#define RDF_SKYPORTALINVIEW		(1<<3)	// draw skyportal instead of regular sky
+#define RDF_NOFOVADJUSTMENT		(1<<4)	// do not adjust fov for widescreen
+#define RDF_THIRDPERSON		(1<<5)	// enable chase cam instead firstperson
+
 // engine built-in default shader
 #define MAP_DEFAULT_SHADER		"*black"
 

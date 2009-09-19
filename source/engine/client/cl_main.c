@@ -1171,7 +1171,6 @@ void CL_Frame( long time )
 		return;
 
 	// decide the simulation time
-	cl.oldtime = cl.time;
 	cl.time += time;		// can be merged by cl.frame.servertime 
 	cls.realtime += time;
 	cls.frametime = time * 0.001f;

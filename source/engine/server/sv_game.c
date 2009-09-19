@@ -2722,6 +2722,43 @@ int pfnCanSkipPlayer( const edict_t *player )
 
 /*
 =============
+pfnSetView
+
+=============
+*/
+void pfnSetView( const edict_t *pClient, const edict_t *pViewent )
+{
+	sv_client_t	*client;
+
+	if( pClient == NULL || pClient->free )
+	{
+		MsgDev( D_ERROR, "SV_SetView: invalid client!\n" );
+		return;
+	}
+
+	client = pClient->pvServerData->client;
+	if( !client )
+	{
+		MsgDev( D_ERROR, "SV_SetView: not a client!\n" );
+		return;
+	}
+
+	// fakeclients can't set customview
+	if( pClient->v.flags & FL_FAKECLIENT ) return;
+
+	if( pViewent == NULL || pViewent->free )
+	{
+		MsgDev( D_ERROR, "SV_SetView: invalid viewent!\n" );
+		return;
+	}
+
+	MSG_WriteByte( &client->netchan.message, svc_setview );
+	MSG_WriteWord( &client->netchan.message, NUM_FOR_EDICT( pViewent ));
+	MSG_Send( MSG_ONE_R, NULL, client->edict );
+}
+
+/*
+=============
 pfnSetSkybox
 
 =============
@@ -2859,6 +2896,7 @@ static enginefuncs_t gEngfuncs =
 	pfnCRC_Final,		
 	pfnRandomLong,
 	pfnRandomFloat,
+	pfnSetView,
 	pfnCrosshairAngle,
 	pfnLoadFile,
 	pfnFOpen,

@@ -509,7 +509,7 @@ void CL_FinishMove( usercmd_t *cmd )
 		cmd->buttons = CL_ButtonBits( 1 );
 
 	// process commands with user dll's
-	cl.data.fov = cl.frame.ps.fov;
+	cl.data.fov = cl.refdef.fov_x;
 	cl.data.iKeyBits = CL_ButtonBits( 0 );
 
 	cl.data.iWeaponBits = cl.frame.ps.weapons;
@@ -517,7 +517,7 @@ void CL_FinishMove( usercmd_t *cmd )
 
 	VectorCopy( cl.refdef.cl_viewangles, cmd->angles );
 	VectorCopy( cl.refdef.cl_viewangles, cl.data.angles );
-	VectorCopy( cl.refdef.origin, cl.data.origin );
+	VectorCopy( cl.refdef.simorg, cl.data.origin );
 
 	clgame.dllFuncs.pfnUpdateClientData( &cl.data, ( cl.time * 0.001f ));
 

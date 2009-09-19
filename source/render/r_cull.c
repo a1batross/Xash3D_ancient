@@ -127,7 +127,7 @@ bool R_VisCullBox( const vec3_t mins, const vec3_t maxs )
 	vec3_t extmins, extmaxs;
 	mnode_t *node, *localstack[2048];
 
-	if( !r_worldmodel || ( RI.refdef.rdflags & RDF_NOWORLDMODEL ) )
+	if( !r_worldmodel || ( RI.refdef.flags & RDF_NOWORLDMODEL ) )
 		return false;
 	if( r_novis->integer )
 		return false;
@@ -178,7 +178,7 @@ bool R_VisCullSphere( const vec3_t origin, float radius )
 	int stackdepth = 0;
 	mnode_t *node, *localstack[2048];
 
-	if( !r_worldmodel || ( RI.refdef.rdflags & RDF_NOWORLDMODEL ) )
+	if( !r_worldmodel || ( RI.refdef.flags & RDF_NOWORLDMODEL ) )
 		return false;
 	if( r_novis->integer )
 		return false;
@@ -232,13 +232,13 @@ int R_CullModel( ref_entity_t *e, vec3_t mins, vec3_t maxs, float radius )
 		return 0;
 	}
 
-	if( RP_LOCALCLIENT( e ) && !RI.refdef.thirdperson )
+	if( RP_LOCALCLIENT( e ) && !(RI.refdef.flags & RDF_THIRDPERSON))
 	{
 		if(!( RI.params & ( RP_MIRRORVIEW|RP_SHADOWMAPVIEW )))
 			return 1;
 	}
 
-	if( RP_FOLLOWENTITY( e ) && RP_LOCALCLIENT( e->parent ) && !RI.refdef.thirdperson )
+	if( RP_FOLLOWENTITY( e ) && RP_LOCALCLIENT( e->parent ) && !(RI.refdef.flags & RDF_THIRDPERSON ))
 	{
 		if(!( RI.params & ( RP_MIRRORVIEW|RP_SHADOWMAPVIEW )))
 			return 1;
@@ -247,7 +247,7 @@ int R_CullModel( ref_entity_t *e, vec3_t mins, vec3_t maxs, float radius )
 	if( R_CullSphere( e->origin, radius, RI.clipFlags ))
 		return 1;
 
-	if( RI.refdef.rdflags & (RDF_PORTALINVIEW|RDF_SKYPORTALINVIEW) || (RI.params & RP_SKYPORTALVIEW))
+	if( RI.refdef.flags & (RDF_PORTALINVIEW|RDF_SKYPORTALINVIEW) || (RI.params & RP_SKYPORTALVIEW))
 	{
 		if( R_VisCullSphere( e->origin, radius ))
 			return 2;
