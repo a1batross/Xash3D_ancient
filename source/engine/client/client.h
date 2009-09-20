@@ -98,7 +98,6 @@ typedef struct
 	int		mouse_x[2];
 	int		mouse_y[2];
 	int		mouse_step;
-	float		mouse_sens;
 
 	long		mtime[2];		// the timestamp of the last two messages
 	long		time;		// this is the time value that the client

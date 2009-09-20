@@ -23,17 +23,18 @@
 
 struct WEAPON
 {
-	char	szName[MAX_WEAPON_NAME];
-	int	iAmmoType;
-	int	iAmmo2Type;
-	int	iMax1;
-	int	iMax2;
-	int	iSlot;
-	int	iSlotPos;
-	int	iFlags;
-	int	iId;
-	int	iClip;
-	int	iCount;		// # of itesm in plist
+	char		szName[MAX_WEAPON_NAME];
+	int		iAmmoType;
+	int		iAmmo2Type;
+	int		iMax1;
+	int		iMax2;
+	int		iSlot;
+	int		iSlotPos;
+	int		iFlags;
+	int		iId;
+	int		iClip;
+	int		iCount;		// # of itesm in plist
+	int		iOnTarget;	// weapon is onTarget
 
 	HSPRITE		hActive;
 	wrect_t		rcActive;

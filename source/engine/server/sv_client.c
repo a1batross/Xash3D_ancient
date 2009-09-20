@@ -198,8 +198,9 @@ gotnewcl:
 	Netchan_OutOfBandPrint( NS_SERVER, from, "client_connect" );
 
 	Netchan_Setup( NS_SERVER, &newcl->netchan, from, qport );
-	MSG_Init( &newcl->datagram, newcl->datagram_buf, sizeof(newcl->datagram_buf));
-	
+	MSG_Init( &newcl->reliable, newcl->reliable_buf, sizeof( newcl->reliable_buf ));	// reliable buf
+	MSG_Init( &newcl->datagram, newcl->datagram_buf, sizeof( newcl->datagram_buf ));	// datagram buf
+
 	newcl->state = cs_connected;
 	newcl->lastmessage = svs.realtime;
 	newcl->lastconnect = svs.realtime;
@@ -1035,7 +1036,7 @@ void _MSG_Send( msgtype_t msg_type, vec3_t origin, const edict_t *ent, const cha
 				continue;
 		}
 
-		if( reliable ) MSG_WriteData( &cl->netchan.message, sv.multicast.data, sv.multicast.cursize );
+		if( reliable ) MSG_WriteData( &cl->reliable, sv.multicast.data, sv.multicast.cursize );
 		else MSG_WriteData( &cl->datagram, sv.multicast.data, sv.multicast.cursize );
 	}
 	MSG_Clear( &sv.multicast );

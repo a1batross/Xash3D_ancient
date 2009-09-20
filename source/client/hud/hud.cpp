@@ -215,16 +215,11 @@ int CHud :: UpdateClientData( client_data_t *cdata, float time )
 
 	m_iKeyBits = cdata->iKeyBits;
 	m_iWeaponBits = cdata->iWeaponBits;
-	m_flFOV = cdata->fov;
 
 	Think();
 
 	cdata->iKeyBits = m_iKeyBits;
 	cdata->v_idlescale = m_iConcussionEffect;
-
-	// fov has been changed
-	if( m_flFOV != cdata->fov )
-		cdata->fov = m_flFOV;
 
 	if( m_flMouseSensitivity )
 		cdata->mouse_sensitivity = m_flMouseSensitivity;

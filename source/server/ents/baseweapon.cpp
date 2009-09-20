@@ -916,7 +916,8 @@ BOOL CBasePlayerWeapon :: DefaultDeploy( Activity sequence )
 	else pev->body &= ~GORDON_SUIT;
 
 	m_iClientSkin = -1; // reset last skin info for new weapon
-	m_iClientBody = -1; // reset last skin info for new weapon
+	m_iClientBody = -1; // reset last body info for new weapon
+	m_iClientFov = -1;	// reset last fov info for new weapon
 	
 	m_pPlayer->pev->viewmodel = iViewModel();
 	m_pPlayer->pev->weaponmodel = iWorldModel();
@@ -1605,8 +1606,8 @@ void CBasePlayerWeapon::ZoomUpdate( void )
 		{
 			if( m_flTimeUpdate < UTIL_WeaponTimeBase( ))
 			{
-				m_pPlayer->pev->fov -= 1.2; // gpGlobals->frametime;
-				m_flTimeUpdate = UTIL_WeaponTimeBase() + 0.002;
+				m_pPlayer->pev->fov -= 1.2 * gpGlobals->frametime;
+				m_flTimeUpdate = UTIL_WeaponTimeBase() + gpGlobals->frametime;
 			}
 		}
 		if( m_iZoom == 3 ) ZoomReset();
@@ -1692,7 +1693,9 @@ void CBasePlayerWeapon::ItemPostFrame( void )
 	if( !b_restored )
 	{
 		m_iClientSkin = -1; // reset last skin info for new weapon
-		m_iClientBody = -1; // reset last skin info for new weapon
+		m_iClientBody = -1; // reset last body info for new weapon
+		m_iClientFov = -1;	// reset last fov info for new weapon
+
 		if( iMaxClip() && !m_iClip )
 			SetAnimation( ACT_VM_IDLE_EMPTY ); // restore last animation
 		else SetAnimation( ACT_VM_IDLE1 );
@@ -1865,7 +1868,7 @@ int CBasePlayerWeapon::UpdateClientData( CBasePlayer *pPlayer )
 	}
 
 	// if the ammo, state, or fov has changed, update the weapon
-	if( m_iClip != m_iClientClip || state != m_iClientWeaponState )
+	if( m_iClip != m_iClientClip || state != m_iClientWeaponState || Q_rint( m_iClientFov ) != Q_rint( m_pPlayer->pev->fov ))
 	{
 		bSend = TRUE;
 	}
@@ -1878,6 +1881,7 @@ int CBasePlayerWeapon::UpdateClientData( CBasePlayer *pPlayer )
 			WRITE_BYTE( m_iClip );
 		MESSAGE_END();
 
+		m_iClientFov = m_pPlayer->pev->fov;
 		m_iClientClip = m_iClip;
 		m_iClientWeaponState = state;
 		pPlayer->m_fWeapon = TRUE;

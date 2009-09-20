@@ -482,6 +482,21 @@ bool SV_SendClientDatagram( sv_client_t *cl )
 	// and the player state
 	SV_WriteFrameToClient( cl, &msg );
 
+	// copy the accumulated reliable datagram
+	// for this client out to the message
+	// it is necessary for this to be after the WriteEntities
+	// so that entity references will be current
+	if( cl->reliable.overflowed ) MsgDev( D_ERROR, "reliable datagram overflowed for %s\n", cl->name );
+	else MSG_WriteData( &msg, cl->reliable.data, cl->reliable.cursize );
+	MSG_Clear( &cl->reliable );
+
+	if( msg.overflowed )
+	{	
+		// must have room left for the packet header
+		MsgDev( D_WARN, "msg overflowed for %s\n", cl->name );
+		MSG_Clear( &msg );
+	}
+
 	// copy the accumulated multicast datagram
 	// for this client out to the message
 	// it is necessary for this to be after the WriteEntities
@@ -556,6 +571,7 @@ void SV_SendClientMessages( void )
 		if( cl->netchan.message.overflowed )
 		{
 			MSG_Clear( &cl->netchan.message );
+			MSG_Clear( &cl->reliable );
 			MSG_Clear( &cl->datagram );
 			SV_BroadcastPrintf( PRINT_HIGH, "%s overflowed\n", cl->name );
 			SV_DropClient( cl );

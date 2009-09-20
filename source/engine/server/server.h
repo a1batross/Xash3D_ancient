@@ -127,8 +127,13 @@ typedef struct sv_client_s
 	char		name[32];			// extracted from userinfo, color string allowed
 	int		messagelevel;		// for filtering printed messages
 
-	// The datagram is written to by sound calls, prints, temp ents, etc.
-	// It can be harmlessly overflowed.
+	// The reliable buf contain reliable user messages that must be followed
+	// after pvs frame
+	sizebuf_t		reliable;
+	byte		reliable_buf[MAX_MSGLEN];
+
+	// the datagram is written to by sound calls, prints, temp ents, etc.
+	// it can be harmlessly overflowed.
 	sizebuf_t		datagram;
 	byte		datagram_buf[MAX_MSGLEN];
 

@@ -48,8 +48,7 @@ typedef struct client_data_s
 	int		iKeyBits;		// Keyboard bits
 	int		iWeaponBits;	// came from pev->weapons
 	float		v_idlescale;	// view shake/rotate
-	float		mouse_sensitivity;	// used for menus
-	float		fov;		// field of view
+	float		mouse_sensitivity;	// used for menus and zoomed weapons
 } client_data_t;
 
 typedef struct cl_enginefuncs_s

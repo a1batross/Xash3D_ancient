@@ -3,215 +3,93 @@
 <pre>
 <h1>Build Log</h1>
 <h3>
---------------------Configuration: server - Win32 Debug--------------------
+--------------------Configuration: server - Win32 Release--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP8A9F.tmp" with contents
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP938E.tmp" with contents
 [
-/nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "ents" /I "game" /I "global" /I "monsters" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\server\!debug/" /Fo"..\temp\server\!debug/" /Fd"..\temp\server\!debug/" /FD /c 
-"D:\Xash3D\src_main\server\monsters\ai_sound.cpp"
-"D:\Xash3D\src_main\server\monsters\animating.cpp"
-"D:\Xash3D\src_main\server\monsters\animation.cpp"
-"D:\Xash3D\src_main\server\monsters\apache.cpp"
-"D:\Xash3D\src_main\server\monsters\barnacle.cpp"
-"D:\Xash3D\src_main\server\monsters\barney.cpp"
-"D:\Xash3D\src_main\server\ents\basebrush.cpp"
-"D:\Xash3D\src_main\server\ents\baseentity.cpp"
-"D:\Xash3D\src_main\server\ents\basefunc.cpp"
-"D:\Xash3D\src_main\server\ents\basefx.cpp"
-"D:\Xash3D\src_main\server\ents\baseinfo.cpp"
-"D:\Xash3D\src_main\server\ents\baseitem.cpp"
-"D:\Xash3D\src_main\server\ents\baselogic.cpp"
-"D:\Xash3D\src_main\server\monsters\basemonster.cpp"
-"D:\Xash3D\src_main\server\ents\basemover.cpp"
-"D:\Xash3D\src_main\server\ents\baseother.cpp"
-"D:\Xash3D\src_main\server\ents\basepath.cpp"
-"D:\Xash3D\src_main\server\ents\basephys.cpp"
-"D:\Xash3D\src_main\server\ents\baserockets.cpp"
-"D:\Xash3D\src_main\server\ents\basetank.cpp"
-"D:\Xash3D\src_main\server\ents\basetrigger.cpp"
-"D:\Xash3D\src_main\server\ents\baseutil.cpp"
+/nologo /MD /W3 /O2 /I "./" /I "ents" /I "game" /I "global" /I "monsters" /I "../common" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /Fo"..\temp\server\!release/" /Fd"..\temp\server\!release/" /FD /c 
 "D:\Xash3D\src_main\server\ents\baseweapon.cpp"
-"D:\Xash3D\src_main\server\ents\baseworld.cpp"
-"D:\Xash3D\src_main\server\global\client.cpp"
-"D:\Xash3D\src_main\server\monsters\combat.cpp"
-"D:\Xash3D\src_main\server\monsters\defaultai.cpp"
-"D:\Xash3D\src_main\server\global\dll_int.cpp"
-"D:\Xash3D\src_main\server\monsters\flyingmonster.cpp"
-"D:\Xash3D\src_main\server\game\game.cpp"
-"D:\Xash3D\src_main\server\game\gamerules.cpp"
-"D:\Xash3D\src_main\server\monsters\generic.cpp"
-"D:\Xash3D\src_main\server\global\globals.cpp"
-"D:\Xash3D\src_main\server\monsters\gman.cpp"
-"D:\Xash3D\src_main\server\monsters\hassassin.cpp"
-"D:\Xash3D\src_main\server\monsters\headcrab.cpp"
-"D:\Xash3D\src_main\server\monsters\hgrunt.cpp"
-"D:\Xash3D\src_main\server\monsters\leech.cpp"
-"D:\Xash3D\src_main\server\game\lights.cpp"
-"D:\Xash3D\src_main\server\game\multiplay_gamerules.cpp"
-"D:\Xash3D\src_main\server\monsters\nodes.cpp"
-"D:\Xash3D\src_main\server\monsters\osprey.cpp"
-"D:\Xash3D\src_main\server\global\parent.cpp"
-"D:\Xash3D\src_main\server\monsters\player.cpp"
-"D:\Xash3D\src_main\server\monsters\rat.cpp"
-"D:\Xash3D\src_main\server\monsters\roach.cpp"
-"D:\Xash3D\src_main\server\global\saverestore.cpp"
-"D:\Xash3D\src_main\server\monsters\scientist.cpp"
-"D:\Xash3D\src_main\server\monsters\scripted.cpp"
-"D:\Xash3D\src_main\server\global\sfx.cpp"
-"D:\Xash3D\src_main\server\game\singleplay_gamerules.cpp"
-"D:\Xash3D\src_main\server\game\sound.cpp"
-"D:\Xash3D\src_main\server\monsters\squadmonster.cpp"
-"D:\Xash3D\src_main\server\monsters\talkmonster.cpp"
-"D:\Xash3D\src_main\server\game\teamplay_gamerules.cpp"
-"D:\Xash3D\src_main\server\monsters\turret.cpp"
-"D:\Xash3D\src_main\server\global\utils.cpp"
-"D:\Xash3D\src_main\server\weapon_generic.cpp"
-"D:\Xash3D\src_main\server\monsters\zombie.cpp"
 ]
-Creating command line "cl.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP8A9F.tmp" 
-Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP8AA0.tmp" with contents
+Creating command line "cl.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP938E.tmp" 
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP938F.tmp" with contents
 [
-msvcrtd.lib /nologo /subsystem:windows /dll /incremental:yes /pdb:"..\temp\server\!debug/server.pdb" /debug /machine:I386 /nodefaultlib:"libc.lib" /def:".\server.def" /out:"..\temp\server\!debug/server.dll" /implib:"..\temp\server\!debug/server.lib" /pdbtype:sept 
-"\Xash3D\src_main\temp\server\!debug\ai_sound.obj"
-"\Xash3D\src_main\temp\server\!debug\animating.obj"
-"\Xash3D\src_main\temp\server\!debug\animation.obj"
-"\Xash3D\src_main\temp\server\!debug\apache.obj"
-"\Xash3D\src_main\temp\server\!debug\barnacle.obj"
-"\Xash3D\src_main\temp\server\!debug\barney.obj"
-"\Xash3D\src_main\temp\server\!debug\basebrush.obj"
-"\Xash3D\src_main\temp\server\!debug\baseentity.obj"
-"\Xash3D\src_main\temp\server\!debug\basefunc.obj"
-"\Xash3D\src_main\temp\server\!debug\basefx.obj"
-"\Xash3D\src_main\temp\server\!debug\baseinfo.obj"
-"\Xash3D\src_main\temp\server\!debug\baseitem.obj"
-"\Xash3D\src_main\temp\server\!debug\baselogic.obj"
-"\Xash3D\src_main\temp\server\!debug\basemonster.obj"
-"\Xash3D\src_main\temp\server\!debug\basemover.obj"
-"\Xash3D\src_main\temp\server\!debug\baseother.obj"
-"\Xash3D\src_main\temp\server\!debug\basepath.obj"
-"\Xash3D\src_main\temp\server\!debug\basephys.obj"
-"\Xash3D\src_main\temp\server\!debug\baserockets.obj"
-"\Xash3D\src_main\temp\server\!debug\basetank.obj"
-"\Xash3D\src_main\temp\server\!debug\basetrigger.obj"
-"\Xash3D\src_main\temp\server\!debug\baseutil.obj"
-"\Xash3D\src_main\temp\server\!debug\baseweapon.obj"
-"\Xash3D\src_main\temp\server\!debug\baseworld.obj"
-"\Xash3D\src_main\temp\server\!debug\client.obj"
-"\Xash3D\src_main\temp\server\!debug\combat.obj"
-"\Xash3D\src_main\temp\server\!debug\decals.obj"
-"\Xash3D\src_main\temp\server\!debug\defaultai.obj"
-"\Xash3D\src_main\temp\server\!debug\dll_int.obj"
-"\Xash3D\src_main\temp\server\!debug\flyingmonster.obj"
-"\Xash3D\src_main\temp\server\!debug\game.obj"
-"\Xash3D\src_main\temp\server\!debug\gamerules.obj"
-"\Xash3D\src_main\temp\server\!debug\generic.obj"
-"\Xash3D\src_main\temp\server\!debug\globals.obj"
-"\Xash3D\src_main\temp\server\!debug\gman.obj"
-"\Xash3D\src_main\temp\server\!debug\hassassin.obj"
-"\Xash3D\src_main\temp\server\!debug\headcrab.obj"
-"\Xash3D\src_main\temp\server\!debug\hgrunt.obj"
-"\Xash3D\src_main\temp\server\!debug\leech.obj"
-"\Xash3D\src_main\temp\server\!debug\legacy.obj"
-"\Xash3D\src_main\temp\server\!debug\lights.obj"
-"\Xash3D\src_main\temp\server\!debug\multiplay_gamerules.obj"
-"\Xash3D\src_main\temp\server\!debug\nodes.obj"
-"\Xash3D\src_main\temp\server\!debug\osprey.obj"
-"\Xash3D\src_main\temp\server\!debug\parent.obj"
-"\Xash3D\src_main\temp\server\!debug\player.obj"
-"\Xash3D\src_main\temp\server\!debug\rat.obj"
-"\Xash3D\src_main\temp\server\!debug\roach.obj"
-"\Xash3D\src_main\temp\server\!debug\saverestore.obj"
-"\Xash3D\src_main\temp\server\!debug\scientist.obj"
-"\Xash3D\src_main\temp\server\!debug\scripted.obj"
-"\Xash3D\src_main\temp\server\!debug\sfx.obj"
-"\Xash3D\src_main\temp\server\!debug\singleplay_gamerules.obj"
-"\Xash3D\src_main\temp\server\!debug\sound.obj"
-"\Xash3D\src_main\temp\server\!debug\squadmonster.obj"
-"\Xash3D\src_main\temp\server\!debug\talkmonster.obj"
-"\Xash3D\src_main\temp\server\!debug\teamplay_gamerules.obj"
-"\Xash3D\src_main\temp\server\!debug\turret.obj"
-"\Xash3D\src_main\temp\server\!debug\utils.obj"
-"\Xash3D\src_main\temp\server\!debug\weapon_generic.obj"
-"\Xash3D\src_main\temp\server\!debug\zombie.obj"
+msvcrt.lib /nologo /subsystem:windows /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /def:".\server.def" /out:"..\temp\server\!release/server.dll" /implib:"..\temp\server\!release/server.lib" /libpath:"..\common\libs" 
+"\Xash3D\src_main\temp\server\!release\ai_sound.obj"
+"\Xash3D\src_main\temp\server\!release\animating.obj"
+"\Xash3D\src_main\temp\server\!release\animation.obj"
+"\Xash3D\src_main\temp\server\!release\apache.obj"
+"\Xash3D\src_main\temp\server\!release\barnacle.obj"
+"\Xash3D\src_main\temp\server\!release\barney.obj"
+"\Xash3D\src_main\temp\server\!release\basebrush.obj"
+"\Xash3D\src_main\temp\server\!release\baseentity.obj"
+"\Xash3D\src_main\temp\server\!release\basefunc.obj"
+"\Xash3D\src_main\temp\server\!release\basefx.obj"
+"\Xash3D\src_main\temp\server\!release\baseinfo.obj"
+"\Xash3D\src_main\temp\server\!release\baseitem.obj"
+"\Xash3D\src_main\temp\server\!release\baselogic.obj"
+"\Xash3D\src_main\temp\server\!release\basemonster.obj"
+"\Xash3D\src_main\temp\server\!release\basemover.obj"
+"\Xash3D\src_main\temp\server\!release\baseother.obj"
+"\Xash3D\src_main\temp\server\!release\basepath.obj"
+"\Xash3D\src_main\temp\server\!release\basephys.obj"
+"\Xash3D\src_main\temp\server\!release\baserockets.obj"
+"\Xash3D\src_main\temp\server\!release\basetank.obj"
+"\Xash3D\src_main\temp\server\!release\basetrigger.obj"
+"\Xash3D\src_main\temp\server\!release\baseutil.obj"
+"\Xash3D\src_main\temp\server\!release\baseweapon.obj"
+"\Xash3D\src_main\temp\server\!release\baseworld.obj"
+"\Xash3D\src_main\temp\server\!release\client.obj"
+"\Xash3D\src_main\temp\server\!release\combat.obj"
+"\Xash3D\src_main\temp\server\!release\decals.obj"
+"\Xash3D\src_main\temp\server\!release\defaultai.obj"
+"\Xash3D\src_main\temp\server\!release\dll_int.obj"
+"\Xash3D\src_main\temp\server\!release\flyingmonster.obj"
+"\Xash3D\src_main\temp\server\!release\game.obj"
+"\Xash3D\src_main\temp\server\!release\gamerules.obj"
+"\Xash3D\src_main\temp\server\!release\generic.obj"
+"\Xash3D\src_main\temp\server\!release\globals.obj"
+"\Xash3D\src_main\temp\server\!release\gman.obj"
+"\Xash3D\src_main\temp\server\!release\hassassin.obj"
+"\Xash3D\src_main\temp\server\!release\headcrab.obj"
+"\Xash3D\src_main\temp\server\!release\hgrunt.obj"
+"\Xash3D\src_main\temp\server\!release\leech.obj"
+"\Xash3D\src_main\temp\server\!release\legacy.obj"
+"\Xash3D\src_main\temp\server\!release\lights.obj"
+"\Xash3D\src_main\temp\server\!release\multiplay_gamerules.obj"
+"\Xash3D\src_main\temp\server\!release\nodes.obj"
+"\Xash3D\src_main\temp\server\!release\osprey.obj"
+"\Xash3D\src_main\temp\server\!release\parent.obj"
+"\Xash3D\src_main\temp\server\!release\player.obj"
+"\Xash3D\src_main\temp\server\!release\rat.obj"
+"\Xash3D\src_main\temp\server\!release\roach.obj"
+"\Xash3D\src_main\temp\server\!release\saverestore.obj"
+"\Xash3D\src_main\temp\server\!release\scientist.obj"
+"\Xash3D\src_main\temp\server\!release\scripted.obj"
+"\Xash3D\src_main\temp\server\!release\sfx.obj"
+"\Xash3D\src_main\temp\server\!release\singleplay_gamerules.obj"
+"\Xash3D\src_main\temp\server\!release\sound.obj"
+"\Xash3D\src_main\temp\server\!release\squadmonster.obj"
+"\Xash3D\src_main\temp\server\!release\talkmonster.obj"
+"\Xash3D\src_main\temp\server\!release\teamplay_gamerules.obj"
+"\Xash3D\src_main\temp\server\!release\turret.obj"
+"\Xash3D\src_main\temp\server\!release\utils.obj"
+"\Xash3D\src_main\temp\server\!release\weapon_generic.obj"
+"\Xash3D\src_main\temp\server\!release\zombie.obj"
 ]
-Creating command line "link.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP8AA0.tmp"
-Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP8AA1.bat" with contents
+Creating command line "link.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP938F.tmp"
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP9390.bat" with contents
 [
 @echo off
-copy \Xash3D\src_main\temp\server\!debug\server.dll "D:\Xash3D\bin\server.dll"
+copy \Xash3D\src_main\temp\server\!release\server.dll "D:\Xash3D\bin\server.dll"
 ]
-Creating command line "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP8AA1.bat"
+Creating command line "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP9390.bat"
 Compiling...
-ai_sound.cpp
-Generating Code...
-Compiling...
-animating.cpp
-animation.cpp
-apache.cpp
-barnacle.cpp
-barney.cpp
-basebrush.cpp
-baseentity.cpp
-basefunc.cpp
-basefx.cpp
-baseinfo.cpp
-baseitem.cpp
-baselogic.cpp
-basemonster.cpp
-basemover.cpp
-baseother.cpp
-basepath.cpp
-basephys.cpp
-baserockets.cpp
-basetank.cpp
-basetrigger.cpp
-Generating Code...
-Compiling...
-baseutil.cpp
 baseweapon.cpp
-baseworld.cpp
-client.cpp
-combat.cpp
-defaultai.cpp
-dll_int.cpp
-flyingmonster.cpp
-game.cpp
-gamerules.cpp
-generic.cpp
-globals.cpp
-gman.cpp
-hassassin.cpp
-headcrab.cpp
-hgrunt.cpp
-leech.cpp
-lights.cpp
-multiplay_gamerules.cpp
-nodes.cpp
-Generating Code...
-Compiling...
-osprey.cpp
-parent.cpp
-player.cpp
-rat.cpp
-roach.cpp
-saverestore.cpp
-scientist.cpp
-scripted.cpp
-sfx.cpp
-singleplay_gamerules.cpp
-sound.cpp
-squadmonster.cpp
-talkmonster.cpp
-teamplay_gamerules.cpp
-turret.cpp
-utils.cpp
-weapon_generic.cpp
-zombie.cpp
-Generating Code...
 Linking...
+   Creating library ..\temp\server\!release/server.lib and object ..\temp\server\!release/server.exp
 <h3>Output Window</h3>
-Performing Custom Build Step on \Xash3D\src_main\temp\server\!debug\server.dll
+Performing Custom Build Step on \Xash3D\src_main\temp\server\!release\server.dll
 Скопировано файлов:         1.
 
 

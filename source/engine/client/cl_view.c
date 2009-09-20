@@ -36,27 +36,6 @@ void V_ClearScene( void )
 }
 
 /*
-====================
-V_CalcFov
-====================
-*/
-float V_CalcFov( float fov_x, float width, float height )
-{
-	float	fov_y, x, rad = 360.0f * M_PI;
-
-	// check to avoid division by zero
-	if( fov_x == 0 ) Host_Error( "V_CalcFov: null fov!\n" );
-
-	// make sure that fov in-range
-	fov_x = bound( 1, fov_x, 179 );
-	x = width / tan( fov_x / rad );
-	fov_y = atan2( height, x );
-	fov_y = (fov_y * rad);
-
-	return fov_y;
-}
-
-/*
 ===============
 V_SetupRefDef
 
@@ -72,8 +51,6 @@ void V_SetupRefDef( void )
 	// UNDONE: temporary place for detect waterlevel
 	CL_CheckWater( clent );
 
-	// get field of view
-	cl.refdef.fov_x = clent->v.fov;
 	VectorCopy( clent->v.velocity, cl.refdef.simvel );
 	VectorCopy( clent->v.origin, cl.refdef.simorg );
 	VectorCopy( clent->v.view_ofs, cl.refdef.viewheight );

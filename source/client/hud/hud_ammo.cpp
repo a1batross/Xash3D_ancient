@@ -333,6 +333,28 @@ void CHudAmmo :: Think( void )
 		}
 	}
 
+	if( Q_rint( gHUD.m_flFOV ) != gWR.iOldFOV )
+	{
+		if( m_pWeapon )
+		{
+			// update crosshairs
+			if( gHUD.m_flFOV >= 90 )
+			{
+				// normal crosshairs
+				if( m_pWeapon->iOnTarget && m_pWeapon->hAutoaim )
+					SetCrosshair(m_pWeapon->hAutoaim, m_pWeapon->rcAutoaim, 255, 255, 255 );
+				else SetCrosshair( m_pWeapon->hCrosshair, m_pWeapon->rcCrosshair, 255, 255, 255 );
+			}
+			else
+			{	// zoomed crosshairs
+				if( m_pWeapon->iOnTarget && m_pWeapon->hZoomedAutoaim )
+					SetCrosshair(m_pWeapon->hZoomedAutoaim, m_pWeapon->rcZoomedAutoaim, 255, 255, 255 );
+				else SetCrosshair( m_pWeapon->hZoomedCrosshair, m_pWeapon->rcZoomedCrosshair, 255, 255, 255 );
+			}
+		}
+		gWR.iOldFOV = gHUD.m_flFOV;
+	}
+
 	if( !gpActiveSel ) return;
 
 	// has the player selected one?
@@ -566,20 +588,21 @@ int CHudAmmo::MsgFunc_CurWeapon( const char *pszName, int iSize, void *pbuf )
 		return 1;
 
 	m_pWeapon = pWeapon;
+	m_pWeapon->iOnTarget = fOnTarget;
 
+	// update crosshairs
 	if( gHUD.m_flFOV >= 90 )
 	{
 		// normal crosshairs
-		if( fOnTarget && m_pWeapon->hAutoaim )
+		if( m_pWeapon->iOnTarget && m_pWeapon->hAutoaim )
 			SetCrosshair(m_pWeapon->hAutoaim, m_pWeapon->rcAutoaim, 255, 255, 255 );
 		else SetCrosshair( m_pWeapon->hCrosshair, m_pWeapon->rcCrosshair, 255, 255, 255 );
 	}
 	else
 	{	// zoomed crosshairs
-		if( fOnTarget && m_pWeapon->hZoomedAutoaim )
+		if( m_pWeapon->iOnTarget && m_pWeapon->hZoomedAutoaim )
 			SetCrosshair(m_pWeapon->hZoomedAutoaim, m_pWeapon->rcZoomedAutoaim, 255, 255, 255 );
 		else SetCrosshair( m_pWeapon->hZoomedCrosshair, m_pWeapon->rcZoomedCrosshair, 255, 255, 255 );
-
 	}
 
 	m_fFade = 200.0f; //!!!

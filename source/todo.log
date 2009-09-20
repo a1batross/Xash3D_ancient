@@ -141,3 +141,4 @@ Beta 13.12.09
 117. re-organize refdef flags			OK
 118. revise ref_params_t			OK
 119. fixup client smooth stair climbing
+120. fixup fov				OK

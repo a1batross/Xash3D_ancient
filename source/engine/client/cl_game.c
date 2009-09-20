@@ -430,7 +430,7 @@ shader_t pfnLoadShader( const char *szShaderName, int fShaderNoMip )
 	if( !re ) return 0; // render not initialized
 	if( !szShaderName || !*szShaderName )
 	{
-		MsgDev( D_ERROR, "CL_LoadShader: invalid shadername\n" );
+		MsgDev( D_ERROR, "CL_LoadShader: invalid shadername (%s)\n", fShaderNoMip ? "nomip" : "generic" );
 		return -1;
 	}
 

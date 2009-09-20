@@ -444,8 +444,8 @@ void CEnvZoom::Think( void )
 	}
 	else
 	{
-		if( pev->body ) ((CBasePlayer *)(CBaseEntity *)m_hActivator)->pev->fov += 0.5f;
-		else ((CBasePlayer *)(CBaseEntity *)m_hActivator)->pev->fov -= 0.5f;
+		if( pev->body ) ((CBasePlayer *)(CBaseEntity *)m_hActivator)->pev->fov += 0.5f * gpGlobals->frametime;
+		else ((CBasePlayer *)(CBaseEntity *)m_hActivator)->pev->fov -= 0.5f * gpGlobals->frametime;
 	}
 	m_iState = STATE_ON;
 	SetNextThink ( pev->health );

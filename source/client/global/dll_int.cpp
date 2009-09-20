@@ -158,20 +158,23 @@ void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t 
 	switch( state->ed_type )
 	{
 	case ED_CLIENT:
-		if( ent == GetLocalPlayer())
-		{
-			edict_t	*viewent = GetViewModel();
-
-			// setup player viewmodel (only for local player!)
-			viewent->v.modelindex = state->viewmodel;
-		}
 		for( i = 0; i < 3; i++ )
 		{
 			ent->v.punchangle[i] = LerpAngle( prev->punch_angles[i], state->punch_angles[i], m_fLerp);
 			ent->v.viewangles[i] = LerpAngle( prev->viewangles[i], state->viewangles[i], m_fLerp);
 			ent->v.view_ofs[i] = LerpAngle( prev->viewoffset[i], state->viewoffset[i], m_fLerp);
 		}
-		ent->v.fov = LerpPoint( prev->fov, state->fov, m_fLerp ); 
+
+		if( prev->fov < 90 && state->fov == 90 ) ent->v.fov = state->fov; // fov is reset, so don't lerping
+		else ent->v.fov = LerpPoint( prev->fov, state->fov, m_fLerp ); 
+		if( ent == GetLocalPlayer())
+		{
+			edict_t	*viewent = GetViewModel();
+
+			// setup player viewmodel (only for local player!)
+			viewent->v.modelindex = state->viewmodel;
+			gHUD.m_flFOV = ent->v.fov; // keep client fov an actual 
+		}
 		break;
 	case ED_PORTAL:
 	case ED_MOVER:

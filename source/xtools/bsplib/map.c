@@ -1338,7 +1338,7 @@ static bool ParseMapEntity( bool onlyLights )
 			}
 			else if( !com.stricmp( token.string, "terrainDef" ))
 			{
-				MsgDev( D_WARN, "Terrain entity parsing not supported in this build.\n" );	/* ydnar */
+				MsgDev( D_WARN, "Terrain entity parsing not supported in this build.\n" );
 				Com_SkipBracedSection( mapfile, 0 );
 				g_bBrushPrimit = BRUSH_RADIANT;
 			}

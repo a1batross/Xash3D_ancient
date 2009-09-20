@@ -48,7 +48,6 @@ cvar_t	*info_password;
 cvar_t	*info_spectator;
 cvar_t	*name;
 cvar_t	*rate;
-cvar_t	*fov;
 
 client_static_t	cls;
 client_t		cl;
@@ -1100,7 +1099,6 @@ void CL_InitLocal( void )
 	info_spectator = Cvar_Get( "spectator", "0", CVAR_USERINFO, "spectator mode" );
 	name = Cvar_Get( "name", "unnamed", CVAR_USERINFO | CVAR_ARCHIVE, "player name" );
 	rate = Cvar_Get( "rate", "25000", CVAR_USERINFO | CVAR_ARCHIVE, "player network rate" );	// FIXME
-	fov = Cvar_Get( "fov", "90", CVAR_USERINFO | CVAR_ARCHIVE, "client fov" );
 	cl_showfps = Cvar_Get( "cl_showfps", "1", CVAR_ARCHIVE, "show client fps" );
 
 	// register our commands

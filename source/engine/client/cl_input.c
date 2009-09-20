@@ -58,8 +58,16 @@ CL_MouseEvent
 */
 void CL_MouseEvent( int mx, int my )
 {
-	cl.mouse_x[cl.mouse_step] += mx;
-	cl.mouse_y[cl.mouse_step] += my;
+	if( UI_IsVisible( ))
+	{
+		// if the menu is visible, move the menu cursor
+		UI_MouseMove( mx, my );
+	}
+	else
+	{
+		cl.mouse_x[cl.mouse_step] += mx;
+		cl.mouse_y[cl.mouse_step] += my;
+	}
 }
 
 /*
@@ -89,38 +97,30 @@ void CL_MouseMove( usercmd_t *cmd )
 
 	rate = com.sqrt( mx * mx + my * my ) / 0.5f;
 
-	if( UI_IsVisible( ))
+	if( cl.frame.ps.health <= 0 ) return;
+	if( cl.data.mouse_sensitivity == 0.0f ) cl.data.mouse_sensitivity = 1.0f;
+	accel_sensitivity = m_sensitivity->value + rate * cl_mouseaccel->value;
+	accel_sensitivity *= cl.data.mouse_sensitivity; // scale by fov
+	mx *= accel_sensitivity;
+	my *= accel_sensitivity;
+
+	// add mouse X/Y movement to cmd
+	if(( in_strafe.state & 1 ) || (lookstrafe->integer && mlook_active))
+		cmd->sidemove += m_side->value * mx;
+	else cl.refdef.cl_viewangles[YAW] -= m_yaw->value * mx;
+
+	if( mlook_active ) clgame.dllFuncs.pfnStopPitchDrift();		
+
+	if( mlook_active && !( in_strafe.state & 1 ))
 	{
-		// if the menu is visible, move the menu cursor
-		UI_MouseMove( mx, my );
+		cl.refdef.cl_viewangles[PITCH] += m_pitch->value * my;
+		cl.refdef.cl_viewangles[PITCH] = bound( -70, cl.refdef.cl_viewangles[PITCH], 80 );
 	}
-	else if( cls.key_dest != key_menu )
+	else
 	{
-		if( cl.frame.ps.health <= 0 ) return;
-		if( cl.mouse_sens == 0.0f ) cl.mouse_sens = 1.0f;
-		accel_sensitivity = m_sensitivity->value + rate * cl_mouseaccel->value;
-		accel_sensitivity *= cl.mouse_sens; // scale by fov
-		mx *= accel_sensitivity;
-		my *= accel_sensitivity;
-
-		// add mouse X/Y movement to cmd
-		if(( in_strafe.state & 1 ) || (lookstrafe->integer && mlook_active))
-			cmd->sidemove += m_side->value * mx;
-		else cl.refdef.cl_viewangles[YAW] -= m_yaw->value * mx;
-
-		if( mlook_active ) clgame.dllFuncs.pfnStopPitchDrift();		
-
-		if( mlook_active && !( in_strafe.state & 1 ))
-		{
-			cl.refdef.cl_viewangles[PITCH] += m_pitch->value * my;
-			cl.refdef.cl_viewangles[PITCH] = bound( -70, cl.refdef.cl_viewangles[PITCH], 80 );
-		}
-		else
-		{
-			if(( in_strafe.state & 1 ) && cl.frame.ps.movetype == MOVETYPE_NOCLIP )
-				cmd->upmove -= m_forward->value * my;
-			else cmd->forwardmove -= m_forward->value * my;
-		}
+		if(( in_strafe.state & 1 ) && cl.frame.ps.movetype == MOVETYPE_NOCLIP )
+			cmd->upmove -= m_forward->value * my;
+		else cmd->forwardmove -= m_forward->value * my;
 	}
 }
 
@@ -497,23 +497,28 @@ CL_FinishMove
 */
 void CL_FinishMove( usercmd_t *cmd )
 {
-	int	ms;
+	static double	extramsec = 0;
+	int		ms;
 
 	// send milliseconds of time to apply the move
-	ms = cls.frametime * 1000;
+	extramsec += cls.frametime * 1000;
+	ms = extramsec;
+	extramsec -= ms;		// fractional part is left for next frame
 	if( ms > 250 ) ms = 100;	// time was unreasonable
 
 	cmd->msec = ms;
+
+	// send the current server time so the amount of movement
+	// can be determined without allowing cheating
+	cmd->servertime = cl.time;
 
 	if( cls.key_dest == key_game )
 		cmd->buttons = CL_ButtonBits( 1 );
 
 	// process commands with user dll's
-	cl.data.fov = cl.refdef.fov_x;
 	cl.data.iKeyBits = CL_ButtonBits( 0 );
 
 	cl.data.iWeaponBits = cl.frame.ps.weapons;
-	cl.data.mouse_sensitivity = cl.mouse_sens;
 
 	VectorCopy( cl.refdef.cl_viewangles, cmd->angles );
 	VectorCopy( cl.refdef.cl_viewangles, cl.data.angles );
@@ -522,8 +527,6 @@ void CL_FinishMove( usercmd_t *cmd )
 	clgame.dllFuncs.pfnUpdateClientData( &cl.data, ( cl.time * 0.001f ));
 
 	CL_ResetButtonBits( cl.data.iKeyBits );
-	cl.refdef.fov_x = cl.data.fov;
-	cl.mouse_sens = cl.data.mouse_sensitivity;
 
 	in_cancel = 0;
 }
@@ -725,6 +728,7 @@ void CL_InitServerCommands( void )
 	Cmd_AddCommand ("give", NULL, "give specified item or weapon" );
 	Cmd_AddCommand ("intermission", NULL, "go to intermission" );
 	Cmd_AddCommand ("god", NULL, "classic cheat" );
+	Cmd_AddCommand ("fov", NULL, "set client field of view" );
 }
 
 /*

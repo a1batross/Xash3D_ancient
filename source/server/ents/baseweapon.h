@@ -355,6 +355,7 @@ public:
 	//weapon nonsaved variables
           float	m_flHoldTime;		// button holdtime
 	int	m_iClientClip;	 	// the last version of m_iClip sent to hud dll
+	int	m_iClientFov;		// g-cont. just to right update crosshairs
 	int	m_iClientWeaponState;	// the last version of the weapon state sent to hud dll (is current weapon, is on target)
 	int	m_iPlayEmptySound;		// trigger for empty sound
 	int	m_fInReload;	 	// Are we in the middle of a reload;

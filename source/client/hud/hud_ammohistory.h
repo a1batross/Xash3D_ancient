@@ -40,13 +40,14 @@ public:
 
 	void Reset( void )
 	{
-		iOldWeaponBits = 0;
+		iOldWeaponBits = iOldFOV = 0;
 		memset( rgSlots, 0, sizeof rgSlots );
 		memset( riAmmo, 0, sizeof riAmmo );
 	}
 
 ///// WEAPON /////
 	int		iOldWeaponBits;
+	int		iOldFOV;
 
 	WEAPON *GetWeapon( int iId ) { return &rgWeapons[iId]; }
 	void AddWeapon( WEAPON *wp ) 

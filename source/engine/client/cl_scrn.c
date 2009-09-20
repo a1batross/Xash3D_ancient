@@ -442,10 +442,10 @@ SCR_Init
 */
 void SCR_Init( void )
 {
-	scr_showpause = Cvar_Get("scr_showpause", "1", 0, "show pause picture" );
-	scr_centertime = Cvar_Get("scr_centertime", "2.5", 0, "centerprint hold time" );
-	scr_printspeed = Cvar_Get("scr_printspeed", "8", 0, "centerprint speed of print" );
-	cl_levelshot_name = Cvar_Get( "cl_levelshot_name", "", 0, "contains path to current levelshot" );
+	scr_showpause = Cvar_Get( "scr_showpause", "1", 0, "show pause picture" );
+	scr_centertime = Cvar_Get( "scr_centertime", "2.5", 0, "centerprint hold time" );
+	scr_printspeed = Cvar_Get( "scr_printspeed", "8", 0, "centerprint speed of print" );
+	cl_levelshot_name = Cvar_Get( "cl_levelshot_name", MAP_DEFAULT_SHADER, 0, "contains path to current levelshot" );
 	scr_loading = Cvar_Get("scr_loading", "0", 0, "loading bar progress" );
 	scr_download = Cvar_Get("scr_download", "0", 0, "downloading bar progress" );
 	cl_testentities = Cvar_Get ("cl_testentities", "0", 0, "test client entities" );
