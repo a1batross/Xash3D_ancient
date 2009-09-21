@@ -198,15 +198,18 @@ typedef enum
 	SE_KEY,		// ev.value[0] is a key code, ev.value[1] is the down flag
 	SE_CHAR,		// ev.value[0] is an ascii char
 	SE_MOUSE,		// ev.value[0] and ev.value[1] are reletive signed x / y moves
+	SE_JOYSTICK,	// evValue is an axis number and evValue2 is the current state (-127 to 127)
 	SE_CONSOLE,	// ev.data is a char*
+	SE_PACKET,	// ev.data is a netadr_t followed by data bytes to ev.length
 } ev_type_t;
 
 typedef struct
 {
-	ev_type_t	type;
-	int	value[2];
-	void	*data;
-	size_t	length;
+	ev_type_t		type;
+	int		time;	// actual timestamp
+	int		value[2];
+	void		*data;
+	size_t		length;
 } sys_event_t;
 
 /*
@@ -415,7 +418,7 @@ typedef struct stdilib_api_s
 	void (*exit)( void );				// normal silent termination
 	void (*sleep)( int msec );				// sleep for some msec
 	char *(*clipboard)( void );				// get clipboard data
-	void (*queevent)( ev_type_t type, int value, int value2, int length, void *ptr );
+	void (*queevent)( int time, ev_type_t type, int value, int value2, int length, void *ptr );
 	sys_event_t (*getevent)( void );			// get system events
 
 	// crclib.c funcs

@@ -1237,7 +1237,7 @@ Ptr should either be null, or point to a block of data that can
 be freed by the game later.
 ================
 */
-void Sys_QueEvent( ev_type_t type, int value, int value2, int length, void *ptr )
+void Sys_QueEvent( int time, ev_type_t type, int value, int value2, int length, void *ptr )
 {
 	sys_event_t	*ev;
 
@@ -1251,6 +1251,11 @@ void Sys_QueEvent( ev_type_t type, int value, int value2, int length, void *ptr 
 	}
 	event_head++;
 
+	// presets
+	if( time == 0 ) time = Sys_Milliseconds();
+	else if( time == -1 ) time = Sys.msg_time;
+
+	ev->time = time;
 	ev->type = type;
 	ev->value[0] = value;
 	ev->value[1] = value2;
@@ -1285,6 +1290,7 @@ sys_event_t Sys_GetEvent( void )
 			Sys.error = true;
 			Sys_Exit();
 		}
+		Sys.msg_time = msg.time;
 		TranslateMessage(&msg );
       		DispatchMessage( &msg );
 	}
@@ -1299,7 +1305,7 @@ sys_event_t Sys_GetEvent( void )
 		len = com_strlen( s ) + 1;
 		b = Malloc( len );
 		com_strncpy( b, s, len - 1 );
-		Sys_QueEvent( SE_CONSOLE, 0, 0, len, b );
+		Sys_QueEvent( 0, SE_CONSOLE, 0, 0, len, b );
 	}
 
 	// return if we have data
@@ -1311,6 +1317,7 @@ sys_event_t Sys_GetEvent( void )
 
 	// create an empty event to return
 	Mem_Set( &ev, 0, sizeof( ev ));
+	ev.time = timeGetTime(); // should be replace with Sys_Milliseconds ?
 
 	return ev;
 }

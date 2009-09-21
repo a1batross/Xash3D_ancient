@@ -20,6 +20,19 @@ uint		frame_type;
 uint		group_num;
 string		sp_name;
 ref_shader_t	**frames = NULL;
+cvar_t		*r_sprite_lerping;
+uint		tex_flags = 0;
+
+/*
+====================
+R_SpriteInit
+
+====================
+*/
+void R_SpriteInit( void )
+{
+	r_sprite_lerping = Cvar_Get( "r_sprite_lerping", "1", CVAR_ARCHIVE, "enables sprite model animation lerping" );
+}
 	
 /*
 ====================
@@ -50,6 +63,7 @@ dframetype_t *R_SpriteLoadFrame( ref_model_t *mod, void *pin, mspriteframe_t **p
 	pspriteframe->right = pinframe->width + pinframe->origin[0];
 	pspriteframe->radius = com.sqrt((pinframe->width * pinframe->width) + (pinframe->height * pinframe->height));
 	tex = R_FindTexture( name, (byte *)pin, pinframe->width * pinframe->height, 0 );
+	tex_flags |= tex->flags;
 	*ppframe = pspriteframe;
 
 	R_ShaderAddStageTexture( tex );
@@ -57,7 +71,7 @@ dframetype_t *R_SpriteLoadFrame( ref_model_t *mod, void *pin, mspriteframe_t **p
 	if( frame_type == FRAME_SINGLE )
 	{
 		com.snprintf( shadername, MAX_STRING, "sprites/%s.spr/%s_%i%i )", sp_name, frame_prefix, framenum/10, framenum%10 );
-		pspriteframe->shader = R_LoadShader( shadername, SHADER_SPRITE, true, tex->flags, SHADER_INVALID )->shadernum;
+		pspriteframe->shader = R_LoadShader( shadername, SHADER_SPRITE, true, tex_flags, SHADER_INVALID )->shadernum;
 		frames = Mem_Realloc( mod->mempool, frames, sizeof( ref_shader_t* ) * (mod->numshaders + 1));
 		frames[mod->numshaders++] = &r_shaders[pspriteframe->shader];
 	}
@@ -103,7 +117,7 @@ dframetype_t *R_SpriteLoadGroup( ref_model_t *mod, void * pin, mspriteframe_t **
 	}
 
 	com.snprintf( shadername, MAX_STRING, "sprites/%s.spr/%s_%i%i", sp_name, frame_prefix, group_num/10, group_num%10 );
-	group_shader = R_LoadShader( shadername, SHADER_SPRITE, true, 0, SHADER_INVALID )->shadernum;
+	group_shader = R_LoadShader( shadername, SHADER_SPRITE, true, tex_flags, SHADER_INVALID )->shadernum;
 	frames = Mem_Realloc( mod->mempool, frames, sizeof( ref_shader_t* ) * (mod->numshaders + 1));
 	frames[mod->numshaders++] = &r_shaders[group_shader];
 
@@ -210,14 +224,17 @@ void Mod_SpriteLoadModel( ref_model_t *mod, const void *buffer )
 		switch( frametype )
 		{
 		case FRAME_SINGLE:
+			tex_flags = 0;
 			com.strncpy( frame_prefix, "one", MAX_STRING );
 			pframetype = R_SpriteLoadFrame(mod, pframetype + 1, &psprite->frames[i].frameptr, i );
 			break;
 		case FRAME_GROUP:
+			tex_flags = 0;
 			com.strncpy( frame_prefix, "grp", MAX_STRING );
 			pframetype = R_SpriteLoadGroup(mod, pframetype + 1, &psprite->frames[i].frameptr, i );
 			break;
 		case FRAME_ANGLED:
+			tex_flags = 0;
 			com.strncpy( frame_prefix, "ang", MAX_STRING );
 			pframetype = R_SpriteLoadGroup(mod, pframetype + 1, &psprite->frames[i].frameptr, i );
 			break;
@@ -276,9 +293,234 @@ mspriteframe_t *R_GetSpriteFrame( ref_entity_t *ent )
 	else if( psprite->frames[frame].type == FRAME_ANGLED )
 	{
 		// e.g. doom-style sprite monsters
-		int angleframe = (int)((RI.refdef.viewangles[1] - ent->angles[1])/360*8 + 0.5 - 4) & 7;
+		float	yaw = ent->angles[1] - 45;	// angled bias
+		int	angleframe = (int)((RI.refdef.viewangles[1] - yaw) / 360 * 8 + 0.5 - 4) & 7;
+
 		pspritegroup = (mspritegroup_t *)psprite->frames[frame].frameptr;
 		pspriteframe = pspritegroup->frames[angleframe];
 	}
 	return pspriteframe;
+}
+
+/*
+================
+R_GetSpriteFrameInterpolant
+================
+*/
+float R_GetSpriteFrameInterpolant( ref_entity_t *ent, mspriteframe_t **oldframe, mspriteframe_t **curframe )
+{
+	msprite_t		*psprite;
+	mspritegroup_t	*pspritegroup;
+	int		i, j, numframes, frame;
+	float		lerpFrac, time, jtime, jinterval;
+	float		*pintervals, fullinterval, targettime;
+	int		m_fDoInterp;
+
+	psprite = ent->model->extradata;
+	frame = (int)ent->frame;
+	lerpFrac = 1.0f;
+
+	// misc info
+	if( r_sprite_lerping->integer )
+		m_fDoInterp = (ent->flags & EF_NOINTERP) ? false : true;
+	else m_fDoInterp = false;
+
+	if((frame >= psprite->numframes) || (frame < 0))
+	{
+		MsgDev( D_WARN, "R_GetSpriteFrame: no such frame %d (%s)\n", frame, ent->model->name );
+		frame = 0;
+	}
+
+	if( psprite->frames[frame].type == FRAME_SINGLE )
+	{
+		if( m_fDoInterp )
+		{
+			if( psprite->frames[ent->prev.sequence].type != FRAME_SINGLE )
+			{
+				// this can be happens when rendering switched between single and angled frames
+				ent->prev.sequence = ent->sequence = frame;
+				ent->animtime = RI.refdef.time;
+				lerpFrac = 1.0f;
+			}
+                              
+			if( ent->animtime < RI.refdef.time )
+			{
+				if( frame != ent->sequence )
+				{
+					ent->prev.sequence = ent->sequence;
+					ent->sequence = frame;
+					ent->animtime = RI.refdef.time;
+					lerpFrac = 0.0f;
+				}
+				else lerpFrac = (RI.refdef.time - ent->animtime) * ent->framerate;
+			}
+			else
+			{
+				ent->prev.sequence = ent->sequence = frame;
+				ent->animtime = RI.refdef.time;
+				lerpFrac = 0.0f;
+			}
+		}
+		else
+		{
+			ent->prev.sequence = ent->sequence = frame;
+			lerpFrac = 1.0f;
+		}
+
+		// get the interpolated frames
+		if( oldframe ) *oldframe = psprite->frames[ent->prev.sequence].frameptr;
+		if( curframe ) *curframe = psprite->frames[frame].frameptr;
+	}
+	else if( psprite->frames[frame].type == FRAME_GROUP ) 
+	{
+		pspritegroup = (mspritegroup_t *)psprite->frames[frame].frameptr;
+		pintervals = pspritegroup->intervals;
+		numframes = pspritegroup->numframes;
+		fullinterval = pintervals[numframes-1];
+		jinterval = pintervals[1] - pintervals[0];
+		time = RI.refdef.time;
+		jtime = 0.0f;
+
+		// when loading in Mod_LoadSpriteGroup, we guaranteed all interval values
+		// are positive, so we don't have to worry about division by zero
+		targettime = time - ((int)(time / fullinterval)) * fullinterval;
+
+		// LordHavoc: since I can't measure the time properly when it loops from numframes - 1 to 0,
+		// i instead measure the time of the first frame, hoping it is consistent
+		for( i = 0, j = numframes - 1; i < (numframes - 1); i++ )
+		{
+			if( pintervals[i] > targettime )
+				break;
+			j = i;
+			jinterval = pintervals[i] - jtime;
+			jtime = pintervals[i];
+		}
+
+		if( m_fDoInterp )
+			lerpFrac = (targettime - jtime) / jinterval;
+		else j = i; // no lerping
+
+		// get the interpolated frames
+		if( oldframe ) *oldframe = pspritegroup->frames[j];
+		if( curframe ) *curframe = pspritegroup->frames[i];
+	}
+	else if( psprite->frames[frame].type == FRAME_ANGLED )
+	{
+		// e.g. doom-style sprite monsters
+		float	yaw = ent->angles[1] - 45;	// angled bias
+		int	angleframe = (int)((RI.refdef.viewangles[1] - yaw) / 360 * 8 + 0.5 - 4) & 7;
+
+		if( m_fDoInterp )
+		{
+			if( psprite->frames[ent->prev.sequence].type != FRAME_ANGLED )
+			{
+				// this can be happens when rendering switched between single and angled frames
+				ent->prev.sequence = ent->sequence = frame;
+				ent->animtime = RI.refdef.time;
+				lerpFrac = 1.0f;
+			}
+
+			if( ent->animtime < RI.refdef.time )
+			{
+				if( frame != ent->sequence )
+				{
+					ent->prev.sequence = ent->sequence;
+					ent->sequence = frame;
+					ent->animtime = RI.refdef.time;
+					lerpFrac = 0.0f;
+				}
+				else lerpFrac = (RI.refdef.time - ent->animtime) * ent->framerate;
+			}
+			else
+			{
+				ent->prev.sequence = ent->sequence = frame;
+				ent->animtime = RI.refdef.time;
+				lerpFrac = 0.0f;
+			}
+		}
+		else
+		{
+			ent->prev.sequence = ent->sequence = frame;
+			lerpFrac = 1.0f;
+		}
+
+		pspritegroup = (mspritegroup_t *)psprite->frames[ent->prev.sequence].frameptr;
+		if( oldframe ) *oldframe = pspritegroup->frames[angleframe];
+
+		pspritegroup = (mspritegroup_t *)psprite->frames[frame].frameptr;
+		if( curframe ) *curframe = pspritegroup->frames[angleframe];
+	}
+	return lerpFrac;
+}
+
+/*
+=================
+R_DrawSpriteModel
+=================
+*/
+bool R_DrawSpriteModel( const meshbuffer_t *mb )
+{
+	mspriteframe_t	*frame, *oldframe;
+	msprite_t		*psprite;
+	ref_entity_t	*e = RI.currententity;
+	ref_model_t	*model = e->model;
+	float		lerp, ilerp;
+	meshbuffer_t	*rb = (meshbuffer_t *)mb;
+	rgb_t		rendercolor;
+	byte		renderamt;
+
+	psprite = (msprite_t * )model->extradata;
+
+	switch( e->rendermode )
+	{
+	case kRenderNormal:
+	case kRenderTransColor:
+	case kRenderTransAlpha:
+		frame = oldframe = R_GetSpriteFrame( e );
+		break;
+	case kRenderTransTexture:
+	case kRenderTransAdd:
+	case kRenderGlow:
+		lerp = R_GetSpriteFrameInterpolant( e, &oldframe, &frame );
+		break;
+	}
+
+	// no rotation for sprites
+	R_TranslateForEntity( e );
+
+	if( oldframe == frame )
+	{
+		// draw the single non-lerped frame
+		if( R_PushSprite( rb, psprite->type, frame->left, frame->right, frame->down, frame->up ))
+			R_RenderMeshBuffer( rb );
+	}
+	else
+	{
+		// draw two combined lerped frames
+
+		VectorCopy( e->rendercolor, rendercolor );
+		renderamt = e->renderamt;
+
+		lerp = bound( 0, lerp, 1 );
+		ilerp = 1.0f - lerp;
+	
+		if( ilerp != 0 )
+		{
+			e->renderamt = renderamt * ilerp;	// merge prevframe alpha
+			rb->shaderkey = r_shaders[oldframe->shader].sortkey;
+			if( R_PushSprite( rb, psprite->type, oldframe->left, oldframe->right, oldframe->down, oldframe->up ))
+				R_RenderMeshBuffer( rb );
+		}
+		if( lerp != 0 )
+		{
+			e->renderamt = renderamt * lerp;	// merge frame alpha
+			rb->shaderkey = r_shaders[frame->shader].sortkey;
+			if( R_PushSprite( rb, psprite->type, frame->left, frame->right, frame->down, frame->up ))
+				R_RenderMeshBuffer( rb );
+		}
+
+		// restore current values (e.g. for right mirror passes)
+		e->renderamt = renderamt;
+	}
+	return true;
 }

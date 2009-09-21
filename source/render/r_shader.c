@@ -3566,6 +3566,8 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		case kRenderTransAlpha:
 			pass->flags |= SHADERSTAGE_BLEND_DECAL;
 			pass->glState = GLSTATE_AFUNC_GE128|GLSTATE_DEPTHWRITE;
+			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
+			pass->alphaGen.type = ALPHAGEN_IDENTITY;
 			shader->sort = SORT_ALPHATEST;
 			break;
 		}
@@ -3812,7 +3814,6 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 	r_shaderTwoSided = 0;
 	r_numStageTextures = 0;
 	r_stageAnimFrequency = 0.0f;
-	r_shaderRenderMode = kRenderNormal;
 
 	Shader_SetRenderMode( shader );
 

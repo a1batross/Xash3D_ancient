@@ -135,6 +135,7 @@ void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t 
 	ent->v.flags = state->flags;
 	ent->v.ideal_pitch = state->idealpitch;
 	ent->v.oldangles = ent->v.angles;	// just a delta between frames
+	ent->v.animtime = state->animtime;
 
 	if( state->aiment != 0 )
 		ent->v.aiment = GetEntityByIndex( state->aiment );
@@ -153,7 +154,19 @@ void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t 
 	ent->v.scale = LerpPoint( prev->scale, state->scale, m_fLerp );
 
 	if(!( ent->v.flags & EF_ANIMATE )) // auto-animation uses v.frame for hold ending frame
-		ent->v.frame = LerpPoint( prev->frame, state->frame, m_fLerp ); // FIXME: this is really need ?
+	{
+		float	frame = state->frame;
+		float	prevframe = prev->frame;
+		float	lerpTime = (frame - prevframe);
+
+		if( ent->v.animtime )
+		{
+			// adjust lerping values if animation restarted
+			if( lerpTime < 0 ) prevframe = 1.001;
+			ent->v.frame = LerpPoint( prevframe, frame, m_fLerp );
+		}
+		else ent->v.frame = Q_rint( state->frame ); // sprite frames
+	}
 
 	switch( state->ed_type )
 	{

@@ -95,14 +95,16 @@ typedef struct host_parm_s
 	dword		errorframe;	// to avoid each-frame host error
 	string		finalmsg;		// server shutdown final message
 
-	long		time;
-	long		oldtime;
-	long		frametime;	// time between engine frames
+	int		frametime[2];	// time between engine frames
+	uint		framecount;	// global framecount
 
-	dword		framecount;	// global framecount
+	int		events_head;
+	int		events_tail;
+	sys_event_t	events[MAX_EVENTS];
+
 	HWND		hWnd;		// main window
 	int		developer;	// show all developer's message
-	word		max_edicts;
+	word		max_edicts;	// FIXME: this is confused
 } host_parm_t;
 
 extern host_parm_t host;
@@ -135,11 +137,11 @@ CLIENT / SERVER SYSTEMS
 
 void CL_Init( void );
 void CL_Shutdown( void );
-void CL_Frame( long time );
+void CL_Frame( int time );
 
 void SV_Init( void );
 void SV_Shutdown( bool reconnect );
-void SV_Frame( long time );
+void SV_Frame( int time );
 
 // exports
 void SV_Transform( edict_t *ed, const vec3_t origin, const matrix3x3 transform );

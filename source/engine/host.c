@@ -7,8 +7,6 @@
 #include "input.h"
 #include "client.h"
 
-#define VID_NUM_MODES ( sizeof( vid_modes ) / sizeof( vid_modes[0] ))
-
 physic_exp_t	*pe;
 render_exp_t	*re;
 vprogs_exp_t	*vm;
@@ -29,7 +27,6 @@ cvar_t	*host_serverstate;
 cvar_t	*host_cheats;
 cvar_t	*host_maxfps;
 cvar_t	*host_minfps;
-cvar_t	*host_ticrate;
 cvar_t	*host_framerate;
 cvar_t	*host_maxclients;
 cvar_t	*host_registered;
@@ -276,12 +273,67 @@ void VID_Init( void )
 
 /*
 =================
+Host_InitEvents
+=================
+*/
+void Host_InitEvents( void )
+{
+	Mem_Set( host.events, 0, sizeof( host.events ));
+	host.events_head = 0;
+	host.events_tail = 0;
+}
+
+/*
+=================
+Host_PushEvent
+=================
+*/
+void Host_PushEvent( sys_event_t *event )
+{
+	sys_event_t	*ev;
+	static bool	overflow = false;
+
+	ev = &host.events[host.events_head & (MAX_EVENTS-1)];
+
+	if( host.events_head - host.events_tail >= MAX_EVENTS )
+	{
+		if( !overflow )
+		{
+			MsgDev( D_WARN, "Host_PushEvent overflow\n" );
+			overflow = true;
+		}
+		if( ev->data ) Mem_Free( ev->data );
+		host.events_tail++;
+	}
+	else overflow = false;
+
+	*ev = *event;
+	host.events_head++;
+}
+
+/*
+=================
+Host_GetEvent
+=================
+*/
+sys_event_t Host_GetEvent( void )
+{
+	if( host.events_head > host.events_tail )
+	{
+		host.events_tail++;
+		return host.events[(host.events_tail - 1)&(MAX_EVENTS-1)];
+	}
+	return Sys_GetEvent();
+}
+
+/*
+=================
 Host_EventLoop
 
 Returns last event time
 =================
 */
-void Host_EventLoop( void )
+int Host_EventLoop( void )
 {
 	sys_event_t	ev;
 
@@ -291,10 +343,9 @@ void Host_EventLoop( void )
 		switch( ev.type )
 		{
 		case SE_NONE:
-			Cbuf_Execute ();	// execute commands and done
-			return;
+			return ev.time;
 		case SE_KEY:
-			Key_Event( ev.value[0], ev.value[1] );
+			Key_Event( ev.value[0], ev.value[1], ev.time );
 			break;
 		case SE_CHAR:
 			CL_CharEvent( ev.value[0] );
@@ -311,40 +362,67 @@ void Host_EventLoop( void )
 		}
 		if( ev.data ) Mem_Free( ev.data );
 	}
+	return 0;	// never reached
 }
 
 /*
-===================
-Host_FilterTime
+================
+Host_Milliseconds
 
-Returns false if the time is too short to run a frame
-===================
+Can be used for profiling, but will be journaled accurately
+================
 */
-bool Host_FilterTime( long time )
+int Host_Milliseconds( void )
 {
-	host.time += time;
+	sys_event_t	ev;
 
-	if( host_maxfps->modified )
+	// get events and push them until we get a null event with the current time
+	do {
+		ev = Sys_GetEvent();
+		if( ev.type != SE_NONE )
+			Host_PushEvent( &ev );
+	} while( ev.type != SE_NONE );
+	
+	return ev.time;
+}
+
+/*
+================
+Host_ModifyTime
+================
+*/
+int Host_ModifyTime( int msec )
+{
+	int	clamp_time;
+
+	// modify time for debugging values
+	if( host_framerate->value ) msec = host_framerate->value * 1000;
+	else if( timescale->value ) msec *= timescale->value;
+	if( msec < 1 && timescale->value ) msec = 1;
+
+	if( host.type == HOST_DEDICATED )
 	{
-		if( host_maxfps->integer < 10 )
-			Cvar_Set( "host_maxfps", "10" );
-		else if( host_maxfps->integer > 1000 )
-			Cvar_Set( "host_maxfps", "1000" );
-		host_maxfps->modified = false;
+		// dedicated servers don't want to clamp for a much longer
+		// period, because it would mess up all the client's views of time.
+		if( msec > 500 ) MsgDev( D_WARN, "Host_ModifyTime: %i msec frame time\n", msec );
+		clamp_time = 5000;
+	}
+	else if( SV_Active( ))
+	{
+		// for local single player gaming
+		// we may want to clamp the time to prevent players from
+		// flying off edges when something hitches.
+		clamp_time = 200;
+	}
+	else
+	{
+		// clients of remote servers do not want to clamp time, because
+		// it would skew their view of the server's time temporarily
+		clamp_time = 5000;
 	}
 
-	if( host.time - host.oldtime < (1000 / host_maxfps->integer))
-		return false; // framerate is too high
-
-	host.frametime = host.time - host.oldtime;
-	host.oldtime = host.time;
-
-	if( host_framerate->value > 0 )
-		host.frametime = host_framerate->value;
-	host.frametime = bound( 1, host.frametime, 100 );
-
-	return true;
-
+	if( msec > clamp_time ) msec = clamp_time;
+	return msec;
 }
 
 /*
@@ -352,22 +430,35 @@ bool Host_FilterTime( long time )
 Host_Frame
 =================
 */
-void Host_Frame( long time )
+void Host_Frame( void )
 {
+	int		time, min_time;
+	static int	last_time;
+
 	if( setjmp( host.abortframe ))
 		return;
 
 	rand(); // keep the random time dependent
 
-	// decide the simulation time
-	if( !Host_FilterTime( time ))
-		return;
+	// we may want to spin here if things are going too fast
+	if( host.type != HOST_DEDICATED && host_maxfps->integer > 0 )
+		min_time = 1000 / host_maxfps->integer;
+	else min_time = 1;
 
-	Host_EventLoop ();	// process all system events
+	do {
+		host.frametime[0] = Host_EventLoop();
+		if( last_time > host.frametime[0] )
+			last_time = host.frametime[0];
+		time = host.frametime[0] - last_time;
+	} while( time < min_time );
+	Cbuf_Execute();
 
-	SV_Frame ( host.frametime ); // server frame
-	CL_Frame ( host.frametime ); // client frame
-	VM_Frame ( host.frametime ); // vprogs frame
+	last_time = host.frametime[0];
+	time = Host_ModifyTime( time );
+
+	SV_Frame ( time ); // server frame
+	CL_Frame ( time ); // client frame
+	VM_Frame ( time ); // vprogs frame
 
 	host.framecount++;
 }
@@ -475,6 +566,8 @@ void Host_InitCommon( const int argc, const char **argv )
 	if( FS_GetParmFromCmdLine( "-dev", dev_level ))
 		host.developer = com.atoi( dev_level );
 
+	Host_InitEvents();
+
 	FS_LoadGameInfo( NULL );
 
 	zonepool = Mem_AllocPool( "Zone Engine" );
@@ -518,10 +611,9 @@ void Host_Init( const int argc, const char **argv )
 	host_cheats = Cvar_Get( "sv_cheats", "1", CVAR_SYSTEMINFO, "allow cheat variables to enable" );
 	host_minfps = Cvar_Get( "host_minfps", "10", CVAR_ARCHIVE, "host fps lower limit" );
 	host_maxfps = Cvar_Get( "host_maxfps", "100", CVAR_ARCHIVE, "host fps upper limit" );
-	host_ticrate = Cvar_Get( "sys_ticrate", "0.0138889", CVAR_SYSTEMINFO, "how long a server frame is in seconds" );
 	host_framerate = Cvar_Get( "host_framerate", "0", 0, "locks frame timing to this value in seconds" );  
-	host_maxclients = Cvar_Get("host_maxclients", "1", CVAR_SERVERINFO|CVAR_LATCH, "server maxplayers limit" );
-	host_serverstate = Cvar_Get("host_serverstate", "0", CVAR_SERVERINFO, "displays current server state" );
+	host_maxclients = Cvar_Get( "host_maxclients", "1", CVAR_SERVERINFO|CVAR_LATCH, "server maxplayers limit" );
+	host_serverstate = Cvar_Get( "host_serverstate", "0", CVAR_SERVERINFO, "displays current server state" );
 	host_registered = Cvar_Get( "registered", "1", CVAR_SYSTEMINFO, "indicate shareware version of game" );
 	timescale = Cvar_Get( "timescale", "1.0", 0, "slow-mo timescale" );
 
@@ -546,6 +638,7 @@ void Host_Init( const int argc, const char **argv )
 		Cmd_AddCommand( "quit", Sys_Quit, "quit the game" );
 		Cmd_AddCommand( "exit", Sys_Quit, "quit the game" );
 	}
+	host.frametime[0] = Host_Milliseconds();
 	host.errorframe = 0;
 }
 
@@ -556,24 +649,11 @@ Host_Main
 */
 void Host_Main( void )
 {
-	static long	time, oldtime, newtime;
-
-	oldtime = Sys_Milliseconds();
-
 	// main window message loop
 	while( host.type != HOST_OFFLINE )
 	{
 		IN_Frame();
-
-		do
-		{
-			// timer resoultion at 1 msec
-			newtime = Sys_Milliseconds();
-			time = newtime - oldtime;
-		} while( time < 1 );
-
-		Host_Frame( time );
-		oldtime = newtime;
+		Host_Frame();
 	}
 }
 

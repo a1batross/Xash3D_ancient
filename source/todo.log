@@ -11,6 +11,9 @@ fopen завешивает приложение, при попытке создать файл в несуществующей директори
 возвращал.
 fopen завешивает приложение, даже если перепутать местами + и a, при установке режима!
 
+Sprite Lerping - рисуем два соседних кадра, чем больше lerpValue, тем больше прозрачность
+у старого кадра и тем меньше прозрчности у нового (верхняя граница - значение renderamt, заданное юзером)
+
 Отложенные задачи:
 1. Поддержка loop для ogg vorbis
 2. переписать studiomdl для использования VFS
@@ -142,3 +145,5 @@ Beta 13.12.09
 118. revise ref_params_t			OK
 119. fixup client smooth stair climbing
 120. fixup fov				OK
+121. make lerping for sprites			OK
+122. fix studio lerping between sequences

@@ -491,11 +491,7 @@ static void R_BatchMeshBuffer( const meshbuffer_t *mb, const meshbuffer_t *nextm
 			R_DrawStudioModel( mb );
 			break;
 		case mod_sprite:
-			R_PushSpriteModel( mb );
-
-			// no rotation for sprites
-			R_TranslateForEntity( RI.currententity );
-			R_RenderMeshBuffer( mb );
+			R_DrawSpriteModel( mb );
 			break;
 		default:
 			Com_Assert( 1 );    // shut up compiler

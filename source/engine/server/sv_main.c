@@ -292,7 +292,7 @@ SV_Frame
 
 ==================
 */
-void SV_Frame( long time )
+void SV_Frame( int time )
 {
 	// if server is not active, do nothing
 	if( !svs.initialized ) return;

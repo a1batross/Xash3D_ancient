@@ -114,8 +114,8 @@ typedef struct
 
 	// cdlight_t private starts here
 	int		key;		// so entities can reuse same entry
-	long		start;		// stop lighting after this time
-	long		end;		// drop this each second
+	int		start;		// stop lighting after this time
+	int		end;		// drop this each second
 	float		radius;		// radius (not an intensity)
 	bool		fade;
 	bool		free;		// this light is unused at current time
@@ -278,9 +278,9 @@ typedef struct cdecal_s
 {
 	struct cdecal_s	*prev, *next;
 
-	long		die;			// remove after this time
-	long		time;			// time when decal is placed
-	long		fadetime;
+	int		die;			// remove after this time
+	int		time;			// time when decal is placed
+	int		fadetime;
 	float		fadefreq;
 	word		flags;
 	vec4_t		color;

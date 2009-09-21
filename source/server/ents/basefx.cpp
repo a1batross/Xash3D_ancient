@@ -603,20 +603,33 @@ void CSprite::Spawn( void )
 	Precache();
 
 	UTIL_SetModel( ENT( pev ), pev->model );
-          
-	// Smart Field System ©
-          if( !pev->renderamt ) pev->renderamt = 200; // light transparency
-          if( !pev->framerate ) pev->framerate = Frames(); // play sequence at one second
-	if( !pev->rendermode ) pev->rendermode = kRenderTransAdd;
 
-	pev->solid	= SOLID_NOT;
-	pev->movetype	= MOVETYPE_NOCLIP;
-	pev->frame	= 0;
-	SetBits( pev->flags, FL_POINTENTITY );
+	if( FClassnameIs( pev, "env_monster" ))
+	{
+		// test monster from doom1
+		pev->framerate = 10;
+		pev->rendermode = kRenderTransAlpha;
+		pev->solid = SOLID_BBOX;
+		pev->movetype = MOVETYPE_NONE;
+		UTIL_SetSize( pev, pev->mins, pev->maxs );
+	}
+	else
+	{
+		// Smart Field System ©
+          	if( !pev->renderamt ) pev->renderamt = 200; // light transparency
+          	if( !pev->framerate ) pev->framerate = Frames(); // play sequence at one second
+		if( !pev->rendermode ) pev->rendermode = kRenderTransAdd;
+
+		pev->solid	= SOLID_NOT;
+		pev->movetype	= MOVETYPE_NOCLIP;
+		pev->frame	= 0;
 	
-	pev->angles.x	=  -pev->angles.x;
-	pev->angles.y	=  180 - pev->angles.y;
-	pev->angles[1]	=  0 - pev->angles[1];
+		pev->angles.x	=  -pev->angles.x;
+		pev->angles.y	=  180 - pev->angles.y;
+		pev->angles[1]	=  0 - pev->angles[1];
+	}
+
+	SetBits( pev->flags, FL_POINTENTITY );
 	TurnOff();
 }
 
@@ -729,6 +742,8 @@ void CSprite::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useTy
 		Msg( "NextPath: %s, framerate %g\n", m_pGoalEnt ? STRING(m_pGoalEnt->pev->targetname) : "no path", pev->framerate );
 	}
 }
+
+LINK_ENTITY_TO_CLASS( env_monster, CSprite );
 LINK_ENTITY_TO_CLASS( env_sprite, CSprite );
 LINK_ENTITY_TO_CLASS( env_glow, CSprite );
 

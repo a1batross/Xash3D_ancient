@@ -113,7 +113,7 @@ static net_field_t ent_fields[] =
 static net_field_t cmd_fields[] =
 {
 { CM_FIELD(msec),		NET_BYTE,  true	},
-{ CM_FIELD(servertime),	NET_FLOAT, true	},
+{ CM_FIELD(servertime),	NET_LONG,  true	},
 { CM_FIELD(angles[0]),	NET_ANGLE, false	},
 { CM_FIELD(angles[1]),	NET_ANGLE, false	},
 { CM_FIELD(angles[2]),	NET_ANGLE, false	},

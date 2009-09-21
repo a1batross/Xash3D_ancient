@@ -714,8 +714,8 @@ void	R_TransformVectorToScreen( const ref_params_t *rd, const vec3_t in, vec2_t 
 void	R_TransformEntityBBox( ref_entity_t *e, vec3_t mins, vec3_t maxs, vec3_t bbox[8], bool local );
 
 bool	R_SpriteOverflow( void );
-bool	R_PushSpriteModel( const meshbuffer_t *mb );
 bool	R_PushSpritePoly( const meshbuffer_t *mb );
+bool	R_PushSprite( const meshbuffer_t *mb, int type, float right, float left, float up, float down );
 
 #define NUM_CUSTOMCOLORS	16
 void		R_InitCustomColors( void );
@@ -810,10 +810,10 @@ void		R_ProgramDump_f( void );
 //
 // r_poly.c
 //
-void		R_PushPoly( const meshbuffer_t *mb );
-void		R_AddPolysToList( void );
+void	R_PushPoly( const meshbuffer_t *mb );
+void	R_AddPolysToList( void );
 bool	R_SurfPotentiallyFragmented( msurface_t *surf );
-int			R_GetClippedFragments( const vec3_t origin, float radius, vec3_t axis[3], int maxfverts, 
+int	R_GetClippedFragments( const vec3_t origin, float radius, vec3_t axis[3], int maxfverts, 
 								  vec3_t *fverts, int maxfragments, fragment_t *fragments );
 msurface_t *R_TransformedTraceLine( trace_t *tr, const vec3_t start, const vec3_t end, ref_entity_t *test, int surfumask );
 
@@ -821,11 +821,14 @@ msurface_t *R_TransformedTraceLine( trace_t *tr, const vec3_t start, const vec3_
 // r_sprite.c
 //
 
+void R_SpriteInit( void );
 mspriteframe_t *R_GetSpriteFrame( ref_entity_t *ent );
+bool R_DrawSpriteModel( const meshbuffer_t *mb );
 
 //
 // r_studio.c
 //
+
 void R_AddStudioModelToList( ref_entity_t *e );
 void R_DrawStudioModel( const meshbuffer_t *mb );
 void R_StudioResetSequenceInfo( ref_entity_t *ent );

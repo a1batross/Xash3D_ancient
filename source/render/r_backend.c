@@ -1253,8 +1253,10 @@ static _inline texture_t *R_ShaderpassTex( const ref_stage_t *pass, int unit )
 {
 	if( pass->flags & SHADERSTAGE_ANGLEDMAP )
 	{
+		float	yaw = RI.currententity->angles[1] - 45;	// angled bias
+		int	angleframe = (int)((RI.refdef.viewangles[1] - yaw) / 360 * 8 + 0.5 - 4) & 7;
 		if( !RI.currententity ) return pass->textures[0];	// assume error
-		return pass->textures[(int)((RI.refdef.viewangles[1] - RI.currententity->angles[1])/360 * 8 + 0.5 - 4) & 7];
+		return pass->textures[angleframe];
 	}
 	if( pass->flags & SHADERSTAGE_FRAMES && !(pass->flags & SHADERSTAGE_ANIMFREQUENCY))
 	{
@@ -1359,7 +1361,12 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 		case mod_brush:
 		case mod_alias:
 		case mod_studio:
+			break;
 		case mod_sprite:
+			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA);
+			pass->flags = SHADERSTAGE_BLEND_MODULATE;
+			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
+			pass->alphaGen.type = ALPHAGEN_VERTEX;
 			break;
 		}
 		break;
@@ -1396,7 +1403,12 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 		case mod_brush:
 		case mod_alias:
 		case mod_studio:
+			break;
 		case mod_sprite:
+			pass->flags = SHADERSTAGE_BLEND_DECAL;
+			pass->glState = GLSTATE_AFUNC_GE128|GLSTATE_DEPTHWRITE;
+			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
+			pass->alphaGen.type = ALPHAGEN_IDENTITY;
 			break;
 		}
 		break;

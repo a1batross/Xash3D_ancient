@@ -6,13 +6,13 @@
 --------------------Configuration: server - Win32 Release--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP938E.tmp" with contents
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP9B3E.tmp" with contents
 [
 /nologo /MD /W3 /O2 /I "./" /I "ents" /I "game" /I "global" /I "monsters" /I "../common" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /Fo"..\temp\server\!release/" /Fd"..\temp\server\!release/" /FD /c 
-"D:\Xash3D\src_main\server\ents\baseweapon.cpp"
+"D:\Xash3D\src_main\server\ents\basefx.cpp"
 ]
-Creating command line "cl.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP938E.tmp" 
-Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP938F.tmp" with contents
+Creating command line "cl.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP9B3E.tmp" 
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP9B3F.tmp" with contents
 [
 msvcrt.lib /nologo /subsystem:windows /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /def:".\server.def" /out:"..\temp\server\!release/server.dll" /implib:"..\temp\server\!release/server.lib" /libpath:"..\common\libs" 
 "\Xash3D\src_main\temp\server\!release\ai_sound.obj"
@@ -77,15 +77,15 @@ msvcrt.lib /nologo /subsystem:windows /dll /pdb:none /machine:I386 /nodefaultlib
 "\Xash3D\src_main\temp\server\!release\weapon_generic.obj"
 "\Xash3D\src_main\temp\server\!release\zombie.obj"
 ]
-Creating command line "link.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP938F.tmp"
-Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP9390.bat" with contents
+Creating command line "link.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP9B3F.tmp"
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP9B40.bat" with contents
 [
 @echo off
 copy \Xash3D\src_main\temp\server\!release\server.dll "D:\Xash3D\bin\server.dll"
 ]
-Creating command line "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP9390.bat"
+Creating command line "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP9B40.bat"
 Compiling...
-baseweapon.cpp
+basefx.cpp
 Linking...
    Creating library ..\temp\server\!release/server.lib and object ..\temp\server\!release/server.exp
 <h3>Output Window</h3>

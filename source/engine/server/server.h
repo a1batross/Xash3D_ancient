@@ -67,13 +67,13 @@ typedef struct server_s
 
 	bool		loadgame;		// client begins should reuse existing entity
 
-	long		time;		// always sv.framenum * 50 msec
-	long		frametime;
+	int		time;		// always sv.framenum * 50 msec
+	int		frametime;
 	int		framenum;
 	int		net_framenum;
 
 	int		lastcheck;	// used by PF_checkclient
-	long		lastchecktime;	// for monster ai 
+	int		lastchecktime;	// for monster ai 
 
 	string		name;		// map name, or cinematic name
 	cmodel_t		*models[MAX_MODELS];
@@ -96,7 +96,7 @@ typedef struct
 	int  		areabits_size;
 	int  		num_entities;
 	int  		first_entity;		// into the circular sv_packet_entities[]
-	long		senttime;			// time the message was transmitted
+	int		senttime;			// time the message was transmitted
 
 	int		index;			// client edict index
 } client_frame_t;
@@ -143,8 +143,8 @@ typedef struct sv_client_s
 	int		downloadsize;		// total bytes (can't use EOF because of paks)
 	int		downloadcount;		// bytes sent
 
-	long		lastmessage;		// sv.framenum when packet was last received
-	long		lastconnect;
+	int		lastmessage;		// sv.framenum when packet was last received
+	int		lastconnect;
 
 	int		challenge;		// challenge of this user, randomly generated
 
@@ -204,7 +204,7 @@ typedef struct
 {
 	netadr_t		adr;
 	int		challenge;
-	long		time;
+	int		time;
 	bool		connected;
 } challenge_t;
 
@@ -248,8 +248,8 @@ typedef struct
 typedef struct
 {
 	bool		initialized;		// sv_init has completed
-	long		realtime;			// always increasing, no clamping, etc
-	long		timestart;		// just for profiling
+	int		realtime;			// always increasing, no clamping, etc
+	int		timestart;		// just for profiling
 
 	char		mapname[CS_SIZE];		// current mapname 
 	string		comment;			// map name, e.t.c. 
@@ -261,7 +261,7 @@ typedef struct
 	entity_state_t	*client_entities;		// [num_client_entities]
 	entity_state_t	*baselines;		// [host.max_edicts]
 
-	long		last_heartbeat;
+	int		last_heartbeat;
 	challenge_t	challenges[MAX_CHALLENGES];	// to prevent invalid IPs from connecting
 } server_static_t;
 

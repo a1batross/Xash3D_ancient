@@ -33,7 +33,7 @@ challenge, they must give a valid IP address.
 void SV_GetChallenge( netadr_t from )
 {
 	int	i, oldest = 0;
-	long	oldestTime;
+	int	oldestTime;
 
 	oldestTime = 0x7fffffff;
 	// see if we already have a challenge for this ip
@@ -1488,15 +1488,17 @@ each of the backup packets.
 */
 static void SV_ReadClientMove( sv_client_t *cl, sizebuf_t *msg )
 {
-	int	checksumIndex, lastframe;
-	int	checksum, calculatedChecksum;
-	usercmd_t	nullcmd, oldest, oldcmd, newcmd;
-	int	net_drop;
-	long	latency;
+	int		i, key, lastframe, cmd_count;
+	int		checksum1, checksum2, latency;
+	usercmd_t		cmds[UPDATE_BACKUP];
+	usercmd_t		*cmd, *oldcmd;
+	usercmd_t		nullcmd;
 
-	checksumIndex = msg->readcount;
-	checksum = MSG_ReadByte( msg );
+	key = msg->readcount;
+	checksum1 = MSG_ReadByte( msg );
+	cmd_count = MSG_ReadByte( msg );
 	lastframe = MSG_ReadLong( msg );
+
 	if( lastframe != cl->lastframe )
 	{
 		cl->lastframe = lastframe;
@@ -1507,10 +1509,21 @@ static void SV_ReadClientMove( sv_client_t *cl, sizebuf_t *msg )
 		}
 	}
 
+	if( cmd_count < 1 ) return;
+	if( cmd_count > UPDATE_BACKUP )
+	{
+		// force to server will be crashed
+		MsgDev( D_ERROR, "too many usercmds received\n" );
+		return;
+	}
+
 	Mem_Set( &nullcmd, 0, sizeof( nullcmd ));
-	MSG_ReadDeltaUsercmd( msg, &nullcmd, &oldest );
-	MSG_ReadDeltaUsercmd( msg, &oldest, &oldcmd );
-	MSG_ReadDeltaUsercmd( msg, &oldcmd, &newcmd );
+	for( i = 0, oldcmd = &nullcmd; i < cmd_count; i++ )
+	{
+		cmd = &cmds[i];
+		MSG_ReadDeltaUsercmd( msg, oldcmd, cmd );
+		oldcmd = cmd;
+	}
 
 	if( cl->state != cs_spawned )
 	{
@@ -1519,30 +1532,29 @@ static void SV_ReadClientMove( sv_client_t *cl, sizebuf_t *msg )
 	}
 
 	// if the checksum fails, ignore the rest of the packet
-	calculatedChecksum = CRC_Sequence( msg->data + checksumIndex + 1, msg->readcount - checksumIndex - 1, cl->netchan.incoming_sequence );
-	if( calculatedChecksum != checksum )
+	checksum2 = CRC_Sequence( msg->data + key + 1, msg->readcount - key - 1, cl->netchan.incoming_sequence );
+	if( checksum2 != checksum1 )
 	{
-		MsgDev( D_ERROR, "SV_UserMove: failed command checksum for %s (%d != %d)\n", cl->name, calculatedChecksum, checksum );
+		MsgDev( D_ERROR, "SV_UserMove: failed command checksum for %s (%d != %d)\n", cl->name, checksum2, checksum1 );
 		return;
 	}
 
-	if( !sv_paused->integer )
+	// usually, the first couple commands will be duplicates
+	// of ones we have previously received, but the servertimes
+	// in the commands will cause them to be immediately discarded
+	for( i = 0; i < cmd_count; i++ )
 	{
-		net_drop = cl->netchan.dropped;
-		if( net_drop < 20 )
-		{
-			while( net_drop > 2 )
-			{
-				SV_Physics_ClientMove( cl, &cl->lastcmd );
-				net_drop--;
-			}
-			if( net_drop > 1 ) SV_Physics_ClientMove( cl, &oldest );
-			if( net_drop > 0 ) SV_Physics_ClientMove( cl, &oldcmd );
+		// if this is a cmd from before a map_restart ignore it
+		if( cmds[i].servertime > cmds[cmd_count-1].servertime )
+			continue;
 
-		}
-		SV_Physics_ClientMove( cl, &newcmd );
+		// don't execute if this is an old cmd which is already executed
+		// these old cmds are included when cl_packetdup > 0
+		if( cmds[i].servertime <= cl->lastcmd.servertime )
+			continue;
+
+		SV_Physics_ClientMove( cl, &cmds[i] );
 	}
-	cl->lastcmd = newcmd;
 }
 
 /*

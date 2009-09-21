@@ -732,7 +732,7 @@ void UI_PopMenu( void )
 UI_UpdateMenu
 =================
 */
-void UI_UpdateMenu( long realTime )
+void UI_UpdateMenu( int realTime )
 {
 	if( !uiStatic.initialized )
 		return;

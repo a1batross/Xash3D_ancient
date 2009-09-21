@@ -16,7 +16,7 @@ public:
           void PostActivate( void )
           {
 		//env_glow always enabled
-		if (FClassnameIs( pev, "env_glow" ) || FStringNull(pev->targetname) || pev->spawnflags & SF_START_ON)
+		if( FClassnameIs( pev, "env_glow" ) || FStringNull( pev->targetname ) || pev->spawnflags & SF_START_ON )
 		{
 			TurnOn();
 			ClearBits( pev->spawnflags, SF_START_ON );
@@ -30,13 +30,13 @@ public:
 	void PostSpawn( void );
 	void Animate( float frames )
 	{
-		if(Frames() > 1)
+		if( Frames() > 1 )
 		{
 			pev->frame += frames;
-			if ( pev->frame > Frames() )
+			if( pev->frame > Frames() )
 			{
 				if( pev->spawnflags &  SF_FIREONCE ) TurnOff();
-				else if ( Frames() > 0 ) pev->frame = fmod( pev->frame, Frames() );
+				else if( Frames() > 0 ) pev->frame = fmod( pev->frame, Frames() );
 			}
 		}
 	}

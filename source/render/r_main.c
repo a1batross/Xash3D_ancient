@@ -467,7 +467,7 @@ SPRITE MODELS AND FLARES
 */
 
 static vec4_t spr_xyz[4] = { {0,0,0,1}, {0,0,0,1}, {0,0,0,1}, {0,0,0,1} };
-static vec2_t spr_st[4] = { {0, 1}, {0, 0}, {1,0}, {1,1} };
+static vec2_t spr_st[4] = { {1, 0}, {1, 1}, {0,1}, {0, 0} };
 static rgba_t spr_color[4];
 static mesh_t spr_mesh = { 4, spr_xyz, spr_xyz, NULL, spr_st, { 0, 0, 0, 0 }, { spr_color, spr_color, spr_color, spr_color }, 6, NULL };
 
@@ -476,7 +476,7 @@ static mesh_t spr_mesh = { 4, spr_xyz, spr_xyz, NULL, spr_st, { 0, 0, 0, 0 }, { 
 R_PushSprite
 =================
 */
-static bool R_PushSprite( const meshbuffer_t *mb, int type, float right, float left, float up, float down )
+bool R_PushSprite( const meshbuffer_t *mb, int type, float right, float left, float up, float down )
 {
 	int		i, features;
 	vec3_t		v_forward, v_right, v_up;
@@ -658,24 +658,6 @@ static void R_PushCorona( const meshbuffer_t *mb )
 	MB_NUM2SHADER( mb->shaderkey, shader );
 
 	R_PushMesh( &spr_mesh, MF_NOCULL | MF_TRIFAN | shader->features );
-}
-
-/*
-=================
-R_PushSpriteModel
-=================
-*/
-bool R_PushSpriteModel( const meshbuffer_t *mb )
-{
-	mspriteframe_t	*frame;
-	msprite_t		*psprite;
-	ref_entity_t	*e = RI.currententity;
-	ref_model_t	*model = e->model;
-
-	psprite = (msprite_t * )model->extradata;
-	frame = R_GetSpriteFrame( e );
-
-	return R_PushSprite( mb, psprite->type, frame->left, frame->right, frame->down, frame->up );
 }
 
 /*
@@ -2173,6 +2155,15 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 			}
 			break;
 		case mod_sprite:
+			if(((msprite_t *)refent->model->extradata)->numframes > 1 )
+			{
+				float	numframes = ((msprite_t *)refent->model->extradata)->numframes;
+
+				refent->frame += (pRefEntity->v.framerate * RI.refdef.frametime);
+				if( refent->frame > numframes && numframes > 0 )
+					refent->frame = fmod( refent->frame, numframes );
+			}
+			break;
 		case mod_alias:
 		case mod_brush:
 		case mod_world:
@@ -2181,15 +2172,19 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
           }
 	else
 	{
-		refent->prev.frame = refent->frame;
+		switch( refent->model->type )
+		{
+		case mod_studio:
+			refent->prev.animtime = refent->animtime;
+			refent->animtime = pRefEntity->v.animtime;
+			refent->prev.sequencetime = refent->animtime - refent->prev.animtime;
+			refent->prev.sequence = refent->sequence;
+			refent->prev.frame = refent->frame;
+			refent->sequence = pRefEntity->v.sequence;
+			break;
+		}
 		refent->frame = pRefEntity->v.frame;
-		refent->prev.sequence = refent->sequence;
-		refent->prev.animtime = refent->animtime;
-		refent->animtime = pRefEntity->v.animtime;
-		refent->sequence = pRefEntity->v.sequence;
 	}
-
-	refent->prev.sequencetime = refent->animtime - refent->prev.animtime;
 
 	if( refent->ent_type == ED_MOVER || refent->ent_type == ED_BSPBRUSH )
 	{

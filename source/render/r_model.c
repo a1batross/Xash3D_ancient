@@ -227,6 +227,7 @@ void R_InitModels( void )
 	r_nummodels = 0;
 
 	R_StudioInit();
+	R_SpriteInit();
 }
 
 /*

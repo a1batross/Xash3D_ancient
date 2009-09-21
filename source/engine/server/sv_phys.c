@@ -1681,10 +1681,10 @@ void SV_Physics_ClientMove( sv_client_t *client, usercmd_t *cmd )
 	SV_ClientThink( client, cmd );
 
 	// call standard client pre-think, with frametime = 0
-	svgame.globals->time = sv.time * 0.001f;
+	svgame.globals->time = cmd->servertime * 0.001f;
 	svgame.globals->frametime = 0;
 	svgame.dllFuncs.pfnPlayerPreThink( ent );
-	svgame.globals->frametime = sv.frametime * 0.001f;
+	svgame.globals->frametime = cmd->msec * 0.001f;
 
 	if( !sv_physics->integer )
 	{

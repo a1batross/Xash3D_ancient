@@ -253,7 +253,7 @@ typedef struct
 
 	int		cursorX;
 	int		cursorY;
-	long		realTime;
+	int		realTime;
 	bool		firstDraw;
 	bool		enterSound;
 	bool		visible;
