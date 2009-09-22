@@ -161,11 +161,15 @@ void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t 
 
 		if( ent->v.animtime )
 		{
-			// adjust lerping values if animation restarted
-			if( lerpTime < 0 ) prevframe = 1.001;
-			ent->v.frame = LerpPoint( prevframe, frame, m_fLerp );
+			if( ent->v.effects & EF_NOINTERP )
+			{
+				// adjust lerping values if animation restarted
+				if( lerpTime < 0 ) prevframe = 1.001;
+				ent->v.frame = LerpPoint( prevframe, frame, m_fLerp );
+			}
+			else ent->v.frame = state->frame; // use normal studio lerping
 		}
-		else ent->v.frame = Q_rint( state->frame ); // sprite frames
+		else ent->v.frame = Q_rint( state->frame ); // sprite frames will be interpolated in other place
 	}
 
 	switch( state->ed_type )

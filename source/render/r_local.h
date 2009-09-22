@@ -207,29 +207,30 @@ typedef struct
 
 typedef struct
 {
-	byte		open;		// 0 = mouth closed, 255 = mouth agape
-	byte		sndcount;		// counter for running average
-	int		sndavg;		// running average
+	byte		open;				// 0 = mouth closed, 255 = mouth agape
+	byte		sndcount;				// counter for running average
+	int		sndavg;				// running average
 } mouth_t;
 
-typedef struct latchedvars_s
+typedef struct lerpframe_s
 {
-	float		animtime;		// ???
-	float		sequencetime;
-	vec3_t		origin;		// edict->v.old_origin
-	vec3_t		angles;		
+	float		frame;				// lastframe from previous frame
+	float		animtime;				// holds animtime from prevoius frame
+	int		sequence;				// not used by studio, but used with sprites
+} lerpframe_t;
 
-	vec3_t		gaitorigin;
-	int		sequence;		// ???
-	float		frame;
-} latchedvars_t;
+typedef struct studiolerp_s
+{
+	float		controller[MAXSTUDIOCONTROLLERS];	// holds bone controller values from previous frame
+	float		blending[MAXSTUDIOBLENDS];		// latched blendings from previous frame
+} studiolerp_t;
 
 typedef struct studiolatched_s
 {
-	float		blending[MAXSTUDIOBLENDS];
-	float		seqblending[MAXSTUDIOBLENDS];
-	float		controller[MAXSTUDIOCONTROLLERS];
-
+	float		sequencetime;			// latched animtime from previous sequence
+	float		frame;				// lastframe played frame from previous sequence
+	int		sequence;				// prev.sequence to blending between two sequences
+	float		blending[MAXSTUDIOBLENDS];		// latched sequence blending
 } studiolatched_t;
 
 typedef struct studiolight_s
@@ -257,11 +258,13 @@ typedef struct studioverts_s
 
 typedef struct studiovars_s
 {
-	studiolatched_t	prev;
+	studiolerp_t	prev;			// latched values from previous frame
+	studiolatched_t	latched;			// latched values from previous sequence
 
-	mouth_t		mouth;			// for synchronizing mouth movements.
+	mouth_t		mouth;			// UNDONE: for synchronizing mouth movements.
 	float		blending[MAXSTUDIOBLENDS];
 	float		controller[MAXSTUDIOCONTROLLERS];
+	vec3_t		gaitorigin;		// player stuff
 
 	// cached bones, valid only for current frame
 	char		bonenames[MAXSTUDIOBONES][32];// used for attached entities 
@@ -287,7 +290,7 @@ typedef struct ref_entity_s
 	struct ref_model_s		*model;		// opaque type outside refresh
 	struct ref_entity_s		*parent;		// link to parent entity (FOLLOW or weaponmodel)
 
-	latchedvars_t		prev;		// previous frame values for lerping
+	lerpframe_t		prev;		// previous frame values for lerping
 
 	float			framerate;	// custom framerate
           float			animtime;		// lerping animtime	

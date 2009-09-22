@@ -108,6 +108,24 @@ void R_StudioAllocExtradata( edict_t *in, ref_entity_t *e )
 		studio->blending[i] = in->v.blending[i];
 	}
 
+	// sequence has changed, hold the previous sequence info
+	if( in->v.sequence != e->sequence )
+	{
+		studio->latched.sequencetime = e->prev.animtime + 0.01f;
+		studio->latched.sequence = e->sequence;
+
+		// hold current blendings
+		for( i = 0; i < MAXSTUDIOBLENDS; i++ )
+			studio->latched.blending[i] = studio->blending[i];
+	}
+
+	if(!( e->flags & EF_ANIMATE )) 
+	{
+		e->sequence = in->v.sequence;
+		e->prev.animtime = e->animtime;	// must be update each frame!
+		e->animtime = in->v.animtime;
+	}
+
 	if( studio->numbones != numbones )
 	{
 		size_t	cache_size = sizeof( matrix4x4 ) * numbones;
@@ -186,7 +204,9 @@ static void R_StudioSetupRender( ref_entity_t *e, ref_model_t *mod )
 
 	// misc info
 	if( r_studio_lerping->integer )
+	{
 		m_fDoInterp = (e->flags & EF_NOINTERP) ? false : true;
+	}
 	else m_fDoInterp = false;
 }
 
@@ -910,8 +930,7 @@ StudioSetUpTransform
 */
 void R_StudioSetUpTransform( ref_entity_t *e, bool trivial_accept )
 {
-	int		i;
-	vec3_t		angles, origin;
+	vec3_t	angles, origin;
 
 	if( trivial_accept )
 	{ 
@@ -932,46 +951,7 @@ void R_StudioSetUpTransform( ref_entity_t *e, bool trivial_accept )
 	VectorCopy( e->origin, origin );
 	VectorCopy( e->angles, angles );
 
-	// TODO: should really be stored with the entity instead of being reconstructed
-	// TODO: should use a look-up table
-	// TODO: could cache lazily, stored in the entity
-	if( e->movetype == MOVETYPE_STEP ) 
-	{
-		float	d, f = 0;
-
-		// NOTE:  Because we need to interpolate multiplayer characters, the interpolation time limit
-		//  was increased to 1.0 s., which is 2x the max lag we are accounting for.
-		if(( RI.refdef.time < e->animtime + 1.0f ) && ( e->animtime != e->prev.animtime ) )
-		{
-			f = (RI.refdef.time - e->animtime) / (e->animtime - e->prev.animtime);
-			Msg( "%4.2f %.2f %.2f\n", f, e->animtime, RI.refdef.time );
-		}
-
-		// calculate frontlerp value
-		if( m_fDoInterp ) f = RI.lerpFrac;
-		else f = 0;
-
-		for( i = 0; i < 3; i++ )
-			origin[i] += (e->origin[i] - e->prev.origin[i]) * f;
-
-		for( i = 0; i < 3; i++ )
-		{
-			float	ang1, ang2;
-
-			ang1 = e->angles[i];
-			ang2 = e->prev.angles[i];
-
-			d = ang1 - ang2;
-			if( d > 180 ) d -= 360;
-			else if( d < -180 ) d += 360;
-			angles[i] += d * f;
-		}
-	}
-	else if( e->ent_type == ED_CLIENT )
-	{
-		// don't rotate player model, only aim
-		angles[PITCH] = 0;
-	}
+	if( e->ent_type == ED_CLIENT ) angles[PITCH] = 0; // don't rotate player model, only aim
 
 	Matrix4x4_CreateFromEntity( m_protationmatrix, origin[0], origin[1], origin[2], angles[PITCH], angles[YAW], angles[ROLL], e->scale );
 
@@ -997,7 +977,7 @@ float R_StudioEstimateInterpolant( void )
 {
 	float dadt = 1.0;
 
-	if ( m_fDoInterp && ( RI.currententity->animtime >= RI.currententity->prev.animtime + 0.01 ) )
+	if( m_fDoInterp && ( RI.currententity->animtime >= RI.currententity->prev.animtime + 0.01 ))
 	{
 		dadt = (RI.refdef.time - RI.currententity->animtime) / 0.1;
 		if( dadt > 2.0 ) dadt = 2.0;
@@ -1177,49 +1157,49 @@ float R_StudioSetupBones( ref_entity_t *e )
 		}
 	}
 
-	if( m_fDoInterp && e->prev.sequencetime && ( e->prev.sequencetime + 0.2 > RI.refdef.time) && ( e->prev.sequence < m_pStudioHeader->numseq ))
+	if( m_fDoInterp && pstudio->latched.sequencetime && ( pstudio->latched.sequencetime + 0.2 > RI.refdef.time) && ( pstudio->latched.sequence < m_pStudioHeader->numseq ))
 	{
 		// blend from last sequence
 		static float  pos1b[MAXSTUDIOBONES][3];
 		static vec4_t q1b[MAXSTUDIOBONES];
 		float s;
-                    
-		pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + e->prev.sequence;
+
+		pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + pstudio->latched.sequence;
 		panim = R_StudioGetAnim( RI.currentmodel, pseqdesc );
 		// clip prevframe
-		R_StudioCalcRotations( pos1b, q1b, pseqdesc, panim, e->prev.frame );
+		R_StudioCalcRotations( pos1b, q1b, pseqdesc, panim, pstudio->latched.frame );
 
 		if( pseqdesc->numblends > 1 )
 		{
 			panim += m_pStudioHeader->numbones;
-			R_StudioCalcRotations( pos2, q2, pseqdesc, panim, e->prev.frame );
+			R_StudioCalcRotations( pos2, q2, pseqdesc, panim, pstudio->latched.frame );
 
-			s = (pstudio->prev.seqblending[0]) / 255.0;
+			s = (pstudio->latched.blending[0]) / 255.0;
 			R_StudioSlerpBones( q1b, pos1b, q2, pos2, s );
 
 			if( pseqdesc->numblends == 4 )
 			{
 				panim += m_pStudioHeader->numbones;
-				R_StudioCalcRotations( pos3, q3, pseqdesc, panim, e->prev.frame );
+				R_StudioCalcRotations( pos3, q3, pseqdesc, panim, pstudio->latched.frame );
 
 				panim += m_pStudioHeader->numbones;
-				R_StudioCalcRotations( pos4, q4, pseqdesc, panim, e->prev.frame );
+				R_StudioCalcRotations( pos4, q4, pseqdesc, panim, pstudio->latched.frame );
 
-				s = (pstudio->prev.seqblending[0]) / 255.0;
+				s = (pstudio->latched.blending[0]) / 255.0;
 				R_StudioSlerpBones( q3, pos3, q4, pos4, s );
 
-				s = (pstudio->prev.seqblending[1]) / 255.0;
+				s = (pstudio->latched.blending[1]) / 255.0;
 				R_StudioSlerpBones( q1b, pos1b, q3, pos3, s );
 			}
 		}
 
-		s = 1.0 - (RI.refdef.time - e->prev.sequencetime) / 0.2;
+		s = 1.0 - (RI.refdef.time - pstudio->latched.sequencetime) / 0.2;
 		R_StudioSlerpBones( q, pos, q1b, pos1b, s );
 	}
 	else
 	{
 		// MsgDev( D_INFO, "prevframe = %4.2f\n", f );
-		e->prev.frame = f;
+		pstudio->latched.frame = f;
 	}
 
 	pbones = (dstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
@@ -1942,9 +1922,11 @@ StudioEstimateGait
 */
 void R_StudioEstimateGait( ref_entity_t *e, edict_t *pplayer )
 {
-	float	dt;
-	vec3_t	est_velocity;
+	float		dt;
+	vec3_t		est_velocity;
+	studiovars_t	*pstudio = (studiovars_t *)e->extradata;
 
+	Com_Assert( pstudio == NULL );	
 	dt = bound( 0.0f, RI.refdef.frametime, 1.0f );
 
 	if( dt == 0 || e->m_nCachedFrameCount == r_framecount2 )
@@ -1956,8 +1938,8 @@ void R_StudioEstimateGait( ref_entity_t *e, edict_t *pplayer )
 	// VectorAdd( pplayer->v.velocity, pplayer->v.prediction_error, est_velocity );
 	if( m_fGaitEstimation )
 	{
-		VectorSubtract( e->origin, e->prev.gaitorigin, est_velocity );
-		VectorCopy( e->origin, e->prev.gaitorigin );
+		VectorSubtract( e->origin, pstudio->gaitorigin, est_velocity );
+		VectorCopy( e->origin, pstudio->gaitorigin );
 
 		m_flGaitMovement = VectorLength( est_velocity );
 		if( dt <= 0 || m_flGaitMovement / dt < 5 )
@@ -2015,10 +1997,9 @@ void R_StudioProcessGait( ref_entity_t *e, edict_t *pplayer, studiovars_t *pstud
 	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + e->sequence;
 	R_StudioPlayerBlend( pseqdesc, &fBlend, &e->angles[PITCH] );
 
-	e->prev.angles[PITCH] = e->angles[PITCH];
 	pstudio->blending[0] = fBlend;
 	pstudio->prev.blending[0] = pstudio->blending[0];
-	pstudio->prev.seqblending[0] = pstudio->blending[0];
+	pstudio->latched.blending[0] = pstudio->blending[0];
 
 	// MsgDev( D_INFO, "%f %d\n", e->angles[PITCH], pstudio->blending[0] );
 
@@ -2059,7 +2040,6 @@ void R_StudioProcessGait( ref_entity_t *e, edict_t *pplayer, studiovars_t *pstud
 
 	e->angles[YAW] = e->gaityaw;
 	if( e->angles[YAW] < -0 ) e->angles[YAW] += 360;
-	e->prev.angles[YAW] = e->angles[YAW];
 
 	if( pplayer->v.gaitsequence >= m_pStudioHeader->numseq ) 
 		pplayer->v.gaitsequence = 0;

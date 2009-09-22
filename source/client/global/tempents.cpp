@@ -61,6 +61,7 @@ void HUD_StudioFxTransform( edict_t *ent, float transform[4][4] )
 {
 	switch( ent->v.renderfx )
 	{
+	case kRenderFxDistort:
 	case kRenderFxHologram:
 		if(!RANDOM_LONG( 0, 49 ))
 		{

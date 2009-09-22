@@ -1047,6 +1047,9 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 		if( pNet->pev->fov < 0.0 ) pNet->pev->fov = 0.0;
 		if( pNet->pev->fov > 160 ) pNet->pev->fov = 160;
 		to->fov = pNet->pev->fov;
+
+		// clear EF_NOINTERP flag each frame for client
+		pNet->pev->effects &= ~EF_NOINTERP;
 	}
 	else if( to->ed_type == ED_AMBIENT )
 	{

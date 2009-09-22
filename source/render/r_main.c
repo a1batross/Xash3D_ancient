@@ -2115,10 +2115,6 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 		break;
 	}
 	refent->rtype = RT_MODEL;
-		
-	// setup latchedvars
-	VectorCopy( pRefEntity->v.oldorigin, refent->prev.origin );
-	VectorCopy( pRefEntity->v.oldangles, refent->prev.angles );
 
 	// setup light origin
 	if( refent->model ) VectorAverage( refent->model->mins, refent->model->maxs, center );
@@ -2172,17 +2168,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
           }
 	else
 	{
-		switch( refent->model->type )
-		{
-		case mod_studio:
-			refent->prev.animtime = refent->animtime;
-			refent->animtime = pRefEntity->v.animtime;
-			refent->prev.sequencetime = refent->animtime - refent->prev.animtime;
-			refent->prev.sequence = refent->sequence;
-			refent->prev.frame = refent->frame;
-			refent->sequence = pRefEntity->v.sequence;
-			break;
-		}
+		refent->prev.frame = refent->frame;		// save oldframe
 		refent->frame = pRefEntity->v.frame;
 	}
 
