@@ -26,7 +26,6 @@ extern DLL_GLOBAL BOOL		g_startSuit;
 #endif
 
 extern "C" EXPORT int GetEntityAPI( DLL_FUNCTIONS *pFunctionTable, int interfaceVersion );
-extern "C" EXPORT int GetEntityAPI2( DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion );
 
 extern int DispatchSpawn( edict_t *pent );
 extern int DispatchCreate( edict_t *pent, const char *szName );
@@ -46,6 +45,13 @@ extern void SaveReadFields( SAVERESTOREDATA *pSaveData, const char *pname, void 
 extern void SaveGlobalState( SAVERESTOREDATA *pSaveData );
 extern void RestoreGlobalState( SAVERESTOREDATA *pSaveData );
 extern void ResetGlobalState( void );
+extern void OnFreeEntPrivateData( edict_s *pEdict );
+extern int ShouldCollide( edict_t *pentTouched, edict_t *pentOther );
+
+// spectator funcs
+extern void SpectatorConnect( edict_t *pEntity );
+extern void SpectatorDisconnect( edict_t *pEntity );
+extern void SpectatorThink( edict_t *pEntity );
 
 typedef void (CBaseEntity::*BASEPTR)(void);
 typedef void (CBaseEntity::*ENTITYFUNCPTR)(CBaseEntity *pOther );

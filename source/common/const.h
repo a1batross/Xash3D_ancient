@@ -128,6 +128,14 @@ typedef enum
 	at_logged		// server print to console ( only in multiplayer games ). (NOT IMPLEMENTED)
 } ALERT_TYPE;
 
+// filter client messages
+typedef enum
+{
+	print_console,	// dev. console messages
+	print_center,	// at center of the screen
+	print_chat,	// level high
+} PRINT_TYPE;
+	
 // edict movetype
 typedef enum
 {

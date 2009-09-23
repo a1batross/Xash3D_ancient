@@ -143,7 +143,10 @@ Beta 13.12.09
 116. create flashlight for player		OK
 117. re-organize refdef flags			OK
 118. revise ref_params_t			OK
-119. fixup client smooth stair climbing
+119. fixup client smooth stair climbing		OK
 120. fixup fov				OK
 121. make lerping for sprites			OK
-122. fix studio lerping between sequences
+122. fix studio lerping between sequences	OK
+123. fixup studio EF_ANIMATE			OK
+124. fixup studio events on client-side		OK
+125. sort & implement engfuncs on server.dll

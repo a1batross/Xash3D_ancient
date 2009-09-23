@@ -57,11 +57,7 @@ void V_SetupRefDef( void )
 	VectorCopy( clent->v.punchangle, cl.refdef.punchangle );
 
 	cl.refdef.movevars = &clgame.movevars;
-
-	if( clent->v.flags & FL_ONGROUND )
-		cl.refdef.onground = clent->v.groundentity;
-	else cl.refdef.onground = NULL;
-
+	cl.refdef.onground = clent->v.groundentity;
 	cl.refdef.areabits = cl.frame.areabits;
 	cl.refdef.health = clent->v.health;
 	cl.refdef.movetype = clent->v.movetype;
@@ -76,10 +72,11 @@ void V_SetupRefDef( void )
 	cl.refdef.smoothing = cl_predict->integer;
 	cl.refdef.waterlevel = clent->v.waterlevel;		
 	cl.refdef.flags = cl.render_flags;
+	cl.refdef.viewsize = 120; // fixme if you can
 	cl.refdef.nextView = 0;
 
 	// calculate the origin
-	if( cl.refdef.smoothing && !cl.refdef.demoplayback )
+	if( cl_predict->integer && !cl.refdef.demoplayback )
 	{	
 		// use predicted values
 		int	i, delta;

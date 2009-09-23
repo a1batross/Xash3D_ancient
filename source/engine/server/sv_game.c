@@ -1459,29 +1459,6 @@ void pfnSetOrigin( edict_t *e, const float *rgflOrigin )
 
 /*
 =================
-pfnSetAngles
-
-=================
-*/
-void pfnSetAngles( edict_t *e, const float *rgflAngles )
-{
-	if( e == EDICT_NUM( 0 )) return;
-	if( e->free )
-	{
-		MsgDev( D_ERROR, "SV_SetAngles: can't modify free entity\n" );
-		return;
-	}
-
-	if( VectorCompare( rgflAngles, e->v.angles ))
-		return; // already there ?
-
-	VectorCopy( rgflAngles, e->v.angles );
-	Matrix3x3_FromAngles( e->v.angles, e->v.m_pmatrix );
-	Matrix3x3_Transpose( e->v.m_pmatrix, e->v.m_pmatrix );
-}
-
-/*
-=================
 SV_StartSound
 
 =================
@@ -1642,11 +1619,38 @@ static void pfnTraceHull( const float *v1, const float *mins, const float *maxs,
 	SV_CopyTraceResult( ptr, trace );
 }
 
+/*
+=============
+pfnTraceMonsterHull
+
+FIXME: implement
+=============
+*/
+static int pfnTraceMonsterHull( edict_t *pEdict, const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr )
+{
+	// FIXME: implement
+	return 0;
+}
+
+/*
+=============
+pfnTraceModel
+
+FIXME: implement
+=============
+*/
 static void pfnTraceModel( const float *v1, const float *v2, edict_t *pent, TraceResult *ptr )
 {
 	// FIXME: implement
 }
 
+/*
+=============
+pfnTraceSphere
+
+FIXME: implement
+=============
+*/
 static const char *pfnTraceTexture( edict_t *pTextureEntity, const float *v1, const float *v2 )
 {
 	trace_t	trace;
@@ -1657,6 +1661,17 @@ static const char *pfnTraceTexture( edict_t *pTextureEntity, const float *v1, co
 	trace = SV_Trace( v1, vec3_origin, vec3_origin, v2, MOVE_NOMONSTERS, NULL, SV_ContentsMask( pTextureEntity ));
 
 	return trace.pTexName;
+}
+
+/*
+=============
+pfnTraceSphere
+
+FIXME: implement
+=============
+*/
+static void pfnTraceSphere( const float *v1, const float *v2, int fNoMonsters, float radius, edict_t *pentToSkip, TraceResult *ptr )
+{
 }
 
 /*
@@ -2104,7 +2119,20 @@ void *pfnPvAllocEntPrivateData( edict_t *pEdict, long cb )
 	return pEdict->pvPrivateData;
 }
 
-/*                                 
+/*
+=============
+pfnPvEntPrivateData
+
+=============
+*/
+void *pfnPvEntPrivateData( edict_t *pEdict )
+{
+	if( pEdict )
+		return pEdict->pvPrivateData;
+	return NULL;
+}
+
+/*
 =============
 pfnFreeEntPrivateData
 
@@ -2137,6 +2165,19 @@ SV_GetString
 const char *SV_GetString( string_t iString )
 {
 	return StringTable_GetString( svgame.hStringTable, iString );
+}
+
+/*
+=============
+pfnGetVarsOfEnt
+
+=============
+*/
+entvars_t *pfnGetVarsOfEnt( edict_t *pEdict )
+{
+	if( pEdict )
+		return &pEdict->v;
+	return NULL;
 }
 
 /*
@@ -2322,6 +2363,17 @@ const char *pfnNameForFunction( dword function )
 
 /*
 =============
+pfnClientPrintf
+
+=============
+*/
+void pfnClientPrintf( edict_t* pEdict, PRINT_TYPE ptype, const char *szMsg )
+{
+	// FIXME: implement
+}
+
+/*
+=============
 pfnServerPrint
 
 =============
@@ -2373,6 +2425,34 @@ void pfnClassifyEdict( edict_t *pEdict, int class )
 
 	pEdict->pvServerData->s.ed_type = class;
 	MsgDev( D_NOTE, "%s: <%s>\n", STRING( pEdict->v.classname ), ed_name[class] );
+}
+
+/*
+=============
+pfnSetClientMaxspeed
+
+=============
+*/
+void pfnSetClientMaxspeed( const edict_t *pEdict, float fNewMaxspeed )
+{
+	// FIXME: implement
+}
+
+/*
+=============
+pfnCreateFakeClient
+
+=============
+*/
+edict_t *pfnCreateFakeClient( const char *netname )
+{
+	// FIXME: implement SV_FakeClientConnect properly
+	return NULL;
+}
+
+void pfnThinkFakeClient( edict_t *client, usercmd_t *cmd )
+{
+	// FIXME: implement
 }
 
 /*
@@ -2443,6 +2523,17 @@ void pfnCRC_ProcessBuffer( word *pulCRC, void *p, int len )
 	byte	*start = (byte *)p;
 
 	while( len-- ) CRC_ProcessByte( pulCRC, *start++ );
+}
+
+/*
+=============
+pfnCRC_ProcessByte
+
+=============
+*/
+void pfnCRC_ProcessByte( word *pulCRC, byte ch )
+{
+	CRC_ProcessByte( pulCRC, ch );
 }
 
 /*
@@ -2759,6 +2850,17 @@ void pfnSetView( const edict_t *pClient, const edict_t *pViewent )
 
 /*
 =============
+pfnEndGame
+
+=============
+*/
+void pfnEndGame( const char *engine_command )
+{
+	// FIXME: implement
+}
+
+/*
+=============
 pfnSetSkybox
 
 =============
@@ -2799,14 +2901,22 @@ void pfnDropClient( int clientIndex )
 	}
 	SV_DropClient( svs.clients + clientIndex );
 }
+
+/*
+=============
+pfnGetPlayerPing
+
+=============
+*/
+void pfnGetPlayerPing( const edict_t *pClient, int *ping )
+{
+	// FIXME: implement
+}
 				
 // engine callbacks
 static enginefuncs_t gEngfuncs = 
 {
 	sizeof( enginefuncs_t ),
-	pfnMemAlloc,
-	pfnMemCopy,
-	pfnMemFree,
 	pfnPrecacheModel,
 	pfnPrecacheSound,	
 	pfnSetModel,
@@ -2814,6 +2924,8 @@ static enginefuncs_t gEngfuncs =
 	pfnModelFrames,
 	pfnSetSize,	
 	pfnChangeLevel,
+	pfnFindClientInPHS,
+	pfnEntitiesInPHS,
 	pfnVecToYaw,
 	pfnVecToAngles,		
 	pfnMoveToOrigin,
@@ -2823,28 +2935,27 @@ static enginefuncs_t gEngfuncs =
 	pfnGetEntityIllum,
 	pfnFindEntityInSphere,
 	pfnFindClientInPVS,
-	pfnFindClientInPHS,
 	pfnEntitiesInPVS,
-	pfnEntitiesInPHS,		
 	pfnMakeVectors,
 	AngleVectors,
 	pfnCreateEntity,
 	pfnRemoveEntity,
-	pfnCreateNamedEntity,				
+	pfnCreateNamedEntity,
 	pfnMakeStatic,
 	pfnLinkEntity,
 	pfnDropToFloor,		
 	pfnWalkMove,
 	pfnSetOrigin,
-	pfnSetAngles,		
 	SV_StartSound,
 	pfnEmitAmbientSound,
 	pfnTraceLine,
 	pfnTraceToss,
+	pfnTraceMonsterHull,
 	pfnTraceHull,
 	pfnTraceModel,
 	pfnTraceTexture,
-	pfnGetAimVector,		
+	pfnTraceSphere,
+	pfnGetAimVector,
 	pfnServerCommand,
 	pfnServerExecute,
 	pfnClientCommand,
@@ -2860,7 +2971,6 @@ static enginefuncs_t gEngfuncs =
 	pfnWriteLong,
 	pfnWriteAngle,
 	pfnWriteCoord,
-	pfnWriteFloat,
 	pfnWriteString,
 	pfnWriteEntity,
 	pfnCVarRegister,
@@ -2869,10 +2979,13 @@ static enginefuncs_t gEngfuncs =
 	pfnCVarSetFloat,
 	pfnCVarSetString,
 	pfnAlertMessage,		
+	pfnWriteFloat,
 	pfnPvAllocEntPrivateData,
+	pfnPvEntPrivateData,
 	pfnFreeEntPrivateData,
-	SV_AllocString,
 	SV_GetString,
+	SV_AllocString,
+	pfnGetVarsOfEnt,
 	pfnPEntityOfEntOffset,
 	pfnEntOffsetOfPEntity,
 	pfnIndexOfEdict,
@@ -2884,47 +2997,58 @@ static enginefuncs_t gEngfuncs =
 	pfnGetBonePosition,				
 	pfnFunctionFromName,
 	pfnNameForFunction,	
+	pfnClientPrintf,
 	pfnServerPrint,	
-	pfnAreaPortal,
-	pfnClassifyEdict,
-	pfnCmd_Args,	
+	pfnCmd_Args,
 	pfnCmd_Argv,
-	pfnCmd_Argc,	
+	pfnCmd_Argc,
 	pfnGetAttachment,
 	pfnCRC_Init,
 	pfnCRC_ProcessBuffer,
-	pfnCRC_Final,		
+	pfnCRC_ProcessByte,
+	pfnCRC_Final,
 	pfnRandomLong,
 	pfnRandomFloat,
 	pfnSetView,
+	pfnTime,
 	pfnCrosshairAngle,
 	pfnLoadFile,
+	pfnFreeFile,
+	pfnEndGame,
+	pfnCompareFileTime,
+	pfnGetGameDir,
+	pfnClassifyEdict,
+	pfnAreaPortal,
+	pfnSetClientMaxspeed,
+	pfnCreateFakeClient,
+	pfnThinkFakeClient,
+	pfnFileExists,
+	pfnGetInfoKeyBuffer,
+	pfnInfoKeyValue,
+	pfnSetKeyValue,
+	pfnSetClientKeyValue,
+	pfnIsMapValid,
+	pfnStaticDecal,
+	pfnPrecacheGeneric,
+	pfnSetSkybox,
+	pfnPlayMusic,
+	pfnIsDedicatedServer,
+	pfnMemAlloc,
+	pfnMemFree,
+	pfnInfo_RemoveKey,
 	pfnFOpen,
 	pfnFClose,
+	pfnFTell,
+	pfnPrecacheEvent,
+	pfnPlaybackEvent,
 	pfnFWrite,
 	pfnFRead,
 	pfnFGets,
 	pfnFSeek,
-	pfnFTell,
-	pfnFileExists,
-	pfnCompareFileTime,
-	pfnGetGameDir,							
-	pfnStaticDecal,
-	pfnPrecacheGeneric,
-	pfnIsDedicatedServer,		
-	pfnIsMapValid,
-	pfnInfo_RemoveKey,
-	pfnInfoKeyValue,
-	pfnSetKeyValue,		
-	pfnGetInfoKeyBuffer,
-	pfnSetClientKeyValue,	
-	pfnPrecacheEvent,
-	pfnPlaybackEvent,
+	pfnDropClient,
+	Host_Error,
+	pfnGetPlayerPing,
 	pfnCanSkipPlayer,
-	pfnSetSkybox,
-	pfnPlayMusic,
-	pfnDropClient,		
-	Host_Error
 };
 
 /*

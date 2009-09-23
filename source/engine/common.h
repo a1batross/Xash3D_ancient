@@ -122,6 +122,7 @@ int Host_MaxClients( void );
 void Host_AbortCurrentFrame( void );
 void Host_WriteDefaultConfig( void );
 void Host_WriteConfig( void );
+int Host_Milliseconds( void );
 void Host_Print( const char *txt );
 void Host_Error( const char *error, ... );
 
@@ -160,6 +161,7 @@ PRVM INTERACTIONS
 void pfnMemCopy( void *dest, const void *src, size_t cb, const char *filename, const int fileline );
 cvar_t *pfnCVarRegister( const char *szName, const char *szValue, int flags, const char *szDesc );
 byte* pfnLoadFile( const char *filename, int *pLength );
+void pfnFreeFile( void *buffer );
 int pfnFileExists( const char *filename );
 long pfnRandomLong( long lLow, long lHigh );
 float pfnRandomFloat( float flLow, float flHigh );
@@ -172,6 +174,7 @@ int pfnFSeek( void *file, long offset, int whence );
 int pfnFClose( void *file );
 long pfnFTell( void *file );
 void pfnGetGameDir( char *szGetGameDir );
+float pfnTime( void );
 
 #define prog	vm->prog	// global callback to vprogs.dll
 #define PRVM_EDICT_NUM( num )	_PRVM_EDICT_NUM( num, __FILE__, __LINE__ )

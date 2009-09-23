@@ -6,6 +6,7 @@
 #include "common.h"
 #include "const.h"
 #include "server.h"
+#include "pm_defs.h"
 
 #define MAX_FORWARD		6
 

@@ -22,7 +22,6 @@ extern enginefuncs_t g_engfuncs;
 // The actual engine callbacks
 #define MALLOC( x )		(*g_engfuncs.pfnMemAlloc)( x, __FILE__, __LINE__ )
 #define CALLOC( x, y )	(*g_engfuncs.pfnMemAlloc)((x) * (y), __FILE__, __LINE__ )
-#define MEMCPY( x, y, z )	(*g_engfuncs.pfnMemCopy)( x, y, z, __FILE__, __LINE__ )
 #define FREE( x )		(*g_engfuncs.pfnMemFree)( x, __FILE__, __LINE__ )
 #define PRECACHE_MODEL	(*g_engfuncs.pfnPrecacheModel)
 #define PRECACHE_SOUND	(*g_engfuncs.pfnPrecacheSound)
@@ -128,7 +127,7 @@ inline void *GET_PRIVATE( edict_t *pent )
 #define SET_SKYBOX		(*g_engfuncs.pfnSetSkybox)
 #define LOAD_FILE		(*g_engfuncs.pfnLoadFile)
 #define FILE_EXISTS		(*g_engfuncs.pfnFileExists)
-#define FREE_FILE		FREE
+#define FREE_FILE		(*g_engfuncs.pfnFreeFile)
 #define COMPARE_FILE_TIME	(*g_engfuncs.pfnCompareFileTime)
 #define GET_GAME_DIR	(*g_engfuncs.pfnGetGameDir)
 #define ENGINE_CANSKIP	(*g_engfuncs.pfnCanSkipPlayer)

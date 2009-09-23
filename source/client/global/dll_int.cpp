@@ -137,7 +137,11 @@ void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t 
 	ent->v.oldangles = ent->v.angles;	// just a delta between frames
 	ent->v.animtime = state->animtime;
 
-	if( state->aiment != 0 )
+	if( state->groundent != -1 )
+		ent->v.groundentity = GetEntityByIndex( state->groundent );
+	else ent->v.groundentity = NULL;
+
+	if( state->aiment != -1 )
 		ent->v.aiment = GetEntityByIndex( state->aiment );
 	else ent->v.aiment = NULL;
 
@@ -153,7 +157,7 @@ void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t 
 	ent->v.renderamt = LerpPoint( prev->renderamt, state->renderamt, m_fLerp );
 	ent->v.scale = LerpPoint( prev->scale, state->scale, m_fLerp );
 
-	if(!( ent->v.flags & EF_ANIMATE )) // auto-animation uses v.frame for hold ending frame
+	if(!( ent->v.effects & EF_ANIMATE )) // auto-animation uses v.frame for hold ending frame
 	{
 		float	frame = state->frame;
 		float	prevframe = prev->frame;

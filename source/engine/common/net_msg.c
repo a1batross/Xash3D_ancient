@@ -70,9 +70,9 @@ static net_field_t ent_fields[] =
 { ES_FIELD(flags),			NET_LONG,  false	},	// misc edict flags
 { ES_FIELD(movetype),		NET_BYTE,	 false	},
 { ES_FIELD(gravity),		NET_SHORT, false	},	// gravity multiplier
-{ ES_FIELD(aiment),			NET_WORD,	 false	},	// entity index
+{ ES_FIELD(aiment),			NET_SHORT, false	},	// entity index
 { ES_FIELD(owner),			NET_WORD,	 false	},	// entity owner index
-{ ES_FIELD(groundent),		NET_WORD,	 false	},	// ground entity index, if FL_ONGROUND is set
+{ ES_FIELD(groundent),		NET_SHORT, false	},	// ground entity index, if FL_ONGROUND is set
 { ES_FIELD(solid),			NET_LONG,	 false	},	// encoded mins/maxs
 { ES_FIELD(mins[0]),		NET_FLOAT, false	},
 { ES_FIELD(mins[1]),		NET_FLOAT, false	},
@@ -82,10 +82,10 @@ static net_field_t ent_fields[] =
 { ES_FIELD(maxs[2]),		NET_FLOAT, false	},	
 { ES_FIELD(effects),		NET_LONG,	 false	},	// effect flags
 { ES_FIELD(renderfx),		NET_LONG,	 false	},	// renderfx flags
-{ ES_FIELD(renderamt),		NET_COLOR, false	},	// alpha amount
-{ ES_FIELD(rendercolor[0]),		NET_COLOR, false	},	// stateflags_t #2 (4 bytes)
-{ ES_FIELD(rendercolor[1]),		NET_COLOR, false	},
-{ ES_FIELD(rendercolor[2]),		NET_COLOR, false	},
+{ ES_FIELD(renderamt),		NET_FLOAT, false	},	// alpha amount
+{ ES_FIELD(rendercolor[0]),		NET_FLOAT, false	},	// stateflags_t #2 (4 bytes)
+{ ES_FIELD(rendercolor[1]),		NET_FLOAT, false	},
+{ ES_FIELD(rendercolor[2]),		NET_FLOAT, false	},
 { ES_FIELD(oldorigin[0]),		NET_FLOAT, true	},
 { ES_FIELD(oldorigin[1]),		NET_FLOAT, true	},
 { ES_FIELD(oldorigin[2]),		NET_FLOAT, true	},

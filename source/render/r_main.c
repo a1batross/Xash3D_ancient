@@ -2126,30 +2126,6 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 	{
 		switch( refent->model->type )
 		{
-		case mod_studio:
-			if( pRefEntity->v.frame == -1 )
-			{
-				pRefEntity->v.frame = refent->frame = 0;
-				refent->sequence = pRefEntity->v.sequence;
-				R_StudioResetSequenceInfo( refent );
-			}
-			else
-			{
-				R_StudioFrameAdvance( refent, 0 );
-
-				if( refent->m_fSequenceFinished )
-				{
-					if( refent->m_fSequenceLoops )
-						pRefEntity->v.frame = -1;
-					// hold at last frame
-				}
-				else
-				{
-					// copy current frame back to let user grab it on a client-side
-					pRefEntity->v.frame = refent->frame;
-				}
-			}
-			break;
 		case mod_sprite:
 			if(((msprite_t *)refent->model->extradata)->numframes > 1 )
 			{
@@ -2160,6 +2136,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 					refent->frame = fmod( refent->frame, numframes );
 			}
 			break;
+		case mod_studio:
 		case mod_alias:
 		case mod_brush:
 		case mod_world:

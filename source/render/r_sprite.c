@@ -504,7 +504,7 @@ bool R_DrawSpriteModel( const meshbuffer_t *mb )
 		lerp = bound( 0, lerp, 1 );
 		ilerp = 1.0f - lerp;
 	
-		if( ilerp != 0 )
+		if( ilerp != 0 && oldframe->shader > 0 && oldframe->shader < MAX_SHADERS ) // FIXME
 		{
 			e->renderamt = renderamt * ilerp;	// merge prevframe alpha
 			rb->shaderkey = r_shaders[oldframe->shader].sortkey;

@@ -264,8 +264,17 @@ typedef struct studiovars_s
 	mouth_t		mouth;			// UNDONE: for synchronizing mouth movements.
 	float		blending[MAXSTUDIOBLENDS];
 	float		controller[MAXSTUDIOCONTROLLERS];
-	vec3_t		gaitorigin;		// player stuff
+	vec3_t		gaitorigin;		// client oldorigin used to calc velocity
+	float		gaitframe;		// client->frame + yaw
+	float		gaityaw;			// local value
 
+	// EF_ANIMATE stuff
+	int		m_fSequenceLoops;		// sequence is looped
+	int		m_fSequenceFinished;	// sequence is finished
+	float		m_flFrameRate;		// looped sequence framerate
+	float		m_flGroundSpeed;		// looped sequence ground speed (movement)
+	float		m_flLastEventCheck;		// last time when event is checked
+	
 	// cached bones, valid only for current frame
 	char		bonenames[MAXSTUDIOBONES][32];// used for attached entities 
 	matrix4x4		rotationmatrix;
@@ -314,14 +323,8 @@ typedef struct ref_entity_s
 	int			colormap;		// q1 and hl1 model colormap (can applied for sprites)
 	int			flags;		// q1 effect flags, EF_ROTATE, EF_DIMLIGHT etc
 
-	// EF_ANIMATE stuff
-	int			m_fSequenceLoops;
-	int			m_fSequenceFinished;
-
 	// client gait sequence (local stuff)
 	int			gaitsequence;	// client->sequence + yaw
-	float			gaitframe;	// client->frame + yaw
-	float			gaityaw;		// local value
 
 	// most recent data
 	vec3_t			axis[3];

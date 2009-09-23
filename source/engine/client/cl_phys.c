@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "client.h"
+#include "pm_defs.h"
 #include "matrix_lib.h"
 #include "const.h"
 

@@ -68,10 +68,16 @@ static DLL_FUNCTIONS gFunctionTable =
 	EndFrame,			// pfnEndFrame
 	BuildLevelList,		// pfnBuildLevelList
 
+	ShouldCollide,		// pfnShouldCollide
 	ServerClassifyEdict,	// pfnClassifyEdict
 	UpdateEntityState,		// pfnUpdateEntityState
+	OnFreeEntPrivateData,	// pfnOnFreeEntPrivateData
 
 	GetGameDescription,		// pfnGetGameDescription - returns string describing current .dll game.
+
+	SpectatorConnect,		// pfnSpectatorConnect
+	SpectatorDisconnect,	// pfnSpectatorDisconnect
+	SpectatorThink,		// pfnSpectatorThink
 };
 
 //=======================================================================
@@ -366,6 +372,14 @@ void SaveReadFields( SAVERESTOREDATA *pSaveData, const char *pname, void *pBaseD
 {
 	CRestore restoreHelper( pSaveData );
 	restoreHelper.ReadFields( pname, pBaseData, pFields, fieldCount );
+}
+
+void OnFreeEntPrivateData( edict_s *pEdict )
+{
+	if( pEdict && pEdict->pvPrivateData )
+	{
+		((CBaseEntity*)pEdict->pvPrivateData)->~CBaseEntity();
+	}
 }
 
 void SetObjectCollisionBox( entvars_t *pev )

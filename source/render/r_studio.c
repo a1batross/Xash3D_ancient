@@ -119,7 +119,32 @@ void R_StudioAllocExtradata( edict_t *in, ref_entity_t *e )
 			studio->latched.blending[i] = studio->blending[i];
 	}
 
-	if(!( e->flags & EF_ANIMATE )) 
+	if( e->flags & EF_ANIMATE ) 
+	{
+		if( in->v.frame == -1 )
+		{
+			in->v.frame = e->frame = 0;
+			e->sequence = in->v.sequence;
+			R_StudioResetSequenceInfo( e );
+		}
+		else
+		{
+			R_StudioFrameAdvance( e, 0 );
+
+			if( studio->m_fSequenceFinished )
+			{
+				if( studio->m_fSequenceLoops )
+					in->v.frame = -1;
+				// hold at last frame
+			}
+			else
+			{
+				// copy current frame back to let user grab it on a client-side
+				in->v.frame = e->frame;
+			}
+		}
+	}
+	else
 	{
 		e->sequence = in->v.sequence;
 		e->prev.animtime = e->animtime;	// must be update each frame!
@@ -508,8 +533,39 @@ int R_StudioGetSequenceFlags( dstudiohdr_t *hdr, ref_entity_t *ent )
 	return pseqdesc->flags;
 }
 
+void R_StuioGetSequenceInfo( dstudiohdr_t *hdr, ref_entity_t *ent, float *pflFrameRate, float *pflGroundSpeed )
+{
+	dstudioseqdesc_t	*pseqdesc;
+
+	if( !hdr || ent->sequence >= hdr->numseq )
+	{
+		*pflFrameRate = 0.0;
+		*pflGroundSpeed = 0.0;
+		return;
+	}
+
+	pseqdesc = (dstudioseqdesc_t *)((byte *)hdr + hdr->seqindex) + ent->sequence;
+
+	if( pseqdesc->numframes > 1 )
+	{
+		*pflFrameRate = 256 * pseqdesc->fps / (pseqdesc->numframes - 1);
+		*pflGroundSpeed = com.sqrt( DotProduct( pseqdesc->linearmovement, pseqdesc->linearmovement ));
+		*pflGroundSpeed = *pflGroundSpeed * pseqdesc->fps / (pseqdesc->numframes - 1);
+	}
+	else
+	{
+		*pflFrameRate = 256.0;
+		*pflGroundSpeed = 0.0;
+	}
+}
+
 float R_StudioFrameAdvance( ref_entity_t *ent, float flInterval )
 {
+	studiovars_t	*pstudio = (studiovars_t *)ent->extradata;
+
+	if( !ent->extradata )
+		return 0.0;
+
 	if( flInterval == 0.0 )
 	{
 		flInterval = ( RI.refdef.time - ent->animtime );
@@ -521,17 +577,15 @@ float R_StudioFrameAdvance( ref_entity_t *ent, float flInterval )
 	}
 	if( !ent->animtime ) flInterval = 0.0;
 
-	// stop auto-animation on pause
-	if( !r_paused->integer )	
-		ent->frame += flInterval * ent->framerate;
-	//ent->animtime = RI.refdef.time;
+	ent->frame += flInterval * pstudio->m_flFrameRate * ent->framerate;
+	ent->animtime = RI.refdef.time;
 
 	if( ent->frame < 0.0 || ent->frame >= 256.0 ) 
 	{
-		if( ent->m_fSequenceLoops )
+		if( pstudio->m_fSequenceLoops )
 			ent->frame -= (int)(ent->frame / 256.0) * 256.0;
 		else ent->frame = (ent->frame < 0.0) ? 0 : 255;
-		ent->m_fSequenceFinished = true;
+		pstudio->m_fSequenceFinished = true;
 	}
 	return flInterval;
 }
@@ -539,19 +593,20 @@ float R_StudioFrameAdvance( ref_entity_t *ent, float flInterval )
 void R_StudioResetSequenceInfo( ref_entity_t *ent )
 {
 	dstudiohdr_t	*hdr;
+	studiovars_t	*pstudio = (studiovars_t *)ent->extradata;
 
-	if( !ent || !ent->model || !ent->model->extradata )
+	if( !ent || !ent->extradata || !ent->model || !ent->model->extradata )
 		return;
 
 	hdr = ((mstudiomodel_t *)ent->model->extradata)->phdr;
 	if( !hdr ) return;
-	ent->m_fSequenceLoops = ((R_StudioGetSequenceFlags( hdr, ent ) & STUDIO_LOOPING) != 0 );
 
-	// calc anim time
-	if( !ent->animtime ) ent->animtime = RI.refdef.time;
+	R_StuioGetSequenceInfo( hdr, ent, &pstudio->m_flFrameRate, &pstudio->m_flGroundSpeed );
+	pstudio->m_fSequenceLoops = ((R_StudioGetSequenceFlags( hdr, ent ) & STUDIO_LOOPING) != 0 );
 	ent->prev.animtime = ent->animtime;
-	ent->animtime = RI.refdef.time + R_StudioSequenceDuration( hdr, ent );
-	ent->m_fSequenceFinished = FALSE;
+	ent->animtime = RI.refdef.time;
+	pstudio->m_fSequenceFinished = false;
+	pstudio->m_flLastEventCheck = RI.refdef.time;
 }
 
 int R_StudioGetEvent( ref_entity_t *e, dstudioevent_t *pcurrent, float flStart, float flEnd, int index )
@@ -566,11 +621,17 @@ int R_StudioGetEvent( ref_entity_t *e, dstudioevent_t *pcurrent, float flStart, 
 	if( pseqdesc->numevents == 0 || index > pseqdesc->numevents )
 		return 0;
 
-	if( pseqdesc->numframes == 1 )
+	if( pseqdesc->numframes > 1 )
+	{
+		flStart *= (pseqdesc->numframes - 1) / 256.0;
+		flEnd *= (pseqdesc->numframes - 1) / 256.0;
+	}
+	else
 	{
 		flStart = 0;
 		flEnd = 1.0;
 	}
+
 	for( ; index < pseqdesc->numevents; index++ )
 	{
 		// don't send server-side events to the client effects
@@ -1213,7 +1274,7 @@ float R_StudioSetupBones( ref_entity_t *e )
 		pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + e->gaitsequence;
 
 		panim = R_StudioGetAnim( RI.currentmodel, pseqdesc );
-		R_StudioCalcRotations( pos2, q2, pseqdesc, panim, e->gaitframe );
+		R_StudioCalcRotations( pos2, q2, pseqdesc, panim, pstudio->gaitframe );
 
 		for( i = 0; i < m_pStudioHeader->numbones; i++ )
 		{
@@ -1957,7 +2018,7 @@ void R_StudioEstimateGait( ref_entity_t *e, edict_t *pplayer )
 
 	if( est_velocity[1] == 0 && est_velocity[0] == 0 )
 	{
-		float flYawDiff = e->angles[YAW] - e->gaityaw;
+		float flYawDiff = e->angles[YAW] - pstudio->gaityaw;
 
 		flYawDiff = flYawDiff - (int)(flYawDiff / 360) * 360;
 		if( flYawDiff > 180 ) flYawDiff -= 360;
@@ -1966,15 +2027,15 @@ void R_StudioEstimateGait( ref_entity_t *e, edict_t *pplayer )
 		if( dt < 0.25 ) flYawDiff *= dt * 4;
 		else flYawDiff *= dt;
 
-		e->gaityaw += flYawDiff;
-		e->gaityaw = e->gaityaw - (int)(e->gaityaw / 360) * 360;
+		pstudio->gaityaw += flYawDiff;
+		pstudio->gaityaw = pstudio->gaityaw - (int)(pstudio->gaityaw / 360) * 360;
 		m_flGaitMovement = 0;
 	}
 	else
 	{
-		e->gaityaw = (atan2(est_velocity[1], est_velocity[0]) * 180 / M_PI);
-		if( e->gaityaw > 180 ) e->gaityaw = 180;
-		if( e->gaityaw < -180 ) e->gaityaw = -180;
+		pstudio->gaityaw = (atan2(est_velocity[1], est_velocity[0]) * 180 / M_PI);
+		if( pstudio->gaityaw > 180 ) pstudio->gaityaw = 180;
+		if( pstudio->gaityaw < -180 ) pstudio->gaityaw = -180;
 	}
 
 }
@@ -2010,20 +2071,20 @@ void R_StudioProcessGait( ref_entity_t *e, edict_t *pplayer, studiovars_t *pstud
 	// MsgDev( D_INFO, "%f %f\n", e->angles[YAW], m_pPlayerInfo->gaityaw );
 
 	// calc side to side turning
-	flYaw = e->angles[YAW] - e->gaityaw;
+	flYaw = e->angles[YAW] - pstudio->gaityaw;
 	flYaw = flYaw - (int)(flYaw / 360) * 360;
 	if( flYaw < -180 ) flYaw = flYaw + 360;
 	if( flYaw > 180 ) flYaw = flYaw - 360;
 
 	if( flYaw > 120 )
 	{
-		e->gaityaw = e->gaityaw - 180;
+		pstudio->gaityaw = pstudio->gaityaw - 180;
 		m_flGaitMovement = -m_flGaitMovement;
 		flYaw = flYaw - 180;
 	}
 	else if( flYaw < -120 )
 	{
-		e->gaityaw = e->gaityaw + 180;
+		pstudio->gaityaw = pstudio->gaityaw + 180;
 		m_flGaitMovement = -m_flGaitMovement;
 		flYaw = flYaw + 180;
 	}
@@ -2038,7 +2099,7 @@ void R_StudioProcessGait( ref_entity_t *e, edict_t *pplayer, studiovars_t *pstud
 	pstudio->prev.controller[2] = pstudio->controller[2];
 	pstudio->prev.controller[3] = pstudio->controller[3];
 
-	e->angles[YAW] = e->gaityaw;
+	e->angles[YAW] = pstudio->gaityaw;
 	if( e->angles[YAW] < -0 ) e->angles[YAW] += 360;
 
 	if( pplayer->v.gaitsequence >= m_pStudioHeader->numseq ) 
@@ -2049,16 +2110,16 @@ void R_StudioProcessGait( ref_entity_t *e, edict_t *pplayer, studiovars_t *pstud
 	// calc gait frame
 	if( pseqdesc->linearmovement[0] > 0 )
 	{
-		e->gaitframe += (m_flGaitMovement / pseqdesc->linearmovement[0]) * pseqdesc->numframes;
+		pstudio->gaitframe += (m_flGaitMovement / pseqdesc->linearmovement[0]) * pseqdesc->numframes;
 	}
 	else
 	{
-		e->gaitframe += pseqdesc->fps * dt;
+		pstudio->gaitframe += pseqdesc->fps * dt;
 	}
 
 	// do modulo
-	e->gaitframe = e->gaitframe - (int)(e->gaitframe / pseqdesc->numframes) * pseqdesc->numframes;
-	if( e->gaitframe < 0 ) e->gaitframe += pseqdesc->numframes;
+	pstudio->gaitframe = pstudio->gaitframe - (int)(pstudio->gaitframe / pseqdesc->numframes) * pseqdesc->numframes;
+	if( pstudio->gaitframe < 0 ) pstudio->gaitframe += pseqdesc->numframes;
 }
 
 static bool R_StudioSetupModel( ref_entity_t *e, ref_model_t *mod )
@@ -2127,13 +2188,19 @@ static bool R_StudioSetupModel( ref_entity_t *e, ref_model_t *mod )
 
 	if( m_pEntity && e->m_nCachedFrameCount != r_framecount2 )
 	{
-		float		flStart = curframe + e->framerate;
-		float		flEnd = flStart + 0.4f; // FIXME: calc real end, based on framerate
+		float		flInterval = 0.1f;
+		float		flStart = e->frame + (pstudio->m_flLastEventCheck - e->animtime) * pstudio->m_flFrameRate * e->framerate;
+		float		flEnd = e->frame + flInterval * pstudio->m_flFrameRate * e->framerate;
 		int		index = 0;
 		dstudioevent_t	event;
 
 		Mem_Set( &event, 0, sizeof( event ));
 		R_StudioCalcAttachments( e, m_pEntity );
+
+		pstudio->m_flLastEventCheck = e->animtime + flInterval;
+		pstudio->m_fSequenceFinished = false;
+		if( flEnd >= 256.0f || flEnd <= 0.0f ) 
+			pstudio->m_fSequenceFinished = true;
 
 		while(( index = R_StudioGetEvent( e, &event, flStart, flEnd, index )) != 0 )
 			ri.StudioEvent( &event, m_pEntity );

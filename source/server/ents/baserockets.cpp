@@ -629,19 +629,19 @@ void CNukeExplode :: Precache( void )
 
 void CNukeExplode :: ExplodeThink( void )
 {
-	pev->renderamt -= 1.5;
- 	pev->scale += .2;
+	pev->renderamt = UTIL_Approach( 0, pev->renderamt, 200 * gpGlobals->frametime );
+ 	pev->scale = UTIL_Approach( 30, pev->scale, 30 * gpGlobals->frametime );
 
-	if(pev->scale >= 8 && pev->scale < 8.2 ) // create second explode sprite
+	if( pev->scale >= 8 && pev->scale < 8.2 ) // create second explode sprite
 		SFX_Explode( m_usExplodeSprite2, pev->oldorigin, 100, TE_EXPLFLAG_NOPARTICLES|TE_EXPLFLAG_NOSOUND );
 
 	entvars_t *pevOwner;
-	if ( pev->owner ) pevOwner = VARS( pev->owner );
+	if( pev->owner ) pevOwner = VARS( pev->owner );
 	else pevOwner = NULL;
-	pev->owner = NULL; //can't traceline attack owner if this is set
+	pev->owner = NULL; // can't traceline attack owner if this is set
 
-	::RadiusDamage( pev->origin, pev, pevOwner, pev->renderamt/2, pev->scale * 30, CLASS_NONE, DMG_BLAST | DMG_NUCLEAR );
-	if (pev->scale > 25 )UTIL_Remove( this );
+	::RadiusDamage( pev->origin, pev, pevOwner, pev->renderamt/2, pev->scale * 30, CLASS_NONE, DMG_BLAST|DMG_NUCLEAR );
+	if( pev->scale > 25 ) UTIL_Remove( this );
 
 	SetNextThink( 0.01 );
 }

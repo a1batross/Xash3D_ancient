@@ -21,6 +21,11 @@ byte* pfnLoadFile( const char *filename, int *pLength )
 	return FS_LoadFile( filename, pLength );
 }
 
+void pfnFreeFile( void *buffer )
+{
+	if( buffer ) Mem_Free( buffer );
+}
+
 /*
 =============
 pfnFileExists
@@ -52,6 +57,17 @@ pfnRandomFloat
 float pfnRandomFloat( float flLow, float flHigh )
 {
 	return Com_RandomFloat( flLow, flHigh );
+}
+
+/*
+=============
+pfnTime
+
+=============
+*/
+float pfnTime( void )
+{
+	return (Host_Milliseconds() * 0.001f);
 }
 
 /*

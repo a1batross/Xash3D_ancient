@@ -47,6 +47,7 @@ cvar_t	*scr_ofsx;
 cvar_t	*scr_ofsy;
 cvar_t	*scr_ofsz;
 cvar_t	*cl_vsmoothing;
+cvar_t	*cl_stairsmooth;
 cvar_t	*cl_forwardspeed;
 cvar_t	*r_mirrors;
 cvar_t	*r_portals;
@@ -139,7 +140,8 @@ void V_Init( void )
 	scr_ofsy = g_engfuncs.pfnRegisterVariable( "scr_ofsy", "0", 0, "screen offset by Y" );
 	scr_ofsz = g_engfuncs.pfnRegisterVariable( "scr_ofsz", "0", 0, "screen offset by Z" );
 
-	cl_vsmoothing = g_engfuncs.pfnRegisterVariable( "cl_vsmoothing", "0", 0, "enables lepring in multiplayer" );
+	cl_vsmoothing = g_engfuncs.pfnRegisterVariable( "cl_vsmoothing", "0.05", 0, "enables lepring in multiplayer" );
+	cl_stairsmooth = g_engfuncs.pfnRegisterVariable( "cl_vstairsmooth", "100", FCVAR_ARCHIVE, "how fast your view moves upward/downward when running up/down stairs" );
 	cl_forwardspeed = g_engfuncs.pfnRegisterVariable( "cl_forwardspeed", "200", 0, "client forward speed limit" );
 
 	v_iyaw_cycle = g_engfuncs.pfnRegisterVariable( "v_iyaw_cycle", "2", 0, "viewing inverse yaw cycle" );
@@ -504,12 +506,7 @@ void V_GetChasePos( ref_params_t *pparams, edict_t *ent, float *cl_angles, Vecto
 	else angles = cl_angles;
 
 	// refresh the position
-	if( !pparams->smoothing || pparams->demoplayback )
-	{
-		// use interpolated values
-		origin = pparams->simorg + pparams->viewheight;
-	}
-
+	origin = ent->v.origin;
 	origin[2] += 28; // DEFAULT_VIEWHEIGHT - some offset
           V_GetChaseOrigin( angles, origin, cl_chasedist->value, origin );
 }
@@ -857,19 +854,19 @@ void V_CalcScrOffset( ref_params_t *pparams )
 }
 
 //==========================
-// V_InterpolateOrigin
+// V_InterpolatePos
 //==========================
-void V_InterpolateOrigin( ref_params_t *pparams )
+void V_InterpolatePos( ref_params_t *pparams )
 {
 	edict_t	*view;
 
 	// view is the weapon model (only visible from inside body )
 	view = GetViewModel();
 
-	if( cl_vsmoothing->value && ( pparams->maxclients > 1 ))
+	if( cl_vsmoothing->value && ( pparams->smoothing && ( pparams->maxclients > 1 )))
 	{
-		int i, foundidx;
-		float t;
+		int	i, foundidx;
+		float	t;
 
 		if( cl_vsmoothing->value < 0.0 ) CVAR_SET_FLOAT( "cl_vsmoothing", 0 );
 		t = pparams->time - cl_vsmoothing->value;
@@ -887,10 +884,10 @@ void V_InterpolateOrigin( ref_params_t *pparams )
 			double dt;
 			Vector neworg;
 
-			dt = ViewInterp.OriginTime[ (foundidx + 1) & ORIGIN_MASK ] - ViewInterp.OriginTime[foundidx & ORIGIN_MASK];
+			dt = ViewInterp.OriginTime[(foundidx + 1) & ORIGIN_MASK] - ViewInterp.OriginTime[foundidx & ORIGIN_MASK];
 			if ( dt > 0.0 )
 			{
-				frac = ( t - ViewInterp.OriginTime[ foundidx & ORIGIN_MASK] ) / dt;
+				frac = ( t - ViewInterp.OriginTime[foundidx & ORIGIN_MASK] ) / dt;
 				frac = min( 1.0, frac );
 				delta = ViewInterp.Origins[(foundidx + 1) & ORIGIN_MASK] - ViewInterp.Origins[foundidx & ORIGIN_MASK];
 				neworg.MA( frac, ViewInterp.Origins[foundidx & ORIGIN_MASK], delta );
@@ -907,6 +904,15 @@ void V_InterpolateOrigin( ref_params_t *pparams )
 			}
 		}
 	}
+}
+
+float V_CalcStairSmoothValue( float oldz, float newz, float smoothtime, float stepheight )
+{
+	if( oldz < newz )
+		return bound( newz - stepheight, oldz + smoothtime * cl_stairsmooth->value, newz );
+	else if( oldz > newz )
+		return bound( newz, oldz - smoothtime * cl_stairsmooth->value, newz + stepheight );
+	return 0.0;
 }
 
 //==========================
@@ -928,16 +934,11 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 	bob = V_CalcBob( pparams );
 
 	// refresh the position
-	if( !pparams->smoothing || pparams->demoplayback )
-	{
-		// use interpolated values
-		pparams->vieworg = pparams->simorg + pparams->viewheight;
-	}
-
-	// in-game use predicted values
-	pparams->viewangles = pparams->cl_viewangles;
-
+	pparams->vieworg = pparams->simorg; 
 	pparams->vieworg[2] += ( bob );
+	pparams->vieworg += pparams->viewheight;
+
+	pparams->viewangles = pparams->cl_viewangles;
 
 	V_CalcShake();
 	V_ApplyShake( pparams->vieworg, pparams->viewangles, 1.0 );
@@ -956,57 +957,65 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 	V_CalcGunAngle( pparams );
 
 	// use predicted origin as view origin.
-	view->v.origin = pparams->vieworg;      
+	view->v.origin = pparams->simorg;      
 	view->v.origin[2] += ( waterOffset );
+	view->v.origin += pparams->viewheight;
 
 	// Let the viewmodel shake at about 10% of the amplitude
 	V_ApplyShake( view->v.origin, view->v.angles, 0.9 );
 
-	for( i = 0; i < 3; i++ )
-	{
-		view->v.origin[i] += bob * 0.2 * pparams->forward[i];
-		view->v.origin[i] += bob * 0.4 * pparams->right[i];
-	}
-	view->v.origin[2] += (bob * 0.01f);
+	for( i = 0; i < 3; i++ ) view->v.origin[i] += bob * 0.4 * pparams->forward[i];
+	view->v.origin[2] += bob;
 
 	view->v.angles[YAW] -= bob * 0.5;
 	view->v.angles[ROLL] -= bob * 1;
 	view->v.angles[PITCH] -= bob * 0.3;
 	view->v.origin[2] -= 1;
 
-	view->v.oldangles = view->v.angles;
-	view->v.oldorigin = view->v.origin;
+	// fudge position around to keep amount of weapon visible
+	// roughly equal with different FOV
+	if( pparams->viewsize == 110 ) view->v.origin[2] += 1;
+	else if( pparams->viewsize == 100 ) view->v.origin[2] += 2;
+	else if( pparams->viewsize == 90 ) view->v.origin[2] += 1;
+	else if( pparams->viewsize == 80 ) view->v.origin[2] += 0.5;
 
 	if( g_bMirrorPass || g_bPortalPass || g_bScreenPass )
 		pparams->punchangle = -pparams->punchangle; // make inverse for mirror
+
 	pparams->viewangles += pparams->punchangle;
-	
 	pparams->viewangles += ev_punchangle;
+
 	V_DropPunchAngle( pparams->frametime, ev_punchangle );
 
-	static float oldz = 0;
+	static float stairoldtime = 0;
+	static float old_client_z = 0;
+	static float old_weapon_z = 0;
 
-	if( !pparams->smoothing && pparams->onground && pparams->simorg[2] - oldz > 0 )
+	// calculate how much time has passed since the last V_CalcRefdef
+	float smoothtime = bound( 0.0, pparams->time - stairoldtime, 0.1 );
+	stairoldtime = pparams->time;
+
+	// smooth stair stepping, but only if onground and enabled
+	if( !pparams->smoothing || !pparams->onground || cl_stairsmooth->value <= 0 )
 	{
-		float steptime;
-
-		steptime = pparams->time - lasttime;
-		if( steptime < 0 ) steptime = 0;
-
-		oldz += steptime * 150;
-		if( oldz > pparams->vieworg[2])
-			oldz = pparams->vieworg[2];
-		if( pparams->vieworg[2] - oldz > pparams->movevars->stepheight )
-			oldz = pparams->vieworg[2] - pparams->movevars->stepheight;
-		pparams->vieworg[2] += oldz - pparams->vieworg[2];
-		view->v.origin[2] += oldz - pparams->vieworg[2];
+		old_client_z = pparams->vieworg[2];
+		old_weapon_z = pparams->vieworg[2];
 	}
-	else oldz = pparams->vieworg[2];
+	else
+	{
+		float	result;
+		float	stepheight = pparams->movevars->stepheight;
+
+		result = V_CalcStairSmoothValue( old_client_z, pparams->vieworg[2], smoothtime, stepheight );
+		if( result ) pparams->vieworg[2] = old_client_z = result;
+		result = V_CalcStairSmoothValue( old_weapon_z, view->v.origin[2], smoothtime, stepheight );
+		if( result ) view->v.origin[2] = old_weapon_z = result;
+	}
 
 	static Vector lastorg;
 	Vector delta;
 
-	delta = pparams->vieworg - lastorg;
+	delta = pparams->simorg - lastorg;
 
 	if( delta.Length() != 0.0 )
 	{
@@ -1014,9 +1023,9 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 		ViewInterp.OriginTime[ViewInterp.CurrentOrigin & ORIGIN_MASK] = pparams->time;
 		ViewInterp.CurrentOrigin++;
 
-		lastorg = pparams->vieworg;
+		lastorg = pparams->simorg;
 	}
-	V_InterpolateOrigin( pparams ); // smooth moving in multiplayer
+	V_InterpolatePos( pparams ); // smooth predicting moving in multiplayer
 
 	lasttime = pparams->time;
 	v_origin = pparams->vieworg;	

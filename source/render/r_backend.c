@@ -1428,7 +1428,11 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 			pass->alphaGen.type = ALPHAGEN_ENTITY;
 			break;
 		case mod_alias:
+			break;
 		case mod_studio:
+			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
+			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;	// models ignore color in 'add' mode
+			pass->alphaGen.type = ALPHAGEN_ENTITY;
 			break;
 		case mod_sprite:
 			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);

@@ -902,6 +902,51 @@ void EndFrame( void )
 {
 }
 
+/*
+================
+SpectatorConnect
+
+A spectator has joined the game
+================
+*/
+void SpectatorConnect( edict_t *pEntity )
+{
+	entvars_t		*pev = &pEntity->v;
+	CBaseSpectator	*pPlayer = (CBaseSpectator *)GET_PRIVATE( pEntity );
+
+	if( pPlayer ) pPlayer->SpectatorConnect( );
+}
+
+/*
+================
+SpectatorConnect
+
+A spectator has left the game
+================
+*/
+void SpectatorDisconnect( edict_t *pEntity )
+{
+	entvars_t		*pev = &pEntity->v;
+	CBaseSpectator	*pPlayer = (CBaseSpectator *)GET_PRIVATE( pEntity );
+
+	if( pPlayer ) pPlayer->SpectatorDisconnect( );
+}
+
+/*
+================
+SpectatorConnect
+
+A spectator has sent a usercmd
+================
+*/
+void SpectatorThink( edict_t *pEntity )
+{
+	entvars_t		*pev = &pEntity->v;
+	CBaseSpectator	*pPlayer = (CBaseSpectator *)GET_PRIVATE( pEntity );
+
+	if( pPlayer ) pPlayer->SpectatorThink( );
+}
+
 int ServerClassifyEdict( edict_t *pentToClassify )
 {
 	if( !pentToClassify ) return ED_SPAWNED;
@@ -998,6 +1043,10 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 	to->rendercolor = pNet->pev->rendercolor;
 	to->oldorigin = pNet->pev->oldorigin;
 
+	if( pNet->pev->groundentity )
+		to->groundent = ENTINDEX( pNet->pev->groundentity );
+	else to->groundent = -1;
+
 	// studio model sequence
 	if( pNet->pev->sequence != -1 ) to->sequence = pNet->pev->sequence;
 
@@ -1028,7 +1077,7 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 
 		if( pNet->pev->aiment ) 
 			to->aiment = ENTINDEX( pNet->pev->aiment );
-		else to->aiment = 0;
+		else to->aiment = -1;
 
 		to->viewoffset = pNet->pev->view_ofs; 
 		to->viewangles = pNet->pev->viewangles;
@@ -1240,20 +1289,17 @@ void LinkUserMessages( void )
 
 /*
 ================================
-AllowLagCompensation
+ShouldCollide
 
- The game .dll should return 1 if lag compensation should be allowed ( could also just set
-  the sv_unlag cvar.
- Most games right now should return 0, until client-side weapon prediction code is written
-  and tested for them ( note you can predict weapons, but not do lag compensation, too,
-  if you want.
+  Called when the engine believes two entities are about to collide. Return 0 if you
+  want the two entities to just pass through each other without colliding or calling the
+  touch function.
 ================================
 */
-int AllowLagCompensation( void )
+int ShouldCollide( edict_t *pentTouched, edict_t *pentOther )
 {
 	return 1;
 }
-
 
 /*
 ================

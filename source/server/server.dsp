@@ -333,6 +333,10 @@ SOURCE=.\game\sound.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\global\spectator.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\monsters\squadmonster.cpp
 # End Source File
 # Begin Source File
