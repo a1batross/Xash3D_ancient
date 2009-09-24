@@ -10,13 +10,11 @@
 #include "com_library.h"
 #include "const.h"
 
-#define EOFS( x )	(int)&(((entvars_t *)0)->x)
-
 void Sys_FsGetString( file_t *f, char *str )
 {
 	char	ch;
 
-	while( (ch = FS_Getc( f )) != EOF )
+	while(( ch = FS_Getc( f )) != EOF )
 	{
 		*str++ = ch;
 		if( !ch ) break;
@@ -28,7 +26,7 @@ void Sys_FreeNameFuncGlobals( void )
 	int	i;
 
 	if( svgame.ordinals ) Mem_Free( svgame.ordinals );
-	if( svgame.funcs) Mem_Free( svgame.funcs);
+	if( svgame.funcs ) Mem_Free( svgame.funcs );
 
 	for( i = 0; i < svgame.num_ordinals; i++ )
 	{
@@ -89,7 +87,7 @@ bool Sys_LoadSymbols( const char *filename )
 		return false;
 	}
 
-	if( FS_Read( f, &dos_header, sizeof(dos_header)) != sizeof( dos_header ))
+	if( FS_Read( f, &dos_header, sizeof( dos_header )) != sizeof( dos_header ))
 	{
 		MsgDev( D_ERROR, "Sys_LoadSymbols: %s has corrupted EXE header\n", filename );
 		FS_Close( f );
@@ -159,7 +157,7 @@ bool Sys_LoadSymbols( const char *filename )
 
 		if( !com.strcmp((char *)section_header.Name, ".edata" ))
 		{
-			edata_found = TRUE;
+			edata_found = true;
 			break;
 		}
 	}
@@ -172,7 +170,7 @@ bool Sys_LoadSymbols( const char *filename )
 	else
 	{
 		edata_offset = optional_header.DataDirectory[0].VirtualAddress;
-		edata_delta = 0L;
+		edata_delta = 0;
 	}
 
 	if( FS_Seek( f, edata_offset, SEEK_SET ) == -1 )
@@ -191,7 +189,7 @@ bool Sys_LoadSymbols( const char *filename )
 
 	svgame.num_ordinals = export_directory.NumberOfNames;	// also number of ordinals
 
-	if( svgame.num_ordinals > MAX_SYSPATH )
+	if( svgame.num_ordinals > 4096 )
 	{
 		MsgDev( D_ERROR, "Sys_LoadSymbols: %s too many exports\n", filename );
 		FS_Close( f );
@@ -207,7 +205,7 @@ bool Sys_LoadSymbols( const char *filename )
 		return false;
 	}
 
-	svgame.ordinals = Z_Malloc( svgame.num_ordinals * sizeof( word ));
+	svgame.ordinals = Mem_Alloc( svgame.private, svgame.num_ordinals * sizeof( word ));
 
 	if( FS_Read( f, svgame.ordinals, svgame.num_ordinals * sizeof( word )) != (svgame.num_ordinals * sizeof( word )))
 	{
@@ -225,7 +223,7 @@ bool Sys_LoadSymbols( const char *filename )
 		return false;
 	}
 
-	svgame.funcs = Z_Malloc( svgame.num_ordinals * sizeof( dword ));
+	svgame.funcs = Mem_Alloc( svgame.private, svgame.num_ordinals * sizeof( dword ));
 
 	if( FS_Read( f, svgame.funcs, svgame.num_ordinals * sizeof( dword )) != (svgame.num_ordinals * sizeof( dword )))
 	{
@@ -245,7 +243,7 @@ bool Sys_LoadSymbols( const char *filename )
 		return false;
 	}
 
-	p_Names = Z_Malloc( svgame.num_ordinals * sizeof( dword ));
+	p_Names = Mem_Alloc( svgame.private, svgame.num_ordinals * sizeof( dword ));
 
 	if( FS_Read( f, p_Names, svgame.num_ordinals * sizeof( dword )) != (svgame.num_ordinals * sizeof( dword )))
 	{
@@ -293,94 +291,24 @@ bool Sys_LoadSymbols( const char *filename )
 			break;
 		}
 	}
+
 	if( p_Names ) Mem_Free( p_Names );
 	return true;
 }
 
-/*
-============
-SV_CalcBBox
-
-FIXME: get to work
-============
-*/
-void SV_CalcBBox( edict_t *ent, const float *mins, const float *maxs )
+void SV_SetMinMaxSize( edict_t *e, const float *min, const float *max )
 {
-	vec3_t		rmin, rmax;
-	int		i, j, k, l;
-	float		a, *angles;
-	vec3_t		bounds[2];
-	float		xvector[2], yvector[2];
-	vec3_t		base, transformed;
-
-	// find min / max for rotations
-	angles = ent->v.angles;
-		
-	a = angles[1]/180 * M_PI;
-		
-	xvector[0] = cos(a);
-	xvector[1] = sin(a);
-	yvector[0] = -sin(a);
-	yvector[1] = cos(a);
-		
-	VectorCopy( mins, bounds[0] );
-	VectorCopy( maxs, bounds[1] );
-		
-	rmin[0] = rmin[1] = rmin[2] = 9999;
-	rmax[0] = rmax[1] = rmax[2] = -9999;
-		
-	for( i = 0; i <= 1; i++ )
-	{
-		base[0] = bounds[i][0];
-		for( j = 0; j <= 1; j++ )
-		{
-			base[1] = bounds[j][1];
-			for( k = 0; k <= 1; k++ )
-			{
-				base[2] = bounds[k][2];
-					
-				// transform the point
-				transformed[0] = xvector[0] * base[0] + yvector[0] * base[1];
-				transformed[1] = xvector[1] * base[0] + yvector[1] * base[1];
-				transformed[2] = base[2];
-					
-				for( l = 0; l < 3; l++ )
-				{
-					if( transformed[l] < rmin[l] ) rmin[l] = transformed[l];
-					if( transformed[l] > rmax[l] ) rmax[l] = transformed[l];
-				}
-			}
-		}
-	}
-
-	VectorCopy( rmin, ent->v.mins );
-	VectorCopy( rmax, ent->v.maxs );
-}
-
-void SV_SetMinMaxSize( edict_t *e, const float *min, const float *max, bool rotate )
-{
-	int		i;
+	int	i;
 
 	for( i = 0; i < 3; i++ )
 		if( min[i] > max[i] )
 			Host_Error( "SV_SetMinMaxSize: backwards mins/maxs\n" );
 
-	rotate = false; // FIXME
-			
-	// set derived values
-	if( rotate && e->v.solid == SOLID_BBOX )
-	{
-		SV_CalcBBox( e, min, max );
-	}
-	else
-	{
-		VectorCopy( min, e->v.mins);
-		VectorCopy( max, e->v.maxs);
-	}
+	VectorCopy( min, e->v.mins );
+	VectorCopy( max, e->v.maxs );
 	VectorSubtract( max, min, e->v.size );
 
-	// TODO: fill also mass and density
-	SV_LinkEdict (e);
+	SV_LinkEdict( e );
 }
 
 void SV_CopyTraceResult( TraceResult *out, trace_t trace )
@@ -476,7 +404,7 @@ bool SV_CheckForPhysobject( edict_t *ent )
 	case SOLID_SPHERE:
 	case SOLID_CYLINDER:
 	case SOLID_MESH:
-		switch( (int)ent->v.movetype )
+		switch( ent->v.movetype )
 		{
 		case MOVETYPE_PHYSIC:	// dynamic physobject (with gravity)
 			return true;
@@ -529,11 +457,11 @@ void SV_SetModel( edict_t *ent, const char *name )
 	{
 	case mod_brush:
 	case mod_sprite:
-		SV_SetMinMaxSize( ent, mod->mins, mod->maxs, false );
+		SV_SetMinMaxSize( ent, mod->mins, mod->maxs );
 		break;
 	case mod_studio:
 	case mod_bad:
-		SV_SetMinMaxSize( ent, vec3_origin, vec3_origin, false );
+		SV_SetMinMaxSize( ent, vec3_origin, vec3_origin );
 		break;
 	}
 
@@ -565,35 +493,35 @@ float SV_AngleMod( float ideal, float current, float speed )
 {
 	float	move;
 
-	if (current == ideal) // already there?
+	if( current == ideal ) // already there?
 		return anglemod( current ); 
 
 	move = ideal - current;
-	if (ideal > current)
+	if( ideal > current )
 	{
-		if (move >= 180) move = move - 360;
+		if( move >= 180 ) move = move - 360;
 	}
 	else
 	{
-		if (move <= -180) move = move + 360;
+		if( move <= -180 ) move = move + 360;
 	}
-	if (move > 0)
+	if( move > 0 )
 	{
-		if (move > speed) move = speed;
+		if( move > speed ) move = speed;
 	}
 	else
 	{
-		if (move < -speed) move = -speed;
+		if( move < -speed ) move = -speed;
 	}
-	return anglemod(current + move);
+	return anglemod( current + move );
 }
 
 void SV_ConfigString( int index, const char *val )
 {
-	if(index < 0 || index >= MAX_CONFIGSTRINGS)
-		Host_Error ("configstring: bad index %i value %s\n", index, val);
+	if( index < 0 || index >= MAX_CONFIGSTRINGS )
+		Host_Error( "SV_ConfigString: bad index %i value %s\n", index, val );
 
-	if(!*val) val = "";
+	if( !val || !*val ) val = "";
 
 	// change the string in sv
 	com.strcpy( sv.configstrings[index], val );
@@ -602,38 +530,38 @@ void SV_ConfigString( int index, const char *val )
 	{
 		// send the update to everyone
 		MSG_Clear( &sv.multicast );
-		MSG_Begin(svc_configstring);
-		MSG_WriteShort (&sv.multicast, index);
-		MSG_WriteString (&sv.multicast, (char *)val);
-		MSG_Send(MSG_ALL_R, vec3_origin, NULL );
+		MSG_Begin( svc_configstring );
+		MSG_WriteShort( &sv.multicast, index );
+		MSG_WriteString( &sv.multicast, val );
+		MSG_Send( MSG_ALL_R, vec3_origin, NULL );
 	}
 }
 
-bool SV_EntitiesIn( bool mode, vec3_t v1, vec3_t v2 )
+static bool SV_EntitiesIn( int mode, vec3_t v1, vec3_t v2 )
 {
 	int	leafnum, cluster;
 	int	area1, area2;
 	byte	*mask;
 
-	leafnum = pe->PointLeafnum (v1);
-	cluster = pe->LeafCluster (leafnum);
-	area1 = pe->LeafArea (leafnum);
+	leafnum = pe->PointLeafnum( v1 );
+	cluster = pe->LeafCluster( leafnum );
+	area1 = pe->LeafArea( leafnum );
 	if( mode == DVIS_PHS ) mask = pe->ClusterPHS( cluster );
 	else if( mode == DVIS_PVS ) mask = pe->ClusterPVS( cluster ); 
-	else Host_Error( "SV_EntitiesIn: unsupported mode\n" );
+	else Host_Error( "SV_EntitiesIn: ?\n" );
 
-	leafnum = pe->PointLeafnum (v2);
-	cluster = pe->LeafCluster (leafnum);
-	area2 = pe->LeafArea (leafnum);
+	leafnum = pe->PointLeafnum( v2 );
+	cluster = pe->LeafCluster( leafnum );
+	area2 = pe->LeafArea( leafnum );
 
-	if( mask && (!(mask[cluster>>3] & (1<<(cluster&7)))))
+	if( mask && (!( mask[cluster>>3] & (1<<( cluster & 7 )) )))
 		return false;
-	else if (!pe->AreasConnected (area1, area2))
+	else if( !pe->AreasConnected( area1, area2 ))
 		return false;
 	return true;
 }
 
-void SV_InitEdict( edict_t *pEdict )
+static void SV_InitEdict( edict_t *pEdict )
 {
 	Com_Assert( pEdict == NULL );
 	Com_Assert( pEdict->pvPrivateData != NULL );
@@ -673,6 +601,7 @@ void SV_FreeEdict( edict_t *pEdict )
 edict_t *SV_AllocEdict( void )
 {
 	edict_t	*pEdict;
+	float	time = sv.time * 0.001;
 	int	i;
 
 	for( i = svgame.globals->maxClients + 1; i < svgame.globals->numEntities; i++ )
@@ -680,7 +609,7 @@ edict_t *SV_AllocEdict( void )
 		pEdict = EDICT_NUM( i );
 		// the first couple seconds of server time can involve a lot of
 		// freeing and allocating, so relax the replacement policy
-		if( pEdict->free && ( pEdict->freetime < 2.0f || ((sv.time * 0.001f) - pEdict->freetime) > 0.5f ))
+		if( pEdict->free && ( pEdict->freetime < 2.0 || time - pEdict->freetime > 0.5 ))
 		{
 			SV_InitEdict( pEdict );
 			return pEdict;
@@ -756,11 +685,11 @@ void SV_FreeEdicts( void )
 
 /*
 ===============================================================================
+
 	Game Builtin Functions
 
 ===============================================================================
 */
-
 /*
 =========
 pfnMemAlloc
@@ -892,8 +821,7 @@ void pfnSetSize( edict_t *e, const float *rgflMin, const float *rgflMax )
 		MsgDev( D_ERROR, "SV_SetSize: can't modify free entity\n" );
 		return;
 	}
-
-	SV_SetMinMaxSize( e, rgflMin, rgflMax, !VectorIsNull( e->v.angles ));
+	SV_SetMinMaxSize( e, rgflMin, rgflMax );
 }
 
 /*
@@ -1053,30 +981,27 @@ pfnFindEntityByString
 */
 edict_t* pfnFindEntityByString( edict_t *pStartEdict, const char *pszField, const char *pszValue )
 {
-	int		f, e = 0;
-	edict_t		*ed;
+	int		index = 0, e = 0;
+	int		m_iValue;
+	float		m_flValue;
+	const float	*m_vecValue;
+	vec3_t		m_vecValue2;
+	edict_t		*ed, *ed2;
+	TYPEDESCRIPTION	*desc = NULL;
 	const char	*t;
 
 	if( pStartEdict ) e = NUM_FOR_EDICT( pStartEdict );
 	if( !pszValue || !*pszValue ) return NULL;
 
-	// FIXME: make table with hints
-	if( !com.strcmp( pszField, "classname" ))
-		f = EOFS( classname );
-	else if( !com.strcmp( pszField, "globalname" ))
-		f = EOFS( globalname );
-	else if( !com.strcmp( pszField, "targetname" ))
-		f = EOFS( targetname );
-	else if( !com.strcmp( pszField, "target" ))
-		f = EOFS( target );
-	else if( !com.strcmp( pszField, "netname" ))
-		f = EOFS( netname );
-	else if( !com.strcmp( pszField, "model" ))
-		f = EOFS( model );
-	else
+	while((desc = svgame.dllFuncs.pfnGetEntvarsDescirption( index++ )) != NULL )
 	{
-		// FIXME: make cases for all fileds
-		MsgDev( D_ERROR, "field %s unsupported\n", pszField );
+		if( !com.strcmp( pszField, desc->fieldName ))
+			break;
+	}
+
+	if( desc == NULL )
+	{
+		MsgDev( D_ERROR, "SV_FindEntityByString: field %s not found\n", pszField );
 		return pStartEdict;
 	}
 
@@ -1085,10 +1010,49 @@ edict_t* pfnFindEntityByString( edict_t *pStartEdict, const char *pszField, cons
 		ed = EDICT_NUM( e );
 		if( ed->free ) continue;
 
-		t = STRING( *(string_t *)&((byte *)&ed->v)[f] );
-		if( !t ) t = "";
-		if( !com.strcmp( t, pszValue ))
-			return ed;
+		switch( desc->fieldType )
+		{
+		case FIELD_STRING:
+		case FIELD_MODELNAME:
+		case FIELD_SOUNDNAME:
+			t = STRING( *(string_t *)&((byte *)&ed->v)[desc->fieldOffset] );
+			if( !t ) t = "";
+			if( !com.strcmp( t, pszValue ))
+				return ed;
+			break;
+		case FIELD_SHORT:
+			m_iValue = *(short *)&((byte *)&ed->v)[desc->fieldOffset];
+			if( m_iValue == com.atoi( pszValue ))
+				return ed;
+			break;
+		case FIELD_INTEGER:
+		case FIELD_BOOLEAN:
+			m_iValue = *(int *)&((byte *)&ed->v)[desc->fieldOffset];
+			if( m_iValue == com.atoi( pszValue ))
+				return ed;
+			break;						
+		case FIELD_TIME:
+		case FIELD_FLOAT:
+			m_flValue = *(int *)&((byte *)&ed->v)[desc->fieldOffset];
+			if( m_flValue == com.atof( pszValue ))
+				return ed;
+			break;
+		case FIELD_VECTOR:
+		case FIELD_POSITION_VECTOR:
+			m_vecValue = (float *)&((byte *)&ed->v)[desc->fieldOffset];
+			if( !m_vecValue ) m_vecValue = vec3_origin;
+			com.atov( m_vecValue2, pszValue, 3 );
+			if( VectorCompare( m_vecValue, m_vecValue2 ))
+				return ed;
+			break;
+		case FIELD_EDICT:
+			// NOTE: string must be contain an edict number
+			ed2 = (edict_t *)&((byte *)&ed->v)[desc->fieldOffset];
+			if( !ed2 ) ed2 = svgame.edicts;
+			if( NUM_FOR_EDICT( ed2 ) == com.atoi( pszValue ))
+				return ed;
+			break;
+		}
 	}
 	return NULL;
 }

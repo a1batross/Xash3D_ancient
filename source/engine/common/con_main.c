@@ -10,9 +10,7 @@ cvar_t	*con_notifytime;
 cvar_t	*con_speed;
 cvar_t	*con_font;
 
-vec4_t console_color = {1.0, 1.0, 1.0, 1.0};
-int g_console_field_width = 78;
-
+#define DEFAULT_CONSOLE_WIDTH	78
 #define COLOR_BLACK		'0'
 #define COLOR_RED		'1'
 #define COLOR_GREEN		'2'
@@ -23,7 +21,9 @@ int g_console_field_width = 78;
 #define COLOR_WHITE		'7'
 
 #define NUM_CON_TIMES	5		// need for 4 lines
-#define CON_TEXTSIZE	MAX_MSGLEN * 4	// 128 kb buffer
+#define CON_TEXTSIZE	(MAX_MSGLEN * 4)	// 128 kb buffer
+
+int g_console_field_width = 78;
 
 // console color typeing
 rgba_t g_color_table[8] =
@@ -121,7 +121,7 @@ void Con_ToggleChat_f (void)
 Con_Clear_f
 ================
 */
-void Con_Clear_f (void)
+void Con_Clear_f( void )
 {
 	int	i;
 
@@ -182,14 +182,14 @@ void Con_CheckResize( void )
 	int	i, j, width, oldwidth, oldtotallines, numlines, numchars;
 	short	tbuf[CON_TEXTSIZE];
 
-	width = ((int)Cvar_VariableValue( "width" ) / SMALLCHAR_WIDTH) - 2;
+	width = SCREEN_WIDTH / SMALLCHAR_WIDTH - 2;
 
 	if( width == con.linewidth )
 		return;
 
-	if( width < 1 ) // video hasn't been initialized yet
+	if( re == NULL ) // video hasn't been initialized yet
 	{
-		width = g_console_field_width;
+		width = DEFAULT_CONSOLE_WIDTH;
 		con.linewidth = width;
 		con.totallines = CON_TEXTSIZE / con.linewidth;
 		for(i = 0; i < CON_TEXTSIZE; i++)
@@ -198,17 +198,17 @@ void Con_CheckResize( void )
 	else
 	{
 		oldwidth = con.linewidth;
-		con.linewidth = width;
+		con.linewidth = g_console_field_width;
 		oldtotallines = con.totallines;
 		con.totallines = CON_TEXTSIZE / con.linewidth;
 		numlines = oldtotallines;
 
-		if (con.totallines < numlines)
+		if( con.totallines < numlines )
 			numlines = con.totallines;
 
 		numchars = oldwidth;
 	
-		if (con.linewidth < numchars)
+		if( con.linewidth < numchars )
 			numchars = con.linewidth;
 
 		Mem_Copy( tbuf, con.text, CON_TEXTSIZE * sizeof( short ));
@@ -236,16 +236,16 @@ void Con_CheckResize( void )
 Con_Init
 ================
 */
-void Con_Init (void)
+void Con_Init( void )
 {
 	int	i;
 
 	Con_CheckResize();
 
 	// register our commands
-	con_notifytime = Cvar_Get ("con_notifytime", "3", 0, "notify time to live" );
-	con_speed = Cvar_Get ("con_speed", "3", 0, "console moving speed" );
-	con_font = Cvar_Get( "con_font", "default", CVAR_ARCHIVE, "path to console charset" );
+	con_notifytime = Cvar_Get( "con_notifytime", "3", 0, "notify time to live" );
+	con_speed = Cvar_Get( "con_speed", "3", 0, "console moving speed" );
+	con_font = Cvar_Get(  "con_font", "default", CVAR_ARCHIVE, "path to console charset" );
 
 	Field_Clear( &g_consoleField );
 	g_consoleField.widthInChars = g_console_field_width;
@@ -255,11 +255,11 @@ void Con_Init (void)
 		historyEditLines[i].widthInChars = g_console_field_width;
 	}
 
-	Cmd_AddCommand ("toggleconsole", Con_ToggleConsole_f, "opens or closes the console" );
-	Cmd_AddCommand ("togglechat", Con_ToggleChat_f, "enable or disable chat mode" );
-	Cmd_AddCommand ("messagemode", Con_MessageMode_f, "input a chat message to say to everyone" );
-	Cmd_AddCommand ("messagemode2", Con_MessageMode2_f, "input a chat message to say to only your team" );
-	Cmd_AddCommand ("clear", Con_Clear_f, "clear console history" );
+	Cmd_AddCommand( "toggleconsole", Con_ToggleConsole_f, "opens or closes the console" );
+	Cmd_AddCommand( "togglechat", Con_ToggleChat_f, "enable or disable chat mode" );
+	Cmd_AddCommand( "messagemode", Con_MessageMode_f, "input a chat message to say to everyone" );
+	Cmd_AddCommand( "messagemode2", Con_MessageMode2_f, "input a chat message to say to only your team" );
+	Cmd_AddCommand( "clear", Con_Clear_f, "clear console history" );
 	con.initialized = true;
 	MsgDev( D_NOTE, "Console initialized.\n" );
 }
@@ -304,8 +304,8 @@ void Con_Print( const char *txt )
 	int	prev;
 
 	// client not running
-	if(host.type == HOST_DEDICATED) return;
-          if(!con.initialized) return;
+	if( host.type == HOST_DEDICATED ) return;
+          if( !con.initialized ) return;
 
 	if(!com.strncmp( txt, "[skipnotify]", 12 ))
 	{
@@ -313,7 +313,7 @@ void Con_Print( const char *txt )
 		txt += 12;
 	}
 	
-	color = ColorIndex(COLOR_WHITE);
+	color = ColorIndex( COLOR_WHITE );
 
 	while((c = *txt) != 0 )
 	{
@@ -325,13 +325,13 @@ void Con_Print( const char *txt )
 		}
 
 		// count word length
-		for (l = 0; l < con.linewidth; l++)
+		for( l = 0; l < con.linewidth; l++ )
 		{
-			if ( txt[l] <= ' ') break;
+			if( txt[l] <= ' ') break;
 		}
 
 		// word wrap
-		if (l != con.linewidth && (con.x + l >= con.linewidth))
+		if( l != con.linewidth && (con.x + l >= con.linewidth ))
 			Con_Linefeed( skipnotify);
 		txt++;
 
@@ -405,12 +405,10 @@ Draws the last few lines of output transparently over the game top
 */
 void Con_DrawNotify( void )
 {
-	int		x, v = 0;
-	short		*text;
-	int		i;
-	int		time;
-	int		skip;
-	int		currentColor;
+	int	x, v = 0;
+	short	*text;
+	int	i, time, skip;
+	int	currentColor;
 
 	currentColor = 7;
 	re->SetColor( g_color_table[currentColor] );
@@ -424,12 +422,12 @@ void Con_DrawNotify( void )
 		if( time > (con_notifytime->value * 1000)) continue;
 		text = con.text + (i % con.totallines) * con.linewidth;
 
-		for( x = 0; x < con.linewidth; x++)
+		for( x = 0; x < con.linewidth; x++ )
 		{
 			if((text[x] & 0xff ) == ' ' ) continue;
-			if(((text[x]>>8)&7 ) != currentColor )
+			if(((text[x]>>8) & 7 ) != currentColor )
 			{
-				currentColor = (text[x]>>8)&7;
+				currentColor = (text[x]>>8) & 7;
 				re->SetColor(g_color_table[currentColor]);
 			}
 			SCR_DrawSmallChar( con.xadjust + (x+1)*SMALLCHAR_WIDTH, v, text[x] & 0xff );
@@ -465,7 +463,7 @@ Con_DrawConsole
 Draws the console with the solid background
 ================
 */
-void Con_DrawSolidConsole (float frac)
+void Con_DrawSolidConsole( float frac )
 {
 	int	i, x, y;
 	int	rows;
@@ -485,18 +483,18 @@ void Con_DrawSolidConsole (float frac)
 
 	// draw the background
 	y = frac * SCREEN_HEIGHT - 2;
-	if ( y < 1 ) y = 0;
+	if( y < 1 ) y = 0;
 	else SCR_DrawPic( 0, y - SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, cls.consoleBack );
 
 	MakeRGBA( color, 255, 0, 0, 255 );
 	SCR_FillRect( 0, y, SCREEN_WIDTH, 2, color );
 
 	// draw current time
-	re->SetColor(g_color_table[ColorIndex(COLOR_YELLOW)]);
-	com.snprintf( curtime, MAX_STRING, "%s ", timestamp( TIME_TIME_ONLY));
+	re->SetColor( g_color_table[ColorIndex(COLOR_YELLOW)] );
+	com.snprintf( curtime, MAX_STRING, "%s ", timestamp( TIME_TIME_ONLY ));
 	i = com.strlen( curtime );
 	for (x = 0; x < i; x++)
-		SCR_DrawSmallChar(scr_width->integer - ( i - x ) * SMALLCHAR_WIDTH, (lines - (SMALLCHAR_HEIGHT+SMALLCHAR_HEIGHT/2)), curtime[x]);
+		SCR_DrawSmallChar( scr_width->integer - ( i - x ) * SMALLCHAR_WIDTH, (lines - (SMALLCHAR_HEIGHT+SMALLCHAR_HEIGHT/2)), curtime[x] );
 	re->SetColor(NULL);
 
 	// draw the text
@@ -508,7 +506,7 @@ void Con_DrawSolidConsole (float frac)
 	if (con.display != con.current)
 	{
 		// draw arrows to show the buffer is backscrolled
-		re->SetColor(g_color_table[ColorIndex(COLOR_RED)]);
+		re->SetColor( g_color_table[ColorIndex(COLOR_RED)] );
 		for (x = 0; x < con.linewidth; x += 4)
 			SCR_DrawSmallChar( con.xadjust + (x+1) * SMALLCHAR_WIDTH, y, '^' );
 		y -= SMALLCHAR_HEIGHT;
@@ -523,18 +521,18 @@ void Con_DrawSolidConsole (float frac)
 
 	for (i = 0; i < rows; i++, y -= SMALLCHAR_HEIGHT, row--)
 	{
-		if (row < 0) break;
-		if (con.current - row >= con.totallines)
+		if( row < 0 ) break;
+		if( con.current - row >= con.totallines )
 		{
 			// past scrollback wrap point
 			continue;	
 		}
 
-		text = con.text + (row % con.totallines)*con.linewidth;
+		text = con.text + (row % con.totallines) * con.linewidth;
 
-		for (x = 0; x < con.linewidth; x++)
+		for( x = 0; x < con.linewidth; x++ )
 		{
-			if((text[x] & 0xff ) == ' ') continue;
+			if((text[x] & 0xff ) == ' ' ) continue;
 			if(((text[x]>>8) & 7 ) != currentColor )
 			{
 				currentColor = (text[x]>>8) & 7;
@@ -603,7 +601,7 @@ void Con_RunConsole( void )
 	// decide on the destination height of the console
 	if( cls.key_dest == key_console )
 	{
-		if ( cls.state == ca_disconnected )
+		if( cls.state == ca_disconnected )
 			con.finalFrac = 1.0;// full screen
 		else con.finalFrac = 0.5;	// half screen	
 	}
@@ -633,13 +631,13 @@ void Con_PageUp( void )
 void Con_PageDown( void )
 {
 	con.display += 2;
-	if (con.display > con.current) con.display = con.current;
+	if( con.display > con.current) con.display = con.current;
 }
 
 void Con_Top( void )
 {
 	con.display = con.totallines;
-	if ( con.current - con.display >= con.totallines )
+	if( con.current - con.display >= con.totallines )
 		con.display = con.current - con.totallines + 1;
 }
 

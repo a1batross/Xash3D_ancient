@@ -339,7 +339,7 @@ void Sys_LookupInstance( void )
 				Sys.con_showalways = false;
 		}
 		Sys.linked_dll = &engine_dll;	// pointer to engine.dll info
-		com_sprintf( Sys.log_path, "engine.log", com_timestamp( TIME_NO_SECONDS )); // logs folder
+		com_sprintf( Sys.log_path, "engine.log", com_timestamp( TIME_FILENAME )); // logs folder
 		com_strcpy(Sys.caption, va("Xash3D ver.%g", XASH_VERSION ));
 	}
 	else if( !com_strcmp( Sys.progname, "bsplib" ))

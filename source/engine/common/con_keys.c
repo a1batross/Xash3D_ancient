@@ -631,7 +631,7 @@ void Key_Console( int key )
 	}
 
 	// ctrl-end = bottom of console
-	if ( key == K_END && keys[K_CTRL].down )
+	if( key == K_END && keys[K_CTRL].down )
 	{
 		Con_Bottom();
 		return;

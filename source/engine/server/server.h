@@ -237,7 +237,7 @@ typedef struct
 	// library exports table
 	word		*ordinals;
 	dword		*funcs;
-	char		*names[MAX_SYSPATH];	// max 1024 exports supported
+	char		*names[4096];		// max 4096 exports supported
 	int		num_ordinals;		// actual exports count
 	dword		funcBase;			// base offset
 
@@ -388,7 +388,6 @@ void SV_UpdateEntityState( edict_t *ent, bool baseline );
 void SV_LoadProgs( const char *name );
 void SV_UnloadProgs( void );
 void SV_FreeEdicts( void );
-void SV_InitEdict( edict_t *pEdict );
 void SV_ConfigString( int index, const char *val );
 void SV_SetModel( edict_t *ent, const char *name );
 void SV_CreatePhysBody( edict_t *ent );

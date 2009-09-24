@@ -2028,6 +2028,7 @@ void R_BeginRegistration( const char *mapname, const dvis_t *visData )
 		// update progress bar
 		Cvar_SetValue( "scr_loading", 50.0f );
 		if( ri.UpdateScreen ) ri.UpdateScreen();
+		R_StudioFreeAllExtradata (); // load game issues
 	}
 	
 	if( r_lighting_packlightmaps->integer )

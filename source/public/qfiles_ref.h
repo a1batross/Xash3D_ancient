@@ -705,9 +705,8 @@ included global, and both (client & server) pent list
 #define LUMP_ENTTABLE	"enttable"	// entity transition table
 #define LUMP_ADJACENCY	"adjacency"	// Save Header + ADJACENCY
 #define LUMP_GLOBALS	"global_data"	// Game Header + Global State
-#define LUMP_GAMECVARS	"latched_cvars"
+#define LUMP_GAMECVARS	"latched_cvars"	// sv.latched_cvars
 #define LUMP_HASHTABLE	"hashtable"	// contains string_t only for used hash-values
-#define LUMP_SNAPSHOT	"saveshot"	// currently not implemented
 
 #define DENT_KEY		0
 #define DENT_VAL		1

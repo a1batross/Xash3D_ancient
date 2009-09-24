@@ -21,6 +21,7 @@ public:
 			TurnOn();
 			ClearBits( pev->spawnflags, SF_START_ON );
 		}
+		else TurnOff();
 	}
 	
 	void Think( void );

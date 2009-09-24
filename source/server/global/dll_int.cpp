@@ -43,6 +43,7 @@ static DLL_FUNCTIONS gFunctionTable =
 	DispatchRestore,		// pfnRestore
 	DispatchObjectCollsionBox,	// pfnAbsBox
 
+	GetEntvarsDescirption,	// pfnGetEntvarsDescirption
 	SaveWriteFields,		// pfnSaveWriteFields
 	SaveReadFields,		// pfnSaveReadFields
 

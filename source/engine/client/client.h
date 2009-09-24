@@ -107,14 +107,6 @@ typedef struct
 	edict_t		viewent;		// viewmodel
 	client_data_t	data;		// hud data
 
-	// misc 2d drawing stuff
-	float		centerPrintTime;
-	int		centerPrintCharWidth;
-	int		centerPrintY;
-	char		centerPrint[1024];
-	int		centerPrintLines;		
-	bool		need_levelshot;
-
 	// predicting stuff
 	int		predicted_origins[CMD_BACKUP][3];// for debug comparing against server
 
@@ -170,6 +162,13 @@ typedef enum
 	dl_generic,
 } dltype_t;		// download type
 
+typedef enum
+{
+	scrshot_inactive,
+	scrshot_plaque,  	// levelshot
+	scrshot_savegame,	// saveshot
+} e_scrshot;
+
 // cl_private_edict_t
 struct cl_priv_s
 {
@@ -220,6 +219,13 @@ typedef struct
 		void	*vp;			// acess by offset in bytes
 	};
 
+	// misc 2d drawing stuff
+	float		centerPrintTime;
+	int		centerPrintCharWidth;
+	int		centerPrintY;
+	char		centerPrint[1024];
+	int		centerPrintLines;
+
 	int		maxClients;
 	int		numEntities;
 	int		maxEntities;
@@ -265,6 +271,10 @@ typedef struct
 	string		downloadtempname;
 	int		downloadnumber;
 	dltype_t		downloadtype;
+
+	e_scrshot		scrshot_request;		// request for screen shot
+	e_scrshot		scrshot_action;		// in-action
+	string		shotname;
 
 	// demo recording info must be here, so it isn't clearing on level change
 	bool		demorecording;
@@ -511,6 +521,7 @@ void SCR_DrawSmallStringExt( int x, int y, const char *string, rgba_t setColor, 
 void SCR_DrawStringExt( int x, int y, float w, float h, const char *string, rgba_t setColor, bool forceColor );
 void SCR_DrawBigString( int x, int y, const char *s, byte alpha );
 void SCR_DrawBigStringColor( int x, int y, const char *s, rgba_t color );
+void SCR_MakeScreenShot( void );
 void SCR_RSpeeds( void );
 void SCR_DrawFPS( void );
 void SCR_DrawNet( void );

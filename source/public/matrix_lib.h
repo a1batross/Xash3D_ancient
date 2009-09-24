@@ -533,7 +533,7 @@ _inline void Matrix4x4_CreateRotate( matrix4x4 out, float angle, float x, float 
 	y *= len;
 	z *= len;
 
-	angle *= (-M_PI / 180.0);
+	angle *= (-M_PI / 180.0f);
 	c = com.cos( angle );
 	s = com.sin( angle );
 

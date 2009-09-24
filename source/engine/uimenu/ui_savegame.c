@@ -104,10 +104,10 @@ static void UI_SaveGame_GetGameList( void )
 			continue;
 		}
 
-		Mem_Copy( uiSaveGame.games[i].map, name + CS_SIZE + (CS_TIME * 2), CS_SIZE );
-		Mem_Copy( uiSaveGame.games[i].time, name + CS_SIZE + CS_TIME, CS_TIME );
-		Mem_Copy( uiSaveGame.games[i].date, name + CS_TIME, CS_TIME );
-		Mem_Copy( uiSaveGame.games[i].name, name, CS_SIZE );
+		com.strncpy( uiSaveGame.games[i].map, name + CS_SIZE + (CS_TIME * 2), CS_SIZE );
+		com.strncpy( uiSaveGame.games[i].time, name + CS_SIZE + CS_TIME, CS_TIME );
+		com.strncpy( uiSaveGame.games[i].date, name + CS_SIZE, CS_TIME );
+		com.strncpy( uiSaveGame.games[i].name, name, CS_SIZE );
 		uiSaveGame.games[i].valid = true;
 	}
 
@@ -257,7 +257,7 @@ static void UI_SaveGame_Ownerdraw( void *self )
 
 			if( uiSaveGame.games[uiSaveGame.currentGame].map[0] )
 			{
-				string	pathTGA, pathJPG;
+				string	pathJPG;
 
 				if( uiStatic.realTime - uiSaveGame.fadeTime >= 3000 )
 				{
@@ -273,16 +273,11 @@ static void UI_SaveGame_Ownerdraw( void *self )
 
 				color[3] = bound( 0.0f, (float)(uiStatic.realTime - uiSaveGame.fadeTime) * 0.001f, 1.0f ) * 255;
 
-				com.snprintf( pathTGA, sizeof( pathTGA ), "gfx/shell/menu_levelshots/%s_1.tga", uiSaveGame.games[uiSaveGame.currentGame].map);
-				com.snprintf( pathJPG, sizeof( pathJPG ), "gfx/shell/menu_levelshots/%s_1.jpg", uiSaveGame.games[uiSaveGame.currentGame].map);
+				com.snprintf( pathJPG, sizeof( pathJPG ), "save/save%i.jpg", uiSaveGame.currentGame );
 
-				if( !FS_FileExists( pathTGA ) && !FS_FileExists( pathJPG ))
+				if( !FS_FileExists( pathJPG ))
 					UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/shell/menu_levelshots/unknownmap" );
-				else
-				{
-					UI_DrawPic( x, y, w, h, uiColorWhite, va( "gfx/shell/menu_levelshots/%s_%i", uiSaveGame.games[uiSaveGame.currentGame].map, prev + 1 ));
-					UI_DrawPic( x, y, w, h, color, va( "gfx/shell/menu_levelshots/%s_%i", uiSaveGame.games[uiSaveGame.currentGame].map, uiSaveGame.currentLevelShot + 1 ));
-				}
+				else UI_DrawPic( x, y, w, h, uiColorWhite, pathJPG );
 			}
 			else UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/shell/menu_levelshots/unknownmap" );
 

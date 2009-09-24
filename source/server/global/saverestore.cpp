@@ -136,6 +136,13 @@ TYPEDESCRIPTION gEntvarsDescription[] =
 	DEFINE_ENTITY_FIELD( speed, FIELD_FLOAT ),
 };
 
+// used by engine for FindEntityByString and some other things
+TYPEDESCRIPTION *GetEntvarsDescirption( int number )
+{
+	if( number < 0 && number >= ENTVARS_COUNT )
+		return NULL;
+	return &gEntvarsDescription[number];
+}
 
 // --------------------------------------------------------------
 //

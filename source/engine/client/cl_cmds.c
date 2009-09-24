@@ -189,13 +189,14 @@ splash logo while map is loading
 */ 
 void CL_LevelShot_f( void )
 {
-	string	checkname;	
+	if( cls.scrshot_request != scrshot_plaque ) return;
+	cls.scrshot_request = scrshot_inactive;
 
-	if( !cl.need_levelshot ) return;
 	// check for exist
-	com.sprintf( checkname, "levelshots/%s.jpg", cl.configstrings[CS_NAME] );
-	if( !FS_FileExists( checkname )) re->ScrShot( checkname, VID_LEVELSHOT );
-	cl.need_levelshot = false; // done
+	com.sprintf( cls.shotname, "levelshots/%s.jpg", cl.configstrings[CS_NAME] );
+	if( !FS_FileExists( cls.shotname ))
+		cls.scrshot_action = scrshot_plaque;	// build new frame for levelshot
+	else cls.scrshot_action = scrshot_inactive;	// disable - not needs
 }
 
 /* 
@@ -207,8 +208,6 @@ mini-pic in loadgame menu
 */ 
 void CL_SaveShot_f( void )
 {
-	string	checkname;	
-
 	if( Cmd_Argc() < 2 )
 	{
 		Msg( "Usage: saveshot <savename>\n" );
@@ -216,8 +215,8 @@ void CL_SaveShot_f( void )
 	}
 
 	// check for exist
-	com.sprintf( checkname, "saves/%s.jpg", Cmd_Argv( 1 ));
-	if( !FS_FileExists( checkname )) re->ScrShot( checkname, VID_SAVESHOT );
+	com.sprintf( cls.shotname, "save/%s.jpg", Cmd_Argv( 1 ));
+	cls.scrshot_action = scrshot_savegame;		// build new frame for saveshot
 }
 
 /*

@@ -170,10 +170,13 @@ V_PostRender
 */
 void V_PostRender( void )
 {
-	SCR_RSpeeds();
-	SCR_DrawNet();
-	SCR_DrawFPS();
-	UI_UpdateMenu( cls.realtime );
-	Con_DrawConsole();
+	if( cls.scrshot_action == scrshot_inactive )
+	{
+		SCR_RSpeeds();
+		SCR_DrawNet();
+		SCR_DrawFPS();
+		UI_UpdateMenu( cls.realtime );
+		Con_DrawConsole();
+	}
 	re->EndFrame();
 }

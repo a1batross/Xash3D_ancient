@@ -41,11 +41,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "picointernal.h"
 #include "stdio.h"			// sscanf
 
-/* disable warnings */
-#ifdef _WIN32
-#pragma warning( disable:4100 )		/* unref param */
-#endif
-
 /* todo:
  * - '_obj_load' code crashes in a weird way after
  *   '_obj_mtl_load' for a few .mtl files

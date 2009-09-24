@@ -46,10 +46,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 typedef struct
 {
-	char		map[80];
-	char		time[16];
-	char		date[16];
-	char		name[32];
+	char		map[CS_SIZE];
+	char		time[CS_TIME];
+	char		date[CS_TIME];
+	char		name[CS_SIZE];
 	bool		valid;
 } uiLoadGameGame_t;
 
@@ -109,10 +109,10 @@ static void UI_LoadGame_GetGameList( void )
 			continue;
 		}
 
-		Mem_Copy( uiLoadGame.games[i].map, name + CS_SIZE + (CS_TIME * 2), CS_SIZE );
-		Mem_Copy( uiLoadGame.games[i].time, name + CS_SIZE + CS_TIME, CS_TIME );
-		Mem_Copy( uiLoadGame.games[i].date, name + CS_TIME, CS_TIME );
-		Mem_Copy( uiLoadGame.games[i].name, name, CS_SIZE );
+		com.strncpy( uiLoadGame.games[i].map, name + CS_SIZE + (CS_TIME * 2), CS_SIZE );
+		com.strncpy( uiLoadGame.games[i].time, name + CS_SIZE + CS_TIME, CS_TIME );
+		com.strncpy( uiLoadGame.games[i].date, name + CS_SIZE, CS_TIME );
+		com.strncpy( uiLoadGame.games[i].name, name, CS_SIZE );
 		uiLoadGame.games[i].valid = true;
 	}
 
@@ -255,7 +255,7 @@ static void UI_LoadGame_Ownerdraw( void *self )
 
 			if( uiLoadGame.games[uiLoadGame.currentGame].map[0] )
 			{
-				string	pathTGA, pathJPG;
+				string	pathJPG;
 
 				if( uiStatic.realTime - uiLoadGame.fadeTime >= 3000 )
 				{
@@ -271,16 +271,11 @@ static void UI_LoadGame_Ownerdraw( void *self )
 
 				color[3] = bound( 0.0f, (float)(uiStatic.realTime - uiLoadGame.fadeTime) * 0.001f, 1.0f ) * 255;
 
-				com.snprintf( pathTGA, sizeof( pathTGA ), "gfx/shell/menu_levelshots/%s_1.tga", uiLoadGame.games[uiLoadGame.currentGame].map);
-				com.snprintf( pathJPG, sizeof( pathJPG ), "gfx/shell/menu_levelshots/%s_1.jpg", uiLoadGame.games[uiLoadGame.currentGame].map);
+				com.snprintf( pathJPG, sizeof( pathJPG ), "save/save%i.jpg", uiLoadGame.currentGame );
 
-				if( !FS_FileExists( pathTGA ) && !FS_FileExists( pathJPG ))
+				if( !FS_FileExists( pathJPG ))
 					UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/shell/menu_levelshots/unknownmap" );
-				else
-				{
-					UI_DrawPic( x, y, w, h, uiColorWhite, va( "gfx/shell/menu_levelshots/%s_%i", uiLoadGame.games[uiLoadGame.currentGame].map, prev + 1 ));
-					UI_DrawPic( x, y, w, h, color, va( "gfx/shell/menu_levelshots/%s_%i", uiLoadGame.games[uiLoadGame.currentGame].map, uiLoadGame.currentLevelShot + 1 ));
-				}
+				else UI_DrawPic( x, y, w, h, uiColorWhite, pathJPG );
 			}
 			else UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/shell/menu_levelshots/unknownmap" );
 

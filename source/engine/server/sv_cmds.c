@@ -280,13 +280,13 @@ void SV_Delete_f( void )
 {
 	if( Cmd_Argc() != 2 )
 	{
-		Msg ("Usage: delete <name>\n");
+		Msg( "Usage: delete <name>\n" );
 		return;
 	}
 
 	// delete save and saveshot
-	FS_Delete( va( "saves/%s.bin", Cmd_Argv( 1 )));
-	FS_Delete( va( "saves/%s.jpg", Cmd_Argv( 1 )));
+	FS_Delete( va( "%s/save/%s.bin", GI->gamedir, Cmd_Argv( 1 )));
+	FS_Delete( va( "%s/save/%s.jpg", GI->gamedir, Cmd_Argv( 1 )));
 }
 
 /*

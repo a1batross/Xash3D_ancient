@@ -102,6 +102,7 @@ enum
 	TIME_TIME_ONLY,
 	TIME_NO_SECONDS,
 	TIME_YEAR_ONLY,
+	TIME_FILENAME,
 };
 
 // cvar flags

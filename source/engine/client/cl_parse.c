@@ -262,7 +262,7 @@ void CL_ParseServerData( sizebuf_t *msg )
 	if( i == 3 )
 	{
 		Cvar_Set( "cl_levelshot_name", MAP_DEFAULT_SHADER );	// render a black screen
-		cl.need_levelshot = true;			// make levelshot
+		cls.scrshot_request = scrshot_plaque;			// make levelshot
 	}
 	// seperate the printfs so the server message can have a color
 	Msg("\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");

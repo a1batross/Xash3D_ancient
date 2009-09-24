@@ -630,7 +630,6 @@ void CSprite::Spawn( void )
 	}
 
 	SetBits( pev->flags, FL_POINTENTITY );
-	TurnOff();
 }
 
 void CSprite::PostSpawn( void )
@@ -694,7 +693,7 @@ void CSprite::Move( void )
 
 	if ( m_flDelay > gpGlobals->time )
 		pev->speed = UTIL_Approach( 0, pev->speed, 5 * gpGlobals->frametime );
-	else	pev->speed = UTIL_Approach( pev->armorvalue, pev->speed, 5 * gpGlobals->frametime );
+	else pev->speed = UTIL_Approach( pev->armorvalue, pev->speed, 5 * gpGlobals->frametime );
 
 	float fraction = 2 * gpGlobals->frametime;
 	UTIL_SetVelocity( this, ((pev->movedir * pev->speed) * fraction) + (pev->velocity * (1-fraction)));
@@ -704,7 +703,7 @@ void CSprite::TurnOff( void )
 {
 	SetBits( pev->effects, EF_NODRAW );
 	m_iState = STATE_OFF;
-	if(m_pGoalEnt) m_pGoalEnt = m_pGoalEnt->GetPrev();
+	if( m_pGoalEnt ) m_pGoalEnt = m_pGoalEnt->GetPrev();
 	UTIL_SetVelocity( this, g_vecZero );
 	DontThink();
 }

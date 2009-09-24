@@ -82,6 +82,7 @@ void R_StudioFreeAllExtradata( void )
 		Mem_FreePool( &r_entities[i].mempool );
 		r_entities[i].extradata = NULL;
 	}
+	Mem_Set( r_entities, 0, sizeof( r_entities ));
 }
 
 void R_StudioAllocExtradata( edict_t *in, ref_entity_t *e )

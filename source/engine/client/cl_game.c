@@ -721,18 +721,18 @@ void pfnDrawCenterPrint( void )
 	int	l, x, y, w;
 	rgba_t	color;
 
-	if( !cl.centerPrintTime ) return;
-	CL_FadeAlpha( cl.centerPrintTime, scr_centertime->value, color );
+	if( !clgame.centerPrintTime ) return;
+	CL_FadeAlpha( clgame.centerPrintTime, scr_centertime->value, color );
 
 	if( *( int *)color == 0xFFFFFFFF ) 
 	{
-		cl.centerPrintTime = 0;
+		clgame.centerPrintTime = 0;
 		return;
 	}
 
 	re->SetColor( color );
-	start = cl.centerPrint;
-	y = cl.centerPrintY - cl.centerPrintLines * BIGCHAR_HEIGHT / 2;
+	start = clgame.centerPrint;
+	y = clgame.centerPrintY - clgame.centerPrintLines * BIGCHAR_HEIGHT / 2;
 
 	while( 1 )
 	{
@@ -746,12 +746,12 @@ void pfnDrawCenterPrint( void )
 		}
 		linebuffer[l] = 0;
 
-		w = cl.centerPrintCharWidth * com.cstrlen( linebuffer );
+		w = clgame.centerPrintCharWidth * com.cstrlen( linebuffer );
 		x = ( SCREEN_WIDTH - w )>>1;
 
-		SCR_DrawStringExt( x, y, cl.centerPrintCharWidth, BIGCHAR_HEIGHT, linebuffer, color, false );
+		SCR_DrawStringExt( x, y, clgame.centerPrintCharWidth, BIGCHAR_HEIGHT, linebuffer, color, false );
 
-		y += cl.centerPrintCharWidth * 1.5;
+		y += clgame.centerPrintCharWidth * 1.5;
 		while( *start && ( *start != '\n' )) start++;
 		if( !*start ) break;
 		start++;
@@ -770,18 +770,18 @@ void pfnCenterPrint( const char *text, int y, int charWidth )
 {
 	char	*s;
 
-	com.strncpy( cl.centerPrint, text, sizeof( cl.centerPrint ));
-	cl.centerPrintTime = cls.realtime * 0.001f;
-	cl.centerPrintY = y;
-	cl.centerPrintCharWidth = charWidth;
+	com.strncpy( clgame.centerPrint, text, sizeof( clgame.centerPrint ));
+	clgame.centerPrintTime = cls.realtime * 0.001f;
+	clgame.centerPrintY = y;
+	clgame.centerPrintCharWidth = charWidth;
 
 	// count the number of lines for centering
-	cl.centerPrintLines = 1;
-	s = cl.centerPrint;
+	clgame.centerPrintLines = 1;
+	s = clgame.centerPrint;
 	while( *s )
 	{
 		if( *s == '\n' )
-			cl.centerPrintLines++;
+			clgame.centerPrintLines++;
 		s++;
 	}
 }
@@ -928,9 +928,8 @@ force to make levelshot
 */
 void pfnMakeLevelShot( void )
 {
-	if( !cl.need_levelshot ) return;
-
-	Con_ClearNotify();
+	if( cls.scrshot_request != scrshot_plaque )
+		return;
 
 	// make levelshot at nextframe()
 	Cbuf_AddText( "wait 1\nlevelshot\n" );

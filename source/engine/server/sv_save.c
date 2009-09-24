@@ -188,7 +188,7 @@ static void SV_SaveServerData( wfile_t *f )
 	// initialize game header
 	ghdr.mapCount = svs.spawncount;
 	com.strncpy( ghdr.mapName, svs.mapname, CS_SIZE );
-	com.strncpy( ghdr.comment, svs.comment, MAX_STRING );
+	Mem_Copy( ghdr.comment, svs.comment, MAX_STRING );
 
 	// initialize ENTITYTABLE
 	pSaveData->tableCount = svgame.globals->numEntities;
@@ -229,7 +229,7 @@ static void SV_SaveServerData( wfile_t *f )
 		pSaveData->currentIndex++; // move pointer
 	}
 
-	SV_SaveBuffer( f, LUMP_ENTITIES, false );
+	SV_SaveBuffer( f, LUMP_BASEENTS, false );
 
 	// write entity table
 	for( i = 0; i < pSaveData->tableCount; i++ )
@@ -300,7 +300,7 @@ void SV_WriteSaveFile( const char *name, bool autosave )
 	// split comment to sections
 	com.strncpy( svs.comment, sv.configstrings[CS_NAME], CS_SIZE );
 	com.strncpy( svs.comment + CS_SIZE, timestamp( TIME_DATE_ONLY ), CS_TIME );
-	com.strncpy( svs.comment + CS_SIZE + CS_TIME, timestamp( TIME_TIME_ONLY ), CS_TIME );
+	com.strncpy( svs.comment + CS_SIZE + CS_TIME, timestamp( TIME_NO_SECONDS ), CS_TIME );
 	com.strncpy( svs.comment + CS_SIZE + (CS_TIME * 2), svs.mapname, CS_SIZE );
 	MsgDev( D_INFO, "Saving game..." );
 
@@ -332,7 +332,7 @@ void SV_ReadComment( wfile_t *l )
 	// read game header
 	svgame.dllFuncs.pfnSaveReadFields( pSaveData, "Game Header", &ghdr, gGameHeader, ARRAYSIZE( gGameHeader ));
 
-	com.strncpy( svs.comment, ghdr.comment, CS_SIZE );
+	Mem_Copy( svs.comment, ghdr.comment, MAX_STRING );
 	if( svgame.SaveData.pTokens ) Mem_Free( svgame.SaveData.pTokens );
 	Mem_Set( &svgame.SaveData, 0, sizeof( SAVERESTOREDATA ));
 }
@@ -407,7 +407,7 @@ void SV_ReadGlobals( wfile_t *l )
 	svgame.dllFuncs.pfnSaveReadFields( pSaveData, "Game Header", &ghdr, gGameHeader, ARRAYSIZE( gGameHeader ));
 
 	svs.spawncount = ghdr.mapCount; // restore spawncount
-	com.strncpy( svs.comment, ghdr.comment, MAX_STRING );
+	Mem_Copy( svs.comment, ghdr.comment, MAX_STRING );
 	com.strncpy( svs.mapname, ghdr.mapName, MAX_STRING );
 
 	// restore global state
@@ -474,7 +474,7 @@ void SV_ReadEntities( wfile_t *l )
 		pTable->pent = pent;
 	}
 
-	SV_ReadBuffer( l, LUMP_ENTITIES );
+	SV_ReadBuffer( l, LUMP_BASEENTS );
 	pSaveData->fUseLandmark = true;
 
 	// and read entities ...
@@ -576,7 +576,7 @@ bool SV_GetComment( char *comment, int savenum )
 
 	savfile = WAD_Open( va( "save/save%i.bin", savenum ), "rb" );
 	SV_ReadComment( savfile );
-	com.strncpy( comment, svs.comment, MAX_STRING );
+	Mem_Copy( comment, svs.comment, MAX_STRING );
 	WAD_Close( savfile );
 
 	return true;

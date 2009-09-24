@@ -1200,6 +1200,8 @@ void CL_Frame( int time )
 	// update the screen
 	SCR_UpdateScreen();
 
+	SCR_MakeScreenShot();
+
 	// update audio
 	S_Update( cl.playernum + 1, cl.refdef.vieworg, vec3_origin, cl.refdef.forward, cl.refdef.up );
 

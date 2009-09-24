@@ -150,3 +150,5 @@ Beta 13.12.09
 123. fixup studio EF_ANIMATE			OK
 124. fixup studio events on client-side		OK
 125. sort & implement engfuncs on server.dll
+126. implement trace from Quake3
+127. debug sv.edicts and cl.edicts management

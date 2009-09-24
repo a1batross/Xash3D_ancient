@@ -547,7 +547,7 @@ void WriteIBSPFile( const char *filename )
 	FS_Write( file, (bspHeader_t*)header, sizeof( *header ));	/* overwritten later */
 	
 	// add marker lump
-	com.sprintf( marker, "Written by Xash BspLib at %s)", timestamp( TIME_NO_SECONDS ));
+	com.sprintf( marker, "Written by Xash BspLib at %s)", timestamp( TIME_FILENAME ));
 	AddLump( file, (bspHeader_t*) header, 0, marker, com.strlen( marker ) + 1 );
 	
 	/* add lumps */

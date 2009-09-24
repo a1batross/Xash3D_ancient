@@ -317,6 +317,7 @@ typedef struct
 	int 	(*pfnRestore)( edict_t *pent, SAVERESTOREDATA *pSaveData, int globalEntity );
 	void	(*pfnSetAbsBox)( edict_t *pent );
 
+	TYPEDESCRIPTION *(*pfnGetEntvarsDescirption)( int number );
 	void	(*pfnSaveWriteFields)( SAVERESTOREDATA*, const char*, void*, TYPEDESCRIPTION*, int );
 	void	(*pfnSaveReadFields)( SAVERESTOREDATA*, const char*, void*, TYPEDESCRIPTION*, int );
 	void	(*pfnSaveGlobalState)( SAVERESTOREDATA * );

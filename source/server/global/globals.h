@@ -38,6 +38,7 @@ extern void DispatchBlocked( edict_t *pentBlocked, edict_t *pentOther );
 extern void DispatchSave( edict_t *pent, SAVERESTOREDATA *pSaveData );
 extern int  DispatchRestore( edict_t *pent, SAVERESTOREDATA *pSaveData, int globalEntity );
 extern void DispatchObjectCollsionBox( edict_t *pent );
+extern TYPEDESCRIPTION *GetEntvarsDescirption( int number );
 extern int ServerClassifyEdict( edict_t *pentToClassify );
 extern void UpdateEntityState( struct entity_state_s *to, edict_t *from, int baseline );
 extern void SaveWriteFields( SAVERESTOREDATA *pSaveData, const char *pname, void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCount );

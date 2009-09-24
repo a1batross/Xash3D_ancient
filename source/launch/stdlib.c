@@ -517,12 +517,16 @@ const char* com_timestamp( int format )
 		strftime(timestring, sizeof (timestring), "%H:%M.%S", crt_tm);
 		break;
 	case TIME_NO_SECONDS:
-		// Build a timestamp that can use for filename (ex: "Nov2006-26 (19.14)");
-		strftime(timestring, sizeof (timestring), "%b%Y-%d (%H.%M)", crt_tm);
+		// Build the time stamp exclude seconds (ex: "13:46");
+		strftime(timestring, sizeof (timestring), "%H:%M", crt_tm);
 		break;
 	case TIME_YEAR_ONLY:
 		// Build the date stamp year only (ex: "2006");
 		strftime(timestring, sizeof (timestring), "%Y", crt_tm);
+		break;
+	case TIME_FILENAME:
+		// Build a timestamp that can use for filename (ex: "Nov2006-26 (19.14)");
+		strftime(timestring, sizeof (timestring), "%b%Y-%d (%H.%M)", crt_tm);
 		break;
 	default: return NULL;
 	}

@@ -1,0 +1,102 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: server - Win32 Release--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSPA9A2.tmp" with contents
+[
+/nologo /MD /W3 /O2 /I "./" /I "ents" /I "game" /I "global" /I "monsters" /I "../common" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /Fo"..\temp\server\!release/" /Fd"..\temp\server\!release/" /FD /c 
+"D:\Xash3D\src_main\server\monsters\animation.cpp"
+]
+Creating command line "cl.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSPA9A2.tmp" 
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSPA9A3.tmp" with contents
+[
+msvcrt.lib /nologo /subsystem:windows /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /def:".\server.def" /out:"..\temp\server\!release/server.dll" /implib:"..\temp\server\!release/server.lib" /libpath:"..\common\libs" 
+"\Xash3D\src_main\temp\server\!release\ai_sound.obj"
+"\Xash3D\src_main\temp\server\!release\animating.obj"
+"\Xash3D\src_main\temp\server\!release\animation.obj"
+"\Xash3D\src_main\temp\server\!release\apache.obj"
+"\Xash3D\src_main\temp\server\!release\barnacle.obj"
+"\Xash3D\src_main\temp\server\!release\barney.obj"
+"\Xash3D\src_main\temp\server\!release\basebrush.obj"
+"\Xash3D\src_main\temp\server\!release\baseentity.obj"
+"\Xash3D\src_main\temp\server\!release\basefunc.obj"
+"\Xash3D\src_main\temp\server\!release\basefx.obj"
+"\Xash3D\src_main\temp\server\!release\baseinfo.obj"
+"\Xash3D\src_main\temp\server\!release\baseitem.obj"
+"\Xash3D\src_main\temp\server\!release\baselogic.obj"
+"\Xash3D\src_main\temp\server\!release\basemonster.obj"
+"\Xash3D\src_main\temp\server\!release\basemover.obj"
+"\Xash3D\src_main\temp\server\!release\baseother.obj"
+"\Xash3D\src_main\temp\server\!release\basepath.obj"
+"\Xash3D\src_main\temp\server\!release\basephys.obj"
+"\Xash3D\src_main\temp\server\!release\baserockets.obj"
+"\Xash3D\src_main\temp\server\!release\basetank.obj"
+"\Xash3D\src_main\temp\server\!release\basetrigger.obj"
+"\Xash3D\src_main\temp\server\!release\baseutil.obj"
+"\Xash3D\src_main\temp\server\!release\baseweapon.obj"
+"\Xash3D\src_main\temp\server\!release\baseworld.obj"
+"\Xash3D\src_main\temp\server\!release\client.obj"
+"\Xash3D\src_main\temp\server\!release\combat.obj"
+"\Xash3D\src_main\temp\server\!release\decals.obj"
+"\Xash3D\src_main\temp\server\!release\defaultai.obj"
+"\Xash3D\src_main\temp\server\!release\dll_int.obj"
+"\Xash3D\src_main\temp\server\!release\flyingmonster.obj"
+"\Xash3D\src_main\temp\server\!release\game.obj"
+"\Xash3D\src_main\temp\server\!release\gamerules.obj"
+"\Xash3D\src_main\temp\server\!release\generic.obj"
+"\Xash3D\src_main\temp\server\!release\globals.obj"
+"\Xash3D\src_main\temp\server\!release\gman.obj"
+"\Xash3D\src_main\temp\server\!release\hassassin.obj"
+"\Xash3D\src_main\temp\server\!release\headcrab.obj"
+"\Xash3D\src_main\temp\server\!release\hgrunt.obj"
+"\Xash3D\src_main\temp\server\!release\leech.obj"
+"\Xash3D\src_main\temp\server\!release\legacy.obj"
+"\Xash3D\src_main\temp\server\!release\lights.obj"
+"\Xash3D\src_main\temp\server\!release\multiplay_gamerules.obj"
+"\Xash3D\src_main\temp\server\!release\nodes.obj"
+"\Xash3D\src_main\temp\server\!release\osprey.obj"
+"\Xash3D\src_main\temp\server\!release\parent.obj"
+"\Xash3D\src_main\temp\server\!release\player.obj"
+"\Xash3D\src_main\temp\server\!release\rat.obj"
+"\Xash3D\src_main\temp\server\!release\roach.obj"
+"\Xash3D\src_main\temp\server\!release\saverestore.obj"
+"\Xash3D\src_main\temp\server\!release\scientist.obj"
+"\Xash3D\src_main\temp\server\!release\scripted.obj"
+"\Xash3D\src_main\temp\server\!release\sfx.obj"
+"\Xash3D\src_main\temp\server\!release\singleplay_gamerules.obj"
+"\Xash3D\src_main\temp\server\!release\sound.obj"
+"\Xash3D\src_main\temp\server\!release\squadmonster.obj"
+"\Xash3D\src_main\temp\server\!release\talkmonster.obj"
+"\Xash3D\src_main\temp\server\!release\teamplay_gamerules.obj"
+"\Xash3D\src_main\temp\server\!release\turret.obj"
+"\Xash3D\src_main\temp\server\!release\utils.obj"
+"\Xash3D\src_main\temp\server\!release\weapon_generic.obj"
+"\Xash3D\src_main\temp\server\!release\zombie.obj"
+"\Xash3D\src_main\temp\server\!release\spectator.obj"
+]
+Creating command line "link.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSPA9A3.tmp"
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSPA9A4.bat" with contents
+[
+@echo off
+copy \Xash3D\src_main\temp\server\!release\server.dll "D:\Xash3D\bin\server.dll"
+]
+Creating command line "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSPA9A4.bat"
+Compiling...
+animation.cpp
+Linking...
+   Creating library ..\temp\server\!release/server.lib and object ..\temp\server\!release/server.exp
+<h3>Output Window</h3>
+Performing Custom Build Step on \Xash3D\src_main\temp\server\!release\server.dll
+Скопировано файлов:         1.
+
+
+
+<h3>Results</h3>
+server.dll - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

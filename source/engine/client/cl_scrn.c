@@ -323,7 +323,8 @@ void SCR_DrawFPS( void )
 
 	if( cls.state != ca_active ) return; 
 	if( !cl_showfps->integer ) return;
-	if( cl.need_levelshot ) return;
+	if( cls.scrshot_action != scrshot_inactive )
+		return;
 	
 	newtime = Sys_DoubleTime();
 	if( newtime >= nexttime )
@@ -384,6 +385,25 @@ void SCR_RSpeeds( void )
 	}
 }
 
+void SCR_MakeScreenShot( void )
+{
+	if( !re && host.type == HOST_NORMAL )
+		return;	// don't reset action - it will be wait for render initalization is done
+
+	switch( cls.scrshot_action )
+	{
+	case scrshot_plaque:
+		re->ScrShot( cls.shotname, VID_LEVELSHOT );
+		break;
+	case scrshot_savegame:
+		re->ScrShot( cls.shotname, VID_SAVESHOT );
+		break;
+	}
+
+	cls.scrshot_action = scrshot_inactive;
+	cls.shotname[0] = '\0';
+}
+
 /*
 ==================
 SCR_UpdateScreen
@@ -433,6 +453,9 @@ void SCR_RegisterShaders( void )
 
 	// vid_state has changed
 	if( clgame.hInstance ) clgame.dllFuncs.pfnVidInit();
+
+	g_console_field_width = scr_width->integer / SMALLCHAR_WIDTH - 2;
+	g_consoleField.widthInChars = g_console_field_width;
 }
 
 /*

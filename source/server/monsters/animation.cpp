@@ -41,10 +41,6 @@
 
 extern globalvars_t				*gpGlobals;
 
-#pragma warning( disable : 4244 )
-
-
-
 int ExtractBbox( void *pmodel, int sequence, float *mins, float *maxs )
 {
 	dstudiohdr_t *pstudiohdr;
