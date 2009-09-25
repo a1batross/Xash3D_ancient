@@ -2189,7 +2189,7 @@ static bool R_StudioSetupModel( ref_entity_t *e, ref_model_t *mod )
 
 	if( m_pEntity && e->m_nCachedFrameCount != r_framecount2 )
 	{
-		float		flInterval = 0.1f;
+		float		flInterval = 0.01f;
 		float		flStart = e->frame + (pstudio->m_flLastEventCheck - e->animtime) * pstudio->m_flFrameRate * e->framerate;
 		float		flEnd = e->frame + flInterval * pstudio->m_flFrameRate * e->framerate;
 		int		index = 0;

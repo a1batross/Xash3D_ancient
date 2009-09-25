@@ -66,6 +66,7 @@ void Sys_GetStdAPI( void )
 	com.move = _mem_move;
 	com.malloc = _mem_alloc;
 	com.free = _mem_free;
+	com.is_allocated = _is_allocated;
 	com.mallocpool = _mem_allocpool;
 	com.freepool = _mem_freepool;
 	com.clearpool = _mem_emptypool;

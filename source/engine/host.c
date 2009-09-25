@@ -625,9 +625,6 @@ void Host_Init( const int argc, const char **argv )
 	Host_InitPhysic();
 	Host_InitVprogs( argc, argv );
 
-	// per level user limit
-	host.max_edicts = bound( 8, Cvar_VariableValue( "host_maxedicts" ), MAX_EDICTS - 1 );
-
 	SV_Init();
 	CL_Init();
 

@@ -104,7 +104,6 @@ typedef struct host_parm_s
 
 	HWND		hWnd;		// main window
 	int		developer;	// show all developer's message
-	word		max_edicts;	// FIXME: this is confused
 } host_parm_t;
 
 extern host_parm_t host;

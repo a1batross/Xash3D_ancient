@@ -729,7 +729,7 @@ void Cvar_Restart_f( void )
 
 	prev = &cvar_vars;
 
-	while ( 1 )
+	while( 1 )
 	{
 		var = *prev;
 		if( !var ) break;

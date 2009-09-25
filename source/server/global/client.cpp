@@ -968,7 +968,9 @@ int ServerClassifyEdict( edict_t *pentToClassify )
 	{
 		if( !stricmp( classname, "trigger_teleport" ))
 			return ED_AMBIENT;
-		else return ED_TRIGGER; // never sending to client
+		else if( pClass->pev->movetype == MOVETYPE_TOSS )
+			return ED_NORMAL; // it's item or weapon
+		return ED_TRIGGER; // never sending to client
 	}
 	else if( pClass->pev->movetype == MOVETYPE_PHYSIC )
 		return ED_RIGIDBODY;

@@ -307,12 +307,12 @@ void SV_InitGame( void )
 	svs.clients = Z_Malloc( sizeof(sv_client_t) * Host_MaxClients());
 	svs.num_client_entities = Host_MaxClients() * UPDATE_BACKUP * 64; // g-cont: what a mem waster ???????
 	svs.client_entities = Z_Malloc( sizeof(entity_state_t) * svs.num_client_entities );
-	svs.baselines = Z_Malloc( sizeof(entity_state_t) * host.max_edicts );
+	svs.baselines = Z_Malloc( sizeof( entity_state_t ) * GI->max_edicts );
 
 	// copy gamemode into svgame.globals
-	svgame.globals->deathmatch = (int)Cvar_VariableValue( "deathmatch" );
-	svgame.globals->teamplay = (int)Cvar_VariableValue( "teamplay" );
-	svgame.globals->coop = (int)Cvar_VariableValue( "coop" );
+	svgame.globals->deathmatch = Cvar_VariableInteger( "deathmatch" );
+	svgame.globals->teamplay = Cvar_VariableInteger( "teamplay" );
+	svgame.globals->coop = Cvar_VariableInteger( "coop" );
 
 	svgame.dllFuncs.pfnResetGlobalState();
 

@@ -46,7 +46,6 @@ hashtable_t intconstdefstable;
 hashtable_t floatconstdefstable;
 hashtable_t stringconstdefstable;
 
-cvar_t *prvm_maxedicts;
 cvar_t *prvm_traceqc;
 cvar_t *prvm_boundscheck;
 cvar_t *prvm_statementprofiling;
@@ -246,7 +245,6 @@ void PRVM_Init( const int argc, const char **argv )
 	prvm_boundscheck = Cvar_Get( "prvm_boundscheck", "0", 0, "enable vm internal boundschecker" );
 	prvm_traceqc = Cvar_Get( "prvm_traceqc", "0", 0, "enable tracing (only for debug)" );
 	prvm_statementprofiling = Cvar_Get ("prvm_statementprofiling", "0", 0, "counts how many times each QC statement has been executed" );
-	prvm_maxedicts = Cvar_Get( "host_maxedicts", "2048", CVAR_SYSTEMINFO, "user limit edicts number fof server, client and renderer, absolute limit 65535" );
 }
 
 void PRVM_Shutdown( void )

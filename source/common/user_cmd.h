@@ -15,6 +15,6 @@ typedef struct usercmd_s
 	int		sidemove;
 	int		upmove;
 	int		buttons;
-};
+} usercmd_t;
 
 #endif//USER_CMD_H

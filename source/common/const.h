@@ -88,6 +88,12 @@
 // pev->spawnflags
 #define SF_START_ON			(1<<0)
 
+// classic quake flags (must be not collide with any dll spawnflags - engine uses this)
+#define SF_NOT_EASY			(1<<8)
+#define SF_NOT_MEDIUM		(1<<9)
+#define SF_NOT_HARD			(1<<10)
+#define SF_NOT_DEATHMATCH		(1<<11)
+
 // pev->effects
 #define EF_BRIGHTFIELD		(1<<0)	// swirling cloud of particles
 #define EF_MUZZLEFLASH		(1<<1)	// single frame ELIGHT on entity attachment 0

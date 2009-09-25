@@ -725,6 +725,7 @@ autocomplete_list_t cmd_list[] =
 { "music", Cmd_GetSoundList, },
 { "movie", Cmd_GetMovieList },
 { "give", Cmd_GetItemsList },
+{ "drop", Cmd_GetItemsList },
 { "game", Cmd_GetGamesList },
 { "map", Cmd_GetMapList },
 { NULL }, // termiantor

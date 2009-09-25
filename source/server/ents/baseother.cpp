@@ -263,12 +263,8 @@ void CLaserSpot::Update( CBasePlayer *m_pPlayer )
 		pev->effects &= ~EF_NODRAW;
 				
 		float SpotDistance = (tr.vecEndPos - m_pPlayer->GetGunPosition()).Length();
-		int brightness = (1 / log( SpotDistance / 0.3 )) * 1300;
-		pev->scale = SpotDistance / 2500 + RANDOM_FLOAT( 0.01, SpotDistance / 2750 );
-				                                                  
-		if( pev->renderamt >= 255 )
-			pev->renderamt = brightness + RANDOM_LONG( 1, SpotDistance / 400 );
-		else pev->renderamt += 5;
+		pev->scale = SpotDistance / 128;
+		pev->renderamt = 200;
 	}
 }
 LINK_ENTITY_TO_CLASS( misc_laserdot, CLaserSpot );

@@ -418,7 +418,7 @@ void StringTable_Info_f( void )
 
 	if( Cmd_Argc() != 2 )
 	{
-		Msg( "Usage: stinfo <name>\n" );
+		Msg( "Usage: stringlist <name>\n" );
 		return;
 	}
 

@@ -6,7 +6,6 @@
 #include "common.h"
 #include "const.h"
 #include "server.h"
-#include "pm_defs.h"
 
 #define MAX_FORWARD		6
 
@@ -710,7 +709,7 @@ void SV_Baselines_f( sv_client_t *cl )
 	Mem_Set( &nullstate, 0, sizeof(nullstate));
 
 	// write a packet full of data
-	while( cl->netchan.message.cursize < MAX_MSGLEN / 2 && start < host.max_edicts )
+	while( cl->netchan.message.cursize < MAX_MSGLEN / 2 && start < GI->max_edicts )
 	{
 		base = &svs.baselines[start];
 		if( base->modelindex || base->soundindex || base->effects )
@@ -721,7 +720,7 @@ void SV_Baselines_f( sv_client_t *cl )
 		start++;
 	}
 
-	if( start == host.max_edicts ) com.snprintf( baseline, MAX_STRING, "precache %i\n", svs.spawncount );
+	if( start == GI->max_edicts ) com.snprintf( baseline, MAX_STRING, "precache %i\n", svs.spawncount );
 	else com.snprintf( baseline, MAX_STRING, "cmd baselines %i %i\n",svs.spawncount, start );
 
 	// send next command

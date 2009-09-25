@@ -561,15 +561,14 @@ static bool SV_EntitiesIn( int mode, vec3_t v1, vec3_t v2 )
 	return true;
 }
 
-static void SV_InitEdict( edict_t *pEdict )
+void SV_InitEdict( edict_t *pEdict )
 {
 	Com_Assert( pEdict == NULL );
 	Com_Assert( pEdict->pvPrivateData != NULL );
-//	Com_Assert( pEdict->pvServerData != NULL );
+	Com_Assert( pEdict->pvServerData != NULL );
 
 	pEdict->v.pContainingEntity = pEdict; // make cross-links for consistency
-	if( !pEdict->pvServerData )	// FIXME
-		pEdict->pvServerData = (sv_priv_t *)Mem_Alloc( svgame.mempool, sizeof( sv_priv_t ));
+	pEdict->pvServerData = (sv_priv_t *)Mem_Alloc( svgame.mempool, sizeof( sv_priv_t ));
 	pEdict->pvPrivateData = NULL;	// will be alloced later by pfnAllocPrivateData
 	pEdict->serialnumber = NUM_FOR_EDICT( pEdict );
 	pEdict->free = false;
@@ -585,16 +584,16 @@ void SV_FreeEdict( edict_t *pEdict )
 	pe->RemoveBody( pEdict->pvServerData->physbody );
 
 	if( pEdict->pvServerData ) Mem_Free( pEdict->pvServerData );
-	if( pEdict->pvPrivateData ) Mem_Free( pEdict->pvPrivateData );
-	Mem_Set( &pEdict->v, 0, sizeof( entvars_t ));
-
-	pEdict->pvServerData = NULL;
-	pEdict->pvPrivateData = NULL;
+	if( pEdict->pvPrivateData )
+	{
+		svgame.dllFuncs.pfnOnFreeEntPrivateData( pEdict );
+		Mem_Free( pEdict->pvPrivateData );
+	}
+	Mem_Set( pEdict, 0, sizeof( *pEdict ));
 
 	// mark edict as freed
 	pEdict->freetime = sv.time * 0.001f;
 	pEdict->v.nextthink = -1;
-	pEdict->serialnumber = 0;
 	pEdict->free = true;
 }
 
@@ -633,7 +632,11 @@ edict_t* SV_AllocPrivateData( edict_t *ent, string_t className )
 
 	pszClassName = STRING( className );
 	if( !ent ) ent = SV_AllocEdict();
-	else if( ent->free ) SV_InitEdict( ent );	// FIXME
+	else if( ent->free )
+	{
+		MsgDev( D_ERROR, "SV_AllocPrivateData: entity %s is freed!\n", STRING( className ));
+		Com_Assert( 1 );
+	}
 	ent->v.classname = className;
 	ent->v.pContainingEntity = ent; // re-link
 
@@ -645,7 +648,7 @@ edict_t* SV_AllocPrivateData( edict_t *ent, string_t className )
 		if( svgame.dllFuncs.pfnCreate( ent, pszClassName ) == -1 )
 		{
 			ent->v.flags |= FL_KILLME;
-			MsgDev( D_ERROR, "No spawn function for %s\n", pszClassName );
+			MsgDev( D_ERROR, "No spawn function for %s\n", STRING( className ));
 			return ent; // this edict will be removed from map
 		}
 	}
@@ -678,7 +681,9 @@ void SV_FreeEdicts( void )
 		svgame.dllFuncs.pfnServerDeactivate();
 	}
 
-	svgame.globals->numEntities = 0;
+	svgame.globals->maxEntities = GI->max_edicts;
+	svgame.globals->maxClients = Host_MaxClients();
+	svgame.globals->numEntities = svgame.globals->maxClients + 1; // clients + world
 	svgame.globals->numClients = 0;
 	svgame.globals->mapname = 0;
 }
@@ -3093,6 +3098,8 @@ void SV_LoadFromFile( script_t *entities )
 {
 	token_t	token;
 	int	inhibited, spawned, died;
+	int	current_skill = Cvar_VariableInteger( "skill" ); // lock skill level
+	bool	deathmatch = Cvar_VariableInteger( "deathmatch" );
 	bool	create_world = true;
 	edict_t	*ent;
 
@@ -3109,13 +3116,41 @@ void SV_LoadFromFile( script_t *entities )
 		if( create_world )
 		{
 			create_world = false;
-			ent = EDICT_NUM( 0 );
-			SV_InitEdict( ent );
+			ent = EDICT_NUM( 0 ); // already initialized
 		}
 		else ent = SV_AllocEdict();
 
 		if( !SV_ParseEdict( entities, ent ))
 			continue;
+
+		// remove things from different skill levels or deathmatch
+		if( deathmatch )
+		{
+			if( ent->v.spawnflags & SF_NOT_DEATHMATCH )
+			{
+				SV_FreeEdict( ent );
+				inhibited++;
+				continue;
+			}
+		}
+		else if( current_skill == 0 && ent->v.spawnflags & SF_NOT_EASY )
+		{
+			SV_FreeEdict( ent );
+			inhibited++;
+			continue;
+		}
+		else if( current_skill == 1 && ent->v.spawnflags & SF_NOT_MEDIUM )
+		{
+			SV_FreeEdict( ent );
+			inhibited++;
+			continue;
+		}
+		else if( current_skill >= 2 && ent->v.spawnflags & SF_NOT_HARD )
+		{
+			SV_FreeEdict( ent );
+			inhibited++;
+			continue;
+		}
 
 		if( svgame.dllFuncs.pfnSpawn( ent ) == -1 )
 			died++;
@@ -3157,7 +3192,7 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 	SV_ConfigString( CS_ACCELERATE, sv_accelerate->string );
 	SV_ConfigString( CS_FRICTION, sv_friction->string );
 	SV_ConfigString( CS_MAXCLIENTS, va( "%i", Host_MaxClients( )));
-	SV_ConfigString( CS_MAXEDICTS, Cvar_VariableString( "host_maxedicts" ));
+	SV_ConfigString( CS_MAXEDICTS, va( "%i", GI->max_edicts ));
 
 	svgame.globals->mapname = MAKE_STRING( sv.name );
 	svgame.globals->time = sv.time * 0.001f;
@@ -3238,7 +3273,7 @@ void SV_LoadProgs( const char *name )
 
 	// 65535 unique strings should be enough ...
 	svgame.hStringTable = StringTable_Create( "Server", 0x10000 );
-	svgame.globals->maxEntities = host.max_edicts;
+	svgame.globals->maxEntities = GI->max_edicts;
 	svgame.globals->maxClients = Host_MaxClients();
 	svgame.edicts = Mem_Alloc( svgame.mempool, sizeof( edict_t ) * svgame.globals->maxEntities );
 	svgame.globals->numEntities = svgame.globals->maxClients + 1; // clients + world

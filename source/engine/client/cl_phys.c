@@ -5,7 +5,6 @@
 
 #include "common.h"
 #include "client.h"
-#include "pm_defs.h"
 #include "matrix_lib.h"
 #include "const.h"
 
@@ -137,12 +136,12 @@ trace_t CL_Trace( const vec3_t start, const vec3_t mins, const vec3_t maxs, cons
 	// clip to entities
 	// because this uses World_EntitiestoBox, we know all entity boxes overlap
 	// the clip region, so we can skip culling checks in the loop below
-	numtouchedicts = 0;// FIXME: CL_AreaEdicts( clipboxmins, clipboxmaxs, touchedicts, host.max_edicts );
-	if( numtouchedicts > host.max_edicts )
+	numtouchedicts = 0;// FIXME: CL_AreaEdicts( clipboxmins, clipboxmaxs, touchedicts, GI->max_edicts );
+	if( numtouchedicts > GI->max_edicts )
 	{
 		// this never happens
-		MsgDev( D_WARN, "CL_AreaEdicts returned %i edicts, max was %i\n", numtouchedicts, host.max_edicts );
-		numtouchedicts = host.max_edicts;
+		MsgDev( D_WARN, "CL_AreaEdicts returned %i edicts, max was %i\n", numtouchedicts, GI->max_edicts );
+		numtouchedicts = GI->max_edicts;
 	}
 	for( i = 0; i < numtouchedicts; i++ )
 	{

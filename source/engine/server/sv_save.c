@@ -429,7 +429,17 @@ void SV_ReadEntities( wfile_t *l )
 	ENTITYTABLE	*pTable;
 	LEVELLIST		*pList;
 	save_header_t	shdr;
+	edict_t		*ent;
 	int		i;
+
+	// initialize world properly
+	ent = EDICT_NUM( 0 );
+	SV_InitEdict( ent );
+	ent->v.model = MAKE_STRING( sv.configstrings[CS_MODELS] );
+	ent->v.modelindex = 1;	// world model
+	ent->v.solid = SOLID_BSP;
+	ent->v.movetype = MOVETYPE_PUSH;
+	ent->free = false;
 
 	// SAVERESTOREDATA partially initialized, continue filling
 	pSaveData = svgame.globals->pSaveData = &svgame.SaveData;
@@ -457,6 +467,17 @@ void SV_ReadEntities( wfile_t *l )
 	pSaveData->pTable = Mem_Alloc( svgame.temppool, pSaveData->tableCount * sizeof( ENTITYTABLE ));
 	while( svgame.globals->numEntities < shdr.numEntities ) SV_AllocEdict(); // allocate edicts
 
+	// set client fields on player ents
+	for( i = 0; i < svgame.globals->maxClients; i++ )
+	{
+		// setup all clients
+		ent = EDICT_NUM( i + 1 );
+		SV_InitEdict( ent );
+		ent->pvServerData->client = svs.clients + i;
+		ent->pvServerData->client->edict = ent;
+		svgame.globals->numClients++;
+	}
+
 	SV_ReadBuffer( l, LUMP_ENTTABLE );
 
 	// read entity table
@@ -469,7 +490,7 @@ void SV_ReadEntities( wfile_t *l )
 
 		if( pTable->id != pent->serialnumber )
 			MsgDev( D_ERROR, "ETABLE id( %i ) != edict->id( %i )\n", pTable->id, pent->serialnumber );
-		if( pTable->flags & FENTTABLE_REMOVED ) SV_FreeEdict( pent );
+		if( pTable->flags & FENTTABLE_REMOVED || pTable->classname == 0 ) SV_FreeEdict( pent );
 		else pent = SV_AllocPrivateData( pent, pTable->classname );
 		pTable->pent = pent;
 	}

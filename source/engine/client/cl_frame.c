@@ -399,7 +399,7 @@ void CL_GetEntitySoundSpatialization( int entnum, vec3_t origin, vec3_t velocity
 	cmodel_t		*cmodel;
 	vec3_t		midPoint;
 
-	if( entnum < 0 || entnum >= host.max_edicts )
+	if( entnum < 0 || entnum >= GI->max_edicts )
 	{
 		MsgDev( D_ERROR, "CL_GetEntitySoundSpatialization: invalid entnum %d\n", entnum );
 		VectorCopy( vec3_origin, origin );

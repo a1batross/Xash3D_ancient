@@ -684,10 +684,12 @@ CBaseEntity * CBaseEntity::Create( char *szName, const Vector &vecOrigin, const 
 	if( FNullEnt( pent )) return NULL;
 
 	pEntity = Instance( pent );
+	pEntity->SetObjectClass( );
 	pEntity->pev->owner = pentOwner;
 	pEntity->pev->origin = vecOrigin;
 	pEntity->pev->angles = vecAngles;
 	DispatchSpawn( pEntity->edict() );
+
 	return pEntity;
 }
 

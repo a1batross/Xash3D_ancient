@@ -240,6 +240,10 @@ typedef struct gameinfo_s
 	string		ctf_entity;	// e.g. info_player_ctf
 	string		team_entity;	// e.g. info_player_team
 
+	vec3_t		client_mins[2];	// 0 - normal, 1 - ducked
+	vec3_t		client_maxs[2];	// 0 - normal, 1 - ducked
+
+	int		max_edicts;	// min edicts is 600, max edicts is 32768
 	string		imglib_mode;	// image formats to using (optional)
 } gameinfo_t;
 
@@ -443,6 +447,7 @@ typedef struct stdilib_api_s
 	void (*freepool)(byte **poolptr, const char *file, int line);
 	void (*clearpool)(byte *poolptr, const char *file, int line);
 	void (*memcheck)(const char *file, int line);		// check memory pools for consistensy
+	bool (*is_allocated)( byte *poolptr, void *data );	// returen true is memory is allocated
 
 	// xash memlib extension - memory arrays
 	byte *(*newarray)( byte *pool, size_t elementsize, int count, const char *file, int line );
@@ -695,6 +700,7 @@ typedef struct script_s
 #define Mem_Copy(dest, src, size )	com.memcpy(dest, src, size, __FILE__, __LINE__)
 #define Mem_Set(dest, val, size )	com.memset(dest, val, size, __FILE__, __LINE__)
 #define Mem_Check()			com.memcheck(__FILE__, __LINE__)
+#define Mem_IsAllocated( pool, ptr )	com.is_allocated( pool, ptr )
 #define Mem_CreateArray( p, s, n )	com.newarray( p, s, n, __FILE__, __LINE__)
 #define Mem_RemoveArray( array )	com.delarray( array, __FILE__, __LINE__)
 #define Mem_AllocElement( array )	com.newelement( array, __FILE__, __LINE__)

@@ -7,6 +7,7 @@
 
 #include "trace_def.h"
 #include "event_api.h"
+#include "gameinfo.h"
 
 typedef struct globalvars_s
 {	
@@ -47,6 +48,8 @@ typedef struct globalvars_s
 	int		found_secrets;	// number of secrets found
 	int		total_monsters;
 	int		killed_monsters;	// number of monsters killed
+
+	dll_gameinfo_t	GameInfo;		// shared gameinfo
 
 	void		*pSaveData;	// (SAVERESTOREDATA *) pointer
 } globalvars_t;

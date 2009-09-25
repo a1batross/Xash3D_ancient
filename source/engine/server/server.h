@@ -34,12 +34,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAX_ENT_CLUSTERS		16
 #define RATE_MESSAGES		10
 
-// classic quake flags
-#define SPAWNFLAG_NOT_EASY		0x00000100
-#define SPAWNFLAG_NOT_MEDIUM		0x00000200
-#define SPAWNFLAG_NOT_HARD		0x00000400
-#define SPAWNFLAG_NOT_DEATHMATCH	0x00000800
-
 #define NUM_FOR_EDICT(e)	((int)((edict_t *)(e) - svgame.edicts))
 #define EDICT_NUM( num )	SV_EDICT_NUM( num, __FILE__, __LINE__ )
 #define STRING( offset )	SV_GetString( offset )
@@ -259,7 +253,7 @@ typedef struct
 	int		num_client_entities;	// host_maxclients->integer*UPDATE_BACKUP*MAX_PACKET_ENTITIES
 	int		next_client_entities;	// next client_entity to use
 	entity_state_t	*client_entities;		// [num_client_entities]
-	entity_state_t	*baselines;		// [host.max_edicts]
+	entity_state_t	*baselines;		// [GI->max_edicts]
 
 	int		last_heartbeat;
 	challenge_t	challenges[MAX_CHALLENGES];	// to prevent invalid IPs from connecting
@@ -388,6 +382,7 @@ void SV_UpdateEntityState( edict_t *ent, bool baseline );
 void SV_LoadProgs( const char *name );
 void SV_UnloadProgs( void );
 void SV_FreeEdicts( void );
+void SV_InitEdict( edict_t *pEdict );
 void SV_ConfigString( int index, const char *val );
 void SV_SetModel( edict_t *ent, const char *name );
 void SV_CreatePhysBody( edict_t *ent );

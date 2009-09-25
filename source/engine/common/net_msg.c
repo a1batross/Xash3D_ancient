@@ -676,7 +676,7 @@ void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t 
 	null_msg_size = (( num_fields / 32 ) + (( num_fields % 32 ) ? 1 : 0 )) * 4 + sizeof(short);
 	buff_size = msg->cursize;
 
-	if( to->number < 0 || to->number >= host.max_edicts )
+	if( to->number < 0 || to->number >= GI->max_edicts )
 		Host_Error( "MSG_WriteDeltaEntity: Bad entity number: %i (called at %s:%i)\n", to->number, filename, fileline );
 
 	MSG_WriteBits( msg, to->number, NWDesc[NET_WORD].name, NET_WORD );
@@ -724,7 +724,7 @@ void MSG_ReadDeltaEntity( sizebuf_t *msg, entity_state_t *from, entity_state_t *
 	int		i, flags;
 	int		*fromF, *toF;
 
-	if( number < 0 || number >= host.max_edicts )
+	if( number < 0 || number >= GI->max_edicts )
 		Host_Error( "MSG_ReadDeltaEntity: bad delta entity number: %i\n", number );
 
 	*to = *from;

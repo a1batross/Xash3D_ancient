@@ -117,12 +117,12 @@ trace_t SV_Trace( const vec3_t start, const vec3_t mins, const vec3_t maxs, cons
 	// clip to entities
 	// because this uses SV_AreaEdicts, we know all entity boxes overlap
 	// the clip region, so we can skip culling checks in the loop below
-	numtouchedicts = SV_AreaEdicts( clipboxmins, clipboxmaxs, touchedicts, host.max_edicts, AREA_SOLID );
-	if( numtouchedicts > host.max_edicts )
+	numtouchedicts = SV_AreaEdicts( clipboxmins, clipboxmaxs, touchedicts, GI->max_edicts, AREA_SOLID );
+	if( numtouchedicts > GI->max_edicts )
 	{
 		// this never happens
-		MsgDev( D_WARN, "SV_AreaEdicts returned %i edicts, max was %i\n", numtouchedicts, host.max_edicts );
-		numtouchedicts = host.max_edicts;
+		MsgDev( D_WARN, "SV_AreaEdicts returned %i edicts, max was %i\n", numtouchedicts, GI->max_edicts );
+		numtouchedicts = GI->max_edicts;
 	}
 	for( i = 0; i < numtouchedicts; i++ )
 	{
@@ -184,12 +184,12 @@ int SV_PointContents( const vec3_t point )
 		contents = sv.worldmodel->PointContents( point, sv.worldmodel );
 
 	// get list of entities at this point
-	numtouchedicts = SV_AreaEdicts( point, point, touchedicts, host.max_edicts, AREA_SOLID );
-	if( numtouchedicts > host.max_edicts )
+	numtouchedicts = SV_AreaEdicts( point, point, touchedicts, GI->max_edicts, AREA_SOLID );
+	if( numtouchedicts > GI->max_edicts )
 	{
 		// this never happens
-		MsgDev( D_WARN, "SV_AreaEdicts returned %i edicts, max was %i\n", numtouchedicts, host.max_edicts );
-		numtouchedicts = host.max_edicts;
+		MsgDev( D_WARN, "SV_AreaEdicts returned %i edicts, max was %i\n", numtouchedicts, GI->max_edicts );
+		numtouchedicts = GI->max_edicts;
 	}
 	for( i = 0; i < numtouchedicts; i++ )
 	{
@@ -380,7 +380,7 @@ void SV_TouchTriggers( edict_t *ent )
 	if(!(ent->v.flags & FL_CLIENT) && (ent->v.health <= 0))
 		return;
 
-	num = SV_AreaEdicts( ent->v.absmin, ent->v.absmax, touch, host.max_edicts, AREA_TRIGGERS );
+	num = SV_AreaEdicts( ent->v.absmin, ent->v.absmax, touch, GI->max_edicts, AREA_TRIGGERS );
 
 	// be careful, it is possible to have an entity in this
 	// list removed before we get to it (killtriggered)

@@ -195,7 +195,7 @@ void SV_ClassifyEdict( edict_t *ent )
 	if( sv_ent->s.ed_type != ED_SPAWNED )
 	{
 		// or leave unclassified, wait for next SV_LinkEdict...
-		// Msg( "%s: <%s>\n", STRING( ent->v.classname ), ed_name[sv_ent->s.ed_type] );
+		Msg( "%s: <%s>\n", STRING( ent->v.classname ), ed_name[sv_ent->s.ed_type] );
 	}
 }
 

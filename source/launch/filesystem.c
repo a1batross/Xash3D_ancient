@@ -7,6 +7,7 @@
 #include "qfiles_ref.h"
 #include "filesystem.h"
 #include "byteorder.h"
+#include "mathlib.h"
 
 #define ZIP_END_CDIR_SIZE		22
 #define ZIP_CDIR_CHUNK_BASE_SIZE	46
@@ -1359,6 +1360,12 @@ void FS_CreateGameInfo( const char *filename )
 	com.strncat( buffer, "\ndm_spawn\t\t\"info_player_deathmatch\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nctf_spawn\t\t\"info_player_ctf\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nteam_spawn\t\"info_player_team\"", MAX_SYSPATH );
+	com.strncat( buffer, "\nplayermins\t\"-32 -32 -32\"", MAX_SYSPATH );
+	com.strncat( buffer, "\nplayermaxs\t\"32 32 32\"", MAX_SYSPATH );
+	com.strncat( buffer, "\nplayermins_duck\t\"-16 -16 -18\"", MAX_SYSPATH );
+	com.strncat( buffer, "\nplayermaxs_duck\t\"16  16 18\"", MAX_SYSPATH );
+	com.strncat( buffer, "\nmax_edicts\t\"1024\"", MAX_SYSPATH );
+	com.strncat( buffer, "\n\n\n", MAX_SYSPATH );
 	
 	FS_WriteFile( filename, buffer, com.strlen( buffer ));
 	Mem_Free( buffer );
@@ -1372,17 +1379,34 @@ FS_ParseGameInfo
 static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 {
 	script_t	*script = NULL;
-	string	fs_path;
+	string	fs_path, filepath;
 	token_t	token;
 
-	// create default gameinfo
-//	if( !FS_FileExists( filename )) FS_CreateGameInfo( filename );
+	com.snprintf( filepath, sizeof( filepath ), "%s/gameinfo.txt", filename );
 
-	script = PS_LoadScript( filename, NULL, 0 );
+	// force to create gameinfo for specified game if missing
+	if( !com.stricmp( gs_basedir, filename ) && !FS_FileExists( filepath ))
+		FS_CreateGameInfo( filepath );
+
+	script = PS_LoadScript( filepath, NULL, 0 );
 	if( !script ) return false;
 	if( !GameInfo ) return false;	// no dest
 
-	FS_ExtractFilePath( filename, GameInfo->gamefolder );
+	// setup default values
+	com.strncpy( GameInfo->gamefolder, filename, MAX_STRING );
+	GameInfo->max_edicts = 1024;	// default value if not specified
+	GameInfo->version = 1.0;
+
+	com.strncpy( GameInfo->sp_entity, "info_player_start", MAX_STRING );
+	com.strncpy( GameInfo->dm_entity, "info_player_deathmatch", MAX_STRING );
+	com.strncpy( GameInfo->ctf_entity, "info_player_ctf", MAX_STRING );
+	com.strncpy( GameInfo->team_entity, "info_player_team", MAX_STRING );
+	com.strncpy( GameInfo->startmap, "newmap", MAX_STRING );
+
+	VectorSet( GameInfo->client_mins[0], -32, -32, -32 );
+	VectorSet( GameInfo->client_maxs[0],  32,  32,  32 );
+	VectorSet( GameInfo->client_mins[1], -16, -16, -18 );
+	VectorSet( GameInfo->client_maxs[1],  16,  16,  18 );
 
 	while( script )
 	{
@@ -1429,6 +1453,11 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 		{
 			PS_GetFloat( script, false, &GameInfo->version );
 		}
+		else if( !com.stricmp( token.string, "max_edicts" ))
+		{
+			PS_GetInteger( script, false, &GameInfo->max_edicts );
+			GameInfo->max_edicts = bound( 600, GameInfo->max_edicts, 32768 );
+		}
 		else if( !com.stricmp( token.string, "viewmode" ))
 		{
 			PS_ReadToken( script, 0, &token );
@@ -1448,6 +1477,26 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 		else if( !com.stricmp( token.string, "sourcedir" ))
 		{
 			PS_GetString( script, false, GameInfo->vsrcdir, sizeof( GameInfo->vsrcdir ));
+		}
+		else if( !com.stricmp( token.string, "playermins" ))
+		{
+			PS_ReadToken( script, 0, &token );
+			com.atov( GameInfo->client_mins[0], token.string, 3 );
+		}
+		else if( !com.stricmp( token.string, "playermaxs" ))
+		{
+			PS_ReadToken( script, 0, &token );
+			com.atov( GameInfo->client_maxs[0], token.string, 3 );
+		}
+		else if( !com.stricmp( token.string, "playermins_duck" ))
+		{
+			PS_ReadToken( script, 0, &token );
+			com.atov( GameInfo->client_mins[1], token.string, 3 );
+		}
+		else if( !com.stricmp( token.string, "playermaxs_duck" ))
+		{
+			PS_ReadToken( script, 0, &token );
+			com.atov( GameInfo->client_maxs[1], token.string, 3 );
 		}
 	}
 
@@ -1496,7 +1545,6 @@ FS_Init
 void FS_Init( void )
 {
 	stringlist_t	dirs;
-	string		filepath;
 	int		i;
 	
 	FS_InitMemory();
@@ -1558,12 +1606,9 @@ void FS_Init( void )
 			if( com.stricmp( ext, "" ) || (!com.stricmp( dirs.strings[i], ".." ) && !fs_ext_path))
 				continue;
 
-			// make sure what it's real game directory
-			com.snprintf( filepath, sizeof( filepath ), "%s/gameinfo.txt", dirs.strings[i] );
-
 			if( !SI.games[SI.numgames] )
 				SI.games[SI.numgames] = (gameinfo_t *)Mem_Alloc( fs_mempool, sizeof( gameinfo_t ));
-			if( FS_ParseGameInfo( filepath, SI.games[SI.numgames] ))
+			if( FS_ParseGameInfo( dirs.strings[i], SI.games[SI.numgames] ))
 				SI.numgames++; // added
 		}
 		stringlistfreecontents( &dirs );
