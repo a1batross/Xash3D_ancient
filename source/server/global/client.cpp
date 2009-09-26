@@ -756,7 +756,7 @@ int AddTransitionToList( LEVELLIST *pLevelList, int listCount, const char *pMapN
 
 	for ( i = 0; i < listCount; i++ )
 	{
-		if ( pLevelList[i].pentLandmark == pentLandmark && strcmp( pLevelList[i].mapName, pMapName ) == 0 )
+		if ( pLevelList[i].pentLandmark == pentLandmark && !strcmp( pLevelList[i].mapName, pMapName ))
 			return 0;
 	}
 	strcpy( pLevelList[listCount].mapName, pMapName );

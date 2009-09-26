@@ -249,8 +249,8 @@ typedef struct
 	string		comment;			// map name, e.t.c. 
 	int		spawncount;		// incremented each server start
 						// used to check late spawns
-	sv_client_t	*clients;			// [host_maxclients->integer]
-	int		num_client_entities;	// host_maxclients->integer*UPDATE_BACKUP*MAX_PACKET_ENTITIES
+	sv_client_t	*clients;			// [sv_maxclients->integer]
+	int		num_client_entities;	// sv_maxclients->integer*UPDATE_BACKUP*MAX_PACKET_ENTITIES
 	int		next_client_entities;	// next client_entity to use
 	entity_state_t	*client_entities;		// [num_client_entities]
 	entity_state_t	*baselines;		// [GI->max_edicts]
@@ -286,6 +286,7 @@ extern	cvar_t		*sv_playersonly;
 extern	cvar_t		*sv_rollangle;
 extern	cvar_t		*sv_rollspeed;
 extern	cvar_t		*sv_maxspeed;
+extern	cvar_t		*sv_maxclients;
 extern	cvar_t		*sv_physics;
 extern	cvar_t		*sv_showclamp;
 extern	sv_client_t	*sv_client;

@@ -1,0 +1,65 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: client - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1F7.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "../common" /I "global" /I "hud" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\client\!debug/" /Fo"..\temp\client\!debug/" /Fd"..\temp\client\!debug/" /FD /c 
+"D:\Xash3D\src_main\client\global\dll_int.cpp"
+]
+Creating command line "cl.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1F7.tmp" 
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1F8.tmp" with contents
+[
+msvcrtd.lib /nologo /subsystem:windows /dll /incremental:yes /pdb:"..\temp\client\!debug/client.pdb" /debug /machine:I386 /nodefaultlib:"libc.lib" /def:".\client.def" /out:"..\temp\client\!debug/client.dll" /implib:"..\temp\client\!debug/client.lib" /pdbtype:sept /libpath:"..\common\libs" 
+"\Xash3D\src_main\temp\client\!debug\dll_int.obj"
+"\Xash3D\src_main\temp\client\!debug\hud.obj"
+"\Xash3D\src_main\temp\client\!debug\hud_ammo.obj"
+"\Xash3D\src_main\temp\client\!debug\hud_ammohistory.obj"
+"\Xash3D\src_main\temp\client\!debug\hud_battery.obj"
+"\Xash3D\src_main\temp\client\!debug\hud_death.obj"
+"\Xash3D\src_main\temp\client\!debug\hud_flashlight.obj"
+"\Xash3D\src_main\temp\client\!debug\hud_geiger.obj"
+"\Xash3D\src_main\temp\client\!debug\hud_health.obj"
+"\Xash3D\src_main\temp\client\!debug\hud_icons.obj"
+"\Xash3D\src_main\temp\client\!debug\hud_menu.obj"
+"\Xash3D\src_main\temp\client\!debug\hud_message.obj"
+"\Xash3D\src_main\temp\client\!debug\hud_motd.obj"
+"\Xash3D\src_main\temp\client\!debug\hud_msg.obj"
+"\Xash3D\src_main\temp\client\!debug\hud_saytext.obj"
+"\Xash3D\src_main\temp\client\!debug\hud_scoreboard.obj"
+"\Xash3D\src_main\temp\client\!debug\hud_sound.obj"
+"\Xash3D\src_main\temp\client\!debug\hud_statusbar.obj"
+"\Xash3D\src_main\temp\client\!debug\hud_text.obj"
+"\Xash3D\src_main\temp\client\!debug\hud_train.obj"
+"\Xash3D\src_main\temp\client\!debug\hud_warhead.obj"
+"\Xash3D\src_main\temp\client\!debug\hud_zoom.obj"
+"\Xash3D\src_main\temp\client\!debug\tempents.obj"
+"\Xash3D\src_main\temp\client\!debug\triapi.obj"
+"\Xash3D\src_main\temp\client\!debug\utils.obj"
+"\Xash3D\src_main\temp\client\!debug\view.obj"
+]
+Creating command line "link.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1F8.tmp"
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1F9.bat" with contents
+[
+@echo off
+copy \Xash3D\src_main\temp\client\!debug\client.dll "D:\Xash3D\bin\client.dll"
+]
+Creating command line "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1F9.bat"
+Compiling...
+dll_int.cpp
+Linking...
+<h3>Output Window</h3>
+Performing Custom Build Step on \Xash3D\src_main\temp\client\!debug\client.dll
+Скопировано файлов:         1.
+
+
+
+<h3>Results</h3>
+client.dll - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

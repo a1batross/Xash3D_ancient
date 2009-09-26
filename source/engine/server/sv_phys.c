@@ -1470,7 +1470,7 @@ void SV_Physics_Conveyor( edict_t *ent )
 	VectorScale( ent->v.movedir, ent->v.speed, v );
 	VectorScale( v, 0.1f, move );
 
-	for( i = 0; i < Host_MaxClients(); i++ )
+	for( i = 0; i < sv_maxclients->integer; i++ )
 	{
 		player = EDICT_NUM(i) + 1;
 		if( player->free ) continue;
@@ -1748,7 +1748,7 @@ void SV_Physics( void )
 
 		if( ent->pvServerData->s.ed_type != ED_PORTAL )
 			VectorCopy( ent->v.origin, ent->v.oldorigin );
-		if(i <= Host_MaxClients());// SV_Physics_ClientEntity( ent );
+		if( i <= sv_maxclients->integer );// SV_Physics_ClientEntity( ent );
 		else if( !sv_playersonly->integer ) SV_Physics_Entity( ent );
 	}
 

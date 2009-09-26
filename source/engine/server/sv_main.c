@@ -31,6 +31,7 @@ cvar_t	*sv_accelerate;
 cvar_t	*sv_friction;
 cvar_t	*sv_physics;
 cvar_t	*hostname;
+cvar_t	*sv_maxclients;
 cvar_t	*sv_showclamp;
 cvar_t	*public_server; // should heartbeats be sent
 
@@ -54,7 +55,7 @@ void SV_CalcPings( void )
 	int		total, count;
 
 	// clamp fps counter
-	for( i = 0; i < Host_MaxClients(); i++ )
+	for( i = 0; i < sv_maxclients->integer; i++ )
 	{
 		cl = &svs.clients[i];
 		if( cl->state != cs_spawned ) continue;
@@ -92,7 +93,7 @@ void SV_GiveMsec( void )
 	if( sv.framenum & 15 )
 		return;
 
-	for( i = 0; i < Host_MaxClients(); i++ )
+	for( i = 0; i < sv_maxclients->integer; i++ )
 	{
 		cl = &svs.clients[i];
 		if( cl->state == cs_free )
@@ -130,7 +131,7 @@ void SV_ReadPackets( void )
 		qport = (int)MSG_ReadShort( &net_message ) & 0xffff;
 
 		// check for packets from connected clients
-		for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
+		for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
 		{
 			if( cl->state == cs_free ) continue;
 			if( cl->edict && (cl->edict->v.flags & FL_FAKECLIENT )) continue;
@@ -152,7 +153,7 @@ void SV_ReadPackets( void )
 			}
 			break;
 		}
-		if( i != Host_MaxClients()) continue;
+		if( i != sv_maxclients->integer ) continue;
 	}
 }
 
@@ -189,7 +190,7 @@ void SV_CheckTimeouts( void )
 	droppoint = svs.realtime - (timeout->value * 1000);
 	zombiepoint = svs.realtime - (zombietime->value * 1000);
 
-	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
+	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
 	{
 		// fake clients do not timeout
 		if( cl->edict && (cl->edict->v.flags & FL_FAKECLIENT))
@@ -245,7 +246,7 @@ bool SV_CheckPaused( void )
 		return false;
 
 	// only pause if there is just a single client connected
-	for( i = count = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
+	for( i = count = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
 	{
 		if( cl->state >= cs_connected && !(cl->edict && cl->edict->v.flags & FL_FAKECLIENT))
 			count++;
@@ -460,6 +461,7 @@ void SV_Init( void )
 	sv_friction = Cvar_Get( "sv_friction", DEFAULT_FRICTION, 0, "how fast you slow down" );
 	sv_physics = Cvar_Get( "cm_physic", "1", CVAR_ARCHIVE|CVAR_LATCH, "change physic model: 0 - Classic Quake Physic, 1 - Physics Engine" );
 	sv_showclamp = Cvar_Get( "sv_showclamp", "1", 0, "show server time clamping" );
+	sv_maxclients = Cvar_Get( "sv_maxclients", "1", CVAR_SERVERINFO|CVAR_LATCH, "server clients limit" );
 	
 	public_server = Cvar_Get ("public", "0", 0, "change server type from private to public" );
 
@@ -503,11 +505,11 @@ void SV_FinalMessage( char *message, bool reconnect )
 
 	// send it twice
 	// stagger the packets to crutch operating system limited buffers
-	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
+	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
 		if( cl->state >= cs_connected && !(cl->edict && cl->edict->v.flags & FL_FAKECLIENT ))
 			Netchan_Transmit( &cl->netchan, msg.cursize, msg.data );
 
-	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
+	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
 		if( cl->state >= cs_connected && !(cl->edict && cl->edict->v.flags & FL_FAKECLIENT ))
 			Netchan_Transmit( &cl->netchan, msg.cursize, msg.data );
 }
@@ -526,7 +528,7 @@ void SV_Shutdown( bool reconnect )
 {
 	// already freed
 	if( host.state == HOST_ERROR ) return;
-	if( !svs.initialized ) return;
+	if( !SV_Active()) return;
 
 	MsgDev( D_INFO, "SV_Shutdown: %s\n", host.finalmsg );
 	if( svs.clients ) SV_FinalMessage( host.finalmsg, reconnect );

@@ -3305,7 +3305,6 @@ void R_DeformvBBoxForShader( const ref_shader_t *shader, vec3_t ebbox )
 static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int addFlags, const char *shortname, int length )
 {
 	ref_stage_t	*pass;
-	texture_t		*materialImages[MAX_STAGE_TEXTURES];
 	script_t		*script;
 	char		*skyParms;
 	uint		i, hashKey;
@@ -3733,62 +3732,32 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		pass->num_textures++;
 		break;
 	case SHADER_TEXTURE:
-		if( mapConfig.deluxeMappingEnabled && Shaderpass_LoadMaterial( &materialImages[0], &materialImages[1], &materialImages[2], shortname, addFlags, 1 ))
-		{
-			shader->type = SHADER_TEXTURE;
-			shader->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT|SHADER_NO_MODULATIVE_DLIGHTS|SHADER_HASLIGHTMAP|SHADER_MATERIAL;
-			shader->features = MF_STCOORDS|MF_LMCOORDS|MF_NORMALS|MF_SVECTORS|MF_ENABLENORMALS;
-			shader->sort = SORT_OPAQUE;
-			shader->num_stages = 1;
-			shader->name = Shader_Malloc( length + 1 + sizeof( ref_stage_t ) * shader->num_stages );
-			strcpy( shader->name, shortname );
-			shader->stages = (ref_stage_t *)(( byte * )shader->name + length + 1 );
-			pass = &shader->stages[0];
-			pass->flags = SHADERSTAGE_LIGHTMAP|SHADERSTAGE_NOCOLORARRAY|SHADERSTAGE_BLEND_REPLACE;
-			pass->glState = GLSTATE_DEPTHWRITE;
-			pass->tcgen = TCGEN_BASE;
-			pass->rgbGen.type = RGBGEN_IDENTITY;
-			pass->alphaGen.type = ALPHAGEN_IDENTITY;
-			pass->program = DEFAULT_GLSL_PROGRAM;
-			pass->program_type = PROGRAM_TYPE_MATERIAL;
-			pass->textures[0] = Shader_FindImage( shader, shortname, addFlags );
-			pass->num_textures++;
-			pass->textures[1] = materialImages[0];	// normalmap
-			pass->num_textures++;
-			pass->textures[2] = materialImages[1];	// glossmap
-			pass->num_textures++;
-			pass->textures[3] = materialImages[2];	// decalmap
-			pass->num_textures++;
-		}
-		else
-		{
-			shader->type = SHADER_TEXTURE;
-			shader->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT|SHADER_NO_MODULATIVE_DLIGHTS|SHADER_HASLIGHTMAP;
-			shader->features = MF_STCOORDS|MF_LMCOORDS;
-			shader->sort = SORT_OPAQUE;
-			shader->num_stages = 3;
-			shader->name = Shader_Malloc( length + 1 + sizeof( ref_stage_t ) * shader->num_stages );
-			strcpy( shader->name, shortname );
-			shader->stages = ( ref_stage_t * )( ( byte * )shader->name + length + 1 );
-			pass = &shader->stages[0];
-			pass->flags = SHADERSTAGE_LIGHTMAP|SHADERSTAGE_NOCOLORARRAY|SHADERSTAGE_BLEND_REPLACE;
-			pass->glState = GLSTATE_DEPTHWRITE;
-			pass->tcgen = TCGEN_LIGHTMAP;
-			pass->rgbGen.type = RGBGEN_IDENTITY;
-			pass->alphaGen.type = ALPHAGEN_IDENTITY;
-			pass = &shader->stages[1];
-			pass->flags = SHADERSTAGE_DLIGHT|SHADERSTAGE_BLEND_ADD;
-			pass->glState = GLSTATE_DEPTHFUNC_EQ|GLSTATE_SRCBLEND_ONE|GLSTATE_DSTBLEND_ONE;
-			pass->tcgen = TCGEN_BASE;
-			pass = &shader->stages[2];
-			pass->flags = SHADERSTAGE_NOCOLORARRAY|SHADERSTAGE_BLEND_MODULATE;
-			pass->glState = GLSTATE_SRCBLEND_ZERO|GLSTATE_DSTBLEND_SRC_COLOR;
-			pass->tcgen = TCGEN_BASE;
-			pass->textures[0] = Shader_FindImage( shader, shortname, addFlags );
-			pass->rgbGen.type = RGBGEN_IDENTITY;
-			pass->alphaGen.type = ALPHAGEN_IDENTITY;
-			pass->num_textures++;
-		}
+		shader->type = SHADER_TEXTURE;
+		shader->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT|SHADER_NO_MODULATIVE_DLIGHTS|SHADER_HASLIGHTMAP;
+		shader->features = MF_STCOORDS|MF_LMCOORDS;
+		shader->sort = SORT_OPAQUE;
+		shader->num_stages = 3;
+		shader->name = Shader_Malloc( length + 1 + sizeof( ref_stage_t ) * shader->num_stages );
+		strcpy( shader->name, shortname );
+		shader->stages = ( ref_stage_t * )( ( byte * )shader->name + length + 1 );
+		pass = &shader->stages[0];
+		pass->flags = SHADERSTAGE_LIGHTMAP|SHADERSTAGE_NOCOLORARRAY|SHADERSTAGE_BLEND_REPLACE;
+		pass->glState = GLSTATE_DEPTHWRITE;
+		pass->tcgen = TCGEN_LIGHTMAP;
+		pass->rgbGen.type = RGBGEN_IDENTITY;
+		pass->alphaGen.type = ALPHAGEN_IDENTITY;
+		pass = &shader->stages[1];
+		pass->flags = SHADERSTAGE_DLIGHT|SHADERSTAGE_BLEND_ADD;
+		pass->glState = GLSTATE_DEPTHFUNC_EQ|GLSTATE_SRCBLEND_ONE|GLSTATE_DSTBLEND_ONE;
+		pass->tcgen = TCGEN_BASE;
+		pass = &shader->stages[2];
+		pass->flags = SHADERSTAGE_NOCOLORARRAY|SHADERSTAGE_BLEND_MODULATE;
+		pass->glState = GLSTATE_SRCBLEND_ZERO|GLSTATE_DSTBLEND_SRC_COLOR;
+		pass->tcgen = TCGEN_BASE;
+		pass->textures[0] = Shader_FindImage( shader, shortname, addFlags );
+		pass->rgbGen.type = RGBGEN_IDENTITY;
+		pass->alphaGen.type = ALPHAGEN_IDENTITY;
+		pass->num_textures++;
 		break;
 	case SHADER_GENERIC:
 	default:	shader->type = SHADER_GENERIC;

@@ -142,11 +142,10 @@ CL_Drop
 Called after an Host_Error was thrown
 ================
 */
-void CL_Drop (void)
+void CL_Drop( void )
 {
-	if( cls.state == ca_uninitialized ) return;
-	if( cls.state == ca_disconnected ) return;
-
+	if( cls.state == ca_uninitialized )
+		return;
 	CL_Disconnect();
 }
 
@@ -183,18 +182,17 @@ CL_CheckForResend
 Resend a connect message if the last one has timed out
 =================
 */
-void CL_CheckForResend (void)
+void CL_CheckForResend( void )
 {
 	netadr_t	adr;
 
-	// if the local server is running and we aren't
-	// then connect
-	if (cls.state == ca_disconnected && Host_ServerState())
+	// if the local server is running and we aren't then connect
+	if( cls.state == ca_disconnected && SV_Active())
 	{
 		cls.state = ca_connecting;
-		com.strncpy (cls.servername, "localhost", sizeof(cls.servername)-1);
+		com.strncpy( cls.servername, "localhost", sizeof( cls.servername ));
 		// we don't need a challenge on the localhost
-		CL_SendConnectPacket ();
+		CL_SendConnectPacket();
 		return;
 	}
 
@@ -356,17 +354,17 @@ void CL_Disconnect( void )
 
 	// send a disconnect message to the server
 	final[0] = clc_stringcmd;
-	com.strcpy ((char *)final+1, "disconnect");
-	Netchan_Transmit(&cls.netchan, com.strlen(final), final);
-	Netchan_Transmit(&cls.netchan, com.strlen(final), final);
-	Netchan_Transmit(&cls.netchan, com.strlen(final), final);
+	com.strcpy((char *)final+1, "disconnect" );
+	Netchan_Transmit( &cls.netchan, com.strlen( final ), final );
+	Netchan_Transmit( &cls.netchan, com.strlen( final ), final );
+	Netchan_Transmit( &cls.netchan, com.strlen( final ), final );
 
 	CL_ClearState ();
 
 	// stop download
-	if (cls.download)
+	if( cls.download )
 	{
-		FS_Close(cls.download);
+		FS_Close( cls.download );
 		cls.download = NULL;
 	}
 
@@ -439,13 +437,12 @@ drop to full console
 */
 void CL_Changing_f( void )
 {
-	//ZOID
-	//if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
+	// if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
 	if( cls.download ) return;
 
 	S_StopAllSounds();
 	cls.state = ca_connected;	// not active anymore, but not disconnected
-	Msg("\nChanging map...\n");
+	Msg( "\nChanging map...\n" );
 }
 
 
@@ -456,7 +453,7 @@ CL_Reconnect_f
 The server is changing levels
 =================
 */
-void CL_Reconnect_f (void)
+void CL_Reconnect_f( void )
 {
 	// if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
 	if( cls.download ) return;

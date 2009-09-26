@@ -79,7 +79,7 @@ void SV_DirectConnect( netadr_t from )
 	int		qport, count = 0;
 	int		challenge;
 
-	version = com.atoi(Cmd_Argv(1));
+	version = com.atoi( Cmd_Argv( 1 ));
 	if( version != PROTOCOL_VERSION )
 	{
 		Netchan_OutOfBandPrint( NS_SERVER, from, "print\nServer uses protocol version %i.\n", PROTOCOL_VERSION );
@@ -93,7 +93,7 @@ void SV_DirectConnect( netadr_t from )
 	userinfo[sizeof(userinfo) - 1] = 0;
 
 	// quick reject
-	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
+	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
 	{
 		if( cl->state == cs_free ) continue;
 		if( NET_CompareBaseAdr(from, cl->netchan.remote_address) && (cl->netchan.qport == qport || from.port == cl->netchan.remote_address.port))
@@ -131,18 +131,18 @@ void SV_DirectConnect( netadr_t from )
 	else
 	{
 		// force the "ip" info key to "localhost"
-		Info_SetValueForKey( userinfo, "ip", "localhost" );
+		Info_SetValueForKey( userinfo, "ip", "127.0.0.1" );
 		Info_SetValueForKey( userinfo, "name", SI->username ); // can be overwrited later
 	}
 
 	newcl = &temp;
-	Mem_Set( newcl, 0, sizeof(sv_client_t));
+	Mem_Set( newcl, 0, sizeof( sv_client_t ));
 
 	// if there is already a slot for this ip, reuse it
-	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
+	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
 	{
 		if( cl->state == cs_free ) continue;
-		if( NET_CompareBaseAdr(from, cl->netchan.remote_address) && (cl->netchan.qport == qport || from.port == cl->netchan.remote_address.port))
+		if( NET_CompareBaseAdr( from, cl->netchan.remote_address ) && (cl->netchan.qport == qport || from.port == cl->netchan.remote_address.port ))
 		{
 			MsgDev( D_INFO, "%s:reconnect\n", NET_AdrToString( from ));
 			newcl = cl;
@@ -152,7 +152,7 @@ void SV_DirectConnect( netadr_t from )
 
 	// find a client slot
 	newcl = NULL;
-	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++)
+	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++)
 	{
 		if( cl->state == cs_free )
 		{
@@ -207,9 +207,9 @@ gotnewcl:
 
 	// if this was the first client on the server, or the last client
 	// the server can hold, send a heartbeat to the master.
-	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
+	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
 		if( cl->state >= cs_connected ) count++;
-	if( count == 1 || count == Host_MaxClients())
+	if( count == 1 || count == sv_maxclients->integer )
 		svs.last_heartbeat = MAX_HEARTBEAT;
 }
 
@@ -237,7 +237,7 @@ void SV_FakeConnect( char *cl_userinfo )
 	// find a client slot
 	newcl = &temp;
 	Mem_Set( newcl, 0, sizeof( sv_client_t ));
-	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
+	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
 	{
 		if( cl->state == cs_free )
 		{
@@ -293,7 +293,7 @@ bool SV_ClientConnect( edict_t *ent, char *userinfo )
 	bool result = true;
 
 	// make sure we start with known default
-	ent->v.flags = 0;
+	if( !sv.loadgame ) ent->v.flags = 0;
 
 	MsgDev(D_NOTE, "SV_ClientConnect()\n");
 	svgame.globals->time = sv.time * 0.001f;
@@ -335,12 +335,12 @@ void SV_DropClient( sv_client_t *drop )
 	// to the master so it is known the server is empty
 	// send a heartbeat now so the master will get up to date info
 	// if there is already a slot for this ip, reuse it
-	for( i = 0; i < Host_MaxClients(); i++ )
+	for( i = 0; i < sv_maxclients->integer; i++ )
 	{
 		if( svs.clients[i].state >= cs_connected )
 			break;
 	}
-	if( i == Host_MaxClients()) svs.last_heartbeat = MAX_HEARTBEAT;
+	if( i == sv_maxclients->integer ) svs.last_heartbeat = MAX_HEARTBEAT;
 }
 
 /*
@@ -414,7 +414,7 @@ char *SV_StatusString( void )
 	com.strcat( status, "\n" );
 	statusLength = com.strlen(status);
 
-	for( i = 0; i < Host_MaxClients(); i++ )
+	for( i = 0; i < sv_maxclients->integer; i++ )
 	{
 		cl = &svs.clients[i];
 		if( cl->state == cs_connected || cl->state == cs_spawned )
@@ -468,18 +468,20 @@ void SV_Info( netadr_t from )
 	int	version;
 
 	// ignore in single player
-	if(Host_MaxClients() == 1 ) return;
+	if( sv_maxclients->integer == 1 ) return;
 
 	version = com.atoi(Cmd_Argv( 1 ));
 
 	if( version != PROTOCOL_VERSION )
-		com.sprintf( string, "%s: wrong version\n", hostname->string, sizeof(string));
+	{
+		com.sprintf( string, "%s: wrong version\n", hostname->string, sizeof( string ));
+	}
 	else
 	{
-		for( i = 0; i < Host_MaxClients(); i++ )
+		for( i = 0; i < sv_maxclients->integer; i++ )
 			if( svs.clients[i].state >= cs_connected )
 				count++;
-		com.sprintf( string, "%16s %8s %2i/%2i\n", hostname->string, sv.name, count, Host_MaxClients());
+		com.sprintf( string, "%16s %8s %2i/%2i\n", hostname->string, sv.name, count, sv_maxclients->integer );
 	}
 	Netchan_OutOfBandPrint( NS_SERVER, from, "info\n%s", string );
 }
@@ -968,7 +970,7 @@ void _MSG_Send( msgtype_t msg_type, vec3_t origin, const edict_t *ent, const cha
 	byte		*mask = NULL;
 	int		leafnum = 0, cluster = 0;
 	int		area1 = 0, area2 = 0;
-	int		j, numclients = Host_MaxClients();
+	int		j, numclients = sv_maxclients->integer;
 	sv_client_t	*cl, *current = svs.clients;
 	bool		reliable = false;
 

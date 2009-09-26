@@ -403,8 +403,8 @@ void CSave :: WriteDouble( const char *pname, const double *data, int count )
 
 void CSave :: WriteTime( const char *pname, const float *data, int count )
 {
-	int i;
-	Vector tmp, input;
+	int	i;
+	Vector	tmp, input;
 
 	BufferHeader( pname, sizeof(float) * count );
 	for ( i = 0; i < count; i++ )
@@ -420,7 +420,6 @@ void CSave :: WriteTime( const char *pname, const float *data, int count )
 	}
 }
 
-
 void CSave :: WriteString( const char *pname, const char *pdata )
 {
 #ifdef TOKENIZE
@@ -431,7 +430,6 @@ void CSave :: WriteString( const char *pname, const char *pdata )
 #endif
 }
 
-
 void CSave :: WriteString( const char *pname, const int *stringId, int count )
 {
 	int i, size;
@@ -441,8 +439,7 @@ void CSave :: WriteString( const char *pname, const int *stringId, int count )
 	WriteShort( pname, &token, 1 );
 #else
 #if 0
-	if ( count != 1 )
-		ALERT( at_error, "No string arrays!\n" );
+	if( count != 1 ) ALERT( at_error, "No string arrays!\n" );
 	WriteString( pname, (char *)STRING(*stringId) );
 #endif
 
@@ -482,32 +479,29 @@ void CSave :: WriteVector( const char *pname, const float *value, int count )
 	BufferData( (const char *)value, sizeof(float) * 3 * count );
 }
 
-
-
 void CSave :: WritePositionVector( const char *pname, const Vector &value )
 {
 
-	if ( m_pdata && m_pdata->fUseLandmark )
+	if( m_pdata && m_pdata->fUseLandmark )
 	{
 		Vector tmp = value - m_pdata->vecLandmarkOffset;
 		WriteVector( pname, tmp );
 	}
-
 	WriteVector( pname, value );
 }
 
-
 void CSave :: WritePositionVector( const char *pname, const float *value, int count )
 {
-	int i;
-	Vector tmp, input;
+	int	i;
+	Vector	tmp, input;
 
 	BufferHeader( pname, sizeof(float) * 3 * count );
-	for ( i = 0; i < count; i++ )
+
+	for( i = 0; i < count; i++ )
 	{
 		Vector tmp( value[0], value[1], value[2] );
 
-		if ( m_pdata && m_pdata->fUseLandmark )
+		if( m_pdata && m_pdata->fUseLandmark )
 			tmp = tmp - m_pdata->vecLandmarkOffset;
 
 		BufferData( (const char *)&tmp.x, sizeof(float) * 3 );
@@ -515,24 +509,22 @@ void CSave :: WritePositionVector( const char *pname, const float *value, int co
 	}
 }
 
-
 void CSave :: WriteFunction( const char* cname, const char *pname, const int *data, int count )
 {
 	const char *functionName;
 
 	functionName = NAME_FOR_FUNCTION( *data );
-	if ( functionName )
-		BufferField( pname, strlen(functionName) + 1, functionName );
-	else	ALERT( at_error, "Member \"%s\" of \"%s\" contains an invalid function pointer %p!", pname, cname, *data );
+	if( functionName )
+		BufferField( pname, strlen( functionName ) + 1, functionName );
+	else ALERT( at_error, "Member \"%s\" of \"%s\" contains an invalid function pointer %p!", pname, cname, *data );
 }
-
 
 void EntvarsKeyvalue( entvars_t *pev, KeyValueData *pkvd )
 {
-	int i;
-	TYPEDESCRIPTION		*pField;
+	int		i;
+	TYPEDESCRIPTION	*pField;
 
-	for ( i = 0; i < ENTVARS_COUNT; i++ )
+	for( i = 0; i < ENTVARS_COUNT; i++ )
 	{
 		pField = &gEntvarsDescription[i];
 
@@ -577,24 +569,20 @@ void EntvarsKeyvalue( entvars_t *pev, KeyValueData *pkvd )
 	}
 }
 
-
-
 int CSave :: WriteEntVars( const char *pname, entvars_t *pev )
 {
-	if (pev->targetname)
-		return WriteFields( STRING(pev->targetname), pname, pev, gEntvarsDescription, ENTVARS_COUNT );
-	else
-		return WriteFields( STRING(pev->classname), pname, pev, gEntvarsDescription, ENTVARS_COUNT );
+	if( pev->targetname )
+		return WriteFields( STRING( pev->targetname ), pname, pev, gEntvarsDescription, ENTVARS_COUNT );
+	return WriteFields( STRING( pev->classname ), pname, pev, gEntvarsDescription, ENTVARS_COUNT );
 }
-
-
 
 int CSave :: WriteFields( const char *cname, const char *pname, void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCount )
 {
 	int		i, j, actualCount, emptyCount;
-	TYPEDESCRIPTION	*pTest;
 	int		entityArray[MAX_ENTITYARRAY];
+	TYPEDESCRIPTION	*pTest;
 
+#if 0
 	ALERT( at_console, "CSave::WriteFields( %s [%i fields])\n", pname, fieldCount );
 
 	if( !strcmp( pname, "Save Header" ) || !strcmp( pname, "ADJACENCY" ) || !strcmp( pname, "Game Header" ))
@@ -602,7 +590,7 @@ int CSave :: WriteFields( const char *cname, const char *pname, void *pBaseData,
 		for( i = 0; i < fieldCount; i++ )
 			ALERT( at_console, "FIELD: %s [%s][0x%x]\n", pFields[i].fieldName, gNames[pFields[i].fieldType], pFields[i].flags );
 	}
-
+#endif
 	// precalculate the number of empty fields
 	emptyCount = 0;
 	for ( i = 0; i < fieldCount; i++ )
@@ -624,7 +612,7 @@ int CSave :: WriteFields( const char *cname, const char *pname, void *pBaseData,
 		pOutputData = ((char *)pBaseData + pTest->fieldOffset );
 
 		// UNDONE: Must we do this twice?
-		if ( DataEmpty( (const char *)pOutputData, pTest->fieldSize * gSizes[pTest->fieldType] ) )
+		if( DataEmpty( (const char *)pOutputData, pTest->fieldSize * gSizes[pTest->fieldType] ))
 			continue;
 
 		switch( pTest->fieldType )
@@ -716,16 +704,16 @@ void CSave :: BufferString( char *pdata, int len )
 {
 	char c = 0;
 
-	BufferData( pdata, len );		// Write the string
-	BufferData( &c, 1 );			// Write a null terminator
+	BufferData( pdata, len );	// Write the string
+	BufferData( &c, 1 );	// Write a null terminator
 }
 
 
 int CSave :: DataEmpty( const char *pdata, int size )
 {
-	for ( int i = 0; i < size; i++ )
+	for( int i = 0; i < size; i++ )
 	{
-		if ( pdata[i] )
+		if( pdata[i] )
 			return 0;
 	}
 	return 1;
@@ -738,23 +726,21 @@ void CSave :: BufferField( const char *pname, int size, const char *pdata )
 	BufferData( pdata, size );
 }
 
-
 void CSave :: BufferHeader( const char *pname, int size )
 {
 	short	hashvalue = TokenHash( pname );
-	if ( size > 1<<(sizeof(short)*8) )
+	if( size > 1<<( sizeof( short ) * 8 ))
 		ALERT( at_error, "CSave :: BufferHeader() size parameter exceeds 'short'!" );
 	BufferData( (const char *)&size, sizeof(short) );
 	BufferData( (const char *)&hashvalue, sizeof(short) );
 }
 
-
 void CSave :: BufferData( const char *pdata, int size )
 {
-	if ( !m_pdata )
+	if( !m_pdata )
 		return;
 
-	if ( m_pdata->size + size > m_pdata->bufferSize )
+	if( m_pdata->size + size > m_pdata->bufferSize )
 	{
 		ALERT( at_error, "Save/Restore overflow!" );
 		m_pdata->size = m_pdata->bufferSize;
@@ -765,8 +751,6 @@ void CSave :: BufferData( const char *pdata, int size )
 	m_pdata->pCurrentData += size;
 	m_pdata->size += size;
 }
-
-
 
 // --------------------------------------------------------------
 //
@@ -784,7 +768,7 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 	char	*pString;
 
 	time = 0;
-	position = Vector(0,0,0);
+	position = Vector( 0, 0, 0 );
 
 	if( m_pdata )
 	{
@@ -799,7 +783,7 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 		pTest = &pFields[fieldNumber];
 		if( !stricmp( pTest->fieldName, pName ))
 		{
-			if ( !m_global || !(pTest->flags & FTYPEDESC_GLOBAL) )
+			if( !m_global || !(pTest->flags & FTYPEDESC_GLOBAL) )
 			{
 				for ( j = 0; j < pTest->fieldSize; j++ )
 				{
@@ -878,18 +862,14 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 						pOutputData = (char *)pOutputData + j*(sizeof(EHANDLE) - gSizes[pTest->fieldType]);
 						entityIndex = *( int *)pInputData;
 						pent = EntityFromIndex( entityIndex );
-						if ( pent )
-							*((EHANDLE *)pOutputData) = CBaseEntity::Instance(pent);
-						else
-							*((EHANDLE *)pOutputData) = NULL;
+						if( pent ) *((EHANDLE *)pOutputData) = CBaseEntity::Instance(pent);
+						else *((EHANDLE *)pOutputData) = NULL;
 						break;
 					case FIELD_ENTITY:
 						entityIndex = *( int *)pInputData;
 						pent = EntityFromIndex( entityIndex );
-						if ( pent )
-							*((EOFFSET *)pOutputData) = OFFSET(pent);
-						else
-							*((EOFFSET *)pOutputData) = 0;
+						if ( pent ) *((EOFFSET *)pOutputData) = OFFSET( pent );
+						else *((EOFFSET *)pOutputData) = 0;
 						break;
 					case FIELD_RANGE:
 						((float *)pOutputData)[0] = ((float *)pInputData)[0];
@@ -922,10 +902,9 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 						*((int *)pOutputData) = *( int *)pInputData;
 						break;
 					case FIELD_FUNCTION:
-						if ( strlen( (char *)pInputData ) == 0 )
+						if( !strlen( (char *)pInputData ))
 							*((int *)pOutputData) = 0;
-						else
-							*((int *)pOutputData) = FUNCTION_FROM_NAME( (char *)pInputData );
+						else *((int *)pOutputData) = FUNCTION_FROM_NAME( (char *)pInputData );
 						break;
 					default:
 						ALERT( at_error, "Bad field type\n" );
@@ -934,24 +913,18 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 				}
 			}
 #if 0
-			else
-			{
-				ALERT( at_console, "Skipping global field %s\n", pName );
-			}
+			else ALERT( at_console, "Skipping global field %s\n", pName );
 #endif
 			return fieldNumber;
 		}
 	}
-
 	return -1;
 }
-
 
 int CRestore::ReadEntVars( const char *pname, entvars_t *pev )
 {
 	return ReadFields( pname, pev, gEntvarsDescription, ENTVARS_COUNT );
 }
-
 
 int CRestore::ReadFields( const char *pname, void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCount )
 {
@@ -971,9 +944,9 @@ int CRestore::ReadFields( const char *pname, void *pBaseData, TYPEDESCRIPTION *p
 		BufferRewind( 2 * sizeof( short ));
 		return 0;
 	}
-
+#if 0
 	ALERT( at_console, "CRestore:ReadFields: %s\n", pname );
-
+#endif
 	// Skip over the struct name
 	fileCount = ReadInt();		// Read field count
 

@@ -199,7 +199,7 @@ static void SV_SaveServerData( wfile_t *f )
 		edict_t	*pent = EDICT_NUM( i );
 
 		pTable = &pSaveData->pTable[i];		
-		pTable->id = pent->serialnumber;
+		
 		pTable->pent = pent;
 
 		// setup some flags
@@ -222,10 +222,18 @@ static void SV_SaveServerData( wfile_t *f )
 	// write entity descriptions
 	for( i = 0; i < svgame.globals->numEntities; i++ )
 	{
-		edict_t	*pent = EDICT_NUM( i );
+		edict_t		*pent = EDICT_NUM( i );
+		ENTITYTABLE	*pTable = &pSaveData->pTable[pSaveData->currentIndex];
 
 		if( !pent->free && pent->v.classname )
+		{
 			svgame.dllFuncs.pfnSave( pent, pSaveData );
+			if( pTable->classname && pTable->size )
+				pTable->id = pent->serialnumber;
+			else pTable->flags |= FENTTABLE_REMOVED;
+		}
+		else pTable->flags |= FENTTABLE_REMOVED;
+
 		pSaveData->currentIndex++; // move pointer
 	}
 
@@ -235,6 +243,8 @@ static void SV_SaveServerData( wfile_t *f )
 	for( i = 0; i < pSaveData->tableCount; i++ )
 	{
 		pTable = &pSaveData->pTable[i];
+
+		// entityes without classname can't be restored
 		svgame.dllFuncs.pfnSaveWriteFields( pSaveData, "ETABLE", pTable, gETable, ARRAYSIZE( gETable ));
 	}
 
@@ -282,7 +292,7 @@ void SV_WriteSaveFile( const char *name, bool autosave )
 		MsgDev( D_ERROR, "SV_WriteSaveFile: can't savegame in a multiplayer\n" );
 		return;
 	}
-	if( Host_MaxClients() == 1 && svs.clients[0].edict->v.health <= 0 )
+	if( sv_maxclients->integer == 1 && svs.clients[0].edict->v.health <= 0 )
 	{
 		MsgDev( D_ERROR, "SV_WriteSaveFile: can't savegame while dead!\n" );
 		return;
@@ -355,7 +365,7 @@ void SV_ReadCvars( wfile_t *l )
 	const char	*name, *value;
 
 	in = (dkeyvalue_t *)WAD_Read( l, LUMP_GAMECVARS, &numpairs, TYPE_BINDATA );
-	if( numpairs % sizeof( *in )) Host_Error( "Sav_LoadCvars: funny lump size\n" );
+	if( numpairs % sizeof( *in )) Host_Error( "SV_ReadCvars: funny lump size\n" );
 	numpairs /= sizeof( dkeyvalue_t );
 
 	for( i = 0; i < numpairs; i++ )
@@ -413,8 +423,6 @@ void SV_ReadGlobals( wfile_t *l )
 	// restore global state
 	svgame.dllFuncs.pfnRestoreGlobalState( pSaveData );
 	svgame.dllFuncs.pfnServerDeactivate();
-
-	// leave pool unfreed, because we have partially filled hash tokens
 }
 
 void SV_RestoreEdict( edict_t *ent )
@@ -448,7 +456,7 @@ void SV_ReadEntities( wfile_t *l )
 	// read save header
 	svgame.dllFuncs.pfnSaveReadFields( pSaveData, "Save Header", &shdr, gSaveHeader, ARRAYSIZE( gSaveHeader ));
 
-	SV_ConfigString( CS_MAXCLIENTS, va( "%i", Host_MaxClients( )));
+	SV_ConfigString( CS_MAXCLIENTS, va( "%i", sv_maxclients->integer ));
 	com.strncpy( sv.name, shdr.mapName, MAX_STRING );
 	svgame.globals->mapname = MAKE_STRING( sv.name );
 	svgame.globals->time = shdr.time;
@@ -488,10 +496,12 @@ void SV_ReadEntities( wfile_t *l )
 		pTable = &pSaveData->pTable[i];		
 		svgame.dllFuncs.pfnSaveReadFields( pSaveData, "ETABLE", pTable, gETable, ARRAYSIZE( gETable ));
 
+		if( pTable->flags & FENTTABLE_REMOVED ) SV_FreeEdict( pent );
+		else pent = SV_AllocPrivateData( pent, pTable->classname );
+
 		if( pTable->id != pent->serialnumber )
 			MsgDev( D_ERROR, "ETABLE id( %i ) != edict->id( %i )\n", pTable->id, pent->serialnumber );
-		if( pTable->flags & FENTTABLE_REMOVED || pTable->classname == 0 ) SV_FreeEdict( pent );
-		else pent = SV_AllocPrivateData( pent, pTable->classname );
+
 		pTable->pent = pent;
 	}
 
@@ -548,7 +558,6 @@ void SV_ReadSaveFile( const char *name )
 	sv.loadgame = true;	// restore state
 	SV_ReadGlobals( savfile );
 	WAD_Close( savfile );
-	CL_Drop();
 }
 
 /*

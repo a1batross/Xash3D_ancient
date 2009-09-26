@@ -233,18 +233,18 @@ void DispatchSave( edict_t *pent, SAVERESTOREDATA *pSaveData )
 {
 	CBaseEntity *pEntity = (CBaseEntity *)GET_PRIVATE(pent);
 	
-	if ( pEntity && pSaveData )
+	if( pEntity && pSaveData )
 	{
-		ALERT( at_console, "DispatchSave( %s )\n", STRING( pent->v.classname ));
+		// ALERT( at_console, "DispatchSave( %s, %i )\n", STRING( pent->v.classname ), pent->serialnumber );
 		ENTITYTABLE *pTable = &pSaveData->pTable[ pSaveData->currentIndex ];
 
-		if ( pTable->pent != pent )
+		if( pTable->pent != pent )
 			ALERT( at_error, "ENTITY TABLE OR INDEX IS WRONG!!!!\n" );
 
-		if ( pEntity->ObjectCaps() & FCAP_DONT_SAVE )return;
+		if( pEntity->ObjectCaps() & FCAP_DONT_SAVE ) return;
 
 		// These don't use ltime & nextthink as times really, but we'll fudge around it.
-		if ( pEntity->pev->movetype == MOVETYPE_PUSH )
+		if( pEntity->pev->movetype == MOVETYPE_PUSH )
 		{
 			float delta = gpGlobals->time - pEntity->pev->ltime;
 			pEntity->pev->ltime += delta;
@@ -272,7 +272,7 @@ int DispatchRestore( edict_t *pent, SAVERESTOREDATA *pSaveData, int globalEntity
 		entvars_t tmpVars;
 		Vector oldOffset;
 
-		ALERT( at_console, "DispatchRestore( %s )\n", STRING( pent->v.classname ));
+		// ALERT( at_console, "DispatchRestore( %s )\n", STRING( pent->v.classname ));
 		CRestore restoreHelper( pSaveData );
 		if ( globalEntity )
 		{

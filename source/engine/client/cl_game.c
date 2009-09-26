@@ -319,10 +319,12 @@ void CL_ParseUserMessage( sizebuf_t *net_buffer, int svc_num )
 void CL_InitEdict( edict_t *pEdict )
 {
 	Com_Assert( pEdict == NULL );
+	Com_Assert( pEdict->pvPrivateData != NULL );
+	Com_Assert( pEdict->pvClientData != NULL );
 
 	pEdict->v.pContainingEntity = pEdict; // make cross-links for consistency
-	if( !pEdict->pvClientData )
-		pEdict->pvClientData = (cl_priv_t *)Mem_Alloc( cls.mempool, sizeof( cl_priv_t ));
+	pEdict->pvClientData = (cl_priv_t *)Mem_Alloc( cls.mempool, sizeof( cl_priv_t ));
+	pEdict->pvPrivateData = NULL;
 	pEdict->serialnumber = NUM_FOR_EDICT( pEdict );	// merged on first update
 	pEdict->free = false;
 }
@@ -336,13 +338,12 @@ void CL_FreeEdict( edict_t *pEdict )
 	// CL_UnlinkEdict( pEdict );
 
 	if( pEdict->pvClientData ) Mem_Free( pEdict->pvClientData );
-	Mem_Set( &pEdict->v, 0, sizeof( entvars_t ));
-
-	pEdict->pvClientData = NULL;
+	if( pEdict->pvPrivateData ) Mem_Free( pEdict->pvPrivateData );
+	Mem_Set( pEdict, 0, sizeof( *pEdict ));
 
 	// mark edict as freed
 	pEdict->freetime = cl.time * 0.001f;
-	pEdict->serialnumber = 0;
+	pEdict->v.nextthink = -1;
 	pEdict->free = true;
 }
 
@@ -371,6 +372,19 @@ edict_t *CL_AllocEdict( void )
 	CL_InitEdict( pEdict );
 
 	return pEdict;
+}
+
+void CL_InitEdicts( void )
+{
+	edict_t	*e;
+	int	i;
+
+	clgame.maxEntities = com.atoi( cl.configstrings[CS_MAXEDICTS] );
+	clgame.maxClients = com.atoi( cl.configstrings[CS_MAXCLIENTS] );
+	clgame.edicts = Mem_Realloc( cls.mempool, clgame.edicts, sizeof( edict_t ) * clgame.maxEntities );
+
+	for( i = 0, e = EDICT_NUM( 0 ); i < clgame.maxEntities; i++, e++ )
+		e->free = true; // mark all edicts as freed
 }
 
 void CL_FreeEdicts( void )
@@ -1389,8 +1403,6 @@ bool CL_LoadProgs( const char *name )
 {
 	static CLIENTAPI		GetClientAPI;
 	string			libpath;
-	edict_t			*e;
-	int			i;
 
 	if( clgame.hInstance ) CL_UnloadProgs();
 
@@ -1418,9 +1430,6 @@ bool CL_LoadProgs( const char *name )
 
 	// 65535 unique strings should be enough ...
 	clgame.hStringTable = StringTable_Create( "Client", 0x10000 );
-	clgame.maxEntities = GI->max_edicts;	// FIXME: must come from CS_MAXENTITIES
-	clgame.maxClients = Host_MaxClients();
-	clgame.edicts = Mem_Alloc( cls.mempool, sizeof( edict_t ) * clgame.maxEntities );
 
 	// register svc_bad message
 	pfnHookUserMsg( "bad", NULL );
@@ -1435,9 +1444,6 @@ bool CL_LoadProgs( const char *name )
 	clgame.movevars.accelerate = com.atof( DEFAULT_ACCEL );
 	clgame.movevars.airaccelerate = com.atof( DEFAULT_AIRACCEL );
 	clgame.movevars.friction = com.atof( DEFAULT_FRICTION );
-
-	for( i = 0, e = EDICT_NUM( 0 ); i < clgame.maxEntities; i++, e++ )
-		e->free = true; // mark all edicts as freed
 
 	// initialize game
 	clgame.dllFuncs.pfnInit();

@@ -220,9 +220,6 @@ static const loadformat_t load_wadlib[] =
 // version11 - Xash3D 0.48 profile (not used)
 static const loadformat_t load_xash048[] =
 {
-{ "textures/%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },
-{ "textures/%s%s.%s", "dds", Image_LoadDDS, IL_HINT_NO },
-{ "textures/%s%s.%s", "jpg", Image_LoadJPG, IL_HINT_NO },
 { "%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// tga it's master type
 { "%s%s.%s", "dds", Image_LoadDDS, IL_HINT_NO },	// hud, cubemaps
 { "%s%s.%s", "jpg", Image_LoadJPG, IL_HINT_NO },	// just in case
@@ -235,10 +232,6 @@ static const loadformat_t load_xash048[] =
 // version12 - Xash3D 0.51 profile
 static const loadformat_t load_xash051[] =
 {
-{ "textures/%s%s.%s", "dds", Image_LoadDDS, IL_HINT_NO },	// cubemaps, depthmaps, 2d textures
-{ "textures/%s%s.%s", "png", Image_LoadPNG, IL_HINT_NO },	// levelshot save as .png
-{ "textures/%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// screenshots, etc
-{ "textures/%s%s.%s", "jpg", Image_LoadJPG, IL_HINT_NO },	// 2d textures
 { "%s%s.%s", "dds", Image_LoadDDS, IL_HINT_NO },	// cubemaps, depthmaps, 2d textures
 { "%s%s.%s", "png", Image_LoadPNG, IL_HINT_NO },	// levelshot save as .png
 { "%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// screenshots, etc

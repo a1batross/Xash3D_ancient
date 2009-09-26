@@ -46,8 +46,7 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 
 	if( state->number == -1 )
 	{
-		// NOTE: not real removed, just out of view, use ent->free as marker
-		ent->free = true;
+		CL_FreeEdict( ent );
 		return; // entity was delta removed
 	}
 	cl.parse_entities++;
@@ -157,7 +156,8 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 		{	
 			// delta from baseline ?
 			edict_t *ent = EDICT_NUM( newnum );
-			if( ent->free ) CL_InitEdict( ent ); // FIXME: get rid of this
+			
+			Com_Assert( ent->free );
 			CL_DeltaEntity( msg, newframe, newnum, &ent->pvClientData->baseline, false );
 			continue;
 		}

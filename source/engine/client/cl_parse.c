@@ -286,6 +286,8 @@ void CL_ParseBaseline( sizebuf_t *msg )
 	Mem_Set( &nullstate, 0, sizeof( nullstate ));
 	newnum = MSG_ReadBits( msg, NET_WORD );
 
+	if( !clgame.numEntities ) CL_InitEdicts();
+
 	// increase edicts
 	while( newnum >= clgame.numEntities ) CL_AllocEdict();
 	ent = EDICT_NUM( newnum );

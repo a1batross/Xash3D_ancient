@@ -3436,7 +3436,7 @@ int CBasePlayer::Restore( CRestore &restore )
 	// Copied from spawn() for now
 	m_bloodColor	= BLOOD_COLOR_RED;
 
-    g_ulModelIndexPlayer = pev->modelindex;
+	g_ulModelIndexPlayer = pev->modelindex;
 
 	if( FBitSet( pev->flags, FL_DUCKING ))
 	{

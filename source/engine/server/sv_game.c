@@ -682,7 +682,7 @@ void SV_FreeEdicts( void )
 	}
 
 	svgame.globals->maxEntities = GI->max_edicts;
-	svgame.globals->maxClients = Host_MaxClients();
+	svgame.globals->maxClients = sv_maxclients->integer;
 	svgame.globals->numEntities = svgame.globals->maxClients + 1; // clients + world
 	svgame.globals->numClients = 0;
 	svgame.globals->mapname = 0;
@@ -1759,7 +1759,7 @@ void pfnClientCommand( edict_t* pEdict, char* szFmt, ... )
 	int		i;
 
 	i = NUM_FOR_EDICT( pEdict );
-	if( sv.state != ss_active  || i < 0 || i >= Host_MaxClients() || svs.clients[i].state != cs_spawned )
+	if( sv.state != ss_active  || i < 0 || i >= sv_maxclients->integer || svs.clients[i].state != cs_spawned )
 	{
 		MsgDev( D_ERROR, "SV_ClientCommand: client/server is not active!\n" );
 		return;
@@ -2393,7 +2393,7 @@ void pfnClassifyEdict( edict_t *pEdict, int class )
 	if( !pEdict->pvServerData ) return;
 
 	pEdict->pvServerData->s.ed_type = class;
-	MsgDev( D_NOTE, "%s: <%s>\n", STRING( pEdict->v.classname ), ed_name[class] );
+	MsgDev( D_LOAD, "%s: <%s>\n", STRING( pEdict->v.classname ), ed_name[class] );
 }
 
 /*
@@ -3191,7 +3191,7 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 	SV_ConfigString( CS_AIRACCELERATE, sv_airaccelerate->string );
 	SV_ConfigString( CS_ACCELERATE, sv_accelerate->string );
 	SV_ConfigString( CS_FRICTION, sv_friction->string );
-	SV_ConfigString( CS_MAXCLIENTS, va( "%i", Host_MaxClients( )));
+	SV_ConfigString( CS_MAXCLIENTS, va( "%i", sv_maxclients->integer ));
 	SV_ConfigString( CS_MAXEDICTS, va( "%i", GI->max_edicts ));
 
 	svgame.globals->mapname = MAKE_STRING( sv.name );
@@ -3274,7 +3274,7 @@ void SV_LoadProgs( const char *name )
 	// 65535 unique strings should be enough ...
 	svgame.hStringTable = StringTable_Create( "Server", 0x10000 );
 	svgame.globals->maxEntities = GI->max_edicts;
-	svgame.globals->maxClients = Host_MaxClients();
+	svgame.globals->maxClients = sv_maxclients->integer;
 	svgame.edicts = Mem_Alloc( svgame.mempool, sizeof( edict_t ) * svgame.globals->maxEntities );
 	svgame.globals->numEntities = svgame.globals->maxClients + 1; // clients + world
 	svgame.globals->numClients = 0;

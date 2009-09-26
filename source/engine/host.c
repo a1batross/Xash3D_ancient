@@ -28,12 +28,10 @@ cvar_t	*host_cheats;
 cvar_t	*host_maxfps;
 cvar_t	*host_minfps;
 cvar_t	*host_framerate;
-cvar_t	*host_maxclients;
 cvar_t	*host_registered;
 
 // these cvars will be duplicated on each client across network
-int Host_ServerState( void ) { return (int)Cvar_VariableValue( "host_serverstate" ); }
-int Host_MaxClients( void ) { return (int)bound( 1, Cvar_VariableValue( "host_maxclients" ), 255 ); }
+int Host_ServerState( void ) { return Cvar_VariableInteger( "host_serverstate" ); }
 
 void Host_InitPhysic( void )
 {
@@ -612,7 +610,6 @@ void Host_Init( const int argc, const char **argv )
 	host_minfps = Cvar_Get( "host_minfps", "10", CVAR_ARCHIVE, "host fps lower limit" );
 	host_maxfps = Cvar_Get( "host_maxfps", "100", CVAR_ARCHIVE, "host fps upper limit" );
 	host_framerate = Cvar_Get( "host_framerate", "0", 0, "locks frame timing to this value in seconds" );  
-	host_maxclients = Cvar_Get( "host_maxclients", "1", CVAR_SERVERINFO|CVAR_LATCH, "server maxplayers limit" );
 	host_serverstate = Cvar_Get( "host_serverstate", "0", CVAR_SERVERINFO, "displays current server state" );
 	host_registered = Cvar_Get( "registered", "1", CVAR_SYSTEMINFO, "indicate shareware version of game" );
 	timescale = Cvar_Get( "timescale", "1.0", 0, "slow-mo timescale" );

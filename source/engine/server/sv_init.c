@@ -174,7 +174,7 @@ void SV_SpawnServer( const char *server, const char *savename )
 	com.strcpy( sv.name, server );
 
 	// leave slots at start for clients only
-	for( i = 0; i < Host_MaxClients(); i++ )
+	for( i = 0; i < sv_maxclients->integer; i++ )
 	{
 		// needs to reconnect
 		if( svs.clients[i].state > cs_connected )
@@ -287,25 +287,25 @@ void SV_InitGame( void )
 	// init clients
 	if( Cvar_VariableValue( "deathmatch" ) || Cvar_VariableValue( "teamplay" ))
 	{
-		if( Host_MaxClients() <= 1 )
-			Cvar_FullSet( "host_maxclients", "8", CVAR_SERVERINFO|CVAR_LATCH );
-		else if( Host_MaxClients() > 255 )
-			Cvar_FullSet( "host_maxclients", va("%i", 255 ), CVAR_SERVERINFO|CVAR_LATCH );
+		if( sv_maxclients->integer <= 1 )
+			Cvar_FullSet( "sv_maxclients", "8", CVAR_SERVERINFO|CVAR_LATCH );
+		else if( sv_maxclients->integer > 255 )
+			Cvar_FullSet( "sv_maxclients", "255", CVAR_SERVERINFO|CVAR_LATCH );
 	}
 	else if( Cvar_VariableValue( "coop" ))
 	{
-		if( Host_MaxClients() <= 1 || Host_MaxClients() > 4 )
-			Cvar_FullSet( "host_maxclients", "4", CVAR_SERVERINFO|CVAR_LATCH );
+		if( sv_maxclients->integer <= 1 || sv_maxclients->integer > 4 )
+			Cvar_FullSet( "sv_maxclients", "4", CVAR_SERVERINFO|CVAR_LATCH );
 	}
 	else	
 	{
 		// non-deathmatch, non-coop is one player
-		Cvar_FullSet( "host_maxclients", "1", CVAR_SERVERINFO|CVAR_LATCH );
+		Cvar_FullSet( "sv_maxclients", "1", CVAR_SERVERINFO|CVAR_LATCH );
 	}
 
 	svs.spawncount = RANDOM_LONG( 0, 65535 );
-	svs.clients = Z_Malloc( sizeof(sv_client_t) * Host_MaxClients());
-	svs.num_client_entities = Host_MaxClients() * UPDATE_BACKUP * 64; // g-cont: what a mem waster ???????
+	svs.clients = Z_Malloc( sizeof( sv_client_t ) * sv_maxclients->integer );
+	svs.num_client_entities = sv_maxclients->integer * UPDATE_BACKUP * 64; // g-cont: what a mem waster ???
 	svs.client_entities = Z_Malloc( sizeof(entity_state_t) * svs.num_client_entities );
 	svs.baselines = Z_Malloc( sizeof( entity_state_t ) * GI->max_edicts );
 
@@ -321,7 +321,7 @@ void SV_InitGame( void )
 	com.sprintf( idmaster, "192.246.40.37:%i", PORT_MASTER );
 	NET_StringToAdr( idmaster, &master_adr[0] );
 
-	for( i = 0; i < Host_MaxClients(); i++ )
+	for( i = 0; i < sv_maxclients->integer; i++ )
 	{
 		ent = EDICT_NUM( i + 1 );
 		ent->serialnumber = i + 1;

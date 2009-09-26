@@ -2764,7 +2764,8 @@ void GL_GenerateMipmaps( byte *buffer, texture_t *tex, int side )
 	int	mipWidth, mipHeight;
 
 	// not needs
-	if( tex->flags & TF_NOMIPMAP ) return;
+	if( tex->flags & TF_NOMIPMAP || image_desc.MipCount > 1 )
+		return;
 
 	if( GL_Support( R_SGIS_MIPMAPS_EXT ))
 	{
@@ -3386,7 +3387,7 @@ static rgbdata_t *R_InitSpotLightTexture( int *flags, int *samples )
 	*flags = TF_NOPICMIP|TF_NOMIPMAP|TF_CLAMP|TF_UNCOMPRESSED;
 	*samples = 0;
 
-	return FS_LoadImage( "textures/effects/flashlight.tga", NULL, 0 );	// UNDONE: test only 
+	return NULL; // UNDONE: test only 
 }
 
 /*
@@ -3759,7 +3760,7 @@ static void R_InitBuiltinTextures( void )
 		{ "*black", &tr.blackTexture, R_InitBlackTexture },
 		{ "*blankbump", &tr.blankbumpTexture, R_InitBlankBumpTexture },
 		{ "*dlight", &tr.dlightTexture, R_InitDynamicLightTexture },
-		{ "*dspotlight", &tr.dspotlightTexture, R_InitSpotLightTexture },
+//		{ "*dspotlight", &tr.dspotlightTexture, R_InitSpotLightTexture },
           	{ "*normalize", &tr.normalizeTexture, R_InitNormalizeCubemap },
 		{ "*particle", &tr.particleTexture, R_InitParticleTexture },
 		{ "*corona", &tr.coronaTexture, R_InitCoronaTexture },

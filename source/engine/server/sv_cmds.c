@@ -55,7 +55,7 @@ void SV_BroadcastPrintf( int level, char *fmt, ... )
 	
 	// echo to console
 	if( host.type == HOST_DEDICATED ) Msg( "%s", string );
-	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
+	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
 	{
 		if( level < cl->messagelevel ) continue;
 		if( cl->state != cs_spawned ) continue;
@@ -153,26 +153,26 @@ bool SV_SetPlayer( void )
 	// numeric values are just slot numbers
 	if( s[0] >= '0' && s[0] <= '9' )
 	{
-		idnum = com.atoi(Cmd_Argv(1));
-		if( idnum < 0 || idnum >= Host_MaxClients())
+		idnum = com.atoi( Cmd_Argv( 1 ));
+		if( idnum < 0 || idnum >= sv_maxclients->integer )
 		{
-			Msg("Bad client slot: %i\n", idnum);
+			Msg( "Bad client slot: %i\n", idnum );
 			return false;
 		}
 		sv_client = &svs.clients[idnum];
 		if( !sv_client->state )
 		{
-			Msg("Client %i is not active\n", idnum);
+			Msg( "Client %i is not active\n", idnum );
 			return false;
 		}
 		return true;
 	}
 
 	// check for a name match
-	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
+	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
 	{
 		if( !cl->state ) continue;
-		if( !com.strcmp(cl->name, s))
+		if( !com.strcmp( cl->name, s ))
 		{
 			sv_client = cl;
 			return true;
@@ -235,14 +235,14 @@ void SV_Load_f( void )
 {
 	string	filename;
 
-	if(Cmd_Argc() != 2)
+	if( Cmd_Argc() != 2 )
 	{
-		Msg ("Usage: load <filename>\n");
+		Msg( "Usage: load <filename>\n" );
 		return;
 	}
 
-	com.snprintf( filename, MAX_STRING, "%s.bin", Cmd_Argv(1));
-	if(!FS_FileExists(va("save/%s", filename )))
+	com.snprintf( filename, MAX_STRING, "%s.bin", Cmd_Argv( 1 ));
+	if(!FS_FileExists( va( "save/%s", filename )))
 	{
 		Msg("Can't loading %s\n", filename );
 		return;
@@ -250,6 +250,7 @@ void SV_Load_f( void )
 
 	SV_ReadSaveFile( filename );
 	SV_BroadcastCommand( "changing\n" );
+	SV_SendClientMessages();
 	SV_SpawnServer( svs.mapname, filename );
 	SV_BroadcastCommand( "reconnect\n" );
 }
@@ -334,15 +335,15 @@ void SV_ChangeLevel_f( void )
 		// clear all the client free flags before saving so that
 		// when the level is re-entered, the clients will spawn
 		// at spawn points instead of occupying body shells
-		savedFree = Z_Malloc(Host_MaxClients() * sizeof(bool));
-		for (i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++)
+		savedFree = Z_Malloc( sv_maxclients->integer * sizeof( bool ));
+		for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
 		{
 			savedFree[i] = cl->edict->free;
 			cl->edict->free = true;
 		}
 		SV_WriteSaveFile( "autosave", true );
 		// we must restore these for clients to transfer over correctly
-		for (i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++)
+		for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
 			cl->edict->free = savedFree[i];
 		Mem_Free( savedFree );
 	}
@@ -424,7 +425,7 @@ void SV_Status_f( void )
 	Msg( "num score ping    name            lastmsg address               port \n" );
 	Msg( "--- ----- ------- --------------- ------- --------------------- ------\n" );
 
-	for(i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++)
+	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
 	{
 		int	j, l, ping;
 		char	*s;
@@ -479,7 +480,7 @@ void SV_ConSay_f( void )
 	}
 	com.strncat( text, p, MAX_SYSPATH );
 
-	for( i = 0, client = svs.clients; i < Host_MaxClients(); i++, client++ )
+	for( i = 0, client = svs.clients; i < sv_maxclients->integer; i++, client++ )
 	{
 		if( client->state != cs_spawned ) continue;
 		SV_ClientPrintf( client, PRINT_CHAT, "%s\n", text );

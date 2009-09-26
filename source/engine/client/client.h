@@ -442,6 +442,7 @@ int CL_GetMaxClients( void );
 void CL_DrawHUD( int state );
 edict_t *CL_GetEdict( int entnum );
 void CL_FadeAlpha( float starttime, float endtime, rgba_t color );
+void CL_InitEdicts( void );
 void CL_FreeEdicts( void );
 
 //
