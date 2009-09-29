@@ -237,14 +237,14 @@ typedef struct gameinfo_s
 
 	string		sp_entity;	// e.g. info_player_start
 	string		dm_entity;	// e.g. info_player_deathmatch
+	string		coop_entity;	// e.g. info_player_coop
 	string		ctf_entity;	// e.g. info_player_ctf
 	string		team_entity;	// e.g. info_player_team
 
 	vec3_t		client_mins[2];	// 0 - normal, 1 - ducked
 	vec3_t		client_maxs[2];	// 0 - normal, 1 - ducked
 
-	int		max_edicts;	// min edicts is 600, max edicts is 32768
-	string		imglib_mode;	// image formats to using (optional)
+	int		max_edicts;	// min edicts is 600, max edicts is 32000
 } gameinfo_t;
 
 typedef struct sysinfo_s
@@ -460,7 +460,7 @@ typedef struct stdilib_api_s
 	// network.c funcs
 	void (*NET_Init)( void );
 	void (*NET_Shutdown)( void );
-	void (*NET_Sleep)( float time );
+	void (*NET_Sleep)( int msec );
 	void (*NET_Config)( bool net_enable );
 	char *(*NET_AdrToString)( netadr_t a );
 	bool (*NET_IsLocalAddress)( netadr_t adr );

@@ -34,7 +34,6 @@ void CL_WriteDemoHeader( const char *name )
 {
 	char		buf_data[MAX_MSGLEN];
 	entity_state_t	*state, nullstate;
-	edict_t		*ent;
 	sizebuf_t		buf;
 	int		i, len;
 
@@ -85,23 +84,21 @@ void CL_WriteDemoHeader( const char *name )
 	// baselines
 	Mem_Set( &nullstate, 0, sizeof( nullstate ));
 
-	for( i = 0; i < clgame.numEntities; i++ )
+	for( i = 0; i < clgame.globals->numEntities; i++ )
 	{
-		ent = EDICT_NUM( i );
-		if( ent->free ) continue;
-		state = &ent->pvClientData->baseline;
-		if( !state->modelindex ) continue;
+		state = &cl.entity_baselines[i];
+		if( !state->number ) continue;
 
 		if( buf.cursize + 64 > buf.maxsize )
 		{	
 			// write it out
-			len = LittleLong (buf.cursize);
+			len = LittleLong( buf.cursize );
 			FS_Write( cls.demofile, &len, 4 );
 			FS_Write( cls.demofile, buf.data, buf.cursize );
 			buf.cursize = 0;
 		}
 		MSG_WriteByte( &buf, svc_spawnbaseline );		
-		MSG_WriteDeltaEntity( &nullstate, &ent->pvClientData->baseline, &buf, true, true );
+		MSG_WriteDeltaEntity( &nullstate, state, &buf, true, true );
 	}
 
 	MSG_WriteByte( &buf, svc_stufftext );

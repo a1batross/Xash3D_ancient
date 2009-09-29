@@ -10,6 +10,7 @@
 #include "hud.h"
 
 cl_enginefuncs_t g_engfuncs;
+cl_globalvars_t  *gpGlobals;
 CHud gHUD;
 
 // main DLL entry point
@@ -42,7 +43,7 @@ static HUD_FUNCTIONS gFunctionTable =
 //=======================================================================
 //			GetApi
 //=======================================================================
-int CreateAPI( HUD_FUNCTIONS *pFunctionTable, cl_enginefuncs_t* pEngfuncsFromEngine )
+int CreateAPI( HUD_FUNCTIONS *pFunctionTable, cl_enginefuncs_t* pEngfuncsFromEngine, cl_globalvars_t *pGlobals )
 {
 	if( !pFunctionTable || !pEngfuncsFromEngine )
 	{
@@ -52,6 +53,7 @@ int CreateAPI( HUD_FUNCTIONS *pFunctionTable, cl_enginefuncs_t* pEngfuncsFromEng
 	// copy HUD_FUNCTIONS table to engine, copy engfuncs table from engine
 	memcpy( pFunctionTable, &gFunctionTable, sizeof( HUD_FUNCTIONS ));
 	memcpy( &g_engfuncs, pEngfuncsFromEngine, sizeof( cl_enginefuncs_t ));
+	gpGlobals = pGlobals;
 
 	return TRUE;
 }
@@ -72,6 +74,15 @@ void HUD_Init( void )
 
 int HUD_Redraw( float flTime, int state )
 {
+	static int oldstate;
+
+	if( oldstate == CL_ACTIVE && state == CL_LOADING )
+	{
+		// draw only once to prevent multiply GL_BLEND each frame
+		DrawImageBar( 100, "m_loading" ); // HACKHACK
+	}
+	oldstate = state;
+
 	switch( state )
 	{
 	case CL_DISCONNECTED:
@@ -94,18 +105,13 @@ int HUD_UpdateClientData( client_data_t *cdata, float flTime )
 	return gHUD.UpdateClientData( cdata, flTime );
 }
 
-void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t *state, const entity_state_t *old )
+void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t *state, const entity_state_t *prev )
 {
-	int			i;
-	float			m_fLerp;
-	const entity_state_t	*prev;
-
-	if( state->ed_flags & ESF_NODELTA )
-		prev = state;
-	else prev = old;
+	int	i;
+	float	m_fLerp;
 
 	if( state->ed_type == ED_CLIENT && state->ed_flags & ESF_NO_PREDICTION )
-		m_fLerp = 1.0f;	// FIXME: use 0.0f ?
+		m_fLerp = 1.0f;
 	else m_fLerp = GetLerpFrac();
 
 	// copy state to progs

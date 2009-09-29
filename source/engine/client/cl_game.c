@@ -21,7 +21,7 @@ Render callback for studio models
 */
 edict_t *CL_GetEdictByIndex( int index )
 {
-	if( index < 0 || index > clgame.numEntities )
+	if( index < 0 || index > clgame.globals->numEntities )
 	{
 		if( index == VMODEL_ENTINDEX ) return &cl.viewent;
 		if( index == WMODEL_ENTINDEX ) return NULL;
@@ -163,12 +163,6 @@ void CL_FadeAlpha( float starttime, float endtime, rgba_t color )
 
 void CL_DrawHUD( int state )
 {
-	if( state == CL_LOADING )
-	{
-		// fill unused entries with black color
-		SCR_FillRect( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, g_color_table[0] );
-	}
-
 	if( state == CL_ACTIVE && !cl.video_prepped )
 		state = CL_LOADING;
 
@@ -352,7 +346,7 @@ edict_t *CL_AllocEdict( void )
 	edict_t	*pEdict;
 	int	i;
 
-	for( i = 0; i < clgame.numEntities; i++ )
+	for( i = 0; i < clgame.globals->numEntities; i++ )
 	{
 		pEdict = EDICT_NUM( i );
 		// the first couple seconds of client time can involve a lot of
@@ -364,10 +358,10 @@ edict_t *CL_AllocEdict( void )
 		}
 	}
 
-	if( i == clgame.maxEntities )
+	if( i == clgame.globals->maxEntities )
 		Host_Error( "CL_AllocEdict: no free edicts\n" );
 
-	clgame.numEntities++;
+	clgame.globals->numEntities++;
 	pEdict = EDICT_NUM( i );
 	CL_InitEdict( pEdict );
 
@@ -379,12 +373,19 @@ void CL_InitEdicts( void )
 	edict_t	*e;
 	int	i;
 
-	clgame.maxEntities = com.atoi( cl.configstrings[CS_MAXEDICTS] );
-	clgame.maxClients = com.atoi( cl.configstrings[CS_MAXCLIENTS] );
-	clgame.edicts = Mem_Realloc( cls.mempool, clgame.edicts, sizeof( edict_t ) * clgame.maxEntities );
+	clgame.globals->maxEntities = com.atoi( cl.configstrings[CS_MAXEDICTS] );
+	clgame.globals->maxClients = com.atoi( cl.configstrings[CS_MAXCLIENTS] );
+	clgame.edicts = Mem_Realloc( cls.mempool, clgame.edicts, sizeof( edict_t ) * clgame.globals->maxEntities );
 
-	for( i = 0, e = EDICT_NUM( 0 ); i < clgame.maxEntities; i++, e++ )
+	for( i = 0, e = EDICT_NUM( 0 ); i < clgame.globals->maxEntities; i++, e++ )
 		e->free = true; // mark all edicts as freed
+
+	clgame.globals->mapname = MAKE_STRING( cl.configstrings[CS_NAME] );
+
+	clgame.globals->deathmatch = Cvar_VariableInteger( "deathmatch" );
+	clgame.globals->coop = Cvar_VariableInteger( "coop" );
+	clgame.globals->teamplay = Cvar_VariableInteger( "teamplay" );
+	clgame.globals->serverflags = 0;	// FIXME: make CS_SERVERFLAGS
 }
 
 void CL_FreeEdicts( void )
@@ -392,7 +393,7 @@ void CL_FreeEdicts( void )
 	int	i;
 	edict_t	*ent;
 
-	for( i = 0; i < clgame.numEntities; i++ )
+	for( i = 0; i < clgame.globals->numEntities; i++ )
 	{
 		ent = EDICT_NUM( i );
 		if( ent->free ) continue;
@@ -401,7 +402,7 @@ void CL_FreeEdicts( void )
 
 	// clear globals
 	StringTable_Clear( clgame.hStringTable );
-	clgame.numEntities = 0;
+	clgame.globals->numEntities = 0;
 }
 
 /*
@@ -1402,11 +1403,13 @@ void CL_UnloadProgs( void )
 bool CL_LoadProgs( const char *name )
 {
 	static CLIENTAPI		GetClientAPI;
+	static cl_globalvars_t	gpGlobals;
 	string			libpath;
 
 	if( clgame.hInstance ) CL_UnloadProgs();
 
 	// fill it in
+	clgame.globals = &gpGlobals;
 	Com_BuildPath( name, libpath );
 	cls.mempool = Mem_AllocPool( "Client Edicts Zone" );
 	clgame.private = Mem_AllocPool( "Client Private Zone" );
@@ -1422,7 +1425,7 @@ bool CL_LoadProgs( const char *name )
 		return false;
 	}
 
-	if( !GetClientAPI( &clgame.dllFuncs, &gEngfuncs ))
+	if( !GetClientAPI( &clgame.dllFuncs, &gEngfuncs, clgame.globals ))
 	{
 		MsgDev( D_ERROR, "CL_LoadProgs: can't init client API\n" );
 		return false;

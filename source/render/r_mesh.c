@@ -1031,7 +1031,7 @@ static bool R_DrawPortalSurface( void )
 		}
 	}
 
-	if( ( i == r_numEntities ) && !captureTexture )
+	if(( i == r_numEntities ) && !captureTexture )
 		return false;
 
 setup_and_render:

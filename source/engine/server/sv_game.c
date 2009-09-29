@@ -561,6 +561,126 @@ static bool SV_EntitiesIn( int mode, vec3_t v1, vec3_t v2 )
 	return true;
 }
 
+bool SV_MapIsValid( const char *filename, const char *spawn_entity )
+{
+	file_t	*f;
+	string	entfilename;
+	int	ver = -1, lumpofs = 0, lumplen = 0;
+	script_t	*ents = NULL;
+	byte	buf[MAX_SYSPATH]; // 1 kb
+	bool	result = false;
+			
+	f = FS_Open( va( "maps/%s.bsp", filename ), "rb" );
+
+	if( f )
+	{
+		string	check_entity;
+
+		Mem_Set( buf, 0, MAX_SYSPATH );
+		FS_Read( f, buf, MAX_SYSPATH );
+
+		if( !memcmp( buf, "IBSP", 4 ) || !memcmp( buf, "RBSP", 4 ) || !memcmp( buf, "FBSP", 4 ))
+		{
+			dheader_t *header = (dheader_t *)buf;
+			ver = LittleLong(((int *)buf)[1]);
+
+			switch( ver )
+			{
+			case Q3IDBSP_VERSION:	// quake3 arena
+			case RTCWBSP_VERSION:	// return to castle wolfenstein
+			case RFIDBSP_VERSION:	// raven or qfusion bsp
+				lumpofs = LittleLong( header->lumps[LUMP_ENTITIES].fileofs );
+				lumplen = LittleLong( header->lumps[LUMP_ENTITIES].filelen );
+				break;
+			default:
+				FS_Close( f );
+				return false;
+			}
+		}
+		else
+		{
+			FS_Close( f );
+			return false;
+		}
+
+		com.strncpy( entfilename, va( "maps/%s.ent", filename ), sizeof( entfilename ));
+		ents = Com_OpenScript( entfilename, NULL, 0 );
+
+		if( !ents && lumplen >= 10 )
+		{
+			char *entities = NULL;
+		
+			FS_Seek( f, lumpofs, SEEK_SET );
+			entities = (char *)Z_Malloc( lumplen + 1 );
+			FS_Read( f, entities, lumplen );
+			ents = Com_OpenScript( "ents", entities, lumplen + 1 );
+			Mem_Free( entities ); // no reason to keep it
+		}
+
+		if( ents )
+		{
+			// if there are entities to parse, a missing message key just
+			// means there is no title, so clear the message string now
+			token_t	token;
+
+			check_entity[0] = 0;
+			while( Com_ReadToken( ents, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &token ))
+			{
+				if( !com.strcmp( token.string, "classname" ))
+				{
+					// check classname for spawn entity
+					Com_ReadString( ents, false, check_entity );
+					if( !com.stricmp( spawn_entity, check_entity ))
+					{
+						result = true;
+						break;						
+					}
+				}
+			}
+			Com_CloseScript( ents );
+		}
+		if( f ) FS_Close( f );
+	}
+	return result;
+}
+
+void SV_PushClients( void )
+{
+	edict_t	*in, *out;
+	int	i;
+
+	svgame.num_saved_edicts = 0;
+
+	// hold the clients in other place
+	for( i = 0; i < sv_maxclients->integer; i++ )
+	{
+		in = EDICT_NUM( i + 1 );
+		out = svgame.saved_edicts + i;
+
+		if( SV_CopyEdict( out, in ))
+			svgame.num_saved_edicts++;
+	}
+}
+
+void SV_PopClients( void )
+{
+	edict_t	*in, *out;
+	int	i;
+
+	// copy clients back to sv.edicts
+	for( i = 0; i < svgame.num_saved_edicts; i++ )
+	{
+		in = svgame.saved_edicts + i;
+		out = EDICT_NUM( i + 1 );
+
+		if( SV_CopyEdict( out, in ))
+			svgame.globals->numClients++;
+		if( svgame.globals->numClients > sv_maxclients->integer )
+			break;
+	}
+	svgame.num_saved_edicts = 0;
+}
+
 void SV_InitEdict( edict_t *pEdict )
 {
 	Com_Assert( pEdict == NULL );
@@ -625,6 +745,41 @@ edict_t *SV_AllocEdict( void )
 	return pEdict;
 }
 
+bool SV_CopyEdict( edict_t *out, edict_t *in )
+{
+	size_t	pvdata_size = 0;
+
+	if( in == NULL )
+		return false;	// failed to copy
+	if( in->free ) return false;	// we can't proceed freed edicts
+
+	// important! we save copy off, not in sv.edicts
+	if( out == NULL ) Host_Error( "SV_CopyEdict: dest == NULL\n" );
+
+	if( in->pvServerData )
+	{
+		if( out->pvServerData == NULL )
+			out->pvServerData = (sv_priv_t *)Mem_Alloc( svgame.mempool, sizeof( sv_priv_t ));
+		Mem_Copy( out->pvServerData, in->pvServerData, sizeof( sv_priv_t ));
+		pvdata_size = in->pvServerData->pvdata_size;
+	}
+	if( in->pvPrivateData )
+	{
+		if( pvdata_size > 0 )
+		{
+			out->pvPrivateData = (void *)Mem_Realloc( svgame.mempool, out->pvPrivateData, pvdata_size );
+			Mem_Copy( out->pvPrivateData, in->pvPrivateData, pvdata_size );
+		}
+		else MsgDev( D_ERROR, "SV_CopyEdict: can't copy pvPrivateData\n" );
+	}
+
+	Mem_Copy( &out->v, &in->v, sizeof( entvars_t ));	// copy entvars
+	out->serialnumber = in->serialnumber;		// copy serialnumber
+	out->v.pContainingEntity = out;		// merge contain entity
+
+	return true;
+}
+
 edict_t* SV_AllocPrivateData( edict_t *ent, string_t className )
 {
 	const char	*pszClassName;
@@ -664,7 +819,7 @@ edict_t* SV_AllocPrivateData( edict_t *ent, string_t className )
 
 void SV_FreeEdicts( void )
 {
-	int	i;
+	int	i = 0;
 	edict_t	*ent;
 
 	for( i = 0; i < svgame.globals->numEntities; i++ )
@@ -673,19 +828,6 @@ void SV_FreeEdicts( void )
 		if( ent->free ) continue;
 		SV_FreeEdict( ent );
 	}
-
-	if( !sv.loadgame )
-	{
-		// leave unchanged, because we wan't load it twice
-		StringTable_Clear( svgame.hStringTable );
-		svgame.dllFuncs.pfnServerDeactivate();
-	}
-
-	svgame.globals->maxEntities = GI->max_edicts;
-	svgame.globals->maxClients = sv_maxclients->integer;
-	svgame.globals->numEntities = svgame.globals->maxClients + 1; // clients + world
-	svgame.globals->numClients = 0;
-	svgame.globals->mapname = 0;
 }
 
 /*
@@ -837,10 +979,11 @@ pfnChangeLevel
 */
 void pfnChangeLevel( const char* s1, const char* s2 )
 {
-	string 	changelevel_cmd;
+	// make sure we don't issue two changelevels
+	if( sv.changelevel ) return;
 
-	com.snprintf( changelevel_cmd, MAX_STRING, "changelevel %s %s\n", s1, s2 ); 
-	Cbuf_ExecuteText( EXEC_APPEND, changelevel_cmd );
+	if( !s2 ) Cbuf_AddText( va( "changelevel %s\n", s1 ));	// Quake changlevel
+	else Cbuf_AddText( va( "changelevel %s %s\n", s1, s2 ));	// Half-Life changelevel
 }
 
 /*
@@ -1174,12 +1317,14 @@ pfnEntitiesInPVS
 edict_t* pfnEntitiesInPVS( edict_t *pplayer )
 {
 	edict_t	*pEdict, *chain;
-	int	i, numents;
+	int	i;
 
 	chain = NULL;
-	numents = svgame.globals->numEntities;
 
-	for( i = svgame.globals->maxClients; i < numents; i++ )
+	if( !pplayer || pplayer->free )
+		return chain;
+
+	for( i = svgame.globals->maxClients; i < svgame.globals->numEntities; i++ )
 	{
 		pEdict = EDICT_NUM( i );
 		if( pEdict->free ) continue;
@@ -1202,12 +1347,14 @@ pfnEntitiesInPHS
 edict_t* pfnEntitiesInPHS( edict_t *pplayer )
 {
 	edict_t	*pEdict, *chain;
-	int	i, numents;
+	int	i;
 
 	chain = NULL;
-	numents = svgame.globals->numEntities;
 
-	for( i = svgame.globals->maxClients; i < numents; i++ )
+	if( !pplayer || pplayer->free )
+		return chain;
+
+	for( i = svgame.globals->maxClients; i < svgame.globals->numEntities; i++ )
 	{
 		pEdict = EDICT_NUM( i );
 		if( pEdict->free ) continue;
@@ -1832,11 +1979,11 @@ pfnMessageBegin
 
 =============
 */
-void pfnMessageBegin( int msg_dest, int msg_type, const float *pOrigin, edict_t *ed )
+void pfnMessageBegin( int msg_dest, int msg_num, const float *pOrigin, edict_t *ed )
 {
-	// some users can send message with engine index
+	// some malicious users can send message with engine index
 	// reduce number to avoid overflow problems or cheating
-	svgame.msg_index = bound( svc_bad, msg_type, svc_nop );
+	svgame.msg_index = bound( svc_bad, msg_num, svc_nop );
 
 	if( svgame.msg_index >= 0 && svgame.msg_index < MAX_USER_MESSAGES )
 		svgame.msg_name = sv.configstrings[CS_USER_MESSAGES + svgame.msg_index];
@@ -1848,7 +1995,7 @@ void pfnMessageBegin( int msg_dest, int msg_type, const float *pOrigin, edict_t 
 	if( pOrigin ) VectorCopy( pOrigin, svgame.msg_org );
 	else VectorClear( svgame.msg_org );
 
-	if( svgame.msg_sizes[msg_type] == -1 )
+	if( svgame.msg_sizes[msg_num] == -1 )
 	{
 		// variable sized messages sent size as first byte
 		svgame.msg_size_index = sv.multicast.cursize;
@@ -1889,9 +2036,15 @@ void pfnMessageEnd( void )
 	else if( svgame.msg_size_index != -1 )
 	{
 		// variable sized message
-		if( svgame.msg_realsize >= 255 )
+		if( svgame.msg_realsize > 255 )
 		{
 			MsgDev( D_ERROR, "SV_Message: %s too long (more than 255 bytes)\n", name );
+			MSG_Clear( &sv.multicast );
+			return;
+		}
+		else if( svgame.msg_realsize <= 0 )
+		{
+			MsgDev( D_ERROR, "SV_Message: %s writes NULL message\n", name );
 			MSG_Clear( &sv.multicast );
 			return;
 		}
@@ -1899,7 +2052,7 @@ void pfnMessageEnd( void )
 	}
 	else
 	{
-		// this never happen
+		// this should never happen
 		MsgDev( D_ERROR, "SV_Message: %s have encountered error\n", name );
 		MSG_Clear( &sv.multicast );
 		return;
@@ -1978,7 +2131,8 @@ pfnWriteCoord
 */
 void pfnWriteCoord( float flValue )
 {
-	union { float f; int l; } dat;
+	ftol_t	dat;
+
 	dat.f = flValue;
 	_MSG_WriteBits( &sv.multicast, dat.l, svgame.msg_name, NET_FLOAT, __FILE__, __LINE__ );
 	svgame.msg_realsize += 4;
@@ -2010,7 +2164,7 @@ void pfnWriteString( const char *sz )
 	MSG_WriteString( &sv.multicast, sz );
 	total_size = sv.multicast.cursize - cur_size;
 
-	// some messages with constant string length can be marked as known sized
+	// NOTE: some messages with constant string length can be marked as known sized
 	svgame.msg_realsize += total_size;
 }
 
@@ -2022,7 +2176,8 @@ pfnWriteEntity
 */
 void pfnWriteEntity( int iValue )
 {
-	if( iValue < 0 || iValue > svgame.globals->numEntities )
+	// edict -1 it's a viewmodel entity
+	if( iValue < -1 || iValue > svgame.globals->numEntities )
 		Host_Error( "MSG_WriteEntity: invalid entnumber %d\n", iValue );
 	MSG_WriteShort( &sv.multicast, iValue );
 	svgame.msg_realsize += 2;
@@ -2081,9 +2236,12 @@ pfnPvAllocEntPrivateData
 void *pfnPvAllocEntPrivateData( edict_t *pEdict, long cb )
 {
 	Com_Assert( pEdict == NULL );
+	Com_Assert( pEdict->free );
+	Com_Assert( pEdict->pvServerData == NULL );
 
 	// to avoid multiple alloc
 	pEdict->pvPrivateData = (void *)Mem_Realloc( svgame.private, pEdict->pvPrivateData, cb );
+	pEdict->pvServerData->pvdata_size = cb;	
 
 	return pEdict->pvPrivateData;
 }
@@ -2190,6 +2348,8 @@ pfnPEntityOfEntIndex
 */
 edict_t* pfnPEntityOfEntIndex( int iEntIndex )
 {
+	if( iEntIndex < 0 || iEntIndex >= svgame.globals->numEntities )
+		return NULL; // out of range
 	return EDICT_NUM( iEntIndex );
 }
 
@@ -2538,18 +2698,19 @@ pfnCompareFileTime
 */
 int pfnCompareFileTime( const char *filename1, const char *filename2, int *iCompare )
 {
-	int time1 = FS_FileTime( filename1 );
-	int time2 = FS_FileTime( filename2 );
+	int	bRet = 0;
 
-	if( iCompare )
+	*iCompare = 0;
+
+	if( filename1 && filename2 )
 	{
-		if( time1 > time2 )
-			*iCompare = 1;			
-		else if( time1 < time2 )
-			*iCompare = -1;
-		else *iCompare = 0;
+		long ft1 = FS_FileTime( filename1 );
+		long ft2 = FS_FileTime( filename2 );
+
+		*iCompare = Host_CompareFileTime( ft1,  ft2 );
+		bRet = 1;
 	}
-	return (time1 != time2);
+	return bRet;
 }
 
 /*
@@ -2596,88 +2757,18 @@ vaild map must contain one info_player_deatchmatch
 */
 int pfnIsMapValid( char *filename )
 {
-	file_t		*f;
-	string		entfilename;
-	int		ver = -1, lumpofs = 0, lumplen = 0;
-	script_t		*ents = NULL;
-	byte		buf[MAX_SYSPATH]; // 1 kb
-	bool		result = false;
-			
-	f = FS_Open( va( "maps/%s.bsp", filename ), "rb" );
+	char	*spawn_entity;
 
-	if( f )
-	{
-		string	dm_entity;
+	// determine spawn entity classname
+	if( Cvar_VariableInteger( "deathmatch" ))
+		spawn_entity = GI->dm_entity;
+	else if( Cvar_VariableInteger( "coop" ))
+		spawn_entity = GI->coop_entity;
+	else if( Cvar_VariableInteger( "teamplay" ))
+		spawn_entity = GI->team_entity;
+	else spawn_entity = GI->sp_entity;
 
-		Mem_Set( buf, 0, MAX_SYSPATH );
-		FS_Read( f, buf, MAX_SYSPATH );
-
-		if( !memcmp( buf, "IBSP", 4 ) || !memcmp( buf, "RBSP", 4 ) || !memcmp( buf, "FBSP", 4 ))
-		{
-			dheader_t *header = (dheader_t *)buf;
-			ver = LittleLong(((int *)buf)[1]);
-
-			switch( ver )
-			{
-			case Q3IDBSP_VERSION:	// quake3 arena
-			case RTCWBSP_VERSION:	// return to castle wolfenstein
-			case RFIDBSP_VERSION:	// raven or qfusion bsp
-				lumpofs = LittleLong( header->lumps[LUMP_ENTITIES].fileofs );
-				lumplen = LittleLong( header->lumps[LUMP_ENTITIES].filelen );
-				break;
-			default:
-				FS_Close( f );
-				return false;
-			}
-		}
-		else
-		{
-			FS_Close( f );
-			return false;
-		}
-
-		com.strncpy( entfilename, va( "maps/%s.ent", filename ), sizeof( entfilename ));
-		ents = Com_OpenScript( entfilename, NULL, 0 );
-
-		if( !ents && lumplen >= 10 )
-		{
-			char *entities = NULL;
-		
-			FS_Seek( f, lumpofs, SEEK_SET );
-			entities = (char *)Z_Malloc( lumplen + 1 );
-			FS_Read( f, entities, lumplen );
-			ents = Com_OpenScript( "ents", entities, lumplen + 1 );
-			Mem_Free( entities ); // no reason to keep it
-		}
-
-		if( ents )
-		{
-			// if there are entities to parse, a missing message key just
-			// means there is no title, so clear the message string now
-			token_t	token;
-
-			dm_entity[0] = 0;
-			while( Com_ReadToken( ents, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &token ))
-			{
-				if( !com.strcmp( token.string, "{" )) continue;
-				else if( !com.strcmp( token.string, "}" )) break;
-				else if( !com.strcmp( token.string, "classname" ))
-				{
-					// check classname for deathmath entity
-					Com_ReadString( ents, false, dm_entity );
-					if( !com.stricmp( GI->dm_entity, dm_entity ))
-					{
-						// FIXME: use count of spawnpoints as returned result ?
-						result = true;
-						break;						
-					}
-				}
-			}
-			Com_CloseScript( ents );
-		}
-		if( f ) FS_Close( f );
-	}
-	return result;
+	return SV_MapIsValid( filename, spawn_entity );
 }
 
 /*
@@ -3175,12 +3266,11 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 	MsgDev( D_NOTE, "SV_SpawnEntities()\n" );
 
 	ent = EDICT_NUM( 0 );
-	SV_InitEdict( ent );
-	ent->v.model = MAKE_STRING( sv.configstrings[CS_MODELS] );
+	if( ent->free ) SV_InitEdict( ent );
+	ent->v.model = MAKE_STRING( sv.configstrings[CS_MODELS+1] );
 	ent->v.modelindex = 1;	// world model
 	ent->v.solid = SOLID_BSP;
 	ent->v.movetype = MOVETYPE_PUSH;
-	ent->free = false;
 
 	SV_ConfigString( CS_GRAVITY, sv_gravity->string );
 	SV_ConfigString( CS_MAXVELOCITY, sv_maxvelocity->string );			
@@ -3195,37 +3285,42 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 	SV_ConfigString( CS_MAXEDICTS, va( "%i", GI->max_edicts ));
 
 	svgame.globals->mapname = MAKE_STRING( sv.name );
+	svgame.globals->startspot = MAKE_STRING( sv.startspot );
 	svgame.globals->time = sv.time * 0.001f;
 
 	// spawn the rest of the entities on the map
 	SV_LoadFromFile( entities );
 
 	// set client fields on player ents
-	for( i = 0; i < svgame.globals->maxClients; i++ )
+	if( !sv.loadgame && !sv.changelevel )
 	{
-		// setup all clients
-		ent = EDICT_NUM( i + 1 );
-		SV_InitEdict( ent );
-		ent->pvServerData->client = svs.clients + i;
-		ent->pvServerData->client->edict = ent;
-		svgame.globals->numClients++;
+		for( i = 0; i < svgame.globals->maxClients; i++ )
+		{
+			// setup all clients
+			ent = EDICT_NUM( i + 1 );
+			SV_InitEdict( ent );
+			ent->pvServerData->client = svs.clients + i;
+			ent->pvServerData->client->edict = ent;
+			svgame.globals->numClients++;
+		}
 	}
 	MsgDev( D_INFO, "Total %i entities spawned\n", svgame.globals->numEntities );
 }
 
 void SV_UnloadProgs( void )
 {
-	sv.loadgame  = false;
-	SV_FreeEdicts();
+	SV_DeactivateServer ();
 
-	svgame.dllFuncs.pfnGameShutdown();
+	svgame.dllFuncs.pfnGameShutdown ();
 
-	Sys_FreeNameFuncGlobals();
+	Sys_FreeNameFuncGlobals ();
 	Com_FreeLibrary( svgame.hInstance );
 	Mem_FreePool( &svgame.mempool );
 	Mem_FreePool( &svgame.private );
 	Mem_FreePool( &svgame.temppool );
 	svgame.hInstance = NULL;
+
+	Mem_Set( &svgame, 0, sizeof( svgame ));
 }
 
 void SV_LoadProgs( const char *name )
@@ -3276,6 +3371,7 @@ void SV_LoadProgs( const char *name )
 	svgame.globals->maxEntities = GI->max_edicts;
 	svgame.globals->maxClients = sv_maxclients->integer;
 	svgame.edicts = Mem_Alloc( svgame.mempool, sizeof( edict_t ) * svgame.globals->maxEntities );
+	svgame.saved_edicts = Mem_Alloc( svgame.mempool, sizeof( edict_t ) * svgame.globals->maxClients );
 	svgame.globals->numEntities = svgame.globals->maxClients + 1; // clients + world
 	svgame.globals->numClients = 0;
 	for( i = 0, e = svgame.edicts; i < svgame.globals->maxEntities; i++, e++ )

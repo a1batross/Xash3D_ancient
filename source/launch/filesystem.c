@@ -1359,6 +1359,7 @@ void FS_CreateGameInfo( const char *filename )
 	com.strncat( buffer, "\nsp_spawn\t\t\"info_player_start\"", MAX_SYSPATH );
 	com.strncat( buffer, "\ndm_spawn\t\t\"info_player_deathmatch\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nctf_spawn\t\t\"info_player_ctf\"", MAX_SYSPATH );
+	com.strncat( buffer, "\ncoop_spawn\t\t\"info_player_coop\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nteam_spawn\t\"info_player_team\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nplayermins\t\"-32 -32 -32\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nplayermaxs\t\"32 32 32\"", MAX_SYSPATH );
@@ -1400,6 +1401,7 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 	com.strncpy( GameInfo->sp_entity, "info_player_start", MAX_STRING );
 	com.strncpy( GameInfo->dm_entity, "info_player_deathmatch", MAX_STRING );
 	com.strncpy( GameInfo->ctf_entity, "info_player_ctf", MAX_STRING );
+	com.strncpy( GameInfo->coop_entity, "info_player_coop", MAX_STRING );
 	com.strncpy( GameInfo->team_entity, "info_player_team", MAX_STRING );
 	com.strncpy( GameInfo->startmap, "newmap", MAX_STRING );
 
@@ -1441,6 +1443,10 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 		{
 			PS_GetString( script, false, GameInfo->ctf_entity, sizeof( GameInfo->ctf_entity ));
 		}
+		else if( !com.stricmp( token.string, "coop_spawn" ))
+		{
+			PS_GetString( script, false, GameInfo->coop_entity, sizeof( GameInfo->coop_entity ));
+		}
 		else if( !com.stricmp( token.string, "team_spawn" ))
 		{
 			PS_GetString( script, false, GameInfo->team_entity, sizeof( GameInfo->team_entity ));
@@ -1456,7 +1462,7 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 		else if( !com.stricmp( token.string, "max_edicts" ))
 		{
 			PS_GetInteger( script, false, &GameInfo->max_edicts );
-			GameInfo->max_edicts = bound( 600, GameInfo->max_edicts, 32768 );
+			GameInfo->max_edicts = bound( 600, GameInfo->max_edicts, 32000 ); // reserve some edicts for tempents
 		}
 		else if( !com.stricmp( token.string, "viewmode" ))
 		{
@@ -2694,11 +2700,11 @@ FS_FileTime
 return time of creation file in seconds
 ==================
 */
-fs_offset_t FS_FileTime (const char *filename)
+fs_offset_t FS_FileTime( const char *filename )
 {
 	struct stat buf;
 	
-	if( stat( filename, &buf) == -1 )
+	if( stat( filename, &buf ) == -1 )
 		return -1;
 	
 	return buf.st_mtime;

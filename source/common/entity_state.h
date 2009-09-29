@@ -88,7 +88,6 @@ typedef struct entity_state_s
 	int		gaitsequence;	// client\nps\bot gaitsequence
 	int		viewmodel;	// contains viewmodel index
 	int		weaponmodel;	// contains weaponmodel index
-	int		weaponanim;	// weaponmodel sequence
 	int		weaponbody;	// weaponmodel body
 	int		weaponskin;	// weaponmodel skin
 	float		idealpitch;	// client idealpitch

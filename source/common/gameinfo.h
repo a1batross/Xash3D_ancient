@@ -26,6 +26,7 @@ typedef struct dll_gameinfo_s
 
 	string_t	sp_entity; 	// e.g. info_player_start
 	string_t	dm_entity; 	// e.g. info_player_deathmatch
+	string_t	coop_entity;	// e.g. info_player_coop
 	string_t	ctf_entity;	// e.g. info_player_ctf
 	string_t	team_entity;	// e.g. info_player_team
 

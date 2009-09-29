@@ -44,7 +44,7 @@ extern byte		*r_temppool;
 #define Host_Error		com.error
 
 typedef unsigned int elem_t;
-typedef enum { RT_MODEL, RT_SPRITE, RT_PORTALSURFACE, NUM_RTYPES } refEntityType_t;
+typedef enum { RT_NONE, RT_MODEL, RT_SPRITE, RT_PORTALSURFACE, NUM_RTYPES } refEntityType_t;
 
 /*
 skins will be outline flood filled and mip mapped
@@ -129,7 +129,7 @@ enum
 #define SHADOW_PLANAR		1
 #define SHADOW_MAPPING		2
 
-#define MAX_ENTITIES		2048
+#define MAX_ENTITIES		2048	// per one frame
 #define MAX_POLY_VERTS		3000
 #define MAX_POLYS			2048
 

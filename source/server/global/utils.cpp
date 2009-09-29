@@ -571,38 +571,42 @@ void UTIL_FindHullIntersection( const Vector &vecSrc, TraceResult &tr, float *mi
 
 edict_t *UTIL_FindLandmark( string_t iLandmarkName )
 {
-	return UTIL_FindLandmark( STRING( iLandmarkName));
+	return UTIL_FindLandmark( STRING( iLandmarkName ));
 }
 
 edict_t *UTIL_FindLandmark( const char *pLandmarkName )
 {
 	CBaseEntity *pLandmark;
 
+	if( FStringNull( pLandmarkName ) || FStrEq( pLandmarkName, "" ))
+		return NULL; // landmark not specified
+
 	pLandmark = UTIL_FindEntityByTargetname( NULL, pLandmarkName );
-	while ( pLandmark )
+	while( pLandmark )
 	{
 		// Found the landmark
-		if ( FClassnameIs( pLandmark->pev, "info_landmark" ) )
-			return ENT(pLandmark->pev);
-		else	pLandmark = UTIL_FindEntityByTargetname( pLandmark, pLandmarkName );
+		if( FClassnameIs( pLandmark->pev, "info_landmark" ))
+			return ENT( pLandmark->pev );
+		else pLandmark = UTIL_FindEntityByTargetname( pLandmark, pLandmarkName );
 	}
-	Msg("ERROR: Can't find landmark %s\n", pLandmarkName );
+
+	Msg( "ERROR: Can't find landmark %s\n", pLandmarkName );
 	return NULL;
 }
 
 int UTIL_FindTransition( CBaseEntity *pEntity, string_t iVolumeName )
 {
-	return UTIL_FindTransition( pEntity, (char *)STRING( iVolumeName ));
+	return UTIL_FindTransition( pEntity, STRING( iVolumeName ));
 }
 
-int UTIL_FindTransition( CBaseEntity *pEntity, char *pVolumeName )
+int UTIL_FindTransition( CBaseEntity *pEntity, const char *pVolumeName )
 {
 	CBaseEntity *pVolume;
 
-	if ( pEntity->ObjectCaps() & FCAP_FORCE_TRANSITION ) return 1;
+	if( pEntity->ObjectCaps() & FCAP_FORCE_TRANSITION ) return 1;
 
-	// If you're following another entity, follow it through the transition (weapons follow the player)
-	if ( pEntity->pev->movetype == MOVETYPE_FOLLOW && pEntity->pev->aiment != NULL)
+	// if you're following another entity, follow it through the transition (weapons follow the player)
+	if( pEntity->pev->movetype == MOVETYPE_FOLLOW && pEntity->pev->aiment != NULL )
 	{
 		pEntity = CBaseEntity::Instance( pEntity->pev->aiment );
 	}
@@ -610,17 +614,48 @@ int UTIL_FindTransition( CBaseEntity *pEntity, char *pVolumeName )
 	int inVolume = 1;	// Unless we find a trigger_transition, everything is in the volume
 
 	pVolume = UTIL_FindEntityByTargetname( NULL, pVolumeName );
-	while ( pVolume )
+	while( pVolume )
 	{
-		if ( FClassnameIs( pVolume->pev, "trigger_transition" ) )
+		if( FClassnameIs( pVolume->pev, "trigger_transition" ))
 		{
-			if ( pVolume->Intersects( pEntity ) )	// It touches one, it's in the volume
+			if( pVolume->Intersects( pEntity )) // it touches one, it's in the volume
 				return 1;
-			else inVolume = 0; // Found a trigger_transition, but I don't intersect it
+			else inVolume = 0;	// found a trigger_transition, but I don't intersect it
 		}
 		pVolume = UTIL_FindEntityByTargetname( pVolume, pVolumeName );
 	}
 	return inVolume;
+}
+
+/*
+========================================================================
+ UTIL_FindClientTransitions - returns list of client attached entites
+ e.g. weapons, items and other followed entities
+========================================================================
+*/
+edict_t *UTIL_FindClientTransitions( edict_t *pClient )
+{
+	edict_t	*pEdict, *chain;
+	int	i;
+
+	chain = NULL;
+	pClient->v.chain = chain;	// client is always add to tail of chain
+	chain = pClient;
+
+	if( !pClient || pClient->free )
+		return chain;
+
+	for( i = 0; i < gpGlobals->numEntities; i++ )
+	{
+		pEdict = INDEXENT( i );
+		if( pEdict->free ) continue;
+		if( pEdict->v.movetype == MOVETYPE_FOLLOW && pEdict->v.aiment == pClient )
+		{
+			pEdict->v.chain = chain;
+			chain = pEdict;
+		}
+	}
+	return chain;
 }
 
 //========================================================================
@@ -630,10 +665,10 @@ void UTIL_ClearPTR( void )
 {
 	CBaseEntity *pEntity = NULL;
 	
-	for ( int i = 1; i <= gpGlobals->maxEntities; i++ )
+	for( int i = 1; i < gpGlobals->numEntities; i++ )
 	{
 		edict_t *pEntityEdict = INDEXENT( i );
-		if ( pEntityEdict && !pEntityEdict->free && !FStringNull(pEntityEdict->v.globalname) )
+		if( pEntityEdict && !pEntityEdict->free && !FStringNull( pEntityEdict->v.globalname ))
 		{
 			pEntity = CBaseEntity::Instance( pEntityEdict );
 		}
@@ -647,53 +682,49 @@ void UTIL_ClearPTR( void )
 //========================================================================
 void UTIL_ChangeLevel( string_t mapname, string_t spotname )
 {
-	UTIL_ChangeLevel((char *)STRING( mapname ), (char *)STRING( spotname ));
+	UTIL_ChangeLevel( STRING( mapname ), STRING( spotname ));
 }
 
 void UTIL_ChangeLevel( const char *szNextMap, const char *szNextSpot )
 {
 	edict_t	*pentLandmark;
-	LEVELLIST	levels[16];
 
-	ASSERT(!FStrEq(szNextMap, ""));
+	ASSERT( !FStrEq( szNextMap, "" ));
 
-	// Don't work in deathmatch
-	if ( IsMultiplayer()) return;
-	// Some people are firing these multiple times in a frame, disable
-	if ( NewLevel ) return;
+	// don't work in deathmatch
+	if( IsMultiplayer()) return;
+
+	// some people are firing these multiple times in a frame, disable
+	if( NewLevel ) return;
 
 	CBaseEntity *pPlayer = UTIL_PlayerByIndex( 1 );
-	if (!UTIL_FindTransition( pPlayer, (char *)szNextSpot ))
+	if( !UTIL_FindTransition( pPlayer, szNextSpot ))
 	{
 		DevMsg( "Player isn't in the transition volume %s, aborting\n", szNextSpot );
 		return;
 	}
 
-	// This object will get removed in the call to CHANGE_LEVEL, copy the params into "safe" memory
-	strcpy(st_szNextMap, szNextMap);
-	st_szNextSpot[0] = 0;	// Init landmark to NULL
+	// this object will get removed in the call to CHANGE_LEVEL, copy the params into "safe" memory
+	strcpy( st_szNextMap, szNextMap );
+	st_szNextSpot[0] = 0; // Init landmark to NULL
 
 	// look for a landmark entity
 	pentLandmark = UTIL_FindLandmark( szNextSpot );
-	if ( !FNullEnt( pentLandmark ) )
+	if( !FNullEnt( pentLandmark ))
 	{
-		strcpy(st_szNextSpot, szNextSpot);
-		gpGlobals->spotOffset = VARS(pentLandmark)->origin;
+		strcpy( st_szNextSpot, szNextSpot );
+		gpGlobals->spotOffset = VARS( pentLandmark )->origin;
 	}
 	
-	//try to found bsp file before loading nextlevel
-	char path[128];
-	
-	sprintf(path, "maps/%s.bsp", st_szNextMap);
-
-	if( FILE_EXISTS( path ))
+	// map must exist and contain info_player_start
+	if( IS_MAP_VALID( st_szNextMap ))
 	{
 		UTIL_ClearPTR();
-		DevMsg( "CHANGE LEVEL: %s %s\n", st_szNextMap, st_szNextSpot );
+		ALERT( at_aiconsole, "CHANGE LEVEL: %s %s\n", st_szNextMap, st_szNextSpot );
 		CHANGE_LEVEL( st_szNextMap, st_szNextSpot );
 	}
-	else Msg("Warning! Map %s not found!\n", st_szNextMap );	
-	NewLevel = TRUE;//bit who indiactes new level	
+	else ALERT( at_warning, "map %s not found!\n", st_szNextMap );	
+	NewLevel = TRUE; // UTIL_ChangeLevel is called	
 }
 
 //========================================================================
@@ -1893,7 +1924,7 @@ CBaseEntity *UTIL_FindEntityGeneric( const char *szWhatever, Vector &vecSrc, flo
 // returns a CBaseEntity pointer to a player by index.  Only returns if the player is spawned and connected
 // otherwise returns NULL
 // Index is 1 based
-CBaseEntity	*UTIL_PlayerByIndex( int playerIndex )
+CBaseEntity *UTIL_PlayerByIndex( int playerIndex )
 {
 	CBaseEntity *pPlayer = NULL;
 

@@ -308,13 +308,18 @@ void R_LightForOrigin( const vec3_t origin, vec3_t dir, vec4_t ambient, vec4_t d
 	int		*gridBounds;
 	mgridlight_t	**lightarray;
 
-	VectorSet( ambientLocal, 0, 0, 0 );
-	VectorSet( diffuseLocal, 0, 0, 0 );
-
 	if( !r_worldmodel || !r_worldbrushmodel->lightgrid || !r_worldbrushmodel->numlightgridelems )
 	{
+		// get fullbright
+		VectorSet( ambientLocal, 255, 255, 255 );
+		VectorSet( diffuseLocal, 255, 255, 255 );
 		VectorSet( dir, 0.5f, 0.2f, -1.0f );
 		goto dynamic;
+	}
+	else
+	{
+		VectorSet( ambientLocal, 0, 0, 0 );
+		VectorSet( diffuseLocal, 0, 0, 0 );
 	}
 
 	lightarray = r_worldbrushmodel->lightarray;

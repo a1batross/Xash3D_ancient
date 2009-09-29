@@ -32,7 +32,6 @@ cvar_t	*sv_friction;
 cvar_t	*sv_physics;
 cvar_t	*hostname;
 cvar_t	*sv_maxclients;
-cvar_t	*sv_showclamp;
 cvar_t	*public_server; // should heartbeats be sent
 
 cvar_t	*sv_reconnect_limit;// minimum seconds between connect messages
@@ -281,8 +280,7 @@ void SV_RunGameFrame( void )
 	// never get more than one tic behind
 	if( sv.time < svs.realtime )
 	{
-		if( sv_showclamp->integer )
-			MsgDev( D_INFO, "sv highclamp\n" );
+		MsgDev( D_NOTE, "sv.highclamp\n" );
 		svs.realtime = sv.time;
 	}
 }
@@ -315,8 +313,7 @@ void SV_Frame( int time )
 		// never let the time get too far off
 		if( sv.time - svs.realtime > sv.frametime )
 		{
-			if( sv_showclamp->integer )
-				MsgDev( D_INFO, "sv lowclamp\n" );
+			MsgDev( D_NOTE, "sv.lowclamp\n" );
 			svs.realtime = sv.time - sv.frametime;
 		}
 		NET_Sleep( sv.time - svs.realtime );
@@ -460,7 +457,6 @@ void SV_Init( void )
 	sv_accelerate = Cvar_Get( "sv_accelerate", DEFAULT_ACCEL, 0, "rate at which a player accelerates to sv_maxspeed" );
 	sv_friction = Cvar_Get( "sv_friction", DEFAULT_FRICTION, 0, "how fast you slow down" );
 	sv_physics = Cvar_Get( "cm_physic", "1", CVAR_ARCHIVE|CVAR_LATCH, "change physic model: 0 - Classic Quake Physic, 1 - Physics Engine" );
-	sv_showclamp = Cvar_Get( "sv_showclamp", "1", 0, "show server time clamping" );
 	sv_maxclients = Cvar_Get( "sv_maxclients", "1", CVAR_SERVERINFO|CVAR_LATCH, "server clients limit" );
 	
 	public_server = Cvar_Get ("public", "0", 0, "change server type from private to public" );
@@ -514,8 +510,6 @@ void SV_FinalMessage( char *message, bool reconnect )
 			Netchan_Transmit( &cl->netchan, msg.cursize, msg.data );
 }
 
-
-
 /*
 ================
 SV_Shutdown
@@ -534,9 +528,9 @@ void SV_Shutdown( bool reconnect )
 	if( svs.clients ) SV_FinalMessage( host.finalmsg, reconnect );
 
 	Master_Shutdown();
-	if( reconnect ) 
-		SV_FreeEdicts();
-	else SV_UnloadProgs();
+
+	if( !reconnect ) SV_UnloadProgs ();
+	else SV_DeactivateServer ();
 
 	// free current level
 	Mem_Set( &sv, 0, sizeof( sv ));

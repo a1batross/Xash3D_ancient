@@ -43,6 +43,7 @@ DECLARE_HUDMESSAGE( TempEntity );
 DECLARE_HUDMESSAGE( ServerName );
 DECLARE_HUDMESSAGE( ScreenShake );
 DECLARE_HUDMESSAGE( Intermission );
+DECLARE_HUDCOMMAND( LoadingPlaque );
 
 int CHud :: InitMessages( void )
 {
@@ -69,6 +70,8 @@ int CHud :: InitMessages( void )
 	HOOK_MESSAGE( AddPortal );
 	HOOK_MESSAGE( ScreenFade );
 	HOOK_MESSAGE( ScreenShake );
+
+	HOOK_COMMAND( "plaque", LoadingPlaque );
 
 	viewEntityIndex = 0; // trigger_viewset stuff
 	viewFlags = 0;
@@ -97,6 +100,12 @@ int CHud :: InitMessages( void )
 	m_flTime = 1.0;
 
 	return 1;
+}
+
+void CHud :: UserCmd_LoadingPlaque( void )
+{
+	ALERT( at_console, "SCR_DisablePlaque()\n" );
+	m_iDrawPlaque = 0;	// disable plaque rendering
 }
 
 int CHud :: MsgFunc_ResetHUD(const char *pszName, int iSize, void *pbuf )

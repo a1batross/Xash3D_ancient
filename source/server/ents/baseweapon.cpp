@@ -737,7 +737,7 @@ int CBasePlayerWeapon :: PlaySequence( Activity activity, float fps )
 	if(!m_pPlayer->pev->viewmodel) return -1;    
 	UTIL_SetModel( ENT(pev), STRING( m_pPlayer->pev->viewmodel ));
 	int iSequence = LookupActivity( activity );
-	if(iSequence != -1) SendWeaponAnim(iSequence, fps);
+	if( iSequence != -1 ) SendWeaponAnim( iSequence, fps );
 	else DevMsg("Warning: %s not found\n", activity_map[activity - 1].name);
 
 	return iSequence;
@@ -866,7 +866,7 @@ int CBasePlayerWeapon :: SetAnimation( Activity activity, float fps )
 		iSequence = LookupSequence( pAnimsList[i] );
 		if( iSequence != -1 )
 		{
-			SendWeaponAnim (iSequence, fps ); // names method
+			SendWeaponAnim( iSequence, fps ); // names method
 			return iSequence;
 		}
 	}
@@ -879,7 +879,8 @@ int CBasePlayerWeapon :: SetAnimation( Activity activity, float fps )
 //=========================================================
 void CBasePlayerWeapon :: SendWeaponAnim( int sequence, float fps )
 {                
-	float framerate = 1.0f; // fps multiplier
+	float	framerate = 1.0f;	// fps multiplier
+	m_iSequence = sequence;	// member current sequence
 
 	if( fps )
 	{
@@ -888,7 +889,7 @@ void CBasePlayerWeapon :: SendWeaponAnim( int sequence, float fps )
 		{
  			dstudioseqdesc_t *pseqdesc;
 			
-			pseqdesc = (dstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex) + sequence;
+			pseqdesc = (dstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex) + m_iSequence;
 			framerate = fps / pseqdesc->fps;
 		}
 	}
@@ -897,12 +898,11 @@ void CBasePlayerWeapon :: SendWeaponAnim( int sequence, float fps )
 	pev->body = (pev->body % NUM_HANDS) + NUM_HANDS * m_iBody;
  	
 	MESSAGE_BEGIN( MSG_ONE, gmsg.WeaponAnim, NULL, m_pPlayer->pev );
-		WRITE_BYTE( sequence );						
+		WRITE_BYTE( m_iSequence );						
 		WRITE_BYTE( pev->body );
 		WRITE_BYTE( framerate * 16 );
 	MESSAGE_END();                                    
 	
-	m_pPlayer->pev->weaponanim = sequence;
 	SetNextIdle( SequenceDuration( ));
 }
 
@@ -1320,7 +1320,7 @@ void CBasePlayerWeapon :: PlayAttackSound( int firemode )
 		if(sfxcnt())
 		{
 			int sfxsound = RANDOM_LONG(0, sfxcnt() - 1);
-			EMIT_SOUND(ENT(pev), CHAN_BODY, STRING(SfxSound(sfxsound)), 1.0, ATTN_NORM);
+			EMIT_SOUND(ENT(m_pPlayer->pev), CHAN_WEAPON, STRING(SfxSound(sfxsound)), 1.0, ATTN_NORM);
 		}
 	}
 	else	//play normal random fire sound
@@ -1328,7 +1328,7 @@ void CBasePlayerWeapon :: PlayAttackSound( int firemode )
 		if(sndcnt())
 		{
 			int firesound = RANDOM_LONG(0, sndcnt() - 1);
-			EMIT_SOUND(ENT(pev), CHAN_BODY, STRING(FireSound(firesound)), 1.0, ATTN_NORM);
+			EMIT_SOUND(ENT(m_pPlayer->pev), CHAN_WEAPON, STRING(FireSound(firesound)), 1.0, ATTN_NORM);
 		}
 	}
 }
@@ -1983,7 +1983,8 @@ BOOL CBasePlayerWeapon :: AddPrimaryAmmo( int iCount, char *szName, int iMaxClip
 	if (iIdAmmo > 0)
 	{
 		m_iPrimaryAmmoType = iIdAmmo;
-		if (m_pPlayer->HasPlayerItem( this )) EMIT_SOUND(ENT(pev), CHAN_ITEM, "weapons/glock/clip_in.wav", 1, ATTN_NORM);
+		if( m_pPlayer->HasPlayerItem( this ))
+			EMIT_SOUND( ENT( m_pPlayer->pev ), CHAN_ITEM, "weapons/glock/clip_in.wav", 1, ATTN_NORM );
 	}
 	return iIdAmmo > 0 ? TRUE : FALSE;
 }
@@ -1997,7 +1998,7 @@ BOOL CBasePlayerWeapon :: AddSecondaryAmmo( int iCount, char *szName, int iMax )
 	if (iIdAmmo > 0)
 	{
 		m_iSecondaryAmmoType = iIdAmmo;
-		EMIT_SOUND(ENT(pev), CHAN_ITEM, "weapons/glock/clip_in.wav", 1, ATTN_NORM);
+		EMIT_SOUND( ENT( m_pPlayer->pev ), CHAN_ITEM, "weapons/glock/clip_in.wav", 1, ATTN_NORM );
 	}
 	return iIdAmmo > 0 ? TRUE : FALSE;
 }

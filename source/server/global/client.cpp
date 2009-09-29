@@ -739,9 +739,9 @@ void PlayerPostThink( edict_t *pEntity )
 void BuildLevelList( void )
 {
 	// retrieve the pointer to the save data
-	SAVERESTOREDATA *pSaveData = (SAVERESTOREDATA *)gpGlobals->pSaveData;
+	SAVERESTOREDATA	*pSaveData = (SAVERESTOREDATA *)gpGlobals->pSaveData;
 
-	if ( pSaveData )
+	if( pSaveData )
 		pSaveData->connectionCount = BuildChangeList( pSaveData->levelList, MAX_LEVEL_CONNECTIONS );
 }
 
@@ -750,100 +750,125 @@ void BuildLevelList( void )
 //=======================================================================
 int AddTransitionToList( LEVELLIST *pLevelList, int listCount, const char *pMapName, const char *pLandmarkName, edict_t *pentLandmark )
 {
-	int i;
+	int	i;
 
-	if ( !pLevelList || !pMapName || !pLandmarkName || !pentLandmark ) return 0;
+	if( !pLevelList || !pMapName ) return 0;
 
-	for ( i = 0; i < listCount; i++ )
+	for( i = 0; i < listCount; i++ )
 	{
-		if ( pLevelList[i].pentLandmark == pentLandmark && !strcmp( pLevelList[i].mapName, pMapName ))
+		if( pLevelList[i].pentLandmark == pentLandmark && !strcmp( pLevelList[i].mapName, pMapName ))
 			return 0;
 	}
+
 	strcpy( pLevelList[listCount].mapName, pMapName );
 	strcpy( pLevelList[listCount].landmarkName, pLandmarkName );
 	pLevelList[listCount].pentLandmark = pentLandmark;
-	pLevelList[listCount].vecLandmarkOrigin = VARS(pentLandmark)->origin;
+
+	if ( FNullEnt( pentLandmark ))
+		pLevelList[listCount].vecLandmarkOrigin = Vector( 0, 0, 0 );
+	else pLevelList[listCount].vecLandmarkOrigin = VARS( pentLandmark )->origin;
 
 	return 1;
 }
 
 int BuildChangeList( LEVELLIST *pLevelList, int maxList )
 {
-	edict_t *pentLandmark;
-	int i, count;
+	edict_t	*pentLandmark;
+	int	i, count;
 
 	count = 0;
 
-	// Find all of the possible level changes on this BSP
+	// find all of the possible level changes on this BSP
 	CBaseEntity *pChangelevel = UTIL_FindEntityByClassname( NULL, "trigger_changelevel" );
 
-	if ( !pChangelevel ) return NULL;
+	if( !pChangelevel ) return 0;
 
 	while ( pChangelevel )
 	{
-		// Find the corresponding landmark
+		// find the corresponding landmark
 		pentLandmark = UTIL_FindLandmark( pChangelevel->pev->message );
-		if ( pentLandmark )
+		if( pentLandmark )
 		{
-			// Build a list of unique transitions
-			DevMsg("Map name %s, landmark name %s\n", STRING(pChangelevel->pev->netname), STRING(pChangelevel->pev->message));
-			if ( AddTransitionToList( pLevelList, count, (char *)STRING(pChangelevel->pev->netname), (char *)STRING(pChangelevel->pev->message), pentLandmark ))
+			// build a list of unique transitions
+			ALERT( at_aiconsole, "Map name %s, landmark name %s\n", STRING( pChangelevel->pev->netname ), STRING( pChangelevel->pev->message ));
+			if( AddTransitionToList( pLevelList, count, STRING( pChangelevel->pev->netname ), STRING( pChangelevel->pev->message ), pentLandmark ))
 			{
 				count++;
-				if ( count >= maxList )break;//List is FULL!!!
+				if( count >= maxList ) break; // list is FULL!!!
+			}
+		}
+		else
+		{
+			// build a list of unique transitions (direct mode, when landmark not used)
+			ALERT( at_aiconsole, "Map name %s\n", STRING( pChangelevel->pev->netname ));
+			if( AddTransitionToList( pLevelList, count, STRING( pChangelevel->pev->netname ), "", NULL ))
+			{
+				count++;
+				if( count >= maxList ) break; // list is FULL!!!
 			}
 		}
 		pChangelevel = UTIL_FindEntityByClassname( pChangelevel, "trigger_changelevel" );
 	}
 
-	if ( gpGlobals->pSaveData && ((SAVERESTOREDATA *)gpGlobals->pSaveData)->pTable )
+	if( gpGlobals->pSaveData && ((SAVERESTOREDATA *)gpGlobals->pSaveData)->pTable )
 	{
 		CSave saveHelper( (SAVERESTOREDATA *)gpGlobals->pSaveData );
 
 		for ( i = 0; i < count; i++ )
 		{
-			int j, entityCount = 0;
-			CBaseEntity *pEntList[ MAX_TRANSITION_ENTITY ];
-			int entityFlags[ MAX_TRANSITION_ENTITY ];
+			int		entityCount = 0;
+			CBaseEntity	*pEntList[MAX_TRANSITION_ENTITY];
+			int		entityFlags[MAX_TRANSITION_ENTITY];
 
 			// Follow the linked list of entities in the PVS of the transition landmark
-			edict_t *pent = UTIL_EntitiesInPVS( pLevelList[i].pentLandmark );
+			edict_t	*pent = UTIL_EntitiesInPVS( pLevelList[i].pentLandmark );
+
+			if( FNullEnt( pent ))
+			{
+				// landmark is absent so use Classic Changelel:
+				// transfer client and him attached items
+				pent = UTIL_FindClientTransitions( INDEXENT( 1 ));
+			}	
 
 			// Build a list of valid entities in this linked list (we're going to use pent->v.chain again)
-			while ( !FNullEnt( pent ) )
+			while ( !FNullEnt( pent ))
 			{
 				CBaseEntity *pEntity = CBaseEntity::Instance(pent);
-				if ( pEntity )
+				if( pEntity )
 				{
 					int caps = pEntity->ObjectCaps();
-					if ( !(caps & FCAP_DONT_SAVE) )
-					{
-						int flags = 0;
 
-						// If this entity can be moved or is global, mark it
-						if ( caps & FCAP_ACROSS_TRANSITION ) flags |= FENTTABLE_MOVEABLE;
-						if ( pEntity->pev->globalname && !pEntity->IsDormant() ) flags |= FENTTABLE_GLOBAL;
-						if ( flags )
+					if(!( caps & FCAP_DONT_SAVE ))
+					{
+						int	flags = 0;
+
+						if( caps & FCAP_ACROSS_TRANSITION ) flags |= FENTTABLE_MOVEABLE;
+						if( pEntity->pev->globalname && !pEntity->IsDormant() ) flags |= FENTTABLE_GLOBAL;
+						if( flags )
 						{
-							pEntList[ entityCount ] = pEntity;
-							entityFlags[ entityCount ] = flags;
+							pEntList[entityCount] = pEntity;
+							entityFlags[entityCount] = flags;
 							entityCount++;
-							if ( entityCount > MAX_TRANSITION_ENTITY ) Msg("ERROR: Too many entities across a transition!" );
+							if( entityCount >= MAX_TRANSITION_ENTITY )
+							{
+								ALERT( at_error, "Too many entities across a transition!" );
+								break;
+							}
 						}
 					}
 				}
 				pent = pent->v.chain;
 			}
 
-			for ( j = 0; j < entityCount; j++ )
+			for ( int j = 0; j < entityCount; j++ )
 			{
 				// Check to make sure the entity isn't screened out by a trigger_transition
-				if ( entityFlags[j] && UTIL_FindTransition( pEntList[j], pLevelList[i].landmarkName ) )
+				if( entityFlags[j] && UTIL_FindTransition( pEntList[j], pLevelList[i].landmarkName ))
 				{
 					// Mark entity table with 1<<i
 					int index = saveHelper.EntityIndex( pEntList[j] );
 					// Flag it with the level number
-					saveHelper.EntityFlagsSet( index, entityFlags[j] | (1<<i) );
+					saveHelper.EntityFlagsSet( index, entityFlags[j]|( 1<<i ));
 				}
 			}
 		}
@@ -966,7 +991,7 @@ int ServerClassifyEdict( edict_t *pentToClassify )
 	// first pass: determine type by explicit parms
 	if( pClass->pev->solid == SOLID_TRIGGER )
 	{
-		if( !stricmp( classname, "trigger_teleport" ))
+		if( !stricmp( classname, "trigger_teleport" ))	// FIXME
 			return ED_AMBIENT;
 		else if( pClass->pev->movetype == MOVETYPE_TOSS )
 			return ED_NORMAL; // it's item or weapon

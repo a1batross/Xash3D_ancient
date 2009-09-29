@@ -62,9 +62,9 @@ void V_SetupRefDef( void )
 	cl.refdef.health = clent->v.health;
 	cl.refdef.movetype = clent->v.movetype;
 	cl.refdef.idealpitch = clent->v.ideal_pitch;
-	cl.refdef.num_entities = clgame.numEntities;
-	cl.refdef.max_entities = clgame.maxEntities;
-	cl.refdef.maxclients = clgame.maxClients;
+	cl.refdef.num_entities = clgame.globals->numEntities;
+	cl.refdef.max_entities = clgame.globals->maxEntities;
+	cl.refdef.maxclients = clgame.globals->maxClients;
 	cl.refdef.time = cl.time * 0.001f;
 	cl.refdef.frametime = cls.frametime;
 	cl.refdef.demoplayback = cls.demoplayback;
@@ -101,8 +101,8 @@ apply pre-calculated values
 */
 void V_AddViewModel( void )
 {
-	if( cl.viewent.v.modelindex && !cl.refdef.nextView )
-		re->AddRefEntity( &cl.viewent, ED_VIEWMODEL );
+	if( cl.refdef.nextView ) return; // add viewmodel only at firstperson pass
+	re->AddRefEntity( &cl.viewent, ED_VIEWMODEL );
 }
 
 /*
@@ -134,16 +134,23 @@ void V_RenderView( void )
 {
 	if( !cl.video_prepped ) return; // still loading
 
-	if( !cl.frame.valid )
+	cl.time = bound( cl.frame.servertime - cl.serverframetime, cl.time, cl.frame.servertime );
+	if( cl_paused->integer ) cl.lerpFrac = 1.0f;
+	else cl.lerpFrac = 1.0 - (cl.frame.servertime - cl.time) / (float)cl.serverframetime;
+
+	// update cl_globalvars
+	clgame.globals->time = cl.time * 0.001f; // clamped
+	clgame.globals->frametime = cl.serverframetime * 0.001f; // !!!
+
+	if( cl.frame.valid && (cl.force_refdef || !cl_paused->integer ))
 	{
-		SCR_FillRect( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, g_color_table[0] );
-		return;
+		cl.force_refdef = false;
+
+		V_ClearScene ();
+		CL_AddEntities ();
+		V_SetupRefDef ();
 	}
 
-	V_ClearScene ();
-	CL_AddEntities ();
-
-	V_SetupRefDef ();
 	V_CalcRefDef ();
 }
 

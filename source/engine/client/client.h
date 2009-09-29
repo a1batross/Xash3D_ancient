@@ -71,6 +71,11 @@ typedef struct field_s
 #define	CMD_BACKUP		64	// allow a lot of command backups for very fast systems
 #define	CMD_MASK			(CMD_BACKUP - 1)
 
+// the cl_parse_entities must be large enough to hold UPDATE_BACKUP frames of
+// entities, so that when a delta compressed message arives from the server
+// it can be un-deltad from the original 
+#define MAX_PARSE_ENTITIES		2048
+
 //
 // the client_t structure is wiped completely at every
 // server map change
@@ -81,7 +86,7 @@ typedef struct
 
 	bool		video_prepped;		// false if on new level or new ref dll
 	bool		audio_prepped;		// false if on new level or new snd dll
-
+	bool		force_refdef;		// vid has changed, so we can't use a paused refdef
 	int		parse_entities;		// index (not anded off) into cl_parse_entities[]
 
 	int		cmd_number;
@@ -124,6 +129,9 @@ typedef struct
 	int		servercount;			// server identification for prespawns
 	int		serverframetime;			// server frametime
 	char		configstrings[MAX_CONFIGSTRINGS][CS_SIZE];
+
+	entity_state_t	entity_curstates[MAX_PARSE_ENTITIES];
+	entity_state_t	entity_baselines[MAX_EDICTS];		// keep all baselines in one global array
 
 	// locally derived information from server state
 	cmodel_t		*models[MAX_MODELS];
@@ -173,8 +181,6 @@ typedef enum
 struct cl_priv_s
 {
 	int		serverframe;	// if not current, this ent isn't in the frame
-
-	entity_state_t	baseline;		// delta from this if not from a previous frame
 	entity_state_t	current;
 	entity_state_t	prev;		// will always be valid, but might just be a copy of current
 };
@@ -226,10 +232,9 @@ typedef struct
 	char		centerPrint[1024];
 	int		centerPrintLines;
 
-	int		maxClients;
-	int		numEntities;
-	int		maxEntities;
+	cl_globalvars_t	*globals;
 	user_message_t	*msg[MAX_USER_MESSAGES];
+
 	int		numMessages;		// actual count of user messages
 	int		hStringTable;		// stringtable handle
 
@@ -319,7 +324,6 @@ extern cvar_t	*cl_run;
 extern cvar_t	*cl_font;
 extern cvar_t	*cl_anglespeedkey;
 extern cvar_t	*cl_showmiss;
-extern cvar_t	*cl_showclamp;
 extern cvar_t	*cl_particles;
 extern cvar_t	*cl_particlelod;
 extern cvar_t	*cl_testentities;
@@ -330,13 +334,6 @@ extern cvar_t	*cl_levelshot_name;
 extern cvar_t	*scr_centertime;
 extern cvar_t	*scr_showpause;
 extern cvar_t	*con_font;
-
-// the cl_parse_entities must be large enough to hold UPDATE_BACKUP frames of
-// entities, so that when a delta compressed message arives from the server
-// it can be un-deltad from the original 
-#define MAX_PARSE_ENTITIES	1024
-
-extern entity_state_t	cl_parse_entities[MAX_PARSE_ENTITIES];
 
 //=============================================================================
 
@@ -463,7 +460,7 @@ bool CL_RenderTrace( const vec3_t start, const vec3_t mins, const vec3_t maxs, c
 
 _inline edict_t *CL_EDICT_NUM( int n, const char *file, const int line )
 {
-	if((n >= 0) && (n < clgame.maxEntities))
+	if((n >= 0) && (n < clgame.globals->maxEntities))
 		return clgame.edicts + n;
 	Host_Error( "CL_EDICT_NUM: bad number %i (called at %s:%i)\n", n, file, line );
 	return NULL;	

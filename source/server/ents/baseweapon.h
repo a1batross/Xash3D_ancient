@@ -16,14 +16,14 @@
 class CLaserSpot;
 
 // weapon flags
-#define ITEM_FLAG_SELECTONEMPTY	1  //this weapon can choose without ammo
-#define ITEM_FLAG_NOAUTORELOAD	2  //only manual reload
-#define ITEM_FLAG_NOAUTOSWITCHEMPTY	4  //don't switch from this weapon
-#define ITEM_FLAG_LIMITINWORLD	8  //limit in world
-#define ITEM_FLAG_EXHAUSTIBLE		16 // A player can totally exhaust their ammo supply and lose this weapon
-#define ITEM_FLAG_NODUPLICATE		32 // player can't give this weapon again
-#define ITEM_FLAG_USEAUTOAIM		64 // weapon uses autoaim
-#define ITEM_FLAG_HIDEAMMO		128 // weapon uses autoaim
+#define ITEM_FLAG_SELECTONEMPTY	1	// this weapon can choose without ammo
+#define ITEM_FLAG_NOAUTORELOAD	2	// only manual reload
+#define ITEM_FLAG_NOAUTOSWITCHEMPTY	4	// don't switch from this weapon
+#define ITEM_FLAG_LIMITINWORLD	8 	// limit in world
+#define ITEM_FLAG_EXHAUSTIBLE		16	// A player can totally exhaust their ammo supply and lose this weapon
+#define ITEM_FLAG_NODUPLICATE		32	// player can't give this weapon again
+#define ITEM_FLAG_USEAUTOAIM		64	// weapon uses autoaim
+#define ITEM_FLAG_HIDEAMMO		128	// hide ammo in round
 
 // suit definitions
 #define BARNEY_SUIT			0	// just in case
@@ -32,17 +32,17 @@ class CLaserSpot;
 
 #define PLAYER_HAS_SUIT		(m_pPlayer->pev->weapons & ITEM_SUIT)
 #define PLAYER_DRAW_SUIT		(pev->body & GORDON_SUIT)
-#define MAX_SHOOTSOUNDS		3 // max of four random shoot sounds
+#define MAX_SHOOTSOUNDS		3 // max of random shoot sounds
 
 enum {
 	NONE = 0,
-	AMMO1,		//fire primary ammo
-	AMMO2,		//fire seondary ammo
-	LASER_DOT,	//enable laser dot
-	ZOOM,		//enable zoom
-	FLASHLIGHT,	//enable flashlight
-	SWITCHMODE,	//play two beetwen anims and change body
-	SWING,		//crowbar swing
+	AMMO1,			// fire primary ammo
+	AMMO2,			// fire seondary ammo
+	LASER_DOT,		// enable laser dot
+	ZOOM,			// enable zoom
+	FLASHLIGHT,		// enable flashlight
+	SWITCHMODE,		// play two beetwen anims and change body
+	SWING,			// crowbar swing
 };
 
 #define BATTACK_FIREMODE0	0	//both attack firemode 0
@@ -154,13 +154,13 @@ public:
           void SendWeaponAnim( int sequence, float fps = 0 );
 	float SetNextAttack( float delay ) { return m_pPlayer->m_flNextAttack = gpGlobals->time + delay; }
 	float SetNextIdle( float delay ) { return m_flTimeWeaponIdle = gpGlobals->time + delay; }
-	float SequenceDuration( void ) { return CBaseAnimating :: SequenceDuration( m_pPlayer->pev->weaponanim ); }
+	float SequenceDuration( void ) { return CBaseAnimating :: SequenceDuration( m_iSequence ); }
           int GetNumBodies( void )
           {
-		dstudiohdr_t *pstudiohdr = (dstudiohdr_t *)(GET_MODEL_PTR( ENT(pev) ));
-		if (pstudiohdr)
+		dstudiohdr_t *pstudiohdr = (dstudiohdr_t *)(GET_MODEL_PTR( ENT( pev )));
+		if( pstudiohdr )
 		{
-			dstudiobodyparts_t *pbodypart = (dstudiobodyparts_t *)((byte *)pstudiohdr + pstudiohdr->bodypartindex) + 2;
+			dstudiobodyparts_t *pbodypart = (dstudiobodyparts_t *)((byte *)pstudiohdr + pstudiohdr->bodypartindex) + NUM_HANDS;
 			return pbodypart->nummodels;
 		}
 		return 0;
@@ -176,10 +176,10 @@ public:
 
 	CBasePlayer	*m_pPlayer;
 	CBasePlayerWeapon	*m_pNext;
-	int		m_iId;		//Weapon unical Id (0 - MAX_WEAPONS)												// WEAPON_???
+	int		m_iId;		// Weapon unique Id (0 - MAX_WEAPONS)
 
 	//don't save this
-	CLaserSpot	*m_pSpot;     	//LTD spot
+	CLaserSpot	*m_pSpot;     	// LTD spot
 
 	//virtual methods for ItemInfo acess
 	int		iItemPosition(void) { return ItemInfoArray[ m_iId ].iPosition;		}
@@ -346,6 +346,7 @@ public:
 	int	m_cActiveRocket; 		// how many rockets is now active ?
 	int	m_iOnControl;		// controllable rocket is on control now
 	int 	m_iStepReload;		// reload state
+	int	m_iSequence;		// current weaponmodel sequence
 	int	m_iClip;			// current clip state
 	int	m_iBody;			// viewmodel body
 	int	m_iSkin;			// viewmodel skin

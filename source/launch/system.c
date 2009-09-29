@@ -843,6 +843,7 @@ void Sys_Error(const char *error, ...)
 	Con_ShowConsole( true );
 	if( Sys.developer >= D_ERROR ) Sys_Print( text );	// print error message
 	else Sys_Print( "Internal engine error\n" );	// don't confuse non-developers with technique stuff
+	Sys.Free(); // kill video
 
 	Sys_WaitForQuit();
 	Sys_Exit();
@@ -861,6 +862,8 @@ void Sys_Break(const char *error, ...)
 	Sys.app_state = SYS_ERROR;
 	Con_ShowConsole( true );
 	Sys_Print( text );
+	Sys.Free(); // kill video
+
 	Sys_WaitForQuit();
 	Sys_Exit();
 }

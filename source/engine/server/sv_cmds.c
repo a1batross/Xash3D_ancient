@@ -193,6 +193,7 @@ For development work
 void SV_Map_f( void )
 {
 	string	filename;
+	char	*spawn_entity;
 
 	if( Cmd_Argc() != 2 )
 	{
@@ -200,29 +201,41 @@ void SV_Map_f( void )
 		return;
 	}
 
-	com.snprintf( filename, MAX_STRING, "%s.bsp", Cmd_Argv(1));
-	if( !FS_FileExists( va("maps/%s", filename )))
+	// determine spawn entity classname
+	if( Cvar_VariableInteger( "deathmatch" ))
+		spawn_entity = GI->dm_entity;
+	else if( Cvar_VariableInteger( "coop" ))
+		spawn_entity = GI->coop_entity;
+	else if( Cvar_VariableInteger( "teamplay" ))
+		spawn_entity = GI->team_entity;
+	else spawn_entity = GI->sp_entity;
+
+	com.strncpy( filename, Cmd_Argv( 1 ), sizeof( filename ));
+	if( !SV_MapIsValid( filename, spawn_entity ))
 	{
-		Msg( "Can't loading %s\n", filename );
+		Msg( "SV_NewMap: invalid map %s\n", filename );
 		return;
 	}
 
-	SV_InitGame(); // reset previous state
+	sv.loadgame = false;	// set right state
+	sv.changelevel = false;
 
-	SV_BroadcastCommand( "changing\n" );
-	SV_SendClientMessages();
+	if( com.strcmp( sv.name, filename ))
+		SV_InitGame ();
+
 	SV_SpawnServer( filename, NULL );
-	SV_BroadcastCommand( "reconnect\n" );
-
-	// archive server state
-	com.strncpy( svs.mapname, filename, sizeof( svs.mapname ) - 1 );
+	SV_LevelInit( filename, NULL, NULL );
+	SV_ActivateServer ();
 }
 
 void SV_Newgame_f( void )
 {
-	// FIXME: do some clear operations
-	// FIXME: parse newgame script
-	Cbuf_ExecuteText(EXEC_APPEND, va("map %s\n", GI->startmap ));
+	com.strncpy( host.finalmsg, "end game", MAX_STRING );
+	SV_Shutdown( false );	// completely shutdown server, disconncet clients and unload progs
+
+	// FIXME: parse newgame script or somewhat
+
+	Cbuf_ExecuteText( EXEC_APPEND, va( "map %s\n", GI->startmap ));
 }
 
 /*
@@ -241,18 +254,20 @@ void SV_Load_f( void )
 		return;
 	}
 
-	com.snprintf( filename, MAX_STRING, "%s.bin", Cmd_Argv( 1 ));
-	if(!FS_FileExists( va( "save/%s", filename )))
+	com.strncpy( filename, Cmd_Argv( 1 ), sizeof( filename ));
+	if(WAD_Check( va( "save/%s.bin", filename )) != 1 )
 	{
-		Msg("Can't loading %s\n", filename );
+		Msg( "Can't loading %s\n", filename );
 		return;
 	}
 
+	sv.loadgame = true;	// set right state
+	sv.changelevel = false;
+
 	SV_ReadSaveFile( filename );
-	SV_BroadcastCommand( "changing\n" );
-	SV_SendClientMessages();
-	SV_SpawnServer( svs.mapname, filename );
-	SV_BroadcastCommand( "reconnect\n" );
+	SV_SpawnServer( svs.mapname, NULL );
+	SV_LevelInit( svs.mapname, NULL, filename );
+	SV_ActivateServer();
 }
 
 /*
@@ -265,10 +280,10 @@ void SV_Save_f( void )
 {
 	if( Cmd_Argc() != 2 )
 	{
-		Msg ("Usage: save <name>\n");
+		Msg( "Usage: save <name>\n" );
 		return;
 	}
-	SV_WriteSaveFile( Cmd_Argv( 1 ), false );
+	SV_WriteSaveFile( Cmd_Argv( 1 ), false, true );
 }
 
 /*
@@ -298,7 +313,7 @@ SV_AutoSave_f
 */
 void SV_AutoSave_f( void )
 {
-	SV_WriteSaveFile( "autosave", true );
+	SV_WriteSaveFile( "autosave", true, true );
 }
 
 /*
@@ -310,52 +325,37 @@ Saves the state of the map just being exited and goes to a new map.
 */
 void SV_ChangeLevel_f( void )
 {
-	string	filename;
+	char	*spawn_entity;
 	int	c = Cmd_Argc();
 
-	if( c != 2 && c != 3 )
+	// determine spawn entity classname
+	if( Cvar_VariableInteger( "deathmatch" ))
+		spawn_entity = GI->dm_entity;
+	else if( Cvar_VariableInteger( "coop" ))
+		spawn_entity = GI->coop_entity;
+	else if( Cvar_VariableInteger( "teamplay" ))
+		spawn_entity = GI->team_entity;
+	else spawn_entity = GI->sp_entity;
+
+	if( !SV_MapIsValid( Cmd_Argv( 1 ), spawn_entity ))
 	{
-		Msg ("Usage: changelevel <map> [landmark]\n");
+		Msg( "SV_ChangeLevel: invalid map %s\n", Cmd_Argv( 1 ));
 		return;
 	}
 
-	com.snprintf( filename, MAX_STRING, "%s.bsp", Cmd_Argv(1));
-	if(!FS_FileExists(va("maps/%s", filename )))
+	if( sv.state != ss_active )
 	{
-		Msg("Can't loading %s\n", filename );
+		// just load map
+		Cbuf_AddText( va( "map %s\n", Cmd_Argv( 1 )));
 		return;
 	}
 
-	if( sv.state == ss_active )
+	switch( c )
 	{
-		bool		*savedFree;
-		sv_client_t	*cl;
-		int		i;
-	
-		// clear all the client free flags before saving so that
-		// when the level is re-entered, the clients will spawn
-		// at spawn points instead of occupying body shells
-		savedFree = Z_Malloc( sv_maxclients->integer * sizeof( bool ));
-		for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
-		{
-			savedFree[i] = cl->edict->free;
-			cl->edict->free = true;
-		}
-		SV_WriteSaveFile( "autosave", true );
-		// we must restore these for clients to transfer over correctly
-		for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
-			cl->edict->free = savedFree[i];
-		Mem_Free( savedFree );
+	case 2: SV_ChangeLevel( false, Cmd_Argv( 1 ), NULL ); break;
+	case 3: SV_ChangeLevel( true, Cmd_Argv( 1 ), Cmd_Argv( 2 )); break;
+	default: Msg( "Usage: changelevel <map> [landmark]\n" ); break;
 	}
-
-	SV_InitGame(); // reset previous state
-	SV_BroadcastCommand("changing\n");
-	SV_SendClientMessages();
-	SV_SpawnServer( filename, NULL );
-	SV_BroadcastCommand ("reconnect\n");
-
-	// archive server state
-	com.strncpy( svs.mapname, filename, sizeof( svs.mapname ) - 1 );
 }
 
 /*
@@ -375,6 +375,21 @@ void SV_Restart_f( void )
 
 	// just sending console command
 	Cbuf_AddText( va( "map %s\n", filename ));
+}
+
+void SV_Reload_f( void )
+{
+	const char	*save;
+	string		loadname;
+	
+	if( sv.state != ss_active ) return;
+	save = SV_GetLatestSave();
+	if( save )
+	{
+		FS_FileBase( save, loadname );
+		Cbuf_AddText( va( "load %s\n", loadname ));
+	}
+	else Cbuf_AddText( "newgame\n" ); // begin new game
 }
 
 /*
@@ -564,6 +579,7 @@ void SV_InitOperatorCommands( void )
 	Cmd_AddCommand( "newgame", SV_Newgame_f, "begin new game" );
 	Cmd_AddCommand( "changelevel", SV_ChangeLevel_f, "changing level" );
 	Cmd_AddCommand( "restart", SV_Restart_f, "restarting current level" );
+	Cmd_AddCommand( "reload", SV_Reload_f, "continue from latest save or restart level" );
 
 	if( host.type == HOST_DEDICATED )
 	{
@@ -591,6 +607,7 @@ void SV_KillOperatorCommands( void )
 	Cmd_RemoveCommand( "newgame" );
 	Cmd_RemoveCommand( "changelevel" );
 	Cmd_RemoveCommand( "restart" );
+	Cmd_RemoveCommand( "reload" );
 	Cmd_RemoveCommand( "sectorlist" );
 
 	if( host.type == HOST_DEDICATED )

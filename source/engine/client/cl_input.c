@@ -713,8 +713,7 @@ void CL_WritePacket( void )
 	{
 		bool	noDelta = false;
 
-		if( cl_nodelta->integer ) noDelta = true;
-		if( !cl.frame.valid || cls.demowaiting || cls.netchan.incoming_sequence != cl.frame.serverframe )
+		if( cl_nodelta->integer || !cl.frame.valid || cls.demowaiting )
 			 noDelta = true;
 
 		// begin a client move command		

@@ -33,6 +33,19 @@ cvar_t	*host_registered;
 // these cvars will be duplicated on each client across network
 int Host_ServerState( void ) { return Cvar_VariableInteger( "host_serverstate" ); }
 
+int Host_CompareFileTime( long ft1, long ft2 )
+{
+	if( ft1 < ft2 )
+	{
+		return -1;
+	}
+	else if( ft1 > ft2 )
+	{
+		return 1;
+	}
+	return 0;
+}
+
 void Host_InitPhysic( void )
 {
 	static physic_imp_t		pi;
@@ -659,6 +672,9 @@ Host_Shutdown
 */
 void Host_Free( void )
 {
+	if( host.state == HOST_SHUTDOWN )
+		return;
+
 	host.state = HOST_SHUTDOWN;	// prepare host to normal shutdown
 	com.strncpy( host.finalmsg, "Server shutdown\n", MAX_STRING );
 

@@ -71,6 +71,7 @@ void CHud :: VidInit( void )
 	// Load Sprites
 	// ---------
 
+	m_iDrawPlaque = 1;
 	m_hsprCursor = 0;
 	m_hHudError = 0;
 	m_hHudFont = 0;
@@ -239,6 +240,7 @@ int CHud :: Redraw( float flTime )
 
 	// make levelshot if needed
 	MAKE_LEVELSHOT();
+	m_iDrawPlaque = 1;	// clear plaque stuff
 
 	// draw screen fade before hud
 	DrawScreenFade();

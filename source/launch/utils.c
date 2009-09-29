@@ -344,7 +344,7 @@ const char *StringTable_GetString( int handle, string_t index )
 
 string_t StringTable_SetString( int handle, const char *string )
 {
-	int i, len, table_size, data_size;
+	int	i, len, table_size, data_size;
 
 	if( !StringTable_CheckHandle( handle, false ))
 		return -1;

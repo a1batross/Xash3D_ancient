@@ -481,7 +481,6 @@ void CSave :: WriteVector( const char *pname, const float *value, int count )
 
 void CSave :: WritePositionVector( const char *pname, const Vector &value )
 {
-
 	if( m_pdata && m_pdata->fUseLandmark )
 	{
 		Vector tmp = value - m_pdata->vecLandmarkOffset;
@@ -584,12 +583,6 @@ int CSave :: WriteFields( const char *cname, const char *pname, void *pBaseData,
 
 #if 0
 	ALERT( at_console, "CSave::WriteFields( %s [%i fields])\n", pname, fieldCount );
-
-	if( !strcmp( pname, "Save Header" ) || !strcmp( pname, "ADJACENCY" ) || !strcmp( pname, "Game Header" ))
-	{
-		for( i = 0; i < fieldCount; i++ )
-			ALERT( at_console, "FIELD: %s [%s][0x%x]\n", pFields[i].fieldName, gNames[pFields[i].fieldType], pFields[i].flags );
-	}
 #endif
 	// precalculate the number of empty fields
 	emptyCount = 0;
@@ -849,7 +842,8 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 						else
 						{
 							*((CBaseEntity **)pOutputData) = NULL;
-							if (entityIndex != -1) ALERT(at_console, "## Restore: invalid entitynum %d\n", entityIndex);
+							if( entityIndex != -1 )
+								ALERT( at_console, "## Restore: invalid entitynum %d\n", entityIndex );
 						}
 						break;
 					case FIELD_EDICT:

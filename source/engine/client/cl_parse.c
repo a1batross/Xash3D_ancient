@@ -230,11 +230,11 @@ CL_ParseServerData
 */
 void CL_ParseServerData( sizebuf_t *msg )
 {
-	char		*str;
+	string		str, title;
 	const char	*levelshot_ext[] = { "tga", "jpg", "png" };
 	int		i;
 
-	MsgDev( D_INFO, "Serverdata packet received.\n" );
+	MsgDev( D_NOTE, "Serverdata packet received.\n" );
 
 	// wipe the client_t struct
 	CL_ClearState();
@@ -248,9 +248,9 @@ void CL_ParseServerData( sizebuf_t *msg )
 		Host_Error( "Server use invalid protocol (%i should be %i)\n", i, PROTOCOL_VERSION );
 
 	cl.servercount = MSG_ReadLong( msg );
-	cl.serverframetime = MSG_ReadLong( msg );
 	cl.playernum = MSG_ReadShort( msg );
-	str = MSG_ReadString( msg );
+	com.strncpy( str, MSG_ReadString( msg ), MAX_STRING );
+	com.strncpy( title, MSG_ReadString( msg ), MAX_STRING );
 
 	// get splash name
 	Cvar_Set( "cl_levelshot_name", va( "levelshots/%s", str ));
@@ -266,6 +266,7 @@ void CL_ParseServerData( sizebuf_t *msg )
 	}
 	// seperate the printfs so the server message can have a color
 	Msg("\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");
+	Msg( "^2%s\n", title );
 
 	// need to prep refresh at next oportunity
 	cl.video_prepped = false;
@@ -281,19 +282,15 @@ void CL_ParseBaseline( sizebuf_t *msg )
 {
 	int		newnum;
 	entity_state_t	nullstate;
-	edict_t		*ent;
+	entity_state_t	*baseline;
 
 	Mem_Set( &nullstate, 0, sizeof( nullstate ));
 	newnum = MSG_ReadBits( msg, NET_WORD );
 
-	if( !clgame.numEntities ) CL_InitEdicts();
+	if( !newnum ) CL_InitEdicts();
 
-	// increase edicts
-	while( newnum >= clgame.numEntities ) CL_AllocEdict();
-	ent = EDICT_NUM( newnum );
-
-	Com_Assert( ent->pvClientData == NULL );
-	MSG_ReadDeltaEntity( msg, &nullstate, &ent->pvClientData->baseline, newnum );
+	baseline = &cl.entity_baselines[newnum];
+	MSG_ReadDeltaEntity( msg, &nullstate, baseline, newnum );
 }
 
 void CL_ParseMoveVars( int number )
@@ -519,10 +516,6 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			break;
 		case svc_print:
 			Con_Print( va( "^6%s\n", MSG_ReadString( msg )));
-			break;
-		case svc_time:
-			cl.mtime[1] = cl.mtime[0];
-			cl.mtime[0] = MSG_ReadLong( msg );
 			break;
 		case svc_frame:
 			CL_ParseFrame( msg );

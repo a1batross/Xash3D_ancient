@@ -1,0 +1,63 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: render - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1778.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "../public" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\render\!debug/" /Fo"..\temp\render\!debug/" /Fd"..\temp\render\!debug/" /FD /c 
+"D:\Xash3D\src_main\render\r_shader.c"
+]
+Creating command line "cl.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1778.tmp" 
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1779.tmp" with contents
+[
+msvcrtd.lib user32.lib gdi32.lib /nologo /subsystem:windows /dll /incremental:yes /pdb:"..\temp\render\!debug/render.pdb" /debug /machine:I386 /nodefaultlib:"msvcrt.lib" /out:"..\temp\render\!debug/render.dll" /implib:"..\temp\render\!debug/render.lib" /pdbtype:sept 
+"\Xash3D\src_main\temp\render\!debug\cin.obj"
+"\Xash3D\src_main\temp\render\!debug\r_aliasq.obj"
+"\Xash3D\src_main\temp\render\!debug\r_backend.obj"
+"\Xash3D\src_main\temp\render\!debug\r_bloom.obj"
+"\Xash3D\src_main\temp\render\!debug\r_cin.obj"
+"\Xash3D\src_main\temp\render\!debug\r_cull.obj"
+"\Xash3D\src_main\temp\render\!debug\r_draw.obj"
+"\Xash3D\src_main\temp\render\!debug\r_image.obj"
+"\Xash3D\src_main\temp\render\!debug\r_light.obj"
+"\Xash3D\src_main\temp\render\!debug\r_main.obj"
+"\Xash3D\src_main\temp\render\!debug\r_math.obj"
+"\Xash3D\src_main\temp\render\!debug\r_mesh.obj"
+"\Xash3D\src_main\temp\render\!debug\r_model.obj"
+"\Xash3D\src_main\temp\render\!debug\r_opengl.obj"
+"\Xash3D\src_main\temp\render\!debug\r_poly.obj"
+"\Xash3D\src_main\temp\render\!debug\r_program.obj"
+"\Xash3D\src_main\temp\render\!debug\r_register.obj"
+"\Xash3D\src_main\temp\render\!debug\r_shader.obj"
+"\Xash3D\src_main\temp\render\!debug\r_shadow.obj"
+"\Xash3D\src_main\temp\render\!debug\r_sky.obj"
+"\Xash3D\src_main\temp\render\!debug\r_sprite.obj"
+"\Xash3D\src_main\temp\render\!debug\r_studio.obj"
+"\Xash3D\src_main\temp\render\!debug\r_surf.obj"
+]
+Creating command line "link.exe @C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP1779.tmp"
+Creating temporary file "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP177A.bat" with contents
+[
+@echo off
+copy \Xash3D\src_main\temp\render\!debug\render.dll "D:\Xash3D\bin\render.dll"
+]
+Creating command line "C:\DOCUME~1\MIKE~1.MIK\LOCALS~1\Temp\RSP177A.bat"
+Compiling...
+r_shader.c
+Linking...
+   Creating library ..\temp\render\!debug/render.lib and object ..\temp\render\!debug/render.exp
+<h3>Output Window</h3>
+Performing Custom Build Step on \Xash3D\src_main\temp\render\!debug\render.dll
+Скопировано файлов:         1.
+
+
+
+<h3>Results</h3>
+render.dll - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

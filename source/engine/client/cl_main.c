@@ -38,7 +38,6 @@ cvar_t	*cl_particlelod;
 
 cvar_t	*cl_shownet;
 cvar_t	*cl_showmiss;
-cvar_t	*cl_showclamp;
 cvar_t	*cl_mouselook;
 cvar_t	*cl_paused;
 
@@ -53,8 +52,6 @@ cvar_t	*rate;
 client_static_t	cls;
 client_t		cl;
 clgame_static_t	clgame;
-
-entity_state_t	cl_parse_entities[MAX_PARSE_ENTITIES];
 
 extern	cvar_t *allow_download;
 //======================================================================
@@ -441,8 +438,9 @@ void CL_Changing_f( void )
 	if( cls.download ) return;
 
 	S_StopAllSounds();
+	cl.audio_prepped = false;	// don't play ambients
 	cls.state = ca_connected;	// not active anymore, but not disconnected
-	Msg( "\nChanging map...\n" );
+	Msg( "\nchanging map...\n" );
 }
 
 
@@ -459,9 +457,10 @@ void CL_Reconnect_f( void )
 	if( cls.download ) return;
 
 	S_StopAllSounds ();
+	Cmd_ExecuteString( "plaque\n" ); // disable plaque draw on change map
+
 	if( cls.state == ca_connected )
 	{
-		Msg( "reconnecting...\n" );
 		cls.state = ca_connected;
 		MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
 		MSG_Print( &cls.netchan.message, "new" );
@@ -708,7 +707,7 @@ void CL_PrepVideo( void )
 		return; // no map loaded
 
 	Cvar_SetValue( "scr_loading", 0.0f ); // reset progress bar
-	Msg( "CL_PrepRefresh: %s\n", cl.configstrings[CS_NAME] );
+	MsgDev( D_LOAD, "CL_PrepRefresh: %s\n", cl.configstrings[CS_NAME] );
 	// let the render dll load the map
 	FS_FileBase( cl.configstrings[CS_MODELS+1], mapname ); 
 	re->BeginRegistration( mapname, pe->VisData()); // load map
@@ -737,9 +736,10 @@ void CL_PrepVideo( void )
 	re->EndRegistration( cl.configstrings[CS_SKYNAME] );
 	Cvar_SetValue( "scr_loading", 100.0f );	// all done
 	
-	Con_ClearNotify();			// clear any lines of console text
+	if( host.developer <= 2 ) Con_ClearNotify(); // clear any lines of console text
 	SCR_UpdateScreen();
 	cl.video_prepped = true;
+	cl.force_refdef = true;
 }
 
 /*
@@ -1087,7 +1087,6 @@ void CL_InitLocal( void )
 
 	cl_shownet = Cvar_Get( "cl_shownet", "0", 0, "client show network packets" );
 	cl_showmiss = Cvar_Get( "cl_showmiss", "0", 0, "client show network errors" );
-	cl_showclamp = Cvar_Get( "cl_showclamp", "0", CVAR_ARCHIVE, "show client clamping" );
 	cl_timeout = Cvar_Get( "cl_timeout", "120", 0, "connect timeout (in-seconds)" );
 
 	rcon_client_password = Cvar_Get( "rcon_password", "", 0, "remote control client password" );
@@ -1200,7 +1199,7 @@ void CL_Frame( int time )
 	SCR_MakeScreenShot();
 
 	// update audio
-	S_Update( cl.playernum + 1, cl.refdef.vieworg, vec3_origin, cl.refdef.forward, cl.refdef.up );
+	S_Update( cl.playernum + 1, cl.refdef.simorg, cl.refdef.simvel, cl.refdef.forward, cl.refdef.up );
 
 	// advance local effects for next frame
 	CL_RunDLights ();

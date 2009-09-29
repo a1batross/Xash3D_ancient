@@ -328,6 +328,7 @@ extern CBaseEntity	*UTIL_FindEntityByTarget(CBaseEntity *pStartEntity, const cha
 extern CBaseEntity	*UTIL_FindEntityGeneric(const char *szName, Vector &vecSrc, float flRadius );
 extern CBaseEntity	*UTIL_FindGlobalEntity( string_t classname, string_t globalname );
 extern CBaseEntity	*UTIL_FindPlayerInSphere( const Vector &vecCenter, float flRadius );
+extern edict_t *UTIL_FindClientTransitions( edict_t *pClient );
 extern CBasePlayer	*UTIL_FindPlayerInPVS( edict_t *pent );
 
 // returns a CBaseEntity pointer to a player by index.  Only returns if the player is spawned and connected
@@ -335,8 +336,9 @@ extern CBasePlayer	*UTIL_FindPlayerInPVS( edict_t *pent );
 // Index is 1 based
 extern CBaseEntity	*UTIL_PlayerByIndex( int playerIndex );
 
-#define UTIL_EntitiesInPVS(pent)			(*g_engfuncs.pfnEntitiesInPVS)(pent)
-extern void			UTIL_MakeVectors		(const Vector &vecAngles);
+
+#define UTIL_EntitiesInPVS( pent )	(*g_engfuncs.pfnEntitiesInPVS)(pent)
+extern void UTIL_MakeVectors( const Vector &vecAngles );
 
 // Pass in an array of pointers and an array size, it fills the array and returns the number inserted
 extern int			UTIL_MonstersInSphere( CBaseEntity **pList, int listMax, const Vector &center, float radius );
@@ -787,7 +789,7 @@ void UTIL_WatchTarget( CBaseEntity *pWatcher, CBaseEntity *pTarget);
 void UTIL_FindBreakable( CBaseEntity *Brush );
 edict_t *UTIL_FindLandmark( string_t iLandmarkName );
 edict_t *UTIL_FindLandmark( const char *pLandmarkName );
-int UTIL_FindTransition( CBaseEntity *pEntity, char *pVolumeName );
+int UTIL_FindTransition( CBaseEntity *pEntity, const char *pVolumeName );
 int UTIL_FindTransition( CBaseEntity *pEntity, string_t iVolumeName );
 void UTIL_FireTargets( const char *targetName, CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value = 0);
 void UTIL_FireTargets( int targetName, CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value = 0);

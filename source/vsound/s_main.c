@@ -583,8 +583,8 @@ void S_Update( int clientnum, const vec3_t position, const vec3_t velocity, cons
 	al_state.clientnum = clientnum;
 
 	// set up listener
-	VectorSet( s_listener.position, position[1], position[2], -position[0]);
-	VectorSet( s_listener.velocity, velocity[1], velocity[2], -velocity[0]);
+	VectorSet( s_listener.position, position[1], position[2], -position[0] );
+	VectorSet( s_listener.velocity, velocity[1], velocity[2], -velocity[0] );
 
 	// set listener orientation matrix
 	s_listener.orientation[0] = at[1];

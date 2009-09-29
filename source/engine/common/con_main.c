@@ -245,11 +245,11 @@ void Con_Init( void )
 	// register our commands
 	con_notifytime = Cvar_Get( "con_notifytime", "3", 0, "notify time to live" );
 	con_speed = Cvar_Get( "con_speed", "3", 0, "console moving speed" );
-	con_font = Cvar_Get(  "con_font", "default", CVAR_ARCHIVE, "path to console charset" );
+	con_font = Cvar_Get( "con_font", "default", CVAR_ARCHIVE, "path to console charset" );
 
 	Field_Clear( &g_consoleField );
 	g_consoleField.widthInChars = g_console_field_width;
-	for ( i = 0 ; i < COMMAND_HISTORY ; i++ )
+	for( i = 0; i < COMMAND_HISTORY; i++ )
 	{
 		Field_Clear( &historyEditLines[i] );
 		historyEditLines[i].widthInChars = g_console_field_width;
@@ -260,8 +260,9 @@ void Con_Init( void )
 	Cmd_AddCommand( "messagemode", Con_MessageMode_f, "input a chat message to say to everyone" );
 	Cmd_AddCommand( "messagemode2", Con_MessageMode2_f, "input a chat message to say to only your team" );
 	Cmd_AddCommand( "clear", Con_Clear_f, "clear console history" );
-	con.initialized = true;
+
 	MsgDev( D_NOTE, "Console initialized.\n" );
+	con.initialized = true;
 }
 
 
@@ -554,23 +555,21 @@ Con_DrawConsole
 */
 void Con_DrawConsole( void )
 {
-	if(!host.developer) return;
+	if( !host.developer ) return;
 
 	// check for console width changes from a vid mode change
 	Con_CheckResize ();
+
+	if( cls.state == ca_connecting || cls.state == ca_connected )
+	{
+		if( host.developer >= 4 ) con.displayFrac = 0.5f;	// keep console open
+		else if( host.developer >= 2 ) Con_DrawNotify();	// draw notify lines
+	}
 
 	// if disconnected, render console full screen
 	switch( cls.state )
 	{
 	case ca_uninitialized:
-		break;
-	case ca_connected:
-	case ca_connecting:
-		if( host.developer >= 2 )
-		{
-			// -dev 1 probably nothing print while loading
-			Con_DrawSolidConsole( 0.5f );
-		}
 		break;
 	case ca_disconnected:
 		if( cls.key_dest != key_menu )
@@ -579,10 +578,18 @@ void Con_DrawConsole( void )
 			cls.key_dest = key_console;
 		}
 		break;
+	case ca_connected:
+	case ca_connecting:
+		if( host.developer )
+		{
+			// force to show console always for -dev 3 and higher 
+			if( con.displayFrac ) Con_DrawSolidConsole( con.displayFrac );
+		}
+		break;
 	case ca_active:
 	case ca_cinematic: 
 		if( con.displayFrac ) Con_DrawSolidConsole( con.displayFrac );
-		else if ( cls.state == ca_active ) Con_DrawNotify(); // draw notify lines
+		else if( cls.state == ca_active ) Con_DrawNotify(); // draw notify lines
 		break;
 	}
 }

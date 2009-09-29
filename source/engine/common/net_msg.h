@@ -68,7 +68,6 @@ enum svc_ops_e
 	svc_setview,		// [short] entity number
 	svc_print,		// [byte] id [string] null terminated string
 	svc_crosshairangle,		// [short][short][short]
-	svc_time,			// [long] sv.time
 };
 
 // client to server

@@ -667,6 +667,9 @@ public:
 	int _cdecl MsgFunc_Particle( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_TempEntity( const char *pszName, int iSize, void *pbuf );
 
+	// user commansds
+	void _cdecl UserCmd_LoadingPlaque( void );
+
 	// filled in VidInit
 	struct
 	{
@@ -681,6 +684,7 @@ public:
 	int	m_iWeaponBits;
 	int	m_fPlayerDead;
 	int	m_iIntermission;
+	int	m_iDrawPlaque;
 
 	RainData	Rain;	// buz rain
 

@@ -39,12 +39,12 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 	entity_state_t	*state;
 
 	ent = EDICT_NUM( newnum );
-	state = &cl_parse_entities[cl.parse_entities & (MAX_PARSE_ENTITIES-1)];
+	state = &cl.entity_curstates[cl.parse_entities & (MAX_PARSE_ENTITIES-1)];
 
 	if( unchanged ) *state = *old;
 	else MSG_ReadDeltaEntity( msg, old, state, newnum );
 
-	if( state->number == -1 )
+	if( state->number == ( MAX_EDICTS - 1 ))
 	{
 		CL_FreeEdict( ent );
 		return; // entity was delta removed
@@ -52,11 +52,13 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 	cl.parse_entities++;
 	frame->num_entities++;
 
-	// some data changes will force no lerping
-	if( state->ed_flags & ESF_NODELTA )
+	if( ent->free )
 	{
-		ent->pvClientData->serverframe = -99;
+		CL_InitEdict( ent );
 	}
+
+	// some data changes will force no lerping
+	if( state->ed_flags & ESF_NODELTA ) ent->pvClientData->serverframe = -99;
 
 	if( ent->pvClientData->serverframe != cl.frame.serverframe - 1 )
 	{	
@@ -101,7 +103,7 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 		}
 		else
 		{
-			oldstate = &cl_parse_entities[(oldframe->parse_entities+oldindex) & (MAX_PARSE_ENTITIES-1)];
+			oldstate = &cl.entity_curstates[(oldframe->parse_entities+oldindex) & (MAX_PARSE_ENTITIES-1)];
 			oldnum = oldstate->number;
 		}
 	}
@@ -115,7 +117,7 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 		if( msg->error )
 			Host_Error("CL_ParsePacketEntities: end of message[%d > %d]\n", msg->readcount, msg->cursize );
 
-		while( newnum >= clgame.numEntities ) CL_AllocEdict();
+		while( newnum >= clgame.globals->numEntities ) CL_AllocEdict();
 
 		while( oldnum < newnum )
 		{	
@@ -130,7 +132,7 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 			}
 			else
 			{
-				oldstate = &cl_parse_entities[(oldframe->parse_entities+oldindex) & (MAX_PARSE_ENTITIES-1)];
+				oldstate = &cl.entity_curstates[(oldframe->parse_entities+oldindex) & (MAX_PARSE_ENTITIES-1)];
 				oldnum = oldstate->number;
 			}
 		}
@@ -146,7 +148,7 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 			}
 			else
 			{
-				oldstate = &cl_parse_entities[(oldframe->parse_entities+oldindex) & (MAX_PARSE_ENTITIES-1)];
+				oldstate = &cl.entity_curstates[(oldframe->parse_entities+oldindex) & (MAX_PARSE_ENTITIES-1)];
 				oldnum = oldstate->number;
 			}
 			continue;
@@ -155,10 +157,8 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 		if( oldnum > newnum )
 		{	
 			// delta from baseline ?
-			edict_t *ent = EDICT_NUM( newnum );
-			
-			Com_Assert( ent->free );
-			CL_DeltaEntity( msg, newframe, newnum, &ent->pvClientData->baseline, false );
+			entity_state_t  *baseline = &cl.entity_baselines[newnum];
+			CL_DeltaEntity( msg, newframe, newnum, baseline, false );
 			continue;
 		}
 
@@ -177,59 +177,12 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 		}
 		else
 		{
-			oldstate = &cl_parse_entities[(oldframe->parse_entities+oldindex) & (MAX_PARSE_ENTITIES-1)];
+			oldstate = &cl.entity_curstates[(oldframe->parse_entities+oldindex) & (MAX_PARSE_ENTITIES-1)];
 			oldnum = oldstate->number;
 		}
 	}
 
-	for( ; EDICT_NUM( clgame.numEntities - 1 )->free; clgame.numEntities-- );
-}
-
-/*
-===============
-CL_LerpPoint
-
-Determines the fraction between the last two messages that the objects
-should be put at.
-===============
-*/
-static float CL_LerpPoint( void )
-{
-	float	f, frac;
-
-	f = cl.mtime[0] - cl.mtime[1];
-
-	if( !f )
-	{
-		cl.time = cl.mtime[0];		
-		return 1.0f;
-	}
-
-	if( f > 0.1 )
-	{	
-		// dropped packet, or start of demo
-		cl.mtime[1] = cl.mtime[0] - 0.1f;
-		f = 0.1f;
-	}
-
-	frac = (cl.time - cl.mtime[1]) / f;
-	if( frac < 0 )
-	{
-		if( frac < -0.01f )
-		{
-			cl.time = cl.mtime[1];
-		}
-		frac = 0;
-	}
-	else if( frac > 1.0f )
-	{
-		if( frac > 1.01f )
-		{
-			cl.time = cl.mtime[0];
-		}
-		frac = 1.0f;
-	}
-	return frac;
+	for( ; EDICT_NUM( clgame.globals->numEntities - 1 )->free; clgame.globals->numEntities-- );
 }
 
 /*
@@ -245,10 +198,10 @@ void CL_ParseFrame( sizebuf_t *msg )
 	Mem_Set( &cl.frame, 0, sizeof( cl.frame ));
 
 	cl.frame.serverframe = MSG_ReadLong( msg );
+	cl.frame.servertime = MSG_ReadLong( msg );
 	cl.serverframetime = MSG_ReadLong( msg );
 	cl.frame.deltaframe = MSG_ReadLong( msg );
 	cl.surpressCount = MSG_ReadByte( msg );
-	cl.frame.servertime = cl.mtime[0];	// same as servertime
 
 	// If the frame is delta compressed from data that we
 	// no longer have available, we must suck up the rest of
@@ -285,18 +238,18 @@ void CL_ParseFrame( sizebuf_t *msg )
 	len = MSG_ReadByte( msg );
 	MSG_ReadData( msg, &cl.frame.areabits, len );
 
+	// read packet entities
+	cmd = MSG_ReadByte( msg );
+	if( cmd != svc_packetentities ) Host_Error("CL_ParseFrame: not packetentities[%d]\n", cmd );
+	CL_ParsePacketEntities( msg, cl.oldframe, &cl.frame );
+
 	// read clientindex
 	cmd = MSG_ReadByte( msg );
 	if( cmd != svc_playerinfo ) Host_Error( "CL_ParseFrame: not clientindex\n" );
 	idx = MSG_ReadByte( msg );
 	clent = EDICT_NUM( idx ); // get client
 	if(( idx - 1 ) != cl.playernum )
-		Host_Error("CL_ParseFrame: invalid playernum (%d should be %d)\n", idx-1, cl.playernum );
-
-	// read packet entities
-	cmd = MSG_ReadByte( msg );
-	if( cmd != svc_packetentities ) Host_Error("CL_ParseFrame: not packetentities[%d]\n", cmd );
-	CL_ParsePacketEntities( msg, cl.oldframe, &cl.frame );
+		Host_Error( "CL_ParseFrame: invalid playernum (%d should be %d)\n", idx-1, cl.playernum );
 
 	// now we can reading delta player state
 	if( cl.oldframe ) cl.frame.ps = MSG_ParseDeltaPlayer( &cl.oldframe->ps, &clent->pvClientData->current );
@@ -309,7 +262,10 @@ void CL_ParseFrame( sizebuf_t *msg )
 	{
 		if( cls.state != ca_active )
 		{
-			cls.state = ca_active;
+			cls.state = ca_active;	// client spawned
+			cl.force_refdef = true;
+
+			Cvar_SetValue( "scr_loading", 0.0f ); // reset progress bar	
 			// getting a valid frame message ends the connection process
 			VectorCopy( cl.frame.ps.origin, cl.predicted_origin );
 			VectorCopy( cl.frame.ps.viewangles, cl.predicted_angles );
@@ -333,30 +289,24 @@ CL_AddPacketEntities
 */
 void CL_AddPacketEntities( frame_t *frame )
 {
-	entity_state_t	*s1;
-	edict_t		*ent;
-	int		pnum;
+	edict_t	*ent;
+	int	e, ed_type;
 
-	cl.time = bound( cl.frame.servertime - cl.serverframetime, cl.time, cl.frame.servertime );
-	if( cl_paused->integer ) cl.lerpFrac = 1.0f;
-	else cl.lerpFrac = 1.0 - (cl.frame.servertime - cl.time) / (float)cl.serverframetime;
-
-	for( pnum = 0; pnum < frame->num_entities; pnum++ )
+	for( e = 0; e < clgame.globals->numEntities; e++ )
 	{
-		s1 = &cl_parse_entities[(frame->parse_entities + pnum)&(MAX_PARSE_ENTITIES-1)];
-		ent = EDICT_NUM( s1->number );
-
+		ent = EDICT_NUM( e );
 		if( ent->free ) continue;
 
+		ed_type = ent->pvClientData->current.ed_type;
 		CL_UpdateEntityFields( ent );
 
-		if( re->AddRefEntity( ent, s1->ed_type ))
+		if( re->AddRefEntity( ent, ed_type ))
 		{
-			if( s1->ed_type == ED_PORTAL && !VectorCompare( ent->v.origin, ent->v.oldorigin ))
+			if( ed_type == ED_PORTAL && !VectorCompare( ent->v.origin, ent->v.oldorigin ))
 				cl.render_flags |= RDF_PORTALINVIEW;
 		}
 		// NOTE: skyportal entity never added to rendering
-		if( s1->ed_type == ED_SKYPORTAL ) cl.render_flags |= RDF_SKYPORTALINVIEW;
+		if( ed_type == ED_SKYPORTAL ) cl.render_flags |= RDF_SKYPORTALINVIEW;
 	}
 
 	if( cl.oldframe && !memcmp( cl.oldframe->areabits, cl.frame.areabits, sizeof( cl.frame.areabits )))
@@ -411,7 +361,7 @@ void CL_GetEntitySoundSpatialization( int entnum, vec3_t origin, vec3_t velocity
 
 	// setup origin and velocity
 	VectorCopy( ent->v.origin, origin );
-	VectorScale( ent->v.velocity, 10, velocity );
+	VectorCopy( ent->v.velocity, velocity );
 
 	// if a brush model, offset the origin
 	if( VectorIsNull( origin ))
@@ -434,19 +384,19 @@ client
 */
 void CL_AddLoopingSounds( void )
 {
-	entity_state_t	*ent;
-	int		num, i;
+	edict_t	*ent;
+	int	sound, e;
 
 	if( cls.state != ca_active ) return;
 	if( cl_paused->integer ) return;
 	if( !cl.audio_prepped ) return;
 
-	for( i = 0; i < cl.frame.num_entities; i++ )
+	for( e = 0; e < clgame.globals->numEntities; e++ )
 	{
-		num = (cl.frame.parse_entities + i)&(MAX_PARSE_ENTITIES-1);
-		ent = &cl_parse_entities[num];
+		ent = EDICT_NUM( e );
+		if( ent->free ) continue;
 
-		switch( ent->ed_type )
+		switch( ent->pvClientData->current.ed_type )
 		{
 		case ED_MOVER:
 		case ED_AMBIENT:
@@ -454,7 +404,9 @@ void CL_AddLoopingSounds( void )
 		default: continue;
 		}
 
-		if( !ent->soundindex ) continue;
-		S_AddLoopingSound( ent->number, cl.sound_precache[ent->soundindex], 1.0f, ATTN_IDLE );
+		sound = ent->pvClientData->current.soundindex;
+		if( !sound ) continue;
+
+		S_AddLoopingSound( ent->serialnumber, cl.sound_precache[sound], 1.0f, ATTN_IDLE );
 	}
 }

@@ -40,10 +40,10 @@ refinst_t RI, prevRI;
 ref_params_t r_lastRefdef;
 
 static int r_numnullentities;
-static ref_entity_t	*r_nullentities[MAX_EDICTS];
+static ref_entity_t	*r_nullentities[MAX_ENTITIES];
 ref_model_t *cl_models[MAX_MODELS];		// client replacement modeltable
 static int r_numbmodelentities;
-static ref_entity_t	*r_bmodelentities[MAX_EDICTS];
+static ref_entity_t	*r_bmodelentities[MAX_MODELS];
 
 static byte r_entVisBits[MAX_EDICTS/8];
 
@@ -61,20 +61,17 @@ msurface_t *r_debug_surface;
 
 char r_speeds_msg[MAX_RSPEEDSMSGSIZE];
 
-//
-// screen size info
-//
-unsigned int r_numEntities;
-ref_entity_t r_entities[MAX_ENTITIES];
-ref_entity_t *r_worldent = &r_entities[0];
+uint		r_numEntities;
+ref_entity_t	r_entities[MAX_ENTITIES];
+ref_entity_t	*r_worldent = &r_entities[0];
 
-unsigned int r_numDlights;
-dlight_t r_dlights[MAX_DLIGHTS];
+uint		r_numDlights;
+dlight_t		r_dlights[MAX_DLIGHTS];
 
-unsigned int r_numPolys;
-poly_t r_polys[MAX_POLYS];
+uint		r_numPolys;
+poly_t		r_polys[MAX_POLYS];
 
-lightstyle_t r_lightStyles[MAX_LIGHTSTYLES];
+lightstyle_t	r_lightStyles[MAX_LIGHTSTYLES];
 
 int r_viewcluster, r_oldviewcluster;
 
@@ -1352,8 +1349,8 @@ static void R_CullEntities( void )
 		case RT_SPRITE:
 			culled = ( e->radius <= 0 ) || ( e->spriteshader == NULL );
 			break;
-		default:
-			break;
+		case RT_NONE:
+		default:	break;
 		}
 
 		if( !culled ) r_entVisBits[i>>3] |= ( 1<<( i&7 ));
@@ -1457,8 +1454,8 @@ add:
 			if( !shadowmap )
 				R_AddSpritePolyToList( e );
 			break;
-		default:
-			break;
+		case RT_NONE:
+		default:	break;
 		}
 	}
 }
@@ -1787,7 +1784,7 @@ R_ClearScene
 */
 void R_ClearScene( void )
 {
-	r_numEntities = 1;
+	r_numEntities = 2;	// world and viewmodel
 	r_numDlights = 0;
 	r_numPolys = 0;
 	RI.previousentity = NULL;
@@ -2238,13 +2235,22 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type )
 	ref_entity_t	*refent;
 	bool		result = false;
 
-	if( !pRefEntity || !pRefEntity->v.modelindex )
-		return false; // if set to invisible, skip
-	if( r_numEntities >= MAX_ENTITIES ) return false;
+	// NULL or overflow
+	if( !pRefEntity || (r_numEntities >= MAX_ENTITIES))
+		return false;
 
-	refent = &r_entities[r_numEntities];
+	if( pRefEntity->serialnumber == VMODEL_ENTINDEX )
+	{
+		// viewmodel always uses this slot for properly store
+		// and playing client-side animation
+		refent = &r_entities[1];
 
-	if( pRefEntity->v.effects & EF_NODRAW )
+		// client lost weapon or change weapon
+		if( !pRefEntity->v.modelindex ) refent->rtype = RT_NONE; // completely ignore to draw
+	}
+	else refent = &r_entities[r_numEntities];
+
+	if( !pRefEntity->v.modelindex || pRefEntity->v.effects & EF_NODRAW )
 		return true; // done
 
 	// filter ents
@@ -2288,7 +2294,10 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type )
 		result = R_AddGenericEntity( pRefEntity, refent );
 		break;
 	}
-	r_numEntities++;
+
+	// viewmodel already reserve slot
+	if( pRefEntity->serialnumber != VMODEL_ENTINDEX )
+		r_numEntities++;
 
 	// never adding child entity without parent
 	// only studio models can have attached childrens

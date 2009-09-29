@@ -10,6 +10,8 @@ extern cl_enginefuncs_t g_engfuncs;
 
 #include "enginecallback.h"
 
+extern cl_globalvars_t		*gpGlobals;
+
 extern int HUD_VidInit( void );
 extern void HUD_Init( void );
 extern int HUD_Redraw( float flTime, int state );
@@ -70,6 +72,10 @@ typedef struct dllfunction_s
 }
 
 #define HOOK_COMMAND( x, y ) (*g_engfuncs.pfnAddCommand)( x, __CmdFunc_##y, "user-defined command" );
+#define DECLARE_HUDCOMMAND( x ) void __CmdFunc_##x( void ) \
+{ \
+	gHUD.UserCmd_##x( ); \
+}
 #define DECLARE_COMMAND( y, x ) void __CmdFunc_##x( void ) \
 { \
 	gHUD.##y.UserCmd_##x( ); \

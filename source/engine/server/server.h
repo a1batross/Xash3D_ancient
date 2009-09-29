@@ -60,8 +60,9 @@ typedef struct server_s
 	sv_state_t	state;		// precache commands are only valid during load
 
 	bool		loadgame;		// client begins should reuse existing entity
+	bool		changelevel;	// chnage map, reconnect clients, transfer entities, merge globals
 
-	int		time;		// always sv.framenum * 50 msec
+	int		time;		// sv.time += sv.frametime
 	int		frametime;
 	int		framenum;
 	int		net_framenum;
@@ -70,6 +71,7 @@ typedef struct server_s
 	int		lastchecktime;	// for monster ai 
 
 	string		name;		// map name, or cinematic name
+	string		startspot;	// player_start name on nextmap
 	cmodel_t		*models[MAX_MODELS];
 	cmodel_t		*worldmodel;
 
@@ -175,6 +177,9 @@ struct sv_priv_s
 	vec3_t			moved_angles;	// push old angles
 	physbody_t		*physbody;	// ptr to phys body
 
+	size_t			pvdata_size;	// member size of alloceed pvPrivateData
+						// (used by SV_CopyEdict)
+
 	// baselines
 	entity_state_t		s;		// this is a player_state too
 };
@@ -227,6 +232,9 @@ typedef struct
 	byte		*mempool;			// edicts pool
 	byte		*private;			// server.dll private pool
 	byte		*temppool;		// for parse, save and restore edicts
+
+	edict_t		*saved_edicts;		// holds the client edicts during changelevel
+	int		num_saved_edicts;
 
 	// library exports table
 	word		*ordinals;
@@ -288,7 +296,6 @@ extern	cvar_t		*sv_rollspeed;
 extern	cvar_t		*sv_maxspeed;
 extern	cvar_t		*sv_maxclients;
 extern	cvar_t		*sv_physics;
-extern	cvar_t		*sv_showclamp;
 extern	sv_client_t	*sv_client;
 
 //===========================================================
@@ -316,10 +323,12 @@ void Master_Packet (void);
 //
 // sv_init.c
 //
-void SV_InitGame (void);
-void SV_Map( char *levelstring, char *savename );
-void SV_SpawnServer( const char *server, const char *savename );
-int SV_FindIndex (const char *name, int start, int end, bool create);
+void SV_InitGame( void );
+void SV_ActivateServer( void );
+void SV_DeactivateServer( void );
+void SV_LevelInit( const char *newmap, const char *oldmap, const char *savename );
+void SV_SpawnServer( const char *server, const char *startspot );
+int SV_FindIndex( const char *name, int start, int end, bool create );
 void SV_ClassifyEdict( edict_t *ent );
 
 //
@@ -365,7 +374,7 @@ void SV_ConnectionlessPacket( netadr_t from, sizebuf_t *msg );
 void SV_SetIdealPitch( sv_client_t *cl );
 
 //
-// sv_ccmds.c
+// sv_cmds.c
 //
 void SV_Status_f( void );
 void SV_Newgame_f( void );
@@ -384,8 +393,11 @@ void SV_LoadProgs( const char *name );
 void SV_UnloadProgs( void );
 void SV_FreeEdicts( void );
 void SV_InitEdict( edict_t *pEdict );
+bool SV_CopyEdict( edict_t *out, edict_t *in );
 void SV_ConfigString( int index, const char *val );
 void SV_SetModel( edict_t *ent, const char *name );
+void SV_PopClients( void );
+void SV_PushClients( void );
 void SV_CreatePhysBody( edict_t *ent );
 void SV_SetPhysForce( edict_t *ent );
 void SV_SetMassCentre( edict_t *ent);
@@ -396,6 +408,7 @@ void SV_SpawnEntities( const char *mapname, script_t *entities );
 edict_t* SV_AllocPrivateData( edict_t *ent, string_t className );
 string_t SV_AllocString( const char *szValue );
 const char *SV_GetString( string_t iString );
+bool SV_MapIsValid( const char *filename, const char *spawn_entity );
 void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float attn, int flags, int pitch );
 
 _inline edict_t *SV_EDICT_NUM( int n, const char * file, const int line )
@@ -425,9 +438,12 @@ void SV_TouchTriggers (edict_t *ent);
 //
 // sv_save.c
 //
-void SV_WriteSaveFile( const char *name, bool autosave );
+void SV_MergeLevelFile( const char *name );
+void SV_ChangeLevel( bool bUseLandmark, const char *mapname, const char *start );
+void SV_WriteSaveFile( const char *name, bool autosave, bool bUseLandmark );
 void SV_ReadSaveFile( const char *name );
 void SV_ReadLevelFile( const char *name );
+const char *SV_GetLatestSave( void );
 //============================================================
 
 //

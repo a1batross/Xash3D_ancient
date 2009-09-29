@@ -42,7 +42,6 @@ static net_field_t ent_fields[] =
 { ES_FIELD(skin),			NET_BYTE,	 false	},	// 255 skins
 { ES_FIELD(body),			NET_BYTE,	 false	},	// 255 bodies
 { ES_FIELD(weaponmodel),		NET_WORD,  false	},	// p_model index, not name 
-{ ES_FIELD(weaponanim),		NET_WORD,  false	},	// 1024 sequences 
 { ES_FIELD(weaponbody),		NET_BYTE,  false	},	// 255 bodies
 { ES_FIELD(weaponskin),		NET_BYTE,  false	},	// 255 skins 
 { ES_FIELD(contents),		NET_LONG,	 false	},	// full range contents
@@ -666,9 +665,10 @@ void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t 
 	if( to == NULL )
 	{
 		if( from == NULL ) return;
+
 		// a NULL to is a delta remove message
 		MSG_WriteBits( msg, from->number, NWDesc[NET_WORD].name, NET_WORD );
-		MSG_WriteBits( msg, -99, NWDesc[NET_LONG].name, NET_LONG );
+		MSG_WriteBits( msg, 0xFFFF, NWDesc[NET_LONG].name, NET_LONG );
 		return;
 	}
 
@@ -730,12 +730,12 @@ void MSG_ReadDeltaEntity( sizebuf_t *msg, entity_state_t *from, entity_state_t *
 	*to = *from;
 	to->number = number;
 
-	if(*(int *)&msg->data[msg->readcount] == -99 )
+	if(*(int *)&msg->data[msg->readcount] == 0xFFFF )
 	{
 		// check for a remove
 		MSG_ReadLong( msg );
-		Mem_Set( to, 0, sizeof(*to));	
-		to->number = -1;
+		Mem_Set( to, 0, sizeof( *to ));	
+		to->number = MAX_EDICTS - 1;	// entity was removed
 		return;
 	}
 	for( i = 0, field = ent_fields; field->name; i++, field++ )

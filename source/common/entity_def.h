@@ -74,7 +74,6 @@ typedef struct entvars_s
 
 	int		sequence;		// ENG [all], NET [all], animation sequence
 	int		gaitsequence;	// NET [player], movement animation sequence for player (0 for none)
-	int		weaponanim;	// NET [all], weaponmodel animation sequencs
 	float		frame;		// NET [all], % playback position in animation sequences (0..255)
 	float		animtime;		// NET [all], world time when frame was set
 	float		framerate;	// NET [all], animation playback rate (-8x to 8x)

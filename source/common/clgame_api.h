@@ -16,6 +16,7 @@ typedef void (*pfnEventHook)( struct event_args_s *args );
 
 #include "trace_def.h"
 #include "event_api.h"
+#include "gameinfo.h"
 
 typedef struct
 {
@@ -50,6 +51,24 @@ typedef struct client_data_s
 	float		v_idlescale;	// view shake/rotate
 	float		mouse_sensitivity;	// used for menus and zoomed weapons
 } client_data_t;
+
+typedef struct cl_globalvars_s
+{	
+	float		time;		// time from server
+	float		frametime;
+	string_t		mapname;
+
+	BOOL		deathmatch;
+	BOOL		coop;
+	BOOL		teamplay;
+
+	int		serverflags;
+	int		maxClients;
+	int		maxEntities;
+	int		numEntities;	// actual ents count
+
+	dll_gameinfo_t	GameInfo;		// shared gameinfo
+} cl_globalvars_t;
 
 typedef struct cl_enginefuncs_s
 {
@@ -166,6 +185,6 @@ typedef struct
 	void	(*pfnStopPitchDrift)( void );
 } HUD_FUNCTIONS;
 
-typedef int (*CLIENTAPI)( HUD_FUNCTIONS *pFunctionTable, cl_enginefuncs_t* pEngfuncsFromEngine );
+typedef int (*CLIENTAPI)( HUD_FUNCTIONS *pFunctionTable, cl_enginefuncs_t* engfuncs, cl_globalvars_t *pGlobals );
 
 #endif//CLGAME_API_H

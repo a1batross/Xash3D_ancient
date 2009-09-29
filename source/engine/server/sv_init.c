@@ -144,6 +144,96 @@ void SV_CheckForSavegame( const char *savename )
 	}
 }
 
+/*
+================
+SV_ActivateServer
+
+activate server on changed map, run physics
+================
+*/
+void SV_ActivateServer( void )
+{
+	int	i;
+
+	// Activate the DLL server code
+	svgame.dllFuncs.pfnServerActivate( svgame.edicts, svgame.globals->numEntities, svgame.globals->maxClients );
+
+	// all precaches are complete
+	sv.state = ss_active;
+	Host_SetServerState( sv.state );
+	
+	// create a baseline for more efficient communications
+	SV_CreateBaseline();
+
+	// run two frames to allow everything to settle
+	for( i = 0; i < 2; i++ )
+	{
+		sv.frametime = 100;
+		SV_Physics();
+	}
+
+	// tell what kind of server has been started.
+	if( svgame.globals->maxClients > 1 )
+	{
+		MsgDev( D_INFO, "%i player server started\n", svgame.globals->maxClients );
+	}
+	else
+	{
+		MsgDev( D_INFO, "Game started\n" );
+	}
+
+	// set serverinfo variable
+	Cvar_FullSet( "mapname", sv.name, CVAR_SERVERINFO|CVAR_INIT );
+
+	pe->EndRegistration (); // free unused models
+}
+
+/*
+================
+SV_DeactivateServer
+
+deactivate server, free edicts stringtables etc
+================
+*/
+void SV_DeactivateServer( void )
+{
+	SV_FreeEdicts ();
+
+	Cvar_SetValue( "paused", 0 );
+
+	// leave unchanged, because we wan't load it twice
+	if( !sv.loadgame ) StringTable_Clear( svgame.hStringTable );
+
+	svgame.dllFuncs.pfnServerDeactivate();
+
+	svgame.globals->maxEntities = GI->max_edicts;
+	svgame.globals->maxClients = sv_maxclients->integer;
+	svgame.globals->numEntities = svgame.globals->maxClients + 1; // clients + world
+	svgame.globals->numClients = 0;
+	svgame.globals->mapname = 0;
+}
+
+/*
+================
+SV_LevelInit
+
+Spawn all entities
+================
+*/
+void SV_LevelInit( const char *newmap, const char *oldmap, const char *savename )
+{
+	if( sv.loadgame )
+	{
+		if( savename ) SV_ReadLevelFile( savename );
+		else SV_SpawnEntities( newmap, pe->GetEntityScript( ));
+	}
+	else if( sv.changelevel )
+	{
+		SV_ReadSaveFile( savename );	// initialize StringTable and globals
+		SV_MergeLevelFile( savename );// combine moveable entities with newmap
+	}
+	else SV_SpawnEntities( newmap, pe->GetEntityScript());
+}
 
 /*
 ================
@@ -154,24 +244,43 @@ clients along with it.
 
 ================
 */
-void SV_SpawnServer( const char *server, const char *savename )
+void SV_SpawnServer( const char *server, const char *startspot )
 {
 	uint	i, checksum;
+	int	current_skill;
+	int	loadgame, changelevel;
 
-	Msg( "SpawnServer [%s]\n", server );
+	Msg( "SpawnServer [^2%s^7]\n", server );
+
+	if( sv.state == ss_dead && !sv.loadgame )
+		SV_InitGame(); // the game is just starting
+
+	SV_BroadcastCommand( "changing\n" );
+
+	if( sv.state == ss_active )
+	{
+		SV_BroadcastCommand( "reconnect\n" );
+		SV_SendClientMessages();
+		SV_DeactivateServer (); // server is shutting down ...
+	}
 
 	svs.timestart = Sys_Milliseconds();
 	svs.spawncount++; // any partially connected client will be restarted
+
+	// save state
+	loadgame = sv.loadgame;
+	changelevel = sv.changelevel;
+
 	sv.state = ss_dead;
 	Host_SetServerState( sv.state );
+	Mem_Set( &sv, 0, sizeof( sv ));	// wipe the entire per-level structure
 
-	// wipe the entire per-level structure
-	Mem_Set( &sv, 0, sizeof( sv ));
+	// restore state
+	sv.loadgame = loadgame;
+	sv.changelevel = changelevel;
 
-	// save name for levels that don't set message
-	com.strncpy( sv.configstrings[CS_NAME], server, CS_SIZE );
+	// initialize multicast buffer
 	MSG_Init( &sv.multicast, sv.multicast_buf, sizeof( sv.multicast_buf ));
-	com.strcpy( sv.name, server );
 
 	// leave slots at start for clients only
 	for( i = 0; i < sv_maxclients->integer; i++ )
@@ -182,12 +291,23 @@ void SV_SpawnServer( const char *server, const char *savename )
 		svs.clients[i].lastframe = -1;
 	}
 
-	sv.time = 1000;
-	
-	com.strncpy( sv.name, server, MAX_STRING );
-	FS_FileBase(server, sv.configstrings[CS_NAME]);
+	// make cvars consistant
+	if( Cvar_VariableInteger( "coop" )) Cvar_SetValue( "deathmatch", 0 );
+	current_skill = Q_rint( Cvar_VariableValue( "skill" ));
+	if( current_skill < 0 ) current_skill = 0;
+	if( current_skill > 3 ) current_skill = 3;
 
-	com.sprintf( sv.configstrings[CS_MODELS+1], "maps/%s", server );
+	Cvar_SetValue( "skill", (float)current_skill );
+
+	sv.time = 1000;
+
+	FS_FileBase( server, sv.name ); // make sure what server name doesn't contain path and extension
+	com.strncpy( svs.mapname, sv.name, sizeof( svs.mapname ));
+	com.strncpy( sv.configstrings[CS_NAME], sv.name, CS_SIZE);
+	if( startspot ) com.strncpy( sv.startspot, startspot, sizeof( sv.startspot ));
+	else sv.startspot[0] = '\0';
+
+	com.sprintf( sv.configstrings[CS_MODELS+1], "maps/%s.bsp", sv.name );
 	sv.worldmodel = sv.models[1] = pe->BeginRegistration( sv.configstrings[CS_MODELS+1], false, &checksum );
 	com.sprintf( sv.configstrings[CS_MAPCHECKSUM], "%i", checksum );
 	com.strncpy( sv.configstrings[CS_SKYNAME], "<skybox>", 64 );
@@ -201,40 +321,9 @@ void SV_SpawnServer( const char *server, const char *savename )
 		sv.models[i+1] = pe->RegisterModel(sv.configstrings[CS_MODELS+1+i] );
 	}
 
-	//
-	// spawn the rest of the entities on the map
-	//	
-
-	// precache and static commands can be issued during
-	// map initialization
+	// precache and static commands can be issued during map initialization
 	sv.state = ss_loading;
 	Host_SetServerState( sv.state );
-
-	// check for a savegame
-	SV_CheckForSavegame( savename );
-
-	if( sv.loadgame ) SV_ReadLevelFile( savename );
-	else SV_SpawnEntities( sv.name, pe->GetEntityScript());
-
-	svgame.dllFuncs.pfnServerActivate( EDICT_NUM( 0 ), svgame.globals->numEntities, svgame.globals->maxClients );
-
-	// run two frames to allow everything to settle
-	for( i = 0; i < 2; i++ )
-	{
-		sv.frametime = 100;
-		SV_Physics();
-	}
-
-	// all precaches are complete
-	sv.state = ss_active;
-	Host_SetServerState( sv.state );
-
-	// create a baseline for more efficient communications
-	SV_CreateBaseline();
-
-	// set serverinfo variable
-	Cvar_FullSet( "mapname", sv.name, CVAR_SERVERINFO|CVAR_INIT );
-	pe->EndRegistration(); // free unused models
 }
 
 /*

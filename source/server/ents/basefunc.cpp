@@ -701,10 +701,10 @@ void CFuncTeleport :: Touch( CBaseEntity *pOther )
 		return;
 	if( IsLockedByMaster( pOther )) return;
 
-	pTarget = UTIL_FindEntityByTargetname( pTarget, STRING(pev->target) );
-	if ( !pTarget ) return;
+	pTarget = UTIL_FindEntityByTargetname( pTarget, STRING( pev->target ));
+	if( !pTarget ) return;
 
-	CBaseEntity *pLandmark = UTIL_FindEntityByTargetname( NULL, STRING(pev->message) );
+	CBaseEntity *pLandmark = UTIL_FindEntityByTargetname( NULL, STRING( pev->message ));
 	if ( pLandmark )
 	{
 		Vector vecOriginOffs = pTarget->pev->origin - pLandmark->pev->origin;

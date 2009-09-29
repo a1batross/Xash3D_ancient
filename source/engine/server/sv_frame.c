@@ -141,13 +141,17 @@ void SV_EmitPacketEntities( client_frame_t *from, client_frame_t *to, sizebuf_t 
 
 		if( newnum == oldnum )
 		{	
+			bool	newentity = false;
+
 			// delta update from old position
 			// because the force parm is false, this will not result
 			// in any bytes being emited if the entity has not changed at all
 			// note that players are always 'newentities', this updates their oldorigin always
 			// and prevents warping
-			MSG_WriteDeltaEntity( oldent, newent, msg, false,
-			(newent->ed_type == ED_CLIENT) || (newent->ed_type == ED_PORTAL));
+			if( newent->ed_type == ED_CLIENT ) newentity = true;
+			if( newent->ed_type == ED_PORTAL ) newentity = true;
+
+			MSG_WriteDeltaEntity( oldent, newent, msg, false, newentity );
 			oldindex++;
 			newindex++;
 			continue;
@@ -358,11 +362,9 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 		}
 	}
 
-	MSG_WriteByte( msg, svc_time );
-	MSG_WriteLong( msg, sv.time );		// send a servertime before each frame
-
 	MSG_WriteByte( msg, svc_frame );
 	MSG_WriteLong( msg, sv.framenum );
+	MSG_WriteLong( msg, sv.time );		// send a servertime each frame
 	MSG_WriteLong( msg, sv.frametime );
 	MSG_WriteLong( msg, lastframe );		// what we are delta'ing from
 	MSG_WriteByte( msg, cl->surpressCount );	// rate dropped packets
@@ -372,14 +374,14 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 	MSG_WriteByte( msg, frame->areabits_size );	// never more than 255 bytes
 	MSG_WriteData( msg, frame->areabits, frame->areabits_size );
 
+	// delta encode the entities
+	SV_EmitPacketEntities( oldframe, frame, msg );
+
 	// just send an client index
 	// it's safe, because NUM_FOR_EDICT always equal ed->serialnumber,
 	// thats shared across network
 	MSG_WriteByte( msg, svc_playerinfo );
 	MSG_WriteByte( msg, frame->index );
-
-	// delta encode the entities
-	SV_EmitPacketEntities( oldframe, frame, msg );
 }
 
 
@@ -558,6 +560,8 @@ void SV_SendClientMessages( void )
 {
 	sv_client_t	*cl;
 	int		i;
+
+	if( sv.state == ss_dead ) return;
 
 	// send a message to each connected client
 	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )

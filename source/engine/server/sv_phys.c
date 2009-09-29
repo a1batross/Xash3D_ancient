@@ -1222,6 +1222,8 @@ void SV_Physics_Follow( edict_t *ent )
 	if(!SV_RunThink( ent )) return;
 
 	e = ent->v.aiment;
+	if( !e || e->free ) return;
+
 	if(VectorCompare( e->v.angles, ent->v.punchangle ))
 	{
 		// quick case for no rotation

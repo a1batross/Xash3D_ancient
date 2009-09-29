@@ -335,9 +335,10 @@ float R_GetSpriteFrameInterpolant( ref_entity_t *ent, mspriteframe_t **oldframe,
 	{
 		if( m_fDoInterp )
 		{
-			if( psprite->frames[ent->prev.sequence].type != FRAME_SINGLE )
+			if( ent->prev.sequence >= psprite->numframes || psprite->frames[ent->prev.sequence].type != FRAME_SINGLE )
 			{
 				// this can be happens when rendering switched between single and angled frames
+				// or change model on replace delta-entity
 				ent->prev.sequence = ent->sequence = frame;
 				ent->animtime = RI.refdef.time;
 				lerpFrac = 1.0f;
@@ -365,6 +366,14 @@ float R_GetSpriteFrameInterpolant( ref_entity_t *ent, mspriteframe_t **oldframe,
 		{
 			ent->prev.sequence = ent->sequence = frame;
 			lerpFrac = 1.0f;
+		}
+
+		if( ent->prev.sequence >= psprite->numframes )
+		{
+			// reset interpolation on change model
+			ent->prev.sequence = ent->sequence = frame;
+			ent->animtime = RI.refdef.time;
+			lerpFrac = 0.0f;
 		}
 
 		// get the interpolated frames
@@ -412,9 +421,10 @@ float R_GetSpriteFrameInterpolant( ref_entity_t *ent, mspriteframe_t **oldframe,
 
 		if( m_fDoInterp )
 		{
-			if( psprite->frames[ent->prev.sequence].type != FRAME_ANGLED )
+			if( ent->prev.sequence >= psprite->numframes || psprite->frames[ent->prev.sequence].type != FRAME_ANGLED )
 			{
 				// this can be happens when rendering switched between single and angled frames
+				// or change model on replace delta-entity
 				ent->prev.sequence = ent->sequence = frame;
 				ent->animtime = RI.refdef.time;
 				lerpFrac = 1.0f;
@@ -504,7 +514,7 @@ bool R_DrawSpriteModel( const meshbuffer_t *mb )
 		lerp = bound( 0, lerp, 1 );
 		ilerp = 1.0f - lerp;
 	
-		if( ilerp != 0 && oldframe->shader > 0 && oldframe->shader < MAX_SHADERS ) // FIXME
+		if( ilerp != 0 )
 		{
 			e->renderamt = renderamt * ilerp;	// merge prevframe alpha
 			rb->shaderkey = r_shaders[oldframe->shader].sortkey;

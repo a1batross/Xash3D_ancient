@@ -3426,15 +3426,16 @@ int CBasePlayer::Restore( CRestore &restore )
 
 		// default to normal spawn
 		edict_t* pentSpawnSpot = EntSelectSpawnPoint( this );
-		pev->origin = VARS(pentSpawnSpot)->origin + Vector(0,0,1);
-		pev->angles = VARS(pentSpawnSpot)->angles;
+		pev->origin = VARS( pentSpawnSpot )->origin + Vector( 0, 0, 1 );
+		pev->viewangles = pev->angles = VARS( pentSpawnSpot )->angles;
 	}
+
 	pev->viewangles.z = 0;		// clear out roll
 	pev->angles = pev->viewangles;
 	pev->fixangle = TRUE;		// turn this way immediately
 
 	// Copied from spawn() for now
-	m_bloodColor	= BLOOD_COLOR_RED;
+	m_bloodColor = BLOOD_COLOR_RED;
 
 	g_ulModelIndexPlayer = pev->modelindex;
 
@@ -3442,11 +3443,11 @@ int CBasePlayer::Restore( CRestore &restore )
 	{
 		// Use the crouch HACK
 		FixPlayerCrouchStuck( edict() );
-		UTIL_SetSize(pev, VEC_DUCK_HULL_MIN, VEC_DUCK_HULL_MAX);
+		UTIL_SetSize( pev, VEC_DUCK_HULL_MIN, VEC_DUCK_HULL_MAX );
 	}
 	else
 	{
-		UTIL_SetSize(pev, VEC_HULL_MIN, VEC_HULL_MAX);
+		UTIL_SetSize( pev, VEC_HULL_MIN, VEC_HULL_MAX );
 	}
 
 	RenewItems();

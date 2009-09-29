@@ -602,17 +602,14 @@ void NET_Config( bool multiplayer )
 }
 
 // sleeps msec or until net socket is ready
-void NET_Sleep( float time )
+void NET_Sleep( int msec )
 {
 	struct timeval	timeout;
 	fd_set		fdset;
 	int		i = 0;
-	long		sec = (int)time;
-	long		usec = (time - sec) * 1000;
 
 	if( Sys.app_name == HOST_NORMAL )
-		return;		// we're not a dedicated server, just run full speed
-	if( !sec && !usec ) return;	// smaller than timer resoultion
+		return; // we're not a server, just run full speed
 
 	FD_ZERO( &fdset );
 
@@ -622,8 +619,8 @@ void NET_Sleep( float time )
 		i = ip_sockets[NS_SERVER];
 	}
 
-	timeout.tv_sec = sec;
-	timeout.tv_usec = usec;
+	timeout.tv_sec = msec / 1000;
+	timeout.tv_usec = (msec % 1000) * 1000;
 	pSelect( i+1, &fdset, NULL, NULL, &timeout );
 }
 

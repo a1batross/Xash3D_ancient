@@ -149,7 +149,7 @@ byte *Mod_ClusterPVS( int cluster, ref_model_t *model )
 {
 	mbrushmodel_t *bmodel = ( mbrushmodel_t * )model->extradata;
 
-	if( cluster == -1 || !bmodel->vis )
+	if( !model || !bmodel || !bmodel->vis || cluster < 0 || cluster >= bmodel->vis->numclusters )
 		return mod_novis;
 	return ( (byte *)bmodel->vis->data + cluster*bmodel->vis->rowsize );
 }
@@ -2021,15 +2021,15 @@ void R_BeginRegistration( const char *mapname, const dvis_t *visData )
 	if( com.strcmp( r_models[0].name, fullname ))
 	{
 		Mod_FreeModel( &r_models[0] );
-		R_NewMap ();
 	}
 	else
 	{
 		// update progress bar
 		Cvar_SetValue( "scr_loading", 50.0f );
 		if( ri.UpdateScreen ) ri.UpdateScreen();
-		R_StudioFreeAllExtradata (); // load game issues
 	}
+
+	R_NewMap ();
 	
 	if( r_lighting_packlightmaps->integer )
 	{

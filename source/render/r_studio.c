@@ -130,7 +130,8 @@ void R_StudioAllocExtradata( edict_t *in, ref_entity_t *e )
 		}
 		else
 		{
-			R_StudioFrameAdvance( e, 0 );
+			if( !studio->m_fSequenceFinished )
+				R_StudioFrameAdvance( e, 0 );
 
 			if( studio->m_fSequenceFinished )
 			{
@@ -1928,7 +1929,7 @@ void R_StudioDrawDebug( void )
 	GL_SetState( GLSTATE_NO_DEPTH_TEST|GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 	pglDepthRange( 0, 0 );
 
-	for( i = 0; i < r_numEntities; i++ )
+	for( i = 1; i < r_numEntities; i++ )
 	{
 		RI.previousentity = RI.currententity;
 		RI.currententity = &r_entities[i];

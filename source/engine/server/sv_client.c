@@ -560,7 +560,7 @@ void SV_PutClientInServer( edict_t *ent )
 	ent->pvServerData->s.ed_type = ED_CLIENT; // init edict type
 	ent->free = false;
 
-	if( !sv.loadgame )
+	if( !sv.changelevel && !sv.loadgame )
 	{	
 		// fisrt entering
 		svgame.dllFuncs.pfnClientPutInServer( ent );
@@ -581,6 +581,10 @@ void SV_PutClientInServer( edict_t *ent )
 	SV_LinkEdict( ent ); // m_pmatrix calculated here, so we need call this before pe->CreatePlayer
 	ent->pvServerData->physbody = pe->CreatePlayer( ent, SV_GetModelPtr( ent ), ent->v.origin, ent->v.m_pmatrix );
 	Mem_EmptyPool( svgame.temppool ); // all tempstrings can be freed now
+
+	// clear any temp states
+	sv.changelevel = false;
+	sv.loadgame = false;
 
 	MsgDev( D_INFO, "level loaded at %g sec\n", (Sys_Milliseconds() - svs.timestart) * 0.001f );
 }
@@ -617,9 +621,9 @@ void SV_New_f( sv_client_t *cl )
 	MSG_WriteByte( &cl->netchan.message, svc_serverdata );
 	MSG_WriteLong( &cl->netchan.message, PROTOCOL_VERSION);
 	MSG_WriteLong( &cl->netchan.message, svs.spawncount );
-	MSG_WriteLong( &cl->netchan.message, sv.frametime );
 	MSG_WriteShort( &cl->netchan.message, playernum );
 	MSG_WriteString( &cl->netchan.message, sv.configstrings[CS_NAME] );
+	MSG_WriteString( &cl->netchan.message, STRING( EDICT_NUM( 0 )->v.message ));	// Map Message
 
 	// game server
 	if( sv.state == ss_active )
@@ -632,7 +636,7 @@ void SV_New_f( sv_client_t *cl )
 
 		// begin fetching configstrings
 		MSG_WriteByte( &cl->netchan.message, svc_stufftext );
-		MSG_WriteString( &cl->netchan.message, va("cmd configstrings %i %i\n", svs.spawncount, 0 ));
+		MSG_WriteString( &cl->netchan.message, va( "cmd configstrings %i %i\n", svs.spawncount, 0 ));
 	}
 }
 
@@ -1066,7 +1070,7 @@ void SV_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 	Cmd_TokenizeString( s );
 
 	c = Cmd_Argv( 0 );
-	MsgDev( D_INFO, "SV_ConnectionlessPacket: %s : %s\n", NET_AdrToString(from), c);
+	MsgDev( D_INFO, "SV_ConnectionlessPacket: %s : %s\n", NET_AdrToString( from ), c );
 
 	if( !com.strcmp( c, "ping" )) SV_Ping( from );
 	else if( !com.strcmp( c, "ack" )) SV_Ack( from );

@@ -151,4 +151,8 @@ Beta 13.12.09
 124. fixup studio events on client-side		OK
 125. sort & implement engfuncs on server.dll
 126. implement trace from Quake3
-127. debug sv.edicts and cl.edicts management
+127. debug sv.edicts and cl.edicts management	OK
+128. fixup sprites lerping			OK
+129. fixup sound orientation			OK
+130. don't show console on changelevel		OK
+131. support for doom3-style parsing

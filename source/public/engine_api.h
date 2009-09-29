@@ -10,16 +10,15 @@
 //
 // engine constant limits, touching networking protocol modify with precaution
 //
-#define MAX_DLIGHTS			32	// dynamic lights (per one frame)
+#define MAX_DLIGHTS			32	// dynamic lights (rendered per one frame)
 #define MAX_LIGHTSTYLES		256	// can't be blindly increased
-#define MAX_DECALS			256	// server decal indexes
+#define MAX_DECALS			256	// server decal indexes (different decalnames, not a render limit)
 #define MAX_USER_MESSAGES		200	// another 56 messages reserved for engine routines
 #define MAX_CLASSNAMES		512	// maxcount of various edicts classnames
 #define MAX_SOUNDS			512	// openal software limit
 #define MAX_MODELS			4096	// total count of brush & studio various models per one map
 #define MAX_PARTICLES		32768	// pre one frame
-#define MAX_EDICTS			65535	// absolute limit that never be reached, (do not edit!)
-#define MAX_VERTS_ON_POLY		10	// decal vertices
+#define MAX_EDICTS			32768	// absolute limit that never be reached, (do not edit!)
 
 /*
 ==============================================================================
