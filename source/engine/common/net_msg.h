@@ -156,17 +156,6 @@ static const net_desc_t NWDesc[] =
 #define CS_USER_MESSAGES		(CS_LIGHTSTYLES+MAX_LIGHTSTYLES)	// names of user messages
 #define MAX_CONFIGSTRINGS		(CS_USER_MESSAGES+MAX_USER_MESSAGES)	// total count
 
-// sound flags
-#define SND_VOL			(1<<0)	// a scaled byte
-#define SND_ATTN			(1<<1)	// a byte
-#define SND_POS			(1<<2)	// three coordinates
-#define SND_ENT			(1<<3)	// a short 0 - 2: channel, 3 - 12: entity
-#define SND_PITCH			(1<<4)	// a byte
-#define SND_STOP			(1<<5)	// stop sound or loopsound 
-#define SND_CHANGE_VOL		(1<<6)	// change sound vol
-#define SND_CHANGE_PITCH		(1<<7)	// change sound pitch
-#define SND_SPAWNING		(1<<8)	// we're spawing, used in some cases for ambients
- 
 /*
 ==============================================================================
 

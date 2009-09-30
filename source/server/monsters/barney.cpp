@@ -478,10 +478,7 @@ void CBarney :: Spawn()
 //=========================================================
 void CBarney :: Precache()
 {
-	if (pev->model)
-		PRECACHE_MODEL((char*)STRING(pev->model)); //LRC
-	else
-		PRECACHE_MODEL("models/barney.mdl");
+	UTIL_PrecacheModel( pev->model, "models/barney.mdl" );
 
 	PRECACHE_SOUND("barney/ba_attack1.wav" );
 	PRECACHE_SOUND("barney/ba_attack2.wav" );

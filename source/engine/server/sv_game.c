@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "server.h"
+#include "net_sound.h"
 #include "byteorder.h"
 #include "matrix_lib.h"
 #include "com_library.h"
@@ -1602,36 +1603,23 @@ void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float
 		return;
 	}
 
-	if( vol != 1.0f ) flags |= SND_VOL;
-	if( attn != 1.0f ) flags |= SND_ATTN;
+	if( vol != VOL_NORM ) flags |= SND_VOLUME;
+	if( attn != ATTN_NONE ) flags |= SND_SOUNDLEVEL;
 	if( pitch != PITCH_NORM ) flags |= SND_PITCH;
 
-	switch( ent->v.movetype )
+	// use the entity origin unless it is a bmodel or explicitly specified
+	if( ent->v.solid == SOLID_BSP || VectorCompare( ent->v.origin, vec3_origin ))
 	{
-	case MOVETYPE_NONE:
-		flags |= SND_POS;
-		break;
-	default:
-		flags |= SND_ENT;
-		break;
+		VectorAverage( ent->v.mins, ent->v.maxs, snd_origin );
+		VectorAdd( snd_origin, ent->v.origin, snd_origin );
+		reliable = true; // because brush center can be out of PHS (outside from world)
+		use_phs = false;
 	}
-
-	if( flags & SND_POS )
+	else
 	{
-		// use the entity origin unless it is a bmodel or explicitly specified
-		if( ent->v.solid == SOLID_BSP || VectorCompare( ent->v.origin, vec3_origin ))
-		{
-			VectorAverage( ent->v.mins, ent->v.maxs, snd_origin );
-			VectorAdd( snd_origin, ent->v.origin, snd_origin );
-			reliable = true; // because brush center can be out of PHS (outside from world)
-			use_phs = false;
-		}
-		else
-		{
-			VectorCopy( ent->v.origin, snd_origin );
-			reliable = false;
-			use_phs = true;
-		}
+		VectorCopy( ent->v.origin, snd_origin );
+		reliable = false;
+		use_phs = true;
 	}
 	// NOTE: bsp origin for moving edicts will be done on client-side
 
@@ -1643,20 +1631,19 @@ void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float
 	sound_idx = SV_SoundIndex( sample );
 
 	MSG_Begin( svc_sound );
-	MSG_WriteByte( &sv.multicast, flags );
+	MSG_WriteWord( &sv.multicast, flags );
 	MSG_WriteWord( &sv.multicast, sound_idx );
 	MSG_WriteByte( &sv.multicast, chan );
 
-	if( flags & SND_VOL ) MSG_WriteByte( &sv.multicast, vol * 255 );
-	if( flags & SND_ATTN) MSG_WriteByte( &sv.multicast, attn * 127 );
-	if(flags & SND_PITCH) MSG_WriteByte( &sv.multicast, pitch );
-	if( flags & SND_ENT ) MSG_WriteWord( &sv.multicast, ent->serialnumber );
-	if( flags & SND_POS )
-	{
-		MSG_WriteCoord32( &sv.multicast, snd_origin[0] );
-		MSG_WriteCoord32( &sv.multicast, snd_origin[1] );
-		MSG_WriteCoord32( &sv.multicast, snd_origin[2] );
-	}
+	if ( flags & SND_VOLUME ) MSG_WriteByte( &sv.multicast, vol * 255 );
+	if ( flags & SND_SOUNDLEVEL ) MSG_WriteByte( &sv.multicast, ATTN_TO_SNDLVL( attn ));
+	if ( flags & SND_PITCH ) MSG_WriteByte( &sv.multicast, pitch );
+
+	MSG_WriteWord( &sv.multicast, ent->serialnumber );
+	MSG_WriteCoord32( &sv.multicast, snd_origin[0] );
+	MSG_WriteCoord32( &sv.multicast, snd_origin[1] );
+	MSG_WriteCoord32( &sv.multicast, snd_origin[2] );
+
 	if( reliable )
 	{
 		if( use_phs ) MSG_Send( MSG_PHS_R, snd_origin, ent );
@@ -1981,6 +1968,10 @@ pfnMessageBegin
 */
 void pfnMessageBegin( int msg_dest, int msg_num, const float *pOrigin, edict_t *ed )
 {
+	if( svgame.msg_started )
+		Host_Error( "MessageBegin: New message started when msg '%s' has not been sent yet\n", svgame.msg_name );
+	svgame.msg_started = true;
+
 	// some malicious users can send message with engine index
 	// reduce number to avoid overflow problems or cheating
 	svgame.msg_index = bound( svc_bad, msg_num, svc_nop );
@@ -2019,6 +2010,7 @@ void pfnMessageEnd( void )
 	const char *name = "Unknown";
 
 	if( svgame.msg_name ) name = svgame.msg_name;
+	svgame.msg_started = false;
 
 	if( svgame.msg_sizes[svgame.msg_index] != -1 )
 	{
@@ -2684,9 +2676,27 @@ pfnCrosshairAngle
 */
 void pfnCrosshairAngle( const edict_t *pClient, float pitch, float yaw )
 {
+	sv_client_t	*client;
+
+	if( pClient == NULL || pClient->free || !pClient->pvServerData )
+	{
+		MsgDev( D_ERROR, "SV_CrosshairAngle: invalid client!\n" );
+		return;
+	}
+
+	client = pClient->pvServerData->client;
+	if( !client )
+	{
+		MsgDev( D_ERROR, "SV_CrosshairAngle: not a client!\n" );
+		return;
+	}
+
+	// fakeclients ignore it silently
+	if( pClient->v.flags & FL_FAKECLIENT ) return;
+
 	MSG_Begin( svc_crosshairangle );
-	MSG_WriteAngle32( &sv.multicast, pitch );
-	MSG_WriteAngle32( &sv.multicast, yaw );
+	MSG_WriteAngle8( &sv.multicast, pitch );
+	MSG_WriteAngle8( &sv.multicast, yaw );
 	MSG_Send( MSG_ONE_R, vec3_origin, pClient );
 }
 

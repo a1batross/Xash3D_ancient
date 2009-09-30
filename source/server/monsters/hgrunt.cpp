@@ -946,7 +946,7 @@ void CHGrunt :: HandleAnimEvent( MonsterEvent_t *pEvent )
 
 		case HGRUNT_AE_GREN_LAUNCH:
 		{
-			EMIT_SOUND(ENT(pev), CHAN_WEAPON, "weapons/glauncher.wav", 0.8, ATTN_NORM);
+			EMIT_SOUND(ENT(pev), CHAN_WEAPON, "weapons/mp5/glauncher.wav", 0.8, ATTN_NORM);
 			//LRC: firing due to a script?
 			if (m_pCine)
 			{
@@ -993,7 +993,7 @@ void CHGrunt :: HandleAnimEvent( MonsterEvent_t *pEvent )
 				}
 				else
 				{
-					EMIT_SOUND( ENT(pev), CHAN_WEAPON, "weapons/dryfire1.wav", 1, ATTN_NORM );
+					EMIT_SOUND( ENT(pev), CHAN_WEAPON, "weapons/cock1.wav", 1, ATTN_NORM );
 				}
 
 				Shoot();
@@ -1002,7 +1002,7 @@ void CHGrunt :: HandleAnimEvent( MonsterEvent_t *pEvent )
 			{
 				Shotgun( );
 
-				EMIT_SOUND(ENT(pev), CHAN_WEAPON, "weapons/sbarrel1.wav", 1, ATTN_NORM );
+				EMIT_SOUND(ENT(pev), CHAN_WEAPON, "weapons/shotgun/shotgun_single.wav", 1, ATTN_NORM );
 			}
 		
 			CSoundEnt::InsertSound ( bits_SOUND_COMBAT, pev->origin, 384, 0.3 );
@@ -1121,12 +1121,9 @@ void CHGrunt :: Spawn()
 //=========================================================
 void CHGrunt :: Precache()
 {
-	if (pev->model)
-		PRECACHE_MODEL((char*)STRING(pev->model)); //LRC
-	else
-		PRECACHE_MODEL("models/hgrunt.mdl");
+	UTIL_PrecacheModel( pev->model, "models/hgrunt.mdl" );
 
-	PRECACHE_SOUND( "weapons/dryfire1.wav" ); //LRC
+	PRECACHE_SOUND( "weapons/cock1.wav" );
 
 	PRECACHE_SOUND( "hgrunt/gr_mgun1.wav" );
 	PRECACHE_SOUND( "hgrunt/gr_mgun2.wav" );
@@ -1143,9 +1140,9 @@ void CHGrunt :: Precache()
 
 	PRECACHE_SOUND( "hgrunt/gr_reload1.wav" );
 
-	PRECACHE_SOUND( "weapons/glauncher.wav" );
+	PRECACHE_SOUND( "weapons/mp5/glauncher.wav" );
 
-	PRECACHE_SOUND( "weapons/sbarrel1.wav" );
+	PRECACHE_SOUND( "weapons/shotgun/shotgun_single.wav" );
 
 	PRECACHE_SOUND("zombie/claw_miss2.wav");// because we use the basemonster SWIPE animation event
 
@@ -1155,8 +1152,8 @@ void CHGrunt :: Precache()
 	else
 		m_voicePitch = 100;
 
-	m_iBrassShell = UTIL_PrecacheModel ("models/shell556.mdl");// brass shell
-	m_iShotgunShell = UTIL_PrecacheModel ("models/shellBuck.mdl");
+	m_iBrassShell = UTIL_PrecacheModel ("models/gibs/shell556.mdl");// brass shell
+	m_iShotgunShell = UTIL_PrecacheModel ("models/gibs/shellbuck.mdl");
 }	
 
 //=========================================================

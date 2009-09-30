@@ -3,14 +3,14 @@
 <pre>
 <h1>Build Log</h1>
 <h3>
---------------------Configuration: server - Win32 Debug--------------------
+--------------------Configuration: client - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
 
 
 
 <h3>Results</h3>
-server.dll - 0 error(s), 0 warning(s)
+client.dll - 0 error(s), 0 warning(s)
 </pre>
 </body>
 </html>

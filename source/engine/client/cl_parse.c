@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "common.h"
 #include "client.h"
+#include "net_sound.h"
 
 /*
 ===============
@@ -187,30 +188,28 @@ void CL_ParseSoundPacket( sizebuf_t *msg )
 	float 	volume, attenuation;  
 	int	flags, pitch, entnum;
 
-	flags = MSG_ReadByte( msg );
+	flags = MSG_ReadWord( msg );
 	sound_num = MSG_ReadWord( msg );
 	channel = MSG_ReadByte( msg );
 
-	if( flags & SND_VOL )
+	if( flags & SND_VOLUME )
 		volume = MSG_ReadByte( msg ) / 255.0f;
-	else volume = 1.0f;
-	if( flags & SND_ATTN )
-		attenuation = MSG_ReadByte( msg ) / 255.0f;
-	else attenuation = ATTN_NORM;	
+	else volume = VOL_NORM;
+	if( flags & SND_SOUNDLEVEL )
+	{
+		int soundlevel = MSG_ReadByte( msg );
+		attenuation = SNDLVL_TO_ATTN( soundlevel );
+	}
+	else attenuation = ATTN_NONE;	
 	if( flags & SND_PITCH )
 		pitch = MSG_ReadByte( msg );
 	else pitch = PITCH_NORM;
 
 	// entity reletive
-	if( flags & SND_ENT )
-		entnum = MSG_ReadBits( msg, NET_WORD ); 
+	entnum = MSG_ReadBits( msg, NET_WORD ); 
 
-	if( flags & SND_POS )
-	{	
-		// positioned in space
-		MSG_ReadPos( msg, pos );
-	}
-	else VectorClear( pos );
+	// positioned in space
+	MSG_ReadPos( msg, pos );
 
 	S_StartSound( pos, entnum, channel, cl.sound_precache[sound_num], volume, attenuation, pitch );
 }
@@ -431,8 +430,8 @@ offset crosshair angles
 */
 void CL_ParseCrosshairAngle( sizebuf_t *msg )
 {
-	cl.refdef.crosshairangle[0] = MSG_ReadAngle32( msg );
-	cl.refdef.crosshairangle[1] = MSG_ReadAngle32( msg );
+	cl.refdef.crosshairangle[0] = MSG_ReadAngle8( msg );
+	cl.refdef.crosshairangle[1] = MSG_ReadAngle8( msg );
 	cl.refdef.crosshairangle[2] = 0; // not used for screen space
 }
 

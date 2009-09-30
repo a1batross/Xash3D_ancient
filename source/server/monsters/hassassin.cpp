@@ -368,7 +368,7 @@ void CHAssassin :: Precache()
 
 	PRECACHE_SOUND("debris/beamstart1.wav");
 
-	m_iShell = UTIL_PrecacheModel ("models/shell556.mdl");// brass shell
+	m_iShell = UTIL_PrecacheModel ("models/gibs/shell556.mdl");// brass shell
 }	
 	
 

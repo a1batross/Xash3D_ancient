@@ -271,6 +271,7 @@ static const saveformat_t save_null[] =
 static const saveformat_t save_extragen[] =
 {
 { "%s%s.%s", "tga", Image_SaveTGA },		// tga screenshots
+{ "%s%s.%s", "jpg", Image_SaveJPG },		// jpg screenshots
 { "%s%s.%s", "png", Image_SavePNG },		// png levelshots
 { "%s%s.%s", "dds", Image_SaveDDS },		// vtf use this
 { "%s%s.%s", "pcx", Image_SavePCX },		// just in case

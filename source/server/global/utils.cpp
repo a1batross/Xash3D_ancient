@@ -1112,10 +1112,10 @@ int UTIL_PrecacheModel( string_t s, const char *e ) // precache default model if
 int UTIL_PrecacheModel( string_t s ){ return UTIL_PrecacheModel( STRING( s )); }
 int UTIL_PrecacheModel( const char* s )
 {
-	if( !s || !*s )
-	{
-		ALERT( at_warning, "modelname not specified\n" );
-		return g_sModelIndexNullModel; // set null model
+	if( FStringNull( s ))
+	{	
+		// set null model
+		return g_sModelIndexNullModel;
 	}
 
 	// no need to precache brush

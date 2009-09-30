@@ -1934,7 +1934,7 @@ void R_StudioDrawDebug( void )
 		RI.previousentity = RI.currententity;
 		RI.currententity = &r_entities[i];
 
-		if( RI.currententity->model->type != mod_studio )
+		if( !RI.currententity->model || RI.currententity->model->type != mod_studio )
 			continue;
 
 		if( RP_LOCALCLIENT( RI.currententity ))

@@ -156,3 +156,5 @@ Beta 13.12.09
 129. fixup sound orientation			OK
 130. don't show console on changelevel		OK
 131. support for doom3-style parsing
+132. implement SENTENCE_system
+133. rebuild vsound.dll
