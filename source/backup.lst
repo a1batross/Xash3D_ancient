@@ -34,14 +34,15 @@ launch\imagelib\
 launch\extragen\
 physic\
 public\
-render\
 server\
 server\ents\
 server\game\
 server\global\
 server\monsters\
 vprogs\
-vsound\
+snd_al\
+snd_dx\
+vid_gl\
 xtools\
 xtools\bsplib
 xtools\ripper

@@ -339,6 +339,9 @@ void CL_PredictMovement (void)
 
 	pmove = EDICT_NUM( cl.playernum + 1 )->pvClientData->current;
 
+	// unpredicted pure angled values converted into axis
+	AngleVectors( cl.refdef.cl_viewangles, cl.axis[0], cl.axis[1], cl.axis[2] );
+
 	if( !cl_predict->value || cl.frame.ps.ed_flags & ESF_NO_PREDICTION )
 	{	
 		// just set angles

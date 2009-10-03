@@ -87,9 +87,6 @@ void Con_ToggleConsole_f( void )
 	{
 		UI_SetActiveMenu( UI_CLOSEMENU );
 		cls.key_dest = key_console;	
-
-		if( com.atoi(cl.configstrings[CS_MAXCLIENTS]) == 1 && Host_ServerState())
-			Cvar_SetValue( "paused", 1 );
 	}
 }
 
@@ -659,7 +656,6 @@ void Con_Close( void )
 	Con_ClearNotify();
 	con.finalFrac = 0; // none visible
 	con.displayFrac = 0;
-	Cvar_SetValue( "paused", 0 );
 }
 
 bool Con_Active( void )

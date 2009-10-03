@@ -1,24 +1,24 @@
-# Microsoft Developer Studio Project File - Name="vsound" - Package Owner=<4>
+# Microsoft Developer Studio Project File - Name="snd_dx" - Package Owner=<4>
 # Microsoft Developer Studio Generated Build File, Format Version 6.00
 # ** DO NOT EDIT **
 
 # TARGTYPE "Win32 (x86) Dynamic-Link Library" 0x0102
 
-CFG=vsound - Win32 Debug
+CFG=snd_dx - Win32 Debug
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
 !MESSAGE 
-!MESSAGE NMAKE /f "vsound.mak".
+!MESSAGE NMAKE /f "snd_dx.mak".
 !MESSAGE 
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "vsound.mak" CFG="vsound - Win32 Debug"
+!MESSAGE NMAKE /f "snd_dx.mak" CFG="snd_dx - Win32 Debug"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
-!MESSAGE "vsound - Win32 Release" (based on "Win32 (x86) Dynamic-Link Library")
-!MESSAGE "vsound - Win32 Debug" (based on "Win32 (x86) Dynamic-Link Library")
+!MESSAGE "snd_dx - Win32 Release" (based on "Win32 (x86) Dynamic-Link Library")
+!MESSAGE "snd_dx - Win32 Debug" (based on "Win32 (x86) Dynamic-Link Library")
 !MESSAGE 
 
 # Begin Project
@@ -29,7 +29,7 @@ CPP=cl.exe
 MTL=midl.exe
 RSC=rc.exe
 
-!IF  "$(CFG)" == "vsound - Win32 Release"
+!IF  "$(CFG)" == "snd_dx - Win32 Release"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
@@ -38,8 +38,8 @@ RSC=rc.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "..\temp\vsound\!release"
-# PROP Intermediate_Dir "..\temp\vsound\!release"
+# PROP Output_Dir "..\temp\snd_dx\!release"
+# PROP Intermediate_Dir "..\temp\snd_dx\!release"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PLATFORM_EXPORTS" /YX /FD /c
@@ -54,19 +54,19 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386 /opt:nowin98
-# ADD LINK32 libogg.lib vorbis.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libcmt.lib" /opt:nowin98
+# ADD LINK32 winmm.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libcmt.lib" /opt:nowin98
 # SUBTRACT LINK32 /profile
 # Begin Custom Build
-TargetDir=\Xash3D\src_main\temp\vsound\!release
-InputPath=\Xash3D\src_main\temp\vsound\!release\vsound.dll
+TargetDir=\Xash3D\src_main\temp\snd_dx\!release
+InputPath=\Xash3D\src_main\temp\snd_dx\!release\snd_dx.dll
 SOURCE="$(InputPath)"
 
-"D:\Xash3D\bin\vsound.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	copy $(TargetDir)\vsound.dll "D:\Xash3D\bin\vsound.dll"
+"D:\Xash3D\bin\snd_dx.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy $(TargetDir)\snd_dx.dll "D:\Xash3D\bin\snd_dx.dll"
 
 # End Custom Build
 
-!ELSEIF  "$(CFG)" == "vsound - Win32 Debug"
+!ELSEIF  "$(CFG)" == "snd_dx - Win32 Debug"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 1
@@ -75,8 +75,8 @@ SOURCE="$(InputPath)"
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "..\temp\vsound\!debug"
-# PROP Intermediate_Dir "..\temp\vsound\!debug"
+# PROP Output_Dir "..\temp\snd_dx\!debug"
+# PROP Intermediate_Dir "..\temp\snd_dx\!debug"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PLATFORM_EXPORTS" /YX /FD /GZ /c
@@ -91,15 +91,15 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 libogg.lib vorbis.lib /nologo /dll /debug /machine:I386 /nodefaultlib:"libcmt.lib" /pdbtype:sept
+# ADD LINK32 winmm.lib /nologo /dll /debug /machine:I386 /nodefaultlib:"libcmt.lib" /pdbtype:sept
 # SUBTRACT LINK32 /incremental:no /nodefaultlib
 # Begin Custom Build
-TargetDir=\Xash3D\src_main\temp\vsound\!debug
-InputPath=\Xash3D\src_main\temp\vsound\!debug\vsound.dll
+TargetDir=\Xash3D\src_main\temp\snd_dx\!debug
+InputPath=\Xash3D\src_main\temp\snd_dx\!debug\snd_dx.dll
 SOURCE="$(InputPath)"
 
-"D:\Xash3D\bin\vsound.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	copy $(TargetDir)\vsound.dll "D:\Xash3D\bin\vsound.dll"
+"D:\Xash3D\bin\snd_dx.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy $(TargetDir)\snd_dx.dll "D:\Xash3D\bin\snd_dx.dll"
 
 # End Custom Build
 
@@ -107,11 +107,15 @@ SOURCE="$(InputPath)"
 
 # Begin Target
 
-# Name "vsound - Win32 Release"
-# Name "vsound - Win32 Debug"
+# Name "snd_dx - Win32 Release"
+# Name "snd_dx - Win32 Debug"
 # Begin Group "Source Files"
 
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
+# Begin Source File
+
+SOURCE=.\s_direct.c
+# End Source File
 # Begin Source File
 
 SOURCE=.\s_export.c
@@ -126,7 +130,7 @@ SOURCE=.\s_main.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\s_openal.c
+SOURCE=.\s_mix.c
 # End Source File
 # Begin Source File
 

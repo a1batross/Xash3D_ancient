@@ -13,8 +13,8 @@
 static playSound_t	s_playSounds[MAX_PLAYSOUNDS];
 static playSound_t	s_freePlaySounds;
 static playSound_t	s_pendingPlaySounds;
-static channel_t s_channels[MAX_CHANNELS];
-static listener_t s_listener;
+static channel_t	s_channels[MAX_CHANNELS];
+static listener_t	s_listener;
 
 const guid_t DSPROPSETID_EAX20_ListenerProperties = {0x306a6a8, 0xb224, 0x11d2, {0x99, 0xe5, 0x0, 0x0, 0xe8, 0xd8, 0xc7, 0x22}};
 const guid_t DSPROPSETID_EAX20_BufferProperties = {0x306a6a7, 0xb224, 0x11d2, {0x99, 0xe5, 0x0, 0x0, 0xe8, 0xd8, 0xc7, 0x22}};
@@ -350,6 +350,7 @@ static playSound_t *S_AllocPlaySound( void )
 	if( ps == &s_freePlaySounds )
 		return NULL; // No free playSounds
 
+	// unlink from freelist
 	ps->prev->next = ps->next;
 	ps->next->prev = ps->prev;
 
@@ -363,6 +364,7 @@ S_FreePlaySound
 */
 static void S_FreePlaySound( playSound_t *ps )
 {
+	// unlink from channel
 	ps->prev->next = ps->next;
 	ps->next->prev = ps->prev;
 
@@ -397,7 +399,7 @@ static void S_IssuePlaySounds( void )
 		ch = S_PickChannel( ps->entnum, ps->entchannel );
 		if(!ch)
 		{
-			if( ps->sfx->name[0] == '#' ) MsgDev(D_ERROR, "dropped sound %s\n", &ps->sfx->name[1] );
+			if( ps->sfx->name[0] == '#' ) MsgDev( D_ERROR, "dropped sound %s\n", &ps->sfx->name[1] );
 			else MsgDev( D_ERROR, "dropped sound \"sound/%s\"\n", ps->sfx->name );
 			S_FreePlaySound( ps );
 			continue;
@@ -441,16 +443,16 @@ void S_StartSound( const vec3_t pos, int entnum, int channel, sound_t handle, fl
 	playSound_t	*ps, *sort;
 	sfx_t		*sfx = NULL;
 
-	if(!al_state.initialized )
+	if( !al_state.initialized )
 		return;
 	sfx = S_GetSfxByHandle( handle );
 	if( !sfx ) return;
 
-	// Make sure the sound is loaded
+	// make sure the sound is loaded
 	if( !S_LoadSound( sfx ))
 		return;
 
-	// Allocate a playSound
+	// allocate a playSound
 	ps = S_AllocPlaySound();
 	if( !ps )
 	{
@@ -570,13 +572,13 @@ S_Update
 Called once each time through the main loop
 =================
 */
-void S_Update( int clientnum, const vec3_t position, const vec3_t velocity, const vec3_t at, const vec3_t up )
+void S_Update( int clientnum, const vec3_t position, const vec3_t velocity, const vec3_t axis[3], bool clear )
 {
 	channel_t		*ch;
 	int		i;
 
 	if(!al_state.initialized ) return;
-	//if( s_pause->integer ) return;		
+//	if( s_pause->integer || clear ) return;		
 
 	// bump frame count
 	al_state.framecount++;
@@ -587,12 +589,12 @@ void S_Update( int clientnum, const vec3_t position, const vec3_t velocity, cons
 	VectorSet( s_listener.velocity, velocity[1], velocity[2], -velocity[0] );
 
 	// set listener orientation matrix
-	s_listener.orientation[0] = at[1];
-	s_listener.orientation[1] = -at[2];
-	s_listener.orientation[2] = -at[0];
-	s_listener.orientation[3] = up[1];
-	s_listener.orientation[4] = -up[2];
-	s_listener.orientation[5] = -up[0];
+	s_listener.orientation[0] =  axis[0][1];
+	s_listener.orientation[1] = -axis[0][2];
+	s_listener.orientation[2] = -axis[0][0];
+	s_listener.orientation[3] =  axis[2][1];
+	s_listener.orientation[4] = -axis[2][2];
+	s_listener.orientation[5] = -axis[2][0];
 
 	palListenerfv(AL_POSITION, s_listener.position);
 	palListenerfv(AL_VELOCITY, s_listener.velocity);
@@ -743,9 +745,11 @@ bool S_Init( void *hInst )
 {
 	int	num_mono_src, num_stereo_src;
 
+	Cmd_ExecuteString( "sndlatch\n" );
+
 	host_sound = Cvar_Get("host_sound", "1", CVAR_SYSTEMINFO, "enable sound system" );
-	s_alDevice = Cvar_Get("s_device", "Generic Software", CVAR_LATCH|CVAR_ARCHIVE, "OpenAL current device name" );
-	s_soundfx = Cvar_Get("s_soundfx", "1", CVAR_LATCH|CVAR_ARCHIVE, "allow OpenAl extensions" );
+	s_alDevice = Cvar_Get("s_device", "Generic Software", CVAR_LATCH_AUDIO|CVAR_ARCHIVE, "OpenAL current device name" );
+	s_soundfx = Cvar_Get("s_soundfx", "1", CVAR_LATCH_AUDIO|CVAR_ARCHIVE, "allow OpenAl extensions" );
 	s_check_errors = Cvar_Get("s_check_errors", "1", CVAR_ARCHIVE, "ignore audio engine errors" );
 	s_volume = Cvar_Get("s_volume", "1.0", CVAR_ARCHIVE, "sound volume" );
 	s_musicvolume = Cvar_Get("s_musicvolume", "1.0", CVAR_ARCHIVE, "background music volume" );

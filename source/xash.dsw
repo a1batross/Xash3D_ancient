@@ -87,7 +87,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "render"=".\render\render.dsp" - Package Owner=<4>
+Project: "vid_gl"=".\vid_gl\vid_gl.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -111,7 +111,19 @@ Package=<4>
 
 ###############################################################################
 
-Project: "vsound"=".\vsound\vsound.dsp" - Package Owner=<4>
+Project: "snd_al"=".\snd_al\snd_al.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "snd_dx"=".\snd_dx\snd_dx.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{

@@ -155,6 +155,10 @@ Beta 13.12.09
 128. fixup sprites lerping			OK
 129. fixup sound orientation			OK
 130. don't show console on changelevel		OK
-131. support for doom3-style parsing
+131. support for doom3-style materials parsing
 132. implement SENTENCE_system
-133. rebuild vsound.dll
+133. new sound\render system version replacement	OK
+134. dx sound engine complete			OK
+135. implement dsp, lypsync and vox
+136. re-vision uimenu
+137. complete rewriting physic.dll

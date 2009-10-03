@@ -2329,6 +2329,8 @@ pfnIndexOfEdict
 */
 int pfnIndexOfEdict( const edict_t *pEdict )
 {
+	if( !pEdict || pEdict->free )
+		return 0;
 	return NUM_FOR_EDICT( pEdict );
 }
 

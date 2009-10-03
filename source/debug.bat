@@ -23,7 +23,7 @@ if errorlevel 1 set BUILD_ERROR=1
 %MSDEV% physic/physic.dsp %CONFIG%"physic - Win32 Debug" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
-%MSDEV% render/render.dsp %CONFIG%"render - Win32 Debug" %build_target%
+%MSDEV% vid_gl/vid_gl.dsp %CONFIG%"vid_gl - Win32 Debug" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
 %MSDEV% server/server.dsp %CONFIG%"server - Win32 Debug" %build_target%
@@ -32,7 +32,10 @@ if errorlevel 1 set BUILD_ERROR=1
 %MSDEV% vprogs/vprogs.dsp %CONFIG%"vprogs - Win32 Debug" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
-%MSDEV% vsound/vsound.dsp %CONFIG%"vsound - Win32 Debug" %build_target%
+%MSDEV% snd_al/snd_al.dsp %CONFIG%"snd_al - Win32 Debug" %build_target%
+if errorlevel 1 set BUILD_ERROR=1
+
+%MSDEV% snd_dx/snd_dx.dsp %CONFIG%"snd_dx - Win32 Debug" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
 %MSDEV% xtools/xtools.dsp %CONFIG%"xtools - Win32 Debug" %build_target%
@@ -63,10 +66,11 @@ if exist engine\engine.plg del /f /q engine\engine.plg
 if exist launch\launch.plg del /f /q launch\launch.plg
 if exist physic\physic.plg del /f /q physic\physic.plg
 if exist server\server.plg del /f /q server\server.plg
-if exist render\render.plg del /f /q render\render.plg
+if exist vid_gl\vid_gl.plg del /f /q vid_gl\vid_gl.plg
 if exist viewer\viewer.plg del /f /q viewer\viewer.plg
 if exist vprogs\vprogs.plg del /f /q vprogs\vprogs.plg
-if exist vsound\vsound.plg del /f /q vsound\vsound.plg
+if exist snd_al\snd_al.plg del /f /q snd_al\snd_al.plg
+if exist snd_dx\snd_dx.plg del /f /q snd_dx\snd_dx.plg
 if exist xtools\xtools.plg del /f /q xtools\xtools.plg
 
 echo 	     Build succeeded!

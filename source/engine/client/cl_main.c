@@ -57,6 +57,10 @@ extern	cvar_t *allow_download;
 //======================================================================
 
 //======================================================================
+bool CL_CheckKeydest( void )
+{
+	return (cls.key_dest != key_game);
+}
 
 /*
 =======================================================================
@@ -673,7 +677,8 @@ Call before entering a new level, or after changing dlls
 void CL_PrepSound( void )
 {
 	int	i, sndcount;
-		
+
+	MsgDev( D_LOAD, "CL_PrepSound: %s\n", cl.configstrings[CS_NAME] );		
 	for( i = 0, sndcount = 0; i < MAX_SOUNDS && cl.configstrings[CS_SOUNDS+i+1][0]; i++ )
 		sndcount++; // total num sounds
 
@@ -707,7 +712,7 @@ void CL_PrepVideo( void )
 		return; // no map loaded
 
 	Cvar_SetValue( "scr_loading", 0.0f ); // reset progress bar
-	MsgDev( D_LOAD, "CL_PrepRefresh: %s\n", cl.configstrings[CS_NAME] );
+	MsgDev( D_LOAD, "CL_PrepVideo: %s\n", cl.configstrings[CS_NAME] );
 	// let the render dll load the map
 	FS_FileBase( cl.configstrings[CS_MODELS+1], mapname ); 
 	re->BeginRegistration( mapname, pe->VisData()); // load map
@@ -1134,8 +1139,6 @@ void CL_InitLocal( void )
 	Cmd_AddCommand ("download", CL_Download_f, "download specified resource (by name)" );
 
 	CL_InitServerCommands ();
-
-	UI_SetActiveMenu( UI_MAINMENU );
 }
 
 //============================================================================
@@ -1163,6 +1166,8 @@ CL_Frame
 */
 void CL_Frame( int time )
 {
+	bool	clear;
+
 	if( host.type == HOST_DEDICATED )
 		return;
 
@@ -1184,7 +1189,9 @@ void CL_Frame( int time )
 	CL_SendCommand();
 
 	// predict all unacknowledged movements
-	CL_PredictMovement ();
+	CL_PredictMovement();
+
+	Host_CheckChanges();
 
 	// allow rendering DLL change
 	if( cls.state == ca_active )
@@ -1198,8 +1205,10 @@ void CL_Frame( int time )
 
 	SCR_MakeScreenShot();
 
+	clear = (cls.state > ca_disconnected && cls.state < ca_active) ? true : false;
+
 	// update audio
-	S_Update( cl.playernum + 1, cl.refdef.simorg, cl.refdef.simvel, cl.refdef.forward, cl.refdef.up );
+	S_Update( cl.playernum + 1, cl.refdef.simorg, cl.refdef.simvel, cl.axis, clear );
 
 	// advance local effects for next frame
 	CL_RunDLights ();
@@ -1228,15 +1237,14 @@ void CL_Init( void )
 	cl_paused = Cvar_Get( "paused", "0", 0, "game paused" );
 
 	Con_Init();	
-	VID_Init();
 
 	if( !CL_LoadProgs( "client" ))
 		Host_Error( "CL_InitGame: can't initialize client.dll\n" );
 
 	MSG_Init( &net_message, net_message_buffer, sizeof( net_message_buffer ));
 
-	UI_Init();
-	SCR_Init();
+	Host_CheckChanges ();
+
 	CL_InitLocal();
 	cls.initialized = true;
 }

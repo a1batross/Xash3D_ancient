@@ -77,7 +77,7 @@ void InitCommon( const int argc, const char **argv )
 		PrepareBSPModel( (int)argc, (char **)argv );
 		break;
 	case HOST_QCCLIB:
-		Sys_LoadLibrary( &vprogs_dll );	// load qcclib
+		Sys_LoadLibrary( NULL, &vprogs_dll );	// load qcclib
 		CreateVprogs = (void *)vprogs_dll.main;
 		PRVM = CreateVprogs( &com, NULL );	// second interface not allowed
 

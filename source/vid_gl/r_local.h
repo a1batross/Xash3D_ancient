@@ -124,7 +124,7 @@ enum
 #define FOG_TEXTURE_WIDTH		256
 #define FOG_TEXTURE_HEIGHT		32
 
-#define VID_DEFAULTMODE			"4"
+#define VID_DEFAULTMODE		"0"
 
 #define SHADOW_PLANAR		1
 #define SHADOW_MAPPING		2

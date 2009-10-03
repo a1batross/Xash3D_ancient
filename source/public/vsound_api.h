@@ -41,7 +41,7 @@ typedef struct vsound_exp_s
 	void (*StartStreaming)( void );
 	void (*StopStreaming)( void );
 
-	void (*Frame)( int entnum, const vec3_t pos, const vec3_t vel, const vec3_t at, const vec3_t up );
+	void (*Frame)( int entnum, const vec3_t pos, const vec3_t vel, const vec3_t axis[3], bool clear );
 	void (*StopAllSounds)( void );
 	void (*FreeSounds)( void );
 
@@ -57,7 +57,7 @@ typedef struct vsound_imp_s
 	void (*GetSoundSpatialization)( int entnum, vec3_t origin, vec3_t velocity );
 	int  (*PointContents)( const vec3_t point );
 	void (*AddLoopingSounds)( void );
-
+	int  (*GetServerTime)( void );
 } vsound_imp_t;
 
 #endif//VSOUND_API_H

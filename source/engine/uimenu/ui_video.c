@@ -323,7 +323,7 @@ static void UI_Video_UpdateConfig( void )
 	}
 
 	uiVideo.glExtensions.generic.name = uiVideoYesNo[(int)uiVideo.glExtensions.curValue];
-	uiVideo.videoMode.generic.name = uiVideoModes[(int)uiVideo.videoMode.curValue + 1];
+	uiVideo.videoMode.generic.name = uiVideoModes[(int)uiVideo.videoMode.curValue];
 	uiVideo.fullScreen.generic.name = uiVideoYesNo[(int)uiVideo.fullScreen.curValue];
 	uiVideo.colorDepth.generic.name = uiVideoBits[(int)uiVideo.colorDepth.curValue];
 	uiVideo.hardwareGamma.generic.name = uiVideoYesNo[(int)uiVideo.hardwareGamma.curValue];

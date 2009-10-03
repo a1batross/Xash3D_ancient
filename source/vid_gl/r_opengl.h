@@ -1107,6 +1107,10 @@ typedef struct
 
 	HINSTANCE hinstOpenGL;	// HINSTANCE for the OpenGL library
 
+	int	desktopBitsPixel;
+	int	desktopWidth;
+	int	desktopHeight;
+
 	bool	software;		// software emulation uses RB_RenderShader()
 	bool	initialized;	// OpenGL subsystem started
 	bool	minidriver;

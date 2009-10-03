@@ -301,7 +301,7 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 			MsgDev(D_INFO, "%s is system variable.\n", var_name);
 			return var;
 		}
-		if( var->flags & (CVAR_LATCH|CVAR_LATCH_VIDEO))
+		if( var->flags & (CVAR_LATCH|CVAR_LATCH_VIDEO|CVAR_LATCH_AUDIO))
 		{
 			if( var->latched_string )
 			{
@@ -315,26 +315,29 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 					return var;
 			}
 
-			if( Cvar_VariableInteger( "host_serverstate" ))
+			if( var->flags & CVAR_LATCH && Cvar_VariableInteger( "host_serverstate" ))
 			{
 				MsgDev( D_INFO, "%s will be changed upon restarting.\n", var->name );
 				var->latched_string = copystring( value );
 			}
+			else if( var->flags & CVAR_LATCH_VIDEO )
+			{
+				MsgDev( D_INFO, "%s will be changed upon restarting video.\n", var->name );
+				var->latched_string = copystring( value );
+			}
+			else if( var->flags & CVAR_LATCH_AUDIO )
+			{
+				MsgDev( D_INFO, "%s will be changed upon restarting audio.\n", var->name );
+				var->latched_string = copystring( value );
+			}
 			else
 			{
-				if( var->flags & CVAR_LATCH_VIDEO )
-				{
-					MsgDev( D_INFO, "%s will be changed upon restarting video.\n", var->name );
-					var->latched_string = copystring( value );
-				}
-				else
-				{
-					Mem_Free( var->string );		// free the old value string
-					var->string = copystring( value );
-					var->value = com.atof( var->string );
-					var->integer = com.atoi( var->string );
-				}
+				Mem_Free( var->string );		// free the old value string
+				var->string = copystring( value );
+				var->value = com.atof( var->string );
+				var->integer = com.atoi( var->string );
 			}
+
 			var->modified = true;
 			var->modificationCount++;
 			return var;
@@ -684,28 +687,31 @@ void Cvar_List_f( void )
 		if( match && !com_stricmpext( match, var->name ))
 			continue;
 
-		if( var->flags & CVAR_SERVERINFO ) Msg( "S" );
+		if( var->flags & CVAR_SERVERINFO ) Msg( "SV   " );
 		else Msg( " " );
 
-		if( var->flags & CVAR_USERINFO ) Msg( "U" );
+		if( var->flags & CVAR_USERINFO ) Msg( "USER " );
 		else Msg( " " );
 
-		if( var->flags & CVAR_READ_ONLY ) Msg( "R" );
+		if( var->flags & CVAR_READ_ONLY ) Msg( "READ " );
 		else Msg( " " );
 
-		if( var->flags & CVAR_INIT ) Msg( "I" );
+		if( var->flags & CVAR_INIT ) Msg( "INIT " );
 		else Msg( " " );
 
-		if( var->flags & CVAR_ARCHIVE ) Msg( "A" );
+		if( var->flags & CVAR_ARCHIVE ) Msg( "ARCH " );
 		else Msg( " " );
 
-		if( var->flags & CVAR_LATCH ) Msg( "L" );
+		if( var->flags & CVAR_LATCH ) Msg( "LATCH" );
 		else Msg( " " );
 
-		if( var->flags & CVAR_LATCH_VIDEO ) Msg( "V" );
+		if( var->flags & CVAR_LATCH_VIDEO ) Msg( "VIDEO" );
 		else Msg( " " );
 
-		if( var->flags & CVAR_CHEAT ) Msg( "C" );
+		if( var->flags & CVAR_LATCH_AUDIO ) Msg( "AUDIO" );
+		else Msg( " " );
+
+		if( var->flags & CVAR_CHEAT ) Msg( "CHEAT" );
 		else Msg( " " );
 		Msg(" %s \"%s\"\n", var->name, var->string );
 		j++;
@@ -822,6 +828,35 @@ void Cvar_LatchedVideo_f( void )
 
 /*
 ============
+Cvar_Latched_f
+
+Now all latched audio strings is valid
+============
+*/
+void Cvar_LatchedAudio_f( void )
+{
+	cvar_t	*var;
+	cvar_t	**prev;
+
+	prev = &cvar_vars;
+
+	while ( 1 )
+	{
+		var = *prev;
+		if( !var ) break;
+
+		if( var->flags & CVAR_LATCH_AUDIO && var->latched_string )
+		{
+			Cvar_FullSet( var->name, var->latched_string, var->flags );
+			Mem_Free( var->latched_string );
+			var->latched_string = NULL;
+		}
+		prev = &var->next;
+	}
+}
+
+/*
+============
 Cvar_Init
 
 Reads in all archived cvars
@@ -842,7 +877,8 @@ void Cvar_Init( void )
 	Cmd_AddCommand ("seta", Cvar_SetA_f, "create or change the value of a console variable that will be saved to vars.rc");
 	Cmd_AddCommand ("reset", Cvar_Reset_f, "reset any type variable to initial value" );
 	Cmd_AddCommand ("latch", Cvar_Latched_f, "apply latched values" );
-	Cmd_AddCommand ("vidlatch", Cvar_LatchedVideo_f, "apply latched values for renderer" );
+	Cmd_AddCommand ("vidlatch", Cvar_LatchedVideo_f, "apply latched values for video subsystem" );
+	Cmd_AddCommand ("sndlatch", Cvar_LatchedAudio_f, "apply latched values for audio subsytem" );
 	Cmd_AddCommand ("cvarlist", Cvar_List_f, "display all console variables beginning with the specified prefix" );
 	Cmd_AddCommand ("unsetall", Cvar_Restart_f, "reset all console variables to their default values" );
 

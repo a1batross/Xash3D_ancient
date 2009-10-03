@@ -28,6 +28,7 @@ void S_SoundList_f( void )
 {
 	sfx_t	*sfx;
 	int	i, samples = 0;
+	int	totalSfx = 0;
 
 	Msg("\n");
 	Msg("      -samples -hz-- -format- -name--------\n");
@@ -35,46 +36,40 @@ void S_SoundList_f( void )
 	for( i = 0; i < s_numSfx; i++ )
 	{
 		sfx = &s_knownSfx[i];
-		Msg("%4i: ", i);
-
 		if( sfx->loaded )
 		{
 			samples += sfx->samples;
-			Msg("%8i ", sfx->samples);
-			Msg("%5i ", sfx->rate);
+			Msg( "%8i ", sfx->samples );
+			Msg( "%5i ", sfx->rate );
 
 			switch( sfx->format )
 			{
-			case AL_FORMAT_STEREO16: Msg("STEREO16 "); break;
-			case AL_FORMAT_STEREO8:  Msg("STEREO8  "); break;
-			case AL_FORMAT_MONO16:   Msg("MONO16   "); break;
-			case AL_FORMAT_MONO8:    Msg("MONO8    "); break;
-			default: Msg("???????? "); break;
+			case AL_FORMAT_STEREO16: Msg( "STEREO16 " ); break;
+			case AL_FORMAT_STEREO8:  Msg( "STEREO8  " ); break;
+			case AL_FORMAT_MONO16:   Msg( "MONO16   " ); break;
+			case AL_FORMAT_MONO8:    Msg( "MONO8    " ); break;
+			default: Msg( "???????? " ); break;
 			}
 
-			if( sfx->name[0] == '#' ) Msg("%s", &sfx->name[1]);
-			else Msg("sound/%s", sfx->name);
+			if( sfx->name[0] == '#' ) Msg( "%s", &sfx->name[1] );
+			else Msg( "sound/%s", sfx->name );
 			Msg( "\n" );
-		}
-		else
-		{
-			if( sfx->name[0] == '*' ) Msg("      placeholder       %s\n", sfx->name);
-			else Msg("      not loaded        %s\n", sfx->name);
+			totalSfx++;
 		}
 	}
 
 	Msg("-------------------------------------------\n");
 	Msg("%i total samples\n", samples );
-	Msg("%i total sounds\n", s_numSfx );
+	Msg("%i total sounds\n", totalSfx );
 	Msg("\n");
 }
 
 /*
- =======================================================================
+=======================================================================
 
  WAV LOADING
 
- =======================================================================
+=======================================================================
 */
 static byte *iff_data;
 static byte *iff_dataPtr;
@@ -177,7 +172,7 @@ static bool S_LoadWAV( const char *name, byte **wav, wavinfo_t *info )
 
 	// dind "RIFF" chunk
 	S_FindChunk( "RIFF" );
-	if(!(iff_dataPtr && !com.strncmp(iff_dataPtr+8, "WAVE", 4)))
+	if( !( iff_dataPtr && !com.strncmp( iff_dataPtr + 8, "WAVE", 4 )))
 	{
 		MsgDev( D_WARN, "S_LoadWAV: missing 'RIFF/WAVE' chunks (%s)\n", name );
 		Mem_Free( buffer );
@@ -186,7 +181,7 @@ static bool S_LoadWAV( const char *name, byte **wav, wavinfo_t *info )
 
 	// get "fmt " chunk
 	iff_data = iff_dataPtr + 12;
-	S_FindChunk("fmt ");
+	S_FindChunk( "fmt " );
 	if( !iff_dataPtr )
 	{
 		MsgDev( D_WARN, "S_LoadWAV: missing 'fmt ' chunk (%s)\n", name );
@@ -497,11 +492,11 @@ S_LoadSound
 */
 loadformat_t load_formats[] =
 {
-	{"sound/%s.%s", "ogg", S_LoadOGG},
-	{"sound/%s.%s", "wav", S_LoadWAV},
-	{"%s.%s", "ogg", S_LoadOGG},
-	{"%s.%s", "wav", S_LoadWAV},
-	{NULL, NULL}
+{ "sound/%s.%s", "ogg", S_LoadOGG },
+{ "sound/%s.%s", "wav", S_LoadWAV },
+{ "%s.%s", "ogg", S_LoadOGG },
+{ "%s.%s", "wav", S_LoadWAV },
+{ NULL, NULL }
 };
 
 bool S_LoadSound( sfx_t *sfx )
@@ -526,7 +521,7 @@ bool S_LoadSound( sfx_t *sfx )
 	Mem_Set( &info, 0, sizeof( info ));
 
 	// developer warning
-	if( !anyformat ) MsgDev(D_NOTE, "Note: %s will be loading only with ext .%s\n", loadname, ext );
+	if( !anyformat ) MsgDev( D_NOTE, "Note: %s will be loading only with ext .%s\n", loadname, ext );
 
 	// now try all the formats in the selected list
 	for( format = load_formats; format->formatstring; format++ )
@@ -540,7 +535,7 @@ bool S_LoadSound( sfx_t *sfx )
 	}
 
 	sfx->default_sound = true;
-	MsgDev(D_WARN, "FS_LoadSound: couldn't load %s\n", sfx->name );
+	MsgDev( D_WARN, "FS_LoadSound: couldn't load %s\n", sfx->name );
 	S_CreateDefaultSound( &data, &info );
 	info.loopstart = -1;
 
@@ -576,6 +571,7 @@ sfx_t *S_FindSound( const char *name )
 		return NULL;
 	}
 
+	// see if already loaded
 	for( i = 0; i < s_numSfx; i++ )
           {
 		sfx = &s_knownSfx[i];
@@ -647,7 +643,7 @@ void S_EndRegistration( void )
 	// load everything in
 	for( i = 0, sfx = s_knownSfx; i < s_numSfx; i++, sfx++ )
 	{
-		if( !sfx->name[0] )continue;
+		if( !sfx->name[0] ) continue;
 		S_LoadSound( sfx );
 	}
 	s_registering = false;

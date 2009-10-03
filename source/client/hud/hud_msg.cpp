@@ -410,7 +410,23 @@ int CHud :: MsgFunc_RoomType( const char *pszName, int iSize, void *pbuf )
 
 int CHud :: MsgFunc_ScreenFade( const char *pszName, int iSize, void *pbuf )
 {
-	// FIXME: implement
+	BEGIN_READ( pszName, iSize, pbuf );	
+
+	float fadeTime = READ_SHORT() / (1<<12);
+	float holdTime = READ_SHORT() / (1<<12);
+	int fadeFlags = READ_SHORT();
+
+	Vector m_FadeColor;
+	
+	m_FadeColor.x = READ_BYTE();		// fade red
+	m_FadeColor.y = READ_BYTE();		// fade green
+	m_FadeColor.z = READ_BYTE();		// fade blue
+	float alpha = READ_BYTE();	// fade alpha
+
+	SetScreenFade( m_FadeColor, alpha, fadeTime, holdTime, fadeFlags );
+
+	END_READ();
+
 	return 1;
 }
 

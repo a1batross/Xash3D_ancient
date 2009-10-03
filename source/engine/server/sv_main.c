@@ -241,9 +241,6 @@ bool SV_CheckPaused( void )
 	int		i, count;
 	sv_client_t	*cl;
 
-	if( !sv_paused->integer )
-		return false;
-
 	// only pause if there is just a single client connected
 	for( i = count = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
 	{
@@ -258,6 +255,12 @@ bool SV_CheckPaused( void )
 			Cvar_Set( "paused", "0" );
 		return false;
 	}
+
+	if( CL_CheckKeydest() )
+		return true;
+
+	if( !sv_paused->integer )
+		return false;
 
 	if( !sv_paused->integer )
 		Cvar_Set( "paused", "1" );

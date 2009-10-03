@@ -288,8 +288,9 @@ void CBaseEntity :: ResetParent( void )
 void CBaseEntity :: SetupPhysics( void )
 {
 	//rebuild all parents
-	if(pFlags & PF_LINKCHILD) LinkChild( this );
-	if(m_physinit) return;
+	if( pFlags & PF_LINKCHILD ) LinkChild( this );
+
+	if( m_physinit ) return;
 	SetParent(); //set all parents
 	m_physinit = true;
 	PostSpawn();//post spawn

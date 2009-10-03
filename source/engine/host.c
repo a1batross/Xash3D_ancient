@@ -7,6 +7,8 @@
 #include "input.h"
 #include "client.h"
 
+#define MAX_RENDERS	8
+
 physic_exp_t	*pe;
 render_exp_t	*re;
 vprogs_exp_t	*vm;
@@ -14,13 +16,17 @@ vsound_exp_t	*se;
 host_parm_t	host;	// host parms
 stdlib_api_t	com, newcom;
 
-byte	*zonepool;
-char	*buildstring = __TIME__ " " __DATE__;
+byte		*zonepool;
+char		*buildstring = __TIME__ " " __DATE__;
+string		video_dlls[MAX_RENDERS];
+string		audio_dlls[MAX_RENDERS];
+int		num_audio_dlls;
+int		num_video_dlls;
 
+dll_info_t render_dll = { "", NULL, "CreateAPI", NULL, NULL, 0, sizeof(render_exp_t), sizeof(stdlib_api_t) };
+dll_info_t vsound_dll = { "", NULL, "CreateAPI", NULL, NULL, 0, sizeof(vsound_exp_t), sizeof(stdlib_api_t) };
 dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, 1, sizeof(physic_exp_t), sizeof(stdlib_api_t) };
-dll_info_t render_dll = { "render.dll", NULL, "CreateAPI", NULL, NULL, 0, sizeof(render_exp_t), sizeof(stdlib_api_t) };
 dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, 1, sizeof(vprogs_exp_t), sizeof(stdlib_api_t) };
-dll_info_t vsound_dll = { "vsound.dll", NULL, "CreateAPI", NULL, NULL, 0, sizeof(vsound_exp_t), sizeof(stdlib_api_t) };
 
 cvar_t	*timescale;
 cvar_t	*host_serverstate;
@@ -29,6 +35,8 @@ cvar_t	*host_maxfps;
 cvar_t	*host_minfps;
 cvar_t	*host_framerate;
 cvar_t	*host_registered;
+cvar_t	*host_audio;
+cvar_t	*host_video;
 
 // these cvars will be duplicated on each client across network
 int Host_ServerState( void ) { return Cvar_VariableInteger( "host_serverstate" ); }
@@ -58,7 +66,7 @@ void Host_InitPhysic( void )
 	pi.ClientMove = SV_PlayerMove;
 	pi.GetModelVerts = SV_GetModelVerts;
 
-	Sys_LoadLibrary( &physic_dll );
+	Sys_LoadLibrary( NULL, &physic_dll );
 
 	CreatePhysic = (void *)physic_dll.main;
 	pe = CreatePhysic( &newcom, &pi );
@@ -76,54 +84,11 @@ void Host_FreePhysic( void )
 	Sys_FreeLibrary( &physic_dll );
 }
 
-void Host_InitRender( void )
-{
-	static render_imp_t		ri;
-	launch_t			CreateRender;
-	bool			result = false;
-	
-	ri.api_size = sizeof(render_imp_t);
-
-          // studio callbacks
-	ri.UpdateScreen = SCR_UpdateScreen;
-	ri.StudioEvent = CL_StudioEvent;
-	ri.StudioFxTransform = CL_StudioFxTransform;
-	ri.ShowCollision = pe->DrawCollision;
-	ri.GetClientEdict = CL_GetEdictByIndex;
-	ri.GetLocalPlayer = CL_GetLocalPlayer;
-	ri.GetMaxClients = CL_GetMaxClients;
-	ri.GetLerpFrac = CL_GetLerpFrac;
-	ri.WndProc = IN_WndProc;
-          
-	Sys_LoadLibrary( &render_dll );
-
-	if( render_dll.link )
-	{
-		CreateRender = (void *)render_dll.main;
-		re = CreateRender( &newcom, &ri );
-
-		if( re->Init( true )) result = true;
-	} 
-
-	// video system not started, run dedicated server
-	if( !result ) Sys_NewInstance( va("#%s", GI->gamedir ), "Host_InitRender: fallback to dedicated mode\n" ); 
-}
-
-void Host_FreeRender( void )
-{
-	if( render_dll.link )
-	{
-		re->Shutdown( true );
-		Mem_Set( &re, 0, sizeof( re ));
-	}
-	Sys_FreeLibrary( &render_dll );
-}
-
 void Host_InitVprogs( const int argc, const char **argv )
 {
 	launch_t		CreateVprogs;  
 
-	Sys_LoadLibrary( &vprogs_dll );
+	Sys_LoadLibrary( NULL, &vprogs_dll );
 
 	CreateVprogs = (void *)vprogs_dll.main;
 	vm = CreateVprogs( &newcom, NULL ); // second interface not allowed
@@ -136,9 +101,55 @@ void Host_FreeVprogs( void )
 	if( vprogs_dll.link )
 	{
 		vm->Free();
-		Mem_Set( &vm, 0, sizeof(vm));
+		Mem_Set( &vm, 0, sizeof( vm ));
 	}
 	Sys_FreeLibrary( &vprogs_dll );
+}
+
+void Host_FreeRender( void )
+{
+	if( render_dll.link )
+	{
+		SCR_Shutdown ();
+		re->Shutdown( true );
+		Mem_Set( &re, 0, sizeof( re ));
+	}
+	Sys_FreeLibrary( &render_dll );
+}
+
+bool Host_InitRender( void )
+{
+	static render_imp_t	ri;
+	launch_t		CreateRender;
+	bool		result = false;
+	
+	ri.api_size = sizeof( render_imp_t );
+
+          // studio callbacks
+	ri.UpdateScreen = SCR_UpdateScreen;
+	ri.StudioEvent = CL_StudioEvent;
+	ri.StudioFxTransform = CL_StudioFxTransform;
+	ri.ShowCollision = pe->DrawCollision;
+	ri.GetClientEdict = CL_GetEdictByIndex;
+	ri.GetLocalPlayer = CL_GetLocalPlayer;
+	ri.GetMaxClients = CL_GetMaxClients;
+	ri.GetLerpFrac = CL_GetLerpFrac;
+	ri.WndProc = IN_WndProc;
+          
+	Sys_LoadLibrary( host_video->string, &render_dll );
+
+	if( render_dll.link )
+	{
+		CreateRender = (void *)render_dll.main;
+		re = CreateRender( &newcom, &ri );
+
+		if( re->Init( true )) result = true;
+	} 
+
+	// video system not started, shutdown refresh subsystem
+	if( !result ) Host_FreeRender();
+
+	return result;
 }
 
 void Host_FreeSound( void )
@@ -151,19 +162,20 @@ void Host_FreeSound( void )
 	Sys_FreeLibrary( &vsound_dll );
 }
 
-void Host_InitSound( void )
+bool Host_InitSound( void )
 {
-	static vsound_imp_t		si;
-	launch_t			CreateSound;  
-	bool			result = false;
+	static vsound_imp_t	si;
+	launch_t		CreateSound;  
+	bool		result = false;
 
 	// phys callback
-	si.api_size = sizeof(vsound_imp_t);
+	si.api_size = sizeof( vsound_imp_t );
 	si.GetSoundSpatialization = CL_GetEntitySoundSpatialization;
 	si.PointContents = CL_PointContents;
 	si.AddLoopingSounds = CL_AddLoopingSounds;
+	si.GetServerTime = CL_GetServerTime;
 
-	Sys_LoadLibrary( &vsound_dll );
+	Sys_LoadLibrary( host_audio->string, &vsound_dll );
 
 	if( vsound_dll.link )
 	{
@@ -175,6 +187,68 @@ void Host_InitSound( void )
 
 	// audio system not started, shutdown sound subsystem
 	if( !result ) Host_FreeSound();
+
+	return result;
+}
+
+void Host_CheckChanges( void )
+{
+	int	num_changes;
+
+	if( host_video->modified || host_audio->modified )
+	{
+		host.state = HOST_RESTART;
+		S_StopAllSounds();		// don't let them loop during the restart
+
+		if( host_video->modified ) cl.video_prepped = false;
+		if( host_audio->modified ) cl.audio_prepped = false;
+	}
+	else return;
+
+	num_changes = 0;
+
+	// restart or change renderer
+	while( host_video->modified )
+	{
+		host_video->modified = false;
+
+		Host_FreeRender();			// release render.dll
+		if( !Host_InitRender( ))		// load it again
+		{
+			if( num_changes > num_video_dlls )
+			{
+				Sys_NewInstance( va("#%s", GI->gamefolder ), "fallback to dedicated mode\n" );
+				return;
+			}
+			if( !com.strcmp( video_dlls[num_changes], host_video->string ))
+				num_changes++; // already trying - failed
+			Cvar_FullSet( "host_video", video_dlls[num_changes], CVAR_SYSTEMINFO );
+			num_changes++;
+		}
+		else SCR_Init ();
+	}
+
+	num_changes = 0;
+
+	// restart or change sound engine
+	while( host_audio->modified )
+	{
+		host_audio->modified = false;
+
+		Host_FreeSound();			// release sound.dll
+		if( !Host_InitSound( ))		// load it again
+		{
+			if( num_changes > num_audio_dlls )
+			{
+				MsgDev( D_ERROR, "couldn't initialize sound system\n" );
+				return;
+			}
+			if( !com.strcmp( audio_dlls[num_changes], host_audio->string ))
+				num_changes++; // already trying - failed
+			Cvar_FullSet( "host_audio", audio_dlls[num_changes], CVAR_SYSTEMINFO );
+			num_changes++;
+		}
+	}
 }
 
 /*
@@ -208,14 +282,7 @@ Restart the video subsystem
 */
 void Host_VidRestart_f( void )
 {
-	host.state = HOST_RESTART;
-	S_StopAllSounds();		// don't let them loop during the restart
-	cl.video_prepped = false;
-
-	Host_FreeRender();		// release render.dll
-	Host_InitRender();		// load it again
-
-	SCR_RegisterShaders();	// reload 2d-shaders
+	host_video->modified = true;
 }
 
 /*
@@ -227,12 +294,7 @@ Restart the audio subsystem
 */
 void Host_SndRestart_f( void )
 {
-	host.state = HOST_RESTART;
-	S_StopAllSounds();		// don't let them loop during the restart
-	cl.audio_prepped = false;
-	
-	Host_FreeSound();		// release vsound.dll
-	Host_InitSound();		// load it again
+	host_audio->modified = true;
 }
 
 void Host_ChangeGame_f( void )
@@ -261,25 +323,6 @@ void Host_ChangeGame_f( void )
 void Host_Minimize_f( void )
 {
 	if( host.hWnd ) ShowWindow( host.hWnd, SW_MINIMIZE );
-}
-
-/*
-============
-VID_Init
-============
-*/
-void VID_Init( void )
-{
-	scr_width = Cvar_Get( "width", "640", 0, "screen width" );
-	scr_height = Cvar_Get( "height", "480", 0, "screen height" );
-
-	Cmd_AddCommand( "minimize", Host_Minimize_f, "minimize main window to tray" );
-	Cmd_AddCommand( "vid_restart", Host_VidRestart_f, "restarts video system" );
-	Cmd_AddCommand( "snd_restart", Host_SndRestart_f, "restarts audio system" );
-	Cmd_AddCommand( "game", Host_ChangeGame_f, "change game" );
-
-	Host_InitRender();
-	Host_InitSound();
 }
 
 /*
@@ -429,7 +472,9 @@ int Host_ModifyTime( int msec )
 	{
 		// clients of remote servers do not want to clamp time, because
 		// it would skew their view of the server's time temporarily
-		clamp_time = 5000;
+		if( cls.state == ca_cinematic )
+			clamp_time = (1000 / host_maxfps->integer);
+		else clamp_time = 5000;
 	}
 
 	if( msec > clamp_time ) msec = clamp_time;
@@ -466,6 +511,9 @@ void Host_Frame( void )
 
 	last_time = host.frametime[0];
 	time = Host_ModifyTime( time );
+
+	if( host.state == HOST_RESTART )
+		host.state = HOST_FRAME;
 
 	SV_Frame ( time ); // server frame
 	CL_Frame ( time ); // client frame
@@ -559,14 +607,17 @@ void Host_Error_f( void )
 Host_Crash_f
 =================
 */
-static void Host_Crash_f (void)
+static void Host_Crash_f( void )
 {
 	*(int *)0 = 0xffffffff;
 }
 
 void Host_InitCommon( const int argc, const char **argv )
 {
-	char	dev_level[4];
+	char		dev_level[4];
+	dll_info_t	check_vid, check_snd;
+	search_t		*dlls;
+	int		i;
 
 	newcom = com;
 
@@ -584,6 +635,52 @@ void Host_InitCommon( const int argc, const char **argv )
 	zonepool = Mem_AllocPool( "Zone Engine" );
 
 	IN_Init();
+
+	// initialize audio\video multi-dlls system
+	num_video_dlls = num_audio_dlls = 0;
+	host_video = Cvar_Get( "host_video", "vid_gl.dll", CVAR_SYSTEMINFO, "name of video rendering library" );
+	host_audio = Cvar_Get( "host_audio", "snd_al.dll", CVAR_SYSTEMINFO, "name of sound rendering library" );
+
+	// make sure what global copy has no changed with any dll checking
+	Mem_Copy( &check_vid, &render_dll, sizeof( dll_info_t ));
+	Mem_Copy( &check_snd, &vsound_dll, sizeof( dll_info_t ));
+
+	// checking dlls don't invoke crash!
+	check_vid.crash = false;
+	check_snd.crash = false;
+
+	dlls = FS_Search( "*.dll", true );
+
+	// couldn't find any dlls, render is missing (but i'm don't know how laucnher find engine :)
+	// probably this should never happen
+	if( !dlls ) Sys_NewInstance( "©", "" );
+
+	for( i = 0; i < dlls->numfilenames; i++ )
+	{
+		if(!com.strnicmp( "vid_", dlls->filenames[i], 4 ))
+		{
+			// make sure what found library is valid
+			if( Sys_LoadLibrary( dlls->filenames[i], &check_vid ))
+			{
+				MsgDev( D_NOTE, "VideoLibrary[%i]: %s\n", num_video_dlls, dlls->filenames[i] );
+				com.strncpy( video_dlls[num_video_dlls], dlls->filenames[i], MAX_STRING );
+				Sys_FreeLibrary( &check_vid );
+				num_video_dlls++;
+			}
+		}
+		else if(!com.strnicmp( "snd_", dlls->filenames[i], 4 ))
+		{
+			// make sure what found library is valid
+			if( Sys_LoadLibrary( dlls->filenames[i], &check_snd ))
+			{
+				MsgDev( D_NOTE, "AudioLibrary[%i]: %s\n", num_audio_dlls, dlls->filenames[i] );
+				com.strncpy( audio_dlls[num_audio_dlls], dlls->filenames[i], MAX_STRING );
+				Sys_FreeLibrary( &check_snd );
+				num_audio_dlls++;
+			}
+		}
+	}
+	Mem_Free( dlls );
 }
 
 void Host_FreeCommon( void )
@@ -645,6 +742,14 @@ void Host_Init( const int argc, const char **argv )
 		Cmd_AddCommand( "quit", Sys_Quit, "quit the game" );
 		Cmd_AddCommand( "exit", Sys_Quit, "quit the game" );
 	}
+	else
+	{
+		Cmd_AddCommand( "minimize", Host_Minimize_f, "minimize main window to tray" );
+		Cmd_AddCommand( "vid_restart", Host_VidRestart_f, "restarts video system" );
+		Cmd_AddCommand( "snd_restart", Host_SndRestart_f, "restarts audio system" );
+	}
+
+	Cmd_AddCommand( "game", Host_ChangeGame_f, "change game" );	// allow to change game from the console
 	host.frametime[0] = Host_Milliseconds();
 	host.errorframe = 0;
 }

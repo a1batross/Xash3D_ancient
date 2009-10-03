@@ -120,6 +120,7 @@ typedef enum
 	CVAR_CHEAT	= BIT(9),	// can not be changed if cheats are disabled
 	CVAR_NORESTART	= BIT(10),// do not clear when a cvar_restart is issued
 	CVAR_LATCH_VIDEO	= BIT(11),// save changes until render restart
+	CVAR_LATCH_AUDIO	= BIT(12),// save changes until vsound restart
 } cvar_flags_t;
 
 typedef struct
@@ -271,8 +272,9 @@ writes into struct by offsets not names
 */
 typedef struct dll_info_s
 {
+	const char	*name;	// name of library
+
 	// generic interface
-	const char	*name;	// library name
 	const dllfunc_t	*fcts;	// list of dll exports	
 	const char	*entry;	// entrypoint name (internal libs only)
 	void		*link;	// hinstance of loading library
@@ -579,7 +581,7 @@ typedef struct stdilib_api_s
 	// filesystem simply user interface
 	byte *(*Com_LoadFile)(const char *path, long *filesize );		// load file into heap
 	bool (*Com_WriteFile)(const char *path, const void *data, long len );	// write file into disk
-	bool (*Com_LoadLibrary)( dll_info_t *dll );			// load library 
+	bool (*Com_LoadLibrary)( const char *name, dll_info_t *dll );	// load library 
 	bool (*Com_FreeLibrary)( dll_info_t *dll );			// free library
 	void*(*Com_GetProcAddress)( dll_info_t *dll, const char* name );	// gpa
 	double (*Com_DoubleTime)( void );				// hi-res timer

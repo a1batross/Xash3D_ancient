@@ -20,6 +20,7 @@ cvar_t *cl_testflashlight;
 cvar_t *cl_levelshot_name;
 cvar_t *cl_envshot_size;
 cvar_t *cl_font;
+static bool scr_init = false;
 
 void SCR_TimeRefresh_f( void );
 void SCR_Loading_f( void );
@@ -393,10 +394,10 @@ void SCR_MakeScreenShot( void )
 	switch( cls.scrshot_action )
 	{
 	case scrshot_plaque:
-		re->ScrShot( cls.shotname, VID_LEVELSHOT );
+		if( re ) re->ScrShot( cls.shotname, VID_LEVELSHOT );
 		break;
 	case scrshot_savegame:
-		re->ScrShot( cls.shotname, VID_SAVESHOT );
+		if( re ) re->ScrShot( cls.shotname, VID_SAVESHOT );
 		break;
 	}
 
@@ -465,6 +466,12 @@ SCR_Init
 */
 void SCR_Init( void )
 {
+	if( scr_init ) return;
+
+	// must be init before startup video subsystem
+	scr_width = Cvar_Get( "width", "640", 0, "screen width" );
+	scr_height = Cvar_Get( "height", "480", 0, "screen height" );
+
 	scr_showpause = Cvar_Get( "scr_showpause", "1", 0, "show pause picture" );
 	scr_centertime = Cvar_Get( "scr_centertime", "2.5", 0, "centerprint hold time" );
 	scr_printspeed = Cvar_Get( "scr_printspeed", "8", 0, "centerprint speed of print" );
@@ -485,8 +492,23 @@ void SCR_Init( void )
 	Cmd_AddCommand( "viewpos", SCR_Viewpos_f, "prints current player origin" );
 
 	SCR_RegisterShaders();
+	UI_Init();
+
+	if( cls.state == ca_disconnected )
+		UI_SetActiveMenu( UI_MAINMENU );
+	scr_init = true;
 }
 
 void SCR_Shutdown( void )
 {
+	if( !scr_init ) return;
+
+	Cmd_RemoveCommand( "timerefresh" );
+	Cmd_RemoveCommand( "loading" );
+	Cmd_RemoveCommand( "skyname" );
+	Cmd_RemoveCommand( "setfont" );
+	Cmd_RemoveCommand( "viewpos" );
+
+	UI_Shutdown();
+	scr_init = false;
 }

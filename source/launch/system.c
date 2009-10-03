@@ -409,8 +409,8 @@ void Sys_CreateInstance( void )
 	// export
 	launch_t	CreateHost, CreateBaserc;
 
-	srand( time( NULL ));		// init random generator
-	Sys_LoadLibrary( Sys.linked_dll );	// loading library if need
+	srand( time( NULL ));			// init random generator
+	Sys_LoadLibrary( NULL, Sys.linked_dll );	// loading library if need
 
 	// pre initializations
 	switch( Sys.app_name )
@@ -424,7 +424,7 @@ void Sys_CreateInstance( void )
 	case HOST_STUDIO:
 	case HOST_WADLIB:
 	case HOST_RIPPER:
-		Sys_LoadLibrary( &baserc_dll ); // load baserc
+		Sys_LoadLibrary( NULL, &baserc_dll ); // load baserc
 		CreateHost = (void *)Sys.linked_dll->main;
 		Host = CreateHost( &com, NULL ); // second interface not allowed
 		Sys.Init = Host->Init;
@@ -970,7 +970,7 @@ void Sys_Exit( void )
 //=======================================================================
 //			DLL'S MANAGER SYSTEM
 //=======================================================================
-bool Sys_LoadLibrary ( dll_info_t *dll )
+bool Sys_LoadLibrary( const char *dll_name, dll_info_t *dll )
 {
 	const dllfunc_t	*func;
 	bool		native_lib = false;
@@ -978,8 +978,11 @@ bool Sys_LoadLibrary ( dll_info_t *dll )
 
 	// check errors
 	if( !dll ) return false;	// invalid desc
-	if( !dll->name ) return false;// nothing to load
 	if( dll->link ) return true;	// already loaded
+
+	// check and replace names
+	if( dll_name && *dll_name ) dll->name = dll_name;
+	if( !dll->name || !*dll->name ) return false; // nothing to load
 
 	MsgDev( D_NOTE, "Sys_LoadLibrary: Loading %s", dll->name );
 
@@ -1003,7 +1006,7 @@ bool Sys_LoadLibrary ( dll_info_t *dll )
 
 	if( native_lib )
 	{
-		if(( dll->main = Sys_GetProcAddress( dll, dll->entry )) == 0)
+		if(( dll->main = Sys_GetProcAddress( dll, dll->entry )) == 0 )
 		{
 			com.sprintf( errorstring, "Sys_LoadLibrary: %s has no valid entry point\n", dll->name );
 			goto error;
@@ -1060,19 +1063,19 @@ error:
 
 void* Sys_GetProcAddress( dll_info_t *dll, const char* name )
 {
-	if(!dll || !dll->link) // invalid desc
+	if( !dll || !dll->link ) // invalid desc
 		return NULL;
 
-	return (void *)GetProcAddress (dll->link, name);
+	return (void *)GetProcAddress( dll->link, name );
 }
 
 bool Sys_FreeLibrary( dll_info_t *dll )
 {
 	// invalid desc or alredy freed
-	if(!dll || !dll->link )
+	if( !dll || !dll->link )
 		return false;
 
-	MsgDev(D_NOTE, "Sys_FreeLibrary: Unloading %s\n", dll->name );
+	MsgDev( D_NOTE, "Sys_FreeLibrary: Unloading %s\n", dll->name );
 	FreeLibrary( dll->link );
 	dll->link = NULL;
 

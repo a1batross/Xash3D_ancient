@@ -443,7 +443,7 @@ void R_TextureList_f( void )
 
 	Msg( "---------------------------------------------------------\n" );
 	Msg( "%i total textures\n", texCount );
-	Msg( "%.2f total megabytes of textures\n", bytes/1048576.0 );
+	Msg( "%s total memory used\n", memprint( bytes ));
 	Msg( "\n" );
 }
 

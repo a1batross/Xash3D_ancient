@@ -239,7 +239,7 @@ bool R_SetPixelformat( void )
 	size_t			gamma_size;
 	byte			*savedGamma;
 
-	Sys_LoadLibrary( &opengl_dll );	// load opengl32.dll
+	Sys_LoadLibrary( NULL, &opengl_dll );	// load opengl32.dll
 	if( !opengl_dll.link ) return false;
 
 	glw_state.minidriver = false;	// FIXME
@@ -490,6 +490,20 @@ bool R_CreateWindow( int width, int height, bool fullscreen )
 		r_ypos = Cvar_Get( "r_ypos", "22", CVAR_ARCHIVE, "window position by vertical" );
 		x = r_xpos->integer;
 		y = r_ypos->integer;
+
+		// adjust window coordinates if necessary 
+		// so that the window is completely on screen
+		if( x < 0 ) x = 0;
+		if( y < 0 ) y = 0;
+
+		if( Cvar_VariableInteger( "r_mode" ) != glConfig.prev_mode )
+		{
+			if((x + w > glw_state.desktopWidth) || (y + h > glw_state.desktopHeight))
+			{
+				x = ( glw_state.desktopWidth - w ) / 2;
+				y = ( glw_state.desktopHeight - h ) / 2;
+			}
+		}
 	}
 
 	glw_state.hWnd = CreateWindowEx( exstyle, "Xash Window", wndname, stylebits, x, y, w, h, NULL, NULL, glw_state.hInst, NULL );
@@ -522,12 +536,20 @@ bool R_CreateWindow( int width, int height, bool fullscreen )
 
 rserr_t R_ChangeDisplaySettings( int vid_mode, bool fullscreen )
 {
-	int width, height;
-
+	int	width, height;
+	HDC	hDC;
+	
 	R_SaveVideoMode( vid_mode );
 
 	width = r_width->integer;
 	height = r_height->integer;
+
+	// check our desktop attributes
+	hDC = GetDC( GetDesktopWindow() );
+	glw_state.desktopBitsPixel = GetDeviceCaps( hDC, BITSPIXEL );
+	glw_state.desktopWidth = GetDeviceCaps( hDC, HORZRES );
+	glw_state.desktopHeight = GetDeviceCaps( hDC, VERTRES );
+	ReleaseDC( GetDesktopWindow(), hDC );
 
 	// destroy the existing window
 	if( glw_state.hWnd ) R_Free_OpenGL();

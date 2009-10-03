@@ -92,7 +92,7 @@ bool NET_OpenWinSock( void )
 {
 	// initialize the Winsock function vectors (we do this instead of statically linking
 	// so we can run on Win 3.1, where there isn't necessarily Winsock)
-	if( Sys_LoadLibrary( &winsock_dll ))
+	if( Sys_LoadLibrary( NULL, &winsock_dll ))
 		return true;
 	return false;
 }

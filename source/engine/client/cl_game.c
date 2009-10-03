@@ -33,6 +33,18 @@ edict_t *CL_GetEdictByIndex( int index )
 
 /*
 ====================
+CL_GetServerTime
+
+don't clamped time that come from server
+====================
+*/
+int CL_GetServerTime( void )
+{
+	return cl.frame.servertime;
+}
+
+/*
+====================
 StudioEvent
 
 Event callback for studio models

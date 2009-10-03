@@ -1,24 +1,24 @@
-# Microsoft Developer Studio Project File - Name="render" - Package Owner=<4>
+# Microsoft Developer Studio Project File - Name="vid_gl" - Package Owner=<4>
 # Microsoft Developer Studio Generated Build File, Format Version 6.00
 # ** DO NOT EDIT **
 
 # TARGTYPE "Win32 (x86) Dynamic-Link Library" 0x0102
 
-CFG=render - Win32 Release
+CFG=vid_gl - Win32 Release
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
 !MESSAGE 
-!MESSAGE NMAKE /f "render.mak".
+!MESSAGE NMAKE /f "vid_gl.mak".
 !MESSAGE 
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "render.mak" CFG="render - Win32 Release"
+!MESSAGE NMAKE /f "vid_gl.mak" CFG="vid_gl - Win32 Release"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
-!MESSAGE "render - Win32 Release" (based on "Win32 (x86) Dynamic-Link Library")
-!MESSAGE "render - Win32 Debug" (based on "Win32 (x86) Dynamic-Link Library")
+!MESSAGE "vid_gl - Win32 Release" (based on "Win32 (x86) Dynamic-Link Library")
+!MESSAGE "vid_gl - Win32 Debug" (based on "Win32 (x86) Dynamic-Link Library")
 !MESSAGE 
 
 # Begin Project
@@ -29,7 +29,7 @@ CPP=cl.exe
 MTL=midl.exe
 RSC=rc.exe
 
-!IF  "$(CFG)" == "render - Win32 Release"
+!IF  "$(CFG)" == "vid_gl - Win32 Release"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
@@ -38,8 +38,8 @@ RSC=rc.exe
 # PROP BASE Target_Dir "."
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "..\temp\render\!release"
-# PROP Intermediate_Dir "..\temp\render\!release"
+# PROP Output_Dir "..\temp\vid_gl\!release"
+# PROP Intermediate_Dir "..\temp\vid_gl\!release"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir "."
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /c
@@ -57,16 +57,16 @@ LINK32=link.exe
 # ADD LINK32 msvcrt.lib user32.lib gdi32.lib /nologo /subsystem:windows /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /libpath:"../public/libs/"
 # SUBTRACT LINK32 /debug
 # Begin Custom Build
-TargetDir=\Xash3D\src_main\temp\render\!release
-InputPath=\Xash3D\src_main\temp\render\!release\render.dll
+TargetDir=\Xash3D\src_main\temp\vid_gl\!release
+InputPath=\Xash3D\src_main\temp\vid_gl\!release\vid_gl.dll
 SOURCE="$(InputPath)"
 
-"D:\Xash3D\bin\render.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	copy $(TargetDir)\render.dll "D:\Xash3D\bin\render.dll"
+"D:\Xash3D\bin\vid_gl.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy $(TargetDir)\vid_gl.dll "D:\Xash3D\bin\vid_gl.dll"
 
 # End Custom Build
 
-!ELSEIF  "$(CFG)" == "render - Win32 Debug"
+!ELSEIF  "$(CFG)" == "vid_gl - Win32 Debug"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 1
@@ -75,8 +75,8 @@ SOURCE="$(InputPath)"
 # PROP BASE Target_Dir "."
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "..\temp\render\!debug"
-# PROP Intermediate_Dir "..\temp\render\!debug"
+# PROP Output_Dir "..\temp\vid_gl\!debug"
+# PROP Intermediate_Dir "..\temp\vid_gl\!debug"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir "."
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /c
@@ -94,12 +94,12 @@ LINK32=link.exe
 # ADD LINK32 msvcrtd.lib user32.lib gdi32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /nodefaultlib:"msvcrt.lib" /pdbtype:sept
 # SUBTRACT LINK32 /profile /incremental:no /map
 # Begin Custom Build
-TargetDir=\Xash3D\src_main\temp\render\!debug
-InputPath=\Xash3D\src_main\temp\render\!debug\render.dll
+TargetDir=\Xash3D\src_main\temp\vid_gl\!debug
+InputPath=\Xash3D\src_main\temp\vid_gl\!debug\vid_gl.dll
 SOURCE="$(InputPath)"
 
-"D:\Xash3D\bin\render.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	copy $(TargetDir)\render.dll "D:\Xash3D\bin\render.dll"
+"D:\Xash3D\bin\vid_gl.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy $(TargetDir)\vid_gl.dll "D:\Xash3D\bin\vid_gl.dll"
 
 # End Custom Build
 
@@ -107,8 +107,8 @@ SOURCE="$(InputPath)"
 
 # Begin Target
 
-# Name "render - Win32 Release"
-# Name "render - Win32 Debug"
+# Name "vid_gl - Win32 Release"
+# Name "vid_gl - Win32 Debug"
 # Begin Group "Source Files"
 
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"

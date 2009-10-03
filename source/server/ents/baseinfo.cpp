@@ -52,26 +52,31 @@ class CDecal : public CBaseEntity
 public:
 	void KeyValue( KeyValueData *pkvd )
 	{
-		if (FStrEq(pkvd->szKeyName, "texture"))
+		if( FStrEq( pkvd->szKeyName, "texture" ))
 		{
 			pev->skin = DECAL_INDEX( pkvd->szValue );
-			if ( pev->skin >= 0 ) return;
+			if( pev->skin >= 0 ) return;
 			Msg( "Can't find decal %s\n", pkvd->szValue );
 		}
 	}
-	void PostSpawn( void ) { if(FStringNull(pev->targetname))MakeDecal(); }
+	void PostSpawn( void ) { if( FStringNull( pev->targetname )) MakeDecal(); }
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value ) { MakeDecal(); }
 	void MakeDecal( void )
 	{
 		if ( pev->skin < 0 ) { REMOVE_ENTITY(ENT(pev)); return; }
-		TraceResult trace;
-		int entityIndex, modelIndex;
-		UTIL_TraceLine( pev->origin - Vector(5,5,5), pev->origin + Vector(5,5,5),  ignore_monsters, ENT(pev), &trace );
-		entityIndex = (short)ENTINDEX(trace.pHit);
-		if ( entityIndex ) modelIndex = (int)VARS(trace.pHit)->modelindex;
+		TraceResult	trace;
+		int		entityIndex, modelIndex;
+
+		UTIL_TraceLine( pev->origin - Vector( 5, 5, 5 ), pev->origin + Vector( 5, 5, 5 ), ignore_monsters, ENT( pev ), &trace );
+
+		entityIndex = (short)ENTINDEX( trace.pHit );
+		if ( entityIndex ) modelIndex = (int)VARS( trace.pHit )->modelindex;
 		else modelIndex = 0;
                     
-		if(FStringNull(pev->targetname)) g_engfuncs.pfnStaticDecal( pev->origin, (int)pev->skin, entityIndex, modelIndex );
+		if( FStringNull( pev->targetname ))
+		{
+			g_engfuncs.pfnStaticDecal( pev->origin, (int)pev->skin, entityIndex, modelIndex );
+		}
 		else
 		{
 			MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
@@ -81,7 +86,7 @@ public:
 			WRITE_COORD( pev->origin.z );
 			WRITE_SHORT( (int)pev->skin );
 			WRITE_SHORT( entityIndex );
-			if(entityIndex) WRITE_SHORT( modelIndex );
+			if( entityIndex ) WRITE_SHORT( modelIndex );
 			MESSAGE_END();
                     }
 		

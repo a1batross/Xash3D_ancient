@@ -144,7 +144,7 @@ void Sys_Sleep( int msec );
 void Sys_Init( void );
 void Sys_Exit( void );
 void Sys_Abort( void );
-bool Sys_LoadLibrary ( dll_info_t *dll );
+bool Sys_LoadLibrary( const char *dll_name, dll_info_t *dll );
 void* Sys_GetProcAddress ( dll_info_t *dll, const char* name );
 void Sys_ShellExecute( const char *path, const char *parms, bool exit );
 byte *Sys_LoadRes( const char *filename, size_t *size );

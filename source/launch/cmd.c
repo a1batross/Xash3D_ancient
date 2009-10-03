@@ -45,17 +45,17 @@ Cbuf_AddText
 Adds command text at the end of the buffer
 ============
 */
-void Cbuf_AddText(const char *text)
+void Cbuf_AddText( const char *text )
 {
 	int	l;
 
-	l = com_strlen(text);
-	if (cmd_text.cursize + l >= cmd_text.maxsize)
+	l = com.strlen( text );
+	if( cmd_text.cursize + l >= cmd_text.maxsize )
 	{
-		MsgDev(D_WARN, "Cbuf_AddText: overflow\n");
+		MsgDev( D_WARN, "Cbuf_AddText: overflow\n" );
 		return;
 	}
-	Mem_Copy(&cmd_text.data[cmd_text.cursize], (char *)text, l);
+	Mem_Copy( &cmd_text.data[cmd_text.cursize], text, l );
 	cmd_text.cursize += l;
 }
 
@@ -73,22 +73,22 @@ void Cbuf_InsertText (const char *text)
 {
 	int	i, len;
 
-	len = strlen( text ) + 1;
-	if ( len + cmd_text.cursize > cmd_text.maxsize )
+	len = com.strlen( text ) + 1;
+	if( len + cmd_text.cursize > cmd_text.maxsize )
 	{
-		MsgDev(D_WARN,"Cbuf_InsertText overflowed\n" );
+		MsgDev( D_WARN, "Cbuf_InsertText overflowed\n" );
 		return;
 	}
 
 	// move the existing command text
-	for ( i = cmd_text.cursize - 1; i >= 0; i-- )
+	for( i = cmd_text.cursize - 1; i >= 0; i-- )
 	{
 		cmd_text.data[i + len] = cmd_text.data[i];
 	}
 
 	// copy the new text in
 	Mem_Copy( cmd_text.data, (char *)text, len - 1 );
-	cmd_text.data[ len - 1 ] = '\n'; // add a \n
+	cmd_text.data[len - 1] = '\n'; // add a \n
 	cmd_text.cursize += len;
 }
 
@@ -97,23 +97,23 @@ void Cbuf_InsertText (const char *text)
 Cbuf_ExecuteText
 ============
 */
-void Cbuf_ExecuteText (int exec_when, const char *text)
+void Cbuf_ExecuteText( int exec_when, const char *text )
 {
-	switch (exec_when)
+	switch( exec_when )
 	{
 	case EXEC_NOW:
-		if (text && strlen(text))
-			Cmd_ExecuteString(text);
+		if( text && com.strlen( text ))
+			Cmd_ExecuteString( text );
 		else Cbuf_Execute();
 		break;
 	case EXEC_INSERT:
-		Cbuf_InsertText (text);
+		Cbuf_InsertText( text );
 		break;
 	case EXEC_APPEND:
-		Cbuf_AddText (text);
+		Cbuf_AddText( text );
 		break;
 	default:
-		MsgDev( D_ERROR, "Cbuf_ExecuteText: bad execute target\n");
+		MsgDev( D_ERROR, "Cbuf_ExecuteText: bad execute target\n" );
 		break;
 	}
 }
@@ -143,28 +143,33 @@ void Cbuf_Execute( void )
 		text = (char *)cmd_text.data;
 
 		quotes = 0;
-		for (i = 0; i < cmd_text.cursize; i++)
+		for( i = 0; i < cmd_text.cursize; i++ )
 		{
-			if (text[i] == '"') quotes++;
-			if ( !(quotes&1) &&  text[i] == ';')
+			if( text[i] == '"') quotes++;
+			if(!( quotes & 1 ) &&  text[i] == ';' )
 				break; // don't break if inside a quoted string
-			if (text[i] == '\n' || text[i] == '\r' ) break;
+			if( text[i] == '\n' || text[i] == '\r' ) break;
 		}
 
-		if( i >= (MAX_CMD_LINE - 1)) i = MAX_CMD_LINE - 1;
-		Mem_Copy (line, text, i);
+		if( i >= MAX_CMD_LINE - 1 )
+			Sys_Error( "Cbuf_Execute: command string owerflow\n" );
+
+		Mem_Copy( line, text, i );
 		line[i] = 0;
-		
+
 		// delete the text from the command buffer and move remaining commands down
 		// this is necessary because commands (exec) can insert data at the
 		// beginning of the text buffer
 
-		if (i == cmd_text.cursize) cmd_text.cursize = 0;
+		if( i == cmd_text.cursize )
+		{
+			cmd_text.cursize = 0;
+		}
 		else
 		{
 			i++;
 			cmd_text.cursize -= i;
-			memmove (text, text+i, cmd_text.cursize);
+			memmove( text, text + i, cmd_text.cursize );
 		}
 
 		// execute the command line
@@ -195,7 +200,7 @@ void Cmd_StuffCmds_f( void )
 
 	if(Cmd_Argc() != 1)
 	{
-		Msg("stuffcmds : execute command line parameters\n");
+		Msg( "stuffcmds : execute command line parameters\n");
 		return;
 	}
 
@@ -261,26 +266,27 @@ void Cmd_Exec_f (void)
 {
 	string	rcpath;
 	size_t	len;
-
 	char	*f; 
+
 	if( Cmd_Argc() != 2 )
 	{
-		Msg( "exec <filename> : execute a script file\n" );
+		Msg( "Usage: exec <filename>\n" );
 		return;
 	}
 
-	com.snprintf( rcpath, MAX_STRING, "config/%s", Cmd_Argv(1)); 
+	com.snprintf( rcpath, MAX_STRING, "config/%s", Cmd_Argv( 1 )); 
 	FS_DefaultExtension( rcpath, ".rc" ); // append as default
 
 	f = FS_LoadFile(rcpath, &len );
-	if (!f)
+	if( !f )
 	{
-		MsgDev( D_WARN, "couldn't exec %s\n", Cmd_Argv(1));
+		MsgDev( D_WARN, "couldn't exec %s\n", Cmd_Argv( 1 ));
 		return;
 	}
-	MsgDev(D_INFO, "execing %s\n",Cmd_Argv(1));
-	Cbuf_InsertText(f);
-	Mem_Free(f);
+
+	MsgDev( D_INFO, "execing %s\n", Cmd_Argv( 1 ));
+	Cbuf_InsertText( f );
+	Mem_Free( f );
 }
 
 /*
@@ -331,10 +337,10 @@ typedef struct cmd_function_s
 	xcommand_t		function;
 } cmd_function_t;
 
-static int cmd_argc;
-static char *cmd_argv[MAX_STRING_TOKENS];
-static char cmd_tokenized[MAX_MSGLEN+MAX_STRING_TOKENS]; // will have 0 bytes inserted
-static cmd_function_t *cmd_functions;			// possible commands to execute
+static int		cmd_argc;
+static char		*cmd_argv[MAX_STRING_TOKENS];
+static char		cmd_tokenized[MAX_CMD_BUFFER];	// will have 0 bytes inserted
+static cmd_function_t	*cmd_functions;			// possible commands to execute
 
 /*
 ============
@@ -390,7 +396,7 @@ are inserted in the apropriate place, The argv array
 will point into this temporary buffer.
 ============
 */
-void Cmd_TokenizeString (const char *text_in)
+void Cmd_TokenizeString( const char *text_in )
 {
 	const char	*text;
 	char		*textOut;
@@ -404,36 +410,37 @@ void Cmd_TokenizeString (const char *text_in)
 	while( 1 )
 	{
 		// this is usually something malicious
-		if ( cmd_argc == MAX_STRING_TOKENS ) return;
+		if( cmd_argc == MAX_STRING_TOKENS ) return;
 
-		while ( 1 )
+		while( 1 )
 		{
 			// skip whitespace
-			while ( *text && *text <= ' ' ) text++;
-			if ( !*text ) return; // all tokens parsed
+			while( *text && *text <= ' ' ) text++;
+			if( !*text ) return; // all tokens parsed
 
 			// skip // comments
-			if ( text[0] == '/' && text[1] == '/' ) return; // all tokens parsed
+			if( text[0] == '/' && text[1] == '/' ) return; // all tokens parsed
 
 			// skip /* */ comments
-			if ( text[0] == '/' && text[1] =='*' )
+			if( text[0] == '/' && text[1] =='*' )
 			{
-				while(*text && ( text[0] != '*' || text[1] != '/' )) text++;
-				if ( !*text ) return; // all tokens parsed
+				while( *text && ( text[0] != '*' || text[1] != '/' )) text++;
+				if( !*text ) return; // all tokens parsed
 				text += 2;
 			}
 			else break; // we are ready to parse a token
 		}
 
 		// handle quoted strings
-		if ( *text == '"' )
+		if( *text == '"' )
 		{
 			cmd_argv[cmd_argc] = textOut;
 			cmd_argc++;
 			text++;
-			while ( *text && *text != '"' ) *textOut++ = *text++;
+			while( *text && *text != '"' )
+				*textOut++ = *text++;
 			*textOut++ = 0;
-			if ( !*text ) return; // all tokens parsed
+			if( !*text ) return; // all tokens parsed
 			text++;
 			continue;
 		}
@@ -443,12 +450,12 @@ void Cmd_TokenizeString (const char *text_in)
 		cmd_argc++;
 
 		// skip until whitespace, quote, or command
-		while ( *text > ' ' )
+		while( *text > ' ' )
 		{
-			if ( text[0] == '"' ) break;
-			if ( text[0] == '/' && text[1] == '/' ) break;
+			if( text[0] == '"' ) break;
+			if( text[0] == '/' && text[1] == '/' ) break;
 			// skip /* */ comments
-			if ( text[0] == '/' && text[1] =='*' ) break;
+			if( text[0] == '/' && text[1] =='*' ) break;
 
 			*textOut++ = *text++;
 		}
@@ -464,7 +471,7 @@ void Cmd_TokenizeString (const char *text_in)
 Cmd_AddCommand
 ============
 */
-void Cmd_AddCommand (const char *cmd_name, xcommand_t function, const char *cmd_desc)
+void Cmd_AddCommand( const char *cmd_name, xcommand_t function, const char *cmd_desc )
 {
 	cmd_function_t	*cmd;
 	
@@ -559,7 +566,7 @@ void Cmd_ExecuteString( const char *text )
 	if( !Cmd_Argc()) return; // no tokens
 
 	// check registered command functions	
-	for ( prev = &cmd_functions; *prev; prev = &cmd->next )
+	for( prev = &cmd_functions; *prev; prev = &cmd->next )
 	{
 		cmd = *prev;
 		if(!com.stricmp( cmd_argv[0], cmd->name ))

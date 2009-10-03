@@ -252,6 +252,8 @@ void SV_SpawnServer( const char *server, const char *startspot )
 
 	Msg( "SpawnServer [^2%s^7]\n", server );
 
+	Cmd_ExecuteString( "latch\n" );
+
 	if( sv.state == ss_dead && !sv.loadgame )
 		SV_InitGame(); // the game is just starting
 
@@ -354,8 +356,6 @@ void SV_InitGame( void )
 	}
 
 	MsgDev( D_INFO, "Dll loaded for mod %s\n", svgame.dllFuncs.pfnGetGameDescription() );
-
-	Cmd_ExecuteString( "latch\n" );
 	svs.initialized = true;
 
 	if( Cvar_VariableValue( "coop" ) && Cvar_VariableValue ( "deathmatch" ) && Cvar_VariableValue( "teamplay" ))

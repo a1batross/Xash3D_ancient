@@ -522,8 +522,8 @@ void GL_InitCommands( void )
 
 	r_environment_color = Cvar_Get( "r_environment_color", "128 128 128", CVAR_ARCHIVE, "map environment light color" );
 	r_ignorehwgamma = Cvar_Get( "r_ignorehwgamma", "0", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "ignore hardware gamma (e.g. not support)" );
-	r_overbrightbits = Cvar_Get( "r_overbrightbits", "1", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "renderer overbright bits" );
-	r_mapoverbrightbits = Cvar_Get( "r_mapoverbrightbits", "2", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "current map overbright bits" );
+	r_overbrightbits = Cvar_Get( "r_overbrightbits", "0", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "renderer overbright bits" );
+	r_mapoverbrightbits = Cvar_Get( "r_mapoverbrightbits", "0", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "current map overbright bits" );
 	r_vertexbuffers = Cvar_Get( "r_vertexbuffers", "0", CVAR_ARCHIVE, "store vertex data in VBOs" );
 
 	r_detailtextures = Cvar_Get( "r_detailtextures", "1", CVAR_ARCHIVE, "enable or disable detail textures" );

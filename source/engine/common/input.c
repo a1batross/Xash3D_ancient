@@ -132,18 +132,18 @@ void IN_ActivateMouse( void )
 	width = GetSystemMetrics(SM_CXSCREEN);
 	height = GetSystemMetrics(SM_CYSCREEN);
 
-	GetWindowRect( host.hWnd, &window_rect);
-	if (window_rect.left < 0) window_rect.left = 0;
-	if (window_rect.top < 0) window_rect.top = 0;
-	if (window_rect.right >= width) window_rect.right = width - 1;
-	if (window_rect.bottom >= height-1) window_rect.bottom = height - 1;
+	GetWindowRect( host.hWnd, &window_rect );
+	if( window_rect.left < 0 ) window_rect.left = 0;
+	if( window_rect.top < 0 ) window_rect.top = 0;
+	if( window_rect.right >= width ) window_rect.right = width - 1;
+	if( window_rect.bottom >= height - 1 ) window_rect.bottom = height - 1;
 
-	window_center_x = (window_rect.right + window_rect.left)/2;
-	window_center_y = (window_rect.top + window_rect.bottom)/2;
+	window_center_x = (window_rect.right + window_rect.left) / 2;
+	window_center_y = (window_rect.top + window_rect.bottom) / 2;
 	SetCursorPos( window_center_x, window_center_y );
 
 	SetCapture( host.hWnd );
-	ClipCursor(&window_rect);
+	ClipCursor( &window_rect );
 	while( ShowCursor(false) >= 0 );
 }
 
@@ -349,16 +349,16 @@ long IN_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 			RECT 		r;
 			int		xPos, yPos, style;
 
-			xPos = (short) LOWORD(lParam);    // horizontal position 
-			yPos = (short) HIWORD(lParam);    // vertical position 
+			xPos = (short)LOWORD( lParam );    // horizontal position 
+			yPos = (short)HIWORD( lParam );    // vertical position 
 
 			r.left = r.top = 0;
 			r.right = r.bottom = 1;
 			style = GetWindowLong( hWnd, GWL_STYLE );
 			AdjustWindowRect( &r, style, FALSE );
 
-			Cvar_SetValue( "r_xpos", xPos + r.left);
-			Cvar_SetValue( "r_ypos", yPos + r.top);
+			Cvar_SetValue( "r_xpos", xPos + r.left );
+			Cvar_SetValue( "r_ypos", yPos + r.top );
 			scr_xpos->modified = false;
 			scr_ypos->modified = false;
 		}
