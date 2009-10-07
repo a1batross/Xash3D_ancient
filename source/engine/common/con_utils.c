@@ -593,9 +593,63 @@ bool Cmd_GetItemsList( const char *s, char *completedname, int length )
 
 /*
 =====================================
-Cmd_GetGameList
+Cmd_GetTexturemodes
 
 Prints or complete sound filename
+=====================================
+*/
+bool Cmd_GetTexturemodes( const char *s, char *completedname, int length )
+{
+	int	i, numtexturemodes;
+	string	texturemodes[6];	// keep an actual ( sizeof( gl_texturemode) / sizeof( gl_texturemode[0] ))
+	string	matchbuf;
+
+	const char *gl_texturemode[] =
+	{
+	"GL_LINEAR",
+	"GL_LINEAR_MIPMAP_LINEAR",
+	"GL_LINEAR_MIPMAP_NEAREST",
+	"GL_NEAREST",
+	"GL_NEAREST_MIPMAP_LINEAR",
+	"GL_NEAREST_MIPMAP_NEAREST",
+	};
+
+	// compare gamelist with current keyword
+	for( i = 0, numtexturemodes = 0; i < 6; i++ )
+	{
+		if(( *s == '*' ) || !com.strnicmp( gl_texturemode[i], s, com.strlen( s )))
+			com.strcpy( texturemodes[numtexturemodes++], gl_texturemode[i] ); 
+	}
+
+	if( !numtexturemodes ) return false;
+	com.strncpy( matchbuf, gl_texturemode[0], MAX_STRING ); 
+	if( completedname && length ) com.strncpy( completedname, matchbuf, length );
+	if( numtexturemodes == 1 ) return true;
+
+	for( i = 0; i < numtexturemodes; i++ )
+	{
+		com.strncpy( matchbuf, texturemodes[i], MAX_STRING ); 
+		Msg( "%16s\n", matchbuf );
+	}
+	Msg("\n^3 %i filters found.\n", numtexturemodes );
+
+	// cut shortestMatch to the amount common with s
+	if( completedname && length )
+	{
+		for( i = 0; matchbuf[i]; i++ )
+		{
+			if( com.tolower( completedname[i] ) != com.tolower( matchbuf[i] ))
+				completedname[i] = 0;
+		}
+	}
+	return true;
+}
+
+/*
+=====================================
+Cmd_GetGameList
+
+Prints or complete gamedir name
 =====================================
 */
 bool Cmd_GetGamesList( const char *s, char *completedname, int length )
@@ -752,9 +806,10 @@ bool Cmd_CheckMapsList( void )
 autocomplete_list_t cmd_list[] =
 {
 { "prvm_printfucntion", Cmd_GetProgsList },
+{ "gl_texturemode", Cmd_GetTexturemodes },
+{ "stringlist", Cmd_GetStringTablesList },
 { "prvm_edictcount", Cmd_GetProgsList },
 { "prvm_globalset", Cmd_GetProgsList },
-{ "stringlist", Cmd_GetStringTablesList },
 { "prvm_edictset", Cmd_GetProgsList },
 { "prvm_profile", Cmd_GetProgsList },
 { "prvm_globals", Cmd_GetProgsList },

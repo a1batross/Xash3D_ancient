@@ -1166,8 +1166,6 @@ CL_Frame
 */
 void CL_Frame( int time )
 {
-	bool	clear;
-
 	if( host.type == HOST_DEDICATED )
 		return;
 
@@ -1205,10 +1203,11 @@ void CL_Frame( int time )
 
 	SCR_MakeScreenShot();
 
-	clear = (cls.state > ca_disconnected && cls.state < ca_active) ? true : false;
+	if( cls.state > ca_disconnected && cls.state < ca_active )
+		cl.refdef.paused = true; // force sound.dll to pause
 
 	// update audio
-	S_Update( cl.playernum + 1, cl.refdef.simorg, cl.refdef.simvel, cl.axis, clear );
+	S_Update( &cl.refdef );
 
 	// advance local effects for next frame
 	CL_RunDLights ();

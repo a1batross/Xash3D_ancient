@@ -5,6 +5,8 @@
 #ifndef VSOUND_API_H
 #define VSOUND_API_H
 
+#include "ref_params.h"
+
 typedef int		sound_t;
 
 // snd internal flags (lower bits are used for snd channels)
@@ -41,7 +43,7 @@ typedef struct vsound_exp_s
 	void (*StartStreaming)( void );
 	void (*StopStreaming)( void );
 
-	void (*Frame)( int entnum, const vec3_t pos, const vec3_t vel, const vec3_t axis[3], bool clear );
+	void (*RenderFrame)( ref_params_t *fd );
 	void (*StopAllSounds)( void );
 	void (*FreeSounds)( void );
 

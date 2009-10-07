@@ -493,7 +493,7 @@ _inline sound_t S_RegisterSound( const char *name )
 // recompute the reletive volumes for all running sounds
 // reletive to the given entityNum / orientation
 #define S_Activate			if( se ) se->Activate
-#define S_Update			if( se ) se->Frame
+#define S_Update			if( se ) se->RenderFrame
 #define S_BeginRegistration		if( se ) se->BeginRegistration
 #define S_EndRegistration		if( se ) se->EndRegistration
 

@@ -559,7 +559,7 @@ void S_AddEnvironmentEffects( const vec3_t position )
 	if( !al_config.allow_3DMode ) return;
           
 	// if eax is enabled, apply listener environmental effects
-	if( si.PointContents((float *)position ) & (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER))
+	if( si.PointContents( position ) & (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER))
 		eaxEnv = EAX_ENVIRONMENT_UNDERWATER;
 	else eaxEnv = EAX_ENVIRONMENT_GENERIC;
 	al_config.Set3DMode(&DSPROPSETID_EAX20_ListenerProperties, DSPROPERTY_EAXLISTENER_ENVIRONMENT|DSPROPERTY_EAXLISTENER_DEFERRED, 0, &eaxEnv, sizeof(eaxEnv));
@@ -572,34 +572,35 @@ S_Update
 Called once each time through the main loop
 =================
 */
-void S_Update( int clientnum, const vec3_t position, const vec3_t velocity, const vec3_t axis[3], bool clear )
+void S_Update( ref_params_t *fd )
 {
 	channel_t		*ch;
 	int		i;
 
-	if(!al_state.initialized ) return;
-//	if( s_pause->integer || clear ) return;		
+	if( !al_state.initialized || !fd ) return;
+//	if( s_pause->integer || fd->paused ) return;		
 
 	// bump frame count
 	al_state.framecount++;
-	al_state.clientnum = clientnum;
+	al_state.clientnum = fd->viewentity;
+	al_state.refdef = fd; // for using everthing else
 
 	// set up listener
-	VectorSet( s_listener.position, position[1], position[2], -position[0] );
-	VectorSet( s_listener.velocity, velocity[1], velocity[2], -velocity[0] );
+	VectorSet( s_listener.position, fd->simorg[1], fd->simorg[2], -fd->simorg[0] );
+	VectorSet( s_listener.velocity, fd->simvel[1], fd->simvel[2], -fd->simvel[0] );
 
 	// set listener orientation matrix
-	s_listener.orientation[0] =  axis[0][1];
-	s_listener.orientation[1] = -axis[0][2];
-	s_listener.orientation[2] = -axis[0][0];
-	s_listener.orientation[3] =  axis[2][1];
-	s_listener.orientation[4] = -axis[2][2];
-	s_listener.orientation[5] = -axis[2][0];
+	s_listener.orientation[0] =  fd->forward[1];
+	s_listener.orientation[1] = -fd->forward[2];
+	s_listener.orientation[2] = -fd->forward[0];
+	s_listener.orientation[3] =  fd->up[1];
+	s_listener.orientation[4] = -fd->up[2];
+	s_listener.orientation[5] = -fd->up[0];
 
-	palListenerfv(AL_POSITION, s_listener.position);
-	palListenerfv(AL_VELOCITY, s_listener.velocity);
-	palListenerfv(AL_ORIENTATION, s_listener.orientation);
-	palListenerf(AL_GAIN, (al_state.active) ? s_volume->value : 0.0f );
+	palListenerfv( AL_POSITION, s_listener.position );
+	palListenerfv( AL_VELOCITY, s_listener.velocity );
+	palListenerfv( AL_ORIENTATION, s_listener.orientation );
+	palListenerf( AL_GAIN, (al_state.active) ? s_volume->value : 0.0f );
 
 	// Set state
 	palDistanceModel( AL_INVERSE_DISTANCE_CLAMPED );
@@ -607,7 +608,7 @@ void S_Update( int clientnum, const vec3_t position, const vec3_t velocity, cons
 	palDopplerFactor(s_dopplerFactor->value);
 	palDopplerVelocity(s_dopplerVelocity->value);
 
-	S_AddEnvironmentEffects( position );
+	S_AddEnvironmentEffects( s_listener.position );
 
 	// Stream background track
 	S_StreamBackgroundTrack();

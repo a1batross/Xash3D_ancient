@@ -3775,7 +3775,7 @@ static void R_InitBuiltinTextures( void )
 		Mem_Set( data2D, 0xFF, sizeof( data2D ));
 
 		pic = textures[i].init( &flags, &samples );
-		Com_Assert( pic == NULL );
+		if( pic == NULL ) continue;
 		image = R_LoadTexture( textures[i].name, pic, samples, flags );
 
 		if( textures[i].image )

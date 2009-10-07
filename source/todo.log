@@ -162,3 +162,4 @@ Beta 13.12.09
 135. implement dsp, lypsync and vox
 136. re-vision uimenu
 137. complete rewriting physic.dll
+138. implement hashtable for loaded sounds

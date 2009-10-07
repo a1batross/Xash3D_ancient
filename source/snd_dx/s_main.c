@@ -556,12 +556,12 @@ S_Update
 Called once each time through the main loop
 ============
 */
-void S_Update( int clientnum, const vec3_t position, const vec3_t velocity, const vec3_t axis[3], bool clear )
+void S_Update( ref_params_t *fd )
 {
 	int	i, total;
 	channel_t	*ch, *combine = NULL;
 
-	if( !sound_started )
+	if( !sound_started || !fd )
 		return;
 
 	// bump frame count
@@ -570,7 +570,7 @@ void S_Update( int clientnum, const vec3_t position, const vec3_t velocity, cons
 	// if the loading plaque is up, clear everything
 	// out to make sure we aren't looping a dirty
 	// dma buffer while loading
-	if( s_pause->integer || clear )
+	if( s_pause->integer || fd->paused )
 	{
 		S_ClearBuffer();
 		return;
@@ -579,12 +579,12 @@ void S_Update( int clientnum, const vec3_t position, const vec3_t velocity, cons
 	// rebuild scale tables if volume is modified
 	if( s_volume->modified ) S_InitScaletable();
 
-	s_clientnum = clientnum;
-	VectorCopy( position, listener_origin );
-	VectorCopy( velocity, listener_velocity );
-	VectorCopy( axis[0], listener_forward );
-	VectorCopy( axis[1], listener_right );
-	VectorCopy( axis[2], listener_up );
+	s_clientnum = fd->viewentity;
+	VectorCopy( fd->simorg, listener_origin );
+	VectorCopy( fd->simvel, listener_velocity );
+	VectorCopy( fd->forward, listener_forward );
+	VectorCopy( fd->right, listener_right );
+	VectorCopy( fd->up, listener_up );
 
 	// Add looping sounds
 	si.AddLoopingSounds();

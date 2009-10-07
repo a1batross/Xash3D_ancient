@@ -143,6 +143,7 @@ typedef struct
 {
 	aldevice		*hDevice;
 	alcontext		*hALC;
+	ref_params_t	*refdef;
 
 	bool		initialized;
 	bool		active;
@@ -168,8 +169,8 @@ void S_Shutdown( void );
 void S_Activate( bool active );
 void S_SoundList_f( void );
 bool S_CheckForErrors( void );
+void S_Update( ref_params_t *fd );
 void S_StartSound(const vec3_t pos, int ent, int chan, sound_t sfx, float vol, float attn, float pitch, bool use_loop);
-void S_Update( int entnum, const vec3_t pos, const vec3_t vel, const vec3_t axis[3], bool clear );
 void S_StreamRawSamples( int samples, int rate, int width, int channels, const byte *data );
 bool S_AddLoopingSound( int entnum, sound_t handle, float volume, float attn );
 void S_StartBackgroundTrack( const char *intro, const char *loop );

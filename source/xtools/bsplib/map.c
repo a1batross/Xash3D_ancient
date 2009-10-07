@@ -1305,6 +1305,7 @@ static bool ParseMapEntity( bool onlyLights )
 	parseMesh_t	*patch;
 	bool		funcGroup;
 	int		castShadows, recvShadows;
+	static bool	map_type = false;
 
 	if( !Com_ReadToken( mapfile, SC_ALLOW_NEWLINES|SC_COMMENT_SEMICOLON, &token ))
 		return false; // end of .map file
@@ -1368,7 +1369,10 @@ static bool ParseMapEntity( bool onlyLights )
 			if( !com.strcmp( ep->key, "mapversion" ))
 			{
 				if( com.atoi( ep->value ) == VALVE_FORMAT )
+				{
+					Msg( "Valve Format Map detected\n" );
 					g_bBrushPrimit = BRUSH_WORLDCRAFT_22;
+				}
 				else g_bBrushPrimit = BRUSH_WORLDCRAFT_21;
 			}
 			if( ep->key[0] != '\0' && ep->value[0] != '\0' )
@@ -1377,6 +1381,12 @@ static bool ParseMapEntity( bool onlyLights )
 				mapEnt->epairs = ep;
 			}
 		}
+	}
+
+	if( !map_type && g_bBrushPrimit != BRUSH_UNKNOWN )
+	{
+		MAPTYPE();
+		map_type = true;
 	}
 	
 	classname = ValueForKey( mapEnt, "classname" );

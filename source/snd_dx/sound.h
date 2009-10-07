@@ -170,7 +170,6 @@ void S_SoundInfo_f( void );
 
 // if origin is NULL, the sound will be dynamically sourced from the entity
 void S_StartSound( const vec3_t pos, int ent, int chan, sound_t sfx, float vol, float attn, float pitch, bool use_loop);
-void S_Update( int entnum, const vec3_t pos, const vec3_t vel, const vec3_t axis[3], bool clear );
 void S_StreamRawSamples( int samples, int rate, int width, int channels, const byte *data );
 bool S_AddLoopingSound( int entnum, sound_t handle, float volume, float attn );
 void S_StartBackgroundTrack( const char *intro, const char *loop );
@@ -178,6 +177,7 @@ channel_t	*S_PickChannel( int entNum, int entChannel );
 int S_StartLocalSound( const char *name, float volume, float pitch, const float *org );
 sfx_t *S_GetSfxByHandle( sound_t handle );
 void S_StopBackgroundTrack( void );
+void S_Update( ref_params_t *fd );
 void S_StartStreaming( void );
 void S_StopStreaming( void );
 void S_StopAllSounds( void );
