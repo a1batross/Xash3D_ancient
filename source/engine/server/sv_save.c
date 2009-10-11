@@ -560,14 +560,6 @@ void SV_ReadEntities( wfile_t *l )
 
 	if( sv.loadgame ) // allocate edicts
 		while( svgame.globals->numEntities < shdr.numEntities ) SV_AllocEdict();
-	else if( sv.changelevel )
-	{
-		// NOTE: we don't need allocate too many ents
-		// just set it number to match with old map and use
-		// SV_InitEdict istead of SV_AllocEdict, first SV_Physics call
-		// will be fixup entities count to actual
-		svgame.globals->numEntities = pSaveData->tableCount;
-	}
 
 	// set client fields on player ents
 	for( i = 0; i < svgame.globals->maxClients; i++ )
@@ -613,6 +605,7 @@ void SV_ReadEntities( wfile_t *l )
 			{
 				if( pent->free ) SV_InitEdict( pent );
 				pent = SV_AllocPrivateData( pent, pTable->classname );
+				svgame.globals->numEntities++;
 				num_moveables++;
 			}
 		}

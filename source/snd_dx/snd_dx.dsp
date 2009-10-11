@@ -118,6 +118,10 @@ SOURCE=.\s_direct.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\s_dsp.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\s_export.c
 # End Source File
 # Begin Source File
@@ -131,6 +135,10 @@ SOURCE=.\s_main.c
 # Begin Source File
 
 SOURCE=.\s_mix.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\s_mix_chan.c
 # End Source File
 # Begin Source File
 

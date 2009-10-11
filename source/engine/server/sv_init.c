@@ -62,7 +62,6 @@ int SV_FindIndex( const char *name, int start, int end, bool create )
 	return i;
 }
 
-
 int SV_ModelIndex( const char *name )
 {
 	return SV_FindIndex( name, CS_MODELS, MAX_MODELS, true );

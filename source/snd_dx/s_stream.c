@@ -6,9 +6,9 @@
 #include "sound.h"
 #include "byteorder.h"
 
-portable_samplepair_t	s_rawsamples[MAX_RAW_SAMPLES];
-int			s_rawend;
-static bg_track_t		s_bgTrack;
+samplepair_t	s_rawsamples[MAX_RAW_SAMPLES];
+int		s_rawend;
+static bg_track_t	s_bgTrack;
 
 /*
 =================

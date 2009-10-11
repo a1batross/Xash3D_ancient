@@ -87,8 +87,8 @@ typedef struct render_exp_s
 	bool	(*AddLightStyle)( int stylenum, vec3_t color );
 	void	(*ClearScene)( void );
 
-	void	(*BeginFrame)( void );
-	void	(*RenderFrame)( ref_params_t *fd );
+	void	(*BeginFrame)( const ref_params_t *fd );
+	void	(*RenderFrame)( const ref_params_t *fd );
 	void	(*EndFrame)( void );
 
 	// misc utilities

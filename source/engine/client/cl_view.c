@@ -68,7 +68,6 @@ void V_SetupRefDef( void )
 	cl.refdef.time = cl.time * 0.001f;
 	cl.refdef.frametime = cls.frametime;
 	cl.refdef.demoplayback = cls.demoplayback;
-	cl.refdef.paused = cl_paused->integer;
 	cl.refdef.smoothing = cl_predict->integer;
 	cl.refdef.waterlevel = clent->v.waterlevel;		
 	cl.refdef.flags = cl.render_flags;
@@ -142,7 +141,7 @@ void V_RenderView( void )
 	clgame.globals->time = cl.time * 0.001f; // clamped
 	clgame.globals->frametime = cl.serverframetime * 0.001f; // !!!
 
-	if( cl.frame.valid && (cl.force_refdef || !cl_paused->integer ))
+	if( cl.frame.valid && (cl.force_refdef || !cl.refdef.paused ))
 	{
 		cl.force_refdef = false;
 
@@ -165,7 +164,11 @@ bool V_PreRender( void )
 	// too early
 	if( !re ) return false;
 
-	re->BeginFrame();
+	if( cls.state > ca_disconnected && cls.state < ca_active )
+		cl.refdef.paused = true; // force audio\video to pause
+	else cl.refdef.paused = cl_paused->integer;
+
+	re->BeginFrame( &cl.refdef );
 	return true;
 }
 

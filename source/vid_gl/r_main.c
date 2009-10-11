@@ -1684,7 +1684,7 @@ void R_RenderView( const ref_params_t *fd )
 R_BeginFrame
 ===============
 */
-void R_BeginFrame( void )
+void R_BeginFrame( const ref_params_t *fd )
 {
 	if( gl_finish->integer && gl_delayfinish->integer )
 	{
@@ -1736,7 +1736,7 @@ void R_BeginFrame( void )
 		r_environment_color->modified = false;
 	}
 
-	if( r_clear->integer )
+	if( r_clear->integer && !fd->paused )
 	{
 		rgba_t color;
 		
@@ -1744,6 +1744,7 @@ void R_BeginFrame( void )
 		pglClearColor( color[0]*( 1.0/255.0 ), color[1]*( 1.0/255.0 ), color[2]*( 1.0/255.0 ), 1 );
 		pglClear( GL_COLOR_BUFFER_BIT );
 	}
+
 	// update gamma
 	if( r_gamma->modified )
 	{

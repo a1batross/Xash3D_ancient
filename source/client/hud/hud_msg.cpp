@@ -104,7 +104,6 @@ int CHud :: InitMessages( void )
 
 void CHud :: UserCmd_LoadingPlaque( void )
 {
-	ALERT( at_console, "SCR_DisablePlaque()\n" );
 	m_iDrawPlaque = 0;	// disable plaque rendering
 }
 
@@ -126,6 +125,9 @@ int CHud :: MsgFunc_ResetHUD(const char *pszName, int iSize, void *pbuf )
 	m_iConcussionEffect = 0;
 
 	m_iIntermission = 0;
+
+	// enable plaque drawing
+	m_iDrawPlaque = 1;
 
 	// reset fog
 	m_fStartDist = 0;

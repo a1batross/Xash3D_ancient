@@ -71,7 +71,6 @@ void CHud :: VidInit( void )
 	// Load Sprites
 	// ---------
 
-	m_iDrawPlaque = 1;
 	m_hsprCursor = 0;
 	m_hHudError = 0;
 	m_hHudFont = 0;

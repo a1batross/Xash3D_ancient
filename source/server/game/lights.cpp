@@ -174,9 +174,10 @@ void CLight :: Think( void )
 
 void CLight :: Spawn( void )
 {
-	if (FStringNull(pev->targetname))
-	{       	// inert light
-		REMOVE_ENTITY(ENT(pev));
+	if( FStringNull( pev->targetname ))
+	{       	
+		// inert light
+		REMOVE_ENTITY(ENT( pev ));
 		return;
 	}
 	

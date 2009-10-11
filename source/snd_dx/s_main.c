@@ -10,9 +10,22 @@
 #define SOUND_LOOPATTENUATE	0.003
 #define MAX_PLAYSOUNDS	128
 
+// Structure used for fading in and out client sound volume.
+typedef struct
+{
+	float	initial_percent;
+	float	percent;		// how far to adjust client's volume down by.
+	float	starttime;	// si.GetServerTime() when we started adjusting volume
+	float	fadeouttime;	// # of seconds to get to faded out state
+	float	holdtime;		// # of seconds to hold
+	float	fadeintime;	// # of seconds to restore
+} soundfade_t;
+
 dma_t		dma;
+static soundfade_t	soundfade;	// client sound fading
 channel_t   	channels[MAX_CHANNELS];
 bool		sound_started = false;
+int		listener_waterlevel;
 vec3_t		listener_origin;
 vec3_t		listener_velocity;
 vec3_t		listener_forward;
@@ -48,6 +61,19 @@ cvar_t		*s_pause;
 		
 =============================================================================
 */
+
+float S_GetMasterVolume( void )
+{
+	float	scale = 1.0f;
+
+	if( soundfade.percent != 0 )
+	{
+		scale = bound( 0.0f, soundfade.percent / 100.0f, 1.0f );
+		scale = 1.0f - scale;
+	}
+	return s_volume->value * scale;
+}
+
 /*
 =================
 S_PickChannel
@@ -262,7 +288,7 @@ void S_IssuePlaysound( playsound_t *ps )
 	S_SpatializeChannel( ch );
 
 	ch->pos = 0;
-	sc = S_LoadSound( ch->sfx );
+	sc = S_LoadSound( ch->sfx, ch );
 	ch->end = paintedtime + sc->length;
 
 	// free the playsound
@@ -296,7 +322,7 @@ void S_StartSound( const vec3_t pos, int ent, int chan, sound_t handle, float fv
 	if( !sfx ) return;
 
 	// make sure the sound is loaded
-	sc = S_LoadSound( sfx );
+	sc = S_LoadSound( sfx, NULL );
 	if( !sc ) return; // couldn't load the sound's data
 
 	vol = fvol * 255;
@@ -580,6 +606,7 @@ void S_Update( ref_params_t *fd )
 	if( s_volume->modified ) S_InitScaletable();
 
 	s_clientnum = fd->viewentity;
+	listener_waterlevel = fd->waterlevel;
 	VectorCopy( fd->simorg, listener_origin );
 	VectorCopy( fd->simvel, listener_velocity );
 	VectorCopy( fd->forward, listener_forward );
@@ -669,6 +696,9 @@ void S_SoundInfo_f( void )
 		Msg( "sound system not started\n" );
 		return;
 	}
+
+	if( dsound_init ) Msg( "Sound Device: DirectSound\n" );
+	if( wavout_init ) Msg( "Sound Device: Windows WAV\n" );
 	
 	Msg( "%5d channel(s)\n", dma.channels );
 	Msg( "%5d samples\n", dma.samples );
@@ -725,6 +755,8 @@ bool S_Init( void *hInst )
 
 	S_StopAllSounds ();
 
+	AllocDsps();
+
 	return true;
 }
 
@@ -745,4 +777,6 @@ void S_Shutdown( void )
 
 	S_FreeSounds();
 	Mem_FreePool( &sndpool );
+
+	FreeDsps();
 }

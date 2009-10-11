@@ -58,6 +58,7 @@ typedef struct vsound_imp_s
 
 	void (*GetSoundSpatialization)( int entnum, vec3_t origin, vec3_t velocity );
 	int  (*PointContents)( const vec3_t point );
+	edict_t *(*GetClientEdict)( int index );
 	void (*AddLoopingSounds)( void );
 	int  (*GetServerTime)( void );
 } vsound_imp_t;

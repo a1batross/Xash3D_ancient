@@ -333,6 +333,50 @@ static bool S_LoadWAV( const char *name, byte **wav, wavinfo_t *info )
 
 /*
 =================
+S_CreateMixer
+=================
+*/
+static void S_CreateMixer( sfx_t *sfx )
+{
+	// first time to load?  Create the mixer
+	if( sfx->cache && !sfx->mixer )
+	{
+		mixer_t	*pMixer = Z_Malloc( sizeof( mixer_t ));
+
+		pMixer->m_pData = sfx->cache;
+
+		if( sfx->cache->stereo )
+		{
+			if( sfx->cache->width == 1 )
+			{
+				Msg( "S_LoadSound: use Mix8Stereo( %s )\n", sfx->name );
+				pMixer->MixFunc = Mix8Stereo;
+			}
+			else
+			{
+				Msg( "S_LoadSound: use Mix16Stereo( %s )\n", sfx->name );
+				pMixer->MixFunc = Mix16Stereo;
+			}
+		}
+		else
+		{
+			if( sfx->cache->width == 1 )
+			{
+				Msg( "S_LoadSound: use Mix8Mono( %s )\n", sfx->name );
+				pMixer->MixFunc = Mix8Mono;
+			}
+			else
+			{
+				Msg( "S_LoadSound: use Mix16Mono( %s )\n", sfx->name );
+				pMixer->MixFunc = Mix16Mono;
+			}
+		}
+		sfx->mixer = pMixer; // done
+	}
+}
+
+/*
+=================
 S_UploadSound
 =================
 */
@@ -355,6 +399,7 @@ static void S_UploadSound( byte *data, wavinfo_t *info, sfx_t *sfx )
 	sc->stereo = info->channels;
 
 	S_ResampleSfx( sfx, sc->speed, sc->width, data + info->dataofs );
+	S_CreateMixer( sfx );
 }
 
 /*
@@ -400,7 +445,7 @@ loadformat_t load_formats[] =
 { NULL, NULL }
 };
 
-sfxcache_t *S_LoadSound( sfx_t *sfx )
+sfxcache_t *S_LoadSound( sfx_t *sfx, channel_t *ch )
 {
 	byte		*data;
 	wavinfo_t		info;
@@ -408,6 +453,10 @@ sfxcache_t *S_LoadSound( sfx_t *sfx )
 	string		loadname, path;
 	loadformat_t	*format;
 	bool		anyformat;
+
+	// setup channel mixer
+	if( ch && !ch->pMixer && sfx && sfx->mixer )
+		ch->pMixer = sfx->mixer;
 
 	if( !sfx ) return NULL;
 	if( sfx->name[0] == '*' ) return NULL;
@@ -538,6 +587,7 @@ void S_EndRegistration( void )
 		{	
 			// don't need this sound
 			if( sfx->cache ) Mem_Free( sfx->cache );
+			if( sfx->mixer ) Mem_Free( sfx->mixer );
 			Mem_Set( sfx, 0, sizeof( *sfx ));
 		}
 	}
@@ -546,7 +596,7 @@ void S_EndRegistration( void )
 	for( i = 0, sfx = s_knownSfx; i < s_numSfx; i++, sfx++ )
 	{
 		if( !sfx->name[0] ) continue;
-		S_LoadSound( sfx );
+		S_LoadSound( sfx, NULL );
 	}
 	s_registering = false;
 }
@@ -568,7 +618,7 @@ sound_t S_RegisterSound( const char *name )
 	if( !sfx ) return -1;
 
 	sfx->registration_sequence = s_registration_sequence;
-	if( !s_registering ) S_LoadSound( sfx );
+	if( !s_registering ) S_LoadSound( sfx, NULL );
 
 	return sfx - s_knownSfx;
 }
@@ -601,6 +651,7 @@ void S_FreeSounds( void )
 	{
 		if( !sfx->name[0] ) continue;
 		if( sfx->cache ) Mem_Free( sfx->cache );
+		if( sfx->mixer ) Mem_Free( sfx->mixer );
 		Mem_Set( sfx, 0, sizeof( *sfx ));
 	}
 

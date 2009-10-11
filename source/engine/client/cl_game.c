@@ -28,6 +28,9 @@ edict_t *CL_GetEdictByIndex( int index )
 		MsgDev( D_ERROR, "CL_GetEntityByIndex: invalid entindex %i\n", index );
 		return NULL;
 	}
+
+	if( EDICT_NUM( index )->free )
+		return NULL;
 	return EDICT_NUM( index );
 }
 

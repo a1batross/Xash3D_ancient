@@ -697,7 +697,7 @@ void	GL_SetState( int state );
 void	GL_FrontFace( int front );
 void	R_Set2DMode( bool enable );
 
-void	R_BeginFrame( void );
+void	R_BeginFrame( const ref_params_t *fd );
 void	R_EndFrame( void );
 void	R_RenderScene( const ref_params_t *fd );
 void	R_RenderView( const ref_params_t *fd );

@@ -172,6 +172,7 @@ bool Host_InitSound( void )
 	si.api_size = sizeof( vsound_imp_t );
 	si.GetSoundSpatialization = CL_GetEntitySoundSpatialization;
 	si.PointContents = CL_PointContents;
+	si.GetClientEdict = CL_GetEdictByIndex;
 	si.AddLoopingSounds = CL_AddLoopingSounds;
 	si.GetServerTime = CL_GetServerTime;
 

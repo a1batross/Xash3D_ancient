@@ -6,13 +6,13 @@
 --------------------Configuration: snd_dx - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSPABE.tmp" with contents
+Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP1D17.tmp" with contents
 [
 /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "../public" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\snd_dx\!debug/" /Fo"..\temp\snd_dx\!debug/" /Fd"..\temp\snd_dx\!debug/" /FD /GZ /c 
-"D:\Xash3D\src_main\snd_dx\s_main.c"
+"D:\Xash3D\src_main\snd_dx\s_direct.c"
 ]
-Creating command line "cl.exe @"C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSPABE.tmp"" 
-Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSPABF.tmp" with contents
+Creating command line "cl.exe @"C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP1D17.tmp"" 
+Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP1D18.tmp" with contents
 [
 winmm.lib /nologo /dll /incremental:yes /pdb:"..\temp\snd_dx\!debug/snd_dx.pdb" /debug /machine:I386 /nodefaultlib:"libcmt.lib" /out:"..\temp\snd_dx\!debug/snd_dx.dll" /implib:"..\temp\snd_dx\!debug/snd_dx.lib" /pdbtype:sept 
 "\Xash3D\src_main\temp\snd_dx\!debug\s_direct.obj"
@@ -21,17 +21,20 @@ winmm.lib /nologo /dll /incremental:yes /pdb:"..\temp\snd_dx\!debug/snd_dx.pdb" 
 "\Xash3D\src_main\temp\snd_dx\!debug\s_main.obj"
 "\Xash3D\src_main\temp\snd_dx\!debug\s_mix.obj"
 "\Xash3D\src_main\temp\snd_dx\!debug\s_stream.obj"
+"\Xash3D\src_main\temp\snd_dx\!debug\s_dsp.obj"
+"\Xash3D\src_main\temp\snd_dx\!debug\s_mix_chan.obj"
 ]
-Creating command line "link.exe @"C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSPABF.tmp""
-Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSPAC0.bat" with contents
+Creating command line "link.exe @"C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP1D18.tmp""
+Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP1D19.bat" with contents
 [
 @echo off
 copy \Xash3D\src_main\temp\snd_dx\!debug\snd_dx.dll "D:\Xash3D\bin\snd_dx.dll"
 ]
-Creating command line ""C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSPAC0.bat""
+Creating command line ""C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP1D19.bat""
 Compiling...
-s_main.c
+s_direct.c
 Linking...
+   Creating library ..\temp\snd_dx\!debug/snd_dx.lib and object ..\temp\snd_dx\!debug/snd_dx.exp
 <h3>Output Window</h3>
 Performing Custom Build Step on \Xash3D\src_main\temp\snd_dx\!debug\snd_dx.dll
 ë™ÆØ®‡Æ¢†≠Æ ‰†©´Æ¢:         1.

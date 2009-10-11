@@ -1203,9 +1203,6 @@ void CL_Frame( int time )
 
 	SCR_MakeScreenShot();
 
-	if( cls.state > ca_disconnected && cls.state < ca_active )
-		cl.refdef.paused = true; // force sound.dll to pause
-
 	// update audio
 	S_Update( &cl.refdef );
 
