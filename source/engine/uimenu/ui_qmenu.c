@@ -993,19 +993,35 @@ void UI_Action_Init( menuAction_s *a )
 	}
 	else
 	{
-		if( a->generic.charWidth < 1 ) a->generic.charWidth = UI_SMALL_CHAR_WIDTH;
-		if( a->generic.charHeight < 1 ) a->generic.charHeight = UI_SMALL_CHAR_HEIGHT;
+		if( a->generic.charWidth < 1 ) a->generic.charWidth = UI_MED_CHAR_WIDTH;
+		if( a->generic.charHeight < 1 ) a->generic.charHeight = UI_MED_CHAR_HEIGHT;
+	}
+
+	if(!( a->generic.flags & ( QMF_LEFT_JUSTIFY|QMF_CENTER_JUSTIFY|QMF_RIGHT_JUSTIFY )))
+		a->generic.flags |= QMF_LEFT_JUSTIFY;
+
+	if( !a->generic.color ) a->generic.color = uiColorLtGrey;
+	if( !a->generic.focusColor ) a->generic.focusColor = uiColorWhite;
+//	if( !a->background ) a->background = UI_BACKGROUNDBOX;
+
+	if( a->generic.width < 1 || a->generic.height < 1 )
+	{
+		if( a->background )
+		{
+			shader_t	handle = re->RegisterShader( a->background, SHADER_NOMIP );
+			re->GetParms( &a->generic.width, &a->generic.height, NULL, 0, handle );
+		}
+		else
+		{
+			if( a->generic.width < 1 )
+				a->generic.width = a->generic.charWidth * com.strlen( a->generic.name );
+
+			if( a->generic.height < 1 )
+				a->generic.height = a->generic.charHeight * 1.5;
+		}
 	}
 
 	UI_ScaleCoords( NULL, NULL, &a->generic.charWidth, &a->generic.charHeight );
-
-	if(!( a->generic.flags & (QMF_LEFT_JUSTIFY|QMF_CENTER_JUSTIFY|QMF_RIGHT_JUSTIFY)))
-		a->generic.flags |= QMF_LEFT_JUSTIFY;
-
-	if( !a->generic.color ) a->generic.color = uiColorWhite;
-	if( !a->generic.focusColor ) a->generic.focusColor = uiColorLtGrey;
-	if( !a->background ) a->background = UI_BACKGROUNDBOX;
-
 	UI_ScaleCoords( &a->generic.x, &a->generic.y, &a->generic.width, &a->generic.height );
 }
 
@@ -1060,7 +1076,8 @@ void UI_Action_Draw( menuAction_s *a )
 
 	shadow = (a->generic.flags & QMF_DROPSHADOW);
 
-	UI_DrawPic( a->generic.x, a->generic.y, a->generic.width, a->generic.height, uiColorWhite, a->background );
+	if( a->background )
+		UI_DrawPic( a->generic.x, a->generic.y, a->generic.width, a->generic.height, uiColorWhite, a->background );
 
 	if( a->generic.flags & QMF_GRAYED )
 	{

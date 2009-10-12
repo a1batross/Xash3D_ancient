@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ui_local.h"
 
 
-#define ART_BACKGROUND		"gfx/shell/misc/ui_sub_quit"
+#define ART_BACKGROUND		"gfx/shell/splash2"
 #define UI_CREDITS_PATH		"scripts/credits.txt"
 #define UI_CREDITS_MAXLINES		2048
 
@@ -143,7 +143,7 @@ static void UI_Credits_DrawFunc( void )
 	if( y < 0 && !color[3] )
 	{
 		uiCredits.active = false; // end of credits
-		Cbuf_ExecuteText( EXEC_APPEND, "quit\n" );
+		UI_PopMenu();
 	}
 }
 
@@ -154,7 +154,7 @@ UI_Credits_KeyFunc
 */
 static const char *UI_Credits_KeyFunc( int key )
 {
-	Cbuf_ExecuteText( EXEC_APPEND, "quit\n" );
+	UI_PopMenu();
 	return uiSoundNull;
 }
 

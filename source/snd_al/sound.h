@@ -116,6 +116,7 @@ typedef struct
 	vec3_t		position;
 	vec3_t		velocity;
 	float		orientation[6];
+	int		waterlevel;
 } listener_t;
 
 typedef struct
@@ -170,7 +171,7 @@ void S_Activate( bool active );
 void S_SoundList_f( void );
 bool S_CheckForErrors( void );
 void S_Update( ref_params_t *fd );
-void S_StartSound(const vec3_t pos, int ent, int chan, sound_t sfx, float vol, float attn, float pitch, bool use_loop);
+void S_StartSound( const vec3_t pos, int ent, int chan, sound_t sfx, float vol, float attn, float pitch, int flags );
 void S_StreamRawSamples( int samples, int rate, int width, int channels, const byte *data );
 bool S_AddLoopingSound( int entnum, sound_t handle, float volume, float attn );
 void S_StartBackgroundTrack( const char *intro, const char *loop );

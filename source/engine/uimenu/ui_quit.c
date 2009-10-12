@@ -59,7 +59,7 @@ static void UI_Quit_Callback( void *self, int event )
 	switch( item->id )
 	{
 	case ID_YES:
-		UI_Credits_Menu();
+		Cbuf_ExecuteText( EXEC_APPEND, "quit\n" );
 		break;
 	case ID_NO:
 		UI_PopMenu();

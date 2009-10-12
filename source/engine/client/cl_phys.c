@@ -339,8 +339,15 @@ void CL_PredictMovement (void)
 
 	pmove = EDICT_NUM( cl.playernum + 1 )->pvClientData->current;
 
+	if( cls.demoplayback )
+	{
+		// interpolate server values
+		for( i = 0; i < 3; i++ )
+			cl.refdef.cl_viewangles[i] = EDICT_NUM( cl.refdef.viewentity )->v.viewangles[i];
+	}
+
 	// unpredicted pure angled values converted into axis
-	AngleVectors( cl.refdef.cl_viewangles, cl.axis[0], cl.axis[1], cl.axis[2] );
+	AngleVectors( cl.refdef.cl_viewangles, cl.refdef.forward, cl.refdef.right, cl.refdef.up );
 
 	if( !cl_predict->value || cl.frame.ps.ed_flags & ESF_NO_PREDICTION )
 	{	

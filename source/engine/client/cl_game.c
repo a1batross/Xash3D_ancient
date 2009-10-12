@@ -735,7 +735,7 @@ void pfnPlaySoundByIndex( int iSound, float volume, int pitch, const float *org 
 		MsgDev( D_ERROR, "CL_PlaySoundByIndex: invalid sound handle %i\n", iSound );
 		return;
 	}
-	S_StartSound( org, cl.playernum + 1, CHAN_AUTO, cl.sound_precache[iSound], volume, ATTN_NORM, pitch );
+	S_StartSound( org, cl.refdef.viewentity, CHAN_AUTO, cl.sound_precache[iSound], volume, ATTN_NORM, pitch, 0 );
 }
 
 /*

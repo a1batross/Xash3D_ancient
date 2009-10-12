@@ -10,28 +10,17 @@
 #define SOUND_LOOPATTENUATE	0.003
 #define MAX_PLAYSOUNDS	128
 
-// Structure used for fading in and out client sound volume.
-typedef struct
-{
-	float	initial_percent;
-	float	percent;		// how far to adjust client's volume down by.
-	float	starttime;	// si.GetServerTime() when we started adjusting volume
-	float	fadeouttime;	// # of seconds to get to faded out state
-	float	holdtime;		// # of seconds to hold
-	float	fadeintime;	// # of seconds to restore
-} soundfade_t;
-
 dma_t		dma;
-static soundfade_t	soundfade;	// client sound fading
 channel_t   	channels[MAX_CHANNELS];
 bool		sound_started = false;
-int		listener_waterlevel;
 vec3_t		listener_origin;
 vec3_t		listener_velocity;
 vec3_t		listener_forward;
 vec3_t		listener_right;
 vec3_t		listener_up;
+int		listener_waterlevel;
 
+int		total_channels;
 int		s_framecount;	// for autosounds checking
 int		s_clientnum;	// cl.playernum + 1
 int		soundtime;	// sample PAIRS
@@ -61,19 +50,6 @@ cvar_t		*s_pause;
 		
 =============================================================================
 */
-
-float S_GetMasterVolume( void )
-{
-	float	scale = 1.0f;
-
-	if( soundfade.percent != 0 )
-	{
-		scale = bound( 0.0f, soundfade.percent / 100.0f, 1.0f );
-		scale = 1.0f - scale;
-	}
-	return s_volume->value * scale;
-}
-
 /*
 =================
 S_PickChannel
@@ -88,7 +64,7 @@ channel_t *S_PickChannel( int entnum, int channel )
 
 	if( entnum < 0 || channel < 0 ) return NULL; // invalid channel or entnum
 
-	for( i = 0, ch = channels; i < MAX_CHANNELS; i++, ch++ )
+	for( i = 0, ch = channels; i < total_channels; i++, ch++ )
 	{
 		// check if this channel is active
 		if( channel == CHAN_AUTO && !ch->sfx )
@@ -126,6 +102,58 @@ channel_t *S_PickChannel( int entnum, int channel )
 
 	return ch;
 }       
+
+int S_AlterChannel( int entnum, int chan, sfx_t *sfx, int vol, int pitch, int flags )
+{
+	int		i;
+	channel_t		*ch;
+	
+	if( S_TestSoundChar( sfx->name, '!' ))
+	{
+		// This is a sentence name.
+		// For sentences: assume that the entity is only playing one sentence
+		// at a time, so we can just shut off
+		// any channel that has ch->isentence >= 0 and matches the
+		// soundsource.
+		for( i = 0, ch = channels; i < total_channels; i++ )
+		{
+			if( ch->entnum == entnum && ch->entchannel == chan && ch->sfx && ch->fsentence )
+			{
+				if( flags & SND_CHANGE_PITCH )
+					ch->basePitch = pitch;
+				
+				if( flags & SND_CHANGE_VOL )
+					ch->master_vol = vol;
+				
+				if( flags & SND_STOP )
+					Mem_Set( ch, 0, sizeof( channel_t ));
+				return true;
+			}
+		}
+		// channel not found
+		return false;
+
+	}
+
+	// regular sound or streaming sound
+	for( i = 0, ch = channels; i < total_channels; i++ )
+	{
+		if( ch->entnum == entnum && ch->entchannel == chan && ch->sfx )
+		{
+         			Msg( "S_StartSound: vol %i, pitch %i\n", vol, pitch );
+			if( flags & SND_CHANGE_PITCH )
+				ch->basePitch = pitch;
+				
+			if( flags & SND_CHANGE_VOL )
+				ch->master_vol = vol;
+				
+			if( flags & SND_STOP )
+				Mem_Set( ch, 0, sizeof( channel_t ));
+			return true;
+		}
+	}
+	return false;
+}
 
 /*
 =================
@@ -288,7 +316,7 @@ void S_IssuePlaysound( playsound_t *ps )
 	S_SpatializeChannel( ch );
 
 	ch->pos = 0;
-	sc = S_LoadSound( ch->sfx, ch );
+	sc = S_LoadSound( ch->sfx );
 	ch->end = paintedtime + sc->length;
 
 	// free the playsound
@@ -307,7 +335,7 @@ if pos is NULL, the sound will be dynamically sourced from the entity
 Entchannel 0 will never override a playing sound
 ====================
 */
-void S_StartSound( const vec3_t pos, int ent, int chan, sound_t handle, float fvol, float attn, float pitch, bool loop )
+void S_StartSound( const vec3_t pos, int ent, int chan, sound_t handle, float fvol, float attn, float pitch, int flags )
 {
 	sfxcache_t	*sc;
 	int		vol, start;
@@ -322,10 +350,29 @@ void S_StartSound( const vec3_t pos, int ent, int chan, sound_t handle, float fv
 	if( !sfx ) return;
 
 	// make sure the sound is loaded
-	sc = S_LoadSound( sfx, NULL );
+	sc = S_LoadSound( sfx );
 	if( !sc ) return; // couldn't load the sound's data
 
 	vol = fvol * 255;
+
+	if( flags & (SND_STOP|SND_CHANGE_VOL|SND_CHANGE_PITCH))
+	{
+		if( S_AlterChannel( ent, chan, sfx, vol, pitch, flags ))
+		{
+			Msg( "S_AlterChannel( %s, %i, %i )\n", sfx->name, ent, chan );
+			return;
+		}
+
+		if( flags & SND_STOP ) return;
+		// fall through - if we're not trying to stop the sound, 
+		// and we didn't find it (it's not playing), go ahead and start it up
+	}
+
+	if( pitch == 0 )
+	{
+		MsgDev( D_WARN, "S_StartSound: ( %s ) ignored, called with pitch 0\n", sfx->name );
+		return;
+	}
 
 	// allocate the playsound_t
 	ps = S_AllocPlaysound();
@@ -346,7 +393,7 @@ void S_StartSound( const vec3_t pos, int ent, int chan, sound_t handle, float fv
 	ps->entnum = ent;
 	ps->entchannel = chan;
 	ps->attenuation = attn;
-	ps->use_loop = loop;
+	ps->use_loop = (flags & SND_STOP_LOOPING) ? false : true;
 	ps->volume = vol;
 	ps->sfx = sfx;
 
@@ -389,7 +436,7 @@ bool S_StartLocalSound(  const char *name, float volume, float pitch, const floa
 		return false;
 		
 	sfxHandle = S_RegisterSound( name );
-	S_StartSound( origin, s_clientnum, CHAN_AUTO, sfxHandle, volume, ATTN_NONE, pitch, false );
+	S_StartSound( origin, s_clientnum, CHAN_AUTO, sfxHandle, volume, ATTN_NONE, pitch, SND_STOP_LOOPING );
 
 	return true;
 }
@@ -441,6 +488,8 @@ void S_StopAllSounds( void )
 		s_playsounds[i].prev->next = &s_playsounds[i];
 		s_playsounds[i].next->prev = &s_playsounds[i];
 	}
+
+	total_channels = MAX_CHANNELS; // no statics
 
 	// clear all the channels
 	Mem_Set( channels, 0, sizeof( channels ));
@@ -606,12 +655,12 @@ void S_Update( ref_params_t *fd )
 	if( s_volume->modified ) S_InitScaletable();
 
 	s_clientnum = fd->viewentity;
-	listener_waterlevel = fd->waterlevel;
 	VectorCopy( fd->simorg, listener_origin );
 	VectorCopy( fd->simvel, listener_velocity );
 	VectorCopy( fd->forward, listener_forward );
 	VectorCopy( fd->right, listener_right );
 	VectorCopy( fd->up, listener_up );
+	listener_waterlevel = fd->waterlevel;
 
 	// Add looping sounds
 	si.AddLoopingSounds();
@@ -696,9 +745,6 @@ void S_SoundInfo_f( void )
 		Msg( "sound system not started\n" );
 		return;
 	}
-
-	if( dsound_init ) Msg( "Sound Device: DirectSound\n" );
-	if( wavout_init ) Msg( "Sound Device: Windows WAV\n" );
 	
 	Msg( "%5d channel(s)\n", dma.channels );
 	Msg( "%5d samples\n", dma.samples );
@@ -754,8 +800,7 @@ bool S_Init( void *hInst )
 	paintedtime = 0;
 
 	S_StopAllSounds ();
-
-	AllocDsps();
+	SX_Init ();
 
 	return true;
 }
@@ -776,7 +821,7 @@ void S_Shutdown( void )
 	SNDDMA_Shutdown();
 
 	S_FreeSounds();
-	Mem_FreePool( &sndpool );
+	SX_Free ();
 
-	FreeDsps();
+	Mem_FreePool( &sndpool );
 }

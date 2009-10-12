@@ -34,13 +34,13 @@ typedef enum
 cvar_t		*s_wavonly;
 
 static HWND	snd_hwnd;
+static bool	dsound_init;
+static bool	wav_init;
 static bool	snd_firsttime = true, snd_isdirect, snd_iswave;
 static bool	primary_format_set;
 static int	snd_buffer_count = 0;
 static int	sample16;
 static int	snd_sent, snd_completed;
-bool		dsound_init;
-bool		wavout_init;
 
 /* 
 =======================================================================
@@ -316,7 +316,7 @@ void SNDDMA_FreeSound( void )
 	lpData = NULL;
 	lpWaveHdr = NULL;
 	dsound_init = false;
-	wavout_init = false;
+	wav_init = false;
 }
 
 /*
@@ -336,9 +336,9 @@ si_state_t SNDDMA_InitDirect( void *hInst )
 
 	switch( s_khz->integer )
 	{
-	case 44: dma.speed = SOUND_44k; break;
-	case 22: dma.speed = SOUND_22k; break;
-	default: dma.speed = SOUND_11k; break;
+	case 44: dma.speed = 44100; break;
+	case 22: dma.speed = 22050; break;
+	default: dma.speed = 11025; break;
 	}
 
 	MsgDev( D_NOTE, "SNDDMA_InitDirect: initializing DirectSound ");
@@ -409,9 +409,9 @@ si_state_t SNDDMA_InitWav( void )
 
 	switch( s_khz->integer )
 	{
-	case 44: dma.speed = SOUND_44k; break;
-	case 22: dma.speed = SOUND_22k; break;
-	default: dma.speed = SOUND_11k; break;
+	case 44: dma.speed = 44100; break;
+	case 22: dma.speed = 22050; break;
+	default: dma.speed = 11025; break;
 	}
 
 	Mem_Set( &format, 0, sizeof( format ));
@@ -499,7 +499,7 @@ si_state_t SNDDMA_InitWav( void )
 	dma.submission_chunk = 512;
 	dma.buffer = (byte *)lpData;
 	sample16 = (dma.samplebits / 8) - 1;
-	wavout_init = true;
+	wav_init = true;
 
 	return SIS_SUCCESS;
 }
@@ -519,7 +519,7 @@ int SNDDMA_Init( void *hInst )
 	Mem_Set( &dma, 0, sizeof( dma ));
 
 	s_wavonly = Cvar_Get( "s_wavonly", "0", CVAR_LATCH_AUDIO|CVAR_ARCHIVE, "force to use WaveOutput only" );
-	dsound_init = wavout_init = 0;
+	dsound_init = wav_init = 0;
 
 	// init DirectSound
 	if( !s_wavonly->integer )
@@ -560,7 +560,7 @@ int SNDDMA_Init( void *hInst )
 	}
 	snd_buffer_count = 1;
 
-	if( !dsound_init && !wavout_init )
+	if( !dsound_init && !wav_init )
 	{
 		if( snd_firsttime )
 			MsgDev( D_ERROR, "SNDDMA_Init: can't initialize sound device\n" );
@@ -593,7 +593,7 @@ int SNDDMA_GetDMAPos( void )
 		pDSBuf->lpVtbl->GetCurrentPosition( pDSBuf, &mmtime.u.sample, &dwWrite );
 		s = mmtime.u.sample - mmstarttime.u.sample;
 	}
-	else if( wavout_init )
+	else if( wav_init )
 	{        
 		s = snd_sent * WAV_BUFFER_SIZE;
 	}
@@ -651,57 +651,6 @@ void SNDDMA_BeginPainting( void )
 	dma.buffer = (byte *)pbuf;
 }
 
-void *SNDDMA_LockBuffer( void )
-{
-	int	reps = 0;
-	void	*pbuf = NULL, *pbuf2 = NULL;
-	DWORD	dwSize2, dwStatus;
-	HRESULT	hr;
-
-	if( !pDSBuf ) return dma.buffer;
-
-	// if the buffer was lost or stopped, restore it and/or restart it
-	if( pDSBuf->lpVtbl->GetStatus( pDSBuf, &dwStatus ) != DS_OK )
-		MsgDev( D_WARN, "SNDDMA_LockBuffer: couldn't get sound buffer status\n" );
-	
-	if( dwStatus & DSBSTATUS_BUFFERLOST )
-		pDSBuf->lpVtbl->Restore( pDSBuf );
-	
-	if(!( dwStatus & DSBSTATUS_PLAYING ))
-		pDSBuf->lpVtbl->Play( pDSBuf, 0, 0, DSBPLAY_LOOPING );
-
-	// lock the dsound buffer
-	dma.buffer = NULL;
-	reps = 0;
-
-	while(( hr = pDSBuf->lpVtbl->Lock( pDSBuf, 0, gSndBufSize, &pbuf, &locksize, &pbuf2, &dwSize2, 0 )) != DS_OK )
-	{
-		if( hr != DSERR_BUFFERLOST )
-		{
-			MsgDev( D_ERROR, "SNDDMA_LockBuffer: lock failed with error '%s'\n", DSoundError( hr ));
-			S_Shutdown ();
-			S_Init ( snd_hwnd );
-			return NULL;
-		}
-		else pDSBuf->lpVtbl->Restore( pDSBuf );
-
-		if( ++reps > 100 )
-		{
-			MsgDev( D_ERROR, "SNDDMA_LockBuffer: couldn't restore buffer\n");
-			S_Shutdown ();
-			S_Init ( snd_hwnd );
-			return NULL;
-		}
-	}
-
-	dma.buffer = (byte *)pbuf;
-	return pbuf;
-}
-
-void SNDDMA_UnlockBuffer( void )
-{
-}
-
 /*
 ==============
 SNDDMA_Submit
@@ -721,7 +670,7 @@ void SNDDMA_Submit( void )
 	// unlock the dsound buffer
 	if( pDSBuf ) pDSBuf->lpVtbl->Unlock( pDSBuf, dma.buffer, locksize, NULL, 0 );
 
-	if( !wavout_init ) return;
+	if( !wav_init ) return;
 
 	// find which sound blocks have completed
 	while( 1 )

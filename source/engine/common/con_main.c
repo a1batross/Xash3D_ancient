@@ -65,33 +65,6 @@ static console_t con;
 
 /*
 ================
-Con_ToggleConsole_f
-================
-*/
-void Con_ToggleConsole_f( void )
-{
-	if( !host.developer ) return;
-	if(UI_CreditsActive()) return;
-
-	Field_Clear( &g_consoleField );
-	g_consoleField.widthInChars = g_console_field_width;
-
-	Con_ClearNotify();
-
-	if( cls.key_dest == key_console )
-	{
-		UI_SetActiveMenu( UI_CLOSEMENU );
-		cls.key_dest = key_game;
-	}
-	else
-	{
-		UI_SetActiveMenu( UI_CLOSEMENU );
-		cls.key_dest = key_console;	
-	}
-}
-
-/*
-================
 Con_ToggleChat_f
 ================
 */
@@ -140,6 +113,39 @@ void Con_ClearNotify( void )
 		con.times[i] = 0;
 }
 
+void Con_ClearTyping( void )
+{
+	Field_Clear( &g_consoleField );
+	g_consoleField.widthInChars = g_console_field_width;
+}
+
+/*
+================
+Con_ToggleConsole_f
+================
+*/
+void Con_ToggleConsole_f( void )
+{
+	if( !host.developer ) return;	// disabled
+
+	// show console only in game or by special call from menu
+	if( cls.state != ca_active || cls.key_dest == key_menu )
+		return;
+
+	Con_ClearTyping();
+	Con_ClearNotify();
+
+	if( cls.key_dest == key_console )
+	{
+		UI_SetActiveMenu( UI_CLOSEMENU );
+		cls.key_dest = key_game;
+	}
+	else
+	{
+		UI_SetActiveMenu( UI_CLOSEMENU );
+		cls.key_dest = key_console;	
+	}
+}
 						
 /*
 ================

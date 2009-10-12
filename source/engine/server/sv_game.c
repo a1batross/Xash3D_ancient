@@ -645,43 +645,6 @@ bool SV_MapIsValid( const char *filename, const char *spawn_entity )
 	return result;
 }
 
-void SV_PushClients( void )
-{
-	edict_t	*in, *out;
-	int	i;
-
-	svgame.num_saved_edicts = 0;
-
-	// hold the clients in other place
-	for( i = 0; i < sv_maxclients->integer; i++ )
-	{
-		in = EDICT_NUM( i + 1 );
-		out = svgame.saved_edicts + i;
-
-		if( SV_CopyEdict( out, in ))
-			svgame.num_saved_edicts++;
-	}
-}
-
-void SV_PopClients( void )
-{
-	edict_t	*in, *out;
-	int	i;
-
-	// copy clients back to sv.edicts
-	for( i = 0; i < svgame.num_saved_edicts; i++ )
-	{
-		in = svgame.saved_edicts + i;
-		out = EDICT_NUM( i + 1 );
-
-		if( SV_CopyEdict( out, in ))
-			svgame.globals->numClients++;
-		if( svgame.globals->numClients > sv_maxclients->integer )
-			break;
-	}
-	svgame.num_saved_edicts = 0;
-}
-
 void SV_InitEdict( edict_t *pEdict )
 {
 	Com_Assert( pEdict == NULL );
@@ -1583,7 +1546,6 @@ SV_StartSound
 void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float attn, int flags, int pitch )
 {
 	int 	sound_idx;
-	vec3_t	snd_origin;
 	bool	reliable = false;
 	bool	use_phs = false;
 
@@ -1610,18 +1572,14 @@ void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float
 	// use the entity origin unless it is a bmodel or explicitly specified
 	if( ent->v.solid == SOLID_BSP || VectorCompare( ent->v.origin, vec3_origin ))
 	{
-		VectorAverage( ent->v.mins, ent->v.maxs, snd_origin );
-		VectorAdd( snd_origin, ent->v.origin, snd_origin );
 		reliable = true; // because brush center can be out of PHS (outside from world)
 		use_phs = false;
 	}
 	else
 	{
-		VectorCopy( ent->v.origin, snd_origin );
 		reliable = false;
 		use_phs = true;
 	}
-	// NOTE: bsp origin for moving edicts will be done on client-side
 
 	// always sending stop sound command
 	if( flags & SND_STOP ) reliable = true;
@@ -1640,6 +1598,50 @@ void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float
 	if ( flags & SND_PITCH ) MSG_WriteByte( &sv.multicast, pitch );
 
 	MSG_WriteWord( &sv.multicast, ent->serialnumber );
+
+	if( reliable )
+	{
+		if( use_phs ) MSG_Send( MSG_PHS_R, ent->v.origin, ent );
+		else MSG_Send( MSG_ALL_R, ent->v.origin, ent );
+	}
+	else
+	{
+		if( use_phs ) MSG_Send( MSG_PHS, ent->v.origin, ent );
+		else MSG_Send( MSG_ALL, ent->v.origin, ent );
+	}
+}
+
+/*
+=================
+pfnEmitAmbientSound
+
+=================
+*/
+void pfnEmitAmbientSound( edict_t *ent, float *pos, const char *samp, float vol, float attn, int flags, int pitch )
+{
+#if 0
+	vec3_t	snd_origin;
+	bool	reliable = false;
+	bool	use_phs = false;
+
+	// use the entity origin unless it is a bmodel or explicitly specified
+	if( ent->v.solid == SOLID_BSP || VectorCompare( ent->v.origin, vec3_origin ))
+	{
+		VectorAverage( ent->v.mins, ent->v.maxs, snd_origin );
+		VectorAdd( snd_origin, ent->v.origin, snd_origin );
+		reliable = true; // because brush center can be out of PHS (outside from world)
+		use_phs = false;
+	}
+	else
+	{
+		VectorCopy( ent->v.origin, snd_origin );
+		reliable = false;
+		use_phs = true;
+	}
+
+	// FIXME: implement
+	MSG_WriteWord( &sv.multicast, ent->serialnumber );
+
 	MSG_WriteCoord32( &sv.multicast, snd_origin[0] );
 	MSG_WriteCoord32( &sv.multicast, snd_origin[1] );
 	MSG_WriteCoord32( &sv.multicast, snd_origin[2] );
@@ -1654,17 +1656,7 @@ void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float
 		if( use_phs ) MSG_Send( MSG_PHS, snd_origin, ent );
 		else MSG_Send( MSG_ALL, snd_origin, ent );
 	}
-}
-
-/*
-=================
-pfnEmitAmbientSound
-
-=================
-*/
-void pfnEmitAmbientSound( edict_t *ent, float *pos, const char *samp, float vol, float attn, int flags, int pitch )
-{
-	// FIXME: implement
+#endif
 }
 
 /*
@@ -3383,7 +3375,6 @@ void SV_LoadProgs( const char *name )
 	svgame.globals->maxEntities = GI->max_edicts;
 	svgame.globals->maxClients = sv_maxclients->integer;
 	svgame.edicts = Mem_Alloc( svgame.mempool, sizeof( edict_t ) * svgame.globals->maxEntities );
-	svgame.saved_edicts = Mem_Alloc( svgame.mempool, sizeof( edict_t ) * svgame.globals->maxClients );
 	svgame.globals->numEntities = svgame.globals->maxClients + 1; // clients + world
 	svgame.globals->numClients = 0;
 	for( i = 0, e = svgame.edicts; i < svgame.globals->maxEntities; i++, e++ )

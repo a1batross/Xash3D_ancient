@@ -494,8 +494,11 @@ void SCR_Init( void )
 	SCR_RegisterShaders();
 	UI_Init();
 
-	if( cls.state == ca_disconnected )
+	if( cls.state == ca_uninitialized )
+	{
+		cls.key_dest = key_menu;
 		UI_SetActiveMenu( UI_MAINMENU );
+	}
 	scr_init = true;
 }
 

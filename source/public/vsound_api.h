@@ -33,7 +33,7 @@ typedef struct vsound_exp_s
 	sound_t (*RegisterSound)( const char *name );
 	void (*EndRegistration)( void );
 
-	void (*StartSound)( const vec3_t pos, int ent, int chan, sound_t sfx, float vol, float attn, float pitch, bool loop );
+	void (*StartSound)( const vec3_t pos, int ent, int chan, sound_t sfx, float vol, float attn, float pitch, int flags );
 	void (*StreamRawSamples)( int samples, int rate, int width, int channels, const byte *data );
 	bool (*AddLoopingSound)( int entnum, sound_t handle, float volume, float attn );
 	bool (*StartLocalSound)( const char *name, float volume, float pitch, const float *origin );

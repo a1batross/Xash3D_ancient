@@ -12,5 +12,6 @@
 #define SND_VOLUME			(1<<8)	// a scaled byte
 #define SND_SOUNDLEVEL		(1<<9)	// a byte
 #define SND_PITCH			(1<<10)	// a byte
+#define SND_FIXED_ORIGIN		(1<<11)	// a vector
 
 #endif//NET_SOUND_H

@@ -24,19 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client.h"
 
 #define ART_BACKGROUND	"gfx/shell/splash"
-#define ART_LOGO		"gfx/shell/title_screen/q2e_logo"
-#define ART_SINGLEPLAYER	"gfx/shell/title_screen/singleplayer_n"
-#define ART_SINGLEPLAYER2	"gfx/shell/title_screen/singleplayer_s"
-#define ART_MULTIPLAYER	"gfx/shell/title_screen/multiplayer_n"
-#define ART_MULTIPLAYER2	"gfx/shell/title_screen/multiplayer_s"
-#define ART_OPTIONS		"gfx/shell/title_screen/options_n"
-#define ART_OPTIONS2	"gfx/shell/title_screen/options_s"
-#define ART_DEMOS		"gfx/shell/title_screen/demos_n"
-#define ART_DEMOS2		"gfx/shell/title_screen/demos_s"
-#define ART_MODS		"gfx/shell/title_screen/mods_n"
-#define ART_MODS2		"gfx/shell/title_screen/mods_s"
-#define ART_QUIT		"gfx/shell/title_screen/quit_n"
-#define ART_QUIT2		"gfx/shell/title_screen/quit_s"
 #define ART_IDLOGO		"gfx/shell/title_screen/logo_id"
 #define ART_IDLOGO2		"gfx/shell/title_screen/logo_id_s"
 #define ART_BLURLOGO	"gfx/shell/title_screen/logo_blur"
@@ -44,34 +31,35 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ART_COPYRIGHT	"gfx/shell/title_screen/copyrights"
 
 #define ID_BACKGROUND	0
-#define ID_LOGO		1
 
-#define ID_SINGLEPLAYER	2
-#define ID_MULTIPLAYER	3
-#define ID_OPTIONS		4
-#define ID_DEMOS		5
-#define ID_MODS		6
-#define ID_QUIT		7
+#define ID_CONSOLE		1
+#define ID_NEWGAME		2
+#define ID_CONFIGURATION	3
+#define ID_SAVERESTORE	4	
+#define ID_MULTIPLAYER	5
+#define ID_CUSTOMGAME	6
+#define ID_CREDITS		7
+#define ID_QUIT		8
 
-#define ID_IDSOFTWARE	8
-#define ID_TEAMBLUR		9
-#define ID_COPYRIGHT	10
-#define ID_ALLYOURBASE	11
+#define ID_IDSOFTWARE	9
+#define ID_TEAMBLUR		10
+#define ID_COPYRIGHT	11
+#define ID_ALLYOURBASE	12
 
 typedef struct
 {
 	menuFramework_s	menu;
 
 	menuBitmap_s	background;
-	menuBitmap_s	logo;
 
-	menuBitmap_s	singlePlayer;
-	menuBitmap_s	multiPlayer;
-	menuBitmap_s	options;
-	menuBitmap_s	cinematics;
-	menuBitmap_s	demos;
-	menuBitmap_s	mods;
-	menuBitmap_s	quit;
+	menuAction_s	console;
+	menuAction_s	newGame;
+	menuAction_s	configuration;
+	menuAction_s	saveRestore;
+	menuAction_s	multiPlayer;
+	menuAction_s	customGame;
+	menuAction_s	credits;
+	menuAction_s	quit;
 
 	menuBitmap_s	idSoftware;
 	menuBitmap_s	teamBlur;
@@ -120,20 +108,27 @@ static void UI_Main_Callback( void *self, int event )
 
 	switch( item->id )
 	{
-	case ID_SINGLEPLAYER:
+	case ID_CONSOLE:
+		UI_SetActiveMenu( UI_CLOSEMENU );
+		cls.key_dest = key_console;
+		break;
+	case ID_NEWGAME:
 		UI_SinglePlayer_Menu();
 		break;
 	case ID_MULTIPLAYER:
 		UI_MultiPlayer_Menu();
 		break;
-	case ID_OPTIONS:
+	case ID_CONFIGURATION:
 		UI_Options_Menu();
 		break;
-	case ID_DEMOS:
-		UI_Demos_Menu();
+	case ID_SAVERESTORE:
+		UI_LoadGame_Menu(); // FIXME
 		break;
-	case ID_MODS:
+	case ID_CUSTOMGAME:
 		UI_Mods_Menu();
+		break;
+	case ID_CREDITS:
+		UI_Credits_Menu ();
 		break;
 	case ID_QUIT:
 		UI_Quit_Menu();
@@ -170,80 +165,71 @@ static void UI_Main_Init( void )
 	uiMain.background.generic.height = 768;
 	uiMain.background.pic = ART_BACKGROUND;
 
-	uiMain.logo.generic.id = ID_LOGO;
-	uiMain.logo.generic.type = QMTYPE_BITMAP;
-	uiMain.logo.generic.flags = QMF_INACTIVE;
-	uiMain.logo.generic.x = 0;
-	uiMain.logo.generic.y = 0;
-	uiMain.logo.generic.width = 1024;
-	uiMain.logo.generic.height = 256;
-	uiMain.logo.pic = ART_LOGO;
+	uiMain.console.generic.id = ID_CONSOLE;
+	uiMain.console.generic.type = QMTYPE_ACTION;
+	uiMain.console.generic.name = "Console";
+	uiMain.console.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiMain.console.generic.x = 64;
+	uiMain.console.generic.y = 230;
+	uiMain.console.generic.callback = UI_Main_Callback;
 
-	uiMain.singlePlayer.generic.id = ID_SINGLEPLAYER;
-	uiMain.singlePlayer.generic.type = QMTYPE_BITMAP;
-	uiMain.singlePlayer.generic.flags = QMF_PULSEIFFOCUS | QMF_FOCUSBEHIND;
-	uiMain.singlePlayer.generic.x	= 285;
-	uiMain.singlePlayer.generic.y	= 300;
-	uiMain.singlePlayer.generic.width = 454;
-	uiMain.singlePlayer.generic.height = 42;
-	uiMain.singlePlayer.generic.callback = UI_Main_Callback;
-	uiMain.singlePlayer.pic = ART_SINGLEPLAYER;
-	uiMain.singlePlayer.focusPic = ART_SINGLEPLAYER2;
+	uiMain.newGame.generic.id = ID_NEWGAME;
+	uiMain.newGame.generic.type = QMTYPE_ACTION;
+	uiMain.newGame.generic.name = "New game";
+	uiMain.newGame.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiMain.newGame.generic.x = 64;
+	uiMain.newGame.generic.y = 280;
+	uiMain.newGame.generic.callback = UI_Main_Callback;
+
+	uiMain.configuration.generic.id = ID_CONFIGURATION;
+	uiMain.configuration.generic.type = QMTYPE_ACTION;
+	uiMain.configuration.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiMain.configuration.generic.name = "Configuration";
+	uiMain.configuration.generic.x = 64;
+	uiMain.configuration.generic.y = 330;
+	uiMain.configuration.generic.callback = UI_Main_Callback;
+
+	uiMain.saveRestore.generic.id = ID_SAVERESTORE;
+	uiMain.saveRestore.generic.type = QMTYPE_ACTION;
+	uiMain.saveRestore.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	if( cls.state == ca_active )
+		uiMain.saveRestore.generic.name = "Save\\Load Game";
+	else uiMain.saveRestore.generic.name = "Load Game";
+	uiMain.saveRestore.generic.x = 64;
+	uiMain.saveRestore.generic.y = 380;
+	uiMain.saveRestore.generic.callback = UI_Main_Callback;
 
 	uiMain.multiPlayer.generic.id = ID_MULTIPLAYER;
-	uiMain.multiPlayer.generic.type = QMTYPE_BITMAP;
-	uiMain.multiPlayer.generic.flags = QMF_PULSEIFFOCUS | QMF_FOCUSBEHIND;
-	uiMain.multiPlayer.generic.x = 306;
-	uiMain.multiPlayer.generic.y = 342;
-	uiMain.multiPlayer.generic.width = 412;
-	uiMain.multiPlayer.generic.height = 42;
+	uiMain.multiPlayer.generic.type = QMTYPE_ACTION;
+	uiMain.multiPlayer.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiMain.multiPlayer.generic.name = "Multiplayer";
+	uiMain.multiPlayer.generic.x = 64;
+	uiMain.multiPlayer.generic.y = 430;
 	uiMain.multiPlayer.generic.callback = UI_Main_Callback;
-	uiMain.multiPlayer.pic = ART_MULTIPLAYER;
-	uiMain.multiPlayer.focusPic = ART_MULTIPLAYER2;
 
-	uiMain.options.generic.id = ID_OPTIONS;
-	uiMain.options.generic.type = QMTYPE_BITMAP;
-	uiMain.options.generic.flags = QMF_PULSEIFFOCUS | QMF_FOCUSBEHIND;
-	uiMain.options.generic.x = 367;
-	uiMain.options.generic.y = 384;
-	uiMain.options.generic.width = 290;
-	uiMain.options.generic.height	= 42;
-	uiMain.options.generic.callback = UI_Main_Callback;
-	uiMain.options.pic = ART_OPTIONS;
-	uiMain.options.focusPic = ART_OPTIONS2;
+	uiMain.customGame.generic.id = ID_CUSTOMGAME;
+	uiMain.customGame.generic.type = QMTYPE_ACTION;
+	uiMain.customGame.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiMain.customGame.generic.name = "Custom Game";
+	uiMain.customGame.generic.x = 64;
+	uiMain.customGame.generic.y = 480;
+	uiMain.customGame.generic.callback = UI_Main_Callback;
 
-	uiMain.demos.generic.id = ID_DEMOS;
-	uiMain.demos.generic.type = QMTYPE_BITMAP;
-	uiMain.demos.generic.flags = QMF_PULSEIFFOCUS | QMF_FOCUSBEHIND;
-	uiMain.demos.generic.x = 386;
-	uiMain.demos.generic.y = 468;
-	uiMain.demos.generic.width = 252;
-	uiMain.demos.generic.height = 42;
-	uiMain.demos.generic.callback	= UI_Main_Callback;
-	uiMain.demos.pic = ART_DEMOS;
-	uiMain.demos.focusPic = ART_DEMOS2;
-
-	uiMain.mods.generic.id = ID_MODS;
-	uiMain.mods.generic.type = QMTYPE_BITMAP;
-	uiMain.mods.generic.flags = QMF_PULSEIFFOCUS | QMF_FOCUSBEHIND;
-	uiMain.mods.generic.x = 291;
-	uiMain.mods.generic.y = 510;
-	uiMain.mods.generic.width = 442;
-	uiMain.mods.generic.height = 42;
-	uiMain.mods.generic.callback = UI_Main_Callback;
-	uiMain.mods.pic = ART_MODS;
-	uiMain.mods.focusPic = ART_MODS2;
+	uiMain.credits.generic.id = ID_CREDITS;
+	uiMain.credits.generic.type = QMTYPE_ACTION;
+	uiMain.credits.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiMain.credits.generic.name = "Credits";
+	uiMain.credits.generic.x = 64;
+	uiMain.credits.generic.y = 530;
+	uiMain.credits.generic.callback = UI_Main_Callback;
 
 	uiMain.quit.generic.id = ID_QUIT;
-	uiMain.quit.generic.type = QMTYPE_BITMAP;
-	uiMain.quit.generic.flags = QMF_PULSEIFFOCUS | QMF_FOCUSBEHIND;
-	uiMain.quit.generic.x = 415;
-	uiMain.quit.generic.y = 594;
-	uiMain.quit.generic.width = 194;
-	uiMain.quit.generic.height = 42;
+	uiMain.quit.generic.type = QMTYPE_ACTION;
+	uiMain.quit.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiMain.quit.generic.name = "Quit";
+	uiMain.quit.generic.x = 64;
+	uiMain.quit.generic.y = 580;
 	uiMain.quit.generic.callback = UI_Main_Callback;
-	uiMain.quit.pic = ART_QUIT;
-	uiMain.quit.focusPic = ART_QUIT2;
 
 	uiMain.idSoftware.generic.id = ID_IDSOFTWARE;
 	uiMain.idSoftware.generic.type = QMTYPE_BITMAP;
@@ -286,12 +272,13 @@ static void UI_Main_Init( void )
 	uiMain.allYourBase.generic.callback = UI_Main_Callback;
 
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.background );
-	UI_AddItem( &uiMain.menu, (void *)&uiMain.logo );
-	UI_AddItem( &uiMain.menu, (void *)&uiMain.singlePlayer );
+	if( host.developer ) UI_AddItem( &uiMain.menu, (void *)&uiMain.console );
+	UI_AddItem( &uiMain.menu, (void *)&uiMain.newGame );
+	UI_AddItem( &uiMain.menu, (void *)&uiMain.configuration );
+	UI_AddItem( &uiMain.menu, (void *)&uiMain.saveRestore );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.multiPlayer );
-	UI_AddItem( &uiMain.menu, (void *)&uiMain.options );
-	UI_AddItem( &uiMain.menu, (void *)&uiMain.demos );
-	UI_AddItem( &uiMain.menu, (void *)&uiMain.mods );
+	UI_AddItem( &uiMain.menu, (void *)&uiMain.customGame );
+	UI_AddItem( &uiMain.menu, (void *)&uiMain.credits );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.quit );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.idSoftware );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.teamBlur );
@@ -309,19 +296,6 @@ void UI_Main_Precache( void )
 	if( !re ) return;
 
 	re->RegisterShader( ART_BACKGROUND, SHADER_NOMIP );
-	re->RegisterShader( ART_LOGO, SHADER_NOMIP );
-	re->RegisterShader( ART_SINGLEPLAYER, SHADER_NOMIP );
-	re->RegisterShader( ART_SINGLEPLAYER2, SHADER_NOMIP );
-	re->RegisterShader( ART_MULTIPLAYER, SHADER_NOMIP );
-	re->RegisterShader( ART_MULTIPLAYER2, SHADER_NOMIP );
-	re->RegisterShader( ART_OPTIONS, SHADER_NOMIP );
-	re->RegisterShader( ART_OPTIONS2, SHADER_NOMIP );
-	re->RegisterShader( ART_DEMOS, SHADER_NOMIP );
-	re->RegisterShader( ART_DEMOS2, SHADER_NOMIP );
-	re->RegisterShader( ART_MODS, SHADER_NOMIP );
-	re->RegisterShader( ART_MODS2, SHADER_NOMIP );
-	re->RegisterShader( ART_QUIT, SHADER_NOMIP );
-	re->RegisterShader( ART_QUIT2, SHADER_NOMIP );
 	re->RegisterShader( ART_IDLOGO, SHADER_NOMIP );
 	re->RegisterShader( ART_IDLOGO2, SHADER_NOMIP );
 	re->RegisterShader( ART_BLURLOGO, SHADER_NOMIP );

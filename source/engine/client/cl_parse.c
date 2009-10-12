@@ -183,7 +183,8 @@ CL_ParseSoundPacket
 */
 void CL_ParseSoundPacket( sizebuf_t *msg )
 {
-	vec3_t	pos;
+	vec3_t	pos_;
+	float	*pos = NULL;
 	int 	channel, sound_num;
 	float 	volume, attenuation;  
 	int	flags, pitch, entnum;
@@ -209,9 +210,12 @@ void CL_ParseSoundPacket( sizebuf_t *msg )
 	entnum = MSG_ReadBits( msg, NET_WORD ); 
 
 	// positioned in space
-	MSG_ReadPos( msg, pos );
-
-	S_StartSound( pos, entnum, channel, cl.sound_precache[sound_num], volume, attenuation, pitch );
+	if( flags & SND_FIXED_ORIGIN )
+	{
+		pos = pos_;
+		MSG_ReadPos( msg, pos );
+	}
+	S_StartSound( pos, entnum, channel, cl.sound_precache[sound_num], volume, attenuation, pitch, flags );
 }
 
 /*
@@ -229,7 +233,7 @@ CL_ParseServerData
 */
 void CL_ParseServerData( sizebuf_t *msg )
 {
-	string		str, title;
+	string		str;
 	const char	*levelshot_ext[] = { "tga", "jpg", "png" };
 	int		i;
 
@@ -249,7 +253,7 @@ void CL_ParseServerData( sizebuf_t *msg )
 	cl.servercount = MSG_ReadLong( msg );
 	cl.playernum = MSG_ReadShort( msg );
 	com.strncpy( str, MSG_ReadString( msg ), MAX_STRING );
-	com.strncpy( title, MSG_ReadString( msg ), MAX_STRING );
+	com.strncpy( clgame.maptitle, MSG_ReadString( msg ), MAX_STRING );
 
 	// get splash name
 	Cvar_Set( "cl_levelshot_name", va( "levelshots/%s", str ));
@@ -265,7 +269,7 @@ void CL_ParseServerData( sizebuf_t *msg )
 	}
 	// seperate the printfs so the server message can have a color
 	Msg("\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");
-	Msg( "^2%s\n", title );
+	Msg( "^2%s\n", clgame.maptitle );
 
 	// need to prep refresh at next oportunity
 	cl.video_prepped = false;

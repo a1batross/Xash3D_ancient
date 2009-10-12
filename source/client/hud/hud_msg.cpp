@@ -406,7 +406,8 @@ int CHud::MsgFunc_ServerName( const char *pszName, int iSize, void *pbuf )
 
 int CHud :: MsgFunc_RoomType( const char *pszName, int iSize, void *pbuf )
 {
-	// FIXME: needs callback to sound engine
+	CVAR_SET_FLOAT( "room_type", READ_SHORT());
+
 	return 1;
 }
 

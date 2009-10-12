@@ -9,6 +9,15 @@
 
 #define MAX_PLAYSOUNDS		256
 #define MAX_CHANNELS		64
+#define CSXROOM			29
+
+typedef struct 
+{
+	int	dwEnvironment;
+	float	fVolume;
+	float	fDecay;
+	float	fDamping;
+} dsproom_t;
 
 static playSound_t	s_playSounds[MAX_PLAYSOUNDS];
 static playSound_t	s_freePlaySounds;
@@ -19,6 +28,39 @@ static listener_t	s_listener;
 const guid_t DSPROPSETID_EAX20_ListenerProperties = {0x306a6a8, 0xb224, 0x11d2, {0x99, 0xe5, 0x0, 0x0, 0xe8, 0xd8, 0xc7, 0x22}};
 const guid_t DSPROPSETID_EAX20_BufferProperties = {0x306a6a7, 0xb224, 0x11d2, {0x99, 0xe5, 0x0, 0x0, 0xe8, 0xd8, 0xc7, 0x22}};
 
+const dsproom_t eax_preset[CSXROOM] =
+{
+{ EAX_ENVIRONMENT_GENERIC,		0.0F,	0.0F,	0.0F	},
+{ EAX_ENVIRONMENT_ROOM,		0.417F,	0.4F,	0.666F	},
+{ EAX_ENVIRONMENT_BATHROOM,		0.3F,	1.499F,	0.166F	},
+{ EAX_ENVIRONMENT_BATHROOM,		0.4F,	1.499F,	0.166F	},
+{ EAX_ENVIRONMENT_BATHROOM,		0.6F,	1.499F,	0.166F	},
+{ EAX_ENVIRONMENT_SEWERPIPE,		0.4F,	2.886F,	0.25F	},
+{ EAX_ENVIRONMENT_SEWERPIPE,		0.6F,	2.886F,	0.25F	},
+{ EAX_ENVIRONMENT_SEWERPIPE,		0.8F,	2.886F,	0.25F	},
+{ EAX_ENVIRONMENT_STONEROOM,		0.5F,	2.309F,	0.888F	},
+{ EAX_ENVIRONMENT_STONEROOM,		0.65F,	2.309F,	0.888F	},
+{ EAX_ENVIRONMENT_STONEROOM,		0.8F,	2.309F,	0.888F	},
+{ EAX_ENVIRONMENT_STONECORRIDOR,	0.3F,	2.697F,	0.638F	},
+{ EAX_ENVIRONMENT_STONECORRIDOR,	0.5F,	2.697F,	0.638F	},
+{ EAX_ENVIRONMENT_STONECORRIDOR,	0.65F,	2.697F,	0.638F	},
+{ EAX_ENVIRONMENT_UNDERWATER,		1.0F,	1.499F,	0.0F	},
+{ EAX_ENVIRONMENT_UNDERWATER,		1.0F,	2.499F,	0.0F	},
+{ EAX_ENVIRONMENT_UNDERWATER,		1.0F,	3.499F,	0.0F	},
+{ EAX_ENVIRONMENT_GENERIC,		0.65F,	1.493F,	0.5F	},
+{ EAX_ENVIRONMENT_GENERIC,		0.85F,	1.493F,	0.5F	},
+{ EAX_ENVIRONMENT_GENERIC,		1.0F,	1.493F,	0.5F	},
+{ EAX_ENVIRONMENT_ARENA,		0.40F,	7.284F,	0.332F	},
+{ EAX_ENVIRONMENT_ARENA,		0.55F,	7.284F,	0.332F	},
+{ EAX_ENVIRONMENT_ARENA,		0.70F,	7.284F,	0.332F	},
+{ EAX_ENVIRONMENT_CONCERTHALL,	0.5F,	3.961F,	0.5F	},
+{ EAX_ENVIRONMENT_CONCERTHALL,	0.7F,	3.961F,	0.5F	},
+{ EAX_ENVIRONMENT_CONCERTHALL,	1.0F,	3.961F,	0.5F	},
+{ EAX_ENVIRONMENT_DIZZY,		0.2F,	17.234F,	0.666F	},
+{ EAX_ENVIRONMENT_DIZZY,		0.3F,	17.234F,	0.666F	},
+{ EAX_ENVIRONMENT_DIZZY,		0.4F,	17.234F,	0.666F	},
+};
+
 cvar_t	*host_sound;
 cvar_t	*s_alDevice;
 cvar_t	*s_soundfx;
@@ -26,6 +68,7 @@ cvar_t	*s_check_errors;
 cvar_t	*s_volume;	// master volume
 cvar_t	*s_musicvolume;	// background track volume
 cvar_t	*s_pause;
+cvar_t	*s_room_type;
 cvar_t	*s_minDistance;
 cvar_t	*s_maxDistance;
 cvar_t	*s_rolloffFactor;
@@ -438,7 +481,7 @@ if origin is NULL, the sound will be dynamically sourced from the entity.
 entchannel 0 will never override a playing sound.
 =================
 */
-void S_StartSound( const vec3_t pos, int entnum, int channel, sound_t handle, float vol, float attn, float pitch, bool use_loop )
+void S_StartSound( const vec3_t pos, int entnum, int channel, sound_t handle, float vol, float attn, float pitch, int flags )
 {
 	playSound_t	*ps, *sort;
 	sfx_t		*sfx = NULL;
@@ -464,7 +507,7 @@ void S_StartSound( const vec3_t pos, int entnum, int channel, sound_t handle, fl
 	ps->sfx = sfx;
 	ps->entnum = entnum;
 	ps->entchannel = channel;
-	ps->use_loop = use_loop;
+	ps->use_loop = (flags & SND_STOP_LOOPING) ? false : true;
 
 	if( pos )
 	{
@@ -502,7 +545,7 @@ bool S_StartLocalSound( const char *name, float volume, float pitch, const float
 		return false;
 
 	sfxHandle = S_RegisterSound( name );
-	S_StartSound( origin, al_state.clientnum, CHAN_AUTO, sfxHandle, volume, ATTN_NONE, pitch, false );
+	S_StartSound( origin, al_state.clientnum, CHAN_AUTO, sfxHandle, volume, ATTN_NONE, pitch, SND_STOP_LOOPING );
 	return true;
 }
 
@@ -552,17 +595,23 @@ S_AddEnvironmentEffects
 process all effects here
 =================
 */
-void S_AddEnvironmentEffects( const vec3_t position )
+void S_AddEnvironmentEffects( void )
 {
 	uint	eaxEnv;
 
 	if( !al_config.allow_3DMode ) return;
           
 	// if eax is enabled, apply listener environmental effects
-	if( si.PointContents( position ) & (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER))
+	if( s_listener.waterlevel > 2 )
+	{
 		eaxEnv = EAX_ENVIRONMENT_UNDERWATER;
-	else eaxEnv = EAX_ENVIRONMENT_GENERIC;
-	al_config.Set3DMode(&DSPROPSETID_EAX20_ListenerProperties, DSPROPERTY_EAXLISTENER_ENVIRONMENT|DSPROPERTY_EAXLISTENER_DEFERRED, 0, &eaxEnv, sizeof(eaxEnv));
+	}
+	else
+	{
+		eaxEnv = EAX_ENVIRONMENT_GENERIC;
+		eaxEnv = eax_preset[bound( 0, s_room_type->integer, CSXROOM - 1 )].dwEnvironment;
+	}
+	al_config.Set3DMode( &DSPROPSETID_EAX20_ListenerProperties, DSPROPERTY_EAXLISTENER_ENVIRONMENT|DSPROPERTY_EAXLISTENER_DEFERRED, 0, &eaxEnv, sizeof(eaxEnv));
 }
 
 /*
@@ -596,6 +645,7 @@ void S_Update( ref_params_t *fd )
 	s_listener.orientation[3] =  fd->up[1];
 	s_listener.orientation[4] = -fd->up[2];
 	s_listener.orientation[5] = -fd->up[0];
+	s_listener.waterlevel = fd->waterlevel;
 
 	palListenerfv( AL_POSITION, s_listener.position );
 	palListenerfv( AL_VELOCITY, s_listener.velocity );
@@ -608,7 +658,7 @@ void S_Update( ref_params_t *fd )
 	palDopplerFactor(s_dopplerFactor->value);
 	palDopplerVelocity(s_dopplerVelocity->value);
 
-	S_AddEnvironmentEffects( s_listener.position );
+	S_AddEnvironmentEffects ();
 
 	// Stream background track
 	S_StreamBackgroundTrack();
@@ -759,6 +809,7 @@ bool S_Init( void *hInst )
 	s_rolloffFactor = Cvar_Get("s_rollofffactor", "1.0", CVAR_ARCHIVE, "3d sound rolloff factor" );
 	s_dopplerFactor = Cvar_Get("s_dopplerfactor", "1.0", CVAR_ARCHIVE, "cutoff doppler effect value" );
 	s_dopplerVelocity = Cvar_Get("s_dopplervelocity", "10976.0", CVAR_ARCHIVE, "doppler effect maxvelocity" );
+	s_room_type = Cvar_Get( "room_type", "0", 0, "dsp room type" );
 	s_pause = Cvar_Get( "paused", "0", 0, "sound engine pause" );
 
 	Cmd_AddCommand( "playsound", S_PlaySound_f, "playing a specified sound file" );

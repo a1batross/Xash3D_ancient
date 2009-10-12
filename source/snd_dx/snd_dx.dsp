@@ -138,10 +138,6 @@ SOURCE=.\s_mix.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\s_mix_chan.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\s_stream.c
 # End Source File
 # End Group

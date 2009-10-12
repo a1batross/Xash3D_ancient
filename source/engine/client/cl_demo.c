@@ -57,9 +57,9 @@ void CL_WriteDemoHeader( const char *name )
 	MSG_WriteByte( &buf, svc_serverdata );
 	MSG_WriteLong( &buf, PROTOCOL_VERSION );
 	MSG_WriteLong( &buf, cl.servercount );
-	MSG_WriteLong( &buf, cl.serverframetime );
 	MSG_WriteShort( &buf, cl.playernum );
 	MSG_WriteString( &buf, cl.configstrings[CS_NAME] );
+	MSG_WriteString( &buf, clgame.maptitle );
 
 	// configstrings
 	for( i = 0; i < MAX_CONFIGSTRINGS; i++ )
@@ -105,6 +105,9 @@ void CL_WriteDemoHeader( const char *name )
 	MSG_WriteString( &buf, "precache\n" );
 	MSG_WriteByte( &buf, svc_stufftext );
 	MSG_WriteString( &buf, "cmd fullupdate\n" );
+
+	MSG_WriteByte( &buf, svc_setview );
+	MSG_WriteWord( &buf, cl.playernum + 1 ); // reset view to client
 
 	// write it to the demo file
 	len = LittleLong( buf.cursize );
@@ -194,7 +197,7 @@ void CL_ReadDemoMessage( void )
 	if( cl_paused->value ) return;
 
 	// don't need another message yet
-	if( cl.time <= cl.frame.servertime )
+	if( cl.time < cl.frame.servertime )
 		return;
 
 	// init the message
@@ -338,7 +341,7 @@ void CL_PlayDemo_f( void )
 
 	cls.state = ca_connected;
 	cls.demoplayback = true;
-	com.strncpy( cls.servername, Cmd_Argv(1), sizeof(cls.servername));
+	com.strncpy( cls.servername, Cmd_Argv(1), sizeof( cls.servername ));
 
 	// begin a playback demo
 }

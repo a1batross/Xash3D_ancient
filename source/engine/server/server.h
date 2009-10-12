@@ -234,9 +234,6 @@ typedef struct
 	byte		*private;			// server.dll private pool
 	byte		*temppool;		// for parse, save and restore edicts
 
-	edict_t		*saved_edicts;		// holds the client edicts during changelevel
-	int		num_saved_edicts;
-
 	// library exports table
 	word		*ordinals;
 	dword		*funcs;
@@ -397,8 +394,6 @@ void SV_InitEdict( edict_t *pEdict );
 bool SV_CopyEdict( edict_t *out, edict_t *in );
 void SV_ConfigString( int index, const char *val );
 void SV_SetModel( edict_t *ent, const char *name );
-void SV_PopClients( void );
-void SV_PushClients( void );
 void SV_CreatePhysBody( edict_t *ent );
 void SV_SetPhysForce( edict_t *ent );
 void SV_SetMassCentre( edict_t *ent);

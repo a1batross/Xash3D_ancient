@@ -570,7 +570,7 @@ void CL_CreateNewCommands( void )
 	int	cmdnum;
 
 	// no need to create usercmds until we have a gamestate
-	if( cls.state < ca_connected ) return;
+	if( cls.demoplayback || cls.state < ca_connected ) return;
 
 	// if running less than 5fps, truncate the extra time to prevent
 	// unexpected moves after a hitch
