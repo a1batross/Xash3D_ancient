@@ -27,9 +27,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "render_api.h"
 
 
-#define UI_CURSOR_NORMAL		"gfx/shell/misc/cursor"
-#define UI_CURSOR_DISABLED		"gfx/shell/misc/cursor_denied"
-#define UI_CURSOR_TYPING		"gfx/shell/misc/cursor_type"
+#define UI_CURSOR_NORMAL		"gfx/shell/cursor"
+#define UI_CURSOR_DISABLED		"gfx/shell/denied"
+#define UI_CURSOR_TYPING		"gfx/shell/typing"
 #define UI_LEFTARROW		"gfx/shell/arrows/arrow_left_small"
 #define UI_LEFTARROWFOCUS		"gfx/shell/arrows/arrow_left_small_s"
 #define UI_RIGHTARROW		"gfx/shell/arrows/arrow_right_small"
@@ -237,7 +237,6 @@ void UI_Bitmap_Draw( menuBitmap_s *b );
 
 extern cvar_t	*ui_precache;
 extern cvar_t	*ui_sensitivity;
-extern cvar_t	*ui_singlePlayerSkill;
 extern render_exp_t	*re;
 
 typedef struct
@@ -292,6 +291,7 @@ extern rgba_t		uiColorRed;
 extern rgba_t		uiColorGreen;
 extern rgba_t		uiColorBlue;
 extern rgba_t		uiColorYellow;
+extern rgba_t		uiColorOrange;
 extern rgba_t		uiColorCyan;
 extern rgba_t		uiColorMagenta;
 
@@ -321,7 +321,7 @@ void UI_PopMenu( void );
 // Precache
 void UI_Main_Precache( void );
 void UI_InGame_Precache( void );
-void UI_SinglePlayer_Precache( void );
+void UI_NewGame_Precache( void );
 void UI_LoadGame_Precache( void );
 void UI_SaveGame_Precache( void );
 void UI_MultiPlayer_Precache( void );
@@ -344,7 +344,7 @@ void UI_GoToSite_Precache( void );
 // Menus
 void UI_Main_Menu( void );
 void UI_InGame_Menu( void );
-void UI_SinglePlayer_Menu( void );
+void UI_NewGame_Menu( void );
 void UI_LoadGame_Menu( void );
 void UI_SaveGame_Menu( void );
 void UI_MultiPlayer_Menu( void );

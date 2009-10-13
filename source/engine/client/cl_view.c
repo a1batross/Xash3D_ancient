@@ -168,7 +168,7 @@ bool V_PreRender( void )
 		cl.refdef.paused = true; // force audio\video to pause
 	else cl.refdef.paused = cl_paused->integer;
 
-	re->BeginFrame( &cl.refdef );
+	re->BeginFrame( !cl.refdef.paused );
 	return true;
 }
 

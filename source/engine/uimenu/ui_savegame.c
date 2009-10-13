@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ui_local.h"
 #include "client.h"
 
-#define ART_BACKGROUND	"gfx/shell/misc/ui_sub_singleplayer"
+#define ART_BACKGROUND	"gfx/shell/splash"
 #define ART_BANNER		"gfx/shell/banners/savegame_t"
 #define ART_LISTBACK	"gfx/shell/segments/files_box"
 #define ART_LEVELSHOTBLUR	"gfx/shell/segments/sp_mapshot"
@@ -170,7 +170,7 @@ static void UI_SaveGame_Callback( void *self, int event )
 		}
 		break;
 	case ID_NEWGAME:
-		UI_SinglePlayer_Menu();
+		UI_NewGame_Menu();
 		break;
 	case ID_LOADGAME:
 		UI_LoadGame_Menu();
@@ -276,10 +276,10 @@ static void UI_SaveGame_Ownerdraw( void *self )
 				com.snprintf( pathJPG, sizeof( pathJPG ), "save/save%i.jpg", uiSaveGame.currentGame );
 
 				if( !FS_FileExists( pathJPG ))
-					UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/shell/menu_levelshots/unknownmap" );
+					UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );
 				else UI_DrawPic( x, y, w, h, uiColorWhite, pathJPG );
 			}
-			else UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/shell/menu_levelshots/unknownmap" );
+			else UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );
 
 			// draw the blurred frame
 			UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, ((menuBitmap_s *)self)->pic );

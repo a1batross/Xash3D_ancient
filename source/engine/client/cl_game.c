@@ -385,22 +385,27 @@ edict_t *CL_AllocEdict( void )
 
 void CL_InitEdicts( void )
 {
-	edict_t	*e;
+	edict_t	*ent;
 	int	i;
 
 	clgame.globals->maxEntities = com.atoi( cl.configstrings[CS_MAXEDICTS] );
 	clgame.globals->maxClients = com.atoi( cl.configstrings[CS_MAXCLIENTS] );
 	clgame.edicts = Mem_Realloc( cls.mempool, clgame.edicts, sizeof( edict_t ) * clgame.globals->maxEntities );
 
-	for( i = 0, e = EDICT_NUM( 0 ); i < clgame.globals->maxEntities; i++, e++ )
-		e->free = true; // mark all edicts as freed
+	for( i = 2; i < clgame.globals->maxEntities; i++ )
+	{
+		ent = EDICT_NUM( i );
+		if( ent->free ) continue;
+		CL_FreeEdict( ent );
+	}
 
 	clgame.globals->mapname = MAKE_STRING( cl.configstrings[CS_NAME] );
 
 	clgame.globals->deathmatch = Cvar_VariableInteger( "deathmatch" );
 	clgame.globals->coop = Cvar_VariableInteger( "coop" );
 	clgame.globals->teamplay = Cvar_VariableInteger( "teamplay" );
-	clgame.globals->serverflags = 0;	// FIXME: make CS_SERVERFLAGS
+	clgame.globals->serverflags = 0; // FIXME: make CS_SERVERFLAGS
+	clgame.globals->numEntities = 2; // world and client
 }
 
 void CL_FreeEdicts( void )
@@ -1420,6 +1425,8 @@ bool CL_LoadProgs( const char *name )
 	static CLIENTAPI		GetClientAPI;
 	static cl_globalvars_t	gpGlobals;
 	string			libpath;
+	edict_t			*e;
+	int			i;
 
 	if( clgame.hInstance ) CL_UnloadProgs();
 
@@ -1462,6 +1469,11 @@ bool CL_LoadProgs( const char *name )
 	clgame.movevars.accelerate = com.atof( DEFAULT_ACCEL );
 	clgame.movevars.airaccelerate = com.atof( DEFAULT_AIRACCEL );
 	clgame.movevars.friction = com.atof( DEFAULT_FRICTION );
+
+	clgame.globals->maxEntities = 2; // world and local client
+	clgame.edicts = Mem_Alloc( cls.mempool, sizeof( edict_t ) * clgame.globals->maxEntities );
+	for( i = 0, e = clgame.edicts; i < clgame.globals->maxEntities; i++, e++ )
+		CL_InitEdict( e );
 
 	// initialize game
 	clgame.dllFuncs.pfnInit();

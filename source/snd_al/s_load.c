@@ -198,9 +198,9 @@ static bool S_LoadWAV( const char *name, byte **wav, wavinfo_t *info )
 	}
 
 	info->channels = S_GetLittleShort();
-	if( info->channels != 1 )
+	if( info->channels != 1 && info->channels != 2 )
 	{
-		MsgDev( D_WARN, "S_LoadWAV: only mono WAV files supported (%s)\n", name );
+		MsgDev( D_WARN, "S_LoadWAV: only mono and stereo WAV files supported (%s)\n", name );
 		Mem_Free( buffer );
 		return false;
 	}
@@ -270,8 +270,8 @@ static bool S_LoadWAV( const char *name, byte **wav, wavinfo_t *info )
 	}
 
 	// Load the data
-	*wav = out = Z_Malloc( info->samples * info->width );
-	Mem_Copy( out, buffer + (iff_dataPtr - buffer), info->samples * info->width );
+	*wav = out = Z_Malloc( info->samples * info->width * info->channels );
+	Mem_Copy( out, buffer + (iff_dataPtr - buffer), info->samples * info->width * info->channels );
 	Mem_Free( buffer );
 
 	return true;
@@ -429,22 +429,25 @@ static bool S_LoadOGG( const char *name, byte **wav, wavinfo_t *info )
 S_UploadSound
 =================
 */
-static void S_UploadSound( byte *data, int width, int channels, sfx_t *sfx )
+static void S_UploadSound( byte *data, wavinfo_t *info, sfx_t *sfx )
 {
 	int	size;
 
 	// calculate buffer size
-	size = sfx->samples * width * channels;
-
+	size = info->samples * info->width * info->channels;
+	sfx->loopstart = info->loopstart;
+	sfx->samples = info->samples;
+	sfx->rate = info->rate;
+	
 	// Set buffer format
-	if( width == 2 )
+	if( info->width == 2 )
 	{
-		if( channels == 2 ) sfx->format = AL_FORMAT_STEREO16;
+		if( info->channels == 2 ) sfx->format = AL_FORMAT_STEREO16;
 		else sfx->format = AL_FORMAT_MONO16;
 	}
 	else
 	{
-		if( channels == 2 ) sfx->format = AL_FORMAT_STEREO8;
+		if( info->channels == 2 ) sfx->format = AL_FORMAT_STEREO8;
 		else sfx->format = AL_FORMAT_MONO8;
 	}
 
@@ -452,6 +455,8 @@ static void S_UploadSound( byte *data, int width, int channels, sfx_t *sfx )
 	palGenBuffers( 1, &sfx->bufferNum );
 	palBufferData( sfx->bufferNum, sfx->format, data, size, sfx->rate );
 	S_CheckForErrors();
+
+	sfx->loaded = true;
 }
 
 /*
@@ -541,11 +546,7 @@ bool S_LoadSound( sfx_t *sfx )
 
 snd_loaded:
 	// load it in
-	sfx->loopstart = info.loopstart;
-	sfx->samples = info.samples;
-	sfx->rate = info.rate;
-	S_UploadSound( data, info.width, info.channels, sfx );
-	sfx->loaded = true;
+	S_UploadSound( data, &info, sfx );
 	Mem_Free( data );
 
 	return true;

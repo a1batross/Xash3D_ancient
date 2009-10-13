@@ -310,6 +310,10 @@ SOURCE=.\uimenu\ui_network.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\uimenu\ui_newgame.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\uimenu\ui_options.c
 # End Source File
 # Begin Source File
@@ -331,10 +335,6 @@ SOURCE=.\uimenu\ui_quit.c
 # Begin Source File
 
 SOURCE=.\uimenu\ui_savegame.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\uimenu\ui_singleplayer.c
 # End Source File
 # Begin Source File
 

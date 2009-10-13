@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ui_local.h"
 
 
-#define ART_BACKGROUND		"gfx/shell/misc/ui_sub_options"
+#define ART_BACKGROUND		"gfx/shell/splash"
 #define ART_MSGBOX	  		"gfx/shell/misc/defaults_warn"
 
 #define ID_BACKGROUND		0

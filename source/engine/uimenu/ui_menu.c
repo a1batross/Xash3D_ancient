@@ -28,7 +28,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 cvar_t		*ui_precache;
 cvar_t		*ui_sensitivity;
-cvar_t		*ui_singlePlayerSkill;
 
 uiStatic_t	uiStatic;
 
@@ -47,6 +46,7 @@ rgba_t		uiColorRed	= {255,   0,   0, 255};
 rgba_t		uiColorGreen	= {  0, 255,   0, 255};
 rgba_t		uiColorBlue	= {  0,   0, 255, 255};
 rgba_t		uiColorYellow	= {255, 255,   0, 255};
+rgba_t		uiColorOrange	= {255, 160,   0, 255};
 rgba_t		uiColorCyan	= {  0, 255, 255, 255};
 rgba_t		uiColorMagenta	= {255,   0, 255, 255};
 
@@ -109,6 +109,8 @@ UI_FillRect
 */
 void UI_FillRect( int x, int y, int w, int h, const rgba_t color )
 {
+	if( !re ) return;
+
 	re->SetColor( color );
 	re->DrawFill( x, y, w, h );
 	re->SetColor( NULL );
@@ -985,7 +987,7 @@ void UI_Precache( void )
 
 	UI_Main_Precache();
 	UI_InGame_Precache();
-	UI_SinglePlayer_Precache();
+	UI_NewGame_Precache();
 	UI_LoadGame_Precache();
 	UI_SaveGame_Precache();
 	UI_MultiPlayer_Precache();
@@ -1001,7 +1003,6 @@ void UI_Precache( void )
 	UI_Defaults_Precache();
 	UI_Demos_Precache();
 	UI_Mods_Precache();
-	UI_Quit_Precache();
 	UI_Credits_Precache();
 	UI_GoToSite_Precache();
 }
@@ -1016,11 +1017,10 @@ void UI_Init( void )
 	// register our cvars and commands
 	ui_precache = Cvar_Get( "ui_precache", "0", CVAR_ARCHIVE, "enable precache all resources for menu" );
 	ui_sensitivity = Cvar_Get( "ui_sensitivity", "1", CVAR_ARCHIVE, "mouse sensitivity while in-menu" );
-	ui_singlePlayerSkill = Cvar_Get( "ui_singlePlayerSkill", "1", CVAR_ARCHIVE, "member menu singleplayer skill" );
 
 	Cmd_AddCommand( "menu_main", UI_Main_Menu, "open the main menu" );
 	Cmd_AddCommand( "menu_ingame", UI_InGame_Menu, "open the main menu when server is active");
-	Cmd_AddCommand( "menu_singleplayer", UI_SinglePlayer_Menu, "open the singleplayer menu" );
+	Cmd_AddCommand( "menu_newgame", UI_NewGame_Menu, "open the newgame menu" );
 	Cmd_AddCommand( "menu_loadgame", UI_LoadGame_Menu, "open the loadgame menu" );
 	Cmd_AddCommand( "menu_savegame", UI_SaveGame_Menu, "open the savegame menu" );
 	Cmd_AddCommand( "menu_multiplayer", UI_MultiPlayer_Menu, "open the multiplayer menu" );
@@ -1036,7 +1036,6 @@ void UI_Init( void )
 	Cmd_AddCommand( "menu_defaults", UI_Defaults_Menu, "open the 'reset to defaults' dialog" );
 	Cmd_AddCommand( "menu_demos", UI_Demos_Menu, "open the demos viewer menu" );
 	Cmd_AddCommand( "menu_mods", UI_Mods_Menu, "open the change game menu" );
-	Cmd_AddCommand( "menu_quit", UI_Quit_Menu, "open the quit menu" );
 	Cmd_AddCommand( "menu_credits", UI_Credits_Menu, "open the credits menu" );
 
 	uiStatic.scaleX = scr_width->integer / 1024.0f;

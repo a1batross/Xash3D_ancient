@@ -1,0 +1,63 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: vid_gl - Win32 Release--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP2A81.tmp" with contents
+[
+/nologo /ML /W3 /GX /O2 /Ob2 /I "../public" /I "../common" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /Fo"..\temp\vid_gl\!release/" /Fd"..\temp\vid_gl\!release/" /FD /c 
+"D:\Xash3D\src_main\vid_gl\r_studio.c"
+]
+Creating command line "cl.exe @"C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP2A81.tmp"" 
+Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP2A82.tmp" with contents
+[
+msvcrt.lib user32.lib gdi32.lib /nologo /subsystem:windows /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /out:"..\temp\vid_gl\!release/vid_gl.dll" /implib:"..\temp\vid_gl\!release/vid_gl.lib" /libpath:"../public/libs/" 
+"\Xash3D\src_main\temp\vid_gl\!release\cin.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_aliasq.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_backend.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_bloom.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_cin.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_cull.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_draw.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_image.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_light.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_main.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_math.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_mesh.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_model.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_opengl.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_poly.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_program.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_register.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_shader.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_shadow.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_sky.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_sprite.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_studio.obj"
+"\Xash3D\src_main\temp\vid_gl\!release\r_surf.obj"
+]
+Creating command line "link.exe @"C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP2A82.tmp""
+Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP2A83.bat" with contents
+[
+@echo off
+copy \Xash3D\src_main\temp\vid_gl\!release\vid_gl.dll "D:\Xash3D\bin\vid_gl.dll"
+]
+Creating command line ""C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP2A83.bat""
+Compiling...
+r_studio.c
+Linking...
+   Creating library ..\temp\vid_gl\!release/vid_gl.lib and object ..\temp\vid_gl\!release/vid_gl.exp
+<h3>Output Window</h3>
+Performing Custom Build Step on \Xash3D\src_main\temp\vid_gl\!release\vid_gl.dll
+ë™ÆØ®‡Æ¢†≠Æ ‰†©´Æ¢:         1.
+
+
+
+<h3>Results</h3>
+vid_gl.dll - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

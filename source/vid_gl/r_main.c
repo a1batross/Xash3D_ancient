@@ -1684,7 +1684,7 @@ void R_RenderView( const ref_params_t *fd )
 R_BeginFrame
 ===============
 */
-void R_BeginFrame( const ref_params_t *fd )
+void R_BeginFrame( bool clearScene )
 {
 	if( gl_finish->integer && gl_delayfinish->integer )
 	{
@@ -1736,7 +1736,7 @@ void R_BeginFrame( const ref_params_t *fd )
 		r_environment_color->modified = false;
 	}
 
-	if( r_clear->integer && !fd->paused )
+	if( r_clear->integer && clearScene )
 	{
 		rgba_t color;
 		

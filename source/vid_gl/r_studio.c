@@ -1922,7 +1922,7 @@ void R_StudioDrawDebug( void )
 {
 	int	i;
 
-	if( r_drawentities->integer < 2 )
+	if(( RI.refdef.flags & RDF_NOWORLDMODEL ) || ( r_drawentities->integer < 2 ))
 		return;
 
 	pglDisable( GL_TEXTURE_2D );
@@ -2136,7 +2136,7 @@ static bool R_StudioSetupModel( ref_entity_t *e, ref_model_t *mod )
 
 	Com_Assert( pstudio == NULL );
 
-	// sepcial handle for player model
+	// special handle for player model
 	if( e->ent_type == ED_CLIENT || e->renderfx == kRenderFxDeadPlayer )
 	{
 		// MsgDev( D_INFO, "DrawPlayer %d\n", pstudio->blending[0] );

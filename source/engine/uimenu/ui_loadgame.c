@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ui_local.h"
 #include "client.h"
 
-#define ART_BACKGROUND   	"gfx/shell/misc/ui_sub_singleplayer"
+#define ART_BACKGROUND   	"gfx/shell/splash"
 #define ART_BANNER	     	"gfx/shell/banners/loadgame_t"
 #define ART_LISTBACK     	"gfx/shell/segments/files_box"
 #define ART_LEVELSHOTBLUR	"gfx/shell/segments/sp_mapshot"
@@ -168,7 +168,7 @@ static void UI_LoadGame_Callback( void *self, int event )
 			Cbuf_ExecuteText( EXEC_APPEND, va( "load save%i\n", uiLoadGame.currentGame ));
 		break;
 	case ID_NEWGAME:
-		UI_SinglePlayer_Menu();
+		UI_NewGame_Menu();
 		break;
 	case ID_SAVEGAME:
 		UI_SaveGame_Menu();
@@ -274,10 +274,10 @@ static void UI_LoadGame_Ownerdraw( void *self )
 				com.snprintf( pathJPG, sizeof( pathJPG ), "save/save%i.jpg", uiLoadGame.currentGame );
 
 				if( !FS_FileExists( pathJPG ))
-					UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/shell/menu_levelshots/unknownmap" );
+					UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );
 				else UI_DrawPic( x, y, w, h, uiColorWhite, pathJPG );
 			}
-			else UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/shell/menu_levelshots/unknownmap" );
+			else UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );
 
 			// draw the blurred frame
 			UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, ((menuBitmap_s *)self)->pic );
@@ -366,7 +366,7 @@ static void UI_LoadGame_Init( void )
 	{
 		uiLoadGame.listGames[i].generic.id = ID_LISTGAMES+i;
 		uiLoadGame.listGames[i].generic.type = QMTYPE_ACTION;
-		uiLoadGame.listGames[i].generic.flags = QMF_SILENT;
+		uiLoadGame.listGames[i].generic.flags = QMF_SILENT|QMF_SMALLFONT;
 		uiLoadGame.listGames[i].generic.x = 42;
 		uiLoadGame.listGames[i].generic.y = y;
 		uiLoadGame.listGames[i].generic.width = 462;

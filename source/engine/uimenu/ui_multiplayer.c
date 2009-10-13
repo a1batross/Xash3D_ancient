@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "const.h"
 #include "input.h"
 
-#define ART_BACKGROUND		"gfx/shell/misc/ui_sub_multiplayer"
+#define ART_BACKGROUND		"gfx/shell/splash"
 #define ART_BANNER			"gfx/shell/banners/multiplayer_t"
 
 #define ID_BACKGROUND		0

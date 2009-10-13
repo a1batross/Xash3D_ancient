@@ -24,14 +24,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client.h"
 
 #define ART_BACKGROUND	"gfx/shell/splash"
-#define ART_IDLOGO		"gfx/shell/title_screen/logo_id"
-#define ART_IDLOGO2		"gfx/shell/title_screen/logo_id_s"
-#define ART_BLURLOGO	"gfx/shell/title_screen/logo_blur"
-#define ART_BLURLOGO2	"gfx/shell/title_screen/logo_blur_s"
-#define ART_COPYRIGHT	"gfx/shell/title_screen/copyrights"
+#define ART_MINIMIZE_N	"gfx/shell/min_n"
+#define ART_MINIMIZE_F	"gfx/shell/min_f"
+#define ART_CLOSEBTN_N	"gfx/shell/cls_n"
+#define ART_CLOSEBTN_F	"gfx/shell/cls_f"
 
 #define ID_BACKGROUND	0
-
 #define ID_CONSOLE		1
 #define ID_NEWGAME		2
 #define ID_CONFIGURATION	3
@@ -40,18 +38,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ID_CUSTOMGAME	6
 #define ID_CREDITS		7
 #define ID_QUIT		8
-
-#define ID_IDSOFTWARE	9
-#define ID_TEAMBLUR		10
+#define ID_MINIMIZE		9
 #define ID_COPYRIGHT	11
-#define ID_ALLYOURBASE	12
+#define ID_MSGBOX	 	12
+#define ID_YES	 	13
+#define ID_NO	 	14
 
 typedef struct
 {
 	menuFramework_s	menu;
 
 	menuBitmap_s	background;
-
 	menuAction_s	console;
 	menuAction_s	newGame;
 	menuAction_s	configuration;
@@ -61,16 +58,17 @@ typedef struct
 	menuAction_s	credits;
 	menuAction_s	quit;
 
-	menuBitmap_s	idSoftware;
-	menuBitmap_s	teamBlur;
-	menuBitmap_s	copyright;
+	menuBitmap_s	minimizeBtn;
+	menuBitmap_s	quitButton;
 
-	menuBitmap_s	allYourBase;
+	// quit dialog
+	menuBitmap_s	msgBox;
+	menuAction_s	quitMessage;
+	menuAction_s	yes;
+	menuAction_s	no;
 } uiMain_t;
 
 static uiMain_t		uiMain;
-
-static void UI_AllYourBase_Menu( void );
 
 /*
 =================
@@ -96,6 +94,40 @@ static const char *UI_Main_KeyFunc( int key )
 
 /*
 =================
+UI_MsgBox_Ownerdraw
+=================
+*/
+static void UI_MsgBox_Ownerdraw( void *self )
+{
+	menuCommon_s	*item = (menuCommon_s *)self;
+
+	UI_FillRect( item->x, item->y, item->width, item->height, uiColorDkGrey );
+}
+
+static void UI_QuitDialog( void )
+{
+	// toggle main menu between active\inactive
+	// show\hide quit dialog
+	uiMain.console.generic.flags ^= QMF_INACTIVE; 
+	uiMain.newGame.generic.flags ^= QMF_INACTIVE;
+	uiMain.saveRestore.generic.flags ^= QMF_INACTIVE;
+	uiMain.configuration.generic.flags ^= QMF_INACTIVE;
+	uiMain.multiPlayer.generic.flags ^= QMF_INACTIVE;
+	uiMain.customGame.generic.flags ^= QMF_INACTIVE;
+	uiMain.credits.generic.flags ^= QMF_INACTIVE;
+	uiMain.quit.generic.flags ^= QMF_INACTIVE;
+	uiMain.minimizeBtn.generic.flags ^= QMF_INACTIVE;
+	uiMain.quitButton.generic.flags ^= QMF_INACTIVE;
+
+	uiMain.msgBox.generic.flags ^= QMF_HIDDEN;
+	uiMain.quitMessage.generic.flags ^= QMF_HIDDEN;
+	uiMain.no.generic.flags ^= QMF_HIDDEN;
+	uiMain.yes.generic.flags ^= QMF_HIDDEN;
+
+}
+
+/*
+=================
 UI_Main_Callback
 =================
 */
@@ -113,7 +145,7 @@ static void UI_Main_Callback( void *self, int event )
 		cls.key_dest = key_console;
 		break;
 	case ID_NEWGAME:
-		UI_SinglePlayer_Menu();
+		UI_NewGame_Menu();
 		break;
 	case ID_MULTIPLAYER:
 		UI_MultiPlayer_Menu();
@@ -128,19 +160,19 @@ static void UI_Main_Callback( void *self, int event )
 		UI_Mods_Menu();
 		break;
 	case ID_CREDITS:
-		UI_Credits_Menu ();
+		UI_Credits_Menu();
 		break;
 	case ID_QUIT:
-		UI_Quit_Menu();
+		UI_QuitDialog();
 		break;
-	case ID_IDSOFTWARE:
-		UI_GoToSite_Menu( "http://www.idsoftware.com" );
+	case ID_MINIMIZE:
+		Cbuf_ExecuteText( EXEC_APPEND, "minimize\n" );
 		break;
-	case ID_TEAMBLUR:
-		UI_GoToSite_Menu( "http://www.planetquake.com/blur" );
+	case ID_YES:
+		Cbuf_ExecuteText( EXEC_APPEND, "quit\n" );
 		break;
-	case ID_ALLYOURBASE:
-		UI_AllYourBase_Menu();
+	case ID_NO:
+		UI_QuitDialog();
 		break;
 	}
 }
@@ -169,121 +201,150 @@ static void UI_Main_Init( void )
 	uiMain.console.generic.type = QMTYPE_ACTION;
 	uiMain.console.generic.name = "Console";
 	uiMain.console.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
-	uiMain.console.generic.x = 64;
-	uiMain.console.generic.y = 230;
+	uiMain.console.generic.x = 72;
+	uiMain.console.generic.y = 180;
 	uiMain.console.generic.callback = UI_Main_Callback;
 
 	uiMain.newGame.generic.id = ID_NEWGAME;
 	uiMain.newGame.generic.type = QMTYPE_ACTION;
 	uiMain.newGame.generic.name = "New game";
 	uiMain.newGame.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
-	uiMain.newGame.generic.x = 64;
-	uiMain.newGame.generic.y = 280;
+	uiMain.newGame.generic.statusText = "Start a new game.";
+	uiMain.newGame.generic.x = 72;
+	uiMain.newGame.generic.y = 230;
 	uiMain.newGame.generic.callback = UI_Main_Callback;
-
-	uiMain.configuration.generic.id = ID_CONFIGURATION;
-	uiMain.configuration.generic.type = QMTYPE_ACTION;
-	uiMain.configuration.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
-	uiMain.configuration.generic.name = "Configuration";
-	uiMain.configuration.generic.x = 64;
-	uiMain.configuration.generic.y = 330;
-	uiMain.configuration.generic.callback = UI_Main_Callback;
 
 	uiMain.saveRestore.generic.id = ID_SAVERESTORE;
 	uiMain.saveRestore.generic.type = QMTYPE_ACTION;
 	uiMain.saveRestore.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
 	if( cls.state == ca_active )
+	{
 		uiMain.saveRestore.generic.name = "Save\\Load Game";
-	else uiMain.saveRestore.generic.name = "Load Game";
-	uiMain.saveRestore.generic.x = 64;
-	uiMain.saveRestore.generic.y = 380;
+		uiMain.saveRestore.generic.statusText = "Load a saved game, save the current game.";
+	}
+	else
+	{
+		uiMain.saveRestore.generic.name = "Load Game";
+		uiMain.saveRestore.generic.statusText = "Load a previously saved game.";
+	}
+	uiMain.saveRestore.generic.x = 72;
+	uiMain.saveRestore.generic.y = 280;
 	uiMain.saveRestore.generic.callback = UI_Main_Callback;
+
+	uiMain.configuration.generic.id = ID_CONFIGURATION;
+	uiMain.configuration.generic.type = QMTYPE_ACTION;
+	uiMain.configuration.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiMain.configuration.generic.name = "Configuration";
+	uiMain.configuration.generic.statusText = "Change game settings, configure controls";
+	uiMain.configuration.generic.x = 72;
+	uiMain.configuration.generic.y = 330;
+	uiMain.configuration.generic.callback = UI_Main_Callback;
 
 	uiMain.multiPlayer.generic.id = ID_MULTIPLAYER;
 	uiMain.multiPlayer.generic.type = QMTYPE_ACTION;
 	uiMain.multiPlayer.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
 	uiMain.multiPlayer.generic.name = "Multiplayer";
-	uiMain.multiPlayer.generic.x = 64;
-	uiMain.multiPlayer.generic.y = 430;
+	uiMain.multiPlayer.generic.statusText = "Search for internet servers, configure character";
+	uiMain.multiPlayer.generic.x = 72;
+	uiMain.multiPlayer.generic.y = 380;
 	uiMain.multiPlayer.generic.callback = UI_Main_Callback;
 
 	uiMain.customGame.generic.id = ID_CUSTOMGAME;
 	uiMain.customGame.generic.type = QMTYPE_ACTION;
 	uiMain.customGame.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
 	uiMain.customGame.generic.name = "Custom Game";
-	uiMain.customGame.generic.x = 64;
-	uiMain.customGame.generic.y = 480;
+	uiMain.customGame.generic.statusText = "Select a custom game";
+	uiMain.customGame.generic.x = 72;
+	uiMain.customGame.generic.y = 430;
 	uiMain.customGame.generic.callback = UI_Main_Callback;
 
 	uiMain.credits.generic.id = ID_CREDITS;
 	uiMain.credits.generic.type = QMTYPE_ACTION;
 	uiMain.credits.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
-	uiMain.credits.generic.name = "Credits";
-	uiMain.credits.generic.x = 64;
-	uiMain.credits.generic.y = 530;
+	uiMain.credits.generic.name = "About";
+	uiMain.credits.generic.statusText = "Game credits";
+	uiMain.credits.generic.x = 72;
+	uiMain.credits.generic.y = 480;
 	uiMain.credits.generic.callback = UI_Main_Callback;
 
 	uiMain.quit.generic.id = ID_QUIT;
 	uiMain.quit.generic.type = QMTYPE_ACTION;
 	uiMain.quit.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
 	uiMain.quit.generic.name = "Quit";
-	uiMain.quit.generic.x = 64;
-	uiMain.quit.generic.y = 580;
+	uiMain.quit.generic.statusText = "Quit from game";
+	uiMain.quit.generic.x = 72;
+	uiMain.quit.generic.y = 530;
 	uiMain.quit.generic.callback = UI_Main_Callback;
 
-	uiMain.idSoftware.generic.id = ID_IDSOFTWARE;
-	uiMain.idSoftware.generic.type = QMTYPE_BITMAP;
-	uiMain.idSoftware.generic.flags = QMF_PULSEIFFOCUS | QMF_MOUSEONLY;
-	uiMain.idSoftware.generic.x = 0;
-	uiMain.idSoftware.generic.y = 640;
-	uiMain.idSoftware.generic.width = 128;
-	uiMain.idSoftware.generic.height = 128;
-	uiMain.idSoftware.generic.callback = UI_Main_Callback;
-	uiMain.idSoftware.pic = ART_IDLOGO;
-	uiMain.idSoftware.focusPic = ART_IDLOGO2;
+	uiMain.minimizeBtn.generic.id = ID_MINIMIZE;
+	uiMain.minimizeBtn.generic.type = QMTYPE_BITMAP;
+	uiMain.minimizeBtn.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_MOUSEONLY;
+	uiMain.minimizeBtn.generic.x = 952;
+	uiMain.minimizeBtn.generic.y = 13;
+	uiMain.minimizeBtn.generic.width = 32;
+	uiMain.minimizeBtn.generic.height = 32;
+	uiMain.minimizeBtn.generic.callback = UI_Main_Callback;
+	uiMain.minimizeBtn.pic = ART_MINIMIZE_N;
+	uiMain.minimizeBtn.focusPic = ART_MINIMIZE_F;
 
-	uiMain.teamBlur.generic.id = ID_TEAMBLUR;
-	uiMain.teamBlur.generic.type = QMTYPE_BITMAP;
-	uiMain.teamBlur.generic.flags = QMF_PULSEIFFOCUS | QMF_MOUSEONLY;
-	uiMain.teamBlur.generic.x = 896;
-	uiMain.teamBlur.generic.y = 640;
-	uiMain.teamBlur.generic.width	= 128;
-	uiMain.teamBlur.generic.height = 128;
-	uiMain.teamBlur.generic.callback = UI_Main_Callback;
-	uiMain.teamBlur.pic	= ART_BLURLOGO;
-	uiMain.teamBlur.focusPic = ART_BLURLOGO2;
+	uiMain.quitButton.generic.id = ID_QUIT;
+	uiMain.quitButton.generic.type = QMTYPE_BITMAP;
+	uiMain.quitButton.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_MOUSEONLY;
+	uiMain.quitButton.generic.x = 984;
+	uiMain.quitButton.generic.y = 13;
+	uiMain.quitButton.generic.width = 32;
+	uiMain.quitButton.generic.height = 32;
+	uiMain.quitButton.generic.callback = UI_Main_Callback;
+	uiMain.quitButton.pic = ART_CLOSEBTN_N;
+	uiMain.quitButton.focusPic = ART_CLOSEBTN_F;
 
-	uiMain.copyright.generic.id = ID_COPYRIGHT;
-	uiMain.copyright.generic.type	= QMTYPE_BITMAP;
-	uiMain.copyright.generic.flags = QMF_INACTIVE;
-	uiMain.copyright.generic.x = 240;
-	uiMain.copyright.generic.y = 680;
-	uiMain.copyright.generic.width = 544;
-	uiMain.copyright.generic.height = 48;
-	uiMain.copyright.pic = ART_COPYRIGHT;
+	uiMain.msgBox.generic.id = ID_MSGBOX;
+	uiMain.msgBox.generic.type = QMTYPE_BITMAP;
+	uiMain.msgBox.generic.flags = QMF_INACTIVE|QMF_HIDDEN;
+	uiMain.msgBox.generic.ownerdraw = UI_MsgBox_Ownerdraw; // just a fill rectangle
+	uiMain.msgBox.generic.x = 192;
+	uiMain.msgBox.generic.y = 256;
+	uiMain.msgBox.generic.width = 640;
+	uiMain.msgBox.generic.height = 256;
 
-	uiMain.allYourBase.generic.id = ID_ALLYOURBASE;
-	uiMain.allYourBase.generic.type = QMTYPE_BITMAP;
-	uiMain.allYourBase.generic.flags = QMF_MOUSEONLY;
-	uiMain.allYourBase.generic.x = 416;
-	uiMain.allYourBase.generic.y = 158;
-	uiMain.allYourBase.generic.width = 37;
-	uiMain.allYourBase.generic.height = 35;
-	uiMain.allYourBase.generic.callback = UI_Main_Callback;
+	uiMain.quitMessage.generic.id = ID_MSGBOX;
+	uiMain.quitMessage.generic.type = QMTYPE_ACTION;
+	uiMain.quitMessage.generic.flags = QMF_INACTIVE|QMF_HIDDEN;
+	uiMain.quitMessage.generic.name = "Are you sure you want to quit?";
+	uiMain.quitMessage.generic.x = 248;
+	uiMain.quitMessage.generic.y = 280;
+
+	uiMain.yes.generic.id = ID_YES;
+	uiMain.yes.generic.type = QMTYPE_ACTION;
+	uiMain.yes.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_HIDDEN;
+	uiMain.yes.generic.name = "Ok";
+	uiMain.yes.generic.x = 380;
+	uiMain.yes.generic.y = 460;
+	uiMain.yes.generic.callback = UI_Main_Callback;
+
+	uiMain.no.generic.id = ID_NO;
+	uiMain.no.generic.type = QMTYPE_ACTION;
+	uiMain.no.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_HIDDEN;
+	uiMain.no.generic.name = "Cancel";
+	uiMain.no.generic.x = 530;
+	uiMain.no.generic.y = 460;
+	uiMain.no.generic.callback = UI_Main_Callback;
 
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.background );
 	if( host.developer ) UI_AddItem( &uiMain.menu, (void *)&uiMain.console );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.newGame );
-	UI_AddItem( &uiMain.menu, (void *)&uiMain.configuration );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.saveRestore );
+	UI_AddItem( &uiMain.menu, (void *)&uiMain.configuration );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.multiPlayer );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.customGame );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.credits );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.quit );
-	UI_AddItem( &uiMain.menu, (void *)&uiMain.idSoftware );
-	UI_AddItem( &uiMain.menu, (void *)&uiMain.teamBlur );
-	UI_AddItem( &uiMain.menu, (void *)&uiMain.copyright );
-	UI_AddItem( &uiMain.menu, (void *)&uiMain.allYourBase );
+	UI_AddItem( &uiMain.menu, (void *)&uiMain.minimizeBtn );
+	UI_AddItem( &uiMain.menu, (void *)&uiMain.quitButton );
+	UI_AddItem( &uiMain.menu, (void *)&uiMain.msgBox );
+	UI_AddItem( &uiMain.menu, (void *)&uiMain.quitMessage );
+	UI_AddItem( &uiMain.menu, (void *)&uiMain.no );
+	UI_AddItem( &uiMain.menu, (void *)&uiMain.yes );
 }
 
 /*
@@ -296,11 +357,10 @@ void UI_Main_Precache( void )
 	if( !re ) return;
 
 	re->RegisterShader( ART_BACKGROUND, SHADER_NOMIP );
-	re->RegisterShader( ART_IDLOGO, SHADER_NOMIP );
-	re->RegisterShader( ART_IDLOGO2, SHADER_NOMIP );
-	re->RegisterShader( ART_BLURLOGO, SHADER_NOMIP );
-	re->RegisterShader( ART_BLURLOGO2, SHADER_NOMIP );
-	re->RegisterShader( ART_COPYRIGHT, SHADER_NOMIP );
+	re->RegisterShader( ART_MINIMIZE_N, SHADER_NOMIP );
+	re->RegisterShader( ART_MINIMIZE_F, SHADER_NOMIP );
+	re->RegisterShader( ART_CLOSEBTN_N, SHADER_NOMIP );
+	re->RegisterShader( ART_CLOSEBTN_F, SHADER_NOMIP );
 }
 
 /*
@@ -321,146 +381,4 @@ void UI_Main_Menu( void )
 	UI_Main_Init();
 
 	UI_PushMenu( &uiMain.menu );
-}
-
-
-// =====================================================================
-
-#define ART_BANNER		"gfx/shell/banners/aybabtu_t"
-#define ART_MOO		"gfx/shell/misc/moo"
-#define SOUND_MOO		"misc/moo.wav"
-
-#define ID_BANNER		1
-#define ID_BACK		2
-#define ID_MOO		3
-
-typedef struct
-{
-	menuFramework_s	menu;
-
-	menuBitmap_s	background;
-	menuBitmap_s	banner;
-	menuBitmap_s	back;
-	menuBitmap_s	moo;
-} uiAllYourBase_t;
-
-static uiAllYourBase_t	uiAllYourBase;
-
-
-/*
-=================
-UI_AllYourBase_Callback
-=================
-*/
-static void UI_AllYourBase_Callback( void *self, int event )
-{
-	menuCommon_s	*item = (menuCommon_s *)self;
-
-	if( event != QM_ACTIVATED )
-		return;
-
-	switch( item->id )
-	{
-	case ID_BACK:
-		UI_PopMenu();
-		break;
-	}
-}
-
-/*
-=================
-UI_AllYourBase_Ownerdraw
-=================
-*/
-static void UI_AllYourBase_Ownerdraw( void *self )
-{
-	menuCommon_s	*item = (menuCommon_s *)self;
-
-	if( uiAllYourBase.menu.items[uiAllYourBase.menu.cursor] == self )
-		UI_DrawPic(item->x, item->y, item->width, item->height, uiColorWhite, UI_MOVEBOXFOCUS );
-	else UI_DrawPic(item->x, item->y, item->width, item->height, uiColorWhite, UI_MOVEBOX );
-
-	UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, ((menuBitmap_s *)self)->pic );
-}
-
-/*
-=================
-UI_AllYourBase_Init
-=================
-*/
-static void UI_AllYourBase_Init( void )
-{
-	Mem_Set( &uiAllYourBase, 0, sizeof( uiAllYourBase_t ));
-
-	uiAllYourBase.background.generic.id = ID_BACKGROUND;
-	uiAllYourBase.background.generic.type = QMTYPE_BITMAP;
-	uiAllYourBase.background.generic.flags = QMF_INACTIVE | QMF_GRAYED;
-	uiAllYourBase.background.generic.x = 0;
-	uiAllYourBase.background.generic.y = 0;
-	uiAllYourBase.background.generic.width = 1024;
-	uiAllYourBase.background.generic.height	= 768;
-	uiAllYourBase.background.pic = ART_BACKGROUND;
-
-	uiAllYourBase.banner.generic.id = ID_BANNER;
-	uiAllYourBase.banner.generic.type = QMTYPE_BITMAP;
-	uiAllYourBase.banner.generic.flags = QMF_INACTIVE;
-	uiAllYourBase.banner.generic.x = 0;
-	uiAllYourBase.banner.generic.y = 66;
-	uiAllYourBase.banner.generic.width = 1024;
-	uiAllYourBase.banner.generic.height = 46;
-	uiAllYourBase.banner.pic = ART_BANNER;
-
-	uiAllYourBase.back.generic.id	= ID_BACK;
-	uiAllYourBase.back.generic.type = QMTYPE_BITMAP;
-	uiAllYourBase.back.generic.x = 413;
-	uiAllYourBase.back.generic.y = 656;
-	uiAllYourBase.back.generic.width = 198;
-	uiAllYourBase.back.generic.height = 38;
-	uiAllYourBase.back.generic.callback = UI_AllYourBase_Callback;
-	uiAllYourBase.back.generic.ownerdraw = UI_AllYourBase_Ownerdraw;
-	uiAllYourBase.back.pic = UI_BACKBUTTON;
-
-	uiAllYourBase.moo.generic.id = ID_MOO;
-	uiAllYourBase.moo.generic.type = QMTYPE_BITMAP;
-	uiAllYourBase.moo.generic.flags = QMF_INACTIVE;
-	uiAllYourBase.moo.generic.x = 256;
-	uiAllYourBase.moo.generic.y = 128;
-	uiAllYourBase.moo.generic.width = 512;
-	uiAllYourBase.moo.generic.height = 512;
-	uiAllYourBase.moo.pic = ART_MOO;
-
-	UI_AddItem( &uiAllYourBase.menu, (void **)&uiAllYourBase.background );
-	UI_AddItem( &uiAllYourBase.menu, (void **)&uiAllYourBase.banner );
-	UI_AddItem( &uiAllYourBase.menu, (void **)&uiAllYourBase.back );
-	UI_AddItem( &uiAllYourBase.menu, (void **)&uiAllYourBase.moo );
-}
-
-/*
-=================
-UI_AllYourBase_Precache
-=================
-*/
-static void UI_AllYourBase_Precache( void )
-{
-	S_RegisterSound( SOUND_MOO );
-
-	if( !re ) return;
-
-	re->RegisterShader( ART_BACKGROUND, SHADER_NOMIP );
-	re->RegisterShader( ART_BANNER, SHADER_NOMIP );
-	re->RegisterShader( ART_MOO, SHADER_NOMIP );
-}
-
-/*
-=================
-UI_AllYourBase_Menu
-=================
-*/
-static void UI_AllYourBase_Menu( void )
-{
-	UI_AllYourBase_Precache();
-	UI_AllYourBase_Init();
-
-	UI_PushMenu( &uiAllYourBase.menu );
-	UI_StartSound( SOUND_MOO );
 }

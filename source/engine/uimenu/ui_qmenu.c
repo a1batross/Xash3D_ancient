@@ -1000,8 +1000,8 @@ void UI_Action_Init( menuAction_s *a )
 	if(!( a->generic.flags & ( QMF_LEFT_JUSTIFY|QMF_CENTER_JUSTIFY|QMF_RIGHT_JUSTIFY )))
 		a->generic.flags |= QMF_LEFT_JUSTIFY;
 
-	if( !a->generic.color ) a->generic.color = uiColorLtGrey;
-	if( !a->generic.focusColor ) a->generic.focusColor = uiColorWhite;
+	if( !a->generic.color ) a->generic.color = uiColorOrange;
+	if( !a->generic.focusColor ) a->generic.focusColor = uiColorYellow;
 //	if( !a->background ) a->background = UI_BACKGROUNDBOX;
 
 	if( a->generic.width < 1 || a->generic.height < 1 )
@@ -1174,6 +1174,12 @@ void UI_Bitmap_Draw( menuBitmap_s *b )
 		return; // grayed
 	}
 
+	if(( b->generic.flags & QMF_MOUSEONLY ) && !( b->generic.flags & QMF_HASMOUSEFOCUS ))
+	{
+		UI_DrawPic( b->generic.x, b->generic.y, b->generic.width, b->generic.height, b->generic.color, b->pic );
+		return; // no focus
+	}
+	
 	if((menuCommon_s *)b != (menuCommon_s *)UI_ItemAtCursor( b->generic.parent ))
 	{
 		UI_DrawPic( b->generic.x, b->generic.y, b->generic.width, b->generic.height, b->generic.color, b->pic );

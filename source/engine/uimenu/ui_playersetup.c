@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ui_local.h"
 #include "client.h"
 
-#define ART_BACKGROUND	"gfx/shell/misc/ui_sub_options"
+#define ART_BACKGROUND	"gfx/shell/splash"
 #define ART_BANNER		"gfx/shell/banners/playersetup_t"
 #define ART_TEXT1		"gfx/shell/text/playersetup_text_p1"
 #define ART_TEXT2		"gfx/shell/text/playersetup_text_p2"
@@ -51,6 +51,9 @@ typedef struct
 	string		playerModels[MAX_PLAYERMODELS];
 	int		numPlayerModels;
 	string		currentModel;
+
+	ref_params_t	refdef;
+	edict_t		ent;
 	
 	menuFramework_s	menu;
 
@@ -131,7 +134,7 @@ static void UI_PlayerSetup_GetConfig( void )
 
 	// Get user set skin
 	com.strncpy( model, Cvar_VariableString( "skin" ), sizeof(model));
-	ch = strchr(model, '/');
+	ch = com.strchr( model, '/' );
 
 	// find models
 	UI_PlayerSetup_FindModels();
@@ -180,6 +183,7 @@ static void UI_PlayerSetup_UpdateConfig( void )
 	}
 
 	uiPlayerSetup.model.generic.name = uiPlayerSetup.playerModels[(int)uiPlayerSetup.model.curValue];
+	uiPlayerSetup.ent.v.model = re->RegisterModel( uiPlayerSetup.currentModel, MAX_MODELS - 1 );
 }
 
 /*
@@ -220,43 +224,22 @@ static void UI_PlayerSetup_Ownerdraw( void *self )
 
 	if( item->id == ID_VIEW )
 	{
-		int		x = 630, y = 226, w = 316, h = 316;
-		static ref_params_t	refDef;
-		static edict_t	ent;
+		float	realtime = uiStatic.realTime * 0.001f;
 
 		// draw the background
-		UI_ScaleCoords( &x, &y, &w, &h );
+		UI_FillRect( item->x, item->y, item->width, item->height, uiColorDkGrey );
 		UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, uiPlayerSetup.view.pic );
 
-		re->ClearScene();
+		V_ClearScene();
+
+		// update renderer timings
+		uiPlayerSetup.ent.v.animtime = realtime;
+		uiPlayerSetup.refdef.time = realtime;
+		uiPlayerSetup.refdef.frametime = cls.frametime;
 
 		// draw the player model
-		Mem_Set( &ent, 0, sizeof( edict_t ));
-		ent.v.model = re->RegisterModel( uiPlayerSetup.currentModel, MAX_MODELS - 1 );
-//		ent.v.sequence = sequence;
-//		ent.v.gaitsequence = sequence;
-		ent.v.modelindex = MAX_MODELS - 1;
-		ent.v.effects |= EF_ANIMATE;
-		ent.v.controller[0] = 127;
-		ent.v.controller[1] = 127;
-		ent.v.controller[2] = 127;
-		ent.v.controller[3] = 127;
-		VectorSet( ent.v.origin, 80, 0, 0 );
-		VectorCopy( ent.v.origin, ent.v.oldorigin );
-
-		re->AddRefEntity( &ent, ED_NORMAL );
-
-		// create and render the scene
-		refDef.viewport[0] = item->x + (item->width / 12);
-		refDef.viewport[1] = item->y + (item->height / 12);
-		refDef.viewport[2] = item->width - (item->width / 6);
-		refDef.viewport[3] = item->height - (item->height / 6);
-		refDef.fov_x = 40;
-		refDef.fov_y = UI_PlayerSetup_CalcFov( refDef.fov_x, refDef.viewport[2], refDef.viewport[3] );
-		refDef.flags = RDF_NOWORLDMODEL;
-		refDef.time = uiStatic.realTime * 0.001f;
-		refDef.frametime = cls.frametime;
-		re->RenderFrame( &refDef );
+		re->AddRefEntity( &uiPlayerSetup.ent, ED_NORMAL );
+		re->RenderFrame( &uiPlayerSetup.refdef );
 	}
 	else
 	{
@@ -403,6 +386,31 @@ static void UI_PlayerSetup_Init( void )
 	UI_AddItem( &uiPlayerSetup.menu, (void *)&uiPlayerSetup.name );
 	UI_AddItem( &uiPlayerSetup.menu, (void *)&uiPlayerSetup.model );
 	UI_AddItem( &uiPlayerSetup.menu, (void *)&uiPlayerSetup.skin );
+
+	// setup render and actor
+	uiPlayerSetup.refdef.fov_x = 40;
+
+	// NOTE: must be called after UI_AddItem whan we sure what UI_ScaleCoords is done
+	uiPlayerSetup.refdef.viewport[0] = uiPlayerSetup.view.generic.x + (uiPlayerSetup.view.generic.width / 12);
+	uiPlayerSetup.refdef.viewport[1] = uiPlayerSetup.view.generic.y + (uiPlayerSetup.view.generic.height / 12);
+	uiPlayerSetup.refdef.viewport[2] = uiPlayerSetup.view.generic.width - (uiPlayerSetup.view.generic.width / 6);
+	uiPlayerSetup.refdef.viewport[3] = uiPlayerSetup.view.generic.height - (uiPlayerSetup.view.generic.height / 6);
+
+	uiPlayerSetup.refdef.fov_y = UI_PlayerSetup_CalcFov( uiPlayerSetup.refdef.fov_x, uiPlayerSetup.refdef.viewport[2], uiPlayerSetup.refdef.viewport[3] );
+	uiPlayerSetup.refdef.flags = RDF_NOWORLDMODEL;
+
+	uiPlayerSetup.ent.v.sequence = 1;
+	uiPlayerSetup.ent.v.scale = 1.0f;
+	uiPlayerSetup.ent.v.frame = -1.0f;
+	uiPlayerSetup.ent.v.framerate = 1.0f;
+	uiPlayerSetup.ent.v.modelindex = MAX_MODELS - 1;
+	uiPlayerSetup.ent.v.effects |= EF_ANIMATE;
+	uiPlayerSetup.ent.v.controller[0] = 127;
+	uiPlayerSetup.ent.v.controller[1] = 127;
+	uiPlayerSetup.ent.v.controller[2] = 127;
+	uiPlayerSetup.ent.v.controller[3] = 127;
+	uiPlayerSetup.ent.v.origin[0] = 120;
+	uiPlayerSetup.ent.v.angles[1] = 180;
 }
 
 /*

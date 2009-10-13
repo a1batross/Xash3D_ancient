@@ -6,13 +6,13 @@
 --------------------Configuration: engine - Win32 Release--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP21FE.tmp" with contents
+Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP2AD9.tmp" with contents
 [
 /nologo /MD /W3 /GX /O2 /I "./" /I "common" /I "server" /I "client" /I "uimenu" /I "../public" /I "../common" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /Fo"..\temp\engine\!release/" /Fd"..\temp\engine\!release/" /FD /c 
-"D:\Xash3D\src_main\engine\uimenu\ui_credits.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_playersetup.c"
 ]
-Creating command line "cl.exe @"C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP21FE.tmp"" 
-Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP21FF.tmp" with contents
+Creating command line "cl.exe @"C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP2AD9.tmp"" 
+Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP2ADA.tmp" with contents
 [
 user32.lib msvcrt.lib /nologo /subsystem:windows /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /out:"..\temp\engine\!release/engine.dll" /implib:"..\temp\engine\!release/engine.lib" /opt:nowin98 
 "\Xash3D\src_main\temp\engine\!release\cinematic.obj"
@@ -70,18 +70,18 @@ user32.lib msvcrt.lib /nologo /subsystem:windows /dll /pdb:none /machine:I386 /n
 "\Xash3D\src_main\temp\engine\!release\ui_qmenu.obj"
 "\Xash3D\src_main\temp\engine\!release\ui_quit.obj"
 "\Xash3D\src_main\temp\engine\!release\ui_savegame.obj"
-"\Xash3D\src_main\temp\engine\!release\ui_singleplayer.obj"
 "\Xash3D\src_main\temp\engine\!release\ui_video.obj"
+"\Xash3D\src_main\temp\engine\!release\ui_newgame.obj"
 ]
-Creating command line "link.exe @"C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP21FF.tmp""
-Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP2200.bat" with contents
+Creating command line "link.exe @"C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP2ADA.tmp""
+Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP2ADB.bat" with contents
 [
 @echo off
 copy \Xash3D\src_main\temp\engine\!release\engine.dll "D:\Xash3D\bin\engine.dll"
 ]
-Creating command line ""C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP2200.bat""
+Creating command line ""C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP2ADB.bat""
 Compiling...
-ui_credits.c
+ui_playersetup.c
 Linking...
    Creating library ..\temp\engine\!release/engine.lib and object ..\temp\engine\!release/engine.exp
 <h3>Output Window</h3>
