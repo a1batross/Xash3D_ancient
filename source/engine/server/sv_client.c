@@ -710,9 +710,9 @@ void SV_Baselines_f( sv_client_t *cl )
 		return;
 	}
 	
-	start = com.atoi(Cmd_Argv(2));
+	start = com.atoi( Cmd_Argv( 2 ));
 
-	Mem_Set( &nullstate, 0, sizeof(nullstate));
+	Mem_Set( &nullstate, 0, sizeof( nullstate ));
 
 	// write a packet full of data
 	while( cl->netchan.message.cursize < MAX_MSGLEN / 2 && start < GI->max_edicts )
@@ -727,7 +727,7 @@ void SV_Baselines_f( sv_client_t *cl )
 	}
 
 	if( start == GI->max_edicts ) com.snprintf( baseline, MAX_STRING, "precache %i\n", svs.spawncount );
-	else com.snprintf( baseline, MAX_STRING, "cmd baselines %i %i\n",svs.spawncount, start );
+	else com.snprintf( baseline, MAX_STRING, "cmd baselines %i %i\n", svs.spawncount, start );
 
 	// send next command
 	MSG_WriteByte( &cl->netchan.message, svc_stufftext );

@@ -399,6 +399,9 @@ static void UI_PlayerSetup_Init( void )
 	uiPlayerSetup.refdef.fov_y = UI_PlayerSetup_CalcFov( uiPlayerSetup.refdef.fov_x, uiPlayerSetup.refdef.viewport[2], uiPlayerSetup.refdef.viewport[3] );
 	uiPlayerSetup.refdef.flags = RDF_NOWORLDMODEL;
 
+	// NOTE: CL_GetEdictByIndex returns NULL for WMODEL_ENTINDEX 
+	// also it's special case, don't touch!
+	uiPlayerSetup.ent.serialnumber = WMODEL_ENTINDEX;
 	uiPlayerSetup.ent.v.sequence = 1;
 	uiPlayerSetup.ent.v.scale = 1.0f;
 	uiPlayerSetup.ent.v.frame = -1.0f;

@@ -234,7 +234,7 @@ void _MSG_WriteBits( sizebuf_t *msg, long value, const char *name, int net_type,
 	// this isn't an exact overflow check, but close enough
 	if( msg->maxsize - msg->cursize < 4 )
 	{
-		MsgDev( D_ERROR, "MSG_WriteBits: sizebuf overflowed\n" );
+		MsgDev( D_ERROR, "MSG_WriteBits: sizebuf overflowed (called at %s:%i)\n", filename, fileline );
 		msg->overflowed = true;
 		return;
 	}

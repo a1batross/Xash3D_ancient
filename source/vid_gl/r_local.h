@@ -167,7 +167,7 @@ enum
 #define RP_SHOWNORMALS		0x2000
 
 #define RP_NONVIEWERREF		( RP_PORTALVIEW|RP_MIRRORVIEW|RP_ENVVIEW|RP_SKYPORTALVIEW|RP_SHADOWMAPVIEW )
-#define RP_LOCALCLIENT(e)		(((e)->index == ri.GetLocalPlayer()->serialnumber))
+#define RP_LOCALCLIENT(e)		(ri.GetLocalPlayer() && ((e)->index == ri.GetLocalPlayer()->serialnumber))
 #define RP_FOLLOWENTITY(e)		(((e)->movetype == MOVETYPE_FOLLOW && (e)->parent))
 #define MOD_ALLOWBUMP()		(r_lighting_models_followdeluxe->integer ? mapConfig.deluxeMappingEnabled : GL_Support( R_SHADER_GLSL100_EXT ))
 

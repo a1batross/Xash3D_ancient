@@ -54,6 +54,45 @@ int Host_CompareFileTime( long ft1, long ft2 )
 	return 0;
 }
 
+void Host_ShutdownServer( void )
+{
+	if( !SV_Active()) return;
+	com.strncpy( host.finalmsg, "Server was killed\n", MAX_STRING );
+	SV_Shutdown( false );
+}
+
+/*
+================
+Host_EndGame
+================
+*/
+void Host_EndGame( const char *message, ... )
+{
+	va_list		argptr;
+	static char	string[MAX_MSGLEN];
+	
+	va_start( argptr, message );
+	vsprintf( string, message, argptr );
+	va_end( argptr );
+
+	MsgDev( D_INFO, "Host_EndGame: %s\n", string );
+	
+	if( SV_Active())
+	{
+		com.strncpy( host.finalmsg, "Host_EndGame\n", MAX_STRING );
+		SV_Shutdown( false );
+	}
+	
+	if( host.type == HOST_DEDICATED )
+		Sys_Break( "Host_EndGame: %s\n", string ); // dedicated servers exit
+	
+	if( cls.demonum != -1 )
+		CL_NextDemo ();
+	else CL_Disconnect ();
+
+	Host_AbortCurrentFrame ();
+}
+
 void Host_InitPhysic( void )
 {
 	static physic_imp_t		pi;

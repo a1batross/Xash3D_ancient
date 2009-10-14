@@ -111,7 +111,7 @@ void CL_ForwardToServer_f( void )
 CL_Pause_f
 ==================
 */
-void CL_Pause_f (void)
+void CL_Pause_f( void )
 {
 	if(!Host_ServerState() && !cls.demoplayback )
 		return; // but allow pause in demos
@@ -349,8 +349,6 @@ void CL_Disconnect( void )
 		return;
 
 	cls.connect_time = 0;
-	SCR_StopCinematic();
-
 	CL_Stop_f();
 
 	// send a disconnect message to the server
@@ -463,8 +461,11 @@ void CL_Reconnect_f( void )
 	S_StopAllSounds ();
 	Cmd_ExecuteString( "plaque\n" ); // disable plaque draw on change map
 
+	if( cls.demoplayback ) return;
+
 	if( cls.state == ca_connected )
 	{
+		cls.demonum = -1;	// not in the demo loop now
 		cls.state = ca_connected;
 		MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
 		MSG_Print( &cls.netchan.message, "new" );
@@ -480,6 +481,7 @@ void CL_Reconnect_f( void )
 		}
 		else cls.connect_time = MAX_HEARTBEAT; // fire immediately
 
+		cls.demonum = -1;	// not in the demo loop now
 		cls.state = ca_connecting;
 		Msg( "reconnecting...\n" );
 	}
@@ -1043,7 +1045,7 @@ void CL_RequestNextDownload( void )
 
 	if( cls.demoplayback ) return; // not really connected
 	MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
-	MSG_Print( &cls.netchan.message, va("begin %i\n", precache_spawncount ));
+	MSG_Print( &cls.netchan.message, va( "begin %i\n", precache_spawncount ));
 }
 
 /*
@@ -1057,7 +1059,7 @@ before allowing the client into the server
 void CL_Precache_f( void )
 {
 	precache_check = CS_MODELS;
-	precache_spawncount = com.atoi(Cmd_Argv(1));
+	precache_spawncount = com.atoi( Cmd_Argv( 1 ));
 	CL_RequestNextDownload();
 }
 
@@ -1115,6 +1117,8 @@ void CL_InitLocal( void )
 	Cmd_AddCommand ("disconnect", CL_Disconnect_f, "disconnect from server" );
 	Cmd_AddCommand ("record", CL_Record_f, "record a demo" );
 	Cmd_AddCommand ("playdemo", CL_PlayDemo_f, "playing a demo" );
+	Cmd_AddCommand ("startdemos", CL_StartDemos_f, "start playing back the selected demos sequentially" );
+	Cmd_AddCommand ("demos", CL_Demos_f, "restart looping demos defined by the last startdemos command" );
 	Cmd_AddCommand ("movie", CL_PlayVideo_f, "playing a movie" );
 	Cmd_AddCommand ("stop", CL_Stop_f, "stop playing or recording a demo" );
 

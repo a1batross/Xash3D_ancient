@@ -23,6 +23,28 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client.h"
 #include "net_sound.h"
 
+char *svc_strings[256] =
+{
+	"svc_bad",
+
+	"svc_nop",
+	"svc_disconnect",
+	"svc_reconnect",
+	"svc_stufftext",
+	"svc_serverdata",
+	"svc_configstring",
+	"svc_spawnbaseline",
+	"svc_download",
+	"svc_playerinfo",
+	"svc_packetentities",
+	"svc_frame",
+	"svc_sound",
+	"svc_setangle",
+	"svc_setview",
+	"svc_print",
+	"svc_crosshairangle",
+};
+
 /*
 ===============
 CL_CheckOrDownloadFile
@@ -468,6 +490,8 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 		cmd = MSG_ReadByte( msg );
 		if( cmd == -1 ) break;
 
+//		if( cmd > 200 ) MsgDev( D_INFO, "CL_Parse: %s received.\n", svc_strings[cmd - 200] );
+			
 		// other commands
 		switch( cmd )
 		{

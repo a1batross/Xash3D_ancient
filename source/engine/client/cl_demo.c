@@ -26,7 +26,7 @@ void CL_WriteDemoMessage( sizebuf_t *msg, int head_size )
 	swlen = LittleLong( len );
 
 	if( !swlen ) return; // ignore null messages
-	FS_Write( cls.demofile, &swlen, 4);
+	FS_Write( cls.demofile, &swlen, 4 );
 	FS_Write( cls.demofile, msg->data + head_size, len );
 }
 
@@ -66,7 +66,11 @@ void CL_WriteDemoHeader( const char *name )
 	{
 		if( cl.configstrings[i][0] )
 		{
-			if( buf.cursize + com.strlen(cl.configstrings[i]) + 32 > buf.maxsize )
+			MSG_WriteByte( &buf, svc_configstring );
+			MSG_WriteShort( &buf, i);
+			MSG_WriteString( &buf, cl.configstrings[i] );
+
+			if( buf.cursize > ( buf.maxsize / 2 ))
 			{	
 				// write it out
 				len = LittleLong( buf.cursize );
@@ -74,9 +78,6 @@ void CL_WriteDemoHeader( const char *name )
 				FS_Write( cls.demofile, buf.data, buf.cursize );
 				buf.cursize = 0;
 			}
-			MSG_WriteByte( &buf, svc_configstring );
-			MSG_WriteShort( &buf, i);
-			MSG_WriteString( &buf, cl.configstrings[i] );
 		}
 
 	}
@@ -84,12 +85,16 @@ void CL_WriteDemoHeader( const char *name )
 	// baselines
 	Mem_Set( &nullstate, 0, sizeof( nullstate ));
 
-	for( i = 0; i < clgame.globals->numEntities; i++ )
+	for( i = 0; i < clgame.globals->maxEntities; i++ )
 	{
 		state = &cl.entity_baselines[i];
-		if( !state->number ) continue;
+		if( !state->modelindex && !state->soundindex && !state->effects )
+			continue;
 
-		if( buf.cursize + 64 > buf.maxsize )
+		MSG_WriteByte( &buf, svc_spawnbaseline );		
+		MSG_WriteDeltaEntity( &nullstate, state, &buf, true, true );
+
+		if( buf.cursize > ( buf.maxsize / 2 ))
 		{	
 			// write it out
 			len = LittleLong( buf.cursize );
@@ -97,8 +102,6 @@ void CL_WriteDemoHeader( const char *name )
 			FS_Write( cls.demofile, buf.data, buf.cursize );
 			buf.cursize = 0;
 		}
-		MSG_WriteByte( &buf, svc_spawnbaseline );		
-		MSG_WriteDeltaEntity( &nullstate, state, &buf, true, true );
 	}
 
 	MSG_WriteByte( &buf, svc_stufftext );
@@ -107,7 +110,7 @@ void CL_WriteDemoHeader( const char *name )
 	MSG_WriteString( &buf, "cmd fullupdate\n" );
 
 	MSG_WriteByte( &buf, svc_setview );
-	MSG_WriteWord( &buf, cl.playernum + 1 ); // reset view to client
+	MSG_WriteWord( &buf, cl.refdef.viewentity );
 
 	// write it to the demo file
 	len = LittleLong( buf.cursize );
@@ -153,16 +156,28 @@ If the "nextdemo" cvar is set, that command will be issued
 */
 void CL_NextDemo( void )
 {
-	string	v;
+	string	str;
 
-	com.strncpy( v, Cvar_VariableString( "playdemo" ), sizeof(v));
+	if( cls.demonum == -1 )
+		return;	// don't play demos
 
-	MsgDev(D_INFO, "CL_NextDemo: %s\n", v );
-	if(!v[0]) return;
+	S_StopAllSounds();
 
-	Cvar_Set( "nextdemo","" );
-	Cbuf_AddText(va("%s\n", v));
-	Cbuf_Execute();
+	if( !cls.demos[cls.demonum][0] || cls.demonum == MAX_DEMOS )
+	{
+		cls.demonum = 0;
+		if( !cls.demos[cls.demonum][0] )
+		{
+			Msg( "no demos listed with startdemos\n" );
+			cls.demonum = -1;
+			return;
+		}
+	}
+
+	com.snprintf( str, MAX_STRING, "playdemo %s\n", cls.demos[cls.demonum] );
+
+	Cbuf_InsertText( str );
+	cls.demonum++;
 }
 
 /*
@@ -261,7 +276,7 @@ void CL_StopRecord( void )
 {
 	int	len = -1;
 
-	if (!cls.demorecording) return;
+	if( !cls.demorecording ) return;
 
 	// finish up
 	FS_Write( cls.demofile, &len, 4 );
@@ -317,7 +332,7 @@ void CL_PlayDemo_f( void )
 {
 	string	filename;
 
-	if(Cmd_Argc() != 2)
+	if( Cmd_Argc() != 2 )
 	{
 		Msg( "playdemo <demoname>\n" );
 		return;
@@ -325,26 +340,73 @@ void CL_PlayDemo_f( void )
 
 	// shutdown any game or cinematic server
 	CL_Disconnect();
-	Cbuf_ExecuteText(EXEC_APPEND, "killserver\n");
+	Host_ShutdownServer();
 
-	com.snprintf( filename, MAX_STRING, "demos/%s.dem", Cmd_Argv(1));
+	com.snprintf( filename, MAX_STRING, "demos/%s.dem", Cmd_Argv( 1 ));
 	if(!FS_FileExists( filename ))
 	{
-		Msg("Can't loading %s\n", filename );
+		MsgDev( D_ERROR, "couldn't open %s\n", filename );
+		cls.demonum = -1; // stop demo loop
 		return;
 	}
 
 	cls.demofile = FS_Open( filename, "rb" );
-	com.strncpy( cls.demoname, Cmd_Argv(1), sizeof(cls.demoname));
+	com.strncpy( cls.demoname, Cmd_Argv( 1 ), sizeof( cls.demoname ));
 
 	Con_Close();
 
 	cls.state = ca_connected;
 	cls.demoplayback = true;
-	com.strncpy( cls.servername, Cmd_Argv(1), sizeof( cls.servername ));
+	com.strncpy( cls.servername, Cmd_Argv( 1 ), sizeof( cls.servername ));
 
 	// begin a playback demo
 }
+
+/*
+==================
+CL_StartDemos_f
+==================
+*/
+void CL_StartDemos_f( void )
+{
+	int	i, c;
+
+	c = Cmd_Argc() - 1;
+	if( c > MAX_DEMOS )
+	{
+		MsgDev( D_WARN, "Host_StartDemos: max %i demos in demoloop\n", MAX_DEMOS );
+		c = MAX_DEMOS;
+	}
+
+	MsgDev( D_INFO, "%i demo%s in loop\n", c, (c > 1) ? "s" : "" );
+
+	for( i = 1; i < c + 1; i++ )
+		com.strncpy( cls.demos[i-1], Cmd_Argv( i ), sizeof( cls.demos[0] ));
+
+	if( !SV_Active() && cls.demonum != -1 && !cls.demoplayback )
+	{
+		cls.demonum = 0;
+		CL_NextDemo ();
+	}
+	else cls.demonum = -1;
+}
+
+/*
+==================
+CL_Demos_f
+
+Return to looping demos
+==================
+*/
+void CL_Demos_f( void )
+{
+	if( cls.demonum == -1 )
+		cls.demonum = 1;
+
+	CL_Disconnect ();
+	CL_NextDemo ();
+}
+
 
 /*
 ====================

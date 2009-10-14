@@ -121,6 +121,7 @@ int Host_CompareFileTime( long ft1, long ft2 );
 void Host_AbortCurrentFrame( void );
 void Host_WriteDefaultConfig( void );
 void Host_WriteConfig( void );
+void Host_ShutdownServer( void );
 void Host_CheckChanges( void );
 int Host_Milliseconds( void );
 void Host_Print( const char *txt );

@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "render_api.h"
 #include "pm_movevars.h"
 
+#define MAX_DEMOS		32
 #define MAX_EDIT_LINE	256
 #define COMMAND_HISTORY	32
 #define MAX_SERVERS		64
@@ -282,6 +283,10 @@ typedef struct
 	e_scrshot		scrshot_action;		// in-action
 	string		shotname;
 
+	// demo loop control
+	int		demonum;			// -1 = don't play demos
+	string		demos[MAX_DEMOS];		// when not playing
+
 	// demo recording info must be here, so it isn't clearing on level change
 	bool		demorecording;
 	bool		demoplayback;
@@ -428,6 +433,8 @@ void CL_ReadDemoMessage( void );
 void CL_StopPlayback( void );
 void CL_StopRecord( void );
 void CL_PlayDemo_f( void );
+void CL_StartDemos_f( void );
+void CL_Demos_f( void );
 void CL_Record_f( void );
 void CL_Stop_f( void );
 
