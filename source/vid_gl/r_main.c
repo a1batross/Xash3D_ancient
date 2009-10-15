@@ -327,9 +327,13 @@ void R_RotateForEntity( ref_entity_t *e )
 	}
 #if 1
 	Matrix4x4_FromMatrix3x3( RI.objectMatrix, e->axis, e->scale );
-	Matrix4x4_SetOrigin( RI.objectMatrix, e->origin[0], e->origin[1], e->origin[2] );
+	if( e->movetype == MOVETYPE_FOLLOW && !VectorIsNull( e->origin2 ))
+		Matrix4x4_SetOrigin( RI.objectMatrix, e->origin2[0], e->origin2[1], e->origin2[2] );
+	else Matrix4x4_SetOrigin( RI.objectMatrix, e->origin[0], e->origin[1], e->origin[2] );
 #else
-	Matrix4x4_CreateFromEntity( RI.objectMatrix, e->origin[0], e->origin[1], e->origin[2], e->angles[PITCH], e->angles[YAW], e->angles[ROLL], e->scale );
+	if( e->movetype == MOVETYPE_FOLLOW && !VectorIsNull( e->origin2 ))
+		Matrix4x4_CreateFromEntity( RI.objectMatrix, e->origin2[0], e->origin2[1], e->origin2[2], e->angles[PITCH], e->angles[YAW], e->angles[ROLL], e->scale );
+	else Matrix4x4_CreateFromEntity( RI.objectMatrix, e->origin[0], e->origin[1], e->origin[2], e->angles[PITCH], e->angles[YAW], e->angles[ROLL], e->scale );
 #endif
 	Matrix4x4_ConcatTransforms( RI.modelviewMatrix, RI.worldviewMatrix, RI.objectMatrix );
 	GL_LoadMatrix( RI.modelviewMatrix );
@@ -350,7 +354,10 @@ void R_TranslateForEntity( ref_entity_t *e )
 	}
 
 	Matrix4x4_LoadIdentity( RI.objectMatrix );
-	Matrix4x4_SetOrigin( RI.objectMatrix, e->origin[0], e->origin[1], e->origin[2] );
+
+	if( e->movetype == MOVETYPE_FOLLOW && !VectorIsNull( e->origin2 ))
+		Matrix4x4_SetOrigin( RI.objectMatrix, e->origin2[0], e->origin2[1], e->origin2[2] );
+	else Matrix4x4_SetOrigin( RI.objectMatrix, e->origin[0], e->origin[1], e->origin[2] );
 	Matrix4x4_ConcatTransforms( RI.modelviewMatrix, RI.worldviewMatrix, RI.objectMatrix );
 	GL_LoadMatrix( RI.modelviewMatrix );
 	tr.modelviewIdentity = false;
@@ -2113,6 +2120,27 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 		break;
 	}
 	refent->rtype = RT_MODEL;
+	refent->parent = NULL;	// clear all parents
+
+	// setup light origin
+	if( refent->model ) VectorAverage( refent->model->mins, refent->model->maxs, center );
+	else VectorClear( center );
+	VectorAdd( pRefEntity->v.origin, center, refent->lightingOrigin );
+
+	if( pRefEntity->v.aiment )
+	{
+		int	i;
+
+		// search for parent in ref_entities
+		for( i = 0; i < r_numEntities; i++ )
+		{
+			if( r_entities[i].index == pRefEntity->v.aiment->serialnumber )
+			{
+				refent->parent = r_entities + i;
+				break;
+			}
+		}
+	}
 
 	// setup light origin
 	if( refent->model ) VectorAverage( refent->model->mins, refent->model->maxs, center );

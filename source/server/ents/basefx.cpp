@@ -217,9 +217,9 @@ LINK_ENTITY_TO_CLASS( env_local, CEnvLocal );
 
 void CEnvLocal::Spawn( void )
 {
-	if (pev->spawnflags & SF_START_ON)
+	if ( pev->spawnflags & SF_START_ON )
 		m_iState = STATE_ON;
-	else	m_iState = STATE_OFF;
+	else m_iState = STATE_OFF;
 }
 
 void CEnvLocal::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
@@ -227,76 +227,82 @@ void CEnvLocal::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE use
 	m_hActivator = pActivator; //save activator
 	pev->scale = value;	//save value
 	
-	if(IsLockedByMaster( useType )) return;
+	if ( IsLockedByMaster( useType ))
+		return;
 
-	if (useType == USE_TOGGLE)
-	{         //set use type
-		if(m_iState == STATE_TURN_OFF || m_iState == STATE_OFF) useType = USE_ON;
-		else if(m_iState == STATE_TURN_ON || m_iState == STATE_ON) useType = USE_OFF;
+	if ( useType == USE_TOGGLE )
+	{         
+		// set use type
+		if ( m_iState == STATE_TURN_OFF || m_iState == STATE_OFF )
+			useType = USE_ON;
+		else if ( m_iState == STATE_TURN_ON || m_iState == STATE_ON )
+			useType = USE_OFF;
 	}
-	if(useType == USE_ON) //enable entity
+	if ( useType == USE_ON ) //enable entity
 	{
-		if(m_iState == STATE_TURN_OFF || m_iState == STATE_OFF) //activate turning off entity
+		if ( m_iState == STATE_TURN_OFF || m_iState == STATE_OFF )
 		{
-			
- 			if (m_flDelay) //we have time to turning on
+			//activate turning off entity
+ 			if ( m_flDelay ) // we have time to turning on
 			{			
 				m_iState = STATE_TURN_ON;
 				SetNextThink( m_flDelay );
 			}
-			else //just enable entity
+			else // just enable entity
 			{
                               	m_iState = STATE_ON;
-				UTIL_FireTargets(pev->target, pActivator, this, USE_ON, pev->scale );
-				DontThink();//break thinking
+				UTIL_FireTargets( pev->target, pActivator, this, USE_ON, pev->scale );
+				DontThink(); // break thinking
 			}
 		}
 	}
-	else if(useType == USE_OFF) //disable entity
+	else if ( useType == USE_OFF ) // disable entity
 	{		
-		if(m_iState == STATE_TURN_ON || m_iState == STATE_ON) //activate turning off entity
+		if( m_iState == STATE_TURN_ON || m_iState == STATE_ON )
 		{
-			
- 			if (m_flWait) //we have time to turning off
-			{			
+			// activate turning off entity
+ 			if ( m_flWait )
+ 			{
+ 				// we have time to turning off
 				m_iState = STATE_TURN_OFF;
 				SetNextThink( m_flWait );
 			}
-			else //just enable entity
+			else
 			{
-                              	m_iState = STATE_OFF;
-				UTIL_FireTargets(pev->target, pActivator, this, USE_OFF, pev->scale );
-				DontThink();//break thinking
+				// just enable entity
+				m_iState = STATE_OFF;
+				UTIL_FireTargets( pev->target, pActivator, this, USE_OFF, pev->scale );
+				DontThink(); // break thinking
 			}
 		}
 	}
- 	else if(useType == USE_SET) //absolutely on 
+ 	else if( useType == USE_SET ) // set explicit mode
  	{
-		if(value) m_iState = STATE_ON;
+		if( value ) m_iState = STATE_ON;
 		else m_iState = STATE_OFF;
-		DontThink();//break thinking
+		DontThink(); // break thinking
  	}
-	else if(useType == USE_SHOWINFO)
+	else if( useType == USE_SHOWINFO )
 	{
 		DEBUGHEAD;
-		Msg("time, before enable %g, time, before disable %g\n", m_flDelay, m_flWait );
-		Msg("current state %s\n", GetStringForState( GetState()) );
+		ALERT( at_console, "time, before enable %g, time, before disable %g\n", m_flDelay, m_flWait );
+		ALERT( at_console, "current state %s\n", GetStringForState( GetState()) );
 	}
 }
 
 void CEnvLocal::Think( void )
 {
-	if (m_iState == STATE_TURN_ON)
+	if ( m_iState == STATE_TURN_ON )
 	{
 		m_iState = STATE_ON;
-		UTIL_FireTargets(pev->target, m_hActivator, this, USE_ON, pev->scale );
+		UTIL_FireTargets( pev->target, m_hActivator, this, USE_ON, pev->scale );
 	}
-	else if (m_iState == STATE_TURN_OFF)
+	else if ( m_iState == STATE_TURN_OFF )
 	{
 		m_iState = STATE_OFF;
-		UTIL_FireTargets(pev->target, m_hActivator, this, USE_OFF, pev->scale );
+		UTIL_FireTargets( pev->target, m_hActivator, this, USE_OFF, pev->scale );
 	}
-	DontThink();//break thinking
+	DontThink(); // break thinking
 }
 
 
@@ -1989,53 +1995,52 @@ LINK_ENTITY_TO_CLASS( beam, CBeam );
 
 void CBeam::Spawn( void )
 {
-	Precache();
 	pev->solid = SOLID_NOT;
 }
 
-void CBeam::Precache( void )
-{
-	if ( pev->owner ) SetStartEntity( ENTINDEX( pev->owner ) );
-	if ( pev->aiment ) SetEndEntity( ENTINDEX( pev->aiment ) );
+void CBeam::SetStartEntity( edict_t *pEnt ) 
+{ 
+	pev->owner = pEnt;
 }
 
-void CBeam::SetStartEntity( int entityIndex ) 
+void CBeam::SetEndEntity( edict_t *pEnt ) 
 { 
-	pev->sequence = (entityIndex & 0x0FFF) | ((pev->sequence&0xF000)<<12); 
-	pev->owner = g_engfuncs.pfnPEntityOfEntIndex( entityIndex );
-}
-
-void CBeam::SetEndEntity( int entityIndex ) 
-{ 
-	pev->skin = (entityIndex & 0x0FFF) | ((pev->skin&0xF000)<<12); 
-	pev->aiment = g_engfuncs.pfnPEntityOfEntIndex( entityIndex );
+	pev->aiment = pEnt;
 }
 
 const Vector &CBeam::GetStartPos( void )
 {
-	if ( GetType() == BEAM_ENTS )
+	int	type = GetType();
+
+	if( type == BEAM_ENTS )
 	{
-		edict_t *pent =  g_engfuncs.pfnPEntityOfEntIndex( GetStartEntity() );
-		return pent->v.origin;
+		edict_t	*pent = GetStartEntity();
+
+		if ( pent )
+			return pent->v.origin;
 	}
 	return pev->origin;
 }
 
 const Vector &CBeam::GetEndPos( void )
 {
-	int type = GetType();
-	if ( type == BEAM_POINTS || type == BEAM_HOSE ) return pev->angles;
+	int	type = GetType();
 
-	edict_t *pent =  g_engfuncs.pfnPEntityOfEntIndex( GetEndEntity() );
-	if ( pent ) return pent->v.origin;
-	return pev->angles;
+	if( type == BEAM_ENTS || type == BEAM_ENTPOINT )
+	{
+		edict_t *pent =  GetEndEntity();
+
+		if ( pent )
+			return pent->v.oldorigin;
+          }
+	return pev->oldorigin;
 }
 
 CBeam *CBeam::BeamCreate( const char *pSpriteName, int width )
 {
 	// Create a new entity with CBeam private data
 	CBeam *pBeam = GetClassPtr( (CBeam *)NULL );
-	pBeam->pev->classname = MAKE_STRING("beam");
+	pBeam->pev->classname = MAKE_STRING( "beam" );
 	pBeam->BeamInit( pSpriteName, width );
 
 	return pBeam;
@@ -2043,7 +2048,8 @@ CBeam *CBeam::BeamCreate( const char *pSpriteName, int width )
 
 void CBeam::BeamInit( const char *pSpriteName, int width )
 {
-	pev->flags |= FL_CUSTOMENTITY;
+	SetObjectClass( ED_BEAM );
+
 	SetColor( 255, 255, 255 );
 	SetBrightness( 255 );
 	SetNoise( 0 );
@@ -2077,21 +2083,21 @@ void CBeam::HoseInit( const Vector &start, const Vector &direction )
 	RelinkBeam();
 }
 
-void CBeam::PointEntInit( const Vector &start, int endIndex )
+void CBeam::PointEntInit( const Vector &start, edict_t *pEnd )
 {
 	SetType( BEAM_ENTPOINT );
 	SetStartPos( start );
-	SetEndEntity( endIndex );
+	SetEndEntity( pEnd );
 	SetStartAttachment( 0 );
 	SetEndAttachment( 0 );
 	RelinkBeam();
 }
 
-void CBeam::EntsInit( int startIndex, int endIndex )
+void CBeam::EntsInit( edict_t *pStart, edict_t *pEnd )
 {
 	SetType( BEAM_ENTS );
-	SetStartEntity( startIndex );
-	SetEndEntity( endIndex );
+	SetStartEntity( pStart );
+	SetEndEntity( pEnd );
 	SetStartAttachment( 0 );
 	SetEndAttachment( 0 );
 	RelinkBeam();
@@ -2225,7 +2231,7 @@ void CEnvBeam::Precache( void )
 
 int CEnvBeam::IsPointEntity( CBaseEntity *pEnt )
 {
-	if (pEnt->pev->modelindex && !(pEnt->pev->flags & FL_CUSTOMENTITY))
+	if( pEnt->pev->modelindex && ( pEnt->m_iClassType != ED_BEAM ))
 		return 0;
 	return 1;
 }
@@ -2270,7 +2276,6 @@ void CEnvBeam::BeamUpdateVars( void )
 	pev->skin = 0;
 	pev->sequence = 0;
 	pev->rendermode = 0;
-	pev->flags |= FL_CUSTOMENTITY;
 	SetTexture( pev->team );
 
 	BeamUpdatePoints();
@@ -2293,26 +2298,30 @@ void CEnvBeam::BeamUpdatePoints( void )
 {
 	int beamType;
 
-	pEnd   = UTIL_FindEntityByTargetname ( NULL, STRING(pev->netname) );
-	if (!pEnd) return;
+	pEnd  = UTIL_FindEntityByTargetname ( NULL, STRING(pev->netname) );
+	if( !pEnd ) return;
+
 	int pointEnd = IsPointEntity( pEnd );
 
 	beamType = BEAM_ENTS;
-	if ( !pointEnd ) beamType = BEAM_ENTPOINT;
+
+	if ( !pointEnd )
+		beamType = BEAM_ENTPOINT;
 	else beamType = BEAM_POINTS;
 
 	SetType( beamType );
+
 	if ( beamType == BEAM_POINTS || beamType == BEAM_ENTPOINT || beamType == BEAM_HOSE )
 	{
 		SetStartPos( pev->origin );
 		if ( beamType == BEAM_POINTS || beamType == BEAM_HOSE )
 			SetEndPos( pEnd->pev->origin );
-		else	SetEndEntity( ENTINDEX(ENT(pEnd->pev)) );
+		else SetEndEntity( ENT( pEnd->pev ) );
 	}
 	else
 	{
-		SetStartEntity(ENTINDEX(ENT(pev)));
-		SetEndEntity( ENTINDEX(ENT(pEnd->pev)) );
+		SetStartEntity( ENT( pev ) );
+		SetEndEntity( ENT( pEnd->pev ) );
 	}
 
 	RelinkBeam();
@@ -2414,13 +2423,12 @@ void CLaser::Spawn( void )
 	pev->frame = 0;
 	pev->solid = SOLID_NOT; // Remove model & collisions
 	Precache();
-	pev->flags |= FL_CUSTOMENTITY;
 }
 
 void CLaser::Activate( void )
 {
 	if ( m_pStartSprite && m_pEndSprite ) 
-		EntsInit( m_pStartSprite->entindex(), m_pEndSprite->entindex() );
+		EntsInit( m_pStartSprite->edict(), m_pEndSprite->edict() );
 }
 
 void CLaser::SetObjectCollisionBox( void )

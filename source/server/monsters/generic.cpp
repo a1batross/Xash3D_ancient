@@ -271,7 +271,7 @@ void CGenericMonster::MakeGas( void )
 			Vector vecEnd = (gpGlobals->v_forward * 5) + posGun;
 			UTIL_TraceLine( posGun, vecEnd, dont_ignore_monsters, edict(), &tr );
 
-			m_pBeam->EntsInit( entindex(), entindex() );
+			m_pBeam->EntsInit( edict(), edict() );
 			m_pBeam->SetColor( 24, 121, 239 );
 			m_pBeam->SetBrightness( 190 );
 		         	m_pBeam->SetScrollRate( 20 );

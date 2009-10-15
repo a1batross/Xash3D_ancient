@@ -134,8 +134,9 @@ void CBaseEntity :: SetParent( CBaseEntity* pParent, int m_iAttachment )
 	if(!m_pParent)
 	{
 		Msg("=========/Xash Parent System Info:/=========\n");
-		if(pev->targetname) Msg("Warning! Not found parent for %s with name %s\n", STRING(pev->classname), STRING(pev->targetname) );
-		else		Msg("Warning! Not found parent for %s\n", STRING(pev->classname) );
+		if( pev->targetname )
+			ALERT( at_warning, "Not found parent for %s with name %s\n", STRING(pev->classname), STRING(pev->targetname) );
+		else ALERT( at_warning, "Not found parent for %s\n", STRING(pev->classname) );
 		SHIFT;
 		ResetParent();//lose parent or not found parent
 		return;
@@ -163,20 +164,20 @@ void CBaseEntity :: SetParent( CBaseEntity* pParent, int m_iAttachment )
 		m_pNextChild = m_pParent->m_pChild; // may be null: that's fine by me.
 		m_pParent->m_pChild = this;
 
-          	if(m_iAttachment)
+          	if( m_iAttachment )
           	{
-			if(pev->flags & FL_POINTENTITY || pev->flags & FL_MONSTER)
+			if( pev->flags & FL_POINTENTITY || pev->flags & FL_MONSTER )
 			{         
-				pev->skin = ENTINDEX(m_pParent->edict());
-				pev->body = m_iAttachment;
+				pev->skin = m_iAttachment;
 				pev->aiment = m_pParent->edict();
 				pev->movetype = MOVETYPE_FOLLOW;
 			}
 			else //error
 			{
 				ALERT(at_console, "=========/Xash Parent System Info:/=========\n");
-				if(pev->targetname) Msg("ERROR! %s with name %s not following with aiment %d!(yet)\n", STRING(pev->classname), STRING(pev->targetname), m_iAttachment );
-				else		Msg("ERROR! %s not following with aiment %d!(yet)\n", STRING(pev->classname), m_iAttachment );
+				if( pev->targetname )
+					ALERT( at_error, "%s with name %s not following with aiment %d!(yet)\n", STRING(pev->classname), STRING(pev->targetname), m_iAttachment );
+				else ALERT( at_error, "%s not following with aiment %d!(yet)\n", STRING(pev->classname), m_iAttachment );
 				SHIFT;
 			} 
 			return;

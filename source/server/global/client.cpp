@@ -1074,6 +1074,11 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 		to->groundent = ENTINDEX( pNet->pev->groundentity );
 	else to->groundent = -1;
 
+	// translate attached entity
+	if( pNet->pev->aiment ) 
+		to->aiment = ENTINDEX( pNet->pev->aiment );
+	else to->aiment = -1;
+
 	// studio model sequence
 	if( pNet->pev->sequence != -1 ) to->sequence = pNet->pev->sequence;
 
@@ -1143,6 +1148,16 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 		to->skin = pNet->pev->movedir.DirToBits();
 
 		// FIXME: send mins\maxs for sound spatialization and entity prediction ?
+	}
+	else if( to->ed_type == ED_BEAM )
+	{
+		to->colormap = pNet->pev->colormap;	// attachments		
+		to->gaitsequence = pNet->pev->frags;	// beam type
+
+		// translate StartBeamEntity
+		if( pNet->pev->owner ) 
+			to->owner = ENTINDEX( pNet->pev->owner );
+		else to->owner = -1;
 	}
 }
 

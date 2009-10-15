@@ -474,7 +474,7 @@ bool R_DrawSpriteModel( const meshbuffer_t *mb )
 	msprite_t		*psprite;
 	ref_entity_t	*e = RI.currententity;
 	ref_model_t	*model = e->model;
-	float		lerp, ilerp;
+	float		lerp = 1.0f, ilerp;
 	meshbuffer_t	*rb = (meshbuffer_t *)mb;
 	rgb_t		rendercolor;
 	byte		renderamt;
@@ -493,6 +493,25 @@ bool R_DrawSpriteModel( const meshbuffer_t *mb )
 	case kRenderGlow:
 		lerp = R_GetSpriteFrameInterpolant( e, &oldframe, &frame );
 		break;
+	default:
+		Host_Error( "R_DrawSpriteModel: %s bad rendermode %i\n", model->name, e->rendermode );
+		break;
+	}
+
+	// do movewith
+	if( e->parent && e->movetype == MOVETYPE_FOLLOW )
+	{
+		if( e->skin > 0 && e->parent->model && e->parent->model->type == mod_studio )
+		{
+			// FIXME: pev->body hardcoded to attachment number :(
+			edict_t	*cl_ent = ri.GetClientEdict( e->parent->index );			
+
+			if( cl_ent && e->body < MAXSTUDIOATTACHMENTS )
+			{
+				VectorAdd( e->parent->origin, cl_ent->v.attachment[e->skin-1], e->origin2 );
+			}
+		}
+		else VectorCopy( e->parent->origin, e->origin2 );
 	}
 
 	// no rotation for sprites
