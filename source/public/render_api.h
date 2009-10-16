@@ -118,9 +118,11 @@ typedef struct render_imp_s
 	void	(*StudioEvent)( dstudioevent_t *event, edict_t *ent );
 	void	(*StudioFxTransform)( edict_t *ent, float matrix[4][4] );
 	void	(*ShowCollision)( cmdraw_t callback );	// debug
-	bool	(*Trace)( const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end );
 	long	(*WndProc)( void *hWnd, uint uMsg, uint wParam, long lParam );
+	bool	(*GetAttachment)( int entityIndex, int number, vec3_t origin, vec3_t angles );
+	bool	(*SetAttachment)( int entityIndex, int number, vec3_t origin, vec3_t angles );
 	edict_t	*(*GetClientEdict)( int index );
+	float	(*GetMouthOpen)( int entityIndex );
 	edict_t	*(*GetLocalPlayer)( void );
 	int	(*GetMaxClients)( void );
 	float	(*GetLerpFrac)( void );

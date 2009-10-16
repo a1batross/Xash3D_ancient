@@ -656,7 +656,7 @@ StudioCalcBoneAdj
 
 ====================
 */
-void R_StudioCalcBoneAdj( float dadt, float *adj, const float *pcontroller1, const float *pcontroller2, byte mouthopen )
+void R_StudioCalcBoneAdj( float dadt, float *adj, const float *pcontroller1, const float *pcontroller2, float mouthopen )
 {
 	int	i, j;
 	float	value;
@@ -1062,9 +1062,9 @@ void R_StudioCalcRotations( float pos[][3], vec4_t *q, dstudioseqdesc_t *pseqdes
 	dstudiobone_t	*pbone;
 	studiovars_t	*pstudio;
 
-	float	s;
-	float	adj[MAXSTUDIOCONTROLLERS];
-	float	dadt;
+	float		s, mouthopen;
+	float		adj[MAXSTUDIOCONTROLLERS];
+	float		dadt;
 
 	if( f > pseqdesc->numframes - 1 ) f = 0; // bah, fix this bug with changing sequences too fast
 	else if ( f < -0.01f )
@@ -1089,8 +1089,9 @@ void R_StudioCalcRotations( float pos[][3], vec4_t *q, dstudioseqdesc_t *pseqdes
 
 	// add in programtic controllers
 	pbone = (dstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
+	mouthopen = ri.GetMouthOpen( RI.currententity->index );
 
-	R_StudioCalcBoneAdj( dadt, adj, pstudio->controller, pstudio->prev.controller, pstudio->mouth.open );
+	R_StudioCalcBoneAdj( dadt, adj, pstudio->controller, pstudio->prev.controller, mouthopen );
 
 	for (i = 0; i < m_pStudioHeader->numbones; i++, pbone++, panim++) 
 	{
@@ -1400,15 +1401,18 @@ StudioCalcAttachments
 
 ====================
 */
-static void R_StudioCalcAttachments( ref_entity_t *e, edict_t *cl )
+static void R_StudioCalcAttachments( ref_entity_t *e )
 {
 	int			i;
-	dstudioattachment_t		*pattachment;
+	dstudioattachment_t		*pAtt;
+	vec3_t			axis[3];
+	vec3_t			localOrg, localAng;
 
 	if( m_pStudioHeader->numattachments <= 0 )
 	{
 		// clear attachments
-		Mem_Set( cl->v.attachment, 0, sizeof( vec3_t ) * MAXSTUDIOATTACHMENTS );
+		for( i = 1; i < MAXSTUDIOATTACHMENTS+1; i++ )
+			ri.SetAttachment( e->index, i, vec3_origin, vec3_origin );
 		return;
 	}
 	else if( m_pStudioHeader->numattachments > MAXSTUDIOATTACHMENTS )
@@ -1418,10 +1422,16 @@ static void R_StudioCalcAttachments( ref_entity_t *e, edict_t *cl )
 	}
 
 	// calculate attachment points
-	pattachment = (dstudioattachment_t *)((byte *)m_pStudioHeader + m_pStudioHeader->attachmentindex);
+	pAtt = (dstudioattachment_t *)((byte *)m_pStudioHeader + m_pStudioHeader->attachmentindex);
 	for( i = 0; i < m_pStudioHeader->numattachments; i++ )
 	{
-		Matrix4x4_VectorTransform( m_pbonestransform[pattachment[i].bone], pattachment[i].org,  cl->v.attachment[i] );
+		// compute pos and angles
+		Matrix4x4_VectorTransform( m_pbonestransform[pAtt[i].bone], pAtt[i].org, localOrg );
+		Matrix4x4_VectorTransform( m_pbonestransform[pAtt[i].bone], pAtt[i].vectors[0], axis[0] );
+		Matrix4x4_VectorTransform( m_pbonestransform[pAtt[i].bone], pAtt[i].vectors[1], axis[1] );
+		Matrix4x4_VectorTransform( m_pbonestransform[pAtt[i].bone], pAtt[i].vectors[2], axis[2] );
+		Matrix3x3_ToAngles( axis, localAng, true ); // FIXME: dll's uses FLU ?
+		ri.SetAttachment( e->index, i+1, localOrg, localAng );
 	}
 }
 
@@ -2197,7 +2207,7 @@ static bool R_StudioSetupModel( ref_entity_t *e, ref_model_t *mod )
 		dstudioevent_t	event;
 
 		Mem_Set( &event, 0, sizeof( event ));
-		R_StudioCalcAttachments( e, m_pEntity );
+		R_StudioCalcAttachments( e );
 
 		pstudio->m_flLastEventCheck = e->animtime + flInterval;
 		pstudio->m_fSequenceFinished = false;

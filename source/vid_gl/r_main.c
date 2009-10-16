@@ -686,6 +686,8 @@ bool R_PushSpritePoly( const meshbuffer_t *mb )
 	return R_PushSprite( mb, -1, -e->radius, e->radius, e->radius, -e->radius );
 }
 
+
+
 /*
 =================
 R_AddSpriteModelToList
@@ -709,24 +711,8 @@ static void R_AddSpriteModelToList( ref_entity_t *e )
 	frame = R_GetSpriteFrame( e );
 	shader = &r_shaders[frame->shader];
 
-	if( e->rendermode == kRenderGlow )
-	{
-		trace_t		tr;
-		msurface_t	*surf;
+	if( R_SpriteOccluded( e )) return;
 
-		surf = R_TraceLine( &tr, e->origin, RI.viewOrigin, 0 );
-
-		if( e->renderfx == kRenderFxNoDissipation );
-		else if( surf == NULL && tr.fraction == 1.0f )
-		{ 
-			float dist = VectorDistance( e->origin, RI.viewOrigin );
-			e->scale = bound( 1.0, dist * 0.005f, 10.0f );
-			e->renderamt = 255 * bound( 0, dist / 1000, 1.0f );
-			if( e->renderamt >= 255 ) return; // faded
-		}
-		else return; // occluded
-	}
-			
 	if( RI.refdef.flags & (RDF_PORTALINVIEW|RDF_SKYPORTALINVIEW) || ( RI.params & RP_SKYPORTALVIEW ))
 	{
 		if( R_VisCullSphere( e->origin, frame->radius ))
@@ -1267,7 +1253,7 @@ R_CategorizeEntities
 */
 static void R_CategorizeEntities( void )
 {
-	uint	i;
+	uint	i, j;
 
 	r_numnullentities = 0;
 	r_numbmodelentities = 0;
@@ -1288,6 +1274,25 @@ static void R_CategorizeEntities( void )
 		{
 			r_nullentities[r_numnullentities++] = RI.currententity;
 			continue;
+		}
+
+		// setup entity parents
+		if( RI.currententity->movetype == MOVETYPE_FOLLOW )
+		{
+			edict_t	*pEdict = ri.GetClientEdict( RI.currententity->index );
+			edict_t	*pParent = NULL;
+
+			if( pEdict && pEdict->v.aiment )
+			{
+				for( j = 1; j < r_numEntities; j++ )
+				{
+					if( r_entities[j].index == pEdict->v.aiment->serialnumber )
+					{
+						RI.currententity->parent = r_entities + j;
+						break;
+					}
+				}
+			}
 		}
 
 		switch( RI.currentmodel->type )
@@ -2127,21 +2132,6 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 	else VectorClear( center );
 	VectorAdd( pRefEntity->v.origin, center, refent->lightingOrigin );
 
-	if( pRefEntity->v.aiment )
-	{
-		int	i;
-
-		// search for parent in ref_entities
-		for( i = 0; i < r_numEntities; i++ )
-		{
-			if( r_entities[i].index == pRefEntity->v.aiment->serialnumber )
-			{
-				refent->parent = r_entities + i;
-				break;
-			}
-		}
-	}
-
 	// setup light origin
 	if( refent->model ) VectorAverage( refent->model->mins, refent->model->maxs, center );
 	else VectorClear( center );
@@ -2268,7 +2258,7 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type )
 	if( !pRefEntity || (r_numEntities >= MAX_ENTITIES))
 		return false;
 
-	if( pRefEntity->serialnumber == VMODEL_ENTINDEX )
+	if( pRefEntity->serialnumber == VIEWENT_INDEX )
 	{
 		// viewmodel always uses this slot for properly store
 		// and playing client-side animation
@@ -2325,7 +2315,7 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type )
 	}
 
 	// viewmodel already reserve slot
-	if( pRefEntity->serialnumber != VMODEL_ENTINDEX )
+	if( pRefEntity->serialnumber != VIEWENT_INDEX )
 		r_numEntities++;
 
 	// never adding child entity without parent
@@ -2336,7 +2326,7 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type )
 
 		// create attached entity
 		FollowEntity.v.modelindex = pRefEntity->v.weaponmodel;
-		FollowEntity.serialnumber = WMODEL_ENTINDEX;
+		FollowEntity.serialnumber = NULLENT_INDEX;
 		FollowEntity.v.movetype = MOVETYPE_FOLLOW;
 		FollowEntity.v.weaponmodel = 0;
 

@@ -23,8 +23,8 @@ edict_t *CL_GetEdictByIndex( int index )
 {
 	if( index < 0 || index > clgame.globals->numEntities )
 	{
-		if( index == VMODEL_ENTINDEX ) return &cl.viewent;
-		if( index == WMODEL_ENTINDEX ) return NULL;
+		if( index == VIEWENT_INDEX ) return &cl.viewent;
+		if( index == NULLENT_INDEX ) return NULL;
 		MsgDev( D_ERROR, "CL_GetEntityByIndex: invalid entindex %i\n", index );
 		return NULL;
 	}
@@ -68,6 +68,52 @@ apply fxtransforms for each studio bone
 void CL_StudioFxTransform( edict_t *ent, float transform[4][4] )
 {
 	clgame.dllFuncs.pfnStudioFxTransform( ent, transform );
+}
+
+bool CL_GetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles )
+{
+	edict_t	*ed = CL_GetEdictByIndex( entityIndex );
+
+	if( !ed || ed->free || !ed->pvClientData )
+		return false;
+
+	number = bound( 1, number, MAXSTUDIOATTACHMENTS );
+
+	if( origin ) VectorCopy( ed->pvClientData->origin[number-1], origin );	
+	if( angles ) VectorCopy( ed->pvClientData->angles[number-1], angles );
+
+	return true;
+}
+
+bool CL_SetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles )
+{
+	edict_t	*ed = CL_GetEdictByIndex( entityIndex );
+
+	if( !ed || ed->free || !ed->pvClientData )
+		return false;
+
+	if( number > MAXSTUDIOATTACHMENTS )
+		number = MAXSTUDIOATTACHMENTS;
+
+	if( origin ) VectorCopy( origin, ed->pvClientData->origin[number-1] );	
+	if( angles ) VectorCopy( angles, ed->pvClientData->angles[number-1] );
+
+	return true;
+}
+
+float CL_GetMouthOpen( int entityIndex )
+{
+	edict_t	*ed;
+
+	if( entityIndex <= 0 || entityIndex >= clgame.globals->numEntities )
+		return 0.0f;
+
+	ed = CL_GetEdictByIndex( entityIndex );
+
+	if( !ed || ed->free || !ed->pvClientData )
+		return 0.0f;
+
+	return (float)ed->pvClientData->mouth.open;
 }
 
 static trace_t CL_TraceToss( edict_t *tossent, edict_t *ignore)
@@ -969,6 +1015,23 @@ void pfnMakeLevelShot( void )
 
 /*
 =============
+pfnGetAttachment
+
+=============
+*/
+static void pfnGetAttachment( const edict_t *pEdict, int iAttachment, float *rgflOrigin, float *rgflAngles )
+{
+	if( !pEdict )
+	{
+		if( rgflOrigin ) VectorClear( rgflOrigin );
+		if( rgflAngles ) VectorClear( rgflAngles );
+		return;
+	}
+	CL_GetAttachment( pEdict->serialnumber, iAttachment, rgflOrigin, rgflAngles );
+}
+
+/*
+=============
 pfnPointContents
 
 =============
@@ -1381,6 +1444,7 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnGetViewModel,
 	pfnGetModelPtr,
 	pfnMakeLevelShot,						
+	pfnGetAttachment,
 	pfnPointContents,
 	pfnTraceLine,
 	pfnTraceToss,

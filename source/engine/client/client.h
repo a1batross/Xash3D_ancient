@@ -178,12 +178,25 @@ typedef enum
 	scrshot_savegame,	// saveshot
 } e_scrshot;
 
+typedef struct
+{
+	byte		open;		// 0 = mouth closed, 255 = mouth agape
+	byte		sndcount;		// counter for running average
+	int		sndavg;		// running average
+} mouth_t;
+
 // cl_private_edict_t
 struct cl_priv_s
 {
 	int		serverframe;	// if not current, this ent isn't in the frame
 	entity_state_t	current;
 	entity_state_t	prev;		// will always be valid, but might just be a copy of current
+
+	// studiomodels attachments
+	vec3_t		origin[MAXSTUDIOATTACHMENTS];
+	vec3_t		angles[MAXSTUDIOATTACHMENTS];
+
+	mouth_t		mouth;		// shared mouth info
 };
 
 typedef struct serverinfo_s
@@ -434,6 +447,7 @@ void CL_StopPlayback( void );
 void CL_StopRecord( void );
 void CL_PlayDemo_f( void );
 void CL_StartDemos_f( void );
+void CL_NextDemo( void );
 void CL_Demos_f( void );
 void CL_Record_f( void );
 void CL_Stop_f( void );
@@ -463,6 +477,9 @@ float CL_GetLerpFrac( void );
 edict_t *CL_AllocEdict( void );
 void CL_InitEdict( edict_t *pEdict );
 void CL_FreeEdict( edict_t *pEdict );
+bool CL_GetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles );
+bool CL_SetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles );
+float CL_GetMouthOpen( int entityIndex );
 string_t CL_AllocString( const char *szValue );
 const char *CL_GetString( string_t iString );
 bool CL_RenderTrace( const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end );
@@ -557,7 +574,7 @@ int CL_ContentsMask( const edict_t *passedict );
 trace_t CL_Trace( const vec3_t s1, const vec3_t m1, const vec3_t m2, const vec3_t s2, int type, edict_t *e, int mask );
 
 //
-// cl_ents.c
+// cl_frame.c
 //
 void CL_GetEntitySoundSpatialization( int ent, vec3_t origin, vec3_t velocity );
 void CL_AddLoopingSounds( void );

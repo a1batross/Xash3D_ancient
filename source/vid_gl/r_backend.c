@@ -1391,8 +1391,8 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 			break;
 		case mod_sprite:
 			pass->glState = (GLSTATE_SRCBLEND_ONE_MINUS_SRC_ALPHA|GLSTATE_DSTBLEND_ONE|GLSTATE_NO_DEPTH_TEST);
-			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;	// sprites ignore color in 'add' mode
-			pass->alphaGen.type = ALPHAGEN_ENTITY;
+			pass->rgbGen.type = RGBGEN_VERTEX;
+			pass->alphaGen.type = ALPHAGEN_VERTEX;
 			break;
 		}
 		break;
@@ -1441,8 +1441,8 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 			break;
 		case mod_sprite:
 			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
-			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;	// sprites ignore color in 'add' mode
-			pass->alphaGen.type = ALPHAGEN_ENTITY;
+			pass->rgbGen.type = RGBGEN_VERTEX;
+			pass->alphaGen.type = ALPHAGEN_VERTEX;
 			break;
 		}
 		break;

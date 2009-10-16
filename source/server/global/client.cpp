@@ -1072,12 +1072,12 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 
 	if( pNet->pev->groundentity )
 		to->groundent = ENTINDEX( pNet->pev->groundentity );
-	else to->groundent = -1;
+	else to->groundent = NULLENT_INDEX;
 
 	// translate attached entity
 	if( pNet->pev->aiment ) 
 		to->aiment = ENTINDEX( pNet->pev->aiment );
-	else to->aiment = -1;
+	else to->aiment = NULLENT_INDEX;
 
 	// studio model sequence
 	if( pNet->pev->sequence != -1 ) to->sequence = pNet->pev->sequence;
@@ -1109,7 +1109,7 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 
 		if( pNet->pev->aiment ) 
 			to->aiment = ENTINDEX( pNet->pev->aiment );
-		else to->aiment = -1;
+		else to->aiment = NULLENT_INDEX;
 
 		to->viewoffset = pNet->pev->view_ofs; 
 		to->viewangles = pNet->pev->viewangles;
@@ -1157,7 +1157,7 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 		// translate StartBeamEntity
 		if( pNet->pev->owner ) 
 			to->owner = ENTINDEX( pNet->pev->owner );
-		else to->owner = -1;
+		else to->owner = NULLENT_INDEX;
 	}
 }
 

@@ -463,6 +463,60 @@ float R_GetSpriteFrameInterpolant( ref_entity_t *ent, mspriteframe_t **oldframe,
 	return lerpFrac;
 }
 
+static float R_GlowSightDistance( vec3_t glowOrigin )
+{
+	float	dist;
+	vec3_t	glowDist;
+	trace_t	tr;
+
+	VectorSubtract( glowOrigin, RI.viewOrigin, glowDist );
+	dist = VectorLength( glowDist );
+	
+	R_TraceLine( &tr, glowOrigin, RI.viewOrigin, MASK_OPAQUE );
+	if(( 1.0 - tr.fraction ) * dist > 8 )
+		return -1;
+	return dist;
+}
+
+static float R_SpriteGlowBlend( ref_entity_t *e )
+{
+	float	dist = R_GlowSightDistance( e->origin );
+	float	brightness;
+
+	if( dist <= 0 )
+		return false; // occluded
+
+	if( e->renderfx == kRenderFxNoDissipation )
+	{
+		return (float)e->renderamt * (1.0f/255.0f);
+	}
+
+	// UNDONE: Tweak these magic numbers (19000 - falloff & 200 - sprite size)
+	brightness = 19000.0 / (dist * dist);
+	brightness = bound( 0.05f, brightness, 1.0f );
+
+	// Make the glow fixed size in screen space, taking into consideration the scale setting.
+	if( e->scale == 0 ) e->scale = 1.0f;
+	e->scale *= dist * (1.0f / 200.0f );
+
+	return brightness;
+}
+
+bool R_SpriteOccluded( ref_entity_t *e )
+{
+	if( e->rendermode == kRenderGlow )
+	{
+		float	blend = 1.0f;
+
+		blend *= R_SpriteGlowBlend( e );
+		e->renderamt *= blend;
+
+		if( blend <= 0.0f )
+			return true; // occluded
+	}
+	return false;	
+}
+
 /*
 =================
 R_DrawSpriteModel
@@ -476,7 +530,6 @@ bool R_DrawSpriteModel( const meshbuffer_t *mb )
 	ref_model_t	*model = e->model;
 	float		lerp = 1.0f, ilerp;
 	meshbuffer_t	*rb = (meshbuffer_t *)mb;
-	rgb_t		rendercolor;
 	byte		renderamt;
 
 	psprite = (msprite_t * )model->extradata;
@@ -503,13 +556,12 @@ bool R_DrawSpriteModel( const meshbuffer_t *mb )
 	{
 		if( e->skin > 0 && e->parent->model && e->parent->model->type == mod_studio )
 		{
-			// FIXME: pev->body hardcoded to attachment number :(
-			edict_t	*cl_ent = ri.GetClientEdict( e->parent->index );			
+			vec3_t	pos;
 
-			if( cl_ent && e->body < MAXSTUDIOATTACHMENTS )
-			{
-				VectorAdd( e->parent->origin, cl_ent->v.attachment[e->skin-1], e->origin2 );
-			}
+			// FIXME: pev->skin hardcoded to attachment number :(
+			if( ri.GetAttachment( e->parent->index, e->skin, pos, NULL ))
+				VectorAdd( e->parent->origin, pos, e->origin2 );
+			else VectorCopy( e->parent->origin, e->origin2 );
 		}
 		else VectorCopy( e->parent->origin, e->origin2 );
 	}
@@ -526,8 +578,6 @@ bool R_DrawSpriteModel( const meshbuffer_t *mb )
 	else
 	{
 		// draw two combined lerped frames
-
-		VectorCopy( e->rendercolor, rendercolor );
 		renderamt = e->renderamt;
 
 		lerp = bound( 0, lerp, 1 );

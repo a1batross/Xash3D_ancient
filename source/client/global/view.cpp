@@ -293,7 +293,7 @@ void V_CalcGunAngle( ref_params_t *pparams )
 
 	if( !viewent->v.modelindex ) return;
 
-	viewent->serialnumber = -1;	// viewentity are handled with special number. don't change this
+	viewent->serialnumber = VIEWENT_INDEX;	// viewentity are handled with special number. don't change this
 	viewent->v.effects |= EF_MINLIGHT;
 
 	viewent->v.angles[YAW] = pparams->viewangles[YAW] + pparams->crosshairangle[YAW];

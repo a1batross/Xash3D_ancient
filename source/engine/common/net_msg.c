@@ -713,7 +713,7 @@ MSG_ReadDeltaEntity
 The entity number has already been read from the message, which
 is how the from state is identified.
                              
-If the delta removes the entity, entity_state_t->number will be set to -1
+If the delta removes the entity, entity_state_t->number will be set to MAX_EDICTS - 1
 
 Can go from either a baseline or a previous packet_entity
 ==================

@@ -205,13 +205,6 @@ typedef struct
 	float		stOffset[LM_STYLES][2];
 } superLightStyle_t;
 
-typedef struct
-{
-	byte		open;				// 0 = mouth closed, 255 = mouth agape
-	byte		sndcount;				// counter for running average
-	int		sndavg;				// running average
-} mouth_t;
-
 typedef struct lerpframe_s
 {
 	float		frame;				// lastframe from previous frame
@@ -261,7 +254,6 @@ typedef struct studiovars_s
 	studiolerp_t	prev;			// latched values from previous frame
 	studiolatched_t	latched;			// latched values from previous sequence
 
-	mouth_t		mouth;			// UNDONE: for synchronizing mouth movements.
 	float		blending[MAXSTUDIOBLENDS];
 	float		controller[MAXSTUDIOCONTROLLERS];
 	vec3_t		gaitorigin;		// client oldorigin used to calc velocity
@@ -830,6 +822,7 @@ msurface_t *R_TransformedTraceLine( trace_t *tr, const vec3_t start, const vec3_
 void R_SpriteInit( void );
 mspriteframe_t *R_GetSpriteFrame( ref_entity_t *ent );
 bool R_DrawSpriteModel( const meshbuffer_t *mb );
+bool R_SpriteOccluded( ref_entity_t *e );
 
 //
 // r_studio.c

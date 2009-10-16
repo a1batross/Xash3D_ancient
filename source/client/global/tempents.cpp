@@ -17,6 +17,7 @@ void HUD_CreateEntities( void )
 void HUD_StudioEvent( const dstudioevent_t *event, edict_t *entity )
 {
 	float	pitch;
+	Vector	pos;
 
 	switch( event->event )
 	{
@@ -37,14 +38,16 @@ void HUD_StudioEvent( const dstudioevent_t *event, edict_t *entity )
 		break;
 	case 5004:		
 		// Client side sound
-		CL_PlaySound( event->options, 1.0f, entity->v.attachment[0] );
+		GET_ATTACHMENT( entity, 1, pos, NULL ); 
+		CL_PlaySound( event->options, 1.0f, pos );
 //		ALERT( at_console, "CL_PlaySound( %s )\n", event->options );
 		break;
 	case 5005:		
 		// Client side sound with random pitch
 		pitch = 85 + RANDOM_LONG( 0, 0x1F );
 //		ALERT( at_console, "CL_PlaySound( %s )\n", event->options );
-		CL_PlaySound( event->options, RANDOM_FLOAT( 0.7f, 0.9f ), entity->v.attachment[0], pitch );
+		GET_ATTACHMENT( entity, 1, pos, NULL ); 
+		CL_PlaySound( event->options, RANDOM_FLOAT( 0.7f, 0.9f ), pos, pitch );
 		break;
 	case 5050:
 		// Special event for displacer

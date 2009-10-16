@@ -169,12 +169,15 @@ bool Host_InitRender( void )
 	ri.StudioEvent = CL_StudioEvent;
 	ri.StudioFxTransform = CL_StudioFxTransform;
 	ri.ShowCollision = pe->DrawCollision;
+	ri.GetAttachment = CL_GetAttachment;
+	ri.SetAttachment = CL_SetAttachment;
 	ri.GetClientEdict = CL_GetEdictByIndex;
+	ri.GetMouthOpen = CL_GetMouthOpen;
 	ri.GetLocalPlayer = CL_GetLocalPlayer;
 	ri.GetMaxClients = CL_GetMaxClients;
 	ri.GetLerpFrac = CL_GetLerpFrac;
-	ri.WndProc = IN_WndProc;
-          
+	ri.WndProc = IN_WndProc;          
+
 	Sys_LoadLibrary( host_video->string, &render_dll );
 
 	if( render_dll.link )

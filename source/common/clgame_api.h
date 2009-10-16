@@ -132,6 +132,8 @@ typedef struct cl_enginefuncs_s
 	void*	(*pfnGetModelPtr)( edict_t* pEdict );
 	void	(*pfnMakeLevelShot)( void );		// level shot will be created at next frame
 
+	void	(*pfnGetAttachment)( const edict_t *pEdict, int iAttachment, float *rgflOrigin, float *rgflAngles );
+
 	int	(*pfnPointContents)( const float *rgflVector );
 	void	(*pfnTraceLine)( const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr );
 	void	(*pfnTraceToss)( edict_t* pent, edict_t* pentToIgnore, TraceResult *ptr );

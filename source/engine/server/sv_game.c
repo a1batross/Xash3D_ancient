@@ -2611,7 +2611,7 @@ pfnGetAttachment
 
 =============
 */
-void pfnGetAttachment( const edict_t *pEdict, int iAttachment, float *rgflOrigin, float *rgflAngles )
+static void pfnGetAttachment( const edict_t *pEdict, int iAttachment, float *rgflOrigin, float *rgflAngles )
 {
 	// FIXME: implement
 }

@@ -65,6 +65,7 @@ inline void CL_PlaySound( int iSound, float flVolume, Vector &pos, float pitch =
 #define GetMaxClients	(*g_engfuncs.pfnGetMaxClients)
 #define GetViewModel	(*g_engfuncs.pfnGetViewModel)
 #define GetModelPtr		(*g_engfuncs.pfnGetModelPtr)
+#define GET_ATTACHMENT	(*g_engfuncs.pfnGetAttachment)
 #define MAKE_LEVELSHOT	(*g_engfuncs.pfnMakeLevelShot)
 #define POINT_CONTENTS	(*g_engfuncs.pfnPointContents)
 #define TRACE_LINE		(*g_engfuncs.pfnTraceLine)
