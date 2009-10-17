@@ -118,6 +118,7 @@ void Host_Free( void );
 void Host_SetServerState( int state );
 int Host_ServerState( void );
 int Host_CompareFileTime( long ft1, long ft2 );
+void Host_EndGame( const char *message, ... );
 void Host_AbortCurrentFrame( void );
 void Host_WriteDefaultConfig( void );
 void Host_WriteConfig( void );

@@ -198,7 +198,7 @@ void *Mod_AliasLoadSkins( ref_model_t *mod, int numskins, daliasskintype_t *pski
 	if( numskins < 1 || numskins > MAX_SKINS )
 		Host_Error( "Mod_LoadAliasModel: Invalid # of skins: %d\n", numskins );
 
-	s = pheader->skinwidth * pheader->skinheight;
+	s = sizeof( *ptexture ) + pheader->skinwidth * pheader->skinheight;
 	ptexture = Mod_Malloc( mod, sizeof( *ptexture ));
 	ptexture->height = pheader->skinheight;
 	ptexture->width = pheader->skinwidth;

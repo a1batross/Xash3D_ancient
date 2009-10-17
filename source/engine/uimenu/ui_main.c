@@ -31,16 +31,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define ID_BACKGROUND	0
 #define ID_CONSOLE		1
-#define ID_NEWGAME		2
-#define ID_CONFIGURATION	3
-#define ID_SAVERESTORE	4	
-#define ID_MULTIPLAYER	5
-#define ID_CUSTOMGAME	6
-#define ID_CREDITS		7
-#define ID_QUIT		8
-#define ID_MINIMIZE		9
-#define ID_COPYRIGHT	11
-#define ID_MSGBOX	 	12
+#define ID_RESUME		2
+#define ID_NEWGAME		3
+#define ID_CONFIGURATION	4
+#define ID_SAVERESTORE	5	
+#define ID_MULTIPLAYER	6
+#define ID_CUSTOMGAME	7
+#define ID_CREDITS		8
+#define ID_QUIT		9
+#define ID_MINIMIZE		10
+#define ID_MSGBOX	 	11
+#define ID_MSGTEXT	 	12
 #define ID_YES	 	13
 #define ID_NO	 	14
 
@@ -50,6 +51,7 @@ typedef struct
 
 	menuBitmap_s	background;
 	menuAction_s	console;
+	menuAction_s	resumeGame;
 	menuAction_s	newGame;
 	menuAction_s	configuration;
 	menuAction_s	saveRestore;
@@ -62,7 +64,7 @@ typedef struct
 	menuBitmap_s	quitButton;
 
 	// quit dialog
-	menuBitmap_s	msgBox;
+	menuAction_s	msgBox;
 	menuAction_s	quitMessage;
 	menuAction_s	yes;
 	menuAction_s	no;
@@ -109,6 +111,7 @@ static void UI_QuitDialog( void )
 	// toggle main menu between active\inactive
 	// show\hide quit dialog
 	uiMain.console.generic.flags ^= QMF_INACTIVE; 
+	uiMain.resumeGame.generic.flags ^= QMF_INACTIVE;
 	uiMain.newGame.generic.flags ^= QMF_INACTIVE;
 	uiMain.saveRestore.generic.flags ^= QMF_INACTIVE;
 	uiMain.configuration.generic.flags ^= QMF_INACTIVE;
@@ -144,6 +147,9 @@ static void UI_Main_Callback( void *self, int event )
 		UI_SetActiveMenu( UI_CLOSEMENU );
 		cls.key_dest = key_console;
 		break;
+	case ID_RESUME:
+		UI_CloseMenu();
+		break;
 	case ID_NEWGAME:
 		UI_NewGame_Menu();
 		break;
@@ -154,7 +160,9 @@ static void UI_Main_Callback( void *self, int event )
 		UI_Options_Menu();
 		break;
 	case ID_SAVERESTORE:
-		UI_LoadGame_Menu(); // FIXME
+		if( cls.state == ca_active )
+			UI_SaveLoad_Menu();
+		else UI_LoadGame_Menu();
 		break;
 	case ID_CUSTOMGAME:
 		UI_Mods_Menu();
@@ -202,8 +210,17 @@ static void UI_Main_Init( void )
 	uiMain.console.generic.name = "Console";
 	uiMain.console.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
 	uiMain.console.generic.x = 72;
-	uiMain.console.generic.y = 180;
+	uiMain.console.generic.y = (cls.state == ca_active) ? 130 : 180;
 	uiMain.console.generic.callback = UI_Main_Callback;
+
+	uiMain.resumeGame.generic.id = ID_RESUME;
+	uiMain.resumeGame.generic.type = QMTYPE_ACTION;
+	uiMain.resumeGame.generic.name = "Resume game";
+	uiMain.resumeGame.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiMain.resumeGame.generic.statusText = "Return to game.";
+	uiMain.resumeGame.generic.x = 72;
+	uiMain.resumeGame.generic.y = 180;
+	uiMain.resumeGame.generic.callback = UI_Main_Callback;
 
 	uiMain.newGame.generic.id = ID_NEWGAME;
 	uiMain.newGame.generic.type = QMTYPE_ACTION;
@@ -217,6 +234,7 @@ static void UI_Main_Init( void )
 	uiMain.saveRestore.generic.id = ID_SAVERESTORE;
 	uiMain.saveRestore.generic.type = QMTYPE_ACTION;
 	uiMain.saveRestore.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+
 	if( cls.state == ca_active )
 	{
 		uiMain.saveRestore.generic.name = "Save\\Load Game";
@@ -226,6 +244,7 @@ static void UI_Main_Init( void )
 	{
 		uiMain.saveRestore.generic.name = "Load Game";
 		uiMain.saveRestore.generic.statusText = "Load a previously saved game.";
+		uiMain.resumeGame.generic.flags |= QMF_HIDDEN;
 	}
 	uiMain.saveRestore.generic.x = 72;
 	uiMain.saveRestore.generic.y = 280;
@@ -299,7 +318,7 @@ static void UI_Main_Init( void )
 	uiMain.quitButton.focusPic = ART_CLOSEBTN_F;
 
 	uiMain.msgBox.generic.id = ID_MSGBOX;
-	uiMain.msgBox.generic.type = QMTYPE_BITMAP;
+	uiMain.msgBox.generic.type = QMTYPE_ACTION;
 	uiMain.msgBox.generic.flags = QMF_INACTIVE|QMF_HIDDEN;
 	uiMain.msgBox.generic.ownerdraw = UI_MsgBox_Ownerdraw; // just a fill rectangle
 	uiMain.msgBox.generic.x = 192;
@@ -332,6 +351,7 @@ static void UI_Main_Init( void )
 
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.background );
 	if( host.developer ) UI_AddItem( &uiMain.menu, (void *)&uiMain.console );
+	UI_AddItem( &uiMain.menu, (void *)&uiMain.resumeGame );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.newGame );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.saveRestore );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.configuration );
@@ -370,13 +390,6 @@ UI_Main_Menu
 */
 void UI_Main_Menu( void )
 {
-	if( cls.state == ca_active )
-	{
-		// this shouldn't be happening, but for some reason it is in some mods
-		UI_InGame_Menu();
-		return;
-	}
-
 	UI_Main_Precache();
 	UI_Main_Init();
 

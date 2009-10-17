@@ -158,9 +158,7 @@ static void UI_SaveGame_Callback( void *self, int event )
 	switch( item->id )
 	{
 	case ID_BACK:
-		if( cls.state == ca_active )
-			UI_InGame_Menu();
-		else UI_Main_Menu();
+		UI_PopMenu();
 		break;
 	case ID_SAVE:
 		if( Host_ServerState())

@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "clgame_api.h"
 #include "render_api.h"
 
-
+#define UI_WHITE_SHADER		"*white"
 #define UI_CURSOR_NORMAL		"gfx/shell/cursor"
 #define UI_CURSOR_DISABLED		"gfx/shell/denied"
 #define UI_CURSOR_TYPING		"gfx/shell/typing"
@@ -320,10 +320,10 @@ void UI_PopMenu( void );
 
 // Precache
 void UI_Main_Precache( void );
-void UI_InGame_Precache( void );
 void UI_NewGame_Precache( void );
 void UI_LoadGame_Precache( void );
 void UI_SaveGame_Precache( void );
+void UI_SaveLoad_Precache( void );
 void UI_MultiPlayer_Precache( void );
 void UI_Options_Precache( void );
 void UI_PlayerSetup_Precache( void );
@@ -337,16 +337,15 @@ void UI_Network_Precache( void );
 void UI_Defaults_Precache( void );
 void UI_Demos_Precache( void );
 void UI_Mods_Precache( void );
-void UI_Quit_Precache( void );
 void UI_Credits_Precache( void );
 void UI_GoToSite_Precache( void );
 
 // Menus
 void UI_Main_Menu( void );
-void UI_InGame_Menu( void );
 void UI_NewGame_Menu( void );
 void UI_LoadGame_Menu( void );
 void UI_SaveGame_Menu( void );
+void UI_SaveLoad_Menu( void );
 void UI_MultiPlayer_Menu( void );
 void UI_Options_Menu( void );
 void UI_PlayerSetup_Menu( void );
@@ -360,7 +359,6 @@ void UI_Network_Menu( void );
 void UI_Defaults_Menu( void );
 void UI_Demos_Menu( void );
 void UI_Mods_Menu( void );
-void UI_Quit_Menu( void );
 void UI_Credits_Menu( void );
 void UI_GoToSite_Menu( const char *webAddress );
 

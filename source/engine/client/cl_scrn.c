@@ -493,12 +493,8 @@ void SCR_Init( void )
 
 	SCR_RegisterShaders();
 	UI_Init();
+	UI_SetActiveMenu( UI_MAINMENU );
 
-	if( cls.state == ca_uninitialized )
-	{
-		cls.key_dest = key_menu;
-		UI_SetActiveMenu( UI_MAINMENU );
-	}
 	scr_init = true;
 }
 
@@ -512,6 +508,7 @@ void SCR_Shutdown( void )
 	Cmd_RemoveCommand( "setfont" );
 	Cmd_RemoveCommand( "viewpos" );
 
+	UI_SetActiveMenu( UI_CLOSEMENU );
 	UI_Shutdown();
 	scr_init = false;
 }

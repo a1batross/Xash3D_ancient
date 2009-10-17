@@ -41,15 +41,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ID_VIEW		7
 #define ID_NAME		8
 #define ID_MODEL		9
-#define ID_SKIN		10
 
 #define MAX_PLAYERMODELS	256
 #define MAX_PLAYERSKINS	2048
 
 typedef struct
 {
-	string		playerModels[MAX_PLAYERMODELS];
-	int		numPlayerModels;
+	string		models[MAX_PLAYERMODELS];
+	int		num_models;
 	string		currentModel;
 
 	ref_params_t	refdef;
@@ -69,7 +68,6 @@ typedef struct
 
 	menuField_s	name;
 	menuSpinControl_s	model;
-	menuSpinControl_s	skin;
 } uiPlayerSetup_t;
 
 static uiPlayerSetup_t	uiPlayerSetup;
@@ -101,21 +99,30 @@ UI_PlayerSetup_FindModels
 static void UI_PlayerSetup_FindModels( void )
 {
 	search_t	*search;
+	string	name, path;
 	int	i;
 
-	uiPlayerSetup.numPlayerModels = 0;
+	uiPlayerSetup.num_models = 0;
 
 	// Get file list
-	search = FS_Search( "models/players/*.mdl", true );
+	search = FS_Search( "models/player/*", true );
 	if( !search ) return;
+
+	// add default singleplayer model
+	com.strncpy( uiPlayerSetup.models[uiPlayerSetup.num_models], "player", sizeof(uiPlayerSetup.models[uiPlayerSetup.num_models] ));
+	uiPlayerSetup.num_models++;
 
 	// build the model list
 	for( i = 0; search && i < search->numfilenames; i++ )
 	{
-		com.strncpy( uiPlayerSetup.playerModels[uiPlayerSetup.numPlayerModels], search->filenames[i],
-		sizeof(uiPlayerSetup.playerModels[uiPlayerSetup.numPlayerModels] ));
-		uiPlayerSetup.numPlayerModels++;
+		FS_FileBase( search->filenames[i], name );
+		com.snprintf( path, MAX_STRING, "models/player/%s/%s.mdl", name, name );
+		if( !FS_FileExists( path )) continue;
+
+		com.strncpy( uiPlayerSetup.models[uiPlayerSetup.num_models], name, sizeof(uiPlayerSetup.models[uiPlayerSetup.num_models] ));
+		uiPlayerSetup.num_models++;
 	}
+
 	Mem_Free( search );
 }
 
@@ -126,35 +133,25 @@ UI_PlayerSetup_GetConfig
 */
 static void UI_PlayerSetup_GetConfig( void )
 {
-	string	model;
-	char	*ch;
 	int	i;
 
 	com.strncpy( uiPlayerSetup.name.buffer, Cvar_VariableString( "name" ), sizeof( uiPlayerSetup.name.buffer ));
-
-	// Get user set skin
-	com.strncpy( model, Cvar_VariableString( "skin" ), sizeof(model));
-	ch = com.strchr( model, '/' );
 
 	// find models
 	UI_PlayerSetup_FindModels();
 
 	// select current model
-	for( i = 0; i < uiPlayerSetup.numPlayerModels; i++ )
+	for( i = 0; i < uiPlayerSetup.num_models; i++ )
 	{
-		if( !com.stricmp( uiPlayerSetup.playerModels[i], model ))
+		if( !com.stricmp( uiPlayerSetup.models[i], Cvar_VariableString( "model" )))
 		{
 			uiPlayerSetup.model.curValue = (float)i;
 			break;
 		}
 	}
 
-	com.strncpy( uiPlayerSetup.currentModel, uiPlayerSetup.playerModels[(int)uiPlayerSetup.model.curValue], sizeof(uiPlayerSetup.currentModel ));
-	uiPlayerSetup.model.maxValue = (float)(uiPlayerSetup.numPlayerModels - 1);
-
-	// select current skin
-	uiPlayerSetup.skin.curValue = (float)Cvar_VariableInteger( "skin" );
-	uiPlayerSetup.skin.maxValue = 1; // FIXME
+	com.strncpy( uiPlayerSetup.currentModel, uiPlayerSetup.models[(int)uiPlayerSetup.model.curValue], sizeof(uiPlayerSetup.currentModel ));
+	uiPlayerSetup.model.maxValue = (float)(uiPlayerSetup.num_models - 1);
 }
 
 /*
@@ -165,7 +162,7 @@ UI_PlayerSetup_SetConfig
 static void UI_PlayerSetup_SetConfig( void )
 {
 	Cvar_Set( "name", uiPlayerSetup.name.buffer );
-	Cvar_SetValue( "skin", uiPlayerSetup.skin.curValue );
+	Cvar_Set( "model", uiPlayerSetup.currentModel );
 }
 
 /*
@@ -175,15 +172,21 @@ UI_PlayerSetup_UpdateConfig
 */
 static void UI_PlayerSetup_UpdateConfig( void )
 {
+	string	path, name;
+
 	// see if the model has changed
-	if( com.stricmp( uiPlayerSetup.currentModel, uiPlayerSetup.playerModels[(int)uiPlayerSetup.model.curValue] ))
+	if( com.stricmp( uiPlayerSetup.currentModel, uiPlayerSetup.models[(int)uiPlayerSetup.model.curValue] ))
 	{
-		com.strncpy( uiPlayerSetup.currentModel, uiPlayerSetup.playerModels[(int)uiPlayerSetup.model.curValue], sizeof( uiPlayerSetup.currentModel ));
-		uiPlayerSetup.skin.curValue = (float)0; // FIXME
+		com.strncpy( uiPlayerSetup.currentModel, uiPlayerSetup.models[(int)uiPlayerSetup.model.curValue], sizeof( uiPlayerSetup.currentModel ));
 	}
 
-	uiPlayerSetup.model.generic.name = uiPlayerSetup.playerModels[(int)uiPlayerSetup.model.curValue];
-	uiPlayerSetup.ent.v.model = re->RegisterModel( uiPlayerSetup.currentModel, MAX_MODELS - 1 );
+	uiPlayerSetup.model.generic.name = uiPlayerSetup.models[(int)uiPlayerSetup.model.curValue];
+	com.strncpy( name, uiPlayerSetup.models[(int)uiPlayerSetup.model.curValue], sizeof( name ));
+
+	if( !com.stricmp( name, "player" ))
+		com.strncpy( path, "models/player.mdl", MAX_STRING );
+	else com.snprintf( path, MAX_STRING, "models/player/%s/%s.mdl", name, name );
+	uiPlayerSetup.ent.v.model = re->RegisterModel( path, MAX_MODELS - 1 );
 }
 
 /*
@@ -360,19 +363,6 @@ static void UI_PlayerSetup_Init( void )
 	uiPlayerSetup.model.maxValue = 1;
 	uiPlayerSetup.model.range  = 1;
 
-	uiPlayerSetup.skin.generic.id = ID_SKIN;
-	uiPlayerSetup.skin.generic.type = QMTYPE_SPINCONTROL;
-	uiPlayerSetup.skin.generic.flags = QMF_CENTER_JUSTIFY | QMF_PULSEIFFOCUS | QMF_DROPSHADOW;
-	uiPlayerSetup.skin.generic.x = 368;
-	uiPlayerSetup.skin.generic.y = 288;
-	uiPlayerSetup.skin.generic.width = 198;
-	uiPlayerSetup.skin.generic.height = 30;
-	uiPlayerSetup.skin.generic.callback = UI_PlayerSetup_Callback;
-	uiPlayerSetup.skin.generic.statusText = "Select a skin for representation in multiplayer";
-	uiPlayerSetup.skin.minValue  = 0;
-	uiPlayerSetup.skin.maxValue  = 1;
-	uiPlayerSetup.skin.range  = 1;
-
 	UI_PlayerSetup_GetConfig();
 
 	UI_AddItem( &uiPlayerSetup.menu, (void *)&uiPlayerSetup.background );
@@ -385,7 +375,6 @@ static void UI_PlayerSetup_Init( void )
 	UI_AddItem( &uiPlayerSetup.menu, (void *)&uiPlayerSetup.view );
 	UI_AddItem( &uiPlayerSetup.menu, (void *)&uiPlayerSetup.name );
 	UI_AddItem( &uiPlayerSetup.menu, (void *)&uiPlayerSetup.model );
-	UI_AddItem( &uiPlayerSetup.menu, (void *)&uiPlayerSetup.skin );
 
 	// setup render and actor
 	uiPlayerSetup.refdef.fov_x = 40;

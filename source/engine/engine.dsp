@@ -282,10 +282,6 @@ SOURCE=.\uimenu\ui_gotosite.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\uimenu\ui_ingame.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\uimenu\ui_loadgame.c
 # End Source File
 # Begin Source File
@@ -330,11 +326,11 @@ SOURCE=.\uimenu\ui_qmenu.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\uimenu\ui_quit.c
+SOURCE=.\uimenu\ui_savegame.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\uimenu\ui_savegame.c
+SOURCE=.\uimenu\ui_saveload.c
 # End Source File
 # Begin Source File
 

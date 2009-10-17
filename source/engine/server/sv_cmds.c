@@ -230,12 +230,13 @@ void SV_Map_f( void )
 
 void SV_Newgame_f( void )
 {
-	com.strncpy( host.finalmsg, "end game", MAX_STRING );
-	SV_Shutdown( false );	// completely shutdown server, disconncet clients and unload progs
-
 	// FIXME: parse newgame script or somewhat
-
 	Cbuf_ExecuteText( EXEC_APPEND, va( "map %s\n", GI->startmap ));
+}
+
+void SV_Endgame_f( void )
+{
+	Host_EndGame( "end game" );
 }
 
 /*
@@ -272,6 +273,17 @@ void SV_Load_f( void )
 
 /*
 ==============
+SV_QuickLoad_f
+
+==============
+*/
+void SV_QuickLoad_f( void )
+{
+	Cbuf_ExecuteText( EXEC_APPEND, "echo Quick Loading...; wait; load quick" );
+}
+
+/*
+==============
 SV_Save_f
 
 ==============
@@ -284,6 +296,17 @@ void SV_Save_f( void )
 		return;
 	}
 	SV_WriteSaveFile( Cmd_Argv( 1 ), false, true );
+}
+
+/*
+==============
+SV_QuickSave_f
+
+==============
+*/
+void SV_QuickSave_f( void )
+{
+	Cbuf_ExecuteText( EXEC_APPEND, "echo Quick Saving...; wait; save quick" );
 }
 
 /*
@@ -577,6 +600,7 @@ void SV_InitOperatorCommands( void )
 	Cmd_AddCommand( "map", SV_Map_f, "start new level" );
 	Cmd_AddCommand( "devmap", SV_Map_f, "start new level" );
 	Cmd_AddCommand( "newgame", SV_Newgame_f, "begin new game" );
+	Cmd_AddCommand( "endgame", SV_Endgame_f, "end current game" );
 	Cmd_AddCommand( "changelevel", SV_ChangeLevel_f, "changing level" );
 	Cmd_AddCommand( "restart", SV_Restart_f, "restarting current level" );
 	Cmd_AddCommand( "reload", SV_Reload_f, "continue from latest save or restart level" );
@@ -589,6 +613,8 @@ void SV_InitOperatorCommands( void )
 
 	Cmd_AddCommand( "save", SV_Save_f, "save the game to a file" );
 	Cmd_AddCommand( "load", SV_Load_f, "load a saved game file" );
+	Cmd_AddCommand( "quicksave", SV_QuickSave_f, "save the game to the quicksave" );
+	Cmd_AddCommand( "quickload", SV_QuickLoad_f, "load a quick-saved game file" );
 	Cmd_AddCommand( "delete", SV_Delete_f, "delete a saved game file and saveshot" );
 	Cmd_AddCommand( "autosave", SV_AutoSave_f, "save the game to 'autosave' file" );
 	Cmd_AddCommand( "killserver", SV_KillServer_f, "shutdown current server" );
@@ -605,6 +631,7 @@ void SV_KillOperatorCommands( void )
 	Cmd_RemoveCommand( "map" );
 	Cmd_RemoveCommand( "movie" );
 	Cmd_RemoveCommand( "newgame" );
+	Cmd_RemoveCommand( "endgame" );
 	Cmd_RemoveCommand( "changelevel" );
 	Cmd_RemoveCommand( "restart" );
 	Cmd_RemoveCommand( "reload" );

@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ui_local.h"
 
 
-#define ART_BACKGROUND		"gfx/shell/splash2"
+#define ART_BACKGROUND		"gfx/shell/credits"
 #define UI_CREDITS_PATH		"scripts/credits.txt"
 #define UI_CREDITS_MAXLINES		2048
 
@@ -91,7 +91,7 @@ static const char *uiCreditsDefault[] =
 typedef struct
 {
 	const char	**credits;
-	float		startTime;
+	int		startTime;
 	float		showTime;
 	float		fadeTime;
 	int		numLines;
@@ -123,7 +123,7 @@ static void UI_Credits_DrawFunc( void )
 	// now draw the credits
 	UI_ScaleCoords( NULL, NULL, &w, &h );
 
-	y = SCREEN_HEIGHT - (((uiStatic.realTime * 0.001f) - uiCredits.startTime ) * 40.0f );
+	y = scr_height->integer - ((uiStatic.realTime - uiCredits.startTime) / 40.0f);
 
 	// draw the credits
 	for ( i = 0; i < uiCredits.numLines && uiCredits.credits[i]; i++, y += 20 )
@@ -203,7 +203,7 @@ static void UI_Credits_Init( void )
 				*p++ = 0;
 				if( --count == 0 ) break;
 			}
-			uiCredits.index[ ++uiCredits.numLines] = 0;
+			uiCredits.index[++uiCredits.numLines] = 0;
 			uiCredits.credits = uiCredits.index;
 		}
 		else
@@ -215,7 +215,7 @@ static void UI_Credits_Init( void )
 	}
 
 	// run credits
-	uiCredits.startTime = (uiStatic.realTime * 0.001f);
+	uiCredits.startTime = uiStatic.realTime + 500; // make half-seconds delay
 	uiCredits.showTime = bound( 0.1f, com.strlen( uiCredits.credits[uiCredits.numLines - 1]), 12.0f );
 	uiCredits.fadeTime = 0.0f; // will be determined later
 	uiCredits.active = true;

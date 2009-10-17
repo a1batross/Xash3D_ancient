@@ -270,7 +270,7 @@ static void UI_Video_SetConfig( void )
 	else Cvar_Set( "gl_texturemode", "GL_LINEAR_MIPMAP_NEAREST" );
 
 	// restart video subsystem
-	Cbuf_ExecuteText( EXEC_NOW, "vid_restart\n" );
+	Cbuf_ExecuteText( EXEC_APPEND, "vid_restart\n" );
 }
 
 /*

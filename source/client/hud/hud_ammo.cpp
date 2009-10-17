@@ -728,6 +728,8 @@ void CHudAmmo::UserCmd_NextWeapon( void )
 	if( !gpActiveSel || gpActiveSel == (WEAPON*)1 )
 		gpActiveSel = m_pWeapon;
 
+	SET_KEYDEST( KEY_HUDMENU );
+
 	int pos = 0;
 	int slot = 0;
 	if( gpActiveSel )
@@ -760,11 +762,13 @@ void CHudAmmo::UserCmd_NextWeapon( void )
 // Selects the previous item in the menu
 void CHudAmmo :: UserCmd_PrevWeapon( void )
 {
-	if( gHUD.m_fPlayerDead || (gHUD.m_iHideHUDDisplay & (HIDEHUD_WEAPONS | HIDEHUD_ALL)))
+	if( gHUD.m_fPlayerDead || (gHUD.m_iHideHUDDisplay & (HIDEHUD_WEAPONS|HIDEHUD_ALL)))
 		return;
 
 	if( !gpActiveSel || gpActiveSel == (WEAPON*)1 )
 		gpActiveSel = m_pWeapon;
+
+	SET_KEYDEST( KEY_HUDMENU );
 
 	int pos = MAX_WEAPON_POSITIONS-1;
 	int slot = MAX_WEAPON_SLOTS-1;

@@ -629,7 +629,7 @@ extern field_t chatField;
 //
 // cl_menu.c
 //
-typedef enum { UI_CLOSEMENU, UI_MAINMENU, UI_INGAMEMENU } uiActiveMenu_t;
+typedef enum { UI_CLOSEMENU, UI_MAINMENU } uiActiveMenu_t;
 
 void UI_UpdateMenu( int realtime );
 void UI_KeyEvent( int key );
@@ -660,7 +660,7 @@ void Key_SetBinding( int keynum, char *binding );
 void Key_ClearStates( void );
 char *Key_KeynumToString( int keynum );
 int Key_StringToKeynum( char *str );
-int Key_GetKey( char *binding );
+int Key_GetKey( const char *binding );
 void Key_EnumCmds_f( void );
 void Key_SetKeyDest( int key_dest );
 

@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "common.h"
 #include "ui_local.h"
+#include "client.h"
 
 #define ART_BACKGROUND	"gfx/shell/splash"
 #define ART_BANNER		"gfx/shell/head_newgame"
@@ -32,6 +33,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ID_DIFFICULT  	4
 #define ID_CANCEL		5
 
+#define ID_MSGBOX	 	6
+#define ID_MSGTEXT	 	7
+#define ID_YES	 	8
+#define ID_NO	 	9
+
 typedef struct
 {
 	menuFramework_s	menu;
@@ -43,6 +49,16 @@ typedef struct
 	menuAction_s	medium;
 	menuAction_s	hard;
 	menuAction_s	cancel;
+
+	// newgame prompt dialog
+	menuAction_s	msgBox;
+	menuAction_s	dlgMessage1;
+	menuAction_s	dlgMessage2;
+	menuAction_s	yes;
+	menuAction_s	no;
+
+	float		skill;
+
 } uiNewGame_t;
 
 static uiNewGame_t	uiNewGame;
@@ -54,9 +70,6 @@ UI_NewGame_StartGame
 */
 static void UI_NewGame_StartGame( float skill )
 {
-	char	*game = GI->gamedir;
-	string	text;
-
 	Cvar_SetValue( "skill", skill );
 	Cvar_SetValue( "deathmatch", 0 );
 	Cvar_SetValue( "gamerules", 0 );
@@ -64,8 +77,32 @@ static void UI_NewGame_StartGame( float skill )
 	Cvar_SetValue( "paused", 0 );
 	Cvar_SetValue( "coop", 0 );
 
-	com.snprintf( text, sizeof( text ), "loading; killserver; wait; newgame\n" );
-	Cbuf_ExecuteText( EXEC_APPEND, text );
+	Cbuf_ExecuteText( EXEC_APPEND, "loading; killserver; wait; newgame\n" );
+}
+
+static void UI_PromptDialog( float skill )
+{
+	if( cls.state != ca_active )
+	{
+		UI_NewGame_StartGame( skill );
+		return;
+	}
+	
+	uiNewGame.skill = skill;
+
+	// toggle main menu between active\inactive
+	// show\hide quit dialog
+	uiNewGame.easy.generic.flags ^= QMF_INACTIVE; 
+	uiNewGame.medium.generic.flags ^= QMF_INACTIVE;
+	uiNewGame.hard.generic.flags ^= QMF_INACTIVE;
+	uiNewGame.cancel.generic.flags ^= QMF_INACTIVE;
+
+	uiNewGame.msgBox.generic.flags ^= QMF_HIDDEN;
+	uiNewGame.dlgMessage1.generic.flags ^= QMF_HIDDEN;
+	uiNewGame.dlgMessage2.generic.flags ^= QMF_HIDDEN;
+	uiNewGame.no.generic.flags ^= QMF_HIDDEN;
+	uiNewGame.yes.generic.flags ^= QMF_HIDDEN;
+
 }
 
 /*
@@ -83,18 +120,36 @@ static void UI_NewGame_Callback( void *self, int event )
 	switch( item->id )
 	{
 	case ID_EASY:
-		UI_NewGame_StartGame( 0.0f );
+		UI_PromptDialog( 0.0f );
 		break;
 	case ID_MEDIUM:
-		UI_NewGame_StartGame( 1.0f );
+		UI_PromptDialog( 1.0f );
 		break;
 	case ID_DIFFICULT:
-		UI_NewGame_StartGame( 2.0f );
+		UI_PromptDialog( 2.0f );
 		break;
 	case ID_CANCEL:
 		UI_PopMenu();
 		break;
+	case ID_YES:
+		UI_NewGame_StartGame( uiNewGame.skill );
+		break;
+	case ID_NO:
+		UI_PromptDialog( 0.0f ); // clear skill
+		break;
 	}
+}
+
+/*
+=================
+UI_MsgBox_Ownerdraw
+=================
+*/
+static void UI_MsgBox_Ownerdraw( void *self )
+{
+	menuCommon_s	*item = (menuCommon_s *)self;
+
+	UI_FillRect( item->x, item->y, item->width, item->height, uiColorDkGrey );
 }
 
 /*
@@ -160,12 +215,56 @@ static void UI_NewGame_Init( void )
 	uiNewGame.cancel.generic.y = 380;
 	uiNewGame.cancel.generic.callback = UI_NewGame_Callback;
 
+	uiNewGame.msgBox.generic.id = ID_MSGBOX;
+	uiNewGame.msgBox.generic.type = QMTYPE_ACTION;
+	uiNewGame.msgBox.generic.flags = QMF_INACTIVE|QMF_HIDDEN;
+	uiNewGame.msgBox.generic.ownerdraw = UI_MsgBox_Ownerdraw; // just a fill rectangle
+	uiNewGame.msgBox.generic.x = 192;
+	uiNewGame.msgBox.generic.y = 256;
+	uiNewGame.msgBox.generic.width = 640;
+	uiNewGame.msgBox.generic.height = 256;
+
+	uiNewGame.dlgMessage1.generic.id = ID_MSGTEXT;
+	uiNewGame.dlgMessage1.generic.type = QMTYPE_ACTION;
+	uiNewGame.dlgMessage1.generic.flags = QMF_INACTIVE|QMF_HIDDEN;
+	uiNewGame.dlgMessage1.generic.name = "Starting a new game will exit";
+	uiNewGame.dlgMessage1.generic.x = 248;
+	uiNewGame.dlgMessage1.generic.y = 280;
+
+	uiNewGame.dlgMessage2.generic.id = ID_MSGTEXT;
+	uiNewGame.dlgMessage2.generic.type = QMTYPE_ACTION;
+	uiNewGame.dlgMessage2.generic.flags = QMF_INACTIVE|QMF_HIDDEN;
+	uiNewGame.dlgMessage2.generic.name = "any current game, OK to exit?";
+	uiNewGame.dlgMessage2.generic.x = 248;
+	uiNewGame.dlgMessage2.generic.y = 310;
+
+	uiNewGame.yes.generic.id = ID_YES;
+	uiNewGame.yes.generic.type = QMTYPE_ACTION;
+	uiNewGame.yes.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_HIDDEN;
+	uiNewGame.yes.generic.name = "Ok";
+	uiNewGame.yes.generic.x = 380;
+	uiNewGame.yes.generic.y = 460;
+	uiNewGame.yes.generic.callback = UI_NewGame_Callback;
+
+	uiNewGame.no.generic.id = ID_NO;
+	uiNewGame.no.generic.type = QMTYPE_ACTION;
+	uiNewGame.no.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_HIDDEN;
+	uiNewGame.no.generic.name = "Cancel";
+	uiNewGame.no.generic.x = 530;
+	uiNewGame.no.generic.y = 460;
+	uiNewGame.no.generic.callback = UI_NewGame_Callback;
+
 	UI_AddItem( &uiNewGame.menu, (void *)&uiNewGame.background );
 	UI_AddItem( &uiNewGame.menu, (void *)&uiNewGame.banner );
 	UI_AddItem( &uiNewGame.menu, (void *)&uiNewGame.easy );
 	UI_AddItem( &uiNewGame.menu, (void *)&uiNewGame.medium );
 	UI_AddItem( &uiNewGame.menu, (void *)&uiNewGame.hard );
 	UI_AddItem( &uiNewGame.menu, (void *)&uiNewGame.cancel );
+	UI_AddItem( &uiNewGame.menu, (void *)&uiNewGame.msgBox );
+	UI_AddItem( &uiNewGame.menu, (void *)&uiNewGame.dlgMessage1 );
+	UI_AddItem( &uiNewGame.menu, (void *)&uiNewGame.dlgMessage2 );
+	UI_AddItem( &uiNewGame.menu, (void *)&uiNewGame.no );
+	UI_AddItem( &uiNewGame.menu, (void *)&uiNewGame.yes );
 }
 
 /*

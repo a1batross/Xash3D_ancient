@@ -231,6 +231,7 @@ typedef struct gameinfo_s
 	string		vsrcdir;		// virtual machine source directory (qcc know when give source files)
 	string		startmap;		// map to start singleplayer game
 	string		title;		// Game Main Title
+	string		texmode;		// configure ImageLib to use various texture formats
 	float		version;		// game version (optional)
 
 	int		viewmode;

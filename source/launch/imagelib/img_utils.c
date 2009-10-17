@@ -177,7 +177,7 @@ static const loadformat_t load_hl1[] =
 { "%s%s.%s", "lmp", Image_LoadLMP, IL_HINT_HL },	// hl menu images (cached.wad etc)
 { "%s%s.%s", "bmp", Image_LoadBMP, IL_HINT_NO },	// hl skyboxes
 { "%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// hl vgui menus
-{ "%s%s.%s", "pal", Image_LoadPAL, IL_HINT_HL },	// install studio palette
+{ "%s%s.%s", "pal", Image_LoadPAL, IL_HINT_NO },	// install studio palette
 { NULL, NULL, NULL, IL_HINT_NO }
 };
 
@@ -217,20 +217,8 @@ static const loadformat_t load_wadlib[] =
 { NULL, NULL, NULL, IL_HINT_NO }
 };
 
-// version11 - Xash3D 0.48 profile (not used)
-static const loadformat_t load_xash048[] =
-{
-{ "%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// tga it's master type
-{ "%s%s.%s", "dds", Image_LoadDDS, IL_HINT_NO },	// hud, cubemaps
-{ "%s%s.%s", "jpg", Image_LoadJPG, IL_HINT_NO },	// just in case
-{ "%s%s.%s", "mdl", Image_LoadMDL, IL_HINT_HL },	// hl studio model skins
-{ "%s%s.%s", "spr", Image_LoadSPR, IL_HINT_HL },	// hl sprite frames
-{ "%s%s.%s", "pal", Image_LoadPAL, IL_HINT_HL },	// install studio palette
-{ NULL, NULL, NULL, IL_HINT_NO }
-};
-
-// version12 - Xash3D 0.51 profile
-static const loadformat_t load_xash051[] =
+// version11 - Xash3D default image profile
+static const loadformat_t load_xash[] =
 {
 { "%s%s.%s", "dds", Image_LoadDDS, IL_HINT_NO },	// cubemaps, depthmaps, 2d textures
 { "%s%s.%s", "png", Image_LoadPNG, IL_HINT_NO },	// levelshot save as .png
@@ -279,16 +267,8 @@ static const saveformat_t save_extragen[] =
 { NULL, NULL, NULL }
 };
 
-// version1 - other games instance
-static const saveformat_t save_xash048[] =
-{
-{ "%s%s.%s", "tga", Image_SaveTGA },		// tga screenshots
-{ "%s%s.%s", "png", Image_SavePNG },		// png levelshots
-{ NULL, NULL, NULL }
-};
-
-// version2 - Xash3D normal instance
-static const saveformat_t save_xash051[] =
+// Xash3D normal instance
+static const saveformat_t save_xash[] =
 {
 { "%s%s.%s", "tga", Image_SaveTGA },		// tga screenshots
 { "%s%s.%s", "jpg", Image_SaveJPG },		// tga levelshots or screenshots
@@ -312,7 +292,6 @@ void Image_Init( void )
 {
 	// init pools
 	Sys.imagepool = Mem_AllocPool( "ImageLib Pool" );
-	image_profile = Cvar_Get( "image_profile", "Xash3D", CVAR_SYSTEMINFO, "set imagelib profile: e.g. Doom1, Quake1, Xash3D etc" );
 	gl_round_down = Cvar_Get( "gl_round_down", "0", CVAR_SYSTEMINFO, "down size non-power of two textures" );
 	fs_textures = Cvar_Get( "fs_textures_path", "textures", CVAR_SYSTEMINFO, "textures default folder" );
 	png_compression = Cvar_Get( "png_compression", "9", CVAR_SYSTEMINFO, "pnglib compression level" );
@@ -338,8 +317,8 @@ void Image_Init( void )
 		break;
 	case HOST_NORMAL:
 	case HOST_BSPLIB:
-		Image_Setup( image_profile->string, image.cmd_flags ); // same as image_profile		
-		image.saveformats = save_xash051;
+		Image_Setup( "default", 0 ); // re-initialized later		
+		image.saveformats = save_xash;
 		break;
 	case HOST_RIPPER:
 		image.loadformats = load_null;
@@ -358,9 +337,11 @@ void Image_Setup( const char *formats, const uint flags )
 	if( flags != -1 ) image.cmd_flags = flags;
 	if( formats == NULL ) return;
 
+	MsgDev( D_NOTE, "Image_Init( %s )\n", formats );
+
 	// reinstall loadformats by magic keyword :)
-	if( !com.stricmp( formats, "Xash3D" ))
-		image.loadformats = load_xash051;
+	if( !com.stricmp( formats, "Xash3D" ) || !com.stricmp( formats, "Xash" ))
+		image.loadformats = load_xash;
 	else if( !com.stricmp( formats, "stalker" ) || !com.stricmp( formats, "S.T.A.L.K.E.R" ))
 		image.loadformats = load_stalker;
 	else if( !com.stricmp( formats, "Doom1" ) || !com.stricmp( formats, "Doom2" ))
@@ -377,7 +358,7 @@ void Image_Setup( const char *formats, const uint flags )
 		image.loadformats = load_hl1;
 	else if( !com.stricmp( formats, "hl2" ) || !com.stricmp( formats, "Half-Life 2" ))
 		image.loadformats = load_hl2;
-	else image.loadformats = load_xash048;	// unrecognized version, use default
+	else image.loadformats = load_xash; // unrecognized version, use default
 }
 
 void Image_Shutdown( void )

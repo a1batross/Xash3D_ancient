@@ -555,9 +555,6 @@ void Host_Frame( void )
 	last_time = host.frametime[0];
 	time = Host_ModifyTime( time );
 
-	if( host.state == HOST_RESTART )
-		host.state = HOST_FRAME;
-
 	SV_Frame ( time ); // server frame
 	CL_Frame ( time ); // client frame
 	VM_Frame ( time ); // vprogs frame
@@ -674,6 +671,7 @@ void Host_InitCommon( const int argc, const char **argv )
 	Host_InitEvents();
 
 	FS_LoadGameInfo( NULL );
+	Image_Init( GI->texmode, -1 );
 
 	zonepool = Mem_AllocPool( "Zone Engine" );
 

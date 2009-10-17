@@ -70,8 +70,13 @@ bool Image_LoadMDL( const char *name, const byte *buffer, size_t filesize )
 	pixels = image.width * image.height;
 	fin = (byte *)pin->index;	// setup buffer
 
+	if(!Image_LumpValidSize( name )) return false;
+
 	if( image.hint != IL_HINT_Q1 && !( flags & STUDIO_NF_QUAKESKIN ))
 	{
+		if( filesize < ( sizeof( *pin ) + pixels + 768 ))
+			return false;
+
 		if( flags & STUDIO_NF_TRANSPARENT )
 		{
 			Image_GetPaletteLMP( fin + pixels, LUMP_TRANSPARENT );
@@ -81,6 +86,9 @@ bool Image_LoadMDL( const char *name, const byte *buffer, size_t filesize )
 	}
 	else if( image.hint != IL_HINT_HL && flags & STUDIO_NF_QUAKESKIN )
 	{
+		if( filesize < ( sizeof( *pin ) + pixels ))
+			return false;
+
 		// alias models setup
 		Image_GetPaletteQ1();
 
@@ -102,7 +110,6 @@ bool Image_LoadMDL( const char *name, const byte *buffer, size_t filesize )
 		return false; // unknown or unsupported mode rejected
 	} 
 
-	if(!Image_LumpValidSize( name )) return false;
 	image.depth = 1;
 	image.type = PF_INDEXED_32;	// 32-bit palete
 

@@ -109,10 +109,14 @@ UI_FillRect
 */
 void UI_FillRect( int x, int y, int w, int h, const rgba_t color )
 {
+	shader_t	shader;
+
 	if( !re ) return;
 
+	shader = re->RegisterShader( UI_WHITE_SHADER, SHADER_FONT );
+
 	re->SetColor( color );
-	re->DrawFill( x, y, w, h );
+	re->DrawStretchPic( x, y, w, h, 0, 0, 1, 1, shader );
 	re->SetColor( NULL );
 }
 
@@ -368,6 +372,10 @@ UI_ItemAtCursor
 void *UI_ItemAtCursor( menuFramework_s *menu )
 {
 	if( menu->cursor < 0 || menu->cursor >= menu->numItems )
+		return 0;
+
+	// inactive items can't be has focus
+	if( ((menuCommon_s *)menu->items[menu->cursor])->flags & QMF_INACTIVE )
 		return 0;
 
 	return menu->items[menu->cursor];
@@ -879,10 +887,8 @@ void UI_SetActiveMenu( uiActiveMenu_t activeMenu )
 		UI_CloseMenu();
 		break;
 	case UI_MAINMENU:
+		Key_SetKeyDest( key_menu );
 		UI_Main_Menu();
-		break;
-	case UI_INGAMEMENU:
-		UI_InGame_Menu();
 		break;
 	default:
 		Host_Error( "UI_SetActiveMenu: wrong menu type (%i)\n", activeMenu );
@@ -986,10 +992,10 @@ void UI_Precache( void )
 		return;
 
 	UI_Main_Precache();
-	UI_InGame_Precache();
 	UI_NewGame_Precache();
 	UI_LoadGame_Precache();
 	UI_SaveGame_Precache();
+	UI_SaveLoad_Precache();
 	UI_MultiPlayer_Precache();
 	UI_Options_Precache();
 	UI_PlayerSetup_Precache();
@@ -1019,10 +1025,10 @@ void UI_Init( void )
 	ui_sensitivity = Cvar_Get( "ui_sensitivity", "1", CVAR_ARCHIVE, "mouse sensitivity while in-menu" );
 
 	Cmd_AddCommand( "menu_main", UI_Main_Menu, "open the main menu" );
-	Cmd_AddCommand( "menu_ingame", UI_InGame_Menu, "open the main menu when server is active");
 	Cmd_AddCommand( "menu_newgame", UI_NewGame_Menu, "open the newgame menu" );
 	Cmd_AddCommand( "menu_loadgame", UI_LoadGame_Menu, "open the loadgame menu" );
 	Cmd_AddCommand( "menu_savegame", UI_SaveGame_Menu, "open the savegame menu" );
+	Cmd_AddCommand( "menu_saveload", UI_SaveGame_Menu, "open the save\\load menu" );
 	Cmd_AddCommand( "menu_multiplayer", UI_MultiPlayer_Menu, "open the multiplayer menu" );
 	Cmd_AddCommand( "menu_options", UI_Options_Menu, "open the options menu" );
 	Cmd_AddCommand( "menu_playersetup", UI_PlayerSetup_Menu, "open the player setup menu" );
@@ -1055,10 +1061,10 @@ void UI_Shutdown( void )
 		return;
 
 	Cmd_RemoveCommand( "menu_main" );
-	Cmd_RemoveCommand( "menu_ingame" );
-	Cmd_RemoveCommand( "menu_singleplayer" );
+	Cmd_RemoveCommand( "menu_newgame" );
 	Cmd_RemoveCommand( "menu_loadgame" );
 	Cmd_RemoveCommand( "menu_savegame" );
+	Cmd_RemoveCommand( "menu_saveload" );
 	Cmd_RemoveCommand( "menu_multiplayer" );
 	Cmd_RemoveCommand( "menu_options" );
 	Cmd_RemoveCommand( "menu_playersetup" );

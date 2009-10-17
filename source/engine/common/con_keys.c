@@ -59,10 +59,10 @@ keyname_t keynames[] =
 	{"F3",		K_F3,		"menu_loadgame"	},
 	{"F4",		K_F4,		"menu_keys"	},
 	{"F5",		K_F5,		"menu_startserver"	},
-	{"F6",		K_F6,		"save quick"	},
-	{"F7",		K_F7,		"load quick"	}, // half-life style
+	{"F6",		K_F6,		"quicksave"	},
+	{"F7",		K_F7,		"quickload"	},
 	{"F8",		K_F8,		""		},
-	{"F9",		K_F9,		"load quick"	}, // quake style
+	{"F9",		K_F9,		""		},
 	{"F10",		K_F10,		"menu_quit"	},
 	{"F11",		K_F11,		""		},
 	{"F12",		K_F12,		"screenshot"	},
@@ -851,18 +851,17 @@ char *Key_GetBinding( int keynum )
 Key_GetKey
 ===================
 */
-int Key_GetKey(char *binding)
+int Key_GetKey( const char *binding )
 {
-	int i;
+	int	i;
 
-	if(!binding) return -1;
+	if( !binding ) return -1;
 
-	for (i = 0; i < 256; i++)
+	for( i = 0; i < 256; i++ )
 	{
-		if (keys[i].binding && !com.stricmp(binding, keys[i].binding))
+		if( keys[i].binding && !com.stricmp( binding, keys[i].binding ))
 			return i;
 	}
-
 	return -1;
 }
 
@@ -1104,8 +1103,6 @@ void Key_Event( int key, bool down, int time )
 		case key_game:
 			if( cls.state == ca_cinematic )
 				SCR_StopCinematic();
-			else if( cls.state == ca_active )
-				UI_SetActiveMenu( UI_INGAMEMENU );
 			else UI_SetActiveMenu( UI_MAINMENU );
 			cls.key_dest = key_menu;
 			return;

@@ -544,7 +544,7 @@ void GL_InitCommands( void )
 	r_portalmaps = Cvar_Get( "r_portalmaps", "1", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "use portal maps for portal rendering" );
 	r_portalmaps_maxtexsize = Cvar_Get( "r_portalmaps_maxtexsize", "512", CVAR_ARCHIVE, "portal maps texture dims" );
 
-	r_allow_software = Cvar_Get( "r_allow_software", "1", 0, "allow OpenGL software emulation" );
+	r_allow_software = Cvar_Get( "r_allow_software", "0", 0, "allow OpenGL software emulation" );
 	r_3dlabs_broken = Cvar_Get( "r_3dlabs_broken", "1", CVAR_ARCHIVE, "3dLabs renderer issues" );
 
 	r_lighting_bumpscale = Cvar_Get( "r_lighting_bumpscale", "8", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "lighting bumpscale" );

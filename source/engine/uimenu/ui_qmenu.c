@@ -46,8 +46,8 @@ void UI_ScrollList_Init( menuScrollList_s *sl )
 	}
 	else
 	{
-		if( sl->generic.charWidth < 1 ) sl->generic.charWidth = UI_SMALL_CHAR_WIDTH;
-		if( sl->generic.charHeight < 1 ) sl->generic.charHeight = UI_SMALL_CHAR_HEIGHT;
+		if( sl->generic.charWidth < 1 ) sl->generic.charWidth = UI_MED_CHAR_WIDTH;
+		if( sl->generic.charHeight < 1 ) sl->generic.charHeight = UI_MED_CHAR_HEIGHT;
 	}
 
 	UI_ScaleCoords( NULL, NULL, &sl->generic.charWidth, &sl->generic.charHeight );

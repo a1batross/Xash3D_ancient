@@ -47,6 +47,9 @@ cvar_t	*cl_paused;
 cvar_t	*info_password;
 cvar_t	*info_spectator;
 cvar_t	*name;
+cvar_t	*model;
+cvar_t	*topcolor;
+cvar_t	*bottomcolor;
 cvar_t	*rate;
 
 client_static_t	cls;
@@ -1103,6 +1106,9 @@ void CL_InitLocal( void )
 	info_password = Cvar_Get( "password", "", CVAR_USERINFO, "player password" );
 	info_spectator = Cvar_Get( "spectator", "0", CVAR_USERINFO, "spectator mode" );
 	name = Cvar_Get( "name", "unnamed", CVAR_USERINFO | CVAR_ARCHIVE, "player name" );
+	model = Cvar_Get( "model", "player", CVAR_USERINFO | CVAR_ARCHIVE, "player model ('player' it's a single player model)" );
+	topcolor = Cvar_Get( "topcolor", "0", CVAR_USERINFO | CVAR_ARCHIVE, "player top color" );
+	bottomcolor = Cvar_Get( "bottomcolor", "0", CVAR_USERINFO | CVAR_ARCHIVE, "player bottom color" );
 	rate = Cvar_Get( "rate", "25000", CVAR_USERINFO | CVAR_ARCHIVE, "player network rate" );	// FIXME
 	cl_showfps = Cvar_Get( "cl_showfps", "1", CVAR_ARCHIVE, "show client fps" );
 
