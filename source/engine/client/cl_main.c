@@ -62,7 +62,7 @@ extern	cvar_t *allow_download;
 //======================================================================
 bool CL_CheckKeydest( void )
 {
-	return (cls.key_dest != key_game);
+	return (cls.key_dest != key_game && cls.key_dest != key_hudmenu);
 }
 
 /*
@@ -462,7 +462,10 @@ void CL_Reconnect_f( void )
 	if( cls.download ) return;
 
 	S_StopAllSounds ();
-	Cmd_ExecuteString( "plaque\n" ); // disable plaque draw on change map
+
+	// disable plaque draw on change map
+	cls.drawplaque = false;		
+	Cmd_ExecuteString( "plaque\n" );
 
 	if( cls.demoplayback ) return;
 
@@ -1147,8 +1150,6 @@ void CL_InitLocal( void )
 
 	Cmd_AddCommand ("precache", CL_Precache_f, "precache specified resource (by index)" );
 	Cmd_AddCommand ("download", CL_Download_f, "download specified resource (by name)" );
-
-	CL_InitServerCommands ();
 }
 
 //============================================================================

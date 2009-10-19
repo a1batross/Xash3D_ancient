@@ -585,11 +585,11 @@ R_AliasModelLerpBBox
 */
 static void R_AliasModelLerpBBox( ref_entity_t *e, ref_model_t *mod )
 {
-	int i;
-	maliasmodel_t *aliasmodel = ( maliasmodel_t * )mod->extradata;
-	maliasframe_t *pframe, *poldframe;
-	float *thismins, *oldmins, *thismaxs, *oldmaxs;
-
+	int		i;
+	maliasframe_t	*pframe, *poldframe;
+	maliasmodel_t	*aliasmodel = ( maliasmodel_t * )mod->extradata;
+	float		*thismins, *oldmins, *thismaxs, *oldmaxs;
+	
 	if( !aliasmodel->nummeshes )
 	{
 		alias_radius = 0;
@@ -602,14 +602,14 @@ static void R_AliasModelLerpBBox( ref_entity_t *e, ref_model_t *mod )
 		MsgDev( D_ERROR, "R_DrawAliasModel %s: no such frame %g\n", mod->name, e->frame );
 		e->frame = 0;
 	}
-	if( ( e->prev.frame >= aliasmodel->numframes ) || ( e->prev.frame < 0 ) )
+	if(( e->prev->frame >= aliasmodel->numframes ) || ( e->prev->frame < 0 ))
 	{
-		MsgDev( D_ERROR, "R_DrawAliasModel %s: no such oldframe %g\n", mod->name, e->prev.frame );
-		e->prev.frame = 0;
+		MsgDev( D_ERROR, "R_DrawAliasModel %s: no such oldframe %g\n", mod->name, e->prev->frame );
+		if( e->prev ) e->prev->frame = 0.0f;
 	}
 
 	pframe = aliasmodel->frames + (int)e->frame;
-	poldframe = aliasmodel->frames + (int)e->prev.frame;
+	poldframe = aliasmodel->frames + (int)e->prev->frame;
 
 	// compute axially aligned mins and maxs
 	if( pframe == poldframe )
@@ -651,22 +651,22 @@ Interpolates between two frames and origins
 */
 static void R_DrawAliasFrameLerp( const meshbuffer_t *mb, float backlerp )
 {
-	int i, meshnum;
-	int features;
-	float backv[3], frontv[3];
-	vec3_t normal, oldnormal;
-	bool unlockVerts, calcVerts, calcNormals, calcSTVectors;
-	vec3_t move;
-	maliasframe_t *frame, *oldframe;
-	maliasmesh_t *mesh;
-	maliasvertex_t *v, *ov;
-	ref_entity_t *e = RI.currententity;
+	int		i, meshnum;
+	int		features;
+	vec3_t		normal, oldnormal;
+	bool		unlockVerts, calcVerts, calcNormals, calcSTVectors;
+	vec3_t		move;
+	maliasframe_t	*frame, *oldframe;
+	maliasmesh_t	*mesh;
+	maliasvertex_t	*v, *ov;
+	ref_shader_t	*shader;
+	ref_entity_t	*e = RI.currententity;
+	float		backv[3], frontv[3];
 	ref_model_t	*mod = Mod_ForHandle( mb->modhandle );
-	maliasmodel_t *model = ( maliasmodel_t * )mod->extradata;
-	ref_shader_t *shader;
-	static maliasmesh_t *alias_prevmesh;
-	static ref_shader_t *alias_prevshader;
-	static int alias_framecount, alias_riparams;
+	maliasmodel_t	*model = ( maliasmodel_t * )mod->extradata;
+	static maliasmesh_t	*alias_prevmesh;
+	static ref_shader_t	*alias_prevshader;
+	static int	alias_framecount, alias_riparams;
 
 	if( alias_riparams != RI.params || RI.params & RP_SHADOWMAPVIEW )
 	{
@@ -677,10 +677,11 @@ static void R_DrawAliasFrameLerp( const meshbuffer_t *mb, float backlerp )
 	meshnum = -mb->infokey - 1;
 	if( meshnum < 0 || meshnum >= model->nummeshes )
 		return;
+
 	mesh = model->meshes + meshnum;
 
 	frame = model->frames + (int)e->frame;
-	oldframe = model->frames + (int)e->prev.frame;
+	oldframe = model->frames + (int)e->prev->frame;
 	for( i = 0; i < 3; i++ )
 		move[i] = frame->translate[i] + ( oldframe->translate[i] - frame->translate[i] ) * backlerp;
 
@@ -702,12 +703,13 @@ static void R_DrawAliasFrameLerp( const meshbuffer_t *mb, float backlerp )
 	}
 
 	calcNormals = calcSTVectors = false;
-	calcNormals = (( features & MF_NORMALS ) != 0 ) && (( e->frame != 0 ) || ( e->prev.frame != 0 ));
+	calcNormals = (( features & MF_NORMALS ) != 0 ) && (( e->frame != 0 ) || ( e->prev->frame != 0 ));
 
 	if( alias_framecount == r_framecount && RI.previousentity && RI.previousentity->model == e->model && alias_prevmesh == mesh && alias_prevshader == shader )
 	{
-		ref_entity_t *pe = RI.previousentity;
-		if( pe->frame == e->frame && pe->prev.frame == e->prev.frame && e->frame == e->prev.frame )
+		ref_entity_t	*pe = RI.previousentity;
+
+		if( pe->frame == e->frame && pe->prev->frame == e->prev->frame && e->frame == e->prev->frame )
 		{
 			unlockVerts = ((( features & MF_DEFORMVS )));
 			calcNormals = ( calcNormals && ( shader->features & SHADER_DEFORM_NORMAL ));
@@ -723,7 +725,7 @@ static void R_DrawAliasFrameLerp( const meshbuffer_t *mb, float backlerp )
 
 	if( unlockVerts )
 	{
-		if( !e->frame && !e->prev.frame )
+		if( !e->frame && !e->prev->frame )
 		{
 			calcVerts = false;
 
@@ -734,7 +736,7 @@ static void R_DrawAliasFrameLerp( const meshbuffer_t *mb, float backlerp )
 					R_LatLongToNorm( v->latlong, inNormalsArray[i] );
 			}
 		}
-		else if( e->frame == e->prev.frame )
+		else if( e->frame == e->prev->frame )
 		{
 			calcVerts = true;
 
@@ -764,7 +766,7 @@ static void R_DrawAliasFrameLerp( const meshbuffer_t *mb, float backlerp )
 			}
 
 			v = mesh->vertexes + (int)e->frame * mesh->numverts;
-			ov = mesh->vertexes + (int)e->prev.frame * mesh->numverts;
+			ov = mesh->vertexes + (int)e->prev->frame * mesh->numverts;
 			for( i = 0; i < mesh->numverts; i++, v++, ov++ )
 			{
 				Vector4Set( inVertsArray[i],

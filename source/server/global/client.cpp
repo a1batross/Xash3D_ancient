@@ -438,9 +438,17 @@ void ClientCommand( edict_t *pEntity )
 	{
 		pEntity->v.flags = pEntity->v.flags ^ FL_GODMODE;
 
-		if( !(pEntity->v.flags & FL_GODMODE))
+		if ( !( pEntity->v.flags & FL_GODMODE ))
 			ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, "godmode OFF\n" );
 		else ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, "godmode ON\n" );
+	}
+	else if( FStrEq( pcmd, "notarget" ))
+	{
+		pEntity->v.flags = pEntity->v.flags ^ FL_NOTARGET;
+
+		if ( !( pEntity->v.flags & FL_NOTARGET ))
+			ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, "notarget OFF\n" );
+		else ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, "notarget ON\n" );
 	}
 	else if ( FStrEq( pcmd, "hud_color") ) //LRC
 	{

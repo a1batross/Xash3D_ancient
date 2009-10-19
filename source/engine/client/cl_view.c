@@ -101,7 +101,8 @@ apply pre-calculated values
 void V_AddViewModel( void )
 {
 	if( cl.refdef.nextView ) return; // add viewmodel only at firstperson pass
-	re->AddRefEntity( &cl.viewent, ED_VIEWMODEL );
+	if( !cl.frame.valid || cl.refdef.paused ) return;
+	re->AddRefEntity( &clgame.viewent, ED_VIEWMODEL );
 }
 
 /*

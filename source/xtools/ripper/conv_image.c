@@ -167,6 +167,25 @@ bool ConvLMP( const char *name, byte *buffer, size_t filesize, const char *ext )
 
 /*
 ============
+ConvFNT
+============
+*/
+bool ConvFNT( const char *name, byte *buffer, size_t filesize, const char *ext )
+{
+	rgbdata_t *pic = FS_LoadImage( va( "#%s.fnt", name ), buffer, filesize );
+
+	if( pic )
+	{
+		FS_SaveImage(va("%s/%s.%s", gs_gamedir, name, ext ), pic );
+		Msg("%s.fnt\n", name ); // echo to console
+		FS_FreeImage( pic );
+		return true;
+	}
+	return false;
+}
+
+/*
+============
 ConvRAW
 
 write to disk without conversions

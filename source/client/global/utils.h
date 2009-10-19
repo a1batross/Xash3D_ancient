@@ -209,7 +209,7 @@ extern void DrawGenericBar( float percent, int x, int y, int w, int h );
 extern void Draw_VidInit( void );
 
 // from cl_view.c
-extern void V_RenderPlaque( void );
+extern void DrawProgressBar( void );
 extern edict_t *spot;
 
 // stdio stuff

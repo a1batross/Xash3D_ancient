@@ -139,7 +139,7 @@ void CInfoIntermission::KeyValue( KeyValueData *pkvd )
 	else if( FStrEq( pkvd->szKeyName, "roll" ))
 	{
 		// Quake3 portal camera
-		pev->frame = atof( pkvd->szValue ) / 360.0f;
+		pev->viewangles[ROLL] = atof( pkvd->szValue ) / 360.0f;
 		pkvd->fHandled = TRUE;
 	}
 	else CBaseEntity::KeyValue( pkvd );
@@ -213,7 +213,7 @@ void CPortalSurface :: PostActivate( void )
 		pev->effects &= ~EF_ROTATE;
 	else pev->effects |= EF_ROTATE;
 
-	pev->frame = pOwner->pev->frame; // rollangle
+	pev->frame = pOwner->pev->viewangles[ROLL]; // rollangle
 
 	// see if the portal_camera has a target
 	if( !FStringNull( pOwner->pev->target ))

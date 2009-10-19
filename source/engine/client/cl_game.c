@@ -21,9 +21,12 @@ Render callback for studio models
 */
 edict_t *CL_GetEdictByIndex( int index )
 {
+	if( index == MAX_EDICTS - 1 )
+		return &clgame.playermodel;
+
 	if( index < 0 || index > clgame.globals->numEntities )
 	{
-		if( index == VIEWENT_INDEX ) return &cl.viewent;
+		if( index == VIEWENT_INDEX ) return &clgame.viewent;
 		if( index == NULLENT_INDEX ) return NULL;
 		MsgDev( D_ERROR, "CL_GetEntityByIndex: invalid entindex %i\n", index );
 		return NULL;
@@ -114,6 +117,16 @@ float CL_GetMouthOpen( int entityIndex )
 		return 0.0f;
 
 	return (float)ed->pvClientData->mouth.open;
+}
+
+prevframe_t *CL_GetPrevFrame( int entityIndex )
+{
+	edict_t	*pEnt = CL_GetEdictByIndex( entityIndex );
+
+	if( !pEnt || !pEnt->pvClientData )
+		return NULL;
+
+	return &pEnt->pvClientData->latched;
 }
 
 static trace_t CL_TraceToss( edict_t *tossent, edict_t *ignore)
@@ -235,9 +248,7 @@ void CL_DrawHUD( int state )
 	clgame.dllFuncs.pfnRedraw( cl.time * 0.001f, state );
 
 	if( state == CL_ACTIVE )
-	{
 		clgame.dllFuncs.pfnFrame( cl.time * 0.001f );
-	}
 }
 
 void CL_CopyTraceResult( TraceResult *out, trace_t trace )
@@ -449,6 +460,9 @@ void CL_InitEdicts( void )
 	clgame.globals->coop = Cvar_VariableInteger( "coop" );
 	clgame.globals->teamplay = Cvar_VariableInteger( "teamplay" );
 	clgame.globals->serverflags = 0; 	// FIXME: make CS_SERVERFLAGS
+
+	// clear prevstate
+	Mem_Set( &clgame.viewent.pvClientData->latched, 0, sizeof( prevframe_t ));
 }
 
 void CL_FreeEdicts( void )
@@ -531,7 +545,7 @@ void pfnFillRGBA( int x, int y, int width, int height, byte r, byte g, byte b, b
 
 	MakeRGBA( color, r, g, b, alpha );
 	re->SetColor( color );
-	re->DrawFill( x, y, width, height );
+	re->DrawStretchPic( x, y, width, height, 0, 0, 1, 1, cls.fillShader );
 	re->SetColor( NULL );
 }
 
@@ -610,14 +624,30 @@ char* pfnGetCvarString( const char *szName )
 
 /*
 =============
-pfnGetCvarString
+pfnAddCommand
 
 =============
 */
 void pfnAddCommand( const char *cmd_name, xcommand_t func, const char *cmd_desc )
 {
+	if( !cmd_name || !*cmd_name ) return;
+	if( !cmd_desc ) cmd_desc = ""; // hidden for makehelep system
+
 	// NOTE: if( func == NULL ) cmd will be forwarded to a server
 	Cmd_AddCommand( cmd_name, func, cmd_desc );
+}
+
+/*
+=============
+pfnDelCommand
+
+=============
+*/
+void pfnDelCommand( const char *cmd_name )
+{
+	if( !cmd_name || !*cmd_name ) return;
+
+	Cmd_RemoveCommand( cmd_name );
 }
 
 /*
@@ -686,17 +716,11 @@ void pfnSetKeyDest( int key_dest )
 {
 	switch( key_dest )
 	{
-	case key_game:
+	case KEY_GAME:
 		cls.key_dest = key_game;
 		break;
-	case key_hudmenu:
+	case KEY_HUDMENU:
 		cls.key_dest = key_hudmenu;
-		break;
-	case key_menu:
-		cls.key_dest = key_menu;
-		break;
-	case key_message:
-		cls.key_dest = key_message;
 		break;
 	default:
 		MsgDev( D_ERROR, "CL_SetKeyDest: wrong destination %i!\n", key_dest );
@@ -977,7 +1001,7 @@ can return NULL
 */
 edict_t* pfnGetViewModel( void )
 {
-	return &cl.viewent;
+	return &clgame.viewent;
 }
 
 /*
@@ -1004,13 +1028,35 @@ pfnMakeLevelShot
 force to make levelshot
 =============
 */
-void pfnMakeLevelShot( void )
+int pfnGetScreenInfo( SCREENINFO *pscrinfo )
 {
-	if( cls.scrshot_request != scrshot_plaque )
-		return;
+	int	i;
 
-	// make levelshot at nextframe()
-	Cbuf_AddText( "wait 1\nlevelshot\n" );
+	if( !pscrinfo ) return 0;
+
+	// setup screen info
+	pscrinfo->iRealWidth = scr_width->integer;
+	pscrinfo->iRealHeight = scr_height->integer;
+
+	if(pscrinfo->iFlags & SCRINFO_VIRTUALSPACE )
+	{
+		// virtual screen space 640x480
+		// see cl_screen.c from Quake3 code for more details
+		pscrinfo->iWidth = SCREEN_WIDTH;
+		pscrinfo->iHeight = SCREEN_HEIGHT;
+	}
+	else
+	{
+		pscrinfo->iWidth = scr_width->integer;
+		pscrinfo->iHeight = scr_height->integer;
+	}
+
+	// TODO: build real table of fonts widthInChars
+	for( i = 0; i < 256; i++ )
+		pscrinfo->charWidths[i] = SMALLCHAR_WIDTH;
+	pscrinfo->iCharHeight = SMALLCHAR_HEIGHT;
+
+	return 1;
 }
 
 /*
@@ -1418,6 +1464,7 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnGetCvarString,
 	pfnAddCommand,
 	pfnHookUserMsg,
+	pfnDelCommand,
 	pfnServerCmd,
 	pfnClientCmd,
 	pfnSetKeyDest,
@@ -1443,7 +1490,7 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnGetMaxClients,
 	pfnGetViewModel,
 	pfnGetModelPtr,
-	pfnMakeLevelShot,						
+	pfnGetScreenInfo,						
 	pfnGetAttachment,
 	pfnPointContents,
 	pfnTraceLine,
@@ -1474,6 +1521,10 @@ void CL_UnloadProgs( void )
 {
 	// initialize game
 	clgame.dllFuncs.pfnShutdown();
+
+	CL_FreeEdicts();
+	CL_FreeEdict( &clgame.viewent );
+	CL_FreeEdict( &clgame.playermodel );
 
 	StringTable_Delete( clgame.hStringTable );
 	Com_FreeLibrary( clgame.hInstance );
@@ -1528,6 +1579,12 @@ bool CL_LoadProgs( const char *name )
 	clgame.movevars.accelerate = com.atof( DEFAULT_ACCEL );
 	clgame.movevars.airaccelerate = com.atof( DEFAULT_AIRACCEL );
 	clgame.movevars.friction = com.atof( DEFAULT_FRICTION );
+
+	CL_InitEdict( &clgame.viewent );
+	clgame.viewent.serialnumber = VIEWENT_INDEX;
+
+	CL_InitEdict( &clgame.playermodel );
+	clgame.viewent.serialnumber = MAX_EDICTS - 1;
 
 	// initialize game
 	clgame.dllFuncs.pfnInit();

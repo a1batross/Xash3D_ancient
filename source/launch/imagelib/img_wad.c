@@ -51,6 +51,84 @@ bool Image_LoadPAL( const char *name, const byte *buffer, size_t filesize )
 
 /*
 ============
+Image_LoadFNT
+============
+*/
+bool Image_LoadFNT( const char *name, const byte *buffer, size_t filesize )
+{
+	qfont_t		font;
+	const byte	*pal, *fin;
+	size_t		size;
+	int		i, numcolors;
+
+	if( image.hint == IL_HINT_Q1 )
+		return false;	// Quake1 doesn't have qfonts
+
+	if( filesize < sizeof( font ))
+		return false;
+	Mem_Copy( &font, buffer, sizeof( font ));
+
+	// swap lumps
+	font.width = LittleShort( font.width );
+	font.height = LittleShort( font.height );
+	font.rowcount = LittleShort( font.rowcount );
+	font.rowheight = LittleShort( font.rowheight );
+
+	for( i = 0; i < 256; i++ )
+	{
+		font.fontinfo[i].startoffset = LittleShort( font.fontinfo[i].startoffset ); 
+		font.fontinfo[i].charwidth = LittleShort( font.fontinfo[i].charwidth );
+	}
+	
+	// last sixty four bytes - what the hell ????
+	size = sizeof(qfont_t) - 4 + (128 * font.width * QCHAR_WIDTH) + sizeof( short ) + 768 + 64;
+
+	if( size != filesize )
+	{
+		// oldstyle font: "conchars" or "creditsfont"
+		image.width = 256;		// hardcoded
+		image.height = font.height;
+	}
+	else
+	{
+		// Half-Life 1.1.0.0 font style (qfont_t)
+		image.width = font.width * QCHAR_WIDTH;
+		image.height = font.height;
+	}
+
+	image.depth = 1;
+	image.type = PF_INDEXED_32;	// 32-bit palete
+
+	if(!Image_LumpValidSize( name )) return false;
+	fin = buffer + sizeof( font ) - 4;
+
+	image.size = image.width * image.height;
+	pal = fin + image.size;
+	numcolors = BuffLittleShort( pal ), pal += sizeof( short );
+	image.flags |= IMAGE_HAS_ALPHA; // fonts always have transparency
+
+	if( numcolors == 768 )
+	{
+		// newstyle font
+		Image_GetPaletteLMP( pal, LUMP_QFONT );
+	}
+	else if( numcolors == 256 )
+	{
+		// oldstyle font
+		Image_GetPaletteLMP( pal, LUMP_TRANSPARENT );
+	}
+	else 
+	{
+		if( image.hint == IL_HINT_NO )
+			MsgDev( D_ERROR, "Image_LoadFNT: (%s) have invalid palette size %d\n", name, numcolors );
+		return false;
+	}
+
+	return FS_AddMipmapToPack( fin, image.width, image.height );
+}
+
+/*
+============
 Image_LoadMDL
 ============
 */

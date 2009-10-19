@@ -205,82 +205,6 @@ typedef struct
 	float		stOffset[LM_STYLES][2];
 } superLightStyle_t;
 
-typedef struct lerpframe_s
-{
-	float		frame;				// lastframe from previous frame
-	float		animtime;				// holds animtime from prevoius frame
-	int		sequence;				// not used by studio, but used with sprites
-} lerpframe_t;
-
-typedef struct studiolerp_s
-{
-	float		controller[MAXSTUDIOCONTROLLERS];	// holds bone controller values from previous frame
-	float		blending[MAXSTUDIOBLENDS];		// latched blendings from previous frame
-} studiolerp_t;
-
-typedef struct studiolatched_s
-{
-	float		sequencetime;			// latched animtime from previous sequence
-	float		frame;				// lastframe played frame from previous sequence
-	int		sequence;				// prev.sequence to blending between two sequences
-	float		blending[MAXSTUDIOBLENDS];		// latched sequence blending
-} studiolatched_t;
-
-typedef struct studiolight_s
-{
-	vec3_t		lightvec;			// light vector
-	vec4_t		lightcolor;		// ambient light color
-	vec4_t		lightdiffuse;		// diffuse light color
-
-	vec3_t		bonelightvec[MAXSTUDIOBONES];	// ambient lightvectors per bone
-	vec3_t		dynlightcolor[MAX_DLIGHTS];	// ambient dynamic light colors
-	vec3_t		dynlightvec[MAX_DLIGHTS][MAXSTUDIOBONES];
-	int		numdynlights;
-} studiolight_t;
-
-typedef struct studioverts_s
-{
-	vec3_t		*verts;
-	vec3_t		*norms;
-	vec3_t		*light;			// light values
-	vec2_t		*chrome;			// size match with numverts
-	int		numverts;
-	int		numnorms;
-	int		m_nCachedFrame;		// to avoid transform it twice
-} studioverts_t;
-
-typedef struct studiovars_s
-{
-	studiolerp_t	prev;			// latched values from previous frame
-	studiolatched_t	latched;			// latched values from previous sequence
-
-	float		blending[MAXSTUDIOBLENDS];
-	float		controller[MAXSTUDIOCONTROLLERS];
-	vec3_t		gaitorigin;		// client oldorigin used to calc velocity
-	float		gaitframe;		// client->frame + yaw
-	float		gaityaw;			// local value
-
-	// EF_ANIMATE stuff
-	int		m_fSequenceLoops;		// sequence is looped
-	int		m_fSequenceFinished;	// sequence is finished
-	float		m_flFrameRate;		// looped sequence framerate
-	float		m_flGroundSpeed;		// looped sequence ground speed (movement)
-	float		m_flLastEventCheck;		// last time when event is checked
-	
-	// cached bones, valid only for current frame
-	char		bonenames[MAXSTUDIOBONES][32];// used for attached entities 
-	matrix4x4		rotationmatrix;
-	matrix4x4		*bonestransform;
-	vec3_t		*chromeright;
-	vec3_t		*chromeup;
-	int		*chromeage;
-	int		numbones;
-
-	// StudioBoneLighting (slow and ugly)
-	studiolight_t	*light;			// FIXME: alloc match size not maximum
-	studioverts_t	*mesh[MAXSTUDIOMODELS];
-} studiovars_t;
-
 typedef struct ref_entity_s
 {
 	edtype_t			ent_type;		// entity type
@@ -291,7 +215,7 @@ typedef struct ref_entity_s
 	struct ref_model_s		*model;		// opaque type outside refresh
 	struct ref_entity_s		*parent;		// link to parent entity (FOLLOW or weaponmodel)
 
-	lerpframe_t		prev;		// previous frame values for lerping
+	prevframe_t		*prev;		// previous frame values for lerping
 
 	float			framerate;	// custom framerate
           float			animtime;		// lerping animtime	
@@ -627,7 +551,6 @@ void R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, f
 void R_DrawStretchRaw( int x, int y, int w, int h, int cols, int rows, const byte *data, bool redraw );
 void R_DrawSetParms( shader_t handle, kRenderMode_t rendermode, int frame );
 void R_DrawGetParms( int *w, int *h, int *f, int frame, shader_t shader );
-void R_DrawFill( float x, float y, float w, float h );
 
 //
 // r_image.c

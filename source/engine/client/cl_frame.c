@@ -262,8 +262,12 @@ void CL_ParseFrame( sizebuf_t *msg )
 	{
 		if( cls.state != ca_active )
 		{
-			cls.state = ca_active;	// client spawned
+			// client entered the game
+			cls.state = ca_active;
 			cl.force_refdef = true;
+
+			SCR_MakeLevelShot();	// make levelshot if needs
+			cls.drawplaque = true;	// allow to drawing plaque
 
 			Cvar_SetValue( "scr_loading", 0.0f ); // reset progress bar	
 			// getting a valid frame message ends the connection process
@@ -357,7 +361,8 @@ void CL_GetEntitySoundSpatialization( int entnum, vec3_t origin, vec3_t velocity
 		return;
 	}
 
-	ent = EDICT_NUM( entnum );
+	ent = CL_GetEdictByIndex( entnum );
+	if( !ent || ent->free ) return; // leave uncahnged
 
 	// setup origin and velocity
 	VectorCopy( ent->v.origin, origin );

@@ -110,7 +110,6 @@ typedef struct
 	int		render_flags;	// clearing at end of frame
 	float		lerpFrac;		// interpolation value
 	ref_params_t	refdef;		// shared refdef
-	edict_t		viewent;		// viewmodel
 	client_data_t	data;		// hud data
 
 	// predicting stuff
@@ -189,8 +188,10 @@ typedef struct
 struct cl_priv_s
 {
 	int		serverframe;	// if not current, this ent isn't in the frame
+
 	entity_state_t	current;
 	entity_state_t	prev;		// will always be valid, but might just be a copy of current
+	prevframe_t	latched;		// previous frame to lerping from
 
 	// studiomodels attachments
 	vec3_t		origin[MAXSTUDIOATTACHMENTS];
@@ -250,6 +251,9 @@ typedef struct
 	cl_globalvars_t	*globals;
 	user_message_t	*msg[MAX_USER_MESSAGES];
 
+	edict_t		viewent;			// viewmodel or playermodel in UI_PlayerSetup
+	edict_t		playermodel;		// uiPlayerSetup latched vars
+	
 	int		numMessages;		// actual count of user messages
 	int		hStringTable;		// stringtable handle
 
@@ -284,6 +288,7 @@ typedef struct
 	shader_t		consoleFont;		// current console font
 	shader_t		clientFont;		// current client font
 	shader_t		consoleBack;		// console background
+	shader_t		fillShader;		// used for emulate FillRGBA to avoid wrong draw-sort
 	shader_t		netIcon;			// netIcon displayed bad network connection
 	
 	file_t		*download;		// file transfer from server
@@ -304,6 +309,7 @@ typedef struct
 	bool		demorecording;
 	bool		demoplayback;
 	bool		demowaiting;		// don't record until a non-delta message is received
+	bool		drawplaque;		// draw plaque when level is loading
 	string		demoname;			// for demo looping
 
 	file_t		*demofile;
@@ -406,7 +412,6 @@ void SCR_Viewpos_f( void );
 extern render_exp_t		*re;
 
 void CL_Init( void );
-void CL_InitServerCommands( void );
 void CL_SendCommand( void );
 void CL_Disconnect (void);
 void CL_Disconnect_f (void);
@@ -479,6 +484,7 @@ void CL_InitEdict( edict_t *pEdict );
 void CL_FreeEdict( edict_t *pEdict );
 bool CL_GetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles );
 bool CL_SetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles );
+prevframe_t *CL_GetPrevFrame( int entityIndex );
 float CL_GetMouthOpen( int entityIndex );
 string_t CL_AllocString( const char *szValue );
 const char *CL_GetString( string_t iString );
@@ -545,6 +551,7 @@ void SCR_DrawStringExt( int x, int y, float w, float h, const char *string, rgba
 void SCR_DrawBigString( int x, int y, const char *s, byte alpha );
 void SCR_DrawBigStringColor( int x, int y, const char *s, rgba_t color );
 void SCR_MakeScreenShot( void );
+void SCR_MakeLevelShot( void );
 void SCR_RSpeeds( void );
 void SCR_DrawFPS( void );
 void SCR_DrawNet( void );

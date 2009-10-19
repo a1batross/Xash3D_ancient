@@ -3697,19 +3697,30 @@ void CBloodSplat::Spray ( void )
 
 void CBasePlayer::GiveNamedItem( const char *pszName )
 {
-	edict_t	*pent;
-	int istr = MAKE_STRING( pszName );
+	edict_t		*pent;
+	CBaseEntity	*pEntity;
+	string_t		istr = MAKE_STRING( pszName );
           	
 	pent = CREATE_NAMED_ENTITY( istr );
 	if( FNullEnt( pent )) return;
-
-	ALERT( at_aiconsole, "Give %s\n", STRING( pent->v.classname ));
 
 	VARS( pent )->origin = pev->origin;
 	pent->v.spawnflags |= SF_NORESPAWN;
 
 	DispatchSpawn( pent );
-	DispatchTouch( pent, ENT( pev ));
+
+	pEntity = CBaseEntity::Instance( pent );
+
+	if( pEntity && ( pEntity->IsItem() || pEntity->IsWeapon() || pEntity->IsAmmo() ))
+	{
+		ALERT( at_aiconsole, "Give %s\n", STRING( pent->v.classname ));
+		DispatchTouch( pEntity->edict(), ENT( pev ));
+	}
+	else
+	{
+		ALERT( at_console, "Remove %s\n", STRING( pent->v.classname ));
+		REMOVE_ENTITY( pent );
+	}
 }
 
 BOOL CBasePlayer :: FlashlightIsOn( void )

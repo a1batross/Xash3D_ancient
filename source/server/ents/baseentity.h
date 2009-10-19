@@ -118,6 +118,10 @@ public:
 		CLASSIFY_EDICT( ENT( pev ), m_iClassType );
 	}
 
+          virtual BOOL IsItem( void ) { return FALSE; }
+          virtual BOOL IsAmmo( void ) { return FALSE; }
+          virtual BOOL IsWeapon( void ) { return FALSE; }
+
 	// Setup the object->object collision box (pev->mins / pev->maxs is the object->world collision box)
 	virtual void	SetObjectCollisionBox( void );
 

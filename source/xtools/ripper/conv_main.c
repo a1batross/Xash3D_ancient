@@ -27,6 +27,7 @@ convformat_t convert_formats[] =
 	{"%s.%s", "flp", ConvFLP, "bmp" },	// doom1 menu pics
 	{"%s.%s", "mip", ConvMIP, "bmp" },	// Quake1/Half-Life textures
 	{"%s.%s", "lmp", ConvLMP, "bmp" },	// Quake1/Half-Life gfx
+	{"%s.%s", "fnt", ConvFNT, "bmp" },	// Quake1/Half-Life gfx
 	{"%s.%s", "wal", ConvWAL, "bmp" },	// Quake2 textures
 	{"%s.%s", "vtf", ConvVTF, "dds" },	// Half-Life 2 materials
 	{"%s.%s", "skn", ConvSKN, "bmp" },	// doom1 sprite models
@@ -49,6 +50,7 @@ convformat_t convert_formats32[] =
 	{"%s.%s", "flp", ConvFLP, "png" },	// doom1 menu pics
 	{"%s.%s", "mip", ConvMIP, "png" },	// Quake1/Half-Life textures
 	{"%s.%s", "lmp", ConvLMP, "png" },	// Quake1/Half-Life gfx
+	{"%s.%s", "fnt", ConvFNT, "png" },	// Quake1/Half-Life gfx
 	{"%s.%s", "wal", ConvWAL, "png" },	// Quake2 textures
 	{"%s.%s", "vtf", ConvVTF, "dds" },	// Half-Life 2 materials
 	{"%s.%s", "skn", ConvSKN, "png" },	// doom1 sprite models
@@ -326,6 +328,7 @@ void Conv_RunSearch( void )
 			{
 				AddMask(va("%s/*.mip", search->filenames[i]));
 				AddMask(va("%s/*.lmp", search->filenames[i]));
+				AddMask(va("%s/*.fnt", search->filenames[i]));
 			}
 			Mem_Free( search );
 		}
@@ -334,6 +337,7 @@ void Conv_RunSearch( void )
 			// try to use generic mask
 			AddMask( "*.mip" );
 			AddMask( "*.lmp" );
+			AddMask( "*.fnt" );
 		}
 		AddMask( "maps/*.bsp" );	// textures from bsp
 		AddMask( "sprites/*.spr" );	// Half-Life sprites

@@ -57,7 +57,7 @@ void SCR_FillRect( float x, float y, float width, float height, const rgba_t col
 {
 	re->SetColor( color );
 	SCR_AdjustSize( &x, &y, &width, &height );
-	re->DrawFill( x, y, width, height );
+	re->DrawStretchPic( x, y, width, height, 0, 0, 1, 1, cls.fillShader );
 	re->SetColor( NULL );
 }
 
@@ -386,6 +386,15 @@ void SCR_RSpeeds( void )
 	}
 }
 
+void SCR_MakeLevelShot( void )
+{
+	if( cls.scrshot_request != scrshot_plaque )
+		return;
+
+	// make levelshot at nextframe()
+	Cbuf_AddText( "wait 1\nlevelshot\n" );
+}
+
 void SCR_MakeScreenShot( void )
 {
 	if( !re && host.type == HOST_NORMAL )
@@ -405,6 +414,16 @@ void SCR_MakeScreenShot( void )
 	cls.shotname[0] = '\0';
 }
 
+void SCR_DrawPlaque( void )
+{
+	shader_t		levelshot;
+
+	if( !re || !cls.drawplaque ) return;
+
+	levelshot = re->RegisterShader( cl_levelshot_name->string, SHADER_NOMIP );
+	SCR_DrawPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, levelshot );
+}
+
 /*
 ==================
 SCR_UpdateScreen
@@ -420,10 +439,10 @@ void SCR_UpdateScreen( void )
 	switch( cls.state )
 	{
 	case ca_disconnected:
-		CL_DrawHUD( CL_DISCONNECTED );
 		break;
 	case ca_connecting:
 	case ca_connected:
+		SCR_DrawPlaque();
 		CL_DrawHUD( CL_LOADING );
 		break;
 	case ca_active:
@@ -448,8 +467,12 @@ void SCR_RegisterShaders( void )
 		// register console images
 		cls.consoleFont = re->RegisterShader( va( "gfx/fonts/%s", con_font->string ), SHADER_FONT );
 		cls.clientFont = re->RegisterShader( va( "gfx/fonts/%s", cl_font->string ), SHADER_FONT );
-		cls.consoleBack = re->RegisterShader( "#conback.dds", SHADER_NOMIP );	// internal resource
 		cls.netIcon = re->RegisterShader( "#net.png", SHADER_NOMIP );	// internal recource
+		cls.fillShader = re->RegisterShader( "*white", SHADER_FONT );	// used for FillRGBA
+
+		if( host.developer )
+			cls.consoleBack = re->RegisterShader( "gfx/conback", SHADER_NOMIP );
+		else cls.consoleBack = re->RegisterShader( "gfx/loading", SHADER_NOMIP );
 	}
 
 	// vid_state has changed
@@ -457,6 +480,7 @@ void SCR_RegisterShaders( void )
 
 	g_console_field_width = scr_width->integer / SMALLCHAR_WIDTH - 2;
 	g_consoleField.widthInChars = g_console_field_width;
+	cls.drawplaque = true;
 }
 
 /*

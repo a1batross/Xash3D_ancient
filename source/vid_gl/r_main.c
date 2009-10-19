@@ -1277,7 +1277,7 @@ static void R_CategorizeEntities( void )
 		}
 
 		// setup entity parents
-		if( RI.currententity->movetype == MOVETYPE_FOLLOW )
+		if( RI.currententity->movetype == MOVETYPE_FOLLOW && !RI.currententity->parent )
 		{
 			edict_t	*pEdict = ri.GetClientEdict( RI.currententity->index );
 			edict_t	*pParent = NULL;
@@ -1797,7 +1797,7 @@ R_ClearScene
 */
 void R_ClearScene( void )
 {
-	r_numEntities = 2;	// world and viewmodel
+	r_numEntities = 1;	// worldmodel
 	r_numDlights = 0;
 	r_numPolys = 0;
 	RI.previousentity = NULL;
@@ -2124,8 +2124,16 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 	case mod_bad: // let the render drawing null model
 		break;
 	}
+
+	refent->prev = ri.GetPrevFrame( refent->index );	// setup prevframe data
+
+	if( refent->prev == NULL )
+	{
+		Msg( "Rejected entity %i (model %s) -- no prevframe data\n", refent->index, refent->model->name );
+		return false;
+	}
+
 	refent->rtype = RT_MODEL;
-	refent->parent = NULL;	// clear all parents
 
 	// setup light origin
 	if( refent->model ) VectorAverage( refent->model->mins, refent->model->maxs, center );
@@ -2161,7 +2169,8 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
           }
 	else
 	{
-		refent->prev.frame = refent->frame;		// save oldframe
+		if( refent->prev )
+			refent->prev->frame = refent->frame;	// save oldframe
 		refent->frame = pRefEntity->v.frame;
 	}
 
@@ -2254,22 +2263,13 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type )
 	ref_entity_t	*refent;
 	bool		result = false;
 
-	// NULL or overflow
-	if( !pRefEntity || (r_numEntities >= MAX_ENTITIES))
-		return false;
+	if( !pRefEntity || !pRefEntity->v.modelindex )
+		return false; // if set to invisible, skip
+	if( r_numEntities >= MAX_ENTITIES ) return false;
 
-	if( pRefEntity->serialnumber == VIEWENT_INDEX )
-	{
-		// viewmodel always uses this slot for properly store
-		// and playing client-side animation
-		refent = &r_entities[1];
+	refent = &r_entities[r_numEntities];
 
-		// client lost weapon or change weapon
-		if( !pRefEntity->v.modelindex ) refent->rtype = RT_NONE; // completely ignore to draw
-	}
-	else refent = &r_entities[r_numEntities];
-
-	if( !pRefEntity->v.modelindex || pRefEntity->v.effects & EF_NODRAW )
+	if( pRefEntity->v.effects & EF_NODRAW )
 		return true; // done
 
 	// filter ents
@@ -2302,6 +2302,7 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type )
 	refent->movetype = pRefEntity->v.movetype;
 	refent->framerate = pRefEntity->v.framerate;
 	refent->parent = NULL;
+	refent->prev = NULL;
 
 	// setup rtype
 	switch( ed_type )
@@ -2314,9 +2315,7 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type )
 		break;
 	}
 
-	// viewmodel already reserve slot
-	if( pRefEntity->serialnumber != VIEWENT_INDEX )
-		r_numEntities++;
+	r_numEntities++;
 
 	// never adding child entity without parent
 	// only studio models can have attached childrens
@@ -2326,7 +2325,6 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type )
 
 		// create attached entity
 		FollowEntity.v.modelindex = pRefEntity->v.weaponmodel;
-		FollowEntity.serialnumber = NULLENT_INDEX;
 		FollowEntity.v.movetype = MOVETYPE_FOLLOW;
 		FollowEntity.v.weaponmodel = 0;
 
@@ -2411,7 +2409,6 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	re.ScrShot = VID_ScreenShot;
 	re.EnvShot = VID_CubemapShot;
 	re.LightForPoint = R_LightForPoint;
-	re.DrawFill = R_DrawFill;
 	re.DrawStretchRaw = R_DrawStretchRaw;
 	re.DrawStretchPic = R_DrawStretchPic;
 	re.GetFragments = R_GetClippedFragments;

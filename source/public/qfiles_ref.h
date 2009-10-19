@@ -35,11 +35,12 @@ infotable	dlumpinfo_t[dwadinfo_t->numlumps]
 #define TYPE_QPIC			66	// quake1 and hl pic (lmp_t)
 #define TYPE_MIPTEX			67	// half-life (mip_t) previous was TYP_SOUND but never used in quake1
 #define TYPE_QMIP			68	// quake1 (mip_t) (replaced with TYPE_MIPTEX while loading)
-#define TYPE_BINDATA		69	// engine internal data (map lumps, save lumps etc)
-#define TYPE_STRDATA		70	// stringdata type (stringtable marked as TYPE_BINDATA)
-#define TYPE_RAW			71	// unrecognized raw data
-#define TYPE_SCRIPT			72	// .txt scripts (xash ext)
-#define TYPE_VPROGS			73	// .dat progs (xash ext)
+#define TYPE_RAW			69	// raw data
+#define TYPE_QFONT			70	// half-life font (qfont_t)
+#define TYPE_BINDATA		71	// engine internal data (map lumps, save lumps etc)
+#define TYPE_STRDATA		72	// stringdata type (stringtable marked as TYPE_BINDATA)
+#define TYPE_SCRIPT			73	// .qc scripts (xash ext)
+#define TYPE_VPROGS			74	// .dat progs (xash ext)
 
 /*
 ==============================================================================

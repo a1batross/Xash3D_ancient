@@ -5,6 +5,9 @@
 #ifndef EFFECTS_API_H
 #define EFFECTS_API_H
 
+typedef void (*HITCALLBACK)( TEMPENTITY *ent, trace_t *ptr );
+typedef void (*CALLBACK)( TEMPENTITY *ent );
+
 struct cparticle_s
 {
 	vec3_t		origin;
@@ -21,6 +24,23 @@ struct cparticle_s
 	float		rotation;
 	float		bounceFactor;
 };
+
+struct tempent_s
+{
+	int		flags;
+	float		die;
+	float		frameMax;
+	vec3_t		origin;
+	float		fadeSpeed;
+	float		bounceFactor;
+	sound_t		hitSound;
+
+	HITCALLBACK	hitcallback;
+	CALLBACK		callback;
+
+	TEMPENTITY	*next;
+	int		priority;
+} TEMPENTITY;
 
 typedef struct efxapi_s
 {

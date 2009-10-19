@@ -548,17 +548,10 @@ void DrawImageBar( float percent, const char *szSpriteName, int x, int y )
 //
 // 27/12/08 moved here from cl_view.c
 //
-void V_RenderPlaque( void )
+void DrawProgressBar( void )
 {
-	if( gHUD.m_iDrawPlaque )
-	{
-		const char *levelshot;
-
-		// logo that shows up while upload next level
-		levelshot = CVAR_GET_STRING( "cl_levelshot_name" );
-		DrawImageRectangle( SPR_Load( levelshot ));
-		DrawImageBar( CVAR_GET_FLOAT( "scr_loading" ), "m_loading" );
-	}
+	if( !gHUD.m_iDrawPlaque ) return;
+	DrawImageBar( CVAR_GET_FLOAT( "scr_loading" ), "m_loading" );
 
 	if( !CVAR_GET_FLOAT( "scr_download" )) return;
 	DrawImageBar( CVAR_GET_FLOAT( "scr_download" ), "m_download", (ScreenWidth-128)/2, ScreenHeight-60 );

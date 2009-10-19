@@ -67,6 +67,16 @@ int HUD_VidInit( void )
 
 void HUD_Init( void )
 {
+	g_engfuncs.pfnAddCommand ("impulse", NULL, "send impulse to a client" );
+	g_engfuncs.pfnAddCommand ("noclip", NULL, "enable or disable no clipping mode" );
+	g_engfuncs.pfnAddCommand ("notarget", NULL, "notarget mode (monsters do not see you)" );
+	g_engfuncs.pfnAddCommand ("fullupdate", NULL, "re-init HUD on start demo recording" );
+	g_engfuncs.pfnAddCommand ("give", NULL, "give specified item or weapon" );
+	g_engfuncs.pfnAddCommand ("drop", NULL, "drop current/specified item or weapon" );
+	g_engfuncs.pfnAddCommand ("intermission", NULL, "go to intermission" );
+	g_engfuncs.pfnAddCommand ("god", NULL, "classic cheat" );
+	g_engfuncs.pfnAddCommand ("fov", NULL, "set client field of view" );
+
 	gHUD.Init();
 
 	V_Init();
@@ -85,10 +95,8 @@ int HUD_Redraw( float flTime, int state )
 
 	switch( state )
 	{
-	case CL_DISCONNECTED:
-		break;
 	case CL_LOADING:
-		V_RenderPlaque();
+		DrawProgressBar();
 		break;
 	case CL_ACTIVE:
 	case CL_PAUSED:
@@ -244,5 +252,14 @@ void HUD_Frame( double time )
 
 void HUD_Shutdown( void )
 {
-	// no shutdown operations
+	// perform shutdown operations
+	g_engfuncs.pfnDelCommand ("impulse" );
+	g_engfuncs.pfnDelCommand ("noclip" );
+	g_engfuncs.pfnDelCommand ("notarget" );
+	g_engfuncs.pfnDelCommand ("fullupdate" );
+	g_engfuncs.pfnDelCommand ("give" );
+	g_engfuncs.pfnDelCommand ("drop" );
+	g_engfuncs.pfnDelCommand ("intermission" );
+	g_engfuncs.pfnDelCommand ("god" );
+	g_engfuncs.pfnDelCommand ("fov" );
 }

@@ -98,7 +98,6 @@ typedef struct render_exp_s
 	bool	(*ScrShot)( const char *filename, int shot_type ); // write screenshot with same name 
 	bool	(*EnvShot)( const char *filename, uint size, bool skyshot ); // write envshot with same name 
 	void	(*LightForPoint)( const vec3_t point, vec3_t ambientLight );
-	void	(*DrawFill)( float x, float y, float w, float h );
 	void	(*DrawStretchRaw)( int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw );
 	void	(*DrawStretchPic)( float x, float y, float w, float h, float s1, float t1, float s2, float t2, shader_t shader );
 	int	(*GetFragments)( const vec3_t org, float rad, vec3_t axis[3], int maxverts, vec3_t *verts, int maxfrags, fragment_t *frags );
@@ -122,6 +121,7 @@ typedef struct render_imp_s
 	bool	(*GetAttachment)( int entityIndex, int number, vec3_t origin, vec3_t angles );
 	bool	(*SetAttachment)( int entityIndex, int number, vec3_t origin, vec3_t angles );
 	edict_t	*(*GetClientEdict)( int index );
+	prevframe_t *(*GetPrevFrame)( int entityIndex );
 	float	(*GetMouthOpen)( int entityIndex );
 	edict_t	*(*GetLocalPlayer)( void );
 	int	(*GetMaxClients)( void );

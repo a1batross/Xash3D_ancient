@@ -48,6 +48,49 @@ cvar_t		*r_studio_bonelighting;
 cvar_t		*r_studio_lerping;
 cvar_t		*r_studio_lambert;
 
+typedef struct studiolight_s
+{
+	vec3_t		lightvec;			// light vector
+	vec4_t		lightcolor;		// ambient light color
+	vec4_t		lightdiffuse;		// diffuse light color
+
+	vec3_t		bonelightvec[MAXSTUDIOBONES];	// ambient lightvectors per bone
+	vec3_t		dynlightcolor[MAX_DLIGHTS];	// ambient dynamic light colors
+	vec3_t		dynlightvec[MAX_DLIGHTS][MAXSTUDIOBONES];
+	int		numdynlights;
+} studiolight_t;
+
+typedef struct studioverts_s
+{
+	vec3_t		*verts;
+	vec3_t		*norms;
+	vec3_t		*light;			// light values
+	vec2_t		*chrome;			// size match with numverts
+	int		numverts;
+	int		numnorms;
+	int		m_nCachedFrame;		// to avoid transform it twice
+} studioverts_t;
+
+typedef struct studiovars_s
+{
+	float		blending[MAXSTUDIOBLENDS];
+	float		controller[MAXSTUDIOCONTROLLERS];
+	prevframe_t	*prev;			// duplcate e->prev for consistency
+
+	// cached bones, valid only for CURRENT frame
+	char		bonenames[MAXSTUDIOBONES][32];// used for attached entities 
+	studioverts_t	*mesh[MAXSTUDIOMODELS];
+	matrix4x4		rotationmatrix;
+	matrix4x4		*bonestransform;
+	vec3_t		*chromeright;
+	vec3_t		*chromeup;
+	int		*chromeage;
+	int		numbones;
+
+	// StudioBoneLighting (slow but ugly)
+	studiolight_t	*light;			// FIXME: alloc match size not maximum
+} studiovars_t;
+
 /*
 ====================
 R_StudioInit
@@ -94,30 +137,34 @@ void R_StudioAllocExtradata( edict_t *in, ref_entity_t *e )
 	if( !e->mempool ) e->mempool = Mem_AllocPool( va( "Entity Pool %i", e - r_entities ));
 	if( !e->extradata ) e->extradata = (void *)Mem_Alloc( e->mempool, sizeof( studiovars_t ));
 	studio = (studiovars_t *)e->extradata;
+	studio->prev = e->prev;
+
+	// any stuidio model MUST have previous data for lerping
+	Com_Assert( studio->prev == NULL );
 
 	// copy controllers
 	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
 	{
-		studio->prev.controller[i] = studio->controller[i];
+		studio->prev->controller[i] = studio->controller[i];
 		studio->controller[i] = in->v.controller[i];
 	}
 
 	// copy blends
 	for( i = 0; i < MAXSTUDIOBLENDS; i++ )
 	{
-		studio->prev.blending[i] = studio->blending[i];
+		studio->prev->blending[i] = studio->blending[i];
 		studio->blending[i] = in->v.blending[i];
 	}
 
 	// sequence has changed, hold the previous sequence info
 	if( in->v.sequence != e->sequence )
 	{
-		studio->latched.sequencetime = e->prev.animtime + 0.01f;
-		studio->latched.sequence = e->sequence;
+		studio->prev->sequencetime = e->prev->animtime + 0.01f;
+		studio->prev->sequence = e->sequence;
 
-		// hold current blendings
+		// save current blendings
 		for( i = 0; i < MAXSTUDIOBLENDS; i++ )
-			studio->latched.blending[i] = studio->blending[i];
+			studio->prev->blending[i] = studio->blending[i];
 	}
 
 	if( e->flags & EF_ANIMATE ) 
@@ -130,12 +177,12 @@ void R_StudioAllocExtradata( edict_t *in, ref_entity_t *e )
 		}
 		else
 		{
-			if( !studio->m_fSequenceFinished )
+			if( !studio->prev->m_fSequenceFinished )
 				R_StudioFrameAdvance( e, 0 );
 
-			if( studio->m_fSequenceFinished )
+			if( studio->prev->m_fSequenceFinished )
 			{
-				if( studio->m_fSequenceLoops )
+				if( studio->prev->m_fSequenceLoops )
 					in->v.frame = -1;
 				// hold at last frame
 			}
@@ -149,7 +196,7 @@ void R_StudioAllocExtradata( edict_t *in, ref_entity_t *e )
 	else
 	{
 		e->sequence = in->v.sequence;
-		e->prev.animtime = e->animtime;	// must be update each frame!
+		e->prev->animtime = e->animtime;	// must be update each frame!
 		e->animtime = in->v.animtime;
 	}
 
@@ -579,15 +626,15 @@ float R_StudioFrameAdvance( ref_entity_t *ent, float flInterval )
 	}
 	if( !ent->animtime ) flInterval = 0.0;
 
-	ent->frame += flInterval * pstudio->m_flFrameRate * ent->framerate;
+	ent->frame += flInterval * pstudio->prev->m_flFrameRate * ent->framerate;
 	ent->animtime = RI.refdef.time;
 
 	if( ent->frame < 0.0 || ent->frame >= 256.0 ) 
 	{
-		if( pstudio->m_fSequenceLoops )
+		if( pstudio->prev->m_fSequenceLoops )
 			ent->frame -= (int)(ent->frame / 256.0) * 256.0;
 		else ent->frame = (ent->frame < 0.0) ? 0 : 255;
-		pstudio->m_fSequenceFinished = true;
+		pstudio->prev->m_fSequenceFinished = true;
 	}
 	return flInterval;
 }
@@ -597,18 +644,18 @@ void R_StudioResetSequenceInfo( ref_entity_t *ent )
 	dstudiohdr_t	*hdr;
 	studiovars_t	*pstudio = (studiovars_t *)ent->extradata;
 
-	if( !ent || !ent->extradata || !ent->model || !ent->model->extradata )
+	if( !ent || !ent->prev || !ent->extradata || !ent->model || !ent->model->extradata )
 		return;
 
 	hdr = ((mstudiomodel_t *)ent->model->extradata)->phdr;
 	if( !hdr ) return;
 
-	R_StuioGetSequenceInfo( hdr, ent, &pstudio->m_flFrameRate, &pstudio->m_flGroundSpeed );
-	pstudio->m_fSequenceLoops = ((R_StudioGetSequenceFlags( hdr, ent ) & STUDIO_LOOPING) != 0 );
-	ent->prev.animtime = ent->animtime;
+	R_StuioGetSequenceInfo( hdr, ent, &pstudio->prev->m_flFrameRate, &pstudio->prev->m_flGroundSpeed );
+	pstudio->prev->m_fSequenceLoops = ((R_StudioGetSequenceFlags( hdr, ent ) & STUDIO_LOOPING) != 0 );
+	ent->prev->animtime = ent->animtime;
 	ent->animtime = RI.refdef.time;
-	pstudio->m_fSequenceFinished = false;
-	pstudio->m_flLastEventCheck = RI.refdef.time;
+	pstudio->prev->m_fSequenceFinished = false;
+	pstudio->prev->m_flLastEventCheck = RI.refdef.time;
 }
 
 int R_StudioGetEvent( ref_entity_t *e, dstudioevent_t *pcurrent, float flStart, float flEnd, int index )
@@ -700,7 +747,7 @@ void R_StudioCalcBoneAdj( float dadt, float *adj, const float *pcontroller1, con
 				if (value > 1.0) value = 1.0;
 				value = (1.0 - value) * pbonecontroller[j].start + value * pbonecontroller[j].end;
 			}
-			// Msg("%d %d %f : %f\n", RI.currententity->curstate.controller[j], RI.currententity->latched.prevcontroller[j], value, dadt );
+			// Msg("%d %d %f : %f\n", RI.currententity->curstate.controller[j], RI.currententity->prev->prevcontroller[j], value, dadt );
 		}
 
 		switch( pbonecontroller[j].type & STUDIO_TYPES )
@@ -1040,7 +1087,7 @@ float R_StudioEstimateInterpolant( void )
 {
 	float dadt = 1.0;
 
-	if( m_fDoInterp && ( RI.currententity->animtime >= RI.currententity->prev.animtime + 0.01 ))
+	if( m_fDoInterp && ( RI.currententity->animtime >= RI.currententity->prev->animtime + 0.01 ))
 	{
 		dadt = (RI.refdef.time - RI.currententity->animtime) / 0.1;
 		if( dadt > 2.0 ) dadt = 2.0;
@@ -1091,7 +1138,7 @@ void R_StudioCalcRotations( float pos[][3], vec4_t *q, dstudioseqdesc_t *pseqdes
 	pbone = (dstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
 	mouthopen = ri.GetMouthOpen( RI.currententity->index );
 
-	R_StudioCalcBoneAdj( dadt, adj, pstudio->controller, pstudio->prev.controller, mouthopen );
+	R_StudioCalcBoneAdj( dadt, adj, pstudio->controller, pstudio->prev->controller, mouthopen );
 
 	for (i = 0; i < m_pStudioHeader->numbones; i++, pbone++, panim++) 
 	{
@@ -1184,7 +1231,7 @@ float R_StudioSetupBones( ref_entity_t *e )
 
 	f = R_StudioEstimateFrame( pseqdesc );
 
-//	if( e->prev.frame > f ) Msg( "%f %f\n", e->prev.frame, f );
+//	if( e->prev->frame > f ) Msg( "%f %f\n", e->prev->frame, f );
 
 	pstudio = RI.currententity->extradata;
 	Com_Assert( pstudio == NULL );
@@ -1201,7 +1248,7 @@ float R_StudioSetupBones( ref_entity_t *e )
 		R_StudioCalcRotations( pos2, q2, pseqdesc, panim, f );
 
 		dadt = R_StudioEstimateInterpolant();
-		s = (pstudio->blending[0] * dadt + pstudio->prev.blending[0] * (1.0 - dadt)) / 255.0;
+		s = (pstudio->blending[0] * dadt + pstudio->prev->blending[0] * (1.0 - dadt)) / 255.0;
 
 		R_StudioSlerpBones( q, pos, q2, pos2, s );
 
@@ -1213,57 +1260,57 @@ float R_StudioSetupBones( ref_entity_t *e )
 			panim += m_pStudioHeader->numbones;
 			R_StudioCalcRotations( pos4, q4, pseqdesc, panim, f );
 
-			s = (pstudio->blending[0] * dadt + pstudio->prev.blending[0] * (1.0 - dadt)) / 255.0;
+			s = (pstudio->blending[0] * dadt + pstudio->prev->blending[0] * (1.0 - dadt)) / 255.0;
 			R_StudioSlerpBones( q3, pos3, q4, pos4, s );
 
-			s = (pstudio->blending[1] * dadt + pstudio->prev.blending[1] * (1.0 - dadt)) / 255.0;
+			s = (pstudio->blending[1] * dadt + pstudio->prev->blending[1] * (1.0 - dadt)) / 255.0;
 			R_StudioSlerpBones( q, pos, q3, pos3, s );
 		}
 	}
 
-	if( m_fDoInterp && pstudio->latched.sequencetime && ( pstudio->latched.sequencetime + 0.2 > RI.refdef.time) && ( pstudio->latched.sequence < m_pStudioHeader->numseq ))
+	if( m_fDoInterp && pstudio->prev->sequencetime && ( pstudio->prev->sequencetime + 0.2 > RI.refdef.time) && ( pstudio->prev->sequence < m_pStudioHeader->numseq ))
 	{
 		// blend from last sequence
 		static float  pos1b[MAXSTUDIOBONES][3];
 		static vec4_t q1b[MAXSTUDIOBONES];
 		float s;
 
-		pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + pstudio->latched.sequence;
+		pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + pstudio->prev->sequence;
 		panim = R_StudioGetAnim( RI.currentmodel, pseqdesc );
 		// clip prevframe
-		R_StudioCalcRotations( pos1b, q1b, pseqdesc, panim, pstudio->latched.frame );
+		R_StudioCalcRotations( pos1b, q1b, pseqdesc, panim, pstudio->prev->frame );
 
 		if( pseqdesc->numblends > 1 )
 		{
 			panim += m_pStudioHeader->numbones;
-			R_StudioCalcRotations( pos2, q2, pseqdesc, panim, pstudio->latched.frame );
+			R_StudioCalcRotations( pos2, q2, pseqdesc, panim, pstudio->prev->frame );
 
-			s = (pstudio->latched.blending[0]) / 255.0;
+			s = (pstudio->prev->blending[0]) / 255.0;
 			R_StudioSlerpBones( q1b, pos1b, q2, pos2, s );
 
 			if( pseqdesc->numblends == 4 )
 			{
 				panim += m_pStudioHeader->numbones;
-				R_StudioCalcRotations( pos3, q3, pseqdesc, panim, pstudio->latched.frame );
+				R_StudioCalcRotations( pos3, q3, pseqdesc, panim, pstudio->prev->frame );
 
 				panim += m_pStudioHeader->numbones;
-				R_StudioCalcRotations( pos4, q4, pseqdesc, panim, pstudio->latched.frame );
+				R_StudioCalcRotations( pos4, q4, pseqdesc, panim, pstudio->prev->frame );
 
-				s = (pstudio->latched.blending[0]) / 255.0;
+				s = (pstudio->prev->blending[0]) / 255.0;
 				R_StudioSlerpBones( q3, pos3, q4, pos4, s );
 
-				s = (pstudio->latched.blending[1]) / 255.0;
+				s = (pstudio->prev->blending[1]) / 255.0;
 				R_StudioSlerpBones( q1b, pos1b, q3, pos3, s );
 			}
 		}
 
-		s = 1.0 - (RI.refdef.time - pstudio->latched.sequencetime) / 0.2;
+		s = 1.0 - (RI.refdef.time - pstudio->prev->sequencetime) / 0.2;
 		R_StudioSlerpBones( q, pos, q1b, pos1b, s );
 	}
 	else
 	{
 		// MsgDev( D_INFO, "prevframe = %4.2f\n", f );
-		pstudio->latched.frame = f;
+		pstudio->prev->frame = f;
 	}
 
 	pbones = (dstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
@@ -1277,7 +1324,7 @@ float R_StudioSetupBones( ref_entity_t *e )
 		pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + e->gaitsequence;
 
 		panim = R_StudioGetAnim( RI.currentmodel, pseqdesc );
-		R_StudioCalcRotations( pos2, q2, pseqdesc, panim, pstudio->gaitframe );
+		R_StudioCalcRotations( pos2, q2, pseqdesc, panim, pstudio->prev->gaitframe );
 
 		for( i = 0; i < m_pStudioHeader->numbones; i++ )
 		{
@@ -1355,7 +1402,7 @@ float R_StudioMergeBones( ref_entity_t *e, ref_model_t *m_pSubModel )
 
 	f = R_StudioEstimateFrame( pseqdesc );
 
-//	if( e->prev.frame > f ) Msg("%f %f\n", e->prev.frame, f );
+//	if( e->prev->frame > f ) Msg("%f %f\n", e->prev->frame, f );
 
 	panim = R_StudioGetAnim( m_pSubModel, pseqdesc );
 	R_StudioCalcRotations( pos, q, pseqdesc, panim, f );
@@ -2011,8 +2058,8 @@ void R_StudioEstimateGait( ref_entity_t *e, edict_t *pplayer )
 	// VectorAdd( pplayer->v.velocity, pplayer->v.prediction_error, est_velocity );
 	if( m_fGaitEstimation )
 	{
-		VectorSubtract( e->origin, pstudio->gaitorigin, est_velocity );
-		VectorCopy( e->origin, pstudio->gaitorigin );
+		VectorSubtract( e->origin, pstudio->prev->gaitorigin, est_velocity );
+		VectorCopy( e->origin, pstudio->prev->gaitorigin );
 
 		m_flGaitMovement = VectorLength( est_velocity );
 		if( dt <= 0 || m_flGaitMovement / dt < 5 )
@@ -2030,7 +2077,7 @@ void R_StudioEstimateGait( ref_entity_t *e, edict_t *pplayer )
 
 	if( est_velocity[1] == 0 && est_velocity[0] == 0 )
 	{
-		float flYawDiff = e->angles[YAW] - pstudio->gaityaw;
+		float flYawDiff = e->angles[YAW] - pstudio->prev->gaityaw;
 
 		flYawDiff = flYawDiff - (int)(flYawDiff / 360) * 360;
 		if( flYawDiff > 180 ) flYawDiff -= 360;
@@ -2039,15 +2086,15 @@ void R_StudioEstimateGait( ref_entity_t *e, edict_t *pplayer )
 		if( dt < 0.25 ) flYawDiff *= dt * 4;
 		else flYawDiff *= dt;
 
-		pstudio->gaityaw += flYawDiff;
-		pstudio->gaityaw = pstudio->gaityaw - (int)(pstudio->gaityaw / 360) * 360;
+		pstudio->prev->gaityaw += flYawDiff;
+		pstudio->prev->gaityaw = pstudio->prev->gaityaw - (int)(pstudio->prev->gaityaw / 360) * 360;
 		m_flGaitMovement = 0;
 	}
 	else
 	{
-		pstudio->gaityaw = (atan2(est_velocity[1], est_velocity[0]) * 180 / M_PI);
-		if( pstudio->gaityaw > 180 ) pstudio->gaityaw = 180;
-		if( pstudio->gaityaw < -180 ) pstudio->gaityaw = -180;
+		pstudio->prev->gaityaw = (atan2(est_velocity[1], est_velocity[0]) * 180 / M_PI);
+		if( pstudio->prev->gaityaw > 180 ) pstudio->prev->gaityaw = 180;
+		if( pstudio->prev->gaityaw < -180 ) pstudio->prev->gaityaw = -180;
 	}
 
 }
@@ -2071,8 +2118,8 @@ void R_StudioProcessGait( ref_entity_t *e, edict_t *pplayer, studiovars_t *pstud
 	R_StudioPlayerBlend( pseqdesc, &fBlend, &e->angles[PITCH] );
 
 	pstudio->blending[0] = fBlend;
-	pstudio->prev.blending[0] = pstudio->blending[0];
-	pstudio->latched.blending[0] = pstudio->blending[0];
+	pstudio->prev->blending[0] = pstudio->blending[0];
+	pstudio->prev->blending[0] = pstudio->blending[0];
 
 	// MsgDev( D_INFO, "%f %d\n", e->angles[PITCH], pstudio->blending[0] );
 
@@ -2083,20 +2130,20 @@ void R_StudioProcessGait( ref_entity_t *e, edict_t *pplayer, studiovars_t *pstud
 	// MsgDev( D_INFO, "%f %f\n", e->angles[YAW], m_pPlayerInfo->gaityaw );
 
 	// calc side to side turning
-	flYaw = e->angles[YAW] - pstudio->gaityaw;
+	flYaw = e->angles[YAW] - pstudio->prev->gaityaw;
 	flYaw = flYaw - (int)(flYaw / 360) * 360;
 	if( flYaw < -180 ) flYaw = flYaw + 360;
 	if( flYaw > 180 ) flYaw = flYaw - 360;
 
 	if( flYaw > 120 )
 	{
-		pstudio->gaityaw = pstudio->gaityaw - 180;
+		pstudio->prev->gaityaw = pstudio->prev->gaityaw - 180;
 		m_flGaitMovement = -m_flGaitMovement;
 		flYaw = flYaw - 180;
 	}
 	else if( flYaw < -120 )
 	{
-		pstudio->gaityaw = pstudio->gaityaw + 180;
+		pstudio->prev->gaityaw = pstudio->prev->gaityaw + 180;
 		m_flGaitMovement = -m_flGaitMovement;
 		flYaw = flYaw + 180;
 	}
@@ -2106,12 +2153,12 @@ void R_StudioProcessGait( ref_entity_t *e, edict_t *pplayer, studiovars_t *pstud
 	pstudio->controller[1] = ((flYaw / 4.0) + 30) / (60.0 / 255.0);
 	pstudio->controller[2] = ((flYaw / 4.0) + 30) / (60.0 / 255.0);
 	pstudio->controller[3] = ((flYaw / 4.0) + 30) / (60.0 / 255.0);
-	pstudio->prev.controller[0] = pstudio->controller[0];
-	pstudio->prev.controller[1] = pstudio->controller[1];
-	pstudio->prev.controller[2] = pstudio->controller[2];
-	pstudio->prev.controller[3] = pstudio->controller[3];
+	pstudio->prev->controller[0] = pstudio->controller[0];
+	pstudio->prev->controller[1] = pstudio->controller[1];
+	pstudio->prev->controller[2] = pstudio->controller[2];
+	pstudio->prev->controller[3] = pstudio->controller[3];
 
-	e->angles[YAW] = pstudio->gaityaw;
+	e->angles[YAW] = pstudio->prev->gaityaw;
 	if( e->angles[YAW] < -0 ) e->angles[YAW] += 360;
 
 	if( pplayer->v.gaitsequence >= m_pStudioHeader->numseq ) 
@@ -2122,16 +2169,16 @@ void R_StudioProcessGait( ref_entity_t *e, edict_t *pplayer, studiovars_t *pstud
 	// calc gait frame
 	if( pseqdesc->linearmovement[0] > 0 )
 	{
-		pstudio->gaitframe += (m_flGaitMovement / pseqdesc->linearmovement[0]) * pseqdesc->numframes;
+		pstudio->prev->gaitframe += (m_flGaitMovement / pseqdesc->linearmovement[0]) * pseqdesc->numframes;
 	}
 	else
 	{
-		pstudio->gaitframe += pseqdesc->fps * dt;
+		pstudio->prev->gaitframe += pseqdesc->fps * dt;
 	}
 
 	// do modulo
-	pstudio->gaitframe = pstudio->gaitframe - (int)(pstudio->gaitframe / pseqdesc->numframes) * pseqdesc->numframes;
-	if( pstudio->gaitframe < 0 ) pstudio->gaitframe += pseqdesc->numframes;
+	pstudio->prev->gaitframe = pstudio->prev->gaitframe - (int)(pstudio->prev->gaitframe / pseqdesc->numframes) * pseqdesc->numframes;
+	if( pstudio->prev->gaitframe < 0 ) pstudio->prev->gaitframe += pseqdesc->numframes;
 }
 
 static bool R_StudioSetupModel( ref_entity_t *e, ref_model_t *mod )
@@ -2166,7 +2213,7 @@ static bool R_StudioSetupModel( ref_entity_t *e, ref_model_t *mod )
 		if( m_pEntity->v.gaitsequence <= 0 )
 		{
 			for( i = 0; i < 4; i++ )	// clear torso controllers
-				pstudio->prev.controller[i] = pstudio->controller[i] = 0x7F;
+				pstudio->prev->controller[i] = pstudio->controller[i] = 0x7F;
 			e->gaitsequence = 0;	// StudioSetupBones() issuses
 
 			R_StudioSetUpTransform ( e, false );
@@ -2198,21 +2245,21 @@ static bool R_StudioSetupModel( ref_entity_t *e, ref_model_t *mod )
 	}
 	R_StudioSetupLighting( e, mod );
 
-	if( m_pEntity && e->m_nCachedFrameCount != r_framecount2 )
+	if( m_pEntity && e->movetype != MOVETYPE_FOLLOW && !RI.refdef.paused && e->m_nCachedFrameCount != r_framecount2 )
 	{
 		float		flInterval = 0.01f;
-		float		flStart = e->frame + (pstudio->m_flLastEventCheck - e->animtime) * pstudio->m_flFrameRate * e->framerate;
-		float		flEnd = e->frame + flInterval * pstudio->m_flFrameRate * e->framerate;
+		float		flStart = e->frame + (pstudio->prev->m_flLastEventCheck - e->animtime) * pstudio->prev->m_flFrameRate * e->framerate;
+		float		flEnd = e->frame + flInterval * pstudio->prev->m_flFrameRate * e->framerate;
 		int		index = 0;
 		dstudioevent_t	event;
 
 		Mem_Set( &event, 0, sizeof( event ));
 		R_StudioCalcAttachments( e );
 
-		pstudio->m_flLastEventCheck = e->animtime + flInterval;
-		pstudio->m_fSequenceFinished = false;
+		pstudio->prev->m_flLastEventCheck = e->animtime + flInterval;
+		pstudio->prev->m_fSequenceFinished = false;
 		if( flEnd >= 256.0f || flEnd <= 0.0f ) 
-			pstudio->m_fSequenceFinished = true;
+			pstudio->prev->m_fSequenceFinished = true;
 
 		while(( index = R_StudioGetEvent( e, &event, flStart, flEnd, index )) != 0 )
 			ri.StudioEvent( &event, m_pEntity );

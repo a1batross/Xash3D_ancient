@@ -188,22 +188,3 @@ void R_DrawSetParms( shader_t handle, kRenderMode_t rendermode, int frame )
 		glState.draw_frame = bound( 0, frame, shader->stages[0].num_textures - 1 );
 	}
 }
-
-void R_DrawFill( float x, float y, float w, float h )
-{
-	pglDisable( GL_TEXTURE_2D );
-	pglColor4ubv( glState.draw_color );
-
-	if( glState.draw_color[3] != 255 )
-		GL_SetState( GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA );
-	else GL_SetState( GLSTATE_SRCBLEND_ONE|GLSTATE_DSTBLEND_ZERO );
-
-	pglBegin( GL_QUADS );
-	pglVertex2f( x, y );
-	pglVertex2f( x + w, y );
-	pglVertex2f( x + w, y + h );
-	pglVertex2f( x, y + h );
-	pglEnd();
-
-	pglEnable( GL_TEXTURE_2D );
-}

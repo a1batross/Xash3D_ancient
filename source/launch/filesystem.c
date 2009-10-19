@@ -3381,6 +3381,7 @@ wadtype_t wad_types[] =
 	{"flt", TYPE_FLAT	}, // doom1 wall texture
 	{"pal", TYPE_QPAL	}, // palette
 	{"lmp", TYPE_QPIC	}, // quake1, hl pic
+	{"fnt", TYPE_QFONT	}, // hl qfonts
 	{"mip", TYPE_MIPTEX }, // hl/q1 mip
 	{"bin", TYPE_BINDATA}, // xash binary data
 	{"str", TYPE_STRDATA}, // xash string data
@@ -3595,8 +3596,9 @@ static bool W_ReadLumpTable( wfile_t *wad )
 		// convert all qmip types to miptex
 		if( wad->lumps[i].type == TYPE_QMIP ) wad->lumps[i].type = TYPE_MIPTEX;
 
-		// check for 'conchars' issues (only lmp loader supposed to read this lame pic)
-		if( !com.strcmp( wad->lumps[i].name, "conchars" )) wad->lumps[i].type = TYPE_QPIC; 
+		// check for Quake 'conchars' issues (only lmp loader supposed to read this lame pic)
+		if( !com.stricmp( wad->lumps[i].name, "conchars" ) && wad->lumps[i].type == TYPE_QMIP )
+			wad->lumps[i].type = TYPE_QPIC; 
 	}
 	return true;
 }

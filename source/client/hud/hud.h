@@ -670,16 +670,8 @@ public:
 	// user commansds
 	void _cdecl UserCmd_LoadingPlaque( void );
 
-	// filled in VidInit
-	struct
-	{
-		byte	charWidths[256];
-		int	iCharHeight;
-		int	iRealWidth;
-		int	iRealHeight;
-		int	iWidth;
-		int	iHeight;
-	} m_scrinfo;
+	// Screen information
+	SCREENINFO	m_scrinfo;
 		
 	int	m_iWeaponBits;
 	int	m_fPlayerDead;

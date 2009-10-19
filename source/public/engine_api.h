@@ -106,6 +106,31 @@ typedef struct trace_s
 	};
 } trace_t;
 
+typedef struct
+{
+	float		frame;
+	float		animtime; 
+	int		sequence;
+	float		sequencetime;
+
+	// CLIENT SPECIFIC
+	vec3_t		gaitorigin;		// client oldorigin used to calc velocity
+	float		gaitframe;		// client->frame + yaw
+	float		gaityaw;			// local value
+
+	// EF_ANIMATE stuff
+	int		m_fSequenceLoops;		// sequence is looped
+	int		m_fSequenceFinished;	// sequence is finished
+	float		m_flFrameRate;     		// looped sequence framerate
+	float		m_flGroundSpeed;   		// looped sequence ground speed (movement)
+	float		m_flLastEventCheck;		// last time when event is checked
+
+
+	float		blending[16];		// previous blending values
+	float		controller[16];		// previous controller values
+	float		seqblending[16];		// blending between sequence when it's changed
+} prevframe_t;
+
 /*
 =================
 CategorizePlane

@@ -2376,6 +2376,7 @@ static void *pfnGetModelPtr( edict_t* pEdict )
 {
 	cmodel_t	*mod;
 
+	if( !pEdict || pEdict->free ) return NULL;
 	mod = pe->RegisterModel( sv.configstrings[CS_MODELS + pEdict->v.modelindex] );
 
 	if( !mod ) return NULL;

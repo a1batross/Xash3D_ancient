@@ -6,6 +6,7 @@
 #define CLGAME_API_H
 
 typedef int		HSPRITE;					// handle to a graphic
+typedef struct tempent_s	TEMPENTITY;
 typedef struct usercmd_s	usercmd_t;
 typedef struct cparticle_s	cparticle_t;
 typedef struct skyportal_s	skyportal_t;
@@ -17,6 +18,19 @@ typedef void (*pfnEventHook)( struct event_args_s *args );
 #include "trace_def.h"
 #include "event_api.h"
 #include "gameinfo.h"
+
+#define SCRINFO_VIRTUALSPACE	1
+
+typedef struct
+{
+	int		iFlags;
+	int		iRealWidth;
+	int		iRealHeight;
+	int		iWidth;
+	int		iHeight;
+	int		iCharHeight;
+	byte		charWidths[256];
+} SCREENINFO;
 
 typedef struct
 {
@@ -96,6 +110,7 @@ typedef struct cl_enginefuncs_s
 	// command handlers
 	void	(*pfnAddCommand)( const char *cmd_name, void (*function)(void), const char *cmd_desc );
 	void	(*pfnHookUserMsg)( const char *szMsgName, pfnUserMsgHook pfn );
+	void	(*pfnDelCommand)( const char *cmd_name );
 	void	(*pfnServerCmd)( const char *szCmdString );
 	void	(*pfnClientCmd)( const char *szCmdString );
 	void	(*pfnSetKeyDest)( int key_dest );
@@ -130,8 +145,8 @@ typedef struct cl_enginefuncs_s
 	int	(*pfnGetMaxClients)( void );
 	edict_t*	(*pfnGetViewModel)( void );
 	void*	(*pfnGetModelPtr)( edict_t* pEdict );
-	void	(*pfnMakeLevelShot)( void );		// level shot will be created at next frame
 
+	int	(*pfnGetScreenInfo)( SCREENINFO *pscrinfo );
 	void	(*pfnGetAttachment)( const edict_t *pEdict, int iAttachment, float *rgflOrigin, float *rgflAngles );
 
 	int	(*pfnPointContents)( const float *rgflVector );

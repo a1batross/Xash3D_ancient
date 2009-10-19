@@ -79,27 +79,12 @@ void CHud :: VidInit( void )
 	Draw_VidInit ();
 	ClearAllFades ();
 
-	// setup screen info
-	m_scrinfo.iRealWidth = CVAR_GET_FLOAT( "width" );
-	m_scrinfo.iRealHeight = CVAR_GET_FLOAT( "height" );
-
 	if( CVAR_GET_FLOAT( "hud_scale" ))
-	{
-		// virtual screen space 640x480
-		// see cl_screen.c from Quake3 code for more details
-		m_scrinfo.iWidth = 640;
-		m_scrinfo.iHeight = 480;
-	}
-	else
-	{
-		m_scrinfo.iWidth = CVAR_GET_FLOAT( "width" );
-		m_scrinfo.iHeight = CVAR_GET_FLOAT( "height" );
-	}
+		m_scrinfo.iFlags = SCRINFO_VIRTUALSPACE;
+	else m_scrinfo.iFlags = 0;
 
-	// TODO: build real table of fonts widthInChars
-	for( int i = 0; i < 256; i++ )
-		m_scrinfo.charWidths[i] = SMALLCHAR_WIDTH;
-	m_scrinfo.iCharHeight = SMALLCHAR_HEIGHT;
+	// setup screen info
+	GetScreenInfo( &m_scrinfo );
 
 	// Only load this once
 	if ( !m_pSpriteList )
@@ -237,8 +222,6 @@ int CHud :: Redraw( float flTime )
 	// clock was reset, reset delta
 	if( m_flTimeDelta < 0 ) m_flTimeDelta = 0;
 
-	// make levelshot if needed
-	MAKE_LEVELSHOT();
 	m_iDrawPlaque = 1;	// clear plaque stuff
 
 	// draw screen fade before hud

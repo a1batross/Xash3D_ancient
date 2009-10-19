@@ -163,4 +163,4 @@ Beta 13.12.09
 136. re-vision uimenu
 137. complete rewriting physic.dll
 138. implement hashtable for loaded sounds
-139. implement SCR_LoadingPlaque ?
+139. finalize client API's

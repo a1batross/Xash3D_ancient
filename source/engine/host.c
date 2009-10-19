@@ -172,6 +172,7 @@ bool Host_InitRender( void )
 	ri.GetAttachment = CL_GetAttachment;
 	ri.SetAttachment = CL_SetAttachment;
 	ri.GetClientEdict = CL_GetEdictByIndex;
+	ri.GetPrevFrame = CL_GetPrevFrame;
 	ri.GetMouthOpen = CL_GetMouthOpen;
 	ri.GetLocalPlayer = CL_GetLocalPlayer;
 	ri.GetMaxClients = CL_GetMaxClients;

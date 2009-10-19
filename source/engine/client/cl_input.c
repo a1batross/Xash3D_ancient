@@ -856,23 +856,6 @@ void CL_InitInput( void )
 
 /*
 ============
-CL_InitServerCommands
-============
-*/
-void CL_InitServerCommands( void )
-{
-	Cmd_AddCommand ("impulse", NULL, "send impulse to a client" );
-	Cmd_AddCommand ("noclip", NULL, "enable or disable no clipping mode" );
-	Cmd_AddCommand ("fullupdate", NULL, "re-init HUD on start demo recording" );
-	Cmd_AddCommand ("give", NULL, "give specified item or weapon" );
-	Cmd_AddCommand ("drop", NULL, "drop current/specified item or weapon" );
-	Cmd_AddCommand ("intermission", NULL, "go to intermission" );
-	Cmd_AddCommand ("god", NULL, "classic cheat" );
-	Cmd_AddCommand ("fov", NULL, "set client field of view" );
-}
-
-/*
-============
 CL_ShutdownInput
 ============
 */

@@ -29,9 +29,10 @@ public:
 	virtual void ItemOnGround( void ) {};
 	float ItemRespawnTime( CItem *pItem );
           
-          BOOL IsItem( void ) { return !strncmp( STRING(pev->classname), "item_", 5 ); }
-          BOOL IsAmmo( void ) { return !strncmp( STRING(pev->classname), "ammo_", 5 ); }
-          
+          virtual BOOL IsItem( void ) { return !strncmp( STRING(pev->classname), "item_", 5 ); }
+          virtual BOOL IsAmmo( void ) { return !strncmp( STRING(pev->classname), "ammo_", 5 ); }
+          virtual BOOL IsWeapon( void ) { return FALSE; }
+                    
 	//item_generic
 	virtual const char *Model( void ){ return NULL; }
 	virtual const char *PickSound( void ){ return "common/null.wav"; }

@@ -108,6 +108,7 @@ public:
 	void EXPORT FallThink ( void );			// when an item is first spawned, this think is run to determine when the object has hit the ground.
 	void EXPORT Materialize( void );			// make a weapon visible and tangible
 	void EXPORT AttemptToMaterialize( void );  		// the weapon desires to become visible and tangible, if the game rules allow for it
+          BOOL IsWeapon( void ) { return !strncmp( STRING(pev->classname), "weapon_", 5 ); }
 	CBaseEntity* Respawn ( void );// copy a weapon
 	void CheckRespawn( void );
 	virtual int GetItemInfo(ItemInfo *p);			// get weapon default info
