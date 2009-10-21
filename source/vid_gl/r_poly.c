@@ -40,19 +40,48 @@ void R_PushPoly( const meshbuffer_t *mb )
 
 	MB_NUM2SHADER( mb->shaderkey, shader );
 
-	features = shader->features | MF_TRIFAN;
 	for( i = -mb->infokey-1, p = r_polys + i; i < mb->lastPoly; i++, p++ )
 	{
-		poly_mesh.numVertexes = p->numverts;
-		poly_mesh.xyzArray = inVertsArray;
-		poly_mesh.normalsArray = inNormalsArray;
-		poly_mesh.stArray = p->stcoords;
-		poly_mesh.colorsArray[0] = p->colors;
-		for( j = 0; j < p->numverts; j++ )
+		// check for extended mesh
+		if( p->elems && p->numelems )
 		{
-			Vector4Set( inVertsArray[r_backacc.numVerts+j], p->verts[j][0], p->verts[j][1], p->verts[j][2], 1 );
-			VectorCopy( p->normal, inNormalsArray[r_backacc.numVerts+j] );
+			features = shader->features;
+
+			if( p->normals ) features |= MF_NORMALS;
+			poly_mesh.numVertexes = p->numverts;
+			poly_mesh.numElems = p->numelems;
+			poly_mesh.xyzArray = inVertsArray;
+			poly_mesh.normalsArray = inNormalsArray;
+			poly_mesh.stArray = p->stcoords;
+			poly_mesh.colorsArray[0] = p->colors;
+			poly_mesh.elems = p->elems;
+
+			for( j = 0; j < p->numverts; j++ )
+			{
+				Vector4Set( inVertsArray[r_backacc.numVerts+j], p->verts[j][0], p->verts[j][1], p->verts[j][2], 1 );
+				if( p->normals == NULL )
+				{
+					VectorCopy( p->normal, inNormalsArray[r_backacc.numVerts+j] );
+					continue;
+				}
+				Vector4Set( inNormalsArray[r_backacc.numVerts+j], p->normals[j][0], p->normals[j][1], p->normals[j][2], 1 );
+			}
 		}
+		else
+		{
+			features = shader->features | MF_TRIFAN;
+			poly_mesh.numVertexes = p->numverts;
+			poly_mesh.xyzArray = inVertsArray;
+			poly_mesh.normalsArray = inNormalsArray;
+			poly_mesh.stArray = p->stcoords;
+			poly_mesh.colorsArray[0] = p->colors;
+			for( j = 0; j < p->numverts; j++ )
+			{
+				Vector4Set( inVertsArray[r_backacc.numVerts+j], p->verts[j][0], p->verts[j][1], p->verts[j][2], 1 );
+				VectorCopy( p->normal, inNormalsArray[r_backacc.numVerts+j] );
+			}
+		}
+
 		R_PushMesh( &poly_mesh, features );
 	}
 }
@@ -76,24 +105,18 @@ void R_AddPolysToList( void )
 	for( i = 0, p = r_polys; i < r_numPolys; nverts += p->numverts, mb->lastPoly++, i++, p++ )
 	{
 		shader = p->shader;
-		if( p->fognum < 0 )
-			fognum = -1;
-		else if( p->fognum )
-			fognum = bound( 1, p->fognum, r_worldbrushmodel->numfogs + 1 );
-		else
-			fognum = r_worldbrushmodel->numfogs ? 0 : -1;
+		if( p->fognum < 0 ) fognum = -1;
+		else if( p->fognum ) fognum = bound( 1, p->fognum, r_worldbrushmodel->numfogs + 1 );
+		else fognum = r_worldbrushmodel->numfogs ? 0 : -1;
 
-		if( fognum == -1 )
-			fog = NULL;
-		else if( !fognum )
-			fog = R_FogForSphere( p->verts[0], 0 );
-		else
-			fog = r_worldbrushmodel->fogs + fognum - 1;
+		if( fognum == -1 ) fog = NULL;
+		else if( !fognum ) fog = R_FogForSphere( p->verts[0], 0 );
+		else fog = r_worldbrushmodel->fogs + fognum - 1;
 
 		// we ignore SHADER_ENTITY_MERGABLE here because polys are just regular trifans
 		if( !mb || mb->shaderkey != (int)shader->sortkey
 			|| lastFog != fog || nverts + p->numverts > MAX_ARRAY_VERTS
-			|| ( ( shader->flags & SHADER_MATERIAL ) && !VectorCompare( p->normal, lastNormal ) ) )
+			|| (( shader->flags & SHADER_MATERIAL ) && !VectorCompare( p->normal, lastNormal )))
 		{
 			nverts = 0;
 			lastFog = fog;
@@ -558,10 +581,9 @@ static void R_TraceAgainstTriangle( const vec_t *a, const vec_t *b, const vec_t 
 	if( fabs( d2 ) < 0.0001 )
 		return;
 
-    // get intersect point of ray with triangle plane
-    frac = (d1) / d2;
-	if( frac <= 0 )
-		return;
+	// get intersect point of ray with triangle plane
+	frac = (d1) / d2;
+	if( frac <= 0 ) return;
 	if( frac >= trace_fraction )
 		return;		// we have hit something earlier
 

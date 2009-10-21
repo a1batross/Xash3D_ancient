@@ -228,6 +228,42 @@ typedef struct
 	pfnUserMsgHook	func;	// user-defined function	
 } user_message_t;
 
+#define MAX_TRIPOLYS	2048
+#define MAX_TRIVERTS	128
+#define MAX_TRIELEMS	MAX_TRIVERTS * 6
+#define MAX_TRIANGLES	MAX_TRIELEMS / 3
+
+typedef struct
+{
+	poly_t		currentPolygon;
+	shader_t		currentShader;
+	int		currentFrame;
+	int		vertexState;
+	int		drawMode;
+	rgba_t		color;
+
+	bool		checkFlush;
+	bool		hasNormals;
+	bool		caps[3];
+
+	vec3_t		*verts;
+	vec3_t		*normals;
+	vec2_t		*stcoords;
+	rgba_t		*colors;
+	uint		*elems;
+
+	vec3_t		vertsArray[MAX_TRIPOLYS][MAX_TRIVERTS];
+	vec3_t		normalsArray[MAX_TRIPOLYS][MAX_TRIVERTS];
+	vec2_t		stcoordsArray[MAX_TRIPOLYS][MAX_TRIVERTS];
+	rgba_t		colorsArray[MAX_TRIPOLYS][MAX_TRIVERTS];
+	uint		elemsArray[MAX_TRIPOLYS][MAX_TRIELEMS];
+
+	int		numPolys;
+	int		numVertex;
+	int		numColor;
+	int		numIndex;
+} tri_state_t;
+
 typedef struct
 {
 	void		*hInstance;		// pointer to client.dll
@@ -250,6 +286,8 @@ typedef struct
 
 	cl_globalvars_t	*globals;
 	user_message_t	*msg[MAX_USER_MESSAGES];
+
+	tri_state_t	*pTri;
 
 	edict_t		viewent;			// viewmodel or playermodel in UI_PlayerSetup
 	edict_t		playermodel;		// uiPlayerSetup latched vars

@@ -205,6 +205,10 @@ SOURCE=.\hud\hud_zoom.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\global\r_particle.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\global\tempents.cpp
 # End Source File
 # Begin Source File
@@ -246,6 +250,10 @@ SOURCE=.\hud\hud_ammohistory.h
 # Begin Source File
 
 SOURCE=.\hud\hud_health.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\global\r_particle.h
 # End Source File
 # Begin Source File
 

@@ -333,6 +333,7 @@ void CL_AddEntities( void )
 
 	CL_AddPacketEntities( &cl.frame );
 	clgame.dllFuncs.pfnCreateEntities();
+	clgame.dllFuncs.pfnDrawTriangles();
 
 	CL_AddParticles();
 	CL_AddDLights();

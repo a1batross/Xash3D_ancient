@@ -25,7 +25,7 @@ typedef enum
 typedef enum
 {
 	TRI_SHADER = 1,
-	TRI_CLIP_PLANE,
+	TRI_MAXCAPS
 } TRI_CAPS;
 
 typedef struct triapi_s
@@ -33,21 +33,19 @@ typedef struct triapi_s
 	size_t	api_size;			// must match with sizeof( triapi_t );
 
 	void	(*RenderMode)( kRenderMode_t mode );
-	void	(*Bind)( HSPRITE shader );	// use handle that return pfnLoadShader
 	void	(*Begin)( TRI_DRAW mode );
 	void	(*End)( void );
 
 	void	(*Enable)( int cap );
 	void	(*Disable)( int cap );
-	void	(*Vertex2f)( float x, float y );
 	void	(*Vertex3f)( float x, float y, float z );
-	void	(*Vertex2fv)( const float *v );
 	void	(*Vertex3fv)( const float *v );
-	void	(*Color3f)( float r, float g, float b );
+	void	(*Normal3f)( float x, float y, float z );
+	void	(*Normal3fv)( const float *v );
 	void	(*Color4f)( float r, float g, float b, float a );
 	void	(*Color4ub)( byte r, byte g, byte b, byte a );
 	void	(*TexCoord2f)( float u, float v );
-	void	(*TexCoord2fv)( const float *v );
+	void	(*Bind)( HSPRITE shader, int frame );	// use handle that return pfnLoadShader
 	void	(*CullFace)( TRI_CULL mode );
 	void	(*ScreenToWorld)( float *screen, float *world  ); 
 	int	(*WorldToScreen)( float *world, float *screen );  // returns 1 if it's z clipped

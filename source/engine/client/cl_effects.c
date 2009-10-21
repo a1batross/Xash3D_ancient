@@ -306,6 +306,7 @@ void CL_ClearDecals( void )
 	int	i;
 
 	Mem_Set( cl_decals, 0, sizeof( cl_decals ));
+	Mem_Set( cl_decal_polys, 0, sizeof( cl_decal_polys ));
 
 	// link decals
 	cl_free_decals = cl_decals;

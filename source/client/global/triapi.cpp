@@ -3,13 +3,11 @@
 //		     triapi.cpp - triangle rendering, if any
 //=======================================================================
 
-#include	"extdll.h"
+#include "extdll.h"
 #include "utils.h"
+#include "r_particle.h"
 
-void HUD_DrawNormalTriangles( void )
+void HUD_DrawTriangles( void )
 {
-}
-
-void HUD_DrawTransparentTriangles( void )
-{
+	g_pParticleSystems->UpdateSystems();
 }

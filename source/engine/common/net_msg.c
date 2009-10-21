@@ -33,7 +33,7 @@ static net_field_t ent_fields[] =
 { ES_FIELD(avelocity[2]),		NET_FLOAT, false	},
 { ES_FIELD(modelindex),		NET_WORD,	 false	},	// 4096 models
 { ES_FIELD(colormap),		NET_WORD,	 false	},	// encoded as two shorts for top and bottom color
-{ ES_FIELD(scale),			NET_COLOR, false	},	// 0-255 values
+{ ES_FIELD(scale),			NET_FLOAT, false	},	// 0-255 values
 { ES_FIELD(frame),			NET_FLOAT, false	},	// interpolate value
 { ES_FIELD(animtime),		NET_FLOAT, false	},	// auto-animating time
 { ES_FIELD(framerate),		NET_FLOAT, false	},	// custom framerate
@@ -73,13 +73,13 @@ static net_field_t ent_fields[] =
 { ES_FIELD(owner),			NET_WORD,	 false	},	// entity owner index
 { ES_FIELD(groundent),		NET_SHORT, false	},	// ground entity index, if FL_ONGROUND is set
 { ES_FIELD(solid),			NET_LONG,	 false	},	// encoded mins/maxs
+{ ES_FIELD(effects),		NET_LONG,	 false	},	// effect flags
 { ES_FIELD(mins[0]),		NET_FLOAT, false	},
 { ES_FIELD(mins[1]),		NET_FLOAT, false	},
 { ES_FIELD(mins[2]),		NET_FLOAT, false	},
 { ES_FIELD(maxs[0]),		NET_FLOAT, false	},
 { ES_FIELD(maxs[1]),		NET_FLOAT, false	},
 { ES_FIELD(maxs[2]),		NET_FLOAT, false	},	
-{ ES_FIELD(effects),		NET_LONG,	 false	},	// effect flags
 { ES_FIELD(renderfx),		NET_LONG,	 false	},	// renderfx flags
 { ES_FIELD(renderamt),		NET_FLOAT, false	},	// alpha amount
 { ES_FIELD(rendercolor[0]),		NET_FLOAT, false	},	// stateflags_t #2 (4 bytes)
@@ -666,7 +666,7 @@ void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t 
 	{
 		if( from == NULL ) return;
 
-		// a NULL to is a delta remove message
+		// a NULL 'to' is a delta remove message
 		MSG_WriteBits( msg, from->number, NWDesc[NET_WORD].name, NET_WORD );
 		MSG_WriteBits( msg, 0xFFFF, NWDesc[NET_LONG].name, NET_LONG );
 		return;

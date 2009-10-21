@@ -475,7 +475,6 @@ void CBaseTurret::EyeOff( )
 		if (m_eyeBrightness > 0)
 		{
 			m_eyeBrightness = max( 0, m_eyeBrightness - 30 );
-			Msg( "SetBrightness %i\n", m_eyeBrightness );
 			m_pEyeGlow->SetBrightness( m_eyeBrightness );
 		}
 	}

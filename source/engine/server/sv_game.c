@@ -3175,6 +3175,10 @@ bool SV_ParseEdict( script_t *script, edict_t *ent )
 		pkvd[i].szClassName = (char *)classname;
 		svgame.dllFuncs.pfnKeyValue( ent, &pkvd[i] );
 	}
+
+	// check for rendercolor
+	if( VectorIsNull( ent->v.rendercolor )) VectorSet( ent->v.rendercolor, 255, 255, 255 );
+
 	return true;
 }
 

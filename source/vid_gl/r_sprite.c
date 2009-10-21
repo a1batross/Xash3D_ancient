@@ -556,12 +556,9 @@ bool R_DrawSpriteModel( const meshbuffer_t *mb )
 	{
 		if( e->skin > 0 && e->parent->model && e->parent->model->type == mod_studio )
 		{
-			vec3_t	pos;
-
 			// FIXME: pev->skin hardcoded to attachment number :(
-			if( ri.GetAttachment( e->parent->index, e->skin, pos, NULL ))
-				VectorAdd( e->parent->origin, pos, e->origin2 );
-			else VectorCopy( e->parent->origin, e->origin2 );
+			if( !ri.GetAttachment( e->parent->index, e->skin, e->origin2, NULL ))
+				VectorCopy( e->parent->origin, e->origin2 );
 		}
 		else VectorCopy( e->parent->origin, e->origin2 );
 	}

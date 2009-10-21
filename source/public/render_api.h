@@ -35,9 +35,13 @@
 typedef struct
 {
 	int		numverts;
+	int		numelems;
+
 	vec3_t		*verts;
+	vec3_t		*normals;
 	vec2_t		*stcoords;
 	rgba_t		*colors;
+	uint		*elems;
 
 	union
 	{

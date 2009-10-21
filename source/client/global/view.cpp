@@ -49,10 +49,6 @@ cvar_t	*scr_ofsz;
 cvar_t	*cl_vsmoothing;
 cvar_t	*cl_stairsmooth;
 cvar_t	*cl_forwardspeed;
-cvar_t	*r_mirrors;
-cvar_t	*r_portals;
-cvar_t	*r_screens;
-cvar_t	*r_debug;
 
 cvar_t	*cl_bobcycle;
 cvar_t	*cl_bob;
@@ -74,28 +70,13 @@ cvar_t	*v_ipitch_level;
 //==============================================================================
 // render manager global variables
 bool g_FirstFrame		= false;
-bool g_RenderReady		= false;
 bool g_bFinalPass		= false;
 bool g_bEndCalc		= false;
 int m_RenderRefCount = 0;	// refcounter (use for debug)
 
 // passes info
-bool g_bMirrorShouldpass 	= false;
-bool g_bScreenShouldpass 	= false;
-bool g_bPortalShouldpass 	= false;
 bool g_bSkyShouldpass 	= false;
-bool g_bMirrorPass		= false;
-bool g_bPortalPass		= false;
-bool g_bScreenPass		= false;
 bool g_bSkyPass		= false;
-
-// rendering info
-int g_iTotalVisibleMirrors	= 0;
-int g_iTotalVisibleScreens	= 0;
-int g_iTotalVisiblePortals	= 0;
-int g_iTotalMirrors	= 0;
-int g_iTotalScreens = 0;
-int g_iTotalPortals = 0;
 
 // base origin and angles
 Vector g_vecBaseOrigin;       // base origin - transformed always
@@ -161,11 +142,6 @@ void V_Init( void )
 	cl_chasedist = g_engfuncs.pfnRegisterVariable( "cl_chasedist", "112", 0, "max distance to chase camera" );
 	g_engfuncs.pfnAddCommand( "thirdperson", V_ThirdPerson, "change camera to thirdperson" );
 	g_engfuncs.pfnAddCommand( "firstperson", V_FirstPerson, "change camera to firstperson" );
-
-	r_mirrors = g_engfuncs.pfnRegisterVariable( "r_mirrors", "0", FCVAR_ARCHIVE, "enable mirrors rendering" );
-	r_portals = g_engfuncs.pfnRegisterVariable( "r_portals", "0", FCVAR_ARCHIVE, "enable portals rendering" );
-	r_screens = g_engfuncs.pfnRegisterVariable( "r_screens", "0", FCVAR_ARCHIVE, "enable screens rendering" );
-	r_debug = g_engfuncs.pfnRegisterVariable( "r_debug", "0", 0, "show renderer state" );
 }
 
 //==========================
@@ -519,29 +495,12 @@ void V_CalcNextView( ref_params_t *pparams )
 	if( g_FirstFrame )	// first time not actually
 	{
 		g_FirstFrame = false;
-                    g_RenderReady = false;
 		
 		// first time in this function
-		V_PreRender( pparams ); // this set g_RenderReady at true if all is'ok
+		V_PreRender( pparams );
 
-		if( !g_RenderReady ) // no hardware capable?
-		{
-			g_bMirrorShouldpass = false;
-			g_bScreenShouldpass = false;
-			g_bPortalShouldpass = false;
-			g_bSkyShouldpass	= (gHUD.m_iSkyMode ? true : false); // sky must drawing always
-		}
-		else // all is'ok
-		{
-			g_bMirrorShouldpass = (g_iTotalVisibleMirrors > 0 && r_mirrors->value);
-			g_bScreenShouldpass = (g_iTotalVisibleScreens > 0 && r_screens->value);
-			g_bPortalShouldpass = (g_iTotalVisiblePortals > 0 && r_portals->value);
-			g_bSkyShouldpass	= (gHUD.m_iSkyMode ? true : false);
-		}
+		g_bSkyShouldpass	= (gHUD.m_iSkyMode ? true : false);
 		m_RenderRefCount	= 0;	// reset debug counter
-		g_bMirrorPass	= false;
-		g_bScreenPass	= false;
-		g_bPortalPass	= false;
 		g_bSkyPass	= false;
 		g_bFinalPass	= false;
 	}
@@ -638,21 +597,6 @@ void V_CalcIntermisionRefdef( ref_params_t *pparams )
 	v_cl_angles = pparams->cl_viewangles;
 	v_origin = pparams->vieworg;
 	v_angles = pparams->viewangles;
-}
-
-//==========================
-// V_PrintDebugInfo
-// FIXME: use custom text drawing ?
-//==========================
-void V_PrintDebugInfo( ref_params_t *pparams ) // for future extensions
-{
-	if( !r_debug->value ) return; //show OpenGL renderer debug info
-	ALERT( at_console, "Xash Renderer Info: ");
-	if( m_RenderRefCount > 1 ) ALERT( at_console, "Total %d passes\n", m_RenderRefCount );
-	else ALERT( at_console, "Use normal view, make one pass\n" );
-	if( g_iTotalMirrors ) ALERT( at_console, "Visible mirrors: %d from %d\n", g_iTotalVisibleMirrors, g_iTotalMirrors );
-	if( g_iTotalScreens ) ALERT( at_console, "Visible screens: %d from %d\n", g_iTotalVisibleScreens, g_iTotalScreens );
-	if( g_iTotalPortals ) ALERT( at_console, "Visible portals: %d from %d\n", g_iTotalVisiblePortals, g_iTotalPortals );
 }
 
 //==========================
@@ -979,9 +923,6 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 	else if( pparams->viewsize == 90 ) view->v.origin[2] += 1;
 	else if( pparams->viewsize == 80 ) view->v.origin[2] += 0.5;
 
-	if( g_bMirrorPass || g_bPortalPass || g_bScreenPass )
-		pparams->punchangle = -pparams->punchangle; // make inverse for mirror
-
 	pparams->viewangles += pparams->punchangle;
 	pparams->viewangles += ev_punchangle;
 
@@ -1071,171 +1012,14 @@ bool V_CalcSkyRefdef( ref_params_t *pparams )
 	return false;
 }
 
-//==========================
-// V_CalcMirrorsRefdef
-//==========================
-bool V_CalcMirrorsRefdef( ref_params_t *pparams )
-{
-	if( g_bMirrorShouldpass )
-	{
-		if( pparams->nextView == 0 )
-		{
-			g_bMirrorPass = true;
-
-			// this is first pass rendering (setup mirror viewport and nextView's)
-                              V_SetViewportRefdef( pparams );
-
-			// enable clip plane once in first mirror!
-			g_engfuncs.pTriAPI->Enable( TRI_CLIP_PLANE );
-                              V_CalcMainRefdef( pparams );
-#ifdef XASH_RENDER
-			m_pCurrentMirror = NULL;
-			R_SetupNewMirror( pparams );
-			R_SetupMirrorRenderPass( pparams );
-#endif
-			pparams->nextView = g_iTotalVisibleMirrors;
-
-			m_RenderRefCount++;
-			return true;
-		}
-		else if( pparams->nextView == 1 )
-		{
-#ifdef XASH_RENDER
-			R_NewMirrorRenderPass();	// capture view to texture
-			m_pCurrentMirror = NULL;
-#endif
-			g_engfuncs.pTriAPI->Disable( TRI_CLIP_PLANE );
-			V_ResetViewportRefdef( pparams );
-			pparams->nextView = 0;
-
-			g_bMirrorPass = false;
-			g_bMirrorShouldpass = false;
-			return false;
-		}
-		else
-		{
-#ifdef XASH_RENDER
-			R_NewMirrorRenderPass();	// capture view to texture
-			R_SetupNewMirror( pparams );
-			R_SetupMirrorRenderPass( pparams );
-#endif
-			pparams->nextView--;
-			m_RenderRefCount++;
-			return true;
-		}
-	}
-	return false;
-}
-
-//==========================
-// V_CalcScreensRefdef
-//==========================
-bool V_CalcScreensRefdef( ref_params_t *pparams )
-{
-	if( g_bScreenShouldpass )
-	{
-		if( pparams->nextView == 0 )
-		{
-			// this is first pass rendering (setup screen viewport and nextView's)
-			g_bScreenPass = true;
-			V_SetViewportRefdef( pparams );
-#ifdef XASH_RENDER			
-			m_pCurrentScreen = NULL;
-			R_SetupNewScreen(pparams);
-			R_SetupScreenRenderPass(pparams);
-#endif
-			pparams->nextView = g_iTotalVisibleScreens;
-			m_RenderRefCount++;
-			return true;//end of pass
-		}
-		else if( pparams->nextView == 1 )
-		{
-#ifdef XASH_RENDER
-			R_NewScreenRenderPass();	// capture view to texture
-			m_pCurrentScreen = NULL;
-#endif                              
-			V_ResetViewportRefdef( pparams );
-			pparams->nextView = 0;
-			g_bScreenShouldpass = false;
-			return false;
-		}
-		else
-		{
-#ifdef XASH_RENDER
-			R_NewScreenRenderPass();	// capture view to texture
-			R_SetupNewScreen( pparams );
-			R_SetupScreenRenderPass( pparams );
-#endif
-			pparams->nextView--;
-			m_RenderRefCount++;
-			return true;
-		}
-	}
-	return false;
-}
-
-//==========================
-// V_CalcPortalsRefdef
-//==========================
-bool V_CalcPortalsRefdef( ref_params_t *pparams )
-{
-	if( g_bPortalShouldpass )
-	{
-		if( pparams->nextView == 0 )
-		{
-			// this is first pass rendering (setup mirror viewport and nextView's)
-			g_bPortalPass = true;
-                              V_SetViewportRefdef( pparams );
-
-                              V_CalcMainRefdef( pparams );
-#ifdef XASH_RENDER
-			m_pCurrentPortal = NULL;
-			R_SetupNewPortal( pparams );
-			R_SetupPortalRenderPass( pparams );
-#endif
-			pparams->nextView = g_iTotalVisiblePortals;
-			m_RenderRefCount++;
-			return true;
-		}
-		else if( pparams->nextView == 1 )
-		{
-#ifdef XASH_RENDER
-			R_NewPortalRenderPass();	// capture view to texture
-			m_pCurrentPortal = NULL;
-#endif                              
-			// restore for final pass
-			V_ResetViewportRefdef( pparams );
-			pparams->nextView = 0;
-			g_bPortalShouldpass = false;
-			return false;
-		}
-		else
-		{
-#ifdef XASH_RENDER
-			R_NewPortalRenderPass();	// capture view to texture
-			R_SetupNewPortal( pparams );
-			R_SetupPortalRenderPass( pparams );
-#endif
-			pparams->nextView--;
-			m_RenderRefCount++;
-			return true;
-		}
-	}
-	return false;
-}
-
 void V_CalcRefdef( ref_params_t *pparams )
 {
 	V_CalcNextView( pparams );
 	
-	if( V_CalcSkyRefdef( pparams )) return;
-	if( V_CalcScreensRefdef( pparams )) return;
-	if( V_CalcPortalsRefdef( pparams )) return;
-	if( V_CalcMirrorsRefdef( pparams )) return;
+	if( V_CalcSkyRefdef( pparams ))
+		return;
 	
 	V_CalcGlobalFog( pparams );
           V_CalcFinalPass ( pparams );
 	V_CalcMainRefdef( pparams );
-	
-	V_PrintDebugInfo( pparams );
 }

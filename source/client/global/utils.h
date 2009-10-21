@@ -20,8 +20,7 @@ extern void HUD_UpdateEntityVars( edict_t *out, skyportal_t *sky, const entity_s
 extern void HUD_Reset( void );
 extern void HUD_Frame( double time );
 extern void HUD_Shutdown( void );
-extern void HUD_DrawNormalTriangles( void );
-extern void HUD_DrawTransparentTriangles( void );
+extern void HUD_DrawTriangles( void );
 extern void HUD_CreateEntities( void );
 extern void HUD_StudioEvent( const dstudioevent_t *event, edict_t *entity );
 extern void HUD_StudioFxTransform( edict_t *ent, float transform[4][4] );

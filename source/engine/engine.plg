@@ -6,52 +6,13 @@
 --------------------Configuration: engine - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP12F5.tmp" with contents
+Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP2CE.tmp" with contents
 [
 /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "common" /I "server" /I "client" /I "uimenu" /I "../public" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\engine\!debug/" /Fo"..\temp\engine\!debug/" /Fd"..\temp\engine\!debug/" /FD /c 
-"D:\Xash3D\src_main\engine\common\cinematic.c"
-"D:\Xash3D\src_main\engine\client\cl_cmds.c"
-"D:\Xash3D\src_main\engine\client\cl_demo.c"
-"D:\Xash3D\src_main\engine\client\cl_effects.c"
-"D:\Xash3D\src_main\engine\client\cl_frame.c"
 "D:\Xash3D\src_main\engine\client\cl_game.c"
-"D:\Xash3D\src_main\engine\client\cl_input.c"
-"D:\Xash3D\src_main\engine\client\cl_main.c"
-"D:\Xash3D\src_main\engine\client\cl_parse.c"
-"D:\Xash3D\src_main\engine\client\cl_phys.c"
-"D:\Xash3D\src_main\engine\client\cl_scrn.c"
-"D:\Xash3D\src_main\engine\client\cl_view.c"
-"D:\Xash3D\src_main\engine\common\con_keys.c"
-"D:\Xash3D\src_main\engine\common\con_main.c"
-"D:\Xash3D\src_main\engine\common\con_utils.c"
-"D:\Xash3D\src_main\engine\common\engfuncs.c"
-"D:\Xash3D\src_main\engine\host.c"
-"D:\Xash3D\src_main\engine\common\input.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_advanced.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_audio.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_controls.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_credits.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_defaults.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_demos.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_gameoptions.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_gotosite.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_loadgame.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_main.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_menu.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_mods.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_multiplayer.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_network.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_newgame.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_options.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_performance.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_playersetup.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_qmenu.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_savegame.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_saveload.c"
-"D:\Xash3D\src_main\engine\uimenu\ui_video.c"
 ]
-Creating command line "cl.exe @"C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP12F5.tmp"" 
-Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP12F6.tmp" with contents
+Creating command line "cl.exe @"C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP2CE.tmp"" 
+Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP2CF.tmp" with contents
 [
 user32.lib msvcrtd.lib /nologo /subsystem:windows /dll /incremental:yes /pdb:"..\temp\engine\!debug/engine.pdb" /debug /machine:I386 /nodefaultlib:"msvcrt.lib" /out:"..\temp\engine\!debug/engine.dll" /implib:"..\temp\engine\!debug/engine.lib" /pdbtype:sept 
 "\Xash3D\src_main\temp\engine\!debug\cinematic.obj"
@@ -111,66 +72,24 @@ user32.lib msvcrtd.lib /nologo /subsystem:windows /dll /incremental:yes /pdb:"..
 "\Xash3D\src_main\temp\engine\!debug\ui_saveload.obj"
 "\Xash3D\src_main\temp\engine\!debug\ui_video.obj"
 ]
-Creating command line "link.exe @"C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP12F6.tmp""
-Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP12F7.bat" with contents
+Creating command line "link.exe @"C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP2CF.tmp""
+Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP2D0.bat" with contents
 [
 @echo off
 copy \Xash3D\src_main\temp\engine\!debug\engine.dll "D:\Xash3D\bin\engine.dll"
 ]
-Creating command line ""C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP12F7.bat""
+Creating command line ""C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP2D0.bat""
 Compiling...
-cinematic.c
-cl_cmds.c
-cl_demo.c
-cl_effects.c
-cl_frame.c
 cl_game.c
-d:\xash3d\src_main\common\effects_api.h(45) : error C2061: syntax error : identifier 'cl_entity_t'
-d:\xash3d\src_main\common\effects_api.h(50) : error C2059: syntax error : '}'
-cl_input.c
-cl_main.c
-cl_parse.c
-cl_phys.c
-cl_scrn.c
-cl_view.c
-con_keys.c
-con_main.c
-con_utils.c
-engfuncs.c
-host.c
-input.c
-ui_advanced.c
-ui_audio.c
-Generating Code...
-Compiling...
-ui_controls.c
-ui_credits.c
-ui_defaults.c
-ui_demos.c
-ui_gameoptions.c
-ui_gotosite.c
-ui_loadgame.c
-ui_main.c
-ui_menu.c
-ui_mods.c
-ui_multiplayer.c
-ui_network.c
-ui_newgame.c
-ui_options.c
-ui_performance.c
-ui_playersetup.c
-ui_qmenu.c
-ui_savegame.c
-ui_saveload.c
-ui_video.c
-Generating Code...
-Error executing cl.exe.
+Linking...
 <h3>Output Window</h3>
+Performing Custom Build Step on \Xash3D\src_main\temp\engine\!debug\engine.dll
+ë™ÆØ®‡Æ¢†≠Æ ‰†©´Æ¢:         1.
 
 
 
 <h3>Results</h3>
-engine.dll - 2 error(s), 0 warning(s)
+engine.dll - 0 error(s), 0 warning(s)
 </pre>
 </body>
 </html>

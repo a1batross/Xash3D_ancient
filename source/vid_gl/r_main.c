@@ -325,16 +325,11 @@ void R_RotateForEntity( ref_entity_t *e )
 		R_LoadIdentity();
 		return;
 	}
-#if 1
+
 	Matrix4x4_FromMatrix3x3( RI.objectMatrix, e->axis, e->scale );
-	if( e->movetype == MOVETYPE_FOLLOW && !VectorIsNull( e->origin2 ))
+	if( e->movetype == MOVETYPE_FOLLOW && e->parent && !VectorIsNull( e->origin2 ))
 		Matrix4x4_SetOrigin( RI.objectMatrix, e->origin2[0], e->origin2[1], e->origin2[2] );
 	else Matrix4x4_SetOrigin( RI.objectMatrix, e->origin[0], e->origin[1], e->origin[2] );
-#else
-	if( e->movetype == MOVETYPE_FOLLOW && !VectorIsNull( e->origin2 ))
-		Matrix4x4_CreateFromEntity( RI.objectMatrix, e->origin2[0], e->origin2[1], e->origin2[2], e->angles[PITCH], e->angles[YAW], e->angles[ROLL], e->scale );
-	else Matrix4x4_CreateFromEntity( RI.objectMatrix, e->origin[0], e->origin[1], e->origin[2], e->angles[PITCH], e->angles[YAW], e->angles[ROLL], e->scale );
-#endif
 	Matrix4x4_ConcatTransforms( RI.modelviewMatrix, RI.worldviewMatrix, RI.objectMatrix );
 	GL_LoadMatrix( RI.modelviewMatrix );
 	tr.modelviewIdentity = false;
@@ -355,7 +350,7 @@ void R_TranslateForEntity( ref_entity_t *e )
 
 	Matrix4x4_LoadIdentity( RI.objectMatrix );
 
-	if( e->movetype == MOVETYPE_FOLLOW && !VectorIsNull( e->origin2 ))
+	if( e->movetype == MOVETYPE_FOLLOW && e->parent && !VectorIsNull( e->origin2 ))
 		Matrix4x4_SetOrigin( RI.objectMatrix, e->origin2[0], e->origin2[1], e->origin2[2] );
 	else Matrix4x4_SetOrigin( RI.objectMatrix, e->origin[0], e->origin[1], e->origin[2] );
 	Matrix4x4_ConcatTransforms( RI.modelviewMatrix, RI.worldviewMatrix, RI.objectMatrix );
@@ -1814,12 +1809,22 @@ bool R_AddPolyToScene( const poly_t *poly )
 {
 	if(( r_numPolys < MAX_POLYS ) && poly && poly->numverts )
 	{
-		poly_t *dp = &r_polys[r_numPolys++];
+		poly_t		*dp = &r_polys[r_numPolys];
+		ref_shader_t	*shader;
 
 		*dp = *poly;
 		if( dp->numverts > MAX_POLY_VERTS )
 			dp->numverts = MAX_POLY_VERTS;
-		dp->shader = &r_shaders[poly->shadernum];
+
+		if( poly->shadernum < 0 || poly->shadernum > MAX_SHADERS )
+			return false;
+
+		if( !(shader = &r_shaders[poly->shadernum] ))
+			return false;
+
+		dp->shader = shader;
+		r_numPolys++;
+
 		return true;
 	}
 	return false;

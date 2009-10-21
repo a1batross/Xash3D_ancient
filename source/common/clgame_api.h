@@ -192,8 +192,7 @@ typedef struct
 	void	(*pfnReset)( void );
 	void	(*pfnFrame)( double time );
 	void 	(*pfnShutdown)( void );
-	void	(*pfnDrawNormalTriangles)( void );
-	void	(*pfnDrawTransparentTriangles)( void );
+	void	(*pfnDrawTriangles)( void );
 	void	(*pfnCreateEntities)( void );
 	void	(*pfnStudioEvent)( const dstudioevent_t *event, edict_t *entity );
 	void	(*pfnStudioFxTransform)( edict_t *pEdict, float transform[4][4] );

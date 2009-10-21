@@ -889,6 +889,7 @@ void CDecLED :: Spawn( void )
 	CheckState();
 
 	pev->solid	= SOLID_NOT;
+	pev->effects	= EF_NOINTERP;
 	pev->movetype	= MOVETYPE_NONE;
 	pev->angles.x	= -pev->angles.x;
 	pev->angles.y	= 180 - pev->angles.y;

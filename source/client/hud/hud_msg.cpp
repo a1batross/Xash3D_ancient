@@ -18,6 +18,7 @@
 #include "extdll.h"
 #include "utils.h"
 #include "hud.h"
+#include "r_particle.h"
 
 // CHud message handlers
 DECLARE_HUDMESSAGE( HUDColor );
@@ -375,7 +376,8 @@ int CHud :: MsgFunc_Particle( const char *pszName,  int iSize, void *pbuf )
 
 	int idx = READ_BYTE();
 	char *sz = READ_STRING();
-	// CreateAurora( idx, sz );
+
+	CreateAurora( idx, sz );
 
 	END_READ();
 	

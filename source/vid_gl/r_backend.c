@@ -2188,8 +2188,9 @@ static void R_RenderMeshGLSL_Material( void )
 		}
 	}
 	else if( ( r_currentMeshBuffer->sortkey & 3 ) == MB_POLY )
-	{	// polys
-		if( !( r_offsetmapping->integer & 2 ) )
+	{
+		// polys
+		if( !( r_offsetmapping->integer & 2 ))
 			offsetmappingScale = 0;
 
 		R_BuildTangentVectors( r_backacc.numVerts, vertsArray, normalsArray, coordsArray, r_backacc.numElems/3, elemsArray, inSVectorsArray );

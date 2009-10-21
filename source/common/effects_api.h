@@ -5,8 +5,8 @@
 #ifndef EFFECTS_API_H
 #define EFFECTS_API_H
 
-typedef void (*HITCALLBACK)( TEMPENTITY *ent, trace_t *ptr );
-typedef void (*CALLBACK)( TEMPENTITY *ent );
+typedef void (*HITCALLBACK)( TEMPENTITY *ent, TraceResult *ptr );
+typedef void (*ENTCALLBACK)( TEMPENTITY *ent );
 
 struct cparticle_s
 {
@@ -36,11 +36,11 @@ struct tempent_s
 	sound_t		hitSound;
 
 	HITCALLBACK	hitcallback;
-	CALLBACK		callback;
+	ENTCALLBACK	callback;
 
 	TEMPENTITY	*next;
 	int		priority;
-} TEMPENTITY;
+};
 
 typedef struct efxapi_s
 {

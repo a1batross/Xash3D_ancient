@@ -75,7 +75,7 @@ typedef struct entity_state_s
 	float		blending[16];	// studio animation blending
 	float		controller[16];	// studio bone controllers
 	int		flags;		// v.flags
-	uint		effects;		// effect flags like q1 and hl1
+	int		effects;		// effect flags like q1 and hl1
 	int		renderfx;		// render effects same as hl1
 	float		renderamt;	// alpha value or like somewhat
 	vec3_t		rendercolor;	// hl1 legacy stuff, working, but not needed

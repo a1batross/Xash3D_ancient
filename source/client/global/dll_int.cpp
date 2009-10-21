@@ -8,6 +8,7 @@
 #include "ref_params.h"
 #include "studio_ref.h"
 #include "hud.h"
+#include "r_particle.h"
 
 cl_enginefuncs_t g_engfuncs;
 cl_globalvars_t  *gpGlobals;
@@ -30,8 +31,7 @@ static HUD_FUNCTIONS gFunctionTable =
 	HUD_Reset,
 	HUD_Frame,
 	HUD_Shutdown,
-	HUD_DrawNormalTriangles,
-	HUD_DrawTransparentTriangles,
+	HUD_DrawTriangles,
 	HUD_CreateEntities,
 	HUD_StudioEvent,
 	HUD_StudioFxTransform,
@@ -60,6 +60,9 @@ int CreateAPI( HUD_FUNCTIONS *pFunctionTable, cl_enginefuncs_t* pEngfuncsFromEng
 
 int HUD_VidInit( void )
 {
+	if( g_pParticleSystems )
+		g_pParticleSystems->ClearSystems();
+	
 	gHUD.VidInit();
 
 	return 1;
@@ -76,6 +79,14 @@ void HUD_Init( void )
 	g_engfuncs.pfnAddCommand ("intermission", NULL, "go to intermission" );
 	g_engfuncs.pfnAddCommand ("god", NULL, "classic cheat" );
 	g_engfuncs.pfnAddCommand ("fov", NULL, "set client field of view" );
+
+          if ( g_pParticleSystems )
+          {
+          	// init partsystem
+		delete g_pParticleSystems;
+		g_pParticleSystems = NULL;
+	}
+	g_pParticleSystems = new ParticleSystemManager();
 
 	gHUD.Init();
 
