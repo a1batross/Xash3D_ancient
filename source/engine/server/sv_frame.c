@@ -141,17 +141,10 @@ void SV_EmitPacketEntities( client_frame_t *from, client_frame_t *to, sizebuf_t 
 
 		if( newnum == oldnum )
 		{	
-			bool	newentity = false;
-
 			// delta update from old position
 			// because the force parm is false, this will not result
 			// in any bytes being emited if the entity has not changed at all
-			// note that players are always 'newentities', this updates their oldorigin always
-			// and prevents warping
-			if( newent->ed_type == ED_CLIENT ) newentity = true;
-			if( newent->ed_type == ED_PORTAL ) newentity = true;
-
-			MSG_WriteDeltaEntity( oldent, newent, msg, false, newentity );
+			MSG_WriteDeltaEntity( oldent, newent, msg, false, false );
 			oldindex++;
 			newindex++;
 			continue;

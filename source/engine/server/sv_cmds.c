@@ -613,8 +613,8 @@ void SV_InitOperatorCommands( void )
 
 	Cmd_AddCommand( "save", SV_Save_f, "save the game to a file" );
 	Cmd_AddCommand( "load", SV_Load_f, "load a saved game file" );
-	Cmd_AddCommand( "quicksave", SV_QuickSave_f, "save the game to the quicksave" );
-	Cmd_AddCommand( "quickload", SV_QuickLoad_f, "load a quick-saved game file" );
+	Cmd_AddCommand( "savequick", SV_QuickSave_f, "save the game to the quicksave" );
+	Cmd_AddCommand( "loadquick", SV_QuickLoad_f, "load a quick-saved game file" );
 	Cmd_AddCommand( "delete", SV_Delete_f, "delete a saved game file and saveshot" );
 	Cmd_AddCommand( "autosave", SV_AutoSave_f, "save the game to 'autosave' file" );
 	Cmd_AddCommand( "killserver", SV_KillServer_f, "shutdown current server" );

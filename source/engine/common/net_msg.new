@@ -15,10 +15,13 @@
 
 static net_field_t ent_fields[] =
 {
-{ ES_FIELD(ed_type),		NET_BYTE,	 true	},	// stateflags_t #0 (4 bytes)
-{ ES_FIELD(ed_flags),		NET_BYTE,	 false	},	// stateflags_t #0 (4 bytes)
-{ ES_FIELD(classname),		NET_WORD,  true	},
+{ ES_FIELD(ed_type),		NET_BYTE,	 false	},	// stateflags_t #0 (4 bytes)
+{ ES_FIELD(ed_flags),		NET_BYTE,	 true	},	// stateflags_t #0 (4 bytes)
+{ ES_FIELD(classname),		NET_WORD,  false	},
 { ES_FIELD(soundindex),		NET_WORD,	 false	},	// 512 sounds ( OpenAL software limit is 255 )
+{ ES_FIELD(origin[0]),		NET_FLOAT, false	},
+{ ES_FIELD(origin[1]),		NET_FLOAT, false	},
+{ ES_FIELD(origin[2]),		NET_FLOAT, false	},
 { ES_FIELD(angles[0]),		NET_FLOAT, false	},
 { ES_FIELD(angles[1]),		NET_FLOAT, false	},
 { ES_FIELD(angles[2]),		NET_FLOAT, false	},
@@ -40,26 +43,6 @@ static net_field_t ent_fields[] =
 { ES_FIELD(body),			NET_BYTE,	 false	},	// 255 bodies
 { ES_FIELD(weaponmodel),		NET_WORD,  false	},	// p_model index, not name 
 { ES_FIELD(contents),		NET_LONG,	 false	},	// full range contents
-{ ES_FIELD(blending[0]),		NET_BYTE,  false	},
-{ ES_FIELD(blending[1]),		NET_BYTE,  false	},	// stateflags_t #1 (4 bytes)
-{ ES_FIELD(blending[2]),		NET_BYTE,  false	},
-{ ES_FIELD(blending[3]),		NET_BYTE,  false	},
-{ ES_FIELD(blending[4]),		NET_BYTE,  false	},
-{ ES_FIELD(blending[5]),		NET_BYTE,  false	},
-{ ES_FIELD(blending[6]),		NET_BYTE,  false	},
-{ ES_FIELD(blending[7]),		NET_BYTE,  false	},
-{ ES_FIELD(blending[8]),		NET_BYTE,  false	},
-{ ES_FIELD(blending[9]),		NET_BYTE,  false	},
-{ ES_FIELD(controller[0]),		NET_BYTE,  false	},	// bone controllers #
-{ ES_FIELD(controller[1]),		NET_BYTE,  false	},
-{ ES_FIELD(controller[2]),		NET_BYTE,  false	},
-{ ES_FIELD(controller[3]),		NET_BYTE,  false	},
-{ ES_FIELD(controller[4]),		NET_BYTE,  false	},
-{ ES_FIELD(controller[5]),		NET_BYTE,  false	},
-{ ES_FIELD(controller[6]),		NET_BYTE,  false	},
-{ ES_FIELD(controller[7]),		NET_BYTE,  false	},
-{ ES_FIELD(controller[8]),		NET_BYTE,  false	},
-{ ES_FIELD(controller[9]),		NET_BYTE,  false	},
 { ES_FIELD(solid),			NET_BYTE,	 false	},
 { ES_FIELD(flags),			NET_LONG,  false	},	// misc edict flags
 { ES_FIELD(movetype),		NET_BYTE,	 false	},
@@ -67,6 +50,7 @@ static net_field_t ent_fields[] =
 { ES_FIELD(aiment),			NET_SHORT, false	},	// entity index
 { ES_FIELD(owner),			NET_WORD,	 false	},	// entity owner index
 { ES_FIELD(groundent),		NET_SHORT, false	},	// ground entity index, if FL_ONGROUND is set
+{ ES_FIELD(solid),			NET_LONG,	 false	},	// encoded mins/maxs
 { ES_FIELD(effects),		NET_LONG,	 false	},	// effect flags
 { ES_FIELD(mins[0]),		NET_FLOAT, false	},
 { ES_FIELD(mins[1]),		NET_FLOAT, false	},
@@ -79,16 +63,33 @@ static net_field_t ent_fields[] =
 { ES_FIELD(rendercolor[0]),		NET_FLOAT, false	},	// stateflags_t #2 (4 bytes)
 { ES_FIELD(rendercolor[1]),		NET_FLOAT, false	},
 { ES_FIELD(rendercolor[2]),		NET_FLOAT, false	},
-{ ES_FIELD(oldorigin[0]),		NET_FLOAT, false	},
-{ ES_FIELD(oldorigin[1]),		NET_FLOAT, false	},
-{ ES_FIELD(oldorigin[2]),		NET_FLOAT, false	},
-{ ES_FIELD(origin[0]),		NET_FLOAT, false	},
-{ ES_FIELD(origin[1]),		NET_FLOAT, false	},
-{ ES_FIELD(origin[2]),		NET_FLOAT, false	},
+{ ES_FIELD(oldorigin[0]),		NET_FLOAT, true	},
+{ ES_FIELD(oldorigin[1]),		NET_FLOAT, true	},
+{ ES_FIELD(oldorigin[2]),		NET_FLOAT, true	},
 { ES_FIELD(rendermode),		NET_BYTE,  false	},	// render mode (legacy stuff)
 { ES_FIELD(punch_angles[0]),		NET_SCALE, false	},
 { ES_FIELD(punch_angles[1]),		NET_SCALE, false	},
 { ES_FIELD(punch_angles[2]),		NET_SCALE, false	},
+{ ES_FIELD(blending[0]),		NET_COLOR, false	},
+{ ES_FIELD(blending[1]),		NET_COLOR, false	},	// stateflags_t #1 (4 bytes)
+{ ES_FIELD(blending[2]),		NET_COLOR, false	},
+{ ES_FIELD(blending[3]),		NET_COLOR, false	},
+{ ES_FIELD(blending[4]),		NET_COLOR, false	},
+{ ES_FIELD(blending[5]),		NET_COLOR, false	},
+{ ES_FIELD(blending[6]),		NET_COLOR, false	},
+{ ES_FIELD(blending[7]),		NET_COLOR, false	},
+{ ES_FIELD(blending[8]),		NET_COLOR, false	},
+{ ES_FIELD(blending[9]),		NET_COLOR, false	},
+{ ES_FIELD(controller[0]),		NET_COLOR, false	},	// bone controllers #
+{ ES_FIELD(controller[1]),		NET_COLOR, false	},
+{ ES_FIELD(controller[2]),		NET_COLOR, false	},
+{ ES_FIELD(controller[3]),		NET_COLOR, false	},
+{ ES_FIELD(controller[4]),		NET_COLOR, false	},
+{ ES_FIELD(controller[5]),		NET_COLOR, false	},
+{ ES_FIELD(controller[6]),		NET_COLOR, false	},
+{ ES_FIELD(controller[7]),		NET_COLOR, false	},
+{ ES_FIELD(controller[8]),		NET_COLOR, false	},
+{ ES_FIELD(controller[9]),		NET_COLOR, false	},
 { ES_FIELD(viewangles[0]),		NET_FLOAT, false	},	// for fixed views
 { ES_FIELD(viewangles[1]),		NET_FLOAT, false	},
 { ES_FIELD(viewangles[2]),		NET_FLOAT, false	},
@@ -102,7 +103,7 @@ static net_field_t ent_fields[] =
 { ES_FIELD(weapons),		NET_LONG,  false	},	// client weapon 0-64
 { ES_FIELD(health),			NET_FLOAT, false	},	// client health
 // revision 6. reserve for 5 fields without enlarge null_msg_size
-{ NULL }
+{ NULL },							// terminator
 };
 
 // probably usercmd_t never reached 32 field integer limit (in theory of course)
@@ -290,7 +291,7 @@ void _MSG_WriteBits( sizebuf_t *msg, long value, const char *name, int net_type,
 		buf[1] = value>>8;
 		break;
 	default:
-		Host_Error( "MSG_WriteBits: bad net.type %i (called at %s:%i)\n", net_type, filename, fileline );			
+		Host_Error( "MSG_WriteBits: bad net.type (called at %s:%i)\n", filename, fileline );			
 		break;
 	}
 
@@ -314,7 +315,7 @@ MSG_ReadBits
 read # of bytes
 =======================
 */
-long _MSG_ReadBits( sizebuf_t *msg, const char *name, int net_type, const char *filename, const int fileline )
+long _MSG_ReadBits( sizebuf_t *msg, int net_type, const char *filename, const int fileline )
 {
 	ftol_t	dat;
 	long	value = 0;
@@ -369,7 +370,7 @@ long _MSG_ReadBits( sizebuf_t *msg, const char *name, int net_type, const char *
 		msg->readcount += 2;
 		break;		
 	default:
-		Host_Error( "MSG_ReadBits: bad net.type %i, (called at %s:%i)\n", net_type, filename, fileline );			
+		Host_Error( "MSG_ReadBits: bad net.type (called at %s:%i)\n", filename, fileline );			
 		break;
 	}
 
@@ -471,28 +472,28 @@ void _MSG_WritePos( sizebuf_t *sb, vec3_t pos, const char *filename, int filelin
 float MSG_ReadFloat( sizebuf_t *msg )
 {
 	union { float f; int l; } dat;
-	dat.l = MSG_ReadBits( msg, NWDesc[NET_FLOAT].name, NET_FLOAT );
+	dat.l = MSG_ReadBits( msg, NET_FLOAT );
 	return dat.f;	
 }
 
 float MSG_ReadAngle8( sizebuf_t *msg )
 {
 	union { float f; int l; } dat;
-	dat.l = MSG_ReadBits( msg, NWDesc[NET_ANGLE8].name, NET_ANGLE8 );
+	dat.l = MSG_ReadBits( msg, NET_ANGLE8 );
 	return dat.f;	
 }
 
 float MSG_ReadAngle16( sizebuf_t *msg )
 {
 	union { float f; int l; } dat;
-	dat.l = MSG_ReadBits( msg, NWDesc[NET_ANGLE].name, NET_ANGLE );
+	dat.l = MSG_ReadBits( msg, NET_ANGLE );
 	return dat.f;	
 }
 
 float MSG_ReadCoord16( sizebuf_t *msg )
 {
 	union { float f; int l; } dat;
-	dat.l = MSG_ReadBits( msg, NWDesc[NET_COORD].name, NET_COORD );
+	dat.l = MSG_ReadBits( msg, NET_COORD );
 	return dat.f;
 }
 
@@ -627,7 +628,7 @@ void MSG_ReadDeltaUsercmd( sizebuf_t *msg, usercmd_t *from, usercmd_t *to )
 		fromF = (int *)((byte *)from + field->offset );
 		toF = (int *)((byte *)to + field->offset );
 		
-		if(flags & (1<<i)) *toF = MSG_ReadBits( msg, field->name, field->bits );
+		if(flags & (1<<i)) *toF = MSG_ReadBits( msg, field->bits );
 		else *toF = *fromF;	// no change
 	}
 }
@@ -639,63 +640,49 @@ entity_state_t communication
   
 =============================================================================
 */
-/*
-==================
-MSG_WriteDeltaEntity
-
-Writes part of a packetentities message, including the entity number.
-Can delta from either a baseline or a previous packet_entity
-If to is NULL, a remove entity update will be sent
-If force is not set, then nothing at all will be generated if the entity is
-identical, under the assumption that the in-order delta code will catch it.
-==================
-*/
+#if 1
 void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t *msg, bool force, bool newentity, const char *filename, int fileline ) 
 {
 	net_field_t	*field, *field2;
-	int		i, j, flags = 0;
+	int		i, j, k, flags = 0;
 	int		*fromF, *toF;
 	int		num_fields;
 	size_t		null_msg_size;
-	size_t		start_size;
+	size_t		buff_size;
 
 	if( to == NULL )
 	{
 		if( from == NULL ) return;
 
-		// a NULL to is a delta remove message
+		// a NULL 'to' is a delta remove message
 		MSG_WriteBits( msg, from->number, NWDesc[NET_WORD].name, NET_WORD );
-		MSG_WriteBits( msg, 0x1869F, NWDesc[NET_LONG].name, NET_LONG );
+		MSG_WriteBits( msg, 0xFFFF, NWDesc[NET_LONG].name, NET_LONG );
 		return;
 	}
 
 	num_fields = sizeof(ent_fields) / sizeof(net_field_t);
-	null_msg_size = (int)ceil( num_fields / 32.0f ) * sizeof( int ) + sizeof( short );
-	start_size = msg->cursize;
+	null_msg_size = (( num_fields / 32 ) + (( num_fields % 32 ) ? 1 : 0 )) * 4 + sizeof(short);
+	buff_size = msg->cursize;
 
 	if( to->number < 0 || to->number >= GI->max_edicts )
 		Host_Error( "MSG_WriteDeltaEntity: Bad entity number: %i (called at %s:%i)\n", to->number, filename, fileline );
 
-	MSG_WriteBits( msg, to->number, "serialnumber", NET_WORD );
-	for( i = 0, field = field2 = ent_fields; field->name; i++, field++ )
+	MSG_WriteBits( msg, to->number, NWDesc[NET_WORD].name, NET_WORD );
+	for( i = j = 0, field = field2 = ent_fields; field->name; i++, j++, field++ )
 	{
 		fromF = (int *)((byte *)from + field->offset );
 		toF = (int *)((byte *)to + field->offset );		
-
-		if( *fromF != *toF || ( newentity && field->force ))
-			flags |= (1<<( i & MASK_FLAGS ));
-
-		if((( i & MASK_FLAGS ) + 1 == MAX_FLAGS ) || !ent_fields[i+1].name ) // dump packet
+		if(*fromF != *toF || (newentity && field->force)) flags |= 1<<j;
+		if( j > 31 || !ent_fields[i+1].name) // dump packet
 		{
 			MSG_WriteLong( msg, flags );	// send flags who indicates changes
-			for( j = 0; field2->name; j++, field2++ )
+			for( k = 0; field2->name; k++, field2++ )
 			{
-				if( j == MAX_FLAGS ) break; // return to main cycle
+				if( k > 31 ) break; // return to main cycle
 				toF = (int *)((byte *)to + field2->offset );
-				if( flags & (1<<( j & MASK_FLAGS )))
-					MSG_WriteBits( msg, *toF, field2->name, field2->bits );
+				if( flags & (1<<k)) MSG_WriteBits( msg, *toF, field2->name, field2->bits );
 			}
-			flags = 0;
+			j = flags = 0;
 		}
 	}
 
@@ -703,8 +690,8 @@ void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t 
 	// who indicates flags count multiplied by sizeof(long)
 	// plus sizeof(short) (head number). if message equal null_message_size
 	// we will be ignore it 
-	if( !force && (( msg->cursize - start_size ) == null_msg_size ))
-		msg->cursize = start_size; // kill message
+	if( !force && (( msg->cursize - buff_size ) == null_msg_size ))
+		msg->cursize = buff_size; // kill message
 }
 
 /*
@@ -731,28 +718,524 @@ void MSG_ReadDeltaEntity( sizebuf_t *msg, entity_state_t *from, entity_state_t *
 	*to = *from;
 	to->number = number;
 
-	if(*(int *)&msg->data[msg->readcount] == 0x1869F )
+	if(*(int *)&msg->data[msg->readcount] == 0xFFFF )
 	{
 		// check for a remove
 		MSG_ReadLong( msg );
 		Mem_Set( to, 0, sizeof( *to ));	
-		to->number = MAX_EDICTS;	// entity was removed
+		to->number = MAX_EDICTS - 1;	// entity was removed
 		return;
 	}
-
 	for( i = 0, field = ent_fields; field->name; i++, field++ )
 	{
 		// get flags of next packet if LONG out of range
-		if(( i & MASK_FLAGS ) == 0 ) flags = MSG_ReadLong( msg );
-
+		if((i & 31) == 0) flags = MSG_ReadLong( msg );
 		fromF = (int *)((byte *)from + field->offset );
 		toF = (int *)((byte *)to + field->offset );
 		
-		if( flags & ( 1<<( i & MASK_FLAGS )))
-			*toF = MSG_ReadBits( msg, field->name, field->bits );
+		if(flags & (1<<i)) *toF = MSG_ReadBits( msg, field->bits );
 		else *toF = *fromF;	// no change
 	}
 }
+
+#else
+
+enum
+{
+	U_ED_TYPE		= BIT( 0 ),
+	U_CLASSNAME	= BIT( 1 ),
+	U_ED_FLAGS	= BIT( 2 ),	// 0 compressed
+	U_ORIGIN		= BIT( 3 ),
+	U_ANGLES		= BIT( 4 ),
+	U_SOLID		= BIT( 5 ),
+	U_MOVETYPE	= BIT( 6 ),
+	U_AIMENT		= BIT( 7 ),
+	U_OWNER		= BIT( 8 ),
+	U_GROUNDENT	= BIT( 9 ),
+	U_MINMAXS		= BIT( 10 ),	// mins\maxs changed
+	U_VELOCITY	= BIT( 11 ),
+	U_OLDORIGIN	= BIT( 12 ),
+	U_MODELINDEX	= BIT( 13 ),
+	U_COLORMAP	= BIT( 14 ),
+	U_SCALE		= BIT( 15 ),
+	U_FRAME		= BIT( 16 ),
+	U_SKIN		= BIT( 17 ),
+	U_BODY		= BIT( 18 ),
+	U_ANIMTIME	= BIT( 19 ),
+	U_FRAMERATE	= BIT( 20 ),
+	U_SEQUENCE	= BIT( 21 ),
+	U_FLAGS		= BIT( 22 ),
+	U_EFFECTS		= BIT( 23 ),
+	U_RENDERFX	= BIT( 24 ),
+	U_RENDERAMT	= BIT( 25 ),
+	U_RENDERCOLOR	= BIT( 26 ),
+	U_RENDERMODE	= BIT( 27 ),
+	U_WEAPONMODEL	= BIT( 28 ),
+};
+
+enum
+{
+	// bits 0 - 15 are reserved for bonecontrollers
+	U_PUNCHANGLES	= BIT( 16 ),
+	U_VIEWANGLES	= BIT( 17 ),
+	U_VIEWOFS		= BIT( 18 ),
+	U_GAITSEQUENCE	= BIT( 19 ),
+	U_VIEWMODEL	= BIT( 20 ),
+	U_IDEALPITCH	= BIT( 21 ),
+	U_HEALTH		= BIT( 22 ),
+	U_WEAPONS		= BIT( 23 ),
+	U_FOV		= BIT( 24 ),
+};
+
+/*
+==================
+MSG_WriteDeltaEntity
+
+Writes part of a packetentities message, including the entity number.
+Can delta from either a baseline or a previous packet_entity
+If to is NULL, a remove entity update will be sent
+If force is not set, then nothing at all will be generated if the entity is
+identical, under the assumption that the in-order delta code will catch it.
+==================
+*/
+void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t *msg, bool force, bool newentity, const char *filename, int fileline ) 
+{
+	int	i, bits, bits2;
+
+	if( to == NULL )
+	{
+		if( from == NULL ) return;
+
+		// a NULL 'to' is a delta remove message
+		MSG_WriteBits( msg, from->number, NWDesc[NET_WORD].name, NET_WORD );
+		MSG_WriteBits( msg, 0xFFFF, NWDesc[NET_LONG].name, NET_LONG );
+		return;
+	}
+
+	if( to->number < 0 || to->number >= GI->max_edicts )
+		Host_Error( "MSG_WriteDeltaEntity: Bad entity number: %i (called at %s:%i)\n", to->number, filename, fileline );
+
+	bits = bits2 = 0;
+
+	if( to->ed_type != from->ed_type )
+		bits |= U_ED_TYPE;
+
+	if( to->classname != from->classname )
+		bits |= U_CLASSNAME;
+
+	if( to->ed_flags )
+		bits |= U_ED_FLAGS;
+
+	if( !VectorCompare( to->origin, from->origin ))
+		bits |= U_ORIGIN;
+
+	if( !VectorCompare( to->origin, from->origin ))
+		bits |= U_ANGLES;
+
+	if( to->solid != from->solid )
+		bits |= U_SOLID;
+
+	if( to->movetype != from->movetype )
+		bits |= U_MOVETYPE;
+
+	if( to->aiment != from->aiment )
+		bits |= U_AIMENT;
+
+	if( to->owner != from->owner )
+		bits |= U_OWNER;
+
+	if( to->groundent != from->groundent )
+		bits |= U_GROUNDENT;
+
+	if( !VectorCompare( to->mins, from->mins ) || !VectorCompare( to->maxs, from->maxs ))
+		bits |= U_MINMAXS;
+
+	if( !VectorCompare( to->velocity, from->velocity ))
+		bits |= U_VELOCITY;
+
+	if( !VectorCompare( to->oldorigin, from->oldorigin ))
+		bits |= U_OLDORIGIN;
+
+	if( to->modelindex != from->modelindex )
+		bits |= U_MODELINDEX;
+
+	if( to->colormap != from->colormap )
+		bits |= U_COLORMAP;
+
+	if( to->scale != from->scale )
+		bits |= U_SCALE;
+
+	if( to->frame != from->frame )
+		bits |= U_FRAME;
+
+	if( to->skin != from->skin )
+		bits |= U_SKIN;
+
+	if( to->body != from->body )
+		bits |= U_BODY;
+
+	if( to->animtime != from->animtime )
+		bits |= U_ANIMTIME;
+
+	if( to->framerate != from->framerate )
+		bits |= U_FRAMERATE;
+
+	if( to->sequence != from->sequence )
+		bits |= U_SEQUENCE;
+
+	if( to->flags != from->flags )
+		bits |= U_FLAGS;
+
+	if( to->effects != from->effects )
+		bits |= U_EFFECTS;
+
+	if( to->renderfx != from->renderfx )
+		bits |= U_RENDERFX;
+
+	if( to->renderamt != from->renderamt )
+		bits |= U_RENDERAMT;
+
+	if( !VectorCompare( to->rendercolor, from->rendercolor ))
+		bits |= U_RENDERCOLOR;
+
+	if( to->rendermode != from->rendermode )
+		bits |= U_RENDERMODE;
+
+	if( to->weaponmodel != from->weaponmodel )
+		bits |= U_WEAPONMODEL;
+
+	for( i = 0; i < 16; i++ )
+	{
+		if( to->controller[i] != from->controller[i] )
+			bits2 |= (1<<i);
+	}
+
+	// bits are near full, store flags into bits2
+	if( !VectorCompare( to->punch_angles, from->punch_angles ))
+		bits2 |= U_PUNCHANGLES;
+
+	if( !VectorCompare( to->viewangles, from->viewangles ))
+		bits2 |= U_VIEWANGLES;
+
+	if( !VectorCompare( to->viewoffset, from->viewoffset ))
+		bits2 |= U_VIEWOFS;
+
+	if( to->gaitsequence != from->gaitsequence )
+		bits2 |= U_GAITSEQUENCE;
+
+	if( to->viewmodel != from->viewmodel )
+		bits2 |= U_VIEWMODEL;
+
+	if( to->idealpitch != from->idealpitch )
+		bits2 |= U_IDEALPITCH;
+
+	if( to->health != from->health )
+		bits2 |= U_HEALTH;
+
+	if( to->weapons != from->weapons )
+		bits2 |= U_WEAPONS;
+
+	if( to->fov != from->fov )
+		bits2 |= U_FOV;
+
+	// Write the message
+	if( !bits && !bits2 && !force )
+		return;	// nothing to send!
+
+	MSG_WriteWord( msg, to->number );
+	MSG_WriteLong( msg, bits );
+
+	// write additional bits for client state flags
+	MSG_WriteLong( msg, bits2 );
+
+	if( bits & U_ED_TYPE )
+		MSG_WriteByte( msg, to->ed_type );
+
+	if( bits & U_CLASSNAME )
+		MSG_WriteByte( msg, to->classname );
+
+	if( bits & U_ED_FLAGS )
+		MSG_WriteByte( msg, to->ed_flags );
+
+	if( bits & U_ORIGIN )
+		MSG_WritePos( msg, to->origin );
+
+	if( bits & U_ANGLES )
+		MSG_WritePos( msg, to->angles );
+
+	if( bits & U_SOLID )
+		MSG_WriteByte( msg, to->solid );
+
+	if( bits & U_MOVETYPE )
+		MSG_WriteByte( msg, to->movetype );
+
+	if( bits & U_AIMENT )
+		MSG_WriteShort( msg, to->aiment );
+
+	if( bits & U_OWNER )
+		MSG_WriteShort( msg, to->owner );
+
+	if( bits & U_GROUNDENT )
+		MSG_WriteShort( msg, to->groundent );
+
+	if( bits & U_MINMAXS )
+	{
+		MSG_WritePos( msg, to->mins );
+		MSG_WritePos( msg, to->maxs );
+	}
+
+	if( bits & U_VELOCITY )
+		MSG_WritePos( msg, to->velocity );
+
+	if( bits & U_OLDORIGIN )
+		MSG_WritePos( msg, to->oldorigin );
+
+	if( bits & U_MODELINDEX )
+		MSG_WriteWord( msg, to->modelindex );
+
+	if( bits & U_COLORMAP )
+		MSG_WriteWord( msg, to->colormap );
+
+	if( bits & U_SCALE )
+		MSG_WriteFloat( msg, to->scale );
+
+	if( bits & U_FRAME )
+		MSG_WriteFloat( msg, to->frame );
+
+	if( bits & U_SKIN )
+		MSG_WriteByte( msg, to->skin );
+
+	if( bits & U_BODY )
+		MSG_WriteByte( msg, to->body );
+
+	if( bits & U_ANIMTIME )
+		MSG_WriteFloat( msg, to->animtime );
+
+	if( bits & U_FRAMERATE )
+		MSG_WriteFloat( msg, to->framerate );
+
+	if( bits & U_SEQUENCE )
+		MSG_WriteWord( msg, to->sequence );
+
+	if( bits & U_FLAGS )
+		MSG_WriteLong( msg, to->flags );
+
+	if( bits & U_EFFECTS )
+		MSG_WriteLong( msg, to->effects );
+
+	if( bits & U_RENDERFX )
+		MSG_WriteByte( msg, to->renderfx );
+
+	if( bits & U_RENDERAMT )
+		MSG_WriteFloat( msg, to->renderamt );
+
+	if( bits & U_RENDERCOLOR )
+		MSG_WritePos( msg, to->rendercolor );
+
+	if( bits & U_RENDERMODE )
+		MSG_WriteByte( msg, to->rendermode );
+
+	if( bits & U_WEAPONMODEL )
+		MSG_WriteWord( msg, to->weaponmodel );
+
+	// bits are near full, store flags into bits2
+	for( i = 0; i < 16; i++ )
+	{
+		if( bits2 & (1<<i) )
+			MSG_WriteFloat( msg, to->controller[i] );
+	}
+	
+	if( bits2 & U_PUNCHANGLES )
+		MSG_WritePos( msg, to->punch_angles );
+
+	if( bits2 & U_VIEWANGLES )
+		MSG_WritePos( msg, to->viewangles );
+
+	if( bits2 & U_VIEWOFS )
+		MSG_WritePos( msg, to->viewoffset );
+
+	if( bits2 & U_GAITSEQUENCE )
+		MSG_WriteWord( msg, to->gaitsequence );
+
+	if( bits2 & U_VIEWMODEL )
+		MSG_WriteWord( msg, to->viewmodel );
+
+	if( bits2 & U_IDEALPITCH )
+		MSG_WriteFloat( msg, to->idealpitch );
+
+	if( bits2 & U_HEALTH )
+		MSG_WriteFloat( msg, to->health );
+
+	if( bits2 & U_WEAPONS )
+		MSG_WriteLong( msg, to->weapons );
+
+	if( bits2 & U_FOV )
+		MSG_WriteFloat( msg, to->fov );
+}
+
+/*
+==================
+MSG_ReadDeltaEntity
+
+The entity number has already been read from the message, which
+is how the from state is identified.
+                             
+If the delta removes the entity, entity_state_t->number will be set to MAX_EDICTS - 1
+
+Can go from either a baseline or a previous packet_entity
+==================
+*/
+void MSG_ReadDeltaEntity( sizebuf_t *msg, entity_state_t *from, entity_state_t *to, int number )
+{
+	int	i, bits, bits2;
+
+	if( number < 0 || number >= GI->max_edicts )
+		Host_Error( "MSG_ReadDeltaEntity: bad delta entity number: %i\n", number );
+
+	*to = *from;
+	to->number = number;
+	bits = bits2 = 0;
+
+	if(*(int *)&msg->data[msg->readcount] == 0xFFFF )
+	{
+		// check for a remove
+		MSG_ReadLong( msg );
+		Mem_Set( to, 0, sizeof( *to ));	
+		to->number = MAX_EDICTS - 1;	// entity was removed
+		return;
+	}
+
+	bits = MSG_ReadLong( msg );
+
+	// write additional bits for client state flags
+	bits2 = MSG_ReadLong( msg );
+
+	if( bits & U_ED_TYPE )
+		to->ed_type = MSG_ReadByte( msg );
+
+	if( bits & U_CLASSNAME )
+		to->classname = MSG_ReadByte( msg );
+
+	if( bits & U_ED_FLAGS )
+		to->ed_flags = MSG_ReadByte( msg );
+
+	if( bits & U_ORIGIN )
+		MSG_ReadPos( msg, to->origin );
+
+	if( bits & U_ANGLES )
+		MSG_ReadPos( msg, to->angles );
+
+	if( bits & U_SOLID )
+		to->solid = MSG_ReadByte( msg );
+
+	if( bits & U_MOVETYPE )
+		to->movetype = MSG_ReadByte( msg );
+
+	if( bits & U_AIMENT )
+		to->aiment = MSG_ReadShort( msg );
+
+	if( bits & U_OWNER )
+		to->owner = MSG_ReadShort( msg );
+
+	if( bits & U_GROUNDENT )
+		to->groundent = MSG_ReadShort( msg );
+
+	if( bits & U_MINMAXS )
+	{
+		MSG_ReadPos( msg, to->mins );
+		MSG_ReadPos( msg, to->maxs );
+	}
+
+	if( bits & U_VELOCITY )
+		MSG_ReadPos( msg, to->velocity );
+
+	if( bits & U_OLDORIGIN )
+		MSG_ReadPos( msg, to->oldorigin );
+
+	if( bits & U_MODELINDEX )
+		to->modelindex = MSG_ReadWord( msg );
+
+	if( bits & U_COLORMAP )
+		to->colormap = MSG_ReadWord( msg );
+
+	if( bits & U_SCALE )
+		to->scale = MSG_ReadFloat( msg );
+
+	if( bits & U_FRAME )
+		to->frame = MSG_ReadFloat( msg );
+
+	if( bits & U_SKIN )
+		to->skin = MSG_ReadByte( msg );
+
+	if( bits & U_BODY )
+		to->body = MSG_ReadByte( msg );
+
+	if( bits & U_ANIMTIME )
+		to->animtime = MSG_ReadFloat( msg );
+
+	if( bits & U_FRAMERATE )
+		to->framerate = MSG_ReadFloat( msg );
+
+	if( bits & U_SEQUENCE )
+		to->sequence = MSG_ReadWord( msg );
+
+	if( bits & U_FLAGS )
+		to->flags = MSG_ReadLong( msg );
+
+	if( bits & U_EFFECTS )
+		to->effects = MSG_ReadLong( msg );
+
+	if( bits & U_RENDERFX )
+		to->renderfx = MSG_ReadByte( msg );
+
+	if( bits & U_RENDERAMT )
+		to->renderamt = MSG_ReadFloat( msg );
+
+	if( bits & U_RENDERCOLOR )
+		MSG_ReadPos( msg, to->rendercolor );
+
+	if( bits & U_RENDERMODE )
+		to->rendermode = MSG_ReadByte( msg );
+
+	if( bits & U_WEAPONMODEL )
+		to->weaponmodel = MSG_ReadWord( msg );
+
+	// bits are near full, store flags into bits2
+	for( i = 0; i < 16; i++ )
+	{
+		if( bits2 & (1<<i) )
+			to->controller[i] = MSG_ReadFloat( msg );
+	}
+
+	if( bits2 & U_PUNCHANGLES )
+		MSG_ReadPos( msg, to->punch_angles );
+
+	if( bits2 & U_VIEWANGLES )
+		MSG_ReadPos( msg, to->viewangles );
+
+	if( bits2 & U_VIEWOFS )
+		MSG_ReadPos( msg, to->viewoffset );
+
+	if( bits2 & U_GAITSEQUENCE )
+		to->gaitsequence = MSG_ReadWord( msg );
+
+	if( bits2 & U_VIEWMODEL )
+		to->viewmodel = MSG_ReadWord( msg );
+
+	if( bits2 & U_IDEALPITCH )
+		to->idealpitch = MSG_ReadFloat( msg );
+
+	if( bits2 & U_HEALTH )
+		to->health = MSG_ReadFloat( msg );
+
+	if( bits2 & U_WEAPONS )
+		to->weapons = MSG_ReadLong( msg );
+
+	if( bits2 & U_FOV )
+		to->fov = MSG_ReadFloat( msg );
+}
+
+#endif
 
 /*
 ============================================================================
@@ -875,7 +1358,7 @@ void MSG_ReadDeltaPlayerstate( sizebuf_t *msg, entity_state_t *from, entity_stat
 		fromF = (int *)((byte *)from + field->offset );
 		toF = (int *)((byte *)to + field->offset );
 		
-		if(flags & (1<<i)) *toF = MSG_ReadBits( msg, field->name, field->bits );
+		if(flags & (1<<i)) *toF = MSG_ReadBits( msg, field->bits );
 		else *toF = *fromF;	// no change
 	}
 }

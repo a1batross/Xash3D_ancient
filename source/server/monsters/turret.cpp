@@ -414,12 +414,13 @@ void CBaseTurret::Initialize(void)
 
 void CBaseTurret::TurretUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	if (useType == USE_TOGGLE)
+	if ( useType == USE_TOGGLE )
 	{
-		if(m_iOn) useType = USE_OFF;
+		if ( m_iOn )
+			useType = USE_OFF;
 		else useType = USE_ON;
 	}
-	if (useType == USE_ON)
+	if ( useType == USE_ON )
 	{
 		SetNextThink( 0.1 ); // turn on delay
 
@@ -427,12 +428,16 @@ void CBaseTurret::TurretUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_
 			m_iAutoStart = TRUE;
 		SetThink( Deploy );
 	}
-          else if(useType == USE_OFF)
+          else if ( useType == USE_OFF )
           {
 		m_hEnemy = NULL;
 		SetNextThink( 0.1 );
-		m_iAutoStart = FALSE;// switching off a turret disables autostart
+		m_iAutoStart = FALSE; // switching off a turret disables autostart
 		SetThink( Retire );
+          }
+          else if( USE_SHOWINFO )
+          {
+		DEBUGHEAD;
           }
 }
 

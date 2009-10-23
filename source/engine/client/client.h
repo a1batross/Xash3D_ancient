@@ -523,7 +523,7 @@ void CL_FreeEdict( edict_t *pEdict );
 bool CL_GetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles );
 bool CL_SetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles );
 prevframe_t *CL_GetPrevFrame( int entityIndex );
-float CL_GetMouthOpen( int entityIndex );
+byte CL_GetMouthOpen( int entityIndex );
 string_t CL_AllocString( const char *szValue );
 const char *CL_GetString( string_t iString );
 bool CL_RenderTrace( const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end );

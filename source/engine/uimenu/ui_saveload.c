@@ -87,9 +87,9 @@ static void UI_SaveLoad_Init( void )
 	Mem_Set( &uiSaveLoad, 0, sizeof( uiSaveLoad_t ));
 
 	com.strncat( uiSaveLoad.hintText, "During play, you can quickly save your game by pressing ", MAX_SYSPATH );
-	com.strncat( uiSaveLoad.hintText, Key_KeynumToString( Key_GetKey( "quicksave" )), MAX_SYSPATH );
+	com.strncat( uiSaveLoad.hintText, Key_KeynumToString( Key_GetKey( "savequick" )), MAX_SYSPATH );
 	com.strncat( uiSaveLoad.hintText, ".\nLoad this game again by pressing ", MAX_SYSPATH );
-	com.strncat( uiSaveLoad.hintText, Key_KeynumToString( Key_GetKey( "quickload" )), MAX_SYSPATH );
+	com.strncat( uiSaveLoad.hintText, Key_KeynumToString( Key_GetKey( "loadquick" )), MAX_SYSPATH );
 	com.strncat( uiSaveLoad.hintText, ".\n", MAX_SYSPATH );
 
 	uiSaveLoad.background.generic.id = ID_BACKGROUND;

@@ -167,7 +167,7 @@ void MSG_Init( sizebuf_t *buf, byte *data, size_t length );
 void MSG_Clear( sizebuf_t *buf );
 void MSG_Print( sizebuf_t *msg, const char *data );
 void _MSG_WriteBits( sizebuf_t *msg, long value, const char *name, int bits, const char *filename, const int fileline );
-long _MSG_ReadBits( sizebuf_t *msg, int bits, const char *filename, const int fileline );
+long _MSG_ReadBits( sizebuf_t *msg, const char *name, int bits, const char *filename, const int fileline );
 void _MSG_Begin( int dest, const char *filename, int fileline );
 void _MSG_WriteString( sizebuf_t *sb, const char *s, const char *filename, int fileline );
 void _MSG_WriteFloat( sizebuf_t *sb, float f, const char *filename, int fileline );
@@ -182,11 +182,11 @@ void _MSG_WriteDeltaEntity( struct entity_state_s *from, struct entity_state_s *
 void _MSG_Send( msgtype_t to, vec3_t origin, const edict_t *ent, const char *filename, int fileline );
 
 #define MSG_Begin( x ) _MSG_Begin( x, __FILE__, __LINE__)
-#define MSG_WriteChar(x,y) _MSG_WriteBits (x, y, NULL, NET_CHAR, __FILE__, __LINE__)
-#define MSG_WriteByte(x,y) _MSG_WriteBits (x, y, NULL, NET_BYTE, __FILE__, __LINE__)
-#define MSG_WriteShort(x,y) _MSG_WriteBits(x, y, NULL, NET_SHORT,__FILE__, __LINE__)
-#define MSG_WriteWord(x,y) _MSG_WriteBits (x, y, NULL, NET_WORD, __FILE__, __LINE__)
-#define MSG_WriteLong(x,y) _MSG_WriteBits (x, y, NULL, NET_LONG, __FILE__, __LINE__)
+#define MSG_WriteChar(x,y) _MSG_WriteBits (x, y, NWDesc[NET_CHAR].name, NET_CHAR, __FILE__, __LINE__)
+#define MSG_WriteByte(x,y) _MSG_WriteBits (x, y, NWDesc[NET_BYTE].name, NET_BYTE, __FILE__, __LINE__)
+#define MSG_WriteShort(x,y) _MSG_WriteBits(x, y, NWDesc[NET_SHORT].name, NET_SHORT,__FILE__, __LINE__)
+#define MSG_WriteWord(x,y) _MSG_WriteBits (x, y, NWDesc[NET_WORD].name, NET_WORD, __FILE__, __LINE__)
+#define MSG_WriteLong(x,y) _MSG_WriteBits (x, y, NWDesc[NET_LONG].name, NET_LONG, __FILE__, __LINE__)
 #define MSG_WriteFloat(x,y) _MSG_WriteFloat(x, y, __FILE__, __LINE__)
 #define MSG_WriteDouble(x,y) _MSG_WriteDouble(x, y, __FILE__, __LINE__)
 #define MSG_WriteString(x,y) _MSG_WriteString (x, y, __FILE__, __LINE__)
@@ -200,15 +200,15 @@ void _MSG_Send( msgtype_t to, vec3_t origin, const edict_t *ent, const char *fil
 #define MSG_WriteDeltaUsercmd(x, y, z) _MSG_WriteDeltaUsercmd (x, y, z, __FILE__, __LINE__)
 #define MSG_WriteDeltaEntity(from, to, msg, force, new ) _MSG_WriteDeltaEntity (from, to, msg, force, new, __FILE__, __LINE__)
 #define MSG_WriteBits( buf, value, name, bits ) _MSG_WriteBits( buf, value, name, bits, __FILE__, __LINE__ )
-#define MSG_ReadBits( buf, bits ) _MSG_ReadBits( buf, bits, __FILE__, __LINE__ )
+#define MSG_ReadBits( buf, name, bits ) _MSG_ReadBits( buf, name, bits, __FILE__, __LINE__ )
 #define MSG_Send(x, y, z) _MSG_Send(x, y, z, __FILE__, __LINE__)
 
 void MSG_BeginReading (sizebuf_t *sb);
-#define MSG_ReadChar( x ) _MSG_ReadBits( x, NET_CHAR, __FILE__, __LINE__ )
-#define MSG_ReadByte( x ) _MSG_ReadBits( x, NET_BYTE, __FILE__, __LINE__ )
-#define MSG_ReadShort( x) _MSG_ReadBits( x, NET_SHORT, __FILE__, __LINE__ )
-#define MSG_ReadWord( x ) _MSG_ReadBits( x, NET_WORD, __FILE__, __LINE__ )
-#define MSG_ReadLong( x ) _MSG_ReadBits( x, NET_LONG, __FILE__, __LINE__ )
+#define MSG_ReadChar( x ) _MSG_ReadBits( x, NWDesc[NET_CHAR].name, NET_CHAR, __FILE__, __LINE__ )
+#define MSG_ReadByte( x ) _MSG_ReadBits( x, NWDesc[NET_BYTE].name, NET_BYTE, __FILE__, __LINE__ )
+#define MSG_ReadShort( x) _MSG_ReadBits( x, NWDesc[NET_SHORT].name, NET_SHORT, __FILE__, __LINE__ )
+#define MSG_ReadWord( x ) _MSG_ReadBits( x, NWDesc[NET_WORD].name, NET_WORD, __FILE__, __LINE__ )
+#define MSG_ReadLong( x ) _MSG_ReadBits( x, NWDesc[NET_LONG].name, NET_LONG, __FILE__, __LINE__ )
 #define MSG_ReadCoord32( x ) MSG_ReadFloat( x )
 #define MSG_ReadAngle32( x ) MSG_ReadFloat( x )
 float MSG_ReadFloat( sizebuf_t *msg );
@@ -293,6 +293,8 @@ extern byte		net_message_buffer[MAX_MSGLEN];
 #define PORT_SERVER		27910
 #define UPDATE_BACKUP	32	// copies of entity_state_t to keep buffered, must be power of two
 #define UPDATE_MASK		(UPDATE_BACKUP - 1)
+#define MAX_FLAGS		32	// 32 bits == 32 flags
+#define MASK_FLAGS		(MAX_FLAGS - 1)
 
 void Netchan_Init( void );
 void Netchan_Setup( netsrc_t sock, netchan_t *chan, netadr_t adr, int qport );

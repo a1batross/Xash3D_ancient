@@ -23,7 +23,7 @@ class CBaseParticle : public CBaseLogic
 {
 public:
 	void Spawn( void );
-	void Precache( void ){ pev->netname = UTIL_PrecacheAurora(pev->message); }
+	void Precache( void ){ pev->netname = UTIL_PrecacheAurora( pev->message ); }
 	void KeyValue( KeyValueData *pkvd );
 	void PostActivate( void ){ Switch(); }
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
@@ -32,12 +32,12 @@ public:
 
 void CBaseParticle :: KeyValue( KeyValueData *pkvd )
 {
-	if (FStrEq(pkvd->szKeyName, "aurora"))
+	if ( FStrEq( pkvd->szKeyName, "aurora" ))
 	{
 		pev->message = ALLOC_STRING( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else	CBaseLogic::KeyValue( pkvd );
+	else CBaseLogic::KeyValue( pkvd );
 }
 
 void CBaseParticle::Switch( void )
@@ -45,17 +45,17 @@ void CBaseParticle::Switch( void )
 	int renderfx = (m_iState ? kRenderFxAurora : kRenderFxNone );
 	if( pev->target )
 	{
-		CBaseEntity *pTarget = UTIL_FindEntityByTargetname(NULL, STRING(pev->target), m_hActivator );
-		while (pTarget)
+		CBaseEntity *pTarget = UTIL_FindEntityByTargetname( NULL, STRING( pev->target ), m_hActivator );
+		while ( pTarget )
 		{
-			UTIL_SetAurora( pTarget, pev->netname);
+			UTIL_SetAurora( pTarget, pev->netname );
 			pTarget->pev->renderfx = renderfx;
-			pTarget = UTIL_FindEntityByTargetname(pTarget, STRING(pev->target), m_hActivator );
+			pTarget = UTIL_FindEntityByTargetname( pTarget, STRING( pev->target ), m_hActivator );
 		}
 	}
 	else
 	{
-		UTIL_SetAurora( this, pev->netname);
+		UTIL_SetAurora( this, pev->netname );
 		pev->renderfx = renderfx;
 	}
 }
@@ -63,10 +63,13 @@ void CBaseParticle::Switch( void )
 void CBaseParticle::Spawn( void )
 {
 	Precache();
-	UTIL_SetModel(edict(), "sprites/null.spr");
-	UTIL_SetOrigin(this, pev->origin);
+
+	UTIL_SetModel( edict(), "sprites/null.spr" );
+	UTIL_SetOrigin( this, pev->origin );
 	pev->solid = SOLID_NOT;
-	if(pev->spawnflags & SF_START_ON ) m_iState = STATE_ON;
+
+	if( pev->spawnflags & SF_START_ON || FStringNull( pev->targetname ))
+		m_iState = STATE_ON;
 	else m_iState = STATE_OFF;
 }
 
@@ -74,27 +77,28 @@ void CBaseParticle::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 {
 	m_hActivator = pActivator;
 	
-	if (useType == USE_TOGGLE)
+	if ( useType == USE_TOGGLE )
 	{
-		if(m_iState == STATE_ON) useType = USE_OFF;
+		if( m_iState == STATE_ON )
+			useType = USE_OFF;
 		else useType = USE_ON;
 	}
-	if (useType == USE_ON)
+	if ( useType == USE_ON )
 	{
 		m_iState = STATE_ON;
 		Switch();
 	}
-	else if (useType == USE_OFF)
+	else if ( useType == USE_OFF )
 	{
 		m_iState = STATE_OFF;
 		Switch();
 	}
-	else if (useType == USE_SHOWINFO)
+	else if ( useType == USE_SHOWINFO )
 	{
 		DEBUGHEAD;
 		Msg( "State: %s, ParticleName: %s\n", GetStringForState( GetState()), STRING( pev->netname ));
-		if(pev->target)Msg( "Attach to: %s\n", STRING( pev->target ));
-		else Msg("\n");
+		if ( pev->target ) Msg( "Attach to: %s\n", STRING( pev->target ));
+		else Msg( "\n" );
 	}
 }
 LINK_ENTITY_TO_CLASS( env_particle, CBaseParticle );
@@ -811,12 +815,13 @@ void CEnvModel :: Spawn( void )
 
 void CEnvModel::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	if (useType == USE_TOGGLE)
+	if ( useType == USE_TOGGLE )
 	{
-		if(m_iState == STATE_ON) useType = USE_OFF;
+		if( m_iState == STATE_ON )
+			useType = USE_OFF;
 		else useType = USE_ON;
 	}
-	if (useType == USE_ON)
+	if ( useType == USE_ON )
 	{
 		SetAnim();
 		SetThink( Animate );
@@ -827,6 +832,10 @@ void CEnvModel::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE use
 	{
 		m_iState = STATE_OFF;
 		DontThink();
+	}
+	else if ( useType == USE_SHOWINFO )
+	{
+		DEBUGHEAD;
 	}
 }
 

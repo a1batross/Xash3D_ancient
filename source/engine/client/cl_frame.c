@@ -44,7 +44,7 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 	if( unchanged ) *state = *old;
 	else MSG_ReadDeltaEntity( msg, old, state, newnum );
 
-	if( state->number == ( MAX_EDICTS - 1 ))
+	if( state->number == MAX_EDICTS )
 	{
 		CL_FreeEdict( ent );
 		return; // entity was delta removed

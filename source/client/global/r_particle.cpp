@@ -62,9 +62,9 @@ void ParticleSystemManager::SortSystems( void )
 	// do an insertion sort on the systems
 	pLast = m_pFirstSystem;
 	pSystem = pLast->m_pNextSystem;
-	while (pSystem)
+	while ( pSystem )
 	{
-		if (pLast->m_fViewerDist < pSystem->m_fViewerDist)
+		if ( pLast->m_fViewerDist < pSystem->m_fViewerDist )
 		{
 			// pSystem is in the wrong place! First, let's unlink it from the list
 			pLast->m_pNextSystem = pSystem->m_pNextSystem;
@@ -738,6 +738,7 @@ bool ParticleSystem::UpdateSystem( float frametime )
           {
           	enable = 0;
           }
+
 	if( m_pMainParticle == NULL )
 	{
 		if ( enable )
@@ -745,7 +746,7 @@ bool ParticleSystem::UpdateSystem( float frametime )
 			ParticleType *pType = m_pMainType;
 			if ( pType )
 			{
-				m_pMainParticle = pType->CreateParticle(this);//m_pMainParticle);
+				m_pMainParticle = pType->CreateParticle( this );
 				if ( m_pMainParticle )
 				{
 					m_pMainParticle->m_iEntIndex = m_iEntIndex;
@@ -765,14 +766,14 @@ bool ParticleSystem::UpdateSystem( float frametime )
 
 	while( pParticle )
 	{
-		if( UpdateParticle( pParticle, frametime ) )
+		if ( UpdateParticle( pParticle, frametime ))
 		{
 			pLast = pParticle;
 			pParticle = pParticle->nextpart;
 		}
 		else // deactivate it
 		{
-			if (pLast)
+			if ( pLast )
 			{
 				pLast->nextpart = pParticle->nextpart;
 				pParticle->nextpart = m_pFreeParticle;
@@ -788,12 +789,10 @@ bool ParticleSystem::UpdateSystem( float frametime )
 			}
 		}
 	}
-
 	return true;
-
 }
 
-void ParticleSystem::DrawSystem( void )
+void ParticleSystem :: DrawSystem( void )
 {
 	Vector normal, forward, right, up;
 
@@ -857,7 +856,6 @@ bool ParticleSystem::UpdateParticle( particle *part, float frametime )
 	}
 	else
 	{
-		ALERT( at_console, "UpdateOther()\n" );
 		// not tied to an entity, check whether it's time to die
 		if( part->age_death >= 0 && part->age > part->age_death )
 			return false;
@@ -944,8 +942,6 @@ void ParticleSystem::DrawParticle( particle *part, Vector &right, Vector &up )
 
 	float fCosSize = CosLookup( part->m_fAngle ) * fSize;
 	float fSinSize = SinLookup( part->m_fAngle ) * fSize;
-
-	ALERT( at_console, "particle pos %g, %g, %g\n", origin.x, origin.y, origin.z );
 
 	// calculate the four corners of the sprite
 	point1 = origin + up * fSinSize;

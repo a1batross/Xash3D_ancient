@@ -229,7 +229,7 @@ void CL_ParseSoundPacket( sizebuf_t *msg )
 	else pitch = PITCH_NORM;
 
 	// entity reletive
-	entnum = MSG_ReadBits( msg, NET_WORD ); 
+	entnum = MSG_ReadWord( msg ); 
 
 	// positioned in space
 	if( flags & SND_FIXED_ORIGIN )
@@ -310,7 +310,7 @@ void CL_ParseBaseline( sizebuf_t *msg )
 	entity_state_t	*baseline;
 
 	Mem_Set( &nullstate, 0, sizeof( nullstate ));
-	newnum = MSG_ReadBits( msg, NET_WORD );
+	newnum = MSG_ReadWord( msg );
 
 	if( !newnum ) CL_InitEdicts();
 

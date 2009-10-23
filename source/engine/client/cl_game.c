@@ -104,19 +104,18 @@ bool CL_SetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles
 	return true;
 }
 
-float CL_GetMouthOpen( int entityIndex )
+byte CL_GetMouthOpen( int entityIndex )
 {
 	edict_t	*ed;
 
 	if( entityIndex <= 0 || entityIndex >= clgame.globals->numEntities )
-		return 0.0f;
+		return 0;
 
 	ed = CL_GetEdictByIndex( entityIndex );
 
 	if( !ed || ed->free || !ed->pvClientData )
-		return 0.0f;
-
-	return (float)ed->pvClientData->mouth.open;
+		return 0;
+	return ed->pvClientData->mouth.open;
 }
 
 prevframe_t *CL_GetPrevFrame( int entityIndex )
@@ -1804,7 +1803,7 @@ bool CL_LoadProgs( const char *name )
 	clgame.viewent.serialnumber = VIEWENT_INDEX;
 
 	CL_InitEdict( &clgame.playermodel );
-	clgame.viewent.serialnumber = MAX_EDICTS - 1;
+	clgame.playermodel.serialnumber = MAX_EDICTS - 1;
 
 	// initialize game
 	clgame.dllFuncs.pfnInit();

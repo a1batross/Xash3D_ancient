@@ -274,10 +274,14 @@ SV_RunGameFrame
 */
 void SV_RunGameFrame( void )
 {
+	// we always need to bump framenum, even if we
+	// don't run the world, otherwise the delta
+	// compression can get confused when a client
+	// has the "current" frame
+	sv.framenum++;
+
 	// don't run if paused
 	if( SV_CheckPaused( )) return;
-
-	sv.framenum++;
 	if( sv.frametime ) SV_Physics();
 
 	// never get more than one tic behind

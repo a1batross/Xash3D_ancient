@@ -162,6 +162,8 @@ void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t 
 	ent->v.oldangles = ent->v.angles;	// just a delta between frames
 	ent->v.animtime = state->animtime;
 
+//	ent->v.animtime = bound( gpGlobals->time - gpGlobals->frametime, ent->v.animtime, gpGlobals->time );
+
 	if( state->groundent != -1 )
 		ent->v.groundentity = GetEntityByIndex( state->groundent );
 	else ent->v.groundentity = NULL;
@@ -242,10 +244,15 @@ void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t 
 	}
 
 	for( i = 0; i < MAXSTUDIOBLENDS; i++ )
-		ent->v.blending[i] = LerpPoint( prev->blending[i], state->blending[i], m_fLerp ); 
+	{
+		ent->v.blending[i] = LerpByte( prev->blending[i], state->blending[i], m_fLerp ); 
+	}
 	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
-		ent->v.controller[i] = LerpPoint( prev->controller[i], state->controller[i], m_fLerp ); 
-
+	{
+		if( abs( prev->controller[i] - state->controller[i] ) > 128 )
+			ent->v.controller[i] = state->controller[i];
+		else ent->v.controller[i] = LerpByte( prev->controller[i], state->controller[i], m_fLerp );	
+	}
 	// g-cont. moved here because we may needs apply null scale to skyportal
 	if( ent->v.scale == 0.0f ) ent->v.scale = 1.0f;	
 	ent->v.pContainingEntity = ent;

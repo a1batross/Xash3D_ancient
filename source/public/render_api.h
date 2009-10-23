@@ -126,7 +126,7 @@ typedef struct render_imp_s
 	bool	(*SetAttachment)( int entityIndex, int number, vec3_t origin, vec3_t angles );
 	edict_t	*(*GetClientEdict)( int index );
 	prevframe_t *(*GetPrevFrame)( int entityIndex );
-	float	(*GetMouthOpen)( int entityIndex );
+	byte	(*GetMouthOpen)( int entityIndex );
 	edict_t	*(*GetLocalPlayer)( void );
 	int	(*GetMaxClients)( void );
 	float	(*GetLerpFrac)( void );

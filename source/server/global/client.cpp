@@ -518,7 +518,7 @@ void ClientCommand( edict_t *pEntity )
 					if( pHitEnt )
 					{
 						pHitEnt->Use( pPlayer, pPlayer, USE_SHOWINFO, 0 );
-						ALERT( at_console, "Fired %s \"%s\"\n", STRING( pHitEnt->pev->classname), STRING(pHitEnt->pev->targetname));
+						ALERT( at_console, "Fired %s \"%s\"\n", STRING( pHitEnt->pev->classname ), STRING( pHitEnt->pev->targetname ));
 					}
 				}
 			}
@@ -1077,7 +1077,8 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 	to->flags = pNet->pev->flags;
 	to->rendercolor = pNet->pev->rendercolor;
 	to->oldorigin = pNet->pev->oldorigin;
-
+	to->colormap = pNet->pev->colormap;	// attachments
+		
 	if( pNet->pev->groundentity )
 		to->groundent = ENTINDEX( pNet->pev->groundentity );
 	else to->groundent = NULLENT_INDEX;
@@ -1159,7 +1160,6 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 	}
 	else if( to->ed_type == ED_BEAM )
 	{
-		to->colormap = pNet->pev->colormap;	// attachments		
 		to->gaitsequence = pNet->pev->frags;	// beam type
 
 		// translate StartBeamEntity
@@ -1324,7 +1324,7 @@ void LinkUserMessages( void )
 	gmsg.StatusIcon = REG_USER_MSG("StatusIcon", -1);
 	gmsg.CamData = REG_USER_MSG("CamData", -1);
 	gmsg.Fsound = REG_USER_MSG("Fsound", -1);
-	gmsg.RainData = REG_USER_MSG("RainData", 16);
+	gmsg.RainData = REG_USER_MSG( "RainData", 28 );
 	gmsg.AddScreen = REG_USER_MSG( "AddScreen", 2);
 	gmsg.AddPortal = REG_USER_MSG( "AddPortal", 2);
 	gmsg.HudText = REG_USER_MSG( "HudText", -1 );

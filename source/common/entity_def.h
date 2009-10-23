@@ -77,8 +77,8 @@ typedef struct entvars_s
 	float		frame;		// NET [all], % playback position in animation sequences (0..255)
 	float		animtime;		// NET [all], world time when frame was set
 	float		framerate;	// NET [all], animation playback rate (-8x to 8x)
-	float		controller[16];	// NET [all], bone controller setting (0..255)
-	float		blending[16];	// NET [all], blending amount between sub-sequences (0..255)
+	byte		controller[16];	// NET [all], bone controller setting (0..255)
+	byte		blending[16];	// NET [all], blending amount between sub-sequences (0..255)
 
 	float		scale;		// NET [all], sprites and models rendering scale (0..255)
 	int		rendermode;	// NET [all]

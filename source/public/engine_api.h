@@ -126,9 +126,9 @@ typedef struct
 	float		m_flLastEventCheck;		// last time when event is checked
 
 
-	float		blending[16];		// previous blending values
-	float		controller[16];		// previous controller values
-	float		seqblending[16];		// blending between sequence when it's changed
+	byte		blending[16];		// previous blending values
+	byte		controller[16];		// previous controller values
+	byte		seqblending[16];		// blending between sequence when it's changed
 } prevframe_t;
 
 /*

@@ -168,7 +168,7 @@ void CBaseEntity :: SetParent( CBaseEntity* pParent, int m_iAttachment )
           	{
 			if( pev->flags & FL_POINTENTITY || pev->flags & FL_MONSTER )
 			{         
-				pev->skin = m_iAttachment;
+				pev->colormap = ((pev->colormap & 0xFF00)>>8) | m_iAttachment;
 				pev->aiment = m_pParent->edict();
 				pev->movetype = MOVETYPE_FOLLOW;
 			}

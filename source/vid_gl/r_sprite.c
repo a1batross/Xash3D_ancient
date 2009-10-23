@@ -554,10 +554,10 @@ bool R_DrawSpriteModel( const meshbuffer_t *mb )
 	// do movewith
 	if( e->parent && e->movetype == MOVETYPE_FOLLOW )
 	{
-		if( e->skin > 0 && e->parent->model && e->parent->model->type == mod_studio )
+		if(( e->colormap & 0xFF ) > 0 && e->parent->model && e->parent->model->type == mod_studio )
 		{
-			// FIXME: pev->skin hardcoded to attachment number :(
-			if( !ri.GetAttachment( e->parent->index, e->skin, e->origin2, NULL ))
+			// pev->colormap is hardcoded to attachment number
+			if( !ri.GetAttachment( e->parent->index, (e->colormap & 0xFF), e->origin2, NULL ))
 				VectorCopy( e->parent->origin, e->origin2 );
 		}
 		else VectorCopy( e->parent->origin, e->origin2 );

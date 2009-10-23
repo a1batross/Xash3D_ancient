@@ -72,8 +72,8 @@ typedef struct entity_state_s
 	float		animtime;		// auto-animating time
 	float		framerate;	// custom framerate, specified by QC
 	int		sequence;		// animation sequence (0 - 255)
-	float		blending[16];	// studio animation blending
-	float		controller[16];	// studio bone controllers
+	int		blending[16];	// studio animation blending
+	int		controller[16];	// studio bone controllers
 	int		flags;		// v.flags
 	int		effects;		// effect flags like q1 and hl1
 	int		renderfx;		// render effects same as hl1
@@ -88,8 +88,6 @@ typedef struct entity_state_s
 	int		gaitsequence;	// client\nps\bot gaitsequence
 	int		viewmodel;	// contains viewmodel index
 	int		weaponmodel;	// contains weaponmodel index
-	int		weaponbody;	// weaponmodel body
-	int		weaponskin;	// weaponmodel skin
 	float		idealpitch;	// client idealpitch
 	float		maxspeed;		// min( pev->maxspeed, sv_maxspeed->value )
 	float		health;		// client health (other parms can be send by custom messages)

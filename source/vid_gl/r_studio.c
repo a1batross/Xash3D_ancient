@@ -73,8 +73,8 @@ typedef struct studioverts_s
 
 typedef struct studiovars_s
 {
-	float		blending[MAXSTUDIOBLENDS];
-	float		controller[MAXSTUDIOCONTROLLERS];
+	byte		blending[MAXSTUDIOBLENDS];
+	byte		controller[MAXSTUDIOCONTROLLERS];
 	prevframe_t	*prev;			// duplcate e->prev for consistency
 
 	// cached bones, valid only for CURRENT frame
@@ -703,11 +703,11 @@ StudioCalcBoneAdj
 
 ====================
 */
-void R_StudioCalcBoneAdj( float dadt, float *adj, const float *pcontroller1, const float *pcontroller2, float mouthopen )
+void R_StudioCalcBoneAdj( float dadt, float *adj, const byte *pcontroller1, const byte *pcontroller2, byte mouthopen )
 {
-	int	i, j;
-	float	value;
-	dstudiobonecontroller_t *pbonecontroller;
+	int			i, j;
+	float			value;
+	dstudiobonecontroller_t	*pbonecontroller;
 	
 	pbonecontroller = (dstudiobonecontroller_t *)((byte *)m_pStudioHeader + m_pStudioHeader->bonecontrollerindex);
 
@@ -719,20 +719,20 @@ void R_StudioCalcBoneAdj( float dadt, float *adj, const float *pcontroller1, con
 		{
 			// mouth hardcoded at controller 4
 			value = mouthopen / 64.0;
-			if (value > 1.0) value = 1.0;				
+			if( value > 1.0 ) value = 1.0;				
 			value = (1.0 - value) * pbonecontroller[j].start + value * pbonecontroller[j].end;
-			// Msg("%d %f\n", mouthopen, value );
+			// Msg( "%d %f\n", mouthopen, value );
 		}
 		else if( i <= MAXSTUDIOCONTROLLERS )
 		{
 			// check for 360% wrapping
 			if( pbonecontroller[j].type & STUDIO_RLOOP )
 			{
-				if(abs(pcontroller1[i] - pcontroller2[i]) > 128)
+				if( abs( pcontroller1[i] - pcontroller2[i] ) > 128 )
 				{
 					float	a, b;
-					a = fmod((pcontroller1[j] + 128), 256 );
-					b = fmod((pcontroller2[j] + 128), 256 );
+					a = fmod(( pcontroller1[j] + 128 ), 256 );
+					b = fmod(( pcontroller2[j] + 128 ), 256 );
 					value = ((a * dadt) + (b * (1 - dadt)) - 128) * (360.0/256.0) + pbonecontroller[j].start;
 				}
 				else 
@@ -743,11 +743,10 @@ void R_StudioCalcBoneAdj( float dadt, float *adj, const float *pcontroller1, con
 			else 
 			{
 				value = (pcontroller1[i] * dadt + pcontroller2[i] * (1.0 - dadt)) / 255.0;
-				if (value < 0) value = 0;
-				if (value > 1.0) value = 1.0;
+				value = bound( 0.0f, value, 1.0f );
 				value = (1.0 - value) * pbonecontroller[j].start + value * pbonecontroller[j].end;
 			}
-			// Msg("%d %d %f : %f\n", RI.currententity->curstate.controller[j], RI.currententity->prev->prevcontroller[j], value, dadt );
+			// Msg( "%d %d %f : %f\n", RI.currententity->curstate.controller[j], RI.currententity->prev->prevcontroller[j], value, dadt );
 		}
 
 		switch( pbonecontroller[j].type & STUDIO_TYPES )
@@ -801,8 +800,8 @@ void R_StudioCalcBoneQuaterion( int frame, float s, dstudiobone_t *pbone, dstudi
 				if (panimvalue->num.total < panimvalue->num.valid)
 					k = 0;
 			}
-			// Bah, missing blend!
-			if (panimvalue->num.valid > k)
+			// bah, missing blend!
+			if( panimvalue->num.valid > k )
 			{
 				angle1[j] = panimvalue[k+1].value;
 
@@ -834,7 +833,7 @@ void R_StudioCalcBoneQuaterion( int frame, float s, dstudiobone_t *pbone, dstudi
 			angle2[j] = pbone->value[j+3] + angle2[j] * pbone->scale[j+3];
 		}
 
-		if (pbone->bonecontroller[j+3] != -1)
+		if( pbone->bonecontroller[j+3] != -1 )
 		{
 			angle1[j] += adj[pbone->bonecontroller[j+3]];
 			angle2[j] += adj[pbone->bonecontroller[j+3]];
@@ -1000,7 +999,7 @@ StudioPlayerBlend
 
 ====================
 */
-void R_StudioPlayerBlend( dstudioseqdesc_t *pseqdesc, float *pBlend, float *pPitch )
+void R_StudioPlayerBlend( dstudioseqdesc_t *pseqdesc, int *pBlend, float *pPitch )
 {
 	// calc up/down pointing
 	*pBlend = (*pPitch * 3);
@@ -1008,12 +1007,12 @@ void R_StudioPlayerBlend( dstudioseqdesc_t *pseqdesc, float *pBlend, float *pPit
 	if( *pBlend < pseqdesc->blendstart[0] )
 	{
 		*pPitch -= pseqdesc->blendstart[0] / 3.0f;
-		*pBlend = 0.0f;
+		*pBlend = 0;
 	}
 	else if( *pBlend > pseqdesc->blendend[0] )
 	{
 		*pPitch -= pseqdesc->blendend[0] / 3.0f;
-		*pBlend = 255.0f;
+		*pBlend = 255;
 	}
 	else
 	{
@@ -2109,17 +2108,17 @@ void R_StudioProcessGait( ref_entity_t *e, edict_t *pplayer, studiovars_t *pstud
 {
 	dstudioseqdesc_t	*pseqdesc;
 	float		dt, flYaw;	// view direction relative to movement
-	float		fBlend;
+	int		iBlend;
 
 	if( e->sequence >= m_pStudioHeader->numseq ) 
 		e->sequence = 0;
 
 	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + e->sequence;
-	R_StudioPlayerBlend( pseqdesc, &fBlend, &e->angles[PITCH] );
+	R_StudioPlayerBlend( pseqdesc, &iBlend, &e->angles[PITCH] );
 
-	pstudio->blending[0] = fBlend;
+	pstudio->blending[0] = iBlend;
 	pstudio->prev->blending[0] = pstudio->blending[0];
-	pstudio->prev->blending[0] = pstudio->blending[0];
+	pstudio->prev->seqblending[0] = pstudio->blending[0];
 
 	// MsgDev( D_INFO, "%f %d\n", e->angles[PITCH], pstudio->blending[0] );
 

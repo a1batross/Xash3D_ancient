@@ -703,10 +703,10 @@ static void R_AddSpriteModelToList( ref_entity_t *e )
 	dist = (e->origin[0] - RI.viewOrigin[0]) * RI.vpn[0] + (e->origin[1] - RI.viewOrigin[1]) * RI.vpn[1] + (e->origin[2] - RI.viewOrigin[2]) * RI.vpn[2];
 	if( dist < 0 ) return; // cull it because we don't want to sort unneeded things
 
+	if( R_SpriteOccluded( e )) return;
+
 	frame = R_GetSpriteFrame( e );
 	shader = &r_shaders[frame->shader];
-
-	if( R_SpriteOccluded( e )) return;
 
 	if( RI.refdef.flags & (RDF_PORTALINVIEW|RDF_SKYPORTALINVIEW) || ( RI.params & RP_SKYPORTALVIEW ))
 	{
