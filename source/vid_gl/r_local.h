@@ -384,7 +384,7 @@ extern cvar_t *r_coronascale;
 extern cvar_t *r_detailtextures;
 extern cvar_t *r_subdivisions;
 extern cvar_t *r_faceplanecull;
-extern cvar_t *r_showtris;
+extern cvar_t *gl_wireframe;
 extern cvar_t *r_shownormals;
 extern cvar_t *r_showtextures;
 extern cvar_t *r_draworder;

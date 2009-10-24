@@ -77,6 +77,8 @@ void HUD_Init( void )
 	g_engfuncs.pfnAddCommand ("give", NULL, "give specified item or weapon" );
 	g_engfuncs.pfnAddCommand ("drop", NULL, "drop current/specified item or weapon" );
 	g_engfuncs.pfnAddCommand ("intermission", NULL, "go to intermission" );
+	g_engfuncs.pfnAddCommand ("spectate", NULL, "enable spectator mode" );
+	g_engfuncs.pfnAddCommand ("gametitle", NULL, "show game logo" );
 	g_engfuncs.pfnAddCommand ("god", NULL, "classic cheat" );
 	g_engfuncs.pfnAddCommand ("fov", NULL, "set client field of view" );
 
@@ -172,11 +174,20 @@ void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t 
 		ent->v.aiment = GetEntityByIndex( state->aiment );
 	else ent->v.aiment = NULL;
 
+	switch( ent->v.movetype )
+	{
+	case MOVETYPE_NONE:
+		ent->v.origin = state->origin;
+		break;
+	default:
+		ent->v.origin = LerpPoint( prev->origin, state->origin, m_fLerp );
+		break;
+	}
+
 	// lerping some fields
 	for( i = 0; i < 3; i++ )
 	{
 		ent->v.angles[i] = LerpAngle( prev->angles[i], state->angles[i], m_fLerp );
-		ent->v.origin[i] = LerpPoint( prev->origin[i], state->origin[i], m_fLerp );
 		ent->v.rendercolor[i] = LerpPoint( prev->rendercolor[i], state->rendercolor[i], m_fLerp );
 	}
 
@@ -278,6 +289,8 @@ void HUD_Shutdown( void )
 	g_engfuncs.pfnDelCommand ("give" );
 	g_engfuncs.pfnDelCommand ("drop" );
 	g_engfuncs.pfnDelCommand ("intermission" );
+	g_engfuncs.pfnDelCommand ("spectate" );
+	g_engfuncs.pfnDelCommand ("gametitle" );
 	g_engfuncs.pfnDelCommand ("god" );
 	g_engfuncs.pfnDelCommand ("fov" );
 }

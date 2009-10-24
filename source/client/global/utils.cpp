@@ -704,7 +704,6 @@ void ClearPermanentFades( void )
 		if( pFade->fadeFlags & FFADE_STAYOUT )
 		{
 			// remove this Fade from the list
-			ALERT( at_console, "remove fade %i\n", i );
 			memset( pFade, 0, sizeof( ScreenFade ));
 		}
 	}

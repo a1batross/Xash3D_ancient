@@ -124,6 +124,11 @@ inline float LerpPoint( float oldpoint, float curpoint, float frac )
 	return oldpoint + frac * (curpoint - oldpoint);
 }
 
+inline Vector LerpPoint( Vector oldpoint, Vector curpoint, float frac )
+{
+	return oldpoint + frac * (curpoint - oldpoint);
+}
+
 inline byte LerpByte( byte oldpoint, byte curpoint, float frac )
 {
 	return bound( 0, oldpoint + frac * (curpoint - oldpoint), 255 );

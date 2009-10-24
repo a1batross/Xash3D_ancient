@@ -1390,7 +1390,7 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 		case mod_studio:
 			break;
 		case mod_sprite:
-			pass->glState = (GLSTATE_SRCBLEND_ONE_MINUS_SRC_ALPHA|GLSTATE_DSTBLEND_ONE|GLSTATE_NO_DEPTH_TEST);
+			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE|GLSTATE_NO_DEPTH_TEST);
 			pass->rgbGen.type = RGBGEN_VERTEX;
 			pass->alphaGen.type = ALPHAGEN_VERTEX;
 			break;
@@ -3026,7 +3026,7 @@ R_DrawTriangles
 */
 static void R_DrawTriangles( void )
 {
-	if( r_showtris->integer == 2 )
+	if( gl_wireframe->integer == 2 )
 		R_SetColorForOutlines();
 
 	if( GL_Support( R_DRAW_RANGEELEMENTS_EXT ))

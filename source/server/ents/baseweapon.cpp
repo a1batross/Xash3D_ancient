@@ -1172,16 +1172,16 @@ int CBasePlayerWeapon :: PlayCurrentAttack( int action, int firemode )
 	else if(action == LASER_DOT)
 	{
 		m_iSpot = !m_iSpot;
-		if(!m_iSpot && m_pSpot)//disable laser dot
+		if( !m_iSpot && m_pSpot ) // disable laser dot
 		{
-			EMIT_SOUND(ENT(m_pPlayer->pev), CHAN_ITEM, "weapons/spot_off.wav", 1, ATTN_NORM);
+			EMIT_SOUND( ENT( m_pPlayer->pev ), CHAN_ITEM, "weapons/spot_off.wav", 1, ATTN_NORM );
 			m_pSpot->Killed();
 			m_pSpot = NULL;
-			m_iSkin = 0; //disable screen
+			m_iSkin = 0; // disable screen
 		}
 		iResult = 1;
 	}
-	else if(action == FLASHLIGHT)
+	else if ( action == FLASHLIGHT )
 	{
 		if(FBitSet(m_pPlayer->pev->effects, EF_DIMLIGHT))
 		{

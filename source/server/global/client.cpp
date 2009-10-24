@@ -536,7 +536,6 @@ void ClientCommand( edict_t *pEntity )
 	else if( FStrEq( pcmd, "gametitle" ))
 	{
 		MESSAGE_BEGIN( MSG_ONE, gmsg.ShowGameTitle, NULL, ENT( pev ));
-			WRITE_BYTE( 0 );
 		MESSAGE_END();
 	}
 	else if( FStrEq( pcmd, "intermission" ))
@@ -575,7 +574,7 @@ void ClientCommand( edict_t *pEntity )
 	}
 	else if ( FStrEq(pcmd, "use" ) )
 	{
-		GetClassPtr((CBasePlayer *)pev)->SelectItem((char *)CMD_ARGV(1));
+		GetClassPtr((CBasePlayer *)pev)->SelectItem((char *)CMD_ARGV( 1 ));
 	}
           else if (((pstr = strstr(pcmd, "weapon_")) != NULL)  && (pstr == pcmd))
 	{
@@ -592,7 +591,7 @@ void ClientCommand( edict_t *pEntity )
 		edict_t *pentSpawnSpot = g_pGameRules->GetPlayerSpawnSpot( pPlayer );
 		pPlayer->StartObserver( pev->origin, VARS(pentSpawnSpot)->angles);
 	}
-	else if ( g_pGameRules->ClientCommand( GetClassPtr((CBasePlayer *)pev), pcmd ) )
+	else if ( g_pGameRules->ClientCommand( GetClassPtr((CBasePlayer *)pev), pcmd ))
 	{
 		// MenuSelect returns true only if the command is properly handled,  so don't print a warning
 	}
@@ -1309,8 +1308,8 @@ void LinkUserMessages( void )
 	gmsg.HideWeapon = REG_USER_MSG( "HideWeapon", 1 );
 	gmsg.WeaponAnim = REG_USER_MSG( "WeaponAnim", 3 );
 	gmsg.ShowMenu = REG_USER_MSG( "ShowMenu", -1 );
-	gmsg.Shake = REG_USER_MSG("ScreenShake", 13 );
-	gmsg.Fade = REG_USER_MSG("ScreenFade", sizeof(ScreenFade));
+	gmsg.Shake = REG_USER_MSG( "ScreenShake", 13 );
+	gmsg.Fade = REG_USER_MSG( "ScreenFade", sizeof( ScreenFade ));
 	gmsg.AmmoX = REG_USER_MSG("AmmoX", 2);
 	gmsg.TeamNames = REG_USER_MSG( "TeamNames", -1 );
 	gmsg.StatusText = REG_USER_MSG("StatusText", -1);
@@ -1328,7 +1327,7 @@ void LinkUserMessages( void )
 	gmsg.AddScreen = REG_USER_MSG( "AddScreen", 2);
 	gmsg.AddPortal = REG_USER_MSG( "AddPortal", 2);
 	gmsg.HudText = REG_USER_MSG( "HudText", -1 );
-	gmsg.ShowGameTitle = REG_USER_MSG("GameTitle", 1);
+	gmsg.ShowGameTitle = REG_USER_MSG("GameTitle", 0 );
 	gmsg.TempEntity = REG_USER_MSG( "TempEntity", -1);
 	gmsg.SetFog = REG_USER_MSG("SetFog", 7 );
 	gmsg.SetSky = REG_USER_MSG( "SetSky", 13 );

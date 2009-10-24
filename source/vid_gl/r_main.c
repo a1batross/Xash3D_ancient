@@ -582,6 +582,8 @@ static void R_PushFlareSurf( const meshbuffer_t *mb )
 	msurface_t	*surf = &bmodel->surfaces[mb->infokey - 1];
 	ref_shader_t	*shader;
 
+	if( !r_flares->integer ) return;
+
 	if( RI.currentmodel != r_worldmodel )
 	{
 		Matrix3x3_Transform( RI.currententity->axis, surf->origin, origin );
@@ -1565,7 +1567,7 @@ void R_RenderDebugSurface( void )
 	VectorMA( start, 4096, forward, end );
 
 	r_debug_surface = R_TraceLine( &tr, start, end, 0 );
-	if( r_debug_surface && r_debug_surface->mesh && !r_showtris->integer )
+	if( r_debug_surface && r_debug_surface->mesh && !gl_wireframe->integer )
 	{
 		RI.previousentity = NULL;
 		RI.currententity = (ref_entity_t *)tr.gp;
@@ -1672,7 +1674,7 @@ void R_RenderView( const ref_params_t *fd )
 
 	R_BackendCleanUpTextureUnits();
 
-	R_DrawTriangleOutlines( r_showtris->integer ? true : false, r_shownormals->integer ? true : false );
+	R_DrawTriangleOutlines( gl_wireframe->integer ? true : false, r_shownormals->integer ? true : false );
 
 	R_RenderDebugSurface ();
 

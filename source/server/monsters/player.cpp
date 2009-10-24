@@ -400,7 +400,7 @@ void CBasePlayer :: TraceAttack( entvars_t *pevAttacker, float flDamage, Vector 
 			break;
 		}
 
-		if(bitsDamageType & DMG_NUCLEAR)
+		if( bitsDamageType & DMG_NUCLEAR )
 		{
 			m_FadeColor = Vector( 255, 255, 255 );
 			m_FadeAlpha = 240;			

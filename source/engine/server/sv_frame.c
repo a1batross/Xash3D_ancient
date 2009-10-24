@@ -349,7 +349,7 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 		// the snapshot's entities may still have rolled off the buffer, though
 		if( oldframe->first_entity <= svs.next_client_entities - svs.num_client_entities )
 		{
-			MsgDev( D_WARN, "%s: delta request from out of date entities.\n", cl->name );
+			MsgDev( D_WARN, "%s: ^7delta request from out of date entities.\n", cl->name );
 			oldframe = NULL;
 			lastframe = 0;
 		}

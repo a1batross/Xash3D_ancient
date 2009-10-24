@@ -346,9 +346,10 @@ void SCR_DrawFPS( void )
 	else
 	{
 		com.snprintf( fpsstring, sizeof( fpsstring ), "%4i fps", (int)(calc + 0.5));
-		color = g_color_table[3];
+		color = g_color_table[7];
           }
-	SCR_DrawBigStringColor( SCREEN_WIDTH - 146, SCREEN_HEIGHT - 32, fpsstring, color );
+
+	SCR_DrawStringExt( SCREEN_WIDTH - 68, 4, 8, 12, fpsstring, color, true );
 }
 
 /*

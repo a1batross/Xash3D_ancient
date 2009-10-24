@@ -314,10 +314,14 @@ int CHudMessage :: Draw( float fTime )
 		if( m_gameTitleTime > gHUD.m_flTime )
 			m_gameTitleTime = gHUD.m_flTime;
 
-		if( localTime > (m_pGameTitle->fadein + m_pGameTitle->holdtime + m_pGameTitle->fadeout) )
+		if( localTime > ( m_pGameTitle->fadein + m_pGameTitle->holdtime + m_pGameTitle->fadeout ))
+		{
+			ALERT( at_console, "Game Logo faded\n" );
 			m_gameTitleTime = 0;
+		}
 		else
 		{
+			ALERT( at_console, "Draw Game Logo\n" );
 			brightness = FadeBlend( m_pGameTitle->fadein, m_pGameTitle->fadeout, m_pGameTitle->holdtime, localTime );
 
 			int fullWidth  = gHUD.GetSpriteRect(HUD_Logo).right - gHUD.GetSpriteRect(HUD_Logo).left;
@@ -326,7 +330,7 @@ int CHudMessage :: Draw( float fTime )
 			int x = XPosition( m_pGameTitle->x, fullWidth, fullWidth );
 			int y = YPosition( m_pGameTitle->y, fullHeight);
 
-			SPR_Set( gHUD.GetSprite(HUD_Logo), brightness * m_pGameTitle->r1, brightness * m_pGameTitle->g1, brightness * m_pGameTitle->b1 );
+			SPR_Set( gHUD.GetSprite( HUD_Logo ), brightness * m_pGameTitle->r1, brightness * m_pGameTitle->g1, brightness * m_pGameTitle->b1 );
 			SPR_DrawAdditive( 0, x, y, &gHUD.GetSpriteRect( HUD_Logo ));
 
 			drawn = 1;

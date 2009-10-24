@@ -472,7 +472,7 @@ static float R_GlowSightDistance( vec3_t glowOrigin )
 	VectorSubtract( glowOrigin, RI.viewOrigin, glowDist );
 	dist = VectorLength( glowDist );
 	
-	R_TraceLine( &tr, glowOrigin, RI.viewOrigin, MASK_OPAQUE );
+	R_TraceLine( &tr, RI.viewOrigin, glowOrigin, MASK_OPAQUE );
 	if(( 1.0 - tr.fraction ) * dist > 8 )
 		return -1;
 	return dist;
@@ -507,12 +507,20 @@ bool R_SpriteOccluded( ref_entity_t *e )
 	if( e->rendermode == kRenderGlow )
 	{
 		float	blend = 1.0f;
+		vec3_t	v;
+
+		R_TransformToScreen_Vec3( e->origin, v );
+
+		if( v[0] < RI.refdef.viewport[0] || v[0] > RI.refdef.viewport[0] + RI.refdef.viewport[2] )
+			return true; // do scissor
+		if( v[1] < RI.refdef.viewport[1] || v[1] > RI.refdef.viewport[1] + RI.refdef.viewport[3] )
+			return true; // do scissor
 
 		blend *= R_SpriteGlowBlend( e );
 		e->renderamt *= blend;
 
-		if( blend <= 0.0f )
-			return true; // occluded
+		if( blend <= 0.05f )
+			return true; // faded
 	}
 	return false;	
 }

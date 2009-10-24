@@ -2075,16 +2075,19 @@ void UTIL_ScreenFadeAll( const Vector &color, float fadeTime, float fadeHold, in
 void UTIL_ScreenFade( const Vector &color, float fadeTime, float fadeHold, int alpha, int flags, int playernum )
 {
 	CBasePlayer *pPlayer = (CBasePlayer*)UTIL_PlayerByIndex( playernum );
+
 	if ( pPlayer )
 	{
-		if(flags & FFADE_CUSTOMVIEW)
+		if ( flags & FFADE_CUSTOMVIEW )
 		{
-			if(pPlayer->viewFlags == 0) return;
-			ClearBits( flags, FFADE_CUSTOMVIEW ); //don't send this flag to engine!!!
+			if ( pPlayer->viewFlags == 0 ) return;
+			ClearBits( flags, FFADE_CUSTOMVIEW ); // don't send this flag to engine!!!
 		}
-		if(flags & FFADE_OUT && fadeHold == 0) SetBits( flags, FFADE_STAYOUT ); 
+
+		if ( flags & FFADE_OUT && fadeHold == 0 )
+			SetBits( flags, FFADE_STAYOUT ); 
 		else ClearBits( flags, FFADE_STAYOUT );
-		
+
 		pPlayer->m_FadeColor = color;
 		pPlayer->m_FadeAlpha = alpha;			
 		pPlayer->m_iFadeFlags = flags;

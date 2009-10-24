@@ -53,8 +53,10 @@ void CEnvShower::Touch( CBaseEntity *pOther )
 {
 	if ( pev->flags & FL_ONGROUND )
 		pev->velocity = pev->velocity * 0.1;
-	else	pev->velocity = pev->velocity * 0.6;
-	if ( (pev->velocity.x*pev->velocity.x+pev->velocity.y*pev->velocity.y) < 10.0 ) pev->speed = 0;
+	else pev->velocity = pev->velocity * 0.6;
+
+	if ( (pev->velocity.x * pev->velocity.x + pev->velocity.y * pev->velocity.y ) < 10.0 )
+		pev->speed = 0;
 }
 
 //====================================================================
@@ -168,7 +170,7 @@ class CFloorEnt:public CPointEntity
 {
 	void Think( void );
 	void PostActivate( void );
-	CBasePlatform *pElevator;	//no need to save - PostActivate will be restore this
+	CBasePlatform *pElevator;	// no need to save - PostActivate will be restore this
 };
 
 void CFloorEnt::PostActivate( void )
@@ -215,7 +217,7 @@ void CLaserSpot::Spawn( void )
 	SetObjectClass( ED_NORMAL );
 
 	// laser dot settings
-	pev->movetype = MOVETYPE_NOCLIP;
+	pev->movetype = MOVETYPE_NONE;
 	pev->solid = SOLID_NOT;
 	pev->scale = 1.0;
 	pev->rendermode = kRenderGlow;

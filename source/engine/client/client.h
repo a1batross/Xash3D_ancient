@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAX_EDIT_LINE	256
 #define COMMAND_HISTORY	32
 #define MAX_SERVERS		64
+#define MAX_GAME_TITLES	1024
 #define ColorIndex(c)	(((c) - '0') & 7)
 
 #define NUM_FOR_EDICT(e) ((int)((edict_t *)(e) - clgame.edicts))
@@ -288,6 +289,9 @@ typedef struct
 	user_message_t	*msg[MAX_USER_MESSAGES];
 
 	tri_state_t	*pTri;
+
+	client_textmessage_t titles[MAX_GAME_TITLES];
+	int		numTitles;
 
 	edict_t		viewent;			// viewmodel or playermodel in UI_PlayerSetup
 	edict_t		playermodel;		// uiPlayerSetup latched vars

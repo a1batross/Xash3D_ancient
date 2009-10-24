@@ -1390,9 +1390,10 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 	if( !com.stricmp( gs_basedir, filename ) && !FS_FileExists( filepath ))
 		FS_CreateGameInfo( filepath );
 
+	if( !GameInfo ) return false;	// no dest
+
 	script = PS_LoadScript( filepath, NULL, 0 );
 	if( !script ) return false;
-	if( !GameInfo ) return false;	// no dest
 
 	// setup default values
 	com.strncpy( GameInfo->gamefolder, filename, MAX_STRING );

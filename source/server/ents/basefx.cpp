@@ -329,22 +329,22 @@ LINK_ENTITY_TO_CLASS( env_fade, CFade );
 
 void CFade::KeyValue( KeyValueData *pkvd )
 {
-	if (FStrEq(pkvd->szKeyName, "duration"))
+	if (FStrEq( pkvd->szKeyName, "duration" ))
 	{
-		pev->dmg_take = atof(pkvd->szValue);
+		pev->dmg_take = atof( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if (FStrEq(pkvd->szKeyName, "holdtime"))
+	else if (FStrEq( pkvd->szKeyName, "holdtime" ))
 	{
-		pev->dmg_save = atoi(pkvd->szValue);
+		pev->dmg_save = atof( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else	CBaseEntity::KeyValue( pkvd );
+	else CBaseEntity::KeyValue( pkvd );
 }
 
 void CFade::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	if(useType == USE_SHOWINFO)
+	if ( useType == USE_SHOWINFO )
 	{
 		DEBUGHEAD;
 		Msg( "Fadecolor: %g %g %g, Fadealpha: %g, Fadetime: %g\n", pev->rendercolor.x, pev->rendercolor.y, pev->rendercolor.z, pev->renderamt, pev->dmg_take );
@@ -352,13 +352,15 @@ void CFade::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType
 	}
 	else
 	{
-		//setup fade flags
+		// setup fade flags
 		int fadeFlags = 0;
-		if(!(pev->spawnflags & SF_FADE_IN)) fadeFlags |= FFADE_OUT;
+		if ( pev->spawnflags & SF_FADE_IN )
+			fadeFlags |= FFADE_IN;
+		else fadeFlags |= FFADE_OUT;
 		if ( pev->spawnflags & SF_FADE_MODULATE ) fadeFlags |= FFADE_MODULATE;
 		if ( pev->spawnflags & SF_FADE_CAMERA ) fadeFlags |= FFADE_CUSTOMVIEW;
           
-		//apply fade
+		// apply fade
 		if ( pev->spawnflags & SF_FADE_ALL ) UTIL_ScreenFadeAll( pev->rendercolor, pev->dmg_take, pev->dmg_save, pev->renderamt, fadeFlags );
 		else UTIL_ScreenFade( pev->rendercolor, pev->dmg_take, pev->dmg_save, pev->renderamt, fadeFlags );
 	}

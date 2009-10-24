@@ -51,7 +51,7 @@ cvar_t *r_coronascale;
 cvar_t *r_detailtextures;
 cvar_t *r_subdivisions;
 cvar_t *r_faceplanecull;
-cvar_t *r_showtris;
+cvar_t *gl_wireframe;
 cvar_t *r_shownormals;
 cvar_t *r_showtextures;
 cvar_t *r_draworder;
@@ -501,7 +501,7 @@ void GL_InitCommands( void )
 	r_lerpmodels = Cvar_Get( "r_lerpmodels", "1", 0, "use lerping for alias and studio models" );
 	r_speeds = Cvar_Get( "r_speeds", "0", CVAR_ARCHIVE, "shows r_speeds" );
 	r_drawelements = Cvar_Get( "r_drawelements", "1", 0, "use gldrawElements or glDrawRangeElements" );
-	r_showtris = Cvar_Get( "r_showtris", "0", CVAR_CHEAT, "show mesh triangles" );
+	gl_wireframe = Cvar_Get( "gl_wireframe", "0", CVAR_CHEAT, "show mesh triangles" );
 	r_lockpvs = Cvar_Get( "r_lockpvs", "0", CVAR_CHEAT, "lockpvs area at current point (pvs test)" );
 	r_clear = Cvar_Get( "r_clear", "0", CVAR_ARCHIVE, "clearing screen after each frame" );
 	r_mode = Cvar_Get( "r_mode", VID_DEFAULTMODE, CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "display resolution mode" );

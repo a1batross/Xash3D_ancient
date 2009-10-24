@@ -6,13 +6,13 @@
 --------------------Configuration: server - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSPE49.tmp" with contents
+Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP124B.tmp" with contents
 [
 /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "ents" /I "game" /I "global" /I "monsters" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\server\!debug/" /Fo"..\temp\server\!debug/" /Fd"..\temp\server\!debug/" /FD /c 
-"D:\Xash3D\src_main\server\ents\basefx.cpp"
+"D:\Xash3D\src_main\server\global\client.cpp"
 ]
-Creating command line "cl.exe @"C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSPE49.tmp"" 
-Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSPE4A.tmp" with contents
+Creating command line "cl.exe @"C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP124B.tmp"" 
+Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP124C.tmp" with contents
 [
 msvcrtd.lib /nologo /subsystem:windows /dll /incremental:yes /pdb:"..\temp\server\!debug/server.pdb" /debug /machine:I386 /nodefaultlib:"libc.lib" /def:".\server.def" /out:"..\temp\server\!debug/server.dll" /implib:"..\temp\server\!debug/server.lib" /pdbtype:sept 
 "\Xash3D\src_main\temp\server\!debug\ai_sound.obj"
@@ -78,15 +78,15 @@ msvcrtd.lib /nologo /subsystem:windows /dll /incremental:yes /pdb:"..\temp\serve
 "\Xash3D\src_main\temp\server\!debug\weapon_generic.obj"
 "\Xash3D\src_main\temp\server\!debug\zombie.obj"
 ]
-Creating command line "link.exe @"C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSPE4A.tmp""
-Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSPE4B.bat" with contents
+Creating command line "link.exe @"C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP124C.tmp""
+Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP124D.bat" with contents
 [
 @echo off
 copy \Xash3D\src_main\temp\server\!debug\server.dll "D:\Xash3D\bin\server.dll"
 ]
-Creating command line ""C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSPE4B.bat""
+Creating command line ""C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP124D.bat""
 Compiling...
-basefx.cpp
+client.cpp
 Linking...
 <h3>Output Window</h3>
 Performing Custom Build Step on \Xash3D\src_main\temp\server\!debug\server.dll
