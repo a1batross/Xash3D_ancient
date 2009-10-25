@@ -20,7 +20,7 @@ if exist backup.log del /f /q backup.log
 exit
 :error
 echo 		    ******************************
-echo 		    ***********Erorr!*************
+echo 		    ***********Error!*************
 echo 		    ******************************
 echo 		    **See backup.log for details**
 echo 		    ******************************

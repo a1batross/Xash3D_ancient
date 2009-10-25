@@ -1,0 +1,181 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: xtools - Win32 Release--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP1B3E.tmp" with contents
+[
+/nologo /MD /W3 /GX /O2 /I "./" /I "../public" /I "bsplib" /I "models" /I "ripper" /I "../common" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /Fo"..\temp\xtools\!release/" /Fd"..\temp\xtools\!release/" /FD /c 
+"D:\Xash3D\src_main\xtools\bsplib\brush.c"
+"D:\Xash3D\src_main\xtools\bsplib\brush_primit.c"
+"D:\Xash3D\src_main\xtools\bsplib\bsp.c"
+"D:\Xash3D\src_main\xtools\bsplib\bspfile_abstract.c"
+"D:\Xash3D\src_main\xtools\bsplib\bspfile_ibsp.c"
+"D:\Xash3D\src_main\xtools\bsplib\bspfile_rbsp.c"
+"D:\Xash3D\src_main\xtools\bsplib\bsplib.c"
+"D:\Xash3D\src_main\xtools\bsplib\convert_ase.c"
+"D:\Xash3D\src_main\xtools\bsplib\convert_map.c"
+"D:\Xash3D\src_main\xtools\bsplib\decals.c"
+"D:\Xash3D\src_main\xtools\bsplib\facebsp.c"
+"D:\Xash3D\src_main\xtools\bsplib\fog.c"
+"D:\Xash3D\src_main\xtools\bsplib\image.c"
+"D:\Xash3D\src_main\xtools\bsplib\leakfile.c"
+"D:\Xash3D\src_main\xtools\bsplib\light.c"
+"D:\Xash3D\src_main\xtools\bsplib\light_bounce.c"
+"D:\Xash3D\src_main\xtools\bsplib\light_trace.c"
+"D:\Xash3D\src_main\xtools\bsplib\light_ydnar.c"
+"D:\Xash3D\src_main\xtools\bsplib\lightmaps_ydnar.c"
+"D:\Xash3D\src_main\xtools\bsplib\map.c"
+"D:\Xash3D\src_main\xtools\bsplib\md5.c"
+"D:\Xash3D\src_main\xtools\bsplib\mesh.c"
+"D:\Xash3D\src_main\xtools\bsplib\model.c"
+"D:\Xash3D\src_main\xtools\bsplib\patch.c"
+"D:\Xash3D\src_main\xtools\bsplib\polylib.c"
+"D:\Xash3D\src_main\xtools\bsplib\portals.c"
+"D:\Xash3D\src_main\xtools\bsplib\prtfile.c"
+"D:\Xash3D\src_main\xtools\bsplib\shaders.c"
+"D:\Xash3D\src_main\xtools\bsplib\surface.c"
+"D:\Xash3D\src_main\xtools\bsplib\surface_extra.c"
+"D:\Xash3D\src_main\xtools\bsplib\surface_foliage.c"
+"D:\Xash3D\src_main\xtools\bsplib\surface_fur.c"
+"D:\Xash3D\src_main\xtools\bsplib\surface_meta.c"
+"D:\Xash3D\src_main\xtools\bsplib\tjunction.c"
+"D:\Xash3D\src_main\xtools\bsplib\tree.c"
+"D:\Xash3D\src_main\xtools\bsplib\vis.c"
+"D:\Xash3D\src_main\xtools\bsplib\visflow.c"
+"D:\Xash3D\src_main\xtools\bsplib\writebsp.c"
+"D:\Xash3D\src_main\xtools\xtools.c"
+]
+Creating command line "cl.exe @"C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP1B3E.tmp"" 
+Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP1B3F.tmp" with contents
+[
+msvcrt.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /out:"..\temp\xtools\!release/xtools.dll" /implib:"..\temp\xtools\!release/xtools.lib" /opt:nowin98 
+"\Xash3D\src_main\temp\xtools\!release\brush.obj"
+"\Xash3D\src_main\temp\xtools\!release\brush_primit.obj"
+"\Xash3D\src_main\temp\xtools\!release\bsp.obj"
+"\Xash3D\src_main\temp\xtools\!release\bspfile_abstract.obj"
+"\Xash3D\src_main\temp\xtools\!release\bspfile_ibsp.obj"
+"\Xash3D\src_main\temp\xtools\!release\bspfile_rbsp.obj"
+"\Xash3D\src_main\temp\xtools\!release\bsplib.obj"
+"\Xash3D\src_main\temp\xtools\!release\conv_bsplumps.obj"
+"\Xash3D\src_main\temp\xtools\!release\conv_doom.obj"
+"\Xash3D\src_main\temp\xtools\!release\conv_image.obj"
+"\Xash3D\src_main\temp\xtools\!release\conv_main.obj"
+"\Xash3D\src_main\temp\xtools\!release\conv_shader.obj"
+"\Xash3D\src_main\temp\xtools\!release\conv_sprite.obj"
+"\Xash3D\src_main\temp\xtools\!release\convert_ase.obj"
+"\Xash3D\src_main\temp\xtools\!release\convert_map.obj"
+"\Xash3D\src_main\temp\xtools\!release\decals.obj"
+"\Xash3D\src_main\temp\xtools\!release\facebsp.obj"
+"\Xash3D\src_main\temp\xtools\!release\fog.obj"
+"\Xash3D\src_main\temp\xtools\!release\image.obj"
+"\Xash3D\src_main\temp\xtools\!release\leakfile.obj"
+"\Xash3D\src_main\temp\xtools\!release\light.obj"
+"\Xash3D\src_main\temp\xtools\!release\light_bounce.obj"
+"\Xash3D\src_main\temp\xtools\!release\light_trace.obj"
+"\Xash3D\src_main\temp\xtools\!release\light_ydnar.obj"
+"\Xash3D\src_main\temp\xtools\!release\lightmaps_ydnar.obj"
+"\Xash3D\src_main\temp\xtools\!release\map.obj"
+"\Xash3D\src_main\temp\xtools\!release\md5.obj"
+"\Xash3D\src_main\temp\xtools\!release\mesh.obj"
+"\Xash3D\src_main\temp\xtools\!release\model.obj"
+"\Xash3D\src_main\temp\xtools\!release\patch.obj"
+"\Xash3D\src_main\temp\xtools\!release\picointernal.obj"
+"\Xash3D\src_main\temp\xtools\!release\picomodel.obj"
+"\Xash3D\src_main\temp\xtools\!release\picomodules.obj"
+"\Xash3D\src_main\temp\xtools\!release\pm_3ds.obj"
+"\Xash3D\src_main\temp\xtools\!release\pm_ase.obj"
+"\Xash3D\src_main\temp\xtools\!release\pm_fm.obj"
+"\Xash3D\src_main\temp\xtools\!release\pm_md2.obj"
+"\Xash3D\src_main\temp\xtools\!release\pm_md3.obj"
+"\Xash3D\src_main\temp\xtools\!release\pm_mdc.obj"
+"\Xash3D\src_main\temp\xtools\!release\pm_ms3d.obj"
+"\Xash3D\src_main\temp\xtools\!release\pm_obj.obj"
+"\Xash3D\src_main\temp\xtools\!release\polylib.obj"
+"\Xash3D\src_main\temp\xtools\!release\portals.obj"
+"\Xash3D\src_main\temp\xtools\!release\prtfile.obj"
+"\Xash3D\src_main\temp\xtools\!release\shaders.obj"
+"\Xash3D\src_main\temp\xtools\!release\spritegen.obj"
+"\Xash3D\src_main\temp\xtools\!release\studio.obj"
+"\Xash3D\src_main\temp\xtools\!release\studio_utils.obj"
+"\Xash3D\src_main\temp\xtools\!release\surface.obj"
+"\Xash3D\src_main\temp\xtools\!release\surface_extra.obj"
+"\Xash3D\src_main\temp\xtools\!release\surface_foliage.obj"
+"\Xash3D\src_main\temp\xtools\!release\surface_fur.obj"
+"\Xash3D\src_main\temp\xtools\!release\surface_meta.obj"
+"\Xash3D\src_main\temp\xtools\!release\tjunction.obj"
+"\Xash3D\src_main\temp\xtools\!release\tree.obj"
+"\Xash3D\src_main\temp\xtools\!release\utils.obj"
+"\Xash3D\src_main\temp\xtools\!release\vis.obj"
+"\Xash3D\src_main\temp\xtools\!release\visflow.obj"
+"\Xash3D\src_main\temp\xtools\!release\wadlib.obj"
+"\Xash3D\src_main\temp\xtools\!release\writebsp.obj"
+"\Xash3D\src_main\temp\xtools\!release\ximage.obj"
+"\Xash3D\src_main\temp\xtools\!release\xtools.obj"
+]
+Creating command line "link.exe @"C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP1B3F.tmp""
+Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP1B40.bat" with contents
+[
+@echo off
+copy \Xash3D\src_main\temp\xtools\!release\xtools.dll "D:\Xash3D\bin\xtools.dll"
+]
+Creating command line ""C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP1B40.bat""
+Compiling...
+brush.c
+brush_primit.c
+bsp.c
+bspfile_abstract.c
+bspfile_ibsp.c
+bspfile_rbsp.c
+bsplib.c
+convert_ase.c
+convert_map.c
+decals.c
+facebsp.c
+fog.c
+image.c
+leakfile.c
+light.c
+light_bounce.c
+light_trace.c
+light_ydnar.c
+lightmaps_ydnar.c
+map.c
+Generating Code...
+Compiling...
+md5.c
+mesh.c
+model.c
+patch.c
+polylib.c
+portals.c
+prtfile.c
+shaders.c
+surface.c
+surface_extra.c
+surface_foliage.c
+surface_fur.c
+surface_meta.c
+tjunction.c
+tree.c
+vis.c
+visflow.c
+writebsp.c
+xtools.c
+Generating Code...
+Linking...
+   Creating library ..\temp\xtools\!release/xtools.lib and object ..\temp\xtools\!release/xtools.exp
+<h3>Output Window</h3>
+Performing Custom Build Step on \Xash3D\src_main\temp\xtools\!release\xtools.dll
+ë™ÆØ®‡Æ¢†≠Æ ‰†©´Æ¢:         1.
+
+
+
+<h3>Results</h3>
+xtools.dll - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

@@ -3544,6 +3544,7 @@ void FreeTraceLights( light_trace_t *trace )
 {
 	if( trace->lights != NULL )
 		Mem_Free( trace->lights );
+	trace->lights = NULL;
 }
 
 
