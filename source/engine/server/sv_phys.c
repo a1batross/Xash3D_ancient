@@ -49,170 +49,6 @@ int SV_ContentsMask( const edict_t *passedict )
 }
 
 /*
-==================
-SV_Trace
-==================
-*/
-trace_t SV_Trace( const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int type, edict_t *passedict, int contentsmask )
-{
-	vec3_t		hullmins, hullmaxs;
-	int		i, bodycontents;
-	bool		pointtrace;
-	edict_t		*traceowner, *touch;
-	trace_t		trace;
-	vec3_t		clipboxmins, clipboxmaxs;// bounding box of entire move area
-	vec3_t		clipmins, clipmaxs;// size of the moving object
-	vec3_t		clipmins2, clipmaxs2;// size when clipping against monsters
-	vec3_t		clipstart, clipend;// start and end origin of move
-	trace_t		cliptrace;// trace results
-	matrix4x4		matrix, imatrix;// matrices to transform into/out of other entity's space
-	cmodel_t		*model;// model of other entity
-	int		numtouchedicts;// list of entities to test for collisions
-	edict_t		*touchedicts[MAX_EDICTS];
-
-	VectorCopy( start, clipstart );
-	VectorCopy( end, clipend );
-	VectorCopy( mins, clipmins );
-	VectorCopy( maxs, clipmaxs );
-	VectorCopy( mins, clipmins2 );
-	VectorCopy( maxs, clipmaxs2 );
-
-	// clip to world
-	pe->ClipToWorld( &cliptrace, sv.worldmodel, clipstart, clipmins, clipmaxs, clipend, contentsmask );
-	cliptrace.startstuck = cliptrace.startsolid;
-	if( cliptrace.startsolid || cliptrace.fraction < 1 )
-		cliptrace.ent = EDICT_NUM( 0 );
-	if( type == MOVE_WORLDONLY )
-		return cliptrace;
-
-	if( type == MOVE_MISSILE )
-	{
-		// LordHavoc: modified this, was = -15, now -= 15
-		for( i = 0; i < 3; i++ )
-		{
-			clipmins2[i] -= 15;
-			clipmaxs2[i] += 15;
-		}
-	}
-
-	VectorCopy( clipmins, hullmins );
-	VectorCopy( clipmaxs, hullmaxs );
-
-	// create the bounding box of the entire move
-	for( i = 0; i < 3; i++ )
-	{
-		clipboxmins[i] = min(clipstart[i], cliptrace.endpos[i]) + min(hullmins[i], clipmins2[i]) - 1;
-		clipboxmaxs[i] = max(clipstart[i], cliptrace.endpos[i]) + max(hullmaxs[i], clipmaxs2[i]) + 1;
-	}
-
-	// if the passedict is world, make it NULL (to avoid two checks each time)
-	if( passedict == EDICT_NUM( 0 )) passedict = NULL;
-	// figure out whether this is a point trace for comparisons
-	pointtrace = VectorCompare(clipmins, clipmaxs);
-	// precalculate passedict's owner edict pointer for comparisons
-	if( passedict && passedict->v.owner )
-		traceowner = passedict->v.owner;
-	else traceowner = NULL;
-
-	// clip to entities
-	// because this uses SV_AreaEdicts, we know all entity boxes overlap
-	// the clip region, so we can skip culling checks in the loop below
-	numtouchedicts = SV_AreaEdicts( clipboxmins, clipboxmaxs, touchedicts, GI->max_edicts, AREA_SOLID );
-	if( numtouchedicts > GI->max_edicts )
-	{
-		// this never happens
-		MsgDev( D_WARN, "SV_AreaEdicts returned %i edicts, max was %i\n", numtouchedicts, GI->max_edicts );
-		numtouchedicts = GI->max_edicts;
-	}
-	for( i = 0; i < numtouchedicts; i++ )
-	{
-		touch = touchedicts[i];
-		if( touch->v.solid < SOLID_BBOX ) continue;
-		if( type == MOVE_NOMONSTERS && touch->v.solid != SOLID_BSP )
-			continue;
-
-		if( passedict )
-		{
-			// don't clip against self
-			if( passedict == touch ) continue;
-			// don't clip owned entities against owner
-			if( traceowner == touch ) continue;
-			// don't clip owner against owned entities
-			if( passedict == touch->v.owner ) continue;
-			// don't clip points against points (they can't collide)
-			if( pointtrace && VectorCompare( touch->v.mins, touch->v.maxs ) && (type != MOVE_MISSILE || !(touch->v.flags & FL_MONSTER)))
-				continue;
-		}
-
-		bodycontents = CONTENTS_BODY;
-
-		// might interact, so do an exact clip
-		model = NULL;
-		if( touch->v.solid == SOLID_BSP || type == MOVE_HITMODEL )
-		{
-			uint modelindex = (uint)touch->v.modelindex;
-			// if the modelindex is 0, it shouldn't be SOLID_BSP!
-			if( modelindex > 0 && modelindex < MAX_MODELS )
-				model = sv.models[touch->v.modelindex];
-		}
-		if( model ) Matrix4x4_CreateFromEntity( matrix, touch->v.origin[0], touch->v.origin[1], touch->v.origin[2], touch->v.angles[0], touch->v.angles[1], touch->v.angles[2], 1 );
-		else Matrix4x4_CreateTranslate( matrix, touch->v.origin[0], touch->v.origin[1], touch->v.origin[2] );
-		Matrix4x4_Invert_Simple( imatrix, matrix );
-		if((int)touch->v.flags & FL_MONSTER)
-			pe->ClipToGenericEntity(&trace, model, touch->v.mins, touch->v.maxs, bodycontents, matrix, imatrix, clipstart, clipmins2, clipmaxs2, clipend, contentsmask );
-		else pe->ClipToGenericEntity(&trace, model, touch->v.mins, touch->v.maxs, bodycontents, matrix, imatrix, clipstart, clipmins, clipmaxs, clipend, contentsmask );
-
-		pe->CombineTraces( &cliptrace, &trace, touch, touch->v.solid == SOLID_BSP );
-	}
-	
-	return cliptrace;
-}
-
-int SV_PointContents( const vec3_t point )
-{
-	int		i, contents = 0;
-	edict_t		*touch;
-	vec3_t		transformed;
-	matrix4x4		matrix, imatrix;	// matrices to transform into/out of other entity's space
-	cmodel_t		*model;		// model of other entity
-	uint		modelindex;
-	int		numtouchedicts;		// list of entities to test for collisions
-	edict_t		*touchedicts[MAX_EDICTS];
-
-	// get world supercontents at this point
-	if( sv.worldmodel && sv.worldmodel->PointContents )
-		contents = sv.worldmodel->PointContents( point, sv.worldmodel );
-
-	// get list of entities at this point
-	numtouchedicts = SV_AreaEdicts( point, point, touchedicts, GI->max_edicts, AREA_SOLID );
-	if( numtouchedicts > GI->max_edicts )
-	{
-		// this never happens
-		MsgDev( D_WARN, "SV_AreaEdicts returned %i edicts, max was %i\n", numtouchedicts, GI->max_edicts );
-		numtouchedicts = GI->max_edicts;
-	}
-	for( i = 0; i < numtouchedicts; i++ )
-	{
-		touch = touchedicts[i];
-
-		// we only care about SOLID_BSP for pointcontents
-		if( touch->v.solid != SOLID_BSP ) continue;
-
-		// might interact, so do an exact clip
-		modelindex = (uint)touch->v.modelindex;
-		if( modelindex >= MAX_MODELS ) continue;
-		model = sv.models[(int)touch->v.modelindex];
-		if( !model || !model->PointContents ) continue;
-		Matrix4x4_CreateFromEntity( matrix, touch->v.origin[0], touch->v.origin[1], touch->v.origin[2], touch->v.angles[0], touch->v.angles[1], touch->v.angles[2], 1 );
-		Matrix4x4_Invert_Simple( imatrix, matrix );
-		Matrix4x4_VectorTransform( imatrix, point, transformed);
-		contents |= model->PointContents( transformed, model );
-	}
-
-	return contents;
-}
-
-/*
 ===============================================================================
 
 Utility functions
@@ -228,16 +64,18 @@ returns true if the entity is in solid currently
 */
 static int SV_TestEntityPosition( edict_t *ent, vec3_t offset )
 {
-	vec3_t	org;
-	trace_t	trace;
+	vec3_t		org;
+	TraceResult	trace;
 
 	VectorAdd( ent->v.origin, offset, org );
 	trace = SV_Trace( org, ent->v.mins, ent->v.maxs, ent->v.origin, MOVE_NOMONSTERS, ent, CONTENTS_SOLID );
-	if( trace.startcontents & CONTENTS_SOLID )
+
+	if( trace.fStartSolid )
 		return true;
+
 	// if the trace found a better position for the entity, move it there
-	if( VectorDistance2( trace.endpos, ent->v.origin ) >= 0.0001 )
-		VectorCopy( trace.endpos, ent->v.origin );
+	if( VectorDistance2( trace.vecEndPos, ent->v.origin ) >= 0.0001 )
+		VectorCopy( trace.vecEndPos, ent->v.origin );
 	return false;
 }
 
@@ -342,9 +180,9 @@ SV_Impact
 Two entities have touched, so run their touch functions
 ==================
 */
-void SV_Impact( edict_t *e1, trace_t *trace )
+void SV_Impact( edict_t *e1, TraceResult *trace )
 {
-	edict_t *e2 = trace->ent;
+	edict_t *e2 = trace->pHit;
 
 	SV_CopyTraceToGlobal( trace );
 
@@ -357,8 +195,8 @@ void SV_Impact( edict_t *e1, trace_t *trace )
 	if( !e1->free && !e2->free && e2->v.solid != SOLID_NOT )
 	{
 		VectorCopy( e2->v.origin, svgame.globals->trace_endpos );
-		VectorNegate( trace->plane.normal, svgame.globals->trace_plane_normal );
-		svgame.globals->trace_plane_dist = -trace->plane.dist;
+		VectorNegate( trace->vecPlaneNormal, svgame.globals->trace_plane_normal );
+		svgame.globals->trace_plane_dist = -trace->flPlaneDist;
 		svgame.globals->trace_ent = e1;
 		svgame.dllFuncs.pfnTouch( e2, e1 );
 	}
@@ -448,7 +286,7 @@ int SV_FlyMove( edict_t *ent, float time, float *stepnormal, int contentsmask )
 	int	i, j, impact, numplanes;
 	float	d, time_left;
 	vec3_t	dir, end, planes[MAX_CLIP_PLANES], primal_velocity, original_velocity, new_velocity;
-	trace_t	trace;
+	TraceResult	trace;
 
 	if( time <= 0 ) return 0;
 	VectorCopy( ent->v.velocity, original_velocity );
@@ -465,28 +303,28 @@ int SV_FlyMove( edict_t *ent, float time, float *stepnormal, int contentsmask )
 		trace = SV_Trace( ent->v.origin, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL, ent, contentsmask );
 
 		// break if it moved the entire distance
-		if( trace.fraction == 1 )
+		if( trace.flFraction == 1 )
 		{
-			VectorCopy( trace.endpos, ent->v.origin );
+			VectorCopy( trace.vecEndPos, ent->v.origin );
 			break;
 		}
 
-		if( !trace.ent )
+		if( !trace.pHit )
 		{
-			MsgDev( D_WARN, "SV_FlyMove: trace.ent == NULL\n" );
-			trace.ent = EDICT_NUM( 0 );
+			MsgDev( D_WARN, "SV_FlyMove: trace.pHit == NULL\n" );
+			trace.pHit = EDICT_NUM( 0 );
 		}
 
-		impact = !(ent->v.flags & FL_ONGROUND) || ent->v.groundentity != trace.ent;
+		impact = !(ent->v.flags & FL_ONGROUND) || ent->v.groundentity != trace.pHit;
 
-		if( trace.plane.normal[2] )
+		if( trace.vecPlaneNormal[2] )
 		{
-			if( trace.plane.normal[2] > 0.7 )
+			if( trace.vecPlaneNormal[2] > 0.7 )
 			{
 				// floor
 				blocked |= 1;
 				ent->v.flags |= FL_ONGROUND;
-				ent->v.groundentity = trace.ent;
+				ent->v.groundentity = trace.pHit;
 			}
 		}
 		else
@@ -494,13 +332,13 @@ int SV_FlyMove( edict_t *ent, float time, float *stepnormal, int contentsmask )
 			// step
 			blocked |= 2;
 			// save the trace for player extrafriction
-			if( stepnormal ) VectorCopy( trace.plane.normal, stepnormal );
+			if( stepnormal ) VectorCopy( trace.vecPlaneNormal, stepnormal );
 		}
 
-		if( trace.fraction >= 0.001 )
+		if( trace.flFraction >= 0.001 )
 		{
 			// actually covered some distance
-			VectorCopy( trace.endpos, ent->v.origin );
+			VectorCopy( trace.vecEndPos, ent->v.origin );
 			VectorCopy( ent->v.velocity, original_velocity );
 			numplanes = 0;
 		}
@@ -514,7 +352,7 @@ int SV_FlyMove( edict_t *ent, float time, float *stepnormal, int contentsmask )
 			if( ent->free ) break;
 		}
 
-		time_left *= 1 - trace.fraction;
+		time_left *= 1 - trace.flFraction;
 
 		// clipped to another plane
 		if( numplanes >= MAX_CLIP_PLANES )
@@ -525,7 +363,7 @@ int SV_FlyMove( edict_t *ent, float time, float *stepnormal, int contentsmask )
 			break;
 		}
 
-		VectorCopy( trace.plane.normal, planes[numplanes] );
+		VectorCopy( trace.vecPlaneNormal, planes[numplanes] );
 		numplanes++;
 
 		// modify original_velocity so it parallels all of the clip planes
@@ -612,10 +450,10 @@ SV_PushEntity
 Does not change the entities velocity at all
 ============
 */
-static trace_t SV_PushEntity( edict_t *ent, vec3_t push, bool failonstartstuck )
+static TraceResult SV_PushEntity( edict_t *ent, vec3_t push, bool failonstartstuck )
 {
 	int	type;
-	trace_t	trace;
+	TraceResult	trace;
 	vec3_t	end;
 
 	VectorAdd( ent->v.origin, push, end );
@@ -625,13 +463,11 @@ static trace_t SV_PushEntity( edict_t *ent, vec3_t push, bool failonstartstuck )
 	else type = MOVE_NORMAL;
 
 	trace = SV_Trace( ent->v.origin, ent->v.mins, ent->v.maxs, end, type, ent, SV_ContentsMask( ent ));
-	if( trace.startstuck && failonstartstuck )
-		return trace;
 
-	VectorCopy( trace.endpos, ent->v.origin );
+	VectorCopy( trace.vecEndPos, ent->v.origin );
 	SV_LinkEdict( ent );
 
-	if( ent->v.solid >= SOLID_TRIGGER && ent->v.solid < SOLID_BOX && trace.ent && (!(ent->v.flags & FL_ONGROUND) || ent->v.groundentity != trace.ent ))
+	if( ent->v.solid != SOLID_NOT && trace.pHit && (!(ent->v.flags & FL_ONGROUND) || ent->v.groundentity != trace.pHit ))
 		SV_Impact( ent, &trace );
 	return trace;
 }
@@ -652,12 +488,11 @@ void SV_PushMove( edict_t *pusher, float movetime )
 	vec3_t		pushorig, pushang, a, forward, left, up, org;
 	int		num_moved, numcheckentities;
 	static edict_t	*checkentities[MAX_EDICTS];
-	cmodel_t		*pushermodel;
-	trace_t		trace;
-	matrix4x4		pusherfinalmatrix, pusherfinalimatrix;
+	model_t		pushermodel = 0;
+	TraceResult	trace;
 	word		moved_edicts[MAX_EDICTS];
 
-	if (!pusher->v.velocity[0] && !pusher->v.velocity[1] && !pusher->v.velocity[2] && !pusher->v.avelocity[0] && !pusher->v.avelocity[1] && !pusher->v.avelocity[2])
+	if( !pusher->v.velocity[0] && !pusher->v.velocity[1] && !pusher->v.velocity[2] && !pusher->v.avelocity[0] && !pusher->v.avelocity[1] && !pusher->v.avelocity[2])
 	{
 		pusher->v.ltime += movetime;
 		return;
@@ -693,53 +528,12 @@ void SV_PushMove( edict_t *pusher, float movetime )
 	movetime2 = movetime;
 	VectorScale( pusher->v.velocity, movetime2, move1 );
 	VectorScale( pusher->v.avelocity, movetime2, moveangle );
-	if( moveangle[0] || moveangle[2] )
+
+	for( i = 0; i < 3; i++ )
 	{
-		for( i = 0; i < 3; i++ )
-		{
-			if( move1[i] > 0 )
-			{
-				mins[i] = pushermodel->rotatedmins[i] + pusher->v.origin[i] - 1;
-				maxs[i] = pushermodel->rotatedmaxs[i] + move1[i] + pusher->v.origin[i] + 1;
-			}
-			else
-			{
-				mins[i] = pushermodel->rotatedmins[i] + move1[i] + pusher->v.origin[i] - 1;
-				maxs[i] = pushermodel->rotatedmaxs[i] + pusher->v.origin[i] + 1;
-			}
-		}
-	}
-	else if( moveangle[1] )
-	{
-		for( i = 0; i < 3; i++ )
-		{
-			if( move1[i] > 0 )
-			{
-				mins[i] = pushermodel->yawmins[i] + pusher->v.origin[i] - 1;
-				maxs[i] = pushermodel->yawmaxs[i] + move1[i] + pusher->v.origin[i] + 1;
-			}
-			else
-			{
-				mins[i] = pushermodel->yawmins[i] + move1[i] + pusher->v.origin[i] - 1;
-				maxs[i] = pushermodel->yawmaxs[i] + pusher->v.origin[i] + 1;
-			}
-		}
-	}
-	else
-	{
-		for( i = 0; i < 3; i++ )
-		{
-			if( move1[i] > 0 )
-			{
-				mins[i] = pushermodel->normalmins[i] + pusher->v.origin[i] - 1;
-				maxs[i] = pushermodel->normalmaxs[i] + move1[i] + pusher->v.origin[i] + 1;
-			}
-			else
-			{
-				mins[i] = pushermodel->normalmins[i] + move1[i] + pusher->v.origin[i] - 1;
-				maxs[i] = pushermodel->normalmaxs[i] + pusher->v.origin[i] + 1;
-			}
-		}
+		move[i] = pusher->v.velocity[i] * movetime;
+		mins[i] = pusher->v.absmin[i] + move[i];
+		maxs[i] = pusher->v.absmax[i] + move[i];
 	}
 
 	VectorNegate( moveangle, a );
@@ -755,11 +549,8 @@ void SV_PushMove( edict_t *pusher, float movetime )
 	pusher->v.ltime += movetime;
 	SV_LinkEdict( pusher );
 
-	pushermodel = NULL;
 	if( pusher->v.modelindex >= 1 && pusher->v.modelindex < MAX_MODELS )
-		pushermodel = sv.models[(int)pusher->v.modelindex];
-	Matrix4x4_CreateFromEntity( pusherfinalmatrix, pusher->v.origin[0], pusher->v.origin[1], pusher->v.origin[2], pusher->v.angles[0], pusher->v.angles[1], pusher->v.angles[2], 1 );
-	Matrix4x4_Invert_Simple( pusherfinalimatrix, pusherfinalmatrix );
+		pushermodel = pusher->v.modelindex;
 
 	savesolid = pusher->v.solid;
 
@@ -789,8 +580,8 @@ void SV_PushMove( edict_t *pusher, float movetime )
 		// final position, move it
 		if(!( check->v.flags & FL_ONGROUND) || check->v.groundentity != pusher )
 		{
-			pe->ClipToGenericEntity( &trace, pushermodel, pusher->v.mins, pusher->v.maxs, CONTENTS_BODY, pusherfinalmatrix, pusherfinalimatrix, check->v.origin, check->v.mins, check->v.maxs, check->v.origin, checkcontents );
-			if( !trace.startsolid ) continue;
+			SV_ClipToEntity( &trace, check->v.origin, check->v.mins, check->v.maxs, check->v.origin, pusher, checkcontents, TR_AABB );
+			if( !trace.fStartSolid ) continue;
 		}
 
 		if( rotated )
@@ -817,18 +608,18 @@ void SV_PushMove( edict_t *pusher, float movetime )
 		pusher->v.solid = SOLID_NOT;
 		trace = SV_PushEntity( check, move, true );
 		// FIXME: turn players specially
-		check->v.angles[1] += trace.fraction * moveangle[1];
+		check->v.angles[1] += trace.flFraction * moveangle[1];
 		pusher->v.solid = savesolid; // was SOLID_BSP
 
-		// this trace.fraction < 1 check causes items to fall off of pushers
+		// this trace.flFraction < 1 check causes items to fall off of pushers
 		// if they pass under or through a wall
 		// the groundentity check causes items to fall off of ledges
-		if( check->v.movetype != MOVETYPE_WALK && (trace.fraction < 1 || check->v.groundentity != pusher ))
+		if( check->v.movetype != MOVETYPE_WALK && (trace.flFraction < 1 || check->v.groundentity != pusher ))
 			check->v.flags &= ~FL_ONGROUND;
 
 		// if it is still inside the pusher, block
-		pe->ClipToGenericEntity( &trace, pushermodel, pusher->v.mins, pusher->v.maxs, CONTENTS_BODY, pusherfinalmatrix, pusherfinalimatrix, check->v.origin, check->v.mins, check->v.maxs, check->v.origin, checkcontents );
-		if (trace.startsolid)
+		SV_ClipToEntity( &trace, check->v.origin, check->v.mins, check->v.maxs, check->v.origin, pusher, checkcontents, TR_AABB );
+		if ( trace.fStartSolid )
 		{
 			// try moving the contacted entity a tiny bit further to account for precision errors
 			vec3_t move2;
@@ -838,8 +629,9 @@ void SV_PushMove( edict_t *pusher, float movetime )
 			VectorCopy( check->pvServerData->moved_angles, check->v.angles );
 			SV_PushEntity( check, move2, true );
 			pusher->v.solid = savesolid;
-			pe->ClipToGenericEntity( &trace, pushermodel, pusher->v.mins, pusher->v.maxs, CONTENTS_BODY, pusherfinalmatrix, pusherfinalimatrix, check->v.origin, check->v.mins, check->v.maxs, check->v.origin, checkcontents );
-			if( trace.startsolid )
+			SV_ClipToEntity( &trace, check->v.origin, check->v.mins, check->v.maxs, check->v.origin, pusher, checkcontents, TR_AABB );
+
+			if( trace.fStartSolid )
 			{
 				// try moving the contacted entity a tiny bit less to account for precision errors
 				pusher->v.solid = SOLID_NOT;
@@ -848,8 +640,9 @@ void SV_PushMove( edict_t *pusher, float movetime )
 				VectorCopy( check->pvServerData->moved_angles, check->v.angles );
 				SV_PushEntity( check, move2, true );
 				pusher->v.solid = savesolid;
-				pe->ClipToGenericEntity( &trace, pushermodel, pusher->v.mins, pusher->v.maxs, CONTENTS_BODY, pusherfinalmatrix, pusherfinalimatrix, check->v.origin, check->v.mins, check->v.maxs, check->v.origin, checkcontents );
-				if( trace.startsolid )
+				SV_ClipToEntity( &trace, check->v.origin, check->v.mins, check->v.maxs, check->v.origin, pusher, checkcontents, TR_AABB );
+
+				if( trace.fStartSolid )
 				{
 					// still inside pusher, so it's really blocked
 
@@ -1088,7 +881,7 @@ void SV_WalkMove( edict_t *ent )
 	vec3_t	upmove, downmove, start_origin, start_velocity, stepnormal;
 	vec3_t	originalmove_origin, originalmove_velocity;
 	edict_t	*originalmove_groundentity;
-	trace_t	downtrace;
+	TraceResult	downtrace;
 
 	// if frametime is 0 (due to client sending the same timestamp twice), don't move
 	if( svgame.globals->frametime <= 0 ) return;
@@ -1177,7 +970,7 @@ void SV_WalkMove( edict_t *ent )
 	downmove[2] = -sv_stepheight->value + start_velocity[2] * svgame.globals->frametime;
 	downtrace = SV_PushEntity( ent, downmove, false ); // FIXME: don't link?
 
-	if( downtrace.fraction < 1 && downtrace.plane.normal[2] > 0.7 )
+	if( downtrace.flFraction < 1 && downtrace.vecPlaneNormal[2] > 0.7 )
 	{
 		// this has been disabled so that you can't jump when you are stepping
 		// up while already jumping (also known as the Quake2 double jump bug)
@@ -1187,7 +980,7 @@ void SV_WalkMove( edict_t *ent )
 		{
 			//Con_Printf("onground\n");
 			ent->v.flags |= FL_ONGROUND;
-			ent->v.groundentity = downtrace.ent;
+			ent->v.groundentity = downtrace.pHit;
 		}
 #endif
 	}
@@ -1304,7 +1097,7 @@ Toss, bounce, and fly movement.  When onground, do nothing.
 */
 void SV_Physics_Toss( edict_t *ent )
 {
-	trace_t	trace;
+	TraceResult	trace;
 	vec3_t	move;
 
 	// if onground, return without moving
@@ -1345,7 +1138,7 @@ void SV_Physics_Toss( edict_t *ent )
 	trace = SV_PushEntity( ent, move, true );
 	if( ent->free ) return;
 
-	if( trace.startstuck )
+	if( trace.fStartSolid )
 	{
 		// try to unstick the entity
 		SV_UnstickEntity( ent );
@@ -1354,17 +1147,17 @@ void SV_Physics_Toss( edict_t *ent )
 			return;
 	}
 
-	if( trace.fraction < 1 )
+	if( trace.flFraction < 1 )
 	{
 		if( ent->v.movetype == MOVETYPE_BOUNCE )
 		{
 			float	d;
-			SV_ClipVelocity( ent->v.velocity, trace.plane.normal, ent->v.velocity, 1.5 );
-			d = DotProduct( trace.plane.normal, ent->v.velocity );
-			if( trace.plane.normal[2] > 0.7 && fabs(d) < 60 )
+			SV_ClipVelocity( ent->v.velocity, trace.vecPlaneNormal, ent->v.velocity, 1.5 );
+			d = DotProduct( trace.vecPlaneNormal, ent->v.velocity );
+			if( trace.vecPlaneNormal[2] > 0.7 && fabs(d) < 60 )
 			{
 				ent->v.flags |= FL_ONGROUND;
-				ent->v.groundentity = trace.ent;
+				ent->v.groundentity = trace.pHit;
 				VectorClear( ent->v.velocity );
 				VectorClear( ent->v.avelocity );
 			}
@@ -1372,12 +1165,12 @@ void SV_Physics_Toss( edict_t *ent )
 		}
 		else
 		{
-			SV_ClipVelocity( ent->v.velocity, trace.plane.normal, ent->v.velocity, 1.0 );
-			if( trace.plane.normal[2] > 0.7 )
+			SV_ClipVelocity( ent->v.velocity, trace.vecPlaneNormal, ent->v.velocity, 1.0 );
+			if( trace.vecPlaneNormal[2] > 0.7 )
 			{
 				ent->v.flags |= FL_ONGROUND;
-				ent->v.groundentity = trace.ent;
-				if( trace.ent && trace.ent->v.solid == SOLID_BSP ) 
+				ent->v.groundentity = trace.pHit;
+				if( trace.pHit && trace.pHit->v.solid == SOLID_BSP ) 
 					ent->pvServerData->suspended = true;
 				VectorClear( ent->v.velocity );
 				VectorClear( ent->v.avelocity );
@@ -1465,7 +1258,7 @@ void SV_Physics_Conveyor( edict_t *ent )
 {
 	edict_t		*player;
 	int		i;
-	trace_t		tr;
+	TraceResult		tr;
 	vec3_t		v, move;
 	vec3_t		point, end;
 
@@ -1487,19 +1280,19 @@ void SV_Physics_Conveyor( edict_t *ent )
 		end[2] -= 256;
 
 		tr = SV_Trace( point, player->v.mins, player->v.maxs, end, MOVE_NORMAL, player, MASK_SOLID );
-		// tr.ent HAS to be conveyor, but just in case we screwed something up:
-		if( tr.ent == ent )
+		// tr.pHit HAS to be conveyor, but just in case we screwed something up:
+		if( tr.pHit == ent )
 		{
-			if( tr.plane.normal[2] > 0 )
+			if( tr.vecPlaneNormal[2] > 0 )
 			{
-				v[2] = ent->v.speed * com.sqrt( 1.0 - tr.plane.normal[2]*tr.plane.normal[2]) / tr.plane.normal[2];
-				if(DotProduct( ent->v.movedir, tr.plane.normal) > 0)
+				v[2] = ent->v.speed * com.sqrt( 1.0 - tr.vecPlaneNormal[2]*tr.vecPlaneNormal[2]) / tr.vecPlaneNormal[2];
+				if(DotProduct( ent->v.movedir, tr.vecPlaneNormal) > 0)
 					v[2] = -v[2]; // then we're moving down
 				move[2] = v[2] * 0.1f;
 			}
 			VectorAdd( player->v.origin, move, end );
 			tr = SV_Trace( player->v.origin, player->v.mins, player->v.maxs, end, MOVE_NORMAL, player, player->pvServerData->clipmask );
-			VectorCopy( tr.endpos, player->v.origin );
+			VectorCopy( tr.vecEndPos, player->v.origin );
 			SV_LinkEdict( player );
 		}
 	}

@@ -39,7 +39,6 @@ typedef struct pr_edict_s	pr_edict_t;
 typedef struct sv_edict_s	sv_edict_t;
 typedef struct sv_entvars_s	sv_entvars_t;
 typedef struct sv_globalvars_s sv_globalvars_t;
-typedef struct physbody_s	physbody_t;
 
 // platform instances
 typedef enum
@@ -78,7 +77,7 @@ typedef struct { const char *name; void **func; } dllfunc_t; // Sys_LoadLibrary 
 typedef struct { int numfilenames; char **filenames; char *filenamesbuffer; } search_t;
 typedef struct { int ofs; int type; const char *name; } fields_t;	// prvm custom fields
 typedef void ( *cmsave_t )( void* handle, const void* buffer, size_t size );
-typedef void ( *cmdraw_t )( rgba_t color, int numpoints, const float *points, const int *elements );
+typedef void ( *cmdraw_t )( int color, int numpoints, const float *points );
 typedef void ( *setpair_t )( const char *key, const char *value, void *buffer, void *numpairs );
 typedef enum { mod_bad, mod_world, mod_brush, mod_alias, mod_studio, mod_sprite } modtype_t;
 typedef enum { NA_LOOPBACK, NA_BROADCAST, NA_IP } netadrtype_t;

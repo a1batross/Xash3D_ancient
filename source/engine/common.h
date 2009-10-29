@@ -79,12 +79,25 @@ typedef enum
 
 typedef struct host_redirect_s
 {
-	rdtype_t	target;
-	char	*buffer;
-	int	buffersize;
-	netadr_t	address;
-	void	(*flush)( netadr_t adr, rdtype_t target, char *buffer );
+	rdtype_t		target;
+	char		*buffer;
+	int		buffersize;
+	netadr_t		address;
+	void		(*flush)( netadr_t adr, rdtype_t target, char *buffer );
 } host_redirect_t;
+
+typedef struct host_clip_s
+{
+	vec3_t		boxmins, boxmaxs;	// enclose the test object along entire move
+	const float	*mins;
+	const float	*maxs;		// size of the moving object
+	const float	*start;
+	vec3_t		end;
+	TraceResult	trace;
+	edict_t		*passEntity;
+	int		mask;
+	trType_t		trType;
+} host_clip_t;
 
 typedef struct host_parm_s
 {
@@ -337,11 +350,21 @@ MISC COMMON FUNCTIONS
 enum e_trace
 {
 	MOVE_NORMAL = 0,
-	MOVE_NOMONSTERS,
-	MOVE_MISSILE,
-	MOVE_WORLDONLY,
-	MOVE_HITMODEL,
+	MOVE_NOMONSTERS,	// ignore monsters (edicts with flag FL_MONSTER set)
+	MOVE_WORLDONLY
 };
+
+#define Mod_GetBounds	if( pe ) pe->Mod_GetBounds
+#define Mod_GetFrames	if( pe ) pe->Mod_GetFrames
+#define CM_RegisterModel	if( pe ) pe->RegisterModel
+
+_inline void *Mod_Extradata( model_t modelIndex )
+{
+	if( pe )
+		return pe->Mod_Extradata( modelIndex );
+	return NULL;
+}
+
 
 extern byte *zonepool;
 

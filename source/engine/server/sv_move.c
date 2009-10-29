@@ -20,13 +20,13 @@ is not a staircase.
 */
 bool SV_CheckBottom( edict_t *ent )
 {
-	vec3_t	mins, maxs, start, stop;
-	float	mid, bottom;
-	trace_t	trace;
-	int	x, y;
+	vec3_t		mins, maxs, start, stop;
+	float		mid, bottom;
+	TraceResult	trace;
+	int		x, y;
 
-	VectorAdd (ent->v.origin, ent->v.mins, mins);
-	VectorAdd (ent->v.origin, ent->v.maxs, maxs);
+	VectorAdd( ent->v.origin, ent->v.mins, mins );
+	VectorAdd( ent->v.origin, ent->v.maxs, maxs );
 
 	// if all of the points under the corners are solid world, don't bother
 	// with the tougher checks
@@ -52,11 +52,11 @@ realcheck:
 	start[0] = stop[0] = (mins[0] + maxs[0]) * 0.5f;
 	start[1] = stop[1] = (mins[1] + maxs[1]) * 0.5f;
 	stop[2] = start[2] - 2 * sv_stepheight->value;
-	trace = SV_Trace( start, vec3_origin, vec3_origin, stop, MOVE_NOMONSTERS, ent, SV_ContentsMask(ent));
+	trace = SV_Trace( start, vec3_origin, vec3_origin, stop, MOVE_NOMONSTERS, ent, SV_ContentsMask( ent ));
 
-	if( trace.fraction == 1.0 )
+	if( trace.flFraction == 1.0f )
 		return false;
-	mid = bottom = trace.endpos[2];
+	mid = bottom = trace.vecEndPos[2];
 
 	// the corners must be within 16 of the midpoint
 	for( x = 0; x <= 1; x++ )
@@ -66,11 +66,11 @@ realcheck:
 			start[0] = stop[0] = x ? maxs[0] : mins[0];
 			start[1] = stop[1] = y ? maxs[1] : mins[1];
 
-			trace = SV_Trace( start, vec3_origin, vec3_origin, stop, MOVE_NOMONSTERS, ent, SV_ContentsMask(ent));
+			trace = SV_Trace( start, vec3_origin, vec3_origin, stop, MOVE_NOMONSTERS, ent, SV_ContentsMask( ent ));
 
-			if( trace.fraction != 1.0 && trace.endpos[2] > bottom )
-				bottom = trace.endpos[2];
-			if( trace.fraction == 1.0 || mid - trace.endpos[2] > sv_stepheight->value )
+			if( trace.flFraction != 1.0f && trace.vecEndPos[2] > bottom )
+				bottom = trace.vecEndPos[2];
+			if( trace.flFraction == 1.0f || mid - trace.vecEndPos[2] > sv_stepheight->value )
 				return false;
 		}
 	}
@@ -92,7 +92,7 @@ bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool set
 	float		dz;
 	vec3_t		oldorg, neworg, end, traceendpos;
 	edict_t		*enemy;
-	trace_t		trace;
+	TraceResult	trace;
 	int		i;
 
 	// try the move
@@ -119,9 +119,9 @@ bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool set
 			}
 			trace = SV_Trace( ent->v.origin, ent->v.mins, ent->v.maxs, neworg, MOVE_NORMAL, ent, SV_ContentsMask(ent));
 
-			if( trace.fraction == 1 )
+			if( trace.flFraction == 1.0f )
 			{
-				VectorCopy( trace.endpos, traceendpos );
+				VectorCopy( trace.vecEndPos, traceendpos );
 				if((ent->v.flags & FL_SWIM) && !(SV_PointContents(traceendpos) & MASK_WATER))
 					return false; // swim monster left water
 
@@ -141,19 +141,19 @@ bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool set
 
 	trace = SV_Trace( neworg, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL, ent, SV_ContentsMask(ent));
 
-	if( trace.startsolid )
+	if( trace.fStartSolid )
 	{
 		neworg[2] -= sv_stepheight->value;
 		trace = SV_Trace( neworg, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL, ent, SV_ContentsMask(ent));
-		if( trace.startsolid ) return false;
+		if( trace.fStartSolid ) return false;
 	}
-	if( trace.fraction == 1 )
+	if( trace.flFraction == 1.0f )
 	{
 		// if monster had the ground pulled out, go ahead and fall
 		if( ent->v.flags & FL_PARTIALONGROUND )
 		{
 			VectorAdd( ent->v.origin, move, ent->v.origin );
-			if (relink) SV_LinkEdict( ent );
+			if( relink ) SV_LinkEdict( ent );
 			ent->v.flags &= ~FL_ONGROUND;
 			return true;
 		}
@@ -161,7 +161,7 @@ bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool set
 	}
 
 	// check point traces down for dangling corners
-	VectorCopy( trace.endpos, ent->v.origin );
+	VectorCopy( trace.vecEndPos, ent->v.origin );
 
 	if(!SV_CheckBottom( ent ))
 	{
@@ -179,7 +179,7 @@ bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool set
 	if( ent->v.flags & FL_PARTIALONGROUND )
 		ent->v.flags &= ~FL_PARTIALONGROUND;
 
-	ent->v.groundentity = trace.ent;
+	ent->v.groundentity = trace.pHit;
 
 	// the move is ok
 	if( relink ) SV_LinkEdict( ent );
@@ -360,67 +360,6 @@ bool SV_MoveToGoal( edict_t *ent, edict_t *goal, float dist )
 	return true;
 }
 
-
-// g-cont: my stupid callbacks
-cmodel_t *SV_GetModelPtr( edict_t *ent )
-{
-	return pe->RegisterModel( sv.configstrings[CS_MODELS + (int)ent->v.modelindex] );
-}
-
-float *SV_GetModelVerts( edict_t *ent, int *numvertices )
-{
-	cmodel_t	*cmod;
-
-	cmod = pe->RegisterModel( sv.configstrings[CS_MODELS + (int)ent->v.modelindex] );
-	if( cmod )
-	{
-		int i = (int)ent->v.body;
-		i = bound( 0, i, cmod->numbodies ); // make sure what body exist
-		
-		if( cmod->col[i] )
-		{
-			*numvertices = cmod->col[i]->numverts;
-			return (float *)cmod->col[i]->verts;
-		}
-	}
-	return NULL;
-}
-
-void SV_Transform( edict_t *edict, const vec3_t origin, const matrix3x3 matrix )
-{
-	vec3_t	angles;
-
-	if( !edict || !edict->pvServerData ) return;
-
-	Matrix3x3_Transpose( edict->v.m_pmatrix, matrix );
-#if 0
-	edict->v.m_pmatrix[0][0] = matrix[0][0];
-	edict->v.m_pmatrix[0][1] = matrix[0][2];
-	edict->v.m_pmatrix[0][2] = matrix[0][1];
-	edict->v.m_pmatrix[1][0] = matrix[1][0];
-	edict->v.m_pmatrix[1][1] = matrix[1][2];
-	edict->v.m_pmatrix[1][2] = matrix[1][1];
-	edict->v.m_pmatrix[2][0] = matrix[2][0];
-	edict->v.m_pmatrix[2][1] = matrix[2][2];
-	edict->v.m_pmatrix[2][2] = matrix[2][1];
-
-	Matrix3x3_ConcatRotate( edict->v.m_pmatrix, -90, 1, 0, 0 );
-	Matrix3x3_ConcatRotate( edict->v.m_pmatrix, 180, 0, 1, 0 );
-	Matrix3x3_ConcatRotate( edict->v.m_pmatrix, 90, 0, 0, 1 );
-	Matrix3x3_ToAngles( edict->v.m_pmatrix, angles );
-#endif
-	VectorCopy( origin, edict->v.origin );
-
-	MatrixAngles( edict->v.m_pmatrix, angles );
-	edict->v.angles[0] = angles[0];
-	edict->v.angles[1] = angles[1];
-	edict->v.angles[2] = angles[2];
-
-	// refresh force and torque
-	pe->GetForce( edict->pvServerData->physbody, edict->v.velocity, edict->v.avelocity, edict->v.force, edict->v.torque );
-	pe->GetMassCentre( edict->pvServerData->physbody, edict->v.m_pcentre );
-}
-
 /*
 ==============
 SV_ClientMove
@@ -432,17 +371,10 @@ send it to transform callback
 void SV_PlayerMove( edict_t *player )
 {
 	sv_client_t	*client;
-	physbody_t	*body;
 	usercmd_t		*cmd;
 
 	client = player->pvServerData->client;
 	cmd = &client->lastcmd;
-	body = player->pvServerData->physbody;	// member body ptr
 
-	pe->PlayerMove( &player->pvServerData->s, cmd, body, false );	// server move
-}
-
-void SV_PlaySound( edict_t *ed, float volume, float pitch, const char *sample )
-{
-	SV_StartSound( ed, CHAN_AUTO, sample, volume, ATTN_NORM, 0, pitch );
+	// call PM_PlayerMove here
 }

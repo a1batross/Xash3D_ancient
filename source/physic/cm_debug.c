@@ -4,35 +4,157 @@
 //=======================================================================
 
 #include "cm_local.h"
+#include "mathlib.h"
 
-void DebugShowGeometryCollision( const NewtonBody* body, int vertexCount, const float* faceVertec, int id ) 
-{    
-	rgba_t	color;
+//#define DEBUG_SIZE
+#define DEBUG_BLOCK
+//#define DEBUG_PATCH
 
-	if( body == cms.body ) Vector4Set( color, 255, 178, 0, 255 ); // world
-	else Vector4Set( color, 255, 25, 25, 255 );
-
-	ph.debug_line( color, vertexCount, faceVertec, NULL );
-} 
-
-void DebugShowBodyCollision( const NewtonBody* body ) 
+void CM_DrawCollision( cmdraw_t drawPoly ) 
 { 
-	NewtonBodyForEachPolygonDo( body, DebugShowGeometryCollision ); 
-} 
+	static cvar_t		*cv, *cv2;
+	const cSurfaceCollide_t	*pc;
+	cfacet_t			*facet;
+	cwinding_t		*w;
+	int			i, j, k;
+	int			curplanenum, planenum;
+	int			curinward, inward;
+	float			plane[4];
+#ifdef DEBUG_SIZE
+	vec3_t			mins = { -15, -15, -28 }, maxs = { 15, 15, 28 };
+	vec3_t			mins = { 0, 0, 0 }, maxs = { 0, 0, 0 };
+	vec3_t			v1, v2;
+#endif
 
-void DebugShowCollision( cmdraw_t callback  ) 
-{ 
-	if( !callback ) return;
-	ph.debug_line = callback; // member draw function
+	if( !drawPoly ) return;
+	if( !cv2 ) cv2 = Cvar_Get( "r_debugsurface", "0", 0, "render debugsurface" );
+	if( !cv ) cv = Cvar_Get( "cm_debugSize", "2", 0, "debug polygon line size" );
+	if( !debugSurfaceCollide ) return;
 
-	if( cm_debugdraw->integer == 1 )
+	pc = debugSurfaceCollide;
+
+	for( i = 0, facet = pc->facets; i < pc->numFacets; i++, facet++ )
 	{
-		// called from render.dll
-		NewtonWorldForEachBodyDo( gWorld, DebugShowBodyCollision ); 
+		for( k = 0; k < facet->numBorders + 1; k++ )
+		{
+			if( k < facet->numBorders )
+			{
+				planenum = facet->borderPlanes[k];
+				inward = facet->borderInward[k];
+			}
+			else
+			{
+				planenum = facet->surfacePlane;
+				inward = false;
+			}
+
+			Vector4Copy( pc->planes[planenum].plane, plane );
+			if( inward )
+			{
+				VectorNegate( plane, plane );
+				plane[3] = -plane[3];
+			}
+#ifdef DEBUG_SIZE
+			plane[3] += cv->value;
+
+			for( n = 0; n < 3; n++ )
+			{
+				if( plane[n] > 0 )
+					v1[n] = maxs[n];
+				else v1[n] = mins[n];
+			}
+
+			VectorNegate( plane, v2 );
+			plane[3] += fabs( DotProduct( v1, v2 ));
+#endif
+			w = CM_BaseWindingForPlane( plane, plane[3] );
+
+			for( j = 0; j < facet->numBorders + 1 && w; j++ )
+			{
+				if( j < facet->numBorders )
+				{
+					curplanenum = facet->borderPlanes[j];
+					curinward = facet->borderInward[j];
+				}
+				else
+				{
+					curplanenum = facet->surfacePlane;
+					curinward = false;
+				}
+
+				if( curplanenum == planenum )
+					continue;
+
+				Vector4Copy( pc->planes[curplanenum].plane, plane );
+				if( !curinward )
+				{
+					VectorNegate( plane, plane );
+					plane[3] = -plane[3];
+				}
+#if DEBUG_SIZE
+				// if( !facet->borderNoAdjust[j] )
+					plane[3] -= cv->value;
+
+				for( n = 0; n < 3; n++ )
+				{
+					if( plane[n] > 0 )
+						v1[n] = maxs[n];
+					else v1[n] = mins[n];
+				}
+				VectorNegate( plane, v2 );
+				plane[3] -= fabs( DotProduct( v1, v2 ));
+#endif
+				CM_ChopWindingInPlace( &w, plane, plane[3], 0.1f );
+			}
+
+			if( w )
+			{
+				if( facet == debugFacet )
+					drawPoly( 4, w->numpoints, w->p[0] );
+				else drawPoly( 1, w->numpoints, w->p[0] );
+				CM_FreeWinding( w );
+			}
+		}
 	}
-	if( cm_debugdraw->integer == 2 )
+
+#ifdef DEBUG_BLOCK
+	// draw the debug block
 	{
-		CM_CollisionDrawForEachBrush();
-		CM_CollisionDrawForEachSurface();
+		vec3_t          v[3];
+
+		VectorCopy( debugBlockPoints[0], v[0] );
+		VectorCopy( debugBlockPoints[1], v[1] );
+		VectorCopy( debugBlockPoints[2], v[2] );
+		drawPoly( 2, 3, v[0] );
+
+		VectorCopy(debugBlockPoints[2], v[0]);
+		VectorCopy(debugBlockPoints[3], v[1]);
+		VectorCopy(debugBlockPoints[0], v[2]);
+		drawPoly( 2, 3, v[0] );
 	}
+#endif
+
+#ifdef DEBUG_PATCH
+	{
+		vec3_t          v[4];
+
+		v[0][0] = pc->bounds[1][0];
+		v[0][1] = pc->bounds[1][1];
+		v[0][2] = pc->bounds[1][2];
+
+		v[1][0] = pc->bounds[1][0];
+		v[1][1] = pc->bounds[0][1];
+		v[1][2] = pc->bounds[1][2];
+
+		v[2][0] = pc->bounds[0][0];
+		v[2][1] = pc->bounds[0][1];
+		v[2][2] = pc->bounds[1][2];
+
+		v[3][0] = pc->bounds[0][0];
+		v[3][1] = pc->bounds[1][1];
+		v[3][2] = pc->bounds[1][2];
+
+		drawPoly( 2, 4, v[0] );
+	}
+#endif
 }

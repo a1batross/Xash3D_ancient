@@ -5,148 +5,169 @@
 #ifndef CM_LOCAL_H
 #define CM_LOCAL_H
 
-#include "physic.h"
-#include "mathlib.h"
-#include "cm_utils.h"
+#include <stdio.h>
+#include <windows.h>
+#include "launch_api.h"
+#include "engine_api.h"
+#include "entity_def.h"
+#include "physic_api.h"
+#include "qfiles_ref.h"
 #include "trace_def.h"
 
-#define MAX_MATERIALS	64
-#define MAX_MAT_SOUNDS	8
+extern physic_imp_t		pi;
+extern stdlib_api_t		com;
+
+//
+// local cvars
+//
+extern cvar_t		*cm_triangles;
+extern cvar_t		*cm_noareas;
+extern cvar_t		*cm_nocurves;
+extern cvar_t		*cm_showcurves;
+extern cvar_t		*cm_showtriangles;
+extern cvar_t		*cm_novis;
+
+#define Host_Error		com.error
 #define CAPSULE_MODEL_HANDLE	MAX_MODELS - 2
 #define BOX_MODEL_HANDLE	MAX_MODELS - 1
+#define MAX_FACET_BEVELS	(4 + 6 + 16)	// 3 or four + 6 axial bevels + 4 or 3 * 4 edge bevels
+#define SHADER_MAX_VERTEXES	100000
+#define SHADER_MAX_INDEXES	(SHADER_MAX_VERTEXES * 6)
+#define SHADER_MAX_TRIANGLES	(SHADER_MAX_INDEXES / 3)
+#define NORMAL_EPSILON	0.0001f
+#define DIST_EPSILON	0.02f
+#define MAX_FACETS		1024
+#define MAX_PATCH_PLANES	4096
+#define MAX_GRID_SIZE	129
+#define MAX_POINTS_ON_WINDING	64
+#define SUBDIVIDE_DISTANCE	16		// never more than this units away from curve
+#define PLANE_TRI_EPSILON	0.1
+#define WRAP_POINT_EPSILON	0.1
 
-enum
-{
-PATCH_LOD_COLLISION = 0,
-PATCH_LODS_NUM
-};
-
-typedef struct patchinfo_s
-{
-	int	xsize;
-	int	ysize;
-
-	struct
-	{
-		int	xtess;
-		int	ytess;
-	} lods[PATCH_LODS_NUM];
-} patchinfo_t;
-
-typedef struct cpointf_s
-{
-	float		v[3];
-} cpointf_t;
+// keep 1/8 unit away to keep the position valid before network snapping
+// and to avoid various numeric issues
+#define SURFACE_CLIP_EPSILON	(0.125)
 
 typedef struct
 {
-	string		name;
-	int		contents;
-	int		flags;
-} cshader_t;
+	int		width;
+	int		height;
+	bool		wrapWidth;
+	bool		wrapHeight;
+	vec3_t		points[MAX_GRID_SIZE][MAX_GRID_SIZE];	// [width][height]
+} cgrid_t;
 
-typedef struct csurface_s
+typedef struct
 {
-	int	shadernum;
-	int	surfaceType;
-
-	vec3_t	mins;
-	vec3_t	maxs;
-
-	// patches support
-	int	numtriangles;
-
-	int	firstvertex;
-	int	numvertices;
-	int	*indices;
-	float	*vertices;
-
-	int	markframe;
-} csurface_t;
-
-typedef struct cplanef_s
-{
-	csurface_t	*surface;
-	int		surfaceflags;	// it's really needed?
-	float		normal[3];
-	float		dist;
-} cplanef_t;
-
-typedef struct cbrushf_s
-{
-	int		contents;		// the content flags of this brush
-	int		numplanes;	// the number of bounding planes on this brush
-	int		numpoints;	// the number of corner points on this brush
-	int		numtriangles;	// the number of renderable triangles on this brush
-	cplanef_t		*planes;		// array of bounding planes on this brush
-	cpointf_t 	*points;		// array of corner points on this brush
-	int		*elements;	// renderable triangles, as int[3] elements indexing the points
-	int		markframe;	// used to avoid tracing against the same brush more than once
-	vec3_t		mins;		// culling box
-	vec3_t		maxs;
-} cbrushf_t;
-
-typedef struct cbspnode_s
-{
-	cplane_t		plane;
-	struct cbspnode_s	*children[2];
-	int		numcbrushf;
-	int		maxcbrushf;
-	cbrushf_t		**cbrushflist;
-} cbspnode_t;
-
-typedef struct cbsp_s
-{
-	byte		*mempool;
-	cbspnode_t	*nodes;
-} cbsp_t;
-
-typedef struct cnode_s
-{
-	// this part shared between node and leaf
-	struct cnode_s	*parent;
-	cplane_t		*plane;		// always != NULL
-	vec3_t		mins;
-	vec3_t		maxs;
-	int		contents;		// combined contents for node
-
-	// this part unique to node
-	struct cnode_s	*children[2];
+	cplane_t       	*plane;
+	int		children[2];	// negative numbers are leafs
 } cnode_t;
 
-typedef struct cleaf_s
+typedef struct
 {
-	// this part shared between node and leaf
-	struct cnode_s	*parent;
-	cplane_t		*plane;		// always == NULL 
-	vec3_t		mins;
-	vec3_t		maxs;
-	int		contents;		// combined contents for leaf
-
-	// this part unique to leaf
 	int		cluster;
 	int		area;
-	bool		havepatches;	// leaf have collision patches (triangles)
-	int		*firstleafbrush;
+
+	int		firstleafbrush;
 	int		numleafbrushes;
-	int 		numleafsurfaces;
-	int		*firstleafsurface;
+
+	int		firstleafsurface;
+	int		numleafsurfaces;
 } cleaf_t;
 
 typedef struct
 {
+	string		name;		// model name
+	byte		*mempool;		// private mempool
+	int		registration_sequence;
+
+	// shared modelinfo
+	modtype_t		type;		// model type
+	vec3_t		mins, maxs;	// model boundbox
+	byte		*extradata;	// studiomodels extradata
+	int		numframes;	// sprite framecount
+
+	cleaf_t		leaf;		// collision leaf
+} cmodel_t;
+
+typedef struct
+{
+	int		numpoints;
+	vec3_t		p[4];		// FIXME: variable sized
+} cwinding_t;
+
+typedef struct
+{
+	vec3_t		p0;
+	vec3_t		p1;
+} cbrushedge_t;
+
+typedef struct
+{
+	int		planenum;
+	int		shadernum;
+	int		surfaceFlags;
+	cwinding_t	*winding;
 	cplane_t		*plane;
-	csurface_t	*surface;
-	cshader_t		*shader;
 } cbrushside_t;
 
 typedef struct
 {
+	int		shadernum;	// the shader that determined the contents
 	int		contents;
+	vec3_t		bounds[2];
 	int		numsides;
-	int		firstbrushside;
-	cbrushf_t		*colbrushf;	// float plane collision
+	cbrushside_t	*sides;
+	int		checkcount;	// to avoid repeated testings
+	bool		collided;		// marker for optimisation
+	cbrushedge_t	*edges;
+	int		numedges;
 } cbrush_t;
+
+typedef struct cmplane_s
+{
+	float		plane[4];
+	int		signbits;		// signx + (signy<<1) + (signz<<2), used as lookup during collision
+	struct cmplane_s	*hashChain;
+} cmplane_t;
+
+// a facet is a subdivided element of a patch aproximation or model
+typedef struct
+{
+	int		surfacePlane;
+	int		numBorders;
+	int		borderPlanes[MAX_FACET_BEVELS];
+	int		borderInward[MAX_FACET_BEVELS];
+	bool		borderNoAdjust[MAX_FACET_BEVELS];
+} cfacet_t;
+
+typedef struct
+{
+	int		numTriangles;
+	int		indexes[SHADER_MAX_INDEXES];
+	int		trianglePlanes[SHADER_MAX_TRIANGLES];
+	vec3_t		points[SHADER_MAX_TRIANGLES][3];
+} cTriangleSoup_t;
+
+typedef struct
+{
+	vec3_t		bounds[2];
+	int		numPlanes;	// surface planes plus edge planes
+	cmplane_t		*planes;
+	int		numFacets;
+	cfacet_t		*facets;
+} cSurfaceCollide_t;
+
+typedef struct
+{
+	int		type;
+	int		checkcount;	// to avoid repeated testings
+	int		surfaceFlags;
+	int		contents;
+	const char	*name;		// ptr to texturename
+
+	cSurfaceCollide_t	*sc;
+} csurface_t;
 
 typedef struct
 {
@@ -163,124 +184,38 @@ typedef struct
 	int		otherarea;
 } careaportal_t;
 
-typedef struct material_info_s
+typedef struct
 {
-	string		name;
-	float		softness;
-	float		elasticity;
-	float		friction_static;
-	float		friction_kinetic;
-	string		bust_sounds[MAX_MAT_SOUNDS];
-	string		push_sounds[MAX_MAT_SOUNDS];
-	string		impact_sounds[MAX_MAT_SOUNDS];
+	float		startRadius;
+	float		endRadius;
+} biSphere_t;
 
-	int		num_bustsounds;
-	int		num_pushsounds;
-	int		num_impactsounds;
-} material_info_t;
-
-typedef struct collide_info_s
+// used for oriented capsule collision detection
+typedef struct
 {
-	NewtonBody	*m_body0;
-	NewtonBody	*m_body1;
-	vec3_t		position;
-	float		normal_speed;
-	float		tangent_speed;
-} collide_info_t;
+	float		radius;
+	float		halfheight;
+	vec3_t		offset;
+} sphere_t;
 
-typedef struct clipmap_s
+typedef struct
 {
-	string		name;
-	uint		checksum;		// map checksum
-
-	// shared copy of map (client - server)
-	script_t		*entityscript;
-	cplane_t		*planes;		// 12 extra planes for box hull
-	cleaf_t		*leafs;		// 1 extra leaf for box hull
-	dleafbrush_t	*leafbrushes;
-	dleafface_t	*leafsurfaces;
-	cnode_t		*nodes;		// 6 extra planes for box hull
-	vec3_t		*vertices;
-	csurface_t	*surfaces;	// source collision data
-	cbrush_t		*brushes;
-	cbrushside_t	*brushsides;
-	dvis_t		*pvs;
-	dvis_t		*phs;
-	cshader_t		*shaders;
-	carea_t		*areas;
-	careaportal_t	areaportals[MAX_MAP_AREAPORTALS];
-
-	int		numbrushsides;
-	int		numleafbrushes;
-	int		numleafsurfaces;
-	int		numplanes;
-	int		numnodes;
-	int		numleafs;		// allow leaf funcs to be called without a map
-	int		numverts;
-	int		numshaders;
-	int		numbrushes;
-	int		numsurfaces;
-	int		numareaportals;
-	int		numclusters;
-	int		floodvalid;
-	int		numareas;
-
-	size_t		visdata_size;
-	matrix4x4		matrix;		// world matrix
-} clipmap_t;
-
-typedef struct clipmap_static_s
-{
-	byte		*base;
-
-	byte		portalopen[MAX_MAP_AREAPORTALS];
-	byte		nullrow[MAX_MAP_LEAFS/8];
-
-	// brush, studio and sprite models
-	cmodel_t		cmodels[MAX_MODELS];
-	cmodel_t		bmodels[MAX_MODELS];
-	int		numcmodels;
-	int		numbmodels;
-
-	// misc stuff
-	NewtonBody	*body;
-	NewtonCollision	*collision;
-	NewtonJoint	*upVector;	// world upvector
-	material_info_t	mat[MAX_MATERIALS];
-	uint		num_materials;	// number of parsed materials
-	collide_info_t	touch_info;	// global info about two touching objects
-	bool		loaded;		// map is loaded?
-	bool		tree_build;	// phys tree is created ?
-	file_t		*world_tree;	// pre-calcualated collision tree (worldmodel only)
-	trace_t		trace;		// contains result of last trace
-	int		checkcount;
-
-} clipmap_static_t;
-
-typedef struct physic_s
-{
-	bool	initialized;
-	int	developer;
-
-	cmdraw_t	debug_line;
-} physic_t;
-
-typedef struct studio_s
-{
-	dstudiohdr_t	*hdr;
-	dstudiomodel_t	*submodel;
-	dstudiobodyparts_t	*bodypart;
-	matrix4x4		rotmatrix;
-	matrix4x4		bones[MAXSTUDIOBONES];
-	vec3_t		vertices[MAXSTUDIOVERTS];
-	vec3_t		indices[MAXSTUDIOVERTS];
-	vec3_t		vtransform[MAXSTUDIOVERTS];
-	vec3_t		ntransform[MAXSTUDIOVERTS];
-	vec3_t		*m_pVerts;		// pointer to studio.vertices array
-	uint		numtriangles;
-	uint		bodycount;
-	uint		numverts;
-} studio_t;
+	trType_t		type;
+	vec3_t		start;
+	vec3_t		end;
+	vec3_t		size[2];		// size of the box being swept through the model
+	vec3_t		offsets[8];	// [signbits][x] = either size[0][x] or size[1][x]
+	float		maxOffset;	// longest corner length from origin
+	vec3_t		extents;		// greatest of abs(size[0]) and abs(size[1])
+	vec3_t		bounds[2];	// enclosing box of start and end surrounding by size
+	vec3_t		modelOrigin;	// origin of the model tracing through
+	int		contents;		// ored contents of the model tracing through
+	bool		isPoint;		// optimized case
+	TraceResult	trace;		// returned from trace call
+	sphere_t		sphere;		// sphere for oriented capsule collision
+	biSphere_t	biSphere;		// bi-sphere params
+	bool		lateralCollision;	// whether or not to test for lateral collision
+} traceWork_t;
 
 typedef struct leaflist_s
 {
@@ -288,114 +223,189 @@ typedef struct leaflist_s
 	int		maxcount;
 	bool		overflowed;
 	int		*list;
-	vec3_t		mins;
-	vec3_t		maxs;
+	vec3_t		bounds[2];
 	int		lastleaf;		// for overflows where each leaf can't be stored individually
 } leaflist_t;
 
+typedef struct clipmap_s
+{
+	string		name;
+	uint		checksum;		// map checksum
+
+	// shared copy of map (client - server)
+	dshader_t		*shaders;
+	int		numshaders;
+
+	cbrushside_t	*brushsides;
+	int		numbrushsides;
+
+	cplane_t		*planes;		// 12 extra planes for box hull
+	int		numplanes;
+
+	cnode_t		*nodes;		// 6 extra planes for box hull
+	int		numnodes;
+
+	cleaf_t		*leafs;		// 1 extra leaf for box hull
+	int		numleafs;		// allow leaf funcs to be called without a map
+
+	dleafbrush_t	*leafbrushes;
+	int		numleafbrushes;
+
+	dleafface_t	*leafsurfaces;
+	int		numleafsurfaces;
+
+	cmodel_t		*models;
+	int		nummodels;
+
+	cbrush_t		*brushes;
+	int		numbrushes;
+
+	int		numclusters;
+	int		clusterBytes;
+
+	dvis_t		*pvs;
+	dvis_t		*phs;
+	size_t		visdata_size;	// if false, visibility is just a single cluster of ffs
+
+	script_t		*entityscript;
+
+	carea_t		*areas;
+	int		numareas;
+
+	careaportal_t	areaportals[MAX_MAP_AREAPORTALS];
+	int		numareaportals;
+	
+	csurface_t	**surfaces;	// source collision data
+	int		numsurfaces;
+
+	int		floodvalid;
+} clipmap_t;
+
+typedef struct clipmap_static_s
+{
+	byte		*base;
+	byte		*mempool;
+
+	byte		portalopen[MAX_MAP_AREAPORTALS];
+	byte		nullrow[MAX_MAP_LEAFS/8];
+
+	// brush, studio and sprite models
+	cmodel_t		models[MAX_MODELS];
+	int		nummodels;
+
+	bool		loaded;		// map is loaded?
+	int		checkcount;
+	int		registration_sequence;
+} clipmap_static_t;
+
 extern clipmap_t		cm;
 extern clipmap_static_t	cms;
-extern studio_t		studio;
-extern physic_t		ph;
+extern cmodel_t		*loadmodel;
 
-extern cvar_t *cm_noareas;
-extern cvar_t *cm_debugdraw;
-extern cvar_t *cm_novis;
 
-// test variables
-extern int	characterID; 
-extern uint	m_jumpTimer;
-extern bool	m_isStopped;
-extern bool	m_isAirBorne;
-extern float	m_maxStepHigh;
-extern float	m_yawAngle;
-extern float	m_maxTranslation;
-extern vec3_t	m_size;
-extern vec3_t	m_stepContact;
-extern matrix4x4	m_matrix;
-extern float	*m_upVector;
+//
+// cm_debug.c
+//
+void CM_DrawCollision( cmdraw_t callback );
+
 
 //
 // cm_test.c
 //
-int CM_PointLeafnum_r( const vec3_t p, cnode_t *node );
+extern const cSurfaceCollide_t	*debugSurfaceCollide;
+extern const cfacet_t		*debugFacet;
+extern vec3_t			debugBlockPoints[4];
+extern bool			debugBlock;
+
+int CM_LeafArea( int leafnum );
+int CM_LeafCluster( int leafnum );
+byte *CM_ClusterPVS( int cluster );
+byte *CM_ClusterPHS( int cluster );
 int CM_PointLeafnum( const vec3_t p );
-void CM_StoreBrushes( leaflist_t *ll, cnode_t *node );
+bool CM_AreasConnected( int area, int otherarea );
 int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsize, int *lastleaf );
-int CM_BoxBrushes( const vec3_t mins, const vec3_t maxs, cbrush_t **list, int listsize );
-cmodel_t *CM_TempBoxModel( const vec3_t mins, const vec3_t maxs, bool capsule );
+model_t CM_TempBoxModel( const vec3_t mins, const vec3_t maxs, bool capsule );
+int CM_PointContents( const vec3_t p, model_t model );
+int CM_TransformedPointContents( const vec3_t p, model_t model, const vec3_t origin, const vec3_t angles );
+void CM_BoxLeafnums_r( leaflist_t *ll, int nodenum );
 
 //
-// cm_callbacks.c
+// cm_portals.c
 //
-int Callback_ContactBegin( const NewtonMaterial* material, const NewtonBody* body0, const NewtonBody* body1 );
-int Callback_ContactProcess( const NewtonMaterial* material, const NewtonContact* contact );
-void Callback_ContactEnd( const NewtonMaterial* material );
-void Callback_ApplyForce( const NewtonBody* body );
-void Callback_PmoveApplyForce( const NewtonBody* body );
-void Callback_ApplyForce_NoGravity( const NewtonBody* body );
-void Callback_Static( const NewtonBody* body, const float* src );
-void Callback_ApplyTransform( const NewtonBody* body, const float* matrix );
-
-//
-// cm_materials.c
-//
-void CM_InitMaterials( void );
+void CM_CalcPHS( void );
+byte *CM_FatPVS( const vec3_t org, bool portal );
+byte *CM_FatPHS( int cluster, bool portal );
+void CM_SetAreaPortals( byte *portals, size_t size );
+void CM_GetAreaPortals( byte **portals, size_t *size );
+void CM_SetAreaPortalState( int portalnum, int area, int otherarea, bool open );
+int CM_WriteAreaBits( byte *buffer, int area, bool portal );
+void CM_FloodAreaConnections( void );
 
 //
 // cm_model.c
 //
+const void *CM_VisData( void );
+int CM_NumClusters( void );
+int CM_NumShaders( void );
+void CM_FreeModels( void );
+int CM_NumInlineModels( void );
+script_t *CM_EntityScript( void );
+const char *CM_ShaderName( int index );
+void CM_ModelBounds( model_t handle, vec3_t mins, vec3_t maxs );
+void CM_ModelFrames( model_t handle, int *numFrames );
+cmodel_t *CM_ClipHandleToModel( model_t handle );
+model_t CM_TempBoxModel( const vec3_t mins, const vec3_t maxs, bool capsule );
+void CM_BeginRegistration ( const char *name, bool clientload, uint *checksum );
+bool CM_RegisterModel( const char *name, int sv_index );
+void *CM_Extradata( model_t handle );
+void CM_EndRegistration ( void );
+void CM_FreeWorld( void );
 
-void CM_CreateMeshBuffer( cmodel_t *mod );
-void CM_FreeMeshBuffer( cmodel_t *mod );
+//
+// cm_studio.c
+//
+bool CM_SpriteModel( byte *buffer, size_t filesize );
+bool CM_StudioModel( byte *buffer, size_t filesize );
 
 //
-// cm_collision.c
+// cm_polylib.c
 //
-void CM_CollisionCalcPlanesForPolygonBrushFloat( cbrushf_t *brush );
-cbrushf_t *CM_CollisionAllocBrushFromPermanentPolygonFloat( byte *mempool, int numpoints, float *points, int supercontents );
-cbrushf_t *CM_CollisionNewBrushFromPlanes( byte *mempool, int numoriginalplanes, const cplanef_t *originalplanes, int supercontents );
-void CM_CollisionTraceBrushBrushFloat( trace_t *trace, const cbrushf_t *thisbrush_start, const cbrushf_t *thisbrush_end, const cbrushf_t *thatbrush_start, const cbrushf_t *thatbrush_end );
-void CM_CollisionTraceBrushPolygonFloat( trace_t *trace, const cbrushf_t *thisbrush_start, const cbrushf_t *thisbrush_end, int numpoints, const float *points, int supercontents );
-void CM_CollisionTraceBrushTriangleMeshFloat( trace_t *trace, const cbrushf_t *thisbrush_start, const cbrushf_t *thisbrush_end, int numtriangles, const int *element3i, const float *vertex3f, int supercontents, int q3surfaceflags, csurface_t *texture, const vec3_t segmentmins, const vec3_t segmentmaxs );
-void CM_CollisionTraceLineBrushFloat( trace_t *trace, const vec3_t linestart, const vec3_t lineend, const cbrushf_t *thatbrush_start, const cbrushf_t *thatbrush_end );
-void CM_CollisionTraceLinePolygonFloat( trace_t *trace, const vec3_t linestart, const vec3_t lineend, int numpoints, const float *points, int supercontents );
-void CM_CollisionTraceLineTriangleMeshFloat( trace_t *trace, const vec3_t linestart, const vec3_t lineend, int numtriangles, const int *element3i, const float *vertex3f, int supercontents, int q3surfaceflags, csurface_t *texture, const vec3_t segmentmins, const vec3_t segmentmaxs );
-void CM_CollisionTracePointBrushFloat( trace_t *trace, const vec3_t point, const cbrushf_t *thatbrush );
-bool CM_CollisionPointInsideBrushFloat( const vec3_t point, const cbrushf_t *brush );
-void CM_CollisionTraceBrushPolygonTransformFloat(trace_t *trace, const cbrushf_t *thisbrush_start, const cbrushf_t *thisbrush_end, int numpoints, const float *points, const matrix4x4 polygonmatrixstart, const matrix4x4 polygonmatrixend, int supercontents, int surfaceflags, csurface_t *texture );
-cbrushf_t *CM_CollisionBrushForBox( const matrix4x4 matrix, const vec3_t mins, const vec3_t maxs, int supercontents, int q3surfaceflags, csurface_t *texture);
-void CM_CollisionBoundingBoxOfBrushTraceSegment( const cbrushf_t *start, const cbrushf_t *end, vec3_t mins, vec3_t maxs, float startfrac, float endfrac );
-float CM_CollisionClipTrace_LineSphere( double *linestart, double *lineend, double *sphereorigin, double sphereradius, double *impactpoint, double *impactnormal );
-void CM_CollisionTraceLineTriangleFloat( trace_t *trace, const vec3_t linestart, const vec3_t lineend, const float *point0, const float *point1, const float *point2, int supercontents, int surfaceflags, csurface_t *texture );
-void CM_PatchTesselateFloat( int numcomponents, int outputstride, float *outputvertices, int patchwidth, int patchheight, int inputstride, float *patchvertices, int tesselationwidth, int tesselationheight );
-int CM_PatchAdjustTesselation( int numcomponents, patchinfo_t *patch1, float *patchvertices1, patchinfo_t *patch2, float *patchvertices2 );
-int CM_PatchTesselationOnX( int patchwidth, int patchheight, int components, const float *in, float tolerance );
-int CM_PatchTesselationOnY( int patchwidth, int patchheight, int components, const float *in, float tolerance );
-void CM_PatchTriangleElements( int *elements, int width, int height, int firstvertex );
-int CM_PatchDimForTess( int size, int tess );
+cwinding_t *CM_AllocWinding( int points );
+void CM_FreeWinding( cwinding_t *w );
+cwinding_t *CM_CopyWinding( cwinding_t *w );
+void CM_WindingBounds( cwinding_t *w, vec3_t mins, vec3_t maxs );
+cwinding_t *CM_BaseWindingForPlane( vec3_t normal, float dist );
+void CM_ChopWindingInPlace( cwinding_t **inout, vec3_t normal, float dist, float epsilon );
 
-// traces a box move against a single entity
-// mins and maxs are relative
 //
-// if the entire move stays in a single solid brush, trace.allsolid will be set
+// cm_trace.c
 //
-// if the starting point is in a solid, it will be allowed to move out to an
-// open area, and trace.startsolid will be set
+void CM_BoxTrace( TraceResult *tr, const vec3_t p1, const vec3_t p2, vec3_t mins, vec3_t maxs, model_t model, int mask, trType_t type );
+void CM_TransformedBoxTrace( TraceResult *tr, const vec3_t p1, const vec3_t p2, vec3_t mins, vec3_t maxs, model_t model, int mask, const vec3_t org, const vec3_t ang, trType_t type );
+void CM_BiSphereTrace( TraceResult *tr, const vec3_t p1, const vec3_t p2, float startRad, float endRad, model_t model, int mask );
+void CM_TransformedBiSphereTrace( TraceResult *tr, const vec3_t p1, const vec3_t p2, float startRad, float endRad, model_t model, int mask, const vec3_t origin );
+
 //
-// type is one of the MOVE_ values such as MOVE_NOMONSTERS which skips box
-// entities, only colliding with SOLID_BSP entities (doors, lifts)
+// cm_patches.c
 //
-// passedict is excluded from clipping checks
-void CM_CollisionClipToGenericEntity( trace_t *trace, cmodel_t *model, const vec3_t bodymins, const vec3_t bodymaxs, int bodysupercontents, matrix4x4 matrix, matrix4x4 inversematrix, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int hitcontentsmask );
-// like above but does not do a transform and does nothing if model is NULL
-void CM_CollisionClipToWorld( trace_t *trace, cmodel_t *model, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int hitsupercontents );
-// combines data from two traces:
-// merges contents flags, startsolid, allsolid, inwater
-// updates fraction, endpos, plane and surface info if new fraction is shorter
-void CM_CollisionCombineTraces( trace_t *cliptrace, const trace_t *trace, edict_t *touch, bool is_bmodel );
-void CM_CollisionDrawForEachBrush( void );
-void CM_CollisionDrawForEachSurface( void );
-void CM_CollisionInit( void );
+cSurfaceCollide_t *CM_GeneratePatchCollide( int width, int height, vec3_t *points );
+void CM_ClearLevelPatches( void );
+
+//
+// cm_math.c
+//
+int CM_BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p );
+float DistanceBetweenLineSegmentsSquared( const vec3_t sP0, const vec3_t sP1, const vec3_t tP0, const vec3_t tP1, float *s, float *t );
+bool CM_BoundsIntersect( const vec3_t mins, const vec3_t maxs, const vec3_t mins2, const vec3_t maxs2 );
+bool CM_BoundsIntersectPoint( const vec3_t mins, const vec3_t maxs, const vec3_t point );
+bool CM_PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c );
+bool CM_PlaneEqual( cmplane_t *p, float plane[4], int *flipped );
+void CM_SnapVector( vec3_t normal );
+
+//
+// cm_trisoup.c
+//
+cSurfaceCollide_t *CM_GenerateTriangleSoupCollide( int numVertexes, vec3_t *vertexes, int numIndexes, int *indexes );
+
 
 #endif//CM_LOCAL_H

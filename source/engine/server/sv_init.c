@@ -309,7 +309,7 @@ void SV_SpawnServer( const char *server, const char *startspot )
 	else sv.startspot[0] = '\0';
 
 	com.sprintf( sv.configstrings[CS_MODELS+1], "maps/%s.bsp", sv.name );
-	sv.worldmodel = sv.models[1] = pe->BeginRegistration( sv.configstrings[CS_MODELS+1], false, &checksum );
+	pe->BeginRegistration( sv.configstrings[CS_MODELS+1], false, &checksum );
 	com.sprintf( sv.configstrings[CS_MAPCHECKSUM], "%i", checksum );
 	com.strncpy( sv.configstrings[CS_SKYNAME], "<skybox>", 64 );
 
@@ -319,7 +319,8 @@ void SV_SpawnServer( const char *server, const char *startspot )
 	for( i = 1; i < pe->NumBmodels(); i++ )
 	{
 		com.sprintf( sv.configstrings[CS_MODELS+1+i], "*%i", i );
-		sv.models[i+1] = pe->RegisterModel(sv.configstrings[CS_MODELS+1+i] );
+		pe->RegisterModel( sv.configstrings[CS_MODELS+1+i], i+1 );
+		sv.models[i+1] = i+1;
 	}
 
 	// precache and static commands can be issued during map initialization

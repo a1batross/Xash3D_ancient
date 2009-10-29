@@ -288,7 +288,7 @@ static void ConvertModel( file_t *f, bspModel_t *model, int modelNum, vec3_t ori
 	{
 		VectorCopy( bspPlanes[ i ].normal, mapplanes[ i ].normal );
 		mapplanes[ i ].dist = bspPlanes[ i ].dist;
-		mapplanes[ i ].type = PlaneTypeForNormal( mapplanes[ i ].normal );
+		mapplanes[ i ].type = MapPlaneTypeForNormal( mapplanes[ i ].normal );
 		mapplanes[ i ].hash_chain = NULL;
 	}
 	

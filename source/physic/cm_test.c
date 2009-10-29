@@ -4,32 +4,7 @@
 //=======================================================================
 
 #include "cm_local.h"
-
-static float RayCastPlacement(const NewtonBody* body, const float* normal, int collisionID, void* userData, float intersetParam )
-{
-	float	*paramPtr;
-
-	paramPtr = (float *)userData;
-	paramPtr[0] = intersetParam;
-	return intersetParam;
-}
-
-
-// find floor for character placement
-float CM_FindFloor( vec3_t p0, float maxDist )
-{
-	vec3_t	p1;
-	float	floor_dist = 1.2f;
-
-	VectorCopy( p0, p1 ); 
-	p1[1] -= maxDist;
-
-	// shot a vertical ray from a high altitude and collected the intersection parameter.
-	NewtonWorldRayCast( gWorld, &p0[0], &p1[0], RayCastPlacement, &floor_dist, NULL );
-
-	// the intersection is the interpolated value
-	return p0[1] - maxDist * floor_dist;
-}
+#include "mathlib.h"
 
 /*
 ==================
@@ -37,23 +12,32 @@ CM_PointLeafnum_r
 
 ==================
 */
-int CM_PointLeafnum_r( const vec3_t p, cnode_t *node )
+int CM_PointLeafnum_r( const vec3_t p, int num )
 {
-	cleaf_t		*leaf;
+	float	d;
+	cnode_t	*node;
+	cplane_t	*plane;
 
-	// find which leaf the point is in
-	while( node->plane )
-		node = node->children[(node->plane->type < 3 ? p[node->plane->type] : DotProduct(p, node->plane->normal)) < node->plane->dist];
-	leaf = (cleaf_t *)node;
+	while( num >= 0 )
+	{
+		node = cm.nodes + num;
+		plane = node->plane;
 
-	return leaf - cm.leafs;
+		if( plane->type < 3 )
+			d = p[plane->type] - plane->dist;
+		else d = DotProduct( plane->normal, p ) - plane->dist;
+		if( d < 0 ) num = node->children[1];
+		else num = node->children[0];
+	}
+
+	return (-1 - num);
 }
 
 int CM_PointLeafnum( const vec3_t p )
 {
 	// map not loaded
 	if ( !cm.numnodes ) return 0;
-	return CM_PointLeafnum_r( p, cm.nodes );
+	return CM_PointLeafnum_r( p, 0 );
 }
 
 
@@ -64,14 +48,16 @@ LEAF LISTING
 
 ======================================================================
 */
-void CM_StoreLeafs( leaflist_t *ll, cnode_t *node )
+void CM_StoreLeafs( leaflist_t *ll, int nodenum )
 {
-	cleaf_t	*leaf = (cleaf_t *)node;
+	int	leafNum;
+
+	leafNum = (-1 - nodenum);
 
 	// store the lastLeaf even if the list is overflowed
-	if( leaf->cluster != -1 )
+	if( cm.leafs[leafNum].cluster != -1 )
 	{
-		ll->lastleaf = leaf - cm.leafs;
+		ll->lastleaf = leafNum;
 	}
 
 	if( ll->count >= ll->maxcount )
@@ -79,7 +65,7 @@ void CM_StoreLeafs( leaflist_t *ll, cnode_t *node )
 		ll->overflowed = true;
 		return;
 	}
-	ll->list[ll->count++] = leaf - cm.leafs;
+	ll->list[ll->count++] = leafNum;
 }
 
 /*
@@ -89,34 +75,31 @@ CM_BoxLeafnums
 Fills in a list of all the leafs touched
 =============
 */
-void CM_BoxLeafnums_r( leaflist_t *ll, cnode_t *node )
+void CM_BoxLeafnums_r( leaflist_t *ll, int nodenum )
 {
-	cplane_t		*plane;
-	int		s;
+	cplane_t	*plane;
+	cnode_t	*node;
+	int	s;
 
 	while( 1 )
 	{
-		if( node->plane == NULL )
+		if( nodenum < 0 )
 		{
-			CM_StoreLeafs( ll, node );
+			CM_StoreLeafs( ll, nodenum );
 			return;
 		}
-	
+
+		node = &cm.nodes[nodenum];
 		plane = node->plane;
-		s = BoxOnPlaneSide( ll->mins, ll->maxs, plane );
-		if( s == 1 )
-		{
-			node = node->children[0];
-		}
-		else if( s == 2 )
-		{
-			node = node->children[1];
-		}
+		s = CM_BoxOnPlaneSide( ll->bounds[0], ll->bounds[1], plane );
+
+		if( s == 1 ) nodenum = node->children[0];
+		else if( s == 2 ) nodenum = node->children[1];
 		else
 		{
 			// go down both
 			CM_BoxLeafnums_r( ll, node->children[0] );
-			node = node->children[1];
+			nodenum = node->children[1];
 		}
 	}
 }
@@ -131,17 +114,19 @@ int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsiz
 	leaflist_t	ll;
 
 	cms.checkcount++;
-	VectorCopy( mins, ll.mins );
-	VectorCopy( maxs, ll.maxs );
+	VectorCopy( mins, ll.bounds[0] );
+	VectorCopy( maxs, ll.bounds[1] );
 	ll.count = 0;
 	ll.maxcount = listsize;
 	ll.list = list;
 	ll.lastleaf = -1;
 	ll.overflowed = false;
 
-	CM_BoxLeafnums_r( &ll, cm.nodes );
+	CM_BoxLeafnums_r( &ll, 0 );
 
-	if( lastleaf ) *lastleaf = ll.lastleaf;
+	if( lastleaf )
+		*lastleaf = ll.lastleaf;
+
 	return ll.count;
 }
 
@@ -151,38 +136,59 @@ CM_PointContents
 
 ==================
 */
-int CM_PointContents( const vec3_t p, cmodel_t *model )
+int CM_PointContents( const vec3_t p, model_t model )
 {
-	int	i, contents = 0;
-	cbrush_t	*brush;
+	int		leafnum;
+	int		i, k;
+	int		brushnum;
+	cleaf_t		*leaf;
+	cbrush_t		*b;
+	int		contents;
+	cmodel_t		*clipm;
+	float		d;
 
-	if( !cm.numnodes ) return 0; // map not loaded
+	if( !cm.numnodes )
+		return 0;
 
-	// test if the point is inside each brush
-	if( model && model->type == mod_brush )
+	if( model )
 	{
-		// submodels are effectively one leaf
-		for( i = 0, brush = cm.brushes + model->firstbrush; i < model->numbrushes; i++, brush++ )
-			if( brush->colbrushf && CM_CollisionPointInsideBrushFloat( p, brush->colbrushf ))
-				contents |= brush->colbrushf->contents;
+		clipm = CM_ClipHandleToModel( model );
+		leaf = &clipm->leaf;
 	}
 	else
 	{
-		cnode_t	*node = cm.nodes;
-		cleaf_t	*leaf;
-	
-		// find which leaf the point is in
-		while( node->plane )
-			node = node->children[(node->plane->type < 3 ? p[node->plane->type] : DotProduct(p, node->plane->normal)) < node->plane->dist];
-		leaf = (cleaf_t *)node;
-		// now check the brushes in the leaf
-		for( i = 0; i < leaf->numleafbrushes; i++ )
-		{
-			brush = cm.brushes + leaf->firstleafbrush[i];
-			if( brush->colbrushf && CM_CollisionPointInsideBrushFloat( p, brush->colbrushf ))
-				contents |= brush->colbrushf->contents;
-		}
+		leafnum = CM_PointLeafnum_r( p, 0 );
+		leaf = &cm.leafs[leafnum];
 	}
+
+	if( leaf->area == -1 )
+	{
+		// p is in the void and we should return solid so particles can be removed from the void
+		return CONTENTS_SOLID;
+	}
+
+	contents = 0;
+	for( k = 0; k < leaf->numleafbrushes; k++ )
+	{
+		brushnum = cm.leafbrushes[leaf->firstleafbrush + k];
+		b = &cm.brushes[brushnum];
+
+		if(!CM_BoundsIntersectPoint( b->bounds[0], b->bounds[1], p ))
+			continue;
+
+		// see if the point is in the brush
+		for( i = 0; i < b->numsides; i++ )
+		{
+			d = DotProduct( p, b->sides[i].plane->normal );
+
+			if( d > b->sides[i].plane->dist )
+				break;
+		}
+
+		if( i == b->numsides )
+			contents |= b->contents;
+	}
+
 	return contents;
 }
 
@@ -194,7 +200,7 @@ Handles offseting and rotation of the end points for moving and
 rotating entities
 ==================
 */
-int CM_TransformedPointContents( const vec3_t p, cmodel_t *model, const vec3_t origin, const vec3_t angles )
+int CM_TransformedPointContents( const vec3_t p, model_t model, const vec3_t origin, const vec3_t angles )
 {
 	vec3_t	p_l;
 	vec3_t	temp;
@@ -204,7 +210,7 @@ int CM_TransformedPointContents( const vec3_t p, cmodel_t *model, const vec3_t o
 	VectorSubtract( p, origin, p_l );
 
 	// rotate start and end into the models frame of reference
-	if(!VectorIsNull( angles ))
+	if( model != BOX_MODEL_HANDLE && !VectorIsNull( angles ))
 	{
 		AngleVectors( angles, forward, right, up );
 		VectorCopy( p_l, temp );

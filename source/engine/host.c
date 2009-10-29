@@ -99,11 +99,7 @@ void Host_InitPhysic( void )
 	launch_t			CreatePhysic;  
 
 	// phys callback
-	pi.api_size = sizeof(physic_imp_t);
-	pi.Transform = SV_Transform;
-	pi.PlaySound = SV_PlaySound;
-	pi.ClientMove = SV_PlayerMove;
-	pi.GetModelVerts = SV_GetModelVerts;
+	pi.api_size = sizeof( physic_imp_t );
 
 	Sys_LoadLibrary( NULL, &physic_dll );
 

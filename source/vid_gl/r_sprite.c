@@ -465,15 +465,15 @@ float R_GetSpriteFrameInterpolant( ref_entity_t *ent, mspriteframe_t **oldframe,
 
 static float R_GlowSightDistance( vec3_t glowOrigin )
 {
-	float	dist;
-	vec3_t	glowDist;
-	trace_t	tr;
+	float		dist;
+	vec3_t		glowDist;
+	TraceResult	tr;
 
 	VectorSubtract( glowOrigin, RI.viewOrigin, glowDist );
 	dist = VectorLength( glowDist );
 	
 	R_TraceLine( &tr, RI.viewOrigin, glowOrigin, MASK_OPAQUE );
-	if(( 1.0 - tr.fraction ) * dist > 8 )
+	if(( 1.0 - tr.flFraction ) * dist > 8 )
 		return -1;
 	return dist;
 }

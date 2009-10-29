@@ -946,13 +946,13 @@ static void R_SetupFrustum( void )
 	{
 		RI.frustum[i].type = PLANE_NONAXIAL;
 		RI.frustum[i].dist = DotProduct( RI.viewOrigin, RI.frustum[i].normal );
-		RI.frustum[i].signbits = SignbitsForPlane( &RI.frustum[i] );
+		RI.frustum[i].signbits = SignbitsForPlane( RI.frustum[i].normal );
 	}
 
 	VectorMA( RI.viewOrigin, RI.farClip, RI.vpn, farPoint );
 	RI.frustum[i].type = PLANE_NONAXIAL;
 	RI.frustum[i].dist = DotProduct( farPoint, RI.frustum[i].normal );
-	RI.frustum[i].signbits = SignbitsForPlane( &RI.frustum[i] );
+	RI.frustum[i].signbits = SignbitsForPlane( RI.frustum[i].normal );
 }
 
 /*
@@ -1551,9 +1551,9 @@ R_RenderDebugSurface
 */
 void R_RenderDebugSurface( void )
 {
-	trace_t tr;
-	vec3_t forward;
-	vec3_t start, end;
+	TraceResult	tr;
+	vec3_t		forward;
+	vec3_t		start, end;
 
 	if( RI.params & RP_NONVIEWERREF || RI.refdef.flags & RDF_NOWORLDMODEL )
 		return;
@@ -1570,7 +1570,7 @@ void R_RenderDebugSurface( void )
 	if( r_debug_surface && r_debug_surface->mesh && !gl_wireframe->integer )
 	{
 		RI.previousentity = NULL;
-		RI.currententity = (ref_entity_t *)tr.gp;
+		RI.currententity = (ref_entity_t *)tr.pHit;
 
 		R_ClearMeshList( RI.meshlist );
 		R_AddMeshToList( MB_MODEL, NULL, r_debug_surface->shader, r_debug_surface - r_worldbrushmodel->surfaces + 1 );
@@ -2036,10 +2036,10 @@ static bool R_WorldToScreen( const float *world, float *screen )
 R_TraceLine
 =============
 */
-msurface_t *R_TraceLine( trace_t *tr, const vec3_t start, const vec3_t end, int surfumask )
+msurface_t *R_TraceLine( TraceResult *tr, const vec3_t start, const vec3_t end, int surfumask )
 {
-	int i;
-	msurface_t *surf;
+	int		i;
+	msurface_t	*surf;
 
 	// trace against world
 	surf = R_TransformedTraceLine( tr, start, end, r_worldent, surfumask );
@@ -2047,11 +2047,11 @@ msurface_t *R_TraceLine( trace_t *tr, const vec3_t start, const vec3_t end, int 
 	// trace against bmodels
 	for( i = 0; i < r_numbmodelentities; i++ )
 	{
-		trace_t t2;
-		msurface_t *s2;
+		TraceResult	t2;
+		msurface_t	*s2;
 
 		s2 = R_TransformedTraceLine( &t2, start, end, r_bmodelentities[i], surfumask );
-		if( t2.fraction < tr->fraction )
+		if( t2.flFraction < tr->flFraction )
 		{
 			*tr = t2;	// closer impact point
 			surf = s2;

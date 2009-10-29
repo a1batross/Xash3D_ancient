@@ -579,7 +579,6 @@ void SV_PutClientInServer( edict_t *ent )
 	}
 
 	SV_LinkEdict( ent ); // m_pmatrix calculated here, so we need call this before pe->CreatePlayer
-	ent->pvServerData->physbody = pe->CreatePlayer( ent, SV_GetModelPtr( ent ), ent->v.origin, ent->v.m_pmatrix );
 	Mem_EmptyPool( svgame.temppool ); // all tempstrings can be freed now
 
 	// clear any temp states
@@ -1126,10 +1125,10 @@ SV_UserFriction
 */
 void SV_UserFriction( sv_client_t *cl )
 {
-	float	speed, newspeed;
-	float	control, friction;
-	vec3_t	start, stop;
-	trace_t	trace;
+	float		speed, newspeed;
+	float		control, friction;
+	vec3_t		start, stop;
+	TraceResult	trace;
 
 	speed = sqrt(cl->edict->v.velocity[0] * cl->edict->v.velocity[0] + cl->edict->v.velocity[1] * cl->edict->v.velocity[1]);
 	if( !speed ) return;
@@ -1142,7 +1141,8 @@ void SV_UserFriction( sv_client_t *cl )
 
 	trace = SV_Trace( start, vec3_origin, vec3_origin, stop, MOVE_NOMONSTERS, cl->edict, SV_ContentsMask( cl->edict ));
 
-	if( trace.fraction == 1.0 ) friction = sv_friction->value * 2;
+	if( trace.flFraction == 1.0 )
+		friction = sv_friction->value * 2;
 	else friction = sv_friction->value;
 
 	// apply friction
@@ -1188,13 +1188,13 @@ SV_SetIdealPitch
 */
 void SV_SetIdealPitch( sv_client_t *cl )
 {
-	float	angleval, sinval, cosval;
-	trace_t	tr;
-	vec3_t	top, bottom;
-	float	z[MAX_FORWARD];
-	int	i, j;
-	int	step, dir, steps;
-	edict_t	*ent = cl->edict;
+	float		angleval, sinval, cosval;
+	TraceResult	tr;
+	vec3_t		top, bottom;
+	float		z[MAX_FORWARD];
+	int		i, j;
+	int		step, dir, steps;
+	edict_t		*ent = cl->edict;
 
 	if( !( ent->v.flags & FL_ONGROUND ))
 		return;
@@ -1213,13 +1213,13 @@ void SV_SetIdealPitch( sv_client_t *cl )
 		bottom[2] = top[2] - 160;
 		
 		tr = SV_Trace( top, vec3_origin, vec3_origin, bottom, MOVE_NOMONSTERS, ent, SV_ContentsMask( ent ));
-		if( tr.allsolid )
+		if( tr.fAllSolid )
 			return;	// looking at a wall, leave ideal the way is was
 
-		if( tr.fraction == 1 )
+		if( tr.flFraction == 1.0f )
 			return;	// near a dropoff
 		
-		z[i] = top[2] + tr.fraction * (bottom[2] - top[2]);
+		z[i] = top[2] + tr.flFraction * (bottom[2] - top[2]);
 	}
 	
 	dir = 0;

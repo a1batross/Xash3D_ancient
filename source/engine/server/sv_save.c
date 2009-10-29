@@ -482,12 +482,6 @@ void SV_ReadGlobals( wfile_t *l )
 //	svgame.dllFuncs.pfnServerDeactivate();
 }
 
-void SV_RestoreEdict( edict_t *ent )
-{
-	SV_SetPhysForce( ent ); // restore forces ...
-	SV_SetMassCentre( ent ); // and mass force
-}
-
 void SV_ReadEntities( wfile_t *l )
 {
 	SAVERESTOREDATA	*pSaveData;
@@ -638,7 +632,6 @@ void SV_ReadEntities( wfile_t *l )
 			if( !pent->free && pTable->classname )
 			{
 				svgame.dllFuncs.pfnRestore( pent, pSaveData, false );
-				SV_RestoreEdict( pent );
 			}
 		}
 		else if( sv.changelevel )

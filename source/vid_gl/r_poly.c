@@ -770,20 +770,20 @@ loc0:
 R_TraceLine
 =================
 */
-msurface_t *R_TransformedTraceLine( trace_t *tr, const vec3_t start, const vec3_t end, ref_entity_t *test, int surfumask )
+msurface_t *R_TransformedTraceLine( TraceResult *tr, const vec3_t start, const vec3_t end, ref_entity_t *test, int surfumask )
 {
-	ref_model_t *model;
+	ref_model_t	*model;
 
 	r_fragmentframecount++;	// for multi-check avoidance
 
 	// fill in a default trace
-	memset( tr, 0, sizeof( trace_t ) );
+	memset( tr, 0, sizeof( TraceResult ));
 
 	trace_surface = NULL;
 	trace_umask = surfumask;
 	trace_fraction = 1;
 	VectorCopy( end, trace_impact );
-	memset( &trace_plane, 0, sizeof( trace_plane ) );
+	memset( &trace_plane, 0, sizeof( trace_plane ));
 
 	ClearBounds( trace_absmins, trace_absmaxs );
 	AddPointToBounds( start, trace_absmins, trace_absmaxs );
@@ -823,26 +823,27 @@ msurface_t *R_TransformedTraceLine( trace_t *tr, const vec3_t start, const vec3_
 			if( rotated && trace_fraction != 1 )
 			{
 				Matrix3x3_Transpose( axis, test->axis );
-				VectorCopy( tr->plane.normal, temp );
+				VectorCopy( tr->vecPlaneNormal, temp );
 				Matrix3x3_Transform( axis, temp, trace_plane.normal );
 			}
 		}
 	}
 
 	// calculate the impact plane, if any
-	if( trace_fraction < 1 )
+	if( trace_fraction < 1.0f )
 	{
 		VectorNormalize( trace_plane.normal );
 		trace_plane.dist = DotProduct( trace_plane.normal, trace_impact );
 		CategorizePlane( &trace_plane );
 
-		tr->plane = trace_plane;
-		tr->surfaceflags = trace_surface->flags;
-		tr->gp = (void *)test;
+		tr->flPlaneDist = trace_plane.dist;
+		VectorCopy( trace_plane.normal, tr->vecPlaneNormal );
+		tr->iContents = trace_surface->contents;
+		tr->pHit = (edict_t *)test;
 	}
 	
-	tr->fraction = trace_fraction;
-	VectorCopy( trace_impact, tr->endpos );
+	tr->flFraction = tr->flRealFrac = trace_fraction;
+	VectorCopy( trace_impact, tr->vecEndPos );
 
 	return trace_surface;
 }

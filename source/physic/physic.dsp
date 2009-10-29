@@ -54,7 +54,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386
-# ADD LINK32 user32.lib msvcrt.lib newton.lib opengl32.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /libpath:"../public/libs/"
+# ADD LINK32 user32.lib msvcrt.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /libpath:"../public/libs/"
 # Begin Custom Build
 TargetDir=\Xash3D\src_main\temp\physic\!release
 InputPath=\Xash3D\src_main\temp\physic\!release\physic.dll
@@ -90,7 +90,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 user32.lib msvcrtd.lib newton.lib opengl32.lib /nologo /dll /debug /machine:I386 /nodefaultlib:"libc.lib" /pdbtype:sept
+# ADD LINK32 user32.lib msvcrtd.lib /nologo /dll /debug /machine:I386 /nodefaultlib:"libc.lib" /pdbtype:sept
 # SUBTRACT LINK32 /nodefaultlib
 # Begin Custom Build
 TargetDir=\Xash3D\src_main\temp\physic\!debug
@@ -113,19 +113,15 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\cm_callback.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\cm_collision.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\cm_debug.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\cm_materials.c
+SOURCE=.\cm_main.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\cm_math.c
 # End Source File
 # Begin Source File
 
@@ -133,11 +129,11 @@ SOURCE=.\cm_model.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\cm_pmove.c
+SOURCE=.\cm_patch.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\cm_polygon.c
+SOURCE=.\cm_polylib.c
 # End Source File
 # Begin Source File
 
@@ -145,7 +141,7 @@ SOURCE=.\cm_portals.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\cm_rigidbody.c
+SOURCE=.\cm_studio.c
 # End Source File
 # Begin Source File
 
@@ -157,11 +153,7 @@ SOURCE=.\cm_trace.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\cm_utils.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\physic.c
+SOURCE=.\cm_trisoup.c
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -169,11 +161,7 @@ SOURCE=.\physic.c
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
-SOURCE=.\cm_utils.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\physic.h
+SOURCE=.\cm_local.h
 # End Source File
 # End Group
 # Begin Group "Resource Files"

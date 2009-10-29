@@ -20,10 +20,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define __R_MATH_H__
 
 // r_math.h
-float		CalcFov( float fov_x, float width, float height );
-void		AdjustFov( float *fov_x, float *fov_y, float width, float height, bool lock_x );
-void		PlaneFromPoints( vec3_t verts[3], cplane_t *plane );
-int		SignbitsForPlane( const cplane_t *out );
+float	CalcFov( float fov_x, float width, float height );
+void	AdjustFov( float *fov_x, float *fov_y, float width, float height, bool lock_x );
+int	BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p );
+void	PlaneFromPoints( vec3_t verts[3], cplane_t *plane );
+void	CategorizePlane( cplane_t *plane );
 
 /*
 ===============

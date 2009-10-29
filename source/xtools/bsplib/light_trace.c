@@ -350,7 +350,7 @@ static int SetupTraceNodes_r( int bspNodeNum )
 	nodeNum = AllocTraceNode();
 	
 	/* setup trace node */
-	traceNodes[ nodeNum ].type = PlaneTypeForNormal( plane->normal );
+	traceNodes[ nodeNum ].type = MapPlaneTypeForNormal( plane->normal );
 	VectorCopy( plane->normal, traceNodes[ nodeNum ].plane );
 	traceNodes[ nodeNum ].plane[ 3 ] = plane->dist;
 	

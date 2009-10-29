@@ -162,6 +162,10 @@ SOURCE=.\client\cl_view.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\client\cl_world.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\common\com_library.c
 # End Source File
 # Begin Source File

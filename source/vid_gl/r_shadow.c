@@ -57,9 +57,9 @@ ref_shader_t *R_PlanarShadowShader( void )
 R_GetShadowImpactAndDir
 ===============
 */
-static void R_GetShadowImpactAndDir( ref_entity_t *e, trace_t *tr, vec3_t lightdir )
+static void R_GetShadowImpactAndDir( ref_entity_t *e, TraceResult *tr, vec3_t lightdir )
 {
-	vec3_t point;
+	vec3_t	point;
 
 	R_LightForOrigin( e->lightingOrigin, lightdir, NULL, NULL, e->model->radius * e->scale );
 
@@ -77,11 +77,11 @@ R_CullPlanarShadow
 */
 bool R_CullPlanarShadow( ref_entity_t *e, vec3_t mins, vec3_t maxs, bool occlusion_query )
 {
-	int i;
-	float planedist, dist;
-	vec3_t lightdir, point;
-	vec3_t bbox[8], newmins, newmaxs;
-	trace_t tr;
+	float		planedist, dist;
+	vec3_t		lightdir, point;
+	vec3_t		bbox[8], newmins, newmaxs;
+	TraceResult	tr;
+	int		i;
 
 	if((e->flags & EF_NOSHADOW) || (e->ent_type == ED_VIEWMODEL))
 		return true;
@@ -89,29 +89,29 @@ bool R_CullPlanarShadow( ref_entity_t *e, vec3_t mins, vec3_t maxs, bool occlusi
 		return false;
 
 	R_GetShadowImpactAndDir( e, &tr, lightdir );
-	if( tr.fraction == 1.0f )
+	if( tr.flFraction == 1.0f )
 		return true;
 
 	R_TransformEntityBBox( e, mins, maxs, bbox, true );
 
-	VectorSubtract( tr.endpos, e->origin, point );
-	planedist = DotProduct( point, tr.plane.normal ) + 1;
-	dist = -1.0f / DotProduct( lightdir, tr.plane.normal );
+	VectorSubtract( tr.vecEndPos, e->origin, point );
+	planedist = DotProduct( point, tr.vecPlaneNormal ) + 1;
+	dist = -1.0f / DotProduct( lightdir, tr.vecPlaneNormal );
 	VectorScale( lightdir, dist, lightdir );
 
 	ClearBounds( newmins, newmaxs );
 	for( i = 0; i < 8; i++ )
 	{
 		VectorSubtract( bbox[i], e->origin, bbox[i] );
-		dist = DotProduct( bbox[i], tr.plane.normal ) - planedist;
-		if( dist > 0 )
-			VectorMA( bbox[i], dist, lightdir, bbox[i] );
+		dist = DotProduct( bbox[i], tr.vecPlaneNormal ) - planedist;
+		if( dist > 0 ) VectorMA( bbox[i], dist, lightdir, bbox[i] );
 		AddPointToBounds( bbox[i], newmins, newmaxs );
 	}
+
 	VectorAdd( newmins, e->origin, newmins );
 	VectorAdd( newmaxs, e->origin, newmaxs );
 
-	if( R_CullBox( newmins, newmaxs, RI.clipFlags ) )
+	if( R_CullBox( newmins, newmaxs, RI.clipFlags ))
 		return true;
 
 	// mins/maxs are pretransfomed so use r_worldent here
@@ -128,19 +128,19 @@ R_DeformVPlanarShadow
 */
 void R_DeformVPlanarShadow( int numV, float *v )
 {
-	ref_entity_t *e = RI.currententity;
-	float planedist, dist;
-	vec3_t planenormal, lightdir, lightdir2, point;
-	trace_t tr;
+	float		planedist, dist;
+	ref_entity_t	*e = RI.currententity;
+	vec3_t		planenormal, lightdir, lightdir2, point;
+	TraceResult	tr;
 
 	R_GetShadowImpactAndDir( e, &tr, lightdir );
 
 	Matrix3x3_Transform( e->axis, lightdir, lightdir2 );
-	Matrix3x3_Transform( e->axis, tr.plane.normal, planenormal );
+	Matrix3x3_Transform( e->axis, tr.vecPlaneNormal, planenormal );
 	VectorScale( planenormal, e->scale, planenormal );
 
-	VectorSubtract( tr.endpos, e->origin, point );
-	planedist = DotProduct( point, tr.plane.normal ) + 1;
+	VectorSubtract( tr.vecEndPos, e->origin, point );
+	planedist = DotProduct( point, tr.vecPlaneNormal ) + 1;
 	dist = -1.0f / DotProduct( lightdir2, planenormal );
 	VectorScale( lightdir2, dist, lightdir2 );
 

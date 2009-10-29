@@ -734,7 +734,8 @@ void CL_PrepVideo( void )
 	{
 		com.strncpy( name, cl.configstrings[CS_MODELS+1+i], MAX_STRING );
 		re->RegisterModel( name, i+1 );
-		cl.models[i+1] = pe->RegisterModel( name );
+		pe->RegisterModel( name, i+1 );
+		cl.models[i+1] = i+1;
 		Cvar_SetValue("scr_loading", scr_loading->value + 45.0f / mdlcount );
 		SCR_UpdateScreen();
 	}
@@ -1003,10 +1004,10 @@ void CL_RequestNextDownload( void )
 	{
 		precache_check = ENV_CNT + 1;
 
-		cl.worldmodel = pe->BeginRegistration( cl.configstrings[CS_MODELS+1], true, &map_checksum );
-		if( map_checksum != com.atoi(cl.configstrings[CS_MAPCHECKSUM]))
+		pe->BeginRegistration( cl.configstrings[CS_MODELS+1], true, &map_checksum );
+		if( map_checksum != com.atoi( cl.configstrings[CS_MAPCHECKSUM] ))
 		{
-			Host_Error("Local map version differs from server: %i != '%s'\n", map_checksum, cl.configstrings[CS_MAPCHECKSUM]);
+			Host_Error( "Local map version differs from server: %i != '%s'\n", map_checksum, cl.configstrings[CS_MAPCHECKSUM] );
 			return;
 		}
 	}
@@ -1036,9 +1037,9 @@ void CL_RequestNextDownload( void )
 	{
 		if( allow_download->value )
 		{
-			while( precache_tex < pe->NumTextures())
+			while( precache_tex < pe->NumShaders( ))
 			{
-				com.sprintf( fn, "textures/%s.tga", pe->GetTextureName( precache_tex++ ));
+				com.sprintf( fn, "%s", pe->GetShaderName( precache_tex++ ));
 				if( !CL_CheckOrDownloadFile( fn )) return; // started a download
 			}
 		}

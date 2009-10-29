@@ -2350,9 +2350,7 @@ TraceResult UTIL_GetGlobalTrace( void )
 
 	tr.fAllSolid	= gpGlobals->trace_allsolid;
 	tr.fStartSolid	= gpGlobals->trace_startsolid;
-	tr.fStartStuck	= gpGlobals->trace_startstuck;
 	tr.iContents	= gpGlobals->trace_contents;
-	tr.iStartContents	= gpGlobals->trace_start_contents;
 	tr.flFraction	= gpGlobals->trace_fraction;
 	tr.flPlaneDist	= gpGlobals->trace_plane_dist;
 	tr.pHit		= gpGlobals->trace_ent;

@@ -215,9 +215,8 @@ typedef enum
 	SOLID_BBOX,	// touch on edge
 	SOLID_SLIDEBOX,	//
 	SOLID_BSP,    	// bsp clip, touch on edge
-	SOLID_BOX,	// physbox
 	SOLID_SPHERE,	// sphere
-	SOLID_CYLINDER,	// cylinder e.g. barrel
+	SOLID_CAPSULE,	// convex capsule
 	SOLID_MESH,	// custom convex hull
 } solid_t;
 

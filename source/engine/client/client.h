@@ -135,8 +135,7 @@ typedef struct
 	entity_state_t	entity_baselines[MAX_EDICTS];		// keep all baselines in one global array
 
 	// locally derived information from server state
-	cmodel_t		*models[MAX_MODELS];
-	cmodel_t		*worldmodel;
+	model_t		models[MAX_MODELS];
 	string_t		edict_classnames[MAX_CLASSNAMES];
 	sound_t		sound_precache[MAX_SOUNDS];
 	shader_t		decal_shaders[MAX_DECALS];
@@ -530,7 +529,6 @@ prevframe_t *CL_GetPrevFrame( int entityIndex );
 byte CL_GetMouthOpen( int entityIndex );
 string_t CL_AllocString( const char *szValue );
 const char *CL_GetString( string_t iString );
-bool CL_RenderTrace( const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end );
 
 _inline edict_t *CL_EDICT_NUM( int n, const char *file, const int line )
 {
@@ -620,7 +618,7 @@ void CL_CheckVelocity( edict_t *ent );
 bool CL_CheckWater( edict_t *ent );
 int CL_PointContents( const vec3_t point );
 int CL_ContentsMask( const edict_t *passedict );
-trace_t CL_Trace( const vec3_t s1, const vec3_t m1, const vec3_t m2, const vec3_t s2, int type, edict_t *e, int mask );
+TraceResult CL_Trace( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, int type, edict_t *e, int mask );
 
 //
 // cl_frame.c

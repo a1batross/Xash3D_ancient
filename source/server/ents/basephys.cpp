@@ -12,7 +12,7 @@ class CPhysEntity : public CBaseEntity
 public:
 	void Precache( void )
 	{
-		UTIL_PrecacheModel( pev->model, (char *)Model() );
+		UTIL_PrecacheModel( pev->model, Model() );
 	}
 	void Spawn( void )
 	{
@@ -20,7 +20,7 @@ public:
 
 		pev->movetype = MOVETYPE_PHYSIC;
 		pev->solid = SolidType();
-		pev->owner = ENT( pev ); // g-cont. i'm forget what for needs this stuff :)
+		pev->owner = ENT( pev ); // g-cont. i'm forget why needs this stuff :)
 
 		UTIL_SetOrigin( this, pev->origin );
 		UTIL_SetModel( ENT( pev ), pev->model, (char *)Model() );
@@ -41,19 +41,3 @@ public:
 	virtual int SolidType( void ){ return SOLID_SPHERE; }
 };
 LINK_ENTITY_TO_CLASS( misc_sphere, CPhysSphere );
-
-class CPhysBarrel : public CPhysEntity
-{
-public:
-	virtual const char *Model( void ){ return "models/props/barrel2.mdl"; }
-	virtual int SolidType( void ){ return SOLID_CYLINDER; }
-};
-LINK_ENTITY_TO_CLASS( misc_barrel, CPhysBarrel );
-
-class CPhysBox : public CPhysEntity
-{
-public:
-	virtual const char *Model( void ){ return "models/props/box.mdl"; }
-	virtual int SolidType( void ){ return SOLID_BOX; }
-};
-LINK_ENTITY_TO_CLASS( misc_physbox, CPhysBox );

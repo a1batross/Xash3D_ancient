@@ -5,6 +5,18 @@
 #ifndef PHYSIC_API_H
 #define PHYSIC_API_H
 
+#include "trace_def.h"
+
+// trace type
+typedef enum
+{
+	TR_NONE,
+	TR_AABB,
+	TR_CAPSULE,
+	TR_BISPHERE,
+	TR_NUMTYPES
+} trType_t;
+
 /*
 ==============================================================================
 
@@ -21,56 +33,49 @@ typedef struct physic_exp_s
 	bool (*Init)( void );				// init all physic systems
 	void (*Shutdown)( void );				// shutdown all render systems
 
-	void (*LoadBSP)( const void *buffer );			// load bspdata ( bsplib use this )
-	void (*FreeBSP)( void );				// free bspdata
-	void (*WriteCollisionLump)( file_t *f, cmsave_t callback );	// write collision data into LUMP_COLLISION
-
 	void (*DrawCollision)( cmdraw_t callback );		// debug draw world
 	void (*Frame)( float time );				// physics frame
 
-	cmodel_t *(*BeginRegistration)( const char *name, bool clientload, uint *checksum );
-	cmodel_t *(*RegisterModel)( const char *name );
+	// models loading
+	void (*BeginRegistration)( const char *name, bool clientload, uint *checksum );
+	bool (*RegisterModel)( const char *name, int sv_index ); // also build replacement index table
 	void (*EndRegistration)( void );
 
+	// areaportal management
 	void (*SetAreaPortals)( byte *portals, size_t size );
 	void (*GetAreaPortals)( byte **portals, size_t *size );
 	void (*SetAreaPortalState)( int portalnum, int area, int otherarea, bool open );
-
-	int (*NumClusters)( void );
-	int (*NumTextures)( void );
-	int (*NumBmodels )( void );
-	const void *(*VisData)( void );
-	script_t *(*GetEntityScript)( void );
-	const char *(*GetTextureName)( int index );
-	byte *(*ClusterPVS)( int cluster );
-	byte *(*ClusterPHS)( int cluster );
-	int (*PointLeafnum)( vec3_t p );
-	byte *(*FatPVS)( const vec3_t org, bool portal );
-	byte *(*FatPHS)( int cluster, bool portal );
 	int (*BoxLeafnums)( vec3_t mins, vec3_t maxs, int *list, int listsize, int *lastleaf );
 	int (*WriteAreaBits)( byte *buffer, int area, bool portal );
-	int (*LeafCluster)( int leafnum );
-	int (*LeafArea)( int leafnum );
 	bool (*AreasConnected)( int area1, int area2 );
+	byte *(*ClusterPVS)( int cluster );
+	byte *(*ClusterPHS)( int cluster );
+	int (*LeafCluster)( int leafnum );
+	int (*PointLeafnum)( vec3_t p );
+	int (*LeafArea)( int leafnum );
 
-	void (*ClipToGenericEntity)( trace_t *trace, cmodel_t *model, const vec3_t bodymins, const vec3_t bodymaxs, int bodysupercontents, matrix4x4 matrix, matrix4x4 inversematrix, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int contentsmask );
-	void (*ClipToWorld)( trace_t *trace, cmodel_t *model, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int contentsmask );
-	void (*CombineTraces)( trace_t *cliptrace, const trace_t *trace, edict_t *touch, bool is_bmodel );
+	// map data
+	int (*NumShaders)( void );
+	int (*NumBmodels)( void );
+	void (*Mod_GetBounds)( model_t handle, vec3_t mins, vec3_t maxs );
+	void (*Mod_GetFrames)( model_t handle, int *numFrames );
+	const char *(*GetShaderName)( int index );
+	void *(*Mod_Extradata)( model_t handle );
+	script_t *(*GetEntityScript)( void );
+	const void *(*VisData)( void );
 
-	// player movement code
-	void (*PlayerMove)( struct entity_state_s *pmove, struct usercmd_s *cmd, physbody_t *body, bool clientmove );
-	
-	// simple objects
-	physbody_t *(*CreateBody)( edict_t *ed, cmodel_t *mod, const vec3_t org, const matrix3x3 m, int solid, int move );
-	physbody_t *(*CreatePlayer)( edict_t *ed, cmodel_t *mod, const vec3_t origin, const matrix3x3 matrix );
+	// trace heleper
+	int (*PointContents1)( const vec3_t p, model_t model );
+	int (*PointContents2)( const vec3_t p, model_t model, const vec3_t org, const vec3_t ang );
+	void (*BoxTrace1)( TraceResult *results, const vec3_t p1, const vec3_t p2, vec3_t mins, vec3_t maxs, model_t model, int mask, trType_t type );
+	void (*BoxTrace2)( TraceResult *results, const vec3_t p1, const vec3_t p2, vec3_t mins, vec3_t maxs, model_t model, int mask, const vec3_t org, const vec3_t ang, trType_t type );
+	void (*BiSphereTrace1)( TraceResult *results, const vec3_t p1, const vec3_t p2, float startRad, float endRad, model_t model, int mask );
+	void (*BiSphereTrace2)( TraceResult *results, const vec3_t p1, const vec3_t p2, float startRad, float endRad, model_t model, int mask, const vec3_t origin );
+	model_t (*TempModel)( const vec3_t mins, const vec3_t maxs, bool capsule );
 
-	void (*SetOrigin)( physbody_t *body, vec3_t origin );
-	void (*SetParameters)( physbody_t *body, cmodel_t *mod, int material, float mass );
-	bool (*GetForce)(physbody_t *body, vec3_t vel, vec3_t avel, vec3_t force, vec3_t torque );
-	void (*SetForce)(physbody_t *body, vec3_t vel, vec3_t avel, vec3_t force, vec3_t torque );
-	bool (*GetMassCentre)( physbody_t *body, matrix3x3 mass );
-	void (*SetMassCentre)( physbody_t *body, matrix3x3 mass );
-	void (*RemoveBody)( physbody_t *body );
+	// needs to be removed
+	byte *(*FatPVS)( const vec3_t org, bool portal );
+	byte *(*FatPHS)( int cluster, bool portal );
 } physic_exp_t;
 
 typedef struct physic_imp_s
@@ -78,10 +83,6 @@ typedef struct physic_imp_s
 	// interface validator
 	size_t	api_size;		// must matched with sizeof(physic_imp_t)
 
-	void (*ClientMove)( edict_t *ed );
-	void (*Transform)( edict_t *ed, const vec3_t org, const matrix3x3 matrix );
-	void (*PlaySound)( edict_t *ed, float volume, float pitch, const char *sample );
-	float *(*GetModelVerts)( edict_t *ent, int *numvertices );
 } physic_imp_t;
 
 #endif//PHYSIC_API_H

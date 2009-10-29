@@ -1408,12 +1408,13 @@ mesh_t						*RemoveLinearMeshColumnsRows( mesh_t *in );
 void						MakeMeshNormals( mesh_t in );
 void						PutMeshOnCurve( mesh_t in );
 
-/* map.c */
-void 		LoadMapFile( const char *filename, bool onlyLights );
-int		FindFloatPlane( vec3_t normal, vec_t dist, int numPoints, vec3_t *points );
-void		AddBrushBevels( void );
-bool		PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c );
-brush_t		*FinishBrush( void );
+// map.c
+void	LoadMapFile( const char *filename, bool onlyLights );
+int	FindFloatPlane( vec3_t normal, vec_t dist, int numPoints, vec3_t *points );
+bool	PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c );
+int	MapPlaneTypeForNormal( const vec3_t normal );
+void	AddBrushBevels( void );
+brush_t	*FinishBrush( void );
 
 
 /* portals.c */

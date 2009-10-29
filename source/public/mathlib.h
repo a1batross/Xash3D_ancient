@@ -16,6 +16,16 @@
 #define M_PI2		(float)6.28318530717958647692
 #endif
 
+#define SIDE_FRONT		0
+#define SIDE_BACK		1
+#define SIDE_ON		2
+#define SIDE_CROSS		-2
+
+#define PLANE_X		0	// 0 - 2 are axial planes
+#define PLANE_Y		1	// 3 needs alternate calc
+#define PLANE_Z		2
+#define PLANE_NONAXIAL	3
+
 #define METERS_PER_INCH	0.0254f
 #define EQUAL_EPSILON	0.001f
 #define STOP_EPSILON	0.1f
@@ -52,7 +62,7 @@
 #define VectorMax(a) ( max((a)[0], max((a)[1], (a)[2])) )
 #define VectorAvg(a) ( ((a)[0] + (a)[1] + (a)[2]) / 3 )
 #define VectorLength(a) (com.sqrt( DotProduct( a, a )))
-#define VectorLength2(a) (DotProduct(a, a))
+#define VectorLength2(a) (DotProduct( a, a ))
 #define VectorDistance(a, b) (com.sqrt( VectorDistance2( a, b )))
 #define VectorDistance2(a, b) (((a)[0] - (b)[0]) * ((a)[0] - (b)[0]) + ((a)[1] - (b)[1]) * ((a)[1] - (b)[1]) + ((a)[2] - (b)[2]) * ((a)[2] - (b)[2]))
 #define VectorAverage(a,b,o)	((o)[0]=((a)[0]+(b)[0])*0.5,(o)[1]=((a)[1]+(b)[1])*0.5,(o)[2]=((a)[2]+(b)[2])*0.5)
@@ -77,6 +87,7 @@
 #define TriangleOverlapsBox( a, b, c, d, e ) (min((a)[0], min((b)[0], (c)[0])) < (e)[0] && max((a)[0], max((b)[0], (c)[0])) > (d)[0] && min((a)[1], min((b)[1], (c)[1])) < (e)[1] && max((a)[1], max((b)[1], (c)[1])) > (d)[1] && min((a)[2], min((b)[2], (c)[2])) < (e)[2] && max((a)[2], max((b)[2], (c)[2])) > (d)[2])
 #define TriangleNormal( a, b, c, n) ((n)[0] = ((a)[1] - (b)[1]) * ((c)[2] - (b)[2]) - ((a)[2] - (b)[2]) * ((c)[1] - (b)[1]), (n)[1] = ((a)[2] - (b)[2]) * ((c)[0] - (b)[0]) - ((a)[0] - (b)[0]) * ((c)[2] - (b)[2]), (n)[2] = ((a)[0] - (b)[0]) * ((c)[1] - (b)[1]) - ((a)[1] - (b)[1]) * ((c)[0] - (b)[0]))
 #define MakeRGBA( out, x, y, z, w ) Vector4Set( out, x, y, z, w )
+#define Square(x) ((x)*(x))
 _inline float anglemod(const float a){ return(360.0/65536) * ((int)(a*(65536/360.0)) & 65535); }
 
 // NOTE: this code contain bug, what may invoked infinity loop
@@ -119,69 +130,22 @@ _inline float rsqrt( float number )
 	return y;
 }
 
-
-_inline void ConvertDimensionToPhysic( vec3_t v )
+_inline static bool VectorCompareEpsilon( const vec3_t v1, const vec3_t v2, const float epsilon )
 {
-	vec3_t	tmp;
+	vec3_t	d;
 
-	VectorCopy(v, tmp);
-	v[0] = INCH2METER(tmp[0]);
-	v[1] = INCH2METER(tmp[1]);
-	v[2] = INCH2METER(tmp[2]);
+	VectorSubtract( v1, v2, d );
+	d[0] = fabs( d[0] );
+	d[1] = fabs( d[1] );
+	d[2] = fabs( d[2] );
+
+	if( d[0] > epsilon || d[1] > epsilon || d[2] > epsilon )
+		return false;
+	return true;
 }
 
-_inline void ConvertDimensionToGame( vec3_t v )
-{
-	vec3_t	tmp;
 
-	VectorCopy(v, tmp);
-	v[0] = METER2INCH(tmp[0]);
-	v[1] = METER2INCH(tmp[1]);
-	v[2] = METER2INCH(tmp[2]);
-}
-
-_inline void ConvertPositionToPhysic( vec3_t v )
-{
-	vec3_t	tmp;
-
-	VectorCopy(v, tmp);
-	v[0] = INCH2METER(tmp[0]);
-	v[1] = INCH2METER(tmp[2]);
-	v[2] = INCH2METER(tmp[1]);
-}
-
-_inline void ConvertPositionToGame( vec3_t v )
-{
-	vec3_t	tmp;
-
-	VectorCopy(v, tmp);
-
-	v[2] = METER2INCH(tmp[1]);
-	v[1] = METER2INCH(tmp[2]);
-	v[0] = METER2INCH(tmp[0]);
-}
-
-_inline void ConvertDirectionToPhysic( vec3_t v )
-{
-	vec3_t	tmp;
-
-	VectorCopy(v, tmp);
-	v[0] = tmp[0];
-	v[1] = tmp[2];
-	v[2] = tmp[1];
-}
-
-_inline void ConvertDirectionToGame( vec3_t v )
-{
-	vec3_t	tmp;
-
-	VectorCopy(v, tmp);
-	v[0] = tmp[0];
-	v[1] = tmp[2];
-	v[2] = tmp[1];
-}
-
-_inline void VectorBound(const float min, vec3_t v, const float max)
+_inline void VectorBound( const float min, vec3_t v, const float max )
 {
 	v[0] = bound(min, v[0], max);
 	v[1] = bound(min, v[1], max);
@@ -546,6 +510,30 @@ _inline bool PlaneIntersect( vec3_t p_n, vec_t p_d, vec3_t l_o, vec3_t l_n, vec3
 	return true;
 }
 
+_inline static int PlaneTypeForNormal( const vec3_t normal )
+{
+	if( normal[0] == 1.0 ) return PLANE_X;
+	if( normal[1] == 1.0 ) return PLANE_Y;
+	if( normal[2] == 1.0 ) return PLANE_Z;
+	return PLANE_NONAXIAL;
+}
+
+/*
+=================
+SignbitsForPlane
+
+fast box on planeside test
+=================
+*/
+_inline static int SignbitsForPlane( const vec3_t normal )
+{
+	int	bits, i;
+
+	for( bits = i = 0; i < 3; i++ )
+		if( normal[i] < 0.0f ) bits |= 1<<i;
+	return bits;
+}
+
 #define PlaneDist(point,plane)  ((plane)->type < 3 ? (point)[(plane)->type] : DotProduct((point), (plane)->normal))
 #define PlaneDiff(point,plane) (((plane)->type < 3 ? (point)[(plane)->type] : DotProduct((point), (plane)->normal)) - (plane)->dist)
 
@@ -682,23 +670,6 @@ _inline void PerpendicularVector( vec3_t dst, const vec3_t src )
 	}
 }
 
-_inline float LerpAngle( float a2, float a1, float frac )
-{
-	if( a1 - a2 > 180 ) a1 -= 360;
-	if( a1 - a2 < -180 ) a1 += 360;
-	return a2 + frac * (a1 - a2);
-}
-
-_inline float LerpView( float org1, float org2, float ofs1, float ofs2, float frac )
-{
-	return org1 + ofs1 + frac * (org2 + ofs2 - (org1 + ofs1));
-}
-
-_inline float LerpPoint( float oldpoint, float curpoint, float frac )
-{
-	return oldpoint + frac * (curpoint - oldpoint);
-}
-
 /*
 =================
 NearestPOW
@@ -708,21 +679,16 @@ _inline int NearestPOW( int value, bool roundDown )
 {
 	int	n = 1;
 
-	if( value <= 0 )
-		return 1;
-	while( n < value )
-		n <<= 1;
+	if( value <= 0 ) return 1;
+	while( n < value ) n <<= 1;
 
 	if( roundDown )
 	{
-		if( n > value )
-			n >>= 1;
+		if( n > value ) n >>= 1;
 	}
 	return n;
 }
 
 static vec3_t vec3_origin = { 0, 0, 0 };
-static vec3_t vec3_angles = { 0, 0, 0 };
-static vec3_t vec3_up = { 0.0f, 1.0f, 0.0f }; // unconverted up vector
 
 #endif//BASEMATH_H

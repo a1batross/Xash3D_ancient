@@ -33,7 +33,7 @@ void CM_CalcPHS( void )
 
 	MsgDev( D_NOTE, "Building PHS...\n" );
 
-	cm.phs = Mem_Alloc( cmappool, cm.visdata_size );
+	cm.phs = Mem_Alloc( cms.mempool, cm.visdata_size );
 	cm.phs->rowsize = cm.pvs->rowsize;
 	cm.phs->numclusters = cm.pvs->numclusters;
 
@@ -162,8 +162,8 @@ byte *CM_FatPVS( const vec3_t org, bool portal )
 ============
 CM_FatPHS
 
-The client will interpolate the view position,
-so we can't use a single PVS point
+The client will interpolate the hear position,
+so we can't use a single PHS point
 ===========
 */
 byte *CM_FatPHS( int cluster, bool portal )
@@ -257,6 +257,8 @@ void CM_FloodAreaConnections( void )
 {
 	int	i, floodnum = 0;
 
+	Mem_Set( cm.areaportals, 0, sizeof( cm.areaportals ));
+
 	// all current floods are now invalid
 	cm.floodvalid++;
 
@@ -328,7 +330,7 @@ void CM_GetAreaPortals( byte **portals, size_t *size )
 	}
 
 	// copy portals out
-	prt = Mem_Alloc( cmappool, VFS_Tell( f ));
+	prt = Mem_Alloc( cms.mempool, VFS_Tell( f ));
 	Mem_Copy( prt, VFS_GetBuffer( f ), VFS_Tell( f ));
 
 	if( size ) *size = VFS_Tell( f );

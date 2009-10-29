@@ -665,7 +665,7 @@ void CL_AddParticles( void )
 	float		time, time2, gravity, dot;
 	vec3_t		mins, maxs, color;
 	int		contents;
-	trace_t		trace;
+	TraceResult	trace;
 
 	if( !cl_particles->integer ) return;
 
@@ -771,22 +771,22 @@ void CL_AddParticles( void )
 			VectorSet(maxs, radius, radius, radius);
 
 			trace = CL_Trace( p->oldorigin, mins, maxs, origin, MOVE_NORMAL, clent, MASK_SOLID );
-			if( trace.fraction != 0.0 && trace.fraction != 1.0 )
+			if( trace.flFraction != 0.0f && trace.flFraction != 1.0f )
 			{
 				// reflect velocity
-				time = cl.time - (cls.frametime + cls.frametime * trace.fraction) * 1000;
+				time = cl.time - (cls.frametime + cls.frametime * trace.flFraction) * 1000;
 				time = (time - p->time) * 0.001f;
 
 				velocity[0] = p->velocity[0];
 				velocity[1] = p->velocity[1];
 				velocity[2] = p->velocity[2] + p->accel[2] * gravity * time;
-				VectorReflect( velocity, 0, trace.plane.normal, p->velocity );
+				VectorReflect( velocity, 0, trace.vecPlaneNormal, p->velocity );
 				VectorScale( p->velocity, p->bounceFactor, p->velocity );
 
 				// check for stop or slide along the plane
-				if( trace.plane.normal[2] > 0 && p->velocity[2] < 1 )
+				if( trace.vecPlaneNormal[2] > 0 && p->velocity[2] < 1 )
 				{
-					if( trace.plane.normal[2] == 1 )
+					if( trace.vecPlaneNormal[2] == 1 )
 					{
 						VectorClear( p->velocity );
 						VectorClear( p->accel );
@@ -795,15 +795,15 @@ void CL_AddParticles( void )
 					else
 					{
 						// FIXME: check for new plane or free fall
-						dot = DotProduct( p->velocity, trace.plane.normal );
-						VectorMA( p->velocity, -dot, trace.plane.normal, p->velocity );
+						dot = DotProduct( p->velocity, trace.vecPlaneNormal );
+						VectorMA( p->velocity, -dot, trace.vecPlaneNormal, p->velocity );
 
-						dot = DotProduct( p->accel, trace.plane.normal );
-						VectorMA( p->accel, -dot, trace.plane.normal, p->accel );
+						dot = DotProduct( p->accel, trace.vecPlaneNormal );
+						VectorMA( p->accel, -dot, trace.vecPlaneNormal, p->accel );
 					}
 				}
 
-				VectorCopy( trace.endpos, origin );
+				VectorCopy( trace.vecEndPos, origin );
 				length = 1;
 
 				// reset
@@ -1037,7 +1037,7 @@ void CL_TestLights( void )
 		edict_t		*ed = CL_GetLocalPlayer();
 		int		cnt = CL_ContentsMask( ed );
 		static shader_t	flashlight_shader = -1;
-		trace_t		trace;
+		TraceResult	trace;
 
 		Mem_Set( &dl, 0, sizeof( cdlight_t ));
 #if 0
@@ -1047,11 +1047,11 @@ void CL_TestLights( void )
 		VectorScale( cl.refdef.forward, 256, end );
 		VectorAdd( end, cl.refdef.vieworg, end );
 
-		trace = CL_Trace( cl.refdef.vieworg, vec3_origin, vec3_origin, end, MOVE_HITMODEL, ed, cnt );
+		trace = CL_Trace( cl.refdef.vieworg, vec3_origin, vec3_origin, end, 0, ed, cnt );
 		VectorSet( dl.color, 1.0f, 1.0f, 1.0f );
 		dl.intensity = 96;
 		dl.texture = flashlight_shader;
-		VectorCopy( trace.endpos, dl.origin );
+		VectorCopy( trace.vecEndPos, dl.origin );
 
 		re->AddDynLight( &dl );
 	}

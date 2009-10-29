@@ -59,6 +59,7 @@ typedef struct
 	int		visframe;			// should be drawn when node is crossed
 	int		facetype;
 	int		flags;
+	int		contents;
 
 	ref_shader_t	*shader;
 	mesh_t		*mesh;

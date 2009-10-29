@@ -260,11 +260,11 @@ R_DrawCoronas
 */
 void R_DrawCoronas( void )
 {
-	unsigned int i;
-	float dist;
-	dlight_t *light;
-	meshbuffer_t *mb;
-	trace_t tr;
+	uint		i;
+	float		dist;
+	dlight_t		*light;
+	meshbuffer_t	*mb;
+	TraceResult	tr;
 
 	if( r_dynamiclight->integer != 2 )
 		return;
@@ -280,12 +280,11 @@ void R_DrawCoronas( void )
 		dist -= light->intensity;
 
 		R_TraceLine( &tr, light->origin, RI.viewOrigin, SURF_NONSOLID );
-		if( tr.fraction != 1.0f )
+		if( tr.flFraction != 1.0f )
 			continue;
 
-		mb = R_AddMeshToList( MB_CORONA, NULL, r_coronaShader, -( (signed int)i + 1 ) );
-		if( mb )
-			mb->shaderkey |= ( bound( 1, 0x4000 - (unsigned int)dist, 0x4000 - 1 ) << 12 );
+		mb = R_AddMeshToList( MB_CORONA, NULL, r_coronaShader, -((signed int)i + 1 ));
+		if( mb ) mb->shaderkey |= ( bound( 1, 0x4000 - (unsigned int)dist, 0x4000 - 1 ) << 12 );
 	}
 }
 

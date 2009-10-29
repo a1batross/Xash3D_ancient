@@ -351,8 +351,8 @@ void CL_AddEntities( void )
 void CL_GetEntitySoundSpatialization( int entnum, vec3_t origin, vec3_t velocity )
 {
 	edict_t		*ent;
-	cmodel_t		*cmodel;
-	vec3_t		midPoint;
+	model_t		handle;
+	vec3_t		mins, maxs, midPoint;
 
 	if( entnum < 0 || entnum >= GI->max_edicts )
 	{
@@ -372,9 +372,9 @@ void CL_GetEntitySoundSpatialization( int entnum, vec3_t origin, vec3_t velocity
 	// if a brush model, offset the origin
 	if( VectorIsNull( origin ))
 	{
-		cmodel = cl.models[ent->pvClientData->current.modelindex];
-		if( !cmodel ) return;
-		VectorAverage( cmodel->mins, cmodel->maxs, midPoint );
+		handle = cl.models[ent->pvClientData->current.modelindex];
+		Mod_GetBounds( handle, mins, maxs );
+		VectorAverage( mins, maxs, midPoint );
 		VectorAdd( origin, midPoint, origin );
 	}
 }

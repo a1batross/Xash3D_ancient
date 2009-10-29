@@ -60,6 +60,7 @@ typedef struct
 {
 	char		name[MAX_SHADERPATH];
 	ref_shader_t	*shader;
+	int		contents;
 	int		flags;
 } mshaderref_t;
 
@@ -385,7 +386,7 @@ ref_model_t *Mod_ForName( const char *name, bool crash )
 	}
 	if( i == mod_numsupportedformats )
 	{
-		MsgDev( D_ERROR, "Mod_NumForName: unknown fileid for %s\n", name );
+		MsgDev( D_ERROR, "Mod_ForName: unknown fileid for %s\n", name );
 		Mem_Free( buf );
 		return NULL;
 	}
@@ -752,7 +753,6 @@ Mod_LoadShaderrefs
 static void Mod_LoadShaderrefs( const lump_t *l )
 {
 	int		i, count;
-	int		contents;
 	dshader_t		*in;
 	mshaderref_t	*out;
 	cvar_t		*scr_loading = Cvar_Get( "scr_loading", "0", 0, "loading bar progress" );
@@ -776,8 +776,8 @@ static void Mod_LoadShaderrefs( const lump_t *l )
 
 		com.strncpy( out->name, in->name, sizeof( out->name ) );
 		out->flags = LittleLong( in->surfaceFlags );
-		contents = LittleLong( in->contentFlags );
-		if( contents & ( MASK_WATER|CONTENTS_FOG ))
+		out->contents = LittleLong( in->contentFlags );
+		if( out->contents & ( MASK_WATER|CONTENTS_FOG ))
 			out->flags |= SURF_NOMARKS;
 		out->shader = NULL;
 	}
@@ -1080,6 +1080,8 @@ static _inline void Mod_LoadFaceCommon( const dsurfacer_t *in, msurface_t *out )
 	}
 
 	out->flags = shaderref->flags;
+	out->contents = shaderref->contents;
+	
 	if( tr.currentSkyShader == NULL && (out->flags & SURF_SKY || out->shader->flags & SHADER_SKYPARMS ))
 	{
 		// because sky shader may missing skyParms, but always has surfaceparm 'sky'

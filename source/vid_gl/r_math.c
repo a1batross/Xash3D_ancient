@@ -72,18 +72,65 @@ void AdjustFov( float *fov_x, float *fov_y, float width, float height, bool lock
 
 /*
 =================
-SignbitsForPlane
+CategorizePlane
 
-fast box on planeside test
+A slightly more complex version of SignbitsForPlane and PlaneTypeForNormal,
+which also tries to fix possible floating point glitches (like -0.00000 cases)
 =================
 */
-int SignbitsForPlane( const cplane_t *out )
+void CategorizePlane( cplane_t *plane )
 {
-	int	bits, i;
+	int	i;
 
-	for( i = bits = 0; i < 3; i++ )
-		if( out->normal[i] < 0.0f ) bits |= 1<<i;
-	return bits;
+	plane->signbits = 0;
+	plane->type = PLANE_NONAXIAL;
+
+	for( i = 0; i < 3; i++ )
+	{
+		if( plane->normal[i] < 0 )
+		{
+			plane->signbits |= 1<<i;
+			if( plane->normal[i] == -1.0f )
+			{
+				plane->signbits = (1<<i);
+				plane->normal[0] = plane->normal[1] = plane->normal[2] = 0;
+				plane->normal[i] = -1.0f;
+				break;
+			}
+		}
+		else if( plane->normal[i] == 1.0f )
+		{
+			plane->type = i;
+			plane->signbits = 0;
+			plane->normal[0] = plane->normal[1] = plane->normal[2] = 0;
+			plane->normal[i] = 1.0f;
+			break;
+		}
+	}
+}
+
+/*
+==============
+BoxOnPlaneSide (engine fast version)
+
+Returns SIDE_FRONT, SIDE_BACK, or SIDE_ON
+==============
+*/
+int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
+{
+	if( p->type < 3 ) return ((emaxs[p->type] >= p->dist) | ((emins[p->type] < p->dist) << 1));
+	switch( p->signbits )
+	{
+	default:
+	case 0: return (((p->normal[0] * emaxs[0] + p->normal[1] * emaxs[1] + p->normal[2] * emaxs[2]) >= p->dist) | (((p->normal[0] * emins[0] + p->normal[1] * emins[1] + p->normal[2] * emins[2]) < p->dist) << 1));
+	case 1: return (((p->normal[0] * emins[0] + p->normal[1] * emaxs[1] + p->normal[2] * emaxs[2]) >= p->dist) | (((p->normal[0] * emaxs[0] + p->normal[1] * emins[1] + p->normal[2] * emins[2]) < p->dist) << 1));
+	case 2: return (((p->normal[0] * emaxs[0] + p->normal[1] * emins[1] + p->normal[2] * emaxs[2]) >= p->dist) | (((p->normal[0] * emins[0] + p->normal[1] * emaxs[1] + p->normal[2] * emins[2]) < p->dist) << 1));
+	case 3: return (((p->normal[0] * emins[0] + p->normal[1] * emins[1] + p->normal[2] * emaxs[2]) >= p->dist) | (((p->normal[0] * emaxs[0] + p->normal[1] * emaxs[1] + p->normal[2] * emins[2]) < p->dist) << 1));
+	case 4: return (((p->normal[0] * emaxs[0] + p->normal[1] * emaxs[1] + p->normal[2] * emins[2]) >= p->dist) | (((p->normal[0] * emins[0] + p->normal[1] * emins[1] + p->normal[2] * emaxs[2]) < p->dist) << 1));
+	case 5: return (((p->normal[0] * emins[0] + p->normal[1] * emaxs[1] + p->normal[2] * emins[2]) >= p->dist) | (((p->normal[0] * emaxs[0] + p->normal[1] * emins[1] + p->normal[2] * emaxs[2]) < p->dist) << 1));
+	case 6: return (((p->normal[0] * emaxs[0] + p->normal[1] * emins[1] + p->normal[2] * emins[2]) >= p->dist) | (((p->normal[0] * emins[0] + p->normal[1] * emaxs[1] + p->normal[2] * emaxs[2]) < p->dist) << 1));
+	case 7: return (((p->normal[0] * emins[0] + p->normal[1] * emins[1] + p->normal[2] * emins[2]) >= p->dist) | (((p->normal[0] * emaxs[0] + p->normal[1] * emaxs[1] + p->normal[2] * emaxs[2]) < p->dist) << 1));
+	}
 }
 
 /*

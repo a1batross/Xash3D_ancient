@@ -9,7 +9,6 @@
 
 // resources
 #include "images.h"
-#include "conback.h"
 
 stdlib_api_t com;
 
@@ -27,7 +26,6 @@ loadres_t load_resources[] =
 	{"blank.bmp", blank_bmp, sizeof(blank_bmp)},
 	{"checkerboard.dds", q1mip_dds, sizeof(q1mip_dds)},
 	{"default.dds", deffont_dds, sizeof(deffont_dds)},
-	{"conback.dds", conback_dds, sizeof(conback_dds)},
 	{"net.png", net_png, sizeof(net_png)},
 	{NULL, NULL, 0 }
 };

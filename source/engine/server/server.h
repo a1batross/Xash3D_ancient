@@ -72,8 +72,7 @@ typedef struct server_s
 
 	string		name;		// map name, or cinematic name
 	string		startspot;	// player_start name on nextmap
-	cmodel_t		*models[MAX_MODELS];
-	cmodel_t		*worldmodel;
+	model_t		models[MAX_MODELS];
 
 	char		configstrings[MAX_CONFIGSTRINGS][CS_SIZE];
 
@@ -175,13 +174,10 @@ struct sv_priv_s
 	vec3_t			water_origin;	// step old origin
 	vec3_t			moved_origin;	// push old origin
 	vec3_t			moved_angles;	// push old angles
-	physbody_t		*physbody;	// ptr to phys body
 
 	size_t			pvdata_size;	// member size of alloceed pvPrivateData
 						// (used by SV_CopyEdict)
-
-	// baselines
-	entity_state_t		s;		// this is a player_state too
+	entity_state_t		s;		// baseline (this is a player_state too)
 };
 
 /*
@@ -346,8 +342,6 @@ bool SV_CheckBottom (edict_t *ent);
 //
 // sv_move.c
 //
-void SV_Transform( edict_t *ed, const vec3_t origin, const matrix3x3 transform );
-void SV_PlaySound( edict_t *ed, float volume, float pitch, const char *sample );
 bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool settrace );
 
 //
@@ -394,11 +388,7 @@ void SV_InitEdict( edict_t *pEdict );
 bool SV_CopyEdict( edict_t *out, edict_t *in );
 void SV_ConfigString( int index, const char *val );
 void SV_SetModel( edict_t *ent, const char *name );
-void SV_CreatePhysBody( edict_t *ent );
-void SV_SetPhysForce( edict_t *ent );
-void SV_SetMassCentre( edict_t *ent);
-void SV_CopyTraceToGlobal( trace_t *trace );
-void SV_CopyTraceResult( TraceResult *out, trace_t trace );
+void SV_CopyTraceToGlobal( TraceResult *trace );
 float SV_AngleMod( float ideal, float current, float speed );
 void SV_SpawnEntities( const char *mapname, script_t *entities );
 edict_t* SV_AllocPrivateData( edict_t *ent, string_t className );
@@ -414,14 +404,6 @@ _inline edict_t *SV_EDICT_NUM( int n, const char * file, const int line )
 	Host_Error( "SV_EDICT_NUM: bad number %i (called at %s:%i)\n", n, file, line );
 	return NULL;	
 }
-
-//
-// sv_studio.c
-//
-cmodel_t *SV_GetModelPtr( edict_t *ent );
-float *SV_GetModelVerts( edict_t *ent, int *numvertices );
-int SV_StudioExtractBbox( dstudiohdr_t *phdr, int sequence, float *mins, float *maxs );
-bool SV_CreateMeshBuffer( edict_t *in, cmodel_t *out );
 
 //
 // sv_spawn.c
@@ -442,9 +424,7 @@ void SV_ReadLevelFile( const char *name );
 const char *SV_GetLatestSave( void );
 //============================================================
 
-//
 // high level object sorting to reduce interaction tests
-//
 void SV_ClearWorld (void);
 // called after the world model has been loaded, before linking any entities
 
@@ -476,8 +456,9 @@ int SV_PointContents( const vec3_t p );
 // returns the CONTENTS_* value from the world at the given point.
 // Quake 2 extends this to also check entities, to allow moving liquids
 
-trace_t SV_Trace(const vec3_t start, const vec3_t min, const vec3_t max, const vec3_t end, int t, edict_t *e, int mask);
-trace_t SV_TraceToss( edict_t *tossent, edict_t *ignore );
+void SV_ClipToEntity( TraceResult *trace, const vec3_t p1, const vec3_t mins, const vec3_t maxs, const vec3_t p2, edict_t *e, int mask, trType_t type );
+TraceResult SV_Trace( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, int type, edict_t *e, int mask );
+TraceResult SV_TraceToss( edict_t *tossent, edict_t *ignore );
 // mins and maxs are relative
 
 // if the entire move stays in a solid volume, trace.allsolid will be set,

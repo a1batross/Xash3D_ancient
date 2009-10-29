@@ -160,12 +160,39 @@ SV_ClearWorld
 */
 void SV_ClearWorld( void )
 {
-	cmodel_t	*world = sv.models[1];
+	vec3_t	mins, maxs;
 
 	sv_numareanodes = 0;
+	Mod_GetBounds( sv.models[1], mins, maxs );
 	Mem_Set( sv_areanodes, 0, sizeof( sv_areanodes ));
-	SV_CreateAreaNode( 0, world->mins, world->maxs );
+	SV_CreateAreaNode( 0, mins, maxs );
 }
+
+/*
+================
+SV_HullForEntity
+
+Returns a headnode that can be used for testing or clipping to a
+given entity.  If the entity is a bsp model, the headnode will
+be returned, otherwise a custom box tree will be constructed.
+================
+*/
+model_t SV_HullForEntity( const edict_t *ent )
+{
+	if( ent->v.solid == SOLID_BSP )
+	{
+		// explicit hulls in the BSP model
+		return ent->v.modelindex;
+	}
+	if( ent->v.solid == SOLID_CAPSULE )
+	{
+		// create a temp capsule from bounding box sizes
+		return pe->TempModel( ent->v.mins, ent->v.maxs, true );
+	}
+	// create a temp tree from bounding box sizes
+	return pe->TempModel( ent->v.mins, ent->v.maxs, false );
+}
+
 
 /*
 =================
@@ -311,8 +338,8 @@ void SV_LinkEdict( edict_t *ent )
 	ent->pvServerData->linkcount++;
 	ent->pvServerData->s.ed_flags |= ESF_LINKEDICT;	// change edict state on a client too...
 
-	// don't link not solid or rigid bodies
-	if( ent->v.solid == SOLID_NOT || ent->v.solid >= SOLID_BOX )
+	// don't link not solid bodies
+	if( ent->v.solid == SOLID_NOT )
 	{
 		sv_ent->linked = true;
 		return;
@@ -407,4 +434,231 @@ int SV_AreaEdicts( const vec3_t mins, const vec3_t maxs, edict_t **list, int max
 	SV_AreaEdicts_r( sv_areanodes, &ap );
 
 	return ap.count;
+}
+
+/*
+====================
+SV_ClipToEntity
+
+====================
+*/
+void SV_ClipToEntity( TraceResult *trace, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, edict_t *e, int mask, trType_t type )
+{
+	model_t	handle;
+	float	*origin, *angles;
+
+	if( !e || e->free ) return;
+
+	Mem_Set( trace, 0, sizeof( TraceResult ));
+
+	// if it doesn't have any brushes of a type we
+	// are looking for, ignore it
+	if(!( mask & e->v.contents ))
+	{
+		trace->flFraction = 1.0f;
+		return;
+	}
+
+	// might intersect, so do an exact clip
+	handle = SV_HullForEntity( e );
+
+	origin = e->v.origin;
+	angles = e->v.angles;
+
+	if( e->v.solid != SOLID_BSP )
+		angles = vec3_origin;	// boxes don't rotate
+
+	pe->BoxTrace2( trace, start, end, (float *)mins, (float *)maxs, handle, mask, origin, angles, type );
+
+	if( trace->flFraction < 1.0f ) trace->pHit = e;
+}
+
+
+/*
+====================
+SV_ClipMoveToEntities
+
+====================
+*/
+void SV_ClipMoveToEntities( host_clip_t *clip )
+{
+	int		i, num;
+	edict_t		*touchlist[MAX_EDICTS];
+	edict_t		*touch;
+	edict_t		*passOwner;
+	TraceResult	trace;
+	model_t		handle;
+	float		*origin, *angles;
+
+	num = SV_AreaEdicts( clip->boxmins, clip->boxmaxs, touchlist, MAX_EDICTS, AREA_SOLID );
+
+	if( clip->passEntity )
+		passOwner = clip->passEntity->v.owner;
+	else passOwner = NULL;
+
+	for( i = 0; i < num; i++ )
+	{
+		if( clip->trace.fAllSolid )
+			return;
+		touch = touchlist[i];
+
+		// see if we should ignore this entity
+		if( clip->passEntity )
+		{
+			if( touchlist[i] == clip->passEntity )
+			{
+				continue; // don't clip against the pass entity
+			}
+			if( touch->v.owner == clip->passEntity )
+			{
+				continue;	// don't clip against own missiles
+			}
+			if( touch->v.owner == passOwner )
+			{
+				continue;	// don't clip against other missiles from our owner
+			}
+		}
+
+		// if it doesn't have any brushes of a type we
+		// are looking for, ignore it
+		if(!( clip->mask & touch->v.contents ))
+		{
+			continue;
+		}
+
+		// might intersect, so do an exact clip
+		handle = SV_HullForEntity( touch );
+
+		origin = touch->v.origin;
+		angles = touch->v.angles;
+
+
+		if( touch->v.solid != SOLID_BSP )
+			angles = vec3_origin;	// boxes don't rotate
+
+		pe->BoxTrace2( &trace, clip->start, clip->end, (float *)clip->mins, (float *)clip->maxs, handle, clip->mask, origin, angles, clip->trType );
+
+		if( trace.fAllSolid )
+		{
+			clip->trace.fAllSolid = true;
+			trace.pHit = touch;
+		}
+		else if( trace.fStartSolid )
+		{
+			clip->trace.fStartSolid = true;
+			trace.pHit = touch;
+		}
+
+		if( trace.flFraction < clip->trace.flFraction )
+		{
+			bool	oldStart;
+
+			// make sure we keep a startsolid from a previous trace
+			oldStart = clip->trace.fStartSolid;
+
+			trace.pHit = touch;
+			clip->trace = trace;
+			clip->trace.fStartSolid |= oldStart;
+		}
+	}
+}
+
+/*
+==================
+SV_Trace
+
+Moves the given mins/maxs volume through the world from start to end.
+passEntityNum and entities owned by passEntityNum are explicitly not checked.
+==================
+*/
+TraceResult SV_Trace( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, int type, edict_t *e, int mask )
+{
+	host_clip_t	clip;
+	int		i;
+
+	if( !mins ) mins = vec3_origin;
+	if( !maxs ) maxs = vec3_origin;
+
+	Mem_Set( &clip, 0, sizeof( clip ));
+
+	// clip to world
+	pe->BoxTrace1( &clip.trace, start, end, mins, maxs, 0, mask, TR_AABB );
+	clip.trace.pHit = (clip.trace.flFraction != 1.0f) ? EDICT_NUM( 0 ) : NULL;
+
+	if( clip.trace.flFraction == 0.0f )
+		return clip.trace; // blocked immediately by the world
+
+	// Tr3B: HACK extension that would work with the ETPub trap_Trace(Capsule)NoEnts code
+	if( type == MOVE_WORLDONLY )
+	{
+		// skip tracing against entities
+		return clip.trace;
+	}
+
+	clip.mask = mask;
+	clip.start = start;
+	VectorCopy( end, clip.end );
+	clip.mins = mins;
+	clip.maxs = maxs;
+	clip.passEntity = e;
+	clip.trType = TR_AABB;
+
+	// create the bounding box of the entire move
+	// we can limit it to the part of the move not
+	// already clipped off by the world, which can be
+	// a significant savings for line of sight and shot traces
+	for( i = 0; i < 3; i++ )
+	{
+		if( end[i] > start[i] )
+		{
+			clip.boxmins[i] = clip.start[i] + clip.mins[i] - 1;
+			clip.boxmaxs[i] = clip.end[i] + clip.maxs[i] + 1;
+		}
+		else
+		{
+			clip.boxmins[i] = clip.end[i] + clip.mins[i] - 1;
+			clip.boxmaxs[i] = clip.start[i] + clip.maxs[i] + 1;
+		}
+	}
+
+	// clip to other solid entities
+	SV_ClipMoveToEntities( &clip );
+
+	return clip.trace;
+}
+
+
+
+/*
+=============
+SV_PointContents
+=============
+*/
+int SV_PointContents( const vec3_t p )
+{
+	model_t		handle;
+	float		*angles;
+	int		i, num, contents, c2;
+	edict_t		*touch[MAX_EDICTS];
+	edict_t		*hit;
+
+	// get base contents from world
+	contents = pe->PointContents1( p, 0 );
+
+	// or in contents from all the other entities
+	num = SV_AreaEdicts( p, p, touch, MAX_EDICTS, AREA_SOLID );
+
+	for( i = 0; i < num; i++ )
+	{
+		hit = touch[i];
+
+		// might intersect, so do an exact clip
+		handle = SV_HullForEntity( hit );
+		angles = hit->v.angles;
+		if( hit->v.solid != SOLID_BSP )
+			angles = vec3_origin;	// boxes don't rotate
+		c2 = pe->PointContents2( p, handle, hit->v.origin, hit->v.angles );
+		contents |= c2;
+	}
+	return contents;
 }

@@ -3055,21 +3055,33 @@ static void R_DrawNormals( void )
 	pglEnd();
 }
 
-static void R_DrawLine( rgba_t color, int numpoints, const float *points, const int *elements )
+static void R_DrawLine( int color, int numpoints, const float *points )
 {
 	int	i = numpoints - 1;
 	vec3_t	p0, p1;
 
 	VectorSet( p0, points[i*3+0], points[i*3+1], points[i*3+2] );
-	if( r_physbdebug->integer == 1 ) ConvertPositionToGame( p0 );
 
 	for( i = 0; i < numpoints; i++ )
 	{
 		VectorSet( p1, points[i*3+0], points[i*3+1], points[i*3+2] );
-		if( r_physbdebug->integer == 1 ) ConvertPositionToGame( p1 );
  
-		if( color ) pglColor4ubv( color );
-		else  pglColor4ub( 255, 160, 0, 255 );
+		switch( color )
+		{
+		case 1:
+			pglColor4fv( colorRed );
+			break;
+		case 2:
+			pglColor4fv( colorGreen );
+			break;
+		case 4:
+			pglColor4fv( colorBlue );
+			break;
+		default:
+			pglColor4fv( colorWhite );
+			break;
+		}
+
 		pglVertex3fv( p0 );
 		pglVertex3fv( p1 );
  

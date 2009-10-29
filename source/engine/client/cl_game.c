@@ -252,16 +252,16 @@ static void CL_InitTitles( const char *filename )
 	Com_CloseScript( script );
 }
 
-static trace_t CL_TraceToss( edict_t *tossent, edict_t *ignore)
+static TraceResult CL_TraceToss( edict_t *tossent, edict_t *ignore )
 {
-	int	i;
-	float	gravity;
-	vec3_t	move, end;
-	vec3_t	original_origin;
-	vec3_t	original_velocity;
-	vec3_t	original_angles;
-	vec3_t	original_avelocity;
-	trace_t	trace;
+	int		i;
+	float		gravity;
+	vec3_t		move, end;
+	vec3_t		original_origin;
+	vec3_t		original_velocity;
+	vec3_t		original_angles;
+	vec3_t		original_avelocity;
+	TraceResult	trace;
 
 	VectorCopy( tossent->v.origin, original_origin );
 	VectorCopy( tossent->v.velocity, original_velocity );
@@ -278,8 +278,8 @@ static trace_t CL_TraceToss( edict_t *tossent, edict_t *ignore)
 		VectorScale( tossent->v.velocity, 0.05, move );
 		VectorAdd( tossent->v.origin, move, end );
 		trace = CL_Trace( tossent->v.origin, tossent->v.mins, tossent->v.maxs, end, MOVE_NORMAL, tossent, CL_ContentsMask( tossent ));
-		VectorCopy( trace.endpos, tossent->v.origin );
-		if( trace.fraction < 1 ) break;
+		VectorCopy( trace.vecEndPos, tossent->v.origin );
+		if( trace.flFraction < 1.0f ) break;
 	}
 	VectorCopy( original_origin, tossent->v.origin );
 	VectorCopy( original_velocity, tossent->v.velocity );
@@ -287,18 +287,6 @@ static trace_t CL_TraceToss( edict_t *tossent, edict_t *ignore)
 	VectorCopy( original_avelocity, tossent->v.avelocity );
 
 	return trace;
-}
-
-/*
-====================
-CL_RenderTrace
-
-simplified version of CL_Trace for renderer purposes
-====================
-*/
-bool CL_RenderTrace( const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end )
-{
-	return (CL_Trace( start, mins, maxs, end, MOVE_NORMAL, NULL, MASK_SOLID ).fraction == 1) ? true : false;
 }
 
 /*
@@ -372,25 +360,6 @@ void CL_DrawHUD( int state )
 
 	if( state == CL_ACTIVE )
 		clgame.dllFuncs.pfnFrame( cl.time * 0.001f );
-}
-
-void CL_CopyTraceResult( TraceResult *out, trace_t trace )
-{
-	if( !out ) return;
-
-	out->fAllSolid = trace.allsolid;
-	out->fStartSolid = trace.startsolid;
-	out->fStartStuck = trace.startstuck;
-	out->flFraction = trace.fraction;
-	out->iStartContents = trace.startcontents;
-	out->iContents = trace.contents;
-	out->iHitgroup = trace.hitgroup;
-	out->flPlaneDist = trace.plane.dist;
-	VectorCopy( trace.endpos, out->vecEndPos );
-	VectorCopy( trace.plane.normal, out->vecPlaneNormal );
-
-	out->pTexName = trace.pTexName;
-	out->pHit = trace.ent;
 }
 
 static void CL_CreateUserMessage( int lastnum, const char *szMsgName, int svc_num, int iSize, pfnUserMsgHook pfn )
@@ -1139,14 +1108,12 @@ pfnGetModelPtr
 returns pointer to a studiomodel
 =============
 */
-static void *pfnGetModelPtr( edict_t* pEdict )
+static void *pfnGetModelPtr( edict_t *pEdict )
 {
-	cmodel_t	*mod;
+	if( !pEdict || pEdict->free )
+		return NULL;
 
-	mod = cl.models[pEdict->v.modelindex];
-
-	if( !mod ) return NULL;
-	return mod->extradata;
+	return Mod_Extradata( cl.models[pEdict->v.modelindex] );
 }
 
 /*
@@ -1223,16 +1190,14 @@ pfnTraceLine
 */
 static void pfnTraceLine( const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr )
 {
-	trace_t		trace;
-	int		move;
+	int	move;
 
 	move = (fNoMonsters) ? MOVE_NOMONSTERS : MOVE_NORMAL;
 
 	if( IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2] ))
 		Host_Error( "CL_Trace: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
 
-	trace = CL_Trace( v1, vec3_origin, vec3_origin, v2, move, pentToSkip, CL_ContentsMask( pentToSkip ));
-	CL_CopyTraceResult( ptr, trace );
+	*ptr = CL_Trace( v1, vec3_origin, vec3_origin, v2, move, pentToSkip, CL_ContentsMask( pentToSkip ));
 }
 
 /*
@@ -1243,11 +1208,8 @@ pfnTraceToss
 */
 static void pfnTraceToss( edict_t* pent, edict_t* pentToIgnore, TraceResult *ptr )
 {
-	trace_t		trace;
-
 	if( pent == EDICT_NUM( 0 )) return;
-	trace = CL_TraceToss( pent, pentToIgnore );
-	CL_CopyTraceResult( ptr, trace );
+	*ptr = CL_TraceToss( pent, pentToIgnore );
 }
 
 /*
@@ -1258,7 +1220,6 @@ pfnTraceHull
 */
 static void pfnTraceHull( const float *v1, const float *mins, const float *maxs, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr )
 {
-	trace_t	trace;
 	int	move;
 
 	move = (fNoMonsters) ? MOVE_NOMONSTERS : MOVE_NORMAL;
@@ -1266,8 +1227,7 @@ static void pfnTraceHull( const float *v1, const float *mins, const float *maxs,
 	if( IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2] ))
 		Host_Error( "CL_TraceHull: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
 
-	trace = CL_Trace( v1, mins, mins, v2, move, pentToSkip, CL_ContentsMask( pentToSkip ));
-	CL_CopyTraceResult( ptr, trace );
+	*ptr = CL_Trace( v1, (float *)mins, (float *)mins, v2, move, pentToSkip, CL_ContentsMask( pentToSkip ));
 }
 
 static void pfnTraceModel( const float *v1, const float *v2, edict_t *pent, TraceResult *ptr )
@@ -1277,14 +1237,9 @@ static void pfnTraceModel( const float *v1, const float *v2, edict_t *pent, Trac
 
 static const char *pfnTraceTexture( edict_t *pTextureEntity, const float *v1, const float *v2 )
 {
-	trace_t	trace;
-
 	if( IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2] ))
 		Host_Error( "CL_TraceTexture: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
-
-	trace = CL_Trace( v1, vec3_origin, vec3_origin, v2, MOVE_NOMONSTERS, NULL, CL_ContentsMask( pTextureEntity ));
-
-	return trace.pTexName;
+	return CL_Trace( v1, vec3_origin, vec3_origin, v2, MOVE_NOMONSTERS, NULL, CL_ContentsMask( pTextureEntity )).pTexName;
 }
 
 /*
@@ -1402,7 +1357,7 @@ static void pfnFindExplosionPlane( const float *origin, float radius, float *res
 	static vec3_t	planes[6] = {{0, 0, 1}, {0, 1, 0}, {1, 0, 0}, {0, 0, -1}, {0, -1, 0}, {-1, 0, 0}};
 	float		best = 1.0f;
 	vec3_t		point, dir;
-	trace_t		trace;
+	TraceResult	trace;
 	int		i;
 
 	if( !result ) return;
@@ -1413,13 +1368,13 @@ static void pfnFindExplosionPlane( const float *origin, float radius, float *res
 		VectorMA( origin, radius, planes[i], point );
 
 		trace = CL_Trace( origin, vec3_origin, vec3_origin, point, MOVE_WORLDONLY, NULL, MASK_SOLID );
-		if( trace.allsolid || trace.fraction == 1.0 )
+		if( trace.fAllSolid || trace.flFraction == 1.0f )
 			continue;
 
-		if( trace.fraction < best )
+		if( trace.flFraction < best )
 		{
-			best = trace.fraction;
-			VectorCopy( trace.plane.normal, dir );
+			best = trace.flFraction;
+			VectorCopy( trace.vecPlaneNormal, dir );
 		}
 	}
 	VectorCopy( dir, result );
