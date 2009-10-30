@@ -72,7 +72,6 @@ typedef struct server_s
 
 	string		name;		// map name, or cinematic name
 	string		startspot;	// player_start name on nextmap
-	model_t		models[MAX_MODELS];
 
 	char		configstrings[MAX_CONFIGSTRINGS][CS_SIZE];
 
@@ -289,7 +288,6 @@ extern	cvar_t		*sv_rollangle;
 extern	cvar_t		*sv_rollspeed;
 extern	cvar_t		*sv_maxspeed;
 extern	cvar_t		*sv_maxclients;
-extern	cvar_t		*sv_physics;
 extern	sv_client_t	*sv_client;
 
 //===========================================================

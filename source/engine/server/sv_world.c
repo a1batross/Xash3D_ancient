@@ -161,9 +161,10 @@ SV_ClearWorld
 void SV_ClearWorld( void )
 {
 	vec3_t	mins, maxs;
+	int	worldIndex = 1;
 
 	sv_numareanodes = 0;
-	Mod_GetBounds( sv.models[1], mins, maxs );
+	Mod_GetBounds( worldIndex, mins, maxs );
 	Mem_Set( sv_areanodes, 0, sizeof( sv_areanodes ));
 	SV_CreateAreaNode( 0, mins, maxs );
 }
@@ -184,7 +185,7 @@ model_t SV_HullForEntity( const edict_t *ent )
 		// explicit hulls in the BSP model
 		return ent->v.modelindex;
 	}
-	if( ent->v.solid == SOLID_CAPSULE )
+	if( ent->v.flags & FL_MONSTER || ent->v.solid == SOLID_CAPSULE )
 	{
 		// create a temp capsule from bounding box sizes
 		return pe->TempModel( ent->v.mins, ent->v.maxs, true );
@@ -193,6 +194,49 @@ model_t SV_HullForEntity( const edict_t *ent )
 	return pe->TempModel( ent->v.mins, ent->v.maxs, false );
 }
 
+int SV_ContentsMask( const edict_t *passedict )
+{
+	if( passedict )
+	{
+		if( passedict->v.flags & FL_MONSTER )
+			return MASK_MONSTERSOLID;
+		else if( passedict->v.flags & FL_CLIENT )
+			return MASK_PLAYERSOLID;
+		else if( passedict->v.solid == SOLID_TRIGGER )
+			return CONTENTS_SOLID|CONTENTS_BODY;
+		return MASK_SOLID;
+	}
+	return MASK_SOLID;
+}
+
+int SV_ContentsForEntity( const edict_t *ent )
+{
+	if( !ent || ent->free )
+		return CONTENTS_NONE;
+
+	if( ent->v.flags & ( FL_MONSTER|FL_CLIENT ))
+	{
+		if( ent->v.health > 0 )
+			return CONTENTS_BODY;
+		return CONTENTS_CORPSE;
+	}
+	switch( ent->v.solid )
+	{
+	case SOLID_NOT:
+		return CONTENTS_NONE;
+	case SOLID_BSP:
+	case SOLID_BBOX:
+	case SOLID_MESH:
+	case SOLID_SPHERE:
+	case SOLID_CAPSULE:
+	case SOLID_SLIDEBOX:
+		return CONTENTS_SOLID;
+	case SOLID_TRIGGER:
+		return CONTENTS_TRIGGER;
+	}
+
+	return CONTENTS_NONE;
+}
 
 /*
 =================
@@ -453,7 +497,7 @@ void SV_ClipToEntity( TraceResult *trace, const vec3_t start, const vec3_t mins,
 
 	// if it doesn't have any brushes of a type we
 	// are looking for, ignore it
-	if(!( mask & e->v.contents ))
+	if(!( mask & SV_ContentsForEntity( e )))
 	{
 		trace->flFraction = 1.0f;
 		return;
@@ -513,15 +557,17 @@ void SV_ClipMoveToEntities( host_clip_t *clip )
 			{
 				continue;	// don't clip against own missiles
 			}
+/*
 			if( touch->v.owner == passOwner )
 			{
 				continue;	// don't clip against other missiles from our owner
 			}
+*/
 		}
 
 		// if it doesn't have any brushes of a type we
 		// are looking for, ignore it
-		if(!( clip->mask & touch->v.contents ))
+		if(!( clip->mask & SV_ContentsForEntity( touch )))
 		{
 			continue;
 		}
@@ -531,7 +577,6 @@ void SV_ClipMoveToEntities( host_clip_t *clip )
 
 		origin = touch->v.origin;
 		angles = touch->v.angles;
-
 
 		if( touch->v.solid != SOLID_BSP )
 			angles = vec3_origin;	// boxes don't rotate

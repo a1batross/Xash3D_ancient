@@ -20,12 +20,10 @@ extern stdlib_api_t		com;
 //
 // local cvars
 //
-extern cvar_t		*cm_triangles;
 extern cvar_t		*cm_noareas;
+extern cvar_t		*cm_nomeshes;
 extern cvar_t		*cm_nocurves;
-extern cvar_t		*cm_showcurves;
-extern cvar_t		*cm_showtriangles;
-extern cvar_t		*cm_novis;
+extern cvar_t		*cm_debugsize;
 
 #define Host_Error		com.error
 #define CAPSULE_MODEL_HANDLE	MAX_MODELS - 2
@@ -93,7 +91,7 @@ typedef struct
 typedef struct
 {
 	int		numpoints;
-	vec3_t		p[4];		// FIXME: variable sized
+	vec3_t		p[4];
 } cwinding_t;
 
 typedef struct
@@ -214,7 +212,6 @@ typedef struct
 	TraceResult	trace;		// returned from trace call
 	sphere_t		sphere;		// sphere for oriented capsule collision
 	biSphere_t	biSphere;		// bi-sphere params
-	bool		lateralCollision;	// whether or not to test for lateral collision
 } traceWork_t;
 
 typedef struct leaflist_s
@@ -279,6 +276,8 @@ typedef struct clipmap_s
 	int		numsurfaces;
 
 	int		floodvalid;
+
+	int		numInvalidBevels;	// bevels failed
 } clipmap_t;
 
 typedef struct clipmap_static_s
@@ -344,6 +343,8 @@ void CM_FloodAreaConnections( void );
 //
 // cm_model.c
 //
+extern cmodel_t			*sv_models[];
+
 const void *CM_VisData( void );
 int CM_NumClusters( void );
 int CM_NumShaders( void );
@@ -382,8 +383,6 @@ void CM_ChopWindingInPlace( cwinding_t **inout, vec3_t normal, float dist, float
 //
 void CM_BoxTrace( TraceResult *tr, const vec3_t p1, const vec3_t p2, vec3_t mins, vec3_t maxs, model_t model, int mask, trType_t type );
 void CM_TransformedBoxTrace( TraceResult *tr, const vec3_t p1, const vec3_t p2, vec3_t mins, vec3_t maxs, model_t model, int mask, const vec3_t org, const vec3_t ang, trType_t type );
-void CM_BiSphereTrace( TraceResult *tr, const vec3_t p1, const vec3_t p2, float startRad, float endRad, model_t model, int mask );
-void CM_TransformedBiSphereTrace( TraceResult *tr, const vec3_t p1, const vec3_t p2, float startRad, float endRad, model_t model, int mask, const vec3_t origin );
 
 //
 // cm_patches.c
@@ -395,7 +394,6 @@ void CM_ClearLevelPatches( void );
 // cm_math.c
 //
 int CM_BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p );
-float DistanceBetweenLineSegmentsSquared( const vec3_t sP0, const vec3_t sP1, const vec3_t tP0, const vec3_t tP1, float *s, float *t );
 bool CM_BoundsIntersect( const vec3_t mins, const vec3_t maxs, const vec3_t mins2, const vec3_t maxs2 );
 bool CM_BoundsIntersectPoint( const vec3_t mins, const vec3_t maxs, const vec3_t point );
 bool CM_PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c );

@@ -1113,7 +1113,7 @@ static void *pfnGetModelPtr( edict_t *pEdict )
 	if( !pEdict || pEdict->free )
 		return NULL;
 
-	return Mod_Extradata( cl.models[pEdict->v.modelindex] );
+	return Mod_Extradata( pEdict->v.modelindex );
 }
 
 /*

@@ -48,7 +48,7 @@ int SV_FindIndex( const char *name, int start, int end, bool create )
 	}
 
 	// register new resource
-	com.strncpy (sv.configstrings[start+i], name, sizeof(sv.configstrings[i]));
+	com.strncpy( sv.configstrings[start+i], name, sizeof( sv.configstrings[i] ));
 
 	if( sv.state != ss_loading )
 	{	
@@ -319,8 +319,7 @@ void SV_SpawnServer( const char *server, const char *startspot )
 	for( i = 1; i < pe->NumBmodels(); i++ )
 	{
 		com.sprintf( sv.configstrings[CS_MODELS+1+i], "*%i", i );
-		pe->RegisterModel( sv.configstrings[CS_MODELS+1+i], i+1 );
-		sv.models[i+1] = i+1;
+		CM_RegisterModel( sv.configstrings[CS_MODELS+1+i], i+1 );
 	}
 
 	// precache and static commands can be issued during map initialization

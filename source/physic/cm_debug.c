@@ -8,11 +8,10 @@
 
 //#define DEBUG_SIZE
 #define DEBUG_BLOCK
-//#define DEBUG_PATCH
+//#define DEBUG_BBOX
 
 void CM_DrawCollision( cmdraw_t drawPoly ) 
 { 
-	static cvar_t		*cv, *cv2;
 	const cSurfaceCollide_t	*pc;
 	cfacet_t			*facet;
 	cwinding_t		*w;
@@ -27,8 +26,6 @@ void CM_DrawCollision( cmdraw_t drawPoly )
 #endif
 
 	if( !drawPoly ) return;
-	if( !cv2 ) cv2 = Cvar_Get( "r_debugsurface", "0", 0, "render debugsurface" );
-	if( !cv ) cv = Cvar_Get( "cm_debugSize", "2", 0, "debug polygon line size" );
 	if( !debugSurfaceCollide ) return;
 
 	pc = debugSurfaceCollide;
@@ -55,7 +52,7 @@ void CM_DrawCollision( cmdraw_t drawPoly )
 				plane[3] = -plane[3];
 			}
 #ifdef DEBUG_SIZE
-			plane[3] += cv->value;
+			plane[3] += cm_debugsize->value;
 
 			for( n = 0; n < 3; n++ )
 			{
@@ -93,7 +90,7 @@ void CM_DrawCollision( cmdraw_t drawPoly )
 				}
 #if DEBUG_SIZE
 				// if( !facet->borderNoAdjust[j] )
-					plane[3] -= cv->value;
+					plane[3] -= cm_debugsize->value;
 
 				for( n = 0; n < 3; n++ )
 				{
@@ -134,7 +131,7 @@ void CM_DrawCollision( cmdraw_t drawPoly )
 	}
 #endif
 
-#ifdef DEBUG_PATCH
+#ifdef DEBUG_BBOX
 	{
 		vec3_t          v[4];
 

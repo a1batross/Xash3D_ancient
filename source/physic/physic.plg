@@ -6,14 +6,13 @@
 --------------------Configuration: physic - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP3321.tmp" with contents
+Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP392C.tmp" with contents
 [
 /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "../public" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\physic\!debug/" /Fo"..\temp\physic\!debug/" /Fd"..\temp\physic\!debug/" /FD /GZ /c 
-"D:\Xash3D\src_main\physic\cm_model.c"
-"D:\Xash3D\src_main\physic\cm_trace.c"
+"D:\Xash3D\src_main\physic\cm_trisoup.c"
 ]
-Creating command line "cl.exe @"C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP3321.tmp"" 
-Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP3322.tmp" with contents
+Creating command line "cl.exe @"C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP392C.tmp"" 
+Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP392D.tmp" with contents
 [
 user32.lib msvcrtd.lib /nologo /dll /incremental:yes /pdb:"..\temp\physic\!debug/physic.pdb" /debug /machine:I386 /nodefaultlib:"libc.lib" /out:"..\temp\physic\!debug/physic.dll" /implib:"..\temp\physic\!debug/physic.lib" /pdbtype:sept 
 "\Xash3D\src_main\temp\physic\!debug\cm_debug.obj"
@@ -28,17 +27,15 @@ user32.lib msvcrtd.lib /nologo /dll /incremental:yes /pdb:"..\temp\physic\!debug
 "\Xash3D\src_main\temp\physic\!debug\cm_trisoup.obj"
 "\Xash3D\src_main\temp\physic\!debug\cm_main.obj"
 ]
-Creating command line "link.exe @"C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP3322.tmp""
-Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP3323.bat" with contents
+Creating command line "link.exe @"C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP392D.tmp""
+Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP392E.bat" with contents
 [
 @echo off
 copy \Xash3D\src_main\temp\physic\!debug\physic.dll "D:\Xash3D\bin\physic.dll"
 ]
-Creating command line ""C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP3323.bat""
+Creating command line ""C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP392E.bat""
 Compiling...
-cm_model.c
-cm_trace.c
-Generating Code...
+cm_trisoup.c
 Linking...
 <h3>Output Window</h3>
 Performing Custom Build Step on \Xash3D\src_main\temp\physic\!debug\physic.dll

@@ -29,28 +29,6 @@ solid_edge items only clip against bsp models.
 /*
 ===============================================================================
 
-LINE TESTING IN HULLS
-
-===============================================================================
-*/
-int SV_ContentsMask( const edict_t *passedict )
-{
-	if( passedict )
-	{
-		if( passedict->v.flags & FL_MONSTER )
-			return MASK_MONSTERSOLID;
-		else if( passedict->v.flags & FL_CLIENT )
-			return MASK_PLAYERSOLID;
-		else if( passedict->v.solid == SOLID_TRIGGER )
-			return CONTENTS_SOLID|CONTENTS_BODY;
-		return MASK_SOLID;
-	}
-	return MASK_SOLID;
-}
-
-/*
-===============================================================================
-
 Utility functions
 
 ===============================================================================
@@ -68,7 +46,7 @@ static int SV_TestEntityPosition( edict_t *ent, vec3_t offset )
 	TraceResult	trace;
 
 	VectorAdd( ent->v.origin, offset, org );
-	trace = SV_Trace( org, ent->v.mins, ent->v.maxs, ent->v.origin, MOVE_NOMONSTERS, ent, CONTENTS_SOLID );
+	trace = SV_Trace( org, ent->v.mins, ent->v.maxs, ent->v.origin, MOVE_NORMAL, ent, SV_ContentsMask( ent ));
 
 	if( trace.fStartSolid )
 		return true;
@@ -480,7 +458,7 @@ SV_PushMove
 */
 void SV_PushMove( edict_t *pusher, float movetime )
 {
-	int		i, e, index;
+	int		i, e;
 	int		checkcontents;
 	bool		rotated;
 	float		savesolid, movetime2, pushltime;
@@ -489,8 +467,8 @@ void SV_PushMove( edict_t *pusher, float movetime )
 	int		num_moved, numcheckentities;
 	static edict_t	*checkentities[MAX_EDICTS];
 	model_t		pushermodel = 0;
-	TraceResult	trace;
 	word		moved_edicts[MAX_EDICTS];
+	TraceResult	trace;
 
 	if( !pusher->v.velocity[0] && !pusher->v.velocity[1] && !pusher->v.velocity[2] && !pusher->v.avelocity[0] && !pusher->v.avelocity[1] && !pusher->v.avelocity[2])
 	{
@@ -498,7 +476,7 @@ void SV_PushMove( edict_t *pusher, float movetime )
 		return;
 	}
 
-	switch((int) pusher->v.solid )
+	switch( pusher->v.solid )
 	{
 	case SOLID_BSP:
 	case SOLID_BBOX:
@@ -515,13 +493,13 @@ void SV_PushMove( edict_t *pusher, float movetime )
 		MsgDev( D_WARN, "SV_PushMove: entity #%i, unrecognized solid type %f\n", NUM_FOR_EDICT( pusher ), pusher->v.solid );
 		return;
 	}
-	index = (int)pusher->v.modelindex;
-	if( index < 1 || index >= MAX_MODELS )
+
+	if( pusher->v.modelindex < 1 || pusher->v.modelindex >= MAX_MODELS )
 	{
 		MsgDev( D_WARN, "SV_PushMove: entity #%i has an invalid modelindex %f\n", NUM_FOR_EDICT( pusher ), pusher->v.modelindex );
 		return;
 	}
-	pushermodel = sv.models[index];
+	pushermodel = pusher->v.modelindex;
 
 	rotated = VectorLength2(pusher->v.angles) + VectorLength2(pusher->v.avelocity) > 0;
 
@@ -1481,33 +1459,29 @@ void SV_Physics_ClientMove( sv_client_t *client, usercmd_t *cmd )
 	svgame.dllFuncs.pfnPlayerPreThink( ent );
 	svgame.globals->frametime = cmd->msec * 0.001f;
 
-	if( !sv_physics->integer )
-	{
-		// make sure the velocity is sane (not a NaN)
-		SV_CheckVelocity( ent );
-		if( DotProduct(ent->v.velocity, ent->v.velocity) < 0.0001 )
-			VectorClear( ent->v.velocity );
+	// make sure the velocity is sane (not a NaN)
+	SV_CheckVelocity( ent );
+	if( DotProduct(ent->v.velocity, ent->v.velocity) < 0.0001 )
+		VectorClear( ent->v.velocity );
                    		
-		switch( ent->v.movetype )
-		{
-		case MOVETYPE_WALK:
-			// perform MOVETYPE_WALK behavior
-			if(!SV_CheckWater( ent ) && !( ent->v.flags & FL_WATERJUMP ))
-				SV_AddGravity( ent );
-			SV_CheckStuck( ent );
-			SV_WalkMove( ent );
-			break;
-		case MOVETYPE_NOCLIP:
-			SV_CheckWater( ent );
-			VectorMA( ent->v.origin, svgame.globals->frametime, ent->v.velocity, ent->v.origin );
-			VectorMA( ent->v.angles, svgame.globals->frametime, ent->v.avelocity, ent->v.angles );
-			break;
-		}
-		SV_CheckVelocity( ent );
-		SV_LinkEdict( ent );
-		SV_CheckVelocity( ent );
-          }
-          else SV_LinkEdict( ent );
+	switch( ent->v.movetype )
+	{
+	case MOVETYPE_WALK:
+		// perform MOVETYPE_WALK behavior
+		if(!SV_CheckWater( ent ) && !( ent->v.flags & FL_WATERJUMP ))
+			SV_AddGravity( ent );
+		SV_CheckStuck( ent );
+		SV_WalkMove( ent );
+		break;
+	case MOVETYPE_NOCLIP:
+		SV_CheckWater( ent );
+		VectorMA( ent->v.origin, svgame.globals->frametime, ent->v.velocity, ent->v.origin );
+		VectorMA( ent->v.angles, svgame.globals->frametime, ent->v.avelocity, ent->v.angles );
+		break;
+	}
+	SV_CheckVelocity( ent );
+	SV_LinkEdict( ent );
+	SV_CheckVelocity( ent );
 
 	if( ent->v.movetype != MOVETYPE_NOCLIP )
 		SV_TouchTriggers( ent );

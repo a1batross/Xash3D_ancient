@@ -81,6 +81,7 @@ void HUD_Init( void )
 	g_engfuncs.pfnAddCommand ("gametitle", NULL, "show game logo" );
 	g_engfuncs.pfnAddCommand ("god", NULL, "classic cheat" );
 	g_engfuncs.pfnAddCommand ("fov", NULL, "set client field of view" );
+	g_engfuncs.pfnAddCommand ("fly", NULL, "fly mode (flight)" );
 
           if ( g_pParticleSystems )
           {
@@ -293,4 +294,5 @@ void HUD_Shutdown( void )
 	g_engfuncs.pfnDelCommand ("gametitle" );
 	g_engfuncs.pfnDelCommand ("god" );
 	g_engfuncs.pfnDelCommand ("fov" );
+	g_engfuncs.pfnDelCommand ("fly" );
 }

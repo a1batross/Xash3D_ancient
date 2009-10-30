@@ -442,6 +442,19 @@ void ClientCommand( edict_t *pEntity )
 			ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, "godmode OFF\n" );
 		else ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, "godmode ON\n" );
 	}
+	else if( FStrEq( pcmd, "fly" ))
+	{
+		if ( pEntity->v.movetype == MOVETYPE_FLY )
+		{
+			pEntity->v.movetype = MOVETYPE_WALK;
+			ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, "flymode OFF\n" );
+		}
+		else
+		{
+			pEntity->v.movetype = MOVETYPE_FLY;
+			ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, "flymode ON\n" );
+		}
+	}
 	else if( FStrEq( pcmd, "notarget" ))
 	{
 		pEntity->v.flags = pEntity->v.flags ^ FL_NOTARGET;

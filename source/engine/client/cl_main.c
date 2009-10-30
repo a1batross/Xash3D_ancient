@@ -734,9 +734,8 @@ void CL_PrepVideo( void )
 	{
 		com.strncpy( name, cl.configstrings[CS_MODELS+1+i], MAX_STRING );
 		re->RegisterModel( name, i+1 );
-		pe->RegisterModel( name, i+1 );
-		cl.models[i+1] = i+1;
-		Cvar_SetValue("scr_loading", scr_loading->value + 45.0f / mdlcount );
+		CM_RegisterModel( name, i+1 );
+		Cvar_SetValue( "scr_loading", scr_loading->value + 45.0f / mdlcount );
 		SCR_UpdateScreen();
 	}
 
@@ -748,6 +747,7 @@ void CL_PrepVideo( void )
 
 	// setup sky and free unneeded stuff
 	re->EndRegistration( cl.configstrings[CS_SKYNAME] );
+	pe->EndRegistration (); // free unused models
 	Cvar_SetValue( "scr_loading", 100.0f );	// all done
 	
 	if( host.developer <= 2 ) Con_ClearNotify(); // clear any lines of console text

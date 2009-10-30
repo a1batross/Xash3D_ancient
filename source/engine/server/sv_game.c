@@ -719,7 +719,11 @@ pfnPrecacheModel
 */
 int pfnPrecacheModel( const char *s )
 {
-	return SV_ModelIndex( s );
+	int modelIndex = SV_ModelIndex( s );
+
+	CM_RegisterModel( s, modelIndex );
+
+	return modelIndex;
 }
 
 /*

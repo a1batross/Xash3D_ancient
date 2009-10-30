@@ -683,7 +683,7 @@ static void CM_AddFacetBevels( cfacet_t *facet )
 
 			if( i == facet->numBorders )
 			{
-				if( facet->numBorders > MAX_FACET_BEVELS)
+				if( facet->numBorders > MAX_FACET_BEVELS )
 					MsgDev( D_ERROR, "CM_AddFacetBevels: too many bevels\n" );
 				facet->borderPlanes[facet->numBorders] = CM_FindPlane2( plane, &flipped );
 				facet->borderNoAdjust[facet->numBorders] = 0;
@@ -772,7 +772,7 @@ static void CM_AddFacetBevels( cfacet_t *facet )
 
 					if( !w2 )
 					{
-						MsgDev( D_WARN, "CM_AddFacetBevels: invalid bevel\n" );
+						cm.numInvalidBevels++;
 						continue;
 					}
 					else CM_FreeWinding( w2 );

@@ -63,7 +63,6 @@ typedef struct
 	BOOL		fAllSolid;	// if true, plane is not valid
 	BOOL		fStartSolid;	// if true, the initial point was in a solid area
 	float		flFraction;	// time completed, 1.0 = didn't hit anything
-	float		flRealFrac;	// fraction of collision tangetially to the trace direction
 	vec3_t		vecEndPos;	// final position
 	int		iContents;	// final pos contents
 	int		iHitgroup;	// 0 == generic, non zero is specific body part

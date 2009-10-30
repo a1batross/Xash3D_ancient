@@ -408,8 +408,7 @@ void CL_ParseConfigString( sizebuf_t *msg )
 	else if( i >= CS_MODELS && i < CS_MODELS+MAX_MODELS && cl.video_prepped )
 	{
 		re->RegisterModel( cl.configstrings[i], i-CS_MODELS );
-		pe->RegisterModel( cl.configstrings[i], i-CS_MODELS );
-		cl.models[i-CS_MODELS] = i-CS_MODELS;
+		CM_RegisterModel( cl.configstrings[i], i-CS_MODELS );
 	}
 	else if( i >= CS_SOUNDS && i < CS_SOUNDS+MAX_SOUNDS && cl.audio_prepped )
 	{

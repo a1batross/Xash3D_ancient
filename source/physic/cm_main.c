@@ -8,12 +8,10 @@
 physic_imp_t	pi;
 stdlib_api_t	com;
 
-cvar_t		*cm_triangles;
 cvar_t		*cm_noareas;
+cvar_t		*cm_nomeshes;
 cvar_t		*cm_nocurves;
-cvar_t		*cm_showcurves;
-cvar_t		*cm_showtriangles;
-cvar_t		*cm_novis;
+cvar_t		*cm_debugsize;
 
 bool CM_InitPhysics( void )
 {
@@ -21,11 +19,10 @@ bool CM_InitPhysics( void )
 	Mem_Set( cms.nullrow, 0xFF, MAX_MAP_LEAFS / 8 );
 
 	cm_noareas = Cvar_Get( "cm_noareas", "0", 0, "ignore clipmap areas" );
-	cm_triangles = Cvar_Get( "cm_triangles", "0", CVAR_ARCHIVE, "convert all collide polygons into triangles" );
-	cm_nocurves = Cvar_Get( "cm_nocurves", "0", CVAR_ARCHIVE|CVAR_LATCH, "make patches uncollidable" );
-	cm_showcurves = Cvar_Get( "cm_showcurves", "0", 0, "show collision curves" );
-	cm_showtriangles = Cvar_Get( "cm_showtris", "0", 0, "show collision triangles" );
-	cm_novis = Cvar_Get( "cm_novis", "0", 0, "ignore vis information (perfomance test)" );
+	cm_nomeshes = Cvar_Get( "cm_nomeshes", "1", CVAR_ARCHIVE, "make meshes uncollidable" );	// q3a compatible
+	cm_nocurves = Cvar_Get( "cm_nocurves", "0", CVAR_ARCHIVE, "make curves uncollidable" );
+	cm_debugsize = Cvar_Get( "cm_debugsize", "2", 0, "adjust the debug lines scale" );
+	sv_models[0] = NULL; // 0 modelindex isn't used
 
 	return true;
 }
@@ -91,8 +88,6 @@ physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs 
 	Phys.PointContents2 = CM_TransformedPointContents;
 	Phys.BoxTrace1 = CM_BoxTrace;
 	Phys.BoxTrace2 = CM_TransformedBoxTrace;
-	Phys.BiSphereTrace1 = CM_BiSphereTrace;
-	Phys.BiSphereTrace2 = CM_TransformedBiSphereTrace;
 
 	Phys.TempModel = CM_TempBoxModel;
 

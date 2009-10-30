@@ -228,6 +228,8 @@ void BSP_LoadModels( lump_t *l )
 		for( j = 0; j < out->leaf.numleafsurfaces; j++ )
 			indexes[j] = LittleLong( in->firstsurface ) + j;
 	}
+
+	sv_models[1] = cm.models; // make link to world
 }
 
 /*
@@ -767,7 +769,7 @@ void IBSP_LoadSurfaces( lump_t *surfs, lump_t *verts, lump_t *elems, bool xreal_
 			// create the internal facet structure
 			surface->sc = CM_GeneratePatchCollide( width, height, vertexes );
 		}
-		else if( LittleLong( in->facetype ) == MST_TRISURF && cm_triangles->integer )
+		else if( LittleLong( in->facetype ) == MST_TRISURF )
 		{
 			cm.surfaces[i] = surface = Mem_Alloc( cms.mempool, sizeof( *surface ));
 			surface->type = MST_TRISURF;
@@ -887,7 +889,7 @@ void RBSP_LoadSurfaces( lump_t *surfs, lump_t *verts, lump_t *elems )
 			// create the internal facet structure
 			surface->sc = CM_GeneratePatchCollide( width, height, vertexes );
 		}
-		else if( LittleLong( in->facetype ) == MST_TRISURF && cm_triangles->integer )
+		else if( LittleLong( in->facetype ) == MST_TRISURF )
 		{
 			cm.surfaces[i] = surface = Mem_Alloc( cms.mempool, sizeof( *surface ));
 			surface->type = MST_TRISURF;
@@ -972,6 +974,7 @@ void CM_BeginRegistration( const char *name, bool clientload, uint *checksum )
 		CM_FreeWorld(); // release old map
 		// cinematic servers won't have anything at all
 		cm.numleafs = cm.numclusters = cm.numareas = 1;
+		sv_models[1] = NULL; // no worldmodel
 		*checksum = 0;
 		return;
 	}
@@ -988,6 +991,8 @@ void CM_BeginRegistration( const char *name, bool clientload, uint *checksum )
 			// ... and reset entity script
 			Com_ResetScript( cm.entityscript );
 		}
+		sv_models[1] = cm.models; // make link to world
+
 		// still have the right version
 		return;
 	}
@@ -1035,7 +1040,7 @@ void CM_BeginRegistration( const char *name, bool clientload, uint *checksum )
 	}
 
 	com.strncpy( cm.name, name, MAX_STRING );
-
+		
 	// load into heap
 	BSP_LoadEntityString( &hdr->lumps[LUMP_ENTITIES] );
 	BSP_LoadShaders( &hdr->lumps[LUMP_SHADERS] );
@@ -1054,12 +1059,14 @@ void CM_BeginRegistration( const char *name, bool clientload, uint *checksum )
 	if( raven_bsp ) RBSP_LoadSurfaces( &hdr->lumps[LUMP_SURFACES], &hdr->lumps[LUMP_VERTEXES], &hdr->lumps[LUMP_ELEMENTS] );
 	else IBSP_LoadSurfaces( &hdr->lumps[LUMP_SURFACES], &hdr->lumps[LUMP_VERTEXES], &hdr->lumps[LUMP_ELEMENTS], xreal_bsp );
 
+	MsgDev( D_INFO, "CM_CreateCollisionTree: %i total invalid bevels\n", cm.numInvalidBevels );
+
 	BSP_CreateBrushSideWindings ();
 	CM_InitBoxHull ();
 	CM_FloodAreaConnections ();
 	CM_CalcPHS ();
 	Mem_Free( buf );
-	
+
 	cms.loaded = true;	// all done
 }
 
@@ -1153,7 +1160,7 @@ void CM_ModelBounds( model_t handle, vec3_t mins, vec3_t maxs )
 	}
 	else
 	{
-		MsgDev( D_ERROR, "Mod_GetBounds: NULL model\n" );
+		MsgDev( D_ERROR, "Mod_GetBounds: NULL model %i\n", handle );
 		if( mins ) VectorSet( mins, -32, -32, -32 );
 		if( maxs ) VectorSet( maxs,  32,  32,  32 );
 	}
@@ -1244,6 +1251,9 @@ cmodel_t *CM_ModForName( const char *name )
 bool CM_RegisterModel( const char *name, int index )
 {
 	cmodel_t	*mod;
+
+	if( index < 0 || index > MAX_MODELS )
+		return false;
 
 	// this array used for acess to servermodels
 	mod = CM_ModForName( name );

@@ -842,7 +842,7 @@ msurface_t *R_TransformedTraceLine( TraceResult *tr, const vec3_t start, const v
 		tr->pHit = (edict_t *)test;
 	}
 	
-	tr->flFraction = tr->flRealFrac = trace_fraction;
+	tr->flFraction = trace_fraction;
 	VectorCopy( trace_impact, tr->vecEndPos );
 
 	return trace_surface;

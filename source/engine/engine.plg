@@ -6,7 +6,13 @@
 --------------------Configuration: engine - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP2D05.tmp" with contents
+Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP3998.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "common" /I "server" /I "client" /I "uimenu" /I "../public" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\engine\!debug/" /Fo"..\temp\engine\!debug/" /Fd"..\temp\engine\!debug/" /FD /c 
+"D:\Xash3D\src_main\engine\server\sv_phys.c"
+]
+Creating command line "cl.exe @"C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP3998.tmp"" 
+Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP3999.tmp" with contents
 [
 user32.lib msvcrtd.lib /nologo /subsystem:windows /dll /incremental:yes /pdb:"..\temp\engine\!debug/engine.pdb" /debug /machine:I386 /nodefaultlib:"msvcrt.lib" /out:"..\temp\engine\!debug/engine.dll" /implib:"..\temp\engine\!debug/engine.lib" /pdbtype:sept 
 "\Xash3D\src_main\temp\engine\!debug\cinematic.obj"
@@ -21,7 +27,6 @@ user32.lib msvcrtd.lib /nologo /subsystem:windows /dll /incremental:yes /pdb:"..
 "\Xash3D\src_main\temp\engine\!debug\cl_phys.obj"
 "\Xash3D\src_main\temp\engine\!debug\cl_scrn.obj"
 "\Xash3D\src_main\temp\engine\!debug\cl_view.obj"
-"\Xash3D\src_main\temp\engine\!debug\cl_world.obj"
 "\Xash3D\src_main\temp\engine\!debug\com_library.obj"
 "\Xash3D\src_main\temp\engine\!debug\con_keys.obj"
 "\Xash3D\src_main\temp\engine\!debug\con_main.obj"
@@ -66,16 +71,18 @@ user32.lib msvcrtd.lib /nologo /subsystem:windows /dll /incremental:yes /pdb:"..
 "\Xash3D\src_main\temp\engine\!debug\ui_savegame.obj"
 "\Xash3D\src_main\temp\engine\!debug\ui_saveload.obj"
 "\Xash3D\src_main\temp\engine\!debug\ui_video.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_world.obj"
 ]
-Creating command line "link.exe @"C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP2D05.tmp""
-Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP2D06.bat" with contents
+Creating command line "link.exe @"C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP3999.tmp""
+Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP399A.bat" with contents
 [
 @echo off
 copy \Xash3D\src_main\temp\engine\!debug\engine.dll "D:\Xash3D\bin\engine.dll"
 ]
-Creating command line ""C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP2D06.bat""
+Creating command line ""C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP399A.bat""
+Compiling...
+sv_phys.c
 Linking...
-   Creating library ..\temp\engine\!debug/engine.lib and object ..\temp\engine\!debug/engine.exp
 <h3>Output Window</h3>
 Performing Custom Build Step on \Xash3D\src_main\temp\engine\!debug\engine.dll
 ë™ÆØ®‡Æ¢†≠Æ ‰†©´Æ¢:         1.

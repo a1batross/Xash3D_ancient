@@ -69,8 +69,6 @@ typedef struct physic_exp_s
 	int (*PointContents2)( const vec3_t p, model_t model, const vec3_t org, const vec3_t ang );
 	void (*BoxTrace1)( TraceResult *results, const vec3_t p1, const vec3_t p2, vec3_t mins, vec3_t maxs, model_t model, int mask, trType_t type );
 	void (*BoxTrace2)( TraceResult *results, const vec3_t p1, const vec3_t p2, vec3_t mins, vec3_t maxs, model_t model, int mask, const vec3_t org, const vec3_t ang, trType_t type );
-	void (*BiSphereTrace1)( TraceResult *results, const vec3_t p1, const vec3_t p2, float startRad, float endRad, model_t model, int mask );
-	void (*BiSphereTrace2)( TraceResult *results, const vec3_t p1, const vec3_t p2, float startRad, float endRad, model_t model, int mask, const vec3_t origin );
 	model_t (*TempModel)( const vec3_t mins, const vec3_t maxs, bool capsule );
 
 	// needs to be removed

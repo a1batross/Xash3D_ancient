@@ -1360,7 +1360,7 @@ void FS_CreateGameInfo( const char *filename )
 	com.strncat( buffer, "\nsp_spawn\t\t\"info_player_start\"", MAX_SYSPATH );
 	com.strncat( buffer, "\ndm_spawn\t\t\"info_player_deathmatch\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nctf_spawn\t\t\"info_player_ctf\"", MAX_SYSPATH );
-	com.strncat( buffer, "\ncoop_spawn\t\t\"info_player_coop\"", MAX_SYSPATH );
+	com.strncat( buffer, "\ncoop_spawn\t\"info_player_coop\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nteam_spawn\t\"info_player_team\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nplayermins\t\"-32 -32 -32\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nplayermaxs\t\"32 32 32\"", MAX_SYSPATH );

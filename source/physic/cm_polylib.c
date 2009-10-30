@@ -17,10 +17,27 @@ cwinding_t *CM_AllocWinding( int points )
 	int		s;
 
 	s = sizeof( vec3_t ) * points + sizeof( int );
-	w = malloc( s );	// FIXME: use Mem_Alloc instead
+	w = malloc( s );
 	memset( w, 0, s );
 
 	return w;
+}
+
+/*
+==================
+CM_CopyWinding
+==================
+*/
+cwinding_t *CM_CopyWinding( cwinding_t *w )
+{
+	size_t		size;
+	cwinding_t	*c;
+
+	c = CM_AllocWinding( w->numpoints );
+	size = (long)((cwinding_t *) 0)->p[w->numpoints];
+	Mem_Copy( c, w, size );
+
+	return c;
 }
 
 void CM_FreeWinding( cwinding_t *w )
@@ -29,7 +46,7 @@ void CM_FreeWinding( cwinding_t *w )
 		Host_Error( "CM_FreeWinding: already freed\n" );
 	*(uint *)w = 0xDEADDEAD;
 
-	free( w ); // FIXME: use Mem_Free instead
+	free( w );
 }
 
 /*
@@ -123,23 +140,6 @@ cwinding_t *CM_BaseWindingForPlane( vec3_t normal, float dist )
 	w->numpoints = 4;
 
 	return w;
-}
-
-/*
-==================
-CM_CopyWinding
-==================
-*/
-cwinding_t *CM_CopyWinding( cwinding_t *w )
-{
-	size_t		size;
-	cwinding_t	*c;
-
-	c = CM_AllocWinding( w->numpoints );
-	size = (long)((cwinding_t *) 0)->p[w->numpoints];
-	Mem_Copy( c, w, size );
-
-	return c;
 }
 
 /*
