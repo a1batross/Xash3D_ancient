@@ -42,9 +42,8 @@ extern cvar_t		*cm_debugsize;
 #define PLANE_TRI_EPSILON	0.1
 #define WRAP_POINT_EPSILON	0.1
 
-// keep 1/8 unit away to keep the position valid before network snapping
-// and to avoid various numeric issues
-#define SURFACE_CLIP_EPSILON	(0.125)
+// 1/32 epsilon to keep floating point happy
+#define SURFACE_CLIP_EPSILON	(0.03125)
 
 typedef struct
 {
@@ -209,7 +208,7 @@ typedef struct
 	vec3_t		modelOrigin;	// origin of the model tracing through
 	int		contents;		// ored contents of the model tracing through
 	bool		isPoint;		// optimized case
-	TraceResult	trace;		// returned from trace call
+	trace_t		trace;		// returned from trace call
 	sphere_t		sphere;		// sphere for oriented capsule collision
 	biSphere_t	biSphere;		// bi-sphere params
 } traceWork_t;
@@ -381,8 +380,8 @@ void CM_ChopWindingInPlace( cwinding_t **inout, vec3_t normal, float dist, float
 //
 // cm_trace.c
 //
-void CM_BoxTrace( TraceResult *tr, const vec3_t p1, const vec3_t p2, vec3_t mins, vec3_t maxs, model_t model, int mask, trType_t type );
-void CM_TransformedBoxTrace( TraceResult *tr, const vec3_t p1, const vec3_t p2, vec3_t mins, vec3_t maxs, model_t model, int mask, const vec3_t org, const vec3_t ang, trType_t type );
+void CM_BoxTrace( trace_t *tr, const vec3_t p1, const vec3_t p2, vec3_t mins, vec3_t maxs, model_t model, int mask, trType_t type );
+void CM_TransformedBoxTrace( trace_t *tr, const vec3_t p1, const vec3_t p2, vec3_t mins, vec3_t maxs, model_t model, int mask, const vec3_t org, const vec3_t ang, trType_t type );
 
 //
 // cm_patches.c

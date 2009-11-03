@@ -252,16 +252,16 @@ static void CL_InitTitles( const char *filename )
 	Com_CloseScript( script );
 }
 
-static TraceResult CL_TraceToss( edict_t *tossent, edict_t *ignore )
+static trace_t CL_TraceToss( edict_t *tossent, edict_t *ignore )
 {
-	int		i;
-	float		gravity;
-	vec3_t		move, end;
-	vec3_t		original_origin;
-	vec3_t		original_velocity;
-	vec3_t		original_angles;
-	vec3_t		original_avelocity;
-	TraceResult	trace;
+	int	i;
+	float	gravity;
+	vec3_t	move, end;
+	vec3_t	original_origin;
+	vec3_t	original_velocity;
+	vec3_t	original_angles;
+	vec3_t	original_avelocity;
+	trace_t	trace;
 
 	VectorCopy( tossent->v.origin, original_origin );
 	VectorCopy( tossent->v.velocity, original_velocity );
@@ -1191,13 +1191,15 @@ pfnTraceLine
 static void pfnTraceLine( const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr )
 {
 	int	move;
+	trace_t	result;
 
 	move = (fNoMonsters) ? MOVE_NOMONSTERS : MOVE_NORMAL;
 
 	if( IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2] ))
 		Host_Error( "CL_Trace: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
+	result = CL_Trace( v1, vec3_origin, vec3_origin, v2, move, pentToSkip, CL_ContentsMask( pentToSkip ));
 
-	*ptr = CL_Trace( v1, vec3_origin, vec3_origin, v2, move, pentToSkip, CL_ContentsMask( pentToSkip ));
+	Mem_Copy( ptr, &result, sizeof( *ptr ));
 }
 
 /*
@@ -1208,8 +1210,11 @@ pfnTraceToss
 */
 static void pfnTraceToss( edict_t* pent, edict_t* pentToIgnore, TraceResult *ptr )
 {
+	trace_t	result;
+
 	if( pent == EDICT_NUM( 0 )) return;
-	*ptr = CL_TraceToss( pent, pentToIgnore );
+	result = CL_TraceToss( pent, pentToIgnore );
+	Mem_Copy( ptr, &result, sizeof( *ptr ));
 }
 
 /*
@@ -1221,13 +1226,15 @@ pfnTraceHull
 static void pfnTraceHull( const float *v1, const float *mins, const float *maxs, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr )
 {
 	int	move;
+	trace_t	result;
 
 	move = (fNoMonsters) ? MOVE_NOMONSTERS : MOVE_NORMAL;
 
 	if( IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2] ))
 		Host_Error( "CL_TraceHull: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
+	result = CL_Trace( v1, (float *)mins, (float *)mins, v2, move, pentToSkip, CL_ContentsMask( pentToSkip ));
 
-	*ptr = CL_Trace( v1, (float *)mins, (float *)mins, v2, move, pentToSkip, CL_ContentsMask( pentToSkip ));
+	Mem_Copy( ptr, &result, sizeof( *ptr ));
 }
 
 static void pfnTraceModel( const float *v1, const float *v2, edict_t *pent, TraceResult *ptr )
@@ -1357,7 +1364,7 @@ static void pfnFindExplosionPlane( const float *origin, float radius, float *res
 	static vec3_t	planes[6] = {{0, 0, 1}, {0, 1, 0}, {1, 0, 0}, {0, 0, -1}, {0, -1, 0}, {-1, 0, 0}};
 	float		best = 1.0f;
 	vec3_t		point, dir;
-	TraceResult	trace;
+	trace_t		trace;
 	int		i;
 
 	if( !result ) return;

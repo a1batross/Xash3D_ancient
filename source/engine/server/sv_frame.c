@@ -46,14 +46,16 @@ Copy entvars into entity state
 */
 void SV_UpdateEntityState( edict_t *ent, bool baseline )
 {
+	sv_client_t	*client = ent->pvServerData->client;
+		
 	if( !ent->pvServerData->s.classname )
 		ent->pvServerData->s.classname = SV_ClassIndex( STRING( ent->v.classname ));
 
-	if( ent->pvServerData->s.ed_type == ED_CLIENT && ent->v.fixangle )
+	if( client )
 	{
-		sv_client_t *client = ent->pvServerData->client;
+		SV_SetIdealPitch( client );
 
-		if( client )
+		if( ent->v.fixangle )
 		{
 			MSG_WriteByte( &client->netchan.message, svc_setangle );
 			MSG_WriteAngle32( &client->netchan.message, ent->v.angles[0] );

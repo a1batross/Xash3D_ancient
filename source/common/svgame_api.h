@@ -13,45 +13,45 @@ typedef struct globalvars_s
 {	
 	float		time;
 	float		frametime;
+	int		force_retouch;
+
 	string_t		mapname;
 	string_t		startspot;
-	vec3_t		spotOffset;	// landmark offset
 
 	BOOL		deathmatch;
 	BOOL		coop;
 	BOOL		teamplay;
 
 	int		serverflags;
-	int		maxClients;
-	int		numClients;	// actual clients count
-	int		maxEntities;
-	int		numEntities;	// actual ents count
+	int		found_secrets;
 
+	// MakeVectors info
 	vec3_t		v_forward;
-	vec3_t		v_right;
 	vec3_t		v_up;
+	vec3_t		v_right;
 
+	// global TraceResult
 	BOOL		trace_allsolid;
 	BOOL		trace_startsolid;
-	BOOL		trace_startstuck;
 	float		trace_fraction;
 	vec3_t		trace_endpos;
 	vec3_t		trace_plane_normal;
 	float		trace_plane_dist;
-	int		trace_start_contents;
-	int		trace_contents;
-	int		trace_hitgroup;
-	const char	*trace_texture;	// texture name that we hitting (brushes and studiomodels)
 	edict_t		*trace_ent;
+	BOOL		trace_inopen;
+	BOOL		trace_inwater;
+	int		trace_hitgroup;
+	int		trace_flags;
 
-	int		total_secrets;
-	int		found_secrets;	// number of secrets found
-	int		total_monsters;
-	int		killed_monsters;	// number of monsters killed
+	int		numClients;	// actual clients count (was msg_entity)
+	int		numEntities;	// actual ents count (was cdAudioTrack)
+	int		maxClients;
+	int		maxEntities;
 
-	dll_gameinfo_t	GameInfo;		// shared gameinfo
+	dll_gameinfo_t	*GameInfo;	// shared gameinfo (was *pStringBase)
 
 	void		*pSaveData;	// (SAVERESTOREDATA *) pointer
+	vec3_t		vecLandmarkOffset;
 } globalvars_t;
 
 // engine hands this to DLLs for functionality callbacks

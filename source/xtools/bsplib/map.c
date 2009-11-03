@@ -290,23 +290,23 @@ void MapCntString( int cnt, char *contents )
 {
 	contents[0] = '\0';
 
-	if( cnt & CONTENTS_SOLID ) com.strcat( contents, "solid " );
-	if( cnt & CONTENTS_LAVA ) com.strcat( contents, "lava " );
-	if( cnt & CONTENTS_SLIME ) com.strcat( contents, "slime " );
-	if( cnt & CONTENTS_WATER ) com.strcat( contents, "water " );
-	if( cnt & CONTENTS_SKY ) com.strcat( contents, "sky " );
+	if( cnt & BASECONT_SOLID ) com.strcat( contents, "solid " );
+	if( cnt & BASECONT_LAVA ) com.strcat( contents, "lava " );
+	if( cnt & BASECONT_SLIME ) com.strcat( contents, "slime " );
+	if( cnt & BASECONT_WATER ) com.strcat( contents, "water " );
+	if( cnt & BASECONT_SKY ) com.strcat( contents, "sky " );
 
-	if( cnt & CONTENTS_FOG ) com.strcat( contents, "fog " );
-	if( cnt & CONTENTS_AREAPORTAL ) com.strcat( contents, "areaportal " );
-	if( cnt & CONTENTS_PLAYERCLIP ) com.strcat( contents, "playerclip " );
-	if( cnt & CONTENTS_MONSTERCLIP ) com.strcat( contents, " monsterclip " );
-	if( cnt & CONTENTS_CLIP ) com.strcat( contents, "clip " );
-	if( cnt & CONTENTS_ORIGIN ) com.strcat( contents, " origin" );
-	if( cnt & CONTENTS_BODY ) Sys_Error("\nCONTENTS_BODY detected\n" );
-	if( cnt & CONTENTS_CORPSE ) Sys_Error("\nCONTENTS_CORPSE detected\n" );
-	if( cnt & CONTENTS_DETAIL ) com.strcat( contents, " detail " );
-	if( cnt & CONTENTS_TRANSLUCENT ) com.strcat( contents, "translucent " );
-	if( cnt & CONTENTS_TRIGGER ) com.strcat( contents, "trigger " );
+	if( cnt & BASECONT_FOG ) com.strcat( contents, "fog " );
+	if( cnt & BASECONT_AREAPORTAL ) com.strcat( contents, "areaportal " );
+	if( cnt & BASECONT_PLAYERCLIP ) com.strcat( contents, "playerclip " );
+	if( cnt & BASECONT_MONSTERCLIP ) com.strcat( contents, " monsterclip " );
+	if( cnt & BASECONT_CLIP ) com.strcat( contents, "clip " );
+	if( cnt & BASECONT_ORIGIN ) com.strcat( contents, " origin" );
+	if( cnt & BASECONT_BODY ) Sys_Error("\nBASECONT_BODY detected\n" );
+	if( cnt & BASECONT_CORPSE ) Sys_Error("\nBASECONT_CORPSE detected\n" );
+	if( cnt & BASECONT_DETAIL ) com.strcat( contents, " detail " );
+	if( cnt & BASECONT_TRANSLUCENT ) com.strcat( contents, "translucent " );
+	if( cnt & BASECONT_TRIGGER ) com.strcat( contents, "trigger " );
 }
 
 /*
@@ -329,7 +329,7 @@ void SetBrushContents( brush_t *b )
 	/* check for detail & structural */
 	if( (compileFlags & C_DETAIL) && (compileFlags & C_STRUCTURAL) )
 	{
-		MsgDev( D_WARN, "Entity %i, Brush %i: mixed CONTENTS_DETAIL and CONTENTS_STRUCTURAL\n", mapEnt->mapEntityNum, entitySourceBrushes );
+		MsgDev( D_WARN, "Entity %i, Brush %i: mixed BASECONT_DETAIL and BASECONT_STRUCTURAL\n", mapEnt->mapEntityNum, entitySourceBrushes );
 		compileFlags &= ~C_DETAIL;
 	}
 	
@@ -792,7 +792,7 @@ static void ParseRawBrush( bool onlyLights )
 		// in quake 3, the only thing that mattered was the first of these three values, which
 		// was previously the content flags. and only then did a single bit matter, the detail
 		// bit. because every game has its own special flags for specifying detail, the
-		// traditionally game-specified CONTENTS_DETAIL flag was overridden for Q3Map 2.3.0
+		// traditionally game-specified BASECONT_DETAIL flag was overridden for Q3Map 2.3.0
 		// by C_DETAIL, defined in q3map2.h. the value is exactly as it was before, but
 		// is stored in compileFlags, as opposed to contentFlags, for multiple-game
 		// portability. :sigh:

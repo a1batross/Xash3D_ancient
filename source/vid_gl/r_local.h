@@ -646,7 +646,7 @@ int		R_GetCustomColor( int num );
 void		R_InitOutlines( void );
 void		R_AddModelMeshOutline( unsigned int modhandle, mfog_t *fog, int meshnum );
 
-msurface_t *R_TraceLine( TraceResult *tr, const vec3_t start, const vec3_t end, int surfumask );
+msurface_t *R_TraceLine( trace_t *tr, const vec3_t start, const vec3_t end, int surfumask );
 
 //
 // r_mesh.c
@@ -734,9 +734,8 @@ void		R_ProgramDump_f( void );
 void	R_PushPoly( const meshbuffer_t *mb );
 void	R_AddPolysToList( void );
 bool	R_SurfPotentiallyFragmented( msurface_t *surf );
-int	R_GetClippedFragments( const vec3_t origin, float radius, vec3_t axis[3], int maxfverts, 
-								  vec3_t *fverts, int maxfragments, fragment_t *fragments );
-msurface_t *R_TransformedTraceLine( TraceResult *tr, const vec3_t start, const vec3_t end, ref_entity_t *test, int surfumask );
+int	R_GetClippedFragments( const vec3_t origin, float radius, vec3_t axis[3], int maxfverts, vec3_t *fverts, int maxfragments, fragment_t *fragments );
+msurface_t *R_TransformedTraceLine( trace_t *tr, const vec3_t start, const vec3_t end, ref_entity_t *test, int surfumask );
 
 //
 // r_sprite.c

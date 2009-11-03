@@ -53,7 +53,7 @@ void CM_InitBoxHull( void )
 	box_brush = &cm.brushes[cm.numbrushes];
 	box_brush->numsides = 6;
 	box_brush->sides = cm.brushsides + cm.numbrushsides;
-	box_brush->contents = CONTENTS_BODY;
+	box_brush->contents = BASECONT_BODY;
 	box_brush->edges = (cbrushedge_t *)Mem_Alloc( cms.mempool, sizeof( cbrushedge_t ) * 12 );
 	box_brush->numedges = 12;
 

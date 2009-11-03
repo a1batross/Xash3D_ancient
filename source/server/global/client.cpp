@@ -1136,7 +1136,8 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 		to->viewangles = pNet->pev->viewangles;
 		to->idealpitch = pNet->pev->ideal_pitch;
 		to->punch_angles = pNet->pev->punchangle;
-
+		to->velocity = pNet->pev->velocity;
+		
 		// playermodel sequence, that will be playing on a client
 		if( pNet->pev->gaitsequence != -1 )
 			to->gaitsequence = pNet->pev->gaitsequence;

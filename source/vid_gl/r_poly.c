@@ -770,20 +770,20 @@ loc0:
 R_TraceLine
 =================
 */
-msurface_t *R_TransformedTraceLine( TraceResult *tr, const vec3_t start, const vec3_t end, ref_entity_t *test, int surfumask )
+msurface_t *R_TransformedTraceLine( trace_t *tr, const vec3_t start, const vec3_t end, ref_entity_t *test, int umask )
 {
 	ref_model_t	*model;
 
 	r_fragmentframecount++;	// for multi-check avoidance
 
 	// fill in a default trace
-	memset( tr, 0, sizeof( TraceResult ));
+	Mem_Set( tr, 0, sizeof( trace_t ));
 
 	trace_surface = NULL;
-	trace_umask = surfumask;
+	trace_umask = umask;
 	trace_fraction = 1;
 	VectorCopy( end, trace_impact );
-	memset( &trace_plane, 0, sizeof( trace_plane ));
+	Mem_Set( &trace_plane, 0, sizeof( trace_plane ));
 
 	ClearBounds( trace_absmins, trace_absmaxs );
 	AddPointToBounds( start, trace_absmins, trace_absmaxs );

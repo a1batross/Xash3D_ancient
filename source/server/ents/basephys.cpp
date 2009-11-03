@@ -32,12 +32,3 @@ public:
 	void PostActivate( void ) { } // stub
 };
 LINK_ENTITY_TO_CLASS( func_physbox, CPhysEntity );
-
-// some rigid bodies for Xash3D 0.56 beta
-class CPhysSphere : public CPhysEntity
-{
-public:
-	virtual const char *Model( void ){ return "models/props/nexplode.mdl"; }
-	virtual int SolidType( void ){ return SOLID_SPHERE; }
-};
-LINK_ENTITY_TO_CLASS( misc_sphere, CPhysSphere );

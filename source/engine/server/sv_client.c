@@ -450,7 +450,7 @@ SV_Ack
 */
 void SV_Ack( netadr_t from )
 {
-	Msg( "Ping acknowledge from %s\n", NET_AdrToString( from ));
+	Msg( "ping %s\n", NET_AdrToString( from ));
 }
 
 /*
@@ -500,9 +500,9 @@ void SV_Ping( netadr_t from )
 
 bool Rcon_Validate( void )
 {
-	if(!com.strlen( rcon_password->string ))
+	if( !com.strlen( rcon_password->string ))
 		return false;
-	if(!com.strcmp( Cmd_Argv(1), rcon_password->string ))
+	if( !com.strcmp( Cmd_Argv( 1 ), rcon_password->string ))
 		return false;
 	return true;
 }
@@ -526,7 +526,10 @@ void SV_RemoteCommand( netadr_t from, sizebuf_t *msg )
 	else MsgDev( D_INFO, "Rcon from %s:\n%s\n", NET_AdrToString( from ), msg->data + 4 );
 	SV_BeginRedirect( from, RD_PACKET, outputbuf, MAX_MSGLEN - 16, SV_FlushRedirect );
 
-	if(!Rcon_Validate()) MsgDev( D_WARN, "Bad rcon_password.\n" );
+	if( !Rcon_Validate( ))
+	{
+		MsgDev( D_WARN, "Bad rcon_password.\n" );
+	}
 	else
 	{
 		remaining[0] = 0;
@@ -578,8 +581,7 @@ void SV_PutClientInServer( edict_t *ent )
 		MSG_Send( MSG_ONE_R, NULL, client->edict );
 	}
 
-	SV_LinkEdict( ent ); // m_pmatrix calculated here, so we need call this before pe->CreatePlayer
-	Mem_EmptyPool( svgame.temppool ); // all tempstrings can be freed now
+	Mem_EmptyPool( svgame.temppool ); // all tempstrings can be frees now
 
 	// clear any temp states
 	sv.changelevel = false;
@@ -901,17 +903,17 @@ static void SV_UpdateUserinfo_f( sv_client_t *cl )
 
 ucmd_t ucmds[] =
 {
-	{"new", SV_New_f},
-	{"begin", SV_Begin_f},
-	{"impulse", SV_Impulse_f},
-	{"baselines", SV_Baselines_f},
-	{"info", SV_ShowServerinfo_f},
-	{"nextdl", SV_NextDownload_f},
-	{"disconnect", SV_Disconnect_f},
-	{"download", SV_BeginDownload_f},
-	{"userinfo", SV_UpdateUserinfo_f},
-	{"configstrings", SV_Configstrings_f},
-	{NULL, NULL}
+{ "new", SV_New_f },
+{ "begin", SV_Begin_f },
+{ "impulse", SV_Impulse_f },
+{ "baselines", SV_Baselines_f },
+{ "info", SV_ShowServerinfo_f },
+{ "nextdl", SV_NextDownload_f },
+{ "disconnect", SV_Disconnect_f },
+{ "download", SV_BeginDownload_f },
+{ "userinfo", SV_UpdateUserinfo_f },
+{ "configstrings", SV_Configstrings_f },
+{ NULL, NULL }
 };
 
 /*
@@ -926,13 +928,14 @@ void SV_ExecuteClientCommand( sv_client_t *cl, char *s )
 	Cmd_TokenizeString( s );
 	for( u = ucmds; u->name; u++ )
 	{
-		if(!com.strcmp(Cmd_Argv(0), u->name))
+		if( !com.strcmp( Cmd_Argv( 0 ), u->name ))
 		{
 			MsgDev( D_NOTE, "ucmd->%s()\n", u->name );
 			u->func( cl );
 			break;
 		}
 	}
+
 	if( !u->name && sv.state == ss_active )
 	{
 		// custom client commands
@@ -1016,7 +1019,7 @@ void _MSG_Send( msgtype_t msg_type, vec3_t origin, const edict_t *ent, const cha
 		numclients = 1; // send to one
 		break;
 	default:
-		MsgDev( D_ERROR, "MSG_Send: bad destination: %i (called at %s:%i)\n", msg_type, filename, fileline );
+		MsgDev( D_ERROR, "MSG_Send: bad dest: %i (called at %s:%i)\n", msg_type, filename, fileline );
 		return;
 	}
 
@@ -1028,7 +1031,7 @@ void _MSG_Send( msgtype_t msg_type, vec3_t origin, const edict_t *ent, const cha
 		if( cl->state != cs_spawned && !reliable )
 			continue;
 
-		if( cl->edict && (cl->edict->v.flags & FL_FAKECLIENT))
+		if( cl->edict && ( cl->edict->v.flags & FL_FAKECLIENT ))
 			continue;
 
 		if( mask )
@@ -1037,7 +1040,7 @@ void _MSG_Send( msgtype_t msg_type, vec3_t origin, const edict_t *ent, const cha
 			cluster = pe->LeafCluster( leafnum );
 			leafnum = pe->PointLeafnum( cl->edict->v.origin );
 			if(!pe->AreasConnected( area1, area2 )) continue;
-			if( mask && (!(mask[cluster>>3] & (1<<(cluster&7)))))
+			if( mask && (!(mask[cluster>>3] & (1<<(cluster & 7)))))
 				continue;
 		}
 
@@ -1081,11 +1084,18 @@ void SV_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 	else MsgDev( D_ERROR, "bad connectionless packet from %s:\n%s\n", NET_AdrToString( from ), s );
 }
 
+/*
+===============
+SV_ApplyClientMove
+
+===============
+*/
 void SV_ApplyClientMove( sv_client_t *cl, usercmd_t *cmd )
 {
 	edict_t	*ent = cl->edict;
 
-	ent->v.button = cmd->buttons; // initialize buttons
+	// setup player buttons
+	ent->v.button = cmd->buttons;
 	if( cmd->upmove < 0 ) ent->v.button |= IN_DUCK;
 	if( cmd->upmove > 0 ) ent->v.button |= IN_JUMP;
 	if( cmd->sidemove < 0 ) ent->v.button |= IN_MOVELEFT;
@@ -1102,83 +1112,8 @@ void SV_ApplyClientMove( sv_client_t *cl, usercmd_t *cmd )
 		cmd->upmove *= 0.333;
 	}
 
-	VectorCopy( ent->v.viewangles, ent->pvServerData->s.viewangles );
-//	VectorCopy( ent->v.viewangles, ent->v.angles );
-}
-
-void SV_DropPunchAngle( sv_client_t *cl )
-{
-	float	len;
-
-	len = VectorNormalizeLength( cl->edict->v.punchangle );
-
-	len -= 10 * svgame.globals->frametime;
-	if( len < 0 ) len = 0;
-	VectorScale( cl->edict->v.punchangle, len, cl->edict->v.punchangle );
-}
-
-/*
-==================
-SV_UserFriction
-
-==================
-*/
-void SV_UserFriction( sv_client_t *cl )
-{
-	float		speed, newspeed;
-	float		control, friction;
-	vec3_t		start, stop;
-	TraceResult	trace;
-
-	speed = sqrt(cl->edict->v.velocity[0] * cl->edict->v.velocity[0] + cl->edict->v.velocity[1] * cl->edict->v.velocity[1]);
-	if( !speed ) return;
-
-	// if the leading edge is over a dropoff, increase friction
-	start[0] = stop[0] = cl->edict->v.origin[0] + cl->edict->v.velocity[0] / speed * 16;
-	start[1] = stop[1] = cl->edict->v.origin[1] + cl->edict->v.velocity[1] / speed * 16;
-	start[2] = cl->edict->v.origin[2] + cl->edict->v.mins[2];
-	stop[2] = start[2] - 34;
-
-	trace = SV_Trace( start, vec3_origin, vec3_origin, stop, MOVE_NOMONSTERS, cl->edict, SV_ContentsMask( cl->edict ));
-
-	if( trace.flFraction == 1.0 )
-		friction = sv_friction->value * 2;
-	else friction = sv_friction->value;
-
-	// apply friction
-	control = speed < 100 ? 100 : speed;
-	newspeed = speed - svgame.globals->frametime * control * friction;
-
-	if( newspeed < 0 ) newspeed = 0;
-	else newspeed /= speed;
-	VectorScale( cl->edict->v.velocity, newspeed, cl->edict->v.velocity );
-}
-
-/*
-===============
-SV_CalcRoll
-
-Used by view and sv_user
-===============
-*/
-float SV_CalcRoll( vec3_t angles, vec3_t velocity )
-{
-	vec3_t	right;
-	float	sign, side, value;
-
-	AngleVectors( angles, NULL, right, NULL );
-	side = DotProduct( velocity, right );
-	sign = side < 0 ? -1 : 1;
-	side = fabs( side );
-
-	value = sv_rollangle->value;
-
-	if( side < sv_rollspeed->value )
-		side = side * value / sv_rollspeed->value;
-	else side = value;
-
-	return side*sign;
-
+	// store a last cmd
+	cl->lastcmd = *cmd;
 }
 
 /*
@@ -1189,7 +1124,7 @@ SV_SetIdealPitch
 void SV_SetIdealPitch( sv_client_t *cl )
 {
 	float		angleval, sinval, cosval;
-	TraceResult	tr;
+	trace_t		tr;
 	vec3_t		top, bottom;
 	float		z[MAX_FORWARD];
 	int		i, j;
@@ -1212,7 +1147,7 @@ void SV_SetIdealPitch( sv_client_t *cl )
 		bottom[1] = top[1];
 		bottom[2] = top[2] - 160;
 		
-		tr = SV_Trace( top, vec3_origin, vec3_origin, bottom, MOVE_NOMONSTERS, ent, SV_ContentsMask( ent ));
+		tr = SV_Move( top, vec3_origin, vec3_origin, bottom, MOVE_NOMONSTERS, ent );
 		if( tr.fAllSolid )
 			return;	// looking at a wall, leave ideal the way is was
 
@@ -1248,6 +1183,47 @@ void SV_SetIdealPitch( sv_client_t *cl )
 }
 
 /*
+==================
+SV_UserFriction
+
+==================
+*/
+void SV_UserFriction( sv_client_t *cl )
+{
+	float	speed, newspeed;
+	float	*origin, *vel;
+	float	control, friction;
+	vec3_t	start, stop;
+	trace_t	trace;
+
+	vel = cl->edict->v.velocity;
+	origin = cl->edict->v.origin;
+
+	speed = com.sqrt( vel[0] * vel[0] + vel[1] * vel[1] );
+	if( !speed ) return;
+
+	// if the leading edge is over a dropoff, increase friction
+	start[0] = stop[0] = origin[0] + vel[0] / speed * 16;
+	start[1] = stop[1] = origin[1] + vel[1] / speed * 16;
+	start[2] = origin[2] + cl->edict->v.mins[2];
+	stop[2] = start[2] - 34;
+
+	trace = SV_Move( start, vec3_origin, vec3_origin, stop, MOVE_NOMONSTERS, cl->edict );
+
+	if( trace.flFraction == 1.0 )
+		friction = sv_friction->value * sv_edgefriction->value;
+	else friction = sv_friction->value;
+
+	// apply friction
+	control = speed < sv_stopspeed->value ? sv_stopspeed->value : speed;
+	newspeed = speed - svgame.globals->frametime * control * friction;
+
+	if( newspeed < 0 ) newspeed = 0;
+	else newspeed /= speed;
+	VectorScale( vel, newspeed, vel );
+}
+
+/*
 ==============
 SV_Accelerate
 ==============
@@ -1263,24 +1239,44 @@ void SV_Accelerate( sv_client_t *cl )
 	if( addspeed <= 0 ) return;
 	accelspeed = sv_accelerate->value * svgame.globals->frametime * wishspeed;
 	if( accelspeed > addspeed ) accelspeed = addspeed;
-	for( i = 0; i < 3; i++ ) cl->edict->v.velocity[i] += accelspeed * wishdir[i];
+
+	for( i = 0; i < 3; i++ )
+		cl->edict->v.velocity[i] += accelspeed * wishdir[i];
 }
 
+/*
+==============
+SV_AirAccelerate
+==============
+*/
 void SV_AirAccelerate( sv_client_t *cl, vec3_t wishveloc )
 {
 	int	i;
-	float	addspeed;
+	float	addspeed, accel;
 	float	wishspd, accelspeed, currentspeed;
 
+	accel = sv_airaccelerate->value ? sv_airaccelerate->value : 1.0f;
 	wishspd = VectorNormalizeLength( wishveloc );
 	if( wishspd > 30 ) wishspd = 30;
 	currentspeed = DotProduct( cl->edict->v.velocity, wishveloc );
 	addspeed = wishspd - currentspeed;
 	if( addspeed <= 0 ) return;
-	accelspeed = sv_accelerate->value * wishspeed * svgame.globals->frametime;
+	accelspeed = accel * wishspeed * svgame.globals->frametime;
 	if( accelspeed > addspeed ) accelspeed = addspeed;
 
-	for( i = 0; i < 3; i++ ) cl->edict->v.velocity[i] += accelspeed * wishveloc[i];
+	for( i = 0; i < 3; i++ )
+		cl->edict->v.velocity[i] += accelspeed * wishveloc[i];
+}
+
+void SV_DropPunchAngle( sv_client_t *cl )
+{
+	float	len;
+
+	len = VectorNormalizeLength( cl->edict->v.punchangle );
+
+	len -= 10 * svgame.globals->frametime;
+	if( len < 0 ) len = 0;
+	VectorScale( cl->edict->v.punchangle, len, cl->edict->v.punchangle );
 }
 
 /*
@@ -1295,22 +1291,22 @@ void SV_WaterMove( sv_client_t *cl, usercmd_t *cmd )
 	vec3_t	wishvel;
 	float	speed, newspeed;
 	float	wishspeed, addspeed;
-	float	accelspeed, temp;
+	float	accelspeed;
 
 	// user intentions
 	AngleVectors( cl->edict->v.viewangles, forward, right, up );
 
-	for( i = 0; i < 3; i++ ) wishvel[i] = forward[i] * cmd->forwardmove + right[i] * cmd->sidemove;
+	for( i = 0; i < 3; i++ )
+		wishvel[i] = forward[i] * cmd->forwardmove + right[i] * cmd->sidemove;
 
-	if(!cmd->forwardmove && !cmd->sidemove && !cmd->upmove)
+	if( !cmd->forwardmove && !cmd->sidemove && !cmd->upmove )
 		wishvel[2] -= 60; // drift towards bottom
 	else wishvel[2] += cmd->upmove;
 
 	wishspeed = VectorLength( wishvel );
 	if( wishspeed > sv_maxspeed->value )
 	{
-		temp = sv_maxspeed->value / wishspeed;
-		VectorScale( wishvel, temp, wishvel );
+		VectorScale( wishvel, (sv_maxspeed->value / wishspeed), wishvel );
 		wishspeed = sv_maxspeed->value;
 	}
 	wishspeed *= 0.7;
@@ -1321,8 +1317,7 @@ void SV_WaterMove( sv_client_t *cl, usercmd_t *cmd )
 	{
 		newspeed = speed - svgame.globals->frametime * speed * sv_friction->value;
 		if( newspeed < 0 ) newspeed = 0;
-		temp = newspeed / speed;
-		VectorScale( cl->edict->v.velocity, temp, cl->edict->v.velocity );
+		VectorScale( cl->edict->v.velocity, (newspeed / speed), cl->edict->v.velocity );
 	}
 	else newspeed = 0;
 
@@ -1336,7 +1331,8 @@ void SV_WaterMove( sv_client_t *cl, usercmd_t *cmd )
 	accelspeed = sv_accelerate->value * wishspeed * svgame.globals->frametime;
 	if( accelspeed > addspeed ) accelspeed = addspeed;
 
-	for( i = 0; i < 3; i++ ) cl->edict->v.velocity[i] += accelspeed * wishvel[i];
+	for( i = 0; i < 3; i++ )
+		cl->edict->v.velocity[i] += accelspeed * wishvel[i];
 }
 
 void SV_WaterJump( sv_client_t *cl )
@@ -1360,9 +1356,10 @@ void SV_AirMove( sv_client_t *cl, usercmd_t *cmd )
 {
 	int	i;
 	vec3_t	wishvel;
-	float	fmove, smove, temp;
+	float	fmove, smove;
 
-	wishvel[0] = wishvel[2] = 0;
+	wishvel[2] = 0;
+	wishvel[0] = -cl->edict->v.angles[0];
 	wishvel[1] = cl->edict->v.angles[1];
 	AngleVectors( wishvel, forward, right, up );
 
@@ -1373,16 +1370,17 @@ void SV_AirMove( sv_client_t *cl, usercmd_t *cmd )
 	if( svgame.globals->time < cl->edict->v.teleport_time && fmove < 0 )
 		fmove = 0;
 
-	for( i = 0; i < 3; i++ ) wishvel[i] = forward[i] * fmove + right[i] * smove;
+	for( i = 0; i < 3; i++ )
+		wishvel[i] = forward[i] * fmove + right[i] * smove;
 
-	if((int)cl->edict->v.movetype != MOVETYPE_WALK )
+	if( cl->edict->v.movetype != MOVETYPE_WALK )
 		wishvel[2] += cmd->upmove;
-
+	else wishvel[2] = 0;
+		
 	wishspeed = VectorNormalizeLength2( wishvel, wishdir );
 	if( wishspeed > sv_maxspeed->value )
 	{
-		temp = sv_maxspeed->value / wishspeed;
-		VectorScale( wishvel, temp, wishvel );
+		VectorScale( wishvel, (sv_maxspeed->value / wishspeed), wishvel );
 		wishspeed = sv_maxspeed->value;
 	}
 
@@ -1403,6 +1401,32 @@ void SV_AirMove( sv_client_t *cl, usercmd_t *cmd )
 	}
 }
 
+/*
+===============
+SV_CalcRoll
+
+Used by view and sv_user
+===============
+*/
+float SV_CalcRoll( vec3_t angles, vec3_t velocity )
+{
+	vec3_t	right;
+	float	sign, side, value;
+
+	AngleVectors( angles, NULL, right, NULL );
+	side = DotProduct( velocity, right );
+	sign = side < 0 ? -1 : 1;
+	side = fabs( side );
+
+	value = sv_rollangle->value;
+
+	if( side < sv_rollspeed->value )
+		side = side * value / sv_rollspeed->value;
+	else side = value;
+
+	return side*sign;
+
+}
 
 /*
 ==================
@@ -1415,21 +1439,17 @@ void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 {
 	vec3_t	viewangles;
 
+	if( sv_paused->integer || (sv_maxclients->integer == 1 && !CL_Active( )))
+		return; // paused
+
 	cl->commandMsec -= cmd->msec;
 
 	if( cl->commandMsec < 0 && sv_enforcetime->integer )
 	{
-		MsgDev( D_INFO, "commandMsec underflow from %s\n", cl->name );
+		MsgDev( D_INFO, "SV_ClientThink: commandMsec underflow from %s\n", cl->name );
 		return;
 	}
-	
-	cl->lastcmd = *cmd;
-	cl->skipframes = 0;
 
-	// may have been kicked during the last usercmd
-	if( sv_paused->integer ) return;
-
-	SV_ApplyClientMove( cl, &cl->lastcmd );
 	// make sure the velocity is sane (not a NaN)
 	SV_CheckVelocity( cl->edict );
 
@@ -1442,21 +1462,19 @@ void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 
 	// if dead, behave differently
 	if( cl->edict->v.health <= 0 )
-	{
-		VectorClear( cl->edict->v.view_ofs );
 		return;
-	}
 
-	// angles
 	// show 1/3 the pitch angle and all the roll angle
 	VectorAdd( cl->edict->v.viewangles, cl->edict->v.punchangle, viewangles );
 	cl->edict->v.viewangles[ROLL] = SV_CalcRoll( viewangles, cl->edict->v.velocity ) * 4;
+
 	if( !cl->edict->v.fixangle )
 	{
-		cl->edict->v.angles[PITCH] = -(viewangles[PITCH] / 3);
+		cl->edict->v.angles[PITCH] = -viewangles[PITCH] / 3;
 		cl->edict->v.angles[YAW] = viewangles[YAW];
 	}
 
+	// waterjump
 	if( cl->edict->v.flags & FL_WATERJUMP )
 	{
 		SV_WaterJump( cl );
@@ -1465,19 +1483,15 @@ void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 	}
 
 	// walk
-	if((cl->edict->v.waterlevel >= 2) && (cl->edict->v.movetype != MOVETYPE_NOCLIP))
+	if(( cl->edict->v.waterlevel >= 2 ) && ( cl->edict->v.movetype != MOVETYPE_NOCLIP ))
 	{
-		SV_WaterMove( cl, &cl->lastcmd );
+		SV_WaterMove( cl, cmd );
 		SV_CheckVelocity( cl->edict );
 		return;
 	}
 
-	SV_AirMove( cl, &cl->lastcmd );
+	SV_AirMove( cl, cmd );
 	SV_CheckVelocity( cl->edict );
-	SV_SetIdealPitch( cl );
-
-	VectorCopy( cl->edict->v.origin, cl->edict->pvServerData->s.origin );
-	VectorCopy( cl->edict->v.velocity, cl->edict->pvServerData->s.velocity );
 }
 
 /*
@@ -1559,7 +1573,8 @@ static void SV_ReadClientMove( sv_client_t *cl, sizebuf_t *msg )
 		if( cmds[i].servertime <= cl->lastcmd.servertime )
 			continue;
 
-		SV_Physics_ClientMove( cl, &cmds[i] );
+		SV_ApplyClientMove( cl, &cmds[i] );
+		SV_ClientThink( cl, &cmds[i] );
 	}
 }
 
@@ -1588,7 +1603,7 @@ void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg )
 
 		if( msg->error )
 		{
-			MsgDev( D_ERROR, "SV_ReadClientMessage: badread\n" );
+			MsgDev( D_ERROR, "SV_ReadClientMessage: clc_bad\n" );
 			SV_DropClient( cl );
 			return;
 		}	
@@ -1612,7 +1627,7 @@ void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg )
 			if( cl->state == cs_zombie ) return; // disconnect command
 			break;
 		default:
-			MsgDev( D_ERROR, "SV_ReadClientMessage: unknown command char %d\n", c );
+			MsgDev( D_ERROR, "SV_ReadClientMessage: clc_bad\n" );
 			SV_DropClient( cl );
 			return;
 		}

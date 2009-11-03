@@ -62,7 +62,7 @@ int CL_ContentsMask( const edict_t *passedict )
 		else if( passedict->v.flags & FL_CLIENT )
 			return MASK_PLAYERSOLID;
 		else if( passedict->v.solid == SOLID_TRIGGER )
-			return CONTENTS_SOLID|CONTENTS_BODY;
+			return BASECONT_SOLID|BASECONT_BODY;
 		return MASK_SOLID;
 	}
 	return MASK_SOLID;
@@ -119,7 +119,7 @@ bool CL_CheckWater( edict_t *ent )
 	point[2] = ent->v.origin[2] + ent->v.mins[2] + 1;
 
 	ent->v.waterlevel = 0;
-	ent->v.watertype = CONTENTS_NONE;
+	ent->v.watertype = BASECONT_NONE;
 	cont = CL_PointContents( point );
 
 	if( cont & (MASK_WATER))

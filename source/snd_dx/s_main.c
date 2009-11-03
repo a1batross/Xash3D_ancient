@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "sound.h"
+#include "const.h"
 
 // only begin attenuating sound volumes when outside the FULLVOLUME range
 #define SOUND_FULLVOLUME	80

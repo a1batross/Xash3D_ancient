@@ -777,7 +777,7 @@ static void Mod_LoadShaderrefs( const lump_t *l )
 		com.strncpy( out->name, in->name, sizeof( out->name ) );
 		out->flags = LittleLong( in->surfaceFlags );
 		out->contents = LittleLong( in->contentFlags );
-		if( out->contents & ( MASK_WATER|CONTENTS_FOG ))
+		if( out->contents & ( MASK_WATER|BASECONT_FOG ))
 			out->flags |= SURF_NOMARKS;
 		out->shader = NULL;
 	}

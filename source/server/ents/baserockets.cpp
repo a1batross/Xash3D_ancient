@@ -99,7 +99,7 @@ void CGrenade::DangerSoundThink( void )
 	CSoundEnt::InsertSound ( bits_SOUND_DANGER, pev->origin + pev->velocity * 0.5, pev->velocity.Length( ), 0.2 );
 	SetNextThink( 0.2 );
 
-	if( pev->waterlevel != 0 && pev->watertype & MASK_WATER )
+	if( pev->waterlevel != 0 && pev->watertype > CONTENTS_FLYFIELD )
 	{
 		pev->velocity = pev->velocity * 0.5;
 	}
@@ -214,7 +214,7 @@ void CGrenade :: TumbleThink( void )
 	{
 		SetThink( Detonate );
 	}
-	if( pev->waterlevel != 0 && pev->watertype & MASK_WATER )
+	if( pev->waterlevel != 0 && pev->watertype > CONTENTS_FLYFIELD )
 	{
 		pev->velocity = pev->velocity * 0.5;
 		pev->framerate = 0.2;
@@ -457,7 +457,7 @@ void CRpgRocket :: FollowThink( void  )
 	if (gpGlobals->time - m_flIgniteTime < 1.0)
 	{
 		pev->velocity = pev->velocity * 0.2 + vecTarget * (flSpeed * 0.8 + 400);
-		if( pev->waterlevel == 3 && pev->watertype & MASK_WATER )
+		if ( pev->waterlevel == 3 && pev->watertype > CONTENTS_FLYFIELD )
 		{
 			// go slow underwater
 			if (pev->velocity.Length() > 300)
@@ -951,7 +951,7 @@ void CBolt::Touch( CBaseEntity *pOther )
                     	SetThink( PVSRemove );
                     }
 		else SetThink( Remove );
-		if( !( UTIL_PointContents( pev->origin ) & MASK_WATER ))
+		if( UTIL_PointContents( pev->origin ) != CONTENTS_WATER )
 			UTIL_Sparks( pev->origin );
 	}
 }

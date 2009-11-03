@@ -98,14 +98,14 @@ void CItem::ItemFall ( void )
 
 		pev->solid = SOLID_TRIGGER;
 
-		if (IsAmmo()) UTIL_SetSize(pev, Vector(-8, -8, -8), Vector(8, 8, 8));
-		if (IsItem()) UTIL_SetSize ( pev, Vector ( -8, -8, 0 ), Vector ( 8, 8, 8 ) );
+		if( IsAmmo( )) UTIL_SetSize( pev, Vector( -8, -8, -8 ), Vector( 8, 8, 8 ));
+		if( IsItem( )) UTIL_SetSize( pev, Vector( -8, -8, -8 ), Vector( 8, 8, 8 ));
 		else UTIL_AutoSetSize();
 		
-		UTIL_SetOrigin( this, pev->origin );// link into world.
+		UTIL_SetOrigin( this, pev->origin ); // link into world.
 
 		SetTouch( ItemTouch );
-		SetThink (NULL); 
+		SetThink( NULL ); 
 	}
 }
 

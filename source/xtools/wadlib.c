@@ -4,8 +4,8 @@
 //=======================================================================
 
 #include "xtools.h"
+#include "qfiles_ref.h"
 #include "byteorder.h"
-#include "const.h"
 #include "utils.h"
 #include "mathlib.h"
 

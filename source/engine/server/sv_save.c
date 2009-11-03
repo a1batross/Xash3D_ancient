@@ -22,10 +22,7 @@ typedef struct game_header_s
 {
 	int	mapCount;		// svs.mapcount
 	int	serverflags;	// svgame.serverflags
-	int	total_secrets;	// total secrets count
 	int	found_secrets;	// number of secrets found
-	int	total_monsters;	// total monsters count
-	int	killed_monsters;	// number of monsters killed
 	char	mapName[CS_SIZE];	// svs.mapname
 	string	comment;		// svs.comment
 } game_header_t;
@@ -42,10 +39,7 @@ static TYPEDESCRIPTION gGameHeader[] =
 {
 	DEFINE_FIELD( game_header_t, mapCount, FIELD_INTEGER ),
 	DEFINE_FIELD( game_header_t, serverflags, FIELD_INTEGER ),
-	DEFINE_FIELD( game_header_t, total_secrets, FIELD_INTEGER ),
 	DEFINE_FIELD( game_header_t, found_secrets, FIELD_INTEGER ),
-	DEFINE_FIELD( game_header_t, total_monsters, FIELD_INTEGER ),
-	DEFINE_FIELD( game_header_t, killed_monsters, FIELD_INTEGER ),
 	DEFINE_ARRAY( game_header_t, mapName, FIELD_CHARACTER, CS_SIZE ),
 	DEFINE_ARRAY( game_header_t, comment, FIELD_CHARACTER, MAX_STRING ),
 };
@@ -215,10 +209,7 @@ static void SV_SaveServerData( wfile_t *f, const char *name, bool bUseLandMark )
 	// initialize game header
 	ghdr.mapCount = svs.spawncount;
 	ghdr.serverflags = svgame.globals->serverflags;
-	ghdr.total_secrets = svgame.globals->total_secrets;
 	ghdr.found_secrets = svgame.globals->found_secrets;
-	ghdr.total_monsters = svgame.globals->total_monsters;
-	ghdr.killed_monsters = svgame.globals->killed_monsters;
 	com.strncpy( ghdr.mapName, sv.name, CS_SIZE );
 	Mem_Copy( ghdr.comment, svs.comment, MAX_STRING ); // can't use strncpy!
 
@@ -379,7 +370,7 @@ void SV_ReadComment( wfile_t *l )
 	// initialize SAVERESTOREDATA
 	Mem_Set( &svgame.SaveData, 0, sizeof( SAVERESTOREDATA ));
 	svgame.SaveData.tokenCount = 0xFFF;	// assume a maximum of 4K-1 symbol table entries
-	svgame.SaveData.pTokens = (char **)Z_Malloc( svgame.SaveData.tokenCount * sizeof( char* ));
+	svgame.SaveData.pTokens = (char **)Mem_Alloc( svgame.temppool, svgame.SaveData.tokenCount * sizeof( char* ));
 	pSaveData = svgame.globals->pSaveData = &svgame.SaveData;
 	SV_ReadBuffer( l, LUMP_GLOBALS );
 
@@ -467,10 +458,7 @@ void SV_ReadGlobals( wfile_t *l )
 	{
 		Msg( "SV_ReadGlobals()\n" );
 		svs.spawncount = ghdr.mapCount; // restore spawncount
-		svgame.globals->total_secrets = ghdr.total_secrets;
 		svgame.globals->found_secrets = ghdr.found_secrets;
-		svgame.globals->total_monsters = ghdr.total_monsters;
-		svgame.globals->killed_monsters = ghdr.killed_monsters;
 		Mem_Copy( svs.comment, ghdr.comment, MAX_STRING );
 		com.strncpy( svs.mapname, ghdr.mapName, MAX_STRING );
 	}

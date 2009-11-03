@@ -394,21 +394,6 @@ char* GetStringForGlobalState( GLOBALESTATE state )
 	}
 }
 
-int UTIL_ConvertContents( int hl_contents )
-{
-	switch( hl_contents )
-	{
-		case -1: return CONTENTS_NONE;
-		case -2: return CONTENTS_SOLID;
-		case -3: return CONTENTS_WATER;
-		case -4: return CONTENTS_SLIME;
-		case -5: return CONTENTS_LAVA;
-		case -6: return CONTENTS_SKY;
-		case -19: return CONTENTS_FOG;
-	}
-	return CONTENTS_NONE;
-}
-
 void UTIL_Remove( CBaseEntity *pEntity )
 {
 	if( !pEntity ) return;
@@ -713,7 +698,7 @@ void UTIL_ChangeLevel( const char *szNextMap, const char *szNextSpot )
 	if( !FNullEnt( pentLandmark ))
 	{
 		strcpy( st_szNextSpot, szNextSpot );
-		gpGlobals->spotOffset = VARS( pentLandmark )->origin;
+		gpGlobals->vecLandmarkOffset = VARS( pentLandmark )->origin;
 	}
 	
 	// map must exist and contain info_player_start
@@ -1391,10 +1376,8 @@ BOOL UTIL_EntIsVisible( entvars_t* pev, entvars_t* pevTarget)
 
 	UTIL_TraceLine( vecSpot1, vecSpot2, ignore_monsters, ENT(pev), &tr );
 
-	// FIXME: rewrote this relationship	
-	if( tr.iContents & MASK_WATER )
-		return FALSE; // sight line crossed contents
-	if( tr.flFraction == 1 ) return TRUE;
+	if ( tr.fInOpen && tr.fInWater ) return FALSE; // sight line crossed contents
+	if ( tr.flFraction == 1.0f ) return TRUE;
 	return FALSE;
 }
 
@@ -2350,14 +2333,15 @@ TraceResult UTIL_GetGlobalTrace( void )
 
 	tr.fAllSolid	= gpGlobals->trace_allsolid;
 	tr.fStartSolid	= gpGlobals->trace_startsolid;
-	tr.iContents	= gpGlobals->trace_contents;
-	tr.flFraction	= gpGlobals->trace_fraction;
+	tr.fInOpen    	= gpGlobals->trace_inopen;
+	tr.fInWater   	= gpGlobals->trace_inwater;
+	tr.flFraction 	= gpGlobals->trace_fraction;
 	tr.flPlaneDist	= gpGlobals->trace_plane_dist;
-	tr.pHit		= gpGlobals->trace_ent;
+	tr.pHit	  	= gpGlobals->trace_ent;
 	tr.vecEndPos	= gpGlobals->trace_endpos;
 	tr.vecPlaneNormal	= gpGlobals->trace_plane_normal;
-	tr.pTexName	= gpGlobals->trace_texture;
 	tr.iHitgroup	= gpGlobals->trace_hitgroup;
+
 	return tr;
 }
 
@@ -2908,18 +2892,18 @@ float UTIL_WaterLevel( const Vector &position, float minz, float maxz )
 	Vector midUp = position;
 	midUp.z = minz;
 
-	if(!( UTIL_PointContents( midUp ) & MASK_WATER ))
+	if( UTIL_PointContents( midUp ) != CONTENTS_WATER )
 		return minz;
 
 	midUp.z = maxz;
-	if( UTIL_PointContents( midUp ) & MASK_WATER )
+	if( UTIL_PointContents( midUp ) == CONTENTS_WATER )
 		return maxz;
 
 	float diff = maxz - minz;
 	while( diff > 1.0 )
 	{
 		midUp.z = minz + diff/2.0;
-		if( UTIL_PointContents( midUp ) & MASK_WATER )
+		if( UTIL_PointContents( midUp ) == CONTENTS_WATER )
 		{
 			minz = midUp.z;
 		}

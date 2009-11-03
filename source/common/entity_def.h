@@ -23,6 +23,7 @@ typedef struct entvars_s
 	vec3_t		origin;		// ENG [all], NET [all]
 	vec3_t		oldorigin;	// ENG [all], NET [all]
 	vec3_t		velocity;
+	vec3_t		basevelocity;
 
 	vec3_t		movedir;
 

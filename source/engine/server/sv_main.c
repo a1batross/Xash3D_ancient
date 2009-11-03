@@ -29,6 +29,8 @@ cvar_t	*sv_rollspeed;
 cvar_t	*sv_maxspeed;
 cvar_t	*sv_accelerate;
 cvar_t	*sv_friction;
+cvar_t	*sv_edgefriction;
+cvar_t	*sv_stopspeed;
 cvar_t	*hostname;
 cvar_t	*sv_maxclients;
 cvar_t	*public_server; // should heartbeats be sent
@@ -255,7 +257,7 @@ bool SV_CheckPaused( void )
 		return false;
 	}
 
-	if( CL_CheckKeydest() )
+	if( !CL_Active() )
 		return true;
 
 	if( !sv_paused->integer )
@@ -458,10 +460,12 @@ void SV_Init( void )
 	sv_airaccelerate = Cvar_Get("sv_airaccelerate", DEFAULT_AIRACCEL, CVAR_LATCH, "player accellerate in air" );
 	sv_idealpitchscale = Cvar_Get( "sv_idealpitchscale", "0.8", 0, "how much to look up/down slopes and stairs when not using freelook" );
 	sv_maxvelocity = Cvar_Get("sv_maxvelocity", DEFAULT_MAXVELOCITY, CVAR_LATCH, "max world velocity" );
-          sv_gravity = Cvar_Get("sv_gravity", DEFAULT_GRAVITY, CVAR_LATCH, "world gravity" );
+          sv_gravity = Cvar_Get("sv_gravity", DEFAULT_GRAVITY, 0, "world gravity" );
 	sv_maxspeed = Cvar_Get("sv_maxspeed", DEFAULT_MAXSPEED, 0, "maximum speed a player can accelerate to when on ground");
 	sv_accelerate = Cvar_Get( "sv_accelerate", DEFAULT_ACCEL, 0, "rate at which a player accelerates to sv_maxspeed" );
 	sv_friction = Cvar_Get( "sv_friction", DEFAULT_FRICTION, 0, "how fast you slow down" );
+	sv_edgefriction = Cvar_Get( "sv_edgefriction", "1", 0, "how much you slow down when nearing a ledge you might fall off" );
+	sv_stopspeed = Cvar_Get( "sv_stopspeed", "100", 0, "how fast you come to a complete stop" );
 	sv_maxclients = Cvar_Get( "sv_maxclients", "1", CVAR_SERVERINFO|CVAR_LATCH, "server clients limit" );
 	
 	public_server = Cvar_Get ("public", "0", 0, "change server type from private to public" );

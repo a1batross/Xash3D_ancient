@@ -125,6 +125,22 @@ void Field_Clear( field_t *edit )
 
 /*
 ===============
+Field_CheckName
+
+compare first argument with string
+===============
+*/
+static bool Field_CheckName( const char *name )
+{
+	if(!com.stricmp( Cmd_Argv( 0 ), name ))
+		return true;
+	if(!com.stricmp( Cmd_Argv( 0 ), va("\\%s", name )))
+		return true;
+	return false;
+}
+
+/*
+===============
 FindMatches
 
 ===============
@@ -241,7 +257,7 @@ void Field_CompleteCommand( field_t *field )
 		// autocomplete second arg
 		for( list = cmd_list; list->name; list++ )
 		{
-			if(Cmd_CheckName( list->name ))
+			if(Field_CheckName( list->name ))
 			{
 				result = list->func( Cmd_Argv(1), filename, MAX_STRING ); 
 				break;

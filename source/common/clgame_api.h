@@ -32,12 +32,23 @@ typedef struct
 	byte		charWidths[256];
 } SCREENINFO;
 
+typedef struct wrect_s
+{
+	int		left;
+	int		right;
+	int		top;
+	int		bottom;
+} wrect_t;
+
 typedef struct
 {
 	char		*name;
 	short		ping;
 	byte		thisplayer;	// TRUE if this is the calling player
 	byte		packetloss;	// TRUE if current packet is loose
+	const char	*model;
+	short		topcolor;
+	short		bottomcolor;
 } hud_player_info_t;
 
 typedef struct client_textmessage_s
@@ -65,6 +76,15 @@ typedef struct client_data_s
 	float		v_idlescale;	// view shake/rotate
 	float		mouse_sensitivity;	// used for menus and zoomed weapons
 } client_data_t;
+
+typedef struct client_sprite_s
+{
+	char		szName[64];
+	char		szSprite[64];
+	HSPRITE		hSprite;
+	int		iRes;
+	wrect_t		rc;
+} client_sprite_t;
 
 typedef struct cl_globalvars_s
 {	

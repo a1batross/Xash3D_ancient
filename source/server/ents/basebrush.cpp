@@ -239,12 +239,17 @@ void CBaseBrush::KeyValue( KeyValueData* pkvd )
 	}
 	else if( FStrEq( pkvd->szKeyName, "movesound" ) || FStrEq( pkvd->szKeyName, "sounds" ))
 	{
-		m_iMoveSound = ALLOC_STRING(pkvd->szValue);
+		m_iMoveSound = ALLOC_STRING( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
 	else if( FStrEq( pkvd->szKeyName, "stopsound" ))
 	{
-		m_iStopSound = ALLOC_STRING(pkvd->szValue);
+		m_iStopSound = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if( FStrEq( pkvd->szKeyName, "contents" ))
+	{
+		pev->skin = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
 	else CBaseLogic::KeyValue( pkvd );
@@ -275,10 +280,6 @@ void CBaseBrush::Spawn( void )
     	Precache();
 
 	if( !m_flVolume ) m_flVolume = 1.0; // just enable full volume
-
-	// convert contents and reset skins
-	pev->contents = UTIL_ConvertContents( pev->skin );
-	pev->skin = 0;	          
 
 	// breacable brush (if mapmaker just set material - just play material sound)
 	if( IsBreakable())
@@ -803,7 +804,7 @@ void CPushable :: Move( CBaseEntity *pOther, int push )
 	if ( FBitSet(pevToucher->flags, FL_ONGROUND) && pevToucher->groundentity && VARS(pevToucher->groundentity) == pev )
 	{
 		// Only push if floating
-		if ( pev->waterlevel > 0 && pev->watertype & MASK_WATER )
+		if ( pev->waterlevel > 0 && pev->watertype > CONTENTS_FLYFIELD )
 			pev->velocity.z += pevToucher->velocity.z * 0.1;
 		return;
 	}
@@ -823,7 +824,7 @@ void CPushable :: Move( CBaseEntity *pOther, int push )
 		// Don't push away from jumping/falling players unless in water
 		if( !(pevToucher->flags & FL_ONGROUND) )	
 		{
-			if( pev->waterlevel < 1 || !(pev->watertype & MASK_WATER) )
+			if ( pev->waterlevel < 1 || pev->watertype <= CONTENTS_FLYFIELD )
 				return;
 			else factor = 0.1;
 		}

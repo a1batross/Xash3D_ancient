@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "clgame_api.h"
 #include "render_api.h"
 #include "pm_movevars.h"
+#include "com_world.h"
 
 #define MAX_DEMOS		32
 #define MAX_EDIT_LINE	256
@@ -399,6 +400,8 @@ extern cvar_t	*cl_paused;
 extern cvar_t	*cl_levelshot_name;
 extern cvar_t	*scr_centertime;
 extern cvar_t	*scr_showpause;
+extern cvar_t	*scr_download;
+extern cvar_t	*scr_loading;
 extern cvar_t	*con_font;
 
 //=============================================================================
@@ -618,7 +621,7 @@ void CL_CheckVelocity( edict_t *ent );
 bool CL_CheckWater( edict_t *ent );
 int CL_PointContents( const vec3_t point );
 int CL_ContentsMask( const edict_t *passedict );
-TraceResult CL_Trace( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, int type, edict_t *e, int mask );
+trace_t CL_Trace( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, int type, edict_t *e, int mask );
 
 //
 // cl_frame.c

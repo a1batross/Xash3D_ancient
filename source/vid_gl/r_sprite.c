@@ -465,9 +465,9 @@ float R_GetSpriteFrameInterpolant( ref_entity_t *ent, mspriteframe_t **oldframe,
 
 static float R_GlowSightDistance( vec3_t glowOrigin )
 {
-	float		dist;
-	vec3_t		glowDist;
-	TraceResult	tr;
+	float	dist;
+	vec3_t	glowDist;
+	trace_t	tr;
 
 	VectorSubtract( glowOrigin, RI.viewOrigin, glowDist );
 	dist = VectorLength( glowDist );

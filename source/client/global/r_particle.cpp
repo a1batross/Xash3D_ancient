@@ -359,7 +359,7 @@ ParticleSystem::ParticleSystem( int iEntIndex, char *szFilename )
 				szToken = COM_ParseToken( &szFile );
 				if ( !stricmp( szToken, "empty" ) )
 				{
-					m_iKillCondition = CONTENTS_NONE;
+					m_iKillCondition = CONTENTS_EMPTY;
 				}
 				else if ( !stricmp( szToken, "water" ) )
 				{
@@ -657,7 +657,7 @@ ParticleType *ParticleSystem::ParseType( const char **szFile )
 			szToken = COM_ParseToken( szFile );
 			if ( !stricmp( szToken, "empty" ) )
 			{
-				pType->m_iDrawCond = CONTENTS_NONE;
+				pType->m_iDrawCond = CONTENTS_EMPTY;
 			}
 			else if ( !stricmp( szToken, "water" ) )
 			{

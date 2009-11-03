@@ -1551,7 +1551,7 @@ R_RenderDebugSurface
 */
 void R_RenderDebugSurface( void )
 {
-	TraceResult	tr;
+	trace_t	tr;
 	vec3_t		forward;
 	vec3_t		start, end;
 
@@ -2036,7 +2036,7 @@ static bool R_WorldToScreen( const float *world, float *screen )
 R_TraceLine
 =============
 */
-msurface_t *R_TraceLine( TraceResult *tr, const vec3_t start, const vec3_t end, int surfumask )
+msurface_t *R_TraceLine( trace_t *tr, const vec3_t start, const vec3_t end, int surfumask )
 {
 	int		i;
 	msurface_t	*surf;
@@ -2047,7 +2047,7 @@ msurface_t *R_TraceLine( TraceResult *tr, const vec3_t start, const vec3_t end, 
 	// trace against bmodels
 	for( i = 0; i < r_numbmodelentities; i++ )
 	{
-		TraceResult	t2;
+		trace_t	t2;
 		msurface_t	*s2;
 
 		s2 = R_TransformedTraceLine( &t2, start, end, r_bmodelentities[i], surfumask );

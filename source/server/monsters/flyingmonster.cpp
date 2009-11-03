@@ -28,7 +28,7 @@ extern DLL_GLOBAL edict_t		*g_pBodyQueueHead;
 int CFlyingMonster :: CheckLocalMove ( const Vector &vecStart, const Vector &vecEnd, CBaseEntity *pTarget, float *pflDist )
 {
 	// UNDONE: need to check more than the endpoint
-	if (FBitSet( pev->flags, FL_SWIM) && (!(UTIL_PointContents( vecEnd ) & MASK_WATER )))
+	if (FBitSet( pev->flags, FL_SWIM) && (UTIL_PointContents(vecEnd) != CONTENTS_WATER))
 	{
 		// ALERT(at_aiconsole, "can't swim out of water\n");
 		return FALSE;

@@ -385,23 +385,24 @@ void OnFreeEntPrivateData( edict_s *pEdict )
 
 void SetObjectCollisionBox( entvars_t *pev )
 {
-	if ( (pev->solid == SOLID_BSP) && (pev->angles.x || pev->angles.y|| pev->angles.z) )
-	{	// expand for rotation
-		float	max, v;
+	if (( pev->solid == SOLID_BSP ) && ( pev->angles != g_vecZero ))
+	{	
+		// expand for rotation
+		float	max = 0, v;
 		int	i;
 
-		max = 0;
-		for (i=0 ; i<3 ; i++)
+		for ( i = 0; i < 3; i++ )
 		{
-			v = fabs( ((float *)pev->mins)[i]);
-			if (v > max) max = v;
-			v = fabs( ((float *)pev->maxs)[i]);
-			if (v > max) max = v;
+			v = fabs( pev->mins[i] );
+			if ( v > max ) max = v;
+			v = fabs( pev->maxs[i] );
+			if ( v > max ) max = v;
 		}
-		for (i=0 ; i<3 ; i++)
+
+		for ( i = 0; i < 3; i++ )
 		{
-			((float *)pev->absmin)[i] = ((float *)pev->origin)[i] - max;
-			((float *)pev->absmax)[i] = ((float *)pev->origin)[i] + max;
+			pev->absmin[i] = pev->origin[i] - max;
+			pev->absmax[i] = pev->origin[i] + max;
 		}
 	}
 	else
@@ -409,6 +410,7 @@ void SetObjectCollisionBox( entvars_t *pev )
 		pev->absmin = pev->origin + pev->mins;
 		pev->absmax = pev->origin + pev->maxs;
 	}
+
 	pev->absmin.x -= 1;
 	pev->absmin.y -= 1;
 	pev->absmin.z -= 1;

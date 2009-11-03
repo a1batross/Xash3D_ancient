@@ -14,9 +14,9 @@ CL_Trace
 UNDONE: trace worldonly
 ==================
 */
-TraceResult CL_Trace( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, int type, edict_t *e, int mask )
+trace_t CL_Trace( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, int type, edict_t *e, int mask )
 {
-	host_clip_t	clip;
+	moveclip_t	clip;
 
 	if( !mins ) mins = vec3_origin;
 	if( !maxs ) maxs = vec3_origin;

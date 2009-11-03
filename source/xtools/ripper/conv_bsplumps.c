@@ -5,6 +5,7 @@
 
 #include "ripper.h"
 #include "byteorder.h"
+#include "qfiles_ref.h"
 
 #define VDBSPMODHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'V')	// little-endian "VBSP" hl2 bsp's
 #define IDIWADHEADER	(('D'<<24)+('A'<<16)+('W'<<8)+'I')	// little-endian "IWAD" doom1 game wad

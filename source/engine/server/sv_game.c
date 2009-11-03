@@ -309,59 +309,22 @@ void SV_SetMinMaxSize( edict_t *e, const float *min, const float *max )
 	VectorCopy( max, e->v.maxs );
 	VectorSubtract( max, min, e->v.size );
 
-	SV_LinkEdict( e );
+	SV_LinkEdict( e, false );
 }
 
-void SV_CopyTraceToGlobal( TraceResult *trace )
+void SV_CopyTraceToGlobal( trace_t *trace )
 {
 	svgame.globals->trace_allsolid = trace->fAllSolid;
 	svgame.globals->trace_startsolid = trace->fStartSolid;
-	svgame.globals->trace_contents = trace->iContents;
 	svgame.globals->trace_fraction = trace->flFraction;
 	svgame.globals->trace_plane_dist = trace->flPlaneDist;
 	svgame.globals->trace_ent = trace->pHit;
+	svgame.globals->trace_flags = 0;
+	svgame.globals->trace_inopen = trace->fInOpen;
+	svgame.globals->trace_inwater = trace->fInWater;
 	VectorCopy( trace->vecEndPos, svgame.globals->trace_endpos );
 	VectorCopy( trace->vecPlaneNormal, svgame.globals->trace_plane_normal );
-
-	svgame.globals->trace_texture = trace->pTexName;
 	svgame.globals->trace_hitgroup = trace->iHitgroup;
-}
-
-static TraceResult SV_TraceToss( edict_t *tossent, edict_t *ignore )
-{
-	int		i;
-	float		gravity;
-	vec3_t		move, end;
-	vec3_t		original_origin;
-	vec3_t		original_velocity;
-	vec3_t		original_angles;
-	vec3_t		original_avelocity;
-	TraceResult	trace;
-
-	VectorCopy( tossent->v.origin, original_origin );
-	VectorCopy( tossent->v.velocity, original_velocity );
-	VectorCopy( tossent->v.angles, original_angles );
-	VectorCopy( tossent->v.avelocity, original_avelocity );
-	gravity = tossent->v.gravity * sv_gravity->value * 0.05;
-
-	for( i = 0; i < 200; i++ )
-	{
-		// LordHavoc: sanity check; never trace more than 10 seconds
-		SV_CheckVelocity( tossent );
-		tossent->v.velocity[2] -= gravity;
-		VectorMA( tossent->v.angles, 0.05, tossent->v.avelocity, tossent->v.angles );
-		VectorScale( tossent->v.velocity, 0.05, move );
-		VectorAdd( tossent->v.origin, move, end );
-		trace = SV_Trace( tossent->v.origin, tossent->v.mins, tossent->v.maxs, end, MOVE_NORMAL, tossent, SV_ContentsMask( tossent ));
-		VectorCopy( trace.vecEndPos, tossent->v.origin );
-		if( trace.flFraction < 1.0f ) break;
-	}
-	VectorCopy( original_origin, tossent->v.origin );
-	VectorCopy( original_velocity, tossent->v.velocity );
-	VectorCopy( original_angles, tossent->v.angles );
-	VectorCopy( original_avelocity, tossent->v.avelocity );
-
-	return trace;
 }
 
 void SV_SetModel( edict_t *ent, const char *name )
@@ -501,7 +464,7 @@ bool SV_MapIsValid( const char *filename, const char *spawn_entity )
 			char *entities = NULL;
 		
 			FS_Seek( f, lumpofs, SEEK_SET );
-			entities = (char *)Z_Malloc( lumplen + 1 );
+			entities = (char *)Mem_Alloc( svgame.temppool, lumplen + 1 );
 			FS_Read( f, entities, lumplen );
 			ents = Com_OpenScript( "ents", entities, lumplen + 1 );
 			Mem_Free( entities ); // no reason to keep it
@@ -1293,7 +1256,7 @@ Xash3D extension
 */
 void pfnLinkEntity( edict_t *e )
 {
-	SV_LinkEdict( e );
+	SV_LinkEdict( e, false );
 }
 	
 /*
@@ -1302,74 +1265,37 @@ pfnDropToFloor
 
 ===============
 */
-int pfnDropToFloor( edict_t* e )
+int pfnDropToFloor( edict_t* ent )
 {
-	vec3_t		end;
-	TraceResult	trace;
+	vec3_t	end;
+	trace_t	trace;
 
-	// ignore world silently
-	if( e == EDICT_NUM( 0 )) return false;
-	if( e->free )
+	if( !ent || ent->free )
 	{
-		MsgDev( D_ERROR, "SV_DropToFloor: can't modify free entity\n" );
+		MsgDev( D_ERROR, "SV_DropToFloor: can't drop freed entity\n" );
 		return false;
 	}
 
-	VectorCopy( e->v.origin, end );
+	// ignore world silently
+	if( ent == EDICT_NUM( 0 ))
+		return false;
+
+	VectorCopy( ent->v.origin, end );
 	end[2] -= 256;
-	SV_UnstickEntity( e );
 
-	trace = SV_Trace( e->v.origin, e->v.mins, e->v.maxs, end, MOVE_NORMAL, e, SV_ContentsMask( e ));
+	trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL, ent );
 
-	if( trace.fStartSolid )
+	if( trace.flFraction == 1.0f || trace.fAllSolid )
 	{
-		vec3_t	offset, org;
-
-		VectorSet( offset, 0.5f * (e->v.mins[0] + e->v.maxs[0]), 0.5f * (e->v.mins[1] + e->v.maxs[1]), e->v.mins[2] );
-		VectorAdd( e->v.origin, offset, org );
-		trace = SV_Trace( org, vec3_origin, vec3_origin, end, MOVE_NORMAL, e, SV_ContentsMask( e ));
-		VectorSubtract( trace.vecEndPos, offset, trace.vecEndPos );
-
-		if( trace.fStartSolid )
-		{
-			MsgDev( D_WARN, "SV_DropToFloor: startsolid at %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
-			SV_UnstickEntity( e );
-			SV_LinkEdict( e );
-			e->v.flags |= FL_ONGROUND;
-			e->v.groundentity = 0;
-		}
-		else if( trace.flFraction < 1.0f )
-		{
-			MsgDev( D_WARN, "SV_DropToFloor: moved to %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
-			VectorCopy( trace.vecEndPos, e->v.origin );
-			SV_UnstickEntity( e );
-			SV_LinkEdict( e );
-			e->v.flags |= FL_ONGROUND;
-			e->v.groundentity = trace.pHit;
-			// if support is destroyed, keep suspended
-			// (gross hack for floating items in various maps)
-			e->pvServerData->suspended = true;
-			return true;
-		}
-
-		MsgDev( D_WARN, "SV_DropToFloor: startsolid at %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
-		pfnRemoveEntity( e );
 		return false;
 	}
 	else
 	{
-		if( trace.flFraction != 1.0f )
-		{
-			if( trace.flFraction < 1.0f )
-				VectorCopy( trace.vecEndPos, e->v.origin );
-			SV_LinkEdict( e );
-			e->v.flags |= FL_ONGROUND;
-			e->v.groundentity = trace.pHit;
-			// if support is destroyed, keep suspended
-			// (gross hack for floating items in various maps)
-			e->pvServerData->suspended = true;
-			return true;
-		}
+		VectorCopy( trace.vecEndPos, ent->v.origin );
+		SV_LinkEdict( ent, false );
+		ent->v.flags |= FL_ONGROUND;
+		ent->v.groundentity = trace.pHit;
+		return true;
 	}
 	return false;
 }
@@ -1410,18 +1336,15 @@ pfnSetOrigin
 void pfnSetOrigin( edict_t *e, const float *rgflOrigin )
 {
 	// ignore world silently
-	if( e == EDICT_NUM( 0 )) return;
+	if( !e || e == EDICT_NUM( 0 )) return;
 	if( e->free )
 	{
 		MsgDev( D_ERROR, "SV_SetOrigin: can't modify free entity\n" );
 		return;
 	}
 
-	if( VectorCompare( rgflOrigin, e->v.origin ))
-		return; // already there ?
-
 	VectorCopy( rgflOrigin, e->v.origin );
-	SV_LinkEdict( e );
+	SV_LinkEdict( e, false );
 }
 
 /*
@@ -1555,13 +1478,14 @@ pfnTraceLine
 static void pfnTraceLine( const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr )
 {
 	int	move;
+	trace_t	result;
 
 	move = (fNoMonsters) ? MOVE_NOMONSTERS : MOVE_NORMAL;
 
 	if( IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2] ))
-		Host_Error( "SV_Trace: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
-
-	if( ptr ) *ptr = SV_Trace( v1, vec3_origin, vec3_origin, v2, move, pentToSkip, SV_ContentsMask( pentToSkip ));
+		Host_Error( "TraceLine: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
+	result = SV_Move( v1, vec3_origin, vec3_origin, v2, move, pentToSkip );
+	Mem_Copy( ptr, &result, sizeof( *ptr ));
 }
 
 /*
@@ -1572,8 +1496,11 @@ pfnTraceToss
 */
 static void pfnTraceToss( edict_t* pent, edict_t* pentToIgnore, TraceResult *ptr )
 {
+	trace_t	result;
+
 	if( pent == EDICT_NUM( 0 )) return;
-	if( ptr ) *ptr = SV_TraceToss( pent, pentToIgnore );
+	result = SV_MoveToss( pent, pentToIgnore );
+	Mem_Copy( ptr, &result, sizeof( *ptr ));
 }
 
 /*
@@ -1585,12 +1512,14 @@ pfnTraceHull
 static void pfnTraceHull( const float *v1, const float *mins, const float *maxs, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr )
 {
 	int	move;
+	trace_t	result;
 
 	move = (fNoMonsters) ? MOVE_NOMONSTERS : MOVE_NORMAL;
 
 	if( IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2] ))
-		Host_Error( "SV_TraceHull: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
-	if( ptr ) *ptr = SV_Trace( v1, (float *)mins, (float *)maxs, v2, move, pentToSkip, SV_ContentsMask( pentToSkip ));
+		Host_Error( "TraceHull: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
+	result = SV_Move( v1, (float *)mins, (float *)maxs, v2, move, pentToSkip );
+	Mem_Copy( ptr, &result, sizeof( *ptr ));
 }
 
 /*
@@ -1628,9 +1557,8 @@ returns texture basename
 static const char *pfnTraceTexture( edict_t *pTextureEntity, const float *v1, const float *v2 )
 {
 	if( IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2] ))
-		Host_Error( "SV_TraceTexture: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
-
-	return SV_Trace( v1, vec3_origin, vec3_origin, v2, MOVE_NOMONSTERS, NULL, SV_ContentsMask( pTextureEntity )).pTexName;
+		Host_Error( "TraceTexture: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
+	return SV_Move( v1, vec3_origin, vec3_origin, v2, MOVE_NOMONSTERS, NULL ).pTexName;
 }
 
 /*
@@ -1658,7 +1586,7 @@ void pfnGetAimVector( edict_t* ent, float speed, float *rgflReturn )
 	float		dist, bestdist;
 	bool		fNoFriendlyFire;
 	int		i, j;
-	TraceResult	tr;
+	trace_t		tr;
 
 	// these vairable defined in server.dll	
 	fNoFriendlyFire = Cvar_VariableValue( "mp_friendlyfire" );
@@ -1677,7 +1605,7 @@ void pfnGetAimVector( edict_t* ent, float speed, float *rgflReturn )
 	// try sending a trace straight
 	VectorCopy( svgame.globals->v_forward, dir );
 	VectorMA( start, 2048, dir, end );
-	tr = SV_Trace( start, vec3_origin, vec3_origin, end, MOVE_NORMAL, ent, -1 );
+	tr = SV_Move( start, vec3_origin, vec3_origin, end, MOVE_NORMAL, ent );
 
 	if( tr.pHit && (tr.pHit->v.takedamage == DAMAGE_AIM && fNoFriendlyFire || ent->v.team <= 0 || ent->v.team != tr.pHit->v.team ))
 	{
@@ -1703,7 +1631,7 @@ void pfnGetAimVector( edict_t* ent, float speed, float *rgflReturn )
 		VectorNormalize( dir );
 		dist = DotProduct( dir, svgame.globals->v_forward );
 		if( dist < bestdist ) continue; // to far to turn
-		tr = SV_Trace( start, vec3_origin, vec3_origin, end, MOVE_NORMAL, ent, -1 );
+		tr = SV_Move( start, vec3_origin, vec3_origin, end, MOVE_NORMAL, ent );
 		if( tr.pHit == check )
 		{	
 			// can shoot at this one

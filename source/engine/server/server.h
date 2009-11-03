@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mathlib.h"
 #include "entity_def.h"
 #include "svgame_api.h"
+#include "com_world.h"
 
 //=============================================================================
 #define AREA_SOLID			1
@@ -101,7 +102,6 @@ typedef struct sv_client_s
 
 	char		userinfo[MAX_INFO_STRING];	// name, etc
 	int		lastframe;		// for delta compression
-	int		skipframes;		// client synchronyze with phys frame
 	usercmd_t		lastcmd;			// for filling in big drops
 
 	int		spectator;		// non-interactive
@@ -145,38 +145,22 @@ typedef struct sv_client_s
 	netchan_t		netchan;
 } sv_client_t;
 
-// link_t is only used for entity area links now
-typedef struct link_s
-{
-	struct link_s	*prev;
-	struct link_s	*next;
-	int		entnum;			// NUM_FOR_EDICT
-} link_t;
-
 // sv_private_edict_t
 struct sv_priv_s
 {
-	link_t			area;		// linked to a division node or leaf
-	struct sv_client_s		*client;		// filled for player ents
-	int			clipmask;		// trace info
-	int			lastcluster;	// unused if num_clusters != -1
-	int			linkcount;
-	int			num_clusters;	// if -1, use headnode instead
-	int			clusternums[MAX_ENT_CLUSTERS];
-	int			framenum;		// update framenumber
-	int			areanum, areanum2;
-	bool			forceupdate;	// physic_push force update
-	bool			suspended;	// suspended in air toss object
-	bool			linked;		// passed through SV_LinkEdict
-	bool			stuck;		// entity stucked in brush
-
-	vec3_t			water_origin;	// step old origin
-	vec3_t			moved_origin;	// push old origin
-	vec3_t			moved_angles;	// push old angles
-
-	size_t			pvdata_size;	// member size of alloceed pvPrivateData
-						// (used by SV_CopyEdict)
-	entity_state_t		s;		// baseline (this is a player_state too)
+	link_t		area;		// linked to a division node or leaf
+	sv_client_t	*client;		// filled for player ents
+	int		lastcluster;	// unused if num_clusters != -1
+	int		linkcount;
+	int		num_clusters;	// if -1, use headnode instead
+	int		clusternums[MAX_ENT_CLUSTERS];
+	int		framenum;		// update framenumber
+	int		areanum, areanum2;
+	bool		linked;		// passed through SV_LinkEdict
+	bool		stuck;		// entity stucked in brush
+	size_t		pvdata_size;	// member size of alloceed pvPrivateData
+					// (used by SV_CopyEdict)
+	entity_state_t	s;		// baseline (this is a player_state too)
 };
 
 /*
@@ -273,9 +257,11 @@ extern	cvar_t		*sv_noreload;		// don't reload level state when reentering
 extern	cvar_t		*sv_airaccelerate;		// don't reload level state when reentering
 extern	cvar_t		*sv_accelerate;
 extern	cvar_t		*sv_friction;
+extern	cvar_t		*sv_edgefriction;
 extern	cvar_t		*sv_idealpitchscale;
 extern	cvar_t		*sv_maxvelocity;
 extern	cvar_t		*sv_gravity;
+extern	cvar_t		*sv_stopspeed;
 extern	cvar_t		*sv_fps;			// running server at
 extern	cvar_t		*sv_enforcetime;
 extern	cvar_t		*sv_reconnect_limit;
@@ -327,20 +313,14 @@ void SV_ClassifyEdict( edict_t *ent );
 // sv_phys.c
 //
 void SV_Physics( void );
-void SV_PlayerMove( edict_t *ed );
-void SV_DropToFloor( edict_t *ent );
-void SV_CheckGround( edict_t *ent );
-bool SV_UnstickEntity( edict_t *ent );
-int SV_ContentsMask( const edict_t *passedict );
-bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink);
-void SV_Physics_ClientMove(  sv_client_t *cl, usercmd_t *cmd );
-void SV_CheckVelocity (edict_t *ent);
-bool SV_CheckBottom (edict_t *ent);
+void SV_CheckVelocity( edict_t *ent );
+bool SV_CheckWater( edict_t *ent );
 
 //
 // sv_move.c
 //
 bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool settrace );
+bool SV_CheckBottom( edict_t *ent );
 
 //
 // sv_send.c
@@ -358,6 +338,7 @@ char *SV_StatusString( void );
 void SV_GetChallenge( netadr_t from );
 void SV_DirectConnect( netadr_t from );
 void SV_PutClientInServer( edict_t *ent );
+bool SV_ClientConnect( edict_t *ent, char *userinfo );
 void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd );
 void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg );
 void SV_ConnectionlessPacket( netadr_t from, sizebuf_t *msg );
@@ -370,7 +351,7 @@ void SV_Status_f( void );
 void SV_Newgame_f( void );
 
 //
-// sv_ents.c
+// sv_frame.c
 //
 void SV_WriteFrameToClient( sv_client_t *client, sizebuf_t *msg );
 void SV_BuildClientFrame( sv_client_t *client );
@@ -382,11 +363,13 @@ void SV_UpdateEntityState( edict_t *ent, bool baseline );
 void SV_LoadProgs( const char *name );
 void SV_UnloadProgs( void );
 void SV_FreeEdicts( void );
+edict_t *SV_AllocEdict( void );
+void SV_FreeEdict( edict_t *pEdict );
 void SV_InitEdict( edict_t *pEdict );
 bool SV_CopyEdict( edict_t *out, edict_t *in );
 void SV_ConfigString( int index, const char *val );
 void SV_SetModel( edict_t *ent, const char *name );
-void SV_CopyTraceToGlobal( TraceResult *trace );
+void SV_CopyTraceToGlobal( trace_t *trace );
 float SV_AngleMod( float ideal, float current, float speed );
 void SV_SpawnEntities( const char *mapname, script_t *entities );
 edict_t* SV_AllocPrivateData( edict_t *ent, string_t className );
@@ -404,14 +387,6 @@ _inline edict_t *SV_EDICT_NUM( int n, const char * file, const int line )
 }
 
 //
-// sv_spawn.c
-//
-edict_t *SV_AllocEdict( void );
-void SV_FreeEdict( edict_t *pEdict );
-bool SV_ClientConnect (edict_t *ent, char *userinfo);
-void SV_TouchTriggers (edict_t *ent);
-
-//
 // sv_save.c
 //
 void SV_MergeLevelFile( const char *name );
@@ -423,14 +398,14 @@ const char *SV_GetLatestSave( void );
 //============================================================
 
 // high level object sorting to reduce interaction tests
-void SV_ClearWorld (void);
+
 // called after the world model has been loaded, before linking any entities
 
 void SV_UnlinkEdict (edict_t *ent);
 // call before removing an entity, and before trying to move one,
 // so it doesn't clip against itself
 
-void SV_LinkEdict (edict_t *ent);
+
 // Needs to be called any time an entity changes origin, mins, maxs,
 // or solid.  Automatically unlinks if needed.
 // sets ent->v.absmin and ent->v.absmax
@@ -445,18 +420,20 @@ int SV_AreaEdicts( const vec3_t mins, const vec3_t maxs, edict_t **list, int max
 // returns the number of pointers filled in
 // ??? does this always return the world?
 
-//===================================================================
+//
+// sv_world.c
+//
 
-//
-// functions that interact with everything apropriate
-//
+extern areanode_t	sv_areanodes[];
+
+void SV_ClearWorld( void );
+trace_t SV_Move( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, int type, edict_t *e );
+trace_t SV_MoveToss( edict_t *tossent, edict_t *ignore );
+void SV_LinkEdict( edict_t *ent, bool touch_triggers );
+void SV_TouchLinks( edict_t *ent, areanode_t *node );
 int SV_PointContents( const vec3_t p );
-// returns the CONTENTS_* value from the world at the given point.
-// Quake 2 extends this to also check entities, to allow moving liquids
 
-void SV_ClipToEntity( TraceResult *trace, const vec3_t p1, const vec3_t mins, const vec3_t maxs, const vec3_t p2, edict_t *e, int mask, trType_t type );
-TraceResult SV_Trace( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, int type, edict_t *e, int mask );
-TraceResult SV_TraceToss( edict_t *tossent, edict_t *ignore );
+void SV_ClipToEntity( trace_t *trace, const vec3_t p1, const vec3_t mins, const vec3_t maxs, const vec3_t p2, edict_t *e, int mask, trType_t type );
 // mins and maxs are relative
 
 // if the entire move stays in a solid volume, trace.allsolid will be set,

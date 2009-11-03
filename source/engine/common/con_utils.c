@@ -14,15 +14,6 @@
 			FILENAME AUTOCOMPLETION
 =======================================================================
 */
-bool Cmd_CheckName( const char *name )
-{
-	if(!com.stricmp(Cmd_Argv( 0 ), name ))
-		return true;
-	if(!com.stricmp(Cmd_Argv(0), va("\\%s", name )))
-		return true;
-	return false;
-}
-
 /*
 =====================================
 Cmd_GetMapList

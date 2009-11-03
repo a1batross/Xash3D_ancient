@@ -679,7 +679,6 @@ int UTIL_PrecacheAurora( string_t s );
 int UTIL_PrecacheAurora( const char *s );
 void UTIL_SetAurora( CBaseEntity *pAttach, int aur, int attachment = 0 );
 void UTIL_SetBeams( char *szFile, CBaseEntity *pStart, CBaseEntity *pEnd );
-int UTIL_ConvertContents( int hl_contents );
 
 extern int giAmmoIndex;
 

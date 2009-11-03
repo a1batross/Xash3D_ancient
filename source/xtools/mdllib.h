@@ -6,6 +6,7 @@
 #define STUDIOMDL_H
 
 #include "xtools.h"
+#include "qfiles_ref.h"
 #include "utils.h"
 #include "mathlib.h"
 

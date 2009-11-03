@@ -60,9 +60,9 @@ extern	cvar_t *allow_download;
 //======================================================================
 
 //======================================================================
-bool CL_CheckKeydest( void )
+bool CL_Active( void )
 {
-	return (cls.key_dest != key_game && cls.key_dest != key_hudmenu);
+	return (cls.key_dest == key_game || cls.key_dest == key_hudmenu);
 }
 
 /*

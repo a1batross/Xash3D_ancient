@@ -7,7 +7,6 @@
 
 #include <windows.h>
 #include "launch_api.h"
-#include "qfiles_ref.h"
 
 //=====================================
 //	platform export

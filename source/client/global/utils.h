@@ -32,22 +32,6 @@ extern void V_Init( void );
 
 #define VIEWPORT_SIZE	512
 
-typedef struct rect_s
-{
-	int	left;
-	int	right;
-	int	top;
-	int	bottom;
-} wrect_t;
-
-typedef struct client_sprite_s
-{
-	char	szName[64]; // shader name and sprite name are matched
-	char	szSprite[64];
-	HSPRITE	hSprite;
-	wrect_t	rc;
-} client_sprite_t;
-
 typedef void* dllhandle_t;
 typedef struct dllfunction_s
 {

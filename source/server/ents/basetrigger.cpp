@@ -316,7 +316,7 @@ class CTriggerPush : public CBaseTrigger
 		if( pev->solid == SOLID_NOT )
 		{
 			pev->solid = SOLID_TRIGGER;
-			pev->contents = CONTENTS_TRIGGER;
+			gpGlobals->force_retouch++;
 		}
 		else pev->solid = SOLID_NOT;
 		UTIL_SetOrigin( this, pev->origin );
@@ -1064,7 +1064,7 @@ void CTriggerHurt :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 	if (useType == USE_ON)
 	{
 		pev->solid = SOLID_TRIGGER;
-		pev->contents = CONTENTS_TRIGGER;
+		gpGlobals->force_retouch++;
 		UTIL_SetOrigin( this, pev->origin );
 		if (pev->button & DMG_RADIATION) SetNextThink( RANDOM_FLOAT(0.0, 0.5) );
 		m_iState = STATE_ON;

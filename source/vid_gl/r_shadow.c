@@ -57,7 +57,7 @@ ref_shader_t *R_PlanarShadowShader( void )
 R_GetShadowImpactAndDir
 ===============
 */
-static void R_GetShadowImpactAndDir( ref_entity_t *e, TraceResult *tr, vec3_t lightdir )
+static void R_GetShadowImpactAndDir( ref_entity_t *e, trace_t *tr, vec3_t lightdir )
 {
 	vec3_t	point;
 
@@ -77,11 +77,11 @@ R_CullPlanarShadow
 */
 bool R_CullPlanarShadow( ref_entity_t *e, vec3_t mins, vec3_t maxs, bool occlusion_query )
 {
-	float		planedist, dist;
-	vec3_t		lightdir, point;
-	vec3_t		bbox[8], newmins, newmaxs;
-	TraceResult	tr;
-	int		i;
+	float	planedist, dist;
+	vec3_t	lightdir, point;
+	vec3_t	bbox[8], newmins, newmaxs;
+	trace_t	tr;
+	int	i;
 
 	if((e->flags & EF_NOSHADOW) || (e->ent_type == ED_VIEWMODEL))
 		return true;
@@ -131,7 +131,7 @@ void R_DeformVPlanarShadow( int numV, float *v )
 	float		planedist, dist;
 	ref_entity_t	*e = RI.currententity;
 	vec3_t		planenormal, lightdir, lightdir2, point;
-	TraceResult	tr;
+	trace_t		tr;
 
 	R_GetShadowImpactAndDir( e, &tr, lightdir );
 

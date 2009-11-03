@@ -139,7 +139,7 @@ public:
 	void Spawn( void )
 	{
 		pev->effects = EF_NODRAW;
-		pev->contents = CONTENTS_MONSTERCLIP;
+		pev->flags |= FL_MONSTERCLIP;
 		UTIL_SetModel( ENT(pev), pev->model );
 	}
 };
@@ -850,7 +850,7 @@ void CFuncRotating :: Spawn( void )
 	if ( pev->spawnflags & 64 )
 	{
 		pev->solid = SOLID_NOT;
-		pev->contents = CONTENTS_NONE;
+		pev->skin = CONTENTS_EMPTY;
 		pev->movetype = MOVETYPE_PUSH;
 	}
 	else
@@ -1772,7 +1772,7 @@ void CBaseButton::Spawn( )
 	{
 		pev->solid = SOLID_NOT;
 		pev->movetype = MOVETYPE_NONE;
-		pev->contents = CONTENTS_NONE;
+		pev->skin = CONTENTS_EMPTY;
 	}
 	else
 	{
@@ -2037,19 +2037,19 @@ void CFuncLever::Precache( void )
 void CFuncLever::Spawn( void )
 {
 	Precache();
-	if(pev->spawnflags & SF_NOTSOLID)//not solid button
+	if( pev->spawnflags & SF_NOTSOLID ) // not solid button
 	{
 		pev->solid = SOLID_NOT;
 		pev->movetype = MOVETYPE_NONE;
-		pev->contents = CONTENTS_NONE;
+		pev->skin = CONTENTS_EMPTY;
 	}
 	else
 	{
 		pev->solid = SOLID_BSP;
          		pev->movetype = MOVETYPE_PUSH;
           }
-	UTIL_SetModel(ENT(pev), pev->model);
-	UTIL_SetOrigin(this, pev->origin);
+	UTIL_SetModel( ENT( pev ), pev->model );
+	UTIL_SetOrigin( this, pev->origin );
 
 	AxisDir();
           SetBits (pFlags, PF_ANGULAR);

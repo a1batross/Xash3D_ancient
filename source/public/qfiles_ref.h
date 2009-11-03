@@ -271,6 +271,46 @@ typedef enum
 	SURF_DUST			= BIT(18),	// REMOVE? leave a dust trail when walking on this surface
 } surfaceFlags_t;
 
+// bsp contents
+typedef enum
+{
+	BASECONT_NONE		= 0, 		// just a mask for source tabulation
+	BASECONT_SOLID		= BIT(0),		// an eye is never valid in a solid
+                                                 		// reserved
+	BASECONT_SKY		= BIT(2),
+	BASECONT_LAVA		= BIT(3),
+	BASECONT_SLIME		= BIT(4),
+	BASECONT_WATER		= BIT(5),
+	BASECONT_FOG		= BIT(6),
+	
+	// space for new user contents
+	BASECONT_AREAPORTAL		= BIT(15),
+	BASECONT_PLAYERCLIP		= BIT(16),
+	BASECONT_MONSTERCLIP	= BIT(17),
+	BASECONT_CLIP		= (BASECONT_PLAYERCLIP|BASECONT_MONSTERCLIP), // both type clip
+	BASECONT_TELEPORTER		= BIT(18),
+	BASECONT_JUMPPAD		= BIT(19),
+	BASECONT_CLUSTERPORTAL	= BIT(20),
+	BASECONT_DONOTENTER		= BIT(21),
+	BASECONT_ORIGIN		= BIT(22),	// removed before bsping an entity
+	BASECONT_BODY		= BIT(23),	// should never be on a brush, only in game
+	BASECONT_CORPSE		= BIT(24),	// dead corpse
+	BASECONT_DETAIL		= BIT(25),	// brushes not used for the bsp
+	BASECONT_STRUCTURAL		= BIT(26),	// brushes used for the bsp
+	BASECONT_TRANSLUCENT	= BIT(27),	// don't consume surface fragments inside
+	BASECONT_TRIGGER		= BIT(28),	// trigger volume
+	BASECONT_NODROP		= BIT(29),	// don't leave bodies or items (death fog, lava)
+
+	// content masks
+	MASK_SOLID		= (BASECONT_SOLID),
+	MASK_PLAYERSOLID		= (BASECONT_SOLID|BASECONT_PLAYERCLIP|BASECONT_BODY),
+	MASK_MONSTERSOLID		= (BASECONT_SOLID|BASECONT_MONSTERCLIP|BASECONT_BODY),
+	MASK_DEADSOLID		= (BASECONT_SOLID|BASECONT_PLAYERCLIP),
+	MASK_WATER		= (BASECONT_WATER|BASECONT_LAVA|BASECONT_SLIME),
+	MASK_OPAQUE		= (BASECONT_SOLID|BASECONT_SLIME|BASECONT_LAVA),
+	MASK_SHOT			= (BASECONT_SOLID|BASECONT_BODY|BASECONT_CORPSE)
+} contentType_t;
+
 typedef enum
 {
 	MST_BAD = 0,

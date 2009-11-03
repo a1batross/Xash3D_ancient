@@ -20,10 +20,10 @@ is not a staircase.
 */
 bool SV_CheckBottom( edict_t *ent )
 {
-	vec3_t		mins, maxs, start, stop;
-	float		mid, bottom;
-	TraceResult	trace;
-	int		x, y;
+	vec3_t	mins, maxs, start, stop;
+	float	mid, bottom;
+	trace_t	trace;
+	int	x, y;
 
 	VectorAdd( ent->v.origin, ent->v.mins, mins );
 	VectorAdd( ent->v.origin, ent->v.maxs, maxs );
@@ -38,7 +38,7 @@ bool SV_CheckBottom( edict_t *ent )
 		{
 			start[0] = x ? maxs[0] : mins[0];
 			start[1] = y ? maxs[1] : mins[1];
-			if(!(SV_PointContents( start ) & (CONTENTS_SOLID | CONTENTS_BODY)))
+			if( SV_PointContents( start ) != CONTENTS_SOLID )
 				goto realcheck;
 		}
 	}
@@ -52,7 +52,7 @@ realcheck:
 	start[0] = stop[0] = (mins[0] + maxs[0]) * 0.5f;
 	start[1] = stop[1] = (mins[1] + maxs[1]) * 0.5f;
 	stop[2] = start[2] - 2 * sv_stepheight->value;
-	trace = SV_Trace( start, vec3_origin, vec3_origin, stop, MOVE_NOMONSTERS, ent, SV_ContentsMask( ent ));
+	trace = SV_Move( start, vec3_origin, vec3_origin, stop, MOVE_NOMONSTERS, ent );
 
 	if( trace.flFraction == 1.0f )
 		return false;
@@ -66,7 +66,7 @@ realcheck:
 			start[0] = stop[0] = x ? maxs[0] : mins[0];
 			start[1] = stop[1] = y ? maxs[1] : mins[1];
 
-			trace = SV_Trace( start, vec3_origin, vec3_origin, stop, MOVE_NOMONSTERS, ent, SV_ContentsMask( ent ));
+			trace = SV_Move( start, vec3_origin, vec3_origin, stop, MOVE_NOMONSTERS, ent );
 
 			if( trace.flFraction != 1.0f && trace.vecEndPos[2] > bottom )
 				bottom = trace.vecEndPos[2];
@@ -89,11 +89,12 @@ possible, no move is done and false is returned
 */
 bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool settrace )
 {
-	float		dz;
-	vec3_t		oldorg, neworg, end, traceendpos;
-	edict_t		*enemy;
-	TraceResult	trace;
-	int		i;
+	float	dz;
+	vec3_t	oldorg, neworg;
+	vec3_t	end, endpos;
+	edict_t	*enemy;
+	trace_t	trace;
+	int	i;
 
 	// try the move
 	VectorCopy (ent->v.origin, oldorg);
@@ -117,16 +118,16 @@ bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool set
 					if( dz < 30 ) neworg[2] += 8;
 				}
 			}
-			trace = SV_Trace( ent->v.origin, ent->v.mins, ent->v.maxs, neworg, MOVE_NORMAL, ent, SV_ContentsMask(ent));
+			trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, neworg, MOVE_NORMAL, ent );
 
 			if( trace.flFraction == 1.0f )
 			{
-				VectorCopy( trace.vecEndPos, traceendpos );
-				if((ent->v.flags & FL_SWIM) && !(SV_PointContents(traceendpos) & MASK_WATER))
+				VectorCopy( trace.vecEndPos, endpos );
+				if( ent->v.flags & FL_SWIM && SV_PointContents( endpos ) == CONTENTS_EMPTY )
 					return false; // swim monster left water
 
-				VectorCopy( traceendpos, ent->v.origin );
-				if( relink ) SV_LinkEdict( ent );
+				VectorCopy( endpos, ent->v.origin );
+				if( relink ) SV_LinkEdict( ent, true );
 				return true;
 			}
 			if( enemy == EDICT_NUM( 0 )) break;
@@ -139,13 +140,17 @@ bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool set
 	VectorCopy( neworg, end );
 	end[2] -= sv_stepheight->value * 2;
 
-	trace = SV_Trace( neworg, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL, ent, SV_ContentsMask(ent));
+	trace = SV_Move( neworg, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL, ent );
+
+	if( trace.fAllSolid )
+		return false;
 
 	if( trace.fStartSolid )
 	{
 		neworg[2] -= sv_stepheight->value;
-		trace = SV_Trace( neworg, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL, ent, SV_ContentsMask(ent));
-		if( trace.fStartSolid ) return false;
+		trace = SV_Move( neworg, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL, ent );
+		if( trace.fAllSolid || trace.fStartSolid )
+			return false;
 	}
 	if( trace.flFraction == 1.0f )
 	{
@@ -153,7 +158,7 @@ bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool set
 		if( ent->v.flags & FL_PARTIALONGROUND )
 		{
 			VectorAdd( ent->v.origin, move, ent->v.origin );
-			if( relink ) SV_LinkEdict( ent );
+			if( relink ) SV_LinkEdict( ent, true );
 			ent->v.flags &= ~FL_ONGROUND;
 			return true;
 		}
@@ -169,7 +174,7 @@ bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool set
 		{	
 			// entity had floor mostly pulled out from underneath it
 			// and is trying to correct
-			if( relink ) SV_LinkEdict( ent );
+			if( relink ) SV_LinkEdict( ent, true );
 			return true;
 		}
 		VectorCopy( oldorg, ent->v.origin );
@@ -182,7 +187,7 @@ bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool set
 	ent->v.groundentity = trace.pHit;
 
 	// the move is ok
-	if( relink ) SV_LinkEdict( ent );
+	if( relink ) SV_LinkEdict( ent, true );
 	return true;
 }
 
@@ -201,11 +206,10 @@ facing it.
 bool SV_StepDirection( edict_t *ent, float yaw, float dist )
 {
 	vec3_t	move, oldorigin;
-	float	delta, current;
+	float	delta;
 
 	ent->v.ideal_yaw = yaw;
-	current = anglemod( ent->v.angles[1] );
-	ent->v.angles[1] = SV_AngleMod( ent->v.ideal_yaw, current, ent->v.yaw_speed );
+	ent->v.angles[1] = SV_AngleMod( ent->v.ideal_yaw, anglemod( ent->v.angles[1] ), ent->v.yaw_speed );
 
 	yaw = yaw * M_PI*2 / 360;
 	move[0] = cos(yaw)*dist;
@@ -221,10 +225,10 @@ bool SV_StepDirection( edict_t *ent, float yaw, float dist )
 			// not turned far enough, so don't take the step
 			VectorCopy( oldorigin, ent->v.origin );
 		}
-		SV_LinkEdict( ent );
+		SV_LinkEdict( ent, true );
 		return true;
 	}
-	SV_LinkEdict( ent );
+	SV_LinkEdict( ent, true );
 
 	return false;
 }
@@ -251,7 +255,7 @@ void SV_NewChaseDir( edict_t *actor, edict_t *enemy, float dist )
 	float		deltax, deltay;
 	float		d[3], tdir, olddir, turnaround;
 
-	olddir = anglemod((int)(actor->v.ideal_yaw/45) * 45);
+	olddir = anglemod((int)(actor->v.ideal_yaw / 45 ) * 45 );
 	turnaround = anglemod( olddir - 180 );
 
 	deltax = enemy->v.origin[0] - actor->v.origin[0];
@@ -274,7 +278,7 @@ void SV_NewChaseDir( edict_t *actor, edict_t *enemy, float dist )
 	}
 
 	// try other directions
-	if(((rand()&3) & 1) || fabs(deltay) > fabs(deltax))
+	if((( rand()&3 ) & 1 ) || fabs(deltay) > fabs( deltax ))
 	{
 		tdir = d[1];
 		d[1] = d[2];

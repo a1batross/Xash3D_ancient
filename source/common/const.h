@@ -80,7 +80,26 @@ typedef enum
 #define CHAN_STREAM			5	// allocate stream channel from the static or dynamic area
 #define CHAN_STATIC			6	// allocate channel from the static area
 #define CHAN_VOICE_BASE		7	// allocate channel for network voice data
-	
+
+#define CONTENTS_EMPTY		-1
+#define CONTENTS_SOLID		-2
+#define CONTENTS_WATER		-3
+#define CONTENTS_SLIME		-4
+#define CONTENTS_LAVA		-5
+#define CONTENTS_SKY		-6
+#define CONTENTS_ORIGIN		-7	// removed at csg time
+#define CONTENTS_CLIP		-8	// changed to contents_solid
+#define CONTENTS_CURRENT_0		-9
+#define CONTENTS_CURRENT_90		-10
+#define CONTENTS_CURRENT_180		-11
+#define CONTENTS_CURRENT_270		-12
+#define CONTENTS_CURRENT_UP		-13
+#define CONTENTS_CURRENT_DOWN		-14
+#define CONTENTS_LADDER		-16
+#define CONTENTS_FLYFIELD		-17
+#define CONTENTS_GRAVITY_FLYFIELD	-18
+#define CONTENTS_FOG		-19
+
 // global deatchmatch dmflags
 #define DF_NO_HEALTH		(1<<0)
 #define DF_NO_ITEMS			(1<<1)
@@ -109,29 +128,34 @@ typedef enum
 // pev->flags
 #define FL_FLY			(1<<0)	// changes the SV_Movestep() behavior to not need to be on ground
 #define FL_SWIM			(1<<1)	// same as AI_FLY but stay in water
-#define FL_CLIENT			(1<<2)	// this a client entity
-#define FL_INWATER			(1<<3)	// npc in water
-#define FL_MONSTER			(1<<4)	// monster bit
-#define FL_GODMODE			(1<<5)	// invulnerability npc or client
-#define FL_NOTARGET			(1<<6)	// mark all npc's as neytral
-#define FL_ONGROUND			(1<<7)	// at rest / on the ground
-#define FL_PARTIALONGROUND		(1<<8)	// not corners are valid
-#define FL_WATERJUMP		(1<<8)	// water jumping
-#define FL_FROZEN			(1<<9)	// stop moving, but continue thinking (e.g. for thirdperson camera)
-#define FL_DUCKING			(1<<10)	// monster (or player) is ducked
-#define FL_FLOAT			(1<<11)	// Apply floating force to this entity when in water
-#define FL_GRAPHED			(1<<12)	// worldgraph has this ent listed as something that blocks a connection
-#define FL_ALWAYSTHINK		(1<<13)	// Brush model flag -- call think every frame regardless of nextthink - ltime (for constantly changing velocity/path)
-#define FL_PROJECTILE		(1<<14)	// this is rocket entity
-#define FL_TANK			(1<<15)	// this is func tank entity
-#define FL_ONTRAIN			(1<<16)	// Player is _controlling_ a train, so movement commands should be ignored on client during prediction.
-#define FL_WORLDBRUSH		(1<<17)	// Not moveable/removeable brush entity (really part of the world, but represented as an entity for transparency or something)
-#define FL_SPECTATOR            	(1<<18)	// This client is a spectator, don't run touch functions, etc.
-#define FL_CUSTOMENTITY		(1<<19)	// This is a custom entity
-#define FL_KILLME			(1<<20)	// This entity is marked for death -- This allows the engine to kill ents at the appropriate time
-#define FL_DORMANT			(1<<21)	// Entity is dormant, no updates to client
-#define FL_POINTENTITY		(1<<22)	// this is point entity
-#define FL_FAKECLIENT		(1<<23)	// JAC: fake client, simulated server side; don't send network messages to them
+#define FL_CONVEYOR			(1<<2)	// not used in Xash3D
+#define FL_CLIENT			(1<<3)	// this a client entity
+#define FL_INWATER			(1<<4)	// npc in water
+#define FL_MONSTER			(1<<5)	// monster bit
+#define FL_GODMODE			(1<<6)	// invulnerability npc or client
+#define FL_NOTARGET			(1<<7)	// mark all npc's as neytral
+#define FL_SKIPLOCALHOST		(1<<8)	// Don't send entity to local host, it's predicting this entity itself
+#define FL_ONGROUND			(1<<9)	// at rest / on the ground
+#define FL_PARTIALONGROUND		(1<<10)	// not corners are valid
+#define FL_WATERJUMP		(1<<11)	// water jumping
+#define FL_FROZEN			(1<<12)	// stop moving, but continue thinking (e.g. for thirdperson camera)
+#define FL_FAKECLIENT		(1<<13)	// JAC: fake client, simulated server side; don't send network messages to them
+#define FL_DUCKING			(1<<14)	// monster (or player) is ducked
+#define FL_FLOAT			(1<<15)	// Apply floating force to this entity when in water
+#define FL_GRAPHED			(1<<16)	// worldgraph has this ent listed as something that blocks a connection
+#define FL_PROJECTILE		(1<<17)	// this is rocket entity    (was FL_IMMUNE_WATER)
+#define FL_TANK			(1<<18)	// this is func tank entity (was FL_IMMUNE_SLIME)
+#define FL_POINTENTITY		(1<<19)	// this is point entity     (was FL_IMMUNE_LAVA)
+#define FL_PROXY			(1<<20)   // This is a spectator proxy
+#define FL_ALWAYSTHINK		(1<<21)	// Brush model flag -- call think every frame regardless of nextthink - ltime (for constantly changing velocity/path)
+#define FL_BASEVELOCITY		(1<<22)	// Base velocity has been applied this frame (used to convert base velocity into momentum)
+#define FL_MONSTERCLIP		(1<<23)	// Only collide in with monsters who have FL_MONSTERCLIP set
+#define FL_ONTRAIN			(1<<24)	// Player is _controlling_ a train, so movement commands should be ignored on client during prediction.
+#define FL_WORLDBRUSH		(1<<25)	// Not moveable/removeable brush entity (really part of the world, but represented as an entity for transparency or something)
+#define FL_SPECTATOR            	(1<<26)	// This client is a spectator, don't run touch functions, etc.
+#define FL_CUSTOMENTITY		(1<<29)	// This is a custom entity
+#define FL_KILLME			(1<<30)	// This entity is marked for death -- This allows the engine to kill ents at the appropriate time
+#define FL_DORMANT			(1<<31)	// Entity is dormant, no updates to client
 
 // pev->spawnflags
 #define SF_START_ON			(1<<0)
@@ -149,11 +173,11 @@ typedef enum
 #define EF_DIMLIGHT			(1<<3)	// player flashlight
 #define EF_INVLIGHT			(1<<4)	// get lighting from ceiling
 #define EF_NOINTERP			(1<<5)	// don't interpolate the next frame
-#define EF_NODRAW			(1<<6)	// don't draw entity
-#define EF_ROTATE			(1<<7)	// rotate bonus item
-#define EF_MINLIGHT			(1<<8)	// allways have some light (viewmodel)
-#define EF_FULLBRIGHT		(1<<9)	// completely ignore light values
-#define EF_LIGHT			(1<<10)	// dynamic light (rockets use)
+#define EF_LIGHT			(1<<6)	// dynamic light (rockets use)
+#define EF_NODRAW			(1<<7)	// don't draw entity
+#define EF_ROTATE			(1<<8)	// rotate bonus item
+#define EF_MINLIGHT			(1<<9)	// allways have some light (viewmodel)
+#define EF_FULLBRIGHT		(1<<10)	// completely ignore light values
 #define EF_ANIMATE			(1<<11)	// do client animate (ignore v.frame)
 #define EF_NOSHADOW			(1<<12)	// ignore shadow for this entity
 #define EF_PLANARSHADOW		(1<<13)	// use fast planarshadow method instead of shadow casters
@@ -189,21 +213,32 @@ typedef enum
 	print_center,	// at center of the screen
 	print_chat,	// level high
 } PRINT_TYPE;
+
+// monster's walkmove modes
+typedef enum
+{
+	WALKMOVE_NORMAL = 0,// normal walkmove
+	WALKMOVE_WORLDONLY,	// doesn't hit ANY entities, no matter what the solid type
+	WALKMOVE_CHECKONLY	// move, but don't touch triggers
+} walkmove_t;
 	
 // edict movetype
 typedef enum
 {
-	MOVETYPE_NONE,	// never moves
-	MOVETYPE_NOCLIP,	// origin and angles change with no interaction
-	MOVETYPE_PUSH,	// no clip to world, push on box contact
-	MOVETYPE_WALK,	// gravity
+	MOVETYPE_NONE = 0,	// never moves
+	MOVETYPE_CONVEYOR,	// simulate conveyor belt, push all stuff
+	MOVETYPE_STOP,	// toggled between PUSHSTEP and STOP
+	MOVETYPE_WALK,	// Player only - moving on the ground
 	MOVETYPE_STEP,	// gravity, special edge handling
-	MOVETYPE_FLY,
-	MOVETYPE_TOSS,	// gravity
-	MOVETYPE_BOUNCE,
+	MOVETYPE_FLY,       // No gravity, but still collides with stuff
+	MOVETYPE_TOSS,	// gravity/collisions
+	MOVETYPE_PUSH,	// no clip to world, push on box contact
+	MOVETYPE_NOCLIP,	// origin and angles change with no interaction
+	MOVETYPE_FLYMISSILE,// extra size to monsters
+	MOVETYPE_BOUNCE,	// Just like Toss, but reflect velocity when contacting surfaces
+	MOVETYPE_BOUNCEMISSILE,// bounce w/o gravity
 	MOVETYPE_FOLLOW,	// attached models
-	MOVETYPE_CONVEYOR,
-	MOVETYPE_PUSHSTEP,
+	MOVETYPE_PUSHSTEP,  // BSP model that needs physics/world collisions
 	MOVETYPE_PHYSIC,	// phys simulation
 } movetype_t;
 
@@ -213,11 +248,9 @@ typedef enum
 	SOLID_NOT = 0,    	// no interaction with other objects
 	SOLID_TRIGGER,	// only touch when inside, after moving
 	SOLID_BBOX,	// touch on edge
-	SOLID_SLIDEBOX,	//
+	SOLID_SLIDEBOX,	// touch on edge, but not an onground
 	SOLID_BSP,    	// bsp clip, touch on edge
-	SOLID_SPHERE,	// sphere
-	SOLID_CAPSULE,	// convex capsule
-	SOLID_MESH,	// custom convex hull
+	SOLID_MESH,	// custom convex mesh
 } solid_t;
 
 // pev->buttons (client only)

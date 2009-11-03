@@ -6,7 +6,10 @@
 #include "common.h"
 #include "byteorder.h"
 
-static char sv_info[MAX_INFO_STRING];
+#define MAX_INFO_KEY	64
+#define MAX_INFO_VALUE	64
+
+static char		sv_info[MAX_INFO_STRING];
 
 /*
 =======================================================================

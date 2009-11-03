@@ -264,7 +264,7 @@ void R_DrawCoronas( void )
 	float		dist;
 	dlight_t		*light;
 	meshbuffer_t	*mb;
-	TraceResult	tr;
+	trace_t		tr;
 
 	if( r_dynamiclight->integer != 2 )
 		return;

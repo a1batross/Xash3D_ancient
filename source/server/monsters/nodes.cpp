@@ -1702,7 +1702,7 @@ void CTestHull :: BuildNodeGraph( void )
 		{
 			// do nothing
 		}
-		else if( UTIL_PointContents( WorldGraph.m_pNodes[i].m_vecOrigin) & MASK_WATER )
+		else if (UTIL_PointContents(WorldGraph.m_pNodes[ i ].m_vecOrigin) == CONTENTS_WATER)
 		{
 			WorldGraph.m_pNodes[i].m_afNodeInfo |= bits_NODE_WATER;
 		}

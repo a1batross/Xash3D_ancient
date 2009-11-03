@@ -170,6 +170,10 @@ SOURCE=.\common\com_library.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\common\com_world.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\common\con_keys.c
 # End Source File
 # Begin Source File

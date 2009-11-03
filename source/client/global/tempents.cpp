@@ -250,14 +250,15 @@ void CL_BulletParticles( const Vector org, const Vector dir )
 {
 	cparticle_t	src;
 	int		flags;
-	int		i, count;
+	int		i, cnt, count;
 
 	if( !CVAR_GET_FLOAT( "cl_particles" ))
 		return;
 
 	count = RANDOM_LONG( 3, 8 );
+	cnt = POINT_CONTENTS( org );
 
-	if( POINT_CONTENTS( org ) & MASK_WATER )
+	if( cnt == CONTENTS_WATER )
 	{
 		CL_BubbleParticles( org, count, 0 );
 		return;

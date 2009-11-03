@@ -665,7 +665,7 @@ void CL_AddParticles( void )
 	float		time, time2, gravity, dot;
 	vec3_t		mins, maxs, color;
 	int		contents;
-	TraceResult	trace;
+	trace_t		trace;
 
 	if( !cl_particles->integer ) return;
 
@@ -1037,7 +1037,7 @@ void CL_TestLights( void )
 		edict_t		*ed = CL_GetLocalPlayer();
 		int		cnt = CL_ContentsMask( ed );
 		static shader_t	flashlight_shader = -1;
-		TraceResult	trace;
+		trace_t		trace;
 
 		Mem_Set( &dl, 0, sizeof( cdlight_t ));
 #if 0

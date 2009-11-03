@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "xtools.h"
+#include "qfiles_ref.h"
 #include "byteorder.h"
 #include "utils.h"
 #include "mathlib.h"

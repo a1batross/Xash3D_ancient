@@ -1200,7 +1200,7 @@ void CEnvExplosion::Explode( void )
           if(pev->dmg <= 0)pev->dmg = 100; //Smart field system ®
           
 
-          if( iContents & MASK_WATER )
+          if( iContents == CONTENTS_WATER )
           {
           	SFX_Explode( m_usWExplode, pev->origin, pev->dmg, TE_EXPLFLAG_NONE );
           	if(!FBitSet( pev->spawnflags, 1 ))

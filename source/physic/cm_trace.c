@@ -166,7 +166,7 @@ static void CM_TestBoxInBrush( traceWork_t *tw, cbrush_t *brush )
 
 	// inside this brush
 	tw->trace.fStartSolid = tw->trace.fAllSolid = true;
-	tw->trace.flFraction = 0;
+	tw->trace.flFraction = 0.0f;
 	tw->trace.iContents = brush->contents;
 }
 
@@ -1012,6 +1012,14 @@ void CM_TraceThroughBrush( traceWork_t *tw, cbrush_t *brush )
 			tw->trace.flFraction = 0;
 			tw->trace.iContents = brush->contents;
 		}
+		else
+		{
+			// set q1 trace flags
+			if( brush->contents == BASECONT_NONE )
+				tw->trace.fInOpen = true;
+			else if( brush->contents & MASK_WATER )
+				tw->trace.fInWater = true;
+		}
 		return;
 	}
 
@@ -1165,7 +1173,7 @@ void CM_TraceThroughSphere( traceWork_t *tw, vec3_t origin, float radius, vec3_t
 			VectorCopy( dir, tw->trace.vecPlaneNormal );
 			VectorAdd( tw->modelOrigin, intersection, intersection );
 			tw->trace.flPlaneDist = DotProduct( tw->trace.vecPlaneNormal, intersection );
-			tw->trace.iContents = CONTENTS_BODY;
+			tw->trace.iContents = BASECONT_BODY;
 		}
 	}
 	else if( d == 0.0f )
@@ -1266,7 +1274,7 @@ void CM_TraceThroughVerticalCylinder( traceWork_t *tw, vec3_t origin, float radi
 				VectorCopy( dir, tw->trace.vecPlaneNormal );
 				VectorAdd( tw->modelOrigin, intersection, intersection );
 				tw->trace.flPlaneDist = DotProduct( tw->trace.vecPlaneNormal, intersection );
-				tw->trace.iContents = CONTENTS_BODY;
+				tw->trace.iContents = BASECONT_BODY;
 			}
 		}
 	}
@@ -1508,7 +1516,7 @@ static void CM_TraceThroughTree( traceWork_t *tw, int num, float p1f, float p2f,
 CM_Trace
 ==================
 */
-static void CM_Trace( TraceResult *tr, const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, model_t model, const vec3_t origin, int mask, trType_t type, sphere_t *sphere )
+static void CM_Trace( trace_t *tr, const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, model_t model, const vec3_t origin, int mask, trType_t type, sphere_t *sphere )
 {
 	int		i;
 	traceWork_t	tw;
@@ -1516,6 +1524,7 @@ static void CM_Trace( TraceResult *tr, const vec3_t start, const vec3_t end, vec
 	cmodel_t		*cmod;
 
 	cmod = CM_ClipHandleToModel( model );
+	if( !cmod ) cmod = sv_models[1]; // force to world any invalid handle
 
 	cms.checkcount++; // for multi-check avoidance
 
@@ -1632,7 +1641,7 @@ static void CM_Trace( TraceResult *tr, const vec3_t start, const vec3_t end, vec
 	// check for position test special case
 	if( start[0] == end[0] && start[1] == end[1] && start[2] == end[2] )
 	{
-		if( model )
+		if( model && cmod->type != mod_world )
 		{
 #ifdef ALWAYS_BBOX_VS_BBOX
 			if( model == BOX_MODEL_HANDLE || model == CAPSULE_MODEL_HANDLE )
@@ -1675,7 +1684,7 @@ static void CM_Trace( TraceResult *tr, const vec3_t start, const vec3_t end, vec
 		}
 
 		// general sweeping through world
-		if( model )
+		if( model && cmod->type != mod_world )
 		{
 #ifdef ALWAYS_BBOX_VS_BBOX
 			if( model == BOX_MODEL_HANDLE || model == CAPSULE_MODEL_HANDLE )
@@ -1703,8 +1712,7 @@ static void CM_Trace( TraceResult *tr, const vec3_t start, const vec3_t end, vec
 	}
 
 	// generate endpos from the original, unmodified start/end
-	if( tw.trace.flFraction == 1 )
-		VectorCopy( end, tw.trace.vecEndPos );
+	if( tw.trace.flFraction == 1.0 ) VectorCopy( end, tw.trace.vecEndPos );
 	else VectorLerp( start, tw.trace.flFraction, end, tw.trace.vecEndPos );
 
 	// If allsolid is set (was entirely inside something solid), the plane is not valid.
@@ -1718,7 +1726,7 @@ static void CM_Trace( TraceResult *tr, const vec3_t start, const vec3_t end, vec
 CM_BoxTrace
 ==================
 */
-void CM_BoxTrace( TraceResult *tr, const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, model_t model, int mask, trType_t type )
+void CM_BoxTrace( trace_t *tr, const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, model_t model, int mask, trType_t type )
 {
 	CM_Trace( tr, start, end, mins, maxs, model, vec3_origin, mask, type, NULL );
 }
@@ -1731,9 +1739,9 @@ Handles offseting and rotation of the end points for moving and
 rotating entities
 ==================
 */
-void CM_TransformedBoxTrace( TraceResult *tr, const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, model_t model, int mask, const vec3_t origin, const vec3_t angles, trType_t type )
+void CM_TransformedBoxTrace( trace_t *tr, const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, model_t model, int mask, const vec3_t origin, const vec3_t angles, trType_t type )
 {
-	TraceResult	trace;
+	trace_t		trace;
 	vec3_t		start_l, end_l, offset;
 	vec3_t		startRotated, endRotated;
 	vec3_t		symetricSize[2];

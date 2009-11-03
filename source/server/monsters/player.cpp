@@ -1123,7 +1123,7 @@ void CBasePlayer::WaterMove()
 	// waterlevel 2 - waist in water
 	// waterlevel 3 - head in water
 
-	if (pev->waterlevel != 3 || pev->watertype & MASK_WATER )
+	if (pev->waterlevel != 3 || pev->watertype <= CONTENTS_FLYFIELD )
 	{
 		// not underwater
 
@@ -1152,7 +1152,7 @@ void CBasePlayer::WaterMove()
 		}
 
 	}
-	else if (pev->watertype & MASK_WATER ) // FLYFIELD, FLYFIELD_GRAVITY & FOG aren't really water...
+	else if (pev->watertype > CONTENTS_FLYFIELD) // FLYFIELD, FLYFIELD_GRAVITY & FOG aren't really water...
 	{	// fully under water
 		// stop restoring damage while underwater
 		m_bitsDamageType &= ~DMG_DROWNRECOVER;
@@ -1181,7 +1181,7 @@ void CBasePlayer::WaterMove()
 		}
 	}
 
-	if (!pev->waterlevel || pev->watertype & MASK_WATER )
+	if (!pev->waterlevel || pev->watertype <= CONTENTS_FLYFIELD )
 	{
 		if (FBitSet(pev->flags, FL_INWATER))
 		{
@@ -1656,6 +1656,13 @@ void CBasePlayer :: Jump( void )
 	else
 	{
 		pev->velocity.z = sqrt( 2 * 800 * 45.0 ); // jump 45 units
+	}
+
+	// If you're standing on a conveyor, add its velocity to yours (for momentum)
+	entvars_t *pevGround = VARS( pev->groundentity );
+	if ( pevGround && ( pevGround->flags & FL_CONVEYOR ))
+	{
+		pev->velocity = pev->velocity + pev->basevelocity;
 	}
 }
 
@@ -2152,13 +2159,13 @@ void CBasePlayer :: UpdateStepSound( void )
 			fvol = 0.35;
 			m_flTimeStepSound = gpGlobals->time + 0.35;
 		}
-		else if( UTIL_PointContents( knee ) & MASK_WATER )
+		else if( UTIL_PointContents ( knee ) == CONTENTS_WATER )
 		{
 			step = STEP_WADE;
 			fvol = 0.65;
 			m_flTimeStepSound = gpGlobals->time + 0.6;
 		}
-		else if( UTIL_PointContents( feet ) & MASK_WATER )
+		else if( UTIL_PointContents ( feet ) == CONTENTS_WATER )
 		{
 			step = STEP_SLOSH;
 			fvol = fWalking ? 0.2 : 0.5;

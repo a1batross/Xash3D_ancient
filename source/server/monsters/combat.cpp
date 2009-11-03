@@ -194,7 +194,7 @@ void RadiusDamage( Vector vecSrc, entvars_t *pevInflictor, entvars_t *pevAttacke
 	else
 		falloff = 1.0;
 
-	int bInWater = (UTIL_PointContents ( vecSrc ) & MASK_WATER );
+	int bInWater = (UTIL_PointContents ( vecSrc ) == CONTENTS_WATER);
 
 	vecSrc.z += 1;// in case grenade is lying on the ground
 
