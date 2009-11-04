@@ -5,9 +5,8 @@
 
 #include "common.h"
 #include "input.h"
-#include "client.h"
 
-#define MAX_RENDERS	8
+#define MAX_RENDERS		8	// max libraries to keep tracking
 
 physic_exp_t	*pe;
 render_exp_t	*re;
@@ -16,16 +15,17 @@ vsound_exp_t	*se;
 host_parm_t	host;	// host parms
 stdlib_api_t	com, newcom;
 
-byte		*zonepool;
 char		*buildstring = __TIME__ " " __DATE__;
 string		video_dlls[MAX_RENDERS];
 string		audio_dlls[MAX_RENDERS];
-int		num_audio_dlls;
+string		cphys_dlls[MAX_RENDERS];
 int		num_video_dlls;
+int		num_audio_dlls;
+int		num_cphys_dlls;
 
 dll_info_t render_dll = { "", NULL, "CreateAPI", NULL, NULL, 0, sizeof(render_exp_t), sizeof(stdlib_api_t) };
 dll_info_t vsound_dll = { "", NULL, "CreateAPI", NULL, NULL, 0, sizeof(vsound_exp_t), sizeof(stdlib_api_t) };
-dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, 1, sizeof(physic_exp_t), sizeof(stdlib_api_t) };
+dll_info_t physic_dll = { "", NULL, "CreateAPI", NULL, NULL, 0, sizeof(physic_exp_t), sizeof(stdlib_api_t) };
 dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, 1, sizeof(vprogs_exp_t), sizeof(stdlib_api_t) };
 
 cvar_t	*timescale;
@@ -35,8 +35,9 @@ cvar_t	*host_maxfps;
 cvar_t	*host_minfps;
 cvar_t	*host_framerate;
 cvar_t	*host_registered;
-cvar_t	*host_audio;
 cvar_t	*host_video;
+cvar_t	*host_audio;
+cvar_t	*host_cphys;
 
 // these cvars will be duplicated on each client across network
 int Host_ServerState( void ) { return Cvar_VariableInteger( "host_serverstate" ); }
@@ -86,37 +87,50 @@ void Host_EndGame( const char *message, ... )
 	if( host.type == HOST_DEDICATED )
 		Sys_Break( "Host_EndGame: %s\n", string ); // dedicated servers exit
 	
-	if( cls.demonum != -1 )
-		CL_NextDemo ();
-	else CL_Disconnect ();
+	if( CL_NextDemo( ));
+	else CL_Disconnect();
 
 	Host_AbortCurrentFrame ();
 }
 
-void Host_InitPhysic( void )
+static void Host_DrawDebug( cmdraw_t callback )
 {
-	static physic_imp_t		pi;
-	launch_t			CreatePhysic;  
-
-	// phys callback
-	pi.api_size = sizeof( physic_imp_t );
-
-	Sys_LoadLibrary( NULL, &physic_dll );
-
-	CreatePhysic = (void *)physic_dll.main;
-	pe = CreatePhysic( &newcom, &pi );
-	
-	pe->Init();
+	if( pe ) pe->DrawCollision( callback );
 }
 
 void Host_FreePhysic( void )
 {
-	if(physic_dll.link)
+	if( physic_dll.link )
 	{
 		pe->Shutdown();
-		Mem_Set( &pe, 0, sizeof(pe));
+		Mem_Set( &pe, 0, sizeof( pe ));
 	}
 	Sys_FreeLibrary( &physic_dll );
+}
+
+bool Host_InitPhysic( void )
+{
+	static physic_imp_t	pi;
+	launch_t		CreatePhysic;  
+	bool		result = false;
+	
+	// phys callback
+	pi.api_size = sizeof( physic_imp_t );
+
+	Sys_LoadLibrary( host_cphys->string, &physic_dll );
+
+	if( physic_dll.link )
+	{
+		CreatePhysic = (void *)physic_dll.main;
+		pe = CreatePhysic( &newcom, &pi );
+
+		if( pe->Init( )) result = true;
+	} 
+
+	// video system not started, shutdown refresh subsystem
+	if( !result ) Host_FreePhysic();
+
+	return result;
 }
 
 void Host_InitVprogs( const int argc, const char **argv )
@@ -164,7 +178,7 @@ bool Host_InitRender( void )
 	ri.UpdateScreen = SCR_UpdateScreen;
 	ri.StudioEvent = CL_StudioEvent;
 	ri.StudioFxTransform = CL_StudioFxTransform;
-	ri.ShowCollision = pe->DrawCollision;
+	ri.ShowCollision = Host_DrawDebug;
 	ri.GetAttachment = CL_GetAttachment;
 	ri.SetAttachment = CL_SetAttachment;
 	ri.GetClientEdict = CL_GetEdictByIndex;
@@ -231,6 +245,43 @@ bool Host_InitSound( void )
 	return result;
 }
 
+void Host_CheckRestart( void )
+{
+	int	num_changes;
+
+	if( host_cphys->modified )
+	{
+		// host.state = HOST_RESTART;
+		S_StopAllSounds();		// don't let them loop during the restart
+
+		SV_ForceMod();
+		CL_ForceVid();
+	}
+	else return;
+
+	num_changes = 0;
+
+	// restart or change renderer
+	while( host_cphys->modified )
+	{
+		host_cphys->modified = false;
+
+		Host_FreePhysic();			// release physic.dll
+		if( !Host_InitPhysic( ))		// load it again
+		{
+			if( num_changes > num_cphys_dlls )
+			{
+				MsgDev( D_ERROR, "couldn't initialize physic system\n" );
+				return;
+			}
+			if( !com.strcmp( cphys_dlls[num_changes], host_cphys->string ))
+				num_changes++; // already trying - failed
+			Cvar_FullSet( "host_cphys", cphys_dlls[num_changes], CVAR_SYSTEMINFO );
+			num_changes++;
+		}
+	}
+}
+
 void Host_CheckChanges( void )
 {
 	int	num_changes;
@@ -240,8 +291,8 @@ void Host_CheckChanges( void )
 		host.state = HOST_RESTART;
 		S_StopAllSounds();		// don't let them loop during the restart
 
-		if( host_video->modified ) cl.video_prepped = false;
-		if( host_audio->modified ) cl.audio_prepped = false;
+		if( host_video->modified ) CL_ForceVid();
+		if( host_audio->modified ) CL_ForceSnd();
 	}
 	else return;
 
@@ -335,6 +386,18 @@ Restart the audio subsystem
 void Host_SndRestart_f( void )
 {
 	host_audio->modified = true;
+}
+
+/*
+=================
+Host_PhyRestart_f
+
+Restart the physic subsystem
+=================
+*/
+void Host_PhysRestart_f( void )
+{
+	host_cphys->modified = true;
 }
 
 void Host_ChangeGame_f( void )
@@ -512,7 +575,7 @@ int Host_ModifyTime( int msec )
 	{
 		// clients of remote servers do not want to clamp time, because
 		// it would skew their view of the server's time temporarily
-		if( cls.state == ca_cinematic )
+		if( SCR_CinActive( ))
 			clamp_time = (1000 / host_maxfps->integer);
 		else clamp_time = 5000;
 	}
@@ -652,7 +715,7 @@ static void Host_Crash_f( void )
 void Host_InitCommon( const int argc, const char **argv )
 {
 	char		dev_level[4];
-	dll_info_t	check_vid, check_snd;
+	dll_info_t	check_vid, check_snd, check_cms;
 	search_t		*dlls;
 	int		i;
 
@@ -670,7 +733,7 @@ void Host_InitCommon( const int argc, const char **argv )
 	FS_LoadGameInfo( NULL );
 	Image_Init( GI->texmode, -1 );
 
-	zonepool = Mem_AllocPool( "Zone Engine" );
+	host.mempool = Mem_AllocPool( "Zone Engine" );
 
 	IN_Init();
 
@@ -678,14 +741,17 @@ void Host_InitCommon( const int argc, const char **argv )
 	num_video_dlls = num_audio_dlls = 0;
 	host_video = Cvar_Get( "host_video", "vid_gl.dll", CVAR_SYSTEMINFO, "name of video rendering library" );
 	host_audio = Cvar_Get( "host_audio", "snd_al.dll", CVAR_SYSTEMINFO, "name of sound rendering library" );
+	host_cphys = Cvar_Get( "host_cphys", "cms_qf.dll", CVAR_SYSTEMINFO, "name of physic colision library" );
 
 	// make sure what global copy has no changed with any dll checking
 	Mem_Copy( &check_vid, &render_dll, sizeof( dll_info_t ));
 	Mem_Copy( &check_snd, &vsound_dll, sizeof( dll_info_t ));
+	Mem_Copy( &check_cms, &physic_dll, sizeof( dll_info_t ));
 
 	// checking dlls don't invoke crash!
 	check_vid.crash = false;
 	check_snd.crash = false;
+	check_cms.crash = false;
 
 	dlls = FS_Search( "*.dll", true );
 
@@ -717,6 +783,17 @@ void Host_InitCommon( const int argc, const char **argv )
 				num_audio_dlls++;
 			}
 		}
+		else if(!com.strnicmp( "cms_", dlls->filenames[i], 4 ))
+		{
+			// make sure what found library is valid
+			if( Sys_LoadLibrary( dlls->filenames[i], &check_cms ))
+			{
+				MsgDev( D_NOTE, "PhysicLibrary[%i]: %s\n", num_cphys_dlls, dlls->filenames[i] );
+				com.strncpy( cphys_dlls[num_cphys_dlls], dlls->filenames[i], MAX_STRING );
+				Sys_FreeLibrary( &check_cms );
+				num_cphys_dlls++;
+			}
+		}
 	}
 	Mem_Free( dlls );
 }
@@ -724,7 +801,7 @@ void Host_InitCommon( const int argc, const char **argv )
 void Host_FreeCommon( void )
 {
 	IN_Shutdown();
-	Mem_FreePool( &zonepool );
+	Mem_FreePool( &host.mempool );
 }
 
 /*
@@ -767,7 +844,6 @@ void Host_Init( const int argc, const char **argv )
 
 	NET_Init();
 	Netchan_Init();
-	Host_InitPhysic();
 	Host_InitVprogs( argc, argv );
 
 	SV_Init();
@@ -787,6 +863,7 @@ void Host_Init( const int argc, const char **argv )
 		Cmd_AddCommand( "snd_restart", Host_SndRestart_f, "restarts audio system" );
 	}
 
+	Cmd_AddCommand( "phys_restart", Host_PhysRestart_f, "restarts physic system" );
 	Cmd_AddCommand( "game", Host_ChangeGame_f, "change game" );	// allow to change game from the console
 	host.frametime[0] = Host_Milliseconds();
 	host.errorframe = 0;

@@ -86,6 +86,37 @@ int SV_ClassIndex( const char *name )
 {
 	return SV_FindIndex( name, CS_CLASSNAMES, MAX_CLASSNAMES, true );
 }
+
+script_t *CM_GetEntityScript( void )
+{
+	if( !pe ) return SV_GetEntityScript( sv.name );
+	return pe->GetEntityScript();
+}
+
+/*
+================
+SV_PrepModels
+
+Called after changing physic.dll
+================
+*/
+void SV_PrepModels( void )
+{
+	string	name;
+	int	i;
+
+	CM_BeginRegistration( sv.configstrings[CS_MODELS+1], false, NULL );
+
+	for( i = 0; i < MAX_MODELS && sv.configstrings[CS_MODELS+1+i][0]; i++ )
+	{
+		com.strncpy( name, sv.configstrings[CS_MODELS+1+i], MAX_STRING );
+		CM_RegisterModel( name, i+1 );
+	}
+	CM_EndRegistration (); // free unused models
+
+	sv.cphys_prepped = true;
+}
+
 /*
 ================
 SV_CreateBaseline
@@ -184,7 +215,8 @@ void SV_ActivateServer( void )
 	// set serverinfo variable
 	Cvar_FullSet( "mapname", sv.name, CVAR_SERVERINFO|CVAR_INIT );
 
-	pe->EndRegistration (); // free unused models
+	CM_EndRegistration (); // free unused models
+	sv.cphys_prepped = true;
 }
 
 /*
@@ -224,14 +256,14 @@ void SV_LevelInit( const char *newmap, const char *oldmap, const char *savename 
 	if( sv.loadgame )
 	{
 		if( savename ) SV_ReadLevelFile( savename );
-		else SV_SpawnEntities( newmap, pe->GetEntityScript( ));
+		else SV_SpawnEntities( newmap, CM_GetEntityScript( ));
 	}
 	else if( sv.changelevel )
 	{
 		SV_ReadSaveFile( savename );	// initialize StringTable and globals
 		SV_MergeLevelFile( savename );// combine moveable entities with newmap
 	}
-	else SV_SpawnEntities( newmap, pe->GetEntityScript());
+	else SV_SpawnEntities( newmap, CM_GetEntityScript());
 }
 
 /*
@@ -309,14 +341,14 @@ void SV_SpawnServer( const char *server, const char *startspot )
 	else sv.startspot[0] = '\0';
 
 	com.sprintf( sv.configstrings[CS_MODELS+1], "maps/%s.bsp", sv.name );
-	pe->BeginRegistration( sv.configstrings[CS_MODELS+1], false, &checksum );
+	CM_BeginRegistration( sv.configstrings[CS_MODELS+1], false, &checksum );
 	com.sprintf( sv.configstrings[CS_MAPCHECKSUM], "%i", checksum );
 	com.strncpy( sv.configstrings[CS_SKYNAME], "<skybox>", 64 );
 
 	// clear physics interaction links
 	SV_ClearWorld();
 
-	for( i = 1; i < pe->NumBmodels(); i++ )
+	for( i = 1; i < CM_NumBmodels(); i++ )
 	{
 		com.sprintf( sv.configstrings[CS_MODELS+1+i], "*%i", i );
 		CM_RegisterModel( sv.configstrings[CS_MODELS+1+i], i+1 );
@@ -350,11 +382,14 @@ void SV_InitGame( void )
 		// init game after host error
 		if( !svgame.hInstance )
 			SV_LoadProgs( "server" );
+
+		// fire once
+		MsgDev( D_INFO, "Dll loaded for mod %s\n", svgame.dllFuncs.pfnGetGameDescription() );
+
 		// make sure the client is down
 		CL_Drop();
 	}
 
-	MsgDev( D_INFO, "Dll loaded for mod %s\n", svgame.dllFuncs.pfnGetGameDescription() );
 	svs.initialized = true;
 
 	if( Cvar_VariableValue( "coop" ) && Cvar_VariableValue ( "deathmatch" ) && Cvar_VariableValue( "teamplay" ))
@@ -394,7 +429,7 @@ void SV_InitGame( void )
 	svs.spawncount = RANDOM_LONG( 0, 65535 );
 	svs.clients = Z_Malloc( sizeof( sv_client_t ) * sv_maxclients->integer );
 	svs.num_client_entities = sv_maxclients->integer * UPDATE_BACKUP * 64; // g-cont: what a mem waster ???
-	svs.client_entities = Z_Malloc( sizeof(entity_state_t) * svs.num_client_entities );
+	svs.client_entities = Z_Malloc( sizeof( entity_state_t ) * svs.num_client_entities );
 	svs.baselines = Z_Malloc( sizeof( entity_state_t ) * GI->max_edicts );
 
 	// copy gamemode into svgame.globals
@@ -421,4 +456,9 @@ void SV_InitGame( void )
 bool SV_Active( void )
 {
 	return svs.initialized;
+}
+
+void SV_ForceMod( void )
+{
+	sv.cphys_prepped = false;
 }

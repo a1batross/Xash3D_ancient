@@ -361,7 +361,6 @@ extern cvar_t *r_fullbright;
 extern cvar_t *r_lightmap;
 extern cvar_t *r_novis;
 extern cvar_t *r_nocull;
-extern cvar_t *r_lerpmodels;
 extern cvar_t *r_ignorehwgamma;
 extern cvar_t *r_overbrightbits;
 extern cvar_t *r_mapoverbrightbits;
@@ -484,14 +483,6 @@ void		R_LatLongToNorm( const byte latlong[2], vec3_t out );
 void		NormToLatLong( const vec3_t normal, byte latlong[2] );
 
 //====================================================================
-
-//
-// r_alias.c
-//
-bool		R_CullAliasModel( ref_entity_t *e );
-void		R_AddAliasModelToList( ref_entity_t *e );
-void		R_DrawAliasModel( const meshbuffer_t *mb );
-float		R_AliasModelBBox( ref_entity_t *e, vec3_t mins, vec3_t maxs );
 
 //
 // r_bloom.c

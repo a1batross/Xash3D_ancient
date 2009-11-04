@@ -82,6 +82,7 @@ typedef struct server_s
 	byte		multicast_buf[MAX_MSGLEN];
 
 	bool		autosaved;
+	bool		cphys_prepped;
 } server_t;
 
 typedef struct
@@ -209,9 +210,9 @@ typedef struct
 
 	globalvars_t	*globals;			// server globals
 	DLL_FUNCTIONS	dllFuncs;			// dll exported funcs
-	byte		*mempool;			// edicts pool
 	byte		*private;			// server.dll private pool
 	byte		*temppool;		// for parse, save and restore edicts
+	byte		*mempool;			// server premamnent pool: edicts etc
 
 	// library exports table
 	word		*ordinals;
@@ -302,6 +303,7 @@ void Master_Packet (void);
 // sv_init.c
 //
 void SV_InitGame( void );
+void SV_PrepModels( void );
 void SV_ActivateServer( void );
 void SV_DeactivateServer( void );
 void SV_LevelInit( const char *newmap, const char *oldmap, const char *savename );
@@ -370,6 +372,7 @@ bool SV_CopyEdict( edict_t *out, edict_t *in );
 void SV_ConfigString( int index, const char *val );
 void SV_SetModel( edict_t *ent, const char *name );
 void SV_CopyTraceToGlobal( trace_t *trace );
+script_t *SV_GetEntityScript( const char *filename );
 float SV_AngleMod( float ideal, float current, float speed );
 void SV_SpawnEntities( const char *mapname, script_t *entities );
 edict_t* SV_AllocPrivateData( edict_t *ent, string_t className );
@@ -377,6 +380,7 @@ string_t SV_AllocString( const char *szValue );
 const char *SV_GetString( string_t iString );
 bool SV_MapIsValid( const char *filename, const char *spawn_entity );
 void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float attn, int flags, int pitch );
+script_t *CM_GetEntityScript( void );
 
 _inline edict_t *SV_EDICT_NUM( int n, const char * file, const int line )
 {

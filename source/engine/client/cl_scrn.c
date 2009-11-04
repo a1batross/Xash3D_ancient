@@ -277,6 +277,11 @@ bool SCR_PlayCinematic( char *name, int bits )
 	return false;
 }
 
+bool SCR_CinActive( void )
+{
+	return (cls.state == ca_cinematic);
+}
+
 void SCR_DrawCinematic( void )
 {
 	CIN_DrawCinematic();

@@ -115,10 +115,10 @@ model_t SV_HullForEntity( const edict_t *ent )
 	if( ent->v.flags & (FL_MONSTER|FL_CLIENT|FL_FAKECLIENT))
 	{
 		// create a temp capsule from bounding box sizes
-		return pe->TempModel( ent->v.mins, ent->v.maxs, true );
+		return CM_TempModel( ent->v.mins, ent->v.maxs, true );
 	}
 	// create a temp tree from bounding box sizes
-	return pe->TempModel( ent->v.mins, ent->v.maxs, false );
+	return CM_TempModel( ent->v.mins, ent->v.maxs, false );
 }
 
 /*
@@ -249,7 +249,7 @@ void SV_LinkEdict( edict_t *ent, bool touch_triggers )
 	// set areas, even from clusters that don't fit in the entity array
 	for( i = 0; i < num_leafs; i++ )
 	{
-		area = pe->LeafArea( leafs[i] );
+		area = CM_LeafArea( leafs[i] );
 		if( area != -1 )
 		{	
 			// doors may legally straggle two areas,
@@ -418,8 +418,8 @@ trace_t SV_ClipMoveToEntity( edict_t *ent, const vec3_t start, vec3_t mins, vec3
 	else umask = MASK_SOLID;
 
 	if( ent == svgame.edicts )
-		pe->BoxTrace1( &trace, start, end, mins, maxs, handle, umask, TR_AABB );
-	else pe->BoxTrace2( &trace, start, end, mins, maxs, handle, umask, origin, angles, TR_AABB );
+		CM_BoxTrace( &trace, start, end, mins, maxs, handle, umask, TR_AABB );
+	else CM_TransformedBoxTrace( &trace, start, end, mins, maxs, handle, umask, origin, angles, TR_AABB );
 
 	// did we clip the move?
 	if( trace.flFraction < 1.0f || trace.fStartSolid )
@@ -616,7 +616,7 @@ int SV_BaseContents( const vec3_t p )
 	edict_t		*hit;
 
 	// get base contents from world
-	contents = pe->PointContents1( p, 0 );
+	contents = CM_PointContents( p, 0 );
 
 	// or in contents from all the other entities
 	num = SV_AreaEdicts( p, p, touch, MAX_EDICTS, AREA_SOLID );
@@ -631,7 +631,7 @@ int SV_BaseContents( const vec3_t p )
 			angles = hit->v.angles;
 		else angles = vec3_origin;	// boxes don't rotate
 
-		c2 = pe->PointContents2( p, handle, hit->v.origin, hit->v.angles );
+		c2 = CM_TransformedPointContents( p, handle, hit->v.origin, hit->v.angles );
 		contents |= c2;
 	}
 	return contents;

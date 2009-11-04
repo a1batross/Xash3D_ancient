@@ -51,12 +51,18 @@ bool Cmd_GetMapList( const char *s, char *completedname, int length )
 	
 		if( f )
 		{
-			Mem_Set( buf, 0, 1024 );
-			FS_Read( f, buf, 1024 );
+			dheader_t	*header;
 
-			if( !memcmp( buf, "IBSP", 4 ) || !memcmp( buf, "RBSP", 4 ) || !memcmp( buf, "FBSP", 4 ))
+			Mem_Set( buf, 0, MAX_SYSPATH );
+			FS_Read( f, buf, MAX_SYSPATH );
+                              
+			switch( LittleLong(*(uint *)buf) )
 			{
-				dheader_t *header = (dheader_t *)buf;
+			case IDBSPMODHEADER:
+			case RBBSPMODHEADER:
+			case QFBSPMODHEADER:
+			case XRBSPMODHEADER:
+				header = (dheader_t *)buf;
 				ver = LittleLong(((int *)buf)[1]);
 
 				switch( ver )
@@ -64,10 +70,12 @@ bool Cmd_GetMapList( const char *s, char *completedname, int length )
 				case Q3IDBSP_VERSION:	// quake3 arena
 				case RTCWBSP_VERSION:	// return to castle wolfenstein
 				case RFIDBSP_VERSION:	// raven or qfusion bsp
+				case XRIDBSP_VERSION:	// x-real engine
 					lumpofs = LittleLong( header->lumps[LUMP_ENTITIES].fileofs );
 					lumplen = LittleLong( header->lumps[LUMP_ENTITIES].filelen );
 					break;
 				}
+				break;
 			}
 
 			com.strncpy( entfilename, t->filenames[i], sizeof( entfilename ));
@@ -80,7 +88,7 @@ bool Cmd_GetMapList( const char *s, char *completedname, int length )
 				char *entities = NULL;
 		
 				FS_Seek( f, lumpofs, SEEK_SET );
-				entities = (char *)Z_Malloc( lumplen + 1 );
+				entities = (char *)Mem_Alloc( cls.mempool, lumplen + 1 );
 				FS_Read( f, entities, lumplen );
 				ents = Com_OpenScript( "ents", entities, lumplen + 1 );
 				Mem_Free( entities ); // no reason to keep it
@@ -120,6 +128,9 @@ bool Cmd_GetMapList( const char *s, char *completedname, int length )
 			break;
 		case RFIDBSP_VERSION:
 			com.strncpy( buf, "Soldier Of Fortune 2", sizeof( buf ));
+			break;
+		case XRIDBSP_VERSION:
+			com.strncpy( buf, "X-Real Engine format", sizeof( buf ));
 			break;
 		default:	com.strncpy( buf, "??", sizeof( buf )); break;
 		}
@@ -695,7 +706,7 @@ bool Cmd_CheckMapsList( void )
 	t = FS_Search( "maps/*.bsp", false );
 	if( !t ) return false;
 
-	buffer = Z_Malloc( t->numfilenames * 2 * sizeof( result ));
+	buffer = Mem_Alloc( cls.mempool, t->numfilenames * 2 * sizeof( result ));
 	for( i = 0; i < t->numfilenames; i++ )
 	{
 		script_t		*ents = NULL;
@@ -709,24 +720,32 @@ bool Cmd_CheckMapsList( void )
 
 		if( f )
 		{
-			int num_spawnpoints = 0;
+			int	num_spawnpoints = 0;
+			dheader_t	*header;
 
 			Mem_Set( buf, 0, MAX_SYSPATH );
 			FS_Read( f, buf, MAX_SYSPATH );
-
-			if( !memcmp( buf, "IBSP", 4 ) || !memcmp( buf, "RBSP", 4 ) || !memcmp( buf, "FBSP", 4 ))
+                              
+			switch( LittleLong(*(uint *)buf) )
 			{
-				dheader_t *header = (dheader_t *)buf;
+			case IDBSPMODHEADER:
+			case RBBSPMODHEADER:
+			case QFBSPMODHEADER:
+			case XRBSPMODHEADER:
+				header = (dheader_t *)buf;
 				ver = LittleLong(((int *)buf)[1]);
+
 				switch( ver )
 				{
 				case Q3IDBSP_VERSION:	// quake3 arena
 				case RTCWBSP_VERSION:	// return to castle wolfenstein
 				case RFIDBSP_VERSION:	// raven or qfusion bsp
-					lumpofs = LittleLong(header->lumps[LUMP_ENTITIES].fileofs);
-					lumplen = LittleLong(header->lumps[LUMP_ENTITIES].filelen);
+				case XRIDBSP_VERSION:	// x-real engine
+					lumpofs = LittleLong( header->lumps[LUMP_ENTITIES].fileofs );
+					lumplen = LittleLong( header->lumps[LUMP_ENTITIES].filelen );
 					break;
 				}
+				break;
 			}
 
 			com.strncpy( entfilename, t->filenames[i], sizeof( entfilename ));
@@ -739,7 +758,7 @@ bool Cmd_CheckMapsList( void )
 				char *entities = NULL;
 		
 				FS_Seek( f, lumpofs, SEEK_SET );
-				entities = (char *)Z_Malloc( lumplen + 1 );
+				entities = (char *)Mem_Alloc( cls.mempool, lumplen + 1 );
 				FS_Read( f, entities, lumplen );
 				ents = Com_OpenScript( "ents", entities, lumplen + 1 );
 				Mem_Free( entities ); // no reason to keep it

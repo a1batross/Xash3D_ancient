@@ -185,6 +185,13 @@ _inline void Matrix3x3_Transform( matrix3x3 in, const float v[3], float out[3] )
 	out[2] = in[2][0] * v[0] + in[2][1] * v[1] + in[2][2] * v[2];
 }
 
+_inline void Matrix3x3_TransformVector( matrix3x3 in, vec3_t v, vec3_t out )
+{
+	out[0] = in[0][0] * v[0] + in[0][1] * v[1] + in[0][2] * v[2];
+	out[1] = in[1][0] * v[0] + in[1][1] * v[1] + in[1][2] * v[2];
+	out[2] = in[2][0] * v[0] + in[2][1] * v[1] + in[2][2] * v[2];
+}
+
 _inline void Matrix3x3_CreateRotate( matrix3x3 out, float angle, float x, float y, float z )
 {
 	float	len, c, s;

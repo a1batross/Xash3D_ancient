@@ -1337,7 +1337,6 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 			break;
 		case mod_world:
 		case mod_brush:
-		case mod_alias:
 		case mod_studio:
 		case mod_sprite:
 			break;
@@ -1364,7 +1363,6 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 			pass->rgbGen.type = RGBGEN_VERTEX;
 			pass->alphaGen.type = ALPHAGEN_ENTITY;
 			break;
-		case mod_alias:
 		case mod_studio:
 			break;
 		case mod_sprite:
@@ -1386,7 +1384,6 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 			break;
 		case mod_world:
 		case mod_brush:
-		case mod_alias:
 		case mod_studio:
 			break;
 		case mod_sprite:
@@ -1406,7 +1403,6 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 			break;
 		case mod_world:
 		case mod_brush:
-		case mod_alias:
 		case mod_studio:
 			break;
 		case mod_sprite:
@@ -1431,8 +1427,6 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
 			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
 			pass->alphaGen.type = ALPHAGEN_ENTITY;
-			break;
-		case mod_alias:
 			break;
 		case mod_studio:
 			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);

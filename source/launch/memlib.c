@@ -1012,7 +1012,7 @@ static void _mem_freeblock(memheader_t *mem, const char *filename, int fileline)
 	// memheader has been unlinked, do the actual free now
 	pool->totalsize -= mem->size;
 
-	MsgDev(D_MEMORY, "Mem_Free: \"%s\"[%s], at (%s:%i)\n", pool->name, com_pretifymem( mem->size, 1 ), filename, fileline );
+	MsgDev( D_MEMORY, "Mem_Free: \"%s\"[%s], at (%s:%i)\n", pool->name, com_pretifymem( mem->size, 1 ), filename, fileline );
 	if((clump = mem->clump))
 	{
 		if (clump->sentinel1 != MEMCLUMP_SENTINEL)

@@ -484,9 +484,6 @@ static void R_BatchMeshBuffer( const meshbuffer_t *mb, const meshbuffer_t *nextm
 				R_RenderMeshBuffer( mb );
 			}
 			break;
-		case mod_alias:
-			R_DrawAliasModel( mb );
-			break;
 		case mod_studio:
 			R_DrawStudioModel( mb );
 			break;

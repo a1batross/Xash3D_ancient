@@ -1028,7 +1028,7 @@ void UI_Init( void )
 	Cmd_AddCommand( "menu_newgame", UI_NewGame_Menu, "open the newgame menu" );
 	Cmd_AddCommand( "menu_loadgame", UI_LoadGame_Menu, "open the loadgame menu" );
 	Cmd_AddCommand( "menu_savegame", UI_SaveGame_Menu, "open the savegame menu" );
-	Cmd_AddCommand( "menu_saveload", UI_SaveGame_Menu, "open the save\\load menu" );
+	Cmd_AddCommand( "menu_saveload", UI_SaveLoad_Menu, "open the save\\load menu" );
 	Cmd_AddCommand( "menu_multiplayer", UI_MultiPlayer_Menu, "open the multiplayer menu" );
 	Cmd_AddCommand( "menu_options", UI_Options_Menu, "open the options menu" );
 	Cmd_AddCommand( "menu_playersetup", UI_PlayerSetup_Menu, "open the player setup menu" );
@@ -1042,7 +1042,6 @@ void UI_Init( void )
 	Cmd_AddCommand( "menu_defaults", UI_Defaults_Menu, "open the 'reset to defaults' dialog" );
 	Cmd_AddCommand( "menu_demos", UI_Demos_Menu, "open the demos viewer menu" );
 	Cmd_AddCommand( "menu_mods", UI_Mods_Menu, "open the change game menu" );
-	Cmd_AddCommand( "menu_credits", UI_Credits_Menu, "open the credits menu" );
 
 	uiStatic.scaleX = scr_width->integer / 1024.0f;
 	uiStatic.scaleY = scr_height->integer / 768.0f;
@@ -1080,7 +1079,6 @@ void UI_Shutdown( void )
 	Cmd_RemoveCommand( "menu_demos" );
 	Cmd_RemoveCommand( "menu_mods" );
 	Cmd_RemoveCommand( "menu_quit" );
-	Cmd_RemoveCommand( "menu_credits" );
 
 	Mem_Set( &uiStatic, 0, sizeof( uiStatic_t ));
 }

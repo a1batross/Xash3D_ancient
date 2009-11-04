@@ -14,16 +14,12 @@
 #include "qfiles_ref.h"
 #include "engine_api.h"
 #include "entity_def.h"
+#include "render_api.h"
 #include "physic_api.h"
 #include "vprogs_api.h"
 #include "vsound_api.h"
+#include "safeproc.h"
 #include "net_msg.h"
-
-// linked interfaces
-extern stdlib_api_t		com;
-extern physic_exp_t		*pe;
-extern vprogs_exp_t		*vm;
-extern vsound_exp_t		*se;
 
 #define MAX_ENTNUMBER	99999		// for server and client parsing
 #define MAX_HEARTBEAT	-99999		// connection time
@@ -94,6 +90,7 @@ typedef struct host_parm_s
 	host_redirect_t	rd;		// remote console
 	jmp_buf		abortframe;	// abort current frame
 	dword		errorframe;	// to avoid each-frame host error
+	byte		*mempool;		// static mempool for misc allocations
 	string		finalmsg;		// server shutdown final message
 
 	int		frametime[2];	// time between engine frames
@@ -124,6 +121,7 @@ void Host_WriteDefaultConfig( void );
 void Host_WriteConfig( void );
 void Host_ShutdownServer( void );
 void Host_CheckChanges( void );
+void Host_CheckRestart( void );
 int Host_Milliseconds( void );
 void Host_Print( const char *txt );
 void Host_Error( const char *error, ... );
@@ -186,52 +184,54 @@ float pfnTime( void );
 */
 #define MAX_INFO_STRING	512
 
-extern byte *zonepool;
-
-#define Z_Malloc(size)		Mem_Alloc( zonepool, size )
-#define Z_Realloc( ptr, size )	Mem_Realloc( zonepool, ptr, size )
+#define Z_Malloc(size)		Mem_Alloc( host.mempool, size )
+#define Z_Realloc( ptr, size )	Mem_Realloc( host.mempool, ptr, size )
 #define Z_Free( ptr )		if( ptr ) Mem_Free( ptr )
 
 //
-// physic.dll exports
+// keys.c
 //
-#define Mod_GetBounds	if( pe ) pe->Mod_GetBounds
-#define Mod_GetFrames	if( pe ) pe->Mod_GetFrames
-#define CM_RegisterModel	if( pe ) pe->RegisterModel
+bool Key_IsDown( int keynum );
+char *Key_IsBind( int keynum );
+void Key_Event( int key, bool down, int time );
+void Key_Init( void );
+void Key_WriteBindings( file_t *f );
+void Key_SetBinding( int keynum, char *binding );
+void Key_ClearStates( void );
+char *Key_KeynumToString( int keynum );
+int Key_StringToKeynum( char *str );
+int Key_GetKey( const char *binding );
+void Key_EnumCmds_f( void );
+void Key_SetKeyDest( int key_dest );
 
-_inline int CM_LeafArea( int leafnum )
-{
-	if( !pe )	return -1;
-	return pe->LeafArea( leafnum );
-}		
-
-_inline int CM_LeafCluster( int leafnum )
-{
-	if( !pe )	return -1;
-	return pe->LeafCluster( leafnum );
-}
-
-_inline int CM_BoxLeafnums( vec3_t mins, vec3_t maxs, int *list, int listsize, int *lastleaf )
-{
-	if( !pe )
-	{
-		if( lastleaf ) *lastleaf = 0;
-		return 0;
-	}
-	return pe->BoxLeafnums( mins, maxs, list, listsize, lastleaf );
-}
-
-_inline void *Mod_Extradata( model_t modelIndex )
-{
-	if( !pe )	return NULL;
-	return pe->Mod_Extradata( modelIndex );
-}
-
+int CL_GetServerTime( void );
+float CL_GetLerpFrac( void );
+void CL_CharEvent( int key );
+int CL_PointContents( const vec3_t point );
+void CL_StudioFxTransform( edict_t *ent, float transform[4][4] );
 void CL_GetEntitySoundSpatialization( int ent, vec3_t origin, vec3_t velocity );
+bool CL_GetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles );
+bool CL_SetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles );
+void CL_StudioEvent( dstudioevent_t *event, edict_t *ent );
+prevframe_t *CL_GetPrevFrame( int entityIndex );
+edict_t *CL_GetEdictByIndex( int index );
+edict_t *CL_GetLocalPlayer( void );
+int CL_GetMaxClients( void );
+byte CL_GetMouthOpen( int entityIndex );
 bool SV_GetComment( char *comment, int savenum );
+void SV_ForceMod( void );
 void CL_MouseEvent( int mx, int my );
 void CL_AddLoopingSounds( void );
+void CL_Disconnect( void );
+bool CL_NextDemo( void );
 void CL_Drop( void );
+void CL_ForceVid( void );
+void CL_ForceSnd( void );
+void SCR_Init( void );
+void SCR_UpdateScreen( void );
+void SCR_Shutdown( void );
+bool SCR_CinActive( void );
+void Con_Print( const char *txt );
 char *Info_ValueForKey( char *s, char *key );
 void Info_RemoveKey( char *s, char *key );
 void Info_SetValueForKey( char *s, char *key, char *value );

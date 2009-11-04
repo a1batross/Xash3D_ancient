@@ -1715,7 +1715,7 @@ void SV_Physics( void )
 	}
 
 	// let everything in the world think and move
-	pe->Frame( svgame.globals->frametime );
+	CM_Frame( svgame.globals->frametime );
 
 	svgame.globals->time = sv.time * 0.001f;
 

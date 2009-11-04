@@ -993,20 +993,20 @@ void _MSG_Send( msgtype_t msg_type, vec3_t origin, const edict_t *ent, const cha
 		// intentional fallthrough
 	case MSG_PHS:
 		if( origin == NULL ) return;
-		leafnum = pe->PointLeafnum( origin );
-		cluster = pe->LeafCluster( leafnum );
-		mask = pe->ClusterPHS( cluster );
-		area1 = pe->LeafArea( leafnum );
+		leafnum = CM_PointLeafnum( origin );
+		cluster = CM_LeafCluster( leafnum );
+		mask = CM_ClusterPHS( cluster );
+		area1 = CM_LeafArea( leafnum );
 		break;
 	case MSG_PVS_R:
 		reliable = true;
 		// intentional fallthrough
 	case MSG_PVS:
 		if( origin == NULL ) return;
-		leafnum = pe->PointLeafnum( origin );
-		cluster = pe->LeafCluster( leafnum );
-		mask = pe->ClusterPVS( cluster );
-		area1 = pe->LeafArea( leafnum );
+		leafnum = CM_PointLeafnum( origin );
+		cluster = CM_LeafCluster( leafnum );
+		mask = CM_ClusterPVS( cluster );
+		area1 = CM_LeafArea( leafnum );
 		break;
 	case MSG_ONE_R:
 		reliable = true;
@@ -1036,10 +1036,10 @@ void _MSG_Send( msgtype_t msg_type, vec3_t origin, const edict_t *ent, const cha
 
 		if( mask )
 		{
-			area2 = pe->LeafArea( leafnum );
-			cluster = pe->LeafCluster( leafnum );
-			leafnum = pe->PointLeafnum( cl->edict->v.origin );
-			if(!pe->AreasConnected( area1, area2 )) continue;
+			area2 = CM_LeafArea( leafnum );
+			cluster = CM_LeafCluster( leafnum );
+			leafnum = CM_PointLeafnum( cl->edict->v.origin );
+			if(!CM_AreasConnected( area1, area2 )) continue;
 			if( mask && (!(mask[cluster>>3] & (1<<(cluster & 7)))))
 				continue;
 		}

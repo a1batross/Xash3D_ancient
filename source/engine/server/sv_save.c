@@ -147,7 +147,7 @@ static void SV_SaveEngineData( wfile_t *f )
 	string_t		csbuffer[MAX_CONFIGSTRINGS];
 
 	// save areaportals state
-	pe->GetAreaPortals( &portalstate, &portalsize );
+	CM_GetAreaPortals( &portalstate, &portalsize );
 	SV_AddSaveLump( f, LUMP_AREASTATE, portalstate, portalsize, true );
 	if( portalstate ) Mem_Free( portalstate ); // allocated in physic.dll
 
@@ -433,7 +433,7 @@ void SV_ReadAreaPortals( wfile_t *l )
 	int	size;
 
 	in = WAD_Read( l, LUMP_AREASTATE, &size, TYPE_BINDATA );
-	pe->SetAreaPortals( in, size ); // CM_ReadPortalState();
+	CM_SetAreaPortals( in, size ); // CM_ReadPortalState();
 }
 
 void SV_ReadGlobals( wfile_t *l )
@@ -603,7 +603,7 @@ void SV_ReadEntities( wfile_t *l )
 	if( sv.changelevel )
 	{
 		// spawn all the entities of the newmap
-		SV_SpawnEntities( sv.name, pe->GetEntityScript());
+		SV_SpawnEntities( sv.name, CM_GetEntityScript( ));
 	}
 
 	SV_ReadBuffer( l, LUMP_BASEENTS );

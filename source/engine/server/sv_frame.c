@@ -186,15 +186,15 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 	// specfically check for it
 	if( !sv.state ) return;
 
-	clientpvs = pe->FatPVS( origin, portal );
+	clientpvs = CM_FatPVS( origin, portal );
 
-	leafnum = pe->PointLeafnum( origin );
-	clientarea = pe->LeafArea( leafnum );
-	clientcluster = pe->LeafCluster( leafnum );
+	leafnum = CM_PointLeafnum( origin );
+	clientarea = CM_LeafArea( leafnum );
+	clientcluster = CM_LeafCluster( leafnum );
 
 	// calculate the visible areas
-	frame->areabits_size = pe->WriteAreaBits( frame->areabits, clientarea, portal );
-	clientphs = pe->FatPHS( clientcluster, portal );
+	frame->areabits_size = CM_WriteAreaBits( frame->areabits, clientarea, portal );
+	clientphs = CM_FatPHS( clientcluster, portal );
 
 	for( e = 1; e < svgame.globals->numEntities; e++ )
 	{
@@ -243,11 +243,11 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 		if( !force )
 		{
 			// ignore if not touching a PV leaf check area
-			if( !pe->AreasConnected( clientarea, ent->pvServerData->areanum ))
+			if( !CM_AreasConnected( clientarea, ent->pvServerData->areanum ))
 			{
 				// doors can legally straddle two areas, so
 				// we may need to check another one
-				if( !pe->AreasConnected( clientarea, ent->pvServerData->areanum2 ))
+				if( !CM_AreasConnected( clientarea, ent->pvServerData->areanum2 ))
 					continue;	// blocked by a door
 			}
 		}

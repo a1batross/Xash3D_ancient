@@ -315,6 +315,14 @@ void SV_Frame( int time )
 	// read packets from clients
 	SV_ReadPackets ();
 
+	Host_CheckRestart ();
+
+	// allow physic DLL change
+	if( sv.state == ss_active )
+	{
+		if( !sv.cphys_prepped ) SV_PrepModels();
+	}
+
 	// move autonomous things around if enough time has passed
 	if( svs.realtime < sv.time )
 	{
@@ -472,9 +480,7 @@ void SV_Init( void )
 
 	sv_reconnect_limit = Cvar_Get ("sv_reconnect_limit", "3", CVAR_ARCHIVE, "max reconnect attempts" );
 
-	// init game
-	SV_LoadProgs( "server" );
-
+	Host_CheckRestart ();
 	MSG_Init( &net_message, net_message_buffer, sizeof( net_message_buffer ));
 }
 
@@ -546,8 +552,8 @@ void SV_Shutdown( bool reconnect )
 	Host_SetServerState( sv.state );
 
 	// free server static data
-	if( svs.clients ) Mem_Free( svs.clients );
-	if( svs.baselines ) Mem_Free( svs.baselines );
-	if( svs.client_entities ) Mem_Free( svs.client_entities );
+	if( svs.clients ) Z_Free( svs.clients );
+	if( svs.baselines ) Z_Free( svs.baselines );
+	if( svs.client_entities ) Z_Free( svs.client_entities );
 	Mem_Set( &svs, 0, sizeof( svs ));
 }

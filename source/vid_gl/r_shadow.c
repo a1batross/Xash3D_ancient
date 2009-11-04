@@ -289,9 +289,6 @@ add:
 	// get model bounds
 	switch( ent->model->type )
 	{
-	case mod_alias:
-		R_AliasModelBBox( ent, mins, maxs );
-		break;
 	case mod_studio:
 		R_StudioModelBBox( ent, mins, maxs );
 		break;

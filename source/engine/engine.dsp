@@ -362,6 +362,10 @@ SOURCE=.\common\net_msg.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\safeproc.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\server\server.h
 # End Source File
 # Begin Source File

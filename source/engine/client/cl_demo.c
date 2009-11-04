@@ -154,12 +154,12 @@ Called when a demo or cinematic finishes
 If the "nextdemo" cvar is set, that command will be issued
 ==================
 */
-void CL_NextDemo( void )
+bool CL_NextDemo( void )
 {
 	string	str;
 
 	if( cls.demonum == -1 )
-		return;	// don't play demos
+		return false; // don't play demos
 
 	S_StopAllSounds();
 
@@ -170,7 +170,7 @@ void CL_NextDemo( void )
 		{
 			Msg( "no demos listed with startdemos\n" );
 			cls.demonum = -1;
-			return;
+			return false;
 		}
 	}
 
@@ -178,6 +178,8 @@ void CL_NextDemo( void )
 
 	Cbuf_InsertText( str );
 	cls.demonum++;
+
+	return true;
 }
 
 /*

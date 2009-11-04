@@ -32,7 +32,8 @@ launch\studio\
 launch\ximage\
 launch\imagelib\
 launch\extragen\
-physic\
+cms_qf\
+cms_xr\
 public\
 server\
 server\ents\

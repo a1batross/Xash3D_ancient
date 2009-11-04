@@ -1,24 +1,24 @@
-# Microsoft Developer Studio Project File - Name="physic" - Package Owner=<4>
+# Microsoft Developer Studio Project File - Name="cms_xr" - Package Owner=<4>
 # Microsoft Developer Studio Generated Build File, Format Version 6.00
 # ** DO NOT EDIT **
 
 # TARGTYPE "Win32 (x86) Dynamic-Link Library" 0x0102
 
-CFG=physic - Win32 Debug
+CFG=cms_xr - Win32 Debug
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
 !MESSAGE 
-!MESSAGE NMAKE /f "physic.mak".
+!MESSAGE NMAKE /f "cms_xr.mak".
 !MESSAGE 
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "physic.mak" CFG="physic - Win32 Debug"
+!MESSAGE NMAKE /f "cms_xr.mak" CFG="cms_xr - Win32 Debug"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
-!MESSAGE "physic - Win32 Release" (based on "Win32 (x86) Dynamic-Link Library")
-!MESSAGE "physic - Win32 Debug" (based on "Win32 (x86) Dynamic-Link Library")
+!MESSAGE "cms_xr - Win32 Release" (based on "Win32 (x86) Dynamic-Link Library")
+!MESSAGE "cms_xr - Win32 Debug" (based on "Win32 (x86) Dynamic-Link Library")
 !MESSAGE 
 
 # Begin Project
@@ -29,7 +29,7 @@ CPP=cl.exe
 MTL=midl.exe
 RSC=rc.exe
 
-!IF  "$(CFG)" == "physic - Win32 Release"
+!IF  "$(CFG)" == "cms_xr - Win32 Release"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
@@ -38,8 +38,8 @@ RSC=rc.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "..\temp\physic\!release"
-# PROP Intermediate_Dir "..\temp\physic\!release"
+# PROP Output_Dir "..\temp\cms_xr\!release"
+# PROP Intermediate_Dir "..\temp\cms_xr\!release"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PHYSIC_EXPORTS" /YX /FD /c
@@ -56,16 +56,16 @@ LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386
 # ADD LINK32 user32.lib msvcrt.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /libpath:"../public/libs/"
 # Begin Custom Build
-TargetDir=\Xash3D\src_main\temp\physic\!release
-InputPath=\Xash3D\src_main\temp\physic\!release\physic.dll
+TargetDir=\Xash3D\src_main\temp\cms_xr\!release
+InputPath=\Xash3D\src_main\temp\cms_xr\!release\cms_xr.dll
 SOURCE="$(InputPath)"
 
-"D:\Xash3D\bin\physic.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	copy $(TargetDir)\physic.dll "D:\Xash3D\bin\physic.dll"
+"D:\Xash3D\bin\cms_xr.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy $(TargetDir)\cms_xr.dll "D:\Xash3D\bin\cms_xr.dll"
 
 # End Custom Build
 
-!ELSEIF  "$(CFG)" == "physic - Win32 Debug"
+!ELSEIF  "$(CFG)" == "cms_xr - Win32 Debug"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 1
@@ -74,8 +74,8 @@ SOURCE="$(InputPath)"
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "..\temp\physic\!debug"
-# PROP Intermediate_Dir "..\temp\physic\!debug"
+# PROP Output_Dir "..\temp\cms_xr\!debug"
+# PROP Intermediate_Dir "..\temp\cms_xr\!debug"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PHYSIC_EXPORTS" /YX /FD /GZ /c
@@ -93,12 +93,12 @@ LINK32=link.exe
 # ADD LINK32 user32.lib msvcrtd.lib /nologo /dll /debug /machine:I386 /nodefaultlib:"libc.lib" /pdbtype:sept
 # SUBTRACT LINK32 /nodefaultlib
 # Begin Custom Build
-TargetDir=\Xash3D\src_main\temp\physic\!debug
-InputPath=\Xash3D\src_main\temp\physic\!debug\physic.dll
+TargetDir=\Xash3D\src_main\temp\cms_xr\!debug
+InputPath=\Xash3D\src_main\temp\cms_xr\!debug\cms_xr.dll
 SOURCE="$(InputPath)"
 
-"D:\Xash3D\bin\physic.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	copy $(TargetDir)\physic.dll "D:\Xash3D\bin\physic.dll"
+"D:\Xash3D\bin\cms_xr.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy $(TargetDir)\cms_xr.dll "D:\Xash3D\bin\cms_xr.dll"
 
 # End Custom Build
 
@@ -106,8 +106,8 @@ SOURCE="$(InputPath)"
 
 # Begin Target
 
-# Name "physic - Win32 Release"
-# Name "physic - Win32 Debug"
+# Name "cms_xr - Win32 Release"
+# Name "cms_xr - Win32 Debug"
 # Begin Group "Source Files"
 
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"

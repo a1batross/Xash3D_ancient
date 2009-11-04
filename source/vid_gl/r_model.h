@@ -110,6 +110,7 @@ typedef struct mleaf_s
 	// leaf specific
 	int		visframe;
 	int		cluster, area;
+	int		contents;
 
 	msurface_t	**firstVisSurface;
 	msurface_t	**firstFragmentSurface;
@@ -166,126 +167,6 @@ typedef struct
 	vec3_t		gridMins;
 	int		gridBounds[4];
 } mbrushmodel_t;
-
-/*
-==============================================================================
-
-ALIAS MODELS
-
-==============================================================================
-*/
-#define MAX_SKINS		32
-
-typedef struct
-{
-	int		firstpose;
-	int		numposes;
-	float		interval;
-	daliastrivertx_t	bboxmin;
-	daliastrivertx_t	bboxmax;
-	int		frame;
-	char		name[16];
-} maliasframedesc_t;
-
-typedef struct
-{
-	daliastrivertx_t	bboxmin;
-	daliastrivertx_t	bboxmax;
-	int		frame;
-} maliasgroupdesc_t;
-
-typedef struct
-{
-	int		numframes;
-	int		intervals;
-	maliasgroupdesc_t	frames[1];	// variable sized
-} maliasgroup_t;
-
-typedef struct mtriangle_s
-{
-	int		facesfront;
-	int		vertindex[3];
-} mtriangle_t;
-
-typedef struct
-{
-	int		ident;
-	int		version;
-	vec3_t		scale;
-	vec3_t		scale_origin;
-	float		boundingradius;
-	vec3_t		eyeposition;
-	int		numskins;
-	int		skinwidth;
-	int		skinheight;
-	int		numverts;
-	int		numtris;
-	int		numframes;
-	synctype_t	synctype;
-	int		flags;
-	float		size;
-
-	int		numposes;
-	int		poseverts;
-	int		posedata;		// numposes * poseverts trivert_t
-	int		commands;		// gl command list with embedded s/t
-	ref_shader_t	*skins[MAX_SKINS][4];
-	maliasframedesc_t	frames[1];	// variable sized
-} maliashdr_t;
-
-extern	maliashdr_t	*pheader;
-extern	daliastexcoord_t	stverts[MAXALIASVERTS];
-extern	mtriangle_t	triangles[MAXALIASTRIS];
-extern	daliastrivertx_t	*poseverts[MAXALIASFRAMES];
-
-//
-// in memory representation
-//
-typedef struct
-{
-	short	  	point[3];
-	byte	  	latlong[2];	// use bytes to keep 8-byte alignment
-} maliasvertex_t;
-
-typedef struct
-{
-	vec3_t	  	mins, maxs;
-	vec3_t	  	scale;
-	vec3_t	  	translate;
-	float	  	radius;
-} maliasframe_t;
-
-typedef struct
-{
-	ref_shader_t	*shader;
-} maliasskin_t;
-
-typedef struct
-{
-	char		name[MAX_SHADERPATH];
-	int		numverts;
-	maliasvertex_t	*vertexes;
-	vec2_t		*stArray;
-	vec4_t		*xyzArray;
-	vec4_t		*normalsArray;
-	vec4_t		*sVectorsArray;
-	int		numtris;
-	elem_t		*elems;
-	int		numskins;
-	maliasskin_t	*skins;
-} maliasmesh_t;
-
-typedef struct
-{
-	int		numframes;
-	maliasframe_t	*frames;
-
-	int	 	nummeshes;
-	maliasmesh_t	*meshes;
-
-	int		numskins;
-	maliasskin_t	*skins;
-} maliasmodel_t;
 
 /*
 ==============================================================================

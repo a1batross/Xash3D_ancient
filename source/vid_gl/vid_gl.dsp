@@ -118,10 +118,6 @@ SOURCE=.\cin.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\r_aliasq.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\r_backend.c
 # End Source File
 # Begin Source File

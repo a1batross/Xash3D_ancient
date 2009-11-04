@@ -135,7 +135,7 @@ Beta 13.12.09
 108. prepare QuArK to Xash-ready		OK
 109. implement q1 models instead of q3 models	OK
 110. loading textures for q1 models		OK
-111. remove alias models support
+111. remove alias models support		OK
 112. clean up renderer sources		OK
 113. fixup debug tools			OK
 114. fixup shadowmaps			OK
@@ -150,7 +150,7 @@ Beta 13.12.09
 123. fixup studio EF_ANIMATE			OK
 124. fixup studio events on client-side		OK
 125. sort & implement engfuncs on server.dll
-126. implement trace from Quake3
+126. implement trace from Quake3		OK
 127. debug sv.edicts and cl.edicts management	OK
 128. fixup sprites lerping			OK
 129. fixup sound orientation			OK
@@ -159,9 +159,9 @@ Beta 13.12.09
 132. implement SENTENCE_system
 133. new sound\render system version replacement	OK
 134. dx sound engine complete			OK
-135. implement dsp, lypsync and vox
+135. implement dsp, lipsync and vox
 136. re-vision uimenu
-137. complete rewriting physic.dll
+137. complete rewriting physic.dll		OK
 138. implement hashtable for loaded sounds
 139. finalize client API's
 140. net_msg is buggly!!!!			OK

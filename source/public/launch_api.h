@@ -79,7 +79,7 @@ typedef struct { int ofs; int type; const char *name; } fields_t;	// prvm custom
 typedef void ( *cmsave_t )( void* handle, const void* buffer, size_t size );
 typedef void ( *cmdraw_t )( int color, int numpoints, const float *points );
 typedef void ( *setpair_t )( const char *key, const char *value, void *buffer, void *numpairs );
-typedef enum { mod_bad, mod_world, mod_brush, mod_alias, mod_studio, mod_sprite } modtype_t;
+typedef enum { mod_bad, mod_world, mod_brush, mod_studio, mod_sprite } modtype_t;
 typedef enum { NA_LOOPBACK, NA_BROADCAST, NA_IP } netadrtype_t;
 typedef enum { eXYZ, eYZX, eZXY, eXZY, eYXZ, eZYX } euler_t;
 typedef enum { NS_CLIENT, NS_SERVER } netsrc_t;

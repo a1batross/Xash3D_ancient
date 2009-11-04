@@ -37,7 +37,6 @@ cvar_t *r_fullbright;
 cvar_t *r_lightmap;
 cvar_t *r_novis;
 cvar_t *r_nocull;
-cvar_t *r_lerpmodels;
 cvar_t *r_ignorehwgamma;
 cvar_t *r_check_errors;
 cvar_t *r_overbrightbits;
@@ -498,7 +497,6 @@ void GL_InitCommands( void )
 	r_drawworld = Cvar_Get( "r_drawworld", "1", CVAR_CHEAT, "render world" );
 	r_novis = Cvar_Get( "r_novis", "0", 0, "ignore vis information (perfomance test)" );
 	r_nocull = Cvar_Get( "r_nocull", "0", 0, "ignore frustrum culling (perfomance test)" );
-	r_lerpmodels = Cvar_Get( "r_lerpmodels", "1", 0, "use lerping for alias and studio models" );
 	r_speeds = Cvar_Get( "r_speeds", "0", CVAR_ARCHIVE, "shows r_speeds" );
 	r_drawelements = Cvar_Get( "r_drawelements", "1", 0, "use gldrawElements or glDrawRangeElements" );
 	gl_wireframe = Cvar_Get( "gl_wireframe", "0", CVAR_CHEAT, "show mesh triangles" );

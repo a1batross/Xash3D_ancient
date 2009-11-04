@@ -32,8 +32,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 enum
 {
 BSP_IDBSP = 0,
-BSP_RAVEN,
-BSP_IGBSP,
+BSP_RAVEN = 1,
+BSP_IGBSP = 2,
+BSP_XREAL = 4
 };
 
 typedef struct
@@ -51,7 +52,8 @@ bspFormatDesc_t bspFormats[] =
 { IDBSPMODHEADER, Q3IDBSP_VERSION, 128, 128, BSP_IDBSP },
 { IDBSPMODHEADER, IGIDBSP_VERSION, 128, 128, BSP_IGBSP },
 { IDBSPMODHEADER, RTCWBSP_VERSION, 128, 128, BSP_IDBSP },
-{ RBBSPMODHEADER, RFIDBSP_VERSION, 128, 128, BSP_RAVEN }
+{ RBBSPMODHEADER, RFIDBSP_VERSION, 128, 128, BSP_RAVEN },
+{ XRBSPMODHEADER, XRIDBSP_VERSION, 128, 128, BSP_XREAL }
 };
 
 int numBspFormats = sizeof( bspFormats ) / sizeof( bspFormats[0] );
@@ -70,17 +72,16 @@ typedef struct
 	void	(*loader)( ref_model_t *mod, const void *buffer );
 } modelformatdescriptor_t;
 
-static ref_model_t *loadmodel;
-static int loadmodel_numverts;
-static vec4_t	*loadmodel_xyz_array;		// vertexes
-static vec4_t	*loadmodel_normals_array;		// normals
-static vec2_t	*loadmodel_st_array;		// texture coords
-static vec2_t	*loadmodel_lmst_array[LM_STYLES];	// lightmap texture coords
-static rgba_t	*loadmodel_colors_array[LM_STYLES];	// colors used for vertex lighting
-static dshader_t	*loadmodel_shaders[MAX_MAP_SHADERS];	// hold contents and texture size
-static int	loadmodel_numsurfelems;
-static elem_t	*loadmodel_surfelems;
-
+static ref_model_t		*loadmodel;
+static int		loadmodel_numverts;
+static vec4_t		*loadmodel_xyz_array;		// vertexes
+static vec4_t		*loadmodel_normals_array;		// normals
+static vec2_t		*loadmodel_st_array;		// texture coords
+static vec2_t		*loadmodel_lmst_array[LM_STYLES];	// lightmap texture coords
+static rgba_t		*loadmodel_colors_array[LM_STYLES];	// colors used for vertex lighting
+static dshader_t		*loadmodel_shaders[MAX_MAP_SHADERS];	// hold contents and texture size
+static int		loadmodel_numsurfelems;
+static elem_t		*loadmodel_surfelems;
 static int		loadmodel_numlightmaps;
 static mlightmapRect_t	*loadmodel_lightmapRects;
 static int		loadmodel_numshaderrefs;
@@ -88,7 +89,6 @@ static mshaderref_t		*loadmodel_shaderrefs;
 
 void Mod_SpriteLoadModel( ref_model_t *mod, const void *buffer );
 void Mod_StudioLoadModel( ref_model_t *mod, const void *buffer );
-void Mod_QAliasLoadModel( ref_model_t *mod, const void *buffer );
 void Mod_BrushLoadModel( ref_model_t *mod, const void *buffer );
 
 ref_model_t *Mod_LoadModel( ref_model_t *mod, bool crash );
@@ -104,10 +104,10 @@ static modelformatdescriptor_t mod_supportedformats[] =
 {
 { IDSPRITEHEADER,	Mod_SpriteLoadModel	}, // Half-Life sprite models
 { IDSTUDIOHEADER,	Mod_StudioLoadModel	}, // Half-Life studio models
-{ IDQALIASHEADER,	Mod_QAliasLoadModel	}, // Quake alias models
 { IDBSPMODHEADER,	Mod_BrushLoadModel	}, // Quake III Arena .bsp models
 { RBBSPMODHEADER,	Mod_BrushLoadModel	}, // SOF2 and JK2 .bsp models
 { QFBSPMODHEADER,	Mod_BrushLoadModel	}, // QFusion .bsp models
+{ XRBSPMODHEADER,	Mod_BrushLoadModel	}, // X-Real Engine .bsp
 { 0, 		NULL		}  // terminator
 };
 
@@ -366,10 +366,11 @@ ref_model_t *Mod_ForName( const char *name, bool crash )
 
 	// load the file
 	buf = (uint *)FS_LoadFile( name, NULL );
-	if( !buf && crash ) Host_Error( "Mod_ForName: %s not found\n", name );
-
-	// return the NULL model
-	if( !buf ) return NULL;
+	if( !buf )
+	{
+		if( crash ) Host_Error( "Mod_ForName: %s not found\n", name );
+		return NULL; // return the NULL model
+	}
 
 	loadmodel = mod;
 	loadmodel_xyz_array = NULL;
@@ -384,9 +385,11 @@ ref_model_t *Mod_ForName( const char *name, bool crash )
 		if( LittleLong(*(uint *)buf) == descr->ident )
 			break;
 	}
+
 	if( i == mod_numsupportedformats )
 	{
-		MsgDev( D_ERROR, "Mod_ForName: unknown fileid for %s\n", name );
+		if( crash ) Host_Error( "Mod_ForName: %s unknown format\n", name );
+		else MsgDev( D_ERROR, "Mod_ForName: %s unknown format\n", name );
 		Mem_Free( buf );
 		return NULL;
 	}
@@ -401,6 +404,7 @@ ref_model_t *Mod_ForName( const char *name, bool crash )
 	if( mod->type == mod_bad )
 	{
 		// check for loading problems
+		if( crash ) Host_Error( "Mod_ForName: %s is corrupted\n", name );
 		Mod_FreeModel( mod );
 		return NULL;
 	}
@@ -532,10 +536,10 @@ static void Mod_LoadLighting( const lump_t *l, const lump_t *faces )
 
 /*
 =================
-Mod_LoadVertexes
+Mod_LoadVertexes_IBSP
 =================
 */
-static void Mod_LoadVertexes( const lump_t *l )
+static void Mod_LoadVertexes_IBSP( const lump_t *l )
 {
 	int i, count, j;
 	dvertexq_t *in;
@@ -610,6 +614,90 @@ static void Mod_LoadVertexes( const lump_t *l )
 			out_colors[1] = ( byte )( fcolor[1] * 255 );
 			out_colors[2] = ( byte )( fcolor[2] * 255 );
 			out_colors[3] = in->color[3];
+		}
+	}
+}
+
+/*
+=================
+Mod_LoadVertexes_XBSP
+=================
+*/
+static void Mod_LoadVertexes_XBSP( const lump_t *l )
+{
+	dvertexx_t	*in;
+	float		*out_xyz, *out_normals, *out_st, *out_lmst;
+	byte		*buffer, *out_colors;
+	vec3_t		color, fcolor;
+	int		i, count, j;
+	size_t		bufSize;
+	float		div;
+
+	in = ( void * )( mod_base + l->fileofs );
+	if( l->filelen % sizeof( *in ) )
+		Host_Error( "Mod_LoadVertexes: funny lump size in %s\n", loadmodel->name );
+	count = l->filelen / sizeof( *in );
+
+	bufSize = 0;
+	bufSize += count * ( sizeof( vec4_t ) + sizeof( vec4_t ) + sizeof( vec2_t )*2 + sizeof( rgba_t ) );
+	buffer = Mod_Malloc( loadmodel, bufSize );
+
+	loadmodel_numverts = count;
+	loadmodel_xyz_array = ( vec4_t * )buffer; buffer += count*sizeof( vec4_t );
+	loadmodel_normals_array = ( vec4_t * )buffer; buffer += count*sizeof( vec4_t );
+	loadmodel_st_array = ( vec2_t * )buffer; buffer += count*sizeof( vec2_t );
+	loadmodel_lmst_array[0] = ( vec2_t * )buffer; buffer += count*sizeof( vec2_t );
+	loadmodel_colors_array[0] = ( rgba_t * )buffer; buffer += count*sizeof( rgba_t );
+	for( i = 1; i < LM_STYLES; i++ )
+	{
+		loadmodel_lmst_array[i] = loadmodel_lmst_array[0];
+		loadmodel_colors_array[i] = loadmodel_colors_array[0];
+	}
+
+	out_xyz = loadmodel_xyz_array[0];
+	out_normals = loadmodel_normals_array[0];
+	out_st = loadmodel_st_array[0];
+	out_lmst = loadmodel_lmst_array[0][0];
+	out_colors = loadmodel_colors_array[0][0];
+
+	if( r_mapoverbrightbits->integer > 0 )
+		div = (float)( 1 << r_mapoverbrightbits->integer ) / 255.0f;
+	else
+		div = 1.0f / 255.0f;
+
+	for( i = 0; i < count; i++, in++, out_xyz += 4, out_normals += 4, out_st += 2, out_lmst += 2, out_colors += 4 )
+	{
+		for( j = 0; j < 3; j++ )
+		{
+			out_xyz[j] = LittleFloat( in->point[j] );
+			out_normals[j] = LittleFloat( in->normal[j] );
+		}
+		out_xyz[3] = 1;
+		out_normals[3] = 0;
+
+		for( j = 0; j < 2; j++ )
+		{
+			out_st[j] = LittleFloat( in->tex_st[j] );
+			out_lmst[j] = LittleFloat( in->lm_st[j] );
+		}
+
+		if( r_fullbright->integer )
+		{
+			out_colors[0] = 255;
+			out_colors[1] = 255;
+			out_colors[2] = 255;
+			out_colors[3] = in->lightcolor[3];
+		}
+		else
+		{
+			for( j = 0; j < 3; j++ )
+				color[j] = ( ( float )in->lightcolor[j] * div );
+			ColorNormalize( color, fcolor );
+
+			out_colors[0] = ( byte )( fcolor[0] * 255 );
+			out_colors[1] = ( byte )( fcolor[1] * 255 );
+			out_colors[2] = ( byte )( fcolor[2] * 255 );
+			out_colors[3] = in->lightcolor[3];
 		}
 	}
 }
@@ -1011,16 +1099,16 @@ Mod_LoadFaceCommon
 */
 static _inline void Mod_LoadFaceCommon( const dsurfacer_t *in, msurface_t *out )
 {
-	int j, shaderType;
-	mesh_t *mesh;
-	mfog_t *fog;
-	mshaderref_t *shaderref;
-	int shadernum, fognum;
-	float *vert;
-	mlightmapRect_t *lmRects[LM_STYLES];
-	int lightmaps[LM_STYLES];
-	byte lightmapStyles[LM_STYLES], vertexStyles[LM_STYLES];
-	vec3_t ebbox = { 0, 0, 0 };
+	int		j, shaderType;
+	mesh_t		*mesh;
+	mfog_t		*fog;
+	mshaderref_t	*shaderref;
+	int		shadernum, fognum;
+	float		*vert;
+	mlightmapRect_t	*lmRects[LM_STYLES];
+	int		lightmaps[LM_STYLES];
+	byte		lightmapStyles[LM_STYLES], vertexStyles[LM_STYLES];
+	vec3_t		ebbox = { 0, 0, 0 };
 
 	out->facetype = LittleLong( in->facetype );
 
@@ -1034,7 +1122,7 @@ static _inline void Mod_LoadFaceCommon( const dsurfacer_t *in, msurface_t *out )
 			lightmaps[j] = -1;
 			lightmapStyles[j] = 255;
 		}
-		else if( lightmaps[j] >= loadmodel_numlightmaps )
+		else if( lightmaps[j] >= loadmodel_numlightmaps || !loadmodel_lightmapRects ) // x-real issues
 		{
 			MsgDev( D_WARN, "bad lightmap number: %i\n", lightmaps[j] );
 			lmRects[j] = NULL;
@@ -1043,6 +1131,7 @@ static _inline void Mod_LoadFaceCommon( const dsurfacer_t *in, msurface_t *out )
 		}
 		else
 		{
+			Com_Assert( loadmodel_lightmapRects == NULL );
 			lmRects[j] = &loadmodel_lightmapRects[lightmaps[j]];
 			lightmaps[j] = lmRects[j]->texNum;
 			lightmapStyles[j] = in->lightmapStyles[j];
@@ -1113,12 +1202,12 @@ static _inline void Mod_LoadFaceCommon( const dsurfacer_t *in, msurface_t *out )
 Mod_LoadFaces
 =================
 */
-static void Mod_LoadFaces( const lump_t *l )
+static void Mod_LoadFaces_IBSP( const lump_t *l )
 {
-	int i, j, count;
+	int		i, j, count;
 	dsurfaceq_t	*in;
-	dsurfacer_t rdf;
-	msurface_t *out;
+	dsurfacer_t	rdf;
+	msurface_t	*out;
 
 	in = ( void * )( mod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) )
@@ -1324,18 +1413,18 @@ Mod_LoadLeafs
 */
 static void Mod_LoadLeafs( const lump_t *l, const lump_t *msLump )
 {
-	int i, j, k, count, countMarkSurfaces;
+	int	i, j, k, count, countMarkSurfaces;
 	dleaf_t	*in;
 	mleaf_t	*out;
-	size_t size;
-	byte *buffer;
-	bool badBounds;
-	int *inMarkSurfaces;
-	int numVisLeafs;
-	int numMarkSurfaces, firstMarkSurface;
-	int numVisSurfaces, numFragmentSurfaces;
+	size_t	size;
+	byte	*buffer;
+	bool	badBounds;
+	int	*inMarkSurfaces;
+	int	numVisLeafs;
+	int	numMarkSurfaces, firstMarkSurface;
+	int	numVisSurfaces, numFragmentSurfaces;
 
-	inMarkSurfaces = ( void * )( mod_base + msLump->fileofs );
+	inMarkSurfaces = (void *)( mod_base + msLump->fileofs );
 	if( msLump->filelen % sizeof( *inMarkSurfaces ) )
 		Host_Error( "Mod_LoadMarksurfaces: funny lump size in %s\n", loadmodel->name );
 	countMarkSurfaces = msLump->filelen / sizeof( *inMarkSurfaces );
@@ -1446,10 +1535,16 @@ static void Mod_LoadLeafs( const lump_t *l, const lump_t *msLump )
 			}
 		}
 
+		// FIXME: grab al leaf brushes contents too
+
+		// OR patches' contents
+		for( j = 0; j < numVisSurfaces; j++ )
+			out->contents |= out->firstVisSurface[j]->contents;
+
 		loadbmodel->visleafs[numVisLeafs++] = out;
 	}
 
-	loadbmodel->visleafs = Mem_Realloc( loadmodel->mempool, loadbmodel->visleafs, ( numVisLeafs+1 )*sizeof( out ) );
+	loadbmodel->visleafs = Mem_Realloc( loadmodel->mempool, loadbmodel->visleafs, (numVisLeafs + 1) * sizeof( out ));
 }
 
 /*
@@ -1516,10 +1611,10 @@ static void Mod_LoadPlanes( const lump_t *l )
 
 /*
 =================
-Mod_LoadLightgrid
+Mod_LoadLightgrid_IBSP
 =================
 */
-static void Mod_LoadLightgrid( const lump_t *l )
+static void Mod_LoadLightgrid_IBSP( const lump_t *l )
 {
 	int		i, j, count;
 	dlightgridq_t	*in;
@@ -1545,7 +1640,44 @@ static void Mod_LoadLightgrid( const lump_t *l )
 		for( j = 0; j < 3; j++ )
 		{
 			out->diffuse[0][j] = in->diffuse[j];
-			out->ambient[0][j] = in->diffuse[j];
+			out->ambient[0][j] = in->ambient[j];
+		}
+	}
+}
+
+/*
+=================
+Mod_LoadLightgrid_XBSP
+=================
+*/
+static void Mod_LoadLightgrid_XBSP( const lump_t *l )
+{
+	int		i, j, count;
+	dlightgridx_t	*in;
+	mgridlight_t	*out;
+
+	in = (void *)( mod_base + l->fileofs );
+	if( l->filelen % sizeof( *in ) )
+		Host_Error( "Mod_LoadLightgrid: funny lump size in %s\n", loadmodel->name );
+	count = l->filelen / sizeof( *in );
+	out = Mod_Malloc( loadmodel, count*sizeof( *out ) );
+
+	loadbmodel->lightgrid = out;
+	loadbmodel->numlightgridelems = count;
+
+	// lightgrid is all 8 bit
+	for( i = 0; i < count; i++, in++, out++ )
+	{
+		out->styles[0] = 0;
+		for( j = 1; j < LM_STYLES; j++ )
+			out->styles[j] = 255;
+		out->direction[0] = in->direction[0];
+		out->direction[1] = in->direction[1];
+		for( j = 0; j < 3; j++ )
+		{
+			// convert to byte
+			out->diffuse[0][j] = (byte)(LittleFloat( in->diffuse[j] ) * 255);
+			out->ambient[0][j] = (byte)(LittleFloat( in->ambient[j] ) * 255);
 		}
 	}
 }
@@ -1565,13 +1697,13 @@ static void Mod_LoadLightgrid_RBSP( const lump_t *l )
 	if( l->filelen % sizeof( *in ) )
 		Host_Error( "Mod_LoadLightgrid: funny lump size in %s\n", loadmodel->name );
 	count = l->filelen / sizeof( *in );
-	out = Mod_Malloc( loadmodel, count*sizeof( *out ) );
+	out = Mod_Malloc( loadmodel, count*sizeof( *out ));
 
 	loadbmodel->lightgrid = out;
 	loadbmodel->numlightgridelems = count;
 
 	// lightgrid is all 8 bit
-	Mem_Copy( out, in, count*sizeof( *out ) );
+	Mem_Copy( out, in, count*sizeof( *out ));
 }
 
 /*
@@ -1579,7 +1711,7 @@ static void Mod_LoadLightgrid_RBSP( const lump_t *l )
 Mod_LoadLightArray
 =================
 */
-static void Mod_LoadLightArray( void )
+static void Mod_LoadLightArray_IBSP( void )
 {
 	int		i, count;
 	mgridlight_t	**out;
@@ -1761,7 +1893,7 @@ static _inline void Mod_ApplySuperStylesToFace( const dsurfacer_t *in, msurface_
 	{
 		lightmaps[j] = LittleLong( in->lm_texnum[j] );
 
-		if( lightmaps[j] < 0 || out->facetype == MST_FLARE || lightmaps[j] >= loadmodel_numlightmaps )
+		if( lightmaps[j] < 0 || out->facetype == MST_FLARE || lightmaps[j] >= loadmodel_numlightmaps || !loadmodel_lightmapRects ) // x-real issues
 		{
 			lmRects[j] = NULL;
 			lightmaps[j] = -1;
@@ -1932,9 +2064,10 @@ void Mod_BrushLoadModel( ref_model_t *mod, const void *buffer )
 	version = LittleLong( header->version );
 	for( i = 0, mod_bspFormat = bspFormats; i < numBspFormats; i++, mod_bspFormat++ )
 	{
-		if( LittleLong(*(uint *)buffer) == mod_bspFormat->ident && ( version == mod_bspFormat->version ) )
+		if( LittleLong(*(uint *)buffer) == mod_bspFormat->ident && ( version == mod_bspFormat->version ))
 			break;
 	}
+
 	if( i == numBspFormats )
 		Host_Error( "Mod_LoadBrushModel: %s: unknown bsp format, version %i\n", mod->name, version );
 
@@ -1949,23 +2082,27 @@ void Mod_BrushLoadModel( ref_model_t *mod, const void *buffer )
 	Mod_LoadEntities( &header->lumps[LUMP_ENTITIES], gridSize, ambient, outline );
 	if( mod_bspFormat->flags & BSP_RAVEN )
 		Mod_LoadVertexes_RBSP( &header->lumps[LUMP_VERTEXES] );
-	else Mod_LoadVertexes( &header->lumps[LUMP_VERTEXES] );
+	else if( mod_bspFormat->flags & BSP_XREAL )
+		Mod_LoadVertexes_XBSP( &header->lumps[LUMP_VERTEXES] );
+	else Mod_LoadVertexes_IBSP( &header->lumps[LUMP_VERTEXES] );
 	Mod_LoadElems( &header->lumps[LUMP_ELEMENTS] );
 	Mod_LoadLighting( &header->lumps[LUMP_LIGHTING], &header->lumps[LUMP_SURFACES] );
 	if( mod_bspFormat->flags & BSP_RAVEN )
 		Mod_LoadLightgrid_RBSP( &header->lumps[LUMP_LIGHTGRID] );
-	else Mod_LoadLightgrid( &header->lumps[LUMP_LIGHTGRID] );
+	else if( mod_bspFormat->flags & BSP_XREAL )
+		Mod_LoadLightgrid_XBSP( &header->lumps[LUMP_LIGHTGRID] );
+	else Mod_LoadLightgrid_IBSP( &header->lumps[LUMP_LIGHTGRID] );
 	Mod_LoadShaderrefs( &header->lumps[LUMP_SHADERS] );
 	Mod_LoadPlanes( &header->lumps[LUMP_PLANES] );
 	Mod_LoadFogs( &header->lumps[LUMP_FOGS], &header->lumps[LUMP_BRUSHES], &header->lumps[LUMP_BRUSHSIDES] );
-	if( mod_bspFormat->flags & (BSP_RAVEN|BSP_IGBSP))
+	if( mod_bspFormat->flags & BSP_RAVEN )
 		Mod_LoadFaces_RBSP( &header->lumps[LUMP_SURFACES] );
-	else Mod_LoadFaces( &header->lumps[LUMP_SURFACES] );
+	else Mod_LoadFaces_IBSP( &header->lumps[LUMP_SURFACES] );
 	Mod_LoadLeafs( &header->lumps[LUMP_LEAFS], &header->lumps[LUMP_LEAFSURFACES] );
 	Mod_LoadNodes( &header->lumps[LUMP_NODES] );
 	if( mod_bspFormat->flags & BSP_RAVEN )
 		Mod_LoadLightArray_RBSP( &header->lumps[LUMP_LIGHTARRAY] );
-	else Mod_LoadLightArray();
+	else Mod_LoadLightArray_IBSP();
 
 	Mod_Finish( &header->lumps[LUMP_SURFACES], &header->lumps[LUMP_LIGHTING], gridSize, ambient, outline );
 	mod->touchFrame = tr.registration_sequence; // register model
@@ -2017,7 +2154,7 @@ void R_BeginRegistration( const char *mapname, const dvis_t *visData )
 	VectorClear( mapConfig.ambient );
 	VectorClear( mapConfig.outlineColor );
 
-	com.sprintf( fullname, "maps/%s.bsp", mapname );
+	com.strncpy( fullname, mapname, MAX_STRING );
 
 	// explicitly free the old map if different
 	if( com.strcmp( r_models[0].name, fullname ))

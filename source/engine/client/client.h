@@ -23,9 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define CLIENT_H
 
 #include "mathlib.h"
-#include "entity_def.h"
 #include "clgame_api.h"
-#include "render_api.h"
 #include "pm_movevars.h"
 #include "com_world.h"
 
@@ -457,12 +455,11 @@ extern render_exp_t		*re;
 
 void CL_Init( void );
 void CL_SendCommand( void );
-void CL_Disconnect (void);
-void CL_Disconnect_f (void);
-void CL_GetChallengePacket (void);
-void CL_PingServers_f (void);
-void CL_Snd_Restart_f (void);
-void CL_RequestNextDownload (void);
+void CL_Disconnect_f( void );
+void CL_GetChallengePacket( void );
+void CL_PingServers_f( void );
+void CL_Snd_Restart_f( void );
+void CL_RequestNextDownload( void );
 
 //
 // cl_input.c
@@ -472,19 +469,12 @@ void CL_ShutdownInput( void );
 void CL_UpdateMouse( void );
 void CL_SendCmd (void);
 void CL_SendMove (usercmd_t *cmd);
-
 void CL_ClearState (void);
-
 void CL_ReadPackets (void);
-
 int  CL_ReadFromServer (void);
 void CL_WriteToServer (usercmd_t *cmd);
 void CL_BaseMove (usercmd_t *cmd);
-
 void IN_CenterView (void);
-
-void CL_CharEvent( int key );
-char *Key_KeynumToString (int keynum);
 
 //
 // cl_demo.c
@@ -496,7 +486,6 @@ void CL_StopPlayback( void );
 void CL_StopRecord( void );
 void CL_PlayDemo_f( void );
 void CL_StartDemos_f( void );
-void CL_NextDemo( void );
 void CL_Demos_f( void );
 void CL_Record_f( void );
 void CL_Stop_f( void );
@@ -506,7 +495,6 @@ void CL_Stop_f( void );
 //
 void CL_InitClientProgs( void );
 void CL_FreeClientProgs( void );
-int CL_GetMaxClients( void );
 void CL_DrawHUD( int state );
 edict_t *CL_GetEdict( int entnum );
 void CL_FadeAlpha( float starttime, float endtime, rgba_t color );
@@ -521,15 +509,9 @@ bool CL_LoadProgs( const char *name );
 void CL_ParseUserMessage( sizebuf_t *msg, int svc_num );
 void CL_LinkUserMessage( char *pszName, const int svc_num );
 void CL_SortUserMessages( void );
-int CL_GetServerTime( void );
-float CL_GetLerpFrac( void );
 edict_t *CL_AllocEdict( void );
 void CL_InitEdict( edict_t *pEdict );
 void CL_FreeEdict( edict_t *pEdict );
-bool CL_GetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles );
-bool CL_SetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles );
-prevframe_t *CL_GetPrevFrame( int entityIndex );
-byte CL_GetMouthOpen( int entityIndex );
 string_t CL_AllocString( const char *szValue );
 const char *CL_GetString( string_t iString );
 
@@ -542,35 +524,6 @@ _inline edict_t *CL_EDICT_NUM( int n, const char *file, const int line )
 }
 
 //
-// cl_sound.c
-//
-#define S_Shutdown			if( se ) se->Shutdown
-
-// if origin is NULL, the sound will be dynamically sourced from the entity
-#define S_StartStreaming		if( se ) se->StartStreaming
-#define S_StartSound		if( se ) se->StartSound
-#define S_StartLocalSound		if( se ) se->StartLocalSound
-#define S_StartBackgroundTrack	if( se ) se->StartBackgroundTrack
-#define S_StopBackgroundTrack		if( se ) se->StopBackgroundTrack
-#define S_RawSamples 		if( se ) se->StreamRawSamples
-#define S_StopAllSounds		if( se ) se->StopAllSounds
-#define S_AddLoopingSound		if( se ) se->AddLoopingSound
-
-_inline sound_t S_RegisterSound( const char *name )
-{
-	if( se )
-		return se->RegisterSound( name );
-	return 0;
-} 
-
-// recompute the reletive volumes for all running sounds
-// reletive to the given entityNum / orientation
-#define S_Activate			if( se ) se->Activate
-#define S_Update			if( se ) se->RenderFrame
-#define S_BeginRegistration		if( se ) se->BeginRegistration
-#define S_EndRegistration		if( se ) se->EndRegistration
-
-//
 // cl_parse.c
 //
 void CL_ParseServerMessage( sizebuf_t *msg );
@@ -580,9 +533,6 @@ void CL_Download_f( void );
 //
 // cl_scrn.c
 //
-void SCR_Init( void );
-void SCR_UpdateScreen( void );
-void SCR_Shutdown( void );
 void SCR_RegisterShaders( void );
 void SCR_AdjustSize( float *x, float *y, float *w, float *h );
 void SCR_DrawPic( float x, float y, float width, float height, shader_t shader );
@@ -619,7 +569,6 @@ void CL_PredictMove (void);
 void CL_CheckPredictionError( void );
 void CL_CheckVelocity( edict_t *ent );
 bool CL_CheckWater( edict_t *ent );
-int CL_PointContents( const vec3_t point );
 int CL_ContentsMask( const edict_t *passedict );
 trace_t CL_Trace( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, int type, edict_t *e, int mask );
 
@@ -630,17 +579,13 @@ void CL_GetEntitySoundSpatialization( int ent, vec3_t origin, vec3_t velocity );
 void CL_AddLoopingSounds( void );
 
 //
-// cl_fx.c
+// cl_effects.c
 //
 void CL_AddParticles( void );
 void CL_AddDecals( void );
 void CL_ClearEffects( void );
 void CL_TestLights( void );
 void CL_TestEntities( void );
-void CL_StudioEvent( dstudioevent_t *event, edict_t *ent );
-edict_t *CL_GetEdictByIndex( int index );
-edict_t *CL_GetLocalPlayer( void );
-void CL_StudioFxTransform( edict_t *ent, float transform[4][4] );
 bool pfnAddParticle( cparticle_t *src, HSPRITE shader, int flags );
 void pfnAddDecal( float *org, float *dir, float *rgba, float rot, float rad, HSPRITE hSpr, int flags );
 void pfnAddDLight( const float *org, const float *rgb, float radius, float time, int flags, int key );
@@ -655,7 +600,6 @@ void CL_PredictMovement (void);
 //
 bool Con_Active( void );
 void Con_CheckResize( void );
-void Con_Print( const char *txt );
 void Con_Init( void );
 void Con_Clear_f( void );
 void Con_ToggleConsole_f( void );
@@ -700,19 +644,6 @@ void Field_CharEvent( field_t *edit, int ch );
 void Field_KeyDownEvent( field_t *edit, int key );
 void Field_Draw( field_t *edit, int x, int y, int width, bool showCursor );
 void Field_BigDraw( field_t *edit, int x, int y, int width, bool showCursor );
-
-bool Key_IsDown( int keynum );
-char *Key_IsBind( int keynum );
-void Key_Event( int key, bool down, int time );
-void Key_Init( void );
-void Key_WriteBindings( file_t *f );
-void Key_SetBinding( int keynum, char *binding );
-void Key_ClearStates( void );
-char *Key_KeynumToString( int keynum );
-int Key_StringToKeynum( char *str );
-int Key_GetKey( const char *binding );
-void Key_EnumCmds_f( void );
-void Key_SetKeyDest( int key_dest );
 
 //
 // cl_cin.c

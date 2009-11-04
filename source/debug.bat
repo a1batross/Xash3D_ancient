@@ -20,7 +20,10 @@ if errorlevel 1 set BUILD_ERROR=1
 %MSDEV% launch/launch.dsp %CONFIG%"launch - Win32 Debug" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
-%MSDEV% physic/physic.dsp %CONFIG%"physic - Win32 Debug" %build_target%
+%MSDEV% cms_qf/cms_qf.dsp %CONFIG%"cms_qf - Win32 Debug" %build_target%
+if errorlevel 1 set BUILD_ERROR=1
+
+%MSDEV% cms_xr/cms_xr.dsp %CONFIG%"cms_xr - Win32 Debug" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
 %MSDEV% vid_gl/vid_gl.dsp %CONFIG%"vid_gl - Win32 Debug" %build_target%
@@ -64,7 +67,8 @@ if exist baserc\baserc.plg del /f /q baserc\baserc.plg
 if exist client\client.plg del /f /q client\client.plg
 if exist engine\engine.plg del /f /q engine\engine.plg
 if exist launch\launch.plg del /f /q launch\launch.plg
-if exist physic\physic.plg del /f /q physic\physic.plg
+if exist cms_qf\cms_qf.plg del /f /q cms_qf\cms_qf.plg
+if exist cms_xr\cms_xr.plg del /f /q cms_xr\cms_xr.plg
 if exist server\server.plg del /f /q server\server.plg
 if exist vid_gl\vid_gl.plg del /f /q vid_gl\vid_gl.plg
 if exist viewer\viewer.plg del /f /q viewer\viewer.plg

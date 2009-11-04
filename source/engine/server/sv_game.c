@@ -396,103 +396,121 @@ static bool SV_EntitiesIn( int mode, vec3_t v1, vec3_t v2 )
 	int	area1, area2;
 	byte	*mask;
 
-	leafnum = pe->PointLeafnum( v1 );
-	cluster = pe->LeafCluster( leafnum );
-	area1 = pe->LeafArea( leafnum );
-	if( mode == DVIS_PHS ) mask = pe->ClusterPHS( cluster );
-	else if( mode == DVIS_PVS ) mask = pe->ClusterPVS( cluster ); 
-	else Host_Error( "SV_EntitiesIn: ?\n" );
+	leafnum = CM_PointLeafnum( v1 );
+	cluster = CM_LeafCluster( leafnum );
+	area1 = CM_LeafArea( leafnum );
+	if( mode == DVIS_PHS ) mask = CM_ClusterPHS( cluster );
+	else if( mode == DVIS_PVS ) mask = CM_ClusterPVS( cluster ); 
+	else Host_Error( "SV_EntitiesIn ?\n" );
 
-	leafnum = pe->PointLeafnum( v2 );
-	cluster = pe->LeafCluster( leafnum );
-	area2 = pe->LeafArea( leafnum );
+	leafnum = CM_PointLeafnum( v2 );
+	cluster = CM_LeafCluster( leafnum );
+	area2 = CM_LeafArea( leafnum );
 
-	if( mask && (!( mask[cluster>>3] & (1<<( cluster & 7 )) )))
+	if( mask && (!( mask[cluster>>3] & (1<<( cluster & 7 )))))
 		return false;
-	else if( !pe->AreasConnected( area1, area2 ))
+	else if( !CM_AreasConnected( area1, area2 ))
 		return false;
 	return true;
 }
 
-bool SV_MapIsValid( const char *filename, const char *spawn_entity )
+script_t *SV_GetEntityScript( const char *filename )
 {
-	file_t	*f;
-	string	entfilename;
-	int	ver = -1, lumpofs = 0, lumplen = 0;
-	script_t	*ents = NULL;
-	byte	buf[MAX_SYSPATH]; // 1 kb
-	bool	result = false;
+	file_t		*f;
+	dheader_t		*header;
+	string		entfilename;
+	script_t		*ents = NULL;
+	int		ver = -1, lumpofs = 0, lumplen = 0;
+	byte		buf[MAX_SYSPATH]; // 1 kb
+	bool		result = false;
 			
 	f = FS_Open( va( "maps/%s.bsp", filename ), "rb" );
+	if( !f ) return NULL;
 
-	if( f )
+	Mem_Set( buf, 0, MAX_SYSPATH );
+	FS_Read( f, buf, MAX_SYSPATH );
+                              
+	switch( LittleLong( *(uint *)buf ))
 	{
+	case IDBSPMODHEADER:
+	case RBBSPMODHEADER:
+	case QFBSPMODHEADER:
+	case XRBSPMODHEADER:
+		header = (dheader_t *)buf;
+		ver = LittleLong(((int *)buf)[1]);
+		switch( ver )
+		{
+		case Q3IDBSP_VERSION:	// quake3 arena
+		case RTCWBSP_VERSION:	// return to castle wolfenstein
+		case RFIDBSP_VERSION:	// raven or qfusion bsp
+		case XRIDBSP_VERSION:	// x-real engine
+			lumpofs = LittleLong( header->lumps[LUMP_ENTITIES].fileofs );
+			lumplen = LittleLong( header->lumps[LUMP_ENTITIES].filelen );
+			break;
+		default:
+			FS_Close( f );
+			return NULL;
+		}
+		break;
+	default:
+		FS_Close( f );
+		return NULL;
+	}
+
+	// check for entfile too
+	com.strncpy( entfilename, va( "maps/%s.ent", filename ), sizeof( entfilename ));
+	ents = Com_OpenScript( entfilename, NULL, 0 );
+
+	if( !ents && lumplen >= 10 )
+	{
+		char	*entities = NULL;
+		
+		FS_Seek( f, lumpofs, SEEK_SET );
+		entities = (char *)Z_Malloc( lumplen + 1 );
+		FS_Read( f, entities, lumplen );
+		ents = Com_OpenScript( "ents", entities, lumplen + 1 );
+		Mem_Free( entities ); // no reason to keep it
+	}
+	FS_Close( f ); // all done
+
+	return ents;
+}
+
+bool SV_MapIsValid( const char *filename, const char *spawn_entity )
+{
+	script_t	*ents = NULL;
+	bool	result = false;
+
+	ents = SV_GetEntityScript( filename );
+
+	if( ents )
+	{
+		// if there are entities to parse, a missing message key just
+		// means there is no title, so clear the message string now
+		token_t	token;
 		string	check_entity;
 
-		Mem_Set( buf, 0, MAX_SYSPATH );
-		FS_Read( f, buf, MAX_SYSPATH );
-
-		if( !memcmp( buf, "IBSP", 4 ) || !memcmp( buf, "RBSP", 4 ) || !memcmp( buf, "FBSP", 4 ))
+		if( host.developer >= 2 )
 		{
-			dheader_t *header = (dheader_t *)buf;
-			ver = LittleLong(((int *)buf)[1]);
+			Com_CloseScript( ents );
+			return true; // skip playerstart serach in devmode
+		}
 
-			switch( ver )
+		check_entity[0] = 0;
+		while( Com_ReadToken( ents, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &token ))
+		{
+			if( !com.strcmp( token.string, "classname" ))
 			{
-			case Q3IDBSP_VERSION:	// quake3 arena
-			case RTCWBSP_VERSION:	// return to castle wolfenstein
-			case RFIDBSP_VERSION:	// raven or qfusion bsp
-				lumpofs = LittleLong( header->lumps[LUMP_ENTITIES].fileofs );
-				lumplen = LittleLong( header->lumps[LUMP_ENTITIES].filelen );
-				break;
-			default:
-				FS_Close( f );
-				return false;
-			}
-		}
-		else
-		{
-			FS_Close( f );
-			return false;
-		}
-
-		com.strncpy( entfilename, va( "maps/%s.ent", filename ), sizeof( entfilename ));
-		ents = Com_OpenScript( entfilename, NULL, 0 );
-
-		if( !ents && lumplen >= 10 )
-		{
-			char *entities = NULL;
-		
-			FS_Seek( f, lumpofs, SEEK_SET );
-			entities = (char *)Mem_Alloc( svgame.temppool, lumplen + 1 );
-			FS_Read( f, entities, lumplen );
-			ents = Com_OpenScript( "ents", entities, lumplen + 1 );
-			Mem_Free( entities ); // no reason to keep it
-		}
-
-		if( ents )
-		{
-			// if there are entities to parse, a missing message key just
-			// means there is no title, so clear the message string now
-			token_t	token;
-
-			check_entity[0] = 0;
-			while( Com_ReadToken( ents, SC_ALLOW_NEWLINES|SC_PARSE_GENERIC, &token ))
-			{
-				if( !com.strcmp( token.string, "classname" ))
+				// check classname for spawn entity
+				Com_ReadString( ents, false, check_entity );
+				if( !com.stricmp( spawn_entity, check_entity ))
 				{
-					// check classname for spawn entity
-					Com_ReadString( ents, false, check_entity );
-					if( !com.stricmp( spawn_entity, check_entity ))
-					{
-						result = true;
-						break;						
-					}
+					result = true;
+					break;						
 				}
 			}
-			Com_CloseScript( ents );
 		}
-		if( f ) FS_Close( f );
+		Com_CloseScript( ents );
 	}
 	return result;
 }
@@ -582,7 +600,7 @@ bool SV_CopyEdict( edict_t *out, edict_t *in )
 	{
 		if( pvdata_size > 0 )
 		{
-			out->pvPrivateData = (void *)Mem_Realloc( svgame.mempool, out->pvPrivateData, pvdata_size );
+			out->pvPrivateData = (void *)Mem_Realloc( svgame.private, out->pvPrivateData, pvdata_size );
 			Mem_Copy( out->pvPrivateData, in->pvPrivateData, pvdata_size );
 		}
 		else MsgDev( D_ERROR, "SV_CopyEdict: can't copy pvPrivateData\n" );
@@ -2318,7 +2336,7 @@ void pfnAreaPortal( edict_t *pEdict, bool enable )
 		MsgDev( D_ERROR, "SV_AreaPortal: can't modify free entity\n" );
 		return;
 	}
-	pe->SetAreaPortalState( pEdict->serialnumber, pEdict->pvServerData->areanum, pEdict->pvServerData->areanum2, enable );
+	CM_SetAreaPortalState( pEdict->serialnumber, pEdict->pvServerData->areanum, pEdict->pvServerData->areanum2, enable );
 }
 
 /*
@@ -3112,7 +3130,7 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 			svgame.globals->numClients++;
 		}
 	}
-	MsgDev( D_INFO, "Total %i entities spawned\n", svgame.globals->numEntities );
+	MsgDev( D_LOAD, "Total %i entities spawned\n", svgame.globals->numEntities );
 }
 
 void SV_UnloadProgs( void )

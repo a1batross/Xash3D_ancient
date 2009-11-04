@@ -65,6 +65,16 @@ bool CL_Active( void )
 	return (cls.key_dest == key_game || cls.key_dest == key_hudmenu);
 }
 
+void CL_ForceVid( void )
+{
+	cl.video_prepped = false;
+}
+
+void CL_ForceSnd( void )
+{
+	cl.audio_prepped = false;
+}
+
 /*
 =======================================================================
 
@@ -713,8 +723,9 @@ Call before entering a new level, or after changing dlls
 */
 void CL_PrepVideo( void )
 {
-	string		name, mapname;
-	int		i, mdlcount;
+	string	name, mapname;
+	int	i, mdlcount;
+	int	map_checksum; // dummy
 
 	if( !cl.configstrings[CS_MODELS+1][0] )
 		return; // no map loaded
@@ -722,8 +733,9 @@ void CL_PrepVideo( void )
 	Cvar_SetValue( "scr_loading", 0.0f ); // reset progress bar
 	MsgDev( D_LOAD, "CL_PrepVideo: %s\n", cl.configstrings[CS_NAME] );
 	// let the render dll load the map
-	FS_FileBase( cl.configstrings[CS_MODELS+1], mapname ); 
-	re->BeginRegistration( mapname, pe->VisData()); // load map
+	com.strncpy( mapname, cl.configstrings[CS_MODELS+1], MAX_STRING ); 
+	CM_BeginRegistration( mapname, true, &map_checksum );
+	re->BeginRegistration( mapname, CM_VisData()); // load map
 	SCR_RegisterShaders(); // update with new sequence
 	SCR_UpdateScreen();
 
@@ -747,7 +759,7 @@ void CL_PrepVideo( void )
 
 	// setup sky and free unneeded stuff
 	re->EndRegistration( cl.configstrings[CS_SKYNAME] );
-	pe->EndRegistration (); // free unused models
+	CM_EndRegistration (); // free unused models
 	Cvar_SetValue( "scr_loading", 100.0f );	// all done
 	
 	if( host.developer <= 2 ) Con_ClearNotify(); // clear any lines of console text
@@ -1004,7 +1016,7 @@ void CL_RequestNextDownload( void )
 	{
 		precache_check = ENV_CNT + 1;
 
-		pe->BeginRegistration( cl.configstrings[CS_MODELS+1], true, &map_checksum );
+		CM_BeginRegistration( cl.configstrings[CS_MODELS+1], true, &map_checksum );
 		if( map_checksum != com.atoi( cl.configstrings[CS_MAPCHECKSUM] ))
 		{
 			Host_Error( "Local map version differs from server: %i != '%s'\n", map_checksum, cl.configstrings[CS_MAPCHECKSUM] );
@@ -1037,9 +1049,9 @@ void CL_RequestNextDownload( void )
 	{
 		if( allow_download->value )
 		{
-			while( precache_tex < pe->NumShaders( ))
+			while( precache_tex < CM_NumShaders( ))
 			{
-				com.sprintf( fn, "%s", pe->GetShaderName( precache_tex++ ));
+				com.sprintf( fn, "%s", CM_GetShaderName( precache_tex++ ));
 				if( !CL_CheckOrDownloadFile( fn )) return; // started a download
 			}
 		}

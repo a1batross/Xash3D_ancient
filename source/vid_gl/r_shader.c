@@ -57,7 +57,7 @@ static tcMod_t	r_currentTcmods[MAX_SHADER_STAGES][MAX_SHADER_TCMODS];
 static vec4_t	r_currentTcGen[MAX_SHADER_STAGES][2];
 const char	*r_skyBoxSuffix[6] = { "rt", "bk", "lf", "ft", "up", "dn" }; // FIXME: get rid of this
 static texture_t	*r_stageTexture[MAX_STAGE_TEXTURES];		// MAX_FRAMES in spritegen.c
-static kRenderMode_t	r_shaderRenderMode;			// sprite, alias or studiomodel rendermode
+static kRenderMode_t	r_shaderRenderMode;			// sprite or studiomodel rendermode
 static int		r_numStageTextures;			// num textures in group
 static float		r_stageAnimFrequency;		// for auto-animate groups
 static bool		r_shaderTwoSided;
@@ -2479,9 +2479,6 @@ void R_ShaderList_f( void )
 		case SHADER_STUDIO:
 			Msg( "mdl  " );
 			break;
-		case SHADER_ALIAS:
-			Msg( "alias" );
-			break;
 		case SHADER_FONT:
 			Msg( "font " );
 			break;
@@ -3358,55 +3355,6 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		pass->alphaGen.type = ALPHAGEN_IDENTITY;
 		pass->tcgen = TCGEN_BASE;
 		pass->num_textures++;
-		break;
-	case SHADER_ALIAS:
-		shader->type = SHADER_ALIAS;
-		shader->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT;
-		shader->features = MF_STCOORDS|MF_NORMALS;
-		shader->num_stages = 1;
-		shader->name = Shader_Malloc( length + 1 + sizeof( ref_stage_t ) * shader->num_stages );
-		strcpy( shader->name, shortname );
-		shader->stages = ( ref_stage_t * )(( byte * )shader->name + length + 1 );
-		pass = &shader->stages[0];
-		pass->tcgen = TCGEN_BASE;
-
-		if( r_numStageTextures > 1 )
-		{
-			// store group frames into one stage
-			pass->flags |= SHADERSTAGE_FRAMES;
-			if( r_stageAnimFrequency != 0.0f )
-			{
-				pass->flags |= SHADERSTAGE_ANIMFREQUENCY;
-				pass->animFrequency[0] = r_stageAnimFrequency;
-			}
-
-			for( i = 0; i < r_numStageTextures; i++ )
-			{
-				if( !r_stageTexture[i] ) pass->textures[i] = tr.defaultTexture;
-				else pass->textures[i] = r_stageTexture[i];
-				pass->num_textures++;
-			}
-			
-		}
-		else
-		{
-			// single frame
-			pass->textures[0] = r_stageTexture[0];
-			pass->num_textures++;
-
-			if( !pass->textures[0] )
-			{
-				MsgDev( D_WARN, "couldn't find alias skin for shader '%s', using default...\n", shader->name );
-				pass->textures[0] = tr.defaultTexture;
-			}
-		}
-
-		// NOTE: all alias models allow to change their rendermodes but using kRenderNormal as default  		
-		pass->flags |= SHADERSTAGE_RENDERMODE;
-		pass->glState = GLSTATE_DEPTHWRITE;
-		pass->rgbGen.type = RGBGEN_LIGHTING_DIFFUSE;
-		pass->alphaGen.type = ALPHAGEN_IDENTITY;
-		shader->sort = SORT_OPAQUE;
 		break;
 	case SHADER_STUDIO:
 		shader->type = SHADER_STUDIO;

@@ -40,14 +40,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define SHADER_TEXTURE		5
 #define SHADER_VERTEX		6
 #define SHADER_FLARE		7
-#define SHADER_ALIAS		8
-#define SHADER_STUDIO		9
-#define SHADER_SPRITE		10
-#define SHADER_FARBOX		11
-#define SHADER_NEARBOX		12
-#define SHADER_PLANAR_SHADOW		13
-#define SHADER_OPAQUE_OCCLUDER	14
-#define SHADER_OUTLINE		15
+#define SHADER_STUDIO		8
+#define SHADER_SPRITE		9
+#define SHADER_FARBOX		10
+#define SHADER_NEARBOX		11
+#define SHADER_PLANAR_SHADOW		12
+#define SHADER_OPAQUE_OCCLUDER	13
+#define SHADER_OUTLINE		14
 
 // shader flags
 typedef enum

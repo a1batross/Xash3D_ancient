@@ -63,7 +63,19 @@ Package=<4>
 
 ###############################################################################
 
-Project: "physic"=".\physic\physic.dsp" - Package Owner=<4>
+Project: "cms_qf"=".\cms_qf\cms_qf.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "cms_xr"=".\cms_xr\cms_xr.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{

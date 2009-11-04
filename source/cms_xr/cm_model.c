@@ -655,7 +655,7 @@ static void BSP_CreateBrushSideWindings( void )
 		Mem_Copy( brush->edges, tempEdges, edgesAlloc );
 
 		// free temporary buffer
-		Mem_Free( tempEdges );
+		if( tempEdges ) Mem_Free( tempEdges );
 
 		totalEdges += brush->numedges;
 	}
@@ -975,14 +975,14 @@ void CM_BeginRegistration( const char *name, bool clientload, uint *checksum )
 		// cinematic servers won't have anything at all
 		cm.numleafs = cm.numclusters = cm.numareas = 1;
 		sv_models[1] = NULL; // no worldmodel
-		*checksum = 0;
+		if( checksum ) *checksum = 0;
 		return;
 	}
 
 	if( !com.strcmp( cm.name, name ) && cms.loaded )
 	{
 		// singleplayer mode: server already loading map
-		*checksum = cm.checksum;
+		if( checksum ) *checksum = cm.checksum;
 		if( !clientload )
 		{
 			// rebuild portals for server ...
@@ -1006,8 +1006,9 @@ void CM_BeginRegistration( const char *name, bool clientload, uint *checksum )
 
 	hdr = (dheader_t *)buf;
 	if( !hdr ) Host_Error( "CM_LoadMap: %s couldn't read header\n", name ); 
+	cm.checksum = LittleLong( Com_BlockChecksum( buf, length ));
 
-	*checksum = cm.checksum = LittleLong( Com_BlockChecksum( buf, length ));
+	if( checksum ) *checksum = cm.checksum;
 	hdr = (dheader_t *)buf;
 	SwapBlock(( int *)hdr, sizeof( dheader_t ));	
 	cms.base = (byte *)buf;
@@ -1048,7 +1049,7 @@ void CM_BeginRegistration( const char *name, bool clientload, uint *checksum )
 	BSP_LoadLeafBrushes( &hdr->lumps[LUMP_LEAFBRUSHES] );
 	BSP_LoadLeafSurfaces( &hdr->lumps[LUMP_LEAFSURFACES] );
 	BSP_LoadPlanes( &hdr->lumps[LUMP_PLANES] );
-	if( raven_bsp || hdr->version == IGIDBSP_VERSION )
+	if( raven_bsp || ( hdr->version == IGIDBSP_VERSION && !xreal_bsp ))
 		RBSP_LoadBrushSides( &hdr->lumps[LUMP_BRUSHSIDES] );
 	else IBSP_LoadBrushSides( &hdr->lumps[LUMP_BRUSHSIDES] );
 	BSP_LoadBrushes( &hdr->lumps[LUMP_BRUSHES] );

@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "common.h"
 #include "ui_local.h"
-
+#include "client.h"
 
 #define ART_BACKGROUND		"gfx/shell/credits"
 #define UI_CREDITS_PATH		"scripts/credits.txt"
@@ -112,10 +112,10 @@ UI_Credits_DrawFunc
 */
 static void UI_Credits_DrawFunc( void )
 {
-	int		i, y;
-	int		w = BIGCHAR_WIDTH;
-	int		h = BIGCHAR_HEIGHT;
-	rgba_t		color = { 0, 0, 0, 0 };
+	int	i, y;
+	int	w = BIGCHAR_WIDTH;
+	int	h = BIGCHAR_HEIGHT;
+	rgba_t	color = { 0, 0, 0, 0 };
 
 	// draw the background first
 	UI_DrawPic( 0, 0, 1024 * uiStatic.scaleX, 768 * uiStatic.scaleY, uiColorWhite, ART_BACKGROUND );
@@ -154,6 +154,7 @@ UI_Credits_KeyFunc
 */
 static const char *UI_Credits_KeyFunc( int key )
 {
+	uiCredits.active = false;
 	UI_PopMenu();
 	return uiSoundNull;
 }
@@ -179,7 +180,7 @@ static void UI_Credits_Init( void )
 		{
 			if( uiCredits.buffer[count - 1] != '\n' && uiCredits.buffer[count - 1] != '\r' )
 			{
-				uiCredits.buffer = Mem_Realloc( zonepool, uiCredits.buffer, count + 2 );
+				uiCredits.buffer = Mem_Realloc( cls.mempool, uiCredits.buffer, count + 2 );
 				com.strncpy( uiCredits.buffer + count, "\r", 1 ); // add terminator
 				count += 2; // added "\r\0"
                     	}

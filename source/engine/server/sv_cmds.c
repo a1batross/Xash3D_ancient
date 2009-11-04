@@ -197,7 +197,7 @@ void SV_Map_f( void )
 
 	if( Cmd_Argc() != 2 )
 	{
-		Msg("Usage: map <filename>\n");
+		Msg( "Usage: map <filename>\n" );
 		return;
 	}
 
@@ -211,7 +211,7 @@ void SV_Map_f( void )
 	else spawn_entity = GI->sp_entity;
 
 	com.strncpy( filename, Cmd_Argv( 1 ), sizeof( filename ));
-	if( !SV_MapIsValid( filename, spawn_entity ) && host.developer <= 1 )
+	if( !SV_MapIsValid( filename, spawn_entity ))
 	{
 		Msg( "SV_NewMap: invalid map %s\n", filename );
 		return;

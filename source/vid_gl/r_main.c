@@ -1298,7 +1298,6 @@ static void R_CategorizeEntities( void )
 		case mod_world:
 			r_bmodelentities[r_numbmodelentities++] = RI.currententity;
 			break;
-		case mod_alias:
 		case mod_studio:
 			if(!( RI.currententity->flags & (EF_NOSHADOW|EF_PLANARSHADOW)))
 				R_AddShadowCaster( RI.currententity ); // build groups and mark shadow casters
@@ -1339,9 +1338,6 @@ static void R_CullEntities( void )
 			if( !e->model ) break;
 			switch( e->model->type )
 			{
-			case mod_alias:
-				culled = R_CullAliasModel( e );
-				break;
 			case mod_studio:
 				culled = R_CullStudioModel( e );
 				break;
@@ -1446,9 +1442,6 @@ add:
 			RI.currentmodel = e->model;
 			switch( RI.currentmodel->type )
 			{
-			case mod_alias:
-				R_AddAliasModelToList( e );
-				break;
 			case mod_studio:
 				R_AddStudioModelToList( e );
 				break;
@@ -2123,8 +2116,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 		refent->scale = 1.0f; // ignore scale for brush models
 		break;
 	case mod_studio:
-	case mod_alias:		
-	case mod_sprite:		
+	case mod_sprite:
 		if( !refent->model->extradata )
 			return false;
 		break;
@@ -2168,7 +2160,6 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 			}
 			break;
 		case mod_studio:
-		case mod_alias:
 		case mod_brush:
 		case mod_world:
 			break;
@@ -2235,7 +2226,6 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 			break;
 		case mod_studio:
 		case mod_sprite:		
-		case mod_alias:
 			refent->ent_type = ED_NORMAL;
           		break;
 		// and ignore all other unset ents

@@ -832,7 +832,7 @@ bool S_Init( void *hInst )
 
 	palcGetIntegerv( al_state.hDevice, ALC_MONO_SOURCES, sizeof(int), &num_mono_src );
 	palcGetIntegerv( al_state.hDevice, ALC_STEREO_SOURCES, sizeof(int), &num_stereo_src );
-	MsgDev( D_INFO, "mono sources %d, stereo %d\n", num_mono_src, num_stereo_src );
+	MsgDev( D_NOTE, "S_Init: mono sources %d, stereo %d\n", num_mono_src, num_stereo_src );
 
 	sndpool = Mem_AllocPool( "Sound Zone" );
 	al_state.initialized = true;
