@@ -242,8 +242,9 @@ typedef struct gameinfo_s
 	string		ctf_entity;	// e.g. info_player_ctf
 	string		team_entity;	// e.g. info_player_team
 
-	vec3_t		client_mins[2];	// 0 - normal, 1 - ducked
-	vec3_t		client_maxs[2];	// 0 - normal, 1 - ducked
+	vec3_t		client_mins[4];	// PM_MAXHULLS
+	vec3_t		client_maxs[4];	// PM_MAXHULLS
+	float		viewheight;	// client viewheight (from hull center)
 
 	int		max_edicts;	// min edicts is 600, max edicts is 32000
 } gameinfo_t;

@@ -25,17 +25,6 @@
 #define MAX_HEARTBEAT	-99999		// connection time
 #define MAX_EVENTS		1024		// system events
 
-// some engine shared constants
-#define DEFAULT_MAXVELOCITY	"2000"
-#define DEFAULT_GRAVITY	"800"
-#define DEFAULT_ROLLSPEED	"200"
-#define DEFAULT_ROLLANGLE	"2"
-#define DEFAULT_STEPHEIGHT	"18"
-#define DEFAULT_AIRACCEL	"0"
-#define DEFAULT_MAXSPEED	"320"
-#define DEFAULT_ACCEL	"10"
-#define DEFAULT_FRICTION	"4"
-
 /*
 ==============================================================
 
@@ -159,7 +148,9 @@ bool SV_Active( void );
 
 void pfnMemCopy( void *dest, const void *src, size_t cb, const char *filename, const int fileline );
 cvar_t *pfnCVarRegister( const char *szName, const char *szValue, int flags, const char *szDesc );
+char *pfnMemFgets( byte *pMemFile, int fileSize, int *filePos, char *pBuffer, int bufferSize );
 byte* pfnLoadFile( const char *filename, int *pLength );
+char *pfnParseToken( const char **data_p );
 void pfnFreeFile( void *buffer );
 int pfnFileExists( const char *filename );
 long pfnRandomLong( long lLow, long lHigh );
@@ -232,7 +223,7 @@ void SCR_UpdateScreen( void );
 void SCR_Shutdown( void );
 bool SCR_CinActive( void );
 void Con_Print( const char *txt );
-char *Info_ValueForKey( char *s, char *key );
+char *Info_ValueForKey( const char *s, const char *key );
 void Info_RemoveKey( char *s, char *key );
 void Info_SetValueForKey( char *s, char *key, char *value );
 bool Info_Validate( char *s );

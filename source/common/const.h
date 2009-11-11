@@ -95,6 +95,7 @@ typedef enum
 #define CONTENTS_CURRENT_270		-12
 #define CONTENTS_CURRENT_UP		-13
 #define CONTENTS_CURRENT_DOWN		-14
+#define CONTENTS_TRANSLUCENT		-15
 #define CONTENTS_LADDER		-16
 #define CONTENTS_FLYFIELD		-17
 #define CONTENTS_GRAVITY_FLYFIELD	-18
@@ -194,6 +195,8 @@ typedef enum
 #define DEAD_DEAD			2	// dead. lying still.
 #define DEAD_RESPAWNABLE		3	// wait for respawn
 #define DEAD_DISCARDBODY		4
+
+#define PM_MAXHULLS			4     	// 4 hulls - quake1, half-life
 
 // filter console messages
 typedef enum

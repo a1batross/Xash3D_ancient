@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mathlib.h"
 #include "clgame_api.h"
-#include "pm_movevars.h"
 #include "com_world.h"
 
 #define MAX_DEMOS		32
@@ -299,6 +298,7 @@ typedef struct
 
 	// movement values from server
 	movevars_t	movevars;
+	movevars_t	oldmovevars;
 } clgame_static_t;
 
 typedef struct
@@ -394,10 +394,8 @@ extern cvar_t	*cl_particlelod;
 extern cvar_t	*cl_testentities;
 extern cvar_t	*cl_testlights;
 extern cvar_t	*cl_testflashlight;
-extern cvar_t	*cl_paused;
 extern cvar_t	*cl_levelshot_name;
 extern cvar_t	*scr_centertime;
-extern cvar_t	*scr_showpause;
 extern cvar_t	*scr_download;
 extern cvar_t	*scr_loading;
 extern cvar_t	*con_font;

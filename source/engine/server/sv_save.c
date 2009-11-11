@@ -198,7 +198,7 @@ static void SV_SaveServerData( wfile_t *f, const char *name, bool bUseLandMark )
 	pSaveData->fUseLandmark = bUseLandMark;
 
 	// initialize level connections
-	svgame.dllFuncs.pfnBuildLevelList();
+	svgame.dllFuncs.pfnParmsChangeLevel();
 
 	// initialize save header	
 	shdr.numEntities = svgame.globals->numEntities;
@@ -700,8 +700,8 @@ void SV_ReadLevelFile( const char *name )
 	}
 
 	SV_ReadCfgString( savfile );
-	SV_ReadAreaPortals( savfile );
 	SV_ReadEntities( savfile );
+	SV_ReadAreaPortals( savfile );
 	WAD_Close( savfile );
 }
 

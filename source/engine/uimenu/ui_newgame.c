@@ -74,7 +74,7 @@ static void UI_NewGame_StartGame( float skill )
 	Cvar_SetValue( "deathmatch", 0 );
 	Cvar_SetValue( "gamerules", 0 );
 	Cvar_SetValue( "teamplay", 0 );
-	Cvar_SetValue( "paused", 0 );
+	Cvar_SetValue( "pausable", 1 ); // singleplayer is always allowing pause
 	Cvar_SetValue( "coop", 0 );
 
 	Cbuf_ExecuteText( EXEC_APPEND, "loading; killserver; wait; newgame\n" );

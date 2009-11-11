@@ -58,10 +58,10 @@ extern int g_teamplay;
 //messages affect only player
 typedef struct _SelAmmo
 {
-	BYTE	Ammo1Type;
-	BYTE	Ammo1;
-	BYTE	Ammo2Type;
-	BYTE	Ammo2;
+	byte	Ammo1Type;
+	byte	Ammo1;
+	byte	Ammo2Type;
+	byte	Ammo2;
 } SelAmmo;
 
 /*
@@ -1167,7 +1167,7 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 	}
 	else if( to->ed_type == ED_MOVER || to->ed_type == ED_BSPBRUSH || to->ed_type == ED_PORTAL )
 	{
-		to->skin = pNet->pev->movedir.DirToBits();
+		to->skin = DirToBits( pNet->pev->movedir );
 
 		// FIXME: send mins\maxs for sound spatialization and entity prediction ?
 	}

@@ -419,9 +419,15 @@ int CL_ButtonBits( int bResetState )
 	if( in_duck.state & 3 )
 		bits |= IN_DUCK;
 
+	if( in_down.state & 3 )
+		bits |= IN_DUCK;
+
 	if( in_jump.state & 3 )
 		bits |= IN_JUMP;
 
+	if( in_up.state & 3 )
+		bits |= IN_JUMP;
+		
 	if( in_reload.state & 3)
 		bits |= IN_RELOAD;
 
@@ -463,6 +469,8 @@ int CL_ButtonBits( int bResetState )
 		in_use.state &= ~2;
 		in_left.state &= ~2;
 		in_right.state &= ~2;
+		in_up.state &= ~2;
+		in_down.state &= ~2;
 		in_moveleft.state &= ~2;
 		in_moveright.state &= ~2;
 		in_attack2.state &= ~2;
@@ -768,9 +776,6 @@ void CL_SendCmd( void )
 {
 	// don't send any message if not connected
 	if( cls.state < ca_connected ) return;
-
-	// don't send commands if paused
-	if( cl_paused->integer ) return;
 
 	// we create commands even if a demo is playing,
 	CL_CreateNewCommands();

@@ -6,6 +6,7 @@
 #include "common.h"
 #include "const.h"
 #include "server.h"
+#include "pm_defs.h"
 
 #define MAX_FORWARD		6
 
@@ -295,7 +296,7 @@ bool SV_ClientConnect( edict_t *ent, char *userinfo )
 	// make sure we start with known default
 	if( !sv.loadgame ) ent->v.flags = 0;
 
-	MsgDev(D_NOTE, "SV_ClientConnect()\n");
+	MsgDev( D_NOTE, "SV_ClientConnect()\n" );
 	svgame.globals->time = sv.time * 0.001f;
 	result = svgame.dllFuncs.pfnClientConnect( ent, userinfo );
 
@@ -591,6 +592,23 @@ void SV_PutClientInServer( edict_t *ent )
 }
 
 /*
+==================
+SV_TogglePause
+==================
+*/
+void SV_TogglePause( const char *msg )
+{
+	sv.paused ^= 1;
+
+	if( msg ) SV_BroadcastPrintf( PRINT_HIGH, "%s", msg );
+
+	// send notification to all clients
+	MSG_Begin( svc_setpause );
+	MSG_WriteByte( &sv.multicast, sv.paused );
+	MSG_Send( MSG_ALL_R, vec3_origin, NULL );
+}
+
+/*
 ============================================================
 
 CLIENT COMMAND EXECUTION
@@ -751,6 +769,15 @@ void SV_Begin_f( sv_client_t *cl )
 	}
 	cl->state = cs_spawned;
 	SV_PutClientInServer( cl->edict );
+
+	// if we are paused, tell the client
+	if( sv.paused )
+	{
+		MSG_Begin( svc_setpause );
+		MSG_WriteByte( &sv.multicast, sv.paused );
+		MSG_Send( MSG_ONE_R, vec3_origin, cl->edict );
+		SV_ClientPrintf( cl, PRINT_HIGH, "Server is paused.\n" );
+	}
 }
 
 /*
@@ -851,6 +878,34 @@ void SV_ShowServerinfo_f( sv_client_t *cl )
 }
 
 /*
+==================
+SV_Pause_f
+==================
+*/
+void SV_Pause_f( sv_client_t *cl )
+{
+	string	message;
+
+	if( !sv_pausable->integer )
+	{
+		SV_ClientPrintf( cl, PRINT_HIGH, "Pause not allowed.\n" );
+		return;
+	}
+
+	if( cl->edict->v.flags & FL_SPECTATOR )
+	{
+		SV_ClientPrintf( cl, PRINT_HIGH, "Spectators can not pause.\n" );
+		return;
+	}
+
+	if( !sv.paused ) com.snprintf( message, MAX_STRING, "%s paused the game\n", cl->name );
+	else com.snprintf( message, MAX_STRING, "%s unpaused the game\n", cl->name );
+
+	SV_TogglePause( message );
+}
+
+
+/*
 =================
 SV_UserinfoChanged
 
@@ -905,6 +960,7 @@ ucmd_t ucmds[] =
 {
 { "new", SV_New_f },
 { "begin", SV_Begin_f },
+{ "pause", SV_Pause_f },
 { "impulse", SV_Impulse_f },
 { "baselines", SV_Baselines_f },
 { "info", SV_ShowServerinfo_f },
@@ -1076,12 +1132,324 @@ void SV_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 
 	if( !com.strcmp( c, "ping" )) SV_Ping( from );
 	else if( !com.strcmp( c, "ack" )) SV_Ack( from );
-	else if( !com.strcmp( c,"status" )) SV_Status( from );
-	else if( !com.strcmp( c,"info" )) SV_Info( from );
-	else if( !com.strcmp( c,"getchallenge" )) SV_GetChallenge( from );
-	else if( !com.strcmp( c,"connect" )) SV_DirectConnect( from );
+	else if( !com.strcmp( c, "status" )) SV_Status( from );
+	else if( !com.strcmp( c, "info" )) SV_Info( from );
+	else if( !com.strcmp( c, "getchallenge" )) SV_GetChallenge( from );
+	else if( !com.strcmp( c, "connect" )) SV_DirectConnect( from );
 	else if( !com.strcmp( c, "rcon" )) SV_RemoteCommand( from, msg );
 	else MsgDev( D_ERROR, "bad connectionless packet from %s:\n%s\n", NET_AdrToString( from ), s );
+}
+
+/*
+============================================================
+
+CLIENT MOVEMENT CODE
+
+============================================================
+*/
+// builtins
+/*
+=================
+PM_ClientPrintf
+
+Sends text across to be displayed
+=================
+*/
+void PM_ClientPrintf( int index, char *fmt, ... )
+{
+	va_list		argptr;
+	char		string[MAX_SYSPATH];
+	sv_client_t	*cl;
+
+	if( index < 0 || index > sv_maxclients->integer )
+		return;
+
+	cl = svs.clients + index;
+
+	if( cl->edict && (cl->edict->v.flags & FL_FAKECLIENT ))
+		return;
+	
+	va_start( argptr, fmt );
+	com.vsprintf( string, fmt, argptr );
+	va_end( argptr );
+	
+	MSG_WriteByte( &cl->netchan.message, svc_print );
+	MSG_WriteString( &cl->netchan.message, string );
+}
+
+/*
+===============
+PM_PlayerTrace
+
+===============
+*/
+TraceResult PM_PlayerTrace( const vec3_t start, const vec3_t end, int traceFlags, edict_t *pass )
+{
+	float		*mins = svgame.pmove->player_mins[svgame.pmove->usehull];
+	float		*maxs = svgame.pmove->player_maxs[svgame.pmove->usehull];
+	trace_t		result;
+	TraceResult	out;
+
+	if( traceFlags & PM_GLASS_IGNORE )
+		traceFlags = MOVE_NORMAL; // FIXME: implement
+	if( !pass ) pass = svgame.pmove->pev->pContainingEntity;
+
+	result = SV_Move( start, mins, maxs, end, traceFlags, pass );
+	Mem_Copy( &out, &result, sizeof( TraceResult ));
+
+	return out;
+}
+
+/*
+===============
+PM_TraceTexture
+
+===============
+*/
+const char *PM_TraceTexture( edict_t *pTextureEntity, const float *v1, const float *v2 )
+{
+	return SV_Move( v1, vec3_origin, vec3_origin, v2, MOVE_NOMONSTERS, pTextureEntity ).pTexName;
+}
+
+/*
+===============
+PM_TraceModel
+
+===============
+*/
+TraceResult PM_TraceModel( edict_t *pEnt, const vec3_t start, const vec3_t end )
+{
+	float		*mins = svgame.pmove->player_mins[svgame.pmove->usehull];
+	float		*maxs = svgame.pmove->player_maxs[svgame.pmove->usehull];
+	trace_t		result;
+	TraceResult	out;
+
+	result = SV_ClipMoveToEntity( pEnt, start, mins, maxs, end );
+	Mem_Copy( &out, &result, sizeof( TraceResult ));
+
+	return out;
+}
+
+/*
+===============
+PM_GetEntityByIndex
+
+safe version of SV_EDICT_NUM
+===============
+*/
+edict_t *PM_GetEntityByIndex( int index )
+{
+	if( index < 0 || index > svgame.globals->numEntities )
+	{
+		if( index == VIEWENT_INDEX ) return svgame.pmove->pev->aiment; // current weapon
+		if( index == NULLENT_INDEX ) return NULL;
+		MsgDev( D_ERROR, "PM_GetEntityByIndex: invalid entindex %i\n", index );
+		return NULL;
+	}
+
+	if( EDICT_NUM( index )->free )
+		return NULL;
+
+	return EDICT_NUM( index );
+}
+
+void PM_PlaySound( int chan, const char *sample, float vol, float attn, int pitch )
+{
+	if( !svgame.pmove->runfuncs ) return; // ignored
+	SV_StartSound( svgame.pmove->pev->pContainingEntity, chan, sample, vol, attn, 0, pitch );
+}
+
+void PM_StuckTouch( edict_t *pHit )
+{
+	SV_TryUnstick( pHit, vec3_origin ); // FIXME: this is totally wrong
+}
+
+/*
+===============
+SV_InitClientMove
+
+===============
+*/
+void SV_InitClientMove( void )
+{
+	int	i;
+
+	svgame.pmove->movevars = &svgame.movevars;
+	svgame.pmove->player_viewheight = GI->viewheight;
+
+	// init hulls
+	for( i = 0; i < PM_MAXHULLS; i++ )
+	{
+		VectorCopy( GI->client_mins[i], svgame.pmove->player_mins[i] );
+		VectorCopy( GI->client_maxs[i], svgame.pmove->player_maxs[i] );
+	}
+
+	// common utilities
+	svgame.pmove->PM_Info_ValueForKey = Info_ValueForKey;
+	svgame.pmove->PM_TestPlayerPosition = SV_TestPlayerPosition;
+	svgame.pmove->ClientPrintf = PM_ClientPrintf;
+	svgame.pmove->AlertMessage = pfnAlertMessage;
+	svgame.pmove->PM_GetString = SV_GetString;
+	svgame.pmove->PM_PointContents = SV_PointContents;
+	svgame.pmove->PM_StuckTouch = PM_StuckTouch;
+	svgame.pmove->PM_PlayerTrace = PM_PlayerTrace;
+	svgame.pmove->PM_TraceTexture = PM_TraceTexture;
+	svgame.pmove->PM_GetEntityByIndex = PM_GetEntityByIndex;
+	svgame.pmove->AngleVectors = AngleVectors;
+	svgame.pmove->RandomLong = pfnRandomLong;
+	svgame.pmove->RandomFloat = pfnRandomFloat;
+	svgame.pmove->PM_GetModelType = CM_GetModelType;
+	svgame.pmove->PM_GetModelBounds = Mod_GetBounds;
+	svgame.pmove->PM_ModExtradata = Mod_Extradata;
+	svgame.pmove->PM_TraceModel = PM_TraceModel;
+	svgame.pmove->COM_LoadFile = pfnLoadFile;
+	svgame.pmove->COM_ParseToken = pfnParseToken;
+	svgame.pmove->COM_FreeFile = pfnFreeFile;
+	svgame.pmove->memfgets = pfnMemFgets;
+	svgame.pmove->PM_PlaySound = PM_PlaySound;
+
+	// initalize pmove
+	svgame.dllFuncs.pfnPM_Init( svgame.pmove );
+}
+
+void SV_PreRunCmd( void )
+{
+	svgame.pmove->runfuncs = true;
+}
+
+/*
+===========
+SV_RunCmd
+===========
+*/
+void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd )
+{
+	edict_t	*clent;
+	int	i, oldmsec;
+
+	cl->commandMsec -= ucmd->msec;
+
+	if( cl->commandMsec < 0 && sv_enforcetime->integer )
+	{
+		MsgDev( D_INFO, "SV_ClientThink: commandMsec underflow from %s\n", cl->name );
+		return;
+	}
+
+	clent = cl->edict;
+	cl->lastcmd = *ucmd;
+	if( !clent || clent->free ) return;
+
+	// chop up very long commands
+	if( cl->lastcmd.msec > 50 )
+	{
+		oldmsec = ucmd->msec;
+		cl->lastcmd.msec = oldmsec / 2;
+		SV_RunCmd( cl, &cl->lastcmd );
+		cl->lastcmd.msec = oldmsec / 2;
+		clent->v.impulse = 0;
+		SV_RunCmd( cl, &cl->lastcmd );
+		return;
+	}
+
+	if( !clent->v.fixangle )
+		VectorCopy( ucmd->angles, clent->v.viewangles );
+
+	// copy player buttons
+	clent->v.button = ucmd->buttons;
+
+	// angles
+	// show 1/3 the pitch angle and all the roll angle	
+	if( clent->v.health > 0.0f )
+	{
+		if( !clent->v.fixangle )
+		{
+			clent->v.angles[PITCH] = -clent->v.viewangles[PITCH] / 3;
+			clent->v.angles[YAW] = clent->v.viewangles[YAW];
+		}
+	}
+
+	if(!( clent->v.flags & FL_SPECTATOR ))
+	{
+		svgame.globals->time = ucmd->servertime * 0.001f;
+		svgame.globals->frametime = 0.0f;
+		svgame.dllFuncs.pfnPlayerPreThink( clent );
+		svgame.globals->frametime = ucmd->msec * 0.001f;
+
+		SV_RunThink( clent );
+	}
+
+	// setup playermove state
+	svgame.pmove->multiplayer = (sv_maxclients->integer > 1) ? true : false;
+	svgame.pmove->realtime = svs.realtime * 0.001f;
+	svgame.pmove->frametime = ucmd->msec * 0.001f;
+	com.strncpy( svgame.pmove->physinfo, cl->userinfo, MAX_INFO_STRING );
+	svgame.pmove->serverflags = svgame.globals->serverflags;
+	svgame.pmove->clientmaxspeed = clent->v.maxspeed;
+	svgame.pmove->maxspeed = svgame.movevars.maxspeed;
+	svgame.pmove->cmd = *ucmd;		// setup current cmds
+	svgame.pmove->pev = &clent->v;	// ptr to client state
+	svgame.pmove->numtouch = 0;		// reset touchents
+	svgame.pmove->dead = (clent->v.health <= 0.0f) ? true : false;
+	svgame.pmove->flWaterJumpTime = clent->v.teleport_time;
+	svgame.pmove->onground = clent->v.groundentity;
+	svgame.pmove->usehull = clent->v.bInDuck ? 1 : 0; // reset hull
+	for( i = 0; i < 3; i++ )
+		svgame.pmove->origin[i] = clent->v.origin[i] + (clent->v.mins[i] - svgame.pmove->player_mins[svgame.pmove->usehull][i]);
+
+	// motor!
+	svgame.dllFuncs.pfnPM_Move( svgame.pmove, true );
+	svgame.pmove->runfuncs = false; // all next calls ignore footstep sounds
+
+	// copy results back to client
+	clent->v.teleport_time = svgame.pmove->flWaterJumpTime;
+	clent->v.groundentity = svgame.pmove->onground;
+	for( i = 0; i < 3; i++ )
+		clent->v.origin[i] = svgame.pmove->origin[i] - (clent->v.mins[i] - svgame.pmove->player_mins[svgame.pmove->usehull][i]);
+		
+	if(!( clent->v.flags & FL_SPECTATOR ))
+	{
+		// link into place and touch triggers
+		SV_LinkEdict( clent, true );
+
+		// touch other objects
+		for( i = 0; i < svgame.pmove->numtouch; i++ )
+		{
+			if( i == MAX_PHYSENTS ) break;
+			svgame.dllFuncs.pfnTouch( svgame.pmove->touchents[i], clent );
+		}
+	}
+}
+
+/*
+===========
+SV_PostRunCmd
+
+Done after running a player command.
+===========
+*/
+void SV_PostRunCmd( sv_client_t *cl )
+{
+	edict_t	*clent;
+
+	clent = cl->edict;
+	if( !clent || clent->free ) return;
+
+	// run post-think
+	if(!( clent->v.flags & FL_SPECTATOR ))
+	{
+		svgame.globals->time = sv.time * 0.001f;
+		svgame.globals->frametime = 0;
+		svgame.dllFuncs.pfnPlayerPostThink( clent );
+	}
+	else
+	{
+		svgame.globals->time = sv.time * 0.001f;
+		svgame.globals->frametime = 0;
+		svgame.dllFuncs.pfnSpectatorThink( clent );
+	}
+
+	// restore frametime
+	svgame.globals->frametime = sv.frametime * 0.001f;
 }
 
 /*
@@ -1439,8 +1807,7 @@ void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 {
 	vec3_t	viewangles;
 
-	if( sv_paused->integer || (sv_maxclients->integer == 1 && !CL_Active( )))
-		return; // paused
+	if( sv.paused ) return; // paused
 
 	cl->commandMsec -= cmd->msec;
 
@@ -1559,6 +1926,8 @@ static void SV_ReadClientMove( sv_client_t *cl, sizebuf_t *msg )
 		return;
 	}
 
+	if( !sv.paused ) SV_PreRunCmd();
+		
 	// usually, the first couple commands will be duplicates
 	// of ones we have previously received, but the servertimes
 	// in the commands will cause them to be immediately discarded
@@ -1572,10 +1941,10 @@ static void SV_ReadClientMove( sv_client_t *cl, sizebuf_t *msg )
 		// these old cmds are included when cl_packetdup > 0
 		if( cmds[i].servertime <= cl->lastcmd.servertime )
 			continue;
-
-		SV_ApplyClientMove( cl, &cmds[i] );
-		SV_ClientThink( cl, &cmds[i] );
+		if( !sv.paused ) SV_RunCmd( cl, &cmds[i] );
 	}
+
+	if( !sv.paused ) SV_PostRunCmd( cl );
 }
 
 /*

@@ -11,6 +11,157 @@
 #include "cvardef.h"
 
 /*
+==============
+pfnParseToken
+
+simple dlls version
+==============
+*/
+char *pfnParseToken( const char **data_p )
+{
+	int		c;
+	int		len = 0;
+	const char	*data;
+	static char	token[8192];
+	
+	token[0] = 0;
+	data = *data_p;
+	
+	if( !data ) 
+	{
+		*data_p = NULL;
+		return NULL;
+	}		
+
+	// skip whitespace
+skipwhite:
+	while(( c = *data) <= ' ' )
+	{
+		if( c == 0 )
+		{
+			*data_p = NULL;
+			return NULL; // end of file;
+		}
+		data++;
+	}
+	
+	// skip // comments
+	if( c=='/' && data[1] == '/' )
+	{
+		while( *data && *data != '\n' )
+			data++;
+		goto skipwhite;
+	}
+
+	// skip /* comments
+	if( c=='/' && data[1] == '*' )
+	{
+		while( data[1] && (data[0] != '*' || data[1] != '/' ))
+			data++;
+		data += 2;
+		goto skipwhite;
+	}
+	
+
+	// handle quoted strings specially
+	if( *data == '\"' || *data == '\'' )
+	{
+		data++;
+		while( 1 )
+		{
+			c = *data++;
+			if( c=='\"' || c=='\0' )
+			{
+				token[len] = 0;
+				*data_p = data;
+				return token;
+			}
+			token[len] = c;
+			len++;
+		}
+	}
+
+	// parse single characters
+	if( c == '{' || c == '}' || c == ')' || c == '(' || c == '\'' || c == ':' || c == ',' )
+	{
+		token[len] = c;
+		data++;
+		len++;
+		token[len] = 0;
+		*data_p = data;
+		return token;
+	}
+
+	// parse a regular word
+	do
+	{
+		token[len] = c;
+		data++;
+		len++;
+		c = *data;
+		if( c == '{' || c == '}'|| c == ')'|| c == '(' || c == '\'' || c == ':' || c == ',' )
+			break;
+	} while( c > 32 );
+	
+	token[len] = 0;
+	*data_p = data;
+	return token;
+}
+
+/*
+=============
+pfnMemFgets
+
+=============
+*/
+char *pfnMemFgets( byte *pMemFile, int fileSize, int *filePos, char *pBuffer, int bufferSize )
+{
+	int	i, last, stop;
+
+	if( !pMemFile || !pBuffer || !filePos )
+		return NULL;
+
+	if( *filePos >= fileSize )
+		return NULL;
+
+	i = *filePos;
+	last = fileSize;
+
+	// fgets always NULL terminates, so only read bufferSize-1 characters
+	if( last - *filePos > ( bufferSize - 1 ))
+		last = *filePos + ( bufferSize - 1);
+
+	stop = 0;
+
+	// stop at the next newline (inclusive) or end of buffer
+	while( i < last && !stop )
+	{
+		if( pMemFile[i] == '\n' )
+			stop = 1;
+		i++;
+	}
+
+
+	// if we actually advanced the pointer, copy it over
+	if( i != *filePos )
+	{
+		// we read in size bytes
+		int	size = i - *filePos;
+
+		// copy it out
+		Mem_Copy( pBuffer, pMemFile + *filePos, size );
+		
+		// If the buffer isn't full, terminate (this is always true)
+		if( size < bufferSize ) pBuffer[size] = 0;
+
+		// update file pointer
+		*filePos = i;
+		return pBuffer;
+	}
+	return NULL;
+}
+
+/*
 =============
 pfnLoadFile
 

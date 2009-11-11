@@ -19,7 +19,7 @@ void CL_WriteDemoMessage( sizebuf_t *msg, int head_size )
 	int len, swlen;
 
 	if( !cls.demofile ) return;
-	if( cl_paused->value ) return;
+	if( cl.refdef.paused ) return;
 
 	// the first eight bytes are just packet sequencing stuff
 	len = msg->cursize - head_size;
@@ -211,7 +211,8 @@ void CL_ReadDemoMessage( void )
 		CL_DemoCompleted();
 		return;
 	}
-	if( cl_paused->value ) return;
+
+	if( cl.refdef.paused ) return;
 
 	// don't need another message yet
 	if( cl.time < cl.frame.servertime )

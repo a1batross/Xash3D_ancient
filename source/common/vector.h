@@ -11,12 +11,8 @@
 #include <stdio.h>
 
 #pragma warning( disable : 4244 )		// int or float down-conversion
-#define NUMVERTEXNORMALS		162
 
-static float bytedirs[NUMVERTEXNORMALS][3] =
-{
-#include "anorms.h"
-};
+#define NUMVERTEXNORMALS	162
 
 #ifndef M_PI
 #define M_PI		(float)3.14159265358979323846
@@ -174,41 +170,6 @@ public:
 	Vector Cross(const Vector &vOther) const
 	{
 		return Vector(y*vOther.z - z*vOther.y, z*vOther.x - x*vOther.z, x*vOther.y - y*vOther.x);
-	}
-	int DirToBits( void )
-	{
-		int	i, best = 0;
-		float	d, bestd = 0;
-		BOOL	normalized = FALSE;
-
-		if( x == 0 && y == 0 && z == 0 )
-			return NUMVERTEXNORMALS;
-
-		if((x*x+y*y+z*z) == 1 )
-			normalized = TRUE;
-
-		for( i = 0; i < NUMVERTEXNORMALS; i++ )
-		{
-			d = (x*bytedirs[i][0]+y*bytedirs[i][1]+z*bytedirs[i][2]);
-			if(( d == 1 ) && normalized )
-				return i;
-			if( d > bestd )
-			{
-				bestd = d;
-				best = i;
-			}
-		}
-		return best;
-	}
-	Vector BitsToDir( int bits )
-	{
-		if( bits < 0 || bits >= NUMVERTEXNORMALS )
-			return Vector( 0, 0, 0 );
-		x = bytedirs[bits][0];
-		y = bytedirs[bits][1];
-		z = bytedirs[bits][2];
-
-		return *this;
 	}
 	inline Vector2D Make2D ( void ) const
 	{

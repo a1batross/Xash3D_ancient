@@ -202,6 +202,9 @@ void SV_ActivateServer( void )
 		SV_Physics();
 	}
 
+	// invoke to refresh all movevars
+	Mem_Set( &svgame.oldmovevars, 0, sizeof( movevars_t ));
+
 	// tell what kind of server has been started.
 	if( svgame.globals->maxClients > 1 )
 	{
@@ -229,8 +232,7 @@ deactivate server, free edicts stringtables etc
 void SV_DeactivateServer( void )
 {
 	SV_FreeEdicts ();
-
-	Cvar_SetValue( "paused", 0 );
+	sv.paused = false;
 
 	// leave unchanged, because we wan't load it twice
 	if( !sv.loadgame ) StringTable_Clear( svgame.hStringTable );
@@ -309,6 +311,7 @@ void SV_SpawnServer( const char *server, const char *startspot )
 	Mem_Set( &sv, 0, sizeof( sv ));	// wipe the entire per-level structure
 
 	// restore state
+	sv.paused = false;
 	sv.loadgame = loadgame;
 	sv.changelevel = changelevel;
 
@@ -344,6 +347,8 @@ void SV_SpawnServer( const char *server, const char *startspot )
 	CM_BeginRegistration( sv.configstrings[CS_MODELS+1], false, &checksum );
 	com.sprintf( sv.configstrings[CS_MAPCHECKSUM], "%i", checksum );
 	com.strncpy( sv.configstrings[CS_SKYNAME], "<skybox>", 64 );
+
+	if( CM_VisData() == NULL ) MsgDev( D_WARN, "map ^2%s^7 has no visibility\n", server );
 
 	// clear physics interaction links
 	SV_ClearWorld();

@@ -270,7 +270,7 @@ void IN_Frame( void )
 	if( cls.key_dest == key_console )
 		shutdownMouse = true; // release mouse when console is drawing
 
-	if( cl_paused->integer && cls.key_dest != key_menu )
+	if( cl.refdef.paused && cls.key_dest != key_menu )
 		shutdownMouse = true; // release mouse when game pause but menu
 
 	if( shutdownMouse && !Cvar_VariableInteger( "fullscreen" ))

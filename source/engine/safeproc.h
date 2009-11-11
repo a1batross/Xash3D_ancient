@@ -51,6 +51,12 @@ _inline int CM_NumBmodels( void )
 	return pe->NumBmodels();
 }
 
+_inline int CM_GetModelType( model_t handle )
+{
+	if( !pe ) return mod_bad;
+	return pe->Mod_GetType( handle );
+}
+
 _inline const char *CM_GetShaderName( int index )
 {
 	if( !pe ) return "";

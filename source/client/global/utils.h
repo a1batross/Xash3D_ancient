@@ -155,6 +155,8 @@ inline client_textmessage_t *TextMessageGet( const char *pName )
 	return GET_GAME_MESSAGE( pName );
 }
 
+extern Vector BitsToDir( int bits );
+
 // message reading
 extern void BEGIN_READ( const char *pszName, int iSize, void *pBuf );
 extern int READ_CHAR( void );
@@ -204,6 +206,7 @@ extern void Draw_VidInit( void );
 // from cl_view.c
 extern void DrawProgressBar( void );
 extern edict_t *spot;
+extern int v_paused;
 
 // stdio stuff
 extern char *va( const char *format, ... );

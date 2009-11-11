@@ -1560,7 +1560,7 @@ static void SV_Physics_Entity( edict_t *ent )
 		SV_Physics_Conveyor( ent );
 		break;
 	default:
-		svgame.dllFuncs.pfnFrame( ent );
+		Host_Error( "SV_Physics_Entity: bad movetype %i\n", ent->v.movetype );
 		break;
 	}
 }
@@ -1709,7 +1709,7 @@ void SV_Physics( void )
 			SV_LinkEdict( ent, true ); // force retouch even for stationary
 
 		if( i > 0 && i <= sv_maxclients->integer )
-			SV_Physics_Client( ent );
+			continue;	// clients are directly runs from packets
 		else if( !sv_playersonly->integer )
 			SV_Physics_Entity( ent );
 	}
@@ -1728,8 +1728,6 @@ void SV_Physics( void )
 		if( ent->v.flags & FL_KILLME )
 			SV_FreeEdict( EDICT_NUM( i ));
 	}
-	
-	svgame.dllFuncs.pfnEndFrame();
 
 	if( svgame.globals->force_retouch ) svgame.globals->force_retouch--;
 

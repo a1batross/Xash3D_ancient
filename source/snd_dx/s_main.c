@@ -42,7 +42,6 @@ cvar_t		*s_khz;
 cvar_t		*s_show;
 cvar_t		*s_mixahead;
 cvar_t		*s_primary;
-cvar_t		*s_pause;
 
 /*
 =============================================================================
@@ -646,7 +645,7 @@ void S_Update( ref_params_t *fd )
 	// if the loading plaque is up, clear everything
 	// out to make sure we aren't looping a dirty
 	// dma buffer while loading
-	if( s_pause->integer || fd->paused )
+	if( fd->paused )
 	{
 		S_ClearBuffer();
 		return;
@@ -775,7 +774,6 @@ bool S_Init( void *hInst )
 	s_testsound = Cvar_Get( "s_testsound", "0", 0, "generate sine 1 khz wave to testing audio subsystem" );
 	s_primary = Cvar_Get( "s_primary", "0", CVAR_LATCH_AUDIO|CVAR_ARCHIVE, "use direct primary buffer" ); 
 	s_check_errors = Cvar_Get( "s_check_errors", "1", CVAR_ARCHIVE, "ignore audio engine errors" );
-	s_pause = Cvar_Get( "paused", "0", 0, "sound engine pause" );
 
 	Cmd_AddCommand( "playsound", S_Play_f, "playing a specified sound file" );
 	Cmd_AddCommand( "stopsound", S_StopSound_f, "stop all sounds" );

@@ -68,6 +68,8 @@ enum svc_ops_e
 	svc_setview,		// [short] entity number
 	svc_print,		// [byte] id [string] null terminated string
 	svc_crosshairangle,		// [short][short][short]
+	svc_setpause,		// [byte] 0 = unpaused, 1 = paused
+	svc_movevars		// [movevars_t]
 };
 
 // client to server
@@ -119,11 +121,13 @@ static const net_desc_t NWDesc[] =
 ==========================================================
 */
 
-#include "user_cmd.h"
+#include "usercmd.h"
+#include "pm_movevars.h"
 #include "entity_state.h"
 
 #define ES_FIELD( x )		#x,(int)&((entity_state_t*)0)->x
 #define PS_FIELD( x )		#x,(int)&((player_state_t*)0)->x
+#define PM_FIELD( x )		#x,(int)&((movevars_t*)0)->x
 #define CM_FIELD( x )		#x,(int)&((usercmd_t*)0)->x
 
 // config strings are a general means of communication from
@@ -137,17 +141,10 @@ static const net_desc_t NWDesc[] =
 #define CS_MAXCLIENTS		3	// server maxclients value (0-255)
 #define CS_BACKGROUND_TRACK		4	// basename of background track
 #define CS_MAXEDICTS		5	// server limit edicts
-#define CS_GRAVITY			6	// sv_gravity
-#define CS_MAXVELOCITY		7	// sv_maxvelocity
-#define CS_ROLLSPEED		8	// sv_rollspeed
-#define CS_ROLLANGLE		9	// sv_rollangle
-#define CS_MAXSPEED			10	// client maxspeed
-#define CS_STEPHEIGHT		11	// interpolated stepheight
-#define CS_AIRACCELERATE		12	// accel when jumping
-#define CS_ACCELERATE		13	// accel when running
-#define CS_FRICTION			14	// default client friction
+#define CS_SERVERFLAGS		6	// shared server flags
 
-// reserved strings
+// 6 - 32 it's a reserved strings
+
 #define CS_MODELS			32				// configstrings starts here
 #define CS_SOUNDS			(CS_MODELS+MAX_MODELS)		// sound names
 #define CS_DECALS			(CS_SOUNDS+MAX_SOUNDS)		// server decal indexes
@@ -177,8 +174,9 @@ void _MSG_WriteAngle16( sizebuf_t *sb, float f, const char *filename, int fileli
 void _MSG_WriteCoord16( sizebuf_t *sb, float f, const char *filename, int fileline );
 void _MSG_WritePos( sizebuf_t *sb, vec3_t pos, const char *filename, int fileline );
 void _MSG_WriteData( sizebuf_t *sb, const void *data, size_t length, const char *filename, int fileline );
-void _MSG_WriteDeltaUsercmd( sizebuf_t *sb, struct usercmd_s *from, struct usercmd_s *cmd, const char *filename, const int fileline );
-void _MSG_WriteDeltaEntity( struct entity_state_s *from, struct entity_state_s *to, sizebuf_t *msg, bool force, bool newentity, const char *filename, int fileline );
+void _MSG_WriteDeltaUsercmd( sizebuf_t *sb, usercmd_t *from, usercmd_t *cmd, const char *filename, const int fileline );
+bool _MSG_WriteDeltaMovevars( sizebuf_t *sb, movevars_t *from, movevars_t *cmd, const char *filename, const int fileline );
+void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t *msg, bool force, bool newentity, const char *file, int line );
 void _MSG_Send( msgtype_t to, vec3_t origin, const edict_t *ent, const char *filename, int fileline );
 
 #define MSG_Begin( x ) _MSG_Begin( x, __FILE__, __LINE__)
@@ -196,8 +194,9 @@ void _MSG_Send( msgtype_t to, vec3_t origin, const edict_t *ent, const char *fil
 #define MSG_WriteAngle16(x, y) _MSG_WriteAngle16(x, y, __FILE__, __LINE__)
 #define MSG_WriteAngle32(x, y) _MSG_WriteFloat(x, y, __FILE__, __LINE__)
 #define MSG_WritePos(x, y) _MSG_WritePos( x, y, __FILE__, __LINE__ )
-#define MSG_WriteData(x,y,z) _MSG_WriteData (x, y, z, __FILE__, __LINE__)
-#define MSG_WriteDeltaUsercmd(x, y, z) _MSG_WriteDeltaUsercmd (x, y, z, __FILE__, __LINE__)
+#define MSG_WriteData(x,y,z) _MSG_WriteData( x, y, z, __FILE__, __LINE__)
+#define MSG_WriteDeltaUsercmd(x, y, z) _MSG_WriteDeltaUsercmd(x, y, z, __FILE__, __LINE__)
+#define MSG_WriteDeltaMovevars(x, y, z) _MSG_WriteDeltaMovevars(x, y, z, __FILE__, __LINE__)
 #define MSG_WriteDeltaEntity(from, to, msg, force, new ) _MSG_WriteDeltaEntity (from, to, msg, force, new, __FILE__, __LINE__)
 #define MSG_WriteBits( buf, value, name, bits ) _MSG_WriteBits( buf, value, name, bits, __FILE__, __LINE__ )
 #define MSG_ReadBits( buf, name, bits ) _MSG_ReadBits( buf, name, bits, __FILE__, __LINE__ )
@@ -221,6 +220,7 @@ char *MSG_ReadStringLine( sizebuf_t *sb );
 void MSG_ReadPos( sizebuf_t *sb, vec3_t pos );
 void MSG_ReadData( sizebuf_t *sb, void *buffer, size_t size );
 void MSG_ReadDeltaUsercmd( sizebuf_t *sb, usercmd_t *from, usercmd_t *cmd );
+void MSG_ReadDeltaMovevars( sizebuf_t *sb, movevars_t *from, movevars_t *cmd );
 void MSG_ReadDeltaEntity( sizebuf_t *sb, entity_state_t *from, entity_state_t *to, int number );
 entity_state_t MSG_ParseDeltaPlayer( entity_state_t *from, entity_state_t *to );
 void MSG_WriteDeltaPlayerstate( entity_state_t *from, entity_state_t *to, sizebuf_t *msg );

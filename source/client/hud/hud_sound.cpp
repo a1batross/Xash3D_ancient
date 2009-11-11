@@ -332,8 +332,8 @@ int CHudSound :: PlayStream( const char* name )
 
 int CHudSound :: Draw( float flTime )
 {
-	int pause = CVAR_GET_FLOAT( "paused" );	// engine cvar
-	float vol = CVAR_GET_FLOAT( "s_musicvolume" ); // sound engine cvar
+	int pause = v_paused; // get engine state
+	float vol = CVAR_GET_FLOAT( "s_musicvolume" );	// sound engine cvar
 
 	if( fmod_dll && fmod_data )
 	{

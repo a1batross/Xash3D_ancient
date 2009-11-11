@@ -20,8 +20,6 @@
 #define TRUE 	1
 
 typedef unsigned long ULONG;
-typedef unsigned char BYTE;
-typedef int BOOL;
 
 #include <limits.h>
 #include <stdarg.h>

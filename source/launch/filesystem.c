@@ -1344,6 +1344,42 @@ void FS_UpdateSysInfo( void )
 	SI.version = XASH_VERSION;
 }
 
+static bool FS_ParseVector( script_t *script, float *v, size_t size )
+{
+	uint	i;
+	token_t	token;
+	bool	bracket = false;
+
+	if( v == NULL || size == 0 )
+		return false;
+
+	Mem_Set( v, 0, sizeof( *v ) * size );
+
+	if( size == 1 )
+		return PS_GetFloat( script, 0, v );
+
+	if( !PS_ReadToken( script, false, &token ))
+		return false;
+	if( token.type == TT_PUNCTUATION && !com.stricmp( token.string, "(" ))
+		bracket = true;
+	else PS_SaveToken( script, &token ); // save token to right get it again
+
+	for( i = 0; i < size; i++ )
+	{
+		if( !PS_GetFloat( script, false, &v[i] ))
+			v[i] = 0;	// because Com_ReadFloat may return 0 if parsing expression it's not a number
+	}
+
+	if( !bracket ) return true;	// done
+
+	if( !PS_ReadToken( script, false, &token ))
+		return false;
+
+	if( token.type == TT_PUNCTUATION && !com.stricmp( token.string, ")" ))
+		return true;
+	return false;
+}
+
 void FS_CreateGameInfo( const char *filename )
 {
 	char *buffer = Mem_Alloc( fs_mempool, MAX_SYSPATH );
@@ -1362,10 +1398,11 @@ void FS_CreateGameInfo( const char *filename )
 	com.strncat( buffer, "\nctf_spawn\t\t\"info_player_ctf\"", MAX_SYSPATH );
 	com.strncat( buffer, "\ncoop_spawn\t\"info_player_coop\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nteam_spawn\t\"info_player_team\"", MAX_SYSPATH );
-	com.strncat( buffer, "\nplayermins\t\"-32 -32 -32\"", MAX_SYSPATH );
-	com.strncat( buffer, "\nplayermaxs\t\"32 32 32\"", MAX_SYSPATH );
-	com.strncat( buffer, "\nplayermins_duck\t\"-16 -16 -18\"", MAX_SYSPATH );
-	com.strncat( buffer, "\nplayermaxs_duck\t\"16  16 18\"", MAX_SYSPATH );
+	com.strncat( buffer, "\nhull0\t\t( -16 -16 -36 ) ( 16 16 36 )", MAX_SYSPATH );
+	com.strncat( buffer, "\nhull1\t\t( -16 -16 -18 ) ( 16 16 18 )", MAX_SYSPATH );
+	com.strncat( buffer, "\nhull2\t\t( 0 0 0 ) ( 0 0 0 )", MAX_SYSPATH );
+	com.strncat( buffer, "\nhull3\t\t( -32 -32 -32 ) ( 32 32 32 )", MAX_SYSPATH );
+	com.strncat( buffer, "\nviewheight\t\"22\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nmax_edicts\t\"1024\"", MAX_SYSPATH );
 	com.strncat( buffer, "\n\n\n", MAX_SYSPATH );
 	
@@ -1399,7 +1436,8 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 	com.strncpy( GameInfo->gamefolder, filename, MAX_STRING );
 	GameInfo->max_edicts = 1024;	// default value if not specified
 	GameInfo->version = 1.0;
-
+	GameInfo->viewheight = 22.0f;
+	
 	com.strncpy( GameInfo->texmode, "Xash3D", MAX_STRING );
 	com.strncpy( GameInfo->sp_entity, "info_player_start", MAX_STRING );
 	com.strncpy( GameInfo->dm_entity, "info_player_deathmatch", MAX_STRING );
@@ -1408,10 +1446,14 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 	com.strncpy( GameInfo->team_entity, "info_player_team", MAX_STRING );
 	com.strncpy( GameInfo->startmap, "newmap", MAX_STRING );
 
-	VectorSet( GameInfo->client_mins[0], -32, -32, -32 );
-	VectorSet( GameInfo->client_maxs[0],  32,  32,  32 );
+	VectorSet( GameInfo->client_mins[0], -16, -16, -36 );
+	VectorSet( GameInfo->client_maxs[0],  16,  16,  36 );
 	VectorSet( GameInfo->client_mins[1], -16, -16, -18 );
 	VectorSet( GameInfo->client_maxs[1],  16,  16,  18 );
+	VectorSet( GameInfo->client_mins[2],   0,   0,  0  );
+	VectorSet( GameInfo->client_maxs[2],   0,   0,  0  );
+	VectorSet( GameInfo->client_mins[3], -32, -32, -32 );
+	VectorSet( GameInfo->client_maxs[3],  32,  32,  32 );
 
 	while( script )
 	{
@@ -1491,25 +1533,24 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 		{
 			PS_GetString( script, false, GameInfo->vsrcdir, sizeof( GameInfo->vsrcdir ));
 		}
-		else if( !com.stricmp( token.string, "playermins" ))
+		else if( !com.strnicmp( token.string, "hull", 4 ))
 		{
-			PS_ReadToken( script, 0, &token );
-			com.atov( GameInfo->client_mins[0], token.string, 3 );
+			int	hullNum = com.atoi( token.string + 4 );
+
+			if( hullNum < 0 || hullNum > ( PM_MAXHULLS - 1 ))
+			{
+				MsgDev( D_ERROR, "FS_ParseGameInfo: Invalid hull number %i. Ignored.\n", hullNum );
+				PS_SkipRestOfLine( script ); 
+			}
+			else
+			{
+				FS_ParseVector( script, GameInfo->client_mins[hullNum], 3 );
+				FS_ParseVector( script, GameInfo->client_maxs[hullNum], 3 );
+			}
 		}
-		else if( !com.stricmp( token.string, "playermaxs" ))
+		else if( !com.stricmp( token.string, "viewheight" ))
 		{
-			PS_ReadToken( script, 0, &token );
-			com.atov( GameInfo->client_maxs[0], token.string, 3 );
-		}
-		else if( !com.stricmp( token.string, "playermins_duck" ))
-		{
-			PS_ReadToken( script, 0, &token );
-			com.atov( GameInfo->client_mins[1], token.string, 3 );
-		}
-		else if( !com.stricmp( token.string, "playermaxs_duck" ))
-		{
-			PS_ReadToken( script, 0, &token );
-			com.atov( GameInfo->client_maxs[1], token.string, 3 );
+			PS_GetFloat( script, false, &GameInfo->viewheight );
 		}
 	}
 

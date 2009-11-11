@@ -23,6 +23,11 @@ extern DLL_GLOBAL BOOL NewLevel;
 int giAmmoIndex = 0;
 BOOL CanAffect;
 
+static const float bytedirs[NUMVERTEXNORMALS][3] =
+{
+#include "anorms.h"
+};
+
 //=========================================================
 //	COM_Functions (text files parsing)
 //=========================================================
@@ -43,12 +48,38 @@ void DevMsg( char *message, ... )
 	COM_Format( message );
 	g_engfuncs.pfnAlertMessage( at_aiconsole, "%s", value );
 }
+
+DLL_GLOBAL int DirToBits( const Vector dir )
+{
+	int	i, best = 0;
+	float	d, bestd = 0;
+	BOOL	normalized = FALSE;
+
+	if( dir == g_vecZero )
+		return NUMVERTEXNORMALS;
+
+	if(( dir.x * dir.x + dir.y * dir.y + dir.z * dir.z ) == 1 )
+		normalized = TRUE;
+
+	for( i = 0; i < NUMVERTEXNORMALS; i++ )
+	{
+		d = (dir.x * bytedirs[i][0] + dir.y * bytedirs[i][1] + dir.z * bytedirs[i][2] );
+		if(( d == 1 ) && normalized )
+			return i;
+		if( d > bestd )
+		{
+			bestd = d;
+			best = i;
+		}
+	}
+	return best;
+}
                            
 struct
 {
-     char token[1024];
-     int length;
-     int symbol;
+	char	token[1024];
+	int	length;
+	int	symbol;
 } parse; 
 
 char *COM_Parse( char *data )

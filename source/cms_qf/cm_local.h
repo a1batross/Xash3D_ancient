@@ -238,6 +238,7 @@ script_t *CM_EntityScript( void );
 const char *CM_ShaderName( int index );
 void CM_ModelBounds( model_t handle, vec3_t mins, vec3_t maxs );
 void CM_ModelFrames( model_t handle, int *numFrames );
+modtype_t CM_ModelType( model_t handle );
 cmodel_t *CM_ClipHandleToModel( model_t handle );
 model_t CM_TempBoxModel( const vec3_t mins, const vec3_t maxs, bool capsule );
 void CM_BeginRegistration ( const char *name, bool clientload, uint *checksum );

@@ -83,7 +83,7 @@ inline void MESSAGE_BEGIN( int msg_dest, int msg_type, const float *pOrigin = NU
 #define WRITE_FLOAT		(*g_engfuncs.pfnWriteFloat)
 #define WRITE_STRING	(*g_engfuncs.pfnWriteString)
 #define WRITE_ENTITY	(*g_engfuncs.pfnWriteEntity)
-#define WRITE_DIR( dir )	WRITE_SHORT((dir).DirToBits())
+#define WRITE_DIR( dir )	WRITE_SHORT(DirToBits( dir ))
 #define CVAR_REGISTER	(*g_engfuncs.pfnCVarRegister)
 #define CVAR_GET_FLOAT	(*g_engfuncs.pfnCVarGetFloat)
 #define CVAR_GET_STRING	(*g_engfuncs.pfnCVarGetString)

@@ -654,7 +654,6 @@ void UI_CloseMenu( void )
 	Key_ClearStates();
 
 	Key_SetKeyDest( key_game );
-	Cvar_SetValue( "paused", 0 );
 }
 
 /*
@@ -666,11 +665,6 @@ void UI_PushMenu( menuFramework_s *menu )
 {
 	int		i;
 	menuCommon_s	*item;
-
-	// never pause in multiplayer
-	if( !Host_ServerState() || Cvar_VariableInteger( "maxclients" ) > 1 )
-		Cvar_SetValue( "paused", 0 );
-	else Cvar_SetValue( "paused", 1 );
 
 	// if this menu is already present, drop back to that level to avoid stacking menus by hotkeys
 	for( i = 0; i < uiStatic.menuDepth; i++ )

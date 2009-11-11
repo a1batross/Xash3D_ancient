@@ -137,6 +137,17 @@ typedef struct entvars_s
 	float		dmgtime;
 
 	edict_t		*pContainingEntity;		// filled by engine, don't save, don't modifiy
+
+	// pm_shared test stuff
+	int		bInDuck;
+	int		flTimeStepSound;	// Next time we can play a step sound
+	int		flSwimTime;         // In process of ducking or ducked already?
+	int		flDuckTime;	// Time we started duck
+	int		iStepLeft;         	// 0 - 4
+	float		flFallVelocity;	// falling velocity z
+	int		oldbuttons;	// buttons last usercmd
+	int		iSpecMode;	// OBS_ROAMING etc (was iuser1)
+
 } entvars_t;
 
 struct edict_s

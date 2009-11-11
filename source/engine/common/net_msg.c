@@ -105,6 +105,28 @@ static net_field_t ent_fields[] =
 { NULL }
 };
 
+// probably movevars_t never reached 32 field integer limit (in theory of course)
+static net_field_t move_fields[] =
+{
+{ PM_FIELD(gravity),	NET_FLOAT, false	},
+{ PM_FIELD(stopspeed),	NET_FLOAT, false	},
+{ PM_FIELD(maxspeed),	NET_FLOAT, false	},
+{ PM_FIELD(spectatormaxspeed),NET_FLOAT, false	},
+{ PM_FIELD(accelerate),	NET_FLOAT, false	},
+{ PM_FIELD(airaccelerate),	NET_FLOAT, false	},
+{ PM_FIELD(wateraccelerate),	NET_FLOAT, false	},
+{ PM_FIELD(friction),	NET_FLOAT, false	},
+{ PM_FIELD(edgefriction),	NET_FLOAT, false	},
+{ PM_FIELD(waterfriction),	NET_FLOAT, false	},
+{ PM_FIELD(bounce),		NET_FLOAT, false	},
+{ PM_FIELD(stepsize),	NET_FLOAT, false	},
+{ PM_FIELD(maxvelocity),	NET_FLOAT, false	},
+{ PM_FIELD(footsteps),	NET_FLOAT, false	},
+{ PM_FIELD(rollangle),	NET_FLOAT, false	},
+{ PM_FIELD(rollspeed),	NET_FLOAT, false	},
+{ NULL },
+};
+
 // probably usercmd_t never reached 32 field integer limit (in theory of course)
 static net_field_t cmd_fields[] =
 {
@@ -113,9 +135,9 @@ static net_field_t cmd_fields[] =
 { CM_FIELD(angles[0]),	NET_ANGLE, false	},
 { CM_FIELD(angles[1]),	NET_ANGLE, false	},
 { CM_FIELD(angles[2]),	NET_ANGLE, false	},
-{ CM_FIELD(forwardmove),	NET_SHORT, false	},
-{ CM_FIELD(sidemove),	NET_SHORT, false	},
-{ CM_FIELD(upmove),		NET_SHORT, false	},
+{ CM_FIELD(forwardmove),	NET_FLOAT, false	},
+{ CM_FIELD(sidemove),	NET_FLOAT, false	},
+{ CM_FIELD(upmove),		NET_FLOAT, false	},
 { CM_FIELD(buttons),	NET_SHORT, false	},
 { NULL },
 };
@@ -577,8 +599,8 @@ void _MSG_WriteDeltaUsercmd( sizebuf_t *msg, usercmd_t *from, usercmd_t *to, con
 	int		*fromF, *toF;
 	int		i, flags = 0;
 	
-	num_fields = (sizeof(cmd_fields) / sizeof(cmd_fields[0])) - 1;
-	if( num_fields > 31 ) return; // this should never happen
+	num_fields = (sizeof( cmd_fields ) / sizeof( cmd_fields[0] )) - 1;
+	if( num_fields > MASK_FLAGS ) return; // this should never happen
 
 	// compare fields
 	for( i = 0, field = cmd_fields; i < num_fields; i++, field++ )
@@ -623,11 +645,71 @@ void MSG_ReadDeltaUsercmd( sizebuf_t *msg, usercmd_t *from, usercmd_t *to )
 	for( i = 0, field = cmd_fields; field->name; i++, field++ )
 	{
 		// get flags of next packet if LONG out of range
-		if((i & 31) == 0) flags = MSG_ReadLong( msg );
+		if(( i & MASK_FLAGS ) == 0) flags = MSG_ReadLong( msg );
 		fromF = (int *)((byte *)from + field->offset );
 		toF = (int *)((byte *)to + field->offset );
 		
-		if(flags & (1<<i)) *toF = MSG_ReadBits( msg, field->name, field->bits );
+		if( flags & ( 1<<( i & MASK_FLAGS )))
+			*toF = MSG_ReadBits( msg, field->name, field->bits );
+		else *toF = *fromF;	// no change
+	}
+}
+
+/*
+=============================================================================
+
+movevars_t communication
+  
+=============================================================================
+*/
+bool _MSG_WriteDeltaMovevars( sizebuf_t *msg, movevars_t *from, movevars_t *to, const char *filename, const int fileline )
+{
+	int		num_fields;
+	net_field_t	*field;
+	int		*fromF, *toF;
+	int		i, flags = 0;
+	
+	num_fields = (sizeof( move_fields ) / sizeof( move_fields[0] )) - 1;
+	if( num_fields > MASK_FLAGS ) return false; // this should never happen
+
+	// compare fields
+	for( i = 0, field = move_fields; i < num_fields; i++, field++ )
+	{
+		fromF = (int *)((byte *)from + field->offset );
+		toF = (int *)((byte *)to + field->offset );
+		if(*fromF != *toF || field->force) flags |= 1<<i;
+	}
+
+	// nothing at all changed
+	if( flags == 0 ) return false;
+
+	MSG_WriteByte( msg, svc_movevars );
+	MSG_WriteLong( msg, flags );	// send flags who indicates changes
+	for( i = 0, field = move_fields; i < num_fields; i++, field++ )
+	{
+		toF = (int *)((byte *)to + field->offset );
+		if( flags & 1<<i ) MSG_WriteBits( msg, *toF, field->name, field->bits );
+	}
+	return true;
+}
+
+void MSG_ReadDeltaMovevars( sizebuf_t *msg, movevars_t *from, movevars_t *to )
+{
+	net_field_t	*field;
+	int		i, flags;
+	int		*fromF, *toF;
+
+	*to = *from;
+
+	for( i = 0, field = move_fields; field->name; i++, field++ )
+	{
+		// get flags of next packet if LONG out of range
+		if(( i & MASK_FLAGS ) == 0) flags = MSG_ReadLong( msg );
+		fromF = (int *)((byte *)from + field->offset );
+		toF = (int *)((byte *)to + field->offset );
+		
+		if( flags & ( 1<<( i & MASK_FLAGS )))
+			*toF = MSG_ReadBits( msg, field->name, field->bits );
 		else *toF = *fromF;	// no change
 	}
 }

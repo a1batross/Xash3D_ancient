@@ -167,3 +167,4 @@ Beta 13.12.09
 140. net_msg is buggly!!!!			OK
 141. get physic code from Lazarus
 142. completely match cl\sv iface with HL1
+143. implement pmove

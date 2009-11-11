@@ -38,16 +38,15 @@
 #include "defaults.h"
 
 
-extern DLL_GLOBAL ULONG		g_ulModelIndexPlayer;
-extern DLL_GLOBAL BOOL		g_fGameOver;
-extern DLL_GLOBAL	BOOL	g_fDrawLines;
+extern DLL_GLOBAL ULONG	g_ulModelIndexPlayer;
+extern DLL_GLOBAL BOOL	g_fGameOver;
+extern DLL_GLOBAL BOOL	g_fDrawLines;
 float g_flWeaponCheat;
 int gEvilImpulse101;
 BOOL GiveOnlyAmmo;
-BOOL g_markFrameBounds = 0; //LRC
+BOOL g_markFrameBounds = 0;
 BOOL gInitHUD = TRUE;
 
-int MapTextureTypeStepType(char chTextureType);
 extern void CopyToBodyQue(entvars_t* pev);
 extern void respawn(entvars_t *pev, BOOL fCopyCorpse);
 extern Vector VecBModelOrigin(entvars_t *pevBModel );
@@ -69,8 +68,8 @@ extern CGraph	WorldGraph;
 #define TRAIN_FAST		0x04
 #define TRAIN_BACK		0x05
 
-#define	FLASH_DRAIN_TIME	 0.1 //100 units/3 minutes
-#define	FLASH_CHARGE_TIME	 0.2 // 100 units/20 seconds  (seconds per unit)
+#define	FLASH_DRAIN_TIME	 1.2 // 100 units / 3 minutes
+#define	FLASH_CHARGE_TIME	 0.2 // 100 units / 20 seconds (seconds per unit)
 
 // Global Savedata for player
 TYPEDESCRIPTION	CBasePlayer::m_playerSaveData[] =
@@ -319,7 +318,8 @@ void CBasePlayer :: DeathSound( void )
 
 	// play one of the suit death alarms
 	//LRC- if no suit, then no flatline sound. (unless it's a deathmatch.)
-	if( !(pev->weapons & ITEM_SUIT) && !g_pGameRules->IsDeathmatch()) return;
+	if(!( pev->weapons & ITEM_SUIT ) && !g_pGameRules->IsDeathmatch( ))
+		return;
 	EMIT_GROUPNAME_SUIT(ENT(pev), "HEV_DEAD");
 }
 
@@ -333,21 +333,22 @@ int CBasePlayer :: TakeHealth( float flHealth, int bitsDamageType )
 
 int CBasePlayer :: TakeArmor( float flArmor, int suit )
 {
-	if(!(pev->weapons & ITEM_SUIT)) return 0;
+	if(!( pev->weapons & ITEM_SUIT )) return 0;
 	
 	if(CBaseMonster::TakeArmor(flArmor ))
 	{
-		if(!suit) return 1; //silent take armor
+		if( !suit ) return 1; //silent take armor
+
 		int pct;
 		char szcharge[64];
 
 		// Suit reports new power level
 		pct = (int)( (float)(pev->armorvalue * 100.0) * (1.0/MAX_NORMAL_BATTERY) + 0.5);
 		pct = (pct / 5);
-		if (pct > 0) pct--;
+		if( pct > 0 ) pct--;
 		
 		sprintf( szcharge,"!HEV_%1dP", pct );
-		SetSuitUpdate(szcharge, FALSE, SUIT_NEXT_IN_30SEC);
+		SetSuitUpdate( szcharge, FALSE, SUIT_NEXT_IN_30SEC );
 		
 		return 1;
 	}
@@ -810,9 +811,9 @@ void CBasePlayer::RemoveAllItems( BOOL removeSuit )
 	}
 	m_pActiveItem = NULL;
 
-	pev->viewmodel	= 0;
-	pev->weaponmodel	= 0;
-	pev->weapons 	= 0;
+	pev->viewmodel = 0;
+	pev->weaponmodel = 0;
+	pev->weapons = ITEM_SUIT;
 	
 	if ( removeSuit ) pev->weapons &= ~ITEM_SUIT;
 
@@ -1185,15 +1186,6 @@ void CBasePlayer::WaterMove()
 	{
 		if (FBitSet(pev->flags, FL_INWATER))
 		{
-			// play leave water sound
-			switch (RANDOM_LONG(0,3))
-			{
-			case 0: EMIT_SOUND(ENT(pev), CHAN_BODY, "player/pl_wade1.wav", 1, ATTN_NORM); break;
-			case 1: EMIT_SOUND(ENT(pev), CHAN_BODY, "player/pl_wade2.wav", 1, ATTN_NORM); break;
-			case 2: EMIT_SOUND(ENT(pev), CHAN_BODY, "player/pl_wade3.wav", 1, ATTN_NORM); break;
-			case 3: EMIT_SOUND(ENT(pev), CHAN_BODY, "player/pl_wade4.wav", 1, ATTN_NORM); break;
-			}
-			
 			ClearBits(pev->flags, FL_INWATER);
 		}
 		return;
@@ -1213,12 +1205,12 @@ void CBasePlayer::WaterMove()
 		}
 	}
 
-	if( FBitSet( pev->watertype, CONTENTS_LAVA ))		// do damage
+	if( pev->watertype == CONTENTS_LAVA )		// do damage
 	{
 		if (pev->dmgtime < gpGlobals->time)
 			TakeDamage(VARS(eoNullEntity), VARS(eoNullEntity), 10 * pev->waterlevel, DMG_BURN);
 	}
-	else if( FBitSet( pev->watertype, CONTENTS_SLIME ))		// do damage
+	else if( pev->watertype == CONTENTS_SLIME )	// do damage
 	{
 		pev->dmgtime = gpGlobals->time + 1;
 		TakeDamage(VARS(eoNullEntity), VARS(eoNullEntity), 4 * pev->waterlevel, DMG_ACID);
@@ -1226,24 +1218,9 @@ void CBasePlayer::WaterMove()
 
 	if (!FBitSet( pev->flags, FL_INWATER ))
 	{
-		// player enter water sound
-		if( FBitSet( pev->watertype, CONTENTS_WATER ))
-		{
-			switch (RANDOM_LONG(0,3))
-			{
-			case 0:	EMIT_SOUND(ENT(pev), CHAN_BODY, "player/pl_wade1.wav", 1, ATTN_NORM); break;
-			case 1:	EMIT_SOUND(ENT(pev), CHAN_BODY, "player/pl_wade2.wav", 1, ATTN_NORM); break;
-			case 2:	EMIT_SOUND(ENT(pev), CHAN_BODY, "player/pl_wade3.wav", 1, ATTN_NORM); break;
-			case 3:	EMIT_SOUND(ENT(pev), CHAN_BODY, "player/pl_wade4.wav", 1, ATTN_NORM); break;
-			}
-		}
-
 		SetBits( pev->flags, FL_INWATER );
 		pev->dmgtime = 0;
 	}
-
-	if( !FBitSet( pev->flags, FL_WATERJUMP ))
-		pev->velocity = pev->velocity - 0.8 * pev->waterlevel * gpGlobals->frametime * pev->velocity;
 }
 
 // TRUE if the player is attached to a ladder
@@ -1251,41 +1228,6 @@ BOOL CBasePlayer::IsOnLadder( void )
 {
 	return ( pev->movetype == MOVETYPE_FLY );
 }
-
-//
-// check for a jump-out-of-water
-//
-void CBasePlayer::CheckWaterJump( )
-{
-	if ( IsOnLadder() )  // Don't water jump if on a ladders?  (This prevents the bug where 
-		return;              //  you bounce off water when you are facing it on a ladder).
-
-	Vector vecStart = pev->origin;
-	vecStart.z += 8; 
-
-	UTIL_MakeVectors(pev->angles);
-	gpGlobals->v_forward.z = 0;
-	gpGlobals->v_forward = gpGlobals->v_forward.Normalize();
-	
-	Vector vecEnd = vecStart + gpGlobals->v_forward * 24;
-	
-	TraceResult tr;
-	UTIL_TraceLine(vecStart, vecEnd, ignore_monsters, ENT(pev)/*pentIgnore*/, &tr);
-	if (tr.flFraction < 1)		// solid at waist
-	{
-		vecStart.z += pev->maxs.z - 8;
-		vecEnd = vecStart + gpGlobals->v_forward * 24;
-		pev->movedir = tr.vecPlaneNormal * -50;
-		UTIL_TraceLine(vecStart, vecEnd, ignore_monsters, ENT(pev)/*pentIgnore*/, &tr);
-		if (tr.flFraction == 1)		// open at eye level
-		{
-			SetBits( pev->flags, FL_WATERJUMP );
-			pev->velocity.z = 225;
-			pev->teleport_time = gpGlobals->time + 2;  // safety net
-		}
-	}
-}
-
 
 void CBasePlayer::PlayerDeathThink(void)
 {
@@ -1309,7 +1251,7 @@ void CBasePlayer::PlayerDeathThink(void)
 		PackDeadPlayerItems();
 	}
 
-	//disable redeemer HUD
+	// disable redeemer HUD
 	MESSAGE_BEGIN( MSG_ONE, gmsg.WarHUD, NULL, pev );
 		WRITE_BYTE( 0 );
 	MESSAGE_END();
@@ -1578,7 +1520,6 @@ void CBasePlayer::PlayerUse ( void )
 
 void CBasePlayer :: Jump( void )
 {
-	float		flScale;
 	Vector		vecWallCheckDir;// direction we're tracing a line to find a wall when walljumping
 	Vector		vecAdjustedVelocity;
 	Vector		vecSpot;
@@ -1587,27 +1528,8 @@ void CBasePlayer :: Jump( void )
 	if( FBitSet( pev->flags, FL_WATERJUMP ))
 		return;
 
-	if( pev->waterlevel >= 2 && !FBitSet( pev->watertype, CONTENTS_FOG ))
+	if( pev->waterlevel >= 2 && pev->watertype != CONTENTS_FOG )
 	{
-		if( pev->watertype & CONTENTS_WATER )
-			flScale = 100;
-		else if( pev->watertype & CONTENTS_SLIME )
-			flScale =  80;
-		else flScale = 50;
-		pev->velocity.z = flScale;
-
-		// play swiming sound
-		if (m_flSwimTime < gpGlobals->time)
-		{
-			m_flSwimTime = gpGlobals->time + 1;
-			switch (RANDOM_LONG(0,3))
-			{ 
-			case 0: EMIT_SOUND(ENT(pev), CHAN_BODY, "player/pl_wade1.wav", 1, ATTN_NORM); break;
-			case 1: EMIT_SOUND(ENT(pev), CHAN_BODY, "player/pl_wade2.wav", 1, ATTN_NORM); break;
-			case 2: EMIT_SOUND(ENT(pev), CHAN_BODY, "player/pl_wade3.wav", 1, ATTN_NORM); break;
-			case 3: EMIT_SOUND(ENT(pev), CHAN_BODY, "player/pl_wade4.wav", 1, ATTN_NORM); break;
-			}
-		}
 		return;
 	}
 
@@ -1625,42 +1547,18 @@ void CBasePlayer :: Jump( void )
 	// many features in this function use v_forward, so makevectors now.
 	UTIL_MakeVectors (pev->angles);
 
-	ClearBits(pev->flags, FL_ONGROUND);// don't stairwalk
+	// ClearBits(pev->flags, FL_ONGROUND);// don't stairwalk
 
 	SetAnimation( PLAYER_JUMP );
 
-	// play step sound for current texture at full volume
-	
-	PlayStepSound(MapTextureTypeStepType(m_chTextureType), 1.0);
-
-	if ( FBitSet( pev->flags, FL_DUCKING ) || FBitSet(m_afPhysicsFlags, PFLAG_DUCKING) )
+	if( m_fLongJump && ( pev->button & IN_DUCK ) && ( pev->flDuckTime > 0 ) && pev->velocity.Length() > 50 )
 	{
-		if ( m_fLongJump && (pev->button & IN_DUCK) && ( gpGlobals->time - m_flDuckTime < 1 ) && pev->velocity.Length() > 50 )
-		{
-			Msg( "LongJump!\n" );
-			
-			// play longjump 'servo' sound
-			if ( RANDOM_LONG(0,1) ) EMIT_SOUND(ENT(pev), CHAN_VOICE, "player/pl_pain2.wav", 1, ATTN_NORM);
-			else EMIT_SOUND(ENT(pev), CHAN_VOICE, "player/pl_pain4.wav", 1, ATTN_NORM);
-
-			pev->punchangle.x = -5;
-			pev->velocity = gpGlobals->v_forward * (PLAYER_LONGJUMP_SPEED * 1.6);
-			pev->velocity.z = sqrt( 2 * 800 * 56.0 ); // jump 56 units		
-			SetAnimation( PLAYER_SUPERJUMP );
-		}
-		else
-		{	// ducking jump
-			pev->velocity.z = sqrt( 2 * 800 * 45.0 ); // jump 45 units
-		}
-          }
-	else
-	{
-		pev->velocity.z = sqrt( 2 * 800 * 45.0 ); // jump 45 units
+		SetAnimation( PLAYER_SUPERJUMP );
 	}
 
 	// If you're standing on a conveyor, add its velocity to yours (for momentum)
-	entvars_t *pevGround = VARS( pev->groundentity );
-	if ( pevGround && ( pevGround->flags & FL_CONVEYOR ))
+	entvars_t *pevGround = VARS(pev->groundentity);
+	if ( pevGround && (pevGround->flags & FL_CONVEYOR) )
 	{
 		pev->velocity = pev->velocity + pev->basevelocity;
 	}
@@ -1686,81 +1584,13 @@ void FixPlayerCrouchStuck( edict_t *pPlayer )
 	}
 }
 
-// It takes 0.4 seconds to duck
-#define TIME_TO_DUCK	0.4
-
-// This is a little more complicated now than it used to be, but I think for the better -
-// The player's origin no longer moves when ducking.  If you start ducking while standing on ground,
-// your view offset is non-linearly blended to the ducking position and then your hull is changed.
-// In air, duck works just like it used to - you pick up your feet (more like tucking).
-// PFLAG_DUCKING was added to track the state where the player is in the process of ducking, but hasn't
-// reached the crouched position yet.
-//
-// A few of nice side effects of this are:
-//	a) On ground status does not change when ducking (good on trains, etc)
-//	b) origin stays constant
-//	c) Superjump can begin while still in run animation (nice when looking at others in multiplayer)
-//
 void CBasePlayer::Duck( )
 {
-	float time, duckFraction;
-
-	if (pev->button & IN_DUCK) 
+	if (pev->button & IN_DUCK)
 	{
-		if(( m_afButtonPressed & IN_DUCK ) && !(pev->flags & FL_DUCKING) )
+		if ( m_IdealActivity != ACT_LEAP )
 		{
-			m_flDuckTime = gpGlobals->time;
-			SetBits(m_afPhysicsFlags,PFLAG_DUCKING);		// We are in the process of ducking
-		}
-		time = (gpGlobals->time - m_flDuckTime);
-
-		// if we're not already done ducking
-		if ( FBitSet( m_afPhysicsFlags, PFLAG_DUCKING ) )
-		{
-			// Finish ducking immediately if duck time is over or not on ground
-			if ( time >= TIME_TO_DUCK || !(pev->flags & FL_ONGROUND) )
-			{
-				// HACKHACK - Fudge for collision bug - no time to fix this properly
-				if ( pev->flags & FL_ONGROUND )
-				{
-					pev->origin = pev->origin - (VEC_DUCK_HULL_MIN - VEC_HULL_MIN);
-					FixPlayerCrouchStuck( edict() );
-				}
-
-
-				UTIL_SetOrigin( this, pev->origin );
-
-				UTIL_SetSize(pev, VEC_DUCK_HULL_MIN, VEC_DUCK_HULL_MAX);
-				pev->view_ofs = VEC_DUCK_VIEW;
-				SetBits( pev->flags, FL_DUCKING );		// Hull is duck hull
-				ClearBits( m_afPhysicsFlags, PFLAG_DUCKING );	// Done ducking (don't ease-in when the player hits the ground)
-			}
-			else
-			{
-				// Calc parametric time
-				duckFraction = UTIL_SplineFraction( time, (1.0/TIME_TO_DUCK) );
-				pev->view_ofs = ((VEC_DUCK_VIEW - (VEC_DUCK_HULL_MIN - VEC_HULL_MIN)) * duckFraction) + (VEC_VIEW * (1-duckFraction));
-			}
-		}
-		SetAnimation( PLAYER_WALK );
-	}
-	else 
-	{
-		TraceResult trace;
-		Vector newOrigin = pev->origin;
-
-		if ( pev->flags & FL_ONGROUND )
-			newOrigin = newOrigin + (VEC_DUCK_HULL_MIN - VEC_HULL_MIN);
-		
-		UTIL_TraceHull( newOrigin, newOrigin, dont_ignore_monsters, human_hull, ENT(pev), &trace );
-
-		if ( !trace.fStartSolid )
-		{
-			ClearBits( pev->flags, FL_DUCKING );
-			ClearBits( m_afPhysicsFlags, PFLAG_DUCKING );
-			pev->view_ofs = VEC_VIEW;
-			UTIL_SetSize(pev, VEC_HULL_MIN, VEC_HULL_MAX);
-			pev->origin = newOrigin;
+			SetAnimation( PLAYER_WALK );
 		}
 	}
 }
@@ -1923,344 +1753,7 @@ void CBasePlayer::UpdateStatusBar()
 
 
 
-// play a footstep if it's time - this will eventually be frame-based. not time based.
 
-#define STEP_CONCRETE	0		// default step sound
-#define STEP_METAL		1		// metal floor
-#define STEP_DIRT		2		// dirt, sand, rock
-#define STEP_VENT		3		// ventillation duct
-#define STEP_GRATE		4		// metal grating
-#define STEP_TILE		5		// floor tiles
-#define STEP_SLOSH		6		// shallow liquid puddle
-#define STEP_WADE		7		// wading in liquid
-#define STEP_LADDER		8		// climbing ladder
-
-// Play correct step sound for material we're on or in
-
-void CBasePlayer :: PlayStepSound(int step, float fvol)
-{
-	static int iSkipStep = 0;
-
-	if ( !g_pGameRules->PlayFootstepSounds( this, fvol ) )
-		return;
-
-	// irand - 0,1 for right foot, 2,3 for left foot
-	// used to alternate left and right foot
-	int irand = RANDOM_LONG(0,1) + (m_iStepLeft * 2);
-
-	m_iStepLeft = !m_iStepLeft;
-
-	switch (step)
-	{
-	default:
-	case STEP_CONCRETE:
-		switch (irand)
-		{
-		// right foot
-		case 0:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_step1.wav", fvol, ATTN_NORM);	break;
-		case 1:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_step3.wav", fvol, ATTN_NORM);	break;
-		// left foot
-		case 2:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_step2.wav", fvol, ATTN_NORM);	break;
-		case 3:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_step4.wav", fvol, ATTN_NORM);	break;
-		}
-		break;
-	case STEP_METAL:
-		switch(irand)
-		{
-		// right foot
-		case 0:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_metal1.wav", fvol, ATTN_NORM);	break;
-		case 1:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_metal3.wav", fvol, ATTN_NORM);	break;
-		// left foot
-		case 2:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_metal2.wav", fvol, ATTN_NORM);	break;
-		case 3:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_metal4.wav", fvol, ATTN_NORM);	break;
-		}
-		break;
-	case STEP_DIRT:
-		switch(irand)
-		{
-		// right foot
-		case 0:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_dirt1.wav", fvol, ATTN_NORM);	break;
-		case 1:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_dirt3.wav", fvol, ATTN_NORM);	break;
-		// left foot
-		case 2:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_dirt2.wav", fvol, ATTN_NORM);	break;
-		case 3:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_dirt4.wav", fvol, ATTN_NORM);	break;
-		}
-		break;
-	case STEP_VENT:
-		switch(irand)
-		{
-		// right foot
-		case 0:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_duct1.wav", fvol, ATTN_NORM);	break;
-		case 1:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_duct3.wav", fvol, ATTN_NORM);	break;
-		// left foot
-		case 2:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_duct2.wav", fvol, ATTN_NORM);	break;
-		case 3:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_duct4.wav", fvol, ATTN_NORM);	break;
-		}
-		break;
-	case STEP_GRATE:
-		switch(irand)
-		{
-		// right foot
-		case 0:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_grate1.wav", fvol, ATTN_NORM);	break;
-		case 1:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_grate3.wav", fvol, ATTN_NORM);	break;
-		// left foot
-		case 2:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_grate2.wav", fvol, ATTN_NORM);	break;
-		case 3:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_grate4.wav", fvol, ATTN_NORM);	break;
-		}
-		break;
-	case STEP_TILE:
-		if (!RANDOM_LONG(0,4))
-			irand = 4;
-		switch(irand)
-		{
-		// right foot
-		case 0:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_tile1.wav", fvol, ATTN_NORM);	break;
-		case 1:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_tile3.wav", fvol, ATTN_NORM);	break;
-		// left foot
-		case 2:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_tile2.wav", fvol, ATTN_NORM);	break;
-		case 3:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_tile4.wav", fvol, ATTN_NORM);	break;
-		case 4: EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_tile5.wav", fvol, ATTN_NORM);	break;
-		}
-		break;
-	case STEP_SLOSH:
-		switch(irand)
-		{
-		// right foot
-		case 0:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_slosh1.wav", fvol, ATTN_NORM);	break;
-		case 1:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_slosh3.wav", fvol, ATTN_NORM);	break;
-		// left foot
-		case 2:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_slosh2.wav", fvol, ATTN_NORM);	break;
-		case 3:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_slosh4.wav", fvol, ATTN_NORM);	break;
-		}
-		break;
-	case STEP_WADE:
-		if ( iSkipStep == 0 )
-		{
-			iSkipStep++;
-			break;
-		}
-
-		if ( iSkipStep++ == 3 )
-		{
-			iSkipStep = 0;
-		}
-
-		switch (irand)
-		{
-		// right foot
-		case 0:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_wade1.wav", fvol, ATTN_NORM);	break;
-		case 1:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_wade2.wav", fvol, ATTN_NORM);	break;
-		// left foot
-		case 2:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_wade3.wav", fvol, ATTN_NORM);	break;
-		case 3:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_wade4.wav", fvol, ATTN_NORM);	break;
-		}
-		break;
-	case STEP_LADDER:
-		switch(irand)
-		{
-		// right foot
-		case 0:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_ladder1.wav", fvol, ATTN_NORM);	break;
-		case 1:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_ladder3.wav", fvol, ATTN_NORM);	break;
-		// left foot
-		case 2:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_ladder2.wav", fvol, ATTN_NORM);	break;
-		case 3:	EMIT_SOUND( ENT(pev), CHAN_BODY, "player/pl_ladder4.wav", fvol, ATTN_NORM);	break;
-		}
-		break;
-	}
-}	
-
-// Simple mapping from texture type character to step type
-
-int MapTextureTypeStepType(char chTextureType)
-{
-	switch (chTextureType)
-	{
-	default:
-	case CHAR_TEX_CONCRETE: return STEP_CONCRETE;	
-	case CHAR_TEX_METAL: return STEP_METAL;	
-	case CHAR_TEX_DIRT: return STEP_DIRT;	
-	case CHAR_TEX_VENT: return STEP_VENT;	
-	case CHAR_TEX_GRATE: return STEP_GRATE;	
-	case CHAR_TEX_TILE: return STEP_TILE;
-	case CHAR_TEX_SLOSH: return STEP_SLOSH;
-	}
-}
-
-// Play left or right footstep based on material player is on or in
-
-void CBasePlayer :: UpdateStepSound( void )
-{
-	int	fWalking;
-	float fvol;
-	char szbuffer[64];
-	const char *pTextureName;
-	Vector start, end;
-	float rgfl1[3];
-	float rgfl2[3];
-	Vector knee;
-	Vector feet;
-	Vector center;
-	float height;
-	float speed;
-	float velrun;
-	float velwalk;
-	float flduck;
-	int	fLadder;
-	int step;
-
-	if (gpGlobals->time <= m_flTimeStepSound)
-		return;
-
-	if( pev->flags & FL_FROZEN )
-		return;
-
-	speed = pev->velocity.Length();
-
-	// determine if we are on a ladder
-	fLadder = IsOnLadder();
-
-	// UNDONE: need defined numbers for run, walk, crouch, crouch run velocities!!!!	
-	if( FBitSet( pev->flags, FL_DUCKING ) || fLadder )
-	{
-		velwalk = 60;		// These constants should be based on cl_movespeedkey * cl_forwardspeed somehow
-		velrun = 80;		// UNDONE: Move walking to server
-		flduck = 0.1;
-	}
-	else
-	{
-		velwalk = 120;
-		velrun = 210;
-		flduck = 0.0;
-	}
-
-	// ALERT (at_console, "vel: %f\n", vecVel.Length());
-	
-	// if we're on a ladder or on the ground, and we're moving fast enough,
-	// play step sound.  Also, if m_flTimeStepSound is zero, get the new
-	// sound right away - we just started moving in new level.
-
-	if ((fLadder || FBitSet (pev->flags, FL_ONGROUND)) && pev->velocity != g_vecZero 
-		&& (speed >= velwalk || !m_flTimeStepSound))
-	{
-		SetAnimation( PLAYER_WALK );
-		
-		fWalking = speed < velrun;		
-
-		center = knee = feet = (pev->absmin + pev->absmax) * 0.5;
-		height = pev->absmax.z - pev->absmin.z;
-
-		knee.z = pev->absmin.z + height * 0.2;
-		feet.z = pev->absmin.z;
-
-		// find out what we're stepping in or on...
-		if( fLadder )
-		{
-			step = STEP_LADDER;
-			fvol = 0.35;
-			m_flTimeStepSound = gpGlobals->time + 0.35;
-		}
-		else if( UTIL_PointContents ( knee ) == CONTENTS_WATER )
-		{
-			step = STEP_WADE;
-			fvol = 0.65;
-			m_flTimeStepSound = gpGlobals->time + 0.6;
-		}
-		else if( UTIL_PointContents ( feet ) == CONTENTS_WATER )
-		{
-			step = STEP_SLOSH;
-			fvol = fWalking ? 0.2 : 0.5;
-			m_flTimeStepSound = fWalking ? gpGlobals->time + 0.4 : gpGlobals->time + 0.3;		
-		}
-		else
-		{
-			// find texture under player, if different from current texture, 
-			// get material type
-
-			start = end = center;							// center point of player BB
-			start.z = end.z = pev->absmin.z;				// copy zmin
-			start.z += 4.0;									// extend start up
-			end.z -= 24.0;									// extend end down
-			
-			start.CopyToArray(rgfl1);
-			end.CopyToArray(rgfl2);
-
-			pTextureName = TRACE_TEXTURE( ENT( pev->groundentity), rgfl1, rgfl2 );
-			if ( pTextureName )
-			{
-				// strip leading '-0' or '{' or '!'
-				if (*pTextureName == '-')
-					pTextureName += 2;
-				if (*pTextureName == '{' || *pTextureName == '!')
-					pTextureName++;
-				
-				if (_strnicmp(pTextureName, m_szTextureName, CBTEXTURENAMEMAX-1))
-				{
-					// current texture is different from texture player is on...
-					// set current texture
-					strcpy(szbuffer, pTextureName);
-					szbuffer[CBTEXTURENAMEMAX - 1] = 0;
-					strcpy(m_szTextureName, szbuffer);
-					
-					// ALERT ( at_aiconsole, "texture: %s\n", m_szTextureName );
-
-					// get texture type
-					m_chTextureType = TEXTURETYPE_Find(m_szTextureName);	
-				}
-			}
-			
-			step = MapTextureTypeStepType(m_chTextureType);
-
-			switch (m_chTextureType)
-			{
-			default:
-			case CHAR_TEX_CONCRETE:						
-				fvol = fWalking ? 0.2 : 0.5;
-				m_flTimeStepSound = fWalking ? gpGlobals->time + 0.4 : gpGlobals->time + 0.3;
-				break;
-
-			case CHAR_TEX_METAL:	
-				fvol = fWalking ? 0.2 : 0.5;
-				m_flTimeStepSound = fWalking ? gpGlobals->time + 0.4 : gpGlobals->time + 0.3;
-				break;
-
-			case CHAR_TEX_DIRT:	
-				fvol = fWalking ? 0.25 : 0.55;
-				m_flTimeStepSound = fWalking ? gpGlobals->time + 0.4 : gpGlobals->time + 0.3;
-				break;
-
-			case CHAR_TEX_VENT:	
-				fvol = fWalking ? 0.4 : 0.7;
-				m_flTimeStepSound = fWalking ? gpGlobals->time + 0.4 : gpGlobals->time + 0.3;
-				break;
-
-			case CHAR_TEX_GRATE:
-				fvol = fWalking ? 0.2 : 0.5;
-				m_flTimeStepSound = fWalking ? gpGlobals->time + 0.4 : gpGlobals->time + 0.3;
-				break;
-
-			case CHAR_TEX_TILE:	
-				fvol = fWalking ? 0.2 : 0.5;
-				m_flTimeStepSound = fWalking ? gpGlobals->time + 0.4 : gpGlobals->time + 0.3;
-				break;
-
-			case CHAR_TEX_SLOSH:
-				fvol = fWalking ? 0.2 : 0.5;
-				m_flTimeStepSound = fWalking ? gpGlobals->time + 0.4 : gpGlobals->time + 0.3;
-				break;
-			}
-		}
-		
-		m_flTimeStepSound += flduck; // slower step time if ducking
-
-		// play the sound
-
-		// 35% volume if ducking
-		if ( pev->flags & FL_DUCKING )
-			fvol *= 0.35;
-
-		PlayStepSound(step, fvol);
-	}
-}
 
 
 #define CLIMB_SHAKE_FREQUENCY	22	// how many frames in between screen shakes when climbing
@@ -2293,19 +1786,13 @@ void CBasePlayer::PreThink(void)
 	else
 		m_iHideHUD |= HIDEHUD_FLASHLIGHT;
 
+
 	// JOHN: checks if new client data (for HUD and view control) needs to be sent to the client
 	UpdateClientData();
 
 	CheckTimeBasedDamage();
 
 	CheckSuitUpdate();
-
-	if (pev->waterlevel == 2) 
-		CheckWaterJump();
-	else if ( pev->waterlevel == 0 )
-	{
-		pev->flags &= ~FL_WATERJUMP;	// Clear this if out of water
-	}
 
 	if (pev->deadflag >= DEAD_DYING)
 	{
@@ -2382,13 +1869,10 @@ void CBasePlayer::PreThink(void)
 		Jump();
 	}
 
+
 	// If trying to duck, already ducked, or in the process of ducking
 	if ((pev->button & IN_DUCK) || FBitSet( pev->flags, FL_DUCKING) || (m_afPhysicsFlags & PFLAG_DUCKING) )
 		Duck();
-
-	// play a footstep if it's time - this will eventually be frame-based. not time based.
-	
-	UpdateStepSound();
 
 	if ( !FBitSet ( pev->flags, FL_ONGROUND ) )
 	{
@@ -2487,7 +1971,7 @@ void CBasePlayer::PreThink(void)
 void CBasePlayer::CheckTimeBasedDamage()
 {
 	int i;
-	BYTE bDuration = 0;
+	byte bDuration = 0;
 
 	static float gtbdPrev = 0.0;
 
@@ -2641,7 +2125,7 @@ Things powered by the battery
 
 void CBasePlayer :: UpdateGeigerCounter( void )
 {
-	BYTE range;
+	byte range;
 
 	// delay per update ie: don't flood net with these msgs
 	if (gpGlobals->time < m_flgeigerDelay)
@@ -2651,7 +2135,7 @@ void CBasePlayer :: UpdateGeigerCounter( void )
 
 	// send range to radition source to client
 
-	range = (BYTE) (m_flgeigerRange / 4);
+	range = (byte) (m_flgeigerRange / 4);
 
 	if (range != m_igeigerRangePrev)
 	{
@@ -3011,11 +2495,9 @@ void CBasePlayer::PostThink()
 
 	if ( (FBitSet(pev->flags, FL_ONGROUND)) && (pev->health > 0) && m_flFallVelocity >= PLAYER_FALL_PUNCH_THRESHHOLD )
 	{
-		float fvol = 0.5;
-
 		// ALERT ( at_console, "%f\n", m_flFallVelocity );
 
-		if( FBitSet( pev->watertype, CONTENTS_WATER ))
+		if (pev->watertype == CONTENTS_WATER)
 		{
 			// Did he hit the world or a non-moving entity?
 			// BUG - this happens all the time in water, especially when
@@ -3024,62 +2506,21 @@ void CBasePlayer::PostThink()
 				// EMIT_SOUND(ENT(pev), CHAN_BODY, "player/pl_wade1.wav", 1, ATTN_NORM);
 		}
 		else if ( m_flFallVelocity > PLAYER_MAX_SAFE_FALL_SPEED )
-		{
-			// after this point, we start doing damage
-			switch ( RANDOM_LONG(0,1) )
-			{
-			case 0:	EMIT_SOUND(ENT(pev), CHAN_VOICE, "player/pl_fallpain2.wav", 1, ATTN_NORM);
-			case 1:	EMIT_SOUND(ENT(pev), CHAN_VOICE, "player/pl_fallpain3.wav", 1, ATTN_NORM);
-			}
-			
+		{// after this point, we start doing damage
+
 			float flFallDamage = g_pGameRules->FlPlayerFallDamage( this );
 
 			if ( flFallDamage > pev->health )
-			{
-				// splat
-				// NOTE: play on item channel because we play footstep landing on body channel
+			{//splat
+				// note: play on item channel because we play footstep landing on body channel
 				EMIT_SOUND(ENT(pev), CHAN_ITEM, "common/bodysplat.wav", 1, ATTN_NORM);
 			}
 
 			if ( flFallDamage > 0 )
 			{
 				TakeDamage(VARS(eoNullEntity), VARS(eoNullEntity), flFallDamage, DMG_FALL );
+				pev->punchangle.x = 0;
 			}
-
-			fvol = 1.0;
-		}
-		else if ( m_flFallVelocity > PLAYER_MAX_SAFE_FALL_SPEED / 2 )
-		{
-			// EMIT_SOUND(ENT(pev), CHAN_VOICE, "player/pl_jumpland2.wav", 1, ATTN_NORM);
-			fvol = 0.85;
-		}
-		else if ( m_flFallVelocity < PLAYER_MIN_BOUNCE_SPEED )
-		{
-			fvol = 0;
-		}
-
-		if ( fvol > 0.0 )
-		{
-			// get current texture under player right away
-			m_flTimeStepSound = 0;
-			UpdateStepSound();
-			
-			// play step sound for current texture
-			PlayStepSound(MapTextureTypeStepType(m_chTextureType), fvol);
-
-		// knock the screen around a little bit, temporary effect
-			pev->punchangle.x = m_flFallVelocity * 0.018;	// punch x axis
-
-			if ( pev->punchangle.x > 8 )
-			{
-				pev->punchangle.x = 8;
-			}
-
-			if ( RANDOM_LONG(0,1) )
-			{
-				pev->punchangle.z = m_flFallVelocity * 0.009;
-			}
-		
 		}
 
 		if ( IsAlive() )
@@ -3255,13 +2696,15 @@ void CBasePlayer::Spawn( void )
 	pev->solid	= SOLID_BBOX;
 	pev->movetype	= MOVETYPE_WALK;
 	pev->max_health	= pev->health;
-	pev->flags	= FL_CLIENT;
+	pev->flags	&= FL_PROXY;		// keep proxy flag sey by engine
+	pev->flags	|= FL_CLIENT;
 	m_fAirFinished	= gpGlobals->time + 12;
-	pev->dmg		= 2;				// initial water damage
+	pev->dmg		= 2;			// initial water damage
 	pev->effects	= 0;
 	pev->deadflag	= DEAD_NO;
 	pev->dmg_take	= 0;
 	pev->dmg_save	= 0;
+	pev->skin		= atoi(g_engfuncs.pfnInfoKeyValue(g_engfuncs.pfnGetInfoKeyBuffer(edict()), "skin"));// XWider
 	pev->friction	= 1.0;
 	pev->gravity	= 1.0;
 	pev->renderfx	= 0;
@@ -3270,7 +2713,7 @@ void CBasePlayer::Spawn( void )
 	m_bitsHUDDamage	= -1;
 	m_bitsDamageType	= 0;
 	m_afPhysicsFlags	= 0;
-	m_fLongJump	= 1;	// no longjump module.
+	m_fLongJump	= FALSE;	// no longjump module.
 	Rain_dripsPerSecond = 0;
 	Rain_windX = 0;
 	Rain_windY = 0;
@@ -3284,6 +2727,9 @@ void CBasePlayer::Spawn( void )
 	Rain_endFade = 0;
 	Rain_nextFadeUpdate = 0;
 	GiveOnlyAmmo = FALSE;
+
+	g_engfuncs.pfnSetPhysicsKeyValue( edict(), "slj", "0" );
+	g_engfuncs.pfnSetPhysicsKeyValue( edict(), "hl", "1" );
 
 	pev->fov = 90.0f;	// init field of view.
 	//m_iAcessLevel = 2;
@@ -3301,7 +2747,7 @@ void CBasePlayer::Spawn( void )
 	m_flNextAttack	= UTIL_WeaponTimeBase();
 	StartSneaking();
 
-	m_iFlashBattery = 99;
+	m_iFlashBattery = 0;
 	m_flFlashLightTime = 1; // force first message
 
 // dont let uninitialized value here hurt the player
@@ -3389,9 +2835,9 @@ void CBasePlayer :: Precache( void )
 	rainNeedsUpdate = 1;
 
 	//clear fade effects
-	if(IsMultiplayer())
+	if( IsMultiplayer( ))
 	{
-		m_FadeColor = Vector(255, 255, 255);
+		m_FadeColor = Vector( 255, 255, 255 );
 		m_FadeAlpha = 0;			
 		m_iFadeFlags = 0;
 		m_iFadeTime = 0;
@@ -3449,12 +2895,24 @@ int CBasePlayer::Restore( CRestore &restore )
 	if( FBitSet( pev->flags, FL_DUCKING ))
 	{
 		// Use the crouch HACK
-		FixPlayerCrouchStuck( edict() );
+		//FixPlayerCrouchStuck( edict() );
+		// Don't need to do this with new player prediction code.
 		UTIL_SetSize( pev, VEC_DUCK_HULL_MIN, VEC_DUCK_HULL_MAX );
 	}
 	else
 	{
 		UTIL_SetSize( pev, VEC_HULL_MIN, VEC_HULL_MAX );
+	}
+
+	g_engfuncs.pfnSetPhysicsKeyValue( edict(), "hl", "1" );
+
+	if ( m_fLongJump )
+	{
+		g_engfuncs.pfnSetPhysicsKeyValue( edict(), "slj", "1" );
+	}
+	else
+	{
+		g_engfuncs.pfnSetPhysicsKeyValue( edict(), "slj", "0" );
 	}
 
 	RenewItems();

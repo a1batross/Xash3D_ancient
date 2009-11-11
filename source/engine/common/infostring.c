@@ -9,7 +9,7 @@
 #define MAX_INFO_KEY	64
 #define MAX_INFO_VALUE	64
 
-static char		sv_info[MAX_INFO_STRING];
+static char		sv_info[MAX_INFO_STRING*4];
 
 /*
 =======================================================================
@@ -71,7 +71,7 @@ Searches the string for the given
 key and returns the associated value, or an empty string.
 ===============
 */
-char *Info_ValueForKey( char *s, char *key )
+char *Info_ValueForKey( const char *s, const char *key )
 {
 	char	pkey[512];
 	static	char value[2][512];	// use two buffers so compares work without stomping on each other

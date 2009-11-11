@@ -135,7 +135,7 @@ void V_RenderView( void )
 	if( !cl.video_prepped ) return; // still loading
 
 	cl.time = bound( cl.frame.servertime - cl.serverframetime, cl.time, cl.frame.servertime );
-	if( cl_paused->integer ) cl.lerpFrac = 1.0f;
+	if( cl.refdef.paused ) cl.lerpFrac = 1.0f;
 	else cl.lerpFrac = 1.0 - (cl.frame.servertime - cl.time) / (float)cl.serverframetime;
 
 	// update cl_globalvars
@@ -164,10 +164,6 @@ bool V_PreRender( void )
 {
 	// too early
 	if( !re ) return false;
-
-	if( cls.state > ca_disconnected && cls.state < ca_active )
-		cl.refdef.paused = true; // force audio\video to pause
-	else cl.refdef.paused = cl_paused->integer;
 
 	re->BeginFrame( !cl.refdef.paused );
 	return true;

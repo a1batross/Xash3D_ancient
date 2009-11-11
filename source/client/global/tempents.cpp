@@ -342,8 +342,7 @@ void CL_TeleportParticles( const Vector org )
 		{
 			for( z = -16; z <= 32; z += 4 )
 			{
-				dir = Vector( y*8, x*8, z*8 );
-				dir.Normalize();
+				dir = Vector( y*8, x*8, z*8 ).Normalize();
 
 				vel = 50 + RANDOM_LONG( 0, 64 );
 				color = RANDOM_FLOAT( 0.1, 0.3 );

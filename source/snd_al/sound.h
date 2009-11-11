@@ -148,6 +148,7 @@ typedef struct
 
 	bool		initialized;
 	bool		active;
+	bool		paused;
 	uint		framecount;
 	int		num_channels;
 	int		clientnum;

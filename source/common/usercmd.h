@@ -1,9 +1,9 @@
 //=======================================================================
 //			Copyright XashXT Group 2009 ©
-//		        user_cmd.h - usercmd communication
+//		        usercmd.h - usercmd communication
 //=======================================================================
-#ifndef USER_CMD_H
-#define USER_CMD_H
+#ifndef USERCMD_H
+#define USERCMD_H
 
 // usercmd_t communication (a part of network protocol)
 typedef struct usercmd_s
@@ -11,10 +11,10 @@ typedef struct usercmd_s
 	int		msec;
 	long		servertime;
 	vec3_t		angles;
-	int		forwardmove;
-	int		sidemove;
-	int		upmove;
+	float		forwardmove;
+	float		sidemove;
+	float		upmove;
 	int		buttons;
 } usercmd_t;
 
-#endif//USER_CMD_H
+#endif//USERCMD_H

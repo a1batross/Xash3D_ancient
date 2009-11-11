@@ -9,13 +9,14 @@
 #include "triangle_api.h"
 #include "pm_movevars.h"
 #include "studio_ref.h"
-#include "user_cmd.h"
+#include "usercmd.h"
 #include "hud.h"
 
 #define ORIGIN_BACKUP	64
 #define ORIGIN_MASK		( ORIGIN_BACKUP - 1 )
 
 // global view containers
+int	v_paused;
 Vector	v_origin, v_angles, v_cl_angles;	// base client vectors
 float	v_idlescale, v_lastDistance;		// misc variables
 Vector	ev_punchangle;			// client punchangles
@@ -251,7 +252,7 @@ void V_DropPunchAngle( float frametime, Vector &ev_punchangle )
 	float	len;
 
 	len = ev_punchangle.Length();
-	ev_punchangle.Normalize();
+	ev_punchangle = ev_punchangle.Normalize();
 
 	len -= (10.0 + len * 0.5) * frametime;
 	len = max( len, 0.0 );
@@ -945,7 +946,7 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 	else
 	{
 		float	result;
-		float	stepheight = pparams->movevars->stepheight;
+		float	stepheight = pparams->movevars->stepsize;
 
 		result = V_CalcStairSmoothValue( old_client_z, pparams->vieworg[2], smoothtime, stepheight );
 		if( result ) pparams->vieworg[2] = old_client_z = result;
@@ -1014,6 +1015,8 @@ bool V_CalcSkyRefdef( ref_params_t *pparams )
 
 void V_CalcRefdef( ref_params_t *pparams )
 {
+	v_paused = pparams->paused;	// share pause
+
 	V_CalcNextView( pparams );
 	
 	if( V_CalcSkyRefdef( pparams ))

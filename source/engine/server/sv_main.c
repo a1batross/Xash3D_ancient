@@ -10,14 +10,15 @@
 
 netadr_t	master_adr[MAX_MASTERS];	// address of group servers
 
-cvar_t	*sv_paused;
 cvar_t	*sv_fps;
 cvar_t	*sv_enforcetime;
+cvar_t	*sv_pausable;
 cvar_t	*timeout;				// seconds without any message
 cvar_t	*zombietime;			// seconds to sink messages after disconnect
 cvar_t	*rcon_password;			// password for remote server commands
 cvar_t	*allow_download;
 cvar_t	*sv_airaccelerate;
+cvar_t	*sv_wateraccelerate;
 cvar_t	*sv_idealpitchscale;
 cvar_t	*sv_maxvelocity;
 cvar_t	*sv_gravity;
@@ -26,10 +27,13 @@ cvar_t	*sv_noreload;			// don't reload level state when reentering
 cvar_t	*sv_playersonly;
 cvar_t	*sv_rollangle;
 cvar_t	*sv_rollspeed;
+cvar_t	*sv_wallbounce;
 cvar_t	*sv_maxspeed;
+cvar_t	*sv_spectatormaxspeed;
 cvar_t	*sv_accelerate;
 cvar_t	*sv_friction;
 cvar_t	*sv_edgefriction;
+cvar_t	*sv_waterfriction;
 cvar_t	*sv_stopspeed;
 cvar_t	*hostname;
 cvar_t	*sv_maxclients;
@@ -104,6 +108,51 @@ void SV_GiveMsec( void )
 }
 
 /*
+===================
+SV_UpdateMovevars
+
+check movevars for changes every frame
+send updates to client if changed
+===================
+*/
+void SV_UpdateMovevars( void )
+{
+	static int	oldserverflags = 0;
+
+	if( svgame.globals->serverflags != oldserverflags )
+	{
+		// update serverflags
+		SV_ConfigString( CS_SERVERFLAGS, va( "%i", svgame.globals->serverflags ));
+		oldserverflags = svgame.globals->serverflags;		
+	}
+
+	svgame.movevars.gravity = sv_gravity->value;
+	svgame.movevars.stopspeed = sv_stopspeed->value;
+	svgame.movevars.maxspeed = sv_maxspeed->value;
+	svgame.movevars.spectatormaxspeed = sv_spectatormaxspeed->value;
+	svgame.movevars.accelerate = sv_accelerate->value;
+	svgame.movevars.airaccelerate = sv_airaccelerate->value;
+	svgame.movevars.wateraccelerate = sv_wateraccelerate->value;
+	svgame.movevars.friction = sv_friction->value;
+	svgame.movevars.edgefriction = sv_edgefriction->value;
+	svgame.movevars.waterfriction = sv_waterfriction->value;
+	svgame.movevars.bounce = sv_wallbounce->value;
+	svgame.movevars.stepsize = sv_stepheight->value;
+	svgame.movevars.maxvelocity = sv_maxvelocity->value;
+	svgame.movevars.footsteps = Cvar_VariableInteger( "mp_footsteps" );
+	svgame.movevars.rollangle = sv_rollangle->value;
+	svgame.movevars.rollspeed = sv_rollspeed->value;
+
+	MSG_Clear( &sv.multicast );
+
+	if( MSG_WriteDeltaMovevars( &sv.multicast, &svgame.oldmovevars, &svgame.movevars ))
+	{
+		MSG_Send( MSG_ALL_R, vec3_origin, NULL );
+		Mem_Copy( &svgame.oldmovevars, &svgame.movevars, sizeof( movevars_t )); // oldstate changed
+	}
+}
+
+/*
 =================
 SV_ReadPackets
 =================
@@ -172,10 +221,11 @@ if necessary
 */
 void SV_CheckTimeouts( void )
 {
-	int		i;
+
 	sv_client_t	*cl;
 	float		droppoint;
 	float		zombiepoint;
+	int		i, numclients = 0;
 
 	if( sv_fps->modified )
 	{
@@ -192,8 +242,14 @@ void SV_CheckTimeouts( void )
 
 	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
 	{
+		if( cl->state >= cs_connected )
+		{
+			if( cl->edict && !( cl->edict->v.flags & (FL_SPECTATOR|FL_FAKECLIENT)))
+				numclients++;
+                    }
+
 		// fake clients do not timeout
-		if( cl->edict && (cl->edict->v.flags & FL_FAKECLIENT))
+		if( cl->edict && (cl->edict->v.flags & FL_FAKECLIENT ))
 			cl->lastmessage = svs.realtime;
 		// message times may be wrong across a changelevel
 		if( cl->lastmessage > svs.realtime ) cl->lastmessage = svs.realtime;
@@ -208,6 +264,12 @@ void SV_CheckTimeouts( void )
 			SV_DropClient( cl ); 
 			cl->state = cs_free; // don't bother with zombie state
 		}
+	}
+
+	if( sv.paused && !numclients )
+	{
+		// nobody left, unpause the server
+		SV_TogglePause( "Pause released since no players are left.\n" );
 	}
 }
 
@@ -233,42 +295,6 @@ void SV_PrepWorldFrame( void )
 }
 
 /*
-==================
-SV_CheckPaused
-==================
-*/
-bool SV_CheckPaused( void )
-{
-	int		i, count;
-	sv_client_t	*cl;
-
-	// only pause if there is just a single client connected
-	for( i = count = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
-	{
-		if( cl->state >= cs_connected && !(cl->edict && cl->edict->v.flags & FL_FAKECLIENT))
-			count++;
-	}
-
-	if( count > 1 )
-	{
-		// don't pause
-		if( sv_paused->integer )
-			Cvar_Set( "paused", "0" );
-		return false;
-	}
-
-	if( !CL_Active() )
-		return true;
-
-	if( !sv_paused->integer )
-		return false;
-
-	if( !sv_paused->integer )
-		Cvar_Set( "paused", "1" );
-	return true;
-}
-
-/*
 =================
 SV_RunGameFrame
 =================
@@ -282,8 +308,7 @@ void SV_RunGameFrame( void )
 	sv.framenum++;
 
 	// don't run if paused
-	if( SV_CheckPaused( )) return;
-	if( sv.frametime ) SV_Physics();
+	if( !sv.paused && CL_Active()) SV_Physics();
 
 	// never get more than one tic behind
 	if( sv.time < svs.realtime )
@@ -344,6 +369,9 @@ void SV_Frame( int time )
 
 	// let everything in the world think and move
 	SV_RunGameFrame ();
+
+	// refresh physic movevars on the client side
+	SV_UpdateMovevars ();
 
 	// send messages back to the clients that had packets read this frame
 	SV_SendClientMessages ();
@@ -454,24 +482,28 @@ void SV_Init( void )
 	Cvar_Get ("sv_aim", "1", 0, "enable auto-aiming" );
 
 	sv_fps = Cvar_Get( "sv_fps", "72.1", CVAR_ARCHIVE, "running server physics at" );
-	sv_stepheight = Cvar_Get( "sv_stepheight", DEFAULT_STEPHEIGHT, CVAR_ARCHIVE|CVAR_LATCH, "how high you can step up" );
+	sv_stepheight = Cvar_Get( "sv_stepheight", "18", CVAR_ARCHIVE, "how high you can step up" );
 	sv_playersonly = Cvar_Get( "playersonly", "0", 0, "freezes time, except for players" );
-	hostname = Cvar_Get ("sv_hostname", "unnamed", CVAR_SERVERINFO | CVAR_ARCHIVE, "host name" );
-	timeout = Cvar_Get ("timeout", "125", 0, "connection timeout" );
-	zombietime = Cvar_Get ("zombietime", "2", 0, "timeout for clients-zombie (who died but not respawned)" );
-	sv_paused = Cvar_Get ("paused", "0", 0, "server pause" );
+	hostname = Cvar_Get( "sv_hostname", "unnamed", CVAR_SERVERINFO | CVAR_ARCHIVE, "host name" );
+	timeout = Cvar_Get( "timeout", "125", 0, "connection timeout" );
+	zombietime = Cvar_Get( "zombietime", "2", 0, "timeout for clients-zombie (who died but not respawned)" );
+	sv_pausable = Cvar_Get( "pausable", "1", 0, "allow players to pause or not" );
 	sv_enforcetime = Cvar_Get ("sv_enforcetime", "0", 0, "client enforce time" );
 	allow_download = Cvar_Get ("allow_download", "1", CVAR_ARCHIVE, "allow download resources" );
 	sv_noreload = Cvar_Get( "sv_noreload", "0", 0, "ignore savepoints for singleplayer" );
-	sv_rollangle = Cvar_Get( "sv_rollangle", DEFAULT_ROLLANGLE, 0, "how much to tilt the view when strafing" );
-	sv_rollspeed = Cvar_Get( "sv_rollspeed", DEFAULT_ROLLSPEED, 0, "how much strafing is necessary to tilt the view" );
-	sv_airaccelerate = Cvar_Get("sv_airaccelerate", DEFAULT_AIRACCEL, CVAR_LATCH, "player accellerate in air" );
+	sv_wallbounce = Cvar_Get( "sv_wallbounce", "1.0", 0, "bounce factor for client with MOVETYPE_BOUNCE" );
+	sv_spectatormaxspeed = Cvar_Get( "sv_spectatormaxspeed", "500", 0, "spectator maxspeed" );
+	sv_waterfriction = Cvar_Get( "sv_waterfriction", "4", 0, "how fast you slow down in water" );
+	sv_wateraccelerate = Cvar_Get( "sv_wateraccelerate", "10", 0, "rate at which a player accelerates to sv_maxspeed while in the water" );
+	sv_rollangle = Cvar_Get( "sv_rollangle", "2", 0, "how much to tilt the view when strafing" );
+	sv_rollspeed = Cvar_Get( "sv_rollspeed", "200", 0, "how much strafing is necessary to tilt the view" );
+	sv_airaccelerate = Cvar_Get("sv_airaccelerate", "1", 0, "player accellerate in air" );
 	sv_idealpitchscale = Cvar_Get( "sv_idealpitchscale", "0.8", 0, "how much to look up/down slopes and stairs when not using freelook" );
-	sv_maxvelocity = Cvar_Get("sv_maxvelocity", DEFAULT_MAXVELOCITY, CVAR_LATCH, "max world velocity" );
-          sv_gravity = Cvar_Get("sv_gravity", DEFAULT_GRAVITY, 0, "world gravity" );
-	sv_maxspeed = Cvar_Get("sv_maxspeed", DEFAULT_MAXSPEED, 0, "maximum speed a player can accelerate to when on ground");
-	sv_accelerate = Cvar_Get( "sv_accelerate", DEFAULT_ACCEL, 0, "rate at which a player accelerates to sv_maxspeed" );
-	sv_friction = Cvar_Get( "sv_friction", DEFAULT_FRICTION, 0, "how fast you slow down" );
+	sv_maxvelocity = Cvar_Get( "sv_maxvelocity", "2000", CVAR_LATCH, "max world velocity" );
+          sv_gravity = Cvar_Get( "sv_gravity", "800", 0, "world gravity" );
+	sv_maxspeed = Cvar_Get( "sv_maxspeed", "320", 0, "maximum speed a player can accelerate to when on ground");
+	sv_accelerate = Cvar_Get( "sv_accelerate", "10", 0, "rate at which a player accelerates to sv_maxspeed" );
+	sv_friction = Cvar_Get( "sv_friction", "4", 0, "how fast you slow down" );
 	sv_edgefriction = Cvar_Get( "sv_edgefriction", "1", 0, "how much you slow down when nearing a ledge you might fall off" );
 	sv_stopspeed = Cvar_Get( "sv_stopspeed", "100", 0, "how fast you come to a complete stop" );
 	sv_maxclients = Cvar_Get( "sv_maxclients", "1", CVAR_SERVERINFO|CVAR_LATCH, "server clients limit" );

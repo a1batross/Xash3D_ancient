@@ -102,7 +102,7 @@ int HUD_Redraw( float flTime, int state )
 
 	if( oldstate == CL_ACTIVE && state == CL_LOADING )
 	{
-		// draw only once to prevent multiply GL_BLEND each frame
+		// fire only once to prevent multiply GL_BLEND each frame
 		DrawImageBar( 100, "m_loading" ); // HACKHACK
 	}
 	oldstate = state;
@@ -239,7 +239,7 @@ void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t 
 	case ED_PORTAL:
 	case ED_MOVER:
 	case ED_BSPBRUSH:
-		ent->v.movedir.BitsToDir( state->skin );
+		ent->v.movedir = BitsToDir( state->skin );
 		ent->v.oldorigin = state->oldorigin;
 		break;
 	case ED_SKYPORTAL:

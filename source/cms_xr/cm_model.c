@@ -986,6 +986,7 @@ void CM_BeginRegistration( const char *name, bool clientload, uint *checksum )
 		if( !clientload )
 		{
 			// rebuild portals for server ...
+			Mem_Set( cm.areaportals, 0, sizeof( cm.areaportals ));
 			CM_FloodAreaConnections();
 
 			// ... and reset entity script
@@ -1064,6 +1065,8 @@ void CM_BeginRegistration( const char *name, bool clientload, uint *checksum )
 
 	BSP_CreateBrushSideWindings ();
 	CM_InitBoxHull ();
+
+	Mem_Set( cm.areaportals, 0, sizeof( cm.areaportals ));
 	CM_FloodAreaConnections ();
 	CM_CalcPHS ();
 	Mem_Free( buf );
@@ -1143,6 +1146,19 @@ void CM_ModelFrames( model_t handle, int *numFrames )
 	if( mod && mod->type == mod_sprite )
 		if( numFrames ) *numFrames = mod->numframes;
 	else if( numFrames ) *numFrames = 0;
+}
+
+/*
+===================
+CM_ModelType
+===================
+*/
+modtype_t CM_ModelType( model_t handle )
+{
+	cmodel_t	*mod = CM_ClipHandleToModel( handle );
+
+	if( !mod ) return mod_bad;
+	return mod->type;
 }
 
 /*

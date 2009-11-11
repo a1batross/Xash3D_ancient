@@ -70,6 +70,8 @@ inline edict_t *FIND_ENTITY_BY_TARGET(edict_t *entStart, const char *pszName)
 #define FILE_GLOBAL static
 #define DLL_GLOBAL
 
+extern DLL_GLOBAL int DirToBits( const Vector dir );
+
 extern DLL_GLOBAL int			g_sModelIndexErrorModel;
 extern DLL_GLOBAL int			g_sModelIndexErrorSprite;
 extern DLL_GLOBAL int			g_sModelIndexNullModel;
@@ -230,8 +232,8 @@ typedef enum
 
 // All monsters need this data
 #define		DONT_BLEED			-1
-#define		BLOOD_COLOR_RED		(BYTE)247
-#define		BLOOD_COLOR_YELLOW	(BYTE)195
+#define		BLOOD_COLOR_RED		(byte)247
+#define		BLOOD_COLOR_YELLOW	(byte)195
 #define		BLOOD_COLOR_GREEN	BLOOD_COLOR_YELLOW
 
 typedef enum 
@@ -284,7 +286,7 @@ extern char* GetStringForGlobalState( GLOBALESTATE state );
 extern char* GetContentsString( int contents );
 extern void PrintStringForDamage( int dmgbits );
 extern char* GetStringForDecalName( int decalname );
-
+extern DLL_GLOBAL 
 // Misc useful
 inline BOOL FStrEq(const char*sz1, const char*sz2) { return (strcmp(sz1, sz2) == 0); }
 inline BOOL FClassnameIs(edict_t* pent, const char* szClassname) { return FStrEq(STRING(VARS(pent)->classname), szClassname); }

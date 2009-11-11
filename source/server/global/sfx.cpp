@@ -15,7 +15,7 @@ void SFX_Explode( short model, Vector origin, float scale, int flags )
 		WRITE_COORD( origin.y );
 		WRITE_COORD( origin.z );
 		WRITE_SHORT( model );
-		WRITE_BYTE( (BYTE)(scale - 30) * 0.7); // scale * 10
+		WRITE_BYTE( (byte)(scale - 30) * 0.7); // scale * 10
 		WRITE_BYTE( 15  ); // framerate
 		WRITE_BYTE( flags );
 	MESSAGE_END();

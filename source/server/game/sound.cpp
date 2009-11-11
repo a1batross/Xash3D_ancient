@@ -143,6 +143,8 @@ public:
 };
 
 LINK_ENTITY_TO_CLASS( ambient_generic, CAmbientGeneric );
+LINK_ENTITY_TO_CLASS( target_speaker, CAmbientGeneric );
+
 TYPEDESCRIPTION	CAmbientGeneric::m_SaveData[] = 
 {
 	DEFINE_FIELD( CAmbientGeneric, m_flAttenuation, FIELD_FLOAT ),

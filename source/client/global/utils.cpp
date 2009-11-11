@@ -7,6 +7,25 @@
 #include "utils.h"
 #include "hud.h"
 
+static const float bytedirs[NUMVERTEXNORMALS][3] =
+{
+#include "anorms.h"
+};
+
+Vector BitsToDir( int bits )
+{
+	Vector	dir;
+
+	if( bits < 0 || bits >= NUMVERTEXNORMALS )
+		return Vector( 0, 0, 0 );
+	
+	dir.x = bytedirs[bits][0];
+	dir.y = bytedirs[bits][1];
+	dir.z = bytedirs[bits][2];
+
+	return dir;
+}
+
 // NOTE: modify these functions with caution
 
 typedef struct
@@ -152,9 +171,7 @@ float READ_ANGLE( void )
 
 Vector READ_DIR( void )
 {
-	Vector	dir;
-
-	return dir.BitsToDir( READ_SHORT() ); 
+	return BitsToDir( READ_SHORT() );
 }
 
 //
@@ -506,9 +523,7 @@ void DrawCrosshair( void )
 void DrawPause( void )
 {
 	// pause image
-	if( !CVAR_GET_FLOAT( "paused" ) || !CVAR_GET_FLOAT( "scr_showpause" ))
-		return;
-
+	if( !v_paused ) return;
 	DrawImageBar( 100, "m_pause" ); // HACKHACK
 }
 

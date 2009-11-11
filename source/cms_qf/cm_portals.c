@@ -257,8 +257,6 @@ void CM_FloodAreaConnections( void )
 {
 	int	i, floodnum = 0;
 
-	Mem_Set( cm.areaportals, 0, sizeof( cm.areaportals ));
-
 	// all current floods are now invalid
 	cm.floodvalid++;
 
@@ -288,6 +286,8 @@ void CM_SetAreaPortals( byte *portals, size_t size )
 	}
 
 	VFS_Read( f, &cm.numareas, sizeof( int ));
+
+	cm.areas = Mem_Realloc( cms.mempool, cm.areas, cm.numareas * sizeof( *cm.areas ));
 
 	for( i = 1; i < cm.numareas; i++ )
 	{

@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define SERVER_H
 
 #include "mathlib.h"
-#include "entity_def.h"
 #include "svgame_api.h"
 #include "com_world.h"
 
@@ -83,6 +82,7 @@ typedef struct server_s
 
 	bool		autosaved;
 	bool		cphys_prepped;
+	bool		paused;
 } server_t;
 
 typedef struct
@@ -208,6 +208,10 @@ typedef struct
 		void	*vp;			// acess by offset in bytes
 	};
 
+	movevars_t	movevars;			// curstate
+	movevars_t	oldmovevars;		// oldstate
+	playermove_t	*pmove;			// pmove state
+
 	globalvars_t	*globals;			// server globals
 	DLL_FUNCTIONS	dllFuncs;			// dll exported funcs
 	byte		*private;			// server.dll private pool
@@ -253,9 +257,9 @@ extern	server_static_t	svs;			// persistant server info
 extern	server_t		sv;			// local server
 extern	svgame_static_t	svgame;			// persistant game info
 
-extern	cvar_t		*sv_paused;
+extern	cvar_t		*sv_pausable;		// allows pause in multiplayer
 extern	cvar_t		*sv_noreload;		// don't reload level state when reentering
-extern	cvar_t		*sv_airaccelerate;		// don't reload level state when reentering
+extern	cvar_t		*sv_airaccelerate;
 extern	cvar_t		*sv_accelerate;
 extern	cvar_t		*sv_friction;
 extern	cvar_t		*sv_edgefriction;
@@ -317,6 +321,8 @@ void SV_ClassifyEdict( edict_t *ent );
 void SV_Physics( void );
 void SV_CheckVelocity( edict_t *ent );
 bool SV_CheckWater( edict_t *ent );
+int SV_TryUnstick( edict_t *ent, vec3_t oldvel );
+bool SV_RunThink( edict_t *ent );
 
 //
 // sv_move.c
@@ -339,12 +345,14 @@ void SV_BroadcastCommand( char *fmt, ... );
 char *SV_StatusString( void );
 void SV_GetChallenge( netadr_t from );
 void SV_DirectConnect( netadr_t from );
+void SV_TogglePause( const char *msg );
 void SV_PutClientInServer( edict_t *ent );
 bool SV_ClientConnect( edict_t *ent, char *userinfo );
 void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd );
 void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg );
 void SV_ConnectionlessPacket( netadr_t from, sizebuf_t *msg );
 void SV_SetIdealPitch( sv_client_t *cl );
+void SV_InitClientMove( void );
 
 //
 // sv_cmds.c
@@ -435,9 +443,9 @@ trace_t SV_Move( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end,
 trace_t SV_MoveToss( edict_t *tossent, edict_t *ignore );
 void SV_LinkEdict( edict_t *ent, bool touch_triggers );
 void SV_TouchLinks( edict_t *ent, areanode_t *node );
+edict_t *SV_TestPlayerPosition( const vec3_t origin );
 int SV_PointContents( const vec3_t p );
-
-void SV_ClipToEntity( trace_t *trace, const vec3_t p1, const vec3_t mins, const vec3_t maxs, const vec3_t p2, edict_t *e, int mask, trType_t type );
+trace_t SV_ClipMoveToEntity( edict_t *ent, const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end );
 // mins and maxs are relative
 
 // if the entire move stays in a solid volume, trace.allsolid will be set,

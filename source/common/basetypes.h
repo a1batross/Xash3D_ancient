@@ -10,6 +10,7 @@ typedef unsigned short	word;
 typedef unsigned long	dword;
 typedef unsigned __int64	qword;
 typedef unsigned int	uint;
+typedef int		BOOL;
 typedef signed __int64	int64;
 typedef int		func_t;
 typedef int		sound_t;

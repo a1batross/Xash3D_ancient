@@ -15,25 +15,14 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
+
+#include "pm_materials.h"
+
 #define PLAYER_FATAL_FALL_SPEED		1024	// approx 60 feet
 #define PLAYER_MAX_SAFE_FALL_SPEED		580	// approx 20 feet
 #define DAMAGE_FOR_FALL_SPEED			(float) 100 / ( PLAYER_FATAL_FALL_SPEED - PLAYER_MAX_SAFE_FALL_SPEED )// damage per unit per second.
 #define PLAYER_MIN_BOUNCE_SPEED		200
 #define PLAYER_FALL_PUNCH_THRESHHOLD		(float) 350 // won't punch player's screen/make scrape noise unless player falling at least this fast.
-
-#define CBTEXTURENAMEMAX		13	// only load first n chars of name
-
-#define CHAR_TEX_CONCRETE		'C'	// texture types
-#define CHAR_TEX_METAL		'M'
-#define CHAR_TEX_DIRT		'D'
-#define CHAR_TEX_VENT		'V'
-#define CHAR_TEX_GRATE		'G'
-#define CHAR_TEX_TILE		'T'
-#define CHAR_TEX_SLOSH		'S'
-#define CHAR_TEX_WOOD		'W'
-#define CHAR_TEX_COMPUTER		'P'
-#define CHAR_TEX_GLASS		'Y'
-#define CHAR_TEX_FLESH		'F'
 
 //
 // Player PHYSICS FLAGS bits
@@ -279,7 +268,6 @@ public:
 	void SendAmmoUpdate(void);
 
 	void WaterMove( void );
-	void CheckWaterJump( void );
 	void EXPORT PlayerDeathThink( void );
 	void PlayerUse( void );
 
@@ -287,8 +275,6 @@ public:
 	void SetSuitUpdate(char *name, int fgroup, int iNoRepeat);
 	void UpdateGeigerCounter( void );
 	void CheckTimeBasedDamage( void );
-	void UpdateStepSound( void );
-	void PlayStepSound(int step, float fvol);
 	
 	BOOL FBecomeProne ( void );
 	void BarnacleVictimBitten ( entvars_t *pevBarnacle );

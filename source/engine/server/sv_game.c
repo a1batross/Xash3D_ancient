@@ -9,6 +9,7 @@
 #include "byteorder.h"
 #include "matrix_lib.h"
 #include "com_library.h"
+#include "pm_defs.h"
 #include "const.h"
 
 void Sys_FsGetString( file_t *f, char *str )
@@ -1576,7 +1577,7 @@ static const char *pfnTraceTexture( edict_t *pTextureEntity, const float *v1, co
 {
 	if( IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2] ))
 		Host_Error( "TraceTexture: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
-	return SV_Move( v1, vec3_origin, vec3_origin, v2, MOVE_NOMONSTERS, NULL ).pTexName;
+	return SV_Move( v1, vec3_origin, vec3_origin, v2, MOVE_NOMONSTERS, pTextureEntity ).pTexName;
 }
 
 /*
@@ -2336,6 +2337,7 @@ void pfnAreaPortal( edict_t *pEdict, bool enable )
 		MsgDev( D_ERROR, "SV_AreaPortal: can't modify free entity\n" );
 		return;
 	}
+	if( !pEdict->pvServerData->areanum || !pEdict->pvServerData->areanum2 ) return;
 	CM_SetAreaPortalState( pEdict->serialnumber, pEdict->pvServerData->areanum, pEdict->pvServerData->areanum2, enable );
 }
 
@@ -2659,6 +2661,38 @@ void pfnSetClientKeyValue( int clientIndex, char *infobuffer, char *key, char *v
 
 /*
 =============
+pfnGetPhysicsKeyValue
+
+=============
+*/
+const char *pfnGetPhysicsKeyValue( const edict_t *pClient, const char *key )
+{
+	return ""; //FIXME: implement
+}
+
+/*
+=============
+pfnSetPhysicsKeyValue
+
+=============
+*/
+void pfnSetPhysicsKeyValue( const edict_t *pClient, const char *key, const char *value )
+{
+}
+
+/*
+=============
+pfnGetPhysicsInfoString
+
+=============
+*/
+const char *pfnGetPhysicsInfoString( const edict_t *pClient )
+{
+	return ""; //FIXME: implement
+}
+
+/*
+=============
 pfnPrecacheEvent
 
 returns unique hash-value
@@ -2918,15 +2952,15 @@ static enginefuncs_t gEngfuncs =
 	pfnMemAlloc,
 	pfnMemFree,
 	pfnInfo_RemoveKey,
-	pfnFOpen,
-	pfnFClose,
-	pfnFTell,
+	pfnGetPhysicsKeyValue,
+	pfnSetPhysicsKeyValue,
+	pfnGetPhysicsInfoString,
 	pfnPrecacheEvent,
 	pfnPlaybackEvent,
 	pfnFWrite,
 	pfnFRead,
-	pfnFGets,
-	pfnFSeek,
+	pfnFOpen,
+	pfnFClose,
 	pfnDropClient,
 	Host_Error,
 	pfnGetPlayerPing,
@@ -3098,15 +3132,6 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 	ent->v.solid = SOLID_BSP;
 	ent->v.movetype = MOVETYPE_PUSH;
 
-	SV_ConfigString( CS_GRAVITY, sv_gravity->string );
-	SV_ConfigString( CS_MAXVELOCITY, sv_maxvelocity->string );			
-	SV_ConfigString( CS_ROLLSPEED, sv_rollspeed->string );
-	SV_ConfigString( CS_ROLLANGLE, sv_rollangle->string );
-	SV_ConfigString( CS_MAXSPEED, sv_maxspeed->string );
-	SV_ConfigString( CS_STEPHEIGHT, sv_stepheight->string );
-	SV_ConfigString( CS_AIRACCELERATE, sv_airaccelerate->string );
-	SV_ConfigString( CS_ACCELERATE, sv_accelerate->string );
-	SV_ConfigString( CS_FRICTION, sv_friction->string );
 	SV_ConfigString( CS_MAXCLIENTS, va( "%i", sv_maxclients->integer ));
 	SV_ConfigString( CS_MAXEDICTS, va( "%i", GI->max_edicts ));
 
@@ -3153,6 +3178,7 @@ void SV_LoadProgs( const char *name )
 {
 	static SERVERAPI		GetEntityAPI;
 	static globalvars_t		gpGlobals;
+	static playermove_t		gpMove;
 	string			libpath;
 	edict_t			*e;
 	int			i;
@@ -3160,6 +3186,7 @@ void SV_LoadProgs( const char *name )
 	if( svgame.hInstance ) SV_UnloadProgs();
 
 	// fill it in
+	svgame.pmove = &gpMove;
 	svgame.globals = &gpGlobals;
 	Com_BuildPath( name, libpath );
 	svgame.mempool = Mem_AllocPool( "Server Edicts Zone" );
@@ -3204,4 +3231,7 @@ void SV_LoadProgs( const char *name )
 
 	// all done, initialize game
 	svgame.dllFuncs.pfnGameInit();
+
+	// initialize pm_shared
+	SV_InitClientMove();
 }

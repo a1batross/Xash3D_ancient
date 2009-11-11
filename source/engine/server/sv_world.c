@@ -6,6 +6,7 @@
 #include "common.h"
 #include "server.h"
 #include "const.h"
+#include "pm_defs.h"
 
 const char *ed_name[] =
 {
@@ -214,9 +215,11 @@ void SV_LinkEdict( edict_t *ent, bool touch_triggers )
 {
 	areanode_t	*node;
 	int		leafs[MAX_TOTAL_ENT_LEAFS];
-	int		area, cluster;
+	int		clusters[MAX_TOTAL_ENT_LEAFS];
 	int		num_leafs;
-	int		i, lastleaf;
+	int		i, j;
+	int		area;
+	int		lastleaf;
 	sv_priv_t		*sv_ent;
 
 	sv_ent = ent->pvServerData;
@@ -235,9 +238,8 @@ void SV_LinkEdict( edict_t *ent, bool touch_triggers )
 
 	// link to PVS leafs
 	sv_ent->num_clusters = 0;
-	sv_ent->lastcluster = 0;
-	sv_ent->areanum = -1;
-	sv_ent->areanum2 = -1;
+	sv_ent->areanum = 0;
+	sv_ent->areanum2 = 0;
 
 	// get all leafs, including solids
 	num_leafs = CM_BoxLeafnums( ent->v.absmin, ent->v.absmax, leafs, MAX_TOTAL_ENT_LEAFS, &lastleaf );
@@ -249,18 +251,19 @@ void SV_LinkEdict( edict_t *ent, bool touch_triggers )
 	// set areas, even from clusters that don't fit in the entity array
 	for( i = 0; i < num_leafs; i++ )
 	{
+		clusters[i] = CM_LeafCluster( leafs[i] );
 		area = CM_LeafArea( leafs[i] );
-		if( area != -1 )
+
+		if( area )
 		{	
 			// doors may legally straggle two areas,
 			// but nothing should evern need more than that
-			if( sv_ent->areanum != -1 && sv_ent->areanum != area )
+			if( sv_ent->areanum && sv_ent->areanum != area )
 			{
-				if( sv_ent->areanum2 != -1 && sv_ent->areanum2 != area && sv.state == ss_loading )
+				if( sv_ent->areanum2 && sv_ent->areanum2 != area && sv.state == ss_loading )
 				{
 					float *v = ent->v.absmin;
-					const char *name = STRING( ent->v.classname );
-					MsgDev( D_WARN, "SV_LinkEdict: %s touching 3 areas at %f %f %f\n", name, v[0], v[1], v[2] );
+					MsgDev( D_WARN, "SV_LinkEdict: object touching 3 areas at %f %f %f\n", v[0], v[1], v[2] );
 				}
 				sv_ent->areanum2 = area;
 			}
@@ -268,20 +271,29 @@ void SV_LinkEdict( edict_t *ent, bool touch_triggers )
 		}
 	}
 
+	sv_ent->lastcluster = -1;
+	sv_ent->num_clusters = 0;
+
 	for( i = 0; i < num_leafs; i++ )
 	{
-		cluster = CM_LeafCluster( leafs[i] );
-
-		if( cluster != -1 )
+		if( clusters[i] == -1 )
+			continue;		// not a visible leaf
+		for( j = 0; j < i; j++ )
 		{
-			sv_ent->clusternums[sv_ent->num_clusters++] = cluster;
-			if( sv_ent->num_clusters == MAX_ENT_CLUSTERS )
+			if( clusters[j] == clusters[i] )
 				break;
 		}
+		if( j == i )
+		{
+			if( sv_ent->num_clusters == MAX_ENT_CLUSTERS )
+			{	
+				// we missed some leafs, so store the last visible cluster
+				sv_ent->lastcluster = CM_LeafCluster( lastleaf );
+				break;
+			}
+			sv_ent->clusternums[sv_ent->num_clusters++] = clusters[i];
+		}
 	}
-
-	// store off a last cluster if we need to
-	if( i != num_leafs ) sv_ent->lastcluster = CM_LeafCluster( lastleaf );
 
 	ent->pvServerData->linkcount++;
 	ent->pvServerData->s.ed_flags |= ESF_LINKEDICT;	// change edict state on a client too...
@@ -308,7 +320,6 @@ void SV_LinkEdict( edict_t *ent, bool touch_triggers )
 	if( ent->v.solid == SOLID_TRIGGER )
 		InsertLinkBefore( &sv_ent->area, &node->trigger_edicts, NUM_FOR_EDICT( ent ));
 	else InsertLinkBefore (&sv_ent->area, &node->solid_edicts, NUM_FOR_EDICT( ent ));
-	sv_ent->linked = true;
 
 	if( touch_triggers ) SV_TouchLinks( ent, sv_areanodes );
 }
@@ -640,4 +651,57 @@ int SV_BaseContents( const vec3_t p )
 int SV_PointContents( const vec3_t p )
 {
 	return World_ConvertContents( SV_BaseContents( p ));
+}
+
+/*
+============
+SV_TestPlayerPosition
+
+============
+*/
+edict_t *SV_TestPlayerPosition( const vec3_t origin )
+{
+	edict_t	*check;
+	model_t	handle;
+	vec3_t	boxmins, boxmaxs;
+	float	*angles;
+	int	e, cont;
+	
+	// check world first
+	if( World_ConvertContents( CM_PointContents( origin, 0 )) != CONTENTS_EMPTY )
+		return EDICT_NUM( 0 );
+
+	// check all entities
+	VectorAdd( origin, svgame.pmove->player_mins[svgame.pmove->usehull], boxmins );
+	VectorAdd( origin, svgame.pmove->player_maxs[svgame.pmove->usehull], boxmaxs );
+	
+	for( e = 1; e < svgame.globals->numEntities; e++ )
+	{
+		check = EDICT_NUM( e );
+
+		if( check->free ) continue;
+		if( check->v.solid != SOLID_BSP && check->v.solid != SOLID_BBOX && check->v.solid != SOLID_SLIDEBOX )
+			continue;
+
+		if( !BoundsIntersect( boxmins, boxmaxs, check->v.absmin, check->v.absmax ))
+			continue;
+
+		if( check == svgame.pmove->pev->pContainingEntity )
+			continue;
+
+		// get the clipping hull
+		handle = SV_HullForEntity( check );
+	
+		if( check->v.solid == SOLID_BSP )
+			angles = check->v.angles;
+		else angles = vec3_origin;	// boxes don't rotate
+
+		cont = CM_TransformedPointContents( origin, handle, check->v.origin, angles );
+		cont = World_ConvertContents( cont );
+	
+		// test the point
+		if( cont != CONTENTS_EMPTY )
+			return check;
+	}
+	return NULL;
 }

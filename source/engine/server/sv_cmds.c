@@ -544,8 +544,8 @@ Examine serverinfo string
 */
 void SV_ServerInfo_f( void )
 {
-	Msg("Server info settings:\n");
-	Info_Print( Cvar_Serverinfo());
+	Msg( "Server info settings:\n" );
+	Info_Print( Cvar_Serverinfo( ));
 }
 
 /*

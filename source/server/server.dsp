@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /YX /c
-# ADD CPP /nologo /MD /W3 /O2 /I "./" /I "ents" /I "game" /I "global" /I "monsters" /I "../common" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /MD /W3 /O2 /I "./" /I "ents" /I "game" /I "global" /I "monsters" /I "../common" /I "../pm_shared" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /Fr /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -82,7 +82,7 @@ SOURCE="$(InputPath)"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /G5 /MT /W3 /O2 /I "..\server" /I "..\common\engine" /I "..\common" /I "..\server\ents" /I "..\server\global" /I "..\server\weapons" /I "..\server\game" /I "..\server\monsters" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /YX /FD /c
 # SUBTRACT BASE CPP /Fr
-# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "ents" /I "game" /I "global" /I "monsters" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /c
+# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "ents" /I "game" /I "global" /I "monsters" /I "../common" /I "../pm_shared" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /c
 # SUBTRACT CPP /u /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -114,7 +114,7 @@ SOURCE="$(InputPath)"
 # Name "server - Win32 Debug"
 # Begin Group "Source Files"
 
-# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat;for;f90"
+# PROP Default_Filter "cpp;c;cxx;rc;def"
 # Begin Source File
 
 SOURCE=.\monsters\ai_sound.cpp
@@ -273,10 +273,6 @@ SOURCE=.\monsters\leech.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\legacy.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\game\lights.cpp
 # End Source File
 # Begin Source File
@@ -298,6 +294,10 @@ SOURCE=.\global\parent.cpp
 # Begin Source File
 
 SOURCE=.\monsters\player.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\pm_shared\pm_shared.cpp
 # End Source File
 # Begin Source File
 
@@ -366,7 +366,7 @@ SOURCE=.\monsters\zombie.cpp
 # End Group
 # Begin Group "Header Files"
 
-# PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;cnt;rtf;gif;jpg;jpeg;jpe"
+# PROP Default_Filter "h;hpp"
 # Begin Source File
 
 SOURCE=.\monsters\activity.h

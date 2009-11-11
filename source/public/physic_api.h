@@ -59,6 +59,7 @@ typedef struct physic_exp_s
 	int (*NumBmodels)( void );
 	void (*Mod_GetBounds)( model_t handle, vec3_t mins, vec3_t maxs );
 	void (*Mod_GetFrames)( model_t handle, int *numFrames );
+	modtype_t (*Mod_GetType)( model_t handle );
 	const char *(*GetShaderName)( int index );
 	void *(*Mod_Extradata)( model_t handle );
 	script_t *(*GetEntityScript)( void );

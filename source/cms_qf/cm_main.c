@@ -77,6 +77,7 @@ physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs 
 
 	Phys.NumShaders = CM_NumShaders;
 	Phys.NumBmodels = CM_NumInlineModels;
+	Phys.Mod_GetType = CM_ModelType;
 	Phys.Mod_GetBounds = CM_ModelBounds;
 	Phys.Mod_GetFrames = CM_ModelFrames;
 	Phys.GetShaderName = CM_ShaderName;

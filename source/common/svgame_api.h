@@ -7,7 +7,7 @@
 
 #include "trace_def.h"
 #include "event_api.h"
-#include "gameinfo.h"
+#include "pm_shared.h"
 
 typedef struct globalvars_s
 {	
@@ -48,7 +48,7 @@ typedef struct globalvars_s
 	int		maxClients;
 	int		maxEntities;
 
-	dll_gameinfo_t	*GameInfo;	// shared gameinfo (was *pStringBase)
+	const char	*pStringBase;
 
 	void		*pSaveData;	// (SAVERESTOREDATA *) pointer
 	vec3_t		vecLandmarkOffset;
@@ -175,19 +175,19 @@ typedef struct enginefuncs_s
 	int	(*pfnPrecacheGeneric)( const char* s );
 	void	(*pfnSetSkybox)( const char *name );			// was pfnGetPlayerUserId
 	void	(*pfnPlayMusic)( const char *trackname, int flags );	// was pfnBuildSoundMsg
-	int	(*pfnIsDedicatedServer)( void );	// is this a dedicated server?
+	int	(*pfnIsDedicatedServer)( void );			// is this a dedicated server?
 	void*	(*pfnMemAlloc)(size_t cb, const char *file, const int line);// was pfnCVarGetPointer
 	void	(*pfnMemFree)(void *mem, const char *file, const int line);	// was pfnGetPlayerWONId
 	void	(*pfnInfo_RemoveKey)( char *s, char *key );
-	void	*(*pfnFOpen)( const char* path, const char* mode );	// was pfnGetPhysicsKeyValue	
-	int	(*pfnFClose)( void *file );				// was pfnSetPhysicsKeyValue				
-	long	(*pfnFTell)( void *file );				// was pfnGetPhysicsInfoString
+	const char *(*pfnGetPhysicsKeyValue)( const edict_t *pClient, const char *key );
+	void	(*pfnSetPhysicsKeyValue)( const edict_t *pClient, const char *key, const char *value );
+	const char *(*pfnGetPhysicsInfoString)( const edict_t *pClient );
 	word	(*pfnPrecacheEvent)( int type, const char *psz );
 	void	(*pfnPlaybackEvent)( int flags, const edict_t *pInvoker, word eventindex, float delay, event_args_t *args );
 	long	(*pfnFWrite)(void *file, const void* data, size_t datasize);// was pfnSetFatPVS
 	long	(*pfnFRead)( void *file, void* buffer, size_t buffersize );	// was pfnSetFatPAS
-	int	(*pfnFGets)( void *file, byte *string, size_t bufsize );	// was pfnCheckVisibility
-	int	(*pfnFSeek)( void *file, long offset, int whence );	// was pfnDeltaSetField
+	void	*(*pfnFOpen)( const char* path, const char* mode );	// was pfnCheckVisibility
+	int	(*pfnFClose)( void *file );				// was pfnDeltaSetField
 	void	(*pfnDropClient)( int clientIndex );			// was pfnDeltaUnsetField
 	void	(*pfnHostError)( const char *szFmt, ... );		// was pfnDeltaAddEncoder
 	void	(*pfnGetPlayerPing)( const edict_t *pClient, int *ping );	// was pfnGetCurrentPlayer
@@ -308,9 +308,7 @@ typedef struct
 
 	// initialize/shutdown the game (one-time call after loading of game .dll )
 	void	(*pfnGameInit)( void );				
-	void	(*pfnGameShutdown)( void );
 	int	(*pfnSpawn)( edict_t *pent );
-	int	(*pfnCreate)( edict_t *pent, const char *szName );	// create custom entities
 	void	(*pfnThink)( edict_t *pent );
 	void	(*pfnUse)( edict_t *pentUsed, edict_t *pentOther );
 	void	(*pfnTouch)( edict_t *pentTouched, edict_t *pentOther );
@@ -320,7 +318,6 @@ typedef struct
 	int 	(*pfnRestore)( edict_t *pent, SAVERESTOREDATA *pSaveData, int globalEntity );
 	void	(*pfnSetAbsBox)( edict_t *pent );
 
-	TYPEDESCRIPTION *(*pfnGetEntvarsDescirption)( int number );
 	void	(*pfnSaveWriteFields)( SAVERESTOREDATA*, const char*, void*, TYPEDESCRIPTION*, int );
 	void	(*pfnSaveReadFields)( SAVERESTOREDATA*, const char*, void*, TYPEDESCRIPTION*, int );
 	void	(*pfnSaveGlobalState)( SAVERESTOREDATA * );
@@ -340,22 +337,29 @@ typedef struct
 	void	(*pfnPlayerPostThink)( edict_t *pEntity );
 
 	void	(*pfnStartFrame)( void );
-	void	(*pfnFrame)( edict_t *pent );
-	void	(*pfnEndFrame)( void );
-	void	(*pfnBuildLevelList)( void );
+	int	(*pfnCreate)( edict_t *pent, const char *szName ); // custom entity (was pfnParmsNewLevel)
+	void	(*pfnParmsChangeLevel)( void );
 
-	int	(*pfnShouldCollide)( edict_t *pentTouched, edict_t *pentOther );
-	int	(*pfnClassifyEdict)( edict_t *pentToClassify );
-	void	(*pfnUpdateEntityState)( struct entity_state_s *to, edict_t *from, int baseline );
-	void	(*pfnOnFreeEntPrivateData)( edict_t *pEnt );
-	
 	 // returns string describing current .dll.  E.g., TeamFotrress 2, Half-Life
 	const char *(*pfnGetGameDescription)( void );     
+	TYPEDESCRIPTION *(*pfnGetEntvarsDescirption)( int fieldnum );	// (was pfnPlayerCustomization)
 
 	// Spectator funcs
 	void	(*pfnSpectatorConnect)( edict_t *pEntity );
 	void	(*pfnSpectatorDisconnect)( edict_t *pEntity );
 	void	(*pfnSpectatorThink)( edict_t *pEntity );
+
+	int	(*pfnClassifyEdict)( edict_t *pentToClassify );		// (was pfnSys_Error)
+
+	void	(*pfnPM_Move)( playermove_t *ppmove, int server );
+	void	(*pfnPM_Init)( playermove_t *ppmove );
+	char	(*pfnPM_FindTextureType)( const char *name );
+
+	int	(*pfnShouldCollide)( edict_t *pentTouched, edict_t *pentOther );
+	void	(*pfnUpdateEntityState)( struct entity_state_s *to, edict_t *from, int baseline );
+	void	(*pfnOnFreeEntPrivateData)( edict_t *pEnt );
+
+	void	(*pfnGameShutdown)( void );
 } DLL_FUNCTIONS;
 
 typedef int (*SERVERAPI)( DLL_FUNCTIONS *pFunctionTable, enginefuncs_t* engfuncs, globalvars_t *pGlobals );

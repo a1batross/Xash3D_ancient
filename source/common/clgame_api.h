@@ -17,7 +17,6 @@ typedef void (*pfnEventHook)( struct event_args_s *args );
 
 #include "trace_def.h"
 #include "event_api.h"
-#include "gameinfo.h"
 
 #define SCRINFO_VIRTUALSPACE	1
 
@@ -100,8 +99,6 @@ typedef struct cl_globalvars_s
 	int		maxClients;
 	int		maxEntities;
 	int		numEntities;	// actual ents count
-
-	dll_gameinfo_t	GameInfo;		// shared gameinfo
 } cl_globalvars_t;
 
 typedef struct cl_enginefuncs_s

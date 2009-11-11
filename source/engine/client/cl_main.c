@@ -39,7 +39,6 @@ cvar_t	*cl_particlelod;
 cvar_t	*cl_shownet;
 cvar_t	*cl_showmiss;
 cvar_t	*cl_mouselook;
-cvar_t	*cl_paused;
 
 //
 // userinfo
@@ -62,7 +61,9 @@ extern	cvar_t *allow_download;
 //======================================================================
 bool CL_Active( void )
 {
-	return (cls.key_dest == key_game || cls.key_dest == key_hudmenu);
+	if( host.type == HOST_DEDICATED ) return true;			// always active for dedicated servers
+	if( CL_GetMaxClients() > 1 ) return true;				// always active for multiplayer
+	return (cls.key_dest == key_game || cls.key_dest == key_hudmenu);	// active if not menu or console
 }
 
 void CL_ForceVid( void )
@@ -100,7 +101,14 @@ void CL_ForwardToServer_f( void )
 {
 	char	*cmd;
 
-	if( cls.demoplayback || ( cls.state != ca_connected && cls.state != ca_active ))
+	if( cls.demoplayback )
+	{
+		if( !com.stricmp( Cmd_Argv( 0 ), "pause" ))
+			cl.refdef.paused ^= 1;
+		return;
+	}
+
+	if( cls.state != ca_connected && cls.state != ca_active )
 		return; // not connected
 
 	cmd = Cmd_Argv( 0 );
@@ -116,26 +124,6 @@ void CL_ForwardToServer_f( void )
 		MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
 		MSG_Print( &cls.netchan.message, Cmd_Args());
 	}
-}
-
-
-/*
-==================
-CL_Pause_f
-==================
-*/
-void CL_Pause_f( void )
-{
-	if(!Host_ServerState() && !cls.demoplayback )
-		return; // but allow pause in demos
-
-	// never pause in multiplayer
-	if(com.atoi(cl.configstrings[CS_MAXCLIENTS]) > 1 )
-	{
-		Cvar_SetValue( "paused", 0 );
-		return;
-	}
-	Cvar_SetValue( "paused", !cl_paused->value );
 }
 
 /*
@@ -1130,7 +1118,7 @@ void CL_InitLocal( void )
 
 	// register our commands
 	Cmd_AddCommand ("cmd", CL_ForwardToServer_f, "send a console commandline to the server" );
-	Cmd_AddCommand ("pause", CL_Pause_f, "pause the game (if the server allows pausing)" );
+	Cmd_AddCommand ("pause", NULL, "pause the game (if the server allows pausing)" );
 	Cmd_AddCommand ("getserverlist", CL_GetServerList_f, "get info about local servers" );
 	Cmd_AddCommand ("freeserverlist", CL_FreeServerList_f, "clear info about local servers" );
 
@@ -1252,9 +1240,6 @@ void CL_Init( void )
 {
 	if( host.type == HOST_DEDICATED )
 		return; // nothing running on the client
-
-	// all archived variables will now be loaded
-	cl_paused = Cvar_Get( "paused", "0", 0, "game paused" );
 
 	Con_Init();	
 

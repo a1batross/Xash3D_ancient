@@ -8,7 +8,6 @@
 
 cvar_t *scr_viewsize;
 cvar_t *scr_centertime;
-cvar_t *scr_showpause;
 cvar_t *scr_printspeed;
 cvar_t *scr_loading;
 cvar_t *scr_download;
@@ -502,7 +501,6 @@ void SCR_Init( void )
 	scr_width = Cvar_Get( "width", "640", 0, "screen width" );
 	scr_height = Cvar_Get( "height", "480", 0, "screen height" );
 
-	scr_showpause = Cvar_Get( "scr_showpause", "1", 0, "show pause picture" );
 	scr_centertime = Cvar_Get( "scr_centertime", "2.5", 0, "centerprint hold time" );
 	scr_printspeed = Cvar_Get( "scr_printspeed", "8", 0, "centerprint speed of print" );
 	cl_levelshot_name = Cvar_Get( "cl_levelshot_name", MAP_DEFAULT_SHADER, 0, "contains path to current levelshot" );

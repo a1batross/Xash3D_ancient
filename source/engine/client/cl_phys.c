@@ -159,7 +159,7 @@ void CL_PredictMovement (void)
 	float		oldz;
 
 	if( cls.state != ca_active ) return;
-	if( cl_paused->value ) return;
+	if( cl.refdef.paused ) return;
 
 	pmove = EDICT_NUM( cl.playernum + 1 )->pvClientData->current;
 

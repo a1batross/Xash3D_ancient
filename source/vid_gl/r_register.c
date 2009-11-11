@@ -27,7 +27,6 @@ glstate_t		glState;
 byte		*r_temppool;
 byte		*r_framebuffer;
 
-cvar_t *r_paused;
 cvar_t *r_norefresh;
 cvar_t *r_drawentities;
 cvar_t *r_drawworld;
@@ -488,7 +487,6 @@ void GL_InitCommands( void )
 	// system screen width and height (don't suppose for change from console at all)
 	r_width = Cvar_Get( "width", "640", CVAR_READ_ONLY, "screen width" );
 	r_height = Cvar_Get( "height", "480", CVAR_READ_ONLY, "screen height" );
-	r_paused = Cvar_Get( "paused", "0", 0, "game pasued" );
 
 	r_norefresh = Cvar_Get( "r_norefresh", "0", 0, "disable rendering (use with caution)" );
 	r_fullbright = Cvar_Get( "r_fullbright", "0", CVAR_CHEAT|CVAR_LATCH_VIDEO, "disable lightmaps, get fullbright" );

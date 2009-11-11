@@ -31,9 +31,7 @@ static DLL_FUNCTIONS gFunctionTable =
 {
 	sizeof( DLL_FUNCTIONS ),
 	GameDLLInit,		// pfnGameInit
-	GameDLLShutdown,		// pfnGameShutdown
 	DispatchSpawn,		// pfnSpawn
-	DispatchCreate,		// pfnCreate
 	DispatchThink,		// pfnThink
 	DispatchUse,		// pfnUse
 	DispatchTouch,		// pfnTouch
@@ -43,7 +41,6 @@ static DLL_FUNCTIONS gFunctionTable =
 	DispatchRestore,		// pfnRestore
 	DispatchObjectCollsionBox,	// pfnAbsBox
 
-	GetEntvarsDescirption,	// pfnGetEntvarsDescirption
 	SaveWriteFields,		// pfnSaveWriteFields
 	SaveReadFields,		// pfnSaveReadFields
 
@@ -65,20 +62,26 @@ static DLL_FUNCTIONS gFunctionTable =
 	PlayerPostThink,		// pfnPlayerPostThink
 
 	StartFrame,		// pfnStartFrame
-	DispatchFrame,		// pfnFrame
-	EndFrame,			// pfnEndFrame
-	BuildLevelList,		// pfnBuildLevelList
-
-	ShouldCollide,		// pfnShouldCollide
-	ServerClassifyEdict,	// pfnClassifyEdict
-	UpdateEntityState,		// pfnUpdateEntityState
-	OnFreeEntPrivateData,	// pfnOnFreeEntPrivateData
+	DispatchCreate,		// pfnCreate
+	BuildLevelList,		// pfnParmsChangeLevel
 
 	GetGameDescription,		// pfnGetGameDescription - returns string describing current .dll game.
+	GetEntvarsDescirption,	// pfnGetEntvarsDescirption
 
 	SpectatorConnect,		// pfnSpectatorConnect
 	SpectatorDisconnect,	// pfnSpectatorDisconnect
 	SpectatorThink,		// pfnSpectatorThink
+
+	ServerClassifyEdict,	// pfnClassifyEdict
+
+	PM_Move,			// pfnPM_Move
+	PM_Init,			// pfnPM_Init
+	PM_FindTextureType,		// pfnPM_FindTextureType
+	
+	ShouldCollide,		// pfnShouldCollide
+	UpdateEntityState,		// pfnUpdateEntityState
+	OnFreeEntPrivateData,	// pfnOnFreeEntPrivateData
+	GameDLLShutdown,		// pfnGameShutdown
 };
 
 //=======================================================================

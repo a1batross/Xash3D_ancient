@@ -353,7 +353,7 @@ void CL_DrawHUD( int state )
 	if( state == CL_ACTIVE && !cl.video_prepped )
 		state = CL_LOADING;
 
-	if( state == CL_ACTIVE && cl_paused->integer )
+	if( state == CL_ACTIVE && cl.refdef.paused )
 		state = CL_PAUSED;
 
 	clgame.dllFuncs.pfnRedraw( cl.time * 0.001f, state );
@@ -1118,9 +1118,9 @@ static void *pfnGetModelPtr( edict_t *pEdict )
 
 /*
 =============
-pfnMakeLevelShot
+pfnGetScreenInfo
 
-force to make levelshot
+get actual screen info
 =============
 */
 int pfnGetScreenInfo( SCREENINFO *pscrinfo )
@@ -1879,16 +1879,6 @@ bool CL_LoadProgs( const char *name )
 	// register svc_bad message
 	pfnHookUserMsg( "bad", NULL );
 	CL_LinkUserMessage( "bad@0", svc_bad );
-
-	clgame.movevars.gravity = com.atof( DEFAULT_GRAVITY );
-	clgame.movevars.maxvelocity = com.atof( DEFAULT_MAXVELOCITY );
-	clgame.movevars.rollangle = com.atof( DEFAULT_ROLLANGLE );
-	clgame.movevars.rollspeed = com.atof( DEFAULT_ROLLSPEED );
-	clgame.movevars.maxspeed = com.atof( DEFAULT_MAXSPEED );
-	clgame.movevars.stepheight = com.atof( DEFAULT_STEPHEIGHT );
-	clgame.movevars.accelerate = com.atof( DEFAULT_ACCEL );
-	clgame.movevars.airaccelerate = com.atof( DEFAULT_AIRACCEL );
-	clgame.movevars.friction = com.atof( DEFAULT_FRICTION );
 
 	CL_InitEdict( &clgame.viewent );
 	clgame.viewent.serialnumber = VIEWENT_INDEX;

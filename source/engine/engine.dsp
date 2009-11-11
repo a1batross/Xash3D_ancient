@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "./" /I "common" /I "server" /I "client" /I "uimenu" /I "../public" /I "../common" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "./" /I "common" /I "server" /I "client" /I "uimenu" /I "../public" /I "../common" /I "../pm_shared" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -80,7 +80,7 @@ SOURCE="$(InputPath)"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /c
-# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "common" /I "server" /I "client" /I "uimenu" /I "../public" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /c
+# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "common" /I "server" /I "client" /I "uimenu" /I "../public" /I "../common" /I "../pm_shared" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -362,6 +362,22 @@ SOURCE=.\common\net_msg.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\pm_shared\pm_defs.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\pm_shared\pm_materials.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\pm_shared\pm_movevars.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\pm_shared\pm_shared.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\safeproc.h
 # End Source File
 # Begin Source File
@@ -370,7 +386,15 @@ SOURCE=.\server\server.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\pm_shared\trace_def.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\uimenu\ui_local.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\pm_shared\user_cmd.h
 # End Source File
 # End Group
 # End Target

@@ -67,7 +67,6 @@ cvar_t	*s_soundfx;
 cvar_t	*s_check_errors;
 cvar_t	*s_volume;	// master volume
 cvar_t	*s_musicvolume;	// background track volume
-cvar_t	*s_pause;
 cvar_t	*s_room_type;
 cvar_t	*s_minDistance;
 cvar_t	*s_maxDistance;
@@ -199,7 +198,7 @@ static void S_PlayChannel( channel_t *ch, sfx_t *sfx )
 	if( ch->loopstart >= 0 )
 	{
 		// kill any looping sounds
-		if( s_pause->integer )
+		if( al_state.paused )
 		{
 			palSourceStop( ch->sourceNum );
 			return;
@@ -627,12 +626,14 @@ void S_Update( ref_params_t *fd )
 	int		i;
 
 	if( !al_state.initialized || !fd ) return;
-//	if( s_pause->integer || fd->paused ) return;		
 
 	// bump frame count
 	al_state.framecount++;
+	al_state.paused = fd->paused;
 	al_state.clientnum = fd->viewentity;
 	al_state.refdef = fd; // for using everthing else
+
+//	if( fd->paused ) return;		
 
 	// set up listener
 	VectorSet( s_listener.position, fd->simorg[1], fd->simorg[2], -fd->simorg[0] );
@@ -810,7 +811,6 @@ bool S_Init( void *hInst )
 	s_dopplerFactor = Cvar_Get("s_dopplerfactor", "1.0", CVAR_ARCHIVE, "cutoff doppler effect value" );
 	s_dopplerVelocity = Cvar_Get("s_dopplervelocity", "10976.0", CVAR_ARCHIVE, "doppler effect maxvelocity" );
 	s_room_type = Cvar_Get( "room_type", "0", 0, "dsp room type" );
-	s_pause = Cvar_Get( "paused", "0", 0, "sound engine pause" );
 
 	Cmd_AddCommand( "playsound", S_PlaySound_f, "playing a specified sound file" );
 	Cmd_AddCommand( "music", S_Music_f, "starting a background track" );
