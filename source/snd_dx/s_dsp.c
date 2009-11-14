@@ -10,7 +10,9 @@
 #define SXSTE_MAX		0.100	// max stereo delay line time
 // hard clip input value to -32767 <= y <= 32767
 #define CLIP( x )		bound( -32767, (x), 32767 )
+#define SOUNDCLIP(x)	((x) > (32767*256) ? (32767*256) : ((x) < (-32767*256) ? (-32767*256) : (x)))
 #define CSXROOM		29
+#define DSP_CONSTANT_GAIN	128
 
 typedef int sample_t;		// delay lines must be 32 bit, now that we have 16 bit samples
 
@@ -35,11 +37,11 @@ typedef struct dlyline_s
 	sample_t	*lpdelayline;	// buffer
 } dlyline_t;
 
-#define CSXDLYMAX		4
 #define ISXMONODLY		0	// mono delay line
 #define ISXRVB		1	// first of the reverb delay lines
 #define CSXRVBMAX		2
 #define ISXSTEREODLY	3	// 50ms left side delay
+#define CSXDLYMAX		4
 
 dlyline_t	rgsxdly[CSXDLYMAX];		// array of delay lines
 
@@ -81,7 +83,7 @@ cvar_t	*sxmod_mod;
 // Main interface
 cvar_t	*sxroom_type;	// legacy support
 cvar_t	*sxroomwater_type;	// legacy support
-float	sxroom_typeprev;
+int	sxroom_typeprev;
 cvar_t	*sxroom_off;	// legacy support
 
 bool SXDLY_Init( int idelay, float delay );
@@ -118,7 +120,7 @@ void SX_Init( void )
 	sxdly_delayprev = -1.0;
 	sxrvb_sizeprev = -1.0;
 	sxste_delayprev = -1.0;
-	sxroom_typeprev = -1.0;
+	sxroom_typeprev = -1;
 
 	// init amplitude modulation params
 	sxamodl = sxamodr = 255;
@@ -142,7 +144,7 @@ void SX_Free( void )
 	// release reverb lines
 	for( i = 0; i < CSXRVBMAX; i++ )
 		SXDLY_Free( i + ISXRVB );
-	SXDLY_Free(ISXSTEREODLY);
+	SXDLY_Free( ISXSTEREODLY );
 }
 
 // Set up a delay line buffer allowing a max delay of 'delay' seconds 
@@ -234,6 +236,9 @@ void SXDLY_CheckNewStereoDelayVal( void )
 	dlyline_t	*pdly = &(rgsxdly[ISXSTEREODLY]);
 	int	delaysamples;
 
+	if( dma.channels < 2 )
+		return;
+
 	// set up stereo delay
 	if( sxste_delay->value != sxste_delayprev )
 	{
@@ -250,7 +255,6 @@ void SXDLY_CheckNewStereoDelayVal( void )
 			// init delay line if not active
 			if( pdly->lpdelayline == NULL )
 			{
-
 				pdly->delaysamples = delaysamples;
 				SXDLY_Init( ISXSTEREODLY, SXSTE_MAX );
 			}
@@ -269,8 +273,6 @@ void SXDLY_CheckNewStereoDelayVal( void )
 
 			sxste_delayprev = sxste_delay->value;
 			
-			// UNDONE: modulation disabled
-			// pdly->mod = 500 * (dma.speed / 11025);	// change delay every n samples
 			pdly->mod = 0;
 			pdly->modcur = pdly->mod;
 
@@ -286,11 +288,14 @@ void SXDLY_CheckNewStereoDelayVal( void )
 
 void SXDLY_DoStereoDelay( int count )
 {
-	int		left;
-	sample_t		sampledly;
-	sample_t		samplexf;
+	int			left;
+	sample_t			sampledly;
+	sample_t			samplexf;
 	portable_samplepair_t	*pbuf;
-	int		countr;
+	int			countr;
+
+	if( dma.channels < 2 )
+		return;
 
 	// process delay line if active
 	if( rgsxdly[ISXSTEREODLY].lpdelayline )
@@ -341,10 +346,10 @@ void SXDLY_DoStereoDelay( int count )
 				// save output value into delay line
 
 				// left = CLIP(left);
-				*(gdly3.lpdelayline + gdly3.idelayinput) = left;
+				*(gdly3.lpdelayline + gdly3.idelayinput) = SOUNDCLIP( left );
 								
 				// save delay line sample into output buffer
-				pbuf->left = sampledly;
+				pbuf->left = SOUNDCLIP( sampledly );
 
 			} 
 			else 
@@ -370,29 +375,29 @@ void SXDLY_DoStereoDelay( int count )
 
 void SXDLY_CheckNewDelayVal( void )
 {
-	dlyline_t *pdly = &(rgsxdly[ISXMONODLY]);
+	dlyline_t	*pdly = &(rgsxdly[ISXMONODLY]);
 
-	if (sxdly_delay->value != sxdly_delayprev) {
-		
-		if (sxdly_delay->value == 0.0) {
-			
+	if( sxdly_delay->value != sxdly_delayprev )
+	{
+		if( sxdly_delay->value == 0.0f )
+		{
 			// deactivate delay line
-			
-			SXDLY_Free(ISXMONODLY);
+			SXDLY_Free( ISXMONODLY );
 			sxdly_delayprev = sxdly_delay->value;
 
 		} else {
 			// init delay line if not active
 
-			pdly->delaysamples = min(sxdly_delay->value, SXDLY_MAX) * dma.speed;
+			pdly->delaysamples = min( sxdly_delay->value, SXDLY_MAX ) * dma.speed;
 
-			if (pdly->lpdelayline == NULL)
-				SXDLY_Init(ISXMONODLY, SXDLY_MAX);
+			if( pdly->lpdelayline == NULL )
+				SXDLY_Init( ISXMONODLY, SXDLY_MAX );
 
 			// flush delay line and filters
 
-			if (pdly->lpdelayline) {
-				Mem_Set(pdly->lpdelayline, 0, pdly->cdelaysamplesmax * sizeof(sample_t));
+			if( pdly->lpdelayline )
+			{
+				Mem_Set( pdly->lpdelayline, 0, pdly->cdelaysamplesmax * sizeof( sample_t ));
 				pdly->lp0 = 0;
 				pdly->lp1 = 0;
 				pdly->lp2 = 0;
@@ -402,16 +407,14 @@ void SXDLY_CheckNewDelayVal( void )
 			}
 			
 			// init delay loop input and output counters
-
 			pdly->idelayinput = 0;
 			pdly->idelayoutput = pdly->cdelaysamplesmax - pdly->delaysamples; 
 
 			sxdly_delayprev = sxdly_delay->value;
 			
 			// deactivate line if rounded down to 0 delay
-
-			if (pdly->delaysamples == 0)
-				SXDLY_Free(ISXMONODLY);
+			if( pdly->delaysamples == 0 )
+				SXDLY_Free( ISXMONODLY );
 			
 		}
 	}
@@ -424,42 +427,21 @@ void SXDLY_CheckNewDelayVal( void )
 // This routine updates both left and right output with 
 // the mono delayed signal.  Delay is set through console vars room_delay
 // and room_feedback.
-
-void SXDLY_DoDelay(int count) 
+void SXDLY_DoDelay( int count ) 
 {
-	int val;
-	int valt;
-	int left;
-	int right;			
-	sample_t sampledly;
-	portable_samplepair_t *pbuf;
-	int countr;
-	float fgain;
-	int gain;
-		
+	int			val[2];
+	int			valt, valt2;
+	int			samp[2];
+	int			sampsum, dfdly;
+	sample_t			sampledly;
+	portable_samplepair_t	*pbuf;
+	int			countr;
+	int			gain;
 
 	// process mono delay line if active
-
-	if (rgsxdly[ISXMONODLY].lpdelayline) 
+	if( rgsxdly[ISXMONODLY].lpdelayline ) 
 	{
-
-		// calculate gain of delay line with feedback, and use it to
-		// reduce output.  ie: make delay line approx unity gain
-
-		// for constant input x with feedback fb:
-
-		// out = x + x*fb + x * fb^2 + x * fb^3...
-		// gain = out/x
-		// so gain = 1 + fb + fb^2 + fb^3...
-		// which, by the miracle of geometric series, equates to 1/1-fb
-		// thus, gain = 1/1-fb
-
-		fgain = 1.0 / (1.0 - gdly0.delayfeed / 255.0);
-		gain = (int)((1.0 / fgain)* 255.0);	
-		
-		gain <<= 2; 
-		if( gain > 255 ) gain = 255;
-
+		gain = DSP_CONSTANT_GAIN;
    		pbuf = paintbuffer;
 		countr = count;
 
@@ -469,56 +451,83 @@ void SXDLY_DoDelay(int count)
 			// get delay line sample
 			sampledly = *(gdly0.lpdelayline + gdly0.idelayoutput);
 
-			left = pbuf->left;
-			right = pbuf->right;
-			
+			if( dma.channels == 2 )
+			{
+				samp[0] = pbuf->left;
+				samp[1] = pbuf->right;
+				sampsum = samp[0] + samp[1];
+			}
+			else
+			{
+				samp[0] = pbuf->left;
+				sampsum = samp[0];
+			}
+		
 			// only process if delay line and paintbuffer samples are non zero
-			if( sampledly || left || right ) 
+			if( sampledly || sampsum ) 
 			{
 				// get current sample from delay buffer
-				
-				// calculate delayed value from avg of left and right channels
-				val = ((left + right) >> 1) + ((gdly0.delayfeed * sampledly) >> 8);	
-				
-				// limit val to short
-				// val = CLIP( val );
+				dfdly = ((gdly0.delayfeed * sampledly) >> 8);
+
+				if( dma.channels == 2 )
+				{
+					val[0] = SOUNDCLIP( samp[0] + dfdly );
+					val[1] = SOUNDCLIP( samp[1] + dfdly );
+					valt = SOUNDCLIP(( sampsum + (dfdly * 2)) >> 1);
+				}
+				else
+				{
+					val[0] = SOUNDCLIP(samp[0] + dfdly);
+					valt = val[0];
+				}
 				
 				// lowpass
 				if( gdly0.lp ) 
 				{
-					//valt = (gdly0.lp0 + gdly0.lp1 + val) / 3;  // performance
-					//valt = (gdly0.lp0 + gdly0.lp1 + (val<<1)) >> 2;
-
-					valt = (gdly0.lp0 + gdly0.lp1 + gdly0.lp2 + gdly0.lp3 + val) / 5;
+					if( dma.channels == 2 )
+					{
+						val[0] = (gdly0.lp0 + gdly0.lp1 + gdly0.lp2 + gdly0.lp3 + val[0]) / 5;
+						val[1] = (gdly0.lp0 + gdly0.lp1 + gdly0.lp2 + gdly0.lp3 + val[1]) / 5;
+						valt2 = (val[0] + val[1]) >> 1;
+					}
+					else
+					{
+						val[0] = (gdly0.lp0 + gdly0.lp1 + gdly0.lp2 + gdly0.lp3 + val[0]) / 5;
+						valt2 = val[0];
+					}
 
 					gdly0.lp0 = gdly0.lp1;
 					gdly0.lp1 = gdly0.lp2;
 					gdly0.lp2 = gdly0.lp3;
-					gdly0.lp3 = val;
+					gdly0.lp3 = valt;
 				} 
 				else 
 				{
-					valt = val;
+					valt2 = valt;
 				}
 
 				// store delay output value into output buffer
 				
-				*(gdly0.lpdelayline + gdly0.idelayinput) = valt;
+				*(gdly0.lpdelayline + gdly0.idelayinput) = SOUNDCLIP( valt2 );
 				
-				// mono delay in left and right channels
-
 				// decrease output value by max gain of delay with feedback
 				// to provide for unity gain reverb
 				// note: this gain varies with the feedback value.
-
-				pbuf->left = (valt * gain) >> 8;
-				pbuf->right = (valt * gain) >> 8;
+				if( dma.channels == 2 )
+				{
+					pbuf->left = ((val[0] * gain) >> 8);
+					pbuf->right = ((val[1] * gain) >> 8);
+				}
+				else
+				{
+					pbuf->left = ((val[0] * gain) >> 8);
+				}
 			} 
 			else 
 			{
 				// not playing samples, but must still flush lowpass buffer and delay line
-				valt = gdly0.lp0 = gdly0.lp1 = gdly0.lp2 = gdly0.lp3 = 0;
-				*(gdly0.lpdelayline + gdly0.idelayinput) = valt;
+				gdly0.lp0 = gdly0.lp1 = gdly0.lp2 = gdly0.lp3 = 0;
+				*(gdly0.lpdelayline + gdly0.idelayinput) = valt2;
 
 			}
 
@@ -553,7 +562,6 @@ void SXRVB_CheckNewReverbVal( void )
 			// deactivate all delay lines
 			SXDLY_Free( ISXRVB );
 			SXDLY_Free( ISXRVB + 1 );
-			
 		} 
 		else 
 		{			
@@ -573,12 +581,11 @@ void SXRVB_CheckNewReverbVal( void )
 					pdly->mod = RVB_MODRATE2;
 					break;
 				default:
-					Com_Assert( 1 );
 					delaysamples = 0;
 					break;
 				}
 
-				mod = pdly->mod;		// KB: bug, SXDLY_Init clears mod, modcur, xfade and lp - save mod before call
+				mod = pdly->mod;
 
 				if( pdly->lpdelayline == NULL ) 
 				{
@@ -586,7 +593,7 @@ void SXRVB_CheckNewReverbVal( void )
 					SXDLY_Init( i, SXRVB_MAX );
 				}
 				
-				pdly->modcur = pdly->mod = mod;	// KB: bug, SXDLY_Init clears mod, modcur, xfade and lp - restore mod after call
+				pdly->modcur = pdly->mod = mod;
 
 				// do crossfade to new delay if delay has changed
 				if( delaysamples != pdly->delaysamples ) 
@@ -615,55 +622,247 @@ void SXRVB_CheckNewReverbVal( void )
 
 }
 
-
 // main routine for updating the paintbuffer with new reverb values.
 // This routine updates both left and right lines with 
 // the mono reverb signal.  Delay is set through console vars room_reverb
 // and room_feedback.  2 reverbs operating in parallel.
-void SXRVB_DoReverb( int count ) 
+void SXRVB_DoReverbMono( int count ) 
 {
-	int		val;
-	int		valt;
-	int		left;
-	int		right;				
-	sample_t		sampledly;
-	sample_t		samplexf;
-	portable_samplepair_t *pbuf;
-	int		countr;
-	int		voutm;
-	int		vlr;
-	float		fgain1;
-	float		fgain2;
-	int		gain;
+	portable_samplepair_t	*pbuf;
+	int			val;
+	int			valt;
+	int			mono;
+	sample_t			sampledly;
+	sample_t			samplexf;
+	int			countr;
+	int			voutm;
+	int			gain;
 
 	// process reverb lines if active
 	if( rgsxdly[ISXRVB].lpdelayline ) 
 	{
-		// calculate reverb gains
-		fgain1 = 1.0 / (1.0 - gdly1.delayfeed / 255.0);
-		fgain2 = 1.0 / (1.0 - gdly2.delayfeed / 255.0) + fgain1;
-		
-		// inverse gain of parallel reverbs
-		gain = (int)((1.0 / fgain2) * 255.0);
-	
-		gain <<= 2; 
-
-		if( gain > 255 ) gain = 255;
+		gain = DSP_CONSTANT_GAIN;
 
 		pbuf = paintbuffer;
 		countr = count;		
 
 		// process each sample in the paintbuffer...
 
-		while (countr--) 
+		while( countr-- ) 
 		{
+			mono = pbuf->left;
+			voutm = 0;
+	
+			if( --gdly1.modcur < 0 )
+				gdly1.modcur = gdly1.mod;
 
+			// ========================== ISXRVB============================	
+
+			// get sample from delay line
+
+			sampledly = *(gdly1.lpdelayline + gdly1.idelayoutput);
+
+			// only process if something is non-zero
+			if( gdly1.xfade || sampledly || mono ) 
+			{
+				// modulate delay rate
+				// UNDONE: modulation disabled
+				if( 0 && !gdly1.xfade && !gdly1.modcur && gdly1.mod )
+				{
+					// set up crossfade to new delay value, if we're not already doing an xfade
+					gdly1.idelayoutputxf = gdly1.idelayoutput + ((Com_RandomLong(0, 0xFF) * gdly1.delaysamples) >> 9); // 100 = ~ 9ms
+
+					if( gdly1.idelayoutputxf >= gdly1.cdelaysamplesmax )
+						gdly1.idelayoutputxf -= gdly1.cdelaysamplesmax;
+
+					gdly1.xfade = RVB_XFADE;
+				}
+				
+				// modify sampledly if crossfading to new delay value
+
+				if( gdly1.xfade ) 
+				{
+					samplexf = (*(gdly1.lpdelayline + gdly1.idelayoutputxf) * (RVB_XFADE - gdly1.xfade)) / RVB_XFADE;
+					sampledly = ((sampledly * gdly1.xfade) / RVB_XFADE) + samplexf;
+					
+					if( ++gdly1.idelayoutputxf >= gdly1.cdelaysamplesmax )
+						gdly1.idelayoutputxf = 0;
+
+					if( --gdly1.xfade == 0 ) 
+						gdly1.idelayoutput = gdly1.idelayoutputxf;
+				} 
+
+				if( sampledly ) 
+				{
+					// get current sample from delay buffer
+					// calculate delayed value
+					val = SOUNDCLIP(mono + ((gdly1.delayfeed * sampledly) >> 8));	
+				} 
+				else 
+				{
+					val = mono;
+				}
+
+				// lowpass
+				if( gdly1.lp ) 
+				{
+					valt = (gdly1.lp0 + gdly1.lp1 + (val<<1)) >> 2;
+					gdly1.lp1 = gdly1.lp0;
+					gdly1.lp0 = val;
+				} 
+				else 
+				{
+					valt = val;
+				}
+
+				// store delay output value into output buffer
+				*(gdly1.lpdelayline + gdly1.idelayinput) = valt;
+				voutm = valt;
+			} 
+			else 
+			{
+				// not playing samples, but still must flush lowpass buffer & delay line
+					
+				gdly1.lp0 = gdly1.lp1 = 0;
+				*(gdly1.lpdelayline + gdly1.idelayinput) = 0;
+				voutm = 0;
+			}
+
+			// update delay buffer pointers
+			if( ++gdly1.idelayinput >= gdly1.cdelaysamplesmax )
+				gdly1.idelayinput = 0;
+			
+			if( ++gdly1.idelayoutput >= gdly1.cdelaysamplesmax )
+				gdly1.idelayoutput = 0;
+
+			// ========================== ISXRVB + 1========================
+
+			if( --gdly2.modcur < 0 )
+				gdly2.modcur = gdly2.mod;
+			
+			if( gdly2.lpdelayline ) 
+			{
+				// get sample from delay line
+
+				sampledly = *(gdly2.lpdelayline + gdly2.idelayoutput);
+
+				// only process if something is non-zero
+				if( gdly2.xfade || sampledly || mono ) 
+				{
+					// UNDONE: modulation disabled
+					if( 0 && !gdly2.xfade && gdly2.modcur && gdly2.mod ) 
+					{
+						// set up crossfade to new delay value, if we're not already doing an xfade
+						gdly2.idelayoutputxf = gdly2.idelayoutput + ((Com_RandomLong(0,0xFF) * gdly2.delaysamples) >> 9); // 100 = ~ 9ms
+
+						if( gdly2.idelayoutputxf >= gdly2.cdelaysamplesmax )
+						    	gdly2.idelayoutputxf -= gdly2.cdelaysamplesmax;
+
+						gdly2.xfade = RVB_XFADE;
+					}
+					
+					// modify sampledly if crossfading to new delay value
+					if( gdly2.xfade ) 
+					{
+						samplexf = (*(gdly2.lpdelayline + gdly2.idelayoutputxf) * (RVB_XFADE - gdly2.xfade)) / RVB_XFADE;
+						sampledly = ((sampledly * gdly2.xfade) / RVB_XFADE) + samplexf;
+						
+						if( ++gdly2.idelayoutputxf >= gdly2.cdelaysamplesmax )
+							gdly2.idelayoutputxf = 0;
+
+						if( --gdly2.xfade == 0 ) 
+							gdly2.idelayoutput = gdly2.idelayoutputxf;
+					} 
+						
+					if( sampledly ) 
+					{
+						// get current sample from delay buffer
+						val = SOUNDCLIP(mono + ((gdly2.delayfeed * sampledly) >> 8));
+					} 
+					else 
+					{
+						val = mono;
+					}
+
+					// lowpass
+					if( gdly2.lp ) 
+					{
+						valt = (gdly2.lp0 + gdly2.lp1 + (val<<1)) >> 2;
+						gdly2.lp0 = val;
+					} 
+					else 
+					{
+						valt = val;
+					}
+
+					// store delay output value into output buffer
+					*(gdly2.lpdelayline + gdly2.idelayinput) = valt;
+					voutm += valt;
+				} 
+				else 
+				{
+					// not playing samples, but still must flush lowpass buffer
+					gdly2.lp0 = gdly2.lp1 = 0;
+					*(gdly2.lpdelayline + gdly2.idelayinput) = 0;
+				}
+
+				// update delay buffer pointers
+				if( ++gdly2.idelayinput >= gdly2.cdelaysamplesmax )
+					gdly2.idelayinput = 0;
+				
+				if( ++gdly2.idelayoutput >= gdly2.cdelaysamplesmax )
+					gdly2.idelayoutput = 0;	
+			}
+
+			// ============================ Mix ================================
+
+			// add mono delay to left and right channels
+			// drop output by inverse of cascaded gain for both reverbs
+
+			voutm = (gain * voutm) >> 8;
+
+			pbuf->left = SOUNDCLIP( voutm );
+			pbuf++;
+		}
+	}
+}
+
+void SXRVB_DoReverb( int count ) 
+{
+	int		val[2];
+	int		valt[2];
+	int		left;
+	int		right;				
+	sample_t		sampledly;
+	sample_t		samplexf;
+	portable_samplepair_t *pbuf;
+	int		countr;
+	int		voutm[2];
+	int		gain;
+
+	if( dma.channels < 2 )
+	{
+		SXRVB_DoReverbMono( count );
+		return;
+	}
+
+	// process reverb lines if active
+	if( rgsxdly[ISXRVB].lpdelayline ) 
+	{
+		gain = DSP_CONSTANT_GAIN;
+
+		pbuf = paintbuffer;
+		countr = count;		
+
+		// process each sample in the paintbuffer...
+
+		while( countr-- ) 
+		{
 			left = pbuf->left;
 			right = pbuf->right;
-			voutm = 0;
-			vlr = (left + right) >> 1;
+			voutm[0] = 0;
+			voutm[1] = 0;
 
-			// UNDONE: ignored
 			if( --gdly1.modcur < 0 )
 				gdly1.modcur = gdly1.mod;
 
@@ -706,34 +905,36 @@ void SXRVB_DoReverb( int count )
 				if( sampledly ) 
 				{
 					// get current sample from delay buffer
-					
-					// calculate delayed value from avg of left and right channels
-					val = vlr + ((gdly1.delayfeed * sampledly) >> 8);	
-
-					// limit to short
-					// val = CLIP(val);
+					// calculate delayed value
+					val[0] = SOUNDCLIP(left + ((gdly1.delayfeed * sampledly) >> 8));	
+					val[1] = SOUNDCLIP(right + ((gdly1.delayfeed * sampledly) >> 8));
 					
 				} 
 				else 
 				{
-					val = vlr;
+					val[0] = left;
+					val[1] = right;
 				}
 
 				// lowpass
 				if( gdly1.lp ) 
 				{
-					valt = (gdly1.lp0 + gdly1.lp1 + (val<<1)) >> 2;
+					valt[0] = (gdly1.lp0 + gdly1.lp1 + (val[0]<<1)) >> 2;
+					valt[1] = (gdly1.lp0 + gdly1.lp1 + (val[1]<<1)) >> 2;
+
 					gdly1.lp1 = gdly1.lp0;
-					gdly1.lp0 = val;
+					gdly1.lp0 = (val[0] + val[1]) >> 1;
 				} 
 				else 
 				{
-					valt = val;
+					valt[0] = val[0];
+					valt[1] = val[1];
 				}
 
 				// store delay output value into output buffer
-				*(gdly1.lpdelayline + gdly1.idelayinput) = valt;
-				voutm = valt;
+				*(gdly1.lpdelayline + gdly1.idelayinput) = (valt[0] + valt[1]) >> 1;
+				voutm[0] = valt[0];
+				voutm[1] = valt[1];
 			} 
 			else 
 			{
@@ -741,7 +942,8 @@ void SXRVB_DoReverb( int count )
 					
 				gdly1.lp0 = gdly1.lp1 = 0;
 				*(gdly1.lpdelayline + gdly1.idelayinput) = 0;
-				voutm = 0;
+				voutm[0] = 0;
+				voutm[1] = 0;
 			}
 
 			// update delay buffer pointers
@@ -753,7 +955,6 @@ void SXRVB_DoReverb( int count )
 
 			// ========================== ISXRVB + 1========================
 
-			// UNDONE: ignored
 			if( --gdly2.modcur < 0 )
 				gdly2.modcur = gdly2.mod;
 			
@@ -794,32 +995,32 @@ void SXRVB_DoReverb( int count )
 					if( sampledly ) 
 					{
 						// get current sample from delay buffer
-						
-						// calculate delayed value from avg of left and right channels
-						val = vlr + ((gdly2.delayfeed * sampledly) >> 8);	
-
-						// limit to short
-						// val = CLIP(val);	
+						val[0] = SOUNDCLIP(left + ((gdly2.delayfeed * sampledly) >> 8));
+						val[1] = SOUNDCLIP(right + ((gdly2.delayfeed * sampledly) >> 8));
 					} 
 					else 
 					{
-						val = vlr;
+						val[0] = left;
+						val[1] = right;
 					}
 
 					// lowpass
 					if( gdly2.lp ) 
 					{
-						valt = (gdly2.lp0 + gdly2.lp1 + (val<<1)) >> 2;
-						gdly2.lp0 = val;
+						valt[0] = (gdly2.lp0 + gdly2.lp1 + (val[0]<<1)) >> 2;
+						valt[1] = (gdly2.lp0 + gdly2.lp1 + (val[1]<<1)) >> 2;
+						gdly2.lp0 = (val[0] + val[1]) >> 1;
 					} 
 					else 
 					{
-						valt = val;
+						valt[0] = val[0];
+						valt[1] = val[1];
 					}
 
 					// store delay output value into output buffer
-					*(gdly2.lpdelayline + gdly2.idelayinput) = valt;
-					voutm += valt;
+					*(gdly2.lpdelayline + gdly2.idelayinput) = (valt[0] + valt[1]) >> 1;
+					voutm[0] += valt[0];
+					voutm[1] += valt[1];
 				} 
 				else 
 				{
@@ -839,16 +1040,13 @@ void SXRVB_DoReverb( int count )
 			// ============================ Mix================================
 
 			// add mono delay to left and right channels
-
 			// drop output by inverse of cascaded gain for both reverbs
-			voutm = (gain * voutm) >> 8;
-			// voutm = CLIP( voutm );
-			
-			left = voutm;
-			right = voutm;
 
-			pbuf->left = left;
-			pbuf->right = right;
+			voutm[0] = (gain * voutm[0]) >> 8;
+			voutm[1] = (gain * voutm[1]) >> 8;
+
+			pbuf->left = SOUNDCLIP( voutm[0] );
+			pbuf->right = SOUNDCLIP( voutm[1] );
 
 			pbuf++;
 		}
@@ -858,54 +1056,61 @@ void SXRVB_DoReverb( int count )
 // amplitude modulator, low pass filter for underwater weirdness
 void SXRVB_DoAMod( int count ) 
 {
-	int			valtl, valtr;
-	int			left;
-	int			right;				
+	int			sample[2];
+	int			valtsample[2];
 	portable_samplepair_t	*pbuf;
 	int			countr;
 	int			fLowpass;
 	int			fmod;
 
 	// process reverb lines if active
-	if( sxmod_lowpass->value != 0.0 || sxmod_mod->value != 0.0 )
+	if( sxmod_lowpass->integer > 0 || sxmod_mod->integer > 0 )
 	{
 		pbuf = paintbuffer;
 		countr = count;		
 		
-		fLowpass = (sxmod_lowpass->value != 0.0);
-		fmod = (sxmod_mod->value != 0.0);
+		fLowpass = (sxmod_lowpass->integer > 0);
+		fmod = (sxmod_mod->integer > 0);
 
 		// process each sample in the paintbuffer...
 
 		while( countr-- )
 		{
-			left = pbuf->left;
-			right = pbuf->right;
+			if( dma.channels == 2 )
+			{
+				sample[0] = pbuf->left;
+				sample[1] = pbuf->right;
+			}		
+			else
+			{
+				sample[0] = pbuf->left;
+			}
 
 			// only process if non-zero
 			if( fLowpass )
 			{
-				valtl = left;
-				valtr = right;
-				
-				left = (rgsxlp[0] + rgsxlp[1] + rgsxlp[2] + rgsxlp[3] + rgsxlp[4] + left);
-				right = (rgsxlp[5] + rgsxlp[6] + rgsxlp[7]+ rgsxlp[8] + rgsxlp[9] + right);
-
-				left = ((left << 1) + (left << 3)) >> 6; // * 10/64
-				right = ((right << 1) + (right << 3)) >> 6; // * 10/64
-				
-				rgsxlp[4] = valtl;
-				rgsxlp[9] = valtr;
+				valtsample[0] = sample[0];
+				sample[0] = (rgsxlp[0] + rgsxlp[1] + rgsxlp[2] + rgsxlp[3] + rgsxlp[4] + sample[0]);
+				sample[0] = ((sample[0] << 1) + (sample[0] << 3)) >> 6;
 
 				rgsxlp[0] = rgsxlp[1];
 				rgsxlp[1] = rgsxlp[2];
 				rgsxlp[2] = rgsxlp[3];
 				rgsxlp[3] = rgsxlp[4];
-				rgsxlp[4] = rgsxlp[5];
-				rgsxlp[5] = rgsxlp[6];
-				rgsxlp[6] = rgsxlp[7];
-				rgsxlp[7] = rgsxlp[8];
-				rgsxlp[8] = rgsxlp[9];
+				rgsxlp[4] = valtsample[0];
+
+				if (dma.channels > 1)
+				{
+					valtsample[1] = sample[1];
+					sample[1] = (rgsxlp[5] + rgsxlp[6] + rgsxlp[7] + rgsxlp[8] + rgsxlp[9] + sample[1]);
+					sample[1] = ((sample[1] << 1) + (sample[1] << 3)) >> 6;
+
+					rgsxlp[5] = rgsxlp[6];
+					rgsxlp[6] = rgsxlp[7];
+					rgsxlp[7] = rgsxlp[8];
+					rgsxlp[8] = rgsxlp[9];
+					rgsxlp[9] = valtsample[1];
+				}
 
 			}
 				
@@ -914,17 +1119,24 @@ void SXRVB_DoAMod( int count )
 				if( --sxmod1cur < 0 )
 					sxmod1cur = sxmod1;
 
-				if( !sxmod1 )
+				if( !sxmod1cur )
 					sxamodlt = Com_RandomLong(32,255);
 				
 				if( --sxmod2cur < 0 )
 					sxmod2cur = sxmod2;
 
-				if( !sxmod2 )
-					sxamodlt = Com_RandomLong(32,255);
+				if( !sxmod2cur )
+					sxamodrt = Com_RandomLong(32,255);
 				
-				left = (left * sxamodl) >> 8;
-				right = (right * sxamodr) >> 8;
+				if( dma.channels == 2 )
+				{
+					sample[0] = (sample[0] * sxamodl) >> 8;
+					sample[1] = (sample[1] * sxamodr) >> 8;
+				}
+				else
+				{
+					sample[0] = (sample[0] * (sxamodl+sxamodr)) >> 9;
+				}
 
 				if( sxamodl < sxamodlt ) 
 					sxamodl++;
@@ -937,12 +1149,15 @@ void SXRVB_DoAMod( int count )
 					sxamodr--;
 			}
 
-			left = CLIP( left );
-			right = CLIP( right );
-
-			pbuf->left = left;
-			pbuf->right = right;
-
+			if( dma.channels == 2 )
+			{
+				pbuf->left = SOUNDCLIP( sample[0] );
+				pbuf->right = SOUNDCLIP( sample[1] );
+			}
+			else
+			{
+				pbuf->left = SOUNDCLIP( sample[0] );
+			}
 			pbuf++;			
 		}
 	}
@@ -1039,7 +1254,6 @@ sx_preset_t rgsxpre[CSXROOM] =
 // SXROOM_WEIRDO1		26		
 // SXROOM_WEIRDO2		27
 // SXROOM_WEIRDO3		28
-// SXROOM_WEIRDO3		29
 //	lp	mod	size	refl	rvblp	delay	feedbk	dlylp	left  
 	{0.0,	1.0,	0.01,	0.9,	0.0,	0.0,	0.0,	2.0,	0.05},
 	{0.0,	0.0,	0.0,	0.0,	1.0,	0.009,	0.999,	2.0,	0.04},
@@ -1055,7 +1269,7 @@ void SX_RoomFX( int endtime, int fFilter, int fTimefx )
 {
 	int	i, fReset;
 	int	sampleCount;
-	float	roomType;
+	int	roomType;
 
 	// return right away if fx processing is turned off
 	if( sxroom_off->value != 0.0 )
@@ -1067,20 +1281,20 @@ void SX_RoomFX( int endtime, int fFilter, int fTimefx )
 
 	fReset = false;
 	if( listener_waterlevel > 2 )
-		roomType = sxroomwater_type->value;
-	else roomType = sxroom_type->value;
+		roomType = sxroomwater_type->integer;
+	else roomType = sxroom_type->integer;
 
 	// only process legacy roomtypes here
-	if( (int)roomType >= CSXROOM )
+	if( roomType >= CSXROOM )
 		return;
 
 	if( roomType != sxroom_typeprev ) 
 	{
-		Msg( "Room_type: %2.1f\n", roomType );
+		Msg( "Room_type: %i\n", roomType );
 
 		sxroom_typeprev = roomType;
 
-		i = (int)(roomType);
+		i = roomType;
 		if( i < CSXROOM && i >= 0 )
 		{
 			Cvar_SetValue( "room_lp", rgsxpre[i].room_lp );
@@ -1101,7 +1315,7 @@ void SX_RoomFX( int endtime, int fFilter, int fTimefx )
 		fReset = true;
 	}
 
-	if( fReset || roomType != 0.0 ) 
+	if( fReset || roomType != 0 ) 
 	{
 		// debug code
 		SXRVB_CheckNewReverbVal();

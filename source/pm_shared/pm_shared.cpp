@@ -461,7 +461,7 @@ void PM_CatagorizeTextureType( void )
 	start = end = pmove->origin;
 
 	// Straight down
-	end.x -= 64;
+	end.z -= 64;
 
 	// fill in default values, just in case.
 	pmove->szTextureName[0] = '\0';

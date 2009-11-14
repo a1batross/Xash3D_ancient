@@ -174,7 +174,6 @@ typedef struct clipmap_static_s
 	byte		*base;
 	byte		*mempool;
 
-	byte		portalopen[MAX_MAP_AREAPORTALS];
 	byte		nullrow[MAX_MAP_LEAFS/8];
 
 	// brush, studio and sprite models

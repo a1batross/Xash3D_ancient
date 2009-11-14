@@ -175,6 +175,16 @@ void CAmbientGeneric :: Spawn( void )
 		125 : "Medium Radius"
 		80  : "Large Radius"
 */
+	if( FClassnameIs( pev, "target_speaker" ))
+	{
+		int newflags = 0;
+
+		if( pev->spawnflags & 3 ) newflags |= AMBIENT_SOUND_NOT_LOOPING;	
+		if( pev->spawnflags & 4 ) newflags |= AMBIENT_SOUND_EVERYWHERE;
+		if( pev->spawnflags & 8 ) newflags |= AMBIENT_SOUND_START_SILENT;
+		pev->spawnflags = newflags;
+	}
+
 
 	if ( FBitSet ( pev->spawnflags, AMBIENT_SOUND_EVERYWHERE) )
 	{
@@ -196,7 +206,12 @@ void CAmbientGeneric :: Spawn( void )
 	{// if the designer didn't set a sound attenuation, default to one.
 		m_flAttenuation = ATTN_STATIC;
 	}
-	
+
+	if ( FStringNull( pev->message ) && !FStringNull( pev->noise ))
+		pev->message = pev->noise;	// q3a compatibliity
+
+	if( !pev->health ) pev->health = 10; // just get full volume
+
 	char* szSoundFile = (char*) STRING(pev->message);
 
 	if ( FStringNull( pev->message ) || strlen( szSoundFile ) < 1 )
@@ -750,7 +765,6 @@ void CAmbientGeneric :: KeyValue( KeyValueData *pkvd )
 		m_iChannel = atoi(pkvd->szValue);
 		pkvd->fHandled = TRUE;
 	}
-
 	// preset
 	else if (FStrEq(pkvd->szKeyName, "preset"))
 	{

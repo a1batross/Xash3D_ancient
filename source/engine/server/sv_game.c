@@ -1577,7 +1577,7 @@ static const char *pfnTraceTexture( edict_t *pTextureEntity, const float *v1, co
 {
 	if( IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2] ))
 		Host_Error( "TraceTexture: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
-	return SV_Move( v1, vec3_origin, vec3_origin, v2, MOVE_NOMONSTERS, pTextureEntity ).pTexName;
+	return SV_ClipMoveToEntity( pTextureEntity, v1, vec3_origin, vec3_origin, v2 ).pTexName;
 }
 
 /*

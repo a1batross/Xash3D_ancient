@@ -1208,7 +1208,8 @@ PM_TraceTexture
 */
 const char *PM_TraceTexture( edict_t *pTextureEntity, const float *v1, const float *v2 )
 {
-	return SV_Move( v1, vec3_origin, vec3_origin, v2, MOVE_NOMONSTERS, pTextureEntity ).pTexName;
+	if( !pTextureEntity || pTextureEntity->free ) return NULL; 
+	return SV_ClipMoveToEntity( pTextureEntity, v1, vec3_origin, vec3_origin, v2 ).pTexName;
 }
 
 /*
