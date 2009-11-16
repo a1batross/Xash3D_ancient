@@ -69,3 +69,65 @@ int World_ConvertContents( int basecontents )
 		return CONTENTS_WATER;
 	return CONTENTS_EMPTY;
 }
+
+uint World_MaskForEdict( const edict_t *e )
+{
+	if( e )
+	{
+		if( e->v.flags & FL_MONSTER )
+		{
+			if( e->v.health > 0.0f )
+				return MASK_MONSTERSOLID;
+			return MASK_DEADSOLID;
+		}
+		else if( e->v.flags & ( FL_CLIENT|FL_FAKECLIENT ))
+		{
+			if( e->v.health > 0.0f )
+				return MASK_PLAYERSOLID;
+			return MASK_DEADSOLID;
+		}
+		else if( e->v.solid == SOLID_TRIGGER )
+		{
+			return (BASECONT_SOLID|BASECONT_BODY);
+		}
+		return MASK_SOLID;
+	}
+	return MASK_SOLID;
+}
+
+uint World_ContentsForEdict( const edict_t *e )
+{
+	if( e )
+	{
+		if( e->v.flags & (FL_MONSTER|FL_CLIENT|FL_FAKECLIENT))
+		{
+			if( e->v.health > 0.0f )
+				return BASECONT_BODY;
+			return BASECONT_CORPSE;
+		}
+		else if( e->v.solid == SOLID_TRIGGER )
+		{
+			return BASECONT_TRIGGER;
+		}
+		else if( e->v.solid == SOLID_BSP )
+		{
+			switch( e->v.skin )
+			{
+			case CONTENTS_WATER: return BASECONT_WATER;
+			case CONTENTS_SLIME: return BASECONT_SLIME;
+			case CONTENTS_LAVA: return BASECONT_LAVA;
+			case CONTENTS_CLIP: return BASECONT_PLAYERCLIP;
+			case CONTENTS_GRAVITY_FLYFIELD:
+			case CONTENTS_FLYFIELD:
+			case CONTENTS_FOG: return BASECONT_FOG;
+			default: return BASECONT_SOLID;
+			}
+		}
+		else if( e->v.solid == SOLID_NOT )
+		{
+			return BASECONT_NONE;
+		}
+		return BASECONT_SOLID;		
+	}
+	return BASECONT_NONE;
+}

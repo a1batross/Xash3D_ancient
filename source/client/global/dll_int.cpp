@@ -70,7 +70,6 @@ int HUD_VidInit( void )
 
 void HUD_Init( void )
 {
-	g_engfuncs.pfnAddCommand ("impulse", NULL, "send impulse to a client" );
 	g_engfuncs.pfnAddCommand ("noclip", NULL, "enable or disable no clipping mode" );
 	g_engfuncs.pfnAddCommand ("notarget", NULL, "notarget mode (monsters do not see you)" );
 	g_engfuncs.pfnAddCommand ("fullupdate", NULL, "re-init HUD on start demo recording" );
@@ -283,7 +282,6 @@ void HUD_Frame( double time )
 void HUD_Shutdown( void )
 {
 	// perform shutdown operations
-	g_engfuncs.pfnDelCommand ("impulse" );
 	g_engfuncs.pfnDelCommand ("noclip" );
 	g_engfuncs.pfnDelCommand ("notarget" );
 	g_engfuncs.pfnDelCommand ("fullupdate" );

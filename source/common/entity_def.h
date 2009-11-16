@@ -51,13 +51,6 @@ typedef struct entvars_s
 	vec3_t		maxs;		// ENG [all], NET [solid]
 	vec3_t		size;		// ENG [all], restored on client-side from mins-maxs 
 
-	// physic decsription
-	vec3_t		m_pmatrix[3];	// ENG [phys]
-	vec3_t		m_pcentre[3];	// ENG [phys]
-	vec3_t		force;		// ENG [phys], linear physical impulse vector
-	vec3_t		torque;		// ENG [phys], angular physical impulse vector
-	float		mass;		// [phys], physobject mass
-
 	float		ltime;		// [push]
 	float		nextthink;	// time to next call of think function
 
@@ -72,6 +65,9 @@ typedef struct entvars_s
 	float		gravity;		// % of "normal" gravity
 	float		friction;		// inverse elasticity of MOVETYPE_BOUNCE
 	float		speed;
+	float		mass;		// [phys] physic mass
+
+	int		light_level;	// entity current lightlevel
 
 	int		sequence;		// ENG [all], NET [all], animation sequence
 	int		gaitsequence;	// NET [player], movement animation sequence for player (0 for none)
@@ -146,6 +142,7 @@ typedef struct entvars_s
 	int		iStepLeft;         	// 0 - 4
 	float		flFallVelocity;	// falling velocity z
 	int		oldbuttons;	// buttons last usercmd
+	int		groupinfo;	// entities culling (on server)
 	int		iSpecMode;	// OBS_ROAMING etc (was iuser1)
 
 } entvars_t;

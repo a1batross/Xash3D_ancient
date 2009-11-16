@@ -782,21 +782,6 @@ void SV_Begin_f( sv_client_t *cl )
 
 /*
 ==================
-SV_Impulse_f
-
-old good "impulse 101"
-==================
-*/
-void SV_Impulse_f( sv_client_t *cl )
-{
-	if( !cl || !cl->edict ) return;
-	if( Cmd_Argc() < 2 ) return;
-
-	cl->edict->v.impulse = com.atoi( Cmd_Argv( 1 ));
-}
-
-/*
-==================
 SV_NextDownload_f
 ==================
 */
@@ -961,7 +946,6 @@ ucmd_t ucmds[] =
 { "new", SV_New_f },
 { "begin", SV_Begin_f },
 { "pause", SV_Pause_f },
-{ "impulse", SV_Impulse_f },
 { "baselines", SV_Baselines_f },
 { "info", SV_ShowServerinfo_f },
 { "nextdl", SV_NextDownload_f },
@@ -1161,7 +1145,7 @@ void PM_ClientPrintf( int index, char *fmt, ... )
 	char		string[MAX_SYSPATH];
 	sv_client_t	*cl;
 
-	if( index < 0 || index > sv_maxclients->integer )
+	if( index < 0 || index >= sv_maxclients->integer )
 		return;
 
 	cl = svs.clients + index;
@@ -1183,18 +1167,21 @@ PM_PlayerTrace
 
 ===============
 */
-TraceResult PM_PlayerTrace( const vec3_t start, const vec3_t end, int traceFlags, edict_t *pass )
+static TraceResult PM_PlayerTrace( const vec3_t start, const vec3_t end, int trace_type )
 {
-	float		*mins = svgame.pmove->player_mins[svgame.pmove->usehull];
-	float		*maxs = svgame.pmove->player_maxs[svgame.pmove->usehull];
+	float		*mins;
+	float		*maxs;
 	trace_t		result;
 	TraceResult	out;
 
-	if( traceFlags & PM_GLASS_IGNORE )
-		traceFlags = MOVE_NORMAL; // FIXME: implement
-	if( !pass ) pass = svgame.pmove->pev->pContainingEntity;
+	if( VectorIsNAN( start ) || VectorIsNAN( end ))
+		Host_Error( "TraceTexture: NAN errors detected ('%f %f %f', '%f %f %f'\n", start[0], start[1], start[2], end[0], end[1], end[2] );
 
-	result = SV_Move( start, mins, maxs, end, traceFlags, pass );
+	svgame.pmove->usehull = bound( 0, svgame.pmove->usehull, 3 );
+	mins = svgame.pmove->player_mins[svgame.pmove->usehull];
+	maxs = svgame.pmove->player_maxs[svgame.pmove->usehull];
+
+	result = SV_Move( start, mins, maxs, end, trace_type, svgame.pmove->player );
 	Mem_Copy( &out, &result, sizeof( TraceResult ));
 
 	return out;
@@ -1208,8 +1195,11 @@ PM_TraceTexture
 */
 const char *PM_TraceTexture( edict_t *pTextureEntity, const float *v1, const float *v2 )
 {
+	if( VectorIsNAN( v1 ) || VectorIsNAN( v2 ))
+		Host_Error( "TraceTexture: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
+
 	if( !pTextureEntity || pTextureEntity->free ) return NULL; 
-	return SV_ClipMoveToEntity( pTextureEntity, v1, vec3_origin, vec3_origin, v2 ).pTexName;
+	return SV_ClipMoveToEntity( pTextureEntity, v1, vec3_origin, vec3_origin, v2, MASK_SOLID ).pTexName;
 }
 
 /*
@@ -1220,12 +1210,20 @@ PM_TraceModel
 */
 TraceResult PM_TraceModel( edict_t *pEnt, const vec3_t start, const vec3_t end )
 {
-	float		*mins = svgame.pmove->player_mins[svgame.pmove->usehull];
-	float		*maxs = svgame.pmove->player_maxs[svgame.pmove->usehull];
+	float		*mins;
+	float		*maxs;
 	trace_t		result;
 	TraceResult	out;
+	uint		umask;
 
-	result = SV_ClipMoveToEntity( pEnt, start, mins, maxs, end );
+	if( VectorIsNAN( start ) || VectorIsNAN( end ))
+		Host_Error( "TraceTexture: NAN errors detected ('%f %f %f', '%f %f %f'\n", start[0], start[1], start[2], end[0], end[1], end[2] );
+
+	umask = World_MaskForEdict( svgame.pmove->player );
+	svgame.pmove->usehull = bound( 0, svgame.pmove->usehull, 3 );
+	mins = svgame.pmove->player_mins[svgame.pmove->usehull];
+	maxs = svgame.pmove->player_maxs[svgame.pmove->usehull];
+	result = SV_ClipMoveToEntity( pEnt, start, mins, maxs, end, umask );
 	Mem_Copy( &out, &result, sizeof( TraceResult ));
 
 	return out;
@@ -1242,7 +1240,7 @@ edict_t *PM_GetEntityByIndex( int index )
 {
 	if( index < 0 || index > svgame.globals->numEntities )
 	{
-		if( index == VIEWENT_INDEX ) return svgame.pmove->pev->aiment; // current weapon
+		if( index == VIEWENT_INDEX ) return svgame.pmove->player->v.aiment; // current weapon
 		if( index == NULLENT_INDEX ) return NULL;
 		MsgDev( D_ERROR, "PM_GetEntityByIndex: invalid entindex %i\n", index );
 		return NULL;
@@ -1250,19 +1248,18 @@ edict_t *PM_GetEntityByIndex( int index )
 
 	if( EDICT_NUM( index )->free )
 		return NULL;
-
 	return EDICT_NUM( index );
 }
 
 void PM_PlaySound( int chan, const char *sample, float vol, float attn, int pitch )
 {
 	if( !svgame.pmove->runfuncs ) return; // ignored
-	SV_StartSound( svgame.pmove->pev->pContainingEntity, chan, sample, vol, attn, 0, pitch );
+	SV_StartSound( svgame.pmove->player, chan, sample, vol, attn, 0, pitch );
 }
 
-void PM_StuckTouch( edict_t *pHit )
+edict_t *PM_TestPlayerPosition( const vec3_t origin, TraceResult *trace )
 {
-	SV_TryUnstick( pHit, vec3_origin ); // FIXME: this is totally wrong
+	return SV_TestPlayerPosition( origin, svgame.pmove->player, trace );
 }
 
 /*
@@ -1287,12 +1284,11 @@ void SV_InitClientMove( void )
 
 	// common utilities
 	svgame.pmove->PM_Info_ValueForKey = Info_ValueForKey;
-	svgame.pmove->PM_TestPlayerPosition = SV_TestPlayerPosition;
+	svgame.pmove->PM_TestPlayerPosition = PM_TestPlayerPosition;
 	svgame.pmove->ClientPrintf = PM_ClientPrintf;
 	svgame.pmove->AlertMessage = pfnAlertMessage;
 	svgame.pmove->PM_GetString = SV_GetString;
 	svgame.pmove->PM_PointContents = SV_PointContents;
-	svgame.pmove->PM_StuckTouch = PM_StuckTouch;
 	svgame.pmove->PM_PlayerTrace = PM_PlayerTrace;
 	svgame.pmove->PM_TraceTexture = PM_TraceTexture;
 	svgame.pmove->PM_GetEntityByIndex = PM_GetEntityByIndex;
@@ -1313,7 +1309,7 @@ void SV_InitClientMove( void )
 	svgame.dllFuncs.pfnPM_Init( svgame.pmove );
 }
 
-void SV_PreRunCmd( void )
+void SV_PreRunCmd( sv_client_t *cl, usercmd_t *ucmd )
 {
 	svgame.pmove->runfuncs = true;
 }
@@ -1325,8 +1321,10 @@ SV_RunCmd
 */
 void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd )
 {
-	edict_t	*clent;
-	int	i, oldmsec;
+	edict_t		*clent;
+	int		i, oldmsec;
+	static usercmd_t	cmd;
+	vec3_t		oldvel;
 
 	cl->commandMsec -= ucmd->msec;
 
@@ -1337,26 +1335,28 @@ void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd )
 	}
 
 	clent = cl->edict;
-	cl->lastcmd = *ucmd;
+	cmd = *ucmd;
 	if( !clent || clent->free ) return;
 
 	// chop up very long commands
-	if( cl->lastcmd.msec > 50 )
+	if( cmd.msec > 50 )
 	{
 		oldmsec = ucmd->msec;
-		cl->lastcmd.msec = oldmsec / 2;
-		SV_RunCmd( cl, &cl->lastcmd );
-		cl->lastcmd.msec = oldmsec / 2;
-		clent->v.impulse = 0;
-		SV_RunCmd( cl, &cl->lastcmd );
+		cmd.msec = oldmsec / 2;
+		SV_RunCmd( cl, &cmd );
+		cmd.msec = oldmsec / 2;
+		cmd.impulse = 0;
+		SV_RunCmd( cl, &cmd );
 		return;
 	}
 
+	VectorCopy( clent->v.viewangles, svgame.pmove->oldangles ); // save oldangles
 	if( !clent->v.fixangle )
-		VectorCopy( ucmd->angles, clent->v.viewangles );
+		VectorCopy( ucmd->viewangles, clent->v.viewangles );
 
 	// copy player buttons
 	clent->v.button = ucmd->buttons;
+	if( ucmd->impulse ) clent->v.impulse = ucmd->impulse;
 
 	// angles
 	// show 1/3 the pitch angle and all the roll angle	
@@ -1371,7 +1371,7 @@ void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd )
 
 	if(!( clent->v.flags & FL_SPECTATOR ))
 	{
-		svgame.globals->time = ucmd->servertime * 0.001f;
+		svgame.globals->time = sv.time * 0.001f;
 		svgame.globals->frametime = 0.0f;
 		svgame.dllFuncs.pfnPlayerPreThink( clent );
 		svgame.globals->frametime = ucmd->msec * 0.001f;
@@ -1388,7 +1388,7 @@ void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd )
 	svgame.pmove->clientmaxspeed = clent->v.maxspeed;
 	svgame.pmove->maxspeed = svgame.movevars.maxspeed;
 	svgame.pmove->cmd = *ucmd;		// setup current cmds
-	svgame.pmove->pev = &clent->v;	// ptr to client state
+	svgame.pmove->player = clent;		// ptr to client state
 	svgame.pmove->numtouch = 0;		// reset touchents
 	svgame.pmove->dead = (clent->v.health <= 0.0f) ? true : false;
 	svgame.pmove->flWaterJumpTime = clent->v.teleport_time;
@@ -1399,13 +1399,14 @@ void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd )
 
 	// motor!
 	svgame.dllFuncs.pfnPM_Move( svgame.pmove, true );
-	svgame.pmove->runfuncs = false; // all next calls ignore footstep sounds
 
 	// copy results back to client
 	clent->v.teleport_time = svgame.pmove->flWaterJumpTime;
 	clent->v.groundentity = svgame.pmove->onground;
+	VectorCopy( svgame.pmove->angles, clent->v.viewangles );
 	for( i = 0; i < 3; i++ )
 		clent->v.origin[i] = svgame.pmove->origin[i] - (clent->v.mins[i] - svgame.pmove->player_mins[svgame.pmove->usehull][i]);
+	VectorCopy( clent->v.velocity, oldvel ); // save velocity
 		
 	if(!( clent->v.flags & FL_SPECTATOR ))
 	{
@@ -1416,9 +1417,14 @@ void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd )
 		for( i = 0; i < svgame.pmove->numtouch; i++ )
 		{
 			if( i == MAX_PHYSENTS ) break;
+			if( svgame.pmove->touchents[i] == clent ) continue;
+			VectorCopy( svgame.pmove->touchvels[i], clent->v.velocity );
 			svgame.dllFuncs.pfnTouch( svgame.pmove->touchents[i], clent );
 		}
 	}
+
+	VectorCopy( oldvel, clent->v.velocity ); // save velocity
+	svgame.pmove->numtouch = 0;
 }
 
 /*
@@ -1434,6 +1440,7 @@ void SV_PostRunCmd( sv_client_t *cl )
 
 	clent = cl->edict;
 	if( !clent || clent->free ) return;
+	svgame.pmove->runfuncs = false; // all next calls ignore footstep sounds
 
 	// run post-think
 	if(!( clent->v.flags & FL_SPECTATOR ))
@@ -1451,38 +1458,6 @@ void SV_PostRunCmd( sv_client_t *cl )
 
 	// restore frametime
 	svgame.globals->frametime = sv.frametime * 0.001f;
-}
-
-/*
-===============
-SV_ApplyClientMove
-
-===============
-*/
-void SV_ApplyClientMove( sv_client_t *cl, usercmd_t *cmd )
-{
-	edict_t	*ent = cl->edict;
-
-	// setup player buttons
-	ent->v.button = cmd->buttons;
-	if( cmd->upmove < 0 ) ent->v.button |= IN_DUCK;
-	if( cmd->upmove > 0 ) ent->v.button |= IN_JUMP;
-	if( cmd->sidemove < 0 ) ent->v.button |= IN_MOVELEFT;
-	if( cmd->sidemove > 0 ) ent->v.button |= IN_MOVERIGHT;
-	if( cmd->forwardmove > 0 ) ent->v.button |= IN_FORWARD;
-	if( cmd->forwardmove < 0 ) ent->v.button |= IN_BACK;
-
-	VectorCopy( cmd->angles, ent->v.viewangles );
-
-	if( ent->v.flags & FL_DUCKING && ent->v.flags & FL_ONGROUND )
-	{
-		cmd->forwardmove *= 0.333;
-		cmd->sidemove *= 0.333;
-		cmd->upmove *= 0.333;
-	}
-
-	// store a last cmd
-	cl->lastcmd = *cmd;
 }
 
 /*
@@ -1876,15 +1851,12 @@ each of the backup packets.
 */
 static void SV_ReadClientMove( sv_client_t *cl, sizebuf_t *msg )
 {
-	int		i, key, lastframe, cmd_count;
-	int		checksum1, checksum2, latency;
-	usercmd_t		cmds[UPDATE_BACKUP];
-	usercmd_t		*cmd, *oldcmd;
-	usercmd_t		nullcmd;
+	int	key, lastframe, net_drop;
+	int	checksum1, checksum2, latency;
+	usercmd_t	oldest, oldcmd, newcmd, nulcmd;
 
 	key = msg->readcount;
 	checksum1 = MSG_ReadByte( msg );
-	cmd_count = MSG_ReadByte( msg );
 	lastframe = MSG_ReadLong( msg );
 
 	if( lastframe != cl->lastframe )
@@ -1897,21 +1869,10 @@ static void SV_ReadClientMove( sv_client_t *cl, sizebuf_t *msg )
 		}
 	}
 
-	if( cmd_count < 1 ) return;
-	if( cmd_count > UPDATE_BACKUP )
-	{
-		// force to server will be crashed
-		MsgDev( D_ERROR, "too many usercmds received\n" );
-		return;
-	}
-
-	Mem_Set( &nullcmd, 0, sizeof( nullcmd ));
-	for( i = 0, oldcmd = &nullcmd; i < cmd_count; i++ )
-	{
-		cmd = &cmds[i];
-		MSG_ReadDeltaUsercmd( msg, oldcmd, cmd );
-		oldcmd = cmd;
-	}
+	Mem_Set( &nulcmd, 0, sizeof( nulcmd ));
+	MSG_ReadDeltaUsercmd( msg, &nulcmd, &oldest );
+	MSG_ReadDeltaUsercmd( msg, &oldest, &oldcmd );
+	MSG_ReadDeltaUsercmd( msg, &oldcmd, &newcmd );
 
 	if( cl->state != cs_spawned )
 	{
@@ -1927,25 +1888,30 @@ static void SV_ReadClientMove( sv_client_t *cl, sizebuf_t *msg )
 		return;
 	}
 
-	if( !sv.paused ) SV_PreRunCmd();
-		
-	// usually, the first couple commands will be duplicates
-	// of ones we have previously received, but the servertimes
-	// in the commands will cause them to be immediately discarded
-	for( i = 0; i < cmd_count; i++ )
+	if( !sv.paused )
 	{
-		// if this is a cmd from before a map_restart ignore it
-		if( cmds[i].servertime > cmds[cmd_count-1].servertime )
-			continue;
+		SV_PreRunCmd( cl, &newcmd );	// get random_seed from newcmd
 
-		// don't execute if this is an old cmd which is already executed
-		// these old cmds are included when cl_packetdup > 0
-		if( cmds[i].servertime <= cl->lastcmd.servertime )
-			continue;
-		if( !sv.paused ) SV_RunCmd( cl, &cmds[i] );
+		net_drop = cl->netchan.dropped;
+
+		if( net_drop < 20 )
+		{
+			while( net_drop > 2 )
+			{
+				SV_RunCmd( cl, &cl->lastcmd );
+				net_drop--;
+			}
+
+			if( net_drop > 1 ) SV_RunCmd( cl, &oldest );
+			if( net_drop > 0 ) SV_RunCmd( cl, &oldcmd );
+
+		}
+		SV_RunCmd( cl, &newcmd );
+		SV_PostRunCmd( cl );
 	}
 
-	if( !sv.paused ) SV_PostRunCmd( cl );
+	cl->lastcmd = newcmd;
+	cl->lastcmd.buttons = 0; // avoid multiple fires on lag
 }
 
 /*

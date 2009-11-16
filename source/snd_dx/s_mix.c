@@ -315,7 +315,7 @@ void S_PaintChannels( int endtime )
 
 		S_MixAllChannels( endtime, end );
 
-		SX_RoomFX( endtime, false, true );	// UNDONE
+		SX_RoomFX( endtime, true, true );
 
 		// transfer out according to DMA format
 		S_TransferPaintBuffer( end );

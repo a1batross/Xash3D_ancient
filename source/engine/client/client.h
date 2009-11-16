@@ -51,13 +51,6 @@ typedef struct frame_s
 	entity_state_t	ps;			// player state
 } frame_t;
 
-typedef struct
-{
-	int		cmd_number;		// cl.cmd_number when packet was sent
-	int		servertime;		// usercmd->servertime when packet was sent
-	int		realtime;			// cls.realtime when packet was sent
-} cmdframe_t;
-
 // console stuff
 typedef struct field_s
 {
@@ -91,7 +84,7 @@ typedef struct
 
 	int		cmd_number;
 	usercmd_t		cmds[CMD_BACKUP];		// each mesage will send several old cmds
-	cmdframe_t	cmdframes[UPDATE_BACKUP];
+	long		cmd_time[CMD_BACKUP];	// time sent, for calculating pings
 
 	frame_t		frame;			// received from server
 	frame_t		*oldframe;		// previous frame to lerping from
@@ -112,7 +105,7 @@ typedef struct
 	client_data_t	data;		// hud data
 
 	// predicting stuff
-	int		predicted_origins[CMD_BACKUP][3];// for debug comparing against server
+	vec3_t		predicted_origins[CMD_BACKUP];// for debug comparing against server
 
 	float		predicted_step;		// for stair up smoothing
 	uint		predicted_step_time;
@@ -374,8 +367,6 @@ extern rgba_t g_color_table[8];
 // cvars
 //
 extern cvar_t	*cl_predict;
-extern cvar_t	*cl_maxpackets;
-extern cvar_t	*cl_packetdup;
 extern cvar_t	*cl_showfps;
 extern cvar_t	*cl_upspeed;
 extern cvar_t	*cl_forwardspeed;

@@ -58,6 +58,7 @@ typedef struct moveclip_s
 	const float	*end;
 	trace_t		trace;
 	edict_t		*passedict;
+	uint		umask;	// contents mask
 	trType_t		type;
 } moveclip_t;
 
@@ -68,5 +69,7 @@ void ClearLink( link_t *l );
 
 // contents
 int World_ConvertContents( int basecontents );
+uint World_MaskForEdict( const edict_t *e );
+uint World_ContentsForEdict( const edict_t *e );
 
 #endif//COM_WORLD_H

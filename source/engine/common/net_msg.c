@@ -131,14 +131,17 @@ static net_field_t move_fields[] =
 static net_field_t cmd_fields[] =
 {
 { CM_FIELD(msec),		NET_BYTE,  true	},
-{ CM_FIELD(servertime),	NET_LONG,  true	},
-{ CM_FIELD(angles[0]),	NET_ANGLE, false	},
-{ CM_FIELD(angles[1]),	NET_ANGLE, false	},
-{ CM_FIELD(angles[2]),	NET_ANGLE, false	},
+{ CM_FIELD(viewangles[0]),	NET_ANGLE, false	},
+{ CM_FIELD(viewangles[1]),	NET_ANGLE, false	},
+{ CM_FIELD(viewangles[2]),	NET_ANGLE, false	},
 { CM_FIELD(forwardmove),	NET_FLOAT, false	},
 { CM_FIELD(sidemove),	NET_FLOAT, false	},
 { CM_FIELD(upmove),		NET_FLOAT, false	},
 { CM_FIELD(buttons),	NET_SHORT, false	},
+{ CM_FIELD(impulse),	NET_BYTE,  false	},
+{ CM_FIELD(lightlevel),	NET_BYTE,  false	}, // 0 - 255 brightness
+{ CM_FIELD(random_seed),	NET_LONG,  false	},
+{ CM_FIELD(target_edict),	NET_SHORT, false	},
 { NULL },
 };
 

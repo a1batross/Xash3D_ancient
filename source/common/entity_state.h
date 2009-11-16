@@ -20,15 +20,10 @@ typedef enum
 	ED_BEAM,		// laser beam (needs to recalculate pvs and frustum)
 	ED_MOVER,		// func_train, func_door and another bsp or mdl movers
 	ED_VIEWMODEL,	// client or bot viewmodel (for spectating)
-	ED_ITEM,		// holdable items
-	ED_RAGDOLL,	// dead body with simulated ragdolls
 	ED_RIGIDBODY,	// simulated physic
 	ED_TRIGGER,	// just for sorting on a server
 	ED_PORTAL,	// realtime display, portal or mirror brush or model
 	ED_SKYPORTAL,	// realtime 3D-sky camera
-	ED_MISSILE,	// greande, rocket e.t.c
-	ED_DECAL,		// render will be merge real coords and normal
-	ED_VEHICLE,	// controllable vehicle
 	ED_MAXTYPES,
 } edtype_t;
 
@@ -55,8 +50,8 @@ typedef struct entity_state_s
 	int		aiment;		// attached entity
 	int		owner;		// projectiles owner
 	int		groundent;	// onground edict num, valid only if FL_ONGROUND is set, else -1
-	vec3_t		mins;		// not symmetric entity bbox    
-	vec3_t		maxs;
+	vec3_t		mins;		// entity bbox mins
+	vec3_t		maxs;		// entity bbox maxs
 	vec3_t		velocity;		// for predicting & tracing
 	vec3_t		avelocity;	// for predicting & tracing
 	vec3_t		oldorigin;	// portal pvs, lerping state, etc

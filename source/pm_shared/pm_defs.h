@@ -44,10 +44,11 @@ typedef struct playermove_s
 	usercmd_t		cmd;
 
 	// (Input\Output) player state
-	entvars_t		*pev;		// pev = &pmove->player->v;
+	edict_t		*player;		// pev = &pmove->player->v;
 
 	// (Output) Trace results for objects we collided with.
 	edict_t		*touchents[MAX_PHYSENTS];
+	vec3_t		touchvels[MAX_PHYSENTS];	// touch velocities for ents
 	int		numtouch;
 	
 	// Local values
@@ -55,8 +56,12 @@ typedef struct playermove_s
 	vec3_t		right;
 	vec3_t		up;
 
-	BOOL		dead;		// Are we a dead player?
+	// player state
 	vec3_t		origin;		// Movement origin.
+	vec3_t		angles;		// Movement view angles.
+	vec3_t		oldangles;	// Angles before movement view angles were looked at.
+	
+	BOOL		dead;		// Are we a dead player?
 	float		maxspeed;		// current maxspeed
 	float		clientmaxspeed;	// current client maxspeed
 	int		oldwaterlevel;	// holds the last waterlevel
@@ -68,13 +73,12 @@ typedef struct playermove_s
 	
 	// common api functions
 	const char	*(*PM_Info_ValueForKey)( const char *s, const char *key );
-	edict_t		*(*PM_TestPlayerPosition)( const float *pos );
+	edict_t		*(*PM_TestPlayerPosition)( const float *pos, TraceResult *trace );
 	void		(*ClientPrintf)( int idx, char *fmt, ... );
 	void		(*AlertMessage)( ALERT_TYPE level, char *fmt, ... );
 	const char	*(*PM_GetString)( string_t iString );	// used for reading string_t edict fields
 	int		(*PM_PointContents)( const float *p );
-	void		(*PM_StuckTouch)( edict_t *pHit );
-	TraceResult	(*PM_PlayerTrace)( const float *start, const float *end, int traceFlags, edict_t *pass );
+	TraceResult	(*PM_PlayerTrace)( const float *start, const float *end, int trace_type );
 	const char	*(*PM_TraceTexture)( edict_t *pTextureEntity, const float *v1, const float *v2 );
 	edict_t		*(*PM_GetEntityByIndex)( int entIndex ); // use VIEWENT_INDEX to get weapon entity
 	void		(*AngleVectors)( const float *rgflVector, float *forward, float *right, float *up );

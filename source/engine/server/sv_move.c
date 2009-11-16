@@ -363,22 +363,3 @@ bool SV_MoveToGoal( edict_t *ent, edict_t *goal, float dist )
 	}
 	return true;
 }
-
-/*
-==============
-SV_ClientMove
-
-grab user cmd from player state
-send it to transform callback
-==============
-*/
-void SV_PlayerMove( edict_t *player )
-{
-	sv_client_t	*client;
-	usercmd_t		*cmd;
-
-	client = player->pvServerData->client;
-	cmd = &client->lastcmd;
-
-	// call PM_PlayerMove here
-}

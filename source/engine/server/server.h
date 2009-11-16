@@ -443,9 +443,9 @@ trace_t SV_Move( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end,
 trace_t SV_MoveToss( edict_t *tossent, edict_t *ignore );
 void SV_LinkEdict( edict_t *ent, bool touch_triggers );
 void SV_TouchLinks( edict_t *ent, areanode_t *node );
-edict_t *SV_TestPlayerPosition( const vec3_t origin );
+edict_t *SV_TestPlayerPosition( const vec3_t origin, edict_t *pass, TraceResult *trace );
 int SV_PointContents( const vec3_t p );
-trace_t SV_ClipMoveToEntity( edict_t *ent, const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end );
+trace_t SV_ClipMoveToEntity( edict_t *ent, const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, uint mask );
 // mins and maxs are relative
 
 // if the entire move stays in a solid volume, trace.allsolid will be set,

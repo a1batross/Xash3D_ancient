@@ -1501,7 +1501,7 @@ static void pfnTraceLine( const float *v1, const float *v2, int fNoMonsters, edi
 
 	move = (fNoMonsters) ? MOVE_NOMONSTERS : MOVE_NORMAL;
 
-	if( IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2] ))
+	if( VectorIsNAN( v1 ) || VectorIsNAN( v2 ))
 		Host_Error( "TraceLine: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
 	result = SV_Move( v1, vec3_origin, vec3_origin, v2, move, pentToSkip );
 	Mem_Copy( ptr, &result, sizeof( *ptr ));
@@ -1535,7 +1535,7 @@ static void pfnTraceHull( const float *v1, const float *mins, const float *maxs,
 
 	move = (fNoMonsters) ? MOVE_NOMONSTERS : MOVE_NORMAL;
 
-	if( IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2] ))
+	if( VectorIsNAN( v1 ) || VectorIsNAN( v2 ))
 		Host_Error( "TraceHull: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
 	result = SV_Move( v1, (float *)mins, (float *)maxs, v2, move, pentToSkip );
 	Mem_Copy( ptr, &result, sizeof( *ptr ));
@@ -1575,9 +1575,10 @@ returns texture basename
 */
 static const char *pfnTraceTexture( edict_t *pTextureEntity, const float *v1, const float *v2 )
 {
-	if( IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2] ))
+	if( VectorIsNAN( v1 ) || VectorIsNAN( v2 ))
 		Host_Error( "TraceTexture: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
-	return SV_ClipMoveToEntity( pTextureEntity, v1, vec3_origin, vec3_origin, v2 ).pTexName;
+	if( !pTextureEntity || pTextureEntity->free ) return NULL; 
+	return SV_ClipMoveToEntity( pTextureEntity, v1, vec3_origin, vec3_origin, v2, MASK_SOLID ).pTexName;
 }
 
 /*
@@ -2144,7 +2145,7 @@ pfnIndexOfEdict
 int pfnIndexOfEdict( const edict_t *pEdict )
 {
 	if( !pEdict || pEdict->free )
-		return 0;
+		return NULLENT_INDEX;
 	return NUM_FOR_EDICT( pEdict );
 }
 

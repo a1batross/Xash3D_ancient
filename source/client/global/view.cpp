@@ -187,7 +187,7 @@ void V_DriftPitch( ref_params_t *pparams )
 
 	if( pd.nodrift )
 	{
-		if( fabs( (float)pparams->cmd->forwardmove ) < cl_forwardspeed->value )
+		if( fabs( pparams->cmd->forwardmove ) < cl_forwardspeed->value )
 			pd.driftmove = 0;
 		else pd.driftmove += pparams->frametime;
 		if( pd.driftmove > v_centermove->value ) V_StartPitchDrift();

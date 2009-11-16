@@ -26,8 +26,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 cvar_t	*rcon_client_password;
 cvar_t	*rcon_address;
 
-cvar_t	*cl_maxpackets;
-cvar_t	*cl_packetdup;
 cvar_t	*cl_timeout;
 cvar_t	*cl_predict;
 cvar_t	*cl_showfps;
@@ -1087,8 +1085,6 @@ void CL_InitLocal( void )
 	cl_maxfps = Cvar_Get( "cl_maxfps", "1000", 0, "maximum client fps" );
 	cl_particles = Cvar_Get( "cl_particles", "1", CVAR_ARCHIVE, "disables particle effects" );
 	cl_particlelod = Cvar_Get( "cl_lod_particle", "0", CVAR_ARCHIVE, "enables particle LOD (1, 2, 3)" );
-	cl_maxpackets = Cvar_Get( "cl_maxpackets", "30", CVAR_ARCHIVE, "usercmds sending frequency rate" );
-	cl_packetdup = Cvar_Get( "cl_packetdup", "2", CVAR_ARCHIVE, "number of repeating packets (2 is Q2 default value)" );
 
 	cl_upspeed = Cvar_Get( "cl_upspeed", "200", 0, "client upspeed limit" );
 	cl_forwardspeed = Cvar_Get( "cl_forwardspeed", "200", 0, "client forward speed limit" );

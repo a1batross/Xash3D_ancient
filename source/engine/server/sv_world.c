@@ -22,14 +22,10 @@ const char *ed_name[] =
 	"beam",
 	"mover",
 	"viewmodel",
-	"item",
-	"ragdoll",
 	"physbody",
 	"trigger",
 	"portal",
-	"missile",
-	"decal",
-	"vehicle",
+	"skyportal",
 	"error",
 };
 
@@ -404,15 +400,23 @@ Handles selection or creation of a clipping hull, and offseting (and
 eventually rotation) of the end points
 ==================
 */
-trace_t SV_ClipMoveToEntity( edict_t *ent, const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end )
+trace_t SV_ClipMoveToEntity( edict_t *ent, const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, uint umask )
 {
 	trace_t	trace;
 	model_t	handle;
 	float	*origin, *angles;
-	int	umask;
 
 	// fill in a default trace
 	Mem_Set( &trace, 0, sizeof( trace_t ));
+
+	// if it doesn't have any brushes of a type we
+	// are looking for, ignore it
+	if(!( umask & World_ContentsForEdict( ent )))
+	{
+		trace.flFraction = 1.0f;
+		trace.fInOpen = true;
+		return trace;
+	}
 
 	// might intersect, so do an exact clip
 	handle = SV_HullForEntity( ent );
@@ -421,12 +425,6 @@ trace_t SV_ClipMoveToEntity( edict_t *ent, const vec3_t start, vec3_t mins, vec3
 		angles = ent->v.angles;
 	else angles = vec3_origin; // boxes don't rotate
 	origin = ent->v.origin;
-
-	if( ent->v.flags & (FL_CLIENT|FL_FAKECLIENT))
-		umask = MASK_PLAYERSOLID;
-	else if( ent->v.flags & FL_MONSTER )
-		umask = MASK_MONSTERSOLID;
-	else umask = MASK_SOLID;
 
 	if( ent == svgame.edicts )
 		CM_BoxTrace( &trace, start, end, mins, maxs, handle, umask, TR_AABB );
@@ -486,7 +484,7 @@ void SV_ClipToLinks( areanode_t *node, moveclip_t *clip )
 				continue;	// don't clip against owner
 		}
 
-		trace = SV_ClipMoveToEntity( touch, clip->start, clip->mins, clip->maxs, clip->end );
+		trace = SV_ClipMoveToEntity( touch, clip->start, clip->mins, clip->maxs, clip->end, clip->umask );
 
 		if( trace.fAllSolid || trace.fStartSolid || trace.flFraction < clip->trace.flFraction )
 		{
@@ -546,19 +544,20 @@ trace_t SV_Move( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end,
 
 	Mem_Set( &clip, 0, sizeof( moveclip_t ));
 
-	// clip to world
-	clip.trace = SV_ClipMoveToEntity( EDICT_NUM( 0 ), start, mins, maxs, end );
-
-	// skip tracing against entities
-	if( type == MOVE_WORLDONLY )
-		return clip.trace;
-
 	clip.start = start;
 	clip.end = end;
 	clip.mins = mins;
 	clip.maxs = maxs;
 	clip.type = type;
 	clip.passedict = e;
+	clip.umask = World_MaskForEdict( e );
+
+	// clip to world
+	clip.trace = SV_ClipMoveToEntity( EDICT_NUM( 0 ), start, mins, maxs, end, clip.umask );
+
+	// skip tracing against entities
+	if( type == MOVE_WORLDONLY )
+		return clip.trace;
 
 	// create the bounding box of the entire move
 	SV_MoveBounds( start, clip.mins, clip.maxs, end, clip.boxmins, clip.boxmaxs );
@@ -615,7 +614,6 @@ trace_t SV_MoveToss( edict_t *tossent, edict_t *ignore )
 =============
 SV_PointContents
 
-FIXME: get contents from pev->skin
 =============
 */
 int SV_BaseContents( const vec3_t p )
@@ -643,6 +641,7 @@ int SV_BaseContents( const vec3_t p )
 		else angles = vec3_origin;	// boxes don't rotate
 
 		c2 = CM_TransformedPointContents( p, handle, hit->v.origin, hit->v.angles );
+		c2 |= World_ContentsForEdict( hit ); // user-defined contents
 		contents |= c2;
 	}
 	return contents;
@@ -659,49 +658,19 @@ SV_TestPlayerPosition
 
 ============
 */
-edict_t *SV_TestPlayerPosition( const vec3_t origin )
+edict_t *SV_TestPlayerPosition( const vec3_t origin, edict_t *pass, TraceResult *tr )
 {
-	edict_t	*check;
-	model_t	handle;
-	vec3_t	boxmins, boxmaxs;
-	float	*angles;
-	int	e, cont;
-	
-	// check world first
-	if( World_ConvertContents( CM_PointContents( origin, 0 )) != CONTENTS_EMPTY )
-		return EDICT_NUM( 0 );
+	float	*mins, *maxs;
+	trace_t	result;
 
-	// check all entities
-	VectorAdd( origin, svgame.pmove->player_mins[svgame.pmove->usehull], boxmins );
-	VectorAdd( origin, svgame.pmove->player_maxs[svgame.pmove->usehull], boxmaxs );
-	
-	for( e = 1; e < svgame.globals->numEntities; e++ )
-	{
-		check = EDICT_NUM( e );
+	svgame.pmove->usehull = bound( 0, svgame.pmove->usehull, 3 );
+	mins = svgame.pmove->player_mins[svgame.pmove->usehull];
+	maxs = svgame.pmove->player_maxs[svgame.pmove->usehull];
 
-		if( check->free ) continue;
-		if( check->v.solid != SOLID_BSP && check->v.solid != SOLID_BBOX && check->v.solid != SOLID_SLIDEBOX )
-			continue;
+	result = SV_Move( origin, mins, maxs, origin, MOVE_NORMAL, pass );
+	if( tr ) Mem_Copy( tr, &result, sizeof( *tr ));
 
-		if( !BoundsIntersect( boxmins, boxmaxs, check->v.absmin, check->v.absmax ))
-			continue;
-
-		if( check == svgame.pmove->pev->pContainingEntity )
-			continue;
-
-		// get the clipping hull
-		handle = SV_HullForEntity( check );
-	
-		if( check->v.solid == SOLID_BSP )
-			angles = check->v.angles;
-		else angles = vec3_origin;	// boxes don't rotate
-
-		cont = CM_TransformedPointContents( origin, handle, check->v.origin, angles );
-		cont = World_ConvertContents( cont );
-	
-		// test the point
-		if( cont != CONTENTS_EMPTY )
-			return check;
-	}
+	if(( result.iContents & World_MaskForEdict( pass )) && result.pHit )
+		return result.pHit;
 	return NULL;
 }

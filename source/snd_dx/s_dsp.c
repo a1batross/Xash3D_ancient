@@ -8,8 +8,6 @@
 #define SXDLY_MAX		0.400	// max delay in seconds
 #define SXRVB_MAX		0.100	// max reverb reflection time
 #define SXSTE_MAX		0.100	// max stereo delay line time
-// hard clip input value to -32767 <= y <= 32767
-#define CLIP( x )		bound( -32767, (x), 32767 )
 #define SOUNDCLIP(x)	((x) > (32767*256) ? (32767*256) : ((x) < (-32767*256) ? (-32767*256) : (x)))
 #define CSXROOM		29
 #define DSP_CONSTANT_GAIN	128
@@ -33,7 +31,6 @@ typedef struct dlyline_s
 
 	int	mod;		// sample modulation count
 	int	modcur;
-	HANDLE	hdelayline;	// handle to delay line buffer
 	sample_t	*lpdelayline;	// buffer
 } dlyline_t;
 
@@ -63,27 +60,22 @@ cvar_t	*sxdly_delay;	// current delay in seconds
 cvar_t	*sxdly_feedback;	// cycles
 cvar_t	*sxdly_lp;	// lowpass filter
 
-float	sxdly_delayprev;	// previous delay setting value
-
 // Mono Reverb parameters
 cvar_t	*sxrvb_size;	// room size 0 (off) 0.1 small - 0.35 huge
 cvar_t	*sxrvb_feedback;	// reverb decay 0.1 short - 0.9 long
 cvar_t	*sxrvb_lp;	// lowpass filter		
 
-float sxrvb_sizeprev;
-
 // stereo delay (no feedback)
 cvar_t	*sxste_delay;	// straight left delay
-float	sxste_delayprev;
 
 // Underwater/special fx modulations
 cvar_t	*sxmod_lowpass;
 cvar_t	*sxmod_mod;
+int	sxroom_typeprev;
 
 // Main interface
 cvar_t	*sxroom_type;	// legacy support
 cvar_t	*sxroomwater_type;	// legacy support
-int	sxroom_typeprev;
 cvar_t	*sxroom_off;	// legacy support
 
 bool SXDLY_Init( int idelay, float delay );
@@ -117,9 +109,6 @@ void SX_Init( void )
 	Mem_Set( rgsxdly, 0, sizeof( dlyline_t ) * CSXDLYMAX );
 	Mem_Set( rgsxlp, 0, sizeof( int ) * CSXLPMAX );
 
-	sxdly_delayprev = -1.0;
-	sxrvb_sizeprev = -1.0;
-	sxste_delayprev = -1.0;
 	sxroom_typeprev = -1;
 
 	// init amplitude modulation params
@@ -152,9 +141,7 @@ void SX_Free( void )
 // the available delay lines to init.
 bool SXDLY_Init( int idelay, float delay )
 {
-	int		cbsamples;
-	HANDLE		hData;
-	HPSTR		lpData;
+	size_t		cbsamples;
 	dlyline_t 	*pdly;
 
 	pdly = &(rgsxdly[idelay]);
@@ -164,9 +151,7 @@ bool SXDLY_Init( int idelay, float delay )
 	
 	if( pdly->lpdelayline )
 	{
-		GlobalUnlock( pdly->hdelayline );
-		GlobalFree( pdly->hdelayline );
-		pdly->hdelayline = NULL;
+		Mem_Free( pdly->lpdelayline );
 		pdly->lpdelayline = NULL;
 	}
 
@@ -177,26 +162,7 @@ bool SXDLY_Init( int idelay, float delay )
 	pdly->cdelaysamplesmax += 1;
 
 	cbsamples = pdly->cdelaysamplesmax * sizeof( sample_t );
-
-	hData = GlobalAlloc( GMEM_MOVEABLE|GMEM_SHARE, cbsamples ); 
-	if( !hData ) 
-	{ 
-		MsgDev( D_ERROR, "Sound FX: Out of memory.\n" );
-		return false; 
-	}
-	
-	lpData = (char *)GlobalLock( hData );
-	if( !lpData )
-	{ 
-		MsgDev( D_ERROR, "Sound FX: Failed to lock.\n" );
-		GlobalFree( hData );		
-		return false; 
-	}
-	
-	Mem_Set( lpData, 0, cbsamples );
-
-	pdly->hdelayline = hData;
-	pdly->lpdelayline = (sample_t *)lpData;
+	pdly->lpdelayline = (sample_t *)Z_Malloc( cbsamples );
 
 	// init delay loop input and output counters.
 	// NOTE: init of idelayoutput only valid if pdly->delaysamples is set
@@ -222,9 +188,7 @@ void SXDLY_Free( int idelay )
 
 	if( pdly->lpdelayline )
 	{
-		GlobalUnlock( pdly->hdelayline );
-		GlobalFree( pdly->hdelayline );
-		pdly->hdelayline = NULL;
+		Mem_Free( pdly->lpdelayline );
 		pdly->lpdelayline = NULL;	// this deactivates the delay
 	}
 }
@@ -240,17 +204,18 @@ void SXDLY_CheckNewStereoDelayVal( void )
 		return;
 
 	// set up stereo delay
-	if( sxste_delay->value != sxste_delayprev )
+	if( sxste_delay->modified )
 	{
+		sxste_delay->modified = false;
+			
 		if( sxste_delay->value == 0.0 )
 		{
 			// deactivate delay line
 			SXDLY_Free( ISXSTEREODLY );
-			sxste_delayprev = 0.0;
 		}
 		else
 		{
-			delaysamples = min(sxste_delay->value, SXSTE_MAX) * dma.speed;
+			delaysamples = min( sxste_delay->value, SXSTE_MAX ) * dma.speed;
 
 			// init delay line if not active
 			if( pdly->lpdelayline == NULL )
@@ -271,8 +236,6 @@ void SXDLY_CheckNewStereoDelayVal( void )
 				pdly->xfade = 128;
 			} 
 
-			sxste_delayprev = sxste_delay->value;
-			
 			pdly->mod = 0;
 			pdly->modcur = pdly->mod;
 
@@ -377,15 +340,17 @@ void SXDLY_CheckNewDelayVal( void )
 {
 	dlyline_t	*pdly = &(rgsxdly[ISXMONODLY]);
 
-	if( sxdly_delay->value != sxdly_delayprev )
+	if( sxdly_delay->modified )
 	{
+		sxdly_delay->modified = false;
+
 		if( sxdly_delay->value == 0.0f )
 		{
 			// deactivate delay line
 			SXDLY_Free( ISXMONODLY );
-			sxdly_delayprev = sxdly_delay->value;
-
-		} else {
+		}
+		else
+		{
 			// init delay line if not active
 
 			pdly->delaysamples = min( sxdly_delay->value, SXDLY_MAX ) * dma.speed;
@@ -409,9 +374,7 @@ void SXDLY_CheckNewDelayVal( void )
 			// init delay loop input and output counters
 			pdly->idelayinput = 0;
 			pdly->idelayoutput = pdly->cdelaysamplesmax - pdly->delaysamples; 
-
-			sxdly_delayprev = sxdly_delay->value;
-			
+		
 			// deactivate line if rounded down to 0 delay
 			if( pdly->delaysamples == 0 )
 				SXDLY_Free( ISXMONODLY );
@@ -419,7 +382,7 @@ void SXDLY_CheckNewDelayVal( void )
 		}
 	}
 
-	pdly->lp = (int)(sxdly_lp->value);
+	pdly->lp = sxdly_lp->integer;
 	pdly->delayfeed = sxdly_feedback->value * 255;
 }
 
@@ -553,9 +516,9 @@ void SXRVB_CheckNewReverbVal( void )
 	int	delaysamples;
 	int	i, mod;
 
-	if( sxrvb_size->value != sxrvb_sizeprev ) 
+	if( sxrvb_size->modified ) 
 	{
-		sxrvb_sizeprev = sxrvb_size->value;
+		sxrvb_size->modified = false;
 		
 		if( sxrvb_size->value == 0.0 ) 
 		{
@@ -1290,7 +1253,7 @@ void SX_RoomFX( int endtime, int fFilter, int fTimefx )
 
 	if( roomType != sxroom_typeprev ) 
 	{
-		Msg( "Room_type: %i\n", roomType );
+		MsgDev( D_NOTE, "svc_roomtype: set to %i\n", roomType );
 
 		sxroom_typeprev = roomType;
 

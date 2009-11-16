@@ -52,7 +52,7 @@ playermove_t *pmove = (playermove_t *)NULL;
 #define STOP_EPSILON		0.1
 #define CTEXTURESMAX		512	// max number of textures loaded
 #define MAX_CLIENTS			32
-#define pev			pmove->pev
+#define pev			(&pmove->player->v)
 
 #define BUNNYJUMP_MAX_SPEED_FACTOR	1.7f	// Only allow bunny jumping up to 1.7x server / player maxspeed setting
 #define PM_CHECKSTUCK_MINTIME		0.05f	// Don't check again too quickly.
@@ -252,8 +252,7 @@ void PM_PlayStepSound( int step, float fvol )
 	
 	irand = RANDOM_LONG( 0, 1 ) + ( pev->iStepLeft * 2 );
 
-	// FIXME mp_footsteps needs to be a movevar
-	if ( pmove->multiplayer && !pmove->movevars->footsteps )
+	if( pmove->multiplayer && !pmove->movevars->footsteps )
 		return;
 
 	hvel = pev->velocity;
@@ -619,7 +618,7 @@ PM_AddToTouched
 Add's the trace result to touch list, if contact is not already in list.
 ================
 */
-BOOL PM_AddToTouched( edict_t *pHit )
+BOOL PM_AddToTouched( edict_t *pHit, Vector impactVelocity )
 {
 	int	i;
 
@@ -637,7 +636,9 @@ BOOL PM_AddToTouched( edict_t *pHit )
 	if( pmove->numtouch >= MAX_PHYSENTS )
 		ALERT( at_error, "Too many entities were touched!\n" );
 
-	pmove->touchents[pmove->numtouch++] = pHit;
+	pmove->touchents[pmove->numtouch] = pHit;
+	pmove->touchvels[pmove->numtouch] = impactVelocity;
+	pmove->numtouch++;
 	return true;
 }
 
@@ -648,7 +649,7 @@ PM_CheckVelocity
 See if the player has a bogus velocity value.
 ================
 */
-void PM_CheckVelocity ( void )
+void PM_CheckVelocity( void )
 {
 	int	i;
 
@@ -691,7 +692,7 @@ returns the blocked flags:
 0x02 == step / wall
 ==================
 */
-int PM_ClipVelocity( Vector in, Vector normal, Vector out, float overbounce )
+int PM_ClipVelocity( Vector in, Vector normal, Vector &out, float overbounce )
 {
 	float	backoff;
 	float	change;
@@ -801,10 +802,10 @@ int PM_FlyMove( void )
 
 		// Assume we can move all the way from the current origin to the
 		// end point.
-		end = pmove->origin + time_left * pev->velocity;
+		end = pmove->origin + pev->velocity * time_left;
 
 		// See if we can make it from origin to end point.
-		trace = TRACE_PLAYER( pmove->origin, end, PM_NORMAL, (edict_t *)NULL );
+		trace = TRACE_PLAYER( pmove->origin, end, PM_NORMAL );
 
 		allFraction += trace.flFraction;
 
@@ -831,7 +832,7 @@ int PM_FlyMove( void )
 
 		// If we covered the entire distance, we are done
 		//  and can return.
-		if( trace.flFraction == 1 )
+		if( trace.flFraction == 1.0f )
 			 break;		// moved the entire distance
 
 		if( !trace.pHit ) trace.pHit = ENTINDEX( 0 ); // world
@@ -839,20 +840,20 @@ int PM_FlyMove( void )
 		// Save entity that blocked us (since fraction was < 1.0)
 		//  for contact
 		// Add it if it's not already in the list!!!
-		PM_AddToTouched( trace.pHit );
+		PM_AddToTouched( trace.pHit, pev->velocity );
 
 		// If the plane we hit has a high z component in the normal, then
 		// it's probably a floor
-		if( trace.vecPlaneNormal[2] > 0.7f )
+		if( trace.vecPlaneNormal.z > 0.7f )
 		{
 			blocked |= 1; // floor
 		}
 		// If the plane has a zero z component in the normal, then it's a 
 		//  step or wall
-		if( !trace.vecPlaneNormal[2] )
+		if( !trace.vecPlaneNormal.z )
 		{
 			blocked |= 2; // step / wall
-			//ALERT( at_console, "Blocked by %i\n", trace.ent);
+			// ALERT( at_console, "Blocked by %s\n", STRING( trace.pHit->v.classname ));
 		}
 
 		// Reduce amount of pmove->frametime left by total time left * fraction
@@ -865,7 +866,7 @@ int PM_FlyMove( void )
 			// this shouldn't really happen
 			// Stop our movement if so.
 			pev->velocity = g_vecZero;
-			//ALERT( at_console, "Too many planes 4\n" );
+			// ALERT( at_console, "Too many planes %i\n", MAX_CLIP_PLANES );
 			break;
 		}
 
@@ -1016,22 +1017,22 @@ void PM_WalkMove( void )
 	smove = pmove->cmd.sidemove;
 	
 	// Zero out z components of movement vectors
-	pmove->forward[2] = 0;
-	pmove->right[2]   = 0;
+	pmove->forward.z = 0.0f;
+	pmove->right.z = 0.0f;
 	
 	pmove->forward = pmove->forward.Normalize(); 	// Normalize remainder of vectors.
 	pmove->right = pmove->right.Normalize();	// 
-				// Determine x and y parts of velocity
+						// Determine x and y parts of velocity
 	wishvel.x = pmove->forward.x * fmove + pmove->right.x * smove;
 	wishvel.y = pmove->forward.y * fmove + pmove->right.y * smove;	
-	wishvel.z = 0.0f;		// Zero out z part of velocity
+	wishvel.z = 0.0f;				// Zero out z part of velocity
 
-	wishdir = wishvel;	// Determine maginitude of speed of move
+	wishdir = wishvel;				// Determine maginitude of speed of move
 	wishspeed = wishdir.Length();
 	wishdir = wishdir.Normalize();
 
 	// Clamp to server defined max speed
-	if ( wishspeed > pmove->maxspeed )
+	if( wishspeed > pmove->maxspeed )
 	{
 		wishvel *= (pmove->maxspeed / wishspeed);
 		wishspeed = pmove->maxspeed;
@@ -1066,9 +1067,10 @@ void PM_WalkMove( void )
 
 	// first try moving directly to the next spot
 	start = dest;
-	trace = TRACE_PLAYER (pmove->origin, dest, PM_NORMAL, (edict_t *)NULL );
+	trace = TRACE_PLAYER( pmove->origin, dest, PM_NORMAL );
+
 	// If we made it all the way, then copy trace end
-	//  as new player position.
+	// as new player position.
 	if ( trace.flFraction == 1.0f )
 	{
 		pmove->origin = trace.vecEndPos;
@@ -1101,7 +1103,7 @@ void PM_WalkMove( void )
 	dest = pmove->origin;
 	dest.z += pmove->movevars->stepsize;
 	
-	trace = TRACE_PLAYER( pmove->origin, dest, PM_NORMAL, (edict_t *)NULL );
+	trace = TRACE_PLAYER( pmove->origin, dest, PM_NORMAL );
 
 	// If we started okay and made it part of the way at least,
 	// copy the results to the movement start position and then
@@ -1119,7 +1121,7 @@ void PM_WalkMove( void )
 	dest = pmove->origin;
 	dest.z -= pmove->movevars->stepsize;
 	
-	trace = TRACE_PLAYER( pmove->origin, dest, PM_NORMAL, (edict_t *)NULL );
+	trace = TRACE_PLAYER( pmove->origin, dest, PM_NORMAL );
 
 	// If we are not on the ground any more then
 	//  use the original movement attempt
@@ -1137,8 +1139,8 @@ void PM_WalkMove( void )
 	pmove->up = pmove->origin;
 
 	// decide which one went farther
-	downdist = (down[0]-original[0])*(down[0]-original[0]) + (down[1]-original[1]) * (down[1]-original[1]);
-	updist   = (pmove->up[0]-original[0])*(pmove->up[0]-original[0])+(pmove->up[1]-original[1])*(pmove->up[1]-original[1]);
+	downdist = (down.x - original.x) * (down.x - original.x) + (down.y - original.y) * (down.y - original.y);
+	updist = (pmove->up.x - original.x) * (pmove->up.x - original.x) + (pmove->up.y - original.y) * (pmove->up.y - original.y);
 
 	if ( downdist > updist )
 	{
@@ -1189,9 +1191,9 @@ void PM_Friction( void )
 		start.z = pmove->origin.z + pmove->player_mins[pmove->usehull].z;
 		stop.z = start.z - 34;
 
-		trace = TRACE_PLAYER (start, stop, PM_NORMAL, (edict_t *)NULL );
+		trace = TRACE_PLAYER( start, stop, PM_NORMAL );
 
-		if ( trace.flFraction == 1.0 )
+		if ( trace.flFraction == 1.0f )
 			friction = pmove->movevars->friction * pmove->movevars->edgefriction;
 		else friction = pmove->movevars->friction;
 		
@@ -1272,8 +1274,8 @@ void PM_WaterMove( void )
 
 	// Sinking after no other movement occurs
 	if( !pmove->cmd.forwardmove && !pmove->cmd.sidemove && !pmove->cmd.upmove && pev->watertype != CONTENTS_FLYFIELD )
-		wishvel[2] -= 60;		// drift towards bottom
-	else wishvel[2] += pmove->cmd.upmove;	// Go straight up by upmove amount.
+		wishvel.z -= 60;		// drift towards bottom
+	else wishvel.z += pmove->cmd.upmove;	// Go straight up by upmove amount.
 
 	// Copy it over and determine speed
 	wishdir = wishvel;
@@ -1328,7 +1330,7 @@ void PM_WaterMove( void )
 	start = dest;
 
 	start.z += pmove->movevars->stepsize + 1;
-	trace = TRACE_PLAYER( start, dest, PM_NORMAL, (edict_t *)NULL );
+	trace = TRACE_PLAYER( start, dest, PM_NORMAL );
 
 	if( !trace.fStartSolid && !trace.fAllSolid ) // FIXME: check steep slope?
 	{	
@@ -1501,17 +1503,17 @@ void PM_CatagorizePosition( void )
 	point[1] = pmove->origin[1];
 	point[2] = pmove->origin[2] - 2;
 
-	if ( pev->velocity[2] > 180 ) // Shooting up really fast.  Definitely not on ground.
+	if ( pev->velocity.z > 180 ) // Shooting up really fast.  Definitely not on ground.
 	{
 		pmove->onground = (edict_t *)NULL;
 	}
 	else
 	{
 		// Try and move down.
-		tr = TRACE_PLAYER( pmove->origin, point, PM_NORMAL, (edict_t *)NULL );
+		tr = TRACE_PLAYER( pmove->origin, point, PM_NORMAL );
 
 		// If we hit a steep plane, we are not on ground
-		if ( tr.vecPlaneNormal[2] < 0.7f )
+		if ( tr.vecPlaneNormal.z < 0.7f )
 			pmove->onground = (edict_t *)NULL;	// too steep
 		else pmove->onground = tr.pHit;		// Otherwise, point to index of ent under us.
 
@@ -1526,10 +1528,10 @@ void PM_CatagorizePosition( void )
 		}
 
 		// Standing on an entity other than the world
-		if ( tr.pHit && tr.pHit != ENTINDEX( 0 ))
+		if ( tr.pHit != NULL && tr.pHit != ENTINDEX( 0 ))
 		{
 			// So signal that we are touching something.
-			PM_AddToTouched( tr.pHit );
+			PM_AddToTouched( tr.pHit, pev->velocity );
 		}
 	}
 }
@@ -1575,10 +1577,11 @@ int PM_CheckStuck( void )
 	int		idx;
 	float		fTime;
 	int		i;
+	TraceResult	trace;
 	static float	rgStuckCheckTime[MAX_CLIENTS][2]; // Last time we did a full
 
 	// If position is okay, exit
-	hitent = TEST_PLAYER( pmove->origin );
+	hitent = TEST_PLAYER( pmove->origin, &trace );
 
 	if( hitent == NULL )
 	{
@@ -1592,7 +1595,7 @@ int PM_CheckStuck( void )
 	if ( !pmove->server )
 	{
 		// World or BSP model
-		if (( hitent == NULL ) || ( hitent->v.model != 0 ))
+		if ( hitent == ENTINDEX( 0 ) || ( hitent && Mod_GetType( hitent->v.modelindex ) == mod_brush ))
 		{
 			int	nReps = 0;
 
@@ -1603,7 +1606,7 @@ int PM_CheckStuck( void )
 				i = PM_GetRandomStuckOffsets(player_index(), pmove->server, offset);
 
 				test = base + offset;
-				if( TEST_PLAYER( test ) == NULL )
+				if( TEST_PLAYER( test, &trace ) == NULL )
 				{
 					PM_ResetStuckOffsets( player_index(), pmove->server );
 					pmove->origin = test;
@@ -1628,12 +1631,12 @@ int PM_CheckStuck( void )
 		return 1;
 
 	rgStuckCheckTime[player_index()][idx] = fTime;
-	TEST_STUCK( hitent );
+	PM_AddToTouched( trace.pHit, pev->velocity );
 
 	i = PM_GetRandomStuckOffsets( player_index(), pmove->server, offset );
 	test = base + offset;
 
-	if(( hitent = TEST_PLAYER( test )) == NULL )
+	if(( hitent = TEST_PLAYER( test, (TraceResult *)NULL )) == NULL )
 	{
 		// ALERT( at_console, "Nudged\n" );
 
@@ -1664,7 +1667,7 @@ int PM_CheckStuck( void )
 					test[1] += y;
 					test[2] += z;
 
-					if( TEST_PLAYER( test ) == NULL )
+					if( TEST_PLAYER( test, (TraceResult *)NULL ) == NULL )
 					{
 						pmove->origin = test;
 						return 0;
@@ -1762,7 +1765,7 @@ void PM_SpectatorMove( void )
 			return;
 
 		// use targets position as own origin for PVS
-		pev->angles = pev->aiment->v.angles;
+		pmove->angles = pev->aiment->v.angles;
 		pmove->origin = pev->aiment->v.origin;
 
 		// no velocity
@@ -1795,14 +1798,14 @@ void PM_FixPlayerCrouchStuck( int direction )
 	int	i;
 	Vector	test;
 
-	hitent = TEST_PLAYER ( pmove->origin );
+	hitent = TEST_PLAYER ( pmove->origin, (TraceResult *)NULL );
 	if( hitent == NULL ) return;
 	
 	test = pmove->origin;	
 	for ( i = 0; i < 36; i++ )
 	{
 		pmove->origin.z += direction;
-		hitent = TEST_PLAYER( pmove->origin );
+		hitent = TEST_PLAYER( pmove->origin, (TraceResult *)NULL );
 		if( hitent == (edict_t *)NULL ) return;
 	}
 
@@ -1821,14 +1824,14 @@ void PM_UnDuck( void )
 		newOrigin += (pmove->player_mins[1] - pmove->player_mins[0]);
 	}
 	
-	trace = TRACE_PLAYER( newOrigin, newOrigin, PM_NORMAL, (edict_t *)NULL );
+	trace = TRACE_PLAYER( newOrigin, newOrigin, PM_NORMAL );
 
 	if ( !trace.fStartSolid )
 	{
 		pmove->usehull = 0;
 
 		// Oh, no, changing hulls stuck us into something, try unsticking downward first.
-		trace = TRACE_PLAYER( newOrigin, newOrigin, PM_NORMAL, (edict_t *)NULL  );
+		trace = TRACE_PLAYER( newOrigin, newOrigin, PM_NORMAL );
 
 		if( trace.fStartSolid )
 		{
@@ -1965,7 +1968,7 @@ void PM_LadderMove( edict_t *pLadder )
 		float	forward = 0, right = 0;
 		Vector	vpn, v_right;
 
-		AngleVectors( pev->angles, vpn, v_right, (float *)NULL );
+		AngleVectors( pmove->angles, vpn, v_right, (float *)NULL );
 
 		if( pmove->cmd.buttons & IN_BACK ) forward -= MAX_CLIMB_SPEED;
 		if( pmove->cmd.buttons & IN_FORWARD ) forward += MAX_CLIMB_SPEED;
@@ -2101,12 +2104,12 @@ TraceResult PM_PushEntity( Vector push )
 	Vector		end;
 		
 	end = pmove->origin + push;
-	trace = TRACE_PLAYER( pmove->origin, end, PM_NORMAL, (edict_t *)NULL );
+	trace = TRACE_PLAYER( pmove->origin, end, PM_NORMAL );
 	pmove->origin = trace.vecEndPos;
 
 	// So we can run impact function afterwards.
 	if( trace.flFraction < 1.0f && !trace.fAllSolid )
-		PM_AddToTouched( trace.pHit );
+		PM_AddToTouched( trace.pHit, pev->velocity );
 	return trace;
 }	
 
@@ -2431,7 +2434,7 @@ void PM_CheckWaterJump( void )
 	// Trace, this trace should use the point sized collision hull
 	savehull = pmove->usehull;
 	pmove->usehull = 2;
-	tr = TRACE_PLAYER( vecStart, vecEnd, PM_NORMAL, (edict_t *)NULL );
+	tr = TRACE_PLAYER( vecStart, vecEnd, PM_NORMAL );
 
 	if( tr.flFraction < 1.0 && fabs( tr.vecPlaneNormal.z ) < 0.1f ) // Facing a near vertical wall?
 	{
@@ -2439,7 +2442,7 @@ void PM_CheckWaterJump( void )
 		vecEnd = vecStart + flatforward * 24;
 		pev->movedir = tr.vecPlaneNormal * -50;
 
-		tr = TRACE_PLAYER( vecStart, vecEnd, PM_NORMAL, (edict_t *)NULL );
+		tr = TRACE_PLAYER( vecStart, vecEnd, PM_NORMAL );
 		if( tr.flFraction == 1.0f )
 		{
 			pmove->flWaterJumpTime = 2000;
@@ -2628,20 +2631,20 @@ void PM_CheckParamters( void )
 	// Take angles from command.
 	if( !pmove->dead )
 	{
-		v_angle = pmove->cmd.angles + pev->punchangle;         
+		v_angle = pmove->cmd.viewangles + pev->punchangle;         
 
 		// Set up view angles.
-		pev->angles[ROLL] = PM_CalcRoll( v_angle, pev->velocity, pmove->movevars->rollangle, pmove->movevars->rollspeed ) * 4;
-		pev->angles[PITCH] = v_angle[PITCH];
-		pev->angles[YAW] = v_angle[YAW];
+		pmove->angles[ROLL] = PM_CalcRoll( v_angle, pev->velocity, pmove->movevars->rollangle, pmove->movevars->rollspeed ) * 4;
+		pmove->angles[PITCH] = v_angle[PITCH];
+		pmove->angles[YAW] = v_angle[YAW];
 	}
-//	else pev->angles = pmove->oldangles;	// ???
+	else pmove->angles = pmove->oldangles;
 
 	// Set dead player view_offset
 	if( pmove->dead ) pev->view_ofs.z = PM_DEAD_VIEWHEIGHT;
 
 	// Adjust client view angles to match values used on server.
-	if( pev->angles[YAW] > 180.0f ) pev->angles[YAW] -= 360.0f;
+	if( pmove->angles[YAW] > 180.0f ) pmove->angles[YAW] -= 360.0f;
 }
 
 void PM_ReduceTimers( void )
@@ -2694,7 +2697,7 @@ void PM_PlayerMove( BOOL server )
 	PM_ReduceTimers();
 
 	// Convert view angles to vectors
-	AngleVectors( pev->angles, pmove->forward, pmove->right, pmove->up );
+	AngleVectors( pmove->angles, pmove->forward, pmove->right, pmove->up );
 
 	// PM_ShowClipBox();
 
