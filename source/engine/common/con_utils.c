@@ -47,7 +47,7 @@ bool Cmd_GetMapList( const char *s, char *completedname, int length )
 
 		if( com.stricmp( ext, "bsp" )) continue;
 		com.strncpy( message, "^1error^7", sizeof( message ));
-		f = FS_Open(t->filenames[i], "rb" );
+		f = FS_Open( t->filenames[i], "rb" );
 	
 		if( f )
 		{
@@ -876,7 +876,7 @@ void Cmd_WriteVariables( file_t *f )
 ===============
 Host_WriteConfig
 
-Writes key bindings and archived cvars to config.cfg
+Writes key bindings and archived cvars to vars.rc
 ===============
 */
 void Host_WriteConfig( void )
@@ -914,7 +914,7 @@ void Host_WriteConfig( void )
 ===============
 Host_WriteConfig
 
-Writes key bindings and archived cvars to config.cfg
+Writes key bindings and archived cvars to basevars.rc
 ===============
 */
 void Host_WriteDefaultConfig( void )
@@ -923,6 +923,9 @@ void Host_WriteDefaultConfig( void )
 	bool	hasChanged = false;
 
 	if( !cls.initialized ) return;
+
+	if( !FS_FileExists( "config/basekeys.rc" ) || !FS_FileExists( "config/basevars.rc" ))
+		Cmd_ExecuteString( "unsetall\n" );
 
 	if( !FS_FileExists( "config/basekeys.rc" ) && (f = FS_Open( "config/basekeys.rc", "w" )) != NULL )
 	{
@@ -946,9 +949,13 @@ void Host_WriteDefaultConfig( void )
 		hasChanged = true;
 	}
 
-	// restart the engine to apply keys.rc and vars.rc
-	// FIXME: this is potentially invoke infinity loop and stack overflow ?
-	if( hasChanged ) Sys_NewInstance( GI->gamedir, "Host_ChangeConfig\n" );
+	if( hasChanged )
+	{
+		// restart user config
+		Cbuf_AddText( "exec keys.rc\n" );
+		Cbuf_AddText( "exec vars.rc\n" );
+		Cbuf_Execute();
+	}
 }
 
 void Key_EnumCmds_f( void )

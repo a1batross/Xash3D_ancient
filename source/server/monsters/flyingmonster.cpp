@@ -221,7 +221,7 @@ float CFlyingMonster::CeilingZ( const Vector &position )
 BOOL CFlyingMonster::ProbeZ( const Vector &position, const Vector &probe, float *pFraction)
 {
 	int conPosition = UTIL_PointContents( position );
-	if ( ((pev->flags & FL_SWIM) == FL_SWIM) ^ (conPosition & CONTENTS_WATER))
+	if ( ((pev->flags & FL_SWIM) == FL_SWIM) ^ (conPosition == CONTENTS_WATER))
 	{
 		//    SWIMING & !WATER
 		// or FLYING  & WATER

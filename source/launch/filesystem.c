@@ -1402,7 +1402,8 @@ void FS_CreateGameInfo( const char *filename )
 	com.strncat( buffer, "\nhull1\t\t( -16 -16 -18 ) ( 16 16 18 )", MAX_SYSPATH );
 	com.strncat( buffer, "\nhull2\t\t( 0 0 0 ) ( 0 0 0 )", MAX_SYSPATH );
 	com.strncat( buffer, "\nhull3\t\t( -32 -32 -32 ) ( 32 32 32 )", MAX_SYSPATH );
-	com.strncat( buffer, "\nviewheight\t\"22\"", MAX_SYSPATH );
+	com.strncat( buffer, "\nviewheight0\t\"28\"", MAX_SYSPATH );
+	com.strncat( buffer, "\nviewheight1\t\"12\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nmax_edicts\t\"1024\"", MAX_SYSPATH );
 	com.strncat( buffer, "\n\n\n", MAX_SYSPATH );
 	
@@ -1436,7 +1437,8 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 	com.strncpy( GameInfo->gamefolder, filename, MAX_STRING );
 	GameInfo->max_edicts = 1024;	// default value if not specified
 	GameInfo->version = 1.0;
-	GameInfo->viewheight = 22.0f;
+	GameInfo->viewheight[0] = 28.0f;
+	GameInfo->viewheight[1] = 12.0f;
 	
 	com.strncpy( GameInfo->texmode, "Xash3D", MAX_STRING );
 	com.strncpy( GameInfo->sp_entity, "info_player_start", MAX_STRING );
@@ -1548,9 +1550,21 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 				FS_ParseVector( script, GameInfo->client_maxs[hullNum], 3 );
 			}
 		}
-		else if( !com.stricmp( token.string, "viewheight" ))
+		else if( !com.strnicmp( token.string, "viewheight", 10 ))
 		{
-			PS_GetFloat( script, false, &GameInfo->viewheight );
+			int	hullNum = com.atoi( token.string + 10 );
+			float	value;
+
+			if( hullNum < 0 || hullNum > ( PM_MAXHULLS - 1 ))
+			{
+				MsgDev( D_ERROR, "FS_ParseGameInfo: Invalid hull number %i. Ignored.\n", hullNum );
+				PS_SkipRestOfLine( script ); 
+			}
+			else
+			{
+				if( PS_GetFloat( script, false, &value ))
+					GameInfo->viewheight[hullNum] = value;
+			}
 		}
 	}
 

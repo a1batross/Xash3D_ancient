@@ -229,8 +229,8 @@ void CGrenade:: Spawn( void )
 	
 	pev->solid = SOLID_BBOX;
 
-	UTIL_SetModel(ENT(pev), "models/grenade.mdl");
-	UTIL_SetSize(pev, Vector( 0, 0, 0), Vector(0, 0, 0));
+	UTIL_SetModel( ENT( pev ), "models/grenade.mdl");
+	UTIL_SetSize( pev, Vector( -1, -1, -4 ), Vector( 13, 5, 4 ));
 
 	pev->dmg = 100;
 	m_fRegisteredSound = FALSE;
@@ -259,6 +259,7 @@ CGrenade *CGrenade::ShootContact( entvars_t *pevOwner, Vector vecStart, Vector v
 	// Explode on contact
 	pGrenade->SetTouch( ExplodeTouch );
 
+	UTIL_SetModel( ENT( pGrenade->pev ), "models/props/grenade.mdl");
 	pGrenade->pev->dmg = M203_DMG;
 
 	return pGrenade;
@@ -271,10 +272,10 @@ CGrenade * CGrenade:: ShootTimed( entvars_t *pevOwner, Vector vecStart, Vector v
 	pGrenade->Spawn();
 	UTIL_SetOrigin( pGrenade, vecStart );
 	pGrenade->pev->velocity = vecVelocity;
-	pGrenade->pev->angles = UTIL_VecToAngles(pGrenade->pev->velocity);
+	pGrenade->pev->angles = UTIL_VecToAngles( pGrenade->pev->velocity );
 	pGrenade->pev->owner = ENT(pevOwner);
 	
-	pGrenade->SetTouch(&CGrenade:: BounceTouch );	// Bounce if touched
+	pGrenade->SetTouch( BounceTouch );	// Bounce if touched
 	
 	// Take one second off of the desired detonation time and set the think to PreDetonate. PreDetonate
 	// will insert a DANGER sound into the world sound list and delay detonation for one second so that 
@@ -283,7 +284,8 @@ CGrenade * CGrenade:: ShootTimed( entvars_t *pevOwner, Vector vecStart, Vector v
 	pGrenade->pev->dmgtime = gpGlobals->time + time;
 	pGrenade->SetThink( TumbleThink );
 	pGrenade->SetNextThink( 0.1 );
-	if (time < 0.1)
+
+	if( time < 0.1f )
 	{
 		pGrenade->SetNextThink( 0 );
 		pGrenade->pev->velocity = Vector( 0, 0, 0 );
@@ -299,7 +301,7 @@ CGrenade * CGrenade:: ShootTimed( entvars_t *pevOwner, Vector vecStart, Vector v
 	pGrenade->pev->gravity = 0.5;
 	pGrenade->pev->friction = 0.8;
 
-	UTIL_SetModel(ENT(pGrenade->pev), "models/weapons/w_grenade.mdl");
+	UTIL_SetModel( ENT( pGrenade->pev ), "models/weapons/w_grenade.mdl" );
 	pGrenade->pev->dmg = 100;
 
 	return pGrenade;
@@ -809,7 +811,7 @@ void CWHRocket :: NukeTouch ( CBaseEntity *pOther )
 	pev->enemy = pOther->edict(); //save enemy
 
 	// check for sky
-	if( UTIL_PointContents( pev->origin ) & CONTENTS_SKY )
+	if( UTIL_PointContents( pev->origin ) == CONTENTS_SKY )
 		Detonate( FALSE ); // silent remove in sky
 	else Detonate();
 	

@@ -60,13 +60,14 @@ extern	cvar_t *allow_download;
 bool CL_Active( void )
 {
 	if( host.type == HOST_DEDICATED ) return true;			// always active for dedicated servers
-	if( CL_GetMaxClients() > 1 ) return true;				// always active for multiplayer
+	if( CL_GetMaxClients() > 1 ) return true;			// always active for multiplayer
 	return (cls.key_dest == key_game || cls.key_dest == key_hudmenu);	// active if not menu or console
 }
 
 void CL_ForceVid( void )
 {
 	cl.video_prepped = false;
+	host.state = HOST_RESTART;
 }
 
 void CL_ForceSnd( void )

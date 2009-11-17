@@ -238,7 +238,7 @@ void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t 
 	case ED_PORTAL:
 	case ED_MOVER:
 	case ED_BSPBRUSH:
-		ent->v.movedir = BitsToDir( state->skin );
+		ent->v.movedir = BitsToDir( state->body );
 		ent->v.oldorigin = state->oldorigin;
 		break;
 	case ED_SKYPORTAL:

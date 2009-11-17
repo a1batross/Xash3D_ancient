@@ -106,6 +106,7 @@ typedef struct sv_client_s
 	usercmd_t		lastcmd;			// for filling in big drops
 
 	int		spectator;		// non-interactive
+	int		usehull;			// current hull that client used
 
 	int		commandMsec;		// every seconds this is reset, if user
 	   					// commands exhaust it, assume time cheating
@@ -322,6 +323,7 @@ void SV_Physics( void );
 void SV_CheckVelocity( edict_t *ent );
 bool SV_CheckWater( edict_t *ent );
 int SV_TryUnstick( edict_t *ent, vec3_t oldvel );
+void SV_CheckStuck( edict_t *ent );
 bool SV_RunThink( edict_t *ent );
 
 //

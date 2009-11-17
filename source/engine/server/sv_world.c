@@ -464,7 +464,7 @@ void SV_ClipToLinks( areanode_t *node, moveclip_t *clip )
 		if( touch->v.solid == SOLID_TRIGGER )
 			Host_Error( "trigger in clipping list\n" );
 
-		if( clip->type == MOVE_NOMONSTERS && touch->v.flags & FL_MONSTER )
+		if( clip->type == MOVE_NOMONSTERS && touch->v.solid != SOLID_BSP )
 			continue;
 
 		if( !BoundsIntersect( clip->boxmins, clip->boxmaxs, touch->v.absmin, touch->v.absmax ))
@@ -634,13 +634,19 @@ int SV_BaseContents( const vec3_t p )
 	{
 		hit = touch[i];
 
+		if( hit->v.flags & (FL_CLIENT|FL_FAKECLIENT|FL_MONSTER))
+		{
+			// never get contents from alives
+			if( hit->v.health > 0.0f ) continue;
+		}
+
 		// might intersect, so do an exact clip
 		handle = SV_HullForEntity( hit );
 		if( hit->v.solid == SOLID_BSP )
 			angles = hit->v.angles;
 		else angles = vec3_origin;	// boxes don't rotate
 
-		c2 = CM_TransformedPointContents( p, handle, hit->v.origin, hit->v.angles );
+		c2 = CM_TransformedPointContents( p, handle, hit->v.origin, angles );
 		c2 |= World_ContentsForEdict( hit ); // user-defined contents
 		contents |= c2;
 	}

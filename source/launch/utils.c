@@ -265,7 +265,7 @@ bool StringTable_CheckString( int handle, string_t str )
 
 	if( str < 0 || str >= dstring[handle]->numstrings )
 	{
-		MsgDev( D_ERROR, "StringTable_CheckString: invalid string index %i\n", str );
+		MsgDev( D_ERROR, "StringTable( %s ): invalid string index %i\n", dstring[handle]->name, str );
 		return false;
 	}
 	return true;

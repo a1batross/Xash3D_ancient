@@ -49,7 +49,7 @@
 //=========================
 #define XEN_GRAVITY				0.6
 #define EARTH_GRAVITY			1.0
-#define MAP_SIZE				8192
+#define MAP_SIZE				131070
 #define MAP_HALFSIZE			MAP_SIZE / 2
 #define FOG_LIMIT				30000
 #define MAX_GIB_LIFETIME			30

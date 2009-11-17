@@ -288,8 +288,7 @@ void Host_CheckChanges( void )
 
 	if( host_video->modified || host_audio->modified )
 	{
-		host.state = HOST_RESTART;
-		S_StopAllSounds();		// don't let them loop during the restart
+		S_StopAllSounds();	// don't let them loop during the restart
 
 		if( host_video->modified ) CL_ForceVid();
 		if( host_audio->modified ) CL_ForceSnd();
@@ -819,9 +818,9 @@ void Host_Init( const int argc, const char **argv )
 	Host_InitCommon( argc, argv );
 	Key_Init();
 
-	// get default configuration (but disable for save default config)
-	if( FS_FileExists( "config/basekeys.rc" )) Cbuf_AddText( "exec keys.rc\n" );
-	if( FS_FileExists( "config/basevars.rc" )) Cbuf_AddText( "exec vars.rc\n" );
+	// get user configuration 
+	Cbuf_AddText( "exec keys.rc\n" );
+	Cbuf_AddText( "exec vars.rc\n" );
 	Cbuf_Execute();
 
 	// init commands and vars

@@ -568,6 +568,8 @@ void SV_PutClientInServer( edict_t *ent )
 	{	
 		// fisrt entering
 		svgame.dllFuncs.pfnClientPutInServer( ent );
+
+		ent->v.view_ofs[2] = GI->viewheight[0];
 		ent->v.viewangles[ROLL] = 0;	// cut off any camera rolling
 		ent->v.origin[2] += 1;	// make sure off ground
 	}
@@ -1273,13 +1275,13 @@ void SV_InitClientMove( void )
 	int	i;
 
 	svgame.pmove->movevars = &svgame.movevars;
-	svgame.pmove->player_viewheight = GI->viewheight;
 
 	// init hulls
 	for( i = 0; i < PM_MAXHULLS; i++ )
 	{
 		VectorCopy( GI->client_mins[i], svgame.pmove->player_mins[i] );
 		VectorCopy( GI->client_maxs[i], svgame.pmove->player_maxs[i] );
+		svgame.pmove->player_view[i] = GI->viewheight[i];
 	}
 
 	// common utilities

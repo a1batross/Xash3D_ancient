@@ -168,4 +168,5 @@ Beta 13.12.09
 141. get physic code from Lazarus
 142. completely match cl\sv iface with HL1
 143. implement pmove			OK
-144. usercmd sends right
+144. usercmd sends right			OK
+145. gl_invalid_value mirrors bug		OK

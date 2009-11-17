@@ -1167,7 +1167,7 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 	}
 	else if( to->ed_type == ED_MOVER || to->ed_type == ED_BSPBRUSH || to->ed_type == ED_PORTAL )
 	{
-		to->skin = DirToBits( pNet->pev->movedir );
+		to->body = DirToBits( pNet->pev->movedir );
 
 		// FIXME: send mins\maxs for sound spatialization and entity prediction ?
 	}

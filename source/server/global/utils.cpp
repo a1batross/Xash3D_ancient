@@ -2734,7 +2734,7 @@ void UTIL_Explode( const Vector &center, edict_t *pOwner, int radius, int name )
 	CBaseEntity *pExplosion = CBaseEntity::Create( "env_explosion", center, g_vecZero, pOwner );
 	if(pExplosion)
 	{
-		if(name) pExplosion->pev->classname = name;
+		if( name ) pExplosion->pev->classname = name;
 		pExplosion->pev->dmg = radius;
 		pExplosion->pev->owner = pOwner;
 		pExplosion->pev->spawnflags |= SF_FIREONCE; //remove entity after explode

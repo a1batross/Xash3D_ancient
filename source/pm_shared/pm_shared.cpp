@@ -1843,7 +1843,7 @@ void PM_UnDuck( void )
 
 		pev->flags &= ~FL_DUCKING;
 		pev->bInDuck = false;
-		pev->view_ofs.z = VEC_VIEW;
+		pev->view_ofs.z = pmove->player_view[0];
 		pev->flDuckTime = 0.0f;
 		
 		pmove->origin = newOrigin;
@@ -1901,7 +1901,7 @@ void PM_Duck( void )
 				if(((float)pev->flDuckTime / 1000.0f <= ( 1.0f - TIME_TO_DUCK )) || ( pmove->onground == NULL ))
 				{
 					pmove->usehull = 1;
-					pev->view_ofs[2] = VEC_DUCK_VIEW;
+					pev->view_ofs[2] = pmove->player_view[1];
 					pev->flags |= FL_DUCKING;
 					pev->bInDuck = false;
 
@@ -1923,7 +1923,9 @@ void PM_Duck( void )
 
 					// Calc parametric time
 					duckFraction = PM_SplineFraction( time, (1.0f / TIME_TO_DUCK ));
-					pev->view_ofs.z = ((VEC_DUCK_VIEW - fMore) * duckFraction) + (VEC_VIEW * (1.0f - duckFraction));
+					pev->view_ofs.z = ((pmove->player_view[1] - fMore) * duckFraction) + (pmove->player_view[0] * (1.0f - duckFraction));
+					if( pev->view_ofs.z < pmove->player_view[1] ) pev->view_ofs.z = pmove->player_view[1];
+					if( pev->view_ofs.z > pmove->player_view[0] ) pev->view_ofs.z = pmove->player_view[0];
 				}
 			}
 		}

@@ -57,8 +57,6 @@ void InsertLinkBefore( link_t *l, link_t *before, int entnum )
 
 int World_ConvertContents( int basecontents )
 {
-	if( basecontents & (BASECONT_SOLID|BASECONT_BODY|BASECONT_CLIP))
-		return CONTENTS_SOLID;
 	if( basecontents & BASECONT_SKY )
 		return CONTENTS_SKY;
 	if( basecontents & BASECONT_LAVA )
@@ -67,6 +65,8 @@ int World_ConvertContents( int basecontents )
 		return CONTENTS_SLIME;
 	if( basecontents & BASECONT_WATER )
 		return CONTENTS_WATER;
+	if( basecontents & (BASECONT_SOLID|BASECONT_BODY|BASECONT_CLIP))
+		return CONTENTS_SOLID;
 	return CONTENTS_EMPTY;
 }
 

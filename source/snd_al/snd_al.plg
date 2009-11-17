@@ -3,14 +3,14 @@
 <pre>
 <h1>Build Log</h1>
 <h3>
---------------------Configuration: engine - Win32 Debug--------------------
+--------------------Configuration: snd_al - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
 
 
 
 <h3>Results</h3>
-engine.dll - 0 error(s), 0 warning(s)
+snd_al.dll - 0 error(s), 0 warning(s)
 </pre>
 </body>
 </html>

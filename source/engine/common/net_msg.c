@@ -36,7 +36,7 @@ static net_field_t ent_fields[] =
 { ES_FIELD(framerate),		NET_FLOAT, false	},	// custom framerate
 { ES_FIELD(sequence),		NET_WORD,	 false	},	// 1024 sequences
 { ES_FIELD(gaitsequence),		NET_WORD,	 false	},	// 1024 gaitsequences
-{ ES_FIELD(skin),			NET_BYTE,	 false	},	// 255 skins
+{ ES_FIELD(skin),			NET_CHAR,	 false	},	// beacuse negative skins are contents
 { ES_FIELD(body),			NET_BYTE,	 false	},	// 255 bodies
 { ES_FIELD(weaponmodel),		NET_WORD,  false	},	// p_model index, not name 
 { ES_FIELD(contents),		NET_LONG,	 false	},	// full range contents
@@ -94,7 +94,7 @@ static net_field_t ent_fields[] =
 { ES_FIELD(viewangles[2]),		NET_FLOAT, false	},
 { ES_FIELD(viewoffset[0]),		NET_SCALE, false	},
 { ES_FIELD(viewoffset[1]),		NET_SCALE, false	},
-{ ES_FIELD(viewoffset[2]),		NET_SCALE, false	},
+{ ES_FIELD(viewoffset[2]),		NET_FLOAT, false	},
 { ES_FIELD(idealpitch),		NET_SCALE, false	},
 { ES_FIELD(viewmodel),		NET_WORD,  false	},
 { ES_FIELD(maxspeed),		NET_FLOAT, false	},	// client maxspeed
@@ -256,7 +256,7 @@ void _MSG_WriteBits( sizebuf_t *msg, long value, const char *name, int net_type,
 	// this isn't an exact overflow check, but close enough
 	if( msg->maxsize - msg->cursize < 4 )
 	{
-		MsgDev( D_ERROR, "MSG_WriteBits: sizebuf overflowed (called at %s:%i)\n", filename, fileline );
+		MsgDev( D_ERROR, "MSG_WriteBits: overflowed %i > %i (called at %s:%i)\n", msg->cursize, msg->maxsize, filename, fileline );
 		msg->overflowed = true;
 		return;
 	}

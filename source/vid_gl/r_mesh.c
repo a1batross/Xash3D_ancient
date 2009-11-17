@@ -783,11 +783,11 @@ bool R_ScissorForPortal( ref_entity_t *ent, vec3_t mins, vec3_t maxs, int *x, in
 
 	ix1 = max( x1 - 1.0f, 0 );
 	ix2 = min( x2 + 1.0f, RI.refdef.viewport[2] );
-	if( ix1 >= ix2 ) ix1 -= ix2; // return false; // FIXME
+	if( ix1 >= ix2 ) return false; // FIXME
 
 	iy1 = max( y1 - 1.0f, 0 );
 	iy2 = min( y2 + 1.0f, RI.refdef.viewport[3] );
-	if( iy1 >= iy2 ) iy1 -= iy2; // return false; // FIXME
+	if( iy1 >= iy2 ) return false; // FIXME
 
 	*x = ix1;
 	*y = iy1;

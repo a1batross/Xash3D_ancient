@@ -1067,27 +1067,37 @@ pfnFindEntityInSphere
 return NULL instead of world
 =================
 */
-edict_t* pfnFindEntityInSphere( edict_t *pStartEdict, const float *org, float rad )
+edict_t* pfnFindEntityInSphere( edict_t *pStartEdict, const float *org, float flRadius )
 {
 	edict_t	*ent;
-	float	radSquare;
-	vec3_t	eorg;
-	int	e = 0;
+	float	distSquared;
+	float	eorg;
+	int	j, e = 0;
 
-	radSquare = rad * rad;
+	flRadius *= flRadius;
+
 	if( pStartEdict )
 		e = NUM_FOR_EDICT( pStartEdict );
-	
+
 	for( e++; e < svgame.globals->numEntities; e++ )
 	{
 		ent = EDICT_NUM( e );
 		if( ent->free ) continue;
 
-		VectorSubtract( org, ent->v.origin, eorg );
-		VectorMAMAM( 1, eorg, 0.5f, ent->v.mins, 0.5f, ent->v.maxs, eorg );
+		distSquared = 0;
+		for( j = 0; j < 3 && distSquared <= flRadius; j++ )
+		{
+			if( org[j] < ent->v.absmin[j] )
+				eorg = org[j] - ent->v.absmin[j];
+			else if( org[j] > ent->v.absmax[j] )
+				eorg = org[j] - ent->v.absmax[j];
+			else eorg = 0;
 
-		if( DotProduct( eorg, eorg ) < radSquare )
-			return ent;
+			distSquared += eorg * eorg;
+		}
+		if( distSquared > flRadius )
+			continue;
+		return ent;
 	}
 	return NULL;
 }
@@ -3164,6 +3174,7 @@ void SV_UnloadProgs( void )
 	SV_DeactivateServer ();
 
 	svgame.dllFuncs.pfnGameShutdown ();
+	StringTable_Delete( svgame.hStringTable );
 
 	Sys_FreeNameFuncGlobals ();
 	Com_FreeLibrary( svgame.hInstance );
@@ -3221,7 +3232,8 @@ void SV_LoadProgs( const char *name )
 	}
 
 	// 65535 unique strings should be enough ...
-	svgame.hStringTable = StringTable_Create( "Server", 0x10000 );
+	if( !sv.loadgame && !sv.changelevel )
+		svgame.hStringTable = StringTable_Create( "Server", 0x10000 );
 	svgame.globals->maxEntities = GI->max_edicts;
 	svgame.globals->maxClients = sv_maxclients->integer;
 	svgame.edicts = Mem_Alloc( svgame.mempool, sizeof( edict_t ) * svgame.globals->maxEntities );

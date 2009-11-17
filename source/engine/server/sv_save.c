@@ -665,8 +665,8 @@ void SV_ReadSaveFile( const char *name )
 		return;
 	}
 
-	StringTable_Delete( svgame.hStringTable ); // remove old string table
-	svgame.hStringTable = StringTable_Load( savfile, name );
+	if( svgame.hInstance ) StringTable_Delete( svgame.hStringTable ); // remove old string table
+	svgame.hStringTable = StringTable_Load( savfile, "Server" );
 
 	if( sv.loadgame && !sv.changelevel )
 	{

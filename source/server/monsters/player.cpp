@@ -981,7 +981,7 @@ void CBasePlayer::SetAnimation( PLAYER_ANIM playerAnim )
 		{
 			m_IdealActivity = m_Activity;
 		}
-		else if ( pev->waterlevel > 1 && !FBitSet( pev->watertype, CONTENTS_FOG ))
+		else if ( pev->waterlevel > 1 && pev->watertype != CONTENTS_FOG )
 		{
 			if ( speed == 0 )
 				m_IdealActivity = ACT_HOVER;
@@ -2764,7 +2764,6 @@ void CBasePlayer::Spawn( void )
 		UTIL_SetSize( pev, VEC_DUCK_HULL_MIN, VEC_DUCK_HULL_MAX );
 	else UTIL_SetSize( pev, VEC_HULL_MIN, VEC_HULL_MAX );
 
-    	pev->view_ofs = VEC_VIEW;
 	pViewEnt = 0;
 	viewFlags = 0;
 	Precache();

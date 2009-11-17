@@ -243,7 +243,6 @@ int SV_FlyMove( edict_t *ent, float time, trace_t *steptrace )
 		VectorMA( ent->v.origin, time_left, ent->v.velocity, end );
 		trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL, ent );
 
-		Msg( "SV_FlyMove: #%i, fraction %g\n", bumpcount, trace.flFraction  );
 		if( trace.fAllSolid )
 		{	
 			// entity is trapped in another solid
@@ -388,19 +387,30 @@ Does not change the entities velocity at all
 static trace_t SV_PushEntity( edict_t *ent, vec3_t push )
 {
 	trace_t	trace;
-	vec3_t	end;
+	vec3_t	start, end;
 
-	VectorAdd( ent->v.origin, push, end );
-
-	if( ent->v.solid == SOLID_TRIGGER || ent->v.solid == SOLID_NOT )
-		trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, end, MOVE_NOMONSTERS, ent );
-	else trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL, ent );
+	VectorCopy( ent->v.origin, start );
+	VectorAdd( start, push, end );
+retry:
+	trace = SV_Move( start, ent->v.mins, ent->v.maxs, end, MOVE_NOMONSTERS, ent );
 
 	VectorCopy( trace.vecEndPos, ent->v.origin );
-	SV_LinkEdict( ent, true );
+	SV_LinkEdict( ent, false );
 
-	if( trace.pHit )
+	if( trace.flFraction != 1.0f )
+	{
 		SV_Impact( ent, trace.pHit );
+
+		// if the pushed entity went away and the pusher is still there
+		if( trace.pHit->free && !ent->free )
+		{
+			// move the pusher back and try again
+			VectorCopy( start, ent->v.origin );
+			SV_LinkEdict( ent, false );
+			goto retry;
+		}
+	}
+	if( !ent->free ) SV_TouchLinks( ent, sv_areanodes );
 
 	return trace;
 }
@@ -751,7 +761,6 @@ void SV_Physics_Pusher( edict_t *ent )
 		l = VectorLength( lmove ) + VectorLength( amove );
 		if( l > (1.0 / 64 ))
 		{
-			Msg( "**** snap: %f\n", l );
 			VectorCopy( oldorg, ent->v.origin );
 
 			if( VectorIsNull( amove ))
@@ -891,35 +900,34 @@ void SV_Physics_Toss( edict_t *ent )
 		VectorScale( ent->v.groundentity->v.movedir, ent->v.groundentity->v.speed, ent->v.basevelocity );
 	else VectorClear( ent->v.basevelocity );
 
+	SV_CheckVelocity( ent );
 	SV_CheckWater( ent );
 
 	// regular thinking
 	if( !SV_RunThink( ent )) return;
 
-	if( ent->v.velocity[2] > 0.0f )
-		ent->v.flags &= ~FL_ONGROUND;
-
+	// if onground, return without moving
 	if( ent->v.flags & FL_ONGROUND )
 	{
-		if( VectorIsNull( ent->v.basevelocity ))
-			return;
+		if( ent->v.velocity[2] >= ( 1.0f/32.0f ))
+			ent->v.flags &= ~FL_ONGROUND;
+		else
+		{
+			if( ent->v.groundentity && !ent->v.groundentity->free );
+				return; // don't drop if our fround is still valid
+		}
 	}
 
-	SV_CheckVelocity( ent );
-
 	// add gravity
-	if(!( ent->v.flags & FL_ONGROUND ))
+	switch( ent->v.movetype )
 	{
-		switch( ent->v.movetype )
-		{
-		case MOVETYPE_FLY:
-		case MOVETYPE_FLYMISSILE:
-		case MOVETYPE_BOUNCEMISSILE:
-			break;
-		default:
-			SV_AddGravity( ent );
-			break;
-		}
+	case MOVETYPE_FLY:
+	case MOVETYPE_FLYMISSILE:
+	case MOVETYPE_BOUNCEMISSILE:
+		break;
+	default:
+		SV_AddGravity( ent );
+		break;
 	}
 
 	// move angles
@@ -932,8 +940,11 @@ void SV_Physics_Toss( edict_t *ent )
 	trace = SV_PushEntity( ent, move );
 	VectorSubtract( ent->v.velocity, ent->v.basevelocity, ent->v.velocity );
 
-	if( ent->free || trace.flFraction == 1.0f )
+	if( trace.fAllSolid )
+		trace.flFraction = 0.0f;
+	if( trace.flFraction == 1.0f )
 		return;
+	if( ent->free ) return;
 
 	if( ent->v.movetype == MOVETYPE_BOUNCE )
 		backoff = 1.5f;
@@ -944,9 +955,9 @@ void SV_Physics_Toss( edict_t *ent )
 	SV_ClipVelocity( ent->v.velocity, trace.vecPlaneNormal, ent->v.velocity, backoff );
 
 	// stop if on ground
-	if( trace.vecPlaneNormal[2] > 0.7f )
+	if( trace.vecPlaneNormal[2] > 0.7f && ( ent->v.movetype != MOVETYPE_BOUNCEMISSILE ))
 	{		
-		if( ent->v.velocity[2] < 60.0f || ( ent->v.movetype != MOVETYPE_BOUNCE && ent->v.movetype != MOVETYPE_BOUNCEMISSILE ))
+		if( ent->v.velocity[2] < 60.0f || ent->v.movetype != MOVETYPE_BOUNCE )
 		{
 			ent->v.flags |= FL_ONGROUND;
 			ent->v.groundentity = trace.pHit;

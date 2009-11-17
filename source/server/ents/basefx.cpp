@@ -1170,9 +1170,9 @@ void CEnvExplosion::Explode( void )
 	Vector vecSpot = pev->origin;// trace starts here!
 	UTIL_TraceLine ( vecSpot + Vector( 0, 0, 8 ), vecSpot + Vector ( 0, 0, -32 ),  ignore_monsters, ENT(pev), &tr);
 	
-	if(!FBitSet( pev->spawnflags, 4 ))
+	if( !FBitSet( pev->spawnflags, 4 ))
 	{
-		if(pev->button)//custom sprite
+		if( pev->button )//custom sprite
 		{
 			m_usExplode = pev->button;
 			m_usWExplode = pev->button;

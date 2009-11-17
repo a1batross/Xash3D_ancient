@@ -34,7 +34,7 @@ typedef struct playermove_s
 	// constants (came from gameinfo.txt)
 	vec3_t		player_mins[PM_MAXHULLS];
 	vec3_t		player_maxs[PM_MAXHULLS];
-	float		player_viewheight;	// from gameinfo.txt
+	float		player_view[PM_MAXHULLS];
 
 	// just a list of ladders
 	edict_t		*ladders[MAX_LADDERS];	// filled by engine

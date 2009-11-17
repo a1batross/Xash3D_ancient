@@ -255,18 +255,8 @@ void CLaserSpot::Update( CBasePlayer *m_pPlayer )
 	UTIL_TraceLine( m_pPlayer->GetGunPosition(), m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 8192, dont_ignore_monsters, ENT(m_pPlayer->pev), &tr );
 	UTIL_SetOrigin( this, tr.vecEndPos );
 
-	if( UTIL_PointContents( tr.vecEndPos ) & CONTENTS_SKY && VARS( tr.pHit )->solid == SOLID_BSP ) 
-	{                     
-		pev->renderamt = 33;
+	if( UTIL_PointContents( tr.vecEndPos ) == CONTENTS_SKY && VARS( tr.pHit )->solid == SOLID_BSP ) 
 		pev->effects |= EF_NODRAW;
-	}              
-	else
-	{                            
-		pev->effects &= ~EF_NODRAW;
-				
-		float SpotDistance = (tr.vecEndPos - m_pPlayer->GetGunPosition()).Length();
-		pev->scale = SpotDistance / 128;
-		pev->renderamt = 200;
-	}
+	else pev->effects &= ~EF_NODRAW;
 }
 LINK_ENTITY_TO_CLASS( misc_laserdot, CLaserSpot );
