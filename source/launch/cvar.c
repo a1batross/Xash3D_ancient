@@ -8,11 +8,12 @@
 #define MAX_CVARS		2048
 #define FILE_HASH_SIZE	256
 
-int cvar_numIndexes;
-int cvar_modifiedFlags;
-cvar_t cvar_indexes[MAX_CVARS];
-cvar_t *cvar_vars;
-static cvar_t* hashTable[FILE_HASH_SIZE];
+int		cvar_numIndexes;
+int		cvar_modifiedFlags;
+cvar_t		cvar_indexes[MAX_CVARS];
+static cvar_t	*hashTable[FILE_HASH_SIZE];
+cvar_t		*cvar_vars;
+cvar_t		*userinfo;
 
 /*
 ================
@@ -151,19 +152,19 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags, const 
 		return NULL;
 	}
 	
-	if (!Cvar_ValidateString(var_name, false))
+	if( !Cvar_ValidateString( var_name, false ))
 	{
 		MsgDev(D_WARN, "invalid info cvar name string %s\n", var_name );
 		var_value = "noname";
 	}
-	if(!Cvar_ValidateString( var_value, true ))
+	if( !Cvar_ValidateString( var_value, true ))
 	{
 		MsgDev(D_WARN, "invalid cvar value string: %s\n", var_value );
 		var_value = "default";
 	}
 
 	// check for command coexisting
-	if(Cmd_Exists(var_name))
+	if( Cmd_Exists( var_name ))
 	{
 		MsgDev(D_WARN, "Cvar_Get: %s is a command\n", var_name );
 		return NULL;
@@ -362,6 +363,9 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 
 	var->modified = true;
 	var->modificationCount++;
+
+	if( var->flags & CVAR_USERINFO )
+		userinfo->modified = true;	// transmit at next oportunity
 	
 	// free the old value string
 	Mem_Free( var->string );
@@ -402,7 +406,7 @@ void Cvar_FullSet( char *var_name, char *value, int flags )
 	cvar_t	*var;
 	
 	var = Cvar_FindVar (var_name);
-	if(!var) 
+	if( !var ) 
 	{
 		// create it
 		Cvar_Get( var_name, value, flags, "" );
@@ -413,7 +417,7 @@ void Cvar_FullSet( char *var_name, char *value, int flags )
 	if( var->flags & CVAR_USERINFO )
 	{
 		// transmit at next oportunity
-		com.userinfo_modified = true;
+		userinfo->modified = true;
 	}	
 
 	Mem_Free( var->string ); // free the old value string
@@ -867,7 +871,8 @@ void Cvar_Init( void )
 	cvar_vars = NULL;
 	cvar_numIndexes = cvar_modifiedFlags = 0;
 	ZeroMemory( cvar_indexes, sizeof( cvar_t ) * MAX_CVARS );
-	ZeroMemory( hashTable, sizeof(*hashTable ) * FILE_HASH_SIZE );
+	ZeroMemory( hashTable, sizeof( *hashTable ) * FILE_HASH_SIZE );
+	userinfo = Cvar_Get( "@userinfo", "0", CVAR_READ_ONLY, "" ); // use ->modified value only
 
 	Cmd_AddCommand ("toggle", Cvar_Toggle_f, "toggles a console variable's values (use for more info)" );
 	Cmd_AddCommand ("set", Cvar_Set_f, "create or change the value of a console variable" );

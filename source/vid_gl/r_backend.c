@@ -1269,6 +1269,8 @@ static _inline texture_t *R_ShaderpassTex( const ref_stage_t *pass, int unit )
 			case mod_brush:
 			case mod_world:
 				return pass->textures[bound( 0, (int)RI.currententity->frame, pass->num_textures - 1)];
+			case mod_studio:
+				return pass->textures[bound( 0, (int)RI.currententity->skin, pass->num_textures - 1)];
 			}
 		}
 	}

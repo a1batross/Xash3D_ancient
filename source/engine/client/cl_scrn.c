@@ -249,55 +249,6 @@ void SCR_DrawSmallStringExt( int x, int y, const char *string, rgba_t setColor, 
 }
 
 /*
-==============================================================================
-
-Cinematic user interface
-==============================================================================
-*/
-bool SCR_PlayCinematic( char *name, int bits )
-{
-	string		path;
-	
-	if( cls.state == ca_cinematic )
-		SCR_StopCinematic();
-
-	com.sprintf( path, "media/%s", name );
-	FS_DefaultExtension( path, ".dpv" );
-
-	S_StopAllSounds();
-	UI_SetActiveMenu( UI_CLOSEMENU );
-	//S_StartStreaming();
-
-	if( CIN_PlayCinematic( path ))
-	{
-		SCR_RunCinematic(); // load first frame
-		return true;
-	}
-	return false;
-}
-
-bool SCR_CinActive( void )
-{
-	return (cls.state == ca_cinematic);
-}
-
-void SCR_DrawCinematic( void )
-{
-	CIN_DrawCinematic();
-}
-
-void SCR_RunCinematic( void )
-{
-	CIN_RunCinematic();
-}
-
-void SCR_StopCinematic( void )
-{
-	CIN_StopCinematic();
-	S_StopAllSounds();
-}
-
-/*
 ==============
 SCR_DrawNet
 ==============
@@ -472,8 +423,9 @@ void SCR_RegisterShaders( void )
 		// register console images
 		cls.consoleFont = re->RegisterShader( va( "gfx/fonts/%s", con_font->string ), SHADER_FONT );
 		cls.clientFont = re->RegisterShader( va( "gfx/fonts/%s", cl_font->string ), SHADER_FONT );
-		cls.netIcon = re->RegisterShader( "#net.png", SHADER_NOMIP );	// internal recource
-		cls.fillShader = re->RegisterShader( "*white", SHADER_FONT );	// used for FillRGBA
+		cls.netIcon = re->RegisterShader( "#net.png", SHADER_NOMIP ); // internal recource
+		cls.fillShader = re->RegisterShader( "*white", SHADER_FONT ); // used for FillRGBA
+		cls.particle = re->RegisterShader( "*particle", SHADER_FONT ); // Q1 particlefont
 
 		if( host.developer )
 			cls.consoleBack = re->RegisterShader( "gfx/conback", SHADER_NOMIP );
@@ -522,6 +474,7 @@ void SCR_Init( void )
 	SCR_RegisterShaders();
 	UI_Init();
 	UI_SetActiveMenu( UI_MAINMENU );
+	SCR_InitCinematic();
 
 	scr_init = true;
 }

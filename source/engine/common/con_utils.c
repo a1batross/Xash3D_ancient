@@ -341,7 +341,7 @@ bool Cmd_GetMovieList( const char *s, char *completedname, int length )
 	string		matchbuf;
 	int		i, nummovies;
 
-	t = FS_Search(va("media/%s*.dpv", s ), true);
+	t = FS_Search(va("media/%s*.roq", s ), true);
 	if(!t) return false;
 
 	FS_FileBase(t->filenames[0], matchbuf ); 
@@ -352,7 +352,7 @@ bool Cmd_GetMovieList( const char *s, char *completedname, int length )
 	{
 		const char *ext = FS_FileExtension( t->filenames[i] ); 
 
-		if( com.stricmp( ext, "dpv" )) continue;
+		if( com.stricmp( ext, "roq" )) continue;
 		FS_FileBase(t->filenames[i], matchbuf );
 		Msg("%16s\n", matchbuf );
 		nummovies++;

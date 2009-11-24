@@ -1,23 +1,8 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
+//=======================================================================
+//			Copyright XashXT Group 2009 ©
+//		       server.h - primary header for server
+//=======================================================================
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-// server.h
 #ifndef SERVER_H
 #define SERVER_H
 
@@ -101,7 +86,10 @@ typedef struct sv_client_s
 {
 	cl_state_t	state;
 
-	char		userinfo[MAX_INFO_STRING];	// name, etc
+	char		userinfo[MAX_INFO_STRING];	// name, etc (received from client)
+	char		physinfo[MAX_INFO_STRING];	// set on server (transmit to client)
+	bool		physinfo_modified;		// transmit at next opportunity
+
 	int		lastframe;		// for delta compression
 	usercmd_t		lastcmd;			// for filling in big drops
 
@@ -160,6 +148,7 @@ struct sv_priv_s
 	int		areanum, areanum2;
 	bool		linked;		// passed through SV_LinkEdict
 	bool		stuck;		// entity stucked in brush
+	bool		suspended;	// suspended on a brush entity
 	size_t		pvdata_size;	// member size of alloceed pvPrivateData
 					// (used by SV_CopyEdict)
 	entity_state_t	s;		// baseline (this is a player_state too)
@@ -271,7 +260,6 @@ extern	cvar_t		*sv_stopspeed;
 extern	cvar_t		*sv_fps;			// running server at
 extern	cvar_t		*sv_enforcetime;
 extern	cvar_t		*sv_reconnect_limit;
-extern	cvar_t		*allow_download;
 extern	cvar_t		*rcon_password;
 extern	cvar_t		*hostname;
 extern	cvar_t		*sv_stepheight;
@@ -286,21 +274,23 @@ extern	sv_client_t	*sv_client;
 //
 // sv_main.c
 //
-void SV_FinalMessage (char *message, bool reconnect);
-void SV_DropClient (sv_client_t *drop);
+void SV_FinalMessage( char *message, bool reconnect );
+void SV_DropClient( sv_client_t *drop );
 
-int SV_ModelIndex (const char *name);
-int SV_SoundIndex (const char *name);
-int SV_ClassIndex (const char *name);
-int SV_DecalIndex (const char *name);
-int SV_UserMessageIndex (const char *name);
+int SV_ModelIndex( const char *name );
+int SV_SoundIndex( const char *name );
+int SV_ClassIndex( const char *name );
+int SV_DecalIndex( const char *name );
+int SV_EventIndex( const char *name );
+int SV_GenericIndex( const char *name );
+int SV_UserMessageIndex( const char *name );
 
 void SV_WriteClientdataToMessage (sv_client_t *client, sizebuf_t *msg);
 void SV_ExecuteUserCommand (char *s);
 void SV_InitOperatorCommands( void );
 void SV_KillOperatorCommands( void );
-void SV_SendServerinfo (sv_client_t *client);
-void SV_UserinfoChanged (sv_client_t *cl);
+void SV_SendServerinfo( sv_client_t *client );
+void SV_UserinfoChanged( sv_client_t *cl, const char *userinfo );
 void Master_Heartbeat (void);
 void Master_Packet (void);
 
@@ -325,12 +315,15 @@ bool SV_CheckWater( edict_t *ent );
 int SV_TryUnstick( edict_t *ent, vec3_t oldvel );
 void SV_CheckStuck( edict_t *ent );
 bool SV_RunThink( edict_t *ent );
+void SV_UnstickEntity( edict_t *ent );
 
 //
 // sv_move.c
 //
-bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool settrace );
-bool SV_CheckBottom( edict_t *ent );
+bool SV_WalkMove( edict_t *ent, vec3_t move, int iMode );
+void SV_MoveToOrigin( edict_t *ed, const vec3_t goal, float dist, int iMode );
+bool SV_CheckBottom( edict_t *ent, int iMode );
+float SV_VecToYaw( const vec3_t src );
 
 //
 // sv_send.c
@@ -353,6 +346,10 @@ bool SV_ClientConnect( edict_t *ent, char *userinfo );
 void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd );
 void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg );
 void SV_ConnectionlessPacket( netadr_t from, sizebuf_t *msg );
+edict_t *SV_FakeConnect( const char *netname );
+void SV_PreRunCmd( sv_client_t *cl, usercmd_t *ucmd );
+void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd );
+void SV_PostRunCmd( sv_client_t *cl );
 void SV_SetIdealPitch( sv_client_t *cl );
 void SV_InitClientMove( void );
 
@@ -388,6 +385,7 @@ void SV_SpawnEntities( const char *mapname, script_t *entities );
 edict_t* SV_AllocPrivateData( edict_t *ent, string_t className );
 string_t SV_AllocString( const char *szValue );
 const char *SV_GetString( string_t iString );
+void SV_SetClientMaxspeed( sv_client_t *cl, float fNewMaxspeed );
 bool SV_MapIsValid( const char *filename, const char *spawn_entity );
 void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float attn, int flags, int pitch );
 script_t *CM_GetEntityScript( void );
@@ -447,7 +445,8 @@ void SV_LinkEdict( edict_t *ent, bool touch_triggers );
 void SV_TouchLinks( edict_t *ent, areanode_t *node );
 edict_t *SV_TestPlayerPosition( const vec3_t origin, edict_t *pass, TraceResult *trace );
 int SV_PointContents( const vec3_t p );
-trace_t SV_ClipMoveToEntity( edict_t *ent, const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, uint mask );
+trace_t SV_ClipMoveToEntity( edict_t *e, const vec3_t p0, vec3_t b0, vec3_t b1, const vec3_t p1, uint mask, int flags );
+int SV_BaseContents( const vec3_t p, edict_t *e );
 // mins and maxs are relative
 
 // if the entire move stays in a solid volume, trace.allsolid will be set,

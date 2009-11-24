@@ -1,6 +1,6 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//			sv_utils.c - server vm utils
+//			sv_main.c - server main loop
 //=======================================================================
 
 #include "common.h"
@@ -488,8 +488,8 @@ void SV_Init( void )
 	timeout = Cvar_Get( "timeout", "125", 0, "connection timeout" );
 	zombietime = Cvar_Get( "zombietime", "2", 0, "timeout for clients-zombie (who died but not respawned)" );
 	sv_pausable = Cvar_Get( "pausable", "1", 0, "allow players to pause or not" );
-	sv_enforcetime = Cvar_Get ("sv_enforcetime", "0", 0, "client enforce time" );
-	allow_download = Cvar_Get ("allow_download", "1", CVAR_ARCHIVE, "allow download resources" );
+	sv_enforcetime = Cvar_Get( "sv_enforcetime", "0", 0, "client enforce time" );
+	allow_download = Cvar_Get( "allow_download", "0", CVAR_ARCHIVE, "allow download resources" );
 	sv_noreload = Cvar_Get( "sv_noreload", "0", 0, "ignore savepoints for singleplayer" );
 	sv_wallbounce = Cvar_Get( "sv_wallbounce", "1.0", 0, "bounce factor for client with MOVETYPE_BOUNCE" );
 	sv_spectatormaxspeed = Cvar_Get( "sv_spectatormaxspeed", "500", 0, "spectator maxspeed" );
@@ -535,6 +535,7 @@ void SV_FinalMessage( char *message, bool reconnect )
 	
 	MSG_Init( &msg, msg_buf, sizeof( msg_buf ));
 	MSG_WriteByte( &msg, svc_print );
+	MSG_WriteByte( &msg, PRINT_HIGH );
 	MSG_WriteString( &msg, message );
 
 	if( reconnect )

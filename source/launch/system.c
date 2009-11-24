@@ -58,6 +58,10 @@ void Sys_GetStdAPI( void )
 	com.crc_sequence = CRC_BlockSequence;
 	com.crc_blockchecksum = Com_BlockChecksum;
 	com.crc_blockchecksumkey = Com_BlockChecksumKey;
+	com.crc32_init = CRC32_Init;
+	com.crc32_block = CRC32_ProcessBuffer;
+	com.crc32_process = CRC32_ProcessByte;
+	com.crc32_final = CRC32_Final;
 
 	// memlib.c
 	com.memcpy = _crt_mem_copy;			// first time using

@@ -1,23 +1,7 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-// cl_main.c  -- client main loop
+//=======================================================================
+//			Copyright XashXT Group 2009 ©
+//			cl_main.c - client main loop
+//=======================================================================
 
 #include "common.h"
 #include "client.h"
@@ -37,6 +21,7 @@ cvar_t	*cl_particlelod;
 cvar_t	*cl_shownet;
 cvar_t	*cl_showmiss;
 cvar_t	*cl_mouselook;
+cvar_t	*userinfo;
 
 //
 // userinfo
@@ -49,11 +34,10 @@ cvar_t	*topcolor;
 cvar_t	*bottomcolor;
 cvar_t	*rate;
 
-client_static_t	cls;
 client_t		cl;
+client_static_t	cls;
 clgame_static_t	clgame;
 
-extern	cvar_t *allow_download;
 //======================================================================
 
 //======================================================================
@@ -172,8 +156,8 @@ void CL_SendConnectPacket (void)
 	if( adr.port == 0 ) adr.port = BigShort( PORT_SERVER );
 	port = Cvar_VariableValue( "net_qport" );
 
-	userinfo_modified = false;
-	Netchan_OutOfBandPrint(NS_CLIENT, adr, "connect %i %i %i \"%s\"\n", PROTOCOL_VERSION, port, cls.challenge, Cvar_Userinfo());
+	userinfo->modified = false;
+	Netchan_OutOfBandPrint( NS_CLIENT, adr, "connect %i %i %i \"%s\"\n", PROTOCOL_VERSION, port, cls.challenge, Cvar_Userinfo( ));
 }
 
 /*
@@ -221,17 +205,17 @@ CL_Connect_f
 
 ================
 */
-void CL_Connect_f (void)
+void CL_Connect_f( void )
 {
 	char	*server;
 
-	if (Cmd_Argc() != 2)
+	if( Cmd_Argc() != 2 )
 	{
-		Msg ("usage: connect <server>\n");
+		Msg( "Usage: connect <server>\n" );
 		return;	
 	}
 	
-	if(Host_ServerState())
+	if( Host_ServerState())
 	{	
 		// if running a local server, kill it and reissue
 		com.strncpy( host.finalmsg, "Server quit\n", MAX_STRING );
@@ -239,12 +223,12 @@ void CL_Connect_f (void)
 	}
 	else CL_Disconnect();
 
-	server = Cmd_Argv (1);
+	server = Cmd_Argv( 1 );
 
 	CL_Disconnect();
 
 	cls.state = ca_connecting;
-	com.strncpy (cls.servername, server, sizeof(cls.servername)-1);
+	com.strncpy( cls.servername, server, sizeof( cls.servername ));
 	cls.connect_time = MAX_HEARTBEAT; // CL_CheckForResend() will fire immediately
 }
 
@@ -253,20 +237,19 @@ void CL_Connect_f (void)
 =====================
 CL_Rcon_f
 
-  Send the rest of the command line over as
-  an unconnected command.
+Send the rest of the command line over as
+an unconnected command.
 =====================
 */
-void CL_Rcon_f (void)
+void CL_Rcon_f( void )
 {
 	char	message[1024];
-	int		i;
 	netadr_t	to;
+	int	i;
 
-	if (!rcon_client_password->string)
+	if( !rcon_client_password->string )
 	{
-		Msg ("You must set 'rcon_password' before\n"
-					"issuing an rcon command.\n");
+		Msg( "You must set 'rcon_password' before\n" "issuing an rcon command.\n" );
 		return;
 	}
 
@@ -276,35 +259,33 @@ void CL_Rcon_f (void)
 	message[3] = (char)255;
 	message[4] = 0;
 
-	com.strcat (message, "rcon ");
+	com.strcat( message, "rcon " );
+	com.strcat( message, rcon_client_password->string );
+	com.strcat( message, " " );
 
-	com.strcat (message, rcon_client_password->string);
-	com.strcat (message, " ");
-
-	for (i=1 ; i<Cmd_Argc() ; i++)
+	for( i = 1; i < Cmd_Argc(); i++ )
 	{
-		com.strcat (message, Cmd_Argv(i));
-		com.strcat (message, " ");
+		com.strcat( message, Cmd_Argv( i ));
+		com.strcat( message, " " );
 	}
 
-	if (cls.state >= ca_connected)
+	if( cls.state >= ca_connected )
+	{
 		to = cls.netchan.remote_address;
+	}
 	else
 	{
-		if (!com.strlen(rcon_address->string))
+		if( !com.strlen( rcon_address->string ))
 		{
-			Msg ("You must either be connected,\n"
-						"or set the 'rcon_address' cvar\n"
-						"to issue rcon commands\n");
-
+			Msg( "You must either be connected,\n" "or set the 'rcon_address' cvar\n" "to issue rcon commands\n" );
 			return;
 		}
-		NET_StringToAdr (rcon_address->string, &to);
-		if (to.port == 0)
-			to.port = BigShort (PORT_SERVER);
+
+		NET_StringToAdr( rcon_address->string, &to );
+		if( to.port == 0 ) to.port = BigShort( PORT_SERVER );
 	}
 	
-	NET_SendPacket (NS_CLIENT, com.strlen(message)+1, message, to);
+	NET_SendPacket( NS_CLIENT, com.strlen( message ) + 1, message, to );
 }
 
 
@@ -385,7 +366,7 @@ packet <destination> <contents>
 Contents allows \n escape character
 ====================
 */
-void CL_Packet_f (void)
+void CL_Packet_f( void )
 {
 	char	send[2048];
 	int		i, l;
@@ -666,8 +647,8 @@ void CL_ParseStatusMessage( netadr_t from, sizebuf_t *msg )
 
 	s = MSG_ReadString( msg );
 
-	Msg ("%s\n", s);
-	CL_ParseServerStatus( NET_AdrToString(from), s );
+	Msg( "%s\n", s );
+	CL_ParseServerStatus( NET_AdrToString( from ), s );
 }
 
 //===================================================================
@@ -842,7 +823,7 @@ void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 	// echo request from server
 	if( !com.strcmp( c, "echo" ))
 	{
-		Netchan_OutOfBandPrint( NS_CLIENT, from, "%s", Cmd_Argv(1) );
+		Netchan_OutOfBandPrint( NS_CLIENT, from, "%s", Cmd_Argv( 1 ));
 		return;
 	}
 
@@ -853,7 +834,6 @@ void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 		CL_Disconnect();
 		return;
 	}
-
 	Msg( "Unknown command.\n" );
 }
 
@@ -940,21 +920,29 @@ void CL_ReadPackets( void )
 CL_Userinfo_f
 ==============
 */
-void CL_Userinfo_f (void)
+void CL_Userinfo_f( void )
 {
 	Msg( "User info settings:\n" );
-	Info_Print( Cvar_Userinfo());
+	Info_Print( Cvar_Userinfo( ));
+}
+
+/*
+==============
+CL_Physinfo_f
+==============
+*/
+void CL_Physinfo_f( void )
+{
+	Msg( "Phys info settings:\n" );
+	Info_Print( cl.physinfo );
 }
 
 int precache_check; // for autodownload of precache items
 int precache_spawncount;
-int precache_tex;
 
 // ENV_CNT is map load, ENV_CNT+1 is first cubemap
 #define ENV_CNT		MAX_CONFIGSTRINGS
-#define TEXTURE_CNT		(ENV_CNT+13)
-
-static const char *env_suf[6] = {"rt", "bk", "lf", "ft", "up", "dn"};
+#define TEXTURE_CNT		(ENV_CNT+1)
 
 void CL_RequestNextDownload( void )
 {
@@ -974,22 +962,29 @@ void CL_RequestNextDownload( void )
 		if(!CL_CheckOrDownloadFile( cl.configstrings[CS_MODELS+1] ))
 			return; // started a download map
 	}
+
 	if( precache_check >= CS_MODELS && precache_check < CS_MODELS+MAX_MODELS )
 	{
 		while( precache_check < CS_MODELS+MAX_MODELS && cl.configstrings[precache_check][0])
 		{
+			if( cl.configstrings[precache_check][0] == '*' || cl.configstrings[precache_check][0] == '#' )
+			{
+				precache_check++; // ignore bsp models or built-in models
+				continue;
+			}
 			com.sprintf( fn, "%s", cl.configstrings[precache_check++]);
 			if(!CL_CheckOrDownloadFile( fn )) return; // started a download
 		}
 		precache_check = CS_SOUNDS;
 	}
+
 	if( precache_check >= CS_SOUNDS && precache_check < CS_SOUNDS+MAX_SOUNDS )
-	{ 
+	{
 		if( precache_check == CS_SOUNDS ) precache_check++; // zero is blank
 		while( precache_check < CS_SOUNDS+MAX_SOUNDS && cl.configstrings[precache_check][0])
 		{
 			// sound pathes from model events
-			if( cl.configstrings[precache_check][0] == '*' )
+			if( cl.configstrings[precache_check][0] == '*' || cl.configstrings[precache_check][0] == '#' )
 			{
 				precache_check++;
 				continue;
@@ -997,8 +992,26 @@ void CL_RequestNextDownload( void )
 			com.sprintf( fn, "sound/%s", cl.configstrings[precache_check++]);
 			if(!CL_CheckOrDownloadFile( fn )) return; // started a download
 		}
+		precache_check = CS_GENERICS;
+	}
+
+	if( precache_check >= CS_GENERICS && precache_check < CS_GENERICS+MAX_GENERICS )
+	{
+		if( precache_check == CS_GENERICS ) precache_check++; // zero is blank
+		while( precache_check < CS_GENERICS+MAX_GENERICS && cl.configstrings[precache_check][0] )
+		{
+			// generic recources - pakfiles, wadfiles etc
+			if( cl.configstrings[precache_check][0] == '#' )
+			{
+				precache_check++;
+				continue;
+			}
+			com.sprintf( fn, "%s", cl.configstrings[precache_check++]);
+			if(!CL_CheckOrDownloadFile( fn )) return; // started a download
+		}
 		precache_check = ENV_CNT;
 	}
+
 	if( precache_check == ENV_CNT )
 	{
 		precache_check = ENV_CNT + 1;
@@ -1010,40 +1023,20 @@ void CL_RequestNextDownload( void )
 			return;
 		}
 	}
+
 	if( precache_check > ENV_CNT && precache_check < TEXTURE_CNT )
 	{
 		if( allow_download->value )
 		{
-			while( precache_check < TEXTURE_CNT )
-			{
-				int n = precache_check++ - ENV_CNT - 1;
-				if( n & 1 ) com.sprintf( fn, "env/%s.dds", cl.configstrings[CS_SKYNAME] ); // cubemap pack
-				else com.sprintf( fn, "env/%s%s.tga", cl.configstrings[CS_SKYNAME], env_suf[n/2] );
-				if(!CL_CheckOrDownloadFile( fn )) return; // started a download
-			}
+			com.sprintf( fn, "env/%s.dds", cl.configstrings[CS_SKYNAME] ); // cubemap pack
+			if( !CL_CheckOrDownloadFile( fn )) return; // started a download
 		}
 		precache_check = TEXTURE_CNT;
 	}
 
+	// skip textures: use generic for downloading packs
 	if( precache_check == TEXTURE_CNT )
-	{
-		precache_check = TEXTURE_CNT+1;
-		precache_tex = 0;
-	}
-
-	// confirm existance of textures, download any that don't exist
-	if( precache_check == TEXTURE_CNT + 1 )
-	{
-		if( allow_download->value )
-		{
-			while( precache_tex < CM_NumShaders( ))
-			{
-				com.sprintf( fn, "%s", CM_GetShaderName( precache_tex++ ));
-				if( !CL_CheckOrDownloadFile( fn )) return; // started a download
-			}
-		}
 		precache_check = TEXTURE_CNT + 999;
-	}
 
 	CL_PrepSound();
 	CL_PrepVideo();
@@ -1111,6 +1104,7 @@ void CL_InitLocal( void )
 	topcolor = Cvar_Get( "topcolor", "0", CVAR_USERINFO | CVAR_ARCHIVE, "player top color" );
 	bottomcolor = Cvar_Get( "bottomcolor", "0", CVAR_USERINFO | CVAR_ARCHIVE, "player bottom color" );
 	rate = Cvar_Get( "rate", "25000", CVAR_USERINFO | CVAR_ARCHIVE, "player network rate" );	// FIXME
+	userinfo = Cvar_Get( "@userinfo", "0", CVAR_READ_ONLY, "" ); // use ->modified value only
 	cl_showfps = Cvar_Get( "cl_showfps", "1", CVAR_ARCHIVE, "show client fps" );
 
 	// register our commands
@@ -1120,6 +1114,7 @@ void CL_InitLocal( void )
 	Cmd_AddCommand ("freeserverlist", CL_FreeServerList_f, "clear info about local servers" );
 
 	Cmd_AddCommand ("userinfo", CL_Userinfo_f, "print current client userinfo" );
+	Cmd_AddCommand ("physinfo", CL_Physinfo_f, "print current client physinfo" );
 	Cmd_AddCommand ("changing", CL_Changing_f, "sent by server to tell client to wait for level change" );
 	Cmd_AddCommand ("disconnect", CL_Disconnect_f, "disconnect from server" );
 	Cmd_AddCommand ("record", CL_Record_f, "record a demo" );

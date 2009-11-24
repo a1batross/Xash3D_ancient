@@ -18,9 +18,10 @@ is not a staircase.
 
 =============
 */
-bool SV_CheckBottom( edict_t *ent )
+bool SV_CheckBottom( edict_t *ent, int iMode )
 {
 	vec3_t	mins, maxs, start, stop;
+	bool	realcheck = false;
 	float	mid, bottom;
 	trace_t	trace;
 	int	x, y;
@@ -38,21 +39,30 @@ bool SV_CheckBottom( edict_t *ent )
 		{
 			start[0] = x ? maxs[0] : mins[0];
 			start[1] = y ? maxs[1] : mins[1];
-			if( SV_PointContents( start ) != CONTENTS_SOLID )
-				goto realcheck;
+			if( SV_BaseContents( start, ent ) & MASK_SOLID )
+			{
+				realcheck = true;
+				break;
+			}
 		}
+		if( realcheck )
+			break;
 	}
-	return true; // we got out easy
 
-realcheck:
+	if( !realcheck )
+		return true; // we got out easy
+
 	// check it for real...
-	start[2] = mins[2];
+	start[2] = mins[2] + svgame.movevars.stepsize;
 
 	// the midpoint must be within 16 of the bottom
 	start[0] = stop[0] = (mins[0] + maxs[0]) * 0.5f;
 	start[1] = stop[1] = (mins[1] + maxs[1]) * 0.5f;
-	stop[2] = start[2] - 2 * sv_stepheight->value;
-	trace = SV_Move( start, vec3_origin, vec3_origin, stop, MOVE_NOMONSTERS, ent );
+	stop[2] = start[2] - 2 * svgame.movevars.stepsize;
+
+	if( iMode == WALKMOVE_WORLDONLY )
+		trace = SV_Move( start, vec3_origin, vec3_origin, stop, MOVE_WORLDONLY, ent );
+	else trace = SV_Move( start, vec3_origin, vec3_origin, stop, MOVE_NORMAL|FTRACE_SIMPLEBOX, ent );
 
 	if( trace.flFraction == 1.0f )
 		return false;
@@ -66,133 +76,179 @@ realcheck:
 			start[0] = stop[0] = x ? maxs[0] : mins[0];
 			start[1] = stop[1] = y ? maxs[1] : mins[1];
 
-			trace = SV_Move( start, vec3_origin, vec3_origin, stop, MOVE_NOMONSTERS, ent );
+			if( iMode == WALKMOVE_WORLDONLY )
+				trace = SV_Move( start, vec3_origin, vec3_origin, stop, MOVE_WORLDONLY, ent );
+			else trace = SV_Move( start, vec3_origin, vec3_origin, stop, MOVE_NORMAL|FTRACE_SIMPLEBOX, ent );
 
 			if( trace.flFraction != 1.0f && trace.vecEndPos[2] > bottom )
 				bottom = trace.vecEndPos[2];
-			if( trace.flFraction == 1.0f || mid - trace.vecEndPos[2] > sv_stepheight->value )
+			if( trace.flFraction == 1.0f || mid - trace.vecEndPos[2] > svgame.movevars.stepsize )
 				return false;
 		}
 	}
 	return true;
 }
 
-
 /*
 =============
-SV_movestep
+SV_VecToYaw
 
-Called by monster program code.
-The move will be adjusted for slopes and stairs, but if the move isn't
-possible, no move is done and false is returned
+converts dir to yaw
 =============
 */
-bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool settrace )
+float SV_VecToYaw( const vec3_t src )
 {
-	float	dz;
-	vec3_t	oldorg, neworg;
-	vec3_t	end, endpos;
-	edict_t	*enemy;
+	float	yaw;
+
+	if( src[1] == 0 && src[0] == 0 )
+	{
+		yaw = 0;
+	}
+	else
+	{
+		yaw = (int)( com.atan2( src[1], src[0] ) * 180 / M_PI );
+		if( yaw < 0 ) yaw += 360;
+	}
+	return yaw;
+}
+
+//============================================================================
+/*
+======================
+SV_WalkMove
+
+======================
+*/
+bool SV_WalkMove( edict_t *ent, vec3_t move, int iMode )
+{
 	trace_t	trace;
-	int	i;
+	vec3_t	oldorg, neworg, end;
+	edict_t	*groundent = NULL;
+	bool	relink;
+
+	if( iMode == WALKMOVE_NORMAL )
+		relink = true;
+	else relink = false;
 
 	// try the move
-	VectorCopy (ent->v.origin, oldorg);
-	VectorAdd (ent->v.origin, move, neworg);
-
-	// flying monsters don't step up
-	if( ent->v.flags & (FL_SWIM|FL_FLY))
+	VectorCopy( ent->v.origin, oldorg );
+   
+	// flying pawns don't step up
+	if( ent->v.flags & ( FL_SWIM|FL_FLY ))
 	{
-		// try one move with vertical motion, then one without
-		for( i = 0; i < 2; i++ )
+		VectorAdd( oldorg, move, neworg );
+
+		if( iMode == WALKMOVE_WORLDONLY )
+			trace = SV_Move( oldorg, ent->v.mins, ent->v.maxs, neworg, MOVE_WORLDONLY, ent );
+		else trace = SV_Move( oldorg, ent->v.mins, ent->v.maxs, neworg, MOVE_NORMAL|FTRACE_SIMPLEBOX, ent );
+
+		if( trace.flFraction == 1.0f )
 		{
-			VectorAdd( ent->v.origin, move, neworg );
-			if( noenemy ) enemy = EDICT_NUM( 0 );
-			else
-			{
-				enemy = ent->v.enemy;
-				if( i == 0 && enemy != EDICT_NUM( 0 ))
-				{
-					dz = ent->v.origin[2] - ent->v.enemy->v.origin[2];
-					if( dz > 40 ) neworg[2] -= 8;
-					if( dz < 30 ) neworg[2] += 8;
-				}
-			}
-			trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, neworg, MOVE_NORMAL, ent );
+			if(( ent->v.flags & FL_SWIM ) && !( SV_BaseContents(trace.vecEndPos, ent) & MASK_WATER ))
+				return false; // swimming pawn left water
 
-			if( trace.flFraction == 1.0f )
-			{
-				VectorCopy( trace.vecEndPos, endpos );
-				if( ent->v.flags & FL_SWIM && SV_PointContents( endpos ) == CONTENTS_EMPTY )
-					return false; // swim monster left water
+			VectorCopy( trace.vecEndPos, ent->v.origin );
 
-				VectorCopy( endpos, ent->v.origin );
-				if( relink ) SV_LinkEdict( ent, true );
-				return true;
-			}
-			if( enemy == EDICT_NUM( 0 )) break;
+			if( !VectorCompare( ent->v.origin, oldorg ))
+				SV_LinkEdict( ent, relink );
+
+			return true;
 		}
 		return false;
 	}
 
+	VectorAdd( oldorg, move, neworg );
+
 	// push down from a step height above the wished position
-	neworg[2] += sv_stepheight->value;
+	neworg[2] += svgame.movevars.stepsize;
 	VectorCopy( neworg, end );
-	end[2] -= sv_stepheight->value * 2;
+	end[2] -= svgame.movevars.stepsize * 2;
 
-	trace = SV_Move( neworg, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL, ent );
-
+	if( iMode == WALKMOVE_WORLDONLY )
+		trace = SV_Move( neworg, ent->v.mins, ent->v.maxs, end, MOVE_WORLDONLY, ent );
+	else trace = SV_Move( neworg, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL|FTRACE_SIMPLEBOX, ent );
+    
 	if( trace.fAllSolid )
+	{
+		Msg( "WalkMove: all solid\n" );
 		return false;
-
+	}
 	if( trace.fStartSolid )
 	{
-		neworg[2] -= sv_stepheight->value;
-		trace = SV_Move( neworg, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL, ent );
+		neworg[2] -= svgame.movevars.stepsize;
+
+		if( iMode == WALKMOVE_WORLDONLY )
+			trace = SV_Move( neworg, ent->v.mins, ent->v.maxs, end, MOVE_WORLDONLY, ent );
+		else trace = SV_Move( neworg, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL|FTRACE_SIMPLEBOX, ent );
+
 		if( trace.fAllSolid || trace.fStartSolid )
+		{
+			Msg( "WalkMove: all solid || start solid\n" );
 			return false;
+		}
 	}
+
 	if( trace.flFraction == 1.0f )
 	{
 		// if monster had the ground pulled out, go ahead and fall
-		if( ent->v.flags & FL_PARTIALONGROUND )
+		if( ent->v.flags & FL_PARTIALGROUND )
 		{
 			VectorAdd( ent->v.origin, move, ent->v.origin );
-			if( relink ) SV_LinkEdict( ent, true );
+
+			if( !VectorCompare( ent->v.origin, oldorg ))
+				SV_LinkEdict( ent, relink );
+
 			ent->v.flags &= ~FL_ONGROUND;
 			return true;
 		}
+		Msg( "WalkMove: walked off and edge\n" );
 		return false; // walked off an edge
 	}
 
 	// check point traces down for dangling corners
 	VectorCopy( trace.vecEndPos, ent->v.origin );
+	groundent = trace.pHit;
 
-	if(!SV_CheckBottom( ent ))
+	// check our pos
+	if( iMode == WALKMOVE_WORLDONLY )
+		trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, ent->v.origin, MOVE_WORLDONLY, ent );
+	else trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, ent->v.origin, MOVE_NORMAL|FTRACE_SIMPLEBOX, ent );
+
+	if( trace.fStartSolid )
 	{
-		if( ent->v.flags & FL_PARTIALONGROUND )
-		{	
-			// entity had floor mostly pulled out from underneath it
-			// and is trying to correct
-			if( relink ) SV_LinkEdict( ent, true );
-			return true;
-		}
 		VectorCopy( oldorg, ent->v.origin );
+		Msg( "WalkMove: start solid\n" );
 		return false;
 	}
 
-	if( ent->v.flags & FL_PARTIALONGROUND )
-		ent->v.flags &= ~FL_PARTIALONGROUND;
+	if( !SV_CheckBottom( ent, iMode ))
+	{
+		if( ent->v.flags & FL_PARTIALGROUND )
+		{    
+			// actor had floor mostly pulled out from underneath it
+			// and is trying to correct
+			if( !VectorCompare( ent->v.origin, oldorg ))
+				SV_LinkEdict( ent, relink );
+			Msg( "WalkMove: partialground - ok\n" );
+			return true;
+		}
 
-	ent->v.groundentity = trace.pHit;
+		ent->v.flags |= FL_PARTIALGROUND;
+		VectorCopy( oldorg, ent->v.origin );
+		Msg( "WalkMove: restore old pos\n" );
+		return false;
+	}
+
+	if( ent->v.flags & FL_PARTIALGROUND )
+		ent->v.flags &= ~FL_PARTIALGROUND;
+
+	ent->v.groundentity = groundent;
 
 	// the move is ok
-	if( relink ) SV_LinkEdict( ent, true );
+	if( !VectorCompare( ent->v.origin, oldorg ))
+		SV_LinkEdict( ent, relink );
 	return true;
 }
-
-
-//============================================================================
 
 /*
 ======================
@@ -200,166 +256,66 @@ SV_StepDirection
 
 Turns to the movement direction, and walks the current distance if
 facing it.
-
 ======================
 */
-bool SV_StepDirection( edict_t *ent, float yaw, float dist )
+bool SV_StepDirection( edict_t *ent, float yaw, float dist, int iMode )
 {
 	vec3_t	move, oldorigin;
 	float	delta;
 
-	ent->v.ideal_yaw = yaw;
-	ent->v.angles[1] = SV_AngleMod( ent->v.ideal_yaw, anglemod( ent->v.angles[1] ), ent->v.yaw_speed );
-
 	yaw = yaw * M_PI*2 / 360;
-	move[0] = cos(yaw)*dist;
-	move[1] = sin(yaw)*dist;
-	move[2] = 0;
-
+	VectorSet( move, com.cos( yaw ) * dist, com.sin( yaw ) * dist, 0.0f );
 	VectorCopy( ent->v.origin, oldorigin );
-	if(SV_movestep( ent, move, false, false, false ))
+
+	if( SV_WalkMove( ent, move, WALKMOVE_NORMAL ))
 	{
-		delta = ent->v.angles[YAW] - ent->v.ideal_yaw;
-		if( delta > 45 && delta < 315 )
-		{		
-			// not turned far enough, so don't take the step
-			VectorCopy( oldorigin, ent->v.origin );
+		if( iMode != MOVE_STRAFE )
+		{
+			delta = ent->v.angles[YAW] - ent->v.ideal_yaw;
+			if( delta > 45 && delta < 315 )
+			{		
+				// not turned far enough, so don't take the step
+				VectorCopy( oldorigin, ent->v.origin );
+			}
 		}
-		SV_LinkEdict( ent, true );
+		SV_LinkEdict( ent, false );
 		return true;
 	}
-	SV_LinkEdict( ent, true );
 
+	SV_LinkEdict( ent, false );
 	return false;
 }
 
 /*
 ======================
-SV_FixCheckBottom
+SV_MoveToOrigin
 
+Turns to the movement direction, and walks the current distance if
+facing it.
 ======================
-*/
-void SV_FixCheckBottom( edict_t *ent )
+*/  
+void SV_MoveToOrigin( edict_t *ed, const vec3_t goal, float dist, int iMode )
 {
-	ent->v.flags |= FL_PARTIALONGROUND;
-}
+	float	yaw, distToGoal;
+	vec3_t	vecDist;
 
-/*
-================
-SV_NewChaseDir
-
-================
-*/
-void SV_NewChaseDir( edict_t *actor, edict_t *enemy, float dist )
-{
-	float		deltax, deltay;
-	float		d[3], tdir, olddir, turnaround;
-
-	olddir = anglemod((int)(actor->v.ideal_yaw / 45 ) * 45 );
-	turnaround = anglemod( olddir - 180 );
-
-	deltax = enemy->v.origin[0] - actor->v.origin[0];
-	deltay = enemy->v.origin[1] - actor->v.origin[1];
-	if( deltax > 10 ) d[1]= 0;
-	else if( deltax < -10 ) d[1] = 180;
-	else d[1] = -1;
-	if( deltay < -10 ) d[2] = 270;
-	else if( deltay > 10 ) d[2] = 90;
-	else d[2] = -1;
-
-	// try direct route
-	if( d[1] != -1 && d[2] != -1 )
+	if( iMode == MOVE_STRAFE )
 	{
-		if( d[1] == 0 ) tdir = d[2] == 90 ? 45 : 315;
-		else tdir = d[2] == 90 ? 135 : 215;
-
-		if( tdir != turnaround && SV_StepDirection( actor, tdir, dist ))
-			return;
-	}
-
-	// try other directions
-	if((( rand()&3 ) & 1 ) || fabs(deltay) > fabs( deltax ))
-	{
-		tdir = d[1];
-		d[1] = d[2];
-		d[2] = tdir;
-	}
-
-	if( d[1] != -1 && d[1] != turnaround && SV_StepDirection( actor, d[1], dist ))
-		return;
-
-	if( d[2] != -1 && d[2] != turnaround && SV_StepDirection( actor, d[2], dist ))
-		return;
-
-	// there is no direct path to the player, so pick another direction
-	if( olddir != -1 && SV_StepDirection( actor, olddir, dist ))
-		return;
-
- 	// randomly determine direction of search
-	if( rand() & 1 )
-	{
-		for( tdir = 0; tdir <= 315; tdir += 45 )
-			if( tdir != turnaround && SV_StepDirection( actor, tdir, dist ))
-				return;
+		vec3_t	delta;
+		
+		VectorSubtract( goal, ed->v.origin, delta );
+		VectorNormalizeFast( delta );
+		yaw = SV_VecToYaw( delta );
 	}
 	else
 	{
-		for( tdir = 315; tdir >= 0; tdir -= 45 )
-			if( tdir != turnaround && SV_StepDirection( actor, tdir, dist ))
-				return;
+		yaw = ed->v.ideal_yaw;
 	}
 
-	if( turnaround != -1 && SV_StepDirection( actor, turnaround, dist ))
-			return;
 
-	actor->v.ideal_yaw = olddir; // can't move
+	VectorSubtract( ed->v.origin, goal, vecDist );
+	distToGoal = com.sqrt( vecDist[0] * vecDist[0] + vecDist[1] * vecDist[1] );
+	if( dist > distToGoal ) dist = distToGoal;
 
-	// if a bridge was pulled out from underneath a monster, it may not have
-	// a valid standing position at all
-	if(!SV_CheckBottom( actor )) SV_FixCheckBottom( actor );
-}
-
-/*
-======================
-SV_CloseEnough
-
-======================
-*/
-bool SV_CloseEnough( edict_t *ent, edict_t *goal, float dist )
-{
-	int	i;
-
-	for( i = 0; i < 3; i++ )
-	{
-		if( goal->v.absmin[i] > ent->v.absmax[i] + dist )
-			return false;
-		if( goal->v.absmax[i] < ent->v.absmin[i] - dist )
-			return false;
-	}
-	return true;
-}
-
-/*
-======================
-SV_MoveToGoal
-
-======================
-*/
-bool SV_MoveToGoal( edict_t *ent, edict_t *goal, float dist )
-{
-	if(!(ent->v.flags & (FL_FLY|FL_SWIM|FL_ONGROUND)))
-	{
-		return false;
-	}
-
-	// if the next step hits the enemy, return immediately
-	if( ent->v.enemy != EDICT_NUM( 0 ) && SV_CloseEnough( ent, goal, dist ))
-		return false;
-
-	// bump around...
-	if(( rand() & 3) == 1 || !SV_StepDirection( ent, ent->v.ideal_yaw, dist ))
-	{
-		SV_NewChaseDir( ent, goal, dist );
-	}
-	return true;
+	SV_StepDirection( ed, yaw, dist, iMode );
 }

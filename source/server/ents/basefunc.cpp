@@ -1254,7 +1254,7 @@ void CPendulum :: SetSwing( float speed )
 		{
 			UTIL_SetAvelocity( this, g_vecZero );
 			m_iState = STATE_OFF;
-			LINK_ENTITY( ENT( pev ));
+			LINK_ENTITY( ENT( pev ), false );
 		}
 	}
 	else

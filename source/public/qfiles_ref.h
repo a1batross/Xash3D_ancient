@@ -302,7 +302,7 @@ typedef enum
 	BASECONT_NODROP		= BIT(29),	// don't leave bodies or items (death fog, lava)
 
 	// content masks
-	MASK_SOLID		= (BASECONT_SOLID),
+	MASK_SOLID		= (BASECONT_SOLID|BASECONT_BODY),
 	MASK_PLAYERSOLID		= (BASECONT_SOLID|BASECONT_PLAYERCLIP|BASECONT_BODY),
 	MASK_MONSTERSOLID		= (BASECONT_SOLID|BASECONT_MONSTERCLIP|BASECONT_BODY),
 	MASK_DEADSOLID		= (BASECONT_SOLID|BASECONT_PLAYERCLIP),
@@ -627,6 +627,50 @@ typedef struct
 } dprograms_t;
 
 #include "studio_ref.h"
+
+/*
+========================================================================
+ROQ FILES
+
+The .roq file are vector-compressed movies
+========================================================================
+*/
+#define RoQ_HEADER1		4228
+#define RoQ_HEADER2		-1
+#define RoQ_HEADER3		30
+#define RoQ_FRAMERATE	30
+
+// RoQ markers
+#define RoQ_INFO		0x1001
+#define RoQ_QUAD_CODEBOOK	0x1002
+#define RoQ_QUAD_VQ		0x1011
+#define RoQ_SOUND_MONO	0x1020
+#define RoQ_SOUND_STEREO	0x1021
+
+// RoQ movie type
+#define RoQ_ID_MOT		0x00
+#define RoQ_ID_FCC		0x01
+#define RoQ_ID_SLD		0x02
+#define RoQ_ID_CCC		0x03
+
+typedef struct 
+{
+	byte		y[4];
+	byte		u;
+	byte		v;
+} dcell_t;
+
+typedef struct 
+{
+	byte		idx[4];
+} dquadcell_t;
+
+typedef struct 
+{
+	word		id;
+	uint		size;
+	word		argument;
+} droqchunk_t;
 
 /*
 ==============================================================================

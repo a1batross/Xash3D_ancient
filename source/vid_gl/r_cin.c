@@ -1,45 +1,28 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
+//=======================================================================
+//			Copyright XashXT Group 2009 ©
+//			r_cin.c - plays videotextures
+//=======================================================================
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-
-// r_cin.c
 #include "r_local.h"
-#include "cin.h"
 
 #define MAX_CINEMATICS	256
 
 typedef struct r_cinhandle_s
 {
-	unsigned int	id;
+	uint			id;
 	char			*name;
-	cinematics_t	*cin;
+	cinematics_t		*cin;
 	texture_t			*image;
-	struct r_cinhandle_s *prev, *next;
+	struct r_cinhandle_s	*prev, *next;
 } r_cinhandle_t;
 
 static byte *r_cinMemPool;
 
-static r_cinhandle_t *r_cinematics;
-static r_cinhandle_t r_cinematics_headnode, *r_free_cinematics;
+static r_cinhandle_t	*r_cinematics;
+static r_cinhandle_t	r_cinematics_headnode, *r_free_cinematics;
 
-#define Cin_Malloc(size) Mem_Alloc(r_cinMemPool,size)
-#define Cin_Free(data) Mem_Free(data)
+#define Cin_Malloc( size )	Mem_Alloc( r_cinMemPool, size )
+#define Cin_Free( data )	Mem_Free( data )
 
 /*
 ==================
@@ -48,28 +31,12 @@ R_ReadNextRoQFrame
 */
 static byte *R_ReadNextRoQFrame( cinematics_t *cin )
 {
-	roq_chunk_t *chunk = &cin->chunk;
+	return ri.RoQ_ReadNextFrame( cin, true );
+}
 
-	while( !FS_Eof( cin->file ) )
-	{
-		RoQ_ReadChunk( cin );
-
-		if( FS_Eof( cin->file ) )
-			return NULL;
-		if( chunk->size <= 0 )
-			continue;
-
-		if( chunk->id == RoQ_INFO )
-			RoQ_ReadInfo( cin );
-		else if( chunk->id == RoQ_QUAD_VQ )
-			return RoQ_ReadVideo( cin );
-		else if( chunk->id == RoQ_QUAD_CODEBOOK )
-			RoQ_ReadCodebook( cin );
-		else
-			RoQ_SkipChunk( cin );
-	}
-
-	return NULL;
+static void R_ReadRoQChunk( cinematics_t *cin )
+{
+	ri.RoQ_ReadChunk( cin );
 }
 
 /*
@@ -82,8 +49,8 @@ static void R_RunRoQ( cinematics_t *cin )
 	uint	frame;
 
 	frame = (RI.refdef.time - cin->time) * (float)(RoQ_FRAMERATE);
-	if( frame <= cin->frame )
-		return;
+	if( frame <= cin->frame ) return;
+
 	if( frame > cin->frame + 1 )
 		cin->time = RI.refdef.time - cin->frame / RoQ_FRAMERATE;
 
@@ -97,7 +64,6 @@ static void R_RunRoQ( cinematics_t *cin )
 		cin->pic_pending = R_ReadNextRoQFrame( cin );
 		cin->time = RI.refdef.time;
 	}
-
 	cin->new_frame = true;
 }
 
@@ -120,7 +86,7 @@ static void R_StopRoQ( cinematics_t *cin )
 	}
 	if( cin->name )
 	{
-		Mem_Free( cin->name );
+		Mem_Free( (char *)cin->name );
 		cin->name = NULL;
 	}
 	if( cin->vid_buffer )
@@ -137,20 +103,20 @@ R_OpenCinematics
 */
 static cinematics_t *R_OpenCinematics( char *filename )
 {
-	file_t *file;
-	cinematics_t *cin = NULL;
-	roq_chunk_t *chunk = &cin->chunk;
+	file_t		*file;
+	cinematics_t	*cin = NULL;
+	droqchunk_t	*chunk = &cin->chunk;
 
-	if((file = FS_Open( filename, "rb" )) == NULL )
+	if(( file = FS_Open( filename, "rb" )) == NULL )
 		return NULL;
 
-	cin = Cin_Malloc( sizeof( cinematics_t ) );
+	cin = Cin_Malloc( sizeof( cinematics_t ));
 	cin->name = filename;
 	cin->file = file;
 	cin->mempool = r_cinMemPool;
 
 	// read header
-	RoQ_ReadChunk( cin );
+	R_ReadRoQChunk( cin );
 
 	chunk = &cin->chunk;
 	if( chunk->id != RoQ_HEADER1 || chunk->size != RoQ_HEADER2 || chunk->argument != RoQ_HEADER3 )
@@ -260,15 +226,14 @@ void R_InitCinematics( void )
 	int i;
 
 	r_cinMemPool = Mem_AllocPool( "Cinematics" );
-
 	r_cinematics = Cin_Malloc( sizeof( r_cinhandle_t ) * MAX_CINEMATICS );
-	memset( r_cinematics, 0, sizeof( r_cinhandle_t ) * MAX_CINEMATICS );
 
 	// link cinemtics
 	r_free_cinematics = r_cinematics;
 	r_cinematics_headnode.id = 0;
 	r_cinematics_headnode.prev = &r_cinematics_headnode;
 	r_cinematics_headnode.next = &r_cinematics_headnode;
+
 	for( i = 0; i < MAX_CINEMATICS - 1; i++ )
 	{
 		if( i < MAX_CINEMATICS - 1 )
@@ -301,9 +266,9 @@ void R_RunAllCinematics( void )
 R_UploadCinematics
 ==================
 */
-texture_t *R_UploadCinematics( unsigned int id )
+texture_t *R_UploadCinematics( uint id )
 {
-	Com_Assert( (id > 0 && id <= MAX_CINEMATICS) == 0 );
+	Com_Assert( !( id > 0 && id <= MAX_CINEMATICS ));
 	return R_ResampleCinematicFrame( r_cinematics + id - 1 );
 }
 
@@ -312,16 +277,17 @@ texture_t *R_UploadCinematics( unsigned int id )
 R_StartCinematic
 ==================
 */
-unsigned int R_StartCinematics( const char *arg )
+uint R_StartCinematics( const char *arg )
 {
-	char *name = NULL, uploadName[128];
-	size_t name_size;
-	cinematics_t *cin = NULL;
-	r_cinhandle_t *handle, *hnode, *next;
+	char		*name = NULL;
+	string		uploadName;
+	size_t		name_size;
+	cinematics_t	*cin = NULL;
+	r_cinhandle_t	*handle, *hnode, *next;
 
-	name_size = strlen( "video/" ) + strlen( arg ) + strlen( ".roq" ) + 1;
+	name_size = com.strlen( "media/" ) + com.strlen( arg ) + com.strlen( ".roq" ) + 1;
 	name = Cin_Malloc( name_size );
-	com.snprintf( name, name_size, "video/%s", arg );
+	com.snprintf( name, name_size, "media/%s", arg );
 	FS_DefaultExtension( name, ".roq" );
 
 	// find cinematics with the same name
@@ -372,9 +338,9 @@ unsigned int R_StartCinematics( const char *arg )
 R_FreeCinematics
 =================
 */
-void R_FreeCinematics( unsigned int id )
+void R_FreeCinematics( uint id )
 {
-	r_cinhandle_t *handle;
+	r_cinhandle_t	*handle;
 
 	handle = r_cinematics + id - 1;
 	if( !handle->cin )
@@ -404,7 +370,7 @@ R_ShutdownCinematics
 */
 void R_ShutdownCinematics( void )
 {
-	r_cinhandle_t *handle, *hnode, *next;
+	r_cinhandle_t	*handle, *hnode, *next;
 
 	if( !r_cinMemPool )
 		return;

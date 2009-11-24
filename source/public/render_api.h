@@ -88,6 +88,36 @@ typedef struct
 	byte		seqblending[16];		// blending between sequence when it's changed
 } prevframe_t;
 
+typedef struct
+{
+	char		*name;
+	byte		*mempool;
+
+	droqchunk_t	chunk;
+	dcell_t		cells[256];
+	dquadcell_t	qcells[256];
+	
+	byte		*vid_buffer; 
+	byte		*vid_pic[2]; 
+	byte		*pic;
+	byte		*pic_pending;
+
+	bool		new_frame;
+
+	int		s_rate;
+	int		s_width;
+	int		s_channels;
+
+	int		width;
+	int		height;
+
+	file_t		*file;
+	int		headerlen;
+
+	uint		time;			// Sys_Milliseconds for first cinematic frame
+	uint		frame;
+} cinematics_t;
+
 /*
 ==============================================================================
 
@@ -155,6 +185,10 @@ typedef struct render_imp_s
 	edict_t	*(*GetLocalPlayer)( void );
 	int	(*GetMaxClients)( void );
 	float	(*GetLerpFrac)( void );
+
+	// RoQ decoder imports
+	void	(*RoQ_ReadChunk)( cinematics_t *cin );
+	byte	*(*RoQ_ReadNextFrame)( cinematics_t *cin, bool silent );
 } render_imp_t;
 
 #endif//RENDER_API_H

@@ -181,8 +181,6 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 			oldnum = oldstate->number;
 		}
 	}
-
-	for( ; EDICT_NUM( clgame.globals->numEntities - 1 )->free; clgame.globals->numEntities-- );
 }
 
 /*
@@ -312,6 +310,7 @@ void CL_AddPacketEntities( frame_t *frame )
 		// NOTE: skyportal entity never added to rendering
 		if( ed_type == ED_SKYPORTAL ) cl.render_flags |= RDF_SKYPORTALINVIEW;
 	}
+	for( ; EDICT_NUM( clgame.globals->numEntities - 1 )->free; clgame.globals->numEntities-- );
 
 	if( cl.oldframe && !memcmp( cl.oldframe->areabits, cl.frame.areabits, sizeof( cl.frame.areabits )))
 		cl.render_flags |= RDF_OLDAREABITS;

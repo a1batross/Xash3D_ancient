@@ -1145,6 +1145,7 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 			to->weaponmodel = MODEL_INDEX( STRING( pNet->pev->weaponmodel ));
 		else to->weaponmodel = 0;
 		to->weapons = pNet->pev->weapons;
+		to->maxspeed = pNet->pev->maxspeed;
 
 		// clamp fov
 		if( pNet->pev->fov < 0.0 ) pNet->pev->fov = 0.0;
@@ -1179,6 +1180,50 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 		if( pNet->pev->owner ) 
 			to->owner = ENTINDEX( pNet->pev->owner );
 		else to->owner = NULLENT_INDEX;
+	}
+}
+
+/*
+=================
+CmdStart
+
+We're about to run this usercmd for the specified player.  We can set up groupinfo and masking here, etc.
+This is the time to examine the usercmd for anything extra.  This call happens even if think does not.
+=================
+*/
+void CmdStart( const edict_t *player, const usercmd_t *cmd, unsigned int random_seed )
+{
+	entvars_t *pev = (entvars_t *)&player->v;
+	CBasePlayer *pl = ( CBasePlayer *) CBasePlayer::Instance( pev );
+
+	if( !pl )
+		return;
+
+	if ( pl->pev->groupinfo != 0 )
+	{
+		UTIL_SetGroupTrace( pl->pev->groupinfo, GROUP_OP_AND );
+	}
+
+	pl->random_seed = random_seed;
+}
+
+/*
+=================
+CmdEnd
+
+Each cmdstart is exactly matched with a cmd end, clean up any group trace flags, etc. here
+=================
+*/
+void CmdEnd( const edict_t *player )
+{
+	entvars_t *pev = (entvars_t *)&player->v;
+	CBasePlayer *pl = ( CBasePlayer *) CBasePlayer::Instance( pev );
+
+	if( !pl )
+		return;
+	if ( pl->pev->groupinfo != 0 )
+	{
+		UTIL_UnsetGroupTrace();
 	}
 }
 
@@ -1278,7 +1323,136 @@ const char *GetGameDescription( void )
 		COM_FreeFile( afile );
 		return text;
 	}
-	return "Half-Life";
+	return "Xash3D";
+}
+
+////////////////////////////////////////////////////////
+// PAS and PVS routines for client messaging
+//
+
+/*
+================
+SetupVisibility
+
+A client can have a separate "view entity" indicating that his/her view should depend on the origin of that
+view entity.  If that's the case, then pViewEntity will be non-NULL and will be used.  Otherwise, the current
+entity's origin is used.  Either is offset by the view_ofs to get the eye position.
+
+From the eye position, we set up the PAS and PVS to use for filtering network messages to the client.  At this point, we could
+ override the actual PAS or PVS values, or use a different origin.
+
+NOTE:  Do not cache the values of pas and pvs, as they depend on reusable memory in the engine, they are only good for this one frame
+================
+*/
+void SetupVisibility( edict_t *pViewEntity, edict_t *pClient, byte **pvs, byte **pas )
+{
+	Vector	org;
+	edict_t	*pView = pClient;
+
+	// Find the client's PVS
+	if ( pViewEntity )
+	{
+		pView = pViewEntity;
+	}
+
+	CBasePlayer *pPlayer = (CBasePlayer *)CBaseEntity::Instance( pClient );
+
+	if (pPlayer && pPlayer->viewFlags & 1)
+	{
+		CBaseEntity *pViewEnt = pPlayer->pViewEnt;
+		if(pPlayer->pViewEnt->edict())pView = pViewEnt->edict();
+	}
+
+	if ( pClient->v.flags & FL_PROXY )
+	{
+		*pvs = NULL;	// the spectator proxy sees
+		*pas = NULL;	// and hears everything
+		return;
+	}
+
+	org = pView->v.origin + pView->v.view_ofs;
+	if ( pView->v.flags & FL_DUCKING )
+	{
+		org = org + ( VEC_HULL_MIN - VEC_DUCK_HULL_MIN );
+	}
+
+	*pvs = ENGINE_SET_PVS ( (float *)&org, false );
+	*pas = ENGINE_SET_PHS ( (float *)&org, false );
+}
+
+/*
+AddToFullPack
+
+Return 1 if the entity state has been filled in for the ent and the entity will be propagated to the client, 0 otherwise
+
+state is the server maintained copy of the state info that is transmitted to the client
+a MOD could alter values copied into state to send the "host" a different look for a particular entity update, etc.
+e and ent are the entity that is being added to the update, if 1 is returned
+host is the player's edict of the player whom we are sending the update to
+player is 1 if the ent/e is a player and 0 otherwise
+pSet is either the PAS or PVS that we previous set up.  We can use it to ask the engine to filter the entity against the PAS or PVS.
+we could also use the pas/ pvs that we set in SetupVisibility, if we wanted to.  Caching the value is valid in that case, but still only for the current frame
+*/
+int AddToFullPack( edict_t *pClient, edict_t *pEntity, int hostflags )
+{
+	// Work In Progress: not used
+#if 0
+	int					i;
+
+	// don't send if flagged for NODRAW and it's not the host getting the message
+	if ( ( ent->v.effects == EF_NODRAW ) &&  ( ent != host ) ) return 0;
+
+	// Ignore ents without valid / visible models
+	if ( !ent->v.modelindex || !STRING( ent->v.model ) )
+		return 0;
+
+	// Don't send spectators to other players
+	if ( ( ent->v.flags & FL_SPECTATOR ) && ( ent != host ) )
+	{
+		return 0;
+	}
+
+	// Ignore if not the host and not touching a PVS/PAS leaf
+	// If pSet is NULL, then the test will always succeed and the entity will be added to the update
+	if ( ent != host )
+	{
+		if ( !ENGINE_CHECK_VISIBILITY( (const struct edict_s *)ent, pSet ) )
+		{
+			if ( !(ent->v.flags & FL_SKYENTITY) ) return 0;
+		}
+	}
+
+
+	// Don't send entity to local client if the client says it's predicting the entity itself.
+	if ( ent->v.flags & FL_SKIPLOCALHOST )
+	{
+		if ( ( hostflags & 1 ) && ( ent->v.owner == host ) )
+			return 0;
+	}
+
+	if ( host->v.groupinfo )
+	{
+		UTIL_SetGroupTrace( host->v.groupinfo, GROUP_OP_AND );
+
+		// Should always be set, of course
+		if ( ent->v.groupinfo )
+		{
+			if ( g_groupop == GROUP_OP_AND )
+			{
+				if ( !(ent->v.groupinfo & host->v.groupinfo ) )
+					return 0;
+			}
+			else if ( g_groupop == GROUP_OP_NAND )
+			{
+				if ( ent->v.groupinfo & host->v.groupinfo )
+					return 0;
+			}
+		}
+
+		UTIL_UnsetGroupTrace();
+	}
+#endif
+	return 1;
 }
 
 //=======================================================================

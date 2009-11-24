@@ -664,6 +664,62 @@ void SV_FreeEdicts( void )
 	}
 }
 
+bool SV_IsValidEdict( const edict_t *e )
+{
+	if( !e ) return false;
+	if( e->free ) return false;
+	if( e == EDICT_NUM( 0 )) return false;	// world is the read-only entity
+	if( !e->pvServerData ) return false;
+	// edict without pvPrivateData is valid edict
+	// server.dll know how allocate it
+	return true;
+}
+
+const char *SV_ClassName( const edict_t *e )
+{
+	if( !e ) return "(null)";
+	if( e->free ) return "freed";
+	return STRING( e->v.classname );
+}
+
+sv_client_t *SV_ClientFromEdict( const edict_t *pEdict, bool spawned_only )
+{
+	sv_client_t	*client;
+	int		i;
+
+	if( !SV_IsValidEdict( pEdict ))
+		return NULL;
+
+	i = NUM_FOR_EDICT( pEdict ) - 1;
+	if( i < 0 || i >= sv_maxclients->integer )
+		return NULL;
+
+	if( spawned_only )
+	{
+		if( svs.clients[i].state != cs_spawned )
+			return NULL;
+	}
+	else
+	{
+		if( svs.clients[i].state < cs_connected )
+			return NULL;
+	}
+
+	client = svs.clients + i;
+
+	return client;
+}
+
+void SV_SetClientMaxspeed( sv_client_t *cl, float fNewMaxspeed )
+{
+	// fakeclients must be changed speed too
+	fNewMaxspeed = bound( -svgame.movevars.maxspeed, fNewMaxspeed, svgame.movevars.maxspeed );
+
+	cl->edict->v.maxspeed = fNewMaxspeed;
+	if( Info_SetValueForKey( cl->physinfo, "maxspd", va( "%.f", fNewMaxspeed )))
+		cl->physinfo_modified = true;
+}
+
 /*
 ===============================================================================
 
@@ -727,19 +783,13 @@ pfnSetModel
 */
 void pfnSetModel( edict_t *e, const char *m )
 {
-	if( e == EDICT_NUM( 0 ))
+	if( !SV_IsValidEdict( e ))
 	{
-		MsgDev( D_WARN, "SV_SetModel: can't modify world entity\n" );
+		MsgDev( D_WARN, "SV_SetModel: invalid entity %s\n", SV_ClassName( e ));
 		return;
 	}
 
-	if( e->free )
-	{
-		MsgDev( D_WARN, "SV_SetModel: can't modify free entity\n" );
-		return;
-	}
-
-	if( m[0] <= ' ' )
+	if( !m || m[0] <= ' ' )
 	{
 		MsgDev( D_WARN, "SV_SetModel: null name\n" );
 		return;
@@ -757,10 +807,9 @@ int pfnModelIndex( const char *m )
 {
 	int	index;
 
-	if( !com.strcmp( m, "" )) return 0;
 	index = SV_FindIndex( m, CS_MODELS, MAX_MODELS, false );	
-
 	if( !index ) MsgDev( D_WARN, "SV_ModelIndex: %s not precached\n", m );
+
 	return index; 
 }
 
@@ -787,21 +836,16 @@ pfnSetSize
 */
 void pfnSetSize( edict_t *e, const float *rgflMin, const float *rgflMax )
 {
-	if( !e || !e->pvPrivateData )
+	if( !SV_IsValidEdict( e ))
 	{
-		MsgDev( D_ERROR, "SV_SetSize: entity not exist\n" );
+		MsgDev( D_WARN, "SV_SetSize: invalid entity %s\n", SV_ClassName( e ));
 		return;
 	}
-	else if( e == EDICT_NUM( 0 ))
-	{
-		MsgDev( D_ERROR, "SV_SetSize: can't modify world entity\n" );
+
+	// ignore world silently
+	if( e == EDICT_NUM( 0 ))
 		return;
-	}
-	else if( e->free )
-	{
-		MsgDev( D_ERROR, "SV_SetSize: can't modify free entity\n" );
-		return;
-	}
+
 	SV_SetMinMaxSize( e, rgflMin, rgflMax );
 }
 
@@ -815,6 +859,7 @@ void pfnChangeLevel( const char* s1, const char* s2 )
 {
 	// make sure we don't issue two changelevels
 	if( sv.changelevel ) return;
+	if( !s1 || s1[0] <= ' ' ) return;
 
 	if( !s2 ) Cbuf_AddText( va( "changelevel %s\n", s1 ));	// Quake changlevel
 	else Cbuf_AddText( va( "changelevel %s %s\n", s1, s2 ));	// Half-Life changelevel
@@ -828,18 +873,8 @@ pfnVecToYaw
 */
 float pfnVecToYaw( const float *rgflVector )
 {
-	float	yaw;
-
-	if( rgflVector[1] == 0 && rgflVector[0] == 0 )
-	{
-		yaw = 0;
-	}
-	else
-	{
-		yaw = (int)( com.atan2(rgflVector[1], rgflVector[0]) * 180 / M_PI );
-		if( yaw < 0 ) yaw += 360;
-	}
-	return yaw;
+	if( !rgflVector ) return 0;
+	return SV_VecToYaw( rgflVector );
 }
 
 /*
@@ -852,6 +887,12 @@ void pfnVecToAngles( const float *rgflVectorIn, float *rgflVectorOut )
 {
 	float	forward;
 	float	yaw, pitch;
+
+	if( !rgflVectorIn )
+	{
+		if( rgflVectorOut ) VectorClear( rgflVectorOut );
+		return;
+	}
 
 	if( rgflVectorIn[1] == 0 && rgflVectorIn[0] == 0 )
 	{
@@ -884,25 +925,17 @@ void pfnVecToAngles( const float *rgflVectorIn, float *rgflVectorOut )
 =================
 pfnMoveToOrigin
 
-FIXME: i'm not sure what is does what you want
 =================
 */
 void pfnMoveToOrigin( edict_t *ent, const float *pflGoal, float dist, int iMoveType )
 {
-	vec3_t	targetDir;
-	float	accelXY = 300.0f, accelZ = 600.0f;
-	float	decay = 9.0f, flInterval = 0.1f;	// FIXME
+	if( !SV_IsValidEdict( ent ))
+	{
+		MsgDev( D_WARN, "SV_MoveToOrigin: invalid entity %s\n", SV_ClassName( ent ));
+		return;
+	}
 
-	VectorCopy( pflGoal, targetDir );
-	VectorNormalize( targetDir );
-
-	decay = exp( log( decay ) / 1.0f * flInterval );
-	accelXY *= flInterval;
-	accelZ  *= flInterval;
-
-	ent->v.velocity[0] = ( decay * ent->v.velocity[0] + accelXY * targetDir[0] );
-	ent->v.velocity[1] = ( decay * ent->v.velocity[1] + accelXY * targetDir[1] );
-	ent->v.velocity[2] = ( decay * ent->v.velocity[2] + accelZ  * targetDir[2] );
+	SV_MoveToOrigin( ent, pflGoal, dist, iMoveType );
 }
 
 /*
@@ -915,14 +948,9 @@ void pfnChangeYaw( edict_t* ent )
 {
 	float	current;
 
-	if( ent == EDICT_NUM( 0 ))
+	if( !SV_IsValidEdict( ent ))
 	{
-		MsgDev( D_WARN, "SV_ChangeYaw: can't modify world entity\n" );
-		return;
-	}
-	if( ent->free )
-	{
-		MsgDev( D_WARN, "SV_ChangeYaw: can't modify free entity\n" );
+		MsgDev( D_WARN, "SV_ChangeYaw: invalid entity %s\n", SV_ClassName( ent ));
 		return;
 	}
 
@@ -940,14 +968,9 @@ void pfnChangePitch( edict_t* ent )
 {
 	float	current;
 
-	if( ent == EDICT_NUM( 0 ))
+	if( !SV_IsValidEdict( ent ))
 	{
-		MsgDev( D_WARN, "SV_ChangePitch: can't modify world entity\n" );
-		return;
-	}
-	if( ent->free )
-	{
-		MsgDev( D_WARN, "SV_ChangePitch: can't modify free entity\n" );
+		MsgDev( D_WARN, "SV_ChangePitch: invalid entity %s\n", SV_ClassName( ent ));
 		return;
 	}
 
@@ -1047,16 +1070,11 @@ pfnGetEntityIllum
 */
 int pfnGetEntityIllum( edict_t* pEnt )
 {
-	if( pEnt == EDICT_NUM( 0 ))
+	if( !SV_IsValidEdict( pEnt ))
 	{
-		MsgDev( D_WARN, "SV_GetEntityIllum: can't get light level at world entity\n" );
-		return 0;
+		MsgDev( D_WARN, "SV_GetEntityIllum: invalid entity %s\n", SV_ClassName( pEnt ));
+		return 255;
 	}
-	if( pEnt->free )
-	{
-		MsgDev( D_WARN, "SV_GetEntityIllum: can't get light level at free entity\n" );
-		return 0;
-	}	
 	return 255; // FIXME: implement
 }
 
@@ -1119,10 +1137,7 @@ edict_t* pfnFindClientInPVS( edict_t *pEdict )
 		pClient = EDICT_NUM( i );
 		if( pClient->free ) continue;
 		if( SV_EntitiesIn( DVIS_PVS, pEdict->v.origin, pClient->v.origin ))
-		{
-			Msg( "found client %d\n", pClient->serialnumber );
 			return pEdict;
-		}
 	}
 	return NULL;
 }
@@ -1144,10 +1159,7 @@ edict_t* pfnFindClientInPHS( edict_t *pEdict )
 		pClient = EDICT_NUM( i );
 		if( pClient->free ) continue;
 		if( SV_EntitiesIn( DVIS_PHS, pEdict->v.origin, pClient->v.origin ))
-		{
-			Msg( "found client %d\n", pClient->serialnumber );
 			return pEdict;
-		}
 	}
 	return NULL;
 }
@@ -1174,7 +1186,6 @@ edict_t* pfnEntitiesInPVS( edict_t *pplayer )
 		if( pEdict->free ) continue;
 		if( SV_EntitiesIn( DVIS_PVS, pEdict->v.origin, pplayer->v.origin ))
 		{
-			Msg( "found entity %d\n", pEdict->serialnumber );
 			pEdict->v.chain = chain;
 			chain = pEdict;
 		}
@@ -1204,7 +1215,6 @@ edict_t* pfnEntitiesInPHS( edict_t *pplayer )
 		if( pEdict->free ) continue;
 		if( SV_EntitiesIn( DVIS_PHS, pEdict->v.origin, pplayer->v.origin ))
 		{
-			Msg( "found entity %d\n", pEdict->serialnumber );
 			pEdict->v.chain = chain;
 			chain = pEdict;
 		}
@@ -1244,12 +1254,19 @@ free edict private mem, unlink physics etc
 */
 void pfnRemoveEntity( edict_t* e )
 {
+	if( !e || e->free )
+	{
+		MsgDev( D_ERROR, "SV_RemoveEntity: entity already freed\n" );
+		return;
+	}
+
 	// never free client or world entity
 	if( NUM_FOR_EDICT( e ) < svgame.globals->maxClients )
 	{
 		MsgDev( D_ERROR, "SV_RemoveEntity: can't delete %s\n", (e == EDICT_NUM( 0 )) ? "world" : "client" );
 		return;
 	}
+
 	SV_FreeEdict( e );
 }
 
@@ -1271,8 +1288,13 @@ pfnMakeStatic
 disable entity updates to client
 =============
 */
-void pfnMakeStatic( edict_t *ent )
+static void pfnMakeStatic( edict_t *ent )
 {
+	if( !SV_IsValidEdict( ent ))
+	{
+		MsgDev( D_WARN, "SV_MakeStatic: invalid entity %s\n", SV_ClassName( ent ));
+		return;
+	}
 	ent->pvServerData->s.ed_type = ED_STATIC;
 }
 
@@ -1283,9 +1305,14 @@ pfnLinkEntity
 Xash3D extension
 =============
 */
-void pfnLinkEntity( edict_t *e )
+static void pfnLinkEntity( edict_t *e, int touch_triggers )
 {
-	SV_LinkEdict( e, false );
+	if( !SV_IsValidEdict( e ))
+	{
+		MsgDev( D_WARN, "SV_LinkEntity: invalid entity %s\n", SV_ClassName( e ));
+		return;
+	}
+	SV_LinkEdict( e, touch_triggers );
 }
 	
 /*
@@ -1294,37 +1321,68 @@ pfnDropToFloor
 
 ===============
 */
-int pfnDropToFloor( edict_t* ent )
+int pfnDropToFloor( edict_t* e )
 {
 	vec3_t	end;
 	trace_t	trace;
 
-	if( !ent || ent->free )
+	if( !SV_IsValidEdict( e ))
 	{
-		MsgDev( D_ERROR, "SV_DropToFloor: can't drop freed entity\n" );
+		MsgDev( D_WARN, "SV_DropToFloor: invalid entity %s\n", SV_ClassName( e ));
 		return false;
 	}
 
-	// ignore world silently
-	if( ent == EDICT_NUM( 0 ))
-		return false;
-
-	VectorCopy( ent->v.origin, end );
+	VectorCopy( e->v.origin, end );
 	end[2] -= 256;
+	SV_UnstickEntity( e );
 
-	trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL, ent );
+	trace = SV_Move( e->v.origin, e->v.mins, e->v.maxs, end, MOVE_NORMAL, e );
 
-	if( trace.flFraction == 1.0f || trace.fAllSolid )
+	if( trace.fStartSolid )
 	{
+		vec3_t	offset, org;
+
+		VectorSet( offset, 0.5f * (e->v.mins[0] + e->v.maxs[0]), 0.5f * (e->v.mins[1] + e->v.maxs[1]), e->v.mins[2] );
+		VectorAdd( e->v.origin, offset, org );
+		trace = SV_Move( org, vec3_origin, vec3_origin, end, MOVE_NORMAL, e );
+		VectorSubtract( trace.vecEndPos, offset, trace.vecEndPos );
+
+		if( trace.fStartSolid )
+		{
+			MsgDev( D_LOAD, "SV_DropToFloor: startsolid at %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
+			SV_UnstickEntity( e );
+			SV_LinkEdict( e, true );
+			e->v.flags |= FL_ONGROUND;
+			e->v.groundentity = NULL;
+		}
+		else if( trace.flFraction < 1.0f )
+		{
+			MsgDev( D_LOAD, "SV_DropToFloor: moved to %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
+			VectorCopy( trace.vecEndPos, e->v.origin );
+			SV_UnstickEntity( e );
+			SV_LinkEdict( e, true );
+			e->v.flags |= FL_ONGROUND;
+			e->v.groundentity = trace.pHit;
+			e->pvServerData->suspended = true;
+			return true;
+		}
+
+		MsgDev( D_LOAD, "SV_DropToFloor: startsolid at %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
+		pfnRemoveEntity( e );
 		return false;
 	}
 	else
 	{
-		VectorCopy( trace.vecEndPos, ent->v.origin );
-		SV_LinkEdict( ent, false );
-		ent->v.flags |= FL_ONGROUND;
-		ent->v.groundentity = trace.pHit;
-		return true;
+		if( trace.flFraction != 1.0f )
+		{
+			if( trace.flFraction < 1.0f )
+				VectorCopy( trace.vecEndPos, e->v.origin );
+			SV_LinkEdict( e, true );
+			e->v.flags |= FL_ONGROUND;
+			e->v.groundentity = trace.pHit;
+			e->pvServerData->suspended = true;
+			return true;
+		}
 	}
 	return false;
 }
@@ -1333,27 +1391,24 @@ int pfnDropToFloor( edict_t* ent )
 ===============
 pfnWalkMove
 
-FIXME: tune modes
 ===============
 */
 int pfnWalkMove( edict_t *ent, float yaw, float dist, int iMode )
 {
-	vec3_t		move;
+	vec3_t	move;
 
-	if( ent == NULL || ent == EDICT_NUM( 0 ))
-		return false;
-	if( ent->free )
+	if( !SV_IsValidEdict( ent ))
 	{
-		MsgDev( D_WARN, "SV_WlakMove: can't modify free entity\n" );
+		MsgDev( D_WARN, "SV_WalkMove: invalid entity %s\n", SV_ClassName( ent ));
 		return false;
 	}
 
-	if(!(ent->v.flags & FL_FLY|FL_SWIM|FL_ONGROUND))
+	if(!( ent->v.flags & (FL_FLY|FL_SWIM|FL_ONGROUND)))
 		return false;
-	yaw = yaw * M_PI * 2 / 360;
 
+	yaw = yaw * M_PI * 2 / 360;
 	VectorSet( move, com.cos( yaw ) * dist, com.sin( yaw ) * dist, 0.0f );
-	return SV_movestep( ent, move, true, iMode, false );
+	return SV_WalkMove( ent, move, iMode );
 }
 
 /*
@@ -1364,11 +1419,9 @@ pfnSetOrigin
 */
 void pfnSetOrigin( edict_t *e, const float *rgflOrigin )
 {
-	// ignore world silently
-	if( !e || e == EDICT_NUM( 0 )) return;
-	if( e->free )
+	if( !SV_IsValidEdict( e ))
 	{
-		MsgDev( D_ERROR, "SV_SetOrigin: can't modify free entity\n" );
+		MsgDev( D_WARN, "SV_SetOrigin: invalid entity %s\n", SV_ClassName( e ));
 		return;
 	}
 
@@ -1393,12 +1446,14 @@ void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float
 		MsgDev( D_ERROR, "SV_StartSound: attenuation must be in range 0-2\n" );
 		return;
 	}
+
 	if( chan < 0 || chan > 7 )
 	{
 		MsgDev( D_ERROR, "SV_StartSound: channel must be in range 0-7\n" );
 		return;
 	}
-	if( ent == NULL )
+
+	if( ent == NULL || ent->free )
 	{
 		MsgDev( D_ERROR, "SV_StartSound: edict == NULL\n" );
 		return;
@@ -1436,7 +1491,10 @@ void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float
 	if ( flags & SND_SOUNDLEVEL ) MSG_WriteByte( &sv.multicast, ATTN_TO_SNDLVL( attn ));
 	if ( flags & SND_PITCH ) MSG_WriteByte( &sv.multicast, pitch );
 
-	MSG_WriteWord( &sv.multicast, ent->serialnumber );
+	// plays from aiment
+	if( ent->v.aiment && !ent->v.aiment->free )
+		MSG_WriteWord( &sv.multicast, ent->v.aiment->serialnumber );
+	else MSG_WriteWord( &sv.multicast, ent->serialnumber );
 
 	if( reliable )
 	{
@@ -1458,6 +1516,7 @@ pfnEmitAmbientSound
 */
 void pfnEmitAmbientSound( edict_t *ent, float *pos, const char *samp, float vol, float attn, int flags, int pitch )
 {
+	// FIXME: implement
 #if 0
 	vec3_t	snd_origin;
 	bool	reliable = false;
@@ -1479,6 +1538,7 @@ void pfnEmitAmbientSound( edict_t *ent, float *pos, const char *samp, float vol,
 	}
 
 	// FIXME: implement
+	MSG_Begin( svc_ambientsound );
 	MSG_WriteWord( &sv.multicast, ent->serialnumber );
 
 	MSG_WriteCoord32( &sv.multicast, snd_origin[0] );
@@ -1506,15 +1566,12 @@ pfnTraceLine
 */
 static void pfnTraceLine( const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr )
 {
-	int	move;
 	trace_t	result;
 
-	move = (fNoMonsters) ? MOVE_NOMONSTERS : MOVE_NORMAL;
-
 	if( VectorIsNAN( v1 ) || VectorIsNAN( v2 ))
-		Host_Error( "TraceLine: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
-	result = SV_Move( v1, vec3_origin, vec3_origin, v2, move, pentToSkip );
-	Mem_Copy( ptr, &result, sizeof( *ptr ));
+		Host_Error( "TraceLine: NAN errors detected '%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
+	result = SV_Move( v1, vec3_origin, vec3_origin, v2, fNoMonsters, pentToSkip );
+	if( ptr ) Mem_Copy( ptr, &result, sizeof( *ptr ));
 }
 
 /*
@@ -1527,9 +1584,14 @@ static void pfnTraceToss( edict_t* pent, edict_t* pentToIgnore, TraceResult *ptr
 {
 	trace_t	result;
 
-	if( pent == EDICT_NUM( 0 )) return;
+	if( !SV_IsValidEdict( pent ))
+	{
+		MsgDev( D_WARN, "SV_MoveToss: invalid entity %s\n", SV_ClassName( pent ));
+		return;
+	}
+
 	result = SV_MoveToss( pent, pentToIgnore );
-	Mem_Copy( ptr, &result, sizeof( *ptr ));
+	if( ptr ) Mem_Copy( ptr, &result, sizeof( *ptr ));
 }
 
 /*
@@ -1538,42 +1600,69 @@ pfnTraceHull
 
 =================
 */
-static void pfnTraceHull( const float *v1, const float *mins, const float *maxs, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr )
+static void pfnTraceHull( const float *v1, const float *v2, int fNoMonsters, int hullNumber, edict_t *pentToSkip, TraceResult *ptr )
 {
-	int	move;
 	trace_t	result;
+	float	*mins, *maxs;
 
-	move = (fNoMonsters) ? MOVE_NOMONSTERS : MOVE_NORMAL;
+	hullNumber = bound( 0, hullNumber, 3 );
+	mins = GI->client_mins[hullNumber];
+	maxs = GI->client_maxs[hullNumber];
 
 	if( VectorIsNAN( v1 ) || VectorIsNAN( v2 ))
-		Host_Error( "TraceHull: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
-	result = SV_Move( v1, (float *)mins, (float *)maxs, v2, move, pentToSkip );
-	Mem_Copy( ptr, &result, sizeof( *ptr ));
+		Host_Error( "TraceHull: NAN errors detected '%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
+	result = SV_Move( v1, mins, maxs, v2, fNoMonsters, pentToSkip );
+	if( ptr ) Mem_Copy( ptr, &result, sizeof( *ptr ));
 }
 
 /*
 =============
 pfnTraceMonsterHull
 
-FIXME: implement
 =============
 */
 static int pfnTraceMonsterHull( edict_t *pEdict, const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr )
 {
-	// FIXME: implement
-	return 0;
+	trace_t	result;
+	float	*mins, *maxs;
+
+	if( !SV_IsValidEdict( pEdict ))
+	{
+		MsgDev( D_WARN, "SV_TraceMonsterHull: invalid entity %s\n", SV_ClassName( pEdict ));
+		return 1;
+	}
+
+	mins = pEdict->v.mins;
+	maxs = pEdict->v.maxs;
+
+	if( VectorIsNAN( v1 ) || VectorIsNAN( v2 ))
+		Host_Error( "TraceMonsterHull: NAN errors detected '%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
+	result = SV_Move( v1, mins, maxs, v2, fNoMonsters, pentToSkip );
+	if( ptr ) Mem_Copy( ptr, &result, sizeof( *ptr ));
+
+	return ptr->fAllSolid;
 }
 
 /*
 =============
 pfnTraceModel
 
-FIXME: implement
 =============
 */
 static void pfnTraceModel( const float *v1, const float *v2, edict_t *pent, TraceResult *ptr )
 {
-	// FIXME: implement
+	trace_t	result;
+
+	if( !SV_IsValidEdict( pent ))
+	{
+		MsgDev( D_WARN, "SV_TraceModel: invalid entity %s\n", SV_ClassName( pent ));
+		return;
+	}
+
+	if( VectorIsNAN( v1 ) || VectorIsNAN( v2 ))
+		Host_Error( "TraceModel: NAN errors detected '%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
+	result = SV_ClipMoveToEntity( pent, v1, pent->v.mins, pent->v.maxs, v2, MASK_SOLID, 0 );
+	if( ptr ) Mem_Copy( ptr, &result, sizeof( *ptr ));
 }
 
 /*
@@ -1586,9 +1675,9 @@ returns texture basename
 static const char *pfnTraceTexture( edict_t *pTextureEntity, const float *v1, const float *v2 )
 {
 	if( VectorIsNAN( v1 ) || VectorIsNAN( v2 ))
-		Host_Error( "TraceTexture: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
+		Host_Error( "TraceTexture: NAN errors detected '%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
 	if( !pTextureEntity || pTextureEntity->free ) return NULL; 
-	return SV_ClipMoveToEntity( pTextureEntity, v1, vec3_origin, vec3_origin, v2, MASK_SOLID ).pTexName;
+	return SV_ClipMoveToEntity( pTextureEntity, v1, vec3_origin, vec3_origin, v2, MASK_SOLID, 0 ).pTexName;
 }
 
 /*
@@ -1620,12 +1709,11 @@ void pfnGetAimVector( edict_t* ent, float speed, float *rgflReturn )
 
 	// these vairable defined in server.dll	
 	fNoFriendlyFire = Cvar_VariableValue( "mp_friendlyfire" );
-	VectorCopy( svgame.globals->v_forward, rgflReturn );		// assume failure if it returns early
+	VectorCopy( svgame.globals->v_forward, rgflReturn );	// assume failure if it returns early
 
-	if( ent == EDICT_NUM( 0 )) return;
-	if( ent->free )
+	if( !SV_IsValidEdict( ent ))
 	{
-		MsgDev( D_ERROR, "SV_GetAimVector: can't aiming at free entity\n" );
+		MsgDev( D_WARN, "SV_GetAimVector: invalid entity %s\n", SV_ClassName( ent ));
 		return;
 	}
 
@@ -1715,26 +1803,30 @@ void pfnClientCommand( edict_t* pEdict, char* szFmt, ... )
 	sv_client_t	*client;
 	string		buffer;
 	va_list		args;
-	int		i;
 
-	i = NUM_FOR_EDICT( pEdict );
-	if( sv.state != ss_active  || i < 0 || i >= sv_maxclients->integer || svs.clients[i].state != cs_spawned )
+	if( sv.state != ss_active )
 	{
-		MsgDev( D_ERROR, "SV_ClientCommand: client/server is not active!\n" );
+		MsgDev( D_ERROR, "SV_ClientCommand: server is not active!\n" );
+		return;
+	}
+
+	client = SV_ClientFromEdict( pEdict, true );
+	if( client == NULL )
+	{
+		MsgDev( D_ERROR, "SV_ClientCommand: client is not spawned!\n" );
 		return;
 	}
 
 	if( pEdict->v.flags & FL_FAKECLIENT )
 		return;
 
-	client = svs.clients + i;
 	va_start( args, szFmt );
 	com.vsnprintf( buffer, MAX_STRING, szFmt, args );
 	va_end( args );
 
 
-	MSG_WriteByte( &client->netchan.message, svc_stufftext );
-	MSG_WriteString( &client->netchan.message, buffer );
+	MSG_WriteByte( &sv.multicast, svc_stufftext );
+	MSG_WriteString( &sv.multicast, buffer );
 	MSG_Send( MSG_ONE_R, NULL, client->edict );
 }
 
@@ -1742,11 +1834,31 @@ void pfnClientCommand( edict_t* pEdict, char* szFmt, ... )
 =================
 pfnParticleEffect
 
+Make sure the event gets sent to all clients
 =================
 */
 void pfnParticleEffect( const float *org, const float *dir, float color, float count )
 {
-	// FIXME: implement
+	int	i, v;
+
+	if( !org || !dir )
+	{
+		if( !org ) MsgDev( D_ERROR, "SV_StartParticle: NULL origin. Ignored\n" );
+		if( !dir ) MsgDev( D_ERROR, "SV_StartParticle: NULL dir. Ignored\n" );
+		return;
+	}
+
+	MSG_WriteByte( &sv.multicast, svc_particle );
+	MSG_WritePos( &sv.multicast, org );
+
+	for( i = 0; i < 3; i++ )
+	{
+		v = bound( -128, dir[i] * 16, 127 );
+		MSG_WriteChar( &sv.multicast, v );
+	}
+	MSG_WriteByte( &sv.multicast, count );
+	MSG_WriteByte( &sv.multicast, color );
+	MSG_Send( MSG_ALL, org, NULL );
 }
 
 /*
@@ -1757,7 +1869,8 @@ pfnLightStyle
 */
 void pfnLightStyle( int style, char* val )
 {
-	if((uint)style >= MAX_LIGHTSTYLES )
+	if( style < 0 ) style = 0;
+	if( style >= MAX_LIGHTSTYLES )
 		Host_Error( "SV_LightStyle: style: %i >= %d", style, MAX_LIGHTSTYLES );
 	SV_ConfigString( CS_LIGHTSTYLES + style, val );
 }
@@ -1832,7 +1945,8 @@ pfnMessageEnd
 */
 void pfnMessageEnd( void )
 {
-	const char *name = "Unknown";
+	const char	*name = "Unknown";
+	float		*org = NULL;
 
 	if( svgame.msg_name ) name = svgame.msg_name;
 	svgame.msg_started = false;
@@ -1875,8 +1989,9 @@ void pfnMessageEnd( void )
 		return;
 	}
 
+	if( !VectorIsNull( svgame.msg_org )) org = svgame.msg_org;
 	svgame.msg_dest = bound( MSG_ONE, svgame.msg_dest, MSG_PVS_R );
-	MSG_Send( svgame.msg_dest, svgame.msg_org, svgame.msg_ent );
+	MSG_Send( svgame.msg_dest, org, svgame.msg_ent );
 }
 
 /*
@@ -1952,18 +2067,6 @@ void pfnWriteCoord( float flValue )
 
 	dat.f = flValue;
 	_MSG_WriteBits( &sv.multicast, dat.l, svgame.msg_name, NET_FLOAT, __FILE__, __LINE__ );
-	svgame.msg_realsize += 4;
-}
-
-/*
-=============
-pfnWriteFloat
-
-=============
-*/
-void pfnWriteFloat( float flValue )
-{
-	MSG_WriteFloat( &sv.multicast, flValue );
 	svgame.msg_realsize += 4;
 }
 
@@ -2084,6 +2187,7 @@ pfnFreeEntPrivateData
 */
 void pfnFreeEntPrivateData( edict_t *pEdict )
 {
+	if( !pEdict ) return;
 	if( pEdict->pvPrivateData )
 		Mem_Free( pEdict->pvPrivateData );
 	pEdict->pvPrivateData = NULL; // freed
@@ -2176,24 +2280,19 @@ edict_t* pfnPEntityOfEntIndex( int iEntIndex )
 =============
 pfnFindEntityByVars
 
-slow linear brute force
+debug routine
 =============
 */
-edict_t* pfnFindEntityByVars( entvars_t* pvars )
+edict_t* pfnFindEntityByVars( entvars_t *pvars )
 {
 	edict_t	*e = EDICT_NUM( 0 );
 	int	i;
-
-	Msg("FindEntity by VARS()\n" );
-
-	// HACKHACK
-	if( pvars ) return pvars->pContainingEntity;
 
 	for( i = 0; i < svgame.globals->numEntities; i++, e++ )
 	{
 		if( e->free ) continue;
 		if( !memcmp( &e->v, pvars, sizeof( entvars_t )))
-			return e;
+			return e;	// found it
 	}
 	return NULL;
 }
@@ -2241,13 +2340,21 @@ int pfnRegUserMsg( const char *pszName, int iSize )
 
 /*
 =============
-pfnAnimationAutomove
+pfnAreaPortal
 
+changes area portal state
 =============
 */
-void pfnAnimationAutomove( const edict_t* pEdict, float flTime )
+void pfnAreaPortal( edict_t *pEdict, int enable )
 {
-	// FIXME: implement
+	if( pEdict == EDICT_NUM( 0 )) return;
+	if( pEdict->free )
+	{
+		MsgDev( D_ERROR, "SV_AreaPortal: can't modify free entity\n" );
+		return;
+	}
+	if( !pEdict->pvServerData->areanum || !pEdict->pvServerData->areanum2 ) return;
+	CM_SetAreaPortalState( pEdict->serialnumber, pEdict->pvServerData->areanum, pEdict->pvServerData->areanum2, enable );
 }
 
 /*
@@ -2258,7 +2365,13 @@ pfnGetBonePosition
 */
 void pfnGetBonePosition( const edict_t* pEdict, int iBone, float *rgflOrigin, float *rgflAngles )
 {
-	// FIXME: implement
+	if( !SV_IsValidEdict( pEdict ))
+	{
+		MsgDev( D_WARN, "SV_GetBonePos: invalid entity %s\n", SV_ClassName( pEdict ));
+		return;
+	}
+
+	CM_GetBonePosition( (edict_t *)pEdict, iBone, rgflOrigin, rgflAngles );
 }
 
 /*
@@ -2314,7 +2427,42 @@ pfnClientPrintf
 */
 void pfnClientPrintf( edict_t* pEdict, PRINT_TYPE ptype, const char *szMsg )
 {
-	// FIXME: implement
+	sv_client_t	*client;
+	bool		fake;
+
+	if( sv.state != ss_active )
+	{
+		// send message into console during loading
+		MsgDev( D_INFO, szMsg );
+		return;
+	}
+
+	client = SV_ClientFromEdict( pEdict, true );
+	if( client == NULL )
+	{
+		MsgDev( D_ERROR, "SV_ClientPrintf: client is not spawned!\n" );
+		return;
+	}
+
+	fake = ( pEdict->v.flags & FL_FAKECLIENT ) ? true : false;
+
+	switch( ptype )
+	{
+	case print_console:
+		if( fake ) MsgDev( D_INFO, szMsg );
+		else SV_ClientPrintf( client, PRINT_HIGH, "%s", szMsg );
+		break;
+	case print_chat:
+		if( fake ) return;
+		SV_ClientPrintf( client, PRINT_CHAT, "%s", szMsg );
+		break;
+	case print_center:
+		if( fake ) return;
+		MSG_Begin( svc_centerprint );
+		MSG_WriteString( &sv.multicast, szMsg );
+		MSG_Send( MSG_ONE_R, NULL, client->edict );
+		break;
+	}
 }
 
 /*
@@ -2325,80 +2473,9 @@ pfnServerPrint
 */
 void pfnServerPrint( const char *szMsg )
 {
-	if( sv.state == ss_loading )
-	{
-		// while loading in-progress we can sending message
-		com.print( szMsg );	// only for local client
-	}
+	// while loading in-progress we can sending message only for local client
+	if( sv.state == ss_loading ) com.print( szMsg );	
 	else SV_BroadcastPrintf( PRINT_HIGH, "%s", szMsg );
-}
-
-/*
-=============
-pfnAreaPortal
-
-changes area portal state
-=============
-*/
-void pfnAreaPortal( edict_t *pEdict, bool enable )
-{
-	if( pEdict == EDICT_NUM( 0 )) return;
-	if( pEdict->free )
-	{
-		MsgDev( D_ERROR, "SV_AreaPortal: can't modify free entity\n" );
-		return;
-	}
-	if( !pEdict->pvServerData->areanum || !pEdict->pvServerData->areanum2 ) return;
-	CM_SetAreaPortalState( pEdict->serialnumber, pEdict->pvServerData->areanum, pEdict->pvServerData->areanum2, enable );
-}
-
-/*
-=============
-pfnClassifyEdict
-
-classify edict for render and network usage
-=============
-*/
-void pfnClassifyEdict( edict_t *pEdict, int class )
-{
-	if( !pEdict || pEdict->free )
-	{
-		MsgDev( D_ERROR, "SV_ClassifyEdict: can't modify free entity\n" );
-		return;
-	}
-
-	if( !pEdict->pvServerData ) return;
-
-	pEdict->pvServerData->s.ed_type = class;
-	MsgDev( D_LOAD, "%s: <%s>\n", STRING( pEdict->v.classname ), ed_name[class] );
-}
-
-/*
-=============
-pfnSetClientMaxspeed
-
-=============
-*/
-void pfnSetClientMaxspeed( const edict_t *pEdict, float fNewMaxspeed )
-{
-	// FIXME: implement
-}
-
-/*
-=============
-pfnCreateFakeClient
-
-=============
-*/
-edict_t *pfnCreateFakeClient( const char *netname )
-{
-	// FIXME: implement SV_FakeClientConnect properly
-	return NULL;
-}
-
-void pfnThinkFakeClient( edict_t *client, usercmd_t *cmd )
-{
-	// FIXME: implement
 }
 
 /*
@@ -2444,53 +2521,58 @@ pfnGetAttachment
 */
 static void pfnGetAttachment( const edict_t *pEdict, int iAttachment, float *rgflOrigin, float *rgflAngles )
 {
-	// FIXME: implement
+	if( !SV_IsValidEdict( pEdict ))
+	{
+		MsgDev( D_WARN, "SV_GetAttachment: invalid entity %s\n", SV_ClassName( pEdict ));
+		return;
+	}
+	CM_GetAttachment( (edict_t *)pEdict, iAttachment, rgflOrigin, rgflAngles );
 }
 
 /*
 =============
-pfnCRC_Init
+pfnCRC32_Init
 
 =============
 */
-void pfnCRC_Init( word *pulCRC )
+void pfnCRC32_Init( CRC32_t *pulCRC )
 {
-	CRC_Init( pulCRC );
+	CRC32_Init( pulCRC );
 }
 
 /*
 =============
-pfnCRC_ProcessBuffer
+pfnCRC32_ProcessBuffer
 
 =============
 */
-void pfnCRC_ProcessBuffer( word *pulCRC, void *p, int len )
+void pfnCRC32_ProcessBuffer( CRC32_t *pulCRC, void *p, int len )
 {
-	byte	*start = (byte *)p;
-
-	while( len-- ) CRC_ProcessByte( pulCRC, *start++ );
+	CRC32_ProcessBuffer( pulCRC, p, len );
 }
 
 /*
 =============
-pfnCRC_ProcessByte
+pfnCRC32_ProcessByte
 
 =============
 */
-void pfnCRC_ProcessByte( word *pulCRC, byte ch )
+void pfnCRC32_ProcessByte( CRC32_t *pulCRC, byte ch )
 {
-	CRC_ProcessByte( pulCRC, ch );
+	CRC32_ProcessByte( pulCRC, ch );
 }
 
 /*
 =============
-pfnCRC_Final
+pfnCRC32_Final
 
 =============
 */
-word pfnCRC_Final( word pulCRC )
+CRC32_t pfnCRC32_Final( CRC32_t pulCRC )
 {
-	return pulCRC ^ 0x0000;
+	CRC32_Final( &pulCRC );
+
+	return pulCRC;
 }				
 
 /*
@@ -2503,16 +2585,10 @@ void pfnCrosshairAngle( const edict_t *pClient, float pitch, float yaw )
 {
 	sv_client_t	*client;
 
-	if( pClient == NULL || pClient->free || !pClient->pvServerData )
+	client = SV_ClientFromEdict( pClient, true );
+	if( client == NULL )
 	{
-		MsgDev( D_ERROR, "SV_CrosshairAngle: invalid client!\n" );
-		return;
-	}
-
-	client = pClient->pvServerData->client;
-	if( !client )
-	{
-		MsgDev( D_ERROR, "SV_CrosshairAngle: not a client!\n" );
+		MsgDev( D_ERROR, "SV_SetCrosshairAngle: invalid client!\n" );
 		return;
 	}
 
@@ -2523,6 +2599,43 @@ void pfnCrosshairAngle( const edict_t *pClient, float pitch, float yaw )
 	MSG_WriteAngle8( &sv.multicast, pitch );
 	MSG_WriteAngle8( &sv.multicast, yaw );
 	MSG_Send( MSG_ONE_R, vec3_origin, pClient );
+}
+
+/*
+=============
+pfnSetView
+
+=============
+*/
+void pfnSetView( const edict_t *pClient, const edict_t *pViewent )
+{
+	sv_client_t	*client;
+
+	if( pClient == NULL || pClient->free )
+	{
+		MsgDev( D_ERROR, "SV_SetView: invalid client!\n" );
+		return;
+	}
+
+	client = pClient->pvServerData->client;
+	if( !client )
+	{
+		MsgDev( D_ERROR, "SV_SetView: not a client!\n" );
+		return;
+	}
+
+	// fakeclients can't set customview
+	if( pClient->v.flags & FL_FAKECLIENT ) return;
+
+	if( pViewent == NULL || pViewent->free )
+	{
+		MsgDev( D_ERROR, "SV_SetView: invalid viewent!\n" );
+		return;
+	}
+
+	MSG_WriteByte( &client->netchan.message, svc_setview );
+	MSG_WriteWord( &client->netchan.message, NUM_FOR_EDICT( pViewent ));
+	MSG_Send( MSG_ONE_R, NULL, client->edict );
 }
 
 /*
@@ -2556,7 +2669,19 @@ pfnStaticDecal
 */
 void pfnStaticDecal( const float *origin, int decalIndex, int entityIndex, int modelIndex )
 {
-	// FIXME: implement
+	if( !origin )
+	{
+		MsgDev( D_ERROR, "SV_StaticDecal: NULL origin. Ignored\n" );
+		return;
+	}
+
+	// static decals are posters, it's always reliable
+	MSG_WriteByte( &sv.multicast, svc_bspdecal );
+	MSG_WritePos( &sv.multicast, origin );
+	MSG_WriteWord( &sv.multicast, decalIndex );
+	MSG_WriteShort( &sv.multicast, entityIndex );
+	MSG_WriteWord( &sv.multicast, modelIndex );
+	MSG_Send( MSG_ALL_R, NULL, NULL );
 }
 
 /*
@@ -2566,10 +2691,9 @@ pfnPrecacheGeneric
 can be used for precache scripts
 =============
 */
-int pfnPrecacheGeneric( const char* s )
+int pfnPrecacheGeneric( const char *s )
 {
-	// FIXME: implement
-	return 0;
+	return SV_GenericIndex( s );
 }
 
 /*
@@ -2604,6 +2728,98 @@ int pfnIsMapValid( char *filename )
 	else spawn_entity = GI->sp_entity;
 
 	return SV_MapIsValid( filename, spawn_entity );
+}
+
+/*
+=============
+pfnClassifyEdict
+
+classify edict for render and network usage
+=============
+*/
+void pfnClassifyEdict( edict_t *pEdict, int class )
+{
+	if( !pEdict || pEdict->free || !pEdict->pvServerData )
+	{
+		MsgDev( D_ERROR, "SV_ClassifyEdict: can't modify free entity\n" );
+		return;
+	}
+
+	pEdict->pvServerData->s.ed_type = class;
+	MsgDev( D_LOAD, "%s: <%s>\n", STRING( pEdict->v.classname ), ed_name[class] );
+}
+
+/*
+=============
+pfnFadeClientVolume
+
+FIXME: implement
+=============
+*/
+void pfnFadeClientVolume( const edict_t *pEdict, int fadePercent, int fadeOutSeconds, int holdTime, int fadeInSeconds )
+{
+}
+
+/*
+=============
+pfnSetClientMaxspeed
+
+=============
+*/
+void pfnSetClientMaxspeed( const edict_t *pEdict, float fNewMaxspeed )
+{
+	sv_client_t *cl;
+
+	cl = SV_ClientFromEdict( pEdict, false ); // connected clients allowed
+	if( !cl )
+	{
+		MsgDev( D_ERROR, "SV_SetClientMaxspeed: client is not spawned!\n" );
+		return;
+	}
+
+	SV_SetClientMaxspeed( cl, fNewMaxspeed );
+}
+
+/*
+=============
+pfnCreateFakeClient
+
+=============
+*/
+edict_t *pfnCreateFakeClient( const char *netname )
+{
+	return SV_FakeConnect( netname );
+}
+
+/*
+=============
+pfnThinkFakeClient
+
+=============
+*/
+void pfnThinkFakeClient( edict_t *pClient, usercmd_t *cmd )
+{
+	sv_client_t	*cl;
+
+	if( sv.paused ) return;
+
+	cl = SV_ClientFromEdict( pClient, true );
+	if( cl == NULL || cmd == NULL )
+	{
+		if( !cl ) MsgDev( D_ERROR, "SV_ClientThink: fakeclient is not spawned!\n" );
+		if( !cmd )  MsgDev( D_ERROR, "SV_ClientThink: NULL usercmd_t!\n" );
+		return;
+	}
+
+	if(!( pClient->v.flags & FL_FAKECLIENT ))
+		return;	// only fakeclients allows
+
+	SV_PreRunCmd( cl, cmd );
+	SV_RunCmd( cl, cmd );
+	SV_PostRunCmd( cl );
+
+	cl->lastcmd = *cmd;
+	cl->lastcmd.buttons = 0; // avoid multiple fires on lag
 }
 
 /*
@@ -2647,12 +2863,15 @@ pfnGetInfoKeyBuffer
 */
 char *pfnGetInfoKeyBuffer( edict_t *e )
 {
-	int	index;
+	sv_client_t	*cl;
 
-	index = NUM_FOR_EDICT( e );
-	if( index > 0 && index < svgame.globals->numClients )
-		return e->pvServerData->client->userinfo;
-	return Cvar_Serverinfo(); // otherwise return ServerInfo
+	cl = SV_ClientFromEdict( e, false ); // pfnUserInfoChanged passed
+	if( cl == NULL )
+	{
+		MsgDev( D_ERROR, "SV_GetClientUserinfo: client is not connected!\n" );
+		return Cvar_Serverinfo(); // otherwise return ServerInfo
+	}
+	return cl->userinfo;
 }
 
 /*
@@ -2663,11 +2882,15 @@ pfnSetClientKeyValue
 */
 void pfnSetClientKeyValue( int clientIndex, char *infobuffer, char *key, char *value )
 {
-	if( clientIndex > 0 && clientIndex < svgame.globals->numClients )
-	{
-		sv_client_t *client = svs.clients + clientIndex;
-		Info_SetValueForKey( client->userinfo, key, value );
-	}
+	sv_client_t	*cl;
+
+	if( clientIndex < 0 || clientIndex >= sv_maxclients->integer )
+		return;
+	if( svs.clients[clientIndex].state < cs_spawned )
+		return;
+
+	cl = svs.clients + clientIndex;
+	Info_SetValueForKey( cl->userinfo, key, value );
 }
 
 /*
@@ -2678,7 +2901,15 @@ pfnGetPhysicsKeyValue
 */
 const char *pfnGetPhysicsKeyValue( const edict_t *pClient, const char *key )
 {
-	return ""; //FIXME: implement
+	sv_client_t	*cl;
+
+	cl = SV_ClientFromEdict( pClient, false ); // pfnUserInfoChanged passed
+	if( cl == NULL )
+	{
+		MsgDev( D_ERROR, "SV_GetClientPhysKey: client is not connected!\n" );
+		return "";
+	}
+	return Info_ValueForKey( cl->physinfo, key );
 }
 
 /*
@@ -2689,6 +2920,17 @@ pfnSetPhysicsKeyValue
 */
 void pfnSetPhysicsKeyValue( const edict_t *pClient, const char *key, const char *value )
 {
+	sv_client_t	*cl;
+
+	cl = SV_ClientFromEdict( pClient, false ); // pfnUserInfoChanged passed
+	if( cl == NULL )
+	{
+		MsgDev( D_ERROR, "SV_SetClientPhysinfo: client is not connected!\n" );
+		return;
+	}
+
+	if( Info_SetValueForKey( cl->physinfo, key, value ))
+		cl->physinfo_modified = true;
 }
 
 /*
@@ -2699,33 +2941,56 @@ pfnGetPhysicsInfoString
 */
 const char *pfnGetPhysicsInfoString( const edict_t *pClient )
 {
-	return ""; //FIXME: implement
+	sv_client_t	*cl;
+
+	cl = SV_ClientFromEdict( pClient, false ); // pfnUserInfoChanged passed
+	if( cl == NULL )
+	{
+		MsgDev( D_ERROR, "SV_GetClientPhysinfo: client is not connected!\n" );
+		return "";
+	}
+	return cl->physinfo;
 }
 
 /*
 =============
 pfnPrecacheEvent
 
-returns unique hash-value
+register or returns already registered event id
 =============
 */
 word pfnPrecacheEvent( int type, const char *psz )
 {
-	// FIXME: implement
-	return 0;
+	return SV_FindIndex( psz, CS_EVENTS, MAX_EVENTS, type );
 }
 
 /*
 =============
 pfnPlaybackEvent
 
+FIXME: implement
 =============
 */
 static void pfnPlaybackEvent( int flags, const edict_t *pInvoker, word eventindex, float delay, event_args_t *args )
 {
-	// FIXME: implement
+
 }
 
+byte *pfnSetFatPVS( const float *org, int portal )
+{
+	return NULL;
+}
+
+byte *pfnSetFatPHS( const float *org, int portal )
+{
+	return NULL;
+}
+
+int pfnCheckVisibility( const edict_t *entity, unsigned char *pset )
+{
+	return 0;
+}
+	
 /*
 =============
 pfnCanSkipPlayer
@@ -2740,39 +3005,12 @@ int pfnCanSkipPlayer( const edict_t *player )
 
 /*
 =============
-pfnSetView
+pfnSetGroupMask
 
 =============
 */
-void pfnSetView( const edict_t *pClient, const edict_t *pViewent )
+void pfnSetGroupMask( int mask, int op )
 {
-	sv_client_t	*client;
-
-	if( pClient == NULL || pClient->free )
-	{
-		MsgDev( D_ERROR, "SV_SetView: invalid client!\n" );
-		return;
-	}
-
-	client = pClient->pvServerData->client;
-	if( !client )
-	{
-		MsgDev( D_ERROR, "SV_SetView: not a client!\n" );
-		return;
-	}
-
-	// fakeclients can't set customview
-	if( pClient->v.flags & FL_FAKECLIENT ) return;
-
-	if( pViewent == NULL || pViewent->free )
-	{
-		MsgDev( D_ERROR, "SV_SetView: invalid viewent!\n" );
-		return;
-	}
-
-	MSG_WriteByte( &client->netchan.message, svc_setview );
-	MSG_WriteWord( &client->netchan.message, NUM_FOR_EDICT( pViewent ));
-	MSG_Send( MSG_ONE_R, NULL, client->edict );
 }
 
 /*
@@ -2835,11 +3073,17 @@ pfnGetPlayerPing
 
 =============
 */
-void pfnGetPlayerPing( const edict_t *pClient, int *ping )
+void pfnGetPlayerStats( const edict_t *pClient, int *ping, int *packet_loss )
 {
 	// FIXME: implement
 }
-				
+
+int pfnAreasConnected( edict_t *pClient, edict_t *pEdict )
+{
+	// FIXME: implement
+	return 0;
+}
+					
 // engine callbacks
 static enginefuncs_t gEngfuncs = 
 {
@@ -2854,7 +3098,7 @@ static enginefuncs_t gEngfuncs =
 	pfnFindClientInPHS,
 	pfnEntitiesInPHS,
 	pfnVecToYaw,
-	pfnVecToAngles,		
+	pfnVecToAngles,
 	pfnMoveToOrigin,
 	pfnChangeYaw,
 	pfnChangePitch,
@@ -2870,7 +3114,7 @@ static enginefuncs_t gEngfuncs =
 	pfnCreateNamedEntity,
 	pfnMakeStatic,
 	pfnLinkEntity,
-	pfnDropToFloor,		
+	pfnDropToFloor,
 	pfnWalkMove,
 	pfnSetOrigin,
 	SV_StartSound,
@@ -2905,8 +3149,8 @@ static enginefuncs_t gEngfuncs =
 	pfnCVarGetString,
 	pfnCVarSetFloat,
 	pfnCVarSetString,
-	pfnAlertMessage,		
-	pfnWriteFloat,
+	pfnAlertMessage,
+	pfnEngineFprintf,
 	pfnPvAllocEntPrivateData,
 	pfnPvEntPrivateData,
 	pfnFreeEntPrivateData,
@@ -2916,12 +3160,12 @@ static enginefuncs_t gEngfuncs =
 	pfnPEntityOfEntOffset,
 	pfnEntOffsetOfPEntity,
 	pfnIndexOfEdict,
-	pfnPEntityOfEntIndex,					
+	pfnPEntityOfEntIndex,
 	pfnFindEntityByVars,
 	pfnGetModelPtr,
 	pfnRegUserMsg,
-	pfnAnimationAutomove,
-	pfnGetBonePosition,				
+	pfnAreaPortal,
+	pfnGetBonePosition,
 	pfnFunctionFromName,
 	pfnNameForFunction,	
 	pfnClientPrintf,
@@ -2930,10 +3174,10 @@ static enginefuncs_t gEngfuncs =
 	pfnCmd_Argv,
 	pfnCmd_Argc,
 	pfnGetAttachment,
-	pfnCRC_Init,
-	pfnCRC_ProcessBuffer,
-	pfnCRC_ProcessByte,
-	pfnCRC_Final,
+	pfnCRC32_Init,
+	pfnCRC32_ProcessBuffer,
+	pfnCRC32_ProcessByte,
+	pfnCRC32_Final,
 	pfnRandomLong,
 	pfnRandomFloat,
 	pfnSetView,
@@ -2945,7 +3189,7 @@ static enginefuncs_t gEngfuncs =
 	pfnCompareFileTime,
 	pfnGetGameDir,
 	pfnClassifyEdict,
-	pfnAreaPortal,
+	pfnFadeClientVolume,
 	pfnSetClientMaxspeed,
 	pfnCreateFakeClient,
 	pfnThinkFakeClient,
@@ -2968,14 +3212,26 @@ static enginefuncs_t gEngfuncs =
 	pfnGetPhysicsInfoString,
 	pfnPrecacheEvent,
 	pfnPlaybackEvent,
-	pfnFWrite,
-	pfnFRead,
+	pfnSetFatPVS,
+	pfnSetFatPHS,
+	pfnCheckVisibility,
 	pfnFOpen,
+	pfnFRead,
+	pfnFWrite,
 	pfnFClose,
+	pfnCanSkipPlayer,
+	pfnFGets,
+	pfnFSeek,
+	pfnFTell,
+	pfnSetGroupMask,	
 	pfnDropClient,
 	Host_Error,
-	pfnGetPlayerPing,
-	pfnCanSkipPlayer,
+	pfnParseToken,
+	pfnGetPlayerStats,
+	pfnAreasConnected,
+	pfnLoadLibrary,
+	pfnGetProcAddress,
+	pfnFreeLibrary,
 };
 
 /*

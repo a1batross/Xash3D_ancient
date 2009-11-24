@@ -438,6 +438,7 @@ void CM_BoxTrace( trace_t *tr, const vec3_t start, const vec3_t end, vec3_t mins
 	// fill in a default trace
 	Mem_Set( tr, 0, sizeof( *tr ));
 	tr->flFraction = trace_realfraction = 1.0f;
+	tr->iHitgroup = -1;
 
 	if( !cm.numnodes )	// map not loaded
 		return;

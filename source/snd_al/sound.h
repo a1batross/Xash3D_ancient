@@ -55,8 +55,10 @@ typedef struct sfx_s
 	uint		format;
 	uint		bufferNum;
 
+	int		touchFrame;
 	bool		default_sound;
-	int		registration_sequence;
+	uint		hashValue;
+	struct sfx_s	*hashNext;
 } sfx_t;
 
 typedef struct

@@ -284,7 +284,7 @@ void CBasePlayerWeapon :: Spawn( void )
 	pev->movetype = MOVETYPE_TOSS;
 	pev->solid = SOLID_BBOX;
           pev->sequence = 1; // set world animation
-	
+
 	UTIL_SetOrigin( this, pev->origin );
 	UTIL_SetModel( ENT( pev ), iWorldModel( ));
 	SetObjectClass( ED_NORMAL );

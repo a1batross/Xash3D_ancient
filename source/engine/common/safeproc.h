@@ -18,6 +18,8 @@ extern vsound_exp_t		*se;
 #define CM_SetAreaPortals		if( pe ) pe->SetAreaPortals
 #define CM_GetAreaPortals		if( pe ) pe->GetAreaPortals
 #define CM_SetAreaPortalState		if( pe ) pe->SetAreaPortalState
+#define CM_GetAttachment		if( pe ) pe->Mod_GetAttachment
+#define CM_GetBonePosition		if( pe ) pe->Mod_GetBonePos
 #define CM_EndRegistration		if( pe ) pe->EndRegistration
 #define CM_Frame			if( pe ) pe->Frame
 
@@ -87,7 +89,7 @@ _inline int CM_LeafCluster( int leafnum )
 	return pe->LeafCluster( leafnum );
 }
 
-_inline int CM_PointLeafnum( vec3_t origin )
+_inline int CM_PointLeafnum( const vec3_t origin )
 {
 	if( !pe )	return -1;
 	return pe->PointLeafnum( origin );
@@ -161,6 +163,13 @@ _inline void CM_TransformedBoxTrace( trace_t *tr, const vec3_t p1, const vec3_t 
 {
 	if( pe ) pe->BoxTrace2( tr, p1, p2, mins, maxs, model, mask, org, ang, type );
 	else CM_BoxTrace( tr, p1, p2, mins, maxs, model, mask, type );
+}
+
+_inline bool CM_HitboxTrace( trace_t *tr, edict_t *e, const vec3_t p1, const vec3_t p2 )
+{
+	if( pe ) return pe->HitboxTrace( tr, e, p1, p2 );
+	else tr->iHitgroup = -1;
+	return false;
 }
 
 _inline model_t CM_TempModel( const vec3_t mins, const vec3_t maxs, bool capsule )

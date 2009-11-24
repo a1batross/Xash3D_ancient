@@ -9,7 +9,7 @@
 #define MAX_INFO_KEY	64
 #define MAX_INFO_VALUE	64
 
-static char		sv_info[MAX_INFO_STRING*4];
+static char		infostring[MAX_INFO_STRING*4];
 
 /*
 =======================================================================
@@ -24,42 +24,44 @@ Info_Print
 printing current key-value pair
 ===============
 */
-void Info_Print( char *s )
+void Info_Print( const char *s )
 {
-	char	key[512];
-	char	value[512];
+	char	key[MAX_INFO_STRING];
+	char	value[MAX_INFO_STRING];
 	char	*o;
 	int	l;
 
-	if( *s == '\\' )s++;
+	if( *s == '\\' ) s++;
 
-	while (*s)
+	while( *s )
 	{
 		o = key;
-		while (*s && *s != '\\') *o++ = *s++;
+		while( *s && *s != '\\' )
+			*o++ = *s++;
 
 		l = o - key;
-		if (l < 20)
+		if( l < 20 )
 		{
-			memset (o, ' ', 20-l);
+			Mem_Set( o, ' ', 20 - l );
 			key[20] = 0;
 		}
 		else *o = 0;
-		Msg ("%s", key);
+		Msg( "%s", key );
 
-		if (!*s)
+		if( !*s )
 		{
-			Msg ("MISSING VALUE\n");
+			Msg( "(null)\n" );
 			return;
 		}
 
 		o = value;
 		s++;
-		while (*s && *s != '\\') *o++ = *s++;
+		while( *s && *s != '\\' )
+			*o++ = *s++;
 		*o = 0;
 
-		if (*s) s++;
-		Msg ("%s\n", value);
+		if( *s ) s++;
+		Msg( "%s\n", value );
 	}
 }
 
@@ -73,8 +75,8 @@ key and returns the associated value, or an empty string.
 */
 char *Info_ValueForKey( const char *s, const char *key )
 {
-	char	pkey[512];
-	static	char value[2][512];	// use two buffers so compares work without stomping on each other
+	char	pkey[MAX_INFO_STRING];
+	static	char value[2][MAX_INFO_STRING]; // use two buffers so compares work without stomping on each other
 	static	int valueindex;
 	char	*o;
 	
@@ -85,63 +87,67 @@ char *Info_ValueForKey( const char *s, const char *key )
 		o = pkey;
 		while( *s != '\\' && *s != '\n' )
 		{
-			if(!*s) return "";
+			if( !*s ) return "";
 			*o++ = *s++;
 		}
+
 		*o = 0;
 		s++;
 
 		o = value[valueindex];
 
-		while( *s != '\\' && *s != '\n' && *s)
+		while( *s != '\\' && *s != '\n' && *s )
 		{
-			if (!*s) return "";
+			if( !*s ) return "";
 			*o++ = *s++;
 		}
 		*o = 0;
 
-		if(!com.strcmp( key, pkey )) return value[valueindex];
-		if(!*s) return "";
+		if( !com.strcmp( key, pkey ))
+			return value[valueindex];
+		if( !*s ) return "";
 		s++;
 	}
 }
 
-void Info_RemoveKey (char *s, char *key)
+bool Info_RemoveKey( char *s, const char *key )
 {
 	char	*start;
-	char	pkey[512];
-	char	value[512];
+	char	pkey[MAX_INFO_STRING];
+	char	value[MAX_INFO_STRING];
 	char	*o;
 
-	if (com.strstr (key, "\\")) return;
+	if( com.strstr( key, "\\" ))
+		return false;
 
-	while (1)
+	while( 1 )
 	{
 		start = s;
-		if (*s == '\\') s++;
+		if( *s == '\\' ) s++;
 		o = pkey;
-		while (*s != '\\')
+
+		while( *s != '\\' )
 		{
-			if (!*s) return;
+			if( !*s ) return false;
 			*o++ = *s++;
 		}
 		*o = 0;
 		s++;
 
 		o = value;
-		while (*s != '\\' && *s)
+		while( *s != '\\' && *s )
 		{
-			if (!*s) return;
+			if( !*s ) return false;
 			*o++ = *s++;
 		}
 		*o = 0;
 
-		if (!com.strcmp (key, pkey) )
+		if( !com.strcmp( key, pkey ))
 		{
-			com.strcpy (start, s);	// remove this part
-			return;
+			com.strcpy( start, s ); // remove this part
+			return true;
 		}
-		if (!*s) return;
+		if( !*s ) return false;
 	}
 }
 
@@ -153,77 +159,85 @@ Some characters are illegal in info strings because they
 can mess up the server's parsing
 ==================
 */
-bool Info_Validate (char *s)
+bool Info_Validate( const char *s )
 {
-	if (com.strstr (s, "\"")) return false;
-	if (com.strstr (s, ";")) return false;
+	if( com.strstr( s, "\"" )) return false;
+	if( com.strstr( s, ";" )) return false;
 	return true;
 }
 
-void Info_SetValueForKey (char *s, char *key, char *value)
+bool Info_SetValueForKey( char *s, const char *key, const char *value )
 {
 	char	newi[MAX_INFO_STRING], *v;
 	int	c, maxsize = MAX_INFO_STRING;
 
-	if (com.strstr (key, "\\") || com.strstr (value, "\\") )
+	if( com.strstr( key, "\\" ) || com.strstr( value, "\\" ))
 	{
-		Msg ("Can't use keys or values with a \\\n");
-		return;
+		MsgDev( D_ERROR, "SetValueForKey: can't use keys or values with a \\\n" );
+		return false;
 	}
 
-	if (com.strstr (key, ";") )
+	if( com.strstr( key, ";" ))
 	{
-		Msg ("Can't use keys or values with a semicolon\n");
-		return;
-	}
-	if (com.strstr (key, "\"") || com.strstr (value, "\"") )
-	{
-		Msg ("Can't use keys or values with a \"\n");
-		return;
-	}
-	if (com.strlen(key) > MAX_INFO_KEY - 1 || com.strlen(value) > MAX_INFO_KEY-1)
-	{
-		Msg ("Keys and values must be < 64 characters.\n");
-		return;
+		MsgDev( D_ERROR, "SetValueForKey: can't use keys or values with a semicolon\n" );
+		return false;
 	}
 
-	Info_RemoveKey (s, key);
-	if (!value || !com.strlen(value)) return;
-	com.sprintf (newi, "\\%s\\%s", key, value);
-
-	if (com.strlen(newi) + com.strlen(s) > maxsize)
+	if( com.strstr( key, "\"" ) || com.strstr( value, "\"" ))
 	{
-		Msg ("Info string length exceeded\n");
-		return;
+		MsgDev( D_ERROR, "SetValueForKey: can't use keys or values with a \"\n" );
+		return false;
+	}
+
+	if( com.strlen( key ) > MAX_INFO_KEY - 1 || com.strlen( value ) > MAX_INFO_KEY - 1 )
+	{
+		MsgDev( D_ERROR, "SetValueForKey: keys and values must be < %i characters.\n", MAX_INFO_KEY );
+		return false;
+	}
+
+	Info_RemoveKey( s, key );
+	if( !value || !com.strlen( value ))
+		return true;	// just clear variable
+
+	com.sprintf( newi, "\\%s\\%s", key, value );
+	if( com.strlen( newi ) + com.strlen( s ) > maxsize )
+	{
+		MsgDev( D_ERROR, "SetValueForKey: info string length exceeded\n" );
+		return true; // info changed, new value can't saved
 	}
 
 	// only copy ascii values
-	s += com.strlen(s);
+	s += com.strlen( s );
 	v = newi;
-	while (*v)
+
+	while( *v )
 	{
 		c = *v++;
 		c &= 127;	// strip high bits
-		if (c >= 32 && c < 127) *s++ = c;
+		if( c >= 32 && c < 127 )
+			*s++ = c;
 	}
 	*s = 0;
+
+	// all done
+	return true;
 }
 
 static void Cvar_LookupBitInfo( const char *name, const char *string, const char *info, void *unused )
 {
-	Info_SetValueForKey( (char *)info, (char *)name, (char *)string );
+	Info_SetValueForKey( (char *)info, name, string );
 }
 
 char *Cvar_Userinfo( void )
 {
-	sv_info[0] = 0; // clear previous calls
-	Cvar_LookupVars( CVAR_USERINFO, sv_info, NULL, Cvar_LookupBitInfo ); 
-	return sv_info;
+	infostring[0] = 0; // clear previous calls
+	Cvar_LookupVars( CVAR_USERINFO, infostring, NULL, Cvar_LookupBitInfo ); 
+	return infostring;
 }
 
 char *Cvar_Serverinfo( void )
 {
-	sv_info[0] = 0; // clear previous calls
-	Cvar_LookupVars( CVAR_SERVERINFO, sv_info, NULL, Cvar_LookupBitInfo ); 
-	return sv_info;
+	infostring[0] = 0; // clear previous calls
+	Cvar_LookupVars( CVAR_SERVERINFO, infostring, NULL, Cvar_LookupBitInfo ); 
+	return infostring;
 }

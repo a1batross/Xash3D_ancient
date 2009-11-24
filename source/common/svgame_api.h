@@ -67,8 +67,8 @@ typedef struct enginefuncs_s
 	int	(*pfnModelFrames)( int modelIndex );
 	void	(*pfnSetSize)( edict_t *e, const float *rgflMin, const float *rgflMax );
 	void	(*pfnChangeLevel)( const char* s1, const char* s2 );
-	edict_t*	(*pfnFindClientInPHS)( edict_t *pEdict );	// was pfnGetSpawnParms
-	edict_t*	(*pfnEntitiesInPHS)( edict_t *pplayer );	// was pfnSaveSpawnParms
+	edict_t*	(*pfnFindClientInPHS)( edict_t *pEdict );		// was pfnGetSpawnParms
+	edict_t*	(*pfnEntitiesInPHS)( edict_t *pplayer );		// was pfnSaveSpawnParms
 	float	(*pfnVecToYaw)( const float *rgflVector );
 	void	(*pfnVecToAngles)( const float *rgflVectorIn, float *rgflVectorOut );
 	void	(*pfnMoveToOrigin)( edict_t *ent, const float *pflGoal, float dist, int iMoveType );
@@ -85,7 +85,7 @@ typedef struct enginefuncs_s
 	void	(*pfnRemoveEntity)( edict_t* e );
 	edict_t*	(*pfnCreateNamedEntity)( string_t className );
 	void	(*pfnMakeStatic)( edict_t *ent );
-	void	(*pfnLinkEdict)( edict_t *e );		// was pfnEntIsOnFloor
+	void	(*pfnLinkEdict)( edict_t *e, int touch_triggers );	// was pfnEntIsOnFloor
 	int	(*pfnDropToFloor)( edict_t* e );
 	int	(*pfnWalkMove)( edict_t *ent, float yaw, float dist, int iMode );
 	void	(*pfnSetOrigin)( edict_t *e, const float *rgflOrigin );
@@ -94,7 +94,7 @@ typedef struct enginefuncs_s
 	void	(*pfnTraceLine)( const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr );
 	void	(*pfnTraceToss)( edict_t* pent, edict_t* pentToIgnore, TraceResult *ptr );
 	int	(*pfnTraceMonsterHull)( edict_t *pEdict, const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr );
-	void	(*pfnTraceHull)( const float *v1, const float *mins, const float *maxs, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr );
+	void	(*pfnTraceHull)( const float *v1, const float *v2, int fNoMonsters, int hullNumber, edict_t *pentToSkip, TraceResult *ptr );
 	void	(*pfnTraceModel)( const float *v1, const float *v2, edict_t *pent, TraceResult *ptr );
 	const char *(*pfnTraceTexture)( edict_t *pTextureEntity, const float *v1, const float *v2 );
 	void	(*pfnTraceSphere)( const float *v1, const float *v2, int fNoMonsters, float radius, edict_t *pentToSkip, TraceResult *ptr );
@@ -105,7 +105,7 @@ typedef struct enginefuncs_s
 	void	(*pfnParticleEffect)( const float *org, const float *dir, float color, float count );
 	void	(*pfnLightStyle)( int style, char* val );
 	int	(*pfnDecalIndex)( const char *name );
-	int	(*pfnPointContents)( const float *rgflVector);
+	int	(*pfnPointContents)( const float *rgflVector );
 	void	(*pfnMessageBegin)( int msg_dest, int msg_type, const float *pOrigin, edict_t *ed );
 	void	(*pfnMessageEnd)( void );
 	void	(*pfnWriteByte)( int iValue );
@@ -122,11 +122,11 @@ typedef struct enginefuncs_s
 	void	(*pfnCVarSetFloat)( const char *szVarName, float flValue );
 	void	(*pfnCVarSetString)( const char *szVarName, const char *szValue );
 	void	(*pfnAlertMessage)( ALERT_TYPE level, char *szFmt, ... );
-	void	(*pfnWriteFloat)( float flValue );		// was pfnEngineFprintf
+	void	(*pfnEngineFprintf)( void *pfile, char *szFmt, ... );
 	void*	(*pfnPvAllocEntPrivateData)( edict_t *pEdict, long cb );
 	void*	(*pfnPvEntPrivateData)( edict_t *pEdict );
 	void	(*pfnFreeEntPrivateData)( edict_t *pEdict );
-	const char *(*pfnGetString)( string_t iString );		// was pfnSzFromIndex
+	const char *(*pfnSzFromIndex)( string_t iString );
 	string_t	(*pfnAllocString)( const char *szValue );
 	entvars_t *(*pfnGetVarsOfEnt)( edict_t *pEdict );
 	edict_t*	(*pfnPEntityOfEntOffset)( int iEntOffset );
@@ -136,7 +136,7 @@ typedef struct enginefuncs_s
 	edict_t*	(*pfnFindEntityByVars)( entvars_t* pvars );
 	void*	(*pfnGetModelPtr)( edict_t* pEdict );
 	int	(*pfnRegUserMsg)( const char *pszName, int iSize );
-	void	(*pfnAnimationAutomove)( const edict_t* pEdict, float flTime );
+	void	(*pfnAreaPortal)( edict_t *pEdict, int enable );		// was pfnAnimationAutomove
 	void	(*pfnGetBonePosition)( const edict_t* pEdict, int iBone, float *rgflOrigin, float *rgflAngles );
 	dword	(*pfnFunctionFromName)( const char *pName );
 	const char *(*pfnNameForFunction)( dword function );
@@ -146,10 +146,10 @@ typedef struct enginefuncs_s
 	const char *(*pfnCmd_Argv)( int argc );
 	int	(*pfnCmd_Argc)( void );
 	void	(*pfnGetAttachment)( const edict_t *pEdict, int iAttachment, float *rgflOrigin, float *rgflAngles );
-	void	(*pfnCRC_Init)( word *pulCRC );
-	void	(*pfnCRC_ProcessBuffer)( word *pulCRC, void *p, int len );
-	void	(*pfnCRC_ProcessByte)( word *pulCRC, byte ch );
-	word	(*pfnCRC_Final)( word pulCRC );
+	void	(*pfnCRC_Init)( CRC32_t *pulCRC );
+	void	(*pfnCRC_ProcessBuffer)( CRC32_t *pulCRC, void *p, int len );
+	void	(*pfnCRC_ProcessByte)( CRC32_t *pulCRC, byte ch );
+	CRC32_t	(*pfnCRC_Final)( CRC32_t pulCRC );
 	long	(*pfnRandomLong)( long lLow, long lHigh );
 	float	(*pfnRandomFloat)( float flLow, float flHigh );
 	void	(*pfnSetView)( const edict_t *pClient, const edict_t *pViewent );
@@ -161,12 +161,12 @@ typedef struct enginefuncs_s
 	int	(*pfnCompareFileTime)( const char *filename1, const char *filename2, int *iCompare );
 	void	(*pfnGetGameDir)( char *szGetGameDir );
 	void	(*pfnClassifyEdict)( edict_t *pEdict, int ed_type );	// was pfnCvar_RegisterVariable
-	void	(*pfnAreaPortal)( edict_t *pEdict, BOOL enable );		// was pfnFadeClientVolume
+	void	(*pfnFadeClientVolume)( const edict_t *pEdict, int fadePercent, int fadeOutSeconds, int holdTime, int fadeInSeconds );
 	void	(*pfnSetClientMaxspeed)( const edict_t *pEdict, float fNewMaxspeed );
 	edict_t	*(*pfnCreateFakeClient)( const char *netname ); // returns NULL if fake client can't be created
 	void	(*pfnThinkFakeClient)( edict_t *client, usercmd_t *cmd );	// was pfnRunPlayerMove, like it
 	int	(*pfnFileExists)( const char *filename );		// was pfnNumberOfEntities - see gpGlobals->numEntities
-	char*	(*pfnGetInfoKeyBuffer)( edict_t *e );	// passing in NULL gets the serverinfo
+	char*	(*pfnGetInfoKeyBuffer)( edict_t *e );			// passing in NULL gets the serverinfo
 	char*	(*pfnInfoKeyValue)( char *infobuffer, char *key );
 	void	(*pfnSetKeyValue)( char *infobuffer, char *key, char *value );
 	void	(*pfnSetClientKeyValue)( int clientIndex, char *infobuffer, char *key, char *value );
@@ -184,16 +184,27 @@ typedef struct enginefuncs_s
 	const char *(*pfnGetPhysicsInfoString)( const edict_t *pClient );
 	word	(*pfnPrecacheEvent)( int type, const char *psz );
 	void	(*pfnPlaybackEvent)( int flags, const edict_t *pInvoker, word eventindex, float delay, event_args_t *args );
-	long	(*pfnFWrite)(void *file, const void* data, size_t datasize);// was pfnSetFatPVS
-	long	(*pfnFRead)( void *file, void* buffer, size_t buffersize );	// was pfnSetFatPAS
-	void	*(*pfnFOpen)( const char* path, const char* mode );	// was pfnCheckVisibility
-	int	(*pfnFClose)( void *file );				// was pfnDeltaSetField
-	void	(*pfnDropClient)( int clientIndex );			// was pfnDeltaUnsetField
-	void	(*pfnHostError)( const char *szFmt, ... );		// was pfnDeltaAddEncoder
-	void	(*pfnGetPlayerPing)( const edict_t *pClient, int *ping );	// was pfnGetCurrentPlayer
-	BOOL	(*pfnCanSkipPlayer)( const edict_t *player );
-
-	// after this point enginefuncs_t completely unmatched with Half-Life interface
+	byte*	(*pfnSetFatPVS)( const float *org, int portal );
+	byte*	(*pfnSetFatPHS)( const float *org, int portal );
+	int	(*pfnCheckVisibility)( const edict_t *entity, unsigned char *pset );
+	void*	(*pfnFOpen)( const char* path, const char* mode );	// was pfnDeltaSetField
+	long	(*pfnFRead)( void *file, void* buffer, size_t buffersize );	// was pfnDeltaUnsetField
+	long	(*pfnFWrite)(void *file, const void* data, size_t datasize);// was pfnDeltaAddEncoder
+	int	(*pfnFClose)( void *file );				// was pfnGetCurrentPlayer
+	int	(*pfnCanSkipPlayer)( const edict_t *player );
+	int	(*pfnFGets)( void *file, byte *string, size_t bufsize );	// was fnDeltaFindField
+	int	(*pfnFSeek)( void *file, long offset, int whence );	// was pfnDeltaSetFieldByIndex
+	long	(*pfnFTell)( void *file );				// was pfnDeltaUnsetFieldByIndex
+	void	(*pfnSetGroupMask)( int mask, int op );
+	void	(*pfnDropClient)( int clientIndex );			// was pfnCreateInstancedBaseline
+	void	(*pfnHostError)( const char *szFmt, ... );		// was pfnCvar_DirectSet
+	char 	*(*pfnParseToken)( const char **data_p );		// was pfnForceUnmodified
+	void	(*pfnGetPlayerStats)( const edict_t *pClient, int *ping, int *packet_loss );
+	int	(*pfnAreasConnected)( edict_t *pClient, edict_t *pEdict );	// was pfnAddServerCommand
+	void*	(*pfnLoadLibrary)( const char *name );			// was pfnVoice_GetClientListening
+	void*	(*pfnGetProcAddress)( void *hInstance, const char *name );	// was pfnVoice_SetClientListening
+	void	(*pfnFreeLibrary)( void *hInstance );			// was pfnGetPlayerAuthId
+	// ONLY ADD NEW FUNCTIONS TO THE END OF THIS STRUCT.  INTERFACE VERSION IS FROZEN AT 138
 } enginefuncs_t;
 
 // passed to pfnKeyValue
@@ -354,12 +365,16 @@ typedef struct
 	void	(*pfnPM_Move)( playermove_t *ppmove, int server );
 	void	(*pfnPM_Init)( playermove_t *ppmove );
 	char	(*pfnPM_FindTextureType)( const char *name );
-
-	int	(*pfnShouldCollide)( edict_t *pentTouched, edict_t *pentOther );
-	void	(*pfnUpdateEntityState)( struct entity_state_s *to, edict_t *from, int baseline );
-	void	(*pfnOnFreeEntPrivateData)( edict_t *pEnt );
-
-	void	(*pfnGameShutdown)( void );
+	void	(*pfnSetupVisibility)( edict_t *pViewEntity, edict_t *pClient, byte **pvs, byte **phs );
+	void	(*pfnPhysicsEntity)( edict_t *pEntity );		// was pfnUpdateClientData
+	int	(*pfnAddToFullPack)( edict_t *pClient, edict_t *pEntity, int hostflags );
+	void	(*pfnEndFrame)( void );				// was pfnCreateBaseline
+	int	(*pfnShouldCollide)( edict_t *pTouch, edict_t *pOther );	// was pfnCreateBaseline
+	void	(*pfnUpdateEntityState)( struct entity_state_s *to, edict_t *from, int baseline ); // was pfnRegisterEncoders
+	void	(*pfnOnFreeEntPrivateData)( edict_t *pEnt );		// was pfnGetWeaponData
+	void	(*pfnCmdStart)( const edict_t *player, const usercmd_t *cmd, unsigned int random_seed );
+	void	(*pfnCmdEnd)( const edict_t *player );
+	void	(*pfnGameShutdown)( void );				// was pfnConnectionlessPacket
 } DLL_FUNCTIONS;
 
 typedef int (*SERVERAPI)( DLL_FUNCTIONS *pFunctionTable, enginefuncs_t* engfuncs, globalvars_t *pGlobals );

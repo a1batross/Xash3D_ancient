@@ -1399,7 +1399,7 @@ float UTIL_AngleDistance( float next, float cur )
 	return delta;
 }
 
-BOOL UTIL_EntIsVisible( entvars_t* pev, entvars_t* pevTarget)
+BOOL UTIL_EntIsVisible( entvars_t* pev, entvars_t* pevTarget )
 {
 	Vector vecSpot1 = pev->origin + pev->view_ofs;
 	Vector vecSpot2 = pevTarget->origin + pevTarget->view_ofs;
@@ -1602,6 +1602,46 @@ float UTIL_SharedRandomFloat( unsigned int seed, float low, float high )
 	}
 }
 
+int g_groupmask = 0;
+int g_groupop = 0;
+
+// Normal overrides
+void UTIL_SetGroupTrace( int groupmask, int op )
+{
+	g_groupmask		= groupmask;
+	g_groupop		= op;
+
+	ENGINE_SETGROUPMASK( g_groupmask, g_groupop );
+}
+
+void UTIL_UnsetGroupTrace( void )
+{
+	g_groupmask		= 0;
+	g_groupop		= 0;
+
+	ENGINE_SETGROUPMASK( 0, 0 );
+}
+
+// Smart version, it'll clean itself up when it pops off stack
+UTIL_GroupTrace::UTIL_GroupTrace( int groupmask, int op )
+{
+	m_oldgroupmask	= g_groupmask;
+	m_oldgroupop	= g_groupop;
+
+	g_groupmask		= groupmask;
+	g_groupop		= op;
+
+	ENGINE_SETGROUPMASK( g_groupmask, g_groupop );
+}
+
+UTIL_GroupTrace::~UTIL_GroupTrace( void )
+{
+	g_groupmask		=	m_oldgroupmask;
+	g_groupop		=	m_oldgroupop;
+
+	ENGINE_SETGROUPMASK( g_groupmask, g_groupop );
+}
+
 #ifdef DEBUG
 edict_t *DBG_EntOfVars( const entvars_t *pev )
 {
@@ -1706,15 +1746,10 @@ Vector UTIL_AxisRotationToVec( const Vector &vecAxis, float flDegs )
 	return Vector(rgflVecOut);
 }
 	
-//	float UTIL_MoveToOrigin( edict_t *pent, const Vector vecGoal, float flDist, int iMoveType )
 void UTIL_MoveToOrigin( edict_t *pent, const Vector &vecGoal, float flDist, int iMoveType )
 {
-	float rgfl[3];
-	vecGoal.CopyToArray(rgfl);
-//		return MOVE_TO_ORIGIN ( pent, rgfl, flDist, iMoveType ); 
-	MOVE_TO_ORIGIN ( pent, rgfl, flDist, iMoveType ); 
+	MOVE_TO_ORIGIN( pent, vecGoal, flDist, iMoveType ); 
 }
-
 
 int UTIL_EntitiesInBox( CBaseEntity **pList, int listMax, const Vector &mins, const Vector &maxs, int flagMask )
 {
@@ -2326,30 +2361,7 @@ void UTIL_TraceLine( const Vector &vecStart, const Vector &vecEnd, IGNORE_MONSTE
 
 void UTIL_TraceHull( const Vector &vecStart, const Vector &vecEnd, IGNORE_MONSTERS igmon, int hullNumber, edict_t *pentIgnore, TraceResult *ptr )
 {
-	Vector	mins, maxs;
-
-	switch( hullNumber )
-	{
-	case human_hull:
-		mins = Vector( -16, -16, 0  );
-		maxs = Vector(  16,  16, 72 );
-		break; 
-	case large_hull:
-		mins = Vector( -32, -32,-32 );
-		maxs = Vector(  32,  32, 32 );
-		break;
-	case head_hull:	// ducked
-		mins = Vector( -16, -16,-18 );
-		maxs = Vector(  16,  16, 18 );
-		break;
-	case point_hull:
-	default:	
-		mins = g_vecZero;
-		maxs = g_vecZero;
-		break; 
-	}
-
-	TRACE_HULL( vecStart, mins, maxs, vecEnd, (igmon == ignore_monsters ? TRUE : FALSE), pentIgnore, ptr );
+	TRACE_HULL( vecStart, vecEnd, (igmon == ignore_monsters ? TRUE : FALSE), hullNumber, pentIgnore, ptr );
 }
 
 void UTIL_TraceModel( const Vector &vecStart, const Vector &vecEnd, int hullNumber, edict_t *pentModel, TraceResult *ptr )
@@ -2749,7 +2761,7 @@ void UTIL_Ricochet( const Vector &position, float scale )
 		WRITE_COORD( position.x );
 		WRITE_COORD( position.y );
 		WRITE_COORD( position.z );
-		WRITE_BYTE( (int)(scale*10) );
+		WRITE_BYTE( (int)( scale * 10 ));
 	MESSAGE_END();
 }
 

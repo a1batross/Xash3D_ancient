@@ -3372,7 +3372,7 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 		edict_t *pWorld = g_engfuncs.pfnPEntityOfEntIndex( 0 );
 		Vector start = pev->origin + pev->view_ofs;
 		Vector end = start + gpGlobals->v_forward * 1024;
-		UTIL_TraceLine( start, end, ignore_monsters, edict(), &tr );
+		UTIL_TraceLine( start, end, dont_ignore_monsters, edict(), &tr );
 		if ( tr.pHit ) pWorld = tr.pHit;
 		const char *pTextureName = TRACE_TEXTURE( pWorld, start, end );
 		pEntity = UTIL_FindEntityForward( this );
@@ -3382,7 +3382,7 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 			if ( pMonster ) pMonster->ReportAIState();
 			else pEntity->Use( this, this, USE_SHOWINFO, 0 );
 		}
-		else if ( pTextureName ) ALERT( at_console, "Texture: %s\n", pTextureName );
+		if ( pTextureName ) ALERT( at_console, "Texture: %s\n", pTextureName );
 	}
 	break;
 

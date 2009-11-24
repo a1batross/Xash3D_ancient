@@ -216,14 +216,6 @@ inline BOOL FStringNull( Vector vString )	{ return vString == Vector( 0, 0, 0); 
 
 #define cchMapNameMost 32
 
-typedef enum
-{
-	point_hull = 0,
-	human_hull = 1,
-	large_hull = 2,
-	head_hull = 3
-};
-
 // Dot products for view cone checking
 #define VIEW_FIELD_FULL		(float)-1.0 // +-180 degrees
 #define VIEW_FIELD_WIDE		(float)-0.7 // +-135 degrees 0.1 // +-85 degrees, used for full FOV checks 
@@ -370,8 +362,11 @@ extern void UTIL_ScreenFade( const Vector &color, float fadeTime, float fadeHold
 extern void	UTIL_SetFog		( Vector color, int iFadeTime, int iStartDist, int iEndDist, int playernum = 1 );	
 extern void	UTIL_SetFogAll		( Vector color, int iFadeTime, int iStartDist, int iEndDist );
 
-typedef enum { ignore_monsters=1, dont_ignore_monsters=0, missile=2 } IGNORE_MONSTERS;
-typedef enum { ignore_glass=1, dont_ignore_glass=0 } IGNORE_GLASS;
+// hull enumerator
+typedef enum { point_hull = 0, human_hull = 1, large_hull = 2, head_hull = 3 };
+typedef enum { ignore_monsters = 1, dont_ignore_monsters = 0, missile = 2 } IGNORE_MONSTERS;
+typedef enum { ignore_glass = 1, dont_ignore_glass = 0 } IGNORE_GLASS;
+
 extern void			UTIL_TraceLine			(const Vector &vecStart, const Vector &vecEnd, IGNORE_MONSTERS igmon, edict_t *pentIgnore, TraceResult *ptr);
 extern void			UTIL_TraceLine			(const Vector &vecStart, const Vector &vecEnd, IGNORE_MONSTERS igmon, IGNORE_GLASS ignoreGlass, edict_t *pentIgnore, TraceResult *ptr);
 extern void			UTIL_TraceHull			(const Vector &vecStart, const Vector &vecEnd, IGNORE_MONSTERS igmon, int hullNumber, edict_t *pentIgnore, TraceResult *ptr);
@@ -650,6 +645,31 @@ void EMIT_GROUPNAME_SUIT(edict_t *entity, const char *groupname);
 	EMIT_SOUND_DYN ( ENT(pev), chan , array [ RANDOM_LONG(0,ARRAYSIZE( array )-1) ], 1.0, ATTN_NORM, 0, RANDOM_LONG(95,105) ); 
 
 #define RANDOM_SOUND_ARRAY( array ) (array) [ RANDOM_LONG(0,ARRAYSIZE( (array) )-1) ]
+
+#define PLAYBACK_EVENT( flags, who, index ) PLAYBACK_EVENT_FULL( flags, who, index, 0, (float *)&g_vecZero, (float *)&g_vecZero, 0.0, 0.0, 0, 0, 0, 0 );
+#define PLAYBACK_EVENT_DELAY( flags, who, index, delay ) PLAYBACK_EVENT_FULL( flags, who, index, delay, (float *)&g_vecZero, (float *)&g_vecZero, 0.0, 0.0, 0, 0, 0, 0 );
+
+#define GROUP_OP_AND	0
+#define GROUP_OP_NAND	1
+
+extern int g_groupmask;
+extern int g_groupop;
+
+class UTIL_GroupTrace
+{
+public:
+	UTIL_GroupTrace( int groupmask, int op );
+	~UTIL_GroupTrace( void );
+
+private:
+	int m_oldgroupmask, m_oldgroupop;
+};
+
+void UTIL_SetGroupTrace( int groupmask, int op );
+void UTIL_UnsetGroupTrace( void );
+
+int UTIL_SharedRandomLong( unsigned int seed, int low, int high );
+float UTIL_SharedRandomFloat( unsigned int seed, float low, float high );
 
 int UTIL_SharedRandomLong( unsigned int seed, int low, int high );
 float UTIL_SharedRandomFloat( unsigned int seed, float low, float high );

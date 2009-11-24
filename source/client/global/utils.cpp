@@ -171,7 +171,7 @@ float READ_ANGLE( void )
 
 Vector READ_DIR( void )
 {
-	return BitsToDir( READ_SHORT() );
+	return BitsToDir( READ_BYTE() );
 }
 
 //

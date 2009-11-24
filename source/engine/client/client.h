@@ -1,23 +1,7 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-// client.h -- primary header for client
+//=======================================================================
+//			Copyright XashXT Group 2009 ©
+//		      client.h -- primary header for client
+//=======================================================================
 
 #ifndef CLIENT_H
 #define CLIENT_H
@@ -104,6 +88,8 @@ typedef struct
 	ref_params_t	refdef;		// shared refdef
 	client_data_t	data;		// hud data
 
+	cinematics_t	*cin;
+
 	// predicting stuff
 	vec3_t		predicted_origins[CMD_BACKUP];// for debug comparing against server
 
@@ -121,6 +107,7 @@ typedef struct
 	int		servercount;			// server identification for prespawns
 	int		serverframetime;			// server frametime
 	char		configstrings[MAX_CONFIGSTRINGS][CS_SIZE];
+	char		physinfo[MAX_INFO_STRING];		// physics info string
 
 	entity_state_t	entity_curstates[MAX_PARSE_ENTITIES];
 	entity_state_t	entity_baselines[MAX_EDICTS];		// keep all baselines in one global array
@@ -322,6 +309,7 @@ typedef struct
 	shader_t		clientFont;		// current client font
 	shader_t		consoleBack;		// console background
 	shader_t		fillShader;		// used for emulate FillRGBA to avoid wrong draw-sort
+	shader_t		particle;			// used for drawing quake1 particles (SV_ParticleEffect)
 	shader_t		netIcon;			// netIcon displayed bad network connection
 	
 	file_t		*download;		// file transfer from server
@@ -389,6 +377,7 @@ extern cvar_t	*cl_levelshot_name;
 extern cvar_t	*scr_centertime;
 extern cvar_t	*scr_download;
 extern cvar_t	*scr_loading;
+extern cvar_t	*userinfo;
 extern cvar_t	*con_font;
 
 //=============================================================================
@@ -396,14 +385,6 @@ extern cvar_t	*con_font;
 bool CL_CheckOrDownloadFile( const char *filename );
 
 //=================================================
-//
-// cinematic.c
-//
-bool CIN_PlayCinematic( const char *filename );		// play cinematic with specified name
-void CIN_DrawCinematic( void );			// draw current frame
-void CIN_RunCinematic( void );			// decompress next frame
-void CIN_StopCinematic( void );			// stop video playing
-
 void CL_TeleportSplash( vec3_t org );
 int CL_ParseEntityBits( sizebuf_t *msg, uint *bits );
 void CL_ParseFrame( sizebuf_t *msg );
@@ -503,6 +484,7 @@ void CL_InitEdict( edict_t *pEdict );
 void CL_FreeEdict( edict_t *pEdict );
 string_t CL_AllocString( const char *szValue );
 const char *CL_GetString( string_t iString );
+void CL_CenterPrint( const char *text, int y, int charWidth );
 
 _inline edict_t *CL_EDICT_NUM( int n, const char *file, const int line )
 {
@@ -575,10 +557,13 @@ void CL_AddDecals( void );
 void CL_ClearEffects( void );
 void CL_TestLights( void );
 void CL_TestEntities( void );
+void CL_FindExplosionPlane( const vec3_t origin, float radius, vec3_t result );
 bool pfnAddParticle( cparticle_t *src, HSPRITE shader, int flags );
 void pfnAddDecal( float *org, float *dir, float *rgba, float rot, float rad, HSPRITE hSpr, int flags );
 void pfnAddDLight( const float *org, const float *rgb, float radius, float time, int flags, int key );
-
+void CL_ParticleEffect( const vec3_t org, const vec3_t dir, int color, int count ); // q1 legacy
+void CL_SpawnStaticDecal( vec3_t origin, int decalIndex, int entityIndex, int modelIndex );
+	
 //
 // cl_pred.c
 //
@@ -635,14 +620,13 @@ void Field_Draw( field_t *edit, int x, int y, int width, bool showCursor );
 void Field_BigDraw( field_t *edit, int x, int y, int width, bool showCursor );
 
 //
-// cl_cin.c
+// cl_video.c
 //
-bool SCR_PlayCinematic( char *name, int bits );
-void SCR_DrawCinematic( void );
+void SCR_InitCinematic( void );
+bool SCR_PlayCinematic( const char *name );
+bool SCR_DrawCinematic( void );
 void SCR_RunCinematic( void );
 void SCR_StopCinematic( void );
-void SCR_ResetCinematic( void );
-int SCR_GetCinematicState( void );
 void CL_PlayVideo_f( void );
 
 #endif//CLIENT_H

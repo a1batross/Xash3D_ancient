@@ -315,12 +315,12 @@ void CBaseEntity :: ClearPointers( void )
 //=========================================================
 BOOL CBaseEntity :: FVisible ( const Vector &vecOrigin )
 {
-	TraceResult tr;
+	TraceResult	tr;
 	Vector		vecLookerOrigin;
 	
-	vecLookerOrigin = EyePosition();//look through the caller's 'eyes'
+	vecLookerOrigin = EyePosition(); // look through the caller's 'eyes'
 
-	UTIL_TraceLine(vecLookerOrigin, vecOrigin, ignore_monsters, ignore_glass, ENT(pev)/*pentIgnore*/, &tr);
+	UTIL_TraceLine( vecLookerOrigin, vecOrigin, ignore_monsters, ignore_glass, ENT( pev ), &tr );
 	
 	if (tr.flFraction != 1.0)
 		return FALSE;
@@ -331,9 +331,9 @@ BOOL CBaseEntity :: FVisible ( const Vector &vecOrigin )
 // FVisible - returns true if a line can be traced from
 // the caller's eyes to the target
 //=========================================================
-BOOL CBaseEntity :: FVisible ( CBaseEntity *pEntity )
+BOOL CBaseEntity :: FVisible( CBaseEntity *pEntity )
 {
-	TraceResult tr;
+	TraceResult	tr;
 	Vector		vecLookerOrigin;
 	Vector		vecTargetOrigin;
 	
@@ -341,15 +341,15 @@ BOOL CBaseEntity :: FVisible ( CBaseEntity *pEntity )
 		return FALSE;
 
 	// don't look through water
-	if ((pev->waterlevel != 3 && pEntity->pev->waterlevel == 3) || (pev->waterlevel == 3 && pEntity->pev->waterlevel == 0))
+	if(( pev->waterlevel != 3 && pEntity->pev->waterlevel == 3 ) || ( pev->waterlevel == 3 && pEntity->pev->waterlevel != 3 ))
 		return FALSE;
 
-	vecLookerOrigin = pev->origin + pev->view_ofs;//look through the caller's 'eyes'
+	vecLookerOrigin = pev->origin + pev->view_ofs; // look through the caller's 'eyes'
 	vecTargetOrigin = pEntity->EyePosition();
 
-	UTIL_TraceLine(vecLookerOrigin, vecTargetOrigin, ignore_monsters, ignore_glass, ENT(pev)/*pentIgnore*/, &tr);
+	UTIL_TraceLine( vecLookerOrigin, vecTargetOrigin, ignore_monsters, ignore_glass, ENT( pev ), &tr );
 	
-	if (tr.flFraction != 1.0 && tr.pHit != ENT(pEntity->pev))
+	if( tr.flFraction != 1.0 && tr.pHit != ENT( pEntity->pev ))
 		return FALSE;
 	return TRUE;
 }
@@ -706,6 +706,7 @@ CBaseEntity * CBaseEntity::CreateGib( char *szName, char *szModel )
 	if( FNullEnt( pent )) return NULL;
 	
 	pEntity = Instance( pent );
+	pEntity->SetObjectClass( );
 	DispatchSpawn( pEntity->edict() );
 
 	if( !FStringNull( model )) 

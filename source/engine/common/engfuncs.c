@@ -9,6 +9,7 @@
 #include "const.h"
 #include "client.h"
 #include "cvardef.h"
+#include "com_library.h"
 
 /*
 ==============
@@ -364,6 +365,61 @@ pfnFTell
 long pfnFTell( void *file )
 {
 	return FS_Tell( file );
+}
+
+/*
+=============
+pfnEngineFprintf
+
+=============
+*/
+void pfnEngineFprintf( void *file, char *szFmt, ... )
+{
+	char		buffer[2048];	// must support > 1k messages
+	va_list		args;
+
+	va_start( args, szFmt );
+	com.vsnprintf( buffer, 2048, szFmt, args );
+	va_end( args );
+
+	FS_Print( file, buffer );
+}
+
+/*
+=============
+pfnLoadLibrary
+
+=============
+*/
+void *pfnLoadLibrary( const char *name )
+{
+	string	libpath;
+
+	Com_BuildPath( name, libpath );
+	return Com_LoadLibrary( libpath );
+}
+
+/*
+=============
+pfnGetProcAddress
+
+=============
+*/
+void *pfnGetProcAddress( void *hInstance, const char *name )
+{
+	if( !hInstance ) return NULL;
+	return Com_GetProcAddress( hInstance, name );
+}
+
+/*
+=============
+pfnFreeLibrary
+
+=============
+*/
+void pfnFreeLibrary( void *hInstance )
+{
+	Com_FreeLibrary( hInstance );
 }
 
 /*

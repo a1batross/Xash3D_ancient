@@ -162,11 +162,22 @@ Beta 13.12.09
 135. implement dsp, lipsync and vox
 136. re-vision uimenu
 137. complete rewriting physic.dll		OK
-138. implement hashtable for loaded sounds
+138. implement hashtable for loaded sounds	OK
 139. finalize client API's
 140. net_msg is buggly!!!!			OK
 141. get physic code from Lazarus
-142. completely match cl\sv iface with HL1
+142. finalize CL_Move and CL_LinkEdict
 143. implement pmove			OK
 144. usercmd sends right			OK
 145. gl_invalid_value mirrors bug		OK
+146. implement RoQ back			OK
+147. implement studio trace			OK
+148. implement pfnGetEntityIllum
+149. implement pfnEmitAmbientSound
+150. implement pfnTraceSphere
+151. implement pfnFadeClientVolume
+152. implement ÑRC32			OK
+153. implement physinfo strings		OK
+154. fix downloading issues			OK
+155. implement pfnPlaybackEvent
+156. allowing to use russian letters

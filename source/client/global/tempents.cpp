@@ -243,6 +243,80 @@ void CL_SparkParticles( const Vector org, const Vector dir )
 
 /*
 =================
+CL_RicochetSparks
+=================
+*/
+void CL_RicochetSparks( const Vector org, float scale )
+{
+	cparticle_t	src;
+	int		i, flags;
+
+	// sparks
+	flags = (PARTICLE_STRETCH|PARTICLE_BOUNCE|PARTICLE_FRICTION);
+
+	for( i = 0; i < 16; i++ )
+	{
+		src.origin.x = org[0] + RANDOM_FLOAT( -1, 1 );
+		src.origin.y = org[1] + RANDOM_FLOAT( -1, 1 );
+		src.origin.z = org[2] + RANDOM_FLOAT( -1, 1 );
+		src.velocity.x = RANDOM_FLOAT( -60, 60 );
+		src.velocity.y = RANDOM_FLOAT( -60, 60 );
+		src.velocity.z = RANDOM_FLOAT( -60, 60 );
+		src.accel.x = src.accel.y = 0;
+		src.accel.z = -120 + RANDOM_FLOAT( -60, 60 );
+		src.color = Vector( 1.0, 1.0f, 1.0f );
+		src.colorVelocity = Vector( 0, 0, 0 );
+		src.alpha = 1.0;
+		src.alphaVelocity = -8.0;
+		src.radius = scale + RANDOM_FLOAT( -0.2, 0.2 );
+		src.radiusVelocity = 0;
+		src.length = scale + RANDOM_FLOAT( -0.2, 0.2 );
+		src.lengthVelocity = scale + RANDOM_FLOAT( -0.2, 0.2 );
+		src.rotation = 0;
+		src.bounceFactor = 0.2;
+
+		if( !g_engfuncs.pEfxAPI->R_AllocParticle( &src, gHUD.m_hSparks, flags ))
+			return;
+	}
+}
+
+void CL_SmokeParticles( const Vector pos, int count )
+{
+	cparticle_t	src;
+	int		i, flags;
+
+	if( !CVAR_GET_FLOAT( "cl_particles" ))
+		return;
+
+	// smoke
+	flags = PARTICLE_VERTEXLIGHT;
+
+	for( i = 0; i < count; i++ )
+	{
+		src.origin.x = pos.x + RANDOM_FLOAT( -10, 10 );
+		src.origin.y = pos.y + RANDOM_FLOAT( -10, 10 );
+		src.origin.z = pos.z + RANDOM_FLOAT( -10, 10 );
+		src.velocity.x = RANDOM_FLOAT( -10, 10 );
+		src.velocity.y = RANDOM_FLOAT( -10, 10 );
+		src.velocity.z = RANDOM_FLOAT( -10, 10 ) + RANDOM_FLOAT( -5, 5 ) + 25;
+		src.accel = Vector( 0, 0, 0 );
+		src.color = Vector( 0, 0, 0 );
+		src.colorVelocity = Vector( 0.75, 0.75, 0.75 );
+		src.alpha = 0.5;
+		src.alphaVelocity = RANDOM_FLOAT( -0.1, -0.2 );
+		src.radius = 30 + RANDOM_FLOAT( -15, 15 );
+		src.radiusVelocity = 15 + RANDOM_FLOAT( -7.5, 7.5 );
+		src.length = 1;
+		src.lengthVelocity = 0;
+		src.rotation = RANDOM_LONG( 0, 360 );
+
+		if( !g_engfuncs.pEfxAPI->R_AllocParticle( &src, gHUD.m_hSmoke, flags ))
+			return;
+	}
+}
+
+/*
+=================
 CL_BulletParticles
 =================
 */
@@ -443,6 +517,22 @@ void HUD_ParseTempEntity( void )
 		pos.z = READ_COORD();
 		g_engfuncs.pEfxAPI->CL_FindExplosionPlane( pos, 1.0f, dir );
 		CL_SparkParticles( pos, dir );
+		break;
+	case TE_ARMOR_RICOCHET:
+		pos.x = READ_COORD();
+		pos.y = READ_COORD();
+		pos.z = READ_COORD();
+		radius = READ_BYTE() / 10.0f;
+		CL_RicochetSparks( pos, radius );
+		break;
+	case TE_SMOKE:
+		pos.x = READ_COORD();
+		pos.y = READ_COORD();
+		pos.z = READ_COORD();
+		READ_SHORT(); // FIXME: use sprite index as shader index
+		scale = READ_BYTE();
+		READ_BYTE();  // FIMXE: use framerate
+		CL_SmokeParticles( pos, scale );
 		break;
 	case TE_TELEPORT:
 		pos.x = READ_COORD();

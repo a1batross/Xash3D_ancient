@@ -30,6 +30,9 @@ extern cvar_t		*cm_debugsize;
 #define PLANE_NORMAL_EPSILON	0.00001f
 #define PLANE_DIST_EPSILON	0.01f
 
+// 1/32 epsilon to keep floating point happy
+#define SURFACE_CLIP_EPSILON	(0.03125)
+
 typedef struct
 {
 	cplane_t       	*plane;
@@ -82,6 +85,7 @@ typedef struct
 	modtype_t		type;		// model type
 	vec3_t		mins, maxs;	// model boundbox
 	byte		*extradata;	// studiomodels extradata
+	byte		*submodels;	// animations ptr
 	int		numframes;	// sprite framecount
 
 	cleaf_t		leaf;		// holds the markbrushes and markfaces
@@ -251,7 +255,11 @@ void CM_FreeWorld( void );
 //
 bool CM_SpriteModel( byte *buffer, size_t filesize );
 bool CM_StudioModel( byte *buffer, size_t filesize );
-
+void CM_StudioInitBoxHull( void );
+void CM_StudioGetAttachment( edict_t *e, int iAttachment, float *org, float *ang );
+bool CM_StudioTrace( trace_t *tr, edict_t *e, const vec3_t p1, const vec3_t p2 );
+void CM_GetBonePosition( edict_t* e, int iBone, float *rgflOrigin, float *rgflAngles );
+	
 //
 // cm_trace.c
 //

@@ -7,6 +7,7 @@
 #include "input.h"
 
 #define MAX_RENDERS		8	// max libraries to keep tracking
+#define MAX_SYSEVENTS	1024	// system events
 
 physic_exp_t	*pe;
 render_exp_t	*re;
@@ -187,6 +188,8 @@ bool Host_InitRender( void )
 	ri.GetLocalPlayer = CL_GetLocalPlayer;
 	ri.GetMaxClients = CL_GetMaxClients;
 	ri.GetLerpFrac = CL_GetLerpFrac;
+	ri.RoQ_ReadChunk = CIN_ReadChunk;
+	ri.RoQ_ReadNextFrame = CIN_ReadNextFrame;
 	ri.WndProc = IN_WndProc;          
 
 	Sys_LoadLibrary( host_video->string, &render_dll );
@@ -449,9 +452,9 @@ void Host_PushEvent( sys_event_t *event )
 	sys_event_t	*ev;
 	static bool	overflow = false;
 
-	ev = &host.events[host.events_head & (MAX_EVENTS-1)];
+	ev = &host.events[host.events_head & (MAX_SYSEVENTS-1)];
 
-	if( host.events_head - host.events_tail >= MAX_EVENTS )
+	if( host.events_head - host.events_tail >= MAX_SYSEVENTS )
 	{
 		if( !overflow )
 		{
@@ -477,7 +480,7 @@ sys_event_t Host_GetEvent( void )
 	if( host.events_head > host.events_tail )
 	{
 		host.events_tail++;
-		return host.events[(host.events_tail - 1)&(MAX_EVENTS-1)];
+		return host.events[(host.events_tail - 1) & (MAX_SYSEVENTS-1)];
 	}
 	return Sys_GetEvent();
 }
@@ -574,9 +577,7 @@ int Host_ModifyTime( int msec )
 	{
 		// clients of remote servers do not want to clamp time, because
 		// it would skew their view of the server's time temporarily
-		if( SCR_CinActive( ))
-			clamp_time = (1000 / host_maxfps->integer);
-		else clamp_time = 5000;
+		clamp_time = 5000;
 	}
 
 	if( msec > clamp_time ) msec = clamp_time;
@@ -862,7 +863,7 @@ void Host_Init( const int argc, const char **argv )
 		Cmd_AddCommand( "snd_restart", Host_SndRestart_f, "restarts audio system" );
 	}
 
-	Cmd_AddCommand( "phys_restart", Host_PhysRestart_f, "restarts physic system" );
+	Cmd_AddCommand( "cmap_restart", Host_PhysRestart_f, "restarts physic system" );
 	Cmd_AddCommand( "game", Host_ChangeGame_f, "change game" );	// allow to change game from the console
 	host.frametime[0] = Host_Milliseconds();
 	host.errorframe = 0;
@@ -904,4 +905,25 @@ void Host_Free( void )
 	Host_FreeVprogs();
 	Host_FreePhysic();
 	Host_FreeCommon();
+}
+
+/*
+=================
+Engine entry point
+=================
+*/
+launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
+{
+         	static launch_exp_t Host;
+
+	com = *input;
+	Host.api_size = sizeof( launch_exp_t );
+	Host.com_size = sizeof( stdlib_api_t );
+
+	Host.Init = Host_Init;
+	Host.Main = Host_Main;
+	Host.Free = Host_Free;
+	Host.CPrint = Host_Print;
+
+	return &Host;
 }

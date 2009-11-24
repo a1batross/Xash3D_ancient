@@ -445,12 +445,16 @@ bool VFS_Eof( vfile_t* file);
 //
 // crclib.c
 //
-void CRC_Init(word *crcvalue);
-word CRC_Block (byte *start, int count);
-void CRC_ProcessByte(word *crcvalue, byte data);
-byte CRC_BlockSequence(byte *base, int length, int sequence);
-uint Com_BlockChecksum (void *buffer, int length);
-uint Com_BlockChecksumKey(void *buffer, int length, int key);
+void CRC_Init( CRC16_t *crcvalue );
+CRC16_t CRC_Block( byte *start, int count );
+void CRC_ProcessByte( CRC16_t *crcvalue, byte data );
+byte CRC_BlockSequence( byte *base, int length, int sequence );
+uint Com_BlockChecksum( void *buffer, int length );
+uint Com_BlockChecksumKey( void *buffer, int length, int key );
+void CRC32_ProcessBuffer( CRC32_t *pulCRC, const void *pBuffer, int nBuffer );
+void CRC32_ProcessByte( CRC32_t *pulCRC, byte ch );
+void CRC32_Init( CRC32_t *pulCRC );
+void CRC32_Final( CRC32_t *pulCRC );
 
 //
 // parselib.c

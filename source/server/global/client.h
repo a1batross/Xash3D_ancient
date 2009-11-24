@@ -42,21 +42,11 @@ extern void SpectatorDisconnect ( edict_t *pEntity );
 extern void SpectatorThink ( edict_t *pEntity );
 
 extern void SetupVisibility( edict_t *pViewEntity, edict_t *pClient, unsigned char **pvs, unsigned char **pas );
-extern void UpdateClientData ( const struct edict_s *ent, int sendweapons, struct clientdata_s *cd );
-extern int AddToFullPack( struct entity_state_s *state, int e, edict_t *ent, edict_t *host, int hostflags, int player, unsigned char *pSet );
-extern void CreateBaseline( int player, int eindex, struct entity_state_s *baseline, struct edict_s *entity, int playermodelindex, vec3_t player_mins, vec3_t player_maxs );
-extern void RegisterEncoders( void );
+extern int AddToFullPack( edict_t *pClient, edict_t *pEntity, int hostflags );
 
-extern int GetWeaponData( struct edict_s *player, struct weapon_data_s *info );
-
-extern void CmdStart( const edict_t *player, const struct usercmd_s *cmd, unsigned int random_seed );
+extern void CmdStart( const edict_t *player, const usercmd_t *cmd, unsigned int random_seed );
 extern void CmdEnd ( const edict_t *player );
 
-extern int  ConnectionlessPacket( const struct netadr_s *net_from, const char *args, char *response_buffer, int *response_buffer_size );
-extern int GetHullBounds( int hullnumber, float *mins, float *maxs );
-extern void CreateInstancedBaselines ( void );
-extern int  InconsistentFile( const edict_t *player, const char *filename, char *disconnect_message );
-extern int AllowLagCompensation( void );
 extern int g_serveractive;
 
 // messages affect only player

@@ -775,14 +775,14 @@ int CGraph :: FindShortestPath ( int *piPath, int iStart, int iDest, int iHull, 
 	return iNumPathNodes;
 }
 
-inline USHORT Hash( void *p, int len )
+inline ULONG Hash( void *p, int len )
 {
-	word	usCrc;
+	CRC32_t	ulCrc;
 
-	CRC_INIT( &usCrc );
-	CRC_PROCESS_BUFFER( &usCrc, p, len );
+	CRC32_INIT( &ulCrc );
+	CRC32_PROCESS_BUFFER( &ulCrc, p, len );
 
-	return CRC_FINAL( usCrc );
+	return CRC32_FINAL( ulCrc );
 }
 
 void inline CalcBounds(int &Lower, int &Upper, int Goal, int Best)
@@ -2659,13 +2659,14 @@ void CGraph::HashInsert(int iSrcNode, int iDestNode, int iKey)
 	np.iSrc  = iSrcNode;
 	np.iDest = iDestNode;
 
-	word	usHash;
-	CRC_INIT( &usHash );
-	CRC_PROCESS_BUFFER( &usHash, &np, sizeof( np ));
-	usHash = CRC_FINAL( usHash );
+	CRC32_t	dwHash;
 
-	int di = m_HashPrimes[usHash & 15];
-	int i = (usHash>>4) % m_nHashLinks;
+	CRC32_INIT( &dwHash );
+	CRC32_PROCESS_BUFFER( &dwHash, &np, sizeof( np ));
+	dwHash = CRC32_FINAL( dwHash );
+
+	int di = m_HashPrimes[dwHash & 15];
+	int i = (dwHash>>4) % m_nHashLinks;
 
 	while( m_pHashLinks[i] != ENTRY_STATE_EMPTY )
 	{
@@ -2683,13 +2684,13 @@ void CGraph::HashSearch( int iSrcNode, int iDestNode, int &iKey )
 	np.iSrc  = iSrcNode;
 	np.iDest = iDestNode;
 
-	word	usHash;
-	CRC_INIT( &usHash );
-	CRC_PROCESS_BUFFER( &usHash, &np, sizeof( np ));
-	usHash = CRC_FINAL( usHash );
+	CRC32_t	dwHash;
+	CRC32_INIT( &dwHash );
+	CRC32_PROCESS_BUFFER( &dwHash, &np, sizeof( np ));
+	dwHash = CRC32_FINAL( dwHash );
 
-	int di = m_HashPrimes[usHash & 15];
-	int i = (usHash >> 4) % m_nHashLinks;
+	int di = m_HashPrimes[dwHash & 15];
+	int i = (dwHash >> 4) % m_nHashLinks;
 
 	while( m_pHashLinks[i] != ENTRY_STATE_EMPTY )
 	{

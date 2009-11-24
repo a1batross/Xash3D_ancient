@@ -7,8 +7,8 @@
 #include "client.h"
 #include "byteorder.h"
 #include "matrix_lib.h"
-#include "com_library.h"
 #include "const.h"
+#include "com_library.h"
 #include "triangle_api.h"
 #include "effects_api.h"
 
@@ -965,7 +965,7 @@ pfnCenterPrint
 called once from message
 =============
 */
-void pfnCenterPrint( const char *text, int y, int charWidth )
+void CL_CenterPrint( const char *text, int y, int charWidth )
 {
 	char	*s;
 
@@ -1315,43 +1315,6 @@ const char *CL_GetString( string_t iString )
 {
 	return StringTable_GetString( clgame.hStringTable, iString );
 }
-
-/*
-=============
-CL_LoadLibrary
-
-=============
-*/
-static void *CL_LoadLibrary( const char *name )
-{
-	string	libpath;
-
-	Com_BuildPath( name, libpath );
-	return Com_LoadLibrary( libpath );
-}
-
-/*
-=============
-CL_GetProcAddress
-
-=============
-*/
-static void *CL_GetProcAddress( void *hInstance, const char *name )
-{
-	if( !hInstance ) return NULL;
-	return Com_GetProcAddress( hInstance, name );
-}
-
-/*
-=============
-CL_FreeLibrary
-
-=============
-*/
-static void CL_FreeLibrary( void *hInstance )
-{
-	Com_FreeLibrary( hInstance );
-}
 	
 /*
 =================
@@ -1361,30 +1324,7 @@ pfnFindExplosionPlane
 */
 static void pfnFindExplosionPlane( const float *origin, float radius, float *result )
 {
-	static vec3_t	planes[6] = {{0, 0, 1}, {0, 1, 0}, {1, 0, 0}, {0, 0, -1}, {0, -1, 0}, {-1, 0, 0}};
-	float		best = 1.0f;
-	vec3_t		point, dir;
-	trace_t		trace;
-	int		i;
-
-	if( !result ) return;
-	VectorClear( dir );
-
-	for( i = 0; i < 6; i++ )
-	{
-		VectorMA( origin, radius, planes[i], point );
-
-		trace = CL_Trace( origin, vec3_origin, vec3_origin, point, MOVE_WORLDONLY, NULL, MASK_SOLID );
-		if( trace.fAllSolid || trace.flFraction == 1.0f )
-			continue;
-
-		if( trace.flFraction < best )
-		{
-			best = trace.flFraction;
-			VectorCopy( trace.vecPlaneNormal, dir );
-		}
-	}
-	VectorCopy( dir, result );
+	CL_FindExplosionPlane( origin, radius, result );
 }
 
 /*
@@ -1780,7 +1720,7 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnPlaySoundByIndex,	
 	AngleVectors,
 	pfnDrawCenterPrint,
-	pfnCenterPrint,
+	CL_CenterPrint,
 	pfnDrawString,		
 	pfnGetDrawParms,
 	pfnSetDrawParms,
@@ -1812,9 +1752,9 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnLoadFile,
 	pfnFileExists,
 	pfnGetGameDir,				
-	CL_LoadLibrary,
-	CL_GetProcAddress,
-	CL_FreeLibrary,		
+	pfnLoadLibrary,
+	pfnGetProcAddress,
+	pfnFreeLibrary,		
 	Host_Error,
 	&gTriApi,
 	&gEfxApi

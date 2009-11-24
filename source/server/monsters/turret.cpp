@@ -460,27 +460,29 @@ void CBaseTurret::Ping( void )
 }
 
 
-void CBaseTurret::EyeOn( )
+void CBaseTurret :: EyeOn( void )
 {
-	if (m_pEyeGlow)
+	if( m_pEyeGlow )
 	{
-		if (m_eyeBrightness != 255)
+		if( m_eyeBrightness != 255 )
 		{
 			m_eyeBrightness = 255;
+			pev->skin = 1; // enable glow
 		}
 		m_pEyeGlow->SetBrightness( m_eyeBrightness );
 	}
 }
 
 
-void CBaseTurret::EyeOff( )
+void CBaseTurret :: EyeOff( void )
 {
-	if (m_pEyeGlow)
+	if( m_pEyeGlow )
 	{
-		if (m_eyeBrightness > 0)
+		if( m_eyeBrightness > 0 )
 		{
 			m_eyeBrightness = max( 0, m_eyeBrightness - 30 );
 			m_pEyeGlow->SetBrightness( m_eyeBrightness );
+			if( m_eyeBrightness < 50 ) pev->skin = 0;
 		}
 	}
 }

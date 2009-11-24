@@ -270,7 +270,7 @@ DECALS MANAGEMENT
 
 ==============================================================
 */
-#define MAX_DECALS			256
+#define MAX_DRAWDECALS		256
 #define MAX_DECAL_VERTS		128
 #define MAX_DECAL_FRAGMENTS		64
 
@@ -288,13 +288,13 @@ typedef struct cdecal_s
 	poly_t		*poly;
 } cdecal_t;
 
-static cdecal_t cl_decals[MAX_DECALS];
-static cdecal_t cl_decals_headnode, *cl_free_decals;
+static cdecal_t	cl_decals[MAX_DRAWDECALS];
+static cdecal_t	cl_decals_headnode, *cl_free_decals;
 
-static poly_t cl_decal_polys[MAX_DECALS];
-static vec3_t cl_decal_verts[MAX_DECALS][MAX_DECAL_VERTS];
-static vec2_t cl_decal_stcoords[MAX_DECALS][MAX_DECAL_VERTS];
-static rgba_t cl_decal_colors[MAX_DECALS][MAX_DECAL_VERTS];
+static poly_t	cl_decal_polys[MAX_DRAWDECALS];
+static vec3_t	cl_decal_verts[MAX_DRAWDECALS][MAX_DECAL_VERTS];
+static vec2_t	cl_decal_stcoords[MAX_DRAWDECALS][MAX_DECAL_VERTS];
+static rgba_t	cl_decal_colors[MAX_DRAWDECALS][MAX_DECAL_VERTS];
 
 /*
 =================
@@ -313,9 +313,9 @@ void CL_ClearDecals( void )
 	cl_decals_headnode.prev = &cl_decals_headnode;
 	cl_decals_headnode.next = &cl_decals_headnode;
 
-	for( i = 0; i < MAX_DECALS; i++ )
+	for( i = 0; i < MAX_DRAWDECALS; i++ )
 	{
-		if( i < MAX_DECALS - 1 )
+		if( i < MAX_DRAWDECALS - 1 )
 			cl_decals[i].next = &cl_decals[i+1];
 
 		cl_decals[i].poly = &cl_decal_polys[i];
@@ -393,7 +393,7 @@ void CL_SpawnDecal( vec3_t org, vec3_t dir, float rot, float rad, float *col, fl
 	rgba_t		color;
 
 	// invalid decal
-	if( rad <= 0 || VectorCompare( dir, vec3_origin ))
+	if( rad <= 0 || VectorIsNull( dir ))
 		return;
 
 	// calculate orientation matrix
@@ -417,9 +417,17 @@ void CL_SpawnDecal( vec3_t org, vec3_t dir, float rot, float rad, float *col, fl
 	VectorScale( axis[1], rad, axis[1] );
 	VectorScale( axis[2], rad, axis[2] );
 
-	dietime = cl.time + (die * 1000);
-	fadefreq = 0.001f / min( fadetime, die );
-	fadetime = cl.time + (die - min( fadetime, die )) * 1000;
+	if( die == -1.0f )
+	{
+		dietime = -1.0f;
+		fadefreq = fadetime = 1.0f;
+	}
+	else
+	{
+		dietime = cl.time + (die * 1000);
+		fadefreq = 0.001f / min( fadetime, die );
+		fadetime = cl.time + (die - min( fadetime, die )) * 1000;
+	}
 
 	for( i = 0, fr = fragments; i < numfragments; i++, fr++ )
 	{
@@ -476,6 +484,13 @@ void CL_AddDecals( void )
 	{
 		next = dl->prev;
 
+		if( dl->die == -1.0f )
+		{
+			// static decals not fading, not removes
+			re->AddPolygon( dl->poly );
+			continue;
+		}
+
 		// it's time to DIE
 		if( dl->die <= cl.time )
 		{
@@ -523,6 +538,57 @@ void CL_AddDecals( void )
 		}
 		re->AddPolygon( poly );
 	}
+}
+
+void CL_FindExplosionPlane( const vec3_t origin, float radius, vec3_t result )
+{
+	static vec3_t	planes[6] = {{0, 0, 1}, {0, 1, 0}, {1, 0, 0}, {0, 0, -1}, {0, -1, 0}, {-1, 0, 0}};
+	float		best = 1.0f;
+	vec3_t		point, dir;
+	trace_t		trace;
+	int		i;
+
+	if( !result ) return;
+	VectorClear( dir );
+
+	for( i = 0; i < 6; i++ )
+	{
+		VectorMA( origin, radius, planes[i], point );
+
+		trace = CL_Trace( origin, vec3_origin, vec3_origin, point, MOVE_WORLDONLY, NULL, MASK_SOLID );
+		if( trace.fAllSolid || trace.flFraction == 1.0f )
+			continue;
+
+		if( trace.flFraction < best )
+		{
+			best = trace.flFraction;
+			VectorCopy( trace.vecPlaneNormal, dir );
+		}
+	}
+	VectorCopy( dir, result );
+}
+
+/*
+===============
+CL_SpawnStaticDecal
+
+===============
+*/
+void CL_SpawnStaticDecal( vec3_t origin, int decalIndex, int entityIndex, int modelIndex )
+{
+	vec4_t	col = { 1.0f, 1.0f, 1.0f, 1.0f };
+	float	radius = 32.0f;
+	vec3_t	dir;
+
+	if( entityIndex != 0 )
+	{
+		MsgDev( D_ERROR, "Current Xash version allows static decals only on world surfaces\n" );
+		return;
+	}
+
+	CL_FindExplosionPlane( origin, radius, dir );
+	decalIndex = bound( 0, decalIndex, MAX_DECALS - 1 );
+	CL_SpawnDecal( origin, dir, 90.0f, radius, col, -1.0f, 0.0f, 0, cl.decal_shaders[decalIndex] );
 }
 
 /*
@@ -577,9 +643,10 @@ struct cparticle_s
 	rgba_t		pColor[4];
 };
 
-cparticle_t *cl_active_particles, *cl_free_particles;
+cparticle_t	*cl_active_particles, *cl_free_particles;
 static cparticle_t	cl_particle_list[MAX_PARTICLES];
-static vec3_t cl_particle_velocities[NUMVERTEXNORMALS];
+static vec3_t	cl_particle_velocities[NUMVERTEXNORMALS];
+static vec3_t	cl_particlePalette[256];
 
 /*
 =================
@@ -627,6 +694,10 @@ void CL_ClearParticles( void )
 {
 	int		i;
 	cparticle_t	*p;
+	rgbdata_t		*pic;
+	byte		buf[1];	// fake stub
+
+	pic = FS_LoadImage( "#quake.pal", buf, 768 );
 		
 	cl_active_particles = NULL;
 	cl_free_particles = cl_particle_list;
@@ -642,11 +713,23 @@ void CL_ClearParticles( void )
 		cl_particle_velocities[i][1] = (rand() & 255) * 0.01f;
 		cl_particle_velocities[i][2] = (rand() & 255) * 0.01f;
 	}
+
 	for( i = 0, p = cl_particle_list; i < MAX_PARTICLES; i++, p++ )
 	{
 		p->pStcoords[0][0] = p->pStcoords[2][1] = p->pStcoords[1][0] = p->pStcoords[1][1] = 0;
 		p->pStcoords[0][1] = p->pStcoords[2][0] = p->pStcoords[3][0] = p->pStcoords[3][1] = 1;
 	}
+
+	// Xash3D have built-in Quake1 palette - use it
+	for( i = 0; pic && i < 256; i++ )
+	{
+		cl_particlePalette[i][0] = pic->palette[i*4+0] * (1.0f / 255);
+		cl_particlePalette[i][1] = pic->palette[i*4+1] * (1.0f / 255);
+		cl_particlePalette[i][2] = pic->palette[i*4+2] * (1.0f / 255);
+	}
+
+	if( pic ) FS_FreeImage( pic );
+	else MsgDev( D_WARN, "SV_InitParticles: palette not installed\n" );
 }
 
 /*
@@ -852,6 +935,17 @@ void CL_AddParticles( void )
 		*(int *)p->pColor[2] = *(int *)modulate;
 		*(int *)p->pColor[3] = *(int *)modulate;
 
+		if( radius == 1.0f )
+		{
+			float	scale = 0.0f;
+
+			// hack a scale up to keep quake particles from disapearing
+			scale += (origin[0] - cl.refdef.vieworg[0]) * cl.refdef.forward[0];
+			scale += (origin[1] - cl.refdef.vieworg[1]) * cl.refdef.forward[1];
+			scale += (origin[2] - cl.refdef.vieworg[2]) * cl.refdef.forward[2];
+			if( scale >= 20 ) radius = 1.0f + scale * 0.004f;
+		}
+
 		if( length != 1 )
 		{
 			// find orientation vectors
@@ -932,6 +1026,45 @@ void CL_AddParticles( void )
 		re->AddPolygon( &p->poly );
 	}
 	cl_active_particles = active;
+}
+
+/*
+===============
+CL_ParticleEffect
+
+old good quake1 particles
+===============
+*/
+void CL_ParticleEffect( const vec3_t org, const vec3_t dir, int color, int count )
+{
+	int		i, pal;
+	cparticle_t	src;
+
+	for( i = 0; i < count; i++ )
+	{
+		src.origin[0] = org[0] + RANDOM_FLOAT( -8, 8 );
+		src.origin[1] = org[1] + RANDOM_FLOAT( -8, 8 );
+		src.origin[2] = org[2] + RANDOM_FLOAT( -8, 8 );
+		src.velocity[0] = dir[0] * 15;
+		src.velocity[1] = dir[1] * 15;
+		src.velocity[2] = dir[2] * 15;
+		pal = (color & ~7) + (rand() & 7);
+		src.color[0] = cl_particlePalette[pal][0];
+		src.color[1] = cl_particlePalette[pal][1];
+		src.color[2] = cl_particlePalette[pal][2];
+		VectorClear( src.colorVelocity );
+		VectorClear( src.accel );
+		src.alpha = 1.0;
+		src.alphaVelocity = -8.0 + RANDOM_FLOAT( 1.0, 5.0 ); // lifetime
+		src.radius = 1.0; // quake particles have constant sizes
+		src.radiusVelocity = 0;
+		src.length = 1;
+		src.lengthVelocity = 0;
+		src.rotation = 0;	// quake particles doesn't rotating
+
+		if( !pfnAddParticle( &src, cls.particle, 0 ))
+			return;
+	}
 }
 
 /*

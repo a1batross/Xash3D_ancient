@@ -59,11 +59,16 @@ public:
 			Msg( "Can't find decal %s\n", pkvd->szValue );
 		}
 	}
-	void PostSpawn( void ) { if( FStringNull( pev->targetname )) MakeDecal(); }
+	void PostActivate( void ) { if( FStringNull( pev->targetname )) MakeDecal(); }
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value ) { MakeDecal(); }
 	void MakeDecal( void )
 	{
-		if ( pev->skin < 0 ) { REMOVE_ENTITY(ENT(pev)); return; }
+		if ( pev->skin < 0 )
+		{
+			REMOVE_ENTITY( ENT( pev ));
+			return;
+		}
+
 		TraceResult	trace;
 		int		entityIndex, modelIndex;
 

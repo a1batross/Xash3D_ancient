@@ -26,40 +26,8 @@
 #define ATTN_RICOCHET		1.5f
 #define ATTN_GUNFIRE		0.27f
 
-typedef enum
-{
-	SNDLVL_NONE	= 0,
-	SNDLVL_25dB	= 25,
-	SNDLVL_30dB	= 30,
-	SNDLVL_35dB	= 35,
-	SNDLVL_40dB	= 40,
-	SNDLVL_45dB	= 45,
-	SNDLVL_50dB	= 50,	// 3.9
-	SNDLVL_55dB	= 55,	// 3.0
-	SNDLVL_IDLE	= 60,	// 2.0
-	SNDLVL_60dB	= 60,	// 2.0
-	SNDLVL_65dB	= 65,	// 1.5
-	SNDLVL_STATIC	= 66,	// 1.25
-	SNDLVL_70dB	= 70,	// 1.0
-	SNDLVL_NORM	= 75,
-	SNDLVL_75dB	= 75,	// 0.8
-	SNDLVL_80dB	= 80,	// 0.7
-	SNDLVL_TALKING	= 80,	// 0.7
-	SNDLVL_85dB	= 85,	// 0.6
-	SNDLVL_90dB	= 90,	// 0.5
-	SNDLVL_95dB	= 95,
-	SNDLVL_100dB	= 100,	// 0.4
-	SNDLVL_105dB	= 105,
-	SNDLVL_110dB	= 110,
-	SNDLVL_120dB	= 120,
-	SNDLVL_130dB	= 130,
-	SNDLVL_GUNFIRE	= 140,	// 0.27
-	SNDLVL_140dB	= 140,	// 0.2
-	SNDLVL_150dB	= 150,	// 0.2
-} soundlevel_t;
-
 // common conversion tools
-#define ATTN_TO_SNDLVL( a )		(soundlevel_t)(int)((a) ? (50 + 20 / ((float)a)) : 0 )
+#define ATTN_TO_SNDLVL( a )		(int)((a) ? (50 + 20 / ((float)a)) : 0 )
 #define SNDLVL_TO_ATTN( a )		((a > 50) ? (20.0f / (float)(a - 50)) : 4.0 )
 
 #define SND_CHANGE_VOL		(1<<0)	// change sound vol
@@ -137,7 +105,7 @@ typedef enum
 #define FL_NOTARGET			(1<<7)	// mark all npc's as neytral
 #define FL_SKIPLOCALHOST		(1<<8)	// Don't send entity to local host, it's predicting this entity itself
 #define FL_ONGROUND			(1<<9)	// at rest / on the ground
-#define FL_PARTIALONGROUND		(1<<10)	// not corners are valid
+#define FL_PARTIALGROUND		(1<<10)	// not corners are valid
 #define FL_WATERJUMP		(1<<11)	// water jumping
 #define FL_FROZEN			(1<<12)	// stop moving, but continue thinking (e.g. for thirdperson camera)
 #define FL_FAKECLIENT		(1<<13)	// JAC: fake client, simulated server side; don't send network messages to them
@@ -224,6 +192,12 @@ typedef enum
 	WALKMOVE_WORLDONLY,	// doesn't hit ANY entities, no matter what the solid type
 	WALKMOVE_CHECKONLY	// move, but don't touch triggers
 } walkmove_t;
+
+// monster's move to origin stuff
+#define MOVE_START_TURN_DIST		64 // when this far away from moveGoal, start turning to face next goal
+#define MOVE_STUCK_DIST		32 // if a monster can't step this far, it is stuck.
+#define MOVE_NORMAL			0 // normal move in the direction monster is facing
+#define MOVE_STRAFE			1 // moves in direction specified, no matter which way monster is facing
 	
 // edict movetype
 typedef enum

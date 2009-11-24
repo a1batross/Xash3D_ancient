@@ -24,6 +24,8 @@ typedef struct movevars_s	movevars_t;
 typedef struct usercmd_s	usercmd_t;
 typedef struct cl_priv_s	cl_priv_t;
 typedef struct sv_priv_s	sv_priv_t;
+typedef unsigned short	CRC16_t;
+typedef unsigned long	CRC32_t;
 typedef float		vec_t;
 
 #define _INTEGRAL_MAX_BITS	64

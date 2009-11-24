@@ -88,9 +88,9 @@ void SV_DirectConnect( netadr_t from )
 		return;
 	}
 
-	qport = com.atoi(Cmd_Argv(2));
-	challenge = com.atoi(Cmd_Argv(3));
-	com.strncpy( userinfo, Cmd_Argv( 4 ), sizeof(userinfo) - 1);
+	qport = com.atoi( Cmd_Argv( 2 ));
+	challenge = com.atoi( Cmd_Argv( 3 ));
+	com.strncpy( userinfo, Cmd_Argv( 4 ), sizeof( userinfo ) - 1);
 	userinfo[sizeof(userinfo) - 1] = 0;
 
 	// quick reject
@@ -192,8 +192,7 @@ gotnewcl:
 	}
 
 	// parse some info from the info strings
-	com.strncpy( newcl->userinfo, userinfo, sizeof(newcl->userinfo) - 1);
-	SV_UserinfoChanged( newcl );
+	SV_UserinfoChanged( newcl, userinfo );
 
 	// send the connect packet to the client
 	Netchan_OutOfBandPrint( NS_SERVER, from, "client_connect" );
@@ -219,18 +218,20 @@ gotnewcl:
 SV_FakeConnect
 
 A connection request that came from the game module
-UNDONE: not called anymore
 ==================
 */
-void SV_FakeConnect( char *cl_userinfo )
+edict_t *SV_FakeConnect( const char *netname )
 {
 	int		i, edictnum;
 	char		userinfo[MAX_INFO_STRING];
 	sv_client_t	temp, *cl, *newcl;
 	edict_t		*ent;
 
-	if( !cl_userinfo ) cl_userinfo = "";
-	com.strncpy( userinfo, cl_userinfo, sizeof( userinfo ));
+	if( !netname ) netname = "";
+	userinfo[0] = '\0';
+
+	// setup fake client name
+	Info_SetValueForKey( userinfo, "name", netname );
 
 	// force the IP key/value pair so the game can filter based on ip
 	Info_SetValueForKey( userinfo, "ip", "127.0.0.1" );
@@ -249,7 +250,7 @@ void SV_FakeConnect( char *cl_userinfo )
 	if( !newcl )
 	{
 		MsgDev( D_INFO, "SV_DirectConnect: rejected a connection.\n");
-		return;
+		return NULL;
 	}
 
 	// build a new connection
@@ -269,16 +270,17 @@ void SV_FakeConnect( char *cl_userinfo )
 	if( !SV_ClientConnect( ent, userinfo ))
 	{
 		MsgDev( D_ERROR, "SV_DirectConnect: game rejected a connection.\n" );
-		return;
+		return NULL;
 	}
 
 	// parse some info from the info strings
-	com.strncpy( newcl->userinfo, userinfo, sizeof( newcl->userinfo ) - 1);
-	SV_UserinfoChanged( newcl );
+	SV_UserinfoChanged( newcl, userinfo );
 
 	newcl->state = cs_spawned;
 	newcl->lastmessage = svs.realtime;	// don't timeout
 	newcl->lastconnect = svs.realtime;
+
+	return ent;
 }
 
 /*
@@ -377,6 +379,7 @@ void SV_FlushRedirect( netadr_t adr, int dest, char *buf )
 	case RD_CLIENT:
 		if( !sv_client ) return; // client not set
 		MSG_WriteByte( &sv_client->netchan.message, svc_print );
+		MSG_WriteByte( &sv_client->netchan.message, PRINT_HIGH );
 		MSG_WriteString( &sv_client->netchan.message, buf );
 		break;
 	case RD_NONE:
@@ -566,6 +569,9 @@ void SV_PutClientInServer( edict_t *ent )
 
 	if( !sv.changelevel && !sv.loadgame )
 	{	
+		// setup maxspeed and refresh physinfo
+		SV_SetClientMaxspeed( client, sv_maxspeed->value );
+	
 		// fisrt entering
 		svgame.dllFuncs.pfnClientPutInServer( ent );
 
@@ -900,13 +906,17 @@ Pull specific info from a newly changed userinfo string
 into a more C freindly form.
 =================
 */
-void SV_UserinfoChanged( sv_client_t *cl )
+void SV_UserinfoChanged( sv_client_t *cl, const char *userinfo )
 {
 	char	*val;
 	int	i;
 
+	if( !userinfo || !userinfo[0] ) return; // ignored
+
+	com.strncpy( cl->userinfo, userinfo, sizeof( cl->userinfo ));
+
 	// name for C code (make colored string)
-	com.snprintf( cl->name, sizeof(cl->name), "^2%s", Info_ValueForKey( cl->userinfo, "name"));
+	com.snprintf( cl->name, sizeof( cl->name ), "^2%s", Info_ValueForKey( cl->userinfo, "name" ));
 
 	// rate command
 	val = Info_ValueForKey( cl->userinfo, "rate" );
@@ -921,9 +931,12 @@ void SV_UserinfoChanged( sv_client_t *cl )
 	// msg command
 	val = Info_ValueForKey( cl->userinfo, "msg" );
 	if( com.strlen( val ))
-	{
 		cl->messagelevel = com.atoi( val );
-	}
+
+	// call prog code to allow overrides
+	svgame.globals->time = sv.time * 0.001f;
+	svgame.globals->frametime = sv.frametime * 0.001f;
+	svgame.dllFuncs.pfnClientUserInfoChanged( cl->edict, cl->userinfo );
 }
 
 /*
@@ -933,14 +946,7 @@ SV_UpdateUserinfo_f
 */
 static void SV_UpdateUserinfo_f( sv_client_t *cl )
 {
-	com.strncpy( cl->userinfo, Cmd_Argv(1), sizeof(cl->userinfo));
-
-	SV_UserinfoChanged( cl );
-
-	// call prog code to allow overrides
-	svgame.globals->time = sv.time * 0.001f;
-	svgame.globals->frametime = sv.frametime * 0.001f;
-	svgame.dllFuncs.pfnClientUserInfoChanged( cl->edict, cl->userinfo );
+	SV_UserinfoChanged( cl, Cmd_Argv( 1 ));
 }
 
 ucmd_t ucmds[] =
@@ -1013,7 +1019,7 @@ MULTICAST_PVS	send to clients potentially visible from org
 MULTICAST_PHS	send to clients potentially hearable from org
 =================
 */
-void _MSG_Send( msgtype_t msg_type, vec3_t origin, const edict_t *ent, const char *filename, int fileline )
+void _MSG_Send( msgtype_t msg_type, const vec3_t origin, const edict_t *ent, const char *filename, int fileline )
 {
 	byte		*mask = NULL;
 	int		leafnum = 0, cluster = 0;
@@ -1160,6 +1166,7 @@ void PM_ClientPrintf( int index, char *fmt, ... )
 	va_end( argptr );
 	
 	MSG_WriteByte( &cl->netchan.message, svc_print );
+	MSG_WriteByte( &cl->netchan.message, PRINT_HIGH );
 	MSG_WriteString( &cl->netchan.message, string );
 }
 
@@ -1201,7 +1208,7 @@ const char *PM_TraceTexture( edict_t *pTextureEntity, const float *v1, const flo
 		Host_Error( "TraceTexture: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
 
 	if( !pTextureEntity || pTextureEntity->free ) return NULL; 
-	return SV_ClipMoveToEntity( pTextureEntity, v1, vec3_origin, vec3_origin, v2, MASK_SOLID ).pTexName;
+	return SV_ClipMoveToEntity( pTextureEntity, v1, vec3_origin, vec3_origin, v2, MASK_SOLID, 0 ).pTexName;
 }
 
 /*
@@ -1225,7 +1232,7 @@ TraceResult PM_TraceModel( edict_t *pEnt, const vec3_t start, const vec3_t end )
 	svgame.pmove->usehull = bound( 0, svgame.pmove->usehull, 3 );
 	mins = svgame.pmove->player_mins[svgame.pmove->usehull];
 	maxs = svgame.pmove->player_maxs[svgame.pmove->usehull];
-	result = SV_ClipMoveToEntity( pEnt, start, mins, maxs, end, umask );
+	result = SV_ClipMoveToEntity( pEnt, start, mins, maxs, end, umask, FTRACE_SIMPLEBOX );
 	Mem_Copy( &out, &result, sizeof( TraceResult ));
 
 	return out;
@@ -1264,6 +1271,11 @@ edict_t *PM_TestPlayerPosition( const vec3_t origin, TraceResult *trace )
 	return SV_TestPlayerPosition( origin, svgame.pmove->player, trace );
 }
 
+int PM_PointContents( const vec3_t p )
+{
+	return World_ConvertContents( SV_BaseContents( p, svgame.pmove->player ));
+}
+
 /*
 ===============
 SV_InitClientMove
@@ -1277,12 +1289,17 @@ void SV_InitClientMove( void )
 	svgame.pmove->movevars = &svgame.movevars;
 
 	// init hulls
+	VectorCopy( GI->client_mins[0], svgame.pmove->player_mins[2] ); // copy point hull
+	VectorCopy( GI->client_maxs[0], svgame.pmove->player_maxs[2] );
+	VectorCopy( GI->client_mins[1], svgame.pmove->player_mins[0] ); // copy human hull
+	VectorCopy( GI->client_maxs[1], svgame.pmove->player_maxs[0] );
+	VectorCopy( GI->client_mins[2], svgame.pmove->player_mins[3] ); // copy large hull
+	VectorCopy( GI->client_maxs[2], svgame.pmove->player_maxs[3] );
+	VectorCopy( GI->client_mins[3], svgame.pmove->player_mins[1] ); // copy head hull
+	VectorCopy( GI->client_maxs[3], svgame.pmove->player_maxs[1] );
+
 	for( i = 0; i < PM_MAXHULLS; i++ )
-	{
-		VectorCopy( GI->client_mins[i], svgame.pmove->player_mins[i] );
-		VectorCopy( GI->client_maxs[i], svgame.pmove->player_maxs[i] );
 		svgame.pmove->player_view[i] = GI->viewheight[i];
-	}
 
 	// common utilities
 	svgame.pmove->PM_Info_ValueForKey = Info_ValueForKey;
@@ -1290,7 +1307,7 @@ void SV_InitClientMove( void )
 	svgame.pmove->ClientPrintf = PM_ClientPrintf;
 	svgame.pmove->AlertMessage = pfnAlertMessage;
 	svgame.pmove->PM_GetString = SV_GetString;
-	svgame.pmove->PM_PointContents = SV_PointContents;
+	svgame.pmove->PM_PointContents = PM_PointContents;
 	svgame.pmove->PM_PlayerTrace = PM_PlayerTrace;
 	svgame.pmove->PM_TraceTexture = PM_TraceTexture;
 	svgame.pmove->PM_GetEntityByIndex = PM_GetEntityByIndex;
@@ -1385,7 +1402,7 @@ void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd )
 	svgame.pmove->multiplayer = (sv_maxclients->integer > 1) ? true : false;
 	svgame.pmove->realtime = svs.realtime * 0.001f;
 	svgame.pmove->frametime = ucmd->msec * 0.001f;
-	com.strncpy( svgame.pmove->physinfo, cl->userinfo, MAX_INFO_STRING );
+	com.strncpy( svgame.pmove->physinfo, cl->physinfo, MAX_INFO_STRING );
 	svgame.pmove->serverflags = svgame.globals->serverflags;
 	svgame.pmove->clientmaxspeed = clent->v.maxspeed;
 	svgame.pmove->maxspeed = svgame.movevars.maxspeed;
@@ -1951,7 +1968,7 @@ void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg )
 		case clc_nop:
 			break;
 		case clc_userinfo:
-			SV_UpdateUserinfo_f( cl );
+			SV_UserinfoChanged( cl, MSG_ReadString( msg ));
 			break;
 		case clc_move:
 			if( move_issued ) return; // someone is trying to cheat...

@@ -61,15 +61,20 @@ enum svc_ops_e
 	svc_spawnbaseline,		// valid only at spawn		
 	svc_download,		// [short] size [size bytes]
 	svc_playerinfo,		// [long]
+	svc_physinfo,		// [physinfo string]
 	svc_packetentities,		// [...]
 	svc_frame,		// server frame
 	svc_sound,		// <see code>
 	svc_setangle,		// [short short short] set the view angle to this absolute value
 	svc_setview,		// [short] entity number
 	svc_print,		// [byte] id [string] null terminated string
+	svc_centerprint,		// [string] to put in center of the screen
 	svc_crosshairangle,		// [short][short][short]
 	svc_setpause,		// [byte] 0 = unpaused, 1 = paused
-	svc_movevars		// [movevars_t]
+	svc_movevars,		// [movevars_t]
+	svc_particle,		// [float*3][char*3][byte][byte]
+	svc_soundfade,		// FIMXE: implement (just reserve a number)
+	svc_bspdecal		// [float*3][short][short][short]
 };
 
 // client to server
@@ -148,7 +153,9 @@ static const net_desc_t NWDesc[] =
 #define CS_MODELS			32				// configstrings starts here
 #define CS_SOUNDS			(CS_MODELS+MAX_MODELS)		// sound names
 #define CS_DECALS			(CS_SOUNDS+MAX_SOUNDS)		// server decal indexes
-#define CS_CLASSNAMES		(CS_DECALS+MAX_DECALS)		// edicts classnames
+#define CS_EVENTS			(CS_DECALS+MAX_DECALS)		// queue events
+#define CS_GENERICS			(CS_EVENTS+MAX_EVENTS)		// edicts classnames
+#define CS_CLASSNAMES		(CS_GENERICS+MAX_GENERICS)		// generic resources (e.g. color decals)
 #define CS_LIGHTSTYLES		(CS_CLASSNAMES+MAX_CLASSNAMES)	// lightstyle patterns
 #define CS_USER_MESSAGES		(CS_LIGHTSTYLES+MAX_LIGHTSTYLES)	// names of user messages
 #define MAX_CONFIGSTRINGS		(CS_USER_MESSAGES+MAX_USER_MESSAGES)	// total count
@@ -172,12 +179,12 @@ void _MSG_WriteDouble( sizebuf_t *sb, double f, const char *filename, int fileli
 void _MSG_WriteAngle8( sizebuf_t *sb, float f, const char *filename, int fileline );
 void _MSG_WriteAngle16( sizebuf_t *sb, float f, const char *filename, int fileline );
 void _MSG_WriteCoord16( sizebuf_t *sb, float f, const char *filename, int fileline );
-void _MSG_WritePos( sizebuf_t *sb, vec3_t pos, const char *filename, int fileline );
+void _MSG_WritePos( sizebuf_t *sb, const vec3_t pos, const char *filename, int fileline );
 void _MSG_WriteData( sizebuf_t *sb, const void *data, size_t length, const char *filename, int fileline );
 void _MSG_WriteDeltaUsercmd( sizebuf_t *sb, usercmd_t *from, usercmd_t *cmd, const char *filename, const int fileline );
 bool _MSG_WriteDeltaMovevars( sizebuf_t *sb, movevars_t *from, movevars_t *cmd, const char *filename, const int fileline );
 void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t *msg, bool force, bool newentity, const char *file, int line );
-void _MSG_Send( msgtype_t to, vec3_t origin, const edict_t *ent, const char *filename, int fileline );
+void _MSG_Send( msgtype_t to, const vec3_t origin, const edict_t *ent, const char *filename, int fileline );
 
 #define MSG_Begin( x ) _MSG_Begin( x, __FILE__, __LINE__)
 #define MSG_WriteChar(x,y) _MSG_WriteBits (x, y, NWDesc[NET_CHAR].name, NET_CHAR, __FILE__, __LINE__)

@@ -32,6 +32,7 @@ void SV_ClientPrintf( sv_client_t *cl, int level, char *fmt, ... )
 	va_end( argptr );
 	
 	MSG_WriteByte( &cl->netchan.message, svc_print );
+	MSG_WriteByte( &cl->netchan.message, level );
 	MSG_WriteString( &cl->netchan.message, string );
 }
 
@@ -62,6 +63,7 @@ void SV_BroadcastPrintf( int level, char *fmt, ... )
 		if( cl->edict && (cl->edict->v.flags & FL_FAKECLIENT ))
 			continue;
 		MSG_WriteByte( &cl->netchan.message, svc_print );
+		MSG_WriteByte( &cl->netchan.message, level );
 		MSG_WriteString( &cl->netchan.message, string );
 	}
 }

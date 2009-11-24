@@ -77,10 +77,18 @@ static DLL_FUNCTIONS gFunctionTable =
 	PM_Move,			// pfnPM_Move
 	PM_Init,			// pfnPM_Init
 	PM_FindTextureType,		// pfnPM_FindTextureType
+
+	SetupVisibility,		// pfnSetupVisibility	
+	DispatchFrame,		// pfnPhysicsEntity
+	AddToFullPack,		// pfnAddtoFullPack
+	EndFrame,			// pfnEndFrame
 	
 	ShouldCollide,		// pfnShouldCollide
 	UpdateEntityState,		// pfnUpdateEntityState
 	OnFreeEntPrivateData,	// pfnOnFreeEntPrivateData
+	CmdStart,			// pfnCmdStart
+	CmdEnd,			// pfnCmdEnd
+
 	GameDLLShutdown,		// pfnGameShutdown
 };
 

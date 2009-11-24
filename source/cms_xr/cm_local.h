@@ -82,6 +82,7 @@ typedef struct
 	modtype_t		type;		// model type
 	vec3_t		mins, maxs;	// model boundbox
 	byte		*extradata;	// studiomodels extradata
+	byte		*submodels;	// animations ptr
 	int		numframes;	// sprite framecount
 
 	cleaf_t		leaf;		// collision leaf
@@ -366,6 +367,10 @@ void CM_FreeWorld( void );
 //
 bool CM_SpriteModel( byte *buffer, size_t filesize );
 bool CM_StudioModel( byte *buffer, size_t filesize );
+void CM_StudioInitBoxHull( void );
+void CM_StudioGetAttachment( edict_t *e, int iAttachment, float *org, float *ang );
+bool CM_StudioTrace( trace_t *tr, edict_t *e, const vec3_t p1, const vec3_t p2 );
+void CM_GetBonePosition( edict_t* e, int iBone, float *rgflOrigin, float *rgflAngles );
 
 //
 // cm_polylib.c

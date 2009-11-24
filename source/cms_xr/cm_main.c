@@ -80,6 +80,8 @@ physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs 
 	Phys.Mod_GetType = CM_ModelType;
 	Phys.Mod_GetBounds = CM_ModelBounds;
 	Phys.Mod_GetFrames = CM_ModelFrames;
+	Phys.Mod_GetAttachment = CM_StudioGetAttachment;
+	Phys.Mod_GetBonePos = CM_GetBonePosition;
 	Phys.GetShaderName = CM_ShaderName;
 	Phys.Mod_Extradata = CM_Extradata;
 	Phys.GetEntityScript = CM_EntityScript;
@@ -89,6 +91,7 @@ physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs 
 	Phys.PointContents2 = CM_TransformedPointContents;
 	Phys.BoxTrace1 = CM_BoxTrace;
 	Phys.BoxTrace2 = CM_TransformedBoxTrace;
+	Phys.HitboxTrace = CM_StudioTrace;
 
 	Phys.TempModel = CM_TempBoxModel;
 

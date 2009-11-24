@@ -1,23 +1,7 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-// cl_parse.c  -- parse a message received from the server
+//=======================================================================
+//			Copyright XashXT Group 2009 ©
+//	      cl_parse.c  -- parse a message received from the server
+//=======================================================================
 
 #include "common.h"
 #include "client.h"
@@ -26,7 +10,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 char *svc_strings[256] =
 {
 	"svc_bad",
-
+// user messages space
 	"svc_nop",
 	"svc_disconnect",
 	"svc_reconnect",
@@ -36,15 +20,20 @@ char *svc_strings[256] =
 	"svc_spawnbaseline",
 	"svc_download",
 	"svc_playerinfo",
+	"svc_physinfo",
 	"svc_packetentities",
 	"svc_frame",
 	"svc_sound",
 	"svc_setangle",
 	"svc_setview",
 	"svc_print",
+	"svc_centerprint",
 	"svc_crosshairangle",
 	"svc_setpause",
 	"svc_movevars",
+	"svc_particle",
+	"svc_soundfade",
+	"svc_bspdecal"
 };
 
 /*
@@ -255,6 +244,47 @@ void CL_ParseMovevars( sizebuf_t *msg )
 }
 
 /*
+==================
+CL_ParseParticles
+
+==================
+*/
+void CL_ParseParticles( sizebuf_t *msg )
+{
+	vec3_t		org, dir;
+	int		i, count, color;
+	
+	MSG_ReadPos( msg, org );	
+
+	for( i = 0; i < 3; i++ )
+		dir[i] = MSG_ReadChar( msg ) * (1.0f / 16);
+
+	count = MSG_ReadByte( msg );
+	color = MSG_ReadByte( msg );
+
+	CL_ParticleEffect( org, dir, color, count );
+}
+
+/*
+==================
+CL_ParseStaticDecal
+
+==================
+*/
+void CL_ParseStaticDecal( sizebuf_t *msg )
+{
+	vec3_t	origin;
+	int	decalIndex, entityIndex, modelIndex;
+
+	MSG_ReadPos( msg, origin );
+	decalIndex = MSG_ReadWord( msg );
+	entityIndex = MSG_ReadShort( msg );
+	modelIndex = MSG_ReadWord( msg );
+
+	CL_SpawnStaticDecal( origin, decalIndex, entityIndex, modelIndex );
+}
+
+/*
 =====================================================================
 
   SERVER CONNECTING MESSAGES
@@ -435,7 +465,7 @@ CL_ParseServerMessage
 void CL_ParseServerMessage( sizebuf_t *msg )
 {
 	char	*s;
-	int	cmd;
+	int	i, cmd;
 
 	// parse the message
 	while( 1 )
@@ -500,14 +530,29 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 		case svc_crosshairangle:
 			CL_ParseCrosshairAngle( msg );
 			break;
+		case svc_physinfo:
+			com.strncpy( cl.physinfo, MSG_ReadString( msg ), sizeof( cl.physinfo ));
+			break;
 		case svc_print:
+			i = MSG_ReadByte( msg );
+			if( i == PRINT_CHAT ) // chat
+				S_StartLocalSound( "misc/talk.wav", 1.0f, 100, NULL );
 			Con_Print( va( "^6%s\n", MSG_ReadString( msg )));
+			break;
+		case svc_centerprint:
+			CL_CenterPrint( MSG_ReadString( msg ), SCREEN_HEIGHT/2, BIGCHAR_WIDTH );
 			break;
 		case svc_setpause:
 			cl.refdef.paused = (MSG_ReadByte( msg ) != 0 );
 			break;
 		case svc_movevars:
 			CL_ParseMovevars( msg );
+			break;
+		case svc_particle:
+			CL_ParseParticles( msg );
+			break;
+		case svc_bspdecal:
+			CL_ParseStaticDecal( msg );
 			break;
 		case svc_frame:
 			CL_ParseFrame( msg );

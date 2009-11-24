@@ -14,7 +14,6 @@
 ****/
 #ifndef ENGINECALLBACK_H
 #define ENGINECALLBACK_H
-#pragma once
 
 // Must be provided by user of this code
 extern enginefuncs_t g_engfuncs;
@@ -60,9 +59,10 @@ extern enginefuncs_t g_engfuncs;
 #define LIGHT_STYLE		(*g_engfuncs.pfnLightStyle)
 #define DECAL_INDEX		(*g_engfuncs.pfnDecalIndex)
 #define POINT_CONTENTS	(*g_engfuncs.pfnPointContents)
-#define CRC_INIT		(*g_engfuncs.pfnCRC_Init)
-#define CRC_PROCESS_BUFFER	(*g_engfuncs.pfnCRC_ProcessBuffer)
-#define CRC_FINAL		(*g_engfuncs.pfnCRC_Final)
+#define CRC32_INIT		(*g_engfuncs.pfnCRC_Init)
+#define CRC32_PROCESS_BUFFER	(*g_engfuncs.pfnCRC_ProcessBuffer)
+#define CRC32_PROCESS_BYTE	(*g_engfuncs.pfnCRC32_ProcessByte)
+#define CRC32_FINAL		(*g_engfuncs.pfnCRC_Final)
 #define RANDOM_LONG		(*g_engfuncs.pfnRandomLong)
 #define RANDOM_FLOAT	(*g_engfuncs.pfnRandomFloat)
 #define CLASSIFY_EDICT	(*g_engfuncs.pfnClassifyEdict)
@@ -80,10 +80,17 @@ inline void MESSAGE_BEGIN( int msg_dest, int msg_type, const float *pOrigin = NU
 #define WRITE_LONG		(*g_engfuncs.pfnWriteLong)
 #define WRITE_ANGLE		(*g_engfuncs.pfnWriteAngle)
 #define WRITE_COORD		(*g_engfuncs.pfnWriteCoord)
-#define WRITE_FLOAT		(*g_engfuncs.pfnWriteFloat)
+
+inline void WRITE_FLOAT( float flValue )
+{
+	union { float f; int l; } dat;
+	dat.f = flValue;
+	WRITE_LONG( dat.l );
+}
+
 #define WRITE_STRING	(*g_engfuncs.pfnWriteString)
 #define WRITE_ENTITY	(*g_engfuncs.pfnWriteEntity)
-#define WRITE_DIR( dir )	WRITE_SHORT(DirToBits( dir ))
+#define WRITE_DIR( dir )	WRITE_BYTE(DirToBits( dir ))
 #define CVAR_REGISTER	(*g_engfuncs.pfnCVarRegister)
 #define CVAR_GET_FLOAT	(*g_engfuncs.pfnCVarGetFloat)
 #define CVAR_GET_STRING	(*g_engfuncs.pfnCVarGetString)
@@ -104,7 +111,7 @@ inline void *GET_PRIVATE( edict_t *pent )
 // leave macros as legacy  
 #define ALLOC_STRING	(*g_engfuncs.pfnAllocString)
 #define MAKE_STRING		(*g_engfuncs.pfnAllocString)
-#define STRING		(*g_engfuncs.pfnGetString)
+#define STRING		(*g_engfuncs.pfnSzFromIndex)
 
 #define FREE_PRIVATE	(*g_engfuncs.pfnFreeEntPrivateData)
 #define FIND_ENTITY_BY_STRING	(*g_engfuncs.pfnFindEntityByString)
@@ -118,6 +125,7 @@ inline void *GET_PRIVATE( edict_t *pent )
 #define FUNCTION_FROM_NAME	(*g_engfuncs.pfnFunctionFromName)
 #define NAME_FOR_FUNCTION	(*g_engfuncs.pfnNameForFunction)
 #define TRACE_TEXTURE	(*g_engfuncs.pfnTraceTexture)
+#define CLIENT_PRINTF	(*g_engfuncs.pfnClientPrintf)
 #define CMD_ARGS		(*g_engfuncs.pfnCmd_Args)
 #define CMD_ARGC		(*g_engfuncs.pfnCmd_Argc)
 #define CMD_ARGV		(*g_engfuncs.pfnCmd_Argv)
@@ -133,8 +141,14 @@ inline void *GET_PRIVATE( edict_t *pent )
 #define ENGINE_CANSKIP	(*g_engfuncs.pfnCanSkipPlayer)
 #define PRECACHE_EVENT	(*g_engfuncs.pfnPrecacheEvent)
 #define PLAYBACK_EVENT_FULL	(*g_engfuncs.pfnPlaybackEvent)
+#define ENGINE_SET_PVS	(*g_engfuncs.pfnSetFatPVS)
+#define ENGINE_SET_PHS	(*g_engfuncs.pfnSetFatPHS)
+#define ENGINE_CHECK_PVS	(*g_engfuncs.pfnCheckVisibility)
 #define IS_MAP_VALID	(*g_engfuncs.pfnIsMapValid)
 #define IS_DEDICATED_SERVER	(*g_engfuncs.pfnIsDedicatedServer)
 #define HOST_ERROR		(*g_engfuncs.pfnHostError)
+#define ENGINE_GETPHYSINFO	(*g_engfuncs.pfnGetPhysicsInfoString)
+#define ENGINE_SETGROUPMASK	(*g_engfuncs.pfnSetGroupMask)
+#define PLAYER_CNX_STATS	(*g_engfuncs.pfnGetPlayerStats)
 
-#endif		//ENGINECALLBACK_H
+#endif //ENGINECALLBACK_H

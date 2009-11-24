@@ -400,7 +400,7 @@ Handles selection or creation of a clipping hull, and offseting (and
 eventually rotation) of the end points
 ==================
 */
-trace_t SV_ClipMoveToEntity( edict_t *ent, const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, uint umask )
+trace_t SV_ClipMoveToEntity( edict_t *ent, const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, uint umask, int flags )
 {
 	trace_t	trace;
 	model_t	handle;
@@ -428,13 +428,46 @@ trace_t SV_ClipMoveToEntity( edict_t *ent, const vec3_t start, vec3_t mins, vec3
 
 	if( ent == svgame.edicts )
 		CM_BoxTrace( &trace, start, end, mins, maxs, handle, umask, TR_AABB );
+	else if( !(flags & FTRACE_SIMPLEBOX) && CM_GetModelType( ent->v.modelindex ) == mod_studio )
+	{
+		if( CM_HitboxTrace( &trace, ent, start, end )); // continue tracing bbox if hitbox missing
+		else CM_TransformedBoxTrace( &trace, start, end, mins, maxs, handle, umask, origin, angles, TR_AABB );
+	}
 	else CM_TransformedBoxTrace( &trace, start, end, mins, maxs, handle, umask, origin, angles, TR_AABB );
 
 	// did we clip the move?
 	if( trace.flFraction < 1.0f || trace.fStartSolid )
 		trace.pHit = ent;
-
 	return trace;
+}
+
+trace_t SV_CombineTraces( trace_t *cliptrace, trace_t *trace, edict_t *touch, bool is_bmodel )
+{
+	if( trace->fAllSolid )
+	{
+		cliptrace->fAllSolid = true;
+		trace->pHit = touch;
+	}
+	else if( trace->fStartSolid )
+	{
+		if( is_bmodel )
+			cliptrace->fStartStuck = true;
+		cliptrace->fStartSolid = true;
+		trace->pHit = touch;
+	}
+
+	if( trace->flFraction < cliptrace->flFraction )
+	{
+		bool	oldStart;
+
+		// make sure we keep a startsolid from a previous trace
+		oldStart = cliptrace->fStartSolid;
+
+		trace->pHit = touch;
+		cliptrace = trace;
+		cliptrace->fStartSolid |= oldStart;
+	}
+	return *cliptrace;
 }
 
 /*
@@ -467,11 +500,40 @@ void SV_ClipToLinks( areanode_t *node, moveclip_t *clip )
 		if( clip->type == MOVE_NOMONSTERS && touch->v.solid != SOLID_BSP )
 			continue;
 
+		if( clip->type == MOVE_WORLDONLY )
+		{
+			// accept only real bsp models with FL_WORLDBRUSH set
+			if( CM_GetModelType( touch->v.modelindex ) == mod_brush && touch->v.flags & FL_WORLDBRUSH );
+			else continue;
+		}
+
 		if( !BoundsIntersect( clip->boxmins, clip->boxmaxs, touch->v.absmin, touch->v.absmax ))
 			continue;
 
 		if( clip->passedict && !VectorIsNull( clip->passedict->v.size ) && VectorIsNull( touch->v.size ))
 			continue;	// points never interact
+
+		if( clip->flags & FTRACE_IGNORE_GLASS && CM_GetModelType( touch->v.modelindex ) == mod_brush )
+		{
+			vec3_t	point;
+
+			// we can ignore brushes with rendermode != kRenderNormal
+			switch( touch->v.rendermode )
+			{
+			case kRenderTransTexture:
+			case kRenderTransAlpha:
+			case kRenderTransAdd:
+				if( touch->v.renderamt < 200 )
+					continue;
+				// check for translucent contents
+				if( VectorIsNull( touch->v.origin ))
+					VectorAverage( touch->v.absmin, touch->v.absmax, point );
+				else VectorCopy( touch->v.origin, point );
+				if( SV_BaseContents( point, NULL ) & BASECONT_TRANSLUCENT )
+					continue; // glass detected
+			default:	break;
+			}
+		}
 
 		// might intersect, so do an exact clip
 		if( clip->trace.fAllSolid ) return;
@@ -484,20 +546,10 @@ void SV_ClipToLinks( areanode_t *node, moveclip_t *clip )
 				continue;	// don't clip against owner
 		}
 
-		trace = SV_ClipMoveToEntity( touch, clip->start, clip->mins, clip->maxs, clip->end, clip->umask );
-
-		if( trace.fAllSolid || trace.fStartSolid || trace.flFraction < clip->trace.flFraction )
-		{
-			trace.pHit = touch;
-		 	if( clip->trace.fStartSolid )
-			{
-				clip->trace = trace;
-				clip->trace.fStartSolid = true;
-			}
-			else clip->trace = trace;
-		}
-		else if( trace.fStartSolid )
-			clip->trace.fStartSolid = true;
+		if( touch->v.flags & FL_MONSTER )
+			trace = SV_ClipMoveToEntity( touch, clip->start, clip->mins2, clip->maxs2, clip->end, clip->umask, clip->flags );
+		else trace = SV_ClipMoveToEntity( touch, clip->start, clip->mins, clip->maxs, clip->end, clip->umask, clip->flags );
+		clip->trace = SV_CombineTraces( &clip->trace, &trace, touch, touch->v.solid == SOLID_BSP );
 	}
 	
 	// recurse down both sides
@@ -541,6 +593,7 @@ SV_Move
 trace_t SV_Move( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, int type, edict_t *e )
 {
 	moveclip_t	clip;
+	int		i;
 
 	Mem_Set( &clip, 0, sizeof( moveclip_t ));
 
@@ -548,19 +601,30 @@ trace_t SV_Move( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end,
 	clip.end = end;
 	clip.mins = mins;
 	clip.maxs = maxs;
-	clip.type = type;
+	clip.type = (type & 0xFF);
+	clip.flags = (type & 0xFF00);
 	clip.passedict = e;
 	clip.umask = World_MaskForEdict( e );
 
 	// clip to world
-	clip.trace = SV_ClipMoveToEntity( EDICT_NUM( 0 ), start, mins, maxs, end, clip.umask );
+	clip.trace = SV_ClipMoveToEntity( EDICT_NUM( 0 ), start, mins, maxs, end, clip.umask, 0 );
 
-	// skip tracing against entities
-	if( type == MOVE_WORLDONLY )
-		return clip.trace;
+	if( type == MOVE_MISSILE )
+	{
+		for( i = 0; i < 3; i++ )
+		{
+			clip.mins2[i] = -15;
+			clip.maxs2[i] = 15;
+		}
+	}
+	else
+	{
+		VectorCopy( mins, clip.mins2 );
+		VectorCopy( maxs, clip.maxs2 );
+	}
 
 	// create the bounding box of the entire move
-	SV_MoveBounds( start, clip.mins, clip.maxs, end, clip.boxmins, clip.boxmaxs );
+	SV_MoveBounds( start, clip.mins2, clip.maxs2, end, clip.boxmins, clip.boxmaxs );
 
 	// clip to entities
 	SV_ClipToLinks( sv_areanodes, &clip );
@@ -616,13 +680,16 @@ SV_PointContents
 
 =============
 */
-int SV_BaseContents( const vec3_t p )
+int SV_BaseContents( const vec3_t p, edict_t *e )
 {
 	model_t		handle;
 	float		*angles;
 	int		i, num, contents, c2;
 	edict_t		*touch[MAX_EDICTS];
 	edict_t		*hit;
+
+	// sanity check
+	if( !p ) return 0;
 
 	// get base contents from world
 	contents = CM_PointContents( p, 0 );
@@ -634,6 +701,7 @@ int SV_BaseContents( const vec3_t p )
 	{
 		hit = touch[i];
 
+		if( hit == e ) continue;
 		if( hit->v.flags & (FL_CLIENT|FL_FAKECLIENT|FL_MONSTER))
 		{
 			// never get contents from alives
@@ -655,7 +723,7 @@ int SV_BaseContents( const vec3_t p )
 
 int SV_PointContents( const vec3_t p )
 {
-	return World_ConvertContents( SV_BaseContents( p ));
+	return World_ConvertContents( SV_BaseContents( p, NULL ));
 }
 
 /*

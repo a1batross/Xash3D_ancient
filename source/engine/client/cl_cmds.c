@@ -72,7 +72,7 @@ void CL_PlayVideo_f( void )
 		Cbuf_AddText(va("killserver\n; wait\n; movie %s\n;", Cmd_Argv(1)));
 		return;
 	}
-	SCR_PlayCinematic( Cmd_Argv(1), 0 );
+	SCR_PlayCinematic( Cmd_Argv( 1 ));
 }
 
 /*

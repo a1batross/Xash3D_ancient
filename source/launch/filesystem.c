@@ -1398,10 +1398,10 @@ void FS_CreateGameInfo( const char *filename )
 	com.strncat( buffer, "\nctf_spawn\t\t\"info_player_ctf\"", MAX_SYSPATH );
 	com.strncat( buffer, "\ncoop_spawn\t\"info_player_coop\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nteam_spawn\t\"info_player_team\"", MAX_SYSPATH );
-	com.strncat( buffer, "\nhull0\t\t( -16 -16 -36 ) ( 16 16 36 )", MAX_SYSPATH );
-	com.strncat( buffer, "\nhull1\t\t( -16 -16 -18 ) ( 16 16 18 )", MAX_SYSPATH );
-	com.strncat( buffer, "\nhull2\t\t( 0 0 0 ) ( 0 0 0 )", MAX_SYSPATH );
-	com.strncat( buffer, "\nhull3\t\t( -32 -32 -32 ) ( 32 32 32 )", MAX_SYSPATH );
+	com.strncat( buffer, "\nhull0\t\t( 0 0 0 ) ( 0 0 0 )", MAX_SYSPATH );
+	com.strncat( buffer, "\nhull1\t\t( -16 -16 -36 ) ( 16 16 36 )", MAX_SYSPATH );
+	com.strncat( buffer, "\nhull2\t\t( -32 -32 -32 ) ( 32 32 32 )", MAX_SYSPATH );
+	com.strncat( buffer, "\nhull3\t\t( -16 -16 -18 ) ( 16 16 18 )", MAX_SYSPATH );
 	com.strncat( buffer, "\nviewheight0\t\"28\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nviewheight1\t\"12\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nmax_edicts\t\"1024\"", MAX_SYSPATH );
@@ -1448,14 +1448,14 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 	com.strncpy( GameInfo->team_entity, "info_player_team", MAX_STRING );
 	com.strncpy( GameInfo->startmap, "newmap", MAX_STRING );
 
-	VectorSet( GameInfo->client_mins[0], -16, -16, -36 );
-	VectorSet( GameInfo->client_maxs[0],  16,  16,  36 );
-	VectorSet( GameInfo->client_mins[1], -16, -16, -18 );
-	VectorSet( GameInfo->client_maxs[1],  16,  16,  18 );
-	VectorSet( GameInfo->client_mins[2],   0,   0,  0  );
-	VectorSet( GameInfo->client_maxs[2],   0,   0,  0  );
-	VectorSet( GameInfo->client_mins[3], -32, -32, -32 );
-	VectorSet( GameInfo->client_maxs[3],  32,  32,  32 );
+	VectorSet( GameInfo->client_mins[0],   0,   0,  0  );
+	VectorSet( GameInfo->client_maxs[0],   0,   0,  0  );
+	VectorSet( GameInfo->client_mins[1], -16, -16, -36 );
+	VectorSet( GameInfo->client_maxs[1],  16,  16,  36 );
+	VectorSet( GameInfo->client_mins[2], -32, -32, -32 );
+	VectorSet( GameInfo->client_maxs[2],  32,  32,  32 );
+	VectorSet( GameInfo->client_mins[3], -16, -16, -18 );
+	VectorSet( GameInfo->client_maxs[3],  16,  16,  18 );
 
 	while( script )
 	{

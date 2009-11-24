@@ -23,7 +23,6 @@
 
 #define MAX_ENTNUMBER	99999		// for server and client parsing
 #define MAX_HEARTBEAT	-99999		// connection time
-#define MAX_EVENTS		1024		// system events
 
 /*
 ==============================================================
@@ -36,6 +35,7 @@
 #define SCREEN_HEIGHT	480
 extern cvar_t		*scr_width;
 extern cvar_t		*scr_height;
+extern cvar_t		*allow_download;
 
 /*
 ==============================================================
@@ -98,9 +98,6 @@ extern host_parm_t	host;
 //
 // host.c
 //
-void Host_Init( const int argc, const char **argv );
-void Host_Main( void );
-void Host_Free( void );
 void Host_SetServerState( int state );
 int Host_ServerState( void );
 int Host_CompareFileTime( long ft1, long ft2 );
@@ -153,6 +150,9 @@ byte* pfnLoadFile( const char *filename, int *pLength );
 char *pfnParseToken( const char **data_p );
 void pfnFreeFile( void *buffer );
 int pfnFileExists( const char *filename );
+void *pfnLoadLibrary( const char *name );
+void *pfnGetProcAddress( void *hInstance, const char *name );
+void pfnFreeLibrary( void *hInstance );
 long pfnRandomLong( long lLow, long lHigh );
 float pfnRandomFloat( float flLow, float flHigh );
 void pfnAlertMessage( ALERT_TYPE level, char *szFmt, ... );
@@ -160,6 +160,7 @@ void *pfnFOpen( const char* path, const char* mode );
 long pfnFWrite( void *file, const void* data, size_t datasize );
 long pfnFRead( void *file, void* buffer, size_t buffersize );
 int pfnFGets( void *file, byte *string, size_t bufsize );
+void pfnEngineFprintf( void *pfile, char *szFmt, ... );
 int pfnFSeek( void *file, long offset, int whence );
 int pfnFClose( void *file );
 long pfnFTell( void *file );
@@ -195,6 +196,13 @@ int Key_GetKey( const char *binding );
 void Key_EnumCmds_f( void );
 void Key_SetKeyDest( int key_dest );
 
+//
+// cinematic.c
+//
+void CIN_Init( void );
+void CIN_ReadChunk( cinematics_t *cin );
+byte *CIN_ReadNextFrame( cinematics_t *cin, bool silent );
+
 int CL_GetServerTime( void );
 float CL_GetLerpFrac( void );
 void CL_CharEvent( int key );
@@ -221,13 +229,12 @@ void CL_ForceSnd( void );
 void SCR_Init( void );
 void SCR_UpdateScreen( void );
 void SCR_Shutdown( void );
-bool SCR_CinActive( void );
 void Con_Print( const char *txt );
 char *Info_ValueForKey( const char *s, const char *key );
-void Info_RemoveKey( char *s, char *key );
-void Info_SetValueForKey( char *s, char *key, char *value );
-bool Info_Validate( char *s );
-void Info_Print( char *s );
+bool Info_RemoveKey( char *s, const char *key );
+bool Info_SetValueForKey( char *s, const char *key, const char *value );
+bool Info_Validate( const char *s );
+void Info_Print( const char *s );
 char *Cvar_Userinfo( void );
 char *Cvar_Serverinfo( void );
 void Cmd_WriteVariables( file_t *f );

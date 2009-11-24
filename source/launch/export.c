@@ -7,14 +7,13 @@
 
 /*
 =================
-Base Entry Point
+Main Entry Point
 =================
 */
-DLLEXPORT int CreateAPI( char *hostname, bool console )
+DLLEXPORT int CreateAPI( const char *hostname, bool console )
 {
-	// member name
-	com_strncpy( Sys.progname, hostname, sizeof(Sys.progname));
-	Sys.hooked_out = console; // set mode
+	com_strncpy( Sys.progname, hostname, sizeof( Sys.progname ));
+	Sys.hooked_out = console;
 
 	Sys_Init();
 	Sys.Main();

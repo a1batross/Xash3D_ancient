@@ -47,7 +47,7 @@ Copy entvars into entity state
 void SV_UpdateEntityState( edict_t *ent, bool baseline )
 {
 	sv_client_t	*client = ent->pvServerData->client;
-		
+
 	if( !ent->pvServerData->s.classname )
 		ent->pvServerData->s.classname = SV_ClassIndex( STRING( ent->v.classname ));
 
@@ -355,6 +355,14 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 			oldframe = NULL;
 			lastframe = 0;
 		}
+	}
+
+	// refresh physinfo if needs
+	if( cl->physinfo_modified )
+	{
+		cl->physinfo_modified = false;
+		MSG_WriteByte( msg, svc_physinfo );
+		MSG_WriteString( msg, cl->physinfo );
 	}
 
 	MSG_WriteByte( msg, svc_frame );

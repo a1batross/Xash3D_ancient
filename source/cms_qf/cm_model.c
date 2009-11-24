@@ -771,6 +771,7 @@ void CM_BeginRegistration( const char *name, bool clientload, uint *checksum )
 	if( cm.numverts ) Mem_Free( cm.vertices );
 
 	CM_InitBoxHull ();
+	CM_StudioInitBoxHull (); // hitbox tracing
 
 	Mem_Set( cm.areaportals, 0, sizeof( cm.areaportals ));
 	CM_FloodAreaConnections ();

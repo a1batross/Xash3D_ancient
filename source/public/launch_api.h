@@ -430,12 +430,16 @@ typedef struct stdilib_api_s
 	sys_event_t (*getevent)( void );			// get system events
 
 	// crclib.c funcs
-	void (*crc_init)(word *crcvalue);			// set initial crc value
-	word (*crc_block)(byte *start, int count);		// calculate crc block
-	void (*crc_process)(word *crcvalue, byte data);		// process crc byte
-	byte (*crc_sequence)(byte *base, int length, int sequence);	// calculate crc for sequence
-	uint (*crc_blockchecksum)(void *buffer, int length);	// map checksum
-	uint (*crc_blockchecksumkey)(void *buf, int len, int key);	// process key checksum
+	void (*crc_init)( CRC16_t *pusCRC );			// set initial crc value
+	CRC16_t (*crc_block)( byte *start, int count );		// calculate crc block
+	void (*crc_process)( CRC16_t *crcvalue, byte data );	// process crc byte
+	byte (*crc_sequence)( byte *base, int len, int sequence );	// calculate crc for sequence
+	uint (*crc_blockchecksum)( void *buffer, int length );	// map checksum
+	uint (*crc_blockchecksumkey)( void *buf, int len, int key );// process key checksum
+	void (*crc32_init)( CRC32_t *pulCRC );
+	void (*crc32_process)( CRC32_t *crcvalue, byte data );	// process crc32 byte
+	void (*crc32_block)( CRC32_t *pulCRC, const void *pBuffer, int nBuffer );
+	void (*crc32_final)( CRC32_t *pulCRC );
 
 	// memlib.c funcs
 	void (*memcpy)(void *dest, const void *src, size_t size, const char *file, int line);
@@ -531,7 +535,6 @@ typedef struct stdilib_api_s
 	float (*Cvar_GetValue )(const char *name);
 	char *(*Cvar_GetString)(const char *name);
 	cvar_t *(*Cvar_FindVar)(const char *name);
-	bool userinfo_modified;				// tell to client about userinfo modified
 
 	// console commands
 	void (*Cmd_Exec)(int exec_when, const char *text);	// process cmd buffer
@@ -554,8 +557,8 @@ typedef struct stdilib_api_s
 	int (*fgets)(file_t* file, byte *string, size_t bufsize );		// like a fgets, but can return EOF
 	int (*fseek)(file_t* file, fs_offset_t offset, int whence);		// fseek, can seek in packfiles too
 	bool (*fremove)( const char *path );				// remove sepcified file
-	long (*ftell)(file_t* file);					// like a ftell
-	bool (*feof)(file_t* file);					// like a feof
+	long (*ftell)( file_t *file );				// like a ftell
+	bool (*feof)( file_t *file );					// like a feof
 
 	// virtual filesystem
 	vfile_t *(*vfcreate)( const byte *buffer, size_t buffsize );	// create virtual stream
@@ -758,14 +761,14 @@ filesystem manager
 #define FS_Close( file )		com.fclose( file )
 #define FS_FileBase( x, y )		com.Com_FileBase( x, y )
 #define FS_LoadInternal( x, y )	com.Com_LoadRes( x, y )
-#define FS_Printf			com.fprintf
-#define FS_Print			com.fprint
-#define FS_Seek			com.fseek
-#define FS_Tell			com.ftell
-#define FS_Eof			com.feof
-#define FS_Getc			com.fgetc
-#define FS_Gets			com.fgets
-#define FS_Delete			com.fremove
+#define FS_Printf			(*com.fprintf)
+#define FS_Print			(*com.fprint)
+#define FS_Seek			(*com.fseek)
+#define FS_Tell			(*com.ftell)
+#define FS_Eof			(*com.feof)
+#define FS_Getc			(*com.fgetc)
+#define FS_Gets			(*com.fgets)
+#define FS_Delete			(*com.fremove)
 #define FS_Gamedir()		com.SysInfo->GameInfo->gamedir
 #define FS_Title()			com.SysInfo->GameInfo->title
 #define g_Instance()		com.SysInfo->instance
@@ -806,7 +809,6 @@ console variables
 #define Cvar_VariableInteger		com.Cvar_GetInteger
 #define Cvar_VariableString		com.Cvar_GetString
 #define Cvar_FindVar		com.Cvar_FindVar
-#define userinfo_modified		com.userinfo_modified
 
 /*
 ===========================================
@@ -873,6 +875,11 @@ crclib manager
 #define CRC_Init			com.crc_init
 #define CRC_Block			com.crc_block
 #define CRC_ProcessByte		com.crc_process
+#define CRC_Sequence		com.crc_sequence
+#define CRC32_Init			com.crc32_init
+#define CRC32_ProcessBuffer		com.crc32_block
+#define CRC32_ProcessByte		com.crc32_process
+#define CRC32_Final			com.crc32_final
 #define CRC_Sequence		com.crc_sequence
 #define Com_BlockChecksum		com.crc_blockchecksum
 #define Com_BlockChecksumKey		com.crc_blockchecksumkey

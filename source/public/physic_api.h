@@ -51,7 +51,7 @@ typedef struct physic_exp_s
 	byte *(*ClusterPVS)( int cluster );
 	byte *(*ClusterPHS)( int cluster );
 	int (*LeafCluster)( int leafnum );
-	int (*PointLeafnum)( vec3_t p );
+	int (*PointLeafnum)( const vec3_t p );
 	int (*LeafArea)( int leafnum );
 
 	// map data
@@ -59,6 +59,8 @@ typedef struct physic_exp_s
 	int (*NumBmodels)( void );
 	void (*Mod_GetBounds)( model_t handle, vec3_t mins, vec3_t maxs );
 	void (*Mod_GetFrames)( model_t handle, int *numFrames );
+	void (*Mod_GetAttachment)( edict_t *e, int iAttachment, float *org, float *ang );
+	void (*Mod_GetBonePos)( edict_t* e, int iBone, float *rgflOrigin, float *rgflAngles );
 	modtype_t (*Mod_GetType)( model_t handle );
 	const char *(*GetShaderName)( int index );
 	void *(*Mod_Extradata)( model_t handle );
@@ -70,6 +72,7 @@ typedef struct physic_exp_s
 	int (*PointContents2)( const vec3_t p, model_t model, const vec3_t org, const vec3_t ang );
 	void (*BoxTrace1)( trace_t *results, const vec3_t p1, const vec3_t p2, vec3_t mins, vec3_t maxs, model_t model, int mask, trType_t type );
 	void (*BoxTrace2)( trace_t *results, const vec3_t p1, const vec3_t p2, vec3_t mins, vec3_t maxs, model_t model, int mask, const vec3_t org, const vec3_t ang, trType_t type );
+	bool (*HitboxTrace)( trace_t *tr, edict_t *e, const vec3_t p1, const vec3_t p2 );
 	model_t (*TempModel)( const vec3_t mins, const vec3_t maxs, bool capsule );
 
 	// needs to be removed

@@ -7,7 +7,11 @@
 
 #define MOVE_NORMAL		0	// normal trace
 #define MOVE_NOMONSTERS	1	// ignore monsters (edicts with flags (FL_MONSTER|FL_FAKECLIENT|FL_CLIENT) set)
-#define MOVE_WORLDONLY	2	// clip only world
+#define MOVE_MISSILE	2	// extra size for monsters
+#define MOVE_WORLDONLY	3	// clip only world
+
+#define FTRACE_IGNORE_GLASS	0x100
+#define FTRACE_SIMPLEBOX	0x200
 
 /*
 ===============================================================================
@@ -54,12 +58,15 @@ typedef struct moveclip_s
 	vec3_t		boxmaxs;
 	float		*mins;
 	float		*maxs;	// size of the moving object
+	vec3_t		mins2;
+	vec3_t		maxs2;
 	const float	*start;
 	const float	*end;
 	trace_t		trace;
 	edict_t		*passedict;
 	uint		umask;	// contents mask
 	trType_t		type;
+	int		flags;	// trace flags
 } moveclip_t;
 
 // linked list

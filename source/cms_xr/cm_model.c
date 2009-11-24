@@ -1064,7 +1064,9 @@ void CM_BeginRegistration( const char *name, bool clientload, uint *checksum )
 	MsgDev( D_INFO, "CM_CreateCollisionTree: %i total invalid bevels\n", cm.numInvalidBevels );
 
 	BSP_CreateBrushSideWindings ();
+
 	CM_InitBoxHull ();
+	CM_StudioInitBoxHull (); // hitbox tracing
 
 	Mem_Set( cm.areaportals, 0, sizeof( cm.areaportals ));
 	CM_FloodAreaConnections ();

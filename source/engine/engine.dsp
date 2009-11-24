@@ -158,6 +158,10 @@ SOURCE=.\client\cl_scrn.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\client\cl_video.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\client\cl_view.c
 # End Source File
 # Begin Source File
@@ -187,10 +191,6 @@ SOURCE=.\common\con_utils.c
 # Begin Source File
 
 SOURCE=.\common\engfuncs.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\engine.c
 # End Source File
 # Begin Source File
 
@@ -378,7 +378,7 @@ SOURCE=..\pm_shared\pm_shared.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\safeproc.h
+SOURCE=.\common\safeproc.h
 # End Source File
 # Begin Source File
 

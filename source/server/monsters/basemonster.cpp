@@ -2116,10 +2116,6 @@ void CBaseMonster :: StartMonster ( void )
 		{
 			Msg("%s \"%s\" stuck in wall--level design error\n", STRING(pev->classname), STRING(pev->targetname));
 			pev->effects = EF_BRIGHTFIELD;
-
-			// HACKHACK: this is for pre-alpha version
-			// remove stucked zombies on a start.bsp
-			UTIL_Remove( this );
 		}
 	}
 	else 
@@ -2932,9 +2928,9 @@ void CBaseMonster::ReportAIState( void )
 		ALERT( level, "No Schedule, " );
 
 	if ( m_hEnemy != NULL )
-		ALERT( level, "\nEnemy is %s", STRING(m_hEnemy->pev->classname) );
+		ALERT( level, "\nEnemy is %s, ", STRING(m_hEnemy->pev->classname) );
 	else
-		ALERT( level, "No enemy" );
+		ALERT( level, "No enemy, " );
 
 	if ( IsMoving() )
 	{
@@ -3494,7 +3490,7 @@ void CBaseMonster :: SetState ( MONSTERSTATE State )
 void CBaseMonster :: RunAI ( void )
 {
 	// to test model's eye height
-	//UTIL_ParticleEffect ( pev->origin + pev->view_ofs, g_vecZero, 255, 10 );
+	// UTIL_ParticleEffect ( pev->origin + pev->view_ofs, g_vecZero, 255, 10 );
 
 	// IDLE sound permitted in ALERT state is because monsters were silent in ALERT state. Only play IDLE sound in IDLE state
 	// once we have sounds for that state.

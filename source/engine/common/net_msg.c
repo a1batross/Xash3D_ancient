@@ -481,7 +481,7 @@ void _MSG_WriteString( sizebuf_t *sb, const char *s, const char *filename, int f
 	}
 }
 
-void _MSG_WritePos( sizebuf_t *sb, vec3_t pos, const char *filename, int fileline )
+void _MSG_WritePos( sizebuf_t *sb, const vec3_t pos, const char *filename, int fileline )
 {
 	_MSG_WriteFloat( sb, pos[0], filename, fileline );
 	_MSG_WriteFloat( sb, pos[1], filename, fileline );
