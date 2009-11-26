@@ -42,7 +42,7 @@ int SV_FindIndex( const char *name, int start, int end, bool create )
 		MSG_Begin( svc_configstring );
 		MSG_WriteShort( &sv.multicast, start + i );
 		MSG_WriteString( &sv.multicast, name );
-		MSG_Send( MSG_ALL_R, vec3_origin, NULL );
+		MSG_Send( MSG_ALL, vec3_origin, NULL );
 	}
 	return i;
 }
@@ -200,6 +200,9 @@ void SV_ActivateServer( void )
 	// invoke to refresh all movevars
 	Mem_Set( &svgame.oldmovevars, 0, sizeof( movevars_t ));
 
+	// setup hostflags
+	sv.hostflags = 0;
+
 	// tell what kind of server has been started.
 	if( svgame.globals->maxClients > 1 )
 	{
@@ -310,8 +313,9 @@ void SV_SpawnServer( const char *server, const char *startspot )
 	sv.loadgame = loadgame;
 	sv.changelevel = changelevel;
 
-	// initialize multicast buffer
+	// initialize buffers
 	MSG_Init( &sv.multicast, sv.multicast_buf, sizeof( sv.multicast_buf ));
+	MSG_Init( &sv.signon, sv.signon_buf, sizeof( sv.signon_buf ));
 
 	// leave slots at start for clients only
 	for( i = 0; i < sv_maxclients->integer; i++ )

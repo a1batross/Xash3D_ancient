@@ -149,7 +149,7 @@ Beta 13.12.09
 122. fix studio lerping between sequences	OK
 123. fixup studio EF_ANIMATE			OK
 124. fixup studio events on client-side		OK
-125. sort & implement engfuncs on server.dll
+125. sort & implement engfuncs on server.dll	OK
 126. implement trace from Quake3		OK
 127. debug sv.edicts and cl.edicts management	OK
 128. fixup sprites lerping			OK
@@ -159,25 +159,30 @@ Beta 13.12.09
 132. implement SENTENCE_system
 133. new sound\render system version replacement	OK
 134. dx sound engine complete			OK
-135. implement dsp, lipsync and vox
+135. implement dsp				OK
 136. re-vision uimenu
 137. complete rewriting physic.dll		OK
 138. implement hashtable for loaded sounds	OK
 139. finalize client API's
 140. net_msg is buggly!!!!			OK
-141. get physic code from Lazarus
+141. implement client predicting
 142. finalize CL_Move and CL_LinkEdict
 143. implement pmove			OK
 144. usercmd sends right			OK
 145. gl_invalid_value mirrors bug		OK
 146. implement RoQ back			OK
 147. implement studio trace			OK
-148. implement pfnGetEntityIllum
-149. implement pfnEmitAmbientSound
-150. implement pfnTraceSphere
-151. implement pfnFadeClientVolume
+148. implement pfnCanSkipPlayer		OK
+149. implement pfnEmitAmbientSound		OK
+150. implement pfnEndGame			OK
+151. implement pfnFadeClientVolume		OK
 152. implement ÑRC32			OK
 153. implement physinfo strings		OK
 154. fix downloading issues			OK
 155. implement pfnPlaybackEvent
-156. allowing to use russian letters
+156. allowing to use russian letters		OK
+157. implement signon buffers			OK
+158. call the spectator funcs			OK
+159. call the pfnClientKill			OK
+160. pfnGetPlayerStats			OK
+161. fix basevelocity			OK

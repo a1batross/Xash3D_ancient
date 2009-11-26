@@ -1842,7 +1842,7 @@ void PM_UnDuck( void )
 		}
 
 		pev->flags &= ~FL_DUCKING;
-		pev->bInDuck = false;
+		pmove->bInDuck = false;
 		pev->view_ofs.z = pmove->player_view[0];
 		pev->flDuckTime = 0.0f;
 		
@@ -1882,7 +1882,7 @@ void PM_Duck( void )
 		pmove->cmd.upmove *= 0.333;
 	}
 
-	if(( pmove->cmd.buttons & IN_DUCK ) || ( pev->bInDuck ) || ( pev->flags & FL_DUCKING ))
+	if(( pmove->cmd.buttons & IN_DUCK ) || ( pmove->bInDuck ) || ( pev->flags & FL_DUCKING ))
 	{
 		if ( pmove->cmd.buttons & IN_DUCK )
 		{
@@ -1890,12 +1890,12 @@ void PM_Duck( void )
 			{
 				// Use 1 second so super long jump will work
 				pev->flDuckTime = 1000;
-				pev->bInDuck = true;
+				pmove->bInDuck = true;
 			}
 
 			time = max( 0.0f, ( 1.0f - (float)pev->flDuckTime / 1000.0f ));
 			
-			if( pev->bInDuck )
+			if( pmove->bInDuck )
 			{
 				// Finish ducking immediately if duck time is over or not on ground
 				if(((float)pev->flDuckTime / 1000.0f <= ( 1.0f - TIME_TO_DUCK )) || ( pmove->onground == NULL ))
@@ -1903,7 +1903,7 @@ void PM_Duck( void )
 					pmove->usehull = 1;
 					pev->view_ofs[2] = pmove->player_view[1];
 					pev->flags |= FL_DUCKING;
-					pev->bInDuck = false;
+					pmove->bInDuck = false;
 
 					// HACKHACK - Fudge for collision bug - no time to fix this properly
 					if( pmove->onground != NULL )
@@ -1924,8 +1924,6 @@ void PM_Duck( void )
 					// Calc parametric time
 					duckFraction = PM_SplineFraction( time, (1.0f / TIME_TO_DUCK ));
 					pev->view_ofs.z = ((pmove->player_view[1] - fMore) * duckFraction) + (pmove->player_view[0] * (1.0f - duckFraction));
-					if( pev->view_ofs.z < pmove->player_view[1] ) pev->view_ofs.z = pmove->player_view[1];
-					if( pev->view_ofs.z > pmove->player_view[0] ) pev->view_ofs.z = pmove->player_view[0];
 				}
 			}
 		}
@@ -2365,7 +2363,7 @@ void PM_Jump( void )
 
 	// Acclerate upward
 	// If we are ducking...
-	if(( pev->bInDuck ) || ( pev->flags & FL_DUCKING ))
+	if(( pmove->bInDuck ) || ( pev->flags & FL_DUCKING ))
 	{
 		// Adjust for super long jump module
 		// UNDONE -- note this should be based on forward angles, not current velocity.

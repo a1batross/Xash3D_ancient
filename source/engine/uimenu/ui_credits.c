@@ -96,6 +96,7 @@ typedef struct
 	float		fadeTime;
 	int		numLines;
 	bool		active;
+	bool		finalCredits;
 	char		*index[UI_CREDITS_MAXLINES];
 	char		*buffer;
 
@@ -118,7 +119,9 @@ static void UI_Credits_DrawFunc( void )
 	rgba_t	color = { 0, 0, 0, 0 };
 
 	// draw the background first
-	UI_DrawPic( 0, 0, 1024 * uiStatic.scaleX, 768 * uiStatic.scaleY, uiColorWhite, ART_BACKGROUND );
+	if( !uiCredits.finalCredits )
+		UI_DrawPic( 0, 0, 1024 * uiStatic.scaleX, 768 * uiStatic.scaleY, uiColorWhite, ART_BACKGROUND );
+	// otherwise running on cutscene
 
 	// now draw the credits
 	UI_ScaleCoords( NULL, NULL, &w, &h );
@@ -144,6 +147,8 @@ static void UI_Credits_DrawFunc( void )
 	{
 		uiCredits.active = false; // end of credits
 		UI_PopMenu();
+		if( uiCredits.finalCredits )
+			Host_EndGame( GI->title );
 	}
 }
 
@@ -154,6 +159,9 @@ UI_Credits_KeyFunc
 */
 static const char *UI_Credits_KeyFunc( int key )
 {
+	if( uiCredits.finalCredits )
+		return uiSoundNull;
+
 	uiCredits.active = false;
 	UI_PopMenu();
 	return uiSoundNull;
@@ -250,4 +258,10 @@ void UI_Credits_Menu( void )
 	UI_Credits_Init();
 
 	UI_PushMenu( &uiCredits.menu );
+}
+
+void Host_Credits( void )
+{
+	UI_Credits_Menu();
+	uiCredits.finalCredits = true;
 }

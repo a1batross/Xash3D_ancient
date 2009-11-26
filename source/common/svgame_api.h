@@ -103,7 +103,7 @@ typedef struct enginefuncs_s
 	void	(*pfnServerExecute)( void );
 	void	(*pfnClientCommand)( edict_t* pEdict, char* szFmt, ... );
 	void	(*pfnParticleEffect)( const float *org, const float *dir, float color, float count );
-	void	(*pfnLightStyle)( int style, char* val );
+	void	(*pfnLightStyle)( int style, const char* val );
 	int	(*pfnDecalIndex)( const char *name );
 	int	(*pfnPointContents)( const float *rgflVector );
 	void	(*pfnMessageBegin)( int msg_dest, int msg_type, const float *pOrigin, edict_t *ed );
@@ -159,9 +159,9 @@ typedef struct enginefuncs_s
 	void	(*pfnFreeFile)( void *buffer );
 	void	(*pfnEndGame)( const char *engine_command );		// was pfnEndSection
 	int	(*pfnCompareFileTime)( const char *filename1, const char *filename2, int *iCompare );
-	void	(*pfnGetGameDir)( char *szGetGameDir );
+	void	(*pfnRemoveFile)( const char *szFilename );
 	void	(*pfnClassifyEdict)( edict_t *pEdict, int ed_type );	// was pfnCvar_RegisterVariable
-	void	(*pfnFadeClientVolume)( const edict_t *pEdict, int fadePercent, int fadeOutSeconds, int holdTime, int fadeInSeconds );
+	void	(*pfnFadeClientVolume)( const edict_t *pEdict, float fadePercent, float fadeOutSeconds, float holdTime, float fadeInSeconds );
 	void	(*pfnSetClientMaxspeed)( const edict_t *pEdict, float fNewMaxspeed );
 	edict_t	*(*pfnCreateFakeClient)( const char *netname ); // returns NULL if fake client can't be created
 	void	(*pfnThinkFakeClient)( edict_t *client, usercmd_t *cmd );	// was pfnRunPlayerMove, like it
@@ -184,9 +184,9 @@ typedef struct enginefuncs_s
 	const char *(*pfnGetPhysicsInfoString)( const edict_t *pClient );
 	word	(*pfnPrecacheEvent)( int type, const char *psz );
 	void	(*pfnPlaybackEvent)( int flags, const edict_t *pInvoker, word eventindex, float delay, event_args_t *args );
-	byte*	(*pfnSetFatPVS)( const float *org, int portal );
-	byte*	(*pfnSetFatPHS)( const float *org, int portal );
-	int	(*pfnCheckVisibility)( const edict_t *entity, unsigned char *pset );
+	void	(*pfnSetBonePos)( const edict_t* pEdict, int iBone, float *rgflOrigin, float *rgflAngles );	// was pfnSetFatPVS
+	int	(*pfnCheckArea)( const edict_t *entity, int clientarea );
+	int	(*pfnCheckVisibility)( const edict_t *entity, byte *pset );
 	void*	(*pfnFOpen)( const char* path, const char* mode );	// was pfnDeltaSetField
 	long	(*pfnFRead)( void *file, void* buffer, size_t buffersize );	// was pfnDeltaUnsetField
 	long	(*pfnFWrite)(void *file, const void* data, size_t datasize);// was pfnDeltaAddEncoder
@@ -200,7 +200,7 @@ typedef struct enginefuncs_s
 	void	(*pfnHostError)( const char *szFmt, ... );		// was pfnCvar_DirectSet
 	char 	*(*pfnParseToken)( const char **data_p );		// was pfnForceUnmodified
 	void	(*pfnGetPlayerStats)( const edict_t *pClient, int *ping, int *packet_loss );
-	int	(*pfnAreasConnected)( edict_t *pClient, edict_t *pEdict );	// was pfnAddServerCommand
+	void	(*pfnAddServerCommand)( const char *cmd_name, void (*function)(void), const char *cmd_desc );
 	void*	(*pfnLoadLibrary)( const char *name );			// was pfnVoice_GetClientListening
 	void*	(*pfnGetProcAddress)( void *hInstance, const char *name );	// was pfnVoice_SetClientListening
 	void	(*pfnFreeLibrary)( void *hInstance );			// was pfnGetPlayerAuthId
@@ -365,9 +365,9 @@ typedef struct
 	void	(*pfnPM_Move)( playermove_t *ppmove, int server );
 	void	(*pfnPM_Init)( playermove_t *ppmove );
 	char	(*pfnPM_FindTextureType)( const char *name );
-	void	(*pfnSetupVisibility)( edict_t *pViewEntity, edict_t *pClient, byte **pvs, byte **phs );
+	int	(*pfnSetupVisibility)( edict_t *pViewEntity, edict_t *pClient, int portal, float *rgflViewOrg );
 	void	(*pfnPhysicsEntity)( edict_t *pEntity );		// was pfnUpdateClientData
-	int	(*pfnAddToFullPack)( edict_t *pClient, edict_t *pEntity, int hostflags );
+	int	(*pfnAddToFullPack)( edict_t *pHost, edict_t *pClient, edict_t *pEdict, int hostflags, int hostarea, byte *pSet );
 	void	(*pfnEndFrame)( void );				// was pfnCreateBaseline
 	int	(*pfnShouldCollide)( edict_t *pTouch, edict_t *pOther );	// was pfnCreateBaseline
 	void	(*pfnUpdateEntityState)( struct entity_state_s *to, edict_t *from, int baseline ); // was pfnRegisterEncoders

@@ -74,7 +74,8 @@ enum svc_ops_e
 	svc_movevars,		// [movevars_t]
 	svc_particle,		// [float*3][char*3][byte][byte]
 	svc_soundfade,		// FIMXE: implement (just reserve a number)
-	svc_bspdecal		// [float*3][short][short][short]
+	svc_bspdecal,		// [float*3][short][short][short]
+	svc_ambientsound		// FIXME: implement (just reserve a number)
 };
 
 // client to server
@@ -89,18 +90,6 @@ enum clc_ops_e
 	clc_userinfo,		// [[userinfo string]
 	clc_stringcmd,		// [string] message
 };
-
-typedef enum
-{
-	MSG_ONE = 0,	// never send by QC-code (just not declared)
-	MSG_ALL,
-	MSG_PHS,
-	MSG_PVS,
-	MSG_ONE_R,	// reliable messages
-	MSG_ALL_R,
-	MSG_PHS_R,
-	MSG_PVS_R,
-} msgtype_t;
 
 static const net_desc_t NWDesc[] =
 {
@@ -184,7 +173,7 @@ void _MSG_WriteData( sizebuf_t *sb, const void *data, size_t length, const char 
 void _MSG_WriteDeltaUsercmd( sizebuf_t *sb, usercmd_t *from, usercmd_t *cmd, const char *filename, const int fileline );
 bool _MSG_WriteDeltaMovevars( sizebuf_t *sb, movevars_t *from, movevars_t *cmd, const char *filename, const int fileline );
 void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t *msg, bool force, bool newentity, const char *file, int line );
-void _MSG_Send( msgtype_t to, const vec3_t origin, const edict_t *ent, const char *filename, int fileline );
+void _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, const char *filename, int fileline );
 
 #define MSG_Begin( x ) _MSG_Begin( x, __FILE__, __LINE__)
 #define MSG_WriteChar(x,y) _MSG_WriteBits (x, y, NWDesc[NET_CHAR].name, NET_CHAR, __FILE__, __LINE__)

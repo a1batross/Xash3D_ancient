@@ -7,6 +7,9 @@
 #include "client.h"
 #include "net_sound.h"
 
+#define NET_TIMINGS		256
+#define NET_TIMINGSMASK	(NET_TIMINGS - 1)
+
 char *svc_strings[256] =
 {
 	"svc_bad",
@@ -33,8 +36,42 @@ char *svc_strings[256] =
 	"svc_movevars",
 	"svc_particle",
 	"svc_soundfade",
-	"svc_bspdecal"
+	"svc_bspdecal",
+	"svc_ambientsound"
 };
+
+int	packet_latency[NET_TIMINGS];
+int	packet_loss;
+
+int CL_CalcNet( void )
+{
+	int	a, i;
+	frame_t	*frame;
+	int	lost = 0;
+
+	for( i = cls.netchan.outgoing_sequence - UPDATE_BACKUP + 1; i <= cls.netchan.outgoing_sequence; i++ )
+	{
+		frame = &cl.frames[i & UPDATE_MASK];
+
+		if( frame->recvtime == -1 )
+			packet_latency[i & NET_TIMINGSMASK] = 9999;	// dropped
+		else if( frame->recvtime == -2 )
+			packet_latency[i & NET_TIMINGSMASK] = 10000;	// choked
+		else if( !frame->valid )
+			packet_latency[i&NET_TIMINGSMASK] = 9998;	// invalid delta
+		else packet_latency[i & NET_TIMINGSMASK] = (frame->recvtime - frame->senttime) * 20;
+	}
+
+	for( a = 0; a < NET_TIMINGS; a++ )
+	{
+		i = (cls.netchan.outgoing_sequence - a) & NET_TIMINGSMASK;
+		if( packet_latency[i] == 9999 ) lost++;
+	}
+
+	packet_loss = lost * 100 / NET_TIMINGS;
+
+	return packet_loss;
+}
 
 /*
 ===============
@@ -279,9 +316,24 @@ void CL_ParseStaticDecal( sizebuf_t *msg )
 	MSG_ReadPos( msg, origin );
 	decalIndex = MSG_ReadWord( msg );
 	entityIndex = MSG_ReadShort( msg );
-	modelIndex = MSG_ReadWord( msg );
+
+	if( entityIndex > 0 )
+		modelIndex = MSG_ReadWord( msg );
 
 	CL_SpawnStaticDecal( origin, decalIndex, entityIndex, modelIndex );
+}
+
+void CL_ParseSoundFade( sizebuf_t *msg )
+{
+	float	fadePercent, fadeOutSeconds;
+	float	holdTime, fadeInSeconds;
+
+	fadePercent = MSG_ReadFloat( msg );
+	fadeOutSeconds = MSG_ReadFloat( msg );
+	holdTime = MSG_ReadFloat( msg );
+	fadeInSeconds = MSG_ReadFloat( msg );
+
+	S_FadeClientVolume( fadePercent, fadeOutSeconds, holdTime, fadeInSeconds );
 }
 
 /*
@@ -553,6 +605,9 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			break;
 		case svc_bspdecal:
 			CL_ParseStaticDecal( msg );
+			break;
+		case svc_soundfade:
+			CL_ParseSoundFade( msg );
 			break;
 		case svc_frame:
 			CL_ParseFrame( msg );

@@ -1751,7 +1751,7 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnRandomFloat,
 	pfnLoadFile,
 	pfnFileExists,
-	pfnGetGameDir,				
+	pfnRemoveFile,				
 	pfnLoadLibrary,
 	pfnGetProcAddress,
 	pfnFreeLibrary,		

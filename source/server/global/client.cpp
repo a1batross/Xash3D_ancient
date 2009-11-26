@@ -544,7 +544,7 @@ void ClientCommand( edict_t *pEntity )
 	else if ( FStrEq(pcmd, "game_over" ) )
 	{
 		if(IsMultiplayer())  g_pGameRules->EndMultiplayerGame();	//loading next map
-		// FIXME: return to main menu here
+		else HOST_ENDGAME( CMD_ARGV( 1 ) );
 	}
 	else if( FStrEq( pcmd, "gametitle" ))
 	{
@@ -992,9 +992,11 @@ void SpectatorThink( edict_t *pEntity )
 	if( pPlayer ) pPlayer->SpectatorThink( );
 }
 
-int ServerClassifyEdict( edict_t *pentToClassify )
+// FIXME: implement VirtualClass GetClass instead
+int AutoClassify( edict_t *pentToClassify )
 {
-	if( !pentToClassify ) return ED_SPAWNED;
+	if( FNullEnt( pentToClassify ))
+		return ED_SPAWNED;
 
 	CBaseEntity *pClass;
 
@@ -1011,8 +1013,11 @@ int ServerClassifyEdict( edict_t *pentToClassify )
 	// first pass: determine type by explicit parms
 	if( pClass->pev->solid == SOLID_TRIGGER )
 	{
-		if( !stricmp( classname, "trigger_teleport" ))	// FIXME
+		if( FClassnameIs( pClass->pev, "ambient_generic" ) || FClassnameIs( pClass->pev, "target_speaker" ))	// FIXME
+		{
+			pClass->pev->flags |= FL_PHS_FILTER;
 			return ED_AMBIENT;
+		}
 		else if( pClass->pev->movetype == MOVETYPE_TOSS )
 			return ED_NORMAL; // it's item or weapon
 		return ED_TRIGGER; // never sending to client
@@ -1037,7 +1042,10 @@ int ServerClassifyEdict( edict_t *pentToClassify )
 	else if( !pClass->pev->modelindex && !pClass->pev->aiment )
 	{	
 		if( pClass->pev->noise || pClass->pev->noise1 || pClass->pev->noise2 || pClass->pev->noise3 )
+		{
+			pClass->pev->flags |= FL_PHS_FILTER;
 			return ED_AMBIENT;
+		}
 		return ED_STATIC; // never sending to client
 	}
 
@@ -1047,6 +1055,20 @@ int ServerClassifyEdict( edict_t *pentToClassify )
 
 	// fail to classify :-(
 	return ED_SPAWNED;
+}
+
+int ServerClassifyEdict( edict_t *pentToClassify )
+{
+	int m_iNewClass = AutoClassify( pentToClassify );
+
+	if( m_iNewClass != ED_SPAWNED )
+	{
+		CBaseEntity *pClass;
+
+		pClass = CBaseEntity::Instance( pentToClassify );
+		pClass->SetObjectClass( m_iNewClass );
+	}
+	return m_iNewClass;
 }
 
 void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
@@ -1137,6 +1159,7 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 		to->idealpitch = pNet->pev->ideal_pitch;
 		to->punch_angles = pNet->pev->punchangle;
 		to->velocity = pNet->pev->velocity;
+		to->basevelocity = pNet->pev->basevelocity;
 		
 		// playermodel sequence, that will be playing on a client
 		if( pNet->pev->gaitsequence != -1 )
@@ -1196,7 +1219,7 @@ void CmdStart( const edict_t *player, const usercmd_t *cmd, unsigned int random_
 	entvars_t *pev = (entvars_t *)&player->v;
 	CBasePlayer *pl = ( CBasePlayer *) CBasePlayer::Instance( pev );
 
-	if( !pl )
+	if ( !pl )
 		return;
 
 	if ( pl->pev->groupinfo != 0 )
@@ -1219,8 +1242,9 @@ void CmdEnd( const edict_t *player )
 	entvars_t *pev = (entvars_t *)&player->v;
 	CBasePlayer *pl = ( CBasePlayer *) CBasePlayer::Instance( pev );
 
-	if( !pl )
+	if ( !pl )
 		return;
+
 	if ( pl->pev->groupinfo != 0 )
 	{
 		UTIL_UnsetGroupTrace();
@@ -1344,40 +1368,58 @@ From the eye position, we set up the PAS and PVS to use for filtering network me
 NOTE:  Do not cache the values of pas and pvs, as they depend on reusable memory in the engine, they are only good for this one frame
 ================
 */
-void SetupVisibility( edict_t *pViewEntity, edict_t *pClient, byte **pvs, byte **pas )
+int SetupVisibility( edict_t *pViewEntity, edict_t *pClient, int portal, float *rgflViewOrg )
 {
-	Vector	org;
+	Vector	org = g_vecZero;
 	edict_t	*pView = pClient;
 
-	// Find the client's PVS
-	if ( pViewEntity )
+	if( portal )
 	{
-		pView = pViewEntity;
+		// Entity's added from portal camera PVS
+		if( FNullEnt( pViewEntity )) return 0; // broken portal ?
+
+		CBaseEntity *pCamera = (CBaseEntity *)CBaseEntity::Instance( pViewEntity );
+
+		// determine visible point
+		if( pCamera->m_iClassType == ED_PORTAL )
+		{
+			// don't build visibility for mirrors
+			if( pCamera->pev->origin == pCamera->pev->oldorigin )
+				return 0;
+			else org = pCamera->pev->oldorigin;
+		}
+		else if( pCamera->m_iClassType == ED_SKYPORTAL )
+		{
+			org = pCamera->pev->origin;
+		}
+		else return 0; // other edicts can't merge pvs
+	}
+	else
+	{
+		// calc point view from client eyes or client camera's
+		if( FNullEnt( pClient )) HOST_ERROR( "SetupVisibility: client == NULL\n" );
+		if( !FNullEnt( pViewEntity )) pView = pViewEntity;
+
+		if( pClient->v.flags & FL_PROXY )
+		{
+			// the spectator proxy sees and hears everything
+			return -1; // force engine to ignore vis
+		}
+
+		CBasePlayer *pPlayer = (CBasePlayer *)CBaseEntity::Instance( pClient );
+
+		if( pPlayer && pPlayer->viewFlags & 1 )
+		{
+			CBaseEntity *pViewEnt = pPlayer->pViewEnt;
+			if( pPlayer->pViewEnt->edict( ))
+				pView = pViewEnt->edict();
+		}
+		// NOTE: view offset always contains actual viewheight (set it in PM_Move)
+		org = pView->v.origin + pView->v.view_ofs;
 	}
 
-	CBasePlayer *pPlayer = (CBasePlayer *)CBaseEntity::Instance( pClient );
-
-	if (pPlayer && pPlayer->viewFlags & 1)
-	{
-		CBaseEntity *pViewEnt = pPlayer->pViewEnt;
-		if(pPlayer->pViewEnt->edict())pView = pViewEnt->edict();
-	}
-
-	if ( pClient->v.flags & FL_PROXY )
-	{
-		*pvs = NULL;	// the spectator proxy sees
-		*pas = NULL;	// and hears everything
-		return;
-	}
-
-	org = pView->v.origin + pView->v.view_ofs;
-	if ( pView->v.flags & FL_DUCKING )
-	{
-		org = org + ( VEC_HULL_MIN - VEC_DUCK_HULL_MIN );
-	}
-
-	*pvs = ENGINE_SET_PVS ( (float *)&org, false );
-	*pas = ENGINE_SET_PHS ( (float *)&org, false );
+	org.CopyToArray( rgflViewOrg );
+	return 1;
 }
 
 /*
@@ -1393,65 +1435,103 @@ player is 1 if the ent/e is a player and 0 otherwise
 pSet is either the PAS or PVS that we previous set up.  We can use it to ask the engine to filter the entity against the PAS or PVS.
 we could also use the pas/ pvs that we set in SetupVisibility, if we wanted to.  Caching the value is valid in that case, but still only for the current frame
 */
-int AddToFullPack( edict_t *pClient, edict_t *pEntity, int hostflags )
+int AddToFullPack( edict_t *pHost, edict_t *pClient, edict_t *pEdict, int hostflags, int hostarea, byte *pSet )
 {
-	// Work In Progress: not used
-#if 0
-	int					i;
+	if( FNullEnt( pEdict )) return 0; // never adding invalid entities
 
-	// don't send if flagged for NODRAW and it's not the host getting the message
-	if ( ( ent->v.effects == EF_NODRAW ) &&  ( ent != host ) ) return 0;
-
-	// Ignore ents without valid / visible models
-	if ( !ent->v.modelindex || !STRING( ent->v.model ) )
+	// completely ignore dormant entity
+	if( pEdict->v.flags & FL_DORMANT )
 		return 0;
 
-	// Don't send spectators to other players
-	if ( ( ent->v.flags & FL_SPECTATOR ) && ( ent != host ) )
+	BOOL	bIsPortalPass = FALSE;
+
+	if( FNullEnt( pHost )) pHost = pClient;		// pfnCustomView not set
+	if( FNullEnt( pClient )) bIsPortalPass = TRUE;	// portal pass detected
+
+	// don't send spectators to other players
+	if( !bIsPortalPass && (( pEdict->v.flags & FL_SPECTATOR ) && ( pEdict != pHost )))
 	{
 		return 0;
 	}
 
-	// Ignore if not the host and not touching a PVS/PAS leaf
-	// If pSet is NULL, then the test will always succeed and the entity will be added to the update
-	if ( ent != host )
+	CBaseEntity *pEntity = (CBaseEntity *)CBaseEntity::Instance( pEdict );
+
+	// quick reject by type
+	switch( pEntity->m_iClassType )
 	{
-		if ( !ENGINE_CHECK_VISIBILITY( (const struct edict_s *)ent, pSet ) )
-		{
-			if ( !(ent->v.flags & FL_SKYENTITY) ) return 0;
-		}
+	case ED_SKYPORTAL:
+		return 1;	// no additional check requires
+	case ED_MOVER:
+	case ED_NORMAL:
+	case ED_PORTAL:
+	case ED_MONSTER:
+	case ED_AMBIENT:
+	case ED_BSPBRUSH:
+	case ED_RIGIDBODY: break;
+	default: return 0; // skipped
 	}
 
-
-	// Don't send entity to local client if the client says it's predicting the entity itself.
-	if ( ent->v.flags & FL_SKIPLOCALHOST )
+	if( !ENGINE_CHECK_AREA( pEdict, hostarea ))
 	{
-		if ( ( hostflags & 1 ) && ( ent->v.owner == host ) )
+		// blocked by a door
+		return 0;
+	}
+
+	// check visibility
+	if( !ENGINE_CHECK_PVS( pEdict, pSet ))
+	{
+		return 0;
+	}
+
+	if( FNullEnt( pHost )) HOST_ERROR( "pHost == NULL\n" );
+
+	// don't send entity to local client if the client says it's predicting the entity itself.
+	if( pEntity->pev->flags & FL_SKIPLOCALHOST )
+	{
+		if(( hostflags & 1 ) && ( pEntity->pev->owner == pHost ))
 			return 0;
 	}
 
-	if ( host->v.groupinfo )
-	{
-		UTIL_SetGroupTrace( host->v.groupinfo, GROUP_OP_AND );
+	// check for ambients distance
+	if( pEntity->m_iClassType == ED_AMBIENT )
+	{	
+		Vector	delta, entorigin;
 
-		// Should always be set, of course
-		if ( ent->v.groupinfo )
+		// don't send sounds if they will be attenuated away
+		if( pEntity->pev->origin == g_vecZero )
+			entorigin = (pEntity->pev->mins + pEntity->pev->maxs) * 0.5f;
+		else entorigin = pEntity->pev->origin;
+
+		delta = pHost->v.origin - entorigin;
+		if( delta.Length() > 400 ) return 0; // you can tune this value by taste
+	}
+	else if( !pEntity->pev->modelindex || FStringNull( pEntity->pev->model ))
+	{
+		// can't ignore ents withouts models, because portals and mirrors can't working otherwise
+		// and null.mdl it's no more needs to be set: ED_CLASS rejection is working fine
+		// so we wan't reject this entities here. 
+	}
+
+	if( pHost->v.groupinfo )
+	{
+		UTIL_SetGroupTrace( pHost->v.groupinfo, GROUP_OP_AND );
+
+		// should always be set, of course
+		if( pEdict->v.groupinfo )
 		{
-			if ( g_groupop == GROUP_OP_AND )
+			if( g_groupop == GROUP_OP_AND )
 			{
-				if ( !(ent->v.groupinfo & host->v.groupinfo ) )
+				if(!( pEdict->v.groupinfo & pHost->v.groupinfo ))
 					return 0;
 			}
-			else if ( g_groupop == GROUP_OP_NAND )
+			else if( g_groupop == GROUP_OP_NAND )
 			{
-				if ( ent->v.groupinfo & host->v.groupinfo )
+				if( pEdict->v.groupinfo & pHost->v.groupinfo )
 					return 0;
 			}
 		}
-
 		UTIL_UnsetGroupTrace();
 	}
-#endif
 	return 1;
 }
 
@@ -1545,7 +1625,6 @@ InitWorld
 Called ever time when worldspawn will precached
 ================
 */
-
 void InitWorld( void )
 {
 	int i;
@@ -1568,9 +1647,11 @@ void InitWorld( void )
 
 	UTIL_PrecacheResourse();	//precache all resource
       
-	pSoundEnt = GetClassPtr( ( CSoundEnt *)NULL );
+	pSoundEnt = GetClassPtr(( CSoundEnt *)NULL );
 	pSoundEnt->Spawn();
-	if ( !pSoundEnt ) Msg( "Couldn create soundent!\n" );
+
+	if( FNullEnt( pSoundEnt ))
+		ALERT( at_error, "couldn create soundent!\n" );
 
 	InitBodyQue();
 
@@ -1578,23 +1659,31 @@ void InitWorld( void )
 	TEXTURETYPE_Init();
 	
 	MSGSended = FALSE;
-	if(IsMultiplayer()) MsgDelay = 0.5 + gpGlobals->time;
-	else		MsgDelay = 0.03 + gpGlobals->time;
+	if( IsMultiplayer( ))
+		MsgDelay = 0.5 + gpGlobals->time;
+	else MsgDelay = 0.03 + gpGlobals->time;
 	
 	ClientPrecache();
 
 	// Setup light animation tables. 'a' is total darkness, 'z' is maxbright.
-	for (i = 0; i <= 13; i++) LIGHT_STYLE(i, (char*)STRING(GetStdLightStyle(i)));
-	for (i = 0; i < DECAL_COUNT; i++ ) gDecals[i].index = DECAL_INDEX( gDecals[i].name );
+	for( i = 0; i <= 13; i++ )
+		LIGHT_STYLE( i, STRING( GetStdLightStyle( i )));
+
+	for( i = 0; i < DECAL_COUNT; i++ )
+		gDecals[i].index = DECAL_INDEX( gDecals[i].name );
 	
 	// init the WorldGraph.
 	WorldGraph.InitGraph();
 
-	if ( !WorldGraph.CheckNODFile ( ( char * )STRING( gpGlobals->mapname ))) WorldGraph.AllocNodes();
+	if( !WorldGraph.CheckNODFile( STRING( gpGlobals->mapname )))
+	{
+		WorldGraph.AllocNodes();
+	}
 	else
 	{
-		if ( !WorldGraph.FLoadGraph ( (char *)STRING( gpGlobals->mapname )))WorldGraph.AllocNodes();
-		else Msg("\n*Graph Loaded!\n" );
+		if( !WorldGraph.FLoadGraph( STRING( gpGlobals->mapname )))
+			WorldGraph.AllocNodes();
+		else ALERT( at_console, "\n*Graph Loaded!\n" );
 	}
 
 	CVAR_SET_FLOAT( "sv_zmax", MAP_SIZE );

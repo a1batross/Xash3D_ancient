@@ -159,8 +159,8 @@ public:
 	int		m_iLastCoverSearch;
 
 	// functions to create the graph
-	int		LinkVisibleNodes ( CLink *pLinkPool, FILE *file, int *piBadNode );
-	int		RejectInlineLinks ( CLink *pLinkPool, FILE *file );
+	int		LinkVisibleNodes ( CLink *pLinkPool, void *file, int *piBadNode );
+	int		RejectInlineLinks ( CLink *pLinkPool, void *file );
 	int		FindShortestPath ( int *piPath, int iStart, int iDest, int iHull, int afCapMask);
 	int		FindNearestNode ( const Vector &vecOrigin, CBaseEntity *pEntity );
 	int		FindNearestNode ( const Vector &vecOrigin, int afNodeTypes );
@@ -173,15 +173,15 @@ public:
 	// A dynamic query means we're asking about it RIGHT NOW.  So we should query the current state
 	int		HandleLinkEnt ( int iNode, entvars_t *pevLinkEnt, int afCapMask, NODEQUERY queryType );
 	entvars_t*	LinkEntForLink ( CLink *pLink, CNode *pNode );
-	void	ShowNodeConnections ( int iNode );
-	void	InitGraph( void );
-	int		AllocNodes ( void );
+	void		ShowNodeConnections ( int iNode );
+	void		InitGraph( void );
+	int		AllocNodes( void );
 	
-	int		CheckNODFile(char *szMapName);
-	int		FLoadGraph(char *szMapName);
-	int		FSaveGraph(char *szMapName);
-	int		FSetGraphPointers(void);
-	void	CheckNode(Vector vecOrigin, int iNode);
+	int		CheckNODFile( const char *szMapName );
+	int		FLoadGraph( const char *szMapName );
+	int		FSaveGraph( const char *szMapName );
+	int		FSetGraphPointers( void );
+	void		CheckNode( Vector vecOrigin, int iNode );
 
 	void    BuildRegionTables(void);
 	void    ComputeStaticRoutingTables(void);

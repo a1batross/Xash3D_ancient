@@ -185,7 +185,7 @@ typedef struct cl_enginefuncs_s
 	float	(*pfnRandomFloat)( float flLow, float flHigh );
 	byte*	(*pfnLoadFile)( const char *filename, int *pLength );
 	int	(*pfnFileExists)( const char *filename );
-	void	(*pfnGetGameDir)( char *szGetGameDir );
+	void	(*pfnRemoveFile)( const char *szFilename );
 	void*	(*pfnLoadLibrary)( const char *name );
 	void*	(*pfnGetProcAddress)( void *hInstance, const char *name );
 	void	(*pfnFreeLibrary)( void *hInstance );

@@ -120,6 +120,16 @@ bool S_CheckForErrors( void )
 
 /*
 =================
+S_FadeClientVolume
+=================
+*/
+void S_FadeClientVolume( float fadePercent, float fadeOutSeconds, float holdTime, float fadeInSeconds )
+{
+	// FIXME: implement
+}
+
+/*
+=================
 S_AllocChannels
 =================
 */

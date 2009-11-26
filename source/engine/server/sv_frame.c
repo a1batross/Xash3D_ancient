@@ -15,7 +15,7 @@ typedef struct
 } sv_ents_t;
 
 static byte *clientpvs;	// FatPVS
-static byte *clientphs;	// ClientPHS
+static byte *clientphs;	// FatPHS
 
 int	c_fullsend;
 
@@ -61,7 +61,7 @@ void SV_UpdateEntityState( edict_t *ent, bool baseline )
 			MSG_WriteAngle32( &sv.multicast, ent->v.angles[0] );
 			MSG_WriteAngle32( &sv.multicast, ent->v.angles[1] );
 			MSG_WriteAngle32( &sv.multicast, 0 );
-			MSG_Send( MSG_ONE_R, vec3_origin, client->edict );
+			MSG_Send( MSG_ONE, vec3_origin, client->edict );
 		}
 	}
 
@@ -169,16 +169,13 @@ void SV_EmitPacketEntities( client_frame_t *from, client_frame_t *to, sizebuf_t 
 	MSG_WriteBits( msg, 0, "svc_packetentities", NET_WORD ); // end of packetentities
 }
 
-static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ents_t *ents, bool portal )
+static void SV_AddEntitiesToPacket( edict_t *pViewEnt, edict_t *pClient, client_frame_t *frame, sv_ents_t *ents, bool portal )
 {
-	int		l, e, i;
 	edict_t		*ent;
-	sv_priv_t		*svent;
-	int		leafnum;
-	byte		*clientphs;
-	byte		*bitvector;
-	int		clientarea;
-	int		clientcluster;
+	vec3_t		origin;
+	byte		*pset;
+	int		leafnum, fullvis = false;
+	int		e, clientcluster, clientarea;
 	bool		force = false;
 
 	// during an error shutdown message we may need to transmit
@@ -186,135 +183,64 @@ static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ent
 	// specfically check for it
 	if( !sv.state ) return;
 
-	clientpvs = CM_FatPVS( origin, portal );
+	e = svgame.dllFuncs.pfnSetupVisibility( pViewEnt, pClient, portal, origin );
+	if( e == 0 ) return; // invalid viewent ?
+	if( e == -1 ) fullvis = true;
 
+	clientpvs = CM_FatPVS( origin, portal );
 	leafnum = CM_PointLeafnum( origin );
 	clientarea = CM_LeafArea( leafnum );
 	clientcluster = CM_LeafCluster( leafnum );
+	clientphs = CM_FatPHS( clientcluster, portal );
 
 	// calculate the visible areas
-	frame->areabits_size = CM_WriteAreaBits( frame->areabits, clientarea, portal );
-	clientphs = CM_FatPHS( clientcluster, portal );
+	if( fullvis )
+	{
+		if( !portal ) Mem_Set( frame->areabits, 0xFF, sizeof( frame->areabits ));
+		frame->areabits_size = sizeof( frame->areabits );
+	}
+	else frame->areabits_size = CM_WriteAreaBits( frame->areabits, clientarea, portal );
 
 	for( e = 1; e < svgame.globals->numEntities; e++ )
 	{
 		ent = EDICT_NUM( e );
 		if( ent->free ) continue;
-		force = false; // clear forceflag
-
-		// completely ignore dormant entity
-		if( ent->v.flags & FL_DORMANT )
-			continue;
-
-		// NOTE: client index on client expected that entity will be valid
-		if( ent->pvServerData->s.ed_type == ED_CLIENT )
-			force = true;
-
-		if( ent->pvServerData->s.ed_type == ED_SKYPORTAL )
-			force = true;
-
-		// never send entities that aren't linked in
-		if( !ent->pvServerData->linked && !force ) continue;
 
 		if( ent->serialnumber != e )
 		{
-			MsgDev( D_WARN, "fixing ent->pvServerData->serialnumber\n");
+			// this should never happens
+			MsgDev( D_NOTE, "fixing ent->serialnumber from %i to %i\n", ent->serialnumber, e );
 			ent->serialnumber = e;
 		}
 
-		svent = ent->pvServerData;
+		// don't double add an entity through portals (already added)
+		if( ent->pvServerData->framenum == sv.net_framenum )
+			continue;
 
-		// quick reject by type
-		switch( svent->s.ed_type )
-		{
-		case ED_MOVER:
-		case ED_NORMAL:
-		case ED_PORTAL:
-		case ED_MONSTER:
-		case ED_AMBIENT:
-		case ED_BSPBRUSH:
-		case ED_RIGIDBODY: break;
-		default: if( !force ) continue;
-		}
+		if( fullvis ) force = true;
+		else force = false; // clear forceflag
 
-		// don't double add an entity through portals
-		if( svent->framenum == sv.net_framenum ) continue;
+		// NOTE: always add himslef to list
+		if( !portal && ( ent == pClient ))
+			force = true;
+
+		if( ent->v.flags & FL_PHS_FILTER )
+			pset = clientphs;
+		else pset = clientpvs;
 
 		if( !force )
 		{
-			// ignore if not touching a PV leaf check area
-			if( !CM_AreasConnected( clientarea, ent->pvServerData->areanum ))
-			{
-				// doors can legally straddle two areas, so
-				// we may need to check another one
-				if( !CM_AreasConnected( clientarea, ent->pvServerData->areanum2 ))
-					continue;	// blocked by a door
-			}
+			// run custom user filter
+			if( !svgame.dllFuncs.pfnAddToFullPack( pViewEnt, pClient, ent, sv.hostflags, clientarea, pset ))
+				continue;
 		}
 
-		if( svent->s.ed_type == ED_AMBIENT || svent->s.ed_type == ED_PORTAL )
-			bitvector = clientphs;
-		else bitvector = clientpvs;
-
-		if( !force )
-		{ 
-			// check individual leafs
-			if( !svent->num_clusters ) continue;
-			for( i = l = 0; i < svent->num_clusters && !force; i++ )
-			{
-				l = svent->clusternums[i];
-				if( bitvector[l>>3] & (1<<(l & 7)))
-					break;
-			}
-
-			// if we haven't found it to be visible,
-			// check overflow clusters that coudln't be stored
-			if( i == svent->num_clusters )
-			{
-				if( svent->lastcluster )
-				{
-					for( ; l <= svent->lastcluster; l++ )
-					{
-						if( bitvector[l>>3] & (1<<(l & 7)))
-							break;
-					}
-					if( l == svent->lastcluster )
-						continue;	// not visible
-				}
-				else continue;
-			}
-		}
-
-		if( ent->pvServerData->s.ed_type == ED_AMBIENT )
-		{	
-			vec3_t	delta, entorigin;
-			float	len;
-
-			// don't send sounds if they will be attenuated away
-			if( VectorIsNull( ent->v.origin ))
-				VectorAverage( ent->v.mins, ent->v.maxs, entorigin );
-			else VectorCopy( ent->v.origin, entorigin );
-
-			VectorSubtract( origin, entorigin, delta );	
-			len = VectorLength( delta );
-			if( len > 400 ) continue;
-		}
-
-		// add it
-		SV_AddEntToSnapshot( svent, ent, ents );
+		SV_AddEntToSnapshot( ent->pvServerData, ent, ents ); // add it
+		if( fullvis ) continue; // portal ents will be added anywhere, ignore recursion
 
 		// if its a portal entity, add everything visible from its camera position
-		if( svent->s.ed_type == ED_PORTAL || svent->s.ed_type == ED_SKYPORTAL )
-		{
-			if( svent->s.ed_type == ED_PORTAL )
-			{
-				// don't merge pvs for mirrors
-				if( !VectorCompare( svent->s.origin, svent->s.oldorigin ))
-					SV_AddEntitiesToPacket( svent->s.oldorigin, frame, ents, true );
-			}
-			else if( svent->s.ed_type == ED_SKYPORTAL )
-				SV_AddEntitiesToPacket( svent->s.origin, frame, ents, true );
-		}
+		if( ent->pvServerData->s.ed_type == ED_PORTAL || ent->pvServerData->s.ed_type == ED_SKYPORTAL )
+			SV_AddEntitiesToPacket( ent, NULL, frame, ents, true );
 	}
 }
 
@@ -405,15 +331,16 @@ copies off the playerstat and areabits.
 */
 void SV_BuildClientFrame( sv_client_t *cl )
 {
-	vec3_t		org;
 	edict_t		*ent;
 	edict_t		*clent;
+	edict_t		*viewent;	// may be NULL
 	client_frame_t	*frame;
 	entity_state_t	*state;
 	sv_ents_t		frame_ents;
 	int		i;
 
 	clent = cl->edict;
+	viewent = cl->pViewEntity;
 	sv.net_framenum++;
 
 	// this is the frame we are creating
@@ -425,16 +352,12 @@ void SV_BuildClientFrame( sv_client_t *cl )
 	Mem_Set( frame->areabits, 0, sizeof( frame->areabits ));
 	if( !clent->pvServerData->client ) return; // not in game yet
 
-	// find the client's PVS
-	VectorCopy( clent->pvServerData->s.origin, org ); 
-	VectorAdd( org, clent->pvServerData->s.viewoffset, org );  
-
 	// grab the current player index
 	frame->index = NUM_FOR_EDICT( clent );
 
 	// add all the entities directly visible to the eye, which
 	// may include portal entities that merge other viewpoints
-	SV_AddEntitiesToPacket( org, frame, &frame_ents, false );
+	SV_AddEntitiesToPacket( viewent, clent, frame, &frame_ents, false );
 
 	// if there were portals visible, there may be out of order entities
 	// in the list which will need to be resorted for the delta compression
@@ -564,14 +487,15 @@ void SV_SendClientMessages( void )
 	sv_client_t	*cl;
 	int		i;
 
-	if( sv.state == ss_dead ) return;
+	if( sv.state == ss_dead )
+		return;
 
 	// send a message to each connected client
 	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
 	{
 		if( !cl->state ) continue;
 			
-		if( cl->edict && (cl->edict->v.flags & FL_FAKECLIENT))
+		if( cl->edict && (cl->edict->v.flags & (FL_FAKECLIENT|FL_SPECTATOR)))
 			continue;
 
 		// if the reliable message overflowed, drop the client

@@ -191,6 +191,7 @@ void S_StreamRawSamples( int samples, int rate, int width, int channels, const b
 bool S_AddLoopingSound( int entnum, sound_t handle, float volume, float attn );
 void S_StartBackgroundTrack( const char *intro, const char *loop );
 channel_t	*S_PickChannel( int entNum, int entChannel );
+void S_FadeClientVolume( float fadePercent, float fadeOutSeconds, float holdTime, float fadeInSeconds );
 int S_StartLocalSound( const char *name, float volume, float pitch, const float *org );
 sfx_t *S_GetSfxByHandle( sound_t handle );
 void S_StopBackgroundTrack( void );

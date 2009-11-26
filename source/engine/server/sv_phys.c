@@ -1414,7 +1414,7 @@ static void SV_Physics_Entity( edict_t *ent )
 		SV_Physics_Conveyor( ent );
 		break;
 	default:
-		Host_Error( "SV_Physics_Entity: bad movetype %i\n", ent->v.movetype );
+		svgame.dllFuncs.pfnPhysicsEntity( ent );
 		break;
 	}
 }
@@ -1444,6 +1444,14 @@ void SV_Physics( void )
 		if( svgame.globals->force_retouch )
 			SV_LinkEdict( ent, true ); // force retouch even for stationary
 
+		if(!( ent->v.flags & FL_BASEVELOCITY ) && !VectorIsNull( ent->v.basevelocity ))
+		{
+			// Apply momentum (add in half of the previous frame of velocity first)
+			VectorMA( ent->v.velocity, 1.0f + (svgame.globals->frametime * 0.5f), ent->v.basevelocity, ent->v.velocity );
+			VectorClear( ent->v.basevelocity );
+		}
+		ent->v.flags &= ~FL_BASEVELOCITY;
+
 		if( i > 0 && i <= sv_maxclients->integer )
 			continue;	// clients are directly runs from packets
 		else if( !sv_playersonly->integer )
@@ -1469,6 +1477,8 @@ void SV_Physics( void )
 
 	// decrement svgame.globals->numEntities if the highest number entities died
 	for( ; EDICT_NUM( svgame.globals->numEntities - 1)->free; svgame.globals->numEntities-- );
+
+	svgame.dllFuncs.pfnEndFrame();
 
 	if( !sv_playersonly->integer ) sv.time += sv.frametime;
 }

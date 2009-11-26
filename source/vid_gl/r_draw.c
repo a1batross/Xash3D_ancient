@@ -116,7 +116,6 @@ void R_DrawStretchRaw( int x, int y, int w, int h, int cols, int rows, const byt
 	if( rows > glConfig.max_2d_texture_size )
 		Host_Error( "R_DrawStretchRaw: size exceeds hardware limits (%i > %i)\n", rows, glConfig.max_2d_texture_size );
 
-	pglFinish();
 	GL_Bind( 0, tr.cinTexture );
 
 	if( cols == tr.cinTexture->width && rows == tr.cinTexture->height )

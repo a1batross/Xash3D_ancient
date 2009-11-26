@@ -213,8 +213,8 @@ bool Info_SetValueForKey( char *s, const char *key, const char *value )
 	while( *v )
 	{
 		c = *v++;
-		c &= 127;	// strip high bits
-		if( c >= 32 && c < 127 )
+		c &= 255;	// strip high bits
+		if( c >= 32 && c <= 255 )
 			*s++ = c;
 	}
 	*s = 0;

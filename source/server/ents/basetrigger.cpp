@@ -344,8 +344,10 @@ class CTriggerPush : public CBaseTrigger
 			else
 			{
 				Vector vecPush = (pev->speed * pev->movedir);
-				vecPush = vecPush + pOther->pev->velocity;
-				pOther->pev->velocity = vecPush;
+				if ( pOther->pev->flags & FL_BASEVELOCITY )
+					vecPush = vecPush +  pOther->pev->basevelocity;
+				pOther->pev->basevelocity = vecPush;
+				pOther->pev->flags |= FL_BASEVELOCITY;
 			}
 		}
 	}

@@ -52,8 +52,7 @@ typedef struct server_s
 	int		framenum;
 	int		net_framenum;
 
-	int		lastcheck;	// used by PF_checkclient
-	int		lastchecktime;	// for monster ai 
+	int		hostflags;	// misc server flags: predicting etc
 
 	string		name;		// map name, or cinematic name
 	string		startspot;	// player_start name on nextmap
@@ -64,6 +63,9 @@ typedef struct server_s
 	// it is only used to marshall data until SV_Message is called
 	sizebuf_t		multicast;
 	byte		multicast_buf[MAX_MSGLEN];
+
+	sizebuf_t		signon;
+	byte		signon_buf[MAX_MSGLEN];
 
 	bool		autosaved;
 	bool		cphys_prepped;
@@ -78,6 +80,7 @@ typedef struct
 	int  		num_entities;
 	int  		first_entity;		// into the circular sv_packet_entities[]
 	int		senttime;			// time the message was transmitted
+	int		latency;
 
 	int		index;			// client edict index
 } client_frame_t;
@@ -93,13 +96,12 @@ typedef struct sv_client_s
 	int		lastframe;		// for delta compression
 	usercmd_t		lastcmd;			// for filling in big drops
 
-	int		spectator;		// non-interactive
 	int		usehull;			// current hull that client used
 
 	int		commandMsec;		// every seconds this is reset, if user
 	   					// commands exhaust it, assume time cheating
 
-	int		frame_latency[LATENCY_COUNTS];
+	int		packet_loss;
 	int		ping;
 
 	int		message_size[RATE_MESSAGES];	// used to rate drop packets
@@ -108,6 +110,7 @@ typedef struct sv_client_s
 	int		surpressCount;		// number of messages rate supressed
 
 	edict_t		*edict;			// EDICT_NUM(clientnum+1)
+	edict_t		*pViewEntity;		// svc_setview member
 	char		name[32];			// extracted from userinfo, color string allowed
 	int		messagelevel;		// for filtering printed messages
 
@@ -225,6 +228,9 @@ typedef struct
 	int		realtime;			// always increasing, no clamping, etc
 	int		timestart;		// just for profiling
 
+	int		groupmask;
+	int		groupop;
+
 	char		mapname[CS_SIZE];		// current mapname 
 	string		comment;			// map name, e.t.c. 
 	int		spawncount;		// incremented each server start
@@ -285,7 +291,7 @@ int SV_EventIndex( const char *name );
 int SV_GenericIndex( const char *name );
 int SV_UserMessageIndex( const char *name );
 
-void SV_WriteClientdataToMessage (sv_client_t *client, sizebuf_t *msg);
+int SV_CalcPacketLoss( sv_client_t *cl );
 void SV_ExecuteUserCommand (char *s);
 void SV_InitOperatorCommands( void );
 void SV_KillOperatorCommands( void );

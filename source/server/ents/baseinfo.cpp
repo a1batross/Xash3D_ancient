@@ -54,13 +54,24 @@ public:
 	{
 		if( FStrEq( pkvd->szKeyName, "texture" ))
 		{
+			pkvd->fHandled = TRUE;
 			pev->skin = DECAL_INDEX( pkvd->szValue );
 			if( pev->skin >= 0 ) return;
 			Msg( "Can't find decal %s\n", pkvd->szValue );
 		}
 	}
-	void PostActivate( void ) { if( FStringNull( pev->targetname )) MakeDecal(); }
-	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value ) { MakeDecal(); }
+
+	void PostSpawn( void )
+	{
+		if ( FStringNull( pev->targetname ))
+			MakeDecal();
+	}
+
+	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+	{
+		MakeDecal();
+	}
+
 	void MakeDecal( void )
 	{
 		if ( pev->skin < 0 )
@@ -69,16 +80,17 @@ public:
 			return;
 		}
 
-		TraceResult	trace;
-		int		entityIndex, modelIndex;
+		TraceResult trace;
+		int entityIndex, modelIndex;
 
 		UTIL_TraceLine( pev->origin - Vector( 5, 5, 5 ), pev->origin + Vector( 5, 5, 5 ), ignore_monsters, ENT( pev ), &trace );
 
 		entityIndex = (short)ENTINDEX( trace.pHit );
-		if ( entityIndex ) modelIndex = (int)VARS( trace.pHit )->modelindex;
+		if ( entityIndex > 0 )
+			modelIndex = VARS( trace.pHit )->modelindex;
 		else modelIndex = 0;
                     
-		if( FStringNull( pev->targetname ))
+		if ( FStringNull( pev->targetname ))
 		{
 			g_engfuncs.pfnStaticDecal( pev->origin, (int)pev->skin, entityIndex, modelIndex );
 		}
@@ -91,7 +103,8 @@ public:
 			WRITE_COORD( pev->origin.z );
 			WRITE_SHORT( (int)pev->skin );
 			WRITE_SHORT( entityIndex );
-			if( entityIndex ) WRITE_SHORT( modelIndex );
+			if( entityIndex > 0 )
+				WRITE_SHORT( modelIndex );
 			MESSAGE_END();
                     }
 		
@@ -173,6 +186,7 @@ void CPortalSurface :: Spawn( void )
 {
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NOCLIP;
+	pev->flags |= FL_PHS_FILTER;	// use phs so can collect portal sounds
 
 	SetObjectClass( ED_PORTAL );
 	UTIL_SetOrigin( this, pev->origin );

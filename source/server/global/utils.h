@@ -20,15 +20,6 @@
 #include "enginecallback.h"
 #endif
 
-#define MSG_ONE_UNRELIABLE	0	// Send to one client, but don't put in reliable stream, put in unreliable datagram ( could be dropped )
-#define MSG_BROADCAST	1	// unreliable to all
-#define MSG_PAS		2	// Ents in PAS of org
-#define MSG_PVS		3	// Ents in PVS of org
-#define MSG_ONE		4	// reliable to one (msg_entity)
-#define MSG_ALL		5	// reliable to all
-#define MSG_PAS_R		6	// Reliable to PAS
-#define MSG_PVS_R		7	// Reliable to PVS
-
 inline void MESSAGE_BEGIN( int msg_dest, int msg_type, const float *pOrigin, entvars_t *ent );  // implementation later in this file
 
 extern globalvars_t				*gpGlobals;

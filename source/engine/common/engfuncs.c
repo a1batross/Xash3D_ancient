@@ -424,12 +424,15 @@ void pfnFreeLibrary( void *hInstance )
 
 /*
 =============
-pfnGetGameDir
+pfnRemoveFile
 
 =============
 */
-void pfnGetGameDir( char *szGetGameDir )
+void pfnRemoveFile( const char *szFilename )
 {
-	// FIXME: potentially crashpoint
-	com.strcpy( szGetGameDir, FS_Gamedir());
+	string	path;
+
+	if( !szFilename || !*szFilename ) return;
+	com.sprintf( path, "%s/%s", GI->gamedir, szFilename );
+	FS_Delete( path );
 }

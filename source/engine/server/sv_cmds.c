@@ -87,7 +87,7 @@ void SV_BroadcastCommand( char *fmt, ... )
 
 	MSG_Begin( svc_stufftext );
 	MSG_WriteString( &sv.multicast, string );
-	MSG_Send( MSG_ALL_R, NULL, NULL );
+	MSG_Send( MSG_ALL, NULL, NULL );
 }
 
 /*
@@ -148,9 +148,16 @@ bool SV_SetPlayer( void )
 	sv_client_t	*cl;
 	int		i, idnum;
 
-	if(Cmd_Argc() < 2) return false;
+	if( sv_maxclients->integer == 1 )
+	{
+		// sepcial case for singleplayer
+		sv_client = svs.clients;
+		return true;
+	}
 
-	s = Cmd_Argv(1);
+	if( Cmd_Argc() < 2 ) return false;
+
+	s = Cmd_Argv( 1 );
 
 	// numeric values are just slot numbers
 	if( s[0] >= '0' && s[0] <= '9' )
@@ -446,6 +453,23 @@ void SV_Kick_f( void )
 }
 
 /*
+==================
+SV_Kill_f
+==================
+*/
+void SV_Kill_f( void )
+{
+	if( !SV_SetPlayer()) return;
+	if( sv_client->edict->v.health <= 0.0f )
+	{
+		SV_ClientPrintf( sv_client, PRINT_HIGH, "Can't suicide -- allready dead!\n");
+		return;
+	}
+
+	svgame.dllFuncs.pfnClientKill( sv_client->edict );	
+}
+
+/*
 ================
 SV_Status_f
 ================
@@ -595,6 +619,7 @@ void SV_InitOperatorCommands( void )
 {
 	Cmd_AddCommand( "heartbeat", SV_Heartbeat_f, "send a heartbeat to the master server" );
 	Cmd_AddCommand( "kick", SV_Kick_f, "kick a player off the server by number or name" );
+	Cmd_AddCommand( "kill", SV_Kill_f, "die instantly" );
 	Cmd_AddCommand( "status", SV_Status_f, "print server status information" );
 	Cmd_AddCommand( "serverinfo", SV_ServerInfo_f, "print server settings" );
 	Cmd_AddCommand( "clientinfo", SV_ClientInfo_f, "print user infostring (player num required)" );
@@ -626,6 +651,7 @@ void SV_KillOperatorCommands( void )
 {
 	Cmd_RemoveCommand( "heartbeat" );
 	Cmd_RemoveCommand( "kick" );
+	Cmd_RemoveCommand( "kill" );
 	Cmd_RemoveCommand( "status" );
 	Cmd_RemoveCommand( "serverinfo" );
 	Cmd_RemoveCommand( "clientinfo" );

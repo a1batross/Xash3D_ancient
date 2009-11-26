@@ -29,6 +29,8 @@ typedef struct frame_s
 	int		serverframe;
 	int		servertime;
 	int		deltaframe;
+	int		recvtime;
+	int		senttime;
 	byte		areabits[MAX_MAP_AREA_BYTES];	// portalarea visibility bits
 	int		num_entities;
 	int		parse_entities;		// non-masked index into cl_parse_entities array
@@ -497,6 +499,7 @@ _inline edict_t *CL_EDICT_NUM( int n, const char *file, const int line )
 //
 // cl_parse.c
 //
+int CL_CalcNet( void );
 void CL_ParseServerMessage( sizebuf_t *msg );
 void CL_RunBackgroundTrack( void );
 void CL_Download_f( void );

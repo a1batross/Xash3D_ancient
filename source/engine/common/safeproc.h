@@ -107,7 +107,7 @@ _inline byte *CM_ClusterPHS( int cluster )
 	return pe->ClusterPHS( cluster );
 }
 
-_inline byte *CM_FatPVS( vec3_t org, bool merge )
+_inline byte *CM_FatPVS( const vec3_t org, bool merge )
 {
 	if( !pe )	return NULL;
 	return pe->FatPVS( org, merge );
@@ -194,6 +194,7 @@ _inline void *Mod_Extradata( model_t modelIndex )
 #define S_StartBackgroundTrack	if( se ) se->StartBackgroundTrack
 #define S_StopBackgroundTrack		if( se ) se->StopBackgroundTrack
 #define S_RawSamples 		if( se ) se->StreamRawSamples
+#define S_FadeClientVolume		if( se ) se->FadeClientVolume
 #define S_StopAllSounds		if( se ) se->StopAllSounds
 #define S_AddLoopingSound		if( se ) se->AddLoopingSound
 #define S_Activate			if( se ) se->Activate

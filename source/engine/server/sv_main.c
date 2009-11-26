@@ -65,20 +65,58 @@ void SV_CalcPings( void )
 		if( cl->state != cs_spawned ) continue;
 
 		total = count = 0;
-		for( j = 0; j < LATENCY_COUNTS; j++ )
+
+		for( j = 0; j < (UPDATE_BACKUP / 2); j++ )
 		{
-			if( cl->frame_latency > 0 )
+			client_frame_t	*frame;
+
+			frame = &cl->frames[(cl->netchan.incoming_acknowledged - 1 - j) & UPDATE_MASK];
+			if( frame->latency > 0 )
 			{
 				count++;
-				total += cl->frame_latency[j];
+				total += frame->latency;
 			}
 		}
+
 		if( !count ) cl->ping = 0;
 		else cl->ping = total / count;
-
-		// let the game dll know about the ping
-		cl->edict->pvServerData->client->ping = cl->ping;
 	}
+}
+
+/*
+===================
+SV_CalcPacketLoss
+
+determine % of packets that were not ack'd.
+===================
+*/
+int SV_CalcPacketLoss( sv_client_t *cl )
+{
+	int	i, lost, count;
+	float	losspercent;
+	register client_frame_t *frame;
+	int	numsamples;
+
+	lost  = 0;
+	count = 0;
+
+	if( cl->edict->v.flags & FL_FAKECLIENT )
+		return 0;
+
+	numsamples = UPDATE_BACKUP / 2;
+
+	for( i = 0; i < numsamples; i++ )
+	{
+		frame = &cl->frames[(cl->netchan.incoming_acknowledged - 1 - i) & UPDATE_MASK];
+		count++;
+		if( frame->latency == -1 )
+			lost++;
+	}
+
+	if( !count ) return 100;
+	losspercent = 100.0 * ( float )lost / ( float )count;
+
+	return (int)losspercent;
 }
 
 /*
@@ -147,7 +185,7 @@ void SV_UpdateMovevars( void )
 
 	if( MSG_WriteDeltaMovevars( &sv.multicast, &svgame.oldmovevars, &svgame.movevars ))
 	{
-		MSG_Send( MSG_ALL_R, vec3_origin, NULL );
+		MSG_Send( MSG_ALL, vec3_origin, NULL );
 		Mem_Copy( &svgame.oldmovevars, &svgame.movevars, sizeof( movevars_t )); // oldstate changed
 	}
 }

@@ -32,6 +32,7 @@ vsound_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, vsound_imp_t *engfuncs )
 	snd.RegisterSound = S_RegisterSound;
 	snd.EndRegistration = S_EndRegistration;
 
+	snd.FadeClientVolume = S_FadeClientVolume;
 	snd.StartSound = S_StartSound;
 	snd.StreamRawSamples = S_StreamRawSamples;
 	snd.AddLoopingSound = S_AddLoopingSound;

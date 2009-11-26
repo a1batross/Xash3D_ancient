@@ -25,9 +25,9 @@ static net_field_t ent_fields[] =
 { ES_FIELD(velocity[0]),		NET_FLOAT, false	},
 { ES_FIELD(velocity[1]),		NET_FLOAT, false	},
 { ES_FIELD(velocity[2]),		NET_FLOAT, false	},
-{ ES_FIELD(avelocity[0]),		NET_FLOAT, false	},
-{ ES_FIELD(avelocity[1]),		NET_FLOAT, false	},
-{ ES_FIELD(avelocity[2]),		NET_FLOAT, false	},
+{ ES_FIELD(basevelocity[0]),		NET_FLOAT, false	},
+{ ES_FIELD(basevelocity[1]),		NET_FLOAT, false	},
+{ ES_FIELD(basevelocity[2]),		NET_FLOAT, false	},
 { ES_FIELD(modelindex),		NET_WORD,	 false	},	// 4096 models
 { ES_FIELD(colormap),		NET_WORD,	 false	},	// encoded as two shorts for top and bottom color
 { ES_FIELD(scale),			NET_FLOAT, false	},	// 0-255 values
@@ -220,7 +220,7 @@ used for swap buffers
 */
 void _MSG_WriteData( sizebuf_t *buf, const void *data, size_t length, const char *filename, int fileline )
 {
-	Mem_Copy( MSG_GetSpace(buf, length), (void *)data, length );	
+	Mem_Copy( MSG_GetSpace( buf, length ), data, length );	
 }
 
 /*
@@ -459,7 +459,7 @@ void _MSG_WriteString( sizebuf_t *sb, const char *s, const char *filename, int f
 	if( !s ) _MSG_WriteData( sb, "", 1, filename, fileline );
 	else
 	{
-		int	l, i;
+		int	l;
 		char	string[MAX_SYSPATH];
                     
 		l = com.strlen( s ) + 1;		
@@ -469,14 +469,8 @@ void _MSG_WriteString( sizebuf_t *sb, const char *s, const char *filename, int f
 			_MSG_WriteData( sb, "", 1, filename, fileline );
 			return;
 		}
-		com.strncpy( string, s, sizeof( string ));
 
-		// get rid of 0xff chars, because old clients don't like them
-		for( i = 0; i < l; i++ )
-		{
-			if(((byte *)string)[i] > 127 )
-				string[i] = '.';
-		}
+		com.strncpy( string, s, sizeof( string ));
 		_MSG_WriteData( sb, string, l, filename, fileline );
 	}
 }
@@ -535,8 +529,6 @@ char *MSG_ReadString( sizebuf_t *msg )
 
 		// translate all fmt spec to avoid crash bugs
 		if( c == '%' ) c = '.';
-		// don't allow higher ascii values
-		if( c > 127 ) c = '.';
 
 		string[l] = c;
 		l++;

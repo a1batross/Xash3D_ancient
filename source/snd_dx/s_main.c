@@ -52,6 +52,16 @@ cvar_t		*s_primary;
 */
 /*
 =================
+S_FadeClientVolume
+=================
+*/
+void S_FadeClientVolume( float fadePercent, float fadeOutSeconds, float holdTime, float fadeInSeconds )
+{
+	// FIXME: implement
+}
+
+/*
+=================
 S_PickChannel
 =================
 */

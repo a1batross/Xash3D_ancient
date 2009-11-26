@@ -62,6 +62,7 @@ typedef struct playermove_s
 	vec3_t		oldangles;	// Angles before movement view angles were looked at.
 	
 	BOOL		dead;		// Are we a dead player?
+	BOOL		bInDuck;		// In process of ducking or ducked already?
 	float		maxspeed;		// current maxspeed
 	float		clientmaxspeed;	// current client maxspeed
 	int		oldwaterlevel;	// holds the last waterlevel

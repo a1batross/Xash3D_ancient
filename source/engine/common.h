@@ -111,6 +111,7 @@ void Host_CheckRestart( void );
 int Host_Milliseconds( void );
 void Host_Print( const char *txt );
 void Host_Error( const char *error, ... );
+void Host_Credits( void );
 
 /*
 ==============================================================
@@ -164,7 +165,7 @@ void pfnEngineFprintf( void *pfile, char *szFmt, ... );
 int pfnFSeek( void *file, long offset, int whence );
 int pfnFClose( void *file );
 long pfnFTell( void *file );
-void pfnGetGameDir( char *szGetGameDir );
+void pfnRemoveFile( const char *szFilename );
 float pfnTime( void );
 
 /*

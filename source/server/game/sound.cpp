@@ -185,6 +185,7 @@ void CAmbientGeneric :: Spawn( void )
 		pev->spawnflags = newflags;
 	}
 
+	SetObjectClass( ED_AMBIENT );
 
 	if ( FBitSet ( pev->spawnflags, AMBIENT_SOUND_EVERYWHERE) )
 	{

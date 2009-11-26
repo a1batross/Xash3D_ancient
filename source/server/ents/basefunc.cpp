@@ -752,7 +752,7 @@ void CFuncTeleport :: Touch( CBaseEntity *pOther )
 		UTIL_SetOrigin( pOther, tmp );
 
 		pOther->pev->angles = pTarget->pev->angles;
-		pOther->pev->velocity = g_vecZero;
+		pOther->pev->velocity = pOther->pev->basevelocity = g_vecZero;
 		if( pOther->IsPlayer( ))
 		{
 			pOther->pev->viewangles = pTarget->pev->angles;

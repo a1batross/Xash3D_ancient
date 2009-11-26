@@ -228,6 +228,9 @@ static void CM_FloodArea_r( int areanum, int floodnum )
 	carea_t		*area;
 	careaportal_t	*p;
 
+	if( areanum < 0 || areanum >= cm.numareas )
+		return;
+
 	area = &cm.areas[areanum];
 	if( area->floodvalid == cm.floodvalid )
 	{

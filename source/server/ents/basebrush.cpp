@@ -599,16 +599,16 @@ void CBaseBrush::Die( void )
 	SetThink( Remove );
 	SetNextThink( 0.1 );
 	
-	//pev->effects |= EF_NODRAW;
-	//pev->takedamage = DAMAGE_NO;
+	pev->effects |= EF_NODRAW;
+	pev->takedamage = DAMAGE_NO;
           
 	//make explosion
-          if(m_iMagnitude) UTIL_Explode( Center(), edict(), m_iMagnitude );
-	if(m_iSpawnObject) CBaseEntity::Create( (char *)STRING(m_iSpawnObject), Center(), pev->angles, edict() );
+          if( m_iMagnitude ) UTIL_Explode( Center(), edict(), m_iMagnitude );
+	if( m_iSpawnObject ) CBaseEntity::Create( (char *)STRING(m_iSpawnObject), Center(), pev->angles, edict() );
 	
 	// Fire targets on break
  	
-	//UTIL_Remove( this );
+	UTIL_Remove( this );
 }
 
 int CBaseBrush :: DamageDecal( int bitsDamageType )

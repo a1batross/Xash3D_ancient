@@ -285,6 +285,7 @@ void CBarnacle :: BarnacleThink ( void )
 
 				pTouchEnt->pev->movetype = MOVETYPE_FLY;
 				pTouchEnt->pev->velocity = pev->velocity; //LRC- make him come _with_ me
+				pTouchEnt->pev->basevelocity = pev->velocity; //LRC
 				pTouchEnt->pev->origin.x = pev->origin.x;
 				pTouchEnt->pev->origin.y = pev->origin.y;
 

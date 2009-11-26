@@ -387,7 +387,7 @@ void SV_ConfigString( int index, const char *val )
 		MSG_Begin( svc_configstring );
 		MSG_WriteShort( &sv.multicast, index );
 		MSG_WriteString( &sv.multicast, val );
-		MSG_Send( MSG_ALL_R, vec3_origin, NULL );
+		MSG_Send( MSG_ALL, vec3_origin, NULL );
 	}
 }
 
@@ -680,6 +680,18 @@ const char *SV_ClassName( const edict_t *e )
 	if( !e ) return "(null)";
 	if( e->free ) return "freed";
 	return STRING( e->v.classname );
+}
+
+static bool SV_IsValidCmd( const char *pCmd )
+{
+	size_t	len;
+                              	
+	len = com.strlen( pCmd );
+
+	// valid commands all have a ';' or newline '\n' as their last character
+	if( len && ( pCmd[len-1] == '\n' || pCmd[len-1] == ';' ))
+		return true;
+	return false;
 }
 
 sv_client_t *SV_ClientFromEdict( const edict_t *pEdict, bool spawned_only )
@@ -1437,9 +1449,9 @@ SV_StartSound
 */
 void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float attn, int flags, int pitch )
 {
-	int 	sound_idx;
-	bool	reliable = false;
-	bool	use_phs = false;
+	int 	i, sound_idx;
+	int	msg_dest = MSG_PAS_R;
+	vec3_t	origin;
 
 	if( attn < ATTN_NONE || attn > ATTN_IDLE )
 	{
@@ -1453,30 +1465,39 @@ void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float
 		return;
 	}
 
-	if( ent == NULL || ent->free )
+	if( !SV_IsValidEdict( ent ))
 	{
 		MsgDev( D_ERROR, "SV_StartSound: edict == NULL\n" );
 		return;
 	}
 
+	if( sv.state == ss_loading ) flags |= SND_SPAWNING;
 	if( vol != VOL_NORM ) flags |= SND_VOLUME;
 	if( attn != ATTN_NONE ) flags |= SND_SOUNDLEVEL;
 	if( pitch != PITCH_NORM ) flags |= SND_PITCH;
 
-	// use the entity origin unless it is a bmodel or explicitly specified
-	if( ent->v.solid == SOLID_BSP || VectorCompare( ent->v.origin, vec3_origin ))
+	// ultimate method for detect bsp models with invalid solidity (e.g. func_pushable)
+	if( CM_GetModelType( ent->v.modelindex ) == mod_brush )
 	{
-		reliable = true; // because brush center can be out of PHS (outside from world)
-		use_phs = false;
+		for( i = 0; i < 3; i++ )
+			origin[i] = ent->v.origin[i] + 0.5f * ( ent->v.mins[i] + ent->v.maxs[i] );
+
+		if( flags & SND_SPAWNING )
+			msg_dest = MSG_INIT;
+		else msg_dest = MSG_ALL;
 	}
 	else
 	{
-		reliable = false;
-		use_phs = true;
+		for( i = 0; i < 3; i++ )
+			origin[i] = ent->v.origin[i];
+
+		if( flags & SND_SPAWNING )
+			msg_dest = MSG_INIT;
+		else msg_dest = MSG_PAS;
 	}
 
 	// always sending stop sound command
-	if( flags & SND_STOP ) reliable = true;
+	if( flags & SND_STOP ) msg_dest = MSG_ALL;
 
 	// precache_sound can be used twice: cache sounds when loading
 	// and return sound index when server is active
@@ -1496,16 +1517,7 @@ void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float
 		MSG_WriteWord( &sv.multicast, ent->v.aiment->serialnumber );
 	else MSG_WriteWord( &sv.multicast, ent->serialnumber );
 
-	if( reliable )
-	{
-		if( use_phs ) MSG_Send( MSG_PHS_R, ent->v.origin, ent );
-		else MSG_Send( MSG_ALL_R, ent->v.origin, ent );
-	}
-	else
-	{
-		if( use_phs ) MSG_Send( MSG_PHS, ent->v.origin, ent );
-		else MSG_Send( MSG_ALL, ent->v.origin, ent );
-	}
+	MSG_Send( msg_dest, origin, NULL );
 }
 
 /*
@@ -1516,46 +1528,77 @@ pfnEmitAmbientSound
 */
 void pfnEmitAmbientSound( edict_t *ent, float *pos, const char *samp, float vol, float attn, int flags, int pitch )
 {
-	// FIXME: implement
-#if 0
-	vec3_t	snd_origin;
-	bool	reliable = false;
-	bool	use_phs = false;
+	int 	i, sound_idx;
+	int	msg_dest = MSG_PAS_R;
+	vec3_t	origin;
 
-	// use the entity origin unless it is a bmodel or explicitly specified
-	if( ent->v.solid == SOLID_BSP || VectorCompare( ent->v.origin, vec3_origin ))
+	if( SV_IsValidEdict( ent ) && !pos )
 	{
-		VectorAverage( ent->v.mins, ent->v.maxs, snd_origin );
-		VectorAdd( snd_origin, ent->v.origin, snd_origin );
-		reliable = true; // because brush center can be out of PHS (outside from world)
-		use_phs = false;
+		// dynamic ambient sound
+		if( flags & SND_STOP ) ent->pvServerData->s.soundindex = 0;
+		else ent->pvServerData->s.soundindex = SV_SoundIndex( samp );
+		return;
+	}
+
+	if( attn < ATTN_NONE || attn > ATTN_IDLE )
+	{
+		MsgDev( D_ERROR, "SV_AmbientSound: attenuation must be in range 0-2\n" );
+		return;
+	}
+
+	if( !pos )
+	{
+		MsgDev( D_ERROR, "SV_AmbientSound: pos == NULL!\n" );
+		return;
+	}
+
+	if( sv.state == ss_loading ) flags |= SND_SPAWNING;
+	if( vol != VOL_NORM ) flags |= SND_VOLUME;
+	if( attn != ATTN_NONE ) flags |= SND_SOUNDLEVEL;
+	if( pitch != PITCH_NORM ) flags |= SND_PITCH;
+
+	// ultimate method for detect bsp models with invalid solidity (e.g. func_pushable)
+	if( CM_GetModelType( ent->v.modelindex ) == mod_brush )
+	{
+		for( i = 0; i < 3; i++ )
+			origin[i] = ent->v.origin[i] + 0.5f * ( ent->v.mins[i] + ent->v.maxs[i] );
+
+		if( flags & SND_SPAWNING )
+			msg_dest = MSG_INIT;
+		else msg_dest = MSG_PAS;
 	}
 	else
 	{
-		VectorCopy( ent->v.origin, snd_origin );
-		reliable = false;
-		use_phs = true;
+		for( i = 0; i < 3; i++ )
+			origin[i] = ent->v.origin[i];
+
+		if( flags & SND_SPAWNING )
+			msg_dest = MSG_INIT;
+		else msg_dest = MSG_PAS;
 	}
 
-	// FIXME: implement
-	MSG_Begin( svc_ambientsound );
+	// always sending stop sound command
+	if( flags & SND_STOP ) msg_dest = MSG_ALL;
+	flags |= SND_FIXED_ORIGIN;
+
+	// precache_sound can be used twice: cache sounds when loading
+	// and return sound index when server is active
+	sound_idx = SV_SoundIndex( samp );
+
+	MSG_Begin( svc_sound );
+	MSG_WriteWord( &sv.multicast, flags );
+	MSG_WriteWord( &sv.multicast, sound_idx );
+	MSG_WriteByte( &sv.multicast, CHAN_AUTO );
+
+	if ( flags & SND_VOLUME ) MSG_WriteByte( &sv.multicast, vol * 255 );
+	if ( flags & SND_SOUNDLEVEL ) MSG_WriteByte( &sv.multicast, ATTN_TO_SNDLVL( attn ));
+	if ( flags & SND_PITCH ) MSG_WriteByte( &sv.multicast, pitch );
+
+	// plays from fixed position
 	MSG_WriteWord( &sv.multicast, ent->serialnumber );
+	MSG_WritePos( &sv.multicast, pos );
 
-	MSG_WriteCoord32( &sv.multicast, snd_origin[0] );
-	MSG_WriteCoord32( &sv.multicast, snd_origin[1] );
-	MSG_WriteCoord32( &sv.multicast, snd_origin[2] );
-
-	if( reliable )
-	{
-		if( use_phs ) MSG_Send( MSG_PHS_R, snd_origin, ent );
-		else MSG_Send( MSG_ALL_R, snd_origin, ent );
-	}
-	else
-	{
-		if( use_phs ) MSG_Send( MSG_PHS, snd_origin, ent );
-		else MSG_Send( MSG_ALL, snd_origin, ent );
-	}
-#endif
+	MSG_Send( msg_dest, origin, NULL );
 }
 
 /*
@@ -1778,7 +1821,8 @@ pfnServerCommand
 */
 void pfnServerCommand( const char* str )
 {
-	Cbuf_AddText( str );
+	if( SV_IsValidCmd( str )) Cbuf_AddText( str );
+	else MsgDev( D_ERROR, "bad server command %s\n", str );
 }
 
 /*
@@ -1824,10 +1868,13 @@ void pfnClientCommand( edict_t* pEdict, char* szFmt, ... )
 	com.vsnprintf( buffer, MAX_STRING, szFmt, args );
 	va_end( args );
 
-
-	MSG_WriteByte( &sv.multicast, svc_stufftext );
-	MSG_WriteString( &sv.multicast, buffer );
-	MSG_Send( MSG_ONE_R, NULL, client->edict );
+	if( SV_IsValidCmd( buffer ))
+	{
+		MSG_WriteByte( &sv.multicast, svc_stufftext );
+		MSG_WriteString( &sv.multicast, buffer );
+		MSG_Send( MSG_ONE, NULL, client->edict );
+	}
+	else MsgDev( D_ERROR, "Tried to stuff bad command %s\n", buffer );
 }
 
 /*
@@ -1867,7 +1914,7 @@ pfnLightStyle
 
 ===============
 */
-void pfnLightStyle( int style, char* val )
+void pfnLightStyle( int style, const char* val )
 {
 	if( style < 0 ) style = 0;
 	if( style >= MAX_LIGHTSTYLES )
@@ -1949,6 +1996,8 @@ void pfnMessageEnd( void )
 	float		*org = NULL;
 
 	if( svgame.msg_name ) name = svgame.msg_name;
+	if( !svgame.msg_started )
+		Host_Error( "MessageEnd: called with no active message\n" );
 	svgame.msg_started = false;
 
 	if( svgame.msg_sizes[svgame.msg_index] != -1 )
@@ -1990,7 +2039,7 @@ void pfnMessageEnd( void )
 	}
 
 	if( !VectorIsNull( svgame.msg_org )) org = svgame.msg_org;
-	svgame.msg_dest = bound( MSG_ONE, svgame.msg_dest, MSG_PVS_R );
+	svgame.msg_dest = bound( MSG_BROADCAST, svgame.msg_dest, MSG_SPEC );
 	MSG_Send( svgame.msg_dest, org, svgame.msg_ent );
 }
 
@@ -2460,7 +2509,7 @@ void pfnClientPrintf( edict_t* pEdict, PRINT_TYPE ptype, const char *szMsg )
 		if( fake ) return;
 		MSG_Begin( svc_centerprint );
 		MSG_WriteString( &sv.multicast, szMsg );
-		MSG_Send( MSG_ONE_R, NULL, client->edict );
+		MSG_Send( MSG_ONE, NULL, client->edict );
 		break;
 	}
 }
@@ -2526,7 +2575,7 @@ static void pfnGetAttachment( const edict_t *pEdict, int iAttachment, float *rgf
 		MsgDev( D_WARN, "SV_GetAttachment: invalid entity %s\n", SV_ClassName( pEdict ));
 		return;
 	}
-	CM_GetAttachment( (edict_t *)pEdict, iAttachment, rgflOrigin, rgflAngles );
+	CM_GetAttachment(( edict_t *)pEdict, iAttachment, rgflOrigin, rgflAngles );
 }
 
 /*
@@ -2598,7 +2647,7 @@ void pfnCrosshairAngle( const edict_t *pClient, float pitch, float yaw )
 	MSG_Begin( svc_crosshairangle );
 	MSG_WriteAngle8( &sv.multicast, pitch );
 	MSG_WriteAngle8( &sv.multicast, yaw );
-	MSG_Send( MSG_ONE_R, vec3_origin, pClient );
+	MSG_Send( MSG_ONE, vec3_origin, pClient );
 }
 
 /*
@@ -2624,18 +2673,21 @@ void pfnSetView( const edict_t *pClient, const edict_t *pViewent )
 		return;
 	}
 
-	// fakeclients can't set customview
-	if( pClient->v.flags & FL_FAKECLIENT ) return;
-
 	if( pViewent == NULL || pViewent->free )
 	{
 		MsgDev( D_ERROR, "SV_SetView: invalid viewent!\n" );
 		return;
 	}
 
+	if( pClient == pViewent ) client->pViewEntity = NULL;
+	else client->pViewEntity = (edict_t *)pViewent;
+
+	// fakeclients ignore to send client message
+	if( pClient->v.flags & FL_FAKECLIENT ) return;
+
 	MSG_WriteByte( &client->netchan.message, svc_setview );
 	MSG_WriteWord( &client->netchan.message, NUM_FOR_EDICT( pViewent ));
-	MSG_Send( MSG_ONE_R, NULL, client->edict );
+	MSG_Send( MSG_ONE, NULL, client->edict );
 }
 
 /*
@@ -2680,8 +2732,9 @@ void pfnStaticDecal( const float *origin, int decalIndex, int entityIndex, int m
 	MSG_WritePos( &sv.multicast, origin );
 	MSG_WriteWord( &sv.multicast, decalIndex );
 	MSG_WriteShort( &sv.multicast, entityIndex );
-	MSG_WriteWord( &sv.multicast, modelIndex );
-	MSG_Send( MSG_ALL_R, NULL, NULL );
+	if( entityIndex > 0 )
+		MSG_WriteWord( &sv.multicast, modelIndex );
+	MSG_Send( MSG_INIT, NULL, NULL );
 }
 
 /*
@@ -2753,11 +2806,25 @@ void pfnClassifyEdict( edict_t *pEdict, int class )
 =============
 pfnFadeClientVolume
 
-FIXME: implement
 =============
 */
-void pfnFadeClientVolume( const edict_t *pEdict, int fadePercent, int fadeOutSeconds, int holdTime, int fadeInSeconds )
+void pfnFadeClientVolume( const edict_t *pEdict, float fadePercent, float fadeOutSeconds, float holdTime, float fadeInSeconds )
 {
+	sv_client_t *cl;
+
+	cl = SV_ClientFromEdict( pEdict, true );
+	if( !cl )
+	{
+		MsgDev( D_ERROR, "SV_FadeClientVolume: client is not spawned!\n" );
+		return;
+	}
+
+	MSG_WriteByte( &sv.multicast, svc_soundfade );
+	MSG_WriteFloat( &sv.multicast, fadePercent );
+	MSG_WriteFloat( &sv.multicast, fadeOutSeconds );
+	MSG_WriteFloat( &sv.multicast, holdTime );
+	MSG_WriteFloat( &sv.multicast, fadeInSeconds );
+	MSG_Send( MSG_ONE, NULL, cl->edict );
 }
 
 /*
@@ -2976,21 +3043,94 @@ static void pfnPlaybackEvent( int flags, const edict_t *pInvoker, word eventinde
 
 }
 
-byte *pfnSetFatPVS( const float *org, int portal )
+/*
+=============
+pfnSetBonePos
+
+FIXME: implement
+=============
+*/
+void pfnSetBonePos( const edict_t* pEdict, int iBone, float *rgflOrigin, float *rgflAngles )
 {
-	return NULL;
 }
 
-byte *pfnSetFatPHS( const float *org, int portal )
+/*
+=============
+pfnCheckArea
+
+=============
+*/
+int pfnCheckArea( const edict_t *entity, int clientarea )
 {
-	return NULL;
+	if( !SV_IsValidEdict( entity ))
+	{
+		MsgDev( D_WARN, "SV_AreasConnected: invalid entity %s\n", SV_ClassName( entity ));
+		return 0;
+	}
+
+	// ignore if not touching a PV leaf check area
+	if( !CM_AreasConnected( clientarea, entity->pvServerData->areanum ))
+	{
+		// doors can legally straddle two areas, so
+		// we may need to check another one
+		if( !CM_AreasConnected( clientarea, entity->pvServerData->areanum2 ))
+			return 0;	// blocked by a door
+	}
+	return 1;	// visible
 }
 
-int pfnCheckVisibility( const edict_t *entity, unsigned char *pset )
+/*
+=============
+pfnCheckVisibility
+
+=============
+*/
+int pfnCheckVisibility( const edict_t *entity, byte *pset )
 {
-	return 0;
-}
+	int	i, l;
+
+	if( !SV_IsValidEdict( entity ))
+	{
+		MsgDev( D_WARN, "SV_CheckVisibility: invalid entity %s\n", SV_ClassName( entity ));
+		return 0;
+	}
+
+	if( !pset ) return 1; // vis not set - fullvis enabled
+
+	// never send entities that aren't linked in
+	if( !entity->pvServerData->linked ) return 0;
+
+	// check individual leafs
+	if( !entity->pvServerData->num_clusters )
+		return 0; // not a linked in
 	
+	for( i = l = 0; i < entity->pvServerData->num_clusters; i++ )
+	{
+		l = entity->pvServerData->clusternums[i];
+
+		if( pset[l>>3] & (1<<(l & 7)))
+			break;
+	}
+
+	// if we haven't found it to be visible,
+	// check overflow clusters that coudln't be stored
+	if( i == entity->pvServerData->num_clusters )
+	{
+		if( entity->pvServerData->lastcluster )
+		{
+			for( ; l <= entity->pvServerData->lastcluster; l++ )
+			{
+				if( pset[l>>3] & (1<<(l & 7)))
+					break;
+			}
+			if( l == entity->pvServerData->lastcluster )
+				return 0;	// not visible
+		}
+		else return 0;
+	}
+	return 1;
+}
+
 /*
 =============
 pfnCanSkipPlayer
@@ -2999,7 +3139,17 @@ pfnCanSkipPlayer
 */
 int pfnCanSkipPlayer( const edict_t *player )
 {
-	// FIXME: implement
+	sv_client_t	*cl;
+
+	cl = SV_ClientFromEdict( player, true );
+	if( cl == NULL )
+	{
+		MsgDev( D_ERROR, "SV_CanSkip: client is not connected!\n" );
+		return false;
+	}
+
+	if( NET_IsLocalAddress( cl->netchan.remote_address ))
+		return true;
 	return false;
 }
 
@@ -3011,6 +3161,8 @@ pfnSetGroupMask
 */
 void pfnSetGroupMask( int mask, int op )
 {
+	svs.groupmask = mask;
+	svs.groupop = op;
 }
 
 /*
@@ -3021,7 +3173,9 @@ pfnEndGame
 */
 void pfnEndGame( const char *engine_command )
 {
-	// FIXME: implement
+	if( !com.stricmp( "credits", engine_command ))
+		Host_Credits ();
+	else Host_EndGame( engine_command );
 }
 
 /*
@@ -3075,13 +3229,28 @@ pfnGetPlayerPing
 */
 void pfnGetPlayerStats( const edict_t *pClient, int *ping, int *packet_loss )
 {
-	// FIXME: implement
+	sv_client_t	*cl;
+
+	cl = SV_ClientFromEdict( pClient, false );
+	if( cl == NULL )
+	{
+		MsgDev( D_ERROR, "SV_GetPlayerStats: client is not connected!\n" );
+		return;
+	}
+
+	if( ping ) *ping = cl->ping;
+	if( packet_loss ) *packet_loss = cl->packet_loss;
 }
 
-int pfnAreasConnected( edict_t *pClient, edict_t *pEdict )
+/*
+=============
+pfnAddServerCommand
+
+=============
+*/
+void pfnAddServerCommand( const char *cmd_name, void (*function)(void), const char *cmd_desc )
 {
-	// FIXME: implement
-	return 0;
+	Cmd_AddCommand( cmd_name, function, cmd_desc );
 }
 					
 // engine callbacks
@@ -3187,7 +3356,7 @@ static enginefuncs_t gEngfuncs =
 	pfnFreeFile,
 	pfnEndGame,
 	pfnCompareFileTime,
-	pfnGetGameDir,
+	pfnRemoveFile,
 	pfnClassifyEdict,
 	pfnFadeClientVolume,
 	pfnSetClientMaxspeed,
@@ -3212,8 +3381,8 @@ static enginefuncs_t gEngfuncs =
 	pfnGetPhysicsInfoString,
 	pfnPrecacheEvent,
 	pfnPlaybackEvent,
-	pfnSetFatPVS,
-	pfnSetFatPHS,
+	pfnSetBonePos,
+	pfnCheckArea,
 	pfnCheckVisibility,
 	pfnFOpen,
 	pfnFRead,
@@ -3228,7 +3397,7 @@ static enginefuncs_t gEngfuncs =
 	Host_Error,
 	pfnParseToken,
 	pfnGetPlayerStats,
-	pfnAreasConnected,
+	pfnAddServerCommand,
 	pfnLoadLibrary,
 	pfnGetProcAddress,
 	pfnFreeLibrary,

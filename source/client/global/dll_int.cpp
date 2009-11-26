@@ -145,6 +145,7 @@ void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t 
 	ent->v.skin = state->skin;
 	ent->v.effects = state->effects;
 	ent->v.velocity = state->velocity;
+	ent->v.basevelocity = state->basevelocity;
 	ent->v.oldorigin = ent->v.origin;
 	ent->v.mins = state->mins;
 	ent->v.maxs = state->maxs;

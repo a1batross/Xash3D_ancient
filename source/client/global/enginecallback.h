@@ -77,7 +77,7 @@ inline void CL_PlaySound( int iSound, float flVolume, Vector &pos, float pitch =
 #define LOAD_FILE		(*g_engfuncs.pfnLoadFile)
 #define FILE_EXISTS		(*g_engfuncs.pfnFileExists)
 #define FREE_FILE		FREE
-#define GET_GAME_DIR	(*g_engfuncs.pfnGetGameDir)
+#define DELETE_FILE		(*g_engfuncs.pfnRemoveFile)
 #define LOAD_LIBRARY	(*g_engfuncs.pfnLoadLibrary)
 #define GET_PROC_ADDRESS	(*g_engfuncs.pfnGetProcAddress)
 #define FREE_LIBRARY	(*g_engfuncs.pfnFreeLibrary)

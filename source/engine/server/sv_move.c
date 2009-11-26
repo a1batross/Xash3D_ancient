@@ -8,6 +8,7 @@
 #include "matrix_lib.h"
 #include "server.h"
 #include "const.h"
+#include "pm_defs.h"
 
 /*
 =============
@@ -318,4 +319,356 @@ void SV_MoveToOrigin( edict_t *ed, const vec3_t goal, float dist, int iMode )
 	if( dist > distToGoal ) dist = distToGoal;
 
 	SV_StepDirection( ed, yaw, dist, iMode );
+}
+
+/*
+============================================================
+
+CLIENT MOVEMENT CODE
+
+============================================================
+*/
+// builtins
+/*
+=================
+PM_ClientPrintf
+
+Sends text across to be displayed
+=================
+*/
+void PM_ClientPrintf( int index, char *fmt, ... )
+{
+	va_list		argptr;
+	char		string[MAX_SYSPATH];
+	sv_client_t	*cl;
+
+	if( index < 0 || index >= sv_maxclients->integer )
+		return;
+
+	cl = svs.clients + index;
+
+	if( cl->edict && (cl->edict->v.flags & FL_FAKECLIENT ))
+		return;
+	
+	va_start( argptr, fmt );
+	com.vsprintf( string, fmt, argptr );
+	va_end( argptr );
+	
+	MSG_WriteByte( &cl->netchan.message, svc_print );
+	MSG_WriteByte( &cl->netchan.message, PRINT_HIGH );
+	MSG_WriteString( &cl->netchan.message, string );
+}
+
+/*
+===============
+PM_PlayerTrace
+
+===============
+*/
+static TraceResult PM_PlayerTrace( const vec3_t start, const vec3_t end, int trace_type )
+{
+	float		*mins;
+	float		*maxs;
+	trace_t		result;
+	TraceResult	out;
+
+	if( VectorIsNAN( start ) || VectorIsNAN( end ))
+		Host_Error( "TraceTexture: NAN errors detected ('%f %f %f', '%f %f %f'\n", start[0], start[1], start[2], end[0], end[1], end[2] );
+
+	svgame.pmove->usehull = bound( 0, svgame.pmove->usehull, 3 );
+	mins = svgame.pmove->player_mins[svgame.pmove->usehull];
+	maxs = svgame.pmove->player_maxs[svgame.pmove->usehull];
+
+	result = SV_Move( start, mins, maxs, end, trace_type, svgame.pmove->player );
+	Mem_Copy( &out, &result, sizeof( TraceResult ));
+
+	return out;
+}
+
+/*
+===============
+PM_TraceTexture
+
+===============
+*/
+const char *PM_TraceTexture( edict_t *pTextureEntity, const float *v1, const float *v2 )
+{
+	if( VectorIsNAN( v1 ) || VectorIsNAN( v2 ))
+		Host_Error( "TraceTexture: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
+
+	if( !pTextureEntity || pTextureEntity->free ) return NULL; 
+	return SV_ClipMoveToEntity( pTextureEntity, v1, vec3_origin, vec3_origin, v2, MASK_SOLID, 0 ).pTexName;
+}
+
+/*
+===============
+PM_TraceModel
+
+===============
+*/
+TraceResult PM_TraceModel( edict_t *pEnt, const vec3_t start, const vec3_t end )
+{
+	float		*mins;
+	float		*maxs;
+	trace_t		result;
+	TraceResult	out;
+	uint		umask;
+
+	if( VectorIsNAN( start ) || VectorIsNAN( end ))
+		Host_Error( "TraceTexture: NAN errors detected ('%f %f %f', '%f %f %f'\n", start[0], start[1], start[2], end[0], end[1], end[2] );
+
+	umask = World_MaskForEdict( svgame.pmove->player );
+	svgame.pmove->usehull = bound( 0, svgame.pmove->usehull, 3 );
+	mins = svgame.pmove->player_mins[svgame.pmove->usehull];
+	maxs = svgame.pmove->player_maxs[svgame.pmove->usehull];
+	result = SV_ClipMoveToEntity( pEnt, start, mins, maxs, end, umask, FTRACE_SIMPLEBOX );
+	Mem_Copy( &out, &result, sizeof( TraceResult ));
+
+	return out;
+}
+
+/*
+===============
+PM_GetEntityByIndex
+
+safe version of SV_EDICT_NUM
+===============
+*/
+edict_t *PM_GetEntityByIndex( int index )
+{
+	if( index < 0 || index > svgame.globals->numEntities )
+	{
+		if( index == VIEWENT_INDEX ) return svgame.pmove->player->v.aiment; // current weapon
+		if( index == NULLENT_INDEX ) return NULL;
+		MsgDev( D_ERROR, "PM_GetEntityByIndex: invalid entindex %i\n", index );
+		return NULL;
+	}
+
+	if( EDICT_NUM( index )->free )
+		return NULL;
+	return EDICT_NUM( index );
+}
+
+void PM_PlaySound( int chan, const char *sample, float vol, float attn, int pitch )
+{
+	if( !svgame.pmove->runfuncs ) return; // ignored
+	SV_StartSound( svgame.pmove->player, chan, sample, vol, attn, 0, pitch );
+}
+
+edict_t *PM_TestPlayerPosition( const vec3_t origin, TraceResult *trace )
+{
+	return SV_TestPlayerPosition( origin, svgame.pmove->player, trace );
+}
+
+int PM_PointContents( const vec3_t p )
+{
+	return World_ConvertContents( SV_BaseContents( p, svgame.pmove->player ));
+}
+
+/*
+===============
+SV_InitClientMove
+
+===============
+*/
+void SV_InitClientMove( void )
+{
+	int	i;
+
+	svgame.pmove->movevars = &svgame.movevars;
+
+	// init hulls
+	VectorCopy( GI->client_mins[0], svgame.pmove->player_mins[2] ); // copy point hull
+	VectorCopy( GI->client_maxs[0], svgame.pmove->player_maxs[2] );
+	VectorCopy( GI->client_mins[1], svgame.pmove->player_mins[0] ); // copy human hull
+	VectorCopy( GI->client_maxs[1], svgame.pmove->player_maxs[0] );
+	VectorCopy( GI->client_mins[2], svgame.pmove->player_mins[3] ); // copy large hull
+	VectorCopy( GI->client_maxs[2], svgame.pmove->player_maxs[3] );
+	VectorCopy( GI->client_mins[3], svgame.pmove->player_mins[1] ); // copy head hull
+	VectorCopy( GI->client_maxs[3], svgame.pmove->player_maxs[1] );
+
+	for( i = 0; i < PM_MAXHULLS; i++ )
+		svgame.pmove->player_view[i] = GI->viewheight[i];
+
+	// common utilities
+	svgame.pmove->PM_Info_ValueForKey = Info_ValueForKey;
+	svgame.pmove->PM_TestPlayerPosition = PM_TestPlayerPosition;
+	svgame.pmove->ClientPrintf = PM_ClientPrintf;
+	svgame.pmove->AlertMessage = pfnAlertMessage;
+	svgame.pmove->PM_GetString = SV_GetString;
+	svgame.pmove->PM_PointContents = PM_PointContents;
+	svgame.pmove->PM_PlayerTrace = PM_PlayerTrace;
+	svgame.pmove->PM_TraceTexture = PM_TraceTexture;
+	svgame.pmove->PM_GetEntityByIndex = PM_GetEntityByIndex;
+	svgame.pmove->AngleVectors = AngleVectors;
+	svgame.pmove->RandomLong = pfnRandomLong;
+	svgame.pmove->RandomFloat = pfnRandomFloat;
+	svgame.pmove->PM_GetModelType = CM_GetModelType;
+	svgame.pmove->PM_GetModelBounds = Mod_GetBounds;
+	svgame.pmove->PM_ModExtradata = Mod_Extradata;
+	svgame.pmove->PM_TraceModel = PM_TraceModel;
+	svgame.pmove->COM_LoadFile = pfnLoadFile;
+	svgame.pmove->COM_ParseToken = pfnParseToken;
+	svgame.pmove->COM_FreeFile = pfnFreeFile;
+	svgame.pmove->memfgets = pfnMemFgets;
+	svgame.pmove->PM_PlaySound = PM_PlaySound;
+
+	// initalize pmove
+	svgame.dllFuncs.pfnPM_Init( svgame.pmove );
+}
+
+void SV_PreRunCmd( sv_client_t *cl, usercmd_t *ucmd )
+{
+	svgame.pmove->runfuncs = true;
+	svgame.dllFuncs.pfnCmdStart( cl->edict, ucmd, ucmd->random_seed );
+}
+
+/*
+===========
+SV_RunCmd
+===========
+*/
+void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd )
+{
+	edict_t		*clent;
+	int		i, oldmsec;
+	static usercmd_t	cmd;
+	vec3_t		oldvel;
+
+	cl->commandMsec -= ucmd->msec;
+
+	if( cl->commandMsec < 0 && sv_enforcetime->integer )
+	{
+		MsgDev( D_INFO, "SV_ClientThink: commandMsec underflow from %s\n", cl->name );
+		return;
+	}
+
+	clent = cl->edict;
+	cmd = *ucmd;
+	if( !clent || clent->free ) return;
+
+	// chop up very long commands
+	if( cmd.msec > 50 )
+	{
+		oldmsec = ucmd->msec;
+		cmd.msec = oldmsec / 2;
+		SV_RunCmd( cl, &cmd );
+		cmd.msec = oldmsec / 2;
+		cmd.impulse = 0;
+		SV_RunCmd( cl, &cmd );
+		return;
+	}
+
+	VectorCopy( clent->v.viewangles, svgame.pmove->oldangles ); // save oldangles
+	if( !clent->v.fixangle )
+		VectorCopy( ucmd->viewangles, clent->v.viewangles );
+
+	// copy player buttons
+	clent->v.button = ucmd->buttons;
+	if( ucmd->impulse ) clent->v.impulse = ucmd->impulse;
+
+	// angles
+	// show 1/3 the pitch angle and all the roll angle	
+	if( clent->v.health > 0.0f )
+	{
+		if( !clent->v.fixangle )
+		{
+			clent->v.angles[PITCH] = -clent->v.viewangles[PITCH] / 3;
+			clent->v.angles[YAW] = clent->v.viewangles[YAW];
+		}
+	}
+
+	if(!( clent->v.flags & FL_SPECTATOR ))
+	{
+		svgame.globals->time = sv.time * 0.001f;
+		svgame.globals->frametime = 0.0f;
+		svgame.dllFuncs.pfnPlayerPreThink( clent );
+		svgame.globals->frametime = ucmd->msec * 0.001f;
+
+		SV_RunThink( clent );
+	}
+
+	// setup playermove state
+	svgame.pmove->multiplayer = (sv_maxclients->integer > 1) ? true : false;
+	svgame.pmove->realtime = svs.realtime * 0.001f;
+	svgame.pmove->frametime = ucmd->msec * 0.001f;
+	com.strncpy( svgame.pmove->physinfo, cl->physinfo, MAX_INFO_STRING );
+	svgame.pmove->serverflags = svgame.globals->serverflags;
+	svgame.pmove->clientmaxspeed = clent->v.maxspeed;
+	svgame.pmove->maxspeed = svgame.movevars.maxspeed;
+	svgame.pmove->cmd = *ucmd;		// setup current cmds
+	svgame.pmove->player = clent;		// ptr to client state
+	svgame.pmove->numtouch = 0;		// reset touchents
+	svgame.pmove->dead = (clent->v.health <= 0.0f) ? true : false;
+	svgame.pmove->flWaterJumpTime = clent->v.teleport_time;
+	svgame.pmove->onground = clent->v.groundentity;
+	svgame.pmove->usehull = (clent->v.flags & FL_DUCKING) ? 1 : 0; // reset hull
+	svgame.pmove->bInDuck = clent->v.bInDuck;
+	for( i = 0; i < 3; i++ )
+		svgame.pmove->origin[i] = clent->v.origin[i];
+
+	// motor!
+	svgame.dllFuncs.pfnPM_Move( svgame.pmove, true );
+
+	// copy results back to client
+	clent->v.teleport_time = svgame.pmove->flWaterJumpTime;
+	clent->v.groundentity = svgame.pmove->onground;
+	VectorCopy( svgame.pmove->angles, clent->v.viewangles );
+	clent->v.bInDuck = svgame.pmove->bInDuck;
+
+	for( i = 0; i < 3; i++ )
+		clent->v.origin[i] = svgame.pmove->origin[i];
+	VectorCopy( clent->v.velocity, oldvel ); // save velocity
+		
+	if(!( clent->v.flags & FL_SPECTATOR ))
+	{
+		// link into place and touch triggers
+		SV_LinkEdict( clent, true );
+
+		// touch other objects
+		for( i = 0; i < svgame.pmove->numtouch; i++ )
+		{
+			if( i == MAX_PHYSENTS ) break;
+			if( svgame.pmove->touchents[i] == clent ) continue;
+			VectorCopy( svgame.pmove->touchvels[i], clent->v.velocity );
+			svgame.dllFuncs.pfnTouch( svgame.pmove->touchents[i], clent );
+		}
+	}
+
+	VectorCopy( oldvel, clent->v.velocity ); // save velocity
+	svgame.pmove->numtouch = 0;
+}
+
+/*
+===========
+SV_PostRunCmd
+
+Done after running a player command.
+===========
+*/
+void SV_PostRunCmd( sv_client_t *cl )
+{
+	edict_t	*clent;
+
+	clent = cl->edict;
+	if( !clent || clent->free ) return;
+	svgame.pmove->runfuncs = false; // all next calls ignore footstep sounds
+
+	// run post-think
+	if(!( clent->v.flags & FL_SPECTATOR ))
+	{
+		svgame.globals->time = sv.time * 0.001f;
+		svgame.globals->frametime = 0;
+		svgame.dllFuncs.pfnPlayerPostThink( clent );
+	}
+	else
+	{
+		svgame.globals->time = sv.time * 0.001f;
+		svgame.globals->frametime = 0;
+		svgame.dllFuncs.pfnSpectatorThink( clent );
+	}
+
+	// restore frametime
+	svgame.globals->frametime = sv.frametime * 0.001f;
+	svgame.dllFuncs.pfnCmdEnd( cl->edict );
 }
