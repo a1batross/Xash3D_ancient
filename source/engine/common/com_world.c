@@ -6,6 +6,27 @@
 #include "common.h"
 #include "com_world.h"
 
+const char *ed_name[] =
+{
+	"unknown",
+	"world",
+	"static",
+	"ambient",
+	"normal",
+	"brush",
+	"player",
+	"monster",
+	"tempent",
+	"beam",
+	"mover",
+	"viewmodel",
+	"physbody",
+	"trigger",
+	"portal",
+	"skyportal",
+	"error",
+};
+
 /*
 ===============================================================================
 
@@ -130,4 +151,53 @@ uint World_ContentsForEdict( const edict_t *e )
 		return BASECONT_SOLID;		
 	}
 	return BASECONT_NONE;
+}
+
+/*
+================
+World_HullForEntity
+
+Returns a headnode that can be used for testing or clipping to a
+given entity.  If the entity is a bsp model, the headnode will
+be returned, otherwise a custom box tree will be constructed.
+================
+*/
+model_t World_HullForEntity( const edict_t *ent )
+{
+	if( ent->v.solid == SOLID_BSP )
+	{
+		// explicit hulls in the BSP model
+		return ent->v.modelindex;
+	}
+	if( ent->v.flags & (FL_MONSTER|FL_CLIENT|FL_FAKECLIENT))
+	{
+		// create a temp capsule from bounding box sizes
+		return CM_TempModel( ent->v.mins, ent->v.maxs, true );
+	}
+	// create a temp tree from bounding box sizes
+	return CM_TempModel( ent->v.mins, ent->v.maxs, false );
+}
+
+/*
+==================
+World_MoveBounds
+==================
+*/
+void World_MoveBounds( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, vec3_t boxmins, vec3_t boxmaxs )
+{
+	int	i;
+	
+	for( i = 0; i < 3; i++ )
+	{
+		if( end[i] > start[i] )
+		{
+			boxmins[i] = start[i] + mins[i] - 1;
+			boxmaxs[i] = end[i] + maxs[i] + 1;
+		}
+		else
+		{
+			boxmins[i] = end[i] + mins[i] - 1;
+			boxmaxs[i] = start[i] + maxs[i] + 1;
+		}
+	}
 }

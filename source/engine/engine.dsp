@@ -146,6 +146,10 @@ SOURCE=.\client\cl_main.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\client\cl_move.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\client\cl_parse.c
 # End Source File
 # Begin Source File
@@ -362,22 +366,6 @@ SOURCE=.\common\net_msg.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\pm_shared\pm_defs.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\pm_shared\pm_materials.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\pm_shared\pm_movevars.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\pm_shared\pm_shared.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\common\safeproc.h
 # End Source File
 # Begin Source File
@@ -386,15 +374,7 @@ SOURCE=.\server\server.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\pm_shared\trace_def.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\uimenu\ui_local.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\pm_shared\user_cmd.h
 # End Source File
 # End Group
 # End Target

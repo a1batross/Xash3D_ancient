@@ -167,6 +167,9 @@ typedef struct
 // cl_private_edict_t
 struct cl_priv_s
 {
+	link_t		area;		// linked to a division node or leaf
+	bool		linked;
+
 	int		serverframe;	// if not current, this ent isn't in the frame
 
 	entity_state_t	current;
@@ -264,6 +267,11 @@ typedef struct
 	char		centerPrint[1024];
 	int		centerPrintLines;
 
+	// movement values from server
+	movevars_t	movevars;
+	movevars_t	oldmovevars;
+	playermove_t	*pmove;			// pmove state
+
 	cl_globalvars_t	*globals;
 	user_message_t	*msg[MAX_USER_MESSAGES];
 
@@ -278,9 +286,6 @@ typedef struct
 	int		numMessages;		// actual count of user messages
 	int		hStringTable;		// stringtable handle
 
-	// movement values from server
-	movevars_t	movevars;
-	movevars_t	oldmovevars;
 } clgame_static_t;
 
 typedef struct
@@ -445,7 +450,6 @@ void CL_ClearState (void);
 void CL_ReadPackets (void);
 int  CL_ReadFromServer (void);
 void CL_WriteToServer (usercmd_t *cmd);
-void CL_BaseMove (usercmd_t *cmd);
 void IN_CenterView (void);
 
 //
@@ -487,6 +491,8 @@ void CL_FreeEdict( edict_t *pEdict );
 string_t CL_AllocString( const char *szValue );
 const char *CL_GetString( string_t iString );
 void CL_CenterPrint( const char *text, int y, int charWidth );
+bool CL_IsValidEdict( const edict_t *e );
+const char *CL_ClassName( const edict_t *e );
 
 _inline edict_t *CL_EDICT_NUM( int n, const char *file, const int line )
 {
@@ -543,8 +549,6 @@ void CL_PredictMove (void);
 void CL_CheckPredictionError( void );
 void CL_CheckVelocity( edict_t *ent );
 bool CL_CheckWater( edict_t *ent );
-int CL_ContentsMask( const edict_t *passedict );
-trace_t CL_Trace( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, int type, edict_t *e, int mask );
 
 //
 // cl_frame.c
@@ -631,5 +635,20 @@ bool SCR_DrawCinematic( void );
 void SCR_RunCinematic( void );
 void SCR_StopCinematic( void );
 void CL_PlayVideo_f( void );
+
+//
+// cl_world.c
+//
+void CL_ClearWorld( void );
+void CL_UnlinkEdict( edict_t *ent );
+void CL_ClassifyEdict( edict_t *ent );
+void CL_LinkEdict( edict_t *ent, bool touch_triggers );
+int CL_AreaEdicts( const vec3_t mins, const vec3_t maxs, edict_t **list, int maxcount, int areatype );
+trace_t CL_ClipMoveToEntity( edict_t *e, const vec3_t p0, vec3_t b0, vec3_t b1, const vec3_t p1, uint mask, int flags );
+trace_t CL_Move( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, int type, edict_t *e );
+edict_t *CL_TestPlayerPosition( const vec3_t origin, edict_t *pass, TraceResult *tr );
+trace_t CL_MoveToss( edict_t *tossent, edict_t *ignore );
+int CL_BaseContents( const vec3_t p, edict_t *e );
+int CL_PointContents( const vec3_t p );
 
 #endif//CLIENT_H

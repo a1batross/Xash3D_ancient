@@ -20,6 +20,13 @@ void CL_UpdateEntityFields( edict_t *ent )
 
 	clgame.dllFuncs.pfnUpdateEntityVars( ent, &cl.refdef.skyportal, &ent->pvClientData->current, &ent->pvClientData->prev );
 
+	if( ent->pvClientData->current.ed_flags & ESF_LINKEDICT )
+	{
+		CL_LinkEdict( ent, false );
+		// to avoids multiple relinks when wait for next packet
+		ent->pvClientData->current.ed_flags &= ~ESF_LINKEDICT;
+	}
+
 	// always keep an actual (users can't replace this)
 	ent->serialnumber = ent->pvClientData->current.number;
 	ent->v.classname = cl.edict_classnames[ent->pvClientData->current.classname];
@@ -43,6 +50,8 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 
 	if( unchanged ) *state = *old;
 	else MSG_ReadDeltaEntity( msg, old, state, newnum );
+
+	Com_Assert( newnum == 0 );
 
 	if( state->number == MAX_EDICTS )
 	{
@@ -253,9 +262,11 @@ void CL_ParseFrame( sizebuf_t *msg )
 	if(( idx - 1 ) != cl.playernum )
 		Host_Error( "CL_ParseFrame: invalid playernum (%d should be %d)\n", idx-1, cl.playernum );
 
+#if 0
 	// now we can reading delta player state
 	if( cl.oldframe ) cl.frame.ps = MSG_ParseDeltaPlayer( &cl.oldframe->ps, &clent->pvClientData->current );
 	else cl.frame.ps = MSG_ParseDeltaPlayer( NULL, &clent->pvClientData->current );
+#endif
 
 	// save the frame off in the backup array for later delta comparisons
 	cl.frames[cl.frame.serverframe & UPDATE_MASK] = cl.frame;
@@ -264,17 +275,20 @@ void CL_ParseFrame( sizebuf_t *msg )
 	{
 		if( cls.state != ca_active )
 		{
+			edict_t	*player;
+
 			// client entered the game
 			cls.state = ca_active;
 			cl.force_refdef = true;
 
+			player = CL_GetLocalPlayer();
 			SCR_MakeLevelShot();	// make levelshot if needs
 			cls.drawplaque = true;	// allow to drawing plaque
 
 			Cvar_SetValue( "scr_loading", 0.0f ); // reset progress bar	
 			// getting a valid frame message ends the connection process
-			VectorCopy( cl.frame.ps.origin, cl.predicted_origin );
-			VectorCopy( cl.frame.ps.viewangles, cl.predicted_angles );
+			VectorCopy( player->v.origin, cl.predicted_origin );
+			VectorCopy( player->v.viewangles, cl.predicted_angles );
 		}
 		CL_CheckPredictionError();
 	}
@@ -298,10 +312,10 @@ void CL_AddPacketEntities( frame_t *frame )
 	edict_t	*ent;
 	int	e, ed_type;
 
-	for( e = 0; e < clgame.globals->numEntities; e++ )
+	for( e = 1; e < clgame.globals->numEntities; e++ )
 	{
-		ent = EDICT_NUM( e );
-		if( ent->free ) continue;
+		ent = CL_GetEdictByIndex( e );
+		if( !CL_IsValidEdict( ent )) continue;
 
 		ed_type = ent->pvClientData->current.ed_type;
 		CL_UpdateEntityFields( ent );
@@ -365,7 +379,7 @@ void CL_GetEntitySoundSpatialization( int entnum, vec3_t origin, vec3_t velocity
 	}
 
 	ent = CL_GetEdictByIndex( entnum );
-	if( !ent || ent->free ) return; // leave uncahnged
+	if( !CL_IsValidEdict( ent )) return; // leave uncahnged
 
 	// setup origin and velocity
 	VectorCopy( ent->v.origin, origin );
@@ -398,10 +412,10 @@ void CL_AddLoopingSounds( void )
 	if( cl.refdef.paused ) return;
 	if(!cl.audio_prepped ) return;
 
-	for( e = 0; e < clgame.globals->numEntities; e++ )
+	for( e = 1; e < clgame.globals->numEntities; e++ )
 	{
-		ent = EDICT_NUM( e );
-		if( ent->free ) continue;
+		ent = CL_GetEdictByIndex( e );
+		if( !CL_IsValidEdict( ent )) continue;
 
 		switch( ent->pvClientData->current.ed_type )
 		{

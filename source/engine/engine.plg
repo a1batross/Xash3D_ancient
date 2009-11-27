@@ -1,0 +1,98 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: engine - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP5ABE.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "common" /I "server" /I "client" /I "uimenu" /I "../public" /I "../common" /I "../pm_shared" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\engine\!debug/" /Fo"..\temp\engine\!debug/" /Fd"..\temp\engine\!debug/" /FD /c 
+"D:\Xash3D\src_main\engine\client\cl_game.c"
+]
+Creating command line "cl.exe @"C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP5ABE.tmp"" 
+Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP5ABF.tmp" with contents
+[
+user32.lib msvcrtd.lib /nologo /subsystem:windows /dll /incremental:yes /pdb:"..\temp\engine\!debug/engine.pdb" /debug /machine:I386 /nodefaultlib:"msvcrt.lib" /out:"..\temp\engine\!debug/engine.dll" /implib:"..\temp\engine\!debug/engine.lib" /pdbtype:sept 
+"\Xash3D\src_main\temp\engine\!debug\cinematic.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_cmds.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_demo.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_effects.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_frame.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_game.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_input.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_main.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_parse.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_phys.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_scrn.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_video.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_view.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_world.obj"
+"\Xash3D\src_main\temp\engine\!debug\com_library.obj"
+"\Xash3D\src_main\temp\engine\!debug\com_world.obj"
+"\Xash3D\src_main\temp\engine\!debug\con_keys.obj"
+"\Xash3D\src_main\temp\engine\!debug\con_main.obj"
+"\Xash3D\src_main\temp\engine\!debug\con_utils.obj"
+"\Xash3D\src_main\temp\engine\!debug\engfuncs.obj"
+"\Xash3D\src_main\temp\engine\!debug\host.obj"
+"\Xash3D\src_main\temp\engine\!debug\infostring.obj"
+"\Xash3D\src_main\temp\engine\!debug\input.obj"
+"\Xash3D\src_main\temp\engine\!debug\net_chan.obj"
+"\Xash3D\src_main\temp\engine\!debug\net_huff.obj"
+"\Xash3D\src_main\temp\engine\!debug\net_msg.obj"
+"\Xash3D\src_main\temp\engine\!debug\sv_client.obj"
+"\Xash3D\src_main\temp\engine\!debug\sv_cmds.obj"
+"\Xash3D\src_main\temp\engine\!debug\sv_frame.obj"
+"\Xash3D\src_main\temp\engine\!debug\sv_game.obj"
+"\Xash3D\src_main\temp\engine\!debug\sv_init.obj"
+"\Xash3D\src_main\temp\engine\!debug\sv_main.obj"
+"\Xash3D\src_main\temp\engine\!debug\sv_move.obj"
+"\Xash3D\src_main\temp\engine\!debug\sv_phys.obj"
+"\Xash3D\src_main\temp\engine\!debug\sv_save.obj"
+"\Xash3D\src_main\temp\engine\!debug\sv_world.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_advanced.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_audio.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_controls.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_credits.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_defaults.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_demos.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_gameoptions.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_gotosite.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_loadgame.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_main.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_menu.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_mods.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_multiplayer.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_network.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_newgame.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_options.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_performance.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_playersetup.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_qmenu.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_savegame.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_saveload.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_video.obj"
+]
+Creating command line "link.exe @"C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP5ABF.tmp""
+Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP5AC0.bat" with contents
+[
+@echo off
+copy \Xash3D\src_main\temp\engine\!debug\engine.dll "D:\Xash3D\bin\engine.dll"
+]
+Creating command line ""C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP5AC0.bat""
+Compiling...
+cl_game.c
+d:\xash3d\src_main\engine\client\cl_game.c(1245) : warning C4013: 'SV_ClipMoveToEntity' undefined; assuming extern returning int
+d:\xash3d\src_main\engine\client\cl_game.c(1245) : error C2224: left of '.pTexName' must have struct/union type
+d:\xash3d\src_main\engine\client\cl_game.c(1245) : warning C4033: 'pfnTraceTexture' must return a value
+Error executing cl.exe.
+<h3>Output Window</h3>
+
+
+
+<h3>Results</h3>
+engine.dll - 1 error(s), 2 warning(s)
+</pre>
+</body>
+</html>

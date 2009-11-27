@@ -8,27 +8,6 @@
 #include "const.h"
 #include "pm_defs.h"
 
-const char *ed_name[] =
-{
-	"unknown",
-	"world",
-	"static",
-	"ambient",
-	"normal",
-	"brush",
-	"player",
-	"monster",
-	"tempent",
-	"beam",
-	"mover",
-	"viewmodel",
-	"physbody",
-	"trigger",
-	"portal",
-	"skyportal",
-	"error",
-};
-
 areanode_t	sv_areanodes[AREA_NODES];
 int		sv_numareanodes;
 
@@ -91,31 +70,6 @@ void SV_ClearWorld( void )
 	Mod_GetBounds( worldIndex, mins, maxs );
 	Mem_Set( sv_areanodes, 0, sizeof( sv_areanodes ));
 	SV_CreateAreaNode( 0, mins, maxs );
-}
-
-/*
-================
-SV_HullForEntity
-
-Returns a headnode that can be used for testing or clipping to a
-given entity.  If the entity is a bsp model, the headnode will
-be returned, otherwise a custom box tree will be constructed.
-================
-*/
-model_t SV_HullForEntity( const edict_t *ent )
-{
-	if( ent->v.solid == SOLID_BSP )
-	{
-		// explicit hulls in the BSP model
-		return ent->v.modelindex;
-	}
-	if( ent->v.flags & (FL_MONSTER|FL_CLIENT|FL_FAKECLIENT))
-	{
-		// create a temp capsule from bounding box sizes
-		return CM_TempModel( ent->v.mins, ent->v.maxs, true );
-	}
-	// create a temp tree from bounding box sizes
-	return CM_TempModel( ent->v.mins, ent->v.maxs, false );
 }
 
 /*
@@ -200,6 +154,7 @@ void SV_UnlinkEdict( edict_t *ent )
 	RemoveLink( &ent->pvServerData->area );
 	ent->pvServerData->area.prev = NULL;
 	ent->pvServerData->area.next = NULL;
+	ent->pvServerData->linked = false;
 }
 
 /*
@@ -419,7 +374,7 @@ trace_t SV_ClipMoveToEntity( edict_t *ent, const vec3_t start, vec3_t mins, vec3
 	}
 
 	// might intersect, so do an exact clip
-	handle = SV_HullForEntity( ent );
+	handle = World_HullForEntity( ent );
 
 	if( ent->v.solid == SOLID_BSP )
 		angles = ent->v.angles;
@@ -441,7 +396,7 @@ trace_t SV_ClipMoveToEntity( edict_t *ent, const vec3_t start, vec3_t mins, vec3
 	return trace;
 }
 
-trace_t SV_CombineTraces( trace_t *cliptrace, trace_t *trace, edict_t *touch, bool is_bmodel )
+static trace_t SV_CombineTraces( trace_t *cliptrace, trace_t *trace, edict_t *touch, bool is_bmodel )
 {
 	if( trace->fAllSolid )
 	{
@@ -477,7 +432,7 @@ SV_ClipToLinks
 Mins and maxs enclose the entire area swept by the move
 ====================
 */
-void SV_ClipToLinks( areanode_t *node, moveclip_t *clip )
+static void SV_ClipToLinks( areanode_t *node, moveclip_t *clip )
 {
 	link_t	*l, *next;
 	edict_t	*touch;
@@ -563,30 +518,6 @@ void SV_ClipToLinks( areanode_t *node, moveclip_t *clip )
 
 /*
 ==================
-SV_MoveBounds
-==================
-*/
-void SV_MoveBounds( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, vec3_t boxmins, vec3_t boxmaxs )
-{
-	int	i;
-	
-	for( i = 0; i < 3; i++ )
-	{
-		if( end[i] > start[i] )
-		{
-			boxmins[i] = start[i] + mins[i] - 1;
-			boxmaxs[i] = end[i] + maxs[i] + 1;
-		}
-		else
-		{
-			boxmins[i] = end[i] + mins[i] - 1;
-			boxmaxs[i] = start[i] + maxs[i] + 1;
-		}
-	}
-}
-
-/*
-==================
 SV_Move
 ==================
 */
@@ -624,7 +555,7 @@ trace_t SV_Move( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end,
 	}
 
 	// create the bounding box of the entire move
-	SV_MoveBounds( start, clip.mins2, clip.maxs2, end, clip.boxmins, clip.boxmaxs );
+	World_MoveBounds( start, clip.mins2, clip.maxs2, end, clip.boxmins, clip.boxmaxs );
 
 	// clip to entities
 	SV_ClipToLinks( sv_areanodes, &clip );
@@ -652,7 +583,7 @@ trace_t SV_MoveToss( edict_t *tossent, edict_t *ignore )
 	VectorCopy( tossent->v.velocity, original_velocity );
 	VectorCopy( tossent->v.angles, original_angles );
 	VectorCopy( tossent->v.avelocity, original_avelocity );
-	gravity = tossent->v.gravity * sv_gravity->value * 0.05f;
+	gravity = tossent->v.gravity * svgame.movevars.gravity * 0.05f;
 
 	for( i = 0; i < 200; i++ )
 	{
@@ -709,7 +640,7 @@ int SV_BaseContents( const vec3_t p, edict_t *e )
 		}
 
 		// might intersect, so do an exact clip
-		handle = SV_HullForEntity( hit );
+		handle = World_HullForEntity( hit );
 		if( hit->v.solid == SOLID_BSP )
 			angles = hit->v.angles;
 		else angles = vec3_origin;	// boxes don't rotate

@@ -17,6 +17,7 @@ typedef void (*pfnEventHook)( struct event_args_s *args );
 
 #include "trace_def.h"
 #include "event_api.h"
+#include "pm_shared.h"
 
 #define SCRINFO_VIRTUALSPACE	1
 
@@ -169,7 +170,7 @@ typedef struct cl_enginefuncs_s
 	int	(*pfnPointContents)( const float *rgflVector );
 	void	(*pfnTraceLine)( const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr );
 	void	(*pfnTraceToss)( edict_t* pent, edict_t* pentToIgnore, TraceResult *ptr );
-	void	(*pfnTraceHull)( const float *v1, const float *mins, const float *maxs, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr );
+	void	(*pfnTraceHull)( const float *v1, const float *v2, int fNoMonsters, int hullNumber, edict_t *pentToSkip, TraceResult *ptr );
 	void	(*pfnTraceModel)( const float *v1, const float *v2, edict_t *pent, TraceResult *ptr );
 	const char *(*pfnTraceTexture)( edict_t *pTextureEntity, const float *v1, const float *v2 );
 

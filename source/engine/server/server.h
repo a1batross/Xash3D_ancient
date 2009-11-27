@@ -11,9 +11,6 @@
 #include "com_world.h"
 
 //=============================================================================
-#define AREA_SOLID			1
-#define AREA_TRIGGERS		2
-
 #define MAX_MASTERS			8 			// max recipients for heartbeat packets
 #define LATENCY_COUNTS		16
 #define MAX_ENT_CLUSTERS		16
@@ -247,8 +244,7 @@ typedef struct
 
 //=============================================================================
 
-extern	netadr_t	master_adr[MAX_MASTERS];		// address of the master server
-extern	const char	*ed_name[];
+extern	netadr_t		master_adr[MAX_MASTERS];	// address of the master server
 extern	server_static_t	svs;			// persistant server info
 extern	server_t		sv;			// local server
 extern	svgame_static_t	svgame;			// persistant game info

@@ -555,7 +555,7 @@ void CL_FindExplosionPlane( const vec3_t origin, float radius, vec3_t result )
 	{
 		VectorMA( origin, radius, planes[i], point );
 
-		trace = CL_Trace( origin, vec3_origin, vec3_origin, point, MOVE_WORLDONLY, NULL, MASK_SOLID );
+		trace = CL_Move( origin, vec3_origin, vec3_origin, point, MOVE_WORLDONLY, NULL );
 		if( trace.fAllSolid || trace.flFraction == 1.0f )
 			continue;
 
@@ -739,6 +739,7 @@ CL_AddParticles
 */
 void CL_AddParticles( void )
 {
+	edict_t		*player;
 	cparticle_t	*p, *next;
 	cparticle_t	*active = NULL, *tail = NULL;
 	rgba_t		modulate;
@@ -752,8 +753,9 @@ void CL_AddParticles( void )
 
 	if( !cl_particles->integer ) return;
 
-	if( EDICT_NUM( cl.frame.ps.number )->pvClientData->current.gravity != 0 )
-		gravity = EDICT_NUM( cl.frame.ps.number )->pvClientData->current.gravity / clgame.movevars.gravity;
+	player = CL_GetLocalPlayer();
+	if( player->v.gravity != 0.0f )
+		gravity = player->v.gravity / clgame.movevars.gravity;
 	else gravity = 1.0f;
 
 	for( p = cl_active_particles; p; p = next )
@@ -847,13 +849,13 @@ void CL_AddParticles( void )
 
 		if( p->flags & PARTICLE_BOUNCE )
 		{
-			edict_t	*clent = EDICT_NUM( cl.frame.ps.number );
+			edict_t	*clent = CL_GetLocalPlayer();
 
 			// bouncy particle
 			VectorSet(mins, -radius, -radius, -radius);
 			VectorSet(maxs, radius, radius, radius);
 
-			trace = CL_Trace( p->oldorigin, mins, maxs, origin, MOVE_NORMAL, clent, MASK_SOLID );
+			trace = CL_Move( p->oldorigin, mins, maxs, origin, MOVE_NORMAL, clent );
 			if( trace.flFraction != 0.0f && trace.flFraction != 1.0f )
 			{
 				// reflect velocity
@@ -1126,11 +1128,12 @@ void CL_TestEntities( void )
 {
 	int	i, j;
 	float	f, r;
-	edict_t	ent;
+	edict_t	ent, *pl;
 
 	if( !cl_testentities->integer )
 		return;
 
+	pl = CL_GetLocalPlayer();
 	Mem_Set( &ent, 0, sizeof( edict_t ));
 	V_ClearScene();
 
@@ -1143,10 +1146,10 @@ void CL_TestEntities( void )
 			ent.v.origin[j] = cl.refdef.vieworg[j]+cl.refdef.forward[j] * f + cl.refdef.right[j] * r;
 
 		ent.v.scale = 1.0f;
-		ent.serialnumber = cl.frame.ps.number;
+		ent.serialnumber = pl->serialnumber;
 		ent.v.controller[0] = ent.v.controller[1] = 90.0f;
 		ent.v.controller[2] = ent.v.controller[3] = 180.0f;
-		ent.v.modelindex = cl.frame.ps.modelindex;
+		ent.v.modelindex = pl->v.modelindex;
 		re->AddRefEntity( &ent, ED_NORMAL );
 	}
 }
@@ -1168,7 +1171,6 @@ void CL_TestLights( void )
 	{
 		vec3_t		end;
 		edict_t		*ed = CL_GetLocalPlayer();
-		int		cnt = CL_ContentsMask( ed );
 		static shader_t	flashlight_shader = -1;
 		trace_t		trace;
 
@@ -1180,10 +1182,11 @@ void CL_TestLights( void )
 		VectorScale( cl.refdef.forward, 256, end );
 		VectorAdd( end, cl.refdef.vieworg, end );
 
-		trace = CL_Trace( cl.refdef.vieworg, vec3_origin, vec3_origin, end, 0, ed, cnt );
+		trace = CL_Move( cl.refdef.vieworg, vec3_origin, vec3_origin, end, MOVE_NORMAL, ed );
 		VectorSet( dl.color, 1.0f, 1.0f, 1.0f );
 		dl.intensity = 96;
 		dl.texture = flashlight_shader;
+		if( CL_IsValidEdict( trace.pHit )) Msg( "Trace.hit %s\n", CL_ClassName( trace.pHit ));
 		VectorCopy( trace.vecEndPos, dl.origin );
 
 		re->AddDynLight( &dl );

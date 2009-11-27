@@ -11,6 +11,7 @@
 #include "com_library.h"
 #include "triangle_api.h"
 #include "effects_api.h"
+#include "pm_defs.h"
 
 /*
 ====================
@@ -252,43 +253,6 @@ static void CL_InitTitles( const char *filename )
 	Com_CloseScript( script );
 }
 
-static trace_t CL_TraceToss( edict_t *tossent, edict_t *ignore )
-{
-	int	i;
-	float	gravity;
-	vec3_t	move, end;
-	vec3_t	original_origin;
-	vec3_t	original_velocity;
-	vec3_t	original_angles;
-	vec3_t	original_avelocity;
-	trace_t	trace;
-
-	VectorCopy( tossent->v.origin, original_origin );
-	VectorCopy( tossent->v.velocity, original_velocity );
-	VectorCopy( tossent->v.angles, original_angles );
-	VectorCopy( tossent->v.avelocity, original_avelocity );
-	gravity = tossent->v.gravity * clgame.movevars.gravity * 0.05;
-
-	for( i = 0; i < 200; i++ )
-	{
-		// LordHavoc: sanity check; never trace more than 10 seconds
-		CL_CheckVelocity( tossent );
-		tossent->v.velocity[2] -= gravity;
-		VectorMA( tossent->v.angles, 0.05, tossent->v.avelocity, tossent->v.angles );
-		VectorScale( tossent->v.velocity, 0.05, move );
-		VectorAdd( tossent->v.origin, move, end );
-		trace = CL_Trace( tossent->v.origin, tossent->v.mins, tossent->v.maxs, end, MOVE_NORMAL, tossent, CL_ContentsMask( tossent ));
-		VectorCopy( trace.vecEndPos, tossent->v.origin );
-		if( trace.flFraction < 1.0f ) break;
-	}
-	VectorCopy( original_origin, tossent->v.origin );
-	VectorCopy( original_velocity, tossent->v.velocity );
-	VectorCopy( original_angles, tossent->v.angles );
-	VectorCopy( original_avelocity, tossent->v.avelocity );
-
-	return trace;
-}
-
 /*
 ====================
 CL_GetLocalPlayer
@@ -299,7 +263,11 @@ Render callback for studio models
 edict_t *CL_GetLocalPlayer( void )
 {
 	if( cls.state == ca_active )
-		return EDICT_NUM( cl.playernum + 1 );
+	{
+		edict_t	*player = EDICT_NUM( cl.playernum + 1 );
+		if( CL_IsValidEdict( player )) return player;
+		Host_Error( "CL_GetLocalPlayer: invalid edict\n" );
+	}
 	return NULL;
 }
 
@@ -495,7 +463,7 @@ void CL_FreeEdict( edict_t *pEdict )
 	Com_Assert( pEdict->free );
 
 	// unlink from world
-	// CL_UnlinkEdict( pEdict );
+	CL_UnlinkEdict( pEdict );
 
 	if( pEdict->pvClientData ) Mem_Free( pEdict->pvClientData );
 	if( pEdict->pvPrivateData ) Mem_Free( pEdict->pvPrivateData );
@@ -512,7 +480,7 @@ edict_t *CL_AllocEdict( void )
 	edict_t	*pEdict;
 	int	i;
 
-	for( i = 0; i < clgame.globals->numEntities; i++ )
+	for( i = 1; i < clgame.globals->numEntities; i++ )
 	{
 		pEdict = EDICT_NUM( i );
 		// the first couple seconds of client time can involve a lot of
@@ -536,25 +504,35 @@ edict_t *CL_AllocEdict( void )
 
 void CL_InitEdicts( void )
 {
-	edict_t	*e;
+	edict_t	*ent;
 	int	i;
 
 	clgame.globals->maxEntities = com.atoi( cl.configstrings[CS_MAXEDICTS] );
 	clgame.globals->maxClients = com.atoi( cl.configstrings[CS_MAXCLIENTS] );
 	clgame.edicts = Mem_Realloc( cls.mempool, clgame.edicts, sizeof( edict_t ) * clgame.globals->maxEntities );
 
-	for( i = 0, e = EDICT_NUM( 0 ); i < clgame.globals->maxEntities; i++, e++ )
-		e->free = true; // mark all edicts as freed
+	ent = EDICT_NUM( 0 );
+	if( ent->free ) CL_InitEdict( ent );
+	ent->v.model = MAKE_STRING( cl.configstrings[CS_MODELS+1] );
+	ent->v.modelindex = 1;	// world model
+	ent->v.solid = SOLID_BSP;
+	ent->v.movetype = MOVETYPE_PUSH;
+	clgame.globals->numEntities = 1;
+
+	for( i = 0, ent = EDICT_NUM( 1 ); i < clgame.globals->maxEntities; i++, ent++ )
+		ent->free = true; // mark all edicts as freed
 
 	clgame.globals->mapname = MAKE_STRING( cl.configstrings[CS_NAME] );
 
 	clgame.globals->deathmatch = Cvar_VariableInteger( "deathmatch" );
 	clgame.globals->coop = Cvar_VariableInteger( "coop" );
 	clgame.globals->teamplay = Cvar_VariableInteger( "teamplay" );
-	clgame.globals->serverflags = 0; 	// FIXME: make CS_SERVERFLAGS
+	clgame.globals->serverflags = com.atoi( cl.configstrings[CS_SERVERFLAGS] );
 
 	// clear prevstate
 	Mem_Set( &clgame.viewent.pvClientData->latched, 0, sizeof( prevframe_t ));
+
+	CL_ClearWorld ();
 }
 
 void CL_FreeEdicts( void )
@@ -564,14 +542,32 @@ void CL_FreeEdicts( void )
 
 	for( i = 0; i < clgame.globals->numEntities; i++ )
 	{
-		ent = EDICT_NUM( i );
-		if( ent->free ) continue;
+		ent = CL_GetEdictByIndex( i );
+		if( !CL_IsValidEdict( ent )) continue;
 		CL_FreeEdict( ent );
 	}
 
 	// clear globals
 	StringTable_Clear( clgame.hStringTable );
 	clgame.globals->numEntities = 0;
+}
+
+bool CL_IsValidEdict( const edict_t *e )
+{
+	if( !e ) return false;
+	if( e->free ) return false;
+	if( e == EDICT_NUM( 0 )) return false;	// world is the read-only entity
+	if( !e->pvServerData ) return false;
+	// edict without pvPrivateData is valid edict
+	// server.dll know how allocate it
+	return true;
+}
+
+const char *CL_ClassName( const edict_t *e )
+{
+	if( !e ) return "(null)";
+	if( e->free ) return "freed";
+	return STRING( e->v.classname );
 }
 
 /*
@@ -1190,16 +1186,12 @@ pfnTraceLine
 */
 static void pfnTraceLine( const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr )
 {
-	int	move;
 	trace_t	result;
 
-	move = (fNoMonsters) ? MOVE_NOMONSTERS : MOVE_NORMAL;
-
-	if( IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2] ))
-		Host_Error( "CL_Trace: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
-	result = CL_Trace( v1, vec3_origin, vec3_origin, v2, move, pentToSkip, CL_ContentsMask( pentToSkip ));
-
-	Mem_Copy( ptr, &result, sizeof( *ptr ));
+	if( VectorIsNAN( v1 ) || VectorIsNAN( v2 ))
+		Host_Error( "TraceLine: NAN errors detected '%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
+	result = CL_Move( v1, vec3_origin, vec3_origin, v2, fNoMonsters, pentToSkip );
+	if( ptr ) Mem_Copy( ptr, &result, sizeof( *ptr ));
 }
 
 /*
@@ -1212,9 +1204,14 @@ static void pfnTraceToss( edict_t* pent, edict_t* pentToIgnore, TraceResult *ptr
 {
 	trace_t	result;
 
-	if( pent == EDICT_NUM( 0 )) return;
-	result = CL_TraceToss( pent, pentToIgnore );
-	Mem_Copy( ptr, &result, sizeof( *ptr ));
+	if( !CL_IsValidEdict( pent ))
+	{
+		MsgDev( D_WARN, "CL_MoveToss: invalid entity %s\n", CL_ClassName( pent ));
+		return;
+	}
+
+	result = CL_MoveToss( pent, pentToIgnore );
+	if( ptr ) Mem_Copy( ptr, &result, sizeof( *ptr ));
 }
 
 /*
@@ -1223,30 +1220,43 @@ pfnTraceHull
 
 =================
 */
-static void pfnTraceHull( const float *v1, const float *mins, const float *maxs, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr )
+static void pfnTraceHull( const float *v1, const float *v2, int fNoMonsters, int hullNumber, edict_t *pentToSkip, TraceResult *ptr )
 {
-	int	move;
 	trace_t	result;
+	float	*mins, *maxs;
 
-	move = (fNoMonsters) ? MOVE_NOMONSTERS : MOVE_NORMAL;
+	hullNumber = bound( 0, hullNumber, 3 );
+	mins = GI->client_mins[hullNumber];
+	maxs = GI->client_maxs[hullNumber];
 
-	if( IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2] ))
-		Host_Error( "CL_TraceHull: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
-	result = CL_Trace( v1, (float *)mins, (float *)mins, v2, move, pentToSkip, CL_ContentsMask( pentToSkip ));
-
-	Mem_Copy( ptr, &result, sizeof( *ptr ));
+	if( VectorIsNAN( v1 ) || VectorIsNAN( v2 ))
+		Host_Error( "TraceHull: NAN errors detected '%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
+	result = CL_Move( v1, mins, maxs, v2, fNoMonsters, pentToSkip );
+	if( ptr ) Mem_Copy( ptr, &result, sizeof( *ptr ));
 }
 
 static void pfnTraceModel( const float *v1, const float *v2, edict_t *pent, TraceResult *ptr )
 {
-	// FIXME: implement
+	trace_t	result;
+
+	if( !CL_IsValidEdict( pent ))
+	{
+		MsgDev( D_WARN, "CL_TraceModel: invalid entity %s\n", CL_ClassName( pent ));
+		return;
+	}
+
+	if( VectorIsNAN( v1 ) || VectorIsNAN( v2 ))
+		Host_Error( "TraceModel: NAN errors detected '%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
+	result = CL_ClipMoveToEntity( pent, v1, pent->v.mins, pent->v.maxs, v2, MASK_SOLID, 0 );
+	if( ptr ) Mem_Copy( ptr, &result, sizeof( *ptr ));
 }
 
 static const char *pfnTraceTexture( edict_t *pTextureEntity, const float *v1, const float *v2 )
 {
-	if( IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2] ))
-		Host_Error( "CL_TraceTexture: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
-	return CL_Trace( v1, vec3_origin, vec3_origin, v2, MOVE_NOMONSTERS, NULL, CL_ContentsMask( pTextureEntity )).pTexName;
+	if( VectorIsNAN( v1 ) || VectorIsNAN( v2 ))
+		Host_Error( "TraceTexture: NAN errors detected '%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
+	if( !pTextureEntity || pTextureEntity->free ) return NULL; 
+	return CL_ClipMoveToEntity( pTextureEntity, v1, vec3_origin, vec3_origin, v2, MASK_SOLID, 0 ).pTexName;
 }
 
 /*
@@ -1780,6 +1790,7 @@ bool CL_LoadProgs( const char *name )
 	static CLIENTAPI		GetClientAPI;
 	static cl_globalvars_t	gpGlobals;
 	static tri_state_t		gpTriState;
+	static playermove_t		gpMove;
 	string			libpath;
 
 	if( clgame.hInstance ) CL_UnloadProgs();
@@ -1788,6 +1799,7 @@ bool CL_LoadProgs( const char *name )
 	clgame.globals = &gpGlobals;
 
 	// initialize TriAPI
+	clgame.pmove = &gpMove;
 	clgame.pTri = &gpTriState;
 	clgame.pTri->currentPolygon.fognum = -1;
 	clgame.pTri->numPolys = 0;

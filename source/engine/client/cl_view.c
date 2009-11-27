@@ -28,9 +28,9 @@ update refdef values each frame
 */
 void V_SetupRefDef( void )
 {
-	edict_t		*clent;
+	edict_t	*clent;
 
-	clent = EDICT_NUM( cl.playernum + 1 );
+	clent = CL_GetLocalPlayer ();
 
 	// UNDONE: temporary place for detect waterlevel
 	CL_CheckWater( clent );

@@ -738,7 +738,7 @@ float V_CalcWaterLevel( ref_params_t *pparams )
 		TraceResult tr;
 		Vector point;
 
-		TRACE_HULL( pparams->simorg, Vector(-16,-16,-24), Vector(16,16,32), pparams->simorg, 1, GetLocalPlayer(), &tr );
+		TRACE_HULL( pparams->simorg, pparams->simorg, 1, 1, GetLocalPlayer(), &tr );
 
 		if( tr.pHit && !stricmp( STRING( tr.pHit->v.classname ), "func_water" ))
 			waterDist += ( tr.pHit->v.scale * 16 );

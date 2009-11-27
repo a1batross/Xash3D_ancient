@@ -100,7 +100,7 @@ void CL_MouseMove( usercmd_t *cmd )
 
 	rate = com.sqrt( mx * mx + my * my ) / (float)frame_msec;
 
-	if( cl.frame.ps.health <= 0 ) return;
+	if( cl.refdef.health <= 0 ) return;
 	if( cl.data.mouse_sensitivity == 0.0f ) cl.data.mouse_sensitivity = 1.0f;
 	accel_sensitivity = m_sensitivity->value + rate * cl_mouseaccel->value;
 	accel_sensitivity *= cl.data.mouse_sensitivity; // scale by fov
@@ -121,7 +121,7 @@ void CL_MouseMove( usercmd_t *cmd )
 	}
 	else
 	{
-		if(( in_strafe.state & 1 ) && cl.frame.ps.movetype == MOVETYPE_NOCLIP )
+		if(( in_strafe.state & 1 ) && cl.refdef.movetype == MOVETYPE_NOCLIP )
 			cmd->upmove -= m_forward->value * my;
 		else cmd->forwardmove -= m_forward->value * my;
 	}
@@ -326,7 +326,7 @@ void CL_AdjustAngles( void )
 	float	speed;
 	float	up, down;
 
-	if( cl.frame.ps.health <= 0 ) return;
+	if( cl.refdef.health <= 0 ) return;
 	
 	speed = ( in_speed.state & 1 ) ? cls.frametime * cl_anglespeedkey->value : cls.frametime;
 
@@ -532,7 +532,12 @@ void CL_FinishMove( usercmd_t *cmd )
 	// process commands with user dll's
 	cl.data.iKeyBits = CL_ButtonBits( 0 );
 
-	cl.data.iWeaponBits = cl.frame.ps.weapons;
+	if( cls.state == ca_active )
+	{
+		edict_t *pl = CL_GetLocalPlayer();
+		cl.data.iWeaponBits = pl->v.weapons;
+	}
+	else cl.data.iWeaponBits = 0;
 
 	VectorCopy( cl.refdef.cl_viewangles, cmd->viewangles );
 	VectorCopy( cl.refdef.cl_viewangles, cl.data.angles );

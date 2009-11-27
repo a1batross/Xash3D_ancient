@@ -3116,7 +3116,7 @@ int pfnCheckVisibility( const edict_t *entity, byte *pset )
 	// check overflow clusters that coudln't be stored
 	if( i == entity->pvServerData->num_clusters )
 	{
-		if( entity->pvServerData->lastcluster )
+		if( entity->pvServerData->lastcluster != -1 )
 		{
 			for( ; l <= entity->pvServerData->lastcluster; l++ )
 			{

@@ -239,7 +239,7 @@ static void SV_AddEntitiesToPacket( edict_t *pViewEnt, edict_t *pClient, client_
 		if( fullvis ) continue; // portal ents will be added anywhere, ignore recursion
 
 		// if its a portal entity, add everything visible from its camera position
-		if( ent->pvServerData->s.ed_type == ED_PORTAL || ent->pvServerData->s.ed_type == ED_SKYPORTAL )
+		if( !portal && (ent->pvServerData->s.ed_type == ED_PORTAL || ent->pvServerData->s.ed_type == ED_SKYPORTAL))
 			SV_AddEntitiesToPacket( ent, NULL, frame, ents, true );
 	}
 }

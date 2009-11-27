@@ -109,7 +109,7 @@ void SV_CheckVelocity( edict_t *ent )
 	int	i;
 	float	maxvel;
 
-	maxvel = fabs( sv_maxvelocity->value );
+	maxvel = fabs( svgame.movevars.maxvelocity );
 
 	// bound velocity
 	for( i = 0; i < 3; i++ )

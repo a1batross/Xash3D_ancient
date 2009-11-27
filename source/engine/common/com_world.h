@@ -25,6 +25,9 @@ ENTITY AREA CHECKING
 #define AREA_NODES			64
 #define AREA_DEPTH			5
 
+#define AREA_SOLID			1
+#define AREA_TRIGGERS		2
+
 // link_t is only used for entity area links now
 typedef struct link_s
 {
@@ -69,10 +72,16 @@ typedef struct moveclip_s
 	int		flags;	// trace flags
 } moveclip_t;
 
+extern const char		*ed_name[];
+
 // linked list
 void InsertLinkBefore( link_t *l, link_t *before, int entnum );
 void RemoveLink( link_t *l );
 void ClearLink( link_t *l );
+
+// trace common
+model_t World_HullForEntity( const edict_t *ent );
+void World_MoveBounds( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, vec3_t boxmins, vec3_t boxmaxs );
 
 // contents
 int World_ConvertContents( int basecontents );
