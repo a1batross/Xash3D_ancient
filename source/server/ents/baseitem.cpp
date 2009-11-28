@@ -26,22 +26,22 @@ void CItem::Spawn( void )
 	pev->movetype = MOVETYPE_TOSS;
 	pev->solid = SOLID_BBOX;
 
+	UTIL_SetModel( ENT( pev ), pev->model, Model() );
 	UTIL_SetOrigin( this, pev->origin );
-	UTIL_SetSize(pev, g_vecZero, g_vecZero );
-	SetObjectClass( ED_NORMAL );
+
+	UTIL_SetSize( pev, g_vecZero, g_vecZero );
 
 	SetTouch( ItemTouch );
           SetThink( ItemFall );
 
-	UTIL_SetModel(ENT(pev), pev->model, (char *)Model() );
 	SetNextThink( 0.1 );
 }
 
 void CItem::Precache( void )
 {
-	UTIL_PrecacheModel( pev->model, (char *)Model() );
-	UTIL_PrecacheSound((char *)PickSound());
-	UTIL_PrecacheSound((char *)FallSound());
+	UTIL_PrecacheModel( pev->model, Model() );
+	UTIL_PrecacheSound( PickSound());
+	UTIL_PrecacheSound( FallSound());
 }
 
 void CItem::ItemTouch( CBaseEntity *pOther )

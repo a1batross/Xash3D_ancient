@@ -280,7 +280,7 @@ Render callback for studio models
 */
 int CL_GetMaxClients( void )
 {
-	return com.atoi( cl.configstrings[CS_MAXCLIENTS] );
+	return clgame.globals->maxClients;
 }
 
 /*
@@ -480,7 +480,7 @@ edict_t *CL_AllocEdict( void )
 	edict_t	*pEdict;
 	int	i;
 
-	for( i = 1; i < clgame.globals->numEntities; i++ )
+	for( i = clgame.globals->maxClients + 1; i < clgame.globals->numEntities; i++ )
 	{
 		pEdict = EDICT_NUM( i );
 		// the first couple seconds of client time can involve a lot of
@@ -502,37 +502,53 @@ edict_t *CL_AllocEdict( void )
 	return pEdict;
 }
 
-void CL_InitEdicts( void )
+void CL_InitWorld( void )
 {
 	edict_t	*ent;
 	int	i;
 
-	clgame.globals->maxEntities = com.atoi( cl.configstrings[CS_MAXEDICTS] );
-	clgame.globals->maxClients = com.atoi( cl.configstrings[CS_MAXCLIENTS] );
-	clgame.edicts = Mem_Realloc( cls.mempool, clgame.edicts, sizeof( edict_t ) * clgame.globals->maxEntities );
+	if( cls.state == ca_active )
+		return;
 
 	ent = EDICT_NUM( 0 );
 	if( ent->free ) CL_InitEdict( ent );
+	ent->v.classname = MAKE_STRING( "worldspawn" );
 	ent->v.model = MAKE_STRING( cl.configstrings[CS_MODELS+1] );
 	ent->v.modelindex = 1;	// world model
 	ent->v.solid = SOLID_BSP;
 	ent->v.movetype = MOVETYPE_PUSH;
 	clgame.globals->numEntities = 1;
 
-	for( i = 0, ent = EDICT_NUM( 1 ); i < clgame.globals->maxEntities; i++, ent++ )
-		ent->free = true; // mark all edicts as freed
-
 	clgame.globals->mapname = MAKE_STRING( cl.configstrings[CS_NAME] );
 
-	clgame.globals->deathmatch = Cvar_VariableInteger( "deathmatch" );
 	clgame.globals->coop = Cvar_VariableInteger( "coop" );
 	clgame.globals->teamplay = Cvar_VariableInteger( "teamplay" );
+	clgame.globals->deathmatch = Cvar_VariableInteger( "deathmatch" );
 	clgame.globals->serverflags = com.atoi( cl.configstrings[CS_SERVERFLAGS] );
 
-	// clear prevstate
+	for( i = 0; i < clgame.globals->maxClients; i++ )
+	{
+		// setup all clients
+		ent = EDICT_NUM( i + 1 );
+		CL_InitEdict( ent );
+		clgame.globals->numClients++;
+	}
+
+	// clear viewmodel prevstate
 	Mem_Set( &clgame.viewent.pvClientData->latched, 0, sizeof( prevframe_t ));
 
 	CL_ClearWorld ();
+}
+
+void CL_InitEdicts( void )
+{
+	edict_t	*e;
+	int	i;
+
+	Com_Assert( clgame.edicts != NULL );
+	clgame.edicts = Mem_Alloc( clgame.mempool, sizeof( edict_t ) * clgame.globals->maxEntities );
+	for( i = 0, e = clgame.edicts; i < clgame.globals->maxEntities; i++, e++ )
+		e->free = true; // mark all edicts as freed
 }
 
 void CL_FreeEdicts( void )
@@ -540,16 +556,22 @@ void CL_FreeEdicts( void )
 	int	i;
 	edict_t	*ent;
 
-	for( i = 0; i < clgame.globals->numEntities; i++ )
+	if( clgame.edicts )
 	{
-		ent = CL_GetEdictByIndex( i );
-		if( !CL_IsValidEdict( ent )) continue;
-		CL_FreeEdict( ent );
+		for( i = 0; i < clgame.globals->maxEntities; i++ )
+		{
+			ent = EDICT_NUM( i );
+			if( ent->free ) continue;
+			CL_FreeEdict( ent );
+		}
+		Mem_Free( clgame.edicts );
 	}
 
 	// clear globals
 	StringTable_Clear( clgame.hStringTable );
 	clgame.globals->numEntities = 0;
+	clgame.globals->numClients = 0;
+	clgame.edicts = NULL;
 }
 
 bool CL_IsValidEdict( const edict_t *e )
@@ -1082,7 +1104,7 @@ pfnGetMaxClients
 */
 int pfnGetMaxClients( void )
 {
-	return com.atoi( cl.configstrings[CS_MAXCLIENTS] );
+	return CL_GetMaxClients ();
 }
 
 /*
@@ -1782,6 +1804,7 @@ void CL_UnloadProgs( void )
 	StringTable_Delete( clgame.hStringTable );
 	Com_FreeLibrary( clgame.hInstance );
 	Mem_FreePool( &cls.mempool );
+	Mem_FreePool( &clgame.mempool );
 	Mem_FreePool( &clgame.private );
 }
 
@@ -1805,8 +1828,10 @@ bool CL_LoadProgs( const char *name )
 	clgame.pTri->numPolys = 0;
 	
 	Com_BuildPath( name, libpath );
-	cls.mempool = Mem_AllocPool( "Client Edicts Zone" );
+	cls.mempool = Mem_AllocPool( "Client Static Pool" );
+	clgame.mempool = Mem_AllocPool( "Client Edicts Zone" );
 	clgame.private = Mem_AllocPool( "Client Private Zone" );
+	clgame.edicts = NULL;
 
 	clgame.hInstance = Com_LoadLibrary( libpath );
 	if( !clgame.hInstance ) return false;
@@ -1827,6 +1852,7 @@ bool CL_LoadProgs( const char *name )
 
 	// 65535 unique strings should be enough ...
 	clgame.hStringTable = StringTable_Create( "Client", 0x10000 );
+	clgame.globals->maxEntities = GI->max_edicts; // merge during loading
 
 	// register svc_bad message
 	pfnHookUserMsg( "bad", NULL );

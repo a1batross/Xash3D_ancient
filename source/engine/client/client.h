@@ -34,7 +34,6 @@ typedef struct frame_s
 	byte		areabits[MAX_MAP_AREA_BYTES];	// portalarea visibility bits
 	int		num_entities;
 	int		parse_entities;		// non-masked index into cl_parse_entities array
-	entity_state_t	ps;			// player state
 } frame_t;
 
 // console stuff
@@ -112,7 +111,6 @@ typedef struct
 	char		physinfo[MAX_INFO_STRING];		// physics info string
 
 	entity_state_t	entity_curstates[MAX_PARSE_ENTITIES];
-	entity_state_t	entity_baselines[MAX_EDICTS];		// keep all baselines in one global array
 
 	// locally derived information from server state
 	model_t		models[MAX_MODELS];
@@ -172,6 +170,7 @@ struct cl_priv_s
 
 	int		serverframe;	// if not current, this ent isn't in the frame
 
+	entity_state_t	baseline;
 	entity_state_t	current;
 	entity_state_t	prev;		// will always be valid, but might just be a copy of current
 	prevframe_t	latched;		// previous frame to lerping from
@@ -251,6 +250,7 @@ typedef struct
 {
 	void		*hInstance;		// pointer to client.dll
 	HUD_FUNCTIONS	dllFuncs;			// dll exported funcs
+	byte		*mempool;			// client edicts pool
 	byte		*private;			// client.dll private pool
 	string		maptitle;			// display map title
 
@@ -476,6 +476,7 @@ edict_t *CL_GetEdict( int entnum );
 void CL_FadeAlpha( float starttime, float endtime, rgba_t color );
 void CL_InitEdicts( void );
 void CL_FreeEdicts( void );
+void CL_InitWorld( void );
 
 //
 // cl_game.c

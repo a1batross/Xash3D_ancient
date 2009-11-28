@@ -1711,9 +1711,11 @@ float UTIL_AngleDiff( float destAngle, float srcAngle )
 
 Vector UTIL_VecToAngles( const Vector &vec )
 {
-	float rgflVecOut[3];
-	VEC_TO_ANGLES(vec, rgflVecOut);
-	return Vector(rgflVecOut);
+	float	rgflVecOut[3];
+
+	VEC_TO_ANGLES( vec, rgflVecOut );
+
+	return Vector( rgflVecOut );
 }
 	
 //LRC - pass in a normalised axis vector and a number of degrees, and this returns the corresponding

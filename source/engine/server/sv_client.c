@@ -581,7 +581,7 @@ void SV_PutClientInServer( edict_t *ent )
 		else
 		{
 			// copy signon buffer
-			MSG_WriteData( &client->reliable, sv.signon.data, sv.signon.cursize );
+			MSG_WriteData( &client->netchan.message, sv.signon.data, sv.signon.cursize );
 
 			// setup maxspeed and refresh physinfo
 			SV_SetClientMaxspeed( client, svgame.movevars.maxspeed );
@@ -665,7 +665,9 @@ void SV_New_f( sv_client_t *cl )
 	MSG_WriteByte( &cl->netchan.message, svc_serverdata );
 	MSG_WriteLong( &cl->netchan.message, PROTOCOL_VERSION);
 	MSG_WriteLong( &cl->netchan.message, svs.spawncount );
-	MSG_WriteShort( &cl->netchan.message, playernum );
+	MSG_WriteByte( &cl->netchan.message, playernum );
+	MSG_WriteByte( &cl->netchan.message, svgame.globals->maxClients );
+	MSG_WriteWord( &cl->netchan.message, svgame.globals->maxEntities );
 	MSG_WriteString( &cl->netchan.message, sv.configstrings[CS_NAME] );
 	MSG_WriteString( &cl->netchan.message, STRING( EDICT_NUM( 0 )->v.message ));	// Map Message
 
@@ -1037,7 +1039,7 @@ MULTICAST_PVS	send to clients potentially visible from org
 MULTICAST_PHS	send to clients potentially hearable from org
 =================
 */
-void _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, const char *filename, int fileline )
+void _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, bool direct, const char *filename, int fileline )
 {
 	byte		*mask = NULL;
 	int		leafnum = 0, cluster = 0;
@@ -1126,7 +1128,11 @@ void _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, const char *f
 				continue;
 		}
 
-		if( reliable ) MSG_WriteData( &cl->reliable, sv.multicast.data, sv.multicast.cursize );
+		if( reliable )
+		{
+			if( direct ) MSG_WriteData( &cl->netchan.message, sv.multicast.data, sv.multicast.cursize );
+			else MSG_WriteData( &cl->reliable, sv.multicast.data, sv.multicast.cursize );
+		}
 		else MSG_WriteData( &cl->datagram, sv.multicast.data, sv.multicast.cursize );
 	}
 	MSG_Clear( &sv.multicast );

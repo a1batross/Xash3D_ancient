@@ -1061,8 +1061,9 @@ void R_StudioSetUpTransform( ref_entity_t *e, bool trivial_accept )
 	VectorCopy( e->angles, angles );
 
 	if( e->ent_type == ED_CLIENT ) angles[PITCH] = 0; // don't rotate player model, only aim
+	if( e->ent_type == ED_VIEWMODEL ) angles[PITCH] = -angles[PITCH]; // stupid Half-Life bug
 
-	Matrix4x4_CreateFromEntity( m_protationmatrix, origin[0], origin[1], origin[2], angles[PITCH], angles[YAW], angles[ROLL], e->scale );
+	Matrix4x4_CreateFromEntity( m_protationmatrix, origin[0], origin[1], origin[2], -angles[PITCH], angles[YAW], angles[ROLL], e->scale );
 
 	if( e->ent_type == ED_VIEWMODEL && r_lefthand->integer == 1 )
 	{

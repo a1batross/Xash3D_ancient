@@ -214,8 +214,6 @@ void CLaserSpot::Spawn( void )
 {
 	Precache( );
 
-	SetObjectClass( ED_NORMAL );
-
 	// laser dot settings
 	pev->movetype = MOVETYPE_NONE;
 	pev->solid = SOLID_NOT;

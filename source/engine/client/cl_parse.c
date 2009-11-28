@@ -369,9 +369,13 @@ void CL_ParseServerData( sizebuf_t *msg )
 		Host_Error( "Server use invalid protocol (%i should be %i)\n", i, PROTOCOL_VERSION );
 
 	cl.servercount = MSG_ReadLong( msg );
-	cl.playernum = MSG_ReadShort( msg );
+	cl.playernum = MSG_ReadByte( msg );
+	clgame.globals->maxClients = MSG_ReadByte( msg );
+	clgame.globals->maxEntities = MSG_ReadWord( msg );
 	com.strncpy( str, MSG_ReadString( msg ), MAX_STRING );
 	com.strncpy( clgame.maptitle, MSG_ReadString( msg ), MAX_STRING );
+
+	CL_InitEdicts (); // re-arrange edicts
 
 	// get splash name
 	Cvar_Set( "cl_levelshot_name", va( "levelshots/%s", str ));
@@ -403,15 +407,24 @@ void CL_ParseBaseline( sizebuf_t *msg )
 {
 	int		newnum;
 	entity_state_t	nullstate;
-	entity_state_t	*baseline;
+	edict_t		*ent;
 
 	Mem_Set( &nullstate, 0, sizeof( nullstate ));
 	newnum = MSG_ReadWord( msg );
 
-	if( !newnum ) CL_InitEdicts();
+	if( !newnum ) CL_InitWorld ();
 
-	baseline = &cl.entity_baselines[newnum];
-	MSG_ReadDeltaEntity( msg, &nullstate, baseline, newnum );
+	if( newnum < 0 ) Host_Error( "CL_SpawnEdict: invalid number %i\n", newnum );
+	if( newnum > clgame.globals->maxEntities ) Host_Error( "CL_AllocEdict: no free edicts\n" );
+
+	// increase edicts
+	while( newnum >= clgame.globals->numEntities )
+		clgame.globals->numEntities++;
+
+	ent = EDICT_NUM( newnum );
+	if( ent->free ) CL_InitEdict( ent );
+
+	MSG_ReadDeltaEntity( msg, &nullstate, &ent->pvClientData->baseline, newnum );
 }
 
 /*

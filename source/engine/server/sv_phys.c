@@ -1470,7 +1470,7 @@ void SV_Physics( void )
 		if( ent->free ) continue;
 
 		if( ent->v.flags & FL_KILLME )
-			SV_FreeEdict( EDICT_NUM( i ));
+			SV_FreeEdict( ent );
 	}
 
 	if( svgame.globals->force_retouch ) svgame.globals->force_retouch--;

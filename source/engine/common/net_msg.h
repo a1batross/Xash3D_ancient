@@ -132,12 +132,10 @@ static const net_desc_t NWDesc[] =
 #define CS_NAME			0	// map name
 #define CS_MAPCHECKSUM		1	// level checksum (for catching cheater maps)
 #define CS_SKYNAME			2	// skybox shader name
-#define CS_MAXCLIENTS		3	// server maxclients value (0-255)
-#define CS_BACKGROUND_TRACK		4	// basename of background track
-#define CS_MAXEDICTS		5	// server limit edicts
-#define CS_SERVERFLAGS		6	// shared server flags
+#define CS_BACKGROUND_TRACK		3	// basename of background track
+#define CS_SERVERFLAGS		4	// shared server flags
 
-// 6 - 32 it's a reserved strings
+// 5 - 32 it's a reserved strings
 
 #define CS_MODELS			32				// configstrings starts here
 #define CS_SOUNDS			(CS_MODELS+MAX_MODELS)		// sound names
@@ -173,7 +171,7 @@ void _MSG_WriteData( sizebuf_t *sb, const void *data, size_t length, const char 
 void _MSG_WriteDeltaUsercmd( sizebuf_t *sb, usercmd_t *from, usercmd_t *cmd, const char *filename, const int fileline );
 bool _MSG_WriteDeltaMovevars( sizebuf_t *sb, movevars_t *from, movevars_t *cmd, const char *filename, const int fileline );
 void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t *msg, bool force, bool newentity, const char *file, int line );
-void _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, const char *filename, int fileline );
+void _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, bool direct, const char *filename, int fileline );
 
 #define MSG_Begin( x ) _MSG_Begin( x, __FILE__, __LINE__)
 #define MSG_WriteChar(x,y) _MSG_WriteBits (x, y, NWDesc[NET_CHAR].name, NET_CHAR, __FILE__, __LINE__)
@@ -196,7 +194,8 @@ void _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, const char *f
 #define MSG_WriteDeltaEntity(from, to, msg, force, new ) _MSG_WriteDeltaEntity (from, to, msg, force, new, __FILE__, __LINE__)
 #define MSG_WriteBits( buf, value, name, bits ) _MSG_WriteBits( buf, value, name, bits, __FILE__, __LINE__ )
 #define MSG_ReadBits( buf, name, bits ) _MSG_ReadBits( buf, name, bits, __FILE__, __LINE__ )
-#define MSG_Send(x, y, z) _MSG_Send(x, y, z, __FILE__, __LINE__)
+#define MSG_Send(x, y, z) _MSG_Send(x, y, z, false, __FILE__, __LINE__)
+#define MSG_DirectSend(x, y, z) _MSG_Send(x, y, z, true, __FILE__, __LINE__)
 
 void MSG_BeginReading (sizebuf_t *sb);
 #define MSG_ReadChar( x ) _MSG_ReadBits( x, NWDesc[NET_CHAR].name, NET_CHAR, __FILE__, __LINE__ )

@@ -377,6 +377,7 @@ void SV_FreeEdicts( void );
 edict_t *SV_AllocEdict( void );
 void SV_FreeEdict( edict_t *pEdict );
 void SV_InitEdict( edict_t *pEdict );
+const char *SV_ClassName( const edict_t *e );
 bool SV_CopyEdict( edict_t *out, edict_t *in );
 void SV_ConfigString( int index, const char *val );
 void SV_SetModel( edict_t *ent, const char *name );

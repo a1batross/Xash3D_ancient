@@ -686,7 +686,6 @@ CBaseEntity * CBaseEntity::Create( char *szName, const Vector &vecOrigin, const 
 	if( FNullEnt( pent )) return NULL;
 
 	pEntity = Instance( pent );
-	pEntity->SetObjectClass( );
 	pEntity->pev->owner = pentOwner;
 	pEntity->pev->origin = vecOrigin;
 	pEntity->pev->angles = vecAngles;
@@ -706,7 +705,6 @@ CBaseEntity * CBaseEntity::CreateGib( char *szName, char *szModel )
 	if( FNullEnt( pent )) return NULL;
 	
 	pEntity = Instance( pent );
-	pEntity->SetObjectClass( );
 	DispatchSpawn( pEntity->edict() );
 
 	if( !FStringNull( model )) 
@@ -837,9 +835,6 @@ int CBaseEntity :: Restore( CRestore &restore )
 	status = restore.ReadEntVars( "ENTVARS", pev );
 	if( status ) status = restore.ReadFields( "BASE", this, m_SaveData, ARRAYSIZE( m_SaveData ));
 
-	// restore edict class here
-	SetObjectClass( m_iClassType );
-
 	if( pev->modelindex != 0 && !FStringNull( pev->model ))
 	{
 		Vector mins = pev->mins, maxs = pev->maxs; // Set model is about to destroy these
@@ -848,6 +843,10 @@ int CBaseEntity :: Restore( CRestore &restore )
 		UTIL_SetModel( ENT( pev ), pev->model );
 		UTIL_SetSize( pev, mins, maxs );
 	}
+
+	// restore edict class here
+	SetObjectClass( m_iClassType );
+
 	return status;
 }
 

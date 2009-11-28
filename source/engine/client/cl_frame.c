@@ -58,13 +58,11 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 		CL_FreeEdict( ent );
 		return; // entity was delta removed
 	}
+
 	cl.parse_entities++;
 	frame->num_entities++;
 
-	if( ent->free )
-	{
-		CL_InitEdict( ent );
-	}
+	if( ent->free ) CL_InitEdict( ent );
 
 	// some data changes will force no lerping
 	if( state->ed_flags & ESF_NODELTA ) ent->pvClientData->serverframe = -99;
@@ -126,7 +124,8 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 		if( msg->error )
 			Host_Error("CL_ParsePacketEntities: end of message[%d > %d]\n", msg->readcount, msg->cursize );
 
-		while( newnum >= clgame.globals->numEntities ) CL_AllocEdict();
+		while( newnum >= clgame.globals->numEntities )
+			clgame.globals->numEntities++;
 
 		while( oldnum < newnum )
 		{	
@@ -165,9 +164,16 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 
 		if( oldnum > newnum )
 		{	
+			edict_t	*ent = EDICT_NUM( newnum );
+
+			if( ent->free )
+			{
+				MsgDev( D_WARN, "CL_DeltaEntity: %i without baseline\n", newnum );
+				CL_InitEdict( ent );
+			}
+
 			// delta from baseline ?
-			entity_state_t  *baseline = &cl.entity_baselines[newnum];
-			CL_DeltaEntity( msg, newframe, newnum, baseline, false );
+			CL_DeltaEntity( msg, newframe, newnum, &ent->pvClientData->baseline, false );
 			continue;
 		}
 
@@ -262,12 +268,6 @@ void CL_ParseFrame( sizebuf_t *msg )
 	if(( idx - 1 ) != cl.playernum )
 		Host_Error( "CL_ParseFrame: invalid playernum (%d should be %d)\n", idx-1, cl.playernum );
 
-#if 0
-	// now we can reading delta player state
-	if( cl.oldframe ) cl.frame.ps = MSG_ParseDeltaPlayer( &cl.oldframe->ps, &clent->pvClientData->current );
-	else cl.frame.ps = MSG_ParseDeltaPlayer( NULL, &clent->pvClientData->current );
-#endif
-
 	// save the frame off in the backup array for later delta comparisons
 	cl.frames[cl.frame.serverframe & UPDATE_MASK] = cl.frame;
 
@@ -312,6 +312,9 @@ void CL_AddPacketEntities( frame_t *frame )
 	edict_t	*ent;
 	int	e, ed_type;
 
+	// now recalc actual entcount
+	for( ; EDICT_NUM( clgame.globals->numEntities - 1 )->free; clgame.globals->numEntities-- );
+
 	for( e = 1; e < clgame.globals->numEntities; e++ )
 	{
 		ent = CL_GetEdictByIndex( e );
@@ -328,7 +331,6 @@ void CL_AddPacketEntities( frame_t *frame )
 		// NOTE: skyportal entity never added to rendering
 		if( ed_type == ED_SKYPORTAL ) cl.render_flags |= RDF_SKYPORTALINVIEW;
 	}
-	for( ; EDICT_NUM( clgame.globals->numEntities - 1 )->free; clgame.globals->numEntities-- );
 
 	if( cl.oldframe && !memcmp( cl.oldframe->areabits, cl.frame.areabits, sizeof( cl.frame.areabits )))
 		cl.render_flags |= RDF_OLDAREABITS;

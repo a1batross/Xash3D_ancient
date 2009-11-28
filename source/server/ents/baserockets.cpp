@@ -318,7 +318,7 @@ CRpgRocket *CRpgRocket::Create ( Vector vecOrigin, Vector vecAngles, CBaseEntity
 {
 	CRpgRocket *pRocket = GetClassPtr( (CRpgRocket *)NULL );
 
-	UTIL_SetOrigin( pRocket, vecOrigin );
+	pRocket->pev->origin = vecOrigin;
 	pRocket->pev->angles = vecAngles;
 	pRocket->Spawn();
 	pRocket->SetTouch( RocketTouch );
@@ -340,8 +340,6 @@ IMPLEMENT_SAVERESTORE( CRpgRocket, CGrenade );
 void CRpgRocket :: Spawn( void )
 {
 	Precache( );
-
-	SetObjectClass( ED_NORMAL );
 
 	// motor
 	pev->movetype = MOVETYPE_BOUNCE;
@@ -596,7 +594,6 @@ CNukeExplode *CNukeExplode::Create ( Vector vecOrigin, CBaseEntity *pOwner )
 
 void CNukeExplode :: Spawn( void )
 {
-	SetObjectClass( ED_NORMAL );
 	Precache();
 	UTIL_SetModel( ENT( pev ), "models/props/nexplode.mdl" );	
 	TraceResult tr;
@@ -656,7 +653,7 @@ CWHRocket *CWHRocket::Create( Vector vecOrigin, Vector vecAngles, CBaseEntity *p
 {
 	CWHRocket *pRocket = GetClassPtr( (CWHRocket *)NULL );
 
-	UTIL_SetOrigin( pRocket, vecOrigin );
+	pRocket->pev->origin = vecOrigin;
 	pRocket->pev->angles = vecAngles;
 	pRocket->m_pLauncher = pLauncher;	// remember what RPG fired me. 
 	pRocket->pev->owner = pOwner->edict();
@@ -681,7 +678,6 @@ void CWHRocket :: Spawn( void )
 {
 	Precache( );
 
-	SetObjectClass( ED_NORMAL );
 	m_pPlayer = (CBasePlayer*)CBasePlayer::Instance( pev->owner );
 	if( !m_pPlayer ) // leveldesigner may put rocket on a map
 	{

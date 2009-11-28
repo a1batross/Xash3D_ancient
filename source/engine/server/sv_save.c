@@ -14,6 +14,8 @@ typedef struct save_header_s
 {
 	int	numEntities;	// actual edicts count
 	int	numConnections;	// level transitions count
+	int	maxEntities;	// total edicts count
+	int	maxClients;	// for multiplayer saves
 	float	time;		// sv.time at saved moment
 	char	mapName[CS_SIZE];	// svs.mapname
 } save_header_t;
@@ -31,6 +33,8 @@ static TYPEDESCRIPTION gSaveHeader[] =
 {
 	DEFINE_FIELD( save_header_t, numEntities, FIELD_INTEGER ),
 	DEFINE_FIELD( save_header_t, numConnections, FIELD_INTEGER ),
+	DEFINE_FIELD( save_header_t, maxEntities, FIELD_INTEGER ),
+	DEFINE_FIELD( save_header_t, maxClients, FIELD_INTEGER ),
 	DEFINE_FIELD( save_header_t, time, FIELD_TIME ),
 	DEFINE_ARRAY( save_header_t, mapName, FIELD_CHARACTER, CS_SIZE ),
 };
@@ -202,7 +206,9 @@ static void SV_SaveServerData( wfile_t *f, const char *name, bool bUseLandMark )
 
 	// initialize save header	
 	shdr.numEntities = svgame.globals->numEntities;
+	shdr.maxEntities = svgame.globals->maxEntities;
 	shdr.numConnections = svgame.SaveData.connectionCount;
+	shdr.maxClients = svgame.globals->maxClients;
 	shdr.time = svgame.SaveData.time;
 	com.strncpy( shdr.mapName, svs.mapname, CS_SIZE );
 
@@ -509,7 +515,11 @@ void SV_ReadEntities( wfile_t *l )
 
 	if( sv.loadgame )
 	{
-		SV_ConfigString( CS_MAXCLIENTS, va( "%i", sv_maxclients->integer ));
+		svgame.globals->maxClients = shdr.maxClients;
+		svgame.globals->maxEntities = shdr.maxEntities;
+
+		// FIXME: set it properly
+		Cvar_FullSet( "sv_maxclients", va( "%i", shdr.maxClients ), CVAR_SERVERINFO|CVAR_LATCH );
 		com.strncpy( sv.name, shdr.mapName, MAX_STRING );
 		svgame.globals->mapname = MAKE_STRING( sv.name );
 

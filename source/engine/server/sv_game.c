@@ -3568,9 +3568,8 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 	ent->v.solid = SOLID_BSP;
 	ent->v.movetype = MOVETYPE_PUSH;
 
-	SV_ConfigString( CS_MAXCLIENTS, va( "%i", sv_maxclients->integer ));
-	SV_ConfigString( CS_MAXEDICTS, va( "%i", GI->max_edicts ));
-
+	svgame.globals->maxEntities = GI->max_edicts;
+	svgame.globals->maxClients = sv_maxclients->integer;
 	svgame.globals->mapname = MAKE_STRING( sv.name );
 	svgame.globals->startspot = MAKE_STRING( sv.startspot );
 	svgame.globals->time = sv.time * 0.001f;
