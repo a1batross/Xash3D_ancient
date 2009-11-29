@@ -707,6 +707,9 @@ void CL_PrepVideo( void )
 	SCR_RegisterShaders(); // update with new sequence
 	SCR_UpdateScreen();
 
+	// clear physics interaction links
+	CL_ClearWorld ();
+
 	for( i = 0, mdlcount = 0; i < MAX_MODELS && cl.configstrings[CS_MODELS+1+i][0]; i++ )
 		mdlcount++; // total num models
 

@@ -87,12 +87,7 @@ void CL_WriteDemoHeader( const char *name )
 
 	for( i = 0; i < clgame.globals->maxEntities; i++ )
 	{
-		edict_t	*ent = EDICT_NUM( i );
-
-		if( ent->free ) continue;
-		Com_Assert( ent->pvClientData == NULL );
-		state = &ent->pvClientData->baseline;
-
+		state = &clgame.baselines[i];
 		if( !state->modelindex && !state->soundindex && !state->effects )
 			continue;
 

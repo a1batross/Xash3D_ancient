@@ -171,7 +171,7 @@ void CL_LinkEdict( edict_t *ent, bool touch_triggers )
 	CL_SetAbsBbox( ent );
 
 	cl_ent->linked = true;
-		
+
 	// ignore not solid bodies
 	if( ent->v.solid == SOLID_NOT )
 		return;

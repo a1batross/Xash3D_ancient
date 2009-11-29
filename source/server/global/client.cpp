@@ -995,9 +995,6 @@ void SpectatorThink( edict_t *pEntity )
 // FIXME: implement VirtualClass GetClass instead
 int AutoClassify( edict_t *pentToClassify )
 {
-	if( FNullEnt( pentToClassify ))
-		return ED_SPAWNED;
-
 	CBaseEntity *pClass;
 
 	pClass = CBaseEntity::Instance( pentToClassify );
@@ -1005,15 +1002,15 @@ int AutoClassify( edict_t *pentToClassify )
 
 	const char *classname = STRING( pClass->pev->classname );
 
-	if( !strnicmp( "worldspawn", classname, 10 ))
+	if ( !strnicmp( "worldspawn", classname, 10 ))
 	{
 		return ED_WORLDSPAWN;
 	}
 
 	// first pass: determine type by explicit parms
-	if( pClass->pev->solid == SOLID_TRIGGER )
+	if ( pClass->pev->solid == SOLID_TRIGGER )
 	{
-		if( FClassnameIs( pClass->pev, "ambient_generic" ) || FClassnameIs( pClass->pev, "target_speaker" ))	// FIXME
+		if ( FClassnameIs( pClass->pev, "ambient_generic" ) || FClassnameIs( pClass->pev, "target_speaker" ))	// FIXME
 		{
 			pClass->pev->flags |= FL_PHS_FILTER;
 			return ED_AMBIENT;
@@ -1022,26 +1019,26 @@ int AutoClassify( edict_t *pentToClassify )
 			return ED_NORMAL; // it's item or weapon
 		return ED_TRIGGER; // never sending to client
 	}
-	else if( pClass->pev->movetype == MOVETYPE_PHYSIC )
+	else if ( pClass->pev->movetype == MOVETYPE_PHYSIC )
 		return ED_RIGIDBODY;
-	else if( pClass->pev->solid == SOLID_BSP || pClass->pev->origin == g_vecZero )
+	else if ( pClass->pev->solid == SOLID_BSP || pClass->pev->origin == g_vecZero )
 	{
-		if( pClass->pev->movetype == MOVETYPE_CONVEYOR )
+		if ( pClass->pev->movetype == MOVETYPE_CONVEYOR )
 			return ED_MOVER;
-		else if( pClass->pev->flags & FL_WORLDBRUSH )
+		else if ( pClass->pev->flags & FL_WORLDBRUSH )
 			return ED_BSPBRUSH;
-		else if( pClass->pev->movetype == MOVETYPE_PUSH ) 
+		else if ( pClass->pev->movetype == MOVETYPE_PUSH ) 
 			return ED_MOVER;
-		else if( pClass->pev->movetype == MOVETYPE_NONE )
+		else if ( pClass->pev->movetype == MOVETYPE_NONE )
 			return ED_BSPBRUSH;
 	}
-	else if( pClass->pev->flags & FL_MONSTER )
+	else if ( pClass->pev->flags & FL_MONSTER )
 		return ED_MONSTER;
-	else if( pClass->pev->flags & FL_CLIENT )
+	else if ( pClass->pev->flags & FL_CLIENT )
 		return ED_CLIENT;
-	else if( !pClass->pev->modelindex && !pClass->pev->aiment )
+	else if ( !pClass->pev->modelindex && !pClass->pev->aiment )
 	{	
-		if( pClass->pev->noise || pClass->pev->noise1 || pClass->pev->noise2 || pClass->pev->noise3 )
+		if ( pClass->pev->noise || pClass->pev->noise1 || pClass->pev->noise2 || pClass->pev->noise3 )
 		{
 			pClass->pev->flags |= FL_PHS_FILTER;
 			return ED_AMBIENT;
@@ -1050,7 +1047,7 @@ int AutoClassify( edict_t *pentToClassify )
 	}
 
 	// mark as normal
-	if( pClass->pev->modelindex || pClass->pev->noise )
+	if ( pClass->pev->modelindex || pClass->pev->noise )
 		return ED_NORMAL;
 
 	// fail to classify :-(
@@ -1059,15 +1056,26 @@ int AutoClassify( edict_t *pentToClassify )
 
 int ServerClassifyEdict( edict_t *pentToClassify )
 {
+	if( FNullEnt( pentToClassify ))
+		return ED_SPAWNED;
+
+	CBaseEntity *pClass;
+
+	pClass = CBaseEntity::Instance( pentToClassify );
+	if( !pClass ) return ED_SPAWNED;
+
+	// user-defined
+	if( pClass->m_iClassType != ED_SPAWNED )
+		return pClass->m_iClassType;
+
 	int m_iNewClass = AutoClassify( pentToClassify );
 
 	if( m_iNewClass != ED_SPAWNED )
 	{
-		CBaseEntity *pClass;
-
-		pClass = CBaseEntity::Instance( pentToClassify );
+		// tell server.dll about new class
 		pClass->SetObjectClass( m_iNewClass );
 	}
+
 	return m_iNewClass;
 }
 
@@ -1108,6 +1116,8 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 	to->frame = pNet->pev->frame;		// any model current frame
 	to->contents = pNet->pev->contents;	// physic contents
 	to->framerate = pNet->pev->framerate;
+	to->mins = pNet->pev->mins;
+	to->maxs = pNet->pev->maxs;
 	to->flags = pNet->pev->flags;
 	to->rendercolor = pNet->pev->rendercolor;
 	to->oldorigin = pNet->pev->oldorigin;
@@ -1477,10 +1487,28 @@ int AddToFullPack( edict_t *pHost, edict_t *pClient, edict_t *pEdict, int hostfl
 		return 0;
 	}
 
+	Vector	delta = g_vecZero;	// for ambient sounds
+
+	// check for ambients distance
+	if( pEntity->m_iClassType == ED_AMBIENT )
+	{	
+		Vector	entorigin;
+
+		// don't send sounds if they will be attenuated away
+		if( pEntity->pev->origin == g_vecZero )
+			entorigin = (pEntity->pev->mins + pEntity->pev->maxs) * 0.5f;
+		else entorigin = pEntity->pev->origin;
+
+		// precalc delta distance for sounds
+		delta = pHost->v.origin - entorigin;
+	}
+
 	// check visibility
 	if( !ENGINE_CHECK_PVS( pEdict, pSet ))
 	{
-		return 0;
+		// g-cont: tune distance by taste :)
+		if( pEntity->m_iClassType == ED_AMBIENT && delta.Length() > 800 )
+			return 0;
 	}
 
 	if( FNullEnt( pHost )) HOST_ERROR( "pHost == NULL\n" );
@@ -1492,20 +1520,7 @@ int AddToFullPack( edict_t *pHost, edict_t *pClient, edict_t *pEdict, int hostfl
 			return 0;
 	}
 
-	// check for ambients distance
-	if( pEntity->m_iClassType == ED_AMBIENT )
-	{	
-		Vector	delta, entorigin;
-
-		// don't send sounds if they will be attenuated away
-		if( pEntity->pev->origin == g_vecZero )
-			entorigin = (pEntity->pev->mins + pEntity->pev->maxs) * 0.5f;
-		else entorigin = pEntity->pev->origin;
-
-		delta = pHost->v.origin - entorigin;
-		if( delta.Length() > 400 ) return 0; // you can tune this value by taste
-	}
-	else if( !pEntity->pev->modelindex || FStringNull( pEntity->pev->model ))
+	if( !pEntity->pev->modelindex || FStringNull( pEntity->pev->model ))
 	{
 		// can't ignore ents withouts models, because portals and mirrors can't working otherwise
 		// and null.mdl it's no more needs to be set: ED_CLASS rejection is working fine

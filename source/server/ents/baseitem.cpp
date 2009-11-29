@@ -26,9 +26,10 @@ void CItem::Spawn( void )
 	pev->movetype = MOVETYPE_TOSS;
 	pev->solid = SOLID_BBOX;
 
+	SetObjectClass( ED_NORMAL );
+
 	UTIL_SetModel( ENT( pev ), pev->model, Model() );
 	UTIL_SetOrigin( this, pev->origin );
-
 	UTIL_SetSize( pev, g_vecZero, g_vecZero );
 
 	SetTouch( ItemTouch );

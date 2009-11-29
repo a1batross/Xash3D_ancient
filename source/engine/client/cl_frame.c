@@ -44,9 +44,12 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 {
 	edict_t		*ent;
 	entity_state_t	*state;
+	bool		newent = (old) ? false : true;
 
 	ent = EDICT_NUM( newnum );
 	state = &cl.entity_curstates[cl.parse_entities & (MAX_PARSE_ENTITIES-1)];
+
+	if( newent ) old = &clgame.baselines[newnum];
 
 	if( unchanged ) *state = *old;
 	else MSG_ReadDeltaEntity( msg, old, state, newnum );
@@ -55,6 +58,7 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 
 	if( state->number == MAX_EDICTS )
 	{
+		Com_Assert( newent );
 		CL_FreeEdict( ent );
 		return; // entity was delta removed
 	}
@@ -66,6 +70,7 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 
 	// some data changes will force no lerping
 	if( state->ed_flags & ESF_NODELTA ) ent->pvClientData->serverframe = -99;
+	if( newent ) state->ed_flags |= ESF_LINKEDICT; // need to relink
 
 	if( ent->pvClientData->serverframe != cl.frame.serverframe - 1 )
 	{	
@@ -164,16 +169,8 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 
 		if( oldnum > newnum )
 		{	
-			edict_t	*ent = EDICT_NUM( newnum );
-
-			if( ent->free )
-			{
-				MsgDev( D_WARN, "CL_DeltaEntity: %i without baseline\n", newnum );
-				CL_InitEdict( ent );
-			}
-
 			// delta from baseline ?
-			CL_DeltaEntity( msg, newframe, newnum, &ent->pvClientData->baseline, false );
+			CL_DeltaEntity( msg, newframe, newnum, NULL, false );
 			continue;
 		}
 
@@ -416,8 +413,8 @@ void CL_AddLoopingSounds( void )
 
 	for( e = 1; e < clgame.globals->numEntities; e++ )
 	{
-		ent = CL_GetEdictByIndex( e );
-		if( !CL_IsValidEdict( ent )) continue;
+		ent = EDICT_NUM( e );
+		if( ent->free ) continue;
 
 		switch( ent->pvClientData->current.ed_type )
 		{

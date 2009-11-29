@@ -285,14 +285,16 @@ void CBasePlayerWeapon :: Spawn( void )
 	pev->solid = SOLID_BBOX;
           pev->sequence = 1; // set world animation
 
+	SetObjectClass( ED_NORMAL );
 	UTIL_SetModel( ENT( pev ), iWorldModel( ));
 	UTIL_SetOrigin( this, pev->origin );
-	
-	SetTouch( DefaultTouch );
-	SetThink( FallThink );
 
 	// pointsize until it lands on the ground.
 	UTIL_SetSize( pev, Vector( 0, 0, 0 ), Vector( 0, 0, 0 ));
+
+	
+	SetTouch( DefaultTouch );
+	SetThink( FallThink );
 
 	m_iSpot = 0;
 	pev->animtime = gpGlobals->time + 0.1;

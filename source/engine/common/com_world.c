@@ -132,23 +132,27 @@ uint World_ContentsForEdict( const edict_t *e )
 		}
 		else if( e->v.solid == SOLID_BSP )
 		{
-			switch( e->v.skin )
+			if( CM_GetModelType( e->v.modelindex ) == mod_brush )
 			{
-			case CONTENTS_WATER: return BASECONT_WATER;
-			case CONTENTS_SLIME: return BASECONT_SLIME;
-			case CONTENTS_LAVA: return BASECONT_LAVA;
-			case CONTENTS_CLIP: return BASECONT_PLAYERCLIP;
-			case CONTENTS_GRAVITY_FLYFIELD:
-			case CONTENTS_FLYFIELD:
-			case CONTENTS_FOG: return BASECONT_FOG;
-			default: return BASECONT_SOLID;
+				switch( e->v.skin )
+				{
+				case CONTENTS_WATER: return BASECONT_WATER;
+				case CONTENTS_SLIME: return BASECONT_SLIME;
+				case CONTENTS_LAVA: return BASECONT_LAVA;
+				case CONTENTS_CLIP: return BASECONT_PLAYERCLIP;
+				case CONTENTS_GRAVITY_FLYFIELD:
+				case CONTENTS_FLYFIELD:
+				case CONTENTS_FOG: return BASECONT_FOG;
+				default: return BASECONT_SOLID;
+				}
 			}
+			return BASECONT_BODY;
 		}
 		else if( e->v.solid == SOLID_NOT )
 		{
 			return BASECONT_NONE;
 		}
-		return BASECONT_SOLID;		
+		return BASECONT_BODY;		
 	}
 	return BASECONT_NONE;
 }

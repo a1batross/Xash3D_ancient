@@ -382,7 +382,7 @@ bool S_AddLoopingSound( int entnum, sound_t handle, float volume, float attn )
 	ch->fixedPosition = false;
 	ch->volume = 1.0f;
 	ch->pitch = 1.0f;
-	ch->distanceMult = 1.0f / ATTN_STATIC;
+	ch->distanceMult = 1.0f / ATTN_NORM;
 
 	S_SpatializeChannel( ch );
 	S_PlayChannel( ch, sfx );

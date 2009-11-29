@@ -1246,11 +1246,13 @@ void CGib :: Spawn( const char *szGibModel )
 	pev->rendermode = kRenderNormal;
 	pev->renderfx = kRenderFxNone;
 	pev->solid = SOLID_TRIGGER;
-	pev->classname = MAKE_STRING("gib");
-          
-	UTIL_SetModel(ENT(pev), szGibModel);
-	UTIL_SetSize(pev, g_vecZero, g_vecZero);
+	pev->classname = MAKE_STRING( "gib" );
+
+	SetObjectClass( ED_NORMAL );          
+	UTIL_SetModel( ENT( pev ), szGibModel );
+	UTIL_SetSize( pev, g_vecZero, g_vecZero );
 	m_lifeTime = MAX_GIB_LIFETIME;
+
 
 	m_material = None;
 	m_cBloodDecals = 5;// how many blood decals this gib can place (1 per bounce until none remain). 

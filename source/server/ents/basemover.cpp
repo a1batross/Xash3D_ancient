@@ -306,19 +306,20 @@ void CBaseMover :: ComplexMoveDoneNow( void )
 	UTIL_SetVelocity(this, g_vecZero);
 	UTIL_SetAvelocity(this, g_vecZero);
 	
-	if (m_pParent)
+	if ( m_pParent )
 	{
-		UTIL_AssignOrigin(this, m_vecFinalDest + m_pParent->pev->origin);
-		UTIL_AssignAngles(this, m_vecFinalAngle + m_pParent->pev->angles);
+		UTIL_AssignOrigin( this, m_vecFinalDest + m_pParent->pev->origin );
+		UTIL_AssignAngles( this, m_vecFinalAngle + m_pParent->pev->angles );
 	}
 	else
 	{
-		UTIL_AssignOrigin(this, m_vecFinalDest);
-          	UTIL_AssignAngles(this, m_vecFinalAngle);
+		UTIL_AssignOrigin( this, m_vecFinalDest );
+          	UTIL_AssignAngles( this, m_vecFinalAngle );
           }
 	
 	DontThink();
-	if( m_pfnCallWhenMoveDone )(this->*m_pfnCallWhenMoveDone)();
+	if( m_pfnCallWhenMoveDone )
+		(this->*m_pfnCallWhenMoveDone)();
 }
 
 //=======================================================================
@@ -354,17 +355,21 @@ void CBaseDoor::Spawn( )
 	UTIL_SetModel( ENT(pev), pev->model );
 	UTIL_SetOrigin(this, pev->origin);
 
-	//determine work style
-	if ( FBitSet ( pev->spawnflags, SF_DOOR_USE_ONLY )) SetTouch ( NULL );
+	// determine work style
+	if ( FBitSet ( pev->spawnflags, SF_DOOR_USE_ONLY ))
+		SetTouch ( NULL );
 	else SetTouch ( DoorTouch );
 
-          //if waittime is -1 - button forever stay pressed
-	if (FBitSet(pev->spawnflags, SF_DOOR_NO_AUTO_RETURN)) pev->impulse = 1;//toggleable door
-	if (m_flLip == 0) m_flLip = 4;//standart offset from Quake1
-	if (pev->speed == 0) pev->speed = 100;//default speed
+          // if waittime is -1 - button forever stay pressed
+	if ( FBitSet(pev->spawnflags, SF_DOOR_NO_AUTO_RETURN ))
+		pev->impulse = 1; // toggleable door
+
+	if ( m_flLip == 0 ) m_flLip = 4;	// standart offset from Quake1
+	if ( !m_flWait ) m_flWait = 2.0f;
+	if ( pev->speed == 0 ) pev->speed = 100; // default speed
 	m_iState = STATE_OFF;
 
-	if( IsRotatingDoor() && FBitSet (pev->spawnflags, SF_DOOR_START_OPEN))
+	if( IsRotatingDoor() && FBitSet( pev->spawnflags, SF_DOOR_START_OPEN ))
 	{
 		pev->angles = m_vecAngle2;
 		Vector vecSav = m_vecAngle1;
@@ -376,7 +381,8 @@ void CBaseDoor::Spawn( )
 
 void CBaseDoor :: PostSpawn( void )
 {
-	if( m_pParent ) m_vecPosition1 = pev->origin - m_pParent->pev->origin;
+	if ( m_pParent )
+		m_vecPosition1 = pev->origin - m_pParent->pev->origin;
 	else m_vecPosition1 = pev->origin;
 
 	// Subtract 2 from size because the engine expands bboxes by 1 in all directions
@@ -405,7 +411,7 @@ void CBaseDoor :: PostSpawn( void )
 
 void CBaseDoor::Precache( void )
 {
-	CBaseBrush::Precache();//precache damage sound
+	CBaseBrush::Precache(); // precache damage sound
 
 	int m_sounds = UTIL_LoadSoundPreset(m_iMoveSound);
 	if(IsWater()) m_sounds = 0;
@@ -467,11 +473,12 @@ void CBaseDoor::Precache( void )
 void CBaseDoor::DoorTouch( CBaseEntity *pOther )
 {
 	//make delay before retouching
-	if ( gpGlobals->time < pev->dmgtime) return;
+	if ( gpGlobals->time < pev->dmgtime )
+		return;
 	pev->dmgtime = gpGlobals->time + 1.0;
 	//m_hActivator = pOther;// remember who activated the door
 
-	if (!FStringNull(pev->targetname))
+	if ( !FStringNull( pev->targetname ))
 	{
 		// play locked sound
 		EMIT_SOUND(ENT(pev), CHAN_VOICE, (char*)STRING(pev->noise3), m_flVolume, ATTN_NORM);
@@ -489,30 +496,37 @@ void CBaseDoor::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE use
           	EMIT_SOUND(ENT(pev), CHAN_VOICE, (char*)STRING(pev->noise3), m_flVolume, ATTN_NORM);
 		return;
 	}
-	if(useType == USE_SHOWINFO)//show info
+
+	if ( useType == USE_SHOWINFO )
 	{
 		DEBUGHEAD;
 		Msg( "State: %s, Speed %g\n", GetStringForState( GetState()), pev->speed );
 		Msg( "Texture frame: %g. WaitTime: %g\n", pev->frame, m_flWait);
 	}
-	else if(m_iState != STATE_DEAD)//activate door
-	{         
-		//NOTE: STATE_DEAD is better method for simulate m_flWait -1 without fucking SetThink()
-		if (m_iState == STATE_TURN_ON || m_iState == STATE_TURN_OFF )return;//door in-moving
-		if (useType == USE_TOGGLE)
+	else if ( m_iState != STATE_DEAD )
+	{
+		// activate door
+		// NOTE: STATE_DEAD is better method for simulate m_flWait -1 without fucking SetThink()
+		if ( m_iState == STATE_TURN_ON || m_iState == STATE_TURN_OFF )
+			return; // door in-moving
+
+		if ( useType == USE_TOGGLE )
 		{
 			if(m_iState == STATE_OFF) useType = USE_ON;
 			else useType = USE_OFF;
 		}
-		if(useType == USE_ON)
+		if ( useType == USE_ON )
 		{
-			if( m_iState == STATE_OFF )DoorGoUp();
+			if( m_iState == STATE_OFF )
+				DoorGoUp();
 		}
 		else if( useType == USE_OFF )
 		{
-			if(m_iState == STATE_ON && pev->impulse) DoorGoDown();
+			if( m_iState == STATE_ON && pev->impulse )
+				DoorGoDown();
 		}
-		else if( useType == USE_SET )pev->frame = !pev->frame; //change texture
+		else if( useType == USE_SET )
+			pev->frame = !pev->frame; //change texture
 	}
 }
 
@@ -539,9 +553,9 @@ void CBaseDoor::DoorGoUp( void )
 			Vector vnext = (m_hActivator->pev->origin + (gpGlobals->v_forward * 10)) - pev->origin;
 			if ( (vec.x * vnext.y - vec.y * vnext.x) < 0 ) sign = -1;
 		}
-		AngularMove(m_vecAngle2 * sign, pev->speed);
+		AngularMove( m_vecAngle2 * sign, pev->speed );
 	}
-	else LinearMove(m_vecPosition2, pev->speed);
+	else LinearMove( m_vecPosition2, pev->speed );
 }
 
 void CBaseDoor::DoorHitTop( void )
@@ -549,12 +563,13 @@ void CBaseDoor::DoorHitTop( void )
 	STOP_SOUND(ENT(pev), CHAN_STATIC, (char*)STRING(pev->noise1) );
 	EMIT_SOUND(ENT(pev), CHAN_STATIC, (char*)STRING(pev->noise2), m_flVolume, ATTN_NORM);
 
-	ASSERT(m_iState == STATE_TURN_ON);
+	ASSERT( m_iState == STATE_TURN_ON );
 	m_iState = STATE_ON;
           
-	if(pev->impulse == 0)//time base door
+	if( pev->impulse == 0 ) // time base door
 	{
-		if(m_flWait == -1) m_iState = STATE_DEAD;//keep door in this position
+		if( m_flWait == -1 )
+			m_iState = STATE_DEAD;//keep door in this position
 		else 
 		{
 			SetThink( DoorGoDown );
@@ -564,7 +579,7 @@ void CBaseDoor::DoorHitTop( void )
 	else if ( !FBitSet ( pev->spawnflags, SF_DOOR_USE_ONLY )) SetTouch( DoorTouch );
 	
 	// Fire the close target (if startopen is set, then "top" is closed)
-	if (pev->spawnflags & SF_DOOR_START_OPEN)
+	if ( pev->spawnflags & SF_DOOR_START_OPEN )
 		UTIL_FireTargets( pev->netname, m_hActivator, this, USE_TOGGLE );
 	UTIL_FireTargets( pev->target, m_hActivator, this, USE_TOGGLE );
 }

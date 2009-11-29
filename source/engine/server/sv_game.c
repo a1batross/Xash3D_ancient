@@ -722,6 +722,83 @@ sv_client_t *SV_ClientFromEdict( const edict_t *pEdict, bool spawned_only )
 	return client;
 }
 
+/*
+=========
+SV_BaselineForEntity
+
+assume pEdict is valid
+=========
+*/
+void SV_BaselineForEntity( const edict_t *pEdict )
+{
+	sv_priv_t	*sv_ent;
+
+	sv_ent = pEdict->pvServerData;
+	if( !sv_ent ) return;
+
+	// update baseline for new entity
+	if( !sv_ent->s.number )
+	{
+		entity_state_t	*base;
+
+		base = &sv_ent->s;
+
+		if( pEdict->v.modelindex || pEdict->v.effects )
+		{
+			// take current state as baseline
+			SV_UpdateEntityState( pEdict, true );
+			svs.baselines[pEdict->serialnumber] = *base;
+                    }
+
+		if( sv.state == ss_active && ( base->modelindex || base->soundindex || base->effects ))
+		{
+			entity_state_t	nullstate;
+
+			Mem_Set( &nullstate, 0, sizeof( nullstate ));
+			MSG_WriteByte( &sv.multicast, svc_spawnbaseline );
+			MSG_WriteDeltaEntity( &nullstate, base, &sv.multicast, true, true );
+			MSG_DirectSend( MSG_ALL, vec3_origin, NULL );
+		}
+	}
+}
+
+
+/*
+=================
+SV_ClassifyEdict
+
+sorting edict by type
+=================
+*/
+void SV_ClassifyEdict( edict_t *ent, int m_iNewClass )
+{
+	sv_priv_t	*sv_ent;
+
+	sv_ent = ent->pvServerData;
+	if( !sv_ent ) return;
+
+	// take baseline
+	SV_BaselineForEntity( ent );
+
+	if( m_iNewClass != ED_SPAWNED )
+	{
+		sv_ent->s.ed_type = m_iNewClass;
+		return;
+	}
+
+	if( sv_ent->s.ed_type != ED_SPAWNED )
+		return;
+
+	// auto-classify
+	sv_ent->s.ed_type = svgame.dllFuncs.pfnClassifyEdict( ent );
+
+	if( sv_ent->s.ed_type != ED_SPAWNED )
+	{
+		// or leave unclassified, wait for next SV_LinkEdict...
+		// Msg( "AutoClass: %s: <%s>\n", STRING( ent->v.classname ), ed_name[sv_ent->s.ed_type] );
+	}
+}
+
 void SV_SetClientMaxspeed( sv_client_t *cl, float fNewMaxspeed )
 {
 	// fakeclients must be changed speed too
@@ -2792,14 +2869,12 @@ classify edict for render and network usage
 */
 void pfnClassifyEdict( edict_t *pEdict, int class )
 {
-	if( !pEdict || pEdict->free || !pEdict->pvServerData )
+	if( !SV_IsValidEdict( pEdict ))
 	{
-		MsgDev( D_ERROR, "SV_ClassifyEdict: can't modify free entity\n" );
+		MsgDev( D_WARN, "SV_ClassifyEdict: invalid entity %s\n", SV_ClassName( pEdict ));
 		return;
 	}
-
-	pEdict->pvServerData->s.ed_type = class;
-	MsgDev( D_LOAD, "%s: <%s>\n", STRING( pEdict->v.classname ), ed_name[class] );
+	SV_ClassifyEdict( pEdict, class );
 }
 
 /*

@@ -73,50 +73,6 @@ void SV_ClearWorld( void )
 }
 
 /*
-=================
-SV_ClassifyEdict
-
-sorting edict by type
-=================
-*/
-void SV_ClassifyEdict( edict_t *ent )
-{
-	sv_priv_t		*sv_ent;
-
-	sv_ent = ent->pvServerData;
-	if( !sv_ent || sv_ent->s.ed_type != ED_SPAWNED )
-		return;
-
-	// update baseline for new entity
-	if( !sv_ent->s.number )
-	{
-		entity_state_t	*base, nullstate;
-
-		base = &ent->pvServerData->s;
-		Mem_Set( &nullstate, 0, sizeof( nullstate ));
-
-		// take current state as baseline
-		SV_UpdateEntityState( ent, true );
-		svs.baselines[ent->serialnumber] = *base;
-
-		if( base->modelindex || base->soundindex || base->effects )
-		{
-			MSG_WriteByte( &sv.multicast, svc_spawnbaseline );
-			MSG_WriteDeltaEntity( &nullstate, base, &sv.multicast, true, true );
-			MSG_DirectSend( MSG_ALL, vec3_origin, NULL );
-		}
-	}
-
-	sv_ent->s.ed_type = svgame.dllFuncs.pfnClassifyEdict( ent );
-
-	if( sv_ent->s.ed_type != ED_SPAWNED )
-	{
-		// or leave unclassified, wait for next SV_LinkEdict...
-		// Msg( "%s: <%s>\n", STRING( ent->v.classname ), ed_name[sv_ent->s.ed_type] );
-	}
-}
-
-/*
 ====================
 SV_TouchLinks
 ====================
@@ -194,7 +150,7 @@ void SV_LinkEdict( edict_t *ent, bool touch_triggers )
 
 	// trying to classify unclassified edicts
 	if( sv.state == ss_active && sv_ent->s.ed_type == ED_SPAWNED )
-		SV_ClassifyEdict( ent );
+		SV_ClassifyEdict( ent, ED_SPAWNED );
 
 	// set the abs box
 	svgame.dllFuncs.pfnSetAbsBox( ent );

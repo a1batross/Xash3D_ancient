@@ -555,7 +555,7 @@ void CL_FindExplosionPlane( const vec3_t origin, float radius, vec3_t result )
 	{
 		VectorMA( origin, radius, planes[i], point );
 
-		trace = CL_Move( origin, vec3_origin, vec3_origin, point, MOVE_WORLDONLY, NULL );
+		trace = CL_Move( origin, vec3_origin, vec3_origin, point, MOVE_NOMONSTERS, NULL );
 		if( trace.fAllSolid || trace.flFraction == 1.0f )
 			continue;
 
@@ -790,7 +790,7 @@ void CL_AddParticles( void )
 			// underwater particle
 			VectorSet( oldorigin, origin[0], origin[1], origin[2] + radius );
 
-			if(!(CL_PointContents( oldorigin ) & MASK_WATER ))
+			if(!(CL_BaseContents( oldorigin, player ) & MASK_WATER ))
 			{
 				// not underwater
 				CL_FreeParticle( p );
@@ -809,7 +809,7 @@ void CL_AddParticles( void )
 		if( p->flags & PARTICLE_FRICTION )
 		{
 			// water friction affected particle
-			contents = CL_PointContents( origin );
+			contents = CL_BaseContents( origin, player );
 			if( contents & MASK_WATER )
 			{
 				// add friction
@@ -855,7 +855,7 @@ void CL_AddParticles( void )
 			VectorSet(mins, -radius, -radius, -radius);
 			VectorSet(maxs, radius, radius, radius);
 
-			trace = CL_Move( p->oldorigin, mins, maxs, origin, MOVE_NORMAL, clent );
+			trace = CL_Move( p->oldorigin, mins, maxs, origin, MOVE_NOMONSTERS, clent );
 			if( trace.flFraction != 0.0f && trace.flFraction != 1.0f )
 			{
 				// reflect velocity
@@ -1166,11 +1166,12 @@ void CL_TestLights( void )
 	int		i, j;
 	float		f, r;
 	cdlight_t		dl;
+	edict_t		*ed = CL_GetLocalPlayer();
 
-	if( cl_testflashlight->integer )
+	// Temporary flashlight for Xash 0.68 beta
+	if( ed->v.effects & EF_DIMLIGHT )
 	{
-		vec3_t		end;
-		edict_t		*ed = CL_GetLocalPlayer();
+		vec3_t		end, mins, maxs;
 		static shader_t	flashlight_shader = -1;
 		trace_t		trace;
 
@@ -1181,13 +1182,17 @@ void CL_TestLights( void )
 #endif
 		VectorScale( cl.refdef.forward, 256, end );
 		VectorAdd( end, cl.refdef.vieworg, end );
+		VectorSet( mins, -4, -4, -4 );
+		VectorSet( maxs, 4, 4, 4 );
 
-		trace = CL_Move( cl.refdef.vieworg, vec3_origin, vec3_origin, end, MOVE_NORMAL, ed );
+		trace = CL_Move( cl.refdef.vieworg, mins, maxs, end, MOVE_NORMAL, ed );
 		VectorSet( dl.color, 1.0f, 1.0f, 1.0f );
-		dl.intensity = 96;
 		dl.texture = flashlight_shader;
-		if( CL_IsValidEdict( trace.pHit )) Msg( "Trace.hit %s\n", CL_ClassName( trace.pHit ));
-		VectorCopy( trace.vecEndPos, dl.origin );
+		dl.intensity = 96;
+
+		if( trace.flFraction != 1.0f )
+			VectorMA( trace.vecEndPos, 16.0f, trace.vecPlaneNormal, dl.origin );
+		else VectorCopy( trace.vecEndPos, dl.origin );
 
 		re->AddDynLight( &dl );
 	}

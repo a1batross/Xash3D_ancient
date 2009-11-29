@@ -306,7 +306,7 @@ void SV_DeactivateServer( void );
 void SV_LevelInit( const char *newmap, const char *oldmap, const char *savename );
 void SV_SpawnServer( const char *server, const char *startspot );
 int SV_FindIndex( const char *name, int start, int end, bool create );
-void SV_ClassifyEdict( edict_t *ent );
+void SV_ClassifyEdict( edict_t *ent, int m_iNewClass );
 
 //
 // sv_phys.c
@@ -366,7 +366,7 @@ void SV_Newgame_f( void );
 //
 void SV_WriteFrameToClient( sv_client_t *client, sizebuf_t *msg );
 void SV_BuildClientFrame( sv_client_t *client );
-void SV_UpdateEntityState( edict_t *ent, bool baseline );
+void SV_UpdateEntityState( const edict_t *ent, bool baseline );
 
 //
 // sv_game.c
@@ -382,6 +382,7 @@ bool SV_CopyEdict( edict_t *out, edict_t *in );
 void SV_ConfigString( int index, const char *val );
 void SV_SetModel( edict_t *ent, const char *name );
 void SV_CopyTraceToGlobal( trace_t *trace );
+void SV_BaselineForEntity( const edict_t *pEdict );
 script_t *SV_GetEntityScript( const char *filename );
 float SV_AngleMod( float ideal, float current, float speed );
 void SV_SpawnEntities( const char *mapname, script_t *entities );

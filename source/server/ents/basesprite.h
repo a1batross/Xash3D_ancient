@@ -113,24 +113,32 @@ public:
 	//spawn gibs
 	static void SpawnHeadGib( CBaseEntity *pVictim, string_t m_iGibModel = NULL )
 	{
-		if(FStringNull( m_iGibModel )) CreateGib( pVictim, "models/hgibs.mdl", 1 );
+		if( FStringNull( m_iGibModel ))
+			CreateGib( pVictim, "models/gibs/hgibs.mdl", 1 );
 		else CreateGib( pVictim, STRING( m_iGibModel ), 1 );
 	}
+
 	static void SpawnRandomGibs( CBaseEntity *pVictim, int cGibs, int human, string_t m_iGibModel = NULL )
 	{
 		const char *model;
-		if(FStringNull( m_iGibModel ))
+		if( FStringNull( m_iGibModel ))
 		{
-			if(human) model = "models/hgibs.mdl";
-			else model = "models/agibs.mdl"; 
+			if( human ) model = "models/gibs/hgibs.mdl";
+			else model = "models/gibs/agibs.mdl"; 
 		}
 		else model = (char *)STRING( m_iGibModel );
-		for(int i = 0; i < cGibs; i++) CreateGib( pVictim, model, 0 );
+
+		for( int i = 0; i < cGibs; i++ )
+			CreateGib( pVictim, model, 0 );
 	}
+
 	static void SpawnStickyGibs( CBaseEntity *pVictim, int cGibs, string_t m_iGibModel = NULL )
 	{
-		if(!FStringNull( m_iGibModel )) for(int i = 0; i < cGibs; i++) CreateGib( pVictim, STRING( m_iGibModel ), 2 );
-		else for(int i = 0; i < cGibs; i++) CreateGib( pVictim, "models/stickygib.mdl", 2 );
+		if( !FStringNull( m_iGibModel ))
+			for( int i = 0; i < cGibs; i++ )
+				CreateGib( pVictim, STRING( m_iGibModel ), 2 );
+		else for( int i = 0; i < cGibs; i++ )
+			CreateGib( pVictim, "models/gibs/stickygib.mdl", 2 );
 	}
 
 	int m_bloodColor;

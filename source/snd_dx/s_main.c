@@ -510,7 +510,7 @@ void S_StopAllSounds( void )
 
 /*
 ==================
-S_AddLoopinSound
+S_AddLoopingSound
 
 Entities with a ->sound field will generated looped sounds
 that are automatically started, stopped, and merged together
@@ -561,7 +561,7 @@ bool S_AddLoopingSound( int entnum, sound_t handle, float volume, float attn )
 	ch->loopnum = entnum;
 	ch->loopframe = s_framecount;
 	ch->fixed_origin = false;
-	ch->dist_mult = ATTN_STATIC * 0.001;
+	ch->dist_mult = ATTN_NORM * 0.001;
 	ch->pos = paintedtime % sfx->cache->length;
 	ch->end = paintedtime + sfx->cache->length - ch->pos;
 

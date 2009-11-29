@@ -44,7 +44,7 @@ Copy entvars into entity state
 
 =============================================================================
 */
-void SV_UpdateEntityState( edict_t *ent, bool baseline )
+void SV_UpdateEntityState( const edict_t *ent, bool baseline )
 {
 	sv_client_t	*client = ent->pvServerData->client;
 
@@ -65,7 +65,7 @@ void SV_UpdateEntityState( edict_t *ent, bool baseline )
 		}
 	}
 
-	svgame.dllFuncs.pfnUpdateEntityState( &ent->pvServerData->s, ent, baseline );
+	svgame.dllFuncs.pfnUpdateEntityState( &ent->pvServerData->s, (edict_t *)ent, baseline );
 
 	// always keep an actual
 	ent->pvServerData->s.number = ent->serialnumber;

@@ -396,6 +396,9 @@ void CL_ParseServerData( sizebuf_t *msg )
 	// need to prep refresh at next oportunity
 	cl.video_prepped = false;
 	cl.audio_prepped = false;
+
+	// initialize world and clients
+	CL_InitWorld ();
 }
 
 /*
@@ -407,12 +410,11 @@ void CL_ParseBaseline( sizebuf_t *msg )
 {
 	int		newnum;
 	entity_state_t	nullstate;
+	entity_state_t	*baseline;
 	edict_t		*ent;
 
 	Mem_Set( &nullstate, 0, sizeof( nullstate ));
 	newnum = MSG_ReadWord( msg );
-
-	if( !newnum ) CL_InitWorld ();
 
 	if( newnum < 0 ) Host_Error( "CL_SpawnEdict: invalid number %i\n", newnum );
 	if( newnum > clgame.globals->maxEntities ) Host_Error( "CL_AllocEdict: no free edicts\n" );
@@ -422,9 +424,13 @@ void CL_ParseBaseline( sizebuf_t *msg )
 		clgame.globals->numEntities++;
 
 	ent = EDICT_NUM( newnum );
-	if( ent->free ) CL_InitEdict( ent );
+	if( ent->free ) CL_InitEdict( ent ); // initialize edict
 
-	MSG_ReadDeltaEntity( msg, &nullstate, &ent->pvClientData->baseline, newnum );
+	if( cls.state == ca_active )
+		Msg( "SpawnBaseline: %i\n", newnum );
+	baseline = &clgame.baselines[newnum];
+	MSG_ReadDeltaEntity( msg, &nullstate, baseline, newnum );
+	CL_LinkEdict( ent, false ); // first entering, link always
 }
 
 /*

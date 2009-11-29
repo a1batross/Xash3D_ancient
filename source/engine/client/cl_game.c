@@ -507,8 +507,7 @@ void CL_InitWorld( void )
 	edict_t	*ent;
 	int	i;
 
-	if( cls.state == ca_active )
-		return;
+	Msg( "CL_InitWorld ()\n" );
 
 	ent = EDICT_NUM( 0 );
 	if( ent->free ) CL_InitEdict( ent );
@@ -536,8 +535,6 @@ void CL_InitWorld( void )
 
 	// clear viewmodel prevstate
 	Mem_Set( &clgame.viewent.pvClientData->latched, 0, sizeof( prevframe_t ));
-
-	CL_ClearWorld ();
 }
 
 void CL_InitEdicts( void )
@@ -546,7 +543,10 @@ void CL_InitEdicts( void )
 	int	i;
 
 	Com_Assert( clgame.edicts != NULL );
+	Com_Assert( clgame.baselines != NULL );
+
 	clgame.edicts = Mem_Alloc( clgame.mempool, sizeof( edict_t ) * clgame.globals->maxEntities );
+	clgame.baselines = Mem_Alloc( clgame.mempool, sizeof( entity_state_t ) * clgame.globals->maxEntities );
 	for( i = 0, e = clgame.edicts; i < clgame.globals->maxEntities; i++, e++ )
 		e->free = true; // mark all edicts as freed
 }
@@ -567,10 +567,13 @@ void CL_FreeEdicts( void )
 		Mem_Free( clgame.edicts );
 	}
 
+	if( clgame.baselines ) Mem_Free( clgame.baselines );
+
 	// clear globals
 	StringTable_Clear( clgame.hStringTable );
 	clgame.globals->numEntities = 0;
 	clgame.globals->numClients = 0;
+	clgame.baselines = NULL;
 	clgame.edicts = NULL;
 }
 
@@ -1831,6 +1834,7 @@ bool CL_LoadProgs( const char *name )
 	cls.mempool = Mem_AllocPool( "Client Static Pool" );
 	clgame.mempool = Mem_AllocPool( "Client Edicts Zone" );
 	clgame.private = Mem_AllocPool( "Client Private Zone" );
+	clgame.baselines = NULL;
 	clgame.edicts = NULL;
 
 	clgame.hInstance = Com_LoadLibrary( libpath );

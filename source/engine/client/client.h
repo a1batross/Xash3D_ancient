@@ -170,7 +170,6 @@ struct cl_priv_s
 
 	int		serverframe;	// if not current, this ent isn't in the frame
 
-	entity_state_t	baseline;
 	entity_state_t	current;
 	entity_state_t	prev;		// will always be valid, but might just be a copy of current
 	prevframe_t	latched;		// previous frame to lerping from
@@ -274,6 +273,7 @@ typedef struct
 
 	cl_globalvars_t	*globals;
 	user_message_t	*msg[MAX_USER_MESSAGES];
+	entity_state_t	*baselines;
 
 	tri_state_t	*pTri;
 

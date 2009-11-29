@@ -115,7 +115,6 @@ public:
 	virtual void SetObjectClass( int iClassType = ED_SPAWNED )
 	{
 		m_iClassType = iClassType;
-		CLASSIFY_EDICT( ENT( pev ), m_iClassType );
 	}
 
           virtual BOOL IsItem( void ) { return FALSE; }

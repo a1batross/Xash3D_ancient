@@ -123,28 +123,14 @@ baseline will be transmitted
 */
 void SV_CreateBaseline( void )
 {
-	edict_t	*svent;
+	edict_t	*pEdict;
 	int	entnum;	
 
 	for( entnum = 1; entnum < svgame.globals->numEntities; entnum++ )
 	{
-		svent = EDICT_NUM( entnum );
-		if( svent->free ) continue;
-		if( !svent->v.modelindex && !svent->pvServerData->s.soundindex && !svent->v.effects )
-			continue;
-		svent->serialnumber = entnum;
-
-		// take current state as baseline
-		SV_UpdateEntityState( svent, true );
-
-		svs.baselines[entnum] = svent->pvServerData->s;
-	}
-
-	// classify edicts for quick network sorting
-	for( entnum = 0; entnum < svgame.globals->numEntities; entnum++ )
-	{
-		svent = EDICT_NUM( entnum );
-		SV_ClassifyEdict( svent );
+		pEdict = EDICT_NUM( entnum );
+		if( pEdict->free ) continue;
+		SV_ClassifyEdict( pEdict, ED_SPAWNED );
 	}
 }
 
