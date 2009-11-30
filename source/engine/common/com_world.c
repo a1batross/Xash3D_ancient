@@ -146,7 +146,7 @@ uint World_ContentsForEdict( const edict_t *e )
 				default: return BASECONT_SOLID;
 				}
 			}
-			return BASECONT_BODY;
+			return BASECONT_SOLID; // world
 		}
 		else if( e->v.solid == SOLID_NOT )
 		{

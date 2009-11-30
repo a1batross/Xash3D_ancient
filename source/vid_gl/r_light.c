@@ -481,12 +481,12 @@ R_LightForEntity
 */
 void R_LightForEntity( ref_entity_t *e, byte *bArray )
 {
-	unsigned int i, lnum;
-	dlight_t *dl;
-	unsigned int dlightbits;
-	float dot, dist;
-	vec3_t lightDirs[MAX_DLIGHTS], direction, temp;
-	vec4_t ambient, diffuse;
+	dlight_t	*dl;
+	uint	i, lnum;
+	uint	dlightbits;
+	float	dot, dist;
+	vec3_t	lightDirs[MAX_DLIGHTS], direction, temp;
+	vec4_t	ambient, diffuse;
 
 	if(( e->flags & EF_FULLBRIGHT ) || r_fullbright->value )
 		return;

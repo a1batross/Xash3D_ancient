@@ -1190,14 +1190,17 @@ void CEnvExplosion::Explode( void )
 	}
 	
 	// Pull out of the wall a bit
-	if ( tr.flFraction != 1.0 ) pev->origin = tr.vecEndPos + (tr.vecPlaneNormal * (pev->dmg - 24) * 0.6);
+	if ( tr.flFraction != 1.0 && tr.vecPlaneNormal[2] < 0.7f )
+		pev->origin = tr.vecEndPos + (tr.vecPlaneNormal * (pev->dmg - 24) * 0.6);
           int iContents = UTIL_PointContents ( pev->origin );
 
 	entvars_t *pevOwner;
 	if ( pev->owner ) pevOwner = VARS( pev->owner );
 	else pevOwner = NULL;
 	pev->owner = NULL; // can't traceline attack owner if this is set
-          if(pev->dmg <= 0)pev->dmg = 100; //Smart field system ®
+         
+	if ( pev->dmg <= 0 )
+          	pev->dmg = 100; //Smart field system ®
           
 
           if( iContents == CONTENTS_WATER )

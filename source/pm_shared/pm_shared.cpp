@@ -850,7 +850,7 @@ int PM_FlyMove( void )
 		}
 		// If the plane has a zero z component in the normal, then it's a 
 		//  step or wall
-		if( !trace.vecPlaneNormal.z )
+		if( trace.vecPlaneNormal.z == 0.0f )
 		{
 			blocked |= 2; // step / wall
 			// ALERT( at_console, "Blocked by %s\n", STRING( trace.pHit->v.classname ));

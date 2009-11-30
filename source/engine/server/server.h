@@ -260,6 +260,7 @@ extern	cvar_t		*sv_maxvelocity;
 extern	cvar_t		*sv_gravity;
 extern	cvar_t		*sv_stopspeed;
 extern	cvar_t		*sv_fps;			// running server at
+extern	cvar_t		*sv_check_errors;
 extern	cvar_t		*sv_enforcetime;
 extern	cvar_t		*sv_reconnect_limit;
 extern	cvar_t		*rcon_password;

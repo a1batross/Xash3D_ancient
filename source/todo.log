@@ -188,3 +188,4 @@ Beta 13.12.09
 161. fix basevelocity			OK
 162. rewrote auto-classify			OK
 163. rewrote sv_phys.c
+164. remove vprogs.dll

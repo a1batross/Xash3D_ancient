@@ -115,7 +115,7 @@ void CGrenade::BounceTouch( CBaseEntity *pOther )
 	if (m_flNextAttack < gpGlobals->time && pev->velocity.Length() > 100)
 	{
 		entvars_t *pevOwner = VARS( pev->owner );
-		if (pevOwner)
+		if( pevOwner )
 		{
 			TraceResult tr = UTIL_GetGlobalTrace( );
 			ClearMultiDamage( );
@@ -149,8 +149,9 @@ void CGrenade::BounceTouch( CBaseEntity *pOther )
 	if (pev->flags & FL_ONGROUND)
 	{
 		// add a bit of static friction
+		Msg( "On ground()\n" );
 		pev->velocity = pev->velocity * 0.8;
-		pev->sequence = RANDOM_LONG( 2, 2 );
+		pev->sequence = 1;
 	}
 	else
 	{
@@ -229,8 +230,9 @@ void CGrenade:: Spawn( void )
 	
 	pev->solid = SOLID_BBOX;
 
+	SetObjectClass( ED_NORMAL );
 	UTIL_SetModel( ENT( pev ), "models/grenade.mdl");
-	UTIL_SetSize( pev, Vector( -1, -1, -4 ), Vector( 13, 5, 4 ));
+	UTIL_SetSize(pev, Vector( 0, 0, 0), Vector(0, 0, 0));
 
 	pev->dmg = 100;
 	m_fRegisteredSound = FALSE;
@@ -269,8 +271,10 @@ CGrenade *CGrenade::ShootContact( entvars_t *pevOwner, Vector vecStart, Vector v
 CGrenade * CGrenade:: ShootTimed( entvars_t *pevOwner, Vector vecStart, Vector vecVelocity, float time )
 {
 	CGrenade *pGrenade = GetClassPtr( (CGrenade *)NULL );
+
+	pGrenade->pev->sequence = RANDOM_LONG( 3, 6 );
+	pGrenade->pev->origin = vecStart;
 	pGrenade->Spawn();
-	UTIL_SetOrigin( pGrenade, vecStart );
 	pGrenade->pev->velocity = vecVelocity;
 	pGrenade->pev->angles = UTIL_VecToAngles( pGrenade->pev->velocity );
 	pGrenade->pev->owner = ENT(pevOwner);
@@ -291,7 +295,6 @@ CGrenade * CGrenade:: ShootTimed( entvars_t *pevOwner, Vector vecStart, Vector v
 		pGrenade->pev->velocity = Vector( 0, 0, 0 );
 	}
 		
-	pGrenade->pev->sequence = RANDOM_LONG( 4, 7 );
 	pGrenade->pev->framerate = 1.0;
           pGrenade->pev->flags |= FL_PROJECTILE;
           
@@ -300,8 +303,9 @@ CGrenade * CGrenade:: ShootTimed( entvars_t *pevOwner, Vector vecStart, Vector v
 
 	pGrenade->pev->gravity = 0.5;
 	pGrenade->pev->friction = 0.8;
+	pGrenade->pev->scale = 0.5;	// original Valve model is too big :)
 
-	UTIL_SetModel( ENT( pGrenade->pev ), "models/weapons/w_grenade.mdl" );
+	UTIL_SetModel( ENT( pGrenade->pev ), "models/props/handgrenade.mdl" );
 	pGrenade->pev->dmg = 100;
 
 	return pGrenade;
@@ -368,6 +372,7 @@ void CRpgRocket :: RocketTouch ( CBaseEntity *pOther )
 	CBaseEntity *pPlayer = CBaseEntity::Instance(pev->owner);
 	if ( m_pLauncher ) m_pLauncher->m_cActiveRocket--;
 	STOP_SOUND( edict(), CHAN_VOICE, "weapons/rpg/rocket1.wav" );
+
 	ExplodeTouch( pOther );
 }
 
@@ -381,6 +386,7 @@ void CRpgRocket::Detonate( void )
 	vecSpot = pev->origin + Vector ( 0 , 0 , 8 );
 	UTIL_TraceLine ( vecSpot, vecSpot + Vector ( 0, 0, -40 ),  ignore_monsters, ENT(pev), & tr);
 
+	ALERT( at_console, "Detonate()\n" );
 	Explode( &tr, DMG_BLAST );
 }
 
