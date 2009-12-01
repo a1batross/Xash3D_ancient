@@ -291,12 +291,11 @@ NOTE: at this day we have ten instances
 2. "dedicated" - dedicated server
 3. "normal" - normal or dedicated game launch
 4. "bsplib" - four BSP compilers in one
-5. "qcclib" - quake c complier
-6. "sprite" - sprite creator (requires qc. script)
-7. "studio" - Half-Life style models creator (requires qc. script) 
-8. "roqlib" - wad-file maker
-9. "ripper" - resource EXTRActor GENeric
-10."ximage" - ImageLib Processng
+5. "sprite" - sprite creator (requires qc. script)
+6. "studio" - Half-Life style models creator (requires qc. script) 
+7. "roqlib" - wad-file maker
+8. "ripper" - resource EXTRActor GENeric
+9. "ximage" - ImageLib Processng
 ==================
 */
 void Sys_LookupInstance( void )
@@ -353,13 +352,6 @@ void Sys_LookupInstance( void )
 		Sys.linked_dll = &xtools_dll;	// pointer to common.dll info
 		com_strcpy(Sys.log_path, "bsplib.log" ); // xash3d root directory
 		com_strcpy(Sys.caption, "Xash3D BSP Compiler");
-	}
-	else if( !com_strcmp( Sys.progname, "qcclib" ))
-	{
-		Sys.app_name = HOST_QCCLIB;
-		Sys.linked_dll = &xtools_dll;	// pointer to common.dll info
-		com_sprintf(Sys.log_path, "%s/compile.log", sys_rootdir ); // same as .exe file
-		com_strcpy(Sys.caption, "Xash3D QuakeC Compiler");
 	}
 	else if(!com_strcmp(Sys.progname, "sprite"))
 	{
@@ -423,7 +415,6 @@ void Sys_CreateInstance( void )
 	case HOST_DEDICATED:
 	case HOST_XIMAGE:		
 	case HOST_BSPLIB:
-	case HOST_QCCLIB:
 	case HOST_SPRITE:
 	case HOST_STUDIO:
 	case HOST_WADLIB:
@@ -465,7 +456,6 @@ void Sys_CreateInstance( void )
 		break;
 	case HOST_XIMAGE:
 	case HOST_BSPLIB:
-	case HOST_QCCLIB:
 	case HOST_SPRITE:
 	case HOST_STUDIO:
 	case HOST_WADLIB:

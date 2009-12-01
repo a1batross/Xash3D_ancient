@@ -240,96 +240,6 @@ bool Cmd_GetDemoList( const char *s, char *completedname, int length )
 
 /*
 =====================================
-Cmd_GetProgsList
-
-Prints or complete vm source folder name
-=====================================
-*/
-bool Cmd_GetProgsList( const char *s, char *completedname, int length )
-{
-	search_t		*t;
-	string		matchbuf;
-	int		i, numprogs;
-
-	t = FS_Search( va( "bin%s*.dat", s ), true );
-	if( !t ) return false;
-
-	FS_FileBase( t->filenames[0], matchbuf ); 
-	if( completedname && length ) com.strncpy( completedname, matchbuf, length );
-	if( t->numfilenames == 1 ) return true;
-
-	for( i = 0, numprogs = 0; i < t->numfilenames; i++ )
-	{
-		const char *ext = FS_FileExtension( t->filenames[i] ); 
-
-		if( com.stricmp( ext, "dat" )) continue;
-		FS_FileBase( t->filenames[i], matchbuf );
-		Msg( "%16s\n", matchbuf );
-		numprogs++;
-	}
-	Msg( "\n^3 %i progs found.\n", numprogs );
-	Mem_Free( t );
-
-	// cut shortestMatch to the amount common with s
-	if( completedname && length )
-	{
-		for( i = 0; matchbuf[i]; i++ )
-		{
-			if( com.tolower( completedname[i] ) != com.tolower( matchbuf[i] ))
-				completedname[i] = 0;
-		}
-	}
-	return true;
-}
-
-/*
-=====================================
-Cmd_GetSourceList
-
-Prints or complete vm progs name
-=====================================
-*/
-bool Cmd_GetSourceList( const char *s, char *completedname, int length )
-{
-	search_t		*t;
-	string		matchbuf;
-	int		i, numworkspaces;
-
-	// NOTE: we want ignore folders without "progs.src" inside
-	t = FS_Search(va("%s/%s*", GI->vsrcdir, s ), true);
-	if( !t ) return false;
-	if( t->numfilenames == 1 && !FS_FileExists(va("%s/progs.src", t->filenames[0] )))
-		return false;
-
-	FS_FileBase( t->filenames[0], matchbuf ); 
-	if(completedname && length) com.strncpy( completedname, matchbuf, length );
-	if( t->numfilenames == 1 ) return true;
-
-	for(i = 0, numworkspaces = 0; i < t->numfilenames; i++)
-	{
-		if(!FS_FileExists(va("%s/progs.src", t->filenames[i] )))
-			continue; 
-		FS_FileBase(t->filenames[i], matchbuf );
-		Msg("%16s\n", matchbuf );
-		numworkspaces++;
-	}
-	Msg("\n^3 %i workspaces found.\n", numworkspaces );
-	Mem_Free(t);
-
-	// cut shortestMatch to the amount common with s
-	if( completedname && length )
-	{
-		for( i = 0; matchbuf[i]; i++ )
-		{
-			if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
-				completedname[i] = 0;
-		}
-	}
-	return true;
-}
-
-/*
-=====================================
 Cmd_GetMovieList
 
 Prints or complete movie filename
@@ -815,22 +725,11 @@ bool Cmd_CheckMapsList( void )
 
 autocomplete_list_t cmd_list[] =
 {
-{ "prvm_printfucntion", Cmd_GetProgsList },
 { "gl_texturemode", Cmd_GetTexturemodes },
 { "stringlist", Cmd_GetStringTablesList },
-{ "prvm_edictcount", Cmd_GetProgsList },
-{ "prvm_globalset", Cmd_GetProgsList },
-{ "prvm_edictset", Cmd_GetProgsList },
-{ "prvm_profile", Cmd_GetProgsList },
-{ "prvm_globals", Cmd_GetProgsList },
-{ "prvm_edicts", Cmd_GetProgsList },
-{ "prvm_fields", Cmd_GetProgsList },
-{ "prvm_global", Cmd_GetProgsList },
-{ "prvm_edict", Cmd_GetProgsList },
 { "playsound", Cmd_GetSoundList },
 { "changelevel", Cmd_GetMapList },
 { "playdemo", Cmd_GetDemoList, },
-{ "compile", Cmd_GetSourceList },
 { "setfont", Cmd_GetFontList, },
 { "music", Cmd_GetSoundList, },
 { "movie", Cmd_GetMovieList },

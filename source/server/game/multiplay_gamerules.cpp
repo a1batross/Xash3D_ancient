@@ -921,8 +921,6 @@ void DestroyMapCycle( mapcycle_t *cycle )
 	cycle->next_item = NULL;
 }
 
-static char com_token[ 1500 ];
-
 /*
 ==============
 COM_TokenWaiting
@@ -930,9 +928,9 @@ COM_TokenWaiting
 Returns 1 if additional data is waiting to be processed on this line
 ==============
 */
-int COM_TokenWaiting( char *buffer )
+int COM_TokenWaiting( const char *buffer )
 {
-	char *p;
+	const char *p;
 
 	p = buffer;
 	while ( *p && *p!='\n')
@@ -961,8 +959,9 @@ int ReloadMapCycleFile( char *filename, mapcycle_t *cycle )
 	char szBuffer[ MAX_RULE_BUFFER ];
 	char szMap[ 32 ];
 	int length;
-	char *pFileList;
-	char *aFileList = pFileList = (char*)LOAD_FILE( filename, &length );
+	char *pToken;
+	char *aFileList = (char *)LOAD_FILE( filename, &length );
+	const char *pFileList = aFileList;
 	int hasbuffer;
 	mapcycle_item_s *item, *newlist = NULL, *next;
 
@@ -974,20 +973,20 @@ int ReloadMapCycleFile( char *filename, mapcycle_t *cycle )
 			hasbuffer = 0;
 			memset( szBuffer, 0, MAX_RULE_BUFFER );
 
-			pFileList = COM_Parse( pFileList );
-			if ( strlen( com_token ) <= 0 )
+			pToken = COM_Parse( &pFileList );
+			if ( strlen( pToken ) <= 0 )
 				break;
 
-			strcpy( szMap, com_token );
+			strcpy( szMap, pToken );
 
 			// Any more tokens on this line?
 			if ( COM_TokenWaiting( pFileList ) )
 			{
-				pFileList = COM_Parse( pFileList );
-				if ( strlen( com_token ) > 0 )
+				pToken = COM_Parse( &pFileList );
+				if ( strlen( pToken ) > 0 )
 				{
 					hasbuffer = 1;
-					strcpy( szBuffer, com_token );
+					strcpy( szBuffer, pToken );
 				}
 			}
 

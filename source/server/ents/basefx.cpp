@@ -1568,151 +1568,152 @@ void CEnvShooter :: Setup( void )
 	case Sticky: pev->team = MOVETYPE_TOSS; pev->solid = SOLID_BBOX; break;
 	case Fly: pev->team = MOVETYPE_FLY; break;
 	case Toss: pev->team = MOVETYPE_TOSS; break;
-	case WalkStep: pev->team = MOVETYPE_STEP; break;
 	}
 }
 
 int CEnvShooter :: ParseGibFile( void ) 
 {
-	char token[256];
-	char *pfile = (char *)LOAD_FILE( (char *)STRING(pev->message), NULL );
+	char *token;
+	char *afile = (char *)LOAD_FILE( STRING( pev->message ), NULL );
+	const char *pfile = afile;
 	
-	if(!pfile)
+	if( !pfile )
 	{
- 		Msg( "Warning: Gib script file for %s not found!\n", STRING(pev->targetname) );
+ 		ALERT( at_warning, "Gib script file for %s not found!\n", STRING( pev->targetname ));
  		return 0;
 	}
 	else
 	{
-
-		pfile = COM_ParseFile(pfile, token);
-		while(pfile)
+		while( pfile )
 		{
-			if ( !stricmp( token, "model" ))
+			token = COM_ParseToken( &pfile );
+
+			if ( !FStriCmp( token, "model" ))
 			{
-				pfile = COM_ParseFile(pfile, token);
+				token = COM_ParseToken( &pfile );
 				m_sMaster = ALLOC_STRING( token );
 			} 
-			else if ( !stricmp( token, "entity" ))
+			else if ( !FStriCmp( token, "entity" ))
 			{
-				pfile = COM_ParseFile(pfile, token);
+				token = COM_ParseToken( &pfile );
 				entity = ALLOC_STRING( token );
 			}
-			else if ( !stricmp( token, "speed" ))
+			else if ( !FStriCmp( token, "speed" ))
 			{
-				pfile = COM_ParseFile(pfile, token);
+				token = COM_ParseToken( &pfile );
 				velocity = RandomRange((char *)STRING(ALLOC_STRING(token)));
 			}
-			else if ( !stricmp( token, "variance" ))
+			else if ( !FStriCmp( token, "variance" ))
 			{
-				pfile = COM_ParseFile(pfile, token);
+				token = COM_ParseToken( &pfile );
 				variance = RandomRange((char *)STRING(ALLOC_STRING(token)));
 			}
-			else if ( !stricmp( token, "livetime" ))
+			else if ( !FStriCmp( token, "livetime" ))
 			{
-				pfile = COM_ParseFile(pfile, token);
+				token = COM_ParseToken( &pfile );
 				lifetime = RandomRange((char *)STRING(ALLOC_STRING(token)));
 			}
-			else if ( !stricmp( token, "friction" ))
+			else if ( !FStriCmp( token, "friction" ))
 			{
-				pfile = COM_ParseFile(pfile, token);
+				token = COM_ParseToken( &pfile );
 				RandomRange((char *)STRING(ALLOC_STRING(token)));
 				Msg("param %s, min %g max %g\n", token, m_flMin, m_flMax );
 				pev->friction = RANDOM_FLOAT( m_flMin, m_flMax );
 			}
-			else if ( !stricmp( token, "scale" ))
+			else if ( !FStriCmp( token, "scale" ))
 			{
-				pfile = COM_ParseFile(pfile, token);
+				token = COM_ParseToken( &pfile );
 				RandomRange((char *)STRING(ALLOC_STRING(token)));
 				Msg("param %s, min %g max %g\n", token, m_flMin, m_flMax );
 				pev->scale = RANDOM_FLOAT( m_flMin, m_flMax );
 			}
-			else if ( !stricmp( token, "body" ))
+			else if ( !FStriCmp( token, "body" ))
 			{
-				pfile = COM_ParseFile(pfile, token);
+				token = COM_ParseToken( &pfile );
 				RandomRange((char *)STRING(ALLOC_STRING(token)));
 				Msg("param %s, min %g max %g\n", token, m_flMin, m_flMax );
 				pev->body = RANDOM_FLOAT( m_flMin, m_flMax - 1 );
 			}
-			else if ( !stricmp( token, "skin" ))
+			else if ( !FStriCmp( token, "skin" ))
 			{
-				pfile = COM_ParseFile(pfile, token);
+				token = COM_ParseToken( &pfile );
 				RandomRange((char *)STRING(ALLOC_STRING(token)));
 				Msg("param %s, min %g max %g\n", token, m_flMin, m_flMax );
 				pev->skin = RANDOM_FLOAT( m_flMin, m_flMax );
 			}
-			else if ( !stricmp( token, "frame" ))
+			else if ( !FStriCmp( token, "frame" ))
 			{
-				pfile = COM_ParseFile(pfile, token);
+				token = COM_ParseToken( &pfile );
 				RandomRange((char *)STRING(ALLOC_STRING(token)));
 				Msg("param %s, min %g max %g\n", token, m_flMin, m_flMax );
 				pev->frame = RANDOM_FLOAT( m_flMin, m_flMax );
 			}
-			else if ( !stricmp( token, "alpha" ))
+			else if ( !FStriCmp( token, "alpha" ))
 			{
-				pfile = COM_ParseFile(pfile, token);
+				token = COM_ParseToken( &pfile );
 				RandomRange((char *)STRING(ALLOC_STRING(token)));
 				Msg("param %s, min %g max %g\n", token, m_flMin, m_flMax );
 				pev->renderamt = RANDOM_FLOAT( m_flMin, m_flMax );
 			}
-			else if ( !stricmp( token, "color" ))
+			else if ( !FStriCmp( token, "color" ))
 			{
-				pfile = COM_ParseFile(pfile, token);
+				token = COM_ParseToken( &pfile );
 				UTIL_StringToVector((float *)pev->rendercolor, token );
 			}
-			else if ( !stricmp( token, "rendermode" ))
+			else if ( !FStriCmp( token, "rendermode" ))
 			{
-				pfile = COM_ParseFile(pfile, token);
-				if ( !stricmp( token, "normal" )) pev->rendermode = kRenderNormal;
-				else if ( !stricmp( token, "color" )) pev->rendermode = kRenderTransColor;
-				else if ( !stricmp( token, "texture" )) pev->rendermode = kRenderTransTexture;
-				else if ( !stricmp( token, "glow" )) pev->rendermode = kRenderGlow;
-				else if ( !stricmp( token, "solid" )) pev->rendermode = kRenderTransAlpha;
-				else if ( !stricmp( token, "additive" )) pev->rendermode = kRenderTransAdd;
+				token = COM_ParseToken( &pfile );
+				if ( !FStriCmp( token, "normal" )) pev->rendermode = kRenderNormal;
+				else if ( !FStriCmp( token, "color" )) pev->rendermode = kRenderTransColor;
+				else if ( !FStriCmp( token, "texture" )) pev->rendermode = kRenderTransTexture;
+				else if ( !FStriCmp( token, "glow" )) pev->rendermode = kRenderGlow;
+				else if ( !FStriCmp( token, "solid" )) pev->rendermode = kRenderTransAlpha;
+				else if ( !FStriCmp( token, "additive" )) pev->rendermode = kRenderTransAdd;
 			}
-			else if ( !stricmp( token, "sfx" ))
+			else if ( !FStriCmp( token, "sfx" ))
 			{
-				pfile = COM_ParseFile(pfile, token);
-				if ( !stricmp( token, "hologramm" )) pev->renderfx = kRenderFxHologram;
-				else if ( !stricmp( token, "glowshell" )) pev->renderfx = kRenderFxGlowShell;
+				token = COM_ParseToken( &pfile );
+				if ( !FStriCmp( token, "hologramm" )) pev->renderfx = kRenderFxHologram;
+				else if ( !FStriCmp( token, "glowshell" )) pev->renderfx = kRenderFxGlowShell;
 			}
-			else if ( !stricmp( token, "size" ))
+			else if ( !FStriCmp( token, "size" ))
 			{
 				UTIL_StringToVector((float*)pev->size, token);
 				pev->size = pev->size/2;
 			}
-			else if ( !stricmp( token, "material" ))
+			else if ( !FStriCmp( token, "material" ))
 			{
-				pfile = COM_ParseFile(pfile, token);
-				if ( !stricmp( token, "none" )) m_Material = None;
-				else if ( !stricmp( token, "bones" )) m_Material = Bones;
-				else if ( !stricmp( token, "flesh" )) m_Material = Flesh;
-				else if ( !stricmp( token, "cinder block" )) m_Material = CinderBlock;
-				else if ( !stricmp( token, "concrete" )) m_Material = Concrete;
-				else if ( !stricmp( token, "rocks" )) m_Material = Rocks;				
-				else if ( !stricmp( token, "computer" )) m_Material = Computer;
-				else if ( !stricmp( token, "glass" )) m_Material = Glass;
-				else if ( !stricmp( token, "metalplate" )) m_Material = MetalPlate;
-				else if ( !stricmp( token, "metal" )) m_Material = Metal;
-				else if ( !stricmp( token, "airduct" )) m_Material = AirDuct;
-				else if ( !stricmp( token, "ceiling tile" )) m_Material = CeilingTile;
-				else if ( !stricmp( token, "wood" )) m_Material = Wood;
+				token = COM_ParseToken( &pfile );
+				if ( !FStriCmp( token, "none" )) m_Material = None;
+				else if ( !FStriCmp( token, "bones" )) m_Material = Bones;
+				else if ( !FStriCmp( token, "flesh" )) m_Material = Flesh;
+				else if ( !FStriCmp( token, "cinder block" )) m_Material = CinderBlock;
+				else if ( !FStriCmp( token, "concrete" )) m_Material = Concrete;
+				else if ( !FStriCmp( token, "rocks" )) m_Material = Rocks;				
+				else if ( !FStriCmp( token, "computer" )) m_Material = Computer;
+				else if ( !FStriCmp( token, "glass" )) m_Material = Glass;
+				else if ( !FStriCmp( token, "metalplate" )) m_Material = MetalPlate;
+				else if ( !FStriCmp( token, "metal" )) m_Material = Metal;
+				else if ( !FStriCmp( token, "airduct" )) m_Material = AirDuct;
+				else if ( !FStriCmp( token, "ceiling tile" )) m_Material = CeilingTile;
+				else if ( !FStriCmp( token, "wood" )) m_Material = Wood;
 			}
-			else if ( !stricmp( token, "physics" ))
+			else if ( !FStriCmp( token, "physics" ))
 			{
-				pfile = COM_ParseFile(pfile, token);
-				if ( !stricmp( token, "bounce" )) m_Physics = Bounce;
-				else if ( !stricmp( token, "sticky" )) m_Physics = Sticky;
-				else if ( !stricmp( token, "noclip" )) m_Physics = Noclip;
-				else if ( !stricmp( token, "fly" )) m_Physics = Fly;				
-				else if ( !stricmp( token, "toss" )) m_Physics = Toss;
-			}         else if ( !stricmp( token, "walk" )) m_Physics = WalkStep;
-			pfile = COM_ParseFile(pfile, token);
+				token = COM_ParseToken( &pfile );
+				if ( !FStriCmp( token, "bounce" )) m_Physics = Bounce;
+				else if ( !FStriCmp( token, "sticky" )) m_Physics = Sticky;
+				else if ( !FStriCmp( token, "noclip" )) m_Physics = Noclip;
+				else if ( !FStriCmp( token, "fly" )) m_Physics = Fly;				
+				else if ( !FStriCmp( token, "toss" )) m_Physics = Toss;
+			}
 		}
-		COM_FreeFile( pfile );
-		if(FStringNull( m_sMaster) && FStringNull( entity ))
+
+		COM_FreeFile( afile );
+
+		if( FStringNull( m_sMaster) && FStringNull( entity ))
 		{
-			Msg("Warning: model or entity not specified for %s\n", STRING(pev->targetname));
+			ALERT( at_warning, "model or entity not specified for %s\n", STRING( pev->targetname ));
 			return 0;
 		}
 		return 1;

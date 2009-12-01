@@ -23,7 +23,6 @@ engine\server\
 engine\uimenu\
 engine\common\
 launch\
-launch\qcc\
 launch\xwad\
 launch\xash\
 launch\bsplib\
@@ -41,7 +40,6 @@ server\ents\
 server\game\
 server\global\
 server\monsters\
-vprogs\
 snd_al\
 snd_dx\
 vid_gl\

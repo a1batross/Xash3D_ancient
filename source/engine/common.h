@@ -16,7 +16,6 @@
 #include "entity_def.h"
 #include "render_api.h"
 #include "physic_api.h"
-#include "vprogs_api.h"
 #include "vsound_api.h"
 #include "safeproc.h"
 #include "net_msg.h"
@@ -137,13 +136,6 @@ bool SV_Active( void );
 
 ==============================================================
 */
-
-//
-// obsolete vm stuff
-//
-#define VM_Frame		vm->Update
-
-
 void pfnMemCopy( void *dest, const void *src, size_t cb, const char *filename, const int fileline );
 cvar_t *pfnCVarRegister( const char *szName, const char *szValue, int flags, const char *szDesc );
 char *pfnMemFgets( byte *pMemFile, int fileSize, int *filePos, char *pBuffer, int bufferSize );

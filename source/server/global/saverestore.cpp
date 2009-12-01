@@ -43,6 +43,8 @@ TYPEDESCRIPTION gEntvarsDescription[] =
 	DEFINE_ENTITY_FIELD( modelindex, FIELD_INTEGER ),
 	DEFINE_ENTITY_GLOBAL_FIELD( model, FIELD_MODELNAME ),
 
+	DEFINE_ENTITY_FIELD( soundindex, FIELD_INTEGER ),
+
 	DEFINE_ENTITY_FIELD( viewmodel, FIELD_MODELNAME ),
 	DEFINE_ENTITY_FIELD( weaponmodel, FIELD_MODELNAME ),
 
@@ -346,7 +348,7 @@ unsigned short CSaveRestoreBuffer :: TokenHash( const char *pszToken )
 		if ( index >= m_pdata->tokenCount )
 			index -= m_pdata->tokenCount;
 
-		if ( !m_pdata->pTokens[index] || strcmp( pszToken, m_pdata->pTokens[index] ) == 0 )
+		if ( !m_pdata->pTokens[index] || FStrCmp( pszToken, m_pdata->pTokens[index] ) == 0 )
 		{
 			m_pdata->pTokens[index] = (char *)pszToken;
 			return index;
@@ -517,7 +519,7 @@ void EntvarsKeyvalue( entvars_t *pev, KeyValueData *pkvd )
 	{
 		pField = &gEntvarsDescription[i];
 
-		if( !stricmp( pField->fieldName, pkvd->szKeyName ))
+		if( !FStriCmp( pField->fieldName, pkvd->szKeyName ))
 		{
 			switch( pField->fieldType )
 			{
@@ -764,7 +766,7 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 	{
 		fieldNumber = (i + startField) % fieldCount;
 		pTest = &pFields[fieldNumber];
-		if( !stricmp( pTest->fieldName, pName ))
+		if( !FStriCmp( pTest->fieldName, pName ))
 		{
 			if( !m_global || !(pTest->flags & FTYPEDESC_GLOBAL) )
 			{

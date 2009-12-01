@@ -40,6 +40,7 @@ typedef struct entvars_s
 	float		yaw_speed;
 
 	int		modelindex;	// ENG [all], NET [all]
+	int		soundindex;	// ENG [all], NET [all]
 
 	string_t		model;		// model name
 	string_t		viewmodel;	// player's viewmodel (no network updates)

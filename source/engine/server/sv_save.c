@@ -147,7 +147,7 @@ static void SV_SaveEngineData( wfile_t *f )
 {
 	byte		*portalstate = NULL;
 	int		i, portalsize, numpairs = 0;
-	dkeyvalue_t	cvbuffer[MAX_FIELDS];
+	dkeyvalue_t	cvbuffer[512];
 	string_t		csbuffer[MAX_CONFIGSTRINGS];
 
 	// save areaportals state

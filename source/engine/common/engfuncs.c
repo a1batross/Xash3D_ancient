@@ -1,6 +1,6 @@
 //=======================================================================
 //			Copyright XashXT Group 2008 ©
-//		vm_engfuncs.c - misc functions used by virtual machine
+//		engfuncs.c - misc functions used by dlls'
 //=======================================================================
 
 #include "common.h"
@@ -20,8 +20,7 @@ simple dlls version
 */
 char *pfnParseToken( const char **data_p )
 {
-	int		c;
-	int		len = 0;
+	int		c, len = 0;
 	const char	*data;
 	static char	token[8192];
 	

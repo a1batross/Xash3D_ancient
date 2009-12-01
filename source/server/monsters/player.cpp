@@ -3331,31 +3331,36 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 		}
 		else
 		{
-			gEvilImpulse101 = TRUE;
-			char *pfile = (char *)LOAD_FILE( "scripts/impulse101.txt", NULL );
+			char *afile = (char *)LOAD_FILE( "scripts/impulse101.txt", NULL );
+			const char *pfile = afile;
 			int ItemName[256];
 			int count = 0;
-			char token[32];
+			char *token;
 
-			if( pfile )
+			token = COM_ParseToken( &pfile );
+
+			while( token )
 			{
-				char *afile = pfile;
-				while( pfile )
+				// parsing impulse101.txt
+				if( strlen( token ))
 				{
-					// parsing impulse101.txt
-					pfile = COM_ParseFile( pfile, token );
-					if(strlen( token ))
-					{
-						ItemName[count] = ALLOC_STRING( (char *)token );
-						count++;
-					}
+					ItemName[count] = ALLOC_STRING( token );
+					count++;
 				}
-				COM_FreeFile( afile );
-				for( int i = 0; i < count; i++ )
-					GiveNamedItem( (char *)STRING( ItemName[i]) );
+				token = COM_ParseToken( &pfile );
 			}
-			GiveOnlyAmmo = TRUE;//no need to give all weapons again
+
+			COM_FreeFile( afile );
+
+			gEvilImpulse101 = TRUE;
+
+			for( int i = 0; i < count; i++ )
+			{
+				GiveNamedItem( (char *)STRING( ItemName[i]) );
+                              }
+
 			gEvilImpulse101 = FALSE;
+			GiveOnlyAmmo = TRUE; // no need to give all weapons again
 		}
 	}
 	break;

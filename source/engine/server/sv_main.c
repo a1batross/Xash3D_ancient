@@ -34,6 +34,7 @@ cvar_t	*sv_accelerate;
 cvar_t	*sv_friction;
 cvar_t	*sv_edgefriction;
 cvar_t	*sv_waterfriction;
+cvar_t	*sv_synchthink;
 cvar_t	*sv_stopspeed;
 cvar_t	*hostname;
 cvar_t	*sv_maxclients;
@@ -547,6 +548,7 @@ void SV_Init( void )
 	sv_stopspeed = Cvar_Get( "sv_stopspeed", "100", 0, "how fast you come to a complete stop" );
 	sv_maxclients = Cvar_Get( "sv_maxclients", "1", CVAR_SERVERINFO|CVAR_LATCH, "server clients limit" );
 	sv_check_errors = Cvar_Get( "sv_check_errors", "1", CVAR_ARCHIVE, "ignore physic engine errors" );
+	sv_synchthink = Cvar_Get( "sv_fast_think", "0", CVAR_ARCHIVE, "allows entities to think more often than the server framerate" );
 	
 	public_server = Cvar_Get ("public", "0", 0, "change server type from private to public" );
 

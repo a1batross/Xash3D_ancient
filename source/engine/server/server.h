@@ -147,8 +147,18 @@ struct sv_priv_s
 	int		framenum;		// update framenumber
 	int		areanum, areanum2;
 	bool		linked;		// passed through SV_LinkEdict
+
 	bool		stuck;		// entity stucked in brush
 	bool		suspended;	// suspended on a brush entity
+
+	// cached position to avoid redundant SV_CheckWaterTransition calls on monsters
+	bool		forceupdate;	// force an update on this entity
+					// (set by SV_PushMove code for moving water entities)
+	vec3_t		water_origin;	// updates whenever this changes
+
+	vec3_t		moved_origin;	// used by PushMove to keep track of where objects were before
+	vec3_t		moved_angles;	// they were moved, in case they need to be moved back
+
 	size_t		pvdata_size;	// member size of alloceed pvPrivateData
 					// (used by SV_CopyEdict)
 	entity_state_t	s;		// baseline (this is a player_state too)
@@ -261,6 +271,7 @@ extern	cvar_t		*sv_gravity;
 extern	cvar_t		*sv_stopspeed;
 extern	cvar_t		*sv_fps;			// running server at
 extern	cvar_t		*sv_check_errors;
+extern	cvar_t		*sv_synchthink;
 extern	cvar_t		*sv_enforcetime;
 extern	cvar_t		*sv_reconnect_limit;
 extern	cvar_t		*rcon_password;
@@ -315,10 +326,8 @@ void SV_ClassifyEdict( edict_t *ent, int m_iNewClass );
 void SV_Physics( void );
 void SV_CheckVelocity( edict_t *ent );
 bool SV_CheckWater( edict_t *ent );
-int SV_TryUnstick( edict_t *ent, vec3_t oldvel );
-void SV_CheckStuck( edict_t *ent );
 bool SV_RunThink( edict_t *ent );
-void SV_UnstickEntity( edict_t *ent );
+bool SV_UnstickEntity( edict_t *ent );
 
 //
 // sv_move.c
@@ -389,6 +398,7 @@ float SV_AngleMod( float ideal, float current, float speed );
 void SV_SpawnEntities( const char *mapname, script_t *entities );
 edict_t* SV_AllocPrivateData( edict_t *ent, string_t className );
 string_t SV_AllocString( const char *szValue );
+sv_client_t *SV_ClientFromEdict( const edict_t *pEdict, bool spawned_only );
 const char *SV_GetString( string_t iString );
 void SV_SetClientMaxspeed( sv_client_t *cl, float fNewMaxspeed );
 bool SV_MapIsValid( const char *filename, const char *spawn_entity );

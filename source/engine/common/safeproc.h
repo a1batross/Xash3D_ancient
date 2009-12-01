@@ -8,7 +8,6 @@
 // linked interfaces
 extern stdlib_api_t		com;
 extern physic_exp_t		*pe;
-extern vprogs_exp_t		*vm;
 extern vsound_exp_t		*se;
 
 //

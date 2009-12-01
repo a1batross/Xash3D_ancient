@@ -359,8 +359,8 @@ void CSwitcher :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE u
 	{
 		ALERT(at_console, "======/Xash Debug System/======\n");
 		ALERT(at_console, "classname: %s\n", STRING(pev->classname));
-		ALERT(at_console, "State: %s, number of targets %d\n", GetStringForState( GetState()), m_cTargets - 1);
-		ALERT(at_console, "Current target %s, target number %d\n", STRING(m_iTargetName[ m_index ]), m_index );
+		ALERT(at_console, "State: %s, number of targets %d\n", GetStringForState(GetState()), m_cTargets-1);
+		ALERT(at_console, "Current target %s, target number %d\n", STRING(m_iTargetName[m_index]), m_index);
 	}
 	else if(m_index != -1)//fire any other USE_TYPE and right index
 	{
@@ -525,9 +525,128 @@ public:
 			if(pev->impulse == 1)//direct scale
 				UTIL_FireTargets(pev->target, pActivator, this, USE_SET, value * pev->scale );
 			if(pev->impulse == 2)//inverse sacle
-				UTIL_FireTargets(pev->target, pActivator, this, USE_SET, pev->scale * (1-value));
+				UTIL_FireTargets(pev->target, pActivator, this, USE_SET, pev->scale*(1-value));
 		}         	
 	}
 };
 LINK_ENTITY_TO_CLASS( logic_scale, CLogicScale);
+
+/*QUAKED func_timer (0.3 0.1 0.6) (-8 -8 -8) (8 8 8) START_ON
+"wait"			base time between triggering all targets, default is 1
+"random"		wait variance, default is 0
+
+so, the basic time between firing is a random time between
+(wait - random) and (wait + random)
+
+"delay"			delay before first firing when turned on, default is 0
+
+"pausetime"		additional delay used only the very first time
+				and only if spawned with START_ON
+
+These can used but not touched.
+*/
+class CLogicTimer : public CBaseLogic
+{
+public:
+	void Spawn( void );
+	void KeyValue( KeyValueData *pkvd );
+	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	void Think( void );
+};
+LINK_ENTITY_TO_CLASS( func_timer, CLogicTimer );
+LINK_ENTITY_TO_CLASS( logic_timer, CLogicTimer );
+
+void CLogicTimer :: Think( void )
+{
+	UTIL_FireTargets( pev->target, m_hActivator, this, USE_TOGGLE, 0.0f );
+	SetNextThink( m_flWait + RANDOM_FLOAT( 0.0f, 1.0f ) * pev->frags );
+}
+
+void CLogicTimer :: KeyValue( KeyValueData *pkvd )
+{
+	if ( FStrEq( pkvd->szKeyName, "random" ))
+	{
+		pev->frags = atof(pkvd->szValue);
+		pkvd->fHandled = TRUE;
+	}
+	if ( FStrEq( pkvd->szKeyName, "pausetime" ))
+	{
+		pev->health = atof(pkvd->szValue);
+		pkvd->fHandled = TRUE;
+	}
+	else CBaseLogic::KeyValue( pkvd );
+}
+
+void CLogicTimer :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	m_hActivator = pActivator;
+
+	// if on, turn it off
+	if( pev->nextthink )
+	{
+		DontThink ();
+		return;
+	}
+
+	// turn it on
+	if( m_flDelay )
+		SetNextThink( m_flDelay );
+	else SetNextThink( 0 );
+}
+
+void CLogicTimer :: Spawn( void )
+{
+	if ( pev->frags <= 0.0f )
+		pev->frags = 1.0f;
+	if ( !m_flWait ) m_flWait = 1.0f;
+
+	if ( pev->frags >= m_flWait )
+		pev->frags = m_flWait - gpGlobals->frametime;
+
+	if ( pev->spawnflags & 1 )
+	{
+		SetNextThink( 1.0f + pev->health + m_flDelay + m_flWait + RANDOM_FLOAT( 0.0f, 1.0f ) * pev->frags );
+		m_hActivator = this;
+	}
+}
+
+/*QUAKED target_delay (1 0 0) (-8 -8 -8) (8 8 8)
+"wait" seconds to pause before firing targets.
+"random" delay variance, total delay = delay +/- random seconds
+*/
+class CLogicDelay : public CBaseLogic
+{
+public:
+	void Spawn( void );
+	void KeyValue( KeyValueData *pkvd );
+	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	void Think( void );
+};
+LINK_ENTITY_TO_CLASS( target_delay, CLogicDelay );
+
+void CLogicDelay :: Think( void )
+{
+	UTIL_FireTargets( pev->target, m_hActivator, this, USE_TOGGLE, 0.0f );
+}
+
+void CLogicDelay :: KeyValue( KeyValueData *pkvd )
+{
+	if ( FStrEq( pkvd->szKeyName, "random" ))
+	{
+		pev->frags = atof(pkvd->szValue);
+		pkvd->fHandled = TRUE;
+	}
+	else CBaseLogic::KeyValue( pkvd );
+}
+
+void CLogicDelay :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	SetNextThink( m_flWait + RANDOM_FLOAT( 0.0f, 1.0f ) * pev->frags );
+	m_hActivator = pActivator;
+}
+
+void CLogicDelay :: Spawn( void )
+{
+	if ( !m_flWait ) m_flWait = 1.0f;
+}
 			

@@ -40,7 +40,6 @@ infotable	dlumpinfo_t[dwadinfo_t->numlumps]
 #define TYPE_BINDATA		71	// engine internal data (map lumps, save lumps etc)
 #define TYPE_STRDATA		72	// stringdata type (stringtable marked as TYPE_BINDATA)
 #define TYPE_SCRIPT			73	// .qc scripts (xash ext)
-#define TYPE_VPROGS			74	// .dat progs (xash ext)
 
 /*
 ==============================================================================
@@ -509,122 +508,6 @@ typedef struct
 
 	int	patch_cp[2];	// patch control point dimensions
 } dsurfacer_t;	// RBSP
-
-/*
-==============================================================================
-
-VIRTUAL MACHINE
-
-a internal virtual machine like as QuakeC, but it has more extensions
-==============================================================================
-*/
-// header
-#define VPROGS_VERSION	8	// xash progs version
-#define VPROGSHEADER32	(('2'<<24)+('3'<<16)+('M'<<8)+'V') // little-endian "VM32"
-
-// prvm limits
-#define MAX_REGS		65536
-#define MAX_STRINGS		1000000
-#define MAX_STATEMENTS	0x80000
-#define MAX_GLOBALS		32768
-#define MAX_FUNCTIONS	16384
-#define MAX_FIELDS		2048
-#define MAX_CONSTANTS	2048
-
-// global ofsets
-#define OFS_NULL		0
-#define OFS_RETURN		1
-#define OFS_PARM0		4
-#define OFS_PARM1		7
-#define OFS_PARM2		10
-#define OFS_PARM3		13
-#define OFS_PARM4		16
-#define OFS_PARM5		19
-#define OFS_PARM6		22
-#define OFS_PARM7		25
-#define OFS_PARM8		28
-#define OFS_PARM9		31
-#define RESERVED_OFS	34
-
-// misc flags
-#define DEF_SHARED		(1<<29)
-#define DEF_SAVEGLOBAL	(1<<30)
-
-// compression block flags
-#define COMP_STATEMENTS	1
-#define COMP_DEFS		2
-#define COMP_FIELDS		4
-#define COMP_FUNCTIONS	8
-#define COMP_STRINGS	16
-#define COMP_GLOBALS	32
-#define COMP_LINENUMS	64
-#define COMP_TYPES		128
-#define MAX_PARMS		10
-
-typedef struct statement_s
-{
-	dword		op;
-	long		a,b,c;
-} dstatement_t;
-
-typedef struct ddef_s
-{
-	dword		type;		// if DEF_SAVEGLOBAL bit is set
-					// the variable needs to be saved in savegames
-	dword		ofs;
-	int		s_name;
-} ddef_t;
-
-typedef struct
-{
-	int		first_statement;	// negative numbers are builtins
-	int		parm_start;
-	int		locals;		// total ints of parms + locals
-	int		profile;		// runtime
-	int		s_name;
-	int		s_file;		// source file defined in
-	int		numparms;
-	byte		parm_size[MAX_PARMS];
-} dfunction_t;
-
-typedef struct
-{
-	int		filepos;
-	int		disksize;
-	int		size;
-	char		compression;
-	char		name[64];		// FIXME: make string_t
-} dsource_t;
-
-typedef struct
-{
-	int		ident;		// must be VM32
-	int		version;		// version number
-	int		crc;		// check of header file
-	uint		flags;		// who blocks are compressed (COMP flags)
-	
-	uint		ofs_statements;	// COMP_STATEMENTS (release)
-	uint		numstatements;	// statement 0 is an error
-	uint		ofs_globaldefs;	// COMP_DEFS (release)
-	uint		numglobaldefs;
-	uint		ofs_fielddefs;	// COMP_FIELDS (release)
-	uint		numfielddefs;
-	uint		ofs_functions;	// COMP_FUNCTIONS (release)
-	uint		numfunctions;	// function 0 is an empty
-	uint		ofs_strings;	// COMP_STRINGS (release)
-	uint		numstrings;	// first string is a null string
-	uint		ofs_globals;	// COMP_GLOBALS (release)
-	uint		numglobals;
-	uint		entityfields;
-	// debug info
-	uint		ofssources;	// source are always compressed
-	uint		numsources;
-	uint		ofslinenums;	// COMP_LINENUMS (debug) numstatements big
-	uint		ofsbodylessfuncs;	// no comp
-	uint		numbodylessfuncs;
-	uint		ofs_types;	// COMP_TYPES (debug)
-	uint		numtypes;
-} dprograms_t;
 
 #include "studio_ref.h"
 

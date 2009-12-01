@@ -1190,6 +1190,8 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 	}
 	else if( to->ed_type == ED_AMBIENT )
 	{
+		to->soundindex = pNet->pev->soundindex;
+
 		if( pNet->pev->solid == SOLID_TRIGGER )
 		{
 			Vector	midPoint;
@@ -1330,30 +1332,33 @@ Returns the descriptive name of this .dll.  E.g., Half-Life, or Team Fortress 2
 */
 const char *GetGameDescription( void )
 {
-	char	token[256];
+	char	*token = NULL;
           char	szbuffer[128];
-	char	*afile, *pfile = (char *)LOAD_FILE( "gameinfo.txt", NULL );
+	char	*afile = (char *)LOAD_FILE( "gameinfo.txt", NULL );
+	const char *pfile = afile; 
 
 	memset( text, 0, sizeof( text ));
 
 	if( pfile )
 	{
-		afile = pfile;
-		while( pfile )
+		token = COM_ParseToken( &pfile );
+			
+		while( token )
 		{
 			if( !stricmp( token, "title" )) 
 			{                                          
-				pfile = COM_ParseFile( pfile, token );
+				token = COM_ParseToken( &pfile );
 				sprintf( szbuffer, "%s ", token );
 				strncat( text, szbuffer, sizeof( text ));
 			}
 			else if( !stricmp( token, "version" )) 
 			{                                          
-				pfile = COM_ParseFile( pfile, token );
+				token = COM_ParseToken( &pfile );
 				strncat( text, token, sizeof( text ));
 			}
-			pfile = COM_ParseFile( pfile, token );
+			token = COM_ParseToken( &pfile );
 		}
+
 		COM_FreeFile( afile );
 		return text;
 	}
@@ -1506,8 +1511,12 @@ int AddToFullPack( edict_t *pHost, edict_t *pClient, edict_t *pEdict, int hostfl
 	// check visibility
 	if( !ENGINE_CHECK_PVS( pEdict, pSet ))
 	{
-		// g-cont: tune distance by taste :)
-		if( pEntity->m_iClassType == ED_AMBIENT && delta.Length() > 800 )
+		float	m_flRadius = 1024;	// g-cont: tune distance by taste :)
+
+		if( pEntity->pev->armorvalue > 0 )
+			m_flRadius = pEntity->pev->armorvalue;
+
+		if( pEntity->m_iClassType == ED_AMBIENT && delta.Length() > m_flRadius )
 			return 0;
 	}
 
@@ -1644,9 +1653,9 @@ void InitWorld( void )
 {
 	int i;
 	
-	CVAR_SET_STRING("sv_gravity", "800"); // 67ft/sec
-	CVAR_SET_STRING("sv_stepsize", "18");
-          CVAR_SET_STRING("room_type", "0");// clear DSP
+	CVAR_SET_STRING( "sv_gravity", "800" );	// 67ft/sec
+	CVAR_SET_STRING( "sv_stepsize", "18" );
+          CVAR_SET_STRING( "room_type", "0" );	// clear DSP
           
 	g_pLastSpawn = NULL;
           
@@ -1656,8 +1665,9 @@ void InitWorld( void )
 
 	if ( WorldGraph.m_fGraphPresent && !WorldGraph.m_fGraphPointersSet )
 	{
-		if ( !WorldGraph.FSetGraphPointers()) Msg( "Graph pointers were not set!\n");
-		else Msg( "**Graph Pointers Set!\n" );
+		if ( !WorldGraph.FSetGraphPointers( ))
+			ALERT( at_error, "Graph pointers were not set!\n" );
+		else ALERT( at_console, "**Graph Pointers Set!\n" );
 	}
 
 	UTIL_PrecacheResourse();	//precache all resource

@@ -1194,7 +1194,7 @@ void CPendulum :: Spawn( void )
 		pev->impulse = PITCH;	// around z-axis
 	else if( FBitSet(pev->spawnflags, SF_BRUSH_ROTATE_X_AXIS ))
 		pev->impulse = ROLL;	// around x-axis
-	else pev->impulse = YAW;		// around y-axis
+	else pev->impulse = ROLL;		// around y-axis
 
 	if( !m_flAccel ) m_flAccel = 1.0f;
 	else if( m_flAccel > pev->speed )
@@ -1223,7 +1223,7 @@ void CPendulum :: Touch ( CBaseEntity *pOther )
 {
 	// don't hurt toucher - just apply velocity him
 	entvars_t	*pevOther = pOther->pev;
-	pevOther->velocity = (pevOther->origin - VecBModelOrigin(pev) ).Normalize() * pev->dmg;
+	pevOther->velocity = (pevOther->origin - VecBModelOrigin( pev )).Normalize() * pev->dmg;
 }
 
 void CPendulum::Blocked( CBaseEntity *pOther )

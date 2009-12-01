@@ -11,7 +11,6 @@
 
 physic_exp_t	*pe;
 render_exp_t	*re;
-vprogs_exp_t	*vm;
 vsound_exp_t	*se;
 host_parm_t	host;	// host parms
 stdlib_api_t	com, newcom;
@@ -27,7 +26,6 @@ int		num_cphys_dlls;
 dll_info_t render_dll = { "", NULL, "CreateAPI", NULL, NULL, 0, sizeof(render_exp_t), sizeof(stdlib_api_t) };
 dll_info_t vsound_dll = { "", NULL, "CreateAPI", NULL, NULL, 0, sizeof(vsound_exp_t), sizeof(stdlib_api_t) };
 dll_info_t physic_dll = { "", NULL, "CreateAPI", NULL, NULL, 0, sizeof(physic_exp_t), sizeof(stdlib_api_t) };
-dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, 1, sizeof(vprogs_exp_t), sizeof(stdlib_api_t) };
 
 cvar_t	*timescale;
 cvar_t	*host_serverstate;
@@ -132,28 +130,6 @@ bool Host_InitPhysic( void )
 	if( !result ) Host_FreePhysic();
 
 	return result;
-}
-
-void Host_InitVprogs( const int argc, const char **argv )
-{
-	launch_t		CreateVprogs;  
-
-	Sys_LoadLibrary( NULL, &vprogs_dll );
-
-	CreateVprogs = (void *)vprogs_dll.main;
-	vm = CreateVprogs( &newcom, NULL ); // second interface not allowed
-	
-	vm->Init( argc, argv );
-}
-
-void Host_FreeVprogs( void )
-{
-	if( vprogs_dll.link )
-	{
-		vm->Free();
-		Mem_Set( &vm, 0, sizeof( vm ));
-	}
-	Sys_FreeLibrary( &vprogs_dll );
 }
 
 void Host_FreeRender( void )
@@ -617,7 +593,6 @@ void Host_Frame( void )
 
 	SV_Frame ( time ); // server frame
 	CL_Frame ( time ); // client frame
-	VM_Frame ( time ); // vprogs frame
 
 	host.framecount++;
 }
@@ -844,7 +819,6 @@ void Host_Init( const int argc, const char **argv )
 
 	NET_Init();
 	Netchan_Init();
-	Host_InitVprogs( argc, argv );
 
 	SV_Init();
 	CL_Init();
@@ -902,7 +876,6 @@ void Host_Free( void )
 	CL_Shutdown();
 	Host_FreeRender();
 	NET_Shutdown();
-	Host_FreeVprogs();
 	Host_FreePhysic();
 	Host_FreeCommon();
 }

@@ -423,6 +423,10 @@ static void SV_ClipToLinks( areanode_t *node, moveclip_t *clip )
 		if( clip->type == MOVE_NOMONSTERS && touch->v.solid != SOLID_BSP )
 			continue;
 
+		// don't clip points against points (they can't collide)
+		if( VectorCompare( touch->v.mins, touch->v.maxs ) && (clip->type != MOVE_MISSILE || !(touch->v.flags & FL_MONSTER)))
+			continue;
+
 		if( clip->type == MOVE_WORLDONLY )
 		{
 			// accept only real bsp models with FL_WORLDBRUSH set

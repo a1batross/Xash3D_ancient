@@ -78,6 +78,19 @@ void InsertLinkBefore( link_t *l, link_t *before, int entnum )
 
 int World_ConvertContents( int basecontents )
 {
+#if 1
+	if( basecontents & ( BASECONT_SOLID|BASECONT_BODY ))
+		return CONTENTS_SOLID;
+	if( basecontents & BASECONT_SKY )
+		return CONTENTS_SKY;
+	if( basecontents & BASECONT_LAVA )
+		return CONTENTS_LAVA;
+	if( basecontents & BASECONT_SLIME )
+		return CONTENTS_SLIME;
+	if( basecontents & BASECONT_WATER )
+		return CONTENTS_WATER;
+	return CONTENTS_EMPTY;
+#else
 	if( basecontents & BASECONT_SKY )
 		return CONTENTS_SKY;
 	if( basecontents & BASECONT_LAVA )
@@ -89,6 +102,7 @@ int World_ConvertContents( int basecontents )
 	if( basecontents & (BASECONT_SOLID|BASECONT_BODY|BASECONT_CLIP))
 		return CONTENTS_SOLID;
 	return CONTENTS_EMPTY;
+#endif
 }
 
 uint World_MaskForEdict( const edict_t *e )

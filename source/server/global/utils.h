@@ -270,8 +270,66 @@ extern char* GetContentsString( int contents );
 extern void PrintStringForDamage( int dmgbits );
 extern char* GetStringForDecalName( int decalname );
 extern DLL_GLOBAL 
+
 // Misc useful
-inline BOOL FStrEq(const char*sz1, const char*sz2) { return (strcmp(sz1, sz2) == 0); }
+// this safe verisons of strcmp and stricmp
+inline int FStrCmp( const char *s1, const char *s2 )
+{
+	int	c1, c2;
+	int	n = 9999;
+
+	if( s1 == NULL )
+	{
+		if ( s2 == NULL ) return 0;
+		else return -1;
+	}
+	else if ( s2 == NULL ) return 1;
+	
+	do {
+		c1 = *s1++;
+		c2 = *s2++;
+
+		// strings are equal until end point
+		if ( !n-- ) return 0;
+		if ( c1 != c2 ) return c1 < c2 ? -1 : 1;
+
+	} while ( c1 );
+	
+	// strings are equal
+	return 0;
+}
+
+inline int FStriCmp( const char *s1, const char *s2 )
+{
+	int	c1, c2;
+	int	n = 9999;
+
+	if( s1 == NULL )
+	{
+		if ( s2 == NULL ) return 0;
+		else return -1;
+	}
+	else if ( s2 == NULL ) return 1;
+
+	do {
+		c1 = *s1++;
+		c2 = *s2++;
+
+		if ( !n-- ) return 0; // strings are equal until end point
+		
+		if ( c1 != c2 )
+		{
+			if ( c1 >= 'a' && c1 <= 'z' ) c1 -= ('a' - 'A');
+			if ( c2 >= 'a' && c2 <= 'z' ) c2 -= ('a' - 'A');
+			if ( c1 != c2 ) return c1 < c2 ? -1 : 1;
+		}
+	} while ( c1 );
+
+	// strings are equal
+	return 0;
+}
+
+inline BOOL FStrEq( const char*sz1, const char*sz2 ) { return (FStrCmp( sz1, sz2 ) == 0); }
 inline BOOL FClassnameIs(edict_t* pent, const char* szClassname) { return FStrEq(STRING(VARS(pent)->classname), szClassname); }
 inline BOOL FClassnameIs(entvars_t* pev, const char* szClassname) { return FStrEq(STRING(pev->classname), szClassname); }
 
@@ -722,8 +780,7 @@ void UTIL_MergePos ( CBaseEntity *pEnt, int loopbreaker = MAX_CHILDS);
 void UTIL_PrecacheResourse( void );
 void Msg( char *szText, ... );
 void DevMsg( char *szText, ... );
-char *COM_ParseFile( char *data, char *token );
-char *COM_Parse( char *data );
+char *COM_ParseToken( const char **data );
 void COM_FreeFile (char *buffer);
 
 

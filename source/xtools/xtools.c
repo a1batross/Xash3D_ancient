@@ -6,13 +6,10 @@
 #include "xtools.h"
 #include "utils.h"
 #include "mdllib.h"
-#include "vprogs_api.h"
 #include "xtools.h"
 #include "engine_api.h"
 #include "mathlib.h"
 
-dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, 1, sizeof(vprogs_exp_t), sizeof(stdlib_api_t) };
-vprogs_exp_t *PRVM;
 stdlib_api_t com;
 char  **com_argv;
 
@@ -59,7 +56,6 @@ so do it manually
 void InitCommon( const int argc, const char **argv )
 {
 	int	imageflags = 0;
-	launch_t	CreateVprogs;
 
 	basepool = Mem_AllocPool( "Common Pool" );
 	app_name = g_Instance();
@@ -75,21 +71,6 @@ void InitCommon( const int argc, const char **argv )
 		// initialize ImageLibrary
 		start = Sys_DoubleTime();
 		PrepareBSPModel( (int)argc, (char **)argv );
-		break;
-	case HOST_QCCLIB:
-		Sys_LoadLibrary( NULL, &vprogs_dll );	// load qcclib
-		CreateVprogs = (void *)vprogs_dll.main;
-		PRVM = CreateVprogs( &com, NULL );	// second interface not allowed
-
-		PRVM->Init( argc, argv );
-
-		if( !FS_GetParmFromCmdLine( "-dir", gs_basedir ))
-			com.strncpy( gs_basedir, ".", sizeof( gs_basedir ));
-		if( !FS_GetParmFromCmdLine( "+src", gs_filename ))
-			com.strncpy( gs_filename, "progs.src", sizeof( gs_filename ));
-
-		start = Sys_DoubleTime();
-		PRVM->PrepareDAT( gs_basedir, gs_filename );	
 		break;
 	case HOST_XIMAGE:
 		imageflags |= (IL_USE_LERPING|IL_ALLOW_OVERWRITE|IL_IGNORE_MIPS);
@@ -153,10 +134,6 @@ void CommonMain( void )
 		CompileMod = ConvertResource;
 		Conv_RunSearch();
 		break;
-	case HOST_QCCLIB: 
-		AddMask( "*.src" );
-		PRVM->CompileDAT(); 
-		break;
 	case HOST_OFFLINE:
 		break;
 	}
@@ -212,12 +189,7 @@ elapced_time:
 
 void FreeCommon( void )
 {
-	if( app_name == HOST_QCCLIB )
-	{
-		PRVM->Free();
-		Sys_FreeLibrary( &vprogs_dll ); // free qcclib
-	}
-	else if( app_name == HOST_RIPPER )
+	if( app_name == HOST_RIPPER )
 	{
 		// finalize qc-script
 		Skin_FinalizeScript();

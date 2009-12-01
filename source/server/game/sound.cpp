@@ -143,7 +143,6 @@ public:
 };
 
 LINK_ENTITY_TO_CLASS( ambient_generic, CAmbientGeneric );
-LINK_ENTITY_TO_CLASS( target_speaker, CAmbientGeneric );
 
 TYPEDESCRIPTION	CAmbientGeneric::m_SaveData[] = 
 {
@@ -175,16 +174,6 @@ void CAmbientGeneric :: Spawn( void )
 		125 : "Medium Radius"
 		80  : "Large Radius"
 */
-	if( FClassnameIs( pev, "target_speaker" ))
-	{
-		int newflags = 0;
-
-		if( pev->spawnflags & 3 ) newflags |= AMBIENT_SOUND_NOT_LOOPING;	
-		if( pev->spawnflags & 4 ) newflags |= AMBIENT_SOUND_EVERYWHERE;
-		if( pev->spawnflags & 8 ) newflags |= AMBIENT_SOUND_START_SILENT;
-		pev->spawnflags = newflags;
-	}
-
 	if ( FBitSet ( pev->spawnflags, AMBIENT_SOUND_EVERYWHERE) )
 	{
 		m_flAttenuation = ATTN_NONE;
@@ -206,9 +195,6 @@ void CAmbientGeneric :: Spawn( void )
 		m_flAttenuation = ATTN_STATIC;
 	}
 
-	if ( FStringNull( pev->message ) && !FStringNull( pev->noise ))
-		pev->message = pev->noise;	// q3a compatibliity
-
 	if( !pev->health ) pev->health = 10; // just get full volume
 
 	char* szSoundFile = (char*) STRING(pev->message);
@@ -221,8 +207,9 @@ void CAmbientGeneric :: Spawn( void )
 		SetThink( Remove );
 		return;
 	}
-    pev->solid		= SOLID_NOT;
-    pev->movetype	= MOVETYPE_NONE;
+
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
 
 	// Set up think function for dynamic modification 
 	// of ambient sound's pitch or volume. Don't
@@ -916,6 +903,113 @@ void CAmbientGeneric :: KeyValue( KeyValueData *pkvd )
 	}
 	else
 		CBaseEntity::KeyValue( pkvd );
+}
+
+/*QUAKED target_speaker (1 0 0) (-8 -8 -8) (8 8 8) looped-on looped-off reliable
+"noise"		wav file to play
+"attenuation"
+-1 = none, send to whole level
+1 = normal fighting sounds
+2 = idle sound level
+3 = ambient sound level
+"volume"	0.0 to 1.0
+
+Normal sounds play each time the target is used.  The reliable flag can be set for crucial voiceovers.
+
+Looped sounds are always atten 3 / vol 1, and the use function toggles it on/off.
+Multiple identical looping sounds will just increase volume without any speed cost.
+*/
+#define SF_SPEAKER_LOOPED_ON		1
+#define SF_SPEAKER_LOOPED_OFF		2
+#define SF_SPEAKER_GLOBAL		4
+#define SF_SPEAKER_ACTIVATOR		8	
+
+class CTargetSpeaker : public CBaseEntity
+{
+public:
+	void KeyValue( KeyValueData* pkvd );
+	void Spawn( void );
+	void Precache( void );
+	void EXPORT ToggleUse ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+};
+LINK_ENTITY_TO_CLASS( target_speaker, CTargetSpeaker );
+
+void CTargetSpeaker :: KeyValue( KeyValueData *pkvd )
+{
+	if ( FStrEq( pkvd->szKeyName, "volume" ))
+	{
+		pev->health = atof( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	if ( FStrEq( pkvd->szKeyName, "attenuation" ))
+	{
+		switch( atoi( pkvd->szValue ))
+		{
+		case -1:	pev->frags = ATTN_NONE; break;
+		case 1:	pev->frags = ATTN_NORM; break;
+		case 2:	pev->frags = ATTN_IDLE; break;
+		default:	pev->frags = ATTN_STATIC; break;
+		}
+		pkvd->fHandled = TRUE;
+	}
+	else CBaseEntity::KeyValue( pkvd );
+}
+
+void CTargetSpeaker :: Precache( void )
+{
+	// if sound is missing just reset soundindex
+	pev->impulse = PRECACHE_SOUND( STRING( pev->noise ));
+}
+
+void CTargetSpeaker :: ToggleUse ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	if ( pev->spawnflags & (SF_SPEAKER_LOOPED_ON|SF_SPEAKER_LOOPED_OFF))
+	{	
+		// looping sound toggles
+		if ( pev->soundindex ) pev->soundindex = 0;	// turn it off
+		else pev->soundindex = pev->impulse;		// start it
+	}
+	else
+	{	// normal sound
+		if( pev->spawnflags & SF_SPEAKER_ACTIVATOR )
+			EMIT_SOUND_DYN( pActivator->edict(), CHAN_AUTO, STRING (pev->noise ), pev->health, pev->frags, SND_SPAWNING, PITCH_NORM );
+		// use a G_PositionedSound, because this entity won't normally be
+		// sent to any clients because it is invisible
+		else if( pev->spawnflags & SF_SPEAKER_GLOBAL )
+			UTIL_EmitAmbientSound( NULL, pev->origin, STRING (pev->noise ), pev->health, pev->frags, SND_SPAWNING, PITCH_NORM );
+		else UTIL_EmitAmbientSound( ENT( pev ), pev->origin, STRING (pev->noise ), pev->health, pev->frags, 0, PITCH_NORM );
+	}
+}
+
+void CTargetSpeaker :: Spawn( void )
+{
+	Precache ();
+
+	if( !pev->impulse )
+	{
+		ALERT( at_error, "%s with no noise set at %g %g %g\n", STRING( pev->classname ), pev->origin.x, pev->origin.y, pev->origin.z );
+		UTIL_Remove( this );
+		return;
+	}
+
+	SetObjectClass( ED_AMBIENT );
+	pev->flags |= FL_PHS_FILTER;	// allow phs filter instead pvs
+
+	if( !pev->health ) pev->health = 1.0f;
+	if( !pev->frags ) pev->frags = ATTN_NORM;
+
+	// setup attenuation radius
+	pev->armorvalue = 512.0f * pev->frags;
+
+	// check for prestarted looping sound
+	if ( pev->spawnflags & SF_SPEAKER_LOOPED_ON )
+		pev->soundindex = pev->impulse;
+
+	SetUse( ToggleUse );
+
+	// must link the entity so we get areas and clusters so
+	// the server can determine who to send updates to
+	LINK_ENTITY( ENT( pev ), false );
 }
 
 // ==================== SENTENCE GROUPS, UTILITY FUNCTIONS  ======================================

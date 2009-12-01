@@ -35,10 +35,6 @@ typedef byte		rgb_t[3];		// unsigned byte colorpack
 typedef vec_t		matrix3x3[3][3];
 typedef vec_t		matrix4x4[4][4];
 typedef char		string[MAX_STRING];
-typedef struct pr_edict_s	pr_edict_t;
-typedef struct sv_edict_s	sv_edict_t;
-typedef struct sv_entvars_s	sv_entvars_t;
-typedef struct sv_globalvars_s sv_globalvars_t;
 
 // platform instances
 typedef enum
@@ -48,7 +44,6 @@ typedef enum
 	HOST_DEDICATED,	// "normal"	"#gamename"
 	HOST_NORMAL,	// "normal"	"gamename"
 	HOST_BSPLIB,	// "bsplib"	"bsplib"
-	HOST_QCCLIB,	// "qcclib"	"qcc"
 	HOST_SPRITE,	// "sprite"	"spritegen"
 	HOST_STUDIO,	// "studio"	"studiomdl"
 	HOST_WADLIB,	// "wadlib"	"xwad"
@@ -75,7 +70,6 @@ typedef struct wfile_s wfile_t;	// wad file
 typedef struct script_s script_t;	// script machine
 typedef struct { const char *name; void **func; } dllfunc_t; // Sys_LoadLibrary stuff
 typedef struct { int numfilenames; char **filenames; char *filenamesbuffer; } search_t;
-typedef struct { int ofs; int type; const char *name; } fields_t;	// prvm custom fields
 typedef void ( *cmsave_t )( void* handle, const void* buffer, size_t size );
 typedef void ( *cmdraw_t )( int color, int numpoints, const float *points );
 typedef void ( *setpair_t )( const char *key, const char *value, void *buffer, void *numpairs );
@@ -114,7 +108,7 @@ typedef enum
 	CVAR_INIT		= BIT(4), // don't allow change from console at all, but can be set from the command line
 	CVAR_LATCH	= BIT(5),	// save changes until server restart
 	CVAR_READ_ONLY	= BIT(6),	// display only, cannot be set by user at all
-	CVAR_USER_CREATED	= BIT(7),	// created by a set command (prvm used)
+	CVAR_USER_CREATED	= BIT(7),	// created by a set command (dll's used)
 	CVAR_TEMP		= BIT(8),	// can be set even when cheats are disabled, but is not archived
 	CVAR_CHEAT	= BIT(9),	// can not be changed if cheats are disabled
 	CVAR_NORESTART	= BIT(10),// do not clear when a cvar_restart is issued
@@ -227,7 +221,6 @@ typedef struct gameinfo_s
 	string		gamefolder;	// used for change game '-game x'
 	string		basedir;		// main game directory (like 'id1' for Quake or 'valve' for Half-Life)
 	string		gamedir;		// game directory (can be match with basedir, used as primary dir and as write path
-	string		vsrcdir;		// virtual machine source directory (qcc know when give source files)
 	string		startmap;		// map to start singleplayer game
 	string		title;		// Game Main Title
 	string		texmode;		// configure ImageLib to use various texture formats

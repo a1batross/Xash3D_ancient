@@ -74,72 +74,15 @@ DLL_GLOBAL int DirToBits( const Vector dir )
 	}
 	return best;
 }
-                           
-struct
-{
-	char	token[1024];
-	int	length;
-	int	symbol;
-} parse; 
 
-char *COM_Parse( char *data )
+char *COM_ParseToken( const char **data )
 {
-	parse.length = 0;
-	parse.token[0] = 0;
-	
-	if( !data ) return NULL;
-skip:
-	while((parse.symbol = *data) <= ' ')
-	{
-		if( parse.symbol == 0 ) return NULL;               
-		data++;
-	}
-	if( parse.symbol == '/' && data[1] == '/' )
-	{
-		while( *data && *data != '\n' ) data++;
-		goto skip;
-	}
-	if( parse.symbol == '\"' )
-	{                                
-		data++;
-		while(true)
-		{
-			parse.symbol = *data++;
-			if( parse.symbol == '\"' || !parse.symbol )
-			{
-				parse.token[parse.length] = 0;
-				return data;
-			}
-			parse.token[parse.length] = parse.symbol;
-			parse.length++;
-		}
-	}
-	
-	if( parse.symbol == '{' || parse.symbol == '}' || parse.symbol == ')' || parse.symbol == '(' || parse.symbol == '\'' || parse.symbol == ',' )
-	{
-		parse.token[parse.length] = parse.symbol;
-		parse.length++;
-		parse.token[parse.length] = 0;
-		return data+1;
-	}
-	do
-	{
-		parse.token[parse.length] = parse.symbol;
-		data++;
-		parse.length++;
-		parse.symbol = *data;
-		if( parse.symbol == '{' || parse.symbol == '}' || parse.symbol == ')' || parse.symbol == '(' || parse.symbol == '\'' || parse.symbol == ',' ) break;
-	} 	while( parse.symbol > 32 );
-	
-	parse.token[parse.length] = 0;
-	return data;
-}
+	char *com_token = COM_Parse( data );
 
-char *COM_ParseFile( char *data, char *token )
-{
-	char *return_data = COM_Parse( data );
-	strcpy( token, parse.token );
-	return return_data;	          
+	// debug
+//	ALERT( at_console, "ParseToken: %s\n", com_token );
+
+	return com_token;	          
 }
 
 void COM_FreeFile( char *buffer )
@@ -1438,49 +1381,52 @@ void UTIL_PrecacheResourse( void )
 	giAmmoIndex = 0;
 
 	// custom precaches
-	char token[256];
-	char *pfile = (char *)LOAD_FILE( "scripts/precache.txt", NULL );
+	char *token;
+	const char *pfile = (const char *)LOAD_FILE( "scripts/precache.txt", NULL );
 	if( pfile )
 	{
-		char *afile = pfile;
-		while( pfile )
+		char *afile = (char *)pfile;
+
+		token = COM_ParseToken( &pfile );
+			
+		while( token )
 		{
-			if( !stricmp( token, "entity" )) 
+			if( !FStriCmp( token, "entity" )) 
 			{                                          
-				pfile = COM_ParseFile( pfile, token );
+				token = COM_ParseToken( &pfile );
 				UTIL_PrecacheEntity( ALLOC_STRING( token ));
 			}
-			else if( !stricmp( token, "dmentity" )) 
+			else if( !FStriCmp( token, "dmentity" )) 
 			{                                          
-				pfile = COM_ParseFile( pfile, token );
+				token = COM_ParseToken( &pfile );
 				if( IsDeatchmatch()) UTIL_PrecacheEntity( ALLOC_STRING( token ));
 			}
-			else if( !stricmp( token, "model" )) 
+			else if( !FStriCmp( token, "model" )) 
 			{                                          
-				pfile = COM_ParseFile( pfile, token );
+				token = COM_ParseToken( &pfile );
 				UTIL_PrecacheModel( ALLOC_STRING( token ));
 			}
-			else if( !stricmp( token, "dmmodel" )) 
+			else if( !FStriCmp( token, "dmmodel" )) 
 			{                                          
-				pfile = COM_ParseFile( pfile, token );
+				token = COM_ParseToken( &pfile );
 				if( IsDeatchmatch()) UTIL_PrecacheModel( ALLOC_STRING( token ));
 			}
-			else if( !stricmp( token, "sound" )) 
+			else if( !FStriCmp( token, "sound" )) 
 			{                                          
-				pfile = COM_ParseFile( pfile, token );
+				token = COM_ParseToken( &pfile );
 				UTIL_PrecacheSound( ALLOC_STRING( token ));
 			}
-			else if( !stricmp( token, "dmsound" )) 
+			else if( !FStriCmp( token, "dmsound" )) 
 			{                                          
-				pfile = COM_ParseFile( pfile, token );
+				token = COM_ParseToken( &pfile );
 				if( IsDeatchmatch()) UTIL_PrecacheSound( ALLOC_STRING( token ));
 			}
-			else if( !stricmp( token, "aurora" )) 
+			else if( !FStriCmp( token, "aurora" )) 
 			{                                          
-				pfile = COM_ParseFile( pfile, token );
+				token = COM_ParseToken( &pfile );
 				UTIL_PrecacheAurora( ALLOC_STRING( token ));
 			}
-			pfile = COM_ParseFile( pfile, token );
+			token = COM_ParseToken( &pfile );
 		}
 		COM_FreeFile( afile );
 	}
@@ -2777,7 +2723,7 @@ BOOL UTIL_TeamsMatch( const char *pTeamName1, const char *pTeamName2 )
 	// Both on a team?
 	if ( *pTeamName1 != 0 && *pTeamName2 != 0 )
 	{
-		if ( !stricmp( pTeamName1, pTeamName2 ) )	// Same Team?
+		if ( !FStriCmp( pTeamName1, pTeamName2 ) )	// Same Team?
 			return TRUE;
 	}
 

@@ -346,6 +346,7 @@ void CMultiSource::Register(void)
 LINK_ENTITY_TO_CLASS( infodecal, CDecal );
 LINK_ENTITY_TO_CLASS( info_target, CInfoTarget );
 LINK_ENTITY_TO_CLASS( target_position, CPointEntity );
+LINK_ENTITY_TO_CLASS( target_location, CPointEntity );
 LINK_ENTITY_TO_CLASS( info_teleport_destination, CPointEntity );
 LINK_ENTITY_TO_CLASS( misc_teleporter_dest, CPointEntity );
 LINK_ENTITY_TO_CLASS( misc_portal_surface, CPortalSurface );

@@ -135,13 +135,13 @@ public:
 	int ReturnAmmoIndex( const char *ammo );//return primary or secondary ammo index
 	int UseAmmo( const char *ammo, int count = 1 );    	//Determine and use ammo type
 	
-          //parse weapon script files	    
-	int ParseWeaponData( ItemInfo *II, char *file );	     	//parse weapon_*.txt
-	int ParseWeaponFile( ItemInfo *II, const char *pfile );	//parse WeaponData {}
-	int ParsePrimaryAttack( ItemInfo *II, char *pfile );  	//parse PrimaryAttack {}
-	int ParseSecondaryAttack( ItemInfo *II, char *pfile );  	//parse SeconadryAttack {}
-	int ParseSoundData( ItemInfo *II, char *pfile );  	//parse SoundData {}
-	//HudData parses on client side	
+          // parse weapon script files	    
+	int ParseWeaponFile( ItemInfo *II, const char *pfile );		// parse weapon_*.txt
+	int ParseWeaponData( ItemInfo *II, const char *file );	     	// parse WeaponData {}
+	int ParsePrimaryAttack( ItemInfo *II, const char *pfile );  	// parse PrimaryAttack {}
+	int ParseSecondaryAttack( ItemInfo *II, const char *pfile );  	// parse SeconadryAttack {}
+	int ParseSoundData( ItemInfo *II, const char *pfile );  		// parse SoundData {}
+	// HudData parses on client side	
 	void ResetParse( ItemInfo *II );			//reset ItemInfo
           void GenerateID( void );//generate unicum ID number for each weapon
           

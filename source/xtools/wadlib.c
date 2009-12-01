@@ -431,47 +431,6 @@ void Cmd_GrabScript( void )
 	Mem_Free( lump );
 }
 
-/*
-==============
-Cmd_GrabProgs
-
-$vprogs filename
-==============
-*/
-void Cmd_GrabProgs( void )
-{
-	byte		*lump;
-	size_t		plump_size;
-	dprograms_t	*hdr;
-
-	Com_ReadString( wadqc, SC_PARSE_GENERIC, lumpname );
-
-	// load mip image or replaced with error.bmp
-	lump = FS_LoadFile( lumpname, &plump_size );
-	
-	if( !lump || !plump_size || plump_size < sizeof(dprograms_t))
-	{
-		Com_SkipRestOfLine( wadqc );
-		// no fatal error, just ignore this image for adding into wad-archive
-		MsgDev( D_ERROR, "Cmd_LoadProgs: unable to loading %s\n", lumpname );
-		return;
-	}
-	// validate progs
-	hdr = (dprograms_t *)lump;
-
-	if( hdr->ident != VPROGSHEADER32 || hdr->version != VPROGS_VERSION )
-	{
-		// no fatal error, just ignore this image for adding into wad-archive
-		MsgDev( D_ERROR, "Cmd_LoadProgs: %s invalid progs version, ignore\n", lumpname );
-		Mem_Free( lump );
-		return;
-	}
-
-	// write out and release intermediate buffers
-	Wad3_AddLump( lump, plump_size, TYPE_VPROGS, !hdr->flags ); // release progs may be already packed
-	Mem_Free( lump );
-}
-
 void Cmd_WadName( void )
 {
 	string	parm;
@@ -525,7 +484,6 @@ bool ParseWADfileScript( void )
 		else if( !com.stricmp( token.string, "$mipmap" )) Cmd_GrabMip();
 		else if( !com.stricmp( token.string, "$gfxpic" )) Cmd_GrabPic();
 		else if( !com.stricmp( token.string, "$wadqc" )) Cmd_GrabScript();
-		else if( !com.stricmp( token.string, "$vprogs" )) Cmd_GrabProgs();
 		else if( !Com_ValidScript( token.string, QC_WADLIB )) return false;
 		else Cmd_WadUnknown( token.string );
 	}

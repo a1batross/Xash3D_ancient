@@ -221,7 +221,7 @@ BOOL CBasePlayerWeapon :: CanDeploy( void )
 	if(iFlags() & ITEM_FLAG_SELECTONEMPTY) return TRUE;
 
 	// this weapon doesn't use ammo, can always deploy.
-	if ( !stricmp( pszAmmo1(), "none" )) return TRUE;
+	if ( !FStriCmp( pszAmmo1(), "none" )) return TRUE;
 
 	if ( pszAmmo1() ) bHasAmmo |= (m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] != 0);
 	if ( pszAmmo2() ) bHasAmmo |= (m_pPlayer->m_rgAmmo[m_iSecondaryAmmoType] != 0);
@@ -391,7 +391,9 @@ int CBasePlayerWeapon :: ParseWeaponFile( ItemInfo *II, const char *filename )
 	int iResult = 0;	
 
 	sprintf( path, "scripts/items/%s.txt", filename );
-	char *pfile = (char *)LOAD_FILE( path, NULL );
+	char *afile = (char *)LOAD_FILE( path, NULL );
+	const char *pfile = afile;
+
 	ResetParse( II );
 	
 	if( !pfile )
@@ -414,7 +416,7 @@ int CBasePlayerWeapon :: ParseWeaponFile( ItemInfo *II, const char *filename )
 		ALERT( at_aiconsole, "Parsing: SecondaryAttack{} %s\n", iResult ? "^3OK" : "^1ERROR" );
 		iResult = ParseSoundData( II, pfile );
 		ALERT( at_aiconsole, "Parsing: SoundData{} %s\n", iResult ? "^3OK" : "^1ERROR" );
-		COM_FreeFile( pfile );
+		COM_FreeFile( afile );
 		return 1;
  	}
 }
@@ -422,65 +424,60 @@ int CBasePlayerWeapon :: ParseWeaponFile( ItemInfo *II, const char *filename )
 //=========================================================
 //	Parse SoundData {} section
 //=========================================================
-int CBasePlayerWeapon :: ParseSoundData( ItemInfo *II, char *pfile )
+int CBasePlayerWeapon :: ParseSoundData( ItemInfo *II, const char *pfile )
 {
-	char token[256];
-	int i = 0;
-	int j = 0;
+	char *token = NULL;
 
-	while ( stricmp( token, "SoundData") )		//search SoundData header
+	while ( FStriCmp( token, "SoundData") )		// search SoundData header
 	{
-		if(!pfile) return 0;
-		pfile = COM_ParseFile(pfile, token);
+		if( !pfile ) return 0;
+		token = COM_ParseToken( &pfile );
 	}
-	while ( stricmp( token, "{") )		//search {
+	while ( FStriCmp( token, "{") )		// search {
 	{
-		if(!pfile) return 0;
-		pfile = COM_ParseFile(pfile, token);
+		if( !pfile ) return 0;
+		token = COM_ParseToken( &pfile );
 	}
 
-	pfile = COM_ParseFile(pfile, token);
-	while ( stricmp( token, "}" ) )
+	token = COM_ParseToken( &pfile );
+	while ( FStriCmp( token, "}" ) )
 	{
-		if ( !stricmp( token, "firesound" )) 
+		if ( !token ) break;
+
+		if ( !FStriCmp( token, "firesound" )) 
 		{                                          
-			pfile = COM_ParseFile(pfile, token);
-			if(i < MAX_SHOOTSOUNDS) 
+			token = COM_ParseToken( &pfile );
+			if( II->sndcount < MAX_SHOOTSOUNDS ) 
 			{
-				II->firesound[i] = ALLOC_STRING(token);//save path
-				UTIL_PrecacheSound(ALLOC_STRING(token));//precache sound
-				i++;
+				II->firesound[II->sndcount] = UTIL_PrecacheSound( token );	// precache sound
+				II->sndcount++;
 			}
 			else 
 			{
-				Msg("Warning! Too many shoot sounds for %s\n", STRING(pev->netname));
-				break;//syntax error, stop parsing
+				ALERT( at_warning, "Too many shoot sounds for %s\n", STRING( pev->netname ));
+				break; // syntax error, stop parsing
 			}
-			II->sndcount = i;
 		}
-		else if ( !stricmp( token, "sfxsound" )) 
+		else if ( !FStriCmp( token, "sfxsound" )) 
 		{                                          
-			pfile = COM_ParseFile(pfile, token);
-			if(j < MAX_SHOOTSOUNDS) 
+			token = COM_ParseToken( &pfile );
+			if( II->sfxcount < MAX_SHOOTSOUNDS ) 
 			{
-				II->sfxsound[j] = ALLOC_STRING(token);//save path
-				UTIL_PrecacheSound(ALLOC_STRING(token));//precache sound
-				j++;
+				II->sfxsound[II->sfxcount] = UTIL_PrecacheSound( token );	// precache sound
+				II->sfxcount++;
 			}
 			else 
 			{
-				Msg("Warning! Too many sfx sounds for %s\n", STRING(pev->netname));
-				break;//syntax error, stop parsing
+				ALERT( at_warning, "Too many sfx sounds for %s\n", STRING( pev->netname ));
+				break;	// syntax error, stop parsing
 			}
-			II->sfxcount = j;
 		}
-		else if ( !stricmp( token, "emptysound" )) 
+		else if ( !FStriCmp( token, "emptysound" )) 
 		{
-			pfile = COM_ParseFile(pfile, token);
-			UTIL_PrecacheSound(ALLOC_STRING(token));//precache sound
-			II->emptysnd = ALLOC_STRING(token);
+			token = COM_ParseToken( &pfile );
+			II->emptysnd = UTIL_PrecacheSound( token );//precache sound
 		}
-		pfile = COM_ParseFile(pfile, token);
+		token = COM_ParseToken( &pfile );
 	}
 	return 1;
 }
@@ -488,62 +485,65 @@ int CBasePlayerWeapon :: ParseSoundData( ItemInfo *II, char *pfile )
 //=========================================================
 //	Parse SecondaryAttack {} section
 //=========================================================
-int CBasePlayerWeapon :: ParseSecondaryAttack( ItemInfo *II, char *pfile )
+int CBasePlayerWeapon :: ParseSecondaryAttack( ItemInfo *II, const char *pfile )
 {
-	char token[256];
-	while ( stricmp( token, "SecondaryAttack") )	//search SecondaryAttack header
+	char	*token = NULL;
+
+	while ( FStriCmp( token, "SecondaryAttack") )	//search SecondaryAttack header
 	{
-		if(!pfile) return 0;
-		pfile = COM_ParseFile(pfile, token);
+		if( !pfile ) return 0;
+		token = COM_ParseToken( &pfile );
 	}
-	while ( stricmp( token, "{") )		//search {
+	while ( FStriCmp( token, "{") )		//search {
 	{
-		if(!pfile) return 0;
-		pfile = COM_ParseFile(pfile, token);
+		if( !pfile ) return 0;
+		token = COM_ParseToken( &pfile );
 	}
 	
-	pfile = COM_ParseFile(pfile, token);
-	while ( stricmp( token, "}" ) )
+	token = COM_ParseToken( &pfile );
+	while ( FStriCmp( token, "}" ) )
 	{
-		if ( !stricmp( token, "action" )) 
+		if ( !token ) break;
+
+		if ( !FStriCmp( token, "action" )) 
 		{                                          
-  			pfile = COM_ParseFile(pfile, token);    
-			if ( !stricmp( token, "none" )) II->attack2 = NONE;
-			else if ( !stricmp( token, "ammo1" )) II->attack2 = AMMO1;
-			else if ( !stricmp( token, "ammo1." ))
+  			token = COM_ParseToken( &pfile );    
+			if ( !FStriCmp( token, "none" )) II->attack2 = NONE;
+			else if ( !FStriCmp( token, "ammo1" )) II->attack2 = AMMO1;
+			else if ( !FStriCmp( token, "ammo1." ))
 			{
 				II->attack2 = AMMO1;
 				SetBits(pev->impulse, SATTACK_FIREMODE1);
 			}
-			else if ( !stricmp( token, "ammo2" )) II->attack2 = AMMO2;
-			else if ( !stricmp( token, "ammo2." ))
+			else if ( !FStriCmp( token, "ammo2" )) II->attack2 = AMMO2;
+			else if ( !FStriCmp( token, "ammo2." ))
 			{
 				II->attack2 = AMMO2;
 				SetBits(pev->impulse, SATTACK_FIREMODE1);
 			}
-			else if ( !stricmp( token, "laserdot" )) II->attack2 = LASER_DOT;
-			else if ( !stricmp( token, "zoom" )) II->attack2 = ZOOM;
-			else if ( !stricmp( token, "flashlight" )) II->attack2 = FLASHLIGHT;
-			else if ( !stricmp( token, "switchmode" )) II->attack2 = SWITCHMODE;
-			else if ( !stricmp( token, "swing" )) II->attack2 = SWING;
+			else if ( !FStriCmp( token, "laserdot" )) II->attack2 = LASER_DOT;
+			else if ( !FStriCmp( token, "zoom" )) II->attack2 = ZOOM;
+			else if ( !FStriCmp( token, "flashlight" )) II->attack2 = FLASHLIGHT;
+			else if ( !FStriCmp( token, "switchmode" )) II->attack2 = SWITCHMODE;
+			else if ( !FStriCmp( token, "swing" )) II->attack2 = SWING;
 			else II->attack2 = ALLOC_STRING( token ); //client command
 		}
-		else if ( !stricmp( token, "punchangle" )) 
+		else if ( !FStriCmp( token, "punchangle" )) 
 		{                                          
-			pfile = COM_ParseFile(pfile, token);
+			token = COM_ParseToken( &pfile );
 			II->punchangle2 = RandomRange((char *)STRING(ALLOC_STRING(token)));
 		}
-		else if ( !stricmp( token, "recoil" )) 
+		else if ( !FStriCmp( token, "recoil" )) 
 		{                                          
-			pfile = COM_ParseFile(pfile, token);
+			token = COM_ParseToken( &pfile );
 			II->recoil2 = RandomRange((char *)STRING(ALLOC_STRING(token)));
 		}
-		else if ( !stricmp( token, "nextattack" )) 
+		else if ( !FStriCmp( token, "nextattack" )) 
 		{                                          
-			pfile = COM_ParseFile(pfile, token);
+			token = COM_ParseToken( &pfile );
 			II->fNextAttack2 = atof(token);
 		}
-		pfile = COM_ParseFile(pfile, token);
+		token = COM_ParseToken( &pfile );
 	}
 	return 1;
 }
@@ -551,63 +551,65 @@ int CBasePlayerWeapon :: ParseSecondaryAttack( ItemInfo *II, char *pfile )
 //=========================================================
 //	Parse PrimaryAttack {} section
 //=========================================================
-int CBasePlayerWeapon :: ParsePrimaryAttack( ItemInfo *II, char *pfile )
+int CBasePlayerWeapon :: ParsePrimaryAttack( ItemInfo *II, const char *pfile )
 {
-	char token[256];
+	char	*token = NULL;
 
-	while ( stricmp( token, "PrimaryAttack") )	//search PrimaryAttack header
+	while ( FStriCmp( token, "PrimaryAttack") )	//search PrimaryAttack header
 	{
 		if(!pfile) return 0;
-		pfile = COM_ParseFile(pfile, token);
+		token = COM_ParseToken( &pfile );
 	}
-	while ( stricmp( token, "{") )		//search {
+	while ( FStriCmp( token, "{") )		//search {
 	{
 		if(!pfile) return 0;
-		pfile = COM_ParseFile(pfile, token);
+		token = COM_ParseToken( &pfile );
 	}
 	
-	pfile = COM_ParseFile(pfile, token);
-	while ( stricmp( token, "}" ) )
+	token = COM_ParseToken( &pfile );
+	while ( FStriCmp( token, "}" ) )
 	{
-		if ( !stricmp( token, "action" )) 
+		if ( !token ) break;
+
+		if ( !FStriCmp( token, "action" )) 
 		{                                          
-  			pfile = COM_ParseFile(pfile, token);    
-			if ( !stricmp( token, "none" )) II->attack1 = NONE;
-			else if ( !stricmp( token, "ammo1" )) II->attack1 = AMMO1;
-			else if ( !stricmp( token, "ammo1." ))
+  			token = COM_ParseToken( &pfile );    
+			if ( !FStriCmp( token, "none" )) II->attack1 = NONE;
+			else if ( !FStriCmp( token, "ammo1" )) II->attack1 = AMMO1;
+			else if ( !FStriCmp( token, "ammo1." ))
 			{
 				II->attack1 = AMMO1;
 				SetBits(pev->impulse, PATTACK_FIREMODE1);
 			}
-			else if ( !stricmp( token, "ammo2" )) II->attack1 = AMMO2;
-			else if ( !stricmp( token, "ammo2." ))
+			else if ( !FStriCmp( token, "ammo2" )) II->attack1 = AMMO2;
+			else if ( !FStriCmp( token, "ammo2." ))
 			{
 				II->attack1 = AMMO2;
 				SetBits(pev->impulse, PATTACK_FIREMODE1);
 			}
-			else if ( !stricmp( token, "laserdot" )) II->attack1 = LASER_DOT;
-			else if ( !stricmp( token, "zoom" )) II->attack1 = ZOOM;
-			else if ( !stricmp( token, "flashlight" )) II->attack1 = FLASHLIGHT;
-			else if ( !stricmp( token, "switchmode" )) II->attack1 = SWITCHMODE;
-			else if ( !stricmp( token, "swing" )) II->attack1 = SWING;
+			else if ( !FStriCmp( token, "laserdot" )) II->attack1 = LASER_DOT;
+			else if ( !FStriCmp( token, "zoom" )) II->attack1 = ZOOM;
+			else if ( !FStriCmp( token, "flashlight" )) II->attack1 = FLASHLIGHT;
+			else if ( !FStriCmp( token, "switchmode" )) II->attack1 = SWITCHMODE;
+			else if ( !FStriCmp( token, "swing" )) II->attack1 = SWING;
 			else II->attack1 = ALLOC_STRING( token ); //client command
 		}
-		else if ( !stricmp( token, "punchangle" )) 
+		else if ( !FStriCmp( token, "punchangle" )) 
 		{                                          
-			pfile = COM_ParseFile(pfile, token);
+			token = COM_ParseToken( &pfile );
 			II->punchangle1 = RandomRange((char *)STRING(ALLOC_STRING(token)));
 		}
-		else if ( !stricmp( token, "recoil" )) 
+		else if ( !FStriCmp( token, "recoil" )) 
 		{                                          
-			pfile = COM_ParseFile(pfile, token);
+			token = COM_ParseToken( &pfile );
 			II->recoil1 = RandomRange((char *)STRING(ALLOC_STRING(token)));
 		}
-		else if ( !stricmp( token, "nextattack" )) 
+		else if ( !FStriCmp( token, "nextattack" )) 
 		{                                          
-			pfile = COM_ParseFile(pfile, token);
+			token = COM_ParseToken( &pfile );
 			II->fNextAttack = atof(token);
 		}
-		pfile = COM_ParseFile(pfile, token);
+		token = COM_ParseToken( &pfile );
 	}
 	return 1;
 }
@@ -615,117 +617,117 @@ int CBasePlayerWeapon :: ParsePrimaryAttack( ItemInfo *II, char *pfile )
 //=========================================================
 //	Parse WeaponData {} section
 //=========================================================
-int CBasePlayerWeapon :: ParseWeaponData( ItemInfo *II, char *pfile )
+int CBasePlayerWeapon :: ParseWeaponData( ItemInfo *II, const char *pfile )
 {
-	char token[256];
+	char	*token = NULL;
 
-	while ( stricmp( token, "WeaponData") )
+	while ( FStriCmp( token, "WeaponData") )
 	{
-		if(!pfile) return 0;
-		pfile = COM_ParseFile(pfile, token);
+		if ( !pfile ) return 0;
+		token = COM_ParseToken( &pfile );
 	}
-	while ( stricmp( token, "{") )		//search {
+	while ( FStriCmp( token, "{") )		// search {
 	{
-		if(!pfile) return 0;
-		pfile = COM_ParseFile(pfile, token);
+		if ( !pfile ) return 0;
+		token = COM_ParseToken( &pfile );
 	}
 		
-	pfile = COM_ParseFile(pfile, token);
-	while ( stricmp( token, "}" ) )
+	token = COM_ParseToken( &pfile );
+	while ( FStriCmp( token, "}" ))
 	{
-		if (!pfile) break;
+		if ( !token ) break;
 		
-		if ( !stricmp( token, "viewmodel" )) 
+		if ( !FStriCmp( token, "viewmodel" )) 
 		{                                          
-			pfile = COM_ParseFile(pfile, token);
+			token = COM_ParseToken( &pfile );
 			II->iViewModel = ALLOC_STRING(token);
 		}
-		else if( !stricmp( token, "playermodel" )) 
+		else if( !FStriCmp( token, "playermodel" )) 
 		{                                          
-			pfile = COM_ParseFile(pfile, token);
+			token = COM_ParseToken( &pfile );
 			II->iWorldModel = ALLOC_STRING(token);			
 		}
-		else if( !stricmp( token, "anim_prefix" )) 
+		else if( !FStriCmp( token, "anim_prefix" )) 
 		{                                          
-			pfile = COM_ParseFile(pfile, token);
+			token = COM_ParseToken( &pfile );
 			strncpy( II->szAnimExt, token, sizeof( II->szAnimExt ));
 		}
-		else if( !stricmp( token, "bucket" )) 
+		else if( !FStriCmp( token, "bucket" )) 
 		{                                          
-			pfile = COM_ParseFile(pfile, token);
+			token = COM_ParseToken( &pfile );
 			II->iSlot = atoi( token );  
 		} 
-		else if( !stricmp( token, "bucket_position" )) 
+		else if( !FStriCmp( token, "bucket_position" )) 
 		{                                          
-			pfile = COM_ParseFile(pfile, token);
+			token = COM_ParseToken( &pfile );
 			II->iPosition = atoi( token ); 
 		} 
-		else if( !stricmp( token, "clip_size" )) 
+		else if( !FStriCmp( token, "clip_size" )) 
 		{                                             
-  			pfile = COM_ParseFile( pfile, token );
-			if( !stricmp( token, "noclip" ))
+  			token = COM_ParseToken( &pfile );
+			if( !FStriCmp( token, "noclip" ))
 				II->iMaxClip = -1; 
 			else II->iMaxClip = atoi( token ); 
   	 	}  
-		else if( !stricmp( token, "primary_ammo" )) 
+		else if( !FStriCmp( token, "primary_ammo" )) 
 		{                                   
-  			pfile = COM_ParseFile( pfile, token );    
+  			token = COM_ParseToken( &pfile );    
 			
-			if ( !stricmp( token, "none" )) II->iMaxAmmo1 = WEAPON_NOAMMO;
-			else if ( !stricmp( token, "357" )) II->iMaxAmmo1 = DESERT_MAX_CARRY;
-			else if ( !stricmp( token, "9mm" )) II->iMaxAmmo1 = GLOCK_MAX_CARRY;
-			else if ( !stricmp( token, "12mm" )) II->iMaxAmmo1 = GLOCK_MAX_CARRY;
-			else if ( !stricmp( token, "762" )) II->iMaxAmmo1 = M40A1_MAX_CARRY;
-			else if ( !stricmp( token, "m203" )) II->iMaxAmmo1 = M203_GRENADE_MAX_CARRY;
-			else if ( !stricmp( token, "nuke" )) II->iMaxAmmo1 = ROCKET_MAX_CARRY;
-			else if ( !stricmp( token, "rockets" )) II->iMaxAmmo1 = ROCKET_MAX_CARRY;
-			else if ( !stricmp( token, "556" )) II->iMaxAmmo1 = GLOCK_MAX_CARRY;
-			else if ( !stricmp( token, "buckshot" )) II->iMaxAmmo1 = BUCKSHOT_MAX_CARRY;
-			else if ( !stricmp( token, "grenade" )) II->iMaxAmmo1 = M203_GRENADE_MAX_CARRY;
-			else if ( !stricmp( token, "bolts" )) II->iMaxAmmo1 = BOLT_MAX_CARRY;
+			if ( !FStriCmp( token, "none" )) II->iMaxAmmo1 = WEAPON_NOAMMO;
+			else if ( !FStriCmp( token, "357" )) II->iMaxAmmo1 = DESERT_MAX_CARRY;
+			else if ( !FStriCmp( token, "9mm" )) II->iMaxAmmo1 = GLOCK_MAX_CARRY;
+			else if ( !FStriCmp( token, "12mm" )) II->iMaxAmmo1 = GLOCK_MAX_CARRY;
+			else if ( !FStriCmp( token, "762" )) II->iMaxAmmo1 = M40A1_MAX_CARRY;
+			else if ( !FStriCmp( token, "m203" )) II->iMaxAmmo1 = M203_GRENADE_MAX_CARRY;
+			else if ( !FStriCmp( token, "nuke" )) II->iMaxAmmo1 = ROCKET_MAX_CARRY;
+			else if ( !FStriCmp( token, "rockets" )) II->iMaxAmmo1 = ROCKET_MAX_CARRY;
+			else if ( !FStriCmp( token, "556" )) II->iMaxAmmo1 = GLOCK_MAX_CARRY;
+			else if ( !FStriCmp( token, "buckshot" )) II->iMaxAmmo1 = BUCKSHOT_MAX_CARRY;
+			else if ( !FStriCmp( token, "grenade" )) II->iMaxAmmo1 = M203_GRENADE_MAX_CARRY;
+			else if ( !FStriCmp( token, "bolts" )) II->iMaxAmmo1 = BOLT_MAX_CARRY;
 
 			II->iszAmmo1 = ALLOC_STRING( token );
 		}
-		else if ( !stricmp( token, "secondary_ammo" )) 
+		else if ( !FStriCmp( token, "secondary_ammo" )) 
 		{                                   
-			pfile = COM_ParseFile(pfile, token); 
+			token = COM_ParseToken( &pfile ); 
 
-			if ( !stricmp( token, "none" )) II->iMaxAmmo2 = WEAPON_NOAMMO;
-			else if ( !stricmp( token, "357" )) II->iMaxAmmo2 = DESERT_MAX_CARRY;
-			else if ( !stricmp( token, "9mm" )) II->iMaxAmmo2 = GLOCK_MAX_CARRY;
-			else if ( !stricmp( token, "12mm" )) II->iMaxAmmo2 = GLOCK_MAX_CARRY;
-			else if ( !stricmp( token, "762" )) II->iMaxAmmo2 = M40A1_MAX_CARRY;
-			else if ( !stricmp( token, "m203" )) II->iMaxAmmo2 = M203_GRENADE_MAX_CARRY;
-			else if ( !stricmp( token, "nuke" )) II->iMaxAmmo2 = ROCKET_MAX_CARRY;
-			else if ( !stricmp( token, "rockets" )) II->iMaxAmmo2 = ROCKET_MAX_CARRY;
-			else if ( !stricmp( token, "556" )) II->iMaxAmmo2 = GLOCK_MAX_CARRY;
-			else if ( !stricmp( token, "buckshot" )) II->iMaxAmmo2 = BUCKSHOT_MAX_CARRY;
-			else if ( !stricmp( token, "grenade" )) II->iMaxAmmo1 = M203_GRENADE_MAX_CARRY;//don't change this!
-			else if ( !stricmp( token, "bolts" )) II->iMaxAmmo2 = BOLT_MAX_CARRY;
+			if ( !FStriCmp( token, "none" )) II->iMaxAmmo2 = WEAPON_NOAMMO;
+			else if ( !FStriCmp( token, "357" )) II->iMaxAmmo2 = DESERT_MAX_CARRY;
+			else if ( !FStriCmp( token, "9mm" )) II->iMaxAmmo2 = GLOCK_MAX_CARRY;
+			else if ( !FStriCmp( token, "12mm" )) II->iMaxAmmo2 = GLOCK_MAX_CARRY;
+			else if ( !FStriCmp( token, "762" )) II->iMaxAmmo2 = M40A1_MAX_CARRY;
+			else if ( !FStriCmp( token, "m203" )) II->iMaxAmmo2 = M203_GRENADE_MAX_CARRY;
+			else if ( !FStriCmp( token, "nuke" )) II->iMaxAmmo2 = ROCKET_MAX_CARRY;
+			else if ( !FStriCmp( token, "rockets" )) II->iMaxAmmo2 = ROCKET_MAX_CARRY;
+			else if ( !FStriCmp( token, "556" )) II->iMaxAmmo2 = GLOCK_MAX_CARRY;
+			else if ( !FStriCmp( token, "buckshot" )) II->iMaxAmmo2 = BUCKSHOT_MAX_CARRY;
+			else if ( !FStriCmp( token, "grenade" )) II->iMaxAmmo1 = M203_GRENADE_MAX_CARRY;//don't change this!
+			else if ( !FStriCmp( token, "bolts" )) II->iMaxAmmo2 = BOLT_MAX_CARRY;
 			
 			II->iszAmmo2 = ALLOC_STRING( token );
 		} 
-		else if ( !stricmp( token, "defaultammo" )) 
+		else if ( !FStriCmp( token, "defaultammo" )) 
 		{                                                      
-  			pfile = COM_ParseFile(pfile, token);
+  			token = COM_ParseToken( &pfile );
 			m_iDefaultAmmo = RandomRange( token ).Random();
 		}
-		else if ( !stricmp( token, "defaultammo2" )) 
+		else if ( !FStriCmp( token, "defaultammo2" )) 
 		{                                                      
-  			pfile = COM_ParseFile(pfile, token);
+  			token = COM_ParseToken( &pfile );
 			m_iDefaultAmmo2 = RandomRange( token ).Random();
 		}
-		else if ( !stricmp( token, "weight" )) 
+		else if ( !FStriCmp( token, "weight" )) 
 		{                                          
-			pfile = COM_ParseFile(pfile, token);
+			token = COM_ParseToken( &pfile );
 			II->iWeight = atoi(token); 
 		}
-		else if ( !stricmp( token, "item_flags" )) 
+		else if ( !FStriCmp( token, "item_flags" )) 
 		{                                          
-			pfile = COM_ParseFile(pfile, token);
+			token = COM_ParseToken( &pfile );
 			II->iFlags = atoi(token); 
 		}
- 		pfile = COM_ParseFile(pfile, token);
+ 		token = COM_ParseToken( &pfile );
  	}
 	return 1;
 }
@@ -1089,12 +1091,12 @@ Vector CBasePlayerWeapon :: GetCurrentSpread( const char *ammo )
 
 int CBasePlayerWeapon :: GetBulletType( const char *ammo )
 {
-	if( !stricmp( ammo, "9mm" ))		return BULLET_9MM;
-	else if( !stricmp( ammo, "357" ))	return BULLET_357;
-	else if( !stricmp( ammo, "556" ))	return BULLET_556;
-	else if( !stricmp( ammo, "762" ))	return BULLET_762;
-	else if( !stricmp( ammo, "12mm" ))	return BULLET_12MM;
-	else if( !stricmp( ammo, "buckshot" ))	return BULLET_BUCKSHOT;
+	if( !FStriCmp( ammo, "9mm" ))		return BULLET_9MM;
+	else if( !FStriCmp( ammo, "357" ))	return BULLET_357;
+	else if( !FStriCmp( ammo, "556" ))	return BULLET_556;
+	else if( !FStriCmp( ammo, "762" ))	return BULLET_762;
+	else if( !FStriCmp( ammo, "12mm" ))	return BULLET_12MM;
+	else if( !FStriCmp( ammo, "buckshot" ))	return BULLET_BUCKSHOT;
 
 	return BULLET_NONE;
 }
@@ -1103,9 +1105,9 @@ int CBasePlayerWeapon :: GetAmmoType( const char *ammo )
 {
 	const char *ammoname;
 	ammoname = m_pPlayer->GetAmmoName(m_iPrimaryAmmoType);
-	if(!stricmp( ammo, ammoname )) return 1;
+	if(!FStriCmp( ammo, ammoname )) return 1;
 	ammoname = m_pPlayer->GetAmmoName(m_iSecondaryAmmoType);
-	if(!stricmp( ammo, ammoname )) return 2;
+	if(!FStriCmp( ammo, ammoname )) return 2;
 	return 0;
 }
 
@@ -1113,16 +1115,16 @@ int CBasePlayerWeapon :: ReturnAmmoIndex( const char *ammo )
 {
 	const char *ammoname;
 	ammoname = m_pPlayer->GetAmmoName( m_iPrimaryAmmoType );
-	if( !stricmp( ammo, ammoname )) return m_iPrimaryAmmoType;
+	if( !FStriCmp( ammo, ammoname )) return m_iPrimaryAmmoType;
 	ammoname = m_pPlayer->GetAmmoName( m_iSecondaryAmmoType );
-	if( !stricmp( ammo, ammoname )) return m_iSecondaryAmmoType;
+	if( !FStriCmp( ammo, ammoname )) return m_iSecondaryAmmoType;
 	return 0;
 }
 
 int CBasePlayerWeapon :: GetCurrentAttack( const char *ammo, int firemode )
 {
 	int iResult;
-	if( !stricmp( ammo, "none" ))	//no ammo
+	if( !FStriCmp( ammo, "none" ))	//no ammo
 	{
 		//just play animation and sound
 		if(!firemode) iResult = PlayRangeAttack(); // anim is present ?
@@ -1131,22 +1133,22 @@ int CBasePlayerWeapon :: GetCurrentAttack( const char *ammo, int firemode )
 		SetPlayerEffects( ammo, firemode );
                     PlayAttackSound( firemode );
 	}
-	else if( !stricmp( ammo, "9mm" )) iResult = Shoot ( ammo, GetCurrentSpread(ammo), firemode );
-	else if( !stricmp( ammo, "357" )) iResult = Shoot ( ammo, GetCurrentSpread(ammo), firemode );
-	else if( !stricmp( ammo, "556" )) iResult = Shoot ( ammo, GetCurrentSpread(ammo), firemode );
-	else if( !stricmp( ammo, "762" )) iResult = Shoot ( ammo, GetCurrentSpread(ammo), firemode );
-	else if( !stricmp( ammo, "12mm" )) iResult = Shoot ( ammo, GetCurrentSpread(ammo), firemode );
-	else if( !stricmp( ammo, "buckshot" ))
+	else if( !FStriCmp( ammo, "9mm" )) iResult = Shoot ( ammo, GetCurrentSpread(ammo), firemode );
+	else if( !FStriCmp( ammo, "357" )) iResult = Shoot ( ammo, GetCurrentSpread(ammo), firemode );
+	else if( !FStriCmp( ammo, "556" )) iResult = Shoot ( ammo, GetCurrentSpread(ammo), firemode );
+	else if( !FStriCmp( ammo, "762" )) iResult = Shoot ( ammo, GetCurrentSpread(ammo), firemode );
+	else if( !FStriCmp( ammo, "12mm" )) iResult = Shoot ( ammo, GetCurrentSpread(ammo), firemode );
+	else if( !FStriCmp( ammo, "buckshot" ))
 	{
 		if(firemode) iResult = Shoot ( ammo, GetCurrentSpread(ammo), m_iClip == 1 ? 0 : 1, 2 );//HACK
 		else iResult = Shoot ( ammo, GetCurrentSpread(ammo) );
 	}
-	else if( !stricmp( ammo, "rockets" ))	iResult = Launch( ammo, firemode );
-	else if( !stricmp( ammo, "m203" ))	iResult = Launch( ammo, firemode );
-	else if( !stricmp( ammo, "nuke" ))	iResult = Launch( ammo, firemode );
-	else if( !stricmp( ammo, "bolts" ))	iResult = Launch( ammo, firemode ); 
-	else if( !stricmp( ammo, "uranium" ))	iResult = -1;
-	else if( !stricmp( ammo, "grenade" ))
+	else if( !FStriCmp( ammo, "rockets" ))	iResult = Launch( ammo, firemode );
+	else if( !FStriCmp( ammo, "m203" ))	iResult = Launch( ammo, firemode );
+	else if( !FStriCmp( ammo, "nuke" ))	iResult = Launch( ammo, firemode );
+	else if( !FStriCmp( ammo, "bolts" ))	iResult = Launch( ammo, firemode ); 
+	else if( !FStriCmp( ammo, "uranium" ))	iResult = -1;
+	else if( !FStriCmp( ammo, "grenade" ))
 	{
 		if ( !m_flHoldTime && m_pPlayer->m_rgAmmo[ ReturnAmmoIndex( ammo ) ] > 0 )
 		{
@@ -1275,7 +1277,7 @@ int CBasePlayerWeapon :: UseAmmo( const char *ammo, int count )
 
 void CBasePlayerWeapon :: SetPlayerEffects( const char *ammo, int firemode )
 {
-	if( !stricmp( ammo, "9mm" ))
+	if( !FStriCmp( ammo, "9mm" ))
 	{
 		if(firemode)//add silencer
 		{
@@ -1288,12 +1290,12 @@ void CBasePlayerWeapon :: SetPlayerEffects( const char *ammo, int firemode )
 			m_pPlayer->m_iWeaponFlash = BRIGHT_GUN_FLASH;
 		}
 	}
-	else if( !stricmp( ammo, "762" )) //sniper rifle
+	else if( !FStriCmp( ammo, "762" )) //sniper rifle
 	{
 		m_pPlayer->m_iWeaponVolume = QUIET_GUN_VOLUME;
 		m_pPlayer->m_iWeaponFlash = NO_GUN_FLASH;
 	}
-	else if( !stricmp( ammo, "buckshot" ))
+	else if( !FStriCmp( ammo, "buckshot" ))
 	{
 		if(firemode) //double barrels attack
 		{
@@ -1368,7 +1370,7 @@ int CBasePlayerWeapon :: Shoot ( const char *ammo, Vector vecSpread, int firemod
 		{
 			SFX_EjectBrass( vecSrc, m_pPlayer->pev->velocity, RANDOM_FLOAT( 0, 360 ), model, BOUNCE_SHELL );
                     }
-		if( !stricmp( ammo, "buckshot" ))//HACK 
+		if( !FStriCmp( ammo, "buckshot" ))//HACK 
 		{
 			flDistance = 2048;
 			cShots *= 4;
@@ -1389,13 +1391,13 @@ int CBasePlayerWeapon :: Launch ( const char *ammo, int type )
 	//viewmodel animation
 	ZoomReset();
           
-	if ( !stricmp( ammo, "m203" )) 
+	if ( !FStriCmp( ammo, "m203" )) 
 	{
 		// we don't add in player velocity anymore.
          		UTIL_MakeVectors( m_pPlayer->pev->viewangles + m_pPlayer->pev->punchangle );
 		CGrenade::ShootContact( m_pPlayer->pev, m_pPlayer->pev->origin + m_pPlayer->pev->view_ofs + gpGlobals->v_forward * 16, gpGlobals->v_forward * 800 );
 	}	
-	else if( !stricmp( ammo, "rockets" ))
+	else if( !FStriCmp( ammo, "rockets" ))
 	{
 		UTIL_MakeVectors( m_pPlayer->pev->viewangles );
 		Vector vecSrc = m_pPlayer->GetGunPosition( ) + gpGlobals->v_forward * 16 + gpGlobals->v_right * 8 + gpGlobals->v_up * -8;
@@ -1404,7 +1406,7 @@ int CBasePlayerWeapon :: Launch ( const char *ammo, int type )
 		UTIL_MakeVectors( m_pPlayer->pev->viewangles );// RpgRocket::Create stomps on globals, so remake.
 		pRocket->pev->velocity = pRocket->pev->velocity + gpGlobals->v_forward * DotProduct( m_pPlayer->pev->velocity, gpGlobals->v_forward );
 	} 
-	else if( !stricmp( ammo, "bolts" ))
+	else if( !FStriCmp( ammo, "bolts" ))
 	{
 		// we don't add in player velocity anymore.
 		Vector anglesAim = m_pPlayer->pev->viewangles + m_pPlayer->pev->punchangle;
@@ -1418,13 +1420,13 @@ int CBasePlayerWeapon :: Launch ( const char *ammo, int type )
 		if (m_pPlayer->pev->waterlevel == 3) pBolt->pev->velocity = vecDir * 1000;
 		else pBolt->pev->velocity = vecDir * 2000;
 	}
-	else if( !stricmp( ammo, "nuke" ))
+	else if( !FStriCmp( ammo, "nuke" ))
 	{
 		UTIL_MakeVectors( m_pPlayer->pev->viewangles );
 		Vector vecSrc = m_pPlayer->GetGunPosition( ) + gpGlobals->v_forward * 125 + gpGlobals->v_up * 2;
 		CWHRocket *pRocket = CWHRocket::Create ( vecSrc, m_pPlayer->pev->viewangles, m_pPlayer, this, type );
 	}
-	else if( !stricmp( ammo, "grenade" ))
+	else if( !FStriCmp( ammo, "grenade" ))
 	{
 		Vector angThrow = m_pPlayer->pev->viewangles + m_pPlayer->pev->punchangle;
 

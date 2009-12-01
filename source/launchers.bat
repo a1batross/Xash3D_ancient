@@ -9,10 +9,6 @@ cd extragen
 makefile.nmake
 
 cd ..
-cd qcc
-makefile.nmake
-
-cd ..
 cd sprite
 makefile.nmake
 
@@ -21,7 +17,7 @@ cd studio
 makefile.nmake
 
 cd ..
-cd dpvenc
+cd ximage
 makefile.nmake
 
 cd ..

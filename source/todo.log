@@ -155,8 +155,8 @@ Beta 13.12.09
 128. fixup sprites lerping			OK
 129. fixup sound orientation			OK
 130. don't show console on changelevel		OK
-131. support for doom3-style materials parsing
-132. implement SENTENCE_system
+131. fixup teleports and trigger push's
+132. prepare configs and gameinfo
 133. new sound\render system version replacement	OK
 134. dx sound engine complete			OK
 135. implement dsp				OK
@@ -187,5 +187,5 @@ Beta 13.12.09
 160. pfnGetPlayerStats			OK
 161. fix basevelocity			OK
 162. rewrote auto-classify			OK
-163. rewrote sv_phys.c
-164. remove vprogs.dll
+163. rewrote sv_phys.c			OK
+164. remove vprogs.dll			OK 

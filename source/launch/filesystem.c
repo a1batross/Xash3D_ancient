@@ -1390,8 +1390,6 @@ void FS_CreateGameInfo( const char *filename )
 	com.strncat( buffer, va("title\t\t\"New Game\"\rversion\t\t\"%g\"\rviewmode\t\t\"firstperson\"\r", XASH_VERSION ), MAX_SYSPATH );
 	com.strncat( buffer, "gamemode\t\t\"singleplayer\"\r", MAX_SYSPATH );
 	com.strncat( buffer, "\nstartmap\t\t\"newmap\"\n\n", MAX_SYSPATH );
-	com.strncat( buffer, "// directory for progs binary and source", MAX_SYSPATH );
-	com.strncat( buffer, "\nsourcedir\t\t\"source\"", MAX_SYSPATH );
 	com.strncat( buffer, "\ntexmode\t\t\"Xash3D\"", MAX_SYSPATH );
 	com.strncat( buffer, "\nsp_spawn\t\t\"info_player_start\"", MAX_SYSPATH );
 	com.strncat( buffer, "\ndm_spawn\t\t\"info_player_deathmatch\"", MAX_SYSPATH );
@@ -1530,10 +1528,6 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 				GameInfo->gamemode = 1;
 			else if( !com.stricmp( token.string, "multiplayer" ))
 				GameInfo->gamemode = 2;
-		}
-		else if( !com.stricmp( token.string, "sourcedir" ))
-		{
-			PS_GetString( script, false, GameInfo->vsrcdir, sizeof( GameInfo->vsrcdir ));
 		}
 		else if( !com.strnicmp( token.string, "hull", 4 ))
 		{
@@ -3443,7 +3437,6 @@ wadtype_t wad_types[] =
 	{"str", TYPE_STRDATA}, // xash string data
 	{"raw", TYPE_RAW	}, // signed raw data
 	{"txt", TYPE_SCRIPT	}, // any script file
-	{"dat", TYPE_VPROGS	}, // xash progs
 	{ NULL, TYPE_NONE	}
 };
 

@@ -32,9 +32,6 @@ if errorlevel 1 set BUILD_ERROR=1
 %MSDEV% server/server.dsp %CONFIG%"server - Win32 Debug" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
-%MSDEV% vprogs/vprogs.dsp %CONFIG%"vprogs - Win32 Debug" %build_target%
-if errorlevel 1 set BUILD_ERROR=1
-
 %MSDEV% snd_al/snd_al.dsp %CONFIG%"snd_al - Win32 Debug" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
@@ -72,7 +69,6 @@ if exist cms_xr\cms_xr.plg del /f /q cms_xr\cms_xr.plg
 if exist server\server.plg del /f /q server\server.plg
 if exist vid_gl\vid_gl.plg del /f /q vid_gl\vid_gl.plg
 if exist viewer\viewer.plg del /f /q viewer\viewer.plg
-if exist vprogs\vprogs.plg del /f /q vprogs\vprogs.plg
 if exist snd_al\snd_al.plg del /f /q snd_al\snd_al.plg
 if exist snd_dx\snd_dx.plg del /f /q snd_dx\snd_dx.plg
 if exist xtools\xtools.plg del /f /q xtools\xtools.plg

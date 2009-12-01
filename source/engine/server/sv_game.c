@@ -1605,17 +1605,9 @@ pfnEmitAmbientSound
 */
 void pfnEmitAmbientSound( edict_t *ent, float *pos, const char *samp, float vol, float attn, int flags, int pitch )
 {
-	int 	i, sound_idx;
+	int 	i, number, sound_idx;
 	int	msg_dest = MSG_PAS_R;
 	vec3_t	origin;
-
-	if( SV_IsValidEdict( ent ) && !pos )
-	{
-		// dynamic ambient sound
-		if( flags & SND_STOP ) ent->pvServerData->s.soundindex = 0;
-		else ent->pvServerData->s.soundindex = SV_SoundIndex( samp );
-		return;
-	}
 
 	if( attn < ATTN_NONE || attn > ATTN_IDLE )
 	{
@@ -1635,7 +1627,7 @@ void pfnEmitAmbientSound( edict_t *ent, float *pos, const char *samp, float vol,
 	if( pitch != PITCH_NORM ) flags |= SND_PITCH;
 
 	// ultimate method for detect bsp models with invalid solidity (e.g. func_pushable)
-	if( CM_GetModelType( ent->v.modelindex ) == mod_brush )
+	if( SV_IsValidEdict( ent ) && CM_GetModelType( ent->v.modelindex ) == mod_brush )
 	{
 		for( i = 0; i < 3; i++ )
 			origin[i] = ent->v.origin[i] + 0.5f * ( ent->v.mins[i] + ent->v.maxs[i] );
@@ -1643,15 +1635,17 @@ void pfnEmitAmbientSound( edict_t *ent, float *pos, const char *samp, float vol,
 		if( flags & SND_SPAWNING )
 			msg_dest = MSG_INIT;
 		else msg_dest = MSG_PAS;
+		number = ent->serialnumber;
 	}
 	else
 	{
 		for( i = 0; i < 3; i++ )
-			origin[i] = ent->v.origin[i];
+			origin[i] = pos[i];
 
 		if( flags & SND_SPAWNING )
 			msg_dest = MSG_INIT;
 		else msg_dest = MSG_PAS;
+		number = 0;
 	}
 
 	// always sending stop sound command
@@ -1672,7 +1666,7 @@ void pfnEmitAmbientSound( edict_t *ent, float *pos, const char *samp, float vol,
 	if ( flags & SND_PITCH ) MSG_WriteByte( &sv.multicast, pitch );
 
 	// plays from fixed position
-	MSG_WriteWord( &sv.multicast, ent->serialnumber );
+	MSG_WriteWord( &sv.multicast, number );
 	MSG_WritePos( &sv.multicast, pos );
 
 	MSG_Send( msg_dest, origin, NULL );

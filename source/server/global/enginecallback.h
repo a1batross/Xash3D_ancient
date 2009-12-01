@@ -67,6 +67,7 @@ extern enginefuncs_t g_engfuncs;
 #define RANDOM_FLOAT	(*g_engfuncs.pfnRandomFloat)
 #define CLASSIFY_EDICT	(*g_engfuncs.pfnClassifyEdict)
 #define SET_AREAPORTAL	(*g_engfuncs.pfnAreaPortal)
+#define COM_Parse		(*g_engfuncs.pfnParseToken)
 
 inline void MESSAGE_BEGIN( int msg_dest, int msg_type, const float *pOrigin = NULL, edict_t *ed = NULL )
 {

@@ -426,8 +426,6 @@ void CL_ParseBaseline( sizebuf_t *msg )
 	ent = EDICT_NUM( newnum );
 	if( ent->free ) CL_InitEdict( ent ); // initialize edict
 
-	if( cls.state == ca_active )
-		Msg( "SpawnBaseline: %i\n", newnum );
 	baseline = &clgame.baselines[newnum];
 	MSG_ReadDeltaEntity( msg, &nullstate, baseline, newnum );
 	CL_LinkEdict( ent, false ); // first entering, link always

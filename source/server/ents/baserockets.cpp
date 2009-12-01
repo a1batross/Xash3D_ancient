@@ -305,7 +305,7 @@ CGrenade * CGrenade:: ShootTimed( entvars_t *pevOwner, Vector vecStart, Vector v
 	pGrenade->pev->friction = 0.8;
 	pGrenade->pev->scale = 0.5;	// original Valve model is too big :)
 
-	UTIL_SetModel( ENT( pGrenade->pev ), "models/props/handgrenade.mdl" );
+	UTIL_SetModel( ENT( pGrenade->pev ), "models/props/hgrenade.mdl" );
 	pGrenade->pev->dmg = 100;
 
 	return pGrenade;
