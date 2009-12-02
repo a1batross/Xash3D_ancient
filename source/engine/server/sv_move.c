@@ -465,6 +465,45 @@ int PM_PointContents( const vec3_t p )
 	return World_ConvertContents( SV_BaseContents( p, svgame.pmove->player ));
 }
 
+void PM_CheckMovingGround( edict_t *ent, float frametime )
+{
+	SV_UpdateBaseVelocity( ent );
+
+	if(!( ent->v.flags & FL_BASEVELOCITY ))
+	{
+		// apply momentum (add in half of the previous frame of velocity first)
+		VectorMA( ent->v.velocity, 1.0f + (frametime * 0.5f), ent->v.basevelocity, ent->v.velocity );
+		VectorClear( ent->v.basevelocity );
+	}
+	ent->v.flags &= ~FL_BASEVELOCITY;
+}
+
+void PM_SetupMove( playermove_t *pmove, edict_t *clent, usercmd_t *ucmd, const char *physinfo )
+{
+	pmove->realtime = svgame.globals->time;
+	pmove->frametime = ucmd->msec * 0.001f;
+	com.strncpy( pmove->physinfo, physinfo, MAX_INFO_STRING );
+	pmove->clientmaxspeed = clent->v.maxspeed;
+	pmove->cmd = *ucmd;				// setup current cmds
+	pmove->player = clent;			// ptr to client state
+	pmove->numtouch = 0;			// reset touchents
+	pmove->dead = (clent->v.health <= 0.0f) ? true : false;
+	pmove->flWaterJumpTime = clent->v.teleport_time;
+	pmove->onground = clent->v.groundentity;
+	pmove->usehull = (clent->v.flags & FL_DUCKING) ? 1 : 0; // reset hull
+	pmove->bInDuck = clent->v.bInDuck;
+	VectorCopy( clent->v.origin, pmove->origin );
+}
+
+void PM_FinishMove( playermove_t *pmove, edict_t *clent )
+{
+	clent->v.teleport_time = pmove->flWaterJumpTime;
+	clent->v.groundentity = pmove->onground;
+	VectorCopy( pmove->angles, clent->v.viewangles );
+	VectorCopy( pmove->origin, clent->v.origin );
+	clent->v.bInDuck = pmove->bInDuck;
+}
+
 /*
 ===============
 SV_InitClientMove
@@ -559,6 +598,8 @@ void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd )
 		return;
 	}
 
+	PM_CheckMovingGround( clent, ucmd->msec * 0.001f );
+
 	VectorCopy( clent->v.viewangles, svgame.pmove->oldangles ); // save oldangles
 	if( !clent->v.fixangle )
 		VectorCopy( ucmd->viewangles, clent->v.viewangles );
@@ -586,38 +627,25 @@ void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd )
 		svgame.globals->frametime = ucmd->msec * 0.001f;
 
 		SV_RunThink( clent );
+
+		// If conveyor, or think, set basevelocity, then send to client asap too.
+		if( VectorLength( clent->v.basevelocity ) > 0.0f )
+			VectorCopy( clent->v.basevelocity, clent->v.clbasevelocity );
 	}
 
-	// setup playermove state
+	// setup playermove globals
 	svgame.pmove->multiplayer = (sv_maxclients->integer > 1) ? true : false;
-	svgame.pmove->realtime = svs.realtime * 0.001f;
-	svgame.pmove->frametime = ucmd->msec * 0.001f;
-	com.strncpy( svgame.pmove->physinfo, cl->physinfo, MAX_INFO_STRING );
-	svgame.pmove->serverflags = svgame.globals->serverflags;
-	svgame.pmove->clientmaxspeed = clent->v.maxspeed;
+	svgame.pmove->serverflags = svgame.globals->serverflags;	// shared serverflags
 	svgame.pmove->maxspeed = svgame.movevars.maxspeed;
-	svgame.pmove->cmd = *ucmd;		// setup current cmds
-	svgame.pmove->player = clent;		// ptr to client state
-	svgame.pmove->numtouch = 0;		// reset touchents
-	svgame.pmove->dead = (clent->v.health <= 0.0f) ? true : false;
-	svgame.pmove->flWaterJumpTime = clent->v.teleport_time;
-	svgame.pmove->onground = clent->v.groundentity;
-	svgame.pmove->usehull = (clent->v.flags & FL_DUCKING) ? 1 : 0; // reset hull
-	svgame.pmove->bInDuck = clent->v.bInDuck;
-	for( i = 0; i < 3; i++ )
-		svgame.pmove->origin[i] = clent->v.origin[i];
+
+	// setup playermove state
+	PM_SetupMove( svgame.pmove, clent, ucmd, cl->physinfo );
 
 	// motor!
 	svgame.dllFuncs.pfnPM_Move( svgame.pmove, true );
 
 	// copy results back to client
-	clent->v.teleport_time = svgame.pmove->flWaterJumpTime;
-	clent->v.groundentity = svgame.pmove->onground;
-	VectorCopy( svgame.pmove->angles, clent->v.viewangles );
-	clent->v.bInDuck = svgame.pmove->bInDuck;
-
-	for( i = 0; i < 3; i++ )
-		clent->v.origin[i] = svgame.pmove->origin[i];
+	PM_FinishMove( svgame.pmove, clent );
 	VectorCopy( clent->v.velocity, oldvel ); // save velocity
 		
 	if(!( clent->v.flags & FL_SPECTATOR ))
@@ -625,17 +653,25 @@ void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd )
 		// link into place and touch triggers
 		SV_LinkEdict( clent, true );
 
+		// NOTE: one of triggers apply new velocity to client
+		// e.g trigger_teleport resets it or add new
+		// so we need to apply new velocity immediately here
+		if( clent->v.fixangle || clent->v.flJumpPadTime )
+			VectorCopy( clent->v.velocity, oldvel );
+
 		// touch other objects
 		for( i = 0; i < svgame.pmove->numtouch; i++ )
 		{
 			if( i == MAX_PHYSENTS ) break;
 			if( svgame.pmove->touchents[i] == clent ) continue;
 			VectorCopy( svgame.pmove->touchvels[i], clent->v.velocity );
+
 			svgame.dllFuncs.pfnTouch( svgame.pmove->touchents[i], clent );
 		}
 	}
 
-	VectorCopy( oldvel, clent->v.velocity ); // save velocity
+	// restore velocity
+	VectorCopy( oldvel, clent->v.velocity );
 	svgame.pmove->numtouch = 0;
 }
 

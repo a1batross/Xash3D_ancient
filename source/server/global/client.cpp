@@ -1146,7 +1146,6 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 		if( pNet->pev->fixangle )
 		{
 			to->ed_flags |= ESF_NO_PREDICTION;
-			pNet->pev->fixangle = 0;
 		}
 
 		if( pNet->pev->teleport_time )

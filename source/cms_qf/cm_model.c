@@ -883,8 +883,8 @@ void CM_ModelBounds( model_t handle, vec3_t mins, vec3_t maxs )
 	else
 	{
 		MsgDev( D_ERROR, "Mod_GetBounds: NULL model %i\n", handle );
-		if( mins ) VectorSet( mins, -32, -32, -32 );
-		if( maxs ) VectorSet( maxs,  32,  32,  32 );
+		if( mins ) VectorClear( mins );
+		if( maxs ) VectorClear( maxs );
 	}
 }
 

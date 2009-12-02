@@ -146,10 +146,9 @@ void CGrenade::BounceTouch( CBaseEntity *pOther )
 		m_fRegisteredSound = TRUE;
 	}
 
-	if (pev->flags & FL_ONGROUND)
+	if ( pev->flags & FL_ONGROUND )
 	{
 		// add a bit of static friction
-		Msg( "On ground()\n" );
 		pev->velocity = pev->velocity * 0.8;
 		pev->sequence = 1;
 	}
@@ -159,8 +158,8 @@ void CGrenade::BounceTouch( CBaseEntity *pOther )
 		BounceSound();
 	}
 	pev->framerate = pev->velocity.Length() / 200.0;
-	if (pev->framerate > 1.0) pev->framerate = 1;
-	else if (pev->framerate < 0.5) pev->framerate = 0;
+	if( pev->framerate > 1.0 ) pev->framerate = 1;
+	else if( pev->framerate < 0.5 ) pev->framerate = 0;
 
 }
 
@@ -231,8 +230,7 @@ void CGrenade:: Spawn( void )
 	pev->solid = SOLID_BBOX;
 
 	SetObjectClass( ED_NORMAL );
-	UTIL_SetModel( ENT( pev ), "models/grenade.mdl");
-	UTIL_SetSize(pev, Vector( 0, 0, 0), Vector(0, 0, 0));
+	UTIL_SetModel( ENT( pev ), "models/props/hgrenade.mdl");
 
 	pev->dmg = 100;
 	m_fRegisteredSound = FALSE;
@@ -261,7 +259,8 @@ CGrenade *CGrenade::ShootContact( entvars_t *pevOwner, Vector vecStart, Vector v
 	// Explode on contact
 	pGrenade->SetTouch( ExplodeTouch );
 
-	UTIL_SetModel( ENT( pGrenade->pev ), "models/props/grenade.mdl");
+	UTIL_SetModel( ENT( pGrenade->pev ), "models/weapons/w_grenade.mdl");
+	UTIL_SetSize( pGrenade->pev, Vector( 0, 0, 0 ), Vector( 0, 0, 0 ));
 	pGrenade->pev->dmg = M203_DMG;
 
 	return pGrenade;
@@ -299,13 +298,14 @@ CGrenade * CGrenade:: ShootTimed( entvars_t *pevOwner, Vector vecStart, Vector v
           pGrenade->pev->flags |= FL_PROJECTILE;
           
 	// Tumble through the air
-	// pGrenade->pev->avelocity.x = -400;
+	pGrenade->pev->avelocity.x = -400;
 
 	pGrenade->pev->gravity = 0.5;
 	pGrenade->pev->friction = 0.8;
 	pGrenade->pev->scale = 0.5;	// original Valve model is too big :)
 
 	UTIL_SetModel( ENT( pGrenade->pev ), "models/props/hgrenade.mdl" );
+	UTIL_SetSize( pGrenade->pev, Vector( 0, 0, 0 ), Vector( 0, 0, 0 ));
 	pGrenade->pev->dmg = 100;
 
 	return pGrenade;
@@ -712,6 +712,7 @@ void CWHRocket :: Spawn( void )
 	SetTouch( NukeTouch );
 
 	UTIL_MakeVectors( pev->angles );
+	pev->angles.x = -(pev->angles.x);
 	pev->velocity = gpGlobals->v_forward * pev->speed;
 	m_Center = pev->angles;
 

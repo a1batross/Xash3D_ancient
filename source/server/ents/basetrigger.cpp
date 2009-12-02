@@ -274,6 +274,8 @@ class CChangeFriction : public CBaseTrigger
 };
 LINK_ENTITY_TO_CLASS( func_friction, CChangeFriction );
 
+#define SF_PUSH_ONCE	1
+
 //=======================================================================
 //		trigger_push - triger that pushes player
 //=======================================================================
@@ -281,11 +283,13 @@ class CTriggerPush : public CBaseTrigger
 {
 	void Spawn( void )
 	{
-                    if( pev->angles == g_vecZero ) pev->angles.y = 360;
+                    if( pev->angles == g_vecZero )
+                    	pev->angles.y = 360;
                     if( pev->speed == 0 ) pev->speed = 100;
                     UTIL_LinearVector( this );
                     
-		if ( FBitSet (pev->spawnflags, 2) ) pev->solid = SOLID_NOT;
+		if ( FBitSet( pev->spawnflags, 2 ))
+			pev->solid = SOLID_NOT;
 		else pev->solid = SOLID_TRIGGER;
 		
 		pev->movetype = MOVETYPE_NONE;
@@ -304,11 +308,13 @@ class CTriggerPush : public CBaseTrigger
 		pOwner = UTIL_FindEntityByTargetname( NULL, STRING( pev->target ));
 		if( !pOwner ) return; // dir set with angles
 
-		if( FClassnameIs( pOwner->pev, "target_position" ))
+		if( pOwner->pev->flags & FL_POINTENTITY )
 		{
+			// xash allows to precache from random place
+			UTIL_PrecacheSound( "world/jumppad.wav" );
+
 			pev->owner = pOwner->edict();
-			pev->movedir = pOwner->pev->origin - ((pev->absmin + pev->absmax) * 0.5f);
-			pev->movedir.Normalize();
+			pev->button = TRUE;	// Q3A trigger_push
 		}
 	}
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
@@ -331,11 +337,53 @@ class CTriggerPush : public CBaseTrigger
 		case MOVETYPE_FOLLOW:
 			return;
 		}
-                    
-		if( pOther->pev->solid != SOLID_NOT && pOther->pev->solid != SOLID_BSP )
+
+		if( pev->button )
+		{
+			if( m_flWait >= gpGlobals->time ) return;
+
+			if( !pOther->IsPlayer() || pOther->pev->movetype != MOVETYPE_WALK )
+				return;
+
+			float	time, dist, f;
+			Vector	origin, velocity;
+
+			origin = (pev->absmin + pev->absmax) * 0.5f;
+			CBaseEntity *pTarg = CBaseEntity::Instance( pev->owner );
+
+			// assume pev->owner is valid
+			time = sqrt (( pTarg->pev->origin.z - origin.z ) / (0.5f * CVAR_GET_FLOAT( "sv_gravity" )));
+			if( !time )
+			{
+				UTIL_Remove( this );
+				return;
+			}
+
+			velocity = pTarg->pev->origin - origin;
+			velocity.z = 0.0f;
+			dist = velocity.Length();
+			velocity = velocity.Normalize();
+
+			f = dist / time;
+			velocity *= f;
+			velocity.z = time * CVAR_GET_FLOAT( "sv_gravity" );
+
+			pOther->pev->flJumpPadTime = gpGlobals->time;
+			pOther->pev->basevelocity = velocity;
+			pOther->pev->velocity = g_vecZero;
+			pOther->pev->flags &= ~FL_BASEVELOCITY;
+
+			EMIT_SOUND( ENT( pev ), CHAN_VOICE, "world/jumppad.wav", VOL_NORM, ATTN_IDLE );
+
+			m_flWait = gpGlobals->time + (2.0f * gpGlobals->frametime);
+
+			if( FBitSet( pev->spawnflags, SF_PUSH_ONCE ))
+				UTIL_Remove( this );
+		}
+		else if( pOther->pev->solid != SOLID_NOT && pOther->pev->solid != SOLID_BSP )
 		{
 			// instant trigger, just transfer velocity and remove
-			if( FBitSet( pev->spawnflags, 1 ))
+			if( FBitSet( pev->spawnflags, SF_PUSH_ONCE ))
 			{
 				pOther->pev->velocity = pOther->pev->velocity + (pev->speed * pev->movedir);
 				if( pOther->pev->velocity.z > 0 ) pOther->pev->flags &= ~FL_ONGROUND;
@@ -348,6 +396,7 @@ class CTriggerPush : public CBaseTrigger
 					vecPush = vecPush +  pOther->pev->basevelocity;
 				pOther->pev->basevelocity = vecPush;
 				pOther->pev->flags |= FL_BASEVELOCITY;
+				ALERT( at_console, "Valve trigger_push: vel %g %g %g\n", vecPush.x, vecPush.y, vecPush.z );
 			}
 		}
 	}

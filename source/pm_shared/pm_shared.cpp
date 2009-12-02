@@ -2461,6 +2461,13 @@ void PM_CheckFalling( void )
 	{
 		float	fvol = 0.5;
 
+		if( pev->flJumpPadTime && pev->flJumpPadTime < pmove->realtime ) 
+		{
+			// scale delta if was pushed by jump pad
+			float delta = (1.0f + pmove->realtime - pev->flJumpPadTime) * 0.5f;
+			pev->flFallVelocity /= delta;
+		}
+
 		if( pev->waterlevel > 0 )
 		{
 			// does nothing
@@ -2469,8 +2476,7 @@ void PM_CheckFalling( void )
 		{
 			// NOTE:  In the original game dll, there were no breaks after these cases, causing the first one to 
 			// cascade into the second
-#if 0
-			switch ( RandomLong(0,1) )
+			switch ( RANDOM_LONG( 0, 1 ))
 			{
 			case 0:
 				EmitSound( CHAN_VOICE, "player/pl_fallpain2.wav", 1, ATTN_NORM, PITCH_NORM );
@@ -2479,7 +2485,6 @@ void PM_CheckFalling( void )
 				EmitSound( CHAN_VOICE, "player/pl_fallpain3.wav", 1, ATTN_NORM, PITCH_NORM );
 				break;
 			}
-#endif
 			fvol = 1.0f;
 		}
 		else if( pev->flFallVelocity > PLAYER_MAX_SAFE_FALL_SPEED / 2.0f )

@@ -26,7 +26,7 @@ solid_edge items only clip against bsp models.
 */
 #define DIST_EPSILON	(0.03125)		// 1/32 epsilon to keep floating point happy
 #define MOVE_EPSILON	0.01
-#define MAX_CLIP_PLANES	32
+#define MAX_CLIP_PLANES	5
 
 /*
 ===============================================================================
@@ -73,7 +73,7 @@ void SV_CheckAllEnts( void )
 	for( i = svgame.globals->maxClients + 1; i < svgame.globals->numEntities; i++ )
 	{
 		e = EDICT_NUM( i );
-		if( e->free ) continue;
+		if( !SV_IsValidEdict( e )) continue;
 
 		switch( e->v.movetype )
 		{
@@ -84,8 +84,9 @@ void SV_CheckAllEnts( void )
 			continue;
 		default: break;
 		}
-                    
-		SV_UnstickEntity( e );
+
+		if( e->pvServerData->stuck )                    
+			SV_UnstickEntity( e );
 	}
 }
 
@@ -118,6 +119,35 @@ void SV_CheckVelocity( edict_t *ent )
 
 	if( VectorLength( ent->v.velocity ) > maxvel )
 		VectorScale( ent->v.velocity, maxvel / VectorLength( ent->v.velocity ), ent->v.velocity );
+}
+
+/*
+================
+SV_UpdateBaseVelocity
+================
+*/
+void SV_UpdateBaseVelocity( edict_t *ent )
+{
+	if( ent->v.flags & FL_ONGROUND )
+	{
+		edict_t	*groundentity = ent->v.groundentity;
+
+		if( SV_IsValidEdict( groundentity ))
+		{
+			// On conveyor belt that's moving?
+			if( groundentity->v.flags & FL_CONVEYOR )
+			{
+				vec3_t	new_basevel;
+
+				VectorScale( groundentity->v.movedir, groundentity->v.speed, new_basevel );
+				if( ent->v.flags & FL_BASEVELOCITY )
+					VectorAdd( new_basevel, ent->v.basevelocity, new_basevel );
+
+				ent->v.flags |= FL_BASEVELOCITY;
+				VectorCopy( new_basevel, ent->v.basevelocity );
+			}
+		}
+	}
 }
 
 /*
@@ -257,6 +287,72 @@ void SV_TransformedBBox( edict_t *ent, vec3_t mins, vec3_t maxs )
 		maxs[0] = max( maxs[0], p[i][0] );
 		maxs[1] = max( maxs[1], p[i][1] );
 		maxs[2] = max( maxs[2], p[i][2] );
+	}
+}
+
+/*
+=============
+SV_AngularMove
+
+may use friction for smooth stopping
+=============
+*/
+void SV_AngularMove( edict_t *ent, float frametime, float friction )
+{
+	int	i;
+	float	adjustment;
+
+	VectorMA( ent->v.angles, frametime, ent->v.avelocity, ent->v.angles );
+	if( friction == 0.0f ) return;
+	adjustment = frametime * (sv_stopspeed->value / 10) * sv_friction->value * fabs( friction );
+
+	for( i = 0; i < 3; i++ )
+	{
+		if( ent->v.avelocity[i] > 0.0f )
+		{
+			ent->v.avelocity[i] -= adjustment;
+			if( ent->v.avelocity[i] < 0.0f )
+				ent->v.avelocity[i] = 0.0f;
+		}
+		else
+		{
+			ent->v.avelocity[i] += adjustment;
+			if( ent->v.avelocity[i] > 0.0f )
+				ent->v.avelocity[i] = 0.0f;
+		}
+	}
+}
+
+/*
+=============
+SV_LinearMove
+
+use friction for smooth stopping
+=============
+*/
+void SV_LinearMove( edict_t *ent, float frametime, float friction )
+{
+	int	i;
+	float	adjustment;
+
+	VectorMA( ent->v.origin, frametime, ent->v.velocity, ent->v.origin );
+	if( friction == 0.0f ) return;
+	adjustment = frametime * (sv_stopspeed->value / 10) * sv_friction->value * fabs( friction );
+
+	for( i = 0; i < 3; i++ )
+	{
+		if( ent->v.velocity[i] > 0.0f )
+		{
+			ent->v.velocity[i] -= adjustment;
+			if( ent->v.velocity[i] < 0.0f )
+				ent->v.velocity[i] = 0.0f;
+		}
+		else
+		{
+			ent->v.velocity[i] += adjustment;
+			if( ent->v.velocity[i] > 0.0f )
+				ent->v.velocity[i] = 0.0f;
+		}
 	}
 }
 
@@ -486,23 +582,22 @@ Returns the clipflags if the velocity was modified (hit something solid)
 if stepnormal is not NULL, the plane normal of any vertical wall hit will be stored
 ============
 */
-int SV_FlyMove( edict_t *ent, float time, vec3_t vecStepNormal )
+int SV_FlyMove( edict_t *ent, float time, trace_t *steptrace )
 {
-	int		blocked = 0, bumpcount;
-	int		i, j, impact, numplanes;
+	int		i, j, numplanes, bumpcount, blocked;
 	vec3_t		dir, end, planes[MAX_CLIP_PLANES];
 	vec3_t		primal_velocity, original_velocity, new_velocity;
 	float		d, time_left;
 	trace_t		trace;
 
-	if( time <= 0.0f ) return 0;
+	blocked = 0;
 	VectorCopy( ent->v.velocity, original_velocity );
 	VectorCopy( ent->v.velocity, primal_velocity );
 	numplanes = 0;
 
 	time_left = time;
 
-	for( bumpcount = 0; bumpcount < MAX_CLIP_PLANES - 1; bumpcount++ )
+	for( bumpcount = 0; bumpcount < MAX_CLIP_PLANES; bumpcount++ )
 	{
 		if( VectorIsNull( ent->v.velocity ))
 			break;
@@ -510,69 +605,60 @@ int SV_FlyMove( edict_t *ent, float time, vec3_t vecStepNormal )
 		VectorMA( ent->v.origin, time_left, ent->v.velocity, end );
 		trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL, ent );
 
-		// break if it moved the entire distance
-		if( trace.flFraction == 1.0f )
-		{
-			VectorCopy( trace.vecEndPos, ent->v.origin );
-			break;
+		if( trace.fAllSolid )
+		{	
+			// entity is trapped in another solid
+			VectorClear( ent->v.velocity );
+			return 3;
 		}
 
-		if( !trace.pHit )
-		{
-			MsgDev( D_ERROR, "SV_FlyMove: trace.pHit == NULL\n" );
-			trace.pHit = EDICT_NUM( 0 );
-		}
-
-		impact = !(ent->v.flags & FL_ONGROUND) || ent->v.groundentity != trace.pHit;
-
-		if( trace.vecPlaneNormal[2] )
-		{
-			if( trace.vecPlaneNormal[2] > 0.7f )
-			{
-				// floor
-				blocked |= 1;
-				ent->v.flags |= FL_ONGROUND;
-				ent->v.groundentity = trace.pHit;
-			}
-		}
-		else
-		{
-			// step
-			blocked |= 2;
-
-			if( vecStepNormal )
-			{
-				// save the trace normal for player extrafriction
-				VectorCopy( trace.vecPlaneNormal, vecStepNormal );
-			}
-		}
-
-		if( trace.flFraction >= 0.001f )
-		{
+		if( trace.flFraction > 0.0f )
+		{	
 			// actually covered some distance
 			VectorCopy( trace.vecEndPos, ent->v.origin );
 			VectorCopy( ent->v.velocity, original_velocity );
 			numplanes = 0;
 		}
 
-		// run the impact function
-		if( impact )
-		{
-			SV_Impact( ent, &trace );
+		if( trace.flFraction == 1.0f )
+			 break; // moved the entire distance
 
-			// break if removed by the impact function
-			if( ent->free ) break;
+		if( !trace.pHit )
+		{
+			MsgDev( D_ERROR, "SV_FlyMove: trace.pHit == NULL\n" );
+			trace.pHit = EDICT_NUM( 0 ); // world
 		}
 
-		time_left *= 1 - trace.flFraction;
+		if( trace.vecPlaneNormal[2] > 0.7f )
+		{
+			blocked |= 1; // floor
+			if( trace.pHit->v.solid == SOLID_BSP )
+			{
+				ent->v.flags |= FL_ONGROUND;
+				ent->v.groundentity = trace.pHit;
+			}
+		}
+
+		if( trace.vecPlaneNormal[2] == 0.0f )
+		{
+			blocked |= 2; // step
+			if( steptrace ) *steptrace = trace; // save for player extrafriction
+		}
+
+		// run the impact function
+		SV_Impact( ent, &trace );
+
+		// break if removed by the impact function
+		if( ent->free ) break;
+
+		time_left -= time_left - trace.flFraction;
 
 		// clipped to another plane
 		if( numplanes >= MAX_CLIP_PLANES )
 		{
 			// this shouldn't really happen
 			VectorClear( ent->v.velocity );
-			blocked = 3;
-			break;
+			return 3;
 		}
 
 		VectorCopy( trace.vecPlaneNormal, planes[numplanes] );
@@ -586,9 +672,8 @@ int SV_FlyMove( edict_t *ent, float time, vec3_t vecStepNormal )
 			{
 				if( j != i )
 				{
-					// not ok
 					if( DotProduct( new_velocity, planes[j] ) < 0.0f )
-						break;
+						break; // not ok
 				}
 			}
 			if( j == numplanes ) break;
@@ -605,12 +690,10 @@ int SV_FlyMove( edict_t *ent, float time, vec3_t vecStepNormal )
 			if( numplanes != 2 )
 			{
 				VectorClear( ent->v.velocity );
-				blocked = 7;
-				break;
+				return 7;
 			}
 
 			CrossProduct( planes[0], planes[1], dir );
-			VectorNormalize( dir );
 			d = DotProduct( dir, ent->v.velocity );
 			VectorScale( dir, d, ent->v.velocity );
 		}
@@ -620,7 +703,7 @@ int SV_FlyMove( edict_t *ent, float time, vec3_t vecStepNormal )
 		if( DotProduct( ent->v.velocity, primal_velocity ) <= 0.0f )
 		{
 			VectorClear( ent->v.velocity );
-			break;
+			return blocked;
 		}
 	}
 
@@ -676,7 +759,7 @@ static bool SV_PushEntity( trace_t *trace, edict_t *ent, vec3_t push, bool failO
 		type = MOVE_NOMONSTERS; // only clip against bmodels
 	else type = MOVE_NORMAL;
 
-	*trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, end, type, ent );
+	*trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, end, type|FTRACE_SIMPLEBOX, ent );
 
 	if( trace->fStartStuck && failOnStartStuck )
 		return true;
@@ -756,8 +839,13 @@ void SV_PushMove( edict_t *pusher, float movetime )
 	pushltime = pusher->v.ltime;
 
 	// move the pusher to its final position
+#if 1
+	SV_LinearMove( pusher, movetime, pusher->v.friction );
+	SV_AngularMove( pusher, movetime, pusher->v.friction );
+#else
 	VectorMA( pusher->v.origin, movetime, pusher->v.velocity, pusher->v.origin );
 	VectorMA( pusher->v.angles, movetime, pusher->v.avelocity, pusher->v.angles );
+#endif
 	pusher->v.ltime += movetime;
 	SV_LinkEdict( pusher, false );
 	savesolid = pusher->v.solid;
@@ -1077,12 +1165,12 @@ void SV_CheckWaterTransition( edict_t *ent )
 
 /*
 =============
-SV_Physics_Toss
+SV_Physics_Bounce
 
 Toss, bounce, and fly movement.  When onground, do nothing.
 =============
 */
-void SV_Physics_Toss( edict_t *ent )
+void SV_Physics_Bounce( edict_t *ent )
 {
 	trace_t	trace;
 	vec3_t	move;
@@ -1090,14 +1178,6 @@ void SV_Physics_Toss( edict_t *ent )
 	int	bump;
 
 	// check for in water
-	SV_CheckWaterTransition( ent );
-
-	// check for conveyor
-	if( ent->v.groundentity && ent->v.groundentity->v.flags & FL_CONVEYOR )
-		VectorScale( ent->v.groundentity->v.movedir, ent->v.groundentity->v.speed, ent->v.basevelocity );
-	else VectorClear( ent->v.basevelocity );
-
-	SV_CheckVelocity( ent );
 	SV_CheckWater( ent );
 
 	// regular thinking
@@ -1111,22 +1191,9 @@ void SV_Physics_Toss( edict_t *ent )
 			// don't stick to ground if onground and moving upward
 			ent->v.flags &= ~FL_ONGROUND;
 		}
-		else if( ent->v.groundentity == EDICT_NUM( 0 ))
-		{
-			// we can trust FL_ONGROUND if groundentity is world because it never moves
-			return;
-		}
-		else if( ent->pvServerData->suspended && ( ent->v.groundentity == NULL || ent->v.groundentity->free ))
-		{
-			// if ent was supported by a brush model on previous frame,
-			// and groundentity is now freed, set groundentity to 0 (world)
-			// which leaves it suspended in the air
-			ent->v.groundentity = EDICT_NUM( 0 );
-			return;
-		}
+		else return;
 	}
 
-	ent->pvServerData->suspended = false;
 	SV_CheckVelocity( ent );
 
 	// add gravity
@@ -1188,29 +1255,15 @@ void SV_Physics_Toss( edict_t *ent )
 				ent_gravity = ent->v.gravity;
 			else ent_gravity = 1.0;
 
-			if( 1 )
+			d = fabs( DotProduct( trace.vecPlaneNormal, ent->v.velocity ));
+			if( trace.vecPlaneNormal[2] > 0.7f && d < sv_gravity->value * bouncestop * ent_gravity )
 			{
-				d = fabs( DotProduct( trace.vecPlaneNormal, ent->v.velocity ));
-				if( trace.vecPlaneNormal[2] > 0.7f && d < sv_gravity->value * bouncestop * ent_gravity )
-				{
-					ent->v.flags |= FL_ONGROUND;
-					ent->v.groundentity = trace.pHit;
-					VectorClear( ent->v.velocity );
-					VectorClear( ent->v.avelocity );
-				}
-				else ent->v.flags &= ~FL_ONGROUND;
+				ent->v.flags |= FL_ONGROUND;
+				ent->v.groundentity = trace.pHit;
+				VectorClear( ent->v.velocity );
+				VectorClear( ent->v.avelocity );
 			}
-			else
-			{
-				if( trace.vecPlaneNormal[2] > 0.7f && ent->v.velocity[2] < sv_gravity->value * bouncestop * ent_gravity )
-				{
-					ent->v.flags |= FL_ONGROUND;
-					ent->v.groundentity = trace.pHit;
-					VectorClear( ent->v.velocity );
-					VectorClear( ent->v.avelocity );
-				}
-				else ent->v.flags &= ~FL_ONGROUND;
-			}
+			else ent->v.flags &= ~FL_ONGROUND;
 		}
 		else
 		{
@@ -1219,9 +1272,6 @@ void SV_Physics_Toss( edict_t *ent )
 			{
 				ent->v.flags |= FL_ONGROUND;
 				ent->v.groundentity = trace.pHit;
-
-				if( trace.pHit->v.solid == SOLID_BSP )
-					ent->pvServerData->suspended = true;
 				VectorClear( ent->v.velocity );
 				VectorClear( ent->v.avelocity );
 			}
@@ -1233,6 +1283,151 @@ void SV_Physics_Toss( edict_t *ent )
 
 	// check for in water
 	SV_CheckWaterTransition( ent );
+}
+
+/*
+=============
+SV_Physics_Toss
+
+Toss, bounce, and fly movement.  When onground, do nothing.
+=============
+*/
+void SV_Physics_Toss( edict_t *ent )
+{
+	trace_t	trace;
+	vec3_t	move;
+	float	backoff;
+
+	SV_CheckWaterTransition( ent );
+	SV_CheckWater( ent );
+
+	// regular thinking
+	if( !SV_RunThink( ent )) return;
+
+	// if onground, return without moving
+	if( ent->v.flags & FL_ONGROUND )
+		return;
+
+	if( ent->v.velocity[2] > DIST_EPSILON )
+	{
+		ent->v.flags &= ~FL_ONGROUND;
+		ent->v.groundentity = NULL;
+          }
+
+	// If on ground and not moving, return.
+	if( SV_IsValidEdict( ent->v.groundentity ))
+	{
+		if( VectorIsNull( ent->v.basevelocity ) && VectorIsNull( ent->v.velocity ))
+			return;
+	}
+
+	SV_CheckVelocity( ent );
+
+	// add gravity
+	switch( ent->v.movetype )
+	{
+	case MOVETYPE_FLY:
+	case MOVETYPE_BOUNCEMISSILE:
+	case MOVETYPE_FLYMISSILE:
+		break;
+	default:
+		SV_AddGravity( ent );
+		break;
+	}
+
+	// move angles (with friction)
+	switch( ent->v.movetype )
+	{
+	case MOVETYPE_TOSS:
+	case MOVETYPE_BOUNCE:
+		SV_AngularMove( ent, svgame.globals->frametime, ent->v.friction );
+		break;         
+	default:
+		SV_AngularMove( ent, svgame.globals->frametime, 0.0f );
+		break;
+	}
+	// move origin
+	// Base velocity is not properly accounted for since this entity will move again
+	// after the bounce without taking it into account
+	VectorAdd( ent->v.velocity, ent->v.basevelocity, ent->v.velocity );
+
+	SV_CheckVelocity( ent );
+	VectorScale( ent->v.velocity, svgame.globals->frametime, move );
+	VectorSubtract( ent->v.velocity, ent->v.basevelocity, ent->v.velocity );
+
+	if( !SV_PushEntity( &trace, ent, move, false, true ))
+		return;	// teleported
+
+	if( ent->free ) return;
+
+	if( trace.fStartStuck )
+	{
+		// try to unstick the entity
+		SV_UnstickEntity( ent );
+		if( !SV_PushEntity( &trace, ent, move, false, true ))
+			return; // teleported
+		if( ent->free ) return;
+	}
+
+	SV_CheckVelocity( ent );
+
+	if( trace.fAllSolid )
+	{	
+		// entity is trapped in another solid
+		ent->v.flags |= FL_ONGROUND;
+		ent->v.groundentity = trace.pHit;
+		ent->pvServerData->stuck = true;
+		VectorClear( ent->v.velocity );
+		return;
+	}
+	
+	if( trace.flFraction == 1.0f )
+	{
+		SV_CheckWaterTransition( ent );
+		return;
+	}
+
+	if( ent->v.movetype == MOVETYPE_BOUNCE )
+		backoff = 2.0f - ent->v.friction;
+	else if( ent->v.movetype == MOVETYPE_BOUNCEMISSILE )
+		backoff = 2.0f;
+	else backoff = 1.0f;
+
+	SV_ClipVelocity( ent->v.velocity, trace.vecPlaneNormal, ent->v.velocity, backoff );
+
+	// stop if on ground
+	if( trace.vecPlaneNormal[2] > 0.7f )
+	{		
+		float	vel;
+
+		if( ent->v.velocity[2] < sv_gravity->value * svgame.globals->frametime )
+		{
+			// we're rolling on the ground, add static friction.
+			ent->v.groundentity = trace.pHit;
+			ent->v.velocity[2] = 0.0f;
+			ent->v.flags |= FL_ONGROUND;
+		}
+
+		vel = DotProduct( ent->v.velocity, ent->v.velocity );
+
+		if( vel < 900 || ( ent->v.movetype != MOVETYPE_BOUNCE && ent->v.movetype != MOVETYPE_BOUNCEMISSILE ))
+		{
+			ent->v.flags |= FL_ONGROUND;
+			ent->v.groundentity = trace.pHit;
+			VectorClear( ent->v.velocity );
+			VectorClear( ent->v.avelocity );
+		}
+		else
+		{
+			VectorScale( ent->v.velocity, (1.0f - trace.flFraction) * svgame.globals->frametime * 0.9f, move );
+			if( !SV_PushEntity( &trace, ent, move, false, true ))
+				return;	// teleported
+			if( ent->free ) return;
+		}
+	}
+	
+	// check for in water
+	SV_CheckWater( ent );
 }
 
 /*
@@ -1280,63 +1475,93 @@ will fall if the floor is pulled out from under them.
 */
 void SV_Physics_Step( edict_t *ent )
 {
-	int	flags = ent->v.flags;
+	bool		wasonground;
+	bool		inwater;
+	float		*vel;
+	float		speed, newspeed, control;
+	float		friction;
 
-	// check for conveyor
-	if( ent->v.groundentity && ent->v.groundentity->v.flags & FL_CONVEYOR )
-		VectorScale( ent->v.groundentity->v.movedir, ent->v.groundentity->v.speed, ent->v.basevelocity );
-	else VectorClear( ent->v.basevelocity );
-
-	SV_CheckVelocity( ent );
+	wasonground = ent->v.flags & FL_ONGROUND;
 
 	if( !VectorIsNull( ent->v.avelocity ))
 		SV_AddRotationalFriction( ent );
 
-	// don't fall at all if fly/swim
-	if( !( flags & ( FL_FLY|FL_SWIM )))
+	// add gravity except:
+	// flying monsters
+	// swimming monsters who are in the water
+	inwater = SV_CheckWater( ent );
+
+	if( !wasonground )
 	{
-		if( flags & FL_ONGROUND )
+		if( !( ent->v.flags & FL_FLY ))
 		{
-			// freefall if onground and moving upward
-			// freefall if not standing on a world surface (it may be a lift or trap door)
-			if( ent->v.velocity[2] >= DIST_EPSILON || ent->v.groundentity )
-			{
-				ent->v.flags &= ~FL_ONGROUND;
-				SV_CheckVelocity( ent );
-				SV_FlyMove( ent, svgame.globals->frametime, NULL );
-				SV_LinkEdict( ent, true );
-				ent->pvServerData->forceupdate = true;
-			}
+			if(!( ent->v.flags & FL_SWIM && ent->v.waterlevel > 0 ))
+				if( !inwater ) SV_AddGravity( ent );
 		}
-		else
+	}
+
+	if( !VectorIsNull( ent->v.velocity ) || !VectorIsNull( ent->v.basevelocity ))
+	{
+		vec3_t	mins, maxs, point;
+		int	x, y;
+
+		ent->v.flags &= ~FL_ONGROUND;
+
+		// apply friction
+		// let dead monsters who aren't completely onground slide
+		if( wasonground )
 		{
-			// freefall if not onground
-			int	hitsound = ent->v.velocity[2] < sv_gravity->value * -0.1f;
-
-			SV_CheckVelocity( ent );
-			SV_FlyMove( ent, svgame.globals->frametime, NULL );
-			SV_LinkEdict( ent, true );
-
-			// just hit ground
-			if( hitsound && ent->v.flags & FL_ONGROUND )
+			if( !( ent->v.health <= 0.0f && !SV_CheckBottom( ent, WALKMOVE_NORMAL )))
 			{
-				// debug
-				Msg( "landing\n" );
+				vel = ent->v.velocity;
+				speed = com.sqrt( vel[0] * vel[0] + vel[1] * vel[1] );
+
+				if( speed )
+				{
+					friction = sv_friction->value;
+
+					control = speed < sv_stopspeed->value ? sv_stopspeed->value : speed;
+					newspeed = speed - svgame.globals->frametime * control * friction;
+
+					if( newspeed < 0 ) newspeed = 0;
+					newspeed /= speed;
+
+					vel[0] = vel[0] * newspeed;
+					vel[1] = vel[1] * newspeed;
+				}
 			}
-			ent->pvServerData->forceupdate = true;
+                    }
+
+		VectorAdd( ent->v.velocity, ent->v.basevelocity, ent->v.velocity );
+		SV_FlyMove( ent, svgame.globals->frametime, NULL );
+		VectorSubtract (ent->v.velocity, ent->v.basevelocity, ent->v.velocity);
+
+		// determine if it's on solid ground at all
+		VectorAdd( ent->v.origin, ent->v.mins, mins );
+		VectorAdd( ent->v.origin, ent->v.maxs, maxs );
+
+		point[2] = mins[2] - 1;
+		for( x = 0; x <= 1; x++ )
+		{
+			for( y = 0; y <= 1; y++ )
+			{
+				point[0] = x ? maxs[0] : mins[0];
+				point[1] = y ? maxs[1] : mins[1];
+			
+				if( SV_PointContents( point ) == CONTENTS_SOLID )
+				{
+					ent->v.flags |= FL_ONGROUND;
+					break;
+				}
+			}
+
 		}
+		SV_LinkEdict( ent, true );
 	}
 
 	// regular thinking
-	if( !SV_RunThink( ent ))
-		return;
-
-	if( ent->pvServerData->forceupdate || !VectorCompare( ent->v.origin, ent->pvServerData->water_origin ))
-	{
-		ent->pvServerData->forceupdate = false;
-		VectorCopy( ent->v.origin, ent->pvServerData->water_origin );
-		SV_CheckWaterTransition( ent );
-	}
+	SV_RunThink ( ent );
+	SV_CheckWaterTransition( ent );
 }
 
 /*
@@ -1442,6 +1667,16 @@ void SV_Physics_None( edict_t *ent )
 
 static void SV_Physics_Entity( edict_t *ent )
 {
+	SV_UpdateBaseVelocity( ent );
+
+	if(!( ent->v.flags & FL_BASEVELOCITY ) && !VectorIsNull( ent->v.basevelocity ))
+	{
+		// Apply momentum (add in half of the previous frame of velocity first)
+		VectorMA( ent->v.velocity, 1.0f + (svgame.globals->frametime * 0.5f), ent->v.basevelocity, ent->v.velocity );
+		VectorClear( ent->v.basevelocity );
+	}
+	ent->v.flags &= ~FL_BASEVELOCITY;
+
 	switch( ent->v.movetype )
 	{
 	case MOVETYPE_PUSH:
@@ -1460,22 +1695,6 @@ static void SV_Physics_Entity( edict_t *ent )
 	case MOVETYPE_PUSHSTEP:
 		SV_Physics_Step( ent );
 		break;
-	case MOVETYPE_WALK:
-		if( SV_RunThink( ent ))
-		{
-			sv_client_t *cl = SV_ClientFromEdict( ent, true );
-
-			if( cl && ent->v.flags & FL_FAKECLIENT )
-			{
-				SV_PreRunCmd( cl, &cl->lastcmd );
-				SV_RunCmd( cl, &cl->lastcmd );
-				SV_PostRunCmd( cl );
-				break;
-			}
-			Host_Error( "SV_Physics: bad movetype %i\n", ent->v.movetype );
-			break;
-		}
-		break;
 	case MOVETYPE_FLY:
 	case MOVETYPE_TOSS:
 	case MOVETYPE_BOUNCE:
@@ -1485,6 +1704,9 @@ static void SV_Physics_Entity( edict_t *ent )
 		break;
 	case MOVETYPE_CONVEYOR:
 		SV_Physics_Conveyor( ent );
+		break;
+	case MOVETYPE_WALK:
+		Host_Error( "SV_Physics: bad movetype %i\n", ent->v.movetype );
 		break;
 	default:
 		svgame.dllFuncs.pfnPhysicsEntity( ent );
@@ -1500,8 +1722,8 @@ SV_Physics
 */
 void SV_Physics( void )
 {
-	int    	i;
 	edict_t	*ent;
+	int    	i;
 
 	// let the progs know that a new frame has started
 	svgame.globals->time = sv.time * 0.001f;
@@ -1520,19 +1742,11 @@ void SV_Physics( void )
 	}
 
 	// treat each object in turn
-	for( i = i = svgame.globals->maxClients + 1; !sv_playersonly->integer && i < svgame.globals->numEntities; i++ )
+	for( i = svgame.globals->maxClients + 1; !sv_playersonly->integer && i < svgame.globals->numEntities; i++ )
 	{
 		ent = EDICT_NUM( i );
 		if( ent->free ) continue;
 
-		if(!( ent->v.flags & FL_BASEVELOCITY ) && !VectorIsNull( ent->v.basevelocity ))
-		{
-			// Apply momentum (add in half of the previous frame of velocity first)
-			VectorMA( ent->v.velocity, 1.0f + (svgame.globals->frametime * 0.5f), ent->v.basevelocity, ent->v.velocity );
-			VectorClear( ent->v.basevelocity );
-		}
-
-		ent->v.flags &= ~FL_BASEVELOCITY;
 		SV_Physics_Entity( ent );
 	}
 

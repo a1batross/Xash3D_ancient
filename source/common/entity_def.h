@@ -24,6 +24,7 @@ typedef struct entvars_s
 	vec3_t		oldorigin;	// ENG [all], NET [all]
 	vec3_t		velocity;
 	vec3_t		basevelocity;
+	vec3_t		clbasevelocity;	// ENG [player], NET [player]
 
 	vec3_t		movedir;
 
@@ -141,6 +142,7 @@ typedef struct entvars_s
 	int		flSwimTime;         // In process of ducking or ducked already?
 	int		flDuckTime;	// Time we started duck
 	int		iStepLeft;         	// 0 - 4
+	float		flJumpPadTime;	// for scale falling damage
 	float		flFallVelocity;	// falling velocity z
 	int		oldbuttons;	// buttons last usercmd
 	int		groupinfo;	// entities culling (on server)

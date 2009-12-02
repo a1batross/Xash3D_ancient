@@ -46,7 +46,7 @@ Copy entvars into entity state
 */
 void SV_UpdateEntityState( const edict_t *ent, bool baseline )
 {
-	sv_client_t	*client = ent->pvServerData->client;
+	sv_client_t	*client = SV_ClientFromEdict( ent, true );
 
 	if( !ent->pvServerData->s.classname )
 		ent->pvServerData->s.classname = SV_ClassIndex( STRING( ent->v.classname ));
@@ -61,11 +61,13 @@ void SV_UpdateEntityState( const edict_t *ent, bool baseline )
 			MSG_WriteAngle32( &sv.multicast, ent->v.angles[0] );
 			MSG_WriteAngle32( &sv.multicast, ent->v.angles[1] );
 			MSG_WriteAngle32( &sv.multicast, 0 );
-			MSG_Send( MSG_ONE, vec3_origin, client->edict );
+			MSG_DirectSend( MSG_ONE, vec3_origin, client->edict );
 		}
 	}
 
 	svgame.dllFuncs.pfnUpdateEntityState( &ent->pvServerData->s, (edict_t *)ent, baseline );
+
+	if( client ) client->edict->v.fixangle = false;
 
 	// always keep an actual
 	ent->pvServerData->s.number = ent->serialnumber;

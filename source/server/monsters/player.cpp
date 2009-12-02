@@ -2497,6 +2497,14 @@ void CBasePlayer::PostThink()
 	{
 		// ALERT ( at_console, "%f\n", m_flFallVelocity );
 
+		if( pev->flJumpPadTime && pev->flJumpPadTime < gpGlobals->time ) 
+		{
+			// scale delta if was pushed by jump pad
+			float delta = (1.0f + gpGlobals->time - pev->flJumpPadTime) * 0.5f;
+			m_flFallVelocity /= delta;
+			pev->flJumpPadTime = 0.0f;
+		}
+	
 		if (pev->watertype == CONTENTS_WATER)
 		{
 			// Did he hit the world or a non-moving entity?

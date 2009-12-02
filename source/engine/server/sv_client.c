@@ -596,6 +596,16 @@ void SV_PutClientInServer( edict_t *ent )
 	}
 	else
 	{
+		// needs to setup angles on restore
+		if( ent->v.fixangle )
+		{
+			MSG_WriteByte( &sv.multicast, svc_setangle );
+			MSG_WriteAngle32( &sv.multicast, ent->v.angles[0] );
+			MSG_WriteAngle32( &sv.multicast, ent->v.angles[1] );
+			MSG_WriteAngle32( &sv.multicast, 0 );
+			MSG_DirectSend( MSG_ONE, vec3_origin, client->edict );
+			ent->v.fixangle = false;
+		}
 	}
 
 	client->pViewEntity = NULL; // reset pViewEntity

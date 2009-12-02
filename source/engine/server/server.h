@@ -149,7 +149,6 @@ struct sv_priv_s
 	bool		linked;		// passed through SV_LinkEdict
 
 	bool		stuck;		// entity stucked in brush
-	bool		suspended;	// suspended on a brush entity
 
 	// cached position to avoid redundant SV_CheckWaterTransition calls on monsters
 	bool		forceupdate;	// force an update on this entity
@@ -403,6 +402,8 @@ const char *SV_GetString( string_t iString );
 void SV_SetClientMaxspeed( sv_client_t *cl, float fNewMaxspeed );
 bool SV_MapIsValid( const char *filename, const char *spawn_entity );
 void SV_StartSound( edict_t *ent, int chan, const char *sample, float vol, float attn, int flags, int pitch );
+void SV_UpdateBaseVelocity( edict_t *ent );
+bool SV_IsValidEdict( const edict_t *e );
 script_t *CM_GetEntityScript( void );
 
 _inline edict_t *SV_EDICT_NUM( int n, const char * file, const int line )

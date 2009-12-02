@@ -1452,7 +1452,6 @@ int pfnDropToFloor( edict_t* e )
 			SV_LinkEdict( e, true );
 			e->v.flags |= FL_ONGROUND;
 			e->v.groundentity = trace.pHit;
-			e->pvServerData->suspended = true;
 			return true;
 		}
 
@@ -1469,7 +1468,6 @@ int pfnDropToFloor( edict_t* e )
 			SV_LinkEdict( e, true );
 			e->v.flags |= FL_ONGROUND;
 			e->v.groundentity = trace.pHit;
-			e->pvServerData->suspended = true;
 			return true;
 		}
 	}
