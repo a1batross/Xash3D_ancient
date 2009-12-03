@@ -355,6 +355,7 @@ void CL_AddEntities( void )
 	CL_AddDLights();
 	CL_AddLightStyles();
 	CL_AddDecals();
+	CL_FireEvents();
 
 	// perfomance test
 	CL_TestEntities();

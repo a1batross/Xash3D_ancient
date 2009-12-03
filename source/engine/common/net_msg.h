@@ -73,9 +73,10 @@ enum svc_ops_e
 	svc_setpause,		// [byte] 0 = unpaused, 1 = paused
 	svc_movevars,		// [movevars_t]
 	svc_particle,		// [float*3][char*3][byte][byte]
-	svc_soundfade,		// FIMXE: implement (just reserve a number)
+	svc_soundfade,		// [float*4] sound fade parms
 	svc_bspdecal,		// [float*3][short][short][short]
-	svc_ambientsound		// FIXME: implement (just reserve a number)
+	svc_event,		// playback event queue
+	svc_event_reliable,		// playback event directly from message, not queue
 };
 
 // client to server
@@ -116,11 +117,12 @@ static const net_desc_t NWDesc[] =
 */
 
 #include "usercmd.h"
+#include "event_api.h"
 #include "pm_movevars.h"
 #include "entity_state.h"
 
 #define ES_FIELD( x )		#x,(int)&((entity_state_t*)0)->x
-#define PS_FIELD( x )		#x,(int)&((player_state_t*)0)->x
+#define EV_FIELD( x )		#x,(int)&((event_args_t*)0)->x
 #define PM_FIELD( x )		#x,(int)&((movevars_t*)0)->x
 #define CM_FIELD( x )		#x,(int)&((usercmd_t*)0)->x
 
@@ -170,6 +172,7 @@ void _MSG_WritePos( sizebuf_t *sb, const vec3_t pos, const char *filename, int f
 void _MSG_WriteData( sizebuf_t *sb, const void *data, size_t length, const char *filename, int fileline );
 void _MSG_WriteDeltaUsercmd( sizebuf_t *sb, usercmd_t *from, usercmd_t *cmd, const char *filename, const int fileline );
 bool _MSG_WriteDeltaMovevars( sizebuf_t *sb, movevars_t *from, movevars_t *cmd, const char *filename, const int fileline );
+void _MSG_WriteDeltaEvent( sizebuf_t *msg, event_args_t *from, event_args_t *to, const char *filename, const int fileline );
 void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t *msg, bool force, bool newentity, const char *file, int line );
 void _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, bool direct, const char *filename, int fileline );
 
@@ -189,6 +192,7 @@ void _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, bool direct, 
 #define MSG_WriteAngle32(x, y) _MSG_WriteFloat(x, y, __FILE__, __LINE__)
 #define MSG_WritePos(x, y) _MSG_WritePos( x, y, __FILE__, __LINE__ )
 #define MSG_WriteData(x,y,z) _MSG_WriteData( x, y, z, __FILE__, __LINE__)
+#define MSG_WriteDeltaEvent(x, y, z) _MSG_WriteDeltaEvent(x, y, z, __FILE__, __LINE__)
 #define MSG_WriteDeltaUsercmd(x, y, z) _MSG_WriteDeltaUsercmd(x, y, z, __FILE__, __LINE__)
 #define MSG_WriteDeltaMovevars(x, y, z) _MSG_WriteDeltaMovevars(x, y, z, __FILE__, __LINE__)
 #define MSG_WriteDeltaEntity(from, to, msg, force, new ) _MSG_WriteDeltaEntity (from, to, msg, force, new, __FILE__, __LINE__)
@@ -216,11 +220,8 @@ void MSG_ReadPos( sizebuf_t *sb, vec3_t pos );
 void MSG_ReadData( sizebuf_t *sb, void *buffer, size_t size );
 void MSG_ReadDeltaUsercmd( sizebuf_t *sb, usercmd_t *from, usercmd_t *cmd );
 void MSG_ReadDeltaMovevars( sizebuf_t *sb, movevars_t *from, movevars_t *cmd );
+void MSG_ReadDeltaEvent( sizebuf_t *msg, event_args_t *from, event_args_t *to );
 void MSG_ReadDeltaEntity( sizebuf_t *sb, entity_state_t *from, entity_state_t *to, int number );
-entity_state_t MSG_ParseDeltaPlayer( entity_state_t *from, entity_state_t *to );
-void MSG_WriteDeltaPlayerstate( entity_state_t *from, entity_state_t *to, sizebuf_t *msg );
-void MSG_ReadDeltaPlayerstate( sizebuf_t *msg, entity_state_t *from, entity_state_t *to );
-
 
 // huffman compression
 void Huff_Init( void );

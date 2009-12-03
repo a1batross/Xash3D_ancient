@@ -444,6 +444,48 @@ void CL_ParseUserMessage( sizebuf_t *net_buffer, int svc_num )
 	if( pbuf ) Mem_Free( pbuf );
 }
 
+static void CL_RegisterEvent( int lastnum, const char *szEvName, pfnEventHook func )
+{
+	user_event_t	*ev;
+
+	if( lastnum == MAX_EVENTS )
+	{
+		MsgDev( D_ERROR, "CL_RegisterEvent: MAX_EVENTS hit!!!\n" );
+		return;
+	}
+
+	ev = clgame.events[lastnum];
+
+	// clear existing or allocate new one
+	if( ev ) Mem_Set( ev, 0, sizeof( *ev ));
+	else ev = clgame.events[lastnum] = Mem_Alloc( cls.mempool, sizeof( *ev ));
+
+	com.strncpy( ev->name, szEvName, CS_SIZE );
+	ev->func = func;
+	// ev->index will be set later
+}
+
+void CL_SetEventIndex( const char *szEvName, int ev_index )
+{
+	user_event_t	*ev;
+	int		i;
+
+	if( !szEvName || !*szEvName ) return; // ignore blank names
+
+	// search event by name to link with
+	for( i = 0; i < MAX_EVENTS; i++ )
+	{
+		ev = clgame.events[i];
+		if( !ev ) break;
+
+		if( !com.strcmp( ev->name, szEvName ))
+		{
+			ev->index = ev_index;
+			return;
+		}
+	}
+}
+
 void CL_InitEdict( edict_t *pEdict )
 {
 	Com_Assert( pEdict == NULL );
@@ -506,8 +548,6 @@ void CL_InitWorld( void )
 {
 	edict_t	*ent;
 	int	i;
-
-	Msg( "CL_InitWorld ()\n" );
 
 	ent = EDICT_NUM( 0 );
 	if( ent->free ) CL_InitEdict( ent );
@@ -1292,8 +1332,7 @@ pfnPrecacheEvent
 */
 static word pfnPrecacheEvent( int type, const char* psz )
 {
-	// FIXME: implement
-	return 0;
+	return CL_PrecacheEvent( psz );
 }
 
 /*
@@ -1304,7 +1343,28 @@ pfnHookEvent
 */
 static void pfnHookEvent( const char *name, pfnEventHook pfn )
 {
-	// FIXME: implement
+	word		event_index = CL_PrecacheEvent( name );
+	user_event_t	*ev;
+	int		i;
+
+	// ignore blank names
+	if( !name || !*name ) return;	
+
+	// second call can change EventFunc
+	for( i = 0; i < MAX_EVENTS; i++ )
+	{
+		ev = clgame.events[i];		
+		if( !ev ) break;
+
+		if( !com.strcmp( name, ev->name ))
+		{
+			if( ev->func != pfn )
+				ev->func = pfn;
+			return;
+		}
+	}
+
+	CL_RegisterEvent( i, name, pfn );
 }
 
 /*
@@ -1315,7 +1375,54 @@ pfnPlaybackEvent
 */
 static void pfnPlaybackEvent( int flags, const edict_t *pInvoker, word eventindex, float delay, event_args_t *args )
 {
-	// FIXME: implement
+	event_args_t	dummy;
+	int		invokerIndex = 0;
+
+	// first check event for out of bounds
+	if( eventindex < 1 || eventindex > MAX_EVENTS )
+	{
+		MsgDev( D_ERROR, "CL_PlaybackEvent: invalid eventindex %i\n", eventindex );
+		return;
+	}
+	// check event for precached
+	if( !CL_PrecacheEvent( cl.configstrings[CS_EVENTS+eventindex] ))
+	{
+		MsgDev( D_ERROR, "CL_PlaybackEvent: event %i was not precached\n", eventindex );
+		return;		
+	}
+
+	flags |= FEV_CLIENT; // it's a client event
+	flags &= ~(FEV_NOTHOST|FEV_HOSTONLY|FEV_GLOBAL);
+
+	if( delay < 0.0f )
+		delay = 0.0f; // fixup negative delays
+
+	if( CL_IsValidEdict( pInvoker ))
+		invokerIndex = NUM_FOR_EDICT( pInvoker );
+
+	if( args == NULL )
+	{
+		Mem_Set( &dummy, 0, sizeof( dummy ));
+		args = &dummy;
+	}
+
+	if( flags & FEV_RELIABLE )
+	{
+		args->ducking = 0;
+		VectorClear( args->velocity );
+	}
+	else if( invokerIndex )
+	{
+		// get up some info from invoker
+		if( VectorIsNull( args->origin )) 
+			VectorCopy( pInvoker->v.origin, args->origin );
+		if( VectorIsNull( args->angles )) 
+			VectorCopy( pInvoker->v.angles, args->angles );
+		VectorCopy( pInvoker->v.velocity, args->velocity );
+		args->ducking = (pInvoker->v.flags & FL_DUCKING) ? true : false;
+	}
+
+	CL_QueueEvent( flags, eventindex, delay, args );
 }
 
 /*

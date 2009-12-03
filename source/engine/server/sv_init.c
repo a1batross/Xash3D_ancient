@@ -18,7 +18,7 @@ SV_FindIndex
 */
 int SV_FindIndex( const char *name, int start, int end, bool create )
 {
-	int		i = 0;
+	int	i;
 	
 	if( !name || !name[0] ) return 0;
 

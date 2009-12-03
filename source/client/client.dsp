@@ -121,6 +121,14 @@ SOURCE=.\global\dll_int.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\global\ev_common.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\global\ev_hldm.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\hud\hud.cpp
 # End Source File
 # Begin Source File

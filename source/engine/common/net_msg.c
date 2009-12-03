@@ -127,6 +127,30 @@ static net_field_t move_fields[] =
 { NULL },
 };
 
+// probably event_info_t never reached 32 field integer limit (in theory of course)
+static net_field_t ev_fields[] =
+{
+{ EV_FIELD(flags),		NET_WORD,  true	},
+{ EV_FIELD(entindex),	NET_WORD,  true	},
+{ EV_FIELD(origin[0]),	NET_FLOAT, false	},
+{ EV_FIELD(origin[1]),	NET_FLOAT, false	},
+{ EV_FIELD(origin[2]),	NET_FLOAT, false	},
+{ EV_FIELD(angles[0]),	NET_ANGLE, false	},
+{ EV_FIELD(angles[1]),	NET_ANGLE, false	},
+{ EV_FIELD(angles[2]),	NET_ANGLE, false	},
+{ EV_FIELD(velocity[0]),	NET_FLOAT, false	},
+{ EV_FIELD(velocity[1]),	NET_FLOAT, false	},
+{ EV_FIELD(velocity[2]),	NET_FLOAT, false	},
+{ EV_FIELD(ducking),	NET_BYTE,  false	},
+{ EV_FIELD(fparam1),	NET_FLOAT, false	},
+{ EV_FIELD(fparam2),	NET_FLOAT, false	},
+{ EV_FIELD(iparam1),	NET_LONG,  false	},
+{ EV_FIELD(iparam2),	NET_LONG,  false	},
+{ EV_FIELD(bparam1),	NET_BYTE,  false	}, // 0 - 255 brightness
+{ EV_FIELD(bparam2),	NET_BYTE,  false	},
+{ NULL },
+};
+
 // probably usercmd_t never reached 32 field integer limit (in theory of course)
 static net_field_t cmd_fields[] =
 {
@@ -578,7 +602,7 @@ void MSG_ReadPos( sizebuf_t *msg_read, vec3_t pos )
 /*
 =============================================================================
 
-delta functions
+usercmd_t commonication
   
 =============================================================================
 */
@@ -834,125 +858,74 @@ void MSG_ReadDeltaEntity( sizebuf_t *msg, entity_state_t *from, entity_state_t *
 /*
 ============================================================================
 
-player state communication
+event_state_t communication
 
 ============================================================================
 */
 /*
-===================
-MSG_ParseDeltaPlayer
-===================
+=====================
+MSG_WriteDeltaEvent
+=====================
 */
-entity_state_t MSG_ParseDeltaPlayer( entity_state_t *from, entity_state_t *to )
+void _MSG_WriteDeltaEvent( sizebuf_t *msg, event_args_t *from, event_args_t *to, const char *filename, const int fileline )
 {
+	int		num_fields;
 	net_field_t	*field;
-	int		*fromF, *toF, *outF;
-	entity_state_t	dummy, result, *out;
-	uint		i;
-
-	// alloc space to copy state
-	Mem_Set( &result, 0, sizeof( result ));
-	out = &result;
-
-	// clear to old value before delta parsing
-	if( !from )
-	{
-		from = &dummy;
-		Mem_Set( &dummy, 0, sizeof( dummy ));
-	}
-	*out = *from;
+	int		*fromF, *toF;
+	int		i, flags = 0;
 	
-	for( i = 0, field = ent_fields; field->name; i++, field++ )
+	num_fields = (sizeof( ev_fields ) / sizeof( ev_fields[0] )) - 1;
+	if( num_fields > MASK_FLAGS ) return; // this should never happen
+
+	// compare fields
+	for( i = 0, field = ev_fields; i < num_fields; i++, field++ )
 	{
 		fromF = (int *)((byte *)from + field->offset );
 		toF = (int *)((byte *)to + field->offset );
-		outF = (int *)((byte *)out + field->offset );
-		if( *fromF != *toF ) *outF = *toF;
+		if(*fromF != *toF || field->force) flags |= 1<<i;
 	}
+	if( flags == 0 )
+	{
+		// nothing at all changed
+		MSG_WriteLong( msg, -99 ); // no delta info
+		return;
+	}		
 
-	return result;
+	MSG_WriteLong( msg, flags );	// send flags who indicates changes
+	for( i = 0, field = ev_fields; i < num_fields; i++, field++ )
+	{
+		toF = (int *)((byte *)to + field->offset );
+		if( flags & 1<<i ) MSG_WriteBits( msg, *toF, field->name, field->bits );
+	}
 }
 
 /*
-============================================================================
-
-player state communication
-
-============================================================================
+=====================
+MSG_ReadDeltaEvent
+=====================
 */
-/*
-=============
-MSG_WriteDeltaPlayerstate
-
-=============
-*/
-void MSG_WriteDeltaPlayerstate( entity_state_t *from, entity_state_t *to, sizebuf_t *msg )
-{
-	entity_state_t	dummy;
-	entity_state_t	*ops, *ps = to;
-	net_field_t	*field, *field2;
-	int		*fromF, *toF;
-	int		i, j, k;
-	uint		flags = 0;
-	
-	if( !from )
-	{
-		Mem_Set (&dummy, 0, sizeof(dummy));
-		ops = &dummy;
-	}
-	else ops = from;
-	from = to;
-	
-	MSG_WriteByte( msg, svc_playerinfo );
- 
-	for( i = j = 0, field = field2 = ent_fields; field->name; i++, j++, field++ )
-	{
-		fromF = (int *)((byte *)ops + field->offset );
-		toF = (int *)((byte *)ps + field->offset );		
-		if(*fromF != *toF || field->force) flags |= 1<<j;
-		if( j > 31 || !ent_fields[i+1].name) // dump packet
-		{
-			MSG_WriteLong( msg, flags );	// send flags who indicates changes
-			for( k = 0; field2->name; k++, field2++ )
-			{
-				if( k > 31 ) break; // return to main cycle
-				toF = (int *)((byte *)ps + field2->offset );
-				if( flags & 1<<k ) MSG_WriteBits( msg, *toF, field2->name, field2->bits );
-			}
-			j = flags = 0;
-		}
-	}
-}
-
-
-/*
-===================
-MSG_ReadDeltaPlayerstate
-===================
-*/
-void MSG_ReadDeltaPlayerstate( sizebuf_t *msg, entity_state_t *from, entity_state_t *to )
+void MSG_ReadDeltaEvent( sizebuf_t *msg, event_args_t *from, event_args_t *to )
 {
 	net_field_t	*field;
+	int		i, flags;
 	int		*fromF, *toF;
-	entity_state_t	dummy;
-	uint		i, flags;
 
-	// clear to old value before delta parsing
-	if( !from )
-	{
-		from = &dummy;
-		Mem_Set( &dummy, 0, sizeof( dummy ));
-	}
 	*to = *from;
-	
-	for( i = 0, field = ent_fields; field->name; i++, field++ )
+
+	if(*(int *)&msg->data[msg->readcount] == -99 )
+	{
+		MSG_ReadLong( msg );
+		return;
+	}
+	for( i = 0, field = ev_fields; field->name; i++, field++ )
 	{
 		// get flags of next packet if LONG out of range
-		if((i & 31) == 0) flags = MSG_ReadLong( msg );
+		if(( i & MASK_FLAGS ) == 0) flags = MSG_ReadLong( msg );
 		fromF = (int *)((byte *)from + field->offset );
 		toF = (int *)((byte *)to + field->offset );
 		
-		if(flags & (1<<i)) *toF = MSG_ReadBits( msg, field->name, field->bits );
+		if( flags & ( 1<<( i & MASK_FLAGS )))
+			*toF = MSG_ReadBits( msg, field->name, field->bits );
 		else *toF = *fromF;	// no change
 	}
 }

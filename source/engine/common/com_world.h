@@ -87,5 +87,35 @@ void World_MoveBounds( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_
 int World_ConvertContents( int basecontents );
 uint World_MaskForEdict( const edict_t *e );
 uint World_ContentsForEdict( const edict_t *e );
+ 
 
+/*
+===============================================================================
+
+	EVENTS QUEUES (hl1 events code)
+
+===============================================================================
+*/
+#include "event_api.h"
+
+#define MAX_EVENT_QUEUE	64		// 16 simultaneous events, max
+
+typedef struct event_info_s
+{
+	word		index;		// 0 implies not in use
+	short		packet_index;	// Use data from state info for entity in delta_packet .
+					// -1 implies separate info based on event
+					// parameter signature
+	short		entity_index;	// The edict this event is associated with
+	float		fire_time;	// if non-zero, the time when the event should be fired
+					// ( fixed up on the client )
+	event_args_t	args;
+	int		flags;		// reliable or not, etc. ( CLIENT ONLY )
+} event_info_t;
+
+typedef struct event_state_s
+{
+	event_info_t	ei[MAX_EVENT_QUEUE];
+} event_state_t;
+	
 #endif//COM_WORLD_H

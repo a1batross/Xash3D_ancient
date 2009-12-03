@@ -579,13 +579,17 @@ edict_t *SV_AllocEdict( void )
 	return pEdict;
 }
 
-bool SV_CopyEdict( edict_t *out, edict_t *in )
+edict_t *SV_CopyEdict( const edict_t *in )
 {
 	size_t	pvdata_size = 0;
+	edict_t	*out;
 
-	if( in == NULL )
-		return false;	// failed to copy
-	if( in->free ) return false;	// we can't proceed freed edicts
+	if( in == NULL ) return NULL;	// failed to copy
+	if( in->free ) return NULL;	// we can't proceed freed edicts
+	if( in->v.flags & (FL_CLIENT|FL_FAKECLIENT)) return NULL; // never get copy of clients
+
+	// must passed through dlls for correctly get all pointers
+	out = SV_AllocPrivateData( NULL, in->v.classname );
 
 	// important! we save copy off, not in sv.edicts
 	if( out == NULL ) Host_Error( "SV_CopyEdict: dest == NULL\n" );
@@ -608,10 +612,9 @@ bool SV_CopyEdict( edict_t *out, edict_t *in )
 	}
 
 	Mem_Copy( &out->v, &in->v, sizeof( entvars_t ));	// copy entvars
-	out->serialnumber = in->serialnumber;		// copy serialnumber
 	out->v.pContainingEntity = out;		// merge contain entity
 
-	return true;
+	return out;
 }
 
 edict_t* SV_AllocPrivateData( edict_t *ent, string_t className )
@@ -662,6 +665,20 @@ void SV_FreeEdicts( void )
 		if( ent->free ) continue;
 		SV_FreeEdict( ent );
 	}
+}
+
+void SV_PlaybackEvent( sizebuf_t *msg, event_info_t *info )
+{
+	event_args_t	nullargs;
+
+	Com_Assert( msg == NULL );
+	Com_Assert( info == NULL );
+
+	Mem_Set( &nullargs, 0, sizeof( nullargs ));
+
+	MSG_WriteWord( msg, info->index );			// send event index
+	MSG_WriteWord( msg, (int)( info->fire_time * 100.0f ));	// send event delay
+	MSG_WriteDeltaEvent( msg, &nullargs, &info->args );	// FIXME: zero-compressing
 }
 
 bool SV_IsValidEdict( const edict_t *e )
@@ -1801,6 +1818,7 @@ FIXME: implement
 */
 static void pfnTraceSphere( const float *v1, const float *v2, int fNoMonsters, float radius, edict_t *pentToSkip, TraceResult *ptr )
 {
+	Host_Error( "not implemented\n" );
 }
 
 /*
@@ -3102,23 +3120,187 @@ word pfnPrecacheEvent( int type, const char *psz )
 =============
 pfnPlaybackEvent
 
-FIXME: implement
 =============
 */
 static void pfnPlaybackEvent( int flags, const edict_t *pInvoker, word eventindex, float delay, event_args_t *args )
 {
+	sv_client_t	*cl;
+	event_state_t	*es;
+	event_info_t	*ei = NULL;
+	event_args_t	dummy; // in case send naked event without args
+	int		j, leafnum, cluster, area1, area2;
+	int		slot, bestslot, invokerIndex = 0;
+	byte		*mask = NULL;
+	vec3_t		pvspoint;
 
+	// first check event for out of bounds
+	if( eventindex < 1 || eventindex > MAX_EVENTS )
+	{
+		MsgDev( D_ERROR, "SV_PlaybackEvent: invalid eventindex %i\n", eventindex );
+		return;
+	}
+
+	// check event for precached
+	if( !SV_FindIndex( sv.configstrings[CS_EVENTS+eventindex], CS_EVENTS, MAX_EVENTS, false ))
+	{
+		MsgDev( D_ERROR, "SV_PlaybackEvent: event %i was not precached\n", eventindex );
+		return;		
+	}
+
+	if(!( flags & FEV_GLOBAL ))
+          {
+		// PVS message - trying to get a pvspoint
+		// args->origin always have higher priority than invoker->origin
+		if( args && !VectorIsNull( args->origin ))
+		{
+			VectorCopy( args->origin, pvspoint );
+		}
+		else if( SV_IsValidEdict( pInvoker ))
+		{
+			VectorCopy( pInvoker->v.origin, pvspoint );
+		}
+		else
+		{
+			const char *ev_name = sv.configstrings[CS_EVENTS+eventindex];
+			MsgDev( D_ERROR, "%s: not a FEV_GLOBAL event missing origin. Ignored.\n", ev_name );
+			return;
+		}
+	}
+
+	// check event for some user errors
+	if( flags & (FEV_NOTHOST|FEV_HOSTONLY))
+	{
+		if( !SV_ClientFromEdict( pInvoker, true ))
+		{
+			const char *ev_name = sv.configstrings[CS_EVENTS+eventindex];
+			if( flags & FEV_NOTHOST )
+				MsgDev( D_WARN, "%s: specified FEV_NOTHOST when invoker not a client\n", ev_name );
+			if( flags & FEV_HOSTONLY )
+				MsgDev( D_WARN, "%s: specified FEV_HOSTONLY when invoker not a client\n", ev_name );
+			// pInvoker isn't a client
+			flags &= ~(FEV_NOTHOST|FEV_HOSTONLY);
+		}
+	}
+
+	flags |= FEV_SERVER; // it's a server event
+
+	if( delay < 0.0f )
+		delay = 0.0f; // fixup negative delays
+
+	if( SV_IsValidEdict( pInvoker ))
+		invokerIndex = NUM_FOR_EDICT( pInvoker );
+
+	if( args == NULL )
+	{
+		Mem_Set( &dummy, 0, sizeof( dummy ));
+		args = &dummy;
+	}
+
+	if( flags & FEV_RELIABLE )
+	{
+		args->ducking = 0;
+		VectorClear( args->velocity );
+	}
+	else if( invokerIndex )
+	{
+		// get up some info from invoker
+		if( VectorIsNull( args->origin )) 
+			VectorCopy( pInvoker->v.origin, args->origin );
+		if( VectorIsNull( args->angles )) 
+			VectorCopy( pInvoker->v.angles, args->angles );
+		VectorCopy( pInvoker->v.velocity, args->velocity );
+		args->ducking = (pInvoker->v.flags & FL_DUCKING) ? true : false;
+	}
+
+	if(!( flags & FEV_GLOBAL ))
+	{
+		// setup pvs cluster for invoker
+		leafnum = CM_PointLeafnum( pvspoint );
+		cluster = CM_LeafCluster( leafnum );
+		mask = CM_ClusterPVS( cluster );
+		area1 = CM_LeafArea( leafnum );
+	}
+
+	// process all the clients
+	for( slot = 0, cl = svs.clients; slot < sv_maxclients->integer; slot++, cl++ )
+	{
+		if( cl->state != cs_spawned || !cl->edict || ( cl->edict->v.flags & FL_FAKECLIENT ))
+			continue;
+
+		if( flags & FEV_NOTHOST && cl->edict == pInvoker )
+			continue;	// will be played on client side
+
+		if( flags & FEV_HOSTONLY && cl->edict != pInvoker )
+			continue;	// sending only to invoker
+
+		if(!( flags & FEV_GLOBAL ))
+		{
+			area2 = CM_LeafArea( leafnum );
+			cluster = CM_LeafCluster( leafnum );
+			leafnum = CM_PointLeafnum( cl->edict->v.origin );
+			if(!CM_AreasConnected( area1, area2 )) continue;
+			if( mask && (!(mask[cluster>>3] & (1<<(cluster & 7)))))
+				continue;
+		}
+
+		// all checks passed, send the event
+
+		// reliable event
+		if( flags & FEV_RELIABLE )
+		{
+			event_info_t	info;
+
+			info.index = eventindex;
+			info.fire_time = delay;
+			info.args = *args;
+			info.entity_index = invokerIndex;
+			info.packet_index = -1;
+			info.flags = 0; // server ignore flags
+
+			// skipping queue, write in reliable datagram
+			MSG_WriteByte( &cl->reliable, svc_event_reliable );
+			SV_PlaybackEvent( &cl->reliable, &info );
+			continue;
+		}
+
+		// unreliable event (stores in queue)
+		es = &cl->events;
+		bestslot = -1;
+
+		for( j = 0; j < MAX_EVENT_QUEUE; j++ )
+		{
+			ei = &es->ei[j];
+		
+			if( ei->index == 0 )
+			{
+				// found an empty slot
+				bestslot = j;
+				break;
+			}
+		}
+				
+		// no slot found for this player, oh well
+		if( bestslot == -1 ) continue;
+
+		ei->index = eventindex;
+		ei->fire_time = delay;
+		ei->args = *args;
+		ei->entity_index = invokerIndex;
+		ei->packet_index = -1;
+		ei->flags = 0; // server ignore flags
+	}
 }
 
 /*
 =============
-pfnSetBonePos
+pfnCopyEdict
 
-FIXME: implement
+returns NULL if failed to copy
 =============
 */
-void pfnSetBonePos( const edict_t* pEdict, int iBone, float *rgflOrigin, float *rgflAngles )
+edict_t *pfnCopyEdict( const edict_t *pEdict )
 {
+	return SV_CopyEdict( pEdict );
 }
 
 /*
@@ -3448,7 +3630,7 @@ static enginefuncs_t gEngfuncs =
 	pfnGetPhysicsInfoString,
 	pfnPrecacheEvent,
 	pfnPlaybackEvent,
-	pfnSetBonePos,
+	pfnCopyEdict,
 	pfnCheckArea,
 	pfnCheckVisibility,
 	pfnFOpen,

@@ -78,7 +78,7 @@ void InsertLinkBefore( link_t *l, link_t *before, int entnum )
 
 int World_ConvertContents( int basecontents )
 {
-#if 1
+#if 0
 	if( basecontents & ( BASECONT_SOLID|BASECONT_BODY ))
 		return CONTENTS_SOLID;
 	if( basecontents & BASECONT_SKY )

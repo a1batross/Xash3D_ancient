@@ -1374,6 +1374,9 @@ void UTIL_PrecacheResourse( void )
 	g_sModelIndexLaser = UTIL_PrecacheModel( "sprites/laserbeam.spr" );
 	g_sModelIndexBloodSpray = UTIL_PrecacheModel ("sprites/bloodspray.spr");
 	g_sModelIndexBloodDrop = UTIL_PrecacheModel ("sprites/blood.spr");
+
+	// events
+	m_usEjectBrass = UTIL_PrecacheEvent( "evEjectBrass" );
           
 	// player items and weapons
 	memset( CBasePlayerWeapon::ItemInfoArray, 0, sizeof( CBasePlayerWeapon::ItemInfoArray ));
@@ -1620,6 +1623,37 @@ void DBG_AssertFunction( BOOL fExpr, const char* szExpr, const char* szFile, int
 BOOL UTIL_GetNextBestWeapon( CBasePlayer *pPlayer, CBasePlayerWeapon *pCurrentWeapon )
 {
 	return g_pGameRules->GetNextBestWeapon( pPlayer, pCurrentWeapon );
+}
+
+unsigned short UTIL_PrecacheEvent( const char *s )
+{
+	return g_engfuncs.pfnPrecacheEvent( 1, s );
+}
+
+void UTIL_PlaybackEvent( int flags, const edict_t *pInvoker, int ev_index, float delay, event_args_t *args )
+{
+	g_engfuncs.pfnPlaybackEvent( flags, pInvoker, ev_index, delay, args );
+}
+
+void UTIL_PlaybackEvent( int flags, const edict_t *pInvoker, int ev_index, float delay, Vector origin, Vector angles, float fparam1, float fparam2, int iparam1, int iparam2, int bparam1, int bparam2 )
+{
+	event_args_t	args;
+
+	args.flags = 0;
+	if( !FNullEnt( pInvoker ))
+		args.entindex = ENTINDEX( (edict_t *)pInvoker );
+	else args.entindex = 0;
+	origin.CopyToArray( args.origin );
+	angles.CopyToArray( args.angles );
+	// don't add velocity - engine will be reset it for some reasons
+	args.fparam1 = fparam1;
+	args.fparam2 = fparam2;
+	args.iparam1 = iparam1;
+	args.iparam2 = iparam2;
+	args.bparam1 = bparam1;
+	args.bparam2 = bparam2;
+
+	UTIL_PlaybackEvent( flags, pInvoker, ev_index, delay, &args );
 }
 
 // ripped this out of the engine

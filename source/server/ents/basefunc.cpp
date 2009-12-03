@@ -750,9 +750,9 @@ void CFuncTeleport :: Touch( CBaseEntity *pOther )
 			tmp.z -= pOther->pev->mins.z; // make origin adjustments
 		tmp.z++;
 		UTIL_SetOrigin( pOther, tmp );
-
+                    UTIL_MakeVectors( pTarget->pev->angles );
 		pOther->pev->angles = pTarget->pev->angles;
-		pOther->pev->velocity = pOther->pev->basevelocity = g_vecZero;
+		pOther->pev->velocity = gpGlobals->v_forward * 300;
 		if( pOther->IsPlayer( ))
 		{
 			pOther->pev->viewangles = pTarget->pev->angles;
@@ -763,7 +763,7 @@ void CFuncTeleport :: Touch( CBaseEntity *pOther )
 	ChangeCamera( pev->target ); // update PVS
 	pevToucher->flags &= ~FL_ONGROUND;
 	pevToucher->fixangle = TRUE;
-	pevToucher->teleport_time = gpGlobals->time + 0.1;
+	pevToucher->teleport_time = gpGlobals->time + 0.7;
 
 	UTIL_FireTargets( pev->netname, pOther, this, USE_TOGGLE ); // fire target
 }

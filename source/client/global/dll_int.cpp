@@ -9,6 +9,7 @@
 #include "studio_ref.h"
 #include "hud.h"
 #include "r_particle.h"
+#include "ev_hldm.h"
 
 cl_enginefuncs_t g_engfuncs;
 cl_globalvars_t  *gpGlobals;
@@ -93,6 +94,9 @@ void HUD_Init( void )
 	gHUD.Init();
 
 	V_Init();
+
+	// link all events
+	EV_HookEvents ();
 }
 
 int HUD_Redraw( float flTime, int state )

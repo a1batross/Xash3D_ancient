@@ -37,7 +37,8 @@ char *svc_strings[256] =
 	"svc_particle",
 	"svc_soundfade",
 	"svc_bspdecal",
-	"svc_ambientsound"
+	"svc_event",
+	"svc_event_reliable"
 };
 
 int	packet_latency[NET_TIMINGS];
@@ -336,6 +337,31 @@ void CL_ParseSoundFade( sizebuf_t *msg )
 	S_FadeClientVolume( fadePercent, fadeOutSeconds, holdTime, fadeInSeconds );
 }
 
+void CL_ParseReliableEvent( sizebuf_t *msg, int flags )
+{
+	int		event_index;
+	event_args_t	nullargs, args;
+	float		delay;
+
+	Mem_Set( &nullargs, 0, sizeof( nullargs ));
+	event_index = MSG_ReadWord( msg );		// read event index
+	delay = MSG_ReadWord( msg ) / 100.0f;		// read event delay
+	MSG_ReadDeltaEvent( msg, &nullargs, &args );	// FIXME: zero-compressing
+
+	CL_QueueEvent( flags, event_index, delay, &args );
+}
+
+void CL_ParseEvent( sizebuf_t *msg )
+{
+	int	i, num_events;
+
+	num_events = MSG_ReadByte( msg );
+
+	// parse events queue
+	for( i = 0 ; i < num_events; i++ )
+		CL_ParseReliableEvent( msg, 0 );
+}
+
 /*
 =====================================================================
 
@@ -343,7 +369,6 @@ void CL_ParseSoundFade( sizebuf_t *msg )
 
 =====================================================================
 */
-
 /*
 ==================
 CL_ParseServerData
@@ -479,6 +504,10 @@ void CL_ParseConfigString( sizebuf_t *msg )
 	else if( i >= CS_USER_MESSAGES && i < CS_USER_MESSAGES+MAX_USER_MESSAGES )
 	{
 		CL_LinkUserMessage( cl.configstrings[i], i - CS_USER_MESSAGES );
+	}
+	else if( i >= CS_EVENTS && i < CS_EVENTS+MAX_EVENTS )
+	{
+		CL_SetEventIndex( cl.configstrings[i], i - CS_EVENTS );
 	}
 	else if( i >= CS_CLASSNAMES && i < CS_CLASSNAMES+MAX_CLASSNAMES )
 	{
@@ -625,6 +654,12 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			break;
 		case svc_soundfade:
 			CL_ParseSoundFade( msg );
+			break;
+		case svc_event:
+			CL_ParseEvent( msg );
+			break;
+		case svc_event_reliable:
+			CL_ParseReliableEvent( msg, FEV_RELIABLE );
 			break;
 		case svc_frame:
 			CL_ParseFrame( msg );

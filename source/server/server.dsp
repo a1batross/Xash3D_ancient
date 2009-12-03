@@ -437,10 +437,6 @@ SOURCE=.\ents\baseworld.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\global\bullets.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\cbase.h
 # End Source File
 # Begin Source File

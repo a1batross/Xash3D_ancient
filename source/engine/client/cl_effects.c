@@ -1118,6 +1118,164 @@ bool pfnAddParticle( cparticle_t *src, HSPRITE shader, int flags )
 }
 
 /*
+===============
+CL_ResetEvent
+
+===============
+*/
+void CL_ResetEvent( event_info_t *ei )
+{
+	Mem_Set( ei, 0, sizeof( *ei ));
+}
+
+word CL_PrecacheEvent( const char *name )
+{
+	int	i;
+	
+	if( !name || !name[0] ) return 0;
+
+	for( i = 1; i < MAX_EVENTS && cl.configstrings[CS_EVENTS+i][0]; i++ )
+		if( !com.strcmp( cl.configstrings[CS_EVENTS+i], name ))
+			return i;
+	return 0;
+}
+
+bool CL_FireEvent( event_info_t *ei )
+{
+	user_event_t	*ev;
+	const char	*name;
+	int		i;
+
+	if( !ei || !ei->index )
+		return false;
+
+	// get the func pointer
+	for( i = 0; i < MAX_EVENTS; i++ )
+	{
+		ev = clgame.events[i];		
+		if( !ev ) break;
+
+		if( ev->index == ei->index )
+		{
+			if( ev->func )
+			{
+				ev->func( &ei->args );
+				return true;
+			}
+
+			name = cl.configstrings[CS_EVENTS+ei->index];
+			MsgDev( D_ERROR, "CL_FireEvent: %s not hooked\n", name );
+			break;			
+		}
+	}
+	return false;
+}
+
+void CL_FireEvents( void )
+{
+	int		i;
+	event_state_t	*es;
+	event_info_t	*ei;
+	bool		success;
+
+	es = &cl.events;
+
+	for( i = 0; i < MAX_EVENT_QUEUE; i++ )
+	{
+		ei = &es->ei[i];
+
+		if( ei->index == 0 )
+			continue;
+
+		if( cls.state == ca_disconnected )
+		{
+			CL_ResetEvent( ei );
+			continue;
+		}
+
+		// delayed event!
+		if( ei->fire_time && ( ei->fire_time > clgame.globals->time ))
+			continue;
+
+		success = CL_FireEvent( ei );
+
+		// zero out the remaining fields
+		CL_ResetEvent( ei );
+	}
+}
+
+event_info_t *CL_FindEmptyEvent( void )
+{
+	int		i;
+	event_state_t	*es;
+	event_info_t	*ei;
+
+	es = &cl.events;
+
+	// look for first slot where index is != 0
+	for( i = 0; i < MAX_EVENT_QUEUE; i++ )
+	{
+		ei = &es->ei[i];
+		if( ei->index != 0 )
+			continue;
+		return ei;
+	}
+
+	// no slots available
+	return NULL;
+}
+
+event_info_t *CL_FindUnreliableEvent( void )
+{
+	int		i;
+	event_state_t	*es;
+	event_info_t	*ei;
+
+	es = &cl.events;
+	for ( i = 0; i < MAX_EVENT_QUEUE; i++ )
+	{
+		ei = &es->ei[i];
+		if( ei->index != 0 )
+		{
+			// it's reliable, so skip it
+			if( ei->flags & FEV_RELIABLE )
+				continue;
+		}
+		return ei;
+	}
+
+	// this should never happen
+	return NULL;
+}
+
+void CL_QueueEvent( int flags, int index, float delay, event_args_t *args )
+{
+	bool		unreliable = (flags & FEV_RELIABLE) ? false : true;
+	event_info_t	*ei;
+
+	// find a normal slot
+	ei = CL_FindEmptyEvent();
+	if( !ei && unreliable )
+	{
+		return;
+	}
+
+	// okay, so find any old unreliable slot
+	if( !ei )
+	{
+		ei = CL_FindUnreliableEvent();
+		if( !ei ) return;
+	}
+
+	ei->index	= index;
+	ei->fire_time = delay ? (clgame.globals->time + delay) : 0.0f;
+	ei->flags	= flags;
+	
+	// copy in args event data
+	Mem_Copy( &ei->args, args, sizeof( ei->args ));
+}
+
+/*
 ================
 CL_TestEntities
 

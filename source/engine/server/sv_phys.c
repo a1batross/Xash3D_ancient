@@ -459,6 +459,22 @@ void SV_ClipVelocity( vec3_t in, vec3_t normal, vec3_t out, float overbounce )
 	}
 }
 
+// FIXME: hack
+void SV_ClipVelocity2( vec3_t in, vec3_t normal, vec3_t out, float overbounce )
+{
+	int i;
+	float backoff;
+
+	backoff = DotProduct (in, normal) * overbounce;
+	VectorMA( in, backoff, normal, out );
+
+	for( i = 0; i < 3; i++ )
+	{
+		if( out[i] > -STOP_EPSILON && out[i] < STOP_EPSILON )
+			out[i] = 0.0f;
+	}
+}
+
 /*
 ===============================================================================
 
@@ -667,7 +683,9 @@ int SV_FlyMove( edict_t *ent, float time, trace_t *steptrace )
 		// modify original_velocity so it parallels all of the clip planes
 		for( i = 0; i < numplanes; i++ )
 		{
-			SV_ClipVelocity( original_velocity, planes[i], new_velocity, 1.0f );
+			if( ent->v.movetype != MOVETYPE_PUSHSTEP )
+				SV_ClipVelocity( original_velocity, planes[i], new_velocity, 1.0f );
+			else SV_ClipVelocity2( original_velocity, planes[i], new_velocity, 1.0f );
 			for( j = 0; j < numplanes; j++ )
 			{
 				if( j != i )
@@ -1495,7 +1513,7 @@ void SV_Physics_Step( edict_t *ent )
 	{
 		if( !( ent->v.flags & FL_FLY ))
 		{
-			if(!( ent->v.flags & FL_SWIM && ent->v.waterlevel > 0 ))
+			if(!( ent->v.flags & (FL_SWIM|FL_FLOAT) && ent->v.waterlevel > 0 ))
 				if( !inwater ) SV_AddGravity( ent );
 		}
 	}

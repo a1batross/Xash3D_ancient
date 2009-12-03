@@ -1400,9 +1400,9 @@ void FS_CreateGameInfo( const char *filename )
 	com.strncat( buffer, "\nhull1\t\t( -16 -16 -36 ) ( 16 16 36 )", MAX_SYSPATH );
 	com.strncat( buffer, "\nhull2\t\t( -32 -32 -32 ) ( 32 32 32 )", MAX_SYSPATH );
 	com.strncat( buffer, "\nhull3\t\t( -16 -16 -18 ) ( 16 16 18 )", MAX_SYSPATH );
-	com.strncat( buffer, "\nviewheight0\t\"28\"", MAX_SYSPATH );
-	com.strncat( buffer, "\nviewheight1\t\"12\"", MAX_SYSPATH );
-	com.strncat( buffer, "\nmax_edicts\t\"1024\"", MAX_SYSPATH );
+	com.strncat( buffer, "\nviewheight0\t28", MAX_SYSPATH );
+	com.strncat( buffer, "\nviewheight1\t12", MAX_SYSPATH );
+	com.strncat( buffer, "\nmax_edicts\t1024", MAX_SYSPATH );
 	com.strncat( buffer, "\n\n\n", MAX_SYSPATH );
 	
 	FS_WriteFile( filename, buffer, com.strlen( buffer ));

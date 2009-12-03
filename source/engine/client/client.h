@@ -91,6 +91,8 @@ typedef struct
 
 	cinematics_t	*cin;
 
+	event_state_t	events;
+
 	// predicting stuff
 	vec3_t		predicted_origins[CMD_BACKUP];// for debug comparing against server
 
@@ -209,6 +211,13 @@ typedef struct
 	pfnUserMsgHook	func;	// user-defined function	
 } user_message_t;
 
+typedef struct
+{
+	char		name[CS_SIZE];
+	word		index;	// event index
+	pfnEventHook	func;	// user-defined function
+} user_event_t;
+
 #define MAX_TRIPOLYS	2048
 #define MAX_TRIVERTS	128
 #define MAX_TRIELEMS	MAX_TRIVERTS * 6
@@ -273,6 +282,7 @@ typedef struct
 
 	cl_globalvars_t	*globals;
 	user_message_t	*msg[MAX_USER_MESSAGES];
+	user_event_t	*events[MAX_EVENTS];	// keep static to avoid fragment memory
 	entity_state_t	*baselines;
 
 	tri_state_t	*pTri;
@@ -494,6 +504,7 @@ const char *CL_GetString( string_t iString );
 void CL_CenterPrint( const char *text, int y, int charWidth );
 bool CL_IsValidEdict( const edict_t *e );
 const char *CL_ClassName( const edict_t *e );
+void CL_SetEventIndex( const char *szEvName, int ev_index );
 
 _inline edict_t *CL_EDICT_NUM( int n, const char *file, const int line )
 {
@@ -571,6 +582,10 @@ void pfnAddDecal( float *org, float *dir, float *rgba, float rot, float rad, HSP
 void pfnAddDLight( const float *org, const float *rgb, float radius, float time, int flags, int key );
 void CL_ParticleEffect( const vec3_t org, const vec3_t dir, int color, int count ); // q1 legacy
 void CL_SpawnStaticDecal( vec3_t origin, int decalIndex, int entityIndex, int modelIndex );
+void CL_QueueEvent( int flags, int index, float delay, event_args_t *args );
+word CL_PrecacheEvent( const char *name );
+void CL_ResetEvent( event_info_t *ei );
+void CL_FireEvents( void );
 	
 //
 // cl_pred.c

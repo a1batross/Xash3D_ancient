@@ -17,7 +17,6 @@ Sprite Lerping - рисуем два соседних кадра, чем больше lerpValue, тем больше про
 Отложенные задачи:
 1. Поддержка loop для ogg vorbis
 2. переписать studiomdl для использования VFS
-3. избавится от PR_ParseToken\Word в vprogs.dll
 
 Beta 13.12.09
 
@@ -179,7 +178,7 @@ Beta 13.12.09
 152. implement СRC32			OK
 153. implement physinfo strings		OK
 154. fix downloading issues			OK
-155. implement pfnPlaybackEvent
+155. implement pfnPlaybackEvent		OK
 156. allowing to use russian letters		OK
 157. implement signon buffers			OK
 158. call the spectator funcs			OK
@@ -187,7 +186,7 @@ Beta 13.12.09
 160. pfnGetPlayerStats			OK
 161. fix basevelocity			OK
 162. rewrote auto-classify			OK
-163. rewrote sv_phys.c
+163. rewrote sv_phys.c			OK
 164. remove vprogs.dll			OK
 165. fix bsplib error
 

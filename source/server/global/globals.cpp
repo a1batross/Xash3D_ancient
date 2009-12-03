@@ -29,6 +29,9 @@
 #include "baseweapon.h"
 #include "soundent.h"
 
+DLL_GLOBAL unsigned	short	m_usPlayEmptySound;
+DLL_GLOBAL unsigned short	m_usEjectBrass;
+DLL_GLOBAL unsigned short	m_usPlayTexSound;
 DLL_GLOBAL ULONG		g_ulFrameCount;
 DLL_GLOBAL ULONG		g_ulModelIndexEyes;
 DLL_GLOBAL ULONG		g_ulModelIndexPlayer;

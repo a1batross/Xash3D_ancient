@@ -246,6 +246,50 @@ static void SV_AddEntitiesToPacket( edict_t *pViewEnt, edict_t *pClient, client_
 	}
 }
 
+static void SV_EmitEvents( sv_client_t *cl, client_frame_t *frame, sizebuf_t *msg )
+{
+	int		i, ev;
+	event_state_t	*es;
+	event_info_t	*info;
+	int		ev_count = 0;
+	int		c;
+
+	es = &cl->events;
+
+	// count events
+	for( ev = 0; ev < MAX_EVENT_QUEUE; ev++ )
+	{
+		info = &es->ei[ev];
+		if( info->index == 0 )
+			continue;
+		ev_count++;
+	}
+
+	// nothing to send
+	if( !ev_count ) return;
+
+	if( ev_count >= MAX_EVENT_QUEUE )
+		ev_count = MAX_EVENT_QUEUE - 1;
+
+	MSG_WriteByte( msg, svc_event );	// create message
+	MSG_WriteByte( msg, ev_count );	// Up to MAX_EVENT_QUEUE events
+
+	for( i = c = 0 ; i < MAX_EVENT_QUEUE; i++ )
+	{
+		info = &es->ei[i];
+
+		if( info->index == 0 )
+			continue;
+
+		// only send if there's room
+		if ( c < ev_count )
+			SV_PlaybackEvent( msg, info );
+
+		info->index = 0;
+		c++;
+	}
+}
+
 /*
 ==================
 SV_WriteFrameToClient
@@ -292,6 +336,9 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 		MSG_WriteByte( msg, svc_physinfo );
 		MSG_WriteString( msg, cl->physinfo );
 	}
+
+	// delta encode the events
+	SV_EmitEvents( cl, frame, msg );
 
 	MSG_WriteByte( msg, svc_frame );
 	MSG_WriteLong( msg, sv.framenum );

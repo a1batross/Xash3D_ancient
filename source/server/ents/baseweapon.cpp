@@ -1361,14 +1361,11 @@ int CBasePlayerWeapon :: Shoot ( const char *ammo, Vector vecSpread, int firemod
 		Vector vecAiming = gpGlobals->v_forward;
 		Vector vecDir;		
 
-		// FIXME: wrote GetBulletShellModel
-		int model = PRECACHE_MODEL( "models/gibs/shell9mm.mdl" );
-			
-		//eject brass
+		// eject brass
 		for( int i = 0; cShots > i; i++ )
 		{
-			SFX_EjectBrass( vecSrc, m_pPlayer->pev->velocity, RANDOM_FLOAT( 0, 360 ), model, BOUNCE_SHELL );
-                    }
+			UTIL_PlaybackEvent( 0, m_pPlayer->edict(), m_usEjectBrass, 0.0, g_vecZero, g_vecZero, 0, 0, GetBulletType( ammo ), 0, firemode, 0 );
+		}
 		if( !FStriCmp( ammo, "buckshot" ))//HACK 
 		{
 			flDistance = 2048;

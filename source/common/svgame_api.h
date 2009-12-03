@@ -184,8 +184,8 @@ typedef struct enginefuncs_s
 	const char *(*pfnGetPhysicsInfoString)( const edict_t *pClient );
 	word	(*pfnPrecacheEvent)( int type, const char *psz );
 	void	(*pfnPlaybackEvent)( int flags, const edict_t *pInvoker, word eventindex, float delay, event_args_t *args );
-	void	(*pfnSetBonePos)( const edict_t* pEdict, int iBone, float *rgflOrigin, float *rgflAngles );	// was pfnSetFatPVS
-	int	(*pfnCheckArea)( const edict_t *entity, int clientarea );
+	edict_t	*(*pfnCopyEdict)( const edict_t *pEdict );		// was pfnSetFatPVS
+	int	(*pfnCheckArea)( const edict_t *entity, int clientarea );	// was pfnSetFatPAS
 	int	(*pfnCheckVisibility)( const edict_t *entity, byte *pset );
 	void*	(*pfnFOpen)( const char* path, const char* mode );	// was pfnDeltaSetField
 	long	(*pfnFRead)( void *file, void* buffer, size_t buffersize );	// was pfnDeltaUnsetField

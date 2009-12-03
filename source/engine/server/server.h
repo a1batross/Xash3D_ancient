@@ -122,6 +122,7 @@ typedef struct sv_client_s
 	byte		datagram_buf[MAX_MSGLEN];
 
 	client_frame_t	frames[UPDATE_BACKUP];	// updates can be delta'd from here
+	event_state_t	events;
 
 	byte		*download;		// file being downloaded
 	int		downloadsize;		// total bytes (can't use EOF because of paks)
@@ -387,10 +388,10 @@ edict_t *SV_AllocEdict( void );
 void SV_FreeEdict( edict_t *pEdict );
 void SV_InitEdict( edict_t *pEdict );
 const char *SV_ClassName( const edict_t *e );
-bool SV_CopyEdict( edict_t *out, edict_t *in );
 void SV_ConfigString( int index, const char *val );
 void SV_SetModel( edict_t *ent, const char *name );
 void SV_CopyTraceToGlobal( trace_t *trace );
+void SV_PlaybackEvent( sizebuf_t *msg, event_info_t *info );
 void SV_BaselineForEntity( const edict_t *pEdict );
 script_t *SV_GetEntityScript( const char *filename );
 float SV_AngleMod( float ideal, float current, float speed );
