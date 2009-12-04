@@ -118,7 +118,6 @@ int HUD_Redraw( float flTime, int state )
 	case CL_ACTIVE:
 	case CL_PAUSED:
 		gHUD.Redraw( flTime );
-		DrawCrosshair();
 		DrawPause();
 		break;
 	}

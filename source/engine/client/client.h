@@ -218,6 +218,24 @@ typedef struct
 	pfnEventHook	func;	// user-defined function
 } user_event_t;
 
+typedef struct
+{
+	// temp handle
+	HSPRITE		hSprite;
+
+	// scissor test
+	int		scissor_x;
+	int		scissor_y;
+	int		scissor_width;
+	int		scissor_height;
+	bool		scissor_test;
+
+	// crosshair members
+	HSPRITE		hCrosshair;
+	wrect_t		rcCrosshair;
+	rgba_t		rgbaCrosshair;
+} draw_stuff_t;
+
 #define MAX_TRIPOLYS	2048
 #define MAX_TRIVERTS	128
 #define MAX_TRIELEMS	MAX_TRIVERTS * 6
@@ -284,6 +302,9 @@ typedef struct
 	user_message_t	*msg[MAX_USER_MESSAGES];
 	user_event_t	*events[MAX_EVENTS];	// keep static to avoid fragment memory
 	entity_state_t	*baselines;
+
+	draw_stuff_t	ds;			// draw2d stuff (hud, weaponmenu etc)
+	SCREENINFO	scrInfo;			// actual screen info
 
 	tri_state_t	*pTri;
 
@@ -383,6 +404,7 @@ extern cvar_t	*cl_pitchspeed;
 extern cvar_t	*cl_envshot_size;
 extern cvar_t	*cl_run;
 extern cvar_t	*cl_font;
+extern cvar_t	*cl_crosshair;
 extern cvar_t	*cl_anglespeedkey;
 extern cvar_t	*cl_showmiss;
 extern cvar_t	*cl_particles;

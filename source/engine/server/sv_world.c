@@ -440,6 +440,10 @@ static void SV_ClipToLinks( areanode_t *node, moveclip_t *clip )
 		if( clip->passedict && !VectorIsNull( clip->passedict->v.size ) && VectorIsNull( touch->v.size ))
 			continue;	// points never interact
 
+		// custom user filter
+		if( !svgame.dllFuncs.pfnShouldCollide( touch, clip->passedict ))
+			continue;
+
 		if( clip->flags & FTRACE_IGNORE_GLASS && CM_GetModelType( touch->v.modelindex ) == mod_brush )
 		{
 			vec3_t	point;

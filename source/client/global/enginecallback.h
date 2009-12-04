@@ -13,12 +13,21 @@
 #define FREE( x )		(*g_engfuncs.pfnMemFree)( x, __FILE__, __LINE__ )
 
 // screen handlers
-#define SPR_Load( x )	(*g_engfuncs.pfnLoadShader)( x, true )
+#define SPR_Frames		(*g_engfuncs.pfnSPR_Frames)
+#define SPR_Width		(*g_engfuncs.pfnSPR_Width)
+#define SPR_Height		(*g_engfuncs.pfnSPR_Height)
+#define SPR_EnableScissor	(*g_engfuncs.pfnSPR_EnableScissor)
+#define SPR_DisableScissor	(*g_engfuncs.pfnSPR_DisableScissor)
+#define FillRGBA		(*g_engfuncs.pfnFillRGBA)
+#define GetScreenInfo	(*g_engfuncs.pfnGetScreenInfo)
+
+#define SPR_Load		(*g_engfuncs.pfnSPR_Load)
 #define TEX_Load( x )	(*g_engfuncs.pfnLoadShader)( x, false )
 #define DrawImageExt	(*g_engfuncs.pfnDrawImageExt)
 #define SetColor		(*g_engfuncs.pfnSetColor)
 #define SetParms		(*g_engfuncs.pfnSetParms)
-#define GetScreenInfo	(*g_engfuncs.pfnGetScreenInfo)
+#define SetCrosshair	(*g_engfuncs.pfnSetCrosshair)
+
 #define CVAR_REGISTER	(*g_engfuncs.pfnRegisterVariable)
 #define CVAR_SET_FLOAT	(*g_engfuncs.pfnCvarSetValue)
 #define CVAR_GET_FLOAT	(*g_engfuncs.pfnGetCvarFloat)
@@ -31,6 +40,56 @@
 #define CMD_ARGC		(*g_engfuncs.pfnCmdArgc)
 #define CMD_ARGV		(*g_engfuncs.pfnCmdArgv)
 #define ALERT		(*g_engfuncs.pfnAlertMessage)
+
+inline void SPR_Set( HSPRITE hPic, int r, int g, int b )
+{
+	g_engfuncs.pfnSPR_Set( hPic, r, g, b, 255 );
+}
+
+inline void SPR_Set( HSPRITE hPic, int r, int g, int b, int a )
+{
+	g_engfuncs.pfnSPR_Set( hPic, r, g, b, a );
+}
+
+inline void SPR_Draw( int frame, int x, int y, const wrect_t *prc )
+{
+	g_engfuncs.pfnSPR_Draw( frame, x, y, -1, -1, prc );
+}
+
+inline void SPR_Draw( int frame, int x, int y, int width, int height )
+{
+	g_engfuncs.pfnSPR_Draw( frame, x, y, width, height, NULL );
+}
+
+inline void SPR_DrawTransColor( int frame, int x, int y, const wrect_t *prc )
+{
+	g_engfuncs.pfnSPR_DrawTrans( frame, x, y, -1, -1, prc );
+}
+
+inline void SPR_DrawTransColor( int frame, int x, int y, int width, int height )
+{
+	g_engfuncs.pfnSPR_DrawTrans( frame, x, y, width, height, NULL );
+}
+
+inline void SPR_DrawHoles( int frame, int x, int y, const wrect_t *prc )
+{
+	g_engfuncs.pfnSPR_DrawHoles( frame, x, y, -1, -1, prc );
+}
+
+inline void SPR_DrawHoles( int frame, int x, int y, int width, int height )
+{
+	g_engfuncs.pfnSPR_DrawHoles( frame, x, y, width, height, NULL );
+}
+
+inline void SPR_DrawAdditive( int frame, int x, int y, const wrect_t *prc )
+{
+	g_engfuncs.pfnSPR_DrawAdditive( frame, x, y, -1, -1, prc );
+}
+
+inline void SPR_DrawAdditive( int frame, int x, int y, int width, int height )
+{
+	g_engfuncs.pfnSPR_DrawAdditive( frame, x, y, width, height, NULL );
+}
 
 inline void CL_PlaySound( const char *szSound, float flVolume, float pitch = PITCH_NORM )
 {

@@ -292,9 +292,6 @@ void V_PreRender( ref_params_t *pparams )
 	if( gHUD.m_iCameraMode ) pparams->flags |= RDF_THIRDPERSON;
 	else pparams->flags &= ~RDF_THIRDPERSON;
 
-	// output
-	gHUD.m_CrosshairAngles = pparams->crosshairangle;
-
 	pparams->fov_x = gHUD.m_flFOV; // this is a final fov value
 	pparams->fov_y = V_CalcFov( pparams->fov_x, pparams->viewport[2], pparams->viewport[3] );
 }
@@ -532,14 +529,14 @@ void V_CalcCameraRefdef( ref_params_t *pparams )
 
 			if( gHUD.viewFlags & INVERSE_X )	// inverse X coordinate
 				v_angles[0] = -v_angles[0];
-			HideCrosshair( true );
+			pparams->crosshairangle[ROLL] = 1;	// crosshair is hided
 
 			// refresh position
 			pparams->viewangles = v_angles;
 			pparams->vieworg = v_origin;
 		}
 	}
-	else HideCrosshair( false ); // show crosshair again
+	else pparams->crosshairangle[ROLL] = 0; // show crosshair again
 }
 
 edict_t *V_FindIntermisionSpot( ref_params_t *pparams )

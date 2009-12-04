@@ -435,6 +435,7 @@ void SCR_RegisterShaders( void )
 	// vid_state has changed
 	if( clgame.hInstance ) clgame.dllFuncs.pfnVidInit();
 
+	Mem_Set( &clgame.ds, 0, sizeof( clgame.ds )); // reset a draw state
 	g_console_field_width = scr_width->integer / SMALLCHAR_WIDTH - 2;
 	g_consoleField.widthInChars = g_console_field_width;
 	cls.drawplaque = true;

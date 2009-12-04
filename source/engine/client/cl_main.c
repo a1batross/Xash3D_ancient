@@ -17,7 +17,7 @@ cvar_t	*cl_maxfps;
 
 cvar_t	*cl_particles;
 cvar_t	*cl_particlelod;
-
+cvar_t	*cl_crosshair;
 cvar_t	*cl_shownet;
 cvar_t	*cl_showmiss;
 cvar_t	*cl_mouselook;
@@ -1082,6 +1082,7 @@ void CL_InitLocal( void )
 	cl_maxfps = Cvar_Get( "cl_maxfps", "1000", 0, "maximum client fps" );
 	cl_particles = Cvar_Get( "cl_particles", "1", CVAR_ARCHIVE, "disables particle effects" );
 	cl_particlelod = Cvar_Get( "cl_lod_particle", "0", CVAR_ARCHIVE, "enables particle LOD (1, 2, 3)" );
+	cl_crosshair = Cvar_Get( "crosshair", "1", CVAR_ARCHIVE|CVAR_USERINFO, "show weapon chrosshair" );
 
 	cl_upspeed = Cvar_Get( "cl_upspeed", "200", 0, "client upspeed limit" );
 	cl_forwardspeed = Cvar_Get( "cl_forwardspeed", "200", 0, "client forward speed limit" );

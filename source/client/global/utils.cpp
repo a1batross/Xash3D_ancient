@@ -174,54 +174,8 @@ Vector READ_DIR( void )
 	return BitsToDir( READ_BYTE() );
 }
 
-//
-// Sprites draw stuff
-//
-typedef struct
-{
-	// temp handle
-	HSPRITE	hSprite;
-	HSPRITE	hPause;		// pause pic
-
-	// crosshair members
-	HSPRITE	hCrosshair;
-	wrect_t	rcCrosshair;
-	byte	rgbCrosshair[3];
-	bool	noCrosshair;
-} draw_stuff_t;
-
-static draw_stuff_t ds;
-	
-int SPR_Frames( HSPRITE hPic )
-{
-	int Frames;
-
-	GetParms( NULL, NULL, &Frames, 0, hPic );
-
-	return Frames;
-}
-
-int SPR_Height( HSPRITE hPic, int frame )
-{
-	int Height;
-
-	GetParms( NULL, &Height, NULL, frame, hPic );
-
-	return Height;
-}
-
-int SPR_Width( HSPRITE hPic, int frame )
-{
-	int Width;
-
-	GetParms( &Width, NULL, NULL, frame, hPic );
-
-	return Width;
-}
-
 void Draw_VidInit( void )
 {
-	memset( &ds, 0, sizeof( ds ));
 }
 
 /*
@@ -342,18 +296,6 @@ client_sprite_t *SPR_GetList( const char *psz, int *piCount )
 	return phud;
 }
 
-void SPR_Set( HSPRITE hPic, int r, int g, int b )
-{
-	ds.hSprite = hPic;
-	SetColor( r, g, b, 255 );
-}
-
-void SPR_Set( HSPRITE hPic, int r, int g, int b, int a )
-{
-	ds.hSprite = hPic;
-	SetColor( r, g, b, a );
-}
-
 inline static void SPR_AdjustSize( float *x, float *y, float *w, float *h )
 {
 	if( !x && !y && !w && !h ) return;
@@ -394,39 +336,6 @@ inline static void SPR_DrawChar( HSPRITE hFont, int xpos, int ypos, int width, i
 	DrawImageExt( hFont, ax, ay, aw, ah, fcol, frow, fcol + size, frow + size );
 }
 
-inline static void SPR_DrawGeneric( int frame, float x, float y, float width, float height, const wrect_t *prc )
-{
-	float	s1, s2, t1, t2;
-
-	if( width == -1 && height == -1 )
-	{
-		int w, h;
-		GetParms( &w, &h, NULL, frame, ds.hSprite );
-		width = w;
-		height = h;
-	}
-
-	if( prc )
-	{
-		// calc rectangle
-		s1 = (float)prc->left / width;
-		t1 = (float)prc->top / height;
-		s2 = (float)prc->right / width;
-		t2 = (float)prc->bottom / height;
-		width = prc->right - prc->left;
-		height = prc->bottom - prc->top;
-	}
-	else
-	{
-		s1 = t1 = 0.0f;
-		s2 = t2 = 1.0f;
-	}
-
-	// scale for screen sizes
-	SPR_AdjustSize( &x, &y, &width, &height );
-	DrawImageExt( ds.hSprite, x, y, width, height, s1, t1, s2, t2 );
-} 
-
 void TextMessageDrawChar( int xpos, int ypos, int number, int r, int g, int b )
 {
 	// tune char size by taste
@@ -434,102 +343,11 @@ void TextMessageDrawChar( int xpos, int ypos, int number, int r, int g, int b )
 	SPR_DrawChar( gHUD.m_hHudFont, xpos, ypos, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, number );
 }
 
-void FillRGBA( float x, float y, float width, float height, int r, int g, int b, int a )
-{
-	SPR_AdjustSize( &x, &y, &width, &height );
-	g_engfuncs.pfnFillRGBA( x, y, width, height, r, g, b, a );
-}
-
-void SPR_Draw( int frame, int x, int y, const wrect_t *prc )
-{
-	SetParms( ds.hSprite, kRenderNormal, frame );
-	SPR_DrawGeneric( frame, x, y, -1, -1, prc );
-}
-
-void SPR_Draw( int frame, int x, int y, int width, int height )
-{
-	SetParms( ds.hSprite, kRenderNormal, frame );
-	SPR_DrawGeneric( frame, x, y, width, height, NULL );
-}
-
-void SPR_DrawTransColor( int frame, int x, int y, const wrect_t *prc )
-{
-	SetParms( ds.hSprite, kRenderTransColor, frame );
-	SPR_DrawGeneric( frame, x, y, -1, -1, prc );
-}
-
-void SPR_DrawTransColor( int frame, int x, int y, int width, int height )
-{
-	SetParms( ds.hSprite, kRenderTransColor, frame );
-	SPR_DrawGeneric( frame, x, y, width, height, NULL );
-}
-
-void SPR_DrawHoles( int frame, int x, int y, const wrect_t *prc )
-{
-	SetParms( ds.hSprite, kRenderTransAlpha, frame );
-	SPR_DrawGeneric( frame, x, y, -1, -1, prc );
-}
-
-void SPR_DrawHoles( int frame, int x, int y, int width, int height )
-{
-	SetParms( ds.hSprite, kRenderTransAlpha, frame );
-	SPR_DrawGeneric( frame, x, y, width, height, NULL );
-}
-
-void SPR_DrawAdditive( int frame, int x, int y, const wrect_t *prc )
-{
-	SetParms( ds.hSprite, kRenderTransAdd, frame );
-	SPR_DrawGeneric( frame, x, y, -1, -1, prc );
-}
-
-void SPR_DrawAdditive( int frame, int x, int y, int width, int height )
-{
-	SetParms( ds.hSprite, kRenderTransAdd, frame );
-	SPR_DrawGeneric( frame, x, y, width, height, NULL );
-}
-
-void SetCrosshair( HSPRITE hspr, wrect_t rc, int r, int g, int b )
-{
-	ds.rgbCrosshair[0] = (byte)r;
-	ds.rgbCrosshair[1] = (byte)g;
-	ds.rgbCrosshair[2] = (byte)b;
-	ds.hCrosshair = hspr;
-	ds.rcCrosshair = rc;
-}
-
-void HideCrosshair( bool hide )
-{
-	ds.noCrosshair = hide;
-}
-
-void DrawCrosshair( void )
-{
-	if( ds.hCrosshair == 0 || ds.noCrosshair || !CVAR_GET_FLOAT( "cl_crosshair" ))
-		return;
-
-	int x = (ScreenWidth - (ds.rcCrosshair.right - ds.rcCrosshair.left)) / 2; 
-	int y = (ScreenHeight - (ds.rcCrosshair.bottom - ds.rcCrosshair.top)) / 2;
-
-	// FIXME: apply crosshair angles properly
-	x += gHUD.m_CrosshairAngles.x;
-	y += gHUD.m_CrosshairAngles.y;
-
-	ds.hSprite = ds.hCrosshair;
-	SetParms( ds.hCrosshair, kRenderTransAlpha, 0 );
-	SetColor( ds.rgbCrosshair[0], ds.rgbCrosshair[1], ds.rgbCrosshair[2], 255 );
-	SPR_DrawGeneric( 0, x, y, -1, -1, &ds.rcCrosshair );
-}
-
 void DrawPause( void )
 {
 	// pause image
 	if( !v_paused ) return;
 	DrawImageBar( 100, "m_pause" ); // HACKHACK
-}
-
-void DrawImageRectangle( HSPRITE hImage )
-{
-	DrawImageExt( hImage, 0, 0, ActualWidth, ActualHeight, 0, 0, 1, 1 );
 }
 
 void DrawImageBar( float percent, const char *szSpriteName )

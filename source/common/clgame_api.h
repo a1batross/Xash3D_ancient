@@ -45,7 +45,9 @@ typedef struct
 	char		*name;
 	short		ping;
 	byte		thisplayer;	// TRUE if this is the calling player
-	byte		packetloss;	// TRUE if current packet is loose
+
+	byte		spectator;
+	byte		packetloss;
 	const char	*model;
 	short		topcolor;
 	short		bottomcolor;
@@ -73,7 +75,6 @@ typedef struct client_data_s
 
 	int		iKeyBits;		// Keyboard bits
 	int		iWeaponBits;	// came from pev->weapons
-	float		v_idlescale;	// view shake/rotate
 	float		mouse_sensitivity;	// used for menus and zoomed weapons
 } client_data_t;
 
@@ -96,7 +97,7 @@ typedef struct cl_globalvars_s
 	BOOL		coop;
 	BOOL		teamplay;
 
-	int		serverflags;
+	int		serverflags;	// shared serverflags
 	int		maxClients;
 	int		numClients;
 	int		maxEntities;
@@ -108,6 +109,25 @@ typedef struct cl_enginefuncs_s
 	// interface validator
 	size_t	api_size;		// must matched with sizeof(cl_enginefuncs_t)
 
+	// sprite handlers
+	HSPRITE	(*pfnSPR_Load)( const char *szPicName );
+	int	(*pfnSPR_Frames)( HSPRITE hPic );
+	int	(*pfnSPR_Height)( HSPRITE hPic, int frame );
+	int	(*pfnSPR_Width)( HSPRITE hPic, int frame );
+	void	(*pfnSPR_Set)( HSPRITE hPic, int r, int g, int b, int a );
+	void	(*pfnSPR_Draw)( int frame, int x, int y, int width, int height, const wrect_t *prc );
+	void	(*pfnSPR_DrawHoles)( int frame, int x, int y, int width, int height, const wrect_t *prc );
+	void	(*pfnSPR_DrawTrans)( int frame, int x, int y, int width, int height, const wrect_t *prc );	// Xash3D ext
+	void	(*pfnSPR_DrawAdditive)( int frame, int x, int y, int width, int height, const wrect_t *prc );
+	void	(*pfnSPR_EnableScissor)( int x, int y, int width, int height );
+	void	(*pfnSPR_DisableScissor)( void );
+	client_sprite_t *(*pfnSPR_GetList)( char *psz, int *piCount );
+
+	// screen handlers
+	void	(*pfnFillRGBA)( int x, int y, int width, int height, int r, int g, int b, int a );
+	int	(*pfnGetScreenInfo)( SCREENINFO *pscrinfo );
+	void	(*pfnSetCrosshair)( HSPRITE hspr, wrect_t rc, int r, int g, int b );
+
 	// engine memory manager
 	void*	(*pfnMemAlloc)( size_t cb, const char *filename, const int fileline );
 	void	(*pfnMemCopy)( void *dest, const void *src, size_t cb, const char *filename, const int fileline );
@@ -115,7 +135,6 @@ typedef struct cl_enginefuncs_s
 
 	// screen handlers
 	HSPRITE	(*pfnLoadShader)( const char *szShaderName, int fShaderNoMip );
-	void	(*pfnFillRGBA)( int x, int y, int width, int height, byte r, byte g, byte b, byte alpha );
 	void	(*pfnDrawImageExt)( HSPRITE shader, float x, float y, float w, float h, float s1, float t1, float s2, float t2 );
 	void	(*pfnSetColor)( byte r, byte g, byte b, byte a );
 
@@ -165,7 +184,6 @@ typedef struct cl_enginefuncs_s
 	edict_t*	(*pfnGetViewModel)( void );
 	void*	(*pfnGetModelPtr)( edict_t* pEdict );
 
-	int	(*pfnGetScreenInfo)( SCREENINFO *pscrinfo );
 	void	(*pfnGetAttachment)( const edict_t *pEdict, int iAttachment, float *rgflOrigin, float *rgflAngles );
 
 	int	(*pfnPointContents)( const float *rgflVector );

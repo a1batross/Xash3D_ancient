@@ -30,7 +30,6 @@ void CHud :: Init( void )
 	m_MOTD.Init();
 		
 	MsgFunc_ResetHUD( 0, 0, NULL );
-	CVAR_REGISTER( "cl_crosshair", "1", FCVAR_ARCHIVE, "show weapon chrosshair" );
 }
 
 CHud :: ~CHud( void )
@@ -204,7 +203,8 @@ int CHud :: UpdateClientData( client_data_t *cdata, float time )
 	Think();
 
 	cdata->iKeyBits = m_iKeyBits;
-	cdata->v_idlescale = m_iConcussionEffect;
+
+	v_idlescale = m_iConcussionEffect;
 
 	if( m_flMouseSensitivity )
 		cdata->mouse_sensitivity = m_flMouseSensitivity;

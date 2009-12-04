@@ -131,6 +131,127 @@ prevframe_t *CL_GetPrevFrame( int entityIndex )
 
 /*
 ====================
+SPR_AdjustSize
+
+draw hudsprite routine
+====================
+*/
+static void SPR_AdjustSize( float *x, float *y, float *w, float *h )
+{
+	float	xscale, yscale;
+
+	if( !x && !y && !w && !h ) return;
+
+	// scale for screen sizes
+	xscale = clgame.scrInfo.iRealWidth / (float)clgame.scrInfo.iWidth;
+	yscale = clgame.scrInfo.iRealHeight / (float)clgame.scrInfo.iHeight;
+
+	if( x ) *x *= xscale;
+	if( y ) *y *= yscale;
+	if( w ) *w *= xscale;
+	if( h ) *h *= yscale;
+}
+
+static bool SPR_Scissor( float *x, float *y, float *width, float *height, float *u0, float *v0, float *u1, float *v1 )
+{
+	float	dudx, dvdy;
+
+	// clip sub rect to sprite
+	if(( width == 0 ) || ( height == 0 ))
+		return false;
+
+	if( *x + *width <= clgame.ds.scissor_x )
+		return false;
+	if( *x >= clgame.ds.scissor_x + clgame.ds.scissor_width )
+		return false;
+	if( *y + *height <= clgame.ds.scissor_y )
+		return false;
+	if( *y >= clgame.ds.scissor_y + clgame.ds.scissor_height )
+		return false;
+
+	dudx = (*u1 - *u0) / *width;
+	dvdy = (*v1 - *v0) / *height;
+
+	if( *x < clgame.ds.scissor_x )
+	{
+		*u0 += (clgame.ds.scissor_x - *x) * dudx;
+		*width -= clgame.ds.scissor_x - *x;
+		*x = clgame.ds.scissor_x;
+	}
+
+	if( *x + *width > clgame.ds.scissor_x + clgame.ds.scissor_width )
+	{
+		*u1 -= (*x + *width - (clgame.ds.scissor_x + clgame.ds.scissor_width)) * dudx;
+		*width = clgame.ds.scissor_x + clgame.ds.scissor_width - *x;
+	}
+
+	if( *y < clgame.ds.scissor_y )
+	{
+		*v0 += (clgame.ds.scissor_y - *y) * dvdy;
+		*height -= clgame.ds.scissor_y - *y;
+		*y = clgame.ds.scissor_y;
+	}
+
+	if( *y + *height > clgame.ds.scissor_y + clgame.ds.scissor_height )
+	{
+		*v1 -= (*y + *height - (clgame.ds.scissor_y + clgame.ds.scissor_height)) * dvdy;
+		*height = clgame.ds.scissor_y + clgame.ds.scissor_height - *y;
+	}
+	return true;
+}
+
+/*
+====================
+SPR_DrawGeneric
+
+draw hudsprite routine
+====================
+*/
+static void SPR_DrawGeneric( int frame, float x, float y, float width, float height, const wrect_t *prc )
+{
+	float	s1, s2, t1, t2;
+
+	if( !re ) return;
+
+	if( width == -1 && height == -1 )
+	{
+		int	w, h;
+
+		// undoc feature: get drawsizes from image
+		re->GetParms( &w, &h, NULL, frame, clgame.ds.hSprite );
+
+		width = w;
+		height = h;
+	}
+
+	if( prc )
+	{
+		// calc user-defined rectangle
+		s1 = (float)prc->left / width;
+		t1 = (float)prc->top / height;
+		s2 = (float)prc->right / width;
+		t2 = (float)prc->bottom / height;
+		width = prc->right - prc->left;
+		height = prc->bottom - prc->top;
+	}
+	else
+	{
+		s1 = t1 = 0.0f;
+		s2 = t2 = 1.0f;
+	}
+
+	// pass scissor test if supposed
+	if( clgame.ds.scissor_test && !SPR_Scissor( &x, &y, &width, &height, &s1, &t1, &s2, &t2 ))
+		return;
+
+	// scale for screen sizes
+	SPR_AdjustSize( &x, &y, &width, &height );
+	re->DrawStretchPic( x, y, width, height, s1, t1, s2, t2, clgame.ds.hSprite );
+	re->SetColor( NULL );
+}
+
+/*
+====================
 CL_InitTitles
 
 parse all messages that declared in titles.txt
@@ -316,6 +437,55 @@ void CL_FadeAlpha( float starttime, float endtime, rgba_t color )
 	else color[3] = 255;
 }
 
+void CL_DrawCrosshair( void )
+{
+	int	x, y;
+
+	if( !re || clgame.ds.hCrosshair <= 0 || cl.refdef.crosshairangle[2] || !cl_crosshair->integer )
+		return;
+#if 0
+	if ( pPlayer && !pPlayer->IsAlive() )
+		return;
+
+	m_curViewAngles = CurrentViewAngles();
+	m_curViewOrigin = CurrentViewOrigin();
+
+	float x, y;
+	QAngle angles;
+	Vector forward;
+	Vector point, screen;
+
+	x = ScreenWidth()/2;
+	y = ScreenHeight()/2;
+
+	// this code is wrong
+	angles = m_curViewAngles + m_vecCrossHairOffsetAngle;
+	AngleVectors( angles, &forward );
+	VectorAdd( m_curViewOrigin, forward, point );
+	ScreenTransform( point, screen );
+
+	x += 0.5f * screen[0] * ScreenWidth() + 0.5f;
+	y += 0.5f * screen[1] * ScreenHeight() + 0.5f;
+	
+	m_pCrosshair->DrawSelf( 
+		x - 0.5f * m_pCrosshair->Width(), 
+		y - 0.5f * m_pCrosshair->Height(),
+		m_clrCrosshair );
+#endif
+
+	x = (clgame.scrInfo.iWidth - (clgame.ds.rcCrosshair.right - clgame.ds.rcCrosshair.left)) / 2; 
+	y = (clgame.scrInfo.iHeight - (clgame.ds.rcCrosshair.bottom - clgame.ds.rcCrosshair.top)) / 2;
+
+	// FIXME: apply crosshair angles properly
+	x += cl.refdef.crosshairangle[0];
+	y += cl.refdef.crosshairangle[1];
+
+	clgame.ds.hSprite = clgame.ds.hCrosshair;
+	re->SetColor( clgame.ds.rgbaCrosshair );
+	re->SetParms( clgame.ds.hSprite, kRenderTransAlpha, 0 );
+	SPR_DrawGeneric( 0, x, y, -1, -1, &clgame.ds.rcCrosshair );
+}
+
 void CL_DrawHUD( int state )
 {
 	if( state == CL_ACTIVE && !cl.video_prepped )
@@ -325,6 +495,9 @@ void CL_DrawHUD( int state )
 		state = CL_PAUSED;
 
 	clgame.dllFuncs.pfnRedraw( cl.time * 0.001f, state );
+
+	if( state == CL_ACTIVE || state == CL_PAUSED )
+		CL_DrawCrosshair();
 
 	if( state == CL_ACTIVE )
 		clgame.dllFuncs.pfnFrame( cl.time * 0.001f );
@@ -394,9 +567,33 @@ void CL_LinkUserMessage( char *pszName, const int svc_num )
 	CL_CreateUserMessage( i, msgName, svc_num, msgSize, NULL );
 }
 
+/*
+=======================
+CL_MsgNumbers
+=======================
+*/
+static int CL_MsgNumbers( const void *a, const void *b )
+{
+	user_message_t	*msga, *msgb;
+
+	msga = (user_message_t *)a;
+	msgb = (user_message_t *)b;
+
+	if( msga == NULL )
+	{
+		if ( msgb == NULL ) return 0;
+		else return -1;
+	}
+	else if ( msgb == NULL ) return 1;
+
+	if( msga->number < msgb->number )
+		return -1;
+	return 1;
+}
+
 void CL_SortUserMessages( void )
 {
-	// FIXME: implement
+//	qsort( clgame.msg, clgame.numMessages, sizeof( user_message_t ), CL_MsgNumbers );
 }
 
 void CL_ParseUserMessage( sizebuf_t *net_buffer, int svc_num )
@@ -641,6 +838,268 @@ const char *CL_ClassName( const edict_t *e )
 
 ===============================================================================
 */
+/*
+=========
+pfnSPR_Load
+
+=========
+*/
+HSPRITE pfnSPR_Load( const char *szPicName )
+{
+	if( !re ) return 0; // render not initialized
+	if( !szPicName || !*szPicName )
+	{
+		MsgDev( D_ERROR, "CL_SpriteLoad: invalid spritename\n" );
+		return -1;
+	}
+
+	return re->RegisterShader( szPicName, SHADER_NOMIP );	// replace with SHADER_GENERIC ?
+}
+
+/*
+=========
+pfnSPR_Load
+
+=========
+*/
+static int pfnSPR_Frames( HSPRITE hPic )
+{
+	int	numFrames;
+
+	if( !re ) return 1;
+	re->GetParms( NULL, NULL, &numFrames, 0, hPic );
+
+	return numFrames;
+}
+
+/*
+=========
+pfnSPR_Load
+
+=========
+*/
+static int pfnSPR_Height( HSPRITE hPic, int frame )
+{
+	int	sprHeight;
+
+	if( !re ) return 0;
+	re->GetParms( NULL, &sprHeight, NULL, frame, hPic );
+
+	return sprHeight;
+}
+
+/*
+=========
+pfnSPR_Load
+
+=========
+*/
+static int pfnSPR_Width( HSPRITE hPic, int frame )
+{
+	int	sprWidth;
+
+	if( !re ) return 0;
+	re->GetParms( &sprWidth, NULL, NULL, frame, hPic );
+
+	return sprWidth;
+}
+
+/*
+=========
+pfnSPR_Load
+
+=========
+*/
+static void pfnSPR_Set( HSPRITE hPic, int r, int g, int b, int a )
+{
+	rgba_t	color;
+
+	if( !re ) return; // render not initialized
+
+	clgame.ds.hSprite = hPic;
+	MakeRGBA( color, r, g, b, a );
+	re->SetColor( color );
+}
+
+/*
+=========
+pfnSPR_Draw
+
+=========
+*/
+static void pfnSPR_Draw( int frame, int x, int y, int width, int height, const wrect_t *prc )
+{
+	if( !re ) return; // render not initialized
+
+	re->SetParms( clgame.ds.hSprite, kRenderNormal, frame );
+	SPR_DrawGeneric( frame, x, y, width, height, prc );
+}
+
+/*
+=========
+pfnSPR_DrawTrans
+
+=========
+*/
+static void pfnSPR_DrawTrans( int frame, int x, int y, int width, int height, const wrect_t *prc )
+{
+	if( !re ) return; // render not initialized
+
+	re->SetParms( clgame.ds.hSprite, kRenderTransColor, frame );
+	SPR_DrawGeneric( frame, x, y, width, height, prc );
+}
+
+/*
+=========
+pfnSPR_DrawHoles
+
+=========
+*/
+static void pfnSPR_DrawHoles( int frame, int x, int y, int width, int height, const wrect_t *prc )
+{
+	if( !re ) return; // render not initialized
+
+	re->SetParms( clgame.ds.hSprite, kRenderTransAlpha, frame );
+	SPR_DrawGeneric( frame, x, y, width, height, prc );
+}
+
+/*
+=========
+pfnSPR_DrawAdditive
+
+=========
+*/
+static void pfnSPR_DrawAdditive( int frame, int x, int y, int width, int height, const wrect_t *prc )
+{
+	if( !re ) return; // render not initialized
+
+	re->SetParms( clgame.ds.hSprite, kRenderTransAdd, frame );
+	SPR_DrawGeneric( frame, x, y, width, height, prc );
+}
+
+/*
+=========
+pfnSPR_EnableScissor
+
+=========
+*/
+static void pfnSPR_EnableScissor( int x, int y, int width, int height )
+{
+	// check bounds
+	x = bound( 0, x, clgame.scrInfo.iWidth );
+	y = bound( 0, y, clgame.scrInfo.iHeight );
+	width = bound( 0, width, clgame.scrInfo.iWidth - x );
+	height = bound( 0, height, clgame.scrInfo.iHeight - y );
+
+	clgame.ds.scissor_x = x;
+	clgame.ds.scissor_width = width;
+	clgame.ds.scissor_y = y;
+	clgame.ds.scissor_height = height;
+	clgame.ds.scissor_test = true;
+}
+
+/*
+=========
+pfnSPR_DisableScissor
+
+=========
+*/
+static void pfnSPR_DisableScissor( void )
+{
+	clgame.ds.scissor_x = 0;
+	clgame.ds.scissor_width = 0;
+	clgame.ds.scissor_y = 0;
+	clgame.ds.scissor_height = 0;
+	clgame.ds.scissor_test = false;
+}
+
+/*
+=========
+pfnSPR_GetList
+
+FIXME: implement original hl1 SPR_GetList
+=========
+*/
+static client_sprite_t *pfnSPR_GetList( char *psz, int *piCount )
+{
+	return NULL;
+}
+
+/*
+=============
+pfnFillRGBA
+
+=============
+*/
+static void pfnFillRGBA( int x, int y, int width, int height, int r, int g, int b, int a )
+{
+	rgba_t	color;
+
+	if( !re ) return;
+
+	MakeRGBA( color, r, g, b, a );
+	re->SetColor( color );
+
+	SPR_AdjustSize( (float *)&x, (float *)&y, (float *)&width, (float *)&height );
+	re->DrawStretchPic( x, y, width, height, 0, 0, 1, 1, cls.fillShader );
+	re->SetColor( NULL );
+}
+
+/*
+=============
+pfnGetScreenInfo
+
+get actual screen info
+=============
+*/
+static int pfnGetScreenInfo( SCREENINFO *pscrinfo )
+{
+	int	i;
+
+	// setup screen info
+	clgame.scrInfo.iRealWidth = scr_width->integer;
+	clgame.scrInfo.iRealHeight = scr_height->integer;
+
+	if( pscrinfo && pscrinfo->iFlags & SCRINFO_VIRTUALSPACE )
+	{
+		// virtual screen space 640x480
+		// see cl_screen.c from Quake3 code for more details
+		clgame.scrInfo.iWidth = SCREEN_WIDTH;
+		clgame.scrInfo.iHeight = SCREEN_HEIGHT;
+	}
+	else
+	{
+		clgame.scrInfo.iWidth = scr_width->integer;
+		clgame.scrInfo.iHeight = scr_height->integer;
+	}
+
+	// TODO: build real table of fonts widthInChars
+	for( i = 0; i < 256; i++ )
+		clgame.scrInfo.charWidths[i] = SMALLCHAR_WIDTH;
+	clgame.scrInfo.iCharHeight = SMALLCHAR_HEIGHT;
+
+	if( !pscrinfo ) return 0;
+	*pscrinfo = clgame.scrInfo;	// copy screeninfo out
+
+	return 1;
+}
+
+/*
+=============
+pfnSetCrosshair
+
+setup auto-aim crosshair
+=============
+*/
+static void pfnSetCrosshair( HSPRITE hspr, wrect_t rc, int r, int g, int b )
+{
+	clgame.ds.rgbaCrosshair[0] = (byte)r;
+	clgame.ds.rgbaCrosshair[1] = (byte)g;
+	clgame.ds.rgbaCrosshair[2] = (byte)b;
+	clgame.ds.rgbaCrosshair[3] = (byte)0xFF;
+	clgame.ds.hCrosshair = hspr;
+	clgame.ds.rcCrosshair = rc;
+}
 
 /*
 =========
@@ -684,23 +1143,6 @@ shader_t pfnLoadShader( const char *szShaderName, int fShaderNoMip )
 	return re->RegisterShader( szShaderName, SHADER_GENERIC );
 }
 
-/*
-=============
-pfnFillRGBA
-
-=============
-*/
-void pfnFillRGBA( int x, int y, int width, int height, byte r, byte g, byte b, byte alpha )
-{
-	rgba_t	color;
-
-	if( !re ) return;
-
-	MakeRGBA( color, r, g, b, alpha );
-	re->SetColor( color );
-	re->DrawStretchPic( x, y, width, height, 0, 0, 1, 1, cls.fillShader );
-	re->SetColor( NULL );
-}
 
 /*
 =============
@@ -1175,44 +1617,6 @@ static void *pfnGetModelPtr( edict_t *pEdict )
 		return NULL;
 
 	return Mod_Extradata( pEdict->v.modelindex );
-}
-
-/*
-=============
-pfnGetScreenInfo
-
-get actual screen info
-=============
-*/
-int pfnGetScreenInfo( SCREENINFO *pscrinfo )
-{
-	int	i;
-
-	if( !pscrinfo ) return 0;
-
-	// setup screen info
-	pscrinfo->iRealWidth = scr_width->integer;
-	pscrinfo->iRealHeight = scr_height->integer;
-
-	if(pscrinfo->iFlags & SCRINFO_VIRTUALSPACE )
-	{
-		// virtual screen space 640x480
-		// see cl_screen.c from Quake3 code for more details
-		pscrinfo->iWidth = SCREEN_WIDTH;
-		pscrinfo->iHeight = SCREEN_HEIGHT;
-	}
-	else
-	{
-		pscrinfo->iWidth = scr_width->integer;
-		pscrinfo->iHeight = scr_height->integer;
-	}
-
-	// TODO: build real table of fonts widthInChars
-	for( i = 0; i < 256; i++ )
-		pscrinfo->charWidths[i] = SMALLCHAR_WIDTH;
-	pscrinfo->iCharHeight = SMALLCHAR_HEIGHT;
-
-	return 1;
 }
 
 /*
@@ -1835,11 +2239,25 @@ static efxapi_t gEfxApi =
 static cl_enginefuncs_t gEngfuncs = 
 {
 	sizeof( cl_enginefuncs_t ),
+	pfnSPR_Load,
+	pfnSPR_Frames,
+	pfnSPR_Height,
+	pfnSPR_Width,
+	pfnSPR_Set,
+	pfnSPR_Draw,
+	pfnSPR_DrawHoles,
+	pfnSPR_DrawTrans,
+	pfnSPR_DrawAdditive,
+	pfnSPR_EnableScissor,
+	pfnSPR_DisableScissor,
+	pfnSPR_GetList,
+	pfnFillRGBA,
+	pfnGetScreenInfo,
+	pfnSetCrosshair,
 	pfnMemAlloc,
 	pfnMemCopy,
 	pfnMemFree,
 	pfnLoadShader,
-	pfnFillRGBA,
 	pfnDrawImageExt,
 	pfnSetColor,
 	pfnCVarRegister,
@@ -1875,7 +2293,6 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnGetMaxClients,
 	pfnGetViewModel,
 	pfnGetModelPtr,
-	pfnGetScreenInfo,						
 	pfnGetAttachment,
 	pfnPointContents,
 	pfnTraceLine,

@@ -172,26 +172,9 @@ extern Vector READ_DIR( void );
 extern void END_READ( void );
 
 // drawing stuff
-extern int SPR_Frames( HSPRITE hPic );
-extern int SPR_Height( HSPRITE hPic, int frame );
-extern int SPR_Width( HSPRITE hPic, int frame );
 extern client_sprite_t *SPR_GetList( const char *name, int *count );
 extern void ParseHudSprite( const char **pfile, char *psz, client_sprite_t *result );
-extern void SPR_Set( HSPRITE hPic, int r, int g, int b );
-extern void SPR_Set( HSPRITE hPic, int r, int g, int b, int a );
-extern void SPR_Draw( int frame, int x, int y, const wrect_t *prc );
-extern void SPR_Draw( int frame, int x, int y, int width, int height );
-extern void SPR_DrawHoles( int frame, int x, int y, const wrect_t *prc );
-extern void SPR_DrawHoles( int frame, int x, int y, int width, int height );
-extern void SPR_DrawTransColor( int frame, int x, int y, int width, int height );
-extern void SPR_DrawTransColor( int frame, int x, int y, const wrect_t *prc );
-extern void SPR_DrawAdditive( int frame, int x, int y, const wrect_t *prc );
-extern void SPR_DrawAdditive( int frame, int x, int y, int width, int height );
 extern void TextMessageDrawChar( int xpos, int ypos, int number, int r, int g, int b );
-extern void FillRGBA( float x, float y, float width, float height, int r, int g, int b, int a );
-extern void SetCrosshair( HSPRITE hspr, wrect_t rc, int r, int g, int b );
-extern void HideCrosshair( bool hide );
-extern void DrawCrosshair( void );
 extern void DrawPause( void );
 extern void SetScreenFade( Vector fadeColor, float alpha, float duration, float holdTime, int fadeFlags );
 extern void ClearAllFades( void );
@@ -207,6 +190,7 @@ extern void Draw_VidInit( void );
 extern void DrawProgressBar( void );
 extern edict_t *spot;
 extern int v_paused;
+extern float v_idlescale;
 
 // stdio stuff
 extern char *va( const char *format, ... );
