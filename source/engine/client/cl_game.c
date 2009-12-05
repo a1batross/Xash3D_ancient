@@ -130,6 +130,122 @@ prevframe_t *CL_GetPrevFrame( int entityIndex )
 }
 
 /*
+================
+CL_FadeAlpha
+================
+*/
+void CL_FadeAlpha( int starttime, int endtime, rgba_t color )
+{
+	int	time, fade_time;
+
+	if( starttime == 0 )
+	{
+		MakeRGBA( color, 255, 255, 255, 255 );
+		return;
+	}
+
+	time = cls.realtime - starttime;
+
+	if( time >= endtime )
+	{
+		MakeRGBA( color, 255, 255, 255, 0 );
+		return;
+	}
+
+	// fade time is 1/4 of endtime
+	fade_time = endtime / 4;
+	fade_time = bound( 300, fade_time, 10000 );
+
+	color[0] = color[1] = color[2] = 255;
+
+	// fade out
+	if(( endtime - time ) < fade_time )
+		color[3] = bound( 0, ((endtime - time) * 1.0f / fade_time) * 255, 255 );
+	else color[3] = 255;
+}
+
+/*
+=============
+CL_DrawCenterPrint
+
+called each frame
+=============
+*/
+void CL_DrawCenterPrint( void )
+{
+	char	*start;
+	int	l, x, y, w;
+	rgba_t	color;
+
+	if( !re || !clgame.ds.centerPrintTime ) return;
+
+	CL_FadeAlpha( clgame.ds.centerPrintTime, scr_centertime->value * 1000, color );
+
+	if( *(int *)color == 0x00FFFFFF ) 
+	{
+		// faded out
+		clgame.ds.centerPrintTime = 0;
+		return;
+	}
+
+	re->SetColor( color );
+	start = clgame.ds.centerPrint;
+	y = clgame.ds.centerPrintY - clgame.ds.centerPrintLines * BIGCHAR_HEIGHT / 2;
+
+	while( 1 )
+	{
+		char	linebuffer[1024];
+
+		for( l = 0; l < 50; l++ )
+		{
+			if( !start[l] || start[l] == '\n' )
+				break;
+			linebuffer[l] = start[l];
+		}
+		linebuffer[l] = 0;
+
+		w = clgame.ds.centerPrintCharWidth * com.cstrlen( linebuffer );
+		x = (SCREEN_WIDTH - w)>>1;
+
+		SCR_DrawStringExt( x, y, clgame.ds.centerPrintCharWidth, SMALLCHAR_HEIGHT, linebuffer, color, false );
+
+		y += clgame.ds.centerPrintCharWidth * 1.5;
+		while( *start && ( *start != '\n' )) start++;
+		if( !*start ) break;
+		start++;
+	}
+	re->SetColor( NULL );
+}
+
+/*
+=============
+CL_CenterPrint
+
+print centerscreen message
+=============
+*/
+void CL_CenterPrint( const char *text, int y, int charWidth )
+{
+	char	*s;
+
+	com.strncpy( clgame.ds.centerPrint, text, sizeof( clgame.ds.centerPrint ));
+	clgame.ds.centerPrintTime = cls.realtime;
+	clgame.ds.centerPrintCharWidth = charWidth;
+	clgame.ds.centerPrintY = y;
+
+	// count the number of lines for centering
+	clgame.ds.centerPrintLines = 1;
+	s = clgame.ds.centerPrint;
+
+	while( *s )
+	{
+		if( *s == '\n' )
+			clgame.ds.centerPrintLines++;
+		s++;
+	}
+}
+
+/*
 ====================
 SPR_AdjustSize
 
@@ -404,86 +520,69 @@ int CL_GetMaxClients( void )
 	return clgame.globals->maxClients;
 }
 
-/*
-================
-CL_FadeAlpha
-================
-*/
-void CL_FadeAlpha( float starttime, float endtime, rgba_t color )
-{
-	float	time, fade_time;
-
-	if( starttime == 0 )
-	{
-		MakeRGBA( color, 255, 255, 255, 255 );
-		return;
-	}
-	time = (cls.realtime * 0.001f) - starttime;
-	if( time >= endtime )
-	{
-		MakeRGBA( color, 255, 255, 255, 0 );
-		return;
-	}
-
-	// fade time is 1/4 of endtime
-	fade_time = endtime / 4;
-	fade_time = bound( 0.3f, fade_time, 10.0f );
-
-	color[0] = color[1] = color[2] = 255;
-
-	// fade out
-	if(( endtime - time ) < fade_time )
-		color[3] = bound( 0, ((endtime - time) * 1.0f / fade_time) * 255, 255 );
-	else color[3] = 255;
-}
-
 void CL_DrawCrosshair( void )
 {
-	int	x, y;
+	int	x, y, width, height;
+	edict_t	*pPlayer;
 
 	if( !re || clgame.ds.hCrosshair <= 0 || cl.refdef.crosshairangle[2] || !cl_crosshair->integer )
 		return;
-#if 0
-	if ( pPlayer && !pPlayer->IsAlive() )
+
+	pPlayer = CL_GetLocalPlayer();
+
+	if( pPlayer->v.health <= 0.0f || pPlayer->v.flags & FL_FROZEN )
 		return;
 
-	m_curViewAngles = CurrentViewAngles();
-	m_curViewOrigin = CurrentViewOrigin();
+	// camera on
+	if( pPlayer->serialnumber != cl.refdef.viewentity )
+		return;
 
-	float x, y;
-	QAngle angles;
-	Vector forward;
-	Vector point, screen;
+	// get crosshair dimension
+	width = clgame.ds.rcCrosshair.right - clgame.ds.rcCrosshair.left;
+	height = clgame.ds.rcCrosshair.bottom - clgame.ds.rcCrosshair.top;
 
-	x = ScreenWidth()/2;
-	y = ScreenHeight()/2;
+	// g-cont - cl.refdef.crosshairangle is the autoaim angle.
+	// if we're not using autoaim, just draw in the middle of the 
+	// screen
+	if( !VectorIsNull( cl.refdef.crosshairangle ))
+	{
+		vec3_t	angles;
+		vec3_t	forward;
+		vec3_t	point, screen;
 
-	// this code is wrong
-	angles = m_curViewAngles + m_vecCrossHairOffsetAngle;
-	AngleVectors( angles, &forward );
-	VectorAdd( m_curViewOrigin, forward, point );
-	ScreenTransform( point, screen );
+		// FIXME: this code is wrong
+		VectorAdd( cl.refdef.cl_viewangles, cl.refdef.crosshairangle, angles );
+		AngleVectors( angles, forward, NULL, NULL );
+		VectorAdd( cl.refdef.vieworg, forward, point );
+		re->WorldToScreen( point, screen );
 
-	x += 0.5f * screen[0] * ScreenWidth() + 0.5f;
-	y += 0.5f * screen[1] * ScreenHeight() + 0.5f;
-	
-	m_pCrosshair->DrawSelf( 
-		x - 0.5f * m_pCrosshair->Width(), 
-		y - 0.5f * m_pCrosshair->Height(),
-		m_clrCrosshair );
-#endif
-
-	x = (clgame.scrInfo.iWidth - (clgame.ds.rcCrosshair.right - clgame.ds.rcCrosshair.left)) / 2; 
-	y = (clgame.scrInfo.iHeight - (clgame.ds.rcCrosshair.bottom - clgame.ds.rcCrosshair.top)) / 2;
-
-	// FIXME: apply crosshair angles properly
-	x += cl.refdef.crosshairangle[0];
-	y += cl.refdef.crosshairangle[1];
+		if( clgame.scrInfo.iFlags & SCRINFO_VIRTUALSPACE )
+		{
+			float	xscale, yscale;
+		
+			// NOTE: WorldToScreen returns real coordinates, we need to divide it
+			// into virtual screenspace
+			xscale = clgame.scrInfo.iRealWidth / (float)clgame.scrInfo.iWidth;
+			yscale = clgame.scrInfo.iRealHeight / (float)clgame.scrInfo.iHeight;
+			x = screen[0] / xscale;
+			y = screen[1] / yscale;
+		}
+		else
+		{
+			x = screen[0];
+			y = screen[1];
+		}
+	}
+	else
+	{
+		x = clgame.scrInfo.iWidth / 2; 
+		y = clgame.scrInfo.iHeight / 2;
+	}
 
 	clgame.ds.hSprite = clgame.ds.hCrosshair;
 	re->SetColor( clgame.ds.rgbaCrosshair );
 	re->SetParms( clgame.ds.hSprite, kRenderTransAlpha, 0 );
-	SPR_DrawGeneric( 0, x, y, -1, -1, &clgame.ds.rcCrosshair );
+	SPR_DrawGeneric( 0, x - 0.5f * width, y - 0.5f * height, -1, -1, &clgame.ds.rcCrosshair );
 }
 
 void CL_DrawHUD( int state )
@@ -497,7 +596,10 @@ void CL_DrawHUD( int state )
 	clgame.dllFuncs.pfnRedraw( cl.time * 0.001f, state );
 
 	if( state == CL_ACTIVE || state == CL_PAUSED )
-		CL_DrawCrosshair();
+	{
+		CL_DrawCrosshair ();
+		CL_DrawCenterPrint ();
+	}
 
 	if( state == CL_ACTIVE )
 		clgame.dllFuncs.pfnFrame( cl.time * 0.001f );
@@ -844,7 +946,7 @@ pfnSPR_Load
 
 =========
 */
-HSPRITE pfnSPR_Load( const char *szPicName )
+static HSPRITE pfnSPR_Load( const char *szPicName )
 {
 	if( !re ) return 0; // render not initialized
 	if( !szPicName || !*szPicName )
@@ -1066,17 +1168,21 @@ static int pfnGetScreenInfo( SCREENINFO *pscrinfo )
 		// see cl_screen.c from Quake3 code for more details
 		clgame.scrInfo.iWidth = SCREEN_WIDTH;
 		clgame.scrInfo.iHeight = SCREEN_HEIGHT;
+		clgame.scrInfo.iFlags |= SCRINFO_VIRTUALSPACE;
 	}
 	else
 	{
 		clgame.scrInfo.iWidth = scr_width->integer;
 		clgame.scrInfo.iHeight = scr_height->integer;
+		clgame.scrInfo.iFlags &= ~SCRINFO_VIRTUALSPACE;
 	}
 
 	// TODO: build real table of fonts widthInChars
+	// TODO: load half-life credits font from wad
 	for( i = 0; i < 256; i++ )
 		clgame.scrInfo.charWidths[i] = SMALLCHAR_WIDTH;
 	clgame.scrInfo.iCharHeight = SMALLCHAR_HEIGHT;
+	clgame.ds.hHudFont = cls.clientFont;
 
 	if( !pscrinfo ) return 0;
 	*pscrinfo = clgame.scrInfo;	// copy screeninfo out
@@ -1101,6 +1207,275 @@ static void pfnSetCrosshair( HSPRITE hspr, wrect_t rc, int r, int g, int b )
 	clgame.ds.rcCrosshair = rc;
 }
 
+/*
+=============
+pfnAddCommand
+
+=============
+*/
+static void pfnAddCommand( const char *cmd_name, xcommand_t func, const char *cmd_desc )
+{
+	if( !cmd_name || !*cmd_name ) return;
+	if( !cmd_desc ) cmd_desc = ""; // hidden for makehelep system
+
+	// NOTE: if( func == NULL ) cmd will be forwarded to a server
+	Cmd_AddCommand( cmd_name, func, cmd_desc );
+}
+
+/*
+=============
+pfnHookUserMsg
+
+=============
+*/
+static void pfnHookUserMsg( const char *szMsgName, pfnUserMsgHook pfn )
+{
+	user_message_t	*msg;
+	int		i;
+
+	// ignore blank names
+	if( !szMsgName || !*szMsgName ) return;	
+
+	// second call can change msgFunc	
+	for( i = 0; i < clgame.numMessages; i++ )
+	{
+		msg = clgame.msg[i];	
+		if( !msg ) continue;
+
+		if( !com.strcmp( szMsgName, msg->name ))
+		{
+			if( msg->func != pfn )
+				msg->func = pfn;
+			return;
+		}
+	}
+
+	// allocate a new one
+	CL_CreateUserMessage( i, szMsgName, 0, 0, pfn );
+}
+
+/*
+=============
+pfnServerCmd
+
+=============
+*/
+static void pfnServerCmd( const char *szCmdString )
+{
+	// server command adding in cmds queue
+	Cbuf_AddText( va( "cmd %s", szCmdString ));
+}
+
+/*
+=============
+pfnClientCmd
+
+=============
+*/
+static void pfnClientCmd( const char *szCmdString )
+{
+	// client command executes immediately
+	Cmd_ExecuteString( szCmdString );
+}
+
+/*
+=============
+pfnGetPlayerInfo
+
+=============
+*/
+static void pfnGetPlayerInfo( int ent_num, hud_player_info_t *pinfo )
+{
+	player_info_t	*player;
+
+	ent_num -= 1; // player list if offset by 1 from ents
+
+	if( ent_num >= clgame.globals->maxClients || ent_num < 0 || !cl.players[ent_num].name[0] )
+	{
+		Mem_Set( pinfo, 0, sizeof( *pinfo ));
+		return;
+	}
+
+	player = &cl.players[ent_num];
+	pinfo->thisplayer = ( ent_num == cl.playernum ) ? true : false;
+
+	pinfo->name = player->name;
+	pinfo->model = player->model;
+		
+	pinfo->ping = com.atoi( Info_ValueForKey( player->userinfo, "ping" ));
+	pinfo->spectator = com.atoi( Info_ValueForKey( player->userinfo, "spectator" ));
+	pinfo->packetloss = com.atoi( Info_ValueForKey( player->userinfo, "loss" ));
+	pinfo->topcolor = com.atoi( Info_ValueForKey( player->userinfo, "topcolor" ));
+	pinfo->bottomcolor = com.atoi( Info_ValueForKey( player->userinfo, "bottomcolor" ));
+}
+
+/*
+=============
+pfnPlaySoundByName
+
+=============
+*/
+static void pfnPlaySoundByName( const char *szSound, float volume, int pitch, const float *org )
+{
+	S_StartLocalSound( szSound, volume, pitch, org );
+}
+
+/*
+=============
+pfnPlaySoundByIndex
+
+=============
+*/
+static void pfnPlaySoundByIndex( int iSound, float volume, int pitch, const float *org )
+{
+	// make sure what we in-bounds
+	iSound = bound( 0, iSound, MAX_SOUNDS );
+
+	if( cl.sound_precache[iSound] == 0 )
+	{
+		MsgDev( D_ERROR, "CL_PlaySoundByIndex: invalid sound handle %i\n", iSound );
+		return;
+	}
+	S_StartSound( org, cl.refdef.viewentity, CHAN_AUTO, cl.sound_precache[iSound], volume, ATTN_NORM, pitch, 0 );
+}
+
+/*
+=============
+pfnTextMessageGet
+
+returns specified message from titles.txt
+=============
+*/
+static client_textmessage_t *pfnTextMessageGet( const char *pName )
+{
+	int	i;
+
+	// find desired message
+	for( i = 0; i < clgame.numTitles; i++ )
+	{
+		if( !com.strcmp( pName, clgame.titles[i].pName ))
+			return clgame.titles + i;
+	}
+	return NULL; // found nothing
+}
+
+/*
+=============
+pfnDrawCharacter
+
+returns drawed chachter width (in real screen pixels)
+=============
+*/
+static int pfnDrawCharacter( int x, int y, int number, int r, int g, int b )
+{
+	float	size, frow, fcol;
+	float	ax, ay, aw, ah;
+	int	fontWidth, fontHeight;
+	rgba_t	color;
+
+	number &= 255;
+
+	if( !re ) return 0;
+	if( number == ' ' ) return 0;
+	if( y < -clgame.scrInfo.iCharHeight )
+		return 0;
+
+	ax = x;
+	ay = y;
+	aw = clgame.scrInfo.charWidths[number];
+	ah = clgame.scrInfo.iCharHeight;
+	SPR_AdjustSize( &ax, &ay, &aw, &ah );
+	re->GetParms( &fontWidth, &fontHeight, NULL, 0, clgame.ds.hHudFont );
+
+	MakeRGBA( color, r, g, b, 255 );
+	re->SetColor( color );
+	
+	frow = (number >> 4)*0.0625f + (0.5f / (float)fontWidth);
+	fcol = (number & 15)*0.0625f + (0.5f / (float)fontHeight);
+	size = 0.0625f - (1.0f / (float)fontWidth);
+
+	re->DrawStretchPic( ax, ay, aw, ah, fcol, frow, fcol + size, frow + size, clgame.ds.hHudFont );
+	re->SetColor( NULL ); // don't forget reset color
+
+	return clgame.scrInfo.charWidths[number];
+}
+
+/*
+=============
+pfnDrawConsoleString
+
+drawing string like a console string 
+=============
+*/
+static int pfnDrawConsoleString( int x, int y, char *string )
+{
+	if( !string || !*string ) return 0; // silent ignore
+	SCR_DrawSmallStringExt( x, y, string, NULL, false );
+	return com.cstrlen( string ) * SMALLCHAR_WIDTH; // not includes color prexfixes
+}
+
+/*
+=============
+pfnDrawSetTextColor
+
+set color for anything
+=============
+*/
+static void pfnDrawSetTextColor( float r, float g, float b )
+{
+	rgba_t	color;
+
+	// bound color and convert to byte
+	color[0] = (byte)bound( 0, r * 255, 255 );
+	color[1] = (byte)bound( 0, g * 255, 255 );
+	color[2] = (byte)bound( 0, b * 255, 255 );
+	color[3] = (byte)0xFF;
+	if( re ) re->SetColor( color );
+}
+
+/*
+=============
+pfnDrawConsoleStringLen
+
+returns width and height (in real pixels)
+for specified string
+=============
+*/
+static void pfnDrawConsoleStringLen(  const char *string, int *length, int *height )
+{
+	// console used fixed font size
+	if( length ) *length = com.cstrlen( string ) * SMALLCHAR_WIDTH;
+	if( height ) *height = SMALLCHAR_HEIGHT;
+}
+
+/*
+=============
+pfnConsolePrint
+
+prints dirctly into console (can skip notify)
+=============
+*/
+static void pfnConsolePrint( const char *string )
+{
+	if( !string || !*string ) return;
+	if( *string == 1 ) Con_Print( string + 1 ); // show notify
+	else Con_Print( va( "[skipnotify]%s", string )); // skip notify
+}
+
+/*
+=============
+pfnCenterPrint
+
+holds and fade message at center of screen
+like trigger_multiple message in q1
+=============
+*/
+static void pfnCenterPrint( const char *string )
+{
+	if( !string || !*string ) return; // someone stupid joke
+	CL_CenterPrint( string, 160, SMALLCHAR_WIDTH );
+}
+	
 /*
 =========
 pfnMemAlloc
@@ -1143,95 +1518,6 @@ shader_t pfnLoadShader( const char *szShaderName, int fShaderNoMip )
 	return re->RegisterShader( szShaderName, SHADER_GENERIC );
 }
 
-
-/*
-=============
-pfnDrawImageExt
-
-=============
-*/
-void pfnDrawImageExt( HSPRITE shader, float x, float y, float w, float h, float s1, float t1, float s2, float t2 )
-{
-	if( !re ) return;
-
-	re->DrawStretchPic( x, y, w, h, s1, t1, s2, t2, shader );
-	re->SetColor( NULL );
-}
-
-/*
-=============
-pfnSetColor
-
-=============
-*/
-void pfnSetColor( byte r, byte g, byte b, byte a )
-{
-	rgba_t	color;
-
-	if( !re ) return; // render not initialized
-	MakeRGBA( color, r, g, b, a );
-	re->SetColor( color );
-}
-
-/*
-=============
-pfnCvarSetString
-
-=============
-*/
-void pfnCvarSetString( const char *szName, const char *szValue )
-{
-	Cvar_Set( szName, szValue );
-}
-
-/*
-=============
-pfnCvarSetValue
-
-=============
-*/
-void pfnCvarSetValue( const char *szName, float flValue )
-{
-	Cvar_SetValue( szName, flValue );
-}
-
-/*
-=============
-pfnGetCvarFloat
-
-=============
-*/
-float pfnGetCvarFloat( const char *szName )
-{
-	return Cvar_VariableValue( szName );
-}
-
-/*
-=============
-pfnGetCvarString
-
-=============
-*/
-char* pfnGetCvarString( const char *szName )
-{
-	return Cvar_VariableString( szName );
-}
-
-/*
-=============
-pfnAddCommand
-
-=============
-*/
-void pfnAddCommand( const char *cmd_name, xcommand_t func, const char *cmd_desc )
-{
-	if( !cmd_name || !*cmd_name ) return;
-	if( !cmd_desc ) cmd_desc = ""; // hidden for makehelep system
-
-	// NOTE: if( func == NULL ) cmd will be forwarded to a server
-	Cmd_AddCommand( cmd_name, func, cmd_desc );
-}
-
 /*
 =============
 pfnDelCommand
@@ -1243,62 +1529,6 @@ void pfnDelCommand( const char *cmd_name )
 	if( !cmd_name || !*cmd_name ) return;
 
 	Cmd_RemoveCommand( cmd_name );
-}
-
-/*
-=============
-pfnHookUserMsg
-
-=============
-*/
-void pfnHookUserMsg( const char *szMsgName, pfnUserMsgHook pfn )
-{
-	user_message_t	*msg;
-	int		i;
-
-	// ignore blank names
-	if( !szMsgName || !*szMsgName ) return;	
-
-	// second call can change msgFunc	
-	for( i = 0; i < clgame.numMessages; i++ )
-	{
-		msg = clgame.msg[i];	
-		if( !msg ) continue;
-
-		if( !com.strcmp( szMsgName, msg->name ))
-		{
-			if( msg->func != pfn )
-				msg->func = pfn;
-			return;
-		}
-	}
-
-	// allocate a new one
-	CL_CreateUserMessage( i, szMsgName, 0, 0, pfn );
-}
-
-/*
-=============
-pfnServerCmd
-
-=============
-*/
-void pfnServerCmd( const char *szCmdString )
-{
-	// server command adding in cmds queue
-	Cbuf_AddText( va( "cmd %s", szCmdString ));
-}
-
-/*
-=============
-pfnClientCmd
-
-=============
-*/
-void pfnClientCmd( const char *szCmdString )
-{
-	// client command executes immediately
-	Cmd_ExecuteString( szCmdString );
 }
 
 /*
@@ -1321,39 +1551,6 @@ void pfnSetKeyDest( int key_dest )
 		MsgDev( D_ERROR, "CL_SetKeyDest: wrong destination %i!\n", key_dest );
 		break;
 	}
-}
-	
-/*
-=============
-pfnGetPlayerInfo
-
-=============
-*/
-void pfnGetPlayerInfo( int player_num, hud_player_info_t *pinfo )
-{
-	// FIXME: implement
-	static hud_player_info_t null_info;
-
-	Mem_Copy( pinfo, &null_info, sizeof( null_info ));
-}
-
-/*
-=============
-pfnTextMessageGet
-
-=============
-*/
-client_textmessage_t *pfnTextMessageGet( const char *pName )
-{
-	int	i;
-
-	// find desired message
-	for( i = 0; i < clgame.numTitles; i++ )
-	{
-		if( !com.strcmp( pName, clgame.titles[i].pName ))
-			return clgame.titles + i;
-	}
-	return NULL; // found nothing
 }
 
 /*
@@ -1378,160 +1575,6 @@ char *pfnCmdArgv( int argc )
 	if( argc >= 0 && argc < Cmd_Argc())
 		return Cmd_Argv( argc );
 	return "";
-}
-
-/*
-=============
-pfnPlaySoundByName
-
-=============
-*/
-void pfnPlaySoundByName( const char *szSound, float volume, int pitch, const float *org )
-{
-	S_StartLocalSound( szSound, volume, pitch, org );
-}
-
-/*
-=============
-pfnPlaySoundByIndex
-
-=============
-*/
-void pfnPlaySoundByIndex( int iSound, float volume, int pitch, const float *org )
-{
-	// make sure what we in-bounds
-	iSound = bound( 0, iSound, MAX_SOUNDS );
-
-	if( cl.sound_precache[iSound] == 0 )
-	{
-		MsgDev( D_ERROR, "CL_PlaySoundByIndex: invalid sound handle %i\n", iSound );
-		return;
-	}
-	S_StartSound( org, cl.refdef.viewentity, CHAN_AUTO, cl.sound_precache[iSound], volume, ATTN_NORM, pitch, 0 );
-}
-
-/*
-=============
-pfnDrawCenterPrint
-
-called each frame
-=============
-*/
-void pfnDrawCenterPrint( void )
-{
-	char	*start;
-	int	l, x, y, w;
-	rgba_t	color;
-
-	if( !clgame.centerPrintTime ) return;
-	CL_FadeAlpha( clgame.centerPrintTime, scr_centertime->value, color );
-
-	if( *( int *)color == 0xFFFFFFFF ) 
-	{
-		clgame.centerPrintTime = 0;
-		return;
-	}
-
-	re->SetColor( color );
-	start = clgame.centerPrint;
-	y = clgame.centerPrintY - clgame.centerPrintLines * BIGCHAR_HEIGHT / 2;
-
-	while( 1 )
-	{
-		char	linebuffer[1024];
-
-		for ( l = 0; l < 50; l++ )
-		{
-			if ( !start[l] || start[l] == '\n' )
-				break;
-			linebuffer[l] = start[l];
-		}
-		linebuffer[l] = 0;
-
-		w = clgame.centerPrintCharWidth * com.cstrlen( linebuffer );
-		x = ( SCREEN_WIDTH - w )>>1;
-
-		SCR_DrawStringExt( x, y, clgame.centerPrintCharWidth, BIGCHAR_HEIGHT, linebuffer, color, false );
-
-		y += clgame.centerPrintCharWidth * 1.5;
-		while( *start && ( *start != '\n' )) start++;
-		if( !*start ) break;
-		start++;
-	}
-	if( re ) re->SetColor( NULL );
-}
-
-/*
-=============
-pfnCenterPrint
-
-called once from message
-=============
-*/
-void CL_CenterPrint( const char *text, int y, int charWidth )
-{
-	char	*s;
-
-	com.strncpy( clgame.centerPrint, text, sizeof( clgame.centerPrint ));
-	clgame.centerPrintTime = cls.realtime * 0.001f;
-	clgame.centerPrintY = y;
-	clgame.centerPrintCharWidth = charWidth;
-
-	// count the number of lines for centering
-	clgame.centerPrintLines = 1;
-	s = clgame.centerPrint;
-	while( *s )
-	{
-		if( *s == '\n' )
-			clgame.centerPrintLines++;
-		s++;
-	}
-}
-
-/*
-=============
-pfnDrawString
-
-=============
-*/
-void pfnDrawString( int x, int y, int width, int height, const char *text )
-{
-	if( !text || !*text )
-	{
-		MsgDev( D_ERROR, "SCR_DrawStringExt: passed null string!\n" );
-		return;
-	}
-
-	SCR_DrawStringExt( x, y, width, height, text, g_color_table[7], false ); 
-	if( re ) re->SetColor( NULL );
-}
-
-/*
-=============
-pfnGetImageSize
-
-=============
-*/
-void pfnGetDrawParms( int *w, int *h, int *f, int frame, shader_t shader )
-{
-	if( re ) re->GetParms( w, h, f, frame, shader );
-	else
-	{
-		if( w ) *w = 0;
-		if( h ) *h = 0;
-		if( f ) *f = 1;
-	}
-}
-
-/*
-=============
-pfnSetDrawParms
-
-=============
-*/
-void pfnSetDrawParms( shader_t handle, kRenderMode_t rendermode, int frame )
-{
-	if( re ) re->SetParms( handle, rendermode, frame );
 }
 
 /*
@@ -2254,36 +2297,36 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnFillRGBA,
 	pfnGetScreenInfo,
 	pfnSetCrosshair,
+	pfnCVarRegister,
+	pfnCVarGetValue,
+	pfnCVarGetString,
+	pfnAddCommand,
+	pfnHookUserMsg,
+	pfnServerCmd,
+	pfnClientCmd,
+	pfnGetPlayerInfo,
+	pfnPlaySoundByName,
+	pfnPlaySoundByIndex,
+	AngleVectors,
+	pfnTextMessageGet,
+	pfnDrawCharacter,
+	pfnDrawConsoleString,
+	pfnDrawSetTextColor,
+	pfnDrawConsoleStringLen,
+	pfnConsolePrint,
+	pfnCenterPrint,
+
 	pfnMemAlloc,
 	pfnMemCopy,
 	pfnMemFree,
 	pfnLoadShader,
-	pfnDrawImageExt,
-	pfnSetColor,
-	pfnCVarRegister,
-	pfnCvarSetString,
-	pfnCvarSetValue,
-	pfnGetCvarFloat,
-	pfnGetCvarString,
-	pfnAddCommand,
-	pfnHookUserMsg,
+	pfnCVarSetString,
+	pfnCVarSetValue,
 	pfnDelCommand,
-	pfnServerCmd,
-	pfnClientCmd,
 	pfnSetKeyDest,
-	pfnGetPlayerInfo,
-	pfnTextMessageGet,
 	pfnCmdArgc,
 	pfnCmdArgv,	
 	pfnAlertMessage,
-	pfnPlaySoundByName,
-	pfnPlaySoundByIndex,	
-	AngleVectors,
-	pfnDrawCenterPrint,
-	CL_CenterPrint,
-	pfnDrawString,		
-	pfnGetDrawParms,
-	pfnSetDrawParms,
 	pfnGetViewAngles,
 	CL_GetEdictByIndex,
 	CL_GetLocalPlayer,

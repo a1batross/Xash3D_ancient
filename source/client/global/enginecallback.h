@@ -23,9 +23,6 @@
 
 #define SPR_Load		(*g_engfuncs.pfnSPR_Load)
 #define TEX_Load( x )	(*g_engfuncs.pfnLoadShader)( x, false )
-#define DrawImageExt	(*g_engfuncs.pfnDrawImageExt)
-#define SetColor		(*g_engfuncs.pfnSetColor)
-#define SetParms		(*g_engfuncs.pfnSetParms)
 #define SetCrosshair	(*g_engfuncs.pfnSetCrosshair)
 
 #define CVAR_REGISTER	(*g_engfuncs.pfnRegisterVariable)
@@ -35,8 +32,8 @@
 #define SET_KEYDEST		(*g_engfuncs.pfnSetKeyDest)
 #define SERVER_COMMAND	(*g_engfuncs.pfnServerCmd)
 #define CLIENT_COMMAND	(*g_engfuncs.pfnClientCmd)
-#define GET_PLAYER_INFO	(*g_engfuncs.pfnGetPlayerInfo)
-#define GET_GAME_MESSAGE	(*g_engfuncs.pfnTextMessageGet)
+#define GetPlayerInfo	(*g_engfuncs.pfnGetPlayerInfo)
+#define TextMessageGet	(*g_engfuncs.pfnTextMessageGet)
 #define CMD_ARGC		(*g_engfuncs.pfnCmdArgc)
 #define CMD_ARGV		(*g_engfuncs.pfnCmdArgv)
 #define ALERT		(*g_engfuncs.pfnAlertMessage)
@@ -111,11 +108,13 @@ inline void CL_PlaySound( int iSound, float flVolume, Vector &pos, float pitch =
 	g_engfuncs.pfnPlaySoundByIndex( iSound, flVolume, pitch, pos );
 }
 
+#define TextMessageDrawChar	(*g_engfuncs.pfnDrawCharacter)
+#define TextMessageSetColor	(*g_engfuncs.pfnDrawSetTextColor)
+#define DrawConsoleString	(*g_engfuncs.pfnDrawConsoleString)
+#define GetConsoleStringSize	(*g_engfuncs.pfnDrawConsoleStringLen)
 #define AngleVectors	(*g_engfuncs.pfnAngleVectors)
-#define DrawCenterPrint	(*g_engfuncs.pfnDrawCenterPrint)
 #define CenterPrint		(*g_engfuncs.pfnCenterPrint)
-#define DrawString		(*g_engfuncs.pfnDrawString)
-#define GetParms		(*g_engfuncs.pfnGetParms)
+#define ConsolePrint	(*g_engfuncs.pfnConsolePrint)
 #define GetViewAngles	(*g_engfuncs.pfnGetViewAngles)
 #define GetEntityByIndex	(*g_engfuncs.pfnGetEntityByIndex)
 #define GetLocalPlayer	(*g_engfuncs.pfnGetLocalPlayer)

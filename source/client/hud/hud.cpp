@@ -72,7 +72,6 @@ void CHud :: VidInit( void )
 
 	m_hsprCursor = 0;
 	m_hHudError = 0;
-	m_hHudFont = 0;
 	spot = NULL; // clear intermission spot
 
 	Draw_VidInit ();
@@ -133,7 +132,6 @@ void CHud :: VidInit( void )
 	// loading error sprite
 	m_HUD_error = GetSpriteIndex( "error" );
 	m_hHudError = GetSprite( m_HUD_error );
-	m_hHudFont = GetSprite( GetSpriteIndex( "hud_font" ));
 
 	// loading TE shaders
 	m_hDefaultParticle = TEX_Load( "textures/particles/default" );

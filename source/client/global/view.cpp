@@ -274,7 +274,8 @@ void V_CalcGunAngle( ref_params_t *pparams )
 	viewent->v.effects |= EF_MINLIGHT;
 
 	viewent->v.angles[YAW] = pparams->viewangles[YAW] + pparams->crosshairangle[YAW];
-	viewent->v.angles[PITCH] = pparams->viewangles[PITCH] + pparams->crosshairangle[PITCH] * 0.25;
+	viewent->v.angles[PITCH] = pparams->viewangles[PITCH] - pparams->crosshairangle[PITCH] * 0.25;
+	viewent->v.angles[ROLL] = pparams->viewangles[ROLL];
 	viewent->v.angles[ROLL] -= v_idlescale * sin(pparams->time * v_iroll_cycle->value) * v_iroll_level->value;
 	
 	// don't apply all of the v_ipitch to prevent normally unseen parts of viewmodel from coming into view.

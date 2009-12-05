@@ -1347,19 +1347,23 @@ int CBasePlayerWeapon :: Shoot ( const char *ammo, Vector vecSpread, int firemod
 		SetPlayerEffects( ammo, firemode );
                     PlayAttackSound( firemode );
 	
-		//viewmodel animation
+		// viewmodel animation
 		ZoomReset();
-		if(!PlayEmptyFire())
+		if( !PlayEmptyFire( ))
 		{
-			if(!firemode)PlayRangeAttack();
-			else PlayMeleeAttack();
+			if ( !firemode )
+				PlayRangeAttack ();
+			else PlayMeleeAttack ();
 		}
 
 		float flDistance;//set max distance
 		
-		Vector vecSrc    = m_pPlayer->GetGunPosition( );
-		Vector vecAiming = gpGlobals->v_forward;
-		Vector vecDir;		
+		Vector vecSrc = m_pPlayer->GetGunPosition( );
+		Vector vecAiming, vecDir;
+
+		if( iFlags() & ITEM_FLAG_USEAUTOAIM )
+			vecAiming = m_pPlayer->GetAutoaimVector( AUTOAIM_5DEGREES );
+		else vecAiming = gpGlobals->v_forward;
 
 		// eject brass
 		for( int i = 0; cShots > i; i++ )
@@ -1474,9 +1478,9 @@ int CBasePlayerWeapon::Swing( int fFirst )
 
 	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 3;
           
-	UTIL_MakeVectors (m_pPlayer->pev->viewangles);
-	Vector vecSrc	= m_pPlayer->GetGunPosition( );
-	Vector vecEnd	= vecSrc + gpGlobals->v_forward * 32;
+	UTIL_MakeVectors( m_pPlayer->pev->viewangles );
+	Vector vecSrc = m_pPlayer->GetGunPosition( );
+	Vector vecEnd = vecSrc + gpGlobals->v_forward * 32;
 
 	UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, ENT( m_pPlayer->pev ), &tr );
 

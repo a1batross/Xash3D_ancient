@@ -89,6 +89,7 @@ typedef struct sv_client_s
 	char		userinfo[MAX_INFO_STRING];	// name, etc (received from client)
 	char		physinfo[MAX_INFO_STRING];	// set on server (transmit to client)
 	bool		physinfo_modified;		// transmit at next opportunity
+	bool		sendinfo;
 
 	int		lastframe;		// for delta compression
 	usercmd_t		lastcmd;			// for filling in big drops
@@ -303,7 +304,6 @@ int SV_CalcPacketLoss( sv_client_t *cl );
 void SV_ExecuteUserCommand (char *s);
 void SV_InitOperatorCommands( void );
 void SV_KillOperatorCommands( void );
-void SV_SendServerinfo( sv_client_t *client );
 void SV_UserinfoChanged( sv_client_t *cl, const char *userinfo );
 void Master_Heartbeat (void);
 void Master_Packet (void);
@@ -354,6 +354,7 @@ void SV_GetChallenge( netadr_t from );
 void SV_DirectConnect( netadr_t from );
 void SV_TogglePause( const char *msg );
 void SV_PutClientInServer( edict_t *ent );
+void SV_FullClientUpdate( sv_client_t *cl, sizebuf_t *msg );
 bool SV_ClientConnect( edict_t *ent, char *userinfo );
 void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd );
 void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg );

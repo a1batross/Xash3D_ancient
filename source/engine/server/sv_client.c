@@ -128,12 +128,7 @@ void SV_DirectConnect( netadr_t from )
 		svs.challenges[i].connected = true;
 		MsgDev( D_INFO, "Client %i connecting with challenge %p\n", i, challenge );
 	}
-	else
-	{
-		// force the "ip" info key to "localhost"
-		Info_SetValueForKey( userinfo, "ip", "127.0.0.1" );
-		Info_SetValueForKey( userinfo, "name", SI->username ); // can be overwrited later
-	}
+	else Info_SetValueForKey( userinfo, "ip", "127.0.0.1" ); // force the "ip" info key to "localhost"
 
 	newcl = &temp;
 	Mem_Set( newcl, 0, sizeof( sv_client_t ));
@@ -278,7 +273,7 @@ edict_t *SV_FakeConnect( const char *netname )
 	newcl->state = cs_spawned;
 	newcl->lastmessage = svs.realtime;	// don't timeout
 	newcl->lastconnect = svs.realtime;
-
+	
 	return ent;
 }
 
@@ -550,6 +545,39 @@ void SV_RemoteCommand( netadr_t from, sizebuf_t *msg )
 }
 
 /*
+===================
+SV_FullClientUpdate
+
+Writes all update values to a sizebuf
+===================
+*/
+void SV_FullClientUpdate( sv_client_t *cl, sizebuf_t *msg )
+{
+	int	i;
+	char	info[MAX_INFO_STRING];
+	
+	i = cl - svs.clients;
+
+	MSG_WriteByte( msg, svc_updateuserinfo );
+	MSG_WriteByte( msg, i );
+
+	if( cl->name[0] )
+	{
+		MSG_WriteByte( msg, true );
+
+		com.strncpy( info, cl->userinfo, sizeof( info ));
+
+		// remove server passwords, etc.
+		Info_RemovePrefixedKeys( info, '_' );
+		MSG_WriteString( msg, info );
+	}
+	else MSG_WriteByte( msg, false );
+	
+	MSG_DirectSend( MSG_ALL, vec3_origin, NULL );
+	MSG_Clear( msg );
+}
+
+/*
 ===========
 PutClientInServer
 
@@ -680,6 +708,9 @@ void SV_New_f( sv_client_t *cl )
 	MSG_WriteWord( &cl->netchan.message, svgame.globals->maxEntities );
 	MSG_WriteString( &cl->netchan.message, sv.configstrings[CS_NAME] );
 	MSG_WriteString( &cl->netchan.message, STRING( EDICT_NUM( 0 )->v.message ));	// Map Message
+
+	// refresh userinfo on spawn
+	cl->sendinfo = true;
 
 	// game server
 	if( sv.state == ss_active )
@@ -967,6 +998,7 @@ void SV_UserinfoChanged( sv_client_t *cl, const char *userinfo )
 	svgame.globals->time = sv.time * 0.001f;
 	svgame.globals->frametime = sv.frametime * 0.001f;
 	svgame.dllFuncs.pfnClientUserInfoChanged( cl->edict, cl->userinfo );
+	if( cl->state >= cs_connected ) cl->sendinfo = true; // needs for update client info 
 }
 
 /*
@@ -1487,7 +1519,6 @@ static void SV_ReadClientMove( sv_client_t *cl, sizebuf_t *msg )
 
 	key = msg->readcount;
 	checksum1 = MSG_ReadByte( msg );
-	cl->packet_loss = MSG_ReadByte( msg );
 	lastframe = MSG_ReadLong( msg );
 
 	if( lastframe != cl->lastframe )

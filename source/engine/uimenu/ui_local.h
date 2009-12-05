@@ -280,8 +280,6 @@ bool Key_IsDown( int keynum );
 //
 // cl_game.c
 //
-void CL_FadeAlpha( float starttime, float endtime, rgba_t color );
-
 extern rgba_t		uiColorWhite;
 extern rgba_t		uiColorLtGrey;
 extern rgba_t		uiColorMdGrey;

@@ -238,6 +238,49 @@ cvar_t *pfnCVarRegister( const char *szName, const char *szValue, int flags, con
 
 	return Cvar_Get( szName, szValue, real_flags, szDesc );
 }
+/*
+=============
+pfnCVarSetString
+
+=============
+*/
+void pfnCVarSetString( const char *szName, const char *szValue )
+{
+	Cvar_Set( szName, szValue );
+}
+
+/*
+=============
+pfnCVarSetValue
+
+=============
+*/
+void pfnCVarSetValue( const char *szName, float flValue )
+{
+	Cvar_SetValue( szName, flValue );
+}
+
+/*
+=============
+pfnCVarGetString
+
+=============
+*/
+char* pfnCVarGetString( const char *szName )
+{
+	return Cvar_VariableString( szName );
+}
+
+/*
+=============
+pfnCVarGetValue
+
+=============
+*/
+float pfnCVarGetValue( const char *szName )
+{
+	return Cvar_VariableValue( szName );
+}
 
 /*
 =============

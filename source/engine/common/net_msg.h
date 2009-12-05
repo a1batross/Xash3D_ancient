@@ -77,6 +77,7 @@ enum svc_ops_e
 	svc_bspdecal,		// [float*3][short][short][short]
 	svc_event,		// playback event queue
 	svc_event_reliable,		// playback event directly from message, not queue
+	svc_updateuserinfo,		// [byte] playernum, [string] userinfo
 };
 
 // client to server

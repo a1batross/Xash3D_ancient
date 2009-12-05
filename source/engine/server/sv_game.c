@@ -2241,50 +2241,6 @@ void pfnWriteEntity( int iValue )
 
 /*
 =============
-pfnCVarGetFloat
-
-=============
-*/
-float pfnCVarGetFloat( const char *szVarName )
-{
-	return Cvar_VariableValue( szVarName );
-}
-
-/*
-=============
-pfnCVarGetString
-
-=============
-*/
-const char* pfnCVarGetString( const char *szVarName )
-{
-	return Cvar_VariableString( szVarName );
-}
-
-/*
-=============
-pfnCVarSetFloat
-
-=============
-*/
-void pfnCVarSetFloat( const char *szVarName, float flValue )
-{
-	Cvar_SetValue( szVarName, flValue );
-}
-
-/*
-=============
-pfnCVarSetString
-
-=============
-*/
-void pfnCVarSetString( const char *szVarName, const char *szValue )
-{
-	Cvar_Set( szVarName, szValue );
-}
-
-/*
-=============
 pfnPvAllocEntPrivateData
 
 =============
@@ -3043,6 +2999,7 @@ void pfnSetClientKeyValue( int clientIndex, char *infobuffer, char *key, char *v
 
 	cl = svs.clients + clientIndex;
 	Info_SetValueForKey( cl->userinfo, key, value );
+	cl->sendinfo = true;
 }
 
 /*
@@ -3563,9 +3520,9 @@ static enginefuncs_t gEngfuncs =
 	pfnWriteString,
 	pfnWriteEntity,
 	pfnCVarRegister,
-	pfnCVarGetFloat,
+	pfnCVarGetValue,
 	pfnCVarGetString,
-	pfnCVarSetFloat,
+	pfnCVarSetValue,
 	pfnCVarSetString,
 	pfnAlertMessage,
 	pfnEngineFprintf,

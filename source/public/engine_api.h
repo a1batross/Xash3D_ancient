@@ -10,6 +10,7 @@
 //
 // engine constant limits, touching networking protocol modify with precaution
 //
+#define MAX_CLIENTS			32	// max allowed clients (modify with precaution)
 #define MAX_DLIGHTS			32	// dynamic lights (rendered per one frame)
 #define MAX_LIGHTSTYLES		256	// can't be blindly increased
 #define MAX_DECALS			256	// server decal indexes (different decalnames, not a render limit)

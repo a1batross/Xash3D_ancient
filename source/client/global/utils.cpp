@@ -174,13 +174,16 @@ Vector READ_DIR( void )
 	return BitsToDir( READ_BYTE() );
 }
 
-void Draw_VidInit( void )
-{
-}
+/*
+==============================================================================
 
+		HUD-SPRITES PARSING
+
+==============================================================================
+*/
 /*
 ====================
-SPRITE_GetList
+ParseHudSprite
 
 ====================
 */
@@ -296,51 +299,15 @@ client_sprite_t *SPR_GetList( const char *psz, int *piCount )
 	return phud;
 }
 
-inline static void SPR_AdjustSize( float *x, float *y, float *w, float *h )
+/*
+==============================================================================
+
+		DRAW HELPERS
+
+==============================================================================
+*/
+void Draw_VidInit( void )
 {
-	if( !x && !y && !w && !h ) return;
-
-	// scale for screen sizes
-	float xscale = gHUD.m_scrinfo.iRealWidth / (float)gHUD.m_scrinfo.iWidth;
-	float yscale = gHUD.m_scrinfo.iRealHeight / (float)gHUD.m_scrinfo.iHeight;
-
-	if( x ) *x *= xscale;
-	if( y ) *y *= yscale;
-	if( w ) *w *= xscale;
-	if( h ) *h *= yscale;
-}
-
-inline static void SPR_DrawChar( HSPRITE hFont, int xpos, int ypos, int width, int height, int ch )
-{
-	float	size, frow, fcol;
-	float	ax, ay, aw, ah;
-	int	fontWidth, fontHeight;
-
-	ch &= 255;
-
-	if( ch == ' ' ) return;
-	if( ypos < -height ) return;
-
-	ax = xpos;
-	ay = ypos;
-	aw = width;
-	ah = height;
-
-	SPR_AdjustSize( &ax, &ay, &aw, &ah ); 
-	GetParms( &fontWidth, &fontHeight, NULL, 0, hFont );
-
-	frow = (ch >> 4) * 0.0625f + (0.5f / (float)fontWidth);
-	fcol = (ch & 15) * 0.0625f + (0.5f / (float)fontHeight);
-	size = 0.0625f - (1.0f / (float)fontWidth);
-
-	DrawImageExt( hFont, ax, ay, aw, ah, fcol, frow, fcol + size, frow + size );
-}
-
-void TextMessageDrawChar( int xpos, int ypos, int number, int r, int g, int b )
-{
-	// tune char size by taste
-	SetColor( r, g, b, 255 );
-	SPR_DrawChar( gHUD.m_hHudFont, xpos, ypos, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, number );
 }
 
 void DrawPause( void )
@@ -387,7 +354,7 @@ void DrawProgressBar( void )
 	DrawImageBar( CVAR_GET_FLOAT( "scr_loading" ), "m_loading" );
 
 	if( !CVAR_GET_FLOAT( "scr_download" )) return;
-	DrawImageBar( CVAR_GET_FLOAT( "scr_download" ), "m_download", (ScreenWidth-128)/2, ScreenHeight-60 );
+	DrawImageBar( CVAR_GET_FLOAT( "scr_download" ), "m_download", (ScreenWidth - 128)>>1, ScreenHeight - 60 );
 }
 
 //
@@ -599,33 +566,11 @@ void* Sys_GetProcAddress( dllhandle_t handle, const char* name )
 }
 
 /*
-============
-va
-
-does a varargs printf into a temp buffer, so I don't need to have
-varargs versions of all text functions.
-FIXME: make this buffer size safe someday
-============
-*/
-char *va( const char *format, ... )
-{
-	va_list argptr;
-	static char string[32][1024], *s;
-	static int stringindex = 0;
-
-	s = string[stringindex];
-	stringindex = (stringindex + 1) & 31;
-	va_start( argptr, format );
-	_vsnprintf( s, sizeof( string[0] ), format, argptr );
-	va_end( argptr );
-	return s;
-}
-
-/*
 ==============
 COM_ParseToken
 
 Parse a token out of a string
+FIXME: move into engine
 ==============
 */
 char *COM_ParseToken( const char **data_p )

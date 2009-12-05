@@ -176,7 +176,7 @@ void *fmod_data = NULL;
 static char songname[256];
 int last_state = 0;
 
-int CheckFormat( BOOL skip_buffer )
+static int CheckFormat( BOOL skip_buffer )
 {
 	int i;
 	
@@ -186,7 +186,7 @@ int CheckFormat( BOOL skip_buffer )
 	// detect of music type
 	for( i = 0; songname[i]; i++ )
 	{
-		if( songname[i] == '.' )//found extension
+		if( songname[i] == '.' ) // found extension
 		{
 			if( !strncmp( &songname[i+1], "mp3", 3 )) return STREAM;
 			else if( !strncmp(&songname[i+1], "wma", 3 )) return STREAM;
@@ -251,7 +251,7 @@ int CHudSound :: MsgFunc_Fsound( const char *pszName, int iSize, void *pbuf )
 
 	BEGIN_READ( pszName, iSize, pbuf );
 
-	strcpy( songname, va( "media/%s", READ_STRING( ))); // songname
+	sprintf( songname, "media/%s", READ_STRING( )); // songname
 	m_iTime = READ_SHORT(); // song position
 	m_iStatus = READ_BYTE();
 	
@@ -260,7 +260,7 @@ int CHudSound :: MsgFunc_Fsound( const char *pszName, int iSize, void *pbuf )
 	{
 		if( CheckFormat( FALSE ) == TRACK ) qfmod_freesong( fmod_data );
 		else if( CheckFormat( FALSE ) == STREAM ) qfmod_freestream( fmod_data );
-		memset( (char*)songname, 0, sizeof( songname ));
+		memset( songname, 0, sizeof( songname ));
 		fmod_data = NULL;
 		m_iTime = 0;
 		m_iStatus = 0;

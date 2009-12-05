@@ -250,10 +250,10 @@ next frame.  This allows commands like:
 bind g "cmd use rocket ; +attack ; wait ; -attack ; cmd use blaster"
 ============
 */
-void Cmd_Wait_f (void)
+void Cmd_Wait_f( void )
 {
-	if(Cmd_Argc() == 1) cmd_wait = 1;
-	else cmd_wait = com.atoi(Cmd_Argv( 1 ));
+	if( Cmd_Argc() == 1 ) cmd_wait = 1;
+	else cmd_wait = com.atoi( Cmd_Argv( 1 ));
 	
 }
 
@@ -262,7 +262,7 @@ void Cmd_Wait_f (void)
 Cmd_Exec_f
 ===============
 */
-void Cmd_Exec_f (void)
+void Cmd_Exec_f( void )
 {
 	string	rcpath;
 	size_t	len;
@@ -542,9 +542,9 @@ bool Cmd_Exists (const char *cmd_name)
 {
 	cmd_function_t	*cmd;
 
-	for (cmd = cmd_functions; cmd; cmd = cmd->next)
+	for( cmd = cmd_functions; cmd; cmd = cmd->next )
 	{
-		if (!com.strcmp(cmd_name, cmd->name))
+		if (!com.strcmp( cmd_name, cmd->name ))
 			return true;
 	}
 	return false;

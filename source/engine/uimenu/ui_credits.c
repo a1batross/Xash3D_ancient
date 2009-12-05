@@ -92,8 +92,8 @@ typedef struct
 {
 	const char	**credits;
 	int		startTime;
-	float		showTime;
-	float		fadeTime;
+	int		showTime;
+	int		fadeTime;
 	int		numLines;
 	bool		active;
 	bool		finalCredits;
@@ -136,7 +136,7 @@ static void UI_Credits_DrawFunc( void )
 
 		if(( y < (scr_height->integer - h) / 2 ) && i == uiCredits.numLines - 1 )
 		{
-			if( !uiCredits.fadeTime ) uiCredits.fadeTime = (uiStatic.realTime * 0.001f);
+			if( !uiCredits.fadeTime ) uiCredits.fadeTime = uiStatic.realTime;
 			CL_FadeAlpha( uiCredits.fadeTime, uiCredits.showTime, color );
 			if( color[3] ) UI_DrawString( 0, (scr_height->integer - h) / 2, 1024 * uiStatic.scaleX, h, uiCredits.credits[i], color, true, w, h, 1, true );
 		}
@@ -225,8 +225,8 @@ static void UI_Credits_Init( void )
 
 	// run credits
 	uiCredits.startTime = uiStatic.realTime + 500; // make half-seconds delay
-	uiCredits.showTime = bound( 0.1f, com.strlen( uiCredits.credits[uiCredits.numLines - 1]), 12.0f );
-	uiCredits.fadeTime = 0.0f; // will be determined later
+	uiCredits.showTime = bound( 100, com.strlen( uiCredits.credits[uiCredits.numLines - 1]) * 1000, 12000 );
+	uiCredits.fadeTime = 0; // will be determined later
 	uiCredits.active = true;
 }
 

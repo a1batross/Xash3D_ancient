@@ -23,8 +23,6 @@
 #define ATTN_NORM			0.8f
 #define ATTN_IDLE			2.0f
 #define ATTN_STATIC			1.25f 
-#define ATTN_RICOCHET		1.5f
-#define ATTN_GUNFIRE		0.27f
 
 // common conversion tools
 #define ATTN_TO_SNDLVL( a )		(int)((a) ? (50 + 20 / ((float)a)) : 0 )

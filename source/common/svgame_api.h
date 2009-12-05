@@ -118,7 +118,7 @@ typedef struct enginefuncs_s
 	void	(*pfnWriteEntity)( int iValue );
 	cvar_t*	(*pfnCVarRegister)( const char *name, const char *value, int flags, const char *desc );
 	float	(*pfnCVarGetFloat)( const char *szVarName );
-	const char* (*pfnCVarGetString)( const char *szVarName );
+	char*	(*pfnCVarGetString)( const char *szVarName );
 	void	(*pfnCVarSetFloat)( const char *szVarName, float flValue );
 	void	(*pfnCVarSetString)( const char *szVarName, const char *szValue );
 	void	(*pfnAlertMessage)( ALERT_TYPE level, char *szFmt, ... );

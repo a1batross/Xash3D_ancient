@@ -7,9 +7,6 @@
 #include "client.h"
 #include "net_sound.h"
 
-#define NET_TIMINGS		256
-#define NET_TIMINGSMASK	(NET_TIMINGS - 1)
-
 char *svc_strings[256] =
 {
 	"svc_bad",
@@ -40,39 +37,6 @@ char *svc_strings[256] =
 	"svc_event",
 	"svc_event_reliable"
 };
-
-int	packet_latency[NET_TIMINGS];
-int	packet_loss;
-
-int CL_CalcNet( void )
-{
-	int	a, i;
-	frame_t	*frame;
-	int	lost = 0;
-
-	for( i = cls.netchan.outgoing_sequence - UPDATE_BACKUP + 1; i <= cls.netchan.outgoing_sequence; i++ )
-	{
-		frame = &cl.frames[i & UPDATE_MASK];
-
-		if( frame->recvtime == -1 )
-			packet_latency[i & NET_TIMINGSMASK] = 9999;	// dropped
-		else if( frame->recvtime == -2 )
-			packet_latency[i & NET_TIMINGSMASK] = 10000;	// choked
-		else if( !frame->valid )
-			packet_latency[i&NET_TIMINGSMASK] = 9998;	// invalid delta
-		else packet_latency[i & NET_TIMINGSMASK] = (frame->recvtime - frame->senttime) * 20;
-	}
-
-	for( a = 0; a < NET_TIMINGS; a++ )
-	{
-		i = (cls.netchan.outgoing_sequence - a) & NET_TIMINGSMASK;
-		if( packet_latency[i] == 9999 ) lost++;
-	}
-
-	packet_loss = lost * 100 / NET_TIMINGS;
-
-	return packet_loss;
-}
 
 /*
 ===============
@@ -545,7 +509,37 @@ void CL_ParseCrosshairAngle( sizebuf_t *msg )
 {
 	cl.refdef.crosshairangle[0] = MSG_ReadAngle8( msg );
 	cl.refdef.crosshairangle[1] = MSG_ReadAngle8( msg );
-	cl.refdef.crosshairangle[2] = 0; // not used for screen space
+	cl.refdef.crosshairangle[2] = 0.0f; // not used for screen space
+}
+
+/*
+================
+CL_UpdateUserinfo
+
+collect userinfo from all players
+================
+*/
+void CL_UpdateUserinfo( sizebuf_t *msg )
+{
+	int		slot;
+	bool		active;
+	player_info_t	*player;
+
+	slot = MSG_ReadByte( msg );
+
+	if( slot >= MAX_CLIENTS )
+		Host_EndGame( "CL_ParseServerMessage: svc_updateuserinfo > MAX_CLIENTS\n" );
+
+	player = &cl.players[slot];
+	active = MSG_ReadByte( msg ) ? true : false;
+
+	if( active )
+	{
+		com.strncpy( player->userinfo, MSG_ReadString( msg ), sizeof( player->userinfo ));
+		com.strncpy( player->name, Info_ValueForKey( player->userinfo, "name" ), sizeof( player->name ));
+		com.strncpy( player->model, Info_ValueForKey( player->userinfo, "model" ), sizeof( player->model ));
+	}
+	else Mem_Set( player, 0, sizeof( *player ));
 }
 
 /*
@@ -638,7 +632,7 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			Con_Print( va( "^6%s\n", MSG_ReadString( msg )));
 			break;
 		case svc_centerprint:
-			CL_CenterPrint( MSG_ReadString( msg ), SCREEN_HEIGHT/2, BIGCHAR_WIDTH );
+			CL_CenterPrint( MSG_ReadString( msg ), 160, SMALLCHAR_WIDTH );
 			break;
 		case svc_setpause:
 			cl.refdef.paused = (MSG_ReadByte( msg ) != 0 );
@@ -660,6 +654,9 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			break;
 		case svc_event_reliable:
 			CL_ParseReliableEvent( msg, FEV_RELIABLE );
+			break;
+		case svc_updateuserinfo:
+			CL_UpdateUserinfo( msg );
 			break;
 		case svc_frame:
 			CL_ParseFrame( msg );

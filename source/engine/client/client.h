@@ -22,6 +22,13 @@
 #define STRING( offset ) CL_GetString( offset )
 #define MAKE_STRING(str) CL_AllocString( str )
 
+typedef struct player_info_s
+{
+	char	name[CS_SIZE];
+	char	userinfo[MAX_INFO_STRING];
+	char	model[CS_SIZE];
+} player_info_t;
+
 //=============================================================================
 typedef struct frame_s
 {
@@ -29,8 +36,6 @@ typedef struct frame_s
 	int		serverframe;
 	int		servertime;
 	int		deltaframe;
-	int		recvtime;
-	int		senttime;
 	byte		areabits[MAX_MAP_AREA_BYTES];	// portalarea visibility bits
 	int		num_entities;
 	int		parse_entities;		// non-masked index into cl_parse_entities array
@@ -91,6 +96,7 @@ typedef struct
 
 	cinematics_t	*cin;
 
+	player_info_t	players[MAX_CLIENTS];
 	event_state_t	events;
 
 	// predicting stuff
@@ -230,6 +236,15 @@ typedef struct
 	int		scissor_height;
 	bool		scissor_test;
 
+	// centerprint stuff
+	int		centerPrintY;
+	int		centerPrintTime;
+	int		centerPrintCharWidth;
+	char		centerPrint[2048];
+	int		centerPrintLines;
+
+	HSPRITE		hHudFont;
+
 	// crosshair members
 	HSPRITE		hCrosshair;
 	wrect_t		rcCrosshair;
@@ -285,13 +300,6 @@ typedef struct
 		edict_t	*edicts;			// acess by edict number
 		void	*vp;			// acess by offset in bytes
 	};
-
-	// misc 2d drawing stuff
-	float		centerPrintTime;
-	int		centerPrintCharWidth;
-	int		centerPrintY;
-	char		centerPrint[1024];
-	int		centerPrintLines;
 
 	// movement values from server
 	movevars_t	movevars;
@@ -505,7 +513,7 @@ void CL_InitClientProgs( void );
 void CL_FreeClientProgs( void );
 void CL_DrawHUD( int state );
 edict_t *CL_GetEdict( int entnum );
-void CL_FadeAlpha( float starttime, float endtime, rgba_t color );
+void CL_FadeAlpha( int starttime, int endtime, rgba_t color );
 void CL_InitEdicts( void );
 void CL_FreeEdicts( void );
 void CL_InitWorld( void );

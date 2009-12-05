@@ -609,7 +609,7 @@ void Host_Print( const char *txt )
 {
 	if( host.rd.target )
 	{
-		if((com.strlen (txt) + com.strlen(host.rd.buffer)) > (host.rd.buffersize - 1))
+		if(( com.strlen( txt ) + com.strlen( host.rd.buffer )) > ( host.rd.buffersize - 1 ))
 		{
 			if( host.rd.flush )
 			{

@@ -151,6 +151,45 @@ bool Info_RemoveKey( char *s, const char *key )
 	}
 }
 
+void Info_RemovePrefixedKeys( char *start, char prefix )
+{
+	char	*s, *o;
+	char	pkey[MAX_INFO_STRING];
+	char	value[MAX_INFO_STRING];
+
+	s = start;
+
+	while( 1 )
+	{
+		if( *s == '\\' )
+			s++;
+		o = pkey;
+		while( *s != '\\' )
+		{
+			if( !*s ) return;
+			*o++ = *s++;
+		}
+		*o = 0;
+		s++;
+
+		o = value;
+		while( *s != '\\' && *s )
+		{
+			if( !*s ) return;
+			*o++ = *s++;
+		}
+		*o = 0;
+
+		if( pkey[0] == prefix )
+		{
+			Info_RemoveKey( start, pkey );
+			s = start;
+		}
+
+		if( !*s ) return;
+	}
+}
+
 /*
 ==================
 Info_Validate

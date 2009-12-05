@@ -141,6 +141,10 @@ cvar_t *pfnCVarRegister( const char *szName, const char *szValue, int flags, con
 char *pfnMemFgets( byte *pMemFile, int fileSize, int *filePos, char *pBuffer, int bufferSize );
 byte* pfnLoadFile( const char *filename, int *pLength );
 char *pfnParseToken( const char **data_p );
+void pfnCVarSetString( const char *szName, const char *szValue );
+void pfnCVarSetValue( const char *szName, float flValue );
+float pfnCVarGetValue( const char *szName );
+char* pfnCVarGetString( const char *szName );
 void pfnFreeFile( void *buffer );
 int pfnFileExists( const char *filename );
 void *pfnLoadLibrary( const char *name );
@@ -224,6 +228,7 @@ void SCR_UpdateScreen( void );
 void SCR_Shutdown( void );
 void Con_Print( const char *txt );
 char *Info_ValueForKey( const char *s, const char *key );
+void Info_RemovePrefixedKeys( char *start, char prefix );
 bool Info_RemoveKey( char *s, const char *key );
 bool Info_SetValueForKey( char *s, const char *key, const char *value );
 bool Info_Validate( const char *s );

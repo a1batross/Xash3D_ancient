@@ -120,39 +120,9 @@ inline byte LerpByte( byte oldpoint, byte curpoint, float frac )
 
 inline int ConsoleStringLen( const char *string )
 {
-	// console using fixed font size
-	return strlen( string ) * SMALLCHAR_WIDTH;
-}
-
-inline void GetConsoleStringSize( const char *string, int *width, int *height )
-{
-	// console using fixed font size
-	if( width ) *width = ConsoleStringLen( string );
-	if( height ) *height = SMALLCHAR_HEIGHT;
-}
-
-// simple huh ?
-inline int DrawConsoleString( int x, int y, const char *string )
-{
-	DrawString( x, y, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, string );
-
-	return ConsoleStringLen( string );
-}
-
-inline void ConsolePrint( const char *string )
-{
-	ALERT( at_console, "%s", string );
-}
-
-// returns the players name of entity no.
-inline void GetPlayerInfo( int ent_num, hud_player_info_t *pinfo )
-{
-	GET_PLAYER_INFO( ent_num, pinfo );
-}
-
-inline client_textmessage_t *TextMessageGet( const char *pName )
-{
-	return GET_GAME_MESSAGE( pName );
+	int	_width, _height;
+	GetConsoleStringSize( string, &_width, &_height );
+	return _width;
 }
 
 extern Vector BitsToDir( int bits );
@@ -174,7 +144,6 @@ extern void END_READ( void );
 // drawing stuff
 extern client_sprite_t *SPR_GetList( const char *name, int *count );
 extern void ParseHudSprite( const char **pfile, char *psz, client_sprite_t *result );
-extern void TextMessageDrawChar( int xpos, int ypos, int number, int r, int g, int b );
 extern void DrawPause( void );
 extern void SetScreenFade( Vector fadeColor, float alpha, float duration, float holdTime, int fadeFlags );
 extern void ClearAllFades( void );
@@ -193,7 +162,6 @@ extern int v_paused;
 extern float v_idlescale;
 
 // stdio stuff
-extern char *va( const char *format, ... );
 char *COM_ParseToken( const char **data_p );
 
 // dlls stuff

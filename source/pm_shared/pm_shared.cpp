@@ -50,8 +50,8 @@ playermove_t *pmove = (playermove_t *)NULL;
 #define VEC_VIEW			28
 #define WJ_HEIGHT			8
 #define STOP_EPSILON		0.1
-#define CTEXTURESMAX		512	// max number of textures loaded
 #define MAX_CLIENTS			32
+#define CTEXTURESMAX		512	// max number of textures loaded
 #define pev			(&pmove->player->v)
 
 #define BUNNYJUMP_MAX_SPEED_FACTOR	1.7f	// Only allow bunny jumping up to 1.7x server / player maxspeed setting

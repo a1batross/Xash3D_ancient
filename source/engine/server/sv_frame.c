@@ -547,6 +547,13 @@ void SV_SendClientMessages( void )
 		if( cl->edict && (cl->edict->v.flags & (FL_FAKECLIENT|FL_SPECTATOR)))
 			continue;
 
+		// update any userinfo packets that have changed
+		if( cl->sendinfo )
+		{
+			cl->sendinfo = false;
+			SV_FullClientUpdate( cl, &sv.multicast );
+		}
+
 		// if the reliable message overflowed, drop the client
 		if( cl->netchan.message.overflowed )
 		{

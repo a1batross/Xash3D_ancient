@@ -4193,6 +4193,8 @@ Vector CBasePlayer :: GetAutoaimVector( float flDelta )
 	Vector vecSrc = GetGunPosition( );
 	float flDist = 8192;
 
+	m_vecAutoAim = Vector( 0, 0, 0 );
+
 	BOOL m_fOldTargeting = m_fOnTarget;
 	Vector angles = AutoaimDeflection(vecSrc, flDist, flDelta );
 

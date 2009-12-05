@@ -590,9 +590,6 @@ void CL_CreateNewCommands( void )
 	// generate a command for this frame
 	i = cl.cmd_number = cls.netchan.outgoing_sequence & CMD_MASK;
 	cl.refdef.cmd = &cl.cmds[i];
-	cl.frames[i].senttime = cls.realtime;
-	cl.frames[i].recvtime = -1;	// we haven't gotten a reply yet
-
 	cl.cmd_time[i] = cls.realtime; // for netgraph ping calculation
 
 	*cl.refdef.cmd = CL_CreateCmd();
@@ -625,7 +622,7 @@ void CL_WritePacket( void )
 	byte		data[MAX_MSGLEN];
 	usercmd_t		*cmd, *oldcmd;
 	usercmd_t		nullcmd;
-	int		key, lost;
+	int		key;
 
 	// don't send anything if playing back a demo
 	if( cls.demoplayback || cls.state == ca_cinematic )
@@ -658,10 +655,6 @@ void CL_WritePacket( void )
 	// save the position for a checksum byte
 	key = buf.cursize;
 	MSG_WriteByte( &buf, 0 );
-
-	// write our lossage percentage
-	lost = CL_CalcNet();
-	MSG_WriteByte( &buf, lost );
 
 	// let the server know what the last frame we
 	// got was, so the next message can be delta compressed

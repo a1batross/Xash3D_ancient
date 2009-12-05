@@ -202,8 +202,8 @@ CL_ParseFrame
 */
 void CL_ParseFrame( sizebuf_t *msg )
 {
-	int     		i, cmd, len, idx;
-	edict_t		*clent;
+	int	cmd, len, idx;
+	edict_t	*clent;
           
 	Mem_Set( &cl.frame, 0, sizeof( cl.frame ));
 
@@ -212,10 +212,6 @@ void CL_ParseFrame( sizebuf_t *msg )
 	cl.serverframetime = MSG_ReadLong( msg );
 	cl.frame.deltaframe = MSG_ReadLong( msg );
 	cl.surpressCount = MSG_ReadByte( msg );
-	cl.frame.recvtime = cls.realtime;
-
-	for( i = 0; i < cl.surpressCount; i++ )
-		cl.frames[(cls.netchan.incoming_acknowledged - 1 - i) & UPDATE_MASK ].recvtime = -2;
 	
 	// If the frame is delta compressed from data that we
 	// no longer have available, we must suck up the rest of

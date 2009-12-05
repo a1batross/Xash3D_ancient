@@ -702,7 +702,6 @@ public:
 	// error sprite
 	int m_HUD_error;
 	HSPRITE m_hHudError;
-	HSPRITE m_hHudFont;
 
 	// some const shaders
 	HSPRITE m_hDefaultParticle;

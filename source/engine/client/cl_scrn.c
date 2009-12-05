@@ -420,6 +420,8 @@ void SCR_RegisterShaders( void )
 {
 	if( re )
 	{
+		Mem_Set( &clgame.ds, 0, sizeof( clgame.ds )); // reset a draw state
+	
 		// register console images
 		cls.consoleFont = re->RegisterShader( va( "gfx/fonts/%s", con_font->string ), SHADER_FONT );
 		cls.clientFont = re->RegisterShader( va( "gfx/fonts/%s", cl_font->string ), SHADER_FONT );
@@ -435,7 +437,6 @@ void SCR_RegisterShaders( void )
 	// vid_state has changed
 	if( clgame.hInstance ) clgame.dllFuncs.pfnVidInit();
 
-	Mem_Set( &clgame.ds, 0, sizeof( clgame.ds )); // reset a draw state
 	g_console_field_width = scr_width->integer / SMALLCHAR_WIDTH - 2;
 	g_consoleField.widthInChars = g_console_field_width;
 	cls.drawplaque = true;

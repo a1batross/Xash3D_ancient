@@ -128,38 +128,19 @@ typedef struct cl_enginefuncs_s
 	int	(*pfnGetScreenInfo)( SCREENINFO *pscrinfo );
 	void	(*pfnSetCrosshair)( HSPRITE hspr, wrect_t rc, int r, int g, int b );
 
-	// engine memory manager
-	void*	(*pfnMemAlloc)( size_t cb, const char *filename, const int fileline );
-	void	(*pfnMemCopy)( void *dest, const void *src, size_t cb, const char *filename, const int fileline );
-	void	(*pfnMemFree)( void *mem, const char *filename, const int fileline );
-
-	// screen handlers
-	HSPRITE	(*pfnLoadShader)( const char *szShaderName, int fShaderNoMip );
-	void	(*pfnDrawImageExt)( HSPRITE shader, float x, float y, float w, float h, float s1, float t1, float s2, float t2 );
-	void	(*pfnSetColor)( byte r, byte g, byte b, byte a );
-
 	// cvar handlers
 	cvar_t*	(*pfnRegisterVariable)( const char *szName, const char *szValue, int flags, const char *szDesc );
-	void	(*pfnCvarSetString)( const char *szName, const char *szValue );
-	void	(*pfnCvarSetValue)( const char *szName, float flValue );
 	float	(*pfnGetCvarFloat)( const char *szName );
 	char*	(*pfnGetCvarString)( const char *szName );
 
 	// command handlers
 	void	(*pfnAddCommand)( const char *cmd_name, void (*function)(void), const char *cmd_desc );
 	void	(*pfnHookUserMsg)( const char *szMsgName, pfnUserMsgHook pfn );
-	void	(*pfnDelCommand)( const char *cmd_name );
 	void	(*pfnServerCmd)( const char *szCmdString );
 	void	(*pfnClientCmd)( const char *szCmdString );
-	void	(*pfnSetKeyDest)( int key_dest );
 
 	void	(*pfnGetPlayerInfo)( int player_num, hud_player_info_t *pinfo );
-	client_textmessage_t *(*pfnTextMessageGet)( const char *pName );
 
-	int       (*pfnCmdArgc)( void );	
-	char*	(*pfnCmdArgv)( int argc );
-	void	(*pfnAlertMessage)( ALERT_TYPE, char *szFmt, ... );
-	
 	// sound handlers (NULL origin == play at current client origin)
 	void	(*pfnPlaySoundByName)( const char *szSound, float volume, int pitch, const float *org );
 	void	(*pfnPlaySoundByIndex)( int iSound, float volume, int pitch, const float *org );
@@ -167,11 +148,33 @@ typedef struct cl_enginefuncs_s
 	// vector helpers
 	void	(*pfnAngleVectors)( const float *rgflVector, float *forward, float *right, float *up );
 
-	void	(*pfnDrawCenterPrint)( void );
-	void	(*pfnCenterPrint)( const char *text, int y, int charWidth );
-	void	(*pfnDrawString)( int x, int y, int width, int height, const char *text );
-	void	(*pfnGetParms)( int *w, int *h, int *frames, int frame, shader_t shader );
-	void	(*pfnSetParms)( shader_t handle, kRenderMode_t rendermode, int frame );
+	// text message system
+	client_textmessage_t *(*pfnTextMessageGet)( const char *pName );
+	int	(*pfnDrawCharacter)( int x, int y, int number, int r, int g, int b );
+	int	(*pfnDrawConsoleString)( int x, int y, char *string );
+	void	(*pfnDrawSetTextColor)( float r, float g, float b );
+	void	(*pfnDrawConsoleStringLen)(  const char *string, int *length, int *height );
+
+	void	(*pfnConsolePrint)( const char *string );
+	void	(*pfnCenterPrint)( const char *string );
+
+	// engine memory manager
+	void*	(*pfnMemAlloc)( size_t cb, const char *filename, const int fileline );
+	void	(*pfnMemCopy)( void *dest, const void *src, size_t cb, const char *filename, const int fileline );
+	void	(*pfnMemFree)( void *mem, const char *filename, const int fileline );
+
+	// screen handlers
+	HSPRITE	(*pfnLoadShader)( const char *szShaderName, int fShaderNoMip );
+
+	void	(*pfnCvarSetString)( const char *szName, const char *szValue );
+	void	(*pfnCvarSetValue)( const char *szName, float flValue );
+
+	void	(*pfnDelCommand)( const char *cmd_name );
+	void	(*pfnSetKeyDest)( int key_dest );
+
+	int       (*pfnCmdArgc)( void );	
+	char*	(*pfnCmdArgv)( int argc );
+	void	(*pfnAlertMessage)( ALERT_TYPE, char *szFmt, ... );
 
 	// local client handlers
 	void	(*pfnGetViewAngles)( float *angles );
