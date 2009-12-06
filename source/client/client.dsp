@@ -213,6 +213,14 @@ SOURCE=.\hud\hud_zoom.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\global\input.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\pm_shared\pm_shared.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\global\r_particle.cpp
 # End Source File
 # Begin Source File
@@ -258,6 +266,22 @@ SOURCE=.\hud\hud_ammohistory.h
 # Begin Source File
 
 SOURCE=.\hud\hud_health.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\pm_shared\pm_defs.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\pm_shared\pm_local.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\pm_shared\pm_materials.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\pm_shared\pm_movevars.h
 # End Source File
 # Begin Source File
 

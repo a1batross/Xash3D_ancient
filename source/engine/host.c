@@ -581,14 +581,14 @@ void Host_Frame( void )
 	else min_time = 1;
 
 	do {
-		host.frametime[0] = Host_EventLoop();
-		if( last_time > host.frametime[0] )
-			last_time = host.frametime[0];
-		time = host.frametime[0] - last_time;
+		host.frametime = Host_EventLoop();
+		if( last_time > host.frametime )
+			last_time = host.frametime;
+		time = host.frametime - last_time;
 	} while( time < min_time );
 	Cbuf_Execute();
 
-	last_time = host.frametime[0];
+	last_time = host.frametime;
 	time = Host_ModifyTime( time );
 
 	SV_Frame ( time ); // server frame
@@ -839,7 +839,7 @@ void Host_Init( const int argc, const char **argv )
 
 	Cmd_AddCommand( "cmap_restart", Host_PhysRestart_f, "restarts physic system" );
 	Cmd_AddCommand( "game", Host_ChangeGame_f, "change game" );	// allow to change game from the console
-	host.frametime[0] = Host_Milliseconds();
+	host.frametime = Host_Milliseconds();
 	host.errorframe = 0;
 }
 

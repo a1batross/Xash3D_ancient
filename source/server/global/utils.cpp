@@ -16,6 +16,7 @@
 #include "baseweapon.h"
 #include "gamerules.h"
 #include "client.h"
+#include "event_api.h"
 
 FILE_GLOBAL char st_szNextMap[MAP_MAX_NAME];
 FILE_GLOBAL char st_szNextSpot[MAP_MAX_NAME];

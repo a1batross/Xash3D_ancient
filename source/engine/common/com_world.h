@@ -87,7 +87,8 @@ void World_MoveBounds( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_
 int World_ConvertContents( int basecontents );
 uint World_MaskForEdict( const edict_t *e );
 uint World_ContentsForEdict( const edict_t *e );
- 
+
+#include "pm_shared.h"
 
 /*
 ===============================================================================

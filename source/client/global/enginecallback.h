@@ -9,7 +9,6 @@
 // built-in memory manager
 #define MALLOC( x )		(*g_engfuncs.pfnMemAlloc)( x, __FILE__, __LINE__ )
 #define CALLOC( x, y )	(*g_engfuncs.pfnMemAlloc)((x) * (y), __FILE__, __LINE__ )
-#define MEMCPY( x, y, z )	(*g_engfuncs.pfnMemCopy)( x, y, z, __FILE__, __LINE__ )
 #define FREE( x )		(*g_engfuncs.pfnMemFree)( x, __FILE__, __LINE__ )
 
 // screen handlers
@@ -25,15 +24,17 @@
 #define TEX_Load( x )	(*g_engfuncs.pfnLoadShader)( x, false )
 #define SetCrosshair	(*g_engfuncs.pfnSetCrosshair)
 
+#define SendWeaponAnim	(*g_engfuncs.pEventAPI->EV_WeaponAnim)
 #define CVAR_REGISTER	(*g_engfuncs.pfnRegisterVariable)
 #define CVAR_SET_FLOAT	(*g_engfuncs.pfnCvarSetValue)
 #define CVAR_GET_FLOAT	(*g_engfuncs.pfnGetCvarFloat)
 #define CVAR_GET_STRING	(*g_engfuncs.pfnGetCvarString)
-#define SET_KEYDEST		(*g_engfuncs.pfnSetKeyDest)
 #define SERVER_COMMAND	(*g_engfuncs.pfnServerCmd)
 #define CLIENT_COMMAND	(*g_engfuncs.pfnClientCmd)
 #define GetPlayerInfo	(*g_engfuncs.pfnGetPlayerInfo)
 #define TextMessageGet	(*g_engfuncs.pfnTextMessageGet)
+#define Cmd_AddCommand	(*g_engfuncs.pfnAddCommand)
+#define Cmd_RemoveCommand	(*g_engfuncs.pfnDelCommand)
 #define CMD_ARGC		(*g_engfuncs.pfnCmdArgc)
 #define CMD_ARGV		(*g_engfuncs.pfnCmdArgv)
 #define ALERT		(*g_engfuncs.pfnAlertMessage)
@@ -116,12 +117,13 @@ inline void CL_PlaySound( int iSound, float flVolume, Vector &pos, float pitch =
 #define CenterPrint		(*g_engfuncs.pfnCenterPrint)
 #define ConsolePrint	(*g_engfuncs.pfnConsolePrint)
 #define GetViewAngles	(*g_engfuncs.pfnGetViewAngles)
+#define SetViewAngles	(*g_engfuncs.pfnSetViewAngles)
 #define GetEntityByIndex	(*g_engfuncs.pfnGetEntityByIndex)
 #define GetLocalPlayer	(*g_engfuncs.pfnGetLocalPlayer)
+#define GetClientMaxspeed	(*g_engfuncs.pfnGetClientMaxspeed)
 #define IsSpectateOnly	(*g_engfuncs.pfnIsSpectateOnly)
 #define GetClientTime	(*g_engfuncs.pfnGetClientTime)
 #define GetLerpFrac		(*g_engfuncs.pfnGetLerpFrac)
-#define GetMaxClients	(*g_engfuncs.pfnGetMaxClients)
 #define GetViewModel	(*g_engfuncs.pfnGetViewModel)
 #define GetModelPtr		(*g_engfuncs.pfnGetModelPtr)
 #define GET_ATTACHMENT	(*g_engfuncs.pfnGetAttachment)
@@ -130,8 +132,8 @@ inline void CL_PlaySound( int iSound, float flVolume, Vector &pos, float pitch =
 #define TRACE_HULL		(*g_engfuncs.pfnTraceHull)
 #define ALLOC_STRING	(*g_engfuncs.pfnAllocString)
 #define STRING		(*g_engfuncs.pfnGetString)
-#define RANDOM_LONG		(*g_engfuncs.pfnRandomLong)
-#define RANDOM_FLOAT	(*g_engfuncs.pfnRandomFloat)
+#define RANDOM_LONG		(*g_engfuncs.pEventAPI->EV_RandomLong)
+#define RANDOM_FLOAT	(*g_engfuncs.pEventAPI->EV_RandomFloat)
 #define LOAD_FILE		(*g_engfuncs.pfnLoadFile)
 #define FILE_EXISTS		(*g_engfuncs.pfnFileExists)
 #define FREE_FILE		FREE
@@ -140,5 +142,6 @@ inline void CL_PlaySound( int iSound, float flVolume, Vector &pos, float pitch =
 #define GET_PROC_ADDRESS	(*g_engfuncs.pfnGetProcAddress)
 #define FREE_LIBRARY	(*g_engfuncs.pfnFreeLibrary)
 #define HOST_ERROR		(*g_engfuncs.pfnHostError)
+#define COM_ParseToken	(*g_engfuncs.pfnParseToken)
 
 #endif//ENGINECALLBACKS_H

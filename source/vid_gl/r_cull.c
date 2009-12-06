@@ -138,7 +138,7 @@ bool R_VisCullBox( const vec3_t mins, const vec3_t maxs )
 		extmaxs[s] = maxs[s] + 4;
 	}
 
-	for( node = r_worldbrushmodel->nodes;; )
+	for( node = r_worldbrushmodel->nodes; node; )
 	{
 		if( node->pvsframe != r_pvsframecount )
 		{

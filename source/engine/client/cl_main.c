@@ -14,7 +14,7 @@ cvar_t	*cl_timeout;
 cvar_t	*cl_predict;
 cvar_t	*cl_showfps;
 cvar_t	*cl_maxfps;
-
+cvar_t	*cl_nodelta;
 cvar_t	*cl_particles;
 cvar_t	*cl_particlelod;
 cvar_t	*cl_crosshair;
@@ -43,9 +43,9 @@ clgame_static_t	clgame;
 //======================================================================
 bool CL_Active( void )
 {
-	if( host.type == HOST_DEDICATED ) return true;			// always active for dedicated servers
-	if( CL_GetMaxClients() > 1 ) return true;			// always active for multiplayer
-	return (cls.key_dest == key_game || cls.key_dest == key_hudmenu);	// active if not menu or console
+	if( host.type == HOST_DEDICATED ) return true;	// always active for dedicated servers
+	if( CL_GetMaxClients() > 1 ) return true;	// always active for multiplayer
+	return ( cls.key_dest == key_game );		// active if not menu or console
 }
 
 void CL_ForceVid( void )
@@ -1075,26 +1075,16 @@ void CL_InitLocal( void )
 {
 	cls.state = ca_disconnected;
 
-	CL_InitInput();
-
 	// register our variables
 	cl_predict = Cvar_Get( "cl_predict", "1", CVAR_ARCHIVE, "disables client movement prediction" );
 	cl_maxfps = Cvar_Get( "cl_maxfps", "1000", 0, "maximum client fps" );
 	cl_particles = Cvar_Get( "cl_particles", "1", CVAR_ARCHIVE, "disables particle effects" );
 	cl_particlelod = Cvar_Get( "cl_lod_particle", "0", CVAR_ARCHIVE, "enables particle LOD (1, 2, 3)" );
 	cl_crosshair = Cvar_Get( "crosshair", "1", CVAR_ARCHIVE|CVAR_USERINFO, "show weapon chrosshair" );
-
-	cl_upspeed = Cvar_Get( "cl_upspeed", "200", 0, "client upspeed limit" );
-	cl_forwardspeed = Cvar_Get( "cl_forwardspeed", "200", 0, "client forward speed limit" );
-	cl_backspeed = Cvar_Get( "cl_backspeed", "200", 0, "client bask speed limit" );
-	cl_sidespeed = Cvar_Get( "cl_sidespeed", "200", 0, "client side-speed limit" );
-	cl_yawspeed = Cvar_Get( "cl_yawspeed", "140", 0, "client yaw speed" );
-	cl_pitchspeed = Cvar_Get( "cl_pitchspeed", "150", 0, "client pitch speed" );
-	cl_anglespeedkey = Cvar_Get( "cl_anglespeedkey", "1.5", 0, "client anglespeed" );
-	cl_run = Cvar_Get( "cl_run", "0", CVAR_ARCHIVE, "keep client for always run mode" );
+	cl_nodelta = Cvar_Get ("cl_nodelta", "0", 0, "disable delta-compression for usercommnds" );
 
 	cl_shownet = Cvar_Get( "cl_shownet", "0", 0, "client show network packets" );
-	cl_showmiss = Cvar_Get( "cl_showmiss", "0", 0, "client show network errors" );
+	cl_showmiss = Cvar_Get( "cl_showmiss", "0", CVAR_ARCHIVE, "client show prediction errors" );
 	cl_timeout = Cvar_Get( "cl_timeout", "120", 0, "connect timeout (in-seconds)" );
 
 	rcon_client_password = Cvar_Get( "rcon_password", "", 0, "remote control client password" );
@@ -1271,6 +1261,5 @@ void CL_Shutdown( void )
 	UI_Shutdown();
 	S_Shutdown();
 	SCR_Shutdown();
-	CL_ShutdownInput();
 	cls.initialized = false;
 }

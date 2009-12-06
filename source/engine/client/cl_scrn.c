@@ -420,8 +420,6 @@ void SCR_RegisterShaders( void )
 {
 	if( re )
 	{
-		Mem_Set( &clgame.ds, 0, sizeof( clgame.ds )); // reset a draw state
-	
 		// register console images
 		cls.consoleFont = re->RegisterShader( va( "gfx/fonts/%s", con_font->string ), SHADER_FONT );
 		cls.clientFont = re->RegisterShader( va( "gfx/fonts/%s", cl_font->string ), SHADER_FONT );
@@ -432,6 +430,10 @@ void SCR_RegisterShaders( void )
 		if( host.developer )
 			cls.consoleBack = re->RegisterShader( "gfx/conback", SHADER_NOMIP );
 		else cls.consoleBack = re->RegisterShader( "gfx/loading", SHADER_NOMIP );
+
+		// TODO: load a font with a variable charwidths
+		Mem_Set( &clgame.ds, 0, sizeof( clgame.ds )); // reset a draw state
+		clgame.ds.hHudFont = re->RegisterShader( "sprites/font.spr", SHADER_NOMIP );
 	}
 
 	// vid_state has changed

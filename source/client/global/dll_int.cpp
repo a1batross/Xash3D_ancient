@@ -10,6 +10,7 @@
 #include "hud.h"
 #include "r_particle.h"
 #include "ev_hldm.h"
+#include "pm_shared.h"
 
 cl_enginefuncs_t g_engfuncs;
 cl_globalvars_t  *gpGlobals;
@@ -27,7 +28,6 @@ static HUD_FUNCTIONS gFunctionTable =
 	HUD_VidInit,
 	HUD_Init,
 	HUD_Redraw,
-	HUD_UpdateClientData,
 	HUD_UpdateEntityVars,
 	HUD_Reset,
 	HUD_Frame,
@@ -37,8 +37,15 @@ static HUD_FUNCTIONS gFunctionTable =
 	HUD_StudioEvent,
 	HUD_StudioFxTransform,
 	V_CalcRefdef,
-	V_StartPitchDrift,
-	V_StopPitchDrift,
+	PM_Move,			// pfnPM_Move
+	PM_Init,			// pfnPM_Init
+	PM_FindTextureType,		// pfnPM_FindTextureType
+	HUD_CmdStart,
+	HUD_CmdEnd,
+	IN_CreateMove,
+	IN_MouseEvent,
+	IN_KeyEvent,
+	VGui_ConsolePrint,
 };
 
 //=======================================================================
@@ -93,7 +100,7 @@ void HUD_Init( void )
 
 	gHUD.Init();
 
-	V_Init();
+	IN_Init ();
 
 	// link all events
 	EV_HookEvents ();
@@ -122,11 +129,6 @@ int HUD_Redraw( float flTime, int state )
 		break;
 	}
 	return 1;
-}
-
-int HUD_UpdateClientData( client_data_t *cdata, float flTime )
-{
-	return gHUD.UpdateClientData( cdata, flTime );
 }
 
 void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t *state, const entity_state_t *prev )
@@ -168,8 +170,6 @@ void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t 
 	ent->v.oldangles = ent->v.angles;	// just a delta between frames
 	ent->v.animtime = state->animtime;
 
-//	ent->v.animtime = bound( gpGlobals->time - gpGlobals->frametime, ent->v.animtime, gpGlobals->time );
-
 	if( state->groundent != -1 )
 		ent->v.groundentity = GetEntityByIndex( state->groundent );
 	else ent->v.groundentity = NULL;
@@ -185,6 +185,7 @@ void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t 
 		break;
 	default:
 		ent->v.origin = LerpPoint( prev->origin, state->origin, m_fLerp );
+		ent->v.basevelocity = LerpPoint( prev->basevelocity, state->basevelocity, m_fLerp );
 		break;
 	}
 
@@ -230,6 +231,11 @@ void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t 
 
 		if( prev->fov < 90 && state->fov == 90 ) ent->v.fov = state->fov; // fov is reset, so don't lerping
 		else ent->v.fov = LerpPoint( prev->fov, state->fov, m_fLerp ); 
+		ent->v.maxspeed = state->maxspeed;
+
+		ent->v.iStepLeft = state->iStepLeft;
+		ent->v.flFallVelocity = state->flFallVelocity;
+		
 		if( ent == GetLocalPlayer())
 		{
 			edict_t	*viewent = GetViewModel();
@@ -281,10 +287,13 @@ void HUD_Reset( void )
 void HUD_Frame( double time )
 {
 	// place to call vgui_frame
+	// VGUI not implemented, wait for version 0.75
 }
 
 void HUD_Shutdown( void )
 {
+	IN_Shutdown ();
+
 	// perform shutdown operations
 	g_engfuncs.pfnDelCommand ("noclip" );
 	g_engfuncs.pfnDelCommand ("notarget" );

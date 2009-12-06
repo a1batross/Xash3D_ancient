@@ -323,13 +323,37 @@ void pfnAlertMessage( ALERT_TYPE level, char *szFmt, ... )
 
 /*
 =============
-pfnMemCopy
+pfnCmd_Args
 
 =============
 */
-void pfnMemCopy( void *dest, const void *src, size_t cb, const char *filename, const int fileline )
+const char *pfnCmd_Args( void )
 {
-	com.memcpy( dest, src, cb, filename, fileline );
+	return Cmd_Args();
+}
+
+/*
+=============
+pfnCmd_Argv
+
+=============
+*/
+const char *pfnCmd_Argv( int argc )
+{
+	if( argc >= 0 && argc < Cmd_Argc())
+		return Cmd_Argv( argc );
+	return "";
+}
+
+/*
+=============
+pfnCmd_Argc
+
+=============
+*/
+int pfnCmd_Argc( void )
+{
+	return Cmd_Argc();
 }
 
 /*

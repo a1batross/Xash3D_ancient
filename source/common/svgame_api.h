@@ -6,7 +6,6 @@
 #define SVGAME_API_H
 
 #include "trace_def.h"
-#include "event_api.h"
 #include "pm_shared.h"
 
 typedef struct globalvars_s
@@ -183,7 +182,7 @@ typedef struct enginefuncs_s
 	void	(*pfnSetPhysicsKeyValue)( const edict_t *pClient, const char *key, const char *value );
 	const char *(*pfnGetPhysicsInfoString)( const edict_t *pClient );
 	word	(*pfnPrecacheEvent)( int type, const char *psz );
-	void	(*pfnPlaybackEvent)( int flags, const edict_t *pInvoker, word eventindex, float delay, event_args_t *args );
+	void	(*pfnPlaybackEvent)( int flags, const edict_t *pInvoker, word eventindex, float delay, struct event_args_s *args );
 	edict_t	*(*pfnCopyEdict)( const edict_t *pEdict );		// was pfnSetFatPVS
 	int	(*pfnCheckArea)( const edict_t *entity, int clientarea );	// was pfnSetFatPAS
 	int	(*pfnCheckVisibility)( const edict_t *entity, byte *pset );

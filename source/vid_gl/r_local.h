@@ -26,7 +26,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qfiles_ref.h"
 #include "engine_api.h"
 #include "entity_def.h"
-#include "clgame_api.h"
 #include "render_api.h"
 #include "entity_state.h"
 

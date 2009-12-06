@@ -9,6 +9,9 @@
 #define EV_HLDMH
 
 void EV_HookEvents( void );
+extern void HUD_CmdStart( const edict_t *player, int runfuncs );
+extern void HUD_CmdEnd( const edict_t *player, const usercmd_t *cmd, unsigned int random_seed );
+
 
 void EV_HLDM_GunshotDecalTrace( TraceResult *pTrace, char *decalName );
 void EV_HLDM_DecalGunshot( TraceResult *pTrace, int iBulletType );

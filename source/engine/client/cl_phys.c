@@ -90,3 +90,32 @@ bool CL_CheckWater( edict_t *ent )
 	}
 	return ent->v.waterlevel > 1;
 }
+
+/*
+================
+CL_UpdateBaseVelocity
+================
+*/
+void CL_UpdateBaseVelocity( edict_t *ent )
+{
+	if( ent->v.flags & FL_ONGROUND )
+	{
+		edict_t	*groundentity = ent->v.groundentity;
+
+		if( CL_IsValidEdict( groundentity ))
+		{
+			// On conveyor belt that's moving?
+			if( groundentity->v.flags & FL_CONVEYOR )
+			{
+				vec3_t	new_basevel;
+
+				VectorScale( groundentity->v.movedir, groundentity->v.speed, new_basevel );
+				if( ent->v.flags & FL_BASEVELOCITY )
+					VectorAdd( new_basevel, ent->v.basevelocity, new_basevel );
+
+				ent->v.flags |= FL_BASEVELOCITY;
+				VectorCopy( new_basevel, ent->v.basevelocity );
+			}
+		}
+	}
+}

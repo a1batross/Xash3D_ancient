@@ -155,7 +155,7 @@ Beta 13.12.09
 129. fixup sound orientation			OK
 130. don't show console on changelevel		OK
 131. fixup teleports and trigger push's		OK
-132. prepare configs and gameinfo
+132. implement _detail.txt lists for hl
 133. new sound\render system version replacement	OK
 134. dx sound engine complete			OK
 135. implement dsp				OK
@@ -164,7 +164,7 @@ Beta 13.12.09
 138. implement hashtable for loaded sounds	OK
 139. finalize client API's
 140. net_msg is buggly!!!!			OK
-141. implement client predicting
+141. implement client predicting		OK
 142. finalize CL_Move and CL_LinkEdict		OK
 143. implement pmove			OK
 144. usercmd sends right			OK
@@ -189,5 +189,6 @@ Beta 13.12.09
 163. rewrote sv_phys.c			OK
 164. remove vprogs.dll			OK
 165. fix bsplib error
+166. move cl_input.c into client.dll		OK
 
  

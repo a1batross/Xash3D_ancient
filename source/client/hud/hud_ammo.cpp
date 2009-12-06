@@ -27,6 +27,7 @@ WEAPON *gpActiveSel;	// NULL means off, 1 means just the menu bar, otherwise
 WEAPON *gpLastSel;		// Last weapon menu selection 
 client_sprite_t *GetSpriteList( client_sprite_t *pList, const char *psz, int iCount );
 WeaponsResource gWR;
+int g_weaponselect = 0;
 
 void WeaponsResource :: LoadAllWeaponSprites( void )
 {
@@ -346,7 +347,8 @@ void CHudAmmo :: Think( void )
 				else SetCrosshair( m_pWeapon->hCrosshair, m_pWeapon->rcCrosshair, 255, 255, 255 );
 			}
 			else
-			{	// zoomed crosshairs
+			{	
+				// zoomed crosshairs
 				if( m_pWeapon->iOnTarget && m_pWeapon->hZoomedAutoaim )
 					SetCrosshair(m_pWeapon->hZoomedAutoaim, m_pWeapon->rcZoomedAutoaim, 255, 255, 255 );
 				else SetCrosshair( m_pWeapon->hZoomedCrosshair, m_pWeapon->rcZoomedCrosshair, 255, 255, 255 );
@@ -361,14 +363,15 @@ void CHudAmmo :: Think( void )
 	if( gHUD.m_iKeyBits & IN_ATTACK )
 	{
 		if( gpActiveSel != (WEAPON *)1 )
+		{
 			SERVER_COMMAND( gpActiveSel->szName );
-
+			g_weaponselect = gpActiveSel->iId;
+		}
 		gpLastSel = gpActiveSel;
 		gpActiveSel = NULL;
 		gHUD.m_iKeyBits &= ~IN_ATTACK;
 
 		CL_PlaySound( "common/wpn_select.wav", 1.0f );
-		SET_KEYDEST( KEY_GAME );
 	}
 
 }
@@ -417,8 +420,6 @@ void WeaponsResource :: SelectSlot( int iSlot, int fAdvance, int iDirection )
 	if(!(gHUD.m_iWeaponBits & ~ITEM_SUIT))
 		return;
 
-	SET_KEYDEST( KEY_HUDMENU );
-
 	WEAPON *p = NULL;
 	bool fastSwitch = CVAR_GET_FLOAT( "hud_fastswitch" ) != 0;
 
@@ -433,8 +434,10 @@ void WeaponsResource :: SelectSlot( int iSlot, int fAdvance, int iDirection )
 			// but only if there is only one item in the bucket
 			WEAPON *p2 = GetNextActivePos( p->iSlot, p->iSlotPos );
 			if( !p2 )
-			{	// only one active item in bucket, so change directly to weapon
+			{
+				// only one active item in bucket, so change directly to weapon
 				SERVER_COMMAND( p->szName );
+				g_weaponselect = p->iId;
 				return;
 			}
 		}
@@ -520,6 +523,9 @@ int CHudAmmo::MsgFunc_HideWeapon( const char *pszName, int iSize, void *pbuf )
 	BEGIN_READ( pszName, iSize, pbuf );
 	
 	gHUD.m_iHideHUDDisplay = READ_BYTE();
+
+	if ( IsSpectateOnly())
+		return 1;
 
 	if((m_pWeapon == NULL) || (gHUD.m_iHideHUDDisplay & ( HIDEHUD_WEAPONS | HIDEHUD_ALL )))
 	{
@@ -714,8 +720,6 @@ void CHudAmmo::UserCmd_Close( void )
 		CL_PlaySound( "common/wpn_hudoff.wav", 1.0f );
 	}
 	else CLIENT_COMMAND( "escape" );
-
-	SET_KEYDEST( KEY_GAME );
 }
 
 
@@ -727,8 +731,6 @@ void CHudAmmo::UserCmd_NextWeapon( void )
 
 	if( !gpActiveSel || gpActiveSel == (WEAPON*)1 )
 		gpActiveSel = m_pWeapon;
-
-	SET_KEYDEST( KEY_HUDMENU );
 
 	int pos = 0;
 	int slot = 0;
@@ -767,8 +769,6 @@ void CHudAmmo :: UserCmd_PrevWeapon( void )
 
 	if( !gpActiveSel || gpActiveSel == (WEAPON*)1 )
 		gpActiveSel = m_pWeapon;
-
-	SET_KEYDEST( KEY_HUDMENU );
 
 	int pos = MAX_WEAPON_POSITIONS-1;
 	int slot = MAX_WEAPON_SLOTS-1;

@@ -60,7 +60,11 @@ typedef struct playermove_s
 	vec3_t		origin;		// Movement origin.
 	vec3_t		angles;		// Movement view angles.
 	vec3_t		oldangles;	// Angles before movement view angles were looked at.
-	
+	vec3_t		velocity;		// current movement direction.
+	vec3_t		movedir;		// for waterjumping, a forced forward velocity so we can fly over
+					// lip of ledge.
+	vec3_t		basevelocity;	// velocity of the conveyor we are standing, e.g.
+		
 	BOOL		dead;		// Are we a dead player?
 	BOOL		bInDuck;		// In process of ducking or ducked already?
 	float		maxspeed;		// current maxspeed

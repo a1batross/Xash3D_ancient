@@ -1,10 +1,12 @@
 //=======================================================================
-//			Copyright XashXT Group 2007 ©
-//			cl_input.c - movement commands
+//			Copyright XashXT Group 2009 ©
+//	input.cpp - builds an intended movement command to send to the server
 //=======================================================================
 
-#include "common.h"
-#include "client.h"
+#include "extdll.h"
+#include "utils.h"
+#include "usercmd.h"
+#include "hud.h"
 
 #define mlook_active	(freelook->integer || (in_mlook.state & 1))
 
@@ -24,7 +26,9 @@ cvar_t	*cl_pitchspeed;
 cvar_t	*cl_forwardspeed;
 cvar_t	*cl_backspeed;
 cvar_t	*cl_anglespeedkey;
-cvar_t	*cl_nodelta;
+cvar_t	*cl_movespeedkey;
+cvar_t	*cl_pitchup;
+cvar_t	*cl_pitchdown;
 cvar_t	*v_centermove;
 cvar_t	*v_centerspeed;
 cvar_t	*cl_mouseaccel;
@@ -45,88 +49,41 @@ kbutton_t	in_lookup, in_lookdown, in_moveleft, in_moveright;
 kbutton_t	in_strafe, in_speed, in_use, in_jump, in_attack, in_attack2;
 kbutton_t	in_up, in_down, in_duck, in_reload, in_alt1, in_score, in_break;
 int in_cancel = 0, in_impulse = 0;
-uint frame_msec;
 
+int		g_iAlive;		// indicates alive local client or not
+static int	mouse_x[2];	// use two values for filtering
+static int	mouse_y[2];
+static int	mouse_step;
+static int	frame_msec;	// input frame msecs
+static int	frametime;	// used by CL_KeyState
+static float	cl_viewangles[3];	// process viewangles
+static float	cl_oldviewangles[3];
+	
 /*
-============================================================
+============
+IN_MouseEvent
 
-	MOUSE EVENTS
-
-============================================================
+accumulate mouse move between calls
+============
 */
-/*
-=================
-CL_MouseEvent
-=================
-*/
-void CL_MouseEvent( int mx, int my )
+void IN_MouseEvent( int mx, int my )
 {
-	if( UI_IsVisible( ))
-	{
-		// if the menu is visible, move the menu cursor
-		UI_MouseMove( mx, my );
-	}
-	else
-	{
-		cl.mouse_x[cl.mouse_step] += mx;
-		cl.mouse_y[cl.mouse_step] += my;
-	}
+	// accumulate mouse moves
+	mouse_x[mouse_step] += mx;
+	mouse_y[mouse_step] += my;
 }
 
 /*
-=================
-CL_MouseMove
-=================
+============
+IN_KeyEvent
+
+Return 1 to allow engine to process the key, otherwise, act on it as needed
+============
 */
-void CL_MouseMove( usercmd_t *cmd )
+int IN_KeyEvent( int down, int keynum, const char *pszBind )
 {
-	float	mx, my, rate;
-	float	accel_sensitivity;
-
-	// allow mouse smoothing
-	if( m_filter->integer )
-	{
-		mx = (cl.mouse_x[0] + cl.mouse_x[1]) * 0.5;
-		my = (cl.mouse_y[0] + cl.mouse_y[1]) * 0.5;
-	}
-	else
-	{
-		mx = cl.mouse_x[cl.mouse_step];
-		my = cl.mouse_y[cl.mouse_step];
-	}
-	cl.mouse_step ^= 1;
-	cl.mouse_x[cl.mouse_step] = 0;
-	cl.mouse_y[cl.mouse_step] = 0;
-
-	rate = com.sqrt( mx * mx + my * my ) / (float)frame_msec;
-
-	if( cl.refdef.health <= 0 ) return;
-	if( cl.data.mouse_sensitivity == 0.0f ) cl.data.mouse_sensitivity = 1.0f;
-	accel_sensitivity = m_sensitivity->value + rate * cl_mouseaccel->value;
-	accel_sensitivity *= cl.data.mouse_sensitivity; // scale by fov
-	mx *= accel_sensitivity;
-	my *= accel_sensitivity;
-
-	// add mouse X/Y movement to cmd
-	if(( in_strafe.state & 1 ) || (lookstrafe->integer && mlook_active))
-		cmd->sidemove += m_side->value * mx;
-	else cl.refdef.cl_viewangles[YAW] -= m_yaw->value * mx;
-
-	if( mlook_active ) clgame.dllFuncs.pfnStopPitchDrift();		
-
-	if( mlook_active && !( in_strafe.state & 1 ))
-	{
-		cl.refdef.cl_viewangles[PITCH] += m_pitch->value * my;
-		cl.refdef.cl_viewangles[PITCH] = bound( -70, cl.refdef.cl_viewangles[PITCH], 80 );
-	}
-	else
-	{
-		if(( in_strafe.state & 1 ) && cl.refdef.movetype == MOVETYPE_NOCLIP )
-			cmd->upmove -= m_forward->value * my;
-		else cmd->forwardmove -= m_forward->value * my;
-	}
+	return 1;
 }
-
 /*
 ===============================================================================
 
@@ -153,41 +110,58 @@ CL_KeyEvent( int key, bool down, uint time );
 */
 void IN_KeyDown( kbutton_t *b )
 {
-	int	k;
-	char	*c;
-	
-	c = Cmd_Argv(1);
-	if( c[0] ) k = com.atoi( c );
-	else k = -1; // typed manually at the console for continuous down
+	const char *c;
+	int k;	
+
+	c = CMD_ARGV( 1 );
+
+	if( c[0] )
+	{
+		k = atoi( c );
+	}
+	else
+	{
+		k = -1; // typed manually at the console for continuous down
+	}
 
 	if( k == b->down[0] || k == b->down[1] )
 		return; // repeating key
 	
-	if( !b->down[0] ) b->down[0] = k;
-	else if( !b->down[1] ) b->down[1] = k;
+	if ( !b->down[0] )
+	{
+		b->down[0] = k;
+	}
+	else if ( !b->down[1] )
+	{
+		b->down[1] = k;
+	}
 	else
 	{
-		MsgDev( D_ERROR, "IN_KeyDown: three keys down for a button!\n" );
+		ALERT( at_error, "three keys down for a button '%c' '%c' '%c'!\n", b->down[0], b->down[1], c );
 		return;
 	}
 	
 	if( b->state & 1 ) return; // still down
 
 	// save timestamp
-	c = Cmd_Argv( 2 );
-	b->downtime = com.atoi( c );
+	c = CMD_ARGV( 2 );
+	b->downtime = atoi( c );
 
 	b->state |= 1 + 2;	// down + impulse down
 }
 
 void IN_KeyUp( kbutton_t *b )
 {
-	int	k;
-	char	*c;
-	uint	uptime;
+	int		k;
+	const char	*c;
+	uint		uptime;
 
-	c = Cmd_Argv( 1 );
-	if( c[0] ) k = com.atoi( c );
+	c = CMD_ARGV( 1 );
+
+	if( c[0] )
+	{
+		k = atoi( c );
+	}
 	else
 	{
 		// typed manually at the console, assume for unsticking, so clear all
@@ -195,20 +169,34 @@ void IN_KeyUp( kbutton_t *b )
 		b->state = 4; // impulse up
 		return;
 	}
-	if( b->down[0] == k ) b->down[0] = 0;
-	else if( b->down[1] == k ) b->down[1] = 0;
+
+	if( b->down[0] == k )
+	{
+		b->down[0] = 0;
+	}
+	else if( b->down[1] == k )
+	{
+		b->down[1] = 0;
+	}
 	else return; // key up without coresponding down (menu pass through)
 
 	if( b->down[0] || b->down[1] )
 		return; // some other key is still holding it down
 
-	if(!(b->state & 1)) return; // still up (this should not happen)
+	if( !( b->state & 1 )) return; // still up (this should not happen)
 
 	// save timestamp for partial frame summing
-	c = Cmd_Argv( 2 );
-	uptime = com.atoi( c );
-	if( uptime ) b->msec += uptime - b->downtime;
-	else b->msec += frame_msec / 2;
+	c = CMD_ARGV( 2 );
+	uptime = atoi( c );
+
+	if( uptime )
+	{
+		b->msec += uptime - b->downtime;
+	}
+	else
+	{
+		b->msec += frame_msec / 2;
+	}
 
 	b->state &= ~1; // now up
 	b->state |= 4; // impulse up
@@ -237,18 +225,17 @@ static float CL_KeyState( kbutton_t *key )
 	if( key->state )
 	{
 		// still down
-		if( !key->downtime ) msec = host.frametime[0];
-		else msec += host.frametime[0] - key->downtime;
-		key->downtime = host.frametime[0];
+		if( !key->downtime ) msec = frametime;
+		else msec += frametime - key->downtime;
+		key->downtime = frametime;
 	}
 
 #if 0
 	if( msec )
 	{
-		Msg( "%i ", msec );
+		ALERT( at_console, "%i ", msec );
 	}
 #endif
-
 	val = bound( 0, (float)msec / frame_msec, 1 );
 
 	return val;
@@ -299,21 +286,93 @@ void IN_ScoreUp(void) {IN_KeyUp( &in_score ); }
 void IN_BreakDown(void) {IN_KeyDown( &in_break ); }
 void IN_BreakUp(void) {IN_KeyUp( &in_break ); }
 void IN_Cancel(void) { in_cancel = 1; } // special handling
-void IN_Impulse(void) { in_impulse = com.atoi( Cmd_Argv( 1 )); }
+void IN_Impulse(void) { in_impulse = atoi( CMD_ARGV( 1 )); }
 void IN_MLookDown(void) {IN_KeyDown( &in_mlook ); }
-void IN_CenterView(void)
+
+void IN_CenterView( void )
 {
-	if( !mlook_active ) clgame.dllFuncs.pfnStartPitchDrift();
-	else cl.refdef.cl_viewangles[PITCH] = 0;
+	if( !mlook_active )
+	{
+		V_StartPitchDrift ();
+	}
+	else
+	{
+		float	viewangles[3];
+
+		// just reset pitch
+		GetViewAngles( viewangles );
+		viewangles[PITCH] = 0.0f;
+		SetViewAngles( viewangles );
+	}
 }
+
 void IN_MLookUp(void)
 {
 	IN_KeyUp( &in_mlook );
+
 	if( !mlook_active && lookspring->integer )
-		clgame.dllFuncs.pfnStopPitchDrift();
+	{
+		V_StopPitchDrift ();
+	}
 }
 
-//==========================================================================
+/*
+=================
+CL_MouseMove
+=================
+*/
+void CL_MouseMove( usercmd_t *cmd )
+{
+	float	mx, my, rate;
+	float	accel_sensitivity;
+
+	// allow mouse smoothing
+	if( m_filter->integer )
+	{
+		mx = (mouse_x[0] + mouse_x[1]) * 0.5f;
+		my = (mouse_y[0] + mouse_y[1]) * 0.5f;
+	}
+	else
+	{
+		mx = mouse_x[mouse_step];
+		my = mouse_y[mouse_step];
+	}
+
+	mouse_step ^= 1;
+	mouse_x[mouse_step] = 0;
+	mouse_y[mouse_step] = 0;
+
+	rate = sqrt( mx * mx + my * my ) / (float)frame_msec;
+
+	// check for dead
+	if( !g_iAlive ) return;
+
+	accel_sensitivity = m_sensitivity->value + rate * cl_mouseaccel->value;
+	if ( gHUD.GetSensitivity( )) accel_sensitivity *= gHUD.GetSensitivity(); // scale by fov
+
+	mx *= accel_sensitivity;
+	my *= accel_sensitivity;
+
+	// add mouse X/Y movement to cmd
+	if(( in_strafe.state & 1 ) || (lookstrafe->integer && mlook_active))
+		cmd->sidemove += m_side->value * mx;
+	else cl_viewangles[YAW] -= m_yaw->value * mx;
+
+	if( mlook_active ) V_StopPitchDrift ();		
+
+	if( mlook_active && !( in_strafe.state & 1 ))
+	{
+		cl_viewangles[PITCH] += m_pitch->value * my;
+		cl_viewangles[PITCH] = bound( -cl_pitchup->value, cl_viewangles[PITCH], cl_pitchdown->value );
+	}
+	else
+	{
+		if(( in_strafe.state & 1 ) && gHUD.IsNoClipping() )
+			cmd->upmove -= m_forward->value * my;
+		else cmd->forwardmove -= m_forward->value * my;
+	}
+}
+
 /*
 ================
 CL_AdjustAngles
@@ -326,34 +385,42 @@ void CL_AdjustAngles( void )
 	float	speed;
 	float	up, down;
 
-	if( cl.refdef.health <= 0 ) return;
-	
-	speed = ( in_speed.state & 1 ) ? cls.frametime * cl_anglespeedkey->value : cls.frametime;
+	if( !g_iAlive ) return;
 
-	if(!( in_strafe.state & 1 ))
+	if ( in_speed.state & 1 )
 	{
-		cl.refdef.cl_viewangles[YAW] -= speed * cl_yawspeed->value * CL_KeyState( &in_right );
-		cl.refdef.cl_viewangles[YAW] += speed * cl_yawspeed->value * CL_KeyState( &in_left );
-		cl.refdef.cl_viewangles[YAW] = anglemod( cl.refdef.cl_viewangles[YAW] );
+		speed = gpGlobals->frametime * cl_anglespeedkey->value;
+	}
+	else
+	{
+		speed = gpGlobals->frametime;
+	}
+
+	if (!( in_strafe.state & 1 ))
+	{
+		cl_viewangles[YAW] -= speed * cl_yawspeed->value * CL_KeyState( &in_right );
+		cl_viewangles[YAW] += speed * cl_yawspeed->value * CL_KeyState( &in_left );
+		cl_viewangles[YAW] = anglemod( cl_viewangles[YAW] );
 	}
 
 	if( in_klook.state & 1 )
 	{
-		clgame.dllFuncs.pfnStopPitchDrift ();
-		cl.refdef.cl_viewangles[PITCH] -= speed * cl_pitchspeed->value * CL_KeyState( &in_forward );
-		cl.refdef.cl_viewangles[PITCH] += speed * cl_pitchspeed->value * CL_KeyState( &in_back );
+		V_StopPitchDrift ();
+
+		cl_viewangles[PITCH] -= speed * cl_pitchspeed->value * CL_KeyState( &in_forward );
+		cl_viewangles[PITCH] += speed * cl_pitchspeed->value * CL_KeyState( &in_back );
 	}
 
 	up = CL_KeyState( &in_lookup );
 	down = CL_KeyState( &in_lookdown );
 	
-	cl.refdef.cl_viewangles[PITCH] -= speed * cl_pitchspeed->value * up;
-	cl.refdef.cl_viewangles[PITCH] += speed * cl_pitchspeed->value * down;
+	cl_viewangles[PITCH] -= speed * cl_pitchspeed->value * up;
+	cl_viewangles[PITCH] += speed * cl_pitchspeed->value * down;
 
-	if( up || down ) clgame.dllFuncs.pfnStopPitchDrift();
+	if( up || down ) V_StopPitchDrift();
 
-	cl.refdef.cl_viewangles[PITCH] = bound( -70, cl.refdef.cl_viewangles[PITCH], 80 );
-	cl.refdef.cl_viewangles[ROLL] = bound( -50, cl.refdef.cl_viewangles[ROLL], 50 );	
+	cl_viewangles[PITCH] = bound( -70, cl_viewangles[PITCH], 80 );
+	cl_viewangles[ROLL] = bound( -50, cl_viewangles[ROLL], 50 );	
 }
 
 /*
@@ -365,10 +432,6 @@ Send the intended movement message to the server
 */
 void CL_BaseMove( usercmd_t *cmd )
 {	
-	CL_AdjustAngles ();
-	
-	Mem_Set( cmd, 0, sizeof( *cmd ));
-
 	if( in_strafe.state & 1 )
 	{
 		cmd->sidemove += cl_sidespeed->value * CL_KeyState( &in_right );
@@ -390,9 +453,92 @@ void CL_BaseMove( usercmd_t *cmd )
 	// adjust for speed key / running
 	if( in_speed.state & 1 ^ cl_run->integer )
 	{
-		cmd->forwardmove *= 2;
-		cmd->sidemove *= 2;
-		cmd->upmove *= 2;
+		cmd->forwardmove *= cl_movespeedkey->value;
+		cmd->sidemove *= cl_movespeedkey->value;
+		cmd->upmove *= cl_movespeedkey->value;
+	}
+
+	// clip to maxspeed
+	float spd = GetClientMaxspeed();
+
+	if( spd != 0.0f )
+	{
+		// scale the 3 speeds so that the total velocity is not > cl.maxspeed
+		float	fmove = 0;
+
+		fmove += (cmd->forwardmove * cmd->forwardmove);
+		fmove += (cmd->sidemove * cmd->sidemove);
+		fmove += (cmd->upmove * cmd->upmove);
+		fmove = sqrt( fmove );
+
+		if ( fmove > spd )
+		{
+			float	fratio = spd / fmove;
+
+			cmd->forwardmove *= fratio;
+			cmd->sidemove *= fratio;
+			cmd->upmove *= fratio;
+		}
+	}
+}
+
+void IN_CreateMove( usercmd_t *cmd, int host_frametime, int active )
+{
+	static int	last_frametime = 0;	// from previous frame
+
+	frametime = host_frametime;
+	frame_msec = bound( 1, frametime - last_frametime, 200 );
+
+	g_iAlive = gHUD.UpdateClientData();
+
+	if ( active )
+	{
+		GetViewAngles( cl_viewangles );
+
+		CL_AdjustAngles( );
+
+		CL_BaseMove( cmd );
+
+		// allow mice and other controllers to add their inputs
+		CL_MouseMove( cmd );
+
+		SetViewAngles( cl_viewangles );
+	}
+
+	cmd->impulse = in_impulse;
+	in_impulse = 0;
+
+	cmd->weaponselect = g_weaponselect;
+	g_weaponselect = 0;
+
+	// set button and flag bits
+	cmd->buttons = CL_ButtonBits( 1 );
+
+	// random seed for predictable random values
+	cmd->random_seed = RANDOM_LONG( 0, 0x7fffffff ); // full range
+
+	last_frametime = frametime;
+	
+	GetViewAngles( cl_viewangles );
+
+	// set current view angles.
+	if ( g_iAlive )
+	{
+		cmd->viewangles[0] = cl_oldviewangles[0] = cl_viewangles[0]; 
+		cmd->viewangles[1] = cl_oldviewangles[1] = cl_viewangles[1]; 
+		cmd->viewangles[2] = cl_oldviewangles[2] = cl_viewangles[2]; 
+
+		if( freelook->integer )
+		{
+			if( !mlook_active && lookspring->value )
+				V_StartPitchDrift();
+		}
+	}
+	else
+	{
+		cmd->viewangles[0] = cl_oldviewangles[0];
+		cmd->viewangles[1] = cl_oldviewangles[1];
+		cmd->viewangles[2] = cl_oldviewangles[2];
 	}
 }
 
@@ -508,222 +654,38 @@ void CL_ResetButtonBits( int bits )
 	}
 }
 
-/*
-==============
-CL_FinishMove
-==============
-*/
-void CL_FinishMove( usercmd_t *cmd )
-{
-	static double	extramsec = 0;
-	int		ms;
-
-	// send milliseconds of time to apply the move
-	extramsec += cls.frametime * 1000;
-	ms = extramsec;
-	extramsec -= ms;		// fractional part is left for next frame
-	if( ms > 250 ) ms = 100;	// time was unreasonable
-
-	cmd->msec = ms;
-
-	if( cls.key_dest == key_game )
-		cmd->buttons = CL_ButtonBits( 1 );
-
-	// process commands with user dll's
-	cl.data.iKeyBits = CL_ButtonBits( 0 );
-
-	if( cls.state == ca_active )
-	{
-		edict_t *pl = CL_GetLocalPlayer();
-		cl.data.iWeaponBits = pl->v.weapons;
-	}
-	else cl.data.iWeaponBits = 0;
-
-	VectorCopy( cl.refdef.cl_viewangles, cmd->viewangles );
-	VectorCopy( cl.refdef.cl_viewangles, cl.data.angles );
-	VectorCopy( cl.refdef.simorg, cl.data.origin );
-
-	cmd->random_seed = Com_RandomLong( 0, 0x7fffffff ); // full range
-	cmd->impulse = in_impulse;
-	in_impulse = 0;
-
-	clgame.dllFuncs.pfnUpdateClientData( &cl.data, ( cl.time * 0.001f ));
-
-	CL_ResetButtonBits( cl.data.iKeyBits );
-
-	in_cancel = 0;
-}
-
-
-/*
-=================
-CL_CreateCmd
-=================
-*/
-usercmd_t CL_CreateCmd( void )
-{
-	usercmd_t	cmd;
-
-	frame_msec = bound( 1, host.frametime[0] - host.frametime[1], 200 );
-
-	// get basic movement from mouse
-	CL_BaseMove( &cmd );
-	CL_MouseMove( &cmd );
-	CL_FinishMove( &cmd );
-
-	host.frametime[1] = host.frametime[0];
-
-	return cmd;
-}
-
-/*
-=================
-CL_CreateNewCommands
-
-Create a new usercmd_t structure for this frame
-=================
-*/
-void CL_CreateNewCommands( void )
-{
-	int	i;
-
-	// generate a command for this frame
-	i = cl.cmd_number = cls.netchan.outgoing_sequence & CMD_MASK;
-	cl.refdef.cmd = &cl.cmds[i];
-	cl.cmd_time[i] = cls.realtime; // for netgraph ping calculation
-
-	*cl.refdef.cmd = CL_CreateCmd();
-	
-	if( freelook->integer )
-	{
-		if( !mlook_active && lookspring->value )
-			clgame.dllFuncs.pfnStartPitchDrift();
-	}
-}
-
-/*
-===================
-CL_WritePacket
-
-Create and send the command packet to the server
-Including both the reliable commands and the usercmds
-
-During normal gameplay, a client packet will contain something like:
-
-1 clc_move
-<usercmd[-2]>
-<usercmd[-1]>
-<usercmd[-0]>
-===================
-*/
-void CL_WritePacket( void )
-{
-	sizebuf_t		buf;
-	byte		data[MAX_MSGLEN];
-	usercmd_t		*cmd, *oldcmd;
-	usercmd_t		nullcmd;
-	int		key;
-
-	// don't send anything if playing back a demo
-	if( cls.demoplayback || cls.state == ca_cinematic )
-		return;
-
-	if( cls.state == ca_disconnected || cls.state == ca_connecting )
-		return;
-
-	if( cls.state == ca_connected )
-	{
-		// just update reliable
-		if( cls.netchan.message.cursize || cls.realtime - cls.netchan.last_sent > 1000 )
-			Netchan_Transmit( &cls.netchan, 0, NULL );
-		return;
-	}
-
-	// send a userinfo update if needed
-	if( userinfo->modified )
-	{
-		userinfo->modified = false;
-		MSG_WriteByte( &cls.netchan.message, clc_userinfo );
-		MSG_WriteString( &cls.netchan.message, Cvar_Userinfo( ));
-	}
-
-	MSG_Init( &buf, data, sizeof( data ));
-
-	// begin a client move command
-	MSG_WriteByte( &buf, clc_move );
-
-	// save the position for a checksum byte
-	key = buf.cursize;
-	MSG_WriteByte( &buf, 0 );
-
-	// let the server know what the last frame we
-	// got was, so the next message can be delta compressed
-	if( cl_nodelta->integer || !cl.frame.valid || cls.demowaiting )
-		MSG_WriteLong( &buf, -1 ); // no compression
-	else MSG_WriteLong( &buf, cl.frame.serverframe );
-
-	// send this and the previous cmds in the message, so
-	// if the last packet was dropped, it can be recovered
-	cmd = &cl.cmds[(cls.netchan.outgoing_sequence - 2) & CMD_MASK];
-	Mem_Set( &nullcmd, 0, sizeof( nullcmd ));
-	MSG_WriteDeltaUsercmd( &buf, &nullcmd, cmd );
-	oldcmd = cmd;
-
-	cmd = &cl.cmds[(cls.netchan.outgoing_sequence - 1) & CMD_MASK];
-	MSG_WriteDeltaUsercmd( &buf, oldcmd, cmd );
-	oldcmd = cmd;
-
-	cmd = &cl.cmds[(cls.netchan.outgoing_sequence - 0) & CMD_MASK];
-	MSG_WriteDeltaUsercmd( &buf, oldcmd, cmd );
-
-	// calculate a checksum over the move commands
-	buf.data[key] = CRC_Sequence( buf.data + key + 1, buf.cursize - key - 1, cls.netchan.outgoing_sequence );
-
-	// deliver the message
-	Netchan_Transmit( &cls.netchan, buf.cursize, buf.data );
-}
-
-/*
-=================
-CL_SendCmd
-
-Called every frame to builds and sends a command packet to the server.
-=================
-*/
-void CL_SendCmd( void )
-{
-	// we create commands even if a demo is playing,
-	CL_CreateNewCommands();
-
-	// clc_move, userinfo etc
-	CL_WritePacket();
-}
-
-/*
-============
-CL_InitInput
-============
-*/
-void CL_InitInput( void )
+void IN_Init( void )
 {
 	// mouse variables
-	m_filter = Cvar_Get("m_filter", "0", 0, "enable mouse filter" );
-	m_sensitivity = Cvar_Get( "m_sensitivity", "3", CVAR_ARCHIVE, "mouse in-game sensitivity" );
-	cl_mouseaccel = Cvar_Get( "cl_mouseaccelerate", "0", CVAR_ARCHIVE, "mouse accelerate factor" ); 
+	m_filter = CVAR_REGISTER("m_filter", "0", 0, "enable mouse filter" );
+	m_sensitivity = CVAR_REGISTER( "m_sensitivity", "3", FCVAR_ARCHIVE, "mouse in-game sensitivity" );
+	cl_mouseaccel = CVAR_REGISTER( "cl_mouseaccelerate", "0", FCVAR_ARCHIVE, "mouse accelerate factor" ); 
 
 	// centering
-	v_centermove = Cvar_Get ("v_centermove", "0.15", 0, "client center moving" );
-	v_centerspeed = Cvar_Get ("v_centerspeed", "500",	0, "client center speed" );
-	cl_nodelta = Cvar_Get ("cl_nodelta", "0", 0, "disable delta-compression for usercommnds" );
+	v_centermove = CVAR_REGISTER ("v_centermove", "0.15", 0, "client center moving" );
+	v_centerspeed = CVAR_REGISTER ("v_centerspeed", "500", 0, "client center speed" );
 
-	freelook = Cvar_Get( "freelook", "1", CVAR_ARCHIVE, "enables mouse look" );
-	lookspring = Cvar_Get( "lookspring", "0", CVAR_ARCHIVE, "allow look spring" );
-	lookstrafe = Cvar_Get( "lookstrafe", "0", CVAR_ARCHIVE, "allow look strafe" );
+	cl_upspeed = CVAR_REGISTER( "cl_upspeed", "200", 0, "client upspeed limit" );
+	cl_forwardspeed = CVAR_REGISTER( "cl_forwardspeed", "200", 0, "client forward speed limit" );
+	cl_backspeed = CVAR_REGISTER( "cl_backspeed", "200", 0, "client bask speed limit" );
+	cl_sidespeed = CVAR_REGISTER( "cl_sidespeed", "200", 0, "client side-speed limit" );
+	cl_yawspeed = CVAR_REGISTER( "cl_yawspeed", "140", 0, "client yaw speed" );
+	cl_pitchspeed = CVAR_REGISTER( "cl_pitchspeed", "150", 0, "client pitch speed" );
+	cl_anglespeedkey = CVAR_REGISTER( "cl_anglespeedkey", "1.5", 0, "client anglespeed" );
+	cl_run = CVAR_REGISTER( "cl_run", "0", FCVAR_ARCHIVE, "keep client for always run mode" );
 
-	m_pitch = Cvar_Get ("m_pitch", "0.022", CVAR_ARCHIVE, "mouse pitch value" );
-	m_yaw = Cvar_Get ("m_yaw", "0.022", 0, "mouse yaw value" );
-	m_forward = Cvar_Get ("m_forward", "1", 0, "mouse forward speed" );
-	m_side = Cvar_Get ("m_side", "1", 0, "mouse side speed" );
+	cl_movespeedkey = CVAR_REGISTER ( "cl_movespeedkey", "2", 0, "global scale factor between run and walk" );
+	cl_pitchup = CVAR_REGISTER ( "cl_pitchup", "70", 0, "how many pitch up" );
+	cl_pitchdown = CVAR_REGISTER ( "cl_pitchdown", "80", 0, "how many pitch down" );
+
+	freelook = CVAR_REGISTER( "freelook", "1", FCVAR_ARCHIVE, "enables mouse look" );
+	lookspring = CVAR_REGISTER( "lookspring", "0", FCVAR_ARCHIVE, "allow look spring" );
+	lookstrafe = CVAR_REGISTER( "lookstrafe", "0", FCVAR_ARCHIVE, "allow look strafe" );
+
+	m_pitch = CVAR_REGISTER ("m_pitch", "0.022", FCVAR_ARCHIVE, "mouse pitch value" );
+	m_yaw = CVAR_REGISTER ("m_yaw", "0.022", 0, "mouse yaw value" );
+	m_forward = CVAR_REGISTER ("m_forward", "1", 0, "mouse forward speed" );
+	m_side = CVAR_REGISTER ("m_side", "1", 0, "mouse side speed" );
 	
 	Cmd_AddCommand ("centerview", IN_CenterView, "gradually recenter view (stop looking up/down)" );
 
@@ -773,14 +735,11 @@ void CL_InitInput( void )
 	Cmd_AddCommand ("+break",IN_BreakDown, "cancel" );
 	Cmd_AddCommand ("-break",IN_BreakUp, "stop cancel" );
 	Cmd_AddCommand ( "impulse", IN_Impulse, "send impulse to a client" );
+
+	V_Init ();
 }
 
-/*
-============
-CL_ShutdownInput
-============
-*/
-void CL_ShutdownInput( void )
+void IN_Shutdown( void )
 {
 	Cmd_RemoveCommand ("centerview" );
 	Cmd_RemoveCommand ("impulse" );

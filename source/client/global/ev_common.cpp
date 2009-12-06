@@ -19,7 +19,7 @@ extern "C"
 //======================
 void EV_HookEvents( void )
 {
-	g_engfuncs.pfnHookEvent( "evEjectBrass", EV_EjectBrass );
+	g_engfuncs.pEventAPI->EV_HookEvent( "evEjectBrass", EV_EjectBrass );
 }
 
 #if 0	// remove this when client api's all be done
@@ -143,3 +143,12 @@ void EV_MuzzleFlash( void )
 	ent->curstate.effects |= EF_MUZZLEFLASH;
 }
 #endif
+
+
+void HUD_CmdStart( const edict_t *player, int runfuncs )
+{
+}
+
+void HUD_CmdEnd( const edict_t *player, const usercmd_t *cmd, unsigned int random_seed )
+{
+}

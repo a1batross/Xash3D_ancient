@@ -8,6 +8,7 @@
 
 extern cl_enginefuncs_t g_engfuncs;
 
+#include "event_api.h"
 #include "enginecallback.h"
 
 extern cl_globalvars_t		*gpGlobals;
@@ -15,12 +16,11 @@ extern cl_globalvars_t		*gpGlobals;
 extern int HUD_VidInit( void );
 extern void HUD_Init( void );
 extern int HUD_Redraw( float flTime, int state );
-extern int HUD_UpdateClientData( client_data_t *cdata, float flTime );
 extern void HUD_UpdateEntityVars( edict_t *out, skyportal_t *sky, const entity_state_t *s, const entity_state_t *p );
 extern void HUD_Reset( void );
 extern void HUD_Frame( double time );
 extern void HUD_Shutdown( void );
-extern void HUD_DrawTriangles( void );
+extern void HUD_DrawTriangles( int fTrans );
 extern void HUD_CreateEntities( void );
 extern void HUD_StudioEvent( const dstudioevent_t *event, edict_t *entity );
 extern void HUD_StudioFxTransform( edict_t *ent, float transform[4][4] );
@@ -29,6 +29,12 @@ extern void V_CalcRefdef( ref_params_t *parms );
 extern void V_StartPitchDrift( void );
 extern void V_StopPitchDrift( void );
 extern void V_Init( void );
+extern void VGui_ConsolePrint( const char *text );
+extern void IN_Init( void );
+extern void IN_Shutdown( void );
+extern void IN_CreateMove( usercmd_t *cmd, int frametime, int active );
+extern int  IN_KeyEvent( int down, int keynum, const char *pszBind );
+extern void IN_MouseEvent( int mx, int my );
 
 #define VIEWPORT_SIZE	512
 
@@ -118,6 +124,11 @@ inline byte LerpByte( byte oldpoint, byte curpoint, float frac )
 	return bound( 0, oldpoint + frac * (curpoint - oldpoint), 255 );
 }
 
+_inline float anglemod( const float a )
+{
+	return( 360.0f / 65536) * ((int)(a * (65536 / 360.0f)) & 65535);
+}
+
 inline int ConsoleStringLen( const char *string )
 {
 	int	_width, _height;
@@ -160,9 +171,16 @@ extern void DrawProgressBar( void );
 extern edict_t *spot;
 extern int v_paused;
 extern float v_idlescale;
+extern int g_weaponselect;
+extern int g_iAlive;		// indicates alive local client or not
 
-// stdio stuff
-char *COM_ParseToken( const char **data_p );
+// input.cpp
+extern cvar_t	*v_centerspeed;
+extern cvar_t	*v_centermove;
+extern cvar_t	*cl_forwardspeed;
+
+extern int CL_ButtonBits( int bResetState );
+extern void CL_ResetButtonBits( int bits );
 
 // dlls stuff
 BOOL Sys_LoadLibrary( const char* dllname, dllhandle_t* handle, const dllfunction_t *fcts );

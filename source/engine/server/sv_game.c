@@ -2455,7 +2455,7 @@ pfnGetBonePosition
 
 =============
 */
-void pfnGetBonePosition( const edict_t* pEdict, int iBone, float *rgflOrigin, float *rgflAngles )
+static void pfnGetBonePosition( const edict_t* pEdict, int iBone, float *rgflOrigin, float *rgflAngles )
 {
 	if( !SV_IsValidEdict( pEdict ))
 	{
@@ -2568,41 +2568,6 @@ void pfnServerPrint( const char *szMsg )
 	// while loading in-progress we can sending message only for local client
 	if( sv.state == ss_loading ) com.print( szMsg );	
 	else SV_BroadcastPrintf( PRINT_HIGH, "%s", szMsg );
-}
-
-/*
-=============
-pfnCmd_Args
-
-=============
-*/
-const char *pfnCmd_Args( void )
-{
-	return Cmd_Args();
-}
-
-/*
-=============
-pfnCmd_Argv
-
-=============
-*/
-const char *pfnCmd_Argv( int argc )
-{
-	if( argc >= 0 && argc < Cmd_Argc())
-		return Cmd_Argv( argc );
-	return "";
-}
-
-/*
-=============
-pfnCmd_Argc
-
-=============
-*/
-int pfnCmd_Argc( void )
-{
-	return Cmd_Argc();
 }
 
 /*

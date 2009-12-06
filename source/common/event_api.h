@@ -5,29 +5,13 @@
 #ifndef EVENT_API_H
 #define EVENT_API_H
 
-
 #define FEV_NOTHOST		(1<<0)	// skip local host for event send.    
-
-// Send the event reliably.  You must specify the origin and angles and use
-// PLAYBACK_EVENT_FULL for this to work correctly on the server for anything
-// that depends on the event origin/angles.  I.e., the origin/angles are not
-// taken from the invoking edict for reliable events.
-#define FEV_RELIABLE	(1<<1)	 
-
-// Don't restrict to PAS/PVS, send this event to _everybody_ on the server
-// ( useful for stopping CHAN_STATIC sounds started by client event when client
-// is not in PVS anymore ( hwguy in TFC e.g. ).
-#define FEV_GLOBAL		(1<<2)
-
-// If this client already has one of these events in its queue,
-// just update the event instead of sending it as a duplicate
-#define FEV_UPDATE		(1<<3)
+#define FEV_RELIABLE	(1<<1)	// send the event reliably.	 
+#define FEV_GLOBAL		(1<<2)	// don't restrict to PAS/PVS, send this event to _everybody_ on the server
+#define FEV_UPDATE		(1<<3)	// UNDONE: no effect in version 0.68
 #define FEV_HOSTONLY	(1<<4)	// only send to entity specified as the invoker
 #define FEV_SERVER		(1<<5)	// only send if the event was created on the server.
 #define FEV_CLIENT		(1<<6)	// only issue event client side ( from shared code )
-
-#define FEVENT_ORIGIN	(1<<0)	// event was invoked with stated origin
-#define FEVENT_ANGLES	(1<<1)	// event was invoked with stated angles
 
 typedef struct event_args_s
 {
@@ -47,5 +31,25 @@ typedef struct event_args_s
 	int	bparam1;
 	int	bparam2;
 } event_args_t;
+
+typedef void (*pfnEventHook)( event_args_t *args );
+
+typedef struct event_api_s
+{
+	size_t	api_size;			// must match with sizeof( event_api_t );
+	word	(*EV_PrecacheEvent)( int type, const char* psz );
+	void	(*EV_PlaybackEvent)( int flags, const edict_t *pInvoker, word eventindex, float delay, event_args_t *args );
+	void	(*EV_WeaponAnim)( int iAnim, int body, float framerate );
+	float	(*EV_RandomFloat)( float flLow, float flHigh );	
+	long	(*EV_RandomLong)( long lLow, long lHigh );
+	void	(*EV_HookEvent)( const char *name, pfnEventHook pfn );
+	void	(*EV_KillEvents)( int entnum, const char *eventname );
+	void	(*EV_PlaySound)( edict_t *ent, float *org, int chan, const char *samp, float vol, float attn, int flags, int pitch );
+	void	(*EV_StopSound)( int ent, int channel, const char *sample );
+	int	(*EV_FindModelIndex)( const char *model );
+	int	(*EV_IsLocal)( int playernum );
+	void	(*EV_LocalPlayerViewheight)( float *view_ofs );
+	void	(*EV_StopAllSounds)( edict_t *ent, int entchannel );
+} event_api_t;
 
 #endif//EVENT_API_H

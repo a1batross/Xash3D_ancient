@@ -7,7 +7,7 @@
 #include "utils.h"
 #include "r_particle.h"
 
-void HUD_DrawTriangles( void )
+void HUD_DrawTriangles( int fTrans )
 {
 	g_pParticleSystems->UpdateSystems();
 }

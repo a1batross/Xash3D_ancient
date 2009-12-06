@@ -35,11 +35,7 @@ void V_SetupRefDef( void )
 	// UNDONE: temporary place for detect waterlevel
 	CL_CheckWater( clent );
 
-	VectorCopy( clent->v.velocity, cl.refdef.simvel );
-	VectorCopy( clent->v.origin, cl.refdef.simorg );
-	VectorCopy( clent->v.view_ofs, cl.refdef.viewheight );
 	VectorCopy( clent->v.punchangle, cl.refdef.punchangle );
-
 	cl.refdef.movevars = &clgame.movevars;
 	cl.refdef.onground = clent->v.groundentity;
 	cl.refdef.areabits = cl.frame.areabits;
@@ -52,26 +48,36 @@ void V_SetupRefDef( void )
 	cl.refdef.time = cl.time * 0.001f;
 	cl.refdef.frametime = cls.frametime;
 	cl.refdef.demoplayback = cls.demoplayback;
-	cl.refdef.smoothing = cl_predict->integer;
+	cl.refdef.smoothing = cl_predict->integer ? false : true;
 	cl.refdef.waterlevel = clent->v.waterlevel;		
 	cl.refdef.flags = cl.render_flags;
-	cl.refdef.viewsize = 120; // fixme if you can
+	cl.refdef.viewsize = 120; // FIXME if you can
 	cl.refdef.nextView = 0;
 
 	// calculate the origin
 	if( cl_predict->integer && !cl.refdef.demoplayback )
 	{	
 		// use predicted values
-		int	i, delta;
+		uint	i, delta;
 		float	backlerp = 1.0 - cl.lerpFrac;
 
 		for( i = 0; i < 3; i++ )
-			cl.refdef.vieworg[i] = cl.predicted_origin[i] + cl.refdef.viewheight[i] - backlerp * cl.prediction_error[i];
-
+		{
+			cl.refdef.simorg[i] = cl.predicted_origin[i] - backlerp * cl.prediction_error[i];
+			cl.refdef.viewheight[i] = cl.predicted_viewofs[i] - backlerp * cl.prediction_error[i];
+                    }
 		// smooth out stair climbing
 		delta = cls.realtime - cl.predicted_step_time;
 		if( delta < cl.serverframetime )
-			cl.refdef.vieworg[2] -= cl.predicted_step * ((cl.serverframetime - delta) / (float)cl.serverframetime);
+			cl.refdef.simorg[2] -= cl.predicted_step * ((cl.serverframetime - delta) / (float)cl.serverframetime);
+		VectorCopy( cl.predicted_viewofs, cl.refdef.viewheight );
+		VectorCopy( cl.predicted_velocity, cl.refdef.simvel );
+	}
+	else
+	{
+		VectorCopy( clent->v.origin, cl.refdef.simorg );
+		VectorCopy( clent->v.view_ofs, cl.refdef.viewheight );
+		VectorCopy( clent->v.velocity, cl.refdef.simvel );
 	}
 }
 
@@ -124,7 +130,7 @@ void V_RenderView( void )
 
 	// update cl_globalvars
 	clgame.globals->time = cl.time * 0.001f; // clamped
-	clgame.globals->frametime = cl.serverframetime * 0.001f; // !!!
+	clgame.globals->frametime = cls.frametime; // used by input code
 
 	if( cl.frame.valid && (cl.force_refdef || !cl.refdef.paused ))
 	{

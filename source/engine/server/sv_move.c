@@ -336,7 +336,7 @@ PM_ClientPrintf
 Sends text across to be displayed
 =================
 */
-void PM_ClientPrintf( int index, char *fmt, ... )
+static void PM_ClientPrintf( int index, char *fmt, ... )
 {
 	va_list		argptr;
 	char		string[MAX_SYSPATH];
@@ -373,7 +373,7 @@ static TraceResult PM_PlayerTrace( const vec3_t start, const vec3_t end, int tra
 	TraceResult	out;
 
 	if( VectorIsNAN( start ) || VectorIsNAN( end ))
-		Host_Error( "TraceTexture: NAN errors detected ('%f %f %f', '%f %f %f'\n", start[0], start[1], start[2], end[0], end[1], end[2] );
+		Host_Error( "PlayerTrace: NAN errors detected ('%f %f %f', '%f %f %f'\n", start[0], start[1], start[2], end[0], end[1], end[2] );
 
 	svgame.pmove->usehull = bound( 0, svgame.pmove->usehull, 3 );
 	mins = svgame.pmove->player_mins[svgame.pmove->usehull];
@@ -391,7 +391,7 @@ PM_TraceTexture
 
 ===============
 */
-const char *PM_TraceTexture( edict_t *pTextureEntity, const float *v1, const float *v2 )
+static const char *PM_TraceTexture( edict_t *pTextureEntity, const float *v1, const float *v2 )
 {
 	if( VectorIsNAN( v1 ) || VectorIsNAN( v2 ))
 		Host_Error( "TraceTexture: NAN errors detected ('%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
@@ -406,7 +406,7 @@ PM_TraceModel
 
 ===============
 */
-TraceResult PM_TraceModel( edict_t *pEnt, const vec3_t start, const vec3_t end )
+static TraceResult PM_TraceModel( edict_t *pEnt, const vec3_t start, const vec3_t end )
 {
 	float		*mins;
 	float		*maxs;
@@ -415,7 +415,7 @@ TraceResult PM_TraceModel( edict_t *pEnt, const vec3_t start, const vec3_t end )
 	uint		umask;
 
 	if( VectorIsNAN( start ) || VectorIsNAN( end ))
-		Host_Error( "TraceTexture: NAN errors detected ('%f %f %f', '%f %f %f'\n", start[0], start[1], start[2], end[0], end[1], end[2] );
+		Host_Error( "TraceModel: NAN errors detected ('%f %f %f', '%f %f %f'\n", start[0], start[1], start[2], end[0], end[1], end[2] );
 
 	umask = World_MaskForEdict( svgame.pmove->player );
 	svgame.pmove->usehull = bound( 0, svgame.pmove->usehull, 3 );
@@ -434,7 +434,7 @@ PM_GetEntityByIndex
 safe version of SV_EDICT_NUM
 ===============
 */
-edict_t *PM_GetEntityByIndex( int index )
+static edict_t *PM_GetEntityByIndex( int index )
 {
 	if( index < 0 || index > svgame.globals->numEntities )
 	{
@@ -449,23 +449,23 @@ edict_t *PM_GetEntityByIndex( int index )
 	return EDICT_NUM( index );
 }
 
-void PM_PlaySound( int chan, const char *sample, float vol, float attn, int pitch )
+static void PM_PlaySound( int chan, const char *sample, float vol, float attn, int pitch )
 {
 	if( !svgame.pmove->runfuncs ) return; // ignored
 	SV_StartSound( svgame.pmove->player, chan, sample, vol, attn, 0, pitch );
 }
 
-edict_t *PM_TestPlayerPosition( const vec3_t origin, TraceResult *trace )
+static edict_t *PM_TestPlayerPosition( const vec3_t origin, TraceResult *trace )
 {
 	return SV_TestPlayerPosition( origin, svgame.pmove->player, trace );
 }
 
-int PM_PointContents( const vec3_t p )
+static int PM_PointContents( const vec3_t p )
 {
 	return World_ConvertContents( SV_BaseContents( p, svgame.pmove->player ));
 }
 
-void PM_CheckMovingGround( edict_t *ent, float frametime )
+static void PM_CheckMovingGround( edict_t *ent, float frametime )
 {
 	SV_UpdateBaseVelocity( ent );
 
@@ -478,8 +478,11 @@ void PM_CheckMovingGround( edict_t *ent, float frametime )
 	ent->v.flags &= ~FL_BASEVELOCITY;
 }
 
-void PM_SetupMove( playermove_t *pmove, edict_t *clent, usercmd_t *ucmd, const char *physinfo )
+static void PM_SetupMove( playermove_t *pmove, edict_t *clent, usercmd_t *ucmd, const char *physinfo )
 {
+	pmove->multiplayer = (sv_maxclients->integer > 1) ? true : false;
+	pmove->serverflags = svgame.globals->serverflags;	// shared serverflags
+	pmove->maxspeed = svgame.movevars.maxspeed;
 	pmove->realtime = svgame.globals->time;
 	pmove->frametime = ucmd->msec * 0.001f;
 	com.strncpy( pmove->physinfo, physinfo, MAX_INFO_STRING );
@@ -493,14 +496,20 @@ void PM_SetupMove( playermove_t *pmove, edict_t *clent, usercmd_t *ucmd, const c
 	pmove->usehull = (clent->v.flags & FL_DUCKING) ? 1 : 0; // reset hull
 	pmove->bInDuck = clent->v.bInDuck;
 	VectorCopy( clent->v.origin, pmove->origin );
+	VectorCopy( clent->v.movedir, pmove->movedir );
+	VectorCopy( clent->v.velocity, pmove->velocity );
+	VectorCopy( clent->v.basevelocity, pmove->basevelocity );
 }
 
-void PM_FinishMove( playermove_t *pmove, edict_t *clent )
+static void PM_FinishMove( playermove_t *pmove, edict_t *clent )
 {
 	clent->v.teleport_time = pmove->flWaterJumpTime;
 	clent->v.groundentity = pmove->onground;
 	VectorCopy( pmove->angles, clent->v.viewangles );
 	VectorCopy( pmove->origin, clent->v.origin );
+	VectorCopy( pmove->movedir, clent->v.movedir );
+	VectorCopy( pmove->velocity, clent->v.velocity );
+	VectorCopy( pmove->basevelocity, clent->v.basevelocity );
 	clent->v.bInDuck = pmove->bInDuck;
 }
 
@@ -632,11 +641,6 @@ void SV_RunCmd( sv_client_t *cl, usercmd_t *ucmd )
 		if( VectorLength( clent->v.basevelocity ) > 0.0f )
 			VectorCopy( clent->v.basevelocity, clent->v.clbasevelocity );
 	}
-
-	// setup playermove globals
-	svgame.pmove->multiplayer = (sv_maxclients->integer > 1) ? true : false;
-	svgame.pmove->serverflags = svgame.globals->serverflags;	// shared serverflags
-	svgame.pmove->maxspeed = svgame.movevars.maxspeed;
 
 	// setup playermove state
 	PM_SetupMove( svgame.pmove, clent, ucmd, cl->physinfo );

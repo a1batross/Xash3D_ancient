@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mathlib.h"
 #include "entity_def.h"
-#include "clgame_api.h"
 #include "render_api.h"
 
 #define UI_WHITE_SHADER		"*white"

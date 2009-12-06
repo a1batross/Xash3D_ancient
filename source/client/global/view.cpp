@@ -49,15 +49,12 @@ cvar_t	*scr_ofsy;
 cvar_t	*scr_ofsz;
 cvar_t	*cl_vsmoothing;
 cvar_t	*cl_stairsmooth;
-cvar_t	*cl_forwardspeed;
 
 cvar_t	*cl_bobcycle;
 cvar_t	*cl_bob;
 cvar_t	*cl_bobup;
 cvar_t	*cl_waterdist;
 cvar_t	*cl_chasedist;
-cvar_t	*v_centermove;
-cvar_t	*v_centerspeed;
 
 cvar_t	*v_iyaw_cycle;
 cvar_t	*v_iroll_cycle;
@@ -97,7 +94,7 @@ Vector g_vecCurrentAngles;    // current angles
 void V_ThirdPerson( void )
 {
 	// no thirdperson in multiplayer
-	if( GetMaxClients() > 1 ) return;
+	if( gpGlobals->maxClients > 1 ) return;
 	if( !gHUD.viewFlags )
 		gHUD.m_iLastCameraMode = gHUD.m_iCameraMode = 1;
 	else gHUD.m_iLastCameraMode = 1; // set new view after release camera
@@ -124,7 +121,6 @@ void V_Init( void )
 
 	cl_vsmoothing = g_engfuncs.pfnRegisterVariable( "cl_vsmoothing", "0.05", 0, "enables lepring in multiplayer" );
 	cl_stairsmooth = g_engfuncs.pfnRegisterVariable( "cl_vstairsmooth", "100", FCVAR_ARCHIVE, "how fast your view moves upward/downward when running up/down stairs" );
-	cl_forwardspeed = g_engfuncs.pfnRegisterVariable( "cl_forwardspeed", "200", 0, "client forward speed limit" );
 
 	v_iyaw_cycle = g_engfuncs.pfnRegisterVariable( "v_iyaw_cycle", "2", 0, "viewing inverse yaw cycle" );
 	v_iroll_cycle = g_engfuncs.pfnRegisterVariable( "v_iroll_cycle", "0.5", 0, "viewing inverse roll cycle" );
@@ -132,9 +128,6 @@ void V_Init( void )
 	v_iyaw_level = g_engfuncs.pfnRegisterVariable( "v_iyaw_level", "0.3", 0, "viewing inverse yaw level" );
 	v_iroll_level = g_engfuncs.pfnRegisterVariable( "v_iroll_level", "0.1", 0, "viewing inverse roll level" );
 	v_ipitch_level = g_engfuncs.pfnRegisterVariable( "v_iyaw_level", "0.3", 0, "viewing inverse pitch level" );
-
-	v_centermove = g_engfuncs.pfnRegisterVariable( "v_centermove", "0.15", 0, "center moving scale" );
-	v_centerspeed = g_engfuncs.pfnRegisterVariable( "v_centerspeed", "500", 0, "center moving speed" );
 
 	cl_bobcycle = g_engfuncs.pfnRegisterVariable( "cl_bobcycle","0.8", 0, "bob full cycle" );
 	cl_bob = g_engfuncs.pfnRegisterVariable( "cl_bob", "0.01", 0, "bob value" );
@@ -561,7 +554,7 @@ edict_t *V_FindIntermisionSpot( ref_params_t *pparams )
 	// ok, we have list of intermission spots
 	if( j )
 	{
-		if( j > 1 ) k = g_engfuncs.pfnRandomLong( 0, j - 1 );
+		if( j > 1 ) k = RANDOM_LONG( 0, j - 1 );
 		ent = GetEntityByIndex( spotindex[k] );
 	}
 	else ent = GetLocalPlayer(); // just get view from player
@@ -731,15 +724,13 @@ float V_CalcWaterLevel( ref_params_t *pparams )
 	
 	if( pparams->waterlevel >= 2 )
 	{
-		int i, contents, waterDist;
-		waterDist = cl_waterdist->value;
-		TraceResult tr;
-		Vector point;
+		int	i, contents;
+		float	waterDist = cl_waterdist->value;
+		Vector	point;
 
-		TRACE_HULL( pparams->simorg, pparams->simorg, 1, 1, GetLocalPlayer(), &tr );
+		edict_t *pwater = g_engfuncs.pfnWaterEntity( pparams->simorg );
+		if( pwater ) waterDist += ( pwater->v.scale * 16 );
 
-		if( tr.pHit && !stricmp( STRING( tr.pHit->v.classname ), "func_water" ))
-			waterDist += ( tr.pHit->v.scale * 16 );
 		point = pparams->vieworg;
 
 		// eyes are above water, make sure we're above the waves

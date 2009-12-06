@@ -88,6 +88,8 @@ typedef struct entity_state_s
 	float		health;		// client health (other parms can be send by custom messages)
 	int		weapons;		// weapon flags
 	float		fov;		// horizontal field of view
+	int		iStepLeft;	// synched footsteps
+	float		flFallVelocity;	// how fast we are falling 
 } entity_state_t;
 
 #endif//ENTITY_STATE_H

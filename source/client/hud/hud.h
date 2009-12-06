@@ -572,7 +572,7 @@ private:
 	int		m_iSpriteCount;
 	float		m_flMouseSensitivity;
 	int		m_iConcussionEffect;
-
+	int		m_iNoClip;
 public:
 	HSPRITE m_hsprCursor;
 	float m_flTime;	 // the current client time
@@ -635,7 +635,7 @@ public:
 	void VidInit( void );
 	void Think( void );
 	int Redraw( float flTime );
-	int UpdateClientData( client_data_t *cdata, float time );
+	int UpdateClientData( void );
 
 	CHud() : m_pHudList(NULL) { }
 	~CHud();	// destructor, frees allocated memory
@@ -713,6 +713,7 @@ public:
 	
 	void AddHudElem( CHudBase *p );
 	float GetSensitivity() { return m_flMouseSensitivity; }
+	int IsNoClipping() { return m_iNoClip; }
 };
 
 extern CHud gHUD;

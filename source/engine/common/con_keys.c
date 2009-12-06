@@ -1130,9 +1130,6 @@ void Key_Event( int key, bool down, int time )
 		case key_menu:
 			UI_KeyEvent( key );
 			return;
-		case key_hudmenu:
-			// passed to client dll's
-			break;
 		default:
 			MsgDev( D_ERROR, "Key_Event: bad cls.key_dest\n" );
 			return;
@@ -1166,7 +1163,7 @@ void Key_Event( int key, bool down, int time )
 	{
 		Key_Console( key );
 	}
-	else if( cls.key_dest == key_game || cls.key_dest == key_hudmenu )
+	else if( cls.key_dest == key_game )
 	{
 		// send the bound action
 		kb = keys[key].binding;
@@ -1235,6 +1232,25 @@ void CL_CharEvent( int key )
 	else if( cls.key_dest == key_message )
 	{
 		Field_CharEvent( &chatField, key );
+	}
+}
+
+/*
+=================
+CL_MouseEvent
+=================
+*/
+void CL_MouseEvent( int mx, int my )
+{
+	if( UI_IsVisible( ))
+	{
+		// if the menu is visible, move the menu cursor
+		UI_MouseMove( mx, my );
+	}
+	else
+	{
+		// otherwise passed into client.dll
+		clgame.dllFuncs.pfnMouseEvent( mx, my );
 	}
 }
 

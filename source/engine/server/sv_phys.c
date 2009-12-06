@@ -459,22 +459,6 @@ void SV_ClipVelocity( vec3_t in, vec3_t normal, vec3_t out, float overbounce )
 	}
 }
 
-// FIXME: hack
-void SV_ClipVelocity2( vec3_t in, vec3_t normal, vec3_t out, float overbounce )
-{
-	int i;
-	float backoff;
-
-	backoff = DotProduct (in, normal) * overbounce;
-	VectorMA( in, backoff, normal, out );
-
-	for( i = 0; i < 3; i++ )
-	{
-		if( out[i] > -STOP_EPSILON && out[i] < STOP_EPSILON )
-			out[i] = 0.0f;
-	}
-}
-
 /*
 ===============================================================================
 
@@ -603,7 +587,7 @@ int SV_FlyMove( edict_t *ent, float time, trace_t *steptrace )
 	int		i, j, numplanes, bumpcount, blocked;
 	vec3_t		dir, end, planes[MAX_CLIP_PLANES];
 	vec3_t		primal_velocity, original_velocity, new_velocity;
-	float		d, time_left;
+	float		d, time_left, allFraction;
 	trace_t		trace;
 
 	blocked = 0;
@@ -611,9 +595,10 @@ int SV_FlyMove( edict_t *ent, float time, trace_t *steptrace )
 	VectorCopy( ent->v.velocity, primal_velocity );
 	numplanes = 0;
 
+	allFraction = 0;
 	time_left = time;
 
-	for( bumpcount = 0; bumpcount < MAX_CLIP_PLANES; bumpcount++ )
+	for( bumpcount = 0; bumpcount < MAX_CLIP_PLANES - 1; bumpcount++ )
 	{
 		if( VectorIsNull( ent->v.velocity ))
 			break;
@@ -621,11 +606,13 @@ int SV_FlyMove( edict_t *ent, float time, trace_t *steptrace )
 		VectorMA( ent->v.origin, time_left, ent->v.velocity, end );
 		trace = SV_Move( ent->v.origin, ent->v.mins, ent->v.maxs, end, MOVE_NORMAL, ent );
 
+		allFraction += trace.flFraction;
+
 		if( trace.fAllSolid )
 		{	
 			// entity is trapped in another solid
 			VectorClear( ent->v.velocity );
-			return 3;
+			return 4;
 		}
 
 		if( trace.flFraction > 0.0f )
@@ -667,14 +654,14 @@ int SV_FlyMove( edict_t *ent, float time, trace_t *steptrace )
 		// break if removed by the impact function
 		if( ent->free ) break;
 
-		time_left -= time_left - trace.flFraction;
+		time_left -= time_left * trace.flFraction;
 
 		// clipped to another plane
 		if( numplanes >= MAX_CLIP_PLANES )
 		{
 			// this shouldn't really happen
 			VectorClear( ent->v.velocity );
-			return 3;
+			break;
 		}
 
 		VectorCopy( trace.vecPlaneNormal, planes[numplanes] );
@@ -683,9 +670,7 @@ int SV_FlyMove( edict_t *ent, float time, trace_t *steptrace )
 		// modify original_velocity so it parallels all of the clip planes
 		for( i = 0; i < numplanes; i++ )
 		{
-			if( ent->v.movetype != MOVETYPE_PUSHSTEP )
-				SV_ClipVelocity( original_velocity, planes[i], new_velocity, 1.0f );
-			else SV_ClipVelocity2( original_velocity, planes[i], new_velocity, 1.0f );
+			SV_ClipVelocity( original_velocity, planes[i], new_velocity, 1.0f );
 			for( j = 0; j < numplanes; j++ )
 			{
 				if( j != i )
@@ -694,7 +679,8 @@ int SV_FlyMove( edict_t *ent, float time, trace_t *steptrace )
 						break; // not ok
 				}
 			}
-			if( j == numplanes ) break;
+			if( j == numplanes )
+				break;
 		}
 
 		if( i != numplanes )
@@ -708,7 +694,7 @@ int SV_FlyMove( edict_t *ent, float time, trace_t *steptrace )
 			if( numplanes != 2 )
 			{
 				VectorClear( ent->v.velocity );
-				return 7;
+				break;
 			}
 
 			CrossProduct( planes[0], planes[1], dir );
@@ -721,9 +707,12 @@ int SV_FlyMove( edict_t *ent, float time, trace_t *steptrace )
 		if( DotProduct( ent->v.velocity, primal_velocity ) <= 0.0f )
 		{
 			VectorClear( ent->v.velocity );
-			return blocked;
+			break;
 		}
 	}
+
+	if ( allFraction == 0 )
+		VectorClear( ent->v.velocity );
 
 	// this came from QW and allows you to get out of water more easily
 	if( ent->v.flags & FL_WATERJUMP )

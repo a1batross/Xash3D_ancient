@@ -39,6 +39,28 @@ edict_t *CL_GetEdictByIndex( int index )
 }
 
 /*
+=============
+CL_AllocString
+
+=============
+*/
+string_t CL_AllocString( const char *szValue )
+{
+	return StringTable_SetString( clgame.hStringTable, szValue );
+}		
+
+/*
+=============
+CL_GetString
+
+=============
+*/
+const char *CL_GetString( string_t iString )
+{
+	return StringTable_GetString( clgame.hStringTable, iString );
+}
+
+/*
 ====================
 CL_GetServerTime
 
@@ -127,6 +149,17 @@ prevframe_t *CL_GetPrevFrame( int entityIndex )
 		return NULL;
 
 	return &pEnt->pvClientData->latched;
+}
+
+/*
+=============
+CL_GetLerpFrac
+
+=============
+*/
+float CL_GetLerpFrac( void )
+{
+	return cl.lerpFrac;
 }
 
 /*
@@ -1182,7 +1215,6 @@ static int pfnGetScreenInfo( SCREENINFO *pscrinfo )
 	for( i = 0; i < 256; i++ )
 		clgame.scrInfo.charWidths[i] = SMALLCHAR_WIDTH;
 	clgame.scrInfo.iCharHeight = SMALLCHAR_HEIGHT;
-	clgame.ds.hHudFont = cls.clientFont;
 
 	if( !pscrinfo ) return 0;
 	*pscrinfo = clgame.scrInfo;	// copy screeninfo out
@@ -1475,7 +1507,7 @@ static void pfnCenterPrint( const char *string )
 	if( !string || !*string ) return; // someone stupid joke
 	CL_CenterPrint( string, 160, SMALLCHAR_WIDTH );
 }
-	
+
 /*
 =========
 pfnMemAlloc
@@ -1500,22 +1532,28 @@ static void pfnMemFree( void *mem, const char *filename, const int fileline )
 
 /*
 =============
-pfnLoadShader
+pfnGetViewAngles
 
+return interpolated angles from previous frame
 =============
 */
-shader_t pfnLoadShader( const char *szShaderName, int fShaderNoMip )
+static void pfnGetViewAngles( float *angles )
 {
-	if( !re ) return 0; // render not initialized
-	if( !szShaderName || !*szShaderName )
-	{
-		MsgDev( D_ERROR, "CL_LoadShader: invalid shadername (%s)\n", fShaderNoMip ? "nomip" : "generic" );
-		return -1;
-	}
+	if( angles == NULL ) return;
+	VectorCopy( cl.refdef.cl_viewangles, angles );
+}
 
-	if( fShaderNoMip )
-		return re->RegisterShader( szShaderName, SHADER_NOMIP );
-	return re->RegisterShader( szShaderName, SHADER_GENERIC );
+/*
+=============
+pfnSetViewAngles
+
+return interpolated angles from previous frame
+=============
+*/
+static void pfnSetViewAngles( float *angles )
+{
+	if( angles == NULL ) return;
+	VectorCopy( angles, cl.refdef.cl_viewangles );
 }
 
 /*
@@ -1524,7 +1562,7 @@ pfnDelCommand
 
 =============
 */
-void pfnDelCommand( const char *cmd_name )
+static void pfnDelCommand( const char *cmd_name )
 {
 	if( !cmd_name || !*cmd_name ) return;
 
@@ -1533,118 +1571,40 @@ void pfnDelCommand( const char *cmd_name )
 
 /*
 =============
-pfnSetKeyDest
+pfnPhysInfo_ValueForKey
 
 =============
 */
-void pfnSetKeyDest( int key_dest )
+static const char* pfnPhysInfo_ValueForKey( const char *key )
 {
-	switch( key_dest )
-	{
-	case KEY_GAME:
-		cls.key_dest = key_game;
-		break;
-	case KEY_HUDMENU:
-		cls.key_dest = key_hudmenu;
-		break;
-	default:
-		MsgDev( D_ERROR, "CL_SetKeyDest: wrong destination %i!\n", key_dest );
-		break;
-	}
+	return Info_ValueForKey( cl.physinfo, key );
 }
 
 /*
 =============
-pfnCmdArgc
+pfnServerInfo_ValueForKey
 
+FIXME: this is valid only for local client
 =============
 */
-int pfnCmdArgc( void )
+static const char* pfnServerInfo_ValueForKey( const char *key )
 {
-	return Cmd_Argc();
+	return Info_ValueForKey( Cvar_Serverinfo(), key );
 }
 
 /*
 =============
-pfnCmdArgv
+pfnGetClientMaxspeed
 
-=============
-*/	
-char *pfnCmdArgv( int argc )
-{
-	if( argc >= 0 && argc < Cmd_Argc())
-		return Cmd_Argv( argc );
-	return "";
-}
-
-/*
-=============
-pfnGetViewAngles
-
-return interpolated angles from previous frame
+value that come from server
 =============
 */
-void pfnGetViewAngles( float *angles )
+static float pfnGetClientMaxspeed( void )
 {
-	if( angles == NULL ) return;
-	VectorCopy( cl.refdef.viewangles, angles );
-}
+	edict_t	*player = CL_GetLocalPlayer ();
 
-/*
-=============
-pfnIsSpectateOnly
-
-=============
-*/
-int pfnIsSpectateOnly( void )
-{
-	// FIXME: implement
-	return 0;
-}
-
-/*
-=============
-pfnGetClientTime
-
-=============
-*/
-float pfnGetClientTime( void )
-{
-	return cl.time * 0.001f;
-}
-
-/*
-=============
-CL_GetLerpFrac
-
-=============
-*/
-float CL_GetLerpFrac( void )
-{
-	return cl.lerpFrac;
-}
-
-/*
-=============
-pfnGetMaxClients
-
-=============
-*/
-int pfnGetMaxClients( void )
-{
-	return CL_GetMaxClients ();
-}
-
-/*
-=============
-pfnGetViewModel
-
-can return NULL
-=============
-*/
-edict_t* pfnGetViewModel( void )
-{
-	return &clgame.viewent;
+	if( !player ) return 0;
+	return player->v.maxspeed;
 }
 
 /*
@@ -1660,6 +1620,57 @@ static void *pfnGetModelPtr( edict_t *pEdict )
 		return NULL;
 
 	return Mod_Extradata( pEdict->v.modelindex );
+}
+
+/*
+=============
+pfnGetBonePosition
+
+=============
+*/
+static void pfnGetBonePosition( const edict_t* pEdict, int iBone, float *rgflOrigin, float *rgflAngles )
+{
+	if( !CL_IsValidEdict( pEdict ))
+	{
+		MsgDev( D_WARN, "CL_GetBonePos: invalid entity %s\n", CL_ClassName( pEdict ));
+		return;
+	}
+
+	CM_GetBonePosition( (edict_t *)pEdict, iBone, rgflOrigin, rgflAngles );
+}
+
+/*
+=============
+pfnGetViewModel
+
+can return NULL
+=============
+*/
+static edict_t* pfnGetViewModel( void )
+{
+	return &clgame.viewent;
+}
+
+/*
+=============
+pfnGetClientTime
+
+=============
+*/
+static float pfnGetClientTime( void )
+{
+	return cl.time * 0.001f;
+}
+
+/*
+=============
+pfnIsSpectateOnly
+
+=============
+*/
+static int pfnIsSpectateOnly( void )
+{
+	return com.atoi( Info_ValueForKey( Cvar_Userinfo(), "spectator" )) ? true : false;
 }
 
 /*
@@ -1688,6 +1699,34 @@ pfnPointContents
 static int pfnPointContents( const float *rgflVector )
 {
 	return CL_PointContents( rgflVector );
+}
+
+/*
+=============
+pfnWaterEntity
+
+=============
+*/
+static edict_t *pfnWaterEntity( const float *rgflPos )
+{
+	edict_t	*player, *pWater;
+
+	if( !rgflPos ) return NULL;
+	player = CL_GetLocalPlayer ();
+	if( !player ) return NULL;
+
+	pWater = CL_Move( rgflPos, vec3_origin, vec3_origin, rgflPos, MOVE_NOMONSTERS, player ).pHit;
+
+	if( CL_IsValidEdict( pWater ))
+	{
+		int	mod_type = CM_GetModelType( pWater->v.modelindex );
+		int	cont = pWater->v.skin;
+
+		// make sure what is a really water entity
+		if(( mod_type == mod_brush || mod_type == mod_world ) && (cont <= CONTENTS_WATER && cont >= CONTENTS_LAVA ))
+			return pWater;
+	}
+	return NULL;
 }
 
 /*
@@ -1784,38 +1823,6 @@ static word pfnPrecacheEvent( int type, const char* psz )
 
 /*
 =============
-pfnHookEvent
-
-=============
-*/
-static void pfnHookEvent( const char *name, pfnEventHook pfn )
-{
-	word		event_index = CL_PrecacheEvent( name );
-	user_event_t	*ev;
-	int		i;
-
-	// ignore blank names
-	if( !name || !*name ) return;	
-
-	// second call can change EventFunc
-	for( i = 0; i < MAX_EVENTS; i++ )
-	{
-		ev = clgame.events[i];		
-		if( !ev ) break;
-
-		if( !com.strcmp( name, ev->name ))
-		{
-			if( ev->func != pfn )
-				ev->func = pfn;
-			return;
-		}
-	}
-
-	CL_RegisterEvent( i, name, pfn );
-}
-
-/*
-=============
 pfnPlaybackEvent
 
 =============
@@ -1874,37 +1881,135 @@ static void pfnPlaybackEvent( int flags, const edict_t *pInvoker, word eventinde
 
 /*
 =============
+pfnWeaponAnim
+
+just set viewmodel anim
+=============
+*/
+static void pfnWeaponAnim( int iAnim, int body, float framerate )
+{
+	edict_t	*viewmodel = &clgame.viewent;
+
+	viewmodel->v.sequence = iAnim;
+	viewmodel->v.body = body;
+	viewmodel->v.framerate = framerate;
+	viewmodel->v.effects |= EF_ANIMATE;
+	viewmodel->v.frame = -1; // force to start new sequence
+	viewmodel->v.scale = 1.0f;
+}
+
+/*
+=============
+pfnHookEvent
+
+=============
+*/
+static void pfnHookEvent( const char *name, pfnEventHook pfn )
+{
+	word		event_index = CL_PrecacheEvent( name );
+	user_event_t	*ev;
+	int		i;
+
+	// ignore blank names
+	if( !name || !*name ) return;	
+
+	// second call can change EventFunc
+	for( i = 0; i < MAX_EVENTS; i++ )
+	{
+		ev = clgame.events[i];		
+		if( !ev ) break;
+
+		if( !com.strcmp( name, ev->name ))
+		{
+			if( ev->func != pfn )
+				ev->func = pfn;
+			return;
+		}
+	}
+
+	CL_RegisterEvent( i, name, pfn );
+}
+
+/*
+=============
 pfnKillEvent
 
 =============
 */
-static void pfnKillEvent( word eventindex )
+static void pfnKillEvents( int entnum, const char *eventname )
+{
+	int		i;
+	event_state_t	*es;
+	event_info_t	*ei;
+	int		eventIndex = CL_PrecacheEvent( eventname );
+
+	if( eventIndex < 0 || eventIndex >= MAX_EVENTS )
+		return;
+	if( entnum < 0 || entnum > clgame.globals->maxEntities )
+		return;
+
+	es = &cl.events;
+
+	// find all events with specified index and kill it
+	for( i = 0; i < MAX_EVENT_QUEUE; i++ )
+	{
+		ei = &es->ei[i];
+
+		if( ei->index != eventIndex || ei->entity_index != entnum )
+			continue;
+		CL_ResetEvent( ei );
+	}
+}
+
+/*
+=============
+VGui_GetPanel
+
+=============
+*/
+void *VGui_GetPanel( void )
+{
+	// FIXME: implement
+	return NULL;
+}
+
+/*
+=============
+VGui_ViewportPaintBackground
+
+=============
+*/
+void VGui_ViewportPaintBackground( int extents[4] )
 {
 	// FIXME: implement
 }
 
 /*
 =============
-CL_AllocString
+pfnLoadShader
 
 =============
 */
-string_t CL_AllocString( const char *szValue )
+shader_t pfnLoadShader( const char *szShaderName, int fShaderNoMip )
 {
-	return StringTable_SetString( clgame.hStringTable, szValue );
-}		
+	if( !re ) return 0; // render not initialized
+	if( !szShaderName || !*szShaderName )
+	{
+		MsgDev( D_ERROR, "CL_LoadShader: invalid shadername (%s)\n", fShaderNoMip ? "nomip" : "generic" );
+		return -1;
+	}
+
+	if( fShaderNoMip )
+		return re->RegisterShader( szShaderName, SHADER_NOMIP );
+	return re->RegisterShader( szShaderName, SHADER_GENERIC );
+}
 
 /*
-=============
-CL_GetString
+===============================================================================
+	EffectsAPI Builtin Functions
 
-=============
+===============================================================================
 */
-const char *CL_GetString( string_t iString )
-{
-	return StringTable_GetString( clgame.hStringTable, iString );
-}
-	
 /*
 =================
 pfnFindExplosionPlane
@@ -2277,6 +2382,18 @@ static efxapi_t gEfxApi =
 	pfnDecalIndexFromName,
 	pfnDecalIndex,
 };
+
+static event_api_t gEventApi =
+{
+	sizeof( event_api_t ),
+	pfnPrecacheEvent,
+	pfnPlaybackEvent,
+	pfnWeaponAnim,
+	pfnRandomFloat,
+	pfnRandomLong,
+	pfnHookEvent,
+	pfnKillEvents,
+};
 					
 // engine callbacks
 static cl_enginefuncs_t gEngfuncs = 
@@ -2315,51 +2432,60 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnDrawConsoleStringLen,
 	pfnConsolePrint,
 	pfnCenterPrint,
-
 	pfnMemAlloc,
-	pfnMemCopy,
 	pfnMemFree,
-	pfnLoadShader,
+	pfnGetViewAngles,
+	pfnSetViewAngles,
 	pfnCVarSetString,
 	pfnCVarSetValue,
-	pfnDelCommand,
-	pfnSetKeyDest,
-	pfnCmdArgc,
-	pfnCmdArgv,	
-	pfnAlertMessage,
-	pfnGetViewAngles,
-	CL_GetEdictByIndex,
-	CL_GetLocalPlayer,
-	pfnIsSpectateOnly,
-	pfnGetClientTime,
+	pfnCmd_Argc,
+	pfnCmd_Argv,
+	pfnCmd_Args,
 	CL_GetLerpFrac,
-	pfnGetMaxClients,
-	pfnGetViewModel,
+	pfnDelCommand,
+	pfnAlertMessage,
+	pfnPhysInfo_ValueForKey,
+	pfnServerInfo_ValueForKey,
+	pfnGetClientMaxspeed,
 	pfnGetModelPtr,
+	pfnGetBonePosition,
+	CL_AllocString,
+	CL_GetString,
+	CL_GetLocalPlayer,	
+	pfnGetViewModel,
+	CL_GetEdictByIndex,
+	pfnGetClientTime,
+	pfnIsSpectateOnly,
 	pfnGetAttachment,
 	pfnPointContents,
+	pfnWaterEntity,
 	pfnTraceLine,
 	pfnTraceToss,
 	pfnTraceHull,
 	pfnTraceModel,
 	pfnTraceTexture,
-	pfnPrecacheEvent,
-	pfnHookEvent,
-	pfnPlaybackEvent,
-	pfnKillEvent,
-	CL_AllocString,
-	CL_GetString,	
-	pfnRandomLong,
-	pfnRandomFloat,
-	pfnLoadFile,
-	pfnFileExists,
-	pfnRemoveFile,				
+	pfnFOpen,
+	pfnFRead,
+	pfnFWrite,
+	pfnFClose,
+	pfnFGets,
+	pfnFSeek,
+	pfnFTell,
 	pfnLoadLibrary,
 	pfnGetProcAddress,
-	pfnFreeLibrary,		
+	pfnFreeLibrary,
 	Host_Error,
+	pfnFileExists,
+	pfnRemoveFile,
+	VGui_GetPanel,
+	VGui_ViewportPaintBackground,
+	pfnLoadFile,
+	pfnParseToken,
+	pfnFreeFile,
+	pfnLoadShader,
 	&gTriApi,
-	&gEfxApi
+	&gEfxApi,
+	&gEventApi
 };
 
 void CL_UnloadProgs( void )
@@ -2439,6 +2565,9 @@ bool CL_LoadProgs( const char *name )
 
 	// initialize game
 	clgame.dllFuncs.pfnInit();
+
+	// initialize pm_shared
+	CL_InitClientMove();
 
 	return true;
 }

@@ -511,8 +511,8 @@ bool SV_RateDrop( sv_client_t *cl )
 	int	i, total = 0;
 
 	// never drop over the loopback
-	if( NET_IsLocalAddress( cl->netchan.remote_address ))
-		return false;
+//	if( NET_IsLocalAddress( cl->netchan.remote_address ))
+//		return false;
 
 	for( i = 0; i < RATE_MESSAGES; i++ )
 		total += cl->message_size[i];
@@ -544,7 +544,7 @@ void SV_SendClientMessages( void )
 	{
 		if( !cl->state ) continue;
 			
-		if( cl->edict && (cl->edict->v.flags & (FL_FAKECLIENT|FL_SPECTATOR)))
+		if( !cl->edict || (cl->edict->v.flags & (FL_FAKECLIENT|FL_SPECTATOR)))
 			continue;
 
 		// update any userinfo packets that have changed

@@ -518,6 +518,7 @@ void ClearAllFades( void )
 ====================
 Sys LoadGameDLL
 
+some code from Darkplaces
 ====================
 */
 BOOL Sys_LoadLibrary( const char* dllname, dllhandle_t* handle, const dllfunction_t *fcts )
@@ -565,101 +566,14 @@ void* Sys_GetProcAddress( dllhandle_t handle, const char* name )
 	return (void *)GET_PROC_ADDRESS( handle, name );
 }
 
+
 /*
-==============
-COM_ParseToken
+====================
+VGui_ConsolePrint
 
-Parse a token out of a string
-FIXME: move into engine
-==============
+VGUI not implemented, wait for version 0.75
+====================
 */
-char *COM_ParseToken( const char **data_p )
+void VGui_ConsolePrint( const char *text )
 {
-	int		c;
-	int		len = 0;
-	const char	*data;
-	static char	token[512];
-	
-	token[0] = 0;
-	data = *data_p;
-	
-	if( !data ) 
-	{
-		*data_p = NULL;
-		return NULL;
-	}		
-
-	// skip whitespace
-skipwhite:
-	while(( c = *data) <= ' ' )
-	{
-		if( c == 0 )
-		{
-			*data_p = NULL;
-			return NULL; // end of file;
-		}
-		data++;
-	}
-	
-	// skip // comments
-	if( c=='/' && data[1] == '/' )
-	{
-		while( *data && *data != '\n' )
-			data++;
-		goto skipwhite;
-	}
-
-	// skip /* comments
-	if( c=='/' && data[1] == '*' )
-	{
-		while( data[1] && (data[0] != '*' || data[1] != '/' ))
-			data++;
-		data += 2;
-		goto skipwhite;
-	}
-	
-
-	// handle quoted strings specially
-	if( *data == '\"' || *data == '\'' )
-	{
-		data++;
-		while( 1 )
-		{
-			c = *data++;
-			if( c=='\"' || c=='\0' )
-			{
-				token[len] = 0;
-				*data_p = data;
-				return token;
-			}
-			token[len] = c;
-			len++;
-		}
-	}
-
-	// parse single characters
-	if( c == '{' || c == '}' || c == ')' || c == '(' || c == '\'' || c == ':' || c == ',' )
-	{
-		token[len] = c;
-		data++;
-		len++;
-		token[len] = 0;
-		*data_p = data;
-		return token;
-	}
-
-	// parse a regular word
-	do
-	{
-		token[len] = c;
-		data++;
-		len++;
-		c = *data;
-		if( c == '{' || c == '}'|| c == ')'|| c == '(' || c == '\'' || c == ':' || c == ',' )
-			break;
-	} while( c > 32 );
-	
-	token[len] = 0;
-	*data_p = data;
-	return token;
 }

@@ -81,7 +81,7 @@ typedef struct host_parm_s
 	byte		*mempool;		// static mempool for misc allocations
 	string		finalmsg;		// server shutdown final message
 
-	int		frametime[2];	// time between engine frames
+	int		frametime;	// time between engine frames
 	uint		framecount;	// global framecount
 
 	int		events_head;
@@ -136,7 +136,6 @@ bool SV_Active( void );
 
 ==============================================================
 */
-void pfnMemCopy( void *dest, const void *src, size_t cb, const char *filename, const int fileline );
 cvar_t *pfnCVarRegister( const char *szName, const char *szValue, int flags, const char *szDesc );
 char *pfnMemFgets( byte *pMemFile, int fileSize, int *filePos, char *pBuffer, int bufferSize );
 byte* pfnLoadFile( const char *filename, int *pLength );
@@ -162,6 +161,9 @@ int pfnFSeek( void *file, long offset, int whence );
 int pfnFClose( void *file );
 long pfnFTell( void *file );
 void pfnRemoveFile( const char *szFilename );
+const char *pfnCmd_Args( void );
+const char *pfnCmd_Argv( int argc );
+int pfnCmd_Argc( void );
 float pfnTime( void );
 
 /*

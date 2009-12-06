@@ -300,13 +300,11 @@ int CHud :: MsgFunc_WeaponAnim( const char *pszName, int iSize, void *pbuf )
 {
 	BEGIN_READ( pszName, iSize, pbuf );
 
-	edict_t *viewmodel = GetViewModel();
-	viewmodel->v.sequence = READ_BYTE();
-	viewmodel->v.body = READ_BYTE();
-	viewmodel->v.framerate = READ_BYTE() * 0.0625;
-	viewmodel->v.effects |= EF_ANIMATE;
-	viewmodel->v.frame = -1; // force to start new sequence
-	viewmodel->v.scale = 1.0f;
+	int iAnim = READ_BYTE();
+	int iBody = READ_BYTE();
+	float framerate = READ_BYTE() * 0.0625;
+
+	SendWeaponAnim( iAnim, iBody, framerate ); 
 
 	END_READ();
 	

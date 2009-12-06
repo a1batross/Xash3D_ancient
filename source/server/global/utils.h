@@ -872,7 +872,7 @@ BOOL UTIL_EntIsVisible( entvars_t* pev, entvars_t* pevTarget);
 
 // events stuff
 unsigned short UTIL_PrecacheEvent( const char *pString );
-void UTIL_PlaybackEvent( int flags, const edict_t *pInvoker, int ev_index, float delay, event_args_t *args = NULL );
+void UTIL_PlaybackEvent( int flags, const edict_t *pInvoker, int ev_index, float delay, struct event_args_s *args = NULL );
 void UTIL_PlaybackEvent( int flags, const edict_t *pInvoker, int ev_index, float delay, Vector origin, Vector angles, float fparam1, float fparam2, int iparam1, int iparam2, int bparam1, int bparam2 );
 	
 #endif //UTIL_H

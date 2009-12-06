@@ -1168,7 +1168,9 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 		to->idealpitch = pNet->pev->ideal_pitch;
 		to->punch_angles = pNet->pev->punchangle;
 		to->velocity = pNet->pev->velocity;
-		to->basevelocity = pNet->pev->basevelocity;
+		to->basevelocity = pNet->pev->clbasevelocity;
+		to->iStepLeft = pNet->pev->iStepLeft;
+		to->flFallVelocity = pNet->pev->flFallVelocity;
 		
 		// playermodel sequence, that will be playing on a client
 		if( pNet->pev->gaitsequence != -1 )
@@ -1394,6 +1396,8 @@ int SetupVisibility( edict_t *pViewEntity, edict_t *pClient, int portal, float *
 
 		CBaseEntity *pCamera = (CBaseEntity *)CBaseEntity::Instance( pViewEntity );
 
+		if( !pCamera ) return 0;
+
 		// determine visible point
 		if( pCamera->m_iClassType == ED_PORTAL )
 		{
@@ -1469,6 +1473,8 @@ int AddToFullPack( edict_t *pHost, edict_t *pClient, edict_t *pEdict, int hostfl
 	}
 
 	CBaseEntity *pEntity = (CBaseEntity *)CBaseEntity::Instance( pEdict );
+
+	if( !pEntity ) return 0;
 
 	// quick reject by type
 	switch( pEntity->m_iClassType )
