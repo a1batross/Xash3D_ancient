@@ -1650,17 +1650,7 @@ void R_ModifyColor( const ref_stage_t *pass )
 			}
 			break;
 		case RGBGEN_LIGHTING_DIFFUSE:
-			if( r_studio_bonelighting->integer && RI.currentmodel && RI.currentmodel->type == mod_studio )
-			{
-				// Paranoia-Style bonelighting instead of diffuse lighting (Faster)
-				for( i = 0; i < r_backacc.numColors; i++, bArray += 4, inArray += 4 )
-				{
-					bArray[0] = inArray[0] >> bits;
-					bArray[1] = inArray[1] >> bits;
-					bArray[2] = inArray[2] >> bits;
-				}
-			}
-			else if( RI.currententity ) R_LightForEntity( RI.currententity, bArray );
+			if( RI.currententity ) R_LightForEntity( RI.currententity, bArray );
 			break;
 		case RGBGEN_LIGHTING_DIFFUSE_ONLY:
 			if( RI.currententity && !( RI.params & RP_SHADOWMAPVIEW ) )

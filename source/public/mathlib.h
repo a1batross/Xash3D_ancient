@@ -677,6 +677,25 @@ _inline void PerpendicularVector( vec3_t dst, const vec3_t src )
 
 /*
 =================
+SimpleSpline
+
+NOTE: ripped from hl2 source
+hermite basis function for smooth interpolation
+Similar to Gain() above, but very cheap to call
+value should be between 0 & 1 inclusive
+=================
+*/
+_inline float SimpleSpline( float value )
+{
+	float	valueSquared = value * value;
+
+	// nice little ease-in, ease-out spline-like curve
+	return (3 * valueSquared - 2 * valueSquared * value);
+}
+
+
+/*
+=================
 NearestPOW
 =================
 */

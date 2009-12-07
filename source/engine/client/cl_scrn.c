@@ -433,7 +433,7 @@ void SCR_RegisterShaders( void )
 
 		// TODO: load a font with a variable charwidths
 		Mem_Set( &clgame.ds, 0, sizeof( clgame.ds )); // reset a draw state
-		clgame.ds.hHudFont = re->RegisterShader( "sprites/font.spr", SHADER_NOMIP );
+		clgame.ds.hHudFont = re->RegisterShader( "gfx/creditsfont", SHADER_NOMIP );
 	}
 
 	// vid_state has changed

@@ -214,9 +214,6 @@ typedef struct cl_enginefuncs_s
 	char 	*(*pfnParseToken)( const char **data_p );		// was COM_ParseFile, like it
 	void	(*pfnFreeFile)( void *buffer );			// was COM_FreeFile, like it
 
-	// FIXME: move to pTriAPI
-	HSPRITE	(*pfnLoadShader)( const char *szShaderName, int fShaderNoMip );
-
 	struct triapi_s	*pTriAPI;
 	struct efxapi_s	*pEfxAPI;
 	struct event_api_s	*pEventAPI;	

@@ -141,14 +141,14 @@ byte CL_GetMouthOpen( int entityIndex )
 	return ed->pvClientData->mouth.open;
 }
 
-prevframe_t *CL_GetPrevFrame( int entityIndex )
+studioframe_t *CL_GetStudioFrame( int entityIndex )
 {
 	edict_t	*pEnt = CL_GetEdictByIndex( entityIndex );
 
 	if( !pEnt || !pEnt->pvClientData )
 		return NULL;
 
-	return &pEnt->pvClientData->latched;
+	return &pEnt->pvClientData->frame;
 }
 
 /*
@@ -906,7 +906,7 @@ void CL_InitWorld( void )
 	}
 
 	// clear viewmodel prevstate
-	Mem_Set( &clgame.viewent.pvClientData->latched, 0, sizeof( prevframe_t ));
+	Mem_Set( &clgame.viewent.pvClientData->frame, 0, sizeof( studioframe_t ));
 }
 
 void CL_InitEdicts( void )
@@ -1985,26 +1985,6 @@ void VGui_ViewportPaintBackground( int extents[4] )
 }
 
 /*
-=============
-pfnLoadShader
-
-=============
-*/
-shader_t pfnLoadShader( const char *szShaderName, int fShaderNoMip )
-{
-	if( !re ) return 0; // render not initialized
-	if( !szShaderName || !*szShaderName )
-	{
-		MsgDev( D_ERROR, "CL_LoadShader: invalid shadername (%s)\n", fShaderNoMip ? "nomip" : "generic" );
-		return -1;
-	}
-
-	if( fShaderNoMip )
-		return re->RegisterShader( szShaderName, SHADER_NOMIP );
-	return re->RegisterShader( szShaderName, SHADER_GENERIC );
-}
-
-/*
 ===============================================================================
 	EffectsAPI Builtin Functions
 
@@ -2205,6 +2185,26 @@ static void Tri_SetVertex( float x, float y, float z )
 		Tri_CheckOverflow( clgame.pTri->numIndex - oldIndex, clgame.pTri->vertexState );
 }
 
+/*
+=============
+TriLoadShader
+
+=============
+*/
+shader_t TriLoadShader( const char *szShaderName, int fShaderNoMip )
+{
+	if( !re ) return 0; // render not initialized
+	if( !szShaderName || !*szShaderName )
+	{
+		MsgDev( D_ERROR, "CL_LoadShader: invalid shadername (%s)\n", fShaderNoMip ? "nomip" : "generic" );
+		return -1;
+	}
+
+	if( fShaderNoMip )
+		return re->RegisterShader( szShaderName, SHADER_NOMIP );
+	return re->RegisterShader( szShaderName, SHADER_GENERIC );
+}
+
 void TriRenderMode( kRenderMode_t mode )
 {
 	if( !re ) return;
@@ -2353,6 +2353,7 @@ void TriFog( float flFogColor[3], float flStart, float flEnd, int bOn )
 static triapi_t gTriApi =
 {
 	sizeof( triapi_t ),	
+	TriLoadShader,
 	TriRenderMode,
 	TriBegin,
 	TriEnd,
@@ -2482,7 +2483,6 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnLoadFile,
 	pfnParseToken,
 	pfnFreeFile,
-	pfnLoadShader,
 	&gTriApi,
 	&gEfxApi,
 	&gEventApi

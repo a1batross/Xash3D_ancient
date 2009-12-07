@@ -511,8 +511,8 @@ bool SV_RateDrop( sv_client_t *cl )
 	int	i, total = 0;
 
 	// never drop over the loopback
-//	if( NET_IsLocalAddress( cl->netchan.remote_address ))
-//		return false;
+	if( NET_IsLocalAddress( cl->netchan.remote_address ))
+		return false;
 
 	for( i = 0; i < RATE_MESSAGES; i++ )
 		total += cl->message_size[i];

@@ -91,6 +91,17 @@ typedef struct playsound_s
 	float		pitch;
 } playSound_t;
 
+// structure used for fading in and out client sound volume.
+typedef struct
+{
+	float		initial_percent;
+	float		percent;  	// how far to adjust client's volume down by.
+	float		starttime;	// GetHostTime() when we started adjusting volume
+	float		fadeouttime;	// # of seconds to get to faded out state
+	float		holdtime;		// # of seconds to hold
+	float		fadeintime;	// # of seconds to restore
+} soundfade_t;
+
 typedef struct
 {
 	bool		streaming;

@@ -137,7 +137,8 @@ TYPEDESCRIPTION	CBasePlayer::m_playerSaveData[] =
           DEFINE_FIELD( CBasePlayer, m_FadeColor, FIELD_VECTOR ),
           DEFINE_FIELD( CBasePlayer, m_FadeAlpha, FIELD_INTEGER ),
           DEFINE_FIELD( CBasePlayer, m_iFadeFlags, FIELD_INTEGER ),
-	DEFINE_FIELD( CBasePlayer, m_iFadeHold, FIELD_INTEGER ),
+	DEFINE_FIELD( CBasePlayer, m_flFadeHold, FIELD_FLOAT ),
+	DEFINE_FIELD( CBasePlayer, m_flFadeTime, FIELD_FLOAT ),
           
           DEFINE_FIELD( CBasePlayer, m_flStartTime, FIELD_TIME ),
 	
@@ -401,12 +402,12 @@ void CBasePlayer :: TraceAttack( entvars_t *pevAttacker, float flDamage, Vector 
 			break;
 		}
 
-		if( bitsDamageType & DMG_NUCLEAR )
+		if( bitsDamageType & DMG_NUCLEAR && !fadeNeedsUpdate )
 		{
 			m_FadeColor = Vector( 255, 255, 255 );
 			m_FadeAlpha = 240;			
-			m_iFadeFlags = 0;
-			m_iFadeTime = 25;
+			m_iFadeFlags = FFADE_IN|FFADE_MODULATE;
+			m_flFadeTime = 25.0f;
 			fadeNeedsUpdate = TRUE;
 		}
 		else SpawnBlood(ptr->vecEndPos, BloodColor(), flDamage);// a little surface blood.
@@ -907,14 +908,21 @@ void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 
 	// death fading         
           m_FadeColor = Vector( 128, 0, 0 );
-	m_FadeAlpha = 240;			
-	m_iFadeFlags = FFADE_OUT|FFADE_MODULATE|FFADE_STAYOUT;
-	m_iFadeTime = 6;
+	m_FadeAlpha = 254;			
+	m_iFadeFlags = FFADE_OUT|FFADE_MODULATE;
+	m_flFadeTime = 6.0f;
+	m_flFadeHold = 999999.0f;
 	fadeNeedsUpdate = TRUE;
+
+	// death sound fading
+	g_engfuncs.pfnFadeClientVolume( edict(), 99, 6.0f, 999999.0f, 0.0f );
+
+	m_iSndRoomtype = 15;
+	hearNeedsUpdate = 1;
 	
 	if ( ( pev->health < -40 && iGib != GIB_NEVER ) || iGib == GIB_ALWAYS )
 	{
-		pev->solid			= SOLID_NOT;
+		pev->solid = SOLID_NOT;
 		GibMonster();	// This clears pev->model
 		pev->effects |= EF_NODRAW;
 		return;
@@ -2847,8 +2855,8 @@ void CBasePlayer :: Precache( void )
 		m_FadeColor = Vector( 255, 255, 255 );
 		m_FadeAlpha = 0;			
 		m_iFadeFlags = 0;
-		m_iFadeTime = 0;
-		m_iFadeHold = 0;
+		m_flFadeTime = 0.0f;
+		m_flFadeHold = 0.0f;
 		fadeNeedsUpdate = TRUE;
 	}
 }
@@ -3735,7 +3743,7 @@ void CBasePlayer :: UpdateClientData( void )
           {
 		// update dsp sound
           	MESSAGE_BEGIN( MSG_ONE, gmsg.RoomType, NULL, pev );
-			WRITE_SHORT( m_iSndRoomtype );
+			WRITE_BYTE( m_iSndRoomtype );
 		MESSAGE_END();
           	hearNeedsUpdate = 0;
           }
@@ -3744,8 +3752,8 @@ void CBasePlayer :: UpdateClientData( void )
 	{
 		// update screenfade
 		MESSAGE_BEGIN( MSG_ONE, gmsg.Fade, NULL, pev );
-			WRITE_SHORT( FixedUnsigned16( m_iFadeTime, 1<<12 ));  
-			WRITE_SHORT( FixedUnsigned16( m_iFadeHold, 1<<12 ));
+			WRITE_FLOAT( m_flFadeTime );  
+			WRITE_FLOAT( m_flFadeHold );
 			WRITE_SHORT( m_iFadeFlags );		// fade flags
 			WRITE_BYTE( (byte)m_FadeColor.x );	// fade red
 			WRITE_BYTE( (byte)m_FadeColor.y );	// fade green

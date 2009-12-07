@@ -259,7 +259,7 @@ CGrenade *CGrenade::ShootContact( entvars_t *pevOwner, Vector vecStart, Vector v
 	// Explode on contact
 	pGrenade->SetTouch( ExplodeTouch );
 
-	UTIL_SetModel( ENT( pGrenade->pev ), "models/weapons/w_grenade.mdl");
+	UTIL_SetModel( ENT( pGrenade->pev ), "models/props/grenade.mdl");
 	UTIL_SetSize( pGrenade->pev, Vector( 0, 0, 0 ), Vector( 0, 0, 0 ));
 	pGrenade->pev->dmg = M203_DMG;
 

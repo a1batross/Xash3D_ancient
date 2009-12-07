@@ -1601,12 +1601,12 @@ void LinkUserMessages( void )
 	gmsg.AmmoPickup = REG_USER_MSG( "AmmoPickup", 2 );
 	gmsg.WeapPickup = REG_USER_MSG( "WeapPickup", 1 );
 	gmsg.ItemPickup = REG_USER_MSG( "ItemPickup", -1 );
-	gmsg.RoomType = REG_USER_MSG( "RoomType", 2 );
+	gmsg.RoomType = REG_USER_MSG( "RoomType", 1 );
 	gmsg.HideWeapon = REG_USER_MSG( "HideWeapon", 1 );
 	gmsg.WeaponAnim = REG_USER_MSG( "WeaponAnim", 3 );
 	gmsg.ShowMenu = REG_USER_MSG( "ShowMenu", -1 );
 	gmsg.Shake = REG_USER_MSG( "ScreenShake", 13 );
-	gmsg.Fade = REG_USER_MSG( "ScreenFade", sizeof( ScreenFade ));
+	gmsg.Fade = REG_USER_MSG( "ScreenFade", 14 );
 	gmsg.AmmoX = REG_USER_MSG("AmmoX", 2);
 	gmsg.TeamNames = REG_USER_MSG( "TeamNames", -1 );
 	gmsg.StatusText = REG_USER_MSG("StatusText", -1);

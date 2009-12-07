@@ -2114,6 +2114,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 		if( !refent->model->extradata )
 			return false;
 		refent->scale = 1.0f; // ignore scale for brush models
+		refent->frame = pRefEntity->v.frame;	// brush properly animating
 		break;
 	case mod_studio:
 	case mod_sprite:
@@ -2124,7 +2125,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 		break;
 	}
 
-	refent->prev = ri.GetPrevFrame( refent->index );	// setup prevframe data
+	refent->prev = ri.GetStudioFrame( refent->index );	// setup prevframe data
 
 	if( refent->prev == NULL )
 	{
@@ -2154,9 +2155,9 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 			{
 				float	numframes = ((msprite_t *)refent->model->extradata)->numframes;
 
-				refent->frame += (pRefEntity->v.framerate * RI.refdef.frametime);
-				if( refent->frame > numframes && numframes > 0 )
-					refent->frame = fmod( refent->frame, numframes );
+				refent->prev->curframe += (pRefEntity->v.framerate * RI.refdef.frametime);
+				if( refent->prev->curframe > numframes && numframes > 0 )
+					refent->prev->curframe = fmod( refent->prev->curframe, numframes );
 			}
 			break;
 		case mod_studio:
@@ -2168,8 +2169,8 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 	else
 	{
 		if( refent->prev )
-			refent->prev->frame = refent->frame;	// save oldframe
-		refent->frame = pRefEntity->v.frame;
+			refent->prev->frame = refent->prev->curframe;	// save oldframe
+		refent->prev->curframe = pRefEntity->v.frame;
 	}
 
 	if( refent->ent_type == ED_MOVER || refent->ent_type == ED_BSPBRUSH )

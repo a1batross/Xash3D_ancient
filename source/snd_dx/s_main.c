@@ -12,6 +12,7 @@
 #define MAX_PLAYSOUNDS	128
 
 dma_t		dma;
+static soundfade_t	soundfade;
 channel_t   	channels[MAX_CHANNELS];
 bool		sound_started = false;
 vec3_t		listener_origin;
@@ -52,12 +53,79 @@ cvar_t		*s_primary;
 */
 /*
 =================
+S_GetMasterVolume
+=================
+*/
+float S_GetMasterVolume( void )
+{
+	float	scale = 1.0f;
+
+	if( soundfade.percent != 0 )
+	{
+		scale = bound( 0.0f, soundfade.percent / 100.0f, 1.0f );
+		scale = 1.0f - scale;
+	}
+	return s_volume->value * scale;
+}
+
+/*
+=================
 S_FadeClientVolume
 =================
 */
 void S_FadeClientVolume( float fadePercent, float fadeOutSeconds, float holdTime, float fadeInSeconds )
 {
-	// FIXME: implement
+	soundfade.starttime	= si.GetServerTime() * 0.001f;
+	soundfade.initial_percent = fadePercent;       
+	soundfade.fadeouttime = fadeOutSeconds;    
+	soundfade.holdtime = holdTime;   
+	soundfade.fadeintime = fadeInSeconds;
+}
+
+/*
+=================
+S_UpdateSoundFade
+=================
+*/
+void S_UpdateSoundFade( void )
+{
+	float	f, totaltime, elapsed;
+
+	// determine current fade value.
+	// assume no fading remains
+	soundfade.percent = 0;  
+
+	totaltime = soundfade.fadeouttime + soundfade.fadeintime + soundfade.holdtime;
+
+	elapsed = (si.GetServerTime() * 0.001f) - soundfade.starttime;
+
+	// clock wrapped or reset (BUG) or we've gone far enough
+	if( elapsed < 0.0f || elapsed >= totaltime || totaltime <= 0.0f )
+		return;
+
+	// We are in the fade time, so determine amount of fade.
+	if( soundfade.fadeouttime > 0.0f && ( elapsed < soundfade.fadeouttime ))
+	{
+		// ramp up
+		f = elapsed / soundfade.fadeouttime;
+	}
+	else if( elapsed <= ( soundfade.fadeouttime + soundfade.holdtime ))	// Inside the hold time
+	{
+		// stay
+		f = 1.0f;
+	}
+	else
+	{
+		// ramp down
+		f = ( elapsed - ( soundfade.fadeouttime + soundfade.holdtime ) ) / soundfade.fadeintime;
+		f = 1.0f - f; // backward interpolated...
+	}
+
+	// spline it.
+	f = SimpleSpline( f );
+	f = bound( 0.0f, f, 1.0f );
+
+	soundfade.percent = soundfade.initial_percent * f;
 }
 
 /*
@@ -501,6 +569,10 @@ void S_StopAllSounds( void )
 
 	total_channels = MAX_CHANNELS; // no statics
 
+	// clear any remaining soundfade
+	Mem_Set( &soundfade, 0, sizeof( soundfade ));
+	s_volume->modified = true; // rebuild scaletable
+
 	// clear all the channels
 	Mem_Set( channels, 0, sizeof( channels ));
 	S_ClearBuffer ();
@@ -661,8 +733,12 @@ void S_Update( ref_params_t *fd )
 		return;
 	}
 
+	// update any client side sound fade
+	S_UpdateSoundFade();
+
 	// rebuild scale tables if volume is modified
-	if( s_volume->modified ) S_InitScaletable();
+	if( s_volume->modified || soundfade.percent != 0 )
+		S_InitScaletable();
 
 	s_clientnum = fd->viewentity;
 	VectorCopy( fd->simorg, listener_origin );

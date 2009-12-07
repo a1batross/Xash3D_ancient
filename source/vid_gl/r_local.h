@@ -214,17 +214,15 @@ typedef struct ref_entity_s
 	struct ref_model_s		*model;		// opaque type outside refresh
 	struct ref_entity_s		*parent;		// link to parent entity (FOLLOW or weaponmodel)
 
-	prevframe_t		*prev;		// previous frame values for lerping
+	studioframe_t		*prev;		// previous frame values for lerping
 
 	float			framerate;	// custom framerate
-          float			animtime;		// lerping animtime	
-	float			frame;		// also used as RF_BEAM's diameter
+	float			frame;
 
 	int			body;
 	int			skin;
 
           int			movetype;		// entity moving type
-	int			sequence;
 	float			scale;
 
 	byte			*mempool;		// studio mempool
@@ -430,9 +428,6 @@ extern cvar_t *r_outlines_scale;
 extern cvar_t *r_outlines_cutoff;
 
 extern cvar_t *r_himodels;
-
-extern cvar_t *r_studio_bonelighting;
-
 extern cvar_t *r_environment_color;
 extern cvar_t *r_gamma;
 extern cvar_t *r_texturebits;

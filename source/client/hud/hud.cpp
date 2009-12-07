@@ -5,6 +5,7 @@
 #include "extdll.h"
 #include "utils.h"
 #include "hud.h"
+#include "triangle_api.h"
 
 void CHud :: Init( void )
 {

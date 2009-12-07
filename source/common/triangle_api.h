@@ -32,6 +32,7 @@ typedef struct triapi_s
 {
 	size_t	api_size;			// must match with sizeof( triapi_t );
 
+	HSPRITE	(*LoadShader)( const char *szShaderName, int fShaderNoMip );
 	void	(*RenderMode)( kRenderMode_t mode );
 	void	(*Begin)( TRI_DRAW mode );
 	void	(*End)( void );

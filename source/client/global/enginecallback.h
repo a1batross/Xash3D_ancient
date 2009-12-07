@@ -21,7 +21,7 @@
 #define GetScreenInfo	(*g_engfuncs.pfnGetScreenInfo)
 
 #define SPR_Load		(*g_engfuncs.pfnSPR_Load)
-#define TEX_Load( x )	(*g_engfuncs.pfnLoadShader)( x, false )
+#define TEX_Load( x )	(*g_engfuncs.pTriAPI->LoadShader)( x, false )
 #define SetCrosshair	(*g_engfuncs.pfnSetCrosshair)
 
 #define SendWeaponAnim	(*g_engfuncs.pEventAPI->EV_WeaponAnim)

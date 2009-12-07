@@ -406,7 +406,11 @@ int CHud::MsgFunc_ServerName( const char *pszName, int iSize, void *pbuf )
 
 int CHud :: MsgFunc_RoomType( const char *pszName, int iSize, void *pbuf )
 {
-	CVAR_SET_FLOAT( "room_type", READ_SHORT());
+	BEGIN_READ( pszName, iSize, pbuf );
+
+	CVAR_SET_FLOAT( "room_type", (float)READ_BYTE( ));
+
+	END_READ();
 
 	return 1;
 }
@@ -415,8 +419,8 @@ int CHud :: MsgFunc_ScreenFade( const char *pszName, int iSize, void *pbuf )
 {
 	BEGIN_READ( pszName, iSize, pbuf );	
 
-	float fadeTime = fabs( READ_SHORT() / (1<<12));
-	float holdTime = fabs( READ_SHORT() / (1<<12));
+	float fadeTime = READ_FLOAT();
+	float holdTime = READ_FLOAT();
 	int fadeFlags = READ_SHORT();
 
 	Vector m_FadeColor;

@@ -329,8 +329,8 @@ public:
 	Vector		m_FadeColor;
 	int		m_FadeAlpha;
 	int		m_iFadeFlags;
-	int		m_iFadeTime;
-	int		m_iFadeHold;
+	float		m_flFadeTime;
+	float		m_flFadeHold;
 	int		fadeNeedsUpdate;
 	int		m_iStartMessage;
 		

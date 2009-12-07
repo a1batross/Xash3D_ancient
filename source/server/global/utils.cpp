@@ -2123,8 +2123,8 @@ void UTIL_ScreenFade( const Vector &color, float fadeTime, float fadeHold, int a
 		pPlayer->m_FadeColor = color;
 		pPlayer->m_FadeAlpha = alpha;			
 		pPlayer->m_iFadeFlags = flags;
-		pPlayer->m_iFadeTime = fadeTime;
-		pPlayer->m_iFadeHold = fadeHold;
+		pPlayer->m_flFadeTime = fadeTime;
+		pPlayer->m_flFadeHold = fadeHold;
 		pPlayer->fadeNeedsUpdate = TRUE;
 	}
 }

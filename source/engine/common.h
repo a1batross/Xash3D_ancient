@@ -211,7 +211,7 @@ void CL_GetEntitySoundSpatialization( int ent, vec3_t origin, vec3_t velocity );
 bool CL_GetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles );
 bool CL_SetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles );
 void CL_StudioEvent( dstudioevent_t *event, edict_t *ent );
-prevframe_t *CL_GetPrevFrame( int entityIndex );
+studioframe_t *CL_GetStudioFrame( int entityIndex );
 edict_t *CL_GetEdictByIndex( int index );
 edict_t *CL_GetLocalPlayer( void );
 int CL_GetMaxClients( void );

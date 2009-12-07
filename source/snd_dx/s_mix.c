@@ -269,7 +269,7 @@ void S_PaintChannels( int endtime )
 	playsound_t	*ps;
 	int		i, end;
 
-	snd_vol = s_volume->value * 256;
+	snd_vol = S_GetMasterVolume () * 256;
 
 	while( paintedtime < endtime )
 	{
@@ -330,7 +330,7 @@ void S_InitScaletable( void )
 
 	for( i = 0; i < 32; i++ )
 	{
-		scale = i * 8 * 256 * s_volume->value;
+		scale = i * 8 * 256 * S_GetMasterVolume();
 		for( j = 0; j < 256; j++ ) snd_scaletable[i][j] = ((signed char)j) * scale;
 	}
 	s_volume->modified = false;

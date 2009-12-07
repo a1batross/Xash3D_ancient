@@ -44,21 +44,7 @@ vec3_t		studio_mins, studio_maxs;
 float		studio_radius;
 
 // studio cvars
-cvar_t		*r_studio_bonelighting;
 cvar_t		*r_studio_lerping;
-cvar_t		*r_studio_lambert;
-
-typedef struct studiolight_s
-{
-	vec3_t		lightvec;			// light vector
-	vec4_t		lightcolor;		// ambient light color
-	vec4_t		lightdiffuse;		// diffuse light color
-
-	vec3_t		bonelightvec[MAXSTUDIOBONES];	// ambient lightvectors per bone
-	vec3_t		dynlightcolor[MAX_DLIGHTS];	// ambient dynamic light colors
-	vec3_t		dynlightvec[MAX_DLIGHTS][MAXSTUDIOBONES];
-	int		numdynlights;
-} studiolight_t;
 
 typedef struct studioverts_s
 {
@@ -73,11 +59,9 @@ typedef struct studioverts_s
 
 typedef struct studiovars_s
 {
-	byte		blending[MAXSTUDIOBLENDS];
-	byte		controller[MAXSTUDIOCONTROLLERS];
-	prevframe_t	*prev;			// duplcate e->prev for consistency
+	studioframe_t	*prev;			// duplcate e->prev for consistency
 
-	// cached bones, valid only for CURRENT frame
+	// cached values, valid only for CURRENT frame
 	char		bonenames[MAXSTUDIOBONES][32];// used for attached entities 
 	studioverts_t	*mesh[MAXSTUDIOMODELS];
 	matrix4x4		rotationmatrix;
@@ -86,9 +70,6 @@ typedef struct studiovars_s
 	vec3_t		*chromeup;
 	int		*chromeage;
 	int		numbones;
-
-	// StudioBoneLighting (slow but ugly)
-	studiolight_t	*light;			// FIXME: alloc match size not maximum
 } studiovars_t;
 
 /*
@@ -105,8 +86,6 @@ void R_StudioInit( void )
 	m_pStudioHeader = NULL;
 	m_flGaitMovement = 1;
 
-	r_studio_bonelighting = Cvar_Get( "r_studio_bonelighting", "0", CVAR_ARCHIVE, "use bonelighting instead of vertex diffuse lighting on studio models" );
-	r_studio_lambert = Cvar_Get( "r_studio_lambert", "2", CVAR_ARCHIVE, "bonelighting lambert value" );
 	r_studio_lerping = Cvar_Get( "r_studio_lerping", "1", CVAR_ARCHIVE, "enables studio model animation lerping" );
 
 	for( i = 1; i < MAX_ENTITIES; i++ )
@@ -145,34 +124,34 @@ void R_StudioAllocExtradata( edict_t *in, ref_entity_t *e )
 	// copy controllers
 	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
 	{
-		studio->prev->controller[i] = studio->controller[i];
-		studio->controller[i] = in->v.controller[i];
+		studio->prev->controller[i] = studio->prev->curcontroller[i];
+		studio->prev->curcontroller[i] = in->v.controller[i];
 	}
 
 	// copy blends
 	for( i = 0; i < MAXSTUDIOBLENDS; i++ )
 	{
-		studio->prev->blending[i] = studio->blending[i];
-		studio->blending[i] = in->v.blending[i];
+		studio->prev->blending[i] = studio->prev->curblending[i];
+		studio->prev->curblending[i] = in->v.blending[i];
 	}
 
 	// sequence has changed, hold the previous sequence info
-	if( in->v.sequence != e->sequence )
+	if( in->v.sequence != e->prev->cursequence )
 	{
 		studio->prev->sequencetime = e->prev->animtime + 0.01f;
-		studio->prev->sequence = e->sequence;
+		studio->prev->sequence = e->prev->cursequence;
 
 		// save current blendings
 		for( i = 0; i < MAXSTUDIOBLENDS; i++ )
-			studio->prev->blending[i] = studio->blending[i];
+			studio->prev->blending[i] = studio->prev->curblending[i];
 	}
 
 	if( e->flags & EF_ANIMATE ) 
 	{
 		if( in->v.frame == -1 )
 		{
-			in->v.frame = e->frame = 0;
-			e->sequence = in->v.sequence;
+			in->v.frame = e->prev->curframe = 0;
+			e->prev->cursequence = in->v.sequence;
 			R_StudioResetSequenceInfo( e );
 		}
 		else
@@ -189,15 +168,15 @@ void R_StudioAllocExtradata( edict_t *in, ref_entity_t *e )
 			else
 			{
 				// copy current frame back to let user grab it on a client-side
-				in->v.frame = e->frame;
+				in->v.frame = e->prev->curframe;
 			}
 		}
 	}
 	else
 	{
-		e->sequence = in->v.sequence;
-		e->prev->animtime = e->animtime;	// must be update each frame!
-		e->animtime = in->v.animtime;
+		e->prev->cursequence = in->v.sequence;
+		e->prev->animtime = e->prev->curanimtime;	// must be update each frame!
+		e->prev->curanimtime = in->v.animtime;
 	}
 
 	if( studio->numbones != numbones )
@@ -228,17 +207,6 @@ void R_StudioAllocExtradata( edict_t *in, ref_entity_t *e )
 		studio->chromeage = NULL;
 	}
 	studio->numbones = numbones;
-			
-	if( r_studio_bonelighting->integer )
-	{
-		if( !studio->light )
-			studio->light = Mem_Alloc( e->mempool, sizeof( studiolight_t ));
-	}
-	else
-	{
-		if( studio->light ) Mem_Free( studio->light );
-		studio->light = NULL;
-	}
 }
 
 void R_StudioShutdown( void )
@@ -317,7 +285,7 @@ void R_StudioModelBBox( ref_entity_t *e, vec3_t mins, vec3_t maxs )
 
 	hdr = ((mstudiomodel_t *)e->model->extradata)->phdr;
 	if( !hdr ) return;
-	R_StudioExtractBbox( hdr, e->sequence, mins, maxs );
+	R_StudioExtractBbox( hdr, e->prev->cursequence, mins, maxs );
 }
 
 /*
@@ -564,10 +532,10 @@ float R_StudioSequenceDuration( dstudiohdr_t *hdr, ref_entity_t *ent )
 {
 	dstudioseqdesc_t	*pseqdesc;
 
-	if( !hdr || ent->sequence >= hdr->numseq )
+	if( !hdr || ent->prev->cursequence >= hdr->numseq )
 		return 0.0f;
 
-	pseqdesc = (dstudioseqdesc_t *)((byte *)hdr + hdr->seqindex) + ent->sequence;
+	pseqdesc = (dstudioseqdesc_t *)((byte *)hdr + hdr->seqindex) + ent->prev->cursequence;
 	return pseqdesc->numframes / pseqdesc->fps;
 }
 
@@ -575,10 +543,10 @@ int R_StudioGetSequenceFlags( dstudiohdr_t *hdr, ref_entity_t *ent )
 {
 	dstudioseqdesc_t	*pseqdesc;
 
-	if( !hdr || ent->sequence >= hdr->numseq )
+	if( !hdr || ent->prev->cursequence >= hdr->numseq )
 		return 0;
 	
-	pseqdesc = (dstudioseqdesc_t *)((byte *)hdr + hdr->seqindex) + (int)ent->sequence;
+	pseqdesc = (dstudioseqdesc_t *)((byte *)hdr + hdr->seqindex) + (int)ent->prev->cursequence;
 	return pseqdesc->flags;
 }
 
@@ -586,14 +554,14 @@ void R_StuioGetSequenceInfo( dstudiohdr_t *hdr, ref_entity_t *ent, float *pflFra
 {
 	dstudioseqdesc_t	*pseqdesc;
 
-	if( !hdr || ent->sequence >= hdr->numseq )
+	if( !hdr || ent->prev->cursequence >= hdr->numseq )
 	{
 		*pflFrameRate = 0.0;
 		*pflGroundSpeed = 0.0;
 		return;
 	}
 
-	pseqdesc = (dstudioseqdesc_t *)((byte *)hdr + hdr->seqindex) + ent->sequence;
+	pseqdesc = (dstudioseqdesc_t *)((byte *)hdr + hdr->seqindex) + ent->prev->cursequence;
 
 	if( pseqdesc->numframes > 1 )
 	{
@@ -617,23 +585,23 @@ float R_StudioFrameAdvance( ref_entity_t *ent, float flInterval )
 
 	if( flInterval == 0.0 )
 	{
-		flInterval = ( RI.refdef.time - ent->animtime );
+		flInterval = ( RI.refdef.time - ent->prev->curanimtime );
 		if( flInterval <= 0.001 )
 		{
-			ent->animtime = RI.refdef.time;
+			ent->prev->curanimtime = RI.refdef.time;
 			return 0.0;
 		}
 	}
-	if( !ent->animtime ) flInterval = 0.0;
+	if( !ent->prev->curanimtime ) flInterval = 0.0;
 
-	ent->frame += flInterval * pstudio->prev->m_flFrameRate * ent->framerate;
-	ent->animtime = RI.refdef.time;
+	ent->prev->curframe += flInterval * pstudio->prev->m_flFrameRate * ent->framerate;
+	ent->prev->curanimtime = RI.refdef.time;
 
-	if( ent->frame < 0.0 || ent->frame >= 256.0 ) 
+	if( ent->prev->curframe < 0.0 || ent->prev->curframe >= 256.0 ) 
 	{
 		if( pstudio->prev->m_fSequenceLoops )
-			ent->frame -= (int)(ent->frame / 256.0) * 256.0;
-		else ent->frame = (ent->frame < 0.0) ? 0 : 255;
+			ent->prev->curframe -= (int)(ent->prev->curframe / 256.0) * 256.0;
+		else ent->prev->curframe = (ent->prev->curframe < 0.0) ? 0 : 255;
 		pstudio->prev->m_fSequenceFinished = true;
 	}
 	return flInterval;
@@ -652,8 +620,8 @@ void R_StudioResetSequenceInfo( ref_entity_t *ent )
 
 	R_StuioGetSequenceInfo( hdr, ent, &pstudio->prev->m_flFrameRate, &pstudio->prev->m_flGroundSpeed );
 	pstudio->prev->m_fSequenceLoops = ((R_StudioGetSequenceFlags( hdr, ent ) & STUDIO_LOOPING) != 0 );
-	ent->prev->animtime = ent->animtime;
-	ent->animtime = RI.refdef.time;
+	ent->prev->animtime = ent->prev->curanimtime;
+	ent->prev->curanimtime = RI.refdef.time;
 	pstudio->prev->m_fSequenceFinished = false;
 	pstudio->prev->m_flLastEventCheck = RI.refdef.time;
 }
@@ -664,7 +632,7 @@ int R_StudioGetEvent( ref_entity_t *e, dstudioevent_t *pcurrent, float flStart, 
 	dstudioevent_t	*pevent;
 	int		events = 0;
 
-	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + e->sequence;
+	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + e->prev->cursequence;
 	pevent = (dstudioevent_t *)((byte *)m_pStudioHeader + pseqdesc->eventindex);
 
 	if( pseqdesc->numevents == 0 || index > pseqdesc->numevents )
@@ -1087,9 +1055,9 @@ float R_StudioEstimateInterpolant( void )
 {
 	float dadt = 1.0;
 
-	if( m_fDoInterp && ( RI.currententity->animtime >= RI.currententity->prev->animtime + 0.01 ))
+	if( m_fDoInterp && ( RI.currententity->prev->curanimtime >= RI.currententity->prev->animtime + 0.01 ))
 	{
-		dadt = (RI.refdef.time - RI.currententity->animtime) / 0.1;
+		dadt = (RI.refdef.time - RI.currententity->prev->curanimtime) / 0.1;
 		if( dadt > 2.0 ) dadt = 2.0;
 	}
 	return dadt;
@@ -1127,7 +1095,7 @@ void R_StudioCalcRotations( float pos[][3], vec4_t *q, dstudioseqdesc_t *pseqdes
 	pstudio = RI.currententity->extradata;
 	Com_Assert( pstudio == NULL );
 
-	// Msg("%d %.4f %.4f %.4f %.4f %d\n", RI.currententity->curstate.sequence, m_clTime, RI.currententity->animtime, RI.currententity->frame, f, frame );
+	// Msg("%d %.4f %.4f %.4f %.4f %d\n", RI.currententity->curstate.sequence, m_clTime, RI.currententity->prev->curanimtime, RI.currententity->prev->curframe, f, frame );
 	// Msg( "%f %f %f\n", RI.currententity->angles[ROLL], RI.currententity->angles[PITCH], RI.currententity->angles[YAW] );
 	// Msg("frame %d %d\n", frame1, frame2 );
 
@@ -1138,13 +1106,13 @@ void R_StudioCalcRotations( float pos[][3], vec4_t *q, dstudioseqdesc_t *pseqdes
 	pbone = (dstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
 	mouthopen = ri.GetMouthOpen( RI.currententity->index );
 
-	R_StudioCalcBoneAdj( dadt, adj, pstudio->controller, pstudio->prev->controller, mouthopen );
+	R_StudioCalcBoneAdj( dadt, adj, pstudio->prev->curcontroller, pstudio->prev->controller, mouthopen );
 
 	for (i = 0; i < m_pStudioHeader->numbones; i++, pbone++, panim++) 
 	{
 		R_StudioCalcBoneQuaterion( frame, s, pbone, panim, adj, q[i] );
 		R_StudioCalcBonePosition( frame, s, pbone, panim, adj, pos[i] );
-		// if( 0 && i == 0 ) Msg("%d %d %d %d\n", RI.currententity->sequence, frame, j, k );
+		// if( 0 && i == 0 ) Msg("%d %d %d %d\n", RI.currententity->prev->cursequence, frame, j, k );
 	}
 
 	if( pseqdesc->motiontype & STUDIO_X ) pos[pseqdesc->motionbone][0] = 0.0f;
@@ -1170,13 +1138,13 @@ float R_StudioEstimateFrame( dstudioseqdesc_t *pseqdesc )
 	
 	if( m_fDoInterp )
 	{
-		if( RI.refdef.time < RI.currententity->animtime ) dfdt = 0;
-		else dfdt = (RI.refdef.time - RI.currententity->animtime) * RI.currententity->framerate * pseqdesc->fps;
+		if( RI.refdef.time < RI.currententity->prev->curanimtime ) dfdt = 0;
+		else dfdt = (RI.refdef.time - RI.currententity->prev->curanimtime) * RI.currententity->framerate * pseqdesc->fps;
 	}
 	else dfdt = 0;
 
 	if( pseqdesc->numframes <= 1 ) f = 0;
-	else f = (RI.currententity->frame * (pseqdesc->numframes - 1)) / 256.0;
+	else f = (RI.currententity->prev->curframe * (pseqdesc->numframes - 1)) / 256.0;
  
 	f += dfdt;
 
@@ -1226,8 +1194,8 @@ float R_StudioSetupBones( ref_entity_t *e )
 		return 0.0f;
 
 	cl_entity = ri.GetClientEdict( e->index );
-	if( e->sequence >= m_pStudioHeader->numseq ) e->sequence = 0;
-	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + e->sequence;
+	if( e->prev->cursequence >= m_pStudioHeader->numseq ) e->prev->cursequence = 0;
+	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + e->prev->cursequence;
 
 	f = R_StudioEstimateFrame( pseqdesc );
 
@@ -1248,7 +1216,7 @@ float R_StudioSetupBones( ref_entity_t *e )
 		R_StudioCalcRotations( pos2, q2, pseqdesc, panim, f );
 
 		dadt = R_StudioEstimateInterpolant();
-		s = (pstudio->blending[0] * dadt + pstudio->prev->blending[0] * (1.0 - dadt)) / 255.0;
+		s = (pstudio->prev->curblending[0] * dadt + pstudio->prev->blending[0] * (1.0 - dadt)) / 255.0;
 
 		R_StudioSlerpBones( q, pos, q2, pos2, s );
 
@@ -1260,10 +1228,10 @@ float R_StudioSetupBones( ref_entity_t *e )
 			panim += m_pStudioHeader->numbones;
 			R_StudioCalcRotations( pos4, q4, pseqdesc, panim, f );
 
-			s = (pstudio->blending[0] * dadt + pstudio->prev->blending[0] * (1.0 - dadt)) / 255.0;
+			s = (pstudio->prev->curblending[0] * dadt + pstudio->prev->blending[0] * (1.0 - dadt)) / 255.0;
 			R_StudioSlerpBones( q3, pos3, q4, pos4, s );
 
-			s = (pstudio->blending[1] * dadt + pstudio->prev->blending[1] * (1.0 - dadt)) / 255.0;
+			s = (pstudio->prev->curblending[1] * dadt + pstudio->prev->blending[1] * (1.0 - dadt)) / 255.0;
 			R_StudioSlerpBones( q, pos, q3, pos3, s );
 		}
 	}
@@ -1376,7 +1344,7 @@ float R_StudioMergeBones( ref_entity_t *e, ref_model_t *m_pSubModel )
 {
 	int		i, j;
 	double		f;
-	int		sequence = e->sequence;
+	int		sequence = e->prev->cursequence;
 	dstudiobone_t	*pbones;
 	dstudioseqdesc_t	*pseqdesc;
 	dstudioanim_t	*panim;
@@ -1487,7 +1455,7 @@ bool R_StudioComputeBBox( vec3_t bbox[8] )
 	vec3_t		vectors[3];
 	ref_entity_t	*e = RI.currententity;
 	vec3_t		tmp, angles;
-	int		i, seq = RI.currententity->sequence;
+	int		i, seq = RI.currententity->prev->cursequence;
 
 	if(!R_ExtractBbox( seq, studio_mins, studio_maxs ))
 		return false;
@@ -1538,121 +1506,6 @@ static void R_StudioSetupSubModel( int body, int bodypart )
 	index = index % m_pBodyPart->nummodels;
 
 	m_pSubModel = (dstudiomodel_t *)((byte *)m_pStudioHeader + m_pBodyPart->modelindex) + index;
-}
-
-void R_StudioSetupLighting( ref_entity_t *e, ref_model_t *mod )
-{
-	studiolight_t	*plight;
-	int		i;
-
-	if( !r_studio_bonelighting->integer ) return;
- 
- 	// light already cached for this frame
-	if( e->m_nCachedFrameCount == r_framecount2 ) return;
-	plight = ((studiovars_t *)e->extradata)->light;
-	Com_Assert( plight == NULL );
-
-	// set radius to 0 because we want handle dynamic lights manually
-	R_LightForOrigin( e->lightingOrigin, plight->lightvec, plight->lightcolor, plight->lightdiffuse, 0 );
-
-	for( i = 0; i < m_pStudioHeader->numbones; i++ )
-		Matrix4x4_VectorIRotate( m_pbonestransform[i], plight->lightvec, plight->bonelightvec[i] );
-	plight->numdynlights = 0;
-
-	// add dynamic lights
-	if( r_dynamiclight->integer && r_numDlights )
-	{
-		uint	lnum;
-		dlight_t	*dl;
-		float	dist, radius, radius2;
-		vec3_t	direction;
-
-		for( lnum = 0, dl = r_dlights; lnum < r_numDlights; lnum++, dl++ )
-		{
-			if( !BoundsAndSphereIntersect( dl->mins, dl->maxs, e->lightingOrigin, mod->radius ))
-				continue;
-
-			VectorSubtract( dl->origin, e->lightingOrigin, direction );
-			dist = VectorLength( direction );
-
-			if( !dist || dist > dl->intensity + mod->radius )
-				continue;
-
-			radius = RadiusFromBounds( dl->mins, dl->maxs );
-			radius2 = radius * radius; // squared radius
-
-			for( i = 0; i < m_pStudioHeader->numbones; i++ )
-			{
-				vec3_t	vec, org;
-				float	dist, atten;
-				
-				Matrix4x4_OriginFromMatrix( m_pbonestransform[i], org );
-				VectorSubtract( org, dl->origin, vec );
-			
-				dist = DotProduct( vec, vec );
-				atten = (dist / radius2 - 1) * -1;
-				if( atten < 0 ) atten = 0;
-				dist = com.sqrt( dist );
-				if( dist )
-				{
-					dist = 1.0f / dist;
-					VectorScale( vec, dist, vec );
-				}
-                                        
-				Matrix4x4_VectorIRotate( m_pbonestransform[i], vec, plight->dynlightvec[plight->numdynlights][i] );
-				VectorScale( plight->dynlightvec[plight->numdynlights][i], atten, plight->dynlightvec[plight->numdynlights][i] );
-			}
-
-			VectorCopy( dl->color, plight->dynlightcolor[plight->numdynlights] );
-			plight->numdynlights++;
-		}
-	}
-}
-
-void R_StudioLighting( vec3_t lv, int bone, int flags, vec3_t normal )
-{
-	vec3_t		illum;
-	float		lightcos;
-	studiolight_t	*plight;
-
-	plight = ((studiovars_t *)RI.currententity->extradata)->light;
-	Com_Assert( plight == NULL );
-
-	VectorCopy( plight->lightcolor, illum );
-
-	if( flags & STUDIO_NF_FLATSHADE )
-	{
-		VectorMA( illum, 0.8f, plight->lightdiffuse, illum );
-	}
-          else
-          {
-		float	r;
-		int	i;
-
-		lightcos = DotProduct( normal, plight->bonelightvec[bone] ); // -1 colinear, 1 opposite
-
-		if( lightcos > 1.0f ) lightcos = 1;
-		VectorAdd( illum, plight->lightdiffuse, illum );
-
-		r = r_studio_lambert->value;
-		if( r < 1.0f ) r = 1.0f;
-		lightcos = (lightcos + (r - 1.0)) / r; 		// do modified hemispherical lighting
-		if( lightcos > 0.0f ) VectorMA( illum, -lightcos, plight->lightdiffuse, illum );
-		
-		if( illum[0] <= 0 ) illum[0] = 0;
-		if( illum[1] <= 0 ) illum[1] = 0;
-		if( illum[2] <= 0 ) illum[2] = 0;
-
-		// buz: now add all dynamic lights
-		for( i = 0; i < plight->numdynlights; i++)
-		{
-			lightcos = -DotProduct( normal, plight->dynlightvec[i][bone] );
-			if( lightcos > 0 ) VectorMA( illum, lightcos, plight->dynlightcolor[i], illum );
-		}
-	}
-	
-	ColorNormalize( illum, illum );
-	VectorScale( illum, 255, lv );
 }
 
 void R_StudioSetupChrome( float *pchrome, int modelnum, int bone, float *normal )
@@ -1744,16 +1597,6 @@ void R_StudioDrawMesh( const meshbuffer_t *mb, short *ptricmds, float s, float t
 			if( flags & STUDIO_NF_CHROME )
 				Vector2Set( inCoordsArray[r_backacc.numVerts], m_pchrome[ptricmds[1]][0] * s, m_pchrome[ptricmds[1]][1] * t );
 			else Vector2Set( inCoordsArray[r_backacc.numVerts], ptricmds[2] * s, ptricmds[3] * t );
-                              
-			if( r_studio_bonelighting->integer )
-			{
-				if( shader != R_PlanarShadowShader())
-				{
-					lv = m_pxformlight[ptricmds[1]];
-					Vector4Set( inColorsArray[0][r_backacc.numColors], lv[0], lv[1], lv[2], 255 );
-					r_backacc.numColors++;
-				}
-			}
 
 			if( features & MF_NORMALS )
 			{
@@ -2111,17 +1954,17 @@ void R_StudioProcessGait( ref_entity_t *e, edict_t *pplayer, studiovars_t *pstud
 	float		dt, flYaw;	// view direction relative to movement
 	int		iBlend;
 
-	if( e->sequence >= m_pStudioHeader->numseq ) 
-		e->sequence = 0;
+	if( e->prev->cursequence >= m_pStudioHeader->numseq ) 
+		e->prev->cursequence = 0;
 
-	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + e->sequence;
+	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + e->prev->cursequence;
 	R_StudioPlayerBlend( pseqdesc, &iBlend, &e->angles[PITCH] );
 
-	pstudio->blending[0] = iBlend;
-	pstudio->prev->blending[0] = pstudio->blending[0];
-	pstudio->prev->seqblending[0] = pstudio->blending[0];
+	pstudio->prev->curblending[0] = iBlend;
+	pstudio->prev->blending[0] = pstudio->prev->curblending[0];
+	pstudio->prev->seqblending[0] = pstudio->prev->curblending[0];
 
-	// MsgDev( D_INFO, "%f %d\n", e->angles[PITCH], pstudio->blending[0] );
+	// MsgDev( D_INFO, "%f %d\n", e->angles[PITCH], pstudio->prev->curblending[0] );
 
 	dt = bound( 0.0f, RI.refdef.frametime, 1.0f );
 
@@ -2149,14 +1992,14 @@ void R_StudioProcessGait( ref_entity_t *e, edict_t *pplayer, studiovars_t *pstud
 	}
 
 	// adjust torso
-	pstudio->controller[0] = ((flYaw / 4.0) + 30) / (60.0 / 255.0);
-	pstudio->controller[1] = ((flYaw / 4.0) + 30) / (60.0 / 255.0);
-	pstudio->controller[2] = ((flYaw / 4.0) + 30) / (60.0 / 255.0);
-	pstudio->controller[3] = ((flYaw / 4.0) + 30) / (60.0 / 255.0);
-	pstudio->prev->controller[0] = pstudio->controller[0];
-	pstudio->prev->controller[1] = pstudio->controller[1];
-	pstudio->prev->controller[2] = pstudio->controller[2];
-	pstudio->prev->controller[3] = pstudio->controller[3];
+	pstudio->prev->curcontroller[0] = ((flYaw / 4.0) + 30) / (60.0 / 255.0);
+	pstudio->prev->curcontroller[1] = ((flYaw / 4.0) + 30) / (60.0 / 255.0);
+	pstudio->prev->curcontroller[2] = ((flYaw / 4.0) + 30) / (60.0 / 255.0);
+	pstudio->prev->curcontroller[3] = ((flYaw / 4.0) + 30) / (60.0 / 255.0);
+	pstudio->prev->controller[0] = pstudio->prev->curcontroller[0];
+	pstudio->prev->controller[1] = pstudio->prev->curcontroller[1];
+	pstudio->prev->controller[2] = pstudio->prev->curcontroller[2];
+	pstudio->prev->controller[3] = pstudio->prev->curcontroller[3];
 
 	e->angles[YAW] = pstudio->prev->gaityaw;
 	if( e->angles[YAW] < -0 ) e->angles[YAW] += 360;
@@ -2197,7 +2040,7 @@ static bool R_StudioSetupModel( ref_entity_t *e, ref_model_t *mod )
 	if( e->ent_type == ED_CLIENT || e->renderfx == kRenderFxDeadPlayer )
 	{
 		// MsgDev( D_INFO, "DrawPlayer %d\n", pstudio->blending[0] );
-		// MsgDev( D_INFO, "DrawPlayer %d %d (%d)\n", r_framecount2, m_pEntity->serialnumber, e->sequence );
+		// MsgDev( D_INFO, "DrawPlayer %d %d (%d)\n", r_framecount2, m_pEntity->serialnumber, e->prev->cursequence );
 		// MsgDev( D_INFO, "Player %.2f %.2f %.2f\n", m_pEntity->v.velocity[0], m_pEntity->v.velocity[1], m_pEntity->v.velocity[2] );
 
 		if( e->renderfx == kRenderFxDeadPlayer )
@@ -2213,7 +2056,7 @@ static bool R_StudioSetupModel( ref_entity_t *e, ref_model_t *mod )
 		if( m_pEntity->v.gaitsequence <= 0 )
 		{
 			for( i = 0; i < 4; i++ )	// clear torso controllers
-				pstudio->prev->controller[i] = pstudio->controller[i] = 0x7F;
+				pstudio->prev->controller[i] = pstudio->prev->curcontroller[i] = 0x7F;
 			e->gaitsequence = 0;	// StudioSetupBones() issuses
 
 			R_StudioSetUpTransform ( e, false );
@@ -2243,20 +2086,19 @@ static bool R_StudioSetupModel( ref_entity_t *e, ref_model_t *mod )
 		curframe = R_StudioSetupBones( e );	
 		R_StudioSaveBones( e );
 	}
-	R_StudioSetupLighting( e, mod );
 
 	if( m_pEntity && e->movetype != MOVETYPE_FOLLOW && !RI.refdef.paused && e->m_nCachedFrameCount != r_framecount2 )
 	{
 		float		flInterval = 0.01f;
-		float		flStart = e->frame + (pstudio->prev->m_flLastEventCheck - e->animtime) * pstudio->prev->m_flFrameRate * e->framerate;
-		float		flEnd = e->frame + flInterval * pstudio->prev->m_flFrameRate * e->framerate;
+		float		flStart = e->prev->curframe + (pstudio->prev->m_flLastEventCheck - e->prev->curanimtime) * pstudio->prev->m_flFrameRate * e->framerate;
+		float		flEnd = e->prev->curframe + flInterval * pstudio->prev->m_flFrameRate * e->framerate;
 		int		index = 0;
 		dstudioevent_t	event;
 
 		Mem_Set( &event, 0, sizeof( event ));
 		R_StudioCalcAttachments( e );
 
-		pstudio->prev->m_flLastEventCheck = e->animtime + flInterval;
+		pstudio->prev->m_flLastEventCheck = e->prev->curanimtime + flInterval;
 		pstudio->prev->m_fSequenceFinished = false;
 		if( flEnd >= 256.0f || flEnd <= 0.0f ) 
 			pstudio->prev->m_fSequenceFinished = true;
@@ -2329,20 +2171,6 @@ void R_StudioDrawPoints( const meshbuffer_t *mb, ref_entity_t *e )
 	// initialize vertex cache
 	if( !studio->mesh[modelnum] )
 		studio->mesh[modelnum] = Mem_Alloc( e->mempool, sizeof( studioverts_t ));		
-
-	if( r_studio_bonelighting->integer )
-	{
-		if( !studio->mesh[modelnum]->light || studio->mesh[modelnum]->numnorms != m_pSubModel->numnorms )
-		{
-			studio->mesh[modelnum]->light = Mem_Realloc( e->mempool, studio->mesh[modelnum]->light, sizeof( vec3_t ) * m_pSubModel->numnorms );
-		}
-	}
-	else
-	{
-		if( studio->mesh[modelnum]->light )
-			Mem_Free( studio->mesh[modelnum]->light );
-		studio->mesh[modelnum]->light = NULL;
-	}
 				
 	if( studio->mesh[modelnum]->numverts != m_pSubModel->numverts )
 		studio->mesh[modelnum]->verts = Mem_Realloc( e->mempool, studio->mesh[modelnum]->verts, sizeof( vec3_t ) * m_pSubModel->numverts );
@@ -2376,7 +2204,7 @@ void R_StudioDrawPoints( const meshbuffer_t *mb, ref_entity_t *e )
 			Matrix4x4_VectorRotate( m_pbonestransform[pnormbone[i]], pstudionorms[i], m_pxformnorms[i] );
 		}
 
-		if( m_pStudioHeader->flags & STUDIO_HAS_CHROME || r_studio_bonelighting->integer )
+		if( m_pStudioHeader->flags & STUDIO_HAS_CHROME )
 		{
 			for( i = 0; i < m_pSubModel->nummesh; i++ ) 
 			{
@@ -2384,9 +2212,6 @@ void R_StudioDrawPoints( const meshbuffer_t *mb, ref_entity_t *e )
 
 				for( j = 0; j < pmesh[i].numnorms; j++, lv += 3, pstudionorms++, pnormbone++ )
 				{
-					if( r_studio_bonelighting->integer )
-						R_StudioLighting( lv, *pnormbone, flags, (float *)pstudionorms );
-                             
 					if(!( texflags & STUDIO_NF_CHROME )) continue;
 					R_StudioSetupChrome( m_pchrome[(float (*)[3])lv - m_pxformlight], modelnum, *pnormbone, (float *)pstudionorms );
 				}
@@ -2458,12 +2283,12 @@ bool R_CullStudioModel( ref_entity_t *e )
 	{
 		// cull child entities with parent volume
 		R_StudioSetupRender( e->parent, e->parent->model );
-		sequence = e->parent->sequence;
+		sequence = e->parent->prev->cursequence;
 	}
 	else
 	{
 		R_StudioSetupRender( e, e->model );
-		sequence = e->sequence;
+		sequence = e->prev->cursequence;
 	}
 
 	if(!R_ExtractBbox( sequence, studio_mins, studio_maxs ))
@@ -2528,12 +2353,12 @@ void R_AddStudioModelToList( ref_entity_t *e )
 	{
 		// cull child entities with parent volume
 		R_StudioSetupRender( e->parent, e->parent->model );
-		sequence = e->parent->sequence;
+		sequence = e->parent->prev->cursequence;
 	}
 	else
 	{
 		R_StudioSetupRender( e, e->model );
-		sequence = e->sequence;
+		sequence = e->prev->cursequence;
 	}
 
 	if(!R_ExtractBbox( sequence, studio_mins, studio_maxs )) return; // invalid sequence

@@ -19,6 +19,7 @@ typedef struct
 	float	fDamping;
 } dsproom_t;
 
+static soundfade_t	soundfade;
 static playSound_t	s_playSounds[MAX_PLAYSOUNDS];
 static playSound_t	s_freePlaySounds;
 static playSound_t	s_pendingPlaySounds;
@@ -120,12 +121,79 @@ bool S_CheckForErrors( void )
 
 /*
 =================
+S_GetMasterVolume
+=================
+*/
+float S_GetMasterVolume( void )
+{
+	float	scale = 1.0f;
+
+	if( soundfade.percent != 0 )
+	{
+		scale = bound( 0.0f, soundfade.percent / 100.0f, 1.0f );
+		scale = 1.0f - scale;
+	}
+	return s_volume->value * scale;
+}
+
+/*
+=================
 S_FadeClientVolume
 =================
 */
 void S_FadeClientVolume( float fadePercent, float fadeOutSeconds, float holdTime, float fadeInSeconds )
 {
-	// FIXME: implement
+	soundfade.starttime	= si.GetServerTime() * 0.001f;
+	soundfade.initial_percent = fadePercent;       
+	soundfade.fadeouttime = fadeOutSeconds;    
+	soundfade.holdtime = holdTime;   
+	soundfade.fadeintime = fadeInSeconds;
+}
+
+/*
+=================
+S_UpdateSoundFade
+=================
+*/
+void S_UpdateSoundFade( void )
+{
+	float	f, totaltime, elapsed;
+
+	// determine current fade value.
+	// assume no fading remains
+	soundfade.percent = 0;  
+
+	totaltime = soundfade.fadeouttime + soundfade.fadeintime + soundfade.holdtime;
+
+	elapsed = (si.GetServerTime() * 0.001f) - soundfade.starttime;
+
+	// clock wrapped or reset (BUG) or we've gone far enough
+	if( elapsed < 0.0f || elapsed >= totaltime || totaltime <= 0.0f )
+		return;
+
+	// We are in the fade time, so determine amount of fade.
+	if( soundfade.fadeouttime > 0.0f && ( elapsed < soundfade.fadeouttime ))
+	{
+		// ramp up
+		f = elapsed / soundfade.fadeouttime;
+	}
+	else if( elapsed <= ( soundfade.fadeouttime + soundfade.holdtime ))	// Inside the hold time
+	{
+		// stay
+		f = 1.0f;
+	}
+	else
+	{
+		// ramp down
+		f = ( elapsed - ( soundfade.fadeouttime + soundfade.holdtime ) ) / soundfade.fadeintime;
+		f = 1.0f - f; // backward interpolated...
+	}
+
+	// spline it.
+	f = SimpleSpline( f );
+	f = bound( 0.0f, f, 1.0f );
+
+	soundfade.percent = soundfade.initial_percent * f;
 }
 
 /*
@@ -591,6 +659,9 @@ void S_StopAllSounds( void )
 		if( !ch->sfx ) continue;
 		S_StopChannel( ch );
 	}
+
+	// clear any remaining soundfade
+	Mem_Set( &soundfade, 0, sizeof( soundfade ));
 	
 	S_StopStreaming();		// stop streaming channel
 	S_StopBackgroundTrack();	// stop background track
@@ -643,7 +714,8 @@ void S_Update( ref_params_t *fd )
 	al_state.clientnum = fd->viewentity;
 	al_state.refdef = fd; // for using everthing else
 
-//	if( fd->paused ) return;		
+	// update any client side sound fade
+	if( !fd->paused ) S_UpdateSoundFade();
 
 	// set up listener
 	VectorSet( s_listener.position, fd->simorg[1], fd->simorg[2], -fd->simorg[0] );
@@ -661,7 +733,7 @@ void S_Update( ref_params_t *fd )
 	palListenerfv( AL_POSITION, s_listener.position );
 	palListenerfv( AL_VELOCITY, s_listener.velocity );
 	palListenerfv( AL_ORIENTATION, s_listener.orientation );
-	palListenerf( AL_GAIN, (al_state.active) ? s_volume->value : 0.0f );
+	palListenerf( AL_GAIN, (al_state.active) ? S_GetMasterVolume () : 0.0f );
 
 	// Set state
 	palDistanceModel( AL_INVERSE_DISTANCE_CLAMPED );
@@ -730,7 +802,7 @@ void S_Activate( bool active )
 		return;
 
 	al_state.active = active;
-	if( active ) palListenerf( AL_GAIN, s_volume->value );
+	if( active ) palListenerf( AL_GAIN, S_GetMasterVolume() );
 	else palListenerf( AL_GAIN, 0.0 );
 }
 

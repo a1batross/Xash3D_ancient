@@ -63,6 +63,7 @@ typedef struct
 	vec3_t		normal;
 } fragment_t;
 
+// hold values that needs for right studio lerping
 typedef struct
 {
 	float		frame;
@@ -82,11 +83,17 @@ typedef struct
 	float		m_flGroundSpeed;   		// looped sequence ground speed (movement)
 	float		m_flLastEventCheck;		// last time when event is checked
 
+          float		curanimtime;		// HACKHACK current animtime	
+	float		curframe;			// HACKHACK current frame
+
+	int		cursequence;		// HACKHACK current sequence
+	byte		curblending[16];		// HACKHACK current blending
+	byte		curcontroller[16];		// HACKHACL current blending
 
 	byte		blending[16];		// previous blending values
 	byte		controller[16];		// previous controller values
 	byte		seqblending[16];		// blending between sequence when it's changed
-} prevframe_t;
+} studioframe_t;
 
 typedef struct
 {
@@ -180,7 +187,7 @@ typedef struct render_imp_s
 	bool	(*GetAttachment)( int entityIndex, int number, vec3_t origin, vec3_t angles );
 	bool	(*SetAttachment)( int entityIndex, int number, vec3_t origin, vec3_t angles );
 	edict_t	*(*GetClientEdict)( int index );
-	prevframe_t *(*GetPrevFrame)( int entityIndex );
+	studioframe_t *(*GetStudioFrame)( int entityIndex );
 	byte	(*GetMouthOpen)( int entityIndex );
 	edict_t	*(*GetLocalPlayer)( void );
 	int	(*GetMaxClients)( void );

@@ -284,7 +284,7 @@ void Cmd_Exec_f( void )
 		return;
 	}
 
-	MsgDev( D_INFO, "execing %s\n", Cmd_Argv( 1 ));
+	MsgDev( D_LOAD, "execing %s\n", Cmd_Argv( 1 ));
 	Cbuf_InsertText( f );
 	Mem_Free( f );
 }
