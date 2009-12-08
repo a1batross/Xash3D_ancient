@@ -205,6 +205,7 @@ byte *CIN_ReadNextFrame( cinematics_t *cin, bool silent );
 int CL_GetServerTime( void );
 float CL_GetLerpFrac( void );
 void CL_CharEvent( int key );
+void Tri_DrawTriangles( int fTrans );
 int CL_PointContents( const vec3_t point );
 void CL_StudioFxTransform( edict_t *ent, float transform[4][4] );
 void CL_GetEntitySoundSpatialization( int ent, vec3_t origin, vec3_t velocity );

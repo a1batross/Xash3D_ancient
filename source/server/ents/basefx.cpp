@@ -64,9 +64,14 @@ void CBaseParticle::Spawn( void )
 {
 	Precache();
 
+	pev->origin.z += 72;
+
 	UTIL_SetModel( edict(), "sprites/null.spr" );
 	UTIL_SetOrigin( this, pev->origin );
 	pev->solid = SOLID_NOT;
+
+	// TESTONLY: don't forget to remove
+	pev->angles = Vector( 0, 90, 0 );
 
 	if( pev->spawnflags & SF_START_ON || FStringNull( pev->targetname ))
 		m_iState = STATE_ON;

@@ -121,7 +121,7 @@ cvar_t *r_mode;
 cvar_t *r_picmip;
 cvar_t *r_skymip;
 cvar_t *r_nobind;
-cvar_t *r_clear;
+cvar_t *gl_clear;
 cvar_t *r_polyblend;
 cvar_t *r_lockpvs;
 cvar_t *r_swapInterval;
@@ -499,7 +499,7 @@ void GL_InitCommands( void )
 	r_drawelements = Cvar_Get( "r_drawelements", "1", 0, "use gldrawElements or glDrawRangeElements" );
 	gl_wireframe = Cvar_Get( "gl_wireframe", "0", CVAR_CHEAT, "show mesh triangles" );
 	r_lockpvs = Cvar_Get( "r_lockpvs", "0", CVAR_CHEAT, "lockpvs area at current point (pvs test)" );
-	r_clear = Cvar_Get( "r_clear", "0", CVAR_ARCHIVE, "clearing screen after each frame" );
+	gl_clear = Cvar_Get( "gl_clear", "0", CVAR_ARCHIVE, "clearing screen after each frame" );
 	r_mode = Cvar_Get( "r_mode", VID_DEFAULTMODE, CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "display resolution mode" );
 	r_nobind = Cvar_Get( "r_nobind", "0", 0, "disable all textures (perfomance test)" );
 	r_picmip = Cvar_Get( "r_picmip", "0", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "reduces resolution of textures by powers of 2" );

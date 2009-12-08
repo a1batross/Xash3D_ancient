@@ -1738,7 +1738,7 @@ void R_BeginFrame( bool clearScene )
 		r_environment_color->modified = false;
 	}
 
-	if( r_clear->integer && clearScene )
+	if( gl_clear->integer && clearScene )
 	{
 		rgba_t color;
 		
@@ -2401,6 +2401,19 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	re.RenderFrame = R_RenderScene;
 	re.EndFrame = R_EndFrame;
 
+	re.RenderMode = Tri_RenderMode;
+	re.TexCoord2f = Tri_TexCoord2f;
+	re.Normal3f = Tri_Normal3f;
+	re.Vertex3f = Tri_Vertex3f;
+	re.Color4ub = Tri_Color4ub;
+	re.CullFace = Tri_CullFace;
+	re.Disable = Tri_Disable;
+	re.Enable = Tri_Enable;
+	re.Begin = Tri_Begin;
+	re.Bind = Tri_Bind;
+	re.End = Tri_End;
+	re.Fog = Tri_Fog;
+	
 	re.SetColor = R_DrawSetColor;
 	re.GetParms = R_DrawGetParms;
 	re.SetParms = R_DrawSetParms;

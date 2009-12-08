@@ -32,7 +32,7 @@ static HUD_FUNCTIONS gFunctionTable =
 	HUD_Reset,
 	HUD_Frame,
 	HUD_Shutdown,
-	HUD_DrawTriangles,
+	HUD_RenderCallback,
 	HUD_CreateEntities,
 	HUD_StudioEvent,
 	HUD_StudioFxTransform,

@@ -7,9 +7,8 @@
 
 typedef enum 
 {
-	TRI_NONE = 0,
-	TRI_FRONT,
-	TRI_BACK,
+	TRI_FRONT = 0,
+	TRI_NONE,
 } TRI_CULL;
 
 typedef enum
@@ -32,7 +31,7 @@ typedef struct triapi_s
 {
 	size_t	api_size;			// must match with sizeof( triapi_t );
 
-	HSPRITE	(*LoadShader)( const char *szShaderName, int fShaderNoMip );
+	shader_t	(*LoadShader)( const char *szShaderName, int fShaderNoMip );
 	void	(*RenderMode)( kRenderMode_t mode );
 	void	(*Begin)( TRI_DRAW mode );
 	void	(*End)( void );
@@ -46,7 +45,7 @@ typedef struct triapi_s
 	void	(*Color4f)( float r, float g, float b, float a );
 	void	(*Color4ub)( byte r, byte g, byte b, byte a );
 	void	(*TexCoord2f)( float u, float v );
-	void	(*Bind)( HSPRITE shader, int frame );	// use handle that return pfnLoadShader
+	void	(*Bind)( shader_t shader, int frame );	// use handle that return pfnLoadShader
 	void	(*CullFace)( TRI_CULL mode );
 	void	(*ScreenToWorld)( float *screen, float *world  ); 
 	int	(*WorldToScreen)( float *world, float *screen );  // returns 1 if it's z clipped

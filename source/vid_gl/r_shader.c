@@ -2571,6 +2571,7 @@ bool R_ShaderCheckCache( const char *name )
 void R_RegisterBuiltinShaders( void )
 {
 	tr.defaultShader = R_LoadShader( MAP_DEFAULT_SHADER, SHADER_NOMIP, true, (TF_NOMIPMAP|TF_NOPICMIP), SHADER_UNKNOWN );
+	tr.fillShader = R_LoadShader( "*white", SHADER_FONT, true, (TF_CLAMP|TF_NOMIPMAP|TF_NOPICMIP), SHADER_UNKNOWN );
 }
 
 void R_InitShaders( void )

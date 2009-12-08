@@ -35,13 +35,9 @@
 typedef struct
 {
 	int		numverts;
-	int		numelems;
-
 	vec3_t		*verts;
-	vec3_t		*normals;
 	vec2_t		*stcoords;
 	rgba_t		*colors;
-	uint		*elems;
 
 	union
 	{
@@ -157,6 +153,20 @@ typedef struct render_exp_s
 	void	(*RenderFrame)( const ref_params_t *fd );
 	void	(*EndFrame)( void );
 
+	// triapi implementation
+	void	(*RenderMode)( const kRenderMode_t mode );
+	void	(*Normal3f)( const float x, const float y, const float z );
+	void	(*Vertex3f)( const float x, const float y, const float z );
+	void	(*Color4ub)( const byte r, const byte g, const byte b, const byte a );
+	void	(*Fog)( float flFogColor[3], float flStart, float flEnd, int bOn );
+	void	(*TexCoord2f)( const float u, const float v );
+	void	(*Bind)( shader_t shader, int frame );
+	void	(*CullFace)( int mode );
+	void	(*Enable)( int cap );
+	void	(*Disable)( int cap );
+	void	(*Begin)( int mode );
+	void	(*End)( void );
+
 	// misc utilities
 	void	(*SetColor)( const rgba_t color );
 	void	(*SetParms)( shader_t handle, kRenderMode_t rendermode, int frame );
@@ -192,6 +202,7 @@ typedef struct render_imp_s
 	edict_t	*(*GetLocalPlayer)( void );
 	int	(*GetMaxClients)( void );
 	float	(*GetLerpFrac)( void );
+	void	(*DrawTriangles)( int fTrans );
 
 	// RoQ decoder imports
 	void	(*RoQ_ReadChunk)( cinematics_t *cin );

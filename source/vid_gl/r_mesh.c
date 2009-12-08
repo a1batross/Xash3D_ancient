@@ -292,14 +292,14 @@ int R_ReAllocMeshList( meshbuffer_t **mb, int minMeshes, int maxMeshes )
 	newMB = Mem_Alloc( r_meshlistmempool, newSize * sizeof( meshbuffer_t ));
 	if( *mb )
 	{
-		Mem_Copy( newMB, *mb, oldSize * sizeof( meshbuffer_t ) );
+		Mem_Copy( newMB, *mb, oldSize * sizeof( meshbuffer_t ));
 		Mem_Free( *mb );
 	}
 	*mb = newMB;
 
 	// NULL all pointers to old membuffers so we don't crash
 	if( r_worldmodel && !( RI.refdef.flags & RDF_NOWORLDMODEL ) )
-		memset( RI.surfmbuffers, 0, r_worldbrushmodel->numsurfaces * sizeof( meshbuffer_t * ) );
+		Mem_Set( RI.surfmbuffers, 0, r_worldbrushmodel->numsurfaces * sizeof( meshbuffer_t* ));
 
 	return newSize;
 }
@@ -652,6 +652,8 @@ void R_DrawMeshes( void )
 		R_BatchMeshBuffer( meshbuf, NULL );
 	}
 
+	Tri_RenderCallback( false );
+
 	if( RI.meshlist->num_translucent_meshes )
 	{
 		meshbuf = RI.meshlist->meshbuffer_translucent;
@@ -659,6 +661,8 @@ void R_DrawMeshes( void )
 			R_BatchMeshBuffer( meshbuf, meshbuf + 1 );
 		R_BatchMeshBuffer( meshbuf, NULL );
 	}
+
+	Tri_RenderCallback( true );
 
 	R_LoadIdentity();
 }

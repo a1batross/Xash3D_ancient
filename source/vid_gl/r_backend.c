@@ -1260,7 +1260,7 @@ static _inline texture_t *R_ShaderpassTex( const ref_stage_t *pass, int unit )
 	}
 	if( pass->flags & SHADERSTAGE_FRAMES && !(pass->flags & SHADERSTAGE_ANIMFREQUENCY))
 	{
-		if( glState.in2DMode )
+		if( glState.in2DMode || triState.fActive )
 			return pass->textures[bound( 0, glState.draw_frame, pass->num_textures - 1)];
 		else if( RI.currententity && RI.currententity->model )
 		{
@@ -1316,7 +1316,7 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 	if(!( pass->flags & SHADERSTAGE_RENDERMODE ))
 		return;
 
-	if( RI.currentmodel && !glState.in2DMode )
+	if( RI.currentmodel && !glState.in2DMode && !triState.fActive )
 		mod_type = RI.currentmodel->type;
 
 	switch( tr.iRenderMode )

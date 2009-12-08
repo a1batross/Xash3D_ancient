@@ -2038,151 +2038,16 @@ TriApi implementation
 
 =================
 */
-static void Tri_AddPolygon( void )
+/*
+=================
+Tri_DrawTriangles
+
+callback from renderer
+=================
+*/
+void Tri_DrawTriangles( int fTrans )
 {
-	if( clgame.pTri->caps[TRI_SHADER] )
-		clgame.pTri->currentPolygon.shadernum = clgame.pTri->currentShader;
-	else clgame.pTri->currentPolygon.shadernum = cls.fillShader;
-
-	if( clgame.pTri->hasNormals )
-		clgame.pTri->currentPolygon.normals = clgame.pTri->normals;		
-	else clgame.pTri->currentPolygon.normals = NULL; // no normals
-
-	clgame.pTri->currentPolygon.verts = clgame.pTri->verts;
-	clgame.pTri->currentPolygon.stcoords = clgame.pTri->stcoords;
-	clgame.pTri->currentPolygon.colors = clgame.pTri->colors;
-	clgame.pTri->currentPolygon.elems = clgame.pTri->elems;
-
-	clgame.pTri->currentPolygon.numverts = clgame.pTri->numVertex;
-	clgame.pTri->currentPolygon.numelems = clgame.pTri->numIndex;
-
-	clgame.pTri->numVertex = clgame.pTri->numIndex = clgame.pTri->numColor = 0;
-
-	if( re ) re->AddPolygon( &clgame.pTri->currentPolygon );
-}
-
-static void Tri_CheckOverflow( int numIndices, int numVertices )
-{
-	if( numIndices > MAX_TRIELEMS )
-		Host_Error( "Tri_CheckOverflow: %i > MAX_TRIELEMS\n", numIndices );
-	if( numVertices > MAX_TRIVERTS )
-		Host_Error( "Tri_CheckOverflow: %i > MAX_TRIVERTS\n", numVertices );			
-
-	if( clgame.pTri->numIndex + numIndices <= MAX_TRIELEMS && clgame.pTri->numVertex + numVertices <= MAX_TRIVERTS )
-		return;
-
-	Tri_AddPolygon();
-}
-
-static void Tri_SetVertex( float x, float y, float z )
-{
-	uint	oldIndex = clgame.pTri->numIndex;
-
-	switch( clgame.pTri->drawMode )
-	{
-	case TRI_LINES:
-		clgame.pTri->elems[clgame.pTri->numIndex++] = clgame.pTri->numVertex;
-		if( clgame.pTri->vertexState++ == 1 )
-		{
-			Tri_SetVertex( x + 1, y + 1, z + 1 );
-			clgame.pTri->vertexState = 0;
-			clgame.pTri->checkFlush = true; // Flush for long sequences of quads.
-		}
-		break;
-	case TRI_TRIANGLES:
-		clgame.pTri->elems[clgame.pTri->numIndex++] = clgame.pTri->numVertex;
-		if( clgame.pTri->vertexState++ == 2 )
-		{
-			clgame.pTri->vertexState = 0;
-			clgame.pTri->checkFlush = true; // Flush for long sequences of triangles.
-		}
-		break;
-	case TRI_QUADS:
-		if( clgame.pTri->vertexState++ < 3 )
-		{
-			clgame.pTri->elems[clgame.pTri->numIndex++] = clgame.pTri->numVertex;
-		}
-		else
-		{
-			// we've already done triangle (0, 1, 2), now draw (2, 3, 0)
-			clgame.pTri->elems[clgame.pTri->numIndex++] = clgame.pTri->numVertex - 1;
-			clgame.pTri->elems[clgame.pTri->numIndex++] = clgame.pTri->numVertex;
-			clgame.pTri->elems[clgame.pTri->numIndex++] = clgame.pTri->numVertex - 3;
-			clgame.pTri->vertexState = 0;
-			clgame.pTri->checkFlush = true; // flush for long sequences of quads.
-		}
-		break;
-	case TRI_TRIANGLE_STRIP:
-		if( clgame.pTri->numVertex + clgame.pTri->vertexState > MAX_TRIVERTS )
-		{
-			// This is a strip that's too big for us to buffer.
-			// (We can't just flush the buffer because we have to keep
-			// track of the last two vertices.
-			Host_Error( "Tri_SetVertex: overflow: %i > MAX_TRIVERTS\n", clgame.pTri->numVertex + clgame.pTri->vertexState );
-		}
-		if( clgame.pTri->vertexState++ < 3 )
-		{
-			clgame.pTri->elems[clgame.pTri->numIndex++] = clgame.pTri->numVertex;
-		}
-		else
-		{
-			// flip triangles between clockwise and counter clockwise
-			if( clgame.pTri->vertexState & 1 )
-			{
-				// draw triangle [n-2 n-1 n]
-				clgame.pTri->elems[clgame.pTri->numIndex++] = clgame.pTri->numVertex - 2;
-				clgame.pTri->elems[clgame.pTri->numIndex++] = clgame.pTri->numVertex - 1;
-				clgame.pTri->elems[clgame.pTri->numIndex++] = clgame.pTri->numVertex;
-			}
-			else
-			{
-				// draw triangle [n-1 n-2 n]
-				clgame.pTri->elems[clgame.pTri->numIndex++] = clgame.pTri->numVertex - 1;
-				clgame.pTri->elems[clgame.pTri->numIndex++] = clgame.pTri->numVertex - 2;
-				clgame.pTri->elems[clgame.pTri->numIndex++] = clgame.pTri->numVertex;
-			}
-		}
-		break;
-	case TRI_POLYGON:
-	case TRI_TRIANGLE_FAN:	// same as polygon
-		if( clgame.pTri->numVertex + clgame.pTri->vertexState > MAX_TRIVERTS )
-		{
-			// This is a polygon or fan that's too big for us to buffer.
-			// (We can't just flush the buffer because we have to keep
-			// track of the starting vertex.
-			Host_Error( "Tri_SetVertex: overflow: %i > MAX_TRIVERTS\n", clgame.pTri->numVertex + clgame.pTri->vertexState );
-		}
-		if( clgame.pTri->vertexState++ < 3 )
-		{
-			clgame.pTri->elems[clgame.pTri->numIndex++] = clgame.pTri->numVertex;
-		}
-		else
-		{
-			// draw triangle [0 n-1 n]
-			clgame.pTri->elems[clgame.pTri->numIndex++] = clgame.pTri->numVertex - ( clgame.pTri->vertexState - 1 );
-			clgame.pTri->elems[clgame.pTri->numIndex++] = clgame.pTri->numVertex - 1;
-			clgame.pTri->elems[clgame.pTri->numIndex++] = clgame.pTri->numVertex;
-		}
-		break;
-	default:
-		Host_Error( "Tri_SetVertex: unknown mode: %i\n", clgame.pTri->drawMode );
-		break;
-	}
-
-	// copy current vertex
-	clgame.pTri->verts[clgame.pTri->numVertex][0] = x;
-	clgame.pTri->verts[clgame.pTri->numVertex][1] = y;
-	clgame.pTri->verts[clgame.pTri->numVertex][2] = z;
-
-	// copy current color
-	if( clgame.pTri->numColor == 0 )
-		Vector4Copy( clgame.pTri->color, clgame.pTri->colors[clgame.pTri->numVertex] );
-
-	clgame.pTri->numVertex++;
-
-	// flush buffer if needed
-	if( clgame.pTri->checkFlush )
-		Tri_CheckOverflow( clgame.pTri->numIndex - oldIndex, clgame.pTri->vertexState );
+	clgame.dllFuncs.pfnDrawTriangles( fTrans );
 }
 
 /*
@@ -2196,158 +2061,225 @@ shader_t TriLoadShader( const char *szShaderName, int fShaderNoMip )
 	if( !re ) return 0; // render not initialized
 	if( !szShaderName || !*szShaderName )
 	{
-		MsgDev( D_ERROR, "CL_LoadShader: invalid shadername (%s)\n", fShaderNoMip ? "nomip" : "generic" );
+		MsgDev( D_ERROR, "Tri_LoadShader: invalid shadername (%s)\n", fShaderNoMip ? "nomip" : "generic" );
 		return -1;
 	}
-
 	if( fShaderNoMip )
 		return re->RegisterShader( szShaderName, SHADER_NOMIP );
 	return re->RegisterShader( szShaderName, SHADER_GENERIC );
 }
 
+/*
+=============
+TriRenderMode
+
+=============
+*/
 void TriRenderMode( kRenderMode_t mode )
 {
 	if( !re ) return;
-
-	// FIXME: implement it properly
-//	re->SetParms( clgame.pTri->currentShader, mode, clgame.pTri->currentFrame );
+	re->RenderMode( mode );
 }
 
+/*
+=============
+TriBind
+
+bind current shader
+=============
+*/
 void TriBind( shader_t shader, int frame )
 {
-	clgame.pTri->currentShader = shader;
-	clgame.pTri->currentFrame = frame;
+	if( !re ) return;
+	re->Bind( shader, frame );
 }
 
+/*
+=============
+TriBegin
+
+begin triangle sequence
+=============
+*/
 void TriBegin( TRI_DRAW mode )
 {
-	clgame.pTri->drawMode = mode;
-	clgame.pTri->vertexState = 0;
-	clgame.pTri->checkFlush = false;
-	clgame.pTri->hasNormals = false;
-
-	clgame.pTri->verts = clgame.pTri->vertsArray[clgame.pTri->numPolys];
-	clgame.pTri->normals = clgame.pTri->normalsArray[clgame.pTri->numPolys];
-	clgame.pTri->stcoords = clgame.pTri->stcoordsArray[clgame.pTri->numPolys];
-	clgame.pTri->colors = clgame.pTri->colorsArray[clgame.pTri->numPolys];
-	clgame.pTri->elems = clgame.pTri->elemsArray[clgame.pTri->numPolys];
+	if( re ) re->Begin( mode );
 }
 
+/*
+=============
+TriEnd
+
+draw triangle sequence
+=============
+*/
 void TriEnd( void )
 {
-	if( clgame.pTri->numIndex == 0 ) return;
-
-	Tri_AddPolygon();
-
-	if( ++clgame.pTri->numPolys > MAX_TRIPOLYS );
-		clgame.pTri->numPolys = 0; // reset it
-
-	clgame.pTri->verts = NULL;
-	clgame.pTri->normals = NULL;
-	clgame.pTri->stcoords = NULL;
-	clgame.pTri->colors = NULL;
-	clgame.pTri->elems = NULL;
+	if( re ) re->End();
 }
 
+/*
+=============
+TriEnable
+
+=============
+*/
 void TriEnable( int cap )
 {
-	if( cap < 0 || cap > TRI_MAXCAPS ) return;
-	clgame.pTri->caps[cap] = true;
+	if( !re ) return;
+	re->Enable( cap );
 }
 
+/*
+=============
+TriDisable
+
+=============
+*/
 void TriDisable( int cap )
 {
-	if( cap < 0 || cap > TRI_MAXCAPS ) return;
-	clgame.pTri->caps[cap] = false;
+	if( !re ) return;
+	re->Disable( cap );
 }
 
+/*
+=============
+TriVertex3f
+
+=============
+*/
 void TriVertex3f( float x, float y, float z )
 {
-	Tri_SetVertex( x, y, z );
+	if( !re ) return;
+	re->Vertex3f( x, y, z );
 }
 
+/*
+=============
+TriVertex3fv
+
+=============
+*/
 void TriVertex3fv( const float *v )
 {
-	if( !v ) return;
-	Tri_SetVertex( v[0], v[1], v[2] );
+	if( !re || !v ) return;
+	re->Vertex3f( v[0], v[1], v[2] );
 }
 
+/*
+=============
+TriNormal3f
+
+=============
+*/
 void TriNormal3f( float x, float y, float z )
 {
-	clgame.pTri->hasNormals = true; // draw has normals
-	clgame.pTri->normals[clgame.pTri->numVertex][0] = x;
-	clgame.pTri->normals[clgame.pTri->numVertex][1] = y;
-	clgame.pTri->normals[clgame.pTri->numVertex][2] = z;
+	if( !re ) return;
+	re->Normal3f( x, y, z );
 }
 
+/*
+=============
+TriNormal3fv
+
+=============
+*/
 void TriNormal3fv( const float *v )
 {
-	if( !v ) return;
-
-	clgame.pTri->hasNormals = true; // draw has normals
-	clgame.pTri->normals[clgame.pTri->numVertex][0] = v[0];
-	clgame.pTri->normals[clgame.pTri->numVertex][1] = v[1];
-	clgame.pTri->normals[clgame.pTri->numVertex][2] = v[2];
+	if( !re || !v ) return;
+	re->Normal3f( v[0], v[1], v[2] );
 }
 
+/*
+=============
+TriColor4f
+
+=============
+*/
 void TriColor4f( float r, float g, float b, float a )
 {
-	if( clgame.pTri->colors )
-	{
-		clgame.pTri->colors[clgame.pTri->numVertex][0] = (byte)bound( 0, r * 255, 255 );
-		clgame.pTri->colors[clgame.pTri->numVertex][1] = (byte)bound( 0, g * 255, 255 );
-		clgame.pTri->colors[clgame.pTri->numVertex][2] = (byte)bound( 0, b * 255, 255 );
-		clgame.pTri->colors[clgame.pTri->numVertex][3] = (byte)bound( 0, a * 255, 255 );
-		clgame.pTri->numColor++;
-	}
-	else
-	{
-		clgame.pTri->color[0] = (byte)bound( 0, r * 255, 255 );
-		clgame.pTri->color[1] = (byte)bound( 0, g * 255, 255 );
-		clgame.pTri->color[2] = (byte)bound( 0, b * 255, 255 );
-		clgame.pTri->color[3] = (byte)bound( 0, a * 255, 255 );
-	}
+	rgba_t	rgba;
+
+	if( !re ) return;
+	rgba[0] = (byte)bound( 0, r * 255, 255 );
+	rgba[1] = (byte)bound( 0, g * 255, 255 );
+	rgba[2] = (byte)bound( 0, b * 255, 255 );
+	rgba[3] = (byte)bound( 0, a * 255, 255 );
+	re->Color4ub( rgba[0], rgba[1], rgba[2], rgba[3] );
 }
 
+/*
+=============
+TriColor4ub
+
+=============
+*/
 void TriColor4ub( byte r, byte g, byte b, byte a )
 {
-	if( clgame.pTri->colors )
-	{
-		clgame.pTri->colors[clgame.pTri->numVertex][0] = r;
-		clgame.pTri->colors[clgame.pTri->numVertex][1] = g;
-		clgame.pTri->colors[clgame.pTri->numVertex][2] = b;
-		clgame.pTri->colors[clgame.pTri->numVertex][3] = a;
-		clgame.pTri->numColor++;
-	}
-	else Vector4Set( clgame.pTri->color, r, g, b, a );
+	if( !re ) return;
+	re->Color4ub( r, g, b, a );
 }
 
+/*
+=============
+TriTexCoord2f
+
+=============
+*/
 void TriTexCoord2f( float u, float v )
 {
-	clgame.pTri->stcoords[clgame.pTri->numVertex][0] = u;
-	clgame.pTri->stcoords[clgame.pTri->numVertex][1] = v;
+	if( !re ) return;
+	re->TexCoord2f( u, v );
 }
 
+/*
+=============
+TriCullFace
+
+=============
+*/
 void TriCullFace( TRI_CULL mode )
 {
-	// FIXME: implement
+	if( !re ) return;
+	re->CullFace( mode );
 }
 
+/*
+=============
+TriScreenToWorld
+
+convert screen coordinates (x,y) into world (x, y, z)
+=============
+*/
 void TriScreenToWorld( float *screen, float *world )
 {
 	if( !re ) return;
 	re->ScreenToWorld( screen, world );
 } 
 
+/*
+=============
+TriWorldToScreen
+
+convert world coordinates (x,y,z) into screen (x, y)
+=============
+*/
 int TriWorldToScreen( float *world, float *screen )
 {
 	if( !re ) return 0;
 	return re->WorldToScreen( world, screen );
 }
 
+/*
+=============
+TriFog
+
+enables global fog on the level
+=============
+*/
 void TriFog( float flFogColor[3], float flStart, float flEnd, int bOn )
 {
-	// FIXME: implement
+	if( re ) re->Fog( flFogColor, flStart, flEnd, bOn );
 }
 
 static triapi_t gTriApi =
@@ -2508,7 +2440,6 @@ bool CL_LoadProgs( const char *name )
 {
 	static CLIENTAPI		GetClientAPI;
 	static cl_globalvars_t	gpGlobals;
-	static tri_state_t		gpTriState;
 	static playermove_t		gpMove;
 	string			libpath;
 
@@ -2519,10 +2450,7 @@ bool CL_LoadProgs( const char *name )
 
 	// initialize TriAPI
 	clgame.pmove = &gpMove;
-	clgame.pTri = &gpTriState;
-	clgame.pTri->currentPolygon.fognum = -1;
-	clgame.pTri->numPolys = 0;
-	
+
 	Com_BuildPath( name, libpath );
 	cls.mempool = Mem_AllocPool( "Client Static Pool" );
 	clgame.mempool = Mem_AllocPool( "Client Edicts Zone" );

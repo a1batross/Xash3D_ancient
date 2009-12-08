@@ -7,7 +7,17 @@
 #include "utils.h"
 #include "r_particle.h"
 
-void HUD_DrawTriangles( int fTrans )
+void HUD_DrawTriangles( void )
+{
+}
+
+void HUD_DrawTransparentTriangles( void )
 {
 	g_pParticleSystems->UpdateSystems();
+}
+
+void HUD_RenderCallback( int fTrans )
+{
+	if( !fTrans ) HUD_DrawTriangles ();
+	else HUD_DrawTransparentTriangles();
 }

@@ -729,12 +729,12 @@ bool ParticleSystem::UpdateSystem( float frametime )
 	edict_t *source = GetEntityByIndex( m_iEntIndex );
 
 	if( !source ) return false;
-	
+
 	// Don't update if the system is outside the player's PVS.
 	enable = (source->v.renderfx == kRenderFxAurora);
 
 	// check for contents to remove
-	if( POINT_CONTENTS( source->v.origin ) & m_iKillCondition )
+	if( POINT_CONTENTS( source->v.origin ) == m_iKillCondition )
           {
           	enable = 0;
           }
@@ -839,6 +839,7 @@ bool ParticleSystem::UpdateParticle( particle *part, float frametime )
 				Vector	pos = Vector( 0, 0, 0 );
 
 				GET_ATTACHMENT( source, m_iEntAttachment, pos, NULL );
+				if( pos == Vector( 0, 0, 0 )) pos = source->v.origin; // missed attachment
 				part->velocity = (pos - part->origin ) / frametime;
 				part->origin = pos;
 			}
@@ -862,16 +863,17 @@ bool ParticleSystem::UpdateParticle( particle *part, float frametime )
 
 		// apply acceleration and velocity
 		Vector vecOldPos = part->origin;
-		if( part->m_fDrag )
-			part->velocity = part->velocity + (part->velocity - part->m_vecWind) * (-part->m_fDrag * frametime);
-		part->velocity = part->velocity + part->accel * frametime;
-		part->origin = part->origin + part->velocity * frametime;
+
+		if ( part->m_fDrag )
+			part->velocity = part->velocity + (-part->m_fDrag * frametime) * ( part->velocity - part->m_vecWind );
+		part->velocity = part->velocity + frametime * part->accel;
+		part->origin = part->origin + frametime * part->velocity;
 
 		if( part->pType->m_bBouncing )
 		{
-			Vector vecTarget = part->origin + part->velocity * frametime;
+			Vector vecTarget = part->origin + frametime * part->velocity;
 			TraceResult tr;
-			TRACE_LINE( part->origin, part->origin + vecTarget * 1024, true, source, &tr );
+			TRACE_LINE( part->origin, vecTarget, true, source, &tr );
 
 			if( tr.flFraction < 1.0f )
 			{
@@ -879,7 +881,7 @@ bool ParticleSystem::UpdateParticle( particle *part, float frametime )
 				float bounceforce = DotProduct( tr.vecPlaneNormal, part->velocity );
 				float newspeed = (1.0f - part->pType->m_BounceFriction.GetInstance());
 				part->velocity = part->velocity * newspeed;
-				part->velocity = part->velocity + tr.vecPlaneNormal * ( -bounceforce * ( newspeed + part->pType->m_Bounce.GetInstance( )));
+				part->velocity = part->velocity + (-bounceforce * ( newspeed + part->pType->m_Bounce.GetInstance())) * tr.vecPlaneNormal;
 			}
 		}
 	}
@@ -944,17 +946,17 @@ void ParticleSystem::DrawParticle( particle *part, Vector &right, Vector &up )
 	float fSinSize = SinLookup( part->m_fAngle ) * fSize;
 
 	// calculate the four corners of the sprite
-	point1 = origin + up * fSinSize;
-	point1 = point1 + right * -fCosSize;
+	point1 = origin + fSinSize * up;
+	point1 = point1 + (-fCosSize) * right;
 	
-	point2 = origin + up * fCosSize;
-	point2 = point2 + right * fSinSize;
+	point2 = origin + fCosSize * up;
+	point2 = point2 + fSinSize * right;
 
-	point3 = origin + up * -fSinSize;	
-	point3 = point3 + right * fCosSize;
+	point3 = origin + (-fSinSize) * up;	
+	point3 = point3 + fCosSize * right;
 
-	point4 = origin + up * -fCosSize;
-	point4 = point4 + right * -fSinSize;
+	point4 = origin + (-fCosSize) * up;
+	point4 = point4 + (-fSinSize) * right;
 
 	int iContents = 0;
 

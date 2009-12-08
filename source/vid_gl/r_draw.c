@@ -5,12 +5,13 @@
 
 #include "r_local.h"
 #include "mathlib.h"
+#include "triangle_api.h"
 
-static vec4_t pic_xyz[4] = { {0,0,0,1}, {0,0,0,1}, {0,0,0,1}, {0,0,0,1} };
-static vec2_t pic_st[4];
-static rgba_t pic_colors[4];
-static mesh_t pic_mesh = { 4, pic_xyz, pic_xyz, NULL, pic_st, { 0, 0, 0, 0 }, { pic_colors, pic_colors, pic_colors, pic_colors }, 6, NULL };
-meshbuffer_t  pic_mbuffer;
+static vec4_t	pic_xyz[4] = { {0,0,0,1}, {0,0,0,1}, {0,0,0,1}, {0,0,0,1} };
+static vec2_t	pic_st[4];
+static rgba_t	pic_colors[4];
+static mesh_t	pic_mesh = { 4, pic_xyz, pic_xyz, NULL, pic_st, { 0, 0, 0, 0 }, { pic_colors, pic_colors, pic_colors, pic_colors }, 6, NULL };
+meshbuffer_t	pic_mbuffer;
 
 /*
 ===============
@@ -187,4 +188,327 @@ void R_DrawSetParms( shader_t handle, kRenderMode_t rendermode, int frame )
 		// make sure what frame inbound
 		glState.draw_frame = bound( 0, frame, shader->stages[0].num_textures - 1 );
 	}
+}
+
+/*
+=============================================================
+
+		TRIAPI IMPLEMENTATION
+
+=============================================================
+*/
+#define MAX_TRIVERTS	1024
+#define MAX_TRIELEMS	MAX_TRIVERTS * 6
+#define MAX_TRIANGLES	MAX_TRIELEMS / 3
+
+static vec4_t		tri_vertex[MAX_TRIVERTS];
+static vec4_t		tri_normal[MAX_TRIVERTS];
+static vec2_t		tri_coords[MAX_TRIVERTS];
+static rgba_t		tri_colors[MAX_TRIVERTS];
+static elem_t		tri_elems[MAX_TRIELEMS];
+static mesh_t		tri_mesh;
+static bool		tri_caps[3];
+meshbuffer_t		tri_mbuffer;
+tristate_t		triState;
+	
+static void Tri_DrawPolygon( void )
+{
+	ref_shader_t	*shader;
+	static int	oldframe;
+
+	if( tri_caps[TRI_SHADER] )
+		shader = &r_shaders[triState.currentShader];
+	else shader = tr.fillShader;
+
+	tri_mesh.numVertexes = triState.numVertex;
+	tri_mesh.numElems = triState.numIndex;
+
+	if( triState.hasNormals )
+		tri_mesh.normalsArray = tri_normal;		
+	else tri_mesh.normalsArray = NULL; // no normals
+
+	tri_mesh.xyzArray = tri_vertex;
+	tri_mesh.stArray = tri_coords;
+	tri_mesh.colorsArray[0] = tri_colors;
+	tri_mesh.elems = tri_elems;
+
+	triState.numVertex = triState.numIndex = triState.numColor = 0;
+
+	if( tri_mbuffer.shaderkey != (int)shader->sortkey || -tri_mbuffer.infokey-1+4 > MAX_ARRAY_VERTS )
+	{
+		if( tri_mbuffer.shaderkey )
+		{
+			tri_mbuffer.infokey = -1;
+			R_RenderMeshBuffer( &tri_mbuffer );
+		}
+	}
+
+	tr.iRenderMode = triState.currentRenderMode;
+	tri_mbuffer.shaderkey = shader->sortkey;
+	tri_mbuffer.infokey -= 4;
+
+	triState.features = shader->features;
+	triState.features |= MF_COLORS;
+	if( r_shownormals->integer || triState.hasNormals )
+		triState.features |= MF_NORMALS;
+
+	if( triState.noCulling )
+		triState.features |= MF_NOCULL;
+
+	// upload video right before rendering
+	if( shader->flags & SHADER_VIDEOMAP ) R_UploadCinematicShader( shader );
+	R_PushMesh( &tri_mesh, triState.features );
+
+	if( oldframe != glState.draw_frame )
+	{
+		if( tri_mbuffer.shaderkey != (int)shader->sortkey )
+		{
+			// will be rendering on next call
+			oldframe = glState.draw_frame;
+			return;
+		}
+		if( tri_mbuffer.shaderkey )
+		{
+			tri_mbuffer.infokey = -1;
+			R_RenderMeshBuffer( &tri_mbuffer );
+		}
+		oldframe = glState.draw_frame;
+	}
+}
+
+static void Tri_CheckOverflow( int numIndices, int numVertices )
+{
+	if( numIndices > MAX_TRIELEMS )
+		Host_Error( "Tri_Overflow: %i > MAX_TRIELEMS\n", numIndices );
+	if( numVertices > MAX_TRIVERTS )
+		Host_Error( "Tri_Overflow: %i > MAX_TRIVERTS\n", numVertices );			
+
+	if( triState.numIndex + numIndices <= MAX_TRIELEMS && triState.numVertex + numVertices <= MAX_TRIVERTS )
+		return;
+
+	Tri_DrawPolygon();
+}
+
+void Tri_Fog( float flFogColor[3], float flStart, float flEnd, int bOn )
+{
+	// FIXME: implement
+}
+
+void Tri_CullFace( int mode )
+{
+	if( mode == TRI_FRONT )
+		triState.noCulling = false;
+	else if( mode == TRI_NONE )
+		triState.noCulling = true;
+}
+
+void Tri_RenderMode( const kRenderMode_t mode )
+{
+	triState.currentRenderMode = mode;
+}
+
+void Tri_Vertex3f( const float x, const float y, const float z )
+{
+	uint	oldIndex = triState.numIndex;
+
+	switch( triState.drawMode )
+	{
+	case TRI_LINES:
+		tri_elems[triState.numIndex++] = triState.numVertex;
+		if( triState.vertexState++ == 1 )
+		{
+			Tri_Vertex3f( x + 1, y + 1, z + 1 );
+			triState.vertexState = 0;
+			triState.checkFlush = true; // flush for long sequences of quads.
+		}
+		break;
+	case TRI_TRIANGLES:
+		tri_elems[triState.numIndex++] = triState.numVertex;
+		if( triState.vertexState++ == 2 )
+		{
+			triState.vertexState = 0;
+			triState.checkFlush = true; // flush for long sequences of triangles.
+		}
+		break;
+	case TRI_QUADS:
+		if( triState.vertexState++ < 3 )
+		{
+			tri_elems[triState.numIndex++] = triState.numVertex;
+		}
+		else
+		{
+			// we've already done triangle (0, 1, 2), now draw (2, 3, 0)
+			tri_elems[triState.numIndex++] = triState.numVertex - 1;
+			tri_elems[triState.numIndex++] = triState.numVertex;
+			tri_elems[triState.numIndex++] = triState.numVertex - 3;
+			triState.vertexState = 0;
+			triState.checkFlush = true; // flush for long sequences of quads.
+		}
+		break;
+	case TRI_TRIANGLE_STRIP:
+		if( triState.numVertex + triState.vertexState > MAX_TRIVERTS )
+		{
+			// This is a strip that's too big for us to buffer.
+			// (We can't just flush the buffer because we have to keep
+			// track of the last two vertices.
+			Host_Error( "Tri_SetVertex: overflow: %i > MAX_TRIVERTS\n", triState.numVertex + triState.vertexState );
+		}
+		if( triState.vertexState++ < 3 )
+		{
+			tri_elems[triState.numIndex++] = triState.numVertex;
+		}
+		else
+		{
+			// flip triangles between clockwise and counter clockwise
+			if( triState.vertexState & 1 )
+			{
+				// draw triangle [n-2 n-1 n]
+				tri_elems[triState.numIndex++] = triState.numVertex - 2;
+				tri_elems[triState.numIndex++] = triState.numVertex - 1;
+				tri_elems[triState.numIndex++] = triState.numVertex;
+			}
+			else
+			{
+				// draw triangle [n-1 n-2 n]
+				tri_elems[triState.numIndex++] = triState.numVertex - 1;
+				tri_elems[triState.numIndex++] = triState.numVertex - 2;
+				tri_elems[triState.numIndex++] = triState.numVertex;
+			}
+		}
+		break;
+	case TRI_POLYGON:
+	case TRI_TRIANGLE_FAN:	// same as polygon
+		if( triState.numVertex + triState.vertexState > MAX_TRIVERTS )
+		{
+			// This is a polygon or fan that's too big for us to buffer.
+			// (We can't just flush the buffer because we have to keep
+			// track of the starting vertex.
+			Host_Error( "Tri_Vertex3f: overflow: %i > MAX_TRIVERTS\n", triState.numVertex + triState.vertexState );
+		}
+		if( triState.vertexState++ < 3 )
+		{
+			tri_elems[triState.numIndex++] = triState.numVertex;
+		}
+		else
+		{
+			// draw triangle [0 n-1 n]
+			tri_elems[triState.numIndex++] = triState.numVertex - ( triState.vertexState - 1 );
+			tri_elems[triState.numIndex++] = triState.numVertex - 1;
+			tri_elems[triState.numIndex++] = triState.numVertex;
+		}
+		break;
+	default:
+		Host_Error( "Tri_SetVertex: unknown mode: %i\n", triState.drawMode );
+		break;
+	}
+
+	// copy current vertex
+	tri_vertex[triState.numVertex][0] = x;
+	tri_vertex[triState.numVertex][1] = y;
+	tri_vertex[triState.numVertex][2] = z;
+
+	triState.numVertex++;
+
+	// flush buffer if needed
+	if( triState.checkFlush )
+		Tri_CheckOverflow( triState.numIndex - oldIndex, triState.vertexState );
+}
+
+void Tri_Color4ub( const byte r, const byte g, const byte b, const byte a )
+{
+	tri_colors[triState.numVertex][0] = r;
+	tri_colors[triState.numVertex][1] = g;
+	tri_colors[triState.numVertex][2] = b;
+	tri_colors[triState.numVertex][3] = a;
+	triState.numColor++;
+}
+
+void Tri_Normal3f( const float x, const float y, const float z )
+{
+	triState.hasNormals = true; // curstate has normals
+	tri_normal[triState.numVertex][0] = x;
+	tri_normal[triState.numVertex][1] = y;
+	tri_normal[triState.numVertex][2] = z;
+}
+
+void Tri_TexCoord2f( const float u, const float v )
+{
+	tri_coords[triState.numVertex][0] = u;
+	tri_coords[triState.numVertex][1] = v;
+}
+
+void Tri_Bind( shader_t handle, int frame )
+{
+	ref_shader_t	*shader;
+
+	if( handle < 0 || handle > MAX_SHADERS || !(shader = &r_shaders[handle]))
+	{
+		MsgDev( D_ERROR, "TriBind: bad shader %i\n", handle );
+		return;
+	}
+
+	if( !shader->num_stages || !shader->stages[0].textures[0] )
+	{
+		MsgDev( D_ERROR, "TriBind: bad shader %i\n", handle );
+		return;
+	}
+
+	triState.currentShader = handle;
+
+	// FIXME: scan stages while( frame < stage->num_textures ) ?
+	if( shader->stages[0].textures[0] && shader->stages[0].num_textures && frame > 0 )
+		glState.draw_frame = bound( 0, frame, shader->stages[0].num_textures );
+}
+
+void Tri_Enable( int cap )
+{
+	if( cap < 0 || cap > TRI_MAXCAPS ) return;
+	tri_caps[cap] = true;
+}
+
+void Tri_Disable( int cap )
+{
+	if( cap < 0 || cap > TRI_MAXCAPS ) return;
+	tri_caps[cap] = false;
+}
+
+void Tri_Begin( int mode )
+{
+	triState.drawMode = mode;
+	triState.vertexState = 0;
+	triState.checkFlush = false;
+	triState.hasNormals = false;
+}
+
+void Tri_End( void )
+{
+	if( triState.numIndex )
+		Tri_DrawPolygon();
+}
+
+void Tri_RenderCallback( int fTrans )
+{
+	triState.fActive = true;
+
+	if( fTrans ) GL_SetState( GLSTATE_NO_DEPTH_TEST );
+	R_LoadIdentity();
+
+	pglColor4f( 1, 1, 1, 1 );
+
+	RI.currententity = RI.previousentity = NULL;
+	RI.currentmodel = NULL;
+
+	tri_mbuffer.infokey = -1;
+	tri_mbuffer.shaderkey = 0;
+
+	ri.DrawTriangles( fTrans );
+
+	// fulsh remaining tris
+	if( tri_mbuffer.infokey != -1 )
+	{
+		R_RenderMeshBuffer( &tri_mbuffer );
+		tri_mbuffer.infokey = -1;
+	}
+
+	triState.fActive = false;
 }

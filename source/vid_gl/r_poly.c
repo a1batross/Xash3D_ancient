@@ -40,48 +40,19 @@ void R_PushPoly( const meshbuffer_t *mb )
 
 	MB_NUM2SHADER( mb->shaderkey, shader );
 
+	features = shader->features | MF_TRIFAN;
 	for( i = -mb->infokey-1, p = r_polys + i; i < mb->lastPoly; i++, p++ )
 	{
-		// check for extended mesh
-		if( p->elems && p->numelems )
+		poly_mesh.numVertexes = p->numverts;
+		poly_mesh.xyzArray = inVertsArray;
+		poly_mesh.normalsArray = inNormalsArray;
+		poly_mesh.stArray = p->stcoords;
+		poly_mesh.colorsArray[0] = p->colors;
+		for( j = 0; j < p->numverts; j++ )
 		{
-			features = shader->features;
-
-			if( p->normals ) features |= MF_NORMALS;
-			poly_mesh.numVertexes = p->numverts;
-			poly_mesh.numElems = p->numelems;
-			poly_mesh.xyzArray = inVertsArray;
-			poly_mesh.normalsArray = inNormalsArray;
-			poly_mesh.stArray = p->stcoords;
-			poly_mesh.colorsArray[0] = p->colors;
-			poly_mesh.elems = p->elems;
-
-			for( j = 0; j < p->numverts; j++ )
-			{
-				Vector4Set( inVertsArray[r_backacc.numVerts+j], p->verts[j][0], p->verts[j][1], p->verts[j][2], 1 );
-				if( p->normals == NULL )
-				{
-					VectorCopy( p->normal, inNormalsArray[r_backacc.numVerts+j] );
-					continue;
-				}
-				Vector4Set( inNormalsArray[r_backacc.numVerts+j], p->normals[j][0], p->normals[j][1], p->normals[j][2], 1 );
-			}
+			Vector4Set( inVertsArray[r_backacc.numVerts+j], p->verts[j][0], p->verts[j][1], p->verts[j][2], 1 );
+			VectorCopy( p->normal, inNormalsArray[r_backacc.numVerts+j] );
 		}
-		else
-		{
-			features = shader->features | MF_TRIFAN;
-			poly_mesh.numVertexes = p->numverts;
-			poly_mesh.xyzArray = inVertsArray;
-			poly_mesh.normalsArray = inNormalsArray;
-			poly_mesh.stArray = p->stcoords;
-			poly_mesh.colorsArray[0] = p->colors;
-			for( j = 0; j < p->numverts; j++ )
-			{
-				Vector4Set( inVertsArray[r_backacc.numVerts+j], p->verts[j][0], p->verts[j][1], p->verts[j][2], 1 );
-				VectorCopy( p->normal, inNormalsArray[r_backacc.numVerts+j] );
-			}
-		}
-
 		R_PushMesh( &poly_mesh, features );
 	}
 }

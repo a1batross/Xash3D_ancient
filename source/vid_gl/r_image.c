@@ -881,6 +881,8 @@ bool R_GetPixelFormat( const char *name, rgbdata_t *pic, uint tex_flags )
 		image_desc.texType = TEX_NOMIP;
 	else if( image_desc.tflags & TF_SKYSIDE )
 		image_desc.texType = TEX_SKYBOX;
+	else if( image_desc.flags & IMAGE_HAS_ALPHA )
+		image_desc.texType = TEX_ALPHA;
 	else image_desc.texType = TEX_GENERIC;
 
 	// calc immediate buffers

@@ -114,6 +114,7 @@ typedef struct
 
 	// utility shaders
 	ref_shader_t	*defaultShader;	// generic black texture
+	ref_shader_t	*fillShader;	// generic white texture
 	ref_shader_t	*currentSkyShader;	// ponter to sky shader for current map 
 } ref_globals_t;
 
@@ -425,9 +426,29 @@ typedef struct
 	bool		in2DMode;
 } glstate_t;
 
+typedef struct
+{
+	bool		fActive;		// drawing in progress
+	kRenderMode_t	currentRenderMode;
+	shader_t		currentShader;
+	int		vertexState;
+	int		drawMode;
+	rgba_t		color;
+
+	int		features;
+	int		numVertex;
+	int		numColor;
+	int		numIndex;
+
+	bool		noCulling;
+	bool		checkFlush;
+	bool		hasNormals;
+} tristate_t;
+
 extern glconfig_t	glConfig;
 extern glstate_t	glState;
-
+extern tristate_t	triState;
+	
 // r_register.c
 void GL_InitBackend( void );
 bool GL_Support( int r_ext );
