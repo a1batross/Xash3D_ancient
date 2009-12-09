@@ -35,6 +35,7 @@ public:
 };
 LINK_ENTITY_TO_CLASS( func_wall, CFuncWall );
 LINK_ENTITY_TO_CLASS( func_static, CFuncWall );
+LINK_ENTITY_TO_CLASS( func_bossgate, CFuncWall );
 LINK_ENTITY_TO_CLASS( func_wall_toggle, CFuncWall );
 LINK_ENTITY_TO_CLASS( func_illusionary, CFuncWall );
 
@@ -42,10 +43,18 @@ void CFuncWall :: Spawn( void )
 {	
 	CBaseBrush::Spawn();
 
-	if(FClassnameIs(pev, "func_illusionary" ))
+	if( FClassnameIs( pev, "func_illusionary" ))
 	{
 		pev->solid = SOLID_NOT;
 		pev->movetype = MOVETYPE_NONE;
+	}
+	else if( FClassnameIs( pev, "func_bossgate" ))
+	{
+		if(( gpGlobals->serverflags & 15 ) == 15 )
+		{
+			UTIL_Remove( this );
+			return; // all episodes completed
+		}
 	}
 	else
 	{

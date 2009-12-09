@@ -136,7 +136,7 @@ inline void CL_PlaySound( int iSound, float flVolume, Vector &pos, float pitch =
 #define RANDOM_FLOAT	(*g_engfuncs.pEventAPI->EV_RandomFloat)
 #define LOAD_FILE		(*g_engfuncs.pfnLoadFile)
 #define FILE_EXISTS		(*g_engfuncs.pfnFileExists)
-#define FREE_FILE		FREE
+#define FREE_FILE		(*g_engfuncs.pfnFreeFile)
 #define DELETE_FILE		(*g_engfuncs.pfnRemoveFile)
 #define LOAD_LIBRARY	(*g_engfuncs.pfnLoadLibrary)
 #define GET_PROC_ADDRESS	(*g_engfuncs.pfnGetProcAddress)

@@ -155,14 +155,14 @@ Beta 13.12.09
 129. fixup sound orientation			OK
 130. don't show console on changelevel		OK
 131. fixup teleports and trigger push's		OK
-132. implement _detail.txt lists for hl
+132. implement _detail.txt lists for hl		OK
 133. new sound\render system version replacement	OK
 134. dx sound engine complete			OK
 135. implement dsp				OK
 136. re-vision uimenu
 137. complete rewriting physic.dll		OK
 138. implement hashtable for loaded sounds	OK
-139. finalize triangle API
+139. finalize triangle API			OK
 140. net_msg is buggly!!!!			OK
 141. implement client predicting		OK
 142. finalize CL_Move and CL_LinkEdict		OK
@@ -188,7 +188,7 @@ Beta 13.12.09
 162. rewrote auto-classify			OK
 163. rewrote sv_phys.c			OK
 164. remove vprogs.dll			OK
-165. finalize EventAPI
+165. finalize EventAPI			OK
 166. move cl_input.c into client.dll		OK
 167. fix all founded errors
 168. release at 13/12/2009

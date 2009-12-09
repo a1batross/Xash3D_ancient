@@ -643,6 +643,7 @@ void R_DrawMeshes( void )
 	int i;
 	meshbuffer_t *meshbuf;
 
+	Tri_RenderCallback( false );
 	RI.previousentity = NULL;
 	if( RI.meshlist->num_opaque_meshes )
 	{
@@ -652,8 +653,8 @@ void R_DrawMeshes( void )
 		R_BatchMeshBuffer( meshbuf, NULL );
 	}
 
-	Tri_RenderCallback( false );
 
+	Tri_RenderCallback( true );
 	if( RI.meshlist->num_translucent_meshes )
 	{
 		meshbuf = RI.meshlist->meshbuffer_translucent;
@@ -661,8 +662,6 @@ void R_DrawMeshes( void )
 			R_BatchMeshBuffer( meshbuf, meshbuf + 1 );
 		R_BatchMeshBuffer( meshbuf, NULL );
 	}
-
-	Tri_RenderCallback( true );
 
 	R_LoadIdentity();
 }

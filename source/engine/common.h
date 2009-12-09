@@ -30,6 +30,16 @@
 
 ==============================================================
 */
+// basic console charwidths
+#define TINYCHAR_WIDTH	(SMALLCHAR_WIDTH)
+#define TINYCHAR_HEIGHT	(SMALLCHAR_HEIGHT/2)
+#define SMALLCHAR_WIDTH	8
+#define SMALLCHAR_HEIGHT	16
+#define BIGCHAR_WIDTH	16
+#define BIGCHAR_HEIGHT	24
+#define GIANTCHAR_WIDTH	32
+#define GIANTCHAR_HEIGHT	48
+
 #define SCREEN_WIDTH	640
 #define SCREEN_HEIGHT	480
 extern cvar_t		*scr_width;

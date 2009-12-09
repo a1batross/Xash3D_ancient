@@ -890,8 +890,6 @@ void CL_InitWorld( void )
 	ent->v.movetype = MOVETYPE_PUSH;
 	clgame.globals->numEntities = 1;
 
-	clgame.globals->mapname = MAKE_STRING( cl.configstrings[CS_NAME] );
-
 	clgame.globals->coop = Cvar_VariableInteger( "coop" );
 	clgame.globals->teamplay = Cvar_VariableInteger( "teamplay" );
 	clgame.globals->deathmatch = Cvar_VariableInteger( "deathmatch" );
@@ -1963,6 +1961,87 @@ static void pfnKillEvents( int entnum, const char *eventname )
 
 /*
 =============
+pfnPlaySound
+
+=============
+*/
+void pfnPlaySound( edict_t *ent, float *org, int chan, const char *samp, float vol, float attn, int flags, int pitch )
+{
+	int	entindex = 0;
+
+	if( CL_IsValidEdict( ent )) entindex = ent->serialnumber;
+	S_StartSound( org, entindex, chan, S_RegisterSound( samp ), vol, attn, pitch, flags );
+}
+
+/*
+=============
+pfnStopSound
+
+=============
+*/
+void pfnStopSound( int ent, int channel, const char *sample )
+{
+	S_StartSound( vec3_origin, ent, channel, S_RegisterSound( sample ), 1.0f, ATTN_NORM, PITCH_NORM, SND_STOP );
+}
+
+/*
+=============
+pfnFindModelIndex
+
+=============
+*/
+int pfnFindModelIndex( const char *model )
+{
+	int	i;
+
+	if( !model || !*model ) return 0;
+	for( i = 1; i < MAX_MODELS; i++ )
+	{
+		if( !com.strcmp( model, cl.configstrings[CS_MODELS+i] ))
+			return i;
+	}
+	return 0;
+}
+
+/*
+=============
+pfnIsLocal
+
+=============
+*/
+int pfnIsLocal( int playernum )
+{
+	if( playernum == cl.playernum )
+		return true;
+	return false;
+}
+
+/*
+=============
+pfnLocalPlayerViewheight
+
+=============
+*/
+void pfnLocalPlayerViewheight( float *view_ofs )
+{
+	// predicted or smoothed
+	if( view_ofs ) VectorCopy( cl.predicted_viewofs, view_ofs );
+}
+
+/*
+=============
+pfnStopAllSounds
+
+=============
+*/
+void pfnStopAllSounds( edict_t *ent, int entchannel )
+{
+	// FIXME: this not valid code
+	S_StopAllSounds ();
+}
+	
+/*
+=============
 VGui_GetPanel
 
 =============
@@ -2314,6 +2393,7 @@ static efxapi_t gEfxApi =
 	pfnFindExplosionPlane,
 	pfnDecalIndexFromName,
 	pfnDecalIndex,
+	pfnLightForPoint,
 };
 
 static event_api_t gEventApi =
@@ -2326,6 +2406,12 @@ static event_api_t gEventApi =
 	pfnRandomLong,
 	pfnHookEvent,
 	pfnKillEvents,
+	pfnPlaySound,
+	pfnStopSound,
+	pfnFindModelIndex,
+	pfnIsLocal,
+	pfnLocalPlayerViewheight,
+	pfnStopAllSounds
 };
 					
 // engine callbacks

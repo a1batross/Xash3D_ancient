@@ -225,6 +225,10 @@ SOURCE=.\global\r_particle.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\global\r_weather.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\global\tempents.cpp
 # End Source File
 # Begin Source File
@@ -286,6 +290,10 @@ SOURCE=..\pm_shared\pm_movevars.h
 # Begin Source File
 
 SOURCE=.\global\r_particle.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\global\r_weather.h
 # End Source File
 # Begin Source File
 

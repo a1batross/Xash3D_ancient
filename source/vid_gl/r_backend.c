@@ -1670,7 +1670,7 @@ void R_ModifyColor( const ref_stage_t *pass )
 			}
 			break;
 		case RGBGEN_LIGHTING_AMBIENT_ONLY:
-			if( RI.currententity && !( RI.params & RP_SHADOWMAPVIEW ) )
+			if( RI.currententity && !( RI.params & RP_SHADOWMAPVIEW ))
 			{
 				vec4_t ambient;
 

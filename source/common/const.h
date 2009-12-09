@@ -204,10 +204,10 @@ typedef enum
 } walkmove_t;
 
 // monster's move to origin stuff
-#define MOVE_START_TURN_DIST		64 // when this far away from moveGoal, start turning to face next goal
-#define MOVE_STUCK_DIST		32 // if a monster can't step this far, it is stuck.
-#define MOVE_NORMAL			0 // normal move in the direction monster is facing
-#define MOVE_STRAFE			1 // moves in direction specified, no matter which way monster is facing
+#define MOVE_START_TURN_DIST		64	// when this far away from moveGoal, start turning to face next goal
+#define MOVE_STUCK_DIST		32	// if a monster can't step this far, it is stuck.
+#define MOVE_NORMAL			0	// normal move in the direction monster is facing
+#define MOVE_STRAFE			1	// moves in direction specified, no matter which way monster is facing
 	
 // edict movetype
 typedef enum
@@ -318,10 +318,6 @@ typedef enum
 #define CL_ACTIVE			2	// draw normal hud
 #define CL_PAUSED			3	// pause when active
 
-// client key destination
-#define KEY_GAME			1
-#define KEY_HUDMENU			2
-
 // built-in particle-system flags
 #define PARTICLE_GRAVITY		40	// default particle gravity
 
@@ -347,21 +343,8 @@ typedef enum
 #define RDF_NOFOVADJUSTMENT		(1<<4)	// do not adjust fov for widescreen
 #define RDF_THIRDPERSON		(1<<5)	// enable chase cam instead firstperson
 
-// engine built-in default shader
-#define MAP_DEFAULT_SHADER		"*black"
-
 // client modelindexes
 #define NULLENT_INDEX		-1	// engine always return NULL, only for internal use
 #define VIEWENT_INDEX		-2	// can get viewmodel for local client
-
-// basic console charwidths
-#define TINYCHAR_WIDTH		(SMALLCHAR_WIDTH)
-#define TINYCHAR_HEIGHT		(SMALLCHAR_HEIGHT/2)
-#define SMALLCHAR_WIDTH		8
-#define SMALLCHAR_HEIGHT		16
-#define BIGCHAR_WIDTH		16
-#define BIGCHAR_HEIGHT		24
-#define GIANTCHAR_WIDTH		32
-#define GIANTCHAR_HEIGHT		48
 
 #endif//CONST_H

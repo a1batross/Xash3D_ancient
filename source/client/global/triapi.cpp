@@ -6,6 +6,7 @@
 #include "extdll.h"
 #include "utils.h"
 #include "r_particle.h"
+#include "r_weather.h"
 
 void HUD_DrawTriangles( void )
 {
@@ -13,6 +14,7 @@ void HUD_DrawTriangles( void )
 
 void HUD_DrawTransparentTriangles( void )
 {
+	R_DrawWeather();
 	g_pParticleSystems->UpdateSystems();
 }
 

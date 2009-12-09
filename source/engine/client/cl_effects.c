@@ -1117,6 +1117,12 @@ bool pfnAddParticle( cparticle_t *src, HSPRITE shader, int flags )
 	return true;
 }
 
+void pfnLightForPoint( const vec3_t point, vec3_t ambientLight )
+{
+	if( re ) re->LightForPoint( point, ambientLight );
+	else VectorClear( ambientLight );
+}
+
 /*
 ===============
 CL_ResetEvent

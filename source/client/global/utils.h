@@ -166,6 +166,9 @@ extern void DrawGenericBar( float percent, int w, int h );
 extern void DrawGenericBar( float percent, int x, int y, int w, int h );
 extern void Draw_VidInit( void );
 
+// mathlib
+extern void AngleMatrix( const vec3_t angles, float (*matrix)[4] );
+
 // from cl_view.c
 extern void DrawProgressBar( void );
 extern edict_t *spot;

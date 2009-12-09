@@ -552,6 +552,7 @@ void CL_ClearEffects( void );
 void CL_TestLights( void );
 void CL_TestEntities( void );
 void CL_FindExplosionPlane( const vec3_t origin, float radius, vec3_t result );
+void pfnLightForPoint( const vec3_t point, vec3_t ambientLight );
 bool pfnAddParticle( cparticle_t *src, HSPRITE shader, int flags );
 void pfnAddDecal( float *org, float *dir, float *rgba, float rot, float rad, HSPRITE hSpr, int flags );
 void pfnAddDLight( const float *org, const float *rgb, float radius, float time, int flags, int key );

@@ -357,6 +357,36 @@ void DrawProgressBar( void )
 	DrawImageBar( CVAR_GET_FLOAT( "scr_download" ), "m_download", (ScreenWidth - 128)>>1, ScreenHeight - 60 );
 }
 
+void AngleMatrix( const vec3_t angles, float (*matrix)[4] )
+{
+	float		angle;
+	float		sr, sp, sy, cr, cp, cy;
+	
+	angle = angles[YAW] * (M_PI*2 / 360);
+	sy = sin( angle );
+	cy = cos( angle );
+	angle = angles[PITCH] * (M_PI*2 / 360);
+	sp = sin( angle );
+	cp = cos( angle );
+	angle = angles[ROLL] * (M_PI*2 / 360);
+	sr = sin( angle );
+	cr = cos( angle );
+
+	// matrix = (YAW * PITCH) * ROLL
+	matrix[0][0] = cp*cy;
+	matrix[1][0] = cp*sy;
+	matrix[2][0] = -sp;
+	matrix[0][1] = sr*sp*cy+cr*-sy;
+	matrix[1][1] = sr*sp*sy+cr*cy;
+	matrix[2][1] = sr*cp;
+	matrix[0][2] = (cr*sp*cy+-sr*-sy);
+	matrix[1][2] = (cr*sp*sy+-sr*cy);
+	matrix[2][2] = cr*cp;
+	matrix[0][3] = 0.0;
+	matrix[1][3] = 0.0;
+	matrix[2][3] = 0.0;
+}
+
 //
 // hl2 fade - this supports multiple fading
 // FIXME: make Class CHudFade instead of C-style code?

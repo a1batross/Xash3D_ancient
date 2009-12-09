@@ -118,7 +118,7 @@ void ParticleSystemManager::UpdateSystems( void )
 	ParticleSystem* pLast = NULL;
 	ParticleSystem*pLastSorted = NULL;
 
-//	SortSystems();
+	SortSystems();
 
 	pSystem = m_pFirstSystem;
 	while( pSystem )

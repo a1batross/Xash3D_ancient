@@ -53,6 +53,7 @@ byte*		bsp_base;
 bool		bsp_halflife = false;
 dmiptexname_t	*mipnames = NULL;
 int		mip_count = 0;
+file_t		*detail_txt;
 
 bool MipExist( const char *name )
 {
@@ -67,10 +68,77 @@ bool MipExist( const char *name )
 	return FS_FileExists( name );
 }
 
+static const char *DetailTextureForName( const char *name )
+{
+	if( !name || !*name ) return NULL;
+	if( !com.strnicmp( name, "sky", 3 ))
+		return NULL; // never details for sky
+
+	// never apply details for liquids
+	if( !com.strnicmp( name + 1, "!lava", 5 ))
+		return NULL;
+	if( !com.strnicmp( name + 1, "!slime", 6 ))
+		return NULL;
+	if( !com.strnicmp( name, "!cur_90", 7 ))
+		return NULL;
+	if( !com.strnicmp( name, "!cur_0", 6 ))
+		return NULL;
+	if( !com.strnicmp( name, "!cur_270", 8 ))
+		return NULL;
+	if( !com.strnicmp( name, "!cur_180", 8 ))
+		return NULL;
+	if( !com.strnicmp( name, "!cur_up", 7 ))
+		return NULL;
+	if( !com.strnicmp( name, "!cur_dwn", 8 ))
+		return NULL;
+	if( name[0] == '!' )
+		return NULL;
+
+	// never apply details to the special textures
+	if( !com.strnicmp( name, "origin", 6 ))
+		return NULL;
+	if( !com.strnicmp( name, "clip", 4 ))
+		return NULL;
+	if( !com.strnicmp( name, "hint", 4 ))
+		return NULL;
+	if( !com.strnicmp( name, "skip", 4 ))
+		return NULL;
+	if( !com.strnicmp( name, "translucent", 11 ))
+		return NULL;
+	if( !com.strnicmp( name, "3dsky", 5 ))
+		return NULL;
+	if( name[0] == '@' )
+		return NULL;
+
+	// last check ...
+	if( !com.strnicmp( name, "null", 4 ))
+		return NULL;
+
+	// at this point we can apply detail textures to the current
+	if( com.stristr( name, "brick" )) return "dt_brick";
+	if( com.stristr( name, "carpet" )) return "dt_carpet1";
+	if( com.stristr( name, "crete" )) return "dt_conc";
+	if( com.stristr( name, "generic" )) return va( "dt_fabric%i", Com_RandomLong( 1, 2 ));
+	if( com.stristr( name, "grass" )) return "dt_grass1";
+	if( com.stristr( name, "ground" ) || com.stristr( name, "gnd" ))
+		return va( "dt_ground%i", Com_RandomLong( 1, 5 ));
+	if( com.stristr( name, "metal" ) || com.stristr( name, "metl" ))
+		return va( "dt_metal%i", Com_RandomLong( 1, 2 ));
+	if( com.stristr( name, "rock" )) return "dt_rock1";
+	if( com.stristr( name, "snow" )) return va( "dt_snow%i", Com_RandomLong( 1, 2 ));
+	if( com.stristr( name, "stone" )) return va( "dt_stone%i", Com_RandomLong( 1, 4 ));
+	if( com.stristr( name, "steel" )) return "dt_steel1";
+	if( com.stristr( name, "wood" )) return va( "dt_wood%i", Com_RandomLong( 1, 3 ));
+
+	// apply default detail texture
+	return "dt_brick";
+}
+
 void Conv_BspTextures( const char *name, dlump_t *l, const char *ext )
 {
 	dmiptexlump_t	*m;
 	string		genericname;
+	const char	*det_name;
 	mip_t		*mip;
 	int		i, k;
 	int		*dofs, size;
@@ -83,6 +151,8 @@ void Conv_BspTextures( const char *name, dlump_t *l, const char *ext )
 	m->nummiptex = LittleLong( m->nummiptex );
 	dofs = m->dataofs;
 
+	detail_txt = FS_Open( va( "%s/%s_detail.txt", gs_gamedir, name ), "wb" );
+
 	mipnames = Mem_Realloc( basepool, mipnames, m->nummiptex * sizeof( dmiptexname_t )); 
 	mip_count = 0;
 
@@ -94,8 +164,14 @@ void Conv_BspTextures( const char *name, dlump_t *l, const char *ext )
 
 		// needs to simulate directly loading
 		mip = (mip_t *)((byte *)m + dofs[i]);
-		if( !LittleLong( mip->offsets[0] )) continue;		// not in bsp
+
+		// build detailtexture string
+		det_name = DetailTextureForName( mip->name );		// lookup both registers
 		com.strnlwr( mip->name, mip->name, sizeof( mip->name ));	// name
+
+		// detailtexture detected
+		if( det_name ) FS_Printf( detail_txt, "%s detail/%s 10.0 10.0\n", mip->name, det_name );
+		if( !LittleLong( mip->offsets[0] )) continue;		// not in bsp, skipped
 
 		// check for '*' symbol issues
 		k = com.strlen( com.strrchr( mip->name, '*' ));
@@ -124,6 +200,7 @@ void Conv_BspTextures( const char *name, dlump_t *l, const char *ext )
 			ConvMIP( va("%s/%s", name, mip->name ), buffer, size, ext ); // convert it
 	}
 	mip_count = 0; // freed and invaliadte
+	FS_Close( detail_txt );
 }
 
 /*

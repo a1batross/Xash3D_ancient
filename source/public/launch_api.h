@@ -20,6 +20,7 @@
 #define bound(min, num, max)	((num) >= (min) ? ((num) < (max) ? (num) : (max)) : (min))
 #define MAX_STRING_TABLES	8	// seperately stringsystems
 #define MAX_MODS		128	// environment games that engine can keep visible
+#define MAP_DEFAULT_SHADER	"*black"	// engine built-in default shader
 #ifndef __cplusplus
 #define bool		BOOL	// sizeof( int )
 #endif

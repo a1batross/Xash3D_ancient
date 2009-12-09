@@ -52,6 +52,7 @@ typedef struct efxapi_s
 	void	(*CL_FindExplosionPlane)( const float *origin, float radius, float *result );
 	int	(*CL_DecalIndexFromName)( const char *szDecalName );
 	int	(*CL_DecalIndex)( int id );
+	void	(*R_LightForPoint)( const float *rgflOrigin, float *lightValue );
 } efxapi_t;
 
 #endif//EFFECTS_API_H

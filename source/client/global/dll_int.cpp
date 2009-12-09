@@ -11,6 +11,7 @@
 #include "r_particle.h"
 #include "ev_hldm.h"
 #include "pm_shared.h"
+#include "r_weather.h"
 
 cl_enginefuncs_t g_engfuncs;
 cl_globalvars_t  *gpGlobals;
@@ -70,6 +71,8 @@ int HUD_VidInit( void )
 {
 	if( g_pParticleSystems )
 		g_pParticleSystems->ClearSystems();
+
+ 	ResetRain ();
 	
 	gHUD.VidInit();
 
@@ -96,7 +99,9 @@ void HUD_Init( void )
 		delete g_pParticleSystems;
 		g_pParticleSystems = NULL;
 	}
+
 	g_pParticleSystems = new ParticleSystemManager();
+	InitRain(); // init weather system
 
 	gHUD.Init();
 

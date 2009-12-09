@@ -75,7 +75,7 @@ bool PlaneEqual( plane_t *p, vec3_t normal, vec_t dist )
 
 /*
 =================
-PlaneTypeForNormal
+MapPlaneTypeForNormal
 =================
 */
 int MapPlaneTypeForNormal( const vec3_t normal )
@@ -125,7 +125,7 @@ int CreateNewFloatPlane( vec3_t normal, vec_t dist )
 	p = &mapplanes[nummapplanes];
 	VectorCopy( normal, p->normal );
 	p->dist = dist;
-	p->type = (p+1)->type = PlaneTypeForNormal( p->normal );
+	p->type = (p+1)->type = MapPlaneTypeForNormal( p->normal );
 
 	VectorSubtract( vec3_origin, normal, (p+1)->normal );
 	(p+1)->dist = -dist;
