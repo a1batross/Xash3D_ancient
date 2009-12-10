@@ -33,10 +33,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define UI_LEFTARROWFOCUS		"gfx/shell/arrows/arrow_left_small_s"
 #define UI_RIGHTARROW		"gfx/shell/arrows/arrow_right_small"
 #define UI_RIGHTARROWFOCUS		"gfx/shell/arrows/arrow_right_small_s"
-#define UI_UPARROW			"gfx/shell/arrows/arrow_up_big"
-#define UI_UPARROWFOCUS		"gfx/shell/arrows/arrow_up_big_s"
-#define UI_DOWNARROW		"gfx/shell/arrows/arrow_down_big"
-#define UI_DOWNARROWFOCUS		"gfx/shell/arrows/arrow_down_big_s"
+#define UI_UPARROW			"gfx/shell/uparrow_d"
+#define UI_UPARROWFOCUS		"gfx/shell/uparrow_f"
+#define UI_DOWNARROW		"gfx/shell/dnarrow_d"
+#define UI_DOWNARROWFOCUS		"gfx/shell/dnarrow_f"
 #define UI_BACKGROUNDLISTBOX		"gfx/shell/segments/list_mid"
 #define UI_SELECTIONBOX		"gfx/shell/misc/list_sel"
 #define UI_BACKGROUNDBOX		"gfx/shell/buttons/options2_b"
@@ -70,6 +70,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define UI_BIG_CHAR_HEIGHT		40
 
 #define UI_MAX_FIELD_LINE		256
+#define UI_OUTLINE_WIDTH		4	// outline thickness
 
 #define UI_MAXGAMES			14
 #define UI_MAX_SERVERS		10
@@ -333,7 +334,7 @@ void UI_Performance_Precache( void );
 void UI_Network_Precache( void );
 void UI_Defaults_Precache( void );
 void UI_Demos_Precache( void );
-void UI_Mods_Precache( void );
+void UI_CustomGame_Precache( void );
 void UI_Credits_Precache( void );
 void UI_GoToSite_Precache( void );
 
@@ -355,7 +356,7 @@ void UI_Performance_Menu( void );
 void UI_Network_Menu( void );
 void UI_Defaults_Menu( void );
 void UI_Demos_Menu( void );
-void UI_Mods_Menu( void );
+void UI_CustomGame_Menu( void );
 void UI_Credits_Menu( void );
 void UI_GoToSite_Menu( const char *webAddress );
 

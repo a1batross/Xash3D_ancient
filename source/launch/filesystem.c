@@ -1504,9 +1504,26 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 		{
 			PS_GetString( script, false, GameInfo->startmap, sizeof( GameInfo->startmap ));
 		}
+		else if( !com.stricmp( token.string, "url_info" ))
+		{
+			PS_GetString( script, false, GameInfo->game_url, sizeof( GameInfo->game_url ));
+		}
+		else if( !com.stricmp( token.string, "date" ))
+		{
+			PS_GetString( script, false, GameInfo->date, sizeof( GameInfo->date ));
+		}
+		else if( !com.stricmp( token.string, "type" ))
+		{
+			PS_GetString( script, false, GameInfo->type, sizeof( GameInfo->type ));
+		}
 		else if( !com.stricmp( token.string, "version" ))
 		{
 			PS_GetFloat( script, false, &GameInfo->version );
+		}
+		else if( !com.stricmp( token.string, "size" ))
+		{
+			PS_ReadToken( script, 0, &token );
+			GameInfo->size = com.atoi( token.string );
 		}
 		else if( !com.stricmp( token.string, "max_edicts" ))
 		{

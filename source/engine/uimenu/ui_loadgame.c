@@ -121,7 +121,7 @@ static void UI_LoadGame_GetGameList( void )
 	{
 		if( uiLoadGame.games[i].valid )
 		{
-			uiLoadGame.listGames[i].generic.color = uiLoadGameColor;
+			uiLoadGame.listGames[i].generic.color = uiColorOrange;
 			uiLoadGame.currentGame = i;
 			break;
 		}
@@ -146,9 +146,9 @@ static void UI_LoadGame_Callback( void *self, int event )
 	if( item->type == QMTYPE_ACTION )
 	{
 		// reset color, get current game, set color
-		uiLoadGame.listGames[uiLoadGame.currentGame].generic.color = uiColorWhite;
+		uiLoadGame.listGames[uiLoadGame.currentGame].generic.color = uiColorOrange;
 		uiLoadGame.currentGame = item->id - ID_LISTGAMES;
-		uiLoadGame.listGames[uiLoadGame.currentGame].generic.color = uiLoadGameColor;
+		uiLoadGame.listGames[uiLoadGame.currentGame].generic.color = uiColorYellow;
 
 		// restart levelshot animation
 		uiLoadGame.currentLevelShot = 0;
@@ -225,7 +225,6 @@ static void UI_LoadGame_Ownerdraw( void *self )
 			return;
 
 		*(uint *)color = *(uint *)item->color;
-		color[3] = 255 * (0.5f + 0.5f * com.sin( uiStatic.realTime / UI_PULSE_DIVISOR ));
 
 		if( !centered )
 		{
@@ -353,7 +352,7 @@ static void UI_LoadGame_Init( void )
 
 	uiLoadGame.gameTitle.generic.id = ID_GAMETITLE;
 	uiLoadGame.gameTitle.generic.type = QMTYPE_ACTION;
-	uiLoadGame.gameTitle.generic.flags = QMF_INACTIVE;
+	uiLoadGame.gameTitle.generic.flags = QMF_INACTIVE|QMF_SMALLFONT;
 	uiLoadGame.gameTitle.generic.x = 42;
 	uiLoadGame.gameTitle.generic.y = 146;
 	uiLoadGame.gameTitle.generic.width = 462;

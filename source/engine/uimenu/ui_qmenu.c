@@ -25,6 +25,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ui_local.h"
 #include "input.h"
 
+rgba_t	uiScrollOutlineColor = { 56, 56, 56, 255 };
+rgba_t	uiScrollSelColor = { 80, 56, 24, 255 };
+
 /*
 =================
 UI_ScrollList_Init
@@ -55,9 +58,9 @@ void UI_ScrollList_Init( menuScrollList_s *sl )
 	if(!(sl->generic.flags & (QMF_LEFT_JUSTIFY|QMF_CENTER_JUSTIFY|QMF_RIGHT_JUSTIFY)))
 		sl->generic.flags |= QMF_LEFT_JUSTIFY;
 
-	if( !sl->generic.color ) sl->generic.color = uiColorWhite;
-	if( !sl->generic.focusColor ) sl->generic.focusColor = uiColorLtGrey;
-	if( !sl->background ) sl->background = UI_BACKGROUNDLISTBOX;
+	if( !sl->generic.color ) sl->generic.color = uiColorOrange;
+	if( !sl->generic.focusColor ) sl->generic.focusColor = uiColorYellow;
+//	if( !sl->background ) sl->background = UI_BACKGROUNDLISTBOX;
 	if( !sl->upArrow ) sl->upArrow = UI_UPARROW;
 	if( !sl->upArrowFocus ) sl->upArrowFocus = UI_UPARROWFOCUS;
 	if( !sl->downArrow ) sl->downArrow = UI_DOWNARROW;
@@ -108,14 +111,17 @@ const char *UI_ScrollList_Key( menuScrollList_s *sl, int key )
 		if(!( sl->generic.flags & QMF_HASMOUSEFOCUS ))
 			break;
 
-		// calculate size and position for the arrows
-		arrowWidth = sl->generic.width / 4;
-		arrowHeight = sl->generic.width / 8;
+		// use fixed size for arrows
+		arrowWidth = 24;
+		arrowHeight = 24;
 
-		upX = sl->generic.x + (arrowWidth * 1.5);
-		upY = sl->generic.y;
-		downX = sl->generic.x + (arrowWidth * 1.5);
-		downY = sl->generic.y + (sl->generic.height - arrowHeight);
+		UI_ScaleCoords( NULL, NULL, &arrowWidth, &arrowHeight );
+
+		// glue with right top and right bottom corners
+		upX = sl->generic.x2 + sl->generic.width2 - arrowWidth;
+		upY = sl->generic.y2 + UI_OUTLINE_WIDTH;
+		downX = sl->generic.x2 + sl->generic.width2 - arrowWidth;
+		downY = sl->generic.y2 + (sl->generic.height2 - arrowHeight) - UI_OUTLINE_WIDTH;
 
 		// Now see if either up or down has focus
 		if( UI_CursorInRect( upX, upY, arrowWidth, arrowHeight ))
@@ -251,14 +257,85 @@ void UI_ScrollList_Draw( menuScrollList_s *sl )
 
 	shadow = (sl->generic.flags & QMF_DROPSHADOW);
 
-	// calculate size and position for the arrows
-	arrowWidth = sl->generic.width / 4;
-	arrowHeight = sl->generic.width / 8;
+	// use fixed size for arrows
+	arrowWidth = 24;
+	arrowHeight = 24;
 
-	upX = sl->generic.x + (arrowWidth * 1.5);
-	upY = sl->generic.y;
-	downX = sl->generic.x + (arrowWidth * 1.5);
-	downY = sl->generic.y + (sl->generic.height - arrowHeight);
+	UI_ScaleCoords( NULL, NULL, &arrowWidth, &arrowHeight );
+
+	x = sl->generic.x2;
+	y = sl->generic.y2;
+	w = sl->generic.width2;
+	h = sl->generic.height2;
+
+	if( !sl->background )
+	{
+		// draw the opaque outlinebox first 
+		UI_FillRect( x, y, w, h, uiColorBlack );
+	}
+
+	// hightlight the selected item
+	if( !( sl->generic.flags & QMF_GRAYED ))
+	{
+		y = sl->generic.y2 + sl->generic.charHeight;
+		for( i = sl->topItem; i < sl->topItem + sl->numRows; i++, y += sl->generic.charHeight )
+		{
+			if( !sl->itemNames[i] )
+				break;		// Done
+
+			if( i == sl->curItem )
+			{
+				UI_FillRect( sl->generic.x, y, sl->generic.width - arrowWidth, sl->generic.charHeight, uiScrollSelColor );
+				break;
+			}
+		}
+	}
+
+	if( sl->background )
+	{
+		// get size and position for the center box
+		UI_DrawPic( x, y, w, h, uiColorWhite, sl->background );
+	}
+	else
+	{
+		x = sl->generic.x2 - UI_OUTLINE_WIDTH;
+		y = sl->generic.y2;
+		w = UI_OUTLINE_WIDTH;
+		h = sl->generic.height2;
+
+		// draw left
+		UI_FillRect( x, y, w, h, uiScrollOutlineColor );
+
+		x = sl->generic.x2 + sl->generic.width2;
+		y = sl->generic.y2;
+		w = UI_OUTLINE_WIDTH;
+		h = sl->generic.height2;
+
+		// draw right
+		UI_FillRect( x, y, w, h, uiScrollOutlineColor );
+
+		x = sl->generic.x2;
+		y = sl->generic.y2;
+		w = sl->generic.width2 + UI_OUTLINE_WIDTH;
+		h = UI_OUTLINE_WIDTH;
+
+		// draw top
+		UI_FillRect( x, y, w, h, uiScrollOutlineColor );
+
+		// draw bottom
+		x = sl->generic.x2;
+		y = sl->generic.y2 + sl->generic.height2 - UI_OUTLINE_WIDTH;
+		w = sl->generic.width2 + UI_OUTLINE_WIDTH;
+		h = UI_OUTLINE_WIDTH;
+
+		UI_FillRect( x, y, w, h, uiScrollOutlineColor );
+	}
+
+	// glue with right top and right bottom corners
+	upX = sl->generic.x2 + sl->generic.width2 - arrowWidth;
+	upY = sl->generic.y2 + UI_OUTLINE_WIDTH;
+	downX = sl->generic.x2 + sl->generic.width2 - arrowWidth;
+	downY = sl->generic.y2 + (sl->generic.height2 - arrowHeight) - UI_OUTLINE_WIDTH;
 
 	// draw the arrows
 	if( sl->generic.flags & QMF_GRAYED )
@@ -316,33 +393,10 @@ void UI_ScrollList_Draw( menuScrollList_s *sl )
 			}
 		}
 	}
-
-	// hightlight the selected item
-	if( !( sl->generic.flags & QMF_GRAYED ))
-	{
-		y = sl->generic.y2 + sl->generic.charHeight;
-		for( i = sl->topItem; i < sl->topItem + sl->numRows; i++, y += sl->generic.charHeight )
-		{
-			if( !sl->itemNames[i] )
-				break;		// Done
-
-			if( i == sl->curItem )
-			{
-				UI_DrawPic( sl->generic.x, y, sl->generic.width, sl->generic.charHeight, uiColorWhite, UI_SELECTIONBOX );
-				break;
-			}
-		}
-	}
-
-	// get size and position for the center box
-	w = sl->generic.width2;
-	h = sl->generic.height2;
-	x = sl->generic.x2;
-	y = sl->generic.y2;
-
-	UI_DrawPic( x, y, w, h, uiColorWhite, sl->background );
-
+	
 	// Draw the list
+	x = sl->generic.x2;
+	w = sl->generic.width2;
 	h = sl->generic.charHeight;
 	y = sl->generic.y2 + sl->generic.charHeight;
 	for( i = sl->topItem; i < sl->topItem + sl->numRows; i++, y += sl->generic.charHeight )

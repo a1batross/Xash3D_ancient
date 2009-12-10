@@ -1002,7 +1002,7 @@ void UI_Precache( void )
 	UI_Network_Precache();
 	UI_Defaults_Precache();
 	UI_Demos_Precache();
-	UI_Mods_Precache();
+	UI_CustomGame_Precache();
 	UI_Credits_Precache();
 	UI_GoToSite_Precache();
 }
@@ -1035,7 +1035,7 @@ void UI_Init( void )
 	Cmd_AddCommand( "menu_network", UI_Network_Menu, "open the network options menu" );
 	Cmd_AddCommand( "menu_defaults", UI_Defaults_Menu, "open the 'reset to defaults' dialog" );
 	Cmd_AddCommand( "menu_demos", UI_Demos_Menu, "open the demos viewer menu" );
-	Cmd_AddCommand( "menu_mods", UI_Mods_Menu, "open the change game menu" );
+	Cmd_AddCommand( "menu_customgame", UI_CustomGame_Menu, "open the change game menu" );
 
 	uiStatic.scaleX = scr_width->integer / 1024.0f;
 	uiStatic.scaleY = scr_height->integer / 768.0f;

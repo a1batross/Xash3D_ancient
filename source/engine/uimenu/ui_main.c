@@ -165,7 +165,7 @@ static void UI_Main_Callback( void *self, int event )
 		else UI_LoadGame_Menu();
 		break;
 	case ID_CUSTOMGAME:
-		UI_Mods_Menu();
+		UI_CustomGame_Menu();
 		break;
 	case ID_CREDITS:
 		UI_Credits_Menu();

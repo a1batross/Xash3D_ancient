@@ -227,6 +227,12 @@ typedef struct gameinfo_s
 	string		texmode;		// configure ImageLib to use various texture formats
 	float		version;		// game version (optional)
 
+	// about mod info
+	string		game_url;		// link to a developer's site
+	string		type;		// single, toolkit, multiplayer etc
+	string		date;
+	size_t		size;
+
 	int		viewmode;
 	int		gamemode;
 
