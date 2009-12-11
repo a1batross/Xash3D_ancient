@@ -31,6 +31,7 @@ cvar_t		*ui_sensitivity;
 
 uiStatic_t	uiStatic;
 
+string		uiEmptyString;
 const char	*uiSoundIn	= "misc/menu1.wav";
 const char	*uiSoundMove	= "misc/menu2.wav";
 const char	*uiSoundOut	= "misc/menu3.wav";
@@ -1037,6 +1038,7 @@ void UI_Init( void )
 	Cmd_AddCommand( "menu_demos", UI_Demos_Menu, "open the demos viewer menu" );
 	Cmd_AddCommand( "menu_customgame", UI_CustomGame_Menu, "open the change game menu" );
 
+	Mem_Set( uiEmptyString, ' ', sizeof( uiEmptyString ));
 	uiStatic.scaleX = scr_width->integer / 1024.0f;
 	uiStatic.scaleY = scr_height->integer / 768.0f;
 

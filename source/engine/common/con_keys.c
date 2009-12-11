@@ -1124,8 +1124,14 @@ void Key_Event( int key, bool down, int time )
 			return;
 		case key_console:
 			if( cls.state == ca_active )
+			{
 				cls.key_dest = key_game;
-			else UI_SetActiveMenu( UI_MAINMENU );
+			}
+			else
+			{
+				UI_SetActiveMenu( UI_MAINMENU );
+				return; // don't pass Esc into menu
+			}
 			break;
 		case key_menu:
 			UI_KeyEvent( key );

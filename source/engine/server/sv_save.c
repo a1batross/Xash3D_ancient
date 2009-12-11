@@ -323,11 +323,13 @@ static void SV_SaveServerData( wfile_t *f, const char *name, bool bUseLandMark )
 SV_WriteSaveFile
 =============
 */
-void SV_WriteSaveFile( const char *name, bool autosave, bool bUseLandmark )
+void SV_WriteSaveFile( const char *inname, bool autosave, bool bUseLandmark )
 {
 	wfile_t	*savfile = NULL;
-	char	path[MAX_SYSPATH];
-
+	int	n, minutes, tens, units;
+	string	path, name;
+	float	total;
+	
 	if( sv.state != ss_active ) return;
 	if( svgame.globals->deathmatch || svgame.globals->coop || svgame.globals->teamplay )
 	{
@@ -340,6 +342,10 @@ void SV_WriteSaveFile( const char *name, bool autosave, bool bUseLandmark )
 		return;
 	}
 
+	if( !com.stricmp( inname, "new" ))
+		com.strncpy( name, timestamp( TIME_FILENAME ), sizeof( name ));
+	else com.strncpy( name, inname, sizeof( name ));
+
 	com.sprintf( path, "save/%s.bin", name );
 	savfile = WAD_Open( path, "wb" );
 
@@ -349,11 +355,18 @@ void SV_WriteSaveFile( const char *name, bool autosave, bool bUseLandmark )
 		return;
 	}
 
+	// calc time
+	total = svgame.globals->time;
+	minutes = (int)total / 60;
+	n = total - minutes * 60;
+	tens = n / 10;
+	units = n % 10;
+
 	// split comment to sections
 	com.strncpy( svs.comment, sv.configstrings[CS_NAME], CS_SIZE );
 	com.strncpy( svs.comment + CS_SIZE, timestamp( TIME_DATE_ONLY ), CS_TIME );
 	com.strncpy( svs.comment + CS_SIZE + CS_TIME, timestamp( TIME_NO_SECONDS ), CS_TIME );
-	com.strncpy( svs.comment + CS_SIZE + (CS_TIME * 2), svs.mapname, CS_SIZE );
+	com.strncpy( svs.comment + CS_SIZE + (CS_TIME * 2), va( "%i:%i%i", minutes, tens, units ), CS_SIZE );
 	if( !autosave ) MsgDev( D_INFO, "Saving game..." );
 
 	// write lumps
@@ -364,7 +377,7 @@ void SV_WriteSaveFile( const char *name, bool autosave, bool bUseLandmark )
 	WAD_Close( savfile );
 
 	// write saveshot for preview, but autosave 
-	if( !autosave ) Cbuf_AddText( va( "saveshot %s\n", name ));
+	if( !autosave ) Cbuf_AddText( va( "saveshot \"%s\"\n", name ));
 	if( !autosave ) MsgDev( D_INFO, "done.\n" );
 }
 
@@ -373,10 +386,13 @@ void SV_ReadComment( wfile_t *l )
 	SAVERESTOREDATA	*pSaveData;
 	game_header_t	ghdr;
 
+ 	// init the game to get acess for read funcs
+	if( !svgame.hInstance ) SV_LoadProgs( "server" );
+
 	// initialize SAVERESTOREDATA
 	Mem_Set( &svgame.SaveData, 0, sizeof( SAVERESTOREDATA ));
 	svgame.SaveData.tokenCount = 0xFFF;	// assume a maximum of 4K-1 symbol table entries
-	svgame.SaveData.pTokens = (char **)Mem_Alloc( svgame.temppool, svgame.SaveData.tokenCount * sizeof( char* ));
+	svgame.SaveData.pTokens = (char **)Mem_Alloc( host.mempool, svgame.SaveData.tokenCount * sizeof( char* ));
 	pSaveData = svgame.globals->pSaveData = &svgame.SaveData;
 	SV_ReadBuffer( l, LUMP_GLOBALS );
 
@@ -780,18 +796,18 @@ void SV_ChangeLevel( bool bUseLandmark, const char *mapname, const char *start )
 	SV_ActivateServer ();
 }
 
-bool SV_GetComment( char *comment, int savenum )
+bool SV_GetComment( const char *savename, char *comment )
 {
 	wfile_t		*savfile;
 	int		result;
 
 	if( !comment ) return false;
-	result = WAD_Check( va( "save/save%i.bin", savenum )); 
+	result = WAD_Check( savename ); 
 
 	switch( result )
 	{
 	case 0:
-		com.strncpy( comment, "<empty>", MAX_STRING );
+		com.strncpy( comment, "", MAX_STRING );
 		return false;
 	case 1:	break;
 	default:
@@ -799,7 +815,7 @@ bool SV_GetComment( char *comment, int savenum )
 		return false;
 	}
 
-	savfile = WAD_Open( va( "save/save%i.bin", savenum ), "rb" );
+	savfile = WAD_Open( savename, "rb" );
 	SV_ReadComment( savfile );
 	Mem_Copy( comment, svs.comment, MAX_STRING );
 	WAD_Close( savfile );

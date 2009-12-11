@@ -373,9 +373,6 @@ void SV_InitGame( void )
 		if( !svgame.hInstance )
 			SV_LoadProgs( "server" );
 
-		// fire once
-		MsgDev( D_INFO, "Dll loaded for mod %s\n", svgame.dllFuncs.pfnGetGameDescription() );
-
 		// make sure the client is down
 		CL_Drop();
 	}

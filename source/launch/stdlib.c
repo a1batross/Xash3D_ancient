@@ -525,8 +525,8 @@ const char* com_timestamp( int format )
 		strftime(timestring, sizeof (timestring), "%Y", crt_tm);
 		break;
 	case TIME_FILENAME:
-		// Build a timestamp that can use for filename (ex: "Nov2006-26 (19.14)");
-		strftime(timestring, sizeof (timestring), "%b%Y-%d (%H.%M)", crt_tm);
+		// Build a timestamp that can use for filename (ex: "Nov2006-26 (19.14.28)");
+		strftime(timestring, sizeof (timestring), "%b%Y-%d_%H.%M.%S", crt_tm);
 		break;
 	default: return NULL;
 	}

@@ -33,6 +33,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ID_MODLIST		5
 #define ID_TABLEHINT	6
 
+#define TYPE_LENGTH		10
+#define NAME_LENGTH		32+TYPE_LENGTH
+#define VER_LENGTH		10+NAME_LENGTH
+#define SIZE_LENGTH		10+VER_LENGTH
+
 typedef struct
 {
 	string		modsDir[MAX_MODS];
@@ -64,23 +69,24 @@ static void UI_CustomGame_GetModList( void )
 {
 	int	i;
 
+	Com_Assert( SIZE_LENGTH >= MAX_STRING );
+
 	for( i = 0; i < SI->numgames; i++ )
 	{
 		com.strncpy( uiCustomGame.modsDir[i], SI->games[i]->gamefolder, sizeof( uiCustomGame.modsDir[i] ));
 		com.strncpy( uiCustomGame.modsWebSites[i], SI->games[i]->game_url, sizeof( uiCustomGame.modsWebSites[i] ));
 
 		if( com.strlen( SI->games[i]->type ))
-		{
-			com.strncat( uiCustomGame.modsDescription[i], SI->games[i]->type, 10 );
-			com.strncat( uiCustomGame.modsDescription[i], "         ", 10 ); // ugly method to fill remaining space
-		}
-		else com.strncat( uiCustomGame.modsDescription[i], "         ", 10 );
-		com.strncat( uiCustomGame.modsDescription[i], SI->games[i]->title, 43 );
-		com.strncat( uiCustomGame.modsDescription[i], "                                  ", 43 );
-		com.strncat( uiCustomGame.modsDescription[i], va( "%g", SI->games[i]->version ), 48 );
-		com.strncat( uiCustomGame.modsDescription[i], "                                 ", 48 );
+			com.strncat( uiCustomGame.modsDescription[i], SI->games[i]->type, TYPE_LENGTH );
+		com.strncat( uiCustomGame.modsDescription[i], uiEmptyString, TYPE_LENGTH );
+		com.strncat( uiCustomGame.modsDescription[i], SI->games[i]->title, NAME_LENGTH );
+		com.strncat( uiCustomGame.modsDescription[i], uiEmptyString, NAME_LENGTH );
+		com.strncat( uiCustomGame.modsDescription[i], va( "%g", SI->games[i]->version ), VER_LENGTH );
+		com.strncat( uiCustomGame.modsDescription[i], uiEmptyString, VER_LENGTH );
 		if( SI->games[i]->size > 0 )
-			com.strncat( uiCustomGame.modsDescription[i], memprint( SI->games[i]->size ), MAX_STRING );
+			com.strncat( uiCustomGame.modsDescription[i], com.pretifymem( SI->games[i]->size, 0 ), SIZE_LENGTH );
+		else com.strncat( uiCustomGame.modsDescription[i], "0.0 Mb", SIZE_LENGTH );     
+		com.strncat( uiCustomGame.modsDescription[i], uiEmptyString, SIZE_LENGTH );
 		uiCustomGame.modsDescriptionPtr[i] = uiCustomGame.modsDescription[i];
 	}
 	for( ; i < MAX_MODS; i++ ) uiCustomGame.modsDescriptionPtr[i] = NULL;
@@ -147,7 +153,14 @@ static void UI_CustomGame_Init( void )
 {
 	Mem_Set( &uiCustomGame, 0, sizeof( uiCustomGame_t ));
 
-	com.strncat( uiCustomGame.hintText, "Type      Name                        Version  Size", MAX_SYSPATH );
+	com.strncat( uiCustomGame.hintText, "Type", TYPE_LENGTH );
+	com.strncat( uiCustomGame.hintText, uiEmptyString, TYPE_LENGTH );
+	com.strncat( uiCustomGame.hintText, "Name", NAME_LENGTH );
+	com.strncat( uiCustomGame.hintText, uiEmptyString, NAME_LENGTH );
+	com.strncat( uiCustomGame.hintText, "Version", VER_LENGTH );
+	com.strncat( uiCustomGame.hintText, uiEmptyString, VER_LENGTH );
+	com.strncat( uiCustomGame.hintText, "Size", SIZE_LENGTH );
+	com.strncat( uiCustomGame.hintText, uiEmptyString, SIZE_LENGTH );
 
 	uiCustomGame.background.generic.id = ID_BACKGROUND;
 	uiCustomGame.background.generic.type = QMTYPE_BITMAP;
@@ -200,7 +213,7 @@ static void UI_CustomGame_Init( void )
 	uiCustomGame.hintMessage.generic.color = uiColorLtGrey;
 	uiCustomGame.hintMessage.generic.name = uiCustomGame.hintText;
 	uiCustomGame.hintMessage.generic.x = 360;
-	uiCustomGame.hintMessage.generic.y = 220;
+	uiCustomGame.hintMessage.generic.y = 225;
 
 	uiCustomGame.modList.generic.id = ID_MODLIST;
 	uiCustomGame.modList.generic.type = QMTYPE_SCROLLLIST;

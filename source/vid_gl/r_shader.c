@@ -2715,6 +2715,38 @@ void Shader_FreeShader( ref_shader_t *shader )
 	Mem_Set( shader, 0, sizeof( ref_shader_t ));
 }
 
+void Mod_FreeShader( const char *name )
+{
+	ref_shader_t	*shader;
+	string		shortname;
+	ref_script_t	*cache = NULL;
+	uint		i, hashKey, length;
+
+	if( !name || !name[0] ) return;
+
+	for( i = ( name[0] == '/' || name[0] == '\\' ), length = 0; name[i] && ( length < sizeof( shortname )-1 ); i++ )
+	{
+		if( name[i] == '\\' ) shortname[length++] = '/';
+		else shortname[length++] = com.tolower( name[i] );
+	}
+
+	if( !length ) return;
+	shortname[length] = 0;
+
+	// see if already loaded
+	hashKey = Com_HashKey( shortname, SHADERS_HASH_SIZE );
+
+	for( shader = r_shadersHash[hashKey]; shader; shader = shader->nextHash )
+	{
+		if( !com.stricmp( shader->name, shortname ))
+		{
+			// remove shader
+			Shader_FreeShader( shader );
+			return;
+		}
+	}
+}
+
 void R_ShutdownShaders( void )
 {
 	int		i;

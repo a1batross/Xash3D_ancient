@@ -2390,6 +2390,7 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	re.RegisterModel = R_UploadModel;
 	re.RegisterShader = Mod_RegisterShader;
 	re.EndRegistration = R_EndRegistration;
+	re.FreeShader = Mod_FreeShader;
 
 	re.AddLightStyle = R_AddLightStyle;
 	re.AddRefEntity = R_AddEntityToScene;

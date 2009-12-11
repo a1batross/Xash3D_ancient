@@ -141,6 +141,7 @@ typedef struct render_exp_s
 	bool	(*RegisterModel)( const char *name, int cl_index ); // also build replacement index table
 	shader_t	(*RegisterShader)( const char *name, int shaderType );
 	void	(*EndRegistration)( const char *skyname );
+	void	(*FreeShader)( const char *shadername );
 
 	// prepare frame to rendering
 	bool	(*AddRefEntity)( edict_t *pRefEntity, int ed_type );

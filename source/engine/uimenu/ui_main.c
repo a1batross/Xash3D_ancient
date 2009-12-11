@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "common.h"
+#include "com_library.h"
 #include "ui_local.h"
 #include "input.h"
 #include "client.h"
@@ -74,28 +75,6 @@ static uiMain_t		uiMain;
 
 /*
 =================
-UI_Main_KeyFunc
-=================
-*/
-static const char *UI_Main_KeyFunc( int key )
-{
-	switch( key )
-	{
-	case K_ESCAPE:
-	case K_MOUSE2:
-		if( cls.state == ca_active )
-		{
-			// this shouldn't be happening, but for some reason it is in some mods
-			UI_CloseMenu();
-			return uiSoundNull;
-		}
-		return uiSoundNull;
-	}
-	return UI_DefaultKey( &uiMain.menu, key );
-}
-
-/*
-=================
 UI_MsgBox_Ownerdraw
 =================
 */
@@ -127,6 +106,24 @@ static void UI_QuitDialog( void )
 	uiMain.no.generic.flags ^= QMF_HIDDEN;
 	uiMain.yes.generic.flags ^= QMF_HIDDEN;
 
+}
+
+/*
+=================
+UI_Main_KeyFunc
+=================
+*/
+static const char *UI_Main_KeyFunc( int key )
+{
+	switch( key )
+	{
+	case K_ESCAPE:
+		if( cls.state == ca_active )
+			UI_CloseMenu();
+		else UI_QuitDialog ();
+		return uiSoundNull;
+	}
+	return UI_DefaultKey( &uiMain.menu, key );
 }
 
 /*
@@ -192,6 +189,8 @@ UI_Main_Init
 */
 static void UI_Main_Init( void )
 {
+	string	libpath;
+	
 	Mem_Set( &uiMain, 0, sizeof( uiMain_t ));
 
 	uiMain.menu.keyFunc	= UI_Main_KeyFunc;
@@ -234,6 +233,11 @@ static void UI_Main_Init( void )
 	uiMain.saveRestore.generic.id = ID_SAVERESTORE;
 	uiMain.saveRestore.generic.type = QMTYPE_ACTION;
 	uiMain.saveRestore.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+
+	// server.dll needs for reading savefiles
+	Com_BuildPath( "server", libpath );
+	if( !FS_FileExists( libpath ))
+		uiMain.saveRestore.generic.flags |= QMF_GRAYED;
 
 	if( cls.state == ca_active )
 	{

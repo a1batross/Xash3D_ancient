@@ -347,6 +347,7 @@ void R_ShutdownShaders( void );
 void R_ShaderList_f( void );
 void R_ShaderDump_f( void );
 ref_shader_t *R_LoadShader( const char *name, int type, bool forceDefault, int addFlags, int ignoreType );
+void Mod_FreeShader( const char *name ); // used for delete save menu previews only
 
 // misc utilities
 void R_ShaderFreeUnused( void );

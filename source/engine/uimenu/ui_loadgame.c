@@ -19,67 +19,52 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "common.h"
+#include "com_library.h"
 #include "ui_local.h"
 #include "client.h"
 
 #define ART_BACKGROUND   	"gfx/shell/splash"
-#define ART_BANNER	     	"gfx/shell/banners/loadgame_t"
-#define ART_LISTBACK     	"gfx/shell/segments/files_box"
+#define ART_BANNER	     	"gfx/shell/head_load"
 #define ART_LEVELSHOTBLUR	"gfx/shell/segments/sp_mapshot"
-
-#define UI_MAXGAMES		14
 
 #define ID_BACKGROUND	0
 #define ID_BANNER		1
+#define ID_LOAD		2
+#define ID_DELETE		3
+#define ID_CANCEL		4
+#define ID_SAVELIST		5
+#define ID_TABLEHINT	6
+#define ID_LEVELSHOT	7
 
-#define ID_BACK		2
-#define ID_LOAD		3
+#define LEVELSHOT_X		72
+#define LEVELSHOT_Y		400
+#define LEVELSHOT_W		192
+#define LEVELSHOT_H		160
 
-#define ID_LISTBACK		4
-#define ID_GAMETITLE	5
-#define ID_LISTGAMES	6
-#define ID_LEVELSHOT	20
-
-#define ID_NEWGAME		21
-#define ID_SAVEGAME		22
-#define ID_DELETEGAME	23
-
-typedef struct
-{
-	char		map[CS_SIZE];
-	char		time[CS_TIME];
-	char		date[CS_TIME];
-	char		name[CS_SIZE];
-	bool		valid;
-} uiLoadGameGame_t;
-
-static rgba_t		uiLoadGameColor = { 0, 76, 127, 255 };
+#define TIME_LENGTH		20
+#define NAME_LENGTH		32+TIME_LENGTH
+#define GAMETIME_LENGTH	15+NAME_LENGTH
 
 typedef struct
 {
-	uiLoadGameGame_t	games[UI_MAXGAMES];
-	int		currentGame;
-
-	int		currentLevelShot;
-	long		fadeTime;
+	char		saveName[UI_MAXGAMES][CS_SIZE];
+	char		delName[UI_MAXGAMES][CS_SIZE];
+	string		saveDescription[UI_MAXGAMES];
+	char		*saveDescriptionPtr[UI_MAXGAMES];
 
 	menuFramework_s	menu;
 
 	menuBitmap_s	background;
 	menuBitmap_s	banner;
+	menuAction_s	load;
+	menuAction_s	delete;
+	menuAction_s	cancel;
 
-	menuBitmap_s	back;
-	menuBitmap_s	load;
+	menuScrollList_s	savesList;
 
-	menuBitmap_s	listBack;
-	menuAction_s	gameTitle;
-	menuAction_s	listGames[UI_MAXGAMES];	
 	menuBitmap_s	levelShot;
-
-	menuBitmap_s	newGame;
-	menuBitmap_s	saveGame;
-	menuBitmap_s	deleteGame;
-
+	menuAction_s	hintMessage;
+	char		hintText[MAX_SYSPATH];
 } uiLoadGame_t;
 
 static uiLoadGame_t		uiLoadGame;
@@ -92,43 +77,60 @@ UI_LoadGame_GetGameList
 */
 static void UI_LoadGame_GetGameList( void )
 {
-	string	name;
+	string	comment;
+	search_t	*t;
 	int	i;
 
-	for( i = 0; i < UI_MAXGAMES; i++ )
+	t = FS_Search( "save/*.bin", true );
+
+	for( i = 0; t && i < t->numfilenames; i++ )
 	{
-		if( !SV_GetComment( name, i ))
+		if( i >= UI_MAXGAMES ) break;
+		
+		if( !SV_GetComment( t->filenames[i], comment ))
 		{
-			// get name string even if not found - SV_GetComment can be mark saves
-			// as <CORRUPTED> <OLD VERSION> <EMPTY> etc
-			com.strncpy(uiLoadGame.games[i].name, name, sizeof( uiLoadGame.games[i].name ));
-			com.strncpy(uiLoadGame.games[i].map, "", sizeof( uiLoadGame.games[i].map ));
-			com.strncpy(uiLoadGame.games[i].time, "", sizeof( uiLoadGame.games[i].time ));
-			com.strncpy(uiLoadGame.games[i].date, "", sizeof( uiLoadGame.games[i].date ));
-			uiLoadGame.games[i].valid = false;
+			if( com.strlen( comment ))
+			{
+				// get name string even if not found - SV_GetComment can be mark saves
+				// as <CORRUPTED> <OLD VERSION> etc
+				com.strncat( uiLoadGame.saveDescription[i], uiEmptyString, TIME_LENGTH );
+				com.strncat( uiLoadGame.saveDescription[i], comment, NAME_LENGTH );
+				com.strncat( uiLoadGame.saveDescription[i], uiEmptyString, NAME_LENGTH );
+				uiLoadGame.saveDescriptionPtr[i] = uiLoadGame.saveDescription[i];
+				FS_FileBase( t->filenames[i], uiLoadGame.delName[i] );
+			}
+			else uiLoadGame.saveDescriptionPtr[i] = NULL;
 			continue;
 		}
 
-		com.strncpy( uiLoadGame.games[i].map, name + CS_SIZE + (CS_TIME * 2), CS_SIZE );
-		com.strncpy( uiLoadGame.games[i].time, name + CS_SIZE + CS_TIME, CS_TIME );
-		com.strncpy( uiLoadGame.games[i].date, name + CS_SIZE, CS_TIME );
-		com.strncpy( uiLoadGame.games[i].name, name, CS_SIZE );
-		uiLoadGame.games[i].valid = true;
+		// strip path, leave only filename (empty slots doesn't have savename)
+		FS_FileBase( t->filenames[i], uiLoadGame.saveName[i] );
+		FS_FileBase( t->filenames[i], uiLoadGame.delName[i] );
+
+		// fill save desc
+		com.strncat( uiLoadGame.saveDescription[i], comment + CS_SIZE, TIME_LENGTH );
+		com.strncat( uiLoadGame.saveDescription[i], " ", TIME_LENGTH );
+		com.strncat( uiLoadGame.saveDescription[i], comment + CS_SIZE + CS_TIME, TIME_LENGTH );
+		com.strncat( uiLoadGame.saveDescription[i], uiEmptyString, TIME_LENGTH ); // fill remaining entries
+		com.strncat( uiLoadGame.saveDescription[i], comment, NAME_LENGTH );
+		com.strncat( uiLoadGame.saveDescription[i], uiEmptyString, NAME_LENGTH );
+		com.strncat( uiLoadGame.saveDescription[i], comment + CS_SIZE + (CS_TIME * 2), GAMETIME_LENGTH );
+		com.strncat( uiLoadGame.saveDescription[i], uiEmptyString, GAMETIME_LENGTH );
+		uiLoadGame.saveDescriptionPtr[i] = uiLoadGame.saveDescription[i];
 	}
 
-	// select first valid slot
-	for( i = 0; i < UI_MAXGAMES; i++ )
-	{
-		if( uiLoadGame.games[i].valid )
-		{
-			uiLoadGame.listGames[i].generic.color = uiColorOrange;
-			uiLoadGame.currentGame = i;
-			break;
-		}
-	}
+	for( ; i < UI_MAXGAMES; i++ ) uiLoadGame.saveDescriptionPtr[i] = NULL;
+	uiLoadGame.savesList.itemNames = uiLoadGame.saveDescriptionPtr;
 
-	// couldn't find a valid slot, so gray load button
-	if( i == UI_MAXGAMES ) uiLoadGame.load.generic.flags |= QMF_GRAYED;
+	if( com.strlen( uiLoadGame.saveName[0] ) == 0 )
+		uiLoadGame.load.generic.flags |= QMF_GRAYED;
+	else uiLoadGame.load.generic.flags &= ~QMF_GRAYED;
+
+	if( com.strlen( uiLoadGame.delName[0] ) == 0 )
+		uiLoadGame.delete.generic.flags |= QMF_GRAYED;
+	else uiLoadGame.delete.generic.flags &= ~QMF_GRAYED;
+	
+	if( t ) Mem_Free( t );
 }
 
 /*
@@ -140,40 +142,36 @@ static void UI_LoadGame_Callback( void *self, int event )
 {
 	menuCommon_s	*item = (menuCommon_s *)self;
 
-	if( event != QM_ACTIVATED )
-		return;
-
-	if( item->type == QMTYPE_ACTION )
+	if( event == QM_CHANGED )
 	{
-		// reset color, get current game, set color
-		uiLoadGame.listGames[uiLoadGame.currentGame].generic.color = uiColorOrange;
-		uiLoadGame.currentGame = item->id - ID_LISTGAMES;
-		uiLoadGame.listGames[uiLoadGame.currentGame].generic.color = uiColorYellow;
+		if( com.strlen( uiLoadGame.saveName[uiLoadGame.savesList.curItem] ) == 0 )
+			uiLoadGame.load.generic.flags |= QMF_GRAYED;
+		else uiLoadGame.load.generic.flags &= ~QMF_GRAYED;
 
-		// restart levelshot animation
-		uiLoadGame.currentLevelShot = 0;
-		uiLoadGame.fadeTime = uiStatic.realTime;
+		if( com.strlen( uiLoadGame.delName[uiLoadGame.savesList.curItem] ) == 0 )
+			uiLoadGame.delete.generic.flags |= QMF_GRAYED;
+		else uiLoadGame.delete.generic.flags &= ~QMF_GRAYED;
 		return;
 	}
+
+	if( event != QM_ACTIVATED )
+		return;
 	
 	switch( item->id )
 	{
-	case ID_BACK:
+	case ID_CANCEL:
 		UI_PopMenu();
 		break;
 	case ID_LOAD:
-		if( uiLoadGame.games[uiLoadGame.currentGame].valid )
-			Cbuf_ExecuteText( EXEC_APPEND, va( "load save%i\n", uiLoadGame.currentGame ));
+		if( com.strlen( uiLoadGame.saveName[uiLoadGame.savesList.curItem] ))
+			Cbuf_ExecuteText( EXEC_APPEND, va( "load \"%s\"\n", uiLoadGame.saveName[uiLoadGame.savesList.curItem] ));
 		break;
-	case ID_NEWGAME:
-		UI_NewGame_Menu();
-		break;
-	case ID_SAVEGAME:
-		UI_SaveGame_Menu();
-		break;
-	case ID_DELETEGAME:
-		Cbuf_ExecuteText( EXEC_NOW, va( "delete save%i\n", uiLoadGame.currentGame ));
-		UI_LoadGame_GetGameList();
+	case ID_DELETE:
+		if( com.strlen( uiLoadGame.delName[uiLoadGame.savesList.curItem] ))
+		{
+			Cbuf_ExecuteText( EXEC_NOW, va( "delete \"%s\"\n", uiLoadGame.delName[uiLoadGame.savesList.curItem] ));
+			UI_LoadGame_GetGameList();
+		}
 		break;
 	}
 }
@@ -187,106 +185,32 @@ static void UI_LoadGame_Ownerdraw( void *self )
 {
 	menuCommon_s	*item = (menuCommon_s *)self;
 
-	if( item->type == QMTYPE_ACTION )
+	if( item->type != QMTYPE_ACTION && item->id == ID_LEVELSHOT )
 	{
-		rgba_t	color;
-		char	*time, *date, *name;
-		bool	centered;
+		int	x, y, w, h;
 
-		if( item->id == ID_GAMETITLE )
-		{
-			time = "Time";
-			date = "Date";
-			name = "Map Name";
-			centered = false;
-		}
-		else
-		{
-			time = uiLoadGame.games[item->id - ID_LISTGAMES].time;
-			date = uiLoadGame.games[item->id - ID_LISTGAMES].date;
-			name = uiLoadGame.games[item->id - ID_LISTGAMES].name;
-			centered = !uiLoadGame.games[item->id - ID_LISTGAMES].valid;
-
-			if( com.strstr( uiLoadGame.games[item->id - ID_LISTGAMES].name, "<empty>" ))
-				centered = true;
-			if( com.strstr( uiLoadGame.games[item->id - ID_LISTGAMES].name, "<corrupted>" ))
-				centered = true;
-		}
-
-		if( !centered )
-		{
-			UI_DrawString( item->x, item->y, 82*uiStatic.scaleX, item->height, time, item->color, true, item->charWidth, item->charHeight, 1, true );
-			UI_DrawString( item->x + 83*uiStatic.scaleX, item->y, 82*uiStatic.scaleX, item->height, date, item->color, true, item->charWidth, item->charHeight, 1, true );
-			UI_DrawString( item->x + 83*uiStatic.scaleX + 83*uiStatic.scaleX, item->y, 296*uiStatic.scaleX, item->height, name, item->color, true, item->charWidth, item->charHeight, 1, true );
-		}
-		else UI_DrawString( item->x, item->y, item->width, item->height, name, item->color, true, item->charWidth, item->charHeight, 1, true );
-
-		if( self != UI_ItemAtCursor( item->parent ))
-			return;
-
-		*(uint *)color = *(uint *)item->color;
-
-		if( !centered )
-		{
-			UI_DrawString(item->x, item->y, 82*uiStatic.scaleX, item->height, time, color, true, item->charWidth, item->charHeight, 1, true);
-			UI_DrawString(item->x + 83*uiStatic.scaleX, item->y, 82*uiStatic.scaleX, item->height, date, color, true, item->charWidth, item->charHeight, 1, true);
-			UI_DrawString(item->x + 83*uiStatic.scaleX + 83*uiStatic.scaleX, item->y, 296*uiStatic.scaleX, item->height, name, color, true, item->charWidth, item->charHeight, 1, true);
-		}
-		else UI_DrawString(item->x, item->y, item->width, item->height, name, color, true, item->charWidth, item->charHeight, 1, true);
-	}
-	else
-	{
-		if( item->id == ID_LEVELSHOT )
-		{
-			int	x, y, w, h;
-			int	prev;
-			rgba_t	color = { 255, 255, 255, 255 };
-
-			// draw the levelshot
-			x = 570;
-			y = 210;
-			w = 410;
-			h = 202;
+		// draw the levelshot
+		x = LEVELSHOT_X;
+		y = LEVELSHOT_Y;
+		w = LEVELSHOT_W;
+		h = LEVELSHOT_H;
 		
-			UI_ScaleCoords( &x, &y, &w, &h );
+		UI_ScaleCoords( &x, &y, &w, &h );
 
-			if( uiLoadGame.games[uiLoadGame.currentGame].map[0] )
-			{
-				string	pathJPG;
-
-				if( uiStatic.realTime - uiLoadGame.fadeTime >= 3000 )
-				{
-					uiLoadGame.fadeTime = uiStatic.realTime;
-
-					uiLoadGame.currentLevelShot++;
-					if( uiLoadGame.currentLevelShot == 3 )
-						uiLoadGame.currentLevelShot = 0;
-				}
-
-				prev = uiLoadGame.currentLevelShot - 1;
-				if( prev < 0 ) prev = 2;
-
-				color[3] = bound( 0.0f, (float)(uiStatic.realTime - uiLoadGame.fadeTime) * 0.001f, 1.0f ) * 255;
-
-				com.snprintf( pathJPG, sizeof( pathJPG ), "save/save%i.jpg", uiLoadGame.currentGame );
-
-				if( !FS_FileExists( pathJPG ))
-					UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );
-				else UI_DrawPic( x, y, w, h, uiColorWhite, pathJPG );
-			}
-			else UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );
-
-			// draw the blurred frame
-			UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, ((menuBitmap_s *)self)->pic );
-		}
-		else
+		if( com.strlen( uiLoadGame.saveName[uiLoadGame.savesList.curItem] ))
 		{
-			if( uiLoadGame.menu.items[uiLoadGame.menu.cursor] == self )
-				UI_DrawPic(item->x, item->y, item->width, item->height, uiColorWhite, UI_MOVEBOXFOCUS );
-			else UI_DrawPic(item->x, item->y, item->width, item->height, uiColorWhite, UI_MOVEBOX );
+			string	pathJPG;
 
-			UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, ((menuBitmap_s *)self)->pic );
+			com.snprintf( pathJPG, sizeof( pathJPG ), "save/%s.jpg", uiLoadGame.saveName[uiLoadGame.savesList.curItem] );
+
+			if( !FS_FileExists( pathJPG ))
+				UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );
+			else UI_DrawPic( x, y, w, h, uiColorWhite, pathJPG );
 		}
+		else UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );
+
+		// draw the blurred frame
+		UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, ((menuBitmap_s *)self)->pic );
 	}
 }
 
@@ -297,11 +221,14 @@ UI_LoadGame_Init
 */
 static void UI_LoadGame_Init( void )
 {
-	int	i, y;
-
 	Mem_Set( &uiLoadGame, 0, sizeof( uiLoadGame_t ));
 
-	uiLoadGame.fadeTime = uiStatic.realTime;
+	com.strncat( uiLoadGame.hintText, "Time", TIME_LENGTH );
+	com.strncat( uiLoadGame.hintText, uiEmptyString, TIME_LENGTH );
+	com.strncat( uiLoadGame.hintText, "Game", NAME_LENGTH );
+	com.strncat( uiLoadGame.hintText, uiEmptyString, NAME_LENGTH );
+	com.strncat( uiLoadGame.hintText, "Elapsed time", GAMETIME_LENGTH );
+	com.strncat( uiLoadGame.hintText, uiEmptyString, GAMETIME_LENGTH );
 
 	uiLoadGame.background.generic.id = ID_BACKGROUND;
 	uiLoadGame.background.generic.type = QMTYPE_BITMAP;
@@ -315,119 +242,76 @@ static void UI_LoadGame_Init( void )
 	uiLoadGame.banner.generic.id = ID_BANNER;
 	uiLoadGame.banner.generic.type = QMTYPE_BITMAP;
 	uiLoadGame.banner.generic.flags = QMF_INACTIVE;
-	uiLoadGame.banner.generic.x = 0;
-	uiLoadGame.banner.generic.y = 66;
-	uiLoadGame.banner.generic.width = 1024;
-	uiLoadGame.banner.generic.height = 46;
+	uiLoadGame.banner.generic.x = 65;
+	uiLoadGame.banner.generic.y = 92;
+	uiLoadGame.banner.generic.width = 690;
+	uiLoadGame.banner.generic.height = 120;
 	uiLoadGame.banner.pic = ART_BANNER;
 
-	uiLoadGame.back.generic.id = ID_BACK;
-	uiLoadGame.back.generic.type = QMTYPE_BITMAP;
-	uiLoadGame.back.generic.x = 310;
-	uiLoadGame.back.generic.y = 656;
-	uiLoadGame.back.generic.width = 198;
-	uiLoadGame.back.generic.height = 38;
-	uiLoadGame.back.generic.callback = UI_LoadGame_Callback;
-	uiLoadGame.back.generic.ownerdraw = UI_LoadGame_Ownerdraw;
-	uiLoadGame.back.pic = UI_BACKBUTTON;
-
 	uiLoadGame.load.generic.id = ID_LOAD;
-	uiLoadGame.load.generic.type = QMTYPE_BITMAP;
-	uiLoadGame.load.generic.x = 516;
-	uiLoadGame.load.generic.y = 656;
-	uiLoadGame.load.generic.width = 198;
-	uiLoadGame.load.generic.height = 38;
+	uiLoadGame.load.generic.type = QMTYPE_ACTION;
+	uiLoadGame.load.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiLoadGame.load.generic.x = 72;
+	uiLoadGame.load.generic.y = 230;
+	uiLoadGame.load.generic.name = "Load";
+	uiLoadGame.load.generic.statusText = "Load saved game";
 	uiLoadGame.load.generic.callback = UI_LoadGame_Callback;
-	uiLoadGame.load.generic.ownerdraw = UI_LoadGame_Ownerdraw;
-	uiLoadGame.load.pic	= UI_LOADBUTTON;
 
-	uiLoadGame.listBack.generic.id = ID_LISTBACK;
-	uiLoadGame.listBack.generic.type = QMTYPE_BITMAP;
-	uiLoadGame.listBack.generic.flags = QMF_INACTIVE;
-	uiLoadGame.listBack.generic.x	= 42;
-	uiLoadGame.listBack.generic.y	= 146;
-	uiLoadGame.listBack.generic.width = 462;
-	uiLoadGame.listBack.generic.height = 476;
-	uiLoadGame.listBack.pic = ART_LISTBACK;
+	uiLoadGame.delete.generic.id = ID_DELETE;
+	uiLoadGame.delete.generic.type = QMTYPE_ACTION;
+	uiLoadGame.delete.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiLoadGame.delete.generic.x = 72;
+	uiLoadGame.delete.generic.y = 280;
+	uiLoadGame.delete.generic.name = "Delete";
+	uiLoadGame.delete.generic.statusText = "Delete saved game";
+	uiLoadGame.delete.generic.callback = UI_LoadGame_Callback;
 
-	uiLoadGame.gameTitle.generic.id = ID_GAMETITLE;
-	uiLoadGame.gameTitle.generic.type = QMTYPE_ACTION;
-	uiLoadGame.gameTitle.generic.flags = QMF_INACTIVE|QMF_SMALLFONT;
-	uiLoadGame.gameTitle.generic.x = 42;
-	uiLoadGame.gameTitle.generic.y = 146;
-	uiLoadGame.gameTitle.generic.width = 462;
-	uiLoadGame.gameTitle.generic.height = 24;
-	uiLoadGame.gameTitle.generic.ownerdraw = UI_LoadGame_Ownerdraw;
+	uiLoadGame.cancel.generic.id = ID_CANCEL;
+	uiLoadGame.cancel.generic.type = QMTYPE_ACTION;
+	uiLoadGame.cancel.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiLoadGame.cancel.generic.x = 72;
+	uiLoadGame.cancel.generic.y = 330;
+	uiLoadGame.cancel.generic.name = "Cancel";
+	uiLoadGame.cancel.generic.statusText = "Return back to main menu";
+	uiLoadGame.cancel.generic.callback = UI_LoadGame_Callback;
 
-	for( i = 0, y = 182; i < UI_MAXGAMES; i++, y += 32 )
-	{
-		uiLoadGame.listGames[i].generic.id = ID_LISTGAMES+i;
-		uiLoadGame.listGames[i].generic.type = QMTYPE_ACTION;
-		uiLoadGame.listGames[i].generic.flags = QMF_SILENT|QMF_SMALLFONT;
-		uiLoadGame.listGames[i].generic.x = 42;
-		uiLoadGame.listGames[i].generic.y = y;
-		uiLoadGame.listGames[i].generic.width = 462;
-		uiLoadGame.listGames[i].generic.height = 24;
-		uiLoadGame.listGames[i].generic.callback = UI_LoadGame_Callback;
-		uiLoadGame.listGames[i].generic.ownerdraw = UI_LoadGame_Ownerdraw;
-	}
+	uiLoadGame.hintMessage.generic.id = ID_TABLEHINT;
+	uiLoadGame.hintMessage.generic.type = QMTYPE_ACTION;
+	uiLoadGame.hintMessage.generic.flags = QMF_INACTIVE|QMF_SMALLFONT;
+	uiLoadGame.hintMessage.generic.color = uiColorLtGrey;
+	uiLoadGame.hintMessage.generic.name = uiLoadGame.hintText;
+	uiLoadGame.hintMessage.generic.x = 360;
+	uiLoadGame.hintMessage.generic.y = 225;
 
 	uiLoadGame.levelShot.generic.id = ID_LEVELSHOT;
 	uiLoadGame.levelShot.generic.type = QMTYPE_BITMAP;
 	uiLoadGame.levelShot.generic.flags = QMF_INACTIVE;
-	uiLoadGame.levelShot.generic.x = 568;
-	uiLoadGame.levelShot.generic.y = 208;
-	uiLoadGame.levelShot.generic.width = 414;
-	uiLoadGame.levelShot.generic.height = 206;
+	uiLoadGame.levelShot.generic.x = LEVELSHOT_X;
+	uiLoadGame.levelShot.generic.y = LEVELSHOT_Y;
+	uiLoadGame.levelShot.generic.width = LEVELSHOT_W;
+	uiLoadGame.levelShot.generic.height = LEVELSHOT_H;
 	uiLoadGame.levelShot.generic.ownerdraw = UI_LoadGame_Ownerdraw;
 	uiLoadGame.levelShot.pic = ART_LEVELSHOTBLUR;
 
-	uiLoadGame.newGame.generic.id	= ID_NEWGAME;
-	uiLoadGame.newGame.generic.type = QMTYPE_BITMAP;
-	uiLoadGame.newGame.generic.x = 676;
-	uiLoadGame.newGame.generic.y = 468;
-	uiLoadGame.newGame.generic.width = 198;
-	uiLoadGame.newGame.generic.height = 38;
-	uiLoadGame.newGame.generic.callback = UI_LoadGame_Callback;
-	uiLoadGame.newGame.generic.ownerdraw = UI_LoadGame_Ownerdraw;
-	uiLoadGame.newGame.pic = UI_NEWGAMEBUTTON;
-
-	uiLoadGame.saveGame.generic.id = ID_SAVEGAME;
-	uiLoadGame.saveGame.generic.type = QMTYPE_BITMAP;
-	uiLoadGame.saveGame.generic.x = 676;
-	uiLoadGame.saveGame.generic.y	= 516;
-	uiLoadGame.saveGame.generic.width = 198;
-	uiLoadGame.saveGame.generic.height = 38;
-	uiLoadGame.saveGame.generic.callback = UI_LoadGame_Callback;
-	uiLoadGame.saveGame.generic.ownerdraw = UI_LoadGame_Ownerdraw;
-	uiLoadGame.saveGame.pic = UI_SAVEBUTTON;
-
-	uiLoadGame.deleteGame.generic.id = ID_DELETEGAME;
-	uiLoadGame.deleteGame.generic.type = QMTYPE_BITMAP;
-	uiLoadGame.deleteGame.generic.x = 676;
-	uiLoadGame.deleteGame.generic.y = 564;
-	uiLoadGame.deleteGame.generic.width = 198;
-	uiLoadGame.deleteGame.generic.height = 38;
-	uiLoadGame.deleteGame.generic.callback = UI_LoadGame_Callback;
-	uiLoadGame.deleteGame.generic.ownerdraw = UI_LoadGame_Ownerdraw;
-	uiLoadGame.deleteGame.pic = UI_DELETEBUTTON;
+	uiLoadGame.savesList.generic.id = ID_SAVELIST;
+	uiLoadGame.savesList.generic.type = QMTYPE_SCROLLLIST;
+	uiLoadGame.savesList.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_SMALLFONT;
+	uiLoadGame.savesList.generic.x = 360;
+	uiLoadGame.savesList.generic.y = 255;
+	uiLoadGame.savesList.generic.width = 640;
+	uiLoadGame.savesList.generic.height = 440;
+	uiLoadGame.savesList.generic.callback = UI_LoadGame_Callback;
 
 	UI_LoadGame_GetGameList();
 
 	UI_AddItem( &uiLoadGame.menu, (void *)&uiLoadGame.background );
 	UI_AddItem( &uiLoadGame.menu, (void *)&uiLoadGame.banner );
-	UI_AddItem( &uiLoadGame.menu, (void *)&uiLoadGame.back );
 	UI_AddItem( &uiLoadGame.menu, (void *)&uiLoadGame.load );
-	UI_AddItem( &uiLoadGame.menu, (void *)&uiLoadGame.listBack );
-	UI_AddItem( &uiLoadGame.menu, (void *)&uiLoadGame.gameTitle );
-
-	for( i = 0; i < UI_MAXGAMES; i++ )
-		UI_AddItem( &uiLoadGame.menu, (void *)&uiLoadGame.listGames[i] );
-
+	UI_AddItem( &uiLoadGame.menu, (void *)&uiLoadGame.delete );
+	UI_AddItem( &uiLoadGame.menu, (void *)&uiLoadGame.cancel );
+	UI_AddItem( &uiLoadGame.menu, (void *)&uiLoadGame.hintMessage );
 	UI_AddItem( &uiLoadGame.menu, (void *)&uiLoadGame.levelShot );
-	UI_AddItem( &uiLoadGame.menu, (void *)&uiLoadGame.newGame );
-	UI_AddItem( &uiLoadGame.menu, (void *)&uiLoadGame.saveGame );
-	UI_AddItem( &uiLoadGame.menu, (void *)&uiLoadGame.deleteGame );
+	UI_AddItem( &uiLoadGame.menu, (void *)&uiLoadGame.savesList );
 }
 
 /*
@@ -441,7 +325,6 @@ void UI_LoadGame_Precache( void )
 
 	re->RegisterShader( ART_BACKGROUND, SHADER_NOMIP );
 	re->RegisterShader( ART_BANNER, SHADER_NOMIP );
-	re->RegisterShader( ART_LISTBACK, SHADER_NOMIP );
 	re->RegisterShader( ART_LEVELSHOTBLUR, SHADER_NOMIP );
 }
 
@@ -452,6 +335,11 @@ UI_LoadGame_Menu
 */
 void UI_LoadGame_Menu( void )
 {
+	string	libpath;
+
+	Com_BuildPath( "server", libpath );
+	if( !FS_FileExists( libpath )) return;
+
 	UI_LoadGame_Precache();
 	UI_LoadGame_Init();
 

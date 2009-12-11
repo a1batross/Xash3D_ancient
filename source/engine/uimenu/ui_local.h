@@ -72,7 +72,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define UI_MAX_FIELD_LINE		256
 #define UI_OUTLINE_WIDTH		4	// outline thickness
 
-#define UI_MAXGAMES			14
+#define UI_MAXGAMES			128
 #define UI_MAX_SERVERS		10
 
 // Generic types
@@ -263,6 +263,7 @@ typedef struct
 
 extern uiStatic_t		uiStatic;
 
+extern string		uiEmptyString;
 extern const char		*uiSoundIn;
 extern const char		*uiSoundMove;
 extern const char		*uiSoundOut;

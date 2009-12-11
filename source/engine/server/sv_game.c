@@ -3842,4 +3842,7 @@ void SV_LoadProgs( const char *name )
 
 	// initialize pm_shared
 	SV_InitClientMove();
+
+	// fire once
+	MsgDev( D_INFO, "Dll loaded for mod %s\n", svgame.dllFuncs.pfnGetGameDescription() );
 }
