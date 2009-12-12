@@ -123,6 +123,48 @@ void UI_FillRect( int x, int y, int w, int h, const rgba_t color )
 
 /*
 =================
+UI_DrawRectangle
+=================
+*/
+void UI_DrawRectangle( int in_x, int in_y, int in_w, int in_h, const rgba_t color )
+{
+	int	x, y, w, h;
+
+	x = in_x - UI_OUTLINE_WIDTH;
+	y = in_y - UI_OUTLINE_WIDTH;
+	w = UI_OUTLINE_WIDTH;
+	h = in_h + UI_OUTLINE_WIDTH + UI_OUTLINE_WIDTH;
+
+	// draw left
+	UI_FillRect( x, y, w, h, color );
+
+	x = in_x + in_w;
+	y = in_y - UI_OUTLINE_WIDTH;
+	w = UI_OUTLINE_WIDTH;
+	h = in_h + UI_OUTLINE_WIDTH + UI_OUTLINE_WIDTH;
+
+	// draw right
+	UI_FillRect( x, y, w, h, color );
+
+	x = in_x;
+	y = in_y - UI_OUTLINE_WIDTH;
+	w = in_w;
+	h = UI_OUTLINE_WIDTH;
+
+	// draw top
+	UI_FillRect( x, y, w, h, color );
+
+	// draw bottom
+	x = in_x;
+	y = in_y + in_h;
+	w = in_w;
+	h = UI_OUTLINE_WIDTH;
+
+	UI_FillRect( x, y, w, h, color );
+}
+
+/*
+=================
 UI_DrawString
 =================
 */
@@ -490,7 +532,7 @@ void UI_DrawMenu( menuFramework_s *menu )
 		lastItem = item;
 	}
 
-	if( item && ( item->flags & QMF_HASMOUSEFOCUS ) && ( item->statusText != NULL ))
+	if( item && ( item->flags & QMF_HASMOUSEFOCUS && !( item->flags & QMF_NOTIFY )) && ( item->statusText != NULL ))
 	{
 		// fade it in, but wait a second
 		color[3] = bound( 0.0, ((uiStatic.realTime - statusFadeTime) - 1000) * 0.001f, 1.0f ) * 255;
@@ -966,21 +1008,9 @@ void UI_Precache( void )
 		re->RegisterShader( UI_UPARROWFOCUS, SHADER_NOMIP );
 		re->RegisterShader( UI_DOWNARROW, SHADER_NOMIP );
 		re->RegisterShader( UI_DOWNARROWFOCUS, SHADER_NOMIP );
-		re->RegisterShader( UI_BACKGROUNDLISTBOX, SHADER_NOMIP );
-		re->RegisterShader( UI_SELECTIONBOX, SHADER_NOMIP );
-		re->RegisterShader( UI_BACKGROUNDBOX, SHADER_NOMIP );
 		re->RegisterShader( UI_MOVEBOX, SHADER_NOMIP );
 		re->RegisterShader( UI_MOVEBOXFOCUS, SHADER_NOMIP );
 		re->RegisterShader( UI_BACKBUTTON, SHADER_NOMIP );
-		re->RegisterShader( UI_LOADBUTTON, SHADER_NOMIP );
-		re->RegisterShader( UI_SAVEBUTTON, SHADER_NOMIP );
-		re->RegisterShader( UI_DELETEBUTTON, SHADER_NOMIP );
-		re->RegisterShader( UI_CANCELBUTTON, SHADER_NOMIP );
-		re->RegisterShader( UI_APPLYBUTTON, SHADER_NOMIP );
-		re->RegisterShader( UI_ACCEPTBUTTON, SHADER_NOMIP );
-		re->RegisterShader( UI_PLAYBUTTON, SHADER_NOMIP );
-		re->RegisterShader( UI_STARTBUTTON, SHADER_NOMIP );
-		re->RegisterShader( UI_NEWGAMEBUTTON, SHADER_NOMIP );
 	}
 
 	if( ui_precache->integer == 1 )
@@ -998,14 +1028,9 @@ void UI_Precache( void )
 	UI_GameOptions_Precache();
 	UI_Audio_Precache();
 	UI_Video_Precache();
-	UI_Advanced_Precache();
-	UI_Performance_Precache();
-	UI_Network_Precache();
-	UI_Defaults_Precache();
 	UI_Demos_Precache();
 	UI_CustomGame_Precache();
 	UI_Credits_Precache();
-	UI_GoToSite_Precache();
 }
 
 /*
@@ -1031,10 +1056,6 @@ void UI_Init( void )
 	Cmd_AddCommand( "menu_gameoptions", UI_GameOptions_Menu, "open the game options menu" );
 	Cmd_AddCommand( "menu_audio", UI_Audio_Menu, "open the sound options menu" );
 	Cmd_AddCommand( "menu_video", UI_Video_Menu, "open the video options menu" );
-	Cmd_AddCommand( "menu_advanced", UI_Advanced_Menu, "open the advanced video options menu" );
-	Cmd_AddCommand( "menu_performance", UI_Performance_Menu, "open the perfomance options menu" );
-	Cmd_AddCommand( "menu_network", UI_Network_Menu, "open the network options menu" );
-	Cmd_AddCommand( "menu_defaults", UI_Defaults_Menu, "open the 'reset to defaults' dialog" );
 	Cmd_AddCommand( "menu_demos", UI_Demos_Menu, "open the demos viewer menu" );
 	Cmd_AddCommand( "menu_customgame", UI_CustomGame_Menu, "open the change game menu" );
 

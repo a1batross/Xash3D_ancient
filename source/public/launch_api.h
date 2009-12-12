@@ -223,6 +223,7 @@ typedef struct gameinfo_s
 	string		basedir;		// main game directory (like 'id1' for Quake or 'valve' for Half-Life)
 	string		gamedir;		// game directory (can be match with basedir, used as primary dir and as write path
 	string		startmap;		// map to start singleplayer game
+	string		trainmap;		// map to start hazard course (if specified)
 	string		title;		// Game Main Title
 	string		texmode;		// configure ImageLib to use various texture formats
 	float		version;		// game version (optional)

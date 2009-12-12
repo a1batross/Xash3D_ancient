@@ -49,11 +49,86 @@ typedef struct
 	char		name[64];
 } dmiptexname_t;
 
+typedef struct
+{
+	const char	*texname;
+	const char	*detail;
+	const char	material;
+	int		lMin;
+	int		lMax;
+} dmaterial_t;
+
 byte*		bsp_base;
 bool		bsp_halflife = false;
 dmiptexname_t	*mipnames = NULL;
 int		mip_count = 0;
 file_t		*detail_txt;
+
+static const dmaterial_t detail_table[] =
+{
+{ "crt",		"dt_conc",	'C', 0, 0 },	// concrete
+{ "rock",		"dt_rock",	'C', 0, 0 },
+{ "conc", 	"dt_conc",	'C', 0, 0 },
+{ "wall", 	"dt_brick",	'C', 0, 0 },
+{ "crete",	"dt_conc",	'C', 0, 0 },
+{ "generic",	"dt_brick",	'C', 0, 0 },
+{ "metal",	"dt_metal%i",	'M', 1, 2 },	// metal
+{ "mtl",		"dt_metal%i",	'M', 1, 2 },
+{ "pipe",		"dt_metal%i",	'M', 1, 2 },
+{ "elev",		"dt_metal%i",	'M', 1, 2 },
+{ "sign",		"dt_metal%i",	'M', 1, 2 },
+{ "barrel",	"dt_metal%i",	'M', 1, 2 },
+{ "bath",		"dt_ssteel1",	'M', 1, 2 },
+{ "refbridge",	"dt_metal%i",	'M', 1, 2 },
+{ "panel",	"dt_ssteel1",	'M', 0, 0 },
+{ "brass",	"dt_ssteel1",	'M', 0, 0 },
+{ "car",		"dt_metal%i",	'M', 1, 2 },
+{ "circuit",	"dt_metal%i",	'M', 1, 2 },
+{ "steel",	"dt_ssteel1",	'M', 0, 0 },
+{ "dirt",		"dt_ground%i",	'D', 1, 5 },	// dirt
+{ "drt",		"dt_ground%i",	'D', 1, 5 },
+{ "out",		"dt_ground%i",	'D', 1, 5 },
+{ "grass",	"dt_grass1",	'D', 0, 0 },
+{ "mud",		"dt_carpet1",	'D', 0, 0 },	// FIXME
+{ "vent",		"dt_ssteel1",	'V', 1, 4 },	// vent
+{ "duct",		"dt_ssteel1",	'V', 1, 4 },
+{ "tile",		"dt_smooth%i",	'T', 1, 2 },
+{ "labflr",	"dt_smooth%i",	'T', 1, 2 },
+{ "bath",		"dt_smooth%i",	'T', 1, 2 },
+{ "grate",	"dt_stone%i",	'G', 1, 4 },	// vent
+{ "stone",	"dt_stone%i",	'G', 1, 4 },
+{ "grt",		"dt_stone%i",	'G', 1, 4 },
+{ "wood",		"dt_wood%i",	'W', 1, 3 },
+{ "wd",		"dt_wood%i",	'W', 1, 3 },
+{ "table",	"dt_wood%i",	'W', 1, 3 },
+{ "board",	"dt_wood%i",	'W', 1, 3 },
+{ "chair",	"dt_wood%i",	'W', 1, 3 },
+{ "brd",		"dt_wood%i",	'W', 1, 3 },
+{ "carp",		"dt_carpet1",	'W', 1, 3 },
+{ "book",		"dt_wood%i",	'W', 1, 3 },
+{ "box",		"dt_wood%i",	'W', 1, 3 },
+{ "cab",		"dt_wood%i",	'W', 1, 3 },
+{ "couch",	"dt_wood%i",	'W', 1, 3 },
+{ "crate",	"dt_wood%i",	'W', 1, 3 },
+{ "poster",	"dt_plaster%i",	'W', 1, 2 },
+{ "sheet",	"dt_plaster%i",	'W', 1, 2 },
+{ "stucco",	"dt_plaster%i",	'W', 1, 2 },
+{ "comp",		"dt_smooth1",	'P', 0, 0 },
+{ "cmp",		"dt_smooth1",	'P', 0, 0 },
+{ "elec",		"dt_smooth1",	'P', 0, 0 },
+{ "vend",		"dt_smooth1",	'P', 0, 0 },
+{ "monitor",	"dt_smooth1",	'P', 0, 0 },
+{ "phone",	"dt_smooth1",	'P', 0, 0 },
+{ "glass",	"dt_ssteel1",	'Y', 0, 0 },
+{ "window",	"dt_ssteel1",	'Y', 0, 0 },
+{ "flesh",	"dt_rough1",	'F', 0, 0 },
+{ "meat",		"dt_rough1",	'F', 0, 0 },
+{ "fls",		"dt_rough1",	'F', 0, 0 },
+{ "ground",	"dt_ground%i",	'D', 1, 5 },
+{ "gnd",		"dt_ground%i",	'D', 1, 5 },
+{ "snow",		"dt_snow%i",	'O', 1, 2 },	// snow
+{ NULL, NULL, 0, 0, 0 }
+};
 
 bool MipExist( const char *name )
 {
@@ -70,6 +145,8 @@ bool MipExist( const char *name )
 
 static const char *DetailTextureForName( const char *name )
 {
+	const dmaterial_t	*table;
+
 	if( !name || !*name ) return NULL;
 	if( !com.strnicmp( name, "sky", 3 ))
 		return NULL; // never details for sky
@@ -114,24 +191,16 @@ static const char *DetailTextureForName( const char *name )
 	if( !com.strnicmp( name, "null", 4 ))
 		return NULL;
 
-	// at this point we can apply detail textures to the current
-	if( com.stristr( name, "brick" )) return "dt_brick";
-	if( com.stristr( name, "carpet" )) return "dt_carpet1";
-	if( com.stristr( name, "crete" )) return "dt_conc";
-	if( com.stristr( name, "generic" )) return va( "dt_fabric%i", Com_RandomLong( 1, 2 ));
-	if( com.stristr( name, "grass" )) return "dt_grass1";
-	if( com.stristr( name, "ground" ) || com.stristr( name, "gnd" ))
-		return va( "dt_ground%i", Com_RandomLong( 1, 5 ));
-	if( com.stristr( name, "metal" ) || com.stristr( name, "metl" ))
-		return va( "dt_metal%i", Com_RandomLong( 1, 2 ));
-	if( com.stristr( name, "rock" )) return "dt_rock1";
-	if( com.stristr( name, "snow" )) return va( "dt_snow%i", Com_RandomLong( 1, 2 ));
-	if( com.stristr( name, "stone" )) return va( "dt_stone%i", Com_RandomLong( 1, 4 ));
-	if( com.stristr( name, "steel" )) return "dt_steel1";
-	if( com.stristr( name, "wood" )) return va( "dt_wood%i", Com_RandomLong( 1, 3 ));
-
-	// apply default detail texture
-	return "dt_brick";
+	for( table = detail_table; table && table->texname; table++ )
+	{
+		if( com.stristr( name, table->texname ))
+		{
+			if(( table->lMin + table->lMax ) > 0 )
+				return va( table->detail, Com_RandomLong( table->lMin, table->lMax )); 
+			return table->detail;
+		}
+	}
+	return "dt_smooth1"; // default
 }
 
 void Conv_BspTextures( const char *name, dlump_t *l, const char *ext )

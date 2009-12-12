@@ -25,7 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define ART_BACKGROUND   	"gfx/shell/splash"
 #define ART_BANNER	     	"gfx/shell/head_load"
-#define ART_LEVELSHOTBLUR	"gfx/shell/segments/sp_mapshot"
 
 #define ID_BACKGROUND	0
 #define ID_BANNER		1
@@ -81,7 +80,7 @@ static void UI_LoadGame_GetGameList( void )
 	search_t	*t;
 	int	i;
 
-	t = FS_Search( "save/*.bin", true );
+	t = FS_Search( "save/*.sav", true );
 
 	for( i = 0; t && i < t->numfilenames; i++ )
 	{
@@ -209,8 +208,8 @@ static void UI_LoadGame_Ownerdraw( void *self )
 		}
 		else UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );
 
-		// draw the blurred frame
-		UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, ((menuBitmap_s *)self)->pic );
+		// draw the rectangle
+		UI_DrawRectangle( item->x, item->y, item->width, item->height, uiScrollOutlineColor );
 	}
 }
 
@@ -291,7 +290,6 @@ static void UI_LoadGame_Init( void )
 	uiLoadGame.levelShot.generic.width = LEVELSHOT_W;
 	uiLoadGame.levelShot.generic.height = LEVELSHOT_H;
 	uiLoadGame.levelShot.generic.ownerdraw = UI_LoadGame_Ownerdraw;
-	uiLoadGame.levelShot.pic = ART_LEVELSHOTBLUR;
 
 	uiLoadGame.savesList.generic.id = ID_SAVELIST;
 	uiLoadGame.savesList.generic.type = QMTYPE_SCROLLLIST;
@@ -325,7 +323,6 @@ void UI_LoadGame_Precache( void )
 
 	re->RegisterShader( ART_BACKGROUND, SHADER_NOMIP );
 	re->RegisterShader( ART_BANNER, SHADER_NOMIP );
-	re->RegisterShader( ART_LEVELSHOTBLUR, SHADER_NOMIP );
 }
 
 /*

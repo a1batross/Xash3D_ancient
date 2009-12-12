@@ -318,6 +318,29 @@ static void SV_SaveServerData( wfile_t *f, const char *name, bool bUseLandMark )
 	svgame.globals->pSaveData = NULL;
 }
 
+/* 
+================== 
+SV_SaveGetName
+================== 
+*/  
+void SV_SaveGetName( int lastnum, char *filename )
+{
+	int	a, b;
+
+	if( !filename ) return;
+	if( lastnum < 0 || lastnum > 99 )
+	{
+		// bound
+		com.strcpy( filename, "save99" );
+		return;
+	}
+
+	a = lastnum / 10;
+	b = lastnum % 10;
+
+	com.sprintf( filename, "save%i%i", a, b );
+}
+
 /*
 =============
 SV_WriteSaveFile
@@ -343,10 +366,30 @@ void SV_WriteSaveFile( const char *inname, bool autosave, bool bUseLandmark )
 	}
 
 	if( !com.stricmp( inname, "new" ))
-		com.strncpy( name, timestamp( TIME_FILENAME ), sizeof( name ));
+	{
+		// scan for a free filename
+		for( n = 0; n < 100; n++ )
+		{
+			SV_SaveGetName( n, name );
+			if( !FS_FileExists( va( "save/%s.sav", name )))
+				break;
+		}
+		if( n == 100 )
+		{
+			Msg( "^3ERROR: no free slots for savegame\n" );
+			return;
+		}
+	}
 	else com.strncpy( name, inname, sizeof( name ));
 
-	com.sprintf( path, "save/%s.bin", name );
+	com.sprintf( path, "save/%s.sav", name );
+
+	// make sure what oldsave is removed
+	if( FS_FileExists( va( "save/%s.sav", name )))
+		FS_Delete( va( "%s/save/%s.sav", GI->gamedir, name ));
+	if( FS_FileExists( va( "save/%s.jpg", name )))
+		FS_Delete( va( "%s/save/%s.jpg", GI->gamedir, name ));
+
 	savfile = WAD_Open( path, "wb" );
 
 	if( !savfile )
@@ -682,7 +725,7 @@ void SV_ReadSaveFile( const char *name )
 	char		path[MAX_SYSPATH];
 	wfile_t		*savfile;
 
-	com.sprintf( path, "save/%s.bin", name );
+	com.sprintf( path, "save/%s.sav", name );
 	savfile = WAD_Open( path, "rb" );
 
 	if( !savfile )
@@ -716,7 +759,7 @@ void SV_ReadLevelFile( const char *name )
 	char		path[MAX_SYSPATH];
 	wfile_t		*savfile;
 
-	com.sprintf( path, "save/%s.bin", name );
+	com.sprintf( path, "save/%s.sav", name );
 	savfile = WAD_Open( path, "rb" );
 
 	if( !savfile )
@@ -741,7 +784,7 @@ void SV_MergeLevelFile( const char *name )
 	char		path[MAX_SYSPATH];
 	wfile_t		*savfile;
 
-	com.sprintf( path, "save/%s.bin", name );
+	com.sprintf( path, "save/%s.sav", name );
 	savfile = WAD_Open( path, "rb" );
 
 	if( !savfile )
@@ -825,7 +868,7 @@ bool SV_GetComment( const char *savename, char *comment )
 
 const char *SV_GetLatestSave( void )
 {
-	search_t	*f = FS_Search( "save/*.bin", true );
+	search_t	*f = FS_Search( "save/*.sav", true );
 	int	i, found = 0;
 	long	newest = 0, ft;
 	string	savename;	

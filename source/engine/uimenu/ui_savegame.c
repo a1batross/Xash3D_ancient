@@ -25,7 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define ART_BACKGROUND   	"gfx/shell/splash"
 #define ART_BANNER	     	"gfx/shell/head_save"
-#define ART_LEVELSHOTBLUR	"gfx/shell/segments/sp_mapshot"
 
 #define ID_BACKGROUND	0
 #define ID_BANNER		1
@@ -81,7 +80,7 @@ static void UI_SaveGame_GetGameList( void )
 	search_t	*t;
 	int	i = 0, j;
 
-	t = FS_Search( "save/*.bin", true );
+	t = FS_Search( "save/*.sav", true );
 
 	if( cls.state == ca_active )
 	{
@@ -111,6 +110,7 @@ static void UI_SaveGame_GetGameList( void )
 				com.strncat( uiSaveGame.saveDescription[i], comment, NAME_LENGTH );
 				com.strncat( uiSaveGame.saveDescription[i], uiEmptyString, NAME_LENGTH );
 				uiSaveGame.saveDescriptionPtr[i] = uiSaveGame.saveDescription[i];
+				FS_FileBase( t->filenames[j], uiSaveGame.saveName[i] );
 				FS_FileBase( t->filenames[j], uiSaveGame.delName[i] );
 			}
 			else uiSaveGame.saveDescriptionPtr[i] = NULL;
@@ -140,7 +140,7 @@ static void UI_SaveGame_GetGameList( void )
 		uiSaveGame.save.generic.flags |= QMF_GRAYED;
 	else uiSaveGame.save.generic.flags &= ~QMF_GRAYED;
 
-	if( com.strlen( uiSaveGame.delName[0] ) == 0 || cls.state != ca_active )
+	if( com.strlen( uiSaveGame.delName[0] ) == 0 )
 		uiSaveGame.delete.generic.flags |= QMF_GRAYED;
 	else uiSaveGame.delete.generic.flags &= ~QMF_GRAYED;
 	
@@ -155,11 +155,12 @@ UI_SaveGame_Callback
 static void UI_SaveGame_Callback( void *self, int event )
 {
 	menuCommon_s	*item = (menuCommon_s *)self;
+	string		pathJPG;
 
 	if( event == QM_CHANGED )
 	{
 		// never overwrite existing saves, because their names was never get collision
-		if( com.stricmp( uiSaveGame.saveName[uiSaveGame.savesList.curItem], "new" ))
+		if( com.strlen( uiSaveGame.saveName[uiSaveGame.savesList.curItem] ) == 0 || cls.state != ca_active )
 			uiSaveGame.save.generic.flags |= QMF_GRAYED;
 		else uiSaveGame.save.generic.flags &= ~QMF_GRAYED;
 
@@ -180,18 +181,18 @@ static void UI_SaveGame_Callback( void *self, int event )
 	case ID_SAVE:
 		if( com.strlen( uiSaveGame.saveName[uiSaveGame.savesList.curItem] ))
 		{
+			com.snprintf( pathJPG, sizeof( pathJPG ), "save/%s.jpg", uiSaveGame.saveName[uiSaveGame.savesList.curItem] );
 			Cbuf_ExecuteText( EXEC_APPEND, va( "save \"%s\"\n", uiSaveGame.saveName[uiSaveGame.savesList.curItem] ));
+			if( re ) re->FreeShader( pathJPG ); // unload shader from video-memory
 			UI_CloseMenu();
 		}
 		break;
 	case ID_DELETE:
 		if( com.strlen( uiSaveGame.delName[uiSaveGame.savesList.curItem] ))
 		{
-			string	pathJPG;
-
-			com.snprintf( pathJPG, sizeof( pathJPG ), "save/%s.jpg", uiSaveGame.saveName[uiSaveGame.savesList.curItem] );
+			com.snprintf( pathJPG, sizeof( pathJPG ), "save/%s.jpg", uiSaveGame.delName[uiSaveGame.savesList.curItem] );
 			Cbuf_ExecuteText( EXEC_NOW, va( "delete \"%s\"\n", uiSaveGame.delName[uiSaveGame.savesList.curItem] ));
-			if( re ) re->FreeShader( pathJPG );
+			if( re ) re->FreeShader( pathJPG ); // unload shader from video-memory
 			UI_SaveGame_GetGameList();
 		}
 		break;
@@ -231,8 +232,8 @@ static void UI_SaveGame_Ownerdraw( void *self )
 		}
 		else UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );
 
-		// draw the blurred frame
-		UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, ((menuBitmap_s *)self)->pic );
+		// draw the rectangle
+		UI_DrawRectangle( item->x, item->y, item->width, item->height, uiScrollOutlineColor );
 	}
 }
 
@@ -313,7 +314,6 @@ static void UI_SaveGame_Init( void )
 	uiSaveGame.levelShot.generic.width = LEVELSHOT_W;
 	uiSaveGame.levelShot.generic.height = LEVELSHOT_H;
 	uiSaveGame.levelShot.generic.ownerdraw = UI_SaveGame_Ownerdraw;
-	uiSaveGame.levelShot.pic = ART_LEVELSHOTBLUR;
 
 	uiSaveGame.savesList.generic.id = ID_SAVELIST;
 	uiSaveGame.savesList.generic.type = QMTYPE_SCROLLLIST;
@@ -347,7 +347,6 @@ void UI_SaveGame_Precache( void )
 
 	re->RegisterShader( ART_BACKGROUND, SHADER_NOMIP );
 	re->RegisterShader( ART_BANNER, SHADER_NOMIP );
-	re->RegisterShader( ART_LEVELSHOTBLUR, SHADER_NOMIP );
 }
 
 /*

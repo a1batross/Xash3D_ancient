@@ -23,39 +23,40 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 #define ART_BACKGROUND		"gfx/shell/splash"
-#define ART_BANNER			"gfx/shell/banners/demos_t"
 
 #define ID_BACKGROUND		0
-#define ID_BANNER			1
-
-#define ID_BACK			2
-#define ID_LOAD			3
-
+#define ID_CANCEL			1
+#define ID_PLAY			2
+#define ID_DELETE			3
 #define ID_DEMOLIST			4
+#define ID_TABLEHINT		5
 
-#define MAX_DEMOS			64
+#define MAX_DEMOS			100
 
 typedef struct
 {
-	char			demos[MAX_DEMOS][MAX_STRING];
-	char			*demosPtr[MAX_DEMOS];
+	char		demos[MAX_DEMOS][CS_SIZE];
+	char		*demosPtr[MAX_DEMOS];
 
-	menuFramework_s		menu;
+	menuFramework_s	menu;
 
-	menuBitmap_s		background;
-	menuBitmap_s		banner;
-	menuBitmap_s		back;
-	menuBitmap_s		load;
+	menuBitmap_s	background;
+	menuAction_s	play;
+	menuAction_s	delete;
+	menuAction_s	cancel;
 
-	menuScrollList_s		demoList;
+	menuScrollList_s	demoList;
+
+	menuAction_s	hintMessage;
+	char		hintText[MAX_SYSPATH];
 } uiDemos_t;
 
-static uiDemos_t			uiDemos;
+static uiDemos_t		uiDemos;
 
 
 /*
 =================
-UI_Demos_GetDemoList
+UI_Demos_GetDemosList
 =================
 */
 static void UI_Demos_GetDemoList( void )
@@ -69,8 +70,7 @@ static void UI_Demos_GetDemoList( void )
 	{
 		if( search && i < search->numfilenames )
 		{
-			com.strncpy( uiDemos.demos[i], search->filenames[i], sizeof( uiDemos.demos[i] ));
-			FS_StripExtension( uiDemos.demos[i] );
+			FS_FileBase( search->filenames[i], uiDemos.demos[i] );
 			uiDemos.demosPtr[i] = uiDemos.demos[i];
 		}
 		else uiDemos.demosPtr[i] = NULL;
@@ -94,29 +94,17 @@ static void UI_Demos_Callback( void *self, int event )
 
 	switch( item->id )
 	{
-	case ID_BACK:
+	case ID_CANCEL:
 		UI_PopMenu();
 		break;
-	case ID_LOAD:
+	case ID_PLAY:
 		Cbuf_ExecuteText( EXEC_APPEND, va( "playdemo %s\n", uiDemos.demos[uiDemos.demoList.curItem] ));
 		break;
+	case ID_DELETE:
+		FS_Delete( va( "%s/demos/%s.dem", GI->gamedir, uiDemos.demos[uiDemos.demoList.curItem] ));
+		UI_Demos_GetDemoList();
+		break;
 	}
-}
-
-/*
-=================
-UI_Demos_Ownerdraw
-=================
-*/
-static void UI_Demos_Ownerdraw( void *self )
-{
-	menuCommon_s	*item = (menuCommon_s *)self;
-
-	if( uiDemos.menu.items[uiDemos.menu.cursor] == self )
-		UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, UI_MOVEBOXFOCUS );
-	else UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, UI_MOVEBOX );
-
-	UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, ((menuBitmap_s *)self)->pic );
 }
 
 /*
@@ -128,6 +116,9 @@ static void UI_Demos_Init( void )
 {
 	Mem_Set( &uiDemos, 0, sizeof( uiDemos_t ));
 
+	com.strncat( uiDemos.hintText, "Demo Name", MAX_STRING );
+	com.strncat( uiDemos.hintText, uiEmptyString, MAX_STRING );
+
 	uiDemos.background.generic.id	= ID_BACKGROUND;
 	uiDemos.background.generic.type = QMTYPE_BITMAP;
 	uiDemos.background.generic.flags = QMF_INACTIVE;
@@ -137,49 +128,56 @@ static void UI_Demos_Init( void )
 	uiDemos.background.generic.height = 768;
 	uiDemos.background.pic = ART_BACKGROUND;
 
-	uiDemos.banner.generic.id = ID_BANNER;
-	uiDemos.banner.generic.type = QMTYPE_BITMAP;
-	uiDemos.banner.generic.flags = QMF_INACTIVE;
-	uiDemos.banner.generic.x = 0;
-	uiDemos.banner.generic.y = 66;
-	uiDemos.banner.generic.width = 1024;
-	uiDemos.banner.generic.height = 46;
-	uiDemos.banner.pic = ART_BANNER;
+	uiDemos.play.generic.id = ID_PLAY;
+	uiDemos.play.generic.type = QMTYPE_ACTION;
+	uiDemos.play.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiDemos.play.generic.x = 72;
+	uiDemos.play.generic.y = 230;
+	uiDemos.play.generic.name = "Play";
+	uiDemos.play.generic.statusText = "Playback selected demo";
+	uiDemos.play.generic.callback = UI_Demos_Callback;
 
-	uiDemos.back.generic.id = ID_BACK;
-	uiDemos.back.generic.type = QMTYPE_BITMAP;
-	uiDemos.back.generic.x = 310;
-	uiDemos.back.generic.y = 656;
-	uiDemos.back.generic.width = 198;
-	uiDemos.back.generic.height = 38;
-	uiDemos.back.generic.callback	= UI_Demos_Callback;
-	uiDemos.back.generic.ownerdraw = UI_Demos_Ownerdraw;
-	uiDemos.back.pic = UI_BACKBUTTON;
+	uiDemos.delete.generic.id = ID_DELETE;
+	uiDemos.delete.generic.type = QMTYPE_ACTION;
+	uiDemos.delete.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiDemos.delete.generic.x = 72;
+	uiDemos.delete.generic.y = 280;
+	uiDemos.delete.generic.name = "Delete";
+	uiDemos.delete.generic.statusText = "Delete selected demo";
+	uiDemos.delete.generic.callback = UI_Demos_Callback;
 
-	uiDemos.load.generic.id = ID_LOAD;
-	uiDemos.load.generic.type = QMTYPE_BITMAP;
-	uiDemos.load.generic.x = 516;
-	uiDemos.load.generic.y = 656;
-	uiDemos.load.generic.width = 198;
-	uiDemos.load.generic.height = 38;
-	uiDemos.load.generic.callback = UI_Demos_Callback;
-	uiDemos.load.generic.ownerdraw = UI_Demos_Ownerdraw;
-	uiDemos.load.pic = UI_LOADBUTTON;
+	uiDemos.cancel.generic.id = ID_CANCEL;
+	uiDemos.cancel.generic.type = QMTYPE_ACTION;
+	uiDemos.cancel.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiDemos.cancel.generic.x = 72;
+	uiDemos.cancel.generic.y = 330;
+	uiDemos.cancel.generic.name = "Cancel";
+	uiDemos.cancel.generic.statusText = "Return back to main menu";
+	uiDemos.cancel.generic.callback = UI_Demos_Callback;
+
+	uiDemos.hintMessage.generic.id = ID_TABLEHINT;
+	uiDemos.hintMessage.generic.type = QMTYPE_ACTION;
+	uiDemos.hintMessage.generic.flags = QMF_INACTIVE|QMF_SMALLFONT;
+	uiDemos.hintMessage.generic.color = uiColorLtGrey;
+	uiDemos.hintMessage.generic.name = uiDemos.hintText;
+	uiDemos.hintMessage.generic.x = 360;
+	uiDemos.hintMessage.generic.y = 225;
 
 	uiDemos.demoList.generic.id = ID_DEMOLIST;
 	uiDemos.demoList.generic.type = QMTYPE_SCROLLLIST;
-	uiDemos.demoList.generic.flags = QMF_CENTER_JUSTIFY | QMF_PULSEIFFOCUS | QMF_DROPSHADOW;
-	uiDemos.demoList.generic.x = 256;
-	uiDemos.demoList.generic.y = 208;
-	uiDemos.demoList.generic.width = 512;
-	uiDemos.demoList.generic.height = 352;
+	uiDemos.demoList.generic.flags = QMF_PULSEIFFOCUS|QMF_DROPSHADOW|QMF_SMALLFONT;
+	uiDemos.demoList.generic.x = 360;
+	uiDemos.demoList.generic.y = 255;
+	uiDemos.demoList.generic.width = 640;
+	uiDemos.demoList.generic.height = 440;
 
 	UI_Demos_GetDemoList();
 
 	UI_AddItem( &uiDemos.menu, (void *)&uiDemos.background );
-	UI_AddItem( &uiDemos.menu, (void *)&uiDemos.banner );
-	UI_AddItem( &uiDemos.menu, (void *)&uiDemos.back );
-	UI_AddItem( &uiDemos.menu, (void *)&uiDemos.load );
+	UI_AddItem( &uiDemos.menu, (void *)&uiDemos.play );
+	UI_AddItem( &uiDemos.menu, (void *)&uiDemos.delete );
+	UI_AddItem( &uiDemos.menu, (void *)&uiDemos.cancel );
+	UI_AddItem( &uiDemos.menu, (void *)&uiDemos.hintMessage );
 	UI_AddItem( &uiDemos.menu, (void *)&uiDemos.demoList );
 }
 
@@ -193,7 +191,6 @@ void UI_Demos_Precache( void )
 	if( !re ) return;
 
 	re->RegisterShader( ART_BACKGROUND, SHADER_NOMIP );
-	re->RegisterShader( ART_BANNER, SHADER_NOMIP );
 }
 
 /*

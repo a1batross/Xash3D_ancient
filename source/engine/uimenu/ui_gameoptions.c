@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 #define ART_BACKGROUND		"gfx/shell/splash"
-#define ART_BANNER			"gfx/shell/banners/gameoptions_t"
+#define ART_BANNER			"gfx/shell/head_advanced"
 #define ART_TEXT1			"gfx/shell/text/gameoptions_text_p1"
 #define ART_TEXT2			"gfx/shell/text/gameoptions_text_p2"
 
@@ -32,12 +32,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define ID_TEXT1			2
 #define ID_TEXT2			3
-#define ID_TEXTSHADOW1		4
-#define ID_TEXTSHADOW2		5
 
-#define ID_BACK			6
+#define ID_DONE			6
+#define ID_CANCEL			7
 
-#define ID_CROSSHAIR		7
 #define ID_MAXFPS			8
 #define ID_FOV			9
 #define ID_HAND			10
@@ -48,21 +46,17 @@ static const char	*uiGameOptionsHand[] = { "Right", "Left", "Hidden" };
 
 typedef struct
 {
-	int		showCrosshair;
-
 	menuFramework_s	menu;
 
 	menuBitmap_s	background;
 	menuBitmap_s	banner;
 
-	menuBitmap_s	textShadow1;
-	menuBitmap_s	textShadow2;
 	menuBitmap_s	text1;
 	menuBitmap_s	text2;
 
-	menuBitmap_s	back;
+	menuAction_s	done;
+	menuAction_s	cancel;
 
-	menuBitmap_s	crosshair;
 	menuField_s	maxFPS;
 	menuField_s	fov;
 	menuSpinControl_s	hand;
@@ -79,9 +73,7 @@ UI_GameOptions_GetConfig
 */
 static void UI_GameOptions_GetConfig( void )
 {
-	uiGameOptions.showCrosshair = Cvar_VariableInteger( "cl_crosshair" );
-
-	com.snprintf( uiGameOptions.maxFPS.buffer, sizeof( uiGameOptions.maxFPS.buffer ), "%i", Cvar_VariableInteger( "cl_maxfps "));
+	com.snprintf( uiGameOptions.maxFPS.buffer, sizeof( uiGameOptions.maxFPS.buffer ), "%i", Cvar_VariableInteger( "host_maxfps "));
 	com.snprintf( uiGameOptions.fov.buffer, sizeof( uiGameOptions.fov.buffer ), "%i", Cvar_VariableInteger( "fov" ));
 	uiGameOptions.hand.curValue = bound( 0, Cvar_VariableInteger( "hand" ), 2 );
 
@@ -95,10 +87,8 @@ UI_GameOptions_SetConfig
 */
 static void UI_GameOptions_SetConfig( void )
 {
-	Cvar_SetValue( "cl_crosshair", uiGameOptions.showCrosshair );
-
-	if( com.atoi( uiGameOptions.maxFPS.buffer ) >= 0 )
-		Cvar_SetValue( "cl_maxfps", com.atof( uiGameOptions.maxFPS.buffer ));
+	if( com.atoi( uiGameOptions.maxFPS.buffer ) > 0 )
+		Cvar_SetValue( "host_maxfps", com.atof( uiGameOptions.maxFPS.buffer ));
 
 	if( com.atoi( uiGameOptions.fov.buffer ) >= 1 && com.atoi( uiGameOptions.fov.buffer ) <= 179 )
 		Cvar_SetValue( "fov", com.atof( uiGameOptions.fov.buffer ));
@@ -127,25 +117,18 @@ static void UI_GameOptions_Callback( void *self, int event )
 {
 	menuCommon_s	*item = (menuCommon_s *)self;
 
-	if( event == QM_CHANGED )
-	{
-		UI_GameOptions_UpdateConfig();
-		UI_GameOptions_SetConfig();
-		return;
-	}
-
 	if( event != QM_ACTIVATED )
 		return;
 
 	switch( item->id )
 	{
-	case ID_BACK:
-		UI_PopMenu();
-		break;
-	case ID_CROSSHAIR:
-		uiGameOptions.showCrosshair = !uiGameOptions.showCrosshair;
+	case ID_DONE:
 		UI_GameOptions_UpdateConfig();
 		UI_GameOptions_SetConfig();
+		UI_PopMenu();
+		break;
+	case ID_CANCEL:
+		UI_PopMenu();
 		break;
 	}
 }
@@ -159,17 +142,11 @@ static void UI_GameOptions_Ownerdraw( void *self )
 {
 	menuCommon_s	*item = (menuCommon_s *)self;
 
-	if( self == (void *)&uiGameOptions.crosshair )
-	{
-	}
-	else
-	{
-		if( uiGameOptions.menu.items[uiGameOptions.menu.cursor] == self )
-			UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, UI_MOVEBOXFOCUS );
-		else UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, UI_MOVEBOX );
+	if( uiGameOptions.menu.items[uiGameOptions.menu.cursor] == self )
+		UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, UI_MOVEBOXFOCUS );
+	else UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, UI_MOVEBOX );
 
-		UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, ((menuBitmap_s *)self)->pic );
-	}
+	UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, ((menuBitmap_s *)self)->pic );
 }
 
 /*
@@ -193,31 +170,11 @@ static void UI_GameOptions_Init( void )
 	uiGameOptions.banner.generic.id = ID_BANNER;
 	uiGameOptions.banner.generic.type = QMTYPE_BITMAP;
 	uiGameOptions.banner.generic.flags = QMF_INACTIVE;
-	uiGameOptions.banner.generic.x = 0;
-	uiGameOptions.banner.generic.y = 66;
-	uiGameOptions.banner.generic.width = 1024;
-	uiGameOptions.banner.generic.height = 46;
+	uiGameOptions.banner.generic.x = 65;
+	uiGameOptions.banner.generic.y = 92;
+	uiGameOptions.banner.generic.width = 690;
+	uiGameOptions.banner.generic.height = 120;
 	uiGameOptions.banner.pic = ART_BANNER;
-
-	uiGameOptions.textShadow1.generic.id = ID_TEXTSHADOW1;
-	uiGameOptions.textShadow1.generic.type = QMTYPE_BITMAP;
-	uiGameOptions.textShadow1.generic.flags	= QMF_INACTIVE;
-	uiGameOptions.textShadow1.generic.x = 182;
-	uiGameOptions.textShadow1.generic.y = 170;
-	uiGameOptions.textShadow1.generic.width = 256;
-	uiGameOptions.textShadow1.generic.height = 256;
-	uiGameOptions.textShadow1.generic.color	= uiColorBlack;
-	uiGameOptions.textShadow1.pic	= ART_TEXT1;
-
-	uiGameOptions.textShadow2.generic.id = ID_TEXTSHADOW2;
-	uiGameOptions.textShadow2.generic.type = QMTYPE_BITMAP;
-	uiGameOptions.textShadow2.generic.flags	= QMF_INACTIVE;
-	uiGameOptions.textShadow2.generic.x = 182;
-	uiGameOptions.textShadow2.generic.y = 426;
-	uiGameOptions.textShadow2.generic.width = 256;
-	uiGameOptions.textShadow2.generic.height = 256;
-	uiGameOptions.textShadow2.generic.color	= uiColorBlack;
-	uiGameOptions.textShadow2.pic	= ART_TEXT2;
 
 	uiGameOptions.text1.generic.id = ID_TEXT1;
 	uiGameOptions.text1.generic.type = QMTYPE_BITMAP;
@@ -237,26 +194,23 @@ static void UI_GameOptions_Init( void )
 	uiGameOptions.text2.generic.height = 256;
 	uiGameOptions.text2.pic = ART_TEXT2;
 
-	uiGameOptions.back.generic.id	= ID_BACK;
-	uiGameOptions.back.generic.type = QMTYPE_BITMAP;
-	uiGameOptions.back.generic.x = 413;
-	uiGameOptions.back.generic.y = 656;
-	uiGameOptions.back.generic.width = 198;
-	uiGameOptions.back.generic.height = 38;
-	uiGameOptions.back.generic.callback = UI_GameOptions_Callback;
-	uiGameOptions.back.generic.ownerdraw = UI_GameOptions_Ownerdraw;
-	uiGameOptions.back.pic = UI_BACKBUTTON;
+	uiGameOptions.done.generic.id	= ID_DONE;
+	uiGameOptions.done.generic.type = QMTYPE_ACTION;
+	uiGameOptions.done.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW; 
+	uiGameOptions.done.generic.x = 72;
+	uiGameOptions.done.generic.y = 230;
+	uiGameOptions.done.generic.name = "Done";
+	uiGameOptions.done.generic.statusText = "Save changes and go back to the Customize Menu";
+	uiGameOptions.done.generic.callback = UI_GameOptions_Callback;
 
-	uiGameOptions.crosshair.generic.id = ID_CROSSHAIR;
-	uiGameOptions.crosshair.generic.type = QMTYPE_BITMAP;
-	uiGameOptions.crosshair.generic.flags = 0;
-	uiGameOptions.crosshair.generic.x = 646;
-	uiGameOptions.crosshair.generic.y = 144;
-	uiGameOptions.crosshair.generic.width = 64;
-	uiGameOptions.crosshair.generic.height = 64;
-	uiGameOptions.crosshair.generic.callback = UI_GameOptions_Callback;
-	uiGameOptions.crosshair.generic.ownerdraw = UI_GameOptions_Ownerdraw;
-	uiGameOptions.crosshair.generic.statusText = "Click to change crosshair color";
+	uiGameOptions.cancel.generic.id = ID_CANCEL;
+	uiGameOptions.cancel.generic.type = QMTYPE_ACTION;
+	uiGameOptions.cancel.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiGameOptions.cancel.generic.x = 72;
+	uiGameOptions.cancel.generic.y = 280;
+	uiGameOptions.cancel.generic.name = "Cancel";
+	uiGameOptions.cancel.generic.statusText = "Go back to the Customize Menu";
+	uiGameOptions.cancel.generic.callback = UI_GameOptions_Callback;
 
 	uiGameOptions.maxFPS.generic.id = ID_MAXFPS;
 	uiGameOptions.maxFPS.generic.type = QMTYPE_FIELD;
@@ -310,12 +264,10 @@ static void UI_GameOptions_Init( void )
 
 	UI_AddItem( &uiGameOptions.menu, (void *)&uiGameOptions.background );
 	UI_AddItem( &uiGameOptions.menu, (void *)&uiGameOptions.banner );
-	UI_AddItem( &uiGameOptions.menu, (void *)&uiGameOptions.textShadow1 );
-	UI_AddItem( &uiGameOptions.menu, (void *)&uiGameOptions.textShadow2 );
 	UI_AddItem( &uiGameOptions.menu, (void *)&uiGameOptions.text1 );
 	UI_AddItem( &uiGameOptions.menu, (void *)&uiGameOptions.text2 );
-	UI_AddItem( &uiGameOptions.menu, (void *)&uiGameOptions.back );
-	UI_AddItem( &uiGameOptions.menu, (void *)&uiGameOptions.crosshair );
+	UI_AddItem( &uiGameOptions.menu, (void *)&uiGameOptions.done );
+	UI_AddItem( &uiGameOptions.menu, (void *)&uiGameOptions.cancel );
 	UI_AddItem( &uiGameOptions.menu, (void *)&uiGameOptions.maxFPS );
 	UI_AddItem( &uiGameOptions.menu, (void *)&uiGameOptions.fov );
 	UI_AddItem( &uiGameOptions.menu, (void *)&uiGameOptions.hand );

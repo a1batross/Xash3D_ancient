@@ -258,11 +258,11 @@ SOURCE=.\server\sv_world.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\uimenu\ui_advanced.c
+SOURCE=.\uimenu\ui_audio.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\uimenu\ui_audio.c
+SOURCE=.\uimenu\ui_configuration.c
 # End Source File
 # Begin Source File
 
@@ -274,19 +274,11 @@ SOURCE=.\uimenu\ui_credits.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\uimenu\ui_defaults.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\uimenu\ui_demos.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\uimenu\ui_gameoptions.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\uimenu\ui_gotosite.c
 # End Source File
 # Begin Source File
 
@@ -310,19 +302,7 @@ SOURCE=.\uimenu\ui_multiplayer.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\uimenu\ui_network.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\uimenu\ui_newgame.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\uimenu\ui_options.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\uimenu\ui_performance.c
 # End Source File
 # Begin Source File
 

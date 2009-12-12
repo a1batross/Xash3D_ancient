@@ -23,21 +23,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 #define ART_BACKGROUND	"gfx/shell/splash"
-#define ART_BANNER	  	"gfx/shell/banners/video_t"
+#define ART_BANNER	  	"gfx/shell/head_video"
 #define ART_TEXT1	  	"gfx/shell/text/video_text_p1"
 #define ART_TEXT2	  	"gfx/shell/text/video_text_p2"
-#define ART_ADVANCED  	"gfx/shell/buttons/advanced_b"
 
 #define ID_BACKGROUND 	0
 #define ID_BANNER	  	1
 
 #define ID_TEXT1	  	2
 #define ID_TEXT2	  	3
-#define ID_TEXTSHADOW1	4
-#define ID_TEXTSHADOW2	5
 
-#define ID_CANCEL	  	6
-#define ID_ADVANCED	  	7
+#define ID_DONE	  	6
 #define ID_APPLY	  	8
 
 #define ID_GRAPHICSSETTINGS	9
@@ -108,14 +104,11 @@ typedef struct
 
 	menuBitmap_s	background;
 	menuBitmap_s	banner;
-	menuBitmap_s	textShadow1;
-	menuBitmap_s	textShadow2;
 	menuBitmap_s	text1;
 	menuBitmap_s	text2;
 
-	menuBitmap_s	cancel;
-	menuBitmap_s	advanced;
-	menuBitmap_s	apply;
+	menuAction_s	done;
+	menuAction_s	apply;
 
 	menuSpinControl_s	graphicsSettings;
 	menuSpinControl_s	glExtensions;
@@ -422,34 +415,13 @@ static void UI_Video_Callback( void *self, int event )
 
 	switch( item->id )
 	{
-	case ID_CANCEL:
+	case ID_DONE:
 		UI_PopMenu();
-		break;
-	case ID_ADVANCED:
-		UI_Advanced_Menu();
 		break;
 	case ID_APPLY:
 		UI_Video_SetConfig();
 		break;
 	}
-}
-
-/*
-=================
-UI_Video_Ownerdraw
-=================
-*/
-static void UI_Video_Ownerdraw( void *self )
-{
-	menuCommon_s	*item = (menuCommon_s *)self;
-
-	if( uiVideo.menu.items[uiVideo.menu.cursor] == self )
-		UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, UI_MOVEBOXFOCUS );
-	else UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, UI_MOVEBOX );
-
-	if( item->flags & QMF_GRAYED )
-		UI_DrawPic( item->x, item->y, item->width, item->height, uiColorDkGrey, ((menuBitmap_s *)self)->pic );
-	else UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, ((menuBitmap_s *)self)->pic );
 }
 
 /*
@@ -473,31 +445,11 @@ static void UI_Video_Init( void )
 	uiVideo.banner.generic.id = ID_BANNER;
 	uiVideo.banner.generic.type = QMTYPE_BITMAP;
 	uiVideo.banner.generic.flags = QMF_INACTIVE;
-	uiVideo.banner.generic.x = 0;
-	uiVideo.banner.generic.y = 66;
-	uiVideo.banner.generic.width = 1024;
-	uiVideo.banner.generic.height = 46;
+	uiVideo.banner.generic.x = 65;
+	uiVideo.banner.generic.y = 92;
+	uiVideo.banner.generic.width = 690;
+	uiVideo.banner.generic.height = 120;
 	uiVideo.banner.pic = ART_BANNER;
-
-	uiVideo.textShadow1.generic.id = ID_TEXTSHADOW1;
-	uiVideo.textShadow1.generic.type = QMTYPE_BITMAP;
-	uiVideo.textShadow1.generic.flags = QMF_INACTIVE;
-	uiVideo.textShadow1.generic.x = 182;
-	uiVideo.textShadow1.generic.y = 170;
-	uiVideo.textShadow1.generic.width = 256;
-	uiVideo.textShadow1.generic.height = 256;
-	uiVideo.textShadow1.generic.color = uiColorBlack;
-	uiVideo.textShadow1.pic = ART_TEXT1;
-
-	uiVideo.textShadow2.generic.id = ID_TEXTSHADOW2;
-	uiVideo.textShadow2.generic.type = QMTYPE_BITMAP;
-	uiVideo.textShadow2.generic.flags = QMF_INACTIVE;
-	uiVideo.textShadow2.generic.x = 182;
-	uiVideo.textShadow2.generic.y = 426;
-	uiVideo.textShadow2.generic.width = 256;
-	uiVideo.textShadow2.generic.height = 256;
-	uiVideo.textShadow2.generic.color = uiColorBlack;
-	uiVideo.textShadow2.pic = ART_TEXT2;
 
 	uiVideo.text1.generic.id = ID_TEXT1;
 	uiVideo.text1.generic.type = QMTYPE_BITMAP;
@@ -517,35 +469,23 @@ static void UI_Video_Init( void )
 	uiVideo.text2.generic.height = 256;
 	uiVideo.text2.pic = ART_TEXT2;
 
-	uiVideo.cancel.generic.id = ID_CANCEL;
-	uiVideo.cancel.generic.type = QMTYPE_BITMAP;
-	uiVideo.cancel.generic.x = 206;
-	uiVideo.cancel.generic.y = 656;
-	uiVideo.cancel.generic.width = 198;
-	uiVideo.cancel.generic.height = 38;
-	uiVideo.cancel.generic.callback = UI_Video_Callback;
-	uiVideo.cancel.generic.ownerdraw = UI_Video_Ownerdraw;
-	uiVideo.cancel.pic = UI_CANCELBUTTON;
-
-	uiVideo.advanced.generic.id = ID_ADVANCED;
-	uiVideo.advanced.generic.type = QMTYPE_BITMAP;
-	uiVideo.advanced.generic.x = 413;
-	uiVideo.advanced.generic.y = 656;
-	uiVideo.advanced.generic.width = 198;
-	uiVideo.advanced.generic.height = 38;
-	uiVideo.advanced.generic.callback = UI_Video_Callback;
-	uiVideo.advanced.generic.ownerdraw = UI_Video_Ownerdraw;
-	uiVideo.advanced.pic = ART_ADVANCED;
-
 	uiVideo.apply.generic.id = ID_APPLY;
-	uiVideo.apply.generic.type = QMTYPE_BITMAP;
-	uiVideo.apply.generic.x = 620;
-	uiVideo.apply.generic.y = 656;
-	uiVideo.apply.generic.width = 198;
-	uiVideo.apply.generic.height = 38;
+	uiVideo.apply.generic.type = QMTYPE_ACTION;
+	uiVideo.apply.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiVideo.apply.generic.x = 72;
+	uiVideo.apply.generic.y = 230;
+	uiVideo.apply.generic.name = "Apply";
+	uiVideo.apply.generic.statusText = "Apply changes";
 	uiVideo.apply.generic.callback = UI_Video_Callback;
-	uiVideo.apply.generic.ownerdraw = UI_Video_Ownerdraw;
-	uiVideo.apply.pic = UI_APPLYBUTTON;
+
+	uiVideo.done.generic.id = ID_DONE;
+	uiVideo.done.generic.type = QMTYPE_ACTION;
+	uiVideo.done.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiVideo.done.generic.x = 72;
+	uiVideo.done.generic.y = 280;
+	uiVideo.done.generic.name = "Done";
+	uiVideo.done.generic.statusText = "Go back to the Configuration Menu";
+	uiVideo.done.generic.callback = UI_Video_Callback;
 
 	uiVideo.graphicsSettings.generic.id = ID_GRAPHICSSETTINGS;
 	uiVideo.graphicsSettings.generic.type = QMTYPE_SPINCONTROL;
@@ -692,12 +632,9 @@ static void UI_Video_Init( void )
 
 	UI_AddItem( &uiVideo.menu, (void *)&uiVideo.background );
 	UI_AddItem( &uiVideo.menu, (void *)&uiVideo.banner );
-	UI_AddItem( &uiVideo.menu, (void *)&uiVideo.textShadow1 );
-	UI_AddItem( &uiVideo.menu, (void *)&uiVideo.textShadow2 );
 	UI_AddItem( &uiVideo.menu, (void *)&uiVideo.text1 );
 	UI_AddItem( &uiVideo.menu, (void *)&uiVideo.text2 );
-	UI_AddItem( &uiVideo.menu, (void *)&uiVideo.cancel );
-	UI_AddItem( &uiVideo.menu, (void *)&uiVideo.advanced );
+	UI_AddItem( &uiVideo.menu, (void *)&uiVideo.done );
 	UI_AddItem( &uiVideo.menu, (void *)&uiVideo.apply );
 	UI_AddItem( &uiVideo.menu, (void *)&uiVideo.graphicsSettings );
 	UI_AddItem( &uiVideo.menu, (void *)&uiVideo.glExtensions );
@@ -725,7 +662,6 @@ void UI_Video_Precache( void )
 	re->RegisterShader( ART_BANNER, SHADER_NOMIP );
 	re->RegisterShader( ART_TEXT1, SHADER_NOMIP );
 	re->RegisterShader( ART_TEXT2, SHADER_NOMIP );
-	re->RegisterShader( ART_ADVANCED, SHADER_NOMIP );
 }
 
 /*

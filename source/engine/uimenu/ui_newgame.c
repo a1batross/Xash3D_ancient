@@ -181,7 +181,7 @@ static void UI_NewGame_Init( void )
 
 	uiNewGame.easy.generic.id = ID_EASY;
 	uiNewGame.easy.generic.type = QMTYPE_ACTION;
-	uiNewGame.easy.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiNewGame.easy.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_NOTIFY;
 	uiNewGame.easy.generic.name = "Easy";
 	uiNewGame.easy.generic.statusText = "Play the game on the 'easy' skill setting";
 	uiNewGame.easy.generic.x = 72;
@@ -190,7 +190,7 @@ static void UI_NewGame_Init( void )
 
 	uiNewGame.medium.generic.id = ID_MEDIUM;
 	uiNewGame.medium.generic.type = QMTYPE_ACTION;
-	uiNewGame.medium.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiNewGame.medium.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_NOTIFY;
 	uiNewGame.medium.generic.name = "Medium";
 	uiNewGame.medium.generic.statusText = "Play the game on the 'medium' skill setting";
 	uiNewGame.medium.generic.x = 72;
@@ -199,7 +199,7 @@ static void UI_NewGame_Init( void )
 
 	uiNewGame.hard.generic.id = ID_DIFFICULT;
 	uiNewGame.hard.generic.type = QMTYPE_ACTION;
-	uiNewGame.hard.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiNewGame.hard.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_NOTIFY;
 	uiNewGame.hard.generic.name = "Difficult";
 	uiNewGame.hard.generic.statusText = "Play the game on the 'difficult' skill setting";
 	uiNewGame.hard.generic.x = 72;
@@ -208,7 +208,7 @@ static void UI_NewGame_Init( void )
 
 	uiNewGame.cancel.generic.id = ID_CANCEL;
 	uiNewGame.cancel.generic.type = QMTYPE_ACTION;
-	uiNewGame.cancel.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiNewGame.cancel.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_NOTIFY;
 	uiNewGame.cancel.generic.name = "Cancel";
 	uiNewGame.cancel.generic.statusText = "Go back to the main Menu";
 	uiNewGame.cancel.generic.x = 72;

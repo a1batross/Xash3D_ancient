@@ -60,7 +60,6 @@ void UI_ScrollList_Init( menuScrollList_s *sl )
 
 	if( !sl->generic.color ) sl->generic.color = uiColorOrange;
 	if( !sl->generic.focusColor ) sl->generic.focusColor = uiColorYellow;
-//	if( !sl->background ) sl->background = UI_BACKGROUNDLISTBOX;
 	if( !sl->upArrow ) sl->upArrow = UI_UPARROW;
 	if( !sl->upArrowFocus ) sl->upArrowFocus = UI_UPARROWFOCUS;
 	if( !sl->downArrow ) sl->downArrow = UI_DOWNARROW;
@@ -462,8 +461,8 @@ void UI_SpinControl_Init( menuSpinControl_s *sc )
 	}
 	else
 	{
-		if( sc->generic.charWidth < 1 ) sc->generic.charWidth = UI_SMALL_CHAR_WIDTH;
-		if( sc->generic.charHeight < 1 ) sc->generic.charHeight = UI_SMALL_CHAR_HEIGHT;
+		if( sc->generic.charWidth < 1 ) sc->generic.charWidth = UI_MED_CHAR_WIDTH;
+		if( sc->generic.charHeight < 1 ) sc->generic.charHeight = UI_MED_CHAR_HEIGHT;
 	}
 
 	UI_ScaleCoords( NULL, NULL, &sc->generic.charWidth, &sc->generic.charHeight );
@@ -473,9 +472,6 @@ void UI_SpinControl_Init( menuSpinControl_s *sc )
 
 	if( !sc->generic.color ) sc->generic.color = uiColorWhite;
 	if( !sc->generic.focusColor ) sc->generic.focusColor = uiColorLtGrey;
-
-	if( !sc->background ) sc->background = UI_BACKGROUNDBOX;
-
 	if( !sc->leftArrow ) sc->leftArrow = UI_LEFTARROW;
 	if( !sc->leftArrowFocus ) sc->leftArrowFocus = UI_LEFTARROWFOCUS;
 	if( !sc->rightArrow ) sc->rightArrow = UI_RIGHTARROW;
@@ -624,7 +620,18 @@ void UI_SpinControl_Draw( menuSpinControl_s *sc )
 	x = sc->generic.x2;
 	y = sc->generic.y2;
 
-	UI_DrawPic( x, y, w, h, uiColorWhite, sc->background );
+	if( sc->background )
+	{
+		UI_DrawPic( x, y, w, h, uiColorWhite, sc->background );
+	}
+	else
+	{
+		// draw the background
+		UI_FillRect( x, y, w, h, uiColorDkGrey );
+
+		// draw the rectangle
+		UI_DrawRectangle( x, y, w, h, uiScrollOutlineColor );
+	}
 
 	if( sc->generic.flags & QMF_GRAYED )
 	{
@@ -709,8 +716,8 @@ void UI_Field_Init( menuField_s *f )
 	}
 	else
 	{
-		if( f->generic.charWidth < 1 ) f->generic.charWidth = UI_SMALL_CHAR_WIDTH;
-		if( f->generic.charHeight < 1 ) f->generic.charHeight = UI_SMALL_CHAR_HEIGHT;
+		if( f->generic.charWidth < 1 ) f->generic.charWidth = UI_MED_CHAR_WIDTH;
+		if( f->generic.charHeight < 1 ) f->generic.charHeight = UI_MED_CHAR_HEIGHT;
 	}
 
 	UI_ScaleCoords( NULL, NULL, &f->generic.charWidth, &f->generic.charHeight );
@@ -720,7 +727,6 @@ void UI_Field_Init( menuField_s *f )
 
 	if( !f->generic.color ) f->generic.color = uiColorWhite;
 	if( !f->generic.focusColor ) f->generic.focusColor = uiColorLtGrey;
-	if( !f->background ) f->background = UI_BACKGROUNDBOX;
 
 	f->maxLenght++;
 	if( f->maxLenght <= 1 || f->maxLenght >= UI_MAX_FIELD_LINE )
@@ -965,7 +971,18 @@ void UI_Field_Draw( menuField_s *f )
 	else if( justify == 1 ) x = f->generic.x + ((f->generic.width - (com.cstrlen( text ) * f->generic.charWidth)) / 2);
 	else if( justify == 2 ) x = f->generic.x + (f->generic.width - (com.cstrlen( text ) * f->generic.charWidth));
 
-	UI_DrawPic( f->generic.x, f->generic.y, f->generic.width, f->generic.height, uiColorWhite, f->background );
+	if( f->background )
+	{
+		UI_DrawPic( f->generic.x, f->generic.y, f->generic.width, f->generic.height, uiColorWhite, f->background );
+	}
+	else
+	{
+		// draw the background
+		UI_FillRect( f->generic.x, f->generic.y, f->generic.width, f->generic.height, uiColorDkGrey );
+
+		// draw the rectangle
+		UI_DrawRectangle( f->generic.x, f->generic.y, f->generic.width, f->generic.height, uiScrollOutlineColor );
+	}
 
 	if( f->generic.flags & QMF_GRAYED )
 	{
@@ -1056,7 +1073,6 @@ void UI_Action_Init( menuAction_s *a )
 
 	if( !a->generic.color ) a->generic.color = uiColorOrange;
 	if( !a->generic.focusColor ) a->generic.focusColor = uiColorYellow;
-//	if( !a->background ) a->background = UI_BACKGROUNDBOX;
 
 	if( a->generic.width < 1 || a->generic.height < 1 )
 	{
@@ -1139,6 +1155,23 @@ void UI_Action_Draw( menuAction_s *a )
 		return; // grayed
 	}
 
+	if( a->generic.statusText && a->generic.flags & QMF_NOTIFY )
+	{
+		int	charW, charH;
+		int	x, w;
+
+		charW = UI_SMALL_CHAR_WIDTH;
+		charH = UI_SMALL_CHAR_HEIGHT;
+
+		UI_ScaleCoords( NULL, NULL, &charW, &charH );
+
+		x = 290;
+		w = UI_SMALL_CHAR_WIDTH * com.strlen( a->generic.statusText );
+		UI_ScaleCoords( &x, NULL, &w, NULL );
+		x += a->generic.x;
+
+		UI_DrawString( x, a->generic.y, w, a->generic.height, a->generic.statusText, uiColorWhite, true, charW, charH, 0, true );
+	}
 	if((menuCommon_s *)a != (menuCommon_s *)UI_ItemAtCursor( a->generic.parent ))
 	{
 		UI_DrawString( a->generic.x, a->generic.y, a->generic.width, a->generic.height, a->generic.name, a->generic.color, false, a->generic.charWidth, a->generic.charHeight, justify, shadow );

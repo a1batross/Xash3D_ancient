@@ -37,21 +37,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define UI_UPARROWFOCUS		"gfx/shell/uparrow_f"
 #define UI_DOWNARROW		"gfx/shell/dnarrow_d"
 #define UI_DOWNARROWFOCUS		"gfx/shell/dnarrow_f"
-#define UI_BACKGROUNDLISTBOX		"gfx/shell/segments/list_mid"
-#define UI_SELECTIONBOX		"gfx/shell/misc/list_sel"
-#define UI_BACKGROUNDBOX		"gfx/shell/buttons/options2_b"
 #define UI_MOVEBOX			"gfx/shell/buttons/move_box"
 #define UI_MOVEBOXFOCUS		"gfx/shell/buttons/move_box_s"
 #define UI_BACKBUTTON		"gfx/shell/buttons/back_b"
-#define UI_LOADBUTTON		"gfx/shell/buttons/load_b"
-#define UI_SAVEBUTTON		"gfx/shell/buttons/save_b"
-#define UI_DELETEBUTTON		"gfx/shell/buttons/delete_b"
-#define UI_CANCELBUTTON		"gfx/shell/buttons/cancel_b"
-#define UI_APPLYBUTTON		"gfx/shell/buttons/apply_b"
-#define UI_ACCEPTBUTTON		"gfx/shell/buttons/accept_b"
-#define UI_PLAYBUTTON		"gfx/shell/buttons/play_b"
-#define UI_STARTBUTTON		"gfx/shell/buttons/fight_b"
-#define UI_NEWGAMEBUTTON		"gfx/shell/buttons/newgame_b"
 
 #define UI_MAX_MENUDEPTH		8
 #define UI_MAX_MENUITEMS		64
@@ -72,7 +60,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define UI_MAX_FIELD_LINE		256
 #define UI_OUTLINE_WIDTH		4	// outline thickness
 
-#define UI_MAXGAMES			128
+#define UI_MAXGAMES			100	// slots for savegame
 #define UI_MAX_SERVERS		10
 
 // Generic types
@@ -105,6 +93,7 @@ typedef enum
 #define QMF_HASMOUSEFOCUS		0x00010000
 #define QMF_MOUSEONLY		0x00020000	// Only mouse input allowed
 #define QMF_FOCUSBEHIND		0x00040000	// Focus draws behind normal item
+#define QMF_NOTIFY			0x00080000	// draw notify at right screen side
 
 // Callback notifications
 #define QM_GOTFOCUS			1
@@ -293,11 +282,14 @@ extern rgba_t		uiColorYellow;
 extern rgba_t		uiColorOrange;
 extern rgba_t		uiColorCyan;
 extern rgba_t		uiColorMagenta;
+extern rgba_t		uiScrollOutlineColor;
+extern rgba_t		uiScrollSelColor;
 
 void UI_ScaleCoords( int *x, int *y, int *w, int *h );
 bool UI_CursorInRect( int x, int y, int w, int h );
 void UI_DrawPic( int x, int y, int w, int h, const rgba_t color, const char *pic );
 void UI_FillRect( int x, int y, int w, int h, const rgba_t color );
+void UI_DrawRectangle( int in_x, int in_y, int in_w, int in_h, const rgba_t color );
 void UI_DrawString( int x, int y, int w, int h, const char *string, const rgba_t color, bool forceColor, int charW, int charH, int justify, bool shadow );
 void UI_StartSound( const char *sound );
 
@@ -330,10 +322,6 @@ void UI_Controls_Precache( void );
 void UI_GameOptions_Precache( void );
 void UI_Audio_Precache( void );
 void UI_Video_Precache( void );
-void UI_Advanced_Precache( void );
-void UI_Performance_Precache( void );
-void UI_Network_Precache( void );
-void UI_Defaults_Precache( void );
 void UI_Demos_Precache( void );
 void UI_CustomGame_Precache( void );
 void UI_Credits_Precache( void );
@@ -352,13 +340,8 @@ void UI_Controls_Menu( void );
 void UI_GameOptions_Menu( void );
 void UI_Audio_Menu( void );
 void UI_Video_Menu( void );
-void UI_Advanced_Menu( void );
-void UI_Performance_Menu( void );
-void UI_Network_Menu( void );
-void UI_Defaults_Menu( void );
 void UI_Demos_Menu( void );
 void UI_CustomGame_Menu( void );
 void UI_Credits_Menu( void );
-void UI_GoToSite_Menu( const char *webAddress );
 
 #endif // UI_LOCAL_H

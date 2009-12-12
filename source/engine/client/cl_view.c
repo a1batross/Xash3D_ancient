@@ -175,5 +175,6 @@ void V_PostRender( void )
 		UI_UpdateMenu( cls.realtime );
 		Con_DrawConsole();
 	}
+	SCR_MakeScreenShot();
 	re->EndFrame();
 }

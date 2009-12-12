@@ -41,6 +41,13 @@ typedef struct
 	bool (*func)( ref_shader_t *shader, ref_stage_t *pass, script_t *script );
 } ref_parsekey_t;
 
+typedef enum
+{
+	FREE_IGNORE = 0,	// don't free images
+	FREE_NORMAL,	// free dead images that registration period is expired
+	FREE_FORCE,	// must be free anyway
+} e_free;
+
 byte		*r_shaderpool;
 static table_t	*r_tablesHashTable[TABLES_HASH_SIZE];
 static ref_script_t	*r_shaderScriptsHash[SHADERS_HASH_SIZE];
@@ -2615,7 +2622,7 @@ void R_InitShaders( void )
 	R_RegisterBuiltinShaders ();
 }
 
-void Shader_TouchImages( ref_shader_t *shader, bool free_unused )
+void Shader_TouchImages( ref_shader_t *shader, e_free free_unused )
 {
 	int		i, j;
 	int		c_total = 0;
@@ -2623,13 +2630,14 @@ void Shader_TouchImages( ref_shader_t *shader, bool free_unused )
 	texture_t		*texture;
 
 	Com_Assert( shader == NULL );
- 	if( !free_unused ) shader->touchFrame = tr.registration_sequence;
+ 	if( free_unused == FREE_IGNORE )
+ 		shader->touchFrame = tr.registration_sequence;
 
 	for( i = 0; i < shader->num_stages; i++ )
 	{
 		stage = &shader->stages[i];
 
-		if( free_unused && stage->cinHandle )
+		if( free_unused != FREE_IGNORE && stage->cinHandle )
 			Shader_FreePassCinematics( stage );
 
 		for( j = 0; j < stage->num_textures; j++ )
@@ -2638,10 +2646,18 @@ void Shader_TouchImages( ref_shader_t *shader, bool free_unused )
 			texture = stage->textures[j];
 
 			if( !texture || !texture->texnum ) continue;
-			if( texture->flags & TF_STATIC ) continue;
-			if( free_unused && texture->touchFrame != tr.registration_sequence )
+
+			if( free_unused == FREE_FORCE )
+			{
 				R_FreeImage( texture );
-			else texture->touchFrame = tr.registration_sequence;
+			}
+			else
+			{				
+				if( texture->flags & TF_STATIC ) continue;
+				if( free_unused == FREE_NORMAL && texture->touchFrame != tr.registration_sequence )
+					R_FreeImage( texture );
+				else texture->touchFrame = tr.registration_sequence;
+			}
 			c_total++; // just for debug
 		}
 	}
@@ -2658,7 +2674,7 @@ void Shader_TouchImages( ref_shader_t *shader, bool free_unused )
 	}
 }
 
-void Shader_FreeShader( ref_shader_t *shader )
+void Shader_FreeShader( ref_shader_t *shader, e_free free_unused )
 {
 	uint		i, hashKey;
 	ref_shader_t	*cur, **prev;
@@ -2671,7 +2687,7 @@ void Shader_FreeShader( ref_shader_t *shader )
 		return;	// already freed
 
 	// free uinque shader images only
-	Shader_TouchImages( shader, true );
+	Shader_TouchImages( shader, free_unused );
 
 	// remove from hash table
 	hashKey = Com_HashKey( shader->name, SHADERS_HASH_SIZE );
@@ -2696,23 +2712,30 @@ void Shader_FreeShader( ref_shader_t *shader )
 		for( i = 0; i < 6; i++ )
 		{
 			if( shader->skyParms->farboxShaders[i] )
-				Shader_FreeShader( shader->skyParms->farboxShaders[i] );
+				Shader_FreeShader( shader->skyParms->farboxShaders[i], free_unused );
 			if( shader->skyParms->nearboxShaders[i] )
-				Shader_FreeShader( shader->skyParms->nearboxShaders[i] );
+				Shader_FreeShader( shader->skyParms->nearboxShaders[i], free_unused );
 		}
-		R_FreeSkydome( shader->skyParms );
-		shader->skyParms = NULL;
+
+		if( free_unused != FREE_IGNORE )
+		{
+			R_FreeSkydome( shader->skyParms );
+			shader->skyParms = NULL;
+		}
 	}
 
-	if( shader->flags & SHADER_VIDEOMAP )
+	if( free_unused != FREE_IGNORE && shader->flags & SHADER_VIDEOMAP )
 	{
 		for( i = 0, pass = shader->stages; i < shader->num_stages; i++, pass++ )
 			Shader_FreePassCinematics( pass );
 	}
 
-	// free all allocated memory by shader
-	Shader_Free( shader->name );
-	Mem_Set( shader, 0, sizeof( ref_shader_t ));
+	if( free_unused != FREE_IGNORE )
+	{
+		// free all allocated memory by shader
+		Shader_Free( shader->name );
+		Mem_Set( shader, 0, sizeof( ref_shader_t ));
+	}
 }
 
 void Mod_FreeShader( const char *name )
@@ -2741,7 +2764,7 @@ void Mod_FreeShader( const char *name )
 		if( !com.stricmp( shader->name, shortname ))
 		{
 			// remove shader
-			Shader_FreeShader( shader );
+			Shader_FreeShader( shader, FREE_FORCE );
 			return;
 		}
 	}
@@ -2757,8 +2780,8 @@ void R_ShutdownShaders( void )
 
 	for( i = 0, shader = r_shaders; i < r_numShaders; i++, shader++ )
 	{
-		if( !shader->shadernum ) continue;	// already freed
-		Shader_FreeShader( shader );
+		if( !shader->shadernum ) continue;		// already freed
+		Shader_FreeShader( shader, FREE_NORMAL );	// images will be frees in other place
 	}
 
 	Mem_FreePool( &r_shaderpool );
@@ -3296,7 +3319,7 @@ void Shader_Finish( ref_shader_t *s )
 	Shader_SetFeatures( s );
 
  	// refresh registration sequence
- 	Shader_TouchImages( s, false );
+ 	Shader_TouchImages( s, FREE_IGNORE );
 }
 
 void R_UploadCinematicShader( const ref_shader_t *shader )
@@ -3768,7 +3791,7 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 	Shader_SetRenderMode( shader );
 
  	// refresh registration sequence
- 	Shader_TouchImages( shader, false );
+ 	Shader_TouchImages( shader, FREE_IGNORE );
 
 	// calculate sortkey
 	shader->sortkey = Shader_Sortkey( shader, shader->sort );
@@ -3816,7 +3839,7 @@ ref_shader_t *R_LoadShader( const char *name, int type, bool forceDefault, int a
 				else continue;
                               }
 			// prolonge registration
-			Shader_TouchImages( shader, false );
+			Shader_TouchImages( shader, FREE_IGNORE );
 			return shader;
 		}
 	}
@@ -3904,7 +3927,7 @@ void R_ShaderFreeUnused( void )
 		// used this sequence
 		if( shader->touchFrame == tr.registration_sequence ) continue;
 		if( shader->flags & SHADER_STATIC ) continue;
-		Shader_FreeShader( shader );
+		Shader_FreeShader( shader, FREE_NORMAL );
 	}
 }
 
@@ -4040,7 +4063,7 @@ ref_shader_t *R_SetupSky( const char *name )
 	}
 
 	index = tr.currentSkyShader->shadernum;
-	Shader_FreeShader( tr.currentSkyShader ); // release old sky
+	Shader_FreeShader( tr.currentSkyShader, FREE_FORCE ); // release old sky
 
 	// new sky shader
 	tr.currentSkyShader = R_LoadShader( loadname, SHADER_SKY, force_default, 0, SHADER_INVALID );
@@ -4054,6 +4077,6 @@ void R_FreeSky( void )
 {
 	if( tr.currentSkyShader == NULL ) return;	// already freed
 
-	Shader_FreeShader( tr.currentSkyShader );
+	Shader_FreeShader( tr.currentSkyShader, FREE_FORCE );
 	tr.currentSkyShader = NULL;
 }

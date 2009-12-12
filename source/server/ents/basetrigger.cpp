@@ -393,10 +393,10 @@ class CTriggerPush : public CBaseTrigger
 			{
 				Vector vecPush = (pev->speed * pev->movedir);
 				if ( pOther->pev->flags & FL_BASEVELOCITY )
-					vecPush = vecPush +  pOther->pev->basevelocity;
+					vecPush = vecPush + pOther->pev->basevelocity;
 				pOther->pev->basevelocity = vecPush;
 				pOther->pev->flags |= FL_BASEVELOCITY;
-				ALERT( at_console, "Valve trigger_push: vel %g %g %g\n", vecPush.x, vecPush.y, vecPush.z );
+				pOther->pev->flJumpPadTime = gpGlobals->time;
 			}
 		}
 	}

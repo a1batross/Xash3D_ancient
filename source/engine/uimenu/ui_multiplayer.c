@@ -27,12 +27,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "input.h"
 
 #define ART_BACKGROUND		"gfx/shell/splash"
-#define ART_BANNER			"gfx/shell/banners/multiplayer_t"
+#define ART_BANNER			"gfx/shell/head_multi"
 
 #define ID_BACKGROUND		0
 #define ID_BANNER			1
 
-#define ID_BACK			2
+#define ID_INTERNETGAMES		2
+#define ID_SPECTATEGAMES		3
+#define ID_LANGAME			4
+#define ID_CUSTOMIZE		5
+#define ID_CONTROLS			6
+#define ID_DONE			7
 
 #define ID_ADDRESSBOOK		3
 #define ID_REFRESH			4
@@ -62,9 +67,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ID_HOSTNAME			8
 #define ID_DMOPTIONS		9
 #define ID_BEGIN			10
-
-#define ID_JOINSERVER		3
-#define ID_STARTSERVER		4
 
 static const char *uiDMOptionsYesNo[] = { "False", "True" };
 
@@ -152,12 +154,15 @@ typedef struct
 {
 	menuFramework_s	menu;
 
-	menuBitmap_s	back;
 	menuBitmap_s	background;
 	menuBitmap_s	banner;
 
-	menuAction_s	joinServer;
-	menuAction_s	startServer;
+	menuAction_s	internetGames;
+	menuAction_s	spectateGames;
+	menuAction_s	LANGame;
+	menuAction_s	Customize;	// playersetup
+	menuAction_s	Controls;
+	menuAction_s	done;
 } uiMultiPlayer_t;
 
 static uiMultiPlayer_t	uiMultiPlayer;
@@ -206,7 +211,7 @@ static void UI_AddressBook_Callback( void *self, int event )
 
 	switch( item->id )
 	{
-	case ID_BACK:
+	case ID_DONE:
 		UI_AddressBook_SaveServers();
 		UI_PopMenu();
 		break;
@@ -260,7 +265,7 @@ static void UI_AddressBook_Init( void )
 	uiAddressBook.banner.generic.height = 46;
 	uiAddressBook.banner.pic = ART_BANNER;
 
-	uiAddressBook.back.generic.id = ID_BACK;
+	uiAddressBook.back.generic.id = ID_DONE;
 	uiAddressBook.back.generic.type = QMTYPE_BITMAP;
 	uiAddressBook.back.generic.x = 413;
 	uiAddressBook.back.generic.y = 656;
@@ -305,7 +310,7 @@ static void UI_JoinServer_Callback( void *self, int event )
 
 	switch( item->id )
 	{
-	case ID_BACK:
+	case ID_DONE:
 		UI_PopMenu();
 		break;
 	case ID_ADDRESSBOOK:
@@ -371,7 +376,7 @@ static void UI_JoinServer_Init( void )
 	uiJoinServer.banner.generic.height = 46;
 	uiJoinServer.banner.pic = ART_BANNER;
 
-	uiJoinServer.back.generic.id = ID_BACK;
+	uiJoinServer.back.generic.id = ID_DONE;
 	uiJoinServer.back.generic.type = QMTYPE_BITMAP;
 	uiJoinServer.back.generic.x = 413;
 	uiJoinServer.back.generic.y = 656;
@@ -476,7 +481,7 @@ static void UI_DMOptions_Callback( void *self, int event )
 
 	if( event == QM_ACTIVATED )
 	{
-		if( item->id == ID_BACK )
+		if( item->id == ID_DONE )
 		{
 			UI_PopMenu();
 			return;
@@ -648,7 +653,7 @@ static void UI_DMOptions_Init( void )
 	uiDMOptions.banner.generic.height = 46;
 	uiDMOptions.banner.pic = ART_BANNER;
 
-	uiDMOptions.back.generic.id = ID_BACK;
+	uiDMOptions.back.generic.id = ID_DONE;
 	uiDMOptions.back.generic.type	= QMTYPE_BITMAP;
 	uiDMOptions.back.generic.x = 413;
 	uiDMOptions.back.generic.y = 656;
@@ -981,7 +986,7 @@ static void UI_StartServer_Callback( void *self, int event )
 
 	switch( item->id )
 	{
-	case ID_BACK:
+	case ID_DONE:
 		UI_PopMenu();
 		break;
 	case ID_DMOPTIONS:
@@ -1075,7 +1080,7 @@ static void UI_StartServer_Init( void )
 	uiStartServer.banner.generic.height = 46;
 	uiStartServer.banner.pic = ART_BANNER;
 
-	uiStartServer.back.generic.id = ID_BACK;
+	uiStartServer.back.generic.id = ID_DONE;
 	uiStartServer.back.generic.type = QMTYPE_BITMAP;
 	uiStartServer.back.generic.x = 413;
 	uiStartServer.back.generic.y = 656;
@@ -1209,43 +1214,22 @@ static void UI_MultiPlayer_Callback( void *self, int event )
 
 	switch( item->id )
 	{
-	case ID_BACK:
-		UI_PopMenu();
-		break;
-	case ID_JOINSERVER:
+	case ID_INTERNETGAMES:
+	case ID_SPECTATEGAMES:
 		UI_JoinServer_Init();
 		break;
-	case ID_STARTSERVER:
+	case ID_LANGAME:
 		UI_StartServer_Init();
 		break;
-	}
-}
-
-/*
-=================
-UI_MultiPlayer_Ownerdraw
-=================
-*/
-static void UI_MultiPlayer_Ownerdraw( void *self )
-{
-	menuCommon_s	*item = (menuCommon_s *)self;
-
-	if( item->id == ID_BACKGROUND )
-	{
-		int	x = 0, y = 128, w = 1024, h = 50, cw = 20, ch = 40;
-
-		UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, ((menuBitmap_s *)self)->pic );
-
-		UI_ScaleCoords( &x, &y, &w, &h );
-		UI_ScaleCoords( NULL, NULL, &cw, &ch );
-		UI_DrawString( x, y, w, h, "UNDER CONSTRUCTION!!!", uiColorWhite, true, cw, ch, 1, true);
-	}
-	else
-	{
-		if( uiMultiPlayer.menu.items[uiMultiPlayer.menu.cursor] == self )
-			UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, UI_MOVEBOXFOCUS );
-		else UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, UI_MOVEBOX );
-		UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, ((menuBitmap_s *)self)->pic );
+	case ID_CUSTOMIZE:
+		UI_PlayerSetup_Menu();
+		break;
+	case ID_CONTROLS:
+		UI_Controls_Menu();
+		break;
+	case ID_DONE:
+		UI_PopMenu();
+		break;
 	}
 }
 
@@ -1265,55 +1249,79 @@ static void UI_MultiPlayer_Init( void )
 	uiMultiPlayer.background.generic.y = 0;
 	uiMultiPlayer.background.generic.width = 1024;
 	uiMultiPlayer.background.generic.height = 768;
-	uiMultiPlayer.background.generic.ownerdraw = UI_MultiPlayer_Ownerdraw;
 	uiMultiPlayer.background.pic = ART_BACKGROUND;
 
 	uiMultiPlayer.banner.generic.id = ID_BANNER;
 	uiMultiPlayer.banner.generic.type = QMTYPE_BITMAP;
 	uiMultiPlayer.banner.generic.flags = QMF_INACTIVE;
-	uiMultiPlayer.banner.generic.x = 0;
-	uiMultiPlayer.banner.generic.y = 66;
-	uiMultiPlayer.banner.generic.width = 1024;
-	uiMultiPlayer.banner.generic.height = 46;
+	uiMultiPlayer.banner.generic.x = 65;
+	uiMultiPlayer.banner.generic.y = 92;
+	uiMultiPlayer.banner.generic.width = 690;
+	uiMultiPlayer.banner.generic.height = 120;
 	uiMultiPlayer.banner.pic = ART_BANNER;
 
-	uiMultiPlayer.back.generic.id = ID_BACK;
-	uiMultiPlayer.back.generic.type = QMTYPE_BITMAP;
-	uiMultiPlayer.back.generic.x = 413;
-	uiMultiPlayer.back.generic.y = 656;
-	uiMultiPlayer.back.generic.width = 198;
-	uiMultiPlayer.back.generic.height = 38;
-	uiMultiPlayer.back.generic.callback = UI_MultiPlayer_Callback;
-	uiMultiPlayer.back.generic.ownerdraw = UI_MultiPlayer_Ownerdraw;
-	uiMultiPlayer.back.pic = UI_BACKBUTTON;
+	uiMultiPlayer.internetGames.generic.id = ID_INTERNETGAMES;
+	uiMultiPlayer.internetGames.generic.type = QMTYPE_ACTION;
+	uiMultiPlayer.internetGames.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_NOTIFY|QMF_GRAYED;
+	uiMultiPlayer.internetGames.generic.x = 72;
+	uiMultiPlayer.internetGames.generic.y = 230;
+	uiMultiPlayer.internetGames.generic.name = "Internet games";
+	uiMultiPlayer.internetGames.generic.statusText = "View list of a game internet servers and join the one of your choise";
+	uiMultiPlayer.internetGames.generic.callback = UI_MultiPlayer_Callback;
 
-	uiMultiPlayer.joinServer.generic.id = ID_JOINSERVER;
-	uiMultiPlayer.joinServer.generic.name = "Join Server";
-	uiMultiPlayer.joinServer.generic.type = QMTYPE_ACTION;
-	uiMultiPlayer.joinServer.generic.flags = QMF_CENTER_JUSTIFY | QMF_PULSEIFFOCUS | QMF_DROPSHADOW;
-	uiMultiPlayer.joinServer.generic.x = 413;
-	uiMultiPlayer.joinServer.generic.y = 354;
-	uiMultiPlayer.joinServer.generic.width = 198;
-	uiMultiPlayer.joinServer.generic.height = 30;
-	uiMultiPlayer.joinServer.generic.callback = UI_MultiPlayer_Callback;
-	uiMultiPlayer.joinServer.background = "";
+	uiMultiPlayer.spectateGames.generic.id = ID_SPECTATEGAMES;
+	uiMultiPlayer.spectateGames.generic.type = QMTYPE_ACTION;
+	uiMultiPlayer.spectateGames.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_NOTIFY|QMF_GRAYED;
+	uiMultiPlayer.spectateGames.generic.x = 72;
+	uiMultiPlayer.spectateGames.generic.y = 280;
+	uiMultiPlayer.spectateGames.generic.name = "Spectate games";
+	uiMultiPlayer.spectateGames.generic.statusText = "Spectate internet games";
+	uiMultiPlayer.spectateGames.generic.callback = UI_MultiPlayer_Callback;
 
-	uiMultiPlayer.startServer.generic.id = ID_STARTSERVER;
-	uiMultiPlayer.startServer.generic.name = "Start Server";
-	uiMultiPlayer.startServer.generic.type = QMTYPE_ACTION;
-	uiMultiPlayer.startServer.generic.flags = QMF_CENTER_JUSTIFY | QMF_PULSEIFFOCUS | QMF_DROPSHADOW;
-	uiMultiPlayer.startServer.generic.x = 413;
-	uiMultiPlayer.startServer.generic.y = 384;
-	uiMultiPlayer.startServer.generic.width = 198;
-	uiMultiPlayer.startServer.generic.height = 30;
-	uiMultiPlayer.startServer.generic.callback = UI_MultiPlayer_Callback;
-	uiMultiPlayer.startServer.background = "";
+	uiMultiPlayer.LANGame.generic.id = ID_LANGAME;
+	uiMultiPlayer.LANGame.generic.type = QMTYPE_ACTION;
+	uiMultiPlayer.LANGame.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_NOTIFY|QMF_GRAYED;
+	uiMultiPlayer.LANGame.generic.x = 72;
+	uiMultiPlayer.LANGame.generic.y = 330;
+	uiMultiPlayer.LANGame.generic.name = "LAN game";
+	uiMultiPlayer.LANGame.generic.statusText = "Set up the game on the local area network";
+	uiMultiPlayer.LANGame.generic.callback = UI_MultiPlayer_Callback;
+
+	uiMultiPlayer.Customize.generic.id = ID_CUSTOMIZE;
+	uiMultiPlayer.Customize.generic.type = QMTYPE_ACTION;
+	uiMultiPlayer.Customize.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_NOTIFY;
+	uiMultiPlayer.Customize.generic.x = 72;
+	uiMultiPlayer.Customize.generic.y = 380;
+	uiMultiPlayer.Customize.generic.name = "Customize";
+	uiMultiPlayer.Customize.generic.statusText = "Choose your player name, and select visual options for your character";
+	uiMultiPlayer.Customize.generic.callback = UI_MultiPlayer_Callback;
+
+	uiMultiPlayer.Controls.generic.id = ID_CONTROLS;
+	uiMultiPlayer.Controls.generic.type = QMTYPE_ACTION;
+	uiMultiPlayer.Controls.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_NOTIFY;
+	uiMultiPlayer.Controls.generic.x = 72;
+	uiMultiPlayer.Controls.generic.y = 430;
+	uiMultiPlayer.Controls.generic.name = "Controls";
+	uiMultiPlayer.Controls.generic.statusText = "Change keyboard and mouse settings";
+	uiMultiPlayer.Controls.generic.callback = UI_MultiPlayer_Callback;
+
+	uiMultiPlayer.done.generic.id = ID_DONE;
+	uiMultiPlayer.done.generic.type = QMTYPE_ACTION;
+	uiMultiPlayer.done.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_NOTIFY;
+	uiMultiPlayer.done.generic.x = 72;
+	uiMultiPlayer.done.generic.y = 480;
+	uiMultiPlayer.done.generic.name = "Done";
+	uiMultiPlayer.done.generic.statusText = "Go back to the Main Menu";
+	uiMultiPlayer.done.generic.callback = UI_MultiPlayer_Callback;
 
 	UI_AddItem( &uiMultiPlayer.menu, (void *)&uiMultiPlayer.background );
 	UI_AddItem( &uiMultiPlayer.menu, (void *)&uiMultiPlayer.banner );
-	UI_AddItem( &uiMultiPlayer.menu, (void *)&uiMultiPlayer.back );
-	UI_AddItem( &uiMultiPlayer.menu, (void *)&uiMultiPlayer.joinServer );
-	UI_AddItem( &uiMultiPlayer.menu, (void *)&uiMultiPlayer.startServer );
+	UI_AddItem( &uiMultiPlayer.menu, (void *)&uiMultiPlayer.internetGames );
+	UI_AddItem( &uiMultiPlayer.menu, (void *)&uiMultiPlayer.spectateGames );
+	UI_AddItem( &uiMultiPlayer.menu, (void *)&uiMultiPlayer.LANGame );
+	UI_AddItem( &uiMultiPlayer.menu, (void *)&uiMultiPlayer.Customize );
+	UI_AddItem( &uiMultiPlayer.menu, (void *)&uiMultiPlayer.Controls );
+	UI_AddItem( &uiMultiPlayer.menu, (void *)&uiMultiPlayer.done );
 }
 
 /*

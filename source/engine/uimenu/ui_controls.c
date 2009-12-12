@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "input.h"
 
 #define ART_BACKGROUND		"gfx/shell/splash"
-#define ART_BANNER			"gfx/shell/banners/controls_t"
+#define ART_BANNER			"gfx/shell/head_controls"
 #define ART_TEXT_LOOK		"gfx/shell/text/cont_look_text_p1"
 #define ART_TEXT_LOOK2		"gfx/shell/text/cont_look_text_p2"
 #define ART_TEXT_MOVE		"gfx/shell/text/cont_move_text_p1"
@@ -667,10 +667,10 @@ static void UI_Controls_Init( void )
 	uiControls.banner.generic.id = ID_BANNER;
 	uiControls.banner.generic.type = QMTYPE_BITMAP;
 	uiControls.banner.generic.flags = QMF_INACTIVE;
-	uiControls.banner.generic.x = 0;
-	uiControls.banner.generic.y = 66;
-	uiControls.banner.generic.width = 1024;
-	uiControls.banner.generic.height = 46;
+	uiControls.banner.generic.x = 65;
+	uiControls.banner.generic.y = 92;
+	uiControls.banner.generic.width = 690;
+	uiControls.banner.generic.height = 120;
 	uiControls.banner.pic = ART_BANNER;
 
 	uiControls.textShadow1.generic.id = ID_TEXTSHADOW1;

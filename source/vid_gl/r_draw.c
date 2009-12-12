@@ -488,6 +488,9 @@ void Tri_End( void )
 
 void Tri_RenderCallback( int fTrans )
 {
+	if( RI.refdef.flags & RDF_NOWORLDMODEL )
+		return;
+
 	triState.fActive = true;
 
 	if( fTrans ) GL_SetState( GLSTATE_NO_DEPTH_TEST );

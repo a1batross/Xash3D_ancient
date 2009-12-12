@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 #define ART_BACKGROUND		"gfx/shell/splash"
-#define ART_BANNER			"gfx/shell/banners/audio_t"
+#define ART_BANNER			"gfx/shell/head_audio"
 #define ART_TEXT1			"gfx/shell/text/audio_text_p1"
 #define ART_TEXT2			"gfx/shell/text/audio_text_p2"
 
@@ -32,14 +32,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define ID_TEXT1			2
 #define ID_TEXT2			3
-#define ID_TEXTSHADOW1		4
-#define ID_TEXTSHADOW2		5
 
-#define ID_CANCEL			6
+#define ID_DONE			6
 #define ID_APPLY			7
 
-#define ID_CDMUSIC			8
-#define ID_CDVOLUME			9
 #define ID_AUDIODEVICE		10
 #define ID_MASTERVOLUME		11
 #define ID_SFXVOLUME		12
@@ -75,13 +71,11 @@ typedef struct
 	menuBitmap_s	background;
 	menuBitmap_s	banner;
 
-	menuBitmap_s	textShadow1;
-	menuBitmap_s	textShadow2;
 	menuBitmap_s	text1;
 	menuBitmap_s	text2;
 
-	menuBitmap_s	cancel;
-	menuBitmap_s	apply;
+	menuAction_s	done;
+	menuAction_s	apply;
 
 	menuSpinControl_s	audioDevice;
 	menuSpinControl_s	masterVolume;
@@ -231,7 +225,7 @@ static void UI_Audio_Callback( void *self, int event )
 
 	switch( item->id )
 	{
-	case ID_CANCEL:
+	case ID_DONE:
 		UI_PopMenu();
 		break;
 	case ID_APPLY:
@@ -240,24 +234,6 @@ static void UI_Audio_Callback( void *self, int event )
 		UI_Audio_UpdateConfig();
 		break;
 	}
-}
-
-/*
-=================
-UI_Audio_Ownerdraw
-=================
-*/
-static void UI_Audio_Ownerdraw( void *self )
-{
-	menuCommon_s	*item = (menuCommon_s *)self;
-
-	if( uiAudio.menu.items[uiAudio.menu.cursor] == self )
-		UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, UI_MOVEBOXFOCUS );
-	else UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, UI_MOVEBOX );
-
-	if( item->flags & QMF_GRAYED )
-		UI_DrawPic( item->x, item->y, item->width, item->height, uiColorDkGrey, ((menuBitmap_s *)self)->pic );
-	else UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, ((menuBitmap_s *)self)->pic );
 }
 
 /*
@@ -281,31 +257,11 @@ static void UI_Audio_Init( void )
 	uiAudio.banner.generic.id = ID_BANNER;
 	uiAudio.banner.generic.type = QMTYPE_BITMAP;
 	uiAudio.banner.generic.flags = QMF_INACTIVE;
-	uiAudio.banner.generic.x = 0;
-	uiAudio.banner.generic.y = 66;
-	uiAudio.banner.generic.width = 1024;
-	uiAudio.banner.generic.height	= 46;
+	uiAudio.banner.generic.x = 65;
+	uiAudio.banner.generic.y = 92;
+	uiAudio.banner.generic.width = 690;
+	uiAudio.banner.generic.height	= 120;
 	uiAudio.banner.pic = ART_BANNER;
-
-	uiAudio.textShadow1.generic.id = ID_TEXTSHADOW1;
-	uiAudio.textShadow1.generic.type = QMTYPE_BITMAP;
-	uiAudio.textShadow1.generic.flags = QMF_INACTIVE;
-	uiAudio.textShadow1.generic.x = 182;
-	uiAudio.textShadow1.generic.y	= 170;
-	uiAudio.textShadow1.generic.width = 256;
-	uiAudio.textShadow1.generic.height = 256;
-	uiAudio.textShadow1.generic.color = uiColorBlack;
-	uiAudio.textShadow1.pic = ART_TEXT1;
-
-	uiAudio.textShadow2.generic.id = ID_TEXTSHADOW2;
-	uiAudio.textShadow2.generic.type = QMTYPE_BITMAP;
-	uiAudio.textShadow2.generic.flags = QMF_INACTIVE;
-	uiAudio.textShadow2.generic.x = 182;
-	uiAudio.textShadow2.generic.y	= 426;
-	uiAudio.textShadow2.generic.width = 256;
-	uiAudio.textShadow2.generic.height = 256;
-	uiAudio.textShadow2.generic.color = uiColorBlack;
-	uiAudio.textShadow2.pic = ART_TEXT2;
 
 	uiAudio.text1.generic.id = ID_TEXT1;
 	uiAudio.text1.generic.type = QMTYPE_BITMAP;
@@ -325,25 +281,23 @@ static void UI_Audio_Init( void )
 	uiAudio.text2.generic.height = 256;
 	uiAudio.text2.pic = ART_TEXT2;
 
-	uiAudio.cancel.generic.id = ID_CANCEL;
-	uiAudio.cancel.generic.type = QMTYPE_BITMAP;
-	uiAudio.cancel.generic.x = 310;
-	uiAudio.cancel.generic.y = 656;
-	uiAudio.cancel.generic.width = 198;
-	uiAudio.cancel.generic.height	= 38;
-	uiAudio.cancel.generic.callback = UI_Audio_Callback;
-	uiAudio.cancel.generic.ownerdraw = UI_Audio_Ownerdraw;
-	uiAudio.cancel.pic = UI_CANCELBUTTON;
-
 	uiAudio.apply.generic.id = ID_APPLY;
-	uiAudio.apply.generic.type = QMTYPE_BITMAP;
-	uiAudio.apply.generic.x = 516;
-	uiAudio.apply.generic.y = 656;
-	uiAudio.apply.generic.width = 198;
-	uiAudio.apply.generic.height = 38;
+	uiAudio.apply.generic.type = QMTYPE_ACTION;
+	uiAudio.apply.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiAudio.apply.generic.x = 72;
+	uiAudio.apply.generic.y = 230;
+	uiAudio.apply.generic.name = "Apply";
+	uiAudio.apply.generic.statusText = "Apply changes";
 	uiAudio.apply.generic.callback = UI_Audio_Callback;
-	uiAudio.apply.generic.ownerdraw = UI_Audio_Ownerdraw;
-	uiAudio.apply.pic = UI_APPLYBUTTON;
+
+	uiAudio.done.generic.id = ID_DONE;
+	uiAudio.done.generic.type = QMTYPE_ACTION;
+	uiAudio.done.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiAudio.done.generic.x = 72;
+	uiAudio.done.generic.y = 280;
+	uiAudio.done.generic.name = "Done";
+	uiAudio.done.generic.statusText = "Go back to the Configuration Menu";
+	uiAudio.done.generic.callback = UI_Audio_Callback;
 
 	uiAudio.audioDevice.generic.id = ID_AUDIODEVICE;
 	uiAudio.audioDevice.generic.type = QMTYPE_SPINCONTROL;
@@ -440,11 +394,9 @@ static void UI_Audio_Init( void )
 
 	UI_AddItem( &uiAudio.menu, (void *)&uiAudio.background );
 	UI_AddItem( &uiAudio.menu, (void *)&uiAudio.banner );
-	UI_AddItem( &uiAudio.menu, (void *)&uiAudio.textShadow1 );
-	UI_AddItem( &uiAudio.menu, (void *)&uiAudio.textShadow2 );
 	UI_AddItem( &uiAudio.menu, (void *)&uiAudio.text1 );
 	UI_AddItem( &uiAudio.menu, (void *)&uiAudio.text2 );
-	UI_AddItem( &uiAudio.menu, (void *)&uiAudio.cancel );
+	UI_AddItem( &uiAudio.menu, (void *)&uiAudio.done );
 	UI_AddItem( &uiAudio.menu, (void *)&uiAudio.apply );
 	UI_AddItem( &uiAudio.menu, (void *)&uiAudio.audioDevice );
 	UI_AddItem( &uiAudio.menu, (void *)&uiAudio.masterVolume );

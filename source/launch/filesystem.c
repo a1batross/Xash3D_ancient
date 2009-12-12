@@ -1504,6 +1504,10 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 		{
 			PS_GetString( script, false, GameInfo->startmap, sizeof( GameInfo->startmap ));
 		}
+		else if( !com.stricmp( token.string, "trainmap" ))
+		{
+			PS_GetString( script, false, GameInfo->trainmap, sizeof( GameInfo->trainmap ));
+		}
 		else if( !com.stricmp( token.string, "url_info" ))
 		{
 			PS_GetString( script, false, GameInfo->game_url, sizeof( GameInfo->game_url ));

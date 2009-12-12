@@ -265,7 +265,7 @@ void SV_Load_f( void )
 	}
 
 	com.strncpy( filename, Cmd_Argv( 1 ), sizeof( filename ));
-	if(WAD_Check( va( "save/%s.bin", filename )) != 1 )
+	if(WAD_Check( va( "save/%s.sav", filename )) != 1 )
 	{
 		Msg( "Can't loading %s\n", filename );
 		return;
@@ -299,12 +299,12 @@ SV_Save_f
 */
 void SV_Save_f( void )
 {
-	if( Cmd_Argc() != 2 )
-	{
-		Msg( "Usage: save <name>\n" );
-		return;
-	}
-	SV_WriteSaveFile( Cmd_Argv( 1 ), false, true );
+	const char *name;
+
+	if( Cmd_Argc() == 1 )
+		name = "new";		
+	else name = Cmd_Argv( 1 );
+	SV_WriteSaveFile( name, false, true );
 }
 
 /*
@@ -333,7 +333,7 @@ void SV_Delete_f( void )
 	}
 
 	// delete save and saveshot
-	FS_Delete( va( "%s/save/%s.bin", GI->gamedir, Cmd_Argv( 1 )));
+	FS_Delete( va( "%s/save/%s.sav", GI->gamedir, Cmd_Argv( 1 )));
 	FS_Delete( va( "%s/save/%s.jpg", GI->gamedir, Cmd_Argv( 1 )));
 }
 
