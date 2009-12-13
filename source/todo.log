@@ -159,7 +159,7 @@ Beta 13.12.09
 133. new sound\render system version replacement	OK
 134. dx sound engine complete			OK
 135. implement dsp				OK
-136. re-vision uimenu
+136. re-vision uimenu			OK
 137. complete rewriting physic.dll		OK
 138. implement hashtable for loaded sounds	OK
 139. finalize triangle API			OK
@@ -190,7 +190,7 @@ Beta 13.12.09
 164. remove vprogs.dll			OK
 165. finalize EventAPI			OK
 166. move cl_input.c into client.dll		OK
-167. fix all founded errors
-168. release at 13/12/2009
+167. fix all founded errors			OK
+168. release at 13/12/2009			OK
 
  

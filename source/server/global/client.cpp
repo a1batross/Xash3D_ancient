@@ -1107,6 +1107,7 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 	to->skin = pNet->pev->skin;		// studio model skin
 	to->body = pNet->pev->body;		// studio model submodel 
 	to->effects = pNet->pev->effects;	// shared client and render flags
+	to->soundindex = pNet->pev->soundindex;	// soundindex
 	to->renderfx = pNet->pev->renderfx;	// renderer flags
 	to->rendermode = pNet->pev->rendermode;	// rendering mode
 	to->renderamt = pNet->pev->renderamt;	// alpha value
@@ -1521,7 +1522,7 @@ int AddToFullPack( edict_t *pHost, edict_t *pClient, edict_t *pEdict, int hostfl
 		if( pEntity->pev->armorvalue > 0 )
 			m_flRadius = pEntity->pev->armorvalue;
 
-		if( pEntity->m_iClassType == ED_AMBIENT && delta.Length() > m_flRadius )
+		if( pEntity->pev->flags & FL_PHS_FILTER && delta.Length() > m_flRadius )
 			return 0;
 	}
 

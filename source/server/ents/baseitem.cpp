@@ -221,6 +221,7 @@ class CItemLongJump : public CItem
 		if( pPlayer->pev->weapons & ITEM_SUIT && !pPlayer->m_fLongJump )
 		{
 			pPlayer->m_fLongJump = TRUE;// player now has longjump module
+			g_engfuncs.pfnSetPhysicsKeyValue( pPlayer->edict(), "slj", "1" );
 			EMIT_SOUND_SUIT( pPlayer->edict(), "!HEV_A1" );
 			return TRUE;		
 		}

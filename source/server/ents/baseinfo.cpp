@@ -44,6 +44,40 @@ STATE CBaseDMStart::GetState( CBaseEntity *pEntity )
 	else	return STATE_OFF;
 }
 
+class CWallTorch : public CBaseEntity
+{
+public:
+	void Precache( void )
+	{
+		// if sound is missing just reset soundindex
+		pev->impulse = PRECACHE_SOUND( "ambience/fire1.wav" );
+		UTIL_PrecacheModel( "models/props/torch1.mdl" );
+	}
+	void Spawn( void )
+	{
+		Precache ();
+
+		if( !pev->impulse )
+		{
+			UTIL_Remove( this );
+			return;
+		}
+
+//		SetObjectClass( ED_NORMAL );
+		pev->flags |= FL_PHS_FILTER;	// allow phs filter instead pvs
+
+		// setup attenuation radius
+		pev->armorvalue = 384.0f * ATTN_STATIC;
+
+		pev->soundindex = pev->impulse;
+		UTIL_SetModel( ENT( pev ), "models/props/torch1.mdl" );
+		UTIL_SetSize(pev, g_vecZero, g_vecZero);
+		SetBits( pev->flags, FL_POINTENTITY );
+		pev->animtime = gpGlobals->time + 0.2;	// enable animation
+		pev->framerate = 0.5f;
+	}
+};
+
 //=========================================================
 //	static infodecal
 //=========================================================
@@ -347,9 +381,11 @@ LINK_ENTITY_TO_CLASS( infodecal, CDecal );
 LINK_ENTITY_TO_CLASS( info_target, CInfoTarget );
 LINK_ENTITY_TO_CLASS( target_position, CPointEntity );
 LINK_ENTITY_TO_CLASS( target_location, CPointEntity );
+LINK_ENTITY_TO_CLASS( light_torch_small_walltorch, CWallTorch );
 LINK_ENTITY_TO_CLASS( info_teleport_destination, CPointEntity );
 LINK_ENTITY_TO_CLASS( misc_teleporter_dest, CPointEntity );
 LINK_ENTITY_TO_CLASS( misc_portal_surface, CPortalSurface );
+LINK_ENTITY_TO_CLASS( info_player_intermission, CPointEntity );
 LINK_ENTITY_TO_CLASS( info_notnull, CPointEntity );
 LINK_ENTITY_TO_CLASS( info_null, CNullEntity );
 LINK_ENTITY_TO_CLASS( misc_model, CNullEntity );

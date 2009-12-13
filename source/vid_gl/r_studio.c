@@ -338,7 +338,7 @@ static int R_StudioLoadTextures( ref_model_t *mod, dstudiohdr_t *phdr )
 	int		nm_index, hm_index;
 
 	FS_FileBase( mod->name, modname );
-
+	
 	for( i = 0; i < phdr->numtextures; i++ )
 	{
 		if( ptexture[i].flags & (STUDIO_NF_NORMALMAP|STUDIO_NF_HEIGHTMAP|STUDIO_NF_GLOSSMAP|STUDIO_NF_DECALMAP))
@@ -349,7 +349,7 @@ static int R_StudioLoadTextures( ref_model_t *mod, dstudiohdr_t *phdr )
 		FS_FileBase( ptexture[i].name, texname );
 		if( ptexture[i].flags & STUDIO_NF_CHROME ) phdr->flags |= STUDIO_HAS_CHROME;
 		com.snprintf( shadername, MAX_STRING, "%s.mdl/%s", modname, texname );
-		
+
 		if(R_ShaderCheckCache( shadername ))
  			goto load_shader;	// external shader found
  
