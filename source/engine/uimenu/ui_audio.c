@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ui_local.h"
 
 
-#define ART_BACKGROUND		"gfx/shell/splash"
 #define ART_BANNER			"gfx/shell/head_audio"
 #define ART_TEXT1			"gfx/shell/text/audio_text_p1"
 #define ART_TEXT2			"gfx/shell/text/audio_text_p2"
@@ -257,10 +256,10 @@ static void UI_Audio_Init( void )
 	uiAudio.banner.generic.id = ID_BANNER;
 	uiAudio.banner.generic.type = QMTYPE_BITMAP;
 	uiAudio.banner.generic.flags = QMF_INACTIVE;
-	uiAudio.banner.generic.x = 65;
-	uiAudio.banner.generic.y = 92;
-	uiAudio.banner.generic.width = 690;
-	uiAudio.banner.generic.height	= 120;
+	uiAudio.banner.generic.x = UI_BANNER_POSX;
+	uiAudio.banner.generic.y = UI_BANNER_POSY;
+	uiAudio.banner.generic.width = UI_BANNER_WIDTH;
+	uiAudio.banner.generic.height	= UI_BANNER_HEIGHT;
 	uiAudio.banner.pic = ART_BANNER;
 
 	uiAudio.text1.generic.id = ID_TEXT1;

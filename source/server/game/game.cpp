@@ -16,11 +16,15 @@
 #include "utils.h"
 #include "game.h"
 
+cvar_t	*sv_maxspeed;
+
 // Register your console variables here
 // This gets called one time when the game is initialized
 void GameDLLInit( void )
 {
 	ALERT( at_aiconsole, "GameDLLInit();\n" );
+
+	sv_maxspeed = CVAR_REGISTER( "sv_maxspeed", "320", 0, "maximum speed a player can accelerate to when on ground" );
 
 	// register cvars here:
 	CVAR_REGISTER( "sv_soundlist", "0", 0, "show server sound list" );

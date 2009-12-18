@@ -21,9 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "common.h"
 #include "ui_local.h"
 
-
-#define ART_BACKGROUND		"gfx/shell/splash"
-
 #define ID_BACKGROUND		0
 #define ID_CANCEL			1
 #define ID_PLAY			2

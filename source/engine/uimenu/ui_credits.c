@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ui_local.h"
 #include "client.h"
 
-#define ART_BACKGROUND		"gfx/shell/credits"
+#define ART_MAIN_CREDITS		"gfx/shell/credits"
 #define UI_CREDITS_PATH		"scripts/credits.txt"
 #define UI_CREDITS_MAXLINES		2048
 
@@ -120,7 +120,7 @@ static void UI_Credits_DrawFunc( void )
 
 	// draw the background first
 	if( !uiCredits.finalCredits )
-		UI_DrawPic( 0, 0, 1024 * uiStatic.scaleX, 768 * uiStatic.scaleY, uiColorWhite, ART_BACKGROUND );
+		UI_DrawPic( 0, 0, 1024 * uiStatic.scaleX, 768 * uiStatic.scaleY, uiColorWhite, ART_MAIN_CREDITS );
 	// otherwise running on cutscene
 
 	// now draw the credits
@@ -244,7 +244,7 @@ void UI_Credits_Precache( void )
 {
 	if( !re ) return;
 
-	re->RegisterShader( ART_BACKGROUND, SHADER_NOMIP );
+	re->RegisterShader( ART_MAIN_CREDITS, SHADER_NOMIP );
 }
 
 /*

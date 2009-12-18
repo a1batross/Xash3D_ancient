@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ui_local.h"
 #include "client.h"
 
-#define ART_BACKGROUND	"gfx/shell/splash"
 #define ART_BANNER		"gfx/shell/head_customize"
 
 #define ID_BACKGROUND	0
@@ -254,10 +253,10 @@ static void UI_PlayerSetup_Init( void )
 	uiPlayerSetup.banner.generic.id = ID_BANNER;
 	uiPlayerSetup.banner.generic.type = QMTYPE_BITMAP;
 	uiPlayerSetup.banner.generic.flags = QMF_INACTIVE;
-	uiPlayerSetup.banner.generic.x = 65;
-	uiPlayerSetup.banner.generic.y = 92;
-	uiPlayerSetup.banner.generic.width = 690;
-	uiPlayerSetup.banner.generic.height = 120;
+	uiPlayerSetup.banner.generic.x = UI_BANNER_POSX;
+	uiPlayerSetup.banner.generic.y = UI_BANNER_POSY;
+	uiPlayerSetup.banner.generic.width = UI_BANNER_WIDTH;
+	uiPlayerSetup.banner.generic.height = UI_BANNER_HEIGHT;
 	uiPlayerSetup.banner.pic = ART_BANNER;
 
 	uiPlayerSetup.done.generic.id = ID_DONE;

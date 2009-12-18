@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ui_local.h"
 #include "client.h"
 
-#define ART_BACKGROUND	"gfx/shell/splash"
 #define ART_BANNER		"gfx/shell/head_newgame"
 
 #define ID_BACKGROUND	0
@@ -173,10 +172,10 @@ static void UI_NewGame_Init( void )
 	uiNewGame.banner.generic.id = ID_BANNER;
 	uiNewGame.banner.generic.type = QMTYPE_BITMAP;
 	uiNewGame.banner.generic.flags = QMF_INACTIVE;
-	uiNewGame.banner.generic.x = 65;
-	uiNewGame.banner.generic.y = 92;
-	uiNewGame.banner.generic.width = 690;
-	uiNewGame.banner.generic.height = 120;
+	uiNewGame.banner.generic.x = UI_BANNER_POSX;
+	uiNewGame.banner.generic.y = UI_BANNER_POSY;
+	uiNewGame.banner.generic.width = UI_BANNER_WIDTH;
+	uiNewGame.banner.generic.height = UI_BANNER_HEIGHT;
 	uiNewGame.banner.pic = ART_BANNER;
 
 	uiNewGame.easy.generic.id = ID_EASY;

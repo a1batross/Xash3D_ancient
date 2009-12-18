@@ -21,4 +21,6 @@
 extern void GameDLLInit( void );
 extern void GameDLLShutdown( void );
 
+extern cvar_t	*sv_maxspeed;
+
 #endif		// GAME_H

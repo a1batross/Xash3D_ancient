@@ -26,7 +26,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "const.h"
 #include "input.h"
 
-#define ART_BACKGROUND		"gfx/shell/splash"
 #define ART_BANNER			"gfx/shell/head_multi"
 
 #define ID_BACKGROUND		0
@@ -1254,10 +1253,10 @@ static void UI_MultiPlayer_Init( void )
 	uiMultiPlayer.banner.generic.id = ID_BANNER;
 	uiMultiPlayer.banner.generic.type = QMTYPE_BITMAP;
 	uiMultiPlayer.banner.generic.flags = QMF_INACTIVE;
-	uiMultiPlayer.banner.generic.x = 65;
-	uiMultiPlayer.banner.generic.y = 92;
-	uiMultiPlayer.banner.generic.width = 690;
-	uiMultiPlayer.banner.generic.height = 120;
+	uiMultiPlayer.banner.generic.x = UI_BANNER_POSX;
+	uiMultiPlayer.banner.generic.y = UI_BANNER_POSY;
+	uiMultiPlayer.banner.generic.width = UI_BANNER_WIDTH;
+	uiMultiPlayer.banner.generic.height = UI_BANNER_HEIGHT;
 	uiMultiPlayer.banner.pic = ART_BANNER;
 
 	uiMultiPlayer.internetGames.generic.id = ID_INTERNETGAMES;

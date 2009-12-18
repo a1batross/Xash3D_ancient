@@ -32,16 +32,23 @@ several games based on the Quake III Arena engine, in the form of "Q3Map2."
 #include "trace_def.h"
 
 #define VALVE_FORMAT	220
+#define GEARBOX_FORMAT	510
 #define PLANE_HASHES	8192
 #define NORMAL_EPSILON	0.00001
 #define DIST_EPSILON	0.01
 #define MAPTYPE()		Msg( "map type: %s\n", g_sMapType[g_bBrushPrimit] )
+
+#define GEARBOX_DETAIL	8
+#define GEARBOX_NODRAW	32
+#define GEARBOX_NOIMPACTS	131072
+#define GEARBOX_NODECALS	262144
 
 static const char *g_sMapType[BRUSH_COUNT] =
 {
 "unknown",
 "Worldcraft 2.1",
 "Valve Hammer 3.4",
+"GearCraft 4.0",
 "Radiant",
 "QuArK"
 };
@@ -730,7 +737,7 @@ static void ParseRawBrush( bool onlyLights )
 		Com_ReadToken( mapfile, SC_ALLOW_PATHNAMES|SC_PARSE_GENERIC, &token );
 		com.strncpy( name, token.string, sizeof( name ));
 		
-		if( g_bBrushPrimit == BRUSH_WORLDCRAFT_22 ) // Worldcraft 2.2+
+		if( g_bBrushPrimit == BRUSH_WORLDCRAFT_22 || g_bBrushPrimit == BRUSH_GEARCRAFT_40 ) // Worldcraft 2.2+
                     {
 			// texture U axis
 			Com_ReadToken( mapfile, 0, &token );
@@ -759,6 +766,16 @@ static void ParseRawBrush( bool onlyLights )
 			// texure scale
 			Com_ReadFloat( mapfile, false, &vects.hammer.scale[0] );
 			Com_ReadFloat( mapfile, false, &vects.hammer.scale[1] );
+
+			if( g_bBrushPrimit == BRUSH_GEARCRAFT_40 )
+			{
+				Com_ReadLong( mapfile, false, &flags );	// read gearcraft flags
+				Com_SkipRestOfLine( mapfile );	// gearcraft lightmap scale and rotate
+
+				if( flags & GEARBOX_DETAIL )
+					side->compileFlags |= C_DETAIL;
+
+			}
                     }
 		else if( g_bBrushPrimit == BRUSH_WORLDCRAFT_21 || g_bBrushPrimit == BRUSH_QUARK )
 		{
@@ -923,7 +940,7 @@ static void ParseRawBrush( bool onlyLights )
 					for( j = 0; j < 3; j++ )
 						side->vecs[i][j] = vecs[i][j] / vects.hammer.scale[i];
 			}
-			else if( g_bBrushPrimit == BRUSH_WORLDCRAFT_22 )
+			else if( g_bBrushPrimit == BRUSH_WORLDCRAFT_22 || g_bBrushPrimit == BRUSH_GEARCRAFT_40 )
 			{
 				float	scale;
 
@@ -1388,6 +1405,11 @@ static bool ParseMapEntity( bool onlyLights )
 				{
 					Msg( "Valve Format Map detected\n" );
 					g_bBrushPrimit = BRUSH_WORLDCRAFT_22;
+				}
+				else if( com.atoi( ep->value ) == GEARBOX_FORMAT )
+				{
+					Msg( "Gearcraft Format Map detected\n" );
+					g_bBrushPrimit = BRUSH_GEARCRAFT_40;
 				}
 				else g_bBrushPrimit = BRUSH_WORLDCRAFT_21;
 			}

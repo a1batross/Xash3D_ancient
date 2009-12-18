@@ -2004,13 +2004,14 @@ static searchpath_t *FS_FindFile( const char *name, int* index, bool quiet )
 				// Found it
 				if( !diff )
 				{
-					if( !quiet ) MsgDev(D_INFO, "FS_FindFile: %s in %s\n", pak->files[middle].name, pak->filename);
+					if( !quiet ) MsgDev( D_INFO, "FS_FindFile: %s in %s\n", pak->files[middle].name, pak->filename );
 					if( index ) *index = middle;
 					return search;
 				}
 
 				// if we're too far in the list
-				if (diff > 0) right = middle - 1;
+				if( diff > 0 )
+					right = middle - 1;
 				else left = middle + 1;
 			}
 		}

@@ -21,8 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "common.h"
 #include "ui_local.h"
 
-
-#define ART_BACKGROUND   	"gfx/shell/splash"
 #define ART_BANNER	     	"gfx/shell/head_config"
 
 #define ID_BACKGROUND    	0
@@ -103,10 +101,10 @@ static void UI_Options_Init( void )
 	uiOptions.banner.generic.id = ID_BANNER;
 	uiOptions.banner.generic.type = QMTYPE_BITMAP;
 	uiOptions.banner.generic.flags = QMF_INACTIVE;
-	uiOptions.banner.generic.x = 65;
-	uiOptions.banner.generic.y = 92;
-	uiOptions.banner.generic.width = 690;
-	uiOptions.banner.generic.height = 120;
+	uiOptions.banner.generic.x = UI_BANNER_POSX;
+	uiOptions.banner.generic.y = UI_BANNER_POSY;
+	uiOptions.banner.generic.width = UI_BANNER_WIDTH;
+	uiOptions.banner.generic.height = UI_BANNER_HEIGHT;
 	uiOptions.banner.pic = ART_BANNER;
 
 	uiOptions.controls.generic.id	= ID_CONTROLS;

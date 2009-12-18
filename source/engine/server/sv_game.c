@@ -1697,6 +1697,10 @@ static void pfnTraceLine( const float *v1, const float *v2, int fNoMonsters, edi
 {
 	trace_t	result;
 
+	if( svgame.globals->trace_flags & 1 )
+		fNoMonsters |= FTRACE_SIMPLEBOX;
+	svgame.globals->trace_flags = 0;
+
 	if( VectorIsNAN( v1 ) || VectorIsNAN( v2 ))
 		Host_Error( "TraceLine: NAN errors detected '%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
 	result = SV_Move( v1, vec3_origin, vec3_origin, v2, fNoMonsters, pentToSkip );
@@ -1738,6 +1742,10 @@ static void pfnTraceHull( const float *v1, const float *v2, int fNoMonsters, int
 	mins = GI->client_mins[hullNumber];
 	maxs = GI->client_maxs[hullNumber];
 
+	if( svgame.globals->trace_flags & 1 )
+		fNoMonsters |= FTRACE_SIMPLEBOX;
+	svgame.globals->trace_flags = 0;
+
 	if( VectorIsNAN( v1 ) || VectorIsNAN( v2 ))
 		Host_Error( "TraceHull: NAN errors detected '%f %f %f', '%f %f %f'\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2] );
 	result = SV_Move( v1, mins, maxs, v2, fNoMonsters, pentToSkip );
@@ -1760,6 +1768,10 @@ static int pfnTraceMonsterHull( edict_t *pEdict, const float *v1, const float *v
 		MsgDev( D_WARN, "SV_TraceMonsterHull: invalid entity %s\n", SV_ClassName( pEdict ));
 		return 1;
 	}
+
+	if( svgame.globals->trace_flags & 1 )
+		fNoMonsters |= FTRACE_SIMPLEBOX;
+	svgame.globals->trace_flags = 0;
 
 	mins = pEdict->v.mins;
 	maxs = pEdict->v.maxs;

@@ -26,6 +26,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "render_api.h"
 
 #define UI_WHITE_SHADER		"*white"
+#define ART_MAIN_SPLASH		"gfx/shell/splash"
+#define ART_BACKGROUND		"gfx/shell/background"
 #define UI_CURSOR_NORMAL		"gfx/shell/cursor"
 #define UI_CURSOR_DISABLED		"gfx/shell/denied"
 #define UI_CURSOR_TYPING		"gfx/shell/typing"
@@ -62,6 +64,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define UI_MAXGAMES			100	// slots for savegame
 #define UI_MAX_SERVERS		10
+
+// menu banners used fiexed rectangle (virtual screenspace at 640x480)
+#define UI_BANNER_POSX		72
+#define UI_BANNER_POSY		72
+#define UI_BANNER_WIDTH		736
+#define UI_BANNER_HEIGHT		128
 
 // Generic types
 typedef enum

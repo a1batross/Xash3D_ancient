@@ -665,10 +665,10 @@ void IN_Init( void )
 	v_centermove = CVAR_REGISTER ("v_centermove", "0.15", 0, "client center moving" );
 	v_centerspeed = CVAR_REGISTER ("v_centerspeed", "500", 0, "client center speed" );
 
-	cl_upspeed = CVAR_REGISTER( "cl_upspeed", "200", 0, "client upspeed limit" );
-	cl_forwardspeed = CVAR_REGISTER( "cl_forwardspeed", "200", 0, "client forward speed limit" );
-	cl_backspeed = CVAR_REGISTER( "cl_backspeed", "200", 0, "client bask speed limit" );
-	cl_sidespeed = CVAR_REGISTER( "cl_sidespeed", "200", 0, "client side-speed limit" );
+	cl_upspeed = CVAR_REGISTER( "cl_upspeed", "400", 0, "client upspeed limit" );
+	cl_forwardspeed = CVAR_REGISTER( "cl_forwardspeed", "400", 0, "client forward speed limit" );
+	cl_backspeed = CVAR_REGISTER( "cl_backspeed", "400", 0, "client bask speed limit" );
+	cl_sidespeed = CVAR_REGISTER( "cl_sidespeed", "400", 0, "client side-speed limit" );
 	cl_yawspeed = CVAR_REGISTER( "cl_yawspeed", "140", 0, "client yaw speed" );
 	cl_pitchspeed = CVAR_REGISTER( "cl_pitchspeed", "150", 0, "client pitch speed" );
 	cl_anglespeedkey = CVAR_REGISTER( "cl_anglespeedkey", "1.5", 0, "client anglespeed" );

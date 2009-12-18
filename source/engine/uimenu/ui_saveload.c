@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ui_local.h"
 #include "client.h"
 
-#define ART_BACKGROUND	"gfx/shell/splash"
 #define ART_BANNER		"gfx/shell/head_saveload"
 
 #define ID_BACKGROUND	0
@@ -104,10 +103,10 @@ static void UI_SaveLoad_Init( void )
 	uiSaveLoad.banner.generic.id = ID_BANNER;
 	uiSaveLoad.banner.generic.type = QMTYPE_BITMAP;
 	uiSaveLoad.banner.generic.flags = QMF_INACTIVE;
-	uiSaveLoad.banner.generic.x = 65;
-	uiSaveLoad.banner.generic.y = 92;
-	uiSaveLoad.banner.generic.width = 690;
-	uiSaveLoad.banner.generic.height = 120;
+	uiSaveLoad.banner.generic.x = UI_BANNER_POSX;
+	uiSaveLoad.banner.generic.y = UI_BANNER_POSY;
+	uiSaveLoad.banner.generic.width = UI_BANNER_WIDTH;
+	uiSaveLoad.banner.generic.height = UI_BANNER_HEIGHT;
 	uiSaveLoad.banner.pic = ART_BANNER;
 
 	uiSaveLoad.load.generic.id = ID_LOAD;

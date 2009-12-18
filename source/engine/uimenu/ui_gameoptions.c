@@ -21,8 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "common.h"
 #include "ui_local.h"
 
-
-#define ART_BACKGROUND		"gfx/shell/splash"
 #define ART_BANNER			"gfx/shell/head_advanced"
 #define ART_TEXT1			"gfx/shell/text/gameoptions_text_p1"
 #define ART_TEXT2			"gfx/shell/text/gameoptions_text_p2"
@@ -170,10 +168,10 @@ static void UI_GameOptions_Init( void )
 	uiGameOptions.banner.generic.id = ID_BANNER;
 	uiGameOptions.banner.generic.type = QMTYPE_BITMAP;
 	uiGameOptions.banner.generic.flags = QMF_INACTIVE;
-	uiGameOptions.banner.generic.x = 65;
-	uiGameOptions.banner.generic.y = 92;
-	uiGameOptions.banner.generic.width = 690;
-	uiGameOptions.banner.generic.height = 120;
+	uiGameOptions.banner.generic.x = UI_BANNER_POSX;
+	uiGameOptions.banner.generic.y = UI_BANNER_POSY;
+	uiGameOptions.banner.generic.width = UI_BANNER_WIDTH;
+	uiGameOptions.banner.generic.height = UI_BANNER_HEIGHT;
 	uiGameOptions.banner.pic = ART_BANNER;
 
 	uiGameOptions.text1.generic.id = ID_TEXT1;

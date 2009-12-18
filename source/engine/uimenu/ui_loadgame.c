@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ui_local.h"
 #include "client.h"
 
-#define ART_BACKGROUND   	"gfx/shell/splash"
 #define ART_BANNER	     	"gfx/shell/head_load"
 
 #define ID_BACKGROUND	0
@@ -241,10 +240,10 @@ static void UI_LoadGame_Init( void )
 	uiLoadGame.banner.generic.id = ID_BANNER;
 	uiLoadGame.banner.generic.type = QMTYPE_BITMAP;
 	uiLoadGame.banner.generic.flags = QMF_INACTIVE;
-	uiLoadGame.banner.generic.x = 65;
-	uiLoadGame.banner.generic.y = 92;
-	uiLoadGame.banner.generic.width = 690;
-	uiLoadGame.banner.generic.height = 120;
+	uiLoadGame.banner.generic.x = UI_BANNER_POSX;
+	uiLoadGame.banner.generic.y = UI_BANNER_POSY;
+	uiLoadGame.banner.generic.width = UI_BANNER_WIDTH;
+	uiLoadGame.banner.generic.height = UI_BANNER_HEIGHT;
 	uiLoadGame.banner.pic = ART_BANNER;
 
 	uiLoadGame.load.generic.id = ID_LOAD;

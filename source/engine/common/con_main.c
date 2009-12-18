@@ -486,12 +486,12 @@ void Con_DrawSolidConsole( float frac )
 	SCR_AdjustSize( &con.xadjust, NULL, NULL, NULL );
 
 	// draw the background
-	y = frac * SCREEN_HEIGHT - 2;
+	y = frac * SCREEN_HEIGHT;
 	if( y < 1 ) y = 0;
 	else SCR_DrawPic( 0, y - SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, cls.consoleBack );
 
 	MakeRGBA( color, 255, 0, 0, 255 );
-	SCR_FillRect( 0, y, SCREEN_WIDTH, 2, color );
+	SCR_FillRect( 0, y - 2, SCREEN_WIDTH, 2, color );
 
 	// draw current time
 	re->SetColor( g_color_table[ColorIndex(COLOR_YELLOW)] );

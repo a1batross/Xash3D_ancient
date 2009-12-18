@@ -1633,9 +1633,6 @@ static bool Shaderpass_Material( ref_shader_t *shader, ref_stage_t *pass, script
 
 	flags = Shader_SetImageFlags( shader );
 	
-	if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &tok ));
-		return false;
-
 	if( !com.stricmp( tok.string, "$rgb" ))
 	{
 		if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &tok ));

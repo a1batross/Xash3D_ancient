@@ -82,6 +82,7 @@ enum
 	BRUSH_UNKNOWN = 0,
 	BRUSH_WORLDCRAFT_21,	// quake worldcraft  <= 2.1
 	BRUSH_WORLDCRAFT_22,	// half-life worldcraft >= 2.2
+	BRUSH_GEARCRAFT_40,		// JamesBond 007 gearcraft
 	BRUSH_RADIANT,
 	BRUSH_QUARK,
 	BRUSH_COUNT
@@ -105,6 +106,7 @@ enum
 #define C_ANTIPORTAL			0x00004000	/* like hint, but doesn't generate portals */
 #define C_SKIP					0x00008000	/* like hint, but skips this face (doesn't split bsp) */
 #define C_NOMARKS				0x00010000	/* no decals */
+#define C_NOIMPACT				0x00020000	// no impacts
 #define C_DETAIL				0x08000000	/* THIS MUST BE THE SAME AS IN RADIANT! */
 
 

@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ui_local.h"
 #include "input.h"
 
-#define ART_BACKGROUND		"gfx/shell/splash"
 #define ART_BANNER			"gfx/shell/head_controls"
 #define ART_TEXT_LOOK		"gfx/shell/text/cont_look_text_p1"
 #define ART_TEXT_LOOK2		"gfx/shell/text/cont_look_text_p2"
@@ -667,10 +666,10 @@ static void UI_Controls_Init( void )
 	uiControls.banner.generic.id = ID_BANNER;
 	uiControls.banner.generic.type = QMTYPE_BITMAP;
 	uiControls.banner.generic.flags = QMF_INACTIVE;
-	uiControls.banner.generic.x = 65;
-	uiControls.banner.generic.y = 92;
-	uiControls.banner.generic.width = 690;
-	uiControls.banner.generic.height = 120;
+	uiControls.banner.generic.x = UI_BANNER_POSX;
+	uiControls.banner.generic.y = UI_BANNER_POSY;
+	uiControls.banner.generic.width = UI_BANNER_WIDTH;
+	uiControls.banner.generic.height = UI_BANNER_HEIGHT;
 	uiControls.banner.pic = ART_BANNER;
 
 	uiControls.textShadow1.generic.id = ID_TEXTSHADOW1;

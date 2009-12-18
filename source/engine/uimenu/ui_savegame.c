@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ui_local.h"
 #include "client.h"
 
-#define ART_BACKGROUND   	"gfx/shell/splash"
 #define ART_BANNER	     	"gfx/shell/head_save"
 
 #define ID_BACKGROUND	0
@@ -265,10 +264,10 @@ static void UI_SaveGame_Init( void )
 	uiSaveGame.banner.generic.id = ID_BANNER;
 	uiSaveGame.banner.generic.type = QMTYPE_BITMAP;
 	uiSaveGame.banner.generic.flags = QMF_INACTIVE;
-	uiSaveGame.banner.generic.x = 65;
-	uiSaveGame.banner.generic.y = 92;
-	uiSaveGame.banner.generic.width = 690;
-	uiSaveGame.banner.generic.height = 120;
+	uiSaveGame.banner.generic.x = UI_BANNER_POSX;
+	uiSaveGame.banner.generic.y = UI_BANNER_POSY;
+	uiSaveGame.banner.generic.width = UI_BANNER_WIDTH;
+	uiSaveGame.banner.generic.height = UI_BANNER_HEIGHT;
 	uiSaveGame.banner.pic = ART_BANNER;
 
 	uiSaveGame.save.generic.id = ID_SAVE;

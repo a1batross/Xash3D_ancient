@@ -21,8 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "common.h"
 #include "ui_local.h"
 
-
-#define ART_BACKGROUND	"gfx/shell/splash"
 #define ART_BANNER	  	"gfx/shell/head_video"
 #define ART_TEXT1	  	"gfx/shell/text/video_text_p1"
 #define ART_TEXT2	  	"gfx/shell/text/video_text_p2"
@@ -70,7 +68,7 @@ static const char *uiVideoModes[] =
 	"1024 x 576 (wide)",
 	"1440 x 900 (wide)",
 	"1680 x 1050 (wide)",
-	"1920 x 1200 (wide)"
+	"1920 x 1200 (wide)",
 	"2560 x 1600 (wide)",
 };
 
@@ -282,7 +280,7 @@ static void UI_Video_UpdateConfig( void )
 	{
 		uiVideo.glExtensions.curValue = uiVideoTemplates[(int)uiVideo.graphicsSettings.curValue - 1].glExtensions;
 		uiVideo.glExtensions.generic.flags |= QMF_GRAYED;
-		uiVideo.videoMode.curValue = uiVideoTemplates[(int)uiVideo.graphicsSettings.curValue - 1].videoMode;
+		uiVideo.videoMode.curValue = uiVideoTemplates[(int)uiVideo.graphicsSettings.curValue].videoMode;
 		uiVideo.videoMode.generic.flags |= QMF_GRAYED;
 		uiVideo.fullScreen.curValue = uiVideoTemplates[(int)uiVideo.graphicsSettings.curValue - 1].fullScreen;
 		uiVideo.fullScreen.generic.flags |= QMF_GRAYED;
@@ -445,10 +443,10 @@ static void UI_Video_Init( void )
 	uiVideo.banner.generic.id = ID_BANNER;
 	uiVideo.banner.generic.type = QMTYPE_BITMAP;
 	uiVideo.banner.generic.flags = QMF_INACTIVE;
-	uiVideo.banner.generic.x = 65;
-	uiVideo.banner.generic.y = 92;
-	uiVideo.banner.generic.width = 690;
-	uiVideo.banner.generic.height = 120;
+	uiVideo.banner.generic.x = UI_BANNER_POSX;
+	uiVideo.banner.generic.y = UI_BANNER_POSY;
+	uiVideo.banner.generic.width = UI_BANNER_WIDTH;
+	uiVideo.banner.generic.height = UI_BANNER_HEIGHT;
 	uiVideo.banner.pic = ART_BANNER;
 
 	uiVideo.text1.generic.id = ID_TEXT1;
@@ -515,15 +513,15 @@ static void UI_Video_Init( void )
 
 	uiVideo.videoMode.generic.id = ID_VIDEOMODE;
 	uiVideo.videoMode.generic.type = QMTYPE_SPINCONTROL;
-	uiVideo.videoMode.generic.flags = QMF_CENTER_JUSTIFY | QMF_PULSEIFFOCUS | QMF_DROPSHADOW;
+	uiVideo.videoMode.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_SMALLFONT|QMF_CENTER_JUSTIFY;
 	uiVideo.videoMode.generic.x = 580;
 	uiVideo.videoMode.generic.y = 224;
 	uiVideo.videoMode.generic.width = 198;
 	uiVideo.videoMode.generic.height = 30;
 	uiVideo.videoMode.generic.callback = UI_Video_Callback;
 	uiVideo.videoMode.generic.statusText = "Set your game resolution";
-	uiVideo.videoMode.minValue = -1;
-	uiVideo.videoMode.maxValue = 12;
+	uiVideo.videoMode.minValue = 0;
+	uiVideo.videoMode.maxValue = 15;
 	uiVideo.videoMode.range = 1;
 	
 	uiVideo.fullScreen.generic.id = ID_FULLSCREEN;

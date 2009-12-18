@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "input.h"
 #include "client.h"
 
-#define ART_BACKGROUND	"gfx/shell/splash"
 #define ART_MINIMIZE_N	"gfx/shell/min_n"
 #define ART_MINIMIZE_F	"gfx/shell/min_f"
 #define ART_CLOSEBTN_N	"gfx/shell/cls_n"
@@ -225,7 +224,7 @@ static void UI_Main_Init( void )
 	uiMain.background.generic.y = 0;
 	uiMain.background.generic.width = 1024;
 	uiMain.background.generic.height = 768;
-	uiMain.background.pic = ART_BACKGROUND;
+	uiMain.background.pic = ART_MAIN_SPLASH;
 
 	uiMain.console.generic.id = ID_CONSOLE;
 	uiMain.console.generic.type = QMTYPE_ACTION;
@@ -417,7 +416,7 @@ void UI_Main_Precache( void )
 {
 	if( !re ) return;
 
-	re->RegisterShader( ART_BACKGROUND, SHADER_NOMIP );
+	re->RegisterShader( ART_MAIN_SPLASH, SHADER_NOMIP );
 	re->RegisterShader( ART_MINIMIZE_N, SHADER_NOMIP );
 	re->RegisterShader( ART_MINIMIZE_F, SHADER_NOMIP );
 	re->RegisterShader( ART_CLOSEBTN_N, SHADER_NOMIP );

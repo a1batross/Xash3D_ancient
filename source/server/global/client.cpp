@@ -937,6 +937,24 @@ void StartFrame( void )
 	gpGlobals->teamplay = (CVAR_GET_FLOAT( "mp_teamplay" )  == 1.0f) ? TRUE : FALSE;
 	g_ulFrameCount++;
 
+	if( sv_maxspeed->modified )
+	{
+		char	msg[64];
+
+		// maxspeed is modified, refresh maxspeed for each client
+		for( int i = 0; i < gpGlobals->maxClients; i++ )
+		{
+			CBaseEntity *pClient = UTIL_PlayerByIndex( i + 1 );
+			if( FNullEnt( pClient )) continue;
+
+			g_engfuncs.pfnSetClientMaxspeed( pClient->edict(), sv_maxspeed->value );
+		}
+
+		sprintf( msg, "sv_maxspeed is changed to %g\n", sv_maxspeed->value );
+		g_engfuncs.pfnServerPrint( msg );
+		sv_maxspeed->modified = false;
+	}
+
 	ServerPostActivate(); // called once
 	PhysicsFrame();
 	PhysicsPostFrame();
