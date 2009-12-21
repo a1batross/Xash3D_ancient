@@ -730,6 +730,7 @@ autocomplete_list_t cmd_list[] =
 { "playsound", Cmd_GetSoundList },
 { "changelevel", Cmd_GetMapList },
 { "playdemo", Cmd_GetDemoList, },
+{ "menufont", Cmd_GetFontList, },
 { "setfont", Cmd_GetFontList, },
 { "music", Cmd_GetSoundList, },
 { "movie", Cmd_GetMovieList },

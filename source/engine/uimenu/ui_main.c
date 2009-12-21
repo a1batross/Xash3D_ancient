@@ -366,14 +366,14 @@ static void UI_Main_Init( void )
 
 	uiMain.quitMessage.generic.id = ID_MSGBOX;
 	uiMain.quitMessage.generic.type = QMTYPE_ACTION;
-	uiMain.quitMessage.generic.flags = QMF_INACTIVE|QMF_HIDDEN;
+	uiMain.quitMessage.generic.flags = QMF_INACTIVE|QMF_DROPSHADOW|QMF_HIDDEN;
 	uiMain.quitMessage.generic.name = "Are you sure you want to quit?";
 	uiMain.quitMessage.generic.x = 248;
 	uiMain.quitMessage.generic.y = 280;
 
 	uiMain.yes.generic.id = ID_YES;
 	uiMain.yes.generic.type = QMTYPE_ACTION;
-	uiMain.yes.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_HIDDEN;
+	uiMain.yes.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_HIDDEN;
 	uiMain.yes.generic.name = "Ok";
 	uiMain.yes.generic.x = 380;
 	uiMain.yes.generic.y = 460;
@@ -381,7 +381,7 @@ static void UI_Main_Init( void )
 
 	uiMain.no.generic.id = ID_NO;
 	uiMain.no.generic.type = QMTYPE_ACTION;
-	uiMain.no.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_HIDDEN;
+	uiMain.no.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_HIDDEN;
 	uiMain.no.generic.name = "Cancel";
 	uiMain.no.generic.x = 530;
 	uiMain.no.generic.y = 460;

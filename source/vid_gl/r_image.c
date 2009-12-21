@@ -293,6 +293,7 @@ void R_SetTextureParameters( void )
 		if( !texture->texnum ) continue;	// free slot
 		GL_Bind( GL_TEXTURE0, texture );
 
+		// set texture filter
 		if( texture->flags & TF_DEPTHMAP )
 		{
 			// set texture filter
@@ -305,15 +306,29 @@ void R_SetTextureParameters( void )
 		}
 		else if( texture->flags & TF_NOMIPMAP )
 		{
-			// set texture filter
-			pglTexParameteri( texture->target, GL_TEXTURE_MIN_FILTER, r_textureMagFilter );
-			pglTexParameteri( texture->target, GL_TEXTURE_MAG_FILTER, r_textureMagFilter );
+			if( texture->flags & TF_NEAREST )
+			{
+				pglTexParameteri( texture->target, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+				pglTexParameteri( texture->target, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+			}
+			else
+			{
+				pglTexParameteri( texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+				pglTexParameteri( texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+			}
 		}
 		else
 		{
-			// set texture filter
-			pglTexParameteri( texture->target, GL_TEXTURE_MIN_FILTER, r_textureMinFilter );
-			pglTexParameteri( texture->target, GL_TEXTURE_MAG_FILTER, r_textureMagFilter );
+			if( texture->flags & TF_NEAREST )
+			{
+				pglTexParameteri( texture->target, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST );
+				pglTexParameteri( texture->target, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+			}
+			else
+			{
+				pglTexParameteri( texture->target, GL_TEXTURE_MIN_FILTER, r_textureMinFilter );
+				pglTexParameteri( texture->target, GL_TEXTURE_MAG_FILTER, r_textureMagFilter );
+                              }
 
 			// set texture anisotropy if available
 			if( GL_Support( R_ANISOTROPY_EXT ))
@@ -2816,14 +2831,29 @@ void GL_TexFilter( texture_t *tex )
 	}
 	else if( tex->flags & TF_NOMIPMAP )
 	{
-		pglTexParameteri( tex->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-		pglTexParameteri( tex->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+		if( tex->flags & TF_NEAREST )
+		{
+			pglTexParameteri( tex->target, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+			pglTexParameteri( tex->target, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+		}
+		else
+		{
+			pglTexParameteri( tex->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+			pglTexParameteri( tex->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+		}
 	}
 	else
 	{
-		pglTexParameteri( tex->target, GL_TEXTURE_MIN_FILTER, r_textureMinFilter );
-		pglTexParameteri( tex->target, GL_TEXTURE_MAG_FILTER, r_textureMagFilter );
-
+		if( tex->flags & TF_NEAREST )
+		{
+			pglTexParameteri( tex->target, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST );
+			pglTexParameteri( tex->target, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+		}
+		else
+		{
+			pglTexParameteri( tex->target, GL_TEXTURE_MIN_FILTER, r_textureMinFilter );
+			pglTexParameteri( tex->target, GL_TEXTURE_MAG_FILTER, r_textureMagFilter );
+		}
 		// set texture anisotropy if available
 		if( GL_Support( R_ANISOTROPY_EXT ))
 			pglTexParameterf( tex->target, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_texture_anisotropy->value );

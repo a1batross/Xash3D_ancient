@@ -78,6 +78,7 @@ typedef enum
 	TF_SKYSIDE	= BIT(7),
 	TF_CLAMP		= BIT(8),
 	TF_NOMIPMAP	= BIT(9),
+	TF_NEAREST	= BIT(10),	// disable texfilter
 } texFlags_t;
 
 #define TF_CINEMATIC		( TF_NOPICMIP|TF_UNCOMPRESSED|TF_CLAMP|TF_NOMIPMAP )

@@ -477,7 +477,9 @@ void SCR_Init( void )
 
 	SCR_RegisterShaders();
 	UI_Init();
-	UI_SetActiveMenu( UI_MAINMENU );
+	if( host.developer && FS_CheckParm( "-toconsole" ))
+		Cbuf_AddText( "toggleconsole\n" );
+	else UI_SetActiveMenu( UI_MAINMENU );
 	SCR_InitCinematic();
 
 	scr_init = true;

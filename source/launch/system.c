@@ -901,6 +901,7 @@ void Sys_Init( void )
 
 	// parse and copy args into local array
 	if(FS_CheckParm( "-log" )) Sys.log_active = true;
+	if(FS_CheckParm( "-console" )) Sys.developer = 1;
 	if(FS_GetParmFromCmdLine( "-dev", dev_level, sizeof( dev_level )))
 		Sys.developer = com_atoi( dev_level );
           

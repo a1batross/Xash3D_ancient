@@ -232,6 +232,8 @@ void UI_Bitmap_Draw( menuBitmap_s *b );
 // =====================================================================
 // Main menu interface
 
+extern cvar_t	*ui_mainfont;
+extern cvar_t	*ui_confont;
 extern cvar_t	*ui_precache;
 extern cvar_t	*ui_sensitivity;
 extern render_exp_t	*re;
@@ -256,6 +258,9 @@ typedef struct
 	bool		enterSound;
 	bool		visible;
 	bool		initialized;
+
+	shader_t		conFont;
+	shader_t		menuFont;
 } uiStatic_t;
 
 extern uiStatic_t		uiStatic;
@@ -298,7 +303,8 @@ bool UI_CursorInRect( int x, int y, int w, int h );
 void UI_DrawPic( int x, int y, int w, int h, const rgba_t color, const char *pic );
 void UI_FillRect( int x, int y, int w, int h, const rgba_t color );
 void UI_DrawRectangle( int in_x, int in_y, int in_w, int in_h, const rgba_t color );
-void UI_DrawString( int x, int y, int w, int h, const char *string, const rgba_t color, bool forceColor, int charW, int charH, int justify, bool shadow );
+#define UI_DrawString( x, y, w, h, str, col, fcol, cw, ch, j, s ) UI_DrawStringExt( x, y, w, h, str, col, fcol, cw, ch, j, s, uiStatic.menuFont )
+void UI_DrawStringExt( int x, int y, int w, int h, const char *str, const rgba_t col, bool forceCol, int charW, int charH, int justify, bool shadow, shader_t font );
 void UI_StartSound( const char *sound );
 
 void UI_AddItem ( menuFramework_s *menu, void *item );

@@ -23,28 +23,9 @@
 #define MAX_ENTNUMBER	99999		// for server and client parsing
 #define MAX_HEARTBEAT	-99999		// connection time
 
-/*
-==============================================================
-
-		SCREEN GLOBAL INFO
-
-==============================================================
-*/
-// basic console charwidths
-#define TINYCHAR_WIDTH	(SMALLCHAR_WIDTH)
-#define TINYCHAR_HEIGHT	(SMALLCHAR_HEIGHT/2)
-#define SMALLCHAR_WIDTH	8
-#define SMALLCHAR_HEIGHT	16
-#define BIGCHAR_WIDTH	16
-#define BIGCHAR_HEIGHT	24
-#define GIANTCHAR_WIDTH	32
-#define GIANTCHAR_HEIGHT	48
-
-#define SCREEN_WIDTH	640
-#define SCREEN_HEIGHT	480
-extern cvar_t		*scr_width;
-extern cvar_t		*scr_height;
-extern cvar_t		*allow_download;
+extern cvar_t	*scr_width;
+extern cvar_t	*scr_height;
+extern cvar_t	*allow_download;
 
 /*
 ==============================================================
@@ -61,7 +42,7 @@ typedef enum
 	HOST_ERROR,	// host stopped by error
 	HOST_SLEEP,	// sleeped by different reason, e.g. minimize window
 	HOST_NOFOCUS,	// same as HOST_FRAME, but disable mouse
-	HOST_RESTART,	// during the changes video mode
+	HOST_RESTART	// during the changes video mode
 } host_state;
 
 typedef enum
@@ -212,6 +193,7 @@ void CIN_Init( void );
 void CIN_ReadChunk( cinematics_t *cin );
 byte *CIN_ReadNextFrame( cinematics_t *cin, bool silent );
 
+// shared calls
 int CL_GetServerTime( void );
 float CL_GetLerpFrac( void );
 void CL_CharEvent( int key );

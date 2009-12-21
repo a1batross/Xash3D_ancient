@@ -26,8 +26,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client.h"
 #include "input.h"
 
-cvar_t		*ui_precache;
-cvar_t		*ui_sensitivity;
+cvar_t	*ui_mainfont;
+cvar_t	*ui_confont;
+cvar_t	*ui_precache;
+cvar_t	*ui_sensitivity;
 
 uiStatic_t	uiStatic;
 
@@ -168,12 +170,12 @@ void UI_DrawRectangle( int in_x, int in_y, int in_w, int in_h, const rgba_t colo
 UI_DrawString
 =================
 */
-void UI_DrawString( int x, int y, int w, int h, const char *string, const rgba_t color, bool forceColor, int charW, int charH, int justify, bool shadow )
+void UI_DrawStringExt( int x, int y, int w, int h, const char *string, const rgba_t color, bool forceColor, int charW, int charH, int justify, bool shadow, shader_t font )
 {
 	rgba_t	modulate, shadowModulate;
 	char	line[1024], *l;
 	int	xx, yy, ofsX, ofsY, len, ch;
-	float	col, row;
+	float	col, row, size;
 
 	if( !re || !string || !string[0] )
 		return;
@@ -237,16 +239,17 @@ void UI_DrawString( int x, int y, int w, int h, const char *string, const rgba_t
 			ch &= 255;
 			if( ch != ' ' )
 			{
-				col = (ch & 15) * 0.0625;
-				row = (ch >> 4) * 0.0625;
+				col = (ch & 15) * 0.0625 + (0.5f / 256.0f);
+				row = (ch >> 4) * 0.0625 + (0.5f / 256.0f);
+				size = 0.0625f - (1.0f / 256.0f);
 
 				if( shadow )
 				{
 					re->SetColor( shadowModulate );
-					re->DrawStretchPic( xx + ofsX, yy + ofsY, charW, charH, col, row, col + 0.0625, row + 0.0625, cls.clientFont );
+					re->DrawStretchPic( xx + ofsX, yy + ofsY, charW, charH, col, row, col + size, row + size, font );
                                         }
 				re->SetColor( modulate );
-				re->DrawStretchPic( xx, yy, charW, charH, col, row, col + 0.0625, row + 0.0625, cls.clientFont );
+				re->DrawStretchPic( xx, yy, charW, charH, col, row, col + size, row + size, font );
 			}
           		xx += charW;
 		}
@@ -537,8 +540,8 @@ void UI_DrawMenu( menuFramework_s *menu )
 		// fade it in, but wait a second
 		color[3] = bound( 0.0, ((uiStatic.realTime - statusFadeTime) - 1000) * 0.001f, 1.0f ) * 255;
 
-		UI_DrawString( 0, 720 * uiStatic.scaleY, 1024 * uiStatic.scaleX, 28 * uiStatic.scaleY, item->statusText, color, true,
-		UI_SMALL_CHAR_WIDTH * uiStatic.scaleX, UI_SMALL_CHAR_HEIGHT * uiStatic.scaleY, 1, true );
+		UI_DrawStringExt( 0, 720 * uiStatic.scaleY, 1024 * uiStatic.scaleX, 28 * uiStatic.scaleY, item->statusText, color, true,
+		UI_SMALL_CHAR_WIDTH * uiStatic.scaleX, UI_SMALL_CHAR_HEIGHT * uiStatic.scaleY, 1, true, uiStatic.conFont );
 	}
 	else statusFadeTime = uiStatic.realTime;
 }
@@ -1034,6 +1037,37 @@ void UI_Precache( void )
 }
 
 /*
+====================
+UI_SetFont_f
+
+menufont <fontname> <con>
+====================
+*/
+void UI_SetFont_f( void )
+{
+	if( Cmd_Argc() < 2 )
+	{
+		Msg( "Usage: menufont <fontname> <console>\n" );
+		return;
+	}
+
+	switch(Cmd_Argc( ))
+	{
+	case 2:
+		Cvar_Set( "ui_mainfont", Cmd_Argv( 1 ));
+		uiStatic.menuFont = re->RegisterShader( va( "gfx/fonts/%s", ui_mainfont->string ), SHADER_FONT );
+		break;
+	case 3:
+		Cvar_Set( "ui_confont", Cmd_Argv( 1 ));
+		uiStatic.conFont = re->RegisterShader( va( "gfx/fonts/%s", ui_confont->string ), SHADER_FONT );
+		break;
+	default:
+		Msg( "menufont: invalid aruments\n" );
+		break;
+	}
+}
+
+/*
 =================
 UI_Init
 =================
@@ -1043,7 +1077,10 @@ void UI_Init( void )
 	// register our cvars and commands
 	ui_precache = Cvar_Get( "ui_precache", "0", CVAR_ARCHIVE, "enable precache all resources for menu" );
 	ui_sensitivity = Cvar_Get( "ui_sensitivity", "1", CVAR_ARCHIVE, "mouse sensitivity while in-menu" );
+	ui_mainfont= Cvar_Get( "ui_mainfont", "default", CVAR_ARCHIVE, "ui primary font (buttons, title, etc)" );
+	ui_confont = Cvar_Get( "ui_confont", "default", CVAR_ARCHIVE, "ui console font (hints, notify)" );
 
+	Cmd_AddCommand( "menufont", UI_SetFont_f, "set menu master/notify font" );
 	Cmd_AddCommand( "menu_main", UI_Main_Menu, "open the main menu" );
 	Cmd_AddCommand( "menu_newgame", UI_NewGame_Menu, "open the newgame menu" );
 	Cmd_AddCommand( "menu_loadgame", UI_LoadGame_Menu, "open the loadgame menu" );
@@ -1063,6 +1100,12 @@ void UI_Init( void )
 	uiStatic.scaleX = scr_width->integer / 1024.0f;
 	uiStatic.scaleY = scr_height->integer / 768.0f;
 
+	if( re )
+	{
+		// register ui fonts
+		uiStatic.conFont = re->RegisterShader( va( "gfx/fonts/%s", ui_confont->string ), SHADER_FONT );
+		uiStatic.menuFont = re->RegisterShader( va( "gfx/fonts/%s", ui_mainfont->string ), SHADER_FONT );
+	}
 	uiStatic.initialized = true;
 }
 
@@ -1076,6 +1119,7 @@ void UI_Shutdown( void )
 	if( !uiStatic.initialized )
 		return;
 
+	Cmd_RemoveCommand( "menufont" );
 	Cmd_RemoveCommand( "menu_main" );
 	Cmd_RemoveCommand( "menu_newgame" );
 	Cmd_RemoveCommand( "menu_loadgame" );
@@ -1094,7 +1138,7 @@ void UI_Shutdown( void )
 	Cmd_RemoveCommand( "menu_defaults" );
 	Cmd_RemoveCommand( "menu_cinematics" );
 	Cmd_RemoveCommand( "menu_demos" );
-	Cmd_RemoveCommand( "menu_mods" );
+	Cmd_RemoveCommand( "menu_customgame" );
 	Cmd_RemoveCommand( "menu_quit" );
 
 	Mem_Set( &uiStatic, 0, sizeof( uiStatic_t ));

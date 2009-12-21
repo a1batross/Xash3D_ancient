@@ -216,7 +216,7 @@ static void UI_CustomGame_Init( void )
 
 	uiCustomGame.modList.generic.id = ID_MODLIST;
 	uiCustomGame.modList.generic.type = QMTYPE_SCROLLLIST;
-	uiCustomGame.modList.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_SMALLFONT;
+	uiCustomGame.modList.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_SMALLFONT;
 	uiCustomGame.modList.generic.x = 360;
 	uiCustomGame.modList.generic.y = 255;
 	uiCustomGame.modList.generic.width = 640;

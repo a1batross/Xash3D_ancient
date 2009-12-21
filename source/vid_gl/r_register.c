@@ -634,6 +634,7 @@ void GL_InitBackend( void )
 	r_temppool = Mem_AllocPool( "Render Memory" );
 
 	// check developer mode
+	if(FS_CheckParm( "-console" )) glw_state.developer = 1;
 	if(FS_GetParmFromCmdLine( "-dev", dev_level ))
 		glw_state.developer = com.atoi( dev_level );
 

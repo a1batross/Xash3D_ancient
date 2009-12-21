@@ -701,6 +701,7 @@ void Host_InitCommon( const int argc, const char **argv )
 	newcom.error = Host_Error;
 
 	// check developer mode
+	if(FS_CheckParm( "-console" )) host.developer = 1;
 	if( FS_GetParmFromCmdLine( "-dev", dev_level ))
 		host.developer = com.atoi( dev_level );
 

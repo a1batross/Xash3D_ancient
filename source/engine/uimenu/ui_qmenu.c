@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "common.h"
 #include "ui_local.h"
 #include "input.h"
+#include "client.h"
 
 rgba_t	uiScrollOutlineColor = { 56, 56, 56, 255 };
 rgba_t	uiScrollSelColor = { 80, 56, 24, 255 };
@@ -405,21 +406,21 @@ void UI_ScrollList_Draw( menuScrollList_s *sl )
 
 		if( sl->generic.flags & QMF_GRAYED )
 		{
-			UI_DrawString( x, y, w, h, sl->itemNames[i], uiColorDkGrey, true, sl->generic.charWidth, sl->generic.charHeight, justify, shadow );
+			UI_DrawStringExt( x, y, w, h, sl->itemNames[i], uiColorDkGrey, true, sl->generic.charWidth, sl->generic.charHeight, justify, shadow, uiStatic.conFont );
 			continue;	// grayed
 		}
 
 		if( i != sl->curItem )
 		{
-			UI_DrawString( x, y, w, h, sl->itemNames[i], sl->generic.color, false, sl->generic.charWidth, sl->generic.charHeight, justify, shadow );
+			UI_DrawStringExt( x, y, w, h, sl->itemNames[i], sl->generic.color, false, sl->generic.charWidth, sl->generic.charHeight, justify, shadow, uiStatic.conFont );
 			continue;	// no focus
 		}
 
 		if(!( sl->generic.flags & QMF_FOCUSBEHIND ))
-			UI_DrawString( x, y, w, h, sl->itemNames[i], sl->generic.color, false, sl->generic.charWidth, sl->generic.charHeight, justify, shadow );
+			UI_DrawStringExt( x, y, w, h, sl->itemNames[i], sl->generic.color, false, sl->generic.charWidth, sl->generic.charHeight, justify, shadow, uiStatic.conFont );
 
 		if( sl->generic.flags & QMF_HIGHLIGHTIFFOCUS )
-			UI_DrawString( x, y, w, h, sl->itemNames[i], sl->generic.focusColor, false, sl->generic.charWidth, sl->generic.charHeight, justify, shadow );
+			UI_DrawStringExt( x, y, w, h, sl->itemNames[i], sl->generic.focusColor, false, sl->generic.charWidth, sl->generic.charHeight, justify, shadow, uiStatic.conFont );
 		else if( sl->generic.flags & QMF_PULSEIFFOCUS )
 		{
 			rgba_t	color;
@@ -427,16 +428,16 @@ void UI_ScrollList_Draw( menuScrollList_s *sl )
 			*(uint *)color = *(uint *)sl->generic.color;
 			color[3] = 255 * (0.5 + 0.5 * com.sin( uiStatic.realTime / UI_PULSE_DIVISOR ));
 
-			UI_DrawString( x, y, w, h, sl->itemNames[i], color, false, sl->generic.charWidth, sl->generic.charHeight, justify, shadow );
+			UI_DrawStringExt( x, y, w, h, sl->itemNames[i], color, false, sl->generic.charWidth, sl->generic.charHeight, justify, shadow, uiStatic.conFont );
 		}
 		else if( sl->generic.flags & QMF_BLINKIFFOCUS )
 		{
 			if(( uiStatic.realTime & UI_BLINK_MASK ) < UI_BLINK_TIME )
-				UI_DrawString( x, y, w, h, sl->itemNames[i], sl->generic.focusColor, false, sl->generic.charWidth, sl->generic.charHeight, justify, shadow );
+				UI_DrawStringExt( x, y, w, h, sl->itemNames[i], sl->generic.focusColor, false, sl->generic.charWidth, sl->generic.charHeight, justify, shadow, uiStatic.conFont );
 		}
 
 		if( sl->generic.flags & QMF_FOCUSBEHIND )
-			UI_DrawString( x, y, w, h, sl->itemNames[i], sl->generic.color, false, sl->generic.charWidth, sl->generic.charHeight, justify, shadow );
+			UI_DrawStringExt( x, y, w, h, sl->itemNames[i], sl->generic.color, false, sl->generic.charWidth, sl->generic.charHeight, justify, shadow, uiStatic.conFont );
 	}
 }
 
@@ -635,7 +636,7 @@ void UI_SpinControl_Draw( menuSpinControl_s *sc )
 
 	if( sc->generic.flags & QMF_GRAYED )
 	{
-		UI_DrawString( x, y, w, h, sc->generic.name, uiColorDkGrey, true, sc->generic.charWidth, sc->generic.charHeight, justify, shadow );
+		UI_DrawStringExt( x, y, w, h, sc->generic.name, uiColorDkGrey, true, sc->generic.charWidth, sc->generic.charHeight, justify, shadow, uiStatic.conFont );
 		UI_DrawPic( leftX, leftY, arrowWidth, arrowHeight, uiColorDkGrey, sc->leftArrow );
 		UI_DrawPic( rightX, rightY, arrowWidth, arrowHeight, uiColorDkGrey, sc->rightArrow );
 		return; // grayed
@@ -643,7 +644,7 @@ void UI_SpinControl_Draw( menuSpinControl_s *sc )
 
 	if((menuCommon_s *)sc != (menuCommon_s *)UI_ItemAtCursor(sc->generic.parent ))
 	{
-		UI_DrawString(x, y, w, h, sc->generic.name, sc->generic.color, false, sc->generic.charWidth, sc->generic.charHeight, justify, shadow );
+		UI_DrawStringExt(x, y, w, h, sc->generic.name, sc->generic.color, false, sc->generic.charWidth, sc->generic.charHeight, justify, shadow, uiStatic.conFont );
 		UI_DrawPic(leftX, leftY, arrowWidth, arrowHeight, sc->generic.color, sc->leftArrow);
 		UI_DrawPic(rightX, rightY, arrowWidth, arrowHeight, sc->generic.color, sc->rightArrow);
 		return;		// No focus
@@ -655,14 +656,14 @@ void UI_SpinControl_Draw( menuSpinControl_s *sc )
 
 	if( !( sc->generic.flags & QMF_FOCUSBEHIND ))
 	{
-		UI_DrawString( x, y, w, h, sc->generic.name, sc->generic.color, false, sc->generic.charWidth, sc->generic.charHeight, justify, shadow );
+		UI_DrawStringExt( x, y, w, h, sc->generic.name, sc->generic.color, false, sc->generic.charWidth, sc->generic.charHeight, justify, shadow, uiStatic.conFont );
 		UI_DrawPic( leftX, leftY, arrowWidth, arrowHeight, sc->generic.color, sc->leftArrow );
 		UI_DrawPic( rightX, rightY, arrowWidth, arrowHeight, sc->generic.color, sc->rightArrow );
 	}
 
 	if( sc->generic.flags & QMF_HIGHLIGHTIFFOCUS )
 	{
-		UI_DrawString( x, y, w, h, sc->generic.name, sc->generic.focusColor, false, sc->generic.charWidth, sc->generic.charHeight, justify, shadow );
+		UI_DrawStringExt( x, y, w, h, sc->generic.name, sc->generic.focusColor, false, sc->generic.charWidth, sc->generic.charHeight, justify, shadow, uiStatic.conFont );
 		UI_DrawPic( leftX, leftY, arrowWidth, arrowHeight, (leftFocus) ? sc->generic.focusColor : sc->generic.color, (leftFocus) ? sc->leftArrowFocus : sc->leftArrow );
 		UI_DrawPic( rightX, rightY, arrowWidth, arrowHeight, (rightFocus) ? sc->generic.focusColor : sc->generic.color, (rightFocus) ? sc->rightArrowFocus : sc->rightArrow );
 	}
@@ -673,7 +674,7 @@ void UI_SpinControl_Draw( menuSpinControl_s *sc )
 		*(uint *)color = *(uint *)sc->generic.color;
 		color[3] = 255 * (0.5 + 0.5 * sin( uiStatic.realTime / UI_PULSE_DIVISOR ));
 
-		UI_DrawString( x, y, w, h, sc->generic.name, color, false, sc->generic.charWidth, sc->generic.charHeight, justify, shadow );
+		UI_DrawStringExt( x, y, w, h, sc->generic.name, color, false, sc->generic.charWidth, sc->generic.charHeight, justify, shadow, uiStatic.conFont );
 		UI_DrawPic( leftX, leftY, arrowWidth, arrowHeight, (leftFocus) ? color : sc->generic.color, (leftFocus) ? sc->leftArrowFocus : sc->leftArrow );
 		UI_DrawPic( rightX, rightY, arrowWidth, arrowHeight, (rightFocus) ? color : sc->generic.color, (rightFocus) ? sc->rightArrowFocus : sc->rightArrow );
 	}
@@ -681,7 +682,7 @@ void UI_SpinControl_Draw( menuSpinControl_s *sc )
 	{
 		if(( uiStatic.realTime & UI_BLINK_MASK ) < UI_BLINK_TIME )
 		{
-			UI_DrawString( x, y, w, h, sc->generic.name, sc->generic.focusColor, false, sc->generic.charWidth, sc->generic.charHeight, justify, shadow );
+			UI_DrawStringExt( x, y, w, h, sc->generic.name, sc->generic.focusColor, false, sc->generic.charWidth, sc->generic.charHeight, justify, shadow, uiStatic.conFont );
 			UI_DrawPic( leftX, leftY, arrowWidth, arrowHeight, (leftFocus) ? sc->generic.focusColor : sc->generic.color, (leftFocus) ? sc->leftArrowFocus : sc->leftArrow );
 			UI_DrawPic( rightX, rightY, arrowWidth, arrowHeight, (rightFocus) ? sc->generic.focusColor : sc->generic.color, (rightFocus) ? sc->rightArrowFocus : sc->rightArrow );
 		}
@@ -689,7 +690,7 @@ void UI_SpinControl_Draw( menuSpinControl_s *sc )
 
 	if( sc->generic.flags & QMF_FOCUSBEHIND )
 	{
-		UI_DrawString( x, y, w, h, sc->generic.name, sc->generic.color, false, sc->generic.charWidth, sc->generic.charHeight, justify, shadow );
+		UI_DrawStringExt( x, y, w, h, sc->generic.name, sc->generic.color, false, sc->generic.charWidth, sc->generic.charHeight, justify, shadow, uiStatic.conFont );
 		UI_DrawPic( leftX, leftY, arrowWidth, arrowHeight, sc->generic.color, sc->leftArrow );
 		UI_DrawPic( rightX, rightY, arrowWidth, arrowHeight, sc->generic.color, sc->rightArrow );
 	}
@@ -804,7 +805,7 @@ const char *UI_Field_Key( menuField_s *f, int key )
 	}
 
 	// clipboard paste
-	if( key == K_INS && Key_IsDown( K_SHIFT ))
+	if(( key == K_INS && Key_IsDown( K_SHIFT )) || ( key == 'v' && Key_IsDown( K_CTRL )))
 	{
 		str = Sys_GetClipboardData();
 		if( !str ) return 0;
@@ -986,30 +987,30 @@ void UI_Field_Draw( menuField_s *f )
 
 	if( f->generic.flags & QMF_GRAYED )
 	{
-		UI_DrawString( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, uiColorDkGrey, true, f->generic.charWidth, f->generic.charHeight, justify, shadow );
+		UI_DrawStringExt( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, uiColorDkGrey, true, f->generic.charWidth, f->generic.charHeight, justify, shadow, uiStatic.conFont );
 		return; // grayed
 	}
 
 	if((menuCommon_s *)f != (menuCommon_s *)UI_ItemAtCursor( f->generic.parent ))
 	{
-		UI_DrawString( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, f->generic.color, false, f->generic.charWidth, f->generic.charHeight, justify, shadow );
+		UI_DrawStringExt( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, f->generic.color, false, f->generic.charWidth, f->generic.charHeight, justify, shadow, uiStatic.conFont );
 		return; // no focus
 	}
 
 	if( !( f->generic.flags & QMF_FOCUSBEHIND ))
 	{
-		UI_DrawString( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, f->generic.color, false, f->generic.charWidth, f->generic.charHeight, justify, shadow );
+		UI_DrawStringExt( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, f->generic.color, false, f->generic.charWidth, f->generic.charHeight, justify, shadow, uiStatic.conFont );
 
 		if(( uiStatic.realTime & 499 ) < 250 )
-			UI_DrawString( x + (cursor*f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, "_", f->generic.color, true, f->generic.charWidth, f->generic.charHeight, 0, shadow );
+			UI_DrawStringExt( x + (cursor*f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, "_", f->generic.color, true, f->generic.charWidth, f->generic.charHeight, 0, shadow, uiStatic.conFont );
 	}
 
 	if( f->generic.flags & QMF_HIGHLIGHTIFFOCUS )
 	{
-		UI_DrawString( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, f->generic.focusColor, false, f->generic.charWidth, f->generic.charHeight, justify, shadow );
+		UI_DrawStringExt( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, f->generic.focusColor, false, f->generic.charWidth, f->generic.charHeight, justify, shadow, uiStatic.conFont );
 
 		if(( uiStatic.realTime & 499 ) < 250 )
-			UI_DrawString( x + (cursor*f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, "_", f->generic.focusColor, true, f->generic.charWidth, f->generic.charHeight, 0, shadow );
+			UI_DrawStringExt( x + (cursor*f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, "_", f->generic.focusColor, true, f->generic.charWidth, f->generic.charHeight, 0, shadow, uiStatic.conFont );
 	}
 	else if( f->generic.flags & QMF_PULSEIFFOCUS )
 	{
@@ -1018,28 +1019,28 @@ void UI_Field_Draw( menuField_s *f )
 		*(uint *)color = *(uint *)f->generic.color;
 		color[3] = 255 * (0.5f + 0.5f * com.sin( uiStatic.realTime / UI_PULSE_DIVISOR ));
 
-		UI_DrawString( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, color, false, f->generic.charWidth, f->generic.charHeight, justify, shadow );
+		UI_DrawStringExt( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, color, false, f->generic.charWidth, f->generic.charHeight, justify, shadow, uiStatic.conFont );
 
 		if(( uiStatic.realTime & 499 ) < 250 )
-			UI_DrawString( x + (cursor*f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, "_", color, true, f->generic.charWidth, f->generic.charHeight, 0, shadow );
+			UI_DrawStringExt( x + (cursor*f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, "_", color, true, f->generic.charWidth, f->generic.charHeight, 0, shadow, uiStatic.conFont );
 	}
 	else if( f->generic.flags & QMF_BLINKIFFOCUS )
 	{
 		if(( uiStatic.realTime & UI_BLINK_MASK ) < UI_BLINK_TIME )
 		{
-			UI_DrawString( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, f->generic.focusColor, false, f->generic.charWidth, f->generic.charHeight, justify, shadow );
+			UI_DrawStringExt( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, f->generic.focusColor, false, f->generic.charWidth, f->generic.charHeight, justify, shadow, uiStatic.conFont );
 
 			if(( uiStatic.realTime & 499 ) < 250 )
-				UI_DrawString( x + (cursor*f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, "_", f->generic.focusColor, true, f->generic.charWidth, f->generic.charHeight, 0, shadow );
+				UI_DrawStringExt( x + (cursor*f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, "_", f->generic.focusColor, true, f->generic.charWidth, f->generic.charHeight, 0, shadow, uiStatic.conFont );
 		}
 	}
 
 	if( f->generic.flags & QMF_FOCUSBEHIND )
 	{
-		UI_DrawString( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, f->generic.color, false, f->generic.charWidth, f->generic.charHeight, justify, shadow );
+		UI_DrawStringExt( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, f->generic.color, false, f->generic.charWidth, f->generic.charHeight, justify, shadow, uiStatic.conFont );
 
 		if(( uiStatic.realTime & 499 ) < 250 )
-			UI_DrawString( x + (cursor*f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, "_", f->generic.color, true, f->generic.charWidth, f->generic.charHeight, 0, shadow );
+			UI_DrawStringExt( x + (cursor*f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, "_", f->generic.color, true, f->generic.charWidth, f->generic.charHeight, 0, shadow, uiStatic.conFont );
 	}
 }
 
@@ -1170,7 +1171,7 @@ void UI_Action_Draw( menuAction_s *a )
 		UI_ScaleCoords( &x, NULL, &w, NULL );
 		x += a->generic.x;
 
-		UI_DrawString( x, a->generic.y, w, a->generic.height, a->generic.statusText, uiColorWhite, true, charW, charH, 0, true );
+		UI_DrawStringExt( x, a->generic.y, w, a->generic.height, a->generic.statusText, uiColorWhite, true, charW, charH, 0, true, uiStatic.conFont );
 	}
 	if((menuCommon_s *)a != (menuCommon_s *)UI_ItemAtCursor( a->generic.parent ))
 	{
