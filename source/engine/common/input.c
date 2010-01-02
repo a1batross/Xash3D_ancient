@@ -6,20 +6,23 @@
 #include "common.h"
 #include "input.h"
 #include "client.h"
+#include "ui_local.h"
 
-// FIXME: move this stuff to launch.dll someday
+#define	WND_HEADSIZE	30	// FIXME: get it from system metrics ?
+#define	WND_BORDER	3	// sentinel border in pixels
 
-bool in_mouseactive;	// false when not focus app
-bool in_restore_spi;
-bool in_mouseinitialized;
-int  in_originalmouseparms[3];
-int  in_newmouseparms[3] = { 0, 0, 1 };
-bool in_mouseparmsvalid;
-int  in_mouse_buttons;
-int  in_mouse_oldbuttonstate;
-int  window_center_x, window_center_y;
-uint in_mouse_wheel;
-RECT window_rect;
+bool	in_mouseactive;		// false when not focus app
+bool	in_restore_spi;
+bool	in_mouseinitialized;
+int	in_originalmouseparms[3];
+int	in_newmouseparms[3] = { 0, 0, 1 };
+bool	in_mouse_suspended;
+bool	in_mouseparmsvalid;
+int	in_mouse_buttons;
+int	in_mouse_oldbuttonstate;
+int	window_center_x, window_center_y;
+uint	in_mouse_wheel;
+RECT	window_rect;
 
 cvar_t *scr_xpos;		// X coordinate of window position
 cvar_t *scr_ypos;		// Y coordinate of window position
@@ -109,6 +112,28 @@ void IN_StartupMouse( void )
 	in_mouse_wheel = RegisterWindowMessage( "MSWHEEL_ROLLMSG" );
 }
 
+static bool IN_CursorInRect( void )
+{
+	POINT	curpos;
+	
+	if( !in_mouseinitialized || !in_mouseactive )
+		return false;
+
+	// find mouse movement
+	GetCursorPos( &curpos );
+
+	if( curpos.x < window_rect.left + WND_BORDER )
+		return false;
+	if( curpos.x > window_rect.right - WND_BORDER * 3 )
+		return false;
+	if( curpos.y < window_rect.top + WND_HEADSIZE + WND_BORDER )
+		return false;
+	if( curpos.y > window_rect.bottom - WND_BORDER )
+		return false;
+	return true;
+}
+
+
 /*
 ===========
 IN_ActivateMouse
@@ -118,10 +143,56 @@ Called when the window gains focus or changes in some way
 */
 void IN_ActivateMouse( void )
 {
-	int width, height;
+	int		width, height;
+	static int	oldstate;
 
 	if( !in_mouseinitialized )
 		return;
+
+	if( cls.key_dest == key_menu && !scr_fullscreen->integer )
+	{
+		// check for mouse leave-entering
+		if( !in_mouse_suspended && !UI_MouseInRect())
+			in_mouse_suspended = true;
+
+		if( oldstate != in_mouse_suspended )
+		{
+			if( in_mouse_suspended )
+			{
+				int	x, y;
+
+				ClipCursor( NULL );
+				ReleaseCapture();
+				while( ShowCursor( true ) < 0 );
+
+				x = window_rect.left + uiStatic.cursorX;
+				y = window_rect.top + uiStatic.cursorY + WND_HEADSIZE;
+
+				// set system cursor position
+				SetCursorPos( x, y );
+			}
+		}
+
+		oldstate = in_mouse_suspended;
+
+		if( in_mouse_suspended && IN_CursorInRect())
+		{
+			POINT	global_pos;
+			int	x, y;
+
+			GetCursorPos( &global_pos );
+			in_mouse_suspended = false;
+			in_mouseactive = false; // re-initialize mouse
+
+			x = global_pos.x - window_rect.left;
+			y = global_pos.y - window_rect.top - WND_HEADSIZE;
+
+			// set menu cursor position
+			uiStatic.cursorX = bound( 0, x, scr_width->integer );
+			uiStatic.cursorY = bound( 0, y, scr_height->integer );
+			UI_ResetMouse(); // needs to reset mouse state
+		}
+	}
 
 	if( in_mouseactive ) return;
 	in_mouseactive = true;
@@ -129,8 +200,8 @@ void IN_ActivateMouse( void )
 	if( in_mouseparmsvalid )
 		in_restore_spi = SystemParametersInfo( SPI_SETMOUSE, 0, in_newmouseparms, 0 );
 
-	width = GetSystemMetrics(SM_CXSCREEN);
-	height = GetSystemMetrics(SM_CYSCREEN);
+	width = GetSystemMetrics( SM_CXSCREEN );
+	height = GetSystemMetrics( SM_CYSCREEN );
 
 	GetWindowRect( host.hWnd, &window_rect );
 	if( window_rect.left < 0 ) window_rect.left = 0;
@@ -178,7 +249,7 @@ void IN_MouseMove( void )
 	POINT	current_pos;
 	int	mx, my;
 	
-	if( !in_mouseinitialized || !in_mouseactive )
+	if( !in_mouseinitialized || !in_mouseactive || in_mouse_suspended )
 		return;
 
 	// find mouse movement
@@ -264,15 +335,9 @@ void IN_Frame( void )
 		return;
 	}
 
-	if( !cl.video_prepped && cls.key_dest != key_menu )
-		shutdownMouse = true; // release mouse during vid_restart
+	if(( !cl.video_prepped || cl.refdef.paused ) && cls.key_dest == key_game )
+		shutdownMouse = true; // release mouse during vid_restart and during pause
 	
-	if( cls.key_dest == key_console )
-		shutdownMouse = true; // release mouse when console is drawing
-
-	if( cl.refdef.paused && cls.key_dest != key_menu )
-		shutdownMouse = true; // release mouse when game pause but menu
-
 	if( shutdownMouse && !Cvar_VariableInteger( "fullscreen" ))
 	{
 		IN_DeactivateMouse();
@@ -326,8 +391,10 @@ long IN_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 		Cbuf_ExecuteText( EXEC_APPEND, "quit" );
 		break;
 	case WM_ACTIVATE:
-		if(LOWORD(wParam) != WA_INACTIVE && HIWORD(wParam)) host.state = HOST_SLEEP;
-		else if(LOWORD(wParam) == WA_INACTIVE) host.state = HOST_NOFOCUS;
+		if( LOWORD( wParam ) != WA_INACTIVE && HIWORD( wParam ))
+			host.state = HOST_SLEEP;
+		else if( LOWORD( wParam ) == WA_INACTIVE )
+			host.state = HOST_NOFOCUS;
 		else host.state = HOST_FRAME;
 
 		S_Activate( (host.state == HOST_FRAME) ? true : false );
@@ -361,6 +428,7 @@ long IN_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 			Cvar_SetValue( "r_ypos", yPos + r.top );
 			scr_xpos->modified = false;
 			scr_ypos->modified = false;
+			GetWindowRect( host.hWnd, &window_rect );
 		}
 		break;
 	case WM_LBUTTONDOWN:

@@ -668,41 +668,6 @@ void Key_Console( int key )
 }
 
 /*
-================
-Key_Message
-
-In game talk message
-================
-*/
-void Key_Message( int key )
-{
-	char	buffer[MAX_SYSPATH];
-
-	if( key == K_ESCAPE )
-	{
-		cls.key_dest = key_game;
-		Field_Clear( &chatField );
-		return;
-	}
-	if( key == K_ENTER || key == K_KP_ENTER )
-	{
-		if( chatField.buffer[0] && cls.state == ca_active )
-		{
-			if( chat_team )
-				com.sprintf( buffer, "say_team \"%s\"\n", chatField.buffer );
-			else com.sprintf( buffer, "say \"%s\"\n", chatField.buffer );
-
-			Cbuf_AddText( buffer );
-			Cbuf_AddText( "\"\n" ); // exec
-		}
-		cls.key_dest = key_game;
-		Field_Clear( &chatField );
-		return;
-	}
-	Field_KeyDownEvent( &chatField, key );
-}
-
-/*
 ===================
 Key_IsDown
 ===================
@@ -1114,9 +1079,6 @@ void Key_Event( int key, bool down, int time )
 	{
 		switch( cls.key_dest )
 		{
-		case key_message:
-			Key_Message( key );
-			return;
 		case key_game:
 			if( cls.state == ca_cinematic )
 				SCR_StopCinematic();
@@ -1158,11 +1120,7 @@ void Key_Event( int key, bool down, int time )
 	if( !down ) return; // other systems only care about key down events
 
 	// distribute the key down event to the apropriate handler
-	if( cls.key_dest == key_message )
-	{
-		Key_Message( key );
-	}
-	else if( cls.key_dest == key_menu )
+	if( cls.key_dest == key_menu )
 	{
 		UI_KeyEvent( key );
 	}
@@ -1236,10 +1194,6 @@ void CL_CharEvent( int key )
 	{
 		Field_CharEvent( &g_consoleField, key );
 	}
-	else if( cls.key_dest == key_message )
-	{
-		Field_CharEvent( &chatField, key );
-	}
 }
 
 /*
@@ -1276,8 +1230,8 @@ void Key_SetKeyDest( int key_dest )
 	case key_menu:
 		cls.key_dest = key_menu;
 		break;
-	case key_message:
-		cls.key_dest = key_message;
+	case key_console:
+		cls.key_dest = key_console;
 		break;
 	default:
 		Host_Error( "Key_SetKeyDest: wrong destination (%i)\n", key_dest );

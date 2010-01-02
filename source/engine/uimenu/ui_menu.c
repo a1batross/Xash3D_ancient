@@ -867,9 +867,13 @@ void UI_MouseMove( int x, int y )
 	y *= ui_sensitivity->value;
 
 	uiStatic.cursorX += x;
-	uiStatic.cursorX = bound( 0, uiStatic.cursorX, scr_width->integer );
-
 	uiStatic.cursorY += y;
+
+	if( UI_CursorInRect( 1, 1, scr_width->integer - 1, scr_height->integer - 1 ))
+		uiStatic.mouseInRect = true;
+	else uiStatic.mouseInRect = false;
+
+	uiStatic.cursorX = bound( 0, uiStatic.cursorX, scr_width->integer );
 	uiStatic.cursorY = bound( 0, uiStatic.cursorY, scr_height->integer );
 
 	// region test the active menu items
@@ -978,6 +982,17 @@ bool UI_IsVisible( void )
 	if( !uiStatic.initialized )
 		return false;
 	return uiStatic.visible;
+}
+
+bool UI_MouseInRect( void )
+{
+	return uiStatic.mouseInRect;
+}
+
+void UI_ResetMouse( void )
+{
+	// clear mouse state
+	uiStatic.mouseInRect = true;
 }
 
 /*
@@ -1099,6 +1114,10 @@ void UI_Init( void )
 	Mem_Set( uiEmptyString, ' ', sizeof( uiEmptyString ));
 	uiStatic.scaleX = scr_width->integer / 1024.0f;
 	uiStatic.scaleY = scr_height->integer / 768.0f;
+
+	// move cursor to screen center
+	uiStatic.cursorX = scr_width->integer>>1;
+	uiStatic.cursorY = scr_height->integer>>1;
 
 	if( re )
 	{

@@ -256,6 +256,7 @@ typedef struct
 	int		realTime;
 	bool		firstDraw;
 	bool		enterSound;
+	bool		mouseInRect;
 	bool		visible;
 	bool		initialized;
 

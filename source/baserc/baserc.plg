@@ -1,0 +1,40 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: baserc - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP19A.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "../public" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\baserc\!debug/" /Fo"..\temp\baserc\!debug/" /Fd"..\temp\baserc\!debug/" /FD /GZ /c 
+"D:\Xash3D\src_main\baserc\rc_main.c"
+]
+Creating command line "cl.exe @"C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP19A.tmp"" 
+Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP19B.tmp" with contents
+[
+msvcrtd.lib /nologo /dll /incremental:yes /pdb:"..\temp\baserc\!debug/baserc.pdb" /debug /machine:I386 /nodefaultlib:"msvcrt.lib" /out:"..\temp\baserc\!debug/baserc.dll" /implib:"..\temp\baserc\!debug/baserc.lib" /pdbtype:sept 
+"\Xash3D\src_main\temp\baserc\!debug\rc_main.obj"
+]
+Creating command line "link.exe @"C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP19B.tmp""
+Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP19C.bat" with contents
+[
+@echo off
+copy \Xash3D\src_main\temp\baserc\!debug\baserc.dll "D:\Xash3D\bin\baserc.dll"
+]
+Creating command line ""C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP19C.bat""
+Compiling...
+rc_main.c
+Linking...
+<h3>Output Window</h3>
+Performing Custom Build Step on \Xash3D\src_main\temp\baserc\!debug\baserc.dll
+ë™ÆØ®‡Æ¢†≠Æ ‰†©´Æ¢:         1.
+
+
+
+<h3>Results</h3>
+baserc.dll - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

@@ -65,29 +65,6 @@ static console_t con;
 
 /*
 ================
-Con_ToggleChat_f
-================
-*/
-void Con_ToggleChat_f (void)
-{
-	Field_Clear( &g_consoleField );
-	g_consoleField.widthInChars = g_console_field_width;
-
-	if( cls.key_dest == key_console )
-	{
-		if( cls.state == ca_active )
-		{
-			UI_SetActiveMenu( UI_CLOSEMENU );
-			cls.key_dest = key_game;
-		}
-	}
-	else cls.key_dest = key_console;
-	
-	Con_ClearNotify();
-}
-
-/*
-================
 Con_Clear_f
 ================
 */
@@ -145,32 +122,6 @@ void Con_ToggleConsole_f( void )
 		UI_SetActiveMenu( UI_CLOSEMENU );
 		cls.key_dest = key_console;	
 	}
-}
-						
-/*
-================
-Con_MessageMode_f
-================
-*/
-void Con_MessageMode_f( void )
-{
-	chat_team = false;
-	Field_Clear( &chatField );
-	chatField.widthInChars = 30;
-	cls.key_dest = key_message;
-}
-
-/*
-================
-Con_MessageMode2_f
-================
-*/
-void Con_MessageMode2_f (void)
-{
-	chat_team = true;
-	Field_Clear( &chatField );
-	chatField.widthInChars = 25;
-	cls.key_dest = key_message;
 }
 
 /*
@@ -259,9 +210,6 @@ void Con_Init( void )
 	}
 
 	Cmd_AddCommand( "toggleconsole", Con_ToggleConsole_f, "opens or closes the console" );
-	Cmd_AddCommand( "togglechat", Con_ToggleChat_f, "enable or disable chat mode" );
-	Cmd_AddCommand( "messagemode", Con_MessageMode_f, "input a chat message to say to everyone" );
-	Cmd_AddCommand( "messagemode2", Con_MessageMode2_f, "input a chat message to say to only your team" );
 	Cmd_AddCommand( "clear", Con_Clear_f, "clear console history" );
 
 	MsgDev( D_NOTE, "Console initialized.\n" );
@@ -411,7 +359,7 @@ void Con_DrawNotify( void )
 {
 	int	x, v = 0;
 	short	*text;
-	int	i, time, skip;
+	int	i, time;
 	int	currentColor;
 
 	currentColor = 7;
@@ -438,26 +386,7 @@ void Con_DrawNotify( void )
 		}
 		v += SMALLCHAR_HEIGHT;
 	}
-
 	re->SetColor( NULL );
-
-	// draw the chat line
-	if( cls.key_dest == key_message )
-	{
-		if( chat_team )
-		{
-			SCR_DrawBigString ( 8, v, "Say team:", 255 );
-			skip = 11;
-		}
-		else
-		{
-			SCR_DrawBigString( 8, v, "Say:", 255 );
-			skip = 5;
-		}
-		Field_BigDraw( &chatField, skip * BIGCHAR_WIDTH, v, SCREEN_WIDTH - ( skip + 1 ) * BIGCHAR_WIDTH, true );
-		v += BIGCHAR_HEIGHT;
-	}
-
 }
 
 /*
