@@ -64,7 +64,8 @@ const dsproom_t eax_preset[CSXROOM] =
 
 cvar_t	*host_sound;
 cvar_t	*s_alDevice;
-cvar_t	*s_soundfx;
+cvar_t	*s_allowEAX;
+cvar_t	*s_allowA3D;
 cvar_t	*s_check_errors;
 cvar_t	*s_volume;	// master volume
 cvar_t	*s_musicvolume;	// background track volume
@@ -883,7 +884,8 @@ bool S_Init( void *hInst )
 
 	host_sound = Cvar_Get("host_sound", "1", CVAR_SYSTEMINFO, "enable sound system" );
 	s_alDevice = Cvar_Get("s_device", "Generic Software", CVAR_LATCH_AUDIO|CVAR_ARCHIVE, "OpenAL current device name" );
-	s_soundfx = Cvar_Get("s_soundfx", "1", CVAR_LATCH_AUDIO|CVAR_ARCHIVE, "allow OpenAl extensions" );
+	s_allowEAX = Cvar_Get("s_allowEAX", "1", CVAR_LATCH_AUDIO|CVAR_ARCHIVE, "allow EAX 2.0 extension" );
+	s_allowA3D = Cvar_Get("s_allowA3D", "1", CVAR_LATCH_AUDIO|CVAR_ARCHIVE, "allow A3D 2.0 extension" );
 	s_check_errors = Cvar_Get("s_check_errors", "1", CVAR_ARCHIVE, "ignore audio engine errors" );
 	s_volume = Cvar_Get("s_volume", "1.0", CVAR_ARCHIVE, "sound volume" );
 	s_musicvolume = Cvar_Get("s_musicvolume", "1.0", CVAR_ARCHIVE, "background music volume" );

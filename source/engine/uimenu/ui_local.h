@@ -31,14 +31,25 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define UI_CURSOR_NORMAL		"gfx/shell/cursor"
 #define UI_CURSOR_DISABLED		"gfx/shell/denied"
 #define UI_CURSOR_TYPING		"gfx/shell/typing"
-#define UI_LEFTARROW		"gfx/shell/arrows/arrow_left_small"
-#define UI_LEFTARROWFOCUS		"gfx/shell/arrows/arrow_left_small_s"
-#define UI_RIGHTARROW		"gfx/shell/arrows/arrow_right_small"
-#define UI_RIGHTARROWFOCUS		"gfx/shell/arrows/arrow_right_small_s"
+#define UI_SLIDER_MAIN		"gfx/shell/slider"
+#define UI_LEFTARROW		"gfx/shell/larrow_d"
+#define UI_LEFTARROWFOCUS		"gfx/shell/larrow_f"
+#define UI_LEFTARROWPRESSED		"gfx/shell/larrow_n"
+#define UI_RIGHTARROW		"gfx/shell/rarrow_d"
+#define UI_RIGHTARROWFOCUS		"gfx/shell/rarrow_f"
+#define UI_RIGHTARROWPRESSED		"gfx/shell/rarrow_n"
 #define UI_UPARROW			"gfx/shell/uparrow_d"
 #define UI_UPARROWFOCUS		"gfx/shell/uparrow_f"
+#define UI_UPARROWPRESSED		"gfx/shell/uparrow_n"
 #define UI_DOWNARROW		"gfx/shell/dnarrow_d"
 #define UI_DOWNARROWFOCUS		"gfx/shell/dnarrow_f"
+#define UI_DOWNARROWPRESSED		"gfx/shell/dnarrow_n"
+#define UI_CHECKBOX_EMPTY		"gfx/shell/cb_empty"
+#define UI_CHECKBOX_GRAYED		"gfx/shell/cb_disabled"
+#define UI_CHECKBOX_FOCUS		"gfx/shell/cb_over"
+#define UI_CHECKBOX_PRESSED		"gfx/shell/cb_down"
+#define UI_CHECKBOX_ENABLED		"gfx/shell/cb_checked"
+
 #define UI_MOVEBOX			"gfx/shell/buttons/move_box"
 #define UI_MOVEBOXFOCUS		"gfx/shell/buttons/move_box_s"
 #define UI_BACKBUTTON		"gfx/shell/buttons/back_b"
@@ -76,38 +87,42 @@ typedef enum
 {
 	QMTYPE_SCROLLLIST,
 	QMTYPE_SPINCONTROL,
+	QMTYPE_CHECKBOX,
+	QMTYPE_SLIDER,
 	QMTYPE_FIELD,
 	QMTYPE_ACTION,
 	QMTYPE_BITMAP
 } menuType_t;
 
 // Generic flags
-#define QMF_LEFT_JUSTIFY		0x00000001
-#define QMF_CENTER_JUSTIFY		0x00000002
-#define QMF_RIGHT_JUSTIFY		0x00000004
-#define QMF_GRAYED			0x00000008	// Grays and disables
-#define QMF_INACTIVE		0x00000010	// Disables any input
-#define QMF_HIDDEN			0x00000020	// Doesn't draw
-#define QMF_NUMBERSONLY		0x00000040	// Edit field is only numbers
-#define QMF_LOWERCASE		0x00000080	// Edit field is all lower case
-#define QMF_UPPERCASE		0x00000100	// Edit field is all upper case
-#define QMF_BLINKIFFOCUS		0x00000200
-#define QMF_PULSEIFFOCUS		0x00000400
-#define QMF_HIGHLIGHTIFFOCUS		0x00000800
-#define QMF_SMALLFONT		0x00001000
-#define QMF_BIGFONT			0x00002000
-#define QMF_DROPSHADOW		0x00004000
-#define QMF_SILENT			0x00008000	// Don't play sounds
-#define QMF_HASMOUSEFOCUS		0x00010000
-#define QMF_MOUSEONLY		0x00020000	// Only mouse input allowed
-#define QMF_FOCUSBEHIND		0x00040000	// Focus draws behind normal item
-#define QMF_NOTIFY			0x00080000	// draw notify at right screen side
+#define QMF_LEFT_JUSTIFY		BIT(0)
+#define QMF_CENTER_JUSTIFY		BIT(1)
+#define QMF_RIGHT_JUSTIFY		BIT(2)
+#define QMF_GRAYED			BIT(3)	// Grays and disables
+#define QMF_INACTIVE		BIT(4)	// Disables any input
+#define QMF_HIDDEN			BIT(5)	// Doesn't draw
+#define QMF_NUMBERSONLY		BIT(6)	// Edit field is only numbers
+#define QMF_LOWERCASE		BIT(7)	// Edit field is all lower case
+#define QMF_UPPERCASE		BIT(8)	// Edit field is all upper case
+#define QMF_BLINKIFFOCUS		BIT(9)
+#define QMF_PULSEIFFOCUS		BIT(10)
+#define QMF_HIGHLIGHTIFFOCUS		BIT(11)
+#define QMF_SMALLFONT		BIT(12)
+#define QMF_BIGFONT			BIT(13)
+#define QMF_DROPSHADOW		BIT(14)
+#define QMF_SILENT			BIT(15)	// Don't play sounds
+#define QMF_HASMOUSEFOCUS		BIT(16)
+#define QMF_MOUSEONLY		BIT(17)	// Only mouse input allowed
+#define QMF_FOCUSBEHIND		BIT(18)	// Focus draws behind normal item
+#define QMF_NOTIFY			BIT(19)	// draw notify at right screen side
+#define QMF_ACT_ONRELEASE		BIT(20)	// call Key_Event when button is released
 
 // Callback notifications
 #define QM_GOTFOCUS			1
 #define QM_LOSTFOCUS		2
 #define QM_ACTIVATED		3
 #define QM_CHANGED			4
+#define QM_PRESSED			5
 
 typedef struct
 {
@@ -118,7 +133,7 @@ typedef struct
 	int		numItems;
 
 	void		(*drawFunc)( void );
-	const char	*(*keyFunc) (int key);
+	const char	*(*keyFunc)( int key, bool down );
 } menuFramework_s;
 
 typedef struct
@@ -156,8 +171,7 @@ typedef struct
 typedef struct
 {
 	menuCommon_s	generic;
-
-	const char	*background;
+ 	const char	*background;
 	const char	*upArrow;
 	const char	*upArrowFocus;
 	const char	*downArrow;
@@ -172,7 +186,6 @@ typedef struct
 typedef struct
 {
 	menuCommon_s	generic;
-
 	const char	*background;
 	const char	*leftArrow;
 	const char	*rightArrow;
@@ -187,7 +200,6 @@ typedef struct
 typedef struct
 {
 	menuCommon_s	generic;
-
 	const char	*background;
 	int		maxLenght;
 	int		visibleLength;
@@ -209,31 +221,61 @@ typedef struct
 	const char	*focusPic;
 } menuBitmap_s;
 
+typedef struct
+{
+	menuCommon_s	generic;
+	bool		enabled;
+	const char	*emptyPic;
+	const char	*focusPic;	// can be replaced with pressPic manually
+	const char	*checkPic;
+	const char	*grayedPic;	// when QMF_GRAYED is set
+} menuCheckBox_s;
+
+typedef struct
+{
+	menuCommon_s	generic;
+	float		minValue;
+	float		maxValue;
+	float		curValue;
+	float		drawStep;
+	int		numSteps;
+	float		range;
+	bool		keepSlider;	// when mouse button is holds
+} menuSlider_s;
+
 void UI_ScrollList_Init( menuScrollList_s *sl );
-const char	*UI_ScrollList_Key( menuScrollList_s *sl, int key );
+const char *UI_ScrollList_Key( menuScrollList_s *sl, int key, bool down );
 void UI_ScrollList_Draw( menuScrollList_s *sl );
 
 void UI_SpinControl_Init( menuSpinControl_s *sc );
-const char *UI_SpinControl_Key( menuSpinControl_s *sc, int key );
+const char *UI_SpinControl_Key( menuSpinControl_s *sc, int key, bool down );
 void UI_SpinControl_Draw( menuSpinControl_s *sc );
 
+void UI_Slider_Init( menuSlider_s *sl );
+const char *UI_Slider_Key( menuSlider_s *sl, int key, bool down );
+void UI_Slider_Draw( menuSlider_s *sl );
+
+void UI_CheckBox_Init( menuCheckBox_s *cb );
+const char *UI_CheckBox_Key( menuCheckBox_s *cb, int key, bool down );
+void UI_CheckBox_Draw( menuCheckBox_s *cb );
+
 void UI_Field_Init( menuField_s *f );
-const char *UI_Field_Key( menuField_s *f, int key );
+const char *UI_Field_Key( menuField_s *f, int key, bool down );
 void UI_Field_Draw( menuField_s *f );
 
 void UI_Action_Init( menuAction_s *t );
-const char *UI_Action_Key( menuAction_s *t, int key );
+const char *UI_Action_Key( menuAction_s *t, int key, bool down );
 void UI_Action_Draw( menuAction_s *t );
 
 void UI_Bitmap_Init( menuBitmap_s *b );
-const char *UI_Bitmap_Key( menuBitmap_s *b, int key );
+const char *UI_Bitmap_Key( menuBitmap_s *b, int key, bool down );
 void UI_Bitmap_Draw( menuBitmap_s *b );
 
 // =====================================================================
 // Main menu interface
 
 extern cvar_t	*ui_mainfont;
-extern cvar_t	*ui_confont;
+extern cvar_t	*ui_namefont;
 extern cvar_t	*ui_precache;
 extern cvar_t	*ui_sensitivity;
 extern render_exp_t	*re;
@@ -257,11 +299,12 @@ typedef struct
 	bool		firstDraw;
 	bool		enterSound;
 	bool		mouseInRect;
+	bool		hideCursor;
 	bool		visible;
 	bool		initialized;
 
-	shader_t		conFont;
 	shader_t		menuFont;
+	shader_t		nameFont;
 } uiStatic_t;
 
 extern uiStatic_t		uiStatic;
@@ -271,6 +314,7 @@ extern const char		*uiSoundIn;
 extern const char		*uiSoundMove;
 extern const char		*uiSoundOut;
 extern const char		*uiSoundBuzz;
+extern const char		*uiSoundGlow;
 extern const char		*uiSoundNull;
 
 //
@@ -315,7 +359,7 @@ void UI_SetCursorToItem( menuFramework_s *menu, void *item );
 void *UI_ItemAtCursor( menuFramework_s *menu );
 void UI_AdjustCursor( menuFramework_s *menu, int dir );
 void UI_DrawMenu( menuFramework_s *menu );
-const char *UI_DefaultKey( menuFramework_s *menu, int key );
+const char *UI_DefaultKey( menuFramework_s *menu, int key, bool down );
 const char *UI_ActivateItem( menuFramework_s *menu, menuCommon_s *item );
 void UI_RefreshServerList( void );
 bool UI_CreditsActive( void );

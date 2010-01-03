@@ -175,7 +175,7 @@ extern alstate_t  al_state;
 
 // cvars
 extern cvar_t *s_alDevice;
-extern cvar_t *s_soundfx;
+extern cvar_t *s_allowEAX;
 extern cvar_t *s_musicvolume;
 extern cvar_t *s_check_errors;
 

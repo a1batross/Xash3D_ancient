@@ -190,11 +190,11 @@ static void UI_AddressBook_SaveServers( void )
 UI_AddressBook_KeyFunc
 =================
 */
-static const char *UI_AddressBook_KeyFunc( int key )
+static const char *UI_AddressBook_KeyFunc( int key, bool down )
 {
-	if( key == K_ESCAPE || key == K_MOUSE2 )
+	if( down && ( key == K_ESCAPE || key == K_MOUSE2 ))
 		UI_AddressBook_SaveServers();
-	return UI_DefaultKey( &uiAddressBook.menu, key );
+	return UI_DefaultKey( &uiAddressBook.menu, key, down );
 }
 
 /*

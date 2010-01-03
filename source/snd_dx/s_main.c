@@ -37,13 +37,15 @@ int		s_beginofs;
 cvar_t		*host_sound;
 cvar_t		*s_check_errors;
 cvar_t		*s_volume;
+cvar_t		*s_musicvolume;
 cvar_t		*s_testsound;
 cvar_t		*s_loadas8bit;
 cvar_t		*s_khz;
 cvar_t		*s_show;
 cvar_t		*s_mixahead;
 cvar_t		*s_primary;
-
+cvar_t		*s_allowEAX;
+cvar_t		*s_allowA3D;
 /*
 =============================================================================
 
@@ -853,6 +855,7 @@ bool S_Init( void *hInst )
 
 	host_sound = Cvar_Get( "host_sound", "1", CVAR_SYSTEMINFO, "enable sound system" );
 	s_volume = Cvar_Get( "s_volume", "0.7", CVAR_ARCHIVE, "sound volume" );
+	s_musicvolume = Cvar_Get("s_musicvolume", "1.0", CVAR_ARCHIVE, "background music volume" );
 	s_khz = Cvar_Get( "s_khz", "11", CVAR_LATCH_AUDIO|CVAR_ARCHIVE, "output sound frequency" );
 	s_loadas8bit = Cvar_Get( "s_loadas8bit", "1", CVAR_LATCH_AUDIO|CVAR_ARCHIVE, "resample all sounds to 8-bit" );
 	s_mixahead = Cvar_Get( "s_mixahead", "0.2", CVAR_ARCHIVE, "how much sound to mix ahead of time" );
@@ -860,6 +863,8 @@ bool S_Init( void *hInst )
 	s_testsound = Cvar_Get( "s_testsound", "0", 0, "generate sine 1 khz wave to testing audio subsystem" );
 	s_primary = Cvar_Get( "s_primary", "0", CVAR_LATCH_AUDIO|CVAR_ARCHIVE, "use direct primary buffer" ); 
 	s_check_errors = Cvar_Get( "s_check_errors", "1", CVAR_ARCHIVE, "ignore audio engine errors" );
+	s_allowEAX = Cvar_Get("s_allowEAX", "1", CVAR_LATCH_AUDIO|CVAR_ARCHIVE, "allow EAX 2.0 extension" );
+	s_allowA3D = Cvar_Get("s_allowA3D", "1", CVAR_LATCH_AUDIO|CVAR_ARCHIVE, "allow A3D 2.0 extension" );
 
 	Cmd_AddCommand( "playsound", S_Play_f, "playing a specified sound file" );
 	Cmd_AddCommand( "stopsound", S_StopSound_f, "stop all sounds" );

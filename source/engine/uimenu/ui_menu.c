@@ -27,17 +27,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "input.h"
 
 cvar_t	*ui_mainfont;
-cvar_t	*ui_confont;
+cvar_t	*ui_namefont;
 cvar_t	*ui_precache;
 cvar_t	*ui_sensitivity;
 
 uiStatic_t	uiStatic;
 
 string		uiEmptyString;
-const char	*uiSoundIn	= "misc/menu1.wav";
-const char	*uiSoundMove	= "misc/menu2.wav";
-const char	*uiSoundOut	= "misc/menu3.wav";
-const char	*uiSoundBuzz	= "misc/menu4.wav";
+const char	*uiSoundIn	= "common/menu1.wav";
+const char	*uiSoundMove	= "common/menu2.wav";
+const char	*uiSoundOut	= "common/menu3.wav";
+const char	*uiSoundBuzz	= "common/menu4.wav";
+const char	*uiSoundGlow	= "common/menu5.wav";
 const char	*uiSoundNull	= "";
 
 rgba_t		uiColorWhite	= {255, 255, 255, 255};
@@ -265,26 +266,29 @@ UI_DrawMouseCursor
 */
 void UI_DrawMouseCursor( void )
 {
-	shader_t		shader = -1;
 	menuCommon_s	*item;
+	shader_t		shader = -1;
+	int		w = UI_CURSOR_SIZE;
+	int		h = UI_CURSOR_SIZE;
 	int		i;
-	int		w = UI_CURSOR_SIZE, h = UI_CURSOR_SIZE;
 
-	if( !re ) return;
+	if( !re || uiStatic.hideCursor ) return;
 	UI_ScaleCoords( NULL, NULL, &w, &h );
 
 	for( i = 0; i < uiStatic.menuActive->numItems; i++ )
 	{
 		item = (menuCommon_s *)uiStatic.menuActive->items[i];
 
-		if( item->flags & (QMF_INACTIVE | QMF_HIDDEN))
+		if( item->flags & (QMF_INACTIVE|QMF_HIDDEN))
 			continue;
 
 		if( !UI_CursorInRect( item->x, item->y, item->width, item->height ))
 			continue;
 
 		if( item->flags & QMF_GRAYED )
+		{
 			shader = re->RegisterShader( UI_CURSOR_DISABLED, SHADER_NOMIP );
+		}
 		else
 		{
 			if( item->type == QMTYPE_FIELD )
@@ -335,6 +339,12 @@ void UI_AddItem( menuFramework_s *menu, void *item )
 		break;
 	case QMTYPE_SPINCONTROL:
 		UI_SpinControl_Init((menuSpinControl_s *)item );
+		break;
+	case QMTYPE_CHECKBOX:
+		UI_CheckBox_Init((menuCheckBox_s *)item );
+		break;
+	case QMTYPE_SLIDER:
+		UI_Slider_Init((menuSlider_s *)item );
 		break;
 	case QMTYPE_FIELD:
 		UI_Field_Init((menuField_s *)item );
@@ -515,6 +525,12 @@ void UI_DrawMenu( menuFramework_s *menu )
 		case QMTYPE_SPINCONTROL:
 			UI_SpinControl_Draw((menuSpinControl_s *)item );
 			break;
+		case QMTYPE_CHECKBOX:
+			UI_CheckBox_Draw((menuCheckBox_s *)item );
+			break;
+		case QMTYPE_SLIDER:
+			UI_Slider_Draw((menuSlider_s *)item );
+			break;
 		case QMTYPE_FIELD:
 			UI_Field_Draw((menuField_s *)item );
 			break;
@@ -541,7 +557,7 @@ void UI_DrawMenu( menuFramework_s *menu )
 		color[3] = bound( 0.0, ((uiStatic.realTime - statusFadeTime) - 1000) * 0.001f, 1.0f ) * 255;
 
 		UI_DrawStringExt( 0, 720 * uiStatic.scaleY, 1024 * uiStatic.scaleX, 28 * uiStatic.scaleY, item->statusText, color, true,
-		UI_SMALL_CHAR_WIDTH * uiStatic.scaleX, UI_SMALL_CHAR_HEIGHT * uiStatic.scaleY, 1, true, uiStatic.conFont );
+		UI_SMALL_CHAR_WIDTH * uiStatic.scaleX, UI_SMALL_CHAR_HEIGHT * uiStatic.scaleY, 1, true, cls.consoleFont );
 	}
 	else statusFadeTime = uiStatic.realTime;
 }
@@ -551,14 +567,14 @@ void UI_DrawMenu( menuFramework_s *menu )
 UI_DefaultKey
 =================
 */
-const char *UI_DefaultKey( menuFramework_s *menu, int key )
+const char *UI_DefaultKey( menuFramework_s *menu, int key, bool down )
 {
 	const char	*sound = NULL;
 	menuCommon_s	*item;
 	int		cursorPrev;
 
 	// menu system key
-	if( key == K_ESCAPE || key == K_MOUSE2 )
+	if( down && ( key == K_ESCAPE || key == K_MOUSE2 ))
 	{
 		UI_PopMenu();
 		return uiSoundOut;
@@ -573,23 +589,32 @@ const char *UI_DefaultKey( menuFramework_s *menu, int key )
 		switch( item->type )
 		{
 		case QMTYPE_SCROLLLIST:
-			sound = UI_ScrollList_Key((menuScrollList_s *)item, key );
+			sound = UI_ScrollList_Key((menuScrollList_s *)item, key, down );
 			break;
 		case QMTYPE_SPINCONTROL:
-			sound = UI_SpinControl_Key((menuSpinControl_s *)item, key );
+			sound = UI_SpinControl_Key((menuSpinControl_s *)item, key, down );
+			break;
+		case QMTYPE_CHECKBOX:
+			sound = UI_CheckBox_Key((menuCheckBox_s *)item, key, down );
+			break;
+		case QMTYPE_SLIDER:
+			sound = UI_Slider_Key((menuSlider_s *)item, key, down );
 			break;
 		case QMTYPE_FIELD:
-			sound = UI_Field_Key((menuField_s *)item, key );
+			sound = UI_Field_Key((menuField_s *)item, key, down );
 			break;
 		case QMTYPE_ACTION:
-			sound = UI_Action_Key((menuAction_s *)item, key );
+			sound = UI_Action_Key((menuAction_s *)item, key, down );
 			break;
 		case QMTYPE_BITMAP:
-			sound = UI_Bitmap_Key((menuBitmap_s *)item, key );
+			sound = UI_Bitmap_Key((menuBitmap_s *)item, key, down );
 			break;
 		}
 		if( sound ) return sound; // key was handled
 	}
+
+	// system keys are always wait for keys down and never keys up
+	if( !down ) return 0;
 
 	// default handling
 	switch( key )
@@ -823,7 +848,7 @@ void UI_UpdateMenu( int realTime )
 UI_KeyEvent
 =================
 */
-void UI_KeyEvent( int key )
+void UI_KeyEvent( int key, bool down )
 {
 	const char	*sound;
 
@@ -837,9 +862,10 @@ void UI_KeyEvent( int key )
 		return;
 
 	if( uiStatic.menuActive->keyFunc )
-		sound = uiStatic.menuActive->keyFunc( key );
-	else sound = UI_DefaultKey( uiStatic.menuActive, key );
+		sound = uiStatic.menuActive->keyFunc( key, down );
+	else sound = UI_DefaultKey( uiStatic.menuActive, key, down );
 
+	if( !down ) return;
 	if( sound && sound != uiSoundNull )
 		UI_StartSound( sound );
 }
@@ -984,15 +1010,29 @@ bool UI_IsVisible( void )
 	return uiStatic.visible;
 }
 
+void UI_GetCursorPos( POINT *pos )
+{
+	if( !pos ) return;
+
+	pos->x = uiStatic.cursorX;
+	pos->y = uiStatic.cursorY;
+}
+
+void UI_SetCursorPos( int pos_x, int pos_y )
+{
+	uiStatic.cursorX = bound( 0, pos_x, scr_width->integer );
+	uiStatic.cursorY = bound( 0, pos_y, scr_height->integer );
+	uiStatic.mouseInRect = true;
+}
+
+void UI_ShowCursor( bool show )
+{
+	uiStatic.hideCursor = (show) ? false : true;
+}
+
 bool UI_MouseInRect( void )
 {
 	return uiStatic.mouseInRect;
-}
-
-void UI_ResetMouse( void )
-{
-	// clear mouse state
-	uiStatic.mouseInRect = true;
 }
 
 /*
@@ -1073,8 +1113,8 @@ void UI_SetFont_f( void )
 		uiStatic.menuFont = re->RegisterShader( va( "gfx/fonts/%s", ui_mainfont->string ), SHADER_FONT );
 		break;
 	case 3:
-		Cvar_Set( "ui_confont", Cmd_Argv( 1 ));
-		uiStatic.conFont = re->RegisterShader( va( "gfx/fonts/%s", ui_confont->string ), SHADER_FONT );
+		Cvar_Set( "ui_namefont", Cmd_Argv( 1 ));
+		uiStatic.nameFont = re->RegisterShader( va( "gfx/fonts/%s", ui_namefont->string ), SHADER_FONT );
 		break;
 	default:
 		Msg( "menufont: invalid aruments\n" );
@@ -1092,8 +1132,8 @@ void UI_Init( void )
 	// register our cvars and commands
 	ui_precache = Cvar_Get( "ui_precache", "0", CVAR_ARCHIVE, "enable precache all resources for menu" );
 	ui_sensitivity = Cvar_Get( "ui_sensitivity", "1", CVAR_ARCHIVE, "mouse sensitivity while in-menu" );
-	ui_mainfont= Cvar_Get( "ui_mainfont", "default", CVAR_ARCHIVE, "ui primary font (buttons, title, etc)" );
-	ui_confont = Cvar_Get( "ui_confont", "default", CVAR_ARCHIVE, "ui console font (hints, notify)" );
+	ui_mainfont = Cvar_Get( "ui_mainfont", "default", CVAR_ARCHIVE, "ui primary font (buttons, title, etc)" );
+	ui_namefont = Cvar_Get( "ui_namefont", "default", CVAR_ARCHIVE, "ui console font (hints, notify)" );
 
 	Cmd_AddCommand( "menufont", UI_SetFont_f, "set menu master/notify font" );
 	Cmd_AddCommand( "menu_main", UI_Main_Menu, "open the main menu" );
@@ -1122,7 +1162,7 @@ void UI_Init( void )
 	if( re )
 	{
 		// register ui fonts
-		uiStatic.conFont = re->RegisterShader( va( "gfx/fonts/%s", ui_confont->string ), SHADER_FONT );
+		uiStatic.nameFont = re->RegisterShader( va( "gfx/fonts/%s", ui_namefont->string ), SHADER_FONT );
 		uiStatic.menuFont = re->RegisterShader( va( "gfx/fonts/%s", ui_mainfont->string ), SHADER_FONT );
 	}
 	uiStatic.initialized = true;

@@ -438,10 +438,12 @@ static void UI_Controls_UpdateConfig( void )
 UI_Controls_KeyFunc
 =================
 */
-static const char *UI_Controls_KeyFunc( int key )
+static const char *UI_Controls_KeyFunc( int key, bool down )
 {
 	menuCommon_s	*item = (menuCommon_s *)(uiControls.menu.items[uiControls.menu.cursor]);
 	uiControlsBind_t	*binding;
+
+	if( !down ) return uiSoundNull;
 
 	if( item->type == QMTYPE_ACTION )
 	{
@@ -478,7 +480,7 @@ static const char *UI_Controls_KeyFunc( int key )
 		
 				return uiSoundOut;
 			default:
-				return UI_DefaultKey( &uiControls.menu, key );
+				return UI_DefaultKey( &uiControls.menu, key, down );
 			}
 		}
 		else
@@ -493,7 +495,7 @@ static const char *UI_Controls_KeyFunc( int key )
 				return uiSoundOut;
 			case '`':
 			case '~':
-				return UI_DefaultKey( &uiControls.menu, key );
+				return UI_DefaultKey( &uiControls.menu, key, down );
 			default:
 				// remove from any other bind
 				for( binding = uiControlsBindings; binding->id != -1; binding++ )
@@ -533,7 +535,7 @@ static const char *UI_Controls_KeyFunc( int key )
 			}
 		}
 	}
-	return UI_DefaultKey( &uiControls.menu, key );
+	return UI_DefaultKey( &uiControls.menu, key, down );
 }
 
 /*

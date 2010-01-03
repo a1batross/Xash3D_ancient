@@ -20,12 +20,20 @@
 #include "safeproc.h"
 #include "net_msg.h"
 
+#define MAX_RENDERS		8		// max libraries to keep tracking
 #define MAX_ENTNUMBER	99999		// for server and client parsing
 #define MAX_HEARTBEAT	-99999		// connection time
 
 extern cvar_t	*scr_width;
 extern cvar_t	*scr_height;
 extern cvar_t	*allow_download;
+
+extern string	video_dlls[MAX_RENDERS];
+extern string	audio_dlls[MAX_RENDERS];
+extern string	cphys_dlls[MAX_RENDERS];
+extern int	num_video_dlls;
+extern int	num_audio_dlls;
+extern int	num_cphys_dlls;
 
 /*
 ==============================================================
@@ -181,7 +189,7 @@ void Key_WriteBindings( file_t *f );
 void Key_SetBinding( int keynum, char *binding );
 void Key_ClearStates( void );
 char *Key_KeynumToString( int keynum );
-int Key_StringToKeynum( char *str );
+int Key_StringToKeynum( const char *str );
 int Key_GetKey( const char *binding );
 void Key_EnumCmds_f( void );
 void Key_SetKeyDest( int key_dest );

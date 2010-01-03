@@ -26,8 +26,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define ART_MINIMIZE_N	"gfx/shell/min_n"
 #define ART_MINIMIZE_F	"gfx/shell/min_f"
+#define ART_MINIMIZE_D	"gfx/shell/min_d"
 #define ART_CLOSEBTN_N	"gfx/shell/cls_n"
 #define ART_CLOSEBTN_F	"gfx/shell/cls_f"
+#define ART_CLOSEBTN_D	"gfx/shell/cls_d"
 
 #define ID_BACKGROUND	0
 #define ID_CONSOLE		1
@@ -40,11 +42,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ID_CUSTOMGAME	8
 #define ID_CREDITS		9
 #define ID_QUIT		10
-#define ID_MINIMIZE		11
-#define ID_MSGBOX	 	12
-#define ID_MSGTEXT	 	13
-#define ID_YES	 	14
-#define ID_NO	 	15
+#define ID_QUIT_BUTTON	11
+#define ID_MINIMIZE		12
+#define ID_MSGBOX	 	13
+#define ID_MSGTEXT	 	14
+#define ID_YES	 	15
+#define ID_NO	 	16
 
 typedef struct
 {
@@ -115,17 +118,16 @@ static void UI_QuitDialog( void )
 UI_Main_KeyFunc
 =================
 */
-static const char *UI_Main_KeyFunc( int key )
+static const char *UI_Main_KeyFunc( int key, bool down )
 {
-	switch( key )
+	if( down && key == K_ESCAPE )
 	{
-	case K_ESCAPE:
 		if( cls.state == ca_active )
 			UI_CloseMenu();
-		else UI_QuitDialog ();
+		else UI_QuitDialog();
 		return uiSoundNull;
 	}
-	return UI_DefaultKey( &uiMain.menu, key );
+	return UI_DefaultKey( &uiMain.menu, key, down );
 }
 
 /*
@@ -153,6 +155,20 @@ UI_Main_Callback
 static void UI_Main_Callback( void *self, int event )
 {
 	menuCommon_s	*item = (menuCommon_s *)self;
+
+	switch( item->id )
+	{
+	case ID_QUIT_BUTTON:
+		if( event == QM_PRESSED )
+			((menuBitmap_s *)self)->focusPic = ART_CLOSEBTN_D;
+		else ((menuBitmap_s *)self)->focusPic = ART_CLOSEBTN_F;
+		break;
+	case ID_MINIMIZE:
+		if( event == QM_PRESSED )
+			((menuBitmap_s *)self)->focusPic = ART_MINIMIZE_D;
+		else ((menuBitmap_s *)self)->focusPic = ART_MINIMIZE_F;
+		break;
+	}
 
 	if( event != QM_ACTIVATED )
 		return;
@@ -190,6 +206,7 @@ static void UI_Main_Callback( void *self, int event )
 		UI_Credits_Menu();
 		break;
 	case ID_QUIT:
+	case ID_QUIT_BUTTON:
 		UI_QuitDialog();
 		break;
 	case ID_MINIMIZE:
@@ -335,7 +352,7 @@ static void UI_Main_Init( void )
 
 	uiMain.minimizeBtn.generic.id = ID_MINIMIZE;
 	uiMain.minimizeBtn.generic.type = QMTYPE_BITMAP;
-	uiMain.minimizeBtn.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_MOUSEONLY;
+	uiMain.minimizeBtn.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_MOUSEONLY|QMF_ACT_ONRELEASE;
 	uiMain.minimizeBtn.generic.x = 952;
 	uiMain.minimizeBtn.generic.y = 13;
 	uiMain.minimizeBtn.generic.width = 32;
@@ -344,9 +361,9 @@ static void UI_Main_Init( void )
 	uiMain.minimizeBtn.pic = ART_MINIMIZE_N;
 	uiMain.minimizeBtn.focusPic = ART_MINIMIZE_F;
 
-	uiMain.quitButton.generic.id = ID_QUIT;
+	uiMain.quitButton.generic.id = ID_QUIT_BUTTON;
 	uiMain.quitButton.generic.type = QMTYPE_BITMAP;
-	uiMain.quitButton.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_MOUSEONLY;
+	uiMain.quitButton.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_MOUSEONLY|QMF_ACT_ONRELEASE;
 	uiMain.quitButton.generic.x = 984;
 	uiMain.quitButton.generic.y = 13;
 	uiMain.quitButton.generic.width = 32;
@@ -391,8 +408,7 @@ static void UI_Main_Init( void )
 	if( host.developer ) UI_AddItem( &uiMain.menu, (void *)&uiMain.console );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.resumeGame );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.newGame );
-	if( com.strlen( GI->trainmap ))
-		UI_AddItem( &uiMain.menu, (void *)&uiMain.hazardCourse );
+	if( com.strlen( GI->trainmap )) UI_AddItem( &uiMain.menu, (void *)&uiMain.hazardCourse );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.saveRestore );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.configuration );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.multiPlayer );
@@ -419,8 +435,10 @@ void UI_Main_Precache( void )
 	re->RegisterShader( ART_MAIN_SPLASH, SHADER_NOMIP );
 	re->RegisterShader( ART_MINIMIZE_N, SHADER_NOMIP );
 	re->RegisterShader( ART_MINIMIZE_F, SHADER_NOMIP );
+	re->RegisterShader( ART_MINIMIZE_D, SHADER_NOMIP );
 	re->RegisterShader( ART_CLOSEBTN_N, SHADER_NOMIP );
 	re->RegisterShader( ART_CLOSEBTN_F, SHADER_NOMIP );
+	re->RegisterShader( ART_CLOSEBTN_D, SHADER_NOMIP );
 }
 
 /*

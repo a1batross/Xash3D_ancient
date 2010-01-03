@@ -612,13 +612,15 @@ extern field_t chatField;
 typedef enum { UI_CLOSEMENU, UI_MAINMENU } uiActiveMenu_t;
 
 void UI_UpdateMenu( int realtime );
-void UI_KeyEvent( int key );
+void UI_KeyEvent( int key, bool down );
 void UI_MouseMove( int x, int y );
 void UI_SetActiveMenu( uiActiveMenu_t activeMenu );
 void UI_AddServerToList( netadr_t adr, const char *info );
+void UI_GetCursorPos( POINT *pos );
+void UI_SetCursorPos( int pos_x, int pos_y );
+void UI_ShowCursor( bool show );
 bool UI_CreditsActive( void );
 bool UI_MouseInRect( void );
-void UI_ResetMouse( void );
 bool UI_IsVisible( void );
 void UI_Precache( void );
 void UI_Init( void );

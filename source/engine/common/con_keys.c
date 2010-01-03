@@ -612,16 +612,16 @@ void Key_Console( int key )
 		return;
 	}
 
-	if ( key == K_PGDN)
+	if( key == K_PGDN )
 	{
 		Con_PageDown();
 		return;
 	}
 
-	if ( key == K_MWHEELUP)
+	if( key == K_MWHEELUP )
 	{
 		Con_PageUp();
-		if(keys[K_CTRL].down)
+		if( keys[K_CTRL].down )
 		{
 			Con_PageUp();
 			Con_PageUp();
@@ -629,10 +629,10 @@ void Key_Console( int key )
 		return;
 	}
 
-	if ( key == K_MWHEELDOWN)
+	if( key == K_MWHEELDOWN )
 	{	
 		Con_PageDown();
-		if(keys[K_CTRL].down)
+		if( keys[K_CTRL].down )
 		{	
 			Con_PageDown();
 			Con_PageDown();
@@ -641,7 +641,7 @@ void Key_Console( int key )
 	}
 
 	// ctrl-home = top of console
-	if ( key == K_HOME && keys[K_CTRL].down )
+	if( key == K_HOME && keys[K_CTRL].down )
 	{
 		Con_Top();
 		return;
@@ -654,17 +654,8 @@ void Key_Console( int key )
 		return;
 	}
 
-#if 0
-	if( key < 127 && !Key_IsDown(K_CTRL)) 
-	{
-		// pass to the normal editline routine
-		Field_CharEvent( &g_consoleField, key );
-	}
-	else Field_KeyDownEvent( &g_consoleField, key );
-#else
 	// pass to the normal editline routine
 	Field_KeyDownEvent( &g_consoleField, key );
-#endif
 }
 
 /*
@@ -686,7 +677,7 @@ Key_GetBind
 */
 char *Key_IsBind( int keynum )
 {
-	if( keynum == -1 || !keys[keynum].binding)
+	if( keynum == -1 || !keys[keynum].binding )
 		return NULL;
 	return keys[keynum].binding;
 }
@@ -704,35 +695,35 @@ the K_* names are matched up.
 to be configured even if they don't have defined names.
 ===================
 */
-int Key_StringToKeynum( char *str )
+int Key_StringToKeynum( const char *str )
 {
 	keyname_t		*kn;
 	
-	if ( !str || !str[0] ) return -1;
-	if ( !str[1] ) return str[0];
+	if( !str || !str[0] ) return -1;
+	if( !str[1] ) return str[0];
 
 	// check for hex code
-	if ( str[0] == '0' && str[1] == 'x' && com.strlen( str ) == 4)
+	if( str[0] == '0' && str[1] == 'x' && com.strlen( str ) == 4 )
 	{
 		int	n1, n2;
 		
 		n1 = str[2];
-		if ( n1 >= '0' && n1 <= '9' )
+		if( n1 >= '0' && n1 <= '9' )
 		{
 			n1 -= '0';
 		}
-		else if ( n1 >= 'a' && n1 <= 'f' )
+		else if( n1 >= 'a' && n1 <= 'f' )
 		{
 			n1 = n1 - 'a' + 10;
 		}
 		else n1 = 0;
 
 		n2 = str[3];
-		if ( n2 >= '0' && n2 <= '9' )
+		if( n2 >= '0' && n2 <= '9' )
 		{
 			n2 -= '0';
 		}
-		else if ( n2 >= 'a' && n2 <= 'f' )
+		else if( n2 >= 'a' && n2 <= 'f' )
 		{
 			n2 = n2 - 'a' + 10;
 		}
@@ -742,7 +733,7 @@ int Key_StringToKeynum( char *str )
 	}
 
 	// scan for a text match
-	for ( kn = keynames; kn->name; kn++ )
+	for( kn = keynames; kn->name; kn++ )
 	{
 		if( !com.stricmp( str,kn->name ))
 			return kn->keynum;
@@ -768,7 +759,7 @@ char *Key_KeynumToString( int keynum )
 	if ( keynum < 0 || keynum > 255 ) return "<OUT OF RANGE>";
 
 	// check for printable ascii (don't use quote)
-	if ( keynum > 32 && keynum < 127 && keynum != '"' && keynum != ';' )
+	if( keynum > 32 && keynum < 127 && keynum != '"' && keynum != ';' )
 	{
 		tinystr[0] = keynum;
 		tinystr[1] = 0;
@@ -776,9 +767,9 @@ char *Key_KeynumToString( int keynum )
 	}
 
 	// check for a key string
-	for ( kn = keynames; kn->name; kn++ )
+	for( kn = keynames; kn->name; kn++ )
 	{
-		if (keynum == kn->keynum)
+		if( keynum == kn->keynum )
 			return kn->name;
 	}
 
@@ -856,19 +847,19 @@ void Key_Unbind_f( void )
 {
 	int	b;
 
-	if (Cmd_Argc() != 2)
+	if( Cmd_Argc() != 2 )
 	{
-		Msg("unbind <key> : remove commands from a key\n");
+		Msg( "Usage: unbind <key> : remove commands from a key\n" );
 		return;
 	}
 	
-	b = Key_StringToKeynum(Cmd_Argv(1));
-	if (b == -1)
+	b = Key_StringToKeynum( Cmd_Argv( 1 ));
+	if( b == -1 )
 	{
-		Msg("\"%s\" isn't a valid key\n", Cmd_Argv(1));
+		Msg( "\"%s\" isn't a valid key\n", Cmd_Argv( 1 ));
 		return;
 	}
-	Key_SetBinding(b, "" );
+	Key_SetBinding( b, "" );
 }
 
 /*
@@ -876,14 +867,14 @@ void Key_Unbind_f( void )
 Key_Unbindall_f
 ===================
 */
-void Key_Unbindall_f (void)
+void Key_Unbindall_f( void )
 {
 	int	i;
 	
-	for (i = 0; i < 256; i++)
+	for( i = 0; i < 256; i++ )
 	{
-		if (keys[i].binding)
-			Key_SetBinding (i, "");
+		if( keys[i].binding )
+			Key_SetBinding( i, "" );
 	}
 }
 
@@ -893,40 +884,42 @@ void Key_Unbindall_f (void)
 Key_Bind_f
 ===================
 */
-void Key_Bind_f (void)
+void Key_Bind_f( void )
 {
 	int	i, c, b;
 	char	cmd[1024];
 	
 	c = Cmd_Argc();
 
-	if (c < 2)
+	if( c < 2 )
 	{
-		Msg("bind <key> [command] : attach a command to a key\n");
-		return;
-	}
-	b = Key_StringToKeynum (Cmd_Argv(1));
-	if (b == -1)
-	{
-		Msg("\"%s\" isn't a valid key\n", Cmd_Argv(1));
+		Msg( "Usage: bind <key> [command] : attach a command to a key\n" );
 		return;
 	}
 
-	if (c == 2)
+	b = Key_StringToKeynum( Cmd_Argv( 1 ));
+	if( b == -1 )
 	{
-		if (keys[b].binding) Msg("\"%s\" = \"%s\"\n", Cmd_Argv(1), keys[b].binding );
-		else Msg("\"%s\" is not bound\n", Cmd_Argv(1) );
+		Msg( "\"%s\" isn't a valid key\n", Cmd_Argv( 1 ));
+		return;
+	}
+
+	if( c == 2 )
+	{
+		if( keys[b].binding )
+			Msg( "\"%s\" = \"%s\"\n", Cmd_Argv( 1 ), keys[b].binding );
+		else Msg( "\"%s\" is not bound\n", Cmd_Argv( 1 ));
 		return;
 	}
 	
 	// copy the rest of the command line
 	cmd[0] = 0; // start out with a null string
-	for (i = 2; i < c; i++)
+	for( i = 2; i < c; i++ )
 	{
-		com.strcat (cmd, Cmd_Argv(i));
-		if (i != (c-1)) com.strcat (cmd, " ");
+		com.strcat( cmd, Cmd_Argv( i ));
+		if( i != ( c - 1 )) com.strcat( cmd, " " );
 	}
-	Key_SetBinding (b, cmd);
+	Key_SetBinding( b, cmd );
 }
 
 /*
@@ -938,14 +931,15 @@ Writes lines containing "bind key value"
 */
 void Key_WriteBindings( file_t *f )
 {
-	int		i;
+	int	i;
 
-	FS_Printf (f, "unbindall\n" );
+	if( !f ) return;
+	FS_Printf( f, "unbindall\n" );
 
-	for (i = 0; i < 256; i++)
+	for( i = 0; i < 256; i++ )
 	{
-		if (keys[i].binding && keys[i].binding[0] )
-			FS_Printf (f, "bind %s \"%s\"\n", Key_KeynumToString(i), keys[i].binding);
+		if( keys[i].binding && keys[i].binding[0] )
+			FS_Printf( f, "bind %s \"%s\"\n", Key_KeynumToString(i), keys[i].binding );
 	}
 }
 
@@ -960,10 +954,10 @@ void Key_Bindlist_f( void )
 {
 	int	i;
 
-	for ( i = 0; i < 256; i++ )
+	for( i = 0; i < 256; i++ )
 	{
-		if ( keys[i].binding && keys[i].binding[0] )
-			Msg( "%s \"%s\"\n", Key_KeynumToString(i), keys[i].binding );
+		if( keys[i].binding && keys[i].binding[0] )
+			Msg( "%s \"%s\"\n", Key_KeynumToString( i ), keys[i].binding );
 	}
 }
 
@@ -981,14 +975,14 @@ Key_Init
 */
 void Key_Init( void )
 {
-	keyname_t		*kn;
+	keyname_t	*kn;
 
 	// register our functions
-	Cmd_AddCommand ("bind", Key_Bind_f, "binds a command to the specified key in bindmap" );
-	Cmd_AddCommand ("unbind", Key_Unbind_f, "removes a command on the specified key in bindmap" );
-	Cmd_AddCommand ("unbindall", Key_Unbindall_f, "removes all commands from all keys in bindmap" );
-	Cmd_AddCommand ("bindlist", Key_Bindlist_f, "display current key bindings" );
-	Cmd_AddCommand ("makehelp", Key_EnumCmds_f, "write help.txt that contains all console cvars and cmds" ); 
+	Cmd_AddCommand( "bind", Key_Bind_f, "binds a command to the specified key in bindmap" );
+	Cmd_AddCommand( "unbind", Key_Unbind_f, "removes a command on the specified key in bindmap" );
+	Cmd_AddCommand( "unbindall", Key_Unbindall_f, "removes all commands from all keys in bindmap" );
+	Cmd_AddCommand( "bindlist", Key_Bindlist_f, "display current key bindings" );
+	Cmd_AddCommand( "makehelp", Key_EnumCmds_f, "write help.txt that contains all console cvars and cmds" ); 
 
 	// setup hardcode binding. "unbindall" from keys.rc will be reset it
 	for( kn = keynames; kn->name; kn++ ) Key_SetBinding( kn->keynum, kn->binding ); 
@@ -1006,20 +1000,20 @@ void Key_AddKeyUpCommands( int key, char *kb )
 	char	cmd[1024];
 	bool	keyevent;
 
-	if(!kb) return;
+	if( !kb ) return;
 	keyevent = false;
 	buttonPtr = button;
 
-	for ( i = 0; ; i++ )
+	for( i = 0; ; i++ )
 	{
-		if ( kb[i] == ';' || !kb[i] )
+		if( kb[i] == ';' || !kb[i] )
 		{
 			*buttonPtr = '\0';
 			if( button[0] == '+' )
 			{
 				// button commands add keynum as a parm
 				com.sprintf( cmd, "-%s %i\n", button+1, key );
-				Cbuf_AddText (cmd);
+				Cbuf_AddText( cmd );
 				keyevent = true;
 			}
 			else
@@ -1031,8 +1025,10 @@ void Key_AddKeyUpCommands( int key, char *kb )
 					Cbuf_AddText( "\n" );
 				}
 			}
+
 			buttonPtr = button;
-			while((kb[i] <= ' ' || kb[i] == ';') && kb[i] != 0 ) i++;
+			while(( kb[i] <= ' ' || kb[i] == ';' ) && kb[i] != 0 )
+				i++;
 		}
 		*buttonPtr++ = kb[i];
 		if( !kb[i] ) break;
@@ -1097,12 +1093,18 @@ void Key_Event( int key, bool down, int time )
 			}
 			break;
 		case key_menu:
-			UI_KeyEvent( key );
+			UI_KeyEvent( key, true );
 			return;
 		default:
 			MsgDev( D_ERROR, "Key_Event: bad cls.key_dest\n" );
 			return;
 		}
+	}
+
+	if( cls.key_dest == key_menu )
+	{
+		UI_KeyEvent( key, down );
+		return;
 	}
 
 	// key up events only perform actions if the game key binding is
@@ -1117,18 +1119,8 @@ void Key_Event( int key, bool down, int time )
 		return;
 	}
 
-	if( !down ) return; // other systems only care about key down events
-
 	// distribute the key down event to the apropriate handler
-	if( cls.key_dest == key_menu )
-	{
-		UI_KeyEvent( key );
-	}
-	else if( cls.key_dest == key_console )
-	{
-		Key_Console( key );
-	}
-	else if( cls.key_dest == key_game )
+	if( cls.key_dest == key_game )
 	{
 		// send the bound action
 		kb = keys[key].binding;
@@ -1141,8 +1133,8 @@ void Key_Event( int key, bool down, int time )
 		{	
 			int	i;
 			char	button[1024], *buttonPtr;
-			buttonPtr = button;
-			for ( i = 0; ; i++ )
+
+			for( i = 0, buttonPtr = button; ; i++ )
 			{
 				if( kb[i] == ';' || !kb[i] )
 				{
@@ -1160,8 +1152,10 @@ void Key_Event( int key, bool down, int time )
 						Cbuf_AddText( button );
 						Cbuf_AddText( "\n" );
 					}
+
 					buttonPtr = button;
-					while ( (kb[i] <= ' ' || kb[i] == ';') && kb[i] != 0 ) i++;
+					while (( kb[i] <= ' ' || kb[i] == ';' ) && kb[i] != 0 )
+						i++;
 				}
 				*buttonPtr++ = kb[i];
 				if ( !kb[i] ) break;
@@ -1173,6 +1167,10 @@ void Key_Event( int key, bool down, int time )
 			Cbuf_AddText( kb );
 			Cbuf_AddText( "\n" );
 		}
+	}
+	else if( cls.key_dest == key_console )
+	{
+		Key_Console( key );
 	}
 }
 
@@ -1208,7 +1206,7 @@ void CL_MouseEvent( int mx, int my )
 		// if the menu is visible, move the menu cursor
 		UI_MouseMove( mx, my );
 	}
-	else
+	else if( cls.key_dest != key_console )
 	{
 		// otherwise passed into client.dll
 		clgame.dllFuncs.pfnMouseEvent( mx, my );

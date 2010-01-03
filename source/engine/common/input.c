@@ -6,10 +6,10 @@
 #include "common.h"
 #include "input.h"
 #include "client.h"
-#include "ui_local.h"
 
-#define	WND_HEADSIZE	30	// FIXME: get it from system metrics ?
-#define	WND_BORDER	3	// sentinel border in pixels
+#define WM_MOUSEWHEEL	( WM_MOUSELAST + 1 )	// message that will be supported by the OS
+#define WND_HEADSIZE	wnd_caption		// some offset
+#define WND_BORDER		3			// sentinel border in pixels
 
 bool	in_mouseactive;		// false when not focus app
 bool	in_restore_spi;
@@ -21,14 +21,13 @@ bool	in_mouseparmsvalid;
 int	in_mouse_buttons;
 int	in_mouse_oldbuttonstate;
 int	window_center_x, window_center_y;
+RECT	window_rect, real_rect;
 uint	in_mouse_wheel;
-RECT	window_rect;
+int	wnd_caption;
 
-cvar_t *scr_xpos;		// X coordinate of window position
-cvar_t *scr_ypos;		// Y coordinate of window position
-cvar_t *scr_fullscreen;
-
-#define WM_MOUSEWHEEL	( WM_MOUSELAST + 1 ) // message that will be supported by the OS
+cvar_t	*scr_xpos;		// X coordinate of window position
+cvar_t	*scr_ypos;		// Y coordinate of window position
+cvar_t	*scr_fullscreen;
 
 static byte scan_to_key[128] = 
 { 
@@ -122,13 +121,13 @@ static bool IN_CursorInRect( void )
 	// find mouse movement
 	GetCursorPos( &curpos );
 
-	if( curpos.x < window_rect.left + WND_BORDER )
+	if( curpos.x < real_rect.left + WND_BORDER )
 		return false;
-	if( curpos.x > window_rect.right - WND_BORDER * 3 )
+	if( curpos.x > real_rect.right - WND_BORDER * 3 )
 		return false;
-	if( curpos.y < window_rect.top + WND_HEADSIZE + WND_BORDER )
+	if( curpos.y < real_rect.top + WND_HEADSIZE + WND_BORDER )
 		return false;
-	if( curpos.y > window_rect.bottom - WND_BORDER )
+	if( curpos.y > real_rect.bottom - WND_BORDER * 3 )
 		return false;
 	return true;
 }
@@ -145,7 +144,9 @@ void IN_ActivateMouse( void )
 {
 	int		width, height;
 	static int	oldstate;
-
+	POINT		global_pos;
+	int		x, y;
+			
 	if( !in_mouseinitialized )
 		return;
 
@@ -159,14 +160,15 @@ void IN_ActivateMouse( void )
 		{
 			if( in_mouse_suspended )
 			{
-				int	x, y;
-
+				UI_GetCursorPos( &global_pos );
+			
 				ClipCursor( NULL );
 				ReleaseCapture();
 				while( ShowCursor( true ) < 0 );
+				UI_ShowCursor( false );
 
-				x = window_rect.left + uiStatic.cursorX;
-				y = window_rect.top + uiStatic.cursorY + WND_HEADSIZE;
+				x = real_rect.left + global_pos.x;
+				y = real_rect.top + global_pos.y + WND_HEADSIZE;
 
 				// set system cursor position
 				SetCursorPos( x, y );
@@ -177,20 +179,16 @@ void IN_ActivateMouse( void )
 
 		if( in_mouse_suspended && IN_CursorInRect())
 		{
-			POINT	global_pos;
-			int	x, y;
-
 			GetCursorPos( &global_pos );
 			in_mouse_suspended = false;
 			in_mouseactive = false; // re-initialize mouse
 
-			x = global_pos.x - window_rect.left;
-			y = global_pos.y - window_rect.top - WND_HEADSIZE;
+			x = global_pos.x - real_rect.left;
+			y = global_pos.y - real_rect.top - WND_HEADSIZE;
 
 			// set menu cursor position
-			uiStatic.cursorX = bound( 0, x, scr_width->integer );
-			uiStatic.cursorY = bound( 0, y, scr_height->integer );
-			UI_ResetMouse(); // needs to reset mouse state
+			UI_SetCursorPos( x, y );
+			UI_ShowCursor( true );
 		}
 	}
 
@@ -386,6 +384,7 @@ long IN_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 		scr_xpos = Cvar_Get( "r_xpos", "3", CVAR_ARCHIVE, "window position by horizontal" );
 		scr_ypos = Cvar_Get( "r_ypos", "22", CVAR_ARCHIVE, "window position by vertical" );
 		scr_fullscreen = Cvar_Get( "fullscreen", "0", CVAR_ARCHIVE|CVAR_LATCH, "set in 1 to enable fullscreen mode" );
+		GetWindowRect( host.hWnd, &real_rect );
 		break;
 	case WM_CLOSE:
 		Cbuf_ExecuteText( EXEC_APPEND, "quit" );
@@ -397,6 +396,7 @@ long IN_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 			host.state = HOST_NOFOCUS;
 		else host.state = HOST_FRAME;
 
+		wnd_caption = GetSystemMetrics( SM_CYCAPTION );
 		S_Activate( (host.state == HOST_FRAME) ? true : false );
 		Key_ClearStates();	// FIXME!!!
 
@@ -428,7 +428,7 @@ long IN_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 			Cvar_SetValue( "r_ypos", yPos + r.top );
 			scr_xpos->modified = false;
 			scr_ypos->modified = false;
-			GetWindowRect( host.hWnd, &window_rect );
+			GetWindowRect( host.hWnd, &real_rect );
 		}
 		break;
 	case WM_LBUTTONDOWN:

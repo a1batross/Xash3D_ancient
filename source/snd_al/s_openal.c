@@ -254,7 +254,7 @@ static void S_InitExtensions( void )
 	al_config.Set3DMode = NULL;
 	al_config.allow_3DMode = false;
 
-	if( !s_soundfx->integer ) return;
+	if( !s_allowEAX->integer ) return;
 
 	// check I3DL2 extension for NVidia's Sound Storm chips. I3DL2 is hidden and can be missed in extension list.
 	if( !com.strcmp( NVIDIA_DEVICE_NAME, al_config.deviceList[0] ))

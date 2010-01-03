@@ -36,6 +36,7 @@ static const char *uiCreditsDefault[] =
 	"^3ART",
 	"Chorus",
 	"Small Link",
+	"The FiEctro",
 	"",
 	"^3LEVEL DESIGN",
 	"Scrama",
@@ -43,7 +44,7 @@ static const char *uiCreditsDefault[] =
 	"",
 	"",
 	"^3SPECIAL THANKS",
-	"Chain Studios at all",
+	"Chain Studios et all",
 	"",
 	"",
 	"",
@@ -157,8 +158,9 @@ static void UI_Credits_DrawFunc( void )
 UI_Credits_KeyFunc
 =================
 */
-static const char *UI_Credits_KeyFunc( int key )
+static const char *UI_Credits_KeyFunc( int key, bool down )
 {
+	if( !down ) return uiSoundNull;
 	if( uiCredits.finalCredits )
 		return uiSoundNull;
 

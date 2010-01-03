@@ -6,7 +6,6 @@
 #include "common.h"
 #include "input.h"
 
-#define MAX_RENDERS		8	// max libraries to keep tracking
 #define MAX_SYSEVENTS	1024	// system events
 
 physic_exp_t	*pe;
