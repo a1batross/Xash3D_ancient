@@ -87,6 +87,9 @@ static void UI_CustomGame_GetModList( void )
 		else com.strncat( uiCustomGame.modsDescription[i], "0.0 Mb", SIZE_LENGTH );     
 		com.strncat( uiCustomGame.modsDescription[i], uiEmptyString, SIZE_LENGTH );
 		uiCustomGame.modsDescriptionPtr[i] = uiCustomGame.modsDescription[i];
+
+		if( !com.strcmp( SI->GameInfo->gamefolder, SI->games[i]->gamefolder ))
+			uiCustomGame.modList.curItem = i;
 	}
 	for( ; i < MAX_MODS; i++ ) uiCustomGame.modsDescriptionPtr[i] = NULL;
 

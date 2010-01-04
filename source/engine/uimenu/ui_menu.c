@@ -126,33 +126,33 @@ void UI_FillRect( int x, int y, int w, int h, const rgba_t color )
 
 /*
 =================
-UI_DrawRectangle
+UI_DrawRectangleExt
 =================
 */
-void UI_DrawRectangle( int in_x, int in_y, int in_w, int in_h, const rgba_t color )
+void UI_DrawRectangleExt( int in_x, int in_y, int in_w, int in_h, const rgba_t color, int outlineWidth )
 {
 	int	x, y, w, h;
 
-	x = in_x - UI_OUTLINE_WIDTH;
-	y = in_y - UI_OUTLINE_WIDTH;
-	w = UI_OUTLINE_WIDTH;
-	h = in_h + UI_OUTLINE_WIDTH + UI_OUTLINE_WIDTH;
+	x = in_x - outlineWidth;
+	y = in_y - outlineWidth;
+	w = outlineWidth;
+	h = in_h + outlineWidth + outlineWidth;
 
 	// draw left
 	UI_FillRect( x, y, w, h, color );
 
 	x = in_x + in_w;
-	y = in_y - UI_OUTLINE_WIDTH;
-	w = UI_OUTLINE_WIDTH;
-	h = in_h + UI_OUTLINE_WIDTH + UI_OUTLINE_WIDTH;
+	y = in_y - outlineWidth;
+	w = outlineWidth;
+	h = in_h + outlineWidth + outlineWidth;
 
 	// draw right
 	UI_FillRect( x, y, w, h, color );
 
 	x = in_x;
-	y = in_y - UI_OUTLINE_WIDTH;
+	y = in_y - outlineWidth;
 	w = in_w;
-	h = UI_OUTLINE_WIDTH;
+	h = outlineWidth;
 
 	// draw top
 	UI_FillRect( x, y, w, h, color );
@@ -161,7 +161,7 @@ void UI_DrawRectangle( int in_x, int in_y, int in_w, int in_h, const rgba_t colo
 	x = in_x;
 	y = in_y + in_h;
 	w = in_w;
-	h = UI_OUTLINE_WIDTH;
+	h = outlineWidth;
 
 	UI_FillRect( x, y, w, h, color );
 }
@@ -1086,6 +1086,8 @@ void UI_Precache( void )
 	UI_GameOptions_Precache();
 	UI_Audio_Precache();
 	UI_Video_Precache();
+	UI_VidOptions_Precache();
+	UI_VidModes_Precache();
 	UI_Demos_Precache();
 	UI_CustomGame_Precache();
 	UI_Credits_Precache();
@@ -1117,7 +1119,7 @@ void UI_SetFont_f( void )
 		uiStatic.nameFont = re->RegisterShader( va( "gfx/fonts/%s", ui_namefont->string ), SHADER_FONT );
 		break;
 	default:
-		Msg( "menufont: invalid aruments\n" );
+		Msg( "menufont: invalid arguments\n" );
 		break;
 	}
 }
@@ -1147,7 +1149,9 @@ void UI_Init( void )
 	Cmd_AddCommand( "menu_controls", UI_Controls_Menu, "open the controls menu" );
 	Cmd_AddCommand( "menu_gameoptions", UI_GameOptions_Menu, "open the game options menu" );
 	Cmd_AddCommand( "menu_audio", UI_Audio_Menu, "open the sound options menu" );
-	Cmd_AddCommand( "menu_video", UI_Video_Menu, "open the video options menu" );
+	Cmd_AddCommand( "menu_video", UI_Video_Menu, "open the video settings head menu" );
+	Cmd_AddCommand( "menu_vidoptions", UI_VidOptions_Menu, "open the video options menu" );
+	Cmd_AddCommand( "menu_vidmodes", UI_VidModes_Menu, "open the video modes menu" );
 	Cmd_AddCommand( "menu_demos", UI_Demos_Menu, "open the demos viewer menu" );
 	Cmd_AddCommand( "menu_customgame", UI_CustomGame_Menu, "open the change game menu" );
 
@@ -1158,6 +1162,11 @@ void UI_Init( void )
 	// move cursor to screen center
 	uiStatic.cursorX = scr_width->integer>>1;
 	uiStatic.cursorY = scr_height->integer>>1;
+	uiStatic.outlineWidth = 4;
+	uiStatic.sliderWidth = 6;
+
+	UI_ScaleCoords( NULL, NULL, &uiStatic.outlineWidth, NULL );
+	UI_ScaleCoords( NULL, NULL, &uiStatic.sliderWidth, NULL );
 
 	if( re )
 	{
@@ -1191,6 +1200,8 @@ void UI_Shutdown( void )
 	Cmd_RemoveCommand( "menu_gameoptions" );
 	Cmd_RemoveCommand( "menu_audio" );
 	Cmd_RemoveCommand( "menu_video" );
+	Cmd_RemoveCommand( "menu_vidoptions" );
+	Cmd_RemoveCommand( "menu_vidmodes" );
 	Cmd_RemoveCommand( "menu_advanced" );
 	Cmd_RemoveCommand( "menu_performance" );
 	Cmd_RemoveCommand( "menu_network" );

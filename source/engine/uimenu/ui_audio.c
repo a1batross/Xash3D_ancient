@@ -36,7 +36,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ID_MSGHINT			9
 
 #define MAX_AUDIODEVICES		MAX_RENDERS
-static const char			*uiAudioYesNo[] = { "False", "True" };
 
 typedef struct
 {

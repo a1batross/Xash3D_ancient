@@ -274,6 +274,10 @@ SOURCE=.\uimenu\ui_credits.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\uimenu\ui_customgame.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\uimenu\ui_demos.c
 # End Source File
 # Begin Source File
@@ -291,10 +295,6 @@ SOURCE=.\uimenu\ui_main.c
 # Begin Source File
 
 SOURCE=.\uimenu\ui_menu.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\uimenu\ui_mods.c
 # End Source File
 # Begin Source File
 
@@ -323,6 +323,14 @@ SOURCE=.\uimenu\ui_saveload.c
 # Begin Source File
 
 SOURCE=.\uimenu\ui_video.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_vidmodes.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_vidoptions.c
 # End Source File
 # End Group
 # Begin Group "Header Files"

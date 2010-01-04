@@ -649,7 +649,6 @@ bool R_Init_OpenGL( void )
 		{
 			Cvar_SetValue( "r_mode", glConfig.prev_mode );
 			r_mode->modified = false;
-			Cvar_Set( "r_allow_software", "1" );
 			MsgDev( D_ERROR, "R_SetMode: invalid mode\n" );
 		}
 

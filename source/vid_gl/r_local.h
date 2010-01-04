@@ -418,7 +418,6 @@ extern cvar_t *r_shadows_maxtexsize;
 extern cvar_t *r_shadows_pcf;
 extern cvar_t *r_shadows_self_shadow;
 
-extern cvar_t *r_bloom;
 extern cvar_t *r_bloom_alpha;
 extern cvar_t *r_bloom_diamond_size;
 extern cvar_t *r_bloom_intensity;

@@ -67,7 +67,7 @@ void UI_ScrollList_Init( menuScrollList_s *sl )
 	if( !sl->downArrow ) sl->downArrow = UI_DOWNARROW;
 	if( !sl->downArrowFocus ) sl->downArrowFocus = UI_DOWNARROWFOCUS;
 
-	sl->curItem = 0;
+//	sl->curItem = 0;
 	sl->topItem = 0;
 	sl->numItems = 0;
 
@@ -340,6 +340,9 @@ void UI_ScrollList_Draw( menuScrollList_s *sl )
 	downX = sl->generic.x2 + sl->generic.width2 - arrowWidth;
 	downY = sl->generic.y2 + (sl->generic.height2 - arrowHeight) - UI_OUTLINE_WIDTH;
 
+	// draw the arrows base
+	UI_FillRect( upX, upY + arrowHeight, arrowWidth, downY - upY - arrowHeight, uiScrollOutlineColor );
+
 	// draw the arrows
 	if( sl->generic.flags & QMF_GRAYED )
 	{
@@ -517,13 +520,13 @@ const char *UI_SpinControl_Key( menuSpinControl_s *sc, int key, bool down )
 			break;
 
 		// calculate size and position for the arrows
-		arrowWidth = sc->generic.height;
-		arrowHeight = sc->generic.height;
+		arrowWidth = sc->generic.height + (UI_OUTLINE_WIDTH * 2);
+		arrowHeight = sc->generic.height + (UI_OUTLINE_WIDTH * 2);
 
-		leftX = sc->generic.x;
-		leftY = sc->generic.y;
-		rightX = sc->generic.x + (sc->generic.width - arrowWidth);
-		rightY = sc->generic.y;
+		leftX = sc->generic.x + UI_OUTLINE_WIDTH;
+		leftY = sc->generic.y - UI_OUTLINE_WIDTH;
+		rightX = sc->generic.x + (sc->generic.width - arrowWidth) - UI_OUTLINE_WIDTH;
+		rightY = sc->generic.y - UI_OUTLINE_WIDTH;
 
 		// now see if either left or right arrow has focus
 		if( UI_CursorInRect( leftX, leftY, arrowWidth, arrowHeight ))
@@ -615,9 +618,9 @@ void UI_SpinControl_Draw( menuSpinControl_s *sc )
 	arrowWidth = sc->generic.height + (UI_OUTLINE_WIDTH * 2);
 	arrowHeight = sc->generic.height + (UI_OUTLINE_WIDTH * 2);
 
-	leftX = sc->generic.x;
+	leftX = sc->generic.x + UI_OUTLINE_WIDTH;
 	leftY = sc->generic.y - UI_OUTLINE_WIDTH;
-	rightX = sc->generic.x + (sc->generic.width - arrowWidth);
+	rightX = sc->generic.x + (sc->generic.width - arrowWidth) - UI_OUTLINE_WIDTH;
 	rightY = sc->generic.y - UI_OUTLINE_WIDTH;
 
 	// get size and position for the center box
@@ -710,24 +713,46 @@ void UI_Slider_Init( menuSlider_s *sl )
 {
 	if( !sl->generic.name ) sl->generic.name = "";	// this is also the text displayed
 
-	if( !sl->generic.width ) sl->generic.width = 198;
+	if( !sl->generic.width ) sl->generic.width = 200;
 	if( !sl->generic.height) sl->generic.height = 4;
 	if( !sl->generic.color ) sl->generic.color = uiColorWhite;
 	if( !sl->generic.focusColor ) sl->generic.focusColor = uiColorWhite;
 	if( !sl->range ) sl->range = 1.0f;
 	if( sl->range < 0.05f ) sl->range = 0.05f;
 
+	if( sl->generic.flags & QMF_BIGFONT )
+	{
+		sl->generic.charWidth = UI_BIG_CHAR_WIDTH;
+		sl->generic.charHeight = UI_BIG_CHAR_HEIGHT;
+	}
+	else if( sl->generic.flags & QMF_SMALLFONT )
+	{
+		sl->generic.charWidth = UI_SMALL_CHAR_WIDTH;
+		sl->generic.charHeight = UI_SMALL_CHAR_HEIGHT;
+	}
+	else
+	{
+		if( sl->generic.charWidth < 1 ) sl->generic.charWidth = 12;
+		if( sl->generic.charHeight < 1 ) sl->generic.charHeight = 24;
+	}
+
+	UI_ScaleCoords( NULL, NULL, &sl->generic.charWidth, &sl->generic.charHeight );
+
 	if(!(sl->generic.flags & (QMF_LEFT_JUSTIFY|QMF_CENTER_JUSTIFY|QMF_RIGHT_JUSTIFY)))
 		sl->generic.flags |= QMF_LEFT_JUSTIFY;
 
 	// scale the center box
 	sl->generic.x2 = sl->generic.x;
-	sl->generic.y2 = sl->generic.y - UI_OUTLINE_WIDTH;
+	sl->generic.y2 = sl->generic.y;
 	sl->generic.width2 = sl->generic.width / 5;
-	sl->generic.height2 = sl->generic.height + UI_OUTLINE_WIDTH * 2;
+	sl->generic.height2 = 4;
 
 	UI_ScaleCoords( &sl->generic.x2, &sl->generic.y2, &sl->generic.width2, &sl->generic.height2 );
 	UI_ScaleCoords( &sl->generic.x, &sl->generic.y, &sl->generic.width, &sl->generic.height );
+
+	sl->generic.y -= uiStatic.sliderWidth;
+	sl->generic.height += uiStatic.sliderWidth * 2;
+	sl->generic.y2 -= uiStatic.sliderWidth;
 
 	sl->drawStep = (sl->generic.width - sl->generic.width2) / ((sl->maxValue - sl->minValue) / sl->range);
 	sl->numSteps = ((sl->maxValue - sl->minValue) / sl->range) + 1;
@@ -762,7 +787,7 @@ const char *UI_Slider_Key( menuSlider_s *sl, int key, bool down )
 
 		// find the current slider position
 		sliderX = sl->generic.x2 + (sl->drawStep * (sl->curValue * sl->numSteps));		
-                    if( UI_CursorInRect( sliderX, sl->generic.y2, sl->generic.width2, sl->generic.height2 ))
+                    if( UI_CursorInRect( sliderX, sl->generic.y2, sl->generic.width2, sl->generic.height ))
                     {
 			sl->keepSlider = true;
 		}
@@ -812,16 +837,19 @@ void UI_Slider_Draw( menuSlider_s *sl )
 		dist = uiStatic.cursorX - sl->generic.x2 - (sl->generic.width2>>2);
 		numSteps = dist / (int)sl->drawStep;
 		sl->curValue = bound( sl->minValue, numSteps * sl->range, sl->maxValue );
+		
+		// tell menu about changes
+		if( sl->generic.callback ) sl->generic.callback( sl, QM_CHANGED );
 	}
 
 	// calc slider position
 	sliderX = sl->generic.x2 + (sl->drawStep * (sl->curValue * sl->numSteps));
 
-	UI_DrawRectangle( sl->generic.x, sl->generic.y, sl->generic.width, sl->generic.height, uiColorDkGrey );
-	UI_DrawPic( sliderX, sl->generic.y2, sl->generic.width2, sl->generic.height2, uiColorWhite, UI_SLIDER_MAIN );
+	UI_DrawRectangleExt( sl->generic.x, sl->generic.y + uiStatic.sliderWidth, sl->generic.width, sl->generic.height2, uiColorDkGrey, uiStatic.sliderWidth );
+	UI_DrawPic( sliderX, sl->generic.y2, sl->generic.width2, sl->generic.height, uiColorWhite, UI_SLIDER_MAIN );
 
-	textHeight = sl->generic.y - (16 * 1.7f);
-	UI_DrawStringExt( sl->generic.x, textHeight, sl->generic.width, 16, sl->generic.name, uiColorLtGrey, true, 10, 16, justify, shadow, uiStatic.nameFont );
+	textHeight = sl->generic.y - (sl->generic.charHeight * 1.5f);
+	UI_DrawStringExt( sl->generic.x, textHeight, sl->generic.width, sl->generic.charHeight, sl->generic.name, uiColorLtGrey, true, sl->generic.charWidth, sl->generic.charHeight, justify, shadow, uiStatic.nameFont );
 }
 
 /*
@@ -832,6 +860,24 @@ UI_CheckBox_Init
 void UI_CheckBox_Init( menuCheckBox_s *cb )
 {
 	if( !cb->generic.name ) cb->generic.name = "";
+
+	if( cb->generic.flags & QMF_BIGFONT )
+	{
+		cb->generic.charWidth = UI_BIG_CHAR_WIDTH;
+		cb->generic.charHeight = UI_BIG_CHAR_HEIGHT;
+	}
+	else if( cb->generic.flags & QMF_SMALLFONT )
+	{
+		cb->generic.charWidth = UI_SMALL_CHAR_WIDTH;
+		cb->generic.charHeight = UI_SMALL_CHAR_HEIGHT;
+	}
+	else
+	{
+		if( cb->generic.charWidth < 1 ) cb->generic.charWidth = 12;
+		if( cb->generic.charHeight < 1 ) cb->generic.charHeight = 24;
+	}
+
+	UI_ScaleCoords( NULL, NULL, &cb->generic.charWidth, &cb->generic.charHeight );
 
 	if(!(cb->generic.flags & (QMF_LEFT_JUSTIFY|QMF_CENTER_JUSTIFY|QMF_RIGHT_JUSTIFY)))
 		cb->generic.flags |= QMF_LEFT_JUSTIFY;
@@ -920,7 +966,7 @@ void UI_CheckBox_Draw( menuCheckBox_s *cb )
 
 	y = cb->generic.y + (cb->generic.height>>2);
 	textOffset = cb->generic.x + (cb->generic.width * 1.7f);
-	UI_DrawStringExt( textOffset, y, com.strlen( cb->generic.name ) * 8, 16, cb->generic.name, uiColorLtGrey, true, 8, 16, justify, shadow, uiStatic.nameFont );
+	UI_DrawStringExt( textOffset, y, com.strlen( cb->generic.name ) * cb->generic.charWidth, cb->generic.charHeight, cb->generic.name, uiColorLtGrey, true, cb->generic.charWidth, cb->generic.charHeight, justify, shadow, uiStatic.nameFont );
 
 	if( cb->generic.flags & QMF_GRAYED )
 	{

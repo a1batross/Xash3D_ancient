@@ -521,7 +521,8 @@ void Con_DrawConsole( void )
 	case ca_active:
 	case ca_cinematic: 
 		if( con.displayFrac ) Con_DrawSolidConsole( con.displayFrac );
-		else if( cls.state == ca_active ) Con_DrawNotify(); // draw notify lines
+		else if( cls.state == ca_active && cls.key_dest == key_game )
+			Con_DrawNotify(); // draw notify lines
 		break;
 	}
 }

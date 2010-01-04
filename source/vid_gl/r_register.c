@@ -87,7 +87,6 @@ cvar_t *r_shadows_maxtexsize;
 cvar_t *r_shadows_pcf;
 cvar_t *r_shadows_self_shadow;
 
-cvar_t *r_bloom;
 cvar_t *r_bloom_alpha;
 cvar_t *r_bloom_diamond_size;
 cvar_t *r_bloom_intensity;
@@ -508,10 +507,9 @@ void GL_InitCommands( void )
 	r_lefthand = Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE, "viewmodel handedness" );
 	r_physbdebug = Cvar_Get( "cm_debugdraw", "0", CVAR_ARCHIVE, "draw physics hulls" );
 
-	r_bloom = Cvar_Get( "r_bloom", "0", CVAR_ARCHIVE, "enable or disable bloom-effect" );
 	r_bloom_alpha = Cvar_Get( "r_bloom_alpha", "0.2", CVAR_ARCHIVE, "bloom alpha multiplier" );
 	r_bloom_diamond_size = Cvar_Get( "r_bloom_diamond_size", "8", CVAR_ARCHIVE, "bloom diamond size (can be 1, 2, 4, 6 or 8)" );
-	r_bloom_intensity = Cvar_Get( "r_bloom_intensity", "1.3", CVAR_ARCHIVE, "bloom intensity scale" );
+	r_bloom_intensity = Cvar_Get( "r_bloom_intensity", "0", CVAR_ARCHIVE, "bloom intensity scale" );
 	r_bloom_darken = Cvar_Get( "r_bloom_darken", "4", CVAR_ARCHIVE, "bloom darken scale" );
 	r_bloom_sample_size = Cvar_Get( "r_bloom_sample_size", "320", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "bloom rendering viewport size (must be power of two)" );
 	r_bloom_fast_sample = Cvar_Get( "r_bloom_fast_sample", "0", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "enable fast bloom pass" );
@@ -540,7 +538,7 @@ void GL_InitCommands( void )
 	r_portalmaps = Cvar_Get( "r_portalmaps", "1", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "use portal maps for portal rendering" );
 	r_portalmaps_maxtexsize = Cvar_Get( "r_portalmaps_maxtexsize", "512", CVAR_ARCHIVE, "portal maps texture dims" );
 
-	r_allow_software = Cvar_Get( "r_allow_software", "0", 0, "allow OpenGL software emulation" );
+	r_allow_software = Cvar_Get( "r_allow_software", "0", CVAR_ARCHIVE, "allow OpenGL software emulation" );
 	r_3dlabs_broken = Cvar_Get( "r_3dlabs_broken", "1", CVAR_ARCHIVE, "3dLabs renderer issues" );
 
 	r_lighting_bumpscale = Cvar_Get( "r_lighting_bumpscale", "8", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "lighting bumpscale" );

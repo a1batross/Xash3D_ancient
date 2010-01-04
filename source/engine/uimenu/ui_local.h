@@ -71,7 +71,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define UI_BIG_CHAR_HEIGHT		40
 
 #define UI_MAX_FIELD_LINE		256
-#define UI_OUTLINE_WIDTH		4	// outline thickness
+#define UI_OUTLINE_WIDTH		uiStatic.outlineWidth	// outline thickness
 
 #define UI_MAXGAMES			100	// slots for savegame
 #define UI_MAX_SERVERS		10
@@ -292,6 +292,8 @@ typedef struct
 
 	float		scaleX;
 	float		scaleY;
+	int		outlineWidth;
+	int		sliderWidth;
 
 	int		cursorX;
 	int		cursorY;
@@ -347,7 +349,8 @@ void UI_ScaleCoords( int *x, int *y, int *w, int *h );
 bool UI_CursorInRect( int x, int y, int w, int h );
 void UI_DrawPic( int x, int y, int w, int h, const rgba_t color, const char *pic );
 void UI_FillRect( int x, int y, int w, int h, const rgba_t color );
-void UI_DrawRectangle( int in_x, int in_y, int in_w, int in_h, const rgba_t color );
+#define UI_DrawRectangle( x, y, w, h, color ) UI_DrawRectangleExt( x, y, w, h, color, uiStatic.outlineWidth )
+void UI_DrawRectangleExt( int in_x, int in_y, int in_w, int in_h, const rgba_t color, int outlineWidth );
 #define UI_DrawString( x, y, w, h, str, col, fcol, cw, ch, j, s ) UI_DrawStringExt( x, y, w, h, str, col, fcol, cw, ch, j, s, uiStatic.menuFont )
 void UI_DrawStringExt( int x, int y, int w, int h, const char *str, const rgba_t col, bool forceCol, int charW, int charH, int justify, bool shadow, shader_t font );
 void UI_StartSound( const char *sound );
@@ -381,6 +384,8 @@ void UI_Controls_Precache( void );
 void UI_GameOptions_Precache( void );
 void UI_Audio_Precache( void );
 void UI_Video_Precache( void );
+void UI_VidOptions_Precache( void );
+void UI_VidModes_Precache( void );
 void UI_Demos_Precache( void );
 void UI_CustomGame_Precache( void );
 void UI_Credits_Precache( void );
@@ -399,6 +404,8 @@ void UI_Controls_Menu( void );
 void UI_GameOptions_Menu( void );
 void UI_Audio_Menu( void );
 void UI_Video_Menu( void );
+void UI_VidOptions_Menu( void );
+void UI_VidModes_Menu( void );
 void UI_Demos_Menu( void );
 void UI_CustomGame_Menu( void );
 void UI_Credits_Menu( void );

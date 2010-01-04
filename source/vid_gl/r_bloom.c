@@ -183,7 +183,7 @@ static void R_Bloom_InitTextures( void )
 	if( screen_texture_width > glConfig.max_2d_texture_size || screen_texture_height > glConfig.max_2d_texture_size )
 	{
 		screen_texture_width = screen_texture_height = 0;
-		Cvar_Set( "r_bloom", "0" );
+		Cvar_Set( "r_bloom_intensity", "0" );
 		MsgDev( D_WARN, "'R_InitBloomScreenTexture' too high resolution for light bloom, effect disabled\n" );
 		return;
 	}
@@ -241,7 +241,7 @@ R_InitBloomTextures
 void R_InitBloomTextures( void )
 {
 	BLOOM_SIZE = 0;
-	if( !r_bloom->integer )
+	if( !r_bloom_intensity->integer )
 		return;
 	R_Bloom_InitTextures();
 }
@@ -459,7 +459,7 @@ R_BloomBlend
 */
 void R_BloomBlend( const ref_params_t *fd )
 {
-	if( !r_bloom->integer )
+	if( !r_bloom_intensity->integer )
 		return;
 
 	if( !BLOOM_SIZE )

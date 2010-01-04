@@ -71,6 +71,7 @@ static bool		r_shaderTwoSided;
 static bool		r_shaderNoMipMaps;
 static bool		r_shaderNoPicMip;
 static bool		r_shaderNoCompress;
+static bool		r_shaderNearest;
 static bool		r_shaderHasDlightPass;
 
 #define Shader_FreePassCinematics( s )	if((s)->cinHandle ) { R_FreeCinematics((s)->cinHandle ); (s)->cinHandle = 0; }
@@ -775,6 +776,8 @@ static int Shader_SetImageFlags( ref_shader_t *shader )
 		flags |= TF_NOPICMIP;
 	if( r_shaderNoCompress )
 		flags |= TF_UNCOMPRESSED;
+	if( r_shaderNearest )
+		flags |= TF_NEAREST;
 	return flags;
 }
 
@@ -855,6 +858,12 @@ static bool Shader_shaderNoPicMip( ref_shader_t *shader, ref_stage_t *pass, scri
 static bool Shader_shaderNoCompress( ref_shader_t *shader, ref_stage_t *pass, script_t *script )
 {
 	r_shaderNoCompress = true;
+	return true;
+}
+
+static bool Shader_shaderNearest( ref_shader_t *shader, ref_stage_t *pass, script_t *script )
+{
+	r_shaderNearest = true;
 	return true;
 }
 
@@ -1212,6 +1221,7 @@ static const ref_parsekey_t shaderkeys[] =
 { "nomipmap",		Shader_shaderNoMipMaps	},
 { "nomipmaps",		Shader_shaderNoMipMaps	},
 { "nocompress",		Shader_shaderNoCompress	},
+{ "nearest",		Shader_shaderNearest	},
 { "surfaceParm",		Shader_SurfaceParm,		},
 { "polygonoffset",		Shader_PolygonOffset	},
 { "deformvertexes",		Shader_DeformVertexes	},
@@ -3897,6 +3907,7 @@ ref_shader_t *R_LoadShader( const char *name, int type, bool forceDefault, int a
 	r_shaderNoPicMip = false;
 	r_shaderNoCompress = false;
 	r_shaderHasDlightPass = false;
+	r_shaderNearest = false;
 
 	if( !forceDefault )
 		cache = Shader_GetCache( shortname, type, hashKey );
