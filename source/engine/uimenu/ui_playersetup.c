@@ -31,6 +31,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ID_VIEW		4
 #define ID_NAME		5
 #define ID_MODEL		6
+#define ID_TOPCOLOR		7
+#define ID_BOTTOMCOLOR	8
+#define ID_HIMODELS		9
 
 #define MAX_PLAYERMODELS	100
 
@@ -52,6 +55,10 @@ typedef struct
 	menuAction_s	AdvOptions;
 	menuBitmap_s	view;
 
+	menuCheckBox_s	hiModels;
+	menuSlider_s	topColor;
+	menuSlider_s	bottomColor;
+
 	menuField_s	name;
 	menuSpinControl_s	model;
 } uiPlayerSetup_t;
@@ -62,10 +69,10 @@ static uiPlayerSetup_t	uiPlayerSetup;
 =================
 UI_PlayerSetup_CalcFov
 
-I need this here...
+second definition in render.dll
 =================
 */
-float UI_PlayerSetup_CalcFov( float fovX, float width, float height )
+static float UI_PlayerSetup_CalcFov( float fovX, float width, float height )
 {
 	float	x, y;
 
@@ -137,6 +144,12 @@ static void UI_PlayerSetup_GetConfig( void )
 
 	com.strncpy( uiPlayerSetup.currentModel, uiPlayerSetup.models[(int)uiPlayerSetup.model.curValue], sizeof(uiPlayerSetup.currentModel ));
 	uiPlayerSetup.model.maxValue = (float)(uiPlayerSetup.num_models - 1);
+
+	uiPlayerSetup.topColor.curValue = Cvar_VariableValue( "topcolor" ) / 255;
+	uiPlayerSetup.bottomColor.curValue = Cvar_VariableValue( "bottomcolor" ) / 255;
+
+	if( Cvar_VariableInteger( "cl_himodels" ))
+		uiPlayerSetup.hiModels.enabled = 1;
 }
 
 /*
@@ -148,6 +161,9 @@ static void UI_PlayerSetup_SetConfig( void )
 {
 	Cvar_Set( "name", uiPlayerSetup.name.buffer );
 	Cvar_Set( "model", uiPlayerSetup.currentModel );
+	Cvar_SetValue( "topcolor", uiPlayerSetup.topColor.curValue * 255 );
+	Cvar_SetValue( "bottomcolor", uiPlayerSetup.bottomColor.curValue * 255 );
+	Cvar_SetValue( "cl_himodels", uiPlayerSetup.hiModels.enabled );
 }
 
 /*
@@ -182,6 +198,15 @@ UI_PlayerSetup_Callback
 static void UI_PlayerSetup_Callback( void *self, int event )
 {
 	menuCommon_s	*item = (menuCommon_s *)self;
+
+	switch( item->id )
+	{
+	case ID_HIMODELS:
+		if( event == QM_PRESSED )
+			((menuCheckBox_s *)self)->focusPic = UI_CHECKBOX_PRESSED;
+		else ((menuCheckBox_s *)self)->focusPic = UI_CHECKBOX_FOCUS;
+		break;
+	}
 
 	if( event == QM_CHANGED )
 	{
@@ -280,35 +305,68 @@ static void UI_PlayerSetup_Init( void )
 	uiPlayerSetup.view.generic.id = ID_VIEW;
 	uiPlayerSetup.view.generic.type = QMTYPE_BITMAP;
 	uiPlayerSetup.view.generic.flags = QMF_INACTIVE;
-	uiPlayerSetup.view.generic.x = 628;
-	uiPlayerSetup.view.generic.y = 224;
-	uiPlayerSetup.view.generic.width = 190;
-	uiPlayerSetup.view.generic.height = 280;
+	uiPlayerSetup.view.generic.x = 660;
+	uiPlayerSetup.view.generic.y = 260;
+	uiPlayerSetup.view.generic.width = 260;
+	uiPlayerSetup.view.generic.height = 320;
 	uiPlayerSetup.view.generic.ownerdraw = UI_PlayerSetup_Ownerdraw;
 
 	uiPlayerSetup.name.generic.id = ID_NAME;
 	uiPlayerSetup.name.generic.type = QMTYPE_FIELD;
-	uiPlayerSetup.name.generic.flags = QMF_CENTER_JUSTIFY | QMF_PULSEIFFOCUS | QMF_DROPSHADOW;
-	uiPlayerSetup.name.generic.x = 368;
-	uiPlayerSetup.name.generic.y = 224;
-	uiPlayerSetup.name.generic.width = 198;
-	uiPlayerSetup.name.generic.height = 30;
+	uiPlayerSetup.name.generic.flags = QMF_CENTER_JUSTIFY|QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiPlayerSetup.name.generic.x = 320;
+	uiPlayerSetup.name.generic.y = 260;
+	uiPlayerSetup.name.generic.width = 256;
+	uiPlayerSetup.name.generic.height = 36;
 	uiPlayerSetup.name.generic.callback = UI_PlayerSetup_Callback;
 	uiPlayerSetup.name.generic.statusText = "Enter your multiplayer display name";
 	uiPlayerSetup.name.maxLenght = 32;
 
 	uiPlayerSetup.model.generic.id = ID_MODEL;
 	uiPlayerSetup.model.generic.type = QMTYPE_SPINCONTROL;
-	uiPlayerSetup.model.generic.flags = QMF_CENTER_JUSTIFY | QMF_PULSEIFFOCUS | QMF_DROPSHADOW;
-	uiPlayerSetup.model.generic.x = 368;
-	uiPlayerSetup.model.generic.y = 256;
-	uiPlayerSetup.model.generic.width = 198;
-	uiPlayerSetup.model.generic.height = 30;
+	uiPlayerSetup.model.generic.flags = QMF_CENTER_JUSTIFY|QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiPlayerSetup.model.generic.x = 702;
+	uiPlayerSetup.model.generic.y = 590;
+	uiPlayerSetup.model.generic.width = 176;
+	uiPlayerSetup.model.generic.height = 32;
 	uiPlayerSetup.model.generic.callback = UI_PlayerSetup_Callback;
 	uiPlayerSetup.model.generic.statusText = "Select a model for representation in multiplayer";
 	uiPlayerSetup.model.minValue = 0;
 	uiPlayerSetup.model.maxValue = 1;
 	uiPlayerSetup.model.range  = 1;
+
+	uiPlayerSetup.topColor.generic.id = ID_TOPCOLOR;
+	uiPlayerSetup.topColor.generic.type = QMTYPE_SLIDER;
+	uiPlayerSetup.topColor.generic.flags = QMF_PULSEIFFOCUS|QMF_DROPSHADOW;
+	uiPlayerSetup.topColor.generic.name = "Top color";
+	uiPlayerSetup.topColor.generic.x = 350;
+	uiPlayerSetup.topColor.generic.y = 500;
+	uiPlayerSetup.topColor.generic.callback = UI_PlayerSetup_Callback;
+	uiPlayerSetup.topColor.generic.statusText = "Set a player model top color";
+	uiPlayerSetup.topColor.minValue = 0.0;
+	uiPlayerSetup.topColor.maxValue = 1.0;
+	uiPlayerSetup.topColor.range = 0.05f;
+
+	uiPlayerSetup.bottomColor.generic.id = ID_BOTTOMCOLOR;
+	uiPlayerSetup.bottomColor.generic.type = QMTYPE_SLIDER;
+	uiPlayerSetup.bottomColor.generic.flags = QMF_PULSEIFFOCUS|QMF_DROPSHADOW;
+	uiPlayerSetup.bottomColor.generic.name = "Bottom color";
+	uiPlayerSetup.bottomColor.generic.x = 350;
+	uiPlayerSetup.bottomColor.generic.y = 570;
+	uiPlayerSetup.bottomColor.generic.callback = UI_PlayerSetup_Callback;
+	uiPlayerSetup.bottomColor.generic.statusText = "Set a player model bottom color";
+	uiPlayerSetup.bottomColor.minValue = 0.0;
+	uiPlayerSetup.bottomColor.maxValue = 1.0;
+	uiPlayerSetup.bottomColor.range = 0.05f;
+
+	uiPlayerSetup.hiModels.generic.id = ID_HIMODELS;
+	uiPlayerSetup.hiModels.generic.type = QMTYPE_CHECKBOX;
+	uiPlayerSetup.hiModels.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_ACT_ONRELEASE|QMF_MOUSEONLY|QMF_DROPSHADOW;
+	uiPlayerSetup.hiModels.generic.name = "High quality models";
+	uiPlayerSetup.hiModels.generic.x = 72;
+	uiPlayerSetup.hiModels.generic.y = 380;
+	uiPlayerSetup.hiModels.generic.callback = UI_PlayerSetup_Callback;
+	uiPlayerSetup.hiModels.generic.statusText = "show hi-res models in multiplayer";
 
 	UI_PlayerSetup_GetConfig();
 
@@ -319,6 +377,9 @@ static void UI_PlayerSetup_Init( void )
 	UI_AddItem( &uiPlayerSetup.menu, (void *)&uiPlayerSetup.view );
 	UI_AddItem( &uiPlayerSetup.menu, (void *)&uiPlayerSetup.name );
 	UI_AddItem( &uiPlayerSetup.menu, (void *)&uiPlayerSetup.model );
+	UI_AddItem( &uiPlayerSetup.menu, (void *)&uiPlayerSetup.topColor );
+	UI_AddItem( &uiPlayerSetup.menu, (void *)&uiPlayerSetup.bottomColor );
+	UI_AddItem( &uiPlayerSetup.menu, (void *)&uiPlayerSetup.hiModels );
 
 	// setup render and actor
 	uiPlayerSetup.refdef.fov_x = 40;
@@ -343,7 +404,7 @@ static void UI_PlayerSetup_Init( void )
 	uiPlayerSetup.ent.v.controller[1] = 127;
 	uiPlayerSetup.ent.v.controller[2] = 127;
 	uiPlayerSetup.ent.v.controller[3] = 127;
-	uiPlayerSetup.ent.v.origin[0] = 80;
+	uiPlayerSetup.ent.v.origin[0] = 92;
 	uiPlayerSetup.ent.v.origin[2] = 2;
 	uiPlayerSetup.ent.v.angles[1] = 180;
 }

@@ -1403,6 +1403,8 @@ void FS_CreateGameInfo( const char *filename )
 	com.strncat( buffer, "\nviewheight0\t28", MAX_SYSPATH );
 	com.strncat( buffer, "\nviewheight1\t12", MAX_SYSPATH );
 	com.strncat( buffer, "\nmax_edicts\t1024", MAX_SYSPATH );
+	com.strncat( buffer, "\nurl_update\t\"\"", MAX_SYSPATH );
+	com.strncat( buffer, "\nurl_info\t\"\"", MAX_SYSPATH );
 	com.strncat( buffer, "\n\n\n", MAX_SYSPATH );
 	
 	FS_WriteFile( filename, buffer, com.strlen( buffer ));
@@ -1511,6 +1513,10 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 		else if( !com.stricmp( token.string, "url_info" ))
 		{
 			PS_GetString( script, false, GameInfo->game_url, sizeof( GameInfo->game_url ));
+		}
+		else if( !com.stricmp( token.string, "url_update" ))
+		{
+			PS_GetString( script, false, GameInfo->update_url, sizeof( GameInfo->update_url ));
 		}
 		else if( !com.stricmp( token.string, "date" ))
 		{

@@ -258,6 +258,10 @@ SOURCE=.\server\sv_world.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\uimenu\ui_advcontrols.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\uimenu\ui_audio.c
 # End Source File
 # Begin Source File

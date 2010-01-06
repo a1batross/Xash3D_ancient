@@ -657,7 +657,7 @@ void CL_ResetButtonBits( int bits )
 void IN_Init( void )
 {
 	// mouse variables
-	m_filter = CVAR_REGISTER("m_filter", "0", 0, "enable mouse filter" );
+	m_filter = CVAR_REGISTER("m_filter", "0", FCVAR_ARCHIVE, "enable mouse filter" );
 	m_sensitivity = CVAR_REGISTER( "m_sensitivity", "3", FCVAR_ARCHIVE, "mouse in-game sensitivity" );
 	cl_mouseaccel = CVAR_REGISTER( "cl_mouseaccelerate", "0", FCVAR_ARCHIVE, "mouse accelerate factor" ); 
 

@@ -968,6 +968,24 @@ void UI_CheckBox_Draw( menuCheckBox_s *cb )
 	textOffset = cb->generic.x + (cb->generic.width * 1.7f);
 	UI_DrawStringExt( textOffset, y, com.strlen( cb->generic.name ) * cb->generic.charWidth, cb->generic.charHeight, cb->generic.name, uiColorLtGrey, true, cb->generic.charWidth, cb->generic.charHeight, justify, shadow, uiStatic.nameFont );
 
+	if( cb->generic.statusText && cb->generic.flags & QMF_NOTIFY )
+	{
+		int	charW, charH;
+		int	x, w;
+
+		charW = UI_SMALL_CHAR_WIDTH;
+		charH = UI_SMALL_CHAR_HEIGHT;
+
+		UI_ScaleCoords( NULL, NULL, &charW, &charH );
+
+		x = 250;
+		w = UI_SMALL_CHAR_WIDTH * com.strlen( cb->generic.statusText );
+		UI_ScaleCoords( &x, NULL, &w, NULL );
+		x += cb->generic.x;
+
+		UI_DrawStringExt( x, cb->generic.y, w, cb->generic.height, cb->generic.statusText, uiColorWhite, true, charW, charH, 0, true, cls.consoleFont );
+	}
+
 	if( cb->generic.flags & QMF_GRAYED )
 	{
 		UI_DrawPic( cb->generic.x, cb->generic.y, cb->generic.width, cb->generic.height, uiColorWhite, cb->grayedPic );

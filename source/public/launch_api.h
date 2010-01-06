@@ -230,6 +230,7 @@ typedef struct gameinfo_s
 
 	// about mod info
 	string		game_url;		// link to a developer's site
+	string		update_url;	// link to updates page
 	string		type;		// single, toolkit, multiplayer etc
 	string		date;
 	size_t		size;

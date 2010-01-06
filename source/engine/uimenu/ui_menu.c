@@ -1083,6 +1083,7 @@ void UI_Precache( void )
 	UI_Options_Precache();
 	UI_PlayerSetup_Precache();
 	UI_Controls_Precache();
+	UI_AdvControls_Precache();
 	UI_GameOptions_Precache();
 	UI_Audio_Precache();
 	UI_Video_Precache();
@@ -1147,6 +1148,7 @@ void UI_Init( void )
 	Cmd_AddCommand( "menu_options", UI_Options_Menu, "open the options menu" );
 	Cmd_AddCommand( "menu_playersetup", UI_PlayerSetup_Menu, "open the player setup menu" );
 	Cmd_AddCommand( "menu_controls", UI_Controls_Menu, "open the controls menu" );
+	Cmd_AddCommand( "menu_advcontrols", UI_AdvControls_Menu, "open the advanced controls menu" );
 	Cmd_AddCommand( "menu_gameoptions", UI_GameOptions_Menu, "open the game options menu" );
 	Cmd_AddCommand( "menu_audio", UI_Audio_Menu, "open the sound options menu" );
 	Cmd_AddCommand( "menu_video", UI_Video_Menu, "open the video settings head menu" );
@@ -1197,6 +1199,7 @@ void UI_Shutdown( void )
 	Cmd_RemoveCommand( "menu_options" );
 	Cmd_RemoveCommand( "menu_playersetup" );
 	Cmd_RemoveCommand( "menu_controls" );
+	Cmd_RemoveCommand( "menu_advcontrols" );
 	Cmd_RemoveCommand( "menu_gameoptions" );
 	Cmd_RemoveCommand( "menu_audio" );
 	Cmd_RemoveCommand( "menu_video" );

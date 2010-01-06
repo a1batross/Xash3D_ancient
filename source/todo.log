@@ -22,3 +22,4 @@ Beta 13.12.10
 
 0. Implement gearcraft map format for bsplib		OK
 1. finalize menu
+2. move menu resources into baserc.dll
