@@ -38,16 +38,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ID_HAZARDCOURSE	4
 #define ID_CONFIGURATION	5
 #define ID_SAVERESTORE	6	
-#define ID_MULTIPLAYER	7
-#define ID_CUSTOMGAME	8
-#define ID_CREDITS		9
-#define ID_QUIT		10
-#define ID_QUIT_BUTTON	11
-#define ID_MINIMIZE		12
-#define ID_MSGBOX	 	13
-#define ID_MSGTEXT	 	14
-#define ID_YES	 	15
-#define ID_NO	 	16
+#define ID_PLAYRECORD	7
+#define ID_MULTIPLAYER	8
+#define ID_CUSTOMGAME	9
+#define ID_CREDITS		10
+#define ID_QUIT		11
+#define ID_QUIT_BUTTON	12
+#define ID_MINIMIZE		13
+#define ID_MSGBOX	 	14
+#define ID_MSGTEXT	 	15
+#define ID_YES	 	16
+#define ID_NO	 	17
 
 typedef struct
 {
@@ -60,6 +61,7 @@ typedef struct
 	menuAction_s	hazardCourse;
 	menuAction_s	configuration;
 	menuAction_s	saveRestore;
+	menuAction_s	playRecord;
 	menuAction_s	multiPlayer;
 	menuAction_s	customGame;
 	menuAction_s	credits;
@@ -98,6 +100,7 @@ static void UI_QuitDialog( void )
 	uiMain.newGame.generic.flags ^= QMF_INACTIVE;
 	uiMain.hazardCourse.generic.flags ^= QMF_INACTIVE;
 	uiMain.saveRestore.generic.flags ^= QMF_INACTIVE;
+	uiMain.playRecord.generic.flags ^= QMF_INACTIVE;
 	uiMain.configuration.generic.flags ^= QMF_INACTIVE;
 	uiMain.multiPlayer.generic.flags ^= QMF_INACTIVE;
 	uiMain.customGame.generic.flags ^= QMF_INACTIVE;
@@ -199,6 +202,11 @@ static void UI_Main_Callback( void *self, int event )
 			UI_SaveLoad_Menu();
 		else UI_LoadGame_Menu();
 		break;
+	case ID_PLAYRECORD:
+		if( cls.state == ca_active && !cls.demoplayback )
+			UI_PlayRec_Menu();
+		else UI_PlayDemo_Menu();
+		break;
 	case ID_CUSTOMGAME:
 		UI_CustomGame_Menu();
 		break;
@@ -278,32 +286,70 @@ static void UI_Main_Init( void )
 	uiMain.hazardCourse.generic.y = 280;
 	uiMain.hazardCourse.generic.callback = UI_Main_Callback;
 
-	uiMain.saveRestore.generic.id = ID_SAVERESTORE;
-	uiMain.saveRestore.generic.type = QMTYPE_ACTION;
-	uiMain.saveRestore.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_NOTIFY;
-
-	// server.dll needs for reading savefiles or startup newgame
-	Com_BuildPath( "server", libpath );
-	if( !FS_FileExists( libpath ))
+	if( GI->gamemode == 2 )
 	{
-		uiMain.saveRestore.generic.flags |= QMF_GRAYED;
-		uiMain.newGame.generic.flags |= QMF_GRAYED;
-	}
+		uiMain.playRecord.generic.id = ID_PLAYRECORD;
+		uiMain.playRecord.generic.type = QMTYPE_ACTION;
+		uiMain.playRecord.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_NOTIFY;
 
-	if( cls.state == ca_active )
-	{
-		uiMain.saveRestore.generic.name = "Save\\Load Game";
-		uiMain.saveRestore.generic.statusText = "Load a saved game, save the current game.";
+		if( cls.state == ca_active )
+		{
+			if( !cls.demoplayback )
+			{
+				uiMain.playRecord.generic.name = "Play\\Rec Demo";
+				uiMain.playRecord.generic.statusText = "Play a demo, record the new demo.";
+				uiMain.resumeGame.generic.name = "Resume Game";
+				uiMain.resumeGame.generic.statusText = "Return to game.";
+			}
+			else
+			{
+				uiMain.playRecord.generic.name = "Play Demo";
+				uiMain.playRecord.generic.statusText = "Play a game demo.";
+				uiMain.resumeGame.generic.name = "Resume Demo";
+				uiMain.resumeGame.generic.statusText = "Return to demo.";
+			}
+		}
+		else
+		{
+			uiMain.playRecord.generic.name = "Play Demo";
+			uiMain.playRecord.generic.statusText = "Play a recorded game movie.";
+			uiMain.resumeGame.generic.name = "Resume Game";
+			uiMain.resumeGame.generic.statusText = "Return to game.";
+			uiMain.resumeGame.generic.flags |= QMF_HIDDEN;
+		}
+		uiMain.playRecord.generic.x = 72;
+		uiMain.playRecord.generic.y = com.strlen( GI->trainmap ) ? 330 : 280;
+		uiMain.playRecord.generic.callback = UI_Main_Callback;
 	}
 	else
 	{
-		uiMain.saveRestore.generic.name = "Load Game";
-		uiMain.saveRestore.generic.statusText = "Load a previously saved game.";
-		uiMain.resumeGame.generic.flags |= QMF_HIDDEN;
+		uiMain.saveRestore.generic.id = ID_SAVERESTORE;
+		uiMain.saveRestore.generic.type = QMTYPE_ACTION;
+		uiMain.saveRestore.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_NOTIFY;
+
+		// server.dll needs for reading savefiles or startup newgame
+		Com_BuildPath( "server", libpath );
+		if( !FS_FileExists( libpath ))
+		{
+			uiMain.saveRestore.generic.flags |= QMF_GRAYED;
+			uiMain.newGame.generic.flags |= QMF_GRAYED;
+		}
+
+		if( cls.state == ca_active )
+		{
+			uiMain.saveRestore.generic.name = "Save\\Load Game";
+			uiMain.saveRestore.generic.statusText = "Load a saved game, save the current game.";
+		}
+		else
+		{
+			uiMain.saveRestore.generic.name = "Load Game";
+			uiMain.saveRestore.generic.statusText = "Load a previously saved game.";
+			uiMain.resumeGame.generic.flags |= QMF_HIDDEN;
+		}
+		uiMain.saveRestore.generic.x = 72;
+		uiMain.saveRestore.generic.y = com.strlen( GI->trainmap ) ? 330 : 280;
+		uiMain.saveRestore.generic.callback = UI_Main_Callback;
 	}
-	uiMain.saveRestore.generic.x = 72;
-	uiMain.saveRestore.generic.y = com.strlen( GI->trainmap ) ? 330 : 280;
-	uiMain.saveRestore.generic.callback = UI_Main_Callback;
 
 	uiMain.configuration.generic.id = ID_CONFIGURATION;
 	uiMain.configuration.generic.type = QMTYPE_ACTION;
@@ -409,7 +455,8 @@ static void UI_Main_Init( void )
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.resumeGame );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.newGame );
 	if( com.strlen( GI->trainmap )) UI_AddItem( &uiMain.menu, (void *)&uiMain.hazardCourse );
-	UI_AddItem( &uiMain.menu, (void *)&uiMain.saveRestore );
+	if( GI->gamemode == 2 ) UI_AddItem( &uiMain.menu, (void *)&uiMain.playRecord );
+	else UI_AddItem( &uiMain.menu, (void *)&uiMain.saveRestore );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.configuration );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.multiPlayer );
 	UI_AddItem( &uiMain.menu, (void *)&uiMain.customGame );

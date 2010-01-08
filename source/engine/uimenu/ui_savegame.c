@@ -190,7 +190,7 @@ static void UI_SaveGame_Callback( void *self, int event )
 		if( com.strlen( uiSaveGame.delName[uiSaveGame.savesList.curItem] ))
 		{
 			com.snprintf( pathJPG, sizeof( pathJPG ), "save/%s.jpg", uiSaveGame.delName[uiSaveGame.savesList.curItem] );
-			Cbuf_ExecuteText( EXEC_NOW, va( "delete \"%s\"\n", uiSaveGame.delName[uiSaveGame.savesList.curItem] ));
+			Cbuf_ExecuteText( EXEC_NOW, va( "delsave \"%s\"\n", uiSaveGame.delName[uiSaveGame.savesList.curItem] ));
 			if( re ) re->FreeShader( pathJPG ); // unload shader from video-memory
 			UI_SaveGame_GetGameList();
 		}
@@ -276,7 +276,7 @@ static void UI_SaveGame_Init( void )
 	uiSaveGame.save.generic.x = 72;
 	uiSaveGame.save.generic.y = 230;
 	uiSaveGame.save.generic.name = "Save";
-	uiSaveGame.save.generic.statusText = "Save saved game";
+	uiSaveGame.save.generic.statusText = "Save current game";
 	uiSaveGame.save.generic.callback = UI_SaveGame_Callback;
 
 	uiSaveGame.delete.generic.id = ID_DELETE;

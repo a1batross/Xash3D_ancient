@@ -302,8 +302,15 @@ void SV_Save_f( void )
 	const char *name;
 
 	if( Cmd_Argc() == 1 )
-		name = "new";		
-	else name = Cmd_Argv( 1 );
+		name = "new";
+	else if( Cmd_Argc() == 2 )
+		name = Cmd_Argv( 1 );
+	else
+	{
+		Msg( "Usage: save <savename>\n" );
+		return;
+	}
+
 	SV_WriteSaveFile( name, false, true );
 }
 
@@ -320,15 +327,15 @@ void SV_QuickSave_f( void )
 
 /*
 ==============
-SV_Delete_f
+SV_DeleteSave_f
 
 ==============
 */
-void SV_Delete_f( void )
+void SV_DeleteSave_f( void )
 {
 	if( Cmd_Argc() != 2 )
 	{
-		Msg( "Usage: delete <name>\n" );
+		Msg( "Usage: delsave <name>\n" );
 		return;
 	}
 
@@ -642,7 +649,7 @@ void SV_InitOperatorCommands( void )
 	Cmd_AddCommand( "load", SV_Load_f, "load a saved game file" );
 	Cmd_AddCommand( "savequick", SV_QuickSave_f, "save the game to the quicksave" );
 	Cmd_AddCommand( "loadquick", SV_QuickLoad_f, "load a quick-saved game file" );
-	Cmd_AddCommand( "delete", SV_Delete_f, "delete a saved game file and saveshot" );
+	Cmd_AddCommand( "delsave", SV_DeleteSave_f, "delete a saved game file and saveshot" );
 	Cmd_AddCommand( "autosave", SV_AutoSave_f, "save the game to 'autosave' file" );
 	Cmd_AddCommand( "killserver", SV_KillServer_f, "shutdown current server" );
 }
@@ -673,7 +680,7 @@ void SV_KillOperatorCommands( void )
 
 	Cmd_RemoveCommand( "save" );
 	Cmd_RemoveCommand( "load" );
-	Cmd_RemoveCommand( "delete" );
+	Cmd_RemoveCommand( "delsave" );
 	Cmd_RemoveCommand( "autosave" );
 	Cmd_RemoveCommand( "killserver" );
 }

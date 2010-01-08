@@ -16,7 +16,7 @@
 // screenshot types
 #define VID_SCREENSHOT		0
 #define VID_LEVELSHOT		1
-#define VID_SAVESHOT		2
+#define VID_MINISHOT		2
 
 // render supported extensions
 #define R_WGL_SWAPCONTROL		1		

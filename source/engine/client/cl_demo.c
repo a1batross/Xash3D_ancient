@@ -19,7 +19,8 @@ void CL_WriteDemoMessage( sizebuf_t *msg, int head_size )
 	int len, swlen;
 
 	if( !cls.demofile ) return;
-	if( cl.refdef.paused ) return;
+	if( cl.refdef.paused || cls.key_dest == key_menu )
+		return;
 
 	// the first eight bytes are just packet sequencing stuff
 	len = msg->cursize - head_size;
@@ -57,7 +58,9 @@ void CL_WriteDemoHeader( const char *name )
 	MSG_WriteByte( &buf, svc_serverdata );
 	MSG_WriteLong( &buf, PROTOCOL_VERSION );
 	MSG_WriteLong( &buf, cl.servercount );
-	MSG_WriteShort( &buf, cl.playernum );
+	MSG_WriteByte( &buf, cl.playernum );
+	MSG_WriteByte( &buf, clgame.globals->maxClients );
+	MSG_WriteWord( &buf, clgame.globals->maxEntities );
 	MSG_WriteString( &buf, cl.configstrings[CS_NAME] );
 	MSG_WriteString( &buf, clgame.maptitle );
 
@@ -212,7 +215,8 @@ void CL_ReadDemoMessage( void )
 		return;
 	}
 
-	if( cl.refdef.paused ) return;
+	if( cl.refdef.paused || cls.key_dest == key_menu )
+		return;
 
 	// don't need another message yet
 	if( cl.time < cl.frame.servertime )
@@ -273,6 +277,7 @@ void CL_StopPlayback( void )
 
 	// let game known about movie state	
 	cls.state = ca_disconnected;
+	cls.demoname[0] = '\0';	// clear demoname too
 }
 
 void CL_StopRecord( void )
@@ -286,6 +291,123 @@ void CL_StopRecord( void )
 	FS_Close( cls.demofile );
 	cls.demofile = NULL;
 	cls.demorecording = false;
+	cls.demoname[0] = '\0';
+}
+
+/* 
+================== 
+CL_GetComment
+================== 
+*/  
+bool CL_GetComment( const char *demoname, char *comment )
+{
+	file_t	*demfile;
+	char     	buf_data[MAX_MSGLEN];
+	string	maptitle;
+	int	r, maxClients;
+	sizebuf_t	buf;
+	
+	if( !comment ) return false;
+
+	demfile = FS_Open( demoname, "rb" );
+	if( !demfile )
+	{
+		com.strncpy( comment, "", MAX_STRING );
+		return false;
+          }
+
+	// write out messages to hold the startup information
+	MSG_Init( &buf, buf_data, sizeof( buf_data ));
+
+	// read the first demo packet. extract info from it
+	// get the length
+	r = FS_Read( demfile, &buf.cursize, 4 );
+	if( r != 4 )
+	{
+		FS_Close( demfile );
+		com.strncpy( comment, "<corrupted>", MAX_STRING );
+		return false;
+	}
+
+	buf.cursize = LittleLong( buf.cursize );
+	if( buf.cursize == -1 )
+	{
+		FS_Close( demfile );
+		com.strncpy( comment, "<corrupted>", MAX_STRING );
+		return false;
+	}
+
+	if( buf.cursize > buf.maxsize )
+	{
+		FS_Close( demfile );
+		com.strncpy( comment, "<not compatible>", MAX_STRING );
+		return false;
+	}
+
+	r = FS_Read( demfile, buf.data, buf.cursize );
+
+	if( r != buf.cursize )
+	{
+		FS_Close( demfile );
+		com.strncpy( comment, "<truncated file>", MAX_STRING );
+		return false;
+	}
+
+	MSG_BeginReading( &buf );
+
+	// send the serverdata
+	MSG_ReadByte( &buf ); // skip server data
+	if( PROTOCOL_VERSION != MSG_ReadLong( &buf ))
+	{
+		FS_Close( demfile );
+		com.strncpy( comment, "<invalid protocol>", MAX_STRING );
+		return false;
+	}
+
+	MSG_ReadLong( &buf ); // server count
+	MSG_ReadByte( &buf );// playernum
+	maxClients = MSG_ReadByte( &buf );
+	if( MSG_ReadWord( &buf ) > GI->max_edicts )
+	{
+		FS_Close( demfile );
+		com.strncpy( comment, "<too many edicts>", MAX_STRING );
+		return false;
+	}
+
+	// split comment to sections
+	com.strncpy( comment, MSG_ReadString( &buf ), CS_SIZE );		// mapname
+	com.strncpy( maptitle, MSG_ReadString( &buf ), MAX_STRING );	// maptitle
+	if( !com.strlen( maptitle )) com.strncpy( maptitle, "<no title>", MAX_STRING );
+	com.strncpy( comment + CS_SIZE, maptitle, CS_SIZE );
+	com.strncpy( comment + CS_SIZE * 2, va( "%i", maxClients ), CS_TIME );
+
+	// all done
+	FS_Close( demfile );
+		
+	return true;
+}
+
+/* 
+================== 
+CL_DemoGetName
+================== 
+*/  
+void CL_DemoGetName( int lastnum, char *filename )
+{
+	int	a, b;
+
+	if( !filename ) return;
+	if( lastnum < 0 || lastnum > 99 )
+	{
+		// bound
+		com.strcpy( filename, "demo99" );
+		return;
+	}
+
+	a = lastnum / 10;
+	b = lastnum % 10;
+
+	com.sprintf( filename, "demo%i%i", a, b );
 }
 
 /*
@@ -298,11 +420,17 @@ Begins recording a demo from the current position
 */
 void CL_Record_f( void )
 {
-	string		name;
+	const char	*name;
+	string		demoname, demopath;
+	int		n;
 
-	if( Cmd_Argc() != 2 )
+	if( Cmd_Argc() == 1 )
+		name = "new";
+	else if( Cmd_Argc() == 2 )
+		name = Cmd_Argv( 1 );
+	else
 	{
-		Msg ("record <demoname>\n");
+		Msg( "Usage: record <demoname>\n" );
 		return;
 	}
 
@@ -318,10 +446,37 @@ void CL_Record_f( void )
 		return;
 	}
 
-	// open the demo file
-	com.sprintf (name, "demos/%s.dem", Cmd_Argv(1));
+	if( !com.stricmp( name, "new" ))
+	{
+		// scan for a free filename
+		for( n = 0; n < 100; n++ )
+		{
+			CL_DemoGetName( n, demoname );
+			if( !FS_FileExists( va( "demos/%s.dem", demoname )))
+				break;
+		}
+		if( n == 100 )
+		{
+			Msg( "^3ERROR: no free slots for demo recording\n" );
+			return;
+		}
+	}
+	else com.strncpy( demoname, name, sizeof( name ));
 
-	CL_WriteDemoHeader( name );
+	// open the demo file
+	com.sprintf( demopath, "demos/%s.dem", demoname );
+
+	// make sure what oldsave is removed
+	if( FS_FileExists( va( "demos/%s.dem", demoname )))
+		FS_Delete( va( "%s/demos/%s.dem", GI->gamedir, demoname ));
+	if( FS_FileExists( va( "demos/%s.jpg", name )))
+		FS_Delete( va( "%s/demos/%s.jpg", GI->gamedir, demoname ));
+
+	// write demoshot for preview
+	Cbuf_AddText( va( "demoshot \"%s\"\n", demoname ));
+	com.strncpy( cls.demoname, demoname, sizeof( cls.demoname ));
+
+	CL_WriteDemoHeader( demopath );
 }
 
 /*
@@ -337,7 +492,7 @@ void CL_PlayDemo_f( void )
 
 	if( Cmd_Argc() != 2 )
 	{
-		Msg( "playdemo <demoname>\n" );
+		Msg( "Usage: playdemo <demoname>\n" );
 		return;
 	}
 
@@ -357,6 +512,7 @@ void CL_PlayDemo_f( void )
 	com.strncpy( cls.demoname, Cmd_Argv( 1 ), sizeof( cls.demoname ));
 
 	Con_Close();
+	UI_SetActiveMenu( UI_CLOSEMENU );
 
 	cls.state = ca_connected;
 	cls.demoplayback = true;

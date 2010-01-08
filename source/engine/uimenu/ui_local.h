@@ -73,7 +73,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define UI_MAX_FIELD_LINE		256
 #define UI_OUTLINE_WIDTH		uiStatic.outlineWidth	// outline thickness
 
-#define UI_MAXGAMES			100	// slots for savegame
+#define UI_MAXGAMES			100	// slots for savegame/demos
 #define UI_MAX_SERVERS		10
 
 // menu banners used fiexed rectangle (virtual screenspace at 640x480)
@@ -383,11 +383,13 @@ void UI_PlayerSetup_Precache( void );
 void UI_Controls_Precache( void );
 void UI_AdvControls_Precache( void );
 void UI_GameOptions_Precache( void );
+void UI_RecDemo_Precache( void );
+void UI_PlayDemo_Precache( void );
+void UI_PlayRec_Precache( void );
 void UI_Audio_Precache( void );
 void UI_Video_Precache( void );
 void UI_VidOptions_Precache( void );
 void UI_VidModes_Precache( void );
-void UI_Demos_Precache( void );
 void UI_CustomGame_Precache( void );
 void UI_Credits_Precache( void );
 void UI_GoToSite_Precache( void );
@@ -404,11 +406,13 @@ void UI_PlayerSetup_Menu( void );
 void UI_Controls_Menu( void );
 void UI_AdvControls_Menu( void );
 void UI_GameOptions_Menu( void );
+void UI_RecDemo_Menu( void );
+void UI_PlayDemo_Menu( void );
+void UI_PlayRec_Menu( void );
 void UI_Audio_Menu( void );
 void UI_Video_Menu( void );
 void UI_VidOptions_Menu( void );
 void UI_VidModes_Menu( void );
-void UI_Demos_Menu( void );
 void UI_CustomGame_Menu( void );
 void UI_Credits_Menu( void );
 

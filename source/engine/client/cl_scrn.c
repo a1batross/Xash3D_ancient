@@ -362,7 +362,8 @@ void SCR_MakeScreenShot( void )
 		if( re ) re->ScrShot( cls.shotname, VID_LEVELSHOT );
 		break;
 	case scrshot_savegame:
-		if( re ) re->ScrShot( cls.shotname, VID_SAVESHOT );
+	case scrshot_demoshot:
+		if( re ) re->ScrShot( cls.shotname, VID_MINISHOT );
 		break;
 	}
 

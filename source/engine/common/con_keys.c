@@ -61,7 +61,7 @@ keyname_t keynames[] =
 	{"F5",		K_F5,		"menu_startserver"	},
 	{"F6",		K_F6,		"savequick"	},
 	{"F7",		K_F7,		"loadquick"	},
-	{"F8",		K_F8,		""		},
+	{"F8",		K_F8,		"stop"		},
 	{"F9",		K_F9,		""		},
 	{"F10",		K_F10,		"menu_quit"	},
 	{"F11",		K_F11,		""		},

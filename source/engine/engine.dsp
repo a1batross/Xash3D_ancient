@@ -282,10 +282,6 @@ SOURCE=.\uimenu\ui_customgame.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\uimenu\ui_demos.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\uimenu\ui_gameoptions.c
 # End Source File
 # Begin Source File
@@ -310,11 +306,23 @@ SOURCE=.\uimenu\ui_newgame.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\uimenu\ui_playdemo.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\uimenu\ui_playersetup.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\uimenu\ui_playrec.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\uimenu\ui_qmenu.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_recdemo.c
 # End Source File
 # Begin Source File
 

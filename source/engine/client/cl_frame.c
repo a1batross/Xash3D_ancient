@@ -404,7 +404,7 @@ void CL_AddLoopingSounds( void )
 	int	sound, e;
 
 	if( cls.state != ca_active ) return;
-	if( cl.refdef.paused ) return;
+	if( cl.refdef.paused || cls.key_dest == key_menu ) return;
 	if(!cl.audio_prepped ) return;
 
 	for( e = 1; e < clgame.globals->numEntities; e++ )

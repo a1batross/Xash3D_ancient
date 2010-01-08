@@ -489,7 +489,7 @@ void CL_PredictMovement( void )
 	usercmd_t		*cmd;
 
 	if( cls.state != ca_active ) return;
-	if( cl.refdef.paused ) return;
+	if( cl.refdef.paused || cls.key_dest == key_menu ) return;
 
 	player = CL_GetLocalPlayer ();
 	viewent = CL_GetEdictByIndex( cl.refdef.viewentity );

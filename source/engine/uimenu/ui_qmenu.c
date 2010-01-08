@@ -1496,12 +1496,6 @@ void UI_Action_Draw( menuAction_s *a )
 	if( a->background )
 		UI_DrawPic( a->generic.x, a->generic.y, a->generic.width, a->generic.height, uiColorWhite, a->background );
 
-	if( a->generic.flags & QMF_GRAYED )
-	{
-		UI_DrawStringExt( a->generic.x, a->generic.y, a->generic.width, a->generic.height, a->generic.name, uiColorDkGrey, true, a->generic.charWidth, a->generic.charHeight, justify, shadow, font );
-		return; // grayed
-	}
-
 	if( a->generic.statusText && a->generic.flags & QMF_NOTIFY )
 	{
 		int	charW, charH;
@@ -1519,6 +1513,13 @@ void UI_Action_Draw( menuAction_s *a )
 
 		UI_DrawStringExt( x, a->generic.y, w, a->generic.height, a->generic.statusText, uiColorWhite, true, charW, charH, 0, true, cls.consoleFont );
 	}
+
+	if( a->generic.flags & QMF_GRAYED )
+	{
+		UI_DrawStringExt( a->generic.x, a->generic.y, a->generic.width, a->generic.height, a->generic.name, uiColorDkGrey, true, a->generic.charWidth, a->generic.charHeight, justify, shadow, font );
+		return; // grayed
+	}
+
 	if((menuCommon_s *)a != (menuCommon_s *)UI_ItemAtCursor( a->generic.parent ))
 	{
 		UI_DrawStringExt( a->generic.x, a->generic.y, a->generic.width, a->generic.height, a->generic.name, a->generic.color, false, a->generic.charWidth, a->generic.charHeight, justify, shadow, font );

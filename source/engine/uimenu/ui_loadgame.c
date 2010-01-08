@@ -139,6 +139,7 @@ UI_LoadGame_Callback
 static void UI_LoadGame_Callback( void *self, int event )
 {
 	menuCommon_s	*item = (menuCommon_s *)self;
+	string		pathJPG;
 
 	if( event == QM_CHANGED )
 	{
@@ -167,7 +168,9 @@ static void UI_LoadGame_Callback( void *self, int event )
 	case ID_DELETE:
 		if( com.strlen( uiLoadGame.delName[uiLoadGame.savesList.curItem] ))
 		{
-			Cbuf_ExecuteText( EXEC_NOW, va( "delete \"%s\"\n", uiLoadGame.delName[uiLoadGame.savesList.curItem] ));
+			com.snprintf( pathJPG, sizeof( pathJPG ), "save/%s.jpg", uiLoadGame.delName[uiLoadGame.savesList.curItem] );
+			Cbuf_ExecuteText( EXEC_NOW, va( "delsave \"%s\"\n", uiLoadGame.delName[uiLoadGame.savesList.curItem] ));
+			if( re ) re->FreeShader( pathJPG ); // unload shader from video-memory
 			UI_LoadGame_GetGameList();
 		}
 		break;

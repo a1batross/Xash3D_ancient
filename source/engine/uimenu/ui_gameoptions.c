@@ -33,12 +33,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ID_MAXFPSMESSAGE		5
 #define ID_HAND			6
 #define ID_ALLOWDOWNLOAD		7
+#define ID_ALWAYSRUN		8
 
 typedef struct
 {
 	float		maxFPS;
 	bool		hand;
 	bool		allowDownload;
+	bool		alwaysRun;
 } uiGameValues_t;
 
 typedef struct
@@ -55,6 +57,7 @@ typedef struct
 	menuAction_s	maxFPSmessage;
 	menuCheckBox_s	hand;
 	menuCheckBox_s	allowDownload;
+	menuCheckBox_s	alwaysRun;
 } uiGameOptions_t;
 
 static uiGameOptions_t	uiGameOptions;
@@ -75,6 +78,7 @@ static void UI_GameOptions_UpdateConfig( void )
 	Cvar_SetValue( "hand", uiGameOptions.hand.enabled );
 	Cvar_SetValue( "allow_download", uiGameOptions.allowDownload.enabled );
 	Cvar_SetValue( "host_maxfps", uiGameOptions.maxFPS.curValue );
+	Cvar_SetValue( "cl_run", uiGameOptions.alwaysRun.enabled );
 }
 
 /*
@@ -87,6 +91,7 @@ static void UI_GameOptions_DiscardChanges( void )
 	Cvar_SetValue( "hand", uiGameInitial.hand );
 	Cvar_SetValue( "allow_download", uiGameInitial.allowDownload );
 	Cvar_SetValue( "host_maxfps", uiGameInitial.maxFPS );
+	Cvar_SetValue( "cl_run", uiGameInitial.alwaysRun );
 }
 
 /*
@@ -113,6 +118,9 @@ static void UI_GameOptions_GetConfig( void )
 	if( Cvar_VariableInteger( "hand" ))
 		uiGameInitial.hand = uiGameOptions.hand.enabled = 1;
 
+	if( Cvar_VariableInteger( "cl_run" ))
+		uiGameInitial.alwaysRun = uiGameOptions.alwaysRun.enabled = 1;
+
 	if( Cvar_VariableInteger( "allow_download" ))
 		uiGameInitial.allowDownload = uiGameOptions.allowDownload.enabled = 1;
 
@@ -132,6 +140,7 @@ static void UI_GameOptions_Callback( void *self, int event )
 	{
 	case ID_HAND:
 	case ID_ALLOWDOWNLOAD:
+	case ID_ALWAYSRUN:
 		if( event == QM_PRESSED )
 			((menuCheckBox_s *)self)->focusPic = UI_CHECKBOX_PRESSED;
 		else ((menuCheckBox_s *)self)->focusPic = UI_CHECKBOX_FOCUS;
@@ -246,6 +255,15 @@ static void UI_GameOptions_Init( void )
 	uiGameOptions.allowDownload.generic.callback = UI_GameOptions_Callback;
 	uiGameOptions.allowDownload.generic.statusText = "Allow download of files from servers";
 
+	uiGameOptions.alwaysRun.generic.id = ID_ALWAYSRUN;
+	uiGameOptions.alwaysRun.generic.type = QMTYPE_CHECKBOX;
+	uiGameOptions.alwaysRun.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_ACT_ONRELEASE|QMF_MOUSEONLY|QMF_DROPSHADOW;
+	uiGameOptions.alwaysRun.generic.x = 280;
+	uiGameOptions.alwaysRun.generic.y = 450;
+	uiGameOptions.alwaysRun.generic.name = "Always run";
+	uiGameOptions.alwaysRun.generic.callback = UI_GameOptions_Callback;
+	uiGameOptions.alwaysRun.generic.statusText = "Switch between run/step models when pressed 'run' button";
+
 	UI_GameOptions_GetConfig();
 
 	UI_AddItem( &uiGameOptions.menu, (void *)&uiGameOptions.background );
@@ -255,6 +273,7 @@ static void UI_GameOptions_Init( void )
 	UI_AddItem( &uiGameOptions.menu, (void *)&uiGameOptions.maxFPS );
 	UI_AddItem( &uiGameOptions.menu, (void *)&uiGameOptions.maxFPSmessage );
 	UI_AddItem( &uiGameOptions.menu, (void *)&uiGameOptions.hand );
+	UI_AddItem( &uiGameOptions.menu, (void *)&uiGameOptions.alwaysRun );
 	UI_AddItem( &uiGameOptions.menu, (void *)&uiGameOptions.allowDownload );
 }
 

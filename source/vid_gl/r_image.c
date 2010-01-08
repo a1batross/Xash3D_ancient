@@ -3188,7 +3188,7 @@ bool VID_ScreenShot( const char *filename, int shot_type )
 		height = 384;
 		width = 512;
 		break;
-	case VID_SAVESHOT:
+	case VID_MINISHOT:
 		flags |= IMAGE_RESAMPLE;
 		height = 192;
 		width = 256;

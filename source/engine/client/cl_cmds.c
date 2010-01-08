@@ -219,6 +219,51 @@ void CL_SaveShot_f( void )
 	cls.scrshot_action = scrshot_savegame;		// build new frame for saveshot
 }
 
+/* 
+================== 
+CL_DemoShot_f
+
+mini-pic in playdemo menu
+================== 
+*/ 
+void CL_DemoShot_f( void )
+{
+	if( Cmd_Argc() < 2 )
+	{
+		Msg( "Usage: demoshot <savename>\n" );
+		return;
+	}
+
+	// check for exist
+	com.sprintf( cls.shotname, "demos/%s.jpg", Cmd_Argv( 1 ));
+	cls.scrshot_action = scrshot_demoshot; // build new frame for saveshot
+}
+
+/*
+==============
+CL_DeleteDemo_f
+
+==============
+*/
+void CL_DeleteDemo_f( void )
+{
+	if( Cmd_Argc() != 2 )
+	{
+		Msg( "Usage: deldemo <name>\n" );
+		return;
+	}
+
+	if( cls.demorecording && !com.stricmp( cls.demoname, Cmd_Argv( 1 )))
+	{
+		Msg( "Can't delete %s - recording\n", Cmd_Argv( 1 ));
+		return;
+	}
+
+	// delete save and saveshot
+	FS_Delete( va( "%s/demos/%s.dem", GI->gamedir, Cmd_Argv( 1 )));
+	FS_Delete( va( "%s/demos/%s.jpg", GI->gamedir, Cmd_Argv( 1 )));
+}
+
 /*
 =================
 CL_SetSky_f

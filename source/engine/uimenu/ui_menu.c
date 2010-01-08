@@ -1085,11 +1085,13 @@ void UI_Precache( void )
 	UI_Controls_Precache();
 	UI_AdvControls_Precache();
 	UI_GameOptions_Precache();
+	UI_PlayDemo_Precache();
+	UI_RecDemo_Precache();
+	UI_PlayRec_Precache();
 	UI_Audio_Precache();
 	UI_Video_Precache();
 	UI_VidOptions_Precache();
 	UI_VidModes_Precache();
-	UI_Demos_Precache();
 	UI_CustomGame_Precache();
 	UI_Credits_Precache();
 }
@@ -1144,6 +1146,9 @@ void UI_Init( void )
 	Cmd_AddCommand( "menu_loadgame", UI_LoadGame_Menu, "open the loadgame menu" );
 	Cmd_AddCommand( "menu_savegame", UI_SaveGame_Menu, "open the savegame menu" );
 	Cmd_AddCommand( "menu_saveload", UI_SaveLoad_Menu, "open the save\\load menu" );
+	Cmd_AddCommand( "menu_recdemo", UI_RecDemo_Menu, "open the record demo menu" );
+	Cmd_AddCommand( "menu_playdemo", UI_PlayDemo_Menu, "open the playback demo menu" );
+	Cmd_AddCommand( "menu_playrec", UI_PlayRec_Menu, "open the play\\record demo menu" );
 	Cmd_AddCommand( "menu_multiplayer", UI_MultiPlayer_Menu, "open the multiplayer menu" );
 	Cmd_AddCommand( "menu_options", UI_Options_Menu, "open the options menu" );
 	Cmd_AddCommand( "menu_playersetup", UI_PlayerSetup_Menu, "open the player setup menu" );
@@ -1154,7 +1159,6 @@ void UI_Init( void )
 	Cmd_AddCommand( "menu_video", UI_Video_Menu, "open the video settings head menu" );
 	Cmd_AddCommand( "menu_vidoptions", UI_VidOptions_Menu, "open the video options menu" );
 	Cmd_AddCommand( "menu_vidmodes", UI_VidModes_Menu, "open the video modes menu" );
-	Cmd_AddCommand( "menu_demos", UI_Demos_Menu, "open the demos viewer menu" );
 	Cmd_AddCommand( "menu_customgame", UI_CustomGame_Menu, "open the change game menu" );
 
 	Mem_Set( uiEmptyString, ' ', sizeof( uiEmptyString ));
@@ -1195,6 +1199,9 @@ void UI_Shutdown( void )
 	Cmd_RemoveCommand( "menu_loadgame" );
 	Cmd_RemoveCommand( "menu_savegame" );
 	Cmd_RemoveCommand( "menu_saveload" );
+	Cmd_RemoveCommand( "menu_recdemo" );
+	Cmd_RemoveCommand( "menu_playdemo" );
+	Cmd_RemoveCommand( "menu_playrec" );
 	Cmd_RemoveCommand( "menu_multiplayer" );
 	Cmd_RemoveCommand( "menu_options" );
 	Cmd_RemoveCommand( "menu_playersetup" );
@@ -1210,7 +1217,6 @@ void UI_Shutdown( void )
 	Cmd_RemoveCommand( "menu_network" );
 	Cmd_RemoveCommand( "menu_defaults" );
 	Cmd_RemoveCommand( "menu_cinematics" );
-	Cmd_RemoveCommand( "menu_demos" );
 	Cmd_RemoveCommand( "menu_customgame" );
 	Cmd_RemoveCommand( "menu_quit" );
 

@@ -155,6 +155,7 @@ typedef enum
 	scrshot_inactive,
 	scrshot_plaque,  	// levelshot
 	scrshot_savegame,	// saveshot
+	scrshot_demoshot	// for demos preview
 } e_scrshot;
 
 typedef struct
@@ -422,6 +423,7 @@ void CL_ScreenShot_f( void );
 void CL_EnvShot_f( void );
 void CL_SkyShot_f( void );
 void CL_SaveShot_f( void );
+void CL_DemoShot_f( void );
 void CL_LevelShot_f( void );
 void CL_SetSky_f( void );
 void CL_SetFont_f( void );
@@ -456,6 +458,7 @@ void CL_StopRecord( void );
 void CL_PlayDemo_f( void );
 void CL_StartDemos_f( void );
 void CL_Demos_f( void );
+void CL_DeleteDemo_f( void );
 void CL_Record_f( void );
 void CL_Stop_f( void );
 
