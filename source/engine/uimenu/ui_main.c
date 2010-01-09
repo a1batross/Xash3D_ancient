@@ -135,6 +135,22 @@ static const char *UI_Main_KeyFunc( int key, bool down )
 
 /*
 =================
+UI_Main_ActivateFunc
+=================
+*/
+static void UI_Main_ActivateFunc( void )
+{
+	if( cls.state != ca_active )
+		uiMain.resumeGame.generic.flags |= QMF_HIDDEN;
+	if( host.developer )
+	{
+		uiMain.console.generic.y = (cls.state == ca_active) ? 130 : 180;
+		UI_ScaleCoords( NULL, &uiMain.console.generic.y, NULL, NULL );
+	}
+}
+
+/*
+=================
 UI_Main_HazardCourse
 =================
 */
@@ -240,7 +256,8 @@ static void UI_Main_Init( void )
 	
 	Mem_Set( &uiMain, 0, sizeof( uiMain_t ));
 
-	uiMain.menu.keyFunc	= UI_Main_KeyFunc;
+	uiMain.menu.keyFunc = UI_Main_KeyFunc;
+	uiMain.menu.activateFunc = UI_Main_ActivateFunc;
 
 	uiMain.background.generic.id = ID_BACKGROUND;
 	uiMain.background.generic.type = QMTYPE_BITMAP;
@@ -276,6 +293,7 @@ static void UI_Main_Init( void )
 	uiMain.newGame.generic.x = 72;
 	uiMain.newGame.generic.y = 230;
 	uiMain.newGame.generic.callback = UI_Main_Callback;
+	if( GI->gamemode == 2 ) uiMain.newGame.generic.flags |= QMF_GRAYED;
 
 	uiMain.hazardCourse.generic.id = ID_HAZARDCOURSE;
 	uiMain.hazardCourse.generic.type = QMTYPE_ACTION;
@@ -368,6 +386,7 @@ static void UI_Main_Init( void )
 	uiMain.multiPlayer.generic.x = 72;
 	uiMain.multiPlayer.generic.y = com.strlen( GI->trainmap ) ? 430 : 380;
 	uiMain.multiPlayer.generic.callback = UI_Main_Callback;
+	if( GI->gamemode == 1 ) uiMain.multiPlayer.generic.flags |= QMF_GRAYED;
 
 	uiMain.customGame.generic.id = ID_CUSTOMGAME;
 	uiMain.customGame.generic.type = QMTYPE_ACTION;

@@ -1,9 +1,9 @@
 //=======================================================================
 //			Copyright XashXT Group 2009 ©
-//		safeproc.h - safe calls exports from other libraries
+//		com_export.h - safe calls exports from other libraries
 //=======================================================================
-#ifndef SAFEPROC_H
-#define SAFEPROC_H
+#ifndef COM_EXPORT_H
+#define COM_EXPORT_H
 
 // linked interfaces
 extern stdlib_api_t		com;
@@ -207,4 +207,4 @@ _inline sound_t S_RegisterSound( const char *name )
 	return se->RegisterSound( name );
 }
 
-#endif//SAFEPROC_H
+#endif//COM_EXPORT_H

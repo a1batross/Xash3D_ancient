@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "common.h"
 #include "com_library.h"
 #include "ui_local.h"
+#include "input.h"
 #include "client.h"
 
 #define ART_BANNER	     	"gfx/shell/head_save"
@@ -33,6 +34,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ID_SAVELIST		5
 #define ID_TABLEHINT	6
 #define ID_LEVELSHOT	7
+#define ID_MSGBOX	 	8
+#define ID_MSGTEXT	 	9
+#define ID_YES	 	10
+#define ID_NO	 	11
 
 #define LEVELSHOT_X		72
 #define LEVELSHOT_Y		400
@@ -63,10 +68,58 @@ typedef struct
 	menuBitmap_s	levelShot;
 	menuAction_s	hintMessage;
 	char		hintText[MAX_SYSPATH];
+
+	// prompt dialog
+	menuAction_s	msgBox;
+	menuAction_s	promptMessage;
+	menuAction_s	yes;
+	menuAction_s	no;
 } uiSaveGame_t;
 
 static uiSaveGame_t		uiSaveGame;
 
+/*
+=================
+UI_MsgBox_Ownerdraw
+=================
+*/
+static void UI_MsgBox_Ownerdraw( void *self )
+{
+	menuCommon_s	*item = (menuCommon_s *)self;
+
+	UI_FillRect( item->x, item->y, item->width, item->height, uiColorDkGrey );
+}
+
+static void UI_DeleteDialog( void )
+{
+	// toggle main menu between active\inactive
+	// show\hide delete dialog
+	uiSaveGame.save.generic.flags ^= QMF_INACTIVE; 
+	uiSaveGame.delete.generic.flags ^= QMF_INACTIVE;
+	uiSaveGame.cancel.generic.flags ^= QMF_INACTIVE;
+	uiSaveGame.savesList.generic.flags ^= QMF_INACTIVE;
+
+	uiSaveGame.msgBox.generic.flags ^= QMF_HIDDEN;
+	uiSaveGame.promptMessage.generic.flags ^= QMF_HIDDEN;
+	uiSaveGame.no.generic.flags ^= QMF_HIDDEN;
+	uiSaveGame.yes.generic.flags ^= QMF_HIDDEN;
+
+}
+
+/*
+=================
+UI_SaveGame_KeyFunc
+=================
+*/
+static const char *UI_SaveGame_KeyFunc( int key, bool down )
+{
+	if( down && key == K_ESCAPE && uiSaveGame.save.generic.flags & QMF_INACTIVE )
+	{
+		UI_DeleteDialog();
+		return uiSoundNull;
+	}
+	return UI_DefaultKey( &uiSaveGame.menu, key, down );
+}
 
 /*
 =================
@@ -186,7 +239,11 @@ static void UI_SaveGame_Callback( void *self, int event )
 			UI_CloseMenu();
 		}
 		break;
+	case ID_NO:
 	case ID_DELETE:
+		UI_DeleteDialog();
+		break;
+	case ID_YES:
 		if( com.strlen( uiSaveGame.delName[uiSaveGame.savesList.curItem] ))
 		{
 			com.snprintf( pathJPG, sizeof( pathJPG ), "save/%s.jpg", uiSaveGame.delName[uiSaveGame.savesList.curItem] );
@@ -194,6 +251,7 @@ static void UI_SaveGame_Callback( void *self, int event )
 			if( re ) re->FreeShader( pathJPG ); // unload shader from video-memory
 			UI_SaveGame_GetGameList();
 		}
+		UI_DeleteDialog();
 		break;
 	}
 }
@@ -244,6 +302,8 @@ UI_SaveGame_Init
 static void UI_SaveGame_Init( void )
 {
 	Mem_Set( &uiSaveGame, 0, sizeof( uiSaveGame_t ));
+
+	uiSaveGame.menu.keyFunc = UI_SaveGame_KeyFunc;
 
 	com.strncat( uiSaveGame.hintText, "Time", TIME_LENGTH );
 	com.strncat( uiSaveGame.hintText, uiEmptyString, TIME_LENGTH );
@@ -323,6 +383,38 @@ static void UI_SaveGame_Init( void )
 	uiSaveGame.savesList.generic.height = 440;
 	uiSaveGame.savesList.generic.callback = UI_SaveGame_Callback;
 
+	uiSaveGame.msgBox.generic.id = ID_MSGBOX;
+	uiSaveGame.msgBox.generic.type = QMTYPE_ACTION;
+	uiSaveGame.msgBox.generic.flags = QMF_INACTIVE|QMF_HIDDEN;
+	uiSaveGame.msgBox.generic.ownerdraw = UI_MsgBox_Ownerdraw; // just a fill rectangle
+	uiSaveGame.msgBox.generic.x = 192;
+	uiSaveGame.msgBox.generic.y = 256;
+	uiSaveGame.msgBox.generic.width = 640;
+	uiSaveGame.msgBox.generic.height = 256;
+
+	uiSaveGame.promptMessage.generic.id = ID_MSGBOX;
+	uiSaveGame.promptMessage.generic.type = QMTYPE_ACTION;
+	uiSaveGame.promptMessage.generic.flags = QMF_INACTIVE|QMF_DROPSHADOW|QMF_HIDDEN;
+	uiSaveGame.promptMessage.generic.name = "Delete selected game?";
+	uiSaveGame.promptMessage.generic.x = 315;
+	uiSaveGame.promptMessage.generic.y = 280;
+
+	uiSaveGame.yes.generic.id = ID_YES;
+	uiSaveGame.yes.generic.type = QMTYPE_ACTION;
+	uiSaveGame.yes.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_HIDDEN;
+	uiSaveGame.yes.generic.name = "Ok";
+	uiSaveGame.yes.generic.x = 380;
+	uiSaveGame.yes.generic.y = 460;
+	uiSaveGame.yes.generic.callback = UI_SaveGame_Callback;
+
+	uiSaveGame.no.generic.id = ID_NO;
+	uiSaveGame.no.generic.type = QMTYPE_ACTION;
+	uiSaveGame.no.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_HIDDEN;
+	uiSaveGame.no.generic.name = "Cancel";
+	uiSaveGame.no.generic.x = 530;
+	uiSaveGame.no.generic.y = 460;
+	uiSaveGame.no.generic.callback = UI_SaveGame_Callback;
+
 	UI_SaveGame_GetGameList();
 
 	UI_AddItem( &uiSaveGame.menu, (void *)&uiSaveGame.background );
@@ -333,6 +425,10 @@ static void UI_SaveGame_Init( void )
 	UI_AddItem( &uiSaveGame.menu, (void *)&uiSaveGame.hintMessage );
 	UI_AddItem( &uiSaveGame.menu, (void *)&uiSaveGame.levelShot );
 	UI_AddItem( &uiSaveGame.menu, (void *)&uiSaveGame.savesList );
+	UI_AddItem( &uiSaveGame.menu, (void *)&uiSaveGame.msgBox );
+	UI_AddItem( &uiSaveGame.menu, (void *)&uiSaveGame.promptMessage );
+	UI_AddItem( &uiSaveGame.menu, (void *)&uiSaveGame.no );
+	UI_AddItem( &uiSaveGame.menu, (void *)&uiSaveGame.yes );
 }
 
 /*
@@ -356,6 +452,13 @@ UI_SaveGame_Menu
 void UI_SaveGame_Menu( void )
 {
 	string	libpath;
+
+	if( GI->gamemode == 2 )
+	{
+		// completely ignore save\load menus for multiplayer_only
+		UI_RecDemo_Menu();
+		return;
+	}
 
 	Com_BuildPath( "server", libpath );
 	if( !FS_FileExists( libpath )) return;

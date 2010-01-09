@@ -172,6 +172,13 @@ UI_SaveLoad_Menu
 */
 void UI_SaveLoad_Menu( void )
 {
+	if( GI->gamemode == 2 )
+	{
+		// completely ignore save\load menus for multiplayer_only
+		UI_PlayRec_Menu();
+		return;
+	}
+
 	UI_SaveLoad_Precache();
 	UI_SaveLoad_Init();
 

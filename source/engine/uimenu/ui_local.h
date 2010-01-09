@@ -134,6 +134,7 @@ typedef struct
 
 	void		(*drawFunc)( void );
 	const char	*(*keyFunc)( int key, bool down );
+	void		(*activateFunc)( void );
 } menuFramework_s;
 
 typedef struct
@@ -322,9 +323,9 @@ extern const char		*uiSoundNull;
 //
 // keys.c
 //
-char *Key_GetBinding( int keynum );
+const char *Key_GetBinding( int keynum );
 void Key_SetBinding( int keynum, char *binding );
-char *Key_KeynumToString( int keynum );
+const char *Key_KeynumToString( int keynum );
 bool Key_IsDown( int keynum );
 
 //

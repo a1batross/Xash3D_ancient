@@ -820,6 +820,12 @@ void UI_UpdateMenu( int realTime )
 
 	uiStatic.realTime = realTime;
 
+	if( uiStatic.firstDraw )
+	{
+		if( uiStatic.menuActive->activateFunc )
+			uiStatic.menuActive->activateFunc();
+	}
+
 	// draw menu
 	if( uiStatic.menuActive->drawFunc )
 		uiStatic.menuActive->drawFunc();

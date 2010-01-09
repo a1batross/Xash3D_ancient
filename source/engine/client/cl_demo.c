@@ -109,8 +109,6 @@ void CL_WriteDemoHeader( const char *name )
 
 	MSG_WriteByte( &buf, svc_stufftext );
 	MSG_WriteString( &buf, "precache\n" );
-	MSG_WriteByte( &buf, svc_stufftext );
-	MSG_WriteString( &buf, "cmd fullupdate\n" );
 
 	MSG_WriteByte( &buf, svc_setview );
 	MSG_WriteWord( &buf, cl.refdef.viewentity );

@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "common.h"
 #include "com_library.h"
 #include "ui_local.h"
+#include "input.h"
 #include "client.h"
 
 #define ART_BANNER	     	"gfx/shell/head_play"
@@ -33,6 +34,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ID_DEMOLIST		5
 #define ID_TABLEHINT	6
 #define ID_LEVELSHOT	7
+#define ID_MSGBOX	 	8
+#define ID_MSGTEXT	 	9
+#define ID_YES	 	10
+#define ID_NO	 	11
 
 #define LEVELSHOT_X		72
 #define LEVELSHOT_Y		400
@@ -63,9 +68,58 @@ typedef struct
 	menuBitmap_s	levelShot;
 	menuAction_s	hintMessage;
 	char		hintText[MAX_SYSPATH];
+
+	// prompt dialog
+	menuAction_s	msgBox;
+	menuAction_s	promptMessage;
+	menuAction_s	yes;
+	menuAction_s	no;
 } uiPlayDemo_t;
 
 static uiPlayDemo_t		uiPlayDemo;
+
+/*
+=================
+UI_MsgBox_Ownerdraw
+=================
+*/
+static void UI_MsgBox_Ownerdraw( void *self )
+{
+	menuCommon_s	*item = (menuCommon_s *)self;
+
+	UI_FillRect( item->x, item->y, item->width, item->height, uiColorDkGrey );
+}
+
+static void UI_DeleteDialog( void )
+{
+	// toggle main menu between active\inactive
+	// show\hide delete dialog
+	uiPlayDemo.play.generic.flags ^= QMF_INACTIVE; 
+	uiPlayDemo.delete.generic.flags ^= QMF_INACTIVE;
+	uiPlayDemo.cancel.generic.flags ^= QMF_INACTIVE;
+	uiPlayDemo.demosList.generic.flags ^= QMF_INACTIVE;
+
+	uiPlayDemo.msgBox.generic.flags ^= QMF_HIDDEN;
+	uiPlayDemo.promptMessage.generic.flags ^= QMF_HIDDEN;
+	uiPlayDemo.no.generic.flags ^= QMF_HIDDEN;
+	uiPlayDemo.yes.generic.flags ^= QMF_HIDDEN;
+
+}
+
+/*
+=================
+UI_PlayDemo_KeyFunc
+=================
+*/
+static const char *UI_PlayDemo_KeyFunc( int key, bool down )
+{
+	if( down && key == K_ESCAPE && uiPlayDemo.play.generic.flags & QMF_INACTIVE )
+	{
+		UI_DeleteDialog();
+		return uiSoundNull;
+	}
+	return UI_DefaultKey( &uiPlayDemo.menu, key, down );
+}
 
 /*
 =================
@@ -121,7 +175,7 @@ static void UI_PlayDemo_GetDemoList( void )
 		uiPlayDemo.play.generic.flags |= QMF_GRAYED;
 	else uiPlayDemo.play.generic.flags &= ~QMF_GRAYED;
 
-	if( com.strlen( uiPlayDemo.delName[0] ) == 0 )
+	if( com.strlen( uiPlayDemo.delName[0] ) == 0 || !com.stricmp( cls.demoname, uiPlayDemo.delName[uiPlayDemo.demosList.curItem] ))
 		uiPlayDemo.delete.generic.flags |= QMF_GRAYED;
 	else uiPlayDemo.delete.generic.flags &= ~QMF_GRAYED;
 	
@@ -159,10 +213,21 @@ static void UI_PlayDemo_Callback( void *self, int event )
 		UI_PopMenu();
 		break;
 	case ID_PLAY:
-		if( com.strlen( uiPlayDemo.demoName[uiPlayDemo.demosList.curItem] ))
+		if( cls.demoplayback || cls.demorecording )
+		{
+			Cbuf_ExecuteText( EXEC_APPEND, "stop" );
+			uiPlayDemo.play.generic.name = "Play";
+			uiPlayDemo.play.generic.statusText = "Play a demo";
+			uiPlayDemo.delete.generic.flags &= ~QMF_GRAYED;
+		}
+		else if( com.strlen( uiPlayDemo.demoName[uiPlayDemo.demosList.curItem] ))
 			Cbuf_ExecuteText( EXEC_APPEND, va( "playdemo \"%s\"\n", uiPlayDemo.demoName[uiPlayDemo.demosList.curItem] ));
 		break;
+	case ID_NO:
 	case ID_DELETE:
+		UI_DeleteDialog();
+		break;
+	case ID_YES:
 		if( com.strlen( uiPlayDemo.delName[uiPlayDemo.demosList.curItem] ))
 		{
 			com.snprintf( pathJPG, sizeof( pathJPG ), "demos/%s.jpg", uiPlayDemo.delName[uiPlayDemo.demosList.curItem] );
@@ -170,6 +235,7 @@ static void UI_PlayDemo_Callback( void *self, int event )
 			if( re ) re->FreeShader( pathJPG ); // unload shader from video-memory
 			UI_PlayDemo_GetDemoList();
 		}
+		UI_DeleteDialog();
 		break;
 	}
 }
@@ -221,6 +287,8 @@ static void UI_PlayDemo_Init( void )
 {
 	Mem_Set( &uiPlayDemo, 0, sizeof( uiPlayDemo_t ));
 
+	uiPlayDemo.menu.keyFunc = UI_PlayDemo_KeyFunc;
+
 	com.strncat( uiPlayDemo.hintText, "Title", TITLE_LENGTH );
 	com.strncat( uiPlayDemo.hintText, uiEmptyString, TITLE_LENGTH );
 	com.strncat( uiPlayDemo.hintText, "Map", MAPNAME_LENGTH );
@@ -251,8 +319,22 @@ static void UI_PlayDemo_Init( void )
 	uiPlayDemo.play.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
 	uiPlayDemo.play.generic.x = 72;
 	uiPlayDemo.play.generic.y = 230;
-	uiPlayDemo.play.generic.name = "Play";
-	uiPlayDemo.play.generic.statusText = "Play a demo";
+
+	if( cls.demoplayback )
+	{
+		uiPlayDemo.play.generic.name = "Stop";
+		uiPlayDemo.play.generic.statusText = "Stop a demo playing";
+	}
+	else if( cls.demorecording )
+	{
+		uiPlayDemo.play.generic.name = "Stop";
+		uiPlayDemo.play.generic.statusText = "Stop a demo recording";
+	}
+	else
+	{
+		uiPlayDemo.play.generic.name = "Play";
+		uiPlayDemo.play.generic.statusText = "Play a demo";
+	}
 	uiPlayDemo.play.generic.callback = UI_PlayDemo_Callback;
 
 	uiPlayDemo.delete.generic.id = ID_DELETE;
@@ -299,6 +381,38 @@ static void UI_PlayDemo_Init( void )
 	uiPlayDemo.demosList.generic.height = 440;
 	uiPlayDemo.demosList.generic.callback = UI_PlayDemo_Callback;
 
+	uiPlayDemo.msgBox.generic.id = ID_MSGBOX;
+	uiPlayDemo.msgBox.generic.type = QMTYPE_ACTION;
+	uiPlayDemo.msgBox.generic.flags = QMF_INACTIVE|QMF_HIDDEN;
+	uiPlayDemo.msgBox.generic.ownerdraw = UI_MsgBox_Ownerdraw; // just a fill rectangle
+	uiPlayDemo.msgBox.generic.x = 192;
+	uiPlayDemo.msgBox.generic.y = 256;
+	uiPlayDemo.msgBox.generic.width = 640;
+	uiPlayDemo.msgBox.generic.height = 256;
+
+	uiPlayDemo.promptMessage.generic.id = ID_MSGBOX;
+	uiPlayDemo.promptMessage.generic.type = QMTYPE_ACTION;
+	uiPlayDemo.promptMessage.generic.flags = QMF_INACTIVE|QMF_DROPSHADOW|QMF_HIDDEN;
+	uiPlayDemo.promptMessage.generic.name = "Delete selected demo?";
+	uiPlayDemo.promptMessage.generic.x = 315;
+	uiPlayDemo.promptMessage.generic.y = 280;
+
+	uiPlayDemo.yes.generic.id = ID_YES;
+	uiPlayDemo.yes.generic.type = QMTYPE_ACTION;
+	uiPlayDemo.yes.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_HIDDEN;
+	uiPlayDemo.yes.generic.name = "Ok";
+	uiPlayDemo.yes.generic.x = 380;
+	uiPlayDemo.yes.generic.y = 460;
+	uiPlayDemo.yes.generic.callback = UI_PlayDemo_Callback;
+
+	uiPlayDemo.no.generic.id = ID_NO;
+	uiPlayDemo.no.generic.type = QMTYPE_ACTION;
+	uiPlayDemo.no.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_HIDDEN;
+	uiPlayDemo.no.generic.name = "Cancel";
+	uiPlayDemo.no.generic.x = 530;
+	uiPlayDemo.no.generic.y = 460;
+	uiPlayDemo.no.generic.callback = UI_PlayDemo_Callback;
+
 	UI_PlayDemo_GetDemoList();
 
 	UI_AddItem( &uiPlayDemo.menu, (void *)&uiPlayDemo.background );
@@ -309,6 +423,10 @@ static void UI_PlayDemo_Init( void )
 	UI_AddItem( &uiPlayDemo.menu, (void *)&uiPlayDemo.hintMessage );
 	UI_AddItem( &uiPlayDemo.menu, (void *)&uiPlayDemo.levelShot );
 	UI_AddItem( &uiPlayDemo.menu, (void *)&uiPlayDemo.demosList );
+	UI_AddItem( &uiPlayDemo.menu, (void *)&uiPlayDemo.msgBox );
+	UI_AddItem( &uiPlayDemo.menu, (void *)&uiPlayDemo.promptMessage );
+	UI_AddItem( &uiPlayDemo.menu, (void *)&uiPlayDemo.no );
+	UI_AddItem( &uiPlayDemo.menu, (void *)&uiPlayDemo.yes );
 }
 
 /*

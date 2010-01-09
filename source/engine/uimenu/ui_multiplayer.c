@@ -1074,10 +1074,10 @@ static void UI_StartServer_Init( void )
 	uiStartServer.banner.generic.id = ID_BANNER;
 	uiStartServer.banner.generic.type = QMTYPE_BITMAP;
 	uiStartServer.banner.generic.flags = QMF_INACTIVE;
-	uiStartServer.banner.generic.x = 0;
-	uiStartServer.banner.generic.y = 66;
-	uiStartServer.banner.generic.width = 1024;
-	uiStartServer.banner.generic.height = 46;
+	uiStartServer.banner.generic.x = UI_BANNER_POSX;
+	uiStartServer.banner.generic.y = UI_BANNER_POSY;
+	uiStartServer.banner.generic.width = UI_BANNER_WIDTH;
+	uiStartServer.banner.generic.height = UI_BANNER_HEIGHT;
 	uiStartServer.banner.pic = ART_BANNER;
 
 	uiStartServer.back.generic.id = ID_DONE;
@@ -1280,7 +1280,7 @@ static void UI_MultiPlayer_Init( void )
 
 	uiMultiPlayer.LANGame.generic.id = ID_LANGAME;
 	uiMultiPlayer.LANGame.generic.type = QMTYPE_ACTION;
-	uiMultiPlayer.LANGame.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_NOTIFY|QMF_GRAYED;
+	uiMultiPlayer.LANGame.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_NOTIFY;
 	uiMultiPlayer.LANGame.generic.x = 72;
 	uiMultiPlayer.LANGame.generic.y = 330;
 	uiMultiPlayer.LANGame.generic.name = "LAN game";

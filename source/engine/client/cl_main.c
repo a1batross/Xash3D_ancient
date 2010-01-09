@@ -86,7 +86,7 @@ void CL_ForwardToServer_f( void )
 
 	if( cls.demoplayback )
 	{
-		if( !com.stricmp( Cmd_Argv( 0 ), "pause" ))
+		if( !com.stricmp( Cmd_Argv( 1 ), "pause" ))
 			cl.refdef.paused ^= 1;
 		return;
 	}

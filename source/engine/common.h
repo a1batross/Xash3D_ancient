@@ -17,7 +17,7 @@
 #include "render_api.h"
 #include "physic_api.h"
 #include "vsound_api.h"
-#include "safeproc.h"
+#include "com_export.h"
 #include "net_msg.h"
 
 #define MAX_RENDERS		8		// max libraries to keep tracking
@@ -182,13 +182,13 @@ float pfnTime( void );
 // keys.c
 //
 bool Key_IsDown( int keynum );
-char *Key_IsBind( int keynum );
+const char *Key_IsBind( int keynum );
 void Key_Event( int key, bool down, int time );
 void Key_Init( void );
 void Key_WriteBindings( file_t *f );
 void Key_SetBinding( int keynum, char *binding );
 void Key_ClearStates( void );
-char *Key_KeynumToString( int keynum );
+const char *Key_KeynumToString( int keynum );
 int Key_StringToKeynum( const char *str );
 int Key_GetKey( const char *binding );
 void Key_EnumCmds_f( void );

@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "common.h"
 #include "com_library.h"
 #include "ui_local.h"
+#include "input.h"
 #include "client.h"
 
 #define ART_BANNER	     	"gfx/shell/head_record"
@@ -33,6 +34,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ID_DEMOLIST		5
 #define ID_TABLEHINT	6
 #define ID_LEVELSHOT	7
+#define ID_MSGBOX	 	8
+#define ID_MSGTEXT	 	9
+#define ID_YES	 	10
+#define ID_NO	 	11
 
 #define LEVELSHOT_X		72
 #define LEVELSHOT_Y		400
@@ -63,9 +68,58 @@ typedef struct
 	menuBitmap_s	levelShot;
 	menuAction_s	hintMessage;
 	char		hintText[MAX_SYSPATH];
+
+	// prompt dialog
+	menuAction_s	msgBox;
+	menuAction_s	promptMessage;
+	menuAction_s	yes;
+	menuAction_s	no;
 } uiRecDemo_t;
 
 static uiRecDemo_t		uiRecDemo;
+
+/*
+=================
+UI_MsgBox_Ownerdraw
+=================
+*/
+static void UI_MsgBox_Ownerdraw( void *self )
+{
+	menuCommon_s	*item = (menuCommon_s *)self;
+
+	UI_FillRect( item->x, item->y, item->width, item->height, uiColorDkGrey );
+}
+
+static void UI_DeleteDialog( void )
+{
+	// toggle main menu between active\inactive
+	// show\hide delete dialog
+	uiRecDemo.record.generic.flags ^= QMF_INACTIVE; 
+	uiRecDemo.delete.generic.flags ^= QMF_INACTIVE;
+	uiRecDemo.cancel.generic.flags ^= QMF_INACTIVE;
+	uiRecDemo.demosList.generic.flags ^= QMF_INACTIVE;
+
+	uiRecDemo.msgBox.generic.flags ^= QMF_HIDDEN;
+	uiRecDemo.promptMessage.generic.flags ^= QMF_HIDDEN;
+	uiRecDemo.no.generic.flags ^= QMF_HIDDEN;
+	uiRecDemo.yes.generic.flags ^= QMF_HIDDEN;
+
+}
+
+/*
+=================
+UI_RecDemo_KeyFunc
+=================
+*/
+static const char *UI_RecDemo_KeyFunc( int key, bool down )
+{
+	if( down && key == K_ESCAPE && uiRecDemo.record.generic.flags & QMF_INACTIVE )
+	{
+		UI_DeleteDialog();
+		return uiSoundNull;
+	}
+	return UI_DefaultKey( &uiRecDemo.menu, key, down );
+}
 
 /*
 =================
@@ -134,11 +188,11 @@ static void UI_RecDemo_GetDemoList( void )
 	for( ; i < UI_MAXGAMES; i++ ) uiRecDemo.demoDescriptionPtr[i] = NULL;
 	uiRecDemo.demosList.itemNames = uiRecDemo.demoDescriptionPtr;
 
-	if( com.strlen( uiRecDemo.demoName[0] ) == 0 || cls.state != ca_active || cls.demorecording || cls.demoplayback )
+	if( com.strlen( uiRecDemo.demoName[0] ) == 0 || cls.state != ca_active || cls.demoplayback )
 		uiRecDemo.record.generic.flags |= QMF_GRAYED;
 	else uiRecDemo.record.generic.flags &= ~QMF_GRAYED;
 
-	if( com.strlen( uiRecDemo.delName[0] ) == 0 )
+	if( com.strlen( uiRecDemo.delName[0] ) == 0 || !com.stricmp( cls.demoname, uiRecDemo.delName[uiRecDemo.demosList.curItem] ))
 		uiRecDemo.delete.generic.flags |= QMF_GRAYED;
 	else uiRecDemo.delete.generic.flags &= ~QMF_GRAYED;
 	
@@ -158,7 +212,7 @@ static void UI_RecDemo_Callback( void *self, int event )
 	if( event == QM_CHANGED )
 	{
 		// never overwrite existing saves, because their names was never get collision
-		if( com.strlen( uiRecDemo.demoName[uiRecDemo.demosList.curItem] ) == 0 || cls.state != ca_active || cls.demorecording || cls.demoplayback )
+		if( com.strlen( uiRecDemo.demoName[uiRecDemo.demosList.curItem] ) == 0 || cls.state != ca_active || cls.demoplayback )
 			uiRecDemo.record.generic.flags |= QMF_GRAYED;
 		else uiRecDemo.record.generic.flags &= ~QMF_GRAYED;
 
@@ -177,7 +231,14 @@ static void UI_RecDemo_Callback( void *self, int event )
 		UI_PopMenu();
 		break;
 	case ID_RECORD:
-		if( com.strlen( uiRecDemo.demoName[uiRecDemo.demosList.curItem] ))
+		if( cls.demorecording )
+		{
+			Cbuf_ExecuteText( EXEC_APPEND, "stop" );
+			uiRecDemo.record.generic.name = "Record";
+			uiRecDemo.record.generic.statusText = "Record a new demo";
+			uiRecDemo.delete.generic.flags &= ~QMF_GRAYED;
+		}
+		else if( com.strlen( uiRecDemo.demoName[uiRecDemo.demosList.curItem] ))
 		{
 			com.snprintf( pathJPG, sizeof( pathJPG ), "demos/%s.jpg", uiRecDemo.demoName[uiRecDemo.demosList.curItem] );
 			Cbuf_ExecuteText( EXEC_APPEND, va( "record \"%s\"\n", uiRecDemo.demoName[uiRecDemo.demosList.curItem] ));
@@ -185,7 +246,11 @@ static void UI_RecDemo_Callback( void *self, int event )
 			UI_CloseMenu();
 		}
 		break;
+	case ID_NO:
 	case ID_DELETE:
+		UI_DeleteDialog();
+		break;
+	case ID_YES:
 		if( com.strlen( uiRecDemo.delName[uiRecDemo.demosList.curItem] ))
 		{
 			com.snprintf( pathJPG, sizeof( pathJPG ), "demos/%s.jpg", uiRecDemo.delName[uiRecDemo.demosList.curItem] );
@@ -193,6 +258,7 @@ static void UI_RecDemo_Callback( void *self, int event )
 			if( re ) re->FreeShader( pathJPG ); // unload shader from video-memory
 			UI_RecDemo_GetDemoList();
 		}
+		UI_DeleteDialog();
 		break;
 	}
 }
@@ -244,6 +310,8 @@ static void UI_RecDemo_Init( void )
 {
 	Mem_Set( &uiRecDemo, 0, sizeof( uiRecDemo_t ));
 
+	uiRecDemo.menu.keyFunc = UI_RecDemo_KeyFunc;
+
 	com.strncat( uiRecDemo.hintText, "Title", TITLE_LENGTH );
 	com.strncat( uiRecDemo.hintText, uiEmptyString, TITLE_LENGTH );
 	com.strncat( uiRecDemo.hintText, "Map", MAPNAME_LENGTH );
@@ -274,8 +342,16 @@ static void UI_RecDemo_Init( void )
 	uiRecDemo.record.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
 	uiRecDemo.record.generic.x = 72;
 	uiRecDemo.record.generic.y = 230;
-	uiRecDemo.record.generic.name = "Record";
-	uiRecDemo.record.generic.statusText = "Record a new demo";
+	if( cls.demorecording )
+	{
+		uiRecDemo.record.generic.name = "Stop";
+		uiRecDemo.record.generic.statusText = "Stop a demo recording";
+	}
+	else
+	{
+		uiRecDemo.record.generic.name = "Record";
+		uiRecDemo.record.generic.statusText = "Record a new demo";
+	}
 	uiRecDemo.record.generic.callback = UI_RecDemo_Callback;
 
 	uiRecDemo.delete.generic.id = ID_DELETE;
@@ -322,6 +398,38 @@ static void UI_RecDemo_Init( void )
 	uiRecDemo.demosList.generic.height = 440;
 	uiRecDemo.demosList.generic.callback = UI_RecDemo_Callback;
 
+	uiRecDemo.msgBox.generic.id = ID_MSGBOX;
+	uiRecDemo.msgBox.generic.type = QMTYPE_ACTION;
+	uiRecDemo.msgBox.generic.flags = QMF_INACTIVE|QMF_HIDDEN;
+	uiRecDemo.msgBox.generic.ownerdraw = UI_MsgBox_Ownerdraw; // just a fill rectangle
+	uiRecDemo.msgBox.generic.x = 192;
+	uiRecDemo.msgBox.generic.y = 256;
+	uiRecDemo.msgBox.generic.width = 640;
+	uiRecDemo.msgBox.generic.height = 256;
+
+	uiRecDemo.promptMessage.generic.id = ID_MSGBOX;
+	uiRecDemo.promptMessage.generic.type = QMTYPE_ACTION;
+	uiRecDemo.promptMessage.generic.flags = QMF_INACTIVE|QMF_DROPSHADOW|QMF_HIDDEN;
+	uiRecDemo.promptMessage.generic.name = "Delete selected demo?";
+	uiRecDemo.promptMessage.generic.x = 315;
+	uiRecDemo.promptMessage.generic.y = 280;
+
+	uiRecDemo.yes.generic.id = ID_YES;
+	uiRecDemo.yes.generic.type = QMTYPE_ACTION;
+	uiRecDemo.yes.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_HIDDEN;
+	uiRecDemo.yes.generic.name = "Ok";
+	uiRecDemo.yes.generic.x = 380;
+	uiRecDemo.yes.generic.y = 460;
+	uiRecDemo.yes.generic.callback = UI_RecDemo_Callback;
+
+	uiRecDemo.no.generic.id = ID_NO;
+	uiRecDemo.no.generic.type = QMTYPE_ACTION;
+	uiRecDemo.no.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_HIDDEN;
+	uiRecDemo.no.generic.name = "Cancel";
+	uiRecDemo.no.generic.x = 530;
+	uiRecDemo.no.generic.y = 460;
+	uiRecDemo.no.generic.callback = UI_RecDemo_Callback;
+
 	UI_RecDemo_GetDemoList();
 
 	UI_AddItem( &uiRecDemo.menu, (void *)&uiRecDemo.background );
@@ -332,6 +440,10 @@ static void UI_RecDemo_Init( void )
 	UI_AddItem( &uiRecDemo.menu, (void *)&uiRecDemo.hintMessage );
 	UI_AddItem( &uiRecDemo.menu, (void *)&uiRecDemo.levelShot );
 	UI_AddItem( &uiRecDemo.menu, (void *)&uiRecDemo.demosList );
+	UI_AddItem( &uiRecDemo.menu, (void *)&uiRecDemo.msgBox );
+	UI_AddItem( &uiRecDemo.menu, (void *)&uiRecDemo.promptMessage );
+	UI_AddItem( &uiRecDemo.menu, (void *)&uiRecDemo.no );
+	UI_AddItem( &uiRecDemo.menu, (void *)&uiRecDemo.yes );
 }
 
 /*

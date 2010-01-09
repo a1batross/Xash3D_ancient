@@ -29,10 +29,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define ID_PLAY	  	2
 #define ID_RECORD	  	3
-#define ID_STOP		4
-#define ID_DONE		5
+#define ID_DONE		4
 
-#define ID_MSGHINT		6
+#define ID_MSGHINT		5
 
 typedef struct
 {
@@ -43,7 +42,6 @@ typedef struct
 
 	menuAction_s	record;
 	menuAction_s	play;
-	menuAction_s	stop;
 	menuAction_s	done;
 
 	menuAction_s	hintMessage;
@@ -71,10 +69,6 @@ static void UI_PlayRec_Callback( void *self, int event )
 		break;
 	case ID_RECORD:
 		UI_RecDemo_Menu();
-		break;
-	case ID_STOP:
-		Cbuf_ExecuteText( EXEC_APPEND, "stop" );
-		item->flags |= QMF_GRAYED; // demo stopped
 		break;
 	case ID_DONE:
 		UI_PopMenu();
@@ -132,25 +126,13 @@ static void UI_PlayRec_Init( void )
 	uiPlayRec.record.generic.y = 280;
 	uiPlayRec.record.generic.callback = UI_PlayRec_Callback;
 
-	uiPlayRec.stop.generic.id = ID_STOP;
-	uiPlayRec.stop.generic.type = QMTYPE_ACTION;
-	uiPlayRec.stop.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_NOTIFY;
-	uiPlayRec.stop.generic.name = "Stop demo";
-	uiPlayRec.stop.generic.statusText = "Immediately stop a recording or playing demo";
-	uiPlayRec.stop.generic.x = 72;
-	uiPlayRec.stop.generic.y = 330;
-	uiPlayRec.stop.generic.callback = UI_PlayRec_Callback;
-
-	if( !cls.demorecording && !cls.demoplayback )
-		uiPlayRec.stop.generic.flags |= QMF_GRAYED;
-
 	uiPlayRec.done.generic.id = ID_DONE;
 	uiPlayRec.done.generic.type = QMTYPE_ACTION;
 	uiPlayRec.done.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_NOTIFY;
 	uiPlayRec.done.generic.name = "Done";
 	uiPlayRec.done.generic.statusText = "Go back to the Main Menu";
 	uiPlayRec.done.generic.x = 72;
-	uiPlayRec.done.generic.y = 380;
+	uiPlayRec.done.generic.y = 330;
 	uiPlayRec.done.generic.callback = UI_PlayRec_Callback;
 
 	uiPlayRec.hintMessage.generic.id = ID_MSGHINT;
@@ -165,7 +147,6 @@ static void UI_PlayRec_Init( void )
 	UI_AddItem( &uiPlayRec.menu, (void *)&uiPlayRec.banner );
 	UI_AddItem( &uiPlayRec.menu, (void *)&uiPlayRec.play );
 	UI_AddItem( &uiPlayRec.menu, (void *)&uiPlayRec.record );
-	UI_AddItem( &uiPlayRec.menu, (void *)&uiPlayRec.stop );
 	UI_AddItem( &uiPlayRec.menu, (void *)&uiPlayRec.done );
 	UI_AddItem( &uiPlayRec.menu, (void *)&uiPlayRec.hintMessage );
 }

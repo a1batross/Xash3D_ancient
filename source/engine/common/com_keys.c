@@ -9,9 +9,9 @@
 
 typedef struct key_s
 {
-	bool	down;
-	int	repeats;	// if > 1, it is autorepeating
-	char	*binding;
+	bool		down;
+	int		repeats;	// if > 1, it is autorepeating
+	const char	*binding;
 } key_t;
 
 typedef struct keyname_s
@@ -40,72 +40,72 @@ static int matchCount;
 
 keyname_t keynames[] =
 {
-	{"TAB",		K_TAB,		""		},
-	{"ENTER",		K_ENTER,		""		},
-	{"ESCAPE",	K_ESCAPE, 	"cancelselect"	}, // hardcoded
-	{"SPACE",		K_SPACE,		"+moveup"		},
-	{"BACKSPACE",	K_BACKSPACE,	""		},
-	{"UPARROW",	K_UPARROW,	"+forward"	},
-	{"DOWNARROW",	K_DOWNARROW,	"+back"		},
-	{"LEFTARROW",	K_LEFTARROW,	"+left"		},
-	{"RIGHTARROW",	K_RIGHTARROW,	"+right"		},
-	{"ALT",		K_ALT,		"+strafe"		},
-	{"CTRL",		K_CTRL,		"+attack"		},
-	{"SHIFT",		K_SHIFT,		"+speed"		}, // replace with +attack2 ?
-	{"COMMAND",	K_COMMAND,	""		},
-	{"CAPSLOCK",	K_CAPSLOCK,	""		},
-	{"F1",		K_F1,		"cmd help"	},
-	{"F2",		K_F2,		"menu_savegame"	},
-	{"F3",		K_F3,		"menu_loadgame"	},
-	{"F4",		K_F4,		"menu_keys"	},
-	{"F5",		K_F5,		"menu_startserver"	},
-	{"F6",		K_F6,		"savequick"	},
-	{"F7",		K_F7,		"loadquick"	},
-	{"F8",		K_F8,		"stop"		},
-	{"F9",		K_F9,		""		},
-	{"F10",		K_F10,		"menu_quit"	},
-	{"F11",		K_F11,		""		},
-	{"F12",		K_F12,		"screenshot"	},
-	{"INS",		K_INS,		""		},
-	{"DEL",		K_DEL,		"+lookdown"	},
-	{"PGDN",		K_PGDN,		"+lookup"		},
-	{"PGUP",		K_PGUP,		""		},
-	{"HOME",		K_HOME,		""		},
-	{"END",		K_END,		"centerview"	},
+{"TAB",		K_TAB,		""		},
+{"ENTER",		K_ENTER,		""		},
+{"ESCAPE",	K_ESCAPE, 	"cancelselect"	}, // hardcoded
+{"SPACE",		K_SPACE,		"+moveup"		},
+{"BACKSPACE",	K_BACKSPACE,	""		},
+{"UPARROW",	K_UPARROW,	"+forward"	},
+{"DOWNARROW",	K_DOWNARROW,	"+back"		},
+{"LEFTARROW",	K_LEFTARROW,	"+left"		},
+{"RIGHTARROW",	K_RIGHTARROW,	"+right"		},
+{"ALT",		K_ALT,		"+strafe"		},
+{"CTRL",		K_CTRL,		"+attack"		},
+{"SHIFT",		K_SHIFT,		"+speed"		}, // replace with +attack2 ?
+{"COMMAND",	K_COMMAND,	""		},
+{"CAPSLOCK",	K_CAPSLOCK,	""		},
+{"F1",		K_F1,		"cmd help"	},
+{"F2",		K_F2,		"menu_savegame"	},
+{"F3",		K_F3,		"menu_loadgame"	},
+{"F4",		K_F4,		"menu_keys"	},
+{"F5",		K_F5,		"menu_startserver"	},
+{"F6",		K_F6,		"savequick"	},
+{"F7",		K_F7,		"loadquick"	},
+{"F8",		K_F8,		"stop"		},
+{"F9",		K_F9,		""		},
+{"F10",		K_F10,		"menu_quit"	},
+{"F11",		K_F11,		""		},
+{"F12",		K_F12,		"screenshot"	},
+{"INS",		K_INS,		""		},
+{"DEL",		K_DEL,		"+lookdown"	},
+{"PGDN",		K_PGDN,		"+lookup"		},
+{"PGUP",		K_PGUP,		""		},
+{"HOME",		K_HOME,		""		},
+{"END",		K_END,		"centerview"	},
 
-	// mouse buttouns
-	{"MOUSE1",	K_MOUSE1,		"+attack"		},
-	{"MOUSE2",	K_MOUSE2,		"+atack2"		},
-	{"MOUSE3",	K_MOUSE3,		""		},
-	{"MOUSE4",	K_MOUSE4,		""		},
-	{"MOUSE5",	K_MOUSE5,		""		},
-	{"MWHEELUP",	K_MWHEELUP,	""		},
-	{"MWHEELDOWN",	K_MWHEELDOWN,	""		},
+// mouse buttouns
+{"MOUSE1",	K_MOUSE1,		"+attack"		},
+{"MOUSE2",	K_MOUSE2,		"+attack2"	},
+{"MOUSE3",	K_MOUSE3,		""		},
+{"MOUSE4",	K_MOUSE4,		""		},
+{"MOUSE5",	K_MOUSE5,		""		},
+{"MWHEELUP",	K_MWHEELUP,	""		},
+{"MWHEELDOWN",	K_MWHEELDOWN,	""		},
 
-	// digital keyboard
-	{"KP_HOME",	K_KP_HOME,	""		},
-	{"KP_UPARROW",	K_KP_UPARROW,	"+forward"	},
-	{"KP_PGUP",	K_KP_PGUP,	""		},
-	{"KP_LEFTARROW",	K_KP_LEFTARROW,	"+left"		},
-	{"KP_5",		K_KP_5,		""		},
-	{"KP_RIGHTARROW",	K_KP_RIGHTARROW,	"+right"		},
-	{"KP_END",	K_KP_END,		"centerview"	},
-	{"KP_DOWNARROW",	K_KP_DOWNARROW,	"+back"		},
-	{"KP_PGDN",	K_KP_PGDN,	"+lookup" 	},
-	{"KP_ENTER",	K_KP_ENTER,	""		},
-	{"KP_INS",	K_KP_INS,		""		},
-	{"KP_DEL",	K_KP_DEL,		"+lookdown"	},
-	{"KP_SLASH",	K_KP_SLASH,	""		},
-	{"KP_MINUS",	K_KP_MINUS,	""		},
-	{"KP_PLUS",	K_KP_PLUS,	""		},
-	{"KP_NUMLOCK",	K_KP_NUMLOCK,	""		},
-	{"KP_STAR",	K_KP_STAR,	""		},
-	{"KP_EQUALS",	K_KP_EQUALS,	""		},
-	{"PAUSE",		K_PAUSE,	"pause"			},
+// digital keyboard
+{"KP_HOME",	K_KP_HOME,	""		},
+{"KP_UPARROW",	K_KP_UPARROW,	"+forward"	},
+{"KP_PGUP",	K_KP_PGUP,	""		},
+{"KP_LEFTARROW",	K_KP_LEFTARROW,	"+left"		},
+{"KP_5",		K_KP_5,		""		},
+{"KP_RIGHTARROW",	K_KP_RIGHTARROW,	"+right"		},
+{"KP_END",	K_KP_END,		"centerview"	},
+{"KP_DOWNARROW",	K_KP_DOWNARROW,	"+back"		},
+{"KP_PGDN",	K_KP_PGDN,	"+lookup" 	},
+{"KP_ENTER",	K_KP_ENTER,	""		},
+{"KP_INS",	K_KP_INS,		""		},
+{"KP_DEL",	K_KP_DEL,		"+lookdown"	},
+{"KP_SLASH",	K_KP_SLASH,	""		},
+{"KP_MINUS",	K_KP_MINUS,	""		},
+{"KP_PLUS",	K_KP_PLUS,	""		},
+{"KP_NUMLOCK",	K_KP_NUMLOCK,	""		},
+{"KP_STAR",	K_KP_STAR,	""		},
+{"KP_EQUALS",	K_KP_EQUALS,	""		},
+{"PAUSE",		K_PAUSE,		"pause"		},
 
-	// raw semicolon seperates commands
-	{"SEMICOLON",	';',	""			},
-	{NULL,		0,	NULL			},
+// raw semicolon seperates commands
+{"SEMICOLON",	';',		""		},
+{NULL,		0,		NULL		},
 };
 
 /*
@@ -675,7 +675,7 @@ bool Key_IsDown( int keynum )
 Key_GetBind
 ===================
 */
-char *Key_IsBind( int keynum )
+const char *Key_IsBind( int keynum )
 {
 	if( keynum == -1 || !keys[keynum].binding )
 		return NULL;
@@ -749,7 +749,7 @@ Returns a string (either a single ascii char, a K_* name, or a 0x11 hex string) 
 given keynum.
 ===================
 */
-char *Key_KeynumToString( int keynum )
+const char *Key_KeynumToString( int keynum )
 {
 	keyname_t		*kn;	
 	static char	tinystr[5];
@@ -798,7 +798,7 @@ void Key_SetBinding( int keynum, char *binding )
 	// free old bindings
 	if( keys[keynum].binding )
 	{
-		Mem_Free( keys[keynum].binding );
+		Mem_Free((char *)keys[keynum].binding );
 		keys[keynum].binding = NULL;
 	}
 		
@@ -812,10 +812,9 @@ void Key_SetBinding( int keynum, char *binding )
 Key_GetBinding
 ===================
 */
-char *Key_GetBinding( int keynum )
+const char *Key_GetBinding( int keynum )
 {
-	if( keynum == -1 )
-		return "";
+	if( keynum == -1 ) return "";
 	return keys[keynum].binding;
 }
 
@@ -993,7 +992,7 @@ void Key_Init( void )
 Key_AddKeyUpCommands
 ===================
 */
-void Key_AddKeyUpCommands( int key, char *kb )
+void Key_AddKeyUpCommands( int key, const char *kb )
 {
 	int	i;
 	char	button[1024], *buttonPtr;
@@ -1044,8 +1043,8 @@ Called by the system for both key up and key down events
 */
 void Key_Event( int key, bool down, int time )
 {
-	char	*kb;
-	char	cmd[1024];
+	const char	*kb;
+	char		cmd[1024];
 
 	// update auto-repeat status and BUTTON_ANY status
 	keys[key].down = down;
