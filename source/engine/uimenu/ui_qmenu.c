@@ -1269,7 +1269,7 @@ void UI_Field_Draw( menuField_s *f )
 	bool	shadow;
 	char	*text = f->buffer;
 	int	scroll = 0, width = f->visibleLength - 2;
-	int	cursor, x;
+	int	cursor, x, textHeight;
 
 	if( f->generic.flags & QMF_LEFT_JUSTIFY )
 		justify = 0;
@@ -1310,6 +1310,9 @@ void UI_Field_Draw( menuField_s *f )
 		// draw the rectangle
 		UI_DrawRectangle( f->generic.x, f->generic.y, f->generic.width, f->generic.height, uiScrollOutlineColor );
 	}
+
+	textHeight = f->generic.y - (f->generic.charHeight * 1.5f);
+	UI_DrawStringExt( f->generic.x, textHeight, f->generic.width, f->generic.charHeight, f->generic.name, uiColorLtGrey, true, f->generic.charWidth, f->generic.charHeight, 0, shadow, uiStatic.nameFont );
 
 	if( f->generic.flags & QMF_GRAYED )
 	{

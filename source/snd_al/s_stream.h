@@ -1,6 +1,6 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//			s_openal.h - openal definition
+//			s_stream.h - stream vorbis file
 //=======================================================================
 
 #ifndef S_STREAM_H

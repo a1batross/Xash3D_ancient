@@ -274,6 +274,10 @@ SOURCE=.\uimenu\ui_controls.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\uimenu\ui_creategame.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\uimenu\ui_credits.c
 # End Source File
 # Begin Source File
@@ -283,6 +287,10 @@ SOURCE=.\uimenu\ui_customgame.c
 # Begin Source File
 
 SOURCE=.\uimenu\ui_gameoptions.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uimenu\ui_langame.c
 # End Source File
 # Begin Source File
 

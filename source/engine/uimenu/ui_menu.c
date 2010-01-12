@@ -705,7 +705,7 @@ void UI_RefreshServerList( void )
 	}
 
 	uiStatic.numServers = 0;
-	Cbuf_ExecuteText( EXEC_APPEND, "localservers\npingservers\n" );
+	Cbuf_ExecuteText( EXEC_APPEND, "localservers\n" );
 }
 
 
@@ -1072,9 +1072,6 @@ void UI_Precache( void )
 		re->RegisterShader( UI_UPARROWFOCUS, SHADER_NOMIP );
 		re->RegisterShader( UI_DOWNARROW, SHADER_NOMIP );
 		re->RegisterShader( UI_DOWNARROWFOCUS, SHADER_NOMIP );
-		re->RegisterShader( UI_MOVEBOX, SHADER_NOMIP );
-		re->RegisterShader( UI_MOVEBOXFOCUS, SHADER_NOMIP );
-		re->RegisterShader( UI_BACKBUTTON, SHADER_NOMIP );
 	}
 
 	if( ui_precache->integer == 1 )
@@ -1087,10 +1084,12 @@ void UI_Precache( void )
 	UI_SaveLoad_Precache();
 	UI_MultiPlayer_Precache();
 	UI_Options_Precache();
+	UI_LanGame_Precache();
 	UI_PlayerSetup_Precache();
 	UI_Controls_Precache();
 	UI_AdvControls_Precache();
 	UI_GameOptions_Precache();
+	UI_CreateGame_Precache();
 	UI_PlayDemo_Precache();
 	UI_RecDemo_Precache();
 	UI_PlayRec_Precache();
@@ -1157,10 +1156,12 @@ void UI_Init( void )
 	Cmd_AddCommand( "menu_playrec", UI_PlayRec_Menu, "open the play\\record demo menu" );
 	Cmd_AddCommand( "menu_multiplayer", UI_MultiPlayer_Menu, "open the multiplayer menu" );
 	Cmd_AddCommand( "menu_options", UI_Options_Menu, "open the options menu" );
+	Cmd_AddCommand( "menu_langame", UI_LanGame_Menu, "open the LAN game menu" );
 	Cmd_AddCommand( "menu_playersetup", UI_PlayerSetup_Menu, "open the player setup menu" );
 	Cmd_AddCommand( "menu_controls", UI_Controls_Menu, "open the controls menu" );
 	Cmd_AddCommand( "menu_advcontrols", UI_AdvControls_Menu, "open the advanced controls menu" );
 	Cmd_AddCommand( "menu_gameoptions", UI_GameOptions_Menu, "open the game options menu" );
+	Cmd_AddCommand( "menu_creategame", UI_CreateGame_Menu, "open the create LAN game menu" );
 	Cmd_AddCommand( "menu_audio", UI_Audio_Menu, "open the sound options menu" );
 	Cmd_AddCommand( "menu_video", UI_Video_Menu, "open the video settings head menu" );
 	Cmd_AddCommand( "menu_vidoptions", UI_VidOptions_Menu, "open the video options menu" );
@@ -1210,10 +1211,12 @@ void UI_Shutdown( void )
 	Cmd_RemoveCommand( "menu_playrec" );
 	Cmd_RemoveCommand( "menu_multiplayer" );
 	Cmd_RemoveCommand( "menu_options" );
+	Cmd_RemoveCommand( "menu_langame" );
 	Cmd_RemoveCommand( "menu_playersetup" );
 	Cmd_RemoveCommand( "menu_controls" );
 	Cmd_RemoveCommand( "menu_advcontrols" );
 	Cmd_RemoveCommand( "menu_gameoptions" );
+	Cmd_RemoveCommand( "menu_creategame" );
 	Cmd_RemoveCommand( "menu_audio" );
 	Cmd_RemoveCommand( "menu_video" );
 	Cmd_RemoveCommand( "menu_vidoptions" );

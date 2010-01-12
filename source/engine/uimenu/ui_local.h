@@ -50,10 +50,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define UI_CHECKBOX_PRESSED		"gfx/shell/cb_down"
 #define UI_CHECKBOX_ENABLED		"gfx/shell/cb_checked"
 
-#define UI_MOVEBOX			"gfx/shell/buttons/move_box"
-#define UI_MOVEBOXFOCUS		"gfx/shell/buttons/move_box_s"
-#define UI_BACKBUTTON		"gfx/shell/buttons/back_b"
-
 #define UI_MAX_MENUDEPTH		8
 #define UI_MAX_MENUITEMS		64
 
@@ -74,7 +70,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define UI_OUTLINE_WIDTH		uiStatic.outlineWidth	// outline thickness
 
 #define UI_MAXGAMES			100	// slots for savegame/demos
-#define UI_MAX_SERVERS		10
+#define UI_MAX_SERVERS		32
 
 // menu banners used fiexed rectangle (virtual screenspace at 640x480)
 #define UI_BANNER_POSX		72
@@ -380,10 +376,12 @@ void UI_SaveGame_Precache( void );
 void UI_SaveLoad_Precache( void );
 void UI_MultiPlayer_Precache( void );
 void UI_Options_Precache( void );
+void UI_LanGame_Precache( void );
 void UI_PlayerSetup_Precache( void );
 void UI_Controls_Precache( void );
 void UI_AdvControls_Precache( void );
 void UI_GameOptions_Precache( void );
+void UI_CreateGame_Precache( void );
 void UI_RecDemo_Precache( void );
 void UI_PlayDemo_Precache( void );
 void UI_PlayRec_Precache( void );
@@ -403,10 +401,12 @@ void UI_SaveGame_Menu( void );
 void UI_SaveLoad_Menu( void );
 void UI_MultiPlayer_Menu( void );
 void UI_Options_Menu( void );
+void UI_LanGame_Menu( void );
 void UI_PlayerSetup_Menu( void );
 void UI_Controls_Menu( void );
 void UI_AdvControls_Menu( void );
 void UI_GameOptions_Menu( void );
+void UI_CreateGame_Menu( void );
 void UI_RecDemo_Menu( void );
 void UI_PlayDemo_Menu( void );
 void UI_PlayRec_Menu( void );
