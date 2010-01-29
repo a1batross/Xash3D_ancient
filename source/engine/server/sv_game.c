@@ -581,6 +581,7 @@ edict_t *SV_AllocEdict( void )
 
 edict_t *SV_CopyEdict( const edict_t *in )
 {
+	int	entnum;
 	size_t	pvdata_size = 0;
 	edict_t	*out;
 
@@ -590,9 +591,9 @@ edict_t *SV_CopyEdict( const edict_t *in )
 
 	// must passed through dlls for correctly get all pointers
 	out = SV_AllocPrivateData( NULL, in->v.classname );
+	entnum = out->serialnumber; // keep serialnumber an actual
 
-	// important! we save copy off, not in sv.edicts
-	if( out == NULL ) Host_Error( "SV_CopyEdict: dest == NULL\n" );
+	if( out == NULL ) Host_Error( "SV_CopyEdict: no free edicts\n" );
 
 	if( in->pvServerData )
 	{
@@ -613,7 +614,8 @@ edict_t *SV_CopyEdict( const edict_t *in )
 
 	Mem_Copy( &out->v, &in->v, sizeof( entvars_t ));	// copy entvars
 	out->v.pContainingEntity = out;		// merge contain entity
-
+	out->serialnumber = entnum;			// restore right serialnumber
+	
 	return out;
 }
 

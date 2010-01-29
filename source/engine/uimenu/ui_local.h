@@ -327,20 +327,17 @@ bool Key_IsDown( int keynum );
 //
 // cl_game.c
 //
+extern rgba_t		uiColorHelp;
+extern rgba_t		uiPromptBgColor;
+extern rgba_t		uiPromptTextColor;
+extern rgba_t		uiPromptFocusColor;
+extern rgba_t		uiInputTextColor;
+extern rgba_t		uiInputBgColor;
+extern rgba_t		uiInputFgColor;
+
 extern rgba_t		uiColorWhite;
-extern rgba_t		uiColorLtGrey;
-extern rgba_t		uiColorMdGrey;
 extern rgba_t		uiColorDkGrey;
 extern rgba_t		uiColorBlack;
-extern rgba_t		uiColorRed;
-extern rgba_t		uiColorGreen;
-extern rgba_t		uiColorBlue;
-extern rgba_t		uiColorYellow;
-extern rgba_t		uiColorOrange;
-extern rgba_t		uiColorCyan;
-extern rgba_t		uiColorMagenta;
-extern rgba_t		uiScrollOutlineColor;
-extern rgba_t		uiScrollSelColor;
 
 void UI_ScaleCoords( int *x, int *y, int *w, int *h );
 bool UI_CursorInRect( int x, int y, int w, int h );

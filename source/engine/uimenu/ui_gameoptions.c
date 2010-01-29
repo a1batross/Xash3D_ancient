@@ -235,7 +235,7 @@ static void UI_GameOptions_Init( void )
 	uiGameOptions.maxFPSmessage.generic.x = 280;
 	uiGameOptions.maxFPSmessage.generic.y = 230;
 	uiGameOptions.maxFPSmessage.generic.name = "Limit game fps";
-	uiGameOptions.maxFPSmessage.generic.color = uiColorLtGrey;
+	uiGameOptions.maxFPSmessage.generic.color = uiColorHelp;
 
 	uiGameOptions.hand.generic.id = ID_HAND;
 	uiGameOptions.hand.generic.type = QMTYPE_CHECKBOX;

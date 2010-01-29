@@ -245,7 +245,7 @@ static void UI_Audio_Init( void )
 	uiAudio.hintMessage.generic.id = ID_MSGHINT;
 	uiAudio.hintMessage.generic.type = QMTYPE_ACTION;
 	uiAudio.hintMessage.generic.flags = QMF_INACTIVE|QMF_SMALLFONT;
-	uiAudio.hintMessage.generic.color = uiColorLtGrey;
+	uiAudio.hintMessage.generic.color = uiColorHelp;
 	uiAudio.hintMessage.generic.name = uiAudio.hintText;
 	uiAudio.hintMessage.generic.x = 320;
 	uiAudio.hintMessage.generic.y = 490;

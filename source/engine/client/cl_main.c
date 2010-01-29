@@ -221,10 +221,10 @@ void CL_Connect_f( void )
 		com.strncpy( host.finalmsg, "Server quit\n", MAX_STRING );
 		SV_Shutdown( false );
 	}
-	else CL_Disconnect();
 
 	server = Cmd_Argv( 1 );
 
+	Msg( "server %s\n", server );
 	CL_Disconnect();
 
 	cls.state = ca_connecting;

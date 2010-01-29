@@ -212,7 +212,7 @@ static void UI_CustomGame_Init( void )
 	uiCustomGame.hintMessage.generic.id = ID_TABLEHINT;
 	uiCustomGame.hintMessage.generic.type = QMTYPE_ACTION;
 	uiCustomGame.hintMessage.generic.flags = QMF_INACTIVE|QMF_SMALLFONT;
-	uiCustomGame.hintMessage.generic.color = uiColorLtGrey;
+	uiCustomGame.hintMessage.generic.color = uiColorHelp;
 	uiCustomGame.hintMessage.generic.name = uiCustomGame.hintText;
 	uiCustomGame.hintMessage.generic.x = 360;
 	uiCustomGame.hintMessage.generic.y = 225;

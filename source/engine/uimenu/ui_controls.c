@@ -221,7 +221,7 @@ static void UI_Controls_Init( void )
 	uiControls.hintMessage.generic.id = ID_TABLEHINT;
 	uiControls.hintMessage.generic.type = QMTYPE_ACTION;
 	uiControls.hintMessage.generic.flags = QMF_INACTIVE|QMF_SMALLFONT;
-	uiControls.hintMessage.generic.color = uiColorLtGrey;
+	uiControls.hintMessage.generic.color = uiColorHelp;
 	uiControls.hintMessage.generic.name = uiControls.hintText;
 	uiControls.hintMessage.generic.x = 360;
 	uiControls.hintMessage.generic.y = 225;

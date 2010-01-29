@@ -191,7 +191,7 @@ static void UI_CreateGame_Init( void )
 
 	uiCreateGame.advOptions.generic.id = ID_ADVOPTIONS;
 	uiCreateGame.advOptions.generic.type = QMTYPE_ACTION;
-	uiCreateGame.advOptions.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW;
+	uiCreateGame.advOptions.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_GRAYED;
 	uiCreateGame.advOptions.generic.x = 72;
 	uiCreateGame.advOptions.generic.y = 230;
 	uiCreateGame.advOptions.generic.name = "Adv. Options";
@@ -228,7 +228,7 @@ static void UI_CreateGame_Init( void )
 	uiCreateGame.hintMessage.generic.id = ID_TABLEHINT;
 	uiCreateGame.hintMessage.generic.type = QMTYPE_ACTION;
 	uiCreateGame.hintMessage.generic.flags = QMF_INACTIVE|QMF_SMALLFONT;
-	uiCreateGame.hintMessage.generic.color = uiColorLtGrey;
+	uiCreateGame.hintMessage.generic.color = uiColorHelp;
 	uiCreateGame.hintMessage.generic.name = uiCreateGame.hintText;
 	uiCreateGame.hintMessage.generic.x = 590;
 	uiCreateGame.hintMessage.generic.y = 215;

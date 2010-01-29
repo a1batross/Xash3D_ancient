@@ -877,6 +877,27 @@ void Key_Unbindall_f( void )
 	}
 }
 
+/*
+===================
+Key_Reset_f
+===================
+*/
+void Key_Reset_f( void )
+{
+	int	i;
+	keyname_t	*kn;
+
+	// clear all keys first	
+	for( i = 0; i < 256; i++ )
+	{
+		if( keys[i].binding )
+			Key_SetBinding( i, "" );
+	}
+
+	// apply default values
+	for( kn = keynames; kn->name; kn++ )
+		Key_SetBinding( kn->keynum, kn->binding ); 
+}
 
 /*
 ===================
@@ -980,6 +1001,7 @@ void Key_Init( void )
 	Cmd_AddCommand( "bind", Key_Bind_f, "binds a command to the specified key in bindmap" );
 	Cmd_AddCommand( "unbind", Key_Unbind_f, "removes a command on the specified key in bindmap" );
 	Cmd_AddCommand( "unbindall", Key_Unbindall_f, "removes all commands from all keys in bindmap" );
+	Cmd_AddCommand( "resetkeys", Key_Reset_f, "reset all keys to their default values" );
 	Cmd_AddCommand( "bindlist", Key_Bindlist_f, "display current key bindings" );
 	Cmd_AddCommand( "makehelp", Key_EnumCmds_f, "write help.txt that contains all console cvars and cmds" ); 
 

@@ -87,7 +87,7 @@ static void UI_MsgBox_Ownerdraw( void *self )
 {
 	menuCommon_s	*item = (menuCommon_s *)self;
 
-	UI_FillRect( item->x, item->y, item->width, item->height, uiColorDkGrey );
+	UI_FillRect( item->x, item->y, item->width, item->height, uiPromptBgColor );
 }
 
 static void UI_DeleteDialog( void )
@@ -274,7 +274,7 @@ static void UI_PlayDemo_Ownerdraw( void *self )
 		else UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );
 
 		// draw the rectangle
-		UI_DrawRectangle( item->x, item->y, item->width, item->height, uiScrollOutlineColor );
+		UI_DrawRectangle( item->x, item->y, item->width, item->height, uiInputFgColor );
 	}
 }
 
@@ -358,7 +358,7 @@ static void UI_PlayDemo_Init( void )
 	uiPlayDemo.hintMessage.generic.id = ID_TABLEHINT;
 	uiPlayDemo.hintMessage.generic.type = QMTYPE_ACTION;
 	uiPlayDemo.hintMessage.generic.flags = QMF_INACTIVE|QMF_SMALLFONT;
-	uiPlayDemo.hintMessage.generic.color = uiColorLtGrey;
+	uiPlayDemo.hintMessage.generic.color = uiColorHelp;
 	uiPlayDemo.hintMessage.generic.name = uiPlayDemo.hintText;
 	uiPlayDemo.hintMessage.generic.x = 360;
 	uiPlayDemo.hintMessage.generic.y = 225;

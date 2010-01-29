@@ -26,10 +26,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "input.h"
 #include "client.h"
 
-rgba_t	uiSpinOutlineColor = { 85, 85, 85, 255 };
-rgba_t	uiScrollOutlineColor = { 85, 85, 85, 255 };
-rgba_t	uiScrollSelColor = { 80, 56, 24, 255 };
-
 /*
 =================
 UI_ScrollList_Init
@@ -60,8 +56,8 @@ void UI_ScrollList_Init( menuScrollList_s *sl )
 	if(!(sl->generic.flags & (QMF_LEFT_JUSTIFY|QMF_CENTER_JUSTIFY|QMF_RIGHT_JUSTIFY)))
 		sl->generic.flags |= QMF_LEFT_JUSTIFY;
 
-	if( !sl->generic.color ) sl->generic.color = uiColorOrange;
-	if( !sl->generic.focusColor ) sl->generic.focusColor = uiColorYellow;
+	if( !sl->generic.color ) sl->generic.color = uiPromptTextColor;
+	if( !sl->generic.focusColor ) sl->generic.focusColor = uiPromptFocusColor;
 	if( !sl->upArrow ) sl->upArrow = UI_UPARROW;
 	if( !sl->upArrowFocus ) sl->upArrowFocus = UI_UPARROWFOCUS;
 	if( !sl->downArrow ) sl->downArrow = UI_DOWNARROW;
@@ -248,6 +244,7 @@ void UI_ScrollList_Draw( menuScrollList_s *sl )
 	int	justify;
 	bool	shadow;
 	int	i, x, y, w, h;
+	rgba_t	selColor = { 80,  56,  24, 255};
 	int	arrowWidth, arrowHeight, upX, upY, downX, downY;
 	bool	upFocus, downFocus;
 
@@ -288,7 +285,7 @@ void UI_ScrollList_Draw( menuScrollList_s *sl )
 
 			if( i == sl->curItem )
 			{
-				UI_FillRect( sl->generic.x, y, sl->generic.width - arrowWidth, sl->generic.charHeight, uiScrollSelColor );
+				UI_FillRect( sl->generic.x, y, sl->generic.width - arrowWidth, sl->generic.charHeight, selColor );
 				break;
 			}
 		}
@@ -307,7 +304,7 @@ void UI_ScrollList_Draw( menuScrollList_s *sl )
 		h = sl->generic.height2;
 
 		// draw left
-		UI_FillRect( x, y, w, h, uiScrollOutlineColor );
+		UI_FillRect( x, y, w, h, uiInputFgColor );
 
 		x = sl->generic.x2 + sl->generic.width2;
 		y = sl->generic.y2;
@@ -315,7 +312,7 @@ void UI_ScrollList_Draw( menuScrollList_s *sl )
 		h = sl->generic.height2;
 
 		// draw right
-		UI_FillRect( x, y, w, h, uiScrollOutlineColor );
+		UI_FillRect( x, y, w, h, uiInputFgColor );
 
 		x = sl->generic.x2;
 		y = sl->generic.y2;
@@ -323,7 +320,7 @@ void UI_ScrollList_Draw( menuScrollList_s *sl )
 		h = UI_OUTLINE_WIDTH;
 
 		// draw top
-		UI_FillRect( x, y, w, h, uiScrollOutlineColor );
+		UI_FillRect( x, y, w, h, uiInputFgColor );
 
 		// draw bottom
 		x = sl->generic.x2;
@@ -331,7 +328,7 @@ void UI_ScrollList_Draw( menuScrollList_s *sl )
 		w = sl->generic.width2 + UI_OUTLINE_WIDTH;
 		h = UI_OUTLINE_WIDTH;
 
-		UI_FillRect( x, y, w, h, uiScrollOutlineColor );
+		UI_FillRect( x, y, w, h, uiInputFgColor );
 	}
 
 	// glue with right top and right bottom corners
@@ -341,7 +338,7 @@ void UI_ScrollList_Draw( menuScrollList_s *sl )
 	downY = sl->generic.y2 + (sl->generic.height2 - arrowHeight) - UI_OUTLINE_WIDTH;
 
 	// draw the arrows base
-	UI_FillRect( upX, upY + arrowHeight, arrowWidth, downY - upY - arrowHeight, uiScrollOutlineColor );
+	UI_FillRect( upX, upY + arrowHeight, arrowWidth, downY - upY - arrowHeight, uiInputFgColor );
 
 	// draw the arrows
 	if( sl->generic.flags & QMF_GRAYED )
@@ -477,8 +474,8 @@ void UI_SpinControl_Init( menuSpinControl_s *sc )
 	if(!( sc->generic.flags & (QMF_LEFT_JUSTIFY|QMF_CENTER_JUSTIFY|QMF_RIGHT_JUSTIFY)))
 		sc->generic.flags |= QMF_LEFT_JUSTIFY;
 
-	if( !sc->generic.color ) sc->generic.color = uiColorLtGrey;
-	if( !sc->generic.focusColor ) sc->generic.focusColor = uiColorOrange;
+	if( !sc->generic.color ) sc->generic.color = uiColorHelp;
+	if( !sc->generic.focusColor ) sc->generic.focusColor = uiPromptTextColor;
 	if( !sc->leftArrow ) sc->leftArrow = UI_LEFTARROW;
 	if( !sc->leftArrowFocus ) sc->leftArrowFocus = UI_LEFTARROWFOCUS;
 	if( !sc->rightArrow ) sc->rightArrow = UI_RIGHTARROW;
@@ -639,7 +636,7 @@ void UI_SpinControl_Draw( menuSpinControl_s *sc )
 		UI_FillRect( x, y, w, h, uiColorBlack );
 
 		// draw the rectangle
-		UI_DrawRectangle( x, y, w, h, uiSpinOutlineColor );
+		UI_DrawRectangle( x, y, w, h, uiInputFgColor );
 	}
 
 	if( sc->generic.flags & QMF_GRAYED )
@@ -845,11 +842,11 @@ void UI_Slider_Draw( menuSlider_s *sl )
 	// calc slider position
 	sliderX = sl->generic.x2 + (sl->drawStep * (sl->curValue * sl->numSteps));
 
-	UI_DrawRectangleExt( sl->generic.x, sl->generic.y + uiStatic.sliderWidth, sl->generic.width, sl->generic.height2, uiColorDkGrey, uiStatic.sliderWidth );
+	UI_DrawRectangleExt( sl->generic.x, sl->generic.y + uiStatic.sliderWidth, sl->generic.width, sl->generic.height2, uiInputBgColor, uiStatic.sliderWidth );
 	UI_DrawPic( sliderX, sl->generic.y2, sl->generic.width2, sl->generic.height, uiColorWhite, UI_SLIDER_MAIN );
 
 	textHeight = sl->generic.y - (sl->generic.charHeight * 1.5f);
-	UI_DrawStringExt( sl->generic.x, textHeight, sl->generic.width, sl->generic.charHeight, sl->generic.name, uiColorLtGrey, true, sl->generic.charWidth, sl->generic.charHeight, justify, shadow, uiStatic.nameFont );
+	UI_DrawStringExt( sl->generic.x, textHeight, sl->generic.width, sl->generic.charHeight, sl->generic.name, uiColorHelp, true, sl->generic.charWidth, sl->generic.charHeight, justify, shadow, uiStatic.nameFont );
 }
 
 /*
@@ -966,7 +963,7 @@ void UI_CheckBox_Draw( menuCheckBox_s *cb )
 
 	y = cb->generic.y + (cb->generic.height>>2);
 	textOffset = cb->generic.x + (cb->generic.width * 1.7f);
-	UI_DrawStringExt( textOffset, y, com.strlen( cb->generic.name ) * cb->generic.charWidth, cb->generic.charHeight, cb->generic.name, uiColorLtGrey, true, cb->generic.charWidth, cb->generic.charHeight, justify, shadow, uiStatic.nameFont );
+	UI_DrawStringExt( textOffset, y, com.strlen( cb->generic.name ) * cb->generic.charWidth, cb->generic.charHeight, cb->generic.name, uiColorHelp, true, cb->generic.charWidth, cb->generic.charHeight, justify, shadow, uiStatic.nameFont );
 
 	if( cb->generic.statusText && cb->generic.flags & QMF_NOTIFY )
 	{
@@ -983,7 +980,7 @@ void UI_CheckBox_Draw( menuCheckBox_s *cb )
 		UI_ScaleCoords( &x, NULL, &w, NULL );
 		x += cb->generic.x;
 
-		UI_DrawStringExt( x, cb->generic.y, w, cb->generic.height, cb->generic.statusText, uiColorWhite, true, charW, charH, 0, true, cls.consoleFont );
+		UI_DrawStringExt( x, cb->generic.y, w, cb->generic.height, cb->generic.statusText, uiColorHelp, true, charW, charH, 0, true, cls.consoleFont );
 	}
 
 	if( cb->generic.flags & QMF_GRAYED )
@@ -1050,8 +1047,8 @@ void UI_Field_Init( menuField_s *f )
 	if( !(f->generic.flags & (QMF_LEFT_JUSTIFY|QMF_CENTER_JUSTIFY|QMF_RIGHT_JUSTIFY)))
 		f->generic.flags |= QMF_LEFT_JUSTIFY;
 
-	if( !f->generic.color ) f->generic.color = uiColorWhite;
-	if( !f->generic.focusColor ) f->generic.focusColor = uiColorLtGrey;
+	if( !f->generic.color ) f->generic.color = uiInputTextColor;
+	if( !f->generic.focusColor ) f->generic.focusColor = uiInputTextColor;
 
 	f->maxLenght++;
 	if( f->maxLenght <= 1 || f->maxLenght >= UI_MAX_FIELD_LINE )
@@ -1305,14 +1302,14 @@ void UI_Field_Draw( menuField_s *f )
 	else
 	{
 		// draw the background
-		UI_FillRect( f->generic.x, f->generic.y, f->generic.width, f->generic.height, uiColorDkGrey );
+		UI_FillRect( f->generic.x, f->generic.y, f->generic.width, f->generic.height, uiInputBgColor );
 
 		// draw the rectangle
-		UI_DrawRectangle( f->generic.x, f->generic.y, f->generic.width, f->generic.height, uiScrollOutlineColor );
+		UI_DrawRectangle( f->generic.x, f->generic.y, f->generic.width, f->generic.height, uiInputFgColor );
 	}
 
 	textHeight = f->generic.y - (f->generic.charHeight * 1.5f);
-	UI_DrawStringExt( f->generic.x, textHeight, f->generic.width, f->generic.charHeight, f->generic.name, uiColorLtGrey, true, f->generic.charWidth, f->generic.charHeight, 0, shadow, uiStatic.nameFont );
+	UI_DrawStringExt( f->generic.x, textHeight, f->generic.width, f->generic.charHeight, f->generic.name, uiColorHelp, true, f->generic.charWidth, f->generic.charHeight, 0, shadow, uiStatic.nameFont );
 
 	if( f->generic.flags & QMF_GRAYED )
 	{
@@ -1401,8 +1398,8 @@ void UI_Action_Init( menuAction_s *a )
 	if(!( a->generic.flags & ( QMF_LEFT_JUSTIFY|QMF_CENTER_JUSTIFY|QMF_RIGHT_JUSTIFY )))
 		a->generic.flags |= QMF_LEFT_JUSTIFY;
 
-	if( !a->generic.color ) a->generic.color = uiColorOrange;
-	if( !a->generic.focusColor ) a->generic.focusColor = uiColorYellow;
+	if( !a->generic.color ) a->generic.color = uiPromptTextColor;
+	if( !a->generic.focusColor ) a->generic.focusColor = uiPromptFocusColor;
 
 	if( a->generic.width < 1 || a->generic.height < 1 )
 	{
@@ -1514,7 +1511,7 @@ void UI_Action_Draw( menuAction_s *a )
 		UI_ScaleCoords( &x, NULL, &w, NULL );
 		x += a->generic.x;
 
-		UI_DrawStringExt( x, a->generic.y, w, a->generic.height, a->generic.statusText, uiColorWhite, true, charW, charH, 0, true, cls.consoleFont );
+		UI_DrawStringExt( x, a->generic.y, w, a->generic.height, a->generic.statusText, uiColorHelp, true, charW, charH, 0, true, cls.consoleFont );
 	}
 
 	if( a->generic.flags & QMF_GRAYED )
@@ -1563,7 +1560,7 @@ void UI_Bitmap_Init( menuBitmap_s *b )
 	if( !b->generic.name ) b->generic.name = "";
 	if( !b->focusPic ) b->focusPic = b->pic;
 	if( !b->generic.color ) b->generic.color = uiColorWhite;
-	if( !b->generic.focusColor ) b->generic.focusColor = uiColorLtGrey;
+	if( !b->generic.focusColor ) b->generic.focusColor = uiColorHelp;
 
 	UI_ScaleCoords( &b->generic.x, &b->generic.y, &b->generic.width, &b->generic.height );
 }

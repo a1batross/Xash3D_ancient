@@ -41,18 +41,16 @@ const char	*uiSoundBuzz	= "common/menu4.wav";
 const char	*uiSoundGlow	= "common/menu5.wav";
 const char	*uiSoundNull	= "";
 
-rgba_t		uiColorWhite	= {255, 255, 255, 255};
-rgba_t		uiColorLtGrey	= {192, 192, 192, 255};
-rgba_t		uiColorMdGrey	= {127, 127, 127, 255};
-rgba_t		uiColorDkGrey	= { 64,  64,  64, 255};
-rgba_t		uiColorBlack	= {  0,   0,   0, 255};
-rgba_t		uiColorRed	= {255,   0,   0, 255};
-rgba_t		uiColorGreen	= {  0, 255,   0, 255};
-rgba_t		uiColorBlue	= {  0,   0, 255, 255};
-rgba_t		uiColorYellow	= {255, 255,   0, 255};
-rgba_t		uiColorOrange	= {255, 160,   0, 255};
-rgba_t		uiColorCyan	= {  0, 255, 255, 255};
-rgba_t		uiColorMagenta	= {255,   0, 255, 255};
+rgba_t		uiColorHelp	= {255, 255, 255, 255};	// hint letters color
+rgba_t		uiPromptBgColor	= {64,  64,  64,  255};	// dialog background color
+rgba_t		uiPromptTextColor	= {255, 160,  0,  255};	// dialog or button letters color
+rgba_t		uiPromptFocusColor	= {255, 255,  0,  255};	// dialog or button focus letters color
+rgba_t		uiInputTextColor	= {192, 192, 192, 255};
+rgba_t		uiInputBgColor	= {64,  64,  64,  255};	// field, scrollist, checkbox background color
+rgba_t		uiInputFgColor	= {85,  85,  85,  255};	// field, scrollist, checkbox foreground color
+rgba_t		uiColorWhite	= {255, 255, 255, 255};	// useful for bitmaps
+rgba_t		uiColorDkGrey	= { 64,  64,  64, 255};	// shadow and grayed items
+rgba_t		uiColorBlack	= {  0,   0,   0, 255};	// some controls background
 
 
 /*
@@ -498,9 +496,14 @@ void UI_DrawMenu( menuFramework_s *menu )
 {
 	static long	statusFadeTime;
 	static menuCommon_s	*lastItem;
-	rgba_t		color = {255, 255, 255, 255};
-	int		i;
+	rgba_t		color;
 	menuCommon_s	*item;
+	int		i;
+
+	color[0] = uiColorHelp[0];
+	color[1] = uiColorHelp[1];
+	color[2] = uiColorHelp[2];
+	color[3] = 255;
 
 	// draw contents
 	for( i = 0; i < menu->numItems; i++ )
@@ -1132,6 +1135,74 @@ void UI_SetFont_f( void )
 	}
 }
 
+void UI_ParseColor( script_t *script, rgba_t outColor )
+{
+	int	i, color[4];
+
+	for( i = 0; i < 4; i++ )
+	{
+		if( !Com_ReadLong( script, 0, &color[i] ))
+			break; // bad declaration or missed alpha
+	}
+
+	if( i < 3 ) return; // bad color declaration
+
+	outColor[0] = bound( 0, color[0], 255 );
+	outColor[1] = bound( 0, color[1], 255 );
+	outColor[2] = bound( 0, color[2], 255 );
+	outColor[3] = (i == 4 ) ? bound( 0, color[3], 255 ) : 255;	
+}
+
+void UI_ApplyCustomColors( void )
+{
+	script_t	*script = NULL;
+	token_t	token;
+
+	script = Com_OpenScript( "scripts/colors.lst", NULL, 0 );
+	if( !script )
+	{
+		// not error, not warning, just notify
+		MsgDev( D_NOTE, "UI_SetColors: scripts/colors.lst not found\n" );
+		return;
+	}
+
+	while( script )
+	{
+		if( !Com_ReadToken( script, SC_ALLOW_NEWLINES, &token ))
+			break;
+
+		if( !com.stricmp( token.string, "HELP_COLOR" ))
+		{
+			UI_ParseColor( script, uiColorHelp );
+		}
+		else if( !com.stricmp( token.string, "PROMPT_BG_COLOR" ))
+		{
+			UI_ParseColor( script, uiPromptBgColor );
+		}
+		else if( !com.stricmp( token.string, "PROMPT_TEXT_COLOR" ))
+		{
+			UI_ParseColor( script, uiPromptTextColor );
+		}
+		else if( !com.stricmp( token.string, "PROMPT_FOCUS_COLOR" ))
+		{
+			UI_ParseColor( script, uiPromptFocusColor );
+		}
+		else if( !com.stricmp( token.string, "INPUT_TEXT_COLOR" ))
+		{
+			UI_ParseColor( script, uiInputTextColor );
+		}
+		else if( !com.stricmp( token.string, "INPUT_BG_COLOR" ))
+		{
+			UI_ParseColor( script, uiInputBgColor );
+		}
+		else if( !com.stricmp( token.string, "INPUT_FG_COLOR" ))
+		{
+			UI_ParseColor( script, uiInputFgColor );
+		}
+	}
+	Com_CloseScript( script );
+}
+
 /*
 =================
 UI_Init
@@ -1180,6 +1251,9 @@ void UI_Init( void )
 
 	UI_ScaleCoords( NULL, NULL, &uiStatic.outlineWidth, NULL );
 	UI_ScaleCoords( NULL, NULL, &uiStatic.sliderWidth, NULL );
+
+	// trying to load colors.lst
+	UI_ApplyCustomColors ();
 
 	if( re )
 	{

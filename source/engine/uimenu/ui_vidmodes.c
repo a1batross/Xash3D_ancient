@@ -249,7 +249,7 @@ static void UI_VidModes_Init( void )
 	uiVidModes.vidlibCaption.generic.id = ID_TABLEHINT;
 	uiVidModes.vidlibCaption.generic.type = QMTYPE_ACTION;
 	uiVidModes.vidlibCaption.generic.flags = QMF_INACTIVE|QMF_SMALLFONT;
-	uiVidModes.vidlibCaption.generic.color = uiColorLtGrey;
+	uiVidModes.vidlibCaption.generic.color = uiColorHelp;
 	uiVidModes.vidlibCaption.generic.name = "Rendering module";
 	uiVidModes.vidlibCaption.generic.x = 72;
 	uiVidModes.vidlibCaption.generic.y = 350;
@@ -257,7 +257,7 @@ static void UI_VidModes_Init( void )
 	uiVidModes.hintMessage.generic.id = ID_TABLEHINT;
 	uiVidModes.hintMessage.generic.type = QMTYPE_ACTION;
 	uiVidModes.hintMessage.generic.flags = QMF_INACTIVE|QMF_SMALLFONT;
-	uiVidModes.hintMessage.generic.color = uiColorLtGrey;
+	uiVidModes.hintMessage.generic.color = uiColorHelp;
 	uiVidModes.hintMessage.generic.name = uiVidModes.hintText;
 	uiVidModes.hintMessage.generic.x = 72;
 	uiVidModes.hintMessage.generic.y = 450;
@@ -265,7 +265,7 @@ static void UI_VidModes_Init( void )
 	uiVidModes.listCaption.generic.id = ID_TABLEHINT;
 	uiVidModes.listCaption.generic.type = QMTYPE_ACTION;
 	uiVidModes.listCaption.generic.flags = QMF_INACTIVE|QMF_SMALLFONT;
-	uiVidModes.listCaption.generic.color = uiColorLtGrey;
+	uiVidModes.listCaption.generic.color = uiColorHelp;
 	uiVidModes.listCaption.generic.name = "Display mode";
 	uiVidModes.listCaption.generic.x = 400;
 	uiVidModes.listCaption.generic.y = 270;

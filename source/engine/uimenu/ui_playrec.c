@@ -138,7 +138,7 @@ static void UI_PlayRec_Init( void )
 	uiPlayRec.hintMessage.generic.id = ID_MSGHINT;
 	uiPlayRec.hintMessage.generic.type = QMTYPE_ACTION;
 	uiPlayRec.hintMessage.generic.flags = QMF_INACTIVE|QMF_SMALLFONT;
-	uiPlayRec.hintMessage.generic.color = uiColorLtGrey;
+	uiPlayRec.hintMessage.generic.color = uiColorHelp;
 	uiPlayRec.hintMessage.generic.name = uiPlayRec.hintText;
 	uiPlayRec.hintMessage.generic.x = 360;
 	uiPlayRec.hintMessage.generic.y = 480;

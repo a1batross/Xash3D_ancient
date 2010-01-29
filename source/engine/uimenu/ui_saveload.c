@@ -139,7 +139,7 @@ static void UI_SaveLoad_Init( void )
 	uiSaveLoad.hintMessage.generic.id = ID_MSGHINT;
 	uiSaveLoad.hintMessage.generic.type = QMTYPE_ACTION;
 	uiSaveLoad.hintMessage.generic.flags = QMF_INACTIVE|QMF_SMALLFONT;
-	uiSaveLoad.hintMessage.generic.color = uiColorLtGrey;
+	uiSaveLoad.hintMessage.generic.color = uiColorHelp;
 	uiSaveLoad.hintMessage.generic.name = uiSaveLoad.hintText;
 	uiSaveLoad.hintMessage.generic.x = 360;
 	uiSaveLoad.hintMessage.generic.y = 480;

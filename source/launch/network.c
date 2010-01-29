@@ -219,19 +219,19 @@ static bool NET_StringToSockaddr( const char *s, struct sockaddr *sadr )
 		if( *colon == ':' )
 		{
 			*colon = 0;
-			((struct sockaddr_in *)s)->sin_port = pHtons( (short)com.atoi( colon + 1 ));	
+			((struct sockaddr_in *)sadr)->sin_port = pHtons((short)com.atoi( colon + 1 ));	
 		}
 	}
 		
 	if( copy[0] >= '0' && copy[0] <= '9' )
 	{
-		*(int *)&((struct sockaddr_in *)s)->sin_addr = pInet_Addr( copy );
+		*(int *)&((struct sockaddr_in *)sadr)->sin_addr = pInet_Addr( copy );
 	}
 	else
 	{
 		if(!( h = pGetHostByName( copy )))
 			return false;
-		*(int *)&((struct sockaddr_in *)s)->sin_addr = *(int *)h->h_addr_list[0];
+		*(int *)&((struct sockaddr_in *)sadr)->sin_addr = *(int *)h->h_addr_list[0];
 	}
 	return true;
 }
@@ -350,7 +350,7 @@ static bool NET_GetLoopPacket( netsrc_t sock, netadr_t *from, sizebuf_t *msg )
 
 	Mem_Copy( msg->data, loop->msgs[i].data, loop->msgs[i].datalen );
 	msg->cursize = loop->msgs[i].datalen;
-	memset( from, 0, sizeof(*from));
+	Mem_Set( from, 0, sizeof( *from ));
 	from->type = NA_LOOPBACK;
 	return true;
 

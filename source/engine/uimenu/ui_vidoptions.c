@@ -91,9 +91,10 @@ UI_VidOptions_Ownerdraw
 static void UI_VidOptions_Ownerdraw( void *self )
 {
 	menuCommon_s	*item = (menuCommon_s *)self;
+	rgba_t		color = {255,   0,   0, 255};
 
 	UI_DrawPic( item->x, item->y, item->width, item->height, uiColorWhite, ((menuBitmap_s *)self)->pic );
-	UI_DrawRectangleExt( item->x, item->y, item->width, item->height, uiColorRed, uiVidOptions.outlineWidth );
+	UI_DrawRectangleExt( item->x, item->y, item->width, item->height, color, uiVidOptions.outlineWidth );
 }
 
 /*

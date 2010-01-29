@@ -218,7 +218,7 @@ static void UI_LanGame_Init( void )
 	uiLanGame.hintMessage.generic.id = ID_TABLEHINT;
 	uiLanGame.hintMessage.generic.type = QMTYPE_ACTION;
 	uiLanGame.hintMessage.generic.flags = QMF_INACTIVE|QMF_SMALLFONT;
-	uiLanGame.hintMessage.generic.color = uiColorLtGrey;
+	uiLanGame.hintMessage.generic.color = uiColorHelp;
 	uiLanGame.hintMessage.generic.name = uiLanGame.hintText;
 	uiLanGame.hintMessage.generic.x = 360;
 	uiLanGame.hintMessage.generic.y = 225;

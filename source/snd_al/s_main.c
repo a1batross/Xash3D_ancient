@@ -114,8 +114,8 @@ bool S_CheckForErrors( void )
 	}
 
 	if( al_state.active )
-		Host_Error( "S_CheckForErrors: %s", str );
-	else MsgDev( D_ERROR, "S_CheckForErrors: %s", str );
+		Host_Error( "S_CheckForErrors: %s\n", str );
+	else MsgDev( D_ERROR, "S_CheckForErrors: %s\n", str );
 
 	return true;
 }

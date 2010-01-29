@@ -88,7 +88,7 @@ static void UI_MsgBox_Ownerdraw( void *self )
 {
 	menuCommon_s	*item = (menuCommon_s *)self;
 
-	UI_FillRect( item->x, item->y, item->width, item->height, uiColorDkGrey );
+	UI_FillRect( item->x, item->y, item->width, item->height, uiPromptBgColor );
 }
 
 static void UI_QuitDialog( void )

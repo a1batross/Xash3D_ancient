@@ -814,7 +814,7 @@ void Host_WriteConfig( void )
 ===============
 Host_WriteConfig
 
-Writes key bindings and archived cvars to basevars.rc
+Writes key bindings and archived cvars to vars.def and keys.def
 ===============
 */
 void Host_WriteDefaultConfig( void )
@@ -824,25 +824,25 @@ void Host_WriteDefaultConfig( void )
 
 	if( !cls.initialized ) return;
 
-	if( !FS_FileExists( "config/basekeys.rc" ) || !FS_FileExists( "config/basevars.rc" ))
-		Cmd_ExecuteString( "unsetall\n" );
+	if( !FS_FileExists( "config/keys.def" )) Cmd_ExecuteString( "resetkeys\n" );
+	if( !FS_FileExists( "config/vars.def" )) Cmd_ExecuteString( "unsetall\n" );
 
-	if( !FS_FileExists( "config/basekeys.rc" ) && (f = FS_Open( "config/basekeys.rc", "w" )) != NULL )
+	if( !FS_FileExists( "config/keys.def" ) && (f = FS_Open( "config/keys.def", "w" )) != NULL )
 	{
 		FS_Printf( f, "//=======================================================================\n" );
 		FS_Printf( f, "//\t\t\tCopyright XashXT Group %s ©\n", timestamp( TIME_YEAR_ONLY ));
-		FS_Printf( f, "//\t\tbasekeys.rc - default key bindings\n" );
+		FS_Printf( f, "//\t\t\tkeys.def - default key bindings\n" );
 		FS_Printf( f, "//=======================================================================\n" );
 		Key_WriteBindings( f );
 		FS_Close( f );
 		hasChanged = true;
 	}
 
-	if( !FS_FileExists( "config/basevars.rc" ) && (f = FS_Open( "config/basevars.rc", "w" )) != NULL )
+	if( !FS_FileExists( "config/vars.def" ) && (f = FS_Open( "config/vars.def", "w" )) != NULL )
 	{
 		FS_Printf( f, "//=======================================================================\n" );
 		FS_Printf( f, "//\t\t\tCopyright XashXT Group %s ©\n", timestamp( TIME_YEAR_ONLY ));
-		FS_Printf( f, "//\t\tbasevars.rc - archive of default cvar states\n" );
+		FS_Printf( f, "//\t\t\tvars.def - archive of default cvar states\n" );
 		FS_Printf( f, "//=======================================================================\n" );
 		Cmd_WriteVariables( f );
 		FS_Close( f );	

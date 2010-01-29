@@ -240,10 +240,10 @@ static void UI_PlayerSetup_Ownerdraw( void *self )
 	float	realtime = uiStatic.realTime * 0.001f;
 
 	// draw the background
-	UI_FillRect( item->x, item->y, item->width, item->height, uiColorDkGrey );
+	UI_FillRect( item->x, item->y, item->width, item->height, uiPromptBgColor );
 
 	// draw the rectangle
-	UI_DrawRectangle( item->x, item->y, item->width, item->height, uiScrollOutlineColor );
+	UI_DrawRectangle( item->x, item->y, item->width, item->height, uiInputFgColor );
 
 	V_ClearScene();
 
