@@ -286,6 +286,7 @@ typedef struct
 	netadr_t		serverAddresses[UI_MAX_SERVERS];
 	char		serverNames[UI_MAX_SERVERS][80];
 	int		numServers;
+	bool		updateServers;	// true is receive new info about servers
 
 	float		scaleX;
 	float		scaleY;

@@ -758,6 +758,12 @@ static void Cmd_WriteCvar(const char *name, const char *string, const char *desc
 	FS_Printf(f, "seta %s \"%s\"\n", name, string );
 }
 
+static void Cmd_WriteServerCvar(const char *name, const char *string, const char *desc, void *f )
+{
+	if( !desc ) return; // ignore cvars without description (fantom variables)
+	FS_Printf(f, "sets %s \"%s\"\n", name, string );
+}
+
 static void Cmd_WriteHelp(const char *name, const char *unused, const char *desc, void *f )
 {
 	if( !desc ) return;				// ignore fantom cmds
@@ -770,6 +776,11 @@ void Cmd_WriteVariables( file_t *f )
 {
 	FS_Printf( f, "unsetall\n" );
 	Cvar_LookupVars( CVAR_ARCHIVE, NULL, f, Cmd_WriteCvar ); 
+}
+
+void Cmd_WriteServerVariables( file_t *f )
+{
+	Cvar_LookupVars( CVAR_SERVERINFO, NULL, f, Cmd_WriteServerCvar ); 
 }
 
 /*
@@ -858,9 +869,45 @@ void Host_WriteDefaultConfig( void )
 	}
 }
 
+/*
+===============
+Host_WriteServerConfig
+
+save serverinfo variables into server.rc (using for dedicated server too)
+===============
+*/
+void Host_WriteServerConfig( void )
+{
+	file_t	*f = FS_Open( "config/server.rc", "w" );
+	if( f )
+	{
+		FS_Printf( f, "//=======================================================================\n" );
+		FS_Printf( f, "//\t\t\tCopyright XashXT Group %s ©\n", timestamp( TIME_YEAR_ONLY ));
+		FS_Printf( f, "//\t\t\tserver.rc - server temporare config\n" );
+		FS_Printf( f, "//=======================================================================\n" );
+		Cmd_WriteServerVariables( f );
+
+		// add default map if exist
+		if( com.strlen( Cvar_VariableString( "defaultmap" )) != 0 )
+			FS_Printf( f, "map %s\n", Cvar_VariableString( "defaultmap" ));
+		FS_Close( f );
+	}
+	else MsgDev( D_ERROR, "Couldn't write server.rc.\n" );
+}
+
 void Key_EnumCmds_f( void )
 {
-	file_t *f = FS_Open( "docs/help.txt", "w" );
+	file_t	*f;
+
+	FS_AllowDirectPaths( true );
+	if( FS_FileExists( "../help.txt" ))
+	{
+		Msg( "help.txt already exist\n" );
+		FS_AllowDirectPaths( false );
+		return;
+	}
+
+	f = FS_Open( "../help.txt", "w" );
 	if( f )
 	{
 		FS_Printf( f, "//=======================================================================\n");
@@ -874,7 +921,8 @@ void Key_EnumCmds_f( void )
 		Cmd_LookupCmds( NULL, f, Cmd_WriteHelp ); 
   		FS_Printf( f, "\n\n");
 		FS_Close( f );
+		Msg( "help.txt created\n" );
 	}
 	else MsgDev( D_ERROR, "Couldn't write help.txt.\n");
-	Msg( "write docs/help.txt\n" );
+	FS_AllowDirectPaths( false );
 }

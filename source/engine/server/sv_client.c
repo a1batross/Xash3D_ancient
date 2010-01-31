@@ -464,26 +464,36 @@ The second parameter should be the current protocol version number.
 */
 void SV_Info( netadr_t from )
 {
-	char	string[64];
+	char	string[MAX_INFO_STRING];
 	int	i, count = 0;
 	int	version;
 
 	// ignore in single player
-	if( sv_maxclients->integer == 1 ) return;
+	if( sv_maxclients->integer == 1 )
+		return;
 
-	version = com.atoi(Cmd_Argv( 1 ));
+	version = com.atoi( Cmd_Argv( 1 ));
+	string[0] = '\0';
 
 	if( version != PROTOCOL_VERSION )
 	{
-		com.sprintf( string, "%s: wrong version\n", hostname->string, sizeof( string ));
+		com.snprintf( string, sizeof( string ), "%s: wrong version\n", hostname->string );
 	}
 	else
 	{
 		for( i = 0; i < sv_maxclients->integer; i++ )
 			if( svs.clients[i].state >= cs_connected )
 				count++;
-		com.sprintf( string, "%16s %8s %2i/%2i\n", hostname->string, sv.name, count, sv_maxclients->integer );
+
+		Info_SetValueForKey( string, "hostname", hostname->string );
+		Info_SetValueForKey( string, "mapname", sv.name );
+		Info_SetValueForKey( string, "deathmatch", va( "%i", svgame.globals->deathmatch ));
+		Info_SetValueForKey( string, "teamplay", va( "%i", svgame.globals->teamplay ));
+		Info_SetValueForKey( string, "coop", va( "%i", svgame.globals->coop ));
+		Info_SetValueForKey( string, "maxclients", va( "%i", sv_maxclients->integer ));
+		Info_SetValueForKey( string, "numclients", va( "%i", count ));
 	}
+	Msg( "server responce (string len %i)\n", com.strlen( string ));
 	Netchan_OutOfBandPrint( NS_SERVER, from, "info\n%s", string );
 }
 

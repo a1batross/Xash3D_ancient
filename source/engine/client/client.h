@@ -13,7 +13,6 @@
 #define MAX_DEMOS		32
 #define MAX_EDIT_LINE	256
 #define COMMAND_HISTORY	32
-#define MAX_SERVERS		64
 #define MAX_GAME_TITLES	1024
 #define ColorIndex(c)	(((c) - '0') & 7)
 
@@ -184,24 +183,6 @@ struct cl_priv_s
 	mouth_t		mouth;		// shared mouth info
 };
 
-typedef struct serverinfo_s
-{
-	char		*mapname;
-	char		*hostname;
-	char		*shortname;
-	char		*gamename;
-	char		*netaddress;
-
-	char		*playerstr;
-	int		numplayers;
-	int		maxplayers;
-
-	char		*pingstring;
-	bool		statusPacket;
-	int		ping;
-
-} serverinfo_t;
-
 typedef enum { key_console = 0, key_game, key_menu } keydest_t;
 
 typedef struct
@@ -337,8 +318,6 @@ typedef struct
 	string		demoname;			// for demo looping
 
 	file_t		*demofile;
-	serverinfo_t	serverlist[MAX_SERVERS];	// servers to join
-	int		numservers;
 	int		pingtime;			// servers timebase
 } client_static_t;
 

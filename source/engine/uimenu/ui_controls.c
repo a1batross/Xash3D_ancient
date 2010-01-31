@@ -30,8 +30,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ID_ADVANCED		3
 #define ID_DONE		4
 #define ID_CANCEL		5
-#define ID_KEYLIST		5
-#define ID_TABLEHINT	6
+#define ID_KEYLIST		6
+#define ID_TABLEHINT	7
 
 #define MAX_KEYS		256
 #define CMD_LENGTH		24
@@ -139,7 +139,7 @@ static void UI_Controls_Callback( void *self, int event )
 		UI_PopMenu();
 		break;
 	case ID_DEFAULTS:
-		Cbuf_ExecuteText( EXEC_NOW, "exec basekeys.rc\n" );
+		Cbuf_ExecuteText( EXEC_NOW, "exec keys.def\n" );
 		UI_Controls_GetKeysList (); // reload all buttons
 		break;
 	case ID_ADVANCED:

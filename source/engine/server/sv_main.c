@@ -519,6 +519,7 @@ void SV_Init( void )
 	Cvar_Get ("fraglimit", "0", CVAR_SERVERINFO, "multiplayer fraglimit" );
 	Cvar_Get ("timelimit", "0", CVAR_SERVERINFO, "multiplayer timelimit" );
 	Cvar_Get ("protocol", va("%i", PROTOCOL_VERSION), CVAR_SERVERINFO|CVAR_INIT, "displays server protocol version" );
+	Cvar_Get ("defaultmap", "", 0, "holds the multiplayer mapname" );
 	Cvar_Get ("sv_aim", "1", 0, "enable auto-aiming" );
 
 	sv_fps = Cvar_Get( "sv_fps", "72.1", CVAR_ARCHIVE, "running server physics at" );

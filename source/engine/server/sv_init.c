@@ -419,6 +419,9 @@ void SV_InitGame( void )
 	svs.client_entities = Z_Malloc( sizeof( entity_state_t ) * svs.num_client_entities );
 	svs.baselines = Z_Malloc( sizeof( entity_state_t ) * GI->max_edicts );
 
+	// init network stuff
+	NET_Config(( sv_maxclients->integer > 1 ));
+
 	// copy gamemode into svgame.globals
 	svgame.globals->deathmatch = Cvar_VariableInteger( "deathmatch" );
 	svgame.globals->teamplay = Cvar_VariableInteger( "teamplay" );

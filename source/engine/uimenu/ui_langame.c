@@ -76,7 +76,7 @@ static void UI_LanGame_GetGamesList( void )
 		if( com.strlen( uiStatic.serverNames[i] ) == 0 ) break; // this should never happen
 		info = uiStatic.serverNames[i];
  
-		com.strncat( uiLanGame.gameDescription[i], Info_ValueForKey( info, "sv_hostname" ), GAME_LENGTH );
+		com.strncat( uiLanGame.gameDescription[i], Info_ValueForKey( info, "hostname" ), GAME_LENGTH );
 		com.strncat( uiLanGame.gameDescription[i], uiEmptyString, GAME_LENGTH );
 		com.strncat( uiLanGame.gameDescription[i], Info_ValueForKey( info, "mapname" ), MAPNAME_LENGTH );
 		com.strncat( uiLanGame.gameDescription[i], uiEmptyString, MAPNAME_LENGTH );
@@ -87,7 +87,9 @@ static void UI_LanGame_GetGamesList( void )
 		else if( !com.strcmp( Info_ValueForKey( info, "teamplay" ), "1" ))
 			com.strncat( uiLanGame.gameDescription[i], "teamplay", TYPE_LENGTH );
 		com.strncat( uiLanGame.gameDescription[i], uiEmptyString, TYPE_LENGTH );
-		com.strncat( uiLanGame.gameDescription[i], Info_ValueForKey( info, "sv_maxclients" ), MAXCL_LENGTH );
+		com.strncat( uiLanGame.gameDescription[i], Info_ValueForKey( info, "numclients" ), MAXCL_LENGTH );
+		com.strncat( uiLanGame.gameDescription[i], "\\", MAXCL_LENGTH );
+		com.strncat( uiLanGame.gameDescription[i], Info_ValueForKey( info, "maxclients" ), MAXCL_LENGTH );
 		com.strncat( uiLanGame.gameDescription[i], uiEmptyString, MAXCL_LENGTH );
 		uiLanGame.gameDescriptionPtr[i] = uiLanGame.gameDescription[i];
 	}
@@ -95,6 +97,26 @@ static void UI_LanGame_GetGamesList( void )
 	for( ; i < UI_MAX_SERVERS; i++ ) uiLanGame.gameDescriptionPtr[i] = NULL;
 	uiLanGame.gameList.itemNames = uiLanGame.gameDescriptionPtr;
 }
+
+/*
+=================
+UI_Background_Ownerdraw
+=================
+*/
+static void UI_Background_Ownerdraw( void *self )
+{
+	menuCommon_s	*item = (menuCommon_s *)self;
+
+	UI_DrawPic(item->x, item->y, item->width, item->height, uiColorWhite, ((menuBitmap_s *)self)->pic);
+
+	// serverinfo has been changed update display
+	if( uiStatic.updateServers )
+	{
+		UI_LanGame_GetGamesList ();
+		uiStatic.updateServers = false;
+	}
+}
+
 
 /*
 =================
@@ -160,6 +182,7 @@ static void UI_LanGame_Init( void )
 	uiLanGame.background.generic.width = 1024;
 	uiLanGame.background.generic.height = 768;
 	uiLanGame.background.pic = ART_BACKGROUND;
+	uiLanGame.background.generic.ownerdraw = UI_Background_Ownerdraw;
 
 	uiLanGame.banner.generic.id = ID_BANNER;
 	uiLanGame.banner.generic.type = QMTYPE_BITMAP;
@@ -243,6 +266,8 @@ static void UI_LanGame_Init( void )
 	UI_AddItem( &uiLanGame.menu, (void *)&uiLanGame.done );
 	UI_AddItem( &uiLanGame.menu, (void *)&uiLanGame.hintMessage );
 	UI_AddItem( &uiLanGame.menu, (void *)&uiLanGame.gameList );
+
+	UI_RefreshServerList();
 }
 
 /*

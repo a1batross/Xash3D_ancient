@@ -9,7 +9,7 @@
 #include "byteorder.h"
 
 #define PORT_ANY		-1
-#define PORT_SERVER		27911
+#define PORT_SERVER		27910
 #define MAX_LOOPBACK	4
 #define MASK_LOOPBACK	(MAX_LOOPBACK - 1)
 

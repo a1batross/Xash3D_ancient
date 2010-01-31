@@ -830,6 +830,7 @@ void Host_Init( const int argc, const char **argv )
 	{
 		Cmd_AddCommand( "quit", Sys_Quit, "quit the game" );
 		Cmd_AddCommand( "exit", Sys_Quit, "quit the game" );
+		Cbuf_AddText( "exec server.rc\n" ); // dedicated servers using settings from server.rc file
 	}
 	else
 	{
@@ -842,6 +843,7 @@ void Host_Init( const int argc, const char **argv )
 	Cmd_AddCommand( "game", Host_ChangeGame_f, "change game" );	// allow to change game from the console
 	host.frametime = Host_Milliseconds();
 	host.errorframe = 0;
+	Cbuf_Execute();
 }
 
 /*

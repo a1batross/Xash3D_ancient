@@ -74,16 +74,17 @@ static void UI_CreateGame_Begin( void )
 {
 	if( Host_ServerState())
 		Cbuf_ExecuteText( EXEC_APPEND, "disconnect\n" );
-/*
-	Cvar_SetValue( "deathmatch", !((int)uiStartServer.rules.curValue));
-	Cvar_SetValue( "coop", ((int)uiStartServer.rules.curValue));
-	Cvar_SetValue( "timelimit", atoi(uiStartServer.timeLimit.buffer));
-	Cvar_SetValue( "fraglimit", atoi(uiStartServer.fragLimit.buffer));
-	Cvar_SetValue( "sv_maxclients", atoi(uiStartServer.maxClients.buffer));
-	Cvar_Set( "sv_hostname", uiStartServer.hostName.buffer );
 
-	Cbuf_ExecuteText( EXEC_APPEND, va( "map %s\n", uiCreateGame.mapsList[uiCreateGame.mapsList.curItem] ));
-*/
+	Cvar_SetValue( "deathmatch", 1.0f );	// FIXME
+	Cvar_SetValue( "sv_maxclients", com.atoi( uiCreateGame.maxClients.buffer ));
+	Cvar_Set( "sv_hostname", uiCreateGame.hostName.buffer );
+	Cvar_Set( "defaultmap", uiCreateGame.mapName[uiCreateGame.mapsList.curItem] );
+	Host_WriteServerConfig ();
+
+	// all done, start server
+	if( uiCreateGame.dedicatedServer.enabled )
+		Sys_NewInstance( va("#%s", GI->gamefolder ), "Starting dedicated server...\n" );
+	else Cbuf_ExecuteText( EXEC_APPEND, "exec server.rc\n" );
 }
 
 /*

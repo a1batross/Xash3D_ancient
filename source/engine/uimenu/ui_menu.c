@@ -987,7 +987,7 @@ void UI_AddServerToList( netadr_t adr, const char *info )
 		return;
 
 	if( uiStatic.numServers == UI_MAX_SERVERS )
-		return;	// Full
+		return;	// full
 
 	while( *info == ' ' )
 		info++;
@@ -1000,6 +1000,7 @@ void UI_AddServerToList( netadr_t adr, const char *info )
 	}
 
 	// add it to the list
+	uiStatic.updateServers = true; // info has been updated
 	uiStatic.serverAddresses[uiStatic.numServers] = adr;
 	com.strncpy( uiStatic.serverNames[uiStatic.numServers], info, sizeof( uiStatic.serverNames[uiStatic.numServers] ));
 	uiStatic.numServers++;
