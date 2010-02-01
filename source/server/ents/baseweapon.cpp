@@ -87,7 +87,7 @@ void CBasePlayerWeapon::AttemptToMaterialize( void )
 
 	if ( time == 0 )
 	{
-		//Materialize
+		// materialize
 		SetThink( Materialize );
 		SetNextThink( 0 );
 		return;
@@ -100,27 +100,33 @@ void CBasePlayerWeapon::Materialize( void )
 	if ( pev->effects & EF_NODRAW )
 	{
 		// changing from invisible state to visible.
+
+		SetObjectClass( ED_NORMAL );		
 		pev->effects &= ~EF_NODRAW;
 		pev->renderfx = kRenderFxGlowShell;
 		pev->renderamt = 40;
           	pev->frags = 0;
-          	pev->rendercolor.x = RANDOM_LONG(25, 255);
-          	pev->rendercolor.y = RANDOM_LONG(25, 255);
-          	pev->rendercolor.z = RANDOM_LONG(25, 255);
+          	pev->rendercolor.x = RANDOM_LONG( 25, 255 );
+          	pev->rendercolor.y = RANDOM_LONG( 25, 255 );
+          	pev->rendercolor.z = RANDOM_LONG( 25, 255 );
 		pev->scale = 0.01;
-		SetNextThink (0.001);
+		SetNextThink( 0.001 );
 	}
-	if( pev->scale > 1.2 ) pev->frags = 1;
+
+	if( pev->scale > 1.2 )
+		pev->frags = 1;
 	if ( pev->frags == 1 )
-	{         //set effects for respawn item
-		if(pev->scale > 1.0) pev->scale -= 0.05;
+	{         
+		// set effects for respawn item
+		if( pev->scale > 1.0 )
+			pev->scale -= 0.05;
 		else
 		{
 			pev->renderfx = kRenderFxNone;
 			pev->frags = 0;
 			pev->solid = SOLID_TRIGGER;
 			UTIL_SetOrigin( this, pev->origin );// link into world.
-			SetTouch( DefaultTouch);
+			SetTouch( DefaultTouch );
 			EMIT_SOUND_DYN( ENT(pev), CHAN_WEAPON, "items/respawn.wav", 1, ATTN_NORM, 0, 150 );
 			SetThink( NULL );
 			DontThink();
@@ -162,6 +168,7 @@ CBaseEntity* CBasePlayerWeapon::Respawn( void )
 	
 	if( pNewWeapon )
 	{
+		pNewWeapon->SetObjectClass( ED_NORMAL );
 		pNewWeapon->pev->owner = pev->owner;
 		pNewWeapon->pev->origin = g_pGameRules->VecWeaponRespawnSpot( this );
 		pNewWeapon->pev->angles = pev->angles;
@@ -171,7 +178,7 @@ CBaseEntity* CBasePlayerWeapon::Respawn( void )
 		pNewWeapon->SetTouch( NULL );// no touch
 		pNewWeapon->SetThink( AttemptToMaterialize );
 
-		DROP_TO_FLOOR ( ENT( pev ));
+		DROP_TO_FLOOR( pNewWeapon->edict( ));
 
 		// not a typo! We want to know when the weapon the player just picked up should respawn! This new entity we created is the replacement,
 		// but when it should respawn is based on conditions belonging to the weapon that was taken.

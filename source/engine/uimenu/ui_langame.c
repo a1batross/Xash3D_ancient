@@ -36,7 +36,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define GAME_LENGTH		18
 #define MAPNAME_LENGTH	20+GAME_LENGTH
-#define TYPE_LENGTH		20+MAPNAME_LENGTH
+#define TYPE_LENGTH		16+MAPNAME_LENGTH
 #define MAXCL_LENGTH	15+TYPE_LENGTH
 
 typedef struct
@@ -57,6 +57,7 @@ typedef struct
 	menuScrollList_s	gameList;
 	menuAction_s	hintMessage;
 	char		hintText[MAX_SYSPATH];
+	int		refreshTime;
 } uiLanGame_t;
 
 static uiLanGame_t	uiLanGame;
@@ -73,29 +74,40 @@ static void UI_LanGame_GetGamesList( void )
 
 	for( i = 0; i < uiStatic.numServers; i++ )
 	{
-		if( com.strlen( uiStatic.serverNames[i] ) == 0 ) break; // this should never happen
+		if( i >= UI_MAX_SERVERS ) break;
 		info = uiStatic.serverNames[i];
  
-		com.strncat( uiLanGame.gameDescription[i], Info_ValueForKey( info, "hostname" ), GAME_LENGTH );
+		com.strncat( uiLanGame.gameDescription[i], Info_ValueForKey( info, "host" ), GAME_LENGTH );
 		com.strncat( uiLanGame.gameDescription[i], uiEmptyString, GAME_LENGTH );
-		com.strncat( uiLanGame.gameDescription[i], Info_ValueForKey( info, "mapname" ), MAPNAME_LENGTH );
+		com.strncat( uiLanGame.gameDescription[i], Info_ValueForKey( info, "map" ), MAPNAME_LENGTH );
 		com.strncat( uiLanGame.gameDescription[i], uiEmptyString, MAPNAME_LENGTH );
-		if( !com.strcmp( Info_ValueForKey( info, "deathmatch" ), "1" ))
+		if( !com.strcmp( Info_ValueForKey( info, "dm" ), "1" ))
 			com.strncat( uiLanGame.gameDescription[i], "deathmatch", TYPE_LENGTH );
 		else if( !com.strcmp( Info_ValueForKey( info, "coop" ), "1" ))
 			com.strncat( uiLanGame.gameDescription[i], "coop", TYPE_LENGTH );
-		else if( !com.strcmp( Info_ValueForKey( info, "teamplay" ), "1" ))
+		else if( !com.strcmp( Info_ValueForKey( info, "team" ), "1" ))
 			com.strncat( uiLanGame.gameDescription[i], "teamplay", TYPE_LENGTH );
 		com.strncat( uiLanGame.gameDescription[i], uiEmptyString, TYPE_LENGTH );
-		com.strncat( uiLanGame.gameDescription[i], Info_ValueForKey( info, "numclients" ), MAXCL_LENGTH );
+		com.strncat( uiLanGame.gameDescription[i], Info_ValueForKey( info, "numcl" ), MAXCL_LENGTH );
 		com.strncat( uiLanGame.gameDescription[i], "\\", MAXCL_LENGTH );
-		com.strncat( uiLanGame.gameDescription[i], Info_ValueForKey( info, "maxclients" ), MAXCL_LENGTH );
+		com.strncat( uiLanGame.gameDescription[i], Info_ValueForKey( info, "maxcl" ), MAXCL_LENGTH );
 		com.strncat( uiLanGame.gameDescription[i], uiEmptyString, MAXCL_LENGTH );
 		uiLanGame.gameDescriptionPtr[i] = uiLanGame.gameDescription[i];
 	}
 
 	for( ; i < UI_MAX_SERVERS; i++ ) uiLanGame.gameDescriptionPtr[i] = NULL;
 	uiLanGame.gameList.itemNames = uiLanGame.gameDescriptionPtr;
+	uiLanGame.gameList.numItems = 0; // reset it
+
+	if( !uiLanGame.gameList.generic.charHeight ) return; // to avoid divide integer by zero
+
+	// count number of items
+	while( uiLanGame.gameList.itemNames[uiLanGame.gameList.numItems] )
+		uiLanGame.gameList.numItems++;
+
+	// calculate number of visible rows
+	uiLanGame.gameList.numRows = (uiLanGame.gameList.generic.height2 / uiLanGame.gameList.generic.charHeight) - 2;
+	if( uiLanGame.gameList.numRows > uiLanGame.gameList.numItems ) uiLanGame.gameList.numRows = uiLanGame.gameList.numItems;
 }
 
 /*
@@ -108,6 +120,12 @@ static void UI_Background_Ownerdraw( void *self )
 	menuCommon_s	*item = (menuCommon_s *)self;
 
 	UI_DrawPic(item->x, item->y, item->width, item->height, uiColorWhite, ((menuBitmap_s *)self)->pic);
+
+	if( uiStatic.realTime > uiLanGame.refreshTime )
+	{
+		uiLanGame.refreshTime = uiStatic.realTime + 10000; // refresh every 10 secs
+		UI_RefreshServerList();
+	}
 
 	// serverinfo has been changed update display
 	if( uiStatic.updateServers )
@@ -171,7 +189,7 @@ static void UI_LanGame_Init( void )
 	com.strncat( uiLanGame.hintText, uiEmptyString, MAPNAME_LENGTH );
 	com.strncat( uiLanGame.hintText, "Type", TYPE_LENGTH );
 	com.strncat( uiLanGame.hintText, uiEmptyString, TYPE_LENGTH );
-	com.strncat( uiLanGame.hintText, "Max Clients", MAXCL_LENGTH );
+	com.strncat( uiLanGame.hintText, "Num/Max Clients", MAXCL_LENGTH );
 	com.strncat( uiLanGame.hintText, uiEmptyString, MAXCL_LENGTH );
 
 	uiLanGame.background.generic.id = ID_BACKGROUND;
@@ -254,8 +272,7 @@ static void UI_LanGame_Init( void )
 	uiLanGame.gameList.generic.width = 640;
 	uiLanGame.gameList.generic.height = 440;
 	uiLanGame.gameList.generic.callback = UI_LanGame_Callback;
-
-	UI_LanGame_GetGamesList();
+	uiLanGame.gameList.itemNames = uiLanGame.gameDescriptionPtr;
 
 	UI_AddItem( &uiLanGame.menu, (void *)&uiLanGame.background );
 	UI_AddItem( &uiLanGame.menu, (void *)&uiLanGame.banner );
@@ -267,7 +284,7 @@ static void UI_LanGame_Init( void )
 	UI_AddItem( &uiLanGame.menu, (void *)&uiLanGame.hintMessage );
 	UI_AddItem( &uiLanGame.menu, (void *)&uiLanGame.gameList );
 
-	UI_RefreshServerList();
+	uiLanGame.refreshTime = uiStatic.realTime + 500; // delay before update 0.5 sec
 }
 
 /*

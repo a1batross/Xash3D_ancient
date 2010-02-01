@@ -284,7 +284,7 @@ typedef struct
 	int		menuDepth;
 
 	netadr_t		serverAddresses[UI_MAX_SERVERS];
-	char		serverNames[UI_MAX_SERVERS][80];
+	string		serverNames[UI_MAX_SERVERS];
 	int		numServers;
 	bool		updateServers;	// true is receive new info about servers
 

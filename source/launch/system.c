@@ -526,6 +526,10 @@ void Sys_MergeCommandLine( LPSTR lpCmdLine )
 		if(!com_stricmp( "+load", fs_argv[i] )) fs_argv[i] = (char *)blank;
 		// changelevel beetwen games? wow it's great idea!
 		if(!com_stricmp( "+changelevel", fs_argv[i] )) fs_argv[i] = (char *)blank;
+
+		// second call
+		if( Sys.app_name == HOST_DEDICATED && !com_strnicmp( "+menu_", fs_argv[i], 6 ))
+			fs_argv[i] = (char *)blank;
 	}
 }
 
@@ -915,6 +919,10 @@ void Sys_Init( void )
 
 	Sys_LookupInstance();		// init launcher
 	Con_CreateConsole();
+
+	// second pass (known state)
+	if( Sys.app_state == SYS_RESTART )
+		Sys_MergeCommandLine( GetCommandLine());
 
 	// first text message into console or log 
 	MsgDev( D_NOTE, "Sys_LoadLibrary: Loading launch.dll - ok\n" );

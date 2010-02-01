@@ -99,17 +99,17 @@ Specify a list of master servers
 */
 void SV_SetMaster_f( void )
 {
-	int		i, slot;
+	int	i, slot;
 
 	// only dedicated servers send heartbeats
 	if( host.type != HOST_DEDICATED )
 	{
-		Msg("Only dedicated servers use masters.\n");
+		Msg( "Only dedicated servers use masters.\n" );
 		return;
 	}
 
 	// make sure the server is listed public
-	Cvar_Set ("public", "1");
+	Cvar_Set( "public", "1" );
 
 	for( i = 1; i < MAX_MASTERS; i++ )
 	{ 

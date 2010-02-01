@@ -119,7 +119,7 @@ void Netchan_OutOfBand( int net_socket, netadr_t adr, int length, byte *data )
 	byte	send_buf[MAX_MSGLEN];
 
 	// write the packet header
-	MSG_Init( &send, send_buf, sizeof(send_buf));
+	MSG_Init( &send, send_buf, sizeof( send_buf ));
 	
 	MSG_WriteLong( &send, -1 );	// -1 sequence means out of band
 	MSG_WriteData( &send, data, length );

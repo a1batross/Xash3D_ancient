@@ -539,7 +539,7 @@ int Host_ModifyTime( int msec )
 	{
 		// dedicated servers don't want to clamp for a much longer
 		// period, because it would mess up all the client's views of time.
-		if( msec > 500 ) MsgDev( D_WARN, "Host_ModifyTime: %i msec frame time\n", msec );
+		if( msec > 500 ) MsgDev( D_NOTE, "Host_ModifyTime: %i msec frame time\n", msec );
 		clamp_time = 5000;
 	}
 	else if( SV_Active( ))
@@ -816,7 +816,7 @@ void Host_Init( const int argc, const char **argv )
 	timescale = Cvar_Get( "timescale", "1.0", 0, "slow-mo timescale" );
 
 	s = va("^1Xash %g ^3%s", GI->version, buildstring );
-	Cvar_Get( "version", s, CVAR_SERVERINFO|CVAR_INIT, "engine current version" );
+	Cvar_Get( "version", s, CVAR_INIT, "engine current version" );
 
 	NET_Init();
 	Netchan_Init();

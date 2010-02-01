@@ -62,7 +62,11 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 		CL_FreeEdict( ent );
 		return; // entity was delta removed
 	}
-
+/*
+	if( newent ) Msg( "Create entity %i\n", newnum );
+	else if( !unchanged ) Msg( "Update entity %i\n", newnum );
+	else Msg( "Unchanged entity %i\n", newnum );
+*/
 	cl.parse_entities++;
 	frame->num_entities++;
 
@@ -229,17 +233,17 @@ void CL_ParseFrame( sizebuf_t *msg )
 		if( !cl.oldframe->valid )
 		{	
 			// should never happen
-			MsgDev( D_INFO, "delta from invalid frame (not supposed to happen!).\n" );
+			MsgDev( D_INFO, "delta from invalid frame (not supposed to happen!)\n" );
 		}
 		if( cl.oldframe->serverframe != cl.frame.deltaframe )
 		{	
 			// The frame that the server did the delta from
 			// is too old, so we can't reconstruct it properly.
-			MsgDev( D_INFO, "Delta frame too old.\n" );
+			MsgDev( D_INFO, "delta frame too old\n" );
 		}
 		else if( cl.parse_entities - cl.oldframe->parse_entities > MAX_PARSE_ENTITIES - 128 )
 		{
-			MsgDev( D_INFO, "delta parse_entities too old.\n" );
+			MsgDev( D_INFO, "delta parse_entities too old\n" );
 		}
 		else cl.frame.valid = true;	// valid delta parse
 	}

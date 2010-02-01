@@ -69,7 +69,7 @@ void CBaseEntity :: SetNextThink( float delay, BOOL correctSpeed )
 
 void CBaseEntity :: AbsoluteNextThink( float time, BOOL correctSpeed )
 {
-	if (m_pParent || m_pChild)
+	if ( m_pParent || m_pChild )
 	{
 		m_fNextThink = time;
 		SetEternalThink( );

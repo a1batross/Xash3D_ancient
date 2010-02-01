@@ -699,15 +699,10 @@ UI_RefreshServerList
 */
 void UI_RefreshServerList( void )
 {
-	int	i;
-
-	for( i = 0; i < UI_MAX_SERVERS; i++ )
-	{
-		Mem_Set( &uiStatic.serverAddresses[i], 0, sizeof( netadr_t ));
-		com.strncpy( uiStatic.serverNames[i], "<no server>", sizeof( uiStatic.serverNames[i] ));
-	}
-
 	uiStatic.numServers = 0;
+	Mem_Set( uiStatic.serverAddresses, 0, sizeof( uiStatic.serverAddresses ));
+	Mem_Set( uiStatic.serverNames, 0, sizeof( uiStatic.serverNames ));
+
 	Cbuf_ExecuteText( EXEC_APPEND, "localservers\n" );
 }
 
@@ -988,9 +983,6 @@ void UI_AddServerToList( netadr_t adr, const char *info )
 
 	if( uiStatic.numServers == UI_MAX_SERVERS )
 		return;	// full
-
-	while( *info == ' ' )
-		info++;
 
 	// ignore if duplicated
 	for( i = 0; i < uiStatic.numServers; i++ )

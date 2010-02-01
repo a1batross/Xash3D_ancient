@@ -2313,7 +2313,7 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type )
 		break;
 	}
 
-	r_numEntities++;
+	if( result ) r_numEntities++;
 
 	// never adding child entity without parent
 	// only studio models can have attached childrens

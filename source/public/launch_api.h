@@ -121,7 +121,6 @@ typedef struct
 {
 	netadrtype_t	type;
 	byte		ip[4];
-	byte		ipx[10];
 	word		port;
 } netadr_t;
 

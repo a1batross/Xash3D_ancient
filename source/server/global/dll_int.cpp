@@ -121,8 +121,8 @@ int DispatchSpawn( edict_t *pent )
 	if( pEntity )
 	{
 		// Initialize these or entities who don't link to the world won't have anything in here
-		pEntity->pev->absmin = pEntity->pev->origin - Vector(1,1,1);
-		pEntity->pev->absmax = pEntity->pev->origin + Vector(1,1,1);
+		pEntity->pev->absmin = pEntity->pev->origin - Vector( 1.0f, 1.0f, 1.0f );
+		pEntity->pev->absmax = pEntity->pev->origin + Vector( 1.0f, 1.0f, 1.0f );
 
 		pEntity->Spawn();
 		pEntity = (CBaseEntity *)GET_PRIVATE(pent);
@@ -131,7 +131,7 @@ int DispatchSpawn( edict_t *pent )
 		{
 			pEntity->pev->colormap = ENTINDEX(pent);
 			if ( g_pGameRules && !g_pGameRules->IsAllowedToSpawn( pEntity ) )
-				return -1;	// return that this entity should be deleted
+				return -1; // return that this entity should be deleted
 			if ( pEntity->pev->flags & FL_KILLME )
 				return -1;
 		}
@@ -166,12 +166,14 @@ int DispatchCreate( edict_t *pent, const char *szName )
 	if( !strncmp( szName, "weapon_", 7 ))
 	{
 		CBasePlayerWeapon *pWeapon = GetClassPtr((CBasePlayerWeapon *)VARS( pent ));
+		if( !pWeapon ) return -1;
 		pWeapon->pev->netname = istr; 
 		return 0;
 	}
 	else if( !strncmp( szName, "item_", 5 ) || !strncmp( szName, "ammo_", 5 ))
 	{
 		CItem *pItem = GetClassPtr((CItem *)VARS( pent ));
+		if( !pItem ) return -1;
   		pItem->pev->netname = istr; 
 		return 0;
 	}

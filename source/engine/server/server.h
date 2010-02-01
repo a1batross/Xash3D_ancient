@@ -95,6 +95,7 @@ typedef struct sv_client_s
 	usercmd_t		lastcmd;			// for filling in big drops
 
 	int		usehull;			// current hull that client used
+	int		modelindex;		// custom playermodel index
 
 	int		commandMsec;		// every seconds this is reset, if user
 	   					// commands exhaust it, assume time cheating

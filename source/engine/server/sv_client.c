@@ -15,10 +15,6 @@ typedef struct ucmd_s
 	void		(*func)( sv_client_t *cl );
 } ucmd_t;
 
-static vec3_t wishdir, forward, right, up;
-static float wishspeed;
-static bool onground;
-
 /*
 =================
 SV_GetChallenge
@@ -89,7 +85,7 @@ void SV_DirectConnect( netadr_t from )
 
 	qport = com.atoi( Cmd_Argv( 2 ));
 	challenge = com.atoi( Cmd_Argv( 3 ));
-	com.strncpy( userinfo, Cmd_Argv( 4 ), sizeof( userinfo ) - 1);
+	com.strncpy( userinfo, Cmd_Argv( 4 ), sizeof( userinfo ) - 1 );
 	userinfo[sizeof(userinfo) - 1] = 0;
 
 	// quick reject
@@ -325,7 +321,7 @@ void SV_DropClient( sv_client_t *drop )
 		svgame.dllFuncs.pfnSpectatorDisconnect( drop->edict );
 	else svgame.dllFuncs.pfnClientDisconnect( drop->edict );
 
-	SV_FreeEdict( drop->edict );
+//	SV_FreeEdict( drop->edict );
 	if( drop->download ) drop->download = NULL;
 
 	drop->state = cs_zombie; // become free in a few seconds
@@ -485,15 +481,14 @@ void SV_Info( netadr_t from )
 			if( svs.clients[i].state >= cs_connected )
 				count++;
 
-		Info_SetValueForKey( string, "hostname", hostname->string );
-		Info_SetValueForKey( string, "mapname", sv.name );
-		Info_SetValueForKey( string, "deathmatch", va( "%i", svgame.globals->deathmatch ));
-		Info_SetValueForKey( string, "teamplay", va( "%i", svgame.globals->teamplay ));
+		Info_SetValueForKey( string, "host", hostname->string );
+		Info_SetValueForKey( string, "map", sv.name );
+		Info_SetValueForKey( string, "dm", va( "%i", svgame.globals->deathmatch ));
+		Info_SetValueForKey( string, "team", va( "%i", svgame.globals->teamplay ));
 		Info_SetValueForKey( string, "coop", va( "%i", svgame.globals->coop ));
-		Info_SetValueForKey( string, "maxclients", va( "%i", sv_maxclients->integer ));
-		Info_SetValueForKey( string, "numclients", va( "%i", count ));
+		Info_SetValueForKey( string, "numcl", va( "%i", count ));
+		Info_SetValueForKey( string, "maxcl", va( "%i", sv_maxclients->integer ));
 	}
-	Msg( "server responce (string len %i)\n", com.strlen( string ));
 	Netchan_OutOfBandPrint( NS_SERVER, from, "info\n%s", string );
 }
 
@@ -623,6 +618,23 @@ void SV_PutClientInServer( edict_t *ent )
 
 			// setup maxspeed and refresh physinfo
 			SV_SetClientMaxspeed( client, svgame.movevars.maxspeed );
+
+			if( sv_maxclients->integer > 1 )
+			{
+				const char *model = Info_ValueForKey( client->userinfo, "model" );
+
+				// apply custom playermodel
+				if( com.strlen( model ))
+				{
+					const char *path = va( "models/player/%s/%s.mdl", model, model );
+					CM_RegisterModel( path, SV_ModelIndex( path )); // register model
+					SV_SetModel( ent, path );
+					client->modelindex = ent->v.modelindex;
+				}
+				else client->modelindex = 0;
+				ent->v.netname = MAKE_STRING(Info_ValueForKey( client->userinfo, "name" ));
+			}
+			else ent->v.netname = MAKE_STRING( "player" );
 	
 			// fisrt entering
 			svgame.dllFuncs.pfnClientPutInServer( ent );
@@ -630,6 +642,8 @@ void SV_PutClientInServer( edict_t *ent )
 			ent->v.view_ofs[2] = GI->viewheight[0];
 			ent->v.viewangles[ROLL] = 0;	// cut off any camera rolling
 			ent->v.origin[2] -= GI->client_mins[2][2]; // FIXME: make sure off ground
+
+			SV_BaselineForEntity( ent );
 		}
 	}
 	else
@@ -661,7 +675,8 @@ void SV_PutClientInServer( edict_t *ent )
 	sv.changelevel = false;
 	sv.loadgame = false;
 
-	MsgDev( D_INFO, "level loaded at %g sec\n", (Sys_Milliseconds() - svs.timestart) * 0.001f );
+	if( sv_maxclients->integer == 1 ) // singleplayer profiler
+		MsgDev( D_INFO, "level loaded at %g sec\n", (Sys_Milliseconds() - svs.timestart) * 0.001f );
 }
 
 /*
@@ -711,7 +726,7 @@ void SV_New_f( sv_client_t *cl )
 
 	// send the serverdata
 	MSG_WriteByte( &cl->netchan.message, svc_serverdata );
-	MSG_WriteLong( &cl->netchan.message, PROTOCOL_VERSION);
+	MSG_WriteLong( &cl->netchan.message, PROTOCOL_VERSION );
 	MSG_WriteLong( &cl->netchan.message, svs.spawncount );
 	MSG_WriteByte( &cl->netchan.message, playernum );
 	MSG_WriteByte( &cl->netchan.message, svgame.globals->maxClients );
@@ -1212,7 +1227,7 @@ void SV_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 	Cmd_TokenizeString( s );
 
 	c = Cmd_Argv( 0 );
-	MsgDev( D_INFO, "SV_ConnectionlessPacket: %s : %s\n", NET_AdrToString( from ), c );
+	MsgDev( D_NOTE, "SV_ConnectionlessPacket: %s : %s\n", NET_AdrToString( from ), c );
 
 	if( !com.strcmp( c, "ping" )) SV_Ping( from );
 	else if( !com.strcmp( c, "ack" )) SV_Ack( from );
@@ -1288,225 +1303,6 @@ void SV_SetIdealPitch( sv_client_t *cl )
 	
 	if( steps < 2 ) return;
 	ent->v.ideal_pitch = -dir * sv_idealpitchscale->value;
-}
-
-/*
-==================
-SV_UserFriction
-
-==================
-*/
-void SV_UserFriction( sv_client_t *cl )
-{
-	float	speed, newspeed;
-	float	*origin, *vel;
-	float	control, friction;
-	vec3_t	start, stop;
-	trace_t	trace;
-
-	vel = cl->edict->v.velocity;
-	origin = cl->edict->v.origin;
-
-	speed = com.sqrt( vel[0] * vel[0] + vel[1] * vel[1] );
-	if( !speed ) return;
-
-	// if the leading edge is over a dropoff, increase friction
-	start[0] = stop[0] = origin[0] + vel[0] / speed * 16;
-	start[1] = stop[1] = origin[1] + vel[1] / speed * 16;
-	start[2] = origin[2] + cl->edict->v.mins[2];
-	stop[2] = start[2] - 34;
-
-	trace = SV_Move( start, vec3_origin, vec3_origin, stop, MOVE_NOMONSTERS, cl->edict );
-
-	if( trace.flFraction == 1.0 )
-		friction = sv_friction->value * sv_edgefriction->value;
-	else friction = sv_friction->value;
-
-	// apply friction
-	control = speed < sv_stopspeed->value ? sv_stopspeed->value : speed;
-	newspeed = speed - svgame.globals->frametime * control * friction;
-
-	if( newspeed < 0 ) newspeed = 0;
-	else newspeed /= speed;
-	VectorScale( vel, newspeed, vel );
-}
-
-/*
-==============
-SV_Accelerate
-==============
-*/
-void SV_Accelerate( sv_client_t *cl )
-{
-	int	i;
-	float	addspeed;
-	float	accelspeed, currentspeed;
-
-	currentspeed = DotProduct( cl->edict->v.velocity, wishdir );
-	addspeed = wishspeed - currentspeed;
-	if( addspeed <= 0 ) return;
-	accelspeed = sv_accelerate->value * svgame.globals->frametime * wishspeed;
-	if( accelspeed > addspeed ) accelspeed = addspeed;
-
-	for( i = 0; i < 3; i++ )
-		cl->edict->v.velocity[i] += accelspeed * wishdir[i];
-}
-
-/*
-==============
-SV_AirAccelerate
-==============
-*/
-void SV_AirAccelerate( sv_client_t *cl, vec3_t wishveloc )
-{
-	int	i;
-	float	addspeed, accel;
-	float	wishspd, accelspeed, currentspeed;
-
-	accel = sv_airaccelerate->value ? sv_airaccelerate->value : 1.0f;
-	wishspd = VectorNormalizeLength( wishveloc );
-	if( wishspd > 30 ) wishspd = 30;
-	currentspeed = DotProduct( cl->edict->v.velocity, wishveloc );
-	addspeed = wishspd - currentspeed;
-	if( addspeed <= 0 ) return;
-	accelspeed = accel * wishspeed * svgame.globals->frametime;
-	if( accelspeed > addspeed ) accelspeed = addspeed;
-
-	for( i = 0; i < 3; i++ )
-		cl->edict->v.velocity[i] += accelspeed * wishveloc[i];
-}
-
-void SV_DropPunchAngle( sv_client_t *cl )
-{
-	float	len;
-
-	len = VectorNormalizeLength( cl->edict->v.punchangle );
-
-	len -= 10 * svgame.globals->frametime;
-	if( len < 0 ) len = 0;
-	VectorScale( cl->edict->v.punchangle, len, cl->edict->v.punchangle );
-}
-
-/*
-===================
-SV_WaterMove
-
-===================
-*/
-void SV_WaterMove( sv_client_t *cl, usercmd_t *cmd )
-{
-	int	i;
-	vec3_t	wishvel;
-	float	speed, newspeed;
-	float	wishspeed, addspeed;
-	float	accelspeed;
-
-	// user intentions
-	AngleVectors( cl->edict->v.viewangles, forward, right, up );
-
-	for( i = 0; i < 3; i++ )
-		wishvel[i] = forward[i] * cmd->forwardmove + right[i] * cmd->sidemove;
-
-	if( !cmd->forwardmove && !cmd->sidemove && !cmd->upmove )
-		wishvel[2] -= 60; // drift towards bottom
-	else wishvel[2] += cmd->upmove;
-
-	wishspeed = VectorLength( wishvel );
-	if( wishspeed > sv_maxspeed->value )
-	{
-		VectorScale( wishvel, (sv_maxspeed->value / wishspeed), wishvel );
-		wishspeed = sv_maxspeed->value;
-	}
-	wishspeed *= 0.7;
-
-	// water friction
-	speed = VectorLength( cl->edict->v.velocity );
-	if( speed )
-	{
-		newspeed = speed - svgame.globals->frametime * speed * sv_friction->value;
-		if( newspeed < 0 ) newspeed = 0;
-		VectorScale( cl->edict->v.velocity, (newspeed / speed), cl->edict->v.velocity );
-	}
-	else newspeed = 0;
-
-	// water acceleration
-	if( !wishspeed ) return;
-
-	addspeed = wishspeed - newspeed;
-	if( addspeed <= 0 ) return;
-
-	VectorNormalize( wishvel );
-	accelspeed = sv_accelerate->value * wishspeed * svgame.globals->frametime;
-	if( accelspeed > addspeed ) accelspeed = addspeed;
-
-	for( i = 0; i < 3; i++ )
-		cl->edict->v.velocity[i] += accelspeed * wishvel[i];
-}
-
-void SV_WaterJump( sv_client_t *cl )
-{
-	if( svgame.globals->time > cl->edict->v.teleport_time || !cl->edict->v.waterlevel )
-	{
-		cl->edict->v.flags &= ~FL_WATERJUMP;
-		cl->edict->v.teleport_time = 0;
-	}
-	cl->edict->v.velocity[0] = cl->edict->v.movedir[0];
-	cl->edict->v.velocity[1] = cl->edict->v.movedir[1];
-}
-
-/*
-===================
-SV_AirMove
-
-===================
-*/
-void SV_AirMove( sv_client_t *cl, usercmd_t *cmd )
-{
-	int	i;
-	vec3_t	wishvel;
-	float	fmove, smove;
-
-	wishvel[2] = 0;
-	wishvel[0] = -cl->edict->v.angles[0];
-	wishvel[1] = cl->edict->v.angles[1];
-	AngleVectors( wishvel, forward, right, up );
-
-	fmove = cmd->forwardmove;
-	smove = cmd->sidemove;
-
-	// HACKHACK to not let you back into teleporter
-	if( svgame.globals->time < cl->edict->v.teleport_time && fmove < 0 )
-		fmove = 0;
-
-	for( i = 0; i < 3; i++ )
-		wishvel[i] = forward[i] * fmove + right[i] * smove;
-
-	if( cl->edict->v.movetype != MOVETYPE_WALK )
-		wishvel[2] += cmd->upmove;
-	else wishvel[2] = 0;
-		
-	wishspeed = VectorNormalizeLength2( wishvel, wishdir );
-	if( wishspeed > sv_maxspeed->value )
-	{
-		VectorScale( wishvel, (sv_maxspeed->value / wishspeed), wishvel );
-		wishspeed = sv_maxspeed->value;
-	}
-
-	if( cl->edict->v.movetype == MOVETYPE_NOCLIP )
-	{
-		// noclip
-		VectorCopy( wishvel, cl->edict->v.velocity );
-	}
-	else if( onground )
-	{
-		SV_UserFriction( cl );
-		SV_Accelerate( cl );
-	}
-	else
-	{
-		// not on ground, so little effect on velocity
-		SV_AirAccelerate( cl, wishvel );
-	}
 }
 
 /*

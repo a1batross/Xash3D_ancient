@@ -2338,12 +2338,10 @@ Check for turning off powerups
 GLOBALS ASSUMED SET:  g_ulModelIndexPlayer
 ================
 */
-	static void
-CheckPowerups(entvars_t *pev)
+static void CheckPowerups( entvars_t *pev )
 {
-	if (pev->health <= 0)
+	if( pev->health <= 0 )
 		return;
-
 	pev->modelindex = g_ulModelIndexPlayer;    // don't use eyes
 }
 
@@ -2772,7 +2770,8 @@ void CBasePlayer::Spawn( void )
 	g_pGameRules->SetDefaultPlayerTeam( this );
 	g_pGameRules->GetPlayerSpawnSpot( this );
 
-	UTIL_SetModel(ENT(pev), "models/player.mdl");
+	SetObjectClass( ED_CLIENT );
+	UTIL_SetModel( ENT( pev ), "models/player.mdl" );
 	g_ulModelIndexPlayer = pev->modelindex;
 	pev->sequence = LookupActivity( ACT_IDLE );
 

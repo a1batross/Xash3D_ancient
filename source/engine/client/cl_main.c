@@ -506,8 +506,6 @@ void CL_ParseStatusMessage( netadr_t from, sizebuf_t *msg )
 	char	*s;
 
 	s = MSG_ReadString( msg );
-
-	Msg( "%s\n", s );
 	UI_AddServerToList( from, s );
 }
 
@@ -618,9 +616,9 @@ void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 	s = MSG_ReadStringLine( msg );
 
 	Cmd_TokenizeString( s );
-	c = Cmd_Argv(0);
+	c = Cmd_Argv( 0 );
 
-	MsgDev( D_INFO, "CL_ConnectionlessPacket: %s : %s\n", NET_AdrToString( from ), c );
+	MsgDev( D_NOTE, "CL_ConnectionlessPacket: %s : %s\n", NET_AdrToString( from ), c );
 
 	// server connection
 	if( !com.strcmp( c, "client_connect" ))
@@ -635,70 +633,57 @@ void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 		MSG_Print( &cls.netchan.message, "new" );
 		cls.state = ca_connected;
 		UI_SetActiveMenu( UI_CLOSEMENU );
-		return;
 	}
-
-	// server responding to a status broadcast
-	if( !com.strcmp( c, "info" ))
+	else if( !com.strcmp( c, "info" ))
 	{
+		// server responding to a status broadcast
 		CL_ParseStatusMessage( from, msg );
-		return;
 	}
-
-	// remote command from gui front end
-	if( !com.strcmp( c, "cmd" ))
+	else if( !com.strcmp( c, "cmd" ))
 	{
+		// remote command from gui front end
 		if(!NET_IsLocalAddress( from ))
 		{
 			Msg( "Command packet from remote host.  Ignored.\n" );
 			return;
 		}
+
 		ShowWindow( host.hWnd, SW_RESTORE );
 		SetForegroundWindow ( host.hWnd );
 		s = MSG_ReadString( msg );
 		Cbuf_AddText( s );
 		Cbuf_AddText( "\n" );
-		return;
 	}
-	// print command from somewhere
-	if( !com.strcmp( c, "print" ))
+	else if( !com.strcmp( c, "print" ))
 	{
 		// print command from somewhere
 		s = MSG_ReadString( msg );
 		Msg( s );
-		return;
 	}
-
-	// ping from somewhere
-	if( !com.strcmp( c, "ping" ))
+	else if( !com.strcmp( c, "ping" ))
 	{
+		// ping from somewhere
 		Netchan_OutOfBandPrint( NS_CLIENT, from, "ack" );
-		return;
 	}
-
-	// challenge from the server we are connecting to
-	if( !com.strcmp( c, "challenge" ))
+	else if( !com.strcmp( c, "challenge" ))
 	{
-		cls.challenge = com.atoi(Cmd_Argv(1));
+		// challenge from the server we are connecting to
+		cls.challenge = com.atoi( Cmd_Argv( 1 ));
 		CL_SendConnectPacket();
 		return;
 	}
-
-	// echo request from server
-	if( !com.strcmp( c, "echo" ))
+	else if( !com.strcmp( c, "echo" ))
 	{
+		// echo request from server
 		Netchan_OutOfBandPrint( NS_CLIENT, from, "%s", Cmd_Argv( 1 ));
-		return;
 	}
-
-	// a disconnect message from the server, which will happen if the server
-	// dropped the connection but it is still getting packets from us
-	if( !com.strcmp( c, "disconnect" ))
+	else if( !com.strcmp( c, "disconnect" ))
 	{
+		// a disconnect message from the server, which will happen if the server
+		// dropped the connection but it is still getting packets from us
 		CL_Disconnect();
-		return;
 	}
-	Msg( "Unknown command.\n" );
+	else MsgDev( D_ERROR, "bad connectionless packet from %s:\n%s\n", NET_AdrToString( from ), s );
 }
 
 /*

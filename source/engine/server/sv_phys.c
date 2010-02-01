@@ -1620,9 +1620,9 @@ void SV_Physics_Conveyor( edict_t *ent )
 	VectorScale( ent->v.movedir, ent->v.speed, v );
 	VectorScale( v, svgame.globals->frametime, move );
 
-	for( i = 0; i < sv_maxclients->integer; i++ )
+	for( i = 0; i < svgame.globals->maxClients; i++ )
 	{
-		player = EDICT_NUM(i) + 1;
+		player = EDICT_NUM( i + 1 );
 		if( player->free ) continue;
 		if( !player->v.groundentity ) continue;
 		if( player->v.groundentity != ent )

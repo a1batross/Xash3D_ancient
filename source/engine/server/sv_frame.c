@@ -67,8 +67,15 @@ void SV_UpdateEntityState( const edict_t *ent, bool baseline )
 
 	svgame.dllFuncs.pfnUpdateEntityState( &ent->pvServerData->s, (edict_t *)ent, baseline );
 
-	if( client ) client->edict->v.fixangle = false;
-
+	if( client )
+	{
+		client->edict->v.fixangle = false;
+		if( client->modelindex )
+		{
+			 // apply custom model if set
+			ent->pvServerData->s.modelindex = client->modelindex;
+		}
+	}
 	// always keep an actual
 	ent->pvServerData->s.number = ent->serialnumber;
 }
@@ -148,7 +155,7 @@ void SV_EmitPacketEntities( client_frame_t *from, client_frame_t *to, sizebuf_t 
 			// delta update from old position
 			// because the force parm is false, this will not result
 			// in any bytes being emited if the entity has not changed at all
-			MSG_WriteDeltaEntity( oldent, newent, msg, false, false );
+			MSG_WriteDeltaEntity( oldent, newent, msg, false, ( newent->number <= sv_maxclients->integer ));
 			oldindex++;
 			newindex++;
 			continue;

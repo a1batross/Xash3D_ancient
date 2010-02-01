@@ -201,6 +201,7 @@ const char *UI_ScrollList_Key( menuScrollList_s *sl, int key, bool down )
 		break;
 	case K_UPARROW:
 	case K_KP_UPARROW:
+	case K_MWHEELUP:
 		if( sl->curItem != 0 )
 		{
 			sl->curItem--;
@@ -209,6 +210,7 @@ const char *UI_ScrollList_Key( menuScrollList_s *sl, int key, bool down )
 		else sound = uiSoundBuzz;
 		break;
 	case K_DOWNARROW:
+	case K_MWHEELDOWN:
 		if( sl->curItem != sl->numItems - 1 )
 		{
 			sl->curItem++;

@@ -1503,6 +1503,7 @@ int AddToFullPack( edict_t *pHost, edict_t *pClient, edict_t *pEdict, int hostfl
 	case ED_MOVER:
 	case ED_NORMAL:
 	case ED_PORTAL:
+	case ED_CLIENT:
 	case ED_MONSTER:
 	case ED_AMBIENT:
 	case ED_BSPBRUSH:

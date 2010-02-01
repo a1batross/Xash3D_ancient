@@ -2029,7 +2029,7 @@ static bool R_StudioSetupModel( ref_entity_t *e, ref_model_t *mod )
 	float		curframe = 0.0f;
 	edict_t		*m_pEntity = ri.GetClientEdict( e->index );
 	studiovars_t	*pstudio = e->extradata;
-	int		i;
+	int		i, m_nPlayerIndex;
 
 	if( e->m_nCachedFrameCount == r_framecount2 )
 		return 1;
@@ -2050,7 +2050,10 @@ static bool R_StudioSetupModel( ref_entity_t *e, ref_model_t *mod )
 			e->gaitsequence = 0;
 		}
 
-		if( !m_pEntity || m_pEntity->serialnumber < 0 || m_pEntity->serialnumber > ri.GetMaxClients())
+		if( !m_pEntity ) return 0;
+		m_nPlayerIndex = m_pEntity->serialnumber - 1;
+
+		if( m_nPlayerIndex < 0 || m_nPlayerIndex >= ri.GetMaxClients())
 			return 0;	// weird client ?
 
 		if( m_pEntity->v.gaitsequence <= 0 )

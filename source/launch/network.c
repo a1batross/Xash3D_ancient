@@ -4,11 +4,11 @@
 //=======================================================================
 
 #include <winsock.h>
-#include <wsipx.h>
 #include "launch.h"
 #include "byteorder.h"
 
 #define PORT_ANY		-1
+#define PORT_CLIENT		27901
 #define PORT_SERVER		27910
 #define MAX_LOOPBACK	4
 #define MASK_LOOPBACK	(MAX_LOOPBACK - 1)
@@ -286,7 +286,7 @@ bool NET_CompareAdr( const netadr_t a, const netadr_t b )
 
 	if( a.type == NA_IP )
 	{
-		if((memcmp(a.ip, b.ip, 4 ) == 0) && a.port == b.port)
+		if(( memcmp( a.ip, b.ip, 4 ) == 0) && a.port == b.port )
 			return true;
 		return false;
 	}
@@ -522,7 +522,6 @@ static int NET_IPSocket( const char *netInterface, int port )
 		pCloseSocket( net_socket );
 		return 0;
 	}
-
 	return net_socket;
 }
 
@@ -540,7 +539,7 @@ static void NET_OpenIP( void )
 
 	if( !ip_sockets[NS_SERVER] )
 	{
-		port = Cvar_Get("ip_hostport", "0", CVAR_INIT, "network default port" )->integer;
+		port = Cvar_Get("ip_hostport", "0", CVAR_INIT, "network server port" )->integer;
 		if( !port ) port = Cvar_Get( "port", va( "%i", PORT_SERVER ), CVAR_INIT, "network default port" )->integer;
 
 		ip_sockets[NS_SERVER] = NET_IPSocket( net_ip->string, port );
@@ -556,7 +555,7 @@ static void NET_OpenIP( void )
 		port = Cvar_Get( "ip_clientport", "0", CVAR_INIT, "network client port" )->integer;
 		if( !port )
 		{
-			port = Cvar_Get( "clientport", va( "%i", Com_RandomLong( 22950, 27950 )), CVAR_INIT, "network client port" )->integer;
+			port = Cvar_Get( "clientport", va( "%i", PORT_CLIENT ), CVAR_INIT, "network client port" )->integer;
 			if( !port ) port = PORT_ANY;
 		}
 		ip_sockets[NS_CLIENT] = NET_IPSocket( net_ip->string, port );
@@ -674,7 +673,7 @@ void NET_Init( void )
 		return;
 	}
 
-	net_showpackets = Cvar_Get ("net_showpackets", "0", CVAR_TEMP, "show network packets" );
+	net_showpackets = Cvar_Get( "net_showpackets", "0", CVAR_TEMP, "show network packets" );
 	Cmd_AddCommand( "net_showip", NET_ShowIP_f,  "show hostname and ip's" );
 	Cmd_AddCommand( "net_restart", NET_Restart_f, "restart the network subsystem" );
 

@@ -1240,9 +1240,9 @@ edict_t* pfnFindClientInPVS( edict_t *pEdict )
 	edict_t	*pClient;
 	int	i;
 
-	for( i = 1; i < svgame.globals->maxClients; i++ )
+	for( i = 0; i < svgame.globals->maxClients; i++ )
 	{
-		pClient = EDICT_NUM( i );
+		pClient = EDICT_NUM( i + 1 );
 		if( pClient->free ) continue;
 		if( SV_EntitiesIn( DVIS_PVS, pEdict->v.origin, pClient->v.origin ))
 			return pEdict;
@@ -1262,9 +1262,9 @@ edict_t* pfnFindClientInPHS( edict_t *pEdict )
 	edict_t	*pClient;
 	int	i;
 
-	for( i = 1; i < svgame.globals->maxClients; i++ )
+	for( i = 0; i < svgame.globals->maxClients; i++ )
 	{
-		pClient = EDICT_NUM( i );
+		pClient = EDICT_NUM( i + 1 );
 		if( pClient->free ) continue;
 		if( SV_EntitiesIn( DVIS_PHS, pEdict->v.origin, pClient->v.origin ))
 			return pEdict;
@@ -1288,7 +1288,7 @@ edict_t* pfnEntitiesInPVS( edict_t *pplayer )
 	if( !pplayer || pplayer->free )
 		return chain;
 
-	for( i = svgame.globals->maxClients; i < svgame.globals->numEntities; i++ )
+	for( i = svgame.globals->maxClients + 1; i < svgame.globals->numEntities; i++ )
 	{
 		pEdict = EDICT_NUM( i );
 		if( pEdict->free ) continue;
@@ -1317,7 +1317,7 @@ edict_t* pfnEntitiesInPHS( edict_t *pplayer )
 	if( !pplayer || pplayer->free )
 		return chain;
 
-	for( i = svgame.globals->maxClients; i < svgame.globals->numEntities; i++ )
+	for( i = svgame.globals->maxClients + 1; i < svgame.globals->numEntities; i++ )
 	{
 		pEdict = EDICT_NUM( i );
 		if( pEdict->free ) continue;
@@ -1369,7 +1369,7 @@ void pfnRemoveEntity( edict_t* e )
 	}
 
 	// never free client or world entity
-	if( NUM_FOR_EDICT( e ) < svgame.globals->maxClients )
+	if(( NUM_FOR_EDICT( e ) - 1 ) < svgame.globals->maxClients )
 	{
 		MsgDev( D_ERROR, "SV_RemoveEntity: can't delete %s\n", (e == EDICT_NUM( 0 )) ? "world" : "client" );
 		return;
@@ -1436,7 +1436,7 @@ int pfnDropToFloor( edict_t* e )
 
 	if( !SV_IsValidEdict( e ))
 	{
-		MsgDev( D_WARN, "SV_DropToFloor: invalid entity %s\n", SV_ClassName( e ));
+		MsgDev( D_ERROR, "SV_DropToFloor: invalid entity %s\n", SV_ClassName( e ));
 		return false;
 	}
 
@@ -1457,7 +1457,7 @@ int pfnDropToFloor( edict_t* e )
 
 		if( trace.fStartSolid )
 		{
-			MsgDev( D_LOAD, "SV_DropToFloor: startsolid at %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
+			MsgDev( D_WARN, "SV_DropToFloor: startsolid at %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
 			SV_UnstickEntity( e );
 			SV_LinkEdict( e, true );
 			e->v.flags |= FL_ONGROUND;
@@ -1465,7 +1465,7 @@ int pfnDropToFloor( edict_t* e )
 		}
 		else if( trace.flFraction < 1.0f )
 		{
-			MsgDev( D_LOAD, "SV_DropToFloor: moved to %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
+			MsgDev( D_WARN, "SV_DropToFloor: moved to %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
 			VectorCopy( trace.vecEndPos, e->v.origin );
 			SV_UnstickEntity( e );
 			SV_LinkEdict( e, true );
@@ -1474,8 +1474,7 @@ int pfnDropToFloor( edict_t* e )
 			return true;
 		}
 
-		MsgDev( D_LOAD, "SV_DropToFloor: startsolid at %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
-		pfnRemoveEntity( e );
+		MsgDev( D_ERROR, "SV_DropToFloor: startsolid at %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
 		return false;
 	}
 	else
