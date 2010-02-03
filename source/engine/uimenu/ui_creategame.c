@@ -101,6 +101,8 @@ static void UI_CreateGame_GetMapsList( void )
 	// create new maplist if not exist
 	if( !Cmd_CheckMapsList() || (script = Com_OpenScript( "scripts/maps.lst", NULL, 0 )) == NULL )
 	{
+		uiCreateGame.done.generic.flags |= QMF_GRAYED;
+		uiCreateGame.mapsList.itemNames = uiCreateGame.mapsDescriptionPtr;
 		MsgDev( D_ERROR, "Cmd_GetMapsList: can't open maps.lst\n" );
 		return;
 	}

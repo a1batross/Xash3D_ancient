@@ -719,7 +719,7 @@ void CHudAmmo::UserCmd_Close( void )
 		gpActiveSel = NULL;
 		CL_PlaySound( "common/wpn_hudoff.wav", 1.0f );
 	}
-	else CLIENT_COMMAND( "escape" );
+	else CLIENT_COMMAND( "escape\n" );
 }
 
 

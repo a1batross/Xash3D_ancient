@@ -242,6 +242,7 @@ char *Cvar_Userinfo( void );
 char *Cvar_Serverinfo( void );
 void Cmd_WriteVariables( file_t *f );
 bool Cmd_CheckMapsList( void );
+void Cmd_ForwardToServer( void );
 
 typedef struct autocomplete_list_s
 {

@@ -196,7 +196,7 @@ void ClientDisconnect( edict_t *pEntity )
 // called by ClientKill and DeadThink
 void respawn(entvars_t* pev, BOOL fCopyCorpse)
 {
-	if (gpGlobals->coop || gpGlobals->deathmatch)
+	if ( gpGlobals->teamplay || gpGlobals->coop || gpGlobals->deathmatch )
 	{
 		if ( fCopyCorpse )
 		{
@@ -208,8 +208,9 @@ void respawn(entvars_t* pev, BOOL fCopyCorpse)
 		GetClassPtr( (CBasePlayer *)pev)->Spawn( );
 	}
 	else
-	{       // restart the entire server
-		SERVER_COMMAND("reload\n");
+	{       
+		// restart the entire server
+		SERVER_COMMAND( "reload\n" );
 	}
 }
 
@@ -263,6 +264,7 @@ void ClientPutInServer( edict_t *pEntity )
 
 	// Reset interpolation during first frame
 	pPlayer->pev->effects |= EF_NOINTERP;
+	pPlayer->m_flViewHeight = pPlayer->pev->view_ofs.z; // keep viewheight an actual
 
 	g_startSuit = FALSE;
 }

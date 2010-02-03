@@ -351,6 +351,7 @@ void SV_BroadcastCommand( char *fmt, ... );
 // sv_client.c
 //
 char *SV_StatusString( void );
+void SV_RefreshUserinfo( void );
 void SV_GetChallenge( netadr_t from );
 void SV_DirectConnect( netadr_t from );
 void SV_TogglePause( const char *msg );

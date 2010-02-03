@@ -96,7 +96,7 @@ static void UI_CustomGame_GetModList( void )
 	uiCustomGame.modList.itemNames = uiCustomGame.modsDescriptionPtr;
 
 	// see if the load button should be grayed
-	if( !com.stricmp( GI->gamefolder, uiCustomGame.modsDir[0] ))
+	if( !com.stricmp( GI->gamefolder, uiCustomGame.modsDir[uiCustomGame.modList.curItem] ))
 		uiCustomGame.load.generic.flags |= QMF_GRAYED;
 	if( com.strlen( uiCustomGame.modsWebSites[0] ) == 0 )
 		uiCustomGame.go2url.generic.flags |= QMF_GRAYED;

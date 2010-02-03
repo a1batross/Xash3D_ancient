@@ -321,6 +321,9 @@ void SV_DropClient( sv_client_t *drop )
 		svgame.dllFuncs.pfnSpectatorDisconnect( drop->edict );
 	else svgame.dllFuncs.pfnClientDisconnect( drop->edict );
 
+	SV_RefreshUserinfo(); // refresh userinfo on disconnect
+	drop->edict->pvServerData->s.ed_type = ED_STATIC;	// remove from server
+
 //	SV_FreeEdict( drop->edict );
 	if( drop->download ) drop->download = NULL;
 
@@ -582,6 +585,15 @@ void SV_FullClientUpdate( sv_client_t *cl, sizebuf_t *msg )
 	MSG_Clear( msg );
 }
 
+void SV_RefreshUserinfo( void )
+{
+	int		i;
+	sv_client_t	*cl;
+	
+	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
+		if( cl->state >= cs_connected && !(cl->edict && cl->edict->v.flags & FL_FAKECLIENT ))
+			cl->sendinfo = true;
+}
 /*
 ===========
 PutClientInServer
@@ -624,7 +636,7 @@ void SV_PutClientInServer( edict_t *ent )
 				const char *model = Info_ValueForKey( client->userinfo, "model" );
 
 				// apply custom playermodel
-				if( com.strlen( model ))
+				if( com.strlen( model ) && com.stricmp( model, "player" ))
 				{
 					const char *path = va( "models/player/%s/%s.mdl", model, model );
 					CM_RegisterModel( path, SV_ModelIndex( path )); // register model
@@ -635,12 +647,11 @@ void SV_PutClientInServer( edict_t *ent )
 				ent->v.netname = MAKE_STRING(Info_ValueForKey( client->userinfo, "name" ));
 			}
 			else ent->v.netname = MAKE_STRING( "player" );
+			ent->v.view_ofs[2] = GI->viewheight[0];
 	
 			// fisrt entering
 			svgame.dllFuncs.pfnClientPutInServer( ent );
 
-			ent->v.view_ofs[2] = GI->viewheight[0];
-			ent->v.viewangles[ROLL] = 0;	// cut off any camera rolling
 			ent->v.origin[2] -= GI->client_mins[2][2]; // FIXME: make sure off ground
 
 			SV_BaselineForEntity( ent );
@@ -735,7 +746,7 @@ void SV_New_f( sv_client_t *cl )
 	MSG_WriteString( &cl->netchan.message, STRING( EDICT_NUM( 0 )->v.message ));	// Map Message
 
 	// refresh userinfo on spawn
-	cl->sendinfo = true;
+	SV_RefreshUserinfo();
 
 	// game server
 	if( sv.state == ss_active )

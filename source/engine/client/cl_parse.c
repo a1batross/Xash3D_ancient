@@ -348,6 +348,7 @@ void CL_ParseServerData( sizebuf_t *msg )
 
 	// wipe the client_t struct
 	CL_ClearState();
+	UI_SetActiveMenu( UI_CLOSEMENU );
 	cls.state = ca_connected;
 
 	// parse protocol version number

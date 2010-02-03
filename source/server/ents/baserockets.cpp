@@ -593,7 +593,7 @@ CNukeExplode *CNukeExplode::Create ( Vector vecOrigin, CBaseEntity *pOwner )
 	pNuke->pev->origin = vecOrigin;
 	pNuke->Spawn();
 	pNuke->pev->classname = MAKE_STRING( "nuclear_explode" );
-	pNuke->pev->owner = pOwner->edict();
+	pNuke->pevOwner = pOwner->pev;
 
 	return pNuke;
 }
@@ -640,9 +640,6 @@ void CNukeExplode :: ExplodeThink( void )
 	if( pev->scale >= 8 && pev->scale < 8.2 ) // create second explode sprite
 		SFX_Explode( m_usExplodeSprite2, pev->oldorigin, 100, TE_EXPLFLAG_NOPARTICLES|TE_EXPLFLAG_NOSOUND );
 
-	entvars_t *pevOwner;
-	if( pev->owner ) pevOwner = VARS( pev->owner );
-	else pevOwner = NULL;
 	pev->owner = NULL; // can't traceline attack owner if this is set
 
 	::RadiusDamage( pev->origin, pev, pevOwner, pev->renderamt/2, pev->scale * 30, CLASS_NONE, DMG_BLAST|DMG_NUCLEAR );

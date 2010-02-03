@@ -2047,7 +2047,7 @@ static bool R_StudioSetupModel( ref_entity_t *e, ref_model_t *mod )
 		{
 			// prepare to draw dead player
 			m_pEntity = ri.GetClientEdict( e->renderamt );
-			e->gaitsequence = 0;
+			m_pEntity->v.gaitsequence = 0;
 		}
 
 		if( !m_pEntity ) return 0;

@@ -1305,7 +1305,7 @@ pfnClientCmd
 static void pfnClientCmd( const char *szCmdString )
 {
 	// client command executes immediately
-	Cmd_ExecuteString( szCmdString );
+	Cbuf_AddText( szCmdString );
 }
 
 /*
@@ -1488,8 +1488,8 @@ prints dirctly into console (can skip notify)
 static void pfnConsolePrint( const char *string )
 {
 	if( !string || !*string ) return;
-	if( *string == 1 ) Con_Print( string + 1 ); // show notify
-	else Con_Print( va( "[skipnotify]%s", string )); // skip notify
+	if( *string != 1 ) Con_Print( string ); // show notify
+	else Con_Print( va( "[skipnotify]%s", string + 1 )); // skip notify
 }
 
 /*

@@ -108,6 +108,35 @@ void CL_ForwardToServer_f( void )
 		MSG_Print( &cls.netchan.message, Cmd_Args());
 	}
 }
+/*
+===================
+Cmd_ForwardToServer
+
+adds the current command line as a clc_stringcmd to the client message.
+things like godmode, noclip, etc, are commands directed to the server,
+so when they are typed in at the console, they will need to be forwarded.
+===================
+*/
+void Cmd_ForwardToServer( void )
+{
+	char	*cmd;
+
+	cmd = Cmd_Argv( 0 );
+	if( cls.state <= ca_connected || *cmd == '-' || *cmd == '+' )
+	{
+		Msg( "Unknown command \"%s\"\n", cmd );
+		return;
+	}
+
+	MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
+	MSG_Print( &cls.netchan.message, cmd );
+
+	if( Cmd_Argc() > 1 )
+	{
+		MSG_Print( &cls.netchan.message, " " );
+		MSG_Print( &cls.netchan.message, Cmd_Args( ));
+	}
+}
 
 /*
 ==================
@@ -312,8 +341,6 @@ void CL_ClearState( void )
 
 	Cvar_SetValue( "scr_download", 0.0f );
 	Cvar_SetValue( "scr_loading", 0.0f );
-
-	UI_SetActiveMenu( UI_CLOSEMENU );
 }
 
 /*
@@ -352,6 +379,10 @@ void CL_Disconnect( void )
 	}
 
 	cls.state = ca_disconnected;
+
+	// back to menu if developer mode set to "player" or "mapper"
+	if( host.developer > 2 ) return;
+	UI_SetActiveMenu( UI_MAINMENU );
 }
 
 void CL_Disconnect_f( void )
@@ -911,6 +942,23 @@ void CL_Precache_f( void )
 	CL_RequestNextDownload();
 }
 
+/*
+=================
+CL_Escape_f
+
+Escape to menu from game
+=================
+*/
+void CL_Escape_f( void )
+{
+	if( cls.key_dest == key_menu )
+		return;
+
+	if( cls.state == ca_cinematic )
+		SCR_StopCinematic();
+	else UI_SetActiveMenu( UI_MAINMENU );
+	cls.key_dest = key_menu;
+}
 
 /*
 =================
@@ -964,6 +1012,7 @@ void CL_InitLocal( void )
 	Cmd_AddCommand ("movie", CL_PlayVideo_f, "playing a movie" );
 	Cmd_AddCommand ("stop", CL_Stop_f, "stop playing or recording a demo" );
 	Cmd_AddCommand ("info", NULL, "collect info about local servers with specified protocol" );
+	Cmd_AddCommand ("escape", CL_Escape_f, "escape from game to menu" );
 	
 	Cmd_AddCommand ("quit", CL_Quit_f, "quit from game" );
 	Cmd_AddCommand ("exit", CL_Quit_f, "quit from game" );

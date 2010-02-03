@@ -848,6 +848,17 @@ void S_StopSound_f( void )
 
 /*
 =================
+S_ClearFade_f
+=================
+*/
+void S_ClearFade_f( void )
+{
+	// clear any remaining soundfade
+	Mem_Set( &soundfade, 0, sizeof( soundfade ));
+}
+
+/*
+=================
 S_SoundInfo_f
 =================
 */
@@ -897,8 +908,9 @@ bool S_Init( void *hInst )
 	s_room_type = Cvar_Get( "room_type", "0", 0, "dsp room type" );
 
 	Cmd_AddCommand( "playsound", S_PlaySound_f, "playing a specified sound file" );
+	Cmd_AddCommand( "stopsound", S_StopSound_f, "stop all sounds" );
 	Cmd_AddCommand( "music", S_Music_f, "starting a background track" );
-	Cmd_AddCommand( "s_stop", S_StopSound_f, "stop all sounds" );
+	Cmd_AddCommand( "s_clearfade", S_ClearFade_f, "clear any sound fade" );
 	Cmd_AddCommand( "s_info", S_SoundInfo_f, "print sound system information" );
 	Cmd_AddCommand( "soundlist", S_SoundList_f, "display loaded sounds" );
 
@@ -945,6 +957,7 @@ void S_Shutdown( void )
 	Cmd_RemoveCommand( "music" );
 	Cmd_RemoveCommand( "s_stop" );
 	Cmd_RemoveCommand( "s_info" );
+	Cmd_RemoveCommand( "s_clearfade" );
 	Cmd_RemoveCommand( "soundlist" );
 
 	if( !al_state.initialized )

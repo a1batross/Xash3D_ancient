@@ -70,6 +70,10 @@ typedef struct dllfunction_s
 	gHUD.##y.UserCmd_##x( ); \
 }
 
+// Use this to set any co-ords in 640x480 space
+#define XRES(x)		((int)(float(x)  * ((float)ScreenWidth / 640.0f) + 0.5f))
+#define YRES(y)		((int)(float(y)  * ((float)ScreenHeight / 480.0f) + 0.5f))
+
 #define bound( min, num, max )	((num) >= (min) ? ((num) < (max) ? (num) : (max)) : (min))
 
 // ScreenHeight returns the virtual height of the screen, in pixels

@@ -588,10 +588,10 @@ void Cmd_ExecuteString( const char *text )
 	// check cvars
 	if( Cvar_Command()) return;
 
-	if( Sys.app_name == HOST_NORMAL )
+	if( Sys.app_name == HOST_NORMAL && Sys.CmdFwd )
 	{
 		// all unrecognized commands will be forwarded to a server
-		Cmd_ExecuteString( va( "cmd %s", text ));
+		Sys.CmdFwd();
 	}
 	else Msg( "Unknown command \"%s\"\n", text );
 }

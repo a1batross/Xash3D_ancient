@@ -63,6 +63,12 @@ void SV_UpdateEntityState( const edict_t *ent, bool baseline )
 			MSG_WriteAngle32( &sv.multicast, 0 );
 			MSG_DirectSend( MSG_ONE, vec3_origin, client->edict );
 		}
+
+		if( client->modelindex )
+		{
+			 // apply custom model if set
+			((edict_t *)ent)->v.modelindex = client->modelindex;
+		}
 	}
 
 	svgame.dllFuncs.pfnUpdateEntityState( &ent->pvServerData->s, (edict_t *)ent, baseline );
@@ -70,11 +76,6 @@ void SV_UpdateEntityState( const edict_t *ent, bool baseline )
 	if( client )
 	{
 		client->edict->v.fixangle = false;
-		if( client->modelindex )
-		{
-			 // apply custom model if set
-			ent->pvServerData->s.modelindex = client->modelindex;
-		}
 	}
 	// always keep an actual
 	ent->pvServerData->s.number = ent->serialnumber;

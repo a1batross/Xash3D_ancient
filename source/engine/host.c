@@ -553,7 +553,7 @@ int Host_ModifyTime( int msec )
 	{
 		// clients of remote servers do not want to clamp time, because
 		// it would skew their view of the server's time temporarily
-		clamp_time = 5000;
+		clamp_time = 200;
 	}
 
 	if( msec > clamp_time ) msec = clamp_time;
@@ -900,6 +900,7 @@ launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 	Host.Main = Host_Main;
 	Host.Free = Host_Free;
 	Host.CPrint = Host_Print;
+	Host.CmdForward = Cmd_ForwardToServer;
 
 	return &Host;
 }

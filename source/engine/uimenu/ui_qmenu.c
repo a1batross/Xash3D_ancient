@@ -1184,8 +1184,9 @@ const char *UI_Field_Key( menuField_s *f, int key, bool down )
 	}
 
 	// Next character
-	if (key == K_RIGHTARROW){
-		if (f->cursor < f->length)
+	if( key == K_RIGHTARROW )
+	{
+		if( f->cursor < f->length )
 			f->cursor++;
 		return 0;
 	}

@@ -70,6 +70,7 @@ public:
 	static CNukeExplode *Create ( Vector vecOrigin, CBaseEntity *pOwner );
 	short m_usExplodeSprite;
 	short m_usExplodeSprite2;
+	entvars_t *pevOwner; // keep pointer to rocket owner
 };
 
 class CWHRocket : public CBaseAnimating

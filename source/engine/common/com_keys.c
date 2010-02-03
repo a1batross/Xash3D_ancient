@@ -1097,11 +1097,7 @@ void Key_Event( int key, bool down, int time )
 		switch( cls.key_dest )
 		{
 		case key_game:
-			if( cls.state == ca_cinematic )
-				SCR_StopCinematic();
-			else UI_SetActiveMenu( UI_MAINMENU );
-			cls.key_dest = key_menu;
-			return;
+			break;	// handled in client.dll
 		case key_console:
 			if( cls.state == ca_active )
 			{
@@ -1124,7 +1120,9 @@ void Key_Event( int key, bool down, int time )
 
 	if( cls.key_dest == key_menu )
 	{
-		UI_KeyEvent( key, down );
+		// only non printable keys passed
+		if( key < 32 || key > 126 )
+			UI_KeyEvent( key, down );
 		return;
 	}
 
@@ -1209,9 +1207,14 @@ void CL_CharEvent( int key )
 	if( key == '`' || key == '~' ) return;
 
 	// distribute the key down event to the apropriate handler
-	if( cls.key_dest == key_console || cls.state == ca_disconnected )
+	if( cls.key_dest == key_console )
 	{
 		Field_CharEvent( &g_consoleField, key );
+	}
+	else if( cls.key_dest == key_menu )
+	{
+		if( key >= 32 && key <= 126 )
+			UI_KeyEvent( key, true );
 	}
 }
 

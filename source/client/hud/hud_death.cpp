@@ -87,7 +87,7 @@ int CHudDeathNotice :: Draw( float flTime )
 
 		// Draw the death notice
 
-		y = DEATHNOTICE_TOP + (20 * i);  //!!!
+		y = YRES( DEATHNOTICE_TOP ) + 2 + (20 * i);  //!!!
 
 		int id = (rgDeathNoticeList[i].iId == -1) ? m_HUD_d_skull : rgDeathNoticeList[i].iId;
 		x = ScreenWidth - ConsoleStringLen(rgDeathNoticeList[i].szVictim) - (gHUD.GetSpriteRect(id).right - gHUD.GetSpriteRect(id).left);
@@ -112,8 +112,11 @@ int CHudDeathNotice :: Draw( float flTime )
 
 		x += (gHUD.GetSpriteRect( id ).right - gHUD.GetSpriteRect( id ).left );
 
-		// Draw victims name
-		x = DrawConsoleString( x, y, rgDeathNoticeList[i].szVictim );
+		// Draw victims name (if it was a player that was killed)
+		if ( rgDeathNoticeList[i].iNonPlayerKill == FALSE )
+		{
+			x = DrawConsoleString( x, y, rgDeathNoticeList[i].szVictim );
+		}
 	}
 	return 1;
 }
@@ -152,6 +155,9 @@ int CHudDeathNotice :: MsgFunc_DeathMsg( const char *pszName, int iSize, void *p
 	char *victim_name = gHUD.m_Scoreboard.m_PlayerInfoList[ victim ].name;
 	if( !killer_name ) killer_name = "";
 	if( !victim_name ) victim_name = "";
+
+	strncpy( rgDeathNoticeList[i].szKiller, killer_name, MAX_PLAYER_NAME_LENGTH );
+	strncpy( rgDeathNoticeList[i].szVictim, victim_name, MAX_PLAYER_NAME_LENGTH );
 
 	// Is it a non-player object kill?
 	if ( ((char)victim) == -1 )

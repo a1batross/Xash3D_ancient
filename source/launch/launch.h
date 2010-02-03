@@ -81,6 +81,7 @@ typedef struct system_s
 	void ( *Main ) ( void ); // host frame
 	void ( *Free ) ( void ); // close host
 	void (*CPrint)( const char *msg ); // console print
+	void (*CmdFwd)( void ); // forward to server
 } system_t;
 
 typedef struct timer_s

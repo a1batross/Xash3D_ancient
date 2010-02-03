@@ -823,6 +823,17 @@ void S_StopSound_f( void )
 
 /*
 =================
+S_ClearFade_f
+=================
+*/
+void S_ClearFade_f( void )
+{
+	// clear any remaining soundfade
+	Mem_Set( &soundfade, 0, sizeof( soundfade ));
+}
+
+/*
+=================
 S_SoundInfo_f
 =================
 */
@@ -869,6 +880,7 @@ bool S_Init( void *hInst )
 	Cmd_AddCommand( "playsound", S_Play_f, "playing a specified sound file" );
 	Cmd_AddCommand( "stopsound", S_StopSound_f, "stop all sounds" );
 	Cmd_AddCommand( "soundlist", S_SoundList_f, "display loaded sounds" );
+	Cmd_AddCommand( "s_clearfade", S_ClearFade_f, "clear any sound fade" );
 	Cmd_AddCommand( "s_info", S_SoundInfo_f, "print sound system information" );
 
 	if( !host_sound->integer )
@@ -903,6 +915,7 @@ void S_Shutdown( void )
 	Cmd_RemoveCommand( "playsound" );
 	Cmd_RemoveCommand( "stopsound" );
 	Cmd_RemoveCommand( "soundlist" );
+	Cmd_RemoveCommand( "s_clearfade" );
 	Cmd_RemoveCommand( "s_info" );
 
 	if( !sound_started ) return;

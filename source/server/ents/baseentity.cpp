@@ -376,26 +376,25 @@ void CBaseEntity::FireBullets(ULONG cShots, Vector vecSrc, Vector vecDirShooting
 		// get circular gaussian spread
 		float x, y, z;
 		do {
-			x = RANDOM_FLOAT(-0.5,0.5) + RANDOM_FLOAT(-0.5,0.5);
-			y = RANDOM_FLOAT(-0.5,0.5) + RANDOM_FLOAT(-0.5,0.5);
+			x = RANDOM_FLOAT( -0.5f, 0.5f ) + RANDOM_FLOAT( -0.5f, 0.5f );
+			y = RANDOM_FLOAT( -0.5f, 0.5f ) + RANDOM_FLOAT( -0.5f, 0.5f );
 			z = x*x+y*y;
-		} while (z > 1);
+		} while ( z > 1 );
 
-		Vector vecDir = vecDirShooting +
-						x * vecSpread.x * vecRight +
-						y * vecSpread.y * vecUp;
+		Vector vecDir = vecDirShooting + x * vecSpread.x * vecRight + y * vecSpread.y * vecUp;
 		Vector vecEnd;
 
 		vecEnd = vecSrc + vecDir * flDistance;
-		UTIL_TraceLine(vecSrc, vecEnd, dont_ignore_monsters, ENT(pev)/*pentIgnore*/, &tr);
+		UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, ENT( pev )/*pentIgnore*/, &tr );
 
 		tracer = 0;
-		if (iTracerFreq != 0 && (tracerCount++ % iTracerFreq) == 0)
+		if( iTracerFreq != 0 && (tracerCount++ % iTracerFreq) == 0 )
 		{
 			Vector vecTracerSrc;
 
 			if ( IsPlayer() )
-			{// adjust tracer position for player
+			{
+				// adjust tracer position for player
 				vecTracerSrc = vecSrc + Vector ( 0 , 0 , -4 ) + gpGlobals->v_right * 2 + gpGlobals->v_forward * 16;
 			}
 			else
@@ -428,9 +427,9 @@ void CBaseEntity::FireBullets(ULONG cShots, Vector vecSrc, Vector vecDirShooting
 			}
 		}
 		// do damage, paint decals
-		if (tr.flFraction != 1.0)
+		if ( tr.flFraction != 1.0 )
 		{
-			CBaseEntity *pEntity = CBaseEntity::Instance(tr.pHit);
+			CBaseEntity *pEntity = CBaseEntity::Instance( tr.pHit );
 
 			if ( iDamage )
 			{

@@ -1264,21 +1264,21 @@ void CBasePlayer::PlayerDeathThink(void)
 		WRITE_BYTE( 0 );
 	MESSAGE_END();
 
-	if (pev->modelindex && (!m_fSequenceFinished) && (pev->deadflag == DEAD_DYING))
+	if( pev->modelindex && (!m_fSequenceFinished) && ( pev->deadflag == DEAD_DYING ))
 	{
 		StudioFrameAdvance( );
 
-		m_iRespawnFrames++;				// Note, these aren't necessarily real "frames", so behavior is dependent on # of client movement commands
+		m_iRespawnFrames++;	// Note, these aren't necessarily real "frames", so behavior is dependent on # of client movement commands
 		if ( m_iRespawnFrames < 120 )   // Animations should be no longer than this
 			return;
 	}
 
 	// once we're done animating our death and we're on the ground, we want to set movetype to None so our dead body won't do collisions and stuff anymore
 	// this prevents a bug where the dead body would go to a player's head if he walked over it while the dead player was clicking their button to respawn
-	if ( pev->movetype != MOVETYPE_NONE && FBitSet(pev->flags, FL_ONGROUND) )
+	if ( pev->movetype != MOVETYPE_NONE && FBitSet( pev->flags, FL_ONGROUND ))
 		pev->movetype = MOVETYPE_NONE;
 
-	if (pev->deadflag == DEAD_DYING)
+	if ( pev->deadflag == DEAD_DYING )
 		pev->deadflag = DEAD_DEAD;
 
 	StopAnimation();
@@ -1322,7 +1322,9 @@ void CBasePlayer::PlayerDeathThink(void)
 
 	//ALERT(at_console, "Respawn\n");
 
-	respawn(pev, !(m_afPhysicsFlags & PFLAG_OBSERVER) );// don't copy a corpse if we're in deathcam.
+	respawn(pev, !(m_afPhysicsFlags & PFLAG_OBSERVER) );	// don't copy a corpse if we're in deathcam.
+	pev->view_ofs.z = m_flViewHeight;			// restore viewheight on respawn
+	
 	DontThink();
 }
 
@@ -2724,6 +2726,8 @@ void CBasePlayer::Spawn( void )
 	pev->renderfx	= 0;
 	pev->rendercolor	= g_vecZero;
 	pev->mass		= 90;	// lbs
+	pev->viewangles.z	= 0;	// cut off any camera rolling
+	pev->view_ofs.z;
 	m_bitsHUDDamage	= -1;
 	m_bitsDamageType	= 0;
 	m_afPhysicsFlags	= 0;
@@ -2789,6 +2793,9 @@ void CBasePlayer::Spawn( void )
 		ALERT ( at_console, "Couldn't alloc player sound slot!\n" );
 	}
 
+	// remove any sound fading
+	g_engfuncs.pfnFadeClientVolume( edict(), 0, 0, 0, 0 );
+
 	m_fNoPlayerSound = FALSE;// normal sound behavior.
 
 	m_pLastItem = NULL;
@@ -2848,7 +2855,7 @@ void CBasePlayer :: Precache( void )
 	if ( gInitHUD ) m_fInitHUD = TRUE;
 	rainNeedsUpdate = 1;
 
-	//clear fade effects
+	// clear fade effects
 	if( IsMultiplayer( ))
 	{
 		m_FadeColor = Vector( 255, 255, 255 );

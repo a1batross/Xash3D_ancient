@@ -595,7 +595,6 @@ void CBaseBrush::Die( void )
 	pev->solid = SOLID_NOT;
 	UTIL_FireTargets( pev->target, NULL, NULL, USE_TOGGLE );
 	pev->target = 0;
-	Msg("Fire!\n");
 	SetThink( Remove );
 	SetNextThink( 0.1 );
 	

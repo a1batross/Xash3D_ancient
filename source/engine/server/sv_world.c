@@ -361,6 +361,16 @@ trace_t SV_ClipMoveToEntity( edict_t *ent, const vec3_t start, vec3_t mins, vec3
 	// did we clip the move?
 	if( trace.flFraction < 1.0f || trace.fStartSolid )
 		trace.pHit = ent;
+
+	if( !(flags & FTRACE_SIMPLEBOX) && CM_GetModelType( ent->v.modelindex ) == mod_studio )
+	{
+		if( VectorIsNull( mins ) && VectorIsNull( maxs ) && trace.iHitgroup == -1 )
+		{
+			trace.flFraction = 1.0f;
+			trace.pHit = NULL;	// clear entity when hitbox not intersected
+		}
+	}
+
 	return trace;
 }
 
@@ -418,7 +428,7 @@ static void SV_ClipToLinks( areanode_t *node, moveclip_t *clip )
 		if( touch == clip->passedict )
 			continue;
 		if( touch->v.solid == SOLID_TRIGGER )
-			Host_Error( "trigger in clipping list\n" );
+			Host_Error( "Server: trigger in clipping list\n" );
 
 		if( clip->type == MOVE_NOMONSTERS && touch->v.solid != SOLID_BSP )
 			continue;

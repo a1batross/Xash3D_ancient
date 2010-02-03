@@ -169,6 +169,8 @@ int CHudStatusBar :: Draw( float fTime )
 		m_bReparseString = FALSE;
 	}
 
+	int Y_START = ScreenHeight - YRES(32 + 4);
+
 	// Draw the status bar lines
 	for ( int i = 0; i < MAX_STATUSBAR_LINES; i++ )
 	{

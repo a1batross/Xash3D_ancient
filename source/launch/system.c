@@ -426,6 +426,7 @@ void Sys_CreateInstance( void )
 		Sys.Main = Host->Main;
 		Sys.Free = Host->Free;
 		Sys.CPrint = Host->CPrint;
+		Sys.CmdFwd = Host->CmdForward;
 		if( baserc_dll.link )
 		{
 			CreateBaserc = (void *)baserc_dll.main;

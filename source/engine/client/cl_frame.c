@@ -59,14 +59,10 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 	if( state->number == MAX_EDICTS )
 	{
 		Com_Assert( newent );
-		CL_FreeEdict( ent );
+		if( !ent->free ) CL_FreeEdict( ent );
 		return; // entity was delta removed
 	}
-/*
-	if( newent ) Msg( "Create entity %i\n", newnum );
-	else if( !unchanged ) Msg( "Update entity %i\n", newnum );
-	else Msg( "Unchanged entity %i\n", newnum );
-*/
+
 	cl.parse_entities++;
 	frame->num_entities++;
 

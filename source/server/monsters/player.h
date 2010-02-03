@@ -153,6 +153,7 @@ public:
 	float		m_fDeadTime;	// the time at which the player died  (used in PlayerDeathThink())
 	float		m_fAirFinished;	// moved here from progdefs.h
 	float		m_fPainFinished;	// moved here from progdefs.h
+	float		m_flViewHeight;	// keep value from view_ofs.z that engine sets it when player first entering in multiplayer
 
 	BOOL			m_fNoPlayerSound;	// a debugging feature. Player makes no sound if this is true. 
 	BOOL			m_fLongJump; // does this player have the longjump module?
