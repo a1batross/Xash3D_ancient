@@ -220,6 +220,7 @@ edict_t *CL_GetLocalPlayer( void );
 int CL_GetMaxClients( void );
 byte CL_GetMouthOpen( int entityIndex );
 bool SV_GetComment( const char *savename, char *comment );
+void SV_LoadProgs( const char *name );
 void SV_ForceMod( void );
 void CL_MouseEvent( int mx, int my );
 void CL_AddLoopingSounds( void );

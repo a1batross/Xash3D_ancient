@@ -956,7 +956,9 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 
 		lastorg = pparams->simorg;
 	}
-	V_InterpolatePos( pparams ); // smooth predicting moving in multiplayer
+
+//	probably not needs in Xash3D
+//	V_InterpolatePos( pparams ); // smooth predicting moving in multiplayer
 
 	lasttime = pparams->time;
 	v_origin = pparams->vieworg;	

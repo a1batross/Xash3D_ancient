@@ -36,6 +36,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ID_PASSWORD		9
 #define ID_DEDICATED	10
 
+#define ID_MSGBOX	 	11
+#define ID_MSGTEXT	 	12
+#define ID_YES	 	13
+#define ID_NO	 	14
+
 #define MAPNAME_LENGTH	20
 #define TITLE_LENGTH	20+MAPNAME_LENGTH
 
@@ -58,6 +63,13 @@ typedef struct
 	menuField_s	password;
 	menuCheckBox_s	dedicatedServer;
 
+	// newgame prompt dialog
+	menuAction_s	msgBox;
+	menuAction_s	dlgMessage1;
+	menuAction_s	dlgMessage2;
+	menuAction_s	yes;
+	menuAction_s	no;
+
 	menuScrollList_s	mapsList;
 	menuAction_s	hintMessage;
 	char		hintText[MAX_SYSPATH];
@@ -73,7 +85,7 @@ UI_CreateGame_Begin
 static void UI_CreateGame_Begin( void )
 {
 	if( Host_ServerState())
-		Cbuf_ExecuteText( EXEC_APPEND, "disconnect\n" );
+		Cbuf_ExecuteText( EXEC_NOW, "killserver\n" );
 
 	Cvar_SetValue( "deathmatch", 1.0f );	// FIXME
 	Cvar_SetValue( "sv_maxclients", com.atoi( uiCreateGame.maxClients.buffer ));
@@ -85,6 +97,45 @@ static void UI_CreateGame_Begin( void )
 	if( uiCreateGame.dedicatedServer.enabled )
 		Sys_NewInstance( va("#%s", GI->gamefolder ), "Starting dedicated server...\n" );
 	else Cbuf_ExecuteText( EXEC_APPEND, "exec server.rc\n" );
+}
+
+static void UI_PromptDialog( void )
+{
+	if( !Host_ServerState())
+	{
+		UI_CreateGame_Begin();
+		return;
+	}
+	
+	// toggle main menu between active\inactive
+	// show\hide quit dialog
+	uiCreateGame.advOptions.generic.flags ^= QMF_INACTIVE; 
+	uiCreateGame.done.generic.flags ^= QMF_INACTIVE;
+	uiCreateGame.cancel.generic.flags ^= QMF_INACTIVE;
+	uiCreateGame.maxClients.generic.flags ^= QMF_INACTIVE;
+	uiCreateGame.hostName.generic.flags ^= QMF_INACTIVE;
+	uiCreateGame.password.generic.flags ^= QMF_INACTIVE;
+	uiCreateGame.dedicatedServer.generic.flags ^= QMF_INACTIVE;
+	uiCreateGame.mapsList.generic.flags ^= QMF_INACTIVE;
+
+	uiCreateGame.msgBox.generic.flags ^= QMF_HIDDEN;
+	uiCreateGame.dlgMessage1.generic.flags ^= QMF_HIDDEN;
+	uiCreateGame.dlgMessage2.generic.flags ^= QMF_HIDDEN;
+	uiCreateGame.no.generic.flags ^= QMF_HIDDEN;
+	uiCreateGame.yes.generic.flags ^= QMF_HIDDEN;
+
+}
+
+/*
+=================
+UI_MsgBox_Ownerdraw
+=================
+*/
+static void UI_MsgBox_Ownerdraw( void *self )
+{
+	menuCommon_s	*item = (menuCommon_s *)self;
+
+	UI_FillRect( item->x, item->y, item->width, item->height, uiPromptBgColor );
 }
 
 /*
@@ -152,10 +203,16 @@ static void UI_CreateGame_Callback( void *self, int event )
 		// UNDONE: not implemented
 		break;
 	case ID_DONE:
-		UI_CreateGame_Begin();
+		UI_PromptDialog();
 		break;
 	case ID_CANCEL:
 		UI_PopMenu();
+		break;
+	case ID_YES:
+		UI_CreateGame_Begin();
+		break;
+	case ID_NO:
+		UI_PromptDialog();
 		break;
 	}
 }
@@ -281,7 +338,47 @@ static void UI_CreateGame_Init( void )
 	uiCreateGame.password.generic.callback = UI_CreateGame_Callback;
 	uiCreateGame.password.maxLenght = 16;
 
+	uiCreateGame.msgBox.generic.id = ID_MSGBOX;
+	uiCreateGame.msgBox.generic.type = QMTYPE_ACTION;
+	uiCreateGame.msgBox.generic.flags = QMF_INACTIVE|QMF_HIDDEN;
+	uiCreateGame.msgBox.generic.ownerdraw = UI_MsgBox_Ownerdraw; // just a fill rectangle
+	uiCreateGame.msgBox.generic.x = 192;
+	uiCreateGame.msgBox.generic.y = 256;
+	uiCreateGame.msgBox.generic.width = 640;
+	uiCreateGame.msgBox.generic.height = 256;
+
+	uiCreateGame.dlgMessage1.generic.id = ID_MSGTEXT;
+	uiCreateGame.dlgMessage1.generic.type = QMTYPE_ACTION;
+	uiCreateGame.dlgMessage1.generic.flags = QMF_INACTIVE|QMF_HIDDEN;
+	uiCreateGame.dlgMessage1.generic.name = "Starting a new game will exit";
+	uiCreateGame.dlgMessage1.generic.x = 248;
+	uiCreateGame.dlgMessage1.generic.y = 280;
+
+	uiCreateGame.dlgMessage2.generic.id = ID_MSGTEXT;
+	uiCreateGame.dlgMessage2.generic.type = QMTYPE_ACTION;
+	uiCreateGame.dlgMessage2.generic.flags = QMF_INACTIVE|QMF_HIDDEN;
+	uiCreateGame.dlgMessage2.generic.name = "any current game, OK to exit?";
+	uiCreateGame.dlgMessage2.generic.x = 248;
+	uiCreateGame.dlgMessage2.generic.y = 310;
+
+	uiCreateGame.yes.generic.id = ID_YES;
+	uiCreateGame.yes.generic.type = QMTYPE_ACTION;
+	uiCreateGame.yes.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_HIDDEN;
+	uiCreateGame.yes.generic.name = "Ok";
+	uiCreateGame.yes.generic.x = 380;
+	uiCreateGame.yes.generic.y = 460;
+	uiCreateGame.yes.generic.callback = UI_CreateGame_Callback;
+
+	uiCreateGame.no.generic.id = ID_NO;
+	uiCreateGame.no.generic.type = QMTYPE_ACTION;
+	uiCreateGame.no.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_HIDDEN;
+	uiCreateGame.no.generic.name = "Cancel";
+	uiCreateGame.no.generic.x = 530;
+	uiCreateGame.no.generic.y = 460;
+	uiCreateGame.no.generic.callback = UI_CreateGame_Callback;
+
 	UI_CreateGame_GetMapsList();
+	if( !Host_ServerState()) SV_LoadProgs( "server" ); // force to get user mp_variables
 
 	UI_AddItem( &uiCreateGame.menu, (void *)&uiCreateGame.background );
 	UI_AddItem( &uiCreateGame.menu, (void *)&uiCreateGame.banner );
@@ -294,6 +391,11 @@ static void UI_CreateGame_Init( void )
 	UI_AddItem( &uiCreateGame.menu, (void *)&uiCreateGame.dedicatedServer );
 	UI_AddItem( &uiCreateGame.menu, (void *)&uiCreateGame.hintMessage );
 	UI_AddItem( &uiCreateGame.menu, (void *)&uiCreateGame.mapsList );
+	UI_AddItem( &uiCreateGame.menu, (void *)&uiCreateGame.msgBox );
+	UI_AddItem( &uiCreateGame.menu, (void *)&uiCreateGame.dlgMessage1 );
+	UI_AddItem( &uiCreateGame.menu, (void *)&uiCreateGame.dlgMessage2 );
+	UI_AddItem( &uiCreateGame.menu, (void *)&uiCreateGame.no );
+	UI_AddItem( &uiCreateGame.menu, (void *)&uiCreateGame.yes );
 }
 
 /*
