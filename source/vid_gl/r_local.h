@@ -375,6 +375,7 @@ extern cvar_t *r_height;
 extern cvar_t *r_flares;
 extern cvar_t *r_flaresize;
 extern cvar_t *r_flarefade;
+extern cvar_t *r_spriteflares;
 
 extern cvar_t *r_dynamiclight;
 extern cvar_t *r_coronascale;

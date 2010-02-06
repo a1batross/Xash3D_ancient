@@ -20,7 +20,7 @@
 //	Grenade code
 //
 //===========================
-void CGrenade::Explode( TraceResult *pTrace, int bitsDamageType )
+void CGrenade::Explode( Vector vecPos, int bitsDamageType, int contents )
 {
 	float	flRndSound;// sound randomizer
 
@@ -28,14 +28,18 @@ void CGrenade::Explode( TraceResult *pTrace, int bitsDamageType )
 	pev->solid = SOLID_NOT;// intangible
 	pev->takedamage = DAMAGE_NO;
 
-	UTIL_Explode( pTrace->vecEndPos, pev->owner, pev->impulse, pev->classname );
-
-	flRndSound = RANDOM_FLOAT( 0 , 1 );
-	switch ( RANDOM_LONG( 0, 2 ) )
+	if( contents != CONTENTS_SKY )
 	{
-		case 0:	EMIT_SOUND(ENT(pev), CHAN_VOICE, "weapons/debris1.wav", 0.55, ATTN_NORM);	break;
-		case 1:	EMIT_SOUND(ENT(pev), CHAN_VOICE, "weapons/debris2.wav", 0.55, ATTN_NORM);	break;
-		case 2:	EMIT_SOUND(ENT(pev), CHAN_VOICE, "weapons/debris3.wav", 0.55, ATTN_NORM);	break;
+		// silent remove in sky
+		UTIL_Explode( vecPos, pev->owner, pev->impulse, pev->classname );
+
+		flRndSound = RANDOM_FLOAT( 0 , 1 );
+		switch ( RANDOM_LONG( 0, 2 ))
+		{
+		case 0: EMIT_SOUND( ENT( pev ), CHAN_VOICE, "weapons/debris1.wav", 0.55, ATTN_NORM ); break;
+		case 1: EMIT_SOUND( ENT( pev ), CHAN_VOICE, "weapons/debris2.wav", 0.55, ATTN_NORM ); break;
+		case 2: EMIT_SOUND( ENT( pev ), CHAN_VOICE, "weapons/debris3.wav", 0.55, ATTN_NORM ); break;
+		}
 	}
 
 	pev->effects |= EF_NODRAW;
@@ -66,26 +70,20 @@ void CGrenade::PreDetonate( void )
 
 void CGrenade::Detonate( void )
 {
-	TraceResult tr;
-	Vector		vecSpot;// trace starts here!
+	Vector	vecPos = pev->origin - pev->velocity.Normalize() * 32; // set expolsion pos
+	int	contents = UTIL_PointContents( pev->origin + pev->velocity.Normalize() * 8 );
 
-	vecSpot = pev->origin + Vector ( 0 , 0 , 8 );
-	UTIL_TraceLine ( vecSpot, vecSpot + Vector ( 0, 0, -40 ),  ignore_monsters, ENT(pev), & tr);
-
-	Explode( &tr, DMG_BLAST );
+	Explode( vecPos, DMG_BLAST, contents );
 }
 
 void CGrenade::ExplodeTouch( CBaseEntity *pOther )
 {
-	TraceResult tr;
-	Vector		vecSpot;// trace starts here!
-
 	pev->enemy = pOther->edict();
 
-	vecSpot = pev->origin - pev->velocity.Normalize() * 32;
-	UTIL_TraceLine( vecSpot, vecSpot + pev->velocity.Normalize() * 64, ignore_monsters, ENT(pev), &tr );
-          
-	Explode( &tr, DMG_BLAST );
+	Vector	vecPos = pev->origin - pev->velocity.Normalize() * 32; // set expolsion pos
+	int	contents = UTIL_PointContents( pev->origin + pev->velocity.Normalize() * 8 );
+
+	Explode( vecPos, DMG_BLAST, contents );
 }
 
 void CGrenade::DangerSoundThink( void )
@@ -176,7 +174,7 @@ void CGrenade::SlideTouch( CBaseEntity *pOther )
 		// add a bit of static friction
 		pev->velocity = pev->velocity * 0.95;
 
-		if (pev->velocity.x != 0 || pev->velocity.y != 0)
+		if( pev->velocity.x != 0 || pev->velocity.y != 0 )
 		{
 			// maintain sliding sound
 		}
@@ -186,17 +184,17 @@ void CGrenade::SlideTouch( CBaseEntity *pOther )
 
 void CGrenade :: BounceSound( void )
 {
-	switch ( RANDOM_LONG( 0, 2 ) )
+	switch( RANDOM_LONG( 0, 2 ))
 	{
-	case 0:	EMIT_SOUND(ENT(pev), CHAN_VOICE, "weapons/grenade/hit1.wav", 0.25, ATTN_NORM);	break;
-	case 1:	EMIT_SOUND(ENT(pev), CHAN_VOICE, "weapons/grenade/hit2.wav", 0.25, ATTN_NORM);	break;
-	case 2:	EMIT_SOUND(ENT(pev), CHAN_VOICE, "weapons/grenade/hit3.wav", 0.25, ATTN_NORM);	break;
+	case 0: EMIT_SOUND( ENT( pev ), CHAN_VOICE, "weapons/grenade/hit1.wav", 0.25, ATTN_NORM ); break;
+	case 1: EMIT_SOUND( ENT( pev ), CHAN_VOICE, "weapons/grenade/hit2.wav", 0.25, ATTN_NORM ); break;
+	case 2: EMIT_SOUND( ENT( pev ), CHAN_VOICE, "weapons/grenade/hit3.wav", 0.25, ATTN_NORM ); break;
 	}
 }
 
 void CGrenade :: TumbleThink( void )
 {
-	if (!IsInWorld())
+	if( !IsInWorld( ))
 	{
 		UTIL_Remove( this );
 		return;
@@ -205,7 +203,7 @@ void CGrenade :: TumbleThink( void )
 	StudioFrameAdvance( );
 	SetNextThink( 0.1 );
 
-	if (pev->dmgtime - 1 < gpGlobals->time)
+	if ( pev->dmgtime - 1 < gpGlobals->time )
 	{
 		CSoundEnt::InsertSound ( bits_SOUND_DANGER, pev->origin + pev->velocity * (pev->dmgtime - gpGlobals->time), 400, 0.1 );
 	}
@@ -355,7 +353,7 @@ void CRpgRocket :: Spawn( void )
 	pev->classname = MAKE_STRING( "rpg_rocket" );
 
 	SetThink( IgniteThink );
-	SetTouch( ExplodeTouch );
+	SetTouch( RocketTouch );
 
 	pev->angles.x -= 30;
 	UTIL_MakeVectors( pev->angles );
@@ -378,16 +376,11 @@ void CRpgRocket :: RocketTouch ( CBaseEntity *pOther )
 
 void CRpgRocket::Detonate( void )
 {
-	TraceResult tr;
-	Vector		vecSpot;// trace starts here!
 	CBaseEntity *pPlayer = CBaseEntity::Instance(pev->owner);
 	if ( m_pLauncher ) m_pLauncher->m_cActiveRocket--;
 	STOP_SOUND( edict(), CHAN_VOICE, "weapons/rpg/rocket1.wav" );
-	vecSpot = pev->origin + Vector ( 0 , 0 , 8 );
-	UTIL_TraceLine ( vecSpot, vecSpot + Vector ( 0, 0, -40 ),  ignore_monsters, ENT(pev), & tr);
 
-	ALERT( at_console, "Detonate()\n" );
-	Explode( &tr, DMG_BLAST );
+	CGrenade :: Detonate();
 }
 
 void CRpgRocket :: Precache( void )
@@ -793,10 +786,11 @@ void CWHRocket::CalculateVelocity ( void )
           }
 	else
 	{
-		pev->speed += 5;//accelerate rocket
+		pev->speed += 5; // accelerate rocket
 		if( pev->button ) m_pPlayer->m_iWarHUD = 1;
 	}
-	if(pev->speed > WARHEAD_SPEED)pev->velocity = pev->velocity.Normalize() * WARHEAD_SPEED;
+	if( pev->speed > WARHEAD_SPEED )
+		pev->velocity = pev->velocity.Normalize() * WARHEAD_SPEED;
 }
 
 int CWHRocket::TakeDamage( entvars_t* pevInflictor, entvars_t* pevAttacker, float flDamage, int bitsDamageType )
@@ -810,8 +804,13 @@ void CWHRocket :: NukeTouch ( CBaseEntity *pOther )
 {
 	pev->enemy = pOther->edict(); //save enemy
 
+	Vector vecAngles( pev->angles );
+	vecAngles.x = -vecAngles.x;
+
+	UTIL_MakeVectors( vecAngles );
+
 	// check for sky
-	if( UTIL_PointContents( pev->origin ) == CONTENTS_SKY )
+	if( UTIL_PointContents( pev->origin + gpGlobals->v_forward * 32 ) == CONTENTS_SKY )
 		Detonate( FALSE ); // silent remove in sky
 	else Detonate();
 	
@@ -820,23 +819,24 @@ void CWHRocket :: NukeTouch ( CBaseEntity *pOther )
 
 void CWHRocket :: Detonate ( bool explode )
 {
-	//NOTE: Player can controlled one rocket at moment
-	//but non controlled rocket don't reset this indicator
-	if(pev->button) m_pPlayer->m_iWarHUD = 3;//make static noise
+	// NOTE: Player can controlled one rocket at moment
+	// but non controlled rocket don't reset this indicator
+	if( pev->button ) m_pPlayer->m_iWarHUD = 3; // make static noise
 
-	//launcher callback
+	// launcher callback
 	if( m_pLauncher ) m_pLauncher->m_cActiveRocket--;
 
 	pev->takedamage = DAMAGE_NO;
 	pev->velocity = g_vecZero;
 	pev->solid = SOLID_NOT;
 	pev->effects |= EF_NODRAW;
-	pev->model = iStringNull;//invisible
+	pev->model = iStringNull; // invisible
 
 	STOP_SOUND( edict(), CHAN_VOICE, "weapons/warhead/whfly.wav" );//stop flying sound
 
-	if(explode)//make nuclear explosion if needed
+	if( explode ) 
 	{
+		// make nuclear explosion if needed
 		CNukeExplode::Create( pev->origin, m_pPlayer );
 		SetThink( RemoveRocket );
 		SetNextThink( 0.7 );

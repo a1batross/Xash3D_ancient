@@ -2793,9 +2793,6 @@ void CBasePlayer::Spawn( void )
 		ALERT ( at_console, "Couldn't alloc player sound slot!\n" );
 	}
 
-	// remove any sound fading
-	g_engfuncs.pfnFadeClientVolume( edict(), 0, 0, 0, 0 );
-
 	m_fNoPlayerSound = FALSE;// normal sound behavior.
 
 	m_pLastItem = NULL;
@@ -3201,10 +3198,17 @@ void CBasePlayer::GiveNamedItem( const char *pszName )
 	{
 		ALERT( at_aiconsole, "Give %s\n", STRING( pent->v.classname ));
 		DispatchTouch( pEntity->edict(), ENT( pev ));
+
+		if(( pEntity->IsItem() || pEntity->IsAmmo()) && !FBitSet( pEntity->pev->flags, FL_KILLME ))
+		{
+			// player can't got this item for some reasons, delete it from map
+			REMOVE_ENTITY( pent );
+		}
 	}
 	else
 	{
-		ALERT( at_console, "Remove %s\n", STRING( pent->v.classname ));
+		// player won't give monsters or like stuff
+		ALERT( at_aiconsole, "Can't give %s\n", STRING( pent->v.classname ));
 		REMOVE_ENTITY( pent );
 	}
 }
@@ -3266,14 +3270,22 @@ void CBasePlayer :: ForceClientDllUpdate( void )
 {
 	m_iClientHealth  = -1;
 	m_iClientBattery = -1;
-	m_iTrain |= TRAIN_NEW;  // Force new train message.
-	m_fWeapon = FALSE;          // Force weapon send
-	m_fKnownItem = FALSE;    // Force weaponinit messages.
+	m_iTrain |= TRAIN_NEW;	// Force new train message.
+	m_fWeapon = FALSE;		// Force weapon send
+	m_fKnownItem = FALSE;	// Force weaponinit messages.
 	m_fInitHUD = TRUE;		// Force HUD gmsg.ResetHUD message
+	m_flFlashLightTime = 1;	// Force to update flashlight
+	rainNeedsUpdate = 1;
+	fogNeedsUpdate = 1;
+	m_iStartMessage = 1;
+	fadeNeedsUpdate = 1;
+	hearNeedsUpdate = 1;
+	viewNeedsUpdate = 1;
 
 	// Now force all the necessary messages
 	//  to be sent.
 	UpdateClientData();
+	g_pGameRules->InitHUD( this );
 }
 
 /*
@@ -3281,7 +3293,7 @@ void CBasePlayer :: ForceClientDllUpdate( void )
 ImpulseCommands
 ============
 */
-void CBasePlayer::ImpulseCommands( )
+void CBasePlayer::ImpulseCommands( void )
 {
 	TraceResult	tr;// UNDONE: kill me! This is temporary for PreAlpha CDs
 

@@ -93,7 +93,7 @@ game_t struct
 { "donotenter",	Q_CONT_DONOTENTER,	Q_CONT_SOLID,	0,		0,	C_TRANSLUCENT,		C_SOLID	},
 { "botclip",	Q_CONT_BOTCLIP,	Q_CONT_SOLID,	0,		0,	C_TRANSLUCENT,		C_SOLID	},
 { "fog",		Q_CONT_FOG,	Q_CONT_SOLID,	0,		0,	C_FOG,			C_SOLID	},
-{ "sky",		0,		0,		Q_SURF_SKY,	0,	C_SKY,			0	},
+{ "sky",		Q_CONT_SKY,	0,		Q_SURF_SKY,	0,	C_SKY,			0	},
 { "slick",	0,		0,		Q_SURF_SLICK,	0,	0,			0	},
 { "noimpact",	0,		0,		Q_SURF_NOIMPACT,	0,	C_NOIMPACT,		0	},
 { "nomarks",	0,		0,		Q_SURF_NOMARKS,	0,	C_NOMARKS,		0	},

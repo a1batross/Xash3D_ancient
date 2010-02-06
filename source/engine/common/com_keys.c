@@ -1108,7 +1108,7 @@ void Key_Event( int key, bool down, int time )
 				UI_SetActiveMenu( UI_MAINMENU );
 				return; // don't pass Esc into menu
 			}
-			break;
+			return;
 		case key_menu:
 			UI_KeyEvent( key, true );
 			return;

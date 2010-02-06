@@ -42,6 +42,7 @@ content and surface flags
 
 /* game flags */
 #define Q_CONT_SOLID				1			/* an eye is never valid in a solid */
+#define Q_CONT_SKY					4
 #define Q_CONT_LAVA					8
 #define Q_CONT_SLIME				16
 #define Q_CONT_WATER				32
@@ -104,8 +105,8 @@ game_t struct
 	64,			// max lightmapped surface verts
 	999,			// max surface verts
 	6000,			// max surface indexes
-	false,			// flares
-	"flareshader",		// default flare shader
+	true,			// flares
+	"engine/flare",		// default flare shader
 	false,			// wolf lighting model?
 	128,			// lightmap width/height
 	1.0f,			// lightmap gamma
@@ -115,7 +116,7 @@ game_t struct
 	LoadIBSPFile,		// bsp load function
 	WriteIBSPFile,		// bsp write function
 
-{ // name		contentFlags		contentFlagsClear	surfaceFlags   FlagsClear	compileFlags	FlagsClear
+{ // name		contentFlags	contentFlagsClear	surfaceFlags   FlagsClear	compileFlags	FlagsClear
 { "default",	Q_CONT_SOLID,	-1,		0,		-1,	C_SOLID,			-1	},
 { "lightgrid",	0,	   	0,		0,		0,	C_LIGHTGRID,		0	},
 { "antiportal",	0,	   	0,		0,		0,	C_ANTIPORTAL,		0	},
@@ -143,7 +144,7 @@ game_t struct
 { "donotenter",	Q_CONT_DONOTENTER,	Q_CONT_SOLID,	0,		0,	C_TRANSLUCENT,		C_SOLID	},
 { "botclip",	Q_CONT_BOTCLIP,	Q_CONT_SOLID,	0,		0,	C_TRANSLUCENT,		C_SOLID	},
 { "fog",		Q_CONT_FOG,	Q_CONT_SOLID,	0,		0,	C_FOG,			C_SOLID	},
-{ "sky",		0,		0,		Q_SURF_SKY,	0,	C_SKY,			0	},
+{ "sky",		Q_CONT_SKY,	0,		Q_SURF_SKY,	0,	C_SKY,			0	},
 { "slick",	0,		0,		Q_SURF_SLICK,	0,	0,			0	},
 { "noimpact",	0,		0,		Q_SURF_NOIMPACT,	0,	C_NOIMPACT,		0	},
 { "nomarks",	0,		0,		Q_SURF_NOMARKS,	0,	C_NOMARKS,		0	},

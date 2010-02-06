@@ -44,6 +44,7 @@ cvar_t *r_vertexbuffers;
 cvar_t *r_flares;
 cvar_t *r_flaresize;
 cvar_t *r_flarefade;
+cvar_t *r_spriteflares;
 cvar_t *r_dynamiclight;
 cvar_t *r_coronascale;
 cvar_t *r_detailtextures;
@@ -521,9 +522,10 @@ void GL_InitCommands( void )
 	r_vertexbuffers = Cvar_Get( "r_vertexbuffers", "0", CVAR_ARCHIVE, "store vertex data in VBOs" );
 
 	r_detailtextures = Cvar_Get( "r_detailtextures", "1", CVAR_ARCHIVE, "enable or disable detail textures" );
-	r_flares = Cvar_Get( "r_flares", "0", CVAR_ARCHIVE, "enable flares rendering" );
+	r_flares = Cvar_Get( "r_flares", "0", CVAR_ARCHIVE, "enable auto-flares rendering" );
 	r_flaresize = Cvar_Get( "r_flaresize", "40", CVAR_ARCHIVE, "override shader flare size" );
 	r_flarefade = Cvar_Get( "r_flarefade", "3", CVAR_ARCHIVE, "override shader flare fading" );
+	r_spriteflares = Cvar_Get( "r_spriteflares", "0", CVAR_ARCHIVE, "enable env_sprite flares rendering" );
 
 	r_dynamiclight = Cvar_Get( "r_dynamiclight", "1", CVAR_ARCHIVE, "allow dinamic lights on a map" );
 	r_coronascale = Cvar_Get( "r_coronascale", "0.2", 0, "light coronas scale" );

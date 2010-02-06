@@ -25,7 +25,7 @@ public:
 	void EXPORT ItemTouch( CBaseEntity *pOther );
 	void EXPORT Materialize( void );
 	void EXPORT ItemFall( void );
-	virtual BOOL AddItem( CBaseEntity *pOther ) { return TRUE; };
+	virtual int AddItem( CBaseEntity *pOther ) { return -1; };
 	virtual void ItemOnGround( void ) {};
 	float ItemRespawnTime( CItem *pItem );
           

@@ -124,10 +124,6 @@ void V_RenderView( void )
 {
 	if( !cl.video_prepped ) return; // still loading
 
-	cl.time = bound( cl.frame.servertime - cl.serverframetime, cl.time, cl.frame.servertime );
-	if( cl.refdef.paused ) cl.lerpFrac = 1.0f;
-	else cl.lerpFrac = 1.0 - (cl.frame.servertime - cl.time) / (float)cl.serverframetime;
-
 	// update cl_globalvars
 	clgame.globals->time = cl.time * 0.001f; // clamped
 	clgame.globals->frametime = cls.frametime; // used by input code

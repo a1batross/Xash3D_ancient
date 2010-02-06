@@ -136,6 +136,11 @@ int CHud :: MsgFunc_ResetHUD(const char *pszName, int iSize, void *pbuf )
 	// enable plaque drawing
 	m_iDrawPlaque = 1;
 
+	// reset shake
+	m_Shake.amplitude = 0;
+	m_Shake.frequency = 0;
+	m_Shake.duration = 0;
+
 	// reset fog
 	m_fStartDist = 0;
 	m_fEndDist = 0;

@@ -772,6 +772,11 @@ void CL_ReadPackets( void )
 		CL_ReadDemoMessage();
 	else CL_ReadNetMessage();
 
+	cl.time = bound( cl.frame.servertime - cl.serverframetime, cl.time, cl.frame.servertime );
+
+	if( cl.refdef.paused ) cl.lerpFrac = 1.0f;
+	else cl.lerpFrac = 1.0 - (cl.frame.servertime - cl.time) / (float)cl.serverframetime;
+
 	// singleplayer never has connection timeout
 	if( NET_IsLocalAddress( cls.netchan.remote_address ))
 		return;
@@ -1069,7 +1074,7 @@ void CL_Frame( int time )
 	cls.realtime += time;
 	cls.frametime = time * 0.001f;
 
-	cl.time = bound( cl.frame.servertime - cl.serverframetime, cl.time, cl.frame.servertime );
+//	cl.time = bound( cl.frame.servertime - cl.serverframetime, cl.time, cl.frame.servertime );
 	if( cls.frametime > 0.2f ) cls.frametime = 0.2f;
 
 	// if in the debugger last frame, don't timeout

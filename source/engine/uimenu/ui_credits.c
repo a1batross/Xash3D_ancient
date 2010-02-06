@@ -44,7 +44,7 @@ static const char *uiCreditsDefault[] =
 	"",
 	"",
 	"^3SPECIAL THANKS",
-	"Chain Studios et all",
+	"Chain Studios et al.",
 	"",
 	"",
 	"",

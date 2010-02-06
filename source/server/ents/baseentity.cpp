@@ -597,7 +597,7 @@ void CBaseEntity::TraceAttack(entvars_t *pevAttacker, float flDamage, Vector vec
 //=======================================================================
 int CBaseEntity :: TakeHealth( float flHealth, int bitsDamageType )
 {
-	if(!pev->takedamage) return 0;
+	if( !pev->takedamage ) return 0;
 	if ( pev->health >= pev->max_health ) return 0;
 
 	pev->health += flHealth;

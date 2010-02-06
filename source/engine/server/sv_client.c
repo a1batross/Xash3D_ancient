@@ -1193,14 +1193,14 @@ void _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, bool direct, 
 		if( specproxy && !( cl->edict->v.flags & FL_PROXY ))
 			continue;
 
-		if( cl->edict && ( cl->edict->v.flags & FL_FAKECLIENT ))
+		if( !cl->edict || ( cl->edict->v.flags & FL_FAKECLIENT ))
 			continue;
 
 		if( mask )
 		{
-			area2 = CM_LeafArea( leafnum );
-			cluster = CM_LeafCluster( leafnum );
 			leafnum = CM_PointLeafnum( cl->edict->v.origin );
+			cluster = CM_LeafCluster( leafnum );
+			area2 = CM_LeafArea( leafnum );
 			if(!CM_AreasConnected( area1, area2 )) continue;
 			if( mask && (!(mask[cluster>>3] & (1<<(cluster & 7)))))
 				continue;

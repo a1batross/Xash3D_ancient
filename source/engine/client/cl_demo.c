@@ -113,6 +113,23 @@ void CL_WriteDemoHeader( const char *name )
 	MSG_WriteByte( &buf, svc_setview );
 	MSG_WriteWord( &buf, cl.refdef.viewentity );
 
+	// write all clients userinfo
+	for( i = 0; i < clgame.globals->maxClients; i++ )
+	{
+		player_info_t	*pi;
+
+		MSG_WriteByte( &buf, svc_updateuserinfo );
+		MSG_WriteByte( &buf, i );
+		pi = &cl.players[i];
+
+		if( pi->name[0] )
+		{
+			MSG_WriteByte( &buf, true );
+			MSG_WriteString( &buf, pi->userinfo );
+		}
+		else MSG_WriteByte( &buf, false );
+	}
+
 	// write it to the demo file
 	len = LittleLong( buf.cursize );
 	FS_Write( cls.demofile, &len, 4 );
@@ -217,7 +234,7 @@ void CL_ReadDemoMessage( void )
 		return;
 
 	// don't need another message yet
-	if( cl.time < cl.frame.servertime )
+	if( cl.time <= cl.frame.servertime )
 		return;
 
 	// init the message

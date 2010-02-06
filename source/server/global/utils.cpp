@@ -337,23 +337,22 @@ void PrintStringForDamage( int dmgbits )
 }
 char* GetContentsString( int contents )
 {
-	switch(contents)
+	switch( contents )
 	{
-		case -1: return "EMPTY";
-		case -2: return "SOLID";
-		case -3: return "WATER";
-		case -4: return "SLIME";
-		case -5: return "LAVA";
-		case -6: return "SKY";
-		case -16: return "LADDER";
-		case -17: return "FLYFIELD";
-		case -18: return "GRAVITY_FLYFIELD";
-		case -19: return "FOG";
-		case -20: return "SPECIAL 1";
-		case -21: return "SPECIAL 2";
-		case -22: return "SPECIAL 3";
-	default:
-		return "NO CONTENTS!";
+	case -1: return "EMPTY";
+	case -2: return "SOLID";
+	case -3: return "WATER";
+	case -4: return "SLIME";
+	case -5: return "LAVA";
+	case -6: return "SKY";
+	case -16: return "LADDER";
+	case -17: return "FLYFIELD";
+	case -18: return "GRAVITY_FLYFIELD";
+	case -19: return "FOG";
+	case -20: return "SPECIAL 1";
+	case -21: return "SPECIAL 2";
+	case -22: return "SPECIAL 3";
+	default:	return "NO CONTENTS!";
 	}
 }
 

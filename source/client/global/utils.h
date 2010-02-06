@@ -194,4 +194,7 @@ BOOL Sys_LoadLibrary( const char* dllname, dllhandle_t* handle, const dllfunctio
 void* Sys_GetProcAddress( dllhandle_t handle, const char* name );
 void Sys_UnloadLibrary( dllhandle_t* handle );
 
+// misc stuff
+const char *UTIL_FileExtension( const char *in );
+
 #endif//UTILS_H

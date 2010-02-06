@@ -49,28 +49,28 @@ enum FMOD_ERRORS
 
 static char *FMOD_ErrorString( int errcode )
 {
-	switch (errcode)
+	switch( errcode )
 	{
-		case FMOD_ERR_NONE:		return "No errors";
-		case FMOD_ERR_BUSY:		return "Cannot call this command after FSOUND_Init.  Call FSOUND_Close first.";
-		case FMOD_ERR_UNINITIALIZED:	return "This command failed because FSOUND_Init was not called";
-		case FMOD_ERR_PLAY:		return "Playing the sound failed.";
-		case FMOD_ERR_INIT:		return "Error initializing output device.";
-		case FMOD_ERR_ALLOCATED:	return "The output device is already in use and cannot be reused.";
-		case FMOD_ERR_OUTPUT_FORMAT:	return "Soundcard does not support the features needed for this soundsystem (16bit stereo output)";
-		case FMOD_ERR_COOPERATIVELEVEL: return "Error setting cooperative level for hardware.";
-		case FMOD_ERR_CREATEBUFFER:	return "Error creating hardware sound buffer.";
-		case FMOD_ERR_FILE_NOTFOUND:	return "File not found";
-		case FMOD_ERR_FILE_FORMAT:	return "Unknown file format";
-		case FMOD_ERR_FILE_BAD:	return "Error loading file";
-		case FMOD_ERR_MEMORY:	return "Not enough memory ";
-		case FMOD_ERR_VERSION:	return "The version number of this file format is not supported";
-		case FMOD_ERR_INVALID_PARAM:	return "An invalid parameter was passed to this function";
-		case FMOD_ERR_NO_EAX:	return "Tried to use an EAX command on a non EAX enabled channel or output.";
-		case FMOD_ERR_CHANNEL_ALLOC:	return "Failed to allocate a new channel";
-		case FMOD_ERR_RECORD:	return "Recording not supported on this device";
-		case FMOD_ERR_MEDIAPLAYER:	return "Required Mediaplayer codec is not installed";
-		default :			return "Unknown error";
+	case FMOD_ERR_NONE:		return "No errors";
+	case FMOD_ERR_BUSY:		return "Cannot call this command after FSOUND_Init.  Call FSOUND_Close first.";
+	case FMOD_ERR_UNINITIALIZED:	return "This command failed because FSOUND_Init was not called";
+	case FMOD_ERR_PLAY:		return "Playing the sound failed.";
+	case FMOD_ERR_INIT:		return "Error initializing output device.";
+	case FMOD_ERR_ALLOCATED:	return "The output device is already in use and cannot be reused.";
+	case FMOD_ERR_OUTPUT_FORMAT:	return "Soundcard does not support the features needed for this soundsystem (16bit stereo output)";
+	case FMOD_ERR_COOPERATIVELEVEL: return "Error setting cooperative level for hardware.";
+	case FMOD_ERR_CREATEBUFFER:	return "Error creating hardware sound buffer.";
+	case FMOD_ERR_FILE_NOTFOUND:	return "File not found";
+	case FMOD_ERR_FILE_FORMAT:	return "Unknown file format";
+	case FMOD_ERR_FILE_BAD:	return "Error loading file";
+	case FMOD_ERR_MEMORY:	return "Not enough memory ";
+	case FMOD_ERR_VERSION:	return "The version number of this file format is not supported";
+	case FMOD_ERR_INVALID_PARAM:	return "An invalid parameter was passed to this function";
+	case FMOD_ERR_NO_EAX:	return "Tried to use an EAX command on a non EAX enabled channel or output.";
+	case FMOD_ERR_CHANNEL_ALLOC:	return "Failed to allocate a new channel";
+	case FMOD_ERR_RECORD:	return "Recording not supported on this device";
+	case FMOD_ERR_MEDIAPLAYER:	return "Required Mediaplayer codec is not installed";
+	default :			return "Unknown error";
 	};
 }
 
@@ -166,7 +166,8 @@ static dllfunction_t fmodfuncs[] =
 	{NULL, NULL}
 };
 
-DECLARE_MESSAGE(m_Sound, Fsound)
+DECLARE_MESSAGE( m_Sound, Fsound )
+
 #define STREAM	1
 #define TRACK	2
 
@@ -178,25 +179,23 @@ int last_state = 0;
 
 static int CheckFormat( BOOL skip_buffer )
 {
-	int i;
-	
 	// check buffer
-	if( !fmod_data && !skip_buffer ) return false;
-	
+	if( !fmod_data && !skip_buffer )
+		return false;
+
 	// detect of music type
-	for( i = 0; songname[i]; i++ )
-	{
-		if( songname[i] == '.' ) // found extension
-		{
-			if( !strncmp( &songname[i+1], "mp3", 3 )) return STREAM;
-			else if( !strncmp(&songname[i+1], "wma", 3 )) return STREAM;
-			else if( !strncmp(&songname[i+1], "ogg", 3 )) return STREAM;
-			else if( !strncmp(&songname[i+1], "xm", 2 )) return TRACK;
-			else if( !strncmp(&songname[i+1], "it", 2 )) return TRACK;
-			else if( !strncmp(&songname[i+1], "s3m", 3 )) return TRACK;
-			else return false;
-		}
-	}
+	if( !stricmp( UTIL_FileExtension( songname ), "mp3" ))
+		return STREAM;
+	if( !stricmp( UTIL_FileExtension( songname ), "wma" ))
+		return STREAM;
+	if( !stricmp( UTIL_FileExtension( songname ), "ogg" ))
+		return STREAM;	
+	if( !stricmp( UTIL_FileExtension( songname ), "xm" ))
+		return TRACK;
+	if( !stricmp( UTIL_FileExtension( songname ), "it" ))
+		return STREAM;
+	if( !stricmp( UTIL_FileExtension( songname ), "s3m" ))
+		return STREAM;
 	return false;
 }
 
@@ -250,22 +249,30 @@ int CHudSound :: MsgFunc_Fsound( const char *pszName, int iSize, void *pbuf )
 	if( !fmod_dll ) return 1;
 
 	BEGIN_READ( pszName, iSize, pbuf );
+	char	readname[256];
 
-	sprintf( songname, "media/%s", READ_STRING( )); // songname
+	strncpy( readname, READ_STRING( ), sizeof( readname ));
 	m_iTime = READ_SHORT(); // song position
 	m_iStatus = READ_BYTE();
-	
+	END_READ();
+
+	if( !strcmp( songname, readname ))
+	{
+		// ForceClientDll update or somewhat, ignore it
+		return 1;
+	}
+
+	strncpy( songname, readname, sizeof( songname ));	
 	if( m_iStatus & 1 ) PlayStream( songname );
 	else if( fmod_data )
 	{
 		if( CheckFormat( FALSE ) == TRACK ) qfmod_freesong( fmod_data );
 		else if( CheckFormat( FALSE ) == STREAM ) qfmod_freestream( fmod_data );
-		memset( songname, 0, sizeof( songname ));
+		songname[0] = '\0';
 		fmod_data = NULL;
-		m_iTime = 0;
 		m_iStatus = 0;
+		m_iTime = 0;
 	}
-	END_READ();
 
 	return 1;
 }
@@ -273,16 +280,18 @@ int CHudSound :: MsgFunc_Fsound( const char *pszName, int iSize, void *pbuf )
 int CHudSound :: PlayStream( const char* name )
 {
 	int	filesize;
-	char	*data;
+	char	*data, path[256];
 	
-	if( !fmod_dll ) return false;
+	if( !fmod_dll || !name || !*name )
+		return false;
 
 	// Load the file
-	data = (char *)LOAD_FILE( name, &filesize );
+	sprintf( path, "media/%s", name ); // songname
+	data = (char *)LOAD_FILE( path, &filesize );
 
 	if( !data ) 
 	{
-		ALERT( at_console, "couldn't load %s\n", name );
+		ALERT( at_console, "couldn't load %s\n", path );
 		return false;
           }
 
@@ -297,14 +306,7 @@ int CHudSound :: PlayStream( const char* name )
 		// check for .xm .it .s3m headers
 		if( memcmp( data, "Extended Module:", 16 ) && memcmp( data, "IMPM", 4 ) && memcmp( data + 44, "SCRM", 4 ))
 		{
-			for( int i = 0; name[i]; i++ )
-			{
-				if( name[i] == '.' ) // found extension
-				{
-					ALERT( at_console, "%s is not a %s file\n", name, &name[i+1] );
-					break;
-				}
-			}
+			ALERT( at_console, "%s is not a %s file\n", name, UTIL_FileExtension( name ));
 			FREE_FILE( data );
 			return 1;
 		}

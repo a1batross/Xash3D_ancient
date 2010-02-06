@@ -12,7 +12,7 @@ public:
 	static CGrenade *ShootTimed( entvars_t *pevOwner, Vector vecStart, Vector vecVelocity, float time );
 	static CGrenade *ShootContact( entvars_t *pevOwner, Vector vecStart, Vector vecVelocity );
 
-	void Explode( TraceResult *pTrace, int bitsDamageType );
+	void Explode( Vector vecPos, int bitsDamageType, int contents );
 
 	void EXPORT BounceTouch( CBaseEntity *pOther );
 	void EXPORT SlideTouch( CBaseEntity *pOther );

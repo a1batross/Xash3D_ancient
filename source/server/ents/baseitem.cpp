@@ -52,12 +52,12 @@ void CItem::ItemTouch( CBaseEntity *pOther )
 	if (!UTIL_IsMasterTriggered(m_sMaster, pPlayer)) return;
 	if (pPlayer->pev->deadflag != DEAD_NO) return;
 
-	if (AddItem( pPlayer ))
+	if (AddItem( pPlayer ) != -1 )
 	{
 		UTIL_FireTargets( pev->target, pOther, this, USE_TOGGLE );
 		SetTouch( NULL );
                   
-		if (IsItem() && gmsg.ItemPickup)
+		if( IsItem() && gmsg.ItemPickup )
 		{
 			//show icon for item
 			MESSAGE_BEGIN( MSG_ONE, gmsg.ItemPickup, NULL, pPlayer->pev );
@@ -65,17 +65,18 @@ void CItem::ItemTouch( CBaseEntity *pOther )
 			MESSAGE_END();
 		}
 		
-		//play pickup sound
+		// play pickup sound
 		EMIT_SOUND( pPlayer->edict(), CHAN_ITEM, (char *)PickSound(), 1, ATTN_NORM );
 		
 		// tell the owner item was taken
  		if (!FNullEnt( pev->owner )) pev->owner->v.impulse = 0;
 		
-		//enable respawn in multiplayer
-		if ( g_pGameRules->IsMultiplayer()) Respawn(); 
+		// enable respawn in multiplayer
+		if ( g_pGameRules->IsMultiplayer() && !FBitSet( pev->spawnflags, SF_NORESPAWN ))
+			Respawn(); 
 		else UTIL_Remove( this );
 	}
-	else if (gEvilImpulse101) UTIL_Remove( this );
+	else if ( gEvilImpulse101 ) UTIL_Remove( this );
 }
 
 void CItem::ItemFall ( void )
@@ -170,19 +171,19 @@ void CItem::Materialize( void )
 class CGenericItem : public CItem
 {
 	const char *Model( void ){ return "models/items/w_adrenaline.mdl"; }
-	BOOL AddItem( CBaseEntity *pOther ) 
+	int AddItem( CBaseEntity *pOther ) 
 	{ 
 		CBasePlayer *pPlayer = (CBasePlayer *)pOther;
-		if (pPlayer->pev->deadflag != DEAD_NO) return FALSE;
-		if (pOther->GiveAmmo( AMMO_GLOCKCLIP_GIVE, "9mm", _9MM_MAX_CARRY ) != -1)
+		if( pPlayer->pev->deadflag != DEAD_NO ) return -1;
+		if( pOther->GiveAmmo( AMMO_GLOCKCLIP_GIVE, "9mm", _9MM_MAX_CARRY ) != -1 )
 		{
 			EMIT_SOUND(ENT(pev), CHAN_ITEM, "weapons/glock/clip_in.wav", 1, ATTN_NORM);
-			return TRUE;
+			return 0;
 		}
 		MESSAGE_BEGIN( MSG_ONE, gmsg.ItemPickup, NULL, pPlayer->pev );
 			WRITE_STRING( STRING(pev->classname) );
 		MESSAGE_END();
-		return FALSE;
+		return -1;
 	}
 };
 LINK_ENTITY_TO_CLASS( item_generic, CGenericItem );
@@ -193,29 +194,30 @@ LINK_ENTITY_TO_CLASS( item_generic, CGenericItem );
 class CItemSuit : public CItem
 {
 	const char *Model( void ){ return  "models/items/w_suit.mdl"; }
-	BOOL AddItem( CBaseEntity *pOther )
+	int AddItem( CBaseEntity *pOther )
 	{
 		CBasePlayer *pPlayer = (CBasePlayer *)pOther;
-		if ( pPlayer->pev->deadflag != DEAD_NO ) return FALSE;
+		if ( pPlayer->pev->deadflag != DEAD_NO )
+			return -1;
 
 		if ( pPlayer->pev->weapons & ITEM_SUIT )
-			return FALSE;
+			return -1;
 
-		if ( pev->spawnflags & 1 )//SF_SUIT_SHORTLOGON
-			EMIT_SOUND_SUIT(pPlayer->edict(), "!HEV_A0");	// short version of suit logon,
-		else	EMIT_SOUND_SUIT(pPlayer->edict(), "!HEV_AAx");	// long version of suit logon
+		if( pev->spawnflags & 1 ) // SF_SUIT_SHORTLOGON
+			EMIT_SOUND_SUIT( pPlayer->edict(), "!HEV_A0" ); // short version of suit logon,
+		else EMIT_SOUND_SUIT( pPlayer->edict(), "!HEV_AAx" ); // long version of suit logon
                     
 		pPlayer->pev->weapons |= ITEM_SUIT;
-		return TRUE;
+		return 0;
 	}
 };
-LINK_ENTITY_TO_CLASS(item_suit, CItemSuit);
+LINK_ENTITY_TO_CLASS( item_suit, CItemSuit );
 
 class CItemLongJump : public CItem
 {
 	const char *Model( void ){ return  "models/items/w_longjump.mdl"; }
 	const char *PickSound( void ){ return "buttons/bell1.wav"; }
-	BOOL AddItem( CBaseEntity *pOther )
+	int AddItem( CBaseEntity *pOther )
 	{
 		CBasePlayer *pPlayer = (CBasePlayer *)pOther;
 		if( pPlayer->pev->weapons & ITEM_SUIT && !pPlayer->m_fLongJump )
@@ -223,9 +225,9 @@ class CItemLongJump : public CItem
 			pPlayer->m_fLongJump = TRUE;// player now has longjump module
 			g_engfuncs.pfnSetPhysicsKeyValue( pPlayer->edict(), "slj", "1" );
 			EMIT_SOUND_SUIT( pPlayer->edict(), "!HEV_A1" );
-			return TRUE;		
+			return 0;		
 		}
-		return FALSE;
+		return -1;
 	}
 };
 LINK_ENTITY_TO_CLASS( item_longjump, CItemLongJump );
@@ -235,7 +237,7 @@ class CItemBattery : public CItem
 {
 	const char *Model( void ){ return "models/items/w_battery.mdl"; }
 	const char *PickSound( void ){ return "items/gunpickup2.wav"; }
-	BOOL AddItem( CBaseEntity *pOther ) { return pOther->TakeArmor( BATTERY_CHARGE, TRUE ); }
+	int AddItem( CBaseEntity *pOther ) { return (pOther->TakeArmor( BATTERY_CHARGE, TRUE )) ? 0 : -1; }
 };
 LINK_ENTITY_TO_CLASS(item_battery, CItemBattery);
 
@@ -243,7 +245,7 @@ class CHealthKit : public CItem
 {
 	const char *Model( void ){ return "models/items/w_medkit.mdl"; }
 	const char *PickSound( void ){ return "items/smallmedkit1.wav"; }
-	BOOL AddItem( CBaseEntity *pOther ) { return pOther->TakeHealth( MEDKIT_CAP, DMG_GENERIC ); }
+	int AddItem( CBaseEntity *pOther ) { return (pOther->TakeHealth( MEDKIT_CAP, DMG_GENERIC )) ? 0 : -1; }
 };
 LINK_ENTITY_TO_CLASS( item_healthkit, CHealthKit );
 
@@ -252,7 +254,7 @@ class CItemSoda : public CItem
 public:
 	const char *Model( void ){ return "models/can.mdl"; }
 	const char *FallSound( void ){ return "weapons/g_bounce3.wav"; }
-	BOOL AddItem( CBaseEntity *pOther ) { pOther->TakeHealth( pev->skin * 1, DMG_GENERIC ); return 1; }
+	int AddItem( CBaseEntity *pOther ) { pOther->TakeHealth( pev->skin * 1, DMG_GENERIC ); return 1; }
 };
 LINK_ENTITY_TO_CLASS( item_sodacan, CItemSoda );
 
@@ -260,7 +262,7 @@ class CItemSecurity : public CItem
 {
 	const char *Model( void ){ return  "models/items/w_security.mdl"; }
 	const char *PickSound( void ){ return "items/gunpickup2.wav"; }
-	BOOL AddItem( CBaseEntity *pOther ) { return TRUE; }
+	int AddItem( CBaseEntity *pOther ) { return TRUE; }
 };
 LINK_ENTITY_TO_CLASS(item_security, CItemSecurity);
 
@@ -268,7 +270,7 @@ class CItemArmorVest : public CItem
 {
 	const char *Model( void ){ return  "models/items/w_vest.mdl"; }
 	const char *PickSound( void ){ return "items/gunpickup2.wav"; }
-	BOOL AddItem( CBaseEntity *pOther ) { return pOther->TakeArmor( 60 ); }
+	int AddItem( CBaseEntity *pOther ) { return (pOther->TakeArmor( 60 )) ? 0 : -1; }
 };
 LINK_ENTITY_TO_CLASS(item_armorvest, CItemArmorVest);
 
@@ -276,7 +278,7 @@ class CItemHelmet : public CItem
 {
 	const char *Model( void ){ return  "models/items/w_helmet.mdl"; }
 	const char *PickSound( void ){ return "items/gunpickup2.wav"; }
-	BOOL AddItem( CBaseEntity *pOther ) { return pOther->TakeArmor( 40 ); }
+	int AddItem( CBaseEntity *pOther ) { return (pOther->TakeArmor( 40 )) ? 0 : -1; }
 };
 LINK_ENTITY_TO_CLASS(item_helmet, CItemHelmet);
 
@@ -287,7 +289,7 @@ class CGlockAmmo : public CItem
 {
 	const char *Model( void ){ return "models/ammo/w_9mmclip.mdl"; }
 	const char *PickSound( void ){ return "weapons/glock/clip_in.wav"; }
-	BOOL AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_GLOCKCLIP_GIVE, "9mm", 250 ); }
+	int AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_GLOCKCLIP_GIVE, "9mm", 250 ); }
 };
 LINK_ENTITY_TO_CLASS( ammo_9mmclip, CGlockAmmo );
 LINK_ENTITY_TO_CLASS( ammo_glockclip, CGlockAmmo );
@@ -296,7 +298,7 @@ class CPythonAmmo : public CItem
 {
 	const char *Model( void ){ return "models/ammo/w_357ammobox.mdl"; }
 	const char *PickSound( void ){ return "weapons/glock/clip_in.wav"; }
-	BOOL AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_357BOX_GIVE, "357", 21 ); }
+	int AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_357BOX_GIVE, "357", 21 ); }
 };
 LINK_ENTITY_TO_CLASS( ammo_357, CPythonAmmo );
 
@@ -304,7 +306,7 @@ class CSniperAmmo : public CItem
 {
 	const char *Model( void ){ return "models/ammo/w_m40a1clip.mdl"; }
 	const char *PickSound( void ){ return "weapons/glock/clip_in.wav"; }
-	BOOL AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_357BOX_GIVE, "762", 21 ); }
+	int AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_357BOX_GIVE, "762", 21 ); }
 };
 LINK_ENTITY_TO_CLASS( ammo_762, CSniperAmmo );
 
@@ -312,7 +314,7 @@ class CRpgAmmo : public CItem
 {
 	const char *Model( void ){ return "models/ammo/w_rpgammo.mdl"; }
 	const char *PickSound( void ){ return "weapons/glock/clip_in.wav"; }
-	BOOL AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_RPGCLIP_GIVE, "rockets", 3 ); }
+	int AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_RPGCLIP_GIVE, "rockets", 3 ); }
 };
 LINK_ENTITY_TO_CLASS( ammo_rpgclip, CRpgAmmo );
 
@@ -320,7 +322,7 @@ class CMP5AmmoClip : public CItem
 {
 	const char *Model( void ){ return "models/ammo/w_9mmARclip.mdl"; }
 	const char *PickSound( void ){ return "weapons/glock/clip_in.wav"; }
-	BOOL AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_MP5CLIP_GIVE, "9mm", 250); }
+	int AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_MP5CLIP_GIVE, "9mm", 250); }
 };
 LINK_ENTITY_TO_CLASS( ammo_9mmAR, CMP5AmmoClip );
 LINK_ENTITY_TO_CLASS( ammo_mp5clip, CMP5AmmoClip );
@@ -329,7 +331,7 @@ class CSawAmmo : public CItem
 {
 	const char *Model( void ){ return "models/ammo/w_saw_clip.mdl"; }
 	const char *PickSound( void ){ return "weapons/glock/clip_in.wav"; }
-	BOOL AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_CHAINBOX_GIVE, "556", SAW_MAX_CLIP); }
+	int AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_CHAINBOX_GIVE, "556", SAW_MAX_CLIP); }
 };
 LINK_ENTITY_TO_CLASS( ammo_556, CSawAmmo );
 
@@ -337,7 +339,7 @@ class CMP5AmmoGrenade : public CItem
 {
 	const char *Model( void ){ return "models/ammo/w_argrenade.mdl"; }
 	const char *PickSound( void ){ return "weapons/glock/clip_in.wav"; }
-	BOOL AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_M203BOX_GIVE, "m203", 10 ); }
+	int AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_M203BOX_GIVE, "m203", 10 ); }
 };
 LINK_ENTITY_TO_CLASS( ammo_m203, CMP5AmmoGrenade );
 
@@ -345,7 +347,7 @@ class CGaussAmmo : public CItem
 {
 	const char *Model( void ){ return "models/ammo/w_gaussammo.mdl"; }
 	const char *PickSound( void ){ return "weapons/glock/clip_in.wav"; }
-	BOOL AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_URANIUMBOX_GIVE, "uranium", 100 ); }
+	int AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( AMMO_URANIUMBOX_GIVE, "uranium", 100 ); }
 };
 LINK_ENTITY_TO_CLASS( ammo_gaussclip, CGaussAmmo );
 
@@ -353,7 +355,7 @@ class CShotgunAmmoBox : public CItem
 {
 	const char *Model( void ){ return "models/ammo/w_shotbox.mdl"; }
 	const char *PickSound( void ){ return "weapons/glock/clip_in.wav"; }
-	BOOL AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( 12, "buckshot", 125 ); }
+	int AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( 12, "buckshot", 125 ); }
 };
 LINK_ENTITY_TO_CLASS( ammo_buckshot, CShotgunAmmoBox );
 
@@ -361,7 +363,7 @@ class CCrossbowAmmo : public CItem
 {
 	const char *Model( void ){ return "models/ammo/w_crossbow_clip.mdl"; }
 	const char *PickSound( void ){ return "weapons/glock/clip_in.wav"; }
-	BOOL AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( 5, "bolts", 50 ); }
+	int AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( 5, "bolts", 50 ); }
 };
 LINK_ENTITY_TO_CLASS( ammo_crossbow, CCrossbowAmmo );
 
@@ -369,7 +371,7 @@ class CShotgunAmmoShell : public CItem
 {
 	const char *Model( void ){ return "models/shellBuck.mdl"; }
 	const char *PickSound( void ){ return "weapons/glock/clip_in.wav"; }
-	BOOL AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( 1, "buckshot", 125 ); }
+	int AddItem( CBaseEntity *pOther ) { return pOther->GiveAmmo( 1, "buckshot", 125 ); }
 };
 LINK_ENTITY_TO_CLASS( ammo_buckshell, CShotgunAmmoShell );
 

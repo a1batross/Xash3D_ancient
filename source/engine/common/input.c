@@ -322,7 +322,7 @@ void IN_Frame( void )
 	bool	shutdownMouse = false;
 
 	// if at a full screen console, don't update unless needed
-	if(( host.state != HOST_FRAME && CL_GetMaxClients() == 1 ) || host.type == HOST_DEDICATED )
+	if( host.type == HOST_DEDICATED || ( host.state != HOST_FRAME && CL_GetMaxClients() == 1 ))
 		Sys_Sleep( 20 );
 
 	if( !in_mouseinitialized )

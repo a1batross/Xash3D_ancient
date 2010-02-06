@@ -596,6 +596,26 @@ void* Sys_GetProcAddress( dllhandle_t handle, const char* name )
 	return (void *)GET_PROC_ADDRESS( handle, name );
 }
 
+//============
+// UTIL_FileExtension
+// returns file extension
+//============
+const char *UTIL_FileExtension( const char *in )
+{
+	const char *separator, *backslash, *colon, *dot;
+
+	separator = strrchr( in, '/' );
+	backslash = strrchr( in, '\\' );
+	if( !separator || separator < backslash )
+		separator = backslash;
+	colon = strrchr( in, ':' );
+	if( !separator || separator < colon )
+		separator = colon;
+	dot = strrchr( in, '.' );
+	if( dot == NULL || (separator && ( dot < separator )))
+		return "";
+	return dot + 1;
+}
 
 /*
 ====================

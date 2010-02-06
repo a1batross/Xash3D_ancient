@@ -1537,10 +1537,11 @@ LINK_ENTITY_TO_CLASS(func_recharge, 	 CWallCharger);
 
 void CWallCharger :: KeyValue( KeyValueData* pkvd)
 {
-	if (FStrEq(pkvd->szKeyName, "chargetime"))//affect only in multiplayer
+	if( FStrEq( pkvd->szKeyName, "chargetime" ))
 	{
-		pev->armortype = atof(pkvd->szValue);
-		if(pev->armortype <= 0 )pev->armortype = 1;
+		//affect only in multiplayer
+		pev->speed = atof(pkvd->szValue);
+		if( pev->speed <= 0 ) pev->speed = 1.0f;
 		pkvd->fHandled = TRUE;
 	}
 	else CBaseBrush::KeyValue( pkvd );
@@ -1557,7 +1558,9 @@ void CWallCharger::Spawn()
 	UTIL_SetOrigin(this, pev->origin);
 	UTIL_SetSize(pev, pev->mins, pev->maxs);
 	UTIL_SetModel(ENT(pev), pev->model );
-	
+
+	if( pev->speed <= 0 )
+		pev->speed = 1.0f;	
 	m_iState = STATE_OFF;
 	pev->frame = 0;			
 
@@ -1599,18 +1602,19 @@ void CWallCharger::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 		ALERT(at_console, "State: %s, Volume %.1f\n", GetStringForState( GetState()), m_flVolume );
 		ALERT(at_console, "Texture frame: %.f. ChargeLevel: %.f\n", pev->frame, pev->dmg_save);
 	}
-	else if(pActivator && pActivator->IsPlayer())//take health
+	else if(pActivator && pActivator->IsPlayer()) // take health
 	{
-		if (pev->dmg_save <= 0)
+		if( pev->dmg_save <= 0 )
 		{
-			if (m_iState == STATE_IN_USE || m_iState == STATE_ON)
+			if( m_iState == STATE_IN_USE || m_iState == STATE_ON )
 			{
 				pev->frame = 1;
-				if (FClassnameIs(this, "func_recharge"))
+				if( FClassnameIs( this, "func_recharge" ))
 					STOP_SOUND( ENT(pev), CHAN_STATIC, "items/suitcharge1.wav" );
-				else	STOP_SOUND( ENT(pev), CHAN_STATIC, "items/medcharge4.wav" );
+				else STOP_SOUND( ENT(pev), CHAN_STATIC, "items/medcharge4.wav" );
 				m_iState = STATE_DEAD;//recharge in multiplayer	
-				if(IsMultiplayer()) SetNextThink( 3);//delay before recahrge
+				if( IsMultiplayer( ))
+					SetNextThink( 3.0f ); //delay before recahrge
 				else DontThink();
 			}
 		}
@@ -1627,7 +1631,7 @@ void CWallCharger::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 			}
 			return;
 		}
-		SetNextThink( 0.25);//time before disable
+		SetNextThink( 0.25f );//time before disable
 
 		if (m_flNextCharge >= gpGlobals->time) return;
 
@@ -1698,7 +1702,7 @@ void CWallCharger :: Think( void )
 			return;
 		}			
 	}
-	SetNextThink( pev->armortype );
+	SetNextThink( pev->speed );
 }
 
 //=======================================================================

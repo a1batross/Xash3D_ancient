@@ -2261,7 +2261,7 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type )
 	ref_entity_t	*refent;
 	bool		result = false;
 
-	if( !pRefEntity || !pRefEntity->v.modelindex )
+	if( !pRefEntity || pRefEntity->v.modelindex <= 0 )
 		return false; // if set to invisible, skip
 	if( r_numEntities >= MAX_ENTITIES ) return false;
 
@@ -2282,6 +2282,14 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type )
 	case ED_RIGIDBODY:
 	case ED_VIEWMODEL: break;
 	default: return false;
+	}
+
+	// ignore env_sprite flares if supposed
+	if( !r_spriteflares->integer && pRefEntity->v.rendermode == kRenderGlow )
+	{
+		if( cl_models[pRefEntity->v.modelindex]->type == mod_sprite && !pRefEntity->v.renderfx )
+			return true; // only sprite flares with variable size supposed to be ignored
+		// because we don't want ignore laserspot and other like things
 	}
 
 	// copy state to render
