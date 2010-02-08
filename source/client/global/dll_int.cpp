@@ -297,6 +297,8 @@ void HUD_Frame( double time )
 
 void HUD_Shutdown( void )
 {
+	gHUD.m_Sound.Close();
+
 	IN_Shutdown ();
 
 	// perform shutdown operations

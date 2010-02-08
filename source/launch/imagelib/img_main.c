@@ -284,7 +284,7 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 	// HACKHACK: skip any checks, load file from buffer
 	if( filename[0] == '#' && buffer && size ) goto load_internal;
 
-	// developer warning
+	// engine notify
 	if( !anyformat ) MsgDev( D_NOTE, "Note: %s will be loading only with ext .%s\n", loadname, ext );
 	
 	// now try all the formats in the selected list

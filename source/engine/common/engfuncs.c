@@ -234,6 +234,7 @@ cvar_t *pfnCVarRegister( const char *szName, const char *szValue, int flags, con
 	if( flags & FCVAR_ARCHIVE ) real_flags |= CVAR_ARCHIVE;
 	if( flags & FCVAR_USERINFO ) real_flags |= CVAR_USERINFO;
 	if( flags & FCVAR_SERVERINFO ) real_flags |= CVAR_SERVERINFO;
+	if( flags & FCVAR_PHYSICINFO ) real_flags |= CVAR_PHYSICINFO;
 	if( flags & FCVAR_LATCH ) real_flags |= CVAR_LATCH;
 
 	return Cvar_Get( szName, szValue, real_flags, szDesc );

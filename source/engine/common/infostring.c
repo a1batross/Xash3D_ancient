@@ -280,3 +280,10 @@ char *Cvar_Serverinfo( void )
 	Cvar_LookupVars( CVAR_SERVERINFO, infostring, NULL, Cvar_LookupBitInfo ); 
 	return infostring;
 }
+
+char *Cvar_Physicinfo( void )
+{
+	infostring[0] = 0; // clear previous calls
+	Cvar_LookupVars( CVAR_PHYSICINFO, infostring, NULL, Cvar_LookupBitInfo ); 
+	return infostring;
+}

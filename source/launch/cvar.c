@@ -13,7 +13,7 @@ int		cvar_modifiedFlags;
 cvar_t		cvar_indexes[MAX_CVARS];
 static cvar_t	*hashTable[FILE_HASH_SIZE];
 cvar_t		*cvar_vars;
-cvar_t		*userinfo;
+cvar_t		*userinfo, *physinfo;
 
 /*
 ================
@@ -26,12 +26,13 @@ static long Cvar_GetHashValue( const char *fname )
 	long	hash = 0;
 	char	letter;
 
-	while (fname[i] != '\0')
+	while( fname[i] != '\0' )
 	{
-		letter = com_tolower(fname[i]);
+		letter = com.tolower( fname[i] );
 		hash += (long)(letter)*(i + 119);
 		i++;
 	}
+
 	hash &= (FILE_HASH_SIZE - 1);
 	return hash;
 }
@@ -104,10 +105,11 @@ int Cvar_VariableInteger( const char *var_name )
 Cvar_VariableString
 ============
 */
-char *Cvar_VariableString (const char *var_name)
+char *Cvar_VariableString( const char *var_name )
 {
-	cvar_t *var;
-	var = Cvar_FindVar (var_name);
+	cvar_t	*var;
+
+	var = Cvar_FindVar( var_name );
 	if (!var) return "";
 	return var->string;
 }
@@ -127,7 +129,7 @@ void Cvar_LookupVars( int checkbit, void *buffer, void *ptr, setpair_t callback 
 	// force checkbit to 0 for lookup all cvars
 	for( cvar = cvar_vars; cvar; cvar = cvar->next )
 	{
-		if(checkbit && !(cvar->flags & checkbit)) continue;
+		if( checkbit && !( cvar->flags & checkbit )) continue;
 		if( buffer ) callback( cvar->name, cvar->string, buffer, ptr );
 		else callback( cvar->name, cvar->string, cvar->description, ptr );
 	}
@@ -146,7 +148,7 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags, const 
 	cvar_t	*var;
 	long	hash;
 
-	if(!var_name || !var_value)
+	if( !var_name || !var_value )
 	{
 		MsgDev( D_ERROR, "Cvar_Get: NULL parameter" );
 		return NULL;
@@ -154,29 +156,29 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags, const 
 	
 	if( !Cvar_ValidateString( var_name, false ))
 	{
-		MsgDev(D_WARN, "invalid info cvar name string %s\n", var_name );
+		MsgDev( D_WARN, "invalid info cvar name string %s\n", var_name );
 		var_value = "noname";
 	}
 	if( !Cvar_ValidateString( var_value, true ))
 	{
-		MsgDev(D_WARN, "invalid cvar value string: %s\n", var_value );
+		MsgDev( D_WARN, "invalid cvar value string: %s\n", var_value );
 		var_value = "default";
 	}
 
 	// check for command coexisting
 	if( Cmd_Exists( var_name ))
 	{
-		MsgDev(D_WARN, "Cvar_Get: %s is a command\n", var_name );
+		MsgDev( D_WARN, "Cvar_Get: %s is a command\n", var_name );
 		return NULL;
 	}
 
 	var = Cvar_FindVar( var_name );
-	if ( var )
+	if( var )
 	{
 		// if the C code is now specifying a variable that the user already
 		// set a value for, take the new value as the reset value
 
-		if(( var->flags & CVAR_USER_CREATED ) && !( flags & CVAR_USER_CREATED ) && var_value[0])
+		if(( var->flags & CVAR_USER_CREATED ) && !( flags & CVAR_USER_CREATED ) && var_value[0] )
 		{
 			var->flags &= ~CVAR_USER_CREATED;
 			Mem_Free( var->reset_string );
@@ -193,13 +195,13 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags, const 
 			Mem_Free( var->reset_string );
 			var->reset_string = copystring( var_value );
 		}
-		else if( var_value[0] && com_strcmp( var->reset_string, var_value ))
+		else if( var_value[0] && com.strcmp( var->reset_string, var_value ))
 		{
 			MsgDev( D_STRING, "cvar \"%s\" given initial values: \"%s\" and \"%s\"\n", var_name, var->reset_string, var_value );
 		}
 
 		// if we have a latched string, take that value now
-		if ( var->latched_string )
+		if( var->latched_string )
 		{
 			char *s;
 
@@ -226,14 +228,14 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags, const 
 
 	var = &cvar_indexes[cvar_numIndexes];
 	cvar_numIndexes++;
-	var->name = copystring(var_name);
-	var->string = copystring(var_value);
-	if( var_desc ) var->description = copystring(var_desc);
+	var->name = copystring( var_name );
+	var->string = copystring( var_value );
+	if( var_desc ) var->description = copystring( var_desc );
 
 	var->modified = true;
 	var->modificationCount = 1;
-	var->value = com_atof(var->string);
-	var->integer = com_atoi(var->string);
+	var->value = com.atof( var->string );
+	var->integer = com.atoi( var->string );
 	var->reset_string = copystring( var_value );
 
 	// link the variable in
@@ -241,7 +243,7 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags, const 
 	cvar_vars = var;
 
 	var->flags = flags;
-	hash = Cvar_GetHashValue(var_name);
+	hash = Cvar_GetHashValue( var_name );
 	var->hash = hashTable[hash];
 	hashTable[hash] = var;
 
@@ -259,50 +261,50 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 
 	if( !Cvar_ValidateString( var_name, false ))
 	{
-		MsgDev(D_WARN, "invalid cvar name string: %s\n", var_name );
+		MsgDev( D_WARN, "invalid cvar name string: %s\n", var_name );
 		var_name = "unknown";
 	}
 
 	if ( value && !Cvar_ValidateString( value, true ))
 	{
-		MsgDev(D_WARN, "invalid cvar value string: %s\n", value );
+		MsgDev( D_WARN, "invalid cvar value string: %s\n", value );
 		value = "default";
 	}
 
 	var = Cvar_FindVar( var_name );
-	if(!var)
+	if( !var )
 	{
 		if( !value ) return NULL;
 
 		// create it
-		if ( !force ) return Cvar_Get( var_name, value, CVAR_USER_CREATED, NULL );
+		if( !force ) return Cvar_Get( var_name, value, CVAR_USER_CREATED, NULL );
 		else return Cvar_Get (var_name, value, 0, NULL );
 	}
 
-	if(!value ) value = var->reset_string;
-	if(!com_strcmp(value, var->string)) return var;
+	if( !value ) value = var->reset_string;
+	if( !com.strcmp( value, var->string )) return var;
 
 	// note what types of cvars have been modified (userinfo, archive, serverinfo, systeminfo)
 	cvar_modifiedFlags |= var->flags;
 
-	if (!force)
+	if( !force )
 	{
-		if (var->flags & CVAR_READ_ONLY)
+		if( var->flags & CVAR_READ_ONLY )
 		{
-			MsgDev(D_INFO, "%s is read only.\n", var_name);
+			MsgDev( D_INFO, "%s is read only.\n", var_name );
 			return var;
 		}
-		if (var->flags & CVAR_INIT)
+		if( var->flags & CVAR_INIT )
 		{
-			MsgDev(D_INFO, "%s is write protected.\n", var_name);
+			MsgDev( D_INFO, "%s is write protected.\n", var_name );
 			return var;
 		}
-		if (var->flags & CVAR_SYSTEMINFO)
+		if( var->flags & CVAR_SYSTEMINFO )
 		{
-			MsgDev(D_INFO, "%s is system variable.\n", var_name);
+			MsgDev( D_INFO, "%s is system variable.\n", var_name );
 			return var;
 		}
-		if( var->flags & (CVAR_LATCH|CVAR_LATCH_VIDEO|CVAR_LATCH_AUDIO))
+		if( var->flags & ( CVAR_LATCH|CVAR_LATCH_VIDEO|CVAR_LATCH_AUDIO ))
 		{
 			if( var->latched_string )
 			{
@@ -312,7 +314,7 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 			}
 			else
 			{
-				if (!com.strcmp( value, var->string ))
+				if( !com.strcmp( value, var->string ))
 					return var;
 			}
 
@@ -343,7 +345,7 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 			var->modificationCount++;
 			return var;
 		}
-		if((var->flags & CVAR_CHEAT) && !Cvar_VariableInteger( "sv_cheats" ))
+		if(( var->flags & CVAR_CHEAT ) && !Cvar_VariableInteger( "sv_cheats" ))
 		{
 			MsgDev( D_INFO, "%s is cheat protected.\n", var_name );
 			return var;
@@ -359,13 +361,16 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 	}
 
  	// nothing to change
-	if(!com.strcmp( value, var->string )) return var;
+	if( !com.strcmp( value, var->string )) return var;
 
 	var->modified = true;
 	var->modificationCount++;
 
 	if( var->flags & CVAR_USERINFO )
 		userinfo->modified = true;	// transmit at next oportunity
+
+	if( var->flags & CVAR_PHYSICINFO )
+		physinfo->modified = true;	// transmit at next oportunity
 	
 	// free the old value string
 	Mem_Free( var->string );
@@ -383,7 +388,7 @@ Cvar_Set
 */
 void Cvar_Set( const char *var_name, const char *value )
 {
-	Cvar_Set2 (var_name, value, true);
+	Cvar_Set2( var_name, value, true );
 }
 
 /*
@@ -405,7 +410,7 @@ void Cvar_FullSet( char *var_name, char *value, int flags )
 {
 	cvar_t	*var;
 	
-	var = Cvar_FindVar (var_name);
+	var = Cvar_FindVar( var_name );
 	if( !var ) 
 	{
 		// create it
@@ -420,10 +425,16 @@ void Cvar_FullSet( char *var_name, char *value, int flags )
 		userinfo->modified = true;
 	}	
 
+	if( var->flags & CVAR_PHYSICINFO )
+	{
+		// transmit at next oportunity
+		physinfo->modified = true;
+	}
+
 	Mem_Free( var->string ); // free the old value string
-	var->string = copystring(value);
-	var->value = com_atof(var->string);
-	var->integer = com_atoi(var->string);
+	var->string = copystring( value );
+	var->value = com.atof( var->string );
+	var->integer = com.atoi( var->string );
 	var->flags = flags;
 }
 
@@ -594,9 +605,33 @@ void Cvar_SetU_f( void )
 
 /*
 ============
+Cvar_SetP_f
+
+As Cvar_Set, but also flags it as physinfo
+============
+*/
+void Cvar_SetP_f( void )
+{
+	cvar_t	*v;
+
+	if( Cmd_Argc() != 3 )
+	{
+		Msg( "Usage: setp <variable> <value>\n" );
+		return;
+	}
+
+	Cvar_Set_f();
+	v = Cvar_FindVar( Cmd_Argv( 1 ));
+
+	if( !v ) return;
+	v->flags |= CVAR_PHYSICINFO;
+}
+
+/*
+============
 Cvar_SetS_f
 
-As Cvar_Set, but also flags it as userinfo
+As Cvar_Set, but also flags it as serverinfo
 ============
 */
 void Cvar_SetS_f( void )
@@ -695,6 +730,9 @@ void Cvar_List_f( void )
 		else Msg( " " );
 
 		if( var->flags & CVAR_USERINFO ) Msg( "USER " );
+		else Msg( " " );
+
+		if( var->flags & CVAR_PHYSICINFO ) Msg( "PHYS " );
 		else Msg( " " );
 
 		if( var->flags & CVAR_READ_ONLY ) Msg( "READ " );
@@ -873,13 +911,15 @@ void Cvar_Init( void )
 	ZeroMemory( cvar_indexes, sizeof( cvar_t ) * MAX_CVARS );
 	ZeroMemory( hashTable, sizeof( *hashTable ) * FILE_HASH_SIZE );
 	userinfo = Cvar_Get( "@userinfo", "0", CVAR_READ_ONLY, "" ); // use ->modified value only
+	physinfo = Cvar_Get( "@physinfo", "0", CVAR_READ_ONLY, "" ); // use ->modified value only
 
 	Cmd_AddCommand ("toggle", Cvar_Toggle_f, "toggles a console variable's values (use for more info)" );
 	Cmd_AddCommand ("set", Cvar_Set_f, "create or change the value of a console variable" );
-	Cmd_AddCommand ("sets", Cvar_SetS_f, "create or change the value of a serverinfo variable");
-	Cmd_AddCommand ("setu", Cvar_SetU_f, "create or change the value of a userinfo variable");
-	Cmd_AddCommand ("setc", Cvar_SetC_f, "create or change the value of a systeminfo variable");
-	Cmd_AddCommand ("seta", Cvar_SetA_f, "create or change the value of a console variable that will be saved to vars.rc");
+	Cmd_AddCommand ("sets", Cvar_SetS_f, "create or change the value of a serverinfo variable" );
+	Cmd_AddCommand ("setu", Cvar_SetU_f, "create or change the value of a userinfo variable" );
+	Cmd_AddCommand ("setp", Cvar_SetP_f, "create or change the value of a physicinfo variable" );
+	Cmd_AddCommand ("setc", Cvar_SetC_f, "create or change the value of a systeminfo variable" );
+	Cmd_AddCommand ("seta", Cvar_SetA_f, "create or change the value of a console variable that will be saved to vars.rc" );
 	Cmd_AddCommand ("reset", Cvar_Reset_f, "reset any type variable to initial value" );
 	Cmd_AddCommand ("latch", Cvar_Latched_f, "apply latched values" );
 	Cmd_AddCommand ("vidlatch", Cvar_LatchedVideo_f, "apply latched values for video subsystem" );

@@ -3771,7 +3771,6 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 			SV_InitEdict( ent );
 			ent->pvServerData->client = svs.clients + i;
 			ent->pvServerData->client->edict = ent;
-			svgame.globals->numClients++;
 		}
 	}
 	MsgDev( D_LOAD, "Total %i entities spawned\n", svgame.globals->numEntities );
@@ -3846,7 +3845,6 @@ void SV_LoadProgs( const char *name )
 	svgame.globals->maxClients = sv_maxclients->integer;
 	svgame.edicts = Mem_Alloc( svgame.mempool, sizeof( edict_t ) * svgame.globals->maxEntities );
 	svgame.globals->numEntities = svgame.globals->maxClients + 1; // clients + world
-	svgame.globals->numClients = 0;
 	for( i = 0, e = svgame.edicts; i < svgame.globals->maxEntities; i++, e++ )
 		e->free = true; // mark all edicts as freed
 

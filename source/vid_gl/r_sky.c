@@ -35,9 +35,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define SCALE_S		4.0f  // arbitrary (?) texture scaling factors
 #define SCALE_T		4.0f
-#define ST_MIN		1.0f / 512f
-#define ST_MAX		511.0f / 512f
-
 #define BOX_SIZE    	1.0f
 #define BOX_STEP    	BOX_SIZE / ( SIDE_SIZE-1 ) * 2.0f
 
@@ -73,7 +70,8 @@ skydome_t *R_CreateSkydome( byte *mempool, float skyheight, ref_shader_t **farbo
 	Mem_Copy( skydome->nearboxShaders, nearboxShaders, sizeof( ref_shader_t* ) * 6 );
 	buffer += sizeof( skydome_t );
 
-	skydome->meshes = ( mesh_t * )buffer;
+	skydome->skyHeight = skyheight;
+	skydome->meshes = ( mesh_t* )buffer;
 	buffer += sizeof( mesh_t ) * 6;
 
 	for( i = 0, mesh = skydome->meshes; i < 6; i++, mesh++ )
@@ -270,7 +268,7 @@ void R_DrawSky( ref_shader_t *shader )
 
 	if( !shader ) return;
 	skydome = shader->skyParms ? shader->skyParms : NULL;
-	if( !skydome) return;
+	if( !skydome ) return;
 
 	ClearBounds( mins, maxs );
 	for( i = 0; i < 6; i++ )
@@ -388,39 +386,36 @@ void R_DrawSky( ref_shader_t *shader )
 
 //===================================================================
 
-vec3_t skyclip[6] = {
-	{ 1, 1, 0 },
-	{ 1, -1, 0 },
-	{ 0, -1, 1 },
-	{ 0, 1, 1 },
-	{ 1, 0, 1 },
-	{ -1, 0, 1 }
+vec3_t skyclip[6] =
+{
+{  1,  1,  0 },
+{  1, -1,  0 },
+{  0, -1,  1 },
+{  0,  1,  1 },
+{  1,  0,  1 },
+{ -1,  0,  1 }
 };
 
 // 1 = s, 2 = t, 3 = 2048
 int st_to_vec[6][3] =
 {
-	{ 3, -1, 2 },
-	{ -3, 1, 2 },
-
-	{ 1, 3, 2 },
-	{ -1, -3, 2 },
-
-	{ -2, -1, 3 },  // 0 degrees yaw, look straight up
-	{ 2, -1, -3 }   // look straight down
+{  3, -1,  2 },
+{ -3,  1,  2 },
+{  1,  3,  2 },
+{ -1, -3,  2 },
+{ -2, -1,  3 },  // 0 degrees yaw, look straight up
+{  2, -1, -3 }   // look straight down
 };
 
 // s = [0]/[2], t = [1]/[2]
 int vec_to_st[6][3] =
 {
-	{ -2, 3, 1 },
-	{ 2, 3, -1 },
-
-	{ 1, 3, 2 },
-	{ -1, 3, -2 },
-
-	{ -2, -1, 3 },
-	{ -2, 1, -3 }
+{ -2,  3,  1 },
+{  2,  3, -1 },
+{  1,  3,  2 },
+{ -1,  3, -2 },
+{ -2, -1,  3 },
+{ -2,  1, -3 }
 };
 
 /*
@@ -540,7 +535,7 @@ loc1:
 	// clip it
 	sides[i] = sides[0];
 	dists[i] = dists[0];
-	VectorCopy( vecs, ( vecs+( i*3 ) ) );
+	VectorCopy( vecs, ( vecs + ( i * 3 )));
 	newc[0] = newc[1] = 0;
 
 	for( i = 0, v = vecs; i < nump; i++, v += 3 )
@@ -639,14 +634,12 @@ void R_ClearSkyBox( void )
 	}
 }
 
-void MakeSkyVec( float x, float y, float z, int axis, vec3_t v )
+static void MakeSkyVec( float x, float y, float z, int axis, vec3_t v )
 {
 	int	j, k;
 	vec3_t	b;
 
-	b[0] = x;
-	b[1] = y;
-	b[2] = z;
+	VectorSet( b, x, y, z );
 
 	for( j = 0; j < 3; j++ )
 	{

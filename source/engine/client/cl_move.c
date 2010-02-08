@@ -31,7 +31,7 @@ usercmd_t CL_CreateCmd( void )
 	clgame.dllFuncs.pfnCreateMove( &cmd, host.frametime, ( cls.state == ca_active ));
 
 	// never let client.dll calc frametime for player
-	// potential backdoor for cheating
+	// because is potential backdoor for cheating
 	cmd.msec = ms;
 
 	return cmd;

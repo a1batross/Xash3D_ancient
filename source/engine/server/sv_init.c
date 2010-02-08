@@ -226,7 +226,6 @@ void SV_DeactivateServer( void )
 	svgame.globals->maxEntities = GI->max_edicts;
 	svgame.globals->maxClients = sv_maxclients->integer;
 	svgame.globals->numEntities = svgame.globals->maxClients + 1; // clients + world
-	svgame.globals->numClients = 0;
 	svgame.globals->mapname = 0;
 }
 

@@ -561,6 +561,12 @@ void SV_SendClientMessages( void )
 			cl->sendinfo = false;
 			SV_FullClientUpdate( cl, &sv.multicast );
 		}
+                    
+		if( cl->sendmovevars )
+		{
+			cl->sendmovevars = false;
+			SV_UpdatePhysinfo( cl, &sv.multicast );
+                    }
 
 		// if the reliable message overflowed, drop the client
 		if( cl->netchan.message.overflowed )

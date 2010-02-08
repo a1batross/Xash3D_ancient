@@ -166,7 +166,7 @@ void R_BackendInit( void )
 	r_dlightsPass.glState = GLSTATE_DEPTHFUNC_EQ|GLSTATE_SRCBLEND_DST_COLOR|GLSTATE_DSTBLEND_ONE;
 
 	// init fog pass
-	Mem_Set( &r_fogPass, 0, sizeof( ref_stage_t ) );
+	Mem_Set( &r_fogPass, 0, sizeof( ref_stage_t ));
 	r_fogPass.tcgen = TCGEN_FOG;
 	r_fogPass.rgbGen.type = RGBGEN_FOG;
 	r_fogPass.alphaGen.type = ALPHAGEN_IDENTITY;

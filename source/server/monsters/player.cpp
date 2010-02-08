@@ -3282,10 +3282,12 @@ void CBasePlayer :: ForceClientDllUpdate( void )
 	hearNeedsUpdate = 1;
 	viewNeedsUpdate = 1;
 
-	// Now force all the necessary messages
-	//  to be sent.
+	// Now force all the necessary messages to be sent.
 	UpdateClientData();
 	g_pGameRules->InitHUD( this );
+
+	if( m_pActiveItem )
+		m_pActiveItem->SendWeaponAnim( m_pActiveItem->m_iSequence );
 }
 
 /*
@@ -4250,7 +4252,7 @@ Vector CBasePlayer :: GetAutoaimVector( float flDelta )
 	m_vecAutoAim = angles * 0.9;
 
 	// Don't send across network if sv_aim is 0
-	if( CVAR_GET_FLOAT( "sv_aim" ) != 0 )
+	if( !IsMultiplayer() && CVAR_GET_FLOAT( "sv_aim" ) != 0 )
 	{
 		if ( m_vecAutoAim.x != m_lastx || m_vecAutoAim.y != m_lasty )
 		{
@@ -4277,7 +4279,7 @@ Vector CBasePlayer :: AutoaimDeflection( Vector &vecSrc, float flDist, float flD
 	edict_t		*bestent;
 	TraceResult tr;
 
-	if( CVAR_GET_FLOAT( "sv_aim" ) == 0 )
+	if( IsMultiplayer() || CVAR_GET_FLOAT( "sv_aim" ) == 0 )
 	{
 		m_fOnTarget = FALSE;
 		return g_vecZero;

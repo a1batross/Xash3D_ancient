@@ -35,6 +35,7 @@ void CL_WriteDemoHeader( const char *name )
 {
 	char		buf_data[MAX_MSGLEN];
 	entity_state_t	*state, nullstate;
+	movevars_t	nullmovevars;
 	sizebuf_t		buf;
 	int		i, len;
 
@@ -87,6 +88,7 @@ void CL_WriteDemoHeader( const char *name )
 
 	// baselines
 	Mem_Set( &nullstate, 0, sizeof( nullstate ));
+	Mem_Set( &nullmovevars, 0, sizeof( nullmovevars ));
 
 	for( i = 0; i < clgame.globals->maxEntities; i++ )
 	{
@@ -129,6 +131,8 @@ void CL_WriteDemoHeader( const char *name )
 		}
 		else MSG_WriteByte( &buf, false );
 	}
+
+	MSG_WriteDeltaMovevars( &buf, &nullmovevars, &clgame.movevars );
 
 	// write it to the demo file
 	len = LittleLong( buf.cursize );
@@ -186,7 +190,7 @@ bool CL_NextDemo( void )
 		cls.demonum = 0;
 		if( !cls.demos[cls.demonum][0] )
 		{
-			Msg( "no demos listed with startdemos\n" );
+			MsgDev( D_INFO, "no demos listed with startdemos\n" );
 			cls.demonum = -1;
 			return false;
 		}
@@ -208,7 +212,9 @@ CL_DemoCompleted
 void CL_DemoCompleted( void )
 {
 	CL_StopPlayback();
-	CL_NextDemo();
+
+	if( !CL_NextDemo() && host.developer <= 2 )
+		UI_SetActiveMenu( UI_MAINMENU );
 }
 
 /*
@@ -293,6 +299,8 @@ void CL_StopPlayback( void )
 	// let game known about movie state	
 	cls.state = ca_disconnected;
 	cls.demoname[0] = '\0';	// clear demoname too
+
+	if( clgame.hInstance ) clgame.dllFuncs.pfnReset(); // end of demos, stop the client
 }
 
 void CL_StopRecord( void )

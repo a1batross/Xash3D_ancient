@@ -883,6 +883,37 @@ int CBasePlayerWeapon :: SetAnimation( Activity activity, float fps )
 	return -1; //no matches found
 }
 
+float CBasePlayerWeapon :: SequenceFPS( int iSequence )
+{
+	dstudiohdr_t *pstudiohdr = (dstudiohdr_t *)GET_MODEL_PTR( ENT( pev ));
+
+	if( pstudiohdr )
+	{
+		dstudioseqdesc_t *pseqdesc;
+
+		if( iSequence == -1 ) iSequence = m_iSequence;			
+		pseqdesc = (dstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex) + iSequence;
+		return pseqdesc->fps;
+	}
+	return 0.0f;
+}
+
+float CBasePlayerWeapon :: SequenceDuration( int iSequence, float fps )
+{               
+	dstudiohdr_t *pstudiohdr = (dstudiohdr_t *)GET_MODEL_PTR( ENT( pev ));
+
+	if( pstudiohdr )
+	{
+		dstudioseqdesc_t *pseqdesc;
+
+		if( iSequence == -1 ) iSequence = m_iSequence;			
+		pseqdesc = (dstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex) + iSequence;
+		if( fps == 0.0f ) fps = pseqdesc->fps;
+		return (float)pseqdesc->numframes / fps;
+	}
+	return 0.0f;
+}
+
 //=========================================================
 //	Set Weapon Anim
 //=========================================================
@@ -918,7 +949,7 @@ void CBasePlayerWeapon :: SendWeaponAnim( int sequence, float fps )
 //=========================================================
 //	generic base functions
 //=========================================================
-BOOL CBasePlayerWeapon :: DefaultDeploy( Activity sequence )
+BOOL CBasePlayerWeapon :: DefaultDeploy( Activity activity )
 {                                                       
 	if( PLAYER_HAS_SUIT )
 		pev->body |= GORDON_SUIT;
@@ -931,10 +962,12 @@ BOOL CBasePlayerWeapon :: DefaultDeploy( Activity sequence )
 	m_pPlayer->pev->viewmodel = iViewModel();
 	m_pPlayer->pev->weaponmodel = iWorldModel();
 	strcpy( m_pPlayer->m_szAnimExtention, szAnimExt());
-		
-	if( SetAnimation( sequence ) != -1 )
+
+	m_iSequence = LookupActivity( activity );		
+	float fps = IsMultiplayer() ? SequenceFPS() * 2.0f : 0.0f;
+	if( SetAnimation( activity, fps ) != -1 )
 	{
-		SetNextAttack( SequenceDuration() + 0.5 ); // delay before idle playing       
+		SetNextAttack( SequenceDuration( m_iSequence, fps )); // delay before idle playing       
 		return TRUE;        
 	}
 
@@ -942,15 +975,18 @@ BOOL CBasePlayerWeapon :: DefaultDeploy( Activity sequence )
 	return FALSE;
 }
 
-BOOL CBasePlayerWeapon :: DefaultHolster( Activity sequence )
+BOOL CBasePlayerWeapon :: DefaultHolster( Activity activity )
 {
 	m_fInReload = FALSE;
 	int iResult = 0;
 
-	iResult = SetAnimation( sequence );
+	m_iSequence = LookupActivity( activity );
+	float fps = IsMultiplayer() ? SequenceFPS() * 2.0f : 0.0f;
+
+	iResult = SetAnimation( activity, fps );
 	if( iResult == -1 ) return 0;
 
-	SetNextAttack( SequenceDuration() + 0.1 ); // delay before switching
+	SetNextAttack( SequenceDuration( m_iSequence, fps )); // delay before switching
 	if( m_pSpot ) // disable laser dot
 	{
 		EMIT_SOUND( ENT( m_pPlayer->pev ), CHAN_ITEM, "weapons/spot_off.wav", 1, ATTN_NORM );

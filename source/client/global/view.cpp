@@ -930,7 +930,7 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 	if( !pparams->smoothing || !pparams->onground || cl_stairsmooth->value <= 0 )
 	{
 		old_client_z = pparams->vieworg[2];
-		old_weapon_z = pparams->vieworg[2];
+		old_weapon_z = view->v.origin[2];
 	}
 	else
 	{

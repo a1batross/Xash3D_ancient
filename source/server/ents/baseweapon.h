@@ -155,9 +155,11 @@ public:
           void SendWeaponAnim( int sequence, float fps = 0 );
 	float SetNextAttack( float delay ) { return m_pPlayer->m_flNextAttack = gpGlobals->time + delay; }
 	float SetNextIdle( float delay ) { return m_flTimeWeaponIdle = gpGlobals->time + delay; }
-	float SequenceDuration( void ) { return CBaseAnimating :: SequenceDuration( m_iSequence ); }
-          int GetNumBodies( void )
-          {
+	float SequenceDuration( int sequence = -1, float fps = 0 );
+	float SequenceFPS( int sequence = -1 );
+
+	int GetNumBodies( void )
+	{
 		dstudiohdr_t *pstudiohdr = (dstudiohdr_t *)(GET_MODEL_PTR( ENT( pev )));
 		if( pstudiohdr )
 		{

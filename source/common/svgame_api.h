@@ -42,7 +42,6 @@ typedef struct globalvars_s
 	int		trace_hitgroup;
 	int		trace_flags;
 
-	int		numClients;	// actual clients count (was msg_entity)
 	int		numEntities;	// actual ents count (was cdAudioTrack)
 	int		maxClients;
 	int		maxEntities;

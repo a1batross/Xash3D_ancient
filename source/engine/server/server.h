@@ -89,6 +89,7 @@ typedef struct sv_client_s
 	char		userinfo[MAX_INFO_STRING];	// name, etc (received from client)
 	char		physinfo[MAX_INFO_STRING];	// set on server (transmit to client)
 	bool		physinfo_modified;		// transmit at next opportunity
+	bool		sendmovevars;
 	bool		sendinfo;
 
 	int		lastframe;		// for delta compression
@@ -357,6 +358,7 @@ void SV_DirectConnect( netadr_t from );
 void SV_TogglePause( const char *msg );
 void SV_PutClientInServer( edict_t *ent );
 void SV_FullClientUpdate( sv_client_t *cl, sizebuf_t *msg );
+void SV_UpdatePhysinfo( sv_client_t *cl, sizebuf_t *msg );
 bool SV_ClientConnect( edict_t *ent, char *userinfo );
 void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd );
 void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg );

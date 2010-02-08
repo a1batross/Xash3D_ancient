@@ -198,7 +198,7 @@ static _inline void R_PushMesh( const mesh_t *mesh, int features )
 {
 	int numverts;
 
-	if( !( mesh->elems || ( features & MF_TRIFAN ) ) || !mesh->xyzArray )
+	if( !mesh || !( mesh->elems || ( features & MF_TRIFAN ) ) || !mesh->xyzArray )
 		return;
 
 	r_features = features;
@@ -300,6 +300,7 @@ static _inline void R_PushMesh( const mesh_t *mesh, int features )
 
 static _inline bool R_MeshOverflow( const mesh_t *mesh )
 {
+	if( !mesh ) return false;
 	return ( r_backacc.numVerts + mesh->numVertexes > MAX_ARRAY_VERTS ||
 		r_backacc.numElems + mesh->numElems > MAX_ARRAY_ELEMENTS );
 }

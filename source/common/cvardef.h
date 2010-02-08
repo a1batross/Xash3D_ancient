@@ -10,6 +10,7 @@
 #define FCVAR_USERINFO	BIT(1)	// added to userinfo  when changed
 #define FCVAR_SERVERINFO	BIT(2)	// added to serverinfo when changed
 #define FCVAR_LATCH		BIT(3)	// create latched cvar
+#define FCVAR_PHYSICINFO	BIT(4)	// added to physicinfo (movevars) when changed
 
 /*
 ========================================================================

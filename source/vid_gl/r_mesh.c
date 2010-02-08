@@ -704,10 +704,10 @@ void R_FreeMeshLists( void )
 
 	Mem_FreePool( &r_meshlistmempool );
 
-	memset( &r_worldlist, 0, sizeof( meshlist_t ) );
-	memset( &r_shadowlist, 0, sizeof( meshlist_t ) );
-	memset( &r_portallist, 0, sizeof( meshlist_t ) );
-	memset( &r_skyportallist, 0, sizeof( r_skyportallist ) );
+	Mem_Set( &r_worldlist, 0, sizeof( meshlist_t ));
+	Mem_Set( &r_shadowlist, 0, sizeof( meshlist_t ));
+	Mem_Set( &r_portallist, 0, sizeof( meshlist_t ));
+	Mem_Set( &r_skyportallist, 0, sizeof( r_skyportallist ));
 }
 
 /*
@@ -1185,15 +1185,15 @@ R_DrawSkyPortal
 */
 void R_DrawSkyPortal( skyportal_t *skyportal, vec3_t mins, vec3_t maxs )
 {
-	int x, y, w, h;
-	refinst_t oldRI;
+	int	x, y, w, h;
+	refinst_t	oldRI;
 
 	if( !R_ScissorForPortal( r_worldent, mins, maxs, &x, &y, &w, &h ))
 		return;
 
 	RI.previousentity = NULL;
-	Mem_Copy( &oldRI, &prevRI, sizeof( refinst_t ) );
-	Mem_Copy( &prevRI, &RI, sizeof( refinst_t ) );
+	Mem_Copy( &oldRI, &prevRI, sizeof( refinst_t ));
+	Mem_Copy( &prevRI, &RI, sizeof( refinst_t ));
 
 	RI.params = ( RI.params|RP_SKYPORTALVIEW ) & ~( RP_OLDVIEWCLUSTER|RP_PORTALCAPTURED|RP_PORTALCAPTURED2 );
 	VectorCopy( skyportal->vieworg, RI.pvsOrigin );
@@ -1235,8 +1235,8 @@ void R_DrawSkyPortal( skyportal_t *skyportal, vec3_t mins, vec3_t maxs )
 	r_skyPortalSurfMbuffers = RI.surfmbuffers;
 	r_oldviewcluster = r_viewcluster = -1;		// force markleafs next frame
 
-	Mem_Copy( &RI, &prevRI, sizeof( refinst_t ) );
-	Mem_Copy( &prevRI, &oldRI, sizeof( refinst_t ) );
+	Mem_Copy( &RI, &prevRI, sizeof( refinst_t ));
+	Mem_Copy( &prevRI, &oldRI, sizeof( refinst_t ));
 }
 
 /*

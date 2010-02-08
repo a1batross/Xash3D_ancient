@@ -151,6 +151,11 @@ bool V_PreRender( void )
 	// too early
 	if( !re ) return false;
 
+	if( host.state == HOST_NOFOCUS )
+		return false;
+	if( host.state == HOST_SLEEP )
+		return false;
+
 	re->BeginFrame( !cl.refdef.paused );
 	return true;
 }

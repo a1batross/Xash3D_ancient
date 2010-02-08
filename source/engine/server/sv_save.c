@@ -620,7 +620,6 @@ void SV_ReadEntities( wfile_t *l )
 		SV_InitEdict( ent );
 		ent->pvServerData->client = svs.clients + i;
 		ent->pvServerData->client->edict = ent;
-		svgame.globals->numClients++;
 	}
 
 	SV_ReadBuffer( l, LUMP_ENTTABLE );

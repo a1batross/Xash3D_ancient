@@ -518,7 +518,7 @@ static void S_IssuePlaySounds( void )
 			break;	// No more pending playSounds this frame
 		// pick a channel and start the sound effect
 		ch = S_PickChannel( ps->entnum, ps->entchannel );
-		if(!ch)
+		if( !ch )
 		{
 			if( ps->sfx->name[0] == '#' ) MsgDev( D_ERROR, "dropped sound %s\n", &ps->sfx->name[1] );
 			else MsgDev( D_ERROR, "dropped sound \"sound/%s\"\n", ps->sfx->name );
@@ -637,7 +637,7 @@ void S_StopAllSounds( void )
 	channel_t	*ch;
 	int	i;
 
-	if(!al_state.initialized)
+	if( !al_state.initialized )
 		return;
 
 	// Clear all the playSounds
@@ -704,10 +704,11 @@ Called once each time through the main loop
 */
 void S_Update( ref_params_t *fd )
 {
-	channel_t		*ch;
-	int		i;
+	channel_t	*ch;
+	int	i;
 
-	if( !al_state.initialized || !fd ) return;
+	if( !al_state.initialized || !fd )
+		return;
 
 	// bump frame count
 	al_state.framecount++;

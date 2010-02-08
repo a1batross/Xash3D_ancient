@@ -28,6 +28,10 @@ Beta 13.02.10
 0. Implement gearcraft map format for bsplib		OK
 1. finalize LAN game menu (join the game)		OK
 2. finalize Create game menu (apply game settings)	OK
-3. finalize Controls menu (re-define keys)
-4. move base menu resources into baserc.dll
-5. fix multiplayer bugs
+3. fix items pickup sound bug
+
+
+
+
+
+

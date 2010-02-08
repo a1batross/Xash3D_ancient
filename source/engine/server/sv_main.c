@@ -40,8 +40,8 @@ cvar_t	*hostname;
 cvar_t	*sv_maxclients;
 cvar_t	*sv_check_errors;
 cvar_t	*public_server; // should heartbeats be sent
-
 cvar_t	*sv_reconnect_limit;// minimum seconds between connect messages
+cvar_t	*physinfo;
 
 void Master_Shutdown (void);
 
@@ -166,6 +166,8 @@ void SV_UpdateMovevars( void )
 		oldserverflags = svgame.globals->serverflags;		
 	}
 
+	if( !physinfo->modified ) return;
+
 	svgame.movevars.gravity = sv_gravity->value;
 	svgame.movevars.stopspeed = sv_stopspeed->value;
 	svgame.movevars.maxspeed = sv_maxspeed->value;
@@ -190,6 +192,7 @@ void SV_UpdateMovevars( void )
 		MSG_Send( MSG_ALL, vec3_origin, NULL );
 		Mem_Copy( &svgame.oldmovevars, &svgame.movevars, sizeof( movevars_t )); // oldstate changed
 	}
+	physinfo->modified = false;
 }
 
 /*
@@ -523,7 +526,7 @@ void SV_Init( void )
 	Cvar_Get ("sv_aim", "1", 0, "enable auto-aiming" );
 
 	sv_fps = Cvar_Get( "sv_fps", "72.1", CVAR_ARCHIVE, "running server physics at" );
-	sv_stepheight = Cvar_Get( "sv_stepheight", "18", CVAR_ARCHIVE, "how high you can step up" );
+	sv_stepheight = Cvar_Get( "sv_stepheight", "18", CVAR_ARCHIVE|CVAR_PHYSICINFO, "how high you can step up" );
 	sv_playersonly = Cvar_Get( "playersonly", "0", 0, "freezes time, except for players" );
 	hostname = Cvar_Get( "sv_hostname", "unnamed", CVAR_SERVERINFO | CVAR_ARCHIVE, "host name" );
 	timeout = Cvar_Get( "timeout", "125", 0, "connection timeout" );
@@ -532,24 +535,25 @@ void SV_Init( void )
 	sv_enforcetime = Cvar_Get( "sv_enforcetime", "0", 0, "client enforce time" );
 	allow_download = Cvar_Get( "allow_download", "0", CVAR_ARCHIVE, "allow download resources" );
 	sv_noreload = Cvar_Get( "sv_noreload", "0", 0, "ignore savepoints for singleplayer" );
-	sv_wallbounce = Cvar_Get( "sv_wallbounce", "1.0", 0, "bounce factor for client with MOVETYPE_BOUNCE" );
-	sv_spectatormaxspeed = Cvar_Get( "sv_spectatormaxspeed", "500", 0, "spectator maxspeed" );
-	sv_waterfriction = Cvar_Get( "sv_waterfriction", "4", 0, "how fast you slow down in water" );
-	sv_wateraccelerate = Cvar_Get( "sv_wateraccelerate", "10", 0, "rate at which a player accelerates to sv_maxspeed while in the water" );
-	sv_rollangle = Cvar_Get( "sv_rollangle", "2", 0, "how much to tilt the view when strafing" );
-	sv_rollspeed = Cvar_Get( "sv_rollspeed", "200", 0, "how much strafing is necessary to tilt the view" );
-	sv_airaccelerate = Cvar_Get("sv_airaccelerate", "1", 0, "player accellerate in air" );
+	sv_wallbounce = Cvar_Get( "sv_wallbounce", "1.0", CVAR_PHYSICINFO, "bounce factor for client with MOVETYPE_BOUNCE" );
+	sv_spectatormaxspeed = Cvar_Get( "sv_spectatormaxspeed", "500", CVAR_PHYSICINFO, "spectator maxspeed" );
+	sv_waterfriction = Cvar_Get( "sv_waterfriction", "4", CVAR_PHYSICINFO, "how fast you slow down in water" );
+	sv_wateraccelerate = Cvar_Get( "sv_wateraccelerate", "10", CVAR_PHYSICINFO, "rate at which a player accelerates to sv_maxspeed while in the water" );
+	sv_rollangle = Cvar_Get( "sv_rollangle", "2", CVAR_PHYSICINFO, "how much to tilt the view when strafing" );
+	sv_rollspeed = Cvar_Get( "sv_rollspeed", "200", CVAR_PHYSICINFO, "how much strafing is necessary to tilt the view" );
+	sv_airaccelerate = Cvar_Get("sv_airaccelerate", "1", CVAR_PHYSICINFO, "player accellerate in air" );
 	sv_idealpitchscale = Cvar_Get( "sv_idealpitchscale", "0.8", 0, "how much to look up/down slopes and stairs when not using freelook" );
-	sv_maxvelocity = Cvar_Get( "sv_maxvelocity", "2000", CVAR_LATCH, "max world velocity" );
-          sv_gravity = Cvar_Get( "sv_gravity", "800", 0, "world gravity" );
-	sv_maxspeed = Cvar_Get( "sv_maxspeed", "320", 0, "maximum speed a player can accelerate to when on ground");
-	sv_accelerate = Cvar_Get( "sv_accelerate", "10", 0, "rate at which a player accelerates to sv_maxspeed" );
-	sv_friction = Cvar_Get( "sv_friction", "4", 0, "how fast you slow down" );
-	sv_edgefriction = Cvar_Get( "sv_edgefriction", "1", 0, "how much you slow down when nearing a ledge you might fall off" );
-	sv_stopspeed = Cvar_Get( "sv_stopspeed", "100", 0, "how fast you come to a complete stop" );
+	sv_maxvelocity = Cvar_Get( "sv_maxvelocity", "2000", CVAR_LATCH|CVAR_PHYSICINFO, "max world velocity" );
+          sv_gravity = Cvar_Get( "sv_gravity", "800", CVAR_PHYSICINFO, "world gravity" );
+	sv_maxspeed = Cvar_Get( "sv_maxspeed", "320", CVAR_PHYSICINFO, "maximum speed a player can accelerate to when on ground");
+	sv_accelerate = Cvar_Get( "sv_accelerate", "10", CVAR_PHYSICINFO, "rate at which a player accelerates to sv_maxspeed" );
+	sv_friction = Cvar_Get( "sv_friction", "4", CVAR_PHYSICINFO, "how fast you slow down" );
+	sv_edgefriction = Cvar_Get( "sv_edgefriction", "1", CVAR_PHYSICINFO, "how much you slow down when nearing a ledge you might fall off" );
+	sv_stopspeed = Cvar_Get( "sv_stopspeed", "100", CVAR_PHYSICINFO, "how fast you come to a complete stop" );
 	sv_maxclients = Cvar_Get( "sv_maxclients", "1", CVAR_SERVERINFO|CVAR_LATCH, "server clients limit" );
 	sv_check_errors = Cvar_Get( "sv_check_errors", "0", CVAR_ARCHIVE, "ignore physic engine errors" );
 	sv_synchthink = Cvar_Get( "sv_fast_think", "0", CVAR_ARCHIVE, "allows entities to think more often than the server framerate" );
+	physinfo = Cvar_Get( "@physinfo", "0", CVAR_READ_ONLY, "" ); // use ->modified value only
 	
 	public_server = Cvar_Get ("public", "0", 0, "change server type from private to public" );
 

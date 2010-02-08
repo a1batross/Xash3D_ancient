@@ -121,6 +121,13 @@ void Cmd_ForwardToServer( void )
 {
 	char	*cmd;
 
+	if( cls.demoplayback )
+	{
+		if( !com.stricmp( Cmd_Argv( 1 ), "pause" ))
+			cl.refdef.paused ^= 1;
+		return;
+	}
+
 	cmd = Cmd_Argv( 0 );
 	if( cls.state <= ca_connected || *cmd == '-' || *cmd == '+' )
 	{
@@ -902,7 +909,19 @@ void CL_RequestNextDownload( void )
 		precache_check = ENV_CNT + 1;
 
 		CM_BeginRegistration( cl.configstrings[CS_MODELS+1], true, &map_checksum );
-		if( map_checksum != com.atoi( cl.configstrings[CS_MAPCHECKSUM] ))
+
+		if( com.atoi( cl.configstrings[CS_MAPCHECKSUM] ) == 0xBAD )
+		{
+			if( cl.refdef.demoplayback )
+				MsgDev( D_INFO, "Playing demo without physics collision\n" );
+			else MsgDev( D_WARN, "Server %s doesn't have physics\n", cls.servername );
+		}
+		else if( map_checksum == 0xBAD && !pe )
+		{
+			if( !cls.demoplayback )
+				MsgDev( D_WARN, "Local client doesn't have physics\n" );
+		}
+		else if( map_checksum != com.atoi( cl.configstrings[CS_MAPCHECKSUM] ))
 		{
 			Host_Error( "Local map version differs from server: %i != '%s'\n", map_checksum, cl.configstrings[CS_MAPCHECKSUM] );
 			return;
@@ -1129,12 +1148,12 @@ void CL_Init( void )
 
 	Con_Init();	
 
-	if( !CL_LoadProgs( "client" ))
-		Host_Error( "CL_InitGame: can't initialize client.dll\n" );
-
 	MSG_Init( &net_message, net_message_buffer, sizeof( net_message_buffer ));
 
 	Host_CheckChanges ();
+
+	if( !CL_LoadProgs( "client" ))
+		Host_Error( "CL_InitGame: can't initialize client.dll\n" );
 
 	CL_InitLocal();
 	cls.initialized = true;

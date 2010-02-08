@@ -32,7 +32,7 @@ void GameDLLInit( void )
 	CVAR_REGISTER( "mp_teamplay", "0", FCVAR_SERVERINFO, "sets to 1 to indicate teamplay" );
 	CVAR_REGISTER( "mp_fraglimit", "0", FCVAR_SERVERINFO, "limit of frags for current server" );
 	CVAR_REGISTER( "mp_timelimit", "0", FCVAR_SERVERINFO, "server timelimit" );
-	CVAR_REGISTER( "mp_footsteps", "0", FCVAR_SERVERINFO, "can hear footsteps from other players" );
+	CVAR_REGISTER( "mp_footsteps", "0", FCVAR_SERVERINFO|FCVAR_PHYSICINFO, "can hear footsteps from other players" );
 	
 	CVAR_REGISTER( "mp_fragsleft", "0", FCVAR_SERVERINFO, "counter that indicated how many frags remaining" );
 	CVAR_REGISTER( "mp_timeleft", "0" , FCVAR_SERVERINFO, "counter that indicated how many time remaining" );

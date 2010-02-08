@@ -900,7 +900,6 @@ void CL_InitWorld( void )
 		// setup all clients
 		ent = EDICT_NUM( i + 1 );
 		CL_InitEdict( ent );
-		clgame.globals->numClients++;
 	}
 
 	// clear viewmodel prevstate
@@ -942,7 +941,6 @@ void CL_FreeEdicts( void )
 	// clear globals
 	StringTable_Clear( clgame.hStringTable );
 	clgame.globals->numEntities = 0;
-	clgame.globals->numClients = 0;
 	clgame.baselines = NULL;
 	clgame.edicts = NULL;
 }

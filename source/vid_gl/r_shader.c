@@ -1077,7 +1077,6 @@ static bool Shader_SkyRotate( ref_shader_t *shader, ref_stage_t *pass, script_t 
 	VectorSet( shader->skyAxis, 0.0f, 0.0f, 1.0f );
 	shader->skySpeed = 0.0f;
 
-	// clear dist is optionally parm
 	if( !Com_ReadFloat( script, false, &shader->skySpeed ))
 	{
 		MsgDev( D_ERROR, "missing sky speed for 'skyRotate' in shader '%s'\n", shader->name );

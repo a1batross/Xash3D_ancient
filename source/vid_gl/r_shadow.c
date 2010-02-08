@@ -207,9 +207,9 @@ static void R_InitShadowmaps( void )
 	r_numShadowGroups = 0;
 //	r_shadowGroups_sorted = false;
 
-	memset( r_shadowGroups, 0, sizeof( r_shadowGroups ) );
-	memset( r_entShadowBits, 0, sizeof( r_entShadowBits ) );
-	memset( r_shadowGroups_hash, 0, sizeof( r_shadowGroups_hash ) );
+	Mem_Set( r_shadowGroups, 0, sizeof( r_shadowGroups ));
+	Mem_Set( r_entShadowBits, 0, sizeof( r_entShadowBits ));
+	Mem_Set( r_shadowGroups_hash, 0, sizeof( r_shadowGroups_hash ));
 }
 
 /*

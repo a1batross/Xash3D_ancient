@@ -118,6 +118,7 @@ enum
 
 typedef struct
 {
+	float			skyHeight;
 	mesh_t			*meshes;
 	vec2_t			*sphereStCoords[6];
 	vec2_t			*linearStCoords[6];

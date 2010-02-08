@@ -48,7 +48,7 @@ bool R_SurfPotentiallyVisible( msurface_t *surf )
 		return true;
 	if( surf->flags & SURF_NODRAW )
 		return false;
-	if( !surf->mesh || R_InvalidMesh( surf->mesh ) )
+	if( !surf->mesh || R_InvalidMesh( surf->mesh ))
 		return false;
 	return true;
 }
@@ -62,7 +62,7 @@ bool R_CullSurface( msurface_t *surf, uint clipflags )
 {
 	ref_shader_t *shader = surf->shader;
 
-	if(( shader->flags & SHADER_SKY ) && r_fastsky->integer )
+	if(( shader->flags & SHADER_SKYPARMS ) && r_fastsky->integer )
 		return true;
 	if( r_nocull->integer )
 		return false;
@@ -225,7 +225,7 @@ void R_AddBrushModelToList( ref_entity_t *e )
 	uint		i;
 	bool		rotated;
 	ref_model_t	*model = e->model;
-	mbrushmodel_t	*bmodel = ( mbrushmodel_t * )model->extradata;
+	mbrushmodel_t	*bmodel = (mbrushmodel_t *)model->extradata;
 	msurface_t	*psurf;
 	uint		dlightbits;
 	meshbuffer_t	*mb;
@@ -302,9 +302,9 @@ R_MarkLeafSurfaces
 */
 static void R_MarkLeafSurfaces( msurface_t **mark, uint clipflags, uint dlightbits )
 {
-	unsigned int newDlightbits;
-	msurface_t *surf;
-	meshbuffer_t *mb;
+	uint		newDlightbits;
+	msurface_t	*surf;
+	meshbuffer_t	*mb;
 
 	do
 	{
@@ -316,8 +316,7 @@ static void R_MarkLeafSurfaces( msurface_t **mark, uint clipflags, uint dlightbi
 		{
 			surf->visframe = r_framecount;
 			mb = R_AddSurfaceToList( surf, clipflags );
-			if( mb )
-				mb->sortkey |= ( ( surf->superLightStyle+1 ) << 10 );
+			if( mb ) mb->sortkey |= ( ( surf->superLightStyle+1 ) << 10 );
 		}
 		else
 		{
@@ -451,7 +450,7 @@ static void R_LinearShadowLeafs( void )
 	{
 		if( pleaf->visframe != r_framecount )
 			continue;
-		if( !( RI.shadowGroup->vis[pleaf->cluster>>3] & ( 1<<( pleaf->cluster&7 ) ) ) )
+		if( !( RI.shadowGroup->vis[pleaf->cluster>>3] & ( 1<<( pleaf->cluster & 7 ))))
 			continue;
 
 		cpf = RI.clipFlags;
@@ -481,7 +480,7 @@ R_ClearSurfOcclusionQueryKeys
 */
 void R_ClearSurfOcclusionQueryKeys( void )
 {
-	memset( r_surfQueryKeys, -1, sizeof( r_surfQueryKeys ) );
+	Mem_Set( r_surfQueryKeys, -1, sizeof( r_surfQueryKeys ));
 }
 
 /*

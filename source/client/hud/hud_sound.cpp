@@ -193,9 +193,9 @@ static int CheckFormat( BOOL skip_buffer )
 	if( !stricmp( UTIL_FileExtension( songname ), "xm" ))
 		return TRACK;
 	if( !stricmp( UTIL_FileExtension( songname ), "it" ))
-		return STREAM;
+		return TRACK;
 	if( !stricmp( UTIL_FileExtension( songname ), "s3m" ))
-		return STREAM;
+		return TRACK;
 	return false;
 }
 
@@ -217,17 +217,19 @@ int CHudSound :: Init( void )
 		if( qfmod_getversion() > 3.4f && qfmod_getversion() < 3.3f )
 		{
 			Sys_UnloadLibrary( &fmod_dll ); //free library
-			ALERT( at_warning, "Invalid fmod version: %g\n", qfmod_getversion());
-			return 1;
+			ALERT( at_warning, "Invalid fmod version: %g\n", qfmod_getversion( ));
+			return 0;
           	}
 
 		qfmod_setbuffersize( 100 );
-          	qfmod_setoutput( FSOUND_OUTPUT_DSOUND );
+          	qfmod_setoutput( FSOUND_OUTPUT_WINMM );
 		qfmod_setdriver( 0 );
-		if( !qfmod_init( 48000, 32, 0 ))
+
+		// NOTE: 32 channels needs for correctly playing tracker music
+		if( !qfmod_init( 44100, 32, 0 ))
 		{	
-			ALERT( at_error, "%s\n", FMOD_ErrorString( qfmod_geterror() ));
-			return 1;
+			ALERT( at_error, "%s\n", FMOD_ErrorString( qfmod_geterror( )));
+			return 0;
 		}
 		qfmod_setmixer( FSOUND_MIXER_AUTODETECT );
 	}
@@ -238,9 +240,16 @@ int CHudSound :: Init( void )
 
 int CHudSound :: VidInit( void )
 {
-	// MsgFunc_Fsound( 0, 0, NULL );
-	if( fmod_dll ) qfmod_stopallsongs(); // stop all songs
-	m_flVolume = 0.0;
+	if( fmod_dll )
+	{
+		if( CheckFormat( FALSE ) == TRACK )
+			qfmod_freesong( fmod_data );
+		else if( CheckFormat( FALSE ) == STREAM )
+			qfmod_freestream( fmod_data );
+		songname[0] = '\0';
+		fmod_data = NULL;
+	}
+	m_flVolume = 0.0f;
 	return 1;
 }
 
@@ -266,8 +275,10 @@ int CHudSound :: MsgFunc_Fsound( const char *pszName, int iSize, void *pbuf )
 	if( m_iStatus & 1 ) PlayStream( songname );
 	else if( fmod_data )
 	{
-		if( CheckFormat( FALSE ) == TRACK ) qfmod_freesong( fmod_data );
-		else if( CheckFormat( FALSE ) == STREAM ) qfmod_freestream( fmod_data );
+		if( CheckFormat( FALSE ) == TRACK )
+			qfmod_freesong( fmod_data );
+		else if( CheckFormat( FALSE ) == STREAM )
+			qfmod_freestream( fmod_data );
 		songname[0] = '\0';
 		fmod_data = NULL;
 		m_iStatus = 0;
@@ -281,7 +292,7 @@ int CHudSound :: PlayStream( const char* name )
 {
 	int	filesize;
 	char	*data, path[256];
-	
+
 	if( !fmod_dll || !name || !*name )
 		return false;
 
@@ -316,7 +327,7 @@ int CHudSound :: PlayStream( const char* name )
 
 		if( !fmod_data ) // what's hell?
 		{
-			ALERT( at_console, "%s\n", FMOD_ErrorString(qfmod_geterror()));
+			ALERT( at_console, "%s\n", FMOD_ErrorString( qfmod_geterror( )));
 			FREE_FILE( data );
 			return 1;
 		}

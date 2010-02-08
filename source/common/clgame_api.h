@@ -87,7 +87,6 @@ typedef struct cl_globalvars_s
 
 	int		serverflags;	// shared serverflags
 	int		maxClients;
-	int		numClients;
 	int		maxEntities;
 	int		numEntities;	// actual ents count
 } cl_globalvars_t;

@@ -553,7 +553,7 @@ int Host_ModifyTime( int msec )
 	{
 		// clients of remote servers do not want to clamp time, because
 		// it would skew their view of the server's time temporarily
-		clamp_time = 200;
+		clamp_time = 5000;
 	}
 
 	if( msec > clamp_time ) msec = clamp_time;

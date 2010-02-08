@@ -473,21 +473,21 @@ void CWeaponBox::Touch( CBaseEntity *pOther )
 			CBasePlayerWeapon *pItem;
 
 			// have at least one weapon in this slot
-			while ( m_rgpPlayerItems[ i ] )
+			while ( m_rgpPlayerItems[i] )
 			{
-				//ALERT ( at_console, "trying to give %s\n", STRING( m_rgpPlayerItems[ i ]->pev->classname ) );
+				pItem = m_rgpPlayerItems[i];
+				m_rgpPlayerItems[i] = m_rgpPlayerItems[i]->m_pNext; // unlink this weapon from the box
 
-				pItem = m_rgpPlayerItems[ i ];
-				m_rgpPlayerItems[ i ] = m_rgpPlayerItems[ i ]->m_pNext;// unlink this weapon from the box
-
-				if ( pPlayer->AddPlayerItem( pItem ) ) pItem->AttachToPlayer( pPlayer );
+				if( pPlayer->AddPlayerItem( pItem ))
+					pItem->AttachToPlayer( pPlayer );
 			}
 		}
 	}
 
-	EMIT_SOUND( pOther->edict(), CHAN_ITEM, "items/gunpickup2.wav", 1, ATTN_NORM );
-	SetTouch(NULL);
-	UTIL_Remove(this);
+	EMIT_SOUND( pOther->edict(), CHAN_BODY, "items/gunpickup2.wav", 1, ATTN_NORM );
+
+	SetTouch( NULL );
+	UTIL_Remove( this );
 }
 
 int CWeaponBox::MaxAmmoCarry( int iszName )
@@ -584,7 +584,7 @@ int CWeaponBox::GiveAmmo( int iCount, char *szName, int iMax, int *pIndex/* = NU
 			return -1;
 		}
 	}
-	if (i < MAX_AMMO_SLOTS)
+	if ( i < MAX_AMMO_SLOTS )
 	{
 		if (pIndex) *pIndex = i;
 
@@ -601,9 +601,10 @@ BOOL CWeaponBox::HasWeapon( CBasePlayerWeapon *pCheckItem )
 {
 	CBasePlayerWeapon *pItem = m_rgpPlayerItems[pCheckItem->iItemSlot()];
 
-	while (pItem)
+	while( pItem )
 	{
-		if (FClassnameIs( pItem->pev, STRING( pCheckItem->pev->classname) )) return TRUE;
+		if( FClassnameIs( pItem->pev, STRING( pCheckItem->pev->classname )))
+			return TRUE;
 		pItem = pItem->m_pNext;
 	}
 	return FALSE;
@@ -615,18 +616,20 @@ BOOL CWeaponBox::IsEmpty( void )
 
 	for ( i = 0 ; i < MAX_ITEM_TYPES ; i++ )
 	{
-		if ( m_rgpPlayerItems[ i ] ) return FALSE;
+		if ( m_rgpPlayerItems[ i ] )
+			return FALSE;
 	}
 
 	for ( i = 0 ; i < MAX_AMMO_SLOTS ; i++ )
 	{
-		if ( !FStringNull( m_rgiszAmmo[ i ] )) 	return FALSE; // still have a bit of this type of ammo
+		if ( !FStringNull( m_rgiszAmmo[ i ] ))
+			return FALSE; // still have a bit of this type of ammo
 	}
 	return TRUE;
 }
 
 void CWeaponBox::SetObjectCollisionBox( void )
 {
-	pev->absmin = pev->origin + Vector(-16, -16, 0);
-	pev->absmax = pev->origin + Vector(16, 16, 16); 
+	pev->absmin = pev->origin + Vector( -16, -16, 0);
+	pev->absmax = pev->origin + Vector( 16, 16, 16 ); 
 }

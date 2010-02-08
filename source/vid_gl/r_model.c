@@ -152,7 +152,7 @@ byte *Mod_ClusterPVS( int cluster, ref_model_t *model )
 
 	if( !model || !bmodel || !bmodel->vis || cluster < 0 || cluster >= bmodel->vis->numclusters )
 		return mod_novis;
-	return ( (byte *)bmodel->vis->data + cluster*bmodel->vis->rowsize );
+	return ( (byte *)bmodel->vis->data + cluster * bmodel->vis->rowsize );
 }
 
 
@@ -1187,8 +1187,7 @@ static _inline void Mod_LoadFaceCommon( const dsurfacer_t *in, msurface_t *out )
 	}
 
 	mesh = out->mesh = Mod_CreateMeshForSurface( in, out );
-	if( !mesh )
-		return;
+	if( !mesh ) return;
 
 	ClearBounds( out->mins, out->maxs );
 	for( j = 0, vert = mesh->xyzArray[0]; j < mesh->numVertexes; j++, vert += 4 )
@@ -1943,14 +1942,14 @@ static void Mod_Finish( const lump_t *faces, const lump_t *light, vec3_t gridSiz
 		vec3_t maxs;
 
 		loadbmodel->gridMins[j] = loadbmodel->gridSize[j] *ceil( ( loadbmodel->submodels[0].mins[j] + 1 ) / loadbmodel->gridSize[j] );
-		maxs[j] = loadbmodel->gridSize[j] *floor( ( loadbmodel->submodels[0].maxs[j] - 1 ) / loadbmodel->gridSize[j] );
+		maxs[j] = loadbmodel->gridSize[j] *floor(( loadbmodel->submodels[0].maxs[j] - 1 ) / loadbmodel->gridSize[j] );
 		loadbmodel->gridBounds[j] = ( maxs[j] - loadbmodel->gridMins[j] )/loadbmodel->gridSize[j] + 1;
 	}
 	loadbmodel->gridBounds[3] = loadbmodel->gridBounds[1] * loadbmodel->gridBounds[0];
 
 	// ambient lighting
 	for( i = 0; i < 3; i++ )
-		mapConfig.ambient[i] = bound( 0, ambient[i]*( (float)( 1 << mapConfig.pow2MapOvrbr )/255.0f ), 1 );
+		mapConfig.ambient[i] = bound( 0, ambient[i] * (( float )( 1<<mapConfig.pow2MapOvrbr )/255.0f ), 1 );
 
 	for( i = 0; i < 3; i++ )
 		mapConfig.outlineColor[i] = (byte)(bound( 0, outline[i]*255.0f, 255 ));
@@ -1994,7 +1993,7 @@ static void Mod_Finish( const lump_t *faces, const lump_t *light, vec3_t gridSiz
 		{
 			if( globalFog && surf->mesh && surf->fog != testFog )
 			{
-				if( !( surf->shader->flags & SHADER_SKYPARMS ) && !surf->shader->fog_dist )
+				if(!( surf->shader->flags & SHADER_SKYPARMS ) && !surf->shader->fog_dist )
 					globalFog = false;
 			}
 
@@ -2169,7 +2168,7 @@ void R_BeginRegistration( const char *mapname, const dvis_t *visData )
 	}
 
 	R_NewMap ();
-	
+			
 	if( r_lighting_packlightmaps->integer )
 	{
 		string	lightmapsPath;
@@ -2198,7 +2197,7 @@ void R_BeginRegistration( const char *mapname, const dvis_t *visData )
 	r_worldbrushmodel = (mbrushmodel_t *)r_worldmodel->extradata;
 	r_worldbrushmodel->vis = (dvis_t *)visData;
 	r_worldmodel->type = mod_world;
-
+	
 	r_worldent->scale = 1.0f;
 	r_worldent->model = r_worldmodel;
 	r_worldent->rtype = RT_MODEL;

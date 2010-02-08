@@ -321,9 +321,25 @@ void IN_Frame( void )
 {
 	bool	shutdownMouse = false;
 
-	// if at a full screen console, don't update unless needed
-	if( host.type == HOST_DEDICATED || ( host.state != HOST_FRAME && CL_GetMaxClients() == 1 ))
-		Sys_Sleep( 20 );
+	if( host.type == HOST_DEDICATED )
+	{
+		// let the dedicated server some sleep
+		Sys_Sleep( 5 );
+	}
+	else
+	{
+		if( host.state == HOST_NOFOCUS )
+		{
+			if( Host_ServerState() && CL_Active( ))
+				Sys_Sleep( 5 ); // listenserver
+			else Sys_Sleep( 20 ); // sleep 20 ms otherwise
+		}
+		else if( host.state == HOST_SLEEP )
+		{
+			// completely sleep in minimized state
+			Sys_Sleep( 20 );
+		}
+	}
 
 	if( !in_mouseinitialized )
 		return;
@@ -390,7 +406,7 @@ long IN_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 		Cbuf_ExecuteText( EXEC_APPEND, "quit" );
 		break;
 	case WM_ACTIVATE:
-		if( LOWORD( wParam ) != WA_INACTIVE && HIWORD( wParam ))
+		if( HIWORD( wParam ))
 			host.state = HOST_SLEEP;
 		else if( LOWORD( wParam ) == WA_INACTIVE )
 			host.state = HOST_NOFOCUS;

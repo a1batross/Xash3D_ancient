@@ -105,16 +105,17 @@ typedef enum
 	CVAR_ARCHIVE	= BIT(0),	// set to cause it to be saved to vars.rc
 	CVAR_USERINFO	= BIT(1),	// added to userinfo  when changed
 	CVAR_SERVERINFO	= BIT(2),	// added to serverinfo when changed
-	CVAR_SYSTEMINFO	= BIT(3),	// don't changed from console, saved into config.rc
-	CVAR_INIT		= BIT(4), // don't allow change from console at all, but can be set from the command line
-	CVAR_LATCH	= BIT(5),	// save changes until server restart
-	CVAR_READ_ONLY	= BIT(6),	// display only, cannot be set by user at all
-	CVAR_USER_CREATED	= BIT(7),	// created by a set command (dll's used)
-	CVAR_TEMP		= BIT(8),	// can be set even when cheats are disabled, but is not archived
-	CVAR_CHEAT	= BIT(9),	// can not be changed if cheats are disabled
-	CVAR_NORESTART	= BIT(10),// do not clear when a cvar_restart is issued
-	CVAR_LATCH_VIDEO	= BIT(11),// save changes until render restart
-	CVAR_LATCH_AUDIO	= BIT(12),// save changes until vsound restart
+	CVAR_PHYSICINFO	= BIT(3),	// added to physinfo when changed
+	CVAR_SYSTEMINFO	= BIT(4),	// don't changed from console, saved into config.rc
+	CVAR_INIT		= BIT(5), // don't allow change from console at all, but can be set from the command line
+	CVAR_LATCH	= BIT(6),	// save changes until server restart
+	CVAR_READ_ONLY	= BIT(7),	// display only, cannot be set by user at all
+	CVAR_USER_CREATED	= BIT(8),	// created by a set command (dll's used)
+	CVAR_TEMP		= BIT(9),	// can be set even when cheats are disabled, but is not archived
+	CVAR_CHEAT	= BIT(10),// can not be changed if cheats are disabled
+	CVAR_NORESTART	= BIT(11),// do not clear when a cvar_restart is issued
+	CVAR_LATCH_VIDEO	= BIT(12),// save changes until render restart
+	CVAR_LATCH_AUDIO	= BIT(13),// save changes until vsound restart
 } cvar_flags_t;
 
 typedef struct

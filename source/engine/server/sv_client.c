@@ -321,7 +321,6 @@ void SV_DropClient( sv_client_t *drop )
 		svgame.dllFuncs.pfnSpectatorDisconnect( drop->edict );
 	else svgame.dllFuncs.pfnClientDisconnect( drop->edict );
 
-	SV_RefreshUserinfo(); // refresh userinfo on disconnect
 	drop->edict->pvServerData->s.ed_type = ED_STATIC;	// remove from server
 
 //	SV_FreeEdict( drop->edict );
@@ -329,6 +328,8 @@ void SV_DropClient( sv_client_t *drop )
 
 	drop->state = cs_zombie; // become free in a few seconds
 	drop->name[0] = 0;
+
+	SV_RefreshUserinfo(); // refresh userinfo on disconnect
 
 	// if this was the last client on the server, send a heartbeat
 	// to the master so it is known the server is empty
@@ -592,8 +593,27 @@ void SV_RefreshUserinfo( void )
 	
 	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
 		if( cl->state >= cs_connected && !(cl->edict && cl->edict->v.flags & FL_FAKECLIENT ))
-			cl->sendinfo = true;
+			cl->sendinfo = cl->sendmovevars = true;
 }
+
+/*
+===================
+SV_UpdatePhysinfo
+
+this is send all movevars values when client connected
+otherwise see code SV_UpdateMovevars()
+===================
+*/
+void SV_UpdatePhysinfo( sv_client_t *cl, sizebuf_t *msg )
+{
+	movevars_t	nullmovevars;
+
+	Mem_Set( &nullmovevars, 0, sizeof( nullmovevars ));
+	MSG_WriteDeltaMovevars( msg, &nullmovevars, &svgame.movevars );
+	MSG_DirectSend( MSG_ONE, NULL, cl->edict );
+	MSG_Clear( msg );
+}
+
 /*
 ===========
 PutClientInServer
