@@ -204,6 +204,7 @@ void SV_ActivateServer( void )
 
 	CM_EndRegistration (); // free unused models
 	sv.cphys_prepped = true;
+	physinfo->modified = true;
 }
 
 /*

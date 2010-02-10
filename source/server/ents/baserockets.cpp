@@ -645,7 +645,7 @@ LINK_ENTITY_TO_CLASS( nuclear_explode, CNukeExplode );
 //===========================
 //	Nuke rocket code
 //===========================
-CWHRocket *CWHRocket::Create( Vector vecOrigin, Vector vecAngles, CBaseEntity *pOwner, CBasePlayerWeapon *pLauncher, BOOL Control )
+CWHRocket *CWHRocket::Create( Vector vecOrigin, Vector vecAngles, CBaseEntity *pOwner, CBasePlayerWeapon *pLauncher, BOOL Controllable )
 {
 	CWHRocket *pRocket = GetClassPtr( (CWHRocket *)NULL );
 
@@ -653,7 +653,7 @@ CWHRocket *CWHRocket::Create( Vector vecOrigin, Vector vecAngles, CBaseEntity *p
 	pRocket->pev->angles = vecAngles;
 	pRocket->m_pLauncher = pLauncher;	// remember what RPG fired me. 
 	pRocket->pev->owner = pOwner->edict();
-          pRocket->pev->button = Control;	// memeber rocket type         
+          pRocket->pev->button = Controllable;	// memeber rocket type         
 	pRocket->pev->classname = MAKE_STRING( "nuke_rocket" );
           pRocket->m_pLauncher->m_cActiveRocket++;// register rocket
 	pRocket->Spawn();
@@ -688,6 +688,7 @@ void CWHRocket :: Spawn( void )
 			return;
 		}
 	}
+
 	pev->movetype = MOVETYPE_FLY;
 	pev->solid = SOLID_SLIDEBOX;
 	pev->takedamage = DAMAGE_YES;

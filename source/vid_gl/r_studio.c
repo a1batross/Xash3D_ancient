@@ -1426,7 +1426,7 @@ static void R_StudioCalcAttachments( ref_entity_t *e )
 	if( m_pStudioHeader->numattachments <= 0 )
 	{
 		// clear attachments
-		for( i = 1; i < MAXSTUDIOATTACHMENTS+1; i++ )
+		for( i = 0; i < MAXSTUDIOATTACHMENTS; i++ )
 			ri.SetAttachment( e->index, i, vec3_origin, vec3_origin );
 		return;
 	}
@@ -1441,12 +1441,12 @@ static void R_StudioCalcAttachments( ref_entity_t *e )
 	for( i = 0; i < m_pStudioHeader->numattachments; i++ )
 	{
 		// compute pos and angles
-		Matrix4x4_VectorTransform( m_pbonestransform[pAtt[i].bone], pAtt[i].org, localOrg );
-		Matrix4x4_VectorTransform( m_pbonestransform[pAtt[i].bone], pAtt[i].vectors[0], axis[0] );
-		Matrix4x4_VectorTransform( m_pbonestransform[pAtt[i].bone], pAtt[i].vectors[1], axis[1] );
-		Matrix4x4_VectorTransform( m_pbonestransform[pAtt[i].bone], pAtt[i].vectors[2], axis[2] );
+		Matrix4x4_VectorITransform( m_pbonestransform[pAtt[i].bone], pAtt[i].org, localOrg );
+		Matrix4x4_VectorIRotate( m_pbonestransform[pAtt[i].bone], pAtt[i].vectors[0], axis[0] );
+		Matrix4x4_VectorIRotate( m_pbonestransform[pAtt[i].bone], pAtt[i].vectors[1], axis[1] );
+		Matrix4x4_VectorIRotate( m_pbonestransform[pAtt[i].bone], pAtt[i].vectors[2], axis[2] );
 		Matrix3x3_ToAngles( axis, localAng, true ); // FIXME: dll's uses FLU ?
-		ri.SetAttachment( e->index, i+1, localOrg, localAng );
+		ri.SetAttachment( e->index, i, localOrg, localAng );
 	}
 }
 
@@ -1752,9 +1752,9 @@ void R_StudioDrawAttachments( void )
 		vec3_t		v[4];
 		
 		Matrix4x4_VectorTransform( m_pbonestransform[pattachments[i].bone], pattachments[i].org, v[0] );
-		Matrix4x4_VectorTransform( m_pbonestransform[pattachments[i].bone], pattachments[i].vectors[0], v[1] );
-		Matrix4x4_VectorTransform( m_pbonestransform[pattachments[i].bone], pattachments[i].vectors[1], v[2] );
-		Matrix4x4_VectorTransform( m_pbonestransform[pattachments[i].bone], pattachments[i].vectors[2], v[3] );
+		Matrix4x4_VectorRotate( m_pbonestransform[pattachments[i].bone], pattachments[i].vectors[0], v[1] );
+		Matrix4x4_VectorRotate( m_pbonestransform[pattachments[i].bone], pattachments[i].vectors[1], v[2] );
+		Matrix4x4_VectorRotate( m_pbonestransform[pattachments[i].bone], pattachments[i].vectors[2], v[3] );
 		
 		pglBegin( GL_LINES );
 		pglColor3f( 1, 0, 0 );

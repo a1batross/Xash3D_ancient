@@ -103,7 +103,7 @@ bool CL_GetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles
 	if( !ed || ed->free || !ed->pvClientData )
 		return false;
 
-	number = bound( 1, number, MAXSTUDIOATTACHMENTS );
+	number = bound( 0, number, MAXSTUDIOATTACHMENTS - 1 );
 
 	if( origin ) VectorAdd( ed->v.origin, ed->pvClientData->origin[number-1], origin );	
 	if( angles ) VectorCopy( ed->pvClientData->angles[number-1], angles );
@@ -118,11 +118,10 @@ bool CL_SetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles
 	if( !ed || ed->free || !ed->pvClientData )
 		return false;
 
-	if( number > MAXSTUDIOATTACHMENTS )
-		number = MAXSTUDIOATTACHMENTS;
+	number = bound( 0, number, MAXSTUDIOATTACHMENTS );
 
-	if( origin ) VectorCopy( origin, ed->pvClientData->origin[number-1] );	
-	if( angles ) VectorCopy( angles, ed->pvClientData->angles[number-1] );
+	if( origin ) VectorCopy( origin, ed->pvClientData->origin[number] );	
+	if( angles ) VectorCopy( angles, ed->pvClientData->angles[number] );
 
 	return true;
 }

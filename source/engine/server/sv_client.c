@@ -322,6 +322,13 @@ void SV_DropClient( sv_client_t *drop )
 	else svgame.dllFuncs.pfnClientDisconnect( drop->edict );
 
 	drop->edict->pvServerData->s.ed_type = ED_STATIC;	// remove from server
+	if( drop->edict->pvPrivateData )
+	{
+		// clear any dlls data but keep engine data
+		svgame.dllFuncs.pfnOnFreeEntPrivateData( drop->edict );
+		Mem_Free( drop->edict->pvPrivateData );
+		drop->edict->pvPrivateData = NULL;
+	}
 
 //	SV_FreeEdict( drop->edict );
 	if( drop->download ) drop->download = NULL;
@@ -590,7 +597,7 @@ void SV_RefreshUserinfo( void )
 {
 	int		i;
 	sv_client_t	*cl;
-	
+
 	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
 		if( cl->state >= cs_connected && !(cl->edict && cl->edict->v.flags & FL_FAKECLIENT ))
 			cl->sendinfo = cl->sendmovevars = true;
@@ -652,21 +659,8 @@ void SV_PutClientInServer( edict_t *ent )
 			SV_SetClientMaxspeed( client, svgame.movevars.maxspeed );
 
 			if( sv_maxclients->integer > 1 )
-			{
-				const char *model = Info_ValueForKey( client->userinfo, "model" );
-
-				// apply custom playermodel
-				if( com.strlen( model ) && com.stricmp( model, "player" ))
-				{
-					const char *path = va( "models/player/%s/%s.mdl", model, model );
-					CM_RegisterModel( path, SV_ModelIndex( path )); // register model
-					SV_SetModel( ent, path );
-					client->modelindex = ent->v.modelindex;
-				}
-				else client->modelindex = 0;
 				ent->v.netname = MAKE_STRING(Info_ValueForKey( client->userinfo, "name" ));
-			}
-			else ent->v.netname = MAKE_STRING( "player" );
+			else ent->v.netname = 0;
 			ent->v.view_ofs[2] = GI->viewheight[0];
 	
 			// fisrt entering
@@ -1025,6 +1019,7 @@ into a more C freindly form.
 */
 void SV_UserinfoChanged( sv_client_t *cl, const char *userinfo )
 {
+	edict_t	*ent = cl->edict;
 	char	*val;
 	int	i;
 
@@ -1050,10 +1045,36 @@ void SV_UserinfoChanged( sv_client_t *cl, const char *userinfo )
 	if( com.strlen( val ))
 		cl->messagelevel = com.atoi( val );
 
+	if( SV_IsValidEdict( ent ))
+	{
+		if( sv_maxclients->integer > 1 )
+		{
+			const char *model = Info_ValueForKey( cl->userinfo, "model" );
+
+			// apply custom playermodel
+			if( com.strlen( model ) && com.stricmp( model, "player" ))
+			{
+				const char *path = va( "models/player/%s/%s.mdl", model, model );
+				CM_RegisterModel( path, SV_ModelIndex( path )); // register model
+				SV_SetModel( ent, path );
+				cl->modelindex = ent->v.modelindex;
+			}
+			else cl->modelindex = 0;
+		}
+		else cl->modelindex = 0;
+	}
+
 	// call prog code to allow overrides
 	svgame.globals->time = sv.time * 0.001f;
 	svgame.globals->frametime = sv.frametime * 0.001f;
 	svgame.dllFuncs.pfnClientUserInfoChanged( cl->edict, cl->userinfo );
+
+	if( SV_IsValidEdict( ent ))
+	{
+		if( sv_maxclients->integer > 1 )
+			ent->v.netname = MAKE_STRING(Info_ValueForKey( cl->userinfo, "name" ));
+		else ent->v.netname = 0;
+	}
 	if( cl->state >= cs_connected ) cl->sendinfo = true; // needs for update client info 
 }
 

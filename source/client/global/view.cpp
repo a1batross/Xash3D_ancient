@@ -360,6 +360,8 @@ void V_CalcViewRoll( ref_params_t *pparams )
 		return;
 	}
 
+	if( pparams->demoplayback ) return;
+
 	AngleVectors( viewentity->v.angles, NULL, right, NULL );
 	side = right.Dot( pparams->simvel );
 	sign = side < 0 ? -1 : 1;

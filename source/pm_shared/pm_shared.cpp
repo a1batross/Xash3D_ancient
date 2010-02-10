@@ -2561,9 +2561,10 @@ float PM_CalcRoll( Vector angles, Vector velocity, float rollangle, float rollsp
     
 	AngleVectors( angles, forward, right, up );
     
-	float	side = DotProduct (velocity, right);
-	float	sign = fabs( side < 0 ? -1 : 1 );
-	float	value = rollangle;
+	float side = DotProduct( velocity, right );
+	float sign = side < 0 ? -1 : 1;
+	side = fabs( side );
+	float value = rollangle;
     
 	if( side < rollspeed )
 	{
@@ -2639,7 +2640,7 @@ void PM_CheckParamters( void )
 		v_angle = pmove->cmd.viewangles + pev->punchangle;         
 
 		// Set up view angles.
-		pmove->angles[ROLL] = PM_CalcRoll( v_angle, pmove->velocity, pmove->movevars->rollangle, pmove->movevars->rollspeed ) * 4;
+		pmove->angles[ROLL] = PM_CalcRoll( v_angle, pmove->velocity, pmove->movevars->rollangle, pmove->movevars->rollspeed );
 		pmove->angles[PITCH] = v_angle[PITCH];
 		pmove->angles[YAW] = v_angle[YAW];
 	}

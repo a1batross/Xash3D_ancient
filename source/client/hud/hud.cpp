@@ -10,6 +10,7 @@
 void CHud :: Init( void )
 {
 	InitMessages();
+	m_Zoom.Init();	// must be first
 	m_Ammo.Init();
 	m_Health.Init();
 	m_SayText.Init();
@@ -18,7 +19,6 @@ void CHud :: Init( void )
 	m_Battery.Init();
 	m_Flash.Init();
 	m_Redeemer.Init();
-	m_Zoom.Init();
 	m_Message.Init();
 	m_Scoreboard.Init();
 	m_StatusBar.Init();
@@ -245,13 +245,6 @@ int CHud :: Redraw( float flTime )
 	if( m_Redeemer.m_iHudMode > 0 )
 	{
 		m_Redeemer.Draw( flTime );
-		return 1;
-	}
-
-	// zoom hud stuff
-	if( m_Zoom.m_iHudMode > 0 )
-	{
-		m_Zoom.Draw( flTime );
 		return 1;
 	}
 

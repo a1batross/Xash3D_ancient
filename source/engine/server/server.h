@@ -285,6 +285,7 @@ extern	cvar_t		*sv_rollangle;
 extern	cvar_t		*sv_rollspeed;
 extern	cvar_t		*sv_maxspeed;
 extern	cvar_t		*sv_maxclients;
+extern	cvar_t		*physinfo;
 extern	sv_client_t	*sv_client;
 
 //===========================================================

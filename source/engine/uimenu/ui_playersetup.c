@@ -211,7 +211,6 @@ static void UI_PlayerSetup_Callback( void *self, int event )
 	if( event == QM_CHANGED )
 	{
 		UI_PlayerSetup_UpdateConfig();
-		UI_PlayerSetup_SetConfig();
 		return;
 	}
 
@@ -221,9 +220,11 @@ static void UI_PlayerSetup_Callback( void *self, int event )
 	switch( item->id )
 	{
 	case ID_DONE:
+		UI_PlayerSetup_SetConfig();
 		UI_PopMenu();
 		break;
 	case ID_ADVOPTIONS:
+		UI_PlayerSetup_SetConfig();
 		UI_GameOptions_Menu();
 		break;
 	}

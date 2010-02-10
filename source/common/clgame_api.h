@@ -87,6 +87,7 @@ typedef struct cl_globalvars_s
 
 	int		serverflags;	// shared serverflags
 	int		maxClients;
+	int		windowState;	// 0 - inactive (minimize, notfocus), 1 - active
 	int		maxEntities;
 	int		numEntities;	// actual ents count
 } cl_globalvars_t;

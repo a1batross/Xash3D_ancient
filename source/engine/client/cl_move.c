@@ -20,6 +20,22 @@ usercmd_t CL_CreateCmd( void )
 	static double	extramsec = 0;
 	int		ms;
 
+	// catch windowState for client.dll
+	switch( host.state )
+	{
+	case HOST_INIT:
+	case HOST_FRAME:
+	case HOST_SHUTDOWN:
+	case HOST_ERROR:
+		clgame.globals->windowState = true;	// active
+		break;
+	case HOST_SLEEP:
+	case HOST_NOFOCUS:
+	case HOST_RESTART:
+		clgame.globals->windowState = false;	// inactive
+		break;
+	}
+
 	// send milliseconds of time to apply the move
 	extramsec += cls.frametime * 1000;
 	ms = extramsec;

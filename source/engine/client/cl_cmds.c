@@ -193,7 +193,7 @@ void CL_LevelShot_f( void )
 	cls.scrshot_request = scrshot_inactive;
 
 	// check for exist
-	com.sprintf( cls.shotname, "levelshots/%s.jpg", cl.configstrings[CS_NAME] );
+	com.sprintf( cls.shotname, "levelshots/%s.png", cl.configstrings[CS_NAME] );
 	if( !FS_FileExists( cls.shotname ))
 		cls.scrshot_action = scrshot_plaque;	// build new frame for levelshot
 	else cls.scrshot_action = scrshot_inactive;	// disable - not needs

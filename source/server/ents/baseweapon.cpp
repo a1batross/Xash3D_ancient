@@ -983,6 +983,8 @@ BOOL CBasePlayerWeapon :: DefaultHolster( Activity activity )
 	m_iSequence = LookupActivity( activity );
 	float fps = IsMultiplayer() ? SequenceFPS() * 2.0f : 0.0f;
 
+          ZoomReset();
+
 	iResult = SetAnimation( activity, fps );
 	if( iResult == -1 ) return 0;
 
@@ -993,13 +995,12 @@ BOOL CBasePlayerWeapon :: DefaultHolster( Activity activity )
 		m_pSpot->Killed();
 		m_pSpot = NULL;
 	}
-          ZoomReset();
 	m_iSkin = 0; // reset screen
 
 	if( iAttack1() == FLASHLIGHT || iAttack2() == FLASHLIGHT )
 		ClearBits( m_pPlayer->pev->effects, EF_DIMLIGHT );
 
-	if( (iFlags() & ITEM_FLAG_EXHAUSTIBLE) && (m_pPlayer->m_rgAmmo[ m_iPrimaryAmmoType ] <= 0) )
+	if(( iFlags() & ITEM_FLAG_EXHAUSTIBLE ) && (m_pPlayer->m_rgAmmo[ m_iPrimaryAmmoType ] <= 0 ))
 	{
 		// no more ammo!
 		m_pPlayer->pev->weapons &= ~(1<<m_iId);
@@ -1194,9 +1195,9 @@ int CBasePlayerWeapon :: GetCurrentAttack( const char *ammo, int firemode )
 	{
 		if ( !m_flHoldTime && m_pPlayer->m_rgAmmo[ ReturnAmmoIndex( ammo ) ] > 0 )
 		{
-			m_flHoldTime = UTIL_WeaponTimeBase();//set hold time
-			m_iOnControl = 3;		       //grenade "on control"
-			SetAnimation( ACT_VM_START_CHARGE ); //pinpull
+			m_flHoldTime = UTIL_WeaponTimeBase();// set hold time
+			m_iOnControl = 3;		       // grenade "on control"
+			SetAnimation( ACT_VM_START_CHARGE ); // pinpull
 		}
 		iResult = -1;
 	}
@@ -1209,12 +1210,12 @@ int CBasePlayerWeapon :: GetCurrentAttack( const char *ammo, int firemode )
 int CBasePlayerWeapon :: PlayCurrentAttack( int action, int firemode )
 {
 	int iResult = 0;
-	if(pev->button)firemode = m_iBody;//enable switching firemode	
+	if(pev->button)firemode = m_iBody; // enable switching firemode	
 
-	if(action == ZOOM) iResult = 1;//See void ZoomUpdate( void ); for details
-	else if(action == AMMO1) iResult = GetCurrentAttack( pszAmmo1(), firemode );
-	else if(action == AMMO2) iResult = GetCurrentAttack( pszAmmo2(), firemode );
-	else if(action == LASER_DOT)
+	if( action == ZOOM ) iResult = 1; // See void ZoomUpdate( void ); for details
+	else if( action == AMMO1 ) iResult = GetCurrentAttack( pszAmmo1(), firemode );
+	else if( action == AMMO2 ) iResult = GetCurrentAttack( pszAmmo2(), firemode );
+	else if( action == LASER_DOT )
 	{
 		m_iSpot = !m_iSpot;
 		if( !m_iSpot && m_pSpot ) // disable laser dot
@@ -1633,14 +1634,14 @@ int CBasePlayerWeapon::Swing( int fFirst )
 //=========================================================
 void CBasePlayerWeapon::ZoomUpdate( void )
 {
-	if((iAttack1() == ZOOM && m_pPlayer->pev->button & IN_ATTACK) || (iAttack2() == ZOOM && m_pPlayer->pev->button & IN_ATTACK2))
+	if(( iAttack1() == ZOOM && m_pPlayer->pev->button & IN_ATTACK ) || ( iAttack2() == ZOOM && m_pPlayer->pev->button & IN_ATTACK2 ))
 	{
 		if( m_iZoom == 0 )
 		{
-			if (m_flHoldTime > UTIL_WeaponTimeBase()) return;
+			if( m_flHoldTime > UTIL_WeaponTimeBase( )) return;
 			m_iZoom = 1;
-			EMIT_SOUND(ENT(m_pPlayer->pev), CHAN_ITEM, "weapons/zoom.wav", 1, ATTN_NORM);
-			m_flTimeUpdate = UTIL_WeaponTimeBase() + 0.8;
+			EMIT_SOUND( ENT( m_pPlayer->pev ), CHAN_ITEM, "weapons/zoom.wav", 1, ATTN_NORM );
+			m_flHoldTime = UTIL_WeaponTimeBase() + 0.8;
 		}
 		if( m_iZoom == 1 )
 		{
@@ -1650,16 +1651,16 @@ void CBasePlayerWeapon::ZoomUpdate( void )
 		}
 		if( m_iZoom == 2 && m_pPlayer->pev->fov > MAX_ZOOM )
 		{
-			if( m_flTimeUpdate < UTIL_WeaponTimeBase( ))
+			if( m_flHoldTime < UTIL_WeaponTimeBase( ))
 			{
-				m_pPlayer->pev->fov -= 1.2 * gpGlobals->frametime;
-				m_flTimeUpdate = UTIL_WeaponTimeBase() + gpGlobals->frametime;
+				m_pPlayer->pev->fov = UTIL_Approach( 20.0f, m_pPlayer->pev->fov, 0.8f );
+				m_flHoldTime = UTIL_WeaponTimeBase();
 			}
 		}
 		if( m_iZoom == 3 ) ZoomReset();
 	}
 	else if( m_iZoom > 1 ) m_iZoom = 3;
-
+	
 	MESSAGE_BEGIN( MSG_ONE, gmsg.ZoomHUD, NULL, m_pPlayer->pev );
 		WRITE_BYTE( m_iZoom );
 	MESSAGE_END();
@@ -1672,7 +1673,7 @@ void CBasePlayerWeapon::ZoomReset( void )
 	{
 		m_pPlayer->pev->viewmodel = iViewModel();
 		m_flHoldTime = UTIL_WeaponTimeBase() + 0.5;
-		m_pPlayer->pev->fov = 90;
+		m_pPlayer->pev->fov = CVAR_GET_FLOAT( "default_fov" );
 		m_iZoom = 0; // clear zoom
 		MESSAGE_BEGIN( MSG_ONE, gmsg.ZoomHUD, NULL, m_pPlayer->pev );
 			WRITE_BYTE( m_iZoom );
