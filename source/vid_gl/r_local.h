@@ -772,6 +772,7 @@ void R_Shutdown( bool full );
 //
 // r_opengl.c
 //
+void R_RestoreGamma( void );
 void R_CheckForErrors_( const char *filename, const int fileline );
 #define R_CheckForErrors() R_CheckForErrors_( __FILE__, __LINE__ )
 

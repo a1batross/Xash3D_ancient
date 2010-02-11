@@ -436,7 +436,7 @@ void Sys_InitLog( void )
 		if(!Sys.logfile) MsgDev( D_ERROR, "Sys_InitLog: can't create log file %s\n", Sys.log_path );
 
 		fprintf( Sys.logfile, "=======================================================================\n" );
-		fprintf( Sys.logfile, "\t%s started at %s\n", Sys.caption, com_timestamp(TIME_FULL));
+		fprintf( Sys.logfile, "\t%s started at %s\n", Sys.caption, com_timestamp( TIME_FULL ));
 		fprintf( Sys.logfile, "=======================================================================\n");
 	}
 }
@@ -448,6 +448,7 @@ void Sys_CloseLog( void )
 	// continue logged
 	switch( Sys.app_state )
 	{
+	case SYS_CRASH: com_strncpy( event_name, "crashed", MAX_STRING ); break;
 	case SYS_ABORT: com_strncpy( event_name, "aborted by user", MAX_STRING ); break;
 	case SYS_ERROR: com_strncpy( event_name, "stopped with error", MAX_STRING ); break;
 	case SYS_RESTART: com_strncpy( event_name, "restarted", MAX_STRING ); break;

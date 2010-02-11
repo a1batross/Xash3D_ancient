@@ -632,9 +632,6 @@ void CL_DrawHUD( int state )
 		CL_DrawCrosshair ();
 		CL_DrawCenterPrint ();
 	}
-
-	if( state == CL_ACTIVE )
-		clgame.dllFuncs.pfnFrame( cl.time * 0.001f );
 }
 
 static void CL_CreateUserMessage( int lastnum, const char *szMsgName, int svc_num, int iSize, pfnUserMsgHook pfn )

@@ -391,9 +391,15 @@ bool R_SetPixelformat( void )
 	return true;
 }
 
+void R_RestoreGamma( void )
+{
+	if( !glw_state.hDC ) return;
+	SetDeviceGammaRamp( glw_state.hDC, glState.stateRamp );
+}
+
 void R_Free_OpenGL( void )
 {
-	SetDeviceGammaRamp( glw_state.hDC, glState.stateRamp );
+	R_RestoreGamma ();
 
 	if( pwglMakeCurrent ) pwglMakeCurrent( NULL, NULL );
 	if( glw_state.hGLRC )

@@ -344,35 +344,35 @@ void Sys_LookupInstance( void )
 		}
 		Sys.linked_dll = &engine_dll;	// pointer to engine.dll info
 		com_sprintf( Sys.log_path, "engine.log", com_timestamp( TIME_FILENAME )); // logs folder
-		com_strcpy(Sys.caption, va( "Xash3D ver.%g", XASH_VERSION ));
+		com_strcpy( Sys.caption, va( "Xash3D ver.%g", XASH_VERSION ));
 	}
 	else if( !com_strcmp( Sys.progname, "bsplib" ))
 	{
 		Sys.app_name = HOST_BSPLIB;
 		Sys.linked_dll = &xtools_dll;	// pointer to common.dll info
-		com_strcpy(Sys.log_path, "bsplib.log" ); // xash3d root directory
-		com_strcpy(Sys.caption, "Xash3D BSP Compiler");
+		com_strcpy( Sys.log_path, "bsplib.log" ); // xash3d root directory
+		com_strcpy( Sys.caption, "Xash3D BSP Compiler");
 	}
 	else if(!com_strcmp(Sys.progname, "sprite"))
 	{
 		Sys.app_name = HOST_SPRITE;
 		Sys.linked_dll = &xtools_dll;	// pointer to common.dll info
-		com_sprintf(Sys.log_path, "%s/spritegen.log", sys_rootdir ); // same as .exe file
-		com_strcpy(Sys.caption, "Xash3D Sprite Compiler");
+		com_sprintf( Sys.log_path, "%s/spritegen.log", sys_rootdir ); // same as .exe file
+		com_strcpy( Sys.caption, "Xash3D Sprite Compiler");
 	}
 	else if(!com_strcmp(Sys.progname, "studio"))
 	{
 		Sys.app_name = HOST_STUDIO;
 		Sys.linked_dll = &xtools_dll;	// pointer to common.dll info
-		com_sprintf(Sys.log_path, "%s/studiomdl.log", sys_rootdir ); // same as .exe file
-		com_strcpy(Sys.caption, "Xash3D Studio Models Compiler");
+		com_sprintf( Sys.log_path, "%s/studiomdl.log", sys_rootdir ); // same as .exe file
+		com_strcpy( Sys.caption, "Xash3D Studio Models Compiler" );
 	}
 	else if(!com_strcmp(Sys.progname, "wadlib"))
 	{
 		Sys.app_name = HOST_WADLIB;
 		Sys.linked_dll = &xtools_dll;	// pointer to common.dll info
-		com_sprintf(Sys.log_path, "%s/wadlib.log", sys_rootdir ); // same as .exe file
-		com_strcpy(Sys.caption, "Xash3D Wad2\\Wad3 maker");
+		com_sprintf( Sys.log_path, "%s/wadlib.log", sys_rootdir ); // same as .exe file
+		com_strcpy( Sys.caption, "Xash3D Wad2\\Wad3 maker" );
 	}
 	else if(!com_strcmp(Sys.progname, "ripper"))
 	{
@@ -380,8 +380,8 @@ void Sys_LookupInstance( void )
 		Sys.con_readonly = true;
 		Sys.log_active = true;	// always create log
 		Sys.linked_dll = &xtools_dll;	// pointer to wdclib.dll info
-		com_sprintf(Sys.log_path, "%s/decompile.log", sys_rootdir ); // default
-		com_strcpy(Sys.caption, va("Quake Recource Extractor ver.%g", XASH_VERSION ));
+		com_sprintf( Sys.log_path, "%s/decompile.log", sys_rootdir ); // default
+		com_strcpy( Sys.caption, va("Quake Recource Extractor ver.%g", XASH_VERSION ));
 	}
 	else if(!com_strcmp(Sys.progname, "ximage"))
 	{
@@ -820,10 +820,10 @@ NOTE: we must prepare engine to shutdown
 before call this
 ================
 */
-void Sys_Error(const char *error, ...)
+void Sys_Error( const char *error, ... )
 {
-	va_list		argptr;
-	char		text[MAX_MSGLEN];
+	va_list	argptr;
+	char	text[MAX_MSGLEN];
          
 	if( Sys.app_state == SYS_ERROR )
 		return; // don't multiple executes
@@ -849,7 +849,7 @@ void Sys_Error(const char *error, ...)
 	Sys_Exit();
 }
 
-void Sys_Break(const char *error, ...)
+void Sys_Break( const char *error, ... )
 {
 	va_list		argptr;
 	char		text[MAX_MSGLEN];
@@ -877,12 +877,33 @@ void Sys_Abort( void )
 	Sys_Exit();
 }
 
+long _stdcall Sys_Crash( PEXCEPTION_POINTERS pInfo )
+{
+	// save config
+	if( Sys.app_state != SYS_CRASH )
+	{
+		// check to avoid recursive call
+		Sys.error = true;
+		Sys.app_state = SYS_CRASH;
+
+		Cmd_ExecuteString( "@crashed\n" ); // tell server about crash
+		Msg( "Sys_Crash: call %p at address %p\n", pInfo->ExceptionRecord->ExceptionAddress, pInfo->ExceptionRecord->ExceptionCode );
+		Con_DestroyConsole();	
+
+		// all other states keep unchanged to let debugger find bug
+          }
+
+	if( Sys.oldFilter )
+		return Sys.oldFilter( pInfo );
+	return EXCEPTION_CONTINUE_SEARCH;
+}
+
 void Sys_Init( void )
 {
 	MEMORYSTATUS	lpBuffer;
 	char		dev_level[4];
 
-	lpBuffer.dwLength = sizeof(MEMORYSTATUS);
+	lpBuffer.dwLength = sizeof( MEMORYSTATUS );
 	GlobalMemoryStatus( &lpBuffer );
 	ZeroMemory( &Msec, sizeof( Msec ));		// can't use memset - not init
 	Sys.logfile = NULL;
@@ -896,6 +917,8 @@ void Sys_Init( void )
 	Sys.Free = NullFunc;
 	Sys.CPrint = NullPrint;
 	Sys.Con_Print = NullPrint;
+
+	Sys.oldFilter = SetUnhandledExceptionFilter( Sys_Crash );
 
 	// some commands may turn engine into infinity loop,
 	// e.g. xash.exe +game xash -game xash
@@ -955,6 +978,12 @@ void Sys_Shutdown( void )
 	Image_Shutdown();
 	Memory_Shutdown();
 	Con_DestroyConsole();
+
+	// restore filter	
+	if( Sys.oldFilter )
+	{
+		SetUnhandledExceptionFilter( Sys.oldFilter );
+	}
 }
 
 /*
@@ -1082,7 +1111,13 @@ bool Sys_FreeLibrary( dll_info_t *dll )
 	if( !dll || !dll->link )
 		return false;
 
-	MsgDev( D_NOTE, "Sys_FreeLibrary: Unloading %s\n", dll->name );
+	if( Sys.app_state == SYS_CRASH )
+	{
+		// we need to hold down all modules, while MSVC can find error
+		MsgDev( D_NOTE, "Sys_FreeLibrary: hold %s for debugging\n", dll->name );
+		return false;
+	}
+	else MsgDev( D_NOTE, "Sys_FreeLibrary: Unloading %s\n", dll->name );
 	FreeLibrary( dll->link );
 	dll->link = NULL;
 

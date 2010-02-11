@@ -345,29 +345,41 @@ int CHudSound :: PlayStream( const char* name )
 
 int CHudSound :: Draw( float flTime )
 {
-	int pause = v_paused; // get engine state
+	if( !fmod_dll || !fmod_data )
+		return 0;
+
 	float vol = CVAR_GET_FLOAT( "s_musicvolume" );	// sound engine cvar
 
-	if( fmod_dll && fmod_data )
+	if( vol != m_flVolume )
 	{
-		if( last_state != pause )
-		{
-			// detect of music type
-			if( CheckFormat( FALSE ) == TRACK )
-				qfmod_setmodpause( fmod_data, !qfmod_getmodpause( fmod_data ));
-			else if( CheckFormat( FALSE ) == STREAM )
-				qfmod_setstreampause( 0, !qfmod_getstreampause( 0 ));
-			last_state = pause;
-		}
-		if( vol != m_flVolume )
-		{
-			if( CheckFormat( FALSE ) == TRACK )
-				qfmod_setmodvolume( fmod_data, (int)(vol * 256.f ));
-			else if( CheckFormat( FALSE ) == STREAM )
-				qfmod_setvolume( FSOUND_ALL, (int)(vol * 256.f ));
-			m_flVolume = vol;
-		}
-          }
+		if( CheckFormat( FALSE ) == TRACK )
+			qfmod_setmodvolume( fmod_data, (int)(vol * 256.f ));
+		else if( CheckFormat( FALSE ) == STREAM )
+			qfmod_setvolume( FSOUND_ALL, (int)(vol * 256.f ));
+		m_flVolume = vol;
+	}
+	return 1;
+}
+
+int CHudSound :: Update( void )
+{
+	if( !fmod_dll || !fmod_data )
+		return 0;
+
+	int pause = v_paused; // get engine state
+
+	if( gpGlobals->windowState == FALSE )
+		pause = TRUE; // force pause for inactive window
+
+	if( last_state != pause )
+	{
+		// detect of music type
+		if( CheckFormat( FALSE ) == TRACK )
+			qfmod_setmodpause( fmod_data, !qfmod_getmodpause( fmod_data ));
+		else if( CheckFormat( FALSE ) == STREAM )
+			qfmod_setstreampause( 0, !qfmod_getstreampause( 0 ));
+		last_state = pause;
+	}
 	return 1;
 }
 

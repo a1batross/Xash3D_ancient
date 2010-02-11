@@ -59,18 +59,18 @@ void V_SetupRefDef( void )
 	{	
 		// use predicted values
 		uint	i, delta;
-		float	backlerp = 1.0 - cl.lerpFrac;
+		float	backlerp = 1.0f - cl.lerpFrac;
 
 		for( i = 0; i < 3; i++ )
 		{
 			cl.refdef.simorg[i] = cl.predicted_origin[i] - backlerp * cl.prediction_error[i];
 			cl.refdef.viewheight[i] = cl.predicted_viewofs[i] - backlerp * cl.prediction_error[i];
                     }
+
 		// smooth out stair climbing
 		delta = cls.realtime - cl.predicted_step_time;
-		if( delta < cl.serverframetime )
-			cl.refdef.simorg[2] -= cl.predicted_step * ((cl.serverframetime - delta) / (float)cl.serverframetime);
-		VectorCopy( cl.predicted_viewofs, cl.refdef.viewheight );
+		if( delta < 150 )
+			cl.refdef.simorg[2] -= cl.predicted_step * (150 - delta) / 150;
 		VectorCopy( cl.predicted_velocity, cl.refdef.simvel );
 	}
 	else

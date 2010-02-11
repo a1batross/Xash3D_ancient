@@ -32,6 +32,7 @@ enum state_e
 {
 	SYS_SHUTDOWN = 0,
 	SYS_RESTART,
+	SYS_CRASH,
 	SYS_ABORT,
 	SYS_ERROR,
 	SYS_FRAME,
@@ -59,6 +60,7 @@ typedef struct system_s
 	char			ModuleName[4096];		// exe.filename
 
 	HINSTANCE			hInstance;
+	LPTOP_LEVEL_EXCEPTION_FILTER	oldFilter;
 	dll_info_t		*linked_dll;
 
 	char			caption[64];

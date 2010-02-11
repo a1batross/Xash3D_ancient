@@ -580,6 +580,9 @@ LINK_ENTITY_TO_CLASS( hvr_rocket, CApacheHVR );
 //===========================
 //	Nuclear explode code
 //===========================
+
+#define REDEEMER_ROCKET_DMG			500
+
 CNukeExplode *CNukeExplode::Create ( Vector vecOrigin, CBaseEntity *pOwner )
 {
 	CNukeExplode *pNuke = GetClassPtr( (CNukeExplode *)NULL );
@@ -645,6 +648,12 @@ LINK_ENTITY_TO_CLASS( nuclear_explode, CNukeExplode );
 //===========================
 //	Nuke rocket code
 //===========================
+
+// redeemder settings (weapon_redeemer)
+#define WARHEAD_SPEED			500
+#define WARHEAD_SPEED_UNDERWATER		300
+#define WARHEAD_MAX_SPEED			1200
+
 CWHRocket *CWHRocket::Create( Vector vecOrigin, Vector vecAngles, CBaseEntity *pOwner, CBasePlayerWeapon *pLauncher, BOOL Controllable )
 {
 	CWHRocket *pRocket = GetClassPtr( (CWHRocket *)NULL );
@@ -828,7 +837,7 @@ void CWHRocket :: Detonate ( bool explode )
 	if( m_pLauncher ) m_pLauncher->m_cActiveRocket--;
 
 	pev->takedamage = DAMAGE_NO;
-	pev->velocity = g_vecZero;
+//	pev->velocity = g_vecZero;
 	pev->solid = SOLID_NOT;
 	pev->effects |= EF_NODRAW;
 	pev->model = iStringNull; // invisible
@@ -840,12 +849,12 @@ void CWHRocket :: Detonate ( bool explode )
 		// make nuclear explosion if needed
 		CNukeExplode::Create( pev->origin, m_pPlayer );
 		SetThink( RemoveRocket );
-		SetNextThink( 0.7 );
+		SetNextThink( 2.5 ); // let the smoke continue moving
 	}
 	else
 	{
 		SetThink( RemoveRocket );
-		SetNextThink( 0.7 );	
+		SetNextThink( 2.5 );	
 	}
 }
 void CWHRocket :: RemoveRocket ( void )

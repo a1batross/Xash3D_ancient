@@ -264,27 +264,27 @@ void CL_ParseFrame( sizebuf_t *msg )
 	// save the frame off in the backup array for later delta comparisons
 	cl.frames[cl.frame.serverframe & UPDATE_MASK] = cl.frame;
 
-	if( cl.frame.valid )
+	if( !cl.frame.valid ) return;
+
+	if( cls.state != ca_active )
 	{
-		if( cls.state != ca_active )
-		{
-			edict_t	*player;
+		edict_t	*player;
 
-			// client entered the game
-			cls.state = ca_active;
-			cl.force_refdef = true;
+		// client entered the game
+		cls.state = ca_active;
+		cl.force_refdef = true;
 
-			player = CL_GetLocalPlayer();
-			SCR_MakeLevelShot();	// make levelshot if needs
-			cls.drawplaque = true;	// allow to drawing plaque
+		player = CL_GetLocalPlayer();
+		SCR_MakeLevelShot();	// make levelshot if needs
+		cls.drawplaque = true;	// allow to drawing plaque
 
-			Cvar_SetValue( "scr_loading", 0.0f ); // reset progress bar	
-			// getting a valid frame message ends the connection process
-			VectorCopy( player->v.origin, cl.predicted_origin );
-			VectorCopy( player->v.viewangles, cl.predicted_angles );
-		}
-		CL_CheckPredictionError();
+		Cvar_SetValue( "scr_loading", 0.0f ); // reset progress bar	
+		// getting a valid frame message ends the connection process
+		VectorCopy( player->pvClientData->current.origin, cl.predicted_origin );
+		VectorCopy( player->v.viewangles, cl.predicted_angles );
 	}
+
+	CL_CheckPredictionError();
 }
 
 /*

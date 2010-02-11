@@ -118,7 +118,7 @@ EDIT FIELDS
 
 void Field_Clear( field_t *edit )
 {
-	memset(edit->buffer, 0, MAX_EDIT_LINE);
+	Mem_Set( edit->buffer, 0, MAX_EDIT_LINE );
 	edit->cursor = 0;
 	edit->scroll = 0;
 }
@@ -132,9 +132,9 @@ compare first argument with string
 */
 static bool Field_CheckName( const char *name )
 {
-	if(!com.stricmp( Cmd_Argv( 0 ), name ))
+	if( !com.stricmp( Cmd_Argv( 0 ), name ))
 		return true;
-	if(!com.stricmp( Cmd_Argv( 0 ), va("\\%s", name )))
+	if( !com.stricmp( Cmd_Argv( 0 ), va( "\\%s", name )))
 		return true;
 	return false;
 }
@@ -149,20 +149,21 @@ static void FindMatches( const char *s, const char *unused1, const char *unused2
 {
 	int		i;
 
-	if(com.strnicmp( s, completionString, com.strlen( completionString )))
+	if( *s == '@' ) return; // never show system cvars or cmds
+	if( com.strnicmp( s, completionString, com.strlen( completionString )))
 		return;
 
 	matchCount++;
-	if ( matchCount == 1 )
+	if( matchCount == 1 )
 	{
 		com.strncpy( shortestMatch, s, sizeof( shortestMatch ));
 		return;
 	}
 
 	// cut shortestMatch to the amount common with s
-	for ( i = 0; s[i]; i++ )
+	for( i = 0; s[i]; i++ )
 	{
-		if ( com.tolower(shortestMatch[i]) != com.tolower(s[i]))
+		if( com.tolower( shortestMatch[i] ) != com.tolower( s[i] ))
 			shortestMatch[i] = 0;
 	}
 }
@@ -174,9 +175,11 @@ PrintMatches
 */
 static void PrintMatches( const char *s, const char *unused1, const char *m, void *unused2 )
 {
-	if(!com.strnicmp( s, shortestMatch, com.strlen( shortestMatch )))
-	if(m && *m) Msg( "    %s ^3\"%s\"\n", s, m );
-	else Msg( "    %s\n", s ); // variable or command without description
+	if( !com.strnicmp( s, shortestMatch, com.strlen( shortestMatch )))
+	{
+		if( m && *m ) Msg( "    %s ^3\"%s\"\n", s, m );
+		else Msg( "    %s\n", s ); // variable or command without description
+	}
 }
 
 static void keyConcatArgs( void )
@@ -184,21 +187,22 @@ static void keyConcatArgs( void )
 	int	i;
 	char	*arg;
 
-	for ( i = 1; i < Cmd_Argc(); i++ )
+	for( i = 1; i < Cmd_Argc(); i++ )
 	{
 		com.strncat( completionField->buffer, " ", sizeof( completionField->buffer ));
 		arg = Cmd_Argv( i );
-		while (*arg)
+		while( *arg )
 		{
-			if (*arg == ' ')
+			if( *arg == ' ' )
 			{
 				com.strncat( completionField->buffer, "\"", sizeof( completionField->buffer ));
 				break;
 			}
 			arg++;
 		}
+
 		com.strncat( completionField->buffer, Cmd_Argv( i ), sizeof( completionField->buffer ));
-		if (*arg == ' ') com.strncat( completionField->buffer, "\"", sizeof( completionField->buffer ));
+		if( *arg == ' ' ) com.strncat( completionField->buffer, "\"", sizeof( completionField->buffer ));
 	}
 }
 
@@ -247,17 +251,17 @@ void Field_CompleteCommand( field_t *field )
 	Cmd_LookupCmds( NULL, NULL, FindMatches );
 	Cvar_LookupVars( 0, NULL, NULL, FindMatches );
 
-	if ( matchCount == 0 ) return; // no matches
-	Mem_Copy(&temp, completionField, sizeof(field_t));
+	if( matchCount == 0 ) return; // no matches
+	Mem_Copy( &temp, completionField, sizeof( field_t ));
 
-	if(Cmd_Argc() == 2)
+	if( Cmd_Argc() == 2 )
 	{
 		bool result = false;
 
 		// autocomplete second arg
 		for( list = cmd_list; list->name; list++ )
 		{
-			if(Field_CheckName( list->name ))
+			if( Field_CheckName( list->name ))
 			{
 				result = list->func( Cmd_Argv(1), filename, MAX_STRING ); 
 				break;

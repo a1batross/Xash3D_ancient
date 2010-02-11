@@ -182,6 +182,7 @@ typedef struct render_exp_s
 	void	(*ScreenToWorld)( const float *screen, float *world );
 	bool 	(*RSpeedsMessage)( char *out, size_t size );
 	bool	(*Support)( int extension );
+	void	(*RestoreGamma)( void );
 } render_exp_t;
 
 typedef struct render_imp_s

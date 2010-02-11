@@ -522,10 +522,10 @@ static void CM_StudioCalcAttachments( edict_t *e, int iAttachment, float *org, f
 		if( i == iAttachment )
 		{
 			// compute pos and angles
-			Matrix4x4_VectorITransform( studio.bones[pAtt[i].bone], pAtt[i].org, localOrg );
-			Matrix4x4_VectorIRotate( studio.bones[pAtt[i].bone], pAtt[i].vectors[0], axis[0] );
-			Matrix4x4_VectorIRotate( studio.bones[pAtt[i].bone], pAtt[i].vectors[1], axis[1] );
-			Matrix4x4_VectorIRotate( studio.bones[pAtt[i].bone], pAtt[i].vectors[2], axis[2] );
+			Matrix4x4_VectorTransform( studio.bones[pAtt[i].bone], pAtt[i].org, localOrg );
+			Matrix4x4_VectorRotate( studio.bones[pAtt[i].bone], pAtt[i].vectors[0], axis[0] );
+			Matrix4x4_VectorRotate( studio.bones[pAtt[i].bone], pAtt[i].vectors[1], axis[1] );
+			Matrix4x4_VectorRotate( studio.bones[pAtt[i].bone], pAtt[i].vectors[2], axis[2] );
 			Matrix3x3_ToAngles( axis, localAng, true ); // FIXME: dll's uses FLU ?
 			if( org ) VectorCopy( localOrg, org );
 			if( ang ) VectorCopy( localAng, ang );

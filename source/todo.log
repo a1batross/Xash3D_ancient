@@ -29,9 +29,4 @@ Beta 13.02.10
 1. finalize LAN game menu (join the game)		OK
 2. finalize Create game menu (apply game settings)	OK
 3. fix items pickup sound bug				OK
-
-
-
-
-
-
+4. rewrite pfnDropToFloor

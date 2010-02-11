@@ -1467,7 +1467,7 @@ int CBasePlayerWeapon :: Launch ( const char *ammo, int type )
 	else if( !FStriCmp( ammo, "nuke" ))
 	{
 		UTIL_MakeVectors( m_pPlayer->pev->viewangles );
-		Vector vecSrc = m_pPlayer->GetGunPosition( ) + gpGlobals->v_forward * 125 + gpGlobals->v_up * 2;
+		Vector vecSrc = m_pPlayer->GetGunPosition( ) + gpGlobals->v_forward * 16 + gpGlobals->v_up * 2;
 		CWHRocket *pRocket = CWHRocket::Create ( vecSrc, m_pPlayer->pev->viewangles, m_pPlayer, this, type );
 	}
 	else if( !FStriCmp( ammo, "grenade" ))
@@ -1673,7 +1673,7 @@ void CBasePlayerWeapon::ZoomReset( void )
 	{
 		m_pPlayer->pev->viewmodel = iViewModel();
 		m_flHoldTime = UTIL_WeaponTimeBase() + 0.5;
-		m_pPlayer->pev->fov = CVAR_GET_FLOAT( "default_fov" );
+		m_pPlayer->pev->fov = 90.0f;
 		m_iZoom = 0; // clear zoom
 		MESSAGE_BEGIN( MSG_ONE, gmsg.ZoomHUD, NULL, m_pPlayer->pev );
 			WRITE_BYTE( m_iZoom );

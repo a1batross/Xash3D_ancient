@@ -381,8 +381,9 @@ static void CL_ClipToLinks( areanode_t *node, moveclip_t *clip )
 		if( touch == clip->passedict )
 			continue;
 		if( touch->v.solid == SOLID_TRIGGER )
-			Host_Error( "Client: trigger in clipping list\n" );
-
+		{
+			MsgDev( D_WARN, "entity %s (%i) with SOLID_TRIGGER in clipping list\n", CL_ClassName( touch ), touch->serialnumber );
+		}
 		if( clip->type == MOVE_NOMONSTERS && touch->v.solid != SOLID_BSP )
 			continue;
 

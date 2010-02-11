@@ -222,6 +222,7 @@ public:
 	int MsgFunc_Fsound( const char *pszName, int iSize, void *pbuf );
 	int PlayStream( const char* name );
 	int Draw( float flTime ); // used for get pause
+	int Update( void );
 	int Close( void );
 private:
 	int m_iStatus;

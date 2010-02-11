@@ -1465,7 +1465,7 @@ int pfnDropToFloor( edict_t* e )
 		}
 		else if( trace.flFraction < 1.0f )
 		{
-			MsgDev( D_WARN, "SV_DropToFloor: moved to %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
+			MsgDev( D_NOTE, "SV_DropToFloor: moved to %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
 			VectorCopy( trace.vecEndPos, e->v.origin );
 			SV_UnstickEntity( e );
 			SV_LinkEdict( e, true );
@@ -1473,8 +1473,10 @@ int pfnDropToFloor( edict_t* e )
 			e->v.groundentity = trace.pHit;
 			return true;
 		}
-
-		MsgDev( D_ERROR, "SV_DropToFloor: startsolid at %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
+		else
+		{
+			MsgDev( D_WARN, "SV_DropToFloor: allsolid at %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
+		}
 		return false;
 	}
 	else

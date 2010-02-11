@@ -307,11 +307,6 @@ static void PM_SetupMove( playermove_t *pmove, edict_t *clent, usercmd_t *ucmd, 
 	pmove->onground = clent->v.groundentity;
 	pmove->usehull = (clent->v.flags & FL_DUCKING) ? 1 : 0; // reset hull
 	pmove->bInDuck = clent->v.bInDuck;
-
-	VectorCopy( clent->v.movedir, pmove->movedir );
-	VectorCopy( clent->v.origin, pmove->origin );
-	VectorCopy( clent->v.velocity, pmove->velocity );
-	VectorCopy( clent->v.basevelocity, pmove->basevelocity );
 }
 
 static void PM_FinishMove( playermove_t *pmove, edict_t *clent )
@@ -405,9 +400,8 @@ void CL_RunCmd( edict_t *clent, usercmd_t *ucmd )
 		return;
 	}
 
-	VectorCopy( clent->v.viewangles, clgame.pmove->oldangles ); // save oldangles
-	if( !clent->v.fixangle )
-		VectorCopy( ucmd->viewangles, clent->v.viewangles );
+	VectorCopy( ucmd->viewangles, clgame.pmove->oldangles ); // save oldangles
+	if( !clent->v.fixangle ) VectorCopy( ucmd->viewangles, clent->v.viewangles );
 
 	// copy player buttons
 	clent->v.button = ucmd->buttons;
@@ -467,7 +461,7 @@ void CL_CheckPredictionError( void )
 	frame &= CMD_MASK;
 
 	// compare what the server returned with what we had predicted it to be
-	VectorSubtract( player->v.origin, cl.predicted_origins[frame], delta );
+	VectorSubtract( player->pvClientData->current.origin, cl.predicted_origins[frame], delta );
 
 	// save the prediction error for interpolation
 	flen = fabs( delta[0] ) + fabs( delta[1] ) + fabs( delta[2] );
@@ -479,9 +473,9 @@ void CL_CheckPredictionError( void )
 	}
 	else
 	{
-		if( cl_showmiss->integer && flen > 0.8f )
+		if( cl_showmiss->integer && flen > 0.0f )
 			Msg( "prediction miss on %i: %g\n", cl.frame.serverframe, flen );
-		VectorCopy( player->v.origin, cl.predicted_origins[frame] );
+		VectorCopy( player->pvClientData->current.origin, cl.predicted_origins[frame] );
 
 		// save for error itnerpolation
 		VectorCopy( delta, cl.prediction_error );
@@ -501,7 +495,7 @@ void CL_PredictMovement( void )
 	int		oldframe;
 	int		ack, current;
 	edict_t		*player, *viewent;
-	float		step, oldz;
+	float		step, oldstep, oldz;
 	usercmd_t		*cmd;
 
 	if( cls.state != ca_active ) return;
@@ -519,7 +513,7 @@ void CL_PredictMovement( void )
 	// unpredicted pure angled values converted into axis
 	AngleVectors( cl.refdef.cl_viewangles, cl.refdef.forward, cl.refdef.right, cl.refdef.up );
 
-	if( !cl_predict->value || player->pvClientData->current.ed_flags & ESF_NO_PREDICTION )
+	if( !cl_predict->integer || player->pvClientData->current.ed_flags & ESF_NO_PREDICTION )
 	{	
 		// just set angles
 		VectorCopy( cl.refdef.cl_viewangles, cl.predicted_angles );
@@ -534,11 +528,15 @@ void CL_PredictMovement( void )
 	if( current - ack >= CMD_BACKUP )
 	{
 		if( cl_showmiss->value )
-			Msg( "exceeded CMD_BACKUP\n" );
+			MsgDev( D_ERROR, "CL_Predict: exceeded CMD_BACKUP\n" );
 		return;	
 	}
 
 	frame = 0;
+	VectorCopy( player->v.movedir, clgame.pmove->movedir );
+	VectorCopy( player->pvClientData->current.origin, clgame.pmove->origin );
+	VectorCopy( player->pvClientData->current.velocity, clgame.pmove->velocity );
+	VectorCopy( player->pvClientData->current.basevelocity, clgame.pmove->basevelocity );
 
 	// run frames
 	while( ++ack < current )
@@ -554,18 +552,18 @@ void CL_PredictMovement( void )
 		VectorCopy( clgame.pmove->origin, cl.predicted_origins[frame] );
 	}
 
-	oldframe = (ack- 2 ) & CMD_MASK;
+	oldframe = (ack - 2) & CMD_MASK;
+	oldz = cl.predicted_origins[oldframe][2];
+	step = clgame.pmove->origin[2] - oldz;
 
-	if( player->v.flags & FL_ONGROUND )
+	if( player->v.flags & FL_ONGROUND && step > 0 && step < clgame.movevars.stepsize )
 	{
-		oldz = cl.predicted_origins[oldframe][2];
-		step = clgame.pmove->origin[2] - oldz;
+		if( cls.realtime - cl.predicted_step_time < 150 )
+			oldstep = cl.predicted_step * (150 - (cls.realtime - cl.predicted_step_time)) * (1.0f/150.0f);
+		else oldstep = 0.0f;
 
-		if( step > (clgame.movevars.stepsize / 2) && step < clgame.movevars.stepsize )
-		{
-			cl.predicted_step = step;
-			cl.predicted_step_time = cls.realtime - cls.frametime * 500;
-		}
+		cl.predicted_step = oldstep + step;
+		cl.predicted_step_time = cls.realtime - cls.frametime * 500;
 	}
 
 	// copy results out for rendering

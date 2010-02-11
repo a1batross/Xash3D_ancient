@@ -428,7 +428,7 @@ static void SV_ClipToLinks( areanode_t *node, moveclip_t *clip )
 		if( touch == clip->passedict )
 			continue;
 		if( touch->v.solid == SOLID_TRIGGER )
-			Host_Error( "Server: trigger in clipping list\n" );
+			Host_Error( "trigger in clipping list\n" );
 
 		if( clip->type == MOVE_NOMONSTERS && touch->v.solid != SOLID_BSP )
 			continue;

@@ -316,12 +316,6 @@
 #define HANDGRENADE_DMG			100
 #define HANDGRENADE_DEFAULT_GIVE		1
 
-//Redeemder settings (weapon_redeemer)
-#define REDEEMER_ROCKET_DMG			500
-#define WARHEAD_SPEED			600
-#define WARHEAD_SPEED_UNDERWATER		300
-#define WARHEAD_MAX_SPEED			1400
-
 //=========================
 // 	AMMO SETTINGS
 //=========================

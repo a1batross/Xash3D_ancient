@@ -1048,10 +1048,6 @@ void ( APIENTRY * pglSelectTextureSGIS) ( GLenum );
 void ( APIENTRY * pglMTexCoord2fSGIS) ( GLenum, GLfloat, GLfloat );
 void ( APIENTRY * pglSwapInterval) ( int interval );
 
-// legacy stuff
-extern	bool	QGL_Init( const char *dllname );
-extern	void	QGL_Shutdown( void );
-
 extern	void *pglGetProcAddress( const GLubyte * );
 const char *(*pglGetGLWExtensionsString)( void );
 

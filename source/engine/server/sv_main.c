@@ -357,7 +357,8 @@ void SV_RunGameFrame( void )
 	// never get more than one tic behind
 	if( sv.time < svs.realtime )
 	{
-		MsgDev( D_NOTE, "sv.highclamp\n" );
+		if( !sv.paused && CL_Active())
+			MsgDev( D_INFO, "sv.highclamp\n" );
 		svs.realtime = sv.time;
 	}
 }

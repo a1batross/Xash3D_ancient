@@ -397,6 +397,31 @@ void CL_Disconnect_f( void )
 	Host_Error( "Disconnected from server\n" );
 }
 
+void CL_Crashed_f( void )
+{
+	byte	final[32];
+
+	// already freed
+	if( host.state == HOST_ERROR ) return;
+	if( host.type != HOST_NORMAL ) return;
+	if( !cls.initialized ) return;
+
+	CL_Stop_f(); // stop any demos
+
+	// send a disconnect message to the server
+	final[0] = clc_stringcmd;
+	com.strcpy((char *)final+1, "disconnect" );
+	Netchan_Transmit( &cls.netchan, com.strlen( final ), final );
+	Netchan_Transmit( &cls.netchan, com.strlen( final ), final );
+	Netchan_Transmit( &cls.netchan, com.strlen( final ), final );
+
+	// stop any downloads
+	if( cls.download ) FS_Close( cls.download );
+
+	Host_WriteConfig();	// write config
+	if( re ) re->RestoreGamma();
+}
+
 /*
 =================
 CL_LocalServers_f
@@ -1024,6 +1049,7 @@ void CL_InitLocal( void )
 	Cmd_AddCommand ("pause", NULL, "pause the game (if the server allows pausing)" );
 	Cmd_AddCommand ("localservers", CL_LocalServers_f, "collect info about local servers" );
 
+	Cmd_AddCommand ("@crashed",  CL_Crashed_f, "" );	// internal system command
 	Cmd_AddCommand ("userinfo", CL_Userinfo_f, "print current client userinfo" );
 	Cmd_AddCommand ("physinfo", CL_Physinfo_f, "print current client physinfo" );
 	Cmd_AddCommand ("changing", CL_Changing_f, "sent by server to tell client to wait for level change" );
@@ -1092,8 +1118,6 @@ void CL_Frame( int time )
 	cl.time += time;		// can be merged by cl.frame.servertime 
 	cls.realtime += time;
 	cls.frametime = time * 0.001f;
-
-//	cl.time = bound( cl.frame.servertime - cl.serverframetime, cl.time, cl.frame.servertime );
 	if( cls.frametime > 0.2f ) cls.frametime = 0.2f;
 
 	// if in the debugger last frame, don't timeout

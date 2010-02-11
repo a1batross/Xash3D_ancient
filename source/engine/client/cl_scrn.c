@@ -391,30 +391,34 @@ text to the screen.
 */
 void SCR_UpdateScreen( void )
 {
-	if(!V_PreRender()) return;
-
-	switch( cls.state )
+	if( V_PreRender( ))
 	{
-	case ca_disconnected:
-		break;
-	case ca_connecting:
-	case ca_connected:
-		SCR_DrawPlaque();
-		CL_DrawHUD( CL_LOADING );
-		break;
-	case ca_active:
-		V_RenderView();
-		CL_DrawHUD( CL_ACTIVE );
-		CL_DrawDemoRecording();
-		break;
-	case ca_cinematic:
-		SCR_DrawCinematic();
-		break;
-	default:
-		Host_Error( "SCR_UpdateScreen: bad cls.state\n" );
-		break;
-	}
-	V_PostRender();
+		switch( cls.state )
+		{
+		case ca_disconnected:
+			break;
+		case ca_connecting:
+		case ca_connected:
+			SCR_DrawPlaque();
+			CL_DrawHUD( CL_LOADING );
+			break;
+		case ca_active:
+			V_RenderView();
+			CL_DrawHUD( CL_ACTIVE );
+			CL_DrawDemoRecording();
+			break;
+		case ca_cinematic:
+			SCR_DrawCinematic();
+			break;
+		default:
+			Host_Error( "SCR_UpdateScreen: bad cls.state\n" );
+			break;
+		}
+		V_PostRender();
+          }
+
+	if( clgame.hInstance )
+		clgame.dllFuncs.pfnFrame( cl.time * 0.001f );
 }
 
 void SCR_RegisterShaders( void )

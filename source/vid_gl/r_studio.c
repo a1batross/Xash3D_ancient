@@ -1418,10 +1418,11 @@ StudioCalcAttachments
 */
 static void R_StudioCalcAttachments( ref_entity_t *e )
 {
-	int			i;
-	dstudioattachment_t		*pAtt;
-	vec3_t			axis[3];
-	vec3_t			localOrg, localAng;
+	int		i;
+	matrix4x4		out;
+	dstudioattachment_t	*pAtt;
+	vec3_t		axis[3];
+	vec3_t		localOrg, localAng;
 
 	if( m_pStudioHeader->numattachments <= 0 )
 	{
@@ -1440,11 +1441,14 @@ static void R_StudioCalcAttachments( ref_entity_t *e )
 	pAtt = (dstudioattachment_t *)((byte *)m_pStudioHeader + m_pStudioHeader->attachmentindex);
 	for( i = 0; i < m_pStudioHeader->numattachments; i++ )
 	{
+		// NOTE: m_pbonestransform not contained rotate component so we need do it here
+		Matrix4x4_Concat( out, ((studiovars_t *)e->extradata)->rotationmatrix, m_pbonestransform[pAtt[i].bone] );
+
 		// compute pos and angles
-		Matrix4x4_VectorITransform( m_pbonestransform[pAtt[i].bone], pAtt[i].org, localOrg );
-		Matrix4x4_VectorIRotate( m_pbonestransform[pAtt[i].bone], pAtt[i].vectors[0], axis[0] );
-		Matrix4x4_VectorIRotate( m_pbonestransform[pAtt[i].bone], pAtt[i].vectors[1], axis[1] );
-		Matrix4x4_VectorIRotate( m_pbonestransform[pAtt[i].bone], pAtt[i].vectors[2], axis[2] );
+		Matrix4x4_VectorTransform( out, pAtt[i].org, localOrg );
+		Matrix4x4_VectorRotate( out, pAtt[i].vectors[0], axis[0] );
+		Matrix4x4_VectorRotate( out, pAtt[i].vectors[1], axis[1] );
+		Matrix4x4_VectorRotate( out, pAtt[i].vectors[2], axis[2] );
 		Matrix3x3_ToAngles( axis, localAng, true ); // FIXME: dll's uses FLU ?
 		ri.SetAttachment( e->index, i, localOrg, localAng );
 	}

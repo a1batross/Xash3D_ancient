@@ -371,7 +371,7 @@ void CFade::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType
 //=======================================================================
 class CEnvZoom : public CBaseLogic
 {
-	void Spawn (void ){ if( !pev->frags ) pev->frags = CVAR_GET_FLOAT( "default_fov" ); }
+	void Spawn (void ){ if( !pev->frags ) pev->frags = 90.0f; }
 	void EXPORT Think( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void KeyValue( KeyValueData* pkvd );
@@ -404,7 +404,7 @@ void CEnvZoom::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useT
 	if( m_iState == STATE_ON ) return;
 	if( useType == USE_TOGGLE || useType == USE_ON ) SetFadeTime();
 	else if( useType == USE_OFF )
-		((CBasePlayer *)pActivator)->pev->fov = CVAR_GET_FLOAT( "default_fov" );
+		((CBasePlayer *)pActivator)->pev->fov = 90.0f;
 	else if( useType == USE_SHOWINFO )
 	{
 		DEBUGHEAD;
@@ -427,7 +427,7 @@ void CEnvZoom::SetFadeTime( void )
 	{
 		CurFOV = ((CBasePlayer *)(CBaseEntity *)m_hActivator)->pev->fov;
 		if( CurFOV == 0.0f )
-			CurFOV = ((CBasePlayer *)(CBaseEntity *)m_hActivator)->pev->fov = CVAR_GET_FLOAT( "default_fov" );
+			CurFOV = ((CBasePlayer *)(CBaseEntity *)m_hActivator)->pev->fov = 90.0f;
 	
 		if( CurFOV > pev->frags ) Length = CurFOV - pev->frags;
 		else if( CurFOV < pev->frags )

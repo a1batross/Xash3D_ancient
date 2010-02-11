@@ -525,10 +525,13 @@ Cmd_LookupCmds
 void Cmd_LookupCmds( char *buffer, void *ptr, setpair_t callback )
 {
 	cmd_function_t	*cmd;
+
+	// nothing to process ?
+	if( !callback ) return;
 	
-	for (cmd = cmd_functions; cmd; cmd = cmd->next)
+	for( cmd = cmd_functions; cmd; cmd = cmd->next )
 	{
-		if(!buffer) callback( cmd->name, (char *)cmd->function, cmd->desc, ptr );
+		if( !buffer ) callback( cmd->name, (char *)cmd->function, cmd->desc, ptr );
 		else callback( cmd->name, (char *)cmd->function, buffer, ptr );
 	}
 }

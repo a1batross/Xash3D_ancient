@@ -2436,6 +2436,7 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	re.WorldToScreen = R_WorldToScreen;
 	re.RSpeedsMessage = R_SpeedsMessage;
 	re.Support = GL_Support;
+	re.RestoreGamma = R_RestoreGamma;
 
 	return &re;
 }
