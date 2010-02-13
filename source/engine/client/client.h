@@ -71,7 +71,6 @@ typedef struct
 	bool		force_refdef;		// vid has changed, so we can't use a paused refdef
 	int		parse_entities;		// index (not anded off) into cl_parse_entities[]
 
-	int		cmd_number;
 	usercmd_t		cmds[CMD_BACKUP];		// each mesage will send several old cmds
 
 	frame_t		frame;			// received from server

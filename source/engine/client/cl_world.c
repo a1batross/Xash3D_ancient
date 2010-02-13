@@ -382,7 +382,10 @@ static void CL_ClipToLinks( areanode_t *node, moveclip_t *clip )
 			continue;
 		if( touch->v.solid == SOLID_TRIGGER )
 		{
+			// throw warn and ignore
 			MsgDev( D_WARN, "entity %s (%i) with SOLID_TRIGGER in clipping list\n", CL_ClassName( touch ), touch->serialnumber );
+			touch->v.solid = SOLID_NOT;
+			continue;
 		}
 		if( clip->type == MOVE_NOMONSTERS && touch->v.solid != SOLID_BSP )
 			continue;

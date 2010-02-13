@@ -145,8 +145,7 @@ Called every frame to builds and sends a command packet to the server.
 void CL_SendCmd( void )
 {
 	// we create commands even if a demo is playing,
-	cl.cmd_number = cls.netchan.outgoing_sequence & CMD_MASK;
-	cl.refdef.cmd = &cl.cmds[cl.cmd_number];
+	cl.refdef.cmd = &cl.cmds[cls.netchan.outgoing_sequence & CMD_MASK];
 	*cl.refdef.cmd = CL_CreateCmd();
 
 	// clc_move, userinfo etc
@@ -296,17 +295,10 @@ static void PM_SetupMove( playermove_t *pmove, edict_t *clent, usercmd_t *ucmd, 
 	pmove->serverflags = clgame.globals->serverflags;	// shared serverflags
 	pmove->maxspeed = clgame.movevars.maxspeed;
 	pmove->realtime = clgame.globals->time;
-	pmove->frametime = ucmd->msec * 0.001f;
 	com.strncpy( pmove->physinfo, physinfo, MAX_INFO_STRING );
 	pmove->clientmaxspeed = clent->v.maxspeed;
 	pmove->cmd = *ucmd;				// setup current cmds
 	pmove->player = clent;			// ptr to client state
-	pmove->numtouch = 0;			// reset touchents
-	pmove->dead = (clent->v.health <= 0.0f) ? true : false;
-	pmove->flWaterJumpTime = clent->v.teleport_time;
-	pmove->onground = clent->v.groundentity;
-	pmove->usehull = (clent->v.flags & FL_DUCKING) ? 1 : 0; // reset hull
-	pmove->bInDuck = clent->v.bInDuck;
 }
 
 static void PM_FinishMove( playermove_t *pmove, edict_t *clent )
@@ -314,7 +306,6 @@ static void PM_FinishMove( playermove_t *pmove, edict_t *clent )
 	clent->v.teleport_time = pmove->flWaterJumpTime;
 	clent->v.groundentity = pmove->onground;
 	clent->v.bInDuck = pmove->bInDuck;
-	clgame.pmove->numtouch = 0;	// not used on client
 }
 
 /*
@@ -400,8 +391,8 @@ void CL_RunCmd( edict_t *clent, usercmd_t *ucmd )
 		return;
 	}
 
-	VectorCopy( ucmd->viewangles, clgame.pmove->oldangles ); // save oldangles
-	if( !clent->v.fixangle ) VectorCopy( ucmd->viewangles, clent->v.viewangles );
+//	VectorCopy( ucmd->viewangles, clgame.pmove->oldangles ); // save oldangles
+//	if( !clent->v.fixangle ) VectorCopy( ucmd->viewangles, clent->v.viewangles );
 
 	// copy player buttons
 	clent->v.button = ucmd->buttons;
@@ -473,7 +464,7 @@ void CL_CheckPredictionError( void )
 	}
 	else
 	{
-		if( cl_showmiss->integer && flen > 0.0f )
+		if( cl_showmiss->integer && flen > 0.5f )
 			Msg( "prediction miss on %i: %g\n", cl.frame.serverframe, flen );
 		VectorCopy( player->pvClientData->current.origin, cl.predicted_origins[frame] );
 
@@ -532,12 +523,16 @@ void CL_PredictMovement( void )
 		return;	
 	}
 
-	frame = 0;
+	// setup initial pmove state
 	VectorCopy( player->v.movedir, clgame.pmove->movedir );
 	VectorCopy( player->pvClientData->current.origin, clgame.pmove->origin );
 	VectorCopy( player->pvClientData->current.velocity, clgame.pmove->velocity );
 	VectorCopy( player->pvClientData->current.basevelocity, clgame.pmove->basevelocity );
-
+	VectorCopy( player->pvClientData->current.viewoffset, player->v.view_ofs );
+	clgame.pmove->flWaterJumpTime = player->v.teleport_time;
+	clgame.pmove->onground = player->v.groundentity;
+	clgame.pmove->usehull = (player->pvClientData->current.flags & FL_DUCKING) ? 1 : 0; // reset hull
+	
 	// run frames
 	while( ++ack < current )
 	{

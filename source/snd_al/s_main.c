@@ -955,8 +955,8 @@ void S_Shutdown( void )
 {
 
 	Cmd_RemoveCommand( "playsound" );
+	Cmd_RemoveCommand( "stopsound" );
 	Cmd_RemoveCommand( "music" );
-	Cmd_RemoveCommand( "s_stop" );
 	Cmd_RemoveCommand( "s_info" );
 	Cmd_RemoveCommand( "s_clearfade" );
 	Cmd_RemoveCommand( "soundlist" );

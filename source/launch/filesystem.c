@@ -1889,33 +1889,34 @@ FS_OpenPackedFile
 Open a packed file using its package file descriptor
 ===========
 */
-file_t *FS_OpenPackedFile( pack_t* pack, int pack_ind )
+file_t *FS_OpenPackedFile( pack_t *pack, int pack_ind )
 {
-	packfile_t *pfile;
-	int dup_handle;
-	file_t* file;
+	packfile_t	*pfile;
+	int		dup_handle;
+	file_t		*file;
 
 	pfile = &pack->files[pack_ind];
 
 	// if we don't have the true offset, get it now
-	if(!(pfile->flags & PACKFILE_FLAG_TRUEOFFS))
-		if (!PK3_GetTrueFileOffset (pfile, pack))
+	if( !( pfile->flags & PACKFILE_FLAG_TRUEOFFS ))
+		if( !PK3_GetTrueFileOffset( pfile, pack ))
 			return NULL;
 
-	if (lseek(pack->handle, pfile->offset, SEEK_SET) == -1)
+	if( lseek( pack->handle, pfile->offset, SEEK_SET ) == -1 )
 	{
-		Msg("FS_OpenPackedFile: can't lseek to %s in %s (offset: %d)\n", pfile->name, pack->filename, pfile->offset);
+		Msg( "FS_OpenPackedFile: can't lseek to %s in %s (offset: %d)\n", pfile->name, pack->filename, pfile->offset );
 		return NULL;
 	}
 
-	dup_handle = dup (pack->handle);
-	if (dup_handle < 0)
+	dup_handle = dup( pack->handle );
+
+	if( dup_handle < 0 )
 	{
-		Msg("FS_OpenPackedFile: can't dup package's handle (pack: %s)\n", pack->filename);
+		Msg( "FS_OpenPackedFile: can't dup package's handle (pack: %s)\n", pack->filename );
 		return NULL;
 	}
 
-	file = (file_t *)Mem_Alloc (fs_mempool, sizeof (*file));
+	file = (file_t *)Mem_Alloc( fs_mempool, sizeof( *file ));
 	Mem_Set( file, 0, sizeof( *file ));
 	file->handle = dup_handle;
 	file->flags = FILE_FLAG_PACKED;
@@ -1924,30 +1925,30 @@ file_t *FS_OpenPackedFile( pack_t* pack, int pack_ind )
 	file->position = 0;
 	file->ungetc = EOF;
 
-	if (pfile->flags & PACKFILE_FLAG_DEFLATED)
+	if( pfile->flags & PACKFILE_FLAG_DEFLATED )
 	{
-		ztoolkit_t *ztk;
+		ztoolkit_t	*ztk;
 
 		file->flags |= FILE_FLAG_DEFLATED;
 
 		// We need some more variables
-		ztk = (ztoolkit_t *)Mem_Alloc (fs_mempool, sizeof (*ztk));
+		ztk = (ztoolkit_t *)Mem_Alloc( fs_mempool, sizeof( *ztk ));
 		ztk->comp_length = pfile->packsize;
 
 		// Initialize zlib stream
 		ztk->zstream.next_in = ztk->input;
 		ztk->zstream.avail_in = 0;
 
-		if(inflateInit2(&ztk->zstream, -MAX_WBITS) != Z_OK)
+		if( inflateInit2( &ztk->zstream, -MAX_WBITS ) != Z_OK )
 		{
-			Msg("FS_OpenPackedFile: inflate init error (file: %s)\n", pfile->name);
-			close(dup_handle);
-			Mem_Free(file);
+			Msg( "FS_OpenPackedFile: inflate init error (file: %s)\n", pfile->name );
+			close( dup_handle );
+			Mem_Free( file );
 			return NULL;
 		}
 
 		ztk->zstream.next_out = file->buff;
-		ztk->zstream.avail_out = sizeof (file->buff);
+		ztk->zstream.avail_out = sizeof( file->buff );
 		file->ztk = ztk;
 	}
 	return file;
@@ -2166,16 +2167,17 @@ FS_Close
 Close a file
 ====================
 */
-int FS_Close (file_t* file)
+int FS_Close( file_t* file )
 {
-	if (close (file->handle)) return EOF;
+	if( close( file->handle ))
+		return EOF;
 
-	if (file->ztk)
+	if( file->ztk )
 	{
-		inflateEnd (&file->ztk->zstream);
-		Mem_Free (file->ztk);
+		inflateEnd( &file->ztk->zstream );
+		Mem_Free( file->ztk );
 	}
-	Mem_Free (file);
+	Mem_Free( file );
 	return 0;
 }
 
