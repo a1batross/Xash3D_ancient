@@ -84,7 +84,6 @@ bool R_CullBox( const vec3_t mins, const vec3_t maxs, const unsigned int clipfla
 				return true;
 			break;
 		default:
-			Com_Assert( 1 );
 			return false;
 		}
 	}

@@ -3641,11 +3641,10 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		shader->type = SHADER_SKY;
 		shader->name = Shader_Malloc( length + 1 );
 		strcpy( shader->name, shortname );
-		// create simple sky parms, to do Shader_SkyParms parsing it properly
+		// create simple sky parms, when Shader_SkyParms parsing it properly
 		skyParms = va( "%s - -", shortname );
 		script = Com_OpenScript( "skybox", skyParms, com.strlen( skyParms ));
 		Shader_SkyParms( shader, NULL, script );
-		Com_Assert( shader->skyParms == NULL );
 		Com_CloseScript( script );
 		break;
 	case SHADER_FARBOX:

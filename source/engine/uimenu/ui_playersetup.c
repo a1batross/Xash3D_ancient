@@ -321,7 +321,7 @@ static void UI_PlayerSetup_Init( void )
 	uiPlayerSetup.name.generic.height = 36;
 	uiPlayerSetup.name.generic.callback = UI_PlayerSetup_Callback;
 	uiPlayerSetup.name.generic.statusText = "Enter your multiplayer display name";
-	uiPlayerSetup.name.maxLenght = 32;
+	uiPlayerSetup.name.maxLength = 32;
 
 	uiPlayerSetup.model.generic.id = ID_MODEL;
 	uiPlayerSetup.model.generic.type = QMTYPE_SPINCONTROL;

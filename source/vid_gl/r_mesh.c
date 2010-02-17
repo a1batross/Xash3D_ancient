@@ -491,7 +491,7 @@ static void R_BatchMeshBuffer( const meshbuffer_t *mb, const meshbuffer_t *nextm
 			R_DrawSpriteModel( mb );
 			break;
 		default:
-			Com_Assert( 1 );    // shut up compiler
+			Host_Error( "R_DrawModel: bad modeltype %i\n", type );
 			break;
 		}
 		break;
@@ -586,7 +586,6 @@ void R_DrawPortals( void )
 				default:
 					mb = NULL;
 					total_meshes = num_meshes = 0;
-					Com_Assert( 1 );
 					break;
 				}
 

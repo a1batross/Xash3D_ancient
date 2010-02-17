@@ -441,8 +441,6 @@ void R_DrawShadowmaps( void )
 		// allocate/resize the texture if needed
 		R_InitShadowmapTexture( &( tr.shadowmapTextures[i] ), i, width, height );
 
-		Com_Assert( (tr.shadowmapTextures[i] && tr.shadowmapTextures[i]->width && tr.shadowmapTextures[i]->height) == 0 );
-
 		group->depthTexture = tr.shadowmapTextures[i];
 		textureWidth = group->depthTexture->width;
 		textureHeight = group->depthTexture->height;

@@ -198,7 +198,7 @@ typedef struct
 {
 	menuCommon_s	generic;
 	const char	*background;
-	int		maxLenght;
+	int		maxLength;
 	int		visibleLength;
 	char		buffer[UI_MAX_FIELD_LINE];
 	int		length;
@@ -258,6 +258,7 @@ void UI_CheckBox_Draw( menuCheckBox_s *cb );
 
 void UI_Field_Init( menuField_s *f );
 const char *UI_Field_Key( menuField_s *f, int key, bool down );
+void UI_Field_Char( menuField_s *f, int key );
 void UI_Field_Draw( menuField_s *f );
 
 void UI_Action_Init( menuAction_s *t );

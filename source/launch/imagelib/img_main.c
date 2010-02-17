@@ -91,7 +91,7 @@ const bpc_desc_t PFDesc[] =
 {PF_DXT5,		"DXT5",	0x1908,	0x1401, 4,  1, 16 },
 {PF_RXGB,		"RXGB",	0x1908,	0x1401, 3,  1, 16 },
 {PF_ATI1N,	"ATI1N",	0x1908,	0x1401, 1,  1,  8 },
-{PF_ATI2N,	"3DC",	0x1908,	0x1401, 3,  1, 16 },
+{PF_ATI2N,	"3DC",	0x1908,	0x1401, 4,  1, 16 },
 {PF_LUMINANCE,	"LUM 8",	0x1909,	0x1401, 1,  1, -1 },
 {PF_LUMINANCE_16,	"LUM 16", 0x1909,	0x1401, 2,  2, -2 },
 {PF_LUMINANCE_ALPHA,"LUM A",	0x190A,	0x1401, 2,  1, -2 },

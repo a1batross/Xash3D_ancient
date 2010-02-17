@@ -2071,10 +2071,6 @@ void R_RenderMeshCombined( void )
 			pglTexEnvi( GL_TEXTURE_ENV, GL_SOURCE2_RGB_ARB, GL_TEXTURE );
 			pglTexEnvi( GL_TEXTURE_ENV, GL_OPERAND2_RGB_ARB, GL_SRC_ALPHA );
 		}
-		else
-		{
-			Com_Assert( 1 );
-		}
 	}
 
 	R_FlushArrays();

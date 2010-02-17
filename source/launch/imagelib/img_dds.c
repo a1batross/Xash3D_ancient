@@ -1488,16 +1488,15 @@ bool Image_DecompressFloat( uint target, int level, int intformat, uint width, u
 
 bool Image_DecompressATI( uint target, int level, int intformat, uint width, uint height, uint imageSize, const void* data )
 {
-	int	x, y, z, w, h, i, j, k, t1, t2, size;
+	int	x, y, z, i, j, k, t1, t2, size;
 	byte	Colours[8], XColours[8], YColours[8];
 	uint	bitmask, bitmask2, CurrOffset, Offset = 0;
 	byte	*fin, *fin2, *fout;
+	bool	has_alpha = false;
 
 	if( !data ) return false;
 	fin = (byte *)data;
 
-	w = width;
-	h = height;
 	size = width * height * image.curdepth * 4;
 	image.tempbuffer = Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
 	fout = image.tempbuffer;
@@ -1505,11 +1504,13 @@ bool Image_DecompressATI( uint target, int level, int intformat, uint width, uin
 	switch( PFDesc[intformat].format )
 	{
 	case PF_ATI1N:
+		image.flags &= ~IMAGE_HAS_COLOR;
+		image.flags |= IMAGE_HAS_ALPHA;
 		for( z = 0; z < image.curdepth; z++ )
 		{
-			for( y = 0; y < h; y += 4 )
+			for( y = 0; y < height; y += 4 )
 			{
-				for( x = 0; x < w; x += 4 )
+				for( x = 0; x < width; x += 4 )
 				{
 					// read palette
 					t1 = Colours[0] = fin[0];
@@ -1518,16 +1519,17 @@ bool Image_DecompressATI( uint target, int level, int intformat, uint width, uin
 
 					if( t1 > t2 )
 					{
-						for( i = 2; i < 8; ++i )
-							Colours[i] = t1 + ((t2 - t1)*(i - 1)) / 7;
+						for( i = 2; i < 8; i++ )
+							Colours[i] = t1 + ((t2 - t1) * (i - 1)) / 7;
 					}
 					else
 					{
-						for( i = 2; i < 6; ++i )
-							Colours[i] = t1 + ((t2 - t1)*(i - 1)) / 5;
+						for( i = 2; i < 6; i++ )
+							Colours[i] = t1 + ((t2 - t1) * (i - 1)) / 5;
 						Colours[6] = 0;
 						Colours[7] = 0xFF;
 					}
+
 					// decompress pixel data
 					CurrOffset = Offset;
 					for( k = 0; k < 4; k += 2 )
@@ -1538,15 +1540,18 @@ bool Image_DecompressATI( uint target, int level, int intformat, uint width, uin
 						for( j = 0; j < 2; j++ )
 						{
 							// only put pixels out < height
-							if((y + k + j) < h )
+							if((y + k + j) < height )
 							{
 								for( i = 0; i < 4; i++ )
 								{
 									// only put pixels out < width
-									if((x + i) < w )
+									if((x + i) < width )
 									{
 										t1 = CurrOffset + (x + i);
-										fout[t1] = Colours[bitmask & 0x07];
+										fout[t1*4+0] = Colours[bitmask & 0x07];
+										fout[t1*4+1] = Colours[bitmask & 0x07];
+										fout[t1*4+2] = Colours[bitmask & 0x07];
+										fout[t1*4+3] = Colours[bitmask & 0x07];
 									}
 									bitmask >>= 3;
 								}
@@ -1561,11 +1566,13 @@ bool Image_DecompressATI( uint target, int level, int intformat, uint width, uin
 		}
 		break;
 	case PF_ATI2N:
+		image.flags |= IMAGE_HAS_COLOR;
+		image.flags &= ~IMAGE_HAS_ALPHA;
 		for( z = 0; z < image.curdepth; z++ )
 		{
-			for( y = 0; y < h; y += 4 )
+			for( y = 0; y < height; y += 4 )
 			{
-				for( x = 0; x < w; x += 4 )
+				for( x = 0; x < width; x += 4 )
 				{
 					fin2 = fin + 8;
 
@@ -1576,12 +1583,12 @@ bool Image_DecompressATI( uint target, int level, int intformat, uint width, uin
 
 					if( t1 > t2 )
 					{
-						for( i = 2; i < 8; ++i )
+						for( i = 2; i < 8; i++ )
 							YColours[i] = t1 + ((t2 - t1) * (i - 1)) / 7;
 					}
 					else
 					{
-						for( i = 2; i < 6; ++i )
+						for( i = 2; i < 6; i++ )
 							YColours[i] = t1 + ((t2 - t1) * (i - 1)) / 5;
 						YColours[6] = 0;
 						YColours[7] = 0xFF;
@@ -1616,24 +1623,25 @@ bool Image_DecompressATI( uint target, int level, int intformat, uint width, uin
 						for( j = 0; j < 2; j++ )
 						{
 							// only put pixels out < height
-							if((y + k + j) < h)
+							if((y + k + j) < height )
 							{
 								for( i = 0; i < 4; i++ )
 								{
 									// only put pixels out < width
-									if((x + i) < w )
+									if((x + i) < width )
 									{
 										int t, tx, ty;
 
-										t1 = CurrOffset + (x + i)*3;
+										t1 = CurrOffset + (x + i) * 4;
 										fout[t1+1] = ty = YColours[bitmask & 0x07];
 										fout[t1+0] = tx = XColours[bitmask2 & 0x07];
 
 										// calculate b (z) component ((r/255)^2 + (g/255)^2 + (b/255)^2 = 1
 										t = 127 * 128 - (tx - 127) * (tx - 128) - (ty - 127) * (ty - 128);
 
-										if( t > 0 ) fout[t1+2] = (byte)(sqrt(t) + 128); // FIXME: use FastSqrt
+										if( t > 0 ) fout[t1+2] = (byte)(com.sqrt( t ) + 128);
 										else fout[t1+2] = 0x7F;
+										fout[t1+3] = 0xFF;
 									}
 									bitmask >>= 3;
 									bitmask2 >>= 3;
@@ -1644,7 +1652,7 @@ bool Image_DecompressATI( uint target, int level, int intformat, uint width, uin
 						fin += 3;
 						fin2 += 3;
 					}
-					// skip bytes that were read via Temp2
+					// skip bytes that were read via fin2
 					fin += 8;
 				}
 				Offset += image.bps * 4;
@@ -1654,6 +1662,7 @@ bool Image_DecompressATI( uint target, int level, int intformat, uint width, uin
 	default: return false;
 	}
 
+	// make some post operations
 	Image_AddRGBAToPack( target, level, size, fout );
 	return true;
 }

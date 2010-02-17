@@ -206,7 +206,7 @@ void R_CinList_f( void )
 	do {
 		cin = handle->cin;
 		image = handle->image;
-		Com_Assert( cin == NULL );
+		if( cin == NULL ) break; // this should never happens
 
 		if( image && (cin->width != image->width || cin->height != image->height) )
 			Msg( "%s %i(%i)x%i(%i) f:%i\n", cin->name, cin->width, image->width, cin->height, image->height, cin->frame );
@@ -268,8 +268,9 @@ R_UploadCinematics
 */
 texture_t *R_UploadCinematics( uint id )
 {
-	Com_Assert( !( id > 0 && id <= MAX_CINEMATICS ));
-	return R_ResampleCinematicFrame( r_cinematics + id - 1 );
+	if( id > 0 && id < MAX_CINEMATICS )
+		return R_ResampleCinematicFrame( r_cinematics + id - 1 );
+	return tr.defaultTexture; // assume error
 }
 
 /*
@@ -295,7 +296,6 @@ uint R_StartCinematics( const char *arg )
 	for( handle = hnode->prev; handle != hnode; handle = next )
 	{
 		next = handle->prev;
-		Com_Assert( handle->cin == NULL );
 
 		// reuse
 		if( !com.stricmp( handle->cin->name, name ) )
@@ -350,7 +350,8 @@ void R_FreeCinematics( uint id )
 	Cin_Free( handle->cin );
 	handle->cin = NULL;
 
-	Com_Assert( handle->name == NULL );
+	// already freed ?
+	if( !handle->name ) return;
 	Cin_Free( handle->name );
 	handle->name = NULL;
 

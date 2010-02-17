@@ -311,7 +311,7 @@ static void UI_CreateGame_Init( void )
 	uiCreateGame.hostName.generic.width = 205;
 	uiCreateGame.hostName.generic.height = 32;
 	uiCreateGame.hostName.generic.callback = UI_CreateGame_Callback;
-	uiCreateGame.hostName.maxLenght = 16;
+	uiCreateGame.hostName.maxLength = 16;
 	com.strncpy( uiCreateGame.hostName.buffer, Cvar_VariableString( "sv_hostname" ), sizeof( uiCreateGame.hostName.buffer ));
 
 	uiCreateGame.maxClients.generic.id = ID_MAXCLIENTS;
@@ -322,7 +322,7 @@ static void UI_CreateGame_Init( void )
 	uiCreateGame.maxClients.generic.y = 360;
 	uiCreateGame.maxClients.generic.width = 205;
 	uiCreateGame.maxClients.generic.height = 32;
-	uiCreateGame.maxClients.maxLenght = 3;
+	uiCreateGame.maxClients.maxLength = 3;
 	if( Cvar_VariableInteger( "sv_maxclients" ) <= 1 )
 		com.snprintf( uiCreateGame.maxClients.buffer, sizeof( uiCreateGame.maxClients.buffer ), "8" );
 	else com.snprintf( uiCreateGame.maxClients.buffer, sizeof( uiCreateGame.maxClients.buffer ), "%i", Cvar_VariableInteger( "sv_maxclients" ));
@@ -336,7 +336,7 @@ static void UI_CreateGame_Init( void )
 	uiCreateGame.password.generic.width = 205;
 	uiCreateGame.password.generic.height = 32;
 	uiCreateGame.password.generic.callback = UI_CreateGame_Callback;
-	uiCreateGame.password.maxLenght = 16;
+	uiCreateGame.password.maxLength = 16;
 
 	uiCreateGame.msgBox.generic.id = ID_MSGBOX;
 	uiCreateGame.msgBox.generic.type = QMTYPE_ACTION;

@@ -876,6 +876,42 @@ void UI_KeyEvent( int key, bool down )
 
 /*
 =================
+UI_CharEvent
+=================
+*/
+void UI_CharEvent( int key )
+{
+	menuFramework_s	*menu;
+	menuCommon_s	*item;
+
+	if( !uiStatic.initialized )
+		return;
+
+	if( !uiStatic.visible )
+		return;
+
+	if( !uiStatic.menuActive )
+		return;
+
+	menu = uiStatic.menuActive;
+
+	if( !menu || !menu->numItems )
+		return;
+
+	item = UI_ItemAtCursor( menu );
+	if( item && !(item->flags & (QMF_GRAYED|QMF_INACTIVE|QMF_HIDDEN)))
+	{
+		switch( item->type )
+		{
+		case QMTYPE_FIELD:
+			UI_Field_Char((menuField_s *)item, key );
+			break;
+		}
+	}
+}
+
+/*
+=================
 UI_MouseMove
 =================
 */

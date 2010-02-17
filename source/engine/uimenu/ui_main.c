@@ -293,7 +293,8 @@ static void UI_Main_Init( void )
 	uiMain.newGame.generic.x = 72;
 	uiMain.newGame.generic.y = 230;
 	uiMain.newGame.generic.callback = UI_Main_Callback;
-	if( GI->gamemode == 2 ) uiMain.newGame.generic.flags |= QMF_GRAYED;
+	if( GI->gamemode == 2 || !com.strlen( GI->startmap ))
+		uiMain.newGame.generic.flags |= QMF_GRAYED;
 
 	uiMain.hazardCourse.generic.id = ID_HAZARDCOURSE;
 	uiMain.hazardCourse.generic.type = QMTYPE_ACTION;

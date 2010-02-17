@@ -385,7 +385,6 @@ dstudioanim_t *CM_StudioGetAnim( cmodel_t *m_pSubModel, dstudioseqdesc_t *pseqde
 	size_t		filesize;
           byte		*buf;
 
-	Com_Assert( m_pSubModel == NULL );	
 	pseqgroup = (dstudioseqgroup_t *)((byte *)studio.hdr + studio.hdr->seqgroupindex) + pseqdesc->seqgroup;
 	if( pseqdesc->seqgroup == 0 )
 		return (dstudioanim_t *)((byte *)studio.hdr + pseqgroup->data + pseqdesc->animindex);

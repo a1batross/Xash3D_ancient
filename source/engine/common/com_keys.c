@@ -28,7 +28,6 @@ key_t	keys[256];
 
 int nextHistoryLine;// the last line in the history buffer, not masked
 int historyLine;	// the line being displayed from history buffer will be <= nextHistoryLine
-bool key_overstrikeMode;
 bool anykeydown;
 bool chat_team;
 
@@ -349,7 +348,7 @@ void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, b
 	if((int)( cls.realtime>>8 ) & 1 )
 		return; // off blink
 
-	if( key_overstrikeMode ) cursorChar = 11;
+	if( host.key_overstrike ) cursorChar = 11;
 	else cursorChar = 95;
 
 	i = drawLen - (com.cstrlen(str) + 1);
@@ -460,7 +459,7 @@ void Field_KeyDownEvent( field_t *edit, int key )
 	}
 	if ( key == K_INS )
 	{
-		key_overstrikeMode = !key_overstrikeMode;
+		host.key_overstrike = !host.key_overstrike;
 		return;
 	}
 }
@@ -474,28 +473,29 @@ void Field_CharEvent( field_t *edit, int ch )
 {
 	int		len;
 
-	if ( ch == 'v' - 'a' + 1 )
+	if( ch == 'v' - 'a' + 1 )
 	{
 		// ctrl-v is paste
 		Field_Paste( edit );
 		return;
 	}
-	if ( ch == 'c' - 'a' + 1)
+	if( ch == 'c' - 'a' + 1 )
 	{
 		// ctrl-c clears the field
 		Field_Clear( edit );
 		return;
 	}
+
 	len = com.strlen( edit->buffer );
 
-	if ( ch == 'a' - 'a' + 1 )
+	if( ch == 'a' - 'a' + 1 )
 	{
 		// ctrl-a is home
 		edit->cursor = 0;
 		edit->scroll = 0;
 		return;
 	}
-	if ( ch == 'e' - 'a' + 1 )
+	if( ch == 'e' - 'a' + 1 )
 	{
 		// ctrl-e is end
 		edit->cursor = len;
@@ -506,7 +506,7 @@ void Field_CharEvent( field_t *edit, int ch )
 	// ignore any other non printable chars
 	if ( ch < 32 ) return;
 
-	if ( key_overstrikeMode )
+	if ( host.key_overstrike )
 	{	
 		if ( edit->cursor == MAX_EDIT_LINE - 1 ) return;
 		edit->buffer[edit->cursor] = ch;
@@ -1125,8 +1125,7 @@ void Key_Event( int key, bool down, int time )
 	if( cls.key_dest == key_menu )
 	{
 		// only non printable keys passed
-		if( key < 32 || key > 126 )
-			UI_KeyEvent( key, down );
+		UI_KeyEvent( key, down );
 		return;
 	}
 
@@ -1217,8 +1216,7 @@ void CL_CharEvent( int key )
 	}
 	else if( cls.key_dest == key_menu )
 	{
-		if( key >= 32 && key <= 126 )
-			UI_KeyEvent( key, true );
+		UI_CharEvent( key );
 	}
 }
 

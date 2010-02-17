@@ -1334,6 +1334,7 @@ void FS_ApplyBaseDir( void )
 			}
 			else MsgDev( D_ERROR, "missing associated directory with %s.exe\n", gs_basedir );
 		}
+		else PS_SkipRestOfLine( script );
 	}
 	PS_FreeScript( script );
 }
@@ -1446,7 +1447,7 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 	com.strncpy( GameInfo->ctf_entity, "info_player_ctf", MAX_STRING );
 	com.strncpy( GameInfo->coop_entity, "info_player_coop", MAX_STRING );
 	com.strncpy( GameInfo->team_entity, "info_player_team", MAX_STRING );
-	com.strncpy( GameInfo->startmap, "newmap", MAX_STRING );
+	com.strncpy( GameInfo->startmap, "", MAX_STRING );
 
 	VectorSet( GameInfo->client_mins[0],   0,   0,  0  );
 	VectorSet( GameInfo->client_maxs[0],   0,   0,  0  );
@@ -1620,7 +1621,8 @@ void FS_LoadGameInfo( const char *rootfolder )
 			break;
 	}
 
-	Com_Assert( i == SI.numgames );
+	if( i == SI.numgames )
+		Sys_Break( "Couldn't find game directory '%s'\n", gs_basedir );
 
 	SI.GameInfo = SI.games[i];
 	FS_Rescan(); // create new filesystem
@@ -1634,6 +1636,7 @@ FS_Init
 void FS_Init( void )
 {
 	stringlist_t	dirs;
+	bool		hasDefaultDir = false;
 	int		i;
 	
 	FS_InitMemory();
@@ -1666,6 +1669,7 @@ void FS_Init( void )
 
 			FS_ApplyBaseDir();	// check for associated folders
 		}
+
 		// checked nasty path: "bin" it's a reserved word
 		if( FS_CheckNastyPath( gs_basedir, true ) || !com.stricmp( "bin", gs_basedir ))
 		{
@@ -1676,6 +1680,8 @@ void FS_Init( void )
 		// validate directories
 		for( i = 0; i < dirs.numstrings; i++ )
 		{
+			if( !com.stricmp( fs_defaultdir->string, dirs.strings[i] ))
+				hasDefaultDir = true;
 			if( !com.stricmp( gs_basedir, dirs.strings[i] ))
 				break;
 		}
@@ -1683,7 +1689,7 @@ void FS_Init( void )
 		if( i == dirs.numstrings )
 		{ 
 			MsgDev( D_INFO, "FS_Init: game directory \"%s\" not exist\n", gs_basedir );		
-			com.strcpy( gs_basedir, fs_defaultdir->string ); // default dir
+			if( hasDefaultDir ) com.strcpy( gs_basedir, fs_defaultdir->string ); // default dir
 		}
 
 		// build list of game directories here
@@ -3123,11 +3129,13 @@ void FS_UpdateEnvironmentVariables( void )
 				// Step4: create last test for bin directory
 			          FS_GetBaseDir( sys_rootdir, szTemp );
 				FS_BuildPath( szTemp, szPath );
-				if(FS_SysFileExists( szPath ))
+				if(!FS_SysFileExists( szPath ))
 				{
-					// update registry
-					FS_SaveEnvironmentVariables( szTemp );
+					// big bada-boom: engine was moved and launcher was running from other place
+					// step5: so, path form registry is invalid, current path is no valid
+					Sys_Break( "Invalid root directory!\n\rPlease re-install Xash3D\n" );
 				}
+				else FS_SaveEnvironmentVariables( szTemp ); // update registry
 			}
 			else FS_SaveEnvironmentVariables( sys_rootdir );
 		}

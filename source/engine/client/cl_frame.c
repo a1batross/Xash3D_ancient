@@ -54,11 +54,9 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 	if( unchanged ) *state = *old;
 	else MSG_ReadDeltaEntity( msg, old, state, newnum );
 
-	Com_Assert( newnum == 0 );
-
 	if( state->number == MAX_EDICTS )
 	{
-		Com_Assert( newent );
+		if( newent ) Host_Error( "Cl_DeltaEntity: tried to release new entity\n" );
 		if( !ent->free ) CL_FreeEdict( ent );
 		return; // entity was delta removed
 	}

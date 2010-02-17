@@ -89,6 +89,7 @@ typedef struct host_parm_s
 
 	HWND		hWnd;		// main window
 	int		developer;	// show all developer's message
+	bool		key_overstrike;	// global key overstrike mode
 } host_parm_t;
 
 extern host_parm_t	host;

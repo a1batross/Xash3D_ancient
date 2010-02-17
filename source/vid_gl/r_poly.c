@@ -467,11 +467,8 @@ int R_GetClippedFragments( const vec3_t origin, float radius, vec3_t axis[3], in
 	int	i;
 	float	d;
 
-	Com_Assert( maxfverts <= 0 );
-	Com_Assert( fverts == NULL );
-
-	Com_Assert( maxfragments <= 0 );
-	Com_Assert( fragments == NULL );
+	if( maxfverts <= 0 || fverts == NULL || maxfragments <= 0 || fragments == NULL )
+		return 0;	// invalid arguments
 
 	r_fragmentframecount++;
 
@@ -487,7 +484,7 @@ int R_GetClippedFragments( const vec3_t origin, float radius, vec3_t axis[3], in
 	VectorCopy( origin, fragmentOrigin );
 	VectorCopy( axis[0], fragmentNormal );
 	fragmentRadius = radius;
-	fragmentDiameterSquared = radius*radius*4;
+	fragmentDiameterSquared = radius * radius * 4;
 
 	// calculate clipping planes
 	for( i = 0; i < 3; i++ )

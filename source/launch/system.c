@@ -856,17 +856,24 @@ void Sys_Break( const char *error, ... )
          
 	va_start( argptr, error );
 	com_vsprintf( text, error, argptr );
-	va_end(argptr);
+	va_end( argptr );
 
 	Sys.error = true;	
 	Sys.app_state = SYS_ERROR;
-	Con_ShowConsole( true );
-	Sys_Print( text );
 
 	if( Sys.app_name == HOST_NORMAL )
 		Sys.Free(); // kill video
 
-	Sys_WaitForQuit();
+	if( Sys.developer > 0 || Sys.app_name != HOST_NORMAL )
+	{
+		Con_ShowConsole( true );
+		Sys_Print( text );
+		Sys_WaitForQuit();
+	}
+	else
+	{
+		MSGBOX( text );
+	}
 	Sys_Exit();
 }
 

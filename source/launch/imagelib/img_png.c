@@ -17,7 +17,7 @@
 #define PNG_COLOR_TYPE_GRAY_ALPHA	(PNG_COLOR_MASK_ALPHA)
 #define PNG_COLOR_TYPE_RGBA		PNG_COLOR_TYPE_RGB_ALPHA
 #define PNG_COLOR_TYPE_GA		PNG_COLOR_TYPE_GRAY_ALPHA
-#define PNG_INFO_tRNS 0x0010
+#define PNG_INFO_tRNS 		0x0010
 
 extern void png_set_sig_bytes (void*, int);
 extern int png_sig_cmp (const byte*, size_t, size_t);
@@ -290,7 +290,7 @@ bool Image_SavePNG( const char *name, rgbdata_t *pix )
 	
 	png_write_info( fin, info );
 
-	row = Mem_Alloc( Sys.imagepool, pix->height * sizeof(byte*));
+	row = Mem_Alloc( Sys.imagepool, pix->height * sizeof( byte* ));
 	for( i = 0; i < pix->height; i++ )
 		row[i] = pix->buffer + i * pix->width * pixel_size;
 	png_write_image( fin, row );

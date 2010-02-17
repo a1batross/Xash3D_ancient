@@ -628,9 +628,10 @@ edict_t* SV_AllocPrivateData( edict_t *ent, string_t className )
 	if( !ent ) ent = SV_AllocEdict();
 	else if( ent->free )
 	{
-		MsgDev( D_ERROR, "SV_AllocPrivateData: entity %s is freed!\n", STRING( className ));
-		Com_Assert( 1 );
+		SV_InitEdict( ent ); // re-init edict
+		MsgDev( D_WARN, "SV_AllocPrivateData: entity %s is freed!\n", STRING( className ));
 	}
+
 	ent->v.classname = className;
 	ent->v.pContainingEntity = ent; // re-link
 

@@ -68,8 +68,6 @@ static void UI_CustomGame_GetModList( void )
 {
 	int	i;
 
-	Com_Assert( SIZE_LENGTH >= MAX_STRING );
-
 	for( i = 0; i < SI->numgames; i++ )
 	{
 		com.strncpy( uiCustomGame.modsDir[i], SI->games[i]->gamefolder, sizeof( uiCustomGame.modsDir[i] ));

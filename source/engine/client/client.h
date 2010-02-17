@@ -47,7 +47,6 @@ typedef struct field_s
 	int	scroll;
 	int	widthInChars;
 	char	buffer[MAX_EDIT_LINE];
-	int	maxchars; // menu stuff
 } field_t;
 
 #define	CMD_BACKUP		64	// allow a lot of command backups for very fast systems
@@ -601,6 +600,7 @@ void UI_GetCursorPos( POINT *pos );
 void UI_SetCursorPos( int pos_x, int pos_y );
 void UI_ShowCursor( bool show );
 bool UI_CreditsActive( void );
+void UI_CharEvent( int key );
 bool UI_MouseInRect( void );
 bool UI_IsVisible( void );
 void UI_Precache( void );

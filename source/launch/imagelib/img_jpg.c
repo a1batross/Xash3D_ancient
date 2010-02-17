@@ -570,25 +570,13 @@ bool Image_SaveJPG( const char *name, rgbdata_t *pix )
 {
 	struct jpeg_compress_struct	cinfo;
 	struct jpeg_error_mgr	jerr;
-	byte			*scanline;
-	uint			linesize;
+	byte			*scanline, *input;
+	uint			i, linesize;
 	file_t			*file;
 
 	if( FS_FileExists( name ) && !(image.cmd_flags & IL_ALLOW_OVERWRITE ))
 		return false; // already existed
 
-/*
-	if( pix->flags & IMAGE_HAS_ALPHA )
-	{
-		string	tempname;
-
-		// save alpha if any
-		com.strncpy( tempname, name, sizeof( tempname ));
-		FS_StripExtension( tempname );
-		FS_DefaultExtension( tempname, ".png" );
-		return FS_SaveImage( tempname, pix );
-	}
-*/
 	// Open the file
 	file = FS_Open( name, "wb" );
 	if( !file ) return false;
@@ -608,19 +596,31 @@ bool Image_SaveJPG( const char *name, rgbdata_t *pix )
 	// get image description
 	switch( pix->type )
 	{
-	case PF_RGB_24: cinfo.input_components = 3; break;
-	case PF_RGBA_32: cinfo.input_components = 4; break;	
+	case PF_RGBA_32:
+		input = image.tempbuffer = Mem_Realloc( Sys.imagepool, image.tempbuffer, pix->width * pix->height * 3 );
+		for( i = 0; i < pix->width * pix->height; i++ )
+		{
+			input[i*3+0] = pix->buffer[i*4+0];
+			input[i*3+1] = pix->buffer[i*4+1];
+			input[i*3+2] = pix->buffer[i*4+2];
+		}
+		cinfo.input_components = 3;
+		break;
+	case PF_RGB_24:
+		cinfo.input_components = 3;
+		input = pix->buffer;
+		break;
 	default:
 		MsgDev( D_ERROR, "Image_SaveJPG: unsupported image type %s\n", PFDesc[pix->type].name );
 		goto error_caught;
 	}
 
-	if( pix->flags & IMAGE_HAS_COLOR )
+	if( cinfo.input_components == 3 )
 		cinfo.in_color_space = JCS_RGB;
 	else cinfo.in_color_space = JCS_GRAYSCALE;
 
 	jpeg_set_defaults( &cinfo );
-	jpeg_set_quality( &cinfo, (jpg_quality->integer * 10), TRUE );
+	jpeg_set_quality( &cinfo, (jpg_quality->value * 10), TRUE );
 
 	// turn off subsampling (to make text look better)
 	cinfo.optimize_coding = 1;
@@ -637,7 +637,7 @@ bool Image_SaveJPG( const char *name, rgbdata_t *pix )
 	linesize = cinfo.image_width * cinfo.input_components;
 	while( cinfo.next_scanline < cinfo.image_height )
 	{
-		scanline = &pix->buffer[cinfo.next_scanline * linesize];
+		scanline = &input[cinfo.next_scanline * linesize];
 		jpeg_write_scanlines( &cinfo, &scanline, 1 );
 	}
 
