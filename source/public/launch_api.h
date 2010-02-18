@@ -16,7 +16,7 @@
 #define MAX_STRING		256	// generic string
 #define MAX_SYSPATH		1024	// system filepath
 #define MAX_MSGLEN		32768	// max length of network message
-#define IsColorString( p )	( p && *(p) == STRING_COLOR_TAG && *((p)+1) && *((p)+1) != STRING_COLOR_TAG )
+#define IsColorString( p )	( p && *(p) == STRING_COLOR_TAG && *((p)+1) && *((p)+1) >= '0' && *((p)+1) <= '9' )
 #define bound(min, num, max)	((num) >= (min) ? ((num) < (max) ? (num) : (max)) : (min))
 #define MAX_STRING_TABLES	8	// seperately stringsystems
 #define MAX_MODS		128	// environment games that engine can keep visible

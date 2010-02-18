@@ -198,11 +198,11 @@ typedef struct
 {
 	menuCommon_s	generic;
 	const char	*background;
-	int		maxLength;
-	int		visibleLength;
+	int		maxLength;		// can't be more than UI_MAX_FIELD_LINE
 	char		buffer[UI_MAX_FIELD_LINE];
-	int		length;
+	int		widthInChars;
 	int		cursor;
+	int		scroll;
 } menuField_s;
 
 typedef struct

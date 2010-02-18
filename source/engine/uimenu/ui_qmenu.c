@@ -1059,11 +1059,43 @@ void UI_Field_Init( menuField_s *f )
 	UI_ScaleCoords( &f->generic.x, &f->generic.y, &f->generic.width, &f->generic.height );
 
 	// calculate number of visible characters
-	f->visibleLength = (f->generic.width / f->generic.charWidth) - 2;
+	f->widthInChars = (f->generic.width / f->generic.charWidth);
 
-	f->length = com.strlen( f->buffer );
-	f->cursor = f->length;
+	f->cursor = com.strlen( f->buffer );
 }
+
+/*
+================
+UI_Field_Paste
+================
+*/
+void UI_Field_Paste( void )
+{
+	char	*str;
+	int	pasteLen, i;
+
+	str = Sys_GetClipboardData();
+	if( !str ) return;
+
+	// send as if typed, so insert / overstrike works properly
+	pasteLen = com.strlen( str );
+	for( i = 0; i < pasteLen; i++ )
+		UI_CharEvent( str[i] );
+	Mem_Free( str );
+}
+
+/*
+================
+UI_Field_Clear
+================
+*/
+void UI_Field_Clear( menuField_s *f )
+{
+	Mem_Set( f->buffer, 0, UI_MAX_FIELD_LINE );
+	f->cursor = 0;
+	f->scroll = 0;
+}
+
 
 /*
 =================
@@ -1072,107 +1104,18 @@ UI_Field_Key
 */
 const char *UI_Field_Key( menuField_s *f, int key, bool down )
 {
-	char	*str, *s;
-	int	i;
+	int	len;
 
 	if( !down ) return 0;
-	
-	switch( key )
-	{
-	case K_KP_SLASH:
-		key = '/';
-		break;
-	case K_KP_STAR:
-		key = '*';
-		break;
-	case K_KP_MINUS:
-		key = '-';
-		break;
-	case K_KP_PLUS:
-		key = '+';
-		break;
-	case K_KP_HOME:
-		key = '7';
-		break;
-	case K_KP_UPARROW:
-		key = '8';
-		break;
-	case K_KP_PGUP:
-		key = '9';
-		break;
-	case K_KP_LEFTARROW:
-		key = '4';
-		break;
-	case K_KP_5:
-		key = '5';
-		break;
-	case K_KP_RIGHTARROW:
-		key = '6';
-		break;
-	case K_KP_END:
-		key = '1';
-		break;
-	case K_KP_DOWNARROW:
-		key = '2';
-		break;
-	case K_KP_PGDN:
-		key = '3';
-		break;
-	case K_KP_INS:
-		key = '0';
-		break;
-	case K_KP_DEL:
-		key = '.';
-		break;
-	case K_KP_ENTER:
-		key = K_ENTER;
-		break;
-	}
 
 	// clipboard paste
-	if(( key == K_INS && Key_IsDown( K_SHIFT )) || ( key == 'v' && Key_IsDown( K_CTRL )))
+	if((( key == K_INS ) || ( key == K_KP_INS )) && Key_IsDown( K_SHIFT ))
 	{
-		str = Sys_GetClipboardData();
-		if( !str ) return 0;
-
-		// insert at the current position
-		s = str;
-		while( *s )
-		{
-			if( f->length + 1 == f->maxLength )
-				break; // all full
-
-			if( *s < 32 || *s > 126 )
-			{
-				s++;
-				continue;
-			}
-
-			if( f->generic.flags & QMF_NUMBERSONLY )
-			{
-				if( *s < '0' || *s > '9' )
-				{
-					s++;
-					continue;
-				}
-			}
-
-			for( i = f->length + 1; i > f->cursor; i-- )
-				f->buffer[i] = f->buffer[i-1];
-
-			if( f->generic.flags & QMF_LOWERCASE )
-				f->buffer[f->cursor++] = com.tolower( *s++ );
-			else if( f->generic.flags & QMF_UPPERCASE )
-				f->buffer[f->cursor++] = com.toupper( *s++ );
-			else f->buffer[f->cursor++] = *s++;
-			f->length++;
-		}
-		Mem_Free( str );
-
-		if( f->generic.callback )
-			f->generic.callback( f, QM_CHANGED );
+		UI_Field_Paste();
 		return 0;
 	}
+
+	len = com.strlen( f->buffer );
 
 	if( key == K_INS )
 	{
@@ -1183,16 +1126,17 @@ const char *UI_Field_Key( menuField_s *f, int key, bool down )
 	// previous character
 	if( key == K_LEFTARROW )
 	{
-		if( f->cursor )
-			f->cursor--;
+		if( f->cursor > 0 ) f->cursor--;
+		if( f->cursor < f->scroll ) f->scroll--;
 		return uiSoundNull;
 	}
 
-	// Next character
+	// next character
 	if( key == K_RIGHTARROW )
 	{
-		if( f->cursor < f->length )
-			f->cursor++;
+		if( f->cursor < len ) f->cursor++;
+		if( f->cursor >= f->scroll + f->widthInChars && f->cursor <= len )
+			f->scroll++;
 		return uiSoundNull;
 	}
 
@@ -1206,30 +1150,23 @@ const char *UI_Field_Key( menuField_s *f, int key, bool down )
 	// last character
 	if( key == K_END )
 	{
-		f->cursor = f->length;
+		f->cursor = len;
 		return uiSoundNull;
 	}
 
 	if( key == K_BACKSPACE )
 	{
-		// delete previous character
-		if( !f->cursor )
-			return 0;
-
-		f->cursor--;
-		for( i = f->cursor; i <= f->length; i++ )
-			f->buffer[i] = f->buffer[i+1];
-		f->buffer[f->length--] = 0;
+		if( f->cursor > 0 )
+		{
+			memmove( f->buffer + f->cursor - 1, f->buffer + f->cursor, len - f->cursor + 1 );
+			f->cursor--;
+			if( f->scroll ) f->scroll--;
+		}
 	}
-	else if( key == K_DEL )
+	if( key == K_DEL )
 	{	
-		// delete next character
-		if( f->cursor == f->length )
-			return 0;
-
-		for( i = f->cursor; i <= f->length; i++ )
-			f->buffer[i] = f->buffer[i+1];
-		f->buffer[f->length--] = 0;
+		if( f->cursor < len )
+			memmove( f->buffer + f->cursor, f->buffer + f->cursor + 1, len - f->cursor );
 	}
 
 	if( f->generic.callback )
@@ -1244,15 +1181,42 @@ UI_Field_Char
 */
 void UI_Field_Char( menuField_s *f, int key )
 {
-	int	i;
+	int	len;
 
-	f->length = com.strlen( f->buffer );
+	if( key == 'v' - 'a' + 1 )
+	{
+		// ctrl-v is paste
+		UI_Field_Paste();
+		return;
+	}
 
-	// normal typing
-	if( key < 32 ) return; // non printable
+	if( key == 'c' - 'a' + 1 )
+	{
+		// ctrl-c clears the field
+		UI_Field_Clear( f );
+		return;
+	}
 
-	if( f->length + 1 == f->maxLength )
-		return;	// all full
+	len = com.strlen( f->buffer );
+
+	if( key == 'a' - 'a' + 1 )
+	{
+		// ctrl-a is home
+		f->cursor = 0;
+		f->scroll = 0;
+		return;
+	}
+
+	if( key == 'e' - 'a' + 1 )
+	{
+		// ctrl-e is end
+		f->cursor = len;
+		f->scroll = f->cursor - f->widthInChars;
+		return;
+	}
+
+	// ignore any other non printable chars
+	if( key < 32 ) return;
 
 	if( f->generic.flags & QMF_NUMBERSONLY )
 	{
@@ -1265,28 +1229,26 @@ void UI_Field_Char( menuField_s *f, int key )
 	else if( f->generic.flags & QMF_UPPERCASE )
 		key = com.toupper( key );
 
-	if ( host.key_overstrike )
+	if( host.key_overstrike )
 	{	
 		if( f->cursor == f->maxLength - 1 ) return;
 		f->buffer[f->cursor] = key;
+		f->cursor++;
 	}
 	else
 	{
 		// insert mode
-		if( f->length == f->maxLength - 1 ) return; // all full
-		memmove( f->buffer + f->cursor + 1, f->buffer + f->cursor, f->length + 1 - f->cursor );
+		if( len == f->maxLength - 1 ) return; // all full
+		memmove( f->buffer + f->cursor + 1, f->buffer + f->cursor, len + 1 - f->cursor );
 		f->buffer[f->cursor] = key;
+		f->cursor++;
 	}
-	f->cursor++;
-	f->length++;
 
-//	if( f->cursor >= f->visibleLength ) f->cursor++;
-//	if( f->cursor == len + 1 ) f->buffer[f->cursor] = 0;
+	if( f->cursor >= f->widthInChars ) f->scroll++;
+	if( f->cursor == len + 1 ) f->buffer[f->cursor] = 0;
 
-//	for( i = f->length + 1; i < f->cursor; i-- )
-//		f->buffer[i] = f->buffer[i-1];
-
-//	f->buffer[f->cursor++] = key;
+	if( f->generic.callback )
+		f->generic.callback( f, QM_CHANGED );
 }
 
 /*
@@ -1298,8 +1260,8 @@ void UI_Field_Draw( menuField_s *f )
 {
 	int	justify;
 	bool	shadow;
-	char	*text = f->buffer;
-	int	scroll = 0, width = f->visibleLength - 2;
+	char	text[UI_MAX_FIELD_LINE];
+	int	len, drawLen, prestep;
 	int	cursor, x, textHeight;
 	char	cursor_char[3];
 
@@ -1317,23 +1279,45 @@ void UI_Field_Draw( menuField_s *f )
 		cursor_char[0] = 11;
 	else cursor_char[0] = 95;
 
-	// prestep if horizontally scrolling
-	while( com.cstrlen( text+scroll ) + 2 > f->visibleLength )
-		scroll++;
-	
-	text += scroll;
+	drawLen = f->widthInChars;
+	len = com.strlen( f->buffer ) + 1;
+
+	// guarantee that cursor will be visible
+	if( len <= drawLen )
+	{
+		prestep = 0;
+	}
+	else
+	{
+		if( f->scroll + drawLen > len )
+		{
+			f->scroll = len - drawLen;
+			if( f->scroll < 0 ) f->scroll = 0;
+		}
+		prestep = f->scroll;
+	}
+
+	if( prestep + drawLen > len )
+		drawLen = len - prestep;
+
+	// extract <drawLen> characters from the field at <prestep>
+	if( drawLen >= UI_MAX_FIELD_LINE )
+		Host_Error( "UI_Field_Draw: drawLen >= UI_MAX_FIELD_LINE\n" );
+
+	Mem_Copy( text, f->buffer + prestep, drawLen );
+	text[drawLen] = 0;
 
 	// find cursor position
-	if( scroll ) cursor = width - (com.cstrlen( f->buffer ) - f->cursor );
-	else cursor = f->cursor;
-
-	cursor -= (com.strlen( f->buffer ) - com.cstrlen( f->buffer ));
-	if( cursor > width ) cursor = width;
+	x = drawLen - (com.cstrlen( text ) + 1 );
+	if( x < 0 ) x = 0;
+	cursor = ( f->cursor - prestep - x );
 	if( cursor < 0 ) cursor = 0;
 
 	if( justify == 0 ) x = f->generic.x;
-	else if( justify == 1 ) x = f->generic.x + ((f->generic.width - (com.cstrlen( text ) * f->generic.charWidth)) / 2);
-	else if( justify == 2 ) x = f->generic.x + (f->generic.width - (com.cstrlen( text ) * f->generic.charWidth));
+	else if( justify == 1 )
+		x = f->generic.x + ((f->generic.width - (com.cstrlen( text ) * f->generic.charWidth)) / 2);
+	else if( justify == 2 )
+		x = f->generic.x + (f->generic.width - (com.cstrlen( text ) * f->generic.charWidth));
 
 	if( f->background )
 	{
@@ -1368,7 +1352,7 @@ void UI_Field_Draw( menuField_s *f )
 		UI_DrawStringExt( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, f->generic.color, false, f->generic.charWidth, f->generic.charHeight, justify, shadow, uiStatic.nameFont );
 
 		if(( uiStatic.realTime & 499 ) < 250 )
-			UI_DrawStringExt( x + (cursor*f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, cursor_char, f->generic.color, true, f->generic.charWidth, f->generic.charHeight, 0, shadow, uiStatic.nameFont );
+			UI_DrawStringExt( x + (cursor * f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, cursor_char, f->generic.color, true, f->generic.charWidth, f->generic.charHeight, 0, shadow, uiStatic.nameFont );
 	}
 
 	if( f->generic.flags & QMF_HIGHLIGHTIFFOCUS )
@@ -1376,7 +1360,7 @@ void UI_Field_Draw( menuField_s *f )
 		UI_DrawStringExt( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, f->generic.focusColor, false, f->generic.charWidth, f->generic.charHeight, justify, shadow, uiStatic.nameFont );
 
 		if(( uiStatic.realTime & 499 ) < 250 )
-			UI_DrawStringExt( x + (cursor*f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, cursor_char, f->generic.focusColor, true, f->generic.charWidth, f->generic.charHeight, 0, shadow, uiStatic.nameFont );
+			UI_DrawStringExt( x + (cursor * f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, cursor_char, f->generic.focusColor, true, f->generic.charWidth, f->generic.charHeight, 0, shadow, uiStatic.nameFont );
 	}
 	else if( f->generic.flags & QMF_PULSEIFFOCUS )
 	{
@@ -1388,7 +1372,7 @@ void UI_Field_Draw( menuField_s *f )
 		UI_DrawStringExt( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, color, false, f->generic.charWidth, f->generic.charHeight, justify, shadow, uiStatic.nameFont );
 
 		if(( uiStatic.realTime & 499 ) < 250 )
-			UI_DrawStringExt( x + (cursor*f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, cursor_char, color, true, f->generic.charWidth, f->generic.charHeight, 0, shadow, uiStatic.nameFont );
+			UI_DrawStringExt( x + (cursor * f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, cursor_char, color, true, f->generic.charWidth, f->generic.charHeight, 0, shadow, uiStatic.nameFont );
 	}
 	else if( f->generic.flags & QMF_BLINKIFFOCUS )
 	{
@@ -1397,7 +1381,7 @@ void UI_Field_Draw( menuField_s *f )
 			UI_DrawStringExt( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, f->generic.focusColor, false, f->generic.charWidth, f->generic.charHeight, justify, shadow, uiStatic.nameFont );
 
 			if(( uiStatic.realTime & 499 ) < 250 )
-				UI_DrawStringExt( x + (cursor*f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, cursor_char, f->generic.focusColor, true, f->generic.charWidth, f->generic.charHeight, 0, shadow, uiStatic.nameFont );
+				UI_DrawStringExt( x + (cursor * f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, cursor_char, f->generic.focusColor, true, f->generic.charWidth, f->generic.charHeight, 0, shadow, uiStatic.nameFont );
 		}
 	}
 
@@ -1406,7 +1390,7 @@ void UI_Field_Draw( menuField_s *f )
 		UI_DrawStringExt( f->generic.x, f->generic.y, f->generic.width, f->generic.height, text, f->generic.color, false, f->generic.charWidth, f->generic.charHeight, justify, shadow, uiStatic.nameFont );
 
 		if(( uiStatic.realTime & 499 ) < 250 )
-			UI_DrawStringExt( x + (cursor*f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, cursor_char, f->generic.color, true, f->generic.charWidth, f->generic.charHeight, 0, shadow, uiStatic.nameFont );
+			UI_DrawStringExt( x + (cursor * f->generic.charWidth), f->generic.y, f->generic.charWidth, f->generic.height, cursor_char, f->generic.color, true, f->generic.charWidth, f->generic.charHeight, 0, shadow, uiStatic.nameFont );
 	}
 }
 

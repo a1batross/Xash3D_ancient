@@ -329,10 +329,10 @@ void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, b
 	if ( prestep + drawLen > len ) drawLen = len - prestep;
 
 	// extract <drawLen> characters from the field at <prestep>
-	if ( drawLen >= MAX_SYSPATH ) Host_Error("drawLen >= MAX_SYSPATH" );
+	if ( drawLen >= MAX_SYSPATH ) Host_Error("drawLen >= MAX_SYSPATH\n" );
 
 	Mem_Copy( str, edit->buffer + prestep, drawLen );
-	str[ drawLen ] = 0;
+	str[drawLen] = 0;
 
 	// draw it
 	if ( size == SMALLCHAR_WIDTH )
@@ -1078,13 +1078,15 @@ void Key_Event( int key, bool down, int time )
 	if( down )
 	{
 		keys[key].repeats++;
-		if( keys[key].repeats == 1 ) anykeydown++;
+		if( keys[key].repeats == 1 )
+			anykeydown++;
 	}
 	else
 	{
 		keys[key].repeats = 0;
 		anykeydown--;
-		if( anykeydown < 0 ) anykeydown = 0;
+		if( anykeydown < 0 )
+			anykeydown = 0;
 	}
 
 	// console key is hardcoded, so the user can never unbind it
