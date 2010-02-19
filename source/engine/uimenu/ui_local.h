@@ -112,6 +112,7 @@ typedef enum
 #define QMF_FOCUSBEHIND		BIT(18)	// Focus draws behind normal item
 #define QMF_NOTIFY			BIT(19)	// draw notify at right screen side
 #define QMF_ACT_ONRELEASE		BIT(20)	// call Key_Event when button is released
+#define QMF_ALLOW_COLORSTRINGS	BIT(21)	// allow colorstring in MENU_FIELD
 
 // Callback notifications
 #define QM_GOTFOCUS			1

@@ -1218,6 +1218,12 @@ void UI_Field_Char( menuField_s *f, int key )
 	// ignore any other non printable chars
 	if( key < 32 ) return;
 
+	if( key == '^' && !( f->generic.flags & QMF_ALLOW_COLORSTRINGS ))
+	{
+		// ignore color key-symbol
+		return;
+	}
+
 	if( f->generic.flags & QMF_NUMBERSONLY )
 	{
 		if( key < '0' || key > '9' )

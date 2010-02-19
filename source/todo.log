@@ -34,7 +34,10 @@ Beta 13.02.10
 6. revision of all resources
 7. fix loaders for ATI1N and ATI2N			OK
 8. fix sky changelevel bug
-9. rewrote UI_Field code
+9. rewrote UI_Field code				OK
+10.autocomplete and command history for system console	OK
+11.create mutex for dedicated server			OK
+12.revision of Xash Environment System			OK
 
 
 

@@ -11,7 +11,6 @@
 #include "com_world.h"
 
 #define MAX_DEMOS		32
-#define MAX_EDIT_LINE	256
 #define COMMAND_HISTORY	32
 #define MAX_GAME_TITLES	1024
 #define ColorIndex(c)	(((c) - '0') & 7)
@@ -20,6 +19,15 @@
 #define EDICT_NUM( num ) CL_EDICT_NUM( num, __FILE__, __LINE__ )
 #define STRING( offset ) CL_GetString( offset )
 #define MAKE_STRING(str) CL_AllocString( str )
+
+// console stuff
+typedef struct
+{
+	string	buffer;
+	int	cursor;
+	int	scroll;
+	int	widthInChars;
+} field_t;
 
 typedef struct player_info_s
 {
@@ -40,17 +48,8 @@ typedef struct frame_s
 	int		parse_entities;		// non-masked index into cl_parse_entities array
 } frame_t;
 
-// console stuff
-typedef struct field_s
-{
-	int	cursor;
-	int	scroll;
-	int	widthInChars;
-	char	buffer[MAX_EDIT_LINE];
-} field_t;
-
-#define	CMD_BACKUP		64	// allow a lot of command backups for very fast systems
-#define	CMD_MASK			(CMD_BACKUP - 1)
+#define CMD_BACKUP		64	// allow a lot of command backups for very fast systems
+#define CMD_MASK		(CMD_BACKUP - 1)
 
 // the cl_parse_entities must be large enough to hold UPDATE_BACKUP frames of
 // entities, so that when a delta compressed message arives from the server

@@ -117,7 +117,7 @@ EDIT FIELDS
 
 void Field_Clear( field_t *edit )
 {
-	Mem_Set( edit->buffer, 0, MAX_EDIT_LINE );
+	Mem_Set( edit->buffer, 0, MAX_STRING );
 	edit->cursor = 0;
 	edit->scroll = 0;
 }
@@ -209,14 +209,14 @@ static void ConcatRemaining( const char *src, const char *start )
 {
 	char *str;
 
-	str = com.strstr(src, start);
-	if (!str)
+	str = com.strstr( src, start );
+	if( !str )
 	{
 		keyConcatArgs();
 		return;
 	}
 
-	str += com.strlen(start);
+	str += com.strlen( start );
 	com.strncat( completionField->buffer, str, sizeof( completionField->buffer ));
 }
 
@@ -277,7 +277,8 @@ void Field_CompleteCommand( field_t *field )
 	if( matchCount == 1 )
 	{
 		com.sprintf( completionField->buffer, "\\%s", shortestMatch );
-		if ( Cmd_Argc() == 1 ) com.strncat( completionField->buffer, " ", sizeof( completionField->buffer ));
+		if( Cmd_Argc() == 1 )
+			com.strncat( completionField->buffer, " ", sizeof( completionField->buffer ));
 		else ConcatRemaining( temp.buffer, completionString );
 		completionField->cursor = com.strlen( completionField->buffer );
 		return;
@@ -508,14 +509,14 @@ void Field_CharEvent( field_t *edit, int ch )
 
 	if ( host.key_overstrike )
 	{	
-		if ( edit->cursor == MAX_EDIT_LINE - 1 ) return;
+		if ( edit->cursor == MAX_STRING - 1 ) return;
 		edit->buffer[edit->cursor] = ch;
 		edit->cursor++;
 	}
 	else
 	{
 		// insert mode
-		if ( len == MAX_EDIT_LINE - 1 ) return; // all full
+		if ( len == MAX_STRING - 1 ) return; // all full
 		memmove( edit->buffer + edit->cursor + 1, edit->buffer + edit->cursor, len + 1 - edit->cursor );
 		edit->buffer[edit->cursor] = ch;
 		edit->cursor++;
@@ -1062,7 +1063,7 @@ void Key_AddKeyUpCommands( int key, const char *kb )
 
 /*
 ===================
-CL_KeyEvent
+Key_Event
 
 Called by the system for both key up and key down events
 ===================
@@ -1198,6 +1199,47 @@ void Key_Event( int key, bool down, int time )
 	}
 }
 
+/*
+=========
+Key_SetKeyDest
+=========
+*/
+void Key_SetKeyDest( int key_dest )
+{
+	switch( key_dest )
+	{
+	case key_game:
+		cls.key_dest = key_game;
+		break;
+	case key_menu:
+		cls.key_dest = key_menu;
+		break;
+	case key_console:
+		cls.key_dest = key_console;
+		break;
+	default:
+		Host_Error( "Key_SetKeyDest: wrong destination (%i)\n", key_dest );
+		break;
+	}
+}
+
+/*
+===================
+Key_ClearStates
+===================
+*/
+void Key_ClearStates( void )
+{
+	int	i;
+
+	anykeydown = false;
+	for ( i = 0; i < 256; i++ )
+	{
+		if( keys[i].down ) Key_Event( i, false, 0 );
+		keys[i].down = 0;
+		keys[i].repeats = 0;
+	}
+}
 
 /*
 ===================
@@ -1243,42 +1285,26 @@ void CL_MouseEvent( int mx, int my )
 
 /*
 =========
-Key_SetKeyDest
+Cmd_AutoComplete
+
+NOTE: input string must be equal or longer than MAX_STRING
 =========
 */
-void Key_SetKeyDest( int key_dest )
+void Cmd_AutoComplete( char *complete_string )
 {
-	switch( key_dest )
-	{
-	case key_game:
-		cls.key_dest = key_game;
-		break;
-	case key_menu:
-		cls.key_dest = key_menu;
-		break;
-	case key_console:
-		cls.key_dest = key_console;
-		break;
-	default:
-		Host_Error( "Key_SetKeyDest: wrong destination (%i)\n", key_dest );
-		break;
-	}
-}
+	field_t	input;
 
-/*
-===================
-Key_ClearStates
-===================
-*/
-void Key_ClearStates( void )
-{
-	int	i;
+	if( !complete_string || !*complete_string )
+		return;
 
-	anykeydown = false;
-	for ( i = 0; i < 256; i++ )
-	{
-		if( keys[i].down ) Key_Event( i, false, 0 );
-		keys[i].down = 0;
-		keys[i].repeats = 0;
-	}
+	// setup input
+	com.strncpy( input.buffer, complete_string, sizeof( input.buffer ));
+	input.cursor = input.scroll = 0;
+
+	Field_CompleteCommand( &input );
+
+	// setup output
+	if( input.buffer[0] == '\\' || input.buffer[0] == '/' )
+		com.strncpy( complete_string, input.buffer + 1, sizeof( input.buffer ));
+	else com.strncpy( complete_string, input.buffer, sizeof( input.buffer ));
 }

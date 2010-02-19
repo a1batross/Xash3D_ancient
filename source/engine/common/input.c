@@ -58,7 +58,7 @@ static int Host_MapKey( int key )
 	modified = ( key >> 16 ) & 255;
 	if( modified > 127 ) return 0;
 
-	if ( key & ( 1 << 24 ))
+	if( key & ( 1 << 24 ))
 		is_extended = true;
 
 	result = scan_to_key[modified];
@@ -454,13 +454,15 @@ long IN_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 	case WM_MBUTTONDOWN:
 	case WM_MBUTTONUP:
 	case WM_MOUSEMOVE:
-		if(wParam & MK_LBUTTON) temp |= 1;
-		if(wParam & MK_RBUTTON) temp |= 2;
-		if(wParam & MK_MBUTTON) temp |= 4;
+		if( wParam & MK_LBUTTON ) temp |= 1;
+		if( wParam & MK_RBUTTON ) temp |= 2;
+		if( wParam & MK_MBUTTON ) temp |= 4;
 		IN_MouseEvent( temp );
 		break;
 	case WM_SYSCOMMAND:
-		if( wParam == SC_SCREENSAVE ) return 0;
+		// never turn screensave when Xash is active
+		if( wParam == SC_SCREENSAVE && host.state != HOST_SLEEP )
+			return 0;
 		break;
 	case WM_SYSKEYDOWN:
 		if( wParam == VK_RETURN )

@@ -293,7 +293,7 @@ NOTE: at this day we have ten instances
 4. "bsplib" - four BSP compilers in one
 5. "sprite" - sprite creator (requires qc. script)
 6. "studio" - Half-Life style models creator (requires qc. script) 
-7. "roqlib" - wad-file maker
+7. "wadlib" - wad-file maker
 8. "ripper" - resource EXTRActor GENeric
 9. "ximage" - ImageLib Processng
 ==================
@@ -319,7 +319,7 @@ void Sys_LookupInstance( void )
 	}
 
 	// lookup all instances
-	if(!com_strcmp(Sys.progname, "credits"))
+	if(!com_strcmp( Sys.progname, "credits" ))
 	{
 		Sys.app_name = HOST_CREDITS;		// easter egg
 		Sys.linked_dll = NULL;		// no need to loading library
@@ -333,6 +333,18 @@ void Sys_LookupInstance( void )
 		{
 			Sys.app_name = HOST_DEDICATED;
 			Sys.con_readonly = false;
+
+			// check for duplicate dedicated server
+			Sys.hMutex = CreateMutex( NULL, 0, "Xash Dedicated Server" );
+			if( !Sys.hMutex )
+			{
+				MSGBOX( "Dedicated server already running" );
+				Sys_Exit();
+				return;
+			}
+
+			CloseHandle( Sys.hMutex );
+			Sys.hMutex = CreateSemaphore( NULL, 0, 1, "Xash Dedicated Server" );
 		}
 		else
 		{
@@ -427,6 +439,7 @@ void Sys_CreateInstance( void )
 		Sys.Free = Host->Free;
 		Sys.CPrint = Host->CPrint;
 		Sys.CmdFwd = Host->CmdForward;
+		Sys.CmdAuto = Host->CmdComplete;
 		if( baserc_dll.link )
 		{
 			CreateBaserc = (void *)baserc_dll.main;
@@ -788,7 +801,7 @@ void Sys_WaitForQuit( void )
 	if( Sys.hooked_out )
 	{
 		// in-pipeline mode we don't want to wait for press any key
-		if(abs((int)GetStdHandle(STD_OUTPUT_HANDLE)) <= 100 )
+		if( abs((int)GetStdHandle(STD_OUTPUT_HANDLE)) <= 100 )
 		{
 			Sys_Print( "press any key to quit\n" );
 			system( "@pause>nul\n" ); // wait for quit
@@ -802,10 +815,10 @@ void Sys_WaitForQuit( void )
 		// wait for the user to quit
 		while( msg.message != WM_QUIT )
 		{
-			if(PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
+			if( PeekMessage( &msg, 0, 0, 0, PM_REMOVE ))
         			{
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
+				TranslateMessage( &msg );
+				DispatchMessage( &msg );
 			} 
 			else Sys_Sleep( 20 );
 		}
@@ -840,7 +853,10 @@ void Sys_Error( const char *error, ... )
 	va_end( argptr );
          
 	Con_ShowConsole( true );
-	if( Sys.developer >= D_ERROR ) Sys_Print( text );	// print error message
+	Con_DisableInput();	// disable input line for dedicated server
+
+	if( Sys.developer >= D_ERROR )
+		Sys_Print( text );	// print error message
 	else Sys_Print( "Internal engine error\n" );	// don't confuse non-developers with technique stuff
 	if( Sys.app_name == HOST_NORMAL )
 		Sys.Free(); // kill video
@@ -864,7 +880,7 @@ void Sys_Break( const char *error, ... )
 	if( Sys.app_name == HOST_NORMAL )
 		Sys.Free(); // kill video
 
-	if( Sys.developer > 0 || Sys.app_name != HOST_NORMAL )
+	if( Sys.con_readonly && ( Sys.developer > 0 || Sys.app_name != HOST_NORMAL ))
 	{
 		Con_ShowConsole( true );
 		Sys_Print( text );
@@ -872,6 +888,7 @@ void Sys_Break( const char *error, ... )
 	}
 	else
 	{
+		Con_ShowConsole( false );
 		MSGBOX( text );
 	}
 	Sys_Exit();
@@ -935,9 +952,9 @@ void Sys_Init( void )
 	else Sys_MergeCommandLine( GetCommandLine());
 
 	// parse and copy args into local array
-	if(FS_CheckParm( "-log" )) Sys.log_active = true;
-	if(FS_CheckParm( "-console" )) Sys.developer = 1;
-	if(FS_GetParmFromCmdLine( "-dev", dev_level, sizeof( dev_level )))
+	if( FS_CheckParm( "-log" )) Sys.log_active = true;
+	if( FS_CheckParm( "-console" )) Sys.developer = 1;
+	if( FS_GetParmFromCmdLine( "-dev", dev_level, sizeof( dev_level )))
 		Sys.developer = com_atoi( dev_level );
           
 	FS_UpdateEnvironmentVariables();	// set working directory

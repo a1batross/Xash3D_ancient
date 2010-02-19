@@ -125,7 +125,7 @@ typedef struct
 	word		port;
 } netadr_t;
 
-typedef struct sizebuf_s		// FIXME: rename to netbuf
+typedef struct sizebuf_s
 {
 	bool	overflowed;	// set to true if the buffer size failed
 

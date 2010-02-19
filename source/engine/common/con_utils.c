@@ -88,7 +88,7 @@ bool Cmd_GetMapList( const char *s, char *completedname, int length )
 				char *entities = NULL;
 		
 				FS_Seek( f, lumpofs, SEEK_SET );
-				entities = (char *)Mem_Alloc( cls.mempool, lumplen + 1 );
+				entities = (char *)Mem_Alloc( host.mempool, lumplen + 1 );
 				FS_Read( f, entities, lumplen );
 				ents = Com_OpenScript( "ents", entities, lumplen + 1 );
 				Mem_Free( entities ); // no reason to keep it
@@ -616,7 +616,7 @@ bool Cmd_CheckMapsList( void )
 	t = FS_Search( "maps/*.bsp", false );
 	if( !t ) return false;
 
-	buffer = Mem_Alloc( cls.mempool, t->numfilenames * 2 * sizeof( result ));
+	buffer = Mem_Alloc( host.mempool, t->numfilenames * 2 * sizeof( result ));
 	for( i = 0; i < t->numfilenames; i++ )
 	{
 		script_t		*ents = NULL;
@@ -668,7 +668,7 @@ bool Cmd_CheckMapsList( void )
 				char *entities = NULL;
 		
 				FS_Seek( f, lumpofs, SEEK_SET );
-				entities = (char *)Mem_Alloc( cls.mempool, lumplen + 1 );
+				entities = (char *)Mem_Alloc( host.mempool, lumplen + 1 );
 				FS_Read( f, entities, lumplen );
 				ents = Com_OpenScript( "ents", entities, lumplen + 1 );
 				Mem_Free( entities ); // no reason to keep it

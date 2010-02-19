@@ -243,7 +243,7 @@ static void UI_AdvControls_Init( void )
 	uiAdvControls.lookSpring.generic.y = 380;
 	uiAdvControls.lookSpring.generic.name = "Look spring";
 	uiAdvControls.lookSpring.generic.callback = UI_AdvControls_Callback;
-	uiAdvControls.lookSpring.generic.statusText = "Causes th screen to to 'spring' back to looking straight ahead when you\nmove forward";
+	uiAdvControls.lookSpring.generic.statusText = "Causes the screen to 'spring' back to looking straight ahead when you\nmove forward";
 
 	uiAdvControls.lookStrafe.generic.id = ID_LOOKSTRAFE;
 	uiAdvControls.lookStrafe.generic.type = QMTYPE_CHECKBOX;

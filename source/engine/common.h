@@ -245,6 +245,7 @@ char *Cvar_Serverinfo( void );
 void Cmd_WriteVariables( file_t *f );
 bool Cmd_CheckMapsList( void );
 void Cmd_ForwardToServer( void );
+void Cmd_AutoComplete( char *complete_string );
 
 typedef struct autocomplete_list_s
 {

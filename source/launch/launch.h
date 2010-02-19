@@ -59,6 +59,7 @@ typedef struct system_s
 	int			msg_time;			// GetMessage time
 	char			ModuleName[4096];		// exe.filename
 
+	HANDLE			hMutex;
 	HINSTANCE			hInstance;
 	LPTOP_LEVEL_EXCEPTION_FILTER	oldFilter;
 	dll_info_t		*linked_dll;
@@ -84,6 +85,7 @@ typedef struct system_s
 	void ( *Free ) ( void ); // close host
 	void (*CPrint)( const char *msg ); // console print
 	void (*CmdFwd)( void ); // forward to server
+	void (*CmdAuto)( char *complete_string );
 } system_t;
 
 typedef struct timer_s
@@ -129,6 +131,7 @@ void Con_CreateConsole( void );
 void Con_DestroyConsole( void );
 char *Sys_Input( void );
 void Con_RegisterHotkeys( void );
+void Con_DisableInput( void );
 
 //
 // system.c

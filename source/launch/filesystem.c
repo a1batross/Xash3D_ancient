@@ -1722,6 +1722,7 @@ void FS_Init( void )
 	}
 
 	FS_UpdateSysInfo();
+	MsgDev( D_INFO, "FS_Root: %s\n", sys_rootdir );
 	MsgDev( D_NOTE, "FS_Init: done\n" );
 }
 
@@ -3121,15 +3122,15 @@ void FS_UpdateEnvironmentVariables( void )
                     // so, set current working directory as path from registry and test it
 
 		FS_BuildPath( szTemp, szPath );
-		if(!FS_SysFileExists( szPath )) // Step2: engine root dir has been moved to other place?
+		if( !FS_SysFileExists( szPath )) // Step2: engine root dir has been moved to other place?
 		{
 			FS_BuildPath( sys_rootdir, szPath );
-			if(!FS_SysFileExists( szPath )) // Step3: directly execute from bin directory?
+			if( !FS_SysFileExists( szPath )) // Step3: directly execute from bin directory?
 			{
 				// Step4: create last test for bin directory
 			          FS_GetBaseDir( sys_rootdir, szTemp );
 				FS_BuildPath( szTemp, szPath );
-				if(!FS_SysFileExists( szPath ))
+				if( !FS_SysFileExists( szPath ))
 				{
 					// big bada-boom: engine was moved and launcher was running from other place
 					// step5: so, path form registry is invalid, current path is no valid

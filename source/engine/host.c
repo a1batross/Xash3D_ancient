@@ -673,8 +673,18 @@ void Host_Error( const char *error, ... )
 
 void Host_Error_f( void )
 {
-	if( Cmd_Argc() == 1 ) Sys_Break( "\n" );
-	else Host_Error( "%s\n", Cmd_Argv( 1 ));
+	const char *error = Cmd_Argv( 1 );
+
+	if( !*error ) error = "Invoked host error";
+	Host_Error( "%s\n", error );
+}
+
+void Sys_Error_f( void )
+{
+	const char *error = Cmd_Argv( 1 );
+
+	if( !*error ) error = "Invoked sys error";
+	com.error( "%s\n", error );
 }
 
 /*
@@ -795,16 +805,20 @@ void Host_Init( const int argc, const char **argv )
 	Host_InitCommon( argc, argv );
 	Key_Init();
 
-	// get user configuration 
-	Cbuf_AddText( "exec keys.rc\n" );
-	Cbuf_AddText( "exec vars.rc\n" );
-	Cbuf_Execute();
+	if( host.type != HOST_DEDICATED )
+	{
+		// get user configuration 
+		Cbuf_AddText( "exec keys.rc\n" );
+		Cbuf_AddText( "exec vars.rc\n" );
+		Cbuf_Execute();
+	}
 
 	// init commands and vars
 	if( host.developer )
 	{
-		Cmd_AddCommand ("error", Host_Error_f, "just throw a fatal error to test shutdown procedures" );
-		Cmd_AddCommand ("crash", Host_Crash_f, "a way to force a bus error for development reasons");
+		Cmd_AddCommand ( "sys_error", Sys_Error_f, "just throw a fatal error to test shutdown procedures");
+		Cmd_AddCommand ( "host_error", Host_Error_f, "just throw a host error to test shutdown procedures");
+		Cmd_AddCommand ( "crash", Host_Crash_f, "a way to force a bus error for development reasons");
           }
 
 	host_cheats = Cvar_Get( "sv_cheats", "1", CVAR_SYSTEMINFO, "allow cheat variables to enable" );
@@ -901,6 +915,7 @@ launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 	Host.Free = Host_Free;
 	Host.CPrint = Host_Print;
 	Host.CmdForward = Cmd_ForwardToServer;
+	Host.CmdComplete = Cmd_AutoComplete;
 
 	return &Host;
 }

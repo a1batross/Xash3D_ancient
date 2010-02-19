@@ -14,9 +14,9 @@
 #include <winreg.h>
 #include <stdio.h>
 
-#pragma comment(lib, "msvcrt")
-#pragma comment(linker,"/MERGE:.rdata=.text")
-#pragma comment(linker,"/FILEALIGN:512 /SECTION:.text, EWRX /IGNORE:4078")
+#pragma comment( lib, "msvcrt" )
+#pragma comment( linker, "/MERGE:.rdata=.text" )
+#pragma comment( linker, "/FILEALIGN:512 /SECTION:.text, EWRX /IGNORE:4078" )
 
 #define Run( prog ) int main( int argc, char **argv )\
 { return CreateMain32()( #prog, TRUE ); }
@@ -38,7 +38,7 @@ void GetError( const char *errorstring )
 	if(!errorstring) exit( 0 );
 
 	if( user32_dll ) pMessageBoxA = (void *)GetProcAddress( user32_dll, "MessageBoxA" );
-	if(pMessageBoxA) pMessageBoxA( 0, errorstring, "Error", MB_OK );
+	if(pMessageBoxA) pMessageBoxA( 0, errorstring, "Xash Error", MB_OK|MB_SETFOREGROUND|MB_ICONSTOP );
 	if( user32_dll ) FreeLibrary( user32_dll ); // no need anymore...
 
 	exit( 1 );
@@ -52,15 +52,20 @@ BOOL GetBin( void )
 
 BOOL GetEnv( void )
 {
-	char *pEnvPath = getenv("Xash3D");
+#ifndef HOST_NORMAL
+	char *pEnvPath = getenv( "Xash3D" );
 	if( !pEnvPath ) return FALSE;
 
 	strcpy( szFsPath, pEnvPath );
 	return TRUE;
+#else
+	return FALSE;
+#endif
 }
 
 BOOL GetReg( void )
 {
+#ifndef HOST_NORMAL
 	HINSTANCE advapi32_dll = LoadLibrary( "advapi32.dll" );
 	static long( _stdcall *pRegOpenKeyEx )( HKEY, LPCSTR, DWORD, REGSAM, PHKEY );
 	static long( _stdcall *pRegQueryValueEx )( HKEY, LPCSTR, LPDWORD, LPDWORD, LPBYTE, LPDWORD );
@@ -92,6 +97,9 @@ BOOL GetReg( void )
 failure:
 	if( advapi32_dll ) FreeLibrary( advapi32_dll ); // don't forget freeing
 	return result;
+#else
+	return FALSE;
+#endif
 }
 
 void GetLibrary( void )
@@ -111,6 +119,7 @@ void GetLibrary( void )
 		strcpy( szSearch[count], "launch.dll" );
 		count++;
 	}	
+
 	if( GetEnv( ))
 	{
 		// get environment variable (e.g. compilers)
@@ -124,6 +133,7 @@ void GetLibrary( void )
 		sprintf( szSearch[count], "%s\\bin\\launch.dll", szFsPath );
 		count++;
 	}
+
 	for( i = 0; i < count; i++ )
 	{
 		if( hmain = LoadLibrary( szSearch[i] ))

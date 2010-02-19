@@ -74,6 +74,7 @@ typedef struct launch_exp_s
 	void (*Free)( void );				// close host
 	void (*CPrint)( const char *msg );			// host print
 	void (*CmdForward)( void );				// cmd forward to server
+	void (*CmdComplete)( char *complete_string );		// cmd autocomplete for system console
 } launch_exp_t;
 
 #endif//ENGINE_API_H
