@@ -1317,7 +1317,8 @@ void FS_ApplyBaseDir( void )
 	script_t	*script;
 	token_t	tok;
 
-	if(!FS_FileExists( "pathes.rc" )) FS_CreatePathesList();
+	if( Sys.app_state == SYS_RESTART ) return; // don't associate folder names - may be collisions
+	if( !FS_FileExists( "pathes.rc" )) FS_CreatePathesList();
 	script = PS_LoadScript( "pathes.rc", NULL, 0 );
 	if( !script ) return; // use standard methods
 
