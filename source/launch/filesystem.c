@@ -120,12 +120,12 @@ static bool FS_SysFileExists (const char *path);
 static char W_TypeFromExt( const char *lumpname );
 static const char *W_ExtFromType( char lumptype );
 
-char sys_rootdir[ MAX_SYSPATH]; // system root
-char fs_rootdir[ MAX_SYSPATH ]; // engine root directory
-char fs_basedir[ MAX_SYSPATH ]; // base directory of game
-char fs_gamedir[ MAX_SYSPATH ]; // game current directory
-char gs_basedir[ MAX_SYSPATH ]; // initial dir before loading gameinfo.txt (used for compilers too)
-char gs_mapname[ 64 ]; // used for compilers only
+char sys_rootdir[MAX_SYSPATH]; // system root
+char fs_rootdir[MAX_SYSPATH]; // engine root directory
+char fs_basedir[MAX_SYSPATH]; // base directory of game
+char fs_gamedir[MAX_SYSPATH]; // game current directory
+char gs_basedir[MAX_SYSPATH]; // initial dir before loading gameinfo.txt (used for compilers too)
+char gs_mapname[64]; // used for compilers only
 
 // command ilne parms
 int fs_argc;
@@ -1715,6 +1715,7 @@ void FS_Init( void )
 	{
 	case HOST_WADLIB:
 	case HOST_RIPPER:
+	case HOST_XIMAGE:
 		fs_use_wads = true;
 		break;
 	default:
@@ -2808,6 +2809,18 @@ bool FS_Remove( const char *path )
 {
 	remove( path );
 	return true;
+}
+
+/*
+==================
+FS_DeleteFile
+
+internal use only
+==================
+*/
+void FS_DeleteFile( const char *path )
+{
+	remove( va( "%s/%s", fs_gamedir, path ));
 }
 
 /*

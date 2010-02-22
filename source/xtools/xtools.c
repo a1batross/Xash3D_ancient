@@ -76,7 +76,21 @@ void InitCommon( const int argc, const char **argv )
 		imageflags |= (IL_USE_LERPING|IL_ALLOW_OVERWRITE|IL_IGNORE_MIPS);
 		com_argv = (char **)argv;
 		if( !FS_GetParmFromCmdLine( "-to", gs_filename ))
+		{
 			gs_filename[0] = '\0'; // will be set later
+		}
+		else
+		{
+			// if output an 8-bit formats so keep 8-bit textures with palette
+			if( !com.stricmp( gs_filename, "pcx" ) || !com.stricmp( gs_filename, "bmp" ))
+				imageflags |= IL_KEEP_8BIT;
+		}
+		Image_Init( NULL, imageflags );
+		FS_InitRootDir(".");
+
+		start = Sys_DoubleTime();
+		Msg( "\n\n" ); // tabulation
+		break;
 	case HOST_SPRITE:
 	case HOST_STUDIO:
 	case HOST_WADLIB:

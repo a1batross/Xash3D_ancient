@@ -29,7 +29,7 @@ Beta 13.02.10
 1. finalize LAN game menu (join the game)		OK
 2. finalize Create game menu (apply game settings)	OK
 3. fix items pickup sound bug				OK
-4. rewrite pfnDropToFloor
+4. rewrite pfnDropToFloor				OK
 5. revision of all asserts				OK
 6. revision of all resources
 7. fix loaders for ATI1N and ATI2N			OK

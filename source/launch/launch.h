@@ -336,6 +336,7 @@ bool FS_GetParmFromCmdLine( char *parm, char *out, size_t size );
 void FS_ExtractFilePath( const char* const path, char* dest );
 void FS_UpdateEnvironmentVariables( void );
 const char *FS_FileWithoutPath( const char *in );
+void FS_DeleteFile( const char *path );
 extern char sys_rootdir[];
 extern char *fs_argv[];
 extern int fs_argc;

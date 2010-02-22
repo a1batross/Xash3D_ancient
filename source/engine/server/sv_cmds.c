@@ -240,7 +240,9 @@ void SV_Map_f( void )
 void SV_Newgame_f( void )
 {
 	// FIXME: parse newgame script or somewhat
-	Cbuf_ExecuteText( EXEC_APPEND, va( "map %s\n", GI->startmap ));
+	if( com.strlen( GI->startmap ))
+		Cbuf_ExecuteText( EXEC_APPEND, va( "map %s\n", GI->startmap ));
+	else Host_EndGame( "end game" );
 }
 
 void SV_Endgame_f( void )

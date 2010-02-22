@@ -1458,11 +1458,12 @@ int pfnDropToFloor( edict_t* e )
 
 		if( trace.fStartSolid )
 		{
-			MsgDev( D_WARN, "SV_DropToFloor: startsolid at %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
+			MsgDev( D_NOTE, "SV_DropToFloor: startsolid at %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
 			SV_UnstickEntity( e );
 			SV_LinkEdict( e, true );
 			e->v.flags |= FL_ONGROUND;
 			e->v.groundentity = NULL;
+			return true;
 		}
 		else if( trace.flFraction < 1.0f )
 		{
@@ -1476,7 +1477,7 @@ int pfnDropToFloor( edict_t* e )
 		}
 		else
 		{
-			MsgDev( D_WARN, "SV_DropToFloor: allsolid at %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
+			MsgDev( D_ERROR, "SV_DropToFloor: allsolid at %g %g %g\n", e->v.origin[0], e->v.origin[1], e->v.origin[2] );
 		}
 		return false;
 	}

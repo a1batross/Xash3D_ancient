@@ -85,12 +85,12 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 		else cbPalBytes = bhdr.colors * sizeof( RGBQUAD );
 	}
 
-	if( image.cmd_flags & IL_KEEP_8BIT )
+	Mem_Copy( palette, buf_p, cbPalBytes );
+
+	if( image.cmd_flags & IL_KEEP_8BIT && bhdr.bitsPerPixel == 8 )
 	{
 		pixbuf = image.palette = Mem_Alloc( Sys.imagepool, 1024 );
 		image.flags |= IMAGE_HAS_COLOR;
-
-		Mem_Copy( palette, buf_p, cbPalBytes );
  
 		// bmp have a reversed palette colors
 		for( i = 0; i < bhdr.colors; i++ )
@@ -104,13 +104,14 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 	}
 	else
 	{
+		image.palette = NULL;
 		image.type = PF_RGBA_32;
 		bpp = 4;
 	}
 
 	buf_p += cbPalBytes;
 	columns = (bhdr.width + 3) & ~3;
-	image.size = (buffer + filesize) - buf_p;
+	image.size = ((buffer + filesize) - buf_p) * bpp;
 	image.rgba = Mem_Alloc( Sys.imagepool, image.size );
 
 	for( row = rows - 1; row >= 0; row-- )
@@ -148,7 +149,6 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 				*pixbuf++ = red = (shortPixel & ( 31 )) << 3;
 				*pixbuf++ = 0xff;
 				break;
-
 			case 24:
 				blue = *buf_p++;
 				green = *buf_p++;
@@ -181,7 +181,7 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 	}
 
 	image.depth = image.num_mips = 1;
-	Image_GetPaletteBMP( image.palette );
+	if( image.palette ) Image_GetPaletteBMP( image.palette );
 
 	return true;
 }

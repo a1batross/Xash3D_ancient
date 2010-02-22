@@ -910,7 +910,8 @@ long _stdcall Sys_Crash( PEXCEPTION_POINTERS pInfo )
 		Sys.error = true;
 		Sys.app_state = SYS_CRASH;
 
-		Cmd_ExecuteString( "@crashed\n" ); // tell server about crash
+		if( Sys.app_name == HOST_NORMAL || Sys.app_name == HOST_DEDICATED )
+			Cmd_ExecuteString( "@crashed\n" ); // tell server about crash
 		Msg( "Sys_Crash: call %p at address %p\n", pInfo->ExceptionRecord->ExceptionAddress, pInfo->ExceptionRecord->ExceptionCode );
 		Con_DestroyConsole();	
 

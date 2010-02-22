@@ -356,11 +356,7 @@ void SV_RunGameFrame( void )
 
 	// never get more than one tic behind
 	if( sv.time < svs.realtime )
-	{
-		if( !sv.paused && CL_Active())
-			MsgDev( D_INFO, "sv.highclamp\n" );
 		svs.realtime = sv.time;
-	}
 }
 
 /*
@@ -390,7 +386,8 @@ void SV_Frame( int time )
 	// allow physic DLL change
 	if( sv.state == ss_active )
 	{
-		if( !sv.cphys_prepped ) SV_PrepModels();
+		if( !sv.cphys_prepped )
+			SV_PrepModels();
 	}
 
 	// move autonomous things around if enough time has passed
@@ -398,10 +395,7 @@ void SV_Frame( int time )
 	{
 		// never let the time get too far off
 		if( sv.time - svs.realtime > sv.frametime )
-		{
-			MsgDev( D_NOTE, "sv.lowclamp\n" );
 			svs.realtime = sv.time - sv.frametime;
-		}
 		NET_Sleep( sv.time - svs.realtime );
 		return;
 	}

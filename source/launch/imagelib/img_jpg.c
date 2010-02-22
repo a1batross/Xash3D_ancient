@@ -417,7 +417,8 @@ static void JPEG_MemSrc( j_decompress_ptr cinfo, const byte *buffer, size_t file
 
 static void JPEG_ErrorExit( j_common_ptr cinfo )
 {
-	((struct jpeg_decompress_struct*)cinfo)->err->output_message( cinfo );
+	MsgDev( D_ERROR, "Image_SaveJpeg: internal error\n" );
+//	((struct jpeg_decompress_struct*)cinfo)->err->output_message( cinfo );
 	longjmp( error_in_jpeg, 1 );
 }
 
@@ -620,7 +621,7 @@ bool Image_SaveJPG( const char *name, rgbdata_t *pix )
 	else cinfo.in_color_space = JCS_GRAYSCALE;
 
 	jpeg_set_defaults( &cinfo );
-	jpeg_set_quality( &cinfo, (jpg_quality->value * 10), TRUE );
+	jpeg_set_quality( &cinfo, (jpg_quality->value * 10), true );
 
 	// turn off subsampling (to make text look better)
 	cinfo.optimize_coding = 1;
@@ -650,5 +651,6 @@ bool Image_SaveJPG( const char *name, rgbdata_t *pix )
 error_caught:
 	jpeg_destroy_compress( &cinfo );
 	FS_Close( file );
+	FS_DeleteFile( name ); // kill invalid file
 	return false;
 }
