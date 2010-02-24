@@ -182,7 +182,7 @@ void Mod_SpriteLoadModel( ref_model_t *mod, const void *buffer )
 			break;
                     case SPR_INDEXALPHA:
 			pal = FS_LoadImage( "#decal.pal", src, 768 );
-			R_ShaderSetRenderMode( kRenderTransAlpha, twoSided );
+			R_ShaderSetRenderMode( kRenderTransTexture, twoSided );
 			break;
 		case SPR_ALPHTEST:		
 			pal = FS_LoadImage( "#transparent.pal", src, 768 );

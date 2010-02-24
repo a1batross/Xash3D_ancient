@@ -36,31 +36,28 @@ void EV_EjectBrass( event_args_t *args )
 	velocity = args->velocity;
 	bullet = args->iparam1;
 	firemode = args->bparam1;
-#if 0		
+
 	AngleVectors( angles, forward, right, up );
-	if ( EV_IsLocal( idx ) ) EV_MuzzleFlash();
+	if( EV_IsLocal( idx )) EV_MuzzleFlash();
 
-	model_t	shell;
+	model_t	shell = 0;
 
-	switch(Bullet(bullet))
+	switch( Bullet( bullet ))
 	{
-	case BULLET_9MM: 	shell = g_engfuncs.pEventAPI->EV_FindModelIndex ("models/shell9mm.mdl"); break; 
-	case BULLET_MP5:	shell = g_engfuncs.pEventAPI->EV_FindModelIndex ("models/shellMp5.mdl"); break;
-	case BULLET_357:	shell = g_engfuncs.pEventAPI->EV_FindModelIndex ("models/shell357.mdl"); break;
-	case BULLET_12MM:	shell = g_engfuncs.pEventAPI->EV_FindModelIndex ("models/shell762.mdl"); break;
-	case BULLET_556:    shell = g_engfuncs.pEventAPI->EV_FindModelIndex ("models/shell556.mdl"); break;
-	case BULLET_762:    shell = g_engfuncs.pEventAPI->EV_FindModelIndex ("models/shell762.mdl"); break;
-	case BULLET_BUCKSHOT: shell = g_engfuncs.pEventAPI->EV_FindModelIndex ("models/shellBuck.mdl"); break;
-	default:
-	case BULLET_NONE: shell = 0; break;
+	case BULLET_9MM: shell = g_engfuncs.pEventAPI->EV_FindModelIndex( "models/gibs/shell9mm.mdl" ); break; 
+	case BULLET_MP5: shell = g_engfuncs.pEventAPI->EV_FindModelIndex( "models/gibs/shellMp5.mdl" ); break;
+	case BULLET_357: shell = g_engfuncs.pEventAPI->EV_FindModelIndex( "models/gibs/shell357.mdl" ); break;
+	case BULLET_12MM: shell = g_engfuncs.pEventAPI->EV_FindModelIndex( "models/gibs/shell762.mdl" ); break;
+	case BULLET_556: shell = g_engfuncs.pEventAPI->EV_FindModelIndex( "models/gibs/shell556.mdl" ); break;
+	case BULLET_762: shell = g_engfuncs.pEventAPI->EV_FindModelIndex( "models/gibs/shell762.mdl" ); break;
+	case BULLET_BUCKSHOT: shell = g_engfuncs.pEventAPI->EV_FindModelIndex ("models/gibs/shellBuck.mdl"); break;
 	}
 
-	if( bullet == BULLET_BUCKSHOT)
-	     EV_GetDefaultShellInfo( args, origin, velocity, ShellVelocity, ShellOrigin, forward, right, up, 32, -12, 6 );
+	if( bullet == BULLET_BUCKSHOT )
+		EV_GetDefaultShellInfo( args, origin, velocity, ShellVelocity, ShellOrigin, forward, right, up, 32, -12, 6 );
 	else EV_GetDefaultShellInfo( args, origin, velocity, ShellVelocity, ShellOrigin, forward, right, up, 20, -12, 4 );
 
-	EV_EjectBrass ( ShellOrigin, ShellVelocity, angles[ YAW ], shell, TE_BOUNCE_SHELL ); 
-#endif
+	EV_EjectBrass( ShellOrigin, ShellVelocity, angles[YAW], shell, TE_BOUNCE_SHELL ); 
 }
 //======================
 //        ShellEject END

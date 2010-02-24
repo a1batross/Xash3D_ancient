@@ -681,14 +681,17 @@ public:
 	RainData	Rain;	// buz rain
 
 	// fog stuff
-	Vector	m_FogColor;
-	float	m_fStartDist;
-	float	m_fEndDist;
+	Vector	m_vecFogColor;
+	float	m_flStartDist;
+	float	m_flEndDist;
 	int	m_iFinalEndDist;
 	float	m_fFadeDuration;
 
+	// wind stuff
+	Vector	m_vecWindVelocity;
+
 	// sprite indexes
-	int m_HUD_number_0;
+	int	m_HUD_number_0;
 
 	// screen shake handler
 	ScreenShake	m_Shake;
@@ -696,9 +699,9 @@ public:
 	// screen fade handler
 	ScreenFade	m_FadeList[HUD_MAX_FADES];
 
-	Vector		m_vFadeColor;
-	float		m_fFadeAlpha;
-	BOOL		m_bModulate;
+	Vector	m_vecFadeColor;
+	float	m_flFadeAlpha;
+	BOOL	m_bModulate;
 		
 	// error sprite
 	int m_HUD_error;

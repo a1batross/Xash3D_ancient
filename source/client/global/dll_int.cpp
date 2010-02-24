@@ -13,8 +13,9 @@
 #include "pm_shared.h"
 #include "r_weather.h"
 
-cl_enginefuncs_t g_engfuncs;
-cl_globalvars_t  *gpGlobals;
+cl_enginefuncs_t	g_engfuncs;
+cl_globalvars_t	*gpGlobals;
+movevars_t	*gpMovevars = NULL;
 CHud gHUD;
 
 // main DLL entry point
@@ -35,6 +36,7 @@ static HUD_FUNCTIONS gFunctionTable =
 	HUD_Shutdown,
 	HUD_RenderCallback,
 	HUD_CreateEntities,
+	HUD_UpdateEntity,
 	HUD_StudioEvent,
 	HUD_StudioFxTransform,
 	V_CalcRefdef,

@@ -23,6 +23,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <stdio.h>		// sscanf
 #include "r_local.h"
+#include "clgame_api.h"
+#include "effects_api.h"
 #include "mathlib.h"
 #include "matrix_lib.h"
 
@@ -296,6 +298,20 @@ void R_TransformEntityBBox( ref_entity_t *e, vec3_t mins, vec3_t maxs, vec3_t bb
 			VectorAdd( tmp, e->origin, corner );
 		}
 	}
+}
+
+/*
+=============
+R_LightForPoint
+=============
+*/
+void R_LightForPoint( const vec3_t point, vec3_t ambientLight )
+{
+	vec4_t	ambient;
+	vec3_t	dir;
+
+	R_LightForOrigin( point, dir, ambient, NULL, 64.0f );
+	VectorCopy( ambient, ambientLight );
 }
 
 /*
@@ -2129,16 +2145,11 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 
 	if( refent->prev == NULL )
 	{
-		Msg( "Rejected entity %i (model %s) -- no prevframe data\n", refent->index, refent->model->name );
+		MsgDev( D_ERROR, "Rejected entity %i (model %s) -- no prevframe data\n", refent->index, refent->model->name );
 		return false;
 	}
 
 	refent->rtype = RT_MODEL;
-
-	// setup light origin
-	if( refent->model ) VectorAverage( refent->model->mins, refent->model->maxs, center );
-	else VectorClear( center );
-	VectorAdd( pRefEntity->v.origin, center, refent->lightingOrigin );
 
 	// setup light origin
 	if( refent->model ) VectorAverage( refent->model->mins, refent->model->maxs, center );
@@ -2216,6 +2227,13 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 	}
 	else refent->gaitsequence = 0;
 
+	if( refent->index == VIEWENT_INDEX )
+	{
+		// run events here to prevent
+		// de-synchronize muzzleflashes movement
+		R_StudioRunEvents( refent );
+	}
+
 	// because entity without models never added to scene
 	if( !refent->ent_type )
 	{
@@ -2261,7 +2279,7 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type )
 	ref_entity_t	*refent;
 	bool		result = false;
 
-	if( !pRefEntity || pRefEntity->v.modelindex <= 0 )
+	if( !pRefEntity || pRefEntity->v.modelindex <= 0 || pRefEntity->v.modelindex >= MAX_MODELS )
 		return false; // if set to invisible, skip
 	if( r_numEntities >= MAX_ENTITIES ) return false;
 
@@ -2340,6 +2358,122 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type )
 	return result;
 }
 
+bool R_AddTeEntToScene( TEMPENTITY *pTempEntity, int ed_type )
+{
+	ref_entity_t	*refent;
+	vec3_t		center;
+	
+	if( !pTempEntity || pTempEntity->modelindex <= 0 || pTempEntity->modelindex >= MAX_MODELS )
+		return false; // if set to invisible, skip
+	if( r_numEntities >= MAX_ENTITIES ) return false;
+
+	refent = &r_entities[r_numEntities];
+
+	if( pTempEntity->flags & FTENT_NOMODEL )
+		return true; // done
+
+	// filter ents
+	switch( ed_type )
+	{
+	case ED_BEAM:
+	case ED_TEMPENTITY: break;
+	default: return false;
+	}
+
+	// ignore env_sprite flares if supposed
+	if( !r_spriteflares->integer && pTempEntity->renderMode == kRenderGlow )
+	{
+		if( cl_models[pTempEntity->modelindex]->type == mod_sprite && !pTempEntity->renderFX )
+			return true; // only sprite flares with variable size supposed to be ignored
+		// because we don't want ignore laserspot and other like things
+	}
+
+	// copy state to render
+	refent->index = NULLENT_INDEX;
+	refent->ent_type = ed_type;
+	refent->rendermode = pTempEntity->renderMode;
+	refent->body = pTempEntity->body;
+	refent->skin = pTempEntity->skin;
+	refent->scale = pTempEntity->m_flSpriteScale;
+	refent->colormap = pTempEntity->m_iAttachment;
+	refent->renderfx = pTempEntity->renderFX;
+	refent->renderamt = pTempEntity->renderAmt;
+	refent->model = cl_models[pTempEntity->modelindex];
+	refent->framerate = pTempEntity->m_flFrameRate;
+	refent->movetype = MOVETYPE_NOCLIP;
+	refent->flags = EF_NOSHADOW;
+	refent->gaitsequence = 0;
+	refent->parent = NULL;
+	refent->prev = NULL;
+
+	// check model
+	if( !refent->model ) return false;
+
+	switch( refent->model->type )
+	{
+	case mod_bad:
+	case mod_world:
+	case mod_brush:
+		return false;
+	case mod_studio:
+	case mod_sprite:
+		if( !refent->model->extradata )
+			return false;
+		break;
+	}
+
+	// NOTE: kRenderNormal get right transparency from model\sprite
+	// and ignore lighting for specified modes
+	switch( refent->rendermode )
+	{
+	case kRenderTransAlpha:
+	case kRenderTransTexture:
+		VectorClear( refent->rendercolor ); // uses ambient lighting
+		break;
+	case kRenderGlow:
+	case kRenderNormal:
+	case kRenderTransAdd:
+	case kRenderTransColor:
+		VectorSet( refent->rendercolor, 255, 255, 255 );
+		break;
+	}
+
+	refent->prev = pTempEntity->pvEngineData; // setup prevframe data
+
+	if( refent->prev == NULL )
+	{
+		MsgDev( D_ERROR, "Rejected temp entity (model %s) -- no prevframe data\n", refent->model->name );
+		return false;
+	}
+
+	refent->rtype = RT_MODEL;
+
+	// setup light origin
+	if( refent->model ) VectorAverage( refent->model->mins, refent->model->maxs, center );
+	else VectorClear( center );
+	VectorAdd( pTempEntity->origin, center, refent->lightingOrigin );
+
+	VectorClear( refent->movedir );
+	VectorCopy( pTempEntity->angles, refent->angles );
+	VectorCopy( pTempEntity->origin, refent->origin );
+	Matrix3x3_FromAngles( refent->angles, refent->axis );
+	VectorClear( refent->origin2 );
+
+	if( refent->model->type == mod_studio )
+	{
+		R_StudioAllocTentExtradata( pTempEntity, refent );
+	}
+	else
+	{
+		// entity has changed model, so no reason to keep this data
+		if( refent->extradata ) Mem_EmptyPool( refent->mempool );
+		refent->extradata = NULL;
+	}
+	r_numEntities++;	// added
+
+	return true;
+}
+
 bool R_AddDynamicLight( const void *dlight )
 {
 	dlight_t		*dl, *src = (dlight_t *)dlight;
@@ -2361,16 +2495,7 @@ bool R_AddDynamicLight( const void *dlight )
 
 	return true;
 }
-
-void R_LightForPoint( const vec3_t point, vec3_t ambientLight )
-{
-	vec4_t	ambient;
-	vec3_t	dir;
-
-	R_LightForOrigin( point, dir, ambient, NULL, 64.0f );
-	VectorCopy( ambient, ambientLight );
-}
-		
+	
 /*
 @@@@@@@@@@@@@@@@@@@@@
 CreateAPI
@@ -2402,6 +2527,7 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 
 	re.AddLightStyle = R_AddLightStyle;
 	re.AddRefEntity = R_AddEntityToScene;
+	re.AddTmpEntity = R_AddTeEntToScene;
 	re.AddDynLight = R_AddDynamicLight;
 	re.AddPolygon = R_AddPolyToScene;
 	re.ClearScene = R_ClearScene;

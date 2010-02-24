@@ -136,14 +136,17 @@ int CHud :: MsgFunc_ResetHUD(const char *pszName, int iSize, void *pbuf )
 	// enable plaque drawing
 	m_iDrawPlaque = 1;
 
+	// reset windspeed
+	m_vecWindVelocity = Vector( 0, 0, 0 );
+
 	// reset shake
 	m_Shake.amplitude = 0;
 	m_Shake.frequency = 0;
 	m_Shake.duration = 0;
 
 	// reset fog
-	m_fStartDist = 0;
-	m_fEndDist = 0;
+	m_flStartDist = 0;
+	m_flEndDist = 0;
 
 	return 1;
 }
@@ -156,17 +159,18 @@ int CHud :: MsgFunc_ViewMode( const char *pszName, int iSize, void *pbuf )
 
 int CHud :: MsgFunc_InitHUD( const char *pszName, int iSize, void *pbuf )
 {
-	m_fStartDist = 0;
-	m_fEndDist = 0;
+	m_flStartDist = 0;
+	m_flEndDist = 0;
 	m_iSkyMode = SKY_OFF;
 	m_iIntermission = 0;
 
 	// prepare all hud data
 	HUDLIST *pList = m_pHudList;
 
-	while (pList)
+	while( pList )
 	{
-		if ( pList->p ) pList->p->InitHUDData();
+		if( pList->p )
+			pList->p->InitHUDData();
 		pList = pList->pNext;
 	}
 
@@ -197,12 +201,12 @@ int CHud :: MsgFunc_SetFog( const char *pszName, int iSize, void *pbuf )
 {
 	BEGIN_READ( pszName, iSize, pbuf );
 
-	m_FogColor.x = (float)(READ_BYTE() / 255.0f);
-	m_FogColor.y = (float)(READ_BYTE() / 255.0f);
-	m_FogColor.z = (float)(READ_BYTE() / 255.0f);
+	m_vecFogColor.x = (float)(READ_BYTE() / 255.0f);
+	m_vecFogColor.y = (float)(READ_BYTE() / 255.0f);
+	m_vecFogColor.z = (float)(READ_BYTE() / 255.0f);
 
-	m_fStartDist = READ_SHORT();
-          m_fEndDist = READ_SHORT();
+	m_flStartDist = READ_SHORT();
+          m_flEndDist = READ_SHORT();
 
 	END_READ();
 	

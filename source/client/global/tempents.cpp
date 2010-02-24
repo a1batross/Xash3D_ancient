@@ -7,11 +7,293 @@
 #include "utils.h"
 #include "studio_event.h"
 #include "effects_api.h"
+#include "pm_movevars.h"
 #include "te_message.h"
 #include "hud.h"
 
+#define TENT_WIND_ACCEL		50
+
+model_t	g_muzzleFlash[4];	// custom muzzleflashes
+
+void HUD_MuzzleFlash( edict_t *m_pEnt, int m_iAttachment, const char *event )
+{
+	Vector	pos;
+	int	type, index;
+
+	type = atoi( event );
+	index = bound( 0, type % 10, 3 );
+
+	GET_ATTACHMENT( m_pEnt, m_iAttachment, pos, NULL );
+	g_engfuncs.pEfxAPI->R_MuzzleFlash( pos, g_muzzleFlash[index], type );
+}
+
 void HUD_CreateEntities( void )
 {
+	// add in any game specific objects here
+}
+
+int HUD_UpdateEntity( TEMPENTITY *pTemp, int framenumber )
+{
+	// before first frame when movevars not initialized
+	if( !gpMovevars ) return true;
+
+	float	gravity, gravitySlow, fastFreq;
+	float	frametime = gpGlobals->frametime;
+
+	fastFreq = gpGlobals->time * 5.5;
+	gravity = -frametime * gpMovevars->gravity;
+	gravitySlow = gravity * 0.5;
+
+	// save oldorigin
+	pTemp->oldorigin = pTemp->origin;
+
+	if( pTemp->flags & FTENT_SPARKSHOWER )
+	{
+		// adjust speed if it's time
+		// scale is next think time
+		if( gpGlobals->time > pTemp->m_flSpriteScale )
+		{
+			// show Sparks
+// FIXME: implement
+//			g_engfuncs.pEfxAPI->R_SparkEffect( pTemp->origin, 8, -200, 200 );
+
+			// reduce life
+			pTemp->m_flFrameRate -= 0.1f;
+
+			if( pTemp->m_flFrameRate <= 0.0f )
+			{
+				pTemp->die = gpGlobals->time;
+			}
+			else
+			{
+				// so it will die no matter what
+				pTemp->die = gpGlobals->time + 0.5f;
+
+				// next think
+				pTemp->m_flSpriteScale = gpGlobals->time + 0.1f;
+			}
+		}
+	}
+	else if( pTemp->flags & FTENT_PLYRATTACHMENT )
+	{
+		edict_t *pClient = GetEntityByIndex( pTemp->clientIndex );
+
+		if( pClient )
+		{
+			pTemp->origin = pClient->v.origin + pTemp->tentOffset;
+		}
+	}
+	else if( pTemp->flags & FTENT_SINEWAVE )
+	{
+		pTemp->x += pTemp->m_vecVelocity.x * frametime;
+		pTemp->y += pTemp->m_vecVelocity.y * frametime;
+
+		pTemp->origin.x = pTemp->x + sin( pTemp->m_vecVelocity.z + gpGlobals->time ) * ( 10 * pTemp->m_flSpriteScale );
+		pTemp->origin.y = pTemp->y + sin( pTemp->m_vecVelocity.z + fastFreq + 0.7f ) * ( 8 * pTemp->m_flSpriteScale);
+		pTemp->origin.z = pTemp->origin.z + pTemp->m_vecVelocity[2] * frametime;
+	}
+	else if( pTemp->flags & FTENT_SPIRAL )
+	{
+		float s, c;
+		s = sin( pTemp->m_vecVelocity.z + fastFreq );
+		c = cos( pTemp->m_vecVelocity.z + fastFreq );
+
+		pTemp->origin.x = pTemp->origin.x + pTemp->m_vecVelocity.x * frametime + 8 * sin( gpGlobals->time * 20 );
+		pTemp->origin.y = pTemp->origin.y + pTemp->m_vecVelocity.y * frametime + 4 * sin( gpGlobals->time * 30 );
+		pTemp->origin.z = pTemp->origin.z + pTemp->m_vecVelocity.z * frametime;
+	}
+	else
+	{
+		// just add linear velocity
+		pTemp->origin = pTemp->origin + pTemp->m_vecVelocity * frametime;
+	}
+	
+	if( pTemp->flags & FTENT_SPRANIMATE )
+	{
+		pTemp->m_flFrame += frametime * pTemp->m_flFrameRate;
+		if( pTemp->m_flFrame >= pTemp->m_flFrameMax )
+		{
+			pTemp->m_flFrame = pTemp->m_flFrame - (int)(pTemp->m_flFrame);
+
+			if(!( pTemp->flags & FTENT_SPRANIMATELOOP ))
+			{
+				// this animating sprite isn't set to loop, so destroy it.
+				pTemp->die = 0.0f;
+				return false;
+			}
+		}
+	}
+	else if( pTemp->flags & FTENT_SPRCYCLE )
+	{
+		pTemp->m_flFrame += frametime * 10;
+		if( pTemp->m_flFrame >= pTemp->m_flFrameMax )
+		{
+			pTemp->m_flFrame = pTemp->m_flFrame - (int)(pTemp->m_flFrame);
+		}
+	}
+
+	if( pTemp->flags & FTENT_SCALE )
+	{
+		pTemp->m_flSpriteScale += pTemp->m_flFrameRate += 20.0 * (frametime / pTemp->m_flFrameRate);
+	}
+
+	if( pTemp->flags & FTENT_ROTATE )
+	{
+		// just add angular velocity
+		pTemp->angles += pTemp->m_vecAvelocity * frametime;
+	}
+
+	if( pTemp->flags & ( FTENT_COLLIDEALL|FTENT_COLLIDEWORLD ))
+	{
+		Vector	traceNormal;
+		float	traceFraction = 1.0f;
+
+		traceNormal.Init();
+
+		if( pTemp->flags & FTENT_COLLIDEALL )
+		{
+			TraceResult	tr;		
+			TRACE_LINE( pTemp->oldorigin, pTemp->origin, false, NULL, &tr );
+
+			// Make sure it didn't bump into itself... (?!?)
+			if(( tr.flFraction != 1.0f ) && ( tr.pHit == GetEntityByIndex( 0 ) || tr.pHit != GetEntityByIndex( pTemp->clientIndex ))) 
+			{
+				traceFraction = tr.flFraction;
+				traceNormal = tr.vecPlaneNormal;
+
+				if( pTemp->hitcallback )
+					(*pTemp->hitcallback)( pTemp, &tr );
+			}
+		}
+		else if( pTemp->flags & FTENT_COLLIDEWORLD )
+		{
+			TraceResult	tr;
+			TRACE_LINE( pTemp->oldorigin, pTemp->origin, true, NULL, &tr );
+
+			if( tr.flFraction != 1.0f )
+			{
+				traceFraction = tr.flFraction;
+				traceNormal = tr.vecPlaneNormal;
+
+				if ( pTemp->flags & FTENT_SPARKSHOWER )
+				{
+					// chop spark speeds a bit more
+					pTemp->m_vecVelocity *= 0.6f;
+
+					if( pTemp->m_vecVelocity.Length() < 10.0f )
+						pTemp->m_flFrameRate = 0.0f;
+				}
+
+				if( pTemp->hitcallback )
+					(*pTemp->hitcallback)( pTemp, &tr );
+			}
+		}
+		
+		if( traceFraction != 1.0f )	// Decent collision now, and damping works
+		{
+			float	proj, damp;
+
+			// Place at contact point
+			pTemp->origin = pTemp->oldorigin + (traceFraction * frametime) * pTemp->m_vecVelocity;
+			
+			// Damp velocity
+			damp = pTemp->bounceFactor;
+			if( pTemp->flags & ( FTENT_GRAVITY|FTENT_SLOWGRAVITY ))
+			{
+				damp *= 0.5f;
+				if( traceNormal[2] > 0.9f ) // Hit floor?
+				{
+					if( pTemp->m_vecVelocity[2] <= 0 && pTemp->m_vecVelocity[2] >= gravity * 3 )
+					{
+						pTemp->flags &= ~(FTENT_SLOWGRAVITY|FTENT_ROTATE|FTENT_GRAVITY);
+						pTemp->flags &= ~(FTENT_COLLIDEWORLD|FTENT_SMOKETRAIL);
+						pTemp->angles.x = pTemp->angles.z = 0;
+						damp = 0;	// stop
+					}
+				}
+			}
+
+			if( pTemp->hitSound )
+			{
+// FIXME: implement
+//				g_engfuncs.pEfxAPI->CL_PlaySound( pTemp, damp );
+			}
+
+			if( pTemp->flags & FTENT_COLLIDEKILL )
+			{
+				// die on impact
+				pTemp->flags &= ~FTENT_FADEOUT;	
+				pTemp->die = gpGlobals->time;			
+			}
+			else
+			{
+				// reflect velocity
+				if( damp != 0 )
+				{
+					proj = DotProduct( pTemp->m_vecVelocity, traceNormal );
+					pTemp->m_vecVelocity += (-proj * 2) * traceNormal;
+
+					// reflect rotation (fake)
+					pTemp->angles.y = -pTemp->angles.y;
+				}
+				
+				if( damp != 1.0f )
+				{
+					pTemp->m_vecVelocity *= damp;
+					pTemp->angles *= 0.9f;
+				}
+			}
+		}
+	}
+
+	if(( pTemp->flags & FTENT_FLICKER ) && framenumber == pTemp->m_nFlickerFrame )
+	{
+		float	rgb[3] = { 1.0f, 0.47f, 0.0f };
+		g_engfuncs.pEfxAPI->CL_AllocDLight( pTemp->origin, rgb, 60, gpGlobals->time + 0.01f, 0, 0 );
+	}
+
+	if( pTemp->flags & FTENT_SMOKETRAIL )
+	{
+// FIXME: implement
+//		g_engfuncs.pEfxAPI->R_RocketTrail( pTemp->oldorigin, pTemp->entity.origin, 1 );
+	}
+
+	if( pTemp->flags & FTENT_GRAVITY )
+		pTemp->m_vecVelocity.z += gravity;
+	else if( pTemp->flags & FTENT_SLOWGRAVITY )
+		pTemp->m_vecVelocity.z += gravitySlow;
+
+	if( pTemp->flags & FTENT_CLIENTCUSTOM )
+	{
+		if( pTemp->callback )
+			(*pTemp->callback)( pTemp );
+	}
+
+	if( pTemp->flags & FTENT_WINDBLOWN )
+	{
+		Vector	vecWind = gHUD.m_vecWindVelocity;
+
+		for( int i = 0 ; i < 2 ; i++ )
+		{
+			if( pTemp->m_vecVelocity[i] < vecWind[i] )
+			{
+				pTemp->m_vecVelocity[i] += ( frametime * TENT_WIND_ACCEL );
+
+				// clamp
+				if( pTemp->m_vecVelocity[i] > vecWind[i] )
+					pTemp->m_vecVelocity[i] = vecWind[i];
+			}
+			else if( pTemp->m_vecVelocity[i] > vecWind[i] )
+			{
+				pTemp->m_vecVelocity[i] -= ( frametime * TENT_WIND_ACCEL );
+
+				// clamp
+				if( pTemp->m_vecVelocity[i] < vecWind[i] )
+					pTemp->m_vecVelocity[i] = vecWind[i];
+			}
+		}
+	}
+	return true;
 }
 
 void HUD_StudioEvent( const dstudioevent_t *event, edict_t *entity )
@@ -22,30 +304,32 @@ void HUD_StudioEvent( const dstudioevent_t *event, edict_t *entity )
 	switch( event->event )
 	{
 	case 5001:
-		// MullzeFlash at attachment 0
+		// MullzeFlash at attachment 1
+		HUD_MuzzleFlash( entity, 1, event->options );
 		break;
 	case 5011:
-		// MullzeFlash at attachment 1
+		// MullzeFlash at attachment 2
+		HUD_MuzzleFlash( entity, 2, event->options );
 		break;
 	case 5021:
-		// MullzeFlash at attachment 2
+		// MullzeFlash at attachment 3
+		HUD_MuzzleFlash( entity, 3, event->options );
 		break;
 	case 5031:
-		// MullzeFlash at attachment 3
+		// MullzeFlash at attachment 4
+		HUD_MuzzleFlash( entity, 4, event->options );
 		break;
 	case 5002:
-		// SparkEffect at attachment 0
+		// SparkEffect at attachment 1
 		break;
 	case 5004:		
 		// Client side sound
 		GET_ATTACHMENT( entity, 1, pos, NULL ); 
 		CL_PlaySound( event->options, 1.0f, pos );
-//		ALERT( at_console, "CL_PlaySound( %s )\n", event->options );
 		break;
 	case 5005:		
 		// Client side sound with random pitch
 		pitch = 85 + RANDOM_LONG( 0, 0x1F );
-//		ALERT( at_console, "CL_PlaySound( %s )\n", event->options );
 		GET_ATTACHMENT( entity, 1, pos, NULL ); 
 		CL_PlaySound( event->options, RANDOM_FLOAT( 0.7f, 0.9f ), pos, pitch );
 		break;

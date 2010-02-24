@@ -3554,15 +3554,15 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		{
 		case kRenderTransTexture:
 			// normal transparency
-			pass->flags |= SHADERSTAGE_BLEND_MODULATE;
-			pass->glState = GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA|GLSTATE_DEPTHWRITE;
+			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA|GLSTATE_DEPTHWRITE);
+			pass->flags = SHADERSTAGE_BLEND_MODULATE;
+			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
 			pass->alphaGen.type = ALPHAGEN_ENTITY;
-			pass->rgbGen.type = RGBGEN_ENTITY;
 	         		shader->sort = SORT_ADDITIVE;
 			break;
 		case kRenderTransAdd:
 			pass->flags |= SHADERSTAGE_BLEND_ADD;
-			pass->glState = GLSTATE_SRCBLEND_ONE_MINUS_SRC_ALPHA|GLSTATE_DSTBLEND_ONE|GLSTATE_DEPTHWRITE;
+			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE|GLSTATE_DEPTHWRITE);
 			pass->alphaGen.type = ALPHAGEN_ENTITY;
 			pass->rgbGen.type = RGBGEN_ENTITY;
 			shader->sort = SORT_ADDITIVE;
@@ -3580,6 +3580,12 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
 			pass->alphaGen.type = ALPHAGEN_IDENTITY;
 			shader->sort = SORT_ALPHATEST;
+			break;
+		default:
+			pass->glState = GLSTATE_DEPTHWRITE;
+			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
+			pass->alphaGen.type = ALPHAGEN_IDENTITY;
+			shader->sort = SORT_OPAQUE;
 			break;
 		}
 		break;

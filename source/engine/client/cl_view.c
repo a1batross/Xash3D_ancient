@@ -92,7 +92,15 @@ void V_AddViewModel( void )
 {
 	if( cl.refdef.nextView ) return; // add viewmodel only at firstperson pass
 	if( !cl.frame.valid || cl.refdef.paused ) return;
+
 	re->AddRefEntity( &clgame.viewent, ED_VIEWMODEL );
+
+	// add in muzzleflash effect
+	if( clgame.viewent.v.effects & EF_MUZZLEFLASH )
+	{
+		clgame.viewent.v.effects &= ~EF_MUZZLEFLASH;
+		CL_LocalMuzzleFlash();
+	}
 }
 
 /*

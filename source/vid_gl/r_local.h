@@ -755,9 +755,11 @@ void R_StudioResetSequenceInfo( ref_entity_t *ent );
 float R_StudioFrameAdvance( ref_entity_t *ent, float flInterval );
 void R_StudioModelBBox( ref_entity_t *e, vec3_t mins, vec3_t maxs );
 bool R_CullStudioModel( ref_entity_t *e );
+void R_StudioRunEvents( ref_entity_t *e );
 void R_StudioDrawDebug( void );
 void R_StudioInit( void );
 void R_StudioAllocExtradata( edict_t *in, ref_entity_t *e );
+void R_StudioAllocTentExtradata( struct tempent_s *in, ref_entity_t *e );
 void R_StudioFreeAllExtradata( void );
 void R_StudioShutdown( void );
 

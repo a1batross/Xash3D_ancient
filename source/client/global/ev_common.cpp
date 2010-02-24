@@ -22,7 +22,6 @@ void EV_HookEvents( void )
 	g_engfuncs.pEventAPI->EV_HookEvent( "evEjectBrass", EV_EjectBrass );
 }
 
-#if 0	// remove this when client api's all be done
 //=================
 // EV_CreateTracer
 //=================
@@ -57,15 +56,15 @@ int EV_IsLocal( int idx )
 //=================
 void EV_GetGunPosition( event_args_t *args, float *pos, float *origin )
 {
-	int idx;
-	Vector view_ofs;
+	int	idx;
+	Vector	view_ofs;
 
 	idx = args->entindex;
 
-	VectorClear( view_ofs );
-	view_ofs[2] = DEFAULT_VIEWHEIGHT;
+	view_ofs = Vector( 0, 0, 0 );
+	view_ofs.z = DEFAULT_VIEWHEIGHT;
 
-	if ( EV_IsPlayer( idx ) )
+	if ( EV_IsPlayer( idx ))
 	{
 		// in spec mode use entity viewheigh, not own
 		if ( EV_IsLocal( idx ))
@@ -78,7 +77,10 @@ void EV_GetGunPosition( event_args_t *args, float *pos, float *origin )
 			view_ofs[2] = VEC_DUCK_VIEW;
 		}
 	}
-	VectorAdd( origin, view_ofs, pos );
+
+	pos[0] = origin[0] + view_ofs.x;
+	pos[1] = origin[1] + view_ofs.y;
+	pos[2] = origin[2] + view_ofs.z;
 }
 
 
@@ -87,11 +89,9 @@ void EV_GetGunPosition( event_args_t *args, float *pos, float *origin )
 //=================
 void EV_EjectBrass( float *origin, float *velocity, float rotation, int model, int soundtype )
 {
-	Vector endpos;
-	VectorClear( endpos );
-	endpos[1] = rotation;
+	Vector endpos = Vector( 0.0f, rotation, 0.0f );
 
-	g_engfuncs.pEfxAPI->R_TempModel( origin, velocity, endpos, g_engfuncs.pfnRandomLong( 30, 50 ), model, soundtype );
+	g_engfuncs.pEfxAPI->R_TempModel( origin, velocity, endpos, RANDOM_LONG( 30, 50 ), model, soundtype );
 }
 
 
@@ -100,13 +100,13 @@ void EV_EjectBrass( float *origin, float *velocity, float rotation, int model, i
 //=================
 void EV_GetDefaultShellInfo( event_args_t *args, float *origin, float *velocity, float *ShellVelocity, float *ShellOrigin, float *forward, float *right, float *up, float forwardScale, float upScale, float rightScale )
 {
-	int i, idx;
+	int idx;
 	Vector view_ofs;
 	float fR, fU;
 
 	idx = args->entindex;
-	VectorClear( view_ofs );
-	view_ofs[2] = DEFAULT_VIEWHEIGHT;
+	view_ofs = Vector( 0, 0, 0 );
+	view_ofs.z = DEFAULT_VIEWHEIGHT;
 
 	if ( EV_IsPlayer( idx ) )
 	{
@@ -120,10 +120,10 @@ void EV_GetDefaultShellInfo( event_args_t *args, float *origin, float *velocity,
 		}
 	}
 
-	fR = g_engfuncs.pfnRandomFloat( 50, 70 );
-	fU = g_engfuncs.pfnRandomFloat( 100, 150 );
+	fR = RANDOM_FLOAT( 50, 70 );
+	fU = RANDOM_FLOAT( 100, 150 );
 
-	for ( i = 0; i < 3; i++ )
+	for ( int i = 0; i < 3; i++ )
 	{
 		ShellVelocity[i] = velocity[i] + right[i] * fR + up[i] * fU + forward[i] * 25;
 		ShellOrigin[i]   = origin[i] + view_ofs[i] + up[i] * upScale + forward[i] * forwardScale + right[i] * rightScale;
@@ -136,14 +136,12 @@ void EV_GetDefaultShellInfo( event_args_t *args, float *origin, float *velocity,
 void EV_MuzzleFlash( void )
 {
 	// Add muzzle flash to current weapon model
-	cl_entity_t *ent = GetViewEntity();
-	if ( !ent )return;
+	edict_t *ent = GetViewModel();
+	if ( !ent ) return;
 
 	// Or in the muzzle flash
-	ent->curstate.effects |= EF_MUZZLEFLASH;
+	ent->v.effects |= EF_MUZZLEFLASH;
 }
-#endif
-
 
 void HUD_CmdStart( const edict_t *player, int runfuncs )
 {

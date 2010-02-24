@@ -12,6 +12,7 @@ extern cl_enginefuncs_t g_engfuncs;
 #include "enginecallback.h"
 
 extern cl_globalvars_t		*gpGlobals;
+extern movevars_t			*gpMovevars;
 
 extern int HUD_VidInit( void );
 extern void HUD_Init( void );
@@ -22,6 +23,7 @@ extern void HUD_Frame( double time );
 extern void HUD_Shutdown( void );
 extern void HUD_RenderCallback( int fTrans );
 extern void HUD_CreateEntities( void );
+extern int  HUD_UpdateEntity( TEMPENTITY *pTemp, int framenumber );
 extern void HUD_StudioEvent( const dstudioevent_t *event, edict_t *entity );
 extern void HUD_StudioFxTransform( edict_t *ent, float transform[4][4] );
 extern void HUD_ParseTempEntity( void );
@@ -179,6 +181,7 @@ extern edict_t *spot;
 extern int v_paused;
 extern float v_idlescale;
 extern int g_weaponselect;
+extern model_t g_muzzleFlash[4];
 extern int g_iAlive;		// indicates alive local client or not
 
 // input.cpp

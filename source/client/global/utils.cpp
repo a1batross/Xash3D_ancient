@@ -471,8 +471,8 @@ void DrawScreenFade( void )
 	}
 
 	gHUD.m_bModulate = false;
-	gHUD.m_vFadeColor = Vector( 0, 0, 0 );
-	gHUD.m_fFadeAlpha = 0.0f;
+	gHUD.m_vecFadeColor = Vector( 0, 0, 0 );
+	gHUD.m_flFadeAlpha = 0.0f;
 
 	// Cycle through all fades in the list and calculate the overall color/alpha
 	for ( i = 0; i < HUD_MAX_FADES; i++ )
@@ -482,7 +482,7 @@ void DrawScreenFade( void )
 		if( pFade->fadeFlags == 0 ) continue;	// free slot
 
 		// Color
-		gHUD.m_vFadeColor += pFade->fadeColor;
+		gHUD.m_vecFadeColor += pFade->fadeColor;
 
 		// Fading...
 		int iFadeAlpha;
@@ -502,9 +502,9 @@ void DrawScreenFade( void )
 		}
 
 		// Use highest alpha
-		if( iFadeAlpha > gHUD.m_fFadeAlpha )
+		if( iFadeAlpha > gHUD.m_flFadeAlpha )
 		{
-			gHUD.m_fFadeAlpha = iFadeAlpha;
+			gHUD.m_flFadeAlpha = iFadeAlpha;
 		}
 
 		// Modulate?
@@ -516,12 +516,12 @@ void DrawScreenFade( void )
 	}
 
 	// Divide colors
-	if( numFades ) gHUD.m_vFadeColor /= numFades;
+	if( numFades ) gHUD.m_vecFadeColor /= numFades;
 
-	if( gHUD.m_vFadeColor == Vector( 0, 0, 0 )) return;
-	const float *RGB = gHUD.m_vFadeColor;
+	if( gHUD.m_vecFadeColor == Vector( 0, 0, 0 )) return;
+	const float *RGB = gHUD.m_vecFadeColor;
 
-	FillRGBA( 0, 0, ScreenWidth, ScreenHeight, RGB[0], RGB[1], RGB[2], gHUD.m_fFadeAlpha );
+	FillRGBA( 0, 0, ScreenWidth, ScreenHeight, RGB[0], RGB[1], RGB[2], gHUD.m_flFadeAlpha );
 }
 
 void ClearPermanentFades( void )

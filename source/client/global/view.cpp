@@ -295,8 +295,8 @@ void V_PreRender( ref_params_t *pparams )
 //==========================
 void V_CalcGlobalFog( ref_params_t *pparams )
 {
-	int bOn = (pparams->waterlevel < 2) && (gHUD.m_fStartDist > 0) && (gHUD.m_fEndDist > 0);
-	g_engfuncs.pTriAPI->Fog( gHUD.m_FogColor, gHUD.m_fStartDist, gHUD.m_fEndDist, bOn );
+	int bOn = (pparams->waterlevel < 2) && (gHUD.m_flStartDist > 0) && (gHUD.m_flEndDist > 0);
+	g_engfuncs.pTriAPI->Fog( gHUD.m_vecFogColor, gHUD.m_flStartDist, gHUD.m_flEndDist, bOn );
 }
 
 //==========================
@@ -1008,7 +1008,8 @@ bool V_CalcSkyRefdef( ref_params_t *pparams )
 
 void V_CalcRefdef( ref_params_t *pparams )
 {
-	v_paused = pparams->paused;	// share pause
+	v_paused = pparams->paused;		// share pause
+	gpMovevars = pparams->movevars;	// keep movevars an actual
 
 	V_CalcNextView( pparams );
 	

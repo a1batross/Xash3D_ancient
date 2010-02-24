@@ -310,8 +310,8 @@ void R_LightForOrigin( const vec3_t origin, vec3_t dir, vec4_t ambient, vec4_t d
 	if( !r_worldmodel || !r_worldbrushmodel->lightgrid || !r_worldbrushmodel->numlightgridelems )
 	{
 		// get fullbright
-		VectorSet( ambientLocal, 255, 255, 255 );
-		VectorSet( diffuseLocal, 255, 255, 255 );
+		VectorSet( ambientLocal, 1.0f, 1.0f, 1.0f );
+		VectorSet( diffuseLocal, 1.0f, 1.0f, 1.0f );
 		VectorSet( dir, 0.5f, 0.2f, -1.0f );
 		goto dynamic;
 	}

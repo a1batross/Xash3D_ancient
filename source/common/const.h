@@ -273,6 +273,11 @@ typedef enum
 #define BEAM_FSHADEIN		(1<<5)
 #define BEAM_FSHADEOUT		(1<<6)
 
+// temp entity bounce sound types
+#define TE_BOUNCE_NULL		0
+#define TE_BOUNCE_SHELL		1
+#define TE_BOUNCE_SHOTSHELL		2
+
 // rendering constants
 typedef enum 
 {	

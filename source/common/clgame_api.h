@@ -5,6 +5,9 @@
 #ifndef CLGAME_API_H
 #define CLGAME_API_H
 
+#include "trace_def.h"
+#include "pm_shared.h"
+
 typedef int		HSPRITE;					// handle to a graphic
 typedef struct tempent_s	TEMPENTITY;
 typedef struct usercmd_s	usercmd_t;
@@ -12,10 +15,9 @@ typedef struct cparticle_s	cparticle_t;
 typedef struct skyportal_s	skyportal_t;
 typedef struct ref_params_s	ref_params_t;
 typedef struct dstudioevent_s	dstudioevent_t;
+typedef void (*ENTCALLBACK)( TEMPENTITY *ent );
+typedef void (*HITCALLBACK)( TEMPENTITY *ent, TraceResult *ptr );
 typedef int (*pfnUserMsgHook)( const char *pszName, int iSize, void *pbuf );	// user message handle
-
-#include "trace_def.h"
-#include "pm_shared.h"
 
 #define SCRINFO_VIRTUALSPACE	1
 
@@ -84,6 +86,8 @@ typedef struct cl_globalvars_s
 	BOOL		deathmatch;
 	BOOL		coop;
 	BOOL		teamplay;
+
+	float		viewheight[PM_MAXHULLS]; // values from gameinfo.txt
 
 	int		serverflags;	// shared serverflags
 	int		maxClients;
@@ -234,6 +238,7 @@ typedef struct
 	void 	(*pfnShutdown)( void );
 	void	(*pfnDrawTriangles)( int fTrans );
 	void	(*pfnCreateEntities)( void );
+	int	(*pfnUpdateEntity)( TEMPENTITY *pTemp, int framenumber );
 	void	(*pfnStudioEvent)( const dstudioevent_t *event, edict_t *entity );
 	void	(*pfnStudioFxTransform)( edict_t *pEdict, float transform[4][4] );
 	void	(*pfnCalcRefdef)( ref_params_t *parms );

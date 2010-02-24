@@ -7,6 +7,8 @@
 #include "byteorder.h"
 #include "mathlib.h"
 #include "matrix_lib.h"
+#include "clgame_api.h"
+#include "effects_api.h"
 #include "const.h"
 
 /*
@@ -105,6 +107,108 @@ void R_StudioFreeAllExtradata( void )
 		r_entities[i].extradata = NULL;
 	}
 	Mem_Set( r_entities, 0, sizeof( r_entities ));
+}
+
+void R_StudioAllocTentExtradata( TEMPENTITY *in, ref_entity_t *e )
+{
+	studiovars_t	*studio;
+	bool		hasChrome = (((mstudiomodel_t *)e->model->extradata)->phdr->flags & STUDIO_HAS_CHROME) ? true : false;
+	int		i, numbones = ((mstudiomodel_t *)e->model->extradata)->phdr->numbones;
+			
+	if( !e->mempool ) e->mempool = Mem_AllocPool( va( "TempEntity Pool %i", e - r_entities ));
+	if( !e->extradata ) e->extradata = (void *)Mem_Alloc( e->mempool, sizeof( studiovars_t ));
+	studio = (studiovars_t *)e->extradata;
+	studio->prev = e->prev;
+
+	// any stuidio model MUST have previous data for lerping
+	Com_Assert( studio->prev == NULL );
+
+	// copy controllers
+	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
+	{
+		studio->prev->controller[i] = studio->prev->curcontroller[i];
+		studio->prev->curcontroller[i] = 0x7F;	// tempents doesn't have bonecontrollers
+	}
+
+	// copy blends
+	for( i = 0; i < MAXSTUDIOBLENDS; i++ )
+	{
+		studio->prev->blending[i] = studio->prev->curblending[i];
+		studio->prev->curblending[i] = 0x7F;	// tempents doesn't have blendings
+	}
+
+	// sequence has changed, hold the previous sequence info
+	if( in->m_iSequence != e->prev->cursequence )
+	{
+		studio->prev->sequencetime = e->prev->animtime + 0.01f;
+		studio->prev->sequence = e->prev->cursequence;
+
+		// save current blendings
+		for( i = 0; i < MAXSTUDIOBLENDS; i++ )
+			studio->prev->blending[i] = studio->prev->curblending[i];
+	}
+
+	if( in->flags & FTENT_SPRANIMATE ) 
+	{
+		if( in->m_flFrame == -1 )
+		{
+			in->m_flFrame = e->prev->curframe = 0;
+			e->prev->cursequence = in->m_iSequence;
+			R_StudioResetSequenceInfo( e );
+		}
+		else
+		{
+			if( !studio->prev->m_fSequenceFinished )
+				R_StudioFrameAdvance( e, 0 );
+
+			if( studio->prev->m_fSequenceFinished )
+			{
+				if( in->flags & FTENT_SPRANIMATELOOP )
+					in->m_flFrame = -1;
+				// hold at last frame
+			}
+			else
+			{
+				// copy current frame back to let user grab it on a client-side
+				in->m_flFrame = e->prev->curframe;
+			}
+		}
+	}
+	else
+	{
+		e->prev->cursequence = in->m_iSequence;
+		e->prev->animtime = e->prev->curanimtime;	// must be update each frame!
+		e->prev->curanimtime = in->m_flFrameMax;	// HACKHACK: used m_flFrameMax as animtime
+	}
+
+	if( studio->numbones != numbones )
+	{
+		size_t	cache_size = sizeof( matrix4x4 ) * numbones;
+		size_t	names_size = numbones * 32; // bonename length
+
+		// allocate or merge bones cache
+		studio->bonestransform = (matrix4x4 *)Mem_Realloc( e->mempool, studio->bonestransform, cache_size );
+	}
+
+	if( hasChrome )
+	{
+		if( studio->numbones != numbones || !studio->chromeage || !studio->chromeright || !studio->chromeup )
+		{
+			// allocate or merge chrome cache
+			studio->chromeage = (int *)Mem_Realloc( e->mempool, studio->chromeage, numbones * sizeof( int ));
+			studio->chromeright = (vec3_t *)Mem_Realloc( e->mempool, studio->chromeright, numbones * sizeof( vec3_t ));
+			studio->chromeup = (vec3_t *)Mem_Realloc( e->mempool, studio->chromeup, numbones * sizeof( vec3_t ));
+		}
+	}
+	else
+	{
+		if( studio->chromeage ) Mem_Free( studio->chromeage );
+		if( studio->chromeright ) Mem_Free( studio->chromeright );
+		if( studio->chromeup ) Mem_Free( studio->chromeup );
+		studio->chromeright = studio->chromeup = NULL;
+		studio->chromeage = NULL;
+	}
+	studio->numbones = numbones;
 }
 
 void R_StudioAllocExtradata( edict_t *in, ref_entity_t *e )
@@ -2096,7 +2200,7 @@ static bool R_StudioSetupModel( ref_entity_t *e, ref_model_t *mod )
 
 	if( m_pEntity && e->movetype != MOVETYPE_FOLLOW && !RI.refdef.paused && e->m_nCachedFrameCount != r_framecount2 )
 	{
-		float		flInterval = 0.01f;
+		float		flInterval = 0.1f;
 		float		flStart = e->prev->curframe + (pstudio->prev->m_flLastEventCheck - e->prev->curanimtime) * pstudio->prev->m_flFrameRate * e->framerate;
 		float		flEnd = e->prev->curframe + flInterval * pstudio->prev->m_flFrameRate * e->framerate;
 		int		index = 0;
@@ -2427,4 +2531,18 @@ void R_AddStudioModelToList( ref_entity_t *e )
 			if( shader ) R_AddModelMeshToList( modhandle, fog, shader, ((j<<8)|i));
 		}
 	}
+}
+
+void R_StudioRunEvents( ref_entity_t *e )
+{
+	if( !e->model->extradata ) return;
+	if( RP_FOLLOWENTITY( e )) return;
+
+	RI.currententity = e;
+	R_StudioSetupRender( e, e->model );
+	if( m_pStudioHeader->numbodyparts == 0 )
+		return; // nothing to draw
+
+	// setup bones, play events etc
+	R_StudioSetupModel( e, e->model );
 }

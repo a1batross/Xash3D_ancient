@@ -218,6 +218,24 @@ void pfnAddDLight( const float *org, const float *rgb, float radius, float time,
 	dl->fade = (flags & DLIGHT_FADE) ? true : false;
 }
 
+void CL_LocalMuzzleFlash( void )
+{
+	vec3_t	pos;
+	cdlight_t	*dl;
+
+	CL_GetAttachment( VIEWENT_INDEX, 1, pos, NULL );
+	if( VectorCompare( pos, clgame.viewent.v.origin ))
+		return;	// missing attachment
+
+	dl = CL_AllocDlight( cl.playernum + 1 );
+	VectorCopy( pos, dl->origin );
+	dl->radius = 100;
+	dl->start = cl.time;
+	dl->end = dl->start + 50;
+	dl->color[0] = 1.0f;
+	dl->color[1] = 0.75f;
+	dl->color[2] = 0.25f;
+}
 
 /*
 ===============
@@ -1391,6 +1409,7 @@ CL_ClearEffects
 */
 void CL_ClearEffects( void )
 {
+	CL_ClearTempEnts ();
 	CL_ClearParticles ();
 	CL_ClearDlights ();
 	CL_ClearLightStyles ();

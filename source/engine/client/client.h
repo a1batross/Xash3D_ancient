@@ -543,6 +543,8 @@ void CL_AddDecals( void );
 void CL_ClearEffects( void );
 void CL_TestLights( void );
 void CL_TestEntities( void );
+void CL_LocalMuzzleFlash( void );
+int pfnFindModelIndex( const char *model );
 void CL_FindExplosionPlane( const vec3_t origin, float radius, vec3_t result );
 void pfnLightForPoint( const vec3_t point, vec3_t ambientLight );
 bool pfnAddParticle( cparticle_t *src, HSPRITE shader, int flags );
@@ -559,6 +561,20 @@ void CL_FireEvents( void );
 // cl_pred.c
 //
 void CL_PredictMovement (void);
+
+//
+// cl_tent.c
+//
+void CL_AddTempEnts( void );
+void CL_ClearTempEnts( void );
+struct tempent_s *CL_TempEntAlloc( float *org, int modelIndex );
+struct tempent_s *CL_TempEntAllocNoModel( float *org );
+struct tempent_s *CL_TempEntAllocHigh( float *org, int modelIndex );
+struct tempent_s *CL_TentEntAllocCustom( float *org, int modelIndex, int high, ENTCALLBACK pfnCallback );
+struct tempent_s *CL_TempModel( float *pos, float *dir, float *ang, float life, int modelIndex, int soundtype );
+struct tempent_s *CL_DefaultSprite( float *pos, int spriteIndex, float framerate );
+struct tempent_s *CL_TempSprite( float *pos, float *dir, float scale, int modelIndex, int rendermode, int renderfx, float a, float life, int flags );
+void CL_MuzzleFlash( float *pos, int modelIndex, int type );
 
 //
 // cl_con.c

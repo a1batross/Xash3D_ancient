@@ -2382,11 +2382,19 @@ static efxapi_t gEfxApi =
 {
 	sizeof( efxapi_t ),	
 	pfnAddParticle,
+	CL_MuzzleFlash,
+	CL_TempModel,
+	CL_DefaultSprite,
+	CL_TempSprite,
+	pfnDecalIndex,
+	pfnDecalIndexFromName,
 	pfnAddDecal,
 	pfnAddDLight,
+	CL_TempEntAlloc,
+	CL_TempEntAllocNoModel,
+	CL_TempEntAllocHigh,
+	CL_TentEntAllocCustom,
 	pfnFindExplosionPlane,
-	pfnDecalIndexFromName,
-	pfnDecalIndex,
 	pfnLightForPoint,
 };
 

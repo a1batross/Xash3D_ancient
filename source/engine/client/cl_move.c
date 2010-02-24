@@ -331,7 +331,7 @@ void CL_InitClientMove( void )
 	VectorCopy( GI->client_maxs[3], clgame.pmove->player_maxs[1] );
 
 	for( i = 0; i < PM_MAXHULLS; i++ )
-		clgame.pmove->player_view[i] = GI->viewheight[i];
+		clgame.pmove->player_view[i] = clgame.globals->viewheight[i] = GI->viewheight[i];
 
 	// common utilities
 	clgame.pmove->PM_Info_ValueForKey = Info_ValueForKey;
