@@ -1550,9 +1550,9 @@ static void R_StudioCalcAttachments( ref_entity_t *e )
 
 		// compute pos and angles
 		Matrix4x4_VectorTransform( out, pAtt[i].org, localOrg );
-		Matrix4x4_VectorRotate( out, pAtt[i].vectors[0], axis[0] );
-		Matrix4x4_VectorRotate( out, pAtt[i].vectors[1], axis[1] );
-		Matrix4x4_VectorRotate( out, pAtt[i].vectors[2], axis[2] );
+		Matrix4x4_VectorTransform( out, pAtt[i].vectors[0], axis[0] );
+		Matrix4x4_VectorTransform( out, pAtt[i].vectors[1], axis[1] );
+		Matrix4x4_VectorTransform( out, pAtt[i].vectors[2], axis[2] );
 		Matrix3x3_ToAngles( axis, localAng, true ); // FIXME: dll's uses FLU ?
 		ri.SetAttachment( e->index, i, localOrg, localAng );
 	}
@@ -1856,13 +1856,13 @@ void R_StudioDrawAttachments( void )
 	
 	for( i = 0; i < m_pStudioHeader->numattachments; i++ )
 	{
-		dstudioattachment_t	*pattachments = (dstudioattachment_t *) ((byte *)m_pStudioHeader + m_pStudioHeader->attachmentindex);
+		dstudioattachment_t	*pattachments = (dstudioattachment_t *)((byte *)m_pStudioHeader + m_pStudioHeader->attachmentindex);
 		vec3_t		v[4];
 		
 		Matrix4x4_VectorTransform( m_pbonestransform[pattachments[i].bone], pattachments[i].org, v[0] );
-		Matrix4x4_VectorRotate( m_pbonestransform[pattachments[i].bone], pattachments[i].vectors[0], v[1] );
-		Matrix4x4_VectorRotate( m_pbonestransform[pattachments[i].bone], pattachments[i].vectors[1], v[2] );
-		Matrix4x4_VectorRotate( m_pbonestransform[pattachments[i].bone], pattachments[i].vectors[2], v[3] );
+		Matrix4x4_VectorTransform( m_pbonestransform[pattachments[i].bone], pattachments[i].vectors[0], v[1] );
+		Matrix4x4_VectorTransform( m_pbonestransform[pattachments[i].bone], pattachments[i].vectors[1], v[2] );
+		Matrix4x4_VectorTransform( m_pbonestransform[pattachments[i].bone], pattachments[i].vectors[2], v[3] );
 		
 		pglBegin( GL_LINES );
 		pglColor3f( 1, 0, 0 );

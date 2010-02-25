@@ -446,7 +446,7 @@ void CL_MuzzleFlash( float *pos, int modelIndex, int type )
 	pTemp->renderAmt = 255;
 	pTemp->renderFX = 0;
 	VectorCopy( pos, pTemp->origin );
-	pTemp->die = clgame.globals->time + 0.02f;
+	pTemp->die = clgame.globals->time + 0.02; // die at next frame
 	pTemp->m_flFrame = Com_RandomLong( 0, frameCount - 1 );
 	pTemp->m_flFrameMax = frameCount - 1;
 
@@ -461,5 +461,7 @@ void CL_MuzzleFlash( float *pos, int modelIndex, int type )
 		pTemp->m_flSpriteScale = scale;
 		pTemp->angles[2] = Com_RandomLong( 0, 359 );
 	}
+
+	// render now
 	re->AddTmpEntity( pTemp, ED_TEMPENTITY );
 }

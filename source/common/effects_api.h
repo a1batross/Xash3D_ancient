@@ -101,7 +101,8 @@ typedef struct efxapi_s
 	size_t	api_size;	 // must match with sizeof( efxapi_t );
 
 	int	(*R_AllocParticle)( cparticle_t *src, HSPRITE shader, int flags ); 
-	void	(*R_MuzzleFlash)( float *pos1, int modelIndex, int type );
+	void	(*R_MuzzleFlash)( float *pos, int modelIndex, int type );
+	void	(*R_TracerEffect)( float *start, float *end );
 	TEMPENTITY *(*R_TempModel)( float *pos, float *dir, float *ang, float life, int modelIndex, int soundtype );
 	TEMPENTITY *(*R_DefaultSprite)( float *pos, int spriteIndex, float framerate );
 	TEMPENTITY *(*R_TempSprite)( float *pos, float *dir, float scale, int modelIndex, int rendermode, int renderfx, float a, float life, int flags );

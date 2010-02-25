@@ -544,7 +544,7 @@ void CL_ClearEffects( void );
 void CL_TestLights( void );
 void CL_TestEntities( void );
 void CL_LocalMuzzleFlash( void );
-int pfnFindModelIndex( const char *model );
+void CL_CreateTracer( float *start, float *end );
 void CL_FindExplosionPlane( const vec3_t origin, float radius, vec3_t result );
 void pfnLightForPoint( const vec3_t point, vec3_t ambientLight );
 bool pfnAddParticle( cparticle_t *src, HSPRITE shader, int flags );

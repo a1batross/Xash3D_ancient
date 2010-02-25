@@ -27,7 +27,7 @@ void EV_HookEvents( void )
 //=================
 void EV_CreateTracer( float *start, float *end )
 {
-//	g_engfuncs.pEfxAPI->R_TracerEffect( start, end );
+	g_engfuncs.pEfxAPI->R_TracerEffect( start, end );
 }
 
 

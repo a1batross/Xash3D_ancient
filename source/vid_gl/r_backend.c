@@ -1440,6 +1440,7 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 			pass->alphaGen.type = ALPHAGEN_ENTITY;
 			break;
 		case mod_sprite:
+			pass->flags = SHADERSTAGE_BLEND_ADD;
 			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE|GLSTATE_DEPTHWRITE);
 			pass->rgbGen.type = RGBGEN_ENTITY;
 			pass->alphaGen.type = ALPHAGEN_ENTITY;

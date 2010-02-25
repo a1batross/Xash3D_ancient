@@ -2383,6 +2383,7 @@ static efxapi_t gEfxApi =
 	sizeof( efxapi_t ),	
 	pfnAddParticle,
 	CL_MuzzleFlash,
+	CL_CreateTracer,
 	CL_TempModel,
 	CL_DefaultSprite,
 	CL_TempSprite,

@@ -9,6 +9,7 @@
 #include "effects_api.h"
 #include "pm_movevars.h"
 #include "te_message.h"
+#include "ev_hldm.h"
 #include "hud.h"
 
 #define TENT_WIND_ACCEL		50
@@ -749,7 +750,7 @@ void CL_AllocDLight( Vector pos, float radius, float time, int flags )
 
 void HUD_ParseTempEntity( void )
 {
-	Vector	pos, dir, color;
+	Vector	pos, pos2, dir, color;
 	float	time, radius, decay;
 	int	flags, scale;
 
@@ -834,6 +835,15 @@ void HUD_ParseTempEntity( void )
 		time = (float)READ_BYTE() * 0.1f;
 		decay = (float)READ_BYTE() * 0.1f;
 		g_engfuncs.pEfxAPI->CL_AllocDLight( pos, color, radius, time, 0, 0 );
+		break;
+	case TE_TRACER:
+		pos.x = READ_COORD();	// tracer start
+		pos.y = READ_COORD();
+		pos.z = READ_COORD();
+		pos2.x = READ_COORD();	// tracer end
+		pos2.y = READ_COORD();
+		pos2.z = READ_COORD();
+		EV_CreateTracer( pos, pos2 );
 		break;
 	}
 }

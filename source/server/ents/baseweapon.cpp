@@ -1420,7 +1420,7 @@ int CBasePlayerWeapon :: Shoot ( const char *ammo, Vector vecSpread, int firemod
 			cShots *= 4;
 		}
 		else flDistance = MAP_SIZE;
-		FireBullets( cShots, vecSrc, vecAiming, vecSpread, flDistance, (Bullet)GetBulletType(ammo), 4, 0, m_pPlayer->pev );
+		FireBullets( cShots, vecSrc, vecAiming, vecSpread, flDistance, (Bullet)GetBulletType(ammo), 0, 0, m_pPlayer->pev );
 		m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + RANDOM_FLOAT ( 10, 15 );
 		return 1;
 	}

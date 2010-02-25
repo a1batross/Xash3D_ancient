@@ -528,17 +528,12 @@ bool R_PushSprite( const meshbuffer_t *mb, int type, float right, float left, fl
 			v_up[i] = RI.vright[i] * -sr + RI.vup[i] * cr;
 		}
 		break;
-	default:
-		if( e->spriteshader && e->angles[PITCH] )
-		{
-			RotatePointAroundVector( v_right, RI.vpn, RI.vright, e->angles[PITCH] );
-			CrossProduct( RI.vpn, v_right, v_up );
-			break;
-		}
-		// intentional fallthrough
 	case SPR_FWD_PARALLEL: // normal sprite
-		VectorCopy( RI.vright, v_right );
-		VectorCopy( RI.vup, v_up );
+	default:	if( e->spriteshader )
+			angle = e->angles[PITCH];
+		else angle = e->angles[ROLL];	// for support rotating muzzleflashes
+		RotatePointAroundVector( v_right, RI.vpn, RI.vright, angle );
+		CrossProduct( RI.vpn, v_right, v_up );
 		break;
 	}
 
@@ -2227,13 +2222,6 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
 	}
 	else refent->gaitsequence = 0;
 
-	if( refent->index == VIEWENT_INDEX )
-	{
-		// run events here to prevent
-		// de-synchronize muzzleflashes movement
-		R_StudioRunEvents( refent );
-	}
-
 	// because entity without models never added to scene
 	if( !refent->ent_type )
 	{
@@ -2341,6 +2329,13 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type )
 
 	if( result ) r_numEntities++;
 
+	if( refent->index == VIEWENT_INDEX )
+	{
+		// run events here to prevent
+		// de-synchronize muzzleflashes movement
+		R_StudioRunEvents( refent );
+	}
+
 	// never adding child entity without parent
 	// only studio models can have attached childrens
 	if( result && refent->model->type == mod_studio && pRefEntity->v.weaponmodel && (refent->renderfx != kRenderFxDeadPlayer))
@@ -2395,7 +2390,6 @@ bool R_AddTeEntToScene( TEMPENTITY *pTempEntity, int ed_type )
 	refent->body = pTempEntity->body;
 	refent->skin = pTempEntity->skin;
 	refent->scale = pTempEntity->m_flSpriteScale;
-	refent->colormap = pTempEntity->m_iAttachment;
 	refent->renderfx = pTempEntity->renderFX;
 	refent->renderamt = pTempEntity->renderAmt;
 	refent->model = cl_models[pTempEntity->modelindex];
@@ -2405,6 +2399,27 @@ bool R_AddTeEntToScene( TEMPENTITY *pTempEntity, int ed_type )
 	refent->gaitsequence = 0;
 	refent->parent = NULL;
 	refent->prev = NULL;
+
+	// attached entity (can attach sprites to models)
+	if( pTempEntity->m_iAttachment && cl_models[pTempEntity->modelindex]->type == mod_sprite )
+	{
+		int	i;
+		edict_t	*pEdict;
+
+		pEdict = ri.GetClientEdict( pTempEntity->clientIndex );
+
+		for( i = 1; pEdict && i < r_numEntities; i++ )
+		{
+			if( r_entities[i].index == pEdict->serialnumber )
+			{
+				// found parent
+				refent->colormap = ((refent->colormap & 0xFF00)>>8) | pTempEntity->m_iAttachment;
+				refent->movetype = MOVETYPE_FOLLOW;
+				refent->parent = r_entities + i;
+				break;
+			}
+		}
+	}
 
 	// check model
 	if( !refent->model ) return false;

@@ -1087,6 +1087,36 @@ void CL_ParticleEffect( const vec3_t org, const vec3_t dir, int color, int count
 	}
 }
 
+void CL_CreateTracer( float *start, float *end )
+{
+	vec3_t		vec;
+	cparticle_t	src;
+	int		pal = 238; // nice color for tracers
+
+	if( !start || !end ) return;
+	VectorSubtract( end, start, vec );
+	VectorNormalize( vec );
+	VectorClear( src.velocity );
+	src.color[0] = cl_particlePalette[pal][0];
+	src.color[1] = cl_particlePalette[pal][1];
+	src.color[2] = cl_particlePalette[pal][2];
+	VectorClear( src.colorVelocity );
+	VectorClear( src.accel );
+	src.alpha = 1.0f;
+	src.alphaVelocity = -12.0;	// lifetime
+	src.radius = 1.2f;
+	src.radiusVelocity = 0;
+	src.length = 12;
+	src.lengthVelocity = 0;
+	src.rotation = 0;
+	VectorCopy( start, src.origin );
+	src.velocity[0] = 6000.0f * vec[0];
+	src.velocity[1] = 6000.0f * vec[1];
+	src.velocity[2] = 6000.0f * vec[2];
+
+	pfnAddParticle( &src, cls.particle, PARTICLE_STRETCH );
+}
+
 /*
 ===============
 pfnAddParticle
