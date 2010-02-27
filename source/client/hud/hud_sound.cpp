@@ -249,7 +249,7 @@ int CHudSound :: VidInit( void )
 		songname[0] = '\0';
 		fmod_data = NULL;
 	}
-	m_flVolume = 0.0f;
+	m_flVolume = -1.0f;
 	return 1;
 }
 
@@ -311,7 +311,8 @@ int CHudSound :: PlayStream( const char* name )
 	if( m_iStatus & 2 ) flags = FSOUND_LOADMEMORY|FSOUND_MPEGACCURATE|FSOUND_LOOP_NORMAL;
 	else flags = FSOUND_LOADMEMORY|FSOUND_MPEGACCURATE|FSOUND_LOOP_OFF;
 	fmod_data = qfmod_loadstream( data, flags, filesize );
-
+	m_flVolume = -1.0f;
+	
 	if( !fmod_data ) // may be it's tracker?
 	{
 		// check for .xm .it .s3m headers

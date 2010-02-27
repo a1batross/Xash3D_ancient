@@ -1475,7 +1475,7 @@ int CBasePlayerWeapon :: Launch ( const char *ammo, int type )
 		Vector angThrow = m_pPlayer->pev->viewangles + m_pPlayer->pev->punchangle;
 
 		if ( angThrow.x < 0 ) angThrow.x = -10 + angThrow.x * ( ( 90 - 10 ) / 90.0 );
-		else	angThrow.x = -10 + angThrow.x * ( ( 90 + 10 ) / 90.0 );
+		else angThrow.x = -10 + angThrow.x * ( ( 90 + 10 ) / 90.0 );
 
 		float flVel = ( 90 - angThrow.x ) * 4;
 		if ( flVel > 500 ) flVel = 500;

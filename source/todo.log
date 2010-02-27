@@ -38,10 +38,10 @@ Beta 13.02.10
 10.autocomplete and command history for system console	OK
 11.create mutex for dedicated server			OK
 12.revision of Xash Environment System			OK
-13.implement temp-ents
+13.implement temp-ents 				OK
 14.implement realtime wind
-15. fixup muzzleflashes
-
+15. fixup muzzleflashes				OK
+16. fix CL_GetEntityByIndex: invalid entindex
 
 
 

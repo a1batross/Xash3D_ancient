@@ -313,7 +313,6 @@ void Draw_VidInit( void )
 void DrawPause( void )
 {
 	// pause image
-	if( !v_paused ) return;
 	DrawImageBar( 100, "m_pause" ); // HACKHACK
 }
 

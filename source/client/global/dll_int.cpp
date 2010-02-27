@@ -13,6 +13,7 @@
 #include "pm_shared.h"
 #include "r_weather.h"
 
+int		v_paused;
 cl_enginefuncs_t	g_engfuncs;
 cl_globalvars_t	*gpGlobals;
 movevars_t	*gpMovevars = NULL;
@@ -127,10 +128,15 @@ int HUD_Redraw( float flTime, int state )
 	switch( state )
 	{
 	case CL_LOADING:
+		v_paused = 0;
 		DrawProgressBar();
 		break;
 	case CL_ACTIVE:
+		v_paused = 0;
+		gHUD.Redraw( flTime );
+		break;
 	case CL_PAUSED:
+		v_paused = 1;
 		gHUD.Redraw( flTime );
 		DrawPause();
 		break;

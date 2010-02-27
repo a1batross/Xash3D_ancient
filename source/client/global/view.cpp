@@ -16,7 +16,6 @@
 #define ORIGIN_MASK		( ORIGIN_BACKUP - 1 )
 
 // global view containers
-int	v_paused;
 Vector	v_origin, v_angles, v_cl_angles;	// base client vectors
 float	v_idlescale, v_lastDistance;		// misc variables
 Vector	ev_punchangle;			// client punchangles
@@ -1008,7 +1007,6 @@ bool V_CalcSkyRefdef( ref_params_t *pparams )
 
 void V_CalcRefdef( ref_params_t *pparams )
 {
-	v_paused = pparams->paused;		// share pause
 	gpMovevars = pparams->movevars;	// keep movevars an actual
 
 	V_CalcNextView( pparams );

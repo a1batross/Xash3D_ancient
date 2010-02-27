@@ -574,7 +574,10 @@ struct tempent_s *CL_TentEntAllocCustom( float *org, int modelIndex, int high, E
 struct tempent_s *CL_TempModel( float *pos, float *dir, float *ang, float life, int modelIndex, int soundtype );
 struct tempent_s *CL_DefaultSprite( float *pos, int spriteIndex, float framerate );
 struct tempent_s *CL_TempSprite( float *pos, float *dir, float scale, int modelIndex, int rendermode, int renderfx, float a, float life, int flags );
-void CL_MuzzleFlash( float *pos, int modelIndex, int type );
+void CL_MuzzleFlash( int modelIndex, int entityIndex, int iAttachment, int type );
+void CL_SpriteExplode( struct tempent_s *pTemp, float scale, int flags );
+void CL_SpriteSmoke( struct tempent_s *pTemp, float scale );
+void CL_SpriteSpray( float *pos, float *dir, int modelIndex, int count, int speed, int iRand );
 
 //
 // cl_con.c

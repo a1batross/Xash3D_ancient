@@ -72,6 +72,7 @@ struct tempent_s
 	int		m_nFlickerFrame;	// for keyed dlights
 	int		m_iAttachment;	// sprite attachment
 	int		m_iSequence;	// studiomodel sequence
+	vec3_t		renderColor;	// tempentity rendercolor
 	byte		renderAmt;	// actual lpha value
 	byte		renderMode;	// fast method to set various effects
 	byte		renderFX;		// matched with entity renderfx
@@ -101,7 +102,10 @@ typedef struct efxapi_s
 	size_t	api_size;	 // must match with sizeof( efxapi_t );
 
 	int	(*R_AllocParticle)( cparticle_t *src, HSPRITE shader, int flags ); 
-	void	(*R_MuzzleFlash)( float *pos, int modelIndex, int type );
+	void	(*R_MuzzleFlash)( int modelIndex, int entityIndex, int iAttachment, int type );
+	void	(*R_Sprite_Explode)( TEMPENTITY *pTemp, float scale, int flags );
+	void	(*R_Sprite_Smoke)( TEMPENTITY *pTemp, float scale );
+	void	(*R_Sprite_Spray)( float *pos, float *dir, int modelIndex, int count, int speed, int iRand );
 	void	(*R_TracerEffect)( float *start, float *end );
 	TEMPENTITY *(*R_TempModel)( float *pos, float *dir, float *ang, float life, int modelIndex, int soundtype );
 	TEMPENTITY *(*R_DefaultSprite)( float *pos, int spriteIndex, float framerate );

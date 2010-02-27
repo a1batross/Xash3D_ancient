@@ -126,7 +126,7 @@ void EV_GetDefaultShellInfo( event_args_t *args, float *origin, float *velocity,
 	for ( int i = 0; i < 3; i++ )
 	{
 		ShellVelocity[i] = velocity[i] + right[i] * fR + up[i] * fU + forward[i] * 25;
-		ShellOrigin[i]   = origin[i] + view_ofs[i] + up[i] * upScale + forward[i] * forwardScale + right[i] * rightScale;
+		ShellOrigin[i] = origin[i] + view_ofs[i] + up[i] * upScale + forward[i] * forwardScale + right[i] * rightScale;
 	}
 }
 

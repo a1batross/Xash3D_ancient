@@ -47,6 +47,9 @@
 #define TE_EXPLFLAG_NODLIGHTS		2	// do not render dynamic lights
 #define TE_EXPLFLAG_NOSOUND		4	// do not play client explosion sound
 #define TE_EXPLFLAG_NOPARTICLES	8	// do not draw particles
+#define TE_EXPLFLAG_DRAWALPHA		16	// sprite will be drawn alpha
+#define TE_EXPLFLAG_ROTATE		32	// rotate the sprite randomly
+#define TE_EXPLFLAG_NOFIREBALL	64	// do not draw a fireball
 
 
 #define	TE_TAREXPLOSION		4	// Quake1 "tarbaby" explosion with sound

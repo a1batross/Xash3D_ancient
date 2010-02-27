@@ -3145,8 +3145,12 @@ static void pfnPlaybackEvent( int flags, const edict_t *pInvoker, word eventinde
 		// get up some info from invoker
 		if( VectorIsNull( args->origin )) 
 			VectorCopy( pInvoker->v.origin, args->origin );
-		if( VectorIsNull( args->angles )) 
-			VectorCopy( pInvoker->v.angles, args->angles );
+		if( VectorIsNull( args->angles ))
+		{ 
+			if( SV_ClientFromEdict( pInvoker, true ))
+				VectorCopy( pInvoker->v.viewangles, args->angles );
+			else VectorCopy( pInvoker->v.angles, args->angles );
+		}
 		VectorCopy( pInvoker->v.velocity, args->velocity );
 		args->ducking = (pInvoker->v.flags & FL_DUCKING) ? true : false;
 	}
@@ -3174,9 +3178,9 @@ static void pfnPlaybackEvent( int flags, const edict_t *pInvoker, word eventinde
 
 		if(!( flags & FEV_GLOBAL ))
 		{
-			area2 = CM_LeafArea( leafnum );
-			cluster = CM_LeafCluster( leafnum );
 			leafnum = CM_PointLeafnum( cl->edict->v.origin );
+			cluster = CM_LeafCluster( leafnum );
+			area2 = CM_LeafArea( leafnum );
 			if(!CM_AreasConnected( area1, area2 )) continue;
 			if( mask && (!(mask[cluster>>3] & (1<<(cluster & 7)))))
 				continue;

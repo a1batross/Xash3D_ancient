@@ -6,6 +6,7 @@
 #include "common.h"
 #include "client.h"
 #include "effects_api.h"
+#include "te_message.h"	// grab TE_EXPLFLAGS
 #include "const.h"
 
 /*
@@ -68,6 +69,8 @@ static bool CL_FreeLowPriorityTempEnt( void )
 
 static void CL_PrepareTempEnt( TEMPENTITY *pTemp, int modelIndex )
 {
+	int	frameCount;
+
 	// Use these to set per-frame and termination conditions / actions
 	pTemp->flags = FTENT_NONE;		
 	pTemp->die = clgame.globals->time + 0.75f;
@@ -76,15 +79,19 @@ static void CL_PrepareTempEnt( TEMPENTITY *pTemp, int modelIndex )
 		pTemp->pvEngineData = Mem_Alloc( cls.mempool, sizeof( studioframe_t ));
 	else pTemp->flags |= FTENT_NOMODEL;
 
+	Mod_GetFrames( modelIndex, &frameCount );
+
 	pTemp->modelindex = modelIndex;
 	pTemp->renderMode = kRenderNormal;
 	pTemp->renderFX = kRenderFxNone;
+	VectorSet( pTemp->renderColor, 255, 255, 255 );
+	pTemp->m_flFrameMax = max( 0, frameCount - 1 );
 	pTemp->renderAmt = 255;
 	pTemp->body = 0;
 	pTemp->skin = 0;
 	pTemp->fadeSpeed = 0.5f;
 	pTemp->hitSound = 0;
-	pTemp->clientIndex = -1;
+	pTemp->clientIndex = NULLENT_INDEX;
 	pTemp->bounceFactor = 1;
 	pTemp->m_flSpriteScale = 1.0f;
 }
@@ -420,8 +427,9 @@ NOTE: this temp entity live once one frame
 so we wan't add it to tent list
 ===============
 */
-void CL_MuzzleFlash( float *pos, int modelIndex, int type )
+void CL_MuzzleFlash( int modelIndex, int entityIndex, int iAttachment, int type )
 {
+	vec3_t		pos;
 	TEMPENTITY	*pTemp;
 	int		frameCount;
 	float		scale;
@@ -434,7 +442,13 @@ void CL_MuzzleFlash( float *pos, int modelIndex, int type )
 	}
 
 	Mod_GetFrames( modelIndex, &frameCount );
+	if( !CL_GetAttachment( entityIndex, iAttachment, pos, NULL ))
+	{
+		MsgDev( D_ERROR, "Invalid muzzleflash entity %d!\n", entityIndex );
+		return;
+	}
 
+	// must set position for right culling on render
 	pTemp = CL_TempEntAlloc( pos, modelIndex );
 	if( !pTemp ) return;
 
@@ -445,10 +459,11 @@ void CL_MuzzleFlash( float *pos, int modelIndex, int type )
 	pTemp->renderMode = kRenderTransAdd;
 	pTemp->renderAmt = 255;
 	pTemp->renderFX = 0;
-	VectorCopy( pos, pTemp->origin );
-	pTemp->die = clgame.globals->time + 0.02; // die at next frame
+	pTemp->die = clgame.globals->time + 0.01; // die at next frame
 	pTemp->m_flFrame = Com_RandomLong( 0, frameCount - 1 );
 	pTemp->m_flFrameMax = frameCount - 1;
+	pTemp->clientIndex = entityIndex;
+	pTemp->m_iAttachment = iAttachment;
 
 	if( index == 0 )
 	{
@@ -462,6 +477,128 @@ void CL_MuzzleFlash( float *pos, int modelIndex, int type )
 		pTemp->angles[2] = Com_RandomLong( 0, 359 );
 	}
 
-	// render now
+	// render now (guranteed that muzzleflash will be draw)
 	re->AddTmpEntity( pTemp, ED_TEMPENTITY );
+}
+
+/*
+===============
+CL_SpriteExplode
+
+just a preset for exploding sprite
+===============
+*/
+void CL_SpriteExplode( TEMPENTITY *pTemp, float scale, int flags )
+{
+	if( !pTemp ) return;
+
+	// NOTE: Xash3D doesn't needs this stuff, because sprites
+	// have right rendermodes already at loading point
+	// but i'm leave it for backward compatibility
+	if( flags & TE_EXPLFLAG_NOADDITIVE )
+	{
+		// solid sprite
+		pTemp->renderMode = kRenderNormal;
+		pTemp->renderAmt = 255; 
+	}
+	else if( flags & TE_EXPLFLAG_DRAWALPHA )
+	{
+		// alpha sprite
+		pTemp->renderMode = kRenderTransAlpha;
+		pTemp->renderAmt = 180;
+	}
+	else
+	{
+		// additive sprite
+		pTemp->renderMode = kRenderTransAdd;
+		pTemp->renderAmt = 120;
+	}
+
+	if( flags & TE_EXPLFLAG_ROTATE )
+	{
+		pTemp->angles[2] = Com_RandomLong( 0, 360 );
+	}
+
+	pTemp->renderFX = kRenderFxNone;
+	pTemp->m_vecVelocity[2] = 8;
+	pTemp->origin[2] += 10;
+	pTemp->m_flSpriteScale = scale;
+}
+
+/*
+===============
+CL_SpriteExplode
+
+just a preset for smoke sprite
+===============
+*/
+void CL_SpriteSmoke( TEMPENTITY *pTemp, float scale )
+{
+	int	iColor;
+
+	if( !pTemp ) return;
+
+	iColor = Com_RandomLong( 20, 35 );
+	pTemp->renderMode = kRenderTransAlpha;
+	pTemp->renderFX = kRenderFxNone;
+	pTemp->m_vecVelocity[2] = 30;
+	VectorSet( pTemp->renderColor, iColor, iColor, iColor );
+	pTemp->origin[2] += 20;
+	pTemp->m_flSpriteScale = scale;
+	pTemp->flags = FTENT_WINDBLOWN;
+
+}
+
+/*
+===============
+CL_SpriteSpray
+
+just a preset for smoke sprite
+===============
+*/
+void CL_SpriteSpray( float *pos, float *dir, int modelIndex, int count, int speed, int iRand )
+{
+	TEMPENTITY	*pTemp;
+	float		noise;
+	float		znoise;
+	int		i, frameCount;
+
+	noise = (float)iRand / 100;
+
+	// more vertical displacement
+	znoise = noise * 1.5f;
+	
+	if( znoise > 1 ) znoise = 1;
+
+	if( CM_GetModelType( modelIndex ) == mod_bad )
+	{
+		MsgDev( D_ERROR, "No model %d!\n", modelIndex );
+		return;
+	}
+
+	Mod_GetFrames( modelIndex, &frameCount );
+
+	for( i = 0; i < count; i++ )
+	{
+		vec3_t	velocity;
+		float	scale;
+
+		pTemp = CL_TempEntAlloc( pos, modelIndex );
+		if( !pTemp ) return;
+
+		pTemp->renderMode = kRenderTransAlpha;
+		pTemp->renderFX = kRenderFxNoDissipation;
+		pTemp->m_flSpriteScale = 0.5f;
+		pTemp->flags |= FTENT_FADEOUT|FTENT_SLOWGRAVITY;
+		pTemp->fadeSpeed = 2.0f;
+
+		// make the spittle fly the direction indicated, but mix in some noise.
+		velocity[0] = dir[0] + Com_RandomFloat( -noise, noise );
+		velocity[1] = dir[1] + Com_RandomFloat( -noise, noise );
+		velocity[2] = dir[2] + Com_RandomFloat( 0, znoise );
+		scale = Com_RandomFloat(( speed * 0.8f ), ( speed * 1.2f ));
+		VectorScale( velocity, scale, pTemp->m_vecVelocity );
+		pTemp->die = clgame.globals->time + 0.35f;
+		pTemp->m_flFrame = Com_RandomLong( 0, frameCount - 1 );
+	}
 }

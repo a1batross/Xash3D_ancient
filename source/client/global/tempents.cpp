@@ -16,16 +16,14 @@
 
 model_t	g_muzzleFlash[4];	// custom muzzleflashes
 
-void HUD_MuzzleFlash( edict_t *m_pEnt, int m_iAttachment, const char *event )
+void HUD_MuzzleFlash( edict_t *m_pEnt, int iAttachment, const char *event )
 {
-	Vector	pos;
 	int	type, index;
 
 	type = atoi( event );
 	index = bound( 0, type % 10, 3 );
 
-	GET_ATTACHMENT( m_pEnt, m_iAttachment, pos, NULL );
-	g_engfuncs.pEfxAPI->R_MuzzleFlash( pos, g_muzzleFlash[index], type );
+	g_engfuncs.pEfxAPI->R_MuzzleFlash( g_muzzleFlash[index], m_pEnt->serialnumber, iAttachment, type );
 }
 
 void HUD_CreateEntities( void )
@@ -750,9 +748,10 @@ void CL_AllocDLight( Vector pos, float radius, float time, int flags )
 
 void HUD_ParseTempEntity( void )
 {
-	Vector	pos, pos2, dir, color;
-	float	time, radius, decay;
-	int	flags, scale;
+	TEMPENTITY	*pTemp;
+	Vector		pos, pos2, dir, color;
+	float		time, framerate, radius, scale, decay;
+	int		flags, modelIndex;
 
 	switch( READ_BYTE() )
 	{
@@ -783,11 +782,20 @@ void HUD_ParseTempEntity( void )
 		pos.x = READ_COORD();
 		pos.y = READ_COORD();
 		pos.z = READ_COORD();
-		READ_SHORT(); // FIXME: use sprite index as shader index
-		scale = READ_BYTE();
-		READ_BYTE(); // FIXME: use framerate for shader
+		modelIndex = READ_SHORT();
+		scale = (float)(READ_BYTE());
+		framerate = READ_BYTE();
 		flags = READ_BYTE();
 
+		// create explosion sprite
+		pTemp = g_engfuncs.pEfxAPI->CL_TempEntAlloc( pos, modelIndex );
+		g_engfuncs.pEfxAPI->R_Sprite_Explode( pTemp, (scale / 10.0f), flags );
+		if( pTemp )
+		{
+			pTemp->die = gpGlobals->time + 2.5f;
+			pTemp->m_flFrameRate = framerate;
+			pTemp->flags |= FTENT_SPRANIMATE;
+		}
 		g_engfuncs.pEfxAPI->CL_FindExplosionPlane( pos, scale, dir );
 		if(!(flags & TE_EXPLFLAG_NOPARTICLES )) CL_ExplosionParticles( pos );
 		if( RANDOM_LONG( 0, 1 ))

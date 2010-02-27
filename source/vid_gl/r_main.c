@@ -1288,16 +1288,35 @@ static void R_CategorizeEntities( void )
 		if( RI.currententity->movetype == MOVETYPE_FOLLOW && !RI.currententity->parent )
 		{
 			edict_t	*pEdict = ri.GetClientEdict( RI.currententity->index );
-			edict_t	*pParent = NULL;
 
-			if( pEdict && pEdict->v.aiment )
+			if( RI.currententity->ent_type == ED_TEMPENTITY )
 			{
-				for( j = 1; j < r_numEntities; j++ )
+				// index it's a pointer to parent
+				if( pEdict )
 				{
-					if( r_entities[j].index == pEdict->v.aiment->serialnumber )
+					for( j = 1; j < r_numEntities; j++ )
 					{
-						RI.currententity->parent = r_entities + j;
-						break;
+						// we can hit himself before than find real parent
+						if( RI.currententity == r_entities + j ) continue;
+						if( r_entities[j].index == pEdict->serialnumber )
+						{
+							RI.currententity->parent = r_entities + j;
+							break;
+						}
+					}
+				}
+			}
+			else
+			{
+				if( pEdict && pEdict->v.aiment )
+				{
+					for( j = 1; j < r_numEntities; j++ )
+					{
+						if( r_entities[j].index == pEdict->v.aiment->serialnumber )
+						{
+							RI.currententity->parent = r_entities + j;
+							break;
+						}
 					}
 				}
 			}
@@ -2174,8 +2193,7 @@ bool R_AddGenericEntity( edict_t *pRefEntity, ref_entity_t *refent )
           }
 	else
 	{
-		if( refent->prev )
-			refent->prev->frame = refent->prev->curframe;	// save oldframe
+		refent->prev->frame = refent->prev->curframe;	// save oldframe
 		refent->prev->curframe = pRefEntity->v.frame;
 	}
 
@@ -2384,7 +2402,9 @@ bool R_AddTeEntToScene( TEMPENTITY *pTempEntity, int ed_type )
 	}
 
 	// copy state to render
-	refent->index = NULLENT_INDEX;
+	if( pTempEntity->clientIndex != 0 )
+		refent->index = pTempEntity->clientIndex;
+	else refent->index = NULLENT_INDEX;
 	refent->ent_type = ed_type;
 	refent->rendermode = pTempEntity->renderMode;
 	refent->body = pTempEntity->body;
@@ -2392,6 +2412,7 @@ bool R_AddTeEntToScene( TEMPENTITY *pTempEntity, int ed_type )
 	refent->scale = pTempEntity->m_flSpriteScale;
 	refent->renderfx = pTempEntity->renderFX;
 	refent->renderamt = pTempEntity->renderAmt;
+	VectorCopy( pTempEntity->renderColor, refent->rendercolor );
 	refent->model = cl_models[pTempEntity->modelindex];
 	refent->framerate = pTempEntity->m_flFrameRate;
 	refent->movetype = MOVETYPE_NOCLIP;
@@ -2403,22 +2424,9 @@ bool R_AddTeEntToScene( TEMPENTITY *pTempEntity, int ed_type )
 	// attached entity (can attach sprites to models)
 	if( pTempEntity->m_iAttachment && cl_models[pTempEntity->modelindex]->type == mod_sprite )
 	{
-		int	i;
-		edict_t	*pEdict;
-
-		pEdict = ri.GetClientEdict( pTempEntity->clientIndex );
-
-		for( i = 1; pEdict && i < r_numEntities; i++ )
-		{
-			if( r_entities[i].index == pEdict->serialnumber )
-			{
-				// found parent
-				refent->colormap = ((refent->colormap & 0xFF00)>>8) | pTempEntity->m_iAttachment;
-				refent->movetype = MOVETYPE_FOLLOW;
-				refent->parent = r_entities + i;
-				break;
-			}
-		}
+		// set attachment right
+		refent->colormap = ((refent->colormap & 0xFF00)>>8) | pTempEntity->m_iAttachment;
+		refent->movetype = MOVETYPE_FOLLOW;
 	}
 
 	// check model
@@ -2437,22 +2445,6 @@ bool R_AddTeEntToScene( TEMPENTITY *pTempEntity, int ed_type )
 		break;
 	}
 
-	// NOTE: kRenderNormal get right transparency from model\sprite
-	// and ignore lighting for specified modes
-	switch( refent->rendermode )
-	{
-	case kRenderTransAlpha:
-	case kRenderTransTexture:
-		VectorClear( refent->rendercolor ); // uses ambient lighting
-		break;
-	case kRenderGlow:
-	case kRenderNormal:
-	case kRenderTransAdd:
-	case kRenderTransColor:
-		VectorSet( refent->rendercolor, 255, 255, 255 );
-		break;
-	}
-
 	refent->prev = pTempEntity->pvEngineData; // setup prevframe data
 
 	if( refent->prev == NULL )
@@ -2462,6 +2454,9 @@ bool R_AddTeEntToScene( TEMPENTITY *pTempEntity, int ed_type )
 	}
 
 	refent->rtype = RT_MODEL;
+
+	refent->prev->frame = refent->prev->curframe;	// save oldframe
+	refent->prev->curframe = pTempEntity->m_flFrame;
 
 	// setup light origin
 	if( refent->model ) VectorAverage( refent->model->mins, refent->model->maxs, center );
