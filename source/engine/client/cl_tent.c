@@ -7,6 +7,7 @@
 #include "client.h"
 #include "effects_api.h"
 #include "te_message.h"	// grab TE_EXPLFLAGS
+#include "beam_def.h"
 #include "const.h"
 
 /*
@@ -17,6 +18,7 @@ TEMPENTS MANAGEMENT
 ==============================================================
 */
 
+#define SHARD_VOLUME	12.0	// on shard ever n^3 units
 #define MAX_TEMPENTS	1024
 TEMPENTITY		*cl_active_tents, *cl_free_tents;
 static TEMPENTITY		cl_tents_list[MAX_TEMPENTS];
@@ -273,41 +275,158 @@ void CL_AddTempEnts( void )
 	gTempEntFrame = (gTempEntFrame + 1) & 31;
 
 	current = cl_active_tents;
-	pprev = NULL;
 
-	while( current )
+	// !!! Don't simulate while paused....  This is sort of a hack, revisit.
+	if( cls.key_dest != key_game )
 	{
-		bool	fTempEntFreed = false;
-
-		pnext = current->next;
-
-		// Kill it
-		if( !CL_IsActiveTempEnt( current ) || !CL_UpdateTempEnt( current, gTempEntFrame ))
+		while( current )
 		{
-			CL_FreeTempEnt( current, pprev );
-			fTempEntFreed = true;
+			re->AddTmpEntity( current, ED_TEMPENTITY );
+			current = current->next;
+		}
+	}
+	else
+	{
+		pprev = NULL;
+
+		while( current )
+		{
+			bool	fTempEntFreed = false;
+
+			pnext = current->next;
+
+			// Kill it
+			if( !CL_IsActiveTempEnt( current ) || !CL_UpdateTempEnt( current, gTempEntFrame ))
+			{
+				CL_FreeTempEnt( current, pprev );
+				fTempEntFreed = true;
+			}
+			else
+			{
+				// renderer rejected entity for some reasons...
+				if( !re->AddTmpEntity( current, ED_TEMPENTITY ))
+				{
+					if(!( current->flags & FTENT_PERSIST )) 
+					{
+						// If we can't draw it this frame, just dump it.
+						current->die = clgame.globals->time;
+						// don't fade out, just die
+						current->flags &= ~FTENT_FADEOUT;
+
+						CL_FreeTempEnt( current, pprev );
+						fTempEntFreed = true;
+					}
+				}
+			}
+
+			if( !fTempEntFreed )
+				pprev = current;
+			current = pnext;
+		}
+	}
+}
+
+void CL_BloodSprite( float *org, int colorIndex, int modelIndex, float size )
+{
+	TEMPENTITY	*pTemp;
+
+	if( CM_GetModelType( modelIndex ) == mod_bad )
+		return;
+
+	// Large, single blood sprite is a high-priority tent
+	if( pTemp = CL_TempEntAllocHigh( org, modelIndex ))
+	{
+		int	frameCount;
+
+		Mod_GetFrames( modelIndex, &frameCount );
+		pTemp->renderMode = kRenderTransTexture;
+		pTemp->renderFX = kRenderFxClampMinScale;
+		pTemp->m_flSpriteScale = Com_RandomFloat(( size / 25.0f), ( size / 35.0f ));
+		pTemp->flags = FTENT_SPRANIMATE;
+ 
+		CL_GetPaletteColor( colorIndex, pTemp->renderColor );
+		pTemp->m_flFrameRate = frameCount * 4; // Finish in 0.250 seconds
+		// play the whole thing once
+		pTemp->die = clgame.globals->time + (frameCount / pTemp->m_flFrameRate);
+
+		pTemp->angles[2] = Com_RandomLong( 0, 360 );
+		pTemp->bounceFactor = 0;
+	}
+}
+
+void CL_BreakModel( float *pos, float *size, float *dir, float random, float life, int count, int modelIndex, char flags )
+{
+	int		i, frameCount;
+	TEMPENTITY	*pTemp;
+	char		type;
+
+	if( !modelIndex ) return;
+
+	type = flags & BREAK_TYPEMASK;
+
+	if( CM_GetModelType( modelIndex ) == mod_bad )
+		return;
+
+	Mod_GetFrames( modelIndex, &frameCount );
+		
+	if( count == 0 )
+	{
+		// assume surface (not volume)
+		count = (size[0] * size[1] + size[1] * size[2] + size[2] * size[0]) / (3 * SHARD_VOLUME * SHARD_VOLUME);
+	}
+
+	// limit to 100 pieces
+	if( count > 100 ) count = 100;
+
+	for( i = 0; i < count; i++ ) 
+	{
+		vec3_t	vecSpot;
+
+		// fill up the box with stuff
+		vecSpot[0] = pos[0] + Com_RandomFloat( -0.5f, 0.5f ) * size[0];
+		vecSpot[1] = pos[1] + Com_RandomFloat( -0.5f, 0.5f ) * size[1];
+		vecSpot[2] = pos[2] + Com_RandomFloat( -0.5f, 0.5f ) * size[2];
+
+		pTemp = CL_TempEntAlloc( vecSpot, modelIndex );
+		if( !pTemp ) return;
+
+		// keep track of break_type, so we know how to play sound on collision
+		pTemp->hitSound = type;
+		
+		if( CM_GetModelType( modelIndex ) == mod_sprite )
+			pTemp->m_flFrame = Com_RandomLong( 0, frameCount - 1 );
+		else if( CM_GetModelType( modelIndex ) == mod_studio )
+			pTemp->body = Com_RandomLong( 0, frameCount - 1 );
+
+		pTemp->flags |= FTENT_COLLIDEWORLD | FTENT_FADEOUT | FTENT_SLOWGRAVITY;
+
+		if( Com_RandomLong( 0, 255 ) < 200 ) 
+		{
+			pTemp->flags |= FTENT_ROTATE;
+			pTemp->m_vecAvelocity[0] = Com_RandomFloat( -256, 255 );
+			pTemp->m_vecAvelocity[1] = Com_RandomFloat( -256, 255 );
+			pTemp->m_vecAvelocity[2] = Com_RandomFloat( -256, 255 );
+		}
+
+		if(( Com_RandomLong( 0, 255 ) < 100 ) && ( flags & BREAK_SMOKE ))
+			pTemp->flags |= FTENT_SMOKETRAIL;
+
+		if(( type == BREAK_GLASS ) || ( flags & BREAK_TRANS ))
+		{
+			pTemp->renderMode = kRenderTransTexture;
+			pTemp->renderAmt = pTemp->startAlpha = 128;
 		}
 		else
 		{
-			// renderer rejected entity for some reasons...
-			if( !re->AddTmpEntity( current, ED_TEMPENTITY ))
-			{
-				if(!( current->flags & FTENT_PERSIST )) 
-				{
-					// If we can't draw it this frame, just dump it.
-					current->die = clgame.globals->time;
-					// don't fade out, just die
-					current->flags &= ~FTENT_FADEOUT;
-
-					CL_FreeTempEnt( current, pprev );
-					fTempEntFreed = true;
-				}
-			}
+			pTemp->renderMode = kRenderNormal;
+			pTemp->renderAmt = 255; // set this for fadeout
 		}
 
-		if( !fTempEntFreed )
-			pprev = current;
-		current = pnext;
+		pTemp->m_vecVelocity[0] = dir[0] + Com_RandomFloat( -random, random );
+		pTemp->m_vecVelocity[1] = dir[1] + Com_RandomFloat( -random, random );
+		pTemp->m_vecVelocity[2] = dir[2] + Com_RandomFloat( 0, random );
+
+		pTemp->die = clgame.globals->time + life + Com_RandomFloat( 0, 1 ); // Add an extra 0-1 secs of life
 	}
 }
 
@@ -601,4 +720,292 @@ void CL_SpriteSpray( float *pos, float *dir, int modelIndex, int count, int spee
 		pTemp->die = clgame.globals->time + 0.35f;
 		pTemp->m_flFrame = Com_RandomLong( 0, frameCount - 1 );
 	}
+}
+
+/*
+==============================================================
+
+BEAMS MANAGEMENT
+
+==============================================================
+*/
+
+#define MAX_BEAMS		128
+#define MAX_BEAMTRAILS	(MAX_BEAMS * 16)
+
+struct beamtrail_s
+{
+	BEAMTRAIL		*next;
+	float		die;
+	vec3_t		org;
+	vec3_t		vel;
+
+	poly_t		poly;	// pointer to render
+	vec3_t		verts[4];	// quad description
+	vec2_t		coord[4];
+	rgba_t		color[4];
+};
+
+BEAM			*cl_active_beams, *cl_free_beams;
+static BEAM		cl_beams_list[MAX_BEAMS];
+BEAMTRAIL			*cl_active_trails, *cl_free_trails;
+static BEAMTRAIL		cl_beam_trails[MAX_BEAMTRAILS];
+	
+// freq2 += step * 0.1;
+// Fractal noise generator, power of 2 wavelength
+static void CL_BeamNoise( float *noise, int divs, float scale )
+{
+	int	div2;
+	
+	div2 = divs>>1;
+	if( divs < 2 ) return;
+
+	// noise is normalized to +/- scale
+	noise[div2] = ( noise[0] + noise[divs] ) * 0.5f + scale * Com_RandomFloat( -1.0f, 1.0f );
+
+	if( div2 > 1.0f )
+	{
+		CL_BeamNoise( &noise[div2], div2, scale * 0.5f );
+		CL_BeamNoise( noise, div2, scale * 0.5f );
+	}
+}
+
+static void CL_SineNoise( float *noise, int divs )
+{
+	int	i;
+	float	freq = 0;
+	float	step = M_PI / (float)divs;
+
+	for( i = 0; i < divs; i++ )
+	{
+		noise[i] = com.sin( freq );
+		freq += step;
+	}
+}
+
+bool CL_ComputeBeamEntPosition( edict_t *pEnt, int nAttachment, vec3_t pt )
+{
+	if( !pEnt )
+	{
+		if( pt ) VectorClear( pt );
+		return false;
+	}
+
+	if( !CL_GetAttachment( pEnt->serialnumber, nAttachment, pt, NULL ))
+		VectorCopy( pEnt->v.origin, pt );
+	return true;
+}
+
+void CL_GetBeamOrigin( BEAM *pBeam, vec3_t org )
+{
+	if( !org ) return;
+	if( pBeam->type == TE_BEAMRING || pBeam->type == TE_BEAMRINGPOINT )
+	{
+		// return the center of the ring
+		VectorMA( pBeam->attachment[0], 0.5f, pBeam->delta, org );
+		return;
+	}
+	VectorCopy( pBeam->attachment[0], org );
+}
+
+void CL_BeamComputeBounds( BEAM *pBeam )
+{
+	vec3_t	attachmentDelta, followDelta, org;
+	BEAMTRAIL	*pFollow;
+	int	i, radius;
+
+	switch( pBeam->type )
+	{
+	case TE_BEAMSPLINE:
+		// here, we gotta look at all the attachments....
+		VectorClear( pBeam->mins );
+		VectorClear( pBeam->maxs );
+
+		for( i = 1; i < pBeam->numAttachments; i++)
+		{
+			VectorSubtract( pBeam->attachment[i], pBeam->attachment[0], attachmentDelta );
+			AddPointToBounds( attachmentDelta, pBeam->mins, pBeam->maxs );
+		}
+		break;
+	case TE_BEAMDISK:
+	case TE_BEAMCYLINDER:
+		// FIXME: This isn't quite right for the cylinder
+		// Here, delta[2] is the radius
+		radius = pBeam->delta[2];
+		VectorSet( pBeam->mins, -radius, -radius, -radius );
+		VectorSet( pBeam->maxs, radius, radius, radius );
+		break;
+	case TE_BEAMRING:
+	case TE_BEAMRINGPOINT:
+		radius = VectorLength( pBeam->delta ) * 0.5f;
+		VectorSet( pBeam->mins, -radius, -radius, -radius );
+		VectorSet( pBeam->maxs, radius, radius, radius );
+		break;
+	case TE_BEAMPOINTS:
+	default:	// just use the delta
+		for( i = 0; i < 3; i++ )
+		{
+			if( pBeam->delta[i] > 0.0f )
+			{
+				pBeam->mins[i] = 0.0f;
+				pBeam->maxs[i] = pBeam->delta[i];
+			}
+			else
+			{
+				pBeam->mins[i] = pBeam->delta[i];
+				pBeam->maxs[i] = 0.0f;
+			}
+		}
+		break;
+	}
+
+	// deal with beam follow
+	CL_GetBeamOrigin( pBeam, org );
+	pFollow = pBeam->trail;
+
+	while( pFollow )
+	{
+		VectorSubtract( pFollow->org, org, followDelta );
+		AddPointToBounds( followDelta, pBeam->mins, pBeam->maxs );
+		pFollow = pFollow->next;
+	}
+}
+
+void CL_ClearBeams( void )
+{
+	int	i;
+
+	cl_free_beams = &cl_beams_list[0];
+	cl_active_beams = NULL;
+
+	for( i = 0; i < MAX_BEAMS; i++ )
+	{
+		Mem_Set( &cl_beams_list[i], 0, sizeof( BEAM ));
+		cl_beams_list[i].next = &cl_beams_list[i+1];
+	}
+
+	cl_beams_list[MAX_BEAMS-1].next = NULL;
+
+	// also clear any particles used by beams
+	cl_free_trails = &cl_beam_trails[0];
+	cl_active_trails = NULL;
+
+	for( i = 0; i < MAX_BEAMTRAILS; i++ )
+		cl_beam_trails[i].next = &cl_beam_trails[i+1];
+	cl_beam_trails[MAX_BEAMTRAILS-1].next = NULL;
+}
+
+static void CL_FreeDeadTrails( BEAMTRAIL **trail )
+{
+	BEAMTRAIL	*p, *kill;
+
+	// kill all the ones hanging direcly off the base pointer
+	while( 1 ) 
+	{
+		kill = *trail;
+		if( kill && kill->die < clgame.globals->time )
+		{
+			*trail = kill->next;
+			kill->next = cl_free_trails;
+			cl_free_trails = kill;
+			continue;
+		}
+		break;
+	}
+
+	// kill off all the others
+	for( p = *trail; p; p = p->next )
+	{
+		while( 1 )
+		{
+			kill = p->next;
+			if( kill && kill->die < clgame.globals->time )
+			{
+				p->next = kill->next;
+				kill->next = cl_free_trails;
+				cl_free_trails = kill;
+				continue;
+			}
+			break;
+		}
+	}
+}
+
+BEAM *CL_AllocBeam( void )
+{
+	BEAM	*pBeam;
+	
+	if( !cl_free_beams )
+		return NULL;
+
+	pBeam   = cl_free_beams;
+	cl_free_beams = pBeam->next;
+	pBeam->next = cl_active_beams;
+	cl_active_beams = pBeam;
+
+	return pBeam;
+}
+
+void CL_FreeBeam( BEAM *pBeam )
+{
+	// free particles that have died off.
+	CL_FreeDeadTrails( &pBeam->trail );
+
+	// Clear us out
+	Mem_Set( &pBeam, 0, sizeof( BEAM ));
+
+	// now link into free list;
+	pBeam->next = cl_free_beams;
+	cl_free_beams = pBeam;
+}
+
+void CL_KillDeadBeams( edict_t *pDeadEntity )
+{
+	BEAM	*pbeam, *pnewlist, *pnext;
+	BEAMTRAIL	*pHead; // build a new list to replace cl_active_beams.
+
+	pbeam = cl_active_beams;	// old list.
+	pnewlist = NULL;		// new list.
+	
+	while( pbeam )
+	{
+		pnext = pbeam->next;
+		if( pbeam->entity[0] != pDeadEntity ) // link into new list.
+		{
+			pbeam->next = pnewlist;
+			pnewlist = pbeam;
+
+			pbeam = pnext;
+			continue;
+		}
+
+		pbeam->flags &= ~(FBEAM_STARTENTITY|FBEAM_ENDENTITY);
+
+		if( pbeam->type != TE_BEAMFOLLOW )
+		{
+			// Die Die Die!
+			pbeam->die = clgame.globals->time - 0.1f;  
+
+			// Kill off particles
+			pHead = pbeam->trail;
+			while( pHead )
+			{
+				pHead->die = clgame.globals->time - 0.1f;
+				pHead = pHead->next;
+			}
+
+			// Free the beam
+			CL_FreeBeam( pbeam );
+		}
+		else
+		{
+			// stay active
+			pbeam->next = pnewlist;
+			pnewlist = pbeam;
+		}
+		pbeam = pnext;
+	}
+
+	// we now have a new list with the bogus stuff released.
+	cl_active_beams = pnewlist;
 }

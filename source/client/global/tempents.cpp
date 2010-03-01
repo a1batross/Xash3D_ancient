@@ -748,10 +748,13 @@ void CL_AllocDLight( Vector pos, float radius, float time, int flags )
 
 void HUD_ParseTempEntity( void )
 {
-	TEMPENTITY	*pTemp;
-	Vector		pos, pos2, dir, color;
-	float		time, framerate, radius, scale, decay;
-	int		flags, modelIndex;
+	TEMPENTITY *pTemp;
+	static char TextMessage[512];
+	client_textmessage_t gText;
+	char soundpath[32];
+	Vector pos, pos2, dir, size, color;
+	float time, random, framerate, radius, scale, decay;
+	int flags, modelIndex, soundType, count, iColor;
 
 	switch( READ_BYTE() )
 	{
@@ -760,6 +763,12 @@ void HUD_ParseTempEntity( void )
 		pos.y = READ_COORD();
 		pos.z = READ_COORD();
 		CL_BulletParticles( pos, Vector( 0, 0, -1 ));
+
+		if( RANDOM_LONG( 0, 32 ) <= 8 ) // 25% chanse
+		{
+			sprintf( soundpath, "weapons/ric%i.wav", RANDOM_LONG( 1, 5 ));
+			CL_PlaySound( soundpath, RANDOM_FLOAT( 0.7f, 0.9f ), pos, RANDOM_FLOAT( 95.0f, 105.0f ));
+		}
 		break;
 	case TE_GUNSHOTDECAL:
 		pos.x = READ_COORD();
@@ -769,6 +778,12 @@ void HUD_ParseTempEntity( void )
 		READ_SHORT(); // FIXME: skip entindex
 		CL_BulletParticles( pos, dir );
 		CL_PlaceDecal( pos, dir, 2, g_engfuncs.pEfxAPI->CL_DecalIndex( READ_BYTE() ));
+
+		if( RANDOM_LONG( 0, 32 ) <= 8 ) // 25% chanse
+		{
+			sprintf( soundpath, "weapons/ric%i.wav", RANDOM_LONG( 1, 5 ));
+			CL_PlaySound( soundpath, RANDOM_FLOAT( 0.7f, 0.9f ), pos, RANDOM_FLOAT( 95.0f, 105.0f ));
+		}
 		break;
 	case TE_DECAL:
 		pos.x = READ_COORD();
@@ -787,22 +802,25 @@ void HUD_ParseTempEntity( void )
 		framerate = READ_BYTE();
 		flags = READ_BYTE();
 
+		g_engfuncs.pEfxAPI->CL_FindExplosionPlane( pos, scale, dir );
+		pos2 = pos + (dir * scale);
+
 		// create explosion sprite
-		pTemp = g_engfuncs.pEfxAPI->CL_TempEntAlloc( pos, modelIndex );
+		pTemp = g_engfuncs.pEfxAPI->CL_TempEntAlloc( pos2, modelIndex );
 		g_engfuncs.pEfxAPI->R_Sprite_Explode( pTemp, (scale / 10.0f), flags );
 		if( pTemp )
 		{
-			pTemp->die = gpGlobals->time + 2.5f;
+			pTemp->die = gpGlobals->time + 2.5f;	// should be enough for too long sequence
 			pTemp->m_flFrameRate = framerate;
 			pTemp->flags |= FTENT_SPRANIMATE;
 		}
-		g_engfuncs.pEfxAPI->CL_FindExplosionPlane( pos, scale, dir );
-		if(!(flags & TE_EXPLFLAG_NOPARTICLES )) CL_ExplosionParticles( pos );
+		if(!( flags & TE_EXPLFLAG_NOPARTICLES ))
+			CL_ExplosionParticles( pos );
 		if( RANDOM_LONG( 0, 1 ))
 			CL_PlaceDecal( pos, dir, scale, g_engfuncs.pEfxAPI->CL_DecalIndexFromName( "{scorch1" ));
 		else CL_PlaceDecal( pos, dir, scale, g_engfuncs.pEfxAPI->CL_DecalIndexFromName( "{scorch2" )); 
-		if(!(flags & TE_EXPLFLAG_NODLIGHTS )) CL_AllocDLight( pos, 250.0f, 0.8f, DLIGHT_FADE );
-		if(!(flags & TE_EXPLFLAG_NOSOUND )) CL_PlaySound( "weapons/explode3.wav", 1.0f, pos );
+		if(!(flags & TE_EXPLFLAG_NODLIGHTS )) CL_AllocDLight( pos2, 250.0f, 0.8f, DLIGHT_FADE );
+		if(!(flags & TE_EXPLFLAG_NOSOUND )) CL_PlaySound( "weapons/explode3.wav", 1.0f, pos2 );
 		break;
 	case TE_SPARKS:
 		pos.x = READ_COORD();
@@ -822,16 +840,43 @@ void HUD_ParseTempEntity( void )
 		pos.x = READ_COORD();
 		pos.y = READ_COORD();
 		pos.z = READ_COORD();
-		READ_SHORT(); // FIXME: use sprite index as shader index
+		modelIndex = READ_SHORT();
 		scale = READ_BYTE();
-		READ_BYTE();  // FIMXE: use framerate
+		framerate = READ_BYTE();
+#if 1
+		// Half-Life style smoke
+		// create smoke sprite
+		pTemp = g_engfuncs.pEfxAPI->CL_TempEntAlloc( pos, modelIndex );
+		g_engfuncs.pEfxAPI->R_Sprite_Smoke( pTemp, ( scale * 0.1f ));
+		if( pTemp )
+		{
+			pTemp->die = gpGlobals->time + 5.0f;	// should be enough for too long sequence
+			pTemp->m_flFrameRate = framerate;
+			pTemp->flags |= FTENT_SPRANIMATE;
+		}
+#else
+		// quake2 evolved style smoke
 		CL_SmokeParticles( pos, scale );
+#endif
 		break;
 	case TE_TELEPORT:
 		pos.x = READ_COORD();
 		pos.y = READ_COORD();
 		pos.z = READ_COORD();
+		CL_TeleportParticles( pos );
 		break;
+	case TE_SPRITE:
+		pos.x = READ_COORD();
+		pos.y = READ_COORD();
+		pos.z = READ_COORD();
+		modelIndex = READ_SHORT();
+		scale = (float)(READ_BYTE() * 0.1f);
+		decay = READ_BYTE(); // brightness
+		g_engfuncs.pEfxAPI->R_TempSprite( pos, NULL, scale, modelIndex, 0, 0, decay, 0.02f, 0 );
+		break;
+	case TE_ELIGHT:
+		READ_SHORT(); // skip attachment
+		// FIXME: need to match with dlight message
 	case TE_DLIGHT:
 		pos.x = READ_COORD();
 		pos.y = READ_COORD();
@@ -852,6 +897,71 @@ void HUD_ParseTempEntity( void )
 		pos2.y = READ_COORD();
 		pos2.z = READ_COORD();
 		EV_CreateTracer( pos, pos2 );
+		break;
+	case TE_MODEL:
+		pos.x = READ_COORD();	// tracer start
+		pos.y = READ_COORD();
+		pos.z = READ_COORD();
+		dir.x = READ_COORD();	// velocity
+		dir.y = READ_COORD();
+		dir.z = READ_COORD();
+		pos2 = Vector( 0.0f, READ_ANGLE(), 0.0f );
+		modelIndex = READ_SHORT();
+		soundType = READ_BYTE();
+		decay = (float)(READ_BYTE() * 0.1f);
+		g_engfuncs.pEfxAPI->R_TempModel( pos, dir, pos2, decay, modelIndex, soundType );
+		break;
+	case TE_BLOODSPRITE:
+		pos.x = READ_COORD();	// sprite pos
+		pos.y = READ_COORD();
+		pos.z = READ_COORD();
+		modelIndex = READ_SHORT();
+		READ_SHORT();		// FIXME: skup droplet blood sprite
+		iColor = READ_BYTE();
+		scale = READ_BYTE();	// scale
+		g_engfuncs.pEfxAPI->R_BloodSprite( pos, iColor, modelIndex, scale );
+		break;
+	case TE_BREAKMODEL:
+		pos.x = READ_COORD();	// breakmodel center
+		pos.y = READ_COORD();
+		pos.z = READ_COORD();
+		size.x = READ_COORD();	// bmodel size
+		size.y = READ_COORD();
+		size.z = READ_COORD();
+		dir.x = READ_COORD();	// damage direction with velocity
+		dir.y = READ_COORD();
+		dir.z = READ_COORD();
+		random = (float)(READ_BYTE());
+		modelIndex = READ_SHORT();	// shard model
+		count = READ_BYTE();	// # of shards ( 0 - autodetect by size )
+		decay = (float)(READ_BYTE() * 0.1f);
+		flags = READ_BYTE();	// material flags
+		g_engfuncs.pEfxAPI->R_BreakModel( pos, size, dir, random, decay, count, modelIndex, flags );
+		break;
+	case TE_TEXTMESSAGE:
+		gText.pName = "Text Message";
+		gText.pMessage = TextMessage;
+		gText.x = READ_SHORT() / (1<<13);
+		gText.y = READ_SHORT() / (1<<13);
+		gText.effect = READ_BYTE();
+		gText.r1 = READ_BYTE();
+		gText.g1 = READ_BYTE();
+		gText.b1 = READ_BYTE();
+		gText.a1 = READ_BYTE();
+		gText.r2 = READ_BYTE();
+		gText.g2 = READ_BYTE();
+		gText.b2 = READ_BYTE();
+		gText.a2 = READ_BYTE();
+		gText.fadein = (float)(READ_SHORT() / (1<<8));
+		gText.fadeout = (float)(READ_SHORT() / (1<<8));
+		gText.holdtime = (float)(READ_SHORT() / (1<<8));
+
+		if( gText.effect == 2 )
+			gText.fxtime = (float)(READ_SHORT() / (1<<8));
+		else gText.fxtime = 0.0f;
+
+		strcpy( TextMessage, READ_STRING()); 		
+		gHUD.m_Message.MessageAdd( &gText );
 		break;
 	}
 }

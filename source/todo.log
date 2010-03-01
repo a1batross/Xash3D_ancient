@@ -11,9 +11,6 @@ fopen завешивает приложение, при попытке создать файл в несуществующей директори
 возвращал.
 fopen завешивает приложение, даже если перепутать местами + и a, при установке режима!
 
-Sprite Lerping - рисуем два соседних кадра, чем больше lerpValue, тем больше прозрачность
-у старого кадра и тем меньше прозрчности у нового (верхняя граница - значение renderamt, заданное юзером)
-
 0 - восток
 90 - север
 
@@ -41,7 +38,8 @@ Beta 13.02.10
 13.implement temp-ents 				OK
 14.implement realtime wind
 15. fixup muzzleflashes				OK
-16. fix CL_GetEntityByIndex: invalid entindex
+16. fix CL_GetEntityByIndex: invalid entindex		OK
+17. implement beams
 
 
 

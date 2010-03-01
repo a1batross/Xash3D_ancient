@@ -991,6 +991,9 @@ void UI_SetActiveMenu( uiActiveMenu_t activeMenu )
 	if( !uiStatic.initialized )
 		return;
 
+	// don't continue firing if we leave game
+	Key_ClearStates();
+
 	switch( activeMenu )
 	{
 	case UI_CLOSEMENU:

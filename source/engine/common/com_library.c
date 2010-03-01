@@ -271,15 +271,18 @@ void *Com_LoadLibrary( const char *name )
 	byte		*code, *headers;
 	DWORD		locationDelta;
 	DllEntryProc	DllEntry;
+	string		errorstring;
 	BOOL		successfull;
 	void		*data;
 
+	MsgDev( D_NOTE, "Sys_LoadLibrary: Loading %s", name );
 	data = FS_LoadFile( name, NULL );
 	if( !data ) return NULL;
 
 	dos_header = (PIMAGE_DOS_HEADER)data;
 	if( dos_header->e_magic != IMAGE_DOS_SIGNATURE )
 	{
+		MsgDev( D_NOTE, " - failed\n" );
 		MsgDev( D_NOTE, "%s it's not a valid executable file\n", name );
 		Mem_Free( data );
 		return NULL;
@@ -288,6 +291,7 @@ void *Com_LoadLibrary( const char *name )
 	old_header = (PIMAGE_NT_HEADERS)&((const byte *)(data))[dos_header->e_lfanew];
 	if( old_header->Signature != IMAGE_NT_SIGNATURE )
 	{
+		MsgDev( D_NOTE, " - failed\n" );
 		MsgDev( D_NOTE, "library %s: no PE header found\n", name );
 		Mem_Free( data );
 		return NULL;
@@ -303,6 +307,7 @@ void *Com_LoadLibrary( const char *name )
 	}    
 	if( code == NULL )
 	{
+		MsgDev( D_NOTE, " - failed\n" );
 		MsgDev( D_NOTE, "library %s: can't reserve memory\n", name );
 		Mem_Free( data );
 		return NULL;
@@ -348,7 +353,7 @@ void *Com_LoadLibrary( const char *name )
 		DllEntry = (DllEntryProc)CALCULATE_ADDRESS( code, result->headers->OptionalHeader.AddressOfEntryPoint );
 		if( DllEntry == 0 )
 		{
-			MsgDev( D_NOTE, "library %s: has no entry point\n", name );
+			com.sprintf( errorstring, "library %s: has no entry point\n", name );
 			goto error;
 		}
 
@@ -356,18 +361,23 @@ void *Com_LoadLibrary( const char *name )
 		successfull = (*DllEntry)((HINSTANCE)code, DLL_PROCESS_ATTACH, 0 );
 		if( !successfull )
 		{
-			MsgDev( D_ERROR, "can't attach library %s\n", name );
+			com.sprintf( errorstring, "can't attach library %s\n", name );
 			goto error;
 		}
 		result->initialized = 1;
 	}
+
 	Mem_Free( data ); // release memory
+          MsgDev( D_NOTE, " - ok\n" );
 
 	return (void *)result;
 error:
 	// cleanup
+	MsgDev( D_NOTE, " - failed\n" );
 	Mem_Free( data );
 	Com_FreeLibrary( result );
+	MsgDev( D_ERROR, errorstring );
+
 	return NULL;
 }
 
@@ -422,11 +432,12 @@ FARPROC Com_GetProcAddress( void *module, const char *name )
 
 void Com_FreeLibrary( void *hInstance )
 {
-	MEMORYMODULE *module = (MEMORYMODULE *)hInstance;
-	int	i;
+	MEMORYMODULE	*module = (MEMORYMODULE *)hInstance;
 
 	if( module != NULL )
 	{
+		int	i;
+	
 		if( module->initialized != 0 )
 		{
 			// notify library about detaching from process

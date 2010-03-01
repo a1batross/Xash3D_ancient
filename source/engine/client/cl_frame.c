@@ -372,6 +372,9 @@ void CL_GetEntitySoundSpatialization( int entnum, vec3_t origin, vec3_t velocity
 		return;
 	}
 
+	// while explosion entity can be died before sound played completely
+	if( entnum >= clgame.globals->numEntities ) return;
+
 	ent = CL_GetEdictByIndex( entnum );
 	if( !CL_IsValidEdict( ent )) return; // leave uncahnged
 
@@ -380,7 +383,7 @@ void CL_GetEntitySoundSpatialization( int entnum, vec3_t origin, vec3_t velocity
 	VectorCopy( ent->v.velocity, velocity );
 
 	// if a brush model, offset the origin
-	if( VectorIsNull( origin ) && ent->v.modelindex )
+	if( CM_GetModelType( ent->v.modelindex ) == mod_brush )
 	{
 		Mod_GetBounds( ent->v.modelindex, mins, maxs );
 		VectorAverage( mins, maxs, midPoint );

@@ -39,6 +39,27 @@ int CM_StudioExtractBbox( dstudiohdr_t *phdr, int sequence, float *mins, float *
 	return 1;
 }
 
+int CM_StudioBodyVariations( model_t handle )
+{
+	dstudiohdr_t	*pstudiohdr;
+	dstudiobodyparts_t	*pbodypart;
+	int		i, count;
+
+	pstudiohdr = (dstudiohdr_t *)CM_Extradata( handle );
+	if( !pstudiohdr ) return 0;
+
+	count = 1;
+	pbodypart = (dstudiobodyparts_t *)((byte *)pstudiohdr + pstudiohdr->bodypartindex);
+
+	// each body part has nummodels variations so there are as many total variations as there
+	// are in a matrix of each part by each other part
+	for( i = 0; i < pstudiohdr->numbodyparts; i++ )
+	{
+		count = count * pbodypart[i].nummodels;
+	}
+	return count;
+}
+
 /*
 ====================
 CM_StudioSetUpTransform

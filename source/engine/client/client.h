@@ -444,7 +444,6 @@ void CL_Stop_f( void );
 void CL_InitClientProgs( void );
 void CL_FreeClientProgs( void );
 void CL_DrawHUD( int state );
-edict_t *CL_GetEdict( int entnum );
 void CL_FadeAlpha( int starttime, int endtime, rgba_t color );
 void CL_InitEdicts( void );
 void CL_FreeEdicts( void );
@@ -545,6 +544,7 @@ void CL_TestLights( void );
 void CL_TestEntities( void );
 void CL_LocalMuzzleFlash( void );
 void CL_CreateTracer( float *start, float *end );
+void CL_GetPaletteColor( int colorIndex, vec3_t outColor );
 void CL_FindExplosionPlane( const vec3_t origin, float radius, vec3_t result );
 void pfnLightForPoint( const vec3_t point, vec3_t ambientLight );
 bool pfnAddParticle( cparticle_t *src, HSPRITE shader, int flags );
@@ -574,10 +574,13 @@ struct tempent_s *CL_TentEntAllocCustom( float *org, int modelIndex, int high, E
 struct tempent_s *CL_TempModel( float *pos, float *dir, float *ang, float life, int modelIndex, int soundtype );
 struct tempent_s *CL_DefaultSprite( float *pos, int spriteIndex, float framerate );
 struct tempent_s *CL_TempSprite( float *pos, float *dir, float scale, int modelIndex, int rendermode, int renderfx, float a, float life, int flags );
+void CL_BreakModel( float *pos, float *size, float *dir, float random, float life, int count, int modelIndex, char flags );
 void CL_MuzzleFlash( int modelIndex, int entityIndex, int iAttachment, int type );
 void CL_SpriteExplode( struct tempent_s *pTemp, float scale, int flags );
 void CL_SpriteSmoke( struct tempent_s *pTemp, float scale );
 void CL_SpriteSpray( float *pos, float *dir, int modelIndex, int count, int speed, int iRand );
+void CL_BloodSprite( float *org, int colorIndex, int modelIndex, float size );
+void CL_ClearBeams( void );
 
 //
 // cl_con.c

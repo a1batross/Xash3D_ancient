@@ -24,8 +24,8 @@ LINK_ENTITY_TO_CLASS( sparkleent, CEnvShower );
 void CEnvShower::Spawn( void )
 {
 	pev->velocity = RANDOM_FLOAT( 200, 300 ) * pev->angles;
-	pev->velocity.x += RANDOM_FLOAT(-100.f,100.f);
-	pev->velocity.y += RANDOM_FLOAT(-100.f,100.f);
+	pev->velocity.x += RANDOM_FLOAT( -100.0f, 100.0f );
+	pev->velocity.y += RANDOM_FLOAT( -100.0f, 100.0f );
 	if ( pev->velocity.z >= 0 ) pev->velocity.z += 200;
 	else pev->velocity.z -= 200;
 	pev->movetype = MOVETYPE_BOUNCE;
@@ -33,9 +33,9 @@ void CEnvShower::Spawn( void )
 	SetNextThink( 0.1 );
 	pev->solid = SOLID_NOT;
 	UTIL_SetModel( edict(), "models/common/null.mdl");
-	UTIL_SetSize(pev, g_vecZero, g_vecZero );
+	UTIL_SetSize( pev, g_vecZero, g_vecZero );
 	pev->effects |= EF_NODRAW;
-	pev->speed = RANDOM_FLOAT( 0.5, 1.5 );
+	pev->speed = RANDOM_FLOAT( 0.5f, 1.5f );
 	pev->angles = g_vecZero;
 }
 
@@ -44,18 +44,19 @@ void CEnvShower::Think( void )
 	UTIL_Sparks( pev->origin );
 
 	pev->speed -= 0.1;
-	if ( pev->speed > 0 ) SetNextThink( 0.1 );
+	if ( pev->speed > 0 )
+		SetNextThink( 0.1 );
 	else UTIL_Remove( this );
 	pev->flags &= ~FL_ONGROUND;
 }
 
 void CEnvShower::Touch( CBaseEntity *pOther )
 {
-	if ( pev->flags & FL_ONGROUND )
-		pev->velocity = pev->velocity * 0.1;
-	else pev->velocity = pev->velocity * 0.6;
+	if( pev->flags & FL_ONGROUND )
+		pev->velocity = pev->velocity * 0.1f;
+	else pev->velocity = pev->velocity * 0.6f;
 
-	if ( (pev->velocity.x * pev->velocity.x + pev->velocity.y * pev->velocity.y ) < 10.0 )
+	if(( pev->velocity.x * pev->velocity.x + pev->velocity.y * pev->velocity.y ) < 10.0f )
 		pev->speed = 0;
 }
 
@@ -128,21 +129,22 @@ void CSmokeEnt::Spawn( void )
 	pev->movetype	= MOVETYPE_NONE;
 	pev->armorvalue	= gpGlobals->time;
 
-	if(!pev->team) pev->team = 50;
-	if(pev->team > 250)pev->team = 250;//normalize and remember about random value 0 - 5
+	if( !pev->team ) pev->team = 50;
+	if( pev->team > 250 ) pev->team = 250; // normalize and remember about random value 0 - 5
 }
 
 void CSmokeEnt::Think( void )
 {
-	if (pev->dmgtime)
+	if( pev->dmgtime )
 	{
-		if (pev->dmgtime < gpGlobals->time)
+		if( pev->dmgtime < gpGlobals->time )
 		{
 			UTIL_Remove( this );
 			return;
 		}
-		else if (RANDOM_FLOAT( 0, pev->dmgtime - pev->armorvalue ) > pev->dmgtime - gpGlobals->time)
+		else if( RANDOM_FLOAT( 0, pev->dmgtime - pev->armorvalue ) > pev->dmgtime - gpGlobals->time )
 		{
+			SetNextThink( 0.2 );
 			return;
 		}
 	}
@@ -155,8 +157,8 @@ void CSmokeEnt::Think( void )
 		WRITE_COORD( VecSrc.y );
 		WRITE_COORD( VecSrc.z );
 		WRITE_SHORT( g_sModelIndexSmoke );
-		WRITE_BYTE( RANDOM_LONG(0,5) + pev->impulse ); // scale * 10
-		WRITE_BYTE( RANDOM_LONG(0, 3) + 8  ); // framerate
+		WRITE_BYTE( RANDOM_LONG( 0, 5 ) + pev->impulse ); // scale * 10
+		WRITE_BYTE( RANDOM_LONG( 0, 3 ) + 8  ); // framerate
 	MESSAGE_END();
 
 	StudioFrameAdvance( );//animate model if present

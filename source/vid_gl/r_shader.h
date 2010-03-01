@@ -103,11 +103,11 @@ typedef enum
 	SORT_SKY		= 2,
 	SORT_OPAQUE	= 3,
 	SORT_DECAL	= 4,
-	SORT_ALPHATEST	= 5,
 	SORT_BANNER	= 6,
 	SORT_UNDERWATER	= 7,
 	SORT_WATER	= 8,
 	SORT_ADDITIVE	= 9,
+	SORT_ALPHATEST	= 10,	// FIXME: this is right ?
 	SORT_NEAREST	= 16
 } sort_t;
 

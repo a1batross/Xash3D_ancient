@@ -29,7 +29,8 @@ edict_t *CL_GetEdictByIndex( int index )
 	{
 		if( index == VIEWENT_INDEX ) return &clgame.viewent;
 		if( index == NULLENT_INDEX ) return NULL;
-		MsgDev( D_ERROR, "CL_GetEntityByIndex: invalid entindex %i\n", index );
+		if( index < 0 || index > GI->max_edicts )
+			MsgDev( D_ERROR, "CL_GetEntityByIndex: invalid entindex %i\n", index );
 		return NULL;
 	}
 
@@ -2382,6 +2383,8 @@ static efxapi_t gEfxApi =
 {
 	sizeof( efxapi_t ),	
 	pfnAddParticle,
+	CL_BloodSprite,
+	CL_BreakModel,
 	CL_MuzzleFlash,
 	CL_SpriteExplode,
 	CL_SpriteSmoke,

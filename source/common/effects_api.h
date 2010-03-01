@@ -102,6 +102,8 @@ typedef struct efxapi_s
 	size_t	api_size;	 // must match with sizeof( efxapi_t );
 
 	int	(*R_AllocParticle)( cparticle_t *src, HSPRITE shader, int flags ); 
+	void	(*R_BloodSprite)( float *org, int colorIndex, int modelIndex, float size );
+	void	(*R_BreakModel)( float *pos, float *size, float *dir, float random, float life, int count, int modelIndex, char flags );
 	void	(*R_MuzzleFlash)( int modelIndex, int entityIndex, int iAttachment, int type );
 	void	(*R_Sprite_Explode)( TEMPENTITY *pTemp, float scale, int flags );
 	void	(*R_Sprite_Smoke)( TEMPENTITY *pTemp, float scale );

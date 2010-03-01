@@ -161,6 +161,7 @@
 #define EF_NOSHADOW			(1<<12)	// ignore shadow for this entity
 #define EF_PLANARSHADOW		(1<<13)	// use fast planarshadow method instead of shadow casters
 #define EF_OCCLUSIONTEST		(1<<14)	// use occlusion test for this entity (e.g. glares)
+#define EF_LASERSPOT		(1<<15)	// tempentity laserspot at attachment #1 from player or npc
 
 // pev->takedamage
 #define DAMAGE_NO			0	// can't be damaged
@@ -305,6 +306,33 @@ typedef enum
 	kRenderFxAurora,			// set particle trail for this entity
 	kRenderFxNoReflect,			// don't reflecting in mirrors 
 } kRenderFx_t;
+
+// breakmodel defines
+#define BREAK_TYPEMASK	0x4F
+#define BREAK_GLASS		0x01
+#define BREAK_METAL		0x02
+#define BREAK_FLESH		0x04
+#define BREAK_WOOD		0x08
+
+#define BREAK_SMOKE		0x10
+#define BREAK_TRANS		0x20
+#define BREAK_CONCRETE	0x40
+#define BREAK_2		0x80
+
+// colliding temp entity sounds
+#define BOUNCE_GLASS	BREAK_GLASS
+#define BOUNCE_METAL	BREAK_METAL
+#define BOUNCE_FLESH	BREAK_FLESH
+#define BOUNCE_WOOD		BREAK_WOOD
+#define BOUNCE_SHRAP	0x10
+#define BOUNCE_SHELL	0x20
+#define BOUNCE_CONCRETE	BREAK_CONCRETE
+#define BOUNCE_SHOTSHELL	0x80
+
+// Temp entity bounce sound types
+#define TE_BOUNCE_NULL	0
+#define TE_BOUNCE_SHELL	1
+#define TE_BOUNCE_SHOTSHELL	2
 
 // studio models event range
 #define EVENT_SPECIFIC		0

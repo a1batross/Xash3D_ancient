@@ -364,6 +364,9 @@ void CL_ParseServerData( sizebuf_t *msg )
 	clgame.globals->maxEntities = MSG_ReadWord( msg );
 	com.strncpy( str, MSG_ReadString( msg ), MAX_STRING );
 	com.strncpy( clgame.maptitle, MSG_ReadString( msg ), MAX_STRING );
+	// no effect in single-player or local client
+	// merge entcount only for remote clients 
+	GI->max_edicts = clgame.globals->maxEntities;
 
 	CL_InitEdicts (); // re-arrange edicts
 

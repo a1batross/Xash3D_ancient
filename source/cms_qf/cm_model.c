@@ -848,9 +848,18 @@ void CM_ModelFrames( model_t handle, int *numFrames )
 {
 	cmodel_t	*mod = CM_ClipHandleToModel( handle );
 
-	if( mod && mod->type == mod_sprite )
-		if( numFrames ) *numFrames = mod->numframes;
-	else if( numFrames ) *numFrames = 0;
+	if( !numFrames ) return;
+	if( !mod )
+	{
+		*numFrames = 1;
+		return;
+	}
+
+	if( mod->type == mod_sprite )
+		*numFrames = mod->numframes;
+	else if( mod->type == mod_studio )
+		*numFrames = CM_StudioBodyVariations( handle );		
+	if( *numFrames < 1 ) *numFrames = 1;
 }
 
 /*

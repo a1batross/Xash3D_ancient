@@ -851,7 +851,7 @@ void CPushable :: Move( CBaseEntity *pOther, int push )
 			pev->frags = gpGlobals->time;
 			if ( length > 0 && FBitSet(pev->flags, FL_ONGROUND) )
 				m_lastSound = PlayPushSound( edict(), m_Material, m_flVolume );
-			else	StopPushSound( edict(), m_Material, m_lastSound );
+			else StopPushSound( edict(), m_Material, m_lastSound );
 		}
 	}
 }

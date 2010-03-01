@@ -1154,7 +1154,7 @@ void CEnvExplosion::KeyValue( KeyValueData *pkvd )
 
 void CEnvExplosion::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 { 
-	if (useType == USE_SHOWINFO)
+	if( useType == USE_SHOWINFO )
 	{
 		DEBUGHEAD;
 		Msg( "Radius %g\n\n", pev->dmg );
@@ -1213,20 +1213,20 @@ void CEnvExplosion::Explode( void )
           {
           	CSoundEnt::InsertSound ( bits_SOUND_COMBAT, pev->origin, pev->dmg * 5, 3.0 );
 		SFX_Explode( m_usExplode, pev->origin, pev->dmg, TE_EXPLFLAG_NONE );
-          	if(!FBitSet( pev->spawnflags, 1 ))
+          	if( !FBitSet( pev->spawnflags, 1 ))
           		RadiusDamage ( pev->origin, pev, pevOwner, pev->dmg, pev->dmg * 2.5, CLASS_NONE, DMG_BLAST );
 
-		if(!FBitSet( pev->spawnflags, 8 ))
+		if( !FBitSet( pev->spawnflags, 8 ))
 		{
 			CBaseEntity *pWreckage = Create( "smokeent", pev->origin, pev->angles );
 			pWreckage->SetNextThink( 0.2 );
 			pWreckage->pev->impulse = ( pev->dmg - 50 ) * 0.6;
 			pWreckage->pev->dmgtime = gpGlobals->time + 1.5;
 		}
-		if(!FBitSet( pev->spawnflags, 32 ))
+		if( !FBitSet( pev->spawnflags, 32 ))
 		{
-			int sparkCount = RANDOM_LONG(0,3);	//make sparks
-			for ( int i = 0; i < sparkCount; i++ )
+			int sparkCount = RANDOM_LONG( 0, 3 );	// make sparks
+			for( int i = 0; i < sparkCount; i++ )
 				Create( "sparkleent", pev->origin, tr.vecPlaneNormal, NULL );
                     }
 		if(!FBitSet( pev->spawnflags, 16 ))
@@ -1235,7 +1235,8 @@ void CEnvExplosion::Explode( void )
 			else UTIL_DecalTrace( &tr, DECAL_SCORCH2 );
 		}
 	}
-	if(!FBitSet( pev->spawnflags, 2 )) UTIL_Remove( this );
+
+	if( !FBitSet( pev->spawnflags, 2 )) UTIL_Remove( this );
 }
 
 //=========================================================

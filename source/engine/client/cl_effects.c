@@ -666,6 +666,13 @@ static cparticle_t	cl_particle_list[MAX_PARTICLES];
 static vec3_t	cl_particle_velocities[NUMVERTEXNORMALS];
 static vec3_t	cl_particlePalette[256];
 
+void CL_GetPaletteColor( int colorIndex, vec3_t outColor )
+{
+	if( !outColor ) return;
+	colorIndex = bound( 0, colorIndex, 256 );
+	VectorScale( cl_particlePalette[colorIndex], 255, outColor );
+}
+
 /*
 =================
 CL_FreeParticle
@@ -1444,4 +1451,5 @@ void CL_ClearEffects( void )
 	CL_ClearDlights ();
 	CL_ClearLightStyles ();
 	CL_ClearDecals ();
+	CL_ClearBeams ();
 }

@@ -828,6 +828,7 @@ bool ParticleSystem::UpdateParticle( particle *part, float frametime )
 	part->age += frametime;
 
 	edict_t *source = GetEntityByIndex( m_iEntIndex );
+	if( !source ) return false;	// total paranoia :)
 
 	// is this particle bound to an entity?
 	if( part->m_iEntIndex )

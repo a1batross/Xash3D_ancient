@@ -892,8 +892,9 @@ void Host_Free( void )
 	SV_Shutdown( false );
 	CL_Shutdown();
 	Host_FreeRender();
-	NET_Shutdown();
+	Host_FreeSound();
 	Host_FreePhysic();
+	NET_Shutdown();
 	Host_FreeCommon();
 }
 

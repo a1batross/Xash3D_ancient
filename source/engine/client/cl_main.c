@@ -1201,8 +1201,6 @@ void CL_Shutdown( void )
 
 	Host_WriteConfig(); 
 	CL_UnloadProgs();
-	UI_Shutdown();
-	S_Shutdown();
 	SCR_Shutdown();
 	cls.initialized = false;
 }

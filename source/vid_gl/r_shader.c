@@ -3443,7 +3443,7 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 			break;
 		case kRenderTransAdd:
 			pass->flags |= SHADERSTAGE_BLEND_ADD;
-			pass->glState = GLSTATE_SRCBLEND_ONE_MINUS_SRC_ALPHA|GLSTATE_DSTBLEND_ONE|GLSTATE_DEPTHWRITE;
+			pass->glState = GLSTATE_SRCBLEND_ONE_MINUS_SRC_ALPHA|GLSTATE_DSTBLEND_ONE;
 			pass->alphaGen.type = ALPHAGEN_ENTITY;
 			pass->rgbGen.type = RGBGEN_ENTITY;
 			shader->sort = SORT_ADDITIVE;
@@ -3562,7 +3562,7 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 			break;
 		case kRenderTransAdd:
 			pass->flags |= SHADERSTAGE_BLEND_ADD;
-			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE|GLSTATE_DEPTHWRITE);
+			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
 			pass->alphaGen.type = ALPHAGEN_ENTITY;
 			pass->rgbGen.type = RGBGEN_ENTITY;
 			shader->sort = SORT_ADDITIVE;

@@ -604,7 +604,7 @@ void CNukeExplode :: Spawn( void )
 	pev->oldorigin = tr.vecEndPos + (tr.vecPlaneNormal * 30); // save normalized position
 
 	// create first explode sprite
-	SFX_Explode( m_usExplodeSprite, pev->oldorigin, 100, TE_EXPLFLAG_NOPARTICLES|TE_EXPLFLAG_NOSOUND );
+	SFX_Explode( m_usExplodeSprite, pev->origin, 70, TE_EXPLFLAG_NOPARTICLES|TE_EXPLFLAG_NOSOUND|TE_EXPLFLAG_NODLIGHTS );
 	EMIT_SOUND( ENT( pev ), CHAN_VOICE, "weapons/warhead/whexplode.wav", 1, ATTN_NONE );
 
 	pev->movetype = MOVETYPE_NONE;
@@ -633,13 +633,15 @@ void CNukeExplode :: ExplodeThink( void )
 	pev->renderamt = UTIL_Approach( 0, pev->renderamt, 200 * gpGlobals->frametime );
  	pev->scale = UTIL_Approach( 30, pev->scale, 30 * gpGlobals->frametime );
 
-	if( pev->scale >= 8 && pev->scale < 8.2 ) // create second explode sprite
-		SFX_Explode( m_usExplodeSprite2, pev->oldorigin, 100, TE_EXPLFLAG_NOPARTICLES|TE_EXPLFLAG_NOSOUND );
-
+	if( pev->scale > 8.0f && m_usExplodeSprite2 ) // create second explode sprite
+	{
+		SFX_Explode( m_usExplodeSprite2, pev->origin, 70, TE_EXPLFLAG_NOPARTICLES|TE_EXPLFLAG_NOSOUND|TE_EXPLFLAG_NODLIGHTS );
+		m_usExplodeSprite2 = 0; // fire once
+	}
 	pev->owner = NULL; // can't traceline attack owner if this is set
 
 	::RadiusDamage( pev->origin, pev, pevOwner, pev->renderamt/2, pev->scale * 30, CLASS_NONE, DMG_BLAST|DMG_NUCLEAR );
-	if( pev->scale > 25 ) UTIL_Remove( this );
+	if( pev->scale == 30 ) UTIL_Remove( this );
 
 	SetNextThink( 0.01 );
 }
@@ -837,8 +839,10 @@ void CWHRocket :: Detonate ( bool explode )
 	if( m_pLauncher ) m_pLauncher->m_cActiveRocket--;
 
 	pev->takedamage = DAMAGE_NO;
-//	pev->velocity = g_vecZero;
+	pev->renderfx = kRenderFxNone; // disable trail
+	pev->velocity = g_vecZero;
 	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
 	pev->effects |= EF_NODRAW;
 	pev->model = iStringNull; // invisible
 
@@ -859,11 +863,12 @@ void CWHRocket :: Detonate ( bool explode )
 }
 void CWHRocket :: RemoveRocket ( void )
 {
-	if( m_pLauncher ) m_pLauncher->m_iOnControl = 0; //stop controlling 
-	if(pev->button)
+	if( m_pLauncher )
+		m_pLauncher->m_iOnControl = 0; //stop controlling 
+	if( pev->button )
 	{
 		m_pPlayer->m_iWarHUD = 0;//reset HUD
-		UTIL_SetView(m_pPlayer, iStringNull, 0 );//reset view
+		UTIL_SetView( m_pPlayer, iStringNull, 0 );//reset view
 	}
 
 	SetThink( Remove );
