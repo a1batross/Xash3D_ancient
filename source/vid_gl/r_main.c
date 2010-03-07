@@ -718,7 +718,7 @@ static void R_AddSpriteModelToList( ref_entity_t *e )
 
 	if( R_SpriteOccluded( e )) return;
 
-	frame = R_GetSpriteFrame( e );
+	frame = R_GetSpriteFrame( e->model, e->prev->curframe, e->angles[YAW] );
 	shader = &r_shaders[frame->shader];
 
 	if( RI.refdef.flags & (RDF_PORTALINVIEW|RDF_SKYPORTALINVIEW) || ( RI.params & RP_SKYPORTALVIEW ))
@@ -2121,6 +2121,38 @@ shader_t Mod_RegisterShader( const char *name, int shaderType )
 	return src - r_shaders;
 }
 
+byte *Mod_GetCurrentVis( void )
+{
+	return Mod_ClusterPVS( r_viewcluster, r_worldmodel );
+}
+
+bool Mod_CullBox( const vec3_t mins, const vec3_t maxs )
+{
+	return R_CullBox( mins, maxs, 15 );
+}
+
+shader_t R_GetSpriteTexture( int spriteIndex, int spriteFrame )
+{
+	ref_model_t	*pSpriteModel;
+	mspriteframe_t	*pSpriteFrame;
+
+	if( spriteIndex <= 0 || spriteIndex >= MAX_MODELS )
+		return tr.defaultShader->shadernum; // assume error
+
+	pSpriteModel = cl_models[spriteIndex];
+
+	if( !pSpriteModel || pSpriteModel->type != mod_sprite )
+	{
+		MsgDev( D_ERROR, "R_GetSpriteTexture: invalid Sprite %d\n", spriteIndex );
+		return tr.defaultShader->shadernum;
+	}
+
+	// okay, at this point we have valid sprite model
+	pSpriteFrame = R_GetSpriteFrame( pSpriteModel, spriteFrame, 0.0f );
+
+	return pSpriteFrame->shader;
+}
+
 bool R_AddLightStyle( int stylenum, vec3_t color )
 {
 	if( stylenum < 0 || stylenum > MAX_LIGHTSTYLES )
@@ -2567,11 +2599,14 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	re.LightForPoint = R_LightForPoint;
 	re.DrawStretchRaw = R_DrawStretchRaw;
 	re.DrawStretchPic = R_DrawStretchPic;
+	re.GetSpriteTexture = R_GetSpriteTexture;
 	re.GetFragments = R_GetClippedFragments;
 	re.ScreenToWorld = R_ScreenToWorld;
 	re.WorldToScreen = R_WorldToScreen;
 	re.RSpeedsMessage = R_SpeedsMessage;
+	re.CullBox = Mod_CullBox;
 	re.Support = GL_Support;
+	re.GetCurrentVis = Mod_GetCurrentVis;
 	re.RestoreGamma = R_RestoreGamma;
 
 	return &re;

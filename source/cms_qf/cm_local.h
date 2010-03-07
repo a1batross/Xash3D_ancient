@@ -85,7 +85,7 @@ typedef struct
 	modtype_t		type;		// model type
 	vec3_t		mins, maxs;	// model boundbox
 	byte		*extradata;	// studiomodels extradata
-	byte		*submodels;	// animations ptr
+	void		*submodels;	// animations ptr
 	int		numframes;	// sprite framecount
 
 	cleaf_t		leaf;		// holds the markbrushes and markfaces
@@ -211,6 +211,7 @@ int CM_PointLeafnum( const vec3_t p );
 bool CM_AreasConnected( int area, int otherarea );
 int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsize, int *lastleaf );
 model_t CM_TempBoxModel( const vec3_t mins, const vec3_t maxs, bool capsule );
+bool CM_BoxVisible( const vec3_t mins, const vec3_t maxs, byte *visbits );
 int CM_PointContents( const vec3_t p, model_t model );
 int CM_TransformedPointContents( const vec3_t p, model_t model, const vec3_t origin, const vec3_t angles );
 void CM_BoxLeafnums_r( leaflist_t *ll, int nodenum );

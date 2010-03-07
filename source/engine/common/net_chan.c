@@ -77,7 +77,7 @@ void Netchan_Init( void )
 	int		port;
 	
 	// pick a port value that should be nice and random
-	port = RANDOM_LONG( 1, 65535 );
+	port = Com_RandomLong( 1, 65535 );
 
 	net_showpackets = Cvar_Get ("net_showpackets", "0", CVAR_TEMP, "show network packets" );
 	net_showdrop = Cvar_Get ("net_showdrop", "0", CVAR_TEMP, "show packets that are dropped" );

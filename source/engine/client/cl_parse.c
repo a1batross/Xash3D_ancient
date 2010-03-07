@@ -341,7 +341,7 @@ CL_ParseServerData
 void CL_ParseServerData( sizebuf_t *msg )
 {
 	string		str;
-	const char	*levelshot_ext[] = { "tga", "jpg", "png" };
+	const char	*levelshot_ext[] = { "tga", "jpg", "png", "dds" };
 	int		i;
 
 	MsgDev( D_NOTE, "Serverdata packet received.\n" );
@@ -374,10 +374,10 @@ void CL_ParseServerData( sizebuf_t *msg )
 	Cvar_Set( "cl_levelshot_name", va( "levelshots/%s", str ));
 	Cvar_SetValue( "scr_loading", 0.0f ); // reset progress bar
 
-	for( i = 0; i < 3; i++ )
+	for( i = 0; i < 4; i++ )
 		if( FS_FileExists( va( "%s.%s", cl_levelshot_name->string, levelshot_ext[i] ))) 
 			break;
-	if( i == 3 )
+	if( i == 4 )
 	{
 		Cvar_Set( "cl_levelshot_name", MAP_DEFAULT_SHADER );	// render a black screen
 		cls.scrshot_request = scrshot_plaque;			// make levelshot

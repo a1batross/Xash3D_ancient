@@ -40,6 +40,9 @@ Beta 13.02.10
 15. fixup muzzleflashes				OK
 16. fix CL_GetEntityByIndex: invalid entindex		OK
 17. implement beams
+18. implement filetime in file_t
+19. complete lights.shader, rails2d.shader
+20. merge abaddon.shader
 
 
 

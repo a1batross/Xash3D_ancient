@@ -46,6 +46,7 @@ typedef struct physic_exp_s
 	void (*GetAreaPortals)( byte **portals, size_t *size );
 	void (*SetAreaPortalState)( int portalnum, int area, int otherarea, bool open );
 	int (*BoxLeafnums)( vec3_t mins, vec3_t maxs, int *list, int listsize, int *lastleaf );
+	bool (*BoxVisible)( const vec3_t mins, const vec3_t maxs, byte *visbits );
 	int (*WriteAreaBits)( byte *buffer, int area, bool portal );
 	bool (*AreasConnected)( int area1, int area2 );
 	byte *(*ClusterPVS)( int cluster );

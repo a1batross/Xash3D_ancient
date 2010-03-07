@@ -248,22 +248,24 @@ void Mod_SpriteLoadModel( ref_model_t *mod, const void *buffer )
 /*
 ================
 R_GetSpriteFrame
+
+assume pModel is valid
 ================
 */
-mspriteframe_t *R_GetSpriteFrame( ref_entity_t *ent )
+mspriteframe_t *R_GetSpriteFrame( ref_model_t *pModel, int frame, float yawAngle )
 {
 	msprite_t		*psprite;
+	int		i, numframes;
 	mspritegroup_t	*pspritegroup;
 	mspriteframe_t	*pspriteframe;
-	int		i, numframes, frame;
 	float		*pintervals, fullinterval, targettime, time;
 
-	psprite = ent->model->extradata;
-	frame = (int)ent->prev->curframe;
+	Com_Assert( pModel == NULL );
+	psprite = pModel->extradata;
 
-	if((frame >= psprite->numframes) || (frame < 0))
+	if(( frame >= psprite->numframes ) || ( frame < 0 ))
 	{
-		MsgDev( D_WARN, "R_GetSpriteFrame: no such frame %d (%s)\n", frame, ent->model->name );
+		MsgDev( D_WARN, "R_GetSpriteFrame: no such frame %d (%s)\n", frame, pModel->name );
 		frame = 0;
 	}
 
@@ -285,7 +287,7 @@ mspriteframe_t *R_GetSpriteFrame( ref_entity_t *ent )
 
 		for( i = 0; i < (numframes - 1); i++ )
 		{
-			if (pintervals[i] > targettime)
+			if( pintervals[i] > targettime )
 				break;
 		}
 		pspriteframe = pspritegroup->frames[i];
@@ -293,8 +295,8 @@ mspriteframe_t *R_GetSpriteFrame( ref_entity_t *ent )
 	else if( psprite->frames[frame].type == FRAME_ANGLED )
 	{
 		// e.g. doom-style sprite monsters
-		float	yaw = ent->angles[1] - 45;	// angled bias
-		int	angleframe = (int)((RI.refdef.viewangles[1] - yaw) / 360 * 8 + 0.5 - 4) & 7;
+		float	yaw = yawAngle - 45;	// angled bias
+		int	angleframe = (int)(( RI.refdef.viewangles[1] - yaw ) / 360 * 8 + 0.5 - 4) & 7;
 
 		pspritegroup = (mspritegroup_t *)psprite->frames[frame].frameptr;
 		pspriteframe = pspritegroup->frames[angleframe];
@@ -547,7 +549,7 @@ bool R_DrawSpriteModel( const meshbuffer_t *mb )
 	case kRenderNormal:
 	case kRenderTransColor:
 	case kRenderTransAlpha:
-		frame = oldframe = R_GetSpriteFrame( e );
+		frame = oldframe = R_GetSpriteFrame( e->model, e->prev->curframe, e->angles[YAW] );
 		break;
 	case kRenderTransTexture:
 	case kRenderTransAdd:

@@ -741,7 +741,7 @@ msurface_t *R_TransformedTraceLine( trace_t *tr, const vec3_t start, const vec3_
 //
 
 void R_SpriteInit( void );
-mspriteframe_t *R_GetSpriteFrame( ref_entity_t *ent );
+mspriteframe_t *R_GetSpriteFrame( ref_model_t *pModel, int frame, float yawAngle );
 bool R_DrawSpriteModel( const meshbuffer_t *mb );
 bool R_SpriteOccluded( ref_entity_t *e );
 

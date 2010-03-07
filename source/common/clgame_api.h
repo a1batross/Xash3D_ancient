@@ -8,11 +8,9 @@
 #include "trace_def.h"
 #include "pm_shared.h"
 
-typedef struct beam_s	BEAM;
 typedef int		HSPRITE;					// handle to a graphic
 typedef struct tempent_s	TEMPENTITY;
 typedef struct usercmd_s	usercmd_t;
-typedef struct beamtrail_s	BEAMTRAIL;
 typedef struct cparticle_s	cparticle_t;
 typedef struct skyportal_s	skyportal_t;
 typedef struct ref_params_s	ref_params_t;

@@ -335,4 +335,9 @@ typedef struct
 	int		normindex;	// normal vec3_t
 } dstudiomesh_t;
 
+typedef struct
+{
+	void		*data;
+} cache_user_t;
+
 #endif//STUDIO_REF_H

@@ -25,6 +25,8 @@
 #define SetCrosshair	(*g_engfuncs.pfnSetCrosshair)
 
 #define SendWeaponAnim	(*g_engfuncs.pEventAPI->EV_WeaponAnim)
+#define GetModelType	(*g_engfuncs.pEventAPI->EV_GetModelType)
+#define GetModelFrames	(*g_engfuncs.pEventAPI->EV_GetModFrames)
 #define CVAR_REGISTER	(*g_engfuncs.pfnRegisterVariable)
 #define CVAR_SET_FLOAT	(*g_engfuncs.pfnCvarSetValue)
 #define CVAR_GET_FLOAT	(*g_engfuncs.pfnGetCvarFloat)

@@ -7,6 +7,7 @@
 #include "utils.h"
 #include "r_particle.h"
 #include "r_weather.h"
+#include "r_beams.h"
 
 void HUD_DrawTriangles( void )
 {
@@ -22,4 +23,6 @@ void HUD_RenderCallback( int fTrans )
 {
 	if( !fTrans ) HUD_DrawTriangles ();
 	else HUD_DrawTransparentTriangles();
+
+	g_pViewRenderBeams->UpdateBeams( fTrans );
 }

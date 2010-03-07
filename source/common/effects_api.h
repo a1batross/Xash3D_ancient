@@ -122,6 +122,8 @@ typedef struct efxapi_s
 	TEMPENTITY *(*CL_TentEntAllocCustom)( float *org, int modelIndex, int high, ENTCALLBACK pfnCallback );
 	void	(*CL_FindExplosionPlane)( const float *origin, float radius, float *result );
 	void	(*R_LightForPoint)( const float *rgflOrigin, float *lightValue );
+	int	(*CL_IsBoxVisible)( const float *mins, const float *maxs );
+	int	(*R_CullBox)( const float *mins, const float *maxs );
 } efxapi_t;
 
 #endif//EFFECTS_API_H

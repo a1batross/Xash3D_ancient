@@ -428,12 +428,12 @@ void ClientCommand( edict_t *pEntity )
 		if( pEntity->v.movetype == MOVETYPE_WALK )
 		{
 			pEntity->v.movetype = MOVETYPE_NOCLIP;
-			Msg( "noclip on\n" );
+			ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, "noclip on\n" );
 		}
 		else
 		{
 			pEntity->v.movetype =  MOVETYPE_WALK;
-			Msg( "noclip off\n" );
+			ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, "noclip off\n" );
 		}
 	}
 	else if( FStrEq( pcmd, "god" ))
@@ -504,7 +504,7 @@ void ClientCommand( edict_t *pEntity )
 					if( pHitEnt )
 					{
 						pHitEnt->Use( pPlayer, pPlayer, USE_TOGGLE, 0 );
-						ALERT( at_console, "Fired %s \"%s\"\n", STRING( pHitEnt->pev->classname ), STRING( pHitEnt->pev->targetname ));
+						ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, UTIL_VarArgs( "Fired %s \"%s\"\n", STRING(pHitEnt->pev->classname), STRING(pHitEnt->pev->targetname) ) );
 					}
 				}
 			}
@@ -533,7 +533,7 @@ void ClientCommand( edict_t *pEntity )
 					if( pHitEnt )
 					{
 						pHitEnt->Use( pPlayer, pPlayer, USE_SHOWINFO, 0 );
-						ALERT( at_console, "Fired %s \"%s\"\n", STRING( pHitEnt->pev->classname ), STRING( pHitEnt->pev->targetname ));
+						ClientPrint( &pEntity->v, HUD_PRINTCONSOLE, UTIL_VarArgs( "Fired %s \"%s\"\n", STRING(pHitEnt->pev->classname), STRING(pHitEnt->pev->targetname) ) );
 					}
 				}
 			}
@@ -599,7 +599,7 @@ void ClientCommand( edict_t *pEntity )
 	{
 		GetClassPtr((CBasePlayer *)pev)->SelectLastItem();
 	}
-	else if( FStrEq( pcmd, "spectate" ))	// added for proxy support
+	else if( FStrEq( pcmd, "spectate" ) && (pev->flags & FL_PROXY) )	// added for proxy support
 	{
 		CBasePlayer * pPlayer = GetClassPtr((CBasePlayer *)pev);
 
@@ -1502,6 +1502,7 @@ int AddToFullPack( edict_t *pHost, edict_t *pClient, edict_t *pEdict, int hostfl
 	{
 	case ED_SKYPORTAL:
 		return 1;	// no additional check requires
+	case ED_BEAM:	// FIXME: add check for beam bounding box
 	case ED_MOVER:
 	case ED_NORMAL:
 	case ED_PORTAL:

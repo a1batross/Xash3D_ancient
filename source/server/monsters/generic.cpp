@@ -279,7 +279,7 @@ void CGenericMonster::MakeGas( void )
 			m_pBeam->SetEndAttachment( 3 );
 			m_pBeam->DamageDecal( 28 );
 			m_pBeam->DoSparks( tr.vecEndPos, posGun );
-			m_pBeam->SetFlags( BEAM_FSHADEIN );
+			m_pBeam->SetFlags( FBEAM_SHADEIN );
 			m_pBeam->RelinkBeam();
 
 			UTIL_Sparks( tr.vecEndPos );

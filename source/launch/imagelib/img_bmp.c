@@ -67,8 +67,10 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 		MsgDev( D_ERROR, "Image_LoadBMP: only uncompressed BMP files supported (%s)\n", name );
 		return false;
 	}
-	
-	image.width = columns = bhdr.width;
+
+	if( bhdr.bitsPerPixel == 8 )	
+		image.width = columns = (bhdr.width + 3) & ~3;
+	else image.width = columns = bhdr.width;
 	image.height = rows = (bhdr.height < 0 ) ? -bhdr.height : bhdr.height;
 
 	if(!Image_ValidSize( name ))
@@ -110,8 +112,8 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 	}
 
 	buf_p += cbPalBytes;
-	columns = (bhdr.width + 3) & ~3;
-	image.size = ((buffer + filesize) - buf_p) * bpp;
+	image.size = image.width * image.height * bpp;
+//	image.size = ((buffer + filesize) - buf_p) * bpp;
 	image.rgba = Mem_Alloc( Sys.imagepool, image.size );
 
 	for( row = rows - 1; row >= 0; row-- )
@@ -159,7 +161,6 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 				*pixbuf++ = 0xFF;
 				break;
 			case 32:
-				image.flags |= IMAGE_HAS_ALPHA;
 				blue = *buf_p++;
 				green = *buf_p++;
 				red = *buf_p++;
@@ -168,6 +169,8 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 				*pixbuf++ = green;
 				*pixbuf++ = blue;
 				*pixbuf++ = alpha;
+				if( alpha != 255 && alpha != 0 ) 
+					image.flags |= IMAGE_HAS_ALPHA;
 				break;
 			default:
 				MsgDev( D_ERROR, "Image_LoadBMP: illegal pixel_size (%s)\n", name );

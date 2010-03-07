@@ -265,6 +265,10 @@ static int BuildImportTable( MEMORYMODULE *module )
 
 void *Com_LoadLibrary( const char *name )
 {
+#ifdef _DEBUG
+	Msg( "LoadLibrary( %s )\n", name );
+	return LoadLibrary( name );
+#else
 	MEMORYMODULE	*result;
 	PIMAGE_DOS_HEADER	dos_header;
 	PIMAGE_NT_HEADERS	old_header;
@@ -379,10 +383,14 @@ error:
 	MsgDev( D_ERROR, errorstring );
 
 	return NULL;
+#endif
 }
 
 FARPROC Com_GetProcAddress( void *module, const char *name )
 {
+#ifdef _DEBUG
+	return GetProcAddress( module, name );
+#else
 	int	idx = -1;
 	DWORD	i, *nameRef;
 	WORD	*ordinal;
@@ -428,10 +436,14 @@ FARPROC Com_GetProcAddress( void *module, const char *name )
 
 	// addressOfFunctions contains the RVAs to the "real" functions
 	return (FARPROC)CALCULATE_ADDRESS( codeBase, *(DWORD *)CALCULATE_ADDRESS( codeBase, exports->AddressOfFunctions + (idx * 4)));
+#endif
 }
 
 void Com_FreeLibrary( void *hInstance )
 {
+#ifdef _DEBUG
+	FreeLibrary( hInstance );
+#else
 	MEMORYMODULE	*module = (MEMORYMODULE *)hInstance;
 
 	if( module != NULL )
@@ -472,6 +484,7 @@ void Com_FreeLibrary( void *hInstance )
 		}
 		HeapFree( GetProcessHeap(), 0, module );
 	}
+#endif
 }
 
 void Com_BuildPathExt( const char *dllname, char *fullpath, size_t size )
@@ -485,12 +498,23 @@ void Com_BuildPathExt( const char *dllname, char *fullpath, size_t size )
 	FS_FileBase( name, name );
 
 	// game path (Xash3D/game/bin/)
+#ifdef _DEBUG
+	com.snprintf( fullpath, size, "%s/bin/%s.dll", GI->gamedir, name );
+	if( FS_FileTime( fullpath ) != -1 ) return;
+
+	com.snprintf( fullpath, size, "%s/bin/%s.dll", GI->basedir, name );
+	if( FS_FileTime( fullpath ) != -1 ) return;
+
+	// absoulte path (Xash3D/bin/)
+	com.snprintf( fullpath, size, "bin/%s.dll", name );	
+	if( FS_FileTime( fullpath ) != -1 ) return; // found
+#else
 	com.snprintf( fullpath, size, "bin/%s.dll", name );
 	if( FS_FileExists( fullpath )) return; // found
 
 	// absoulte path (Xash3D/bin/)
 	com.snprintf( fullpath, size, "%s.dll", name );	
 	if( FS_FileExists( fullpath )) return; // found
-
+#endif
 	fullpath[0] = 0;
 }

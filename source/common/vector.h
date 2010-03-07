@@ -18,6 +18,36 @@
 #define M_PI		(float)3.14159265358979323846
 #endif
 
+inline unsigned long& FloatBits( vec_t& f ) { return *reinterpret_cast<unsigned long*>(&f); }
+inline unsigned long const& FloatBits( vec_t const& f ) { return *reinterpret_cast<unsigned long const*>(&f); }
+inline vec_t BitsToFloat( unsigned long i ) { return *reinterpret_cast<vec_t*>(&i); }
+inline bool IsFinite( vec_t f ) { return ((FloatBits(f) & 0x7F800000) != 0x7F800000); }
+inline unsigned long FloatAbsBits( vec_t f ) { return FloatBits(f) & 0x7FFFFFFF; }
+inline float FloatMakeNegative( vec_t f ) { return BitsToFloat( FloatBits(f) | 0x80000000 ); }
+inline float FloatMakePositive( vec_t f ) { return BitsToFloat( FloatBits(f) & 0x7FFFFFFF ); }
+
+/*
+=================
+rsqrt
+=================
+*/
+inline float rsqrt( float number )
+{
+	int	i;
+	float	x, y;
+
+	if( number == 0.0f )
+		return 0.0f;
+
+	x = number * 0.5f;
+	i = *(int *)&number;	// evil floating point bit level hacking
+	i = 0x5f3759df - (i >> 1);	// what the fuck?
+	y = *(float *)&i;
+	y = y * (1.5f - (x * y * y));	// first iteration
+
+	return y;
+}
+
 //=========================================================
 // 2DVector - used for many pathfinding and many other 
 // operations that are treated as planar rather than 3d.
@@ -180,6 +210,21 @@ public:
 	}
 	inline float Length2D(void) const { return (float)sqrt(x*x + y*y); }
 
+	inline Vector Min(const Vector &vOther) const
+	{
+		return Vector(x < vOther.x ? x : vOther.x, y < vOther.y ? y : vOther.y, z < vOther.z ? z : vOther.z);
+	}
+
+	inline Vector Max(const Vector &vOther) const
+	{
+		return Vector(x > vOther.x ? x : vOther.x, y > vOther.y ? y : vOther.y, z > vOther.z ? z : vOther.z);
+	}
+
+	inline bool IsValid() const
+	{
+		return IsFinite(x) && IsFinite(y) && IsFinite(z);
+	}
+
 	// members
 	vec_t x, y, z;
 };
@@ -187,6 +232,7 @@ public:
 inline Vector operator*(float fl, const Vector& v)	{ return v * fl; }
 inline float DotProduct(const Vector& a, const Vector& b) { return(a.x*b.x+a.y*b.y+a.z*b.z); }
 inline Vector CrossProduct(const Vector& a, const Vector& b) { return Vector( a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x ); }
+inline void VectorNormalizeFast( Vector &v ) { v *= rsqrt( DotProduct( v, v )); }
 #define vec3_t Vector
 
 //=========================================================

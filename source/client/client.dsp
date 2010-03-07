@@ -221,6 +221,10 @@ SOURCE=..\pm_shared\pm_shared.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\global\r_beams.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\global\r_particle.cpp
 # End Source File
 # Begin Source File
@@ -286,6 +290,10 @@ SOURCE=..\pm_shared\pm_materials.h
 # Begin Source File
 
 SOURCE=..\pm_shared\pm_movevars.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\global\r_beams.h
 # End Source File
 # Begin Source File
 

@@ -532,7 +532,7 @@ bool PrepareBSPModel( int argc, char **argv )
 	for( i = 0; i < MAX_JITTERS; i++ )
 		jitters[ i ] = sin( i * 139.54152147 );
 	
-	game = &games[0];	// defaulting to Xash
+	game = &games[1];	// defaulting to Xash
 	FS_LoadGameInfo( NULL );
 	BspFunc = NULL;
 

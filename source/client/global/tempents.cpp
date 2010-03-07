@@ -10,8 +10,10 @@
 #include "pm_movevars.h"
 #include "te_message.h"
 #include "ev_hldm.h"
+#include "r_beams.h"
 #include "hud.h"
 
+#define MAX_CHANNELS		4	// hl1 and hl2 supported 4 channels for messges
 #define TENT_WIND_ACCEL		50
 
 model_t	g_muzzleFlash[4];	// custom muzzleflashes
@@ -29,6 +31,7 @@ void HUD_MuzzleFlash( edict_t *m_pEnt, int iAttachment, const char *event )
 void HUD_CreateEntities( void )
 {
 	// add in any game specific objects here
+	g_pViewRenderBeams->UpdateTempEntBeams( );
 }
 
 int HUD_UpdateEntity( TEMPENTITY *pTemp, int framenumber )
@@ -746,11 +749,55 @@ void CL_AllocDLight( Vector pos, float radius, float time, int flags )
 	g_engfuncs.pEfxAPI->CL_AllocDLight( pos, rgb, radius, time, flags, 0 );
 }
 
+void HUD_AddClientMessage( void )
+{
+	static client_textmessage_t	gTextMsg[MAX_CHANNELS], *msg;
+	static char 		text[MAX_CHANNELS][512];
+	static int		msgindex = 0;
+
+	int channel = READ_BYTE(); // channel
+
+	if( channel <= 0 || channel > ( MAX_CHANNELS - 1 ))
+	{
+		// invalid channel specified, use internal counter		
+		if( channel != 0 ) ALERT( at_warning, "HUD_Message: invalid channel %i\n", channel );
+		channel = msgindex;
+		msgindex = (msgindex + 1) & (MAX_CHANNELS - 1);
+	}	
+
+	// grab message channel
+	msg = &gTextMsg[channel];
+	msg->pMessage = text[channel];
+
+	ASSERT( msg != NULL );
+
+	msg->pName = "Text Message";
+	msg->x = (float)(READ_SHORT() / 8192.0f);
+	msg->y = (float)(READ_SHORT() / 8192.0f);
+	msg->effect = READ_BYTE();
+	msg->r1 = READ_BYTE();
+	msg->g1 = READ_BYTE();
+	msg->b1 = READ_BYTE();
+	msg->a1 = READ_BYTE();
+	msg->r2 = READ_BYTE();
+	msg->g2 = READ_BYTE();
+	msg->b2 = READ_BYTE();
+	msg->a2 = READ_BYTE();
+	msg->fadein = (float)( READ_SHORT() / 256.0f );
+	msg->fadeout = (float)( READ_SHORT() / 256.0f );
+	msg->holdtime = (float)( READ_SHORT() / 256.0f );
+
+	if( msg->effect == 2 )
+		msg->fxtime = (float)( READ_SHORT() / 256.0f );
+	else msg->fxtime = 0.0f;
+
+	strcpy( (char *)msg->pMessage, READ_STRING()); 		
+	gHUD.m_Message.MessageAdd( msg );
+}
+
 void HUD_ParseTempEntity( void )
 {
 	TEMPENTITY *pTemp;
-	static char TextMessage[512];
-	client_textmessage_t gText;
 	char soundpath[32];
 	Vector pos, pos2, dir, size, color;
 	float time, random, framerate, radius, scale, decay;
@@ -939,29 +986,7 @@ void HUD_ParseTempEntity( void )
 		g_engfuncs.pEfxAPI->R_BreakModel( pos, size, dir, random, decay, count, modelIndex, flags );
 		break;
 	case TE_TEXTMESSAGE:
-		gText.pName = "Text Message";
-		gText.pMessage = TextMessage;
-		gText.x = READ_SHORT() / (1<<13);
-		gText.y = READ_SHORT() / (1<<13);
-		gText.effect = READ_BYTE();
-		gText.r1 = READ_BYTE();
-		gText.g1 = READ_BYTE();
-		gText.b1 = READ_BYTE();
-		gText.a1 = READ_BYTE();
-		gText.r2 = READ_BYTE();
-		gText.g2 = READ_BYTE();
-		gText.b2 = READ_BYTE();
-		gText.a2 = READ_BYTE();
-		gText.fadein = (float)(READ_SHORT() / (1<<8));
-		gText.fadeout = (float)(READ_SHORT() / (1<<8));
-		gText.holdtime = (float)(READ_SHORT() / (1<<8));
-
-		if( gText.effect == 2 )
-			gText.fxtime = (float)(READ_SHORT() / (1<<8));
-		else gText.fxtime = 0.0f;
-
-		strcpy( TextMessage, READ_STRING()); 		
-		gHUD.m_Message.MessageAdd( &gText );
+		HUD_AddClientMessage();
 		break;
 	}
 }

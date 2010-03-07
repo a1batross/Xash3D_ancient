@@ -5,18 +5,28 @@
 #ifndef BASEBEAMS_H
 #define BASEBEAMS_H
 
+#include "beam_def.h"
+
+#define SF_BEAM_TEMPORARY		0x8000
 #define SF_BEAM_TRIPPED		0x80000		// bit who indicated "trip" action
 
 class CBeam : public CBaseLogic
 {
 public:
 	void Spawn( void );
-	int ObjectCaps( void ) { return (CBaseEntity :: ObjectCaps() & ~FCAP_ACROSS_TRANSITION); }
+	int ObjectCaps( void )
+	{ 
+		int flags = 0;
+		if ( pev->spawnflags & SF_BEAM_TEMPORARY )
+			flags = FCAP_DONT_SAVE;
+		return (CBaseEntity :: ObjectCaps() & ~FCAP_ACROSS_TRANSITION) | flags; 
+	}
+
 	void Touch( CBaseEntity *pOther );
 
 	// These functions are here to show the way beams are encoded as entities.
 	// Encoding beams as entities simplifies their management in the client/server architecture
-	inline void SetType( int type ) { pev->frags = type; }
+	inline void SetType( int type ) { pev->rendermode = type; }
 	inline void SetFlags( int flags ) { pev->renderfx |= flags; }
 	inline void SetStartPos( const Vector& pos ) { pev->origin = pos; }
 	inline void SetEndPos( const Vector& pos ) { pev->oldorigin = pos; }
@@ -27,14 +37,14 @@ public:
 	inline void SetEndAttachment( int attachment ) { pev->colormap = (pev->colormap & 0xFF) | (attachment<<8); }
 
 	inline void SetTexture( int spriteIndex ) { pev->modelindex = spriteIndex; }
-	inline void SetWidth( int width ) { pev->skin = width; }
+	inline void SetWidth( int width ) { pev->scale = width; }
 	inline void SetNoise( int amplitude ) { pev->body = amplitude; }
 	inline void SetColor( int r, int g, int b ) { pev->rendercolor.x = r; pev->rendercolor.y = g; pev->rendercolor.z = b; }
 	inline void SetBrightness( int brightness ) { pev->renderamt = brightness; }
 	inline void SetFrame( float frame ) { pev->frame = frame; }
-	inline void SetScrollRate( int speed ) { pev->framerate = speed; }
+	inline void SetScrollRate( int speed ) { pev->animtime = speed; }
 
-	inline int  GetType( void ) { return pev->frags; }
+	inline int  GetType( void ) { return pev->rendermode; }
 	inline int  GetFlags( void ) { return pev->renderfx; }
 	inline edict_t *GetStartEntity( void ) { return pev->owner; }
 	inline edict_t *GetEndEntity( void ) { return pev->aiment; }
@@ -45,12 +55,12 @@ public:
 	Vector Center( void ) { return (GetStartPos() + GetEndPos()) * 0.5; }; // center point of beam
 
 	inline int GetTexture( void ) { return pev->modelindex; }
-	inline int GetWidth( void ) { return pev->skin; }
+	inline int GetWidth( void ) { return pev->scale; }
 	inline int GetNoise( void ) { return pev->body; }
 	inline Vector GetColor( void ) { return Vector( pev->rendercolor.x, pev->rendercolor.y, pev->rendercolor.z ); }
 	inline int  GetBrightness( void ) { return pev->renderamt; }
 	inline int  GetFrame( void ) { return pev->frame; }
-	inline int  GetScrollRate( void ) { return pev->framerate; }
+	inline int  GetScrollRate( void ) { return pev->animtime; }
 
 	CBaseEntity*	GetTripEntity( TraceResult *ptr );
 

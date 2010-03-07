@@ -15,6 +15,8 @@
 #define ORIGIN_BACKUP	64
 #define ORIGIN_MASK		( ORIGIN_BACKUP - 1 )
 
+extern ref_params_t		*gpViewParams;
+
 // global view containers
 Vector	v_origin, v_angles, v_cl_angles;	// base client vectors
 float	v_idlescale, v_lastDistance;		// misc variables
@@ -1008,6 +1010,7 @@ bool V_CalcSkyRefdef( ref_params_t *pparams )
 void V_CalcRefdef( ref_params_t *pparams )
 {
 	gpMovevars = pparams->movevars;	// keep movevars an actual
+	gpViewParams = pparams;
 
 	V_CalcNextView( pparams );
 	

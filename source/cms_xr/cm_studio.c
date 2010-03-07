@@ -395,6 +395,24 @@ void CM_StudioSlerpBones( vec4_t q1[], float pos1[][3], vec4_t q2[], float pos2[
 
 /*
 ====================
+Cache_Check
+
+consistency check
+====================
+*/
+void *Cache_Check( byte *mempool, cache_user_t *c )
+{
+	if( !c->data )
+		return NULL;
+
+	if( !Mem_IsAllocated( mempool, c->data ))
+		return NULL;
+
+	return c->data;
+}
+
+/*
+====================
 CM_StudioGetAnim
 
 ====================
@@ -402,39 +420,42 @@ CM_StudioGetAnim
 dstudioanim_t *CM_StudioGetAnim( cmodel_t *m_pSubModel, dstudioseqdesc_t *pseqdesc )
 {
 	dstudioseqgroup_t	*pseqgroup;
-	byte		*paSequences;
+	cache_user_t	*paSequences;
 	size_t		filesize;
           byte		*buf;
 
 	pseqgroup = (dstudioseqgroup_t *)((byte *)studio.hdr + studio.hdr->seqgroupindex) + pseqdesc->seqgroup;
 	if( pseqdesc->seqgroup == 0 )
 		return (dstudioanim_t *)((byte *)studio.hdr + pseqgroup->data + pseqdesc->animindex);
-	paSequences = (void *)m_pSubModel->submodels;
+
+	paSequences = (cache_user_t *)m_pSubModel->submodels;
 
 	if( paSequences == NULL )
 	{
-		// allocate sequence groups if needs
-		paSequences = (byte *)Mem_Alloc( m_pSubModel->mempool, sizeof( paSequences ) * MAXSTUDIOGROUPS );
-          	m_pSubModel->submodels = (void *)paSequences; // just a container
+		paSequences = (cache_user_t *)Mem_Alloc( m_pSubModel->mempool, MAXSTUDIOGROUPS * sizeof( cache_user_t ));
+		m_pSubModel->submodels = (void *)paSequences;
 	}
 
-	if(((dstudiomodel_t *)&(paSequences[pseqdesc->seqgroup])) == NULL )
+	if( !Cache_Check( m_pSubModel->mempool, ( cache_user_t *)&( paSequences[pseqdesc->seqgroup] )))
 	{
-		dstudioseqgroup_t	*pseqhdr;
+		string	filepath, modelname, modelpath;
 
-		buf = FS_LoadFile( pseqgroup->name, &filesize );
-		if( !buf || !filesize || IDSEQGRPHEADER != LittleLong(*(uint *)buf ))
-			Host_Error( "CM_StudioGetAnim: can't load %s\n", pseqgroup->name );
+		FS_FileBase( m_pSubModel->name, modelname );
+		FS_ExtractFilePath( m_pSubModel->name, modelpath );
+		com.snprintf( filepath, sizeof( filepath ), "%s/%s%i%i.mdl", modelpath, modelname, pseqdesc->seqgroup / 10, pseqdesc->seqgroup % 10 );
 
-		pseqhdr = (dstudioseqgroup_t *)buf;
-		MsgDev( D_INFO, "loading %s\n", pseqgroup->name );
+		buf = FS_LoadFile( filepath, &filesize );
+		if( !buf || !filesize ) Host_Error( "CM_StudioGetAnim: can't load %s\n", modelpath );
+		if( IDSEQGRPHEADER != LittleLong(*(uint *)buf ))
+			Host_Error( "CM_StudioGetAnim: %s is corrpted\n", modelpath );
+
+		MsgDev( D_INFO, "loading %s\n", filepath );
 			
-		paSequences = (byte *)Mem_Alloc( m_pSubModel->mempool, filesize );
-          	m_pSubModel->submodels = (void *)paSequences; // just a container
-		Mem_Copy( &paSequences[pseqdesc->seqgroup], buf, filesize );
+		paSequences[pseqdesc->seqgroup].data = Mem_Alloc( m_pSubModel->mempool, filesize );
+		Mem_Copy( paSequences[pseqdesc->seqgroup].data, buf, filesize );
 		Mem_Free( buf );
 	}
-	return (dstudioanim_t *)((byte *)paSequences[pseqdesc->seqgroup] + pseqdesc->animindex );
+	return (dstudioanim_t *)((byte *)paSequences[pseqdesc->seqgroup].data + pseqdesc->animindex);
 }
 
 /*

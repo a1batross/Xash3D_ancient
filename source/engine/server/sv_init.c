@@ -413,7 +413,7 @@ void SV_InitGame( void )
 		Cvar_FullSet( "sv_maxclients", "1", CVAR_SERVERINFO|CVAR_LATCH );
 	}
 
-	svs.spawncount = RANDOM_LONG( 0, 65535 );
+	svs.spawncount = Com_RandomLong( 0, 65535 );
 	svs.clients = Z_Malloc( sizeof( sv_client_t ) * sv_maxclients->integer );
 	svs.num_client_entities = sv_maxclients->integer * UPDATE_BACKUP * 64; // g-cont: what a mem waster ???
 	svs.client_entities = Z_Malloc( sizeof( entity_state_t ) * svs.num_client_entities );

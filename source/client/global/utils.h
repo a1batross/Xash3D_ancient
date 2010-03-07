@@ -11,6 +11,22 @@ extern cl_enginefuncs_t g_engfuncs;
 #include "event_api.h"
 #include "enginecallback.h"
 
+#define FILE_GLOBAL	static
+#define DLL_GLOBAL
+
+//
+// How did I ever live without ASSERT?
+//
+#ifdef _DEBUG
+void DBG_AssertFunction( BOOL fExpr, const char* szExpr, const char* szFile, int szLine, const char* szMessage );
+#define ASSERT( f )		DBG_AssertFunction( f, #f, __FILE__, __LINE__, NULL )
+#define ASSERTSZ( f, sz )	DBG_AssertFunction( f, #f, __FILE__, __LINE__, sz )
+#else
+#define ASSERT( f )
+#define ASSERTSZ( f, sz )
+#endif
+
+extern DLL_GLOBAL const Vector	g_vecZero;
 extern cl_globalvars_t		*gpGlobals;
 extern movevars_t			*gpMovevars;
 

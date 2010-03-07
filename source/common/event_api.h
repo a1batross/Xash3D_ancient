@@ -50,6 +50,8 @@ typedef struct event_api_s
 	int	(*EV_IsLocal)( int playernum );
 	void	(*EV_LocalPlayerViewheight)( float *view_ofs );
 	void	(*EV_StopAllSounds)( edict_t *ent, int entchannel );
+	modtype_t	(*EV_GetModelType)( int modelIndex );
+	int	(*EV_GetModFrames)( int modelIndex );
 } event_api_t;
 
 #endif//EVENT_API_H

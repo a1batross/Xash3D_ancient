@@ -10,8 +10,9 @@
 #define HUD_PRINTTALK		3
 #define HUD_PRINTCENTER		4
 
-#define MAX_WEAPONS			64		// special for Ghoul[BB] mod support 
-#define MAX_AMMO_SLOTS  		32
+#define MAX_WEAPONS			32
+#define WEAPON_ALLWEAPONS	(1<<32)
+#define MAX_AMMO_SLOTS  	32
 #define ITEM_SUIT			BIT( 31 )
 
 #define HIDEHUD_WEAPONS		BIT( 0 )

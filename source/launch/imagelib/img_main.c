@@ -405,7 +405,7 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 		return ImagePack(); // all done
 
 load_internal:
-	for( format = image.loadformats; format && format->formatstring; format++ )
+	for( format = image.baseformats; format && format->formatstring; format++ )
 	{
 		if( anyformat || !com_stricmp( ext, format->ext ))
 		{

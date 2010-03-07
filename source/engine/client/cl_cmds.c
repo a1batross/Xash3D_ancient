@@ -6,7 +6,32 @@
 #include "common.h"
 #include "client.h"
 
-#define SCRSHOT_TYPE	"jpg"
+#define SCRSHOT_TYPE	"jpg" // fixed type
+#define LEVELSHOT_TYPE	CL_LevelshotType()
+
+const char *CL_LevelshotType( void )
+{
+	// reinstall loadformats by magic keyword :)
+	if( !com.stricmp( GI->texmode, "Xash3D" ) || !com.stricmp( GI->texmode, "Xash" ))
+		return "png";
+	else if( !com.stricmp( GI->texmode, "stalker" ) || !com.stricmp( GI->texmode, "S.T.A.L.K.E.R" ))
+		return "dds";
+	else if( !com.stricmp( GI->texmode, "Doom1" ) || !com.stricmp( GI->texmode, "Doom2" ))
+		return "tga";
+	else if( !com.stricmp( GI->texmode, "Quake1" ))
+		return "tga";
+	else if( !com.stricmp( GI->texmode, "Quake2" ))
+		return "tga";
+	else if( !com.stricmp( GI->texmode, "Quake3" ))
+		return "jpg";
+	else if( !com.stricmp( GI->texmode, "Quake4" ) || !com.stricmp( GI->texmode, "Doom3" ))
+		return "dds";
+	else if( !com.stricmp( GI->texmode, "hl1" ) || !com.stricmp( GI->texmode, "Half-Life" ))
+		return "tga";
+	else if( !com.stricmp( GI->texmode, "hl2" ) || !com.stricmp( GI->texmode, "Half-Life 2" ))
+		return "tga";
+	return "png";
+}
 
 /*
 ================
@@ -193,7 +218,7 @@ void CL_LevelShot_f( void )
 	cls.scrshot_request = scrshot_inactive;
 
 	// check for exist
-	com.sprintf( cls.shotname, "levelshots/%s.png", cl.configstrings[CS_NAME] );
+	com.sprintf( cls.shotname, "levelshots/%s.%s", cl.configstrings[CS_NAME], LEVELSHOT_TYPE );
 	if( !FS_FileExists( cls.shotname ))
 		cls.scrshot_action = scrshot_plaque;	// build new frame for levelshot
 	else cls.scrshot_action = scrshot_inactive;	// disable - not needs

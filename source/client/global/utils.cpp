@@ -7,10 +7,26 @@
 #include "utils.h"
 #include "hud.h"
 
+DLL_GLOBAL const Vector g_vecZero = Vector( 0.0f, 0.0f, 0.0f );
+
 static const float bytedirs[NUMVERTEXNORMALS][3] =
 {
 #include "anorms.h"
 };
+
+#ifdef _DEBUG
+void DBG_AssertFunction( BOOL fExpr, const char* szExpr, const char* szFile, int szLine, const char* szMessage )
+{
+	if( fExpr ) return;
+
+	char szOut[512];
+	if( szMessage != NULL )
+		sprintf( szOut, "ASSERT FAILED:\n %s \n(%s@%d)\n%s", szExpr, szFile, szLine, szMessage );
+	else sprintf( szOut, "ASSERT FAILED:\n %s \n(%s@%d)", szExpr, szFile, szLine );
+	HOST_ERROR( szOut );
+}
+#endif	// DEBUG
+
 
 Vector BitsToDir( int bits )
 {

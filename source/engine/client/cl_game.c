@@ -2034,6 +2034,32 @@ void pfnStopAllSounds( edict_t *ent, int entchannel )
 	// FIXME: this not valid code
 	S_StopAllSounds ();
 }
+
+/*
+=============
+pfnGetModelType
+
+=============
+*/
+modtype_t pfnGetModelType( model_t modelIndex )
+{
+	if( !pe ) return mod_bad;
+	return pe->Mod_GetType( modelIndex );
+}
+
+/*
+=============
+pfnGetModFrames
+
+=============
+*/
+int pfnGetModFrames( model_t modelIndex )
+{
+	int	numFrames = 1;
+
+	if( pe ) pe->Mod_GetFrames( modelIndex, &numFrames );
+	return numFrames;
+}
 	
 /*
 =============
@@ -2106,6 +2132,12 @@ static int pfnDecalIndex( int id )
 	return cl.decal_shaders[id];
 }
 
+static int pfnCullBox( const vec3_t mins, const vec3_t maxs )
+{
+	if( !re ) return false;
+	return re->CullBox( mins, maxs );
+}
+
 /*
 =================
 TriApi implementation
@@ -2153,6 +2185,12 @@ void TriRenderMode( kRenderMode_t mode )
 {
 	if( !re ) return;
 	re->RenderMode( mode );
+}
+
+shader_t TriGetSpriteFrame( int spriteIndex, int spriteFrame )
+{
+	if( !re ) return 0;
+	return re->GetSpriteTexture( spriteIndex, spriteFrame );
 }
 
 /*
@@ -2360,6 +2398,7 @@ static triapi_t gTriApi =
 {
 	sizeof( triapi_t ),	
 	TriLoadShader,
+	TriGetSpriteFrame,
 	TriRenderMode,
 	TriBegin,
 	TriEnd,
@@ -2403,6 +2442,8 @@ static efxapi_t gEfxApi =
 	CL_TentEntAllocCustom,
 	pfnFindExplosionPlane,
 	pfnLightForPoint,
+	CM_BoxVisible,
+	pfnCullBox,
 };
 
 static event_api_t gEventApi =
@@ -2420,9 +2461,11 @@ static event_api_t gEventApi =
 	pfnFindModelIndex,
 	pfnIsLocal,
 	pfnLocalPlayerViewheight,
-	pfnStopAllSounds
+	pfnStopAllSounds,
+	pfnGetModelType,
+	pfnGetModelType,
 };
-					
+
 // engine callbacks
 static cl_enginefuncs_t gEngfuncs = 
 {

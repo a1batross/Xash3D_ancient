@@ -2727,7 +2727,6 @@ void CBasePlayer::Spawn( void )
 	pev->rendercolor	= g_vecZero;
 	pev->mass		= 90;	// lbs
 	pev->viewangles.z	= 0;	// cut off any camera rolling
-	pev->view_ofs.z;
 	m_bitsHUDDamage	= -1;
 	m_bitsDamageType	= 0;
 	m_afPhysicsFlags	= 0;

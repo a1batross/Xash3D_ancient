@@ -74,7 +74,6 @@ typedef struct { int numfilenames; char **filenames; char *filenamesbuffer; } se
 typedef void ( *cmsave_t )( void* handle, const void* buffer, size_t size );
 typedef void ( *cmdraw_t )( int color, int numpoints, const float *points );
 typedef void ( *setpair_t )( const char *key, const char *value, void *buffer, void *numpairs );
-typedef enum { mod_bad, mod_world, mod_brush, mod_studio, mod_sprite } modtype_t;
 typedef enum { NA_LOOPBACK, NA_BROADCAST, NA_IP } netadrtype_t;
 typedef enum { eXYZ, eYZX, eZXY, eXZY, eYXZ, eZYX } euler_t;
 typedef enum { NS_CLIENT, NS_SERVER } netsrc_t;
@@ -456,7 +455,7 @@ typedef struct stdilib_api_s
 	void (*freepool)(byte **poolptr, const char *file, int line);
 	void (*clearpool)(byte *poolptr, const char *file, int line);
 	void (*memcheck)(const char *file, int line);		// check memory pools for consistensy
-	bool (*is_allocated)( byte *poolptr, void *data );	// returen true is memory is allocated
+	bool (*is_allocated)( byte *poolptr, void *data );	// return true is memory is allocated
 
 	// xash memlib extension - memory arrays
 	byte *(*newarray)( byte *pool, size_t elementsize, int count, const char *file, int line );

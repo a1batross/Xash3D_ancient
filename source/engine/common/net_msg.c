@@ -65,7 +65,7 @@ static net_field_t ent_fields[] =
 { ES_FIELD(movetype),		NET_BYTE,	 false	},
 { ES_FIELD(gravity),		NET_SHORT, false	},	// gravity multiplier
 { ES_FIELD(aiment),			NET_SHORT, false	},	// entity index
-{ ES_FIELD(owner),			NET_WORD,	 false	},	// entity owner index
+{ ES_FIELD(owner),			NET_SHORT, false	},	// entity owner index
 { ES_FIELD(groundent),		NET_SHORT, false	},	// ground entity index, if FL_ONGROUND is set
 { ES_FIELD(effects),		NET_LONG,	 false	},	// effect flags
 { ES_FIELD(mins[0]),		NET_FLOAT, false	},
@@ -480,15 +480,18 @@ void _MSG_WriteFloat( sizebuf_t *sb, float f, const char *filename, int fileline
 	_MSG_WriteBits( sb, dat.l, NWDesc[NET_FLOAT].name, NET_FLOAT, filename, fileline );
 }
 
-void _MSG_WriteString( sizebuf_t *sb, const char *s, const char *filename, int fileline )
+void _MSG_WriteString( sizebuf_t *sb, const char *src, const char *filename, int fileline )
 {
-	if( !s ) _MSG_WriteData( sb, "", 1, filename, fileline );
+	if( !src )
+	{
+		_MSG_WriteData( sb, "", 1, filename, fileline );
+	}
 	else
 	{
 		int	l;
-		char	string[MAX_SYSPATH];
+		char	*dst, string[MAX_SYSPATH];
                     
-		l = com.strlen( s ) + 1;		
+		l = com.strlen( src ) + 1;		
 		if( l >= MAX_SYSPATH )
 		{
 			MsgDev( D_ERROR, "MSG_WriteString: exceeds %i symbols (called at %s:%i\n", MAX_SYSPATH, filename, fileline );
@@ -496,7 +499,34 @@ void _MSG_WriteString( sizebuf_t *sb, const char *s, const char *filename, int f
 			return;
 		}
 
-		com.strncpy( string, s, sizeof( string ));
+		dst = string;
+
+		while( 1 )
+		{
+			// some escaped chars parsed as two symbols - merge it here
+			if( src[0] == '\\' && src[1] == 'n' )
+			{
+				*dst++ = '\n';
+				src += 2;
+				l -= 1;
+			}
+			if( src[0] == '\\' && src[1] == 'r' )
+			{
+				*dst++ = '\r';
+				src += 2;
+				l -= 1;
+			}
+			if( src[0] == '\\' && src[1] == 't' )
+			{
+				*dst++ = '\t';
+				src += 2;
+				l -= 1;
+			}
+			else if(( *dst++ = *src++ ) == 0 )
+				break;
+		}
+		*dst = '\0'; // string end
+
 		_MSG_WriteData( sb, string, l, filename, fileline );
 	}
 }

@@ -60,7 +60,7 @@ char *Sys_GetMSVCName( const char *in_name )
 	return com.stralloc( svgame.private, in_name, __FILE__, __LINE__ );
 }
 
-bool Sys_LoadSymbols( const char *filename )
+bool Sys_LoadSymbols( const char *name )
 {
 	file_t		*f;
 	DOS_HEADER	dos_header;
@@ -75,9 +75,17 @@ bool Sys_LoadSymbols( const char *filename )
 	long		name_offset;
 	long		ordinal_offset;
 	long		function_offset;
-	string		function_name;
+	string		filename, function_name;
 	dword		*p_Names = NULL;
 	int		i, index;
+
+	// try game path
+	com.sprintf( filename, "bin/%s.dll", name );
+	if( !FS_FileExists( filename ))
+	{
+		// try absoulte path
+		com.sprintf( filename, "%s.dll", name );	
+	}
 
 	for( i = 0; i < svgame.num_ordinals; i++ )
 		svgame.names[i] = NULL;
@@ -2729,8 +2737,9 @@ int pfnCompareFileTime( const char *filename1, const char *filename2, int *iComp
 
 	if( filename1 && filename2 )
 	{
-		long ft1 = FS_FileTime( filename1 );
-		long ft2 = FS_FileTime( filename2 );
+		// FIXME: rewrite FS_FileTime
+		long ft1 = FS_FileTime( va( "%s/%s", GI->gamedir, filename1 ));
+		long ft2 = FS_FileTime( va( "%s/%s", GI->gamedir, filename2 ));
 
 		*iCompare = Host_CompareFileTime( ft1,  ft2 );
 		bRet = 1;
@@ -3834,7 +3843,7 @@ void SV_LoadProgs( const char *name )
 		return;
 	}
 
-	if( !Sys_LoadSymbols( libpath ))
+	if( !Sys_LoadSymbols( name ))
 	{
 		Host_Error( "SV_LoadProgs: can't loading export symbols\n" );
 		return;

@@ -5,6 +5,16 @@
 #ifndef BEAM_DEF_H
 #define BEAM_DEF_H
 
+// beam types
+typedef enum 
+{
+	BEAM_POINTS = 0,
+	BEAM_ENTPOINT,
+	BEAM_ENTS,
+	BEAM_HOSE,
+	BEAM_LASER,
+} kBeamType_t;
+
 // beam flags
 #define FBEAM_STARTENTITY		0x00000001
 #define FBEAM_ENDENTITY		0x00000002
@@ -20,65 +30,8 @@
 #define FBEAM_ISACTIVE		0x40000000
 #define FBEAM_FOREVER		0x80000000
 
-#define MAX_BEAM_ENTS		10
-#define NOISE_DIVISIONS		128
-
-struct beam_s
-{
-	BEAM		*next;
-	HSPRITE		m_hSpriteTexture;		// actual sprite texture
-
-	// bounding box for right culling on render-side
-	vec3_t		mins;
-	vec3_t		maxs;
-
-	int		type;
-	int		flags;
-
-	// old-style source-target
-	vec3_t		source;
-	vec3_t		target;
-
-	// control points for the beam
-	int		numAttachments;
-	vec3_t		attachment[MAX_BEAM_ENTS];
-	vec3_t		delta;
-
-	float		t;		// 0 .. 1 over lifetime of beam
-	float		freq;
-	float		die;
-	float		width;
-	float		endWidth;
-	float		fadeLength;
-	float		amplitude;
-	float		life;
-	float		r, g, b;
-	float		brightness;
-	float		speed;
-	float		frameRate;
-	float		frame;
-	int		segments;
-
-	// old-style source-target
-	int		startEntity;
-	int		endEntity;
-
-	// attachment entities for the beam
-	edict_t		*entity[MAX_BEAM_ENTS];
-	int		attachmentIndex[MAX_BEAM_ENTS];
-
-	int		modelIndex;
-	int		frameCount;
-
-	float		rgNoise[NOISE_DIVISIONS+1];
-	BEAMTRAIL		*trail;
-
-	// for TE_BEAMRINGPOINT
-	float		start_radius;
-	float		end_radius;
-
-	// for FBEAM_ONLYNOISEONCE
-	bool		m_bCalculatedNoise;
-};
+// Start/End Entity is encoded as 12 bits of entity index, and 4 bits of attachment (4:12)
+#define BEAMENT_ENTITY( x )		((x) & 0xFFF)
+#define BEAMENT_ATTACHMENT( x )	(((x)>>12) & 0xF)
 
 #endif//BEAM_DEF_H

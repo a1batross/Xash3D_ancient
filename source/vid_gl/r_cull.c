@@ -36,7 +36,7 @@ R_CullBox
 Returns true if the box is completely outside the frustum
 =================
 */
-bool R_CullBox( const vec3_t mins, const vec3_t maxs, const unsigned int clipflags )
+bool R_CullBox( const vec3_t mins, const vec3_t maxs, const uint clipflags )
 {
 	uint		i, bit;
 	const cplane_t	*p;

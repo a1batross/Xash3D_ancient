@@ -3554,24 +3554,24 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 		{
 		case kRenderTransTexture:
 			// normal transparency
-			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA|GLSTATE_DEPTHWRITE);
+			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA);
 			pass->flags = SHADERSTAGE_BLEND_MODULATE;
 			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
-			pass->alphaGen.type = ALPHAGEN_ENTITY;
+			pass->alphaGen.type = ALPHAGEN_VERTEX;
 	         		shader->sort = SORT_ADDITIVE;
 			break;
 		case kRenderTransAdd:
 			pass->flags |= SHADERSTAGE_BLEND_ADD;
 			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
-			pass->alphaGen.type = ALPHAGEN_ENTITY;
-			pass->rgbGen.type = RGBGEN_ENTITY;
+			pass->alphaGen.type = ALPHAGEN_VERTEX;
+			pass->rgbGen.type = RGBGEN_VERTEX;
 			shader->sort = SORT_ADDITIVE;
 			break;
 		case kRenderGlow:
 			pass->flags |= SHADERSTAGE_BLEND_ADD;
 			pass->glState = GLSTATE_SRCBLEND_ONE_MINUS_SRC_ALPHA|GLSTATE_DSTBLEND_ONE|GLSTATE_NO_DEPTH_TEST;
-			pass->alphaGen.type = ALPHAGEN_ENTITY;
-			pass->rgbGen.type = RGBGEN_ENTITY;
+			pass->alphaGen.type = ALPHAGEN_VERTEX;
+			pass->rgbGen.type = RGBGEN_VERTEX;
 			shader->sort = SORT_ADDITIVE;
 			break;
 		case kRenderTransAlpha:

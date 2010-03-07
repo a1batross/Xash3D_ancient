@@ -9,6 +9,8 @@
 #include "hud.h"
 #include "r_particle.h"
 
+extern ref_params_t		*gpViewParams;
+
 ParticleSystemManager* g_pParticleSystems = NULL;
 
 void CreateAurora( int idx, char *file )

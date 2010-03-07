@@ -2287,7 +2287,7 @@ void CEnvBeam::KeyValue( KeyValueData *pkvd )
 		pev->frags = atof(pkvd->szValue);
 		pkvd->fHandled = TRUE;
 	}
-	else	CBeam::KeyValue( pkvd );
+	else CBeam::KeyValue( pkvd );
 }
 
 void CEnvBeam::BeamUpdateVars( void )
@@ -2300,9 +2300,9 @@ void CEnvBeam::BeamUpdateVars( void )
 	BeamUpdatePoints();
 	SetFrame( 0 );
 	SetScrollRate( pev->speed );
-	if ( pev->frags == 1 ) SetFlags( BEAM_FSHADEIN );
-	if ( pev->frags == 2 ) SetFlags( BEAM_FSHADEOUT );
-	if ( pev->renderamt == 255 ) SetFlags( BEAM_FSOLID );
+	if ( pev->frags == 1 ) SetFlags( FBEAM_SHADEIN );
+	if ( pev->frags == 2 ) SetFlags( FBEAM_SHADEOUT );
+	if ( pev->renderamt == 255 ) SetFlags( FBEAM_SOLID );
 	else SetFlags( 0 );
 }
 
@@ -2348,6 +2348,7 @@ void CEnvBeam::BeamUpdatePoints( void )
 
 void CEnvBeam::Spawn( void )
 {
+	SetObjectClass( ED_BEAM );
 	UTIL_SetModel( edict(), "sprites/null.spr" ); // beam start point
 	pev->solid = SOLID_NOT; // remove model & collisions
 	Precache();
@@ -2550,7 +2551,7 @@ void CLaser::TurnOn( void )
 	pev->dmgtime = gpGlobals->time;
           m_iState = STATE_ON;
 	SetScrollRate( pev->speed );
-	SetFlags( BEAM_FSHADEOUT );
+	SetFlags( FBEAM_SHADEOUT );
 	SetNextThink( 0 );
 }
 

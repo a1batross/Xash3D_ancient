@@ -39,14 +39,6 @@ typedef unsigned long ULONG;
 #include <stdlib.h>
 #include <math.h>
 
-inline unsigned long& FloatBits( vec_t& f ) { return *reinterpret_cast<unsigned long*>(&f); }
-inline unsigned long const& FloatBits( vec_t const& f ) { return *reinterpret_cast<unsigned long const*>(&f); }
-inline vec_t BitsToFloat( unsigned long i ) { return *reinterpret_cast<vec_t*>(&i); }
-inline bool IsFinite( vec_t f ) { return ((FloatBits(f) & 0x7F800000) != 0x7F800000); }
-inline unsigned long FloatAbsBits( vec_t f ) { return FloatBits(f) & 0x7FFFFFFF; }
-inline float FloatMakeNegative( vec_t f ) { return BitsToFloat( FloatBits(f) | 0x80000000 ); }
-inline float FloatMakePositive( vec_t f ) { return BitsToFloat( FloatBits(f) & 0x7FFFFFFF ); }
-
 // Shared engine/DLL constants
 #include "const.h"
 

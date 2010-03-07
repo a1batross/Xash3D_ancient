@@ -498,7 +498,12 @@ bool Image_LoadMIP( const char *name, const byte *buffer, size_t filesize )
 			rendermode = LUMP_TRANSPARENT;
 
 			// qlumpy used this color for transparent textures, otherwise it's decals
- 			if( pal[255*3+0] == 0 && pal[255*3+1] == 0 && pal[255*3+2] == 255 );
+ 			if( pal[255*3+0] == 0 && pal[255*3+1] == 0 && pal[255*3+2] == 255 )
+ 			{
+				// kill blue color, so looks ugly in game
+				if( Sys.app_name == HOST_NORMAL )
+					pal[255*3+2] = 0;
+ 			}
 			else if(!( image.cmd_flags & IL_KEEP_8BIT ))
 			{
 				// apply decal palette immediately

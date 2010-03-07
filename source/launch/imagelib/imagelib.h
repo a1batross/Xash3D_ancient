@@ -60,6 +60,7 @@ typedef struct saveformat_s
 
 typedef struct imglib_s
 {
+	const loadformat_t	*baseformats;	// used for loading internal images
 	const loadformat_t	*loadformats;
 	const saveformat_t	*saveformats;
 
@@ -195,6 +196,7 @@ typedef struct
 
 ========================================================================
 */
+#pragma pack( 1 )
 typedef struct
 {
 	char	id[2];		//bmfh.bfType
@@ -213,6 +215,7 @@ typedef struct
 	dword	colors;		//bmih.biClrUsed
 	dword	importantColors;	//bmih.biClrImportant
 } bmp_t;
+#pragma pack( )
 
 /*
 ========================================================================

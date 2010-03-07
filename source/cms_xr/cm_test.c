@@ -220,3 +220,23 @@ int CM_TransformedPointContents( const vec3_t p, model_t model, const vec3_t ori
 	}
 	return CM_PointContents( p_l, model );
 }
+
+bool CM_BoxVisible( const vec3_t mins, const vec3_t maxs, byte *visbits )
+{
+	int	leafList[256];
+	int	i, count;
+
+	if( !visbits || !mins || !maxs ) return true;
+
+	// FIXME: Could save a loop here by traversing the tree in this routine like the code above
+	count = CM_BoxLeafnums( mins, maxs, leafList, 256, NULL );
+
+	for( i = 0; i < count; i++ )
+	{
+		int cluster = CM_LeafCluster( leafList[i] );
+
+		if( visbits[cluster>>3] & (1<<(cluster & 7)))
+			return true;
+	}
+	return false;
+}

@@ -1366,13 +1366,13 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 			pass->alphaGen.type = ALPHAGEN_ENTITY;
 			break;
 		case mod_studio:
-			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA|GLSTATE_DEPTHWRITE);
+			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA);
 			pass->flags = SHADERSTAGE_BLEND_MODULATE;
 			pass->rgbGen.type = RGBGEN_LIGHTING_DIFFUSE;
 			pass->alphaGen.type = ALPHAGEN_ENTITY;
 			break;
 		case mod_sprite:
-			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA|GLSTATE_DEPTHWRITE);
+			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA);
 			pass->flags = SHADERSTAGE_BLEND_MODULATE;
 			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
 			pass->alphaGen.type = ALPHAGEN_VERTEX;
@@ -1412,8 +1412,8 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 		case mod_studio:
 			break;
 		case mod_sprite:
-			pass->flags = SHADERSTAGE_BLEND_DECAL;
-			pass->glState = GLSTATE_AFUNC_GE128|GLSTATE_DEPTHWRITE;
+			pass->flags = SHADERSTAGE_BLEND_MODULATE;
+			pass->glState = GLSTATE_AFUNC_GE128;
 			pass->rgbGen.type = RGBGEN_VERTEX;
 			pass->alphaGen.type = ALPHAGEN_VERTEX;
 			break;
@@ -1443,8 +1443,8 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 		case mod_sprite:
 			pass->flags = SHADERSTAGE_BLEND_ADD;
 			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
-			pass->rgbGen.type = RGBGEN_ENTITY;
-			pass->alphaGen.type = ALPHAGEN_ENTITY;
+			pass->rgbGen.type = RGBGEN_VERTEX;
+			pass->alphaGen.type = ALPHAGEN_VERTEX;
 			break;
 		}
 		break;

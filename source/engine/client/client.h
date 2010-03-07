@@ -356,6 +356,7 @@ extern cvar_t	*cl_crosshair;
 extern cvar_t	*cl_showmiss;
 extern cvar_t	*cl_particles;
 extern cvar_t	*cl_particlelod;
+extern cvar_t	*cl_draw_beams;
 extern cvar_t	*cl_testentities;
 extern cvar_t	*cl_testlights;
 extern cvar_t	*cl_testflashlight;
@@ -466,6 +467,26 @@ void CL_CenterPrint( const char *text, int y, int charWidth );
 bool CL_IsValidEdict( const edict_t *e );
 const char *CL_ClassName( const edict_t *e );
 void CL_SetEventIndex( const char *szEvName, int ev_index );
+
+// TriAPI implementation
+void TriRenderMode( kRenderMode_t mode );
+shader_t TriGetSpriteFrame( int spriteIndex, int spriteFrame );
+void TriBind( shader_t shader, int frame );
+void TriBegin( int mode );
+void TriEnd( void );
+void TriEnable( int cap );
+void TriDisable( int cap );
+void TriVertex3f( float x, float y, float z );
+void TriVertex3fv( const float *v );
+void TriNormal3f( float x, float y, float z );
+void TriNormal3fv( const float *v );
+void TriColor4f( float r, float g, float b, float a );
+void TriColor4ub( byte r, byte g, byte b, byte a );
+void TriTexCoord2f( float u, float v );
+void TriCullFace( int mode );
+void TriScreenToWorld( float *screen, float *world );
+int TriWorldToScreen( float *world, float *screen );
+void TriFog( float flFogColor[3], float flStart, float flEnd, int bOn );
 
 _inline edict_t *CL_EDICT_NUM( int n, const char *file, const int line )
 {
@@ -580,7 +601,6 @@ void CL_SpriteExplode( struct tempent_s *pTemp, float scale, int flags );
 void CL_SpriteSmoke( struct tempent_s *pTemp, float scale );
 void CL_SpriteSpray( float *pos, float *dir, int modelIndex, int count, int speed, int iRand );
 void CL_BloodSprite( float *org, int colorIndex, int modelIndex, float size );
-void CL_ClearBeams( void );
 
 //
 // cl_con.c

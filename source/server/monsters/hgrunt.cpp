@@ -2505,7 +2505,7 @@ void CHGruntRepel::RepelUse ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE
 
 	CBeam *pBeam = CBeam::BeamCreate( "sprites/rope.spr", 10 );
 	pBeam->PointEntInit( pev->origin + Vector( 0, 0, 112 ), pGrunt->edict() );
-	pBeam->SetFlags( BEAM_FSOLID );
+	pBeam->SetFlags( FBEAM_SOLID );
 	pBeam->SetColor( 255, 255, 255 );
 	pBeam->SetThink( Remove );
 	pBeam->SetNextThink( -4096.0 * tr.flFraction / pGrunt->pev->velocity.z + 0.5 );

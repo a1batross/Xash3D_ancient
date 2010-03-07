@@ -196,6 +196,16 @@ typedef enum
 	print_chat,	// level high
 } PRINT_TYPE;
 
+// model manager types
+typedef enum
+{
+	mod_bad,
+	mod_world,
+	mod_brush,
+	mod_studio,
+	mod_sprite
+} modtype_t;
+
 // monster's walkmove modes
 typedef enum
 {
@@ -258,21 +268,6 @@ typedef enum
 #define IN_RELOAD			(1<<13)
 #define IN_ALT1			(1<<14)
 #define IN_SCORE			(1<<15)   // Used by client.dll for when scoreboard is held down
-
-// beam types, encoded as a byte
-typedef enum 
-{
-	BEAM_POINTS = 0,
-	BEAM_ENTPOINT,
-	BEAM_ENTS,
-	BEAM_HOSE,
-} kBeamType_t;
-
-// lower bits encoded as kBeamType_t (max 8 types)
-#define BEAM_FSINE			(1<<3)
-#define BEAM_FSOLID			(1<<4)
-#define BEAM_FSHADEIN		(1<<5)
-#define BEAM_FSHADEOUT		(1<<6)
 
 // temp entity bounce sound types
 #define TE_BOUNCE_NULL		0

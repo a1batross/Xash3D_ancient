@@ -1069,9 +1069,9 @@ void CL_ParticleEffect( const vec3_t org, const vec3_t dir, int color, int count
 
 	for( i = 0; i < count; i++ )
 	{
-		src.origin[0] = org[0] + RANDOM_FLOAT( -8, 8 );
-		src.origin[1] = org[1] + RANDOM_FLOAT( -8, 8 );
-		src.origin[2] = org[2] + RANDOM_FLOAT( -8, 8 );
+		src.origin[0] = org[0] + Com_RandomFloat( -8, 8 );
+		src.origin[1] = org[1] + Com_RandomFloat( -8, 8 );
+		src.origin[2] = org[2] + Com_RandomFloat( -8, 8 );
 		src.velocity[0] = dir[0] * 15;
 		src.velocity[1] = dir[1] * 15;
 		src.velocity[2] = dir[2] * 15;
@@ -1082,7 +1082,7 @@ void CL_ParticleEffect( const vec3_t org, const vec3_t dir, int color, int count
 		VectorClear( src.colorVelocity );
 		VectorClear( src.accel );
 		src.alpha = 1.0;
-		src.alphaVelocity = -8.0 + RANDOM_FLOAT( 1.0, 5.0 ); // lifetime
+		src.alphaVelocity = -8.0 + Com_RandomFloat( 1.0, 5.0 ); // lifetime
 		src.radius = 1.0; // quake particles have constant sizes
 		src.radiusVelocity = 0;
 		src.length = 1;
@@ -1451,5 +1451,4 @@ void CL_ClearEffects( void )
 	CL_ClearDlights ();
 	CL_ClearLightStyles ();
 	CL_ClearDecals ();
-	CL_ClearBeams ();
 }

@@ -9,6 +9,7 @@
 #include "studio_ref.h"
 #include "hud.h"
 #include "r_particle.h"
+#include "r_beams.h"
 #include "ev_hldm.h"
 #include "pm_shared.h"
 #include "r_weather.h"
@@ -17,6 +18,7 @@ int		v_paused;
 cl_enginefuncs_t	g_engfuncs;
 cl_globalvars_t	*gpGlobals;
 movevars_t	*gpMovevars = NULL;
+ref_params_t	*gpViewParams = NULL;
 CHud gHUD;
 
 // main DLL entry point
@@ -75,6 +77,9 @@ int HUD_VidInit( void )
 	if( g_pParticleSystems )
 		g_pParticleSystems->ClearSystems();
 
+	if( g_pViewRenderBeams )
+		g_pViewRenderBeams->ClearBeams();
+
  	ResetRain ();
 	
 	gHUD.VidInit();
@@ -103,7 +108,16 @@ void HUD_Init( void )
 		g_pParticleSystems = NULL;
 	}
 
+	if ( g_pViewRenderBeams )
+	{
+		// init render beams
+		delete g_pViewRenderBeams;
+		g_pViewRenderBeams = NULL;
+	}
+
 	g_pParticleSystems = new ParticleSystemManager();
+	g_pViewRenderBeams = new CViewRenderBeams();
+
 	InitRain(); // init weather system
 
 	gHUD.Init();
@@ -141,6 +155,10 @@ int HUD_Redraw( float flTime, int state )
 		DrawPause();
 		break;
 	}
+
+	// clear list of server beams after each frame
+	if( v_paused == 0 ) g_pViewRenderBeams->ClearServerBeams( );
+
 	return 1;
 }
 
@@ -272,10 +290,21 @@ void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t 
 		sky->fov = ent->v.fov;
 		sky->scale = (ent->v.scale ? 1.0f / ent->v.scale : 0);	// critical stuff
 		break;
+	case ED_BEAM:
+		ent->v.oldorigin = state->oldorigin;	// beam endpoint
+		ent->v.frags = state->gaitsequence;
+		if( state->owner != -1 )
+			ent->v.owner = GetEntityByIndex( state->owner );
+		else ent->v.owner = NULL;
+		break;
 	default:
 		ent->v.movedir = Vector( 0, 0, 0 );
 		break;
 	}
+
+	// add env_beam to drawing list
+	if( state->ed_type == ED_BEAM )
+		g_pViewRenderBeams->AddServerBeam( ent );
 
 	for( i = 0; i < MAXSTUDIOBLENDS; i++ )
 	{

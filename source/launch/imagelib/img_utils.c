@@ -302,6 +302,8 @@ void Image_Init( void )
 	Cvar_SetValue( "png_compression", bound( 0, png_compression->integer, 9 ));
 	Cvar_SetValue( "jpg_quality", bound( 0, jpg_quality->integer, 10 ));
 
+	image.baseformats = load_xash;
+
 	// install image formats (can be re-install later by Image_Setup)
 	switch( Sys.app_name )
 	{
@@ -413,7 +415,7 @@ void Image_SetPalette( const byte *pal, uint *d_table )
 	switch( image.d_rendermode )
 	{
 	case LUMP_DECAL:
-		for(i = 0; i < 256; i++)
+		for( i = 0; i < 256; i++ )
 		{
 			rgba[3] = pal[765];
 			rgba[2] = pal[766];
@@ -423,7 +425,7 @@ void Image_SetPalette( const byte *pal, uint *d_table )
 		}
 		break;
 	case LUMP_TRANSPARENT:
-		for (i = 0; i < 256; i++)
+		for( i = 0; i < 256; i++ )
 		{
 			rgba[3] = pal[i*3+0];
 			rgba[2] = pal[i*3+1];

@@ -641,9 +641,11 @@ void _FS_FileBase( const char *in, char *out, bool kill_backwardslash )
 	int	len, start, end;
 
 	len = com.strlen( in );
+	if( !len ) return;
 	
 	// scan backward for '.'
 	end = len - 1;
+
 	while( end && in[end] != '.' && in[end] != '/' && in[end] != '\\' )
 		end--;
 	

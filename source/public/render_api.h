@@ -157,6 +157,7 @@ typedef struct render_exp_s
 
 	// triapi implementation
 	void	(*RenderMode)( const kRenderMode_t mode );
+	shader_t	(*GetSpriteTexture)( int spriteIndex, int spriteFrame );
 	void	(*Normal3f)( const float x, const float y, const float z );
 	void	(*Vertex3f)( const float x, const float y, const float z );
 	void	(*Color4ub)( const byte r, const byte g, const byte b, const byte a );
@@ -181,8 +182,10 @@ typedef struct render_exp_s
 	int	(*GetFragments)( const vec3_t org, float rad, vec3_t axis[3], int maxverts, vec3_t *verts, int maxfrags, fragment_t *frags );
 	int	(*WorldToScreen)( const float *world, float *screen );
 	void	(*ScreenToWorld)( const float *screen, float *world );
+	bool	(*CullBox)( const vec3_t mins, const vec3_t maxs );
 	bool 	(*RSpeedsMessage)( char *out, size_t size );
 	bool	(*Support)( int extension );
+	byte	*(*GetCurrentVis)( void );
 	void	(*RestoreGamma)( void );
 } render_exp_t;
 

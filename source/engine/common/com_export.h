@@ -9,6 +9,7 @@
 extern stdlib_api_t		com;
 extern physic_exp_t		*pe;
 extern vsound_exp_t		*se;
+extern render_exp_t	*re;
 
 //
 // physic.dll exports
@@ -181,6 +182,12 @@ _inline void *Mod_Extradata( model_t modelIndex )
 {
 	if( !pe )	return NULL;
 	return pe->Mod_Extradata( modelIndex );
+}
+
+_inline bool CM_BoxVisible( const vec3_t mins, const vec3_t maxs )
+{
+	if( !pe || !re ) return true;
+	return pe->BoxVisible( mins, maxs, re->GetCurrentVis());
 }
 
 //

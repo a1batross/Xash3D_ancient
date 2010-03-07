@@ -66,8 +66,6 @@ playermove_t *pmove = (playermove_t *)NULL;
 #define max( a, b )  (((a) > (b)) ? (a) : (b))
 #define min( a, b )  (((a) < (b)) ? (a) : (b))
 
-enum { mod_bad, mod_world, mod_brush, mod_studio, mod_sprite };
-
 static vec3_t	rgv3tStuckTable[54];
 static int	rgStuckLast[MAX_CLIENTS][2];
 
