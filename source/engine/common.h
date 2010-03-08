@@ -95,6 +95,11 @@ typedef struct host_parm_s
 extern host_parm_t	host;
 
 //
+// build.c
+//
+int com_buildnum( void );
+
+//
 // host.c
 //
 void Host_SetServerState( int state );

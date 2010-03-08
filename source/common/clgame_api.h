@@ -87,7 +87,11 @@ typedef struct cl_globalvars_s
 	BOOL		coop;
 	BOOL		teamplay;
 
+	ref_params_t	*pViewParms;	// just for easy acess on client
+
 	float		viewheight[PM_MAXHULLS]; // values from gameinfo.txt
+	vec3_t		hullmins[PM_MAXHULLS];
+	vec3_t		hullmaxs[PM_MAXHULLS];
 
 	int		serverflags;	// shared serverflags
 	int		maxClients;

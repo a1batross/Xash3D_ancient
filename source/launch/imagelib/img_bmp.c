@@ -129,20 +129,23 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 			switch( bhdr.bitsPerPixel )
 			{
 			case 8:
+				palIndex = *buf_p++;
+				red = palette[palIndex][2];
+				green = palette[palIndex][1];
+				blue = palette[palIndex][0];
+				alpha = palette[palIndex][3];
+										
 				if( image.cmd_flags & IL_KEEP_8BIT )
 				{
-					palIndex = *buf_p++;
 					*pixbuf++ = palIndex;
 				}
 				else
 				{
-					palIndex = *buf_p++;
-					*pixbuf++ = palette[palIndex][2];
-					*pixbuf++ = palette[palIndex][1];
-					*pixbuf++ = palette[palIndex][0];
-					*pixbuf++ = palette[palIndex][3];
+					*pixbuf++ = red;
+					*pixbuf++ = green;
+					*pixbuf++ = blue;
+					*pixbuf++ = alpha;
 				}
-				if( palIndex == 255 ) image.flags |= IMAGE_HAS_ALPHA;
 				break;
 			case 16:
 				shortPixel = *(word *)buf_p, buf_p += 2;
@@ -169,8 +172,7 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 				*pixbuf++ = green;
 				*pixbuf++ = blue;
 				*pixbuf++ = alpha;
-				if( alpha != 255 && alpha != 0 ) 
-					image.flags |= IMAGE_HAS_ALPHA;
+				if( alpha != 255 ) image.flags |= IMAGE_HAS_ALPHA;
 				break;
 			default:
 				MsgDev( D_ERROR, "Image_LoadBMP: illegal pixel_size (%s)\n", name );

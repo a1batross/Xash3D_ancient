@@ -2585,6 +2585,8 @@ bool CL_LoadProgs( const char *name )
 
 	// setup globals
 	clgame.globals = &gpGlobals;
+	cl.refdef.movevars = &clgame.movevars;
+	clgame.globals->pViewParms = &cl.refdef;
 
 	// initialize TriAPI
 	clgame.pmove = &gpMove;

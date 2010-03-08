@@ -6,6 +6,7 @@
 #ifndef R_BEAMS_H
 #define R_BEAMS_H
 
+#include "beam_def.h"
 #include "te_message.h"
 
 #define NOISE_DIVISIONS		128
@@ -217,16 +218,25 @@ public:
 	Beam_t		*CreateBeamCirclePoints( BeamInfo_t &beamInfo );
 	Beam_t		*CreateBeamFollow( BeamInfo_t &beamInfo );
 
-	void		CreateBeamEnts( int startEnt, int endEnt, int modelIndex, float life, float width,
+	Beam_t		*CreateBeamEnts( int startEnt, int endEnt, int modelIndex, float life, float width,
 			float endWidth, float fadeLength, float amplitude, float brightness, float speed,
 			int startFrame, float framerate, float r, float g, float b, int type = -1 );
-	void		CreateBeamEntPoint( int nStartEntity, const Vector *pStart, int nEndEntity,
+	Beam_t		*CreateBeamEnts( int startEnt, int endEnt, int modelIndex, float life, float width,
+			float amplitude, float brightness, float speed, int startFrame, float framerate,
+			float r, float g, float b );
+	Beam_t		*CreateBeamEntPoint( int nStartEntity, const Vector *pStart, int nEndEntity,
 			const Vector* pEnd, int modelIndex, float life, float width, float endWidth,
 			float fadeLength, float amplitude, float brightness, float speed, int startFrame, 
 			float framerate, float r, float g, float b );
-	void		CreateBeamPoints( Vector& start, Vector& end, int modelIndex, float life, float width,
+	Beam_t		*CreateBeamEntPoint( int startEnt, Vector end, int modelIndex, float life, float width,
+			float amplitude, float brightness, float speed, int startFrame, float framerate,
+			float r, float g, float b );
+	Beam_t		*CreateBeamPoints( Vector& start, Vector& end, int modelIndex, float life, float width,
 			float endWidth, float fadeLength, float amplitude, float brightness, float speed,
 			int startFrame, float framerate, float r, float g, float b );
+	Beam_t		*CreateBeamPoints( Vector start, Vector end, int modelIndex, float life, float width,
+			float amplitude, float brightness, float speed, int startFrame, float framerate,
+			float r, float g, float b );
 	void		CreateBeamRing( int startEnt, int endEnt, int modelIndex, float life, float width,
 			float endWidth, float fadeLength, float amplitude, float brightness, float speed,
 			int startFrame, float framerate, float r, float g, float b );

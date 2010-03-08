@@ -30,6 +30,8 @@ void HUD_MuzzleFlash( edict_t *m_pEnt, int iAttachment, const char *event )
 
 void HUD_CreateEntities( void )
 {
+	EV_UpdateBeams ();	// egon use this
+
 	// add in any game specific objects here
 	g_pViewRenderBeams->UpdateTempEntBeams( );
 }
@@ -37,7 +39,11 @@ void HUD_CreateEntities( void )
 int HUD_UpdateEntity( TEMPENTITY *pTemp, int framenumber )
 {
 	// before first frame when movevars not initialized
-	if( !gpMovevars ) return true;
+	if( !gpMovevars )
+	{
+		ALERT( at_error, "TempEntUpdate: no movevars!!!\n" );
+		return true;
+	}
 
 	float	gravity, gravitySlow, fastFreq;
 	float	frametime = gpGlobals->frametime;
@@ -738,6 +744,17 @@ void CL_PlaceDecal( Vector pos, Vector dir, float scale, HSPRITE hDecal )
 	float	rgba[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	int	flags = DECAL_FADEALPHA;
 
+	g_engfuncs.pEfxAPI->R_SetDecal( pos, dir, rgba, RANDOM_LONG( 0, 360 ), scale, hDecal, flags );
+}
+
+void CL_PlaceDecal( Vector pos, edict_t *pEntity, HSPRITE hDecal )
+{
+	float	rgba[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	int	flags = DECAL_FADEALPHA;
+	float	scale = 5.0f;	// FIXME
+	Vector	dir;
+
+	g_engfuncs.pEfxAPI->CL_FindExplosionPlane( pos, scale, dir );
 	g_engfuncs.pEfxAPI->R_SetDecal( pos, dir, rgba, RANDOM_LONG( 0, 360 ), scale, hDecal, flags );
 }
 

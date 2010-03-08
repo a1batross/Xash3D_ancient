@@ -174,6 +174,11 @@ extern float READ_ANGLE( void );
 extern Vector READ_DIR( void );
 extern void END_READ( void );
 
+// engine traces
+extern void UTIL_TraceLine( const Vector &vecStart, const Vector &vecEnd, IGNORE_MONSTERS igmon, edict_t *pentIgnore, TraceResult *ptr);
+extern void UTIL_TraceLine( const Vector &vecStart, const Vector &vecEnd, IGNORE_MONSTERS igmon, IGNORE_GLASS ignoreGlass, edict_t *pentIgnore, TraceResult *ptr);
+extern void UTIL_TraceHull( const Vector &vecStart, const Vector &vecEnd, IGNORE_MONSTERS igmon, int hullNumber, edict_t *pentIgnore, TraceResult *ptr);
+
 // drawing stuff
 extern client_sprite_t *SPR_GetList( const char *name, int *count );
 extern void ParseHudSprite( const char **pfile, char *psz, client_sprite_t *result );
@@ -200,10 +205,17 @@ extern int g_weaponselect;
 extern model_t g_muzzleFlash[4];
 extern int g_iAlive;		// indicates alive local client or not
 
+// tempents.c
+extern void HUD_MuzzleFlash( edict_t *m_pEnt, int iAttachment, const char *event );
+extern void CL_PlaceDecal( Vector pos, Vector dir, float scale, HSPRITE hDecal );
+extern void CL_PlaceDecal( Vector pos, edict_t *pEntity, HSPRITE hDecal );
+extern void CL_BulletParticles( const Vector org, const Vector dir );
+
 // input.cpp
 extern cvar_t	*v_centerspeed;
 extern cvar_t	*v_centermove;
 extern cvar_t	*cl_forwardspeed;
+extern cvar_t	*cl_lw;
 
 extern int CL_ButtonBits( int bResetState );
 extern void CL_ResetButtonBits( int bits );

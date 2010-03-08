@@ -424,9 +424,9 @@ void Con_DrawSolidConsole( float frac )
 
 	// draw current time
 	re->SetColor( g_color_table[ColorIndex(COLOR_YELLOW)] );
-	com.snprintf( curtime, MAX_STRING, "%s ", timestamp( TIME_TIME_ONLY ));
+	com.snprintf( curtime, MAX_STRING, "Xash3D %g (build %i)", SI->version, com_buildnum( ));
 	i = com.strlen( curtime );
-	for (x = 0; x < i; x++)
+	for( x = 0; x < i; x++ )
 		SCR_DrawSmallChar( scr_width->integer - ( i - x ) * SMALLCHAR_WIDTH, (lines - (SMALLCHAR_HEIGHT+SMALLCHAR_HEIGHT/2)), curtime[x] );
 	re->SetColor(NULL);
 
@@ -542,12 +542,12 @@ void Con_RunConsole( void )
 	if( cls.key_dest == key_console )
 	{
 		if( cls.state == ca_disconnected )
-			con.finalFrac = 1.0;// full screen
-		else con.finalFrac = 0.5;	// half screen	
+			con.finalFrac = 1.0f;// full screen
+		else con.finalFrac = 0.5f;	// half screen	
 	}
 	else con.finalFrac = 0; // none visible
 
-	if (con.finalFrac < con.displayFrac)
+	if( con.finalFrac < con.displayFrac )
 	{
 		con.displayFrac -= con_speed->value * cls.frametime;
 		if( con.finalFrac > con.displayFrac )

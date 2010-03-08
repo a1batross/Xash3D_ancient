@@ -411,11 +411,6 @@ extern void UTIL_ScreenFade( const Vector &color, float fadeTime, float fadeHold
 extern void	UTIL_SetFog		( Vector color, int iFadeTime, int iStartDist, int iEndDist, int playernum = 1 );	
 extern void	UTIL_SetFogAll		( Vector color, int iFadeTime, int iStartDist, int iEndDist );
 
-// hull enumerator
-typedef enum { point_hull = 0, human_hull = 1, large_hull = 2, head_hull = 3 };
-typedef enum { ignore_monsters = 1, dont_ignore_monsters = 0, missile = 2 } IGNORE_MONSTERS;
-typedef enum { ignore_glass = 1, dont_ignore_glass = 0 } IGNORE_GLASS;
-
 extern void			UTIL_TraceLine			(const Vector &vecStart, const Vector &vecEnd, IGNORE_MONSTERS igmon, edict_t *pentIgnore, TraceResult *ptr);
 extern void			UTIL_TraceLine			(const Vector &vecStart, const Vector &vecEnd, IGNORE_MONSTERS igmon, IGNORE_GLASS ignoreGlass, edict_t *pentIgnore, TraceResult *ptr);
 extern void			UTIL_TraceHull			(const Vector &vecStart, const Vector &vecEnd, IGNORE_MONSTERS igmon, int hullNumber, edict_t *pentIgnore, TraceResult *ptr);

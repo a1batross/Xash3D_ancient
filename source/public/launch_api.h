@@ -236,6 +236,7 @@ typedef struct gameinfo_s
 
 	int		viewmode;
 	int		gamemode;
+	int		sp_inhibite_ents;	// allows spawnflags to inhibite entities like in q1
 
 	string		sp_entity;	// e.g. info_player_start
 	string		dm_entity;	// e.g. info_player_deathmatch

@@ -67,7 +67,10 @@ int CreateAPI( HUD_FUNCTIONS *pFunctionTable, cl_enginefuncs_t* pEngfuncsFromEng
 	// copy HUD_FUNCTIONS table to engine, copy engfuncs table from engine
 	memcpy( pFunctionTable, &gFunctionTable, sizeof( HUD_FUNCTIONS ));
 	memcpy( &g_engfuncs, pEngfuncsFromEngine, sizeof( cl_enginefuncs_t ));
+
 	gpGlobals = pGlobals;
+	gpViewParams = gpGlobals->pViewParms;
+	gpMovevars = gpViewParams->movevars;
 
 	return TRUE;
 }

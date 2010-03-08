@@ -15,8 +15,6 @@
 #define ORIGIN_BACKUP	64
 #define ORIGIN_MASK		( ORIGIN_BACKUP - 1 )
 
-extern ref_params_t		*gpViewParams;
-
 // global view containers
 Vector	v_origin, v_angles, v_cl_angles;	// base client vectors
 float	v_idlescale, v_lastDistance;		// misc variables
@@ -109,6 +107,18 @@ void V_FirstPerson( void )
 	if( !gHUD.viewFlags )
 		gHUD.m_iLastCameraMode = gHUD.m_iCameraMode = 0;
 	else gHUD.m_iLastCameraMode = 0; // set new view after release camera
+}
+
+/*
+=============
+V_PunchAxis
+
+Client side punch effect
+=============
+*/
+void V_PunchAxis( int axis, float punch )
+{
+	ev_punchangle[axis] = punch;
 }
 
 //==========================
@@ -1009,9 +1019,6 @@ bool V_CalcSkyRefdef( ref_params_t *pparams )
 
 void V_CalcRefdef( ref_params_t *pparams )
 {
-	gpMovevars = pparams->movevars;	// keep movevars an actual
-	gpViewParams = pparams;
-
 	V_CalcNextView( pparams );
 	
 	if( V_CalcSkyRefdef( pparams ))

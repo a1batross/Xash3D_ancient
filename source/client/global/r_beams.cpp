@@ -5,7 +5,6 @@
 
 #include "extdll.h"
 #include "utils.h"
-#include "beam_def.h"
 #include "triangle_api.h"
 #include "effects_api.h"
 #include "ref_params.h"
@@ -563,7 +562,7 @@ Beam_t *CViewRenderBeams::CreateGenericBeam( BeamInfo_t &beamInfo )
 //			BEAMENT_ENTITY(startEnt - 
 // Output : Beam_t
 //-----------------------------------------------------------------------------
-void CViewRenderBeams::CreateBeamEnts( int startEnt, int endEnt, int modelIndex, float life,
+Beam_t *CViewRenderBeams::CreateBeamEnts( int startEnt, int endEnt, int modelIndex, float life,
 	float width, float endWidth, float fadeLength, float amplitude, float brightness,
 	float speed, int startFrame, float framerate, float r, float g, float b, int type )
 {
@@ -588,7 +587,7 @@ void CViewRenderBeams::CreateBeamEnts( int startEnt, int endEnt, int modelIndex,
 	beamInfo.m_flGreen = g;
 	beamInfo.m_flBlue = b;
 
-	CreateBeamEnts( beamInfo );
+	return CreateBeamEnts( beamInfo );
 }
 
 //-----------------------------------------------------------------------------
@@ -647,9 +646,9 @@ Beam_t *CViewRenderBeams::CreateBeamEnts( BeamInfo_t &beamInfo )
 //			b - 
 // Output : Beam_t
 //-----------------------------------------------------------------------------
-void CViewRenderBeams::CreateBeamEntPoint( int nStartEntity, const Vector *pStart, int nEndEntity, const Vector* pEnd,
-		int modelIndex, float life,  float width, float endWidth, float fadeLength, float amplitude,
-		float brightness, float speed, int startFrame, float framerate, float r, float g, float b )
+Beam_t *CViewRenderBeams::CreateBeamEntPoint( int nStartEntity, const Vector *pStart, int nEndEntity,
+	const Vector* pEnd, int modelIndex, float life,  float width, float endWidth, float fadeLength,
+	float amplitude, float brightness, float speed, int startFrame, float framerate, float r, float g, float b )
 {
 	BeamInfo_t beamInfo;
 
@@ -665,7 +664,7 @@ void CViewRenderBeams::CreateBeamEntPoint( int nStartEntity, const Vector *pStar
 
 		// don't start beams out of the PVS
 		if ( !beamInfo.m_pStartEnt )
-			return;
+			return NULL;
 	}
 
 	if ( nEndEntity <= 0 )
@@ -680,7 +679,7 @@ void CViewRenderBeams::CreateBeamEntPoint( int nStartEntity, const Vector *pStar
 
 		// Don't start beams out of the PVS
 		if ( !beamInfo.m_pEndEnt )
-			return;
+			return NULL;
 	}
 
 	beamInfo.m_nModelIndex = modelIndex;
@@ -697,9 +696,31 @@ void CViewRenderBeams::CreateBeamEntPoint( int nStartEntity, const Vector *pStar
 	beamInfo.m_flGreen = g;
 	beamInfo.m_flBlue = b;
 
-	CreateBeamEntPoint( beamInfo );
+	return CreateBeamEntPoint( beamInfo );
 }
 
+Beam_t *CViewRenderBeams::CreateBeamEntPoint( int startEnt, Vector end, int modelIndex, float life, float width,
+			float amplitude, float brightness, float speed, int startFrame, float framerate,
+			float r, float g, float b )
+{
+	return CreateBeamEntPoint( startEnt, NULL, 0, &end, modelIndex, life, width, width, 0.0f, amplitude,
+	brightness, speed, startFrame, framerate, r, g, b );
+}
+
+Beam_t *CViewRenderBeams::CreateBeamEnts( int startEnt, int endEnt, int modelIndex, float life, float width,
+	float amplitude, float brightness, float speed, int startFrame, float framerate, float r, float g, float b )
+{
+	return CreateBeamEnts( startEnt, endEnt, modelIndex, life, width, width, 0.0f, amplitude, brightness, speed,
+	startFrame, framerate, r, g, b );
+}
+
+Beam_t *CViewRenderBeams::CreateBeamPoints( Vector start, Vector end, int modelIndex, float life, float width,
+	float amplitude, float brightness, float speed, int startFrame, float framerate, float r, float g, float b )
+{
+	return CreateBeamPoints( start, end, modelIndex, life, width, width, 0.0f, amplitude, brightness, speed,
+	startFrame, framerate, r, g, b );
+}
+	
 //-----------------------------------------------------------------------------
 // Purpose: Creates a beam between an entity and a point.
 //-----------------------------------------------------------------------------
@@ -764,7 +785,7 @@ Beam_t *CViewRenderBeams::CreateBeamEntPoint( BeamInfo_t &beamInfo )
 //			b - 
 // Output : Beam_t
 //-----------------------------------------------------------------------------
-void CViewRenderBeams::CreateBeamPoints( Vector& start, Vector& end, int modelIndex, float life, float width, 
+Beam_t *CViewRenderBeams::CreateBeamPoints( Vector& start, Vector& end, int modelIndex, float life, float width, 
 		float endWidth, float fadeLength,float amplitude, float brightness, float speed, int startFrame, 
 		float framerate, float r, float g, float b )
 {
@@ -786,7 +807,7 @@ void CViewRenderBeams::CreateBeamPoints( Vector& start, Vector& end, int modelIn
 	beamInfo.m_flGreen = g;
 	beamInfo.m_flBlue = b;
 
-	CreateBeamPoints( beamInfo );
+	return CreateBeamPoints( beamInfo );
 }
 
 //-----------------------------------------------------------------------------
@@ -1665,7 +1686,7 @@ void CViewRenderBeams::UpdateBeams( int fTrans )
 		// Need to store the next one since we may delete this one
 		pNext = pBeam->next;
 
-		if( fTrans ^ pBeam->flags & FBEAM_SOLID )
+		if( (fTrans && pBeam->flags & FBEAM_SOLID) || (!fTrans && !(pBeam->flags & FBEAM_SOLID)))
 			continue;
 
 		// Update beam state

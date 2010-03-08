@@ -576,12 +576,13 @@ brush_t *FinishBrush( void )
 			VectorSet( movedir, 0.0f, 0.0f, 1.0f );	// z-rotate
 		else VectorClear( movedir ); // custom movedir
 
+#if 0
 		if( !VectorIsNull( movedir ))
 		{
 			com.snprintf( string, sizeof( string ), "%i %i %i", (int)movedir[0], (int)movedir[1], (int)movedir[2] );
 			SetKeyValue( &entities[numEntities - 1], "movedir", string );
 		}
-
+#endif
 		if(!VectorIsNull( origin ))
 		{
 			com.snprintf( string, sizeof( string ), "%i %i %i", (int)origin[0], (int)origin[1], (int)origin[2] );

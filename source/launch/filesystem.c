@@ -1443,6 +1443,7 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 	GameInfo->version = 1.0;
 	GameInfo->viewheight[0] = 28.0f;
 	GameInfo->viewheight[1] = 12.0f;
+	GameInfo->sp_inhibite_ents = false;
 	
 	com.strncpy( GameInfo->texmode, "Xash3D", MAX_STRING );
 	com.strncpy( GameInfo->sp_entity, "info_player_start", MAX_STRING );
@@ -1538,6 +1539,11 @@ static bool FS_ParseGameInfo( const char *filename, gameinfo_t *GameInfo )
 		{
 			PS_ReadToken( script, 0, &token );
 			GameInfo->size = com.atoi( token.string );
+		}
+		else if( !com.stricmp( token.string, "allow_inhibited_entities" ))
+		{
+			MsgDev( D_INFO, "GameInfo: Q1-like inhibite entities mode enabled\n" );
+			GameInfo->sp_inhibite_ents = true;
 		}
 		else if( !com.stricmp( token.string, "max_edicts" ))
 		{

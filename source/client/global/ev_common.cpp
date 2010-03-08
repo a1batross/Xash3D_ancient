@@ -12,6 +12,21 @@ extern "C"
 {
 	void EV_EjectBrass( event_args_t *args );
 	void EV_FireNull( event_args_t *args );
+	void EV_FireCrowbar( event_args_t *args );
+	void EV_PlayEmptySound( event_args_t *args );
+	void EV_FireGlock1( event_args_t *args  );
+	void EV_FireMP5( event_args_t *args  );
+	void EV_FirePython( event_args_t *args  );
+	void EV_FireGauss( event_args_t *args  );
+	void EV_SpinGauss( event_args_t *args  );
+	void EV_EgonFire( event_args_t *args );
+	void EV_EgonStop( event_args_t *args );
+	void EV_FireShotGunSingle( event_args_t *args  );
+	void EV_FireShotGunDouble( event_args_t *args  );
+	void EV_SnarkFire( event_args_t *args );
+	void EV_TrainPitchAdjust( event_args_t *args );
+	void EV_Decals( event_args_t *args );
+	void EV_Explode( event_args_t *args );
 }
 
 //======================
@@ -20,6 +35,22 @@ extern "C"
 void EV_HookEvents( void )
 {
 	g_engfuncs.pEventAPI->EV_HookEvent( "evEjectBrass", EV_EjectBrass );
+	g_engfuncs.pEventAPI->EV_HookEvent( "evNull", EV_FireNull );
+	g_engfuncs.pEventAPI->EV_HookEvent( "evCrowbar", EV_FireCrowbar );
+	g_engfuncs.pEventAPI->EV_HookEvent( "evEmptySound", EV_PlayEmptySound );
+	g_engfuncs.pEventAPI->EV_HookEvent( "evGlock1", EV_FireGlock1 );
+	g_engfuncs.pEventAPI->EV_HookEvent( "evShotgun1", EV_FireShotGunSingle );
+	g_engfuncs.pEventAPI->EV_HookEvent( "evShotgun2", EV_FireShotGunDouble );
+	g_engfuncs.pEventAPI->EV_HookEvent( "evMP5", EV_FireMP5 );
+	g_engfuncs.pEventAPI->EV_HookEvent( "evExplode", EV_Explode );
+	g_engfuncs.pEventAPI->EV_HookEvent( "evPython", EV_FirePython );
+	g_engfuncs.pEventAPI->EV_HookEvent( "evGauss", EV_FireGauss );
+	g_engfuncs.pEventAPI->EV_HookEvent( "evGaussSpin", EV_SpinGauss );
+	g_engfuncs.pEventAPI->EV_HookEvent( "evEgonFire", EV_EgonFire );
+	g_engfuncs.pEventAPI->EV_HookEvent( "evEgonStop", EV_EgonStop );
+	g_engfuncs.pEventAPI->EV_HookEvent( "evTrain", EV_TrainPitchAdjust );
+	g_engfuncs.pEventAPI->EV_HookEvent( "evSnarkFire", EV_SnarkFire );
+	g_engfuncs.pEventAPI->EV_HookEvent( "evDecals", EV_Decals );
 }
 
 //=================
@@ -149,4 +180,9 @@ void HUD_CmdStart( const edict_t *player, int runfuncs )
 
 void HUD_CmdEnd( const edict_t *player, const usercmd_t *cmd, unsigned int random_seed )
 {
+	// Offset final origin by view_offset
+	if( cl_lw->integer )
+	{
+		previousorigin = player->v.origin + player->v.view_ofs;
+	}
 }

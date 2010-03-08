@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "common.h"
 #include "ui_local.h"
+#include "input.h"
 #include "client.h"
 
 #define ART_BANNER		"gfx/shell/head_custom"
@@ -31,6 +32,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ID_GOTOSITE		4
 #define ID_MODLIST		5
 #define ID_TABLEHINT	6
+#define ID_MSGBOX	 	7
+#define ID_MSGTEXT	 	8
+#define ID_YES	 	9
+#define ID_NO	 	10
 
 #define TYPE_LENGTH		10
 #define NAME_LENGTH		32+TYPE_LENGTH
@@ -52,12 +57,61 @@ typedef struct
 	menuAction_s	go2url;
 	menuAction_s	done;
 
+	// prompt dialog
+	menuAction_s	msgBox;
+	menuAction_s	promptMessage;
+	menuAction_s	yes;
+	menuAction_s	no;
+
 	menuScrollList_s	modList;
 	menuAction_s	hintMessage;
 	char		hintText[MAX_SYSPATH];
 } uiCustomGame_t;
 
 static uiCustomGame_t	uiCustomGame;
+
+/*
+=================
+UI_MsgBox_Ownerdraw
+=================
+*/
+static void UI_MsgBox_Ownerdraw( void *self )
+{
+	menuCommon_s	*item = (menuCommon_s *)self;
+
+	UI_FillRect( item->x, item->y, item->width, item->height, uiPromptBgColor );
+}
+
+static void UI_EndGameDialog( void )
+{
+	// toggle main menu between active\inactive
+	// show\hide delete dialog
+	uiCustomGame.load.generic.flags ^= QMF_INACTIVE; 
+	uiCustomGame.go2url.generic.flags ^= QMF_INACTIVE;
+	uiCustomGame.done.generic.flags ^= QMF_INACTIVE;
+	uiCustomGame.modList.generic.flags ^= QMF_INACTIVE;
+
+	uiCustomGame.msgBox.generic.flags ^= QMF_HIDDEN;
+	uiCustomGame.promptMessage.generic.flags ^= QMF_HIDDEN;
+	uiCustomGame.no.generic.flags ^= QMF_HIDDEN;
+	uiCustomGame.yes.generic.flags ^= QMF_HIDDEN;
+
+}
+
+/*
+=================
+UI_LoadGame_KeyFunc
+=================
+*/
+static const char *UI_CustomGame_KeyFunc( int key, bool down )
+{
+	if( down && key == K_ESCAPE && uiCustomGame.load.generic.flags & QMF_INACTIVE )
+	{
+		UI_EndGameDialog();
+		return uiSoundNull;
+	}
+	return UI_DefaultKey( &uiCustomGame.menu, key, down );
+}
 
 /*
 =================
@@ -135,11 +189,16 @@ static void UI_CustomGame_Callback( void *self, int event )
 			Sys_ShellExecute( uiCustomGame.modsWebSites[uiCustomGame.modList.curItem], NULL, false );
 		break;
 	case ID_ACTIVATE:
+	case ID_NO:
 		if( cls.state == ca_active )
+		{
+			UI_EndGameDialog();
 			break;	// don't fuck up the game
-
+		}
+	case ID_YES:
 		// restart all engine systems with new game
 		Cbuf_ExecuteText( EXEC_APPEND, va( "game %s\n", uiCustomGame.modsDir[uiCustomGame.modList.curItem] ));
+		UI_EndGameDialog();
 		break;
 	}
 }
@@ -152,6 +211,8 @@ UI_CustomGame_Init
 static void UI_CustomGame_Init( void )
 {
 	Mem_Set( &uiCustomGame, 0, sizeof( uiCustomGame_t ));
+
+	uiCustomGame.menu.keyFunc = UI_CustomGame_KeyFunc;
 
 	com.strncat( uiCustomGame.hintText, "Type", TYPE_LENGTH );
 	com.strncat( uiCustomGame.hintText, uiEmptyString, TYPE_LENGTH );
@@ -224,6 +285,38 @@ static void UI_CustomGame_Init( void )
 	uiCustomGame.modList.generic.height = 440;
 	uiCustomGame.modList.generic.callback = UI_CustomGame_Callback;
 
+	uiCustomGame.msgBox.generic.id = ID_MSGBOX;
+	uiCustomGame.msgBox.generic.type = QMTYPE_ACTION;
+	uiCustomGame.msgBox.generic.flags = QMF_INACTIVE|QMF_HIDDEN;
+	uiCustomGame.msgBox.generic.ownerdraw = UI_MsgBox_Ownerdraw; // just a fill rectangle
+	uiCustomGame.msgBox.generic.x = 192;
+	uiCustomGame.msgBox.generic.y = 256;
+	uiCustomGame.msgBox.generic.width = 640;
+	uiCustomGame.msgBox.generic.height = 256;
+
+	uiCustomGame.promptMessage.generic.id = ID_MSGBOX;
+	uiCustomGame.promptMessage.generic.type = QMTYPE_ACTION;
+	uiCustomGame.promptMessage.generic.flags = QMF_INACTIVE|QMF_DROPSHADOW|QMF_HIDDEN;
+	uiCustomGame.promptMessage.generic.name = "Leave current game?";
+	uiCustomGame.promptMessage.generic.x = 315;
+	uiCustomGame.promptMessage.generic.y = 280;
+
+	uiCustomGame.yes.generic.id = ID_YES;
+	uiCustomGame.yes.generic.type = QMTYPE_ACTION;
+	uiCustomGame.yes.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_HIDDEN;
+	uiCustomGame.yes.generic.name = "Ok";
+	uiCustomGame.yes.generic.x = 380;
+	uiCustomGame.yes.generic.y = 460;
+	uiCustomGame.yes.generic.callback = UI_CustomGame_Callback;
+
+	uiCustomGame.no.generic.id = ID_NO;
+	uiCustomGame.no.generic.type = QMTYPE_ACTION;
+	uiCustomGame.no.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_HIDDEN;
+	uiCustomGame.no.generic.name = "Cancel";
+	uiCustomGame.no.generic.x = 530;
+	uiCustomGame.no.generic.y = 460;
+	uiCustomGame.no.generic.callback = UI_CustomGame_Callback;
+
 	UI_CustomGame_GetModList();
 
 	UI_AddItem( &uiCustomGame.menu, (void *)&uiCustomGame.background );
@@ -233,6 +326,10 @@ static void UI_CustomGame_Init( void )
 	UI_AddItem( &uiCustomGame.menu, (void *)&uiCustomGame.done );
 	UI_AddItem( &uiCustomGame.menu, (void *)&uiCustomGame.hintMessage );
 	UI_AddItem( &uiCustomGame.menu, (void *)&uiCustomGame.modList );
+	UI_AddItem( &uiCustomGame.menu, (void *)&uiCustomGame.msgBox );
+	UI_AddItem( &uiCustomGame.menu, (void *)&uiCustomGame.promptMessage );
+	UI_AddItem( &uiCustomGame.menu, (void *)&uiCustomGame.no );
+	UI_AddItem( &uiCustomGame.menu, (void *)&uiCustomGame.yes );
 }
 
 /*

@@ -823,7 +823,7 @@ void SV_ClassifyEdict( edict_t *ent, int m_iNewClass )
 	if( sv_ent->s.ed_type != ED_SPAWNED )
 	{
 		// or leave unclassified, wait for next SV_LinkEdict...
-		// Msg( "AutoClass: %s: <%s>\n", STRING( ent->v.classname ), ed_name[sv_ent->s.ed_type] );
+		Msg( "AutoClass: %s: <%s>\n", STRING( ent->v.classname ), ed_name[sv_ent->s.ed_type] );
 	}
 }
 
@@ -3721,19 +3721,19 @@ void SV_LoadFromFile( script_t *entities )
 				continue;
 			}
 		}
-		else if( current_skill == 0 && ent->v.spawnflags & SF_NOT_EASY )
+		else if( GI->sp_inhibite_ents && current_skill == 0 && ent->v.spawnflags & SF_NOT_EASY )
 		{
 			SV_FreeEdict( ent );
 			inhibited++;
 			continue;
 		}
-		else if( current_skill == 1 && ent->v.spawnflags & SF_NOT_MEDIUM )
+		else if( GI->sp_inhibite_ents && current_skill == 1 && ent->v.spawnflags & SF_NOT_MEDIUM )
 		{
 			SV_FreeEdict( ent );
 			inhibited++;
 			continue;
 		}
-		else if( current_skill >= 2 && ent->v.spawnflags & SF_NOT_HARD )
+		else if( GI->sp_inhibite_ents && current_skill >= 2 && ent->v.spawnflags & SF_NOT_HARD )
 		{
 			SV_FreeEdict( ent );
 			inhibited++;

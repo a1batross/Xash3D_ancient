@@ -114,6 +114,10 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;hpj;bat;for;f90"
 # Begin Source File
 
+SOURCE=.\build.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\common\cinematic.c
 # End Source File
 # Begin Source File

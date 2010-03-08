@@ -480,6 +480,11 @@ static void PM_CheckMovingGround( edict_t *ent, float frametime )
 
 static void PM_SetupMove( playermove_t *pmove, edict_t *clent, usercmd_t *ucmd, const char *physinfo )
 {
+	edict_t	*ent;
+	float	eorg, distSquared;
+	float	flRadius = 12.0f;
+	int	j, e;
+
 	pmove->multiplayer = (sv_maxclients->integer > 1) ? true : false;
 	pmove->serverflags = svgame.globals->serverflags;	// shared serverflags
 	pmove->maxspeed = svgame.movevars.maxspeed;
@@ -499,6 +504,39 @@ static void PM_SetupMove( playermove_t *pmove, edict_t *clent, usercmd_t *ucmd, 
 	VectorCopy( clent->v.movedir, pmove->movedir );
 	VectorCopy( clent->v.velocity, pmove->velocity );
 	VectorCopy( clent->v.basevelocity, pmove->basevelocity );
+
+	flRadius *= flRadius;
+	pmove->numladders = 0;
+
+	// build list of ladders around player
+	for( e = 1; e < svgame.globals->numEntities; e++ )
+	{
+		if( pmove->numladders >= MAX_LADDERS )
+		{
+			MsgDev( D_ERROR, "PM_PlayerMove: too many ladders in PVS\n" );
+			break;
+		}
+
+		ent = EDICT_NUM( e );
+		if( ent->free ) continue;
+
+		distSquared = 0;
+		for( j = 0; j < 3 && distSquared <= flRadius; j++ )
+		{
+			if( pmove->origin[j] < ent->v.absmin[j] )
+				eorg = pmove->origin[j] - ent->v.absmin[j];
+			else if( pmove->origin[j] > ent->v.absmax[j] )
+				eorg = pmove->origin[j] - ent->v.absmax[j];
+			else eorg = 0;
+
+			distSquared += eorg * eorg;
+		}
+		if( distSquared > flRadius )
+			continue;
+		if( ent->v.skin != CONTENTS_LADDER )
+			continue;
+		pmove->ladders[pmove->numladders++] = ent;
+	}
 }
 
 static void PM_FinishMove( playermove_t *pmove, edict_t *clent )
