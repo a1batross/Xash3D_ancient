@@ -14,7 +14,6 @@
 #include "pm_shared.h"
 #include "r_weather.h"
 
-int		v_paused;
 cl_enginefuncs_t	g_engfuncs;
 cl_globalvars_t	*gpGlobals;
 movevars_t	*gpMovevars = NULL;
@@ -35,6 +34,7 @@ static HUD_FUNCTIONS gFunctionTable =
 	HUD_Redraw,
 	HUD_UpdateEntityVars,
 	HUD_Reset,
+	HUD_StartFrame,
 	HUD_Frame,
 	HUD_Shutdown,
 	HUD_RenderCallback,
@@ -145,23 +145,16 @@ int HUD_Redraw( float flTime, int state )
 	switch( state )
 	{
 	case CL_LOADING:
-		v_paused = 0;
 		DrawProgressBar();
 		break;
 	case CL_ACTIVE:
-		v_paused = 0;
 		gHUD.Redraw( flTime );
 		break;
 	case CL_PAUSED:
-		v_paused = 1;
 		gHUD.Redraw( flTime );
 		DrawPause();
 		break;
 	}
-
-	// clear list of server beams after each frame
-	if( v_paused == 0 ) g_pViewRenderBeams->ClearServerBeams( );
-
 	return 1;
 }
 
@@ -327,6 +320,13 @@ void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t 
 void HUD_Reset( void )
 {
 	gHUD.VidInit();
+}
+
+
+void HUD_StartFrame( void )
+{
+	// clear list of server beams after each frame
+	g_pViewRenderBeams->ClearServerBeams( );
 }
 
 void HUD_Frame( double time )

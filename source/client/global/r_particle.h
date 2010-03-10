@@ -83,7 +83,7 @@ class ParticleType
 {
 public:
 	ParticleType( ParticleType *pNext = NULL );
-	ParticleType(char *szFilename);
+	ParticleType( char *szFilename );
 
 	bool		m_bIsDefined; // is this ParticleType just a placeholder?
 	kRenderMode_t	m_iRenderMode;
@@ -127,7 +127,7 @@ public:
 	RandomRange m_WindStrength;
 	RandomRange m_WindYaw;
 
-	HSPRITE m_hSprite;
+	int m_SpriteIndex;
 	ParticleType *m_pOverlayType;
 
 	RandomRange m_Drag;

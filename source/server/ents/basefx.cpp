@@ -23,7 +23,7 @@ class CBaseParticle : public CBaseLogic
 {
 public:
 	void Spawn( void );
-	void Precache( void ){ pev->netname = UTIL_PrecacheAurora( pev->message ); }
+	void Precache( void ){ pev->message = UTIL_PrecacheAurora( pev->message ); }
 	void KeyValue( KeyValueData *pkvd );
 	void PostActivate( void ){ Switch(); }
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
@@ -48,14 +48,14 @@ void CBaseParticle::Switch( void )
 		CBaseEntity *pTarget = UTIL_FindEntityByTargetname( NULL, STRING( pev->target ), m_hActivator );
 		while ( pTarget )
 		{
-			UTIL_SetAurora( pTarget, pev->netname );
+			UTIL_SetAurora( pTarget, pev->message );
 			pTarget->pev->renderfx = renderfx;
 			pTarget = UTIL_FindEntityByTargetname( pTarget, STRING( pev->target ), m_hActivator );
 		}
 	}
 	else
 	{
-		UTIL_SetAurora( this, pev->netname );
+		UTIL_SetAurora( this, pev->message );
 		pev->renderfx = renderfx;
 	}
 }
@@ -64,9 +64,10 @@ void CBaseParticle::Spawn( void )
 {
 	Precache();
 
-	UTIL_SetModel( edict(), "sprites/null.spr" );
-	UTIL_SetOrigin( this, pev->origin );
+	SetObjectClass( ED_NORMAL );
+
 	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NOCLIP;
 
 	if( pev->spawnflags & SF_START_ON || FStringNull( pev->targetname ))
 		m_iState = STATE_ON;

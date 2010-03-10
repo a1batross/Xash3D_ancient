@@ -41,6 +41,7 @@ server\ents\
 server\game\
 server\global\
 server\monsters\
+spirit\
 snd_al\
 snd_dx\
 vid_gl\

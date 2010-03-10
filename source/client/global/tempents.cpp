@@ -8,7 +8,7 @@
 #include "studio_event.h"
 #include "effects_api.h"
 #include "pm_movevars.h"
-#include "te_message.h"
+#include "tempents.h"
 #include "ev_hldm.h"
 #include "r_beams.h"
 #include "hud.h"
@@ -812,6 +812,33 @@ void HUD_AddClientMessage( void )
 	gHUD.m_Message.MessageAdd( msg );
 }
 
+/*
+---------------
+TE_ParseBeamFollow
+
+create a line of decaying beam segments until entity stops moving
+---------------
+*/
+void TE_ParseBeamFollow( void )
+{
+	int entityIndex, modelIndex;
+	float life, width, brightness;
+	Vector color;
+
+	entityIndex = READ_SHORT();
+	modelIndex = READ_SHORT();
+	life = (float)READ_BYTE();
+	width = (float)READ_BYTE();
+
+	// parse color
+	color.x = READ_BYTE();
+	color.y = READ_BYTE();
+	color.z = READ_BYTE();
+	brightness = READ_BYTE();
+
+	g_pViewRenderBeams->CreateBeamFollow( entityIndex, modelIndex, life, width, width, 0.0f, color.x, color.y, color.z, brightness );
+}
+
 void HUD_ParseTempEntity( void )
 {
 	TEMPENTITY *pTemp;
@@ -822,6 +849,9 @@ void HUD_ParseTempEntity( void )
 
 	switch( READ_BYTE() )
 	{
+	case TE_BEAMFOLLOW:
+		TE_ParseBeamFollow();
+		break;
 	case TE_GUNSHOT:
 		pos.x = READ_COORD();
 		pos.y = READ_COORD();
@@ -980,7 +1010,7 @@ void HUD_ParseTempEntity( void )
 		pos.y = READ_COORD();
 		pos.z = READ_COORD();
 		modelIndex = READ_SHORT();
-		READ_SHORT();		// FIXME: skup droplet blood sprite
+		READ_SHORT();		// FIXME: skip droplet blood sprite
 		iColor = READ_BYTE();
 		scale = READ_BYTE();	// scale
 		g_engfuncs.pEfxAPI->R_BloodSprite( pos, iColor, modelIndex, scale );

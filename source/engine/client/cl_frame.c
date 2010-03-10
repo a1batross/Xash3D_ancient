@@ -341,6 +341,7 @@ void CL_AddEntities( void )
 
 	cl.render_flags = 0;
 
+	clgame.dllFuncs.pfnStartFrame();	// new frame has begin
 	CL_AddPacketEntities( &cl.frame );
 	clgame.dllFuncs.pfnCreateEntities();
 

@@ -1147,26 +1147,49 @@ void UTIL_PrecacheEntity( const char *szClassname )
 int UTIL_PrecacheAurora( string_t s ) { return UTIL_PrecacheAurora( STRING( s )); }
 int UTIL_PrecacheAurora( const char *s )
 {
+	if ( !s || !*s )
+	{
+		ALERT( at_console, "Warning: aurora not specified\n" );
+		return MAKE_STRING( "scripts/aurora/error.aur" ); // assume error
+	}
+
 	char path[256];
+
 	sprintf( path, "scripts/aurora/%s.aur", s );	
 
-	if( FILE_EXISTS( path ))
+	char	*token = NULL;
+	char	*afile = (char *)LOAD_FILE( path, NULL );
+	const char *pfile = afile; 
+
+	if( !afile )
 	{
-		return ALLOC_STRING( path );
-	}
-	else // otherwise
-	{
-		if( !s || !*s )Msg( "Warning: Aurora not specified!\n", s);
-		else ALERT( at_warning, "aurora %s not found!\n", s );
+		// verify file exists
 		return MAKE_STRING( "scripts/aurora/error.aur" );
-	} 
+	}
+
+	token = COM_ParseToken( &pfile );
+			
+	while( token )
+	{
+		if( !stricmp( token, "sprite" )) 
+		{                                          
+			token = COM_ParseToken( &pfile );
+			UTIL_PrecacheModel( token );
+		}
+		token = COM_ParseToken( &pfile );
+	}
+
+	FREE_FILE( afile );
+	return MAKE_STRING( path );
 }
 
 void UTIL_SetAurora( CBaseEntity *pAttach, int aur, int attachment )
 {
+	if( FNullEnt( pAttach )) return;
+
 	MESSAGE_BEGIN( MSG_ALL, gmsg.Particle );
 		WRITE_BYTE( pAttach->entindex() );
-		WRITE_STRING( STRING(aur) );
+		WRITE_STRING( STRING( aur ));
 	MESSAGE_END();
 }
 //========================================================================

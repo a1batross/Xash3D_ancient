@@ -263,10 +263,14 @@ mspriteframe_t *R_GetSpriteFrame( ref_model_t *pModel, int frame, float yawAngle
 	Com_Assert( pModel == NULL );
 	psprite = pModel->extradata;
 
-	if(( frame >= psprite->numframes ) || ( frame < 0 ))
+	if( frame < 0 )
+	{
+		frame = 0;
+	}          
+	else if( frame >= psprite->numframes )
 	{
 		MsgDev( D_WARN, "R_GetSpriteFrame: no such frame %d (%s)\n", frame, pModel->name );
-		frame = 0;
+		frame = psprite->numframes - 1;
 	}
 
 	if( psprite->frames[frame].type == FRAME_SINGLE )

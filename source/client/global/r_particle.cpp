@@ -172,7 +172,7 @@ ParticleType::ParticleType( ParticleType *pNext )
 {
 	m_pSprayType = m_pOverlayType = NULL;
 	m_StartAngle = RandomRange(45);
-	m_hSprite = 0;
+	m_SpriteIndex = 0;
 	m_pNext = pNext;
 	m_szName[0] = 0;
 	m_StartRed = m_StartGreen = m_StartBlue = m_StartAlpha = RandomRange(1);
@@ -243,9 +243,9 @@ void ParticleType::InitParticle(particle *pPart, ParticleSystem *pSys)
 	//pPart->m_fSizeStep = m_EndSize.GetOffset(pPart->m_fSize) * fLifeRecip;
 
 	pPart->frame = m_StartFrame.GetInstance();
-	if (m_EndFrame.IsDefined())
-		pPart->m_fFrameStep = m_EndFrame.GetOffset(pPart->frame) * fLifeRecip;
-	else	pPart->m_fFrameStep = m_FrameRate.GetInstance();
+	if (m_EndFrame.IsDefined( ))
+		pPart->m_fFrameStep = m_EndFrame.GetOffset( pPart->frame ) * fLifeRecip;
+	else pPart->m_fFrameStep = m_FrameRate.GetInstance();
 
 	pPart->m_fAlpha = m_StartAlpha.GetInstance();
 	pPart->m_fAlphaStep = m_EndAlpha.GetOffset(pPart->m_fAlpha) * fLifeRecip;
@@ -493,7 +493,7 @@ ParticleType *ParticleSystem::ParseType( const char **szFile )
 		else if ( !stricmp( szToken, "sprite" ) )
 		{
 			szToken = COM_ParseToken( szFile );
-			pType->m_hSprite = TEX_Load( szToken );
+			pType->m_SpriteIndex = g_engfuncs.pEventAPI->EV_FindModelIndex( szToken );
 		}
 		else if ( !stricmp( szToken, "startalpha" ) )
 		{
@@ -967,7 +967,7 @@ void ParticleSystem::DrawParticle( particle *part, Vector &right, Vector &up )
 
 	for ( particle *pDraw = part; pDraw; pDraw = pDraw->m_pOverlay )
 	{
-		if( pDraw->pType->m_hSprite == 0 )
+		if( pDraw->pType->m_SpriteIndex == 0 )
 			continue;
 
 		if ( pDraw->pType->m_iDrawCond )
@@ -979,7 +979,7 @@ void ParticleSystem::DrawParticle( particle *part, Vector &right, Vector &up )
 				continue;
 		}
                     
-		int numFrames = SPR_Frames( pDraw->pType->m_hSprite );
+		int numFrames = GetModelFrames( pDraw->pType->m_SpriteIndex );
 
 		// ALERT( at_console, "UpdParticle %d: age %f, life %f, R:%f G:%f, B, %f \n", pDraw->pType->m_hSprite, part->age, part->age_death, pDraw->m_fRed, pDraw->m_fGreen, pDraw->m_fBlue);
 
@@ -990,9 +990,13 @@ void ParticleSystem::DrawParticle( particle *part, Vector &right, Vector &up )
 		while ( pDraw->frame < 0 )
 			pDraw->frame += numFrames;
 
+		HSPRITE m_hSprite;
+
+		m_hSprite = g_engfuncs.pTriAPI->GetSpriteTexture( pDraw->pType->m_SpriteIndex, int( pDraw->frame ));
 		g_engfuncs.pTriAPI->RenderMode( pDraw->pType->m_iRenderMode );
 		g_engfuncs.pTriAPI->Color4f( pDraw->m_fRed, pDraw->m_fGreen, pDraw->m_fBlue, pDraw->m_fAlpha );
-		g_engfuncs.pTriAPI->Bind( pDraw->pType->m_hSprite, int( pDraw->frame ));
+			
+		g_engfuncs.pTriAPI->Bind( m_hSprite, int( pDraw->frame ));
 		
 		g_engfuncs.pTriAPI->Begin( TRI_QUADS );
 		g_engfuncs.pTriAPI->TexCoord2f ( 0, 0 );

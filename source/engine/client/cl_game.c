@@ -574,9 +574,11 @@ void CL_DrawCrosshair( void )
 	width = clgame.ds.rcCrosshair.right - clgame.ds.rcCrosshair.left;
 	height = clgame.ds.rcCrosshair.bottom - clgame.ds.rcCrosshair.top;
 
+	x = clgame.scrInfo.iWidth / 2; 
+	y = clgame.scrInfo.iHeight / 2;
+
 	// g-cont - cl.refdef.crosshairangle is the autoaim angle.
-	// if we're not using autoaim, just draw in the middle of the 
-	// screen
+	// if we're not using autoaim, just draw in the middle of the screen
 	if( !VectorIsNull( cl.refdef.crosshairangle ))
 	{
 		vec3_t	angles;
@@ -584,32 +586,13 @@ void CL_DrawCrosshair( void )
 		vec3_t	point, screen;
 
 		// FIXME: this code is wrong
-		VectorAdd( cl.refdef.cl_viewangles, cl.refdef.crosshairangle, angles );
+		VectorAdd( cl.refdef.viewangles, cl.refdef.crosshairangle, angles );
 		AngleVectors( angles, forward, NULL, NULL );
 		VectorAdd( cl.refdef.vieworg, forward, point );
 		re->WorldToScreen( point, screen );
 
-		if( clgame.scrInfo.iFlags & SCRINFO_VIRTUALSPACE )
-		{
-			float	xscale, yscale;
-		
-			// NOTE: WorldToScreen returns real coordinates, we need to divide it
-			// into virtual screenspace
-			xscale = clgame.scrInfo.iRealWidth / (float)clgame.scrInfo.iWidth;
-			yscale = clgame.scrInfo.iRealHeight / (float)clgame.scrInfo.iHeight;
-			x = screen[0] / xscale;
-			y = screen[1] / yscale;
-		}
-		else
-		{
-			x = screen[0];
-			y = screen[1];
-		}
-	}
-	else
-	{
-		x = clgame.scrInfo.iWidth / 2; 
-		y = clgame.scrInfo.iHeight / 2;
+		x += 0.5f * screen[0] * clgame.scrInfo.iRealWidth + 0.5f;
+		y += 0.5f * screen[1] * clgame.scrInfo.iRealHeight + 0.5f;
 	}
 
 	clgame.ds.hSprite = clgame.ds.hCrosshair;
@@ -2313,10 +2296,10 @@ void TriColor4f( float r, float g, float b, float a )
 	rgba_t	rgba;
 
 	if( !re ) return;
-	rgba[0] = (byte)bound( 0, r * 255, 255 );
-	rgba[1] = (byte)bound( 0, g * 255, 255 );
-	rgba[2] = (byte)bound( 0, b * 255, 255 );
-	rgba[3] = (byte)bound( 0, a * 255, 255 );
+	rgba[0] = (byte)bound( 0, (r * 255.0f), 255 );
+	rgba[1] = (byte)bound( 0, (g * 255.0f), 255 );
+	rgba[2] = (byte)bound( 0, (b * 255.0f), 255 );
+	rgba[3] = (byte)bound( 0, (a * 255.0f), 255 );
 	re->Color4ub( rgba[0], rgba[1], rgba[2], rgba[3] );
 }
 
@@ -2378,8 +2361,19 @@ convert world coordinates (x,y,z) into screen (x, y)
 */
 int TriWorldToScreen( float *world, float *screen )
 {
-	if( !re ) return 0;
-	return re->WorldToScreen( world, screen );
+	int retval = 0;
+
+	if( !re || !world || !screen )
+		return retval;
+
+	retval = re->WorldToScreen( world, screen );
+
+	screen[0] =  0.5f * screen[0] * cl.refdef.viewport[2];
+	screen[1] = -0.5f * screen[1] * cl.refdef.viewport[3];
+	screen[0] += 0.5f *  cl.refdef.viewport[2];
+	screen[1] += 0.5f *  cl.refdef.viewport[3];
+
+	return retval;
 }
 
 /*
@@ -2428,6 +2422,7 @@ static efxapi_t gEfxApi =
 	CL_SpriteExplode,
 	CL_SpriteSmoke,
 	CL_SpriteSpray,
+	CL_Sprite_Trail,
 	CL_CreateTracer,
 	CL_TempModel,
 	CL_DefaultSprite,
@@ -2463,7 +2458,7 @@ static event_api_t gEventApi =
 	pfnLocalPlayerViewheight,
 	pfnStopAllSounds,
 	pfnGetModelType,
-	pfnGetModelType,
+	pfnGetModFrames,
 };
 
 // engine callbacks

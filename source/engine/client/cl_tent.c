@@ -7,7 +7,7 @@
 #include "client.h"
 #include "effects_api.h"
 #include "triangle_api.h"
-#include "te_message.h"	// grab TE_EXPLFLAGS
+#include "tempents.h"	// grab TE_EXPLFLAGS
 #include "beam_def.h"
 #include "const.h"
 
@@ -720,5 +720,63 @@ void CL_SpriteSpray( float *pos, float *dir, int modelIndex, int count, int spee
 		VectorScale( velocity, scale, pTemp->m_vecVelocity );
 		pTemp->die = clgame.globals->time + 0.35f;
 		pTemp->m_flFrame = Com_RandomLong( 0, frameCount - 1 );
+	}
+}
+
+void CL_Sprite_Trail( int type, float *vecStart, float *vecEnd, int modelIndex, int nCount, float flLife, float flSize, float flAmplitude, int nRenderamt, float flSpeed )
+{
+	TEMPENTITY	*pTemp;
+	vec3_t		vecDelta, vecDir;
+	int		i, flFrameCount;
+
+	if( CM_GetModelType( modelIndex ) == mod_bad )
+	{
+		MsgDev( D_ERROR, "No model %d!\n", modelIndex );
+		return;
+	}	
+
+	Mod_GetFrames( modelIndex, &flFrameCount );
+
+	VectorSubtract( vecEnd, vecStart, vecDelta );
+
+	VectorCopy( vecDelta, vecDir );
+	VectorNormalize( vecDir );
+
+	flAmplitude /= 256.0;
+
+	for ( i = 0; i < nCount; i++ )
+	{
+		vec3_t vecPos, vecVel;
+
+		// Be careful of divide by 0 when using 'count' here...
+		if ( i == 0 )
+		{
+			VectorMA( vecStart, 0, vecDelta, vecPos );
+		}
+		else
+		{
+			VectorMA( vecStart, i / (nCount - 1.0), vecDelta, vecPos );
+		}
+
+		pTemp = CL_TempEntAlloc( vecPos, modelIndex );
+		if( !pTemp ) return;
+
+		pTemp->flags |= FTENT_COLLIDEWORLD | FTENT_SPRCYCLE | FTENT_FADEOUT | FTENT_SLOWGRAVITY;
+
+		VectorScale( vecDir, flSpeed, vecVel );
+		vecVel[0] += Com_RandomLong( -127, 128 ) * flAmplitude;
+		vecVel[1] += Com_RandomLong( -127, 128 ) * flAmplitude;
+		vecVel[2] += Com_RandomLong( -127, 128 ) * flAmplitude;
+		VectorCopy( vecVel, pTemp->m_vecVelocity );
+		VectorCopy( vecPos, pTemp->origin );
+
+		pTemp->m_flSpriteScale = flSize;
+		pTemp->renderMode = kRenderGlow;
+		pTemp->renderFX = kRenderFxNoDissipation;
+		pTemp->renderAmt = pTemp->startAlpha = nRenderamt;
+
+		pTemp->m_flFrame = Com_RandomLong( 0, flFrameCount - 1 );
+		pTemp->m_flFrameMax	= flFrameCount - 1;
+		pTemp->die = clgame.globals->time + flLife + Com_RandomFloat( 0, 4 );
 	}
 }

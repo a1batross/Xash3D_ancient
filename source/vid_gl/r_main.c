@@ -1988,6 +1988,120 @@ static bool R_SpeedsMessage( char *out, size_t size )
 }
 
 //==================================================================================
+int R_ComputeFxBlend( ref_entity_t *e )
+{
+	int	blend = 0, renderAmt;
+	float	offset, dist;
+	edict_t	*m_pEntity = ri.GetClientEdict( e->index );
+	vec3_t	tmp;
+
+	offset = ((int)e->index ) * 363.0f; // Use ent index to de-sync these fx
+
+	if( m_pEntity ) renderAmt = m_pEntity->v.renderamt;
+	else renderAmt = e->renderamt;
+
+	switch( e->renderfx ) 
+	{
+	case kRenderFxPulseSlowWide:
+		blend = renderAmt + 0x40 * com.sin( RI.refdef.time * 2 + offset );	
+		break;
+	case kRenderFxPulseFastWide:
+		blend = renderAmt + 0x40 * com.sin( RI.refdef.time * 8 + offset );
+		break;
+	case kRenderFxPulseSlow:
+		blend = renderAmt + 0x10 * com.sin( RI.refdef.time * 2 + offset );
+		break;
+	case kRenderFxPulseFast:
+		blend = renderAmt + 0x10 * com.sin( RI.refdef.time * 8 + offset );
+		break;
+	// JAY: HACK for now -- not time based
+	case kRenderFxFadeSlow:			
+		if( renderAmt > 0 ) 
+			renderAmt -= 1;
+		else renderAmt = 0;
+		blend = renderAmt;
+		break;
+	case kRenderFxFadeFast:
+		if( renderAmt > 3 ) 
+			renderAmt -= 4;
+		else renderAmt = 0;
+		blend = renderAmt;
+		break;
+	case kRenderFxSolidSlow:
+		if( renderAmt < 255 ) 
+			renderAmt += 1;
+		else renderAmt = 255;
+		blend = renderAmt;
+		break;
+	case kRenderFxSolidFast:
+		if( renderAmt < 252 ) 
+			renderAmt += 4;
+		else renderAmt = 255;
+		blend = renderAmt;
+		break;
+	case kRenderFxStrobeSlow:
+		blend = 20 * com.sin( RI.refdef.time * 4 + offset );
+		if( blend < 0 ) blend = 0;
+		else blend = renderAmt;
+		break;
+	case kRenderFxStrobeFast:
+		blend = 20 * com.sin( RI.refdef.time * 16 + offset );
+		if( blend < 0 ) blend = 0;
+		else blend = renderAmt;
+		break;
+	case kRenderFxStrobeFaster:
+		blend = 20 * com.sin( RI.refdef.time * 36 + offset );
+		if( blend < 0 ) blend = 0;
+		else blend = renderAmt;
+		break;
+	case kRenderFxFlickerSlow:
+		blend = 20 * (com.sin( RI.refdef.time * 2 ) + com.sin( RI.refdef.time * 17 + offset ));
+		if( blend < 0 ) blend = 0;
+		else blend = renderAmt;
+		break;
+	case kRenderFxFlickerFast:
+		blend = 20 * (com.sin( RI.refdef.time * 16 ) + com.sin( RI.refdef.time * 23 + offset ));
+		if( blend < 0 ) blend = 0;
+		else blend = renderAmt;
+		break;
+	case kRenderFxHologram:
+	case kRenderFxDistort:
+		VectorCopy( e->origin, tmp );
+		VectorSubtract( tmp, RI.refdef.vieworg, tmp );
+		dist = DotProduct( tmp, RI.refdef.forward );
+			
+		// Turn off distance fade
+		if( e->renderfx == kRenderFxDistort )
+			dist = 1;
+
+		if( dist <= 0 )
+		{
+			blend = 0;
+		}
+		else 
+		{
+			renderAmt = 180;
+			if( dist <= 100 ) blend = renderAmt;
+			else blend = (int) ((1.0f - ( dist - 100 ) * ( 1.0f / 400.0f )) * renderAmt );
+			blend += Com_RandomLong( -32, 31 );
+		}
+		break;
+	case kRenderFxNone:
+	case kRenderFxClampMinScale:
+	default:
+		if( e->rendermode == kRenderNormal )
+			blend = 255;
+		else blend = renderAmt;
+		break;	
+	}
+
+	// store value back into client entity, some effects requires this
+	if( m_pEntity ) m_pEntity->v.renderamt = renderAmt;
+
+	blend = bound( 0, blend, 255 );
+
+	return blend;
+}
 
 /*
 =============
@@ -2043,6 +2157,43 @@ void R_TransformVectorToScreen( const ref_params_t *rd, const vec3_t in, vec2_t 
 	out[1] = rd->viewport[1] + ( temp[1] / temp[3] + 1.0f ) * rd->viewport[3] * 0.5f;
 }
 
+/*
+=============
+R_ScreenTransform
+
+transform world position into screen
+=============
+*/
+bool R_ScreenTransform( const vec3_t point, vec3_t pClip )
+{
+	matrix4x4	worldToScreen;
+	bool behind;
+	float w;
+
+	Matrix4x4_Copy( worldToScreen, RI.worldviewProjectionMatrix );
+	pClip[0] = worldToScreen[0][0] * point[0] + worldToScreen[0][1] * point[1] + worldToScreen[0][2] * point[2] + worldToScreen[0][3];
+	pClip[1] = worldToScreen[1][0] * point[0] + worldToScreen[1][1] * point[1] + worldToScreen[1][2] * point[2] + worldToScreen[1][3];
+//	z = worldToScreen[2][0] * point[0] + worldToScreen[2][1] * point[1] + worldToScreen[2][2] * point[2] + worldToScreen[2][3];
+	w = worldToScreen[3][0] * point[0] + worldToScreen[3][1] * point[1] + worldToScreen[3][2] * point[2] + worldToScreen[3][3];
+
+	// Just so we have something valid here
+	pClip[2] = 0.0f;
+
+	if( w < 0.001f )
+	{
+		behind = true;
+		pClip[0] *= 100000;
+		pClip[1] *= 100000;
+	}
+	else
+	{
+		float invw = 1.0f / w;
+		behind = false;
+		pClip[0] *= invw;
+		pClip[1] *= invw;
+	}
+	return behind;
+}
 static void R_ScreenToWorld( const float *screen, float *world )
 {
 	// FIXME: implement
@@ -2050,7 +2201,7 @@ static void R_ScreenToWorld( const float *screen, float *world )
 
 static bool R_WorldToScreen( const float *world, float *screen )
 {
-	return R_TransformToScreen_Vec3( world, screen );
+	return R_ScreenTransform( world, screen );
 }
 //==================================================================================
 
@@ -2304,7 +2455,7 @@ bool R_AddPortalEntity( edict_t *pRefEntity, ref_entity_t *refent )
 	{
 		float phase = pRefEntity->v.frame;
 		float speed = (pRefEntity->v.framerate ? pRefEntity->v.framerate : 50.0f);
-		refent->angles[ROLL] = 5 * sin(( phase + RI.refdef.time * speed * 0.01f ) * M_PI2);
+		refent->angles[ROLL] = 5 * com.sin(( phase + RI.refdef.time * speed * 0.01f ) * M_PI2);
 	}
 
 	// calculate angles
@@ -2379,6 +2530,8 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type )
 
 	if( result ) r_numEntities++;
 
+	refent->renderamt = R_ComputeFxBlend( refent );
+
 	if( refent->index == VIEWENT_INDEX )
 	{
 		// run events here to prevent
@@ -2420,7 +2573,6 @@ bool R_AddTeEntToScene( TEMPENTITY *pTempEntity, int ed_type )
 	// filter ents
 	switch( ed_type )
 	{
-	case ED_BEAM:
 	case ED_TEMPENTITY: break;
 	default: return false;
 	}
@@ -2452,6 +2604,8 @@ bool R_AddTeEntToScene( TEMPENTITY *pTempEntity, int ed_type )
 	refent->gaitsequence = 0;
 	refent->parent = NULL;
 	refent->prev = NULL;
+
+	refent->renderamt = R_ComputeFxBlend( refent );
 
 	// attached entity (can attach sprites to models)
 	if( pTempEntity->m_iAttachment && cl_models[pTempEntity->modelindex]->type == mod_sprite )

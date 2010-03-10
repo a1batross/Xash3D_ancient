@@ -48,6 +48,15 @@ static bool SV_TestEntityPosition( edict_t *ent, const vec3_t offset )
 	trace_t	trace;
 
 	VectorAdd( ent->v.origin, offset, org );
+
+	if( ent->v.flags & FL_CLIENT )
+	{
+		// player can crouch, noclip etc
+		if( SV_TestPlayerPosition( org, ent, NULL ))
+			return true;
+		return false;
+	}
+
 	trace = SV_Move( org, ent->v.mins, ent->v.maxs, ent->v.origin, MOVE_NOMONSTERS, ent );
 	if( trace.fStartSolid ) return true;
 
@@ -1027,6 +1036,192 @@ void SV_PushMove( edict_t *pusher, float movetime )
 	SV_ClampAngles( pusher->v.angles );
 }
 
+typedef struct
+{
+	edict_t	*ent;
+	vec3_t	origin;
+	vec3_t	angles;
+} pushed_t;
+pushed_t	pushed[MAX_EDICTS], *pushed_p;
+
+/*
+============
+SV_Push
+
+Objects need to be moved back on a failed push,
+otherwise riders would continue to slide.
+============
+*/
+bool SV_PushAngles( edict_t *pusher, vec3_t move, vec3_t amove )
+{
+	int	e, block;
+	edict_t	*check;
+	vec3_t	mins, maxs;
+	float	oldsolid;
+	pushed_t	*p;
+	vec3_t	org, org2, move2, forward, right, up;
+
+	pushed_p = pushed;
+
+	// getting real bbox size
+	SV_TransformedBBox( pusher, mins, maxs );
+
+	// we need this for pushing things later
+	VectorNegate( amove, org );
+	AngleVectors( org, forward, right, up );
+
+	// save the pusher's original position
+	pushed_p->ent = pusher;
+	VectorCopy( pusher->v.origin, pushed_p->origin );
+	VectorCopy( pusher->v.angles, pushed_p->angles );
+	pushed_p++;
+
+	// move the pusher to it's final position
+	VectorAdd( pusher->v.origin, move, pusher->v.origin );
+	VectorAdd( pusher->v.angles, amove, pusher->v.angles );
+	SV_LinkEdict( pusher, false );
+
+	// see if any solid entities are inside the final position
+	for( e = 1; e < svgame.globals->numEntities; e++ )
+	{
+		check = EDICT_NUM( e );
+		if ( check->free ) continue;
+
+		// filter movetypes to collide with
+		switch( check->v.movetype )
+		{
+		case MOVETYPE_NONE:
+		case MOVETYPE_PUSH:
+		case MOVETYPE_FOLLOW:
+		case MOVETYPE_NOCLIP:
+			continue;
+		default: break;
+		}
+
+		oldsolid = pusher->v.solid;
+		pusher->v.solid = SOLID_NOT;
+		block = SV_TestEntityPosition( check, vec3_origin );
+		pusher->v.solid = oldsolid;
+		if( block ) continue;
+
+		// if the entity is standing on the pusher, it will definitely be moved
+		if(!( check->v.flags & FL_ONGROUND && check->v.groundentity == pusher ))
+		{
+			// see if the ent needs to be tested
+			if( check->v.absmin[0] >= maxs[0]
+			 || check->v.absmin[1] >= maxs[1]
+			 || check->v.absmin[2] >= maxs[2]
+			 || check->v.absmax[0] <= mins[0]
+			 || check->v.absmax[1] <= mins[1]
+			 || check->v.absmax[2] <= mins[2] )
+				continue;
+		}
+
+		if(( pusher->v.movetype == MOVETYPE_PUSH ) || ( check->v.groundentity == pusher ))
+		{
+			// move this entity
+			pushed_p->ent = check;
+			VectorCopy( check->v.origin, pushed_p->origin );
+			VectorCopy( check->v.angles, pushed_p->angles );
+			pushed_p++;
+
+			// try moving the contacted entity
+			VectorAdd( check->v.origin, move, check->v.origin );
+			VectorAdd( check->v.angles, amove, check->v.angles);
+
+			// figure movement due to the pusher's amove
+			VectorSubtract( check->v.origin, pusher->v.origin, org );
+			org2[0] = DotProduct( org, forward );
+			org2[1] = -DotProduct( org, right );
+			org2[2] = DotProduct( org, up );
+			VectorSubtract( org2, org, move2 );
+			VectorAdd( check->v.origin, move2, check->v.origin );
+
+			check->v.flags &= ~FL_ONGROUND;
+
+			// may have pushed them off an edge
+			if( check->v.groundentity != pusher )
+				check->v.groundentity = 0;
+
+			block = SV_TestEntityPosition( check, vec3_origin );
+			if (!block)
+			{	
+				// pushed ok
+				SV_LinkEdict( check, false );
+				// impact?
+				continue;
+			}
+
+			// if it is ok to leave in the old position, do it
+			// this is only relevent for riding entities, not pushed
+			// FIXME: this doesn't acount for rotation
+			VectorSubtract( check->v.origin, move, check->v.origin );
+			block = SV_TestEntityPosition( check, vec3_origin );
+			if( !block )
+			{
+				pushed_p--;
+				continue;
+			}
+		}
+
+		// if it is sitting on top. Do not block.
+		if( check->v.mins[0] == check->v.maxs[0] )
+		{
+			SV_LinkEdict( check, false );
+			continue;
+		}
+
+		MsgDev( D_INFO, "Pusher hit %s\n", SV_ClassName( check ));
+		svgame.dllFuncs.pfnBlocked( pusher, check );
+
+		// move back any entities we already moved
+		// go backwards, so if the same entity was pushed
+		// twice, it goes back to the original position
+		for( p = pushed_p - 1; p >= pushed; p-- )
+		{
+			VectorCopy( p->origin, p->ent->v.origin );
+			VectorCopy( p->angles, p->ent->v.angles );
+			SV_LinkEdict( p->ent, false );
+		}
+		return false;
+	}
+
+	// FIXME: is there a better way to handle this?
+	// see if anything we moved has touched a trigger
+	for( p = pushed_p - 1; p >= pushed; p-- )
+		SV_TouchLinks( p->ent, sv_areanodes );
+
+	return true;
+}
+
+/*
+============
+SV_PushMove
+
+============
+*/
+void SVHL_PushMove( edict_t *pusher, float movetime )
+{
+	int	i;
+	vec3_t	move;
+	vec3_t	amove;
+
+	if( VectorIsNull( pusher->v.velocity ) && VectorIsNull( pusher->v.avelocity ))
+	{
+		pusher->v.ltime += movetime;
+		return;
+	}
+
+	for( i = 0; i < 3; i++ )
+	{
+		move[i] = pusher->v.velocity[i] * movetime;
+		amove[i] = pusher->v.avelocity[i] * movetime;
+	}
+
+	if( SV_PushAngles( pusher, move, amove ))
+		pusher->v.ltime += movetime;
+}
+
 /*
 ================
 SV_Physics_Pusher
@@ -1034,6 +1229,68 @@ SV_Physics_Pusher
 ================
 */
 void SV_Physics_Pusher( edict_t *ent )
+{
+	float	thinktime;
+	float	oldltime;
+	float	movetime;
+	vec3_t	oldorg, move;
+	vec3_t	oldang, amove;
+	float	l;
+
+	oldltime = ent->v.ltime;
+	thinktime = ent->v.nextthink;
+
+	if( thinktime < ent->v.ltime + svgame.globals->frametime )
+	{
+		movetime = thinktime - ent->v.ltime;
+		if( movetime < 0 ) movetime = 0;
+	}
+	else movetime = svgame.globals->frametime;
+
+	if( movetime )
+	{
+		SVHL_PushMove( ent, movetime ); // advances ent->v.ltime if not blocked
+	}
+
+	if( thinktime > oldltime && thinktime <= ent->v.ltime )
+	{
+		VectorCopy( ent->v.origin, oldorg );
+		VectorCopy( ent->v.angles, oldang );
+
+		ent->v.nextthink = 0;
+		svgame.globals->time = (sv.time * 0.001f);
+		svgame.dllFuncs.pfnThink( ent );
+		if( ent->free ) return;
+
+		VectorSubtract( ent->v.origin, oldorg, move );
+		VectorSubtract( ent->v.angles, oldang, amove);
+
+		l = VectorLength( move ) + VectorLength( amove );
+		if( l > 1.0f / 64 )
+		{
+			Msg( "**** snap: %f\n", l );
+			VectorCopy( oldorg, ent->v.origin );
+			SV_PushAngles( ent, move, amove );
+		}
+
+	}
+	else if( ent->v.flags & FL_ALWAYSTHINK )
+	{
+		ent->v.nextthink = 0;
+		svgame.globals->time = (sv.time * 0.001f);
+		svgame.dllFuncs.pfnThink( ent );
+		if( ent->free ) return;
+	}
+
+}
+
+/*
+================
+SV_Physics_Pusher
+
+================
+*/
+void _SV_Physics_Pusher( edict_t *ent )
 {
 	float	movetime, thinktime, oldltime;
 

@@ -35,6 +35,7 @@ extern void HUD_Init( void );
 extern int HUD_Redraw( float flTime, int state );
 extern void HUD_UpdateEntityVars( edict_t *out, skyportal_t *sky, const entity_state_t *s, const entity_state_t *p );
 extern void HUD_Reset( void );
+extern void HUD_StartFrame( void );
 extern void HUD_Frame( double time );
 extern void HUD_Shutdown( void );
 extern void HUD_RenderCallback( int fTrans );
@@ -199,7 +200,6 @@ extern void AngleMatrix( const vec3_t angles, float (*matrix)[4] );
 // from cl_view.c
 extern void DrawProgressBar( void );
 extern edict_t *spot;
-extern int v_paused;
 extern float v_idlescale;
 extern int g_weaponselect;
 extern model_t g_muzzleFlash[4];

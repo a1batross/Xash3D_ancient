@@ -823,7 +823,7 @@ void SV_ClassifyEdict( edict_t *ent, int m_iNewClass )
 	if( sv_ent->s.ed_type != ED_SPAWNED )
 	{
 		// or leave unclassified, wait for next SV_LinkEdict...
-		Msg( "AutoClass: %s: <%s>\n", STRING( ent->v.classname ), ed_name[sv_ent->s.ed_type] );
+		// Msg( "AutoClass: %s: <%s>\n", STRING( ent->v.classname ), ed_name[sv_ent->s.ed_type] );
 	}
 }
 
@@ -3617,6 +3617,7 @@ bool SV_ParseEdict( script_t *script, edict_t *ent )
 	KeyValueData	pkvd[256]; // per one entity
 	int		i, numpairs = 0;
 	const char	*classname = NULL;
+	bool		anglehack;
 	token_t		token;
 
 	// go through all the dictionary pairs
@@ -3628,7 +3629,17 @@ bool SV_ParseEdict( script_t *script, edict_t *ent )
 		if( !Com_ReadToken( script, SC_ALLOW_NEWLINES, &token ))
 			Host_Error( "SV_ParseEdict: EOF without closing brace\n" );
 		if( token.string[0] == '}' ) break; // end of desc
-		com.strncpy( keyname, token.string, sizeof( keyname ) - 1 );
+
+		// anglehack is to allow QuakeEd to write single scalar angles
+		// and allow them to be turned into vectors. (FIXME...)
+		if( !com.strcmp( token.string, "angle" ))
+		{
+			com.strncpy( token.string, "angles", sizeof( token.string ));
+			anglehack = true;
+		}
+		else anglehack = false;
+
+		com.strncpy( keyname, token.string, sizeof( keyname ));
 
 		// parse value	
 		if( !Com_ReadToken( script, SC_ALLOW_PATHNAMES2, &token ))
@@ -3637,9 +3648,19 @@ bool SV_ParseEdict( script_t *script, edict_t *ent )
 		if( token.string[0] == '}' )
 			Host_Error( "SV_ParseEdict: closing brace without data\n" );
 
+		// ignore attempts to set key ""
+		if( !keyname[0] ) continue;
+
 		// keynames with a leading underscore are used for utility comments,
 		// and are immediately discarded by engine
 		if( keyname[0] == '_' ) continue;
+
+		if( anglehack )
+		{
+			string	temp;
+			com.strncpy( temp, token.string, sizeof( temp ));
+			com.snprintf( token.string, sizeof( token.string ), "0 %s 0", temp );
+		}
 
 		// create keyvalue strings
 		pkvd[numpairs].szClassName = (char *)classname;	// unknown at this moment

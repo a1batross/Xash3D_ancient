@@ -454,6 +454,9 @@ void R_BackendEndFrame( void )
 				RI.refdef.viewangles[0], RI.refdef.viewangles[1], RI.refdef.viewangles[2]
 			);
 			break;
+		case 6:
+			com.snprintf( r_speeds_msg, sizeof( r_speeds_msg ), "cl_numents %i", r_numEntities );
+			break;
 		}
 	}
 }
@@ -1374,7 +1377,7 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 		case mod_sprite:
 			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA);
 			pass->flags = SHADERSTAGE_BLEND_MODULATE;
-			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
+			pass->rgbGen.type = RGBGEN_VERTEX;
 			pass->alphaGen.type = ALPHAGEN_VERTEX;
 			break;
 		}
@@ -1423,13 +1426,14 @@ static void R_ShaderpassRenderMode( ref_stage_t *pass )
 		switch( mod_type )
 		{
 		case mod_bad:
-			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
 			pass->flags = SHADERSTAGE_BLEND_ADD;
+			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
 			pass->rgbGen.type = RGBGEN_VERTEX;
 			pass->alphaGen.type = ALPHAGEN_VERTEX;
 			break;
 		case mod_world:
 		case mod_brush:
+			pass->flags = SHADERSTAGE_BLEND_ADD;
 			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
 			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;
 			pass->alphaGen.type = ALPHAGEN_ENTITY;

@@ -288,16 +288,27 @@ typedef enum
 typedef enum 
 {	
 	kRenderFxNone = 0, 
-
-	// legacy stuff are not supported
-
-	kRenderFxNoDissipation = 14,
+	kRenderFxPulseSlow, 
+	kRenderFxPulseFast, 
+	kRenderFxPulseSlowWide, 
+	kRenderFxPulseFastWide, 
+	kRenderFxFadeSlow, 
+	kRenderFxFadeFast, 
+	kRenderFxSolidSlow, 
+	kRenderFxSolidFast, 	   
+	kRenderFxStrobeSlow, 
+	kRenderFxStrobeFast, 
+	kRenderFxStrobeFaster, 
+	kRenderFxFlickerSlow, 
+	kRenderFxFlickerFast,
+	kRenderFxNoDissipation,
 	kRenderFxDistort,			// Distort/scale/translate flicker
 	kRenderFxHologram,			// kRenderFxDistort + distance fade
 	kRenderFxDeadPlayer,		// kRenderAmt is the player index
 	kRenderFxExplode,			// Scale up really big!
 	kRenderFxGlowShell,			// Glowing Shell
 	kRenderFxClampMinScale,		// Keep this sprite from getting very small (SPRITES only!)
+	kRenderFxReflection,		// G-Cont - oldstyle mirror transform
 	kRenderFxAurora,			// set particle trail for this entity
 	kRenderFxNoReflect,			// don't reflecting in mirrors 
 } kRenderFx_t;

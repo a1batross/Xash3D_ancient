@@ -1,9 +1,9 @@
 //=======================================================================
 //			Copyright XashXT Group 2009 ©
-//		       te_message.h - client temp entities
+//		        tempents.h - client temp entities
 //=======================================================================
-#ifndef TE_MESSAGE_H
-#define TE_MESSAGE_H
+#ifndef TEMPENTS_H
+#define TEMPENTS_H
 
 #define	TE_BEAMPOINTS		0		// beam effect between two points
 // coord coord coord (start position) 
@@ -458,4 +458,4 @@
 // byte ( color ) this is an index into an array of color vectors in the engine. (0 - )
 // byte ( length * 10 )
 
-#endif//TE_MESSAGE_H
+#endif//TEMPENTS_H

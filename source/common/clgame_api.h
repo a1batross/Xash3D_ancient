@@ -238,6 +238,7 @@ typedef struct
 	int	(*pfnRedraw)( float flTime, int state );
 	void	(*pfnUpdateEntityVars)( edict_t *out, skyportal_t *sky, const struct entity_state_s *in1, const struct entity_state_s *in2 );
 	void	(*pfnReset)( void );
+	void	(*pfnStartFrame)( void );
 	void	(*pfnFrame)( double time );
 	void 	(*pfnShutdown)( void );
 	void	(*pfnDrawTriangles)( int fTrans );

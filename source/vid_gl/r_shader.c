@@ -3552,11 +3552,10 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
                   
 		switch( r_shaderRenderMode )
 		{
-		case kRenderTransTexture:
-			// normal transparency
+		case kRenderTransTexture: // normal transparency
 			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA);
 			pass->flags = SHADERSTAGE_BLEND_MODULATE;
-			pass->rgbGen.type = RGBGEN_LIGHTING_AMBIENT_ONLY;
+			pass->rgbGen.type = RGBGEN_VERTEX;
 			pass->alphaGen.type = ALPHAGEN_VERTEX;
 	         		shader->sort = SORT_ADDITIVE;
 			break;

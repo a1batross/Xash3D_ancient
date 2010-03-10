@@ -601,6 +601,7 @@ void CL_SpriteExplode( struct tempent_s *pTemp, float scale, int flags );
 void CL_SpriteSmoke( struct tempent_s *pTemp, float scale );
 void CL_SpriteSpray( float *pos, float *dir, int modelIndex, int count, int speed, int iRand );
 void CL_BloodSprite( float *org, int colorIndex, int modelIndex, float size );
+void CL_Sprite_Trail( int type, float *vecStart, float *vecEnd, int modelIndex, int nCount, float flLife, float flSize, float flAmplitude, int nRenderamt, float flSpeed );
 
 //
 // cl_con.c

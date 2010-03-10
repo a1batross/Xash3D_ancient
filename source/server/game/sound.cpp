@@ -2029,7 +2029,7 @@ void CFMODAudio::StartMessage( CBasePlayer *pPlayer )
 
 void CFMODAudio::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	if(pActivator && pActivator->IsPlayer())//only at player
+	if(pActivator && pActivator->IsPlayer( )) // only at player
 	{
 		m_hActivator = pActivator;//save activator
 	}	

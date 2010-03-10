@@ -3,6 +3,7 @@
 //=======================================================================
 
 #include "extdll.h"
+#include "ref_params.h"
 #include "utils.h"
 #include "hud.h"
 
@@ -170,6 +171,8 @@ DECLARE_MESSAGE( m_Sound, Fsound )
 
 #define STREAM	1
 #define TRACK	2
+
+extern ref_params_t		*gpViewParams;
 
 // Handle for fmod
 static dllhandle_t fmod_dll = NULL;
@@ -367,7 +370,7 @@ int CHudSound :: Update( void )
 	if( !fmod_dll || !fmod_data )
 		return 0;
 
-	int pause = v_paused; // get engine state
+	int pause = gpViewParams->paused; // get engine state
 
 	if( gpGlobals->windowState == FALSE )
 		pause = TRUE; // force pause for inactive window

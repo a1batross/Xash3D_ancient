@@ -1,0 +1,5 @@
+LIBRARY server
+EXPORTS
+	CreateAPI		@1
+SECTIONS
+	.data READ WRITE

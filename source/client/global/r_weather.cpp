@@ -8,8 +8,11 @@
 #include "utils.h"
 #include "effects_api.h"
 #include "triangle_api.h"
+#include "ref_params.h"
 #include "hud.h"
 #include "r_weather.h"
+
+extern ref_params_t		*gpViewParams;
 
 void WaterLandingEffect( cl_drip *drip );
 void ParseRainFile( void );
@@ -56,7 +59,7 @@ void ProcessRain( void )
 		return;
 	}
 
-	if ( v_paused ) return; // not in pause
+	if ( gpViewParams->paused ) return; // not in pause
 
 	double timeBetweenDrips = 1 / (double)gHUD.Rain.dripsPerSecond;
 
@@ -522,12 +525,14 @@ void DrawRain( void )
 		if ( gHUD.Rain.weatherMode == 0 )
 		{
 			// load rain sprite
-			hsprDripTexture = g_engfuncs.pTriAPI->LoadShader( "sprites/raindrop.spr", false );
+			int modelIndex = g_engfuncs.pEventAPI->EV_FindModelIndex( "sprites/hi_rain.spr" );
+			hsprDripTexture = g_engfuncs.pTriAPI->GetSpriteTexture( modelIndex, 0 );
 		}
 		else
 		{
 			// load snow sprite
-			hsprDripTexture = g_engfuncs.pTriAPI->LoadShader( "sprites/snowflake.spr", false );
+			int modelIndex = g_engfuncs.pEventAPI->EV_FindModelIndex( "sprites/snowflake.spr" );
+			hsprDripTexture = g_engfuncs.pTriAPI->GetSpriteTexture( modelIndex, 0 );
           	}
 	}
 	if( hsprDripTexture <= 0 ) return;
@@ -637,7 +642,8 @@ void DrawFXObjects( void )
 	if( hsprWaterRing == 0 )	// in case what we don't want search it if not found
 	{
 		// load water ring sprite
-		hsprWaterRing = g_engfuncs.pTriAPI->LoadShader( "sprites/waterring.spr", false );
+		int modelIndex = g_engfuncs.pEventAPI->EV_FindModelIndex( "sprites/waterring.spr" );
+		hsprWaterRing = g_engfuncs.pTriAPI->GetSpriteTexture( modelIndex, 0 );
 	}
 
 	if( hsprWaterRing <= 0 ) return; // don't waste time

@@ -1221,7 +1221,7 @@ void EV_FireGauss( event_args_t *args )
 				Vector fwd;
 				fwd = tr.vecEndPos + tr.vecPlaneNormal;
 
-//				g_engfuncs.pEfxAPI->R_Sprite_Trail( TE_SPRITETRAIL, tr.vecEndPos, fwd, m_iBalls, 3, 0.1, RANDOM_FLOAT( 10, 20 ) / 100.0, 100, 255, 100 );
+				g_engfuncs.pEfxAPI->R_Sprite_Trail( TE_SPRITETRAIL, tr.vecEndPos, fwd, m_iBalls, 3, 0.1, RANDOM_FLOAT( 10, 20 ) / 100.0, 100, 255, 100 );
                                         
 				// lose energy
 				if ( n == 0 )
@@ -1275,7 +1275,7 @@ void EV_FireGauss( event_args_t *args )
 							// absorption balls
 							{
 								Vector fwd = tr.vecEndPos - forward;
-//								g_engfuncs.pEfxAPI->R_Sprite_Trail( TE_SPRITETRAIL, tr.vecEndPos, fwd, m_iBalls, 3, 0.1, RANDOM_FLOAT( 10, 20 ) / 100.0, 100, 255, 100 );
+								g_engfuncs.pEfxAPI->R_Sprite_Trail( TE_SPRITETRAIL, tr.vecEndPos, fwd, m_iBalls, 3, 0.1, RANDOM_FLOAT( 10, 20 ) / 100.0, 100, 255, 100 );
 							}
 
 							EV_HLDM_DecalGunshot( &beam_tr, BULLET_12MM );
@@ -1285,7 +1285,7 @@ void EV_FireGauss( event_args_t *args )
 							// balls
 							{
 								Vector fwd = beam_tr.vecEndPos - forward;
-//								g_engfuncs.pEfxAPI->R_Sprite_Trail( TE_SPRITETRAIL, beam_tr.vecEndPos, fwd, m_iBalls, (int)(flDamage * 0.3), 0.1, RANDOM_FLOAT( 10, 20 ) / 100.0, 200, 255, 40 );
+								g_engfuncs.pEfxAPI->R_Sprite_Trail( TE_SPRITETRAIL, beam_tr.vecEndPos, fwd, m_iBalls, (int)(flDamage * 0.3), 0.1, RANDOM_FLOAT( 10, 20 ) / 100.0, 200, 255, 40 );
 							}
 							
 							vecSrc = beam_tr.vecEndPos + forward;
@@ -1307,7 +1307,6 @@ void EV_FireGauss( event_args_t *args )
 			                              	g_engfuncs.pEfxAPI->R_TempSprite( mtr.vecEndPos, NULL, 0.2, m_iGlow, kRenderGlow, kRenderFxNoDissipation, 200.0 / 255.0, 0.3, FTENT_FADEOUT );
 						
 						// balls
-/*
 						{
 							Vector fwd;
 							int num_balls = RANDOM_FLOAT( 10, 20 );
@@ -1317,7 +1316,6 @@ void EV_FireGauss( event_args_t *args )
 							if( vecMirrorDest != g_vecZero && vecMirrorSrc != g_vecZero )
 								g_engfuncs.pEfxAPI->R_Sprite_Trail( TE_SPRITETRAIL, mtr.vecEndPos, fwd, m_iBalls, 8, 0.6, num_balls / 100.0, 100, 255, 200 );
 						}
-*/
 					}
 
 					flDamage = 0;

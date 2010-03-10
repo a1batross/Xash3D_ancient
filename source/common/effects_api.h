@@ -108,6 +108,7 @@ typedef struct efxapi_s
 	void	(*R_Sprite_Explode)( TEMPENTITY *pTemp, float scale, int flags );
 	void	(*R_Sprite_Smoke)( TEMPENTITY *pTemp, float scale );
 	void	(*R_Sprite_Spray)( float *pos, float *dir, int modelIndex, int count, int speed, int iRand );
+	void	(*R_Sprite_Trail)( int type, float *start, float *end, int modelIndex, int count, float life, float size, float amplitude, int renderamt, float speed );
 	void	(*R_TracerEffect)( float *start, float *end );
 	TEMPENTITY *(*R_TempModel)( float *pos, float *dir, float *ang, float life, int modelIndex, int soundtype );
 	TEMPENTITY *(*R_DefaultSprite)( float *pos, int spriteIndex, float framerate );
