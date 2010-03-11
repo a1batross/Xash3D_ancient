@@ -257,6 +257,7 @@ public:
 
 	void		UpdateBeams( int fTrans );	// main drawing func
 private:
+	bool		AttemptToDie( Beam_t *pBeam );
 	void		FreeDeadTrails( BeamTrail_t **trail );
 	void		UpdateBeam( Beam_t *pbeam, float frametime );
 	void		DrawBeamFollow( int spriteIndex, Beam_t *pbeam, int frame, int rendermode,

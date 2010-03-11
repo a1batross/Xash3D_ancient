@@ -52,7 +52,7 @@ static void SineNoise( float *noise, int divs )
 
 static bool ComputeBeamEntPosition( edict_t *pEnt, int nAttachment, Vector& pt )
 {
-	if( !pEnt )
+	if( !pEnt || pEnt->free )
 	{
 		pt = g_vecZero;
 		return false;
@@ -1278,6 +1278,27 @@ void CViewRenderBeams::UpdateBeam( Beam_t *pbeam, float frametime )
 	}
 }
 
+bool CViewRenderBeams::AttemptToDie( Beam_t *pBeam )
+{
+	ASSERT( pBeam != NULL );
+
+	// premanent beams never die automatically
+	if( pBeam->flags & FBEAM_FOREVER )
+		return false;
+
+	if( pBeam->type == TE_BEAMFOLLOW && pBeam->trail )
+	{
+		// wait for all trails are dead
+		return false;
+	}
+
+	// other beams
+	if( pBeam->die > gpGlobals->time )
+		return false;
+
+	return true;
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Update beams created by temp entity system
 //-----------------------------------------------------------------------------
@@ -1299,7 +1320,7 @@ void CViewRenderBeams::UpdateTempEntBeams( void )
 		pNext = pBeam->next;
 
 		// Retire old beams
-		if (!( pBeam->flags & FBEAM_FOREVER ) && pBeam->die <= gpGlobals->time )
+		if ( AttemptToDie( pBeam ) )
 		{
 			// Reset links
 			if ( pPrev )
@@ -1714,8 +1735,8 @@ void CViewRenderBeams::DrawBeam( edict_t *pbeam )
 	beamInfo.m_nModelIndex = pbeam->v.modelindex;
 	beamInfo.m_flLife = 0;
 	beamInfo.m_flWidth = pbeam->v.scale * 0.1f;
-	beamInfo.m_flEndWidth = pbeam->v.scale * 0.1f;	// FIXME: make tuneable
-	beamInfo.m_flFadeLength = 0.0f;		// FIXME: make tuneable
+	beamInfo.m_flEndWidth = beamInfo.m_flWidth;
+	beamInfo.m_flFadeLength = 0.0f; // will be set on first call UpdateBeam
 	beamInfo.m_flAmplitude = pbeam->v.body * 0.1f;
 	beamInfo.m_flBrightness = pbeam->v.renderamt;
 	beamInfo.m_flSpeed = pbeam->v.animtime * 0.1f;
@@ -2335,7 +2356,7 @@ void DrawBeamFollow( int modelIndex, BeamTrail_t* pHead, int frame, int rendermo
 	tmp.z = 0;
 	tmp = tmp.Normalize( );
 	normal = gpViewParams->up * tmp.x;	// Build point along noraml line (normal is -y, x)
-	normal = normal + (gpViewParams->right * -tmp.y );
+	normal = normal - (gpViewParams->right * -tmp.y );
 	
 	// Make a wide line
 	last1 = delta + ( normal * width );
@@ -2351,15 +2372,6 @@ void DrawBeamFollow( int modelIndex, BeamTrail_t* pHead, int frame, int rendermo
 	nColor[0] = (byte)bound( 0, (int)(scaledColor[0] * 255.0f), 255 );
 	nColor[1] = (byte)bound( 0, (int)(scaledColor[1] * 255.0f), 255 );
 	nColor[2] = (byte)bound( 0, (int)(scaledColor[2] * 255.0f), 255 );
-	
-	// need to count the segments
-	int count = 0;
-	BeamTrail_t* pTraverse = pHead;
-	while ( pTraverse )
-	{
-		++count;
-		pTraverse = pTraverse->next;
-	}
 
 	g_engfuncs.pTriAPI->Enable( TRI_SHADER );
 	g_engfuncs.pTriAPI->RenderMode( (kRenderMode_t)rendermode );
@@ -2371,12 +2383,12 @@ void DrawBeamFollow( int modelIndex, BeamTrail_t* pHead, int frame, int rendermo
 	{
 		// ALERT( at_console, "%.2f ", fraction );
 		g_engfuncs.pTriAPI->Color4ub( nColor[0], nColor[1], nColor[2], 255 );
-		g_engfuncs.pTriAPI->TexCoord2f( 0.0f, 0.0f );
-		g_engfuncs.pTriAPI->Vertex3fv( last1 );
+		g_engfuncs.pTriAPI->TexCoord2f( 1.0f, 1.0f );
+		g_engfuncs.pTriAPI->Vertex3fv( last2 );
 
 		g_engfuncs.pTriAPI->Color4ub( nColor[0], nColor[1], nColor[2], 255 );
-		g_engfuncs.pTriAPI->TexCoord2f( 1.0f, 0.0f );
-		g_engfuncs.pTriAPI->Vertex3fv( last2 );
+		g_engfuncs.pTriAPI->TexCoord2f( 0.0f, 1.0f );
+		g_engfuncs.pTriAPI->Vertex3fv( last1 );
 
 		// Transform point into screen space
 		g_engfuncs.pTriAPI->WorldToScreen( pHead->org, screen );
@@ -2387,7 +2399,7 @@ void DrawBeamFollow( int modelIndex, BeamTrail_t* pHead, int frame, int rendermo
 		tmp.z = 0;
 		tmp = tmp.Normalize();
 		normal = gpViewParams->up * tmp.x;	// Build point along noraml line (normal is -y, x)
-		normal = normal + (gpViewParams->right * -tmp.y );
+		normal = normal - (gpViewParams->right * -tmp.y );
 		
 		// Make a wide line
 		last1 = pHead->org + (normal * width );
@@ -2410,15 +2422,15 @@ void DrawBeamFollow( int modelIndex, BeamTrail_t* pHead, int frame, int rendermo
 			fraction = 0.0;
 			nColor[0] = nColor[1] = nColor[2] = 0;
 		}
-
+	
 		g_engfuncs.pTriAPI->Color4ub( nColor[0], nColor[1], nColor[2], 255 );
-		g_engfuncs.pTriAPI->TexCoord2f( 1.0f, 1.0f );
-		g_engfuncs.pTriAPI->Vertex3fv( last2 );
-
-		g_engfuncs.pTriAPI->Color4ub( nColor[0], nColor[1], nColor[2], 255 );
-		g_engfuncs.pTriAPI->TexCoord2f( 0.0f, 1.0f );
+		g_engfuncs.pTriAPI->TexCoord2f( 0.0f, 0.0f );
 		g_engfuncs.pTriAPI->Vertex3fv( last1 );
 
+		g_engfuncs.pTriAPI->Color4ub( nColor[0], nColor[1], nColor[2], 255 );
+		g_engfuncs.pTriAPI->TexCoord2f( 1.0f, 0.0f );
+		g_engfuncs.pTriAPI->Vertex3fv( last2 );
+		
 		screenLast = screen;
 
 		pHead = pHead->next;

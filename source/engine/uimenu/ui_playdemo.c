@@ -190,7 +190,7 @@ UI_PlayDemo_Callback
 static void UI_PlayDemo_Callback( void *self, int event )
 {
 	menuCommon_s	*item = (menuCommon_s *)self;
-	string		pathJPG;
+	string		pathPIC;
 
 	if( event == QM_CHANGED )
 	{
@@ -230,9 +230,9 @@ static void UI_PlayDemo_Callback( void *self, int event )
 	case ID_YES:
 		if( com.strlen( uiPlayDemo.delName[uiPlayDemo.demosList.curItem] ))
 		{
-			com.snprintf( pathJPG, sizeof( pathJPG ), "demos/%s.jpg", uiPlayDemo.delName[uiPlayDemo.demosList.curItem] );
+			com.snprintf( pathPIC, sizeof( pathPIC ), "demos/%s.%s", uiPlayDemo.delName[uiPlayDemo.demosList.curItem], CL_LevelshotType( ));
 			Cbuf_ExecuteText( EXEC_NOW, va( "deldemo \"%s\"\n", uiPlayDemo.delName[uiPlayDemo.demosList.curItem] ));
-			if( re ) re->FreeShader( pathJPG ); // unload shader from video-memory
+			if( re ) re->FreeShader( pathPIC ); // unload shader from video-memory
 			UI_PlayDemo_GetDemoList();
 		}
 		UI_DeleteDialog();
@@ -263,13 +263,13 @@ static void UI_PlayDemo_Ownerdraw( void *self )
 
 		if( com.strlen( uiPlayDemo.demoName[uiPlayDemo.demosList.curItem] ))
 		{
-			string	pathJPG;
+			string	pathPIC;
 
-			com.snprintf( pathJPG, sizeof( pathJPG ), "demos/%s.jpg", uiPlayDemo.demoName[uiPlayDemo.demosList.curItem] );
+			com.snprintf( pathPIC, sizeof( pathPIC ), "demos/%s.%s", uiPlayDemo.demoName[uiPlayDemo.demosList.curItem], CL_LevelshotType( ));
 
-			if( !FS_FileExists( pathJPG ))
+			if( !FS_FileExists( pathPIC ))
 				UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );
-			else UI_DrawPic( x, y, w, h, uiColorWhite, pathJPG );
+			else UI_DrawPic( x, y, w, h, uiColorWhite, pathPIC );
 		}
 		else UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );
 

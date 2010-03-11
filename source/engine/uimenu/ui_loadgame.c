@@ -192,7 +192,7 @@ UI_LoadGame_Callback
 static void UI_LoadGame_Callback( void *self, int event )
 {
 	menuCommon_s	*item = (menuCommon_s *)self;
-	string		pathJPG;
+	string		pathPIC;
 
 	if( event == QM_CHANGED )
 	{
@@ -225,9 +225,9 @@ static void UI_LoadGame_Callback( void *self, int event )
 	case ID_YES:
 		if( com.strlen( uiLoadGame.delName[uiLoadGame.savesList.curItem] ))
 		{
-			com.snprintf( pathJPG, sizeof( pathJPG ), "save/%s.jpg", uiLoadGame.delName[uiLoadGame.savesList.curItem] );
+			com.snprintf( pathPIC, sizeof( pathPIC ), "save/%s.%s", uiLoadGame.delName[uiLoadGame.savesList.curItem], CL_LevelshotType( ));
 			Cbuf_ExecuteText( EXEC_NOW, va( "delsave \"%s\"\n", uiLoadGame.delName[uiLoadGame.savesList.curItem] ));
-			if( re ) re->FreeShader( pathJPG ); // unload shader from video-memory
+			if( re ) re->FreeShader( pathPIC ); // unload shader from video-memory
 			UI_LoadGame_GetGameList();
 		}
 		UI_DeleteDialog();
@@ -258,13 +258,13 @@ static void UI_LoadGame_Ownerdraw( void *self )
 
 		if( com.strlen( uiLoadGame.saveName[uiLoadGame.savesList.curItem] ))
 		{
-			string	pathJPG;
+			string	pathPIC;
 
-			com.snprintf( pathJPG, sizeof( pathJPG ), "save/%s.jpg", uiLoadGame.saveName[uiLoadGame.savesList.curItem] );
+			com.snprintf( pathPIC, sizeof( pathPIC ), "save/%s.%s", uiLoadGame.saveName[uiLoadGame.savesList.curItem], CL_LevelshotType( ));
 
-			if( !FS_FileExists( pathJPG ))
+			if( !FS_FileExists( pathPIC ))
 				UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );
-			else UI_DrawPic( x, y, w, h, uiColorWhite, pathJPG );
+			else UI_DrawPic( x, y, w, h, uiColorWhite, pathPIC );
 		}
 		else UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );
 

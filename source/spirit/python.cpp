@@ -262,11 +262,12 @@ void CPython::WeaponIdle( void )
 		}
 		else
 		{
-			if(!m_fSpotActive) 
+			if( !m_fSpotActive ) 
 			{
 				iAnim = PYTHON_FIDGET;
 				m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + (170.0/30.0);
-			}		
+			}
+			else return;		
 		}
 		SendWeaponAnim( iAnim );
 	}

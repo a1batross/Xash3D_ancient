@@ -816,6 +816,8 @@ void CL_FreeEdict( edict_t *pEdict )
 	Com_Assert( pEdict == NULL );
 	Com_Assert( pEdict->free );
 
+	clgame.dllFuncs.pfnOnFreeEntPrivateData( pEdict );
+
 	// unlink from world
 	CL_UnlinkEdict( pEdict );
 
@@ -1655,15 +1657,15 @@ pfnGetAttachment
 
 =============
 */
-static void pfnGetAttachment( const edict_t *pEdict, int iAttachment, float *rgflOrigin, float *rgflAngles )
+static bool pfnGetAttachment( const edict_t *pEdict, int iAttachment, float *rgflOrigin, float *rgflAngles )
 {
 	if( !pEdict )
 	{
 		if( rgflOrigin ) VectorClear( rgflOrigin );
 		if( rgflAngles ) VectorClear( rgflAngles );
-		return;
+		return false;
 	}
-	CL_GetAttachment( pEdict->serialnumber, iAttachment, rgflOrigin, rgflAngles );
+	return CL_GetAttachment( pEdict->serialnumber, iAttachment, rgflOrigin, rgflAngles );
 }
 
 /*
@@ -2368,10 +2370,10 @@ int TriWorldToScreen( float *world, float *screen )
 
 	retval = re->WorldToScreen( world, screen );
 
-	screen[0] =  0.5f * screen[0] * cl.refdef.viewport[2];
-	screen[1] = -0.5f * screen[1] * cl.refdef.viewport[3];
-	screen[0] += 0.5f *  cl.refdef.viewport[2];
-	screen[1] += 0.5f *  cl.refdef.viewport[3];
+	screen[0] =  0.5f * screen[0] * (float)cl.refdef.viewport[2];
+	screen[1] = -0.5f * screen[1] * (float)cl.refdef.viewport[3];
+	screen[0] += 0.5f * (float)cl.refdef.viewport[2];
+	screen[1] += 0.5f * (float)cl.refdef.viewport[3];
 
 	return retval;
 }

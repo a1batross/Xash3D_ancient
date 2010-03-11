@@ -207,7 +207,7 @@ UI_SaveGame_Callback
 static void UI_SaveGame_Callback( void *self, int event )
 {
 	menuCommon_s	*item = (menuCommon_s *)self;
-	string		pathJPG;
+	string		pathPIC;
 
 	if( event == QM_CHANGED )
 	{
@@ -233,9 +233,9 @@ static void UI_SaveGame_Callback( void *self, int event )
 	case ID_SAVE:
 		if( com.strlen( uiSaveGame.saveName[uiSaveGame.savesList.curItem] ))
 		{
-			com.snprintf( pathJPG, sizeof( pathJPG ), "save/%s.jpg", uiSaveGame.saveName[uiSaveGame.savesList.curItem] );
+			com.snprintf( pathPIC, sizeof( pathPIC ), "save/%s.%s", uiSaveGame.saveName[uiSaveGame.savesList.curItem], CL_LevelshotType( ));
 			Cbuf_ExecuteText( EXEC_APPEND, va( "save \"%s\"\n", uiSaveGame.saveName[uiSaveGame.savesList.curItem] ));
-			if( re ) re->FreeShader( pathJPG ); // unload shader from video-memory
+			if( re ) re->FreeShader( pathPIC ); // unload shader from video-memory
 			UI_CloseMenu();
 		}
 		break;
@@ -246,9 +246,9 @@ static void UI_SaveGame_Callback( void *self, int event )
 	case ID_YES:
 		if( com.strlen( uiSaveGame.delName[uiSaveGame.savesList.curItem] ))
 		{
-			com.snprintf( pathJPG, sizeof( pathJPG ), "save/%s.jpg", uiSaveGame.delName[uiSaveGame.savesList.curItem] );
+			com.snprintf( pathPIC, sizeof( pathPIC ), "save/%s.%s", uiSaveGame.delName[uiSaveGame.savesList.curItem], CL_LevelshotType( ));
 			Cbuf_ExecuteText( EXEC_NOW, va( "delsave \"%s\"\n", uiSaveGame.delName[uiSaveGame.savesList.curItem] ));
-			if( re ) re->FreeShader( pathJPG ); // unload shader from video-memory
+			if( re ) re->FreeShader( pathPIC ); // unload shader from video-memory
 			UI_SaveGame_GetGameList();
 		}
 		UI_DeleteDialog();
@@ -279,13 +279,13 @@ static void UI_SaveGame_Ownerdraw( void *self )
 
 		if( com.strlen( uiSaveGame.saveName[uiSaveGame.savesList.curItem] ))
 		{
-			string	pathJPG;
+			string	pathPIC;
 
-			com.snprintf( pathJPG, sizeof( pathJPG ), "save/%s.jpg", uiSaveGame.saveName[uiSaveGame.savesList.curItem] );
+			com.snprintf( pathPIC, sizeof( pathPIC ), "save/%s.%s", uiSaveGame.saveName[uiSaveGame.savesList.curItem], CL_LevelshotType( ));
 
-			if( !FS_FileExists( pathJPG ))
+			if( !FS_FileExists( pathPIC ))
 				UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );
-			else UI_DrawPic( x, y, w, h, uiColorWhite, pathJPG );
+			else UI_DrawPic( x, y, w, h, uiColorWhite, pathPIC );
 		}
 		else UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );
 

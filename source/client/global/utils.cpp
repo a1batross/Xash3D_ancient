@@ -584,6 +584,65 @@ void ClearAllFades( void )
 
 /*
 ====================
+UTIL_Probe
+
+client explosion utility
+====================
+*/
+float UTIL_Probe( const Vector &origin, Vector *vecDirection, float strength )
+{
+	// press out
+	Vector endpos = origin + (( *vecDirection ) * strength );
+
+	//Trace into the world
+	TraceResult	tr;
+	UTIL_TraceLine( origin, endpos, dont_ignore_monsters, NULL, &tr );
+
+	// push back a proportional amount to the probe
+	(*vecDirection) = -(*vecDirection) * (1.0f - tr.flFraction);
+
+	ASSERT(( 1.0f - tr.flFraction ) >= 0.0f );
+
+	// return the impacted proportion of the probe
+	return (1.0f - tr.flFraction);
+}
+
+void UTIL_GetForceDirection( const Vector &origin, float magnitude, Vector *resultDirection, float *resultForce )
+{
+	Vector	d[6];
+
+	// all cardinal directions
+	d[0] = Vector(  1,  0,  0 );
+	d[1] = Vector( -1,  0,  0 );
+	d[2] = Vector(  0,  1,  0 );
+	d[3] = Vector(  0, -1,  0 );
+	d[4] = Vector(  0,  0,  1 );
+	d[5] = Vector(  0,  0, -1 );
+
+	//Init the results
+	(*resultDirection).Init();
+	(*resultForce) = 1.0f;
+	
+	// Get the aggregate force vector
+	for ( int i = 0; i < 6; i++ )
+	{
+		(*resultForce) += UTIL_Probe( origin, &d[i], magnitude );
+		(*resultDirection) += d[i];
+	}
+
+	// If we've hit nothing, then point up
+	if (( *resultDirection ) == g_vecZero )
+	{
+		(*resultDirection) = Vector( 0, 0, 1 );
+		(*resultForce) = 2.0f; // default value
+	}
+
+	// Just return the direction
+	(*resultDirection) = (*resultDirection).Normalize();
+}
+
+/*
+====================
 Sys LoadGameDLL
 
 some code from Darkplaces

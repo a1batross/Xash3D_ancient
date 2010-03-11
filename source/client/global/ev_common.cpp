@@ -26,7 +26,6 @@ extern "C"
 	void EV_SnarkFire( event_args_t *args );
 	void EV_TrainPitchAdjust( event_args_t *args );
 	void EV_Decals( event_args_t *args );
-	void EV_Explode( event_args_t *args );
 }
 
 //======================
@@ -42,7 +41,6 @@ void EV_HookEvents( void )
 	g_engfuncs.pEventAPI->EV_HookEvent( "evShotgun1", EV_FireShotGunSingle );
 	g_engfuncs.pEventAPI->EV_HookEvent( "evShotgun2", EV_FireShotGunDouble );
 	g_engfuncs.pEventAPI->EV_HookEvent( "evMP5", EV_FireMP5 );
-	g_engfuncs.pEventAPI->EV_HookEvent( "evExplode", EV_Explode );
 	g_engfuncs.pEventAPI->EV_HookEvent( "evPython", EV_FirePython );
 	g_engfuncs.pEventAPI->EV_HookEvent( "evGauss", EV_FireGauss );
 	g_engfuncs.pEventAPI->EV_HookEvent( "evGaussSpin", EV_SpinGauss );

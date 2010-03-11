@@ -492,8 +492,8 @@ void CL_Record_f( void )
 	// make sure what oldsave is removed
 	if( FS_FileExists( va( "demos/%s.dem", demoname )))
 		FS_Delete( va( "%s/demos/%s.dem", GI->gamedir, demoname ));
-	if( FS_FileExists( va( "demos/%s.jpg", name )))
-		FS_Delete( va( "%s/demos/%s.jpg", GI->gamedir, demoname ));
+	if( FS_FileExists( va( "demos/%s.%s", name, CL_LevelshotType( ))))
+		FS_Delete( va( "%s/demos/%s.%s", GI->gamedir, demoname, CL_LevelshotType( )));
 
 	// write demoshot for preview
 	Cbuf_AddText( va( "demoshot \"%s\"\n", demoname ));

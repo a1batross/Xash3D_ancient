@@ -7,7 +7,6 @@
 #include "client.h"
 #include "effects_api.h"
 #include "triangle_api.h"
-#include "tempents.h"	// grab TE_EXPLFLAGS
 #include "beam_def.h"
 #include "const.h"
 

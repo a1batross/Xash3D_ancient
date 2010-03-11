@@ -758,12 +758,21 @@ void CL_PlaceDecal( Vector pos, edict_t *pEntity, HSPRITE hDecal )
 	g_engfuncs.pEfxAPI->R_SetDecal( pos, dir, rgba, RANDOM_LONG( 0, 360 ), scale, hDecal, flags );
 }
 
-void CL_AllocDLight( Vector pos, float radius, float time, int flags )
+void CL_AllocDLight( Vector pos, float r, float g, float b, float radius, float time, int flags )
 {
-	float	rgb[3] = { 1.0f, 1.0f, 1.0f };
+	float	rgb[3];
+	
+	rgb[0] = r / 255.0f;
+	rgb[1] = r / 255.0f;
+	rgb[2] = r / 255.0f;
 
 	if( radius <= 0 ) return;
 	g_engfuncs.pEfxAPI->CL_AllocDLight( pos, rgb, radius, time, flags, 0 );
+}
+
+void CL_AllocDLight( Vector pos, float radius, float time, int flags )
+{
+	CL_AllocDLight( pos, 255, 255, 255, radius, time, flags );
 }
 
 void HUD_AddClientMessage( void )
@@ -816,7 +825,7 @@ void HUD_AddClientMessage( void )
 ---------------
 TE_ParseBeamFollow
 
-create a line of decaying beam segments until entity stops moving
+Create a line of decaying beam segments until entity stops moving
 ---------------
 */
 void TE_ParseBeamFollow( void )
@@ -827,7 +836,7 @@ void TE_ParseBeamFollow( void )
 
 	entityIndex = READ_SHORT();
 	modelIndex = READ_SHORT();
-	life = (float)READ_BYTE();
+	life = (float)(READ_BYTE() * 0.1f);
 	width = (float)READ_BYTE();
 
 	// parse color
@@ -837,6 +846,139 @@ void TE_ParseBeamFollow( void )
 	brightness = READ_BYTE();
 
 	g_pViewRenderBeams->CreateBeamFollow( entityIndex, modelIndex, life, width, width, 0.0f, color.x, color.y, color.z, brightness );
+}
+
+/*
+---------------
+TE_ParseBeamPoints
+
+Creates a beam between two points
+---------------
+*/
+void TE_ParseBeamPoints( void )
+{
+	Vector vecStart, vecEnd, vecColor;
+	int modelIndex, startFrame;
+	float frameRate, life, width;
+	float brightness, noise, speed;
+
+	// beam position	
+	vecStart.x = READ_COORD();
+	vecStart.y = READ_COORD();
+	vecStart.z = READ_COORD();
+	vecEnd.x = READ_COORD();
+	vecEnd.y = READ_COORD();
+	vecEnd.z = READ_COORD();
+
+	// beam info
+	modelIndex = READ_SHORT();
+	startFrame = READ_BYTE();
+	frameRate = (float)(READ_BYTE());
+	life = (float)(READ_BYTE() * 0.1f);
+	width = (float)(READ_BYTE() * 0.1f);
+	noise = (float)(READ_BYTE() * 0.1f);
+
+	// renderinfo
+	vecColor.x = (float)READ_BYTE();
+	vecColor.y = (float)READ_BYTE();
+	vecColor.z = (float)READ_BYTE();
+	brightness = (float)READ_BYTE();
+	speed = (float)(READ_BYTE() * 0.1f);
+
+	g_pViewRenderBeams->CreateBeamPoints( vecStart, vecEnd, modelIndex, life, width, noise, brightness, speed,
+	startFrame, frameRate, vecColor.x, vecColor.y, vecColor.z );
+}
+
+/*
+---------------
+TE_ParseBeamEntPoint
+
+Creates a beam between two points
+---------------
+*/
+void TE_ParseBeamEntPoint( void )
+{
+	Vector vecEnd, vecColor;
+	int entityIndex, modelIndex, startFrame;
+	float frameRate, life, width;
+	float brightness, noise, speed;
+
+	// beam position	
+	entityIndex = READ_SHORT();
+	vecEnd.x = READ_COORD();
+	vecEnd.y = READ_COORD();
+	vecEnd.z = READ_COORD();
+
+	// beam info
+	modelIndex = READ_SHORT();
+	startFrame = READ_BYTE();
+	frameRate = (float)(READ_BYTE());
+	life = (float)(READ_BYTE() * 0.1f);
+	width = (float)(READ_BYTE() * 0.1f);
+	noise = (float)(READ_BYTE() * 0.1f);
+
+	// renderinfo
+	vecColor.x = (float)READ_BYTE();
+	vecColor.y = (float)READ_BYTE();
+	vecColor.z = (float)READ_BYTE();
+	brightness = (float)READ_BYTE();
+	speed = (float)(READ_BYTE() * 0.1f);
+
+	g_pViewRenderBeams->CreateBeamEntPoint( entityIndex, vecEnd, modelIndex, life, width, noise, brightness,
+	speed, startFrame, frameRate, vecColor.x, vecColor.y, vecColor.z );
+}
+
+/*
+---------------
+TE_ParseBeamEntPoint
+
+Creates additive sprite, 2 dynamic lights, flickering particles, explosion sound, move vertically 8 pps
+---------------
+*/
+void TE_ParseExplosion( void )
+{
+	Vector dir, pos, pos2;
+	float scale, frameRate;
+	int flags, spriteIndex;
+	TEMPENTITY *pTemp;
+
+	pos.x = READ_COORD();
+	pos.y = READ_COORD();
+	pos.z = READ_COORD();
+	
+	spriteIndex = READ_SHORT();
+	scale = (float)(READ_BYTE() * 0.1f);
+	frameRate = READ_BYTE();
+	flags = READ_BYTE();
+
+	g_engfuncs.pEfxAPI->CL_FindExplosionPlane( pos, scale, dir );
+	pos2 = pos + (dir * scale);
+
+	if( scale != 0.0f )
+	{
+		// create explosion sprite
+		pTemp = g_engfuncs.pEfxAPI->R_DefaultSprite( pos2, spriteIndex, frameRate );
+		g_engfuncs.pEfxAPI->R_Sprite_Explode( pTemp, scale, flags );
+
+		ALERT( at_console, "Explosion scale: %g\n", scale );
+
+		if( !( flags & TE_EXPLFLAG_NODLIGHTS ))
+		{
+			CL_AllocDLight( pos2, 250, 250, 150, 200, 0.01f, 0 ); // big flash
+			CL_AllocDLight( pos2, 255, 190, 40, 150, 1.0f, DLIGHT_FADE );// red glow
+		}
+	}
+
+	if(!( flags & TE_EXPLFLAG_NOPARTICLES ))
+		CL_ExplosionParticles( pos );
+	if( RANDOM_LONG( 0, 1 ))
+		CL_PlaceDecal( pos, dir, scale, g_engfuncs.pEfxAPI->CL_DecalIndexFromName( "{scorch1" ));
+	else CL_PlaceDecal( pos, dir, scale, g_engfuncs.pEfxAPI->CL_DecalIndexFromName( "{scorch2" )); 
+
+	if( !( flags & TE_EXPLFLAG_NOSOUND ))
+	{
+		CL_PlaySound( "weapons/explode3.wav", 1.0f, pos2 );
+	}
 }
 
 void HUD_ParseTempEntity( void )
@@ -849,8 +991,11 @@ void HUD_ParseTempEntity( void )
 
 	switch( READ_BYTE() )
 	{
-	case TE_BEAMFOLLOW:
-		TE_ParseBeamFollow();
+	case TE_BEAMPOINTS:
+		TE_ParseBeamPoints();
+		break;
+	case TE_BEAMENTPOINT:
+		TE_ParseBeamEntPoint();
 		break;
 	case TE_GUNSHOT:
 		pos.x = READ_COORD();
@@ -863,6 +1008,12 @@ void HUD_ParseTempEntity( void )
 			sprintf( soundpath, "weapons/ric%i.wav", RANDOM_LONG( 1, 5 ));
 			CL_PlaySound( soundpath, RANDOM_FLOAT( 0.7f, 0.9f ), pos, RANDOM_FLOAT( 95.0f, 105.0f ));
 		}
+		break;
+	case TE_EXPLOSION:
+
+		break;
+	case TE_BEAMFOLLOW:
+		TE_ParseBeamFollow();
 		break;
 	case TE_GUNSHOTDECAL:
 		pos.x = READ_COORD();
@@ -887,35 +1038,6 @@ void HUD_ParseTempEntity( void )
 		CL_PlaceDecal( pos, dir, 2, g_engfuncs.pEfxAPI->CL_DecalIndex( READ_BYTE() ));
 		READ_SHORT(); // FIXME: skip entindex
 		break;	
-	case TE_EXPLOSION:
-		pos.x = READ_COORD();
-		pos.y = READ_COORD();
-		pos.z = READ_COORD();
-		modelIndex = READ_SHORT();
-		scale = (float)(READ_BYTE());
-		framerate = READ_BYTE();
-		flags = READ_BYTE();
-
-		g_engfuncs.pEfxAPI->CL_FindExplosionPlane( pos, scale, dir );
-		pos2 = pos + (dir * scale);
-
-		// create explosion sprite
-		pTemp = g_engfuncs.pEfxAPI->CL_TempEntAlloc( pos2, modelIndex );
-		g_engfuncs.pEfxAPI->R_Sprite_Explode( pTemp, (scale / 10.0f), flags );
-		if( pTemp )
-		{
-			pTemp->die = gpGlobals->time + 2.5f;	// should be enough for too long sequence
-			pTemp->m_flFrameRate = framerate;
-			pTemp->flags |= FTENT_SPRANIMATE;
-		}
-		if(!( flags & TE_EXPLFLAG_NOPARTICLES ))
-			CL_ExplosionParticles( pos );
-		if( RANDOM_LONG( 0, 1 ))
-			CL_PlaceDecal( pos, dir, scale, g_engfuncs.pEfxAPI->CL_DecalIndexFromName( "{scorch1" ));
-		else CL_PlaceDecal( pos, dir, scale, g_engfuncs.pEfxAPI->CL_DecalIndexFromName( "{scorch2" )); 
-		if(!(flags & TE_EXPLFLAG_NODLIGHTS )) CL_AllocDLight( pos2, 250.0f, 0.8f, DLIGHT_FADE );
-		if(!(flags & TE_EXPLFLAG_NOSOUND )) CL_PlaySound( "weapons/explode3.wav", 1.0f, pos2 );
-		break;
 	case TE_SPARKS:
 		pos.x = READ_COORD();
 		pos.y = READ_COORD();
@@ -1010,7 +1132,7 @@ void HUD_ParseTempEntity( void )
 		pos.y = READ_COORD();
 		pos.z = READ_COORD();
 		modelIndex = READ_SHORT();
-		READ_SHORT();		// FIXME: skip droplet blood sprite
+		READ_SHORT();		// FIXME: skup droplet blood sprite
 		iColor = READ_BYTE();
 		scale = READ_BYTE();	// scale
 		g_engfuncs.pEfxAPI->R_BloodSprite( pos, iColor, modelIndex, scale );

@@ -89,6 +89,7 @@ CRpgRocket *CRpgRocket::Create ( Vector vecOrigin, Vector vecAngles, CBaseEntity
 {
 	CRpgRocket *pRocket = GetClassPtr( (CRpgRocket *)NULL );
 
+	pRocket->SetObjectClass( ED_NORMAL );
 	UTIL_SetOrigin( pRocket, vecOrigin );
 	pRocket->pev->angles = vecAngles;
 	pRocket->Spawn();
@@ -219,8 +220,6 @@ void CRpgRocket :: FollowThink( void  )
 	float flDist, flMax, flDot;
 	TraceResult tr;
 	UTIL_MakeAimVectors( pev->angles );
-
-	CreateTrail();
 
 	vecTarget = gpGlobals->v_forward;
 	flMax = 4096;

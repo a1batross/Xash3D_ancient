@@ -53,7 +53,6 @@ DLL_GLOBAL	short		g_sModelIndexErrorSprite;//error sprite index
 DLL_GLOBAL	short		g_sSoundIndexNullSound;//null sound index
 DLL_GLOBAL	unsigned short	g_usEventIndexNullEvent;//null event index
 DLL_GLOBAL 	unsigned short 	m_usDecals;	//Decal event
-DLL_GLOBAL 	unsigned short 	m_usEfx;		//special effects event (rocket trail, explosion e.t.c.)	
 DLL_GLOBAL	unsigned short	m_usPlayEmptySound;	//play empty sound on client side
 
 ItemInfo CBasePlayerItem::ItemInfoArray[MAX_WEAPONS];
@@ -117,6 +116,7 @@ void CLaserSpot::Spawn( void )
 	pev->solid = SOLID_NOT;
 
 	pev->rendermode = kRenderGlow;
+	pev->rendercolor = Vector( 200, 12, 12 );
 	pev->renderfx = kRenderFxNoDissipation;
 	pev->renderamt = 255;
 
@@ -477,7 +477,6 @@ void W_Precache(void)
 	g_sModelIndexLaserDot = PRECACHE_MODEL("sprites/laserdot.spr");
 	m_usPlayEmptySound = PRECACHE_EVENT( 1, "evEmptySound" );
 	m_usDecals = PRECACHE_EVENT(1, "evDecals");
-	m_usEfx = PRECACHE_EVENT(1, "evExplode");
 
 	// custom muzzleflashes
 	PRECACHE_MODEL ("sprites/muzzleflash1.spr");
@@ -1012,8 +1011,8 @@ void CBasePlayerWeapon::SendWeaponAnim( int iAnim, float fps )
 	pev->body = (pev->body % NUM_HANDS) + NUM_HANDS * m_iBody;
 
 	MESSAGE_BEGIN( MSG_ONE, gmsgWeaponAnim, NULL, m_pPlayer->pev );
-		WRITE_BYTE( iAnim );						// sequence number
-		WRITE_BYTE( pev->body );					// weaponmodel bodygroup.
+		WRITE_BYTE( iAnim );			// sequence number
+		WRITE_BYTE( pev->body );			// weaponmodel bodygroup.
 		WRITE_BYTE( framerate * 16 );
 	MESSAGE_END();
 }

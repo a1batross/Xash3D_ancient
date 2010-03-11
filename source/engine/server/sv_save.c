@@ -387,8 +387,8 @@ void SV_WriteSaveFile( const char *inname, bool autosave, bool bUseLandmark )
 	// make sure what oldsave is removed
 	if( FS_FileExists( va( "save/%s.sav", name )))
 		FS_Delete( va( "%s/save/%s.sav", GI->gamedir, name ));
-	if( FS_FileExists( va( "save/%s.jpg", name )))
-		FS_Delete( va( "%s/save/%s.jpg", GI->gamedir, name ));
+	if( FS_FileExists( va( "save/%s.%s", name, CL_LevelshotType( ))))
+		FS_Delete( va( "%s/save/%s.%s", GI->gamedir, name, CL_LevelshotType( )));
 
 	savfile = WAD_Open( path, "wb" );
 

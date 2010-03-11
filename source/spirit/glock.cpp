@@ -223,7 +223,11 @@ void CGlock::WeaponIdle( void )
 			iAnim = GLOCK_IDLE3;
 			m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 3.7;
 		}
-		else	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + RANDOM_LONG(10, 30);
+		else 
+		{
+			m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + RANDOM_LONG(10, 30);
+			return;
+		}
 		SendWeaponAnim( iAnim );
 	}
 }

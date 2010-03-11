@@ -207,7 +207,7 @@ UI_RecDemo_Callback
 static void UI_RecDemo_Callback( void *self, int event )
 {
 	menuCommon_s	*item = (menuCommon_s *)self;
-	string		pathJPG;
+	string		pathPIC;
 
 	if( event == QM_CHANGED )
 	{
@@ -240,9 +240,9 @@ static void UI_RecDemo_Callback( void *self, int event )
 		}
 		else if( com.strlen( uiRecDemo.demoName[uiRecDemo.demosList.curItem] ))
 		{
-			com.snprintf( pathJPG, sizeof( pathJPG ), "demos/%s.jpg", uiRecDemo.demoName[uiRecDemo.demosList.curItem] );
+			com.snprintf( pathPIC, sizeof( pathPIC ), "demos/%s.%s", uiRecDemo.demoName[uiRecDemo.demosList.curItem], CL_LevelshotType( ));
 			Cbuf_ExecuteText( EXEC_APPEND, va( "record \"%s\"\n", uiRecDemo.demoName[uiRecDemo.demosList.curItem] ));
-			if( re ) re->FreeShader( pathJPG ); // unload shader from video-memory
+			if( re ) re->FreeShader( pathPIC ); // unload shader from video-memory
 			UI_CloseMenu();
 		}
 		break;
@@ -253,9 +253,9 @@ static void UI_RecDemo_Callback( void *self, int event )
 	case ID_YES:
 		if( com.strlen( uiRecDemo.delName[uiRecDemo.demosList.curItem] ))
 		{
-			com.snprintf( pathJPG, sizeof( pathJPG ), "demos/%s.jpg", uiRecDemo.delName[uiRecDemo.demosList.curItem] );
+			com.snprintf( pathPIC, sizeof( pathPIC ), "demos/%s.%s", uiRecDemo.delName[uiRecDemo.demosList.curItem], CL_LevelshotType( ));
 			Cbuf_ExecuteText( EXEC_NOW, va( "deldemo \"%s\"\n", uiRecDemo.delName[uiRecDemo.demosList.curItem] ));
-			if( re ) re->FreeShader( pathJPG ); // unload shader from video-memory
+			if( re ) re->FreeShader( pathPIC ); // unload shader from video-memory
 			UI_RecDemo_GetDemoList();
 		}
 		UI_DeleteDialog();
@@ -286,13 +286,13 @@ static void UI_RecDemo_Ownerdraw( void *self )
 
 		if( com.strlen( uiRecDemo.demoName[uiRecDemo.demosList.curItem] ))
 		{
-			string	pathJPG;
+			string	pathPIC;
 
-			com.snprintf( pathJPG, sizeof( pathJPG ), "demos/%s.jpg", uiRecDemo.demoName[uiRecDemo.demosList.curItem] );
+			com.snprintf( pathPIC, sizeof( pathPIC ), "demos/%s.%s", uiRecDemo.demoName[uiRecDemo.demosList.curItem], CL_LevelshotType( ));
 
-			if( !FS_FileExists( pathJPG ))
+			if( !FS_FileExists( pathPIC ))
 				UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );
-			else UI_DrawPic( x, y, w, h, uiColorWhite, pathJPG );
+			else UI_DrawPic( x, y, w, h, uiColorWhite, pathPIC );
 		}
 		else UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );
 

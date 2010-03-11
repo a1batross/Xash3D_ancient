@@ -34,6 +34,7 @@ extern int HUD_VidInit( void );
 extern void HUD_Init( void );
 extern int HUD_Redraw( float flTime, int state );
 extern void HUD_UpdateEntityVars( edict_t *out, skyportal_t *sky, const entity_state_t *s, const entity_state_t *p );
+extern void HUD_UpdateOnRemove( edict_t *pEdict );
 extern void HUD_Reset( void );
 extern void HUD_StartFrame( void );
 extern void HUD_Frame( double time );
@@ -179,6 +180,10 @@ extern void END_READ( void );
 extern void UTIL_TraceLine( const Vector &vecStart, const Vector &vecEnd, IGNORE_MONSTERS igmon, edict_t *pentIgnore, TraceResult *ptr);
 extern void UTIL_TraceLine( const Vector &vecStart, const Vector &vecEnd, IGNORE_MONSTERS igmon, IGNORE_GLASS ignoreGlass, edict_t *pentIgnore, TraceResult *ptr);
 extern void UTIL_TraceHull( const Vector &vecStart, const Vector &vecEnd, IGNORE_MONSTERS igmon, int hullNumber, edict_t *pentIgnore, TraceResult *ptr);
+
+// misc utilities
+extern float UTIL_Probe( const Vector &origin, Vector *vecDirection, float strength );
+extern void UTIL_GetForceDirection( const Vector &origin, float magnitude, Vector *resultDirection, float *resultForce );
 
 // drawing stuff
 extern client_sprite_t *SPR_GetList( const char *name, int *count );

@@ -39,10 +39,17 @@ Beta 13.02.10
 14.implement realtime wind
 15. fixup muzzleflashes				OK
 16. fix CL_GetEntityByIndex: invalid entindex		OK
-17. implement beams
+17. implement beams					OK
 18. implement filetime in file_t
-19. complete lights.shader, rails2d.shader
+19. complete lights.shader
+20. rails2d.shader					OK
 20. merge abaddon.shader
+21. implement all TE_* messages
+22. final revision of ClientAPI
+23. fix Egon and Gauss firing
+24. revision server physic
+25. revision monster moving
+26. get rid of fakemirror stuff in spirit
 
 
 

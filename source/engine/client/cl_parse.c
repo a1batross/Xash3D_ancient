@@ -374,14 +374,21 @@ void CL_ParseServerData( sizebuf_t *msg )
 	Cvar_Set( "cl_levelshot_name", va( "levelshots/%s", str ));
 	Cvar_SetValue( "scr_loading", 0.0f ); // reset progress bar
 
+	// FIXME: use table of allowed extension for each imagelib modes
+
 	for( i = 0; i < 4; i++ )
+	{
+		// scan for custom user levelshot
 		if( FS_FileExists( va( "%s.%s", cl_levelshot_name->string, levelshot_ext[i] ))) 
 			break;
+	}
+
 	if( i == 4 )
 	{
 		Cvar_Set( "cl_levelshot_name", MAP_DEFAULT_SHADER );	// render a black screen
 		cls.scrshot_request = scrshot_plaque;			// make levelshot
 	}
+
 	// seperate the printfs so the server message can have a color
 	Msg("\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");
 	Msg( "^2%s\n", clgame.maptitle );

@@ -33,6 +33,7 @@ static HUD_FUNCTIONS gFunctionTable =
 	HUD_Init,
 	HUD_Redraw,
 	HUD_UpdateEntityVars,
+	HUD_UpdateOnRemove,
 	HUD_Reset,
 	HUD_StartFrame,
 	HUD_Frame,
@@ -315,6 +316,12 @@ void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t 
 	// g-cont. moved here because we may needs apply null scale to skyportal
 	if( ent->v.scale == 0.0f ) ent->v.scale = 1.0f;	
 	ent->v.pContainingEntity = ent;
+}
+
+void HUD_UpdateOnRemove( edict_t *pEdict )
+{
+	// move TE_BEAMTRAIL, kill other beams
+	g_pViewRenderBeams->KillDeadBeams( pEdict );
 }
 
 void HUD_Reset( void )

@@ -186,7 +186,7 @@ typedef struct cl_enginefuncs_s
 
 	float	(*pfnGetClientTime)( void );		// can use gpGlobals->time instead
 	int	(*pfnIsSpectateOnly)( void );		// was V_CalcShake
-	void	(*pfnGetAttachment)( const edict_t *pEdict, int iAttachment, float *rgflOrg, float *rgflAng );	// was V_ApplyShake
+	int	(*pfnGetAttachment)( const edict_t *pEdict, int iAttachment, float *rgflOrg, float *rgflAng );	// was V_ApplyShake
 
 	int	(*pfnPointContents)( const float *rgflPos );
 	edict_t*	(*pfnWaterEntity)( const float *rgflPos );
@@ -237,6 +237,7 @@ typedef struct
 	void	(*pfnInit)( void );
 	int	(*pfnRedraw)( float flTime, int state );
 	void	(*pfnUpdateEntityVars)( edict_t *out, skyportal_t *sky, const struct entity_state_s *in1, const struct entity_state_s *in2 );
+	void	(*pfnOnFreeEntPrivateData)( edict_t *pEnt ); // this is called on entity removed
 	void	(*pfnReset)( void );
 	void	(*pfnStartFrame)( void );
 	void	(*pfnFrame)( double time );

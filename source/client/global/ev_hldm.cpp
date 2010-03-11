@@ -37,7 +37,6 @@ extern "C"
 	void EV_TrainPitchAdjust( event_args_t *args );
 	void EV_PlayEmptySound( event_args_t *args );
 	void EV_Decals( event_args_t *args );
-	void EV_Explode( event_args_t *args );
 }
 
 #define VECTOR_CONE_1DEGREES	Vector( 0.00873, 0.00873, 0.00873 )
@@ -1658,22 +1657,6 @@ void EV_Decals( event_args_t *args )
 //	   DECALS END
 //======================
 
-//======================
-//           EFX START
-//======================
-void EV_Explode( event_args_t *args )
-{
-	int m_iExplodeSprite;
-	Vector mirpos = EV_MirrorPos( args->origin ); 	
-
-	if( args->bparam1 )//water explosion
-		m_iExplodeSprite = g_engfuncs.pEventAPI->EV_FindModelIndex( "sprites/WXplo1.spr" );
-         	else m_iExplodeSprite = g_engfuncs.pEventAPI->EV_FindModelIndex( "sprites/zerogxplode.spr" ); 
-
-//	g_engfuncs.pEfxAPI->R_Explosion( args->origin, m_iExplodeSprite, (args->fparam1 - 50) * 0.06, 15, TE_EXPLFLAG_NODLIGHTS | TE_EXPLFLAG_NOPARTICLES );
-	if(mirpos == g_vecZero ) return;
-//	g_engfuncs.pEfxAPI->R_Explosion( mirpos, m_iExplodeSprite, (args->fparam1 - 50) * 0.06, 15, TE_EXPLFLAG_NODLIGHTS | TE_EXPLFLAG_NOSOUND | TE_EXPLFLAG_NOPARTICLES );
-}
 //======================
 //           EFX END
 //======================

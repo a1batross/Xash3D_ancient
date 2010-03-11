@@ -424,7 +424,6 @@ extern DLL_GLOBAL	short		g_sModelIndexErrorSprite;//error sprite index
 extern DLL_GLOBAL	short		g_sSoundIndexNullSound;//null sound index
 extern DLL_GLOBAL	unsigned short	g_usEventIndexNullEvent;//null event index
 extern DLL_GLOBAL 	unsigned short 	m_usDecals;	    //Decal event
-extern DLL_GLOBAL 	unsigned short 	m_usEfx;	    //special effects event (rocket trail, explosion e.t.c.)
 
 extern void ClearMultiDamage(void);
 extern void ApplyMultiDamage(entvars_t* pevInflictor, entvars_t* pevAttacker );

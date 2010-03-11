@@ -560,20 +560,18 @@ void CEgon::WeaponIdle( void )
 
 	if (m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] > 0)
 	{
-		int iAnim;
 		float flRand = RANDOM_FLOAT(0,1);
 
 		if ( flRand > 0.8 )
 		{
-			iAnim = EGON_IDLE1;
+			SendWeaponAnim( EGON_IDLE1 );
 			m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + RANDOM_FLOAT(10,15);
 		}
 		else if ((m_iBody == 0)&&(flRand < 0.2))
 		{
-			iAnim = EGON_FIDGET1;
+			SendWeaponAnim( EGON_FIDGET1 );
 			m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 3;
 		}
-		SendWeaponAnim( iAnim );
 	}
 }
 

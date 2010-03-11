@@ -8,6 +8,8 @@
 
 #define SCRSHOT_TYPE	"jpg" // fixed type
 #define LEVELSHOT_TYPE	CL_LevelshotType()
+#define SAVESHOT_TYPE	CL_LevelshotType()
+#define DEMOSHOT_TYPE	CL_LevelshotType()
 
 const char *CL_LevelshotType( void )
 {
@@ -240,8 +242,8 @@ void CL_SaveShot_f( void )
 	}
 
 	// check for exist
-	com.sprintf( cls.shotname, "save/%s.jpg", Cmd_Argv( 1 ));
-	cls.scrshot_action = scrshot_savegame;		// build new frame for saveshot
+	com.sprintf( cls.shotname, "save/%s.%s", Cmd_Argv( 1 ), SAVESHOT_TYPE );
+	cls.scrshot_action = scrshot_savegame;	// build new frame for saveshot
 }
 
 /* 
@@ -260,8 +262,8 @@ void CL_DemoShot_f( void )
 	}
 
 	// check for exist
-	com.sprintf( cls.shotname, "demos/%s.jpg", Cmd_Argv( 1 ));
-	cls.scrshot_action = scrshot_demoshot; // build new frame for saveshot
+	com.sprintf( cls.shotname, "demos/%s.%s", Cmd_Argv( 1 ), DEMOSHOT_TYPE );
+	cls.scrshot_action = scrshot_demoshot; // build new frame for demoshot
 }
 
 /*
@@ -286,7 +288,7 @@ void CL_DeleteDemo_f( void )
 
 	// delete save and saveshot
 	FS_Delete( va( "%s/demos/%s.dem", GI->gamedir, Cmd_Argv( 1 )));
-	FS_Delete( va( "%s/demos/%s.jpg", GI->gamedir, Cmd_Argv( 1 )));
+	FS_Delete( va( "%s/demos/%s.%s", GI->gamedir, Cmd_Argv( 1 ), DEMOSHOT_TYPE ));
 }
 
 /*

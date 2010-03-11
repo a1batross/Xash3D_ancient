@@ -163,6 +163,15 @@
 #define EF_OCCLUSIONTEST		(1<<14)	// use occlusion test for this entity (e.g. glares)
 #define EF_LASERSPOT		(1<<15)	// tempentity laserspot at attachment #1 from player or npc
 
+// The explosion effect has some flags to control performance/aesthetic features:
+#define TE_EXPLFLAG_NONE		0	// all flags clear makes default Half-Life explosion
+#define TE_EXPLFLAG_NOADDITIVE	1	// sprite will be drawn opaque (ensure that the sprite you send is a non-additive sprite)
+#define TE_EXPLFLAG_NODLIGHTS		2	// do not render dynamic lights
+#define TE_EXPLFLAG_NOSOUND		4	// do not play client explosion sound
+#define TE_EXPLFLAG_NOPARTICLES	8	// do not draw particles
+#define TE_EXPLFLAG_DRAWALPHA		16	// sprite will be drawn alpha
+#define TE_EXPLFLAG_ROTATE		32	// rotate the sprite randomly
+
 // pev->takedamage
 #define DAMAGE_NO			0	// can't be damaged
 #define DAMAGE_YES			1	// attempt to damage
