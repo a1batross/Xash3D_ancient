@@ -6,6 +6,7 @@
 #include "extdll.h"
 #include "utils.h"
 #include "r_beams.h"
+#include "r_tempents.h"
 #include "effects_api.h"
 #include "pm_materials.h"
 #include "pm_movevars.h"
@@ -187,106 +188,6 @@ float EV_HLDM_PlayTextureSound( int idx, TraceResult *ptr, float *vecSrc, float 
 }
 
 //======================
-//	    MIRROR UTILS
-//======================
-
-Vector EV_GetMirrorOrigin( int mirror_index, Vector pos )
-{
-	Vector	result = pos;
-
-	if( mirror_index < 0 || mirror_index >= gHUD.numMirrors )
-		return g_vecZero;
-
-	switch( gHUD.Mirrors[mirror_index].type )
-	{
-	case 0:
-		result[0] = gHUD.Mirrors[mirror_index].origin[0] * 2 - pos[0];
-		break;
-	case 1:
-		result[1] = gHUD.Mirrors[mirror_index].origin[1] * 2 - pos[1];
-		break;
-	default:
-	case 2:
-		result[2] = gHUD.Mirrors[mirror_index].origin[2] * 2 - pos[2];
-		break;
-	}
-
-	return result;
-}
-
-Vector EV_GetMirrorAngles( int mirror_index, Vector angles )
-{
-	Vector	result = angles;
-
-	if( mirror_index < 0 || mirror_index >= gHUD.numMirrors )
-		return g_vecZero;
-
-	switch( gHUD.Mirrors[mirror_index].type )
-	{
-	case 0:
-		result.x = -result.x; 
-		break;
-	case 1:
-		result.y = -result.y; 
-		break;
-	default:
-	case 2:
-		result.z = -result.z; 
-		break;
-	}
-
-	return result;
-}
-
-Vector EV_MirrorVector( Vector angles )
-{
-	Vector	result = angles;
-
-	if( gHUD.numMirrors )
-	{
-		for( int imc = 0; imc < gHUD.numMirrors; imc++ )
-		{
-			if( !gHUD.Mirrors[imc].enabled )
-				continue;
-			result = EV_GetMirrorAngles( imc, angles );
-		}
-	}
-	return result;
-}
-
-Vector EV_MirrorPos( Vector endpos )
-{
-	Vector	mirpos;
-
-	mirpos.Init();
-
-	if( gHUD.numMirrors )
-	{
-		for( int imc = 0; imc < gHUD.numMirrors; imc++ )
-		{
-			if( !gHUD.Mirrors[imc].enabled )
-				continue;
-			
-			Vector	delta;
-			float	dist;
-			
-			delta = gHUD.Mirrors[imc].origin - endpos;
-			dist = delta.Length();
-
-			if( gHUD.Mirrors[imc].radius < dist )
-				continue;
-			
-			mirpos = EV_GetMirrorOrigin( imc, endpos );
-		}
-	}
-	return mirpos;
-}
-
-//======================
-//	 END MIRROR UTILS
-//======================
-
-//======================
 //	START DECALS
 //======================
 void EV_HLDM_FindHullIntersection( int idx, Vector vecSrc, TraceResult pTrace, float *mins, float *maxs )
@@ -302,7 +203,7 @@ void EV_HLDM_FindHullIntersection( int idx, Vector vecSrc, TraceResult pTrace, f
 
 	vecHullEnd = vecSrc + ((vecHullEnd - vecSrc ) * 2);
 
-	UTIL_TraceLine( vecSrc, vecHullEnd, dont_ignore_monsters, GetEntityByIndex( idx - 1 ), &tmpTrace );
+	UTIL_TraceLine( vecSrc, vecHullEnd, dont_ignore_monsters, GetEntityByIndex( idx ), &tmpTrace );
 	
 	if ( tmpTrace.flFraction < 1.0 )
 	{
@@ -320,7 +221,7 @@ void EV_HLDM_FindHullIntersection( int idx, Vector vecSrc, TraceResult pTrace, f
 				vecEnd.y = vecHullEnd.y + minmaxs[j][1];
 				vecEnd.z = vecHullEnd.z + minmaxs[k][2];
 
-				UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, GetEntityByIndex( idx - 1 ), &tmpTrace );                                        
+				UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, GetEntityByIndex( idx ), &tmpTrace );                                        
 				
 				if ( tmpTrace.flFraction < 1.0 )
 				{
@@ -368,10 +269,7 @@ void EV_HLDM_CrowbarDecalTrace( TraceResult *pTrace, char *decalName )
 	if( decalName && decalName[0] && pEnt && ( pEnt->v.solid == SOLID_BSP || pEnt->v.movetype == MOVETYPE_PUSHSTEP ) )
 	{
 		HSPRITE decal_tex = g_engfuncs.pEfxAPI->CL_DecalIndexFromName( decalName );
-		CL_PlaceDecal( pTrace->vecEndPos, pEnt, decal_tex );
-			
-		Vector mirpos = EV_MirrorPos( pTrace->vecEndPos ); 
-		if( mirpos != g_vecZero ) CL_PlaceDecal( mirpos, pEnt, decal_tex );
+		g_pTempEnts->PlaceDecal( pTrace->vecEndPos, pEnt, decal_tex );
 	}
 }
 
@@ -410,15 +308,8 @@ void EV_HLDM_GunshotDecalTrace( TraceResult *pTrace, char *decalName )
 	{
 		HSPRITE decal_tex = g_engfuncs.pEfxAPI->CL_DecalIndexFromName( decalName );
 
-		CL_PlaceDecal( pTrace->vecEndPos, pEnt, decal_tex );
+		g_pTempEnts->PlaceDecal( pTrace->vecEndPos, pEnt, decal_tex );
 		CL_BulletParticles( pTrace->vecEndPos, Vector( 0, 0, -1 ));
-
-		Vector mirpos = EV_MirrorPos( pTrace->vecEndPos ); 
-		if( mirpos != g_vecZero )
-		{
-			CL_PlaceDecal( mirpos, pEnt, decal_tex );
-			CL_BulletParticles( mirpos, Vector( 0, 0, -1 ));
-		}
 	}
 }
 
@@ -557,7 +448,7 @@ void EV_HLDM_FireBullets( int idx, Vector forward, Vector right, Vector up, int 
 			vecEnd = vecSrc + flDistance * vecDir;
 		}
 
-		UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, GetEntityByIndex( idx - 1 ), &tr );
+		UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, GetEntityByIndex( idx ), &tr );
 
 		tracer = EV_HLDM_CheckTracer( idx, vecSrc, tr.vecEndPos, forward, right, iBulletType, iTracerFreq, tracerCount );
 
@@ -661,11 +552,11 @@ void EV_FireCrowbar( event_args_t *args )
 	vecEnd = vecSrc + forward * 32;	
           
 	// make trace 
-	UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, GetEntityByIndex( idx - 1 ), &tr );
+	UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, GetEntityByIndex( idx ), &tr );
 
 	if ( tr.flFraction >= 1.0 )
 	{
-		UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, GetEntityByIndex( idx - 1 ), &tr );
+		UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, GetEntityByIndex( idx ), &tr );
 
 		if ( tr.flFraction < 1.0 )
 		{
@@ -806,8 +697,14 @@ void EV_FireGlock1( event_args_t *args )
 
 		EV_MuzzleFlash();							
 
-		if( args->bparam2 ) HUD_MuzzleFlash( view, 2, "17" ); // silence mode
-		else HUD_MuzzleFlash( view, 1, "11" ); // normal flash
+		if( args->bparam2 )
+		{
+			g_pTempEnts->MuzzleFlash( view, 2, 17 ); // silence mode
+		}
+		else
+		{
+			g_pTempEnts->MuzzleFlash( view, 1, 11 ); // normal flash
+		}
 
 		V_PunchAxis( 0, -2.0 );
 	}
@@ -1074,6 +971,14 @@ void EV_SpinGauss( event_args_t *args )
 	int iSoundState = args->bparam1 ? SND_CHANGE_PITCH : 0;
 
 	g_engfuncs.pEventAPI->EV_PlaySound( GetEntityByIndex( args->entindex ), args->origin, CHAN_WEAPON, "ambience/pulsemachine.wav", 1.0, ATTN_NORM, iSoundState, pitch );
+
+	if( EV_IsLocal( args->entindex ))
+	{
+		edict_t *view = GetViewModel();
+
+		// change framerate from 1.0 to 2.5
+		view->v.framerate = (float)pitch / PITCH_NORM;
+	}
 }
 
 /*
@@ -1096,23 +1001,21 @@ void EV_FireGauss( event_args_t *args )
 	Vector origin = args->origin;
 	Vector angles = args->angles;
 	Vector velocity = args->velocity;
-	Vector mangles;
 
 	int m_fPrimaryFire = args->bparam1;
 	int m_iWeaponVolume = GAUSS_PRIMARY_FIRE_VOLUME;
 	Vector vecSrc, vecDest;
-	Vector vecMirrorSrc, vecMirrorDest; //env_mirror use this
   
 	edict_t *pentIgnore;
-	TraceResult tr, mtr, beam_tr;
+	TraceResult tr, beam_tr;
 	float flMaxFrac = 1.0;
 	int nTotal = 0;                             
 	int fHasPunched = 0;
 	int fFirstBeam = 1;
 	int nMaxHits = 10;
-	edict_t *pEntity, *pMEntity;
+	edict_t *pEntity;
 	int m_iBeam, m_iGlow, m_iBalls;
-	Vector up, right, forward;
+	Vector forward;
 
 	idx = args->entindex;
 
@@ -1130,13 +1033,7 @@ void EV_FireGauss( event_args_t *args )
 	
 	AngleVectors( angles, forward, NULL, NULL );
           
-	mangles = EV_MirrorVector( angles );
-	AngleVectors( mangles, right, NULL, NULL );
-	
-	vecMirrorSrc = EV_MirrorPos( vecSrc );
-	
 	vecDest = vecSrc + forward * 8192;
-          vecMirrorDest = vecMirrorSrc + right * 8192;
 	
 	if ( EV_IsLocal( idx ) )
 	{
@@ -1150,8 +1047,7 @@ void EV_FireGauss( event_args_t *args )
 	{
 		nMaxHits--;
 
-		UTIL_TraceLine( vecSrc, vecDest, dont_ignore_monsters, GetEntityByIndex( idx - 1 ), &tr );
-		UTIL_TraceLine( vecMirrorSrc, vecMirrorDest, dont_ignore_monsters, GetEntityByIndex( idx - 1 ), &mtr );
+		UTIL_TraceLine( vecSrc, vecDest, dont_ignore_monsters, GetEntityByIndex( idx ), &tr );
                     
 		if ( tr.fAllSolid )
 			break;
@@ -1168,14 +1064,6 @@ void EV_FireGauss( event_args_t *args )
 			g_pViewRenderBeams->CreateBeamEntPoint( idx | 0x1000, tr.vecEndPos, m_iBeam, 0.1,
 			m_fPrimaryFire ? 1.0 : 2.5,0.0,m_fPrimaryFire ? 128.0 : flDamage, 0, 0, 0,
 			m_fPrimaryFire ? 255 : 255, m_fPrimaryFire ? 128 : 255, m_fPrimaryFire ? 0 : 255 );
-
-			if( vecMirrorDest != g_vecZero && vecMirrorSrc != g_vecZero )
-			{
-				g_pViewRenderBeams->CreateBeamPoints( vecMirrorSrc, mtr.vecEndPos, m_iBeam,
-				0.1f, m_fPrimaryFire ? 1.0 : 2.5, 0.0, m_fPrimaryFire ? 128.0 : flDamage,
-				0, 0, 0, m_fPrimaryFire ? 255 : 255, m_fPrimaryFire ? 128 : 255,
-				m_fPrimaryFire ? 0 : 255 );
-			}
 		}
 		else
 		{
@@ -1185,7 +1073,6 @@ void EV_FireGauss( event_args_t *args )
 		}
 
 		pEntity = tr.pHit;
-		pMEntity = mtr.pHit;
 
 		if ( pEntity == NULL )
 			break;
@@ -1213,14 +1100,12 @@ void EV_FireGauss( event_args_t *args )
 				vecSrc = tr.vecEndPos + forward * 8.0f;
 				vecDest = vecSrc + forward * 8192.0f;
 
-				g_engfuncs.pEfxAPI->R_TempSprite( tr.vecEndPos, NULL, 0.2, m_iGlow, kRenderGlow, kRenderFxNoDissipation, flDamage * n / 255.0, flDamage * n * 0.5 * 0.1, FTENT_FADEOUT );
-                                        if( vecMirrorDest != g_vecZero && vecMirrorSrc != g_vecZero )
-                                                 g_engfuncs.pEfxAPI->R_TempSprite( mtr.vecEndPos, NULL, 0.2, m_iGlow, kRenderGlow, kRenderFxNoDissipation, flDamage * n / 255.0, flDamage * n * 0.5 * 0.1, FTENT_FADEOUT );
+				g_pTempEnts->TempSprite( tr.vecEndPos, g_vecZero, 0.2, m_iGlow, kRenderGlow, kRenderFxNoDissipation, flDamage * n / 255.0, flDamage * n * 0.5 * 0.1, FTENT_FADEOUT );
                                         
 				Vector fwd;
 				fwd = tr.vecEndPos + tr.vecPlaneNormal;
 
-				g_engfuncs.pEfxAPI->R_Sprite_Trail( TE_SPRITETRAIL, tr.vecEndPos, fwd, m_iBalls, 3, 0.1, RANDOM_FLOAT( 10, 20 ) / 100.0, 100, 255, 100 );
+				g_pTempEnts->Sprite_Trail( TE_SPRITETRAIL, tr.vecEndPos, fwd, m_iBalls, 3, 0.1, RANDOM_FLOAT( 10, 20 ) / 100.0, 100, 255, 100 );
                                         
 				// lose energy
 				if ( n == 0 )
@@ -1236,9 +1121,7 @@ void EV_FireGauss( event_args_t *args )
 				// tunnel
 				EV_HLDM_DecalGunshot( &tr, BULLET_12MM );
 
-				g_engfuncs.pEfxAPI->R_TempSprite( tr.vecEndPos, NULL, 1.0, m_iGlow, kRenderGlow, kRenderFxNoDissipation, flDamage / 255.0, 6.0, FTENT_FADEOUT );
-                                        if( vecMirrorDest != g_vecZero && vecMirrorSrc != g_vecZero )
-                                        	g_engfuncs.pEfxAPI->R_TempSprite( mtr.vecEndPos, NULL, 1.0, m_iGlow, kRenderGlow, kRenderFxNoDissipation, flDamage / 255.0, 6.0, FTENT_FADEOUT );
+				g_pTempEnts->TempSprite( tr.vecEndPos, g_vecZero, 1.0, m_iGlow, kRenderGlow, kRenderFxNoDissipation, flDamage / 255.0, 6.0, FTENT_FADEOUT );
 
 				// limit it to one hole punch
 				if( fHasPunched ) break;
@@ -1251,7 +1134,7 @@ void EV_FireGauss( event_args_t *args )
 					
 					start = tr.vecEndPos + forward * 8.0f;
 					
-					UTIL_TraceLine( start, vecDest, dont_ignore_monsters, GetEntityByIndex( idx - 1 ), &beam_tr );
+					UTIL_TraceLine( start, vecDest, dont_ignore_monsters, GetEntityByIndex( idx ), &beam_tr );
 
 					if ( !beam_tr.fAllSolid )
 					{
@@ -1260,7 +1143,7 @@ void EV_FireGauss( event_args_t *args )
 
 						// trace backwards to find exit point
 
-						UTIL_TraceLine( beam_tr.vecEndPos, tr.vecEndPos, dont_ignore_monsters, GetEntityByIndex( idx - 1 ), &beam_tr );
+						UTIL_TraceLine( beam_tr.vecEndPos, tr.vecEndPos, dont_ignore_monsters, GetEntityByIndex( idx ), &beam_tr );
 
 						delta = beam_tr.vecEndPos - tr.vecEndPos;
 						
@@ -1274,17 +1157,17 @@ void EV_FireGauss( event_args_t *args )
 							// absorption balls
 							{
 								Vector fwd = tr.vecEndPos - forward;
-								g_engfuncs.pEfxAPI->R_Sprite_Trail( TE_SPRITETRAIL, tr.vecEndPos, fwd, m_iBalls, 3, 0.1, RANDOM_FLOAT( 10, 20 ) / 100.0, 100, 255, 100 );
+								g_pTempEnts->Sprite_Trail( TE_SPRITETRAIL, tr.vecEndPos, fwd, m_iBalls, 3, 0.1, RANDOM_FLOAT( 10, 20 ) / 100.0, 100, 255, 100 );
 							}
 
 							EV_HLDM_DecalGunshot( &beam_tr, BULLET_12MM );
 							
-							g_engfuncs.pEfxAPI->R_TempSprite( beam_tr.vecEndPos, NULL, 0.1, m_iGlow, kRenderGlow, kRenderFxNoDissipation, flDamage / 255.0, 6.0, FTENT_FADEOUT );
+							g_pTempEnts->TempSprite( beam_tr.vecEndPos, g_vecZero, 0.1, m_iGlow, kRenderGlow, kRenderFxNoDissipation, flDamage / 255.0, 6.0, FTENT_FADEOUT );
 			
 							// balls
 							{
 								Vector fwd = beam_tr.vecEndPos - forward;
-								g_engfuncs.pEfxAPI->R_Sprite_Trail( TE_SPRITETRAIL, beam_tr.vecEndPos, fwd, m_iBalls, (int)(flDamage * 0.3), 0.1, RANDOM_FLOAT( 10, 20 ) / 100.0, 200, 255, 40 );
+								g_pTempEnts->Sprite_Trail( TE_SPRITETRAIL, beam_tr.vecEndPos, fwd, m_iBalls, (int)(flDamage * 0.3), 0.1, RANDOM_FLOAT( 10, 20 ) / 100.0, 200, 255, 40 );
 							}
 							
 							vecSrc = beam_tr.vecEndPos + forward;
@@ -1301,19 +1184,14 @@ void EV_FireGauss( event_args_t *args )
 					{
 						// slug doesn't punch through ever with primary 
 						// fire, so leave a little glowy bit and make some balls
-						g_engfuncs.pEfxAPI->R_TempSprite( tr.vecEndPos, NULL, 0.2, m_iGlow, kRenderGlow, kRenderFxNoDissipation, 200.0 / 255.0, 0.3, FTENT_FADEOUT );
-                                        		if( vecMirrorDest != g_vecZero && vecMirrorSrc != g_vecZero ) 
-			                              	g_engfuncs.pEfxAPI->R_TempSprite( mtr.vecEndPos, NULL, 0.2, m_iGlow, kRenderGlow, kRenderFxNoDissipation, 200.0 / 255.0, 0.3, FTENT_FADEOUT );
+						g_pTempEnts->TempSprite( tr.vecEndPos, g_vecZero, 0.2, m_iGlow, kRenderGlow, kRenderFxNoDissipation, 200.0 / 255.0, 0.3, FTENT_FADEOUT );
 						
 						// balls
 						{
 							Vector fwd;
 							int num_balls = RANDOM_FLOAT( 10, 20 );
 							fwd = tr.vecEndPos + tr.vecPlaneNormal;
-							g_engfuncs.pEfxAPI->R_Sprite_Trail( TE_SPRITETRAIL, tr.vecEndPos, fwd, m_iBalls, 8, 0.6, num_balls / 100.0, 100, 255, 200 );
-							fwd = mtr.vecEndPos + mtr.vecPlaneNormal;
-							if( vecMirrorDest != g_vecZero && vecMirrorSrc != g_vecZero )
-								g_engfuncs.pEfxAPI->R_Sprite_Trail( TE_SPRITETRAIL, mtr.vecEndPos, fwd, m_iBalls, 8, 0.6, num_balls / 100.0, 100, 255, 200 );
+							g_pTempEnts->Sprite_Trail( TE_SPRITETRAIL, tr.vecEndPos, fwd, m_iBalls, 8, 0.6, num_balls / 100.0, 100, 255, 200 );
 						}
 					}
 
@@ -1337,6 +1215,8 @@ void EV_FireGauss( event_args_t *args )
 enum EGON_FIRESTATE { FIRE_OFF = 0, FIRE_CHARGE };
 enum EGON_FIREMODE { FIRE_NARROW = 0, FIRE_WIDE };
 
+#define EGON_PULSE_INTERVAL		0.1
+#define EGON_DISCHARGE_INTERVAL	0.1
 #define EGON_PRIMARY_VOLUME		450
 #define EGON_BEAM_SPRITE		"sprites/xbeam1.spr"
 #define EGON_FLARE_SPRITE		"sprites/XSpark1.spr"
@@ -1344,19 +1224,10 @@ enum EGON_FIREMODE { FIRE_NARROW = 0, FIRE_WIDE };
 #define EGON_SOUND_RUN		"weapons/egon_run3.wav"
 #define EGON_SOUND_STARTUP		"weapons/egon_windup2.wav"
 
-#define ARRAYSIZE( p )		(sizeof( p ) / sizeof( p[0] ))
+Beam_t *m_pBeam = NULL;
+Beam_t *m_pNoise = NULL;
 
-Beam_t *pBeam;
-Beam_t *pBeam2;
-
-Beam_t *pMirBeam;
-Beam_t *pMirBeam2;
-
-TEMPENTITY *EndFlare;
-TEMPENTITY *EndMirFlare;
-
-// UNDONE : mirror beams don't update, end sprite don't drawing
-bool b_mir = 0;
+TEMPENTITY *m_pEndFlare = NULL;
 
 void EV_EgonFire( event_args_t *args )
 {
@@ -1387,11 +1258,10 @@ void EV_EgonFire( event_args_t *args )
 	// Only play the weapon anims if I shot it.
 	// if ( EV_IsLocal( idx ) ) g_engfuncs.pEventAPI->EV_WeaponAnim ( EGON_FIRECYCLE, args->iparam1, 1.0f );
 
-	if ( iStartup == 1 && EV_IsLocal( idx ) && !pBeam && !pBeam2 && cl_lw->integer )
+	if ( iStartup == 1 && EV_IsLocal( idx ) && !m_pBeam && !m_pNoise && cl_lw->integer )
 	{
-		Vector vecSrc, vecEnd, origin, angles, forward, right, mangles;
-		Vector vecMirrorSrc, vecMirrorDest; // env_mirror use this
-		TraceResult tr, mtr;
+		Vector vecSrc, vecEnd, origin, angles, forward;
+		TraceResult tr;
 
 		edict_t *pl = GetEntityByIndex( idx );
 
@@ -1399,18 +1269,11 @@ void EV_EgonFire( event_args_t *args )
 		{
 			angles = gHUD.m_vecAngles;
 			AngleVectors( angles, forward, NULL, NULL );
-                              EV_GetGunPosition( args, vecSrc, pl->v.origin );
-                              
-			mangles = EV_MirrorVector( angles );
-			AngleVectors( mangles, right, NULL, NULL );
-			vecMirrorSrc = EV_MirrorPos( vecSrc );
-			
+			EV_GetGunPosition( args, vecSrc, pl->v.origin );
+		
 			vecEnd = vecSrc + forward * 2048;
-			vecMirrorDest = vecMirrorSrc + right * 2048;
 				
-			UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, GetEntityByIndex( idx - 1 ), &tr );
-                              // mirror trace
-			UTIL_TraceLine( vecMirrorSrc, vecMirrorDest, dont_ignore_monsters, GetEntityByIndex( idx - 1 ), &mtr );
+			UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, GetEntityByIndex( idx ), &tr );
 
 			int iBeamModelIndex = g_engfuncs.pEventAPI->EV_FindModelIndex( EGON_BEAM_SPRITE );
 
@@ -1420,32 +1283,66 @@ void EV_EgonFire( event_args_t *args )
 	
 			if ( iFireMode == FIRE_WIDE )
 			{
-				pBeam = g_pViewRenderBeams->CreateBeamEntPoint( idx | 0x1000, tr.vecEndPos, iBeamModelIndex, 99999, 3.5, 0.2, 0.7, 55, 0, 0, r, g, b );
-				if ( pBeam ) pBeam->flags |= FBEAM_SINENOISE;
-				pBeam2 = g_pViewRenderBeams->CreateBeamEntPoint( idx | 0x1000, tr.vecEndPos, iBeamModelIndex, 99999, 5.0, 0.08, 0.7, 25, 0, 0, r, g, b );
-				if( vecMirrorDest != g_vecZero && vecMirrorSrc != g_vecZero && b_mir )
-				{
-					pMirBeam = g_pViewRenderBeams->CreateBeamPoints( vecMirrorSrc, mtr.vecEndPos, iBeamModelIndex, 99999, 3.5, 0.2, 0.7, 55, 0, 0, r, g, b );
-					if ( pMirBeam ) pBeam->flags |= FBEAM_SINENOISE;
-					pMirBeam2 = g_pViewRenderBeams->CreateBeamPoints( vecMirrorSrc, mtr.vecEndPos, iBeamModelIndex, 99999, 5.0, 0.08, 0.7, 25, 0, 0, r, g, b );
-				}
+				m_pBeam = g_pViewRenderBeams->CreateBeamEntPoint(
+					idx | 0x1000,	// end entity & attachment
+					tr.vecEndPos,	// start pos (sic!)
+					iBeamModelIndex,	// beamSprite
+					99999,		// life
+					4.0,		// width
+					2.0,		// amplitude (noise)
+					100,		// brightness
+					55,		// scrollSpeed
+					0,		// startframe
+					0,		// framerate
+					r, g, b );	// color
+
+				if ( m_pBeam ) m_pBeam->SetFlags( FBEAM_SINENOISE );
+
+				m_pNoise = g_pViewRenderBeams->CreateBeamEntPoint(
+					idx | 0x1000,	// end entity & attachment
+					tr.vecEndPos,	// start pos (sic!)
+					iBeamModelIndex,	// beamSprite
+					99999,		// life
+					5.5,		// width
+					0.08,		// amplitude (noise)
+					100,		// brightness
+					2.5,		// scrollSpeed
+					0,		// startframe
+					0,		// framerate
+					50, 50, 255 );	// color
 			}
 			else
 			{
-				pBeam = g_pViewRenderBeams->CreateBeamEntPoint( idx | 0x1000, tr.vecEndPos, iBeamModelIndex, 99999, 1.5, 0.1, 0.7, 55, 0, 0, r, g, b );
-				if ( pBeam ) pBeam->flags |= FBEAM_SINENOISE;
-				pBeam2 = g_pViewRenderBeams->CreateBeamEntPoint( idx | 0x1000, tr.vecEndPos, iBeamModelIndex, 99999, 5.0, 0.08, 0.7, 25, 0, 0, r, g, b );
-				if( vecMirrorDest != g_vecZero && vecMirrorSrc != g_vecZero && b_mir )
-				{
-					pMirBeam = g_pViewRenderBeams->CreateBeamPoints( vecMirrorSrc, mtr.vecEndPos, iBeamModelIndex, 99999, 1.5, 0.1, 0.7, 55, 0, 0, r, g, b );
-					if ( pMirBeam ) pBeam->flags |= FBEAM_SINENOISE;
-					pMirBeam2 = g_pViewRenderBeams->CreateBeamPoints( vecMirrorSrc, mtr.vecEndPos, iBeamModelIndex, 99999, 5.0, 0.08, 0.7, 25, 0, 0, r, g, b );
-				}
+				m_pBeam = g_pViewRenderBeams->CreateBeamEntPoint(
+					idx | 0x1000,	// end entity & attachment
+					tr.vecEndPos,	// start pos (sic!)
+					iBeamModelIndex,	// beamSprite
+					99999,		// life
+					1.5,		// width
+					0.5,		// amplitude (noise)
+					100,		// brightness
+					5.5,		// scrollSpeed
+					0,		// startframe
+					0,		// framerate
+					r, g, b );	// color
+
+				if ( m_pBeam ) m_pBeam->SetFlags( FBEAM_SINENOISE );
+
+				m_pNoise = g_pViewRenderBeams->CreateBeamEntPoint(
+					idx | 0x1000,	// end entity & attachment
+					tr.vecEndPos,	// start pos (sic!)
+					iBeamModelIndex,	// beamSprite
+					99999,		// life
+					5.5,		// width
+					0.2,		// amplitude (noise)
+					100,		// brightness
+					2.5,		// scrollSpeed
+					0,		// startframe
+					0,		// framerate
+					80, 120, 255 );	// color
 			}
 
-                     	EndFlare = g_engfuncs.pEfxAPI->R_TempSprite( tr.vecEndPos, NULL, 1.0, m_iFlare, kRenderGlow, kRenderFxNoDissipation, 255, 9999, FTENT_SPRANIMATE );
-			if( vecMirrorDest != g_vecZero && vecMirrorSrc != g_vecZero && b_mir )
-                     		EndMirFlare = g_engfuncs.pEfxAPI->R_TempSprite( mtr.vecEndPos, NULL, 1.0, m_iFlare, kRenderGlow, kRenderFxNoDissipation, 255, 9999, FTENT_SPRANIMATE );
+                     	m_pEndFlare = g_pTempEnts->TempSprite( tr.vecEndPos, g_vecZero, 1.0, m_iFlare, kRenderGlow, kRenderFxNoDissipation, 1.0, 9999, FTENT_SPRCYCLE );
 		}
 	}
 }
@@ -1459,52 +1356,52 @@ void EV_EgonStop( event_args_t *args )
 
 	g_engfuncs.pEventAPI->EV_StopSound( idx, CHAN_STATIC, EGON_SOUND_RUN );
 	
-	if ( args->iparam1 )
+	if ( args->bparam2 )
 		 g_engfuncs.pEventAPI->EV_PlaySound( GetEntityByIndex( idx ), origin, CHAN_WEAPON, EGON_SOUND_OFF, 0.98, ATTN_NORM, 0, 100 );
 
 	if ( EV_IsLocal( idx ) ) 
 	{
-		if ( pBeam )
+		int iFireMode = args->iparam2;
+	
+		if ( m_pBeam )
 		{
-			pBeam->die = 0.0f;
-			pBeam = NULL;
+			m_pBeam->die = 0.0f;
+			m_pBeam = NULL;
 		}
-		if ( pBeam2 )
+
+		if ( m_pNoise )
 		{
-			pBeam2->die = 0.0f;
-			pBeam2 = NULL;
+			m_pNoise->die = 0.0f;
+			m_pNoise = NULL;
 		}
-		if ( pMirBeam )
+
+		if ( m_pEndFlare )
 		{
-			pMirBeam->die = 0.0f;
-			pMirBeam = NULL;
+			if ( iFireMode == FIRE_WIDE )
+			{
+				// m_pSprite->Expand( 10, 500 );
+				m_pEndFlare->flags = FTENT_SCALE|FTENT_FADEOUT;
+				m_pEndFlare->fadeSpeed = 3.0f;
+			}
+			else
+			{
+				// UTIL_Remove( m_pSprite );
+				m_pEndFlare->die = 0.0f;
+			}
+			m_pEndFlare = NULL;
 		}
-		if ( pMirBeam2 )
-		{
-			pMirBeam2->die = 0.0f;
-			pMirBeam2 = NULL;
-		}
-		if( EndFlare )
-		{
-			EndFlare->die = 0.0f;
-			EndFlare = NULL;
-		}
-		if( EndMirFlare )
-		{
-			EndMirFlare->die = 0.0f;
-			EndMirFlare = NULL;
-		}
-		g_engfuncs.pEventAPI->EV_WeaponAnim( EGON_FIRESTOP, args->iparam2, 1.0f );
+
+		g_engfuncs.pEventAPI->EV_WeaponAnim( EGON_FIRESTOP, args->iparam1, 1.0f );
 	}
 }
 
 void EV_UpdateBeams ( void )
 {
-	if ( !pBeam && !pBeam2 ) return;
+	if ( !m_pBeam && !m_pNoise ) return;
 	
-	Vector forward, vecSrc, vecEnd, origin, angles, right, mangles;
-	Vector vecMirrorSrc, vecMirrorDest; //env_mirror use this
-	TraceResult tr, mtr;
+	Vector forward, vecSrc, vecEnd, origin, angles;
+	TraceResult tr;
+	float timedist;
 
 	edict_t *pthisplayer = GetLocalPlayer();
 	int idx = pthisplayer->serialnumber;
@@ -1518,51 +1415,52 @@ void EV_UpdateBeams ( void )
 
 	vecSrc = origin;
 	vecEnd = vecSrc + forward * 2048;
-
-	mangles = EV_MirrorVector( angles );
-	AngleVectors( mangles, right, NULL, NULL );
-	vecMirrorSrc = EV_MirrorPos( vecSrc );
-	vecMirrorDest = vecMirrorSrc + right * 2048;
 	
-	UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, GetEntityByIndex( idx - 1 ), &tr );
+	UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, GetEntityByIndex( idx ), &tr );
 
- 	// mirror trace
-	UTIL_TraceLine( vecMirrorSrc, vecMirrorDest, dont_ignore_monsters, GetEntityByIndex( idx - 1 ), &mtr );
+	// HACKHACK: extract firemode from beamWidth
+	int iFireMode = ( m_pBeam->width == 4.0 ) ? FIRE_WIDE : FIRE_NARROW;
 
-	if ( pBeam )
+	// calc timedelta for beam effects
+	switch( iFireMode )
 	{
-		pBeam->attachment[1] = tr.vecEndPos;
-		pBeam->die = gpGlobals->time + 0.1f; // We keep it alive just a little bit forward in the future, just in case.
+	case FIRE_NARROW:
+		if ( m_pBeam->m_flDmgTime < gpGlobals->time )
+		{
+			m_pBeam->m_flDmgTime = gpGlobals->time + EGON_PULSE_INTERVAL;
+		}
+		timedist = ( m_pBeam->m_flDmgTime - gpGlobals->time ) / EGON_DISCHARGE_INTERVAL;
+		break;
+	case FIRE_WIDE:
+		if ( m_pBeam->m_flDmgTime < gpGlobals->time )
+		{
+			m_pBeam->m_flDmgTime = gpGlobals->time + EGON_PULSE_INTERVAL;
+		}
+		timedist = ( m_pBeam->m_flDmgTime - gpGlobals->time ) / EGON_DISCHARGE_INTERVAL;
+		break;
 	}
 
-	if ( pBeam2 )
-	{
-		pBeam2->attachment[1] = tr.vecEndPos;
-		pBeam2->die = gpGlobals->time + 0.1f; // We keep it alive just a little bit forward in the future, just in case.
-	}
+	// clamp and inverse
+	timedist = bound( 0.0f, timedist, 1.0f );
+	timedist = 1.0f - timedist;
 
-	if ( pMirBeam )
-	{
-		pMirBeam->attachment[1] = mtr.vecEndPos;
-		pMirBeam->die = gpGlobals->time + 0.1f; // We keep it alive just a little bit forward in the future, just in case.
-	}
+	m_pBeam->SetEndPos( tr.vecEndPos );
+	m_pBeam->SetBrightness( 255 - ( timedist * 180 ));
+	m_pBeam->SetWidth( 40 - ( timedist * 20 ));
+	m_pBeam->die = gpGlobals->time + 0.1f; // We keep it alive just a little bit forward in the future, just in case.
 
-	if ( pMirBeam2 )
-	{
-		pMirBeam2->attachment[1] = mtr.vecEndPos;
-		pMirBeam2->die = gpGlobals->time + 0.1f; // We keep it alive just a little bit forward in the future, just in case.
-	}
+	if ( iFireMode == FIRE_WIDE )
+		m_pBeam->SetColor( 30 + (25 * timedist), 30  + (30 * timedist), 64 + 80 * fabs( sin( gpGlobals->time * 10 )));
+	else
+		m_pBeam->SetColor( 60 + (25 * timedist), 120 + (30 * timedist), 64 + 80 * fabs( sin( gpGlobals->time * 10 )));
 
-	if( EndFlare )
-	{
-		EndFlare->tentOffset = tr.vecEndPos;
-		EndFlare->die = gpGlobals->time + 0.1f;
-	}
+	m_pNoise->SetEndPos( tr.vecEndPos );
+	m_pNoise->die = gpGlobals->time + 0.1f; // We keep it alive just a little bit forward in the future, just in case.
 
-	if( EndMirFlare )
+	if( m_pEndFlare )
 	{
-		EndMirFlare->tentOffset = mtr.vecEndPos;
-		EndMirFlare->die = gpGlobals->time + 0.1f;
+		m_pEndFlare->origin = tr.vecEndPos;
+		m_pEndFlare->die = gpGlobals->time + 0.1f;
 	}
 }
 //======================
@@ -1574,15 +1472,13 @@ void EV_UpdateBeams ( void )
 //======================
 void EV_Decals( event_args_t *args )
 {
-	int idx;
 	TraceResult tr;
 	TraceResult *pTrace = &tr;
-          edict_t *pe;
-          
-	idx = args->entindex;
+
+	// simulate trace result          
+	memset( &tr, 0, sizeof( tr ));
 	pTrace->vecEndPos = args->origin;
 	pTrace->pHit = GetEntityByIndex( args->iparam1 ); 
-	pe = pTrace->pHit;
 	
 	if( args->iparam2 == 0 )
 	{
@@ -1649,12 +1545,77 @@ void EV_Decals( event_args_t *args )
 	if( args->iparam2 == 6 )
 	{
 		// monsters shoot
-           	if ( pe && pe->v.solid == SOLID_BSP )
-			EV_HLDM_GunshotDecalTrace( pTrace, EV_HLDM_DamageDecal( pe ));
+           	if ( pTrace->pHit && pTrace->pHit->v.solid == SOLID_BSP )
+			EV_HLDM_GunshotDecalTrace( pTrace, EV_HLDM_DamageDecal( pTrace->pHit ));
 	}
 }
 //======================
 //	   DECALS END
+//======================
+
+//======================
+//	   LASERSPOT START
+//======================
+TEMPENTITY *m_pLaserSpot = NULL;
+
+void EV_UpdateLaserSpot( void )
+{
+	edict_t	*m_pPlayer = GetLocalPlayer();
+	edict_t	*m_pWeapon = GetViewModel();
+
+	if( !m_pPlayer ) return;
+
+	if( m_pPlayer->v.effects & EF_LASERSPOT && !m_pLaserSpot && cl_lw->integer )
+	{
+		// create laserspot
+		int m_iSpotModel = g_engfuncs.pEventAPI->EV_FindModelIndex( "sprites/laserdot.spr" );
+	
+		m_pLaserSpot = g_pTempEnts->TempSprite( g_vecZero, g_vecZero, 1.0, m_iSpotModel, kRenderGlow, kRenderFxNoDissipation, 1.0, 9999, FTENT_SPRCYCLE );
+		if( !m_pLaserSpot ) return;
+
+		m_pLaserSpot->renderColor = Vector( 200, 12, 12 );
+//		ALERT( at_console, "CLaserSpot::Create()\n" );
+	}
+	else if( !( m_pPlayer->v.effects & EF_LASERSPOT ) && m_pLaserSpot )
+	{
+		// destroy laserspot
+//		ALERT( at_console, "CLaserSpot::Killed()\n" );
+		m_pLaserSpot->die = 0.0f;
+		m_pLaserSpot = NULL;
+		return;
+	}
+	else if( !m_pLaserSpot )
+	{
+		// inactive
+		return;		
+	}
+
+	ASSERT( m_pLaserSpot != NULL );
+
+	Vector forward, vecSrc, vecEnd, origin, angles;
+	TraceResult tr;
+
+#if 1
+	GetViewAngles( angles );	// viewmodel doesn't have attachment
+	origin = m_pWeapon->v.origin;
+#else
+	// TEST: give viewmodel first attachment
+	GET_ATTACHMENT( m_pWeapon, 1, origin, angles );
+#endif
+	AngleVectors( angles, forward, NULL, NULL );
+
+	vecSrc = origin;
+	vecEnd = vecSrc + forward * 8192;
+
+	UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, m_pPlayer, &tr );
+
+	// update laserspot endpos
+	m_pLaserSpot->origin = tr.vecEndPos;
+	m_pLaserSpot->die = gpGlobals->time + 0.1f;
+}
+
+//======================
+//	   LASERSPOT END
 //======================
 
 //======================
@@ -1682,7 +1643,7 @@ void EV_SnarkFire( event_args_t *args )
 		vecSrc = vecSrc - ( VEC_HULL_MIN - VEC_DUCK_HULL_MIN );
 	
 	// store off the old count
-	UTIL_TraceLine( vecSrc + forward * 20, vecSrc + forward * 64, dont_ignore_monsters, GetEntityByIndex( idx - 1 ), &tr );
+	UTIL_TraceLine( vecSrc + forward * 20, vecSrc + forward * 64, dont_ignore_monsters, GetEntityByIndex( idx ), &tr );
 
 	// find space to drop the thing.
 	if ( tr.fAllSolid == 0 && tr.fStartSolid == 0 && tr.flFraction > 0.25f )
@@ -1697,7 +1658,7 @@ void EV_SnarkFire( event_args_t *args )
 //======================
 void EV_FireNull( event_args_t *args )
 {
-	ALERT( at_console, "Fire Null!\n" );
+	ALERT( at_console, "Called null event!\n" );
 }
 //======================
 //	   NULL END

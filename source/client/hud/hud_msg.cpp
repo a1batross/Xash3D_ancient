@@ -148,9 +148,6 @@ int CHud :: MsgFunc_ResetHUD(const char *pszName, int iSize, void *pbuf )
 	m_flStartDist = 0;
 	m_flEndDist = 0;
 
-	// clear mirrors
-	numMirrors = 0;
-
 	return 1;
 }
 

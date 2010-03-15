@@ -2018,16 +2018,6 @@ void CBeam::Spawn( void )
 	pev->solid = SOLID_NOT;
 }
 
-void CBeam::SetStartEntity( edict_t *pEnt ) 
-{ 
-	pev->owner = pEnt;
-}
-
-void CBeam::SetEndEntity( edict_t *pEnt ) 
-{ 
-	pev->aiment = pEnt;
-}
-
 const Vector &CBeam::GetStartPos( void )
 {
 	int	type = GetType();

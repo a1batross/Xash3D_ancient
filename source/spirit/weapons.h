@@ -32,9 +32,10 @@ class CLaserSpot : public CBaseEntity
 public:
 	void Suspend( float flSuspendTime );
 	void EXPORT Revive( void );
+	void UpdateOnRemove( void );
 	
-	static CLaserSpot *CreateSpot( void );
-	static CLaserSpot *CreateSpot( const char* spritename );
+	static CLaserSpot *CreateSpot( entvars_t *pevOwner = NULL );
+	static CLaserSpot *CreateSpot( const char* spritename, entvars_t *pevOwner = NULL );
 };
 
 // Contact Grenade / Timed grenade / Satchel Charge

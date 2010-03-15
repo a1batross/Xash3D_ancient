@@ -249,7 +249,7 @@ typedef struct ref_entity_s
 	vec3_t			lightingOrigin;
 
 	// RT_SPRITE stuff
-	struct ref_shader_s		*spriteshader;	// client drawing stuff
+	struct ref_shader_s		*customShader;	// client drawing stuff
 	float			radius;		// used as RT_SPRITE's radius
 
 	// outilne stuff

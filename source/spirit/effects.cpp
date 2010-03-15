@@ -204,17 +204,6 @@ void CBeam::Spawn( void )
 	Precache( );
 }
 
-void CBeam::SetStartEntity( edict_t *pEnt ) 
-{ 
-	pev->owner = pEnt;
-}
-
-void CBeam::SetEndEntity( edict_t *pEnt ) 
-{ 
-	pev->aiment = pEnt;
-}
-
-
 // These don't take attachments into account
 const Vector &CBeam::GetStartPos( void )
 {
@@ -250,7 +239,7 @@ CBeam *CBeam::BeamCreate( const char *pSpriteName, int width )
 {
 	// Create a new entity with CBeam private data
 	CBeam *pBeam = GetClassPtr( (CBeam *)NULL );
-	pBeam->pev->classname = MAKE_STRING("beam");
+	pBeam->pev->classname = MAKE_STRING( "beam" );
 
 	pBeam->BeamInit( pSpriteName, width );
 
@@ -4143,21 +4132,6 @@ void CEnvDecal::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE use
 		if ( entityIndex )
 		WRITE_SHORT( (int)VARS(trace.pHit)->modelindex );
 	MESSAGE_END();
-
-	Vector mirpos = UTIL_MirrorPos(trace.vecEndPos);
-	if(mirpos != Vector(0,0,0))
-	{
-		MESSAGE_BEGIN( MSG_BROADCAST, gmsgTempEntity);
-		WRITE_BYTE( TE_BSPDECAL );
-		WRITE_COORD( mirpos.x );
-		WRITE_COORD( mirpos.y );
-		WRITE_COORD( mirpos.z );
-		WRITE_SHORT( iTexture );
-		WRITE_SHORT( entityIndex );
-		if ( entityIndex )
-		WRITE_SHORT( (int)VARS(trace.pHit)->modelindex );
-		MESSAGE_END();
-	}
 }
 
 void CEnvDecal::Spawn( void )
@@ -4657,7 +4631,7 @@ void CParticle::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE use
 }
 
 //=========================================================
-// G-Cont - env_mirror, mirroring models and decals
+// G-Cont - env_mirror (engine feature)
 //=========================================================
 
 class CEnvMirror : public CBaseEntity
@@ -4665,78 +4639,36 @@ class CEnvMirror : public CBaseEntity
 public:
 	void Spawn( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-	void KeyValue( KeyValueData* pkvd);
 	virtual int ObjectCaps( void ) { return CBaseEntity :: ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
-	void Think( void );
-	STATE GetState( void ) { return pev->impulse ? STATE_ON:STATE_OFF; }
+	STATE GetState( void ) { return (pev->effects & EF_NODRAW) ? STATE_OFF : STATE_ON; }
 };
-
-void CEnvMirror :: KeyValue( KeyValueData *pkvd )
-{
-	if (FStrEq(pkvd->szKeyName, "radius"))
-	{
-		pev->waterlevel = atof(pkvd->szValue);
-		pkvd->fHandled = TRUE;
-	}
-	else	CBaseEntity::KeyValue( pkvd );
-}
 
 LINK_ENTITY_TO_CLASS( env_mirror, CEnvMirror );
 
 void CEnvMirror :: Spawn( void )
 { 
-	if (!m_pMoveWith) pev->flags |= FL_WORLDBRUSH;
-
-	pev->angles = g_vecZero; 
-	pev->movetype = MOVETYPE_PUSH; // so it doesn't get pushed by anything
-	pev->solid = SOLID_BSP;
-
- 	pev->impulse = TRUE;//enable mirror
-	Precache();          
-
-	SET_MODEL( ENT(pev), STRING(pev->model) );
-	pev->body = pev->rendermode;//save current rendermode
-
-	//Smart field system ©
-         	if (!pev->waterlevel) pev->waterlevel = 330;
-	if (!pev->frags)
-	{
-		if (pev->size.y > pev->size.x && pev->size.z > pev->size.x) pev->frags = 0;
-		if (pev->size.x > pev->size.y && pev->size.z > pev->size.y) pev->frags = 1;	
-		if (pev->size.y > pev->size.z && pev->size.x > pev->size.z) pev->frags = 2;
-	}
-}
-
-void CEnvMirror :: Think( void )
-{
-	MESSAGE_BEGIN(MSG_BROADCAST, gmsgSetMirror, VecBModelOrigin(pev));
-		WRITE_COORD(VecBModelOrigin(pev).x);	//mirror origin
-		WRITE_COORD(VecBModelOrigin(pev).y);
-		WRITE_COORD(VecBModelOrigin(pev).z);	
-		WRITE_SHORT(pev->waterlevel);		//radius
-		WRITE_BYTE(pev->frags);		//type
-		WRITE_BYTE(pev->impulse);		//state
-	MESSAGE_END();
+	// setup mirror
+	SetObjectClass( ED_PORTAL );	
+	pev->modelindex = 1; // world
+	pev->oldorigin = pev->origin;
 }
 
 void CEnvMirror :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	if (useType == USE_TOGGLE)
+	if ( useType == USE_TOGGLE )
 	{
-		if(pev->impulse) useType = USE_OFF;
+		if( GetState() == STATE_ON )
+			useType = USE_OFF;
 		else useType = USE_ON;
 	}
-	if(useType == USE_ON)
+	if ( useType == USE_ON )
 	{
-		pev->impulse = TRUE;
-		pev->rendermode = pev->body;
+		pev->effects &= ~EF_NODRAW;
 	}
-	else if(useType == USE_OFF)
+	else if ( useType == USE_OFF )
 	{
-		pev->impulse = FALSE;
-		pev->rendermode = kRenderNormal;
+		pev->effects |= EF_NODRAW;
 	}
-	Think();
 }
 //=========================================================
 // G-Cont - env_rain, use triAPI

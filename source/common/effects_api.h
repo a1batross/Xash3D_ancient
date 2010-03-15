@@ -30,7 +30,7 @@
 #define FTENT_SPRANIMATELOOP		(1<<16)	// animating sprite doesn't die when last frame is displayed
 #define FTENT_SCALE			(1<<17)	// an experiment
 #define FTENT_SPARKSHOWER		(1<<18)
-#define FTENT_NOMODEL		(1<<19)	// doesn't have a model, never draw (it just triggers other things)
+#define FTENT_NOMODEL		(1<<19)	// sets by engine, never draw (it just triggers other things)
 #define FTENT_CLIENTCUSTOM		(1<<20)	// Must specify callback. Callback function is responsible
 					// for killing tempent and updating fields
 					// ( unless other flags specify how to do things )
@@ -56,7 +56,7 @@ struct tempent_s
 	short		clientIndex;	// if attached, this is the index of the client to stick to
 					// if COLLIDEALL, this is the index of the client to ignore
 					// TENTS with FTENT_PLYRATTACHMENT MUST set the clientindex! 
-	void		*pvEngineData;	// private data that alloced, freed and used by engine only
+	void		*pvEngineData;	// private data that alloced and used by engine, freed in client.dll
 	HITCALLBACK	hitcallback;
 	ENTCALLBACK	callback;
 
@@ -102,29 +102,17 @@ typedef struct efxapi_s
 	size_t	api_size;	 // must match with sizeof( efxapi_t );
 
 	int	(*R_AllocParticle)( cparticle_t *src, HSPRITE shader, int flags ); 
-	void	(*R_BloodSprite)( float *org, int colorIndex, int modelIndex, float size );
-	void	(*R_BreakModel)( float *pos, float *size, float *dir, float random, float life, int count, int modelIndex, char flags );
-	void	(*R_MuzzleFlash)( int modelIndex, int entityIndex, int iAttachment, int type );
-	void	(*R_Sprite_Explode)( TEMPENTITY *pTemp, float scale, int flags );
-	void	(*R_Sprite_Smoke)( TEMPENTITY *pTemp, float scale );
-	void	(*R_Sprite_Spray)( float *pos, float *dir, int modelIndex, int count, int speed, int iRand );
-	void	(*R_Sprite_Trail)( int type, float *start, float *end, int modelIndex, int count, float life, float size, float amplitude, int renderamt, float speed );
-	void	(*R_TracerEffect)( float *start, float *end );
-	TEMPENTITY *(*R_TempModel)( float *pos, float *dir, float *ang, float life, int modelIndex, int soundtype );
-	TEMPENTITY *(*R_DefaultSprite)( float *pos, int spriteIndex, float framerate );
-	TEMPENTITY *(*R_TempSprite)( float *pos, float *dir, float scale, int modelIndex, int rendermode, int renderfx, float a, float life, int flags );
+	void	(*R_GetPaletteColor)( int colorIndex, float *outColor );
 	int	(*CL_DecalIndex)( int id );
 	int	(*CL_DecalIndexFromName)( const char *szDecalName );
 	void	(*R_SetDecal)( float *org, float *dir, float *rgba, float rot, float rad, HSPRITE hSpr, int flags );
 	void	(*CL_AllocDLight)( const float *org, float *rgb, float rad, float time, int flags, int key );
-	TEMPENTITY *(*CL_TempEntAlloc)( float *org, int modelIndex );
-	TEMPENTITY *(*CL_TempEntAllocNoModel)( float *org );
-	TEMPENTITY *(*CL_TempEntAllocHigh)( float *org, int modelIndex );
-	TEMPENTITY *(*CL_TentEntAllocCustom)( float *org, int modelIndex, int high, ENTCALLBACK pfnCallback );
 	void	(*CL_FindExplosionPlane)( const float *origin, float radius, float *result );
 	void	(*R_LightForPoint)( const float *rgflOrigin, float *lightValue );
 	int	(*CL_IsBoxVisible)( const float *mins, const float *maxs );
 	int	(*R_CullBox)( const float *mins, const float *maxs );
+	int	(*R_AddEntity)( edict_t *pEnt, int ed_type, HSPRITE customShader );
+	int	(*R_AddTempEntity)( TEMPENTITY *pTemp, HSPRITE customShader );
 } efxapi_t;
 
 #endif//EFFECTS_API_H

@@ -78,8 +78,6 @@ public:
 	BOOL HasAmmo( void );
 	void UseAmmo( int count );
 	
-	int flags (void) { return ENGINE_CANSKIP( m_pPlayer->edict()) ? NULL : FEV_NOTHOST; }; 
-	
 	enum EGON_FIRESTATE { FIRE_OFF = 0, FIRE_CHARGE };
 	enum EGON_FIREMODE { FIRE_NARROW = 0, FIRE_WIDE};
 
@@ -215,7 +213,7 @@ void CEgon::PrimaryAttack( void )
 
 			m_flAmmoUseTime = UTIL_WeaponTimeBase();// start using ammo ASAP.
 
-			PLAYBACK_EVENT_FULL( flags(), m_pPlayer->edict(), m_usEgonFire, 0.0, (float *)&g_vecZero, (float *)&g_vecZero, 0.0, 0.0, pev->body, m_fireMode, 1, m_fireState );
+			PLAYBACK_EVENT_FULL( 0, m_pPlayer->edict(), m_usEgonFire, 0.0, (float *)&g_vecZero, (float *)&g_vecZero, 0.0, 0.0, pev->body, m_fireMode, 1, m_fireState );
                               SendWeaponAnim( EGON_FIRECYCLE );
 			m_shakeTime = 0;
 
@@ -235,16 +233,15 @@ void CEgon::PrimaryAttack( void )
 
 			if ( m_shootTime != 0 && UTIL_WeaponTimeBase() > m_shootTime )
 			{
-				PLAYBACK_EVENT_FULL( flags(), m_pPlayer->edict(), m_usEgonFire, 0, (float *)&g_vecZero, (float *)&g_vecZero, 0.0, 0.0, pev->body, m_fireMode, 0, m_fireState );
+				PLAYBACK_EVENT_FULL( 0, m_pPlayer->edict(), m_usEgonFire, 0, (float *)&g_vecZero, (float *)&g_vecZero, 0.0, 0.0, pev->body, m_fireMode, 0, m_fireState );
 				SendWeaponAnim( EGON_FIRECYCLE );
 				m_shootTime = 0;
 			}
-			if(!AnimRestore)
+			if( !AnimRestore )
 			{
-				PLAYBACK_EVENT_FULL( flags(), m_pPlayer->edict(), m_usEgonFire, 0, (float *)&g_vecZero, (float *)&g_vecZero, 0.0, 0.0, pev->body, m_fireMode, 0, m_fireState );
+				PLAYBACK_EVENT_FULL( 0, m_pPlayer->edict(), m_usEgonFire, 0, (float *)&g_vecZero, (float *)&g_vecZero, 0.0, 0.0, pev->body, m_fireMode, 0, m_fireState );
                                         SendWeaponAnim( EGON_FIRECYCLE );
 				m_shootTime = 0;
-				m_fireMode = (EGON_FIREMODE)m_iBody;
 				AnimRestore = TRUE;
 			}
 			if ( !HasAmmo() )
@@ -263,7 +260,7 @@ void CEgon::SecondaryAttack( void )
 {
 	UpdateScreen();
 	if ( m_fireState != FIRE_OFF ) EndAttack();
-	if(m_iBody == 0)
+	if( m_iBody == 0 )
 	{
 		SendWeaponAnim( EGON_ALTFIREON );
 		m_fireMode = FIRE_NARROW;
@@ -395,9 +392,16 @@ void CEgon::Fire( const Vector &vecOrigSrc, const Vector &vecDir )
 		break;
 	}
 
-	if ( timedist < 0 )      timedist = 0;
-	else if ( timedist > 1 ) timedist = 1;
-	timedist = 1-timedist;
+	if ( timedist < 0 )
+	{
+		timedist = 0;
+	}
+	else if ( timedist > 1 )
+	{
+		timedist = 1;
+	}
+
+	timedist = 1 - timedist;
 
 	UpdateEffect( tmpSrc, tr.vecEndPos, timedist );
 	UpdateScreen();
@@ -409,13 +413,13 @@ void CEgon::UpdateEffect( const Vector &startPoint, const Vector &endPoint, floa
 	if ( !m_pBeam ) CreateEffect();
 
 	m_pBeam->SetStartPos( endPoint );
-	m_pBeam->SetBrightness( 255 - (timeBlend*180) );
-	m_pBeam->SetWidth( 40 - (timeBlend*20) );
+	m_pBeam->SetBrightness( 255 - ( timeBlend * 180 ));
+	m_pBeam->SetWidth( 40 - ( timeBlend * 20 ));
 
 	if ( m_fireMode == FIRE_WIDE )
-		m_pBeam->SetColor( 30 + (25*timeBlend), 30  + (30*timeBlend), 64 + 80*fabs(sin(UTIL_WeaponTimeBase()*10)) );
+		m_pBeam->SetColor( 30 + (25 * timeBlend), 30  + (30 * timeBlend), 64 + 80 * fabs( sin( UTIL_WeaponTimeBase() * 10 )));
 	else
-		m_pBeam->SetColor( 60 + (25*timeBlend), 120 + (30*timeBlend), 64 + 80*fabs(sin(UTIL_WeaponTimeBase()*10)) );
+		m_pBeam->SetColor( 60 + (25 * timeBlend), 120 + (30 * timeBlend), 64 + 80 * fabs( sin( UTIL_WeaponTimeBase() * 10 )));
 
 	UTIL_SetOrigin( m_pSprite, endPoint );
 	m_pSprite->pev->frame += 8 * gpGlobals->frametime;
@@ -494,7 +498,7 @@ void CEgon::DestroyEffect( void )
 
 void CEgon::EndAttack( void )
 {
-	PLAYBACK_EVENT_FULL( FEV_GLOBAL | FEV_RELIABLE, m_pPlayer->edict(), m_usEgonStop, 0, (float *)&m_pPlayer->pev->origin, (float *)&m_pPlayer->pev->angles, 0.0, 0.0, m_fireState, pev->body, 0, 0 );
+	PLAYBACK_EVENT_FULL( 0, m_pPlayer->edict(), m_usEgonStop, 0, (float *)&m_pPlayer->pev->origin, (float *)&m_pPlayer->pev->angles, 0.0, 0.0, pev->body, m_fireMode, 0, m_fireState );
 	m_fireState = FIRE_OFF;
 
 	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 2.0;

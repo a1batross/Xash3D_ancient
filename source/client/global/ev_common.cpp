@@ -6,7 +6,7 @@
 #include "extdll.h"
 #include "utils.h"
 #include "ev_hldm.h"
-#include "effects_api.h"
+#include "r_tempents.h"
 
 extern "C"
 {
@@ -56,7 +56,7 @@ void EV_HookEvents( void )
 //=================
 void EV_CreateTracer( float *start, float *end )
 {
-	g_engfuncs.pEfxAPI->R_TracerEffect( start, end );
+	g_pTempEnts->TracerEffect( start, end );
 }
 
 
@@ -120,7 +120,7 @@ void EV_EjectBrass( float *origin, float *velocity, float rotation, int model, i
 {
 	Vector endpos = Vector( 0.0f, rotation, 0.0f );
 
-	g_engfuncs.pEfxAPI->R_TempModel( origin, velocity, endpos, RANDOM_LONG( 30, 50 ), model, soundtype );
+	g_pTempEnts->TempModel( origin, velocity, endpos, RANDOM_LONG( 30, 50 ), model, soundtype );
 }
 
 

@@ -8,387 +8,12 @@
 #include "studio_event.h"
 #include "effects_api.h"
 #include "pm_movevars.h"
-#include "tempents.h"
+#include "r_tempents.h"
 #include "ev_hldm.h"
 #include "r_beams.h"
 #include "hud.h"
 
 #define MAX_CHANNELS		4	// hl1 and hl2 supported 4 channels for messges
-#define TENT_WIND_ACCEL		50
-
-model_t	g_muzzleFlash[4];	// custom muzzleflashes
-
-void HUD_MuzzleFlash( edict_t *m_pEnt, int iAttachment, const char *event )
-{
-	int	type, index;
-
-	type = atoi( event );
-	index = bound( 0, type % 10, 3 );
-
-	g_engfuncs.pEfxAPI->R_MuzzleFlash( g_muzzleFlash[index], m_pEnt->serialnumber, iAttachment, type );
-}
-
-void HUD_CreateEntities( void )
-{
-	EV_UpdateBeams ();	// egon use this
-
-	// add in any game specific objects here
-	g_pViewRenderBeams->UpdateTempEntBeams( );
-}
-
-int HUD_UpdateEntity( TEMPENTITY *pTemp, int framenumber )
-{
-	// before first frame when movevars not initialized
-	if( !gpMovevars )
-	{
-		ALERT( at_error, "TempEntUpdate: no movevars!!!\n" );
-		return true;
-	}
-
-	float	gravity, gravitySlow, fastFreq;
-	float	frametime = gpGlobals->frametime;
-
-	fastFreq = gpGlobals->time * 5.5;
-	gravity = -frametime * gpMovevars->gravity;
-	gravitySlow = gravity * 0.5;
-
-	// save oldorigin
-	pTemp->oldorigin = pTemp->origin;
-
-	if( pTemp->flags & FTENT_SPARKSHOWER )
-	{
-		// adjust speed if it's time
-		// scale is next think time
-		if( gpGlobals->time > pTemp->m_flSpriteScale )
-		{
-			// show Sparks
-// FIXME: implement
-//			g_engfuncs.pEfxAPI->R_SparkEffect( pTemp->origin, 8, -200, 200 );
-
-			// reduce life
-			pTemp->m_flFrameRate -= 0.1f;
-
-			if( pTemp->m_flFrameRate <= 0.0f )
-			{
-				pTemp->die = gpGlobals->time;
-			}
-			else
-			{
-				// so it will die no matter what
-				pTemp->die = gpGlobals->time + 0.5f;
-
-				// next think
-				pTemp->m_flSpriteScale = gpGlobals->time + 0.1f;
-			}
-		}
-	}
-	else if( pTemp->flags & FTENT_PLYRATTACHMENT )
-	{
-		edict_t *pClient = GetEntityByIndex( pTemp->clientIndex );
-
-		if( pClient )
-		{
-			pTemp->origin = pClient->v.origin + pTemp->tentOffset;
-		}
-	}
-	else if( pTemp->flags & FTENT_SINEWAVE )
-	{
-		pTemp->x += pTemp->m_vecVelocity.x * frametime;
-		pTemp->y += pTemp->m_vecVelocity.y * frametime;
-
-		pTemp->origin.x = pTemp->x + sin( pTemp->m_vecVelocity.z + gpGlobals->time ) * ( 10 * pTemp->m_flSpriteScale );
-		pTemp->origin.y = pTemp->y + sin( pTemp->m_vecVelocity.z + fastFreq + 0.7f ) * ( 8 * pTemp->m_flSpriteScale);
-		pTemp->origin.z = pTemp->origin.z + pTemp->m_vecVelocity[2] * frametime;
-	}
-	else if( pTemp->flags & FTENT_SPIRAL )
-	{
-		float s, c;
-		s = sin( pTemp->m_vecVelocity.z + fastFreq );
-		c = cos( pTemp->m_vecVelocity.z + fastFreq );
-
-		pTemp->origin.x = pTemp->origin.x + pTemp->m_vecVelocity.x * frametime + 8 * sin( gpGlobals->time * 20 );
-		pTemp->origin.y = pTemp->origin.y + pTemp->m_vecVelocity.y * frametime + 4 * sin( gpGlobals->time * 30 );
-		pTemp->origin.z = pTemp->origin.z + pTemp->m_vecVelocity.z * frametime;
-	}
-	else
-	{
-		// just add linear velocity
-		pTemp->origin = pTemp->origin + pTemp->m_vecVelocity * frametime;
-	}
-	
-	if( pTemp->flags & FTENT_SPRANIMATE )
-	{
-		pTemp->m_flFrame += frametime * pTemp->m_flFrameRate;
-		if( pTemp->m_flFrame >= pTemp->m_flFrameMax )
-		{
-			pTemp->m_flFrame = pTemp->m_flFrame - (int)(pTemp->m_flFrame);
-
-			if(!( pTemp->flags & FTENT_SPRANIMATELOOP ))
-			{
-				// this animating sprite isn't set to loop, so destroy it.
-				pTemp->die = 0.0f;
-				return false;
-			}
-		}
-	}
-	else if( pTemp->flags & FTENT_SPRCYCLE )
-	{
-		pTemp->m_flFrame += frametime * 10;
-		if( pTemp->m_flFrame >= pTemp->m_flFrameMax )
-		{
-			pTemp->m_flFrame = pTemp->m_flFrame - (int)(pTemp->m_flFrame);
-		}
-	}
-
-	if( pTemp->flags & FTENT_SCALE )
-	{
-		pTemp->m_flSpriteScale += pTemp->m_flFrameRate += 20.0 * (frametime / pTemp->m_flFrameRate);
-	}
-
-	if( pTemp->flags & FTENT_ROTATE )
-	{
-		// just add angular velocity
-		pTemp->angles += pTemp->m_vecAvelocity * frametime;
-	}
-
-	if( pTemp->flags & ( FTENT_COLLIDEALL|FTENT_COLLIDEWORLD ))
-	{
-		Vector	traceNormal;
-		float	traceFraction = 1.0f;
-
-		traceNormal.Init();
-
-		if( pTemp->flags & FTENT_COLLIDEALL )
-		{
-			TraceResult	tr;		
-			TRACE_LINE( pTemp->oldorigin, pTemp->origin, false, NULL, &tr );
-
-			// Make sure it didn't bump into itself... (?!?)
-			if(( tr.flFraction != 1.0f ) && ( tr.pHit == GetEntityByIndex( 0 ) || tr.pHit != GetEntityByIndex( pTemp->clientIndex ))) 
-			{
-				traceFraction = tr.flFraction;
-				traceNormal = tr.vecPlaneNormal;
-
-				if( pTemp->hitcallback )
-					(*pTemp->hitcallback)( pTemp, &tr );
-			}
-		}
-		else if( pTemp->flags & FTENT_COLLIDEWORLD )
-		{
-			TraceResult	tr;
-			TRACE_LINE( pTemp->oldorigin, pTemp->origin, true, NULL, &tr );
-
-			if( tr.flFraction != 1.0f )
-			{
-				traceFraction = tr.flFraction;
-				traceNormal = tr.vecPlaneNormal;
-
-				if ( pTemp->flags & FTENT_SPARKSHOWER )
-				{
-					// chop spark speeds a bit more
-					pTemp->m_vecVelocity *= 0.6f;
-
-					if( pTemp->m_vecVelocity.Length() < 10.0f )
-						pTemp->m_flFrameRate = 0.0f;
-				}
-
-				if( pTemp->hitcallback )
-					(*pTemp->hitcallback)( pTemp, &tr );
-			}
-		}
-		
-		if( traceFraction != 1.0f )	// Decent collision now, and damping works
-		{
-			float	proj, damp;
-
-			// Place at contact point
-			pTemp->origin = pTemp->oldorigin + (traceFraction * frametime) * pTemp->m_vecVelocity;
-			
-			// Damp velocity
-			damp = pTemp->bounceFactor;
-			if( pTemp->flags & ( FTENT_GRAVITY|FTENT_SLOWGRAVITY ))
-			{
-				damp *= 0.5f;
-				if( traceNormal[2] > 0.9f ) // Hit floor?
-				{
-					if( pTemp->m_vecVelocity[2] <= 0 && pTemp->m_vecVelocity[2] >= gravity * 3 )
-					{
-						pTemp->flags &= ~(FTENT_SLOWGRAVITY|FTENT_ROTATE|FTENT_GRAVITY);
-						pTemp->flags &= ~(FTENT_COLLIDEWORLD|FTENT_SMOKETRAIL);
-						pTemp->angles.x = pTemp->angles.z = 0;
-						damp = 0;	// stop
-					}
-				}
-			}
-
-			if( pTemp->hitSound )
-			{
-// FIXME: implement
-//				g_engfuncs.pEfxAPI->CL_PlaySound( pTemp, damp );
-			}
-
-			if( pTemp->flags & FTENT_COLLIDEKILL )
-			{
-				// die on impact
-				pTemp->flags &= ~FTENT_FADEOUT;	
-				pTemp->die = gpGlobals->time;			
-			}
-			else
-			{
-				// reflect velocity
-				if( damp != 0 )
-				{
-					proj = DotProduct( pTemp->m_vecVelocity, traceNormal );
-					pTemp->m_vecVelocity += (-proj * 2) * traceNormal;
-
-					// reflect rotation (fake)
-					pTemp->angles.y = -pTemp->angles.y;
-				}
-				
-				if( damp != 1.0f )
-				{
-					pTemp->m_vecVelocity *= damp;
-					pTemp->angles *= 0.9f;
-				}
-			}
-		}
-	}
-
-	if(( pTemp->flags & FTENT_FLICKER ) && framenumber == pTemp->m_nFlickerFrame )
-	{
-		float	rgb[3] = { 1.0f, 0.47f, 0.0f };
-		g_engfuncs.pEfxAPI->CL_AllocDLight( pTemp->origin, rgb, 60, gpGlobals->time + 0.01f, 0, 0 );
-	}
-
-	if( pTemp->flags & FTENT_SMOKETRAIL )
-	{
-// FIXME: implement
-//		g_engfuncs.pEfxAPI->R_RocketTrail( pTemp->oldorigin, pTemp->entity.origin, 1 );
-	}
-
-	if( pTemp->flags & FTENT_GRAVITY )
-		pTemp->m_vecVelocity.z += gravity;
-	else if( pTemp->flags & FTENT_SLOWGRAVITY )
-		pTemp->m_vecVelocity.z += gravitySlow;
-
-	if( pTemp->flags & FTENT_CLIENTCUSTOM )
-	{
-		if( pTemp->callback )
-			(*pTemp->callback)( pTemp );
-	}
-
-	if( pTemp->flags & FTENT_WINDBLOWN )
-	{
-		Vector	vecWind = gHUD.m_vecWindVelocity;
-
-		for( int i = 0 ; i < 2 ; i++ )
-		{
-			if( pTemp->m_vecVelocity[i] < vecWind[i] )
-			{
-				pTemp->m_vecVelocity[i] += ( frametime * TENT_WIND_ACCEL );
-
-				// clamp
-				if( pTemp->m_vecVelocity[i] > vecWind[i] )
-					pTemp->m_vecVelocity[i] = vecWind[i];
-			}
-			else if( pTemp->m_vecVelocity[i] > vecWind[i] )
-			{
-				pTemp->m_vecVelocity[i] -= ( frametime * TENT_WIND_ACCEL );
-
-				// clamp
-				if( pTemp->m_vecVelocity[i] < vecWind[i] )
-					pTemp->m_vecVelocity[i] = vecWind[i];
-			}
-		}
-	}
-	return true;
-}
-
-void HUD_StudioEvent( const dstudioevent_t *event, edict_t *entity )
-{
-	float	pitch;
-	Vector	pos;
-
-	switch( event->event )
-	{
-	case 5001:
-		// MullzeFlash at attachment 1
-		HUD_MuzzleFlash( entity, 1, event->options );
-		break;
-	case 5011:
-		// MullzeFlash at attachment 2
-		HUD_MuzzleFlash( entity, 2, event->options );
-		break;
-	case 5021:
-		// MullzeFlash at attachment 3
-		HUD_MuzzleFlash( entity, 3, event->options );
-		break;
-	case 5031:
-		// MullzeFlash at attachment 4
-		HUD_MuzzleFlash( entity, 4, event->options );
-		break;
-	case 5002:
-		// SparkEffect at attachment 1
-		break;
-	case 5004:		
-		// Client side sound
-		GET_ATTACHMENT( entity, 1, pos, NULL ); 
-		CL_PlaySound( event->options, 1.0f, pos );
-		break;
-	case 5005:		
-		// Client side sound with random pitch
-		pitch = 85 + RANDOM_LONG( 0, 0x1F );
-		GET_ATTACHMENT( entity, 1, pos, NULL ); 
-		CL_PlaySound( event->options, RANDOM_FLOAT( 0.7f, 0.9f ), pos, pitch );
-		break;
-	case 5050:
-		// Special event for displacer
-		break;
-	case 5060:
-	          // eject shellEV_EjectShell( event, entity );
-		break;
-	default:
-		break;
-	}
-}
-
-void HUD_StudioFxTransform( edict_t *ent, float transform[4][4] )
-{
-	switch( ent->v.renderfx )
-	{
-	case kRenderFxDistort:
-	case kRenderFxHologram:
-		if(!RANDOM_LONG( 0, 49 ))
-		{
-			int	axis = RANDOM_LONG( 0, 1 );
-			float	scale = RANDOM_FLOAT( 1, 1.484 );
-
-			if( axis == 1 ) axis = 2; // choose between x & z
-			transform[axis][0] *= scale;
-			transform[axis][1] *= scale;
-			transform[axis][2] *= scale;
-		}
-		else if(!RANDOM_LONG( 0, 49 ))
-		{
-			float offset;
-			int axis = RANDOM_LONG( 0, 1 );
-			if( axis == 1 ) axis = 2; // choose between x & z
-			offset = RANDOM_FLOAT( -10, 10 );
-			transform[RANDOM_LONG( 0, 2 )][3] += offset;
-		}
-		break;
-	case kRenderFxExplode:
-		float	scale;
-
-		scale = 1.0f + (gHUD.m_flTime - ent->v.animtime) * 10.0;
-		if( scale > 2 ) scale = 2; // don't blow up more than 200%
-		
-		transform[0][1] *= scale;
-		transform[1][1] *= scale;
-		transform[2][1] *= scale;
-		break;
-	}
-}
 
 /*
 =================
@@ -739,42 +364,6 @@ void CL_TeleportParticles( const Vector org )
 	}
 }
 
-void CL_PlaceDecal( Vector pos, Vector dir, float scale, HSPRITE hDecal )
-{
-	float	rgba[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	int	flags = DECAL_FADEALPHA;
-
-	g_engfuncs.pEfxAPI->R_SetDecal( pos, dir, rgba, RANDOM_LONG( 0, 360 ), scale, hDecal, flags );
-}
-
-void CL_PlaceDecal( Vector pos, edict_t *pEntity, HSPRITE hDecal )
-{
-	float	rgba[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	int	flags = DECAL_FADEALPHA;
-	float	scale = 5.0f;	// FIXME
-	Vector	dir;
-
-	g_engfuncs.pEfxAPI->CL_FindExplosionPlane( pos, scale, dir );
-	g_engfuncs.pEfxAPI->R_SetDecal( pos, dir, rgba, RANDOM_LONG( 0, 360 ), scale, hDecal, flags );
-}
-
-void CL_AllocDLight( Vector pos, float r, float g, float b, float radius, float time, int flags )
-{
-	float	rgb[3];
-	
-	rgb[0] = r / 255.0f;
-	rgb[1] = r / 255.0f;
-	rgb[2] = r / 255.0f;
-
-	if( radius <= 0 ) return;
-	g_engfuncs.pEfxAPI->CL_AllocDLight( pos, rgb, radius, time, flags, 0 );
-}
-
-void CL_AllocDLight( Vector pos, float radius, float time, int flags )
-{
-	CL_AllocDLight( pos, 255, 255, 255, radius, time, flags );
-}
-
 void HUD_AddClientMessage( void )
 {
 	static client_textmessage_t	gTextMsg[MAX_CHANNELS], *msg;
@@ -930,7 +519,32 @@ void TE_ParseBeamEntPoint( void )
 
 /*
 ---------------
-TE_ParseBeamEntPoint
+TE_ParseGunShot
+
+Particle effect plus ricochet sound
+---------------
+*/
+void TE_ParseGunShot( void )
+{
+	char soundpath[32];
+	Vector pos;
+
+	pos.x = READ_COORD();
+	pos.y = READ_COORD();
+	pos.z = READ_COORD();
+
+	CL_BulletParticles( pos, Vector( 0, 0, -1 ));
+
+	if( RANDOM_LONG( 0, 32 ) <= 8 ) // 25% chanse
+	{
+		sprintf( soundpath, "weapons/ric%i.wav", RANDOM_LONG( 1, 5 ));
+		CL_PlaySound( soundpath, RANDOM_FLOAT( 0.7f, 0.9f ), pos, RANDOM_FLOAT( 95.0f, 105.0f ));
+	}
+}
+
+/*
+---------------
+TE_ParseExplosion
 
 Creates additive sprite, 2 dynamic lights, flickering particles, explosion sound, move vertically 8 pps
 ---------------
@@ -957,23 +571,21 @@ void TE_ParseExplosion( void )
 	if( scale != 0.0f )
 	{
 		// create explosion sprite
-		pTemp = g_engfuncs.pEfxAPI->R_DefaultSprite( pos2, spriteIndex, frameRate );
-		g_engfuncs.pEfxAPI->R_Sprite_Explode( pTemp, scale, flags );
-
-		ALERT( at_console, "Explosion scale: %g\n", scale );
+		pTemp = g_pTempEnts->DefaultSprite( pos2, spriteIndex, frameRate );
+		g_pTempEnts->Sprite_Explode( pTemp, scale, flags );
 
 		if( !( flags & TE_EXPLFLAG_NODLIGHTS ))
 		{
-			CL_AllocDLight( pos2, 250, 250, 150, 200, 0.01f, 0 ); // big flash
-			CL_AllocDLight( pos2, 255, 190, 40, 150, 1.0f, DLIGHT_FADE );// red glow
+			g_pTempEnts->AllocDLight( pos2, 250, 250, 150, 200, 0.01f, 0 ); // big flash
+			g_pTempEnts->AllocDLight( pos2, 255, 190, 40, 150, 1.0f, DLIGHT_FADE );// red glow
 		}
 	}
 
 	if(!( flags & TE_EXPLFLAG_NOPARTICLES ))
 		CL_ExplosionParticles( pos );
 	if( RANDOM_LONG( 0, 1 ))
-		CL_PlaceDecal( pos, dir, scale, g_engfuncs.pEfxAPI->CL_DecalIndexFromName( "{scorch1" ));
-	else CL_PlaceDecal( pos, dir, scale, g_engfuncs.pEfxAPI->CL_DecalIndexFromName( "{scorch2" )); 
+		g_pTempEnts->PlaceDecal( pos, dir, scale, g_engfuncs.pEfxAPI->CL_DecalIndexFromName( "{scorch1" ));
+	else g_pTempEnts->PlaceDecal( pos, dir, scale, g_engfuncs.pEfxAPI->CL_DecalIndexFromName( "{scorch2" )); 
 
 	if( !( flags & TE_EXPLFLAG_NOSOUND ))
 	{
@@ -981,13 +593,306 @@ void TE_ParseExplosion( void )
 	}
 }
 
-void HUD_ParseTempEntity( void )
+/*
+---------------
+TE_ParseSmoke
+
+Creates alphablend sprite, move vertically 30 pps
+---------------
+*/
+void TE_ParseSmoke( void )
 {
 	TEMPENTITY *pTemp;
+	float scale, framerate;
+	int modelIndex;
+	Vector pos;
+
+	pos.x = READ_COORD();
+	pos.y = READ_COORD();
+	pos.z = READ_COORD();
+	modelIndex = READ_SHORT();
+	scale = (float)(READ_BYTE() * 0.1f);
+	framerate = (float)READ_BYTE();
+
+	// Half-Life style smoke
+	// create smoke sprite
+	pTemp = g_pTempEnts->DefaultSprite( pos, modelIndex, framerate );
+	g_pTempEnts->Sprite_Smoke( pTemp, scale );
+}
+
+/*
+---------------
+TE_ParseTracer
+
+Creates tracer effect from point to point
+---------------
+*/
+void TE_ParseTracer( void )
+{
+	Vector start, end;
+
+	start.x = READ_COORD();	// tracer start
+	start.y = READ_COORD();
+	start.z = READ_COORD();
+
+	end.x = READ_COORD();	// tracer end
+	end.y = READ_COORD();
+	end.z = READ_COORD();
+
+	EV_CreateTracer( start, end );
+}
+
+/*
+---------------
+TE_ParseLighting
+
+version of TE_BEAMPOINTS with simplified parameters
+---------------
+*/
+void TE_ParseLighting( void )
+{
+	Vector start, end;
+	float life, width, noise;
+	int modelIndex;
+
+	start.x = READ_COORD();
+	start.y = READ_COORD();
+	start.z = READ_COORD();
+
+	end.x = READ_COORD();
+	end.y = READ_COORD();
+	end.z = READ_COORD();
+
+	life = (float)(READ_BYTE() * 0.1f);
+	width = (float)(READ_BYTE() * 0.1f);
+	noise = (float)(READ_BYTE() * 0.1f);
+	modelIndex = READ_SHORT();
+
+	g_pViewRenderBeams->CreateBeamPoints( start, end, modelIndex, life, width, noise, 255, 1.0f, 0, 0, 255, 255, 255 );
+}
+
+/*
+---------------
+TE_ParseBeamEnts
+
+Creates a beam between origins of two entities
+---------------
+*/
+void TE_ParseBeamEnts( void )
+{
+	int modelIndex, startEntity, endEntity, startFrame;
+	float life, width, noise, framerate, brightness, speed;
+	Vector vecColor;
+
+	startEntity = READ_SHORT();
+	endEntity = READ_SHORT();
+	modelIndex = READ_SHORT();
+
+	startFrame = READ_BYTE();
+	framerate = (float)(READ_BYTE() * 0.1f);
+	life = (float)(READ_BYTE() * 0.1f);
+	width = (float)(READ_BYTE() * 0.1f);
+	noise = (float)(READ_BYTE() * 0.1f);
+
+	// renderinfo
+	vecColor.x = (float)READ_BYTE();
+	vecColor.y = (float)READ_BYTE();
+	vecColor.z = (float)READ_BYTE();
+	brightness = (float)READ_BYTE();
+	speed = (float)(READ_BYTE() * 0.1f);
+
+	g_pViewRenderBeams->CreateBeamEnts( startEntity, endEntity, modelIndex, life, width, noise, brightness,
+	speed, startFrame, framerate, vecColor.x, vecColor.y, vecColor.z );
+}
+
+/*
+---------------
+TE_ParseSparks
+
+Creates a 8 random tracers with gravity, ricochet sprite
+---------------
+*/
+void TE_ParseSparks( void )
+{
+	Vector pos, dir;
+
+	pos.x = READ_COORD();
+	pos.y = READ_COORD();
+	pos.z = READ_COORD();
+
+	g_engfuncs.pEfxAPI->CL_FindExplosionPlane( pos, 1.0f, dir );
+	CL_SparkParticles( pos, dir );
+}
+
+/*
+---------------
+TE_ParseTeleport
+
+Creates a Quake1 teleport splash
+---------------
+*/
+void TE_ParseTeleport( void )
+{
+	Vector pos;
+	
+	pos.x = READ_COORD();
+	pos.y = READ_COORD();
+	pos.z = READ_COORD();
+
+	CL_TeleportParticles( pos );
+}
+
+/*
+---------------
+TE_ParseBSPDecal
+
+Creates a decal from the .BSP file 
+---------------
+*/
+void TE_ParseBSPDecal( void )
+{
+	Vector pos;
+	int decalIndex, entityIndex, modelIndex;
+	edict_t *pEntity;
+	
+	pos.x = READ_COORD();
+	pos.y = READ_COORD();
+	pos.z = READ_COORD();
+
+	decalIndex = READ_SHORT();
+	entityIndex = READ_SHORT();
+
+	if( entityIndex != 0 )
+	{
+		modelIndex = READ_SHORT();
+	}
+
+	pEntity = GetEntityByIndex( entityIndex );
+	g_pTempEnts->PlaceDecal( pos, pEntity, g_engfuncs.pEfxAPI->CL_DecalIndex( decalIndex ));
+}
+
+/*
+---------------
+TE_ParseSpriteTrail
+
+Creates a line of moving glow sprites with gravity, fadeout, and collisions
+---------------
+*/
+void TE_ParseSpriteTrail( void )
+{
+	Vector start, end;
+	float life, scale, vel, random;
+	int spriteIndex, count;
+
+	start.x = READ_COORD();
+	start.y = READ_COORD();
+	start.z = READ_COORD();
+
+	end.x = READ_COORD();
+	end.y = READ_COORD();
+	end.z = READ_COORD();
+
+	spriteIndex = READ_SHORT();
+	count = READ_BYTE();
+	life = (float)(READ_BYTE() * 0.1f);
+	scale = (float)(READ_BYTE() * 0.1f);
+	vel = (float)READ_BYTE();
+	random = (float)READ_BYTE();
+
+	g_pTempEnts->Sprite_Trail( TE_SPRITETRAIL, start, end, spriteIndex, count, life, scale, random, 255, vel );
+}
+
+/*
+---------------
+TE_ParseSprite
+
+Creates a additive sprite, plays 1 cycle
+---------------
+*/
+void TE_ParseSprite( void )
+{
+	Vector pos;
+	TEMPENTITY *pTemp;
+	float scale, brightness;
+	int spriteIndex;
+	
+	pos.x = READ_COORD();
+	pos.y = READ_COORD();
+	pos.z = READ_COORD();
+
+	spriteIndex = READ_SHORT();
+	scale = (float)(READ_BYTE() * 0.1f);
+	brightness = (float)READ_BYTE();
+
+	pTemp = g_pTempEnts->DefaultSprite( pos, spriteIndex, 0 );
+
+	if( pTemp )
+	{
+		pTemp->m_flSpriteScale = scale;
+		pTemp->startAlpha = brightness;
+		pTemp->renderAmt = brightness;
+	}
+}
+
+/*
+---------------
+TE_ParseBeamRing
+
+Generic function to parse various beam rings
+---------------
+*/
+void TE_ParseBeamRing( int type )
+{
+	Vector start, end, vecColor;
+	float life, framerate, width, noise, speed, brightness;
+	int spriteIndex, startFrame;
+
+	start.x = READ_COORD();
+	start.y = READ_COORD();
+	start.z = READ_COORD();
+
+	end.x = READ_COORD();
+	end.y = READ_COORD();
+	end.z = READ_COORD();
+
+	spriteIndex = READ_SHORT();
+	startFrame = READ_BYTE();
+	framerate = (float)(READ_BYTE() * 0.1f);
+	life = (float)(READ_BYTE() * 0.1f);
+	width = (float)(READ_BYTE());
+	noise = (float)(READ_BYTE() * 0.1f);
+
+	// renderinfo
+	vecColor.x = (float)READ_BYTE();
+	vecColor.y = (float)READ_BYTE();
+	vecColor.z = (float)READ_BYTE();
+	brightness = (float)READ_BYTE();
+	speed = (float)(READ_BYTE() * 0.1f);
+
+	g_pViewRenderBeams->CreateBeamCirclePoints( type, start, end, spriteIndex, life, width, width, 0.0f,
+	noise, brightness, speed, startFrame, framerate, vecColor.x, vecColor.y, vecColor.z );
+}
+
+/*
+---------------
+TE_ParseKillBeam
+
+Kill all beams attached to entity
+---------------
+*/
+void TE_ParseKillBeam( void )
+{
+	edict_t *pEntity = GetEntityByIndex( READ_SHORT() );
+
+	g_pViewRenderBeams->KillDeadBeams( pEntity );
+}
+
+void HUD_ParseTempEntity( void )
+{
 	char soundpath[32];
 	Vector pos, pos2, dir, size, color;
-	float time, random, framerate, radius, scale, decay;
-	int flags, modelIndex, soundType, count, iColor;
+	float time, random, radius, scale, decay;
+	int flags, modelIndex, modelIndex2, soundType, count, iColor;
 
 	switch( READ_BYTE() )
 	{
@@ -998,22 +903,73 @@ void HUD_ParseTempEntity( void )
 		TE_ParseBeamEntPoint();
 		break;
 	case TE_GUNSHOT:
-		pos.x = READ_COORD();
-		pos.y = READ_COORD();
-		pos.z = READ_COORD();
-		CL_BulletParticles( pos, Vector( 0, 0, -1 ));
-
-		if( RANDOM_LONG( 0, 32 ) <= 8 ) // 25% chanse
-		{
-			sprintf( soundpath, "weapons/ric%i.wav", RANDOM_LONG( 1, 5 ));
-			CL_PlaySound( soundpath, RANDOM_FLOAT( 0.7f, 0.9f ), pos, RANDOM_FLOAT( 95.0f, 105.0f ));
-		}
+		TE_ParseGunShot();
 		break;
 	case TE_EXPLOSION:
-
+		TE_ParseExplosion();
+		break;
+	case TE_TAREXPLOSION:
+		// FIXME: implement
+		break;
+	case TE_SMOKE:
+		TE_ParseSmoke();
+		break;
+	case TE_TRACER:
+		TE_ParseTracer();
+		break;
+	case TE_LIGHTNING:
+		TE_ParseLighting();
+		break;
+	case TE_BEAMENTS:
+		TE_ParseBeamEnts();
+		break;
+	case TE_SPARKS:
+		TE_ParseSparks();
+		break;
+	case TE_LAVASPLASH:
+		// FIXME: implement
+		break;
+	case TE_TELEPORT:
+		TE_ParseTeleport();
+		break;
+	case TE_EXPLOSION2:
+		// FIXME: implement
+		break;
+	case TE_BSPDECAL:
+		TE_ParseBSPDecal();
+		break;
+	case TE_IMPLOSION:
+		// FIXME: implement
+		break;
+	case TE_SPRITETRAIL:
+		TE_ParseSpriteTrail();
+		break;
+	case TE_BEAM: break; // obsolete
+	case TE_SPRITE:
+		TE_ParseSprite();
+		break;
+	case TE_BEAMSPRITE:
+		// FIXME: implement
+		break;
+	case TE_BEAMTORUS:
+		TE_ParseBeamRing( TE_BEAMTORUS );
+		break;
+	case TE_BEAMDISK:
+		TE_ParseBeamRing( TE_BEAMDISK );
+		break;
+	case TE_BEAMCYLINDER:
+		TE_ParseBeamRing( TE_BEAMCYLINDER );
 		break;
 	case TE_BEAMFOLLOW:
 		TE_ParseBeamFollow();
+		break;
+	case TE_GLOWSPRITE:
+		// FIXME: implement
+		break;
+	case TE_BEAMRING:
+		break;
+	case TE_KILLBEAM:
+		TE_ParseKillBeam();
 		break;
 	case TE_GUNSHOTDECAL:
 		pos.x = READ_COORD();
@@ -1022,7 +978,7 @@ void HUD_ParseTempEntity( void )
 		dir = READ_DIR();
 		READ_SHORT(); // FIXME: skip entindex
 		CL_BulletParticles( pos, dir );
-		CL_PlaceDecal( pos, dir, 2, g_engfuncs.pEfxAPI->CL_DecalIndex( READ_BYTE() ));
+		g_pTempEnts->PlaceDecal( pos, dir, 2, g_engfuncs.pEfxAPI->CL_DecalIndex( READ_BYTE() ));
 
 		if( RANDOM_LONG( 0, 32 ) <= 8 ) // 25% chanse
 		{
@@ -1035,60 +991,15 @@ void HUD_ParseTempEntity( void )
 		pos.y = READ_COORD();
 		pos.z = READ_COORD();
 		g_engfuncs.pEfxAPI->CL_FindExplosionPlane( pos, 10, dir );
-		CL_PlaceDecal( pos, dir, 2, g_engfuncs.pEfxAPI->CL_DecalIndex( READ_BYTE() ));
+		g_pTempEnts->PlaceDecal( pos, dir, 2, g_engfuncs.pEfxAPI->CL_DecalIndex( READ_BYTE() ));
 		READ_SHORT(); // FIXME: skip entindex
 		break;	
-	case TE_SPARKS:
-		pos.x = READ_COORD();
-		pos.y = READ_COORD();
-		pos.z = READ_COORD();
-		g_engfuncs.pEfxAPI->CL_FindExplosionPlane( pos, 1.0f, dir );
-		CL_SparkParticles( pos, dir );
-		break;
 	case TE_ARMOR_RICOCHET:
 		pos.x = READ_COORD();
 		pos.y = READ_COORD();
 		pos.z = READ_COORD();
 		radius = READ_BYTE() / 10.0f;
 		CL_RicochetSparks( pos, radius );
-		break;
-	case TE_SMOKE:
-		pos.x = READ_COORD();
-		pos.y = READ_COORD();
-		pos.z = READ_COORD();
-		modelIndex = READ_SHORT();
-		scale = READ_BYTE();
-		framerate = READ_BYTE();
-#if 1
-		// Half-Life style smoke
-		// create smoke sprite
-		pTemp = g_engfuncs.pEfxAPI->CL_TempEntAlloc( pos, modelIndex );
-		g_engfuncs.pEfxAPI->R_Sprite_Smoke( pTemp, ( scale * 0.1f ));
-		if( pTemp )
-		{
-			pTemp->die = gpGlobals->time + 5.0f;	// should be enough for too long sequence
-			pTemp->m_flFrameRate = framerate;
-			pTemp->flags |= FTENT_SPRANIMATE;
-		}
-#else
-		// quake2 evolved style smoke
-		CL_SmokeParticles( pos, scale );
-#endif
-		break;
-	case TE_TELEPORT:
-		pos.x = READ_COORD();
-		pos.y = READ_COORD();
-		pos.z = READ_COORD();
-		CL_TeleportParticles( pos );
-		break;
-	case TE_SPRITE:
-		pos.x = READ_COORD();
-		pos.y = READ_COORD();
-		pos.z = READ_COORD();
-		modelIndex = READ_SHORT();
-		scale = (float)(READ_BYTE() * 0.1f);
-		decay = READ_BYTE(); // brightness
-		g_engfuncs.pEfxAPI->R_TempSprite( pos, NULL, scale, modelIndex, 0, 0, decay, 0.02f, 0 );
 		break;
 	case TE_ELIGHT:
 		READ_SHORT(); // skip attachment
@@ -1105,15 +1016,6 @@ void HUD_ParseTempEntity( void )
 		decay = (float)READ_BYTE() * 0.1f;
 		g_engfuncs.pEfxAPI->CL_AllocDLight( pos, color, radius, time, 0, 0 );
 		break;
-	case TE_TRACER:
-		pos.x = READ_COORD();	// tracer start
-		pos.y = READ_COORD();
-		pos.z = READ_COORD();
-		pos2.x = READ_COORD();	// tracer end
-		pos2.y = READ_COORD();
-		pos2.z = READ_COORD();
-		EV_CreateTracer( pos, pos2 );
-		break;
 	case TE_MODEL:
 		pos.x = READ_COORD();	// tracer start
 		pos.y = READ_COORD();
@@ -1125,17 +1027,17 @@ void HUD_ParseTempEntity( void )
 		modelIndex = READ_SHORT();
 		soundType = READ_BYTE();
 		decay = (float)(READ_BYTE() * 0.1f);
-		g_engfuncs.pEfxAPI->R_TempModel( pos, dir, pos2, decay, modelIndex, soundType );
+		g_pTempEnts->TempModel( pos, dir, pos2, decay, modelIndex, soundType );
 		break;
 	case TE_BLOODSPRITE:
 		pos.x = READ_COORD();	// sprite pos
 		pos.y = READ_COORD();
 		pos.z = READ_COORD();
 		modelIndex = READ_SHORT();
-		READ_SHORT();		// FIXME: skup droplet blood sprite
+		modelIndex2 =READ_SHORT();
 		iColor = READ_BYTE();
 		scale = READ_BYTE();	// scale
-		g_engfuncs.pEfxAPI->R_BloodSprite( pos, iColor, modelIndex, scale );
+		g_pTempEnts->BloodSprite( pos, iColor, modelIndex, modelIndex2, scale );
 		break;
 	case TE_BREAKMODEL:
 		pos.x = READ_COORD();	// breakmodel center
@@ -1152,7 +1054,7 @@ void HUD_ParseTempEntity( void )
 		count = READ_BYTE();	// # of shards ( 0 - autodetect by size )
 		decay = (float)(READ_BYTE() * 0.1f);
 		flags = READ_BYTE();	// material flags
-		g_engfuncs.pEfxAPI->R_BreakModel( pos, size, dir, random, decay, count, modelIndex, flags );
+		g_pTempEnts->BreakModel( pos, size, dir, random, decay, count, modelIndex, flags );
 		break;
 	case TE_TEXTMESSAGE:
 		HUD_AddClientMessage();

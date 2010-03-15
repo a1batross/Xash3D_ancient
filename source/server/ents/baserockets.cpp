@@ -407,13 +407,13 @@ void CRpgRocket :: IgniteThink( void  )
 
 void CRpgRocket :: CreateTrail( void  )
 {
-	if(b_setup) return;
+	if( b_setup ) return;
 
 	// make rocket sound after save\load
 	EMIT_SOUND( ENT(pev), CHAN_VOICE, "weapons/rpg/rocket1.wav", 1, 0.5 );
 
 	// restore rocket trail
-	SFX_Trail(entindex(), m_iTrail);
+	SFX_Trail( entindex(), m_iTrail );
 	b_setup = TRUE;
 }
 

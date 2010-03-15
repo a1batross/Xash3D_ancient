@@ -104,7 +104,7 @@ bool CL_GetAttachment( int entityIndex, int number, vec3_t origin, vec3_t angles
 	if( !ed || ed->free || !ed->pvClientData )
 		return false;
 
-	number = bound( 0, number, MAXSTUDIOATTACHMENTS - 1 );
+	number = bound( 1, number, MAXSTUDIOATTACHMENTS );
 
 	if( origin ) VectorAdd( ed->v.origin, ed->pvClientData->origin[number-1], origin );	
 	if( angles ) VectorCopy( ed->pvClientData->angles[number-1], angles );
@@ -1961,7 +1961,7 @@ pfnStopSound
 */
 void pfnStopSound( int ent, int channel, const char *sample )
 {
-	S_StartSound( vec3_origin, ent, channel, S_RegisterSound( sample ), 1.0f, ATTN_NORM, PITCH_NORM, SND_STOP );
+	S_StartSound( vec3_origin, ent, channel, S_RegisterSound( sample ), 0, 0, PITCH_NORM, SND_STOP );
 }
 
 /*
@@ -2418,29 +2418,17 @@ static efxapi_t gEfxApi =
 {
 	sizeof( efxapi_t ),	
 	pfnAddParticle,
-	CL_BloodSprite,
-	CL_BreakModel,
-	CL_MuzzleFlash,
-	CL_SpriteExplode,
-	CL_SpriteSmoke,
-	CL_SpriteSpray,
-	CL_Sprite_Trail,
-	CL_CreateTracer,
-	CL_TempModel,
-	CL_DefaultSprite,
-	CL_TempSprite,
+	CL_GetPaletteColor,
 	pfnDecalIndex,
 	pfnDecalIndexFromName,
 	pfnAddDecal,
 	pfnAddDLight,
-	CL_TempEntAlloc,
-	CL_TempEntAllocNoModel,
-	CL_TempEntAllocHigh,
-	CL_TentEntAllocCustom,
 	pfnFindExplosionPlane,
 	pfnLightForPoint,
 	CM_BoxVisible,
 	pfnCullBox,
+	CL_AddEntity,
+	CL_AddTempEntity,
 };
 
 static event_api_t gEventApi =
@@ -2557,12 +2545,12 @@ static cl_enginefuncs_t gEngfuncs =
 
 void CL_UnloadProgs( void )
 {
-	// initialize game
-	clgame.dllFuncs.pfnShutdown();
-
 	CL_FreeEdicts();
 	CL_FreeEdict( &clgame.viewent );
 	CL_FreeEdict( &clgame.playermodel );
+
+	// deinitialize game
+	clgame.dllFuncs.pfnShutdown();
 
 	StringTable_Delete( clgame.hStringTable );
 	Com_FreeLibrary( clgame.hInstance );

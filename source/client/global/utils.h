@@ -33,7 +33,7 @@ extern movevars_t			*gpMovevars;
 extern int HUD_VidInit( void );
 extern void HUD_Init( void );
 extern int HUD_Redraw( float flTime, int state );
-extern void HUD_UpdateEntityVars( edict_t *out, skyportal_t *sky, const entity_state_t *s, const entity_state_t *p );
+extern void HUD_UpdateEntityVars( edict_t *out, const entity_state_t *s, const entity_state_t *p );
 extern void HUD_UpdateOnRemove( edict_t *pEdict );
 extern void HUD_Reset( void );
 extern void HUD_StartFrame( void );
@@ -41,7 +41,7 @@ extern void HUD_Frame( double time );
 extern void HUD_Shutdown( void );
 extern void HUD_RenderCallback( int fTrans );
 extern void HUD_CreateEntities( void );
-extern int  HUD_UpdateEntity( TEMPENTITY *pTemp, int framenumber );
+extern int  HUD_AddVisibleEntity( edict_t *pEnt, int ed_type );
 extern void HUD_StudioEvent( const dstudioevent_t *event, edict_t *entity );
 extern void HUD_StudioFxTransform( edict_t *ent, float transform[4][4] );
 extern void HUD_ParseTempEntity( void );
@@ -207,13 +207,9 @@ extern void DrawProgressBar( void );
 extern edict_t *spot;
 extern float v_idlescale;
 extern int g_weaponselect;
-extern model_t g_muzzleFlash[4];
 extern int g_iAlive;		// indicates alive local client or not
 
 // tempents.c
-extern void HUD_MuzzleFlash( edict_t *m_pEnt, int iAttachment, const char *event );
-extern void CL_PlaceDecal( Vector pos, Vector dir, float scale, HSPRITE hDecal );
-extern void CL_PlaceDecal( Vector pos, edict_t *pEntity, HSPRITE hDecal );
 extern void CL_BulletParticles( const Vector org, const Vector dir );
 
 // input.cpp

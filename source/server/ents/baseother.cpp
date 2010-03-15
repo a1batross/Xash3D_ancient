@@ -196,12 +196,19 @@ LINK_ENTITY_TO_CLASS( floorent, CFloorEnt );
 //====================================================================
 //			Laser pointer target
 //====================================================================
-CLaserSpot *CLaserSpot::CreateSpot( void )
+CLaserSpot *CLaserSpot::CreateSpot( entvars_t *pevOwner )
 {
 	CLaserSpot *pSpot = GetClassPtr( (CLaserSpot *)NULL );
-	pSpot->pev->classname = MAKE_STRING( "misc_laserdot" );
 	pSpot->Spawn();
+	pSpot->pev->classname = MAKE_STRING( "misc_laserdot" );
 
+	if( pevOwner ) 
+	{
+		// predictable laserspot (cl_lw must be set to 1)
+		pSpot->pev->flags |= FL_SKIPLOCALHOST;
+		pSpot->pev->owner = ENT( pevOwner );
+		pevOwner->effects |= EF_LASERSPOT;
+	}
 	return pSpot;
 }
 
@@ -219,11 +226,12 @@ void CLaserSpot::Spawn( void )
 	// laser dot settings
 	pev->movetype = MOVETYPE_NONE;
 	pev->solid = SOLID_NOT;
-	pev->scale = 1.0;
+
 	pev->rendermode = kRenderGlow;
 	pev->renderfx = kRenderFxNoDissipation;
 	pev->renderamt = 255;
 	pev->rendercolor = Vector( 200, 12, 12 );
+
 	UTIL_SetModel( ENT( pev ), "sprites/laserdot.spr" );
 	UTIL_SetOrigin( this, pev->origin );
 }
@@ -231,6 +239,9 @@ void CLaserSpot::Spawn( void )
 void CLaserSpot::Suspend( float flSuspendTime )
 {
 	pev->effects |= EF_NODRAW;
+
+	if( !FNullEnt( pev->owner ))
+		pev->owner->v.effects &= ~EF_LASERSPOT;
 	
 	// -1 means suspend indefinitely
 	if( flSuspendTime == -1 ) SetThink( NULL );
@@ -243,8 +254,20 @@ void CLaserSpot::Suspend( float flSuspendTime )
 
 void CLaserSpot::Revive( void )
 {
+	if( !FNullEnt( pev->owner ))
+		pev->owner->v.effects |= EF_LASERSPOT;
+
 	pev->effects &= ~EF_NODRAW;
 	SetThink( NULL );
+}
+
+void CLaserSpot::UpdateOnRemove( void )
+{
+	// tell the owner about laserspot
+	if( !FNullEnt( pev->owner ))
+		pev->owner->v.effects &= ~EF_LASERSPOT;
+
+	CBaseEntity :: UpdateOnRemove ();
 }
 
 void CLaserSpot::Update( CBasePlayer *m_pPlayer )

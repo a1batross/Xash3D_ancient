@@ -254,7 +254,7 @@ static void UI_PlayerSetup_Ownerdraw( void *self )
 	uiPlayerSetup.refdef.frametime = cls.frametime;
 
 	// draw the player model
-	re->AddRefEntity( &uiPlayerSetup.ent, ED_NORMAL );
+	re->AddRefEntity( &uiPlayerSetup.ent, ED_NORMAL, -1 );
 	re->RenderFrame( &uiPlayerSetup.refdef );
 }
 

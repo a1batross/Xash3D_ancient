@@ -342,7 +342,6 @@ extern int	gmsgHudText;
 extern int	gmsgParticle; // LRC
 extern int	gmsgSetBody;
 extern int	gmsgSetSkin;
-extern int	gmsgSetMirror;
 extern int	gmsgShake;
 extern int	gmsgFade;
 extern int	gmsgWeaponAnim;

@@ -190,7 +190,7 @@ void CEnvExplosion::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 	// draw fireball
 	if ( !( pev->spawnflags & SF_ENVEXPLOSION_NOFIREBALL ) )
 	{
-		MESSAGE_BEGIN( MSG_PAS, SVC_TEMPENTITY, pev->origin );
+		MESSAGE_BEGIN( MSG_PAS, gmsgTempEntity, pev->origin );
 			WRITE_BYTE( TE_EXPLOSION);
 			WRITE_COORD( pev->origin.x );
 			WRITE_COORD( pev->origin.y );

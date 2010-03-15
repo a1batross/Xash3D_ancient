@@ -230,7 +230,6 @@ int gmsgCamData; // for trigger_viewset
 int gmsgRainData = 0;
 int gmsgSetBody = 0;//change body for view weapon model
 int gmsgSetSkin = 0;//change skin for view weapon model
-int gmsgSetMirror = 0;//set mirror
 int gmsgTempEntity = 0;
 int gmsgWeaponAnim = 0;
 int gmsgIntermission = 0;
@@ -297,7 +296,6 @@ void LinkUserMessages( void )
 	gmsgRainData = REG_USER_MSG("RainData", 28 );
 	gmsgSetBody = REG_USER_MSG("SetBody", 1);
 	gmsgSetSkin = REG_USER_MSG("SetSkin", 1);
-	gmsgSetMirror = REG_USER_MSG("SetMirror", 10);
 }
 
 LINK_ENTITY_TO_CLASS( player, CBasePlayer );
@@ -4093,49 +4091,6 @@ void CBasePlayer :: UpdateClientData( void )
 				FireTargets( "game_playerjoin", this, this, USE_TOGGLE, 0 );
 			}
 		}
-
-		//Xash3D no more haves "skyMessage"
-#if 0
-		CBaseEntity *pSky = UTIL_FindEntityByClassname( NULL, "env_sky" );
-		if(!FNullEnt(pSky))
-		{
-			MESSAGE_BEGIN(MSG_ONE, gmsgSetSky, NULL, pev );
-				WRITE_BYTE( 1 ); // mode
-				WRITE_COORD(pSky->pev->origin.x); // view position
-				WRITE_COORD(pSky->pev->origin.y);
-				WRITE_COORD(pSky->pev->origin.z);
-			MESSAGE_END();
-                                        
-			//g-cont. found all skyents
-			edict_t *pent = UTIL_EntitiesInPVS( pSky->edict() );
-			while ( !FNullEnt( pent ) )
-			{
-				//Msg("%s is Sky Entity\n", STRING(pent->v.classname ));
-				SetBits(pent->v.flags, FL_IMMUNE_WATER );//hack
-				pent = pent->v.chain;
-			}
-		}
-#endif
-		//update all mirrors
-		edict_t *pFind; 
-          	int numMirrors = 0;
-	
-		pFind = FIND_ENTITY_BY_CLASSNAME( NULL, "env_mirror" );
-          
-		while ( !FNullEnt( pFind ) )
-		{
-			CBaseEntity *pMirror = CBaseEntity::Instance( pFind );
-                    
-                    	if(numMirrors > 32) break;
-			if ( pMirror )
-			{
-				pMirror->Think();
-				pMirror->SetNextThink(0.01);
-				numMirrors++;
-			}
-			pFind = FIND_ENTITY_BY_CLASSNAME( pFind, "env_mirror" );
-		}
-
 		FireTargets( "game_playerspawn", this, this, USE_TOGGLE, 0 );
 
 		InitStatusBar();

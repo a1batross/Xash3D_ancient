@@ -565,14 +565,6 @@ private:
 #define SKY_OFF	0
 #define SKY_ON	1
 
-typedef struct cl_mirror_s
-{
-	vec3_t	origin;
-	int	enabled;
-	float	radius;
-	int	type;
-} cl_mirror_t;
-
 class CHud
 {
 private:
@@ -607,8 +599,6 @@ public:
 	int viewEntityIndex;
 	int m_iHUDColor;
 	int viewFlags;
-	cl_mirror_t Mirrors[32]; // limit - 32 mirrors!
-	int numMirrors;
 private:
 	// the memory for these arrays are allocated in the first call to CHud::VidInit()
 	// when the hud.txt and associated sprites are loaded. freed in ~CHud()

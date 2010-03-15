@@ -9,6 +9,7 @@
 #include "studio_ref.h"
 #include "hud.h"
 #include "r_particle.h"
+#include "r_tempents.h"
 #include "r_beams.h"
 #include "ev_hldm.h"
 #include "pm_shared.h"
@@ -40,7 +41,7 @@ static HUD_FUNCTIONS gFunctionTable =
 	HUD_Shutdown,
 	HUD_RenderCallback,
 	HUD_CreateEntities,
-	HUD_UpdateEntity,
+	HUD_AddVisibleEntity,
 	HUD_StudioEvent,
 	HUD_StudioFxTransform,
 	V_CalcRefdef,
@@ -84,11 +85,38 @@ int HUD_VidInit( void )
 	if( g_pViewRenderBeams )
 		g_pViewRenderBeams->ClearBeams();
 
+	if ( g_pTempEnts )
+		g_pTempEnts->Clear();
+
  	ResetRain ();
 	
 	gHUD.VidInit();
 
 	return 1;
+}
+
+void HUD_ShutdownEffects( void )
+{
+          if ( g_pParticleSystems )
+          {
+          	// init partsystem
+		delete g_pParticleSystems;
+		g_pParticleSystems = NULL;
+	}
+
+	if ( g_pViewRenderBeams )
+	{
+		// init render beams
+		delete g_pViewRenderBeams;
+		g_pViewRenderBeams = NULL;
+	}
+
+	if ( g_pTempEnts )
+	{
+		// init client tempents
+		delete g_pTempEnts;
+		g_pTempEnts = NULL;
+	}
 }
 
 void HUD_Init( void )
@@ -105,22 +133,11 @@ void HUD_Init( void )
 	g_engfuncs.pfnAddCommand ("fov", NULL, "set client field of view" );
 	g_engfuncs.pfnAddCommand ("fly", NULL, "fly mode (flight)" );
 
-          if ( g_pParticleSystems )
-          {
-          	// init partsystem
-		delete g_pParticleSystems;
-		g_pParticleSystems = NULL;
-	}
-
-	if ( g_pViewRenderBeams )
-	{
-		// init render beams
-		delete g_pViewRenderBeams;
-		g_pViewRenderBeams = NULL;
-	}
+	HUD_ShutdownEffects ();
 
 	g_pParticleSystems = new ParticleSystemManager();
 	g_pViewRenderBeams = new CViewRenderBeams();
+	g_pTempEnts = new CTempEnts();
 
 	InitRain(); // init weather system
 
@@ -159,7 +176,7 @@ int HUD_Redraw( float flTime, int state )
 	return 1;
 }
 
-void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t *state, const entity_state_t *prev )
+void HUD_UpdateEntityVars( edict_t *ent, const entity_state_t *state, const entity_state_t *prev )
 {
 	int	i;
 	float	m_fLerp;
@@ -280,12 +297,16 @@ void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t 
 		ent->v.oldorigin = state->oldorigin;
 		break;
 	case ED_SKYPORTAL:
-		// setup sky portal
-		sky->vieworg = ent->v.origin; 
-		sky->viewanglesOffset.x = sky->viewanglesOffset.z = 0.0f;
-		sky->viewanglesOffset.y = gHUD.m_flTime * ent->v.angles[1];
-		sky->fov = ent->v.fov;
-		sky->scale = (ent->v.scale ? 1.0f / ent->v.scale : 0);	// critical stuff
+		{
+			skyportal_t *sky = &gpViewParams->skyportal;
+
+			// setup sky portal
+			sky->vieworg = ent->v.origin; 
+			sky->viewanglesOffset.x = sky->viewanglesOffset.z = 0.0f;
+			sky->viewanglesOffset.y = gHUD.m_flTime * ent->v.angles[1];
+			sky->scale = (ent->v.scale ? 1.0f / ent->v.scale : 0.0f );	// critical stuff
+			sky->fov = ent->v.fov;
+		}
 		break;
 	case ED_BEAM:
 		ent->v.oldorigin = state->oldorigin;	// beam endpoint
@@ -318,6 +339,64 @@ void HUD_UpdateEntityVars( edict_t *ent, skyportal_t *sky, const entity_state_t 
 	ent->v.pContainingEntity = ent;
 }
 
+int HUD_AddVisibleEntity( edict_t *pEnt, int ed_type )
+{
+	float	oldScale, oldRenderAmt;
+	float	shellScale = 1.0f;
+	int	result;
+
+	if( pEnt->v.renderfx == kRenderFxGlowShell )
+	{
+		oldRenderAmt = pEnt->v.renderamt;
+		oldScale = pEnt->v.scale;
+		
+		pEnt->v.renderamt = 255; // clear amount
+	}
+
+	result = CL_AddEntity( pEnt, ed_type, -1 );
+
+	if( pEnt->v.renderfx == kRenderFxGlowShell )
+	{
+		shellScale = (oldRenderAmt * 0.0015f);	// shellOffset
+		pEnt->v.scale = oldScale + shellScale;	// sets new scale
+		pEnt->v.renderamt = 128;
+
+		// render glowshell
+		result |= CL_AddEntity( pEnt, ed_type, g_pTempEnts->hSprGlowShell );
+
+		// restore parms
+		pEnt->v.scale = oldScale;
+		pEnt->v.renderamt = oldRenderAmt;
+	}	
+
+	// add in muzzleflash effect
+	if( ed_type == ED_VIEWMODEL && pEnt->v.effects & EF_MUZZLEFLASH )
+	{
+		pEnt->v.effects &= ~EF_MUZZLEFLASH;
+		g_pTempEnts->WeaponFlash( pEnt, 1 );
+	}
+
+	// add light effect
+	if( pEnt->v.effects & EF_LIGHT )
+	{
+		g_pTempEnts->AllocDLight( pEnt->v.origin, 200, 0.01f, 0 );
+		g_pTempEnts->RocketFlare( pEnt->v.origin );
+	}
+
+	return result;
+}
+
+void HUD_CreateEntities( void )
+{
+	EV_UpdateBeams ();		// egon use this
+	EV_UpdateLaserSpot ();	// predictable laserspot
+
+	// add in any game specific objects here
+	g_pViewRenderBeams->UpdateTempEntBeams( );
+
+	g_pTempEnts->Update();
+}
+
 void HUD_UpdateOnRemove( edict_t *pEdict )
 {
 	// move TE_BEAMTRAIL, kill other beams
@@ -326,9 +405,8 @@ void HUD_UpdateOnRemove( edict_t *pEdict )
 
 void HUD_Reset( void )
 {
-	gHUD.VidInit();
+	HUD_VidInit ();
 }
-
 
 void HUD_StartFrame( void )
 {
@@ -346,6 +424,8 @@ void HUD_Frame( double time )
 void HUD_Shutdown( void )
 {
 	gHUD.m_Sound.Close();
+
+	HUD_ShutdownEffects ();
 
 	IN_Shutdown ();
 

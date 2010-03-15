@@ -52,7 +52,6 @@ public:
 	BOOL ShouldWeaponIdle( void ) { return TRUE; };
 
 	CLaserSpot *m_pSpot;
-	CLaserSpot *m_pMirSpot;
 };
 
 class CRpgRocket : public CGrenade
@@ -408,7 +407,6 @@ void CRpg::Reload( void )
 	if ( m_iClip == 0 )
 	{
 		if ( m_pSpot && m_iOverloadLevel ) m_pSpot->Suspend( 2.1 );
-		if ( m_pMirSpot && m_iOverloadLevel ) m_pMirSpot->Suspend( 2.1 );
 		m_iBody = 0;//show rocket
 		DefaultReload( RPG_MAX_CLIP, RPG_RELOAD, 2.1 );
 		m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + RANDOM_FLOAT ( 10, 15 );
@@ -417,11 +415,11 @@ void CRpg::Reload( void )
 
 void CRpg::UpdateSpot( void )
 {
-	if (m_iOverloadLevel)
+	if ( m_iOverloadLevel )
 	{
 		if (!m_pSpot)
 		{
-			m_pSpot = CLaserSpot::CreateSpot();
+			m_pSpot = CLaserSpot::CreateSpot( m_pPlayer->pev );
 			EMIT_SOUND(ENT(m_pPlayer->pev), CHAN_ITEM, "weapons/spot_on.wav", 1, ATTN_NORM);
 		}
 
@@ -433,23 +431,16 @@ void CRpg::UpdateSpot( void )
 		UTIL_TraceLine ( vecSrc, vecSrc + vecAiming * 8192, dont_ignore_monsters, ignore_glass, ENT(m_pPlayer->pev), &tr );
 		float flLength = (tr.vecEndPos - vecSrc).Length();
 
-		//disable scale feature
-		//m_pSpot->pev->scale = flLength / 650;
-		int m_iSpotBright = (1 / log(flLength / 0.3))*1700;
-		if (m_iSpotBright > 255 ) m_iSpotBright = 255;
+		// disable scale feature
+		// m_pSpot->pev->scale = flLength / 650;
 
-		m_iSpotBright = m_iSpotBright + RANDOM_LONG (1, flLength / 200);
+		int m_iSpotBright = ( 1 / log( flLength / 0.3 )) * 1700;
+		if ( m_iSpotBright > 255 ) m_iSpotBright = 255;
+
+		m_iSpotBright = m_iSpotBright + RANDOM_LONG ( 1, flLength / 200 );
 		m_pSpot->pev->renderamt = m_iSpotBright;	
 
-		UTIL_SetOrigin( m_pSpot, tr.vecEndPos + tr.vecPlaneNormal * 0.1);
-
-	         	Vector mirpos = UTIL_MirrorPos(tr.vecEndPos + tr.vecPlaneNormal * 0.1); 
-		if(mirpos != Vector(0,0,0))
-		{
-			if(!m_pMirSpot)m_pMirSpot = CLaserSpot::CreateSpot();
-			UTIL_SetOrigin( m_pMirSpot, mirpos);
-			m_pMirSpot->pev->renderamt = m_iSpotBright;
-		}
+		UTIL_SetOrigin( m_pSpot, tr.vecEndPos + tr.vecPlaneNormal * 0.1 );
 	}
 
 	UpdateScreen();// update rocket screen
@@ -482,11 +473,6 @@ void CRpg::ShutdownScreen ( void )
 		m_pSpot->Killed( NULL, GIB_NEVER );
 		m_pSpot = NULL;
 		EMIT_SOUND(ENT(m_pPlayer->pev), CHAN_ITEM, "weapons/spot_off.wav", 1, ATTN_NORM);
-	}
-	if(m_pMirSpot)
-	{
-		m_pMirSpot->Killed( NULL, GIB_NEVER );
-		m_pMirSpot = NULL;
 	}
 }
 

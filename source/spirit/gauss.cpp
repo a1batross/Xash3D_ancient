@@ -216,8 +216,14 @@ void CGauss::SecondaryAttack()
 			{
 				m_iChargeLevel++;
 				m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType]--;
-				if ( IsMultiplayer() ) m_flTimeUpdate = UTIL_WeaponTimeBase() + 0.05;
-				else		       m_flTimeUpdate = UTIL_WeaponTimeBase() + 0.15;
+				if ( IsMultiplayer() )
+				{
+					m_flTimeUpdate = UTIL_WeaponTimeBase() + 0.05;
+				}
+				else
+				{
+					m_flTimeUpdate = UTIL_WeaponTimeBase() + 0.15;
+				}
 				int pitch = 95 + 10 * m_iChargeLevel;
 				PLAYBACK_EVENT_FULL( 0, m_pPlayer->edict(), m_usGaussSpin, 0.0, (float *)&g_vecZero, (float *)&g_vecZero, 0.0, 0.0, pitch, 0, ( m_iSoundState == SND_CHANGE_PITCH ) ? 1 : 0, 0 );
 			}
@@ -229,8 +235,8 @@ void CGauss::SecondaryAttack()
 	}
 	if(!AnimRestore)
 	{
-		if(m_fInAttack == 1) SendWeaponAnim( GAUSS_SPINUP );
-		if(m_fInAttack >= 2) SendWeaponAnim( GAUSS_SPIN );
+		if( m_fInAttack == 1 ) SendWeaponAnim( GAUSS_SPINUP );
+		if( m_fInAttack >= 2 ) SendWeaponAnim( GAUSS_SPIN );
 		AnimRestore = TRUE;
 	}
 

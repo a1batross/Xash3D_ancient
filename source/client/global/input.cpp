@@ -674,7 +674,7 @@ void IN_Init( void )
 	cl_pitchspeed = CVAR_REGISTER( "cl_pitchspeed", "150", 0, "client pitch speed" );
 	cl_anglespeedkey = CVAR_REGISTER( "cl_anglespeedkey", "1.5", 0, "client anglespeed" );
 	cl_run = CVAR_REGISTER( "cl_run", "0", FCVAR_ARCHIVE, "keep client for always run mode" );
-	cl_lw = CVAR_REGISTER( "cl_lw", "1", FCVAR_ARCHIVE, "enable client weapon predicting" );
+	cl_lw = CVAR_REGISTER( "cl_lw", "1", FCVAR_ARCHIVE|FCVAR_USERINFO, "enable client weapon predicting" );
 
 	cl_movespeedkey = CVAR_REGISTER ( "cl_movespeedkey", "2", 0, "global scale factor between run and walk" );
 	cl_pitchup = CVAR_REGISTER ( "cl_pitchup", "70", 0, "how many pitch up" );

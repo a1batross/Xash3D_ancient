@@ -229,11 +229,19 @@ SOURCE=.\global\r_particle.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\global\r_tempents.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\global\r_weather.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\global\tempents.cpp
+SOURCE=.\global\studio.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\global\sv_tent.cpp
 # End Source File
 # Begin Source File
 

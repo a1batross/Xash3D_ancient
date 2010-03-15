@@ -34,6 +34,7 @@ cvar_t	*model;
 cvar_t	*topcolor;
 cvar_t	*bottomcolor;
 cvar_t	*rate;
+cvar_t	*cl_lw;
 
 client_t		cl;
 client_static_t	cls;
@@ -1045,6 +1046,7 @@ void CL_InitLocal( void )
 	rate = Cvar_Get( "rate", "25000", CVAR_USERINFO | CVAR_ARCHIVE, "player network rate" );	// FIXME
 	userinfo = Cvar_Get( "@userinfo", "0", CVAR_READ_ONLY, "" ); // use ->modified value only
 	cl_showfps = Cvar_Get( "cl_showfps", "1", CVAR_ARCHIVE, "show client fps" );
+	cl_lw = Cvar_Get( "cl_lw", "1", CVAR_ARCHIVE|CVAR_USERINFO, "enable client weapon predicting" );
 
 	// register our commands
 	Cmd_AddCommand ("cmd", CL_ForwardToServer_f, "send a console commandline to the server" );

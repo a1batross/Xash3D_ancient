@@ -16,6 +16,9 @@
 #define MAX_ENT_CLUSTERS		16
 #define RATE_MESSAGES		10
 
+// hostflags
+#define SVF_SKIPLOCALHOST		BIT( 0 )
+
 #define NUM_FOR_EDICT(e)	((int)((edict_t *)(e) - svgame.edicts))
 #define EDICT_NUM( num )	SV_EDICT_NUM( num, __FILE__, __LINE__ )
 #define STRING( offset )	SV_GetString( offset )

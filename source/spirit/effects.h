@@ -128,8 +128,8 @@ public:
 	inline void SetFlags( int flags ) { pev->renderfx |= flags; }
 	inline void SetStartPos( const Vector& pos ) { pev->origin = pos; }
 	inline void SetEndPos( const Vector& pos ) { pev->oldorigin = pos; }
-	void SetStartEntity( edict_t *pEnt );
-	void SetEndEntity( edict_t *pEnt );
+	inline void SetStartEntity( edict_t *pEnt ) { pev->aiment = pEnt; }
+	inline void SetEndEntity( edict_t *pEnt ) { pev->owner = pEnt; }
 
 	inline void SetStartAttachment( int attachment ) { pev->colormap = (pev->colormap & 0xFF00)>>8 | attachment; }
 	inline void SetEndAttachment( int attachment ) { pev->colormap = (pev->colormap & 0xFF) | (attachment<<8); }

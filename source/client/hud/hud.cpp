@@ -141,12 +141,6 @@ void CHud :: VidInit( void )
 	m_hBubble = TEX_Load( "textures/particles/bubble" );
 	m_hSparks = TEX_Load( "textures/particles/spark" );
 	m_hSmoke = TEX_Load( "textures/particles/smoke" );
-
-	// load custom muzzleflashes
-	g_muzzleFlash[0] = g_engfuncs.pEventAPI->EV_FindModelIndex( "sprites/muzzleflash1.spr" );
-	g_muzzleFlash[1] = g_engfuncs.pEventAPI->EV_FindModelIndex( "sprites/muzzleflash2.spr" );
-	g_muzzleFlash[2] = g_engfuncs.pEventAPI->EV_FindModelIndex( "sprites/muzzleflash3.spr" );
-	g_muzzleFlash[3] = g_engfuncs.pEventAPI->EV_FindModelIndex( "sprites/muzzleflash.spr" );
 	
 	m_Sound.VidInit();
 	m_Ammo.VidInit();

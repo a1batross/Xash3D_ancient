@@ -62,7 +62,6 @@ void CL_RunLightStyles( void )
 	}
 }
 
-
 void CL_SetLightstyle( int i )
 {
 	char	*s;
@@ -70,7 +69,9 @@ void CL_SetLightstyle( int i )
 
 	s = cl.configstrings[i+CS_LIGHTSTYLES];
 	j = com.strlen( s );
-	if( j >= MAX_STRING ) Host_Error("CL_SetLightStyle: lightstyle %s is too long\n", s );
+
+	if( j >= MAX_STRING )
+		Host_Error("CL_SetLightStyle: lightstyle %s is too long\n", s );
 
 	cl_lightstyle[i].length = j;
 
@@ -83,7 +84,7 @@ void CL_SetLightstyle( int i )
 CL_AddLightStyles
 ================
 */
-void CL_AddLightStyles (void)
+void CL_AddLightStyles( void )
 {
 	int		i;
 	clightstyle_t	*ls;
@@ -218,25 +219,6 @@ void pfnAddDLight( const float *org, const float *rgb, float radius, float time,
 	dl->fade = (flags & DLIGHT_FADE) ? true : false;
 }
 
-void CL_LocalMuzzleFlash( void )
-{
-	vec3_t	pos;
-	cdlight_t	*dl;
-
-	CL_GetAttachment( VIEWENT_INDEX, 1, pos, NULL );
-	if( VectorCompare( pos, clgame.viewent.v.origin ))
-		return;	// missing attachment
-
-	dl = CL_AllocDlight( cl.playernum + 1 );
-	VectorCopy( pos, dl->origin );
-	dl->radius = 100;
-	dl->start = cl.time;
-	dl->end = dl->start + 50;
-	dl->color[0] = 1.0f;
-	dl->color[1] = 0.75f;
-	dl->color[2] = 0.25f;
-}
-
 /*
 ===============
 CL_RunDLights
@@ -288,9 +270,9 @@ DECALS MANAGEMENT
 
 ==============================================================
 */
-#define MAX_DRAWDECALS		256
-#define MAX_DECAL_VERTS		128
-#define MAX_DECAL_FRAGMENTS		64
+#define MAX_DRAWDECALS		1024
+#define MAX_DECAL_VERTS		32		// per one decal
+#define MAX_DECAL_FRAGMENTS		16
 
 typedef struct cdecal_s
 {
@@ -698,7 +680,7 @@ static cparticle_t *CL_AllocParticle( void )
 
 	if( cl_particlelod->integer > 1 )
 	{
-		if(!(Com_RandomLong( 0, 1 ) % cl_particlelod->integer))
+		if(!( Com_RandomLong( 0, 1 ) % cl_particlelod->integer ))
 			return NULL;
 	}
 
@@ -1094,36 +1076,6 @@ void CL_ParticleEffect( const vec3_t org, const vec3_t dir, int color, int count
 	}
 }
 
-void CL_CreateTracer( float *start, float *end )
-{
-	vec3_t		vec;
-	cparticle_t	src;
-	int		pal = 238; // nice color for tracers
-
-	if( !start || !end ) return;
-	VectorSubtract( end, start, vec );
-	VectorNormalize( vec );
-	VectorClear( src.velocity );
-	src.color[0] = cl_particlePalette[pal][0];
-	src.color[1] = cl_particlePalette[pal][1];
-	src.color[2] = cl_particlePalette[pal][2];
-	VectorClear( src.colorVelocity );
-	VectorClear( src.accel );
-	src.alpha = 1.0f;
-	src.alphaVelocity = -12.0;	// lifetime
-	src.radius = 1.2f;
-	src.radiusVelocity = 0;
-	src.length = 12;
-	src.lengthVelocity = 0;
-	src.rotation = 0;
-	VectorCopy( start, src.origin );
-	src.velocity[0] = 6000.0f * vec[0];
-	src.velocity[1] = 6000.0f * vec[1];
-	src.velocity[2] = 6000.0f * vec[2];
-
-	pfnAddParticle( &src, cls.particle, PARTICLE_STRETCH );
-}
-
 /*
 ===============
 pfnAddParticle
@@ -1143,7 +1095,8 @@ bool pfnAddParticle( cparticle_t *src, HSPRITE shader, int flags )
 		return false;
 	}
 
-	p->shader = shader;
+	if( shader ) p->shader = shader;
+	else p->shader = cls.particle;
 	p->time = cl.time;
 	p->flags = flags;
 
@@ -1369,7 +1322,7 @@ void CL_TestEntities( void )
 		ent.v.controller[0] = ent.v.controller[1] = 90.0f;
 		ent.v.controller[2] = ent.v.controller[3] = 180.0f;
 		ent.v.modelindex = pl->v.modelindex;
-		re->AddRefEntity( &ent, ED_NORMAL );
+		re->AddRefEntity( &ent, ED_NORMAL, -1 );
 	}
 }
 
@@ -1404,7 +1357,7 @@ void CL_TestLights( void )
 		VectorSet( mins, -4, -4, -4 );
 		VectorSet( maxs, 4, 4, 4 );
 
-		trace = CL_Move( cl.refdef.vieworg, mins, maxs, end, MOVE_NORMAL, ed );
+		trace = CL_Move( cl.refdef.vieworg, mins, maxs, end, MOVE_NORMAL|0x200, ed );
 		VectorSet( dl.color, 1.0f, 1.0f, 1.0f );
 		dl.texture = flashlight_shader;
 		dl.intensity = 96;
@@ -1446,7 +1399,6 @@ CL_ClearEffects
 */
 void CL_ClearEffects( void )
 {
-	CL_ClearTempEnts ();
 	CL_ClearParticles ();
 	CL_ClearDlights ();
 	CL_ClearLightStyles ();

@@ -18,7 +18,7 @@ void CL_UpdateEntityFields( edict_t *ent )
 	// these fields user can overwrite if need
 	ent->v.model = MAKE_STRING( cl.configstrings[CS_MODELS+ent->pvClientData->current.modelindex] );
 
-	clgame.dllFuncs.pfnUpdateEntityVars( ent, &cl.refdef.skyportal, &ent->pvClientData->current, &ent->pvClientData->prev );
+	clgame.dllFuncs.pfnUpdateEntityVars( ent, &ent->pvClientData->current, &ent->pvClientData->prev );
 
 	if( ent->pvClientData->current.ed_flags & ESF_LINKEDICT )
 	{
@@ -314,7 +314,7 @@ void CL_AddPacketEntities( frame_t *frame )
 		ed_type = ent->pvClientData->current.ed_type;
 		CL_UpdateEntityFields( ent );
 
-		if( re->AddRefEntity( ent, ed_type ))
+		if( clgame.dllFuncs.pfnAddVisibleEntity( ent, ed_type ))
 		{
 			if( ed_type == ED_PORTAL && !VectorCompare( ent->v.origin, ent->v.oldorigin ))
 				cl.render_flags |= RDF_PORTALINVIEW;
@@ -346,7 +346,6 @@ void CL_AddEntities( void )
 	clgame.dllFuncs.pfnCreateEntities();
 
 	CL_FireEvents();	// so tempents can be created immediately
-	CL_AddTempEnts();
 	CL_AddParticles();
 	CL_AddDLights();
 	CL_AddLightStyles();

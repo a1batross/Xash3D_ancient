@@ -541,6 +541,7 @@ float V_CalcFov( float fov_x, float width, float height );
 void CL_InitClientMove( void );
 void CL_PredictMove( void );
 void CL_CheckPredictionError( void );
+bool CL_IsPredicted( void );
 
 //
 // cl_phys.c
@@ -564,7 +565,6 @@ void CL_ClearEffects( void );
 void CL_TestLights( void );
 void CL_TestEntities( void );
 void CL_LocalMuzzleFlash( void );
-void CL_CreateTracer( float *start, float *end );
 void CL_GetPaletteColor( int colorIndex, vec3_t outColor );
 void CL_FindExplosionPlane( const vec3_t origin, float radius, vec3_t result );
 void pfnLightForPoint( const vec3_t point, vec3_t ambientLight );
@@ -586,22 +586,8 @@ void CL_PredictMovement (void);
 //
 // cl_tent.c
 //
-void CL_AddTempEnts( void );
-void CL_ClearTempEnts( void );
-struct tempent_s *CL_TempEntAlloc( float *org, int modelIndex );
-struct tempent_s *CL_TempEntAllocNoModel( float *org );
-struct tempent_s *CL_TempEntAllocHigh( float *org, int modelIndex );
-struct tempent_s *CL_TentEntAllocCustom( float *org, int modelIndex, int high, ENTCALLBACK pfnCallback );
-struct tempent_s *CL_TempModel( float *pos, float *dir, float *ang, float life, int modelIndex, int soundtype );
-struct tempent_s *CL_DefaultSprite( float *pos, int spriteIndex, float framerate );
-struct tempent_s *CL_TempSprite( float *pos, float *dir, float scale, int modelIndex, int rendermode, int renderfx, float a, float life, int flags );
-void CL_BreakModel( float *pos, float *size, float *dir, float random, float life, int count, int modelIndex, char flags );
-void CL_MuzzleFlash( int modelIndex, int entityIndex, int iAttachment, int type );
-void CL_SpriteExplode( struct tempent_s *pTemp, float scale, int flags );
-void CL_SpriteSmoke( struct tempent_s *pTemp, float scale );
-void CL_SpriteSpray( float *pos, float *dir, int modelIndex, int count, int speed, int iRand );
-void CL_BloodSprite( float *org, int colorIndex, int modelIndex, float size );
-void CL_Sprite_Trail( int type, float *vecStart, float *vecEnd, int modelIndex, int nCount, float flLife, float flSize, float flAmplitude, int nRenderamt, float flSpeed );
+int CL_AddEntity( edict_t *pEnt, int ed_type, shader_t customShader );
+int CL_AddTempEntity( struct tempent_s *pTemp, shader_t customShader );
 
 //
 // cl_con.c

@@ -1306,7 +1306,7 @@ player is 1 if the ent/e is a player and 0 otherwise
 pSet is either the PAS or PVS that we previous set up.  We can use it to ask the engine to filter the entity against the PAS or PVS.
 we could also use the pas/ pvs that we set in SetupVisibility, if we wanted to.  Caching the value is valid in that case, but still only for the current frame
 */
-int AddToFullPack( edict_t *pHost, edict_t *pClient, edict_t *pEdict, int hostflags, int hostarea, byte *pSet )
+int AddToFullPack( edict_t *pView, edict_t *pHost, edict_t *pEdict, int hostflags, int hostarea, byte *pSet )
 {
 	if( FNullEnt( pEdict )) return 0; // never adding invalid entities
 
@@ -1314,13 +1314,17 @@ int AddToFullPack( edict_t *pHost, edict_t *pClient, edict_t *pEdict, int hostfl
 	if( pEdict->v.flags & FL_DORMANT )
 		return 0;
 
+	if( FNullEnt( pView )) pView = pHost; // pfnCustomView not set
+
+	CBaseEntity *pViewEntity = (CBaseEntity *)CBaseEntity::Instance( pView );
+
 	BOOL	bIsPortalPass = FALSE;
 
-	if( FNullEnt( pHost )) pHost = pClient;		// pfnCustomView not set
-	if( FNullEnt( pClient )) bIsPortalPass = TRUE;	// portal pass detected
-
+	if( pViewEntity && pViewEntity->m_iClassType == ED_PORTAL )
+		bIsPortalPass = TRUE; // view from portal camera
+         
 	// don't send spectators to other players
-	if( !bIsPortalPass && (( pEdict->v.flags & FL_SPECTATOR ) && ( pEdict != pHost )))
+	if(( pEdict->v.flags & FL_SPECTATOR ) && ( pEdict != pHost ))
 	{
 		return 0;
 	}
@@ -1365,7 +1369,7 @@ int AddToFullPack( edict_t *pHost, edict_t *pClient, edict_t *pEdict, int hostfl
 		else entorigin = pEntity->pev->origin;
 
 		// precalc delta distance for sounds
-		delta = pHost->v.origin - entorigin;
+		delta = pView->v.origin - entorigin;
 	}
 
 	// check visibility
@@ -1385,6 +1389,7 @@ int AddToFullPack( edict_t *pHost, edict_t *pClient, edict_t *pEdict, int hostfl
 	// don't send entity to local client if the client says it's predicting the entity itself.
 	if( pEntity->pev->flags & FL_SKIPLOCALHOST )
 	{
+		if( bIsPortalPass ) return 0;
 		if(( hostflags & 1 ) && ( pEntity->pev->owner == pHost ))
 			return 0;
 	}

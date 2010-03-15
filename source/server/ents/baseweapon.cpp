@@ -1757,7 +1757,7 @@ void CBasePlayerWeapon::ItemPostFrame( void )
 	}
 	if( m_iSpot && !m_pSpot ) // enable laser dot
 	{
-		m_pSpot = CLaserSpot::CreateSpot();
+		m_pSpot = CLaserSpot::CreateSpot( m_pPlayer->pev );
 		EMIT_SOUND( ENT( m_pPlayer->pev ), CHAN_ITEM, "weapons/spot_on.wav", 1, ATTN_NORM );
 		m_iSkin = 1; // enable screen
 	}

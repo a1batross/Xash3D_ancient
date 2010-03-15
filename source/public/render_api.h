@@ -144,8 +144,8 @@ typedef struct render_exp_s
 	void	(*FreeShader)( const char *shadername );
 
 	// prepare frame to rendering
-	bool	(*AddRefEntity)( edict_t *pRefEntity, int ed_type );
-	bool	(*AddTmpEntity)( struct tempent_s *TempEnt, int ed_type );	// ED_BEAM, ED_TEMPENTITY etc
+	bool	(*AddRefEntity)( edict_t *pRefEntity, int ed_type, shader_t customShader );
+	bool	(*AddTmpEntity)( struct tempent_s *TempEnt, int ed_type, shader_t customShader );
 	bool	(*AddDynLight)( const void *dlight );
 	bool	(*AddPolygon)( const poly_t *poly );
 	bool	(*AddLightStyle)( int stylenum, vec3_t color );

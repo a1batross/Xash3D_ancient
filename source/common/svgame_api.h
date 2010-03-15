@@ -366,7 +366,7 @@ typedef struct
 	char	(*pfnPM_FindTextureType)( const char *name );
 	int	(*pfnSetupVisibility)( edict_t *pViewEntity, edict_t *pClient, int portal, float *rgflViewOrg );
 	void	(*pfnPhysicsEntity)( edict_t *pEntity );		// was pfnUpdateClientData
-	int	(*pfnAddToFullPack)( edict_t *pHost, edict_t *pClient, edict_t *pEdict, int hostflags, int hostarea, byte *pSet );
+	int	(*pfnAddToFullPack)( edict_t *pView, edict_t *pHost, edict_t *pEdict, int hostflags, int hostarea, byte *pSet );
 	void	(*pfnEndFrame)( void );				// was pfnCreateBaseline
 	int	(*pfnShouldCollide)( edict_t *pTouch, edict_t *pOther );	// was pfnCreateBaseline
 	void	(*pfnUpdateEntityState)( struct entity_state_s *to, edict_t *from, int baseline ); // was pfnRegisterEncoders

@@ -263,17 +263,6 @@ void CTripmineGrenade :: MakeBeam( void )
 	m_pBeam->SetColor( 0, 214, 198 );
 	m_pBeam->SetScrollRate( 255 );
 	m_pBeam->SetBrightness( 50 );
-	
-	mirpos = UTIL_MirrorPos(vecTmpEnd + gpGlobals->v_up * 1.4); 
-	mirend = UTIL_MirrorPos(pev->origin + gpGlobals->v_up * 1.4);
-	if(mirpos != mirend)
-	{
-		m_pMirBeam = CBeam::BeamCreate( g_pModelNameLaser, 5 );
-		m_pMirBeam->PointsInit( mirpos, mirend );
-		m_pMirBeam->SetColor( 0, 214, 198 );
-		m_pMirBeam->SetScrollRate( 255 );
-		m_pMirBeam->SetBrightness( 50 );
-	}
 }
 
 

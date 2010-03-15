@@ -88,22 +88,29 @@ LINK_ENTITY_TO_CLASS( laser_spot, CLaserSpot );
 
 //=========================================================
 //=========================================================
-CLaserSpot *CLaserSpot::CreateSpot( void )
+CLaserSpot *CLaserSpot::CreateSpot( entvars_t *pevOwner )
 {
 	CLaserSpot *pSpot = GetClassPtr( (CLaserSpot *)NULL );
 	pSpot->Spawn();
-
 	pSpot->pev->classname = MAKE_STRING("laser_spot");
+
+	if( pevOwner ) 
+	{
+		// predictable laserspot (cl_lw must be set to 1)
+		pSpot->pev->flags |= FL_SKIPLOCALHOST;
+		pSpot->pev->owner = ENT( pevOwner );
+		pevOwner->effects |= EF_LASERSPOT;
+	}
 
 	return pSpot;
 }
 
 //=========================================================
 //=========================================================
-CLaserSpot *CLaserSpot::CreateSpot( const char* spritename )
+CLaserSpot *CLaserSpot::CreateSpot( const char* spritename, entvars_t *pevOwner )
 {
-	CLaserSpot *pSpot = CreateSpot();
-	SET_MODEL(ENT(pSpot->pev), spritename);
+	CLaserSpot *pSpot = CreateSpot( pevOwner );
+	SET_MODEL( ENT( pSpot->pev ), spritename );
 	return pSpot;
 }
 
@@ -130,9 +137,12 @@ void CLaserSpot::Spawn( void )
 void CLaserSpot::Suspend( float flSuspendTime )
 {
 	pev->effects |= EF_NODRAW;
+
+	if( !FNullEnt( pev->owner ))
+		pev->owner->v.effects &= ~EF_LASERSPOT;
 	
-	//LRC: -1 means suspend indefinitely
-	if (flSuspendTime == -1)
+	// LRC: -1 means suspend indefinitely
+	if ( flSuspendTime == -1 )
 	{
 		SetThink( NULL );
 	}
@@ -148,8 +158,20 @@ void CLaserSpot::Suspend( float flSuspendTime )
 //=========================================================
 void CLaserSpot::Revive( void )
 {
+	if( !FNullEnt( pev->owner ))
+		pev->owner->v.effects |= EF_LASERSPOT;
+
 	pev->effects &= ~EF_NODRAW;
 	SetThink( NULL );
+}
+
+void CLaserSpot::UpdateOnRemove( void )
+{
+	// tell the owner about laserspot
+	if( !FNullEnt( pev->owner ))
+		pev->owner->v.effects &= ~EF_LASERSPOT;
+
+	CBaseEntity :: UpdateOnRemove ();
 }
 
 void CLaserSpot::Precache( void )
@@ -487,6 +509,7 @@ void W_Precache(void)
 	// used by explosions
 	PRECACHE_MODEL ("models/grenade.mdl");
 	PRECACHE_MODEL ("sprites/explode1.spr");
+	PRECACHE_MODEL ("sprites/animglow01.spr");
 
 	PRECACHE_SOUND ("weapons/debris1.wav");// explosion aftermaths
 	PRECACHE_SOUND ("weapons/debris2.wav");// explosion aftermaths

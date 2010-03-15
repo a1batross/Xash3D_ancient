@@ -1019,6 +1019,7 @@ static bool R_DrawPortalSurface( void )
 
 		if( ent->rtype == RT_PORTALSURFACE )
 		{
+			if( ent->flags & EF_NODRAW ) continue;	// disabled
 			d = PlaneDiff( ent->origin, original_plane );
 			if( ( d >= -64 ) && ( d <= 64 ) )
 			{

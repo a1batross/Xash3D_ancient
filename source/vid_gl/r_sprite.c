@@ -597,14 +597,17 @@ bool R_DrawSpriteModel( const meshbuffer_t *mb )
 		if( ilerp != 0 )
 		{
 			e->renderamt = renderamt * ilerp;	// merge prevframe alpha
-			rb->shaderkey = r_shaders[oldframe->shader].sortkey;
+
+			if( e->customShader ) rb->shaderkey = e->customShader->sortkey;
+			else rb->shaderkey = r_shaders[oldframe->shader].sortkey;
 			if( R_PushSprite( rb, psprite->type, oldframe->left, oldframe->right, oldframe->down, oldframe->up ))
 				R_RenderMeshBuffer( rb );
 		}
 		if( lerp != 0 )
 		{
 			e->renderamt = renderamt * lerp;	// merge frame alpha
-			rb->shaderkey = r_shaders[frame->shader].sortkey;
+			if( e->customShader ) rb->shaderkey = e->customShader->sortkey;
+			else rb->shaderkey = r_shaders[frame->shader].sortkey;
 			if( R_PushSprite( rb, psprite->type, frame->left, frame->right, frame->down, frame->up ))
 				R_RenderMeshBuffer( rb );
 		}

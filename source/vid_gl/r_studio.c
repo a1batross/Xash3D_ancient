@@ -1548,7 +1548,7 @@ static void R_StudioCalcAttachments( ref_entity_t *e )
 	matrix4x4		out;
 	dstudioattachment_t	*pAtt;
 	vec3_t		axis[3];
-	vec3_t		localOrg, localAng;
+	vec3_t		localOrg, localAng, bonepos;
 
 	if( m_pStudioHeader->numattachments <= 0 )
 	{
@@ -1572,10 +1572,12 @@ static void R_StudioCalcAttachments( ref_entity_t *e )
 
 		// compute pos and angles
 		Matrix4x4_VectorTransform( out, pAtt[i].org, localOrg );
-		Matrix4x4_VectorTransform( out, pAtt[i].vectors[0], axis[0] );
-		Matrix4x4_VectorTransform( out, pAtt[i].vectors[1], axis[1] );
-		Matrix4x4_VectorTransform( out, pAtt[i].vectors[2], axis[2] );
-		Matrix3x3_ToAngles( axis, localAng, true ); // FIXME: dll's uses FLU ?
+		Matrix4x4_OriginFromMatrix( out, bonepos );
+		VectorSubtract( localOrg, bonepos, axis[0] );	// make forward
+		VectorNormalizeFast( axis[0] );
+		VectorVectors( axis[0], axis[1], axis[2] );	// make right and up
+
+		Matrix3x3_ToAngles( axis, localAng, false );	// FIXME: dll's uses FLU ?
 		ri.SetAttachment( e->index, i, localOrg, localAng );
 	}
 }
@@ -1740,9 +1742,10 @@ void R_StudioDrawMesh( const meshbuffer_t *mb, short *ptricmds, float s, float t
 			r_backacc.numVerts++;
 		}
 	}
+
 	if( features & MF_SVECTORS )
 		R_BuildTangentVectors( r_backacc.numVerts, inVertsArray, inNormalsArray, inCoordsArray, r_backacc.numElems / 3, inElemsArray, inSVectorsArray );
-
+	
 	R_StudioSetUpTransform( RI.currententity, true );
 	r_features = features;
 	R_RenderMeshBuffer( mb );
@@ -2457,7 +2460,8 @@ bool R_CullStudioModel( ref_entity_t *e )
 			dstudiomesh_t	*pmesh;
 	
 			pmesh = (dstudiomesh_t *)((byte *)m_pStudioHeader + m_pSubModel->meshindex) + j;
-			shader = &r_shaders[ptexture[pskinref[pmesh->skinref]].shader];
+			if( e->customShader ) shader = e->customShader;
+			else shader = &r_shaders[ptexture[pskinref[pmesh->skinref]].shader];
 
 			if( shader && ( shader->sort <= SORT_ALPHATEST ))
 			{
@@ -2549,7 +2553,10 @@ void R_AddStudioModelToList( ref_entity_t *e )
 			dstudiomesh_t	*pmesh;
 	
 			pmesh = (dstudiomesh_t *)((byte *)m_pStudioHeader + m_pSubModel->meshindex) + j;
-			shader = &r_shaders[ptexture[pskinref[pmesh->skinref]].shader];
+
+			if( e->customShader ) shader = e->customShader;
+			else shader = &r_shaders[ptexture[pskinref[pmesh->skinref]].shader];
+
 			if( shader ) R_AddModelMeshToList( modhandle, fog, shader, ((j<<8)|i));
 		}
 	}

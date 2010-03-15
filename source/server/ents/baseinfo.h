@@ -36,9 +36,10 @@ public:
 	void Suspend( float flSuspendTime );
 	void Update( CBasePlayer *m_pPlayer );
 	void EXPORT Revive( void );
+	void UpdateOnRemove( void );
 	void Killed( void ){ UTIL_Remove( this ); }
 	
-	static CLaserSpot *CreateSpot( void );
+	static CLaserSpot *CreateSpot( entvars_t *pevOwner = NULL );
 };
 
 #endif //BASEINFO_H

@@ -124,7 +124,7 @@ void CGrenade::Explode( TraceResult *pTrace, int bitsDamageType )
 
 void CGrenade::Smoke( void )
 {
-	if (UTIL_PointContents ( pev->origin ) == CONTENTS_WATER)
+	if ( UTIL_PointContents ( pev->origin ) == CONTENTS_WATER )
 	{
 		UTIL_Bubbles( pev->origin - Vector( 64, 64, 64 ), pev->origin + Vector( 64, 64, 64 ), 100 );
 	}
@@ -139,20 +139,6 @@ void CGrenade::Smoke( void )
 			WRITE_BYTE( (pev->dmg - 50) * 0.80 ); // scale * 10
 			WRITE_BYTE( 12  ); // framerate
 		MESSAGE_END();
-
-	         	Vector mirpos = UTIL_MirrorPos(pev->origin); 
-		if(mirpos != Vector(0,0,0))
-		{
-			MESSAGE_BEGIN( MSG_PVS, gmsgTempEntity, pev->origin );
-				WRITE_BYTE( TE_SMOKE );
-				WRITE_COORD( mirpos.x );
-				WRITE_COORD( mirpos.y );
-				WRITE_COORD( mirpos.z );
-				WRITE_SHORT( g_sModelIndexSmoke );
-				WRITE_BYTE( (pev->dmg - 50) * 0.80 ); // scale * 10
-				WRITE_BYTE( 12  ); // framerate
-			MESSAGE_END();
-		}		
 	}
 	UTIL_Remove( this );
 }

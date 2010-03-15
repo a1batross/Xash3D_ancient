@@ -633,7 +633,5 @@ CBaseEntity* UTIL_FollowReference( CBaseEntity* pStartEntity, const char* szName
 // for trigger_viewset
 int HaveCamerasInPVS( edict_t* edict );
 BOOL IsMultiplayer ( void );
-Vector UTIL_MirrorVector( Vector angles );
-Vector UTIL_MirrorPos ( Vector endpos );
 
 #endif //UTIL_H

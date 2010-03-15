@@ -512,10 +512,13 @@ static void S_IssuePlaySounds( void )
 	while( 1 )
 	{
 		ps = s_pendingPlaySounds.next;
-		if(ps == &s_pendingPlaySounds)
-			break; // no more pending playSounds
-		if( ps->beginTime > Sys_DoubleTime())
+
+		if( ps == &s_pendingPlaySounds )
+			break;	// no more pending playSounds
+
+		if( ps->beginTime > Sys_DoubleTime( ))
 			break;	// No more pending playSounds this frame
+
 		// pick a channel and start the sound effect
 		ch = S_PickChannel( ps->entnum, ps->entchannel );
 		if( !ch )
@@ -585,7 +588,7 @@ void S_StartSound( const vec3_t pos, int entnum, int channel, sound_t handle, fl
 	ps->sfx = sfx;
 	ps->entnum = entnum;
 	ps->entchannel = channel;
-	ps->use_loop = (flags & SND_STOP_LOOPING) ? false : true;
+	ps->use_loop = (flags & (SND_STOP_LOOPING|SND_STOP)) ? false : true;
 
 	if( pos )
 	{
@@ -768,7 +771,7 @@ void S_Update( ref_params_t *fd )
 				continue;
 			}
 		}
-		else if( ch->loopstart >= 0 )
+		else if( ch->loopstart >= 0 && ch->volume > 0.0f )
 		{
 			if( S_ChannelState( ch ) == AL_STOPPED )
 			{

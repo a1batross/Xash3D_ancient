@@ -94,10 +94,10 @@ class Vector						// same data-layout as engine's vec3_t,
 {								//		which is a vec_t[3]
 public:
 	// Construction/destruction
-	inline Vector(void)				{ }
-	inline Vector(float X, float Y, float Z)	{ x = X; y = Y; z = Z;						}
-	inline Vector(const Vector& v)		{ x = v.x; y = v.y; z = v.z;		   } 
-	inline Vector(float rgfl[3])			{ x = rgfl[0]; y = rgfl[1]; z = rgfl[2];   }
+	inline Vector( void )			{ }
+	inline Vector(float X, float Y, float Z)	{ x = X; y = Y; z = Z; }
+	inline Vector(const Vector& v)		{ x = v.x; y = v.y; z = v.z; } 
+	inline Vector(float *rgfl)			{ x = rgfl[0]; y = rgfl[1]; z = rgfl[2]; }
 
 	// Initialization
 	void Init(vec_t ix=0.0f, vec_t iy=0.0f, vec_t iz=0.0f){ x = ix; y = iy; z = iz; }

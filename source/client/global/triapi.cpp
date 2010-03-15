@@ -17,12 +17,7 @@ void HUD_DrawTransparentTriangles( void )
 {
 	R_DrawWeather();
 
-	for( int i = 0; i < 3; i++ )
-	{
-		// NOTE: for some reasons in Xash3D
-		// we needs for three iterations of PartSystem
-		g_pParticleSystems->UpdateSystems();
-	}
+	g_pParticleSystems->UpdateSystems();
 }
 
 void HUD_RenderCallback( int fTrans )

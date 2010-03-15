@@ -9,6 +9,20 @@
 #include "const.h"
 #include "pm_defs.h"
 
+bool CL_IsPredicted( void )
+{
+	edict_t	*player = CL_GetLocalPlayer();
+
+	if( !player )
+		return false;
+
+	if( player->pvClientData->current.ed_flags & ESF_NO_PREDICTION )
+		return false;
+	if( !cl_predict->integer )
+		return false;
+	return true;
+}
+
 /*
 =================
 CL_CreateCmd
@@ -444,12 +458,10 @@ void CL_CheckPredictionError( void )
 	edict_t		*player;
 	float		flen;
 
-	if( !cl_predict->integer ) return;
+	if( !CL_IsPredicted( )) return;
 
 	player = CL_GetLocalPlayer();
 	if( !player ) return;
-	if( player->pvClientData->current.ed_flags & ESF_NO_PREDICTION )
-		return;
 
 	// calculate the last usercmd_t we sent that the server has processed
 	frame = cls.netchan.incoming_acknowledged;
@@ -508,11 +520,17 @@ void CL_PredictMovement( void )
 	// unpredicted pure angled values converted into axis
 	AngleVectors( cl.refdef.cl_viewangles, cl.refdef.forward, cl.refdef.right, cl.refdef.up );
 
-	if( !cl_predict->integer || player->pvClientData->current.ed_flags & ESF_NO_PREDICTION )
+	if( !CL_IsPredicted( ))
 	{	
-		// just set angles
+		cmd = cl.refdef.cmd; // use current command
+
+		// run commands even if client predicting is disabled - client expected it
+		CL_PreRunCmd( player, cmd );
+
 		VectorCopy( cl.refdef.cl_viewangles, cl.predicted_angles );
 		VectorCopy( player->v.view_ofs, cl.predicted_viewofs );
+
+		CL_PostRunCmd( player, cmd );
 		return;
 	}
 

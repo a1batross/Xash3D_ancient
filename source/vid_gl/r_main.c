@@ -529,7 +529,7 @@ bool R_PushSprite( const meshbuffer_t *mb, int type, float right, float left, fl
 		}
 		break;
 	case SPR_FWD_PARALLEL: // normal sprite
-	default:	if( e->spriteshader )
+	default:	if( e->customShader )
 			angle = e->angles[PITCH];
 		else angle = e->angles[ROLL];	// for support rotating muzzleflashes
 		RotatePointAroundVector( v_right, RI.vpn, RI.vright, angle );
@@ -719,7 +719,8 @@ static void R_AddSpriteModelToList( ref_entity_t *e )
 	if( R_SpriteOccluded( e )) return;
 
 	frame = R_GetSpriteFrame( e->model, e->prev->curframe, e->angles[YAW] );
-	shader = &r_shaders[frame->shader];
+	if( e->customShader ) shader = e->customShader;
+	else shader = &r_shaders[frame->shader];
 
 	if( RI.refdef.flags & (RDF_PORTALINVIEW|RDF_SKYPORTALINVIEW) || ( RI.params & RP_SKYPORTALVIEW ))
 	{
@@ -750,7 +751,7 @@ static void R_AddSpritePolyToList( ref_entity_t *e )
 			return;
 	}
 
-	mb = R_AddMeshToList( MB_SPRITE, R_FogForSphere( e->origin, e->radius ), e->spriteshader, -1 );
+	mb = R_AddMeshToList( MB_SPRITE, R_FogForSphere( e->origin, e->radius ), e->customShader, -1 );
 	if( mb ) mb->shaderkey |= ( bound( 1, 0x4000 - (unsigned int)dist, 0x4000 - 1 ) << 12 );
 }
 
@@ -1382,7 +1383,7 @@ static void R_CullEntities( void )
 			}
 			break;
 		case RT_SPRITE:
-			culled = ( e->radius <= 0 ) || ( e->spriteshader == NULL );
+			culled = ( e->radius <= 0 ) || ( e->customShader == NULL );
 			break;
 		case RT_NONE:
 		default:	break;
@@ -1997,8 +1998,15 @@ int R_ComputeFxBlend( ref_entity_t *e )
 
 	offset = ((int)e->index ) * 363.0f; // Use ent index to de-sync these fx
 
-	if( m_pEntity ) renderAmt = m_pEntity->v.renderamt;
-	else renderAmt = e->renderamt;
+	if( e->ent_type == ED_TEMPENTITY )
+	{
+		renderAmt = e->renderamt;
+	}
+	else if( m_pEntity )
+	{
+		renderAmt = m_pEntity->v.renderamt;
+	}
+	else renderAmt = 255;
 
 	switch( e->renderfx ) 
 	{
@@ -2463,9 +2471,10 @@ bool R_AddPortalEntity( edict_t *pRefEntity, ref_entity_t *refent )
 	return true;
 }
 
-bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type )
+bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, shader_t customShader )
 {
 	ref_entity_t	*refent;
+	ref_shader_t	*shader;
 	bool		result = false;
 
 	if( !pRefEntity || pRefEntity->v.modelindex <= 0 || pRefEntity->v.modelindex >= MAX_MODELS )
@@ -2517,6 +2526,13 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type )
 	refent->parent = NULL;
 	refent->prev = NULL;
 
+	// setup custom shader
+	if( customShader >= 0 && customShader < MAX_SHADERS && (shader = &r_shaders[customShader]))
+		refent->customShader = shader;
+	else refent->customShader = NULL;
+
+	refent->rtype = RT_MODEL;
+
 	// setup rtype
 	switch( ed_type )
 	{
@@ -2550,15 +2566,16 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type )
 		FollowEntity.v.movetype = MOVETYPE_FOLLOW;
 		FollowEntity.v.weaponmodel = 0;
 
-		if( R_AddEntityToScene( &FollowEntity, ED_NORMAL ))
+		if( R_AddEntityToScene( &FollowEntity, ED_NORMAL, customShader ))
 			r_entities[r_numEntities-1].parent = refent; // set parent			
 	}
 	return result;
 }
 
-bool R_AddTeEntToScene( TEMPENTITY *pTempEntity, int ed_type )
+bool R_AddTeEntToScene( TEMPENTITY *pTempEntity, int ed_type, shader_t customShader )
 {
 	ref_entity_t	*refent;
+	ref_shader_t	*shader;
 	vec3_t		center;
 	
 	if( !pTempEntity || pTempEntity->modelindex <= 0 || pTempEntity->modelindex >= MAX_MODELS )
@@ -2638,6 +2655,11 @@ bool R_AddTeEntToScene( TEMPENTITY *pTempEntity, int ed_type )
 		MsgDev( D_ERROR, "Rejected temp entity (model %s) -- no prevframe data\n", refent->model->name );
 		return false;
 	}
+
+	// setup custom shader
+	if( customShader >= 0 && customShader < MAX_SHADERS && (shader = &r_shaders[customShader]))
+		refent->customShader = shader;
+	else refent->customShader = NULL;
 
 	refent->rtype = RT_MODEL;
 

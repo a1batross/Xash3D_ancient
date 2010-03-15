@@ -92,6 +92,15 @@ public:
 
 	const Vector&	GetRenderOrigin( void );
 
+	// like CBeam
+	void		SetFlags( int iFlags );
+	void		SetStartPos( const Vector pos );
+	void		SetEndPos( const Vector pos );
+	void 		SetWidth( float flWidth );
+	void		SetNoise( float flAmplitude );
+	void		SetColor( float r, float g, float b );
+	void		SetBrightness( float flBrightness );
+
 	// bounding box...
 	Vector		m_Mins;
 	Vector		m_Maxs;
@@ -153,6 +162,8 @@ public:
 
 	// for FBEAM_ONLYNOISEONCE
 	bool		m_bCalculatedNoise;
+
+	float		m_flDmgTime;	// this is egon stuff
 };
 
 // ---------------------------------------------------------------- //
@@ -257,6 +268,7 @@ public:
 
 	void		UpdateBeams( int fTrans );	// main drawing func
 private:
+	edict_t		*LinkWithViewModel( edict_t *pEnt );
 	bool		AttemptToDie( Beam_t *pBeam );
 	void		FreeDeadTrails( BeamTrail_t **trail );
 	void		UpdateBeam( Beam_t *pbeam, float frametime );

@@ -8,6 +8,7 @@
 #include "triangle_api.h"
 #include "effects_api.h"
 #include "ref_params.h"
+#include "ev_hldm.h"
 #include "hud.h"
 #include "r_beams.h"
 
@@ -138,7 +139,6 @@ inline void CBeamSegDraw::SpecifySeg( const Vector &vNormal )
 
 }
 
-
 void CBeamSegDraw::NextSeg( CBeamSeg *pSeg )
 {
  	if ( m_nSegsDrawn > 0 )
@@ -198,6 +198,44 @@ void Beam_t::Reset( void )
 	m_bCalculatedNoise = false;
 }
 
+void Beam_t::SetFlags( int iFlags )
+{
+	if( iFlags & FBEAM_SINENOISE )
+		m_bCalculatedNoise = false;
+	flags |= iFlags;
+}
+
+void Beam_t::SetStartPos( const Vector pos )
+{
+	attachment[0] = pos;
+}
+
+void Beam_t::SetEndPos( const Vector pos )
+{
+	attachment[1] = pos;
+}
+
+void Beam_t::SetWidth( float flWidth )
+{
+	width = endWidth = (flWidth * 0.1f);
+}
+
+void Beam_t::SetNoise( float flAmplitude )
+{
+	amplitude = (flAmplitude * 0.1f);
+}
+
+void Beam_t::SetColor( float cR, float cG, float cB )
+{
+	r = cR;
+	g = cG;
+	b = cB;
+}
+
+void Beam_t::SetBrightness( float flBrightness )
+{
+	brightness = flBrightness;
+}
 
 const Vector& Beam_t::GetRenderOrigin( void )
 {
@@ -659,7 +697,7 @@ Beam_t *CViewRenderBeams::CreateBeamEntPoint( int nStartEntity, const Vector *pS
 	}
 	else
 	{
-		beamInfo.m_pStartEnt = GetEntityByIndex( BEAMENT_ENTITY( nStartEntity ) );
+		beamInfo.m_pStartEnt = LinkWithViewModel( GetEntityByIndex( BEAMENT_ENTITY( nStartEntity ) ) );
 		beamInfo.m_nStartAttachment = BEAMENT_ATTACHMENT( nStartEntity );
 
 		// don't start beams out of the PVS
@@ -674,7 +712,7 @@ Beam_t *CViewRenderBeams::CreateBeamEntPoint( int nStartEntity, const Vector *pS
 	}
 	else
 	{
-		beamInfo.m_pEndEnt = GetEntityByIndex( BEAMENT_ENTITY( nEndEntity ) );
+		beamInfo.m_pEndEnt = LinkWithViewModel( GetEntityByIndex( BEAMENT_ENTITY( nEndEntity ) ) );
 		beamInfo.m_nEndAttachment = BEAMENT_ATTACHMENT( nEndEntity );
 
 		// Don't start beams out of the PVS
@@ -740,7 +778,7 @@ Beam_t *CViewRenderBeams::CreateBeamEntPoint( BeamInfo_t &beamInfo )
 		return NULL;
 
 	pBeam->type = TE_BEAMPOINTS;
-	pBeam->flags = 0;
+	pBeam->flags = FBEAM_SINENOISE;
 
 	if ( beamInfo.m_pStartEnt )
 	{
@@ -1684,6 +1722,22 @@ void CViewRenderBeams::AddServerBeam( edict_t *pEnvBeam )
 	}
 }
 
+//-----------------------------------------------------------------------------
+// change client edict to viewmodel for local client in firstperson
+//-----------------------------------------------------------------------------
+edict_t *CViewRenderBeams::LinkWithViewModel( edict_t *pEnt )
+{
+	if ( !pEnt || pEnt->free )
+		return NULL;
+
+	if ( EV_IsLocal( pEnt->serialnumber ) && ( gpViewParams->flags & RDF_THIRDPERSON ) == 0 )
+	{
+		return GetViewModel(); // change client edict to viewmodel edict
+	}
+
+	return pEnt; // unchanged
+}
+
 void CViewRenderBeams::UpdateBeams( int fTrans )
 {
 	for( int i = 0; i < m_nNumServerBeams; i++ )
@@ -1737,7 +1791,7 @@ void CViewRenderBeams::DrawBeam( edict_t *pbeam )
 	beamInfo.m_flWidth = pbeam->v.scale * 0.1f;
 	beamInfo.m_flEndWidth = beamInfo.m_flWidth;
 	beamInfo.m_flFadeLength = 0.0f; // will be set on first call UpdateBeam
-	beamInfo.m_flAmplitude = pbeam->v.body * 0.1f;
+	beamInfo.m_flAmplitude = (float)(pbeam->v.body * 0.1f);
 	beamInfo.m_flBrightness = pbeam->v.renderamt;
 	beamInfo.m_flSpeed = pbeam->v.animtime * 0.1f;
 
@@ -1757,27 +1811,27 @@ void CViewRenderBeams::DrawBeam( edict_t *pbeam )
 	case BEAM_ENTS:
 		beam.type			= TE_BEAMPOINTS;
 		beam.flags		= FBEAM_STARTENTITY|FBEAM_ENDENTITY;
-		beam.entity[0]		= pbeam->v.owner;
+		beam.entity[0]		= LinkWithViewModel( pbeam->v.aiment );
 		beam.attachmentIndex[0]	= pbeam->v.colormap & 0xFF;
-		beam.entity[1]		= pbeam->v.aiment;
+		beam.entity[1]		= LinkWithViewModel( pbeam->v.owner );
 		beam.attachmentIndex[1]	= ((pbeam->v.colormap & 0xFF00)>>8);
 		beam.numAttachments		= (pbeam->v.owner) ? ((pbeam->v.aiment) ? 2 : 1) : 0;
 		break;
 	case BEAM_LASER:
 		beam.type			= TE_BEAMLASER;
 		beam.flags		= FBEAM_STARTENTITY|FBEAM_ENDENTITY;
-		beam.entity[0]		= pbeam->v.owner;
+		beam.entity[0]		= LinkWithViewModel( pbeam->v.aiment );
 		beam.attachmentIndex[0]	= pbeam->v.colormap & 0xFF;
-		beam.entity[1]		= pbeam->v.aiment;
+		beam.entity[1]		= LinkWithViewModel( pbeam->v.owner );
 		beam.attachmentIndex[1]	= ((pbeam->v.colormap & 0xFF00)>>8);
 		beam.numAttachments		= (pbeam->v.owner) ? ((pbeam->v.aiment) ? 2 : 1) : 0;
 		break;
 	case BEAM_ENTPOINT:
 		beam.type			= TE_BEAMPOINTS;
 		beam.flags 		= 0;
-		beam.entity[0]		= pbeam->v.owner;
+		beam.entity[0]		= LinkWithViewModel( pbeam->v.aiment );
 		beam.attachmentIndex[0]	= pbeam->v.colormap & 0xFF;
-		beam.entity[1]		= pbeam->v.aiment;
+		beam.entity[1]		= LinkWithViewModel( pbeam->v.owner );
 		beam.attachmentIndex[1]	= ((pbeam->v.colormap & 0xFF00)>>8);
 		beam.numAttachments		= 0;
 		beam.flags 		= 0;
@@ -1869,7 +1923,7 @@ void DrawSegs( int noise_divisions, float *prgNoise, int modelIndex, float frame
 			segments = 16;
 			div = 1.0 / (segments - 1);
 		}
-		scale *= 100;
+		scale *= 10;
 		length = segments * (1.0f / 10);
 	}
 	else
@@ -2134,6 +2188,7 @@ void DrawCylinder( int noise_divisions, float *prgNoise, int modelIndex, float f
 	scale = scale * length;
 	
 	g_engfuncs.pTriAPI->Enable( TRI_SHADER );
+	g_engfuncs.pTriAPI->CullFace( TRI_NONE );
 	g_engfuncs.pTriAPI->RenderMode( (kRenderMode_t)rendermode );
 	g_engfuncs.pTriAPI->Bind( m_hSprite, 0 );	// GetSpriteTexture already set frame
 
@@ -2168,6 +2223,7 @@ void DrawCylinder( int noise_divisions, float *prgNoise, int modelIndex, float f
 	
 	g_engfuncs.pTriAPI->End();
 	g_engfuncs.pTriAPI->Disable( TRI_SHADER );
+	g_engfuncs.pTriAPI->CullFace( TRI_FRONT );
 }
 
 //-----------------------------------------------------------------------------

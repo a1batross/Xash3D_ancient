@@ -3160,6 +3160,12 @@ static void pfnPlaybackEvent( int flags, const edict_t *pInvoker, word eventinde
 				VectorCopy( pInvoker->v.viewangles, args->angles );
 			else VectorCopy( pInvoker->v.angles, args->angles );
 		}
+		else if( SV_ClientFromEdict( pInvoker, true ) && VectorCompare( pInvoker->v.angles, args->angles ))
+		{
+			// NOTE: if user specified pPlayer->pev->angles
+			// silently replace it with viewangles, client expected this
+			VectorCopy( pInvoker->v.viewangles, args->angles );
+		}
 		VectorCopy( pInvoker->v.velocity, args->velocity );
 		args->ducking = (pInvoker->v.flags & FL_DUCKING) ? true : false;
 	}
@@ -3349,7 +3355,7 @@ int pfnCanSkipPlayer( const edict_t *player )
 		return false;
 	}
 
-	if( NET_IsLocalAddress( cl->netchan.remote_address ))
+	if( com.atoi( Info_ValueForKey( cl->userinfo, "cl_lw" )) == 1 )
 		return true;
 	return false;
 }

@@ -184,6 +184,7 @@ static void SV_AddEntitiesToPacket( edict_t *pViewEnt, edict_t *pClient, client_
 	edict_t		*ent;
 	vec3_t		origin;
 	byte		*pset;
+	sv_client_t	*cl;
 	int		leafnum, fullvis = false;
 	int		e, clientcluster, clientarea;
 	bool		force = false;
@@ -192,6 +193,19 @@ static void SV_AddEntitiesToPacket( edict_t *pViewEnt, edict_t *pClient, client_
 	// the shutdown message after the server has shutdown, so
 	// specfically check for it
 	if( !sv.state ) return;
+
+	if( pClient && !portal )
+	{
+		// portals can't change hostflags
+		sv.hostflags = 0;
+
+		cl = SV_ClientFromEdict( pClient, true );
+		Com_Assert( cl == NULL );
+
+		// setup hostflags
+		if( com.atoi( Info_ValueForKey( cl->userinfo, "cl_lw" )) == 1 )
+			sv.hostflags |= SVF_SKIPLOCALHOST;
+	}
 
 	e = svgame.dllFuncs.pfnSetupVisibility( pViewEnt, pClient, portal, origin );
 	if( e == 0 ) return; // invalid viewent ?
@@ -250,7 +264,7 @@ static void SV_AddEntitiesToPacket( edict_t *pViewEnt, edict_t *pClient, client_
 
 		// if its a portal entity, add everything visible from its camera position
 		if( !portal && (ent->pvServerData->s.ed_type == ED_PORTAL || ent->pvServerData->s.ed_type == ED_SKYPORTAL))
-			SV_AddEntitiesToPacket( ent, NULL, frame, ents, true );
+			SV_AddEntitiesToPacket( ent, pClient, frame, ents, true );
 	}
 }
 

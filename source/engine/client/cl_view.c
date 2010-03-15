@@ -48,14 +48,14 @@ void V_SetupRefDef( void )
 	cl.refdef.time = cl.time * 0.001f;
 	cl.refdef.frametime = cls.frametime;
 	cl.refdef.demoplayback = cls.demoplayback;
-	cl.refdef.smoothing = cl_predict->integer ? false : true;
+	cl.refdef.smoothing = CL_IsPredicted() ? false : true;
 	cl.refdef.waterlevel = clent->v.waterlevel;		
 	cl.refdef.flags = cl.render_flags;
 	cl.refdef.viewsize = 120; // FIXME if you can
 	cl.refdef.nextView = 0;
 
 	// calculate the origin
-	if( cl_predict->integer && !cl.refdef.demoplayback )
+	if( CL_IsPredicted( ) && !cl.refdef.demoplayback )
 	{	
 		// use predicted values
 		uint	i, delta;
@@ -93,14 +93,7 @@ void V_AddViewModel( void )
 	if( cl.refdef.nextView ) return; // add viewmodel only at firstperson pass
 	if( !cl.frame.valid || cl.refdef.paused ) return;
 
-	re->AddRefEntity( &clgame.viewent, ED_VIEWMODEL );
-
-	// add in muzzleflash effect
-	if( clgame.viewent.v.effects & EF_MUZZLEFLASH )
-	{
-		clgame.viewent.v.effects &= ~EF_MUZZLEFLASH;
-		CL_LocalMuzzleFlash();
-	}
+	clgame.dllFuncs.pfnAddVisibleEntity( &clgame.viewent, ED_VIEWMODEL );
 }
 
 /*

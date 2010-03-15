@@ -236,7 +236,7 @@ typedef struct
 	int	(*pfnVidInit)( void );
 	void	(*pfnInit)( void );
 	int	(*pfnRedraw)( float flTime, int state );
-	void	(*pfnUpdateEntityVars)( edict_t *out, skyportal_t *sky, const struct entity_state_s *in1, const struct entity_state_s *in2 );
+	void	(*pfnUpdateEntityVars)( edict_t *out, const struct entity_state_s *in1, const struct entity_state_s *in2 );
 	void	(*pfnOnFreeEntPrivateData)( edict_t *pEnt ); // this is called on entity removed
 	void	(*pfnReset)( void );
 	void	(*pfnStartFrame)( void );
@@ -244,7 +244,7 @@ typedef struct
 	void 	(*pfnShutdown)( void );
 	void	(*pfnDrawTriangles)( int fTrans );
 	void	(*pfnCreateEntities)( void );
-	int	(*pfnUpdateEntity)( TEMPENTITY *pTemp, int framenumber );
+	int	(*pfnAddVisibleEntity)( edict_t *pEnt, int ed_type );
 	void	(*pfnStudioEvent)( const dstudioevent_t *event, edict_t *entity );
 	void	(*pfnStudioFxTransform)( edict_t *pEdict, float transform[4][4] );
 	void	(*pfnCalcRefdef)( ref_params_t *parms );
