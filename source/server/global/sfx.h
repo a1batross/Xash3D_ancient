@@ -14,7 +14,6 @@
 #include "defaults.h"
 #include "shake.h"
 #include "basebeams.h"
-#include "tempents.h"
 
 void SFX_Explode( short model, Vector origin, float scale, int flags = 0 );
 void SFX_Trail( int entindex, short model, Vector color = Vector(200, 200, 200), float life = 30);

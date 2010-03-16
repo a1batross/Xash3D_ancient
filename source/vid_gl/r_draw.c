@@ -214,7 +214,7 @@ tristate_t		triState;
 static void Tri_DrawPolygon( void )
 {
 	ref_shader_t	*shader;
-	static int	oldframe;
+	static int	i, oldframe;
 
 	if( tri_caps[TRI_SHADER] )
 		shader = &r_shaders[triState.currentShader];
@@ -226,6 +226,13 @@ static void Tri_DrawPolygon( void )
 	if( triState.hasNormals )
 		tri_mesh.normalsArray = tri_normal;		
 	else tri_mesh.normalsArray = NULL; // no normals
+
+	if( triState.numColor == 1 )
+	{
+		// global color for all vertexes
+		for( i = 0; i < triState.numVertex - 1; i++ )
+			Vector4Copy( tri_colors[0], tri_colors[i+1] );
+	}
 
 	tri_mesh.xyzArray = tri_vertex;
 	tri_mesh.stArray = tri_coords;
@@ -256,7 +263,8 @@ static void Tri_DrawPolygon( void )
 		triState.features |= MF_NOCULL;
 
 	// upload video right before rendering
-	if( shader->flags & SHADER_VIDEOMAP ) R_UploadCinematicShader( shader );
+	if( shader->flags & SHADER_VIDEOMAP )
+		R_UploadCinematicShader( shader );
 	R_PushMesh( &tri_mesh, triState.features );
 
 	if( oldframe != glState.draw_frame )
@@ -406,6 +414,7 @@ void Tri_Vertex3f( const float x, const float y, const float z )
 	tri_vertex[triState.numVertex][0] = x;
 	tri_vertex[triState.numVertex][1] = y;
 	tri_vertex[triState.numVertex][2] = z;
+	tri_vertex[triState.numVertex][3] = 1;
 
 	triState.numVertex++;
 
@@ -416,10 +425,10 @@ void Tri_Vertex3f( const float x, const float y, const float z )
 
 void Tri_Color4ub( const byte r, const byte g, const byte b, const byte a )
 {
-	tri_colors[triState.numVertex][0] = r;
-	tri_colors[triState.numVertex][1] = g;
-	tri_colors[triState.numVertex][2] = b;
-	tri_colors[triState.numVertex][3] = a;
+	tri_colors[triState.numColor][0] = r;
+	tri_colors[triState.numColor][1] = g;
+	tri_colors[triState.numColor][2] = b;
+	tri_colors[triState.numColor][3] = a;
 	triState.numColor++;
 }
 
@@ -429,6 +438,7 @@ void Tri_Normal3f( const float x, const float y, const float z )
 	tri_normal[triState.numVertex][0] = x;
 	tri_normal[triState.numVertex][1] = y;
 	tri_normal[triState.numVertex][2] = z;
+	tri_normal[triState.numVertex][3] = 1;
 }
 
 void Tri_TexCoord2f( const float u, const float v )
@@ -503,6 +513,7 @@ void Tri_RenderCallback( int fTrans )
 
 	tri_mbuffer.infokey = -1;
 	tri_mbuffer.shaderkey = 0;
+	triState.numColor = 0;
 
 	ri.DrawTriangles( fTrans );
 

@@ -18,7 +18,7 @@
 #include "extdll.h"
 #include "utils.h"
 #include "hud.h"
-#include "r_particle.h"
+#include "aurora.h"
 
 // CHud message handlers
 DECLARE_HUDMESSAGE( HUDColor );

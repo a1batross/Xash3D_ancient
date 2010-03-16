@@ -437,8 +437,8 @@ dynamic:
 				anyDlights = true;
 			}
 
-			add = 1.0 - (dist / (dl->intensity + radius));
-			dist2 = add * 0.5 / dist;
+			add = 1.0f - (dist / (dl->intensity + radius));
+			dist2 = add * 0.5f / dist;
 			for( i = 0; i < 3; i++ )
 			{
 				dot = dl->color[i] * add;

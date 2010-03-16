@@ -263,6 +263,7 @@ void CL_ParseParticles( sizebuf_t *msg )
 
 	count = MSG_ReadByte( msg );
 	color = MSG_ReadByte( msg );
+	if( count == 255 ) count = 1024;
 
 	CL_ParticleEffect( org, dir, color, count );
 }

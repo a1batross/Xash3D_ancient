@@ -184,6 +184,7 @@ extern void UTIL_TraceHull( const Vector &vecStart, const Vector &vecEnd, IGNORE
 // misc utilities
 extern float UTIL_Probe( const Vector &origin, Vector *vecDirection, float strength );
 extern void UTIL_GetForceDirection( const Vector &origin, float magnitude, Vector *resultDirection, float *resultForce );
+extern void RotatePointAroundVector( Vector &dst, const Vector &dir, const Vector &point, float degrees );
 
 // drawing stuff
 extern client_sprite_t *SPR_GetList( const char *name, int *count );
@@ -209,13 +210,12 @@ extern float v_idlescale;
 extern int g_weaponselect;
 extern int g_iAlive;		// indicates alive local client or not
 
-// tempents.c
-extern void CL_BulletParticles( const Vector org, const Vector dir );
-
 // input.cpp
 extern cvar_t	*v_centerspeed;
 extern cvar_t	*v_centermove;
 extern cvar_t	*cl_forwardspeed;
+extern cvar_t	*cl_particlelod;
+extern cvar_t	*cl_particles;
 extern cvar_t	*cl_lw;
 
 extern int CL_ButtonBits( int bResetState );

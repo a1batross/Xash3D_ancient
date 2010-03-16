@@ -706,14 +706,6 @@ public:
 	// error sprite
 	int m_HUD_error;
 	HSPRITE m_hHudError;
-
-	// some const shaders
-	HSPRITE m_hDefaultParticle;
-	HSPRITE m_hGlowParticle;
-	HSPRITE m_hDroplet;
-	HSPRITE m_hBubble;
-	HSPRITE m_hSparks;
-	HSPRITE m_hSmoke;
 	
 	void AddHudElem( CHudBase *p );
 	float GetSensitivity() { return m_flMouseSensitivity; }

@@ -8,6 +8,7 @@
 #include "mathlib.h"
 #include "matrix_lib.h"
 #include "clgame_api.h"
+#include "tmpent_def.h"
 #include "effects_api.h"
 #include "const.h"
 

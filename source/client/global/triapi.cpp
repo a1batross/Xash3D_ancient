@@ -5,6 +5,7 @@
 
 #include "extdll.h"
 #include "utils.h"
+#include "aurora.h"
 #include "r_particle.h"
 #include "r_weather.h"
 #include "r_beams.h"
@@ -17,7 +18,11 @@ void HUD_DrawTransparentTriangles( void )
 {
 	R_DrawWeather();
 
+	// Aurora particles
 	g_pParticleSystems->UpdateSystems();
+
+	// classic particles
+	g_pParticles->Update();
 }
 
 void HUD_RenderCallback( int fTrans )

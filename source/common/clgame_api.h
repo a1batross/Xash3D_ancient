@@ -11,13 +11,14 @@
 typedef int		HSPRITE;					// handle to a graphic
 typedef struct tempent_s	TEMPENTITY;
 typedef struct usercmd_s	usercmd_t;
-typedef struct cparticle_s	cparticle_t;
+typedef struct particle_s	particle_t;
 typedef struct skyportal_s	skyportal_t;
 typedef struct ref_params_s	ref_params_t;
 typedef struct dstudioevent_s	dstudioevent_t;
 typedef void (*ENTCALLBACK)( TEMPENTITY *ent );
 typedef void (*HITCALLBACK)( TEMPENTITY *ent, TraceResult *ptr );
 typedef int (*pfnUserMsgHook)( const char *pszName, int iSize, void *pbuf );	// user message handle
+typedef enum { pt_static, pt_grav, pt_slowgrav, pt_fire, pt_explode, pt_explode2, pt_blob, pt_blob2 } ptype_t;
 
 #define SCRINFO_VIRTUALSPACE	1
 

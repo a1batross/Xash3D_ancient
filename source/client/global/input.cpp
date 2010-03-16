@@ -33,6 +33,8 @@ cvar_t	*cl_pitchdown;
 cvar_t	*v_centermove;
 cvar_t	*v_centerspeed;
 cvar_t	*cl_mouseaccel;
+cvar_t	*cl_particlelod;
+cvar_t	*cl_particles;
 
 cvar_t	*m_sensitivity;
 cvar_t	*m_filter;		// mouse filtering
@@ -688,6 +690,9 @@ void IN_Init( void )
 	m_yaw = CVAR_REGISTER ("m_yaw", "0.022", 0, "mouse yaw value" );
 	m_forward = CVAR_REGISTER ("m_forward", "1", 0, "mouse forward speed" );
 	m_side = CVAR_REGISTER ("m_side", "1", 0, "mouse side speed" );
+
+	cl_particles = CVAR_REGISTER ( "cl_particles", "1", FCVAR_ARCHIVE, "disables particle effects" );
+	cl_particlelod = CVAR_REGISTER ( "cl_lod_particle", "0", FCVAR_ARCHIVE, "enables particle LOD (1, 2, 3)" );
 	
 	Cmd_AddCommand ("centerview", IN_CenterView, "gradually recenter view (stop looking up/down)" );
 

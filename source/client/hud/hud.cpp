@@ -133,14 +133,6 @@ void CHud :: VidInit( void )
 	// loading error sprite
 	m_HUD_error = GetSpriteIndex( "error" );
 	m_hHudError = GetSprite( m_HUD_error );
-
-	// loading TE shaders
-	m_hDefaultParticle = TEX_Load( "textures/particles/default" );
-	m_hGlowParticle = TEX_Load( "textures/particles/glow" );
-	m_hDroplet = TEX_Load( "textures/particles/droplet" );
-	m_hBubble = TEX_Load( "textures/particles/bubble" );
-	m_hSparks = TEX_Load( "textures/particles/spark" );
-	m_hSmoke = TEX_Load( "textures/particles/smoke" );
 	
 	m_Sound.VidInit();
 	m_Ammo.VidInit();

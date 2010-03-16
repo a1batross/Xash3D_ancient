@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdio.h>		// sscanf
 #include "r_local.h"
 #include "clgame_api.h"
+#include "tmpent_def.h"
 #include "effects_api.h"
 #include "mathlib.h"
 #include "matrix_lib.h"
@@ -307,10 +308,10 @@ R_LightForPoint
 */
 void R_LightForPoint( const vec3_t point, vec3_t ambientLight )
 {
-	vec4_t	ambient;
+	vec4_t	ambient, diffuse;
 	vec3_t	dir;
 
-	R_LightForOrigin( point, dir, ambient, NULL, 64.0f );
+	R_LightForOrigin( point, dir, ambient, diffuse, 256.0f );
 	VectorCopy( ambient, ambientLight );
 }
 
@@ -1377,7 +1378,7 @@ static void R_CullEntities( void )
 				culled = R_CullBrushModel( e );
 				break;
 			case mod_sprite:
-				culled = false;
+				culled = R_CullSpriteModel( e );
 				break;
 			default:	break;
 			}
@@ -2483,7 +2484,7 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, shader_t customShader
 
 	refent = &r_entities[r_numEntities];
 
-	if( pRefEntity->v.effects & EF_NODRAW )
+	if( pRefEntity->v.effects & EF_NODRAW && ed_type != ED_PORTAL )
 		return true; // done
 
 	// filter ents
@@ -2525,6 +2526,9 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, shader_t customShader
 	refent->framerate = pRefEntity->v.framerate;
 	refent->parent = NULL;
 	refent->prev = NULL;
+
+	if( pRefEntity->v.rendermode == kRenderGlow && !pRefEntity->v.renderfx )
+		refent->flags |= EF_OCCLUSIONTEST;
 
 	// setup custom shader
 	if( customShader >= 0 && customShader < MAX_SHADERS && (shader = &r_shaders[customShader]))

@@ -193,11 +193,11 @@ cdlight_t *CL_AllocDlight( int key )
 
 /*
 ===============
-pfnAddDLight
+CL_AddDLight
 
 ===============
 */
-void pfnAddDLight( const float *org, const float *rgb, float radius, float time, int flags, int key )
+void CL_AddDLight( const float *org, const float *rgb, float radius, float time, int flags, int key )
 {
 	cdlight_t		*dl;
 
@@ -221,11 +221,11 @@ void pfnAddDLight( const float *org, const float *rgb, float radius, float time,
 
 /*
 ===============
-CL_RunDLights
+CL_AddDLights
 
 ===============
 */
-void CL_RunDLights( void )
+void CL_AddDLights( void )
 {
 	cdlight_t	*dl;
 	int	i;
@@ -236,7 +236,7 @@ void CL_RunDLights( void )
 		if( cl.time >= dl->end )
 		{
 			dl->free = true;
-			return;
+			continue;
 		}
 
 		if( dl->fade )
@@ -245,22 +245,46 @@ void CL_RunDLights( void )
 			dl->intensity = dl->radius * (1.0 - dl->intensity);
 		}
 		else dl->intensity = dl->radius; // const
+
+		re->AddDynLight( dl );
 	}
 }
 
 /*
-===============
-CL_AddDLights
+================
+CL_TestLights
 
-===============
+if cl_testlights is set, create 32 lights models
+================
 */
-void CL_AddDLights( void )
+void CL_TestLights( void )
 {
-	cdlight_t	*dl;
-	int	i;
+	int		i, j;
+	float		f, r;
+	cdlight_t		dl;
+	edict_t		*ed = CL_GetLocalPlayer();
 
-	for( i = 0, dl = cl_dlights; i < MAX_DLIGHTS; i++, dl++ )
-		if( !dl->free ) re->AddDynLight( dl );
+	if( !cl_testlights->integer ) return;
+
+	Mem_Set( &dl, 0, sizeof( cdlight_t ));
+	
+	for( i = 0; i < bound( 1, cl_testlights->integer, MAX_DLIGHTS ); i++ )
+	{
+		r = 64 * ( (i%4) - 1.5 );
+		f = 64 * (i/4) + 128;
+
+		for( j = 0; j < 3; j++ )
+			dl.origin[j] = cl.refdef.vieworg[j] + cl.refdef.forward[j] * f + cl.refdef.right[j] * r;
+
+		dl.color[0] = ((i%6)+1) & 1;
+		dl.color[1] = (((i%6)+1) & 2)>>1;
+		dl.color[2] = (((i%6)+1) & 4)>>2;
+		dl.intensity = 200;
+		dl.texture = -1;
+
+		if( !re->AddDynLight( &dl ))
+			break; 
+	}
 }
 
 /*
@@ -593,11 +617,11 @@ void CL_SpawnStaticDecal( vec3_t origin, int decalIndex, int entityIndex, int mo
 
 /*
 ===============
-pfnAddDecal
+CL_AddDecal
 
 ===============
 */
-void pfnAddDecal( float *org, float *dir, float *rgba, float rot, float rad, HSPRITE hSpr, int flags )
+void CL_AddDecal( float *org, float *dir, float *rgba, float rot, float rad, HSPRITE hSpr, int flags )
 {
 	CL_SpawnDecal( org, dir, rot, rad, rgba, 120.0f, 30.0f, flags, hSpr );
 }
@@ -609,33 +633,18 @@ PARTICLE MANAGEMENT
 
 ==============================================================
 */
-struct cparticle_s
+struct particle_s
 {
 	// this part are shared both client and engine
-	vec3_t		origin;
-	vec3_t		velocity;
-	vec3_t		accel;
-	vec3_t		color;
-	vec3_t		colorVelocity;
-	float		alpha;
-	float		alphaVelocity;
-	float		radius;
-	float		radiusVelocity;
-	float		length;
-	float		lengthVelocity;
-	float		rotation;
-	float		bounceFactor;
-	float		scale;
-	bool		fog;
+	byte		color;	// colorIndex for R_GetPaletteColor
+	vec3_t		org;
+	vec3_t		vel;
+	float		die;
+	float		ramp;
+	int		type;
 
 	// this part are private for engine
-	cparticle_t	*next;
-	shader_t		shader;
-
-	int		time;
-	int		flags;
-
-	vec3_t		oldorigin;
+	particle_t	*next;
 
 	poly_t		poly;
 	vec3_t		pVerts[4];
@@ -643,27 +652,26 @@ struct cparticle_s
 	rgba_t		pColor[4];
 };
 
-cparticle_t	*cl_active_particles, *cl_free_particles;
-static cparticle_t	cl_particle_list[MAX_PARTICLES];
-static vec3_t	cl_particle_velocities[NUMVERTEXNORMALS];
-static vec3_t	cl_particlePalette[256];
+float cl_avertexnormals[NUMVERTEXNORMALS][3] =
+{
+#include "anorms.h"
+};
+
+// particle ramps
+int ramp1[8] = { 0x6f, 0x6d, 0x6b, 0x69, 0x67, 0x65, 0x63, 0x61 };
+int ramp2[8] = { 0x6f, 0x6e, 0x6d, 0x6c, 0x6b, 0x6a, 0x68, 0x66 };
+int ramp3[8] = { 0x6d, 0x6b, 6, 5, 4, 3 };
+
+particle_t	*cl_active_particles, *cl_free_particles;
+static vec3_t	cl_particle_avelocities[NUMVERTEXNORMALS];
+static particle_t	cl_particle_list[MAX_PARTICLES];
+static rgb_t	cl_particlePalette[256];
 
 void CL_GetPaletteColor( int colorIndex, vec3_t outColor )
 {
 	if( !outColor ) return;
-	colorIndex = bound( 0, colorIndex, 256 );
-	VectorScale( cl_particlePalette[colorIndex], 255, outColor );
-}
-
-/*
-=================
-CL_FreeParticle
-=================
-*/
-static void CL_FreeParticle( cparticle_t *p )
-{
-	p->next = cl_free_particles;
-	cl_free_particles = p;
+	colorIndex = bound( 0, colorIndex, 255 );
+	VectorCopy( cl_particlePalette[colorIndex], outColor );
 }
 
 /*
@@ -671,18 +679,12 @@ static void CL_FreeParticle( cparticle_t *p )
 CL_AllocParticle
 =================
 */
-static cparticle_t *CL_AllocParticle( void )
+particle_t *CL_AllocParticle( void )
 {
-	cparticle_t	*p;
+	particle_t	*p;
 
 	if( !cl_free_particles )
 		return NULL;
-
-	if( cl_particlelod->integer > 1 )
-	{
-		if(!( Com_RandomLong( 0, 1 ) % cl_particlelod->integer ))
-			return NULL;
-	}
 
 	p = cl_free_particles;
 	cl_free_particles = p->next;
@@ -700,7 +702,7 @@ CL_ClearParticles
 void CL_ClearParticles( void )
 {
 	int		i;
-	cparticle_t	*p;
+	particle_t	*p;
 	rgbdata_t		*pic;
 	byte		buf[1];	// fake stub
 
@@ -716,9 +718,9 @@ void CL_ClearParticles( void )
 
 	for( i = 0; i < NUMVERTEXNORMALS; i++ )
 	{
-		cl_particle_velocities[i][0] = (rand() & 255) * 0.01f;
-		cl_particle_velocities[i][1] = (rand() & 255) * 0.01f;
-		cl_particle_velocities[i][2] = (rand() & 255) * 0.01f;
+		cl_particle_avelocities[i][0] = (rand() & 255) * 0.01f;
+		cl_particle_avelocities[i][1] = (rand() & 255) * 0.01f;
+		cl_particle_avelocities[i][2] = (rand() & 255) * 0.01f;
 	}
 
 	for( i = 0, p = cl_particle_list; i < MAX_PARTICLES; i++, p++ )
@@ -730,9 +732,9 @@ void CL_ClearParticles( void )
 	// Xash3D have built-in Quake1 palette - use it
 	for( i = 0; pic && i < 256; i++ )
 	{
-		cl_particlePalette[i][0] = pic->palette[i*4+0] * (1.0f / 255);
-		cl_particlePalette[i][1] = pic->palette[i*4+1] * (1.0f / 255);
-		cl_particlePalette[i][2] = pic->palette[i*4+2] * (1.0f / 255);
+		cl_particlePalette[i][0] = pic->palette[i*4+0];
+		cl_particlePalette[i][1] = pic->palette[i*4+1];
+		cl_particlePalette[i][2] = pic->palette[i*4+2];
 	}
 
 	if( pic ) FS_FreeImage( pic );
@@ -746,295 +748,149 @@ CL_AddParticles
 */
 void CL_AddParticles( void )
 {
-	edict_t		*player;
-	cparticle_t	*p, *next;
-	cparticle_t	*active = NULL, *tail = NULL;
+	particle_t	*p, *kill;
+	float		time1, time2, time3;
+	float		grav, dvel, frametime;
+	vec3_t		up, right, point1;
+	float		scale = 3.0f;
 	rgba_t		modulate;
-	vec3_t		origin, oldorigin, velocity;
-	vec3_t		ambientLight, axis[3];
-	float		alpha, radius, length;
-	float		time, time2, gravity, dot;
-	vec3_t		mins, maxs, color;
-	int		contents;
-	trace_t		trace;
+	int		i;
 
-	if( !cl_particles->integer ) return;
+	VectorScale( cl.refdef.right, scale, right );
+	VectorScale( cl.refdef.up, scale, up );
 
-	player = CL_GetLocalPlayer();
-	if( player->v.gravity != 0.0f )
-		gravity = player->v.gravity / clgame.movevars.gravity;
-	else gravity = 1.0f;
+	frametime = cls.frametime;
+	time3 = frametime * 15;
+	time2 = frametime * 10; // 15;
+	time1 = frametime * 5;
+	grav = frametime * clgame.movevars.gravity * 0.05f;
+	dvel = frametime * 4;
 
-	for( p = cl_active_particles; p; p = next )
+	while( 1 ) 
 	{
-		// grab next now, so if the particle is freed we still have it
-		next = p->next;
-
-		time = (cl.time - p->time) * 0.001f;
-		time2 = time * time;
-
-		alpha = p->alpha + p->alphaVelocity * time;
-		radius = p->radius + p->radiusVelocity * time;
-		length = p->length + p->lengthVelocity * time;
-
-		if( alpha <= 0 || radius <= 0 || length <= 0 )
+		// free time-expired particles
+		kill = cl_active_particles;
+		if( kill && kill->die < clgame.globals->time )
 		{
-			// faded out
-			CL_FreeParticle( p );
+			cl_active_particles = kill->next;
+			kill->next = cl_free_particles;
+			cl_free_particles = kill;
 			continue;
 		}
+		break;
+	}
 
-		color[0] = p->color[0] + p->colorVelocity[0] * time;
-		color[1] = p->color[1] + p->colorVelocity[1] * time;
-		color[2] = p->color[2] + p->colorVelocity[2] * time;
-
-		origin[0] = p->origin[0] + p->velocity[0] * time + p->accel[0] * time2;
-		origin[1] = p->origin[1] + p->velocity[1] * time + p->accel[1] * time2;
-		origin[2] = p->origin[2] + p->velocity[2] * time + p->accel[2] * time2 * gravity;
-
-		if( p->flags & PARTICLE_UNDERWATER )
+	for( p = cl_active_particles; p; p = p->next )
+	{
+		while( 1 )
 		{
-			// underwater particle
-			VectorSet( oldorigin, origin[0], origin[1], origin[2] + radius );
-
-			if(!(CL_BaseContents( oldorigin, player ) & MASK_WATER ))
+			kill = p->next;
+			if( kill && kill->die < clgame.globals->time )
 			{
-				// not underwater
-				CL_FreeParticle( p );
+				p->next = kill->next;
+				kill->next = cl_free_particles;
+				cl_free_particles = kill;
 				continue;
 			}
+			break;
 		}
 
-		p->next = NULL;
-		if( !tail ) active = tail = p;
-		else
-		{
-			tail->next = p;
-			tail = p;
-		}
+		scale = 0.0f;
 
-		if( p->flags & PARTICLE_FRICTION )
-		{
-			// water friction affected particle
-			contents = CL_BaseContents( origin, player );
-			if( contents & MASK_WATER )
-			{
-				// add friction
-				if( contents & CONTENTS_WATER )
-				{
-					VectorScale( p->velocity, 0.25, p->velocity );
-					VectorScale( p->accel, 0.25, p->accel );
-				}
-				if( contents & CONTENTS_SLIME )
-				{
-					VectorScale( p->velocity, 0.20, p->velocity );
-					VectorScale( p->accel, 0.20, p->accel );
-				}
-				if( contents & CONTENTS_LAVA )
-				{
-					VectorScale( p->velocity, 0.10, p->velocity );
-					VectorScale( p->accel, 0.10, p->accel );
-				}
+		// hack a scale up to keep particles from disapearing
+		scale += (p->org[0] - cl.refdef.vieworg[0]) * cl.refdef.forward[0];
+		scale += (p->org[1] - cl.refdef.vieworg[1]) * cl.refdef.forward[1];
+		scale += (p->org[2] - cl.refdef.vieworg[2]) * cl.refdef.forward[2];
 
-				// don't add friction again
-				p->flags &= ~PARTICLE_FRICTION;
-				length = 1;
-				
-				// reset
-				p->time = cl.time;
-				VectorCopy( origin, p->origin );
-				VectorCopy( color, p->color );
-				p->alpha = alpha;
-				p->radius = radius;
+		if( scale < 20.0f ) scale = 1.0f;
+		else scale = 1.0f + scale * 0.004f;
 
-				// don't stretch
-				p->flags &= ~PARTICLE_STRETCH;
-				p->length = length;
-				p->lengthVelocity = 0;
-			}
-		}
-
-		if( p->flags & PARTICLE_BOUNCE )
-		{
-			edict_t	*clent = CL_GetLocalPlayer();
-
-			// bouncy particle
-			VectorSet(mins, -radius, -radius, -radius);
-			VectorSet(maxs, radius, radius, radius);
-
-			trace = CL_Move( p->oldorigin, mins, maxs, origin, MOVE_NOMONSTERS, clent );
-			if( trace.flFraction != 0.0f && trace.flFraction != 1.0f )
-			{
-				// reflect velocity
-				time = cl.time - (cls.frametime + cls.frametime * trace.flFraction) * 1000;
-				time = (time - p->time) * 0.001f;
-
-				velocity[0] = p->velocity[0];
-				velocity[1] = p->velocity[1];
-				velocity[2] = p->velocity[2] + p->accel[2] * gravity * time;
-				VectorReflect( velocity, 0, trace.vecPlaneNormal, p->velocity );
-				VectorScale( p->velocity, p->bounceFactor, p->velocity );
-
-				// check for stop or slide along the plane
-				if( trace.vecPlaneNormal[2] > 0 && p->velocity[2] < 1 )
-				{
-					if( trace.vecPlaneNormal[2] == 1 )
-					{
-						VectorClear( p->velocity );
-						VectorClear( p->accel );
-						p->flags &= ~PARTICLE_BOUNCE;
-					}
-					else
-					{
-						// FIXME: check for new plane or free fall
-						dot = DotProduct( p->velocity, trace.vecPlaneNormal );
-						VectorMA( p->velocity, -dot, trace.vecPlaneNormal, p->velocity );
-
-						dot = DotProduct( p->accel, trace.vecPlaneNormal );
-						VectorMA( p->accel, -dot, trace.vecPlaneNormal, p->accel );
-					}
-				}
-
-				VectorCopy( trace.vecEndPos, origin );
-				length = 1;
-
-				// reset
-				p->time = cl.time;
-				VectorCopy( origin, p->origin );
-				VectorCopy( color, p->color );
-				p->alpha = alpha;
-				p->radius = radius;
-
-				// don't stretch
-				p->flags &= ~PARTICLE_STRETCH;
-				p->length = length;
-				p->lengthVelocity = 0;
-			}
-		}
-
-		// save current origin if needed
-		if( p->flags & (PARTICLE_BOUNCE|PARTICLE_STRETCH))
-		{
-			VectorCopy( p->oldorigin, oldorigin );
-			VectorCopy( origin, p->oldorigin ); // FIXME: pause
-		}
-
-		if( p->flags & PARTICLE_VERTEXLIGHT )
-		{
-			// vertex lit particle
-			re->LightForPoint( origin, ambientLight );
-			VectorMultiply( color, ambientLight, color );
-		}
-
-		// bound color and alpha and convert to byte
-		modulate[0] = (byte)bound( 0, color[0] * 255, 255 );
-		modulate[1] = (byte)bound( 0, color[1] * 255, 255 );
-		modulate[2] = (byte)bound( 0, color[2] * 255, 255 );
-		modulate[3] = (byte)bound( 0, alpha * 255, 255 );
-
-		if( p->flags & PARTICLE_INSTANT )
-		{
-			// instant particle
-			p->alpha = 0;
-			p->alphaVelocity = 0;
-		}
+		// setup color
+		modulate[0] = cl_particlePalette[p->color][0];
+		modulate[1] = cl_particlePalette[p->color][1];
+		modulate[2] = cl_particlePalette[p->color][2];
+		modulate[3] = 0xFF; // quake particles doesn't have transparency
 
 		*(int *)p->pColor[0] = *(int *)modulate;
 		*(int *)p->pColor[1] = *(int *)modulate;
 		*(int *)p->pColor[2] = *(int *)modulate;
 		*(int *)p->pColor[3] = *(int *)modulate;
 
-		if( radius == 1.0f )
-		{
-			float	scale = 0.0f;
+		VectorMA( p->org, 1.0f, up, point1 );
+		VectorMA( point1, 0.0f, right, p->pVerts[0] );
 
-			// hack a scale up to keep quake particles from disapearing
-			scale += (origin[0] - cl.refdef.vieworg[0]) * cl.refdef.forward[0];
-			scale += (origin[1] - cl.refdef.vieworg[1]) * cl.refdef.forward[1];
-			scale += (origin[2] - cl.refdef.vieworg[2]) * cl.refdef.forward[2];
-			if( scale >= 20 ) radius = 1.0f + scale * 0.004f;
-		}
+		VectorMA( p->org, 0.0f, up, point1 );
+		VectorMA( point1, 0.0f, right, p->pVerts[1] );
 
-		if( length != 1 )
-		{
-			// find orientation vectors
-			VectorSubtract( cl.refdef.vieworg, p->origin, axis[0] );
-			VectorSubtract( p->oldorigin, p->origin, axis[1] );
-			CrossProduct( axis[0], axis[1], axis[2] );
+		VectorMA( p->org, 0.0f, up, point1 );
+		VectorMA( point1, 1.0f, right, p->pVerts[2] );
 
-			VectorNormalizeFast( axis[1] );
-			VectorNormalizeFast( axis[2] );
-
-			// find normal
-			CrossProduct( axis[1], axis[2], axis[0] );
-			VectorNormalizeFast( axis[0] );
-
-			VectorMA( p->origin, -length, axis[1], p->oldorigin );
-			VectorScale( axis[2], radius, axis[2] );
-
-			p->pVerts[0][0] = oldorigin[0] + axis[2][0];
-			p->pVerts[0][1] = oldorigin[1] + axis[2][1];
-			p->pVerts[0][2] = oldorigin[2] + axis[2][2];
-			p->pVerts[1][0] = origin[0] + axis[2][0];
-			p->pVerts[1][1] = origin[1] + axis[2][1];
-			p->pVerts[1][2] = origin[2] + axis[2][2];
-			p->pVerts[2][0] = origin[0] - axis[2][0];
-			p->pVerts[2][1] = origin[1] - axis[2][1];
-			p->pVerts[2][2] = origin[2] - axis[2][2];
-			p->pVerts[3][0] = oldorigin[0] - axis[2][0];
-			p->pVerts[3][1] = oldorigin[1] - axis[2][1];
-			p->pVerts[3][2] = oldorigin[2] - axis[2][2];
-		}
-		else
-		{
-			if( p->rotation )
-			{
-				// Rotate it around its normal
-				RotatePointAroundVector( axis[1], cl.refdef.forward, cl.refdef.right, p->rotation );
-				CrossProduct( cl.refdef.forward, axis[1], axis[2] );
-
-				// The normal should point at the viewer
-				VectorNegate( cl.refdef.forward, axis[0] );
-
-				// Scale the axes by radius
-				VectorScale( axis[1], radius, axis[1] );
-				VectorScale( axis[2], radius, axis[2] );
-			}
-			else
-			{
-				// the normal should point at the viewer
-				VectorNegate( cl.refdef.forward, axis[0] );
-
-				// scale the axes by radius
-				VectorScale( cl.refdef.right, radius, axis[1] );
-				VectorScale( cl.refdef.up, radius, axis[2] );
-			}
-
-			p->pVerts[0][0] = origin[0] + axis[1][0] + axis[2][0];
-			p->pVerts[0][1] = origin[1] + axis[1][1] + axis[2][1];
-			p->pVerts[0][2] = origin[2] + axis[1][2] + axis[2][2];
-			p->pVerts[1][0] = origin[0] - axis[1][0] + axis[2][0];
-			p->pVerts[1][1] = origin[1] - axis[1][1] + axis[2][1];
-			p->pVerts[1][2] = origin[2] - axis[1][2] + axis[2][2];
-			p->pVerts[2][0] = origin[0] - axis[1][0] - axis[2][0];
-			p->pVerts[2][1] = origin[1] - axis[1][1] - axis[2][1];
-			p->pVerts[2][2] = origin[2] - axis[1][2] - axis[2][2];
-			p->pVerts[3][0] = origin[0] + axis[1][0] - axis[2][0];
-			p->pVerts[3][1] = origin[1] + axis[1][1] - axis[2][1];
-			p->pVerts[3][2] = origin[2] + axis[1][2] - axis[2][2];
-		}
+		VectorMA( p->org, 1.0f, up, point1 );
+		VectorMA( point1, 1.0f, right, p->pVerts[3] );
 
 		p->poly.numverts = 4;
 		p->poly.verts = p->pVerts;
 		p->poly.stcoords = p->pStcoords;
 		p->poly.colors = p->pColor;
-		p->poly.shadernum = p->shader;
-		p->poly.fognum = p->fog ? 0 : -1;
+		p->poly.shadernum = cls.particle;
+		p->poly.fognum = -1;
 
 		// send the particle to the renderer
 		re->AddPolygon( &p->poly );
+
+
+		// evaluate particle
+		p->org[0] += p->vel[0] * frametime;
+		p->org[1] += p->vel[1] * frametime;
+		p->org[2] += p->vel[2] * frametime;
+		
+		switch( p->type )
+		{
+		case pt_static:
+			break;
+		case pt_fire:
+			p->ramp += time1;
+			if( p->ramp >= 6 )
+				p->die = -1;
+			else p->color = ramp3[(int)p->ramp];
+			p->vel[2] += grav;
+			break;
+		case pt_explode:
+			p->ramp += time2;
+			if( p->ramp >=8 )
+				p->die = -1;
+			else p->color = ramp1[(int)p->ramp];
+			for( i = 0; i < 3; i++ )
+				p->vel[i] += p->vel[i] * dvel;
+			p->vel[2] -= grav;
+			break;
+		case pt_explode2:
+			p->ramp += time3;
+			if( p->ramp >=8 )
+				p->die = -1;
+			else p->color = ramp2[(int)p->ramp];
+			for( i = 0; i < 3; i++ )
+				p->vel[i] -= p->vel[i] * frametime;
+			p->vel[2] -= grav;
+			break;
+		case pt_blob:
+			for( i = 0; i < 3; i++ )
+				p->vel[i] += p->vel[i] * dvel;
+			p->vel[2] -= grav;
+			break;
+		case pt_blob2:
+			for( i = 0; i < 2; i++ )
+				p->vel[i] -= p->vel[i] * dvel;
+			p->vel[2] -= grav;
+			break;
+		case pt_grav:
+			p->vel[2] -= grav * 20;
+			break;
+		case pt_slowgrav:
+			p->vel[2] -= grav;
+			break;
+		}
 	}
-	cl_active_particles = active;
 }
 
 /*
@@ -1046,86 +902,395 @@ old good quake1 particles
 */
 void CL_ParticleEffect( const vec3_t org, const vec3_t dir, int color, int count )
 {
-	int		i, pal;
-	cparticle_t	src;
-
+	int		i, j;
+	particle_t	*p;
+	
 	for( i = 0; i < count; i++ )
 	{
-		src.origin[0] = org[0] + Com_RandomFloat( -8, 8 );
-		src.origin[1] = org[1] + Com_RandomFloat( -8, 8 );
-		src.origin[2] = org[2] + Com_RandomFloat( -8, 8 );
-		src.velocity[0] = dir[0] * 15;
-		src.velocity[1] = dir[1] * 15;
-		src.velocity[2] = dir[2] * 15;
-		pal = (color & ~7) + (rand() & 7);
-		src.color[0] = cl_particlePalette[pal][0];
-		src.color[1] = cl_particlePalette[pal][1];
-		src.color[2] = cl_particlePalette[pal][2];
-		VectorClear( src.colorVelocity );
-		VectorClear( src.accel );
-		src.alpha = 1.0;
-		src.alphaVelocity = -8.0 + Com_RandomFloat( 1.0, 5.0 ); // lifetime
-		src.radius = 1.0; // quake particles have constant sizes
-		src.radiusVelocity = 0;
-		src.length = 1;
-		src.lengthVelocity = 0;
-		src.rotation = 0;	// quake particles doesn't rotating
+		p = CL_AllocParticle();
+		if( !p ) return;
 
-		if( !pfnAddParticle( &src, cls.particle, 0 ))
-			return;
+		if( count == 1024 )
+		{	
+			// rocket explosion
+			p->die = clgame.globals->time + 5.0f;
+			p->color = ramp1[0];
+			p->ramp = rand() & 3;
+			if( i & 1 )
+			{
+				p->type = pt_explode;
+				for( j = 0; j < 3; j++ )
+				{
+					p->org[j] = org[j] + ((rand() % 32) - 16);
+					p->vel[j] = (rand() % 512) - 256;
+				}
+			}
+			else
+			{
+				p->type = pt_explode2;
+				for( j = 0; j < 3; j++ )
+				{
+					p->org[j] = org[j] + ((rand() % 32) - 16);
+					p->vel[j] = (rand() % 512) - 256;
+				}
+			}
+		}
+		else
+		{
+			p->die = clgame.globals->time + 0.1f * (rand() % 5);
+			p->color = (color & ~7) + (rand() & 7);
+			p->type = pt_slowgrav;
+
+			for( j = 0; j < 3; j++ )
+			{
+				p->org[j] = org[j] + ((rand() & 15 ) - 8);
+				p->vel[j] = dir[j] * 15;// + (rand() % 300) - 150;
+			}
+		}
 	}
 }
 
 /*
 ===============
-pfnAddParticle
+CL_EntityParticles
+
+EF_BRIGHTFIELD effect
+===============
+*/
+void CL_EntityParticles( edict_t *ent )
+{
+	int		i, count;
+	float		angle;
+	float		sr, sp, sy, cr, cp, cy;
+	float		dist, beamlength = 16;
+	vec3_t		forward;	
+	particle_t	*p;
+
+	dist = 64;
+	count = 50;
+
+	for( i = 0; i < NUMVERTEXNORMALS; i++ )
+	{
+		angle = clgame.globals->time * cl_particle_avelocities[i][0];
+		com.sincos( angle, &sy, &cy );
+		angle = clgame.globals->time * cl_particle_avelocities[i][1];
+		com.sincos( angle, &sp, &cp );
+		angle = clgame.globals->time * cl_particle_avelocities[i][2];
+		com.sincos( angle, &sr, &cr );
+	
+		forward[0] = cp * cy;
+		forward[1] = cp * sy;
+		forward[2] = -sp;
+
+		p = CL_AllocParticle();
+		if( !p ) return;
+
+		p->die = clgame.globals->time + 0.01f;
+		p->color = 0x6f;
+		p->type = pt_explode;
+		
+		p->org[0] = ent->v.origin[0] + cl_avertexnormals[i][0] * dist + forward[0] * beamlength;
+		p->org[1] = ent->v.origin[1] + cl_avertexnormals[i][1] * dist + forward[1] * beamlength;
+		p->org[2] = ent->v.origin[2] + cl_avertexnormals[i][2] * dist + forward[2] * beamlength;
+	}
+}
+
+/*
+===============
+CL_ParticleExplosion
 
 ===============
 */
-bool pfnAddParticle( cparticle_t *src, HSPRITE shader, int flags )
+void CL_ParticleExplosion( const vec3_t org )
 {
-	cparticle_t	*p;
-
-	if( !src ) return false;
-
-	p = CL_AllocParticle();
-	if( !p )
+	int		i, j;
+	particle_t	*p;
+	
+	for( i = 0; i < 1024; i++ )
 	{
-		MsgDev( D_ERROR, "CL_AddParticle: no free particles\n" );
-		return false;
+		p = CL_AllocParticle();
+		if( !p ) return;
+
+		p->die = clgame.globals->time + 5.0f;
+		p->color = ramp1[0];
+		p->ramp = rand() & 3;
+
+		if( i & 1 )
+		{
+			p->type = pt_explode;
+			for( j = 0; j < 3; j++ )
+			{
+				p->org[j] = org[j] + ((rand() % 32) - 16);
+				p->vel[j] = (rand() % 512) - 256;
+			}
+		}
+		else
+		{
+			p->type = pt_explode2;
+			for( j = 0; j < 3; j++ )
+			{
+				p->org[j] = org[j] + ((rand() % 32) - 16);
+				p->vel[j] = (rand() % 512) - 256;
+			}
+		}
 	}
-
-	if( shader ) p->shader = shader;
-	else p->shader = cls.particle;
-	p->time = cl.time;
-	p->flags = flags;
-
-	// sizeof( src ) != sizeof( p ), we must copy params manually
-	VectorCopy( src->origin, p->origin );
-	VectorCopy( src->velocity, p->velocity );
-	VectorCopy( src->accel, p->accel ); 
-	VectorCopy( src->color, p->color );
-	VectorCopy( src->colorVelocity, p->colorVelocity );
-	p->alpha = src->alpha;
-	p->scale = 1.0f;
-	p->fog = false;
-
-	p->radius = src->radius;
-	p->length = src->length;
-	p->rotation = src->rotation;
-	p->alphaVelocity = src->alphaVelocity;
-	p->radiusVelocity = src->radiusVelocity;
-	p->lengthVelocity = src->lengthVelocity;
-	p->bounceFactor = src->bounceFactor;
-
-	// needs to save old origin
-	if( flags & (PARTICLE_BOUNCE|PARTICLE_FRICTION))
-		VectorCopy( p->origin, p->oldorigin );
-
-	return true;
 }
 
-void pfnLightForPoint( const vec3_t point, vec3_t ambientLight )
+/*
+===============
+CL_ParticleExplosion2
+
+===============
+*/
+void CL_ParticleExplosion2( const vec3_t org, int colorStart, int colorLength)
+{
+	int		i, j;
+	int		colorMod = 0;
+	particle_t	*p;
+
+	for( i = 0; i < 512; i++ )
+	{
+		p = CL_AllocParticle();
+		if( !p ) return;
+
+		p->die = clgame.globals->time + 0.3f;
+		p->color = colorStart + (colorMod % colorLength);
+		colorMod++;
+
+		p->type = pt_blob;
+		for( j = 0; j < 3; j++ )
+		{
+			p->org[j] = org[j] + ((rand() % 32) - 16);
+			p->vel[j] = (rand() % 512) - 256;
+		}
+	}
+}
+
+/*
+===============
+CL_BlobExplosion
+
+===============
+*/
+void CL_BlobExplosion( const vec3_t org )
+{
+	int		i, j;
+	particle_t	*p;
+	
+	for( i = 0; i < 1024; i++ )
+	{
+		p = CL_AllocParticle();
+		if( !p ) return;
+
+		p->die = clgame.globals->time + 1.0f + (rand() & 8) * 0.05f;
+
+		if( i & 1 )
+		{
+			p->type = pt_blob;
+			p->color = 66 + rand() % 6;
+			for( j = 0; j < 3; j++ )
+			{
+				p->org[j] = org[j] + ((rand() % 32) - 16);
+				p->vel[j] = (rand() % 512) - 256;
+			}
+		}
+		else
+		{
+			p->type = pt_blob2;
+			p->color = 150 + rand() % 6;
+			for( j = 0; j < 3; j++ )
+			{
+				p->org[j] = org[j] + ((rand() % 32) - 16);
+				p->vel[j] = (rand() % 512) - 256;
+			}
+		}
+	}
+}
+
+/*
+===============
+CL_LavaSplash
+
+===============
+*/
+void CL_LavaSplash( const vec3_t org )
+{
+	int		i, j, k;
+	particle_t	*p;
+	float		vel;
+	vec3_t		dir;
+
+	for( i = -16; i < 16; i++ )
+	{
+		for( j = -16; j <16; j++ )
+		{
+			for( k = 0; k < 1; k++ )
+			{
+				p = CL_AllocParticle();
+				if( !p ) return;
+		
+				p->die = clgame.globals->time + 2.0f + (rand() & 31) * 0.02f;
+				p->color = 224 + (rand() & 7);
+				p->type = pt_slowgrav;
+				
+				dir[0] = j * 8 + (rand() & 7);
+				dir[1] = i * 8 + (rand() & 7);
+				dir[2] = 256;
+	
+				p->org[0] = org[0] + dir[0];
+				p->org[1] = org[1] + dir[1];
+				p->org[2] = org[2] + (rand() & 63);
+	
+				VectorNormalize( dir );
+				vel = 50 + (rand() & 63);
+				VectorScale( dir, vel, p->vel );
+			}
+		}
+	}
+}
+
+/*
+===============
+CL_TeleportSplash
+
+===============
+*/
+void CL_TeleportSplash( const vec3_t org )
+{
+	int		i, j, k;
+	particle_t	*p;
+	float		vel;
+	vec3_t		dir;
+
+	for( i = -16; i < 16; i+=4 )
+	{
+		for( j =-16; j < 16; j += 4 )
+		{
+			for( k = -24; k < 32; k += 4 )
+			{
+				p = CL_AllocParticle();
+				if( !p ) return;
+		
+				p->die = clgame.globals->time + 0.2f + (rand() & 7) * 0.02f;
+				p->color = 7 + (rand() & 7);
+				p->type = pt_slowgrav;
+				
+				dir[0] = j * 8;
+				dir[1] = i * 8;
+				dir[2] = k * 8;
+	
+				p->org[0] = org[0] + i + (rand() & 3);
+				p->org[1] = org[1] + j + (rand() & 3);
+				p->org[2] = org[2] + k + (rand() & 3);
+	
+				VectorNormalize( dir );
+				vel = 50.0f + (rand() & 63);
+				VectorScale( dir, vel, p->vel );
+			}
+		}
+	}
+}
+
+/*
+===============
+CL_RocketTrail
+
+===============
+*/
+void CL_RocketTrail( const vec3_t org, const vec3_t end, int type )
+{
+	vec3_t		vec, start;
+	float		len;
+	particle_t	*p;
+	int		j, dec;
+	static int	tracercount;
+
+	VectorCopy( org, start );
+	VectorSubtract( end, start, vec );
+	len = VectorNormalizeLength( vec );
+
+	if( type < 128 )
+	{
+		dec = 3;
+	}
+	else
+	{
+		dec = 1;
+		type -= 128;
+	}
+
+	while( len > 0 )
+	{
+		len -= dec;
+
+		p = CL_AllocParticle();
+		if( !p ) return;
+		
+		VectorClear( p->vel );
+		p->die = clgame.globals->time + 2.0f;
+
+		switch( type )
+		{
+		case 0:	// rocket trail
+			p->ramp = (rand() & 3);
+			p->color = ramp3[(int)p->ramp];
+			p->type = pt_fire;
+			for( j = 0; j < 3; j++ )
+				p->org[j] = start[j] + ((rand()%6)-3);
+			break;
+		case 1:	// smoke smoke
+			p->ramp = (rand() & 3) + 2;
+			p->color = ramp3[(int)p->ramp];
+			p->type = pt_fire;
+			for( j = 0; j < 3; j++ )
+				p->org[j] = start[j] + ((rand() % 6) - 3);
+			break;
+		case 2:	// blood
+			p->type = pt_grav;
+			p->color = 67 + (rand()&3);
+			for( j = 0; j < 3; j++ )
+				p->org[j] = start[j] + ((rand() % 6) - 3);
+			break;
+		case 3:
+		case 5:	// tracer
+			p->die = clgame.globals->time + 0.5f;
+			p->type = pt_static;
+			if( type == 3 ) p->color = 52 + ((tracercount & 4)<<1);
+			else p->color = 230 + ((tracercount & 4)<<1);
+			tracercount++;
+			VectorCopy( start, p->org );
+			if( tracercount & 1 )
+			{
+				p->vel[0] = 30 *  vec[1];
+				p->vel[1] = 30 * -vec[0];
+			}
+			else
+			{
+				p->vel[0] = 30 * -vec[1];
+				p->vel[1] = 30 *  vec[0];
+			}
+			break;
+		case 4:	// slight blood
+			p->type = pt_grav;
+			p->color = 67 + (rand() & 3);
+			for( j = 0; j < 3; j++ )
+				p->org[j] = start[j] + ((rand() % 6) - 3);
+			len -= 3;
+			break;
+		case 6:	// voor trail
+			p->color = 9 * 16 + 8 + (rand() & 3);
+			p->type = pt_static;
+			p->die = clgame.globals->time + 0.3f;
+			for( j = 0; j < 3; j++ )
+				p->org[j] = start[j] + ((rand() & 15) - 8);
+			break;
+		}
+		VectorAdd( start, vec, start );
+	}
+}
+
+
+void CL_LightForPoint( const vec3_t point, vec3_t ambientLight )
 {
 	if( re ) re->LightForPoint( point, ambientLight );
 	else VectorClear( ambientLight );
@@ -1287,109 +1452,6 @@ void CL_QueueEvent( int flags, int index, float delay, event_args_t *args )
 	
 	// copy in args event data
 	Mem_Copy( &ei->args, args, sizeof( ei->args ));
-}
-
-/*
-================
-CL_TestEntities
-
-if cl_testentities is set, create 32 player models
-================
-*/
-void CL_TestEntities( void )
-{
-	int	i, j;
-	float	f, r;
-	edict_t	ent, *pl;
-
-	if( !cl_testentities->integer )
-		return;
-
-	pl = CL_GetLocalPlayer();
-	Mem_Set( &ent, 0, sizeof( edict_t ));
-	V_ClearScene();
-
-	for( i = 0; i < 32; i++ )
-	{
-		r = 64 * ((i%4) - 1.5 );
-		f = 64 * (i/4) + 128;
-
-		for( j = 0; j < 3; j++ )
-			ent.v.origin[j] = cl.refdef.vieworg[j]+cl.refdef.forward[j] * f + cl.refdef.right[j] * r;
-
-		ent.v.scale = 1.0f;
-		ent.serialnumber = pl->serialnumber;
-		ent.v.controller[0] = ent.v.controller[1] = 90.0f;
-		ent.v.controller[2] = ent.v.controller[3] = 180.0f;
-		ent.v.modelindex = pl->v.modelindex;
-		re->AddRefEntity( &ent, ED_NORMAL, -1 );
-	}
-}
-
-/*
-================
-CL_TestLights
-
-if cl_testlights is set, create 32 lights models
-================
-*/
-void CL_TestLights( void )
-{
-	int		i, j;
-	float		f, r;
-	cdlight_t		dl;
-	edict_t		*ed = CL_GetLocalPlayer();
-
-	// Temporary flashlight for Xash 0.68 beta
-	if( ed->v.effects & EF_DIMLIGHT )
-	{
-		vec3_t		end, mins, maxs;
-		static shader_t	flashlight_shader = -1;
-		trace_t		trace;
-
-		Mem_Set( &dl, 0, sizeof( cdlight_t ));
-#if 0
-		if( flashlight_shader == -1 )
-			flashlight_shader = re->RegisterShader( "flashlight", SHADER_GENERIC );
-#endif
-		VectorScale( cl.refdef.forward, 256, end );
-		VectorAdd( end, cl.refdef.vieworg, end );
-		VectorSet( mins, -4, -4, -4 );
-		VectorSet( maxs, 4, 4, 4 );
-
-		trace = CL_Move( cl.refdef.vieworg, mins, maxs, end, MOVE_NORMAL|0x200, ed );
-		VectorSet( dl.color, 1.0f, 1.0f, 1.0f );
-		dl.texture = flashlight_shader;
-		dl.intensity = 96;
-
-		if( trace.flFraction != 1.0f )
-			VectorMA( trace.vecEndPos, 16.0f, trace.vecPlaneNormal, dl.origin );
-		else VectorCopy( trace.vecEndPos, dl.origin );
-
-		re->AddDynLight( &dl );
-	}
-	if( cl_testlights->integer )
-	{
-		Mem_Set( &dl, 0, sizeof( cdlight_t ));
-	
-		for( i = 0; i < bound( 1, cl_testlights->integer, MAX_DLIGHTS ); i++ )
-		{
-			r = 64 * ( (i%4) - 1.5 );
-			f = 64 * (i/4) + 128;
-
-			for( j = 0; j < 3; j++ )
-				dl.origin[j] = cl.refdef.vieworg[j] + cl.refdef.forward[j] * f + cl.refdef.right[j] * r;
-
-			dl.color[0] = ((i%6)+1) & 1;
-			dl.color[1] = (((i%6)+1) & 2)>>1;
-			dl.color[2] = (((i%6)+1) & 4)>>2;
-			dl.intensity = 200;
-			dl.texture = -1;
-
-			if( !re->AddDynLight( &dl ))
-				break; 
-		}
-	}
 }
 
 /*

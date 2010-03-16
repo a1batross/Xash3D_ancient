@@ -314,6 +314,9 @@ void CL_AddPacketEntities( frame_t *frame )
 		ed_type = ent->pvClientData->current.ed_type;
 		CL_UpdateEntityFields( ent );
 
+		if( ent->v.effects & EF_BRIGHTFIELD )
+			CL_EntityParticles( ent );
+
 		if( clgame.dllFuncs.pfnAddVisibleEntity( ent, ed_type ))
 		{
 			if( ed_type == ED_PORTAL && !VectorCompare( ent->v.origin, ent->v.oldorigin ))

@@ -7,7 +7,7 @@
 #define R_BEAMS_H
 
 #include "beam_def.h"
-#include "tempents.h"
+#include "te_shared.h"
 
 #define NOISE_DIVISIONS		128
 #define MAX_BEAM_ENTS		2	// start & end entity

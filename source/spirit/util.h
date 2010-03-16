@@ -20,7 +20,7 @@
 
 #include <string.h>
 
-#include "tempents.h"
+#include "te_shared.h"
 #include "shake.h"
 #include "game_shared.h"
 #include "activity.h"

@@ -8,6 +8,7 @@
 #include "ref_params.h"
 #include "studio_ref.h"
 #include "hud.h"
+#include "aurora.h"
 #include "r_particle.h"
 #include "r_tempents.h"
 #include "r_beams.h"
@@ -79,11 +80,14 @@ int CreateAPI( HUD_FUNCTIONS *pFunctionTable, cl_enginefuncs_t* pEngfuncsFromEng
 
 int HUD_VidInit( void )
 {
-	if( g_pParticleSystems )
+	if ( g_pParticleSystems )
 		g_pParticleSystems->ClearSystems();
 
-	if( g_pViewRenderBeams )
+	if ( g_pViewRenderBeams )
 		g_pViewRenderBeams->ClearBeams();
+
+	if ( g_pParticles )
+		g_pParticles->Clear();
 
 	if ( g_pTempEnts )
 		g_pTempEnts->Clear();
@@ -109,6 +113,13 @@ void HUD_ShutdownEffects( void )
 		// init render beams
 		delete g_pViewRenderBeams;
 		g_pViewRenderBeams = NULL;
+	}
+
+	if ( g_pParticles )
+	{
+		// init particles
+		delete g_pParticles;
+		g_pParticles = NULL;
 	}
 
 	if ( g_pTempEnts )
@@ -137,6 +148,7 @@ void HUD_Init( void )
 
 	g_pParticleSystems = new ParticleSystemManager();
 	g_pViewRenderBeams = new CViewRenderBeams();
+	g_pParticles = new CParticleSystem();
 	g_pTempEnts = new CTempEnts();
 
 	InitRain(); // init weather system
@@ -345,7 +357,7 @@ int HUD_AddVisibleEntity( edict_t *pEnt, int ed_type )
 	float	shellScale = 1.0f;
 	int	result;
 
-	if( pEnt->v.renderfx == kRenderFxGlowShell )
+	if ( pEnt->v.renderfx == kRenderFxGlowShell )
 	{
 		oldRenderAmt = pEnt->v.renderamt;
 		oldScale = pEnt->v.scale;
@@ -355,7 +367,7 @@ int HUD_AddVisibleEntity( edict_t *pEnt, int ed_type )
 
 	result = CL_AddEntity( pEnt, ed_type, -1 );
 
-	if( pEnt->v.renderfx == kRenderFxGlowShell )
+	if ( pEnt->v.renderfx == kRenderFxGlowShell )
 	{
 		shellScale = (oldRenderAmt * 0.0015f);	// shellOffset
 		pEnt->v.scale = oldScale + shellScale;	// sets new scale
@@ -370,17 +382,37 @@ int HUD_AddVisibleEntity( edict_t *pEnt, int ed_type )
 	}	
 
 	// add in muzzleflash effect
-	if( ed_type == ED_VIEWMODEL && pEnt->v.effects & EF_MUZZLEFLASH )
+	if ( pEnt->v.effects & EF_MUZZLEFLASH )
 	{
-		pEnt->v.effects &= ~EF_MUZZLEFLASH;
+		if( ed_type == ED_VIEWMODEL )
+			pEnt->v.effects &= ~EF_MUZZLEFLASH;
 		g_pTempEnts->WeaponFlash( pEnt, 1 );
 	}
 
 	// add light effect
-	if( pEnt->v.effects & EF_LIGHT )
+	if ( pEnt->v.effects & EF_LIGHT )
 	{
-		g_pTempEnts->AllocDLight( pEnt->v.origin, 200, 0.01f, 0 );
+		g_pTempEnts->AllocDLight( pEnt->v.origin, 100, 100, 100, 200, 0.001f, 0 );
 		g_pTempEnts->RocketFlare( pEnt->v.origin );
+	}
+
+	// add dimlight
+	if ( pEnt->v.effects & EF_DIMLIGHT )
+	{
+		if ( ed_type == ED_CLIENT )
+		{
+			EV_UpadteFlashlight( pEnt );
+		}
+		else
+		{
+			g_pTempEnts->AllocDLight( pEnt->v.origin, RANDOM_LONG( 200, 230 ), 0.001f, 0 );
+		}
+	}	
+
+	if ( pEnt->v.effects & EF_BRIGHTLIGHT )
+	{			
+		Vector pos( pEnt->v.origin.x, pEnt->v.origin.y, pEnt->v.origin.z + 16 );
+		g_pTempEnts->AllocDLight( pos, RANDOM_LONG( 400, 430 ), 0.001f, 0 );
 	}
 
 	return result;

@@ -6,6 +6,7 @@
 #include "extdll.h"
 #include "utils.h"
 #include "r_beams.h"
+#include "r_particle.h"
 #include "r_tempents.h"
 #include "effects_api.h"
 #include "pm_materials.h"
@@ -309,7 +310,7 @@ void EV_HLDM_GunshotDecalTrace( TraceResult *pTrace, char *decalName )
 		HSPRITE decal_tex = g_engfuncs.pEfxAPI->CL_DecalIndexFromName( decalName );
 
 		g_pTempEnts->PlaceDecal( pTrace->vecEndPos, pEnt, decal_tex );
-		CL_BulletParticles( pTrace->vecEndPos, Vector( 0, 0, -1 ));
+		g_pParticles->BulletParticles( pTrace->vecEndPos, Vector( 0, 0, -1 ));
 	}
 }
 
@@ -330,8 +331,7 @@ void EV_HLDM_DecalGunshot( TraceResult *pTrace, int iBulletType )
 		case BULLET_MP5:
 		case BULLET_357:
 		case BULLET_BUCKSHOT:
-		default:
-			// smoke and decal
+		default:	// smoke and decal
 			EV_HLDM_GunshotDecalTrace( pTrace, EV_HLDM_DamageDecal( pe ));
 			break;
 		}

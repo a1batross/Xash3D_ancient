@@ -15,9 +15,6 @@ cvar_t	*cl_predict;
 cvar_t	*cl_showfps;
 cvar_t	*cl_maxfps;
 cvar_t	*cl_nodelta;
-cvar_t	*cl_particles;
-cvar_t	*cl_particlelod;
-cvar_t	*cl_draw_beams;
 cvar_t	*cl_crosshair;
 cvar_t	*cl_shownet;
 cvar_t	*cl_showmiss;
@@ -1023,9 +1020,6 @@ void CL_InitLocal( void )
 	// register our variables
 	cl_predict = Cvar_Get( "cl_predict", "1", CVAR_ARCHIVE, "disables client movement prediction" );
 	cl_maxfps = Cvar_Get( "cl_maxfps", "1000", 0, "maximum client fps" );
-	cl_particles = Cvar_Get( "cl_particles", "1", CVAR_ARCHIVE, "disables particle effects" );
-	cl_draw_beams = Cvar_Get( "cl_draw_beams", "1", CVAR_ARCHIVE, "disables beam rendering" );
-	cl_particlelod = Cvar_Get( "cl_lod_particle", "0", CVAR_ARCHIVE, "enables particle LOD (1, 2, 3)" );
 	cl_crosshair = Cvar_Get( "crosshair", "1", CVAR_ARCHIVE|CVAR_USERINFO, "show weapon chrosshair" );
 	cl_nodelta = Cvar_Get ("cl_nodelta", "0", 0, "disable delta-compression for usercommnds" );
 
@@ -1152,7 +1146,6 @@ void CL_Frame( int time )
 	S_Update( &cl.refdef );
 
 	// advance local effects for next frame
-	CL_RunDLights ();
 	CL_RunLightStyles ();
 
 	SCR_RunCinematic();

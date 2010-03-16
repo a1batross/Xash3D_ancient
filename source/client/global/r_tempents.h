@@ -9,7 +9,8 @@
 //-----------------------------------------------------------------------------
 // Purpose: implementation for temp entities
 //-----------------------------------------------------------------------------
-#include "tempents.h"
+#include "te_shared.h"
+#include "tmpent_def.h"
 #include "effects_api.h"
 
 #define MAX_TEMP_ENTITIES		500

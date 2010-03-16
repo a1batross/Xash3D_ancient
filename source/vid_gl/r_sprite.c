@@ -22,6 +22,8 @@ string		sp_name;
 ref_shader_t	**frames = NULL;
 cvar_t		*r_sprite_lerping;
 uint		tex_flags = 0;
+vec3_t		sprite_mins, sprite_maxs;
+float		sprite_radius;
 
 /*
 ====================
@@ -489,13 +491,12 @@ static float R_SpriteGlowBlend( ref_entity_t *e )
 	float	dist = R_GlowSightDistance( e->origin );
 	float	brightness;
 
-	if( dist <= 0 )
-		return false; // occluded
-
 	if( e->renderfx == kRenderFxNoDissipation )
 	{
 		return (float)e->renderamt * (1.0f/255.0f);
 	}
+
+	if( dist <= 0 ) return 0.0f; // occluded
 
 	// UNDONE: Tweak these magic numbers (19000 - falloff & 200 - sprite size)
 	brightness = 19000.0 / (dist * dist);
@@ -536,15 +537,27 @@ bool R_SpriteOccluded( ref_entity_t *e )
 R_DrawSpriteModel
 =================
 */
-bool R_DrawSpriteModel( const meshbuffer_t *mb )
+void R_DrawSpriteModel( const meshbuffer_t *mb )
 {
+	ref_entity_t	*e;
 	mspriteframe_t	*frame, *oldframe;
 	msprite_t		*psprite;
-	ref_entity_t	*e = RI.currententity;
-	ref_model_t	*model = e->model;
+	ref_model_t	*model;
 	float		lerp = 1.0f, ilerp;
 	meshbuffer_t	*rb = (meshbuffer_t *)mb;
 	byte		renderamt;
+
+	MB_NUM2ENTITY( mb->sortkey, e );
+	model = e->model;
+
+	if( OCCLUSION_QUERIES_ENABLED( RI ) && OCCLUSION_TEST_ENTITY( e ))
+	{
+		ref_shader_t	*shader;
+
+		MB_NUM2SHADER( mb->shaderkey, shader );
+		if( !R_GetOcclusionQueryResultBool( shader->type == 1 ? OQ_PLANARSHADOW : OQ_ENTITY, e - r_entities, true ))
+			return;
+	}
 
 	psprite = (msprite_t * )model->extradata;
 
@@ -615,5 +628,28 @@ bool R_DrawSpriteModel( const meshbuffer_t *mb )
 		// restore current values (e.g. for right mirror passes)
 		e->renderamt = renderamt;
 	}
-	return true;
+}
+
+bool R_CullSpriteModel( ref_entity_t *e )
+{
+	bool	frustum, query, clipped;
+
+	if( !e->model->extradata )
+		return true;
+
+	if( e->ent_type == ED_VIEWMODEL && r_lefthand->integer >= 2 )
+		return true;
+
+	VectorCopy( e->model->mins, sprite_mins );
+	VectorCopy( e->model->maxs, sprite_maxs );
+
+	sprite_radius = RadiusFromBounds( sprite_mins, sprite_maxs );
+	clipped = R_CullModel( e, sprite_mins, sprite_maxs, sprite_radius );
+	frustum = clipped & 1;
+	if( clipped & 2 ) return true;
+
+	query = OCCLUSION_QUERIES_ENABLED( RI ) && OCCLUSION_TEST_ENTITY( e ) ? true : false;
+	if( !frustum && query ) R_IssueOcclusionQuery( R_GetOcclusionQueryNum( OQ_ENTITY, e - r_entities ), e, sprite_mins, sprite_maxs );
+
+	return frustum;
 }

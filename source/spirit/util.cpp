@@ -218,7 +218,6 @@ int PRECACHE_PARTICLE( char* s )
 		if( !stricmp( token, "sprite" )) 
 		{                                          
 			token = COM_ParseToken( &pfile );
-			ALERT( at_console, "aurora precache sprite: %s\n", token );
 			PRECACHE_MODEL( token );
 		}
 		token = COM_ParseToken( &pfile );

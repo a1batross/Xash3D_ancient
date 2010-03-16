@@ -2130,7 +2130,7 @@ void CBaseMonster :: StartMonster ( void )
 		//LRC- there are perfectly good reasons for making a monster stuck, so it shouldn't always be an error.
 		if (!WALK_MOVE ( ENT(pev), 0, 0, WALKMOVE_NORMAL ) && !FBitSet( pev->spawnflags, SF_MONSTER_NO_YELLOW_BLOBS))
 		{
-			ALERT(at_debug, "%s \"%s\" stuck in wall--level design error", STRING(pev->classname), STRING(pev->targetname));
+			ALERT(at_debug, "%s \"%s\" stuck in wall--level design error\n", STRING(pev->classname), STRING(pev->targetname));
 			pev->effects = EF_BRIGHTFIELD;
 		}
 	}

@@ -256,7 +256,7 @@ void CBaseAnimating :: SetBones( float (*data)[3], int datasize )
 	::SetBones( GET_MODEL_PTR( ENT(pev) ), data, datasize );
 }
 
-int CBaseAnimating :: ExtractBbox( int sequence, float *mins, float *maxs )
+int CBaseAnimating :: ExtractBbox( int sequence, Vector &mins, Vector &maxs )
 {
 	return ::ExtractBbox( GET_MODEL_PTR( ENT(pev) ), sequence, mins, maxs );
 }

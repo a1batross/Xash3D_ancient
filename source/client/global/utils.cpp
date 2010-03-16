@@ -584,6 +584,48 @@ void ClearAllFades( void )
 
 /*
 ====================
+RotatePointAroundVector
+====================
+*/
+void RotatePointAroundVector( Vector &dst, const Vector &dir, const Vector &point, float degrees )
+{
+	float	t0, t1;
+	float	angle, c, s, d;
+	Vector	vr, vu, vf;
+
+	angle = degrees * (M_PI / 180.f);
+	s = sin( angle );
+	c = cos( angle );
+
+	vf.Init( dir.x, dir.y, dir.z );
+	vr.Init( vf.z, -vf.x, vf.y );
+
+	// find a three vectors
+	d = DotProduct( vf, vr );
+	vr = (vr + ( vf * -d )).Normalize();
+	vu = CrossProduct( vr, vf );
+
+	t0 = vr[0] *  c + vu[0] * -s;
+	t1 = vr[0] *  s + vu[0] *  c;
+	dst[0] = (t0 * vr[0] + t1 * vu[0] + vf[0] * vf[0]) * point[0]
+	       + (t0 * vr[1] + t1 * vu[1] + vf[0] * vf[1]) * point[1]
+	       + (t0 * vr[2] + t1 * vu[2] + vf[0] * vf[2]) * point[2];
+
+	t0 = vr[1] *  c + vu[1] * -s;
+	t1 = vr[1] *  s + vu[1] *  c;
+	dst[1] = (t0 * vr[0] + t1 * vu[0] + vf[1] * vf[0]) * point[0]
+	       + (t0 * vr[1] + t1 * vu[1] + vf[1] * vf[1]) * point[1]
+	       + (t0 * vr[2] + t1 * vu[2] + vf[1] * vf[2]) * point[2];
+
+	t0 = vr[2] *  c + vu[2] * -s;
+	t1 = vr[2] *  s + vu[2] *  c;
+	dst[2] = (t0 * vr[0] + t1 * vu[0] + vf[2] * vf[0]) * point[0]
+	       + (t0 * vr[1] + t1 * vu[1] + vf[2] * vf[1]) * point[1]
+	       + (t0 * vr[2] + t1 * vu[2] + vf[2] * vf[2]) * point[2];
+}
+
+/*
+====================
 UTIL_Probe
 
 client explosion utility

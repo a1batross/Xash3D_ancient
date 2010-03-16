@@ -612,7 +612,7 @@ public:
 	int GetBoneCount( void );
 	void SetBones( float (*data)[3], int datasize );
 
-	int ExtractBbox( int sequence, float *mins, float *maxs );
+	int ExtractBbox( int sequence, Vector &mins, Vector &maxs );
 	void SetSequenceBox( void );
 
 	// animation needs

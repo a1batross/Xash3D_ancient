@@ -9,6 +9,7 @@
 #include "triangle_api.h"
 #include "effects_api.h"
 #include "pm_movevars.h"
+#include "r_particle.h"
 #include "r_tempents.h"
 #include "ev_hldm.h"
 #include "r_beams.h"
@@ -1059,9 +1060,9 @@ void CTempEnts::Sprite_Trail( int type, const Vector &vecStart, const Vector &ve
 
 void CTempEnts::TracerEffect( const Vector &start, const Vector &end )
 {
-	vec3_t		vec;
-	cparticle_t	src;
-	int		pal = 238; // nice color for tracers
+	vec3_t vec;
+	CParticle	src;
+	int pal = 238; // nice color for tracers
 
 	if( !start || !end ) return;
 
@@ -1087,7 +1088,7 @@ void CTempEnts::TracerEffect( const Vector &start, const Vector &end )
 	src.velocity[2] = 6000.0f * vec[2];
 
 	// 0 is a quake particle
-	g_engfuncs.pEfxAPI->R_AllocParticle( &src, 0, PARTICLE_STRETCH );
+	g_pParticles->AddParticle( &src, 0, FPART_STRETCH );
 }
 
 void CTempEnts::WeaponFlash( edict_t *pEnt, int iAttachment )

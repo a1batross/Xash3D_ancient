@@ -32,7 +32,7 @@ int CM_StudioExtractBbox( dstudiohdr_t *phdr, int sequence, float *mins, float *
 	dstudioseqdesc_t	*pseqdesc;
 	pseqdesc = (dstudioseqdesc_t *)((byte *)phdr + phdr->seqindex);
 
-	if(sequence == -1) return 0;
+	if( sequence == -1 ) return 0;
 	VectorCopy( pseqdesc[sequence].bbmin, mins );
 	VectorCopy( pseqdesc[sequence].bbmax, maxs );
 

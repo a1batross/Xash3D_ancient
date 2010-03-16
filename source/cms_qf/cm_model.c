@@ -47,6 +47,7 @@ void CM_InitBoxHull( void )
 
 	box_markbrushes[0] = box_brush;
 
+	box_cmodel->type = mod_brush;
 	box_cmodel->leaf.nummarkfaces = 0;
 	box_cmodel->leaf.markfaces = NULL;
 	box_cmodel->leaf.markbrushes = box_markbrushes;

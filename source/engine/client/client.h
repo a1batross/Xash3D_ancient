@@ -354,9 +354,6 @@ extern cvar_t	*cl_font;
 extern cvar_t	*cl_nodelta;
 extern cvar_t	*cl_crosshair;
 extern cvar_t	*cl_showmiss;
-extern cvar_t	*cl_particles;
-extern cvar_t	*cl_particlelod;
-extern cvar_t	*cl_draw_beams;
 extern cvar_t	*cl_testentities;
 extern cvar_t	*cl_testlights;
 extern cvar_t	*cl_testflashlight;
@@ -372,20 +369,14 @@ extern cvar_t	*con_font;
 bool CL_CheckOrDownloadFile( const char *filename );
 
 //=================================================
-void CL_TeleportSplash( vec3_t org );
-int CL_ParseEntityBits( sizebuf_t *msg, uint *bits );
 void CL_ParseFrame( sizebuf_t *msg );
-
-void CL_ParseTempEnts( sizebuf_t *msg );
 void CL_ParseConfigString( sizebuf_t *msg );
-void CL_SetLightstyle (int i);
-void CL_RunParticles (void);
-void CL_RunDLights (void);
-void CL_RunLightStyles (void);
+void CL_SetLightstyle( int i );
+void CL_RunLightStyles( void );
 
-void CL_AddEntities (void);
-void CL_AddDLights (void);
-void CL_AddLightStyles (void);
+void CL_AddEntities( void );
+void CL_AddDLights( void );
+void CL_AddLightStyles( void );
 
 //=================================================
 
@@ -564,13 +555,19 @@ void CL_AddDecals( void );
 void CL_ClearEffects( void );
 void CL_TestLights( void );
 void CL_TestEntities( void );
-void CL_LocalMuzzleFlash( void );
+particle_t *CL_AllocParticle( void );
+void CL_EntityParticles( edict_t *ent );
+void CL_LavaSplash( const vec3_t org );
+void CL_BlobExplosion( const vec3_t org );
+void CL_TeleportSplash( const vec3_t org );
+void CL_ParticleExplosion( const vec3_t org );
+void CL_RocketTrail( const vec3_t start, const vec3_t end, int type );
+void CL_ParticleExplosion2( const vec3_t org, int colorStart, int colorLength );
 void CL_GetPaletteColor( int colorIndex, vec3_t outColor );
 void CL_FindExplosionPlane( const vec3_t origin, float radius, vec3_t result );
-void pfnLightForPoint( const vec3_t point, vec3_t ambientLight );
-bool pfnAddParticle( cparticle_t *src, HSPRITE shader, int flags );
-void pfnAddDecal( float *org, float *dir, float *rgba, float rot, float rad, HSPRITE hSpr, int flags );
-void pfnAddDLight( const float *org, const float *rgb, float radius, float time, int flags, int key );
+void CL_LightForPoint( const vec3_t point, vec3_t ambientLight );
+void CL_AddDecal( float *org, float *dir, float *rgba, float rot, float rad, HSPRITE hSpr, int flags );
+void CL_AddDLight( const float *org, const float *rgb, float radius, float time, int flags, int key );
 void CL_ParticleEffect( const vec3_t org, const vec3_t dir, int color, int count ); // q1 legacy
 void CL_SpawnStaticDecal( vec3_t origin, int decalIndex, int entityIndex, int modelIndex );
 void CL_QueueEvent( int flags, int index, float delay, event_args_t *args );

@@ -38,10 +38,7 @@ typedef unsigned char byte;
 #include "scriptevent.h"
 #endif
 
-extern globalvars_t				*gpGlobals;
-
-
-int ExtractBbox( void *pmodel, int sequence, float *mins, float *maxs )
+int ExtractBbox( void *pmodel, int sequence, Vector &mins, Vector &maxs )
 {
 	dstudiohdr_t *pstudiohdr;
 	
@@ -122,7 +119,7 @@ int LookupActivityHeaviest( void *pmodel, entvars_t *pev, int activity )
 	return seq;
 }
 
-void GetEyePosition ( void *pmodel, float *vecEyePosition )
+void GetEyePosition ( void *pmodel, Vector &vecEyePosition )
 {
 	dstudiohdr_t *pstudiohdr;
 	

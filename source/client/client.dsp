@@ -117,6 +117,10 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat;for;f90"
 # Begin Source File
 
+SOURCE=.\global\aurora.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\global\dll_int.cpp
 # End Source File
 # Begin Source File
@@ -261,11 +265,63 @@ SOURCE=.\global\view.cpp
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
+SOURCE=..\common\anorms.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\global\aurora.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\common\basetypes.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\common\beam_def.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\common\bullets.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\common\clgame_api.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\common\const.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\common\cvardef.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\common\effects_api.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\global\enginecallback.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\common\entity_def.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\common\entity_state.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\common\event_api.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\global\extdll.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\common\game_shared.h
 # End Source File
 # Begin Source File
 
@@ -301,6 +357,10 @@ SOURCE=..\pm_shared\pm_movevars.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\common\pm_shared.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\global\r_beams.h
 # End Source File
 # Begin Source File
@@ -310,6 +370,38 @@ SOURCE=.\global\r_particle.h
 # Begin Source File
 
 SOURCE=.\global\r_weather.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\common\ref_params.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\common\studio_event.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\common\studio_ref.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\common\te_shared.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\common\tmpent_def.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\common\trace_def.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\common\triangle_api.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\common\usercmd.h
 # End Source File
 # Begin Source File
 

@@ -136,5 +136,6 @@ void EV_GetGunPosition( event_args_t *args, float *pos, float *origin );
 void EV_CreateTracer( float *start, float *end );
 void EV_EjectBrass( float *origin, float *velocity, float rotation, int model, int soundtype );
 void EV_GetDefaultShellInfo( event_args_t *args, float *origin, float *velocity, float *ShellVelocity, float *ShellOrigin, float *forward, float *right, float *up, float forwardScale, float upScale, float rightScale );
+void EV_UpadteFlashlight( edict_t *pEnt );
 
 #endif // EV_HLDMH

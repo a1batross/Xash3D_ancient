@@ -172,6 +172,29 @@ void EV_MuzzleFlash( void )
 	ent->v.effects |= EF_MUZZLEFLASH;
 }
 
+//=================
+//  EV_FlashLight
+//=================
+void EV_UpadteFlashlight( edict_t *pEnt )
+{
+	Vector vecSrc, vecEnd, vecPos, forward;
+	float rgba[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	TraceResult tr;
+
+	AngleVectors( pEnt->v.viewangles, forward, NULL, NULL );
+	vecSrc = pEnt->v.origin +pEnt->v.view_ofs;
+	vecEnd = vecSrc + forward * 256;
+
+	UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, pEnt, &tr );
+
+	if( tr.flFraction != 1.0f )
+		vecPos = tr.vecEndPos + (tr.vecPlaneNormal * -16.0f);
+	else vecPos = tr.vecEndPos;
+
+	// update flashlight endpos
+	g_engfuncs.pEfxAPI->CL_AllocDLight( vecPos, rgba, 96, 0.001f, 0, pEnt->serialnumber );
+}
+
 void HUD_CmdStart( const edict_t *player, int runfuncs )
 {
 }

@@ -162,6 +162,8 @@
 #define EF_PLANARSHADOW		(1<<13)	// use fast planarshadow method instead of shadow casters
 #define EF_OCCLUSIONTEST		(1<<14)	// use occlusion test for this entity (e.g. glares)
 #define EF_LASERSPOT		(1<<15)	// tempentity laserspot at attachment #1 from player or npc
+#define EF_NOMIRRORS		(1<<16)	// entity won't reflecting in mirrors
+#define EF_ONLYMIRRORS		(1<<17)	// entity will be drawing only in mirrors
 
 // The explosion effect has some flags to control performance/aesthetic features:
 #define TE_EXPLFLAG_NONE		0	// all flags clear makes default Half-Life explosion
@@ -365,16 +367,6 @@ typedef enum
 #define CL_LOADING			1	// draw loading progress-bar
 #define CL_ACTIVE			2	// draw normal hud
 #define CL_PAUSED			3	// pause when active
-
-// built-in particle-system flags
-#define PARTICLE_GRAVITY		40	// default particle gravity
-
-#define PARTICLE_BOUNCE		(1<<0)	// makes a bouncy particle
-#define PARTICLE_FRICTION		(1<<1)
-#define PARTICLE_VERTEXLIGHT		(1<<2)	// give some ambient light for it
-#define PARTICLE_STRETCH		(1<<3)
-#define PARTICLE_UNDERWATER		(1<<4)
-#define PARTICLE_INSTANT		(1<<5)
 
 // built-in decals flags
 #define DECAL_FADEALPHA		(1<<0)	// fade decal by alpha instead color

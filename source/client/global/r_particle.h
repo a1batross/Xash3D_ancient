@@ -1,212 +1,84 @@
-// 02/08/02 November235: Particle System
-#pragma once
+//=======================================================================
+//			Copyright XashXT Group 2010 ©
+//	    r_particle.h - another particle manager (come from q2e 0.40)
+//=======================================================================
 
-class ParticleType;
-class ParticleSystem;
-void CreateAurora( int idx, char *file ); //make new partsystem
+#ifndef R_PARTICLE_H
+#define R_PARTICLE_H
 
-#define COLLISION_NONE	0
-#define COLLISION_DIE	1
-#define COLLISION_BOUNCE	2
+#define MAX_PARTICLES		2048
 
-struct particle
-{
-	particle		*nextpart;
-	particle		*m_pOverlay; // for making multi-layered particles
-	ParticleType	*pType;
+// built-in particle-system flags
+#define FPART_BOUNCE		(1<<0)	// makes a bouncy particle
+#define FPART_FRICTION		(1<<1)
+#define FPART_VERTEXLIGHT		(1<<2)	// give some ambient light for it
+#define FPART_STRETCH		(1<<3)
+#define FPART_UNDERWATER		(1<<4)
+#define FPART_INSTANT		(1<<5)
 
-	vec3_t		origin;
-	vec3_t		velocity;
-	vec3_t		accel;
-	vec3_t		m_vecWind;
-
-	int		m_iEntIndex; // if non-zero, this particle is tied to the given entity
-
-	float		m_fRed;
-	float		m_fGreen;
-	float		m_fBlue;
-	float		m_fRedStep;
-	float		m_fGreenStep;
-	float		m_fBlueStep;
-
-	float		m_fAlpha;
-	float		m_fAlphaStep;
-
-	float		frame;
-	float		m_fFrameStep;
-
-	float		m_fAngle;
-	float		m_fAngleStep;
-
-	float		m_fSize;
-	float		m_fSizeStep;
-
-	float		m_fDrag;
-
-	float		age;
-	float		age_death;
-	float		age_spray;
-};
-
-
-class RandomRange
+class CParticle
 {
 public:
-	RandomRange() { m_fMin = m_fMax = 0; m_bDefined = false; }
-	RandomRange(float fValue) { m_fMin = m_fMax = fValue; m_bDefined = true; }
-	RandomRange(float fMin, float fMax) { m_fMin = fMin; m_fMax = fMax; m_bDefined = true; }
-	RandomRange( char *szToken );
+	Vector		origin;
+	Vector		oldorigin;
 
-	float m_fMax;
-	float m_fMin;
-	bool m_bDefined;
+	Vector		velocity;		// linear velocity
+	Vector		accel;
+	Vector		color;
+	Vector		colorVelocity;
+	float		alpha;
+	float		alphaVelocity;
+	float		radius;
+	float		radiusVelocity;
+	float		length;
+	float		lengthVelocity;
+	float		rotation;		// texture ROLL angle
+	float		bounceFactor;
+	float		scale;
 
-	float GetInstance()
-	{
-		return RANDOM_FLOAT( m_fMin, m_fMax );
-	}
+	CParticle		*next;
+	HSPRITE		m_hSprite;
 
-	float GetOffset( float fBasis )
-	{
-		return GetInstance() - fBasis;
-	}
+	float		flTime;
+	int		flags;
 
-	bool IsDefined( void )
-	{
-		return m_bDefined;
-	}
+	bool		Evaluate( float gravity );
 };
 
-#define MAX_TYPENAME	256
-
-class ParticleType
+class CParticleSystem
 {
+	CParticle		*m_pActiveParticles;
+	CParticle		*m_pFreeParticles;
+	CParticle		m_pParticles[MAX_PARTICLES];
+
+	// private partsystem shaders
+	HSPRITE		m_hDefaultParticle;
+	HSPRITE		m_hGlowParticle;
+	HSPRITE		m_hDroplet;
+	HSPRITE		m_hBubble;
+	HSPRITE		m_hSparks;
+	HSPRITE		m_hSmoke;
 public:
-	ParticleType( ParticleType *pNext = NULL );
-	ParticleType( char *szFilename );
+			CParticleSystem( void );
+	virtual		~CParticleSystem( void );
 
-	bool		m_bIsDefined; // is this ParticleType just a placeholder?
-	kRenderMode_t	m_iRenderMode;
-	int		m_iDrawCond;
-	int		m_iCollision;
-	RandomRange	m_Bounce;
-	RandomRange	m_BounceFriction;
-	bool		m_bBouncing;
+	void		Clear( void );
+	void		Update( void );
+	void		FreeParticle( CParticle *pCur );
+	CParticle		*AllocParticle( void );
+	bool		AddParticle( CParticle *src, HSPRITE shader, int flags );
 
-	RandomRange	m_Life;
-
-	RandomRange m_StartAlpha;
-	RandomRange m_EndAlpha;
-	RandomRange m_StartRed;
-	RandomRange m_EndRed;
-	RandomRange m_StartGreen;
-	RandomRange m_EndGreen;
-	RandomRange m_StartBlue;
-	RandomRange m_EndBlue;
-
-	RandomRange m_StartSize;
-	RandomRange m_SizeDelta;
-	RandomRange m_EndSize;
-
-	RandomRange m_StartFrame;
-	RandomRange m_EndFrame;
-	RandomRange m_FrameRate; // incompatible with EndFrame
-	bool m_bEndFrame;
-
-	RandomRange m_StartAngle;
-	RandomRange m_AngleDelta;
-
-	RandomRange m_SprayRate;
-	RandomRange m_SprayForce;
-	RandomRange m_SprayPitch;
-	RandomRange m_SprayYaw;
-	RandomRange m_SprayRoll;
-	ParticleType *m_pSprayType;
-
-	RandomRange m_Gravity;
-	RandomRange m_WindStrength;
-	RandomRange m_WindYaw;
-
-	int m_SpriteIndex;
-	ParticleType *m_pOverlayType;
-
-	RandomRange m_Drag;
-
-	ParticleType *m_pNext;
-
-	char m_szName[MAX_TYPENAME];
-
-	// here is a particle system. Add a (set of) particles according to this type, and initialise their values.
-	particle* CreateParticle(ParticleSystem *pSys);//particle *pPart);
-
-	// initialise this particle. Does not define velocity or age.
-	void InitParticle(particle *pPart, ParticleSystem *pSys);
+	// example presets
+	void		ExplosionParticles( const Vector pos );
+	void		BulletParticles( const Vector org, const Vector dir );
+	void		BubbleParticles( const Vector org, int count, float magnitude );
+	void		SparkParticles( const Vector org, const Vector dir );
+	void		RicochetSparks( const Vector org, float scale );
+	void		SmokeParticles( const Vector pos, int count );
+	void		TeleportParticles( const Vector org );
 };
 
-class ParticleSystem
-{
-public:
-	ParticleSystem( int entindex, char *szFilename );
-	~ParticleSystem( void );
-	void AllocateParticles( int iParticles );
-	void CalculateDistance();
+extern CParticleSystem	*g_pParticles;
+extern ref_params_t		*gpViewParams;
 
-	ParticleType *GetType( const char *szName );
-	ParticleType *AddPlaceholderType( const char *szName );
-	ParticleType *ParseType( const char **szFile );
-
-	edict_t *GetEntity() { return GetEntityByIndex( m_iEntIndex ); }
-
-	static float c_fCosTable[360 + 90];
-	static bool c_bCosTableInit;
-
-	// General functions
-	bool	UpdateSystem( float frametime ); //If this function returns false, the manager deletes the system
-	void	DrawSystem();
-	particle *ActivateParticle(); // adds one of the free particles to the active list, and returns it for initialisation.
-
-	static float CosLookup(int angle) { return angle < 0? c_fCosTable[angle+360]: c_fCosTable[angle]; }
-	static float SinLookup(int angle) { return angle < -90? c_fCosTable[angle+450]: c_fCosTable[angle+90]; }
-
-	// returns false if the particle has died
-	bool UpdateParticle( particle *part, float frametime );
-	void DrawParticle( particle* part, vec3_t &right, vec3_t &up );
-
-	// Utility functions that have to be public
-	bool ParticleIsVisible( particle* part );
-
-	// Pointer to next system for linked list structure	
-	ParticleSystem* m_pNextSystem;
-
-	particle*		m_pActiveParticle;
-	float		m_fViewerDist;
-	int		m_iEntIndex;
-	int 		m_iEntAttachment;
-	int		m_iKillCondition;
-	int		enable;
-private:
-	// the block of allocated particles
-	particle*		m_pAllParticles;
-	// First particles in the linked list for the active particles and the dead particles
-	particle*		m_pFreeParticle;
-	particle*		m_pMainParticle; // the "source" particle.
-
-	ParticleType	*m_pFirstType;
-	ParticleType	*m_pMainType;
-};
-
-class ParticleSystemManager
-{
-public:
-	ParticleSystemManager( void );
-	~ParticleSystemManager( void );
-
-	ParticleSystem	*FindSystem( edict_t* pEntity );
-	void		SortSystems( void );
-	void		AddSystem( ParticleSystem* );
-	void		UpdateSystems( void );
-	void		ClearSystems( void );
-	ParticleSystem	*m_pFirstSystem;
-};
-
-extern ParticleSystemManager* g_pParticleSystems; 
+#endif//R_PARTICLE_H

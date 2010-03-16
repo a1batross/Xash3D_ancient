@@ -31,7 +31,7 @@ int GetSequenceFlags( void *pmodel, entvars_t *pev );
 int LookupAnimationEvents( void *pmodel, entvars_t *pev, float flStart, float flEnd );
 float SetController( void *pmodel, entvars_t *pev, int iController, float flValue );
 float SetBlending( void *pmodel, entvars_t *pev, int iBlender, float flValue );
-void GetEyePosition( void *pmodel, float *vecEyePosition );
+void GetEyePosition( void *pmodel, Vector &vecEyePosition );
 void SequencePrecache( void *pmodel, const char *pSequenceName );
 int FindTransition( void *pmodel, int iEndingAnim, int iGoalAnim, int *piDir );
 void SetBodygroup( void *pmodel, entvars_t *pev, int iGroup, int iValue );
@@ -43,7 +43,7 @@ int GetBoneCount( void *pmodel );
 int GetSequenceFrames( void *pmodel, entvars_t *pev ); //LRC
 
 int GetAnimationEvent( void *pmodel, entvars_t *pev, MonsterEvent_t *pMonsterEvent, float flStart, float flEnd, int index );
-int ExtractBbox( void *pmodel, int sequence, float *mins, float *maxs );
+int ExtractBbox( void *pmodel, int sequence, Vector &mins, Vector &maxs );
 
 // From /engine/studio.h
 #define STUDIO_LOOPING		0x0001

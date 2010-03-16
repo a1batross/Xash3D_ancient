@@ -330,11 +330,12 @@ void SV_PrepWorldFrame( void )
 	edict_t	*ent;
 	int	i;
 
-	for( i = 0; i < svgame.globals->numEntities; i++ )
+	for( i = 1; i < svgame.globals->numEntities; i++ )
 	{
 		ent = EDICT_NUM( i );
 		if( ent->free ) continue;
 		ent->pvServerData->s.ed_flags = 0;
+		ent->v.effects &= ~EF_MUZZLEFLASH;
 	}
 }
 
