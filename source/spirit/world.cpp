@@ -106,7 +106,7 @@ BODY QUE
 class CDecal : public CBaseEntity
 {
 public:
-	void	Spawn( void );
+	void	PostSpawn( void );
 	void	KeyValue( KeyValueData *pkvd );
 	void	EXPORT StaticDecal( void );
 	void	EXPORT TriggerDecal( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
@@ -115,7 +115,7 @@ public:
 LINK_ENTITY_TO_CLASS( infodecal, CDecal );
 
 // UNDONE:  These won't get sent to joining players in multi-player
-void CDecal :: Spawn( void )
+void CDecal :: PostSpawn( void )
 {
 	if ( pev->skin < 0 || (gpGlobals->deathmatch && FBitSet( pev->spawnflags, SF_DECAL_NOTINDEATHMATCH )) )
 	{
@@ -127,7 +127,7 @@ void CDecal :: Spawn( void )
 	{
 		SetThink(&CDecal :: StaticDecal );
 		// if there's no targetname, the decal will spray itself on as soon as the world is done spawning.
-		SetNextThink( 0 );
+		SetNextThink( 0.3 );
 	}
 	else
 	{

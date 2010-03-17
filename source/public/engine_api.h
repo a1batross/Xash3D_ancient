@@ -13,12 +13,12 @@
 #define MAX_CLIENTS			32	// max allowed clients (modify with precaution)
 #define MAX_DLIGHTS			32	// dynamic lights (rendered per one frame)
 #define MAX_LIGHTSTYLES		256	// can't be blindly increased
-#define MAX_DECALS			256	// server decal indexes (different decalnames, not a render limit)
+#define MAX_DECALS			512	// server decal indexes (different decalnames, not a render limit)
 #define MAX_USER_MESSAGES		200	// another 56 messages reserved for engine routines
 #define MAX_EVENTS			256	// playback events that can be queued (a byte range, don't touch)
 #define MAX_GENERICS		256	// generic files that can download from server
 #define MAX_CLASSNAMES		512	// maxcount of various edicts classnames
-#define MAX_SOUNDS			1024	// max unique loaded sounds
+#define MAX_SOUNDS			4096	// max unique loaded sounds
 #define MAX_MODELS			4096	// total count of brush & studio various models per one map
 #define MAX_PARTICLES		4096	// total particle count per one frame
 #define MAX_EDICTS			32768	// absolute limit that never be reached, (do not edit!)

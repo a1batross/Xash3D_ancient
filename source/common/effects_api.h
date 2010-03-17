@@ -21,6 +21,7 @@ typedef struct efxapi_s
 
 	particle_t *(*R_AllocParticle)( void ); 
 	void	(*R_BlobExplosion)( const float *org );
+	void	(*R_EntityParticles)( edict_t *ent );
 	void	(*R_LavaSplash)( const float *org );
 	void	(*R_ParticleExplosion)( const float *org );
 	void	(*R_ParticleExplosion2)( const float *org, int colorStart, int colorLength );
@@ -30,7 +31,7 @@ typedef struct efxapi_s
 	void	(*R_GetPaletteColor)( int colorIndex, float *outColor );
 	int	(*CL_DecalIndex)( int id );
 	int	(*CL_DecalIndexFromName)( const char *szDecalName );
-	void	(*R_SetDecal)( float *org, float *dir, float *rgba, float rot, float rad, HSPRITE hSpr, int flags );
+	int	(*R_ShootDecal)( HSPRITE hSpr, edict_t *pEnt, const float *pos, int color, float roll, float rad );
 	void	(*CL_AllocDLight)( const float *org, float *rgb, float rad, float lifetime, int flags, int key );
 	void	(*CL_FindExplosionPlane)( const float *origin, float radius, float *result );
 	void	(*R_LightForPoint)( const float *rgflOrigin, float *lightValue );

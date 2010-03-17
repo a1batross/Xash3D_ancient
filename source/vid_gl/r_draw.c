@@ -425,10 +425,10 @@ void Tri_Vertex3f( const float x, const float y, const float z )
 
 void Tri_Color4ub( const byte r, const byte g, const byte b, const byte a )
 {
-	tri_colors[triState.numColor][0] = r;
-	tri_colors[triState.numColor][1] = g;
-	tri_colors[triState.numColor][2] = b;
-	tri_colors[triState.numColor][3] = a;
+	tri_colors[triState.numVertex][0] = r;
+	tri_colors[triState.numVertex][1] = g;
+	tri_colors[triState.numVertex][2] = b;
+	tri_colors[triState.numVertex][3] = a;
 	triState.numColor++;
 }
 

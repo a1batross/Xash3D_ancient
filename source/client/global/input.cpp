@@ -35,6 +35,7 @@ cvar_t	*v_centerspeed;
 cvar_t	*cl_mouseaccel;
 cvar_t	*cl_particlelod;
 cvar_t	*cl_particles;
+cvar_t	*cl_draw_beams;
 
 cvar_t	*m_sensitivity;
 cvar_t	*m_filter;		// mouse filtering
@@ -693,6 +694,7 @@ void IN_Init( void )
 
 	cl_particles = CVAR_REGISTER ( "cl_particles", "1", FCVAR_ARCHIVE, "disables particle effects" );
 	cl_particlelod = CVAR_REGISTER ( "cl_lod_particle", "0", FCVAR_ARCHIVE, "enables particle LOD (1, 2, 3)" );
+	cl_draw_beams = CVAR_REGISTER ( "cl_draw_beams", "1", FCVAR_ARCHIVE, "disables beam rendering" );
 	
 	Cmd_AddCommand ("centerview", IN_CenterView, "gradually recenter view (stop looking up/down)" );
 

@@ -15,6 +15,9 @@
 #include "r_beams.h"
 #include "hud.h"
 
+extern TEMPENTITY *m_pEndFlare;
+extern TEMPENTITY *m_pLaserSpot;
+
 CTempEnts *g_pTempEnts;
 
 //-----------------------------------------------------------------------------
@@ -293,8 +296,7 @@ int CTempEnts::TE_Update( TEMPENTITY *pTemp )
 
 			if( pTemp->hitSound )
 			{
-// FIXME: implement
-//				g_engfuncs.pEfxAPI->CL_PlaySound( pTemp, damp );
+				PlaySound( pTemp, damp );
 			}
 
 			if( pTemp->flags & FTENT_COLLIDEKILL )
@@ -332,8 +334,7 @@ int CTempEnts::TE_Update( TEMPENTITY *pTemp )
 
 	if( pTemp->flags & FTENT_SMOKETRAIL )
 	{
-// FIXME: implement
-//		g_engfuncs.pEfxAPI->R_RocketTrail( pTemp->oldorigin, pTemp->entity.origin, 1 );
+		g_engfuncs.pEfxAPI->R_RocketTrail( pTemp->oldorigin, pTemp->origin, 1 );
 	}
 
 	if( pTemp->flags & FTENT_GRAVITY )
@@ -466,6 +467,10 @@ void CTempEnts::Clear( void )
 	m_TempEnts[MAX_TEMP_ENTITIES-1].next = NULL;
 	m_pFreeTempEnts = m_TempEnts;
 	m_pActiveTempEnts = NULL;
+
+	// clearing user pointers
+	m_pLaserSpot = NULL;
+	m_pEndFlare = NULL;
 }
 
 void CTempEnts::TempEntFree( TEMPENTITY *pTemp, TEMPENTITY *pPrev )
@@ -623,6 +628,10 @@ TEMPENTITY *CTempEnts::TempEntAllocCustom( const Vector& org, int modelIndex, in
 
 ==============================================================
 */
+void CTempEnts::PlaySound( TEMPENTITY *pTemp, float damp )
+{
+}
+
 void CTempEnts::RocketFlare( const Vector& pos )
 {
 	TEMPENTITY	*pTemp;
@@ -1101,23 +1110,20 @@ void CTempEnts::WeaponFlash( edict_t *pEnt, int iAttachment )
 	AllocDLight( pos, 255, 180, 64, 100, 0.05f, 0 );
 }
 
-void CTempEnts::PlaceDecal( Vector pos, Vector dir, float scale, HSPRITE hDecal )
+void CTempEnts::PlaceDecal( Vector pos, float scale, int decalIndex )
 {
-	float	rgba[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	int	flags = DECAL_FADEALPHA;
+	HSPRITE	hDecal;
 
-	g_engfuncs.pEfxAPI->R_SetDecal( pos, dir, rgba, RANDOM_LONG( 0, 360 ), scale, hDecal, flags );
+	hDecal = g_engfuncs.pEfxAPI->CL_DecalIndex( decalIndex );
+	g_engfuncs.pEfxAPI->R_ShootDecal( hDecal, NULL, pos, 0, RANDOM_LONG( 0, 359 ), scale );
 }
 
-void CTempEnts::PlaceDecal( Vector pos, edict_t *pEntity, HSPRITE hDecal )
+void CTempEnts::PlaceDecal( Vector pos, float scale, const char *decalname )
 {
-	float	rgba[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	int	flags = DECAL_FADEALPHA;
-	float	scale = 5.0f;	// FIXME
-	Vector	dir;
+	HSPRITE	hDecal;
 
-	g_engfuncs.pEfxAPI->CL_FindExplosionPlane( pos, scale, dir );
-	g_engfuncs.pEfxAPI->R_SetDecal( pos, dir, rgba, RANDOM_LONG( 0, 360 ), scale, hDecal, flags );
+	hDecal = g_engfuncs.pEfxAPI->CL_DecalIndexFromName( decalname );
+	g_engfuncs.pEfxAPI->R_ShootDecal( hDecal, NULL, pos, 0, RANDOM_LONG( 0, 359 ), scale );
 }
 
 void CTempEnts::AllocDLight( Vector pos, float r, float g, float b, float radius, float time, int flags )

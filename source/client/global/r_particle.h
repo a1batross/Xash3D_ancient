@@ -75,7 +75,6 @@ public:
 	void		SparkParticles( const Vector org, const Vector dir );
 	void		RicochetSparks( const Vector org, float scale );
 	void		SmokeParticles( const Vector pos, int count );
-	void		TeleportParticles( const Vector org );
 };
 
 extern CParticleSystem	*g_pParticles;

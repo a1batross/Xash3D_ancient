@@ -368,12 +368,9 @@ typedef enum
 #define CL_ACTIVE			2	// draw normal hud
 #define CL_PAUSED			3	// pause when active
 
-// built-in decals flags
-#define DECAL_FADEALPHA		(1<<0)	// fade decal by alpha instead color
-#define DECAL_FADEENERGY		(1<<1)	// fade decal energy balls
-
 // built-in dlight flags
 #define DLIGHT_FADE			(1<<0)	// fade dlight at end of lifetime
+#define DLIGHT_ELIGHT		(1<<1)	// no world effect, studiomodel only
 
 // renderer flags
 #define RDF_NOWORLDMODEL		(1<<0) 	// used for player configuration screen

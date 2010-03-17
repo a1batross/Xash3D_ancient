@@ -1878,7 +1878,7 @@ void DrawSegs( int noise_divisions, float *prgNoise, int modelIndex, float frame
 	int	i, noiseIndex, noiseStep;
 	float	div, length, fraction, factor, vLast, vStep, brightness;
 
-	if( !CVAR_GET_FLOAT( "cl_draw_beams" ))
+	if( !cl_draw_beams->integer )
 		return;
 	
 	ASSERT( fadeLength >= 0.0f );

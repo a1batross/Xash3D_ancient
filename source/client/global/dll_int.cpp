@@ -381,6 +381,11 @@ int HUD_AddVisibleEntity( edict_t *pEnt, int ed_type )
 		pEnt->v.renderamt = oldRenderAmt;
 	}	
 
+	if ( pEnt->v.effects & EF_BRIGHTFIELD )
+	{
+		g_engfuncs.pEfxAPI->R_EntityParticles( pEnt );
+	}
+
 	// add in muzzleflash effect
 	if ( pEnt->v.effects & EF_MUZZLEFLASH )
 	{

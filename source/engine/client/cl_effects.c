@@ -290,345 +290,6 @@ void CL_TestLights( void )
 /*
 ==============================================================
 
-DECALS MANAGEMENT
-
-==============================================================
-*/
-#define MAX_DRAWDECALS		1024
-#define MAX_DECAL_VERTS		32		// per one decal
-#define MAX_DECAL_FRAGMENTS		16
-
-typedef struct cdecal_s
-{
-	struct cdecal_s	*prev, *next;
-
-	int		die;			// remove after this time
-	int		time;			// time when decal is placed
-	int		fadetime;
-	float		fadefreq;
-	word		flags;
-	vec4_t		color;
-
-	poly_t		*poly;
-} cdecal_t;
-
-static cdecal_t	cl_decals[MAX_DRAWDECALS];
-static cdecal_t	cl_decals_headnode, *cl_free_decals;
-
-static poly_t	cl_decal_polys[MAX_DRAWDECALS];
-static vec3_t	cl_decal_verts[MAX_DRAWDECALS][MAX_DECAL_VERTS];
-static vec2_t	cl_decal_stcoords[MAX_DRAWDECALS][MAX_DECAL_VERTS];
-static rgba_t	cl_decal_colors[MAX_DRAWDECALS][MAX_DECAL_VERTS];
-
-/*
-=================
-CL_ClearDecals
-=================
-*/
-void CL_ClearDecals( void )
-{
-	int	i;
-
-	Mem_Set( cl_decals, 0, sizeof( cl_decals ));
-	Mem_Set( cl_decal_polys, 0, sizeof( cl_decal_polys ));
-
-	// link decals
-	cl_free_decals = cl_decals;
-	cl_decals_headnode.prev = &cl_decals_headnode;
-	cl_decals_headnode.next = &cl_decals_headnode;
-
-	for( i = 0; i < MAX_DRAWDECALS; i++ )
-	{
-		if( i < MAX_DRAWDECALS - 1 )
-			cl_decals[i].next = &cl_decals[i+1];
-
-		cl_decals[i].poly = &cl_decal_polys[i];
-		cl_decals[i].poly->verts = cl_decal_verts[i];
-		cl_decals[i].poly->stcoords = cl_decal_stcoords[i];
-		cl_decals[i].poly->colors = cl_decal_colors[i];
-	}
-}
-
-/*
-=================
-CL_AllocDecal
-
-Returns either a free decal or the oldest one
-=================
-*/
-cdecal_t *CL_AllocDecal( void )
-{
-	cdecal_t	*dl;
-
-	if( cl_free_decals )
-	{	
-		// take a free decal if possible
-		dl = cl_free_decals;
-		cl_free_decals = dl->next;
-	}
-	else
-	{	
-		// grab the oldest one otherwise
-		dl = cl_decals_headnode.prev;
-		dl->prev->next = dl->next;
-		dl->next->prev = dl->prev;
-	}
-
-	// put the decal at the start of the list
-	dl->prev = &cl_decals_headnode;
-	dl->next = cl_decals_headnode.next;
-	dl->next->prev = dl;
-	dl->prev->next = dl;
-
-	return dl;
-}
-
-/*
-=================
-CL_FreeDecal
-=================
-*/
-void CL_FreeDecal( cdecal_t *dl )
-{
-	// remove from linked active list
-	dl->prev->next = dl->next;
-	dl->next->prev = dl->prev;
-
-	// insert into linked free list
-	dl->next = cl_free_decals;
-	cl_free_decals = dl;
-}
-
-/*
-=================
-CL_SpawnDecal
-=================
-*/
-void CL_SpawnDecal( vec3_t org, vec3_t dir, float rot, float rad, float *col, float die, float fadetime, word flags, shader_t handle )
-{
-	int		i, j;
-	cdecal_t		*dl;
-	poly_t		*poly;
-	vec3_t		axis[3];
-	vec3_t		verts[MAX_DECAL_VERTS];
-	fragment_t	*fr, fragments[MAX_DECAL_FRAGMENTS];
-	int		numfragments;
-	float		dietime, fadefreq;
-	rgba_t		color;
-
-	// invalid decal
-	if( rad <= 0 || VectorIsNull( dir ))
-		return;
-
-	// calculate orientation matrix
-	VectorNormalize2( dir, axis[0] );
-	PerpendicularVector( axis[1], axis[0] );
-	RotatePointAroundVector( axis[2], axis[0], axis[1], rot );
-	CrossProduct( axis[0], axis[2], axis[1] );
-
-	numfragments = re->GetFragments( org, rad, axis, MAX_DECAL_VERTS, verts, MAX_DECAL_FRAGMENTS, fragments );
-
-	// no valid fragments
-	if( !numfragments ) return;
-
-	// clamp and scale colors
-	color[0] = (byte)bound( 0, col[0] * 255, 255 );
-	color[1] = (byte)bound( 0, col[1] * 255, 255 );
-	color[2] = (byte)bound( 0, col[2] * 255, 255 );
-	color[3] = (byte)bound( 0, col[3] * 255, 255 );
-
-	rad = 0.5f / rad;
-	VectorScale( axis[1], rad, axis[1] );
-	VectorScale( axis[2], rad, axis[2] );
-
-	if( die == -1.0f )
-	{
-		dietime = -1.0f;
-		fadefreq = fadetime = 1.0f;
-	}
-	else
-	{
-		dietime = cl.time + (die * 1000);
-		fadefreq = 0.001f / min( fadetime, die );
-		fadetime = cl.time + (die - min( fadetime, die )) * 1000;
-	}
-
-	for( i = 0, fr = fragments; i < numfragments; i++, fr++ )
-	{
-		if( fr->numverts > MAX_DECAL_VERTS )
-			return;
-		else if( fr->numverts <= 0 )
-			continue;
-
-		// allocate decal
-		dl = CL_AllocDecal ();
-		Vector4Copy( col, dl->color );
-		dl->die = dietime;
-		dl->time = cl.time;
-		dl->fadetime = fadetime;
-		dl->fadefreq = fadefreq;
-		dl->flags = flags;
-
-		// setup polygon for drawing
-		poly = dl->poly;
-		poly->shadernum = handle;
-		poly->numverts = fr->numverts;
-		poly->fognum = fr->fognum;
-
-		for( j = 0; j < fr->numverts; j++ )
-		{
-			vec3_t v;
-
-			VectorCopy( verts[fr->firstvert+j], poly->verts[j] );
-			VectorSubtract( poly->verts[j], org, v );
-			poly->stcoords[j][0] = DotProduct( v, axis[1] ) + 0.5f;
-			poly->stcoords[j][1] = DotProduct( v, axis[2] ) + 0.5f;
-			for( i = 0; i < poly->numverts; i++ )
-				*( int * )poly->colors[i] = *( int * )color;
-		}
-	}
-}
-
-/*
-=================
-CL_AddDecals
-=================
-*/
-void CL_AddDecals( void )
-{
-	int		i;
-	float		fade;
-	cdecal_t		*dl, *next, *hnode;
-	poly_t		*poly;
-	rgba_t		color;
-
-	// add decals in first-spawned - first-drawn order
-	hnode = &cl_decals_headnode;
-	for( dl = hnode->prev; dl != hnode; dl = next )
-	{
-		next = dl->prev;
-
-		if( dl->die == -1.0f )
-		{
-			// static decals not fading, not removes
-			re->AddPolygon( dl->poly );
-			continue;
-		}
-
-		// it's time to DIE
-		if( dl->die <= cl.time )
-		{
-			CL_FreeDecal( dl );
-			continue;
-		}
-		poly = dl->poly;
-
-		if( dl->flags & DECAL_FADEENERGY )
-		{
-			float	time = cl.time - dl->time;
-
-			if( time < dl->fadetime )
-			{
-				fade = 255 - (time / dl->fadetime);
-				color[0] = (byte)(( dl->color[0] * fade ) * 255);
-				color[1] = (byte)(( dl->color[1] * fade ) * 255);
-				color[2] = (byte)(( dl->color[2] * fade ) * 255);
-			}
-			for( i = 0; i < poly->numverts; i++ )
-				*( int * )poly->colors[i] = *( int * )color;
-		}
-
-		// fade out
-		if( dl->fadetime < cl.time )
-		{
-			fade = (dl->die - cl.time) * dl->fadefreq;
-
-			if( dl->flags & DECAL_FADEALPHA )
-			{
-				color[0] = (byte)(( dl->color[0] ) * 255);
-				color[1] = (byte)(( dl->color[1] ) * 255);
-				color[2] = (byte)(( dl->color[2] ) * 255);
-				color[3] = (byte)(( dl->color[3] * fade ) * 255);
-			}
-			else
-			{
-				color[0] = (byte)(( dl->color[0] * fade ) * 255);
-				color[1] = (byte)(( dl->color[1] * fade ) * 255);
-				color[2] = (byte)(( dl->color[2] * fade ) * 255);
-				color[3] = (byte)(( dl->color[3] ) * 255);
-			}
-			for( i = 0; i < poly->numverts; i++ )
-				*( int * )poly->colors[i] = *( int * )color;
-		}
-		re->AddPolygon( poly );
-	}
-}
-
-void CL_FindExplosionPlane( const vec3_t origin, float radius, vec3_t result )
-{
-	static vec3_t	planes[6] = {{0, 0, 1}, {0, 1, 0}, {1, 0, 0}, {0, 0, -1}, {0, -1, 0}, {-1, 0, 0}};
-	float		best = 1.0f;
-	vec3_t		point, dir;
-	trace_t		trace;
-	int		i;
-
-	if( !result ) return;
-	VectorClear( dir );
-
-	for( i = 0; i < 6; i++ )
-	{
-		VectorMA( origin, radius, planes[i], point );
-
-		trace = CL_Move( origin, vec3_origin, vec3_origin, point, MOVE_NOMONSTERS, NULL );
-		if( trace.fAllSolid || trace.flFraction == 1.0f )
-			continue;
-
-		if( trace.flFraction < best )
-		{
-			best = trace.flFraction;
-			VectorCopy( trace.vecPlaneNormal, dir );
-		}
-	}
-	VectorCopy( dir, result );
-}
-
-/*
-===============
-CL_SpawnStaticDecal
-
-===============
-*/
-void CL_SpawnStaticDecal( vec3_t origin, int decalIndex, int entityIndex, int modelIndex )
-{
-	vec4_t	col = { 1.0f, 1.0f, 1.0f, 1.0f };
-	float	radius = 32.0f;
-	vec3_t	dir;
-
-	if( entityIndex != 0 )
-	{
-		MsgDev( D_ERROR, "Current Xash version allows static decals only on world surfaces\n" );
-		return;
-	}
-
-	CL_FindExplosionPlane( origin, radius, dir );
-	decalIndex = bound( 0, decalIndex, MAX_DECALS - 1 );
-	CL_SpawnDecal( origin, dir, 90.0f, radius, col, -1.0f, 0.0f, 0, cl.decal_shaders[decalIndex] );
-}
-
-/*
-===============
-CL_AddDecal
-
-===============
-*/
-void CL_AddDecal( float *org, float *dir, float *rgba, float rot, float rad, HSPRITE hSpr, int flags )
-{
-	CL_SpawnDecal( org, dir, rot, rad, rgba, 120.0f, 30.0f, flags, hSpr );
-}
-
-/*
-==============================================================
-
 PARTICLE MANAGEMENT
 
 ==============================================================
@@ -752,7 +413,7 @@ void CL_AddParticles( void )
 	float		time1, time2, time3;
 	float		grav, dvel, frametime;
 	vec3_t		up, right, point1;
-	float		scale = 3.0f;
+	float		scale = 3.0f;	// FIXME: make cvar
 	rgba_t		modulate;
 	int		i;
 
@@ -1289,6 +950,259 @@ void CL_RocketTrail( const vec3_t org, const vec3_t end, int type )
 	}
 }
 
+/*
+==============================================================
+
+DECALS MANAGEMENT
+
+==============================================================
+*/
+#define MAX_DRAWDECALS	1024
+#define MAX_DECAL_VERTS	128	// per one decal
+#define MAX_DECAL_FRAGMENTS	64
+
+typedef struct cdecal_s
+{
+	struct cdecal_s	*prev;
+	struct cdecal_s	*next;
+
+	edict_t		*pent;	// parent entity
+	poly_t		*poly;
+} cdecal_t;
+
+static cdecal_t	cl_decals[MAX_DRAWDECALS];
+static cdecal_t	cl_decals_headnode, *cl_free_decals;
+static poly_t	cl_decal_polys[MAX_DRAWDECALS];
+static vec3_t	cl_decal_verts[MAX_DRAWDECALS][MAX_DECAL_VERTS];
+static vec2_t	cl_decal_stcoords[MAX_DRAWDECALS][MAX_DECAL_VERTS];
+static rgba_t	cl_decal_colors[MAX_DRAWDECALS][MAX_DECAL_VERTS];
+
+/*
+=================
+CL_ClearDecals
+=================
+*/
+void CL_ClearDecals( void )
+{
+	int	i;
+
+	Mem_Set( cl_decals, 0, sizeof( cl_decals ));
+	Mem_Set( cl_decal_polys, 0, sizeof( cl_decal_polys ));
+
+	// link decals
+	cl_free_decals = cl_decals;
+	cl_decals_headnode.prev = &cl_decals_headnode;
+	cl_decals_headnode.next = &cl_decals_headnode;
+
+	for( i = 0; i < MAX_DRAWDECALS; i++ )
+	{
+		if( i < MAX_DRAWDECALS - 1 )
+			cl_decals[i].next = &cl_decals[i+1];
+
+		cl_decals[i].poly = &cl_decal_polys[i];
+		cl_decals[i].poly->verts = cl_decal_verts[i];
+		cl_decals[i].poly->stcoords = cl_decal_stcoords[i];
+		cl_decals[i].poly->colors = cl_decal_colors[i];
+	}
+}
+
+/*
+=================
+CL_AllocDecal
+
+Returns either a free decal or the oldest one
+=================
+*/
+cdecal_t *CL_AllocDecal( void )
+{
+	cdecal_t	*dl;
+
+	if( cl_free_decals )
+	{	
+		// take a free decal if possible
+		dl = cl_free_decals;
+		cl_free_decals = dl->next;
+	}
+	else
+	{	
+		// grab the oldest one otherwise
+		dl = cl_decals_headnode.prev;
+		dl->prev->next = dl->next;
+		dl->next->prev = dl->prev;
+	}
+
+	// put the decal at the start of the list
+	dl->prev = &cl_decals_headnode;
+	dl->next = cl_decals_headnode.next;
+	dl->next->prev = dl;
+	dl->prev->next = dl;
+
+	return dl;
+}
+
+/*
+=================
+CL_FreeDecal
+=================
+*/
+void CL_FreeDecal( cdecal_t *dl )
+{
+	// remove from linked active list
+	dl->prev->next = dl->next;
+	dl->next->prev = dl->prev;
+
+	// insert into linked free list
+	dl->next = cl_free_decals;
+	cl_free_decals = dl;
+}
+
+/*
+=================
+CL_SpawnDecal
+=================
+*/
+int CL_SpawnDecal( HSPRITE m_hDecal, edict_t *pEnt, const vec3_t pos, int colorIndex, float roll, float scale )
+{
+	cdecal_t		*dl;
+	poly_t		*poly;
+	vec3_t		axis[3];
+	int		i, j, numfragments;
+	vec3_t		dir, verts[MAX_DECAL_VERTS];
+	fragment_t	*fr, fragments[MAX_DECAL_FRAGMENTS];
+	float		radius = 32.0f; // search radius
+	rgba_t		color;
+
+	// invalid decal
+	if( scale <= 0.0f || !m_hDecal )
+		return false;
+
+	CL_FindExplosionPlane( pos, scale, dir );
+
+	// calculate orientation matrix
+	VectorNormalize2( dir, axis[0] );
+	PerpendicularVector( axis[1], axis[0] );
+	RotatePointAroundVector( axis[2], axis[0], axis[1], roll );
+	CrossProduct( axis[0], axis[2], axis[1] );
+
+	numfragments = re->GetFragments( pos, scale, axis, MAX_DECAL_VERTS, verts, MAX_DECAL_FRAGMENTS, fragments );
+
+	// no valid fragments
+	if( !numfragments ) return false;
+
+	// setup decal color
+	if( colorIndex )
+	{
+		colorIndex = bound( 0, colorIndex, 255 );
+		color[0] = cl_particlePalette[colorIndex][0];
+		color[1] = cl_particlePalette[colorIndex][1];
+		color[2] = cl_particlePalette[colorIndex][2];
+		color[3] = 0xFF;
+	}
+	else Vector4Set( color, 255, 255, 255, 255 );
+
+	scale = 0.5f / scale;
+	VectorScale( axis[1], scale, axis[1] );
+	VectorScale( axis[2], scale, axis[2] );
+
+	for( i = 0, fr = fragments; i < numfragments; i++, fr++ )
+	{
+		if( fr->numverts >= MAX_DECAL_VERTS )
+			return -1; // in case we partially failed
+		else if( fr->numverts <= 0 )
+			continue;
+
+		// allocate decal
+		dl = CL_AllocDecal();
+		dl->pent = pEnt;
+
+		// setup polygon for drawing
+		poly = dl->poly;
+		poly->shadernum = m_hDecal;
+		poly->numverts = fr->numverts;
+		poly->fognum = fr->fognum;
+
+		for( j = 0; j < fr->numverts; j++ )
+		{
+			vec3_t	v;
+
+			VectorCopy( verts[fr->firstvert+j], poly->verts[j] );
+			VectorSubtract( poly->verts[j], pos, v );
+			poly->stcoords[j][0] = DotProduct( v, axis[1] ) + 0.5f;
+			poly->stcoords[j][1] = DotProduct( v, axis[2] ) + 0.5f;
+			*(int *)poly->colors[j] = *(int *)color;
+		}
+	}
+	return true; // all done
+}
+
+/*
+=================
+CL_AddDecals
+=================
+*/
+void CL_AddDecals( void )
+{
+	cdecal_t	*dl, *next, *hnode;
+
+	// add decals in first-spawned - first-drawn order
+	hnode = &cl_decals_headnode;
+	for( dl = hnode->prev; dl != hnode; dl = next )
+	{
+		next = dl->prev;
+
+		if( dl->pent && dl->pent->free )
+		{
+			// remove attached decals
+			CL_FreeDecal( dl );
+			continue;
+		}
+		re->AddPolygon( dl->poly );
+	}
+}
+
+/*
+===============
+CL_SpawnStaticDecal
+
+===============
+*/
+void CL_SpawnStaticDecal( vec3_t origin, int decalIndex, int entityIndex, int modelIndex )
+{
+	edict_t	*pEnt;
+
+	pEnt = CL_GetEdictByIndex( entityIndex );
+	decalIndex = bound( 0, decalIndex, MAX_DECALS - 1 );
+
+	CL_SpawnDecal( cl.decal_shaders[decalIndex], pEnt, origin, 0, 90.0f, 32.0f );
+}
+
+void CL_FindExplosionPlane( const vec3_t origin, float radius, vec3_t result )
+{
+	static vec3_t	planes[6] = {{0, 0, 1}, {0, 1, 0}, {1, 0, 0}, {0, 0, -1}, {0, -1, 0}, {-1, 0, 0}};
+	float		best = 1.0f;
+	vec3_t		point, dir;
+	trace_t		trace;
+	int		i;
+
+	if( !result ) return;
+	VectorClear( dir );
+
+	for( i = 0; i < 6; i++ )
+	{
+		VectorMA( origin, radius, planes[i], point );
+
+		trace = CL_Move( origin, vec3_origin, vec3_origin, point, MOVE_NOMONSTERS, NULL );
+		if( trace.fAllSolid || trace.flFraction == 1.0f )
+			continue;
+
+		if( trace.flFraction < best )
+		{
+			best = trace.flFraction;
+			VectorCopy( trace.vecPlaneNormal, dir );
+		}
+	}
+	VectorCopy( dir, result );
+}
 
 void CL_LightForPoint( const vec3_t point, vec3_t ambientLight )
 {

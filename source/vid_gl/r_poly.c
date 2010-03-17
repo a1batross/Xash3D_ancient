@@ -384,7 +384,7 @@ R_SurfPotentiallyFragmented
 */
 bool R_SurfPotentiallyFragmented( msurface_t *surf )
 {
-	if( surf->flags & ( SURF_NOMARKS|SURF_NOIMPACT|SURF_NODRAW ) )
+	if( surf->flags & ( SURF_NOMARKS|SURF_NOIMPACT|SURF_NODRAW ))
 		return false;
 	return ( ( surf->facetype == MST_PLANAR ) || ( surf->facetype == MST_PATCH ) /* || (surf->facetype == MST_TRISURF)*/ );
 }
@@ -451,7 +451,7 @@ nextNodeOnStack:
 			continue;
 		}
 
-		if( ( dist >= -fragmentRadius ) && ( stackdepth < sizeof( localstack )/sizeof( mnode_t * ) ) )
+		if( ( dist >= -fragmentRadius ) && ( stackdepth < sizeof( localstack ) / sizeof( mnode_t * )))
 			localstack[stackdepth++] = node->children[0];
 		node = node->children[1];
 	}

@@ -51,8 +51,8 @@ public:
 	void	PlaySound( TEMPENTITY *pTemp, float damp );
 	void	TracerEffect( const Vector &start, const Vector &end );
 	void	WeaponFlash( edict_t *pEnt, int iAttachment );
-	void	PlaceDecal( Vector pos, Vector dir, float scale, HSPRITE hDecal );
-	void	PlaceDecal( Vector pos, edict_t *pEntity, HSPRITE hDecal );
+	void	PlaceDecal( Vector pos, float scale, int decalIndex );
+	void	PlaceDecal( Vector pos, float scale, const char *decalname );
 	void	AllocDLight( Vector pos, float r, float g, float b, float radius, float time, int flags );
 	void	AllocDLight( Vector pos, float radius, float time, int flags );
 	void	RocketTrail( Vector start, Vector end, int type );

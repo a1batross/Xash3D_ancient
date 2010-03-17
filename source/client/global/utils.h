@@ -216,6 +216,7 @@ extern cvar_t	*v_centermove;
 extern cvar_t	*cl_forwardspeed;
 extern cvar_t	*cl_particlelod;
 extern cvar_t	*cl_particles;
+extern cvar_t	*cl_draw_beams;
 extern cvar_t	*cl_lw;
 
 extern int CL_ButtonBits( int bResetState );

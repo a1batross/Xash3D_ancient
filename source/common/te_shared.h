@@ -111,7 +111,8 @@
 // byte (velocity along vector in 10's)
 // byte (randomness of velocity in 10's)
 
-#define TE_BEAM				16		// obsolete
+#define TE_BEAMLASER		16		// UNDONE: dont forget add description
+// ???
 
 #define TE_SPRITE			17		// additive sprite, plays 1 cycle
 // coord, coord, coord (position) 
@@ -196,9 +197,8 @@
 // short (base speed)
 // short (ramdon velocity)
 
-#define TE_BEAMRINGPOINT		26
+#define TE_BEAMRINGPOINT		26	// UNDONE: dont forget add description
 // ???
-// FIXME: dont forget add description
 
 #define TE_DLIGHT			27		// dynamic light, effect world, minor entity effect
 // coord, coord, coord (pos) 
@@ -241,10 +241,6 @@
 // coord, coord, coord		boxmaxs
 // short life in 0.1 s
 // 3 bytes r, g, b
-
-#define TE_BEAMLASER		98
-// ???
-// FIXME: dont forget add description
 
 #define TE_KILLBEAM			99		// kill all beams attached to entity
 // short (entity)

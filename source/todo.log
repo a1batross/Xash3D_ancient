@@ -52,3 +52,8 @@ Beta 13.02.10
 26. get rid of fakemirror stuff in spirit		OK
 27. rewrite engine particle system			OK
 28. rewrite engine decal system
+29. rewrite engine dlight system
+30. implemenet remaining tempents
+31. fix crash on env_beam.map
+
+

@@ -2487,6 +2487,15 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, shader_t customShader
 	if( pRefEntity->v.effects & EF_NODRAW && ed_type != ED_PORTAL )
 		return true; // done
 
+	switch( pRefEntity->v.rendermode )
+	{
+	case kRenderTransAdd:
+	case kRenderTransTexture:
+		if( pRefEntity->v.renderamt == 0.0f )
+			return true; // done
+	default: break;
+	}
+
 	// filter ents
 	switch( ed_type )
 	{

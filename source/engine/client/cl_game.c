@@ -2099,7 +2099,7 @@ static int pfnDecalIndexFromName( const char *szDecalName )
 	// look through the loaded sprite name list for SpriteName
 	for( i = 0; i < MAX_DECALS && cl.configstrings[CS_DECALS+i+1][0]; i++ )
 	{
-		if( !strcmp( szDecalName, cl.configstrings[CS_DECALS+i+1] ))
+		if( !com.stricmp( szDecalName, cl.configstrings[CS_DECALS+i+1] ))
 			return cl.decal_shaders[i+1];
 	}
 	return 0; // invalid sprite
@@ -2419,6 +2419,7 @@ static efxapi_t gEfxApi =
 	sizeof( efxapi_t ),	
 	CL_AllocParticle,
 	CL_BlobExplosion,
+	CL_EntityParticles,
 	CL_LavaSplash,
 	CL_ParticleExplosion,
 	CL_ParticleExplosion2,
@@ -2428,7 +2429,7 @@ static efxapi_t gEfxApi =
 	CL_GetPaletteColor,
 	pfnDecalIndex,
 	pfnDecalIndexFromName,
-	CL_AddDecal,
+	CL_SpawnDecal,
 	CL_AddDLight,
 	pfnFindExplosionPlane,
 	CL_LightForPoint,
