@@ -505,6 +505,9 @@ void W_Precache(void)
 	PRECACHE_MODEL ("sprites/muzzleflash2.spr");
 	PRECACHE_MODEL ("sprites/muzzleflash3.spr");
 	PRECACHE_MODEL ("sprites/muzzleflash.spr");
+
+	// ricochet
+	PRECACHE_MODEL ("sprites/richo1.spr");
 	
 	// used by explosions
 	PRECACHE_MODEL ("models/grenade.mdl");

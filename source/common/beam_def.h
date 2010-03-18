@@ -12,7 +12,6 @@ typedef enum
 	BEAM_ENTPOINT,
 	BEAM_ENTS,
 	BEAM_HOSE,
-	BEAM_LASER,
 } kBeamType_t;
 
 // beam flags

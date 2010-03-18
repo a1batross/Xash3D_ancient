@@ -156,12 +156,13 @@ public:
 	// Popcorn trail for beam follows to use
 	BeamTrail_t	*trail;
 
-	// for TE_BEAMRINGPOINT
+	// for TE_BEAMRING
 	float		start_radius;
 	float		end_radius;
 
 	// for FBEAM_ONLYNOISEONCE
 	bool		m_bCalculatedNoise;
+	bool		m_bCulled;	// ignore to drawing
 
 	float		m_flDmgTime;	// this is egon stuff
 };
@@ -225,7 +226,6 @@ public:
 	Beam_t		*CreateBeamEntPoint( BeamInfo_t &beamInfo );
 	Beam_t		*CreateBeamPoints( BeamInfo_t &beamInfo );
 	Beam_t		*CreateBeamRing( BeamInfo_t &beamInfo );
-	Beam_t		*CreateBeamRingPoint( BeamInfo_t &beamInfo );
 	Beam_t		*CreateBeamCirclePoints( BeamInfo_t &beamInfo );
 	Beam_t		*CreateBeamFollow( BeamInfo_t &beamInfo );
 
@@ -251,10 +251,6 @@ public:
 	void		CreateBeamRing( int startEnt, int endEnt, int modelIndex, float life, float width,
 			float endWidth, float fadeLength, float amplitude, float brightness, float speed,
 			int startFrame, float framerate, float r, float g, float b );
-	void		CreateBeamRingPoint( const Vector& center, float start_radius, float end_radius,
-			int modelIndex, float life, float width, float m_nEndWidth, float m_nFadeLength,
-			float amplitude, float brightness, float speed, int startFrame, float framerate,
-			float r, float g, float b );
 	void		CreateBeamCirclePoints( int type, Vector& start, Vector& end, int modelIndex, float life,
 			float width, float endWidth, float fadeLength, float amplitude, float brightness,
 			float speed, int startFrame, float framerate, float r, float g, float b );

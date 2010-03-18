@@ -221,6 +221,17 @@ void CL_AddDLight( const float *org, const float *rgb, float radius, float time,
 
 /*
 ===============
+CL_AddSLight
+
+===============
+*/
+void CL_AddSLight( const float *org, float *dir, float rad, float *cone, HSPRITE hLight, int key )
+{
+	// FIXME: implement
+}
+
+/*
+===============
 CL_AddDLights
 
 ===============

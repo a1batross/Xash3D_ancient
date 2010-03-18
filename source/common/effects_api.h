@@ -33,7 +33,7 @@ typedef struct efxapi_s
 	int	(*CL_DecalIndexFromName)( const char *szDecalName );
 	int	(*R_ShootDecal)( HSPRITE hSpr, edict_t *pEnt, const float *pos, int color, float roll, float rad );
 	void	(*CL_AllocDLight)( const float *org, float *rgb, float rad, float lifetime, int flags, int key );
-	void	(*CL_FindExplosionPlane)( const float *origin, float radius, float *result );
+	void	(*CL_AllocSLight)( const float *org, float *dir, float rad, float *cone, HSPRITE hLight, int key );
 	void	(*R_LightForPoint)( const float *rgflOrigin, float *lightValue );
 	int	(*CL_IsBoxVisible)( const float *mins, const float *maxs );
 	int	(*R_CullBox)( const float *mins, const float *maxs );

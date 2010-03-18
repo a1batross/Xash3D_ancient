@@ -239,7 +239,7 @@ void Beam_t::SetBrightness( float flBrightness )
 
 const Vector& Beam_t::GetRenderOrigin( void )
 {
-	if (( type == TE_BEAMRING ) || ( type == TE_BEAMRINGPOINT ))
+	if ( type == TE_BEAMRING )
 	{
 		// return the center of the ring
 		static Vector org;
@@ -265,7 +265,6 @@ void Beam_t::ComputeBounds( void )
 		}
 		break;
 	case TE_BEAMRING:
-	case TE_BEAMRINGPOINT:
 		{
 			int radius = delta.Length() * 0.5f;
 			m_Mins.Init( -radius, -radius, -radius );
@@ -778,7 +777,7 @@ Beam_t *CViewRenderBeams::CreateBeamEntPoint( BeamInfo_t &beamInfo )
 		return NULL;
 
 	pBeam->type = TE_BEAMPOINTS;
-	pBeam->flags = FBEAM_SINENOISE;
+	pBeam->flags = 0;
 
 	if ( beamInfo.m_pStartEnt )
 	{
@@ -1017,77 +1016,6 @@ Beam_t *CViewRenderBeams::CreateBeamFollow( BeamInfo_t &beamInfo )
 //			startEnt - 
 // Output : Beam_t
 //-----------------------------------------------------------------------------
-void CViewRenderBeams::CreateBeamRingPoint( const Vector& center, float start_radius, float end_radius, int modelIndex,
-		float life, float width, float endWidth, float fadeLength, float amplitude, float brightness,
-		float speed, int startFrame, float framerate, float r, float g, float b )
-{
-	BeamInfo_t beamInfo;
-	
-	beamInfo.m_nModelIndex = modelIndex;
-	beamInfo.m_flLife = life;
-	beamInfo.m_flWidth = width;
-	beamInfo.m_flEndWidth = endWidth;
-	beamInfo.m_flFadeLength = fadeLength;
-	beamInfo.m_flAmplitude = amplitude;
-	beamInfo.m_flBrightness = brightness;
-	beamInfo.m_flSpeed = speed;
-	beamInfo.m_nStartFrame = startFrame;
-	beamInfo.m_flFrameRate = framerate;
-	beamInfo.m_flRed = r;
-	beamInfo.m_flGreen = g;
-	beamInfo.m_flBlue = b;
-	beamInfo.m_vecCenter = center;
-	beamInfo.m_flStartRadius = start_radius;
-	beamInfo.m_flEndRadius = end_radius;
-
-	CreateBeamRingPoint( beamInfo );
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Create a beam ring between two entities
-//   Input: beamInfo -
-//-----------------------------------------------------------------------------
-Beam_t *CViewRenderBeams::CreateBeamRingPoint( BeamInfo_t &beamInfo )
-{
-	// ??
-	Vector endpos = beamInfo.m_vecCenter;
-
-	beamInfo.m_vecStart = beamInfo.m_vecCenter;
-	beamInfo.m_vecEnd = beamInfo.m_vecCenter;
-
-	Beam_t *pBeam = CreateGenericBeam( beamInfo );
-	if ( !pBeam )
-		return NULL;
-
-	pBeam->type = TE_BEAMRINGPOINT;
-	pBeam->start_radius = beamInfo.m_flStartRadius;
-	pBeam->end_radius = beamInfo.m_flEndRadius;
-	pBeam->attachment[2] = beamInfo.m_vecCenter;
-
-	SetBeamAttributes( pBeam, beamInfo );
-	if ( beamInfo.m_flLife == 0 )
-	{
-		pBeam->flags |= FBEAM_FOREVER;
-	}
-
-	return pBeam;
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Create a beam ring between two entities
-// Input  : startEnt - 
-//			endEnt - 
-//			modelIndex - 
-//			life - 
-//			width - 
-//			amplitude - 
-//			brightness - 
-//			speed - 
-//			startFrame - 
-//			framerate - 
-//			startEnt - 
-// Output : Beam_t
-//-----------------------------------------------------------------------------
 void CViewRenderBeams::CreateBeamRing( int startEnt, int endEnt, int modelIndex, float life, float width,
 		float endWidth, float fadeLength,  float amplitude, float brightness, float speed,
 		int startFrame, float framerate, float r, float g, float b )
@@ -1201,8 +1129,11 @@ void CViewRenderBeams::FreeDeadTrails( BeamTrail_t **trail )
 //-----------------------------------------------------------------------------
 void CViewRenderBeams::UpdateBeam( Beam_t *pbeam, float frametime )
 {
+	pbeam->m_bCulled = false;
+
 	if ( GetModelType( pbeam->modelIndex ) == mod_bad )
 	{
+		pbeam->m_bCulled = true; // force to ignore
 		pbeam->die = gpGlobals->time;
 		return;
 	}
@@ -1245,8 +1176,10 @@ void CViewRenderBeams::UpdateBeam( Beam_t *pbeam, float frametime )
 	{
 		// Makes sure attachment[0] + attachment[1] are valid
 		if (!RecomputeBeamEndpoints( pbeam ))
+		{
+			pbeam->m_bCulled = true; // force to ignore
 			return;
-
+		}
 		// Compute segments from the new endpoints
 		pbeam->delta = pbeam->attachment[1] - pbeam->attachment[0];
 		if ( pbeam->amplitude >= 0.50f )
@@ -1255,50 +1188,16 @@ void CViewRenderBeams::UpdateBeam( Beam_t *pbeam, float frametime )
 			pbeam->segments = pbeam->delta.Length( ) * 0.075f + 3.0f; // one per 16 pixels
 	}
 
-	float	dr;
-
 	// Get position data for spline beam
 	switch ( pbeam->type )
 	{
-	case TE_BEAMRINGPOINT:
-		dr = pbeam->end_radius - pbeam->start_radius;
-		
-		if ( dr != 0.0f )
-		{
-			float frac = 1.0f;
-			// Go some portion of the way there based on life
-			float remaining = pbeam->die - gpGlobals->time;
-		
-			if ( remaining < pbeam->life && pbeam->life > 0.0f )
-			{
-				frac = remaining / pbeam->life;
-			}
-			frac = min( 1.0f, frac );
-			frac = max( 0.0f, frac );
-
-			frac = 1.0f - frac;
-
-			// Start pos
-			Vector endpos = pbeam->attachment[2];
-			endpos.x += ( pbeam->start_radius + frac * dr ) / 2.0f;
-			Vector startpos = pbeam->attachment[2];
-			startpos.x -= ( pbeam->start_radius + frac * dr ) / 2.0f;
-
-			pbeam->attachment[0] = startpos;
-			pbeam->attachment[1] = endpos;
-
-			pbeam->delta = pbeam->attachment[1] - pbeam->attachment[0];
-	
-			if ( pbeam->amplitude >= 0.50f )
-				pbeam->segments = pbeam->delta.Length( ) * 0.25f + 3.0f; // one per 4 pixels
-			else pbeam->segments = pbeam->delta.Length( ) * 0.075f + 3.0f; // one per 16 pixels
-
-		}
-		break;
 	case TE_BEAMPOINTS:
 		// UNDONE: Build culling volumes for other types of beams
 		if ( !CullBeam( pbeam->attachment[0], pbeam->attachment[1], 0 ))
+		{
+			pbeam->m_bCulled = true; // force to ignore
 			return;
+		}
 		break;
 	}
 
@@ -1553,7 +1452,7 @@ void CViewRenderBeams::DrawBeam( Beam_t *pbeam )
 	ASSERT( pbeam->delta.IsValid() );
 
 	// Don't draw really short beams
-	if ( pbeam->delta.Length() < 0.1f )
+	if ( pbeam->m_bCulled || pbeam->delta.Length() < 0.1f )
 	{
 		return;
 	}
@@ -1623,12 +1522,11 @@ void CViewRenderBeams::DrawBeam( Beam_t *pbeam )
 		DrawBeamFollow( pbeam->modelIndex, pbeam, frame, rendermode, gpGlobals->frametime, color );
 		break;
 	case TE_BEAMRING:
-	case TE_BEAMRINGPOINT:
 		DrawRing( NOISE_DIVISIONS, pbeam->rgNoise, FracNoise, pbeam->modelIndex, frame, rendermode, 
 			pbeam->attachment[0], pbeam->delta, pbeam->width, pbeam->amplitude, 
 			pbeam->freq, pbeam->speed, pbeam->segments, color );
 		break;
-	case TE_BEAMLASER:
+	case TE_BEAMHOSE:
 		DrawLaser( pbeam, frame, rendermode, color, pbeam->modelIndex );
 		break;
 	default:
@@ -1788,12 +1686,12 @@ void CViewRenderBeams::DrawBeam( edict_t *pbeam )
 	beamInfo.m_pStartEnt = beamInfo.m_pEndEnt = NULL;
 	beamInfo.m_nModelIndex = pbeam->v.modelindex;
 	beamInfo.m_flLife = 0;
-	beamInfo.m_flWidth = pbeam->v.scale * 0.1f;
+	beamInfo.m_flWidth = (float)(pbeam->v.scale * 0.1f);
 	beamInfo.m_flEndWidth = beamInfo.m_flWidth;
 	beamInfo.m_flFadeLength = 0.0f; // will be set on first call UpdateBeam
 	beamInfo.m_flAmplitude = (float)(pbeam->v.body * 0.1f);
 	beamInfo.m_flBrightness = pbeam->v.renderamt;
-	beamInfo.m_flSpeed = pbeam->v.animtime * 0.1f;
+	beamInfo.m_flSpeed = (float)(pbeam->v.animtime * 0.1f);
 
 	SetupBeam( &beam, beamInfo );
 
@@ -1817,8 +1715,8 @@ void CViewRenderBeams::DrawBeam( edict_t *pbeam )
 		beam.attachmentIndex[1]	= ((pbeam->v.colormap & 0xFF00)>>8);
 		beam.numAttachments		= (pbeam->v.owner) ? ((pbeam->v.aiment) ? 2 : 1) : 0;
 		break;
-	case BEAM_LASER:
-		beam.type			= TE_BEAMLASER;
+	case BEAM_HOSE:
+		beam.type			= TE_BEAMHOSE;
 		beam.flags		= FBEAM_STARTENTITY|FBEAM_ENDENTITY;
 		beam.entity[0]		= LinkWithViewModel( pbeam->v.aiment );
 		beam.attachmentIndex[0]	= pbeam->v.colormap & 0xFF;
@@ -1948,7 +1846,7 @@ void DrawSegs( int noise_divisions, float *prgNoise, int modelIndex, float frame
 
 	// What fraction of beam should be faded
 	ASSERT( fadeLength >= 0.0f );
-	float fadeFraction = fadeLength/ delta.Length();
+	float fadeFraction = fadeLength / delta.Length();
 	
 	// BUGBUG: This code generates NANs when fadeFraction is zero! REVIST!
 	fadeFraction = bound( 1e-6, fadeFraction, 1.0f );

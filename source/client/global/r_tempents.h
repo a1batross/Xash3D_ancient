@@ -32,7 +32,7 @@ public:
 	int	TE_Update( TEMPENTITY *pTemp );	// return false for instantly die
 
 	void	BloodSprite( const Vector &org, int colorIndex, int modelIndex, int modelIndex2, float size );
-	void	RicochetSprite( const Vector &pos, int modelIndex, float duration, float scale );
+	void	RicochetSprite( const Vector &pos, int modelIndex, float scale );
 	void	MuzzleFlash( edict_t *pEnt, int iAttachment, int type );
 	void	TempModel( const Vector &pos, const Vector &dir, const Vector &ang, float life, int modelIndex, int soundtype );
 	void	BreakModel( const Vector &pos, const Vector &size, const Vector &dir, float random, float life, int count, int modelIndex, char flags );
@@ -45,7 +45,7 @@ public:
 	TEMPENTITY *TempSprite( const Vector &pos, const Vector &dir, float scale, int modelIndex, int rendermode, int renderfx, float a, float life, int flags );
 	void	AttachTentToPlayer( int client, int modelIndex, float zoffset, float life );
 	void	KillAttachedTents( int client );
-	void	Sprite_Spray( const Vector &pos, const Vector &dir, int modelIndex, int count, int speed, int iRand );
+	void	Sprite_Spray( const Vector &pos, const Vector &dir, int modelIndex, int count, int speed, int iRand, int renderMode = kRenderTransAlpha );
 	void	Sprite_Trail( int type, const Vector &vecStart, const Vector &vecEnd, int modelIndex, int nCount, float flLife, float flSize, float flAmplitude, int nRenderamt, float flSpeed );
 	void	RocketFlare( const Vector& pos );
 	void	PlaySound( TEMPENTITY *pTemp, float damp );

@@ -78,7 +78,7 @@ void R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, f
 
 	if( oldframe != glState.draw_frame )
 	{
-		if( pic_mbuffer.shaderkey != (int)shader->sortkey )
+		if( pic_mbuffer.shaderkey != shader->sortkey )
 		{
 			// will be rendering on next call
 			oldframe = glState.draw_frame;
@@ -239,8 +239,6 @@ static void Tri_DrawPolygon( void )
 	tri_mesh.colorsArray[0] = tri_colors;
 	tri_mesh.elems = tri_elems;
 
-	triState.numVertex = triState.numIndex = triState.numColor = 0;
-
 	if( tri_mbuffer.shaderkey != (int)shader->sortkey || -tri_mbuffer.infokey-1+4 > MAX_ARRAY_VERTS )
 	{
 		if( tri_mbuffer.shaderkey )
@@ -252,7 +250,7 @@ static void Tri_DrawPolygon( void )
 
 	tr.iRenderMode = triState.currentRenderMode;
 	tri_mbuffer.shaderkey = shader->sortkey;
-	tri_mbuffer.infokey -= 4;
+	tri_mbuffer.infokey -= triState.numVertex;
 
 	triState.features = shader->features;
 	triState.features |= MF_COLORS;
@@ -262,6 +260,15 @@ static void Tri_DrawPolygon( void )
 	if( triState.noCulling )
 		triState.features |= MF_NOCULL;
 
+	if( tri_mbuffer.shaderkey != shader->sortkey || -tri_mbuffer.infokey-1+4 > MAX_TRIVERTS )
+	{
+		if( tri_mbuffer.shaderkey )
+		{
+			tri_mbuffer.infokey = -1;
+			R_RenderMeshBuffer( &tri_mbuffer );
+		}
+	}
+
 	// upload video right before rendering
 	if( shader->flags & SHADER_VIDEOMAP )
 		R_UploadCinematicShader( shader );
@@ -269,7 +276,7 @@ static void Tri_DrawPolygon( void )
 
 	if( oldframe != glState.draw_frame )
 	{
-		if( tri_mbuffer.shaderkey != (int)shader->sortkey )
+		if( tri_mbuffer.shaderkey != shader->sortkey )
 		{
 			// will be rendering on next call
 			oldframe = glState.draw_frame;
@@ -282,6 +289,7 @@ static void Tri_DrawPolygon( void )
 		}
 		oldframe = glState.draw_frame;
 	}
+	triState.numVertex = triState.numIndex = triState.numColor = 0;
 }
 
 static void Tri_CheckOverflow( int numIndices, int numVertices )

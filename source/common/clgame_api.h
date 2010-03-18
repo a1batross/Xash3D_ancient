@@ -227,6 +227,9 @@ typedef struct cl_enginefuncs_s
 	struct efxapi_s	*pEfxAPI;
 	struct event_api_s	*pEventAPI;	
 
+	// new interface starts here
+	int	(*pfnIsInGame)( void );	// return false for menu, console, etc
+
 } cl_enginefuncs_t;
 
 typedef struct

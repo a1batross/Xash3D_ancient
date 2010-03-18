@@ -568,6 +568,7 @@ void CL_FindExplosionPlane( const vec3_t origin, float radius, vec3_t result );
 void CL_LightForPoint( const vec3_t point, vec3_t ambientLight );
 int CL_SpawnDecal( HSPRITE m_hDecal, edict_t *pEnt, const vec3_t pos, int colorIndex, float roll, float scale );
 void CL_AddDLight( const float *org, const float *rgb, float radius, float time, int flags, int key );
+void CL_AddSLight( const float *org, float *dir, float rad, float *cone, HSPRITE hLight, int key );
 void CL_ParticleEffect( const vec3_t org, const vec3_t dir, int color, int count ); // q1 legacy
 void CL_SpawnStaticDecal( vec3_t origin, int decalIndex, int entityIndex, int modelIndex );
 void CL_QueueEvent( int flags, int index, float delay, event_args_t *args );

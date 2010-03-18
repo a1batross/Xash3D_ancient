@@ -27,6 +27,7 @@
 #define SendWeaponAnim	(*g_engfuncs.pEventAPI->EV_WeaponAnim)
 #define GetModelType	(*g_engfuncs.pEventAPI->EV_GetModelType)
 #define GetModelFrames	(*g_engfuncs.pEventAPI->EV_GetModFrames)
+#define GetModelBounds	(*g_engfuncs.pEventAPI->EV_GetModBounds)
 #define CVAR_REGISTER	(*g_engfuncs.pfnRegisterVariable)
 #define CVAR_SET_FLOAT	(*g_engfuncs.pfnCvarSetValue)
 #define CVAR_GET_FLOAT	(*g_engfuncs.pfnGetCvarFloat)
@@ -40,6 +41,7 @@
 #define CMD_ARGC		(*g_engfuncs.pfnCmdArgc)
 #define CMD_ARGV		(*g_engfuncs.pfnCmdArgv)
 #define ALERT		(*g_engfuncs.pfnAlertMessage)
+#define IN_GAME		(*g_engfuncs.pfnIsInGame)
 
 inline void SPR_Set( HSPRITE hPic, int r, int g, int b )
 {

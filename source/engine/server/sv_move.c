@@ -264,9 +264,6 @@ bool SV_StepDirection( edict_t *ent, float yaw, float dist, int iMode )
 	vec3_t	move, oldorigin;
 	float	delta;
 
-	ent->v.ideal_yaw = yaw;
-	pfnChangeYaw( ent );
-
 	yaw = yaw * M_PI*2 / 360;
 	VectorSet( move, com.cos( yaw ) * dist, com.sin( yaw ) * dist, 0.0f );
 	VectorCopy( ent->v.origin, oldorigin );

@@ -227,7 +227,7 @@ void CreateEntityLights( void )
 	const char	*value;
 	float		intensity, scale, deviance, filterRadius;
 	int		spawnflags, flags, numSamples;
-	bool		junior, monolight;
+	bool		junior, environment, monolight;
 	double		vec[4], col[3];
 	
 	/* go throught entity list and find lights */
@@ -235,6 +235,7 @@ void CreateEntityLights( void )
 	{
 		e = &entities[i];
 		name = ValueForKey( e, "classname" );
+		environment = false;
 		
 		// check for lightJunior
 		if( !com.strnicmp( name, "lightJunior", 11 ))
@@ -242,6 +243,9 @@ void CreateEntityLights( void )
 		else if( !com.strnicmp( name, "light", 5 ))
 			junior = false;
 		else continue;
+
+		if( !com.stricmp( name, "light_environment" ))
+			environment = true;
 		
 		// lights with target names (and therefore styles) are only parsed from BSP
 		target = ValueForKey( e, "targetname" );
@@ -375,6 +379,41 @@ void CreateEntityLights( void )
 		}
 
 		ColorNormalize( light->color, light->color );
+
+		if( environment )
+		{
+			vec3_t	angles;
+			sun_t	sun;
+
+			/* not a spot light */
+			numPointLights--;
+					
+			/* unlink this light */
+			lights = light->next;
+
+			GetVectorForKey( e, "angles", angles );
+			AngleVectors( angles, light->normal, NULL, NULL );
+			value = ValueForKey( e, "pitch" );	// sun elevation
+
+			/* make a sun */
+			VectorScale( light->normal, -1.0f, sun.direction );
+			VectorCopy( light->color, sun.color );
+			sun.photons = (intensity / pointScale);
+			sun.deviance = com.atof( value ) / 180.0f * M_PI;
+			sun.numSamples = numSamples;
+			sun.style = noStyles ? LS_NORMAL : light->style;
+			sun.next = NULL;
+					
+			/* make a sun light */
+			CreateSunLight( &sun );
+					
+			/* free original light */
+			Mem_Free( light );
+			light = NULL;
+					
+			/* skip the rest of this love story */
+			continue;
+		}
 
 		// set light scale (sof2)
 		scale = FloatForKey( e, "scale" );

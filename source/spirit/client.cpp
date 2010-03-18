@@ -1338,7 +1338,7 @@ int AddToFullPack( edict_t *pView, edict_t *pHost, edict_t *pEdict, int hostflag
 	{
 	case ED_SKYPORTAL:
 		return 1;	// no additional check requires
-	case ED_BEAM:	// FIXME: add check for beam bounding box
+	case ED_BEAM:
 	case ED_MOVER:
 	case ED_NORMAL:
 	case ED_PORTAL:
@@ -1373,15 +1373,22 @@ int AddToFullPack( edict_t *pView, edict_t *pHost, edict_t *pEdict, int hostflag
 	}
 
 	// check visibility
-	if( !ENGINE_CHECK_PVS( pEdict, pSet ))
+	if ( !ENGINE_CHECK_PVS( pEdict, pSet ))
 	{
 		float	m_flRadius = 1024;	// g-cont: tune distance by taste :)
 
-		if( pEntity->pev->armorvalue > 0 )
-			m_flRadius = pEntity->pev->armorvalue;
+		if ( pEntity->pev->flags & FL_PHS_FILTER )
+		{
+			if( pEntity->pev->armorvalue > 0 )
+				m_flRadius = pEntity->pev->armorvalue;
 
-		if( pEntity->pev->flags & FL_PHS_FILTER && delta.Length() > m_flRadius )
+			if( delta.Length() > m_flRadius )
+				return 0;
+		}
+		else if( pEntity->m_iClassType != ED_BEAM )
+		{
 			return 0;
+		}
 	}
 
 	if( FNullEnt( pHost )) HOST_ERROR( "pHost == NULL\n" );

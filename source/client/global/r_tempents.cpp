@@ -134,8 +134,7 @@ int CTempEnts::TE_Update( TEMPENTITY *pTemp )
 		if( gpGlobals->time > pTemp->m_flSpriteScale )
 		{
 			// show Sparks
-// FIXME: implement
-//			g_engfuncs.pEfxAPI->R_SparkEffect( pTemp->origin, 8, -200, 200 );
+			g_pParticles->SparkParticles( pTemp->origin, g_vecZero );
 
 			// reduce life
 			pTemp->m_flFrameRate -= 0.1f;
@@ -391,7 +390,7 @@ void CTempEnts :: Update( void )
 	current = m_pActiveTempEnts;
 
 	// !!! Don't simulate while paused....  This is sort of a hack, revisit.
-	if( 0 /* cls.key_dest != key_game */ )
+	if( IN_GAME() == 0 )
 	{
 		while( current )
 		{
@@ -628,8 +627,386 @@ TEMPENTITY *CTempEnts::TempEntAllocCustom( const Vector& org, int modelIndex, in
 
 ==============================================================
 */
+//-----------------------------------------------------------------------------
+// Purpose: Create a fizz effect
+// Input  : *pent - 
+//			modelIndex - 
+//			density - 
+//-----------------------------------------------------------------------------
+void CTempEnts::FizzEffect( edict_t *pent, int modelIndex, int density )
+{
+	TEMPENTITY	*pTemp;
+	int		i, width, depth, count, frameCount;
+	float		angle, maxHeight, speed, xspeed, yspeed;
+	Vector		origin;
+	Vector		mins, maxs;
+
+	if( !pent || pent->free || GetModelType( modelIndex ) == mod_bad )
+		return;
+
+	count = density + 1;
+	density = count * 3 + 6;
+
+	GetModelBounds( modelIndex, mins, maxs );
+
+	maxHeight = maxs[2] - mins[2];
+	width = maxs[0] - mins[0];
+	depth = maxs[1] - mins[1];
+	speed = ((int)pent->v.rendercolor.y<<8|(int)pent->v.rendercolor.x);
+	if( pent->v.rendercolor.z ) speed = -speed;
+
+	ALERT( at_console, "speed %g\n", speed );
+
+	angle = pent->v.angles[YAW] * M_PI / 180;
+	yspeed = sin( angle );
+	xspeed = cos( angle );
+
+	xspeed *= speed;
+	yspeed *= speed;
+	frameCount = GetModelFrames( modelIndex );
+
+	for ( i = 0; i < count; i++ )
+	{
+		origin[0] = mins[0] + RANDOM_LONG( 0, width - 1 );
+		origin[1] = mins[1] + RANDOM_LONG( 0, depth - 1 );
+		origin[2] = mins[2];
+		pTemp = TempEntAlloc( origin, modelIndex );
+
+		if ( !pTemp ) return;
+
+		pTemp->flags |= FTENT_SINEWAVE;
+
+		pTemp->x = origin[0];
+		pTemp->y = origin[1];
+
+		float zspeed = RANDOM_LONG( 80, 140 );
+		pTemp->m_vecVelocity = Vector( xspeed, yspeed, zspeed );
+		pTemp->die = gpGlobals->time + ( maxHeight / zspeed ) - 0.1f;
+		pTemp->m_flFrame = RANDOM_LONG( 0, frameCount - 1 );
+		// Set sprite scale
+		pTemp->m_flSpriteScale = 1.0f / RANDOM_FLOAT( 2, 5 );
+		pTemp->renderMode = kRenderTransAlpha;
+		pTemp->renderAmt = pTemp->startAlpha = 255;
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Create bubbles
+// Input  : *mins - 
+//			*maxs - 
+//			height - 
+//			modelIndex - 
+//			count - 
+//			speed - 
+//-----------------------------------------------------------------------------
+void CTempEnts::Bubbles( const Vector &mins, const Vector &maxs, float height, int modelIndex, int count, float speed )
+{
+	TEMPENTITY	*pTemp;
+	int		i, frameCount;
+	float		sine, cosine;
+	Vector		origin;
+
+	if( GetModelType( modelIndex ) == mod_bad )
+		return;
+
+	frameCount = GetModelFrames( modelIndex );
+
+	for ( i = 0; i < count; i++ )
+	{
+		origin[0] = RANDOM_LONG( mins[0], maxs[0] );
+		origin[1] = RANDOM_LONG( mins[1], maxs[1] );
+		origin[2] = RANDOM_LONG( mins[2], maxs[2] );
+		pTemp = TempEntAlloc( origin, modelIndex );
+		if ( !pTemp ) return;
+
+		pTemp->flags |= FTENT_SINEWAVE;
+
+		pTemp->x = origin[0];
+		pTemp->y = origin[1];
+		float angle = RANDOM_LONG( -M_PI, M_PI );
+		sine = sin( angle );
+		cosine = cos( angle );
+		
+		float zspeed = RANDOM_LONG( 80, 140 );
+		pTemp->m_vecVelocity = Vector( speed * cosine, speed * sine, zspeed );
+		pTemp->die = gpGlobals->time + ((height - (origin[2] - mins[2])) / zspeed) - 0.1f;
+		pTemp->m_flFrame = RANDOM_LONG( 0, frameCount - 1 );
+		
+		// Set sprite scale
+		pTemp->m_flSpriteScale = 1.0 / RANDOM_FLOAT( 4, 16 );
+		pTemp->renderMode = kRenderTransAlpha;
+		pTemp->renderAmt = pTemp->startAlpha = 192;	// g-cont. why difference with FizzEffect ???		
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Create bubble trail
+// Input  : *start - 
+//			*end - 
+//			height - 
+//			modelIndex - 
+//			count - 
+//			speed - 
+//-----------------------------------------------------------------------------
+void CTempEnts::BubbleTrail( const Vector &start, const Vector &end, float flWaterZ, int modelIndex, int count, float speed )
+{
+	TEMPENTITY	*pTemp;
+	int		i, frameCount;
+	float		dist, angle;
+	Vector		origin;
+
+	if( GetModelType( modelIndex ) == mod_bad )
+		return;
+
+	frameCount = GetModelFrames( modelIndex );
+
+	for ( i = 0; i < count; i++ )
+	{
+		dist = RANDOM_FLOAT( 0, 1.0 );	// g-cont. hmm may be use GetLerpFrac instead ?
+
+		origin = LerpPoint( start, end, dist );
+		pTemp = TempEntAlloc( origin, modelIndex );
+		if ( !pTemp ) return;
+
+		pTemp->flags |= FTENT_SINEWAVE;
+
+		pTemp->x = origin[0];
+		pTemp->y = origin[1];
+		angle = RANDOM_LONG( -M_PI, M_PI );
+
+		float zspeed = RANDOM_LONG( 80, 140 );
+		pTemp->m_vecVelocity = Vector( speed * cos( angle ), speed * sin( angle ), zspeed );
+		pTemp->die = gpGlobals->time + (( flWaterZ - origin[2]) / zspeed ) - 0.1f;
+		pTemp->m_flFrame = RANDOM_LONG( 0, frameCount - 1 );
+		// Set sprite scale
+		pTemp->m_flSpriteScale = 1.0 / RANDOM_FLOAT( 4, 8 );
+		pTemp->renderMode = kRenderTransAlpha;
+		pTemp->renderAmt = pTemp->startAlpha = 192;
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Attaches entity to player
+// Input  : client - 
+//			modelIndex - 
+//			zoffset - 
+//			life - 
+//-----------------------------------------------------------------------------
+void CTempEnts::AttachTentToPlayer( int client, int modelIndex, float zoffset, float life )
+{
+	TEMPENTITY	*pTemp;
+	Vector		position;
+	int		frameCount;
+
+	if ( client <= 0 || client > gpGlobals->maxClients )
+	{
+		ALERT( at_warning, "Bad client in AttachTentToPlayer()!\n" );
+		return;
+	}
+
+	edict_t	*pClient = GetEntityByIndex( client );
+	if ( !pClient )
+	{
+		ALERT( at_warning, "Couldn't get ClientEntity for %i\n", client );
+		return;
+	}
+
+	if( GetModelType( modelIndex ) == mod_bad )
+	{
+		ALERT( at_console, "No model %d!\n", modelIndex );
+		return;
+	}
+
+	position = pClient->v.origin;
+	position[2] += zoffset;
+
+	pTemp = TempEntAllocHigh( position, modelIndex );
+	if ( !pTemp )
+	{
+		ALERT( at_warning, "No temp ent.\n" );
+		return;
+	}
+
+	pTemp->renderMode = kRenderNormal;
+	pTemp->renderAmt = pTemp->startAlpha = 192;
+	pTemp->renderFX = kRenderFxNoDissipation;
+	
+	pTemp->clientIndex = client;
+	pTemp->tentOffset[0] = 0;
+	pTemp->tentOffset[1] = 0;
+	pTemp->tentOffset[2] = zoffset;
+	pTemp->die = gpGlobals->time + life;
+	pTemp->flags |= FTENT_PLYRATTACHMENT|FTENT_PERSIST;
+
+	// is the model a sprite?
+	if ( GetModelType( pTemp->modelindex ) == mod_sprite )
+	{
+		frameCount = GetModelFrames( pTemp->modelindex );
+		pTemp->m_flFrameMax = frameCount - 1;
+		pTemp->flags |= FTENT_SPRANIMATE|FTENT_SPRANIMATELOOP;
+		pTemp->m_flFrameRate = 10;
+	}
+	else
+	{
+		// no animation support for attached clientside studio models.
+		pTemp->m_flFrameMax = 0;
+	}
+
+	pTemp->m_flFrame = 0;
+}
+#define FOR_EACH_LL( listName, iteratorName ) \
+	for( int iteratorName=listName.Head(); iteratorName != listName.InvalidIndex(); iteratorName = listName.Next( iteratorName ) )
+
+//-----------------------------------------------------------------------------
+// Purpose: Detach entity from player
+//-----------------------------------------------------------------------------
+void CTempEnts::KillAttachedTents( int client )
+{
+	if ( client <= 0 || client > gpGlobals->maxClients )
+	{
+		ALERT( at_warning, "Bad client in KillAttachedTents()!\n" );
+		return;
+	}
+
+	for( int i = 0; i < MAX_TEMP_ENTITIES; i++ )
+	{
+		TEMPENTITY *pTemp = &m_TempEnts[i];
+
+		if ( pTemp->flags & FTENT_PLYRATTACHMENT )
+		{
+			// this TENT is player attached.
+			// if it is attached to this client, set it to die instantly.
+			if ( pTemp->clientIndex == client )
+			{
+				pTemp->die = gpGlobals->time; // good enough, it will die on next tent update. 
+			}
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Create ricochet sprite
+// Input  : *pos - 
+//			*pmodel - 
+//			duration - 
+//			scale - 
+//-----------------------------------------------------------------------------
+void CTempEnts::RicochetSprite( const Vector &pos, model_t modelIndex, float scale )
+{
+	TEMPENTITY	*pTemp;
+
+	pTemp = TempEntAlloc( pos, modelIndex );
+	if (!pTemp)
+		return;
+
+	pTemp->renderMode = kRenderGlow;
+	pTemp->renderAmt = pTemp->startAlpha = 200;
+	pTemp->renderFX = kRenderFxNoDissipation;
+	pTemp->m_flSpriteScale = scale;
+	pTemp->flags = FTENT_FADEOUT;
+	pTemp->fadeSpeed = 8;
+	pTemp->die = gpGlobals->time;
+
+	pTemp->m_flFrame = 0;
+	pTemp->angles[ROLL] = 45 * RANDOM_LONG( 0, 7 );
+}
+
 void CTempEnts::PlaySound( TEMPENTITY *pTemp, float damp )
 {
+	float fvol;
+	char soundname[32];
+	bool isshellcasing = false;
+	int zvel;
+
+	switch ( pTemp->hitSound )
+	{
+	default:
+		return;	// null sound
+	case BOUNCE_GLASS:
+		{
+			sprintf( soundname, "debris/glass%i.wav", RANDOM_LONG( 1, 4 ));
+		}
+		break;
+	case BOUNCE_METAL:
+		{
+			sprintf( soundname, "debris/metal%i.wav", RANDOM_LONG( 1, 6 ));
+		}
+		break;
+	case BOUNCE_FLESH:
+		{
+			sprintf( soundname, "debris/flesh%i.wav", RANDOM_LONG( 1, 7 ));
+		}
+		break;
+	case BOUNCE_WOOD:
+		{
+			sprintf( soundname, "debris/wood%i.wav", RANDOM_LONG( 1, 4 ));
+		}
+		break;
+	case BOUNCE_SHRAP:
+		{
+			sprintf( soundname, "weapons/ric%i.wav", RANDOM_LONG( 1, 5 ));
+		}
+		break;
+	case BOUNCE_SHOTSHELL:
+		{
+			sprintf( soundname, "weapons/sshell%i.wav", RANDOM_LONG( 1, 3 ));
+			isshellcasing = true; // shell casings have different playback parameters
+		}
+		break;
+	case BOUNCE_SHELL:
+		{
+			sprintf( soundname, "player/pl_shell%i.wav", RANDOM_LONG( 1, 3 ));
+			isshellcasing = true; // shell casings have different playback parameters
+		}
+		break;
+	case BOUNCE_CONCRETE:
+		{
+			sprintf( soundname, "debris/concrete%i.wav", RANDOM_LONG( 1, 3 ));
+		}
+		break;
+	}
+
+	zvel = abs( pTemp->m_vecVelocity[2] );
+		
+	// only play one out of every n
+
+	if ( isshellcasing )
+	{	
+		// play first bounce, then 1 out of 3		
+		if ( zvel < 200 && RANDOM_LONG( 0, 3 ))
+			return;
+	}
+	else
+	{
+		if ( RANDOM_LONG( 0, 5 )) 
+			return;
+	}
+
+	fvol = 1.0f;
+
+	if ( damp > 0.0 )
+	{
+		int pitch;
+		
+		if ( isshellcasing )
+		{
+			fvol *= min ( 1.0f, ((float)zvel) / 350.0 ); 
+		}
+		else
+		{
+			fvol *= min ( 1.0f, ((float)zvel) / 450.0 ); 
+		}
+		
+		if ( !RANDOM_LONG( 0, 3 ) && !isshellcasing )
+		{
+			pitch = RANDOM_LONG( 95, 105 );
+		}
+		else
+		{
+			pitch = 100; // FIXME
+		}
+		CL_PlaySound( soundname, fvol, pTemp->origin, pitch );
+	}
 }
 
 void CTempEnts::RocketFlare( const Vector& pos )
@@ -821,8 +1198,8 @@ void CTempEnts::TempModel( const Vector &pos, const Vector &dir, const Vector &a
 	// keep track of shell type
 	switch( soundtype )
 	{
-	case 1: pTemp->hitSound = TE_BOUNCE_SHELL; break;
-	case 2: pTemp->hitSound = TE_BOUNCE_SHOTSHELL; break;
+	case TE_BOUNCE_SHELL: pTemp->hitSound = BOUNCE_SHELL; break;
+	case TE_BOUNCE_SHOTSHELL: pTemp->hitSound = BOUNCE_SHOTSHELL; break;
 	}
 
 	pTemp->origin  = pos;
@@ -964,7 +1341,7 @@ void CTempEnts::Sprite_Smoke( TEMPENTITY *pTemp, float scale )
 
 }
 
-void CTempEnts::Sprite_Spray( const Vector &pos, const Vector &dir, int modelIndex, int count, int speed, int iRand )
+void CTempEnts::Sprite_Spray( const Vector &pos, const Vector &dir, int modelIndex, int count, int speed, int iRand, int renderMode )
 {
 	TEMPENTITY	*pTemp;
 	float		noise;
@@ -994,7 +1371,7 @@ void CTempEnts::Sprite_Spray( const Vector &pos, const Vector &dir, int modelInd
 		pTemp = TempEntAlloc( pos, modelIndex );
 		if( !pTemp ) return;
 
-		pTemp->renderMode = kRenderTransAlpha;
+		pTemp->renderMode = renderMode;
 		pTemp->renderFX = kRenderFxNoDissipation;
 		pTemp->m_flSpriteScale = 0.5f;
 		pTemp->flags |= FTENT_FADEOUT|FTENT_SLOWGRAVITY;

@@ -52,6 +52,7 @@ typedef struct event_api_s
 	void	(*EV_StopAllSounds)( edict_t *ent, int entchannel );
 	modtype_t	(*EV_GetModelType)( int modelIndex );
 	int	(*EV_GetModFrames)( int modelIndex );
+	void	(*EV_GetModBounds)( int modelIndex, float *mins, float *maxs );
 } event_api_t;
 
 #endif//EVENT_API_H

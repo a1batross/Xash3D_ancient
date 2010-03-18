@@ -715,6 +715,7 @@ see env_funnel description for details
 */
 void TE_ParseFunnel( void )
 {
+	// FIXME: implement
 }
 
 /*
@@ -779,6 +780,14 @@ Create alpha sprites inside of entity, float upwards
 */
 void TE_ParseFizzEffect( void )
 {
+	int modelIndex, density;
+	edict_t *pEnt;
+
+	pEnt = GetEntityByIndex( READ_SHORT());
+	modelIndex = READ_SHORT();
+	density = READ_BYTE();
+
+	g_pTempEnts->FizzEffect( pEnt, modelIndex, density );
 }
 
 /*
@@ -881,10 +890,11 @@ TE_ParseSpriteSpray
 spray of alpha sprites
 ---------------
 */
-void TE_ParseSpriteSpray( void )
+void TE_ParseSpriteSpray( int type )
 {
 	Vector pos, vel;
 	int spriteIndex, count, speed, noise;
+	int renderMode;
 
 	pos.x = READ_COORD();
 	pos.y = READ_COORD();
@@ -897,7 +907,15 @@ void TE_ParseSpriteSpray( void )
 	speed = READ_BYTE();
 	noise = READ_BYTE();
 
-	g_pTempEnts->Sprite_Spray( pos, vel, spriteIndex, count, speed, noise );
+	if( type == TE_SPRAY )
+	{
+		renderMode = READ_BYTE();
+		g_pTempEnts->Sprite_Spray( pos, vel, spriteIndex, count, speed, noise, renderMode );
+	}
+	else
+	{
+		g_pTempEnts->Sprite_Spray( pos, vel, spriteIndex, count, speed, noise );
+	}
 }
 
 /*
@@ -918,10 +936,38 @@ void TE_ParseArmorRicochet( void )
 	pos.z = READ_COORD();
 	radius = (float)(READ_BYTE() * 0.1f);
 
+	int modelIndex = g_engfuncs.pEventAPI->EV_FindModelIndex( "sprites/richo1.spr" );
+	g_pTempEnts->RicochetSprite( pos, modelIndex, radius );
 	g_pParticles->RicochetSparks( pos, radius );
 
 	sprintf( soundpath, "weapons/ric%i.wav", RANDOM_LONG( 1, 5 ));
 	CL_PlaySound( soundpath, RANDOM_FLOAT( 0.7f, 0.9f ), pos, RANDOM_FLOAT( 95.0f, 105.0f ));
+}
+
+/*
+---------------
+TE_ParseBubblesEffect
+
+Create a colored decal, get settings from client 
+---------------
+*/
+void TE_ParsePlayerDecal( void )
+{
+	int clientIndex, decalIndex, entityIndex;
+	Vector pos;
+
+	clientIndex = READ_BYTE();
+	pos.x = READ_COORD();
+	pos.y = READ_COORD();
+	pos.z = READ_COORD();
+	entityIndex = READ_SHORT();
+	decalIndex = READ_BYTE();
+
+	// FIXME: get decal settings from the client
+	int iColor = 134;
+
+	HSPRITE hDecal = g_engfuncs.pEfxAPI->CL_DecalIndex( decalIndex );
+	g_engfuncs.pEfxAPI->R_ShootDecal( hDecal, NULL, pos, iColor, 90.0f, 5.0f );
 }
 
 /*
@@ -933,6 +979,22 @@ Create alpha sprites inside of box, float upwards
 */
 void TE_ParseBubblesEffect( void )
 {
+	Vector mins, maxs;
+	int modelIndex, count;
+	float height, speed;
+
+	maxs.x = READ_COORD();
+	maxs.y = READ_COORD();
+	maxs.z = READ_COORD();
+	maxs.x = READ_COORD();
+	maxs.y = READ_COORD();
+	maxs.z = READ_COORD();
+	height = READ_COORD();
+	modelIndex = READ_SHORT();
+	count = READ_BYTE();
+	speed = READ_COORD();
+
+	g_pTempEnts->Bubbles( mins, maxs, height, modelIndex, count, speed );
 }
 
 /*
@@ -944,6 +1006,22 @@ Create alpha sprites along a line, float upwards
 */
 void TE_ParseBubbleTrail( void )
 {
+	Vector start, end;
+	int modelIndex, count;
+	float height, speed;
+
+	start.x = READ_COORD();
+	start.y = READ_COORD();
+	start.z = READ_COORD();
+	end.x = READ_COORD();
+	end.y = READ_COORD();
+	end.z = READ_COORD();
+	height = READ_COORD();
+	modelIndex = READ_SHORT();
+	count = READ_BYTE();
+	speed = READ_COORD();
+
+	g_pTempEnts->BubbleTrail( start, end, height, modelIndex, count, speed );
 }
 
 /*
@@ -989,7 +1067,7 @@ void TE_ParseAttachTentToPlayer( void )
 	modelIndex = READ_SHORT();
 	life = (float)(READ_BYTE() * 0.1f);
 
-//	g_pTempEnts->AttachTentToPlayer( clientIndex, modelIndex, zoffset, life );
+	g_pTempEnts->AttachTentToPlayer( clientIndex, modelIndex, zoffset, life );
 }
 
 /*
@@ -1003,7 +1081,7 @@ void TE_KillAttachedTents( void )
 {
 	int clientIndex = READ_BYTE();
 
-//	g_pTempEnts->KillAttachedTents( clientIndex );
+	g_pTempEnts->KillAttachedTents( clientIndex );
 }
 
 /*
@@ -1065,9 +1143,6 @@ void HUD_ParseTempEntity( void )
 	case TE_SPRITETRAIL:
 		TE_ParseSpriteTrail();
 		break;
-	case TE_BEAMLASER:
-		// FIXME: implement
-		break;
 	case TE_SPRITE:
 		TE_ParseSprite();
 		break;
@@ -1093,9 +1168,6 @@ void HUD_ParseTempEntity( void )
 		TE_ParseBeamRing();
 		break;
 	case TE_STREAK_SPLASH:
-		// FIXME: implement
-		break;
-	case TE_BEAMRINGPOINT:
 		// FIXME: implement
 		break;
 	case TE_ELIGHT:
@@ -1147,13 +1219,13 @@ void HUD_ParseTempEntity( void )
 		TE_ParseGunShotDecal();
 		break;
 	case TE_SPRITE_SPRAY:
-		TE_ParseSpriteSpray();
+		TE_ParseSpriteSpray( TE_SPRITE_SPRAY );
 		break;
 	case TE_ARMOR_RICOCHET:
 		TE_ParseArmorRicochet();
 		break;
 	case TE_PLAYERDECAL:
-		// FIXME: implement
+		TE_ParsePlayerDecal();
 		break;
 	case TE_BUBBLES:
 		TE_ParseBubblesEffect();
@@ -1177,7 +1249,7 @@ void HUD_ParseTempEntity( void )
 		// FIXME: implement
 		break;
 	case TE_SPRAY:
-		// FIXME: implement
+		TE_ParseSpriteSpray( TE_SPRAY );
 		break;
 	case TE_PLAYERSPRITES:
 		// FIXME: implement

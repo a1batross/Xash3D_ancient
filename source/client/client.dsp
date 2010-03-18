@@ -121,6 +121,10 @@ SOURCE=.\global\aurora.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\global\cl_tent.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\global\dll_int.cpp
 # End Source File
 # Begin Source File
@@ -242,10 +246,6 @@ SOURCE=.\global\r_weather.cpp
 # Begin Source File
 
 SOURCE=.\global\studio.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\global\sv_tent.cpp
 # End Source File
 # Begin Source File
 

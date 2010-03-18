@@ -3018,6 +3018,10 @@ R_DrawTriangles
 */
 static void R_DrawTriangles( void )
 {
+	// ignore triapi triangles for 'debug_surface' mode
+	if( triState.fActive && !gl_wireframe->integer && r_speeds->integer == 4 )
+		return;
+
 	if( gl_wireframe->integer == 2 )
 		R_SetColorForOutlines();
 

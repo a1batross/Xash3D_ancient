@@ -2045,6 +2045,25 @@ int pfnGetModFrames( model_t modelIndex )
 	if( pe ) pe->Mod_GetFrames( modelIndex, &numFrames );
 	return numFrames;
 }
+
+/*
+=============
+pfnGetModBounds
+
+=============
+*/
+void pfnGetModBounds( model_t modelIndex, float *mins, float *maxs )
+{
+	if( pe )
+	{
+		pe->Mod_GetBounds( modelIndex, mins, maxs );
+	}
+	else
+	{
+		if( mins ) VectorClear( mins );
+		if( maxs ) VectorClear( maxs );
+	}
+}
 	
 /*
 =============
@@ -2070,22 +2089,22 @@ void VGui_ViewportPaintBackground( int extents[4] )
 }
 
 /*
+=============
+pfnIsInGame
+
+=============
+*/
+int pfnIsInGame( void )
+{
+	return ( cls.key_dest == key_game ) ? true : false;
+}
+
+/*
 ===============================================================================
 	EffectsAPI Builtin Functions
 
 ===============================================================================
 */
-/*
-=================
-pfnFindExplosionPlane
-
-=================
-*/
-static void pfnFindExplosionPlane( const float *origin, float radius, float *result )
-{
-	CL_FindExplosionPlane( origin, radius, result );
-}
-
 /*
 =================
 pfnDecalIndexFromName
@@ -2431,7 +2450,7 @@ static efxapi_t gEfxApi =
 	pfnDecalIndexFromName,
 	CL_SpawnDecal,
 	CL_AddDLight,
-	pfnFindExplosionPlane,
+	CL_AddSLight,
 	CL_LightForPoint,
 	CM_BoxVisible,
 	pfnCullBox,
@@ -2457,6 +2476,7 @@ static event_api_t gEventApi =
 	pfnStopAllSounds,
 	pfnGetModelType,
 	pfnGetModFrames,
+	pfnGetModBounds,
 };
 
 // engine callbacks
@@ -2548,7 +2568,8 @@ static cl_enginefuncs_t gEngfuncs =
 	pfnFreeFile,
 	&gTriApi,
 	&gEfxApi,
-	&gEventApi
+	&gEventApi,
+	pfnIsInGame
 };
 
 void CL_UnloadProgs( void )

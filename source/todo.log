@@ -20,40 +20,12 @@ fopen завешивает приложение, даже если перепутать местами + и a, при установке р
 1. ѕоддержка loop дл€ ogg vorbis
 2. переписать studiomdl дл€ использовани€ VFS
 
-Beta 13.02.10
+Xash 0.71 Beta 05.05.10
 
-0. Implement gearcraft map format for bsplib		OK
-1. finalize LAN game menu (join the game)		OK
-2. finalize Create game menu (apply game settings)	OK
-3. fix items pickup sound bug				OK
-4. rewrite pfnDropToFloor				OK
-5. revision of all asserts				OK
-6. revision of all resources
-7. fix loaders for ATI1N and ATI2N			OK
-8. fix sky changelevel bug
-9. rewrote UI_Field code				OK
-10. autocomplete and command history for system console	OK
-11. create mutex for dedicated server			OK
-12. revision of Xash Environment System			OK
-13. implement temp-ents 				OK
-14. implement realtime wind
-15. fixup muzzleflashes				OK
-16. fix CL_GetEntityByIndex: invalid entindex		OK
-17. implement beams					OK
-18. implement filetime in file_t
-19. complete lights.shader
-20. rails2d.shader					OK
-20. merge abaddon.shader
-21. implement all TE_* messages
-22. final revision of ClientAPI			OK
-23. fix Egon and Gauss firing				OK
-24. revision server physic
-25. revision monster moving
-26. get rid of fakemirror stuff in spirit		OK
-27. rewrite engine particle system			OK
-28. rewrite engine decal system
-29. rewrite engine dlight system
-30. implemenet remaining tempents
-31. fix crash on env_beam.map
-
-
+1. revision of all resources
+2. fix sky changelevel bug
+3. implement filetime in file_t
+4. complete lights.shader
+5. revision server physic
+6. revision monster moving
+7. implement env_laser

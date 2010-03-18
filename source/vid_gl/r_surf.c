@@ -172,8 +172,8 @@ bool R_CullBrushModel( ref_entity_t *e )
 {
 	int i;
 	bool rotated;
-	ref_model_t	*model = e->model;
-	mbrushmodel_t *bmodel = ( mbrushmodel_t * )model->extradata;
+	ref_model_t *model = e->model;
+	mbrushmodel_t *bmodel = ( mbrushmodel_t *)model->extradata;
 
 	if( bmodel->nummodelsurfaces == 0 )
 		return true;
@@ -194,7 +194,7 @@ bool R_CullBrushModel( ref_entity_t *e )
 		rotated = false;
 		VectorMA( e->origin, e->scale, model->mins, modelmins );
 		VectorMA( e->origin, e->scale, model->maxs, modelmaxs );
-		if( R_CullBox( modelmins, modelmaxs, RI.clipFlags ) )
+		if( R_CullBox( modelmins, modelmaxs, RI.clipFlags ))
 			return true;
 	}
 
@@ -202,12 +202,12 @@ bool R_CullBrushModel( ref_entity_t *e )
 	{
 		if( rotated )
 		{
-			if( R_VisCullSphere( e->origin, model->radius * e->scale ) )
+			if( R_VisCullSphere( e->origin, model->radius * e->scale ))
 				return true;
 		}
 		else
 		{
-			if( R_VisCullBox( modelmins, modelmaxs ) )
+			if( R_VisCullBox( modelmins, modelmaxs ))
 				return true;
 		}
 	}

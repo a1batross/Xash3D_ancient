@@ -1073,6 +1073,8 @@ void CLaser::Spawn( void )
 		SetThink(&CLaser:: SUB_Remove );
 		return;
 	}
+
+	SetObjectClass( ED_BEAM );
 	pev->solid = SOLID_NOT;							// Remove model & collisions
 	Precache( );
 
