@@ -16,13 +16,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-
-#pragma warning( disable : 4244 )
-
-// hack into header files that we can ship
-typedef int qboolean;
-typedef unsigned char byte;
-//#include "../utils/common/mathlib.h"
 #include "extdll.h"
 #include "const.h"
 #include "studio_ref.h"

@@ -718,6 +718,11 @@ void CFuncTeleport :: Touch( CBaseEntity *pOther )
 	{
 		Vector vecOriginOffs = pTarget->pev->origin - pLandmark->pev->origin;
 
+		if( pOther->pev->flags & FL_PROJECTILE )
+		{
+			pOther->pev->angles = UTIL_VecToAngles( pOther->pev->velocity );
+		}
+
 		// do we need to rotate the entity?
 		if ( pLandmark->pev->angles != pTarget->pev->angles )
 		{

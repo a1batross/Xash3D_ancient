@@ -269,7 +269,7 @@ void EV_HLDM_CrowbarDecalTrace( TraceResult *pTrace, char *decalName )
 	// only decal brush models such as the world etc.
 	if( decalName && decalName[0] && pEnt && ( pEnt->v.solid == SOLID_BSP || pEnt->v.movetype == MOVETYPE_PUSHSTEP ) )
 	{
-		g_pTempEnts->PlaceDecal( pTrace->vecEndPos, 5.0f, decalName );
+		g_pTempEnts->PlaceDecal( pTrace->vecEndPos, 2.0f, decalName );
 	}
 }
 

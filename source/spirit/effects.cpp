@@ -1302,14 +1302,13 @@ void CLaser::TurnOn( void )
 void CLaser::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	int active = (GetState() == STATE_ON);
+
 	if ( !ShouldToggle( useType, active ) )
 		return;
 	if ( active )
 		TurnOff();
-	else {
-		m_hActivator = pActivator; //AJH Storage variable to allow *locus start/end positions
+	else
 		TurnOn();
-	}
 }
 
 
@@ -1335,9 +1334,6 @@ void CLaser::FireAtPoint( Vector startpos, TraceResult &tr )
 	BeamDamage( &tr );
 	DoSparks( startpos, tr.vecEndPos );
 	SetEndPos( tr.vecEndPos );
-	if ( m_pStartSprite )
-		UTIL_SetOrigin( m_pStartSprite, tr.vecEndPos );
-
 	BeamDamage( &tr );
 	DoSparks( GetStartPos(), tr.vecEndPos );
 }
@@ -1347,18 +1343,18 @@ void CLaser::StrikeThink( void )
 	Vector startpos = pev->origin;
 	if (m_iszStartPosition)
 	{
-		startpos = CalcLocus_Position(this, m_hActivator, STRING(m_iszStartPosition)); //AJH allow *locus start/end positions
+		startpos = CalcLocus_Position(this, NULL, STRING(m_iszStartPosition));
 	}
 
 	if (m_iTowardsMode)
 	{
-		m_firePosition = startpos + CalcLocus_Velocity(this, m_hActivator, STRING(pev->message));	//AJH allow *locus start/end positions
+		m_firePosition = startpos + CalcLocus_Velocity(this, NULL, STRING(pev->message));
 	}
 	else
 	{
 		CBaseEntity *pEnd = RandomTargetname( STRING(pev->message) );
 
-		if ( pEnd ) m_firePosition = CalcLocus_Position(this,pEnd,STRING(pev->message)); 
+		if ( pEnd ) m_firePosition = pEnd->pev->origin;
 	}
 	
 	TraceResult tr;
@@ -2617,14 +2613,7 @@ void CBlood::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useTyp
 
 		UTIL_TraceLine( start, start + forward * BloodAmount() * 2, ignore_monsters, NULL, &tr );
 		if ( tr.flFraction != 1.0 )
-		{
-			int blood;
-			if(Color() == BLOOD_COLOR_RED)blood = 1;
-          		else if(Color() == BLOOD_COLOR_YELLOW)blood = 2;
-          		CBaseEntity *pHit = CBaseEntity::Instance( tr.pHit );
-			PLAYBACK_EVENT_FULL( FEV_RELIABLE|FEV_GLOBAL, edict(), m_usDecals, 0.0, (float *)&tr.vecEndPos, (float *)&g_vecZero, 0.0, 0.0, pHit->entindex(), blood, 0, 0 );
-			//UTIL_BloodDecalTrace( &tr, Color() );
-		}
+			UTIL_BloodDecalTrace( &tr, Color() );
 	}
 }
 
@@ -3343,7 +3332,6 @@ void CEnvFootsteps::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 #define EXTENT_ARCING 2
 #define EXTENT_OBSTRUCTED_REVERSE 3
 #define EXTENT_ARCING_REVERSE 4
-#define EXTENT_ARCING_THROUGH 5 //AJH
 
 class CEnvRain : public CBaseEntity
 {
@@ -3505,8 +3493,8 @@ void CEnvRain::Spawn( void )
 
 	if (m_pitch)
 		pev->angles.x = m_pitch;
-//	else if (pev->angles.x == 0) // don't allow horizontal rain.  //AJH -Why not?
-//	pev->angles.x = 90;
+	else if (pev->angles.x == 0) // don't allow horizontal rain.
+		pev->angles.x = 90;
 
 	if (m_burstSize == 0) // in case the level designer forgot to set it.
 		m_burstSize = 2;
@@ -3586,10 +3574,6 @@ void CEnvRain::Think( void )
 			UTIL_TraceLine( vecSrc, vecDest, ignore_monsters, NULL, &tr);
 			if (tr.flFraction == 1.0) bDraw = FALSE;
 			vecDest = tr.vecEndPos;
-			break;
-		case EXTENT_ARCING_THROUGH:		//AJH - Arcs full length of brush only when blocked
-			UTIL_TraceLine( vecDest, vecSrc, dont_ignore_monsters, NULL, &tr);
-			if (tr.flFraction == 1.0) bDraw = FALSE;
 			break;
 		case EXTENT_ARCING_REVERSE:
 			UTIL_TraceLine( vecDest, vecSrc, ignore_monsters, NULL, &tr);
@@ -4289,6 +4273,7 @@ void CItemSoda::CanTouch ( CBaseEntity *pOther )
 
 //=========================================================
 // LRC - env_fog, extended a bit from the DMC version
+// g-cont - fix save\load issues, add multiplayer support
 //=========================================================
 #define SF_FOG_ACTIVE 1
 #define SF_FOG_FADING 0x8000
@@ -4297,14 +4282,10 @@ class CEnvFog : public CBaseEntity
 {
 public:
 	void Spawn( void );
-	void Precache( void );
-	void EXPORT ResumeThink( void );
-	void EXPORT Resume2Think( void );
 	void EXPORT TurnOn( void );
 	void EXPORT TurnOff( void );
 	void EXPORT FadeInDone( void );
 	void EXPORT FadeOutDone( void );
-	void SendData( Vector col, int fFadeTime, int StartDist, int iEndDist);
 	void KeyValue( KeyValueData *pkvd );
 	virtual int		Save( CSave &save );
 	virtual int		Restore( CRestore &restore );
@@ -4395,22 +4376,10 @@ void CEnvFog :: Spawn ( void )
 		UTIL_DesiredThink( this );
 	}
 
-// Precache is now used only to continue after a game has loaded.
-//	Precache();
-
 	// things get messed up if we try to draw fog with a startdist
 	// or an enddist of 0, so we don't allow it.
 	if (m_iStartDist == 0) m_iStartDist = 1;
-	if (m_iEndDist == 0) m_iEndDist = 1;
-}
-
-void CEnvFog :: Precache ( void )
-{
-	if (pev->spawnflags & SF_FOG_ACTIVE)
-	{
-		SetThink(&CEnvFog :: ResumeThink );
-		SetNextThink( 0.1 );
-	}
+	if (m_iEndDist == 0) m_iEndDist = 1000;
 }
 
 extern int gmsgSetFog;
@@ -4421,17 +4390,17 @@ void CEnvFog :: TurnOn ( void )
 
 	pev->spawnflags |= SF_FOG_ACTIVE;
 
+	UTIL_SetFogAll( pev->rendercolor, m_iFadeIn, m_iStartDist, m_iEndDist );
+
 	if( m_iFadeIn )
 	{
 		pev->spawnflags |= SF_FOG_FADING;
-		SendData( pev->rendercolor, m_iFadeIn, m_iStartDist, m_iEndDist);
 		SetNextThink( m_iFadeIn );
 		SetThink(&CEnvFog :: FadeInDone );
 	}
 	else
 	{
 		pev->spawnflags &= ~SF_FOG_FADING;
-		SendData( pev->rendercolor, 0, m_iStartDist, m_iEndDist);
 		if (m_fHoldTime)
 		{
 			SetNextThink( m_fHoldTime );
@@ -4446,36 +4415,24 @@ void CEnvFog :: TurnOff ( void )
 
 	pev->spawnflags &= ~SF_FOG_ACTIVE;
 
+	UTIL_SetFogAll( pev->rendercolor, -m_iFadeOut, m_iStartDist, m_iEndDist );
+
 	if( m_iFadeOut )
 	{
 		pev->spawnflags |= SF_FOG_FADING;
-		SendData( pev->rendercolor, -m_iFadeOut, m_iStartDist, m_iEndDist);
 		SetNextThink( m_iFadeOut );
 		SetThink(&CEnvFog :: FadeOutDone );
 	}
 	else
 	{
 		pev->spawnflags &= ~SF_FOG_FADING;
-		SendData( g_vecZero, 0, 0, 0 );
 		DontThink();
 	}
-}
-
-//yes, this intermediate think function is necessary.
-// the engine seems to ignore the nextthink time when starting up.
-// So this function gets called immediately after the precache finishes,
-// regardless of what nextthink time is specified.
-void CEnvFog :: ResumeThink ( void )
-{
-//	ALERT(at_console, "Fog resume %f\n", gpGlobals->time);
-	SetThink(&CEnvFog ::FadeInDone);
-	SetNextThink(0.1);
 }
 
 void CEnvFog :: FadeInDone ( void )
 {
 	pev->spawnflags &= ~SF_FOG_FADING;
-	SendData( pev->rendercolor, 0, m_iStartDist, m_iEndDist);
 
 	if (m_fHoldTime)
 	{
@@ -4487,7 +4444,6 @@ void CEnvFog :: FadeInDone ( void )
 void CEnvFog :: FadeOutDone ( void )
 {
 	pev->spawnflags &= ~SF_FOG_FADING;
-	SendData( g_vecZero, 0, 0, 0);
 }
 
 void CEnvFog :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
@@ -4501,32 +4457,6 @@ void CEnvFog :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE use
 			TurnOn();
 	}
 }
-
-void CEnvFog :: SendData ( Vector col, int iFadeTime, int iStartDist, int iEndDist )
-{
-//	ALERT(at_console, "Fog send (%d %d %d), %d - %d\n", col.x, col.y, col.z, iStartDist, iEndDist);
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
-	{
-		CBasePlayer *pPlayer = (CBasePlayer*)UTIL_PlayerByIndex( i );
-		if ( pPlayer )
-		{
-			MESSAGE_BEGIN( MSG_ONE, gmsgSetFog, NULL, pPlayer->pev );
-				WRITE_BYTE ( col.x );
-				WRITE_BYTE ( col.y );
-				WRITE_BYTE ( col.z );
-				WRITE_SHORT ( iFadeTime );
-				WRITE_SHORT ( iStartDist );
-				WRITE_SHORT ( iEndDist );
-			MESSAGE_END();
-
-//			pPlayer->m_iFogStartDist = iStartDist;
-//			pPlayer->m_iFogEndDist = iEndDist;
-//			pPlayer->m_vecFogColor = col;
-//			pPlayer->m_bClientFogRefresh = FALSE;
-		}
-	}
-}
-
 LINK_ENTITY_TO_CLASS( env_fog, CEnvFog );
 
 //=========================================================

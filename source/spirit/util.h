@@ -27,6 +27,8 @@
 #include "enginecallback.h"
 #include "event_api.h"
 
+#define FOG_HARDWARE_LIMIT			8192
+
 //g-cont. safe precaching models & sounds
 int PRECACHE_MODEL( char* s );		// classic precache 
 int PRECACHE_MODEL( string_t s );		// pev->model as argument
@@ -331,6 +333,9 @@ extern void UTIL_ShowMessage		( const char *pString, CBaseEntity *pPlayer );
 extern void UTIL_ShowMessageAll	( const char *pString );
 extern void UTIL_ScreenFadeAll	( const Vector &color, float fadeTime, float holdTime, int alpha, int flags );
 extern void UTIL_ScreenFade		( CBaseEntity *pEntity, const Vector &color, float fadeTime, float fadeHold, int alpha, int flags );
+extern void UTIL_SetFog		( Vector color, int iFadeTime, int iStartDist, int iEndDist, int playernum = 1 );	
+extern void UTIL_SetFogAll		( Vector color, int iFadeTime, int iStartDist, int iEndDist );
+
 
 extern void UTIL_TraceLine( const Vector &vecStart, const Vector &vecEnd, IGNORE_MONSTERS igmon, edict_t *pentIgnore, TraceResult *ptr);
 extern void UTIL_TraceLine( const Vector &vecStart, const Vector &vecEnd, IGNORE_MONSTERS igmon, IGNORE_GLASS ignoreGlass, edict_t *pentIgnore, TraceResult *ptr);

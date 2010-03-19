@@ -71,7 +71,8 @@ public:
 	void Killed( entvars_t *pevAttacker, int iGib );
 
 	MONSTERSTATE GetIdealState ( void ) { return MONSTERSTATE_IDLE; };
-	int CanPlaySequence( BOOL fDisregardState ) { return TRUE; };
+//	int CanPlaySequence( BOOL fDisregardState ) { return TRUE; };
+	int CanPlaySequence( int interruptFlags ) { return TRUE; };
 
 	int Classify( void );
 

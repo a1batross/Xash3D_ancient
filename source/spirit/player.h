@@ -313,11 +313,22 @@ public:
 	float m_flStatusBarDisappearDelay;
 	char m_SbarString0[ SBAR_STRING_SIZE ];
 	char m_SbarString1[ SBAR_STRING_SIZE ];
+
 	// for trigger_viewset
-	int		viewEntity; // string
-	int		viewFlags;	// 1-active, 2-draw hud
-	int		viewNeedsUpdate; // precache sets to 1, UpdateClientData() sets to 0	
-	float 		m_flNextChatTime;
+	int	viewEntity; // string
+	int	viewFlags;	// 1-active, 2-draw hud
+	int	viewNeedsUpdate; // precache sets to 1, UpdateClientData() sets to 0	
+	float 	m_flNextChatTime;
+
+	// fog variables
+	int	m_iFogStartDist;
+	int	m_iFogEndDist;
+	int	m_iFogFinalEndDist;
+	int	m_FogFadeTime;
+	Vector	m_FogColor;
+	int	fogNeedsUpdate;
+	float	m_flStartTime;
+
 	int	Rain_dripsPerSecond;
 	float	Rain_windX, Rain_windY;
 	float	Rain_randX, Rain_randY;

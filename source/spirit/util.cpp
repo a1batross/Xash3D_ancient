@@ -1499,6 +1499,46 @@ void UTIL_ShowMessageAll( const char *pString )
 	}
 }
 
+void UTIL_SetFogAll( Vector color, int iFadeTime, int iStartDist, int iEndDist )
+{
+	// loop through all players
+	if( IsMultiplayer( ))
+	{
+		for ( int i = 0; i < gpGlobals->maxClients; i++ )
+			UTIL_SetFog( color, iFadeTime, iStartDist, iEndDist, i+1 );
+	}
+	else UTIL_SetFog( color, iFadeTime, iStartDist, iEndDist );
+}
+
+void UTIL_SetFog( Vector color, int iFadeTime, int iStartDist, int iEndDist, int playernum )
+{
+	CBasePlayer *pPlayer = (CBasePlayer*)UTIL_PlayerByIndex( playernum );
+
+	if ( pPlayer )
+	{
+		if( pPlayer->m_FogFadeTime != 0 ) return;//fading in progress !!!TODO: make smooth re-fading
+		if( IsMultiplayer( )) iFadeTime = 0; // disable fading in multiplayer
+
+		if( iFadeTime > 0 )
+		{
+			pPlayer->m_iFogEndDist = FOG_HARDWARE_LIMIT;
+			pPlayer->m_iFogFinalEndDist = iEndDist;
+		}
+		else if( iFadeTime < 0 )
+		{
+			pPlayer->m_iFogEndDist = iEndDist;
+			pPlayer->m_iFogFinalEndDist = iEndDist;
+		}
+		else pPlayer->m_iFogEndDist = iEndDist;
+
+		pPlayer->m_iFogStartDist = iStartDist;
+		pPlayer->m_FogColor = color;
+		pPlayer->m_FogFadeTime = iFadeTime;			
+		pPlayer->m_flStartTime = gpGlobals->time;
+		pPlayer->fogNeedsUpdate = TRUE;
+	}
+}
+
 // Overloaded to add IGNORE_GLASS
 void UTIL_TraceLine( const Vector &vecStart, const Vector &vecEnd, IGNORE_MONSTERS igmon, IGNORE_GLASS ignoreGlass, edict_t *pentIgnore, TraceResult *ptr )
 {

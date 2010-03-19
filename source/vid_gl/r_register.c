@@ -261,6 +261,9 @@ static dllfunc_t opengl_110funcs[] =
 	{"glClipPlane", (void **) &pglClipPlane},
 	{"glGetClipPlane", (void **) &pglGetClipPlane},
 	{"glShadeModel", (void **) &pglShadeModel},
+	{"glFogfv", (void **) &pglFogfv},
+	{"glFogf", (void **) &pglFogf},
+	{"glFogi", (void **) &pglFogi},
 	{NULL, NULL}
 };
 

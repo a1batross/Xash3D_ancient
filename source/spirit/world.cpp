@@ -534,9 +534,9 @@ void CWorld :: Precache( void )
 		ALERT ( at_debug, "**COULD NOT CREATE SOUNDENT**\n" );
 	}
 
-	if( pev->message != 0 )
+	if( pev->target != 0 )
 	{
-		SET_SKYBOX( STRING( pev->message ));
+		SET_SKYBOX( STRING( pev->target ));
 	}
 	else
 	{
@@ -677,7 +677,7 @@ void CWorld :: KeyValue( KeyValueData *pkvd )
 	if( FStrEq( pkvd->szKeyName, "skyname" ))
 	{
 		// Sent over net now.
-		pev->message = ALLOC_STRING( pkvd->szValue );
+		pev->target = ALLOC_STRING( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
 	else if ( FStrEq(pkvd->szKeyName, "sounds") )

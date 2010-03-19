@@ -1063,7 +1063,7 @@ void CTempEnts::MuzzleFlash( edict_t *pEnt, int iAttachment, int type )
 	pTemp->renderMode = kRenderTransAdd;
 	pTemp->renderAmt = 255;
 	pTemp->renderFX = 0;
-	pTemp->die = gpGlobals->time + 0.01; // die at next frame
+	pTemp->die = gpGlobals->time + 0.015; // die at next frame
 	pTemp->m_flFrame = RANDOM_LONG( 0, frameCount - 1 );
 	pTemp->m_flFrameMax = frameCount - 1;
 	pTemp->clientIndex = pEnt->serialnumber;

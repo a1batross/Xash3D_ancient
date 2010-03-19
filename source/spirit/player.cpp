@@ -130,7 +130,13 @@ TYPEDESCRIPTION	CBasePlayer::m_playerSaveData[] =
 	DEFINE_FIELD( CBasePlayer, viewEntity, FIELD_STRING),
 	DEFINE_FIELD( CBasePlayer, viewFlags, FIELD_INTEGER),
 	DEFINE_FIELD( CBasePlayer, viewNeedsUpdate, FIELD_INTEGER),
-
+	DEFINE_FIELD( CBasePlayer, m_iFogStartDist, FIELD_INTEGER),
+	DEFINE_FIELD( CBasePlayer, m_iFogEndDist, FIELD_INTEGER ),
+	DEFINE_FIELD( CBasePlayer, m_iFogFinalEndDist, FIELD_INTEGER ),
+	DEFINE_FIELD( CBasePlayer, m_FogColor, FIELD_VECTOR ),
+	DEFINE_FIELD( CBasePlayer, m_FogFadeTime, FIELD_INTEGER),
+          DEFINE_FIELD( CBasePlayer, m_flStartTime, FIELD_TIME ),
+ 
 	DEFINE_FIELD( CBasePlayer, Rain_dripsPerSecond, FIELD_INTEGER ),
 	DEFINE_FIELD( CBasePlayer, Rain_windX, FIELD_FLOAT ),
 	DEFINE_FIELD( CBasePlayer, Rain_windY, FIELD_FLOAT ),
@@ -262,7 +268,7 @@ void LinkUserMessages( void )
 	gmsgShowGameTitle = REG_USER_MSG("GameTitle", 0 );
 	
 	gmsgTempEntity = REG_USER_MSG( "TempEntity", -1);
-	gmsgSetFog = REG_USER_MSG("SetFog", 9 );			//LRC
+	gmsgSetFog = REG_USER_MSG("SetFog", 7 );			//LRC
 	gmsgKeyedDLight = REG_USER_MSG("KeyedDLight", -1 );	//LRC
 	gmsgSetSky = REG_USER_MSG( "SetSky", 7 );			//LRC
 	gmsgHUDColor = REG_USER_MSG( "HUDColor", 4 );		//LRC
@@ -3071,6 +3077,7 @@ void CBasePlayer :: Precache( void )
 	// Make sure any necessary user messages have been registered
 	LinkUserMessages();
 	viewNeedsUpdate = 1;
+	fogNeedsUpdate = 1;
 
 	m_iUpdateTime = 5;  // won't update for 1/2 a second
 
@@ -3507,6 +3514,7 @@ void CBasePlayer :: ForceClientDllUpdate( void )
 	m_flFlashLightTime = 1;	// Force to update flashlight
 	Rain_needsUpdate = 1;
 	viewNeedsUpdate = 1;
+	fogNeedsUpdate = 1;
 
 	// Now force all the necessary messages
 	//  to be sent.
@@ -4151,6 +4159,38 @@ void CBasePlayer :: UpdateClientData( void )
 		WRITE_BYTE( 0 );
 		MESSAGE_END();
 		gDisplayTitle = 0;
+	}
+
+	if(m_FogFadeTime != 0)
+	{
+		float flDegree = (gpGlobals->time - m_flStartTime) / m_FogFadeTime;
+		m_iFogEndDist -= (FOG_HARDWARE_LIMIT - m_iFogFinalEndDist) * (flDegree / m_iFogFinalEndDist);
+
+		// cap it
+		if (m_iFogEndDist > FOG_HARDWARE_LIMIT )
+		{
+			m_iFogEndDist = FOG_HARDWARE_LIMIT;
+			m_FogFadeTime = 0;
+		}
+		if (m_iFogEndDist < m_iFogFinalEndDist)
+		{
+			m_iFogEndDist = m_iFogFinalEndDist;
+			m_FogFadeTime = 0;
+		}
+		fogNeedsUpdate = TRUE;
+	}
+
+	if(fogNeedsUpdate != 0)
+	{
+		//update fog
+		MESSAGE_BEGIN( MSG_ONE, gmsgSetFog, NULL, pev );
+			WRITE_BYTE ( m_FogColor.x );
+			WRITE_BYTE ( m_FogColor.y );
+			WRITE_BYTE ( m_FogColor.z );
+			WRITE_SHORT ( m_iFogStartDist );
+			WRITE_SHORT ( m_iFogEndDist );
+		MESSAGE_END();
+		fogNeedsUpdate = 0;
 	}
 
 	if (pev->health != m_iClientHealth)

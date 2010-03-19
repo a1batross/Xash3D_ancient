@@ -52,13 +52,10 @@ Vector VecBModelOrigin( entvars_t* pevBModel )
 /*QUAKED func_wall (0 .5 .8) ?
 This is just a solid wall if not inhibited
 */
-#define SF_FUNCWALL_ROTATE 1
-
 class CFuncWall : public CBaseEntity
 {
 public:
 	void	Spawn( void );
-	//void	PostSpawn(void);	 //AJH
 	void	Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 
 	virtual STATE GetState( void ) { return pev->frame?STATE_ON:STATE_OFF; };
@@ -73,43 +70,20 @@ LINK_ENTITY_TO_CLASS( func_wall, CFuncWall );
 
 void CFuncWall :: Spawn( void )
 {	
-	
-	// If it can't move/go away, it's really part of the world
-	if (!m_pMoveWith) //LRC
-		pev->flags |= FL_WORLDBRUSH;
-
-	pev->angles		= g_vecZero; 
-	
-/*	if (pev->spawnflags & SF_FUNCWALL_ROTATE){	//AJH - Now we can rotate complex stuff on spawn - Doesn't work!!!
-		ALERT(at_debug,"DEBUG: Rotate flag set, rotating brush in 0.1seconds\n");		
-		pev->flags &= !FL_WORLDBRUSH;
-		SetThink(&CFuncWall::PostSpawn);
-		SetNextThink(0.1);
-		
-	}
-*/
+	pev->angles		= g_vecZero;
 	pev->movetype	= MOVETYPE_PUSH;  // so it doesn't get pushed by anything
 	pev->solid		= SOLID_BSP;
 	SET_MODEL( ENT(pev), STRING(pev->model) );
 	
-	
+	// If it can't move/go away, it's really part of the world
+	if (!m_pMoveWith) //LRC
+		pev->flags |= FL_WORLDBRUSH;
 
 	//LRC
 	if (m_iStyle >= 32) LIGHT_STYLE(m_iStyle, "a");
 	else if (m_iStyle <= -32) LIGHT_STYLE(-m_iStyle, "z");
 	
 }
-
-/*
-void CFuncWall :: PostSpawn (){					//AJH - Bug, this doesn't work, I have no idea why.
-	ALERT(at_debug,"DEBUG: Rotating from %f %f %f ", pev->angles.x,pev->angles.y,pev->angles.z);
-	//UTIL_AssignAngles(this,pev->vuser1);
-	pev->angles = pev->vuser1;
-	ALERT(at_debug,"to %f %f %f\n",pev->angles.x,pev->angles.y,pev->angles.z);
-	ALERT(at_debug,"String vuser1 = %s\n",pev->vuser1);
-	DontThink();
-}
-*/
 
 void CFuncWall :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
@@ -558,11 +532,6 @@ void CFuncRotating :: Spawn( )
 	UTIL_SetOrigin(this, pev->origin);
 	SET_MODEL( ENT(pev), STRING(pev->model) );
 
-	if(pev->origin == g_vecZero)//G-Cont. Set custom orirgin. Don't right work :(
-	{
-		UTIL_SetOrigin(this, VecBModelOrigin(pev));
-		ALERT(at_console, "DEBUG: Using custom origin: Rotate object coordinates is %f %f %f \n", pev->origin.x, pev->origin.y, pev->origin.z);
-	}
 	SetUse(&CFuncRotating :: RotatingUse );
 	// did level designer forget to assign speed?
 	if (pev->speed <= 0)
@@ -681,7 +650,7 @@ void CFuncRotating :: HurtTouch ( CBaseEntity *pOther )
 //	pev->dmg = pev->avelocity.Length() / 10;
 
 	if (m_hActivator)
-		pOther->TakeDamage( pev, m_hActivator->pev, pev->dmg, DMG_CRUSH );	//AJH Attribute damage to he who switched me.
+		pOther->TakeDamage( pev, m_hActivator->pev, pev->dmg, DMG_CRUSH );
 	else
 		pOther->TakeDamage( pev, pev, pev->dmg, DMG_CRUSH );
 	

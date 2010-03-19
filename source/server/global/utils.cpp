@@ -2317,10 +2317,10 @@ void UTIL_SetFogAll( Vector color, int iFadeTime, int iStartDist, int iEndDist )
 {
 	// loop through all players
          
-	if(IsMultiplayer())
+	if( IsMultiplayer( ))
 	{
-		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
-			UTIL_SetFog( color, iFadeTime, iStartDist, iEndDist, i );
+		for ( int i = 0; i < gpGlobals->maxClients; i++ )
+			UTIL_SetFog( color, iFadeTime, iStartDist, iEndDist, i+1 );
 	}
 	else UTIL_SetFog( color, iFadeTime, iStartDist, iEndDist );
 }

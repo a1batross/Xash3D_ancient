@@ -812,7 +812,6 @@ void R_Set2DMode( bool enable )
 	}
 }
 
-
 /*
 ============
 R_PolyBlend
@@ -1739,8 +1738,6 @@ void R_BeginFrame( bool clearScene )
 				Sys_Break( "R_EndFrame() - SwapBuffers() failed!\n" );
 		}
 	}
-
-	pglDrawBuffer( GL_BACK );
 
 	if( r_colorbits->modified )
 	{

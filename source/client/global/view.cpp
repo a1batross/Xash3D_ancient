@@ -306,7 +306,7 @@ void V_PreRender( ref_params_t *pparams )
 //==========================
 void V_CalcGlobalFog( ref_params_t *pparams )
 {
-	int bOn = (pparams->waterlevel < 2) && (gHUD.m_flStartDist > 0) && (gHUD.m_flEndDist > 0);
+	int bOn = (pparams->waterlevel < 2) && (gHUD.m_flStartDist > 0) && (gHUD.m_flEndDist > 0 && gHUD.m_flStartDist);
 	g_engfuncs.pTriAPI->Fog( gHUD.m_vecFogColor, gHUD.m_flStartDist, gHUD.m_flEndDist, bOn );
 }
 

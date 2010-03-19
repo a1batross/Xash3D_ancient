@@ -1518,6 +1518,13 @@ int AddToFullPack( edict_t *pView, edict_t *pHost, edict_t *pEdict, int hostflag
 	default: return 0; // skipped
 	}
 
+	if( bIsPortalPass && (pEdict->v.flags & FL_PROJECTILE) && pEdict->v.teleport_time )
+	{
+		// HACKHACK - add grenades, rockets and other things that passed teleport into portal PVS
+		// as potentially visible. This is only for single frame.
+		return 1;
+	}
+
 	if( !ENGINE_CHECK_AREA( pEdict, hostarea ))
 	{
 		// blocked by a door

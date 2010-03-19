@@ -722,7 +722,7 @@ void CAmbientGeneric :: ToggleUse ( CBaseEntity *pActivator, CBaseEntity *pCalle
 		InitModulationParms();
 
 		// AJH / MJB - [LR] volume field:
-		if (pev->noise) m_dpv.vol = CalcLocus_Ratio(this, STRING(pev->noise), 0);
+		if (pev->noise) m_dpv.vol = CalcLocus_Ratio(this, STRING(pev->noise));
 				
 		if (m_pPlayFrom)
 		{

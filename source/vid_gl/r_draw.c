@@ -307,7 +307,18 @@ static void Tri_CheckOverflow( int numIndices, int numVertices )
 
 void Tri_Fog( float flFogColor[3], float flStart, float flEnd, int bOn )
 {
-	// FIXME: implement
+	// ignore fog calls from TriApi callbacks
+	// to avoid strange artefacts and other issues
+	if( triState.fActive ) return;
+
+	// change fog params
+	triState.fogColor[0] = bound( 0.0f, flFogColor[0], 1.0f );
+	triState.fogColor[1] = bound( 0.0f, flFogColor[1], 1.0f );
+	triState.fogColor[2] = bound( 0.0f, flFogColor[2], 1.0f );
+	triState.fogColor[3] = 1.0f;
+	triState.fogStartDist = min( flStart, flEnd );
+	triState.fogEndDist = max( flStart, flEnd );
+	triState.fogEnabled = bOn;
 }
 
 void Tri_CullFace( int mode )

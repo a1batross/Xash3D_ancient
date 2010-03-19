@@ -436,6 +436,12 @@ typedef struct
 	int		drawMode;
 	rgba_t		color;
 
+	// linear fog stuff
+	vec4_t		fogColor;
+	float		fogStartDist;
+	float		fogEndDist;
+	bool		fogEnabled;
+
 	int		features;
 	int		numVertex;
 	int		numColor;

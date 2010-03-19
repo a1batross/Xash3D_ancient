@@ -633,6 +633,24 @@ void R_DrawPortals( void )
 }
 
 /*
+===============
+R_RenderFog
+===============
+*/
+void R_RenderFog( void )
+{
+	if( !triState.fogEnabled ) return;
+
+	pglEnable( GL_FOG );
+//	pglFogf( GL_FOG_DENSITY, 0.0025 );
+	pglFogi( GL_FOG_MODE, GL_LINEAR );
+	pglFogfv( GL_FOG_COLOR, triState.fogColor );
+	pglFogf( GL_FOG_START, triState.fogStartDist );
+	pglFogf( GL_FOG_END, triState.fogEndDist );
+	pglHint( GL_FOG_HINT, GL_NICEST );
+}
+
+/*
 ================
 R_DrawMeshes
 ================
@@ -641,6 +659,8 @@ void R_DrawMeshes( void )
 {
 	int i;
 	meshbuffer_t *meshbuf;
+
+	R_RenderFog();
 
 	RI.previousentity = NULL;
 	if( RI.meshlist->num_opaque_meshes )
@@ -652,6 +672,9 @@ void R_DrawMeshes( void )
 	}
 	Tri_RenderCallback( false );
 
+	// don't fogging translucent surfaces
+	if( triState.fogEnabled ) pglDisable( GL_FOG );
+
 	if( RI.meshlist->num_translucent_meshes )
 	{
 		meshbuf = RI.meshlist->meshbuffer_translucent;
@@ -662,6 +685,9 @@ void R_DrawMeshes( void )
 	Tri_RenderCallback( true );
 
 	R_LoadIdentity();
+
+	// clearing fog after each frame
+	triState.fogEnabled = false;
 }
 
 /*

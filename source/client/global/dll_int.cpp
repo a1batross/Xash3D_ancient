@@ -197,6 +197,13 @@ void HUD_UpdateEntityVars( edict_t *ent, const entity_state_t *state, const enti
 		m_fLerp = 1.0f;
 	else m_fLerp = GetLerpFrac();
 
+	if( state->flags & FL_PROJECTILE && state->ed_flags & ( ESF_NO_PREDICTION|ESF_NODELTA ))
+	{
+		// cut rocket trail, dont pass it from teleport
+		// FIXME: don't work
+		g_pViewRenderBeams->KillDeadBeams( ent );		
+	}
+
 	// copy state to progs
 	ent->v.modelindex = state->modelindex;
 	ent->v.weaponmodel = state->weaponmodel;

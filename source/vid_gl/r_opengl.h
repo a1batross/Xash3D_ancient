@@ -272,6 +272,15 @@ typedef uint GLhandleARB;
 #define GL_INCR				0x1E02
 #define GL_DECR				0x1E03
 
+// fog stuff
+#define GL_FOG				0x0B60
+#define GL_FOG_INDEX			0x0B61
+#define GL_FOG_DENSITY			0x0B62
+#define GL_FOG_START			0x0B63
+#define GL_FOG_END				0x0B64
+#define GL_FOG_MODE				0x0B65
+#define GL_FOG_COLOR			0x0B66
+
 #define GL_POLYGON_OFFSET_FACTOR		0x8038
 #define GL_POLYGON_OFFSET_UNITS		0x2A00
 #define GL_POLYGON_OFFSET_POINT		0x2A01

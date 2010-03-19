@@ -62,8 +62,6 @@
 #define SF_MONSTER_TURRET_STARTINACTIVE	64
 #define SF_MONSTER_WAIT_UNTIL_PROVOKED	64 // don't attack the player unless provoked
 
-
-
 // MoveToOrigin stuff
 #define		MOVE_START_TURN_DIST	64 // when this far away from moveGoal, start turning to face next goal
 #define		MOVE_STUCK_DIST			32 // if a monster can't step this far, it is stuck.
