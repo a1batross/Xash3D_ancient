@@ -53,9 +53,6 @@ class CParticleSystem
 
 	// private partsystem shaders
 	HSPRITE		m_hDefaultParticle;
-	HSPRITE		m_hGlowParticle;
-	HSPRITE		m_hDroplet;
-	HSPRITE		m_hBubble;
 	HSPRITE		m_hSparks;
 	HSPRITE		m_hSmoke;
 public:

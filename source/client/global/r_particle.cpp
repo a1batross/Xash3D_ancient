@@ -316,12 +316,9 @@ void CParticleSystem :: Clear( void )
 	m_pParticles[MAX_PARTICLES-1].next = NULL;
 
 	// loading TE shaders
-	m_hDefaultParticle = TEX_Load( "textures/particles/default" );
-	m_hGlowParticle = TEX_Load( "textures/particles/glow" );
-	m_hDroplet = TEX_Load( "textures/particles/droplet" );
-	m_hBubble = TEX_Load( "textures/particles/bubble" );
-	m_hSparks = TEX_Load( "textures/particles/spark" );
-	m_hSmoke = TEX_Load( "textures/particles/smoke" );
+	m_hDefaultParticle = TEX_Load( "$defaultParticle" );
+	m_hSparks = TEX_Load( "gfx/hud/spark" );
+	m_hSmoke = TEX_Load( "gfx/hud/smoke" );
 }
 
 void CParticleSystem :: FreeParticle( CParticle *pCur )
@@ -494,41 +491,6 @@ void CParticleSystem :: ExplosionParticles( const Vector pos )
 
 /*
 =================
-CL_BubbleParticles
-=================
-*/
-void CParticleSystem :: BubbleParticles( const Vector org, int count, float magnitude )
-{
-	CParticle	src;
-
-	if( !cl_particles->integer ) return;
-
-	for( int i = 0; i < count; i++ )
-	{
-		src.origin.x = org[0] + RANDOM_FLOAT( -magnitude, magnitude );
-		src.origin.y = org[1] + RANDOM_FLOAT( -magnitude, magnitude );
-		src.origin.z = org[2] + RANDOM_FLOAT( -magnitude, magnitude );
-		src.velocity.x = RANDOM_FLOAT( -5, 5 );
-		src.velocity.y = RANDOM_FLOAT( -5, 5 );
-		src.velocity.z = RANDOM_FLOAT( -5, 5 ) + (25 + RANDOM_FLOAT( -5, 5 ));
-		src.accel = Vector( 0, 0, 0 );
-		src.color = Vector( 1, 1, 1 );
-		src.colorVelocity = Vector( 0, 0, 0 );
-		src.alpha = 1.0;
-		src.alphaVelocity = -(0.4 + RANDOM_FLOAT( 0, 0.2 ));
-		src.radius = 1 + RANDOM_FLOAT( -0.5, 0.5 );
-		src.radiusVelocity = 0;
-		src.length = 1;
-		src.lengthVelocity = 0;
-		src.rotation = 0;
-
-		if( !AddParticle( &src, m_hBubble, FPART_UNDERWATER ))
-			return;
-	}
-}
-
-/*
-=================
 CL_BulletParticles
 =================
 */
@@ -656,10 +618,7 @@ void CParticleSystem :: BulletParticles( const Vector org, const Vector dir )
 	cnt = POINT_CONTENTS( org );
 
 	if( cnt == CONTENTS_WATER )
-	{
-		BubbleParticles( org, count, 0 );
 		return;
-	}
 
 	// sparks
 	int flags = (FPART_STRETCH|FPART_BOUNCE|FPART_FRICTION);

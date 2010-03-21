@@ -499,7 +499,10 @@ bool R_PushSprite( const meshbuffer_t *mb, int type, float right, float left, fl
 	ref_entity_t	*e = RI.currententity;
 	float		angle, sr, cr;
 	ref_shader_t	*shader;
-	vec3_t		point;
+	vec3_t		point, origin;
+
+	// don't touch entity origin in case we doesn't have updates
+	VectorCopy( e->origin, origin );
 
 	switch( type )
 	{
@@ -508,10 +511,10 @@ bool R_PushSprite( const meshbuffer_t *mb, int type, float right, float left, fl
 		VectorCopy( e->axis[1], v_right );
 		VectorCopy( e->axis[2], v_up );
 		VectorScale( v_forward, 0.01f, v_forward ); // to avoid z-fighting
-		VectorSubtract( e->origin, v_forward, e->origin );
+		VectorSubtract( origin, v_forward, origin );
 		break;
 	case SPR_FACING_UPRIGHT:
-		VectorSet( v_right, e->origin[1] - RI.viewOrigin[1], -(e->origin[0] - RI.viewOrigin[0]), 0 );
+		VectorSet( v_right, origin[1] - RI.viewOrigin[1], -(origin[0] - RI.viewOrigin[0]), 0 );
 		VectorSet( v_up, 0, 0, 1 );
 		VectorNormalize( v_right );
 		break;
@@ -569,7 +572,7 @@ bool R_PushSprite( const meshbuffer_t *mb, int type, float right, float left, fl
 	if( shader->flags & SHADER_ENTITY_MERGABLE )
 	{
 		for( i = 0; i < 4; i++ )
-			VectorAdd( spr_xyz[i], e->origin, spr_xyz[i] );
+			VectorAdd( spr_xyz[i], origin, spr_xyz[i] );
 		R_PushMesh( &spr_mesh, features );
 		return false;
 	}
@@ -1863,6 +1866,9 @@ void R_AddLightStyleToScene( int style, float r, float g, float b )
 {
 	lightstyle_t *ls;
 
+	if( !r_worldmodel || !r_worldbrushmodel->lightgrid || !r_worldbrushmodel->numlightgridelems )
+		return;	// don't apply lightstyles when no lighting info
+
 	if( style < 0 || style > MAX_LIGHTSTYLES )
 		Host_Error( "R_AddLightStyleToScene: bad light style %i\n", style );
 
@@ -2477,8 +2483,11 @@ bool R_AddEntityToScene( edict_t *pRefEntity, int ed_type, shader_t customShader
 
 	if( !pRefEntity || pRefEntity->v.modelindex <= 0 || pRefEntity->v.modelindex >= MAX_MODELS )
 		return false; // if set to invisible, skip
-	if( r_numEntities >= MAX_ENTITIES ) return false;
-
+	if( r_numEntities >= MAX_ENTITIES )
+	{
+		MsgDev( D_ERROR, "R_AddEntityToScene: too many visible entities\n" );
+		return false;
+	}
 	refent = &r_entities[r_numEntities];
 
 	if( pRefEntity->v.effects & EF_NODRAW && ed_type != ED_PORTAL )

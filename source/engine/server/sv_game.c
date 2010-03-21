@@ -642,7 +642,8 @@ edict_t* SV_AllocPrivateData( edict_t *ent, string_t className )
 
 	ent->v.classname = className;
 	ent->v.pContainingEntity = ent; // re-link
-
+	VectorSet( ent->v.rendercolor, 255, 255, 255 ); // assume default color
+	
 	// allocate edict private memory (passed by dlls)
 	SpawnEdict = (LINK_ENTITY_FUNC)Com_GetProcAddress( svgame.hInstance, pszClassName );
 	if( !SpawnEdict )
@@ -739,12 +740,13 @@ sv_client_t *SV_ClientFromEdict( const edict_t *pEdict, bool spawned_only )
 		if( svs.clients[i].state != cs_spawned )
 			return NULL;
 	}
+#if 0
 	else
 	{
 		if( svs.clients[i].state < cs_connected )
 			return NULL;
 	}
-
+#endif
 	client = svs.clients + i;
 
 	return client;
@@ -3690,10 +3692,6 @@ bool SV_ParseEdict( script_t *script, edict_t *ent )
 		pkvd[i].szClassName = (char *)classname;
 		svgame.dllFuncs.pfnKeyValue( ent, &pkvd[i] );
 	}
-
-	// check for rendercolor
-	if( VectorIsNull( ent->v.rendercolor )) VectorSet( ent->v.rendercolor, 255, 255, 255 );
-
 	return true;
 }
 
@@ -3813,6 +3811,7 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 			// setup all clients
 			ent = EDICT_NUM( i + 1 );
 			SV_InitEdict( ent );
+			SV_AllocPrivateData( ent, MAKE_STRING( "player" ));
 			ent->pvServerData->client = svs.clients + i;
 			ent->pvServerData->client->edict = ent;
 		}

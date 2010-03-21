@@ -436,7 +436,7 @@ int CHud :: MsgFunc_ScreenFade( const char *pszName, int iSize, void *pbuf )
 
 	float fadeTime = READ_FLOAT();
 	float holdTime = READ_FLOAT();
-	int fadeFlags = READ_SHORT();
+	int fadeFlags = READ_BYTE();
 
 	Vector m_FadeColor;
 	

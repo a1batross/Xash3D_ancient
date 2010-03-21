@@ -687,7 +687,8 @@ void R_DrawMeshes( void )
 	R_LoadIdentity();
 
 	// clearing fog after each frame
-	triState.fogEnabled = false;
+	if( !( RI.params & RP_NONVIEWERREF ))
+		triState.fogEnabled = false;
 }
 
 /*

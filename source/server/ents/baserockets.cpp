@@ -605,7 +605,7 @@ void CNukeExplode :: Spawn( void )
 
 	// create first explode sprite
 	SFX_Explode( m_usExplodeSprite, pev->origin, 70, TE_EXPLFLAG_NOPARTICLES|TE_EXPLFLAG_NOSOUND|TE_EXPLFLAG_NODLIGHTS );
-	EMIT_SOUND( ENT( pev ), CHAN_VOICE, "weapons/warhead/whexplode.wav", 1, ATTN_NONE );
+	EMIT_SOUND( edict(), CHAN_VOICE, "weapons/warhead/whexplode.wav", 1, ATTN_NONE );
 
 	pev->movetype = MOVETYPE_NONE;
 	pev->solid = SOLID_NOT;

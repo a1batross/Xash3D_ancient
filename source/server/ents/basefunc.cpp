@@ -31,11 +31,10 @@ public:
 	void TurnOff( void );
 	void Precache( void ){ CBaseBrush::Precache(); }
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-	virtual int ObjectCaps( void ) { return CBaseEntity :: ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
 };
+
 LINK_ENTITY_TO_CLASS( func_wall, CFuncWall );
 LINK_ENTITY_TO_CLASS( func_static, CFuncWall );
-LINK_ENTITY_TO_CLASS( func_bossgate, CFuncWall );
 LINK_ENTITY_TO_CLASS( func_wall_toggle, CFuncWall );
 LINK_ENTITY_TO_CLASS( func_illusionary, CFuncWall );
 
@@ -48,33 +47,25 @@ void CFuncWall :: Spawn( void )
 		pev->solid = SOLID_NOT;
 		pev->movetype = MOVETYPE_NONE;
 	}
-	else if( FClassnameIs( pev, "func_bossgate" ))
-	{
-		if(( gpGlobals->serverflags & 15 ) == 15 )
-		{
-			UTIL_Remove( this );
-			return; // all episodes completed
-		}
-	}
 	else
 	{
 		pev->solid = SOLID_BSP;
           	pev->movetype = MOVETYPE_PUSH;
           }
-	UTIL_SetModel( ENT( pev ), pev->model );
+	UTIL_SetModel( ENT(pev), pev->model );
 
-	// smart field system ®
-	if( !FStringNull( pev->angles ) && FStringNull( pev->origin ))
+	// Smart field system ®
+	if (!FStringNull( pev->angles ) && FStringNull( pev->origin ))
 	{
 		pev->angles = g_vecZero;
-		ALERT( at_console, "\n======/Xash SmartFiled System/======\n\n");
-		ALERT( at_console, "Create brush origin for %s,\n", STRING( pev->classname ));
-		ALERT( at_console, "if we want correctly set angles\n\n" );
+		ALERT( at_console, "\n======/Xash SmartField System/======\n\n");
+		ALERT( at_console, "Create origin brush for %s,\nif we want correctly set angles\n\n", STRING( pev->classname ));
 	}
-
 	pev->angles[1] =  0 - pev->angles[1];	
-	if( pev->spawnflags & SF_START_ON ) TurnOff();
-	else TurnOn();
+
+	if( pev->spawnflags & SF_START_ON )
+		TurnOn();
+	else TurnOff();
 }
 
 void CFuncWall :: TurnOff( void )
@@ -105,20 +96,36 @@ void CFuncWall :: TurnOn( void )
 
 void CFuncWall :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	if (useType == USE_TOGGLE)
+	if ( useType == USE_TOGGLE )
 	{
-		if(m_iState == STATE_OFF) useType = USE_ON;
-		else useType = USE_OFF;
+		if( pev->frame )
+			useType = USE_OFF;
+		else useType = USE_ON;
 	}
-	if (useType == USE_ON) TurnOn();
-	else if (useType == USE_OFF)TurnOff();
-	else if (useType == USE_SHOWINFO)
+	if ( useType == USE_ON ) TurnOn();
+	else if ( useType == USE_OFF ) TurnOff();
+	else if ( useType == USE_SET ) // make wall invisible
 	{
-		DEBUGHEAD;
-		Msg( "State: %s, Visible: %s\n", GetStringForState( GetState()), pev->effects & EF_NODRAW ? "No" : "Yes");
-		Msg( "Contents: %s, Texture frame: %.f\n", GetContentsString( pev->skin ), pev->frame);
+		pev->solid = SOLID_NOT;
+		pev->effects |= EF_NODRAW;
+		UTIL_SetOrigin( this, pev->origin );
+	}
+	else if ( useType == USE_RESET ) // make wall visible
+	{
+		if(!( pev->spawnflags & SF_NOTSOLID ))
+			pev->solid = SOLID_BSP;
+		pev->effects &= ~EF_NODRAW;
+		UTIL_SetOrigin( this, pev->origin );
+	}
+	else if ( useType == USE_SHOWINFO )
+	{
+		ALERT( at_console, "======/Xash Debug System/======\n" );
+		ALERT( at_console, "classname: %s\n", STRING( pev->classname ));
+		ALERT( at_console, "State: %s, Visible: %s\n", GetStringForState( GetState()), pev->effects & EF_NODRAW ? "No" : "Yes" );
+		ALERT( at_console, "Contents: %s, Texture frame: %.f\n", GetContentsString( pev->skin ), pev->frame );
 	}
 }
+
 //=======================================================================
 // func_breakable - generic breakable brush. 
 //=======================================================================
@@ -127,32 +134,27 @@ class CFuncBreakable : public CBaseBrush
 public:
 	void Spawn( void );
 	void Precache( void ){ CBaseBrush::Precache(); }
-	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value ){ if (IsBreakable()) Die(); }
+	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 };
 LINK_ENTITY_TO_CLASS( func_breakable, CFuncBreakable );
 
 void CFuncBreakable :: Spawn( void )
 {
 	CBaseBrush::Spawn();	
-	UTIL_SetModel( ENT(pev), pev->model );
+	UTIL_SetModel( ENT( pev ), pev->model );
 
-	if ( FBitSet( pev->spawnflags, SF_BREAK_TRIGGER_ONLY )) pev->takedamage = DAMAGE_NO;
+	if ( FBitSet( pev->spawnflags, SF_BREAK_TRIGGER_ONLY ))
+		pev->takedamage = DAMAGE_NO;
 	else pev->takedamage = DAMAGE_YES;
 }
-//=======================================================================
-// func_monsterclip - invisible contents that monster can't walk across 
-//=======================================================================
-class CFuncClip : public CBaseEntity
+
+void CFuncBreakable :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-public:
-	void Spawn( void )
+	if ( IsBreakable( ))
 	{
-		pev->effects = EF_NODRAW;
-		pev->flags |= FL_MONSTERCLIP;
-		UTIL_SetModel( ENT(pev), pev->model );
+		Die(); // simple huh ?
 	}
-};
-LINK_ENTITY_TO_CLASS( func_monsterclip, CFuncClip );
+}
 
 //=======================================================================
 // func_lamp - switchable brush light. 
@@ -174,9 +176,10 @@ void CFuncLamp :: Spawn( void )
 {	
 	m_Material = Glass;
 	CBaseBrush::Spawn();
-	UTIL_SetModel( ENT(pev), pev->model );
+	UTIL_SetModel( ENT( pev ), pev->model );
 	
-	if(pev->spawnflags & SF_START_ON) Use( this, this, USE_ON, 0 );
+	if( pev->spawnflags & SF_START_ON )
+		Use( this, this, USE_ON, 0 );
 	else Use( this, this, USE_OFF, 0 );
 }
 
@@ -212,17 +215,27 @@ void CFuncLamp :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE u
 	}
 	else if (useType == USE_OFF)
 	{
-		pev->frame = 1;//light texture is off
-		LIGHT_STYLE(m_iStyle, "a");
-		UTIL_FireTargets( pev->target, this, this, USE_OFF );//lamp disable
+		pev->frame = 1; // light texture is off
+		LIGHT_STYLE( m_iStyle, "a" );
+		UTIL_FireTargets( pev->target, this, this, USE_OFF ); // lamp disable
 		m_iState = STATE_OFF;
 	}
-	else if (useType == USE_SET) Die();
-	else if (useType == USE_SHOWINFO)
+	else if ( useType == USE_SET )
+	{
+		Die(); // broke lamp with sfx
+	}
+	else if ( useType == USE_RESET ) // broke lamp silent
+	{
+		pev->frame = 1; // light texture is off
+		LIGHT_STYLE( m_iStyle, "a" );
+		m_iState = STATE_DEAD;
+		pev->health = 0;
+	}
+	else if ( useType == USE_SHOWINFO )
 	{
 		DEBUGHEAD;
-		Msg( "State: %s, Light style %d\n", GetStringForState( GetState()), m_iStyle);
-		Msg( "Texture frame: %.f. Health %.f\n", pev->frame, pev->health);
+		ALERT( at_console, "State: %s, Light style %d\n", GetStringForState( GetState()), m_iStyle );
+		ALERT( at_console, "Texture frame: %.f. Health %.f\n", pev->frame, pev->health );
 	}
 }
 
@@ -234,13 +247,13 @@ void CFuncLamp::TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecD
 	Vector end = start + vecDir * 1024;
 	edict_t *pWorld = ptr->pHit;
 	if ( pWorld )pTextureName = TRACE_TEXTURE( pWorld, start, end );
-	if(strstr(pTextureName, "+0~") || strstr(pTextureName, "~") )//take damage only at light texture
+	if ( strstr( pTextureName, "+0~" ) || strstr( pTextureName, "~" )) // take damage only at light texture
 	{
 		UTIL_Sparks( ptr->vecEndPos );
 		pev->oldorigin = ptr->vecEndPos;//save last point of damage
 		pev->takedamage = DAMAGE_YES;//inflict damage only at light texture
 	}
-	else	pev->takedamage = DAMAGE_NO;
+	else pev->takedamage = DAMAGE_NO;
 	CBaseLogic::TraceAttack( pevAttacker, flDamage, vecDir, ptr, bitsDamageType );
 }
 int CFuncLamp::TakeDamage( entvars_t* pevInflictor, entvars_t* pevAttacker, float flDamage, int bitsDamageType )
@@ -248,11 +261,11 @@ int CFuncLamp::TakeDamage( entvars_t* pevInflictor, entvars_t* pevAttacker, floa
 	if ( bitsDamageType & DMG_BLAST ) flDamage *= 3;
 	else if ( bitsDamageType & DMG_CLUB) flDamage *= 2;
 	else if ( bitsDamageType & DMG_SONIC ) flDamage *= 1.2;
-	else if ( bitsDamageType & DMG_SHOCK ) flDamage *= 10;//!!!! over voltage
-	else if ( bitsDamageType & DMG_BULLET) flDamage *= 0.5;//half damage at bullet
+	else if ( bitsDamageType & DMG_SHOCK ) flDamage *= 10; // !!!! over voltage
+	else if ( bitsDamageType & DMG_BULLET) flDamage *= 0.5;// half damage at bullet
 	pev->health -= flDamage;//calculate health
 
-	if (pev->health <= 0)
+	if ( pev->health <= 0 )
 	{
 		Die();
 		return 0;
@@ -264,56 +277,57 @@ int CFuncLamp::TakeDamage( entvars_t* pevInflictor, entvars_t* pevAttacker, floa
 
 void CFuncLamp::Die( void )
 {
-	//lamp is random choose die style
-	if(m_iState == STATE_OFF)
+	// lamp is random choose die style
+	if( m_iState == STATE_OFF )
 	{
-		pev->frame = 1;//light texture is off
-		LIGHT_STYLE(m_iStyle, "a");
+		pev->frame = 1; // light texture is off
+		LIGHT_STYLE( m_iStyle, "a" );
 		DontThink();
 	}
 	else
-	{         //simple randomization
+	{         // simple randomization
 		pev->impulse = RANDOM_LONG(1, 2);
 		SetThink( Flicker );
-		SetNextThink( 0.1 + (RANDOM_LONG(1, 2) * 0.1));
+		SetNextThink( 0.1 + (RANDOM_LONG( 1, 2 ) * 0.1 ));
 	}
 
-	m_iState = STATE_DEAD;//lamp is die
-	pev->health = 0;//set health to NULL
+	m_iState = STATE_DEAD; // lamp is die
+	pev->health = 0; // set health to NULL
 	pev->takedamage = DAMAGE_NO;
-	UTIL_FireTargets( pev->target, this, this, USE_OFF );//lamp broken
+	UTIL_FireTargets( pev->target, this, this, USE_OFF ); // lamp broken
 
-	switch ( RANDOM_LONG(0,1))
+	switch ( RANDOM_LONG( 0, 1 ))
 	{
-		case 0: EMIT_SOUND(ENT(pev), CHAN_VOICE, "materials/glass/bustglass1.wav", 0.7, ATTN_IDLE); break;
-		case 1: EMIT_SOUND(ENT(pev), CHAN_VOICE, "materials/glass/bustglass2.wav", 0.8, ATTN_IDLE); break;
+		case 0: EMIT_SOUND( ENT( pev ), CHAN_VOICE, "materials/glass/bustglass1.wav", 0.7, ATTN_IDLE ); break;
+		case 1: EMIT_SOUND( ENT( pev ), CHAN_VOICE, "materials/glass/bustglass2.wav", 0.8, ATTN_IDLE ); break;
 	}
 	Vector vecSpot = pev->origin + (pev->mins + pev->maxs) * 0.5;
-	//spawn glass gibs
-	SFX_MakeGibs( m_idShard, vecSpot, pev->size, g_vecZero, 50, BREAK_GLASS);
+
+	// spawn glass gibs
+	SFX_MakeGibs( m_idShard, vecSpot, pev->size, g_vecZero, 50, BREAK_GLASS );
 }
 
 void CFuncLamp :: Flicker( void )
 {
-	if(m_iState == STATE_TURN_ON)//flickering on enable
+	if ( m_iState == STATE_TURN_ON ) // flickering on enable
 	{
-		LIGHT_STYLE(m_iStyle, "k");
+		LIGHT_STYLE( m_iStyle, "k" );
 		UTIL_FireTargets( pev->target, this, this, USE_ON );//Lamp enabled
 		m_iState = STATE_ON;
 		DontThink();
 		return;
 	}
-	if(pev->impulse == 1)//fadeout on break
+	if ( pev->impulse == 1 ) // fadeout on break
 	{
-		pev->frame = 1;//light texture is off
-		LIGHT_STYLE(m_iStyle, "a");
+		pev->frame = 1; // light texture is off
+		LIGHT_STYLE( m_iStyle, "a" );
 		SetThink( NULL );
 		return;
 	}
-	if(pev->impulse == 2)//broken flickering
+	if ( pev->impulse == 2 ) // broken flickering
 	{
 		//make different flickering
-		switch ( RANDOM_LONG(0,3))
+		switch ( RANDOM_LONG( 0, 3 ))
 		{
 			case 0: LIGHT_STYLE(m_iStyle, "abcaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"); break;
 			case 1: LIGHT_STYLE(m_iStyle, "acaaabaaaaaaaaaaaaaaaaaaaaaaaaaaa"); break;
@@ -322,15 +336,15 @@ void CFuncLamp :: Flicker( void )
 		}		
 		pev->frags = RANDOM_FLOAT(0.5, 10);
                    	UTIL_Sparks( pev->oldorigin );
-		switch ( RANDOM_LONG(0, 2) )
+		switch ( RANDOM_LONG( 0, 2 ))
 		{
-			case 0: EMIT_SOUND(ENT(pev), CHAN_VOICE, "materials/spark1.wav", 0.4, ATTN_IDLE); break;
-			case 1: EMIT_SOUND(ENT(pev), CHAN_VOICE, "materials/spark2.wav", 0.3, ATTN_IDLE); break;
-			case 2: EMIT_SOUND(ENT(pev), CHAN_VOICE, "materials/spark3.wav", 0.35, ATTN_IDLE); break;
+			case 0: EMIT_SOUND( ENT(pev), CHAN_VOICE, "materials/spark1.wav", 0.4, ATTN_IDLE ); break;
+			case 1: EMIT_SOUND( ENT(pev), CHAN_VOICE, "materials/spark2.wav", 0.3, ATTN_IDLE ); break;
+			case 2: EMIT_SOUND( ENT(pev), CHAN_VOICE, "materials/spark3.wav", 0.35, ATTN_IDLE ); break;
 		}
-		if(pev->frags > 6.5) pev->impulse = 1;//stop sparking obsolete
+		if( pev->frags > 6.5f ) pev->impulse = 1; // stop sparking obsolete
 	}
-	SetNextThink(pev->frags); 
+	SetNextThink( pev->frags ); 
 }
 
 //=======================================================================
@@ -341,9 +355,6 @@ class CFuncConveyor : public CBaseBrush
 public:
 	void Spawn( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-	void UpdateSpeed( float speed );
-	void TogglePhysic( BOOL enable );
-	virtual int ObjectCaps( void ) { return CBaseEntity :: ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
 };
 LINK_ENTITY_TO_CLASS( func_conveyor, CFuncConveyor );
 
@@ -356,36 +367,14 @@ void CFuncConveyor :: Spawn( void )
 	UTIL_SetModel( ENT(pev), STRING( pev->model ));
 	
 	if( pev->spawnflags & SF_NOTSOLID )
-		TogglePhysic( FALSE );
-	else TogglePhysic( TRUE );
+          	pev->movetype = MOVETYPE_NONE;
+	else pev->movetype = MOVETYPE_CONVEYOR;
 
 	// smart field system ®
 	if( pev->speed == 0 ) pev->speed = 100;
 	pev->frags = pev->speed; // save initial speed
 	if( pev->spawnflags & SF_START_ON || FStringNull( pev->targetname ))
 		Use( this, this, USE_ON, 0 );
-}
-
-void CFuncConveyor :: TogglePhysic( BOOL enable )
-{
-	if( enable )
-	{
-		pev->solid = SOLID_BSP; 
-		pev->movetype = MOVETYPE_CONVEYOR;
-	}
-	else
-	{
-		pev->solid = SOLID_NOT;
-          	pev->movetype = MOVETYPE_NONE;
-	}
-}
-
-void CFuncConveyor :: UpdateSpeed( float speed )
-{
-	// save speed into framerate, and direction into body
-	pev->framerate = pev->speed;
-	pev->body = (pev->speed < 0 );
-	UTIL_FireTargets( pev->target, this, this, USE_TOGGLE, speed ); // conveyer change speed
 }
 
 void CFuncConveyor :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
@@ -402,112 +391,81 @@ void CFuncConveyor :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 	}
 	if( useType == USE_ON ) 
 	{
-		UpdateSpeed( pev->speed );
-		if(!( pev->spawnflags & SF_NOTSOLID )) //don't push
+		pev->speed = pev->frags; // restore speed
+		UTIL_FireTargets( pev->target, this, this, USE_ON, pev->speed );
+		if(!( pev->spawnflags & SF_NOTSOLID )) // don't push
 			pev->movetype = MOVETYPE_CONVEYOR;
 		m_iState = STATE_ON;
 	}
 	else if( useType == USE_OFF )
 	{
-		UpdateSpeed( 0.1 );
+		pev->speed = 0.0f;
+		UTIL_FireTargets( pev->target, this, this, USE_OFF, pev->speed );
 		pev->movetype = MOVETYPE_NONE;
 		m_iState = STATE_OFF;
 	}
 	else if( useType == USE_SET )	// set new speed
 	{	
-		if( value ) pev->speed = value;	// set new speed ( can be negative )
-		else pev->speed = -pev->speed;	// just reverse
-		if( m_iState == STATE_ON ) UpdateSpeed( pev->speed );	
+		if( value != 0.0f ) pev->frags = value;	// set new speed ( can be negative )
+		else pev->frags = -pev->frags;	// just reverse
+		if( m_iState == STATE_ON ) pev->speed = pev->frags;	
 	}
-	else if( useType == USE_RESET ) // restore initial speed
+	else if( useType == USE_RESET ) // restore default speed
 	{	
-		pev->speed = pev->frags;
-		if( m_iState == STATE_ON ) UpdateSpeed( pev->speed );	
+		pev->frags = 100.0f;
+		if( m_iState == STATE_ON ) pev->speed = pev->frags;	
 	}
 	else if( useType == USE_SHOWINFO )
 	{
 		ALERT( at_console, "======/Xash Debug System/======\n" );
 		ALERT( at_console, "classname: %s\n", STRING( pev->classname ));
-		ALERT( at_console, "State: %s, Conveyor speed %f\n", GetStringForState( GetState()), pev->speed );
-		SHIFT;
+		ALERT( at_console, "State: %s, Conveyor speed %f\n\n", GetStringForState( GetState()), pev->speed );
 	}	
 }
 
 //=======================================================================
-// func_mirror - breakable mirror brush 
+// func_mirror - breakable mirror brush (engine feature) 
 //=======================================================================
 class CFuncMirror : public CBaseBrush
 {
 public:
 	void Spawn( void );
-	void StartMessage( CBasePlayer *pPlayer );
-	void Precache( void ){ CBaseBrush::Precache(); }
-	void KeyValue( KeyValueData *pkvd );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-	virtual int ObjectCaps( void ) { return CBaseEntity :: ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
-	virtual STATE GetState( void ) { return pev->body ? STATE_ON:STATE_OFF; };
+	STATE GetState( void ) { return (pev->effects & EF_NODRAW) ? STATE_OFF : STATE_ON; }
 };
 LINK_ENTITY_TO_CLASS( func_mirror, CFuncMirror );
-
-void CFuncMirror::KeyValue( KeyValueData *pkvd )
-{
-	if (FStrEq(pkvd->szKeyName, "alpha"))
-	{
-		pev->sequence = atoi( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else	CBaseBrush::KeyValue( pkvd );
-}
 
 void CFuncMirror :: Spawn( void )
 {
 	m_Material = Glass;
 	CBaseBrush::Spawn();
-	if (!m_pParent) pev->flags = FL_WORLDBRUSH;
 
-	if(IsMultiplayer())
-	{
-		ALERT(at_console, "\n======/Xash SmartFiled System/======\n\n");
-		ALERT(at_console, "Sorry, %s don't working in multiplayer\nPlease, use static world mirrors\n", STRING(pev->classname));
-		SHIFT;
-	}
-	UTIL_SetModel( ENT(pev), pev->model ); 
-	if(pev->spawnflags & SF_NOTSOLID)//make illusionary wall 
-	{
-		pev->solid = SOLID_NOT;
-		pev->movetype = MOVETYPE_NONE;
-	}
-	else
-	{
-		pev->solid = SOLID_BSP;
-          	pev->movetype = MOVETYPE_PUSH;
-	}
-	pev->body = 1;
-}
-
-void CFuncMirror :: StartMessage( CBasePlayer *pPlayer )
-{
-	MESSAGE_BEGIN( MSG_ONE, gmsg.AddMirror, NULL, pPlayer->pev );
-		WRITE_SHORT( entindex() );
-	MESSAGE_END();
+	// setup mirror
+	SetObjectClass( ED_PORTAL );	
+	pev->oldorigin = pev->origin;
 }
 
 void CFuncMirror :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	if( useType == USE_TOGGLE )
+	if ( useType == USE_TOGGLE )
 	{
-		if( pev->body )
+		if( GetState() == STATE_ON )
 			useType = USE_OFF;
 		else useType = USE_ON;
 	}
-	if( useType == USE_ON )  pev->body = TRUE;
-	if( useType == USE_OFF ) pev->body = FALSE;
+	if ( useType == USE_ON )
+	{
+		pev->effects &= ~EF_NODRAW;
+	}
+	else if ( useType == USE_OFF )
+	{
+		pev->effects |= EF_NODRAW;
+	}
 	if( useType == USE_SET ) Die();
 	if( useType == USE_SHOWINFO )
 	{
 		DEBUGHEAD;
-		ALERT(at_console, "State: %s, alpha %d\n", GetStringForState( GetState()), pev->sequence);
-		ALERT(at_console, "Renderamt: %.f, Health %.f\n", pev->renderamt, pev->health);
+		ALERT( at_console, "State: %s, halth %g\n\n", GetStringForState( GetState()), pev->health );
 	}
 }
 
@@ -574,17 +532,14 @@ void CFuncMonitor :: Spawn()
 
 int CFuncMonitor :: ObjectCaps( void ) 
 {
-	if (pev->impulse)
+	if ( pev->impulse )
 		return (CBaseEntity::ObjectCaps() & ~FCAP_ACROSS_TRANSITION) | FCAP_IMPULSE_USE;
-	else	return (CBaseEntity::ObjectCaps() & ~FCAP_ACROSS_TRANSITION);
+	else return (CBaseEntity::ObjectCaps() & ~FCAP_ACROSS_TRANSITION);
 }
 
 void CFuncMonitor::StartMessage( CBasePlayer *pPlayer )
 {
-	//send monitor index
-	MESSAGE_BEGIN( MSG_ONE, gmsg.AddScreen, NULL, pPlayer->pev );
-		WRITE_SHORT( entindex() );
-	MESSAGE_END();
+	// send monitor index
 	ChangeCamera( pev->target );
 }
 
@@ -679,20 +634,17 @@ void CFuncTeleport :: Spawn( void )
 
 void CFuncTeleport::StartMessage( CBasePlayer *pPlayer )
 {
-	//send portal index
-	MESSAGE_BEGIN( MSG_ONE, gmsg.AddPortal, NULL, pPlayer->pev );
-		WRITE_SHORT( entindex() );
-	MESSAGE_END();
 	ChangeCamera( pev->target );
 }
+
 void CFuncTeleport :: KeyValue( KeyValueData *pkvd )
 {
-	if (FStrEq(pkvd->szKeyName, "landmark"))
+	if ( FStrEq( pkvd->szKeyName, "landmark" ))
 	{
 		pev->message = ALLOC_STRING( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if (FStrEq(pkvd->szKeyName, "firetarget"))
+	else if ( FStrEq( pkvd->szKeyName, "firetarget" ))
 	{
 		pev->netname = ALLOC_STRING( pkvd->szValue );
 		pkvd->fHandled = TRUE;
@@ -796,7 +748,6 @@ public:
 	void KeyValue( KeyValueData* pkvd);
 	void Touch ( CBaseEntity *pOther );
 	void Blocked( CBaseEntity *pOther );
-	virtual int ObjectCaps( void ) { return CBaseEntity :: ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void Think( void );
 	void PostActivate ( void );
@@ -861,7 +812,7 @@ void CFuncRotating :: Spawn( void )
 	Precache();
 	CBaseBrush::Spawn();
 
-	if ( pev->spawnflags & 64 )
+	if ( pev->spawnflags & SF_NOTSOLID )
 	{
 		pev->solid = SOLID_NOT;
 		pev->skin = CONTENTS_EMPTY;
@@ -878,6 +829,7 @@ void CFuncRotating :: Spawn( void )
           m_pitch = PITCH_NORM - 1;
           pev->dmg_save = 0;//cur speed is NULL
           pev->button = pev->speed;//member start speed
+
 	AxisDir();
 
 	UTIL_SetOrigin(this, pev->origin);
@@ -1056,49 +1008,54 @@ void CFuncRotating :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 	
 	if(IsLockedByMaster( useType )) return;
 
-	if (useType == USE_TOGGLE)
+	if ( useType == USE_TOGGLE )
 	{
-		if(m_iState == STATE_TURN_OFF || m_iState == STATE_OFF) useType = USE_ON;
+		if( m_iState == STATE_TURN_OFF || m_iState == STATE_OFF )
+			useType = USE_ON;
 		else useType = USE_OFF;
 	}	
-	if (useType == USE_ON)SetSpeed( pev->speed );
-	else if(useType == USE_OFF)SetSpeed( 0 );
-	else if (useType == USE_SET)//reverse speed
+	if ( useType == USE_ON ) SetSpeed( pev->speed );
+	else if( useType == USE_OFF ) SetSpeed( 0 );
+	else if ( useType == USE_SET ) // reverse speed
 	{
-		//write new speed
-		if(value) 
+		// write new speed
+		if( value ) 
 		{
-			if(pev->speed < 0)
+			if( pev->speed < 0 )
 				pev->speed = -value;
-			if(pev->speed > 0)
+			if( pev->speed > 0 )
 				pev->speed = value;
 		}
-		else pev->speed = -pev->speed;//just reverse
-		//apply speed immediately if fan no off or not turning off
-		if(m_iState != STATE_OFF && m_iState != STATE_TURN_OFF)SetSpeed( pev->speed );
+		else pev->speed = -pev->speed; // just reverse
+		// apply speed immediately if fan no off or not turning off
+		if( m_iState != STATE_OFF && m_iState != STATE_TURN_OFF ) SetSpeed( pev->speed );
 	}
-	else if (useType == USE_SHOWINFO)
+	else if ( useType == USE_RESET ) // set angular impulse. use with caution!
+	{
+		float imp;
+		if( value ) imp = value;
+		else imp = pev->speed;
+		SetAngularImpulse( imp / 10 );
+	}
+	else if ( useType == USE_SHOWINFO )
 	{
 		DEBUGHEAD;
-		ALERT(at_console, "State: %s, CurSpeed %.1f\n", GetStringForState( GetState()), pev->dmg_save);
-		ALERT(at_console, "SpinTime: %.2f, MaxSpeed %.f\n", pev->frags, pev->speed);
+		ALERT( at_console, "State: %s, CurSpeed %.1f\n", GetStringForState( GetState()), pev->dmg_save );
+		ALERT( at_console, "SpinTime: %.2f, MaxSpeed %.f\n", pev->frags, pev->speed );
 	}
 }
 
 //=======================================================================
 // 	func_pendulum - swinging brush (thanks for Lazarus Q2 mod) 
 //=======================================================================
-#define SF_PENDULUM_STOPPING		0x8000000	// for internal use only
-#define SF_PENDULUM_STOP_AT_TOP	32
-
-// UNDONE: needs to be implement with Xash specifications
-
-class CPendulum : public CBaseMover
+//=======================================================================
+// 	func_pendulum - swinging brush 
+//=======================================================================
+class CPendulum : public CBaseBrush
 {
 public:
 	void Spawn ( void );
 	void Precache( void );
-	virtual int ObjectCaps( void ) { return CBaseEntity :: ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void Think( void );
 	void Blocked( CBaseEntity *pOther );
@@ -1114,20 +1071,15 @@ LINK_ENTITY_TO_CLASS( func_pendulum, CPendulum );
 
 void CPendulum :: KeyValue( KeyValueData *pkvd )
 {
-	if( FStrEq( pkvd->szKeyName, "distance" ))
+	if ( FStrEq( pkvd->szKeyName, "distance" ))
 	{
 		pev->scale = atof( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	if( FStrEq( pkvd->szKeyName, "phase" ))
+	else if ( FStrEq( pkvd->szKeyName, "damp" ))
 	{
-		m_flDelay = atof( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if( FStrEq( pkvd->szKeyName, "damp" ))
-	{
-		pev->max_health = atof( pkvd->szValue ) / 10000;
-		if(pev->max_health > 0.1) pev->max_health = 0.1;
+		pev->max_health = atof( pkvd->szValue ) * 0.01f;
+		if( pev->max_health > 0.01 ) pev->max_health = 0.01f;
 		pkvd->fHandled = TRUE;
 	}
 	else CBaseBrush::KeyValue( pkvd );
@@ -1138,16 +1090,16 @@ void CPendulum :: Precache( void )
 	CBaseBrush::Precache();
 	int m_sounds = UTIL_LoadSoundPreset( m_iMoveSound );
 
-	switch( m_sounds )
+	switch (m_sounds)
 	{
 	case 1:
-		pev->noise3 = UTIL_PrecacheSound( "pendulum/swing1.wav" );
+		pev->noise3 = UTIL_PrecacheSound ( "pendulum/swing1.wav" );
 		break;
 	case 2:
-		pev->noise3 = UTIL_PrecacheSound( "pendulum/swing2.wav" );
+		pev->noise3 = UTIL_PrecacheSound ( "pendulum/swing2.wav" );
 		break;
 	case 0:
-		pev->noise3 = UTIL_PrecacheSound( "common/null.wav" );
+		pev->noise3 = UTIL_PrecacheSound ( "common/null.wav" );
 		break;
 	default:
 		pev->noise3 = UTIL_PrecacheSound( m_sounds );
@@ -1160,65 +1112,22 @@ void CPendulum :: Spawn( void )
 	Precache();
 	CBaseBrush::Spawn();
 
-	if( pev->spawnflags & SF_NOTSOLID )
+	if ( pev->spawnflags & SF_NOTSOLID )
 	{
 		pev->solid = SOLID_NOT;
+		pev->movetype = MOVETYPE_PUSH;
 	}
 	else
 	{
 		pev->solid = SOLID_BSP;
+		pev->movetype = MOVETYPE_PUSH;
 	}
-
-	// set default distance
-	if( !pev->scale ) pev->scale = 90;
-
-	if( pev->scale >= 360 )
-	{
-		ALERT( at_console, "func_pendulum distance must be < 360\n" );
-		pev->scale = 359.0f;
-	}
-
-	if( !pev->speed ) pev->speed = 100;
-	if( !m_flRadius ) m_flRadius = 100;
-	if( !pev->mass ) pev->mass = 200;
-	if( m_flDelay > 1.0 ) m_flDelay -= (int)(m_flDelay);
-	if( !pev->dmg ) pev->dmg = 5;
-
-	// This is the damage delivered by the pendulum at max speed.
-	// Convert to a damage scale used in our damage equation.
-	float max_speed = pev->scale / 2 * M_PI / 180. * sqrt( CVAR_GET_FLOAT( "sv_gravity" ) * m_flRadius );
-	if( max_speed <= 200.0f ) 
-	{
-		pev->dmg = 0;
-	}
-	else
-	{
-		float dmg = (float)(pev->dmg) * 100.0f / (max_speed - 200.0f);
-		pev->dmg = (int)(dmg - 0.5f) + 1;
-	}
-
-	pev->movetype = MOVETYPE_PUSH;	
-	SetBits( pFlags, PF_ANGULAR );
+	
+	SetBits ( pFlags, PF_ANGULAR );
+	dir = 1; // evil stuff...
           m_iState = STATE_OFF;
-
-	pev->spawnflags |= SF_PENDULUM_STOP_AT_TOP;
-
-	// don't change this!
-	if( FBitSet(pev->spawnflags, SF_BRUSH_ROTATE_Z_AXIS ))
-		pev->impulse = PITCH;	// around z-axis
-	else if( FBitSet(pev->spawnflags, SF_BRUSH_ROTATE_X_AXIS ))
-		pev->impulse = ROLL;	// around x-axis
-	else pev->impulse = ROLL;		// around y-axis
-
-	if( !m_flAccel ) m_flAccel = 1.0f;
-	else if( m_flAccel > pev->speed )
-		m_flAccel = pev->speed;
-
-	if( !m_flDecel ) m_flDecel = 1.0f;
-	else if( m_flDecel > pev->speed )
-		m_flDecel = pev->speed;
-
-	pev->oldangles[pev->impulse] = pev->angles[pev->impulse] = pev->scale / 2;
+          pev->dmg_save = 0; // cur speed is NULL
+	AxisDir();
           
 	UTIL_SetOrigin( this, pev->origin );
 	UTIL_SetModel( ENT( pev ), pev->model );
@@ -1226,18 +1135,18 @@ void CPendulum :: Spawn( void )
 
 void CPendulum :: PostActivate( void )
 {
-	if( pev->spawnflags & SF_START_ON )SetSwing( pev->speed );
-	ClearBits( pev->spawnflags, SF_START_ON);
+	if ( pev->spawnflags & SF_START_ON )
+		SetSwing( pev->speed );
+	ClearBits( pev->spawnflags, SF_START_ON );
 
-	if( m_iState == STATE_ON )		// restore sound if needed
-		SetNextThink( 0.05 );	// force to think
+	if( m_iState == STATE_ON ) SetNextThink( 0.05 ); // force to think
 }
 
 void CPendulum :: Touch ( CBaseEntity *pOther )
 {
-	// don't hurt toucher - just apply velocity him
+	//don't hurt toucher - just apply velocity him
 	entvars_t	*pevOther = pOther->pev;
-	pevOther->velocity = (pevOther->origin - VecBModelOrigin( pev )).Normalize() * pev->dmg;
+	pevOther->velocity = (pevOther->origin - VecBModelOrigin(pev) ).Normalize() * pev->dmg;
 }
 
 void CPendulum::Blocked( CBaseEntity *pOther )
@@ -1249,8 +1158,7 @@ void CPendulum::Blocked( CBaseEntity *pOther )
 
 void CPendulum :: SetImpulse( float speed )
 {
-	if( dir == pev->impulse )
-		return;
+	if( dir == pev->impulse ) return;
 	dir = pev->impulse; 
           	
 	SetSwing( speed );
@@ -1258,138 +1166,119 @@ void CPendulum :: SetImpulse( float speed )
 
 void CPendulum :: SetSwing( float speed )
 {
-	if( m_iState == STATE_ON )
-	{
-		if( pev->spawnflags & SF_PENDULUM_STOP_AT_TOP )
-		{
-			m_iState = STATE_TURN_OFF;
-		}
-		else
-		{
-			UTIL_SetAvelocity( this, g_vecZero );
-			m_iState = STATE_OFF;
-			LINK_ENTITY( ENT( pev ), false );
-		}
-	}
-	else
-	{
-		m_iState = STATE_ON;
+	if( m_iState == STATE_OFF )
+		pev->armorvalue = speed; // save our speed
+	else pev->armorvalue = pev->armorvalue + speed; // apply impulse
+	
+	// silence normalize speed if needed
+	if( pev->armorvalue > MAX_AVELOCITY )
+		pev->armorvalue = MAX_AVELOCITY;
 
-		if( m_flDelay > 0 )
+	// normalize speed at think time
+	// calc min distance at this speed
+	float factor = MAX_AVELOCITY * 0.01f; // max avelocity * think time
+	float mindist = ( pev->armorvalue / factor ) * 2; // full minimal dist
+
+	if( mindist > pev->scale )
+          {
+          	pev->scale = mindist; // set minimal distance for this speed
+		if( m_iState == STATE_OFF )
 		{
-			float delay = m_flDelay * 2.0 * M_PI * sqrt( m_flRadius / CVAR_GET_FLOAT( "sv_gravity" ));
-			delay = gpGlobals->frametime * (int)(10 * delay);
-			SetNextThink( delay );
-			pev->frags = g_ulFrameCount + delay * 10;
-			if(!( pev->spawnflags & SF_PENDULUM_STOP_AT_TOP ))
-				m_flDelay = 0;
-		}
-		else
-		{
-			if( pev->angles[pev->impulse] == pev->oldangles[pev->impulse] )
-			{
-				pev->frags = g_ulFrameCount;
-			}
-			else
-			{
-				float	t;
-				t = acos( pev->angles[pev->impulse] / pev->oldangles[pev->impulse] );
-				t /= sqrt( CVAR_GET_FLOAT( "sv_gravity" ) / m_flRadius );
-				pev->frags = g_ulFrameCount - t * 10;
-			}
-			SetNextThink( 0 );
-		}
-	}
+			ALERT( at_warning, "\n======/Xash SmartFiled System/======\n\n");
+			ALERT( at_warning, "%s has too small distance for current speed!\n", STRING( pev->classname ));
+			ALERT( at_warning, "Smart field normalize distance to %.f\n\n", pev->scale );
+          	}
+          }
+          
+	if( m_iState == STATE_OFF )
+		pev->dmg_take = pev->scale * 0.5; // calc half distance
+	else pev->dmg_take = pev->dmg_take + sqrt( speed );
+	pev->dmg_save = pev->armorvalue; // at center speed is maximum
+
+	// random choose starting dir
+	if ( m_iState == STATE_OFF )
+	{
+		if( RANDOM_LONG( 0, 1 ))
+			pev->impulse = -1; // backward
+          	else pev->impulse = 1; // forward
+		m_iState = STATE_ON;
+          }
+	SetNextThink( 0.01); // force to think
 }
 
 void CPendulum :: Think( void )
 {
-	float	this_angle;
-	float	wave, sgor;
+	float m_flDegree = (gpGlobals->time - pev->armortype) / pev->frags;
+	float m_flAngle = UTIL_CalcDistance( pev->angles );
+	float m_flAngleOffset = pev->dmg_take - m_flAngle; 
+	float m_flStep = (( pev->armorvalue * 0.01 ) / ( pev->dmg_take * 0.01 )) / M_PI;
+	float m_damping = pev->max_health;
 
-	if( pev->speed < 20 )
+	if( m_iState == STATE_TURN_OFF )
+		m_damping = 0.09; // HACKHACK to disable pendulum
+	 
+
+	if( m_flDegree >= 1 && m_flAngleOffset <= 0.5f ) // extremum point
 	{
-		if( pev->frags == 0 )
-		{
-			// then we just started moving again after being blocked
-			pev->avelocity[pev->impulse] = -pev->angles[pev->impulse];
-			pev->frags = g_ulFrameCount;
-		}
-		else
-		{
-			float	next_angle;
-
-			next_angle = pev->angles[pev->impulse] + pev->avelocity[pev->impulse] * gpGlobals->frametime;
-			if(( next_angle >= 0 && pev->angles[pev->impulse] < 0) || (next_angle <= 0 && pev->angles[pev->impulse] > 0 ))
-			{
-				UTIL_SetAngles( this, g_vecZero );
-				UTIL_SetAvelocity( this, g_vecZero );
-				return;
-			}
-		}
-		SetNextThink( gpGlobals->frametime );
+		// recalc time
+		pev->armortype = gpGlobals->time;
+		pev->frags = pev->dmg_take / pev->armorvalue;
+		pev->impulse = -pev->impulse; // change movedir
 	}
-	else
+
+	if( pev->avelocity.Length() > pev->armorvalue * 0.6 && m_damping ) // apply damp
 	{
-		float	old_velocity = pev->avelocity[pev->impulse];
+		pev->armorvalue -= pev->armorvalue * m_damping;
+		pev->dmg_take -= pev->dmg_take * m_damping;
+          }
 
-		if( !pev->frags ) pev->frags = g_ulFrameCount;
-
-		sgor = sqrt( CVAR_GET_FLOAT( "sv_gravity" ) / m_flRadius );
-		wave = sgor * (g_ulFrameCount - pev->frags ) * gpGlobals->frametime;
-		this_angle = pev->oldangles[pev->impulse] * cos( wave );
-		pev->avelocity[pev->impulse] = -pev->oldangles[pev->impulse] * sgor * sin( wave );
-		if( m_iState == STATE_TURN_OFF && ( cos(wave) > 0.0f ))
-		{
-			if((( old_velocity > 0 ) && (pev->avelocity[pev->impulse] <= 0 )) || ((old_velocity < 0) && (pev->avelocity[pev->impulse] >= 0)))
-			{
-				UTIL_AssignAngles( this, pev->angles );
-				UTIL_SetAvelocity( this, g_vecZero );
-
-				EMIT_SOUND_DYN(ENT(pev), CHAN_STATIC, (char *)STRING(pev->noise3), 0, 0, SND_STOP, m_pitch);
-				DontThink(); // break thinking
-				UTIL_FireTargets( pev->target, this, this, USE_OFF ); // pendulum is full stopped
-				m_iState = STATE_OFF;
-				return;
-			}
-		}
-
-		// FIXME: test
-		if( fabs(cos(wave)) < 0.01f )
-		{
-			EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, STRING( pev->noise3 ), m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
-		}
-		pev->angles[pev->impulse] = this_angle;
-		SetNextThink( gpGlobals->frametime );
+	if( pev->avelocity.Length() > pev->armorvalue * 0.95 && pev->dmg_take > 5.0f ) // zerocrossing
+	{
+		EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, STRING( pev->noise3 ), m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
+		UTIL_FireTargets( pev->target, this, this, USE_OFF );
 	}
-	UTIL_SetAvelocity( this, pev->avelocity );
+
+	pev->dmg_save = pev->armorvalue * ( m_flAngleOffset / pev->dmg_take );
+	UTIL_SetAvelocity( this, pev->movedir * pev->dmg_save * pev->impulse );
+
+	SetNextThink( 0.01f );
+	if( pev->avelocity.Length() < 0.5f && pev->dmg_take < 2.0f ) // watch for speed and dist
+	{
+		UTIL_SetAvelocity( this, g_vecZero );//stop
+		UTIL_AssignAngles( this, pev->angles );
+		EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, STRING( pev->noise3 ), 0, 0, SND_STOP, m_pitch );
+		DontThink(); // break thinking
+		UTIL_FireTargets( pev->target, this, this, USE_OFF ); // pendulum is full stopped
+		m_iState = STATE_OFF;
+	}
 }
 
 void CPendulum :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	m_hActivator = pActivator;
 	
-	if( IsLockedByMaster( useType )) return;
+	if(IsLockedByMaster( useType )) return;
 
-	if( useType == USE_TOGGLE )
+	if ( useType == USE_TOGGLE )
 	{
-		if(m_iState == STATE_OFF) useType = USE_ON;
+		if( m_iState == STATE_OFF )
+			useType = USE_ON;
 		else useType = USE_OFF;
 	}
-	if( useType == USE_ON ) SetSwing( pev->speed );
-	else if( useType == USE_OFF ) m_iState = STATE_TURN_OFF;
-	else if( useType == USE_SET )
+	if ( useType == USE_ON ) SetSwing( pev->speed );
+	else if ( useType == USE_OFF ) m_iState = STATE_TURN_OFF;
+	else if ( useType == USE_SET )
 	{
 		if( value ) pev->speed = value;
-		else SetImpulse( pev->speed );//any idea ???
+		else SetImpulse( pev->speed ); // any idea ???
 	}
-	else if( useType == USE_RESET ) SetImpulse( pev->speed );
-	else if(useType == USE_SHOWINFO)
+	else if ( useType == USE_RESET ) SetImpulse( pev->speed );
+	else if ( useType == USE_SHOWINFO)
 	{
-		ALERT(at_console, "======/Xash Debug System/======\n");
-		ALERT(at_console, "classname: %s\n", STRING(pev->classname));
-		ALERT(at_console, "State: %s, CurSpeed %.1f\n", GetStringForState( GetState()), pev->dmg_save);
-		ALERT(at_console, "Distance: %.2f, Swing Time %.f\n", pev->dmg_take, pev->frags);
+		ALERT( at_console, "======/Xash Debug System/======\n");
+		ALERT( at_console, "classname: %s\n", STRING( pev->classname ));
+		ALERT( at_console, "State: %s, CurSpeed %.1f\n", GetStringForState( GetState()), pev->dmg_save );
+		ALERT( at_console, "Distance: %.2f, Swing Time %.f\n", pev->dmg_take, pev->frags );
 	}
 }
 
@@ -1415,10 +1304,10 @@ void CFuncClock :: KeyValue( KeyValueData *pkvd )
 	{
 		switch(atoi( pkvd->szValue ))
 		{
-		case 1:  pev->impulse = MINUTES; break;	//minutes
-		case 2:  pev->impulse = HOURS;   break;	//hours
-		case 0:                                 //default:
-		default: pev->impulse = SECONDS; break;	//seconds
+		case 1:  pev->impulse = MINUTES; break;	// minutes
+		case 2:  pev->impulse = HOURS;   break;	// hours
+		case 0:                                 // default:
+		default: pev->impulse = SECONDS; break;	// seconds
 		}
 		pkvd->fHandled = TRUE;
 	}
@@ -1439,13 +1328,13 @@ void CFuncClock :: Spawn ( void )
 	pev->solid = SOLID_NOT;
 	UTIL_SetModel( ENT(pev), pev->model );
 
-	// NOTE: I'm not have better idea than it
+	// NOTE: I'm doesn't have better idea than it
 	// So, field "angles" setting movedir only
 	// Turn your brush into your fucking worldcraft!	
 	UTIL_AngularVector( this );
           SetBits( pFlags, PF_ANGULAR );
 	
-	if( pev->impulse == HOURS ) //do time operations
+	if( pev->impulse == HOURS ) //d o time operations
 	{
 		// normalize our time
 		if( curtime.x > 11 ) curtime.x = 0;
@@ -1456,9 +1345,9 @@ void CFuncClock :: Spawn ( void )
 		pev->team = curtime.x;
 		
 		// calculate seconds
-		finaltime.z = curtime.z * (SECONDS / 60); // seconds
-                    finaltime.y = curtime.y * (MINUTES / 60) + finaltime.z;
-                    finaltime.x = curtime.x * (HOURS   / 12) + finaltime.y;
+		finaltime.z = curtime.z * ( SECONDS / 60 ); // seconds
+                    finaltime.y = curtime.y * ( MINUTES / 60 ) + finaltime.z;
+                    finaltime.x = curtime.x * ( HOURS   / 12 ) + finaltime.y;
 	}
 }
 
@@ -1545,14 +1434,14 @@ void CWallCharger :: KeyValue( KeyValueData* pkvd)
 	if( FStrEq( pkvd->szKeyName, "chargetime" ))
 	{
 		//affect only in multiplayer
-		pev->speed = atof(pkvd->szValue);
+		pev->speed = atof( pkvd->szValue );
 		if( pev->speed <= 0 ) pev->speed = 1.0f;
 		pkvd->fHandled = TRUE;
 	}
 	else CBaseBrush::KeyValue( pkvd );
 }
 
-void CWallCharger::Spawn()
+void CWallCharger::Spawn( void )
 {
 	Precache();
 	CBaseBrush::Spawn();
@@ -1569,28 +1458,28 @@ void CWallCharger::Spawn()
 	m_iState = STATE_OFF;
 	pev->frame = 0;			
 
-	//set capacity
-	if (FClassnameIs(this, "func_recharge"))
+	// set capacity
+	if ( FClassnameIs( this, "func_recharge" ))
 		pev->frags = SUIT_CHARGER_CAP;
-	else	pev->frags = HEATH_CHARGER_CAP;
+	else pev->frags = HEATH_CHARGER_CAP;
 
 	pev->dmg_save = pev->frags;
 }
 
-void CWallCharger::Precache()
+void CWallCharger::Precache( void )
 {
 	CBaseBrush::Precache();
-	if (FClassnameIs(this, "func_recharge"))
+	if ( FClassnameIs( this, "func_recharge" ))
 	{
-		UTIL_PrecacheSound("items/suitcharge1.wav");
-		UTIL_PrecacheSound("items/suitchargeno1.wav");
-		UTIL_PrecacheSound("items/suitchargeok1.wav");
+		UTIL_PrecacheSound( "items/suitcharge1.wav" );
+		UTIL_PrecacheSound( "items/suitchargeno1.wav" );
+		UTIL_PrecacheSound( "items/suitchargeok1.wav" );
 	}
 	else
 	{
-		UTIL_PrecacheSound("items/medshot4.wav");
-		UTIL_PrecacheSound("items/medshotno1.wav");
-		UTIL_PrecacheSound("items/medcharge4.wav");
+		UTIL_PrecacheSound( "items/medshot4.wav" );
+		UTIL_PrecacheSound( "items/medshotno1.wav" );
+		UTIL_PrecacheSound( "items/medcharge4.wav" );
 	}
 }
 
@@ -1624,44 +1513,44 @@ void CWallCharger::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 			}
 		}
 
-		if((m_iState == STATE_DEAD) || (!(((CBasePlayer *)pActivator)->pev->weapons & ITEM_SUIT)))
+		if(( m_iState == STATE_DEAD ) || (!(((CBasePlayer *)pActivator)->pev->weapons & ITEM_SUIT )))
 		{
-			if (m_flSoundTime <= gpGlobals->time)
+			if ( m_flSoundTime <= gpGlobals->time )
 			{
 				m_flSoundTime = gpGlobals->time + 0.62;
-				if (FClassnameIs(this, "func_recharge"))
-					EMIT_SOUND_DYN(ENT(pev), CHAN_STATIC, "items/suitchargeno1.wav", m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
-				else EMIT_SOUND_DYN(ENT(pev), CHAN_STATIC, "items/medshotno1.wav", m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
+				if( FClassnameIs( this, "func_recharge" ))
+					EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, "items/suitchargeno1.wav", m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
+				else EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, "items/medshotno1.wav", m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
 				
 			}
 			return;
 		}
-		SetNextThink( 0.25f );//time before disable
+		SetNextThink( 0.25f ); // time before disable
 
-		if (m_flNextCharge >= gpGlobals->time) return;
+		if ( m_flNextCharge >= gpGlobals->time ) return;
 
-		if (m_iState == STATE_OFF)
+		if ( m_iState == STATE_OFF )
 		{
 			m_iState = STATE_ON;
-			if (FClassnameIs(this, "func_recharge"))
-				EMIT_SOUND_DYN(ENT(pev), CHAN_STATIC, "items/suitchargeok1.wav", m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
-			else	EMIT_SOUND_DYN(ENT(pev), CHAN_STATIC, "items/medshot4.wav", m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
+			if ( FClassnameIs( this, "func_recharge" ))
+				EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, "items/suitchargeok1.wav", m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
+			else EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, "items/medshot4.wav", m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
 			
 			m_flSoundTime = 0.56 + gpGlobals->time;
 		}
-		if (m_iState == STATE_ON && m_flSoundTime <= gpGlobals->time)
+		if ( m_iState == STATE_ON && m_flSoundTime <= gpGlobals->time )
 		{
 			m_iState = STATE_IN_USE;
-			if (FClassnameIs(this, "func_recharge"))
-				EMIT_SOUND_DYN(ENT(pev), CHAN_STATIC, "items/suitcharge1.wav", m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
-			else	EMIT_SOUND_DYN(ENT(pev), CHAN_STATIC, "items/medcharge4.wav", m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
+			if ( FClassnameIs( this, "func_recharge" ))
+				EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, "items/suitcharge1.wav", m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
+			else EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, "items/medcharge4.wav", m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
 		}
 
-                    if (FClassnameIs(this, "func_recharge"))
+                    if ( FClassnameIs( this, "func_recharge" ))
                     {
-                    	if (m_hActivator->pev->armorvalue < 100)
+                    	if ( m_hActivator->pev->armorvalue < 100 )
 			{
-				UTIL_FireTargets( pev->target, this, this, USE_OFF, pev->dmg_save );//decrement counter
+				UTIL_FireTargets( pev->target, this, this, USE_OFF, pev->dmg_save ); // decrement counter
 				pev->dmg_save--;
 				m_hActivator->pev->armorvalue++;
 			}
@@ -1670,7 +1559,7 @@ void CWallCharger::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 		{
 			if ( pActivator->TakeHealth(1, DMG_GENERIC )) 
 			{
-				UTIL_FireTargets( pev->target, this, this, USE_OFF, pev->dmg_save );//decrement counter
+				UTIL_FireTargets( pev->target, this, this, USE_OFF, pev->dmg_save ); // decrement counter
 				pev->dmg_save--;
 			}
 		}
@@ -1680,29 +1569,30 @@ void CWallCharger::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 
 void CWallCharger :: Think( void )
 {
-	if (m_iState == STATE_IN_USE || m_iState == STATE_ON)
+	if ( m_iState == STATE_IN_USE || m_iState == STATE_ON )
 	{
-		if (FClassnameIs(this, "func_recharge"))
+		if ( FClassnameIs( this, "func_recharge" ))
 			STOP_SOUND( ENT(pev), CHAN_STATIC, "items/suitcharge1.wav" );
-		else	STOP_SOUND( ENT(pev), CHAN_STATIC, "items/medcharge4.wav" ); 
+		else STOP_SOUND( ENT(pev), CHAN_STATIC, "items/medcharge4.wav" ); 
 
 		m_iState = STATE_OFF;	
 		DontThink();
 		return;
 	}
-	if(m_iState == STATE_DEAD && IsMultiplayer())//recharge
+
+	if( m_iState == STATE_DEAD && IsMultiplayer( )) // recharge
 	{
-		pev->dmg_save++;//ressurection
-		UTIL_FireTargets( pev->target, this, this, USE_ON, pev->dmg_save );//increment counter
+		pev->dmg_save++; // ressurection
+		UTIL_FireTargets( pev->target, this, this, USE_ON, pev->dmg_save ); // increment counter
 		if(pev->dmg_save >= pev->frags)
 		{
 			//take full charge
-			if (FClassnameIs(this, "func_recharge"))
-				EMIT_SOUND_DYN(ENT(pev), CHAN_STATIC, "items/suitchargeok1.wav", m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
-			else	EMIT_SOUND_DYN(ENT(pev), CHAN_STATIC, "items/medshot4.wav", m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
-			pev->dmg_save = pev->frags;//normalize
-			pev->frame = 0;//enable
-			m_iState = STATE_OFF;//can use
+			if ( FClassnameIs( this, "func_recharge" ))
+				EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, "items/suitchargeok1.wav", m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
+			else EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, "items/medshot4.wav", m_flVolume, ATTN_IDLE, SND_CHANGE_VOL, PITCH_NORM );
+			pev->dmg_save = pev->frags; // normalize
+			pev->frame = 0; // enable
+			m_iState = STATE_OFF; // can use
 			DontThink();
 			return;
 		}			
@@ -1737,18 +1627,28 @@ LINK_ENTITY_TO_CLASS( func_button, CBaseButton );
 
 void CBaseButton::KeyValue( KeyValueData *pkvd )
 {
-	//rename standard fields for button
-	if (FStrEq(pkvd->szKeyName, "locksound"))
+	// rename standard fields for button
+	if (FStrEq(pkvd->szKeyName, "locksound" ))
 	{
 		m_iStopSound = ALLOC_STRING(pkvd->szValue);
 		pkvd->fHandled = TRUE;
 	}
-	else if (FStrEq(pkvd->szKeyName, "pushsound"))
+	else if (FStrEq(pkvd->szKeyName, "pushsound" ))
 	{
 		m_iStartSound = ALLOC_STRING(pkvd->szValue);
 		pkvd->fHandled = TRUE;
 	}
-	else	CBaseMover::KeyValue( pkvd );
+	else if (FStrEq(pkvd->szKeyName, "offtarget" ))
+	{
+		pev->netname = ALLOC_STRING(pkvd->szValue);
+		pkvd->fHandled = TRUE;
+	}
+	else if (FStrEq(pkvd->szKeyName, "value" ))
+	{
+		m_flValue = atof(pkvd->szValue);
+		pkvd->fHandled = TRUE;
+	}
+	else CBaseMover::KeyValue( pkvd );
 }
 
 void CBaseButton::Precache( void )
@@ -1758,12 +1658,12 @@ void CBaseButton::Precache( void )
 	int m_sounds = UTIL_LoadSoundPreset(m_iStartSound);
 	switch (m_sounds)//load pushed sounds (sound will play at activate or pushed button)
 	{
-	case 1:	pev->noise = UTIL_PrecacheSound ("materials/buttons/blip1.wav");break;
-	case 2:	pev->noise = UTIL_PrecacheSound ("materials/buttons/blip2.wav");break;
-	case 3:	pev->noise = UTIL_PrecacheSound ("materials/buttons/blip3.wav");break;
-	case 4:	pev->noise = UTIL_PrecacheSound ("materials/buttons/blip4.wav");break;
-	case 5:	pev->noise = UTIL_PrecacheSound ("materials/buttons/blip5.wav");break;
-	case 6:	pev->noise = UTIL_PrecacheSound ("materials/buttons/blip6.wav");break;
+	case 1:	pev->noise = UTIL_PrecacheSound ("buttons/blip1.wav");break;
+	case 2:	pev->noise = UTIL_PrecacheSound ("buttons/blip2.wav");break;
+	case 3:	pev->noise = UTIL_PrecacheSound ("buttons/blip3.wav");break;
+	case 4:	pev->noise = UTIL_PrecacheSound ("buttons/blip4.wav");break;
+	case 5:	pev->noise = UTIL_PrecacheSound ("buttons/blip5.wav");break;
+	case 6:	pev->noise = UTIL_PrecacheSound ("buttons/blip6.wav");break;
 	case 0:	pev->noise = UTIL_PrecacheSound ("common/null.wav"); break;
 	default:	pev->noise = UTIL_PrecacheSound(m_sounds); break;//custom sound or sentence
 	}
@@ -1773,8 +1673,8 @@ void CBaseButton::Precache( void )
 		m_sounds = UTIL_LoadSoundPreset(m_iStopSound);
 		switch (m_sounds)//load locked sounds
 		{
-		case 1:	pev->noise3 = UTIL_PrecacheSound ("materials/buttons/locked1.wav");break;
-		case 2:	pev->noise3 = UTIL_PrecacheSound ("materials/buttons/locked2.wav");break;
+		case 1:	pev->noise3 = UTIL_PrecacheSound ("buttons/latchlocked1.wav");break;
+		case 2:	pev->noise3 = UTIL_PrecacheSound ("buttons/latchlocked2.wav");break;
 		case 0:	pev->noise3 = UTIL_PrecacheSound ("common/null.wav"); break;
 		default:	pev->noise3 = UTIL_PrecacheSound(m_sounds); break;//custom sound or sentence
 		}
@@ -1823,14 +1723,14 @@ void CBaseButton::Spawn( )
           
 	if (m_flLip == 0) m_flLip = 4;//standart offset from Quake1
 
-	m_iState = STATE_OFF;//disable at spawn
-          UTIL_LinearVector( this );//movement direction
+	m_iState = STATE_OFF; // disable at spawn
+          UTIL_LinearVector( this ); // movement direction
           	
 	m_vecPosition1 = pev->origin;
 	m_vecPosition2 = m_vecPosition1 + (pev->movedir * (fabs( pev->movedir.x * (pev->size.x-2) ) + fabs( pev->movedir.y * (pev->size.y-2) ) + fabs( pev->movedir.z * (pev->size.z-2) ) - m_flLip));
 
 	// Is this a non-moving button?
-	if( pev->speed == 0 )m_vecPosition2 = m_vecPosition1;
+	if( pev->speed == 0 ) m_vecPosition2 = m_vecPosition1;
 }
 
 void CBaseButton :: PostSpawn( void )
@@ -1845,11 +1745,11 @@ void CBaseButton :: PostSpawn( void )
 
 void CBaseButton :: ShowInfo ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	if(useType == USE_SHOWINFO)//show info
+	if( useType == USE_SHOWINFO ) // show info
 	{
 		DEBUGHEAD;
-		ALERT(at_console, "State: %s, Speed %.2f\n", GetStringForState( GetState()), pev->speed );
-		ALERT(at_console, "Texture frame: %.f. WaitTime: %.2f\n", pev->frame, m_flWait);
+		ALERT( at_console, "State: %s, Speed %.2f\n", GetStringForState( GetState()), pev->speed );
+		ALERT( at_console, "Texture frame: %.f. WaitTime: %.2f\n", pev->frame, m_flWait );
 	}
 }
 
@@ -1857,46 +1757,47 @@ void CBaseButton :: ButtonUse ( CBaseEntity *pActivator, CBaseEntity *pCaller, U
 {
 	m_hActivator = pActivator;//save our activator
 	
-	if(IsLockedByMaster( useType ))//passed only USE_SHOWINFO
+	if(IsLockedByMaster( useType )) // passed only USE_SHOWINFO
 	{
-          	EMIT_SOUND(ENT(pev), CHAN_VOICE, (char*)STRING(pev->noise3), 1, ATTN_NORM);
+          	EMIT_SOUND( ENT( pev ), CHAN_VOICE, STRING( pev->noise3 ), 1, ATTN_NORM );
 		return;
 	}
-	if(useType == USE_SHOWINFO)//show info
+	if( useType == USE_SHOWINFO ) // show info
 	{
-		ALERT(at_console, "======/Xash Debug System/======\n");
-		ALERT(at_console, "classname: %s\n", STRING(pev->classname));
-		ALERT(at_console, "State: %s, Speed %.2f\n", GetStringForState( GetState()), pev->speed );
-		ALERT(at_console, "Texture frame: %.f. WaitTime: %.2f\n", pev->frame, m_flWait);
+		ALERT( at_console, "======/Xash Debug System/======\n" );
+		ALERT( at_console, "classname: %s\n", STRING( pev->classname ));
+		ALERT( at_console, "State: %s, Speed %.2f\n", GetStringForState( GetState()), pev->speed );
+		ALERT( at_console, "Texture frame: %.f. WaitTime: %.2f\n", pev->frame, m_flWait );
 	}
-	else if(m_iState != STATE_DEAD)//activate button
+	else if( m_iState != STATE_DEAD ) // activate button
 	{         
-		//NOTE: STATE_DEAD is better method for simulate m_flWait -1 without fucking SetThink()
-		if(pActivator && pActivator->IsPlayer())//code for player
+		// NOTE: STATE_DEAD is better method for simulate m_flWait -1 without fucking SetThink()
+		if( pActivator && pActivator->IsPlayer( )) // code for player
 		{
-			if(pev->impulse == 1)//toggleable button
+			if( pev->impulse == 1 ) // toggleable button
 			{
-				if (m_iState == STATE_TURN_ON || m_iState == STATE_TURN_OFF )return;//buton in-moving
-				else if( m_iState == STATE_ON )//button is active, disable
+				if ( m_iState == STATE_TURN_ON || m_iState == STATE_TURN_OFF )
+					return; // buton in-moving
+				else if ( m_iState == STATE_ON ) // button is active, disable
 				{
 					ButtonReturn();
 				}
-				else if( m_iState == STATE_OFF )//activate
+				else if( m_iState == STATE_OFF ) // activate
 				{
 					ButtonActivate();
 				}
 			}
-			else //time based button
+			else // time based button
 			{         
-				//can activate only disabled button
+				// can activate only disabled button
 				if( m_iState == STATE_OFF ) ButtonActivate();
-				else return;//does nothing :)	
+				else return; // does nothing :)	
 			}
 		}
-		else //activate button from other entity
+		else // activate button from other entity
 		{
-			//NOTE: Across activation just fire output without changes
-			UTIL_FireTargets( pev->target, pActivator, pCaller, useType, value );
+			// NOTE: Across activation just passed fire through
+			UTIL_FireTargets( pev->target, pActivator, pCaller, useType, m_flValue );
 		}
 	}
 }
@@ -1904,72 +1805,76 @@ void CBaseButton :: ButtonUse ( CBaseEntity *pActivator, CBaseEntity *pCaller, U
 void CBaseButton:: ButtonTouch( CBaseEntity *pOther )
 {
 	//make delay before retouching
-	if ( gpGlobals->time < m_flBlockedTime) return;
-	m_flBlockedTime = gpGlobals->time + 1.0;
+	if ( gpGlobals->time < m_flBlockedTime ) return;
+	m_flBlockedTime = gpGlobals->time + 1.0f;
 
-	if(pOther->IsPlayer())ButtonUse ( pOther, this, USE_TOGGLE, 1 );//player always sending 1
+	if( pOther->IsPlayer( )) ButtonUse ( pOther, this, USE_TOGGLE, 1.0f ); // player always sending 1
 }
 
-void CBaseButton::ButtonActivate( )
+void CBaseButton::ButtonActivate( void )
 {
-	ASSERT(m_iState == STATE_OFF);
+	ASSERT( m_iState == STATE_OFF );
 	m_iState = STATE_TURN_ON;
 	
-	EMIT_SOUND(ENT(pev), CHAN_VOICE, (char*)STRING(pev->noise), 1, ATTN_NORM);
+	EMIT_SOUND( ENT( pev ), CHAN_VOICE, STRING( pev->noise ), 1, ATTN_NORM );
 
-	if(pev->speed)
+	if ( pev->speed )
 	{
 		SetMoveDone( ButtonDone );
 		LinearMove( m_vecPosition2, pev->speed);
 	}
-	else ButtonDone();//immediately switch
+	else ButtonDone(); // immediately switch
 }
 
 void CBaseButton::ButtonDone( void )
 {
-	if(m_iState == STATE_TURN_ON)//turn on
+	if ( m_iState == STATE_TURN_ON ) // turn on
 	{
 		m_iState = STATE_ON;
 		pev->frame = 1;	// change skin
 
-		if(pev->impulse)
-			UTIL_FireTargets( pev->target, m_hActivator, this, USE_ON, 0 );//fire target	
-		else UTIL_FireTargets( pev->target, m_hActivator, this, USE_TOGGLE, 0 );//fire target	
+		if ( pev->impulse )
+			UTIL_FireTargets( pev->target, m_hActivator, this, USE_ON, m_flValue ); // fire target	
+		else UTIL_FireTargets( pev->target, m_hActivator, this, USE_TOGGLE, m_flValue ); // fire target	
 
-		if(m_flWait == -1)
+		if ( m_flWait == -1 )
 		{
-			m_iState = STATE_DEAD;//keep button in this position
+			m_iState = STATE_DEAD; // keep button in this position
 			return;
 		}
 
-		if(pev->impulse == 0)//time base button
+		if ( pev->impulse == 0 ) // time base button
 		{
 			SetThink( ButtonReturn );
 			SetNextThink( m_flWait );
 		}
 	}
-	if(m_iState == STATE_TURN_OFF)//turn off
+
+	if ( m_iState == STATE_TURN_OFF ) // turn off
 	{
-		m_iState = STATE_OFF;//just change state :)
-		if(pev->impulse) 
-			UTIL_FireTargets( pev->target, m_hActivator, this, USE_OFF, 0 );//fire target	
+		m_iState = STATE_OFF; //just change state :)
+		UTIL_FireTargets( pev->netname, m_hActivator, this, USE_OFF, m_flValue ); // fire target	
 	}
 }
 
 void CBaseButton::ButtonReturn( void )
 {
-	ASSERT(m_iState == STATE_ON);
+	ASSERT( m_iState == STATE_ON );
 	m_iState = STATE_TURN_OFF;
-	pev->frame = 0;// use normal textures
+	pev->frame = 0; // use normal textures
 
-	//make sound for toggleable button
-	if(pev->impulse) EMIT_SOUND(ENT(pev), CHAN_VOICE, (char*)STRING(pev->noise), 1, ATTN_NORM);
-	if(pev->speed)
+	// make sound for toggleable button
+	if ( pev->impulse )
+	{
+		EMIT_SOUND( ENT( pev ), CHAN_VOICE, STRING( pev->noise ), 1, ATTN_NORM );
+          	UTIL_FireTargets( pev->target, m_hActivator, this, USE_OFF, m_flValue ); // fire target
+	}
+	if ( pev->speed )
 	{
 		SetMoveDone( ButtonDone );
-		LinearMove( m_vecPosition1, pev->speed);
+		LinearMove( m_vecPosition1, pev->speed );
 	}
-	else ButtonDone();//immediately switch
+	else ButtonDone(); // immediately switch
 }
 
 //=======================================================================
@@ -2034,11 +1939,11 @@ void CFuncLever::Precache( void )
 	int m_sounds = UTIL_LoadSoundPreset(m_iMoveSound);
 	switch (m_sounds)//load pushed sounds (sound will play at activate or pushed button)
 	{
-	case 1:	pev->noise = UTIL_PrecacheSound ("materials/buttons/lever1.wav");break;
-	case 2:	pev->noise = UTIL_PrecacheSound ("materials/buttons/lever2.wav");break;
-	case 3:	pev->noise = UTIL_PrecacheSound ("materials/buttons/lever3.wav");break;
-	case 4:	pev->noise = UTIL_PrecacheSound ("materials/buttons/lever4.wav");break;
-	case 5:	pev->noise = UTIL_PrecacheSound ("materials/buttons/lever5.wav");break;
+	case 1:	pev->noise = UTIL_PrecacheSound ("buttons/lever1.wav");break;
+	case 2:	pev->noise = UTIL_PrecacheSound ("buttons/lever2.wav");break;
+	case 3:	pev->noise = UTIL_PrecacheSound ("buttons/lever3.wav");break;
+	case 4:	pev->noise = UTIL_PrecacheSound ("buttons/lever4.wav");break;
+	case 5:	pev->noise = UTIL_PrecacheSound ("buttons/lever5.wav");break;
 	case 0:	pev->noise = UTIL_PrecacheSound ("common/null.wav"); break;
 	default:	pev->noise = UTIL_PrecacheSound(m_sounds); break;//custom sound or sentence
 	}
@@ -2046,9 +1951,9 @@ void CFuncLever::Precache( void )
 	m_sounds = UTIL_LoadSoundPreset(m_iStopSound);
 	switch (m_sounds)//load locked sounds
 	{
-	case 1:	pev->noise2 = UTIL_PrecacheSound ("materials/buttons/lstop1.wav");break;
+	case 1:	pev->noise2 = UTIL_PrecacheSound ("buttons/lstop1.wav");break;
 	case 0:	pev->noise2 = UTIL_PrecacheSound ("common/null.wav"); break;
-	default:	pev->noise2 = UTIL_PrecacheSound(m_sounds); break;//custom sound or sentence
+	default:	pev->noise2 = UTIL_PrecacheSound( m_sounds ); break;//custom sound or sentence
 	}
 }
 
@@ -2210,6 +2115,7 @@ LINK_ENTITY_TO_CLASS( func_ladder, CLadder );
 void CLadder :: Precache( void )
 {
 	pev->solid = SOLID_NOT;
+	pev->skin = CONTENTS_LADDER;
 	pev->effects |= EF_NODRAW;
 }
 
@@ -2217,7 +2123,7 @@ void CLadder :: Spawn( void )
 {
 	Precache();
 
-	UTIL_SetModel(ENT(pev), pev->model); // set size and link into world
+	UTIL_SetModel( ENT( pev ), pev->model ); // set size and link into world
 	pev->movetype = MOVETYPE_PUSH;
 }
 
@@ -2242,22 +2148,22 @@ LINK_ENTITY_TO_CLASS( func_scaner, CFuncScaner );
 
 void CFuncScaner::KeyValue( KeyValueData *pkvd )
 {
-	if (FStrEq(pkvd->szKeyName, "sensor"))
+	if ( FStrEq( pkvd->szKeyName, "sensor" ))
 	{
 		pev->message = ALLOC_STRING( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if (FStrEq(pkvd->szKeyName, "acesslevel"))
+	else if ( FStrEq( pkvd->szKeyName, "acesslevel" ))
 	{
 		pev->impulse = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if (FStrEq(pkvd->szKeyName, "sense"))
+	else if ( FStrEq( pkvd->szKeyName, "sensitivity" ))
 	{
 		pev->health = atof( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else	CBaseLogic::KeyValue( pkvd );
+	else CBaseLogic::KeyValue( pkvd );
 }
 
 void CFuncScaner :: Precache( void )
@@ -2275,9 +2181,9 @@ void CFuncScaner :: Spawn( void )
 	Precache();
 	pev->solid = SOLID_BSP;
 	pev->movetype = MOVETYPE_PUSH;
-	if(!pev->health) pev->health = 15;
-	UTIL_SetModel(ENT(pev), pev->model);
-	UTIL_SetOrigin(this, pev->origin);
+	if( !pev->health ) pev->health = 15;
+	UTIL_SetModel( ENT( pev ), pev->model );
+	UTIL_SetOrigin( this, pev->origin );
           m_flDelay = 0.1;
           
 	SetNextThink( 1 );
@@ -2285,17 +2191,17 @@ void CFuncScaner :: Spawn( void )
 
 void CFuncScaner :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	if (useType == USE_SHOWINFO)
+	if ( useType == USE_SHOWINFO )
 	{
 		DEBUGHEAD;
-		Msg( "State: %s, Acess Level %d\n", GetStringForState( GetState()), pev->impulse);
-		Msg( "Sense Corner: %g\n", pev->health);
+		ALERT( at_console, "State: %s, Acess Level %d\n", GetStringForState( GetState()), pev->impulse );
+		ALERT( at_console, "FOV: %g\n", pev->health );
 	}
-	else if (useType == USE_SET)
+	else if ( useType == USE_SET )
 	{
-		if(value) 
+		if ( value ) 
 		{
-			pev->armorvalue = (int)value;//set new acess level for looker
+			pev->armorvalue = (int)value; // set new acess level for looker
 			pev->frame = 1;
 		}
 	}
@@ -2303,50 +2209,50 @@ void CFuncScaner :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 
 void CFuncScaner :: Think( void )
 {
-	if (VisionCheck() && m_iState != STATE_ON && m_iState != STATE_DEAD)
+	if ( VisionCheck() && m_iState != STATE_ON && m_iState != STATE_DEAD )
 	{
-		if(pev->armorvalue)
+		if ( pev->armorvalue )
 		{
 			m_iState = STATE_DEAD;
 			pLooker->m_iAcessLevel = (int)pev->armorvalue;
 			pev->armorvalue = 0;
-			//change acess level sound
+			// change acess level sound
 			EMIT_SOUND( edict(), CHAN_BODY, "buttons/blip2.wav", 1.0, ATTN_NORM );
 		}
-		else if(m_iState == STATE_OFF)//scaner is off
+		else if ( m_iState == STATE_OFF ) // scaner is off
 		{
-			//ok, we have seen entity
-			if(pLooker->pev->flags & FL_CLIENT) m_flDelay = 0.1;
+			// ok, we have seen entity
+			if( pLooker->pev->flags & FL_CLIENT ) m_flDelay = 0.1;
 			else m_flDelay = 0.9;
 			m_iState = STATE_TURN_ON;
 		}
-		else if(m_iState == STATE_TURN_ON)//scaner is turn on
+		else if( m_iState == STATE_TURN_ON ) // scaner is turn on
 		{
 			EMIT_SOUND( edict(), CHAN_BODY, "buttons/blip1.wav", 1.0, ATTN_NORM );
 			pev->frame = 1;			
 			m_flDelay = 0.3;
 			pev->button++;
-			if(pev->button > 9)
+			if( pev->button > 9 )
 			{
 				m_iState = STATE_ON;
-				pev->team = pLooker->m_iAcessLevel;//save our level acess
+				pev->team = pLooker->m_iAcessLevel; // save our level acess
 				pev->button = 0;
 			}
 		}
 	}
-	else if(m_iState == STATE_ON)//scaner is on
+	else if ( m_iState == STATE_ON ) // scaner is on
 	{
 		EMIT_SOUND( edict(), CHAN_BODY, "buttons/blip1.wav", 1.0, ATTN_NORM );
 		m_flDelay = 0.1;
 		pev->button++;
-		if(pev->button > 9)
+		if( pev->button > 9 )
 		{
 			m_iState = STATE_OFF;
 			pev->frame = 0;
 			pev->button = 0;
 			m_flDelay = 2.0;
 
-			if(pev->team >= pev->impulse )//acees level is math or higher ?
+			if( pev->team >= pev->impulse ) // acees level is math or higher ?
 			{
 				EMIT_SOUND( edict(), CHAN_BODY, "buttons/button7.wav", 1.0, ATTN_NORM );
 				UTIL_FireTargets( pev->target, this, this, USE_TOGGLE ); 
@@ -2358,7 +2264,7 @@ void CFuncScaner :: Think( void )
 			}
 		}
 	}
-	else if(m_iState == STATE_TURN_ON)
+	else if ( m_iState == STATE_TURN_ON )
 	{
 		EMIT_SOUND( edict(), CHAN_BODY, "buttons/button11.wav", 1.0, ATTN_NORM );
 		m_iState = STATE_OFF;
@@ -2366,7 +2272,7 @@ void CFuncScaner :: Think( void )
 		pev->frame = 0;
 		m_flDelay = 2.0;
 	}
-	else if(m_iState == STATE_DEAD)
+	else if ( m_iState == STATE_DEAD )
 	{
 		m_iState = STATE_OFF;
 		pev->button = 0;
@@ -2379,10 +2285,10 @@ void CFuncScaner :: Think( void )
 
 void CFuncScaner :: PostActivate( void )
 {
-	if (pev->message) 
+	if ( pev->message ) 
 	{
-		pSensor = UTIL_FindEntityByTargetname(NULL, STRING(pev->message));
-		if(!pSensor) pSensor = this;
+		pSensor = UTIL_FindEntityByTargetname( NULL, STRING( pev->message ));
+		if( !pSensor ) pSensor = this;
 	}
 	else pSensor = this;
 }
@@ -2391,74 +2297,34 @@ BOOL CFuncScaner :: VisionCheck( void )
 {
 	pLooker = UTIL_FindEntityInSphere( NULL, pSensor->pev->origin, 30 );
 	
-	if (pLooker)
+	if ( pLooker )
 	{
 		while( pLooker != NULL )
 		{
-			if(pLooker && pLooker->pev->flags & (FL_MONSTER | FL_CLIENT))
-				return CanSee(pLooker);//looker found
+			if( pLooker && pLooker->pev->flags & ( FL_MONSTER|FL_CLIENT ))
+				return CanSee( pLooker ); // looker found
 			pLooker = UTIL_FindEntityInSphere( pLooker, pSensor->pev->origin, 30 );	
 		}
 	}
 	return FALSE;//no lookers
 }
 
-BOOL CFuncScaner :: CanSee(CBaseEntity *pLooker )
+BOOL CFuncScaner :: CanSee( CBaseEntity *pLooker )
 {
-	if(!pSensor || !pLooker) return FALSE;
+	if( !pSensor || !pLooker ) return FALSE;
 
-	if ((pLooker->EyePosition() - pSensor->pev->origin).Length() > 30) return FALSE;
+	if (( pLooker->EyePosition() - pSensor->pev->origin ).Length() > 30 )
+		return FALSE;
 
 	// copied from CBaseMonster's FInViewCone function
 	Vector2D	vec2LOS;
-	float flDot, flComp = cos(pev->health/2 * M_PI/180.0);
+	float flDot, flComp = cos( pev->health / 2 * M_PI / 180.0 );
 	
 	UTIL_MakeVectors ( pLooker->pev->angles );
 	vec2LOS = ( pSensor->pev->origin - pLooker->pev->origin ).Make2D();
 	vec2LOS = vec2LOS.Normalize();
-	flDot = DotProduct (vec2LOS , gpGlobals->v_forward.Make2D() );
+	flDot = DotProduct ( vec2LOS , gpGlobals->v_forward.Make2D() );
 
 	if (flDot <= flComp) return FALSE;
 	return TRUE;
-}
-
-//=======================================================================
-// volume of space that the player must stand in to control the train
-//=======================================================================
-class CFuncTrainControls : public CPointEntity
-{
-public:
-	void Spawn( void );
-	void PostSpawn( void );
-};
-LINK_ENTITY_TO_CLASS( func_traincontrols, CFuncTrainControls );
-
-void CFuncTrainControls :: PostSpawn( void )
-{
-	CBaseEntity *pTarget = NULL;
-
-	do 
-	{
-	pTarget = UTIL_FindEntityByTargetname( pTarget, STRING(pev->target) );
-	} while ( pTarget && !FClassnameIs(pTarget->pev, "func_tracktrain") );
-
-	if ( !pTarget )
-	{
-		ALERT( at_console, "TrackTrainControls: No train %s\n", STRING(pev->target) );
-		return;
-	}
-
-	CFuncTrackTrain *ptrain = (CFuncTrackTrain*)pTarget;
-	ptrain->SetControls( pev );
-	UTIL_Remove( this );
-}
-
-void CFuncTrainControls :: Spawn( void )
-{
-	pev->solid = SOLID_NOT;
-	pev->movetype = MOVETYPE_NONE;
-	UTIL_SetModel( ENT(pev), pev->model );
-
-	UTIL_SetSize( pev, pev->mins, pev->maxs );
-	UTIL_SetOrigin( this, pev->origin );
 }

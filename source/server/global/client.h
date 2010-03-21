@@ -104,10 +104,6 @@ typedef struct user_messages_s
 	int	RainData;
 	int	HudText;
 	int	ShowGameTitle;
-	int	AddScreen;
-	int	AddMirror;
-	int	AddPortal;
-	int	Beams;
 } user_messages_t;
 
 extern user_messages_t gmsg;

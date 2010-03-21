@@ -1080,7 +1080,6 @@ int CL_SpawnDecal( HSPRITE m_hDecal, edict_t *pEnt, const vec3_t pos, int colorI
 	int		i, j, numfragments;
 	vec3_t		dir, verts[MAX_DECAL_VERTS];
 	fragment_t	*fr, fragments[MAX_DECAL_FRAGMENTS];
-	float		radius = 32.0f; // search radius
 	rgba_t		color;
 
 	// invalid decal

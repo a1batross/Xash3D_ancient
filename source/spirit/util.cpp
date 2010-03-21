@@ -1298,11 +1298,11 @@ void UTIL_ScreenFadeWrite( const ScreenFade &fade, CBaseEntity *pEntity )
 		
 		WRITE_FLOAT( fade.duration );		// fade lasts this long
 		WRITE_FLOAT( fade.holdTime );		// fade lasts this long
-		WRITE_SHORT( fade.fadeFlags );		// fade type (in / out)
-		WRITE_BYTE( fade.r );				// fade red
-		WRITE_BYTE( fade.g );				// fade green
-		WRITE_BYTE( fade.b );				// fade blue
-		WRITE_BYTE( fade.a );				// fade blue
+		WRITE_BYTE( fade.fadeFlags );		// fade type (in / out)
+		WRITE_BYTE( fade.r );		// fade red
+		WRITE_BYTE( fade.g );		// fade green
+		WRITE_BYTE( fade.b );		// fade blue
+		WRITE_BYTE( fade.a );		// fade blue
 
 	MESSAGE_END();
 }

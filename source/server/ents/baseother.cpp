@@ -66,10 +66,11 @@ void CEnvShower::Touch( CBaseEntity *pOther )
 class ChangeLevelFire : public CBaseLogic
 {
 public:
-	void PostActivate( void ) { FireTargets(); UTIL_Remove( this ); }
+	void PostActivate( void ) { UTIL_FireTargets( pev->target, this, this, USE_TOGGLE ); UTIL_Remove( this ); }
 	int ObjectCaps( void ) { return CBaseEntity::ObjectCaps() | FCAP_FORCE_TRANSITION; }
 };
 LINK_ENTITY_TO_CLASS( fireent, ChangeLevelFire );
+
 //=======================================================================
 // 		   faderent - rendering time effects
 //=======================================================================

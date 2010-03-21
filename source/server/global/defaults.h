@@ -25,7 +25,6 @@
 // 	Debug macros
 //=========================
 #define SHIFT				Msg("\n")
-#define ACTION				Msg("Action!\n")
 #define DEBUGHEAD				Msg("======/Xash Debug System/======\nclassname: %s[%i], targetname %s\n", STRING(pev->classname), entindex(), STRING(pev->targetname))
 #define MSGSTATEHEALTH			Msg("State: %s, health %g\n", GetStringForState( GetState()), pev->health )			
 #define MSGSTATESTRENGTH			Msg("State: %s, strength %g\n", GetStringForState( GetState()), pev->health )

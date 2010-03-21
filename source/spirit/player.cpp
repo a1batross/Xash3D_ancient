@@ -290,7 +290,7 @@ void LinkUserMessages( void )
 	gmsgWeaponAnim = REG_USER_MSG( "WeaponAnim", 3 );
 	gmsgShowMenu = REG_USER_MSG( "ShowMenu", -1 );
 	gmsgShake = REG_USER_MSG("ScreenShake", 13 );
-	gmsgFade = REG_USER_MSG("ScreenFade", 14 );
+	gmsgFade = REG_USER_MSG("ScreenFade", 13 );
 	gmsgAmmoX = REG_USER_MSG("AmmoX", 2);
 	gmsgTeamNames = REG_USER_MSG( "TeamNames", -1 );
 	gmsgStatusIcon = REG_USER_MSG( "StatusIcon", -1 );

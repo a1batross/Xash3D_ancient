@@ -645,7 +645,7 @@ static bool Shader_SkipConditionBlock( script_t *script )
 //===========================================================================
 static bool Shader_CheckSkybox( const char *name )
 {
-	const char	*skybox_ext[4] = { "tga", "jpg", "png", "dds" };
+	const char	*skybox_ext[5] = { "tga", "bmp", "jpg", "png", "dds" };
 	int		i, j, num_checked_sides;
 	const char	*sidename;
 	string		loadname;
@@ -662,13 +662,13 @@ static bool Shader_CheckSkybox( const char *name )
 		return true;
 
 	// complex cubemap pack not found, search for skybox images				
-	for( i = 0; i < 4; i++ )
+	for( i = 0; i < 5; i++ )
 	{	
 		num_checked_sides = 0;
 		for( j = 0; j < 6; j++ )
 		{         
 			// build side name
-			sidename = va( "%s_%s.%s", loadname, r_skyBoxSuffix[j], skybox_ext[i] );
+			sidename = va( "%s%s.%s", loadname, r_skyBoxSuffix[j], skybox_ext[i] );
 			if( FS_FileExists( sidename )) num_checked_sides++;
 
 		}
@@ -677,7 +677,7 @@ static bool Shader_CheckSkybox( const char *name )
 		for( j = 0; j < 6; j++ )
 		{         
 			// build side name
-			sidename = va( "%s%s.%s", loadname, r_skyBoxSuffix[j], skybox_ext[i] );
+			sidename = va( "%s_%s.%s", loadname, r_skyBoxSuffix[j], skybox_ext[i] );
 			if( FS_FileExists( sidename )) num_checked_sides++;
 		}
 		if( num_checked_sides == 6 )
@@ -719,7 +719,7 @@ static bool Shader_ParseSkySides( script_t *script, ref_shader_t *shader, ref_sh
 
 		for( i = 0; i < 6; i++ )
 		{
-			com.snprintf( name, sizeof( name ), "%s_%s", tok.string, r_skyBoxSuffix[i] );
+			com.snprintf( name, sizeof( name ), "%s%s", tok.string, r_skyBoxSuffix[i] );
 			image = R_FindTexture( name, NULL, 0, TF_CLAMP|TF_NOMIPMAP|TF_SKYSIDE );
 			if( !image ) break;
 			shaders[i] = R_LoadShader( image->name, shaderType, true, image->flags, SHADER_INVALID );
@@ -728,7 +728,7 @@ static bool Shader_ParseSkySides( script_t *script, ref_shader_t *shader, ref_sh
 
 		for( i = 0; i < 6; i++ )
 		{
-			com.snprintf( name, sizeof( name ), "%s%s", tok.string, r_skyBoxSuffix[i] );
+			com.snprintf( name, sizeof( name ), "%s_%s", tok.string, r_skyBoxSuffix[i] );
 			image = R_FindTexture( name, NULL, 0, TF_CLAMP|TF_NOMIPMAP|TF_SKYSIDE );
 			if( !image ) break;
 			shaders[i] = R_LoadShader( image->name, shaderType, true, image->flags, SHADER_INVALID );

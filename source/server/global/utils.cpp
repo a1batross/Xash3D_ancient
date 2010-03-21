@@ -134,10 +134,10 @@ void UTIL_FireTargets( const char *targetName, CBaseEntity *pActivator, CBaseEnt
 	int i,j, found = false;
 	char szBuf[80];
 
-	if ( !targetName )return;
+	if ( !targetName ) return;
 
-	//HACKHACK
-	if(FStrEq(targetName, "tr_endchange" ))
+	// HACKHACK
+	if( FStrEq( targetName, "tr_endchange" ))
 	{
 		SERVER_COMMAND("game_over\n");
 		return;
@@ -221,11 +221,11 @@ void UTIL_FireTargets( const char *targetName, CBaseEntity *pActivator, CBaseEnt
 			targetName = szBuf;
 			pTarget = UTIL_FindEntityByTargetname(NULL, targetName, inputActivator);
 
-			if (!pTarget)return; // it's a locus specifier all right, but the target's invalid.
+			if( !pTarget ) return; // it's a locus specifier all right, but the target's invalid.
 		}
 	}
 
-	DevMsg( "Firing: (%s) with %s and value %g\n", targetName, GetStringForUseType( useType ), value );
+	ALERT( at_aiconsole, "Firing: (%s) with %s and value %g\n", targetName, GetStringForUseType( useType ), value );
 
 	do //start firing targets
 	{
@@ -1164,6 +1164,7 @@ int UTIL_PrecacheAurora( const char *s )
 	if( !afile )
 	{
 		// verify file exists
+		ALERT( at_warning, "couldn't load %s\n", path );
 		return MAKE_STRING( "scripts/aurora/error.aur" );
 	}
 
@@ -1190,17 +1191,6 @@ void UTIL_SetAurora( CBaseEntity *pAttach, int aur, int attachment )
 	MESSAGE_BEGIN( MSG_ALL, gmsg.Particle );
 		WRITE_BYTE( pAttach->entindex() );
 		WRITE_STRING( STRING( aur ));
-	MESSAGE_END();
-}
-//========================================================================
-// Set client beams
-//========================================================================
-void UTIL_SetBeams( char *szFile, CBaseEntity *pStart, CBaseEntity *pEnd )
-{
-	MESSAGE_BEGIN( MSG_ALL, gmsg.Beams );
-		WRITE_STRING( szFile );
-		WRITE_BYTE( pStart->entindex());	// beam start entity
-		WRITE_BYTE( pEnd->entindex() );	// beam end entity
 	MESSAGE_END();
 }
 
@@ -1390,8 +1380,8 @@ void UTIL_PrecacheResourse( void )
           g_sModelIndexNullSprite  = UTIL_PrecacheModel("sprites/null.spr");
 
 	// global sprites and models
-	g_sModelIndexFireball = UTIL_PrecacheModel ("sprites/explode.spr");// fireball
-	g_sModelIndexWExplosion = UTIL_PrecacheModel ("sprites/wxplode.spr");// underwater fireball
+	g_sModelIndexFireball = UTIL_PrecacheModel ("sprites/zerogxplode.spr");// fireball
+	g_sModelIndexWExplosion = UTIL_PrecacheModel ("sprites/WXplo1.spr");// underwater fireball
 	g_sModelIndexSmoke = UTIL_PrecacheModel ("sprites/steam1.spr");// smoke
 	g_sModelIndexBubbles = UTIL_PrecacheModel ("sprites/bubble.spr");//bubbles
 	g_sModelIndexLaser = UTIL_PrecacheModel( "sprites/laserbeam.spr" );
@@ -2748,13 +2738,12 @@ void UTIL_Sparks( const Vector &position )
 void UTIL_Explode( const Vector &center, edict_t *pOwner, int radius, int name )
 {
 	CBaseEntity *pExplosion = CBaseEntity::Create( "env_explosion", center, g_vecZero, pOwner );
-	if( pExplosion )
-	{
-		if( name ) pExplosion->pev->classname = name;
-		pExplosion->pev->dmg = radius;
-		pExplosion->pev->owner = pOwner;
-		pExplosion->Use( NULL, NULL, USE_ON, 0 );
-	}
+	if( !pExplosion ) return;
+
+	if( name ) pExplosion->pev->classname = name;
+	pExplosion->pev->dmg = radius;
+	pExplosion->pev->spawnflags |= SF_FIREONCE; //remove entity after explode
+	pExplosion->Use( NULL, NULL, USE_ON, 0 );
 }
 
 void UTIL_Ricochet( const Vector &position, float scale )
@@ -3105,8 +3094,8 @@ int HaveCamerasInPVS( edict_t* edict )
 }
 void UTIL_SetView( int ViewEntity, int flags )
 {
-	//Light version SetView
-	//Please don't use this in multiplayer
+	// light version of SetView
+	// please don't use this in multiplayer
 	CBaseEntity *m_pPlayer = UTIL_PlayerByIndex( 1 );
 	UTIL_SetView( m_pPlayer, ViewEntity, flags );
 }
@@ -3115,14 +3104,14 @@ void UTIL_SetView( CBaseEntity *pActivator, int ViewEntity, int flags )
 {
           CBaseEntity *pViewEnt = 0;
           
-	if(ViewEntity)
+	if ( ViewEntity )
 	{
-		//try to find by targetname
-		pViewEnt = UTIL_FindEntityByString( NULL, "targetname", STRING(ViewEntity));
-		//try to find by classname
-		if(FNullEnt(pViewEnt))
-			pViewEnt = UTIL_FindEntityByString( NULL, "classname", STRING(ViewEntity));
-		if(pViewEnt && pViewEnt->pev->flags & FL_MONSTER) flags |= MONSTER_VIEW;//detect monster view
+		// try to find by targetname
+		pViewEnt = UTIL_FindEntityByString( NULL, "targetname", STRING( ViewEntity ));
+		// try to find by classname
+		if( FNullEnt( pViewEnt ))
+			pViewEnt = UTIL_FindEntityByString( NULL, "classname", STRING( ViewEntity ));
+		if( pViewEnt && pViewEnt->pev->flags & FL_MONSTER ) flags |= MONSTER_VIEW; // detect monster view
 	}
 	UTIL_SetView( pActivator, pViewEnt, flags );
 }

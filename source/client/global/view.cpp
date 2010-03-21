@@ -48,6 +48,7 @@ cvar_t	*scr_ofsy;
 cvar_t	*scr_ofsz;
 cvar_t	*cl_vsmoothing;
 cvar_t	*cl_stairsmooth;
+cvar_t	*cl_weaponlag;
 
 cvar_t	*cl_bobcycle;
 cvar_t	*cl_bob;
@@ -140,6 +141,7 @@ void V_Init( void )
 	v_iroll_level = g_engfuncs.pfnRegisterVariable( "v_iroll_level", "0.1", 0, "viewing inverse roll level" );
 	v_ipitch_level = g_engfuncs.pfnRegisterVariable( "v_iyaw_level", "0.3", 0, "viewing inverse pitch level" );
 
+	cl_weaponlag = g_engfuncs.pfnRegisterVariable( "v_viewmodel_lag", "0.0", FCVAR_ARCHIVE, "add some lag to viewmodel like in HL2" );
 	cl_bobcycle = g_engfuncs.pfnRegisterVariable( "cl_bobcycle","0.8", 0, "bob full cycle" );
 	cl_bob = g_engfuncs.pfnRegisterVariable( "cl_bob", "0.01", 0, "bob value" );
 	cl_bobup = g_engfuncs.pfnRegisterVariable( "cl_bobup", "0.5", 0, "bob upper limit" );
@@ -261,6 +263,70 @@ void V_DropPunchAngle( float frametime, Vector &ev_punchangle )
 	len -= (10.0 + len * 0.5) * frametime;
 	len = max( len, 0.0 );
 	ev_punchangle *= len;
+}
+
+void V_CalcViewModelLag( Vector& origin, Vector& angles, Vector& original_angles )
+{
+	static Vector m_vecLastFacing;
+	Vector vOriginalOrigin = origin;
+	Vector vOriginalAngles = angles;
+
+	// Calculate our drift
+	Vector	forward;
+	AngleVectors( angles, forward, NULL, NULL );
+
+	if ( gpGlobals->frametime != 0.0f )
+	{
+		Vector vDifference;
+
+		vDifference = forward - m_vecLastFacing;
+
+		float flSpeed = 5.0f;
+
+		// If we start to lag too far behind, we'll increase the "catch up" speed.
+		// Solves the problem with fast cl_yawspeed, m_yaw or joysticks rotating quickly.
+		// The old code would slam lastfacing with origin causing the viewmodel to pop to a new position
+		float flDiff = vDifference.Length();
+		if (( flDiff > cl_weaponlag->value ) && ( cl_weaponlag->value > 0.0f ))
+		{
+			float flScale = flDiff / cl_weaponlag->value;
+			flSpeed *= flScale;
+		}
+
+		// FIXME:  Needs to be predictable?
+		m_vecLastFacing = m_vecLastFacing + vDifference * ( flSpeed * gpGlobals->frametime );
+		// Make sure it doesn't grow out of control!!!
+		m_vecLastFacing = m_vecLastFacing.Normalize();
+		origin = origin + (vDifference * -1.0f) * 5.0f;
+		ASSERT( m_vecLastFacing.IsValid() );
+	}
+
+	Vector right, up;
+	AngleVectors( original_angles, forward, right, up );
+
+	float pitch = original_angles[PITCH];
+
+	if ( pitch > 180.0f )
+	{
+		pitch -= 360.0f;
+	}
+	else if ( pitch < -180.0f )
+	{
+		pitch += 360.0f;
+	}
+
+	if ( cl_weaponlag->value <= 0.0f )
+	{
+		origin = vOriginalOrigin;
+		angles = vOriginalAngles;
+	}
+	else
+	{
+		// FIXME: These are the old settings that caused too many exposed polys on some models
+		origin = origin + forward * ( -pitch * 0.035f );
+		origin = origin + right * ( -pitch * 0.03f );
+		origin = origin + up * ( -pitch * 0.02f );
+	}
 }
 
 //==========================
@@ -900,7 +966,9 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 	AngleVectors( angles, pparams->forward, pparams->right, pparams->up );
 	V_CalcScrOffset( pparams );
 
-	view->v.angles = pparams->cl_viewangles;
+	Vector	lastAngles;
+
+	lastAngles = view->v.angles = pparams->cl_viewangles;
 	V_CalcGunAngle( pparams );
 
 	// use predicted origin as view origin.
@@ -911,13 +979,17 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 	// Let the viewmodel shake at about 10% of the amplitude
 	V_ApplyShake( view->v.origin, view->v.angles, 0.9 );
 
-	for( i = 0; i < 3; i++ ) view->v.origin[i] += bob * 0.4 * pparams->forward[i];
+	for( i = 0; i < 3; i++ )
+		view->v.origin[i] += bob * 0.4 * pparams->forward[i];
 	view->v.origin[2] += bob;
 
 	view->v.angles[YAW] -= bob * 0.5;
 	view->v.angles[ROLL] -= bob * 1;
 	view->v.angles[PITCH] -= bob * 0.3;
 	view->v.origin[2] -= 1;
+
+	// add lag
+	V_CalcViewModelLag( view->v.origin, view->v.angles, lastAngles );
 
 	// fudge position around to keep amount of weapon visible
 	// roughly equal with different FOV

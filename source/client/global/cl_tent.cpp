@@ -165,7 +165,7 @@ void TE_ParseExplosion( void )
 	char	szDecal[32];
 
 	sprintf( szDecal, "{scorch%i", RANDOM_LONG( 1, 3 ));
-	g_pTempEnts->PlaceDecal( pos2, 48.0f, szDecal );
+	g_pTempEnts->PlaceDecal( pos, 48.0f, szDecal );
 
 	if( !( flags & TE_EXPLFLAG_NOSOUND ))
 	{

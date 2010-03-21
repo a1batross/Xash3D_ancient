@@ -3080,6 +3080,130 @@ const char *CBasePlayer::TeamID( void )
 	return m_szTeamName;
 }
 
+//=========================================================
+//	remove all items
+//=========================================================
+#define SF_REMOVE_SUIT 1
+
+class CStripWeapons : public CPointEntity
+{
+public:
+	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+	{
+		CBasePlayer *pPlayer = NULL;
+
+		if ( pActivator && pActivator->IsPlayer() )
+		{
+			pPlayer = (CBasePlayer *)pActivator;
+		}
+		else if ( !IsMultiplayer() )
+		{
+			pPlayer = (CBasePlayer *)UTIL_PlayerByIndex( 1 );
+		}
+		else
+		{
+			ALERT( at_warning, "%s: %s activator not player. Ignored.\n", STRING( pev->classname ), STRING( pev->targetname ));		
+			return;
+		}
+
+		if ( pPlayer ) pPlayer->RemoveAllItems( pev->spawnflags & SF_REMOVE_SUIT );
+		if ( pev->spawnflags & SF_FIREONCE ) UTIL_Remove( this );
+	}
+};
+LINK_ENTITY_TO_CLASS( player_weaponstrip, CStripWeapons );
+
+class CRevertSaved : public CPointEntity
+{
+public:
+	void	Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	void	EXPORT MessageThink( void );
+	void	EXPORT LoadThink( void );
+	void	KeyValue( KeyValueData *pkvd );
+
+	virtual int		Save( CSave &save );
+	virtual int		Restore( CRestore &restore );
+	static	TYPEDESCRIPTION m_SaveData[];
+
+	inline	float	Duration( void ) { return pev->dmg_take; }
+	inline	float	HoldTime( void ) { return pev->dmg_save; }
+	inline	float	MessageTime( void ) { return m_messageTime; }
+	inline	float	LoadTime( void ) { return m_loadTime; }
+
+	inline	void	SetDuration( float duration ) { pev->dmg_take = duration; }
+	inline	void	SetHoldTime( float hold ) { pev->dmg_save = hold; }
+	inline	void	SetMessageTime( float time ) { m_messageTime = time; }
+	inline	void	SetLoadTime( float time ) { m_loadTime = time; }
+
+private:
+	float	m_messageTime;
+	float	m_loadTime;
+};
+
+LINK_ENTITY_TO_CLASS( player_loadsaved, CRevertSaved );
+
+TYPEDESCRIPTION	CRevertSaved::m_SaveData[] =
+{
+	DEFINE_FIELD( CRevertSaved, m_messageTime, FIELD_FLOAT ),	// These are not actual times, but durations, so save as floats
+	DEFINE_FIELD( CRevertSaved, m_loadTime, FIELD_FLOAT ),
+};
+
+IMPLEMENT_SAVERESTORE( CRevertSaved, CPointEntity );
+
+void CRevertSaved :: KeyValue( KeyValueData *pkvd )
+{
+	if (FStrEq(pkvd->szKeyName, "duration"))
+	{
+		SetDuration( atof(pkvd->szValue) );
+		pkvd->fHandled = TRUE;
+	}
+	else if (FStrEq(pkvd->szKeyName, "holdtime"))
+	{
+		SetHoldTime( atof(pkvd->szValue) );
+		pkvd->fHandled = TRUE;
+	}
+	else if (FStrEq(pkvd->szKeyName, "messagetime"))
+	{
+		SetMessageTime( atof(pkvd->szValue) );
+		pkvd->fHandled = TRUE;
+	}
+	else if (FStrEq(pkvd->szKeyName, "loadtime"))
+	{
+		SetLoadTime( atof(pkvd->szValue) );
+		pkvd->fHandled = TRUE;
+	}
+	else
+		CPointEntity::KeyValue( pkvd );
+}
+
+void CRevertSaved :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	UTIL_ScreenFadeAll( pev->rendercolor, Duration(), HoldTime(), pev->renderamt, FFADE_OUT );
+	SetNextThink( MessageTime() );
+	SetThink(&CRevertSaved :: MessageThink );
+}
+
+
+void CRevertSaved :: MessageThink( void )
+{
+	UTIL_ShowMessageAll( STRING(pev->message) );
+	float nextThink = LoadTime() - MessageTime();
+	if ( nextThink > 0 )
+	{
+		SetNextThink( nextThink );
+		SetThink(&CRevertSaved :: LoadThink );
+	}
+	else
+		LoadThink();
+}
+
+
+void CRevertSaved :: LoadThink( void )
+{
+	if ( !gpGlobals->deathmatch )
+	{
+		SERVER_COMMAND("reload\n");
+	}
+}
 
 //==============================================
 // !!!UNDONE:ultra temporary SprayCan entity to apply
@@ -3773,7 +3897,7 @@ void CBasePlayer :: UpdateClientData( void )
 		MESSAGE_BEGIN( MSG_ONE, gmsg.Fade, NULL, pev );
 			WRITE_FLOAT( m_flFadeTime );  
 			WRITE_FLOAT( m_flFadeHold );
-			WRITE_SHORT( m_iFadeFlags );		// fade flags
+			WRITE_BYTE( m_iFadeFlags );		// fade flags
 			WRITE_BYTE( (byte)m_FadeColor.x );	// fade red
 			WRITE_BYTE( (byte)m_FadeColor.y );	// fade green
 			WRITE_BYTE( (byte)m_FadeColor.z );	// fade blue
@@ -3967,14 +4091,14 @@ void CBasePlayer :: UpdateClientData( void )
 			int rainmode = pEnt->pev->button;
 
 			// search for constant rain_modifies
-			pFind = UTIL_FindEntityByClassname( NULL, "util_rainmodify" );
+			pFind = UTIL_FindEntityByClassname( NULL, "env_rainmodify" );
 			while ( !FNullEnt( pFind ) )
 			{
-				if (pFind->pev->spawnflags & 1)
+				if ( pFind->pev->spawnflags & 1 )
 				{
 					// copy settings to player's data and clear fading
 					CBaseEntity *pEnt = CBaseEntity::Instance( pFind->edict() );
-					CUtilRainModify *pRainModify = (CUtilRainModify *)pEnt;
+					CEnvRainModify *pRainModify = (CEnvRainModify *)pEnt;
 
 					Rain_dripsPerSecond = pRainModify->pev->button;
 					Rain_windX = pRainModify->windXY[1];

@@ -2998,7 +2998,9 @@ static _inline void R_SetColorForOutlines( void )
 	switch( type )
 	{
 	case MB_MODEL:
-		if( r_currentMeshBuffer->infokey < 0 )
+		if( triState.fActive )
+			pglColor4fv( colorBlue );			
+		else if( r_currentMeshBuffer->infokey < 0 )
 			pglColor4fv( colorRed );
 		else pglColor4fv( colorWhite );
 		break;

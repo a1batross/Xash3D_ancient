@@ -44,104 +44,31 @@ STATE CBaseDMStart::GetState( CBaseEntity *pEntity )
 	else	return STATE_OFF;
 }
 
-class CWallTorch : public CBaseEntity
-{
-public:
-	void Precache( void )
-	{
-		// if sound is missing just reset soundindex
-		pev->impulse = PRECACHE_SOUND( "ambience/fire1.wav" );
-		UTIL_PrecacheModel( "models/props/torch1.mdl" );
-	}
-	void Spawn( void )
-	{
-		Precache ();
-
-		if( !pev->impulse )
-		{
-			UTIL_Remove( this );
-			return;
-		}
-
-//		SetObjectClass( ED_NORMAL );
-		pev->flags |= FL_PHS_FILTER;	// allow phs filter instead pvs
-
-		// setup attenuation radius
-		pev->armorvalue = 384.0f * ATTN_STATIC;
-
-		pev->soundindex = pev->impulse;
-		UTIL_SetModel( ENT( pev ), "models/props/torch1.mdl" );
-		UTIL_SetSize(pev, g_vecZero, g_vecZero);
-		SetBits( pev->flags, FL_POINTENTITY );
-		pev->animtime = gpGlobals->time + 0.2;	// enable animation
-		pev->framerate = 0.5f;
-	}
-};
-
 //=========================================================
 //	static infodecal
 //=========================================================
 class CDecal : public CBaseEntity
 {
 public:
-	void KeyValue( KeyValueData *pkvd )
+	void	KeyValue( KeyValueData *pkvd )
 	{
-		if( FStrEq( pkvd->szKeyName, "texture" ))
+		if (FStrEq(pkvd->szKeyName, "texture"))
 		{
-			pkvd->fHandled = TRUE;
 			pev->skin = DECAL_INDEX( pkvd->szValue );
-			if( pev->skin >= 0 ) return;
+			if ( pev->skin >= 0 ) return;
 			Msg( "Can't find decal %s\n", pkvd->szValue );
 		}
 	}
-
-	void PostSpawn( void )
+	void	PostSpawn( void )
 	{
-		if ( FStringNull( pev->targetname ))
-			MakeDecal();
-	}
-
-	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-	{
-		MakeDecal();
-	}
-
-	void MakeDecal( void )
-	{
-		if ( pev->skin < 0 )
-		{
-			REMOVE_ENTITY( ENT( pev ));
-			return;
-		}
-
+		if ( pev->skin < 0 ) { REMOVE_ENTITY(ENT(pev)); return; }
 		TraceResult trace;
 		int entityIndex, modelIndex;
-
-		UTIL_TraceLine( pev->origin - Vector( 5, 5, 5 ), pev->origin + Vector( 5, 5, 5 ), ignore_monsters, ENT( pev ), &trace );
-
-		entityIndex = (short)ENTINDEX( trace.pHit );
-		if ( entityIndex > 0 )
-			modelIndex = VARS( trace.pHit )->modelindex;
+		UTIL_TraceLine( pev->origin - Vector(5,5,5), pev->origin + Vector(5,5,5),  ignore_monsters, ENT(pev), &trace );
+		entityIndex = (short)ENTINDEX(trace.pHit);
+		if ( entityIndex ) modelIndex = (int)VARS(trace.pHit)->modelindex;
 		else modelIndex = 0;
-                    
-		if ( FStringNull( pev->targetname ))
-		{
-			g_engfuncs.pfnStaticDecal( pev->origin, (int)pev->skin, entityIndex, modelIndex );
-		}
-		else
-		{
-			MESSAGE_BEGIN( MSG_BROADCAST, gmsg.TempEntity );
-			WRITE_BYTE( TE_BSPDECAL );
-			WRITE_COORD( pev->origin.x );
-			WRITE_COORD( pev->origin.y );
-			WRITE_COORD( pev->origin.z );
-			WRITE_SHORT( (int)pev->skin );
-			WRITE_SHORT( entityIndex );
-			if( entityIndex > 0 )
-				WRITE_SHORT( modelIndex );
-			MESSAGE_END();
-                    }
-		
+		g_engfuncs.pfnStaticDecal( pev->origin, (int)pev->skin, entityIndex, modelIndex );
 		SetThink( Remove );
 		SetNextThink( 0.3 );
 	}
@@ -285,114 +212,206 @@ void CPortalSurface :: PostActivate( void )
 	}
 }
 
-//====================================================================
-//			multisource
-//====================================================================
-
-TYPEDESCRIPTION CMultiSource::m_SaveData[] =
+//=========================================================
+// info_path - train node path.
+//=========================================================
+void CInfoPath :: KeyValue( KeyValueData *pkvd )
 {
-	DEFINE_ARRAY( CMultiSource, m_rgEntities, FIELD_EHANDLE, MAX_MULTI_TARGETS ),
-	DEFINE_ARRAY( CMultiSource, m_rgTriggered, FIELD_INTEGER, MAX_MULTI_TARGETS ),
-	DEFINE_FIELD( CMultiSource, m_iTotal, FIELD_INTEGER ),
-}; IMPLEMENT_SAVERESTORE( CMultiSource, CBaseLogic );
-LINK_ENTITY_TO_CLASS( multisource, CMultiSource );
-
-void CMultiSource::Spawn()
-{ 
-	pev->solid = SOLID_NOT;
-	pev->movetype = MOVETYPE_NONE;
-	SetNextThink( 0.1 );
-	pev->spawnflags |= SF_START_ON;
-	SetThink( Register );
-}
-
-void CMultiSource::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-{ 
-	int i = 0;
-
-	// Find the entity in our list
-	while (i < m_iTotal) if ( m_rgEntities[i++] == pCaller ) break;
-
-	// if we didn't find it, report error and leave
-	if (i > m_iTotal) return;
-
-	STATE s = GetState();
-	m_rgTriggered[i-1] ^= 1;
-	if ( s == GetState()) return;
-
-	if ( s == STATE_OFF )
+	if ( FStrEq( pkvd->szKeyName, "wait" ))
 	{
-		USE_TYPE useType = USE_TOGGLE;
-		if ( m_globalstate ) useType = USE_ON;
-		UTIL_FireTargets( pev->target, NULL, this, useType, value );
-		UTIL_FireTargets( m_iszKillTarget, NULL, this, USE_REMOVE );
+		m_flDelay = atof( pkvd->szValue );
+		pkvd->fHandled = TRUE;
 	}
+	else if ( FStrEq (pkvd->szKeyName, "newspeed" ))
+	{
+		if ( pkvd->szValue[0] == '+' ) pev->button = SPEED_INCREMENT; //increase speed
+		else if ( pkvd->szValue[0] == '-' ) pev->button = SPEED_DECREMENT; //decrease speed
+		else if ( pkvd->szValue[0] == '*' ) pev->button = SPEED_MULTIPLY; //multiply speed by
+		else if ( pkvd->szValue[0] == ':' ) pev->button = SPEED_DIVIDE; //divide speed by
+		else pev->button = SPEED_MASTER; // just set new speed
+		if( pev->button ) pkvd->szValue++;
+		pev->speed = atof( pkvd->szValue );
+		ALERT( at_console, "pev->button %d, pev->speed %g\n", pev->button, pev->speed );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( !FClassnameIs( pev, "path_corner" ) && m_cPaths < MAX_MULTI_TARGETS )
+	{
+		char tmp[128];
+
+		UTIL_StripToken( pkvd->szKeyName, tmp );
+		m_iPathName[m_cPaths] = ALLOC_STRING( tmp );
+		m_iPathWeight[m_cPaths] = atof( pkvd->szValue );
+		m_cPaths++;
+		pkvd->fHandled = TRUE;
+	}
+	else CBaseEntity::KeyValue( pkvd );
 }
 
-STATE CMultiSource::GetState( void )
+TYPEDESCRIPTION CInfoPath::m_SaveData[] = 
+{	DEFINE_FIELD( CInfoPath, m_cPaths, FIELD_INTEGER ),
+	DEFINE_FIELD( CInfoPath, m_index, FIELD_INTEGER ),
+	DEFINE_ARRAY( CInfoPath, m_iPathName, FIELD_STRING, MAX_MULTI_TARGETS ),
+	DEFINE_ARRAY( CInfoPath, m_iPathWeight, FIELD_INTEGER, MAX_MULTI_TARGETS ),
+	DEFINE_ARRAY( CInfoPath, m_pNextPath, FIELD_CLASSPTR, MAX_MULTI_TARGETS ),
+	DEFINE_FIELD( CInfoPath, m_pPrevPath, FIELD_CLASSPTR ),
+};IMPLEMENT_SAVERESTORE( CInfoPath, CBaseLogic );
+
+LINK_ENTITY_TO_CLASS( info_path, CInfoPath );
+LINK_ENTITY_TO_CLASS( path_corner, CInfoPath );
+
+void CInfoPath :: Spawn( void )
 {
-	// Is everything triggered?
-	int i = 0;
-
-	// Still initializing?
-	if ( pev->spawnflags & SF_START_ON ) return STATE_OFF;
-
-	while (i < m_iTotal)
+	if( FClassnameIs( pev, "path_corner" ))
 	{
-		if (m_rgTriggered[i] == 0) break;
-		i++;
+		// compatible mode
+		m_iPathName[m_cPaths] = pev->target;
+		m_iPathWeight[m_cPaths] = 0;
+		m_cPaths++;
 	}
 
-	if (i == m_iTotal)
+	int r_index = 0;
+	int w_index = m_cPaths - 1;
+
+	while( r_index < w_index )
 	{
-		if ( !m_globalstate || gGlobalState.EntityGetState( m_globalstate ) == GLOBAL_ON )
-			return STATE_ON;
+		// we store target with right index in tempname
+		int name = m_iPathName [r_index];
+		int weight = m_iPathWeight[r_index];
+		
+		// target with right name is free, record new value from wrong name
+		m_iPathName [r_index] = m_iPathName [w_index];
+		m_iPathWeight[r_index] = m_iPathWeight[w_index];
+		
+		// ok, we can swap targets
+		m_iPathName [w_index] = name;
+		m_iPathWeight[w_index] = weight;
+		
+		r_index++;
+		w_index--;
 	}
-	return STATE_OFF;
+ 
+	m_iState = STATE_ON;
+          m_index = 0;
+	SetBits( pev->flags, FL_POINTENTITY );
+	UTIL_SetModel( ENT( pev ), "blabla.mdl");
+	pev->scale = 0.1f;
 }
 
-void CMultiSource::Register(void)
-{ 
-	m_iTotal = 0;
-	memset( m_rgEntities, 0, MAX_MULTI_TARGETS * sizeof(EHANDLE) );
-
-	SetThink(NULL);
-
-	// search for all entities which target this multisource (pev->targetname)
-
-	CBaseEntity *pTarget = UTIL_FindEntityByTarget( NULL, STRING(pev->targetname) );
-	while (pTarget && (m_iTotal < MAX_MULTI_TARGETS))
+void CInfoPath :: PostActivate( void )
+{
+	// find all paths and save into array
+	for(int i = 0; i < m_cPaths; i++ )
 	{
-		m_rgEntities[m_iTotal++] = pTarget;
-		pTarget = UTIL_FindEntityByTarget( pTarget, STRING(pev->targetname));
+		CBaseEntity *pNext = UTIL_FindEntityByTargetname( NULL, STRING( m_iPathName[i] ));
+		if( pNext ) // found path
+		{
+			m_pNextPath[i] = (CInfoPath*)pNext; // valid path
+			m_pNextPath[i]->SetPrev( this );
+		}
 	}
-
-	pTarget = UTIL_FindEntityByClassname(NULL, "multi_manager");
-	while (pTarget && (m_iTotal < MAX_MULTI_TARGETS))
-	{
-		if ( pTarget->HasTarget(pev->targetname) ) m_rgEntities[m_iTotal++] = pTarget;
-		pTarget = UTIL_FindEntityByClassname( pTarget, "multi_manager" );
-	}
-	pev->spawnflags &= ~SF_START_ON;
 }
 
+CBaseEntity *CInfoPath::GetNext( void )
+{
+	int total = 0;
+	for ( int i = 0; i < m_cPaths; i++ )
+	{
+		total += m_iPathWeight[i];
+	}
+
+	if ( total ) // weighted random choose
+	{
+		int chosen = RANDOM_LONG( 0, total );
+		int curpos = 0;
+		for ( i = 0; i < m_cPaths; i++ )
+		{
+			curpos += m_iPathWeight[i];
+			if ( curpos >= chosen )
+			{
+				m_index = i;
+				break;
+			}
+		}
+	}
+
+	// validate path          
+	ASSERTSZ( m_pNextPath[m_index] != this, "GetNext: self path!\n");
+	if( m_pNextPath[m_index] && m_pNextPath[m_index]->edict() && m_pNextPath[m_index] != this && m_pNextPath[m_index]->m_iState == STATE_ON )
+
+		return m_pNextPath[m_index];
+	return NULL;
+}
+
+CBaseEntity *CInfoPath::GetPrev( void )
+{
+	// validate path
+	ASSERTSZ( m_pPrevPath != this, "GetPrev: self path!\n");
+	if(m_pPrevPath && m_pPrevPath->edict() && m_pPrevPath != this && m_pPrevPath->m_iState == STATE_ON )
+		return m_pPrevPath;
+	return NULL;
+}
+
+void CInfoPath::SetPrev( CInfoPath *pPrev )
+{
+	if( pPrev && pPrev->edict() && pPrev != this )
+		m_pPrevPath = pPrev;
+}
+
+void CInfoPath :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	m_hActivator = pActivator;
+
+	if ( useType == USE_TOGGLE )
+	{
+		if( m_iState == STATE_ON )
+			useType = USE_OFF;
+		else useType = USE_ON;
+	}
+	if ( useType == USE_ON )
+	{
+		m_iState = STATE_ON;
+	}
+	else if ( useType == USE_OFF )
+	{
+		m_iState = STATE_OFF;
+	}
+	if ( useType == USE_SET ) // set new path
+	{         
+		if( value > 0.0f ) 
+		{
+			m_index = (value - 1);
+			if( m_index >= m_cPaths )
+				m_index = 0;
+		}
+	}
+	else if ( useType == USE_RESET )
+	{
+		m_index = 0;
+	}
+	else if ( useType == USE_SHOWINFO )
+	{
+		ALERT( at_console, "======/Xash Debug System/======\n");
+		ALERT( at_console, "classname: %s\n", STRING(pev->classname));
+		ALERT( at_console, "State: %s, number of targets %d, path weight %d\n", GetStringForState( GetState()), m_cPaths- 1, m_iPathWeight[m_index]);
+		if( m_pPrevPath && m_pPrevPath->edict( ))
+			ALERT( at_console, "Prev path %s", STRING( m_pPrevPath->pev->targetname ));
+		if( m_pNextPath[m_index] && m_pNextPath[m_index]->edict( ))
+			ALERT( at_console, "Prev path %s", STRING( m_pNextPath[m_index]->pev->targetname ));
+		ALERT( at_console, "\n" );
+	}
+}
 
 LINK_ENTITY_TO_CLASS( infodecal, CDecal );
 LINK_ENTITY_TO_CLASS( info_target, CInfoTarget );
-LINK_ENTITY_TO_CLASS( target_position, CPointEntity );
-LINK_ENTITY_TO_CLASS( target_location, CPointEntity );
-LINK_ENTITY_TO_CLASS( light_torch_small_walltorch, CWallTorch );
 LINK_ENTITY_TO_CLASS( info_teleport_destination, CPointEntity );
-LINK_ENTITY_TO_CLASS( misc_teleporter_dest, CPointEntity );
-LINK_ENTITY_TO_CLASS( misc_portal_surface, CPortalSurface );
+LINK_ENTITY_TO_CLASS( info_portal, CPortalSurface );
 LINK_ENTITY_TO_CLASS( info_player_intermission, CPointEntity );
 LINK_ENTITY_TO_CLASS( info_notnull, CPointEntity );
 LINK_ENTITY_TO_CLASS( info_null, CNullEntity );
-LINK_ENTITY_TO_CLASS( misc_model, CNullEntity );
 LINK_ENTITY_TO_CLASS( info_texlights, CNullEntity);
 LINK_ENTITY_TO_CLASS( info_compile_parameters, CNullEntity);
 LINK_ENTITY_TO_CLASS( info_intermission, CInfoIntermission );
-LINK_ENTITY_TO_CLASS( misc_portal_camera, CInfoIntermission);
-LINK_ENTITY_TO_CLASS( info_player_deathmatch, CBaseDMStart);
-LINK_ENTITY_TO_CLASS( info_player_start, CPointEntity);
-LINK_ENTITY_TO_CLASS( info_landmark, CPointEntity);
+LINK_ENTITY_TO_CLASS( info_camera, CInfoIntermission );
+LINK_ENTITY_TO_CLASS( info_player_deathmatch, CBaseDMStart );
+LINK_ENTITY_TO_CLASS( info_player_start, CPointEntity );
+LINK_ENTITY_TO_CLASS( info_landmark, CPointEntity );

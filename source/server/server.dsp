@@ -61,8 +61,8 @@ TargetDir=\Xash3D\src_main\temp\server\!release
 InputPath=\Xash3D\src_main\temp\server\!release\server.dll
 SOURCE="$(InputPath)"
 
-"D:\Xash3D\bin\server.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	copy $(TargetDir)\server.dll "D:\Xash3D\bin\server.dll"
+"D:\Xash3D\xash\bin\server.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy $(TargetDir)\server.dll "D:\Xash3D\xash\bin\server.dll"
 
 # End Custom Build
 
@@ -101,8 +101,8 @@ TargetDir=\Xash3D\src_main\temp\server\!debug
 InputPath=\Xash3D\src_main\temp\server\!debug\server.dll
 SOURCE="$(InputPath)"
 
-"D:\Xash3D\bin\server.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	copy $(TargetDir)\server.dll "D:\Xash3D\bin\server.dll"
+"D:\Xash3D\xash\bin\server.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy $(TargetDir)\server.dll "D:\Xash3D\xash\bin\server.dll"
 
 # End Custom Build
 
@@ -181,10 +181,6 @@ SOURCE=.\ents\baseother.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\ents\basepath.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\ents\basephys.cpp
 # End Source File
 # Begin Source File
@@ -197,11 +193,11 @@ SOURCE=.\ents\basetank.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\ents\basetrigger.cpp
+SOURCE=.\ents\basetrain.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\ents\baseutil.cpp
+SOURCE=.\ents\basetrigger.cpp
 # End Source File
 # Begin Source File
 
@@ -274,6 +270,14 @@ SOURCE=.\monsters\leech.cpp
 # Begin Source File
 
 SOURCE=.\game\lights.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\game\maprules.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\monsters\monstermaker.cpp
 # End Source File
 # Begin Source File
 

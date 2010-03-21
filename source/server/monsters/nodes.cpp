@@ -160,7 +160,7 @@ entvars_t* CGraph :: LinkEntForLink ( CLink *pLink, CNode *pNode )
 		///!!!UNDONE - check for TOGGLE or STAY open doors here. If a door is in the way, and is 
 		// TOGGLE or STAY OPEN, even monsters that can't open doors can go that way.
 
-		if ( ( pevLinkEnt->spawnflags & SF_DOOR_USE_ONLY ) )
+		if ( ( pevLinkEnt->team == 1 ) )
 		{// door is use only, so the door is all the monster has to worry about
 			return pevLinkEnt;
 		}
@@ -234,7 +234,7 @@ int	CGraph :: HandleLinkEnt ( int iNode, entvars_t *pevLinkEnt, int afCapMask, N
 
 		pDoor = ( CBaseEntity::Instance( pevLinkEnt ) );
 
-		if ( ( pevLinkEnt->spawnflags & SF_DOOR_USE_ONLY ) ) 
+		if ( ( pevLinkEnt->team == 1 ) ) 
 		{// door is use only.
 
 			if  ( ( afCapMask & bits_CAP_OPEN_DOORS ) )
@@ -244,7 +244,7 @@ int	CGraph :: HandleLinkEnt ( int iNode, entvars_t *pevLinkEnt, int afCapMask, N
 			else 
 			{
 				// monster should try for it if the door is open and looks as if it will stay that way
-				if ( pDoor->GetState() == STATE_ON && ( pevLinkEnt->spawnflags & SF_DOOR_NO_AUTO_RETURN ))
+				if ( pDoor->GetState() == STATE_ON && ( pevLinkEnt->impulse == 1 ))
 				{
 					return TRUE;
 				}
@@ -256,13 +256,13 @@ int	CGraph :: HandleLinkEnt ( int iNode, entvars_t *pevLinkEnt, int afCapMask, N
 		{// door must be opened with a button or trigger field.
 			
 			// monster should try for it if the door is open and looks as if it will stay that way
-			if ( pDoor->GetState() == STATE_ON && ( pevLinkEnt->spawnflags & SF_DOOR_NO_AUTO_RETURN ))
+			if ( pDoor->GetState() == STATE_ON && ( pevLinkEnt->impulse == 1 ))
 			{
 				return TRUE;
 			}
 			if  ( ( afCapMask & bits_CAP_OPEN_DOORS ) )
 			{
-				if ( !( pevLinkEnt->spawnflags & SF_DOOR_NOMONSTERS ) || queryType == NODEGRAPH_STATIC )
+				if ( queryType == NODEGRAPH_STATIC )
 					return TRUE;
 			}
 

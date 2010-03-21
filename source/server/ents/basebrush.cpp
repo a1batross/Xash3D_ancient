@@ -360,7 +360,7 @@ void CBaseBrush::Precache( void )
 	default:
 		if( pev->health > 0 ) // mapmaker forget set material ?
 		{
-			DevMsg("\n======/Xash SmartFiled System/======\n\n");
+			DevMsg("\n======/Xash SmartField System/======\n\n");
 			DevMsg("Please set material for %s,\n", STRING(pev->classname));
 			DevMsg("if we want make this breakable\n");
 		}

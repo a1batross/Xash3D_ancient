@@ -553,12 +553,11 @@ void DrawScreenFade( void )
 		numFades++;
 	}
 
-	// Divide colors
+	// divide colors
 	if( numFades ) gHUD.m_vecFadeColor /= numFades;
+	else return;
 
-	if( gHUD.m_vecFadeColor == Vector( 0, 0, 0 )) return;
 	const float *RGB = gHUD.m_vecFadeColor;
-
 	FillRGBA( 0, 0, ScreenWidth, ScreenHeight, RGB[0], RGB[1], RGB[2], gHUD.m_flFadeAlpha );
 }
 

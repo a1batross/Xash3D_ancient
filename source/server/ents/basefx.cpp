@@ -110,206 +110,15 @@ LINK_ENTITY_TO_CLASS( env_particle, CBaseParticle );
 class CEnvSky : public CBaseLogic
 {
 public: 
-	void StartMessage( CBasePlayer *pPlayer );
-	void PostSpawn( void );
+	void Spawn( void );
 };
 LINK_ENTITY_TO_CLASS( env_sky, CEnvSky );
-LINK_ENTITY_TO_CLASS( props_skyportal, CEnvSky );
 
-void CEnvSky :: PostSpawn( void )
+void CEnvSky :: Spawn( void )
 {
+	// Xash3D engine feature
 	SetObjectClass( ED_SKYPORTAL );
 }
-
-void CEnvSky :: StartMessage( CBasePlayer *pPlayer )
-{
-#if 0
-	MESSAGE_BEGIN( MSG_ONE, gmsg.SetSky, NULL, pPlayer->pev );
-		WRITE_BYTE( 1 ); // mode
-		WRITE_COORD( pev->origin.x ); // view position
-		WRITE_COORD( pev->origin.y );
-		WRITE_COORD( pev->origin.z );
-	MESSAGE_END();
-#endif
-}
-
-//=======================================================================
-// 		   env_global
-//=======================================================================
-
-#define SF_GLOBAL_SET	1 //Set global state to initial state on spawn
-
-class CEnvGlobal : public CBaseLogic
-{
-public:
-	void Spawn( void );
-	void KeyValue( KeyValueData *pkvd );
-	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-};
-LINK_ENTITY_TO_CLASS( env_global, CEnvGlobal );
-
-void CEnvGlobal::KeyValue( KeyValueData *pkvd )
-{
-	if(FStrEq(pkvd->szKeyName, "triggermode"))
-	{
-		pev->impulse = atoi( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if(FStrEq(pkvd->szKeyName, "initialstate"))
-	{
-		pev->button = atoi( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else CBaseLogic::KeyValue( pkvd );
-}
-
-void CEnvGlobal::Spawn( void )
-{
-	if ( !m_globalstate ) UTIL_Remove( this );
-	else if( FBitSet( pev->spawnflags, SF_GLOBAL_SET ) )
-	{
-		if ( !gGlobalState.EntityInTable( m_globalstate ) )
-			gGlobalState.EntityAdd( m_globalstate, gpGlobals->mapname, (GLOBALESTATE)pev->button );
-	}
-}
-
-void CEnvGlobal::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-{
-	GLOBALESTATE oldState = gGlobalState.EntityGetState( m_globalstate );
-	GLOBALESTATE newState;
-
-	if (useType == USE_TOGGLE)
-	{
-		switch( pev->impulse )
-		{
-		case 0:
-			newState = GLOBAL_OFF;
-			break;
-		case 1:
-	         		newState = GLOBAL_ON;
-			break;
-		case 2:
-			newState = GLOBAL_DEAD;
-			break;
-		case 3:
-         		default:
-			if ( oldState == GLOBAL_ON ) newState = GLOBAL_OFF;
-			else if ( oldState == GLOBAL_OFF ) newState = GLOBAL_ON;
-			else newState = oldState;
-		}
-	}
-	else if(useType == USE_ON ) newState = GLOBAL_ON;
-	else if(useType == USE_OFF) newState = GLOBAL_OFF;
-	else if(useType == USE_SET) newState = GLOBAL_DEAD;
-
-	if ( gGlobalState.EntityInTable( m_globalstate ))
-		gGlobalState.EntitySetState( m_globalstate, newState );
-	else gGlobalState.EntityAdd( m_globalstate, gpGlobals->mapname, newState );
-}
-
-//=======================================================================
-// 		   env_local
-//=======================================================================
-class CEnvLocal : public CBaseLogic
-{
-public:
-	void Spawn( void );
-	void Think( void );
-	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-};
-LINK_ENTITY_TO_CLASS( env_local, CEnvLocal );
-
-
-void CEnvLocal::Spawn( void )
-{
-	if ( pev->spawnflags & SF_START_ON )
-		m_iState = STATE_ON;
-	else m_iState = STATE_OFF;
-}
-
-void CEnvLocal::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-{
-	m_hActivator = pActivator; //save activator
-	pev->scale = value;	//save value
-	
-	if ( IsLockedByMaster( useType ))
-		return;
-
-	if ( useType == USE_TOGGLE )
-	{         
-		// set use type
-		if ( m_iState == STATE_TURN_OFF || m_iState == STATE_OFF )
-			useType = USE_ON;
-		else if ( m_iState == STATE_TURN_ON || m_iState == STATE_ON )
-			useType = USE_OFF;
-	}
-	if ( useType == USE_ON ) //enable entity
-	{
-		if ( m_iState == STATE_TURN_OFF || m_iState == STATE_OFF )
-		{
-			//activate turning off entity
- 			if ( m_flDelay ) // we have time to turning on
-			{			
-				m_iState = STATE_TURN_ON;
-				SetNextThink( m_flDelay );
-			}
-			else // just enable entity
-			{
-                              	m_iState = STATE_ON;
-				UTIL_FireTargets( pev->target, pActivator, this, USE_ON, pev->scale );
-				DontThink(); // break thinking
-			}
-		}
-	}
-	else if ( useType == USE_OFF ) // disable entity
-	{		
-		if( m_iState == STATE_TURN_ON || m_iState == STATE_ON )
-		{
-			// activate turning off entity
- 			if ( m_flWait )
- 			{
- 				// we have time to turning off
-				m_iState = STATE_TURN_OFF;
-				SetNextThink( m_flWait );
-			}
-			else
-			{
-				// just enable entity
-				m_iState = STATE_OFF;
-				UTIL_FireTargets( pev->target, pActivator, this, USE_OFF, pev->scale );
-				DontThink(); // break thinking
-			}
-		}
-	}
- 	else if( useType == USE_SET ) // set explicit mode
- 	{
-		if( value ) m_iState = STATE_ON;
-		else m_iState = STATE_OFF;
-		DontThink(); // break thinking
- 	}
-	else if( useType == USE_SHOWINFO )
-	{
-		DEBUGHEAD;
-		ALERT( at_console, "time, before enable %g, time, before disable %g\n", m_flDelay, m_flWait );
-		ALERT( at_console, "current state %s\n", GetStringForState( GetState()) );
-	}
-}
-
-void CEnvLocal::Think( void )
-{
-	if ( m_iState == STATE_TURN_ON )
-	{
-		m_iState = STATE_ON;
-		UTIL_FireTargets( pev->target, m_hActivator, this, USE_ON, pev->scale );
-	}
-	else if ( m_iState == STATE_TURN_OFF )
-	{
-		m_iState = STATE_OFF;
-		UTIL_FireTargets( pev->target, m_hActivator, this, USE_OFF, pev->scale );
-	}
-	DontThink(); // break thinking
-}
-
 
 //=========================================================
 //	UTIL_ScreenFade (fade screen)
@@ -348,8 +157,8 @@ void CFade::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType
 	if ( useType == USE_SHOWINFO )
 	{
 		DEBUGHEAD;
-		Msg( "Fadecolor: %g %g %g, Fadealpha: %g, Fadetime: %g\n", pev->rendercolor.x, pev->rendercolor.y, pev->rendercolor.z, pev->renderamt, pev->dmg_take );
-		Msg( "HoldTime %g, Mode: %s, Modulate: %s\n", pev->dmg_save, pev->spawnflags & SF_FADE_IN ? "FADE IN" : "FADE OUT", pev->spawnflags & SF_FADE_MODULATE ? "YES" : "NO" );
+		ALERT( at_console, "Fadecolor: %g %g %g, Fadealpha: %g, Fadetime: %g\n", pev->rendercolor.x, pev->rendercolor.y, pev->rendercolor.z, pev->renderamt, pev->dmg_take );
+		ALERT( at_console, "HoldTime %g, Mode: %s, Modulate: %s\n", pev->dmg_save, pev->spawnflags & SF_FADE_IN ? "FADE IN" : "FADE OUT", pev->spawnflags & SF_FADE_MODULATE ? "YES" : "NO" );
 	}
 	else
 	{
@@ -362,10 +171,106 @@ void CFade::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType
 		if ( pev->spawnflags & SF_FADE_CAMERA ) fadeFlags |= FFADE_CUSTOMVIEW;
           
 		// apply fade
-		if ( pev->spawnflags & SF_FADE_ALL ) UTIL_ScreenFadeAll( pev->rendercolor, pev->dmg_take, pev->dmg_save, pev->renderamt, fadeFlags );
+		if ( pev->spawnflags & SF_FADE_ALL )
+			UTIL_ScreenFadeAll( pev->rendercolor, pev->dmg_take, pev->dmg_save, pev->renderamt, fadeFlags );
 		else UTIL_ScreenFade( pev->rendercolor, pev->dmg_take, pev->dmg_save, pev->renderamt, fadeFlags );
 	}
 }
+
+//=====================================================
+// env_customhud: change player hud
+//=====================================================
+class CEnvHud : public CBaseLogic
+{
+	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	void KeyValue( KeyValueData* );
+	void SetHUD( int hud_num );
+	void ResetHUD( void );
+	char* GetStringForMode( void );
+};
+
+void CEnvHud :: KeyValue( KeyValueData* pkvd )
+{
+	if (FStrEq( pkvd->szKeyName, "hud" ))
+	{
+		pev->skin = atoi(pkvd->szValue);
+		pkvd->fHandled = TRUE;
+	}
+	else CBaseEntity::KeyValue( pkvd );
+}
+
+void CEnvHud :: SetHUD( int hud_num )
+{
+	if( m_hActivator != NULL )
+	{
+		m_iState = STATE_ON;
+		((CBasePlayer *)((CBaseEntity *)m_hActivator))->m_iWarHUD = pev->skin = hud_num;
+	}
+}
+
+void CEnvHud :: ResetHUD( void )
+{
+	if( m_hActivator != NULL )
+	{
+		m_iState = STATE_OFF;
+		((CBasePlayer *)((CBaseEntity *)m_hActivator))->m_iWarHUD = 0;
+		((CBasePlayer *)((CBaseEntity *)m_hActivator))->fadeNeedsUpdate = 1;
+	}
+}
+
+void CEnvHud :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	if( pActivator && pActivator->IsPlayer( )) // only at player
+	{
+		m_hActivator = pActivator; // save activator
+	}	
+	else if( !IsMultiplayer( ))
+	{
+		m_hActivator = UTIL_PlayerByIndex( 1 );
+	}		
+	else
+	{
+		ALERT( at_warning, "%s: %s activator not player. Ignored.\n", STRING( pev->classname ), STRING( pev->targetname ));		
+		return;
+	}
+	
+	if ( useType == USE_TOGGLE )
+	{
+		if ( m_iState == STATE_OFF )
+			useType = USE_ON;
+		else useType = USE_OFF;
+	}
+
+	if ( useType == USE_ON ) SetHUD( pev->skin );
+	else if ( useType == USE_OFF ) ResetHUD();
+	else if ( useType == USE_SET )
+	{
+		if ( value ) SetHUD( value );
+		else ResetHUD();
+	}
+	else if ( useType == USE_RESET ) ResetHUD();
+	else if ( useType == USE_SHOWINFO )
+	{
+		ALERT( at_console, "======/Xash Debug System/======\n" );
+		ALERT( at_console, "classname: %s\n", STRING( pev->classname ));
+		ALERT( at_console, "State: %s, HUD Mode: %s\n", GetStringForState( GetState()), GetStringForMode());
+		SHIFT;
+	}
+}
+
+char* CEnvHud :: GetStringForMode( void )
+{
+	switch(pev->skin)
+	{
+		case 0: return "Disable Custom HUD";
+		case 1: return "Draw Redeemer HUD";
+		case 2: return "Draw Redeemer Underwater HUD";
+		case 3: return "Draw Redeemer Noise Screen";
+		case 4: return "Draw Security Camera Screen";
+	default:	return "Draw None";
+	}
+}
+LINK_ENTITY_TO_CLASS( env_customhud, CEnvHud );
 
 //=======================================================================
 //	env_zoom - change fov for player
@@ -464,51 +369,95 @@ void CEnvZoom::Think( void )
 	SetNextThink ( pev->health );
 }
 
-//=========================================================
-//		env_sound HL1:Legacy
-//=========================================================
-class CEnvSound : public CPointEntity
+//=====================================================
+// env_render: change render parameters
+//=====================================================
+
+#define SF_RENDER_MASKFX	(1<<0)
+#define SF_RENDER_MASKAMT	(1<<1)
+#define SF_RENDER_MASKMODE	(1<<2)
+#define SF_RENDER_MASKCOLOR	(1<<3)
+
+class CRenderFxManager : public CBaseLogic
 {
 public:
-	void KeyValue( KeyValueData* pkvd);
-	void Spawn( void ){ SetNextThink(0.5); }
-	void Think( void );
+	void Affect( void );
+	void KeyValue( KeyValueData *pkvd );
+	void Use ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+	{
+		m_hActivator = pActivator; Affect();
+	}
 };
-LINK_ENTITY_TO_CLASS( env_sound, CEnvSound );
+LINK_ENTITY_TO_CLASS( env_render, CRenderFxManager );
 
-void CEnvSound :: KeyValue( KeyValueData *pkvd )
+void CRenderFxManager :: KeyValue( KeyValueData *pkvd )
 {
-	if (FStrEq(pkvd->szKeyName, "radius"))
+	if (FStrEq(pkvd->szKeyName, "fadetime"))
 	{
-		pev->frags = atof(pkvd->szValue);
+		pev->speed = atof(pkvd->szValue);
 		pkvd->fHandled = TRUE;
 	}
-	else if (FStrEq(pkvd->szKeyName, "roomtype"))
-	{
-		pev->button = atoi(pkvd->szValue);
-		pkvd->fHandled = TRUE;
-	}
+	else	CBaseEntity::KeyValue( pkvd );
 }
 
-void CEnvSound :: Think( void )
+void CRenderFxManager::Affect( void )
 {
-	CBasePlayer *pPlayer = UTIL_FindPlayerInPVS(edict());
+	BOOL first = TRUE;
 
-	if (pPlayer && pPlayer->m_iSndRoomtype != pev->button)
+	if(FStringNull(pev->target)) return;
+	CBaseEntity* pTarget = UTIL_FindEntityByTargetname( NULL, STRING(pev->target), m_hActivator);
+
+	while ( pTarget != NULL )
 	{
-		if(UTIL_FindPlayerInSphere( pev->origin, pev->frags ))
+		entvars_t *pevTarget = pTarget->pev;
+
+		if (pev->speed == 0) // aplly settings instantly ?
 		{
-			if(!pev->impulse)
-			{
-				pev->impulse = 1;
-				pPlayer->m_iSndRoomtype = pev->button;	//set new dsp
-				pPlayer->hearNeedsUpdate = 1;
-			}
+			if ( !FBitSet( pev->spawnflags, SF_RENDER_MASKAMT ) )
+				pevTarget->renderamt = pev->renderamt;
+			if ( !FBitSet( pev->spawnflags, SF_RENDER_MASKCOLOR ) )
+				pevTarget->rendercolor = pev->rendercolor;
+			if ( !FBitSet( pev->spawnflags, SF_RENDER_MASKFX ) )
+				pevTarget->renderfx = pev->renderfx;
+			if ( !FBitSet( pev->spawnflags, SF_RENDER_MASKMODE ) )
+				pevTarget->rendermode = pev->rendermode;
+
+			pevTarget->scale = pev->scale;
+			pevTarget->framerate = pev->framerate;
+			if (first) UTIL_FireTargets( pev->netname, pTarget, this, USE_TOGGLE );
 		}
-		else pev->impulse = 0;
-		SetNextThink( 0.25 );
-	}	
-	else SetNextThink( 0.75 );
+		else
+		{
+			if (!pevTarget->renderamt && !pevTarget->rendermode) pevTarget->renderamt = 255;
+			pevTarget->renderfx = pev->renderfx;
+			pevTarget->rendermode = pev->rendermode;
+			CBaseEntity *pFader = Create( "faderent", pev->origin, pev->angles, pTarget->edict());
+			pFader->pev->renderamt = pevTarget->renderamt;
+			pFader->pev->rendercolor = pevTarget->rendercolor;
+			pFader->pev->scale = pevTarget->scale;
+			if (pFader->pev->scale == 0) pFader->pev->scale = 1;
+			pFader->pev->spawnflags = pev->spawnflags;
+
+			if (first) pFader->pev->target = pev->netname;
+                              
+			pFader->pev->max_health = pev->framerate - pevTarget->framerate;
+			pFader->pev->health = pev->renderamt - pevTarget->renderamt;
+			pFader->pev->movedir.x = pev->rendercolor.x - pevTarget->rendercolor.x;
+			pFader->pev->movedir.y = pev->rendercolor.y - pevTarget->rendercolor.y;
+			pFader->pev->movedir.z = pev->rendercolor.z - pevTarget->rendercolor.z;
+
+			if ( pev->scale ) pFader->pev->frags = pev->scale - pevTarget->scale;
+			else pFader->pev->frags = 0;
+
+			pFader->pev->dmgtime = gpGlobals->time;
+			pFader->pev->speed = pev->speed;
+			pFader->SetNextThink( 0 );
+			pFader->Spawn();
+		}
+
+		first = FALSE;//not a first target
+		pTarget = UTIL_FindEntityByTargetname( pTarget, STRING(pev->target), m_hActivator );
+	}		
 }
 
 //=========================================================
@@ -535,6 +484,73 @@ public:
 LINK_ENTITY_TO_CLASS( env_message, CMessage );
 
 //=========================================================
+// set global fog on a map
+//=========================================================
+class CEnvFog : public CBaseLogic
+{
+public:
+	void PostActivate( void );
+	void KeyValue( KeyValueData *pkvd );
+	void TurnOn( void );
+	void TurnOff( void );
+	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+};
+LINK_ENTITY_TO_CLASS( env_fog, CEnvFog );
+
+void CEnvFog :: KeyValue( KeyValueData *pkvd )
+{
+	if (FStrEq(pkvd->szKeyName, "startdist" ))
+	{
+		pev->dmg_take = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if (FStrEq(pkvd->szKeyName, "enddist" ))
+	{
+		pev->dmg_save = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if (FStrEq( pkvd->szKeyName, "fadetime" ))
+	{
+		m_flDelay = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else CBaseEntity::KeyValue( pkvd );
+}
+
+void CEnvFog :: PostActivate ( void )
+{
+	if ( pev->spawnflags & SF_START_ON ) 
+	{
+		TurnOn();
+		ClearBits(pev->spawnflags, SF_START_ON);
+	}
+}
+
+void CEnvFog :: TurnOn ( void )
+{
+	m_iState = STATE_ON;
+	UTIL_SetFogAll(pev->rendercolor, m_flDelay, pev->dmg_take, pev->dmg_save );
+}
+
+void CEnvFog :: TurnOff ( void )
+{
+	m_iState = STATE_OFF;
+	UTIL_SetFogAll(pev->rendercolor, -m_flDelay, pev->dmg_take, pev->dmg_save );
+}
+
+void CEnvFog :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	if ( useType == USE_TOGGLE )
+	{
+		if ( m_iState == STATE_ON )
+			useType = USE_OFF;
+		else useType = USE_ON;
+	}
+	if ( useType == USE_ON ) TurnOn();
+	else if ( useType == USE_OFF ) TurnOff();
+}
+
+//=========================================================
 //	env_rain, custom client weather effects
 //=========================================================
 class CEnvRain : public CPointEntity
@@ -542,69 +558,116 @@ class CEnvRain : public CPointEntity
 public:
 	void KeyValue( KeyValueData *pkvd )
 	{
-		if (FStrEq(pkvd->szKeyName, "radius"))
+		if ( FStrEq( pkvd->szKeyName, "radius" ))
 		{
-			pev->armorvalue = atof(pkvd->szValue);
+			pev->armorvalue = atof( pkvd->szValue );
 			pkvd->fHandled = TRUE;
 		}
-		else if (FStrEq(pkvd->szKeyName, "mode"))
+		else if ( FStrEq( pkvd->szKeyName, "mode" ))
 		{
-			pev->button = atoi(pkvd->szValue);
+			pev->button = atoi( pkvd->szValue );
 			pkvd->fHandled = TRUE;
 		}
 	}
+	void Precache( void )
+	{
+		if( pev->button )
+		{
+			// snow
+			UTIL_PrecacheModel( "sprites/snowflake.spr" );
+		}
+		else
+		{
+			// it's a rainy day :)
+			UTIL_PrecacheModel( "sprites/hi_rain.spr" );
+			UTIL_PrecacheModel( "sprites/waterring.spr" );
+		}
+	}
+	void Spawn() { Precache(); }
 };
 LINK_ENTITY_TO_CLASS( env_rain, CEnvRain );
 
 //=========================================================
-// env_beverage - Beverage Dispenser
+//	UTIL_RainModify (set new rain or snow)
 //=========================================================
-class CEnvBeverage : public CBaseLogic
+void CEnvRainModify::Spawn()
 {
-public:
-	void	Spawn( void );
-	void	Precache( void ){ UTIL_PrecacheEntity( "item_sodacan" ); }
-	void	Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
+	pev->effects |= EF_NODRAW;
+
+	if( IsMultiplayer() || FStringNull( pev->targetname ))
+		SetBits( pev->spawnflags, SF_START_ON );
+}
+LINK_ENTITY_TO_CLASS( env_rainmodify, CEnvRainModify );
+
+TYPEDESCRIPTION CEnvRainModify::m_SaveData[] = 
+{
+	DEFINE_FIELD( CEnvRainModify, randXY, FIELD_RANGE ),
+	DEFINE_FIELD( CEnvRainModify, windXY, FIELD_RANGE ),
 };
-LINK_ENTITY_TO_CLASS( env_beverage, CEnvBeverage );
+IMPLEMENT_SAVERESTORE( CEnvRainModify, CPointEntity );
 
-void CEnvBeverage::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+void CEnvRainModify::KeyValue( KeyValueData *pkvd )
 {
-	if ( pev->impulse != 0 || pev->health <= 0 )
+	if (FStrEq( pkvd->szKeyName, "drips" ))
 	{
-		// no more cans while one is waiting in the dispenser, or if I'm out of cans.
-		return;
+		pev->button = atoi(pkvd->szValue);
+		pkvd->fHandled = TRUE;
 	}
-
-	CBaseEntity *pCan = CBaseEntity::Create( "item_sodacan", pev->origin, pev->angles, edict() );	
-
-	if ( pev->skin == 6 )
+	else if (FStrEq( pkvd->szKeyName, "fadetime"))
 	{
-		// random
-		pCan->pev->skin = RANDOM_LONG( 0, 5 );
+		pev->dmg = atof( pkvd->szValue );
+		pkvd->fHandled = TRUE;
 	}
-	else
+	else if (FStrEq( pkvd->szKeyName, "rand" ))
 	{
-		pCan->pev->skin = pev->skin;
+		randXY = RandomRange( pkvd->szValue );
+		pkvd->fHandled = TRUE;
 	}
-
-	pev->impulse = 1;
-	pev->health--;
-
-	//SetThink (SUB_Remove);
-	//pev->nextthink = gpGlobals->time;
+	else if (FStrEq( pkvd->szKeyName, "wind" ))
+	{
+		windXY = RandomRange( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
 }
 
-void CEnvBeverage::Spawn( void )
+void CEnvRainModify::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	Precache();
-	pev->solid = SOLID_NOT;
-	pev->effects = EF_NODRAW;
-	pev->frags = 0;
-
-	if ( pev->health == 0 )
+	if ( useType == USE_SHOWINFO )
 	{
-		pev->health = 10;
+		DEBUGHEAD;
+		ALERT( at_console, "Wind X: %g Y: %g. Rand X: %g Y: %g\n", windXY[1], windXY[0], randXY[1], randXY[0] );
+		ALERT( at_console, "Fade time %g. Drips per second %d\n", pev->dmg, pev->button );
+	}
+	else if( !pev->spawnflags & SF_START_ON )
+	{
+		for ( int i = 0; i < gpGlobals->maxClients; i++ )
+		{
+			CBasePlayer *pPlayer = (CBasePlayer *)UTIL_PlayerByIndex( i+1 );
+
+			if( FNullEnt( pPlayer->pev )) continue;
+
+			if ( pev->dmg )
+			{
+				pPlayer->Rain_ideal_dripsPerSecond = pev->button;
+				pPlayer->Rain_ideal_randX = randXY[1];
+				pPlayer->Rain_ideal_randY = randXY[0];
+				pPlayer->Rain_ideal_windX = windXY[1];
+				pPlayer->Rain_ideal_windY = windXY[0];
+				pPlayer->Rain_endFade = gpGlobals->time + pev->dmg;
+				pPlayer->Rain_nextFadeUpdate = gpGlobals->time + 1;
+			}
+			else
+			{
+				pPlayer->Rain_dripsPerSecond = pev->button;
+				pPlayer->Rain_randX = randXY[1];
+				pPlayer->Rain_randY = randXY[0];
+				pPlayer->Rain_windX = windXY[1];
+				pPlayer->Rain_windY = windXY[0];
+				pPlayer->rainNeedsUpdate = 1;
+			}
+		}
 	}
 }
 
@@ -615,34 +678,22 @@ void CSprite::Spawn( void )
 {
 	Precache();
 
-	UTIL_SetModel( ENT( pev ), pev->model );
+	UTIL_SetModel( ENT(pev), pev->model );
+          
+	// Smart Field System ©
+          if( !pev->renderamt ) pev->renderamt = 200; // light transparency
+          if( !pev->framerate ) pev->framerate = Frames(); // play sequence at one second
+	if( !pev->rendermode ) pev->rendermode = kRenderTransAdd;
 
-	if( FClassnameIs( pev, "env_monster" ))
-	{
-		// test monster from doom1
-		pev->framerate = 10;
-		pev->rendermode = kRenderTransAlpha;
-		pev->solid = SOLID_BBOX;
-		pev->movetype = MOVETYPE_NONE;
-		UTIL_SetSize( pev, pev->mins, pev->maxs );
-	}
-	else
-	{
-		// Smart Field System ©
-          	if( !pev->renderamt ) pev->renderamt = 200; // light transparency
-          	if( !pev->framerate ) pev->framerate = Frames(); // play sequence at one second
-		if( !pev->rendermode ) pev->rendermode = kRenderTransAdd;
-
-		pev->solid	= SOLID_NOT;
-		pev->movetype	= MOVETYPE_NOCLIP;
-		pev->frame	= 0;
-	
-		pev->angles.x	=  -pev->angles.x;
-		pev->angles.y	=  180 - pev->angles.y;
-		pev->angles[1]	=  0 - pev->angles[1];
-	}
-
+	pev->solid	= SOLID_NOT;
+	pev->movetype	= MOVETYPE_NOCLIP;
+	pev->frame	= 0;
 	SetBits( pev->flags, FL_POINTENTITY );
+	
+	pev->angles.x	=  -pev->angles.x;
+	pev->angles.y	=  180 - pev->angles.y;
+	pev->angles[1]	=  0 - pev->angles[1];
+	TurnOff();
 }
 
 void CSprite::PostSpawn( void )
@@ -674,17 +725,12 @@ void CSprite::Move( void )
 	if ( pev->frags <= 0 )
 	{
 		// Fire the passtarget if there is one
-		UTIL_FireTargets(m_pGoalEnt->pev->message, this, this, USE_TOGGLE );
-		if ( FBitSet( m_pGoalEnt->pev->spawnflags, SF_CORNER_FIREONCE ) ) m_pGoalEnt->pev->message = iStringNull;
-		if ( FBitSet( m_pGoalEnt->pev->spawnflags, SF_CORNER_TELEPORT ) )
+		UTIL_FireTargets(m_pGoalEnt->pev->target, this, this, USE_TOGGLE );
+		if ( FBitSet( m_pGoalEnt->pev->spawnflags, SF_FIREONCE ) ) m_pGoalEnt->pev->target = iStringNull;
+		if ( FBitSet( m_pGoalEnt->pev->spawnflags, SF_TELEPORT_TONEXT ) )
 		{
 			m_pGoalEnt = m_pGoalEnt->GetNext();
 			if ( m_pGoalEnt ) UTIL_AssignOrigin( this, m_pGoalEnt->pev->origin); 
-		}
-		if ( FBitSet( m_pGoalEnt->pev->spawnflags, SF_CORNER_WAITTRIG ) )
-		{
-			TurnOff(); //wait for retrigger
-			return;
 		}
 		
 		// Time to go to the next target
@@ -695,12 +741,12 @@ void CSprite::Move( void )
 		else
 		{
 			pev->target = m_pGoalEnt->pev->targetname; //save last corner
-			((CPathCorner *)m_pGoalEnt)->GetSpeed( &pev->armorvalue );
+			((CInfoPath *)m_pGoalEnt)->GetSpeed( &pev->armorvalue );
 
 			Vector delta = m_pGoalEnt->pev->origin - pev->origin;
 			pev->frags = delta.Length();
 			pev->movedir = delta.Normalize();
-			m_flDelay = gpGlobals->time + ((CPathCorner *)m_pGoalEnt)->GetDelay();
+			m_flDelay = gpGlobals->time + ((CInfoPath *)m_pGoalEnt)->GetDelay();
 		}
 	}
 
@@ -740,24 +786,27 @@ void CSprite::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useTy
 {
 	pActivator = m_hActivator;
 	
-	if (useType == USE_TOGGLE)
+	if ( useType == USE_TOGGLE )
 	{
-		if(m_iState == STATE_ON) useType = USE_OFF;
+		if( m_iState == STATE_ON )
+			useType = USE_OFF;
 		else useType = USE_ON;
 	}
-	if (useType == USE_ON) TurnOn();
+	if ( useType == USE_ON ) TurnOn();
 	else if ( useType == USE_OFF ) TurnOff();
-	else if( useType == USE_SHOWINFO )
+	else if ( useType == USE_SET ) ClearBits( pev->effects, EF_NODRAW );
+	else if ( useType == USE_RESET ) SetBits( pev->effects, EF_NODRAW );
+	else if ( useType == USE_SHOWINFO )
 	{
 		DEBUGHEAD;
-		Msg( "State: %s, speed %g\n", GetStringForState( GetState()), pev->speed );
-		Msg( "NextPath: %s, framerate %g\n", m_pGoalEnt ? STRING(m_pGoalEnt->pev->targetname) : "no path", pev->framerate );
+		ALERT( at_console, "State: %s, speed %g\n", GetStringForState( GetState()), pev->speed );
+		if( m_pGoalEnt )
+			ALERT( at_console, "NextPath: %s, framerate %g\n", STRING( m_pGoalEnt->pev->targetname ), pev->framerate );
+		else ALERT( at_console, "NextPath: no path, framerate %g\n", pev->framerate );
 	}
 }
-
-LINK_ENTITY_TO_CLASS( env_monster, CSprite );
-LINK_ENTITY_TO_CLASS( env_sprite, CSprite );
 LINK_ENTITY_TO_CLASS( env_glow, CSprite );
+LINK_ENTITY_TO_CLASS( env_sprite, CSprite );
 
 //=================================================================
 // env_model: like env_sprite, except you can specify a sequence.
@@ -882,47 +931,52 @@ public:
 	float	flashtime;
 	float	curframe( void )
 	{
-		if (pev->frame - floor(pev->frame) > 0.5) return ceil(pev->frame);
-		else return floor(pev->frame);
+		if( pev->frame - floor( pev->frame ) > 0.5f )
+			return ceil( pev->frame );
+		return floor( pev->frame );
 	}
 };
 LINK_ENTITY_TO_CLASS( env_counter, CDecLED );
+LINK_ENTITY_TO_CLASS( logic_indicator, CDecLED );	// Xash 0.2 name
 
 void CDecLED :: Spawn( void )
 {
 	Precache( );
 	UTIL_SetModel( ENT(pev), pev->model, "sprites/decimal.spr" );
           
-	//Smart Field System ©
-          if(!pev->renderamt) pev->renderamt = 200; //light transparency
-	if(!pev->rendermode) pev->rendermode = kRenderTransAdd;
-	if(!pev->frags) pev->frags = Frames();
-	if(!pev->impulse) pev->impulse = -1;
+	// Smart Field System ©
+          if( !pev->renderamt ) pev->renderamt = 200; // light transparency
+	if( !pev->rendermode ) pev->rendermode = kRenderTransAdd;
+	if( !pev->frags ) pev->frags = Frames();
+	if( !pev->impulse ) pev->impulse = -1;
+
 	CheckState();
 
-	pev->solid	= SOLID_NOT;
-	pev->effects	= EF_NOINTERP;
-	pev->movetype	= MOVETYPE_NONE;
-	pev->angles.x	= -pev->angles.x;
-	pev->angles.y	= 180 - pev->angles.y;
-	pev->angles[1]	= 0 - pev->angles[1];	
-	pev->button 	= TRUE;
+	pev->solid = SOLID_NOT;
+	pev->effects = EF_NOINTERP;	// g-cont. criticall stuff, don't touch!
+	pev->movetype = MOVETYPE_NONE;
+	pev->angles.x = -pev->angles.x;
+	pev->angles.y = 180 - pev->angles.y;
+	pev->angles[1] = 0 - pev->angles[1];	
 }
 
 void CDecLED :: CheckState( void )
 {
-	switch( (int)pev->dmg )
+	switch( pev->skin )
 	{
 	case 1:
-		if( pev->impulse >= curframe() ) m_iState = STATE_ON;
+		if( pev->impulse >= curframe() )
+			m_iState = STATE_ON;
 		else m_iState = STATE_OFF;
 		break;
 	case 2:
-		if( pev->impulse <= curframe() ) m_iState = STATE_ON;
+		if( pev->impulse <= curframe() )
+			m_iState = STATE_ON;
 		else m_iState = STATE_OFF;
 		break;
 	default:
-		if( pev->impulse == curframe() ) m_iState = STATE_ON;
+		if( pev->impulse == curframe() )
+			m_iState = STATE_ON;
 		else m_iState = STATE_OFF;
 		break;
 	}
@@ -930,83 +984,83 @@ void CDecLED :: CheckState( void )
 
 void CDecLED :: KeyValue( KeyValueData *pkvd )
 {
-	if (FStrEq(pkvd->szKeyName, "maxframe"))
+	if (FStrEq( pkvd->szKeyName, "maxframe" ))
 	{
-		pev->frags = atof(pkvd->szValue);
+		pev->frags = atof( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if (FStrEq(pkvd->szKeyName, "keyframe"))
+	else if (FStrEq( pkvd->szKeyName, "keyframe" ))
 	{
-		pev->impulse = atoi(pkvd->szValue);
+		pev->impulse = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if (FStrEq(pkvd->szKeyName, "type"))
+	else if (FStrEq( pkvd->szKeyName, "type" ))
 	{
-		pev->dmg = atoi(pkvd->szValue);
+		pev->skin = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else	CBaseLogic::KeyValue( pkvd );
+	else CBaseLogic::KeyValue( pkvd );
 }
 
 void CDecLED :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	if (useType == USE_ON || useType == USE_TOGGLE)
+	if ( useType == USE_ON || useType == USE_TOGGLE )
 	{
-		if (pev->frame == pev->frags) 
+		if( pev->frame >= pev->frags ) 
 		{
 			UTIL_FireTargets( pev->target, pActivator, this, useType, value );
 			pev->frame = 0;
 		}
 		else pev->frame++;
 		
-		pev->button = TRUE;
 		pev->effects &= ~EF_NODRAW;
-		flashtime = gpGlobals->time + 0.5;
+		flashtime = gpGlobals->time + 0.5f;
 	}
-	else if (useType == USE_OFF )
+	else if ( useType == USE_OFF )
 	{
-		if (pev->frame == 0) 
+		if( pev->frame <= 0.0f ) 
 		{
          			UTIL_FireTargets( pev->target, pActivator, this, useType, value );
 			pev->frame = pev->frags;
 		}
 		else pev->frame--;
 
-		pev->button = FALSE;
 		pev->effects &= ~EF_NODRAW;
-		flashtime = gpGlobals->time + 0.5;
+		flashtime = gpGlobals->time + 0.5f;
 	}
-	else if (useType == USE_SET) //set custom frame
+	else if ( useType == USE_SET ) // set custom frame
 	{ 
-		if(value != 0)
+		if ( value != 0.0f )
 		{
-			if(value == -1) value = 0; //reset frame
-			pev->frame = fmod( value, pev->frags + 1);
-                             	float next = value / (pev->frags + 1);
-                             	if(next) UTIL_FireTargets( pev->target, pActivator, this, useType, next );
-			pev->button = TRUE;
-	         		pev->effects &= ~EF_NODRAW;
-			flashtime = gpGlobals->time + 0.5;
+			pev->frame = fmod( value, pev->frags + 1.0f );
+                             	float next = value / ( pev->frags + 1.0f );
+                             	if( next ) UTIL_FireTargets( pev->target, pActivator, this, useType, (int)next );
+
+			pev->effects &= ~EF_NODRAW;
+			flashtime = gpGlobals->time + 0.5f;
 		}
-		else if(gpGlobals->time > flashtime)
+		else if( gpGlobals->time > flashtime )
 		{
-			if( pev->button)
+			if( pev->effects & EF_NODRAW )
 			{
-				pev->button = FALSE;
-				pev->effects |= EF_NODRAW;
+				pev->effects &= ~EF_NODRAW;
 			}
 			else
 			{
-				pev->button = TRUE;
-				pev->effects &= ~EF_NODRAW;
+				pev->effects |= EF_NODRAW;
 			}
 		}
 	}
-	else if (useType == USE_SHOWINFO)
+	else if ( useType == USE_RESET ) // immediately reset
+	{ 
+		pev->frame = 0;
+		pev->effects &= ~EF_NODRAW;
+	}
+	else if ( useType == USE_SHOWINFO )
 	{
 		DEBUGHEAD;
 		Msg( "Current frame: %.0f, Keyframe %d\n", pev->frame, pev->impulse );
-		Msg( "State: %s, Maxframe %g\n", GetStringForState( GetState()), pev->frags);
+		Msg( "State: %s, Maxframe %g\n", GetStringForState( GetState()), pev->frags );
 	}
 	CheckState();
 }
@@ -1021,11 +1075,11 @@ public:
 	void Think( void ) { m_iState = STATE_OFF; };
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 	{
-		if(useType == USE_SHOWINFO)
+		if( useType == USE_SHOWINFO )
 		{
 			DEBUGHEAD;
-			Msg( "State: %s, Amplitude: %g, Frequency: %g\n", GetStringForState( GetState()), pev->scale, pev->dmg_save);
-			Msg( "Radius: %g, Duration: %d, Smoke max scale: %d\n", pev->dmg, pev->dmg_take);
+			Msg( "State: %s, Amplitude: %g, Frequency: %g\n", GetStringForState( GetState()), pev->scale, pev->dmg_save );
+			Msg( "Radius: %g, Duration: %d\n", pev->dmg, pev->dmg_take );
 		}
 		else
 		{
@@ -1036,14 +1090,14 @@ public:
 	}
 	void KeyValue( KeyValueData *pkvd )
 	{
-		if (FStrEq(pkvd->szKeyName, "amplitude"))
+		if (FStrEq(pkvd->szKeyName, "amplitude" ))
 		{
-			SetAmplitude( atof(pkvd->szValue) );
+			SetAmplitude( atof(pkvd->szValue ));
 			pkvd->fHandled = TRUE;
 		}
-		else if (FStrEq(pkvd->szKeyName, "frequency"))
+		else if (FStrEq(pkvd->szKeyName, "frequency" ))
 		{
-			SetFrequency( atof(pkvd->szValue) );
+			SetFrequency( atof( pkvd->szValue ));
 			pkvd->fHandled = TRUE;
 		}
 		else if (FStrEq(pkvd->szKeyName, "duration"))
@@ -1084,38 +1138,39 @@ LINK_ENTITY_TO_CLASS(env_spark, CEnvSpark);
 
 void CEnvSpark::Spawn(void)
 {
-	if(!m_flDelay)m_flDelay = 1.0;//Smart field system ®
-	if(pev->spawnflags & 64) Use( this, this, USE_ON, 0 );
+	if( !m_flDelay ) m_flDelay = 1.0; // Smart field system ®
+	if( pev->spawnflags & SF_START_ON ) Use( this, this, USE_ON, 0 );
 }
 
-void CEnvSpark::Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+void CEnvSpark::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	if (useType == USE_TOGGLE)
+	if ( useType == USE_TOGGLE)
 	{
-		if(m_iState == STATE_ON) useType = USE_OFF;
+		if ( m_iState == STATE_ON )
+			useType = USE_OFF;
 		else useType = USE_ON;
 	}
-	if (useType == USE_ON)
+	if ( useType == USE_ON )
 	{
 		m_iState = STATE_ON;
 		SetNextThink( m_flDelay );
 	}
-	else if (useType == USE_OFF)
+	else if ( useType == USE_OFF )
 	{
 		m_iState = STATE_OFF;
 		DontThink();		
 	}
-	else if (useType == USE_SHOWINFO)
+	else if ( useType == USE_SHOWINFO )
 	{
 		DEBUGHEAD;
-		Msg( "State: %s, MaxDelay %.2f\n\n", GetStringForState( GetState()), m_flDelay );
+		ALERT( at_console, "State: %s, MaxDelay %.2f\n\n", GetStringForState( GetState()), m_flDelay );
 	}
 }
 
-void CEnvSpark::Think(void)
+void CEnvSpark::Think( void )
 {
-	float flVolume = RANDOM_FLOAT ( 0.25 , 0.75 ) * 0.4;//random volume range
-	switch ( RANDOM_LONG(0,5))
+	float flVolume = RANDOM_FLOAT ( 0.25 , 0.75 ) * 0.4; // random volume range
+	switch( RANDOM_LONG( 0, 5 ))
 	{
 	case 0: EMIT_SOUND(ENT(pev), CHAN_VOICE, "materials/spark1.wav", flVolume, ATTN_NORM); break;
 	case 1: EMIT_SOUND(ENT(pev), CHAN_VOICE, "materials/spark2.wav", flVolume, ATTN_NORM); break;
@@ -1126,7 +1181,7 @@ void CEnvSpark::Think(void)
 	}
 
 	UTIL_Sparks( pev->origin + pev->size * 0.5 );
-	if(m_iState == STATE_ON) SetNextThink( 0.1 + RANDOM_FLOAT (0, m_flDelay) ); //!!!
+	if( m_iState == STATE_ON ) SetNextThink( 0.1 + RANDOM_FLOAT( 0, m_flDelay )); //!!!
 }
 
 //=========================================================
@@ -1136,7 +1191,7 @@ class CEnvExplosion : public CBaseLogic
 {
 public:
 	void KeyValue( KeyValueData *pkvd );
-	void Precache( void ) { if(pev->message) pev->button = UTIL_PrecacheModel( pev->model ); }
+	void Precache( void ) { if( pev->message ) pev->button = UTIL_PrecacheModel( pev->message ); }
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void Explode( void );
 };
@@ -1144,10 +1199,15 @@ LINK_ENTITY_TO_CLASS( env_explosion, CEnvExplosion );
 
 void CEnvExplosion::KeyValue( KeyValueData *pkvd )
 {
-	if (FStrEq(pkvd->szKeyName, "radius") || FStrEq(pkvd->szKeyName, "iMagnitude"))
+	if (FStrEq(pkvd->szKeyName, "radius"))
 	{
 		pev->dmg = atoi(pkvd->szValue);
 		if(pev->dmg < 10) pev->dmg = 10;
+		pkvd->fHandled = TRUE;
+	}
+	if (FStrEq(pkvd->szKeyName, "sprite"))
+	{
+		pev->message = ALLOC_STRING(pkvd->szValue);
 		pkvd->fHandled = TRUE;
 	}
 	else CBaseEntity::KeyValue( pkvd );
@@ -1155,41 +1215,29 @@ void CEnvExplosion::KeyValue( KeyValueData *pkvd )
 
 void CEnvExplosion::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 { 
-	if( useType == USE_SHOWINFO )
+	if ( useType == USE_TOGGLE || useType == USE_ON )
+	{
+		Explode();
+	}
+	else if ( useType == USE_SET )
+	{
+		pev->dmg = value;
+		if( pev->dmg < 10 ) pev->dmg = 10;
+	}
+	else if ( useType == USE_SHOWINFO )
 	{
 		DEBUGHEAD;
-		Msg( "Radius %g\n\n", pev->dmg );
+		ALERT( at_console, "Radius %g\n", pev->dmg );
+		SHIFT;
 	}
-	else Explode();
 }
 
 void CEnvExplosion::Explode( void )
 {
-	short m_usExplode;
-	short m_usWExplode;
 	TraceResult tr;
 	Vector vecSpot = pev->origin;// trace starts here!
 	UTIL_TraceLine ( vecSpot + Vector( 0, 0, 8 ), vecSpot + Vector ( 0, 0, -32 ),  ignore_monsters, ENT(pev), &tr);
-	
-	if( !FBitSet( pev->spawnflags, 4 ))
-	{
-		if( pev->button )//custom sprite
-		{
-			m_usExplode = pev->button;
-			m_usWExplode = pev->button;
-		}
-		else
-		{
-			m_usExplode = g_sModelIndexFireball;
-			m_usWExplode = g_sModelIndexWExplosion;
-		}
-	}
-	else 
-	{
-		m_usExplode = g_sModelIndexNullSprite;
-		m_usWExplode = g_sModelIndexNullSprite;
-	}
-	
+
 	// Pull out of the wall a bit
 	if ( tr.flFraction != 1.0 && tr.vecPlaneNormal[2] < 0.7f )
 		pev->origin = tr.vecEndPos + (tr.vecPlaneNormal * (pev->dmg - 24) * 0.6);
@@ -1201,43 +1249,36 @@ void CEnvExplosion::Explode( void )
 	pev->owner = NULL; // can't traceline attack owner if this is set
          
 	if ( pev->dmg <= 0 )
-          	pev->dmg = 100; //Smart field system ®
+          	pev->dmg = 100; // Smart field system ®
           
 
           if( iContents == CONTENTS_WATER )
           {
-          	SFX_Explode( m_usWExplode, pev->origin, pev->dmg, TE_EXPLFLAG_NONE );
-          	if(!FBitSet( pev->spawnflags, 1 ))
-          		RadiusDamage ( pev->origin, pev, pevOwner, pev->dmg / 2, pev->dmg * 2.5, CLASS_NONE, DMG_BLAST );
+          	SFX_Explode( g_sModelIndexWExplosion, pev->origin, pev->dmg, TE_EXPLFLAG_NONE );
+          	RadiusDamage ( pev->origin, pev, pevOwner, pev->dmg / 2, pev->dmg * 2.5, CLASS_NONE, DMG_BLAST );
           }             
           else
           {
           	CSoundEnt::InsertSound ( bits_SOUND_COMBAT, pev->origin, pev->dmg * 5, 3.0 );
-		SFX_Explode( m_usExplode, pev->origin, pev->dmg, TE_EXPLFLAG_NONE );
-          	if( !FBitSet( pev->spawnflags, 1 ))
-          		RadiusDamage ( pev->origin, pev, pevOwner, pev->dmg, pev->dmg * 2.5, CLASS_NONE, DMG_BLAST );
+		// custom sprite
+		if( pev->button ) SFX_Explode( pev->button, pev->origin, pev->dmg, TE_EXPLFLAG_NONE );
+          	else SFX_Explode( g_sModelIndexFireball, pev->origin, pev->dmg, TE_EXPLFLAG_NONE );
+          	RadiusDamage ( pev->origin, pev, pevOwner, pev->dmg, pev->dmg * 2.5, CLASS_NONE, DMG_BLAST );
 
-		if( !FBitSet( pev->spawnflags, 8 ))
-		{
-			CBaseEntity *pWreckage = Create( "smokeent", pev->origin, pev->angles );
-			pWreckage->SetNextThink( 0.2 );
-			pWreckage->pev->impulse = ( pev->dmg - 50 ) * 0.6;
-			pWreckage->pev->dmgtime = gpGlobals->time + 1.5;
-		}
-		if( !FBitSet( pev->spawnflags, 32 ))
-		{
-			int sparkCount = RANDOM_LONG( 0, 3 );	// make sparks
-			for( int i = 0; i < sparkCount; i++ )
-				Create( "sparkleent", pev->origin, tr.vecPlaneNormal, NULL );
-                    }
-		if(!FBitSet( pev->spawnflags, 16 ))
-		{
-			if ( RANDOM_FLOAT( 0 , 1 ) < 0.5 ) UTIL_DecalTrace( &tr, DECAL_SCORCH1 );
-			else UTIL_DecalTrace( &tr, DECAL_SCORCH2 );
-		}
+		CBaseEntity *pWreckage = Create( "smokeent", pev->origin, pev->angles );
+		pWreckage->SetNextThink( 0.2 );
+		pWreckage->pev->impulse = ( pev->dmg - 50) * 0.6;
+		pWreckage->pev->dmgtime = gpGlobals->time + 1.5;
+		
+		int sparkCount = RANDOM_LONG( 0, 3 );	//make sparks
+		for ( int i = 0; i < sparkCount; i++ )
+			Create( "sparkleent", pev->origin, tr.vecPlaneNormal, NULL );
+
+		if ( RANDOM_FLOAT( 0 , 1 ) < 0.5 ) UTIL_DecalTrace( &tr, DECAL_SCORCH1 );
+		else UTIL_DecalTrace( &tr, DECAL_SCORCH2 );
 	}
 
-	if( !FBitSet( pev->spawnflags, 2 )) UTIL_Remove( this );
+	if( pev->spawnflags & SF_FIREONCE ) UTIL_Remove( this );
 }
 
 //=========================================================
@@ -1934,10 +1975,11 @@ void CEnvWarpBall::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 	
 	if (useType == USE_TOGGLE || useType == USE_ON) Affect();
 	else if( useType == USE_SET && value > 10) pev->button = value;
+	else if( useType == USE_RESET ) pev->button = 100; //default radius
 	else if( useType == USE_SHOWINFO )
 	{
 		DEBUGHEAD;
-		Msg( "Radius: %d, Warp target %s\n\n", pev->button, STRING( pev->message ));
+		ALERT( at_console, "Radius: %d, Warp target %s\n\n", pev->button, STRING( pev->message ));
 	}
 }
 
@@ -1989,14 +2031,17 @@ void CEnvWarpBall::Affect( void )
 		}
 		iTimes++;
 	}
-	SetNextThink( pev->frags );
+
+	if ( pev->spawnflags & SF_REMOVE_ON_FIRE )
+		UTIL_Remove( this );
+	else SetNextThink( pev->frags );
 }
 
 void CEnvWarpBall::Think( void )
 {
-	FireTargets();
+	UTIL_FireTargets( pev->target, this, this, USE_TOGGLE );
  
-	if ( pev->spawnflags & SF_KILL_CENTER ) //Blue-Shift strange feature
+	if ( pev->spawnflags & SF_KILL_CENTER ) // Blue-Shift strange feature
 	{
 		CBaseEntity *pMonster = NULL;
 		while ((pMonster = UTIL_FindEntityInSphere( pMonster, vecOrigin, 72 )) != NULL)
@@ -2176,7 +2221,7 @@ void CBeam::BeamDamage( TraceResult *ptr )
 		CBaseEntity *pHit = CBaseEntity::Instance(ptr->pHit);
 		if ( pHit )
 		{
-			if (pev->dmg > 0)
+			if ( pev->dmg > 0 )
 			{
 				ClearMultiDamage();
 				pHit->TraceAttack( pev, pev->dmg * (gpGlobals->time - pev->dmgtime), (ptr->vecEndPos - pev->origin).Normalize(), ptr, DMG_ENERGYBEAM );
@@ -2396,7 +2441,7 @@ void CEnvBeam::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useT
 
 void CEnvBeam::Think( void )
 {
-	if ( pev->dmg || !FStringNull(pev->message))//apply damage & trip entity
+	if ( pev->dmg || !FStringNull( pev->target )) // apply damage & trip entity
 	{
 		TraceResult tr;
 		UTIL_TraceLine( pev->origin, pEnd->pev->origin, dont_ignore_monsters, NULL, &tr );
@@ -2553,13 +2598,22 @@ void CLaser::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useTyp
 		if(m_iState == STATE_ON) useType = USE_OFF;
 		else useType = USE_ON;
 	}
-	if (useType == USE_ON) TurnOn();
-	else if(useType == USE_OFF) TurnOff();
-	else if (useType == USE_SHOWINFO)
+	if ( useType == USE_ON ) TurnOn();
+	else if ( useType == USE_OFF ) TurnOff();
+	else if ( useType == USE_SET ) // set new damage level
+	{
+		pev->dmg = value;
+	}
+	else if( useType == USE_RESET ) // set new brightness
+	{
+		if( value ) pev->renderamt = value;
+		RelinkBeam();
+	}
+	else if ( useType == USE_SHOWINFO )
 	{
 		DEBUGHEAD;
-		Msg( "State: %s, Damage %g\n", GetStringForState( GetState()), pev->dmg );
-		Msg("Laser model %s\n", STRING( pev->model ));
+		ALERT( at_console, "State: %s, Damage %g\n", GetStringForState( GetState()), pev->dmg );
+		ALERT( at_console, "Laser model %s\n", STRING( pev->model ));
 	}
 }
 
@@ -2726,7 +2780,7 @@ void CEnvLightning::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 	else if (useType == USE_SHOWINFO)
 	{
 		DEBUGHEAD;
-		Msg( "State: %s, MaxDelay %.2f\n\n", GetStringForState( GetState()), m_flDelay );
+		ALERT( at_console, "State: %s, MaxDelay %.2f\n\n", GetStringForState( GetState()), m_flDelay );
 	}
 }
 
@@ -2812,7 +2866,7 @@ void CEnvBeamRing::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 	else if (useType == USE_SHOWINFO)
 	{
 		DEBUGHEAD;
-		Msg( "State: %s, MaxDelay %.2f\n\n", GetStringForState( GetState()), m_flDelay );
+		ALERT( at_console, "State: %s, MaxDelay %.2f\n\n", GetStringForState( GetState()), m_flDelay );
 	}
 }
 
@@ -2843,95 +2897,4 @@ void CEnvBeamRing::Think( void )
 	CBaseEntity *pRing = CBaseEntity::Instance(pev->enemy);
 	SFX_Ring( pev, pRing->pev );
 	SetNextThink( pev->armorvalue + RANDOM_FLOAT( 0, m_flDelay ) );
-}
-
-//=====================================================
-// env_render: change render parameters
-//=====================================================
-
-#define SF_RENDER_MASKFX	(1<<0)
-#define SF_RENDER_MASKAMT	(1<<1)
-#define SF_RENDER_MASKMODE	(1<<2)
-#define SF_RENDER_MASKCOLOR	(1<<3)
-
-class CRenderFxManager : public CBaseLogic
-{
-public:
-	void Affect( void );
-	void KeyValue( KeyValueData *pkvd );
-	void Use ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-	{
-		m_hActivator = pActivator; Affect();
-	}
-};
-LINK_ENTITY_TO_CLASS( env_render, CRenderFxManager );
-
-void CRenderFxManager :: KeyValue( KeyValueData *pkvd )
-{
-	if (FStrEq(pkvd->szKeyName, "fadetime"))
-	{
-		pev->speed = atof(pkvd->szValue);
-		pkvd->fHandled = TRUE;
-	}
-	else	CBaseEntity::KeyValue( pkvd );
-}
-
-void CRenderFxManager::Affect( void )
-{
-	BOOL first = TRUE;
-
-	if(FStringNull(pev->target)) return;
-	CBaseEntity* pTarget = UTIL_FindEntityByTargetname( NULL, STRING(pev->target), m_hActivator);
-
-	while ( pTarget != NULL )
-	{
-		entvars_t *pevTarget = pTarget->pev;
-
-		if (pev->speed == 0) // aplly settings instantly ?
-		{
-			if ( !FBitSet( pev->spawnflags, SF_RENDER_MASKAMT ) )
-				pevTarget->renderamt = pev->renderamt;
-			if ( !FBitSet( pev->spawnflags, SF_RENDER_MASKCOLOR ) )
-				pevTarget->rendercolor = pev->rendercolor;
-			if ( !FBitSet( pev->spawnflags, SF_RENDER_MASKFX ) )
-				pevTarget->renderfx = pev->renderfx;
-			if ( !FBitSet( pev->spawnflags, SF_RENDER_MASKMODE ) )
-				pevTarget->rendermode = pev->rendermode;
-
-			pevTarget->scale = pev->scale;
-			pevTarget->framerate = pev->framerate;
-			if (first) UTIL_FireTargets( pev->netname, pTarget, this, USE_TOGGLE );
-		}
-		else
-		{
-			if (!pevTarget->renderamt && !pevTarget->rendermode) pevTarget->renderamt = 255;
-			pevTarget->renderfx = pev->renderfx;
-			pevTarget->rendermode = pev->rendermode;
-			CBaseEntity *pFader = Create( "faderent", pev->origin, pev->angles, pTarget->edict());
-			pFader->pev->renderamt = pevTarget->renderamt;
-			pFader->pev->rendercolor = pevTarget->rendercolor;
-			pFader->pev->scale = pevTarget->scale;
-			if (pFader->pev->scale == 0) pFader->pev->scale = 1;
-			pFader->pev->spawnflags = pev->spawnflags;
-
-			if (first) pFader->pev->target = pev->netname;
-                              
-			pFader->pev->max_health = pev->framerate - pevTarget->framerate;
-			pFader->pev->health = pev->renderamt - pevTarget->renderamt;
-			pFader->pev->movedir.x = pev->rendercolor.x - pevTarget->rendercolor.x;
-			pFader->pev->movedir.y = pev->rendercolor.y - pevTarget->rendercolor.y;
-			pFader->pev->movedir.z = pev->rendercolor.z - pevTarget->rendercolor.z;
-
-			if ( pev->scale ) pFader->pev->frags = pev->scale - pevTarget->scale;
-			else pFader->pev->frags = 0;
-
-			pFader->pev->dmgtime = gpGlobals->time;
-			pFader->pev->speed = pev->speed;
-			pFader->SetNextThink( 0 );
-			pFader->Spawn();
-		}
-
-		first = FALSE;//not a first target
-		pTarget = UTIL_FindEntityByTargetname( pTarget, STRING(pev->target), m_hActivator );
-	}		
 }

@@ -15,7 +15,7 @@ const char *CL_LevelshotType( void )
 {
 	// reinstall loadformats by magic keyword :)
 	if( !com.stricmp( GI->texmode, "Xash3D" ) || !com.stricmp( GI->texmode, "Xash" ))
-		return "png";
+		return "jpg";
 	else if( !com.stricmp( GI->texmode, "stalker" ) || !com.stricmp( GI->texmode, "S.T.A.L.K.E.R" ))
 		return "dds";
 	else if( !com.stricmp( GI->texmode, "Doom1" ) || !com.stricmp( GI->texmode, "Doom2" ))

@@ -1227,7 +1227,12 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 	{
 		to->body = DirToBits( pNet->pev->movedir );
 
-		// FIXME: send mins\maxs for sound spatialization and entity prediction ?
+		if( pNet->pev->movetype == MOVETYPE_CONVEYOR || pNet->pev->flags & FL_CONVEYOR )
+		{
+			// this is conveyor - send speed to render for right texture scrolling
+			to->framerate = pNet->pev->speed;
+		}
+		else to->framerate = 0.0f; // don't let texture moving
 	}
 	else if( to->ed_type == ED_BEAM )
 	{
@@ -1647,31 +1652,27 @@ void LinkUserMessages( void )
 	gmsg.WeaponAnim = REG_USER_MSG( "WeaponAnim", 3 );
 	gmsg.ShowMenu = REG_USER_MSG( "ShowMenu", -1 );
 	gmsg.Shake = REG_USER_MSG( "ScreenShake", 13 );
-	gmsg.Fade = REG_USER_MSG( "ScreenFade", 14 );
-	gmsg.AmmoX = REG_USER_MSG("AmmoX", 2);
+	gmsg.Fade = REG_USER_MSG( "ScreenFade", 13 );
+	gmsg.AmmoX = REG_USER_MSG( "AmmoX", 2 );
 	gmsg.TeamNames = REG_USER_MSG( "TeamNames", -1 );
-	gmsg.StatusText = REG_USER_MSG("StatusText", -1);
-	gmsg.StatusValue = REG_USER_MSG("StatusValue", 3);
-	gmsg.SetBody = REG_USER_MSG("SetBody", 1);
-	gmsg.SetSkin = REG_USER_MSG("SetSkin", 1);
-	gmsg.ZoomHUD = REG_USER_MSG("ZoomHUD", 1);
-	gmsg.WarHUD = REG_USER_MSG("WarHUD", 1);
+	gmsg.StatusText = REG_USER_MSG( "StatusText", -1 );
+	gmsg.StatusValue = REG_USER_MSG( "StatusValue", 3 );
+	gmsg.SetBody = REG_USER_MSG( "SetBody", 1 );
+	gmsg.SetSkin = REG_USER_MSG( "SetSkin", 1 );
+	gmsg.ZoomHUD = REG_USER_MSG( "ZoomHUD", 1 );
+	gmsg.WarHUD = REG_USER_MSG( "WarHUD", 1 );
 
 	// entity messages
 	gmsg.StatusIcon = REG_USER_MSG("StatusIcon", -1);
 	gmsg.CamData = REG_USER_MSG("CamData", -1);
 	gmsg.Fsound = REG_USER_MSG("Fsound", -1);
 	gmsg.RainData = REG_USER_MSG( "RainData", 28 );
-	gmsg.AddScreen = REG_USER_MSG( "AddScreen", 2);
-	gmsg.AddPortal = REG_USER_MSG( "AddPortal", 2);
 	gmsg.HudText = REG_USER_MSG( "HudText", -1 );
 	gmsg.ShowGameTitle = REG_USER_MSG("GameTitle", 0 );
 	gmsg.TempEntity = REG_USER_MSG( "TempEntity", -1);
 	gmsg.SetFog = REG_USER_MSG("SetFog", 7 );
 	gmsg.SetSky = REG_USER_MSG( "SetSky", 13 );
 	gmsg.Particle = REG_USER_MSG( "Particle", -1);
-	gmsg.Beams = REG_USER_MSG( "Beams", -1 );
-	gmsg.AddMirror = REG_USER_MSG( "AddMirror", 2);
 }
 
 /*

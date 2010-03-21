@@ -639,7 +639,6 @@ void SV_PutClientInServer( edict_t *ent )
 
 	svgame.globals->time = sv.time * 0.001f;
 	ent->pvServerData->s.ed_type = ED_CLIENT; // init edict type
-	ent->free = false;
 
 	if( !sv.changelevel && !sv.loadgame )
 	{	
@@ -665,8 +664,6 @@ void SV_PutClientInServer( edict_t *ent )
 	
 			// fisrt entering
 			svgame.dllFuncs.pfnClientPutInServer( ent );
-
-			ent->v.origin[2] -= GI->client_mins[2][2]; // FIXME: make sure off ground
 
 			SV_BaselineForEntity( ent );
 		}

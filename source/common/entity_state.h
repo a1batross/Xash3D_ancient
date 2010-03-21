@@ -22,8 +22,9 @@ typedef enum
 	ED_VIEWMODEL,	// client or bot viewmodel (for spectating)
 	ED_RIGIDBODY,	// simulated physic
 	ED_TRIGGER,	// just for sorting on a server
-	ED_PORTAL,	// realtime display, portal or mirror brush or model
+	ED_PORTAL,	// realtime portal or mirror brush or model
 	ED_SKYPORTAL,	// realtime 3D-sky camera
+	ED_SCREEN,	// realtime monitor (like portal but without perspective)
 	ED_MAXTYPES,
 } edtype_t;
 
