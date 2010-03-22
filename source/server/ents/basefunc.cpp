@@ -1127,7 +1127,7 @@ void CPendulum :: Spawn( void )
 	dir = 1; // evil stuff...
           m_iState = STATE_OFF;
           pev->dmg_save = 0; // cur speed is NULL
-	AxisDir();
+	UTIL_AngularVector( this );
           
 	UTIL_SetOrigin( this, pev->origin );
 	UTIL_SetModel( ENT( pev ), pev->model );
@@ -1852,7 +1852,7 @@ void CBaseButton::ButtonDone( void )
 
 	if ( m_iState == STATE_TURN_OFF ) // turn off
 	{
-		m_iState = STATE_OFF; //just change state :)
+		m_iState = STATE_OFF; // just change state :)
 		UTIL_FireTargets( pev->netname, m_hActivator, this, USE_OFF, m_flValue ); // fire target	
 	}
 }

@@ -229,9 +229,7 @@ void SV_Map_f( void )
 	sv.loadgame = false;	// set right state
 	sv.changelevel = false;
 
-	if( com.strcmp( sv.name, filename ))
-		SV_InitGame ();
-
+	SV_InitGame ();
 	SV_SpawnServer( filename, NULL );
 	SV_LevelInit( filename, NULL, NULL );
 	SV_ActivateServer ();

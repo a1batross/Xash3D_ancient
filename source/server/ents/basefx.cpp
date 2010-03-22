@@ -23,7 +23,7 @@ class CBaseParticle : public CBaseLogic
 {
 public:
 	void Spawn( void );
-	void Precache( void ){ pev->message = UTIL_PrecacheAurora( pev->message ); }
+	void Precache( void ){ pev->netname = UTIL_PrecacheAurora( pev->message ); }
 	void KeyValue( KeyValueData *pkvd );
 	void PostActivate( void ){ Switch(); }
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
@@ -48,14 +48,14 @@ void CBaseParticle::Switch( void )
 		CBaseEntity *pTarget = UTIL_FindEntityByTargetname( NULL, STRING( pev->target ), m_hActivator );
 		while ( pTarget )
 		{
-			UTIL_SetAurora( pTarget, pev->message );
+			UTIL_SetAurora( pTarget, pev->netname );
 			pTarget->pev->renderfx = renderfx;
 			pTarget = UTIL_FindEntityByTargetname( pTarget, STRING( pev->target ), m_hActivator );
 		}
 	}
 	else
 	{
-		UTIL_SetAurora( this, pev->message );
+		UTIL_SetAurora( this, pev->netname );
 		pev->renderfx = renderfx;
 	}
 }
@@ -1034,7 +1034,7 @@ void CDecLED :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE use
 		{
 			pev->frame = fmod( value, pev->frags + 1.0f );
                              	float next = value / ( pev->frags + 1.0f );
-                             	if( next ) UTIL_FireTargets( pev->target, pActivator, this, useType, (int)next );
+                             	if( (int)next ) UTIL_FireTargets( pev->target, pActivator, this, useType, (int)next );
 
 			pev->effects &= ~EF_NODRAW;
 			flashtime = gpGlobals->time + 0.5f;
@@ -1660,42 +1660,36 @@ int CEnvShooter :: ParseGibFile( void )
 			{
 				token = COM_ParseToken( &pfile );
 				RandomRange((char *)STRING(ALLOC_STRING(token)));
-				Msg("param %s, min %g max %g\n", token, m_flMin, m_flMax );
 				pev->friction = RANDOM_FLOAT( m_flMin, m_flMax );
 			}
 			else if ( !FStriCmp( token, "scale" ))
 			{
 				token = COM_ParseToken( &pfile );
 				RandomRange((char *)STRING(ALLOC_STRING(token)));
-				Msg("param %s, min %g max %g\n", token, m_flMin, m_flMax );
 				pev->scale = RANDOM_FLOAT( m_flMin, m_flMax );
 			}
 			else if ( !FStriCmp( token, "body" ))
 			{
 				token = COM_ParseToken( &pfile );
 				RandomRange((char *)STRING(ALLOC_STRING(token)));
-				Msg("param %s, min %g max %g\n", token, m_flMin, m_flMax );
 				pev->body = RANDOM_FLOAT( m_flMin, m_flMax - 1 );
 			}
 			else if ( !FStriCmp( token, "skin" ))
 			{
 				token = COM_ParseToken( &pfile );
 				RandomRange((char *)STRING(ALLOC_STRING(token)));
-				Msg("param %s, min %g max %g\n", token, m_flMin, m_flMax );
 				pev->skin = RANDOM_FLOAT( m_flMin, m_flMax );
 			}
 			else if ( !FStriCmp( token, "frame" ))
 			{
 				token = COM_ParseToken( &pfile );
 				RandomRange((char *)STRING(ALLOC_STRING(token)));
-				Msg("param %s, min %g max %g\n", token, m_flMin, m_flMax );
 				pev->frame = RANDOM_FLOAT( m_flMin, m_flMax );
 			}
 			else if ( !FStriCmp( token, "alpha" ))
 			{
 				token = COM_ParseToken( &pfile );
 				RandomRange((char *)STRING(ALLOC_STRING(token)));
-				Msg("param %s, min %g max %g\n", token, m_flMin, m_flMax );
 				pev->renderamt = RANDOM_FLOAT( m_flMin, m_flMax );
 			}
 			else if ( !FStriCmp( token, "color" ))
@@ -2387,6 +2381,7 @@ void CEnvBeam::Spawn( void )
 	SetObjectClass( ED_BEAM );
 	UTIL_SetModel( edict(), "sprites/null.spr" ); // beam start point
 	pev->solid = SOLID_NOT; // remove model & collisions
+
 	Precache();
 
 	if( FStringNull( pev->netname ))
@@ -2476,6 +2471,7 @@ IMPLEMENT_SAVERESTORE( CLaser, CBeam );
 
 void CLaser::Spawn( void )
 {
+	SetObjectClass( ED_BEAM );
 	pev->frame = 0;
 	pev->solid = SOLID_NOT; // Remove model & collisions
 	Precache();
@@ -2508,30 +2504,36 @@ void CLaser::SetObjectCollisionBox( void )
 
 void CLaser::PostSpawn( void )
 {
-	if (!FStringNull(pev->netname))
+	if ( !FStringNull( pev->netname ))
 	{
-		m_pStartSprite = CSprite::SpriteCreate( (char *)STRING(pev->netname), pev->origin, TRUE );
-		if (m_pStartSprite) m_pStartSprite->SetTransparency( kRenderGlow, pev->rendercolor.x, pev->rendercolor.y, pev->rendercolor.z, pev->renderamt, pev->renderfx );
+		m_pStartSprite = CSprite::SpriteCreate( STRING( pev->netname ), pev->origin, TRUE );
+		if ( m_pStartSprite ) m_pStartSprite->SetTransparency( kRenderGlow, pev->rendercolor.x, pev->rendercolor.y, pev->rendercolor.z, pev->renderamt, pev->renderfx );
 		else m_pStartSprite = CSprite::SpriteCreate( "sprites/null.spr", pev->origin, TRUE );
 	}
 	else m_pStartSprite = CSprite::SpriteCreate( "sprites/null.spr", pev->origin, TRUE );
 	m_pEndSprite = CSprite::SpriteCreate( "sprites/null.spr", pev->origin, TRUE );
 	
-	if ( pev->spawnflags & SF_START_ON ) TurnOn();
-	else TurnOff();
+	if ( pev->spawnflags & SF_START_ON )
+	{
+		TurnOn();
+	}
+	else
+	{
+		TurnOff();
+	}
 }
 
 void CLaser::Precache( void )
 {
-	pev->modelindex = UTIL_PrecacheModel( pev->model, "sprites/laserbeam.spr" );
-	UTIL_PrecacheModel( pev->netname );
+	UTIL_PrecacheModel( pev->message, "sprites/laserbeam.spr" );
+	if( pev->netname ) UTIL_PrecacheModel( pev->netname );
 }
 
 void CLaser::KeyValue( KeyValueData *pkvd )
 {
 	if (FStrEq(pkvd->szKeyName, "sprite"))
 	{
-		pev->model = ALLOC_STRING(pkvd->szValue);
+		pev->message = ALLOC_STRING(pkvd->szValue);
 		pkvd->fHandled = TRUE;
 	}
 	else if (FStrEq(pkvd->szKeyName, "startsprite"))
@@ -2613,17 +2615,18 @@ void CLaser::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useTyp
 	{
 		DEBUGHEAD;
 		ALERT( at_console, "State: %s, Damage %g\n", GetStringForState( GetState()), pev->dmg );
-		ALERT( at_console, "Laser model %s\n", STRING( pev->model ));
+		ALERT( at_console, "Laser model %s\n", STRING( pev->message ));
 	}
 }
 
 void CLaser::FireAtPoint( Vector startpos, TraceResult &tr )
 {
-	if (m_pStartSprite && m_pEndSprite)
+	if ( m_pStartSprite && m_pEndSprite )
 	{
-		UTIL_SetVelocity(m_pStartSprite, (startpos - m_pStartSprite->pev->origin)*100 );
-		UTIL_SetVelocity(m_pEndSprite, (tr.vecEndPos - m_pEndSprite->pev->origin)*100 );
+		UTIL_SetVelocity( m_pStartSprite, ( startpos - m_pStartSprite->pev->origin ) * 100 );
+		UTIL_SetVelocity( m_pEndSprite, ( tr.vecEndPos - m_pEndSprite->pev->origin ) * 100 );
 	}
+
 	BeamDamage( &tr );
 	DoSparks( startpos, tr.vecEndPos );
 }
@@ -2637,7 +2640,7 @@ void CLaser:: Think( void )
 	Vector vecProject = startpos + gpGlobals->v_forward * MAP_HALFSIZE;
 	UTIL_TraceLine( startpos, vecProject, dont_ignore_monsters, ignore_glass, NULL, &tr );
 	FireAtPoint( startpos, tr );
-	if(m_iState == STATE_ON) SetNextThink( 0.01 ); //!!!
+	if( m_iState == STATE_ON ) SetNextThink( 0.01 ); //!!!
 }
 
 //=========================================================

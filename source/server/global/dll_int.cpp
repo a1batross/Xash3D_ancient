@@ -198,8 +198,19 @@ void DispatchKeyValue( edict_t *pentKeyvalue, KeyValueData *pkvd )
 	pEntity->KeyValue( pkvd );
 }
 
-void DispatchFrame( edict_t *pent )
+/*
+-----------------
+DispatchFrame
+
+this function can override any physics movement
+and let user use custom physic.
+e.g. you can replace MOVETYPE_PUSH for new movewith system
+and many many other things.
+-----------------
+*/
+int DispatchFrame( edict_t *pent )
 {
+	return 0;
 }
 
 void DispatchTouch( edict_t *pentTouched, edict_t *pentOther )
@@ -324,6 +335,11 @@ int DispatchRestore( edict_t *pent, SAVERESTOREDATA *pSaveData, int globalEntity
 				return 0;
 			}
 
+		}
+
+		if( FClassnameIs( &pent->v, "trigger_camera" ))
+		{
+			ALERT( at_console, "pev->nextthink is %g\n", tmpVars.nextthink );
 		}
 
 		if ( pEntity->ObjectCaps() & FCAP_MUST_SPAWN )

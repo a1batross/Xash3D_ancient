@@ -958,13 +958,13 @@ void StartFrame( void )
 	}
 
 	ServerPostActivate(); // called once
-	PhysicsFrame();
 	PhysicsPostFrame();
 	
 }
 
 void EndFrame( void )
 {
+	PhysicsFrame();
 }
 
 /*

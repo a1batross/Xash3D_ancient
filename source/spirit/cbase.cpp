@@ -217,8 +217,19 @@ void DispatchKeyValue( edict_t *pentKeyvalue, KeyValueData *pkvd )
 	pEntity->KeyValue( pkvd );
 }
 
-void DispatchFrame( edict_t *pent )
+/*
+-----------------
+DispatchFrame
+
+this function can override any physics movement
+and let user use custom physic.
+e.g. you can replace MOVETYPE_PUSH for new movewith system
+and many many other things.
+-----------------
+*/
+int DispatchFrame( edict_t *pent )
 {
+	return 0;
 }
 
 // HACKHACK -- this is a hack to keep the node graph entity from "touching" things (like triggers)

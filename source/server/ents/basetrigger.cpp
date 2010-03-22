@@ -820,13 +820,13 @@ void CTriggerCamera::PostActivate( void )
 
 void CTriggerCamera::Think( void )
 {
-	SetNextThink( 0 );
+	SetNextThink( gpGlobals->frametime );
 
 	Move();
 	pev->dmgtime = gpGlobals->time;
 	if ( pTarget ) UTIL_WatchTarget( this, pTarget );
 
-	if( m_flWait && pev->health < gpGlobals->time )
+	if( m_flWait && pev->teleport_time < gpGlobals->time )
 	{
 		TurnOff();
 	}
@@ -853,6 +853,7 @@ void CTriggerCamera :: UpdatePlayerView( void )
 		// freeze player
 		((CBasePlayer *)((CBaseEntity *)m_hActivator))->EnableControl( state );
 	}
+#if 1
 	if( GetState() == STATE_OFF )
 		flags |= CAMERA_ON;
 	else flags = 0; 
@@ -861,6 +862,12 @@ void CTriggerCamera :: UpdatePlayerView( void )
 	if( pCamera && !pCamera->IsBSPModel( ))
 		UTIL_SetView( m_hActivator, pCamera, flags );
 	else UTIL_SetView( m_hActivator, this, flags );
+#else
+	// enchanced engine SET_VIEW (see code in client\global\view.cpp)
+	if( GetState() == STATE_OFF )
+		SET_VIEW( m_hActivator->edict(), edict() );
+	else SET_VIEW( m_hActivator->edict(), m_hActivator->edict() );
+#endif
 }
 
 void CTriggerCamera :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
@@ -978,10 +985,10 @@ void CTriggerCamera::TurnOn( void )
 	}
 	
 	// time-based camera
-	if( m_flWait ) pev->health = gpGlobals->time + m_flWait;
+	if( m_flWait ) pev->teleport_time = gpGlobals->time + m_flWait;
 
 	Move();
 	UpdatePlayerView();
 	m_iState = STATE_ON;
-	SetNextThink( 0 );
+	SetNextThink( gpGlobals->frametime );
 }

@@ -329,13 +329,13 @@ void CBaseMover :: ComplexMoveDoneNow( void )
 //=======================================================================
 // 		   func_door - classic QUAKE door
 //=======================================================================
-void CBaseDoor::Spawn( )
+void CBaseDoor::Spawn( void )
 {
 	Precache();
-          if(!IsRotatingDoor())UTIL_LinearVector( this );
+          if(!IsRotatingDoor()) UTIL_LinearVector( this );
 	CBaseBrush::Spawn();
 
-	if(pev->spawnflags & SF_NOTSOLID)//make illusionary door 
+	if ( pev->spawnflags & SF_NOTSOLID ) // make illusionary door 
 	{
 		pev->solid = SOLID_NOT;
 		pev->movetype = MOVETYPE_NONE;
@@ -346,7 +346,7 @@ void CBaseDoor::Spawn( )
           	pev->movetype = MOVETYPE_PUSH;
           }
 
-	if(IsRotatingDoor())
+	if( IsRotatingDoor( ))
 	{
 		// check for clockwise rotation
 		if ( m_flMoveDistance < 0 ) pev->movedir = pev->movedir * -1;
@@ -355,27 +355,29 @@ void CBaseDoor::Spawn( )
 		m_vecAngle1 = pev->angles;
 		m_vecAngle2 = pev->angles + pev->movedir * m_flMoveDistance;
 
-		ASSERTSZ(m_vecAngle1 != m_vecAngle2, "rotating door start/end positions are equal");
+		ASSERTSZ( m_vecAngle1 != m_vecAngle2, "rotating door start/end positions are equal" );
          
-          	SetBits (pFlags, PF_ANGULAR);
+          	SetBits ( pFlags, PF_ANGULAR );
           }
           
 	UTIL_SetModel( ENT(pev), pev->model );
-	UTIL_SetOrigin(this, pev->origin);
+	UTIL_SetOrigin( this, pev->origin );
 
-	//determine work style
-	if(m_iMode == 0)//normal door - only USE
+	// determine work style
+	if ( m_iMode == 0 ) // normal door - only USE
 	{
 		SetUse ( DoorUse );
 		SetTouch ( NULL );
-		pev->team = 1;//info_node identifier. Do not edit!!!
+		pev->team = 1; // info_node identifier. Do not edit!!!
 	}
-	if(m_iMode == 1)//classic QUAKE & HL door - only TOUCH
+
+	if( m_iMode == 1 ) // classic QUAKE & HL door - only TOUCH
 	{
 		SetUse ( ShowInfo );//show info only
 		SetTouch ( DoorTouch );
 	}	
-	if(m_iMode == 2)//combo door - USE and TOUCH
+
+	if( m_iMode == 2 ) // combo door - USE and TOUCH
 	{
 		SetUse ( DoorUse );
 		SetTouch ( DoorTouch );
@@ -400,18 +402,19 @@ void CBaseDoor :: PostSpawn( void )
 	// Subtract 2 from size because the engine expands bboxes by 1 in all directions
 	m_vecPosition2 = m_vecPosition1 + (pev->movedir * (fabs( pev->movedir.x * (pev->size.x-2) ) + fabs( pev->movedir.y * (pev->size.y-2) ) + fabs( pev->movedir.z * (pev->size.z-2) ) - m_flLip));
 
-	ASSERTSZ(m_vecPosition1 != m_vecPosition2, "door start/end positions are equal");
-	if ( FBitSet (pev->spawnflags, SF_START_ON) )
+	ASSERTSZ( m_vecPosition1 != m_vecPosition2, "door start/end positions are equal" );
+
+	if ( FBitSet( pev->spawnflags, SF_START_ON ))
 	{	
-		if (m_pParent)
+		if ( m_pParent )
 		{
 			m_vecSpawnOffset = m_vecSpawnOffset + (m_vecPosition2 + m_pParent->pev->origin) - pev->origin;
-			UTIL_AssignOrigin(this, m_vecPosition2 + m_pParent->pev->origin);
+			UTIL_AssignOrigin( this, m_vecPosition2 + m_pParent->pev->origin );
 		}
 		else
 		{
 			m_vecSpawnOffset = m_vecSpawnOffset + m_vecPosition2 - pev->origin;
-			UTIL_AssignOrigin(this, m_vecPosition2);
+			UTIL_AssignOrigin( this, m_vecPosition2 );
 		}
 		Vector vecTemp = m_vecPosition2;
 		m_vecPosition2 = m_vecPosition1;
@@ -423,22 +426,22 @@ void CBaseDoor :: SetToggleState( int state )
 {
 	if ( m_iState == STATE_ON )
 	{
-		if (m_pParent) UTIL_AssignOrigin( this, m_vecPosition2 + m_pParent->pev->origin);
+		if ( m_pParent ) UTIL_AssignOrigin( this, m_vecPosition2 + m_pParent->pev->origin );
 		else UTIL_AssignOrigin( this, m_vecPosition2 );
 	}
 	else
 	{
-		if (m_pParent) UTIL_AssignOrigin( this, m_vecPosition1 + m_pParent->pev->origin);
+		if ( m_pParent ) UTIL_AssignOrigin( this, m_vecPosition1 + m_pParent->pev->origin );
 		else UTIL_AssignOrigin( this, m_vecPosition1 );
 	}
 }
 
 void CBaseDoor::Precache( void )
 {
-	CBaseBrush::Precache();//precache damage sound
+	CBaseBrush::Precache();	// precache damage sound
 
-	int m_sounds = UTIL_LoadSoundPreset(m_iMoveSound);
-	switch (m_sounds)//load movesound sounds (sound will play when door is moving)
+	int m_sounds = UTIL_LoadSoundPreset( m_iMoveSound );
+	switch ( m_sounds )		// load movesound sounds (sound will play when door is moving)
 	{
 	case 1:	pev->noise1 = UTIL_PrecacheSound ("doors/doormove1.wav");break;
 	case 2:	pev->noise1 = UTIL_PrecacheSound ("doors/doormove2.wav");break;
@@ -451,11 +454,11 @@ void CBaseDoor::Precache( void )
 	case 9:	pev->noise1 = UTIL_PrecacheSound ("doors/doormove9.wav");break;
 	case 10:	pev->noise1 = UTIL_PrecacheSound ("doors/doormove10.wav");break;			
 	case 0:	pev->noise1 = UTIL_PrecacheSound ("common/null.wav"); break;
-	default:	pev->noise1 = UTIL_PrecacheSound(m_sounds); break;//custom sound or sentence
+	default:	pev->noise1 = UTIL_PrecacheSound(m_sounds); break; // custom sound or sentence
 	}
 
-	m_sounds = UTIL_LoadSoundPreset(m_iStopSound);
-	switch (m_sounds)//load pushed sounds (sound will play at activate or pushed button)
+	m_sounds = UTIL_LoadSoundPreset( m_iStopSound );
+	switch ( m_sounds ) // load pushed sounds (sound will play at activate or pushed button)
 	{
 	case 1:	pev->noise2 = UTIL_PrecacheSound ("doors/doorstop1.wav");break;
 	case 2:	pev->noise2 = UTIL_PrecacheSound ("doors/doorstop2.wav");break;
@@ -469,20 +472,20 @@ void CBaseDoor::Precache( void )
 	default:	pev->noise2 = UTIL_PrecacheSound(m_sounds); break;//custom sound or sentence
 	}
 
-	if (!FStringNull(m_sMaster))//door has master
+	if ( !FStringNull( m_sMaster ))//door has master
 	{
-		m_sounds = UTIL_LoadSoundPreset(m_iStartSound);
-		switch (m_sounds)//load locked sounds
+		m_sounds = UTIL_LoadSoundPreset( m_iStartSound );
+		switch ( m_sounds ) // load locked sounds
 		{
-		case 1:	pev->noise3 = UTIL_PrecacheSound ("!NA");	break;
-		case 2:	pev->noise3 = UTIL_PrecacheSound ("!ND");	break;
-		case 3:	pev->noise3 = UTIL_PrecacheSound ("!NF");	break;
-		case 4:	pev->noise3 = UTIL_PrecacheSound ("!NFIRE");	break;
-		case 5:	pev->noise3 = UTIL_PrecacheSound ("!NCHEM");	break;
-		case 6:	pev->noise3 = UTIL_PrecacheSound ("!NRAD");	break;
-		case 7:	pev->noise3 = UTIL_PrecacheSound ("!NCON");	break;
-		case 8:	pev->noise3 = UTIL_PrecacheSound ("!NH");	break;
-		case 9:	pev->noise3 = UTIL_PrecacheSound ("!NG");	break;
+		case 1:	pev->noise3 = UTIL_PrecacheSound ("!NA"); break;
+		case 2:	pev->noise3 = UTIL_PrecacheSound ("!ND"); break;
+		case 3:	pev->noise3 = UTIL_PrecacheSound ("!NF"); break;
+		case 4:	pev->noise3 = UTIL_PrecacheSound ("!NFIRE"); break;
+		case 5:	pev->noise3 = UTIL_PrecacheSound ("!NCHEM"); break;
+		case 6:	pev->noise3 = UTIL_PrecacheSound ("!NRAD"); break;
+		case 7:	pev->noise3 = UTIL_PrecacheSound ("!NCON"); break;
+		case 8:	pev->noise3 = UTIL_PrecacheSound ("!NH"); break;
+		case 9:	pev->noise3 = UTIL_PrecacheSound ("!NG"); break;
 		case 0:	pev->noise3 = UTIL_PrecacheSound ("common/null.wav"); break;
 		default:	pev->noise3 = UTIL_PrecacheSound(m_sounds); break;//custom sound or sentence
 		}
@@ -491,36 +494,38 @@ void CBaseDoor::Precache( void )
 
 void CBaseDoor::DoorTouch( CBaseEntity *pOther )
 {
-	//make delay before retouching
-	if ( gpGlobals->time < pev->dmgtime) return;
-	pev->dmgtime = gpGlobals->time + 1.0;
+	// make delay before retouching
+	if ( gpGlobals->time < pev->dmgtime ) return;
+	pev->dmgtime = gpGlobals->time + 1.0f;
 	m_hActivator = pOther;// remember who activated the door
 
-	if(pOther->IsPlayer())DoorUse ( pOther, this, USE_TOGGLE, 1 );//player always sending 1
+	if( pOther->IsPlayer( ))
+		DoorUse ( pOther, this, USE_TOGGLE, 1 ); // player always sending 1
 }
 
 void CBaseDoor::DoorUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	m_hActivator = pActivator;
-	if(IsLockedByMaster( useType ))//passed only USE_SHOWINFO
+	if ( IsLockedByMaster( useType ))//passed only USE_SHOWINFO
 	{
-          	EMIT_SOUND(ENT(pev), CHAN_VOICE, (char*)STRING(pev->noise3), 1, ATTN_NORM);
+          	EMIT_SOUND( edict(), CHAN_VOICE, STRING( pev->noise3 ), 1, ATTN_NORM );
 		return;
 	}
-	if(useType == USE_SHOWINFO)//show info
+	if ( useType == USE_SHOWINFO ) // show info
 	{
 		ALERT(at_console, "======/Xash Debug System/======\n");
 		ALERT(at_console, "classname: %s\n", STRING(pev->classname));
 		ALERT(at_console, "State: %s, Speed %.2f\n", GetStringForState( GetState()), pev->speed );
 		ALERT(at_console, "Texture frame: %.f. WaitTime: %.2f\n", pev->frame, m_flWait);
 	}
-	else if(m_iState != STATE_DEAD)//activate door
+	else if ( m_iState != STATE_DEAD ) // activate door
 	{         
-		//NOTE: STATE_DEAD is better method for simulate m_flWait -1 without fucking SetThink()
-		if (m_iState == STATE_TURN_ON || m_iState == STATE_TURN_OFF )return;//door in-moving
-		if (useType == USE_TOGGLE)
+		// NOTE: STATE_DEAD is better method for simulate m_flWait -1 without fucking SetThink()
+		if ( m_iState == STATE_TURN_ON || m_iState == STATE_TURN_OFF ) return; // door in-moving
+		if ( useType == USE_TOGGLE)
 		{
-			if(m_iState == STATE_OFF) useType = USE_ON;
+			if ( m_iState == STATE_OFF )
+				useType = USE_ON;
 			else useType = USE_OFF;
 		}
 		if(useType == USE_ON)
@@ -1094,7 +1099,7 @@ IMPLEMENT_SAVERESTORE( CFuncTrain, CBasePlatform );
 
 void CFuncTrain :: Spawn( void )
 {
-	Precache(); //precache moving & stop sounds
+	Precache(); // precache moving & stop sounds
 
 	if(pev->spawnflags & SF_NOTSOLID)//make illusionary train 
 	{
@@ -1107,13 +1112,13 @@ void CFuncTrain :: Spawn( void )
           	pev->movetype = MOVETYPE_PUSH;
           }
 
-	UTIL_SetOrigin(this, pev->origin);
-	UTIL_SetSize(pev, pev->mins, pev->maxs);
-	UTIL_SetModel(ENT(pev), pev->model );
+	UTIL_SetOrigin( this, pev->origin );
+	UTIL_SetSize( pev, pev->mins, pev->maxs );
+	UTIL_SetModel( ENT(pev), pev->model );
 	CBaseBrush::Spawn();
 
-	//determine method for calculating origin
-	if(pev->origin != g_vecZero) pev->impulse = 1;
+	// determine method for calculating origin
+	if( pev->origin != g_vecZero ) pev->impulse = 1;
           
 	if (pev->speed == 0) pev->speed = 100;
 	m_iState = STATE_OFF;
@@ -1123,7 +1128,7 @@ void CFuncTrain :: PostSpawn( void )
 {
 	if (!FindPath()) return;
 
-	if (pev->impulse)
+	if ( pev->impulse )
 	{
 		m_vecSpawnOffset = m_vecSpawnOffset + pPath->pev->origin - pev->origin;
 		if (m_pParent) UTIL_AssignOrigin (this, pPath->pev->origin - m_pParent->pev->origin );
@@ -1132,14 +1137,14 @@ void CFuncTrain :: PostSpawn( void )
 	else
 	{
 		m_vecSpawnOffset = m_vecSpawnOffset + (pPath->pev->origin - TrainOrg()) - pev->origin;
-		if (m_pParent) UTIL_AssignOrigin (this, pPath->pev->origin - TrainOrg() - m_pParent->pev->origin );
+		if ( m_pParent ) UTIL_AssignOrigin (this, pPath->pev->origin - TrainOrg() - m_pParent->pev->origin );
 		else UTIL_AssignOrigin (this, pPath->pev->origin - TrainOrg());
 	}
 }
 
 void CFuncTrain :: PostActivate( void )
 {
-	if(m_iState == STATE_ON)//platform "in-moving" ? restore sound!
+	if ( m_iState == STATE_ON ) // platform "in-moving" ? restore sound!
 	{
 		EMIT_SOUND (ENT(pev), CHAN_STATIC, (char*)STRING(pev->noise), m_flVolume, ATTN_NORM);
 	}
@@ -1163,7 +1168,11 @@ BOOL CFuncTrain::FindPath( void )
 
 BOOL CFuncTrain::FindNextPath( void )
 {
-	if( !pPath ) return FALSE;
+	if( !pPath )
+	{
+		ALERT( at_console, "FindNextpath: failed\n" );
+		return FALSE;
+	}
 
 	// get pointer to next target
 	if( pev->speed > 0 ) pNextPath = ((CInfoPath *)pPath)->GetNext();
@@ -1172,10 +1181,11 @@ BOOL CFuncTrain::FindNextPath( void )
 	if( pNextPath && pNextPath->edict( )) // validate path
 	{
 		// record new value (this will be used after changelevel)
+		ALERT( at_console, "FindNextpath: %s\n", STRING( pNextPath->pev->targetname ));
 		pev->target = pNextPath->pev->targetname; 
 		return TRUE; // path found
 	}
-	switch (m_iMode)
+	switch ( m_iMode )
 	{
 	case 1: UpdateSpeed(); break;
 	case 2: UpdateSpeed();
@@ -1186,14 +1196,18 @@ BOOL CFuncTrain::FindNextPath( void )
 
 void CFuncTrain::UpdateSpeed( float value )
 {
-	//update path if dir changed
+	ALERT( at_console, "CFuncTrain::UpdateSpeed()\n" );
+
+	// update path if dir changed
 	if(( value > 0 && pev->speed < 0 ) || ( value < 0 && pev->speed > 0 ) || value == 0 )
 	{
 		if( pNextPath && pNextPath->edict( ))
 			pPath = pNextPath;
 	}
+
 	if( value != 0 ) pev->speed = value; // get new speed
 	else pev->speed = -pev->speed;
+
 	if( m_iState == STATE_ON ) Next(); // re-calculate speed now!
 }
 
@@ -1216,6 +1230,7 @@ void CFuncTrain::OverrideReset( void )
 
 void CFuncTrain :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
+	ALERT( at_console, "Call train %s with %s and value %g\n", STRING( pev->targetname ), GetStringForUseType( useType ), value );
 	m_hActivator = pActivator;
 
 	if ( useType == USE_TOGGLE )
@@ -1247,6 +1262,8 @@ void CFuncTrain :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 void CFuncTrain :: Next( void )
 {
 	if( !FindNextPath( )) return;
+
+	ALERT( at_console, "CFuncTrain :: Next()\n" );
 
 	// linear move to next corner.
 	if ( m_iState == STATE_OFF ) // enable train sound
@@ -1327,9 +1344,9 @@ void CFuncTrain :: UpdateTargets( void )
 	// fire the pass target if there is one
 	if( !pNextPath || !pNextPath->edict() ) return;
 
-	UTIL_FireTargets( pNextPath->pev->target, this, this, USE_TOGGLE );
-	if ( FBitSet( pNextPath->pev->spawnflags, SF_FIREONCE ))
-		pNextPath->pev->target = iStringNull;
+	UTIL_FireTargets( pNextPath->pev->message, this, this, USE_TOGGLE );
+	if ( FBitSet( pNextPath->pev->spawnflags, SF_TRACK_FIREONCE ))
+		pNextPath->pev->message = iStringNull;
 	UTIL_FireTargets( pev->netname, this, this, USE_TOGGLE );
 }
 
@@ -1337,6 +1354,16 @@ BOOL CFuncTrain :: Stop( float flWait )
 {
 	if( flWait == 0 ) return FALSE;
 	m_iState = STATE_OFF;
+
+	ALERT( at_console, "CFuncTrain::Stop()\n" );
+
+	if( pPath && pPath->edict() )
+	{
+		UTIL_FireTargets( pPath->pev->message, this, this, USE_TOGGLE );
+		if ( FBitSet( pPath->pev->spawnflags, SF_TRACK_FIREONCE ))
+			pPath->pev->message = iStringNull;
+		UTIL_FireTargets( pev->netname, this, this, USE_TOGGLE );
+	} 
  
  	// clear the sound channel.
 	STOP_SOUND( edict(), CHAN_STATIC, STRING( pev->noise ));

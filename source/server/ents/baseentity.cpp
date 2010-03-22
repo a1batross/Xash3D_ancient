@@ -28,7 +28,7 @@ extern CGraph WorldGraph;
 void CBaseEntity::DontThink( void )
 {
 	m_fNextThink = 0;
-	if (m_pParent == NULL && m_pChild == NULL)
+	if ( m_pParent == NULL && m_pChild == NULL )
 	{
 		pev->nextthink = 0;
 		m_fPevNextThink = 0;
@@ -37,21 +37,21 @@ void CBaseEntity::DontThink( void )
 
 void CBaseEntity :: SetEternalThink( void )
 {
-	if (pev->movetype == MOVETYPE_PUSH)
+	if ( pev->movetype == MOVETYPE_PUSH )
 	{
 		pev->nextthink = pev->ltime + 1E6;
 		m_fPevNextThink = pev->nextthink;
 	}
 	CBaseEntity *pChild;
-	for (pChild = m_pChild; pChild != NULL; pChild = pChild->m_pNextChild)
+	for ( pChild = m_pChild; pChild != NULL; pChild = pChild->m_pNextChild )
 		pChild->SetEternalThink( );
 }
 
 void CBaseEntity :: SetNextThink( float delay, BOOL correctSpeed )
 {
-	if (m_pParent || m_pChild )
+	if ( m_pParent || m_pChild )
 	{
-		if (pev->movetype == MOVETYPE_PUSH) 
+		if ( pev->movetype == MOVETYPE_PUSH ) 
 			m_fNextThink = pev->ltime + delay;
 		else m_fNextThink = gpGlobals->time + delay;
 
@@ -61,7 +61,8 @@ void CBaseEntity :: SetNextThink( float delay, BOOL correctSpeed )
 	else
 	{
 		// set nextthink as normal.
-		if (pev->movetype == MOVETYPE_PUSH)pev->nextthink = pev->ltime + delay;
+		if ( pev->movetype == MOVETYPE_PUSH )
+			pev->nextthink = pev->ltime + delay;
 		else pev->nextthink = gpGlobals->time + delay;
 		m_fPevNextThink = m_fNextThink = pev->nextthink;
 	}
@@ -85,7 +86,7 @@ void CBaseEntity :: AbsoluteNextThink( float time, BOOL correctSpeed )
 
 void CBaseEntity :: ThinkCorrection( void )
 {
-	if (pev->nextthink != m_fPevNextThink)
+	if ( pev->nextthink != m_fPevNextThink )
 	{
 		m_fNextThink += pev->nextthink - m_fPevNextThink;
 		m_fPevNextThink = pev->nextthink;

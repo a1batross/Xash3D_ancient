@@ -137,8 +137,8 @@ TYPEDESCRIPTION	CBasePlayer::m_playerSaveData[] =
           DEFINE_FIELD( CBasePlayer, m_FadeColor, FIELD_VECTOR ),
           DEFINE_FIELD( CBasePlayer, m_FadeAlpha, FIELD_INTEGER ),
           DEFINE_FIELD( CBasePlayer, m_iFadeFlags, FIELD_INTEGER ),
-	DEFINE_FIELD( CBasePlayer, m_flFadeHold, FIELD_FLOAT ),
-	DEFINE_FIELD( CBasePlayer, m_flFadeTime, FIELD_FLOAT ),
+	DEFINE_FIELD( CBasePlayer, m_flFadeHold, FIELD_TIME ),
+	DEFINE_FIELD( CBasePlayer, m_flFadeTime, FIELD_TIME ),
           
           DEFINE_FIELD( CBasePlayer, m_flStartTime, FIELD_TIME ),
 	

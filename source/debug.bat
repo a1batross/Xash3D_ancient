@@ -80,5 +80,5 @@ if exist xtools\xtools.plg del /f /q xtools\xtools.plg
 echo 	     Build succeeded!
 echo Please wait. Xash is now loading
 cd D:\Xash3D\
-xash.exe -log -dev 3 +map start
+hl.exe -log -dev 3 -game xash +map newmap
 :done

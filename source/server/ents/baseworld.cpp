@@ -7,12 +7,21 @@
 #include "cbase.h"
 #include "client.h"
 
+#define SF_WORLD_DARK		0x0001
+#define SF_WORLD_TITLE		0x0002
 
 void CWorld :: Precache( void )
 {
 	g_pWorld = this;
 	m_pLinkList = NULL;
 	InitWorld();
+
+	if( pev->spawnflags & SF_WORLD_DARK )
+	{
+		CVAR_SET_FLOAT( "v_dark", 1.0f );
+		ClearBits( pev->spawnflags, SF_WORLD_DARK );
+	}
+	else CVAR_SET_FLOAT( "v_dark", 0.0f );
 }
 
 void CWorld :: KeyValue( KeyValueData *pkvd )
@@ -30,7 +39,7 @@ void CWorld :: KeyValue( KeyValueData *pkvd )
 	}
 	else if ( FStrEq(pkvd->szKeyName, "gametitle") )
 	{
-		SetBits( pev->spawnflags, SF_START_ON );
+		SetBits( pev->spawnflags, SF_WORLD_TITLE );
 		pkvd->fHandled = TRUE;
 	}
 }
@@ -50,7 +59,7 @@ void CWorld :: PostActivate( void )
 		pev->netname = iStringNull;
 	}
 
-	if ( pev->spawnflags & SF_START_ON )
+	if ( pev->spawnflags & SF_WORLD_TITLE )
 	{
 		SERVER_COMMAND( "gametitle\n" );
 		ClearBits( pev->spawnflags, SF_START_ON );
@@ -64,7 +73,7 @@ void CWorld :: PostActivate( void )
 	else
 	{
 		// tell engine there is no skybox set
-		SET_SKYBOX( "<skybox>" );
+		SET_SKYBOX( "desert" );
 	}
 }
 LINK_ENTITY_TO_CLASS( worldspawn, CWorld );

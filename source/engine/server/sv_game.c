@@ -2697,20 +2697,20 @@ void pfnSetView( const edict_t *pClient, const edict_t *pViewent )
 
 	if( pClient == NULL || pClient->free )
 	{
-		MsgDev( D_ERROR, "SV_SetView: invalid client!\n" );
+		MsgDev( D_ERROR, "PF_SetView: invalid client!\n" );
 		return;
 	}
 
 	client = pClient->pvServerData->client;
 	if( !client )
 	{
-		MsgDev( D_ERROR, "SV_SetView: not a client!\n" );
+		MsgDev( D_ERROR, "PF_SetView: not a client!\n" );
 		return;
 	}
 
 	if( pViewent == NULL || pViewent->free )
 	{
-		MsgDev( D_ERROR, "SV_SetView: invalid viewent!\n" );
+		MsgDev( D_ERROR, "PF_SetView: invalid viewent!\n" );
 		return;
 	}
 

@@ -76,7 +76,7 @@ extern void DispatchKeyValue( edict_t *pentKeyvalue, KeyValueData *pkvd );
 extern void DispatchTouch( edict_t *pentTouched, edict_t *pentOther );
 extern void DispatchUse( edict_t *pentUsed, edict_t *pentOther );
 extern void DispatchThink( edict_t *pent );
-extern void DispatchFrame( edict_t *pent );
+extern int DispatchFrame( edict_t *pent );
 extern void DispatchBlocked( edict_t *pentBlocked, edict_t *pentOther );
 extern void DispatchSave( edict_t *pent, SAVERESTOREDATA *pSaveData );
 extern int  DispatchRestore( edict_t *pent, SAVERESTOREDATA *pSaveData, int globalEntity );

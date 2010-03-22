@@ -62,6 +62,7 @@ cvar_t	*v_ipitch_cycle;
 cvar_t	*v_iyaw_level;
 cvar_t	*v_iroll_level;
 cvar_t	*v_ipitch_level;
+cvar_t	*v_dark;
 
 //==============================================================================
 //			      PASS MANAGER GLOBALS
@@ -140,6 +141,7 @@ void V_Init( void )
 	v_iyaw_level = g_engfuncs.pfnRegisterVariable( "v_iyaw_level", "0.3", 0, "viewing inverse yaw level" );
 	v_iroll_level = g_engfuncs.pfnRegisterVariable( "v_iroll_level", "0.1", 0, "viewing inverse roll level" );
 	v_ipitch_level = g_engfuncs.pfnRegisterVariable( "v_iyaw_level", "0.3", 0, "viewing inverse pitch level" );
+	v_dark = g_engfuncs.pfnRegisterVariable( "v_dark", "0", 0, "gross hack to make first frame black. half-life legacy" );
 
 	cl_weaponlag = g_engfuncs.pfnRegisterVariable( "v_viewmodel_lag", "0.0", FCVAR_ARCHIVE, "add some lag to viewmodel like in HL2" );
 	cl_bobcycle = g_engfuncs.pfnRegisterVariable( "cl_bobcycle","0.8", 0, "bob full cycle" );
@@ -586,7 +588,7 @@ void V_CalcCameraRefdef( ref_params_t *pparams )
 
 	if( gHUD.viewFlags & CAMERA_ON )
 	{         
-		// get viewentity and monster eyeposition
+		// this is a viewentity sets with BUzer's custom camera code
 		edict_t	*viewentity = GetEntityByIndex( gHUD.viewEntityIndex );
 	 	if( viewentity )
 		{		 
@@ -608,6 +610,31 @@ void V_CalcCameraRefdef( ref_params_t *pparams )
 			pparams->viewangles = v_angles;
 			pparams->vieworg = v_origin;
 		}
+	}
+	else if( GetEntityByIndex( pparams->viewentity ) != GetLocalPlayer( ))
+	{
+		// this is a viewentity sets with SET_VIEW builtin
+		edict_t	*viewentity = GetEntityByIndex( pparams->viewentity );
+	 	if( viewentity )
+		{		 
+			dstudiohdr_t *viewmonster = (dstudiohdr_t *)GetModelPtr( viewentity );
+
+			v_origin = viewentity->v.origin;
+
+			// calc monster view if supposed
+			if( viewentity->v.flags & FL_MONSTER && viewmonster )
+				v_origin += viewmonster->eyeposition;
+
+			v_angles = viewentity->v.angles;
+
+			if( viewentity->v.flags & FL_PROJECTILE ) // inverse X coordinate
+				v_angles[0] = -v_angles[0];
+			pparams->crosshairangle[ROLL] = 1;	// crosshair is hided
+
+			// refresh position
+			pparams->viewangles = v_angles;
+			pparams->vieworg = v_origin;
+		}		
 	}
 	else pparams->crosshairangle[ROLL] = 0; // show crosshair again
 }
@@ -1050,15 +1077,36 @@ void V_CalcFirstPersonRefdef( ref_params_t *pparams )
 }
 
 //==========================
+// V_CalcScreenBlend
+//==========================
+void V_CalcScreenBlend( ref_params_t *pparams )
+{
+	if( !v_dark->integer ) return;
+
+	pparams->blend[0] = 0.0f;
+	pparams->blend[1] = 0.0f;
+	pparams->blend[2] = 0.0f;
+	pparams->blend[3] = 1.0f;
+	v_dark->integer++;	// HACKHACK
+
+	// make first 10 frames black then reset
+	if( v_dark->integer < 10 ) return;
+	CVAR_SET_FLOAT( "v_dark", 0.0f );
+}
+
+//==========================
 // V_CalcMainRefdef
 //==========================
 void V_CalcMainRefdef( ref_params_t *pparams )
 {
+	memset( pparams->blend, 0, sizeof( pparams->blend ));
+
 	if( g_FirstFrame ) g_bFinalPass = true;
 	V_CalcFirstPersonRefdef( pparams );
 	V_CalcThirdPersonRefdef( pparams );
 	V_CalcIntermisionRefdef( pparams );
 	V_CalcCameraRefdef( pparams );
+	V_CalcScreenBlend( pparams );
 
 	g_vecBaseOrigin = pparams->vieworg;
 	g_vecBaseAngles = pparams->viewangles;

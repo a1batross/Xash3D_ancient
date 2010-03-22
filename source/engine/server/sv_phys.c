@@ -1941,6 +1941,10 @@ static void SV_Physics_Entity( edict_t *ent )
 	}
 	ent->v.flags &= ~FL_BASEVELOCITY;
 
+	// user dll has override movement type
+	if( svgame.dllFuncs.pfnPhysicsEntity( ent ))
+		return;
+
 	switch( ent->v.movetype )
 	{
 	case MOVETYPE_PUSH:
@@ -1971,9 +1975,6 @@ static void SV_Physics_Entity( edict_t *ent )
 		break;
 	case MOVETYPE_WALK:
 		Host_Error( "SV_Physics: bad movetype %i\n", ent->v.movetype );
-		break;
-	default:
-		svgame.dllFuncs.pfnPhysicsEntity( ent );
 		break;
 	}
 }

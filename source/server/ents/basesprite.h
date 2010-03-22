@@ -15,7 +15,7 @@ public:
 	void Precache( void ) { UTIL_PrecacheModel( pev->model ); }
           void PostActivate( void )
           {
-		//env_glow always enabled
+		// env_glow always enabled
 		if( FClassnameIs( pev, "env_glow" ) || FStringNull( pev->targetname ) || pev->spawnflags & SF_START_ON )
 		{
 			TurnOn();

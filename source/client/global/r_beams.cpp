@@ -105,7 +105,7 @@ inline void CBeamSegDraw::ComputeNormal( const Vector &vStartPos, const Vector &
 
 	// Get a vector that is perpendicular to us and perpendicular to the beam.
 	// This is used to fatten the beam.
-	*pNormal = CrossProduct( vTangentY, vDirToBeam );
+	*pNormal = CrossProduct( vTangentY, -vDirToBeam );
 	VectorNormalizeFast( *pNormal );
 }
 
@@ -129,13 +129,13 @@ inline void CBeamSegDraw::SpecifySeg( const Vector &vNormal )
 	g_engfuncs.pTriAPI->TexCoord2f( 0.0f, m_Seg.m_flTexCoord );
 	g_engfuncs.pTriAPI->Normal3fv( vNormal );
 //	g_engfuncs.pTriAPI->Tangent3fv( vTangentY );
-	g_engfuncs.pTriAPI->Vertex3fv( vPoint1 );
+	g_engfuncs.pTriAPI->Vertex3fv( vPoint2 );
 	
 	g_engfuncs.pTriAPI->Color4f( m_Seg.m_vColor[0], m_Seg.m_vColor[1], m_Seg.m_vColor[2], m_Seg.m_flAlpha );
 	g_engfuncs.pTriAPI->TexCoord2f( 1.0f, m_Seg.m_flTexCoord );
 	g_engfuncs.pTriAPI->Normal3fv( vNormal );
 //	g_engfuncs.pTriAPI->Tangent3fv( vTangentY );
-	g_engfuncs.pTriAPI->Vertex3fv( vPoint2 );
+	g_engfuncs.pTriAPI->Vertex3fv( vPoint1 );
 
 }
 
@@ -2238,8 +2238,8 @@ void DrawRing( int noise_divisions, float *prgNoise, void (*pfnNoise)( float *no
 			// We don't need Z, we're in screen space
 			tmp[2] = 0;
 			tmp = tmp.Normalize();
-			normal = gpViewParams->up * tmp.x; // Build point along noraml line (normal is -y, x)
-			normal = normal + (gpViewParams->right * -tmp.y);
+			normal = gpViewParams->up * tmp.x; // Build point along normal line (normal is -y, x)
+			normal = normal - (gpViewParams->right * -tmp.y);
 			
 			// make a wide line
 			last1 = point + (normal * width );
