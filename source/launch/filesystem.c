@@ -3896,7 +3896,7 @@ wfile_t *W_Open( const char *filename, const char *mode )
 			wad->mode = O_APPEND;
 		}
 
-		if( FS_Read( wad->file, &header, sizeof(dwadinfo_t)) != sizeof(dwadinfo_t))
+		if( FS_Read( wad->file, &header, sizeof( dwadinfo_t )) != sizeof( dwadinfo_t ))
 		{
 			MsgDev( D_ERROR, "W_Open: %s can't read header\n", filename );
 			W_Close( wad );

@@ -648,7 +648,7 @@ BOOL CBaseMonster :: FRefreshRoute ( void )
 		case MOVEGOAL_PATHCORNER:
 			{
 				// monster is on a path_corner loop
-				pPathCorner = GetNext();
+				pPathCorner = m_pGoalEnt;
 				i = 0;
 
 				while ( pPathCorner && i < ROUTE_SIZE )

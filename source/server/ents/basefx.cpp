@@ -725,12 +725,23 @@ void CSprite::Move( void )
 	if ( pev->frags <= 0 )
 	{
 		// Fire the passtarget if there is one
-		UTIL_FireTargets(m_pGoalEnt->pev->target, this, this, USE_TOGGLE );
-		if ( FBitSet( m_pGoalEnt->pev->spawnflags, SF_FIREONCE ) ) m_pGoalEnt->pev->target = iStringNull;
-		if ( FBitSet( m_pGoalEnt->pev->spawnflags, SF_TELEPORT_TONEXT ) )
+		if ( m_pGoalEnt->pev->message )
+		{
+			UTIL_FireTargets( m_pGoalEnt->pev->message, this, this, USE_TOGGLE, 0 );
+			if ( FBitSet( m_pGoalEnt->pev->spawnflags, SF_CORNER_FIREONCE ) )
+				m_pGoalEnt->pev->message = 0;
+		}
+
+		if ( FBitSet( m_pGoalEnt->pev->spawnflags, SF_CORNER_TELEPORT ) )
 		{
 			m_pGoalEnt = m_pGoalEnt->GetNext();
-			if ( m_pGoalEnt ) UTIL_AssignOrigin( this, m_pGoalEnt->pev->origin); 
+			if ( m_pGoalEnt ) UTIL_AssignOrigin( this, m_pGoalEnt->pev->origin ); 
+		}
+
+		if ( FBitSet( m_pGoalEnt->pev->spawnflags, SF_CORNER_WAITFORTRIG ) )
+		{
+			TurnOff(); //wait for retrigger
+			return;
 		}
 		
 		// Time to go to the next target
@@ -740,13 +751,13 @@ void CSprite::Move( void )
 		if ( !m_pGoalEnt ) UTIL_SetVelocity( this, g_vecZero );
 		else
 		{
-			pev->target = m_pGoalEnt->pev->targetname; //save last corner
-			((CInfoPath *)m_pGoalEnt)->GetSpeed( &pev->armorvalue );
+			pev->target = m_pGoalEnt->pev->targetname; // save last corner
+			pev->armorvalue = m_pGoalEnt->pev->speed;
 
 			Vector delta = m_pGoalEnt->pev->origin - pev->origin;
 			pev->frags = delta.Length();
 			pev->movedir = delta.Normalize();
-			m_flDelay = gpGlobals->time + ((CInfoPath *)m_pGoalEnt)->GetDelay();
+			m_flDelay = gpGlobals->time + m_pGoalEnt->GetDelay();
 		}
 	}
 
@@ -844,16 +855,16 @@ void CEnvModel :: Spawn( void )
 {
 	Precache();
 	UTIL_SetModel( ENT(pev), pev->model );
-	UTIL_SetOrigin(this, pev->origin);
+	UTIL_SetOrigin( this, pev->origin );
 
-          pev->takedamage		= DAMAGE_NO;
-	if (!(pev->spawnflags & SF_NOTSOLID))
+          pev->takedamage = DAMAGE_NO;
+	if ( !( pev->spawnflags & SF_NOTSOLID ))
 	{
 		pev->solid = SOLID_SLIDEBOX;
 		UTIL_AutoSetSize();
 	}
 
-	if (pev->spawnflags & SF_DROPTOFLOOR)
+	if ( pev->spawnflags & SF_DROPTOFLOOR )
 	{
 		pev->origin.z += 1;
 		DROP_TO_FLOOR ( ENT(pev) );
@@ -945,7 +956,6 @@ void CDecLED :: Spawn( void )
 	UTIL_SetModel( ENT(pev), pev->model, "sprites/decimal.spr" );
           
 	// Smart Field System ©
-          if( !pev->renderamt ) pev->renderamt = 200; // light transparency
 	if( !pev->rendermode ) pev->rendermode = kRenderTransAdd;
 	if( !pev->frags ) pev->frags = Frames();
 	if( !pev->impulse ) pev->impulse = -1;

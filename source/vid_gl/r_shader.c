@@ -3467,9 +3467,9 @@ static ref_shader_t *Shader_CreateDefault( ref_shader_t *shader, int type, int a
 			break;
 		case kRenderTransAdd:
 			pass->flags |= SHADERSTAGE_BLEND_ADD;
-			pass->glState = GLSTATE_SRCBLEND_ONE_MINUS_SRC_ALPHA|GLSTATE_DSTBLEND_ONE;
+			pass->glState = (GLSTATE_SRCBLEND_SRC_ALPHA|GLSTATE_DSTBLEND_ONE);
+			pass->rgbGen.type = RGBGEN_IDENTITY_LIGHTING;	// models ignore color in 'add' mode
 			pass->alphaGen.type = ALPHAGEN_ENTITY;
-			pass->rgbGen.type = RGBGEN_ENTITY;
 			shader->sort = SORT_ADDITIVE;
 			break;
 		case kRenderTransAlpha:

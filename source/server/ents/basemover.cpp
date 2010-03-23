@@ -528,23 +528,24 @@ void CBaseDoor::DoorUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 				useType = USE_ON;
 			else useType = USE_OFF;
 		}
-		if(useType == USE_ON)
+		if ( useType == USE_ON )
 		{
-			if( m_iState == STATE_OFF )DoorGoUp();
+			if( m_iState == STATE_OFF )
+				DoorGoUp();
 		}
-		else if( useType == USE_OFF )
+		else if ( useType == USE_OFF )
 		{
 			if(m_iState == STATE_ON && pev->impulse) DoorGoDown();
 		}
-		else if( useType == USE_SET )
+		else if ( useType == USE_SET )
 		{
-			if(value)
+			if ( value )
 			{
 				m_flWait = value;
 				pev->impulse = 0;
 			}
 		}
-		else if( useType == USE_RESET )
+		else if ( useType == USE_RESET )
 		{
 			m_flWait = 0;
 			pev->impulse = 1;
@@ -1086,7 +1087,6 @@ LINK_ENTITY_TO_CLASS( func_water, CBasePlatform );
 LINK_ENTITY_TO_CLASS( func_platform, CBasePlatform );
 LINK_ENTITY_TO_CLASS( func_platform_rotating, CBasePlatform );
 
-
 //=======================================================================
 // 		   func_train (Classic QUAKE Train)
 //=======================================================================
@@ -1170,7 +1170,7 @@ BOOL CFuncTrain::FindNextPath( void )
 {
 	if( !pPath )
 	{
-		ALERT( at_console, "FindNextpath: failed\n" );
+		ALERT( at_error, "CFuncTrain::FindNextpath failed\n" );
 		return FALSE;
 	}
 
@@ -1181,7 +1181,6 @@ BOOL CFuncTrain::FindNextPath( void )
 	if( pNextPath && pNextPath->edict( )) // validate path
 	{
 		// record new value (this will be used after changelevel)
-		ALERT( at_console, "FindNextpath: %s\n", STRING( pNextPath->pev->targetname ));
 		pev->target = pNextPath->pev->targetname; 
 		return TRUE; // path found
 	}
@@ -1196,8 +1195,6 @@ BOOL CFuncTrain::FindNextPath( void )
 
 void CFuncTrain::UpdateSpeed( float value )
 {
-	ALERT( at_console, "CFuncTrain::UpdateSpeed()\n" );
-
 	// update path if dir changed
 	if(( value > 0 && pev->speed < 0 ) || ( value < 0 && pev->speed > 0 ) || value == 0 )
 	{
@@ -1230,7 +1227,6 @@ void CFuncTrain::OverrideReset( void )
 
 void CFuncTrain :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	ALERT( at_console, "Call train %s with %s and value %g\n", STRING( pev->targetname ), GetStringForUseType( useType ), value );
 	m_hActivator = pActivator;
 
 	if ( useType == USE_TOGGLE )
@@ -1263,8 +1259,6 @@ void CFuncTrain :: Next( void )
 {
 	if( !FindNextPath( )) return;
 
-	ALERT( at_console, "CFuncTrain :: Next()\n" );
-
 	// linear move to next corner.
 	if ( m_iState == STATE_OFF ) // enable train sound
 	{
@@ -1275,7 +1269,7 @@ void CFuncTrain :: Next( void )
 	ClearBits( pev->effects, EF_NOINTERP ); // enable interpolation
 	m_iState = STATE_ON;
 
-	if( pev->speed < 0 && FBitSet( pNextPath->pev->spawnflags, SF_TELEPORT_TONEXT ))
+	if( pev->speed < 0 && FBitSet( pNextPath->pev->spawnflags, SF_CORNER_TELEPORT ))
 	{
 		SetBits( pev->effects, EF_NOINTERP );
 		if ( m_pParent ) UTIL_AssignOrigin( this, pNextPath->pev->origin - m_pParent->pev->origin );
@@ -1300,7 +1294,7 @@ void CFuncTrain :: Next( void )
 
 BOOL CFuncTrain :: Teleport( void )
 {
-	if( FBitSet( pNextPath->pev->spawnflags, SF_TELEPORT_TONEXT ))
+	if( FBitSet( pNextPath->pev->spawnflags, SF_CORNER_TELEPORT ))
 	{
 		SetBits(pev->effects, EF_NOINTERP);
 
@@ -1345,7 +1339,7 @@ void CFuncTrain :: UpdateTargets( void )
 	if( !pNextPath || !pNextPath->edict() ) return;
 
 	UTIL_FireTargets( pNextPath->pev->message, this, this, USE_TOGGLE );
-	if ( FBitSet( pNextPath->pev->spawnflags, SF_TRACK_FIREONCE ))
+	if ( FBitSet( pNextPath->pev->spawnflags, SF_CORNER_FIREONCE ))
 		pNextPath->pev->message = iStringNull;
 	UTIL_FireTargets( pev->netname, this, this, USE_TOGGLE );
 }
@@ -1355,12 +1349,10 @@ BOOL CFuncTrain :: Stop( float flWait )
 	if( flWait == 0 ) return FALSE;
 	m_iState = STATE_OFF;
 
-	ALERT( at_console, "CFuncTrain::Stop()\n" );
-
 	if( pPath && pPath->edict() )
 	{
 		UTIL_FireTargets( pPath->pev->message, this, this, USE_TOGGLE );
-		if ( FBitSet( pPath->pev->spawnflags, SF_TRACK_FIREONCE ))
+		if ( FBitSet( pPath->pev->spawnflags, SF_CORNER_FIREONCE ))
 			pPath->pev->message = iStringNull;
 		UTIL_FireTargets( pev->netname, this, this, USE_TOGGLE );
 	} 
@@ -1389,9 +1381,10 @@ void CFuncTrain :: Blocked( CBaseEntity *pOther )
 	if ( gpGlobals->time < m_flBlockedTime) return;
 	m_flBlockedTime = gpGlobals->time + 0.5;
 
-	if(m_pParent && m_pParent->edict() && pFlags & PF_PARENTMOVE) m_pParent->Blocked( pOther);
+	if( m_pParent && m_pParent->edict() && pFlags & PF_PARENTMOVE )
+		m_pParent->Blocked( pOther );
 	pOther->TakeDamage( pev, pev, 1, DMG_CRUSH );
-	STOP_SOUND(ENT(pev), CHAN_STATIC, (char*)STRING(pev->noise));
+	STOP_SOUND( edict(), CHAN_STATIC, STRING( pev->noise ));
 	ASSERT(m_iState == STATE_ON);
 
 	Stop( 0.5 );

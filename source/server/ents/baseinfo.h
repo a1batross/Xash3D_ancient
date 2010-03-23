@@ -33,8 +33,9 @@ private:
 #define SPEED_MULTIPLY	3
 #define SPEED_DIVIDE	4
 
-#define SF_TELEPORT_TONEXT	0x2
-#define SF_TRACK_FIREONCE	0x4
+#define SF_CORNER_WAITFORTRIG	0x1
+#define SF_CORNER_TELEPORT	0x2
+#define SF_CORNER_FIREONCE	0x4
 
 class CInfoPath : public CBaseLogic
 {

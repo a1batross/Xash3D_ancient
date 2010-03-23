@@ -435,6 +435,8 @@ typedef struct
 	int		vertexState;
 	int		drawMode;
 	rgba_t		color;
+	vec3_t		lightingOrigin;
+	vec3_t		mins, maxs;	// for compute lightbounds
 
 	// linear fog stuff
 	vec4_t		fogColor;

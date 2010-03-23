@@ -155,5 +155,4 @@ public:
 	
 	CBaseEntity	*pPath, *pNextPath;
 };
-
 #endif //BASEMOVER_H

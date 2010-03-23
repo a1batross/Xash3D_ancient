@@ -360,6 +360,8 @@ LINK_ENTITY_TO_CLASS( func_conveyor, CFuncConveyor );
 
 void CFuncConveyor :: Spawn( void )
 {
+	SetObjectClass( ED_BSPBRUSH );
+
 	CBaseBrush::Spawn();
 	UTIL_LinearVector( this ); // movement direction
 

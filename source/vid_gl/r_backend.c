@@ -1666,10 +1666,17 @@ void R_ModifyColor( const ref_stage_t *pass )
 			if( RI.currententity && !( RI.params & RP_SHADOWMAPVIEW ) )
 			{
 				vec4_t diffuse;
+				vec3_t lightingOrigin;
+
+				if( RI.currententity )
+					VectorCopy( RI.currententity->lightingOrigin, lightingOrigin );
+                                        else if( triState.fActive )
+					VectorCopy( triState.lightingOrigin, lightingOrigin );
+				else VectorClear( lightingOrigin );	// FIXME: MB_POLY
 
 				if( RI.currententity->flags & EF_FULLBRIGHT || !r_worldbrushmodel->lightgrid )
 					VectorSet( diffuse, 1, 1, 1 );
-				else R_LightForOrigin( RI.currententity->lightingOrigin, t, NULL, diffuse, RI.currentmodel->radius * RI.currententity->scale );
+				else R_LightForOrigin( lightingOrigin, t, NULL, diffuse, RI.currentmodel->radius * RI.currententity->scale );
 
 				rgba[0] = R_FloatToByte( diffuse[0] );
 				rgba[1] = R_FloatToByte( diffuse[1] );
@@ -1683,10 +1690,17 @@ void R_ModifyColor( const ref_stage_t *pass )
 			if( RI.currententity && !( RI.params & RP_SHADOWMAPVIEW ))
 			{
 				vec4_t ambient;
+				vec3_t lightingOrigin;
+
+				if( RI.currententity )
+					VectorCopy( RI.currententity->lightingOrigin, lightingOrigin );
+                                        else if( triState.fActive )
+					VectorCopy( triState.lightingOrigin, lightingOrigin );
+				else VectorClear( lightingOrigin );	// FIXME: MB_POLY
 
 				if( RI.currententity->flags & EF_FULLBRIGHT || !r_worldbrushmodel->lightgrid )
 					VectorSet( ambient, 1.0f, 1.0f, 1.0f );
-				else R_LightForOrigin( RI.currententity->lightingOrigin, t, ambient, NULL, RI.currentmodel->radius * RI.currententity->scale );
+				else R_LightForOrigin( lightingOrigin, t, ambient, NULL, RI.currentmodel->radius * RI.currententity->scale );
 
 				rgba[0] = R_FloatToByte( ambient[0] );
 				rgba[1] = R_FloatToByte( ambient[1] );

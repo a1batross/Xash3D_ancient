@@ -98,10 +98,10 @@ void CBaseEntity :: ThinkCorrection( void )
 //=======================================================================
 void CBaseEntity :: SetParent( int m_iNewParent, int m_iAttachment )
 {
-	if(!m_iNewParent) //unlink entity from chain
+	if( !m_iNewParent ) // unlink entity from chain
 	{
                     ResetParent();
-		return;//disable
+		return;
           }
 
 	CBaseEntity* pParent;
@@ -132,35 +132,35 @@ void CBaseEntity :: SetParent( CBaseEntity* pParent, int m_iAttachment )
 {
 	m_pParent = pParent;
 
-	if(!m_pParent)
+	if( !m_pParent )
 	{
-		Msg("=========/Xash Parent System Info:/=========\n");
+		ALERT( at_console, "=========/Xash Parent System Info:/=========\n" );
 		if( pev->targetname )
-			ALERT( at_warning, "Not found parent for %s with name %s\n", STRING(pev->classname), STRING(pev->targetname) );
-		else ALERT( at_warning, "Not found parent for %s\n", STRING(pev->classname) );
-		SHIFT;
-		ResetParent();//lose parent or not found parent
+			ALERT( at_warning, "Not found parent for %s with name %s\n", STRING( pev->classname ), STRING( pev->targetname ));
+		else ALERT( at_warning, "Not found parent for %s\n", STRING( pev->classname ));
+		ResetParent(); // lose parent or not found parent
 		return;
 	}
 
-	//check for himself parent
-	if(m_pParent == this) 
+	// check for himself parent
+	if( m_pParent == this ) 
 	{
-		ALERT(at_console, "=========/Xash Parent System Info:/=========\n");
-		if(pev->targetname) Msg( "ERROR! %s with name %s has illegal parent\n", STRING(pev->classname), STRING(pev->targetname) );
-		else		Msg( "ERROR! %s has illegal parent\n", STRING(pev->classname) );
+		ALERT( at_console, "=========/Xash Parent System Info:/=========\n");
+		if( pev->targetname ) ALERT( at_error, "%s with name %s has illegal parent\n", STRING(pev->classname), STRING(pev->targetname) );
+		else ALERT( at_error, "%s has illegal parent\n", STRING(pev->classname) );
 		SHIFT;
 		ResetParent();//clear parent
 		return;
 	}
 	
 	CBaseEntity *pCurChild = m_pParent->m_pChild;
-	while (pCurChild) //check that this entity isn't already in the list of children
+	while ( pCurChild ) //check that this entity isn't already in the list of children
 	{
-		if (pCurChild == this) break;
+		if( pCurChild == this ) break;
 		pCurChild = pCurChild->m_pNextChild;
 	}
-	if(!pCurChild)
+
+	if( !pCurChild )
 	{
 		m_pNextChild = m_pParent->m_pChild; // may be null: that's fine by me.
 		m_pParent->m_pChild = this;
@@ -248,16 +248,19 @@ void CBaseEntity :: ResetParent( void )
 		}
 	}
 
-	if (m_pParent)
+	if ( m_pParent )
 	{
 		pTemp = m_pParent->m_pChild;
 
-		if (pTemp == this)m_pParent->m_pChild = this->m_pNextChild;
+		if ( pTemp == this )
+		{
+			m_pParent->m_pChild = this->m_pNextChild;
+		}
 		else
 		{
-			while (pTemp->m_pNextChild)
+			while ( pTemp->m_pNextChild )
 			{
-				if (pTemp->m_pNextChild == this)
+				if ( pTemp->m_pNextChild == this )
 				{
 					pTemp->m_pNextChild = this->m_pNextChild;
 					break;

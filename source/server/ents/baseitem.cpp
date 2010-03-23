@@ -89,7 +89,7 @@ void CItem::ItemFall ( void )
 		// don't clatter if the item is waiting to respawn (if it's waiting, it is invisible!)
 		if ( !FNullEnt( pev->owner )) 
 		{
-			EMIT_SOUND(ENT(pev), CHAN_ITEM, (char *)FallSound(), 1, ATTN_NORM);
+			EMIT_SOUND( ENT( pev ), CHAN_ITEM, (char *)FallSound(), 1, ATTN_NORM);
                     	ItemOnGround(); //do somewhat if needed
 		}
 		

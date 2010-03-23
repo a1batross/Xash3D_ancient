@@ -913,7 +913,7 @@ void CTriggerCamera :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_T
 void CTriggerCamera::Move( void )
 {
 	// Not moving on a path, return
-	if ( !m_pGoalEnt ) return;
+	if (!m_pGoalEnt) return;
 
 	// Subtract movement from the previous frame
 	pev->frags -= pev->speed * gpGlobals->frametime;
@@ -922,12 +922,21 @@ void CTriggerCamera::Move( void )
 	if ( pev->frags <= 0 )
 	{
 		// Fire the passtarget if there is one
-		UTIL_FireTargets(m_pGoalEnt->pev->target, this, this, USE_TOGGLE );
-		if ( FBitSet( m_pGoalEnt->pev->spawnflags, SF_FIREONCE ) ) m_pGoalEnt->pev->target = iStringNull;
-		if ( FBitSet( m_pGoalEnt->pev->spawnflags, SF_TELEPORT_TONEXT ) )
+		if ( m_pGoalEnt->pev->message )
+		{
+			UTIL_FireTargets( m_pGoalEnt->pev->message, this, this, USE_TOGGLE, 0 );
+			if ( FBitSet( m_pGoalEnt->pev->spawnflags, SF_CORNER_FIREONCE ) )
+				m_pGoalEnt->pev->message = 0;
+		}
+
+		if ( FBitSet( m_pGoalEnt->pev->spawnflags, SF_CORNER_TELEPORT ) )
 		{
 			m_pGoalEnt = m_pGoalEnt->GetNext();
-			if ( m_pGoalEnt ) UTIL_AssignOrigin( this, m_pGoalEnt->pev->origin); 
+			if ( m_pGoalEnt ) UTIL_AssignOrigin( this, m_pGoalEnt->pev->origin ); 
+		}
+		if ( FBitSet( m_pGoalEnt->pev->spawnflags, SF_CORNER_WAITFORTRIG ) )
+		{
+			//strange feature...
 		}
 		
 		// Time to go to the next target
@@ -937,13 +946,13 @@ void CTriggerCamera::Move( void )
 		if ( !m_pGoalEnt ) UTIL_SetVelocity( this, g_vecZero );
 		else
 		{
-			pev->target = m_pGoalEnt->pev->targetname; //save last corner
-			((CInfoPath *)m_pGoalEnt)->GetSpeed( &pev->armorvalue );
+			pev->message = m_pGoalEnt->pev->targetname; //save last corner
+			pev->armorvalue = m_pGoalEnt->pev->speed;
 
 			Vector delta = m_pGoalEnt->pev->origin - pev->origin;
 			pev->frags = delta.Length();
 			pev->movedir = delta.Normalize();
-			m_flDelay = gpGlobals->time + ((CInfoPath *)m_pGoalEnt)->GetDelay();
+			m_flDelay = gpGlobals->time + m_pGoalEnt->GetDelay();
 		}
 	}
 
@@ -954,7 +963,7 @@ void CTriggerCamera::Move( void )
 	if( !pTarget ) UTIL_WatchTarget( this, m_pGoalEnt ); // watch for track
 
 	float fraction = 2 * gpGlobals->frametime;
-	UTIL_SetVelocity( this, ((pev->movedir * pev->speed) * fraction) + (pev->velocity * ( 1.0f - fraction )));
+	UTIL_SetVelocity( this, ((pev->movedir * pev->speed) * fraction) + (pev->velocity * ( 1 - fraction )));
 }
 
 void CTriggerCamera::TurnOff( void )

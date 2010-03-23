@@ -29,3 +29,54 @@ Xash 0.71 Beta 05.05.10
 5. revision server physic
 6. revision monster moving
 7. reborn Xash 0.4 Source Code
+8. completely finalize Save\restore & Changelevel
+
+
+
+Loading level:
+
+ResetGlobalState()
+
+while( 1 )
+{
+	DispatchKeyValue
+	DispatchSpawn
+}
+
+ServerActivate()
+ClientConnect()
+
+-------------------------------------------------------
+Changing level:
+
+CHANGE LEVEL: c1a0 c1a0toc1a0d
+
+while( 1 )
+{
+	DispatchSave
+}
+
+ServerDeactivate()
+Spawn Server c1a0: [c1a0toc1a0d]
+
+Loading game from D:\hl1\phys\SAVE\c1a0.HL1...
+ERROR: couldn't open.
+
+while( 1 )
+{
+	DispatchKeyValue
+	DispatchSpawn
+}
+
+Loading game from D:\hl1\phys\SAVE\c0a0e.HL1...	// connected level
+ERROR: couldn't open.
+
+Loading game from D:\hl1\phys\SAVE\c1a0d.HL1...	// globals from previous level
+
+Transferring player (1)
+
+Merging changes for global: func_door
+DispatchRestore: func_door [0] Global Yes
+
+ServerActivate()
+ClientConnect()

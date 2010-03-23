@@ -2155,6 +2155,9 @@ void R_BeginRegistration( const char *mapname, const dvis_t *visData )
 
 	com.strncpy( fullname, mapname, MAX_STRING );
 
+	// now replacement table is invalidate
+	Mem_Set( cl_models, 0, sizeof( cl_models ));
+
 	// explicitly free the old map if different
 	if( com.strcmp( r_models[0].name, fullname ))
 	{

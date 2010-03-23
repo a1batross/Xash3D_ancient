@@ -387,26 +387,26 @@ bool Cmd_GetSoundList( const char *s, char *completedname, int length )
 	int		i, numsounds;
 	const char	*snddir = "sound/"; // constant
 
-	t = FS_Search(va("%s%s*.*", snddir, s ), true);
-	if(!t) return false;
+	t = FS_Search( va( "%s%s*.*", snddir, s ), true );
+	if( !t ) return false;
 
-	com.strncpy( matchbuf, t->filenames[0] + com.strlen(snddir), MAX_STRING ); 
+	com.strncpy( matchbuf, t->filenames[0] + com.strlen( snddir ), MAX_STRING ); 
 	FS_StripExtension( matchbuf ); 
 	if( completedname && length ) com.strncpy( completedname, matchbuf, length );
-	if(t->numfilenames == 1) return true;
+	if( t->numfilenames == 1 ) return true;
 
 	for(i = 0, numsounds = 0; i < t->numfilenames; i++)
 	{
 		const char *ext = FS_FileExtension( t->filenames[i] ); 
 
-		if(com.stricmp(ext, "wav") && com.stricmp(ext, "ogg")) continue;
+		if( com.stricmp( ext, "wav" ) && com.stricmp( ext, "ogg" )) continue;
 		com.strncpy( matchbuf, t->filenames[i] + com.strlen(snddir), MAX_STRING ); 
 		FS_StripExtension( matchbuf );
-		Msg("%16s\n", matchbuf );
+		Msg( "%16s\n", matchbuf );
 		numsounds++;
 	}
-	Msg("\n^3 %i sounds found.\n", numsounds );
-	Mem_Free(t);
+	Msg( "\n^3 %i sounds found.\n", numsounds );
+	Mem_Free( t );
 
 	// cut shortestMatch to the amount common with s
 	if( completedname && length )

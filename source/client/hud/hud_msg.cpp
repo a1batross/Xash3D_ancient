@@ -387,7 +387,7 @@ int CHud :: MsgFunc_Particle( const char *pszName,  int iSize, void *pbuf )
 {
 	BEGIN_READ( pszName, iSize, pbuf );
 
-	int idx = READ_BYTE();
+	int idx = READ_SHORT();
 	char *sz = READ_STRING();
 
 	CreateAurora( idx, sz );

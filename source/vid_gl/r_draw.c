@@ -210,6 +210,13 @@ static mesh_t		tri_mesh;
 static bool		tri_caps[3];
 meshbuffer_t		tri_mbuffer;
 tristate_t		triState;
+
+static void Tri_ClearBounds( void )
+{
+	// clear bounds that uses for polygon lighting
+	VectorClear( triState.lightingOrigin );
+	ClearBounds( triState.mins, triState.maxs );
+}
 	
 static void Tri_DrawPolygon( void )
 {
@@ -234,6 +241,9 @@ static void Tri_DrawPolygon( void )
 			Vector4Copy( tri_colors[0], tri_colors[i+1] );
 	}
 
+	// compute lightingOrigin
+	VectorAverage( triState.mins, triState.maxs, triState.lightingOrigin );	
+
 	tri_mesh.xyzArray = tri_vertex;
 	tri_mesh.stArray = tri_coords;
 	tri_mesh.colorsArray[0] = tri_colors;
@@ -245,6 +255,7 @@ static void Tri_DrawPolygon( void )
 		{
 			tri_mbuffer.infokey = -1;
 			R_RenderMeshBuffer( &tri_mbuffer );
+			Tri_ClearBounds();
 		}
 	}
 
@@ -259,15 +270,6 @@ static void Tri_DrawPolygon( void )
 
 	if( triState.noCulling )
 		triState.features |= MF_NOCULL;
-
-	if( tri_mbuffer.shaderkey != shader->sortkey || -tri_mbuffer.infokey-1+4 > MAX_TRIVERTS )
-	{
-		if( tri_mbuffer.shaderkey )
-		{
-			tri_mbuffer.infokey = -1;
-			R_RenderMeshBuffer( &tri_mbuffer );
-		}
-	}
 
 	// upload video right before rendering
 	if( shader->flags & SHADER_VIDEOMAP )
@@ -286,6 +288,7 @@ static void Tri_DrawPolygon( void )
 		{
 			tri_mbuffer.infokey = -1;
 			R_RenderMeshBuffer( &tri_mbuffer );
+			Tri_ClearBounds();
 		}
 		oldframe = glState.draw_frame;
 	}
@@ -435,6 +438,9 @@ void Tri_Vertex3f( const float x, const float y, const float z )
 	tri_vertex[triState.numVertex][2] = z;
 	tri_vertex[triState.numVertex][3] = 1;
 
+	// for compute lighting origin
+	AddPointToBounds( tri_vertex[triState.numVertex], triState.mins, triState.maxs );
+
 	triState.numVertex++;
 
 	// flush buffer if needed
@@ -523,7 +529,8 @@ void Tri_RenderCallback( int fTrans )
 	triState.fActive = true;
 
 	if( fTrans ) GL_SetState( GLSTATE_NO_DEPTH_TEST );
-	R_LoadIdentity();
+	R_LoadIdentity ();
+	Tri_ClearBounds ();
 
 	pglColor4f( 1, 1, 1, 1 );
 

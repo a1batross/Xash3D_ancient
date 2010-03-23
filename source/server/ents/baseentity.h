@@ -62,12 +62,12 @@ public:
 	void SetParent ( CBaseEntity* pParent, int m_iAttachment = 0 );
 	void ResetParent( void );
 
-	virtual void SetupPhysics( void );//setup parent system and physics
+	virtual void SetupPhysics( void );	// setup parent system and physics
 
-	CBaseEntity *m_pParent;	//pointer to parent entity
-	CBaseEntity *m_pChild;	//pointer to children(may be this)
-	CBaseEntity *m_pNextChild;	//link to next chlidren
-	CBaseEntity *m_pLinkList;	//list of linked childrens
+	CBaseEntity *m_pParent;		// pointer to parent entity
+	CBaseEntity *m_pChild;		// pointer to children(may be this)
+	CBaseEntity *m_pNextChild;		// link to next chlidren
+	CBaseEntity *m_pLinkList;		// list of linked childrens
 	
 	string_t m_iParent;//name of parent
 	virtual void SetNextThink( float delay, BOOL correctSpeed = FALSE );

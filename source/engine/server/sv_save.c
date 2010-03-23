@@ -600,7 +600,8 @@ void SV_ReadEntities( wfile_t *l )
 			Msg( "%s get level flags: %x\n", sv.name, level_flags );
 			com.strcpy( pSaveData->szCurrentMap, pList->mapName );
 			com.strcpy( pSaveData->szLandmarkName, pList->landmarkName );
-			VectorCopy( pSaveData->vecLandmarkOffset, pList->vecLandmarkOrigin );
+			VectorCopy( pList->vecLandmarkOrigin, pSaveData->vecLandmarkOffset );
+			pSaveData->fUseLandmark = true;
 			pSaveData->time = shdr.time;
 		}
 	}
@@ -726,6 +727,7 @@ void SV_ReadSaveFile( const char *name )
 
 	com.sprintf( path, "save/%s.sav", name );
 	savfile = WAD_Open( path, "rb" );
+	Msg( "SV_ReadSaveFile( %s )\n", path );
 
 	if( !savfile )
 	{
@@ -785,6 +787,7 @@ void SV_MergeLevelFile( const char *name )
 
 	com.sprintf( path, "save/%s.sav", name );
 	savfile = WAD_Open( path, "rb" );
+	Msg( "SV_ReadSaveFile( %s )\n", path );
 
 	if( !savfile )
 	{
@@ -806,7 +809,7 @@ void SV_ChangeLevel( bool bUseLandmark, const char *mapname, const char *start )
 	string	level;
 	string	oldlevel;
 	string	_startspot;
-	char	*startspot;
+	char	*startspot, *savename;
 
 	if( sv.state != ss_active )
 	{
@@ -821,8 +824,13 @@ void SV_ChangeLevel( bool bUseLandmark, const char *mapname, const char *start )
 	{
 		com.strncpy( _startspot, start, MAX_STRING );
 		startspot = _startspot;
+		savename = _startspot;
 	}
-	else startspot = NULL;
+	else
+	{
+		startspot = NULL;
+		savename = level;
+	}
 
 	com.strncpy( level, mapname, MAX_STRING );
 	com.strncpy( oldlevel, sv.name, MAX_STRING );
@@ -831,7 +839,15 @@ void SV_ChangeLevel( bool bUseLandmark, const char *mapname, const char *start )
 	// so transfer client weapons and env_global states
 	SV_WriteSaveFile( level, true, bUseLandmark );
 
-	SV_SpawnServer( mapname, startspot );
+	SV_BroadcastCommand( "reconnect\n" );
+
+	SV_SendClientMessages();
+
+	SV_DeactivateServer ();
+
+	svs.spawncount = Com_RandomLong( 0, 65535 );
+
+	SV_SpawnServer( level, startspot );
 
 	SV_LevelInit( level, oldlevel, level );
 

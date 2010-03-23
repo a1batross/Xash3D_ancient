@@ -218,6 +218,7 @@ void SV_DeactivateServer( void )
 {
 	SV_FreeEdicts ();
 	sv.paused = false;
+	sv.state = ss_dead;
 
 	// leave unchanged, because we wan't load it twice
 	if( !sv.loadgame ) StringTable_Clear( svgame.hStringTable );
@@ -246,6 +247,7 @@ void SV_LevelInit( const char *newmap, const char *oldmap, const char *savename 
 	}
 	else if( sv.changelevel )
 	{
+//		SV_SpawnEntities( newmap, CM_GetEntityScript( ));
 		SV_ReadSaveFile( savename );	// initialize StringTable and globals
 		SV_MergeLevelFile( savename );// combine moveable entities with newmap
 	}
@@ -265,13 +267,14 @@ void SV_SpawnServer( const char *server, const char *startspot )
 {
 	uint	i, checksum;
 	int	current_skill;
-	int	loadgame, changelevel;
+	bool	loadgame, changelevel;
+	edict_t	*ent;
 
 	Msg( "SpawnServer [^2%s^7]\n", server );
 
 	Cmd_ExecuteString( "latch\n" );
 
-	if( sv.state == ss_dead && !sv.loadgame )
+	if( sv.state == ss_dead && !sv.loadgame && !sv.changelevel )
 		SV_InitGame(); // the game is just starting
 
 	SV_BroadcastCommand( "changing\n" );
@@ -306,9 +309,14 @@ void SV_SpawnServer( const char *server, const char *startspot )
 	// leave slots at start for clients only
 	for( i = 0; i < sv_maxclients->integer; i++ )
 	{
+		ent = EDICT_NUM( i + 1 );
+		ent->serialnumber = i + 1;
+		svs.clients[i].edict = ent;
+
 		// needs to reconnect
 		if( svs.clients[i].state > cs_connected )
 			svs.clients[i].state = cs_connected;
+		Mem_Set( &svs.clients[i].lastcmd, 0, sizeof( svs.clients[i].lastcmd ));
 		svs.clients[i].lastframe = -1;
 	}
 
@@ -358,8 +366,7 @@ A brand new game has been started
 */
 void SV_InitGame( void )
 {
-	char	i, idmaster[32];
-	edict_t	*ent;
+	string	idmaster;
 	
 	if( svs.initialized )
 	{
@@ -433,14 +440,6 @@ void SV_InitGame( void )
 	svs.last_heartbeat = MAX_HEARTBEAT; // send immediately
 	com.sprintf( idmaster, "192.246.40.37:%i", PORT_MASTER );
 	NET_StringToAdr( idmaster, &master_adr[0] );
-
-	for( i = 0; i < sv_maxclients->integer; i++ )
-	{
-		ent = EDICT_NUM( i + 1 );
-		ent->serialnumber = i + 1;
-		svs.clients[i].edict = ent;
-		Mem_Set( &svs.clients[i].lastcmd, 0, sizeof( svs.clients[i].lastcmd ));
-	}
 }
 
 bool SV_Active( void )

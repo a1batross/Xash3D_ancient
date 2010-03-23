@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "te_shared.h"
+#include "event_api.h"
 #include "shake.h"
 
 #ifndef ACTIVITY_H
@@ -692,6 +693,7 @@ void EMIT_GROUPNAME_SUIT(edict_t *entity, const char *groupname);
 
 #define PLAYBACK_EVENT( flags, who, index ) PLAYBACK_EVENT_FULL( flags, who, index, 0, (float *)&g_vecZero, (float *)&g_vecZero, 0.0, 0.0, 0, 0, 0, 0 );
 #define PLAYBACK_EVENT_DELAY( flags, who, index, delay ) PLAYBACK_EVENT_FULL( flags, who, index, delay, (float *)&g_vecZero, (float *)&g_vecZero, 0.0, 0.0, 0, 0, 0, 0 );
+#define PLAYBACK_EVENT_FULL UTIL_PlaybackEvent
 
 #define GROUP_OP_AND	0
 #define GROUP_OP_NAND	1
@@ -793,15 +795,6 @@ void COM_FreeFile (char *buffer);
 #define PF_ANGULAR		(1<<11)		//parent has angular moving
 #define PF_POSTORG		(1<<12)		//this entity MUST changed origin only
 #define PF_LINKCHILD	(PF_AFFECT|PF_DESIRED|PF_MERGEPOS|PF_POSTORG)
-
-//new system flags
-#define EFL_DIRTY_ABSTRANSFORM (1<<13)
-#define EFL_DIRTY_ABSVELOCITY (1<<14)
-#define EFL_DIRTY_ABSANGVELOCITY (1<<15)
-
-#define POSITION_CHANGED	0x1
-#define ANGLES_CHANGED	0x2
-#define VELOCITY_CHANGED	0x4
 
 BOOL FClassnameIs(CBaseEntity *pEnt, const char* szClassname);
 

@@ -322,6 +322,8 @@ extern int gl_filter_min, gl_filter_max;
 #define MAX_RSPEEDSMSGSIZE	1024
 extern char r_speeds_msg[MAX_RSPEEDSMSGSIZE];
 
+extern ref_model_t *cl_models[MAX_MODELS];
+
 extern float gldepthmin, gldepthmax;
 
 //

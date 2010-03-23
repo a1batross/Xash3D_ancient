@@ -1227,12 +1227,8 @@ void UpdateEntityState( entity_state_t *to, edict_t *from, int baseline )
 	{
 		to->body = DirToBits( pNet->pev->movedir );
 
-		if( pNet->pev->movetype == MOVETYPE_CONVEYOR || pNet->pev->flags & FL_CONVEYOR )
-		{
-			// this is conveyor - send speed to render for right texture scrolling
-			to->framerate = pNet->pev->speed;
-		}
-		else to->framerate = 0.0f; // don't let texture moving
+		// this is conveyor - send speed to render for right texture scrolling
+		to->framerate = pNet->pev->speed;
 	}
 	else if( to->ed_type == ED_BEAM )
 	{

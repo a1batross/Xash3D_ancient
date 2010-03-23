@@ -664,6 +664,9 @@ void CM_BeginRegistration( const char *name, bool clientload, uint *checksum )
 	bool		xreal_bsp;
 	bool		raven_bsp;
 
+	// now replacement table is invalidate
+	Mem_Set( sv_models, 0, sizeof( sv_models ));
+
 	if( !com.strlen( name ))
 	{
 		CM_FreeWorld(); // release old map

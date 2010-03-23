@@ -47,6 +47,7 @@ typedef struct
 
 	int		fognum;
 	vec3_t		normal;
+	vec3_t		lightingOrigin;
 } poly_t;
 
 typedef struct

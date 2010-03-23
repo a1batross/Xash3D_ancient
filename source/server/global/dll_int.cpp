@@ -337,11 +337,6 @@ int DispatchRestore( edict_t *pent, SAVERESTOREDATA *pSaveData, int globalEntity
 
 		}
 
-		if( FClassnameIs( &pent->v, "trigger_camera" ))
-		{
-			ALERT( at_console, "pev->nextthink is %g\n", tmpVars.nextthink );
-		}
-
 		if ( pEntity->ObjectCaps() & FCAP_MUST_SPAWN )
 		{
 			pEntity->Restore( restoreHelper );

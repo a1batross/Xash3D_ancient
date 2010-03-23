@@ -16,7 +16,6 @@
 #include "baseweapon.h"
 #include "gamerules.h"
 #include "client.h"
-#include "event_api.h"
 
 FILE_GLOBAL char st_szNextMap[MAP_MAX_NAME];
 FILE_GLOBAL char st_szNextSpot[MAP_MAX_NAME];
@@ -1189,7 +1188,7 @@ void UTIL_SetAurora( CBaseEntity *pAttach, int aur, int attachment )
 	if( FNullEnt( pAttach )) return;
 
 	MESSAGE_BEGIN( MSG_ALL, gmsg.Particle );
-		WRITE_BYTE( pAttach->entindex() );
+		WRITE_SHORT( pAttach->entindex() );
 		WRITE_STRING( STRING( aur ));
 	MESSAGE_END();
 }

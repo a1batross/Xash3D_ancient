@@ -614,8 +614,8 @@ void CAmbientGeneric :: ToggleUse ( CBaseEntity *pActivator, CBaseEntity *pCalle
 		if ( (m_fActive && useType == USE_ON) || (!m_fActive && useType == USE_OFF) )
 			return;
 	}
-	// Directly change pitch if arg passed. Only works if sound is already playing.
 
+	// Directly change pitch if arg passed. Only works if sound is already playing.
 	if (useType == USE_SET && m_fActive)		// Momentary buttons will pass down a float in here
 	{
 
@@ -729,6 +729,7 @@ void CAmbientGeneric :: ToggleUse ( CBaseEntity *pActivator, CBaseEntity *pCalle
 				
 		if (m_pPlayFrom)
 		{
+
 			EMIT_SOUND_DYN( m_pPlayFrom, m_iChannel, szSoundFile, //LRC
 					(m_dpv.vol * 0.01), m_flAttenuation, 0, m_dpv.pitch);
 		}
