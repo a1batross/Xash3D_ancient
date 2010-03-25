@@ -562,6 +562,10 @@ SAVE FILE
 included global, and both (client & server) pent list
 ==============================================================================
 */
+#define SAVEFILE_HEADER	(('V'<<24)+('L'<<16)+('A'<<8)+'V')	// little-endian "VALV"
+#define SAVEGAME_HEADER	(('V'<<24)+('A'<<16)+('S'<<8)+'J')	// little-endian "JSAV"
+#define SAVEGAME_VERSION	0x0071				// Version 0.71
+
 #define LUMP_CFGSTRING	"configstrings"
 #define LUMP_AREASTATE	"areaportals"
 #define LUMP_BASEENTS	"entities"	// entvars + CBase->fields

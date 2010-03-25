@@ -1,0 +1,233 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: engine - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP17A3.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "common" /I "server" /I "client" /I "uimenu" /I "../public" /I "../common" /I "../pm_shared" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\engine\!debug/" /Fo"..\temp\engine\!debug/" /Fd"..\temp\engine\!debug/" /FD /c 
+"D:\Xash3D\src_main\engine\build.c"
+"D:\Xash3D\src_main\engine\common\cinematic.c"
+"D:\Xash3D\src_main\engine\client\cl_cmds.c"
+"D:\Xash3D\src_main\engine\client\cl_demo.c"
+"D:\Xash3D\src_main\engine\client\cl_effects.c"
+"D:\Xash3D\src_main\engine\client\cl_frame.c"
+"D:\Xash3D\src_main\engine\client\cl_game.c"
+"D:\Xash3D\src_main\engine\client\cl_main.c"
+"D:\Xash3D\src_main\engine\client\cl_move.c"
+"D:\Xash3D\src_main\engine\client\cl_parse.c"
+"D:\Xash3D\src_main\engine\client\cl_phys.c"
+"D:\Xash3D\src_main\engine\client\cl_scrn.c"
+"D:\Xash3D\src_main\engine\client\cl_tent.c"
+"D:\Xash3D\src_main\engine\client\cl_video.c"
+"D:\Xash3D\src_main\engine\client\cl_view.c"
+"D:\Xash3D\src_main\engine\client\cl_world.c"
+"D:\Xash3D\src_main\engine\common\com_keys.c"
+"D:\Xash3D\src_main\engine\common\com_library.c"
+"D:\Xash3D\src_main\engine\common\com_world.c"
+"D:\Xash3D\src_main\engine\common\con_main.c"
+"D:\Xash3D\src_main\engine\common\con_utils.c"
+"D:\Xash3D\src_main\engine\common\engfuncs.c"
+"D:\Xash3D\src_main\engine\host.c"
+"D:\Xash3D\src_main\engine\common\infostring.c"
+"D:\Xash3D\src_main\engine\common\input.c"
+"D:\Xash3D\src_main\engine\common\net_chan.c"
+"D:\Xash3D\src_main\engine\common\net_huff.c"
+"D:\Xash3D\src_main\engine\common\net_msg.c"
+"D:\Xash3D\src_main\engine\server\sv_client.c"
+"D:\Xash3D\src_main\engine\server\sv_cmds.c"
+"D:\Xash3D\src_main\engine\server\sv_frame.c"
+"D:\Xash3D\src_main\engine\server\sv_game.c"
+"D:\Xash3D\src_main\engine\server\sv_init.c"
+"D:\Xash3D\src_main\engine\server\sv_main.c"
+"D:\Xash3D\src_main\engine\server\sv_move.c"
+"D:\Xash3D\src_main\engine\server\sv_phys.c"
+"D:\Xash3D\src_main\engine\server\sv_save.c"
+"D:\Xash3D\src_main\engine\server\sv_saverestore.c"
+"D:\Xash3D\src_main\engine\server\sv_world.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_advcontrols.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_audio.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_configuration.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_controls.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_creategame.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_credits.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_customgame.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_gameoptions.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_langame.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_loadgame.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_main.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_menu.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_multiplayer.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_newgame.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_playdemo.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_playersetup.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_playrec.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_qmenu.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_recdemo.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_savegame.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_saveload.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_video.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_vidmodes.c"
+"D:\Xash3D\src_main\engine\uimenu\ui_vidoptions.c"
+]
+Creating command line "cl.exe @"C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP17A3.tmp"" 
+Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP17A4.tmp" with contents
+[
+user32.lib msvcrtd.lib /nologo /subsystem:windows /dll /incremental:yes /pdb:"..\temp\engine\!debug/engine.pdb" /debug /machine:I386 /nodefaultlib:"msvcrt.lib" /out:"..\temp\engine\!debug/engine.dll" /implib:"..\temp\engine\!debug/engine.lib" /pdbtype:sept 
+"\Xash3D\src_main\temp\engine\!debug\build.obj"
+"\Xash3D\src_main\temp\engine\!debug\cinematic.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_cmds.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_demo.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_effects.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_frame.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_game.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_main.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_move.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_parse.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_phys.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_scrn.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_tent.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_video.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_view.obj"
+"\Xash3D\src_main\temp\engine\!debug\cl_world.obj"
+"\Xash3D\src_main\temp\engine\!debug\com_keys.obj"
+"\Xash3D\src_main\temp\engine\!debug\com_library.obj"
+"\Xash3D\src_main\temp\engine\!debug\com_world.obj"
+"\Xash3D\src_main\temp\engine\!debug\con_main.obj"
+"\Xash3D\src_main\temp\engine\!debug\con_utils.obj"
+"\Xash3D\src_main\temp\engine\!debug\engfuncs.obj"
+"\Xash3D\src_main\temp\engine\!debug\host.obj"
+"\Xash3D\src_main\temp\engine\!debug\infostring.obj"
+"\Xash3D\src_main\temp\engine\!debug\input.obj"
+"\Xash3D\src_main\temp\engine\!debug\net_chan.obj"
+"\Xash3D\src_main\temp\engine\!debug\net_huff.obj"
+"\Xash3D\src_main\temp\engine\!debug\net_msg.obj"
+"\Xash3D\src_main\temp\engine\!debug\sv_client.obj"
+"\Xash3D\src_main\temp\engine\!debug\sv_cmds.obj"
+"\Xash3D\src_main\temp\engine\!debug\sv_frame.obj"
+"\Xash3D\src_main\temp\engine\!debug\sv_game.obj"
+"\Xash3D\src_main\temp\engine\!debug\sv_init.obj"
+"\Xash3D\src_main\temp\engine\!debug\sv_main.obj"
+"\Xash3D\src_main\temp\engine\!debug\sv_move.obj"
+"\Xash3D\src_main\temp\engine\!debug\sv_phys.obj"
+"\Xash3D\src_main\temp\engine\!debug\sv_save.obj"
+"\Xash3D\src_main\temp\engine\!debug\sv_saverestore.obj"
+"\Xash3D\src_main\temp\engine\!debug\sv_world.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_advcontrols.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_audio.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_configuration.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_controls.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_creategame.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_credits.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_customgame.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_gameoptions.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_langame.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_loadgame.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_main.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_menu.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_multiplayer.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_newgame.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_playdemo.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_playersetup.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_playrec.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_qmenu.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_recdemo.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_savegame.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_saveload.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_video.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_vidmodes.obj"
+"\Xash3D\src_main\temp\engine\!debug\ui_vidoptions.obj"
+]
+Creating command line "link.exe @"C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP17A4.tmp""
+Creating temporary file "C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP17A5.bat" with contents
+[
+@echo off
+copy \Xash3D\src_main\temp\engine\!debug\engine.dll "D:\Xash3D\bin\engine.dll"
+]
+Creating command line ""C:\DOCUME~1\ָּ״ְ\LOCALS~1\Temp\RSP17A5.bat""
+Compiling...
+build.c
+cinematic.c
+cl_cmds.c
+cl_demo.c
+cl_effects.c
+cl_frame.c
+cl_game.c
+cl_main.c
+cl_move.c
+cl_parse.c
+cl_phys.c
+cl_scrn.c
+cl_tent.c
+cl_video.c
+cl_view.c
+cl_world.c
+com_keys.c
+com_library.c
+com_world.c
+con_main.c
+Generating Code...
+Compiling...
+con_utils.c
+engfuncs.c
+host.c
+infostring.c
+input.c
+net_chan.c
+net_huff.c
+net_msg.c
+sv_client.c
+sv_cmds.c
+sv_frame.c
+sv_game.c
+sv_init.c
+sv_main.c
+sv_move.c
+sv_phys.c
+sv_save.c
+d:\xash3d\src_main\engine\server\sv_save.c(73) : error C2039: 'rotr' : is not a member of 'stdilib_api_s'
+        d:\xash3d\src_main\public\launch_api.h(414) : see declaration of 'stdilib_api_s'
+sv_saverestore.c
+sv_world.c
+ui_advcontrols.c
+Generating Code...
+Compiling...
+ui_audio.c
+ui_configuration.c
+ui_controls.c
+ui_creategame.c
+ui_credits.c
+ui_customgame.c
+ui_gameoptions.c
+ui_langame.c
+ui_loadgame.c
+ui_main.c
+ui_menu.c
+ui_multiplayer.c
+ui_newgame.c
+ui_playdemo.c
+ui_playersetup.c
+ui_playrec.c
+ui_qmenu.c
+ui_recdemo.c
+ui_savegame.c
+ui_saveload.c
+Generating Code...
+Compiling...
+ui_video.c
+ui_vidmodes.c
+ui_vidoptions.c
+Generating Code...
+Error executing cl.exe.
+<h3>Output Window</h3>
+
+
+
+<h3>Results</h3>
+engine.dll - 1 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

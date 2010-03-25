@@ -2404,6 +2404,27 @@ static int gSizes[FIELD_TYPECOUNT] =
 	sizeof(int),		// FIELD_SOUNDNAME
 };
 
+static const char *gNames[FIELD_TYPECOUNT] = 
+{
+	"float",		// FIELD_FLOAT
+	"string",		// FIELD_STRING
+	"entity",		// FIELD_ENTITY
+	"classptr",	// FIELD_CLASSPTR
+	"ehandle",	// FIELD_EHANDLE
+	"entvars",	// FIELD_entvars_t
+	"edict",		// FIELD_EDICT
+	"vector",		// FIELD_VECTOR
+	"position vector",	// FIELD_POSITION_VECTOR
+	"pointer",	// FIELD_POINTER
+	"integer",	// FIELD_INTEGER
+	"function",	// FIELD_FUNCTION
+	"boolean",	// FIELD_BOOLEAN
+	"short",		// FIELD_SHORT
+	"char",		// FIELD_CHARACTER
+	"time",		// FIELD_TIME
+	"modelname",	// FIELD_MODELNAME
+	"soundname",	// FIELD_SOUNDNAME
+};
 
 // Base class includes common SAVERESTOREDATA pointer, and manages the entity table
 CSaveRestoreBuffer :: CSaveRestoreBuffer( void )
@@ -3138,13 +3159,13 @@ int CRestore::ReadFields( const char *pname, void *pBaseData, TYPEDESCRIPTION *p
 	// Check the struct name
 	if ( token != TokenHash(pname) )			// Field Set marker
 	{
-//		ALERT( at_error, "Expected %s found %s!\n", pname, BufferPointer() );
-		BufferRewind( 2*sizeof(short) );
+		ALERT( at_error, "Expected %s found %s!\n", pname, BufferPointer() );
+		BufferRewind( 2 * sizeof( short ));
 		return 0;
 	}
 
 	// Skip over the struct name
-	fileCount = ReadInt();						// Read field count
+	fileCount = ReadInt();					// Read field count
 
 	lastField = 0;								// Make searches faster, most data is read/written in the same order
 

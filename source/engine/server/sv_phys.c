@@ -1979,6 +1979,25 @@ static void SV_Physics_Entity( edict_t *ent )
 	}
 }
 
+void SV_FreeOldEntities( void )
+{
+	edict_t	*ent;
+	int	i;
+
+	// at end of frame kill all entities which supposed to it 
+	for( i = svgame.globals->maxClients + 1; i < svgame.globals->numEntities; i++ )
+	{
+		ent = EDICT_NUM( i );
+		if( ent->free ) continue;
+
+		if( ent->v.flags & FL_KILLME )
+			SV_FreeEdict( ent );
+	}
+
+	// decrement svgame.globals->numEntities if the highest number entities died
+	for( ; EDICT_NUM( svgame.globals->numEntities - 1)->free; svgame.globals->numEntities-- );
+}
+
 /*
 ================
 SV_Physics
@@ -1995,6 +2014,7 @@ void SV_Physics( void )
 	svgame.globals->frametime = sv.frametime * 0.001f;
 	svgame.dllFuncs.pfnStartFrame();
 
+	SV_FreeOldEntities (); // released in PM_Move
 	SV_CheckAllEnts ();
 
 	// treat each object in turn
@@ -2021,22 +2041,12 @@ void SV_Physics( void )
 	svgame.globals->time = sv.time * 0.001f;
 
 	// at end of frame kill all entities which supposed to it 
-	for( i = svgame.globals->maxClients + 1; i < svgame.globals->numEntities; i++ )
-	{
-		ent = EDICT_NUM( i );
-		if( ent->free ) continue;
-
-		if( ent->v.flags & FL_KILLME )
-			SV_FreeEdict( ent );
-	}
+	SV_FreeOldEntities();
 
 	if( svgame.globals->force_retouch > 0 )
 		svgame.globals->force_retouch = max( 0, svgame.globals->force_retouch - 1 );
 
 	svgame.dllFuncs.pfnEndFrame();
-
-	// decrement svgame.globals->numEntities if the highest number entities died
-	for( ; EDICT_NUM( svgame.globals->numEntities - 1)->free; svgame.globals->numEntities-- );
 
 	if( !sv_playersonly->integer )
 		sv.time += sv.frametime;

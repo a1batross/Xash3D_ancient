@@ -505,9 +505,13 @@ void CL_Changing_f( void )
 	// if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
 	if( cls.download ) return;
 
+	// disable plaque draw on change map
+	cls.drawplaque = false;
+	Cmd_ExecuteString( "plaque\n" );
+
 	S_StopAllSounds();
 	cl.audio_prepped = false;	// don't play ambients
-	cls.state = ca_connected;	// not active anymore, but not disconnected
+//	cls.state = ca_connected;	// not active anymore, but not disconnected
 	Msg( "\nchanging map...\n" );
 }
 
@@ -527,7 +531,7 @@ void CL_Reconnect_f( void )
 	S_StopAllSounds ();
 
 	// disable plaque draw on change map
-	cls.drawplaque = false;		
+	cls.drawplaque = false;
 	Cmd_ExecuteString( "plaque\n" );
 
 	if( cls.demoplayback ) return;
@@ -1016,6 +1020,7 @@ CL_InitLocal
 void CL_InitLocal( void )
 {
 	cls.state = ca_disconnected;
+	cls.drawplaque = true;
 
 	// register our variables
 	cl_predict = Cvar_Get( "cl_predict", "1", CVAR_ARCHIVE, "disables client movement prediction" );

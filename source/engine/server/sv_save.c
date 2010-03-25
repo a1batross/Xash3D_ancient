@@ -65,7 +65,6 @@ static TYPEDESCRIPTION gETable[] =
 	DEFINE_FIELD( ENTITYTABLE, classname, FIELD_STRING ),
 };
 
-// FIXME: implement _rotr into Xash::stdlib
 static uint SV_HashString( const char *pszToken )
 {
 	uint hash = 0;
@@ -227,12 +226,6 @@ static void SV_SaveServerData( wfile_t *f, const char *name, bool bUseLandMark )
 	{
 		LEVELLIST	*pList = &pSaveData->levelList[i];
 		svgame.dllFuncs.pfnSaveWriteFields( pSaveData, "ADJACENCY", pList, gAdjacency, ARRAYSIZE( gAdjacency ));
-
-		if( sv.changelevel && !com.strcmp( pList->mapName, name ))
-		{
-			level_flags = (1<<i);
-			Msg( "%s set level flags to: %x\n", name, level_flags );
-		}
 	}
 
 	SV_SaveBuffer( f, LUMP_ADJACENCY, false );
@@ -243,39 +236,15 @@ static void SV_SaveServerData( wfile_t *f, const char *name, bool bUseLandMark )
 		edict_t		*pent = EDICT_NUM( i );
 		ENTITYTABLE	*pTable = &pSaveData->pTable[pSaveData->currentIndex];
 
-		if( sv.changelevel )
+		// savegame
+		if( !pent->free && pent->v.classname )
 		{
-			bool	bSave = false;
-		
-			// check for client ents
-			if( pTable->flags & (FENTTABLE_PLAYER|FENTTABLE_GLOBAL))
-				bSave = true;
-
-			if( pTable->flags & FENTTABLE_MOVEABLE && pTable->flags & level_flags )
-				bSave = true;
-
-			if( bSave )
-			{
-				svgame.dllFuncs.pfnSave( pent, pSaveData );
-				if( pTable->classname && pTable->size )
-					pTable->id = pent->serialnumber;
-				else pTable->flags |= FENTTABLE_REMOVED;
-			}
-			else pTable->flags |= FENTTABLE_REMOVED;
-
-		}
-		else
-		{
-			// savegame
-			if( !pent->free && pent->v.classname )
-			{
-				svgame.dllFuncs.pfnSave( pent, pSaveData );
-				if( pTable->classname && pTable->size )
-					pTable->id = pent->serialnumber;
-				else pTable->flags |= FENTTABLE_REMOVED;
-			}
+			svgame.dllFuncs.pfnSave( pent, pSaveData );
+			if( pTable->classname && pTable->size )
+				pTable->id = pent->serialnumber;
 			else pTable->flags |= FENTTABLE_REMOVED;
 		}
+		else pTable->flags |= FENTTABLE_REMOVED;
 		pSaveData->currentIndex++; // move pointer
 	}
 
@@ -353,12 +322,15 @@ void SV_WriteSaveFile( const char *inname, bool autosave, bool bUseLandmark )
 	string	path, name;
 	float	total;
 	
-	if( sv.state != ss_active ) return;
+	if( sv.state != ss_active )
+		return;
+
 	if( svgame.globals->deathmatch || svgame.globals->coop || svgame.globals->teamplay )
 	{
 		MsgDev( D_ERROR, "SV_WriteSaveFile: can't savegame in a multiplayer\n" );
 		return;
 	}
+
 	if( sv_maxclients->integer == 1 && svs.clients[0].edict->v.health <= 0 )
 	{
 		MsgDev( D_ERROR, "SV_WriteSaveFile: can't savegame while dead!\n" );
@@ -519,9 +491,8 @@ void SV_ReadGlobals( wfile_t *l )
 	svgame.dllFuncs.pfnSaveReadFields( pSaveData, "Game Header", &ghdr, gGameHeader, ARRAYSIZE( gGameHeader ));
 	svgame.globals->serverflags= ghdr.serverflags;	// across transition flags (e.g. Q1 runes)
 		
-	if( sv.loadgame && !sv.changelevel )
+	if( sv.loadgame )
 	{
-		Msg( "SV_ReadGlobals()\n" );
 		svs.spawncount = ghdr.mapCount; // restore spawncount
 		svgame.globals->found_secrets = ghdr.found_secrets;
 		Mem_Copy( svs.comment, ghdr.comment, MAX_STRING );
@@ -561,12 +532,6 @@ void SV_ReadEntities( wfile_t *l )
 	{
 		pSaveData->fUseLandmark = true;
 	}
-	else if( sv.changelevel )
-	{
-		if( com.strlen( sv.startspot ))
-			pSaveData->fUseLandmark = true;
-		else pSaveData->fUseLandmark = false; // can be changed later
-	}			
 
 	// read save header
 	svgame.dllFuncs.pfnSaveReadFields( pSaveData, "Save Header", &shdr, gSaveHeader, ARRAYSIZE( gSaveHeader ));
@@ -593,17 +558,6 @@ void SV_ReadEntities( wfile_t *l )
 	{
 		pList = &pSaveData->levelList[i];		
 		svgame.dllFuncs.pfnSaveReadFields( pSaveData, "ADJACENCY", pList, gAdjacency, ARRAYSIZE( gAdjacency ));
-
-		if( sv.changelevel && !com.strcmp( pList->mapName, sv.name ))
-		{
-			level_flags = (1<<i);
-			Msg( "%s get level flags: %x\n", sv.name, level_flags );
-			com.strcpy( pSaveData->szCurrentMap, pList->mapName );
-			com.strcpy( pSaveData->szLandmarkName, pList->landmarkName );
-			VectorCopy( pList->vecLandmarkOrigin, pSaveData->vecLandmarkOffset );
-			pSaveData->fUseLandmark = true;
-			pSaveData->time = shdr.time;
-		}
 	}
 
 	// initialize ENTITYTABLE
@@ -633,35 +587,10 @@ void SV_ReadEntities( wfile_t *l )
 		pTable = &pSaveData->pTable[i];		
 		svgame.dllFuncs.pfnSaveReadFields( pSaveData, "ETABLE", pTable, gETable, ARRAYSIZE( gETable ));
 
-		if( sv.loadgame )
-		{
-			if( pTable->flags & FENTTABLE_REMOVED ) SV_FreeEdict( pent );
-			else pent = SV_AllocPrivateData( pent, pTable->classname );
-		}
-		else if( sv.changelevel )
-		{
-			bool	bAlloc = false;
-				
-			// check for client or global entity
-			if( pTable->flags & (FENTTABLE_PLAYER|FENTTABLE_GLOBAL))
-				bAlloc = true;
+		if( pTable->flags & FENTTABLE_REMOVED ) SV_FreeEdict( pent );
+		else pent = SV_AllocPrivateData( pent, pTable->classname );
 
-			if( pTable->flags & FENTTABLE_MOVEABLE && pTable->flags & level_flags )
-				bAlloc = true;
-			
-			if( !pTable->id || !pTable->classname )
-				bAlloc = false;
-
-			if( bAlloc )
-			{
-				if( pent->free ) SV_InitEdict( pent );
-				pent = SV_AllocPrivateData( pent, pTable->classname );
-				svgame.globals->numEntities++;
-				num_moveables++;
-			}
-		}
-
-		if( sv.loadgame && ( pTable->id != pent->serialnumber ))
+		if( pTable->id != pent->serialnumber )
 			MsgDev( D_ERROR, "ETABLE id( %i ) != edict->id( %i )\n", pTable->id, pent->serialnumber );
 
 		pTable->pent = pent;
@@ -669,11 +598,8 @@ void SV_ReadEntities( wfile_t *l )
 
 	Msg( "total %i moveables, %i entities\n", num_moveables, svgame.globals->numEntities );
 
-	if( sv.changelevel )
-	{
-		// spawn all the entities of the newmap
-		SV_SpawnEntities( sv.name, CM_GetEntityScript( ));
-	}
+	// spawn all the entities of the newmap
+	SV_SpawnEntities( sv.name, CM_GetEntityScript( ));
 
 	SV_ReadBuffer( l, LUMP_BASEENTS );
 
@@ -683,29 +609,10 @@ void SV_ReadEntities( wfile_t *l )
 		edict_t	*pent = EDICT_NUM( i );
 		pTable = &pSaveData->pTable[i];
 
-		if( sv.loadgame )
+		// ignore removed edicts
+		if( !pent->free && pTable->classname )
 		{
-			// ignore removed edicts
-			if( !pent->free && pTable->classname )
-			{
-				svgame.dllFuncs.pfnRestore( pent, pSaveData, false );
-			}
-		}
-		else if( sv.changelevel )
-		{
-			bool	bRestore = false;
-			bool	bGlobal = (pTable->flags & FENTTABLE_GLOBAL) ? true : false;
-
-			if( pTable->flags & (FENTTABLE_PLAYER|FENTTABLE_GLOBAL)) bRestore = true;
-			if( pTable->flags & FENTTABLE_MOVEABLE && pTable->flags & level_flags )
-				bRestore = true;
-			if( !pTable->id || !pTable->classname ) bRestore = false;
-
-			if( bRestore )
-			{
-				MsgDev( D_INFO, "Transfering %s ( *%i )\n", STRING( pTable->classname ), i );
-				svgame.dllFuncs.pfnRestore( pent, pSaveData, bGlobal );
-			}
+			svgame.dllFuncs.pfnRestore( pent, pSaveData, false );
 		}
 		pSaveData->currentIndex++;
 	}
@@ -738,13 +645,10 @@ void SV_ReadSaveFile( const char *name )
 	if( svgame.hInstance ) StringTable_Delete( svgame.hStringTable ); // remove old string table
 	svgame.hStringTable = StringTable_Load( savfile, "Server" );
 
-	if( sv.loadgame && !sv.changelevel )
-	{
-		SV_ReadCvars( savfile );
-		SV_InitGame();	// start a new game fresh with new cvars
+	SV_ReadCvars( savfile );
+	SV_InitGame();	// start a new game fresh with new cvars
 
-		sv.loadgame = true;	// restore state
-	}
+	sv.loadgame = true;	// restore state
 
 	SV_ReadGlobals( savfile );
 	WAD_Close( savfile );
@@ -797,61 +701,6 @@ void SV_MergeLevelFile( const char *name )
 
 	SV_ReadEntities( savfile );
 	WAD_Close( savfile );
-}
-
-/*
-=============
-SV_ChangeLevel
-=============
-*/
-void SV_ChangeLevel( bool bUseLandmark, const char *mapname, const char *start )
-{
-	string	level;
-	string	oldlevel;
-	string	_startspot;
-	char	*startspot, *savename;
-
-	if( sv.state != ss_active )
-	{
-		Msg( "SV_ChangeLevel: server not running\n");
-		return;
-	}
-
-	sv.loadgame = false;
-	sv.changelevel = true;
-
-	if( bUseLandmark )
-	{
-		com.strncpy( _startspot, start, MAX_STRING );
-		startspot = _startspot;
-		savename = _startspot;
-	}
-	else
-	{
-		startspot = NULL;
-		savename = level;
-	}
-
-	com.strncpy( level, mapname, MAX_STRING );
-	com.strncpy( oldlevel, sv.name, MAX_STRING );
-
-	// NOTE: we must save state even landmark is missed
-	// so transfer client weapons and env_global states
-	SV_WriteSaveFile( level, true, bUseLandmark );
-
-	SV_BroadcastCommand( "reconnect\n" );
-
-	SV_SendClientMessages();
-
-	SV_DeactivateServer ();
-
-	svs.spawncount = Com_RandomLong( 0, 65535 );
-
-	SV_SpawnServer( level, startspot );
-
-	SV_LevelInit( level, oldlevel, level );
-
-	SV_ActivateServer ();
 }
 
 bool SV_GetComment( const char *savename, char *comment )

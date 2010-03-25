@@ -13,6 +13,7 @@ netadr_t	master_adr[MAX_MASTERS];	// address of group servers
 cvar_t	*sv_fps;
 cvar_t	*sv_enforcetime;
 cvar_t	*sv_pausable;
+cvar_t	*sv_newunit;
 cvar_t	*timeout;				// seconds without any message
 cvar_t	*zombietime;			// seconds to sink messages after disconnect
 cvar_t	*rcon_password;			// password for remote server commands
@@ -511,7 +512,7 @@ void SV_Init( void )
 	SV_InitOperatorCommands();
 
 	rcon_password = Cvar_Get( "rcon_password", "", 0, "remote connect password" );
-	Cvar_Get ("skill", "1", 0, "game skill level" );
+	Cvar_Get ("skill", "1", CVAR_LATCH, "game skill level" );
 	Cvar_Get ("deathmatch", "0", CVAR_SERVERINFO|CVAR_LATCH, "displays deathmatch state" );
 	Cvar_Get ("teamplay", "0", CVAR_SERVERINFO|CVAR_LATCH, "displays teamplay state" );
 	Cvar_Get ("coop", "0", CVAR_SERVERINFO|CVAR_LATCH, "displays cooperative state" );
@@ -522,9 +523,18 @@ void SV_Init( void )
 	Cvar_Get ("defaultmap", "", 0, "holds the multiplayer mapname" );
 	Cvar_Get ("sv_aim", "1", 0, "enable auto-aiming" );
 
+	// half-life legacy
+	Cvar_Get ("sv_skycolor_r", "0", 0, "skycolor red (hl1 legacy)" );
+	Cvar_Get ("sv_skycolor_g", "0", 0, "skycolor green (hl1 legacy)" );
+	Cvar_Get ("sv_skycolor_b", "0", 0, "skycolor blue (hl1 legacy)" );
+	Cvar_Get ("sv_skyvec_x", "0", 0, "sky direction x (hl1 legacy)" );
+	Cvar_Get ("sv_skyvec_y", "0", 0, "sky direction y (hl1 legacy)" );
+	Cvar_Get ("sv_skyvec_z", "0", 0, "sky direction z (hl1 legacy)" );
+
 	sv_fps = Cvar_Get( "sv_fps", "72.1", CVAR_ARCHIVE, "running server physics at" );
 	sv_stepheight = Cvar_Get( "sv_stepheight", "18", CVAR_ARCHIVE|CVAR_PHYSICINFO, "how high you can step up" );
 	sv_playersonly = Cvar_Get( "playersonly", "0", 0, "freezes time, except for players" );
+	sv_newunit = Cvar_Get( "sv_newunit", "0", 0, "sets to 1 while new unit is loading" );
 	hostname = Cvar_Get( "sv_hostname", "unnamed", CVAR_SERVERINFO | CVAR_ARCHIVE, "host name" );
 	timeout = Cvar_Get( "timeout", "125", 0, "connection timeout" );
 	zombietime = Cvar_Get( "zombietime", "2", 0, "timeout for clients-zombie (who died but not respawned)" );
@@ -540,7 +550,7 @@ void SV_Init( void )
 	sv_rollspeed = Cvar_Get( "sv_rollspeed", "200", CVAR_PHYSICINFO, "how much strafing is necessary to tilt the view" );
 	sv_airaccelerate = Cvar_Get("sv_airaccelerate", "1", CVAR_PHYSICINFO, "player accellerate in air" );
 	sv_idealpitchscale = Cvar_Get( "sv_idealpitchscale", "0.8", 0, "how much to look up/down slopes and stairs when not using freelook" );
-	sv_maxvelocity = Cvar_Get( "sv_maxvelocity", "2000", CVAR_LATCH|CVAR_PHYSICINFO, "max world velocity" );
+	sv_maxvelocity = Cvar_Get( "sv_maxvelocity", "2000", CVAR_PHYSICINFO, "max world velocity" );
           sv_gravity = Cvar_Get( "sv_gravity", "800", CVAR_PHYSICINFO, "world gravity" );
 	sv_maxspeed = Cvar_Get( "sv_maxspeed", "320", CVAR_PHYSICINFO, "maximum speed a player can accelerate to when on ground");
 	sv_accelerate = Cvar_Get( "sv_accelerate", "10", CVAR_PHYSICINFO, "rate at which a player accelerates to sv_maxspeed" );

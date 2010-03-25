@@ -446,7 +446,6 @@ void SCR_RegisterShaders( void )
 
 	g_console_field_width = scr_width->integer / SMALLCHAR_WIDTH - 2;
 	g_consoleField.widthInChars = g_console_field_width;
-	cls.drawplaque = true;
 }
 
 /*

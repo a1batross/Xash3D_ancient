@@ -362,7 +362,7 @@ int DispatchRestore( edict_t *pent, SAVERESTOREDATA *pSaveData, int globalEntity
 			// pSaveData->szCurrentMap is the level this entity is coming from
 			// pGlobla->levelName is the last level the global entity was active in.
 			// If they aren't the same, then this global update is out of date.
-			if ( !FStrEq( pSaveData->szCurrentMap, pGlobal->levelName ) )
+			if ( !FStrEq( pSaveData->szCurrentMapName, pGlobal->levelName ) )
 				return 0;
 
 			// Compute the new global offset

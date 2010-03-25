@@ -274,7 +274,6 @@ void CL_ParseFrame( sizebuf_t *msg )
 
 		player = CL_GetLocalPlayer();
 		SCR_MakeLevelShot();	// make levelshot if needs
-		cls.drawplaque = true;	// allow to drawing plaque
 
 		Cvar_SetValue( "scr_loading", 0.0f ); // reset progress bar	
 		// getting a valid frame message ends the connection process

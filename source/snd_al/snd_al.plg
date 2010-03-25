@@ -1,0 +1,53 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: snd_al - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP17C4.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "../public" /I "../common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\snd_al\!debug/" /Fo"..\temp\snd_al\!debug/" /Fd"..\temp\snd_al\!debug/" /FD /GZ /c 
+"D:\Xash3D\src_main\snd_al\s_export.c"
+"D:\Xash3D\src_main\snd_al\s_load.c"
+"D:\Xash3D\src_main\snd_al\s_main.c"
+"D:\Xash3D\src_main\snd_al\s_openal.c"
+"D:\Xash3D\src_main\snd_al\s_stream.c"
+]
+Creating command line "cl.exe @"C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP17C4.tmp"" 
+Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP17C5.tmp" with contents
+[
+libogg.lib vorbis.lib /nologo /dll /incremental:yes /pdb:"..\temp\snd_al\!debug/snd_al.pdb" /debug /machine:I386 /nodefaultlib:"libcmt.lib" /out:"..\temp\snd_al\!debug/snd_al.dll" /implib:"..\temp\snd_al\!debug/snd_al.lib" /pdbtype:sept 
+"\Xash3D\src_main\temp\snd_al\!debug\s_export.obj"
+"\Xash3D\src_main\temp\snd_al\!debug\s_load.obj"
+"\Xash3D\src_main\temp\snd_al\!debug\s_main.obj"
+"\Xash3D\src_main\temp\snd_al\!debug\s_openal.obj"
+"\Xash3D\src_main\temp\snd_al\!debug\s_stream.obj"
+]
+Creating command line "link.exe @"C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP17C5.tmp""
+Creating temporary file "C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP17C6.bat" with contents
+[
+@echo off
+copy \Xash3D\src_main\temp\snd_al\!debug\snd_al.dll "D:\Xash3D\bin\snd_al.dll"
+]
+Creating command line ""C:\DOCUME~1\Ã»ÿ¿\LOCALS~1\Temp\RSP17C6.bat""
+Compiling...
+s_export.c
+s_load.c
+s_main.c
+s_openal.c
+s_stream.c
+Generating Code...
+Linking...
+<h3>Output Window</h3>
+Performing Custom Build Step on \Xash3D\src_main\temp\snd_al\!debug\snd_al.dll
+ë™ÆØ®‡Æ¢†≠Æ ‰†©´Æ¢:         1.
+
+
+
+<h3>Results</h3>
+snd_al.dll - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

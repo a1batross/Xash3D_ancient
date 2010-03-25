@@ -697,7 +697,6 @@ bool SV_IsValidEdict( const edict_t *e )
 {
 	if( !e ) return false;
 	if( e->free ) return false;
-	if( e == EDICT_NUM( 0 )) return false;	// world is the read-only entity
 	if( !e->pvServerData ) return false;
 	// edict without pvPrivateData is valid edict
 	// server.dll know how allocate it
@@ -976,9 +975,14 @@ pfnChangeLevel
 */
 void pfnChangeLevel( const char* s1, const char* s2 )
 {
-	// make sure we don't issue two changelevels
-	if( sv.changelevel ) return;
+	static int	last_spawncount;
+
 	if( !s1 || s1[0] <= ' ' ) return;
+
+	// make sure we don't issue two changelevels
+	if( svs.spawncount == last_spawncount ) return;
+
+	last_spawncount = svs.spawncount;
 
 	if( !s2 ) Cbuf_AddText( va( "changelevel %s\n", s1 ));	// Quake changlevel
 	else Cbuf_AddText( va( "changelevel %s %s\n", s1, s2 ));	// Half-Life changelevel
@@ -3783,7 +3787,6 @@ parsing textual entity definitions out of an ent file.
 void SV_SpawnEntities( const char *mapname, script_t *entities )
 {
 	edict_t	*ent;
-	int	i;
 
 	MsgDev( D_NOTE, "SV_SpawnEntities()\n" );
 
@@ -3803,19 +3806,6 @@ void SV_SpawnEntities( const char *mapname, script_t *entities )
 	// spawn the rest of the entities on the map
 	SV_LoadFromFile( entities );
 
-	// set client fields on player ents
-	if( !sv.loadgame && !sv.changelevel )
-	{
-		for( i = 0; i < svgame.globals->maxClients; i++ )
-		{
-			// setup all clients
-			ent = EDICT_NUM( i + 1 );
-			SV_InitEdict( ent );
-			SV_AllocPrivateData( ent, MAKE_STRING( "player" ));
-			ent->pvServerData->client = svs.clients + i;
-			ent->pvServerData->client->edict = ent;
-		}
-	}
 	MsgDev( D_LOAD, "Total %i entities spawned\n", svgame.globals->numEntities );
 }
 
@@ -3882,8 +3872,7 @@ void SV_LoadProgs( const char *name )
 	}
 
 	// 65535 unique strings should be enough ...
-	if( !sv.loadgame && !sv.changelevel )
-		svgame.hStringTable = StringTable_Create( "Server", 0x10000 );
+	if( !sv.loadgame ) svgame.hStringTable = StringTable_Create( "Server", 0x10000 );
 	svgame.globals->maxEntities = GI->max_edicts;
 	svgame.globals->maxClients = sv_maxclients->integer;
 	svgame.edicts = Mem_Alloc( svgame.mempool, sizeof( edict_t ) * svgame.globals->maxEntities );

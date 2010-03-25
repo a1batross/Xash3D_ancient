@@ -3549,19 +3549,20 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 		if ( pTextureName ) ALERT( at_console, "Texture: %s\n", pTextureName );
 	}
 	break;
-
-	case 104:// show shortest paths for entire level to nearest node
-	{
-		Create("node_viewer_fly", pev->origin, pev->angles);
-		Create("node_viewer_human", pev->origin, pev->angles);
-	}
-	break;
+	case 104:
+		// Dump all of the global state varaibles (and global entity names)
+		gGlobalState.DumpGlobals();
+		break;
 	case 105:// remove any solid entity.
 		pEntity = UTIL_FindEntityForward( this );
 		if ( pEntity ) UTIL_Remove (pEntity);
 		break;
 	case 106://give weapon_debug
 		GiveNamedItem( "weapon_debug" );
+		break;
+	case 107:// show shortest paths for entire level to nearest node
+		Create("node_viewer_fly", pev->origin, pev->angles);
+		Create("node_viewer_human", pev->origin, pev->angles);
 		break;
 	}
 }

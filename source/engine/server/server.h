@@ -45,7 +45,6 @@ typedef struct server_s
 	sv_state_t	state;		// precache commands are only valid during load
 
 	bool		loadgame;		// client begins should reuse existing entity
-	bool		changelevel;	// chnage map, reconnect clients, transfer entities, merge globals
 
 	int		time;		// sv.time += sv.frametime
 	int		frametime;
@@ -267,6 +266,7 @@ extern	svgame_static_t	svgame;			// persistant game info
 
 extern	cvar_t		*sv_pausable;		// allows pause in multiplayer
 extern	cvar_t		*sv_noreload;		// don't reload level state when reentering
+extern	cvar_t		*sv_newunit;
 extern	cvar_t		*sv_airaccelerate;
 extern	cvar_t		*sv_accelerate;
 extern	cvar_t		*sv_friction;
@@ -321,8 +321,8 @@ void SV_InitGame( void );
 void SV_PrepModels( void );
 void SV_ActivateServer( void );
 void SV_DeactivateServer( void );
-void SV_LevelInit( const char *newmap, const char *oldmap, const char *savename );
-void SV_SpawnServer( const char *server, const char *startspot );
+void SV_LevelInit( const char *pMapName, char const *pOldLevel, char const *pLandmarkName, bool loadGame );
+bool SV_SpawnServer( const char *server, const char *startspot );
 int SV_FindIndex( const char *name, int start, int end, bool create );
 void SV_ClassifyEdict( edict_t *ent, int m_iNewClass );
 
@@ -334,6 +334,7 @@ void SV_CheckVelocity( edict_t *ent );
 bool SV_CheckWater( edict_t *ent );
 bool SV_RunThink( edict_t *ent );
 bool SV_UnstickEntity( edict_t *ent );
+void SV_FreeOldEntities( void );
 
 //
 // sv_move.c
@@ -386,6 +387,7 @@ void SV_Newgame_f( void );
 void SV_WriteFrameToClient( sv_client_t *client, sizebuf_t *msg );
 void SV_BuildClientFrame( sv_client_t *client );
 void SV_UpdateEntityState( const edict_t *ent, bool baseline );
+void SV_InactivateClients( void );
 
 //
 // sv_game.c
@@ -428,11 +430,15 @@ _inline edict_t *SV_EDICT_NUM( int n, const char * file, const int line )
 // sv_save.c
 //
 void SV_MergeLevelFile( const char *name );
-void SV_ChangeLevel( bool bUseLandmark, const char *mapname, const char *start );
+void SV_ChangeLevel( bool loadfromsavedgame, const char *mapname, const char *start );
 void SV_WriteSaveFile( const char *name, bool autosave, bool bUseLandmark );
 void SV_ReadSaveFile( const char *name );
 void SV_ReadLevelFile( const char *name );
 const char *SV_GetLatestSave( void );
+
+void SV_ClearSaveDir( void );
+int SV_LoadGameState( char const *level, bool createPlayers );
+void SV_LoadAdjacentEnts( const char *pOldLevel, const char *pLandmarkName );
 //============================================================
 
 // high level object sorting to reduce interaction tests

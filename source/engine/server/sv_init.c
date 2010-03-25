@@ -221,7 +221,7 @@ void SV_DeactivateServer( void )
 	sv.state = ss_dead;
 
 	// leave unchanged, because we wan't load it twice
-	if( !sv.loadgame ) StringTable_Clear( svgame.hStringTable );
+//	if( !sv.loadgame ) StringTable_Clear( svgame.hStringTable );
 
 	svgame.dllFuncs.pfnServerDeactivate();
 
@@ -238,20 +238,32 @@ SV_LevelInit
 Spawn all entities
 ================
 */
-void SV_LevelInit( const char *newmap, const char *oldmap, const char *savename )
+void SV_LevelInit( const char *pMapName, char const *pOldLevel, char const *pLandmarkName, bool loadGame )
 {
-	if( sv.loadgame )
+	if( loadGame )
 	{
-		if( savename ) SV_ReadLevelFile( savename );
-		else SV_SpawnEntities( newmap, CM_GetEntityScript( ));
+		if( !SV_LoadGameState( pMapName, 1 ))
+		{
+			SV_SpawnEntities( pMapName, CM_GetEntityScript( ));
+		}
+
+		if( pOldLevel )
+		{
+			SV_LoadAdjacentEnts( pOldLevel, pLandmarkName );
+		}
+
+		if( sv_newunit->integer )
+		{
+			Cvar_SetValue( "sv_newunit", 0 );
+			SV_ClearSaveDir();
+		}
 	}
-	else if( sv.changelevel )
+	else
 	{
-//		SV_SpawnEntities( newmap, CM_GetEntityScript( ));
-		SV_ReadSaveFile( savename );	// initialize StringTable and globals
-		SV_MergeLevelFile( savename );// combine moveable entities with newmap
+		SV_SpawnEntities( pMapName, CM_GetEntityScript( ));
 	}
-	else SV_SpawnEntities( newmap, CM_GetEntityScript());
+
+	SV_FreeOldEntities ();
 }
 
 /*
@@ -263,18 +275,17 @@ clients along with it.
 
 ================
 */
-void SV_SpawnServer( const char *server, const char *startspot )
+bool SV_SpawnServer( const char *server, const char *startspot )
 {
 	uint	i, checksum;
 	int	current_skill;
-	bool	loadgame, changelevel;
-	edict_t	*ent;
+	bool	loadgame;
 
 	Msg( "SpawnServer [^2%s^7]\n", server );
 
 	Cmd_ExecuteString( "latch\n" );
 
-	if( sv.state == ss_dead && !sv.loadgame && !sv.changelevel )
+	if( sv.state == ss_dead && !sv.loadgame )
 		SV_InitGame(); // the game is just starting
 
 	SV_BroadcastCommand( "changing\n" );
@@ -291,7 +302,6 @@ void SV_SpawnServer( const char *server, const char *startspot )
 
 	// save state
 	loadgame = sv.loadgame;
-	changelevel = sv.changelevel;
 
 	sv.state = ss_dead;
 	Host_SetServerState( sv.state );
@@ -300,7 +310,6 @@ void SV_SpawnServer( const char *server, const char *startspot )
 	// restore state
 	sv.paused = false;
 	sv.loadgame = loadgame;
-	sv.changelevel = changelevel;
 
 	// initialize buffers
 	MSG_Init( &sv.multicast, sv.multicast_buf, sizeof( sv.multicast_buf ));
@@ -309,14 +318,9 @@ void SV_SpawnServer( const char *server, const char *startspot )
 	// leave slots at start for clients only
 	for( i = 0; i < sv_maxclients->integer; i++ )
 	{
-		ent = EDICT_NUM( i + 1 );
-		ent->serialnumber = i + 1;
-		svs.clients[i].edict = ent;
-
 		// needs to reconnect
 		if( svs.clients[i].state > cs_connected )
 			svs.clients[i].state = cs_connected;
-		Mem_Set( &svs.clients[i].lastcmd, 0, sizeof( svs.clients[i].lastcmd ));
 		svs.clients[i].lastframe = -1;
 	}
 
@@ -355,6 +359,8 @@ void SV_SpawnServer( const char *server, const char *startspot )
 	// precache and static commands can be issued during map initialization
 	sv.state = ss_loading;
 	Host_SetServerState( sv.state );
+
+	return true;
 }
 
 /*
@@ -367,6 +373,8 @@ A brand new game has been started
 void SV_InitGame( void )
 {
 	string	idmaster;
+	edict_t	*ent;
+	int	i;
 	
 	if( svs.initialized )
 	{
@@ -406,8 +414,8 @@ void SV_InitGame( void )
 	{
 		if( sv_maxclients->integer <= 1 )
 			Cvar_FullSet( "sv_maxclients", "8", CVAR_SERVERINFO|CVAR_LATCH );
-		else if( sv_maxclients->integer > 255 )
-			Cvar_FullSet( "sv_maxclients", "255", CVAR_SERVERINFO|CVAR_LATCH );
+		else if( sv_maxclients->integer > MAX_CLIENTS )
+			Cvar_FullSet( "sv_maxclients", "32", CVAR_SERVERINFO|CVAR_LATCH );
 	}
 	else if( Cvar_VariableValue( "coop" ))
 	{
@@ -440,6 +448,21 @@ void SV_InitGame( void )
 	svs.last_heartbeat = MAX_HEARTBEAT; // send immediately
 	com.sprintf( idmaster, "192.246.40.37:%i", PORT_MASTER );
 	NET_StringToAdr( idmaster, &master_adr[0] );
+
+	// set client fields on player ents
+	for( i = 0; i < svgame.globals->maxClients; i++ )
+	{
+		// setup all the clients
+		ent = EDICT_NUM( i + 1 );
+		SV_InitEdict( ent );
+
+		// make crosslinks
+		svs.clients[i].edict = ent;
+		ent->pvServerData->client = svs.clients + i;
+		ent->pvServerData->client->edict = ent;
+
+		Mem_Set( &svs.clients[i].lastcmd, 0, sizeof( svs.clients[i].lastcmd ));
+	}
 }
 
 bool SV_Active( void )

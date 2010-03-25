@@ -217,8 +217,8 @@ typedef struct KeyValueData_s
 
 typedef struct
 {
-	char	mapName[64];
-	char	landmarkName[64];
+	char	mapName[32];
+	char	landmarkName[32];
 	edict_t	*pentLandmark;
 	vec3_t	vecLandmarkOrigin;
 } LEVELLIST;
@@ -259,10 +259,10 @@ typedef struct saverestore_s
 
 	// smooth transition
 	int		fUseLandmark;	// ENG
-	char		szLandmarkName[64];	// probably not used
+	char		szLandmarkName[20];	// landmark we'll spawn near in next level
 	vec3_t		vecLandmarkOffset;	// for landmark transitions
-	char		szCurrentMap[64];	// ENG To check global entities
 	float		time;		// ENG current sv.time
+	char		szCurrentMapName[32];// To check global entities
 } SAVERESTOREDATA;
 
 typedef enum _fieldtypes

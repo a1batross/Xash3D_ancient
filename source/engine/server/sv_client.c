@@ -640,7 +640,7 @@ void SV_PutClientInServer( edict_t *ent )
 	svgame.globals->time = sv.time * 0.001f;
 	ent->pvServerData->s.ed_type = ED_CLIENT; // init edict type
 
-	if( !sv.changelevel && !sv.loadgame )
+	if( !sv.loadgame )
 	{	
 		if( ent->v.flags & FL_SPECTATOR )
 		{
@@ -694,7 +694,6 @@ void SV_PutClientInServer( edict_t *ent )
 	Mem_EmptyPool( svgame.temppool ); // all tempstrings can be frees now
 
 	// clear any temp states
-	sv.changelevel = false;
 	sv.loadgame = false;
 
 	if( sv_maxclients->integer == 1 ) // singleplayer profiler

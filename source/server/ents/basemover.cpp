@@ -1294,9 +1294,12 @@ void CFuncTrain :: Next( void )
 
 BOOL CFuncTrain :: Teleport( void )
 {
+	if( !FindNextPath( ))
+		return FALSE;
+
 	if( FBitSet( pNextPath->pev->spawnflags, SF_CORNER_TELEPORT ))
 	{
-		SetBits(pev->effects, EF_NOINTERP);
+		SetBits( pev->effects, EF_NOINTERP );
 
 		// determine teleportation point
 		if( pev->speed > 0 ) 

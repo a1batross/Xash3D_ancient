@@ -399,7 +399,7 @@ long IN_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 		host.hWnd = hWnd;
 		scr_xpos = Cvar_Get( "r_xpos", "3", CVAR_ARCHIVE, "window position by horizontal" );
 		scr_ypos = Cvar_Get( "r_ypos", "22", CVAR_ARCHIVE, "window position by vertical" );
-		scr_fullscreen = Cvar_Get( "fullscreen", "0", CVAR_ARCHIVE|CVAR_LATCH, "set in 1 to enable fullscreen mode" );
+		scr_fullscreen = Cvar_Get( "fullscreen", "0", CVAR_ARCHIVE|CVAR_LATCH_VIDEO, "toggle fullscreen" );
 		GetWindowRect( host.hWnd, &real_rect );
 		break;
 	case WM_CLOSE:

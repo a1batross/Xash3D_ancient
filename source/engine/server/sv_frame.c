@@ -606,3 +606,34 @@ void SV_SendClientMessages( void )
 		}
 	}
 }
+
+/*
+=======================
+SV_InactivateClients
+
+Purpose: Prepare for level transition, etc.
+=======================
+*/
+void SV_InactivateClients( void )
+{
+	int		i;
+	sv_client_t	*cl;
+
+	if( sv.state == ss_dead )
+		return;
+
+	// send a message to each connected client
+	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
+	{
+		if( !cl->state || !cl->edict ) continue;
+			
+		if( !cl->edict || (cl->edict->v.flags & (FL_FAKECLIENT|FL_SPECTATOR)))
+			continue;
+
+		if( svs.clients[i].state > cs_connected )
+			svs.clients[i].state = cs_connected;
+
+		// clear netchan message (but keep other buffers)
+		MSG_Clear( &cl->netchan.message );
+	}
+}

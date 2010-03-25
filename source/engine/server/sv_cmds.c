@@ -227,11 +227,10 @@ void SV_Map_f( void )
 	}
 
 	sv.loadgame = false;	// set right state
-	sv.changelevel = false;
 
-	SV_InitGame ();
+	if( svs.initialized ) SV_InitGame ();
 	SV_SpawnServer( filename, NULL );
-	SV_LevelInit( filename, NULL, NULL );
+	SV_LevelInit( filename, NULL, NULL, false );
 	SV_ActivateServer ();
 }
 
@@ -272,11 +271,10 @@ void SV_Load_f( void )
 	}
 
 	sv.loadgame = true;	// set right state
-	sv.changelevel = false;
 
 	SV_ReadSaveFile( filename );
 	SV_SpawnServer( svs.mapname, NULL );
-	SV_LevelInit( svs.mapname, NULL, filename );
+	SV_LevelInit( svs.mapname, NULL, filename, true );
 	SV_ActivateServer();
 }
 
