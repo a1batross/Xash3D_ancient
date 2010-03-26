@@ -920,7 +920,7 @@ long _stdcall Sys_Crash( PEXCEPTION_POINTERS pInfo )
 
 	if( Sys.oldFilter )
 		return Sys.oldFilter( pInfo );
-	return EXCEPTION_CONTINUE_SEARCH;
+	return EXCEPTION_CONTINUE_EXECUTION;
 }
 
 void Sys_Init( void )

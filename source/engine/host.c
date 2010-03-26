@@ -62,6 +62,21 @@ void Host_ShutdownServer( void )
 
 /*
 ================
+Host_NewGame
+================
+*/
+bool Host_NewGame( const char *mapName, bool loadGame )
+{
+	bool	iRet;
+
+	S_StopAllSounds ();
+
+	iRet = SV_NewGame( mapName, loadGame );
+
+	return iRet;
+}
+/*
+================
 Host_EndGame
 ================
 */
@@ -78,7 +93,7 @@ void Host_EndGame( const char *message, ... )
 	
 	if( SV_Active())
 	{
-		com.strncpy( host.finalmsg, "Host_EndGame\n", MAX_STRING );
+		com.snprintf( host.finalmsg, sizeof( host.finalmsg ), "Host_EndGame: %s\n", string );
 		SV_Shutdown( false );
 	}
 	
@@ -279,7 +294,7 @@ void Host_CheckChanges( void )
 	// restart or change renderer
 	while( host_video->modified )
 	{
-		host_video->modified = false;
+		host_video->modified = false;		// predict state
 
 		Host_FreeRender();			// release render.dll
 		if( !Host_InitRender( ))		// load it again
@@ -302,7 +317,7 @@ void Host_CheckChanges( void )
 	// restart or change sound engine
 	while( host_audio->modified )
 	{
-		host_audio->modified = false;
+		host_audio->modified = false;		// predict state
 
 		Host_FreeSound();			// release sound.dll
 		if( !Host_InitSound( ))		// load it again
@@ -378,6 +393,13 @@ void Host_PhysRestart_f( void )
 	host_cphys->modified = true;
 }
 
+/*
+=================
+Host_ChangeGame_f
+
+Change game modification
+=================
+*/
 void Host_ChangeGame_f( void )
 {
 	int	i;
@@ -814,7 +836,7 @@ void Host_Init( const int argc, const char **argv )
 	}
 
 	// init commands and vars
-	if( host.developer )
+	if( host.developer >= 3 )
 	{
 		Cmd_AddCommand ( "sys_error", Sys_Error_f, "just throw a fatal error to test shutdown procedures");
 		Cmd_AddCommand ( "host_error", Host_Error_f, "just throw a host error to test shutdown procedures");

@@ -353,8 +353,9 @@ void SV_RunGameFrame( void )
 	// has the "current" frame
 	sv.framenum++;
 
-	// don't run if paused
-	if( !sv.paused && CL_Active()) SV_Physics();
+	// don't run if paused or not in game
+	if( !sv.paused && CL_IsInGame( ))
+		SV_Physics();
 
 	// never get more than one tic behind
 	if( sv.time < svs.realtime )
@@ -388,8 +389,7 @@ void SV_Frame( int time )
 	// allow physic DLL change
 	if( sv.state == ss_active )
 	{
-		if( !sv.cphys_prepped )
-			SV_PrepModels();
+		if( !sv.cphys_prepped ) SV_PrepModels();
 	}
 
 	// move autonomous things around if enough time has passed
@@ -561,13 +561,13 @@ void SV_Init( void )
 	sv_check_errors = Cvar_Get( "sv_check_errors", "0", CVAR_ARCHIVE, "ignore physic engine errors" );
 	sv_synchthink = Cvar_Get( "sv_fast_think", "0", CVAR_ARCHIVE, "allows entities to think more often than the server framerate" );
 	physinfo = Cvar_Get( "@physinfo", "0", CVAR_READ_ONLY, "" ); // use ->modified value only
-	
 	public_server = Cvar_Get ("public", "0", 0, "change server type from private to public" );
-
 	sv_reconnect_limit = Cvar_Get ("sv_reconnect_limit", "3", CVAR_ARCHIVE, "max reconnect attempts" );
 
-	Host_CheckRestart ();
+	SV_ClearSaveDir ();	// delete all temporary *.hl files
 	MSG_Init( &net_message, net_message_buffer, sizeof( net_message_buffer ));
+
+	Host_CheckRestart ();
 }
 
 /*

@@ -240,6 +240,9 @@ Spawn all entities
 */
 void SV_LevelInit( const char *pMapName, char const *pOldLevel, char const *pLandmarkName, bool loadGame )
 {
+	if( !svs.initialized )
+		return;
+
 	if( loadGame )
 	{
 		if( !SV_LoadGameState( pMapName, 1 ))
@@ -287,6 +290,9 @@ bool SV_SpawnServer( const char *server, const char *startspot )
 
 	if( sv.state == ss_dead && !sv.loadgame )
 		SV_InitGame(); // the game is just starting
+
+	if( !svs.initialized )
+		return false;
 
 	SV_BroadcastCommand( "changing\n" );
 
@@ -386,13 +392,14 @@ void SV_InitGame( void )
 	{
 		// init game after host error
 		if( !svgame.hInstance )
-			SV_LoadProgs( "server" );
+		{
+			if( !SV_LoadProgs( "server" ))
+				return; // can't loading
+		}
 
 		// make sure the client is down
 		CL_Drop();
 	}
-
-	svs.initialized = true;
 
 	if( Cvar_VariableValue( "coop" ) && Cvar_VariableValue ( "deathmatch" ) && Cvar_VariableValue( "teamplay" ))
 	{
@@ -463,6 +470,8 @@ void SV_InitGame( void )
 
 		Mem_Set( &svs.clients[i].lastcmd, 0, sizeof( svs.clients[i].lastcmd ));
 	}
+
+	svs.initialized = true;
 }
 
 bool SV_Active( void )
@@ -473,4 +482,38 @@ bool SV_Active( void )
 void SV_ForceMod( void )
 {
 	sv.cphys_prepped = false;
+}
+
+bool SV_NewGame( const char *mapName, bool loadGame )
+{
+	if( !loadGame )
+	{
+		// in case we unload game dll and flush memory
+		Host_EndGame( "start a new game" );
+	}
+	else
+	{
+		SV_InactivateClients ();
+		SV_DeactivateServer ();
+	}
+
+	if( !SV_SpawnServer( mapName, NULL ))
+		return false;
+
+	// make sure the time is set
+	svgame.globals->time = (sv.time * 0.001f);
+	SV_LevelInit( mapName, NULL, NULL, loadGame );
+
+	if( loadGame )
+	{
+		sv.loadgame = true;
+		svgame.globals->time = (sv.time * 0.001f);
+	}
+
+	SV_ActivateServer();
+
+	if( sv.state != ss_active )
+		return false;
+
+	return true;
 }

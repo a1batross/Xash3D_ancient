@@ -763,6 +763,7 @@ filesystem manager
 #define FS_Close( file )		com.fclose( file )
 #define FS_FileBase( x, y )		com.Com_FileBase( x, y )
 #define FS_LoadInternal( x, y )	com.Com_LoadRes( x, y )
+#define FS_RemovePath( x )		com.Com_RemovePath( x )
 #define FS_Printf			(*com.fprintf)
 #define FS_Print			(*com.fprint)
 #define FS_Seek			(*com.fseek)

@@ -287,28 +287,7 @@ static void SV_SaveServerData( wfile_t *f, const char *name, bool bUseLandMark )
 	svgame.globals->pSaveData = NULL;
 }
 
-/* 
-================== 
-SV_SaveGetName
-================== 
-*/  
-void SV_SaveGetName( int lastnum, char *filename )
-{
-	int	a, b;
 
-	if( !filename ) return;
-	if( lastnum < 0 || lastnum > 99 )
-	{
-		// bound
-		com.strcpy( filename, "save99" );
-		return;
-	}
-
-	a = lastnum / 10;
-	b = lastnum % 10;
-
-	com.sprintf( filename, "save%i%i", a, b );
-}
 
 /*
 =============
@@ -336,23 +315,6 @@ void SV_WriteSaveFile( const char *inname, bool autosave, bool bUseLandmark )
 		MsgDev( D_ERROR, "SV_WriteSaveFile: can't savegame while dead!\n" );
 		return;
 	}
-
-	if( !com.stricmp( inname, "new" ))
-	{
-		// scan for a free filename
-		for( n = 0; n < 100; n++ )
-		{
-			SV_SaveGetName( n, name );
-			if( !FS_FileExists( va( "save/%s.sav", name )))
-				break;
-		}
-		if( n == 100 )
-		{
-			Msg( "^3ERROR: no free slots for savegame\n" );
-			return;
-		}
-	}
-	else com.strncpy( name, inname, sizeof( name ));
 
 	com.sprintf( path, "save/%s.sav", name );
 
@@ -728,39 +690,4 @@ bool SV_GetComment( const char *savename, char *comment )
 	WAD_Close( savfile );
 
 	return true;
-}
-
-const char *SV_GetLatestSave( void )
-{
-	search_t	*f = FS_Search( "save/*.sav", true );
-	int	i, found = 0;
-	long	newest = 0, ft;
-	string	savename;	
-
-	if( !f ) return NULL;
-
-	for( i = 0; i < f->numfilenames; i++ )
-	{
-		if( WAD_Check( f->filenames[i] ) != 1 )
-			continue; // corrupted or somewhat 
-
-		ft = FS_FileTime( va( "%s/%s", GI->gamedir, f->filenames[i] ));
-		
-		// found a match?
-		if( ft > 0 )
-		{
-			// should we use the matche?
-			if( !found || Host_CompareFileTime( newest, ft ) < 0 )
-			{
-				newest = ft;
-				com.strncpy( savename, f->filenames[i], MAX_STRING );
-				found = 1;
-			}
-		}
-	}
-	Mem_Free( f ); // release search
-
-	if( found )
-		return va( "%s", savename ); // move to static memory
-	return NULL; 
 }

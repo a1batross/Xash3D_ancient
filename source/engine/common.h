@@ -50,7 +50,8 @@ typedef enum
 	HOST_ERROR,	// host stopped by error
 	HOST_SLEEP,	// sleeped by different reason, e.g. minimize window
 	HOST_NOFOCUS,	// same as HOST_FRAME, but disable mouse
-	HOST_RESTART	// during the changes video mode
+	HOST_RESTART,	// during the changes video mode
+	HOST_CRASHED	// an exception handler called
 } host_state;
 
 typedef enum
@@ -105,6 +106,7 @@ int com_buildnum( void );
 void Host_SetServerState( int state );
 int Host_ServerState( void );
 int Host_CompareFileTime( long ft1, long ft2 );
+bool Host_NewGame( const char *mapName, bool loadGame );
 void Host_EndGame( const char *message, ... );
 void Host_AbortCurrentFrame( void );
 void Host_WriteDefaultConfig( void );
@@ -209,6 +211,7 @@ void CIN_ReadChunk( cinematics_t *cin );
 byte *CIN_ReadNextFrame( cinematics_t *cin, bool silent );
 
 // shared calls
+bool CL_IsInGame( void );
 int CL_GetServerTime( void );
 float CL_GetLerpFrac( void );
 void CL_CharEvent( int key );
@@ -227,7 +230,8 @@ const char *CL_LevelshotType( void );
 int CL_GetMaxClients( void );
 byte CL_GetMouthOpen( int entityIndex );
 bool SV_GetComment( const char *savename, char *comment );
-void SV_LoadProgs( const char *name );
+bool SV_NewGame( const char *mapName, bool loadGame );
+bool SV_LoadProgs( const char *name );
 void SV_ForceMod( void );
 void CL_MouseEvent( int mx, int my );
 void CL_AddLoopingSounds( void );

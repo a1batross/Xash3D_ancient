@@ -8,7 +8,7 @@
 #include "const.h"
 
 #define SAVE_AGED_COUNT		1
-#define MAX_SAVEGAMES		12
+#define SAVENAME_LENGTH		128	// matches with MAX_OSPATH
 
 typedef struct
 {
@@ -302,7 +302,7 @@ int SV_MapCount( const char *pPath )
 	search_t	*t;
 	int	count = 0;
 	
-	t = FS_Search( "pPath", true );
+	t = FS_Search( pPath, true );
 	if( !t ) return count; // empty
 
 	count = t->numfilenames;
@@ -377,6 +377,50 @@ void SV_ClearSaveDir( void )
 	Mem_Free( t );
 }
 
+int SV_IsValidSave( void )
+{
+	if( !svs.initialized || sv.state != ss_active )
+	{
+		Msg( "Not playing a local game.\n" );
+		return 0;
+	}
+
+	if( CL_Active() == false )
+	{
+		Msg( "Can't save if not active.\n" );
+		return 0;
+	}
+
+	if( sv_maxclients->integer != 1 )
+	{
+		Msg( "Can't save multiplayer games.\n" );
+		return 0;
+	}
+
+	if( svs.clients && svs.clients[0].state == cs_spawned )
+	{
+		edict_t	*pl = svs.clients[0].edict;
+		
+		if( !pl )
+		{
+			Msg( "Can't savegame without a player!\n" );
+			return 0;
+		}
+			
+		if( pl->v.deadflag != false )
+		{
+			Msg( "Can't savegame with a dead player\n" );
+			return 0;
+		}
+
+		// Passed all checks, it's ok to save
+		return 1;
+	}
+
+	Msg( "Can't savegame without a client!\n" );
+	return 0;
+}
+
 void SV_AgeSaveList( const char *pName, int count )
 {
 	string	newName, oldName;
@@ -427,12 +471,13 @@ void SV_FileCopy( file_t *pOutput, file_t *pInput, int fileSize )
 	}
 }
 
-void SV_SaveDirectoryCopy( const char *pPath, file_t *pFile )
+void SV_DirectoryCopy( const char *pPath, file_t *pFile )
 {
 	search_t		*t;
 	int		i;
 	int		fileSize;
 	file_t		*pCopy;
+	char		szName[SAVENAME_LENGTH];
 
 	t = FS_Search( pPath, true );
 	if( !t ) return;
@@ -441,13 +486,36 @@ void SV_SaveDirectoryCopy( const char *pPath, file_t *pFile )
 	{
 		fileSize = FS_FileSize( t->filenames[i] );
 		pCopy = FS_Open( t->filenames[i], "rb" );
+
 		// filename can only be as long as a map name + extension
-		FS_Write( pFile, t->filenames[i], com.strlen( t->filenames[i] ));
+		com.strncpy( szName, FS_RemovePath( t->filenames[i] ), SAVENAME_LENGTH );		
+		FS_Write( pFile, szName, SAVENAME_LENGTH );
 		FS_Write( pFile, &fileSize, sizeof( int ));
 		SV_FileCopy( pFile, pCopy, fileSize );
 		FS_Close( pCopy );
 	}
 	Mem_Free( t );
+}
+
+void SV_DirectoryExtract( file_t *pFile, int fileCount )
+{
+	int	i, fileSize;
+	char	szName[SAVENAME_LENGTH], fileName[SAVENAME_LENGTH];
+	file_t	*pCopy;
+
+	Msg( "SV_DirectoryExtract: %i files\n", fileCount );
+
+	for( i = 0; i < fileCount; i++ )
+	{
+		// filename can only be as long as a map name + extension
+		FS_Read( pFile, fileName, SAVENAME_LENGTH );
+		FS_Read( pFile, &fileSize, sizeof( int ));
+		com.snprintf( szName, sizeof( szName ), "save/%s", fileName );
+
+		pCopy = FS_Open( szName, "wb" );
+		SV_FileCopy( pCopy, pFile, fileSize );
+		FS_Close( pCopy );
+	}
 }
 
 void SV_SaveFinish( SAVERESTOREDATA *pSaveData )
@@ -475,9 +543,9 @@ SAVERESTOREDATA *SV_SaveInit( int size )
 	if( size <= 0 ) size = 0x80000;	// Reserve 512K for now, UNDONE: Shrink this after compressing strings
 	numents = svgame.globals->numEntities;
 
-	pSaveData = Mem_Alloc( svgame.temppool, sizeof(SAVERESTOREDATA) + ( sizeof(ENTITYTABLE) * numents ) + size );
+	pSaveData = Mem_Alloc( host.mempool, sizeof(SAVERESTOREDATA) + ( sizeof(ENTITYTABLE) * numents ) + size );
 	SaveRestore_Init( pSaveData, (char *)(pSaveData + 1), size ); // skip the save structure
-	SaveRestore_InitSymbolTable( pSaveData, (char **)Mem_Alloc( svgame.temppool, nTokens * sizeof( char* )), nTokens );
+	SaveRestore_InitSymbolTable( pSaveData, (char **)Mem_Alloc( host.mempool, nTokens * sizeof( char* )), nTokens );
 
 	pSaveData->time = svgame.globals->time;	// Use DLL time
 	VectorClear( pSaveData->vecLandmarkOffset );
@@ -583,7 +651,7 @@ SAVERESTOREDATA *SV_LoadSaveData( const char *level )
 	// Read the sections info and the data
 	FS_Read( pFile, &sectionsInfo, sizeof( sectionsInfo ));
 
-	pSaveData = Mem_Alloc( svgame.temppool, sizeof(SAVERESTOREDATA) + SumBytes( &sectionsInfo ));
+	pSaveData = Mem_Alloc( host.mempool, sizeof(SAVERESTOREDATA) + SumBytes( &sectionsInfo ));
 	com.strncpy( pSaveData->szCurrentMapName, level, sizeof( pSaveData->szCurrentMapName ));
 	
 	FS_Read( pFile, (char *)(pSaveData + 1), SumBytes( &sectionsInfo ));
@@ -594,7 +662,7 @@ SAVERESTOREDATA *SV_LoadSaveData( const char *level )
 
 	if( sectionsInfo.nBytesSymbols > 0 )
 	{
-		SaveRestore_InitSymbolTable( pSaveData, (char **)Mem_Alloc( svgame.temppool, sectionsInfo.nSymbols * sizeof( char* )), sectionsInfo.nSymbols );
+		SaveRestore_InitSymbolTable( pSaveData, (char **)Mem_Alloc( host.mempool, sectionsInfo.nSymbols * sizeof( char* )), sectionsInfo.nSymbols );
 
 		// make sure the token strings pointed to by the pToken hashtable.
 		for( i = 0; i < sectionsInfo.nSymbols; i++ )
@@ -741,7 +809,7 @@ void SV_ReadEntityTable( SAVERESTOREDATA *pSaveData )
 	ENTITYTABLE	*pEntityTable;
 	int		i;
 
-	pEntityTable = (ENTITYTABLE *)Mem_Alloc( svgame.temppool, sizeof( ENTITYTABLE ) * pSaveData->tableCount );
+	pEntityTable = (ENTITYTABLE *)Mem_Alloc( host.mempool, sizeof( ENTITYTABLE ) * pSaveData->tableCount );
 	SaveRestore_InitEntityTable( pSaveData, pEntityTable, pSaveData->tableCount );
 		
 	for( i = 0; i < pSaveData->tableCount; i++ )
@@ -772,7 +840,7 @@ SAVERESTOREDATA *SV_SaveGameState( void )
 
 	numents = svgame.globals->numEntities;
 
-	SaveRestore_InitEntityTable( pSaveData, Mem_Alloc( svgame.temppool, sizeof(ENTITYTABLE) * numents ), numents );
+	SaveRestore_InitEntityTable( pSaveData, Mem_Alloc( host.mempool, sizeof(ENTITYTABLE) * numents ), numents );
 
 	// Build the adjacent map list (after entity table build by game in presave)
 	svgame.dllFuncs.pfnParmsChangeLevel();
@@ -1252,8 +1320,10 @@ int SV_SaveGameSlot( const char *pSaveName, const char *pSaveComment )
 	tokenSize = SaveRestore_AccessCurPos( pSaveData ) - pTokenData;
 	SaveRestore_Rewind( pSaveData, tokenSize );
 
-	com.snprintf( name, sizeof( name ), "save/%s.save", pSaveName );
+	com.snprintf( name, sizeof( name ), "save/%s.sav", pSaveName );
 	MsgDev( D_INFO, "Saving game to %s...\n", name );
+
+	Cbuf_AddText( va( "saveshot \"%s\"\n", pSaveName ));
 
 	// output to disk
 	if( com.stricmp( pSaveName, "quick" ) || com.stricmp( pSaveName, "autosave" ))
@@ -1277,9 +1347,219 @@ int SV_SaveGameSlot( const char *pSaveName, const char *pSaveComment )
 	// save gamestate
 	FS_Write( pFile, SaveRestore_GetBuffer( pSaveData ), SaveRestore_GetCurPos( pSaveData ));
 
-	SV_SaveDirectoryCopy( hlPath, pFile );
+	SV_DirectoryCopy( hlPath, pFile );
 	FS_Close( pFile );
 	SV_SaveFinish( pSaveData );
 
 	return 1;
+}
+
+int SV_SaveReadHeader( file_t *pFile, GAME_HEADER *pHeader, int readGlobalState )
+{
+	int		i, tag, size, tokenCount, tokenSize;
+	char		*pszTokenList;
+	SAVERESTOREDATA	*pSaveData;
+
+	FS_Read( pFile, &tag, sizeof( int ));
+	if( tag != SAVEGAME_HEADER )
+	{
+		FS_Close( pFile );
+		return 0;
+	}
+		
+	FS_Read( pFile, &tag, sizeof( int ));
+	if( tag != SAVEGAME_VERSION )
+	{
+		FS_Close( pFile );
+		return 0;
+	}
+
+	FS_Read( pFile, &size, sizeof( int ));
+	FS_Read( pFile, &tokenCount, sizeof( int ));
+	FS_Read( pFile, &tokenSize, sizeof( int ));
+
+	pSaveData = Mem_Alloc( host.mempool, sizeof( SAVERESTOREDATA ) + tokenSize + size );
+	pSaveData->connectionCount = 0;
+	pszTokenList = (char *)(pSaveData + 1);
+
+	if( tokenSize > 0 )
+	{
+		FS_Read( pFile, pszTokenList, tokenSize );
+
+		SaveRestore_InitSymbolTable( pSaveData, (char **)Mem_Alloc( host.mempool, tokenCount * sizeof( char* )), tokenCount );
+
+		// make sure the token strings pointed to by the pToken hashtable.
+		for( i = 0; i < tokenCount; i++ )
+		{
+			if( *pszTokenList )
+			{
+				Com_Assert( SaveRestore_DefineSymbol( pSaveData, pszTokenList, i ) == 0 );
+			}
+			while( *pszTokenList++ ); // find next token (after next null)
+		}
+	}
+	else
+	{
+		SaveRestore_InitSymbolTable( pSaveData, NULL, 0 );
+	}
+
+	pSaveData->fUseLandmark = false;
+	pSaveData->time = 0.0f;
+
+	// pszTokenList now points after token data
+	SaveRestore_Init( pSaveData, (char *)(pszTokenList), size );
+	FS_Read( pFile, SaveRestore_GetBuffer( pSaveData ), size );
+
+	svgame.dllFuncs.pfnSaveReadFields( pSaveData, "GameHeader", pHeader, gGameHeader, ARRAYSIZE( gGameHeader ));	
+	if( readGlobalState )
+		svgame.dllFuncs.pfnRestoreGlobalState( pSaveData );
+	SV_SaveFinish( pSaveData );
+	
+	return 1;
+}
+
+bool SV_LoadGame( const char *pName )
+{
+	file_t		*pFile;
+	bool		validload = false;
+	GAME_HEADER	gameHeader;
+	string		name;
+
+	if( !pName || !pName[0] )
+		return false;
+
+	com.snprintf( name, sizeof( name ), "save/%s.sav", pName );
+
+	MsgDev( D_INFO, "Loading game from %s...\n", name );
+	SV_ClearSaveDir();
+
+	if( !svs.initialized ) SV_InitGame ();
+
+	pFile = FS_Open( name, "rb" );
+
+	if( pFile )
+	{
+		if( SV_SaveReadHeader( pFile, &gameHeader, 1 ))
+		{
+			SV_DirectoryExtract( pFile, gameHeader.mapCount );
+			validload = true;
+		}
+		FS_Close( pFile );
+	}
+	else MsgDev( D_ERROR, "File not found or failed to open.\n" );
+
+	if( !validload )
+	{
+		CL_Disconnect();
+		return false;
+	}
+
+	Cvar_FullSet( "coop", "0",  CVAR_SERVERINFO|CVAR_LATCH );
+	Cvar_FullSet( "teamplay", "0",  CVAR_SERVERINFO|CVAR_LATCH );
+	Cvar_FullSet( "deathmatch", "0",  CVAR_SERVERINFO|CVAR_LATCH );
+
+	return Host_NewGame( gameHeader.mapName, true );
+}
+
+/*
+================== 
+SV_SaveGetName
+================== 
+*/  
+void SV_SaveGetName( int lastnum, char *filename )
+{
+	int	a, b, c;
+
+	if( !filename ) return;
+	if( lastnum < 0 || lastnum > 999 )
+	{
+		// bound
+		com.strcpy( filename, "save999" );
+		return;
+	}
+
+	a = lastnum / 100;
+	lastnum -= a * 100;
+	b = lastnum / 10;
+	c = lastnum % 10;
+
+	com.sprintf( filename, "save%i%i%i", a, b, c );
+}
+
+void SV_SaveGame( const char *pName )
+{
+	char	comment[80];
+	string	savename;
+	int	n;
+
+	if( !pName || !*pName )
+		return;
+
+	// can we save at this point?
+	if( !SV_IsValidSave( ))
+		return;
+
+	if( !com.stricmp( pName, "new" ))
+	{
+		// scan for a free filename
+		for( n = 0; n < 999; n++ )
+		{
+			SV_SaveGetName( n, savename );
+			if( !FS_FileExists( va( "save/%s.sav", savename )))
+				break;
+		}
+		if( n == 1000 )
+		{
+			Msg( "^3ERROR: no free slots for savegame\n" );
+			return;
+		}
+	}
+	else com.strncpy( savename, pName, sizeof( savename ));
+
+	SV_BuildSaveComment( comment, sizeof( comment ));
+	SV_SaveGameSlot( savename, comment );
+
+	// UNDONE: get the user controls, use HudMessage instead
+	MSG_Begin( svc_centerprint );
+	MSG_WriteString( &sv.multicast, "Game Saved" );
+	MSG_Send( MSG_ONE, NULL, EDICT_NUM( 1 ));
+}
+
+/* 
+================== 
+SV_GetLatestSave
+
+used for reload game after player death
+================== 
+*/
+const char *SV_GetLatestSave( void )
+{
+	search_t	*f = FS_Search( "save/*.sav", true );
+	int	i, found = 0;
+	long	newest = 0, ft;
+	string	savename;	
+
+	if( !f ) return NULL;
+
+	for( i = 0; i < f->numfilenames; i++ )
+	{
+		ft = FS_FileTime( va( "%s/%s", GI->gamedir, f->filenames[i] ));
+		
+		// found a match?
+		if( ft > 0 )
+		{
+			// should we use the matche?
+			if( !found || Host_CompareFileTime( newest, ft ) < 0 )
+			{
+				newest = ft;
+				com.strncpy( savename, f->filenames[i], MAX_STRING );
+				found = 1;
+			}
+		}
+	}
+	Mem_Free( f ); // release search
+
+	if( found )
+		return va( "%s", savename ); // move to static memory
+	return NULL; 
 }

@@ -392,7 +392,7 @@ void SV_InactivateClients( void );
 //
 // sv_game.c
 //
-void SV_LoadProgs( const char *name );
+bool SV_LoadProgs( const char *name );
 void SV_UnloadProgs( void );
 void SV_FreeEdicts( void );
 edict_t *SV_AllocEdict( void );
@@ -429,6 +429,9 @@ _inline edict_t *SV_EDICT_NUM( int n, const char * file, const int line )
 //
 // sv_save.c
 //
+void SV_ClearSaveDir( void );
+void SV_SaveGame( const char *pName );
+bool SV_LoadGame( const char *pName );
 void SV_MergeLevelFile( const char *name );
 void SV_ChangeLevel( bool loadfromsavedgame, const char *mapname, const char *start );
 void SV_WriteSaveFile( const char *name, bool autosave, bool bUseLandmark );

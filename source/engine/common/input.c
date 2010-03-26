@@ -330,7 +330,7 @@ void IN_Frame( void )
 	{
 		if( host.state == HOST_NOFOCUS )
 		{
-			if( Host_ServerState() && CL_Active( ))
+			if( Host_ServerState() && CL_IsInGame( ))
 				Sys_Sleep( 5 ); // listenserver
 			else Sys_Sleep( 20 ); // sleep 20 ms otherwise
 		}

@@ -236,15 +236,18 @@ void SV_Map_f( void )
 
 void SV_Newgame_f( void )
 {
-	// FIXME: parse newgame script or somewhat
-	if( com.strlen( GI->startmap ))
-		Cbuf_ExecuteText( EXEC_APPEND, va( "map %s\n", GI->startmap ));
-	else Host_EndGame( "end game" );
+	if( Cmd_Argc() != 1 )
+	{
+		Msg( "Usage: newgame\n" );
+		return;
+	}
+
+	Host_NewGame( GI->startmap, false );
 }
 
 void SV_Endgame_f( void )
 {
-	Host_EndGame( "end game" );
+	Host_EndGame( "The End" );
 }
 
 /*
@@ -255,27 +258,13 @@ SV_Load_f
 */
 void SV_Load_f( void )
 {
-	string	filename;
-
 	if( Cmd_Argc() != 2 )
 	{
-		Msg( "Usage: load <filename>\n" );
+		Msg( "Usage: load <savename>\n" );
 		return;
 	}
 
-	com.strncpy( filename, Cmd_Argv( 1 ), sizeof( filename ));
-	if(WAD_Check( va( "save/%s.sav", filename )) != 1 )
-	{
-		Msg( "Can't loading %s\n", filename );
-		return;
-	}
-
-	sv.loadgame = true;	// set right state
-
-	SV_ReadSaveFile( filename );
-	SV_SpawnServer( svs.mapname, NULL );
-	SV_LevelInit( svs.mapname, NULL, filename, true );
-	SV_ActivateServer();
+	SV_LoadGame( Cmd_Argv( 1 ));
 }
 
 /*
@@ -299,17 +288,16 @@ void SV_Save_f( void )
 {
 	const char *name;
 
-	if( Cmd_Argc() == 1 )
-		name = "new";
-	else if( Cmd_Argc() == 2 )
-		name = Cmd_Argv( 1 );
-	else
+	switch( Cmd_Argc() )
 	{
+	case 1: name = "new"; break;
+	case 2: name = Cmd_Argv( 1 ); break;
+	default:
 		Msg( "Usage: save <savename>\n" );
 		return;
 	}
 
-	SV_WriteSaveFile( name, false, true );
+	SV_SaveGame( name );
 }
 
 /*
@@ -350,7 +338,7 @@ SV_AutoSave_f
 */
 void SV_AutoSave_f( void )
 {
-	SV_WriteSaveFile( "autosave", true, true );
+	SV_SaveGame( "autosave" );
 }
 
 /*
@@ -419,7 +407,9 @@ void SV_Reload_f( void )
 	const char	*save;
 	string		loadname;
 	
-	if( sv.state != ss_active ) return;
+	if( sv.state != ss_active )
+		return;
+
 	save = SV_GetLatestSave();
 	if( save )
 	{

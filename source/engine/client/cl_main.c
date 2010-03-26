@@ -38,9 +38,13 @@ client_static_t	cls;
 clgame_static_t	clgame;
 
 //======================================================================
+bool CL_Active( void )
+{
+	return ( cls.state == ca_active );
+}
 
 //======================================================================
-bool CL_Active( void )
+bool CL_IsInGame( void )
 {
 	if( host.type == HOST_DEDICATED ) return true;	// always active for dedicated servers
 	if( CL_GetMaxClients() > 1 ) return true;	// always active for multiplayer
@@ -401,9 +405,11 @@ void CL_Crashed_f( void )
 	byte	final[32];
 
 	// already freed
-	if( host.state == HOST_ERROR ) return;
+	if( host.state == HOST_CRASHED ) return;
 	if( host.type != HOST_NORMAL ) return;
 	if( !cls.initialized ) return;
+
+	host.state = HOST_CRASHED;
 
 	CL_Stop_f(); // stop any demos
 
@@ -1137,7 +1143,7 @@ void CL_Frame( int time )
 
 	Host_CheckChanges();
 
-	// allow rendering DLL change
+	// allow sound and video DLL change
 	if( cls.state == ca_active )
 	{
 		if( !cl.video_prepped ) CL_PrepVideo();

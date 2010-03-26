@@ -3826,7 +3826,7 @@ void SV_UnloadProgs( void )
 	Mem_Set( &svgame, 0, sizeof( svgame ));
 }
 
-void SV_LoadProgs( const char *name )
+bool SV_LoadProgs( const char *name )
 {
 	static SERVERAPI		GetEntityAPI;
 	static globalvars_t		gpGlobals;
@@ -3848,27 +3848,27 @@ void SV_LoadProgs( const char *name )
 
 	if( !svgame.hInstance )
 	{
-		Host_Error( "SV_LoadProgs: can't initialize server.dll\n" );
-		return;
+		MsgDev( D_ERROR, "SV_LoadProgs: can't initialize server.dll\n" );
+		return false;
 	}
 
 	GetEntityAPI = (SERVERAPI)Com_GetProcAddress( svgame.hInstance, "CreateAPI" );
 	if( !GetEntityAPI )
 	{
-		Host_Error( "SV_LoadProgs: failed to get address of CreateAPI proc\n" );
-		return;
+		MsgDev( D_ERROR, "SV_LoadProgs: failed to get address of CreateAPI proc\n" );
+		return false;
 	}
 
 	if( !Sys_LoadSymbols( name ))
 	{
-		Host_Error( "SV_LoadProgs: can't loading export symbols\n" );
-		return;
+		MsgDev( D_ERROR, "SV_LoadProgs: can't loading export symbols\n" );
+		return false;
 	}
 
 	if( !GetEntityAPI( &svgame.dllFuncs, &gEngfuncs, svgame.globals ))
 	{
-		Host_Error( "SV_LoadProgs: couldn't get entity API\n" );
-		return;
+		MsgDev( D_ERROR, "SV_LoadProgs: couldn't get entity API\n" );
+		return false;
 	}
 
 	// 65535 unique strings should be enough ...
@@ -3888,4 +3888,6 @@ void SV_LoadProgs( const char *name )
 
 	// fire once
 	MsgDev( D_INFO, "Dll loaded for mod %s\n", svgame.dllFuncs.pfnGetGameDescription() );
+
+	return true;
 }
