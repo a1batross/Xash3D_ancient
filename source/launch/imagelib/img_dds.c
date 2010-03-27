@@ -931,7 +931,8 @@ bool Image_DXTWriteHeader( vfile_t *f, rgbdata_t *pix )
 	uint	dwIdent = DDSHEADER;
 	uint	dwRGBBitCount = 0;
 
-	if( !pix || !pix->buffer ) return false;
+	if( !pix || !pix->buffer )
+		return false;
 
 	// setup flags
 	dwFlags1 |= DDS_LINEARSIZE|DDS_WIDTH|DDS_HEIGHT|DDS_CAPS|DDS_PIXELFORMAT|DDS_PITCH;
@@ -2458,18 +2459,18 @@ bool Image_SaveDDS( const char *name, rgbdata_t *pix )
 {
 	vfile_t	*file;	// virtual file
 
-	if(FS_FileExists( name ) && !(image.cmd_flags & IL_ALLOW_OVERWRITE ))
+	if( FS_FileExists( name ) && !(image.cmd_flags & IL_ALLOW_OVERWRITE ))
 		return false; // already existed
 
 	file = VFS_Open( NULL, "w" );
 	if( !file ) return false;
-	if(!Image_DXTWriteHeader( file, pix ))
+	if( !Image_DXTWriteHeader( file, pix ))
 	{
 		MsgDev( D_ERROR, "Image_SaveDDS: unsupported format %s\n", PFDesc[pix->type].name );
 		VFS_Close( file );
 		return false;
 	}
-	if(!Image_DXTWriteImage( file, pix ))
+	if( !Image_DXTWriteImage( file, pix ))
 	{
 		MsgDev( D_ERROR, "Image_SaveDDS: can't create dds file\n" );
 		VFS_Close( file );

@@ -226,7 +226,6 @@ bool CL_GetComment( const char *demoname, char *comment );
 studioframe_t *CL_GetStudioFrame( int entityIndex );
 edict_t *CL_GetEdictByIndex( int index );
 edict_t *CL_GetLocalPlayer( void );
-const char *CL_LevelshotType( void );
 int CL_GetMaxClients( void );
 byte CL_GetMouthOpen( int entityIndex );
 bool SV_GetComment( const char *savename, char *comment );

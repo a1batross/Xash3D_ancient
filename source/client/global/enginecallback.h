@@ -150,5 +150,7 @@ inline void CL_PlaySound( int iSound, float flVolume, Vector &pos, float pitch =
 #define FREE_LIBRARY	(*g_engfuncs.pfnFreeLibrary)
 #define HOST_ERROR		(*g_engfuncs.pfnHostError)
 #define COM_ParseToken	(*g_engfuncs.pfnParseToken)
+#define MAKE_ENVSHOT( x, y )	(*g_engfuncs.R_EnvShot)( x, y, 0 )
+#define MAKE_SKYSHOT( x, y )	(*g_engfuncs.R_EnvShot)( x, y, 1 )
 
 #endif//ENGINECALLBACKS_H

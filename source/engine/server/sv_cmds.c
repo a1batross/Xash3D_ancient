@@ -327,7 +327,7 @@ void SV_DeleteSave_f( void )
 
 	// delete save and saveshot
 	FS_Delete( va( "%s/save/%s.sav", GI->gamedir, Cmd_Argv( 1 )));
-	FS_Delete( va( "%s/save/%s.%s", GI->gamedir, Cmd_Argv( 1 ), CL_LevelshotType( )));
+	FS_Delete( va( "%s/save/%s.%s", GI->gamedir, Cmd_Argv( 1 ), SI->savshot_ext ));
 }
 
 /*
@@ -638,7 +638,7 @@ void SV_InitOperatorCommands( void )
 	Cmd_AddCommand( "load", SV_Load_f, "load a saved game file" );
 	Cmd_AddCommand( "savequick", SV_QuickSave_f, "save the game to the quicksave" );
 	Cmd_AddCommand( "loadquick", SV_QuickLoad_f, "load a quick-saved game file" );
-	Cmd_AddCommand( "delsave", SV_DeleteSave_f, "delete a saved game file and saveshot" );
+	Cmd_AddCommand( "killsave", SV_DeleteSave_f, "delete a saved game file and saveshot" );
 	Cmd_AddCommand( "autosave", SV_AutoSave_f, "save the game to 'autosave' file" );
 	Cmd_AddCommand( "killserver", SV_KillServer_f, "shutdown current server" );
 }
@@ -669,7 +669,7 @@ void SV_KillOperatorCommands( void )
 
 	Cmd_RemoveCommand( "save" );
 	Cmd_RemoveCommand( "load" );
-	Cmd_RemoveCommand( "delsave" );
+	Cmd_RemoveCommand( "killsave" );
 	Cmd_RemoveCommand( "autosave" );
 	Cmd_RemoveCommand( "killserver" );
 }

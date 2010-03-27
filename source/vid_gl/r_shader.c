@@ -79,30 +79,6 @@ static bool		r_shaderHasDlightPass;
 #define Shader_Malloc( size )		Mem_Alloc( r_shaderpool, size )
 #define Shader_Free( data )		Mem_Free( data )
 
-const char *R_SkyPath( void )
-{
-	// reinstall loadformats by magic keyword :)
-	if( !com.stricmp( GI->texmode, "Xash3D" ) || !com.stricmp( GI->texmode, "Xash" ))
-		return "env";
-	else if( !com.stricmp( GI->texmode, "stalker" ) || !com.stricmp( GI->texmode, "S.T.A.L.K.E.R" ))
-		return "textures/sky";
-	else if( !com.stricmp( GI->texmode, "Doom1" ) || !com.stricmp( GI->texmode, "Doom2" ))
-		return "gfx/env";
-	else if( !com.stricmp( GI->texmode, "Quake1" ))
-		return "gfx/env";
-	else if( !com.stricmp( GI->texmode, "Quake2" ))
-		return "env";
-	else if( !com.stricmp( GI->texmode, "Quake3" ))
-		return "env";
-	else if( !com.stricmp( GI->texmode, "Quake4" ) || !com.stricmp( GI->texmode, "Doom3" ))
-		return "env";
-	else if( !com.stricmp( GI->texmode, "hl1" ) || !com.stricmp( GI->texmode, "Half-Life" ))
-		return "gfx/env";
-	else if( !com.stricmp( GI->texmode, "hl2" ) || !com.stricmp( GI->texmode, "Half-Life 2" ))
-		return "materials/skybox";
-	return "png";
-}
-
 /*
 =======================================================================
 
@@ -4100,7 +4076,7 @@ ref_shader_t *R_SetupSky( const char *name )
 			{
 				if( !Shader_CheckSkybox( loadname ))
 				{
-					com.strncpy( loadname, va( "%s/%s", R_SkyPath(), name ), sizeof( loadname ));
+					com.strncpy( loadname, va( "%s/%s", SI->envpath, name ), sizeof( loadname ));
 					if( Shader_CheckSkybox( loadname ))
 							shader_valid = true;
 					else shader_valid = true;

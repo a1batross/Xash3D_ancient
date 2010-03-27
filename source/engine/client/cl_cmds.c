@@ -6,34 +6,10 @@
 #include "common.h"
 #include "client.h"
 
-#define SCRSHOT_TYPE	"jpg" // fixed type
-#define LEVELSHOT_TYPE	CL_LevelshotType()
-#define SAVESHOT_TYPE	CL_LevelshotType()
-#define DEMOSHOT_TYPE	CL_LevelshotType()
-
-const char *CL_LevelshotType( void )
-{
-	// reinstall loadformats by magic keyword :)
-	if( !com.stricmp( GI->texmode, "Xash3D" ) || !com.stricmp( GI->texmode, "Xash" ))
-		return "jpg";
-	else if( !com.stricmp( GI->texmode, "stalker" ) || !com.stricmp( GI->texmode, "S.T.A.L.K.E.R" ))
-		return "dds";
-	else if( !com.stricmp( GI->texmode, "Doom1" ) || !com.stricmp( GI->texmode, "Doom2" ))
-		return "tga";
-	else if( !com.stricmp( GI->texmode, "Quake1" ))
-		return "tga";
-	else if( !com.stricmp( GI->texmode, "Quake2" ))
-		return "tga";
-	else if( !com.stricmp( GI->texmode, "Quake3" ))
-		return "jpg";
-	else if( !com.stricmp( GI->texmode, "Quake4" ) || !com.stricmp( GI->texmode, "Doom3" ))
-		return "dds";
-	else if( !com.stricmp( GI->texmode, "hl1" ) || !com.stricmp( GI->texmode, "Half-Life" ))
-		return "tga";
-	else if( !com.stricmp( GI->texmode, "hl2" ) || !com.stricmp( GI->texmode, "Half-Life 2" ))
-		return "tga";
-	return "png";
-}
+#define SCRSHOT_TYPE	SI->scrshot_ext
+#define LEVELSHOT_TYPE	SI->levshot_ext
+#define SAVESHOT_TYPE	SI->savshot_ext
+#define DEMOSHOT_TYPE	SI->savshot_ext
 
 /*
 ================
@@ -96,7 +72,7 @@ void CL_PlayVideo_f( void )
 	if( cls.state == ca_active )
 	{
 		// FIXME: get rid of this stupid alias
-		Cbuf_AddText(va("killserver\n; wait\n; movie %s\n;", Cmd_Argv(1)));
+		Cbuf_AddText( va( "killserver\n; wait\n; movie %s\n;", Cmd_Argv( 1 )));
 		return;
 	}
 	SCR_PlayCinematic( Cmd_Argv( 1 ));
@@ -132,7 +108,7 @@ void CL_ScreenshotGetName( int lastnum, char *filename )
 	if( lastnum < 0 || lastnum > 9999 )
 	{
 		// bound
-		com.sprintf( filename, "scrshots/%s/shot9999.%s", cl.configstrings[CS_NAME], SCRSHOT_TYPE );
+		com.sprintf( filename, "scrshots/%s/!error.%s", cl.configstrings[CS_NAME], SCRSHOT_TYPE );
 		return;
 	}
 
@@ -179,32 +155,28 @@ void CL_ScreenShot_f( void )
 
 void CL_EnvShot_f( void )
 {
-	string	basename;
-
 	if( Cmd_Argc() < 2 )
 	{
 		Msg( "Usage: envshot <shotname>\n" );
 		return;
 	}
 
-	Con_ClearNotify();
-	com.snprintf( basename, MAX_STRING, "env/%s", Cmd_Argv( 1 ));
-	re->EnvShot( basename, cl_envshot_size->integer, false );
+	com.sprintf( cls.shotname, "%s/%s", SI->envpath, Cmd_Argv( 1 ));
+	cls.scrshot_action = scrshot_envshot;	// build new frame for envshot
+	cls.envshot_vieworg = NULL; // no custom view
 }
 
 void CL_SkyShot_f( void )
 {
-	string	basename;
-
 	if( Cmd_Argc() < 2 )
 	{
-		Msg( "Usage: envshot <shotname>\n" );
+		Msg( "Usage: skyshot <shotname>\n" );
 		return;
 	}
 
-	Con_ClearNotify();
-	com.snprintf( basename, MAX_STRING, "env/%s", Cmd_Argv( 1 ));
-	re->EnvShot( basename, cl_envshot_size->integer, true );
+	com.sprintf( cls.shotname, "%s/%s", SI->envpath, Cmd_Argv( 1 ));
+	cls.scrshot_action = scrshot_skyshot;	// build new frame for skyshot
+	cls.envshot_vieworg = NULL; // no custom view
 }
 
 /* 
@@ -241,7 +213,6 @@ void CL_SaveShot_f( void )
 		return;
 	}
 
-	// check for exist
 	com.sprintf( cls.shotname, "save/%s.%s", Cmd_Argv( 1 ), SAVESHOT_TYPE );
 	cls.scrshot_action = scrshot_savegame;	// build new frame for saveshot
 }
@@ -257,11 +228,10 @@ void CL_DemoShot_f( void )
 {
 	if( Cmd_Argc() < 2 )
 	{
-		Msg( "Usage: demoshot <savename>\n" );
+		Msg( "Usage: demoshot <demoname>\n" );
 		return;
 	}
 
-	// check for exist
 	com.sprintf( cls.shotname, "demos/%s.%s", Cmd_Argv( 1 ), DEMOSHOT_TYPE );
 	cls.scrshot_action = scrshot_demoshot; // build new frame for demoshot
 }

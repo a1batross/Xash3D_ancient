@@ -423,13 +423,15 @@ int SV_IsValidSave( void )
 
 void SV_AgeSaveList( const char *pName, int count )
 {
-	string	newName, oldName;
+	string	newName, oldName, newImage, oldImage;
 
 	// delete last quick/autosave (e.g. quick05.sav)
 	com.snprintf( newName, sizeof( newName ), "%s/save/%s%02d.sav", GI->gamedir, pName, count );
+	com.snprintf( newImage, sizeof( newImage ), "%s/save/%s%02d.%s", GI->gamedir, pName, count, SI->savshot_ext );
 
 	// only delete from game directory, basedir is read-only
 	FS_Delete( newName );
+	FS_Delete( newImage );
 
 	while( count > 0 )
 	{
@@ -437,18 +439,22 @@ void SV_AgeSaveList( const char *pName, int count )
 		{	
 			// quick.sav
 			com.snprintf( oldName, sizeof( oldName ), "%s/save/%s.sav", GI->gamedir, pName );
+			com.snprintf( oldImage, sizeof( oldImage ), "%s/save/%s.%s", GI->gamedir, pName, SI->savshot_ext );
 		}
 		else
 		{	
 			// quick04.sav, etc.
 			com.snprintf( oldName, sizeof( oldName ), "%s/save/%s%02d.sav", GI->gamedir, pName, count - 1 );
+			com.snprintf( oldImage, sizeof( oldImage ), "%s/save/%s%02d.%s", GI->gamedir, pName, count - 1, SI->savshot_ext );
 		}
 
 		com.snprintf( newName, sizeof( newName ), "%s/save/%s%02d.sav", GI->gamedir, pName, count );
+		com.snprintf( newImage, sizeof( newImage ), "%s/save/%s%02d.%s", GI->gamedir, pName, count, SI->savshot_ext );
 		// Scroll the name list down (rename quick04.sav to quick05.sav)
 
 		// FIXME: create FS_Rename
 		rename( oldName, newName );
+		rename( oldImage, newImage );
 		count--;
 	}
 }
@@ -543,9 +549,9 @@ SAVERESTOREDATA *SV_SaveInit( int size )
 	if( size <= 0 ) size = 0x80000;	// Reserve 512K for now, UNDONE: Shrink this after compressing strings
 	numents = svgame.globals->numEntities;
 
-	pSaveData = Mem_Alloc( host.mempool, sizeof(SAVERESTOREDATA) + ( sizeof(ENTITYTABLE) * numents ) + size );
+	pSaveData = Mem_Alloc( svgame.temppool, sizeof(SAVERESTOREDATA) + ( sizeof(ENTITYTABLE) * numents ) + size );
 	SaveRestore_Init( pSaveData, (char *)(pSaveData + 1), size ); // skip the save structure
-	SaveRestore_InitSymbolTable( pSaveData, (char **)Mem_Alloc( host.mempool, nTokens * sizeof( char* )), nTokens );
+	SaveRestore_InitSymbolTable( pSaveData, (char **)Mem_Alloc( svgame.temppool, nTokens * sizeof( char* )), nTokens );
 
 	pSaveData->time = svgame.globals->time;	// Use DLL time
 	VectorClear( pSaveData->vecLandmarkOffset );
@@ -651,7 +657,7 @@ SAVERESTOREDATA *SV_LoadSaveData( const char *level )
 	// Read the sections info and the data
 	FS_Read( pFile, &sectionsInfo, sizeof( sectionsInfo ));
 
-	pSaveData = Mem_Alloc( host.mempool, sizeof(SAVERESTOREDATA) + SumBytes( &sectionsInfo ));
+	pSaveData = Mem_Alloc( svgame.temppool, sizeof(SAVERESTOREDATA) + SumBytes( &sectionsInfo ));
 	com.strncpy( pSaveData->szCurrentMapName, level, sizeof( pSaveData->szCurrentMapName ));
 	
 	FS_Read( pFile, (char *)(pSaveData + 1), SumBytes( &sectionsInfo ));
@@ -662,7 +668,7 @@ SAVERESTOREDATA *SV_LoadSaveData( const char *level )
 
 	if( sectionsInfo.nBytesSymbols > 0 )
 	{
-		SaveRestore_InitSymbolTable( pSaveData, (char **)Mem_Alloc( host.mempool, sectionsInfo.nSymbols * sizeof( char* )), sectionsInfo.nSymbols );
+		SaveRestore_InitSymbolTable( pSaveData, (char **)Mem_Alloc( svgame.temppool, sectionsInfo.nSymbols * sizeof( char* )), sectionsInfo.nSymbols );
 
 		// make sure the token strings pointed to by the pToken hashtable.
 		for( i = 0; i < sectionsInfo.nSymbols; i++ )
@@ -809,7 +815,7 @@ void SV_ReadEntityTable( SAVERESTOREDATA *pSaveData )
 	ENTITYTABLE	*pEntityTable;
 	int		i;
 
-	pEntityTable = (ENTITYTABLE *)Mem_Alloc( host.mempool, sizeof( ENTITYTABLE ) * pSaveData->tableCount );
+	pEntityTable = (ENTITYTABLE *)Mem_Alloc( svgame.temppool, sizeof( ENTITYTABLE ) * pSaveData->tableCount );
 	SaveRestore_InitEntityTable( pSaveData, pEntityTable, pSaveData->tableCount );
 		
 	for( i = 0; i < pSaveData->tableCount; i++ )
@@ -840,7 +846,7 @@ SAVERESTOREDATA *SV_SaveGameState( void )
 
 	numents = svgame.globals->numEntities;
 
-	SaveRestore_InitEntityTable( pSaveData, Mem_Alloc( host.mempool, sizeof(ENTITYTABLE) * numents ), numents );
+	SaveRestore_InitEntityTable( pSaveData, Mem_Alloc( svgame.temppool, sizeof(ENTITYTABLE) * numents ), numents );
 
 	// Build the adjacent map list (after entity table build by game in presave)
 	svgame.dllFuncs.pfnParmsChangeLevel();
@@ -1378,7 +1384,7 @@ int SV_SaveReadHeader( file_t *pFile, GAME_HEADER *pHeader, int readGlobalState 
 	FS_Read( pFile, &tokenCount, sizeof( int ));
 	FS_Read( pFile, &tokenSize, sizeof( int ));
 
-	pSaveData = Mem_Alloc( host.mempool, sizeof( SAVERESTOREDATA ) + tokenSize + size );
+	pSaveData = Mem_Alloc( svgame.temppool, sizeof( SAVERESTOREDATA ) + tokenSize + size );
 	pSaveData->connectionCount = 0;
 	pszTokenList = (char *)(pSaveData + 1);
 
@@ -1386,7 +1392,7 @@ int SV_SaveReadHeader( file_t *pFile, GAME_HEADER *pHeader, int readGlobalState 
 	{
 		FS_Read( pFile, pszTokenList, tokenSize );
 
-		SaveRestore_InitSymbolTable( pSaveData, (char **)Mem_Alloc( host.mempool, tokenCount * sizeof( char* )), tokenCount );
+		SaveRestore_InitSymbolTable( pSaveData, (char **)Mem_Alloc( svgame.temppool, tokenCount * sizeof( char* )), tokenCount );
 
 		// make sure the token strings pointed to by the pToken hashtable.
 		for( i = 0; i < tokenCount; i++ )
@@ -1474,7 +1480,7 @@ void SV_SaveGetName( int lastnum, char *filename )
 	if( lastnum < 0 || lastnum > 999 )
 	{
 		// bound
-		com.strcpy( filename, "save999" );
+		com.strcpy( filename, "error" );
 		return;
 	}
 
@@ -1515,6 +1521,12 @@ void SV_SaveGame( const char *pName )
 		}
 	}
 	else com.strncpy( savename, pName, sizeof( savename ));
+
+	// make sure what oldsave is removed
+	if( FS_FileExists( va( "save/%s.sav", savename )))
+		FS_Delete( va( "%s/save/%s.sav", GI->gamedir, savename ));
+	if( FS_FileExists( va( "save/%s.%s", savename, SI->savshot_ext )))
+		FS_Delete( va( "%s/save/%s.%s", GI->gamedir, savename, SI->savshot_ext ));
 
 	SV_BuildSaveComment( comment, sizeof( comment ));
 	SV_SaveGameSlot( savename, comment );
@@ -1562,4 +1574,163 @@ const char *SV_GetLatestSave( void )
 	if( found )
 		return va( "%s", savename ); // move to static memory
 	return NULL; 
+}
+
+bool SV_GetComment( const char *savename, char *comment )
+{
+	int	i, tag, size, nNumberOfFields, nFieldSize, tokenSize, tokenCount;
+	char	*pData, *pSaveData, *pFieldName, **pTokenList;
+	string	name, description;
+	file_t	*f;
+
+	f = FS_Open( savename, "rb" );
+	if( !f )
+	{
+		// just not exist - clear comment
+		com.strncpy( comment, "", MAX_STRING );
+		return 0;
+	}
+
+	FS_Read( f, &tag, sizeof( int ));
+	if( tag != SAVEGAME_HEADER )
+	{
+		// invalid header
+		com.strncpy( comment, "<corrupted>", MAX_STRING );
+		FS_Close( f );
+		return 0;
+	}
+		
+	FS_Read( f, &tag, sizeof( int ));
+
+	if( tag < SAVEGAME_VERSION )
+	{
+		com.strncpy( comment, "<old version>", MAX_STRING );
+		FS_Close( f );
+		return 0;
+	}
+	if( tag > SAVEGAME_VERSION )
+	{
+		// old xash version ?
+		com.strncpy( comment, "<unknown version>", MAX_STRING );
+		FS_Close( f );
+		return 0;
+	}
+
+	name[0] = '\0';
+	comment[0] = '\0';
+
+	FS_Read( f, &size, sizeof( int ));
+	FS_Read( f, &tokenCount, sizeof( int ));	// These two ints are the token list
+	FS_Read( f, &tokenSize, sizeof( int ));
+	size += tokenSize;
+
+	// sanity check.
+	if( tokenCount < 0 || tokenCount > ( 1024 * 1024 * 32 ))
+	{
+		com.strncpy( comment, "<corrupted>", MAX_STRING );
+		FS_Close( f );
+		return 0;
+	}
+
+	if( tokenSize < 0 || tokenSize > ( 1024 * 1024 * 32 ))
+	{
+		com.strncpy( comment, "<corrupted>", MAX_STRING );
+		FS_Close( f );
+		return 0;
+	}
+
+	pSaveData = (char *)Mem_Alloc( host.mempool, size );
+	FS_Read( f, pSaveData, size );
+	pData = pSaveData;
+
+	// Allocate a table for the strings, and parse the table
+	if ( tokenSize > 0 )
+	{
+		pTokenList = Mem_Alloc( host.mempool, tokenCount * sizeof( char* ));
+
+		// make sure the token strings pointed to by the pToken hashtable.
+		for( i = 0; i < tokenCount; i++ )
+		{
+			pTokenList[i] = *pData ? pData : NULL;	// point to each string in the pToken table
+			while( *pData++ );			// find next token (after next null)
+		}
+	}
+	else pTokenList = NULL;
+
+	// short, short (size, index of field name)
+	nFieldSize = *(short *)pData;
+	pData += sizeof( short );
+
+	pFieldName = pTokenList[*(short *)pData];
+
+	if( com.stricmp( pFieldName, "GameHeader" ))
+	{
+		com.strncpy( comment, "<missing GameHeader>", MAX_STRING );
+		if( pTokenList ) Mem_Free( pTokenList );
+		if( pSaveData ) Mem_Free( pSaveData );
+		FS_Close( f );
+		return 0;
+	};
+
+	// int (fieldcount)
+	pData += sizeof( short );
+	nNumberOfFields = ( int )*pData;
+	pData += nFieldSize;
+
+	// each field is a short (size), short (index of name), binary string of "size" bytes (data)
+	for( i = 0; i < nNumberOfFields; i++ )
+	{
+		// Data order is:
+		// Size
+		// szName
+		// Actual Data
+		nFieldSize = *(short *)pData;
+		pData += sizeof( short );
+
+		pFieldName = pTokenList[*(short *)pData];
+		pData += sizeof( short );
+
+		if( !com.stricmp( pFieldName, "comment" ))
+		{
+			com.strncpy( description, pData, nFieldSize );
+		}
+		else if( !com.stricmp( pFieldName, "mapName" ))
+		{
+			com.strncpy( name, pData, nFieldSize );
+		}
+
+		// move to start of next field.
+		pData += nFieldSize;
+	}
+
+	// delete the string table we allocated
+	if( pTokenList ) Mem_Free( pTokenList );
+	if( pSaveData ) Mem_Free( pSaveData );
+	FS_Close( f );	
+
+	if( com.strlen( name ) > 0 && com.strlen( description ) > 0 )
+	{
+		time_t		fileTime;
+		const struct tm	*file_tm;
+		string		timestring;
+	
+		fileTime = FS_FileTime( va( "%s/%s", GI->gamedir, savename ));
+		file_tm = localtime( &fileTime );
+
+		// split comment to sections
+		if( com.strstr( savename, "quick" ))
+			com.strncat( comment, "[quick]", CS_SIZE );
+		else if( com.strstr( savename, "autosave" ))
+			com.strncat( comment, "[autosave]", CS_SIZE );
+		com.strncat( comment, description, CS_SIZE );
+		strftime( timestring, sizeof ( timestring ), "%b%d %Y", file_tm );
+		com.strncpy( comment + CS_SIZE, timestring, CS_TIME );
+		strftime( timestring, sizeof( timestring ), "%H:%M", file_tm );
+		com.strncpy( comment + CS_SIZE + CS_TIME, timestring, CS_TIME );
+		com.strncpy( comment + CS_SIZE + (CS_TIME * 2), description + CS_SIZE, CS_SIZE );
+		return 1;
+	}	
+
+	com.strncpy( comment, "<unknown version>", MAX_STRING );
+	return 0;
 }

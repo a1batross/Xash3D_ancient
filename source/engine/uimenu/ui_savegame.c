@@ -233,7 +233,7 @@ static void UI_SaveGame_Callback( void *self, int event )
 	case ID_SAVE:
 		if( com.strlen( uiSaveGame.saveName[uiSaveGame.savesList.curItem] ))
 		{
-			com.snprintf( pathPIC, sizeof( pathPIC ), "save/%s.%s", uiSaveGame.saveName[uiSaveGame.savesList.curItem], CL_LevelshotType( ));
+			com.snprintf( pathPIC, sizeof( pathPIC ), "save/%s.%s", uiSaveGame.saveName[uiSaveGame.savesList.curItem], SI->savshot_ext );
 			Cbuf_ExecuteText( EXEC_APPEND, va( "save \"%s\"\n", uiSaveGame.saveName[uiSaveGame.savesList.curItem] ));
 			if( re ) re->FreeShader( pathPIC ); // unload shader from video-memory
 			UI_CloseMenu();
@@ -246,8 +246,8 @@ static void UI_SaveGame_Callback( void *self, int event )
 	case ID_YES:
 		if( com.strlen( uiSaveGame.delName[uiSaveGame.savesList.curItem] ))
 		{
-			com.snprintf( pathPIC, sizeof( pathPIC ), "save/%s.%s", uiSaveGame.delName[uiSaveGame.savesList.curItem], CL_LevelshotType( ));
-			Cbuf_ExecuteText( EXEC_NOW, va( "delsave \"%s\"\n", uiSaveGame.delName[uiSaveGame.savesList.curItem] ));
+			com.snprintf( pathPIC, sizeof( pathPIC ), "save/%s.%s", uiSaveGame.delName[uiSaveGame.savesList.curItem], SI->savshot_ext );
+			Cbuf_ExecuteText( EXEC_NOW, va( "killsave \"%s\"\n", uiSaveGame.delName[uiSaveGame.savesList.curItem] ));
 			if( re ) re->FreeShader( pathPIC ); // unload shader from video-memory
 			UI_SaveGame_GetGameList();
 		}
@@ -281,7 +281,7 @@ static void UI_SaveGame_Ownerdraw( void *self )
 		{
 			string	pathPIC;
 
-			com.snprintf( pathPIC, sizeof( pathPIC ), "save/%s.%s", uiSaveGame.saveName[uiSaveGame.savesList.curItem], CL_LevelshotType( ));
+			com.snprintf( pathPIC, sizeof( pathPIC ), "save/%s.%s", uiSaveGame.saveName[uiSaveGame.savesList.curItem], SI->savshot_ext );
 
 			if( !FS_FileExists( pathPIC ))
 				UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );

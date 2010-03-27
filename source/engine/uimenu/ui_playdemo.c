@@ -230,8 +230,8 @@ static void UI_PlayDemo_Callback( void *self, int event )
 	case ID_YES:
 		if( com.strlen( uiPlayDemo.delName[uiPlayDemo.demosList.curItem] ))
 		{
-			com.snprintf( pathPIC, sizeof( pathPIC ), "demos/%s.%s", uiPlayDemo.delName[uiPlayDemo.demosList.curItem], CL_LevelshotType( ));
-			Cbuf_ExecuteText( EXEC_NOW, va( "deldemo \"%s\"\n", uiPlayDemo.delName[uiPlayDemo.demosList.curItem] ));
+			com.snprintf( pathPIC, sizeof( pathPIC ), "demos/%s.%s", uiPlayDemo.delName[uiPlayDemo.demosList.curItem], SI->savshot_ext );
+			Cbuf_ExecuteText( EXEC_NOW, va( "killdemo \"%s\"\n", uiPlayDemo.delName[uiPlayDemo.demosList.curItem] ));
 			if( re ) re->FreeShader( pathPIC ); // unload shader from video-memory
 			UI_PlayDemo_GetDemoList();
 		}
@@ -265,7 +265,7 @@ static void UI_PlayDemo_Ownerdraw( void *self )
 		{
 			string	pathPIC;
 
-			com.snprintf( pathPIC, sizeof( pathPIC ), "demos/%s.%s", uiPlayDemo.demoName[uiPlayDemo.demosList.curItem], CL_LevelshotType( ));
+			com.snprintf( pathPIC, sizeof( pathPIC ), "demos/%s.%s", uiPlayDemo.demoName[uiPlayDemo.demosList.curItem], SI->savshot_ext );
 
 			if( !FS_FileExists( pathPIC ))
 				UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );

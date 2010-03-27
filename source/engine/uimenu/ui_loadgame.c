@@ -225,8 +225,8 @@ static void UI_LoadGame_Callback( void *self, int event )
 	case ID_YES:
 		if( com.strlen( uiLoadGame.delName[uiLoadGame.savesList.curItem] ))
 		{
-			com.snprintf( pathPIC, sizeof( pathPIC ), "save/%s.%s", uiLoadGame.delName[uiLoadGame.savesList.curItem], CL_LevelshotType( ));
-			Cbuf_ExecuteText( EXEC_NOW, va( "delsave \"%s\"\n", uiLoadGame.delName[uiLoadGame.savesList.curItem] ));
+			com.snprintf( pathPIC, sizeof( pathPIC ), "save/%s.%s", uiLoadGame.delName[uiLoadGame.savesList.curItem], SI->savshot_ext );
+			Cbuf_ExecuteText( EXEC_NOW, va( "killsave \"%s\"\n", uiLoadGame.delName[uiLoadGame.savesList.curItem] ));
 			if( re ) re->FreeShader( pathPIC ); // unload shader from video-memory
 			UI_LoadGame_GetGameList();
 		}
@@ -260,7 +260,7 @@ static void UI_LoadGame_Ownerdraw( void *self )
 		{
 			string	pathPIC;
 
-			com.snprintf( pathPIC, sizeof( pathPIC ), "save/%s.%s", uiLoadGame.saveName[uiLoadGame.savesList.curItem], CL_LevelshotType( ));
+			com.snprintf( pathPIC, sizeof( pathPIC ), "save/%s.%s", uiLoadGame.saveName[uiLoadGame.savesList.curItem], SI->savshot_ext );
 
 			if( !FS_FileExists( pathPIC ))
 				UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );

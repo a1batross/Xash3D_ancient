@@ -176,7 +176,7 @@ typedef struct render_exp_s
 	void	(*SetParms)( shader_t handle, kRenderMode_t rendermode, int frame );
 	void	(*GetParms)( int *w, int *h, int *frames, int frame, shader_t shader );
 	bool	(*ScrShot)( const char *filename, int shot_type ); // write screenshot with same name 
-	bool	(*EnvShot)( const char *filename, uint size, bool skyshot ); // write envshot with same name 
+	bool	(*EnvShot)( const char *filename, uint size, const float *vieworg, bool skyshot ); // write envshot with same name 
 	void	(*LightForPoint)( const vec3_t point, vec3_t ambientLight );
 	void	(*DrawStretchRaw)( int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw );
 	void	(*DrawStretchPic)( float x, float y, float w, float h, float s1, float t1, float s2, float t2, shader_t shader );

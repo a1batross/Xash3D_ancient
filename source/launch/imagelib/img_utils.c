@@ -186,6 +186,7 @@ static const loadformat_t load_hl1[] =
 static const loadformat_t load_hl2[] =
 {
 { "materials/%s%s.%s", "vtf", Image_LoadVTF, IL_HINT_NO },	// hl2 dds wrapper
+{ "materials/%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// for Vgui, saveshots etc
 { NULL, NULL, NULL, IL_HINT_NO }
 };
 
@@ -337,33 +338,75 @@ void Image_Init( void )
 	image.tempbuffer = NULL;
 }
 
+void Image_SetPaths( const char *envpath, const char *scrshot_ext, const char *levshot_ext, const char *savshot_ext )
+{
+	if( envpath ) com.strncpy( SI.envpath, envpath, sizeof( SI.envpath ));
+	if( scrshot_ext ) com.strncpy( SI.scrshot_ext, scrshot_ext, sizeof( SI.scrshot_ext ));
+	if( levshot_ext ) com.strncpy( SI.levshot_ext, levshot_ext, sizeof( SI.levshot_ext ));
+	if( savshot_ext ) com.strncpy( SI.savshot_ext, savshot_ext, sizeof( SI.savshot_ext ));
+
+	// use saveshot extension for envshots too
+	if( savshot_ext ) com.strncpy( SI.envshot_ext, savshot_ext, sizeof( SI.envshot_ext ));
+}
+
 void Image_Setup( const char *formats, const uint flags )
 {
 	if( flags != -1 ) image.cmd_flags = flags;
-	if( formats == NULL ) return;
+	if( formats == NULL ) return;	// used for change flags only
 
 	MsgDev( D_NOTE, "Image_Init( %s )\n", formats );
 
 	// reinstall loadformats by magic keyword :)
 	if( !com.stricmp( formats, "Xash3D" ) || !com.stricmp( formats, "Xash" ))
+	{
 		image.loadformats = load_xash;
+		Image_SetPaths( "env", "jpg", "png", "png" );
+	}
 	else if( !com.stricmp( formats, "stalker" ) || !com.stricmp( formats, "S.T.A.L.K.E.R" ))
+	{
 		image.loadformats = load_stalker;
+		Image_SetPaths( "textures/sky", "jpg", "dds", "dds" );
+	}
 	else if( !com.stricmp( formats, "Doom1" ) || !com.stricmp( formats, "Doom2" ))
+	{
 		image.loadformats = load_doom1;
+		Image_SetPaths( "gfx/env", "tga", "tga", "tga" );
+	}
 	else if( !com.stricmp( formats, "Quake1" ))
+	{
 		image.loadformats = load_quake1; 
+		Image_SetPaths( "gfx/env", "tga", "tga", "tga" );
+	}
 	else if( !com.stricmp( formats, "Quake2" ))
+	{
 		image.loadformats = load_quake2;
+		Image_SetPaths( "env", "tga", "tga", "tga" );
+	}
 	else if( !com.stricmp( formats, "Quake3" ))
+	{
 		image.loadformats = load_quake3;
+		Image_SetPaths( "env", "jpg", "jpg", "jpg" );
+	}
 	else if( !com.stricmp( formats, "Quake4" ) || !com.stricmp( formats, "Doom3" ))
+	{
 		image.loadformats = load_quake4;
+		Image_SetPaths( "env", "dds", "dds", "dds" );
+	}
 	else if( !com.stricmp( formats, "hl1" ) || !com.stricmp( formats, "Half-Life" ))
+	{
 		image.loadformats = load_hl1;
+		Image_SetPaths( "gfx/env", "jpg", "tga", "tga" );
+	}
 	else if( !com.stricmp( formats, "hl2" ) || !com.stricmp( formats, "Half-Life 2" ))
+	{
 		image.loadformats = load_hl2;
-	else image.loadformats = load_xash; // unrecognized version, use default
+		Image_SetPaths( "materials/skybox", "jpg", "tga", "tga" );
+	}
+	else
+	{
+		image.loadformats = load_xash; // unrecognized version, use default
+		Image_SetPaths( "env", "jpg", "png", "png" );
+	}
 }
 
 void Image_Shutdown( void )

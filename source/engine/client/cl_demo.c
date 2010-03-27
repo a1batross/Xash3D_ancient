@@ -489,11 +489,11 @@ void CL_Record_f( void )
 	// open the demo file
 	com.sprintf( demopath, "demos/%s.dem", demoname );
 
-	// make sure what oldsave is removed
+	// make sure what old demo is removed
 	if( FS_FileExists( va( "demos/%s.dem", demoname )))
 		FS_Delete( va( "%s/demos/%s.dem", GI->gamedir, demoname ));
-	if( FS_FileExists( va( "demos/%s.%s", name, CL_LevelshotType( ))))
-		FS_Delete( va( "%s/demos/%s.%s", GI->gamedir, demoname, CL_LevelshotType( )));
+	if( FS_FileExists( va( "demos/%s.%s", name, SI->savshot_ext )))
+		FS_Delete( va( "%s/demos/%s.%s", GI->gamedir, demoname, SI->savshot_ext ));
 
 	// write demoshot for preview
 	Cbuf_AddText( va( "demoshot \"%s\"\n", demoname ));

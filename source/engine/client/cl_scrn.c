@@ -353,20 +353,34 @@ void SCR_MakeLevelShot( void )
 
 void SCR_MakeScreenShot( void )
 {
+	bool	iRet = false;
+
 	if( !re && host.type == HOST_NORMAL )
 		return;	// don't reset action - it will be wait for render initalization is done
 
 	switch( cls.scrshot_action )
 	{
 	case scrshot_plaque:
-		if( re ) re->ScrShot( cls.shotname, VID_LEVELSHOT );
+		iRet = re->ScrShot( cls.shotname, VID_LEVELSHOT );
 		break;
 	case scrshot_savegame:
 	case scrshot_demoshot:
-		if( re ) re->ScrShot( cls.shotname, VID_MINISHOT );
+		iRet = re->ScrShot( cls.shotname, VID_MINISHOT );
 		break;
+	case scrshot_envshot:
+		iRet = re->EnvShot( cls.shotname, cl_envshot_size->integer, cls.envshot_vieworg, false );
+		break;
+	case scrshot_skyshot:
+		iRet = re->EnvShot( cls.shotname, cl_envshot_size->integer, cls.envshot_vieworg, true );
+		break;
+	default: return; // does nothing
 	}
 
+	// report
+	if( iRet ) MsgDev( D_INFO, "Write %s\n", cls.shotname );
+	else MsgDev( D_ERROR, "Unable to write %s\n", cls.shotname );
+
+	cls.envshot_vieworg = NULL;
 	cls.scrshot_action = scrshot_inactive;
 	cls.shotname[0] = '\0';
 }

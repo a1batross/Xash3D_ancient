@@ -318,12 +318,6 @@ void SV_WriteSaveFile( const char *inname, bool autosave, bool bUseLandmark )
 
 	com.sprintf( path, "save/%s.sav", name );
 
-	// make sure what oldsave is removed
-	if( FS_FileExists( va( "save/%s.sav", name )))
-		FS_Delete( va( "%s/save/%s.sav", GI->gamedir, name ));
-	if( FS_FileExists( va( "save/%s.%s", name, CL_LevelshotType( ))))
-		FS_Delete( va( "%s/save/%s.%s", GI->gamedir, name, CL_LevelshotType( )));
-
 	savfile = WAD_Open( path, "wb" );
 
 	if( !savfile )
@@ -665,7 +659,7 @@ void SV_MergeLevelFile( const char *name )
 	WAD_Close( savfile );
 }
 
-bool SV_GetComment( const char *savename, char *comment )
+bool SV_SaveGetComment( const char *savename, char *comment )
 {
 	wfile_t		*savfile;
 	int		result;

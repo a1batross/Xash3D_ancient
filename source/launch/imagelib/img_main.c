@@ -436,7 +436,7 @@ writes image as any known format
 bool FS_SaveImage( const char *filename, rgbdata_t *pix )
 {
           const char	*ext = FS_FileExtension( filename );
-	bool		anyformat = !com_stricmp(ext, "") ? true : false;
+	bool		anyformat = !com_stricmp( ext, "" ) ? true : false;
 	string		path, savename;
 	const saveformat_t	*format;
 
@@ -444,13 +444,51 @@ bool FS_SaveImage( const char *filename, rgbdata_t *pix )
 	com.strncpy( savename, filename, sizeof( savename ));
 	FS_StripExtension( savename ); // remove extension if needed
 
-	// now try all the formats in the selected list
-	for( format = image.saveformats; format && format->formatstring; format++ )
+	if( pix->flags & (IMAGE_CUBEMAP|IMAGE_SKYBOX) && com.stricmp( ext, "dds" ))
 	{
-		if( !com.stricmp( ext, format->ext ))
+		size_t		realSize = pix->size; // keep real pic size
+		byte		*picBuffer; // to avoid corrupt memory on free data
+		const suffix_t	*box;
+		int		i;
+
+		if( pix->flags & IMAGE_CUBEMAP )
+			box = cubemap_v2;
+		else if( pix->flags & IMAGE_SKYBOX )
+			box = skybox_qv1;
+		else return false;	// do not happens
+
+		pix->size /= 6;	// now set as side size 
+		picBuffer = pix->buffer;
+
+		// save all sides seperately
+		for( format = image.saveformats; format && format->formatstring; format++ )
 		{
-			com.sprintf( path, format->formatstring, savename, "", format->ext );
-			if( format->savefunc( path, pix )) return true; // saved
+			if( !com.stricmp( ext, format->ext ))
+			{
+				for( i = 0; i < 6; i++ )
+				{
+					com.sprintf( path, format->formatstring, savename, box[i].suf, format->ext );
+					if( !format->savefunc( path, pix )) break; // there were errors
+					pix->buffer += pix->size; // move pointer
+				}
+
+				// restore pointers
+				pix->size = realSize;
+				pix->buffer = picBuffer;
+
+				return ( i == 6 );
+			}
+		}
+	}
+	else
+	{
+		for( format = image.saveformats; format && format->formatstring; format++ )
+		{
+			if( !com.stricmp( ext, format->ext ))
+			{
+				com.sprintf( path, format->formatstring, savename, "", format->ext );
+				if( format->savefunc( path, pix )) return true; // saved
+			}
 		}
 	}
 	return false;	

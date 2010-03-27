@@ -29,5 +29,9 @@ Xash 0.71 Beta 05.05.10
 5. revision server physic
 6. revision monster moving
 7. reborn Xash 0.4 Source Code
-8. completely finalize Save\restore & Changelevel
-9. creates an imagelib user profile
+8. completely finalize Save\restore & Changelevel		OK
+9. creates an imagelib user profile			OK
+10. test saves and changelevel, fix errors
+11. implement FS_Rename
+12. rewrite FS_Delete
+13. rewrite FS_FileTime

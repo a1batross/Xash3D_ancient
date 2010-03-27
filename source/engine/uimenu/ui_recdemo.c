@@ -240,7 +240,7 @@ static void UI_RecDemo_Callback( void *self, int event )
 		}
 		else if( com.strlen( uiRecDemo.demoName[uiRecDemo.demosList.curItem] ))
 		{
-			com.snprintf( pathPIC, sizeof( pathPIC ), "demos/%s.%s", uiRecDemo.demoName[uiRecDemo.demosList.curItem], CL_LevelshotType( ));
+			com.snprintf( pathPIC, sizeof( pathPIC ), "demos/%s.%s", uiRecDemo.demoName[uiRecDemo.demosList.curItem], SI->savshot_ext );
 			Cbuf_ExecuteText( EXEC_APPEND, va( "record \"%s\"\n", uiRecDemo.demoName[uiRecDemo.demosList.curItem] ));
 			if( re ) re->FreeShader( pathPIC ); // unload shader from video-memory
 			UI_CloseMenu();
@@ -253,8 +253,8 @@ static void UI_RecDemo_Callback( void *self, int event )
 	case ID_YES:
 		if( com.strlen( uiRecDemo.delName[uiRecDemo.demosList.curItem] ))
 		{
-			com.snprintf( pathPIC, sizeof( pathPIC ), "demos/%s.%s", uiRecDemo.delName[uiRecDemo.demosList.curItem], CL_LevelshotType( ));
-			Cbuf_ExecuteText( EXEC_NOW, va( "deldemo \"%s\"\n", uiRecDemo.delName[uiRecDemo.demosList.curItem] ));
+			com.snprintf( pathPIC, sizeof( pathPIC ), "demos/%s.%s", uiRecDemo.delName[uiRecDemo.demosList.curItem], SI->savshot_ext );
+			Cbuf_ExecuteText( EXEC_NOW, va( "killdemo \"%s\"\n", uiRecDemo.delName[uiRecDemo.demosList.curItem] ));
 			if( re ) re->FreeShader( pathPIC ); // unload shader from video-memory
 			UI_RecDemo_GetDemoList();
 		}
@@ -288,7 +288,7 @@ static void UI_RecDemo_Ownerdraw( void *self )
 		{
 			string	pathPIC;
 
-			com.snprintf( pathPIC, sizeof( pathPIC ), "demos/%s.%s", uiRecDemo.demoName[uiRecDemo.demosList.curItem], CL_LevelshotType( ));
+			com.snprintf( pathPIC, sizeof( pathPIC ), "demos/%s.%s", uiRecDemo.demoName[uiRecDemo.demosList.curItem], SI->savshot_ext );
 
 			if( !FS_FileExists( pathPIC ))
 				UI_DrawPic( x, y, w, h, uiColorWhite, "gfx/hud/static" );

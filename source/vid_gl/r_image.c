@@ -3209,7 +3209,7 @@ bool VID_ScreenShot( const char *filename, int shot_type )
 VID_CubemapShot
 =================
 */
-bool VID_CubemapShot( const char *base, uint size, bool skyshot )
+bool VID_CubemapShot( const char *base, uint size, const float *vieworg, bool skyshot )
 {
 	rgbdata_t		*r_shot, *r_side;
 	byte		*temp = NULL;
@@ -3236,18 +3236,22 @@ bool VID_CubemapShot( const char *base, uint size, bool skyshot )
 	r_shot = Mem_Alloc( r_temppool, sizeof( rgbdata_t ));
 	r_side = Mem_Alloc( r_temppool, sizeof( rgbdata_t ));
 
+	// use client vieworg
+	if( !vieworg ) vieworg = r_lastRefdef.vieworg;
+
 	for( i = 0; i < 6; i++ )
 	{
 		if( skyshot )
 		{
-			R_DrawCubemapView( r_lastRefdef.vieworg, r_skyBoxInfo[i].angles, size );
+			R_DrawCubemapView( vieworg, r_skyBoxInfo[i].angles, size );
 			flags = r_skyBoxInfo[i].flags;
 		}
 		else
 		{
-			R_DrawCubemapView( r_lastRefdef.vieworg, r_envMapInfo[i].angles, size );
+			R_DrawCubemapView( vieworg, r_envMapInfo[i].angles, size );
 			flags = r_envMapInfo[i].flags;
                     }
+
 		pglReadPixels( 0, glState.height - size, size, size, GL_RGB, GL_UNSIGNED_BYTE, temp );
 		r_side->flags = IMAGE_HAS_COLOR;
 		r_side->width = r_side->height = size;
@@ -3262,7 +3266,8 @@ bool VID_CubemapShot( const char *base, uint size, bool skyshot )
 
 	RI.params &= ~RP_ENVVIEW;
 
-	r_shot->flags |= IMAGE_CUBEMAP|IMAGE_HAS_COLOR;
+	r_shot->flags = IMAGE_HAS_COLOR;
+	r_shot->flags |= (skyshot) ? IMAGE_SKYBOX : IMAGE_CUBEMAP;
 	r_shot->width = size;
 	r_shot->height = size;
 	r_shot->type = PF_RGB_24;
@@ -3275,7 +3280,7 @@ bool VID_CubemapShot( const char *base, uint size, bool skyshot )
 	// make sure what we have right extension
 	com.strncpy( basename, base, MAX_STRING );
 	FS_StripExtension( basename );
-	FS_DefaultExtension( basename, ".dds" );
+	FS_DefaultExtension( basename, va( ".%s", SI->envshot_ext ));
 
 	// write image as dds packet
 	result = FS_SaveImage( basename, r_shot );

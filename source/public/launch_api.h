@@ -259,6 +259,13 @@ typedef struct sysinfo_s
 	float		cpufreq;		// cpu frequency in MHz
 	char		instance;		// global engine instance
 
+	// these following four strings sets by imagelib
+	char		envpath[32];	// path to skybox and cubemaps images.
+	char		scrshot_ext[8];	// screen shot write type.
+	char		levshot_ext[8];	// level shot write type.
+	char		savshot_ext[8];	// save shot write type.
+	char		envshot_ext[8];	// sky or envshot write type
+
 	gameinfo_t	*GameInfo;	// current GameInfo
 	gameinfo_t	*games[MAX_MODS];	// environment games (founded at each engine start)
 	int		numgames;
@@ -370,6 +377,7 @@ typedef enum
 	IMAGE_HAS_LUMA_Q1	= BIT(5),		// image has luma pixels (q1-style maps)
 	IMAGE_HAS_LUMA_Q2	= BIT(6),		// image has luma pixels (q2-style maps)
 	IMAGE_HAS_LUMA	= IMAGE_HAS_LUMA_Q1|IMAGE_HAS_LUMA_Q2,
+	IMAGE_SKYBOX	= BIT(7),		// only used by FS_SaveImage - for write right suffixes
 
 	// Image_Process manipulation flags
 	IMAGE_FLIP_X	= BIT(12),	// flip the image by width

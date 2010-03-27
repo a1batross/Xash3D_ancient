@@ -151,7 +151,9 @@ typedef enum
 	scrshot_inactive,
 	scrshot_plaque,  	// levelshot
 	scrshot_savegame,	// saveshot
-	scrshot_demoshot	// for demos preview
+	scrshot_demoshot,	// for demos preview
+	scrshot_envshot,	// cubemap view
+	scrshot_skyshot	// skybox view
 } e_scrshot;
 
 typedef struct
@@ -301,6 +303,7 @@ typedef struct
 
 	e_scrshot		scrshot_request;		// request for screen shot
 	e_scrshot		scrshot_action;		// in-action
+	const float	*envshot_vieworg;		// envshot position
 	string		shotname;
 
 	// demo loop control

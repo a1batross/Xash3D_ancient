@@ -2136,10 +2136,54 @@ static int pfnDecalIndex( int id )
 	return cl.decal_shaders[id];
 }
 
+/*
+=================
+pfnCullBox
+
+=================
+*/
 static int pfnCullBox( const vec3_t mins, const vec3_t maxs )
 {
 	if( !re ) return false;
 	return re->CullBox( mins, maxs );
+}
+
+/*
+=================
+pfnEnvShot
+
+=================
+*/
+static void pfnEnvShot( const float *vieworg, const char *name, int skyshot )
+{
+	static vec3_t viewPoint;
+
+	if( !name )
+	{
+		MsgDev( D_ERROR, "R_%sShot: bad name\n", skyshot ? "Sky" : "Env" );
+		return; 
+	}
+
+	if( cls.scrshot_action != scrshot_inactive )
+	{
+		if( cls.scrshot_action != scrshot_skyshot && cls.scrshot_action != scrshot_envshot )
+			MsgDev( D_ERROR, "R_%sShot: subsystem is busy, try later.\n", skyshot ? "Sky" : "Env" );
+		return;
+	}
+
+	cls.envshot_vieworg = NULL; // use client view
+	com.strncpy( cls.shotname, name, sizeof( cls.shotname ));
+
+	if( vieworg )
+	{
+		// make sure what viewpoint don't temporare
+		VectorCopy( vieworg, viewPoint );
+		cls.envshot_vieworg = viewPoint;
+	}
+
+	// make request for envshot
+	if( skyshot ) cls.scrshot_action = scrshot_skyshot;
+	else cls.scrshot_action = scrshot_envshot;
 }
 
 /*
@@ -2456,6 +2500,7 @@ static efxapi_t gEfxApi =
 	pfnCullBox,
 	CL_AddEntity,
 	CL_AddTempEntity,
+	pfnEnvShot,
 };
 
 static event_api_t gEventApi =
