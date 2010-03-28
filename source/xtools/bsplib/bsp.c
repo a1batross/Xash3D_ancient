@@ -784,11 +784,11 @@ int BSPMain( int argc, char **argv )
 	SetDefaultSampleSize( sampleSize );
 	
 	/* delete portal, line and surface files */
-	com.sprintf( path, "%s/maps/%s.prt", GI->gamedir, source );
+	com.sprintf( path, "maps/%s.prt", source );
 	FS_Delete( path );
-	com.sprintf( path, "%s/maps/%s.lin", GI->gamedir, source );
+	com.sprintf( path, "maps/%s.lin", source );
 	FS_Delete( path );
-	com.sprintf( path, "%s/maps/%s.log", GI->gamedir, source );
+	com.sprintf( path, "maps/%s.log", source );
 	FS_Delete( path );
 	com.snprintf( name, sizeof( name ), "maps/%s.map", gs_filename );	
 	enable_log = true;

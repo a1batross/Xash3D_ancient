@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "launch.h"
+#include "library.h"
 #include "baserc_api.h"
 #include "engine_api.h"
 #include "mathlib.h"
@@ -120,6 +121,12 @@ void Sys_GetStdAPI( void )
 	com.Com_ThreadUnlock = Sys_ThreadUnlock;	// unlock numthreads
 	com.Com_NumThreads = Sys_GetNumThreads;		// returns count of active threads
 
+	com.LoadLibrary = Com_LoadLibrary;
+	com.GetProcAddress = Com_GetProcAddress;
+	com.NameForFunction = Com_NameForFunction;
+	com.FunctionFromName = Com_FunctionFromName;
+	com.FreeLibrary = Com_FreeLibrary;
+
 	com.Com_OpenScript = PS_LoadScript;		// loading script into buffer
 	com.Com_CloseScript = PS_FreeScript;		// release current script
 	com.Com_ResetScript = PS_ResetScript;		// jump to start of scriptfile 
@@ -174,9 +181,10 @@ void Sys_GetStdAPI( void )
 	com.fgetc = FS_Getc;		// same as fgetc
 	com.fgets = FS_Gets;		// like a fgets, but can return EOF
 	com.fseek = FS_Seek;		// fseek, can seek in packfiles too
-	com.fremove = FS_Remove;		// like remove
 	com.ftell = FS_Tell;		// like a ftell
 	com.feof = FS_Eof;			// like a feof
+	com.fremove = FS_Delete;		// like remove
+	com.frename = FS_Rename;		// like rename
 
 	// virtual filesystem
 	com.vfcreate = VFS_Create;		// create virtual stream

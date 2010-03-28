@@ -257,8 +257,8 @@ void CL_DeleteDemo_f( void )
 	}
 
 	// delete save and saveshot
-	FS_Delete( va( "%s/demos/%s.dem", GI->gamedir, Cmd_Argv( 1 )));
-	FS_Delete( va( "%s/demos/%s.%s", GI->gamedir, Cmd_Argv( 1 ), DEMOSHOT_TYPE ));
+	FS_Delete( va( "demos/%s.dem", Cmd_Argv( 1 )));
+	FS_Delete( va( "demos/%s.%s", Cmd_Argv( 1 ), DEMOSHOT_TYPE ));
 }
 
 /*

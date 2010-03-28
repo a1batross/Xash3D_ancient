@@ -66,7 +66,7 @@ typedef struct server_s
 	sizebuf_t		signon;
 	byte		signon_buf[MAX_MSGLEN];
 
-	bool		autosaved;
+	bool		write_bad_message;	// just for debug
 	bool		cphys_prepped;
 	bool		paused;
 } server_t;
@@ -222,13 +222,6 @@ typedef struct
 	byte		*private;			// server.dll private pool
 	byte		*temppool;		// for parse, save and restore edicts
 	byte		*mempool;			// server premamnent pool: edicts etc
-
-	// library exports table
-	word		*ordinals;
-	dword		*funcs;
-	char		*names[4096];		// max 4096 exports supported
-	int		num_ordinals;		// actual exports count
-	dword		funcBase;			// base offset
 
 	int		hStringTable;		// stringtable handle
 	SAVERESTOREDATA	SaveData;			// shared struct, used for save data

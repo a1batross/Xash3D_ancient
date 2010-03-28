@@ -19,7 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "common.h"
-#include "com_library.h"
 #include "ui_local.h"
 #include "client.h"
 
@@ -278,7 +277,7 @@ static void UI_LanGame_Init( void )
 	uiLanGame.gameList.itemNames = uiLanGame.gameDescriptionPtr;
 
 	// server.dll needs for reading savefiles or startup newgame
-	Com_BuildPath( "server", libpath );
+	UI_BuildPath( "server", libpath );
 	if( !FS_FileExists( libpath ))
 		uiLanGame.createGame.generic.flags |= QMF_GRAYED;	// server.dll is missed - remote servers only
 

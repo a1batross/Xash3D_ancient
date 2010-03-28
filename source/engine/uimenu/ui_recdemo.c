@@ -19,7 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "common.h"
-#include "com_library.h"
 #include "ui_local.h"
 #include "input.h"
 #include "client.h"
@@ -468,7 +467,7 @@ void UI_RecDemo_Menu( void )
 {
 	string	libpath;
 
-	Com_BuildPath( "server", libpath );
+	UI_BuildPath( "server", libpath );
 	if( !FS_FileExists( libpath )) return;
 
 	UI_RecDemo_Precache();

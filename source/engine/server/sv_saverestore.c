@@ -361,7 +361,6 @@ int EntityInSolid( edict_t *ent )
 
 void SV_ClearSaveDir( void )
 {
-	string	path;
 	search_t	*t;
 	int	i;
 
@@ -371,8 +370,7 @@ void SV_ClearSaveDir( void )
 
 	for( i = 0; i < t->numfilenames; i++ )
 	{
-		com.sprintf( path, "%s/%s", GI->gamedir, t->filenames[i] );
-		FS_Delete( path );
+		FS_Delete( t->filenames[i] );
 	}
 	Mem_Free( t );
 }
@@ -426,8 +424,8 @@ void SV_AgeSaveList( const char *pName, int count )
 	string	newName, oldName, newImage, oldImage;
 
 	// delete last quick/autosave (e.g. quick05.sav)
-	com.snprintf( newName, sizeof( newName ), "%s/save/%s%02d.sav", GI->gamedir, pName, count );
-	com.snprintf( newImage, sizeof( newImage ), "%s/save/%s%02d.%s", GI->gamedir, pName, count, SI->savshot_ext );
+	com.snprintf( newName, sizeof( newName ), "save/%s%02d.sav", pName, count );
+	com.snprintf( newImage, sizeof( newImage ), "save/%s%02d.%s", pName, count, SI->savshot_ext );
 
 	// only delete from game directory, basedir is read-only
 	FS_Delete( newName );
@@ -438,23 +436,22 @@ void SV_AgeSaveList( const char *pName, int count )
 		if( count == 1 )
 		{	
 			// quick.sav
-			com.snprintf( oldName, sizeof( oldName ), "%s/save/%s.sav", GI->gamedir, pName );
-			com.snprintf( oldImage, sizeof( oldImage ), "%s/save/%s.%s", GI->gamedir, pName, SI->savshot_ext );
+			com.snprintf( oldName, sizeof( oldName ), "save/%s.sav", pName );
+			com.snprintf( oldImage, sizeof( oldImage ), "save/%s.%s", pName, SI->savshot_ext );
 		}
 		else
 		{	
 			// quick04.sav, etc.
-			com.snprintf( oldName, sizeof( oldName ), "%s/save/%s%02d.sav", GI->gamedir, pName, count - 1 );
-			com.snprintf( oldImage, sizeof( oldImage ), "%s/save/%s%02d.%s", GI->gamedir, pName, count - 1, SI->savshot_ext );
+			com.snprintf( oldName, sizeof( oldName ), "save/%s%02d.sav", pName, count - 1 );
+			com.snprintf( oldImage, sizeof( oldImage ), "save/%s%02d.%s", pName, count - 1, SI->savshot_ext );
 		}
 
-		com.snprintf( newName, sizeof( newName ), "%s/save/%s%02d.sav", GI->gamedir, pName, count );
-		com.snprintf( newImage, sizeof( newImage ), "%s/save/%s%02d.%s", GI->gamedir, pName, count, SI->savshot_ext );
-		// Scroll the name list down (rename quick04.sav to quick05.sav)
+		com.snprintf( newName, sizeof( newName ), "save/%s%02d.sav", pName, count );
+		com.snprintf( newImage, sizeof( newImage ), "save/%s%02d.%s", pName, count, SI->savshot_ext );
 
-		// FIXME: create FS_Rename
-		rename( oldName, newName );
-		rename( oldImage, newImage );
+		// Scroll the name list down (rename quick04.sav to quick05.sav)
+		FS_Rename( oldName, newName );
+		FS_Rename( oldImage, newImage );
 		count--;
 	}
 }
@@ -1524,9 +1521,9 @@ void SV_SaveGame( const char *pName )
 
 	// make sure what oldsave is removed
 	if( FS_FileExists( va( "save/%s.sav", savename )))
-		FS_Delete( va( "%s/save/%s.sav", GI->gamedir, savename ));
+		FS_Delete( va( "save/%s.sav", savename ));
 	if( FS_FileExists( va( "save/%s.%s", savename, SI->savshot_ext )))
-		FS_Delete( va( "%s/save/%s.%s", GI->gamedir, savename, SI->savshot_ext ));
+		FS_Delete( va( "save/%s.%s", savename, SI->savshot_ext ));
 
 	SV_BuildSaveComment( comment, sizeof( comment ));
 	SV_SaveGameSlot( savename, comment );
@@ -1555,7 +1552,7 @@ const char *SV_GetLatestSave( void )
 
 	for( i = 0; i < f->numfilenames; i++ )
 	{
-		ft = FS_FileTime( va( "%s/%s", GI->gamedir, f->filenames[i] ));
+		ft = FS_FileTime( f->filenames[i] );
 		
 		// found a match?
 		if( ft > 0 )
@@ -1714,7 +1711,7 @@ bool SV_GetComment( const char *savename, char *comment )
 		const struct tm	*file_tm;
 		string		timestring;
 	
-		fileTime = FS_FileTime( va( "%s/%s", GI->gamedir, savename ));
+		fileTime = FS_FileTime( savename );
 		file_tm = localtime( &fileTime );
 
 		// split comment to sections

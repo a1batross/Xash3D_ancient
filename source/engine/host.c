@@ -661,6 +661,8 @@ void Host_Error( const char *error, ... )
 	com.vsprintf( hosterror1, error, argptr );
 	va_end( argptr );
 
+	CL_WriteMessageHistory (); // before com.error call
+
 	if( host.framecount < 3 || host.state == HOST_SHUTDOWN )
 	{
 		Msg( "Host_InitError: " );
@@ -707,6 +709,12 @@ void Sys_Error_f( void )
 
 	if( !*error ) error = "Invoked sys error";
 	com.error( "%s\n", error );
+}
+
+void Net_Error_f( void )
+{
+	com.strncpy( host.finalmsg, Cmd_Argv( 1 ), sizeof( host.finalmsg ));
+	SV_ForceError();
 }
 
 /*
@@ -841,6 +849,7 @@ void Host_Init( const int argc, const char **argv )
 		Cmd_AddCommand ( "sys_error", Sys_Error_f, "just throw a fatal error to test shutdown procedures");
 		Cmd_AddCommand ( "host_error", Host_Error_f, "just throw a host error to test shutdown procedures");
 		Cmd_AddCommand ( "crash", Host_Crash_f, "a way to force a bus error for development reasons");
+		Cmd_AddCommand ( "net_error", Net_Error_f, "send network bad message from random place");
           }
 
 	host_cheats = Cvar_Get( "sv_cheats", "1", CVAR_SYSTEMINFO, "allow cheat variables to enable" );

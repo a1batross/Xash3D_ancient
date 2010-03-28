@@ -48,7 +48,7 @@ typedef struct frame_s
 	int		parse_entities;		// non-masked index into cl_parse_entities array
 } frame_t;
 
-#define CMD_BACKUP		64	// allow a lot of command backups for very fast systems
+#define CMD_BACKUP		64			// allow a lot of command backups for very fast systems
 #define CMD_MASK		(CMD_BACKUP - 1)
 
 // the cl_parse_entities must be large enough to hold UPDATE_BACKUP frames of
@@ -108,7 +108,7 @@ typedef struct
 	char		configstrings[MAX_CONFIGSTRINGS][CS_SIZE];
 	char		physinfo[MAX_INFO_STRING];		// physics info string
 
-	entity_state_t	entity_curstates[MAX_PARSE_ENTITIES];
+	entity_state_t	entity_curstates[MAX_PARSE_ENTITIES];	// FIXME: this is must match with GI->max_edicts
 
 	// locally derived information from server state
 	model_t		models[MAX_MODELS];

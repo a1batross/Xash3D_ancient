@@ -1251,6 +1251,17 @@ void _MSG_Send( int dest, const vec3_t origin, const edict_t *ent, bool direct, 
 		else MSG_WriteData( &cl->datagram, sv.multicast.data, sv.multicast.cursize );
 	}
 	MSG_Clear( &sv.multicast );
+
+	// 25% chanse for simulate random network bugs
+	if( sv.write_bad_message && Com_RandomLong( 0, 32 ) <= 8 )
+	{
+		// just for network debugging (send only for local client)
+		MSG_WriteByte( &sv.multicast, svc_bad );
+		MSG_WriteLong( &sv.multicast, rand( ));		// send some random data
+		MSG_WriteString( &sv.multicast, host.finalmsg );	// send final message
+		MSG_Send( MSG_ALL, vec3_origin, NULL );
+		sv.write_bad_message = false;
+	}
 }
 
 /*

@@ -444,7 +444,7 @@ Begins recording a demo from the current position
 void CL_Record_f( void )
 {
 	const char	*name;
-	string		demoname, demopath;
+	string		demoname, demopath, demoshot;
 	int		n;
 
 	if( Cmd_Argc() == 1 )
@@ -488,12 +488,11 @@ void CL_Record_f( void )
 
 	// open the demo file
 	com.sprintf( demopath, "demos/%s.dem", demoname );
+	com.sprintf( demoshot, "demos/%s.%s", demoname, SI->savshot_ext );
 
 	// make sure what old demo is removed
-	if( FS_FileExists( va( "demos/%s.dem", demoname )))
-		FS_Delete( va( "%s/demos/%s.dem", GI->gamedir, demoname ));
-	if( FS_FileExists( va( "demos/%s.%s", name, SI->savshot_ext )))
-		FS_Delete( va( "%s/demos/%s.%s", GI->gamedir, demoname, SI->savshot_ext ));
+	if( FS_FileExists( demopath )) FS_Delete( demopath );
+	if( FS_FileExists( demoshot )) FS_Delete( demoshot );
 
 	// write demoshot for preview
 	Cbuf_AddText( va( "demoshot \"%s\"\n", demoname ));

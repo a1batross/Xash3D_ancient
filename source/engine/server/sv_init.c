@@ -393,7 +393,7 @@ void SV_InitGame( void )
 		// init game after host error
 		if( !svgame.hInstance )
 		{
-			if( !SV_LoadProgs( "server" ))
+			if( !SV_LoadProgs( "server.dll" ))
 				return; // can't loading
 		}
 
@@ -482,6 +482,13 @@ bool SV_Active( void )
 void SV_ForceMod( void )
 {
 	sv.cphys_prepped = false;
+}
+
+void SV_ForceError( void )
+{
+	// this only for singleplayer testing
+	if( sv_maxclients->integer != 1 ) return;
+	sv.write_bad_message = true;
 }
 
 bool SV_NewGame( const char *mapName, bool loadGame )

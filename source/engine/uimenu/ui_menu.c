@@ -309,6 +309,33 @@ void UI_StartSound( const char *sound )
 	S_StartLocalSound( sound, 1.0f, 100.0f, vec3_origin );
 }
 
+/*
+=================
+UI_BuildPathExt
+
+helper to search dlls
+=================
+*/
+void UI_BuildPathExt( const char *dllname, char *fullpath, size_t size )
+{
+	string	name;
+
+	if( !dllname || !fullpath || size <= 0 ) return;
+
+	// only libraries with extension .dll are valid
+	com.strncpy( name, dllname, sizeof( string ));
+	FS_FileBase( name, name );
+
+	// game path (Xash3D/game/bin/)
+	com.snprintf( fullpath, size, "bin/%s.dll", name );
+	if( FS_FileExists( fullpath )) return; // found
+
+	// absoulte path (Xash3D/bin/)
+	com.snprintf( fullpath, size, "%s.dll", name );	
+	if( FS_FileExists( fullpath )) return; // found
+
+	fullpath[0] = 0;
+}
 
 // =====================================================================
 

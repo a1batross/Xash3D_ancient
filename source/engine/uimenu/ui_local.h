@@ -350,6 +350,8 @@ void UI_FillRect( int x, int y, int w, int h, const rgba_t color );
 void UI_DrawRectangleExt( int in_x, int in_y, int in_w, int in_h, const rgba_t color, int outlineWidth );
 #define UI_DrawString( x, y, w, h, str, col, fcol, cw, ch, j, s ) UI_DrawStringExt( x, y, w, h, str, col, fcol, cw, ch, j, s, uiStatic.menuFont )
 void UI_DrawStringExt( int x, int y, int w, int h, const char *str, const rgba_t col, bool forceCol, int charW, int charH, int justify, bool shadow, shader_t font );
+#define UI_BuildPath( a, b ) UI_BuildPathExt( a, b, sizeof( b ))
+void UI_BuildPathExt( const char *dllname, char *fullpath, size_t size );
 void UI_StartSound( const char *sound );
 
 void UI_AddItem ( menuFramework_s *menu, void *item );

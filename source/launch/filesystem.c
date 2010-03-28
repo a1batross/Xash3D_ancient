@@ -7,6 +7,7 @@
 #include "qfiles_ref.h"
 #include "filesystem.h"
 #include "byteorder.h"
+#include "library.h"
 #include "mathlib.h"
 
 #define ZIP_END_CDIR_SIZE		22
@@ -43,7 +44,7 @@ typedef struct wadtype_s
 	char	type;
 } wadtype_t;
 
-struct file_s
+typedef struct file_s
 {
 	int		flags;
 	int		handle;			// file descriptor
@@ -51,6 +52,7 @@ struct file_s
 	fs_offset_t	position;			// current position in the file
 	fs_offset_t	offset;			// offset into the package (0 if external file)
 	int		ungetc;			// single stored character from ungetc, cleared to EOF when read
+	time_t		filetime;			// pak, wad or real filetime
 						// Contents buffer
 	fs_offset_t	buff_ind, buff_len;		// buffer current index and length
 	byte		buff [FILE_BUFF_SIZE];
@@ -78,6 +80,7 @@ typedef struct wfile_s
 	int		mode;
 	file_t		*file;
 	dlumpinfo_t	*lumps;
+	time_t		filetime;
 };
 
 typedef struct packfile_s
@@ -95,6 +98,7 @@ typedef struct pack_s
 	int		handle;
 	int		numfiles;
 	packfile_t	*files;
+	time_t		filetime;	// common for all packed files
 } pack_t;
 
 typedef struct searchpath_s
@@ -111,12 +115,13 @@ searchpath_t *fs_searchpaths = NULL;
 searchpath_t fs_directpath; // static direct path
 
 static void FS_InitMemory( void );
-const char *FS_FileExtension (const char *in);
+const char *FS_FileExtension( const char *in );
 static searchpath_t *FS_FindFile (const char *name, int *index, bool quiet );
 static dlumpinfo_t *W_FindLump( wfile_t *wad, const char *name, const char matchtype );
 static packfile_t* FS_AddFileToPack (const char* name, pack_t* pack, fs_offset_t offset, fs_offset_t packsize, fs_offset_t realsize, int flags);
 static byte *W_LoadFile( const char *path, fs_offset_t *filesizeptr );
-static bool FS_SysFileExists (const char *path);
+static bool FS_SysFileExists( const char *path );
+static long FS_SysFileTime( const char *filename );
 static char W_TypeFromExt( const char *lumpname );
 static const char *W_ExtFromType( char lumptype );
 
@@ -304,44 +309,45 @@ FS_LoadPackPK3
 Create a package entry associated with a PK3 file
 ====================
 */
-pack_t *FS_LoadPackPK3 (const char *packfile)
+pack_t *FS_LoadPackPK3( const char *packfile )
 {
-	int packhandle;
-	dpak3file_t eocd;
-	pack_t *pack;
-	int real_nb_files;
+	int		packhandle;
+	int		real_nb_files;
+	dpak3file_t	eocd;
+	pack_t		*pack;
 
-	packhandle = open(packfile, O_RDONLY | O_BINARY);
-	if (packhandle < 0) return NULL;
+	packhandle = open( packfile, O_RDONLY|O_BINARY );
+	if( packhandle < 0 ) return NULL;
 	
-	if (!PK3_GetEndOfCentralDir (packfile, packhandle, &eocd))
+	if( !PK3_GetEndOfCentralDir( packfile, packhandle, &eocd ))
 	{
-		Msg("%s is not a PK3 file\n", packfile);
-		close(packhandle);
+		MsgDev( D_NOTE, "%s is not a PK3 file\n", packfile );
+		close( packhandle );
 		return NULL;
 	}
 
-	// Multi-volume ZIP archives are NOT allowed
-	if (eocd.disknum != 0 || eocd.cdir_disknum != 0)
+	// multi-volume ZIP archives are NOT allowed
+	if( eocd.disknum != 0 || eocd.cdir_disknum != 0 )
 	{
-		Msg("%s is a multi-volume ZIP archive\n", packfile);
-		close(packhandle);
+		MsgDev( D_NOTE, "%s is a multi-volume ZIP archive. Ignored.\n", packfile );
+		close( packhandle );
 		return NULL;
 	}
 
 	// Create a package structure in memory
-	pack = (pack_t *)Mem_Alloc(fs_mempool, sizeof( pack_t ));
+	pack = (pack_t *)Mem_Alloc( fs_mempool, sizeof( pack_t ));
 	com.strncpy( pack->filename, packfile, sizeof( pack->filename ));
 	pack->handle = packhandle;
 	pack->numfiles = eocd.nbentries;
 	pack->files = (packfile_t *)Mem_Alloc( fs_mempool, eocd.nbentries * sizeof( packfile_t ));
+	pack->filetime = FS_SysFileTime( packfile );
 
-	real_nb_files = PK3_BuildFileList (pack, &eocd);
-	if (real_nb_files < 0)
+	real_nb_files = PK3_BuildFileList( pack, &eocd );
+	if( real_nb_files < 0 )
 	{
-		Msg("%s is not a valid PK3 file\n", packfile);
-		close(pack->handle);
-		Mem_Free(pack);
+		MsgDev( D_ERROR, "%s is not a valid PK3 file\n", packfile );
+		close( pack->handle );
+		Mem_Free( pack );
 		return NULL;
 	}
 
@@ -714,64 +720,67 @@ Loads the header and directory, adding the files at the beginning
 of the list so they override previous pack files.
 =================
 */
-pack_t *FS_LoadPackPAK(const char *packfile)
+pack_t *FS_LoadPackPAK( const char *packfile )
 {
-	dpackheader_t header;
-	int i, numpackfiles;
-	int packhandle;
-	pack_t *pack;
-	dpackfile_t *info;
+	dpackheader_t	header;
+	int		i, numpackfiles;
+	int		packhandle;
+	pack_t		*pack;
+	dpackfile_t	*info;
 
-	packhandle = open (packfile, O_RDONLY | O_BINARY);
-	if (packhandle < 0) return NULL;
-	read (packhandle, (void *)&header, sizeof(header));
-	if(header.ident != IDPACKV1HEADER)
+	packhandle = open( packfile, O_RDONLY|O_BINARY );
+	if( packhandle < 0 ) return NULL;
+	read( packhandle, (void *)&header, sizeof( header ));
+
+	if( header.ident != IDPACKV1HEADER )
 	{
-		Msg("%s is not a packfile\n", packfile);
-		close(packhandle);
+		MsgDev( D_NOTE, "%s is not a packfile. Ignored.\n", packfile );
+		close( packhandle );
 		return NULL;
 	}
-	header.dirofs = LittleLong (header.dirofs);
-	header.dirlen = LittleLong (header.dirlen);
+	header.dirofs = LittleLong( header.dirofs );
+	header.dirlen = LittleLong( header.dirlen );
 
-	if (header.dirlen % sizeof(dpackfile_t))
+	if( header.dirlen % sizeof( dpackfile_t ))
 	{
-		Msg("%s has an invalid directory size\n", packfile);
-		close(packhandle);
-		return NULL;
-	}
-
-	numpackfiles = header.dirlen / sizeof(dpackfile_t);
-
-	if (numpackfiles > MAX_FILES_IN_PACK)
-	{
-		Msg("%s has %i files\n", packfile, numpackfiles);
-		close(packhandle);
+		MsgDev( D_ERROR, "%s has an invalid directory size. Ignored.\n", packfile );
+		close( packhandle );
 		return NULL;
 	}
 
-	info = (dpackfile_t *)Mem_Alloc( fs_mempool, sizeof(*info) * numpackfiles);
-	lseek (packhandle, header.dirofs, SEEK_SET);
-	if(header.dirlen != read (packhandle, (void *)info, header.dirlen))
+	numpackfiles = header.dirlen / sizeof( dpackfile_t );
+
+	if( numpackfiles > MAX_FILES_IN_PACK )
 	{
-		Msg("%s is an incomplete PAK, not loading\n", packfile);
-		Mem_Free(info);
-		close(packhandle);
+		MsgDev( D_ERROR, "%s has too many files ( %i ). Ignored.\n", packfile, numpackfiles );
+		close( packhandle );
 		return NULL;
 	}
 
-	pack = (pack_t *)Mem_Alloc(fs_mempool, sizeof( pack_t ));
+	info = (dpackfile_t *)Mem_Alloc( fs_mempool, sizeof( *info ) * numpackfiles );
+	lseek( packhandle, header.dirofs, SEEK_SET );
+
+	if( header.dirlen != read( packhandle, (void *)info, header.dirlen ))
+	{
+		MsgDev( D_NOTE, "%s is an incomplete PAK, not loading\n", packfile );
+		Mem_Free( info );
+		close( packhandle );
+		return NULL;
+	}
+
+	pack = (pack_t *)Mem_Alloc( fs_mempool, sizeof( pack_t ));
 	com.strncpy( pack->filename, packfile, sizeof( pack->filename ));
 	pack->handle = packhandle;
 	pack->numfiles = 0;
 	pack->files = (packfile_t *)Mem_Alloc( fs_mempool, numpackfiles * sizeof( packfile_t ));
+	pack->filetime = FS_SysFileTime( packfile );
 
 	// parse the directory
-	for (i = 0;i < numpackfiles;i++)
+	for( i = 0; i < numpackfiles; i++ )
 	{
-		fs_offset_t offset = LittleLong (info[i].filepos);
-		fs_offset_t size = LittleLong (info[i].filelen);
-		FS_AddFileToPack (info[i].name, pack, offset, size, size, PACKFILE_FLAG_TRUEOFFS);
+		fs_offset_t offset = LittleLong( info[i].filepos );
+		fs_offset_t size = LittleLong( info[i].filelen );
+		FS_AddFileToPack( info[i].name, pack, offset, size, size, PACKFILE_FLAG_TRUEOFFS );
 	}
 
 	Mem_Free( info );
@@ -885,40 +894,41 @@ static bool FS_AddPack_Fullpath( const char *pakfile, bool *already_loaded, bool
 
 	if( already_loaded ) *already_loaded = false;
 
-	if( !com.stricmp( ext, "pak" )) pak = FS_LoadPackPAK (pakfile);
-	else if( !com.stricmp( ext, "pk2" )) pak = FS_LoadPackPK3(pakfile);
-	else if( !com.stricmp( ext, "pk3" )) pak = FS_LoadPackPK3(pakfile);
+	if( !com.stricmp( ext, "pak" )) pak = FS_LoadPackPAK( pakfile );
+	else if( !com.stricmp( ext, "pk2" )) pak = FS_LoadPackPK3( pakfile );
+	else if( !com.stricmp( ext, "pk3" )) pak = FS_LoadPackPK3( pakfile );
 	else MsgDev( D_ERROR, "\"%s\" does not have a pack extension\n", pakfile );
 
 	if( pak )
 	{
-		if(keep_plain_dirs)
+		if( keep_plain_dirs )
 		{
 			// find the first item whose next one is a pack or NULL
 			searchpath_t *insertion_point = 0;
-			if(fs_searchpaths && !fs_searchpaths->pack)
+			if( fs_searchpaths && !fs_searchpaths->pack )
 			{
 				insertion_point = fs_searchpaths;
-				for(;;)
+				while( 1 )
 				{
-					if(!insertion_point->next) break;
-					if(insertion_point->next->pack) break;
+					if( !insertion_point->next ) break;
+					if( insertion_point->next->pack ) break;
 					insertion_point = insertion_point->next;
 				}
 			}
-			// If insertion_point is NULL, this means that either there is no
+
+			// if insertion_point is NULL, this means that either there is no
 			// item in the list yet, or that the very first item is a pack. In
 			// that case, we want to insert at the beginning...
-			if(!insertion_point)
+			if( !insertion_point )
 			{
-				search = (searchpath_t *)Mem_Alloc(fs_mempool, sizeof(searchpath_t));
+				search = (searchpath_t *)Mem_Alloc( fs_mempool, sizeof( searchpath_t ));
 				search->pack = pak;
 				search->next = fs_searchpaths;
 				fs_searchpaths = search;
 			}
 			else // otherwise we want to append directly after insertion_point.
 			{
-				search = (searchpath_t *)Mem_Alloc(fs_mempool, sizeof(searchpath_t));
+				search = (searchpath_t *)Mem_Alloc( fs_mempool, sizeof( searchpath_t ));
 				search->pack = pak;
 				search->next = insertion_point->next;
 				insertion_point->next = search;
@@ -926,7 +936,7 @@ static bool FS_AddPack_Fullpath( const char *pakfile, bool *already_loaded, bool
 		}
 		else
 		{
-			search = (searchpath_t *)Mem_Alloc(fs_mempool, sizeof(searchpath_t));
+			search = (searchpath_t *)Mem_Alloc( fs_mempool, sizeof( searchpath_t ));
 			search->pack = pak;
 			search->next = fs_searchpaths;
 			fs_searchpaths = search;
@@ -935,7 +945,7 @@ static bool FS_AddPack_Fullpath( const char *pakfile, bool *already_loaded, bool
 	}
 	else
 	{
-		MsgDev( D_ERROR, "FS_AddPack_Fullpath: unable to load pak \"%s\"\n", pakfile);
+		MsgDev( D_ERROR, "FS_AddPack_Fullpath: unable to load pak \"%s\"\n", pakfile );
 		return false;
 	}
 }
@@ -947,9 +957,9 @@ FS_AddWad_Fullpath
 */
 static bool FS_AddWad_Fullpath( const char *wadfile, bool *already_loaded, bool keep_plain_dirs )
 {
-	searchpath_t *search;
-	wfile_t *wad = NULL;
-	const char *ext = FS_FileExtension( wadfile );
+	searchpath_t	*search;
+	wfile_t		*wad = NULL;
+	const char	*ext = FS_FileExtension( wadfile );
 
 	for( search = fs_searchpaths; search; search = search->next )
 	{
@@ -1075,7 +1085,7 @@ void FS_AddGameDirectory( const char *dir, int flags )
 	// add any PAK package in the directory
 	for( i = 0; i < list.numstrings; i++ )
 	{
-		if( !com.stricmp( FS_FileExtension(list.strings[i]), "pak" ))
+		if( !com.stricmp( FS_FileExtension( list.strings[i] ), "pak" ))
 		{
 			com.sprintf( pakfile, "%s%s", dir, list.strings[i] );
 			FS_AddPack_Fullpath( pakfile, NULL, false );
@@ -1112,7 +1122,7 @@ void FS_AddGameDirectory( const char *dir, int flags )
 
 	stringlistfreecontents( &list );
 
-	// use normal method because we want take access to wad files in pak or pk3 archives
+	// use normal method because we want take access to wad files through pak or pk3 archives
 	wads = FS_Search( "*.wad", true );
 	for( i = 0; wads && i < wads->numfilenames; i++ )
 		FS_AddWad_Fullpath( wads->filenames[i], NULL, false );
@@ -1127,10 +1137,7 @@ FS_AddGameHierarchy
 void FS_AddGameHierarchy( const char *dir, int flags )
 {
 	// Add the common game directory
-	if( dir || *dir ) 
-	{
-		FS_AddGameDirectory( va( "%s%s/", fs_basedir, dir ), flags );
-	}
+	if( dir && *dir ) FS_AddGameDirectory( va( "%s%s/", fs_basedir, dir ), flags );
 }
 
 
@@ -1842,6 +1849,23 @@ void FS_Shutdown( void )
 
 /*
 ====================
+FS_SysFileTime
+
+Internal function used to determine filetime
+====================
+*/
+static long FS_SysFileTime( const char *filename )
+{
+	struct stat buf;
+	
+	if( stat( filename, &buf ) == -1 )
+		return -1;
+
+	return buf.st_mtime;
+}
+
+/*
+====================
 FS_SysOpen
 
 Internal function used to create a file_t and open the relevant non-packed file on disk
@@ -1889,19 +1913,20 @@ static file_t* FS_SysOpen( const char* filepath, const char* mode )
 	}
 
 	file = (file_t *)Mem_Alloc( fs_mempool, sizeof( *file ));
+	file->filetime = FS_SysFileTime( filepath );
 	file->ungetc = EOF;
 
-	file->handle = open (filepath, mod | opt, 0666);
-	if (file->handle < 0)
+	file->handle = open( filepath, mod|opt, 0666 );
+	if( file->handle < 0 )
 	{
-		Mem_Free (file);
+		Mem_Free( file );
 		return NULL;
 	}
-	file->real_length = lseek (file->handle, 0, SEEK_END);
+	file->real_length = lseek( file->handle, 0, SEEK_END );
 
 	// For files opened in append mode, we start at the end of the file
-	if (mod & O_APPEND) file->position = file->real_length;
-	else lseek (file->handle, 0, SEEK_SET);
+	if( mod & O_APPEND ) file->position = file->real_length;
+	else lseek( file->handle, 0, SEEK_SET );
 
 	return file;
 }
@@ -2078,7 +2103,7 @@ static searchpath_t *FS_FindFile( const char *name, int* index, bool quiet )
 		}
 	}
 
-	if( fs_ext_path && (pEnvPath = getenv( "Path" )))
+	if( fs_ext_path && ( pEnvPath = getenv( "Path" )))
 	{
 		char	netpath[MAX_SYSPATH];
 
@@ -2778,6 +2803,67 @@ bool FS_FileExists( const char *filename )
 	return false;
 }
 
+/*
+==================
+FS_FindLibrary
+
+search for library, assume index is valid
+only for internal use
+==================
+*/
+dll_user_t *FS_FindLibrary( const char *dllname, bool directpath )
+{
+	string		dllpath;
+	searchpath_t	*search;
+	dll_user_t	*hInst;
+	int		index;
+
+	// check for bad exports
+	if( !dllname || !*dllname )
+		return NULL;
+
+	fs_ext_path = directpath;
+
+	if( !directpath )
+		com.snprintf( dllpath, sizeof( dllpath ), "bin/%s", dllname );
+	else com.strncpy( dllpath, dllname, sizeof( dllpath ));
+	FS_DefaultExtension( dllpath, ".dll" );	// trying to apply if forget
+
+	search = FS_FindFile( dllpath, &index, true );
+	if( !search )
+	{
+		fs_ext_path = false;
+		if( directpath ) return NULL;	// direct paths fails here
+
+		// trying check also 'bin' folder for indirect paths
+		com.strncpy( dllpath, dllname, sizeof( dllpath ));
+		search = FS_FindFile( dllpath, &index, true );
+		if( !search ) return NULL;	// unable to find
+	}
+
+	// all done, create dll_user_t struct
+	hInst = Mem_Alloc( Sys.basepool, sizeof( dll_user_t ));	
+
+	// save dllname for debug purposes
+	com.strncpy( hInst->dllName, dllname, sizeof( hInst->dllName ));
+
+	// shortPath is used for LibraryLoadSymbols only
+	com.strncpy( hInst->shortPath, dllpath, sizeof( hInst->shortPath ));
+
+	if( index < 0 )
+	{
+		com.snprintf( hInst->fullPath, sizeof( hInst->fullPath ), "%s%s", search->filename, dllpath );
+		hInst->custom_loader = false;	// we can loading from disk and use normal debugging
+	}
+	else
+	{
+		com.strncpy( hInst->fullPath, dllpath, sizeof( hInst->fullPath ));
+		hInst->custom_loader = true;	// loading from pack or wad - for release, debug don't working
+	}
+	fs_ext_path = false; // always reset direct paths
+		
+	return hInst;
+}
 
 /*
 ==================
@@ -2793,14 +2879,13 @@ fs_offset_t FS_FileSize (const char *filename)
 	
 	fp = _FS_Open( filename, "rb", true );
 
-	if (fp)
+	if( fp )
 	{
 		// it exists
-		FS_Seek(fp, 0, SEEK_END);
-		length = FS_Tell(fp);
-		FS_Close(fp);
+		FS_Seek( fp, 0, SEEK_END );
+		length = FS_Tell( fp );
+		FS_Close( fp );
 	}
-
 	return length;
 }
 
@@ -2813,30 +2898,69 @@ return time of creation file in seconds
 */
 fs_offset_t FS_FileTime( const char *filename )
 {
-	struct stat buf;
+	searchpath_t	*search;
+	int		pack_ind;
 	
-	if( stat( filename, &buf ) == -1 )
-		return -1;
-	
-	return buf.st_mtime;
-}
+	search = FS_FindFile( filename, &pack_ind, true );
+	if( !search ) return -1; // doesn't exist
 
-bool FS_Remove( const char *path )
-{
-	remove( path );
-	return true;
+	if( search->pack ) // grab pack filetime
+		return search->pack->filetime;
+	else if( search->wad ) // grab wad filetime
+		return search->wad->filetime;
+	else if( pack_ind < 0 )
+	{
+		// found in the filesystem?
+		char	path [MAX_SYSPATH];
+
+		com.sprintf( path, "%s%s", search->filename, filename );
+		return FS_SysFileTime( path );
+	}
+	return -1; // doesn't exist
 }
 
 /*
 ==================
-FS_DeleteFile
+FS_Rename
 
-internal use only
+rename specified file from gamefolder
 ==================
 */
-void FS_DeleteFile( const char *path )
+bool FS_Rename( const char *oldname, const char *newname )
 {
-	remove( va( "%s/%s", fs_gamedir, path ));
+	char	oldpath[MAX_SYSPATH], newpath[MAX_SYSPATH];
+	bool	iRet;
+
+	if( !oldname || !newname || !*oldname || !*newname )
+		return false;
+
+	com_snprintf( oldpath, sizeof( oldpath ), "%s/%s", fs_gamedir, oldname );
+	com_snprintf( newpath, sizeof( newpath ), "%s/%s", fs_gamedir, newname );
+
+	iRet = rename( oldpath, newpath );
+
+	return iRet;
+}
+
+/*
+==================
+FS_Delete
+
+delete specified file from gamefolder
+==================
+*/
+bool FS_Delete( const char *path )
+{
+	char	real_path[MAX_SYSPATH];
+	bool	iRet;
+
+	if( !path || !*path )
+		return false;
+
+	com_snprintf( real_path, sizeof( real_path ), "%s/%s", fs_gamedir, path );
+	iRet = remove( real_path );
+
+	return iRet;
 }
 
 /*
@@ -3879,6 +4003,7 @@ wfile_t *W_Open( const char *filename, const char *mode )
 	// copy wad name
 	com.strncpy( wad->filename, filename, sizeof( wad->filename ));
 	wad->mempool = Mem_AllocPool( filename );
+	wad->filetime = wad->file->filetime;
 
 	// if the file is opened in "write", "append", or "read/write" mode
 	if( mode[0] == 'w' )
@@ -3942,6 +4067,7 @@ wfile_t *W_Open( const char *filename, const char *mode )
 			W_Close( wad );
 			return NULL;
 		}
+
 		// NOTE: lumps table can be reallocated for O_APPEND mode
 		wad->lumps = Mem_Alloc( wad->mempool, wad->numlumps * sizeof( dlumpinfo_t ));
 

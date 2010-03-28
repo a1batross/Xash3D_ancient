@@ -19,7 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "common.h"
-#include "com_library.h"
 #include "ui_local.h"
 #include "input.h"
 #include "client.h"
@@ -347,7 +346,7 @@ static void UI_Main_Init( void )
 		uiMain.saveRestore.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_NOTIFY;
 
 		// server.dll needs for reading savefiles or startup newgame
-		Com_BuildPath( "server", libpath );
+		UI_BuildPath( "server", libpath );
 		if( !FS_FileExists( libpath ))
 		{
 			uiMain.saveRestore.generic.flags |= QMF_GRAYED;

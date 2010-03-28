@@ -510,6 +510,13 @@ typedef struct stdilib_api_s
 	void (*Com_ThreadUnlock)( void );			// unlock numthreads
 	int (*Com_NumThreads)( void );			// returns count of active threads
 
+	// user dlls interface
+	void *(*LoadLibrary)( const char *dllname, int build_ordinals_table );
+	void *(*GetProcAddress)( void *hInstance, const char *name );
+	const char *(*NameForFunction)( void *hInstance, dword function );
+	dword (*FunctionFromName)( void *hInstance, const char *pName );
+	void (*FreeLibrary)( void *hInstance );
+
 	// script machine base functions
 	script_t *(*Com_OpenScript)( const char *filename, const char *buf, size_t size );
 	void (*Com_CloseScript)( script_t *script );		// release current script
@@ -560,15 +567,16 @@ typedef struct stdilib_api_s
 	file_t *(*fopen)(const char* path, const char* mode);		// same as fopen
 	int (*fclose)(file_t* file);					// same as fclose
 	long (*fwrite)(file_t* file, const void* data, size_t datasize);	// same as fwrite
-	long (*fread)(file_t* file, void* buffer, size_t buffersize);	// same as fread, can see trough pakfile
+	long (*fread)(file_t* file, void* buffer, size_t buffersize);	// same as fread, can see through pakfile
 	int (*fprint)(file_t* file, const char *msg);			// printed message into file		
 	int (*fprintf)(file_t* file, const char* format, ...);		// same as fprintf
 	int (*fgetc)( file_t* file );					// same as fgetc
 	int (*fgets)(file_t* file, byte *string, size_t bufsize );		// like a fgets, but can return EOF
 	int (*fseek)(file_t* file, fs_offset_t offset, int whence);		// fseek, can seek in packfiles too
-	bool (*fremove)( const char *path );				// remove sepcified file
 	long (*ftell)( file_t *file );				// like a ftell
 	bool (*feof)( file_t *file );					// like a feof
+	bool (*fremove)( const char *path );				// remove specified file
+	bool (*frename)( const char *oldname, const char *newname );	// rename specified file
 
 	// virtual filesystem
 	vfile_t *(*vfcreate)( const byte *buffer, size_t buffsize );	// create virtual stream
@@ -780,6 +788,7 @@ filesystem manager
 #define FS_Getc			(*com.fgetc)
 #define FS_Gets			(*com.fgets)
 #define FS_Delete			(*com.fremove)
+#define FS_Rename			(*com.frename)
 #define FS_Gamedir()		com.SysInfo->GameInfo->gamedir
 #define FS_Title()			com.SysInfo->GameInfo->title
 #define g_Instance()		com.SysInfo->instance
@@ -944,6 +953,12 @@ misc utils
 #define StringTable_GetName		com.st_getname
 #define StringTable_Load		com.st_load
 #define StringTable_Save		com.st_save
+
+#define FS_LoadLibrary		com.LoadLibrary
+#define FS_GetProcAddress		com.GetProcAddress
+#define FS_NameForFunction		com.NameForFunction
+#define FS_FunctionFromName		com.FunctionFromName
+#define FS_FreeLibrary		com.FreeLibrary
 
 /*
 ===========================================

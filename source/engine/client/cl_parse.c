@@ -7,6 +7,9 @@
 #include "client.h"
 #include "net_sound.h"
 
+#define MSG_COUNT		32		// last 32 messages parsed
+#define MSG_MASK		(MSG_COUNT - 1)
+
 char *svc_strings[256] =
 {
 	"svc_bad",
@@ -37,6 +40,131 @@ char *svc_strings[256] =
 	"svc_event",
 	"svc_event_reliable"
 };
+
+typedef struct
+{
+	int	command;
+	int	starting_offset;
+	int	frame_number;
+} oldcmd_t;
+
+typedef struct
+{
+	oldcmd_t	oldcmd[MSG_COUNT];   
+	int	currentcmd;
+	bool	parsing;
+} msg_debug_t;
+
+static msg_debug_t	cls_message_debug;
+static int	starting_count;
+
+const char *CL_MsgInfo( int cmd )
+{
+	static string	sz;
+
+	com.strcpy( sz, "???" );
+
+	if( cmd > 200 && cmd < 256 )
+	{
+		// get engine message name
+		com.strncpy( sz, svc_strings[cmd - 200], sizeof( sz ));
+	}
+	else if( cmd >= 0 && cmd < clgame.numMessages )
+	{
+		// get user message name
+		if( clgame.msg[cmd] && clgame.msg[cmd]->name )
+			com.strncpy( sz, clgame.msg[cmd]->name, sizeof( sz ));
+	}
+	return sz;
+}
+
+/*
+=====================
+CL_Parse_RecordCommand
+
+record new message params into debug buffer
+=====================
+*/
+void CL_Parse_RecordCommand( int cmd, int startoffset )
+{
+	int	slot;
+
+	if( cmd == svc_nop ) return;
+	
+	slot = ( cls_message_debug.currentcmd++ & MSG_MASK );
+	cls_message_debug.oldcmd[slot].command = cmd;
+	cls_message_debug.oldcmd[slot].starting_offset = startoffset;
+	cls_message_debug.oldcmd[slot].frame_number = host.framecount;
+}
+
+/*
+=====================
+CL_WriteErrorMessage
+
+write net_message into buffer.dat for debugging
+=====================
+*/
+void CL_WriteErrorMessage( int current_count, sizebuf_t *msg )
+{
+	file_t		*fp;
+	const char	*buffer_file = "buffer.dat";
+	
+	fp = FS_Open( buffer_file, "wb" );
+	if( !fp ) return;
+
+	FS_Write( fp, &starting_count, sizeof( int ));
+	FS_Write( fp, &current_count, sizeof( int ));
+	FS_Write( fp, msg->data, msg->cursize );
+	FS_Close( fp );
+
+	MsgDev( D_INFO, "Wrote erroneous message to %s\n", buffer_file );
+}
+
+/*
+=====================
+CL_WriteMessageHistory
+
+list last 32 messages for debugging net troubleshooting
+=====================
+*/
+void CL_WriteMessageHistory( void )
+{
+	int	i, thecmd;
+	oldcmd_t	*old, *failcommand;
+	sizebuf_t	*msg = &net_message;
+
+	if( !cls.initialized || cls.state == ca_disconnected )
+		return;
+
+	if( !cls_message_debug.parsing )
+		return;
+
+	MsgDev( D_INFO, "Last %i messages parsed.\n", MSG_COUNT );
+
+	// finish here
+	thecmd = cls_message_debug.currentcmd - 1;
+	thecmd -= ( MSG_COUNT - 1 );	// back up to here
+
+	for( i = 0; i < MSG_COUNT - 1; i++ )
+	{
+		thecmd &= CMD_MASK;
+		old = &cls_message_debug.oldcmd[thecmd];
+
+		MsgDev( D_INFO, "%i %04i %s\n", old->frame_number, old->starting_offset, CL_MsgInfo( old->command ));
+
+		thecmd++;
+	}
+
+	failcommand = &cls_message_debug.oldcmd[thecmd];
+
+	MsgDev( D_INFO, "BAD:  %3i:%s\n", msg->readcount - 1, CL_MsgInfo( failcommand->command ));
+
+	if( host.developer >= 3 )
+	{
+		CL_WriteErrorMessage( msg->readcount - 1, msg );
+	}
+	cls_message_debug.parsing = false;
+}
 
 /*
 ===============
@@ -146,14 +274,10 @@ void CL_ParseDownload( sizebuf_t *msg )
 	}
 	else
 	{
-		string	oldn, newn;
-
 		FS_Close( cls.download );
 
 		// rename the temp file to it's final name
-		com.strncpy( oldn, cls.downloadtempname, MAX_STRING );
-		com.strncpy( newn, cls.downloadname, MAX_STRING );
-		r = rename( oldn, newn );
+		r = FS_Rename( cls.downloadtempname, cls.downloadname );
 		if( r ) MsgDev( D_ERROR, "failed to rename.\n" );
 
 		cls.download = NULL;
@@ -570,18 +694,28 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 {
 	char	*s;
 	int	i, cmd;
+	int	bufStart;
 
+	cls_message_debug.parsing = true;	// begin parsing
+	starting_count = msg->readcount;	// updates each frame
+	
 	// parse the message
 	while( 1 )
 	{
 		if( msg->error )
 		{
-			Host_Error("CL_ParseServerMessage: Bad server message\n");
+			Host_Error( "CL_ParseServerMessage: bad server message\n" );
 			return;
 		}
 
+		// mark start position
+		bufStart = msg->readcount;
+
 		cmd = MSG_ReadByte( msg );
 		if( cmd == -1 ) break;
+
+		// record command for debugging spew on parse problem
+		CL_Parse_RecordCommand( cmd, bufStart );
 
 //		if( cmd > 200 ) MsgDev( D_INFO, "CL_Parse: %s received.\n", svc_strings[cmd - 200] );
 			
@@ -685,4 +819,6 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			break;
 		}
 	}
+
+	cls_message_debug.parsing = false;	// done
 }

@@ -1,13 +1,14 @@
 //=======================================================================
 //			Copyright XashXT Group 2008 ©
-//		        com_library.h - custom dlls loader
+//			library.h - custom dlls loader
 //=======================================================================
-#ifndef COM_LIBRARY
-#define COM_LIBRARY
+#ifndef LIBRARY_H
+#define LIBRARY_H
 
 #define DOS_SIGNATURE		0x5A4D		// MZ
 #define NT_SIGNATURE		0x00004550	// PE00
-#define NUMBEROF_DIRECTORY_ENTRIES	16
+#define NUMBER_OF_DIRECTORY_ENTRIES	16
+#define MAX_LIBRARY_EXPORTS		4096
 
 typedef struct
 {	
@@ -104,7 +105,7 @@ typedef struct
 	dword	LoaderFlags;
 	dword	NumberOfRvaAndSizes;
 
-	DATA_DIRECTORY	DataDirectory[NUMBEROF_DIRECTORY_ENTRIES];
+	DATA_DIRECTORY	DataDirectory[NUMBER_OF_DIRECTORY_ENTRIES];
 } OPTIONAL_HEADER;
 
 typedef struct
@@ -122,10 +123,27 @@ typedef struct
 	dword	AddressOfNameOrdinals;	// RVA from base of image
 } EXPORT_DIRECTORY;
 
-void *Com_LoadLibrary( const char *name );
-FARPROC Com_GetProcAddress( void *hInstance, const char *name );
-void Com_FreeLibrary( void *hInstance );
-void Com_BuildPathExt( const char *dllname, char *fullpath, size_t size );
-#define Com_BuildPath( a, b )	Com_BuildPathExt( a, b, sizeof( b ))
+typedef struct dll_user_s
+{
+	void	*hInstance;		// to avoid possible hacks
+	bool	custom_loader;		// a bit who indicated loader type
+	char	dllName[32];		// for debug messages
+	string	fullPath, shortPath;	// actual dll paths
 
-#endif//COM_LIBRARY
+	// ordinals stuff
+	word	*ordinals;
+	dword	*funcs;
+	char	*names[MAX_LIBRARY_EXPORTS];	// max 4096 exports supported
+	int	num_ordinals;		// actual exports count
+	dword	funcBase;			// base offset
+} dll_user_t;
+
+dll_user_t *FS_FindLibrary( const char *dllname, bool directpath );
+void *Com_LoadLibrary( const char *dllname, int build_ordinals_table );
+void *Com_LoadLibraryExt( const char *dllname, int build_ordinals_table, bool directpath );
+void *Com_GetProcAddress( void *hInstance, const char *name );
+const char *Com_NameForFunction( void *hInstance, dword function );
+dword Com_FunctionFromName( void *hInstance, const char *pName );
+void Com_FreeLibrary( void *hInstance );
+
+#endif//LIBRARY_H

@@ -8,7 +8,6 @@
 #include "byteorder.h"
 #include "matrix_lib.h"
 #include "const.h"
-#include "com_library.h"
 #include "triangle_api.h"
 #include "effects_api.h"
 #include "pm_defs.h"
@@ -2627,10 +2626,11 @@ void CL_UnloadProgs( void )
 	clgame.dllFuncs.pfnShutdown();
 
 	StringTable_Delete( clgame.hStringTable );
-	Com_FreeLibrary( clgame.hInstance );
+	FS_FreeLibrary( clgame.hInstance );
 	Mem_FreePool( &cls.mempool );
 	Mem_FreePool( &clgame.mempool );
 	Mem_FreePool( &clgame.private );
+	Mem_Set( &clgame, 0, sizeof( clgame ));
 }
 
 bool CL_LoadProgs( const char *name )
@@ -2638,7 +2638,6 @@ bool CL_LoadProgs( const char *name )
 	static CLIENTAPI		GetClientAPI;
 	static cl_globalvars_t	gpGlobals;
 	static playermove_t		gpMove;
-	string			libpath;
 
 	if( clgame.hInstance ) CL_UnloadProgs();
 
@@ -2650,17 +2649,16 @@ bool CL_LoadProgs( const char *name )
 	// initialize TriAPI
 	clgame.pmove = &gpMove;
 
-	Com_BuildPath( name, libpath );
 	cls.mempool = Mem_AllocPool( "Client Static Pool" );
 	clgame.mempool = Mem_AllocPool( "Client Edicts Zone" );
 	clgame.private = Mem_AllocPool( "Client Private Zone" );
 	clgame.baselines = NULL;
 	clgame.edicts = NULL;
 
-	clgame.hInstance = Com_LoadLibrary( libpath );
+	clgame.hInstance = FS_LoadLibrary( name, false );
 	if( !clgame.hInstance ) return false;
 
-	GetClientAPI = (CLIENTAPI)Com_GetProcAddress( clgame.hInstance, "CreateAPI" );
+	GetClientAPI = (CLIENTAPI)FS_GetProcAddress( clgame.hInstance, "CreateAPI" );
 
 	if( !GetClientAPI )
 	{

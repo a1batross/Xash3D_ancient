@@ -358,7 +358,7 @@ void SV_ReadComment( wfile_t *l )
 	game_header_t	ghdr;
 
  	// init the game to get acess for read funcs
-	if( !svgame.hInstance ) SV_LoadProgs( "server" );
+	if( !svgame.hInstance ) SV_LoadProgs( "server.dll" );
 
 	// initialize SAVERESTOREDATA
 	Mem_Set( &svgame.SaveData, 0, sizeof( SAVERESTOREDATA ));

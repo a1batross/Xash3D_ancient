@@ -326,8 +326,8 @@ void SV_DeleteSave_f( void )
 	}
 
 	// delete save and saveshot
-	FS_Delete( va( "%s/save/%s.sav", GI->gamedir, Cmd_Argv( 1 )));
-	FS_Delete( va( "%s/save/%s.%s", GI->gamedir, Cmd_Argv( 1 ), SI->savshot_ext ));
+	FS_Delete( va( "save/%s.sav", Cmd_Argv( 1 )));
+	FS_Delete( va( "save/%s.%s", Cmd_Argv( 1 ), SI->savshot_ext ));
 }
 
 /*

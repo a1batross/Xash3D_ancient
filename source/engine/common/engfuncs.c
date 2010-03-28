@@ -9,7 +9,6 @@
 #include "const.h"
 #include "client.h"
 #include "cvardef.h"
-#include "com_library.h"
 
 /*
 ==============
@@ -460,10 +459,7 @@ pfnLoadLibrary
 */
 void *pfnLoadLibrary( const char *name )
 {
-	string	libpath;
-
-	Com_BuildPath( name, libpath );
-	return Com_LoadLibrary( libpath );
+	return FS_LoadLibrary( name, false );
 }
 
 /*
@@ -474,8 +470,7 @@ pfnGetProcAddress
 */
 void *pfnGetProcAddress( void *hInstance, const char *name )
 {
-	if( !hInstance ) return NULL;
-	return Com_GetProcAddress( hInstance, name );
+	return FS_GetProcAddress( hInstance, name );
 }
 
 /*
@@ -486,7 +481,7 @@ pfnFreeLibrary
 */
 void pfnFreeLibrary( void *hInstance )
 {
-	Com_FreeLibrary( hInstance );
+	FS_FreeLibrary( hInstance );
 }
 
 /*
@@ -497,9 +492,6 @@ pfnRemoveFile
 */
 void pfnRemoveFile( const char *szFilename )
 {
-	string	path;
-
 	if( !szFilename || !*szFilename ) return;
-	com.sprintf( path, "%s/%s", GI->gamedir, szFilename );
-	FS_Delete( path );
+	FS_Delete( szFilename );
 }

@@ -8,303 +8,8 @@
 #include "net_sound.h"
 #include "byteorder.h"
 #include "matrix_lib.h"
-#include "com_library.h"
 #include "pm_defs.h"
 #include "const.h"
-
-void Sys_FsGetString( file_t *f, char *str )
-{
-	char	ch;
-
-	while(( ch = FS_Getc( f )) != EOF )
-	{
-		*str++ = ch;
-		if( !ch ) break;
-	}
-}
-
-void Sys_FreeNameFuncGlobals( void )
-{
-	int	i;
-
-	if( svgame.ordinals ) Mem_Free( svgame.ordinals );
-	if( svgame.funcs ) Mem_Free( svgame.funcs );
-
-	for( i = 0; i < svgame.num_ordinals; i++ )
-	{
-		if( svgame.names[i] )
-			Mem_Free( svgame.names[i] );
-	}
-
-	svgame.num_ordinals = 0;
-	svgame.ordinals = NULL;
-	svgame.funcs = NULL;
-}
-
-char *Sys_GetMSVCName( const char *in_name )
-{
-	char	*pos, *out_name;
-
-	if( in_name[0] == '?' )  // is this a MSVC C++ mangled name?
-	{
-		if(( pos = com.strstr( in_name, "@@" )) != NULL )
-		{
-			int	len = pos - in_name;
-
-			// strip off the leading '?'
-			out_name = com.stralloc( svgame.private, in_name + 1, __FILE__, __LINE__ );
-			out_name[len-1] = 0; // terminate string at the "@@"
-			return out_name;
-		}
-	}
-	return com.stralloc( svgame.private, in_name, __FILE__, __LINE__ );
-}
-
-bool Sys_LoadSymbols( const char *name )
-{
-	file_t		*f;
-	DOS_HEADER	dos_header;
-	LONG		nt_signature;
-	PE_HEADER		pe_header;
-	SECTION_HEADER	section_header;
-	bool		edata_found;
-	OPTIONAL_HEADER	optional_header;
-	long		edata_offset;
-	long		edata_delta;
-	EXPORT_DIRECTORY	export_directory;
-	long		name_offset;
-	long		ordinal_offset;
-	long		function_offset;
-	string		filename, function_name;
-	dword		*p_Names = NULL;
-	int		i, index;
-
-	// try game path
-	com.sprintf( filename, "bin/%s.dll", name );
-	if( !FS_FileExists( filename ))
-	{
-		// try absoulte path
-		com.sprintf( filename, "%s.dll", name );	
-	}
-
-	for( i = 0; i < svgame.num_ordinals; i++ )
-		svgame.names[i] = NULL;
-
-	f = FS_Open( filename, "rb" );
-	if( !f )
-	{
-		MsgDev( D_ERROR, "Sys_LoadSymbols: %s not found\n", filename );
-		return false;
-	}
-
-	if( FS_Read( f, &dos_header, sizeof( dos_header )) != sizeof( dos_header ))
-	{
-		MsgDev( D_ERROR, "Sys_LoadSymbols: %s has corrupted EXE header\n", filename );
-		FS_Close( f );
-		return false;
-	}
-
-	if( dos_header.e_magic != DOS_SIGNATURE )
-	{
-		MsgDev( D_ERROR, "Sys_LoadSymbols: %s does not have a valid dll signature\n", filename );
-		FS_Close( f );
-		return false;
-	}
-
-	if( FS_Seek( f, dos_header.e_lfanew, SEEK_SET ) == -1 )
-	{
-		MsgDev( D_ERROR, "Sys_LoadSymbols: %s error seeking to new exe header\n", filename );
-		FS_Close( f );
-		return false;
-	}
-
-	if( FS_Read( f, &nt_signature, sizeof( nt_signature )) != sizeof( nt_signature ))
-	{
-		MsgDev( D_ERROR, "Sys_LoadSymbols: %s has corrupted NT header\n", filename );
-		FS_Close( f );
-		return false;
-	}
-
-	if( nt_signature != NT_SIGNATURE )
-	{
-		MsgDev( D_ERROR, "Sys_LoadSymbols: %s does not have a valid NT signature\n", filename );
-		FS_Close( f );
-		return false;
-	}
-
-	if( FS_Read( f, &pe_header, sizeof( pe_header )) != sizeof( pe_header ))
-	{
-		MsgDev( D_ERROR, "Sys_LoadSymbols: %s does not have a valid PE header\n", filename );
-		FS_Close( f );
-		return false;
-	}
-
-	if( !pe_header.SizeOfOptionalHeader )
-	{
-		MsgDev( D_ERROR, "Sys_LoadSymbols: %s does not have an optional header\n", filename );
-		FS_Close( f );
-		return false;
-	}
-
-	if( FS_Read( f, &optional_header, sizeof( optional_header )) != sizeof( optional_header ))
-	{
-		MsgDev( D_ERROR, "Sys_LoadSymbols: %s optional header probably corrupted\n", filename );
-		FS_Close( f );
-		return false;
-	}
-
-	edata_found = false;
-
-	for( i = 0; i < pe_header.NumberOfSections; i++ )
-	{
-
-		if( FS_Read( f, &section_header, sizeof( section_header )) != sizeof( section_header ))
-		{
-			MsgDev( D_ERROR, "Sys_LoadSymbols: %s error during reading section header\n", filename );
-			FS_Close( f );
-			return false;
-		}
-
-		if( !com.strcmp((char *)section_header.Name, ".edata" ))
-		{
-			edata_found = true;
-			break;
-		}
-	}
-
-	if( edata_found )
-	{
-		edata_offset = section_header.PointerToRawData;
-		edata_delta = section_header.VirtualAddress - section_header.PointerToRawData; 
-	}
-	else
-	{
-		edata_offset = optional_header.DataDirectory[0].VirtualAddress;
-		edata_delta = 0;
-	}
-
-	if( FS_Seek( f, edata_offset, SEEK_SET ) == -1 )
-	{
-		MsgDev( D_ERROR, "Sys_LoadSymbols: %s does not have a valid exports section\n", filename );
-		FS_Close( f );
-		return false;
-	}
-
-	if( FS_Read( f, &export_directory, sizeof( export_directory )) != sizeof( export_directory ))
-	{
-		MsgDev( D_ERROR, "Sys_LoadSymbols: %s does not have a valid optional header\n", filename );
-		FS_Close( f );
-		return false;
-	}
-
-	svgame.num_ordinals = export_directory.NumberOfNames;	// also number of ordinals
-
-	if( svgame.num_ordinals > 4096 )
-	{
-		MsgDev( D_ERROR, "Sys_LoadSymbols: %s too many exports\n", filename );
-		FS_Close( f );
-		return false;
-	}
-
-	ordinal_offset = export_directory.AddressOfNameOrdinals - edata_delta;
-
-	if( FS_Seek( f, ordinal_offset, SEEK_SET ) == -1 )
-	{
-		MsgDev( D_ERROR, "Sys_LoadSymbols: %s does not have a valid ordinals section\n", filename );
-		FS_Close( f );
-		return false;
-	}
-
-	svgame.ordinals = Mem_Alloc( svgame.private, svgame.num_ordinals * sizeof( word ));
-
-	if( FS_Read( f, svgame.ordinals, svgame.num_ordinals * sizeof( word )) != (svgame.num_ordinals * sizeof( word )))
-	{
-		Sys_FreeNameFuncGlobals();
-		MsgDev( D_ERROR, "Sys_LoadSymbols: %s error during reading ordinals table\n", filename );
-		FS_Close( f );
-		return false;
-	}
-
-	function_offset = export_directory.AddressOfFunctions - edata_delta;
-	if( FS_Seek( f, function_offset, SEEK_SET ) == -1 )
-	{
-		MsgDev( D_ERROR, "Sys_LoadSymbols: %s does not have a valid export address section\n", filename );
-		FS_Close( f );
-		return false;
-	}
-
-	svgame.funcs = Mem_Alloc( svgame.private, svgame.num_ordinals * sizeof( dword ));
-
-	if( FS_Read( f, svgame.funcs, svgame.num_ordinals * sizeof( dword )) != (svgame.num_ordinals * sizeof( dword )))
-	{
-		Sys_FreeNameFuncGlobals();
-		MsgDev( D_ERROR, "Sys_LoadSymbols: %s error during reading export address section\n", filename );
-		FS_Close( f );
-		return false;
-	}
-
-	name_offset = export_directory.AddressOfNames - edata_delta;
-
-	if( FS_Seek( f, name_offset, SEEK_SET ) == -1 )
-	{
-		Sys_FreeNameFuncGlobals();
-		MsgDev( D_ERROR, "Sys_LoadSymbols: %s file does not have a valid names section\n", filename );
-		FS_Close( f );
-		return false;
-	}
-
-	p_Names = Mem_Alloc( svgame.private, svgame.num_ordinals * sizeof( dword ));
-
-	if( FS_Read( f, p_Names, svgame.num_ordinals * sizeof( dword )) != (svgame.num_ordinals * sizeof( dword )))
-	{
-		Sys_FreeNameFuncGlobals();
-		if( p_Names ) Mem_Free( p_Names );
-		MsgDev( D_ERROR, "Sys_LoadSymbols: %s error during reading names table\n", filename );
-		FS_Close( f );
-		return false;
-	}
-
-	for( i = 0; i < svgame.num_ordinals; i++ )
-	{
-		name_offset = p_Names[i] - edata_delta;
-
-		if( name_offset != 0 )
-		{
-			if( FS_Seek( f, name_offset, SEEK_SET ) != -1 )
-			{
-				Sys_FsGetString( f, function_name );
-				svgame.names[i] = Sys_GetMSVCName( function_name );
-			}
-			else break;
-		}
-	}
-
-	if( i != svgame.num_ordinals )
-	{
-		Sys_FreeNameFuncGlobals();
-		if( p_Names ) Mem_Free( p_Names );
-		MsgDev( D_ERROR, "Sys_LoadSymbols: %s error during loading names section\n", filename );
-		FS_Close( f );
-		return false;
-	}
-	FS_Close( f );
-
-	for( i = 0; i < svgame.num_ordinals; i++ )
-	{
-		if( !com.strcmp( "CreateAPI", svgame.names[i] ))
-		{
-			void	*fn_offset;
-
-			index = svgame.ordinals[i];
-			fn_offset = (void *)Com_GetProcAddress( svgame.hInstance, "CreateAPI" );
-			svgame.funcBase = (dword)(fn_offset) - svgame.funcs[index];
-			break;
-		}
-	}
-
-	if( p_Names ) Mem_Free( p_Names );
-	return true;
-}
 
 void SV_SetMinMaxSize( edict_t *e, const float *min, const float *max )
 {
@@ -645,7 +350,7 @@ edict_t* SV_AllocPrivateData( edict_t *ent, string_t className )
 	VectorSet( ent->v.rendercolor, 255, 255, 255 ); // assume default color
 	
 	// allocate edict private memory (passed by dlls)
-	SpawnEdict = (LINK_ENTITY_FUNC)Com_GetProcAddress( svgame.hInstance, pszClassName );
+	SpawnEdict = (LINK_ENTITY_FUNC)FS_GetProcAddress( svgame.hInstance, pszClassName );
 	if( !SpawnEdict )
 	{
 		// attempt to create custom entity
@@ -2505,19 +2210,7 @@ pfnFunctionFromName
 */
 dword pfnFunctionFromName( const char *pName )
 {
-	int	i, index;
-
-	for( i = 0; i < svgame.num_ordinals; i++ )
-	{
-		if( !com.strcmp( pName, svgame.names[i] ))
-		{
-			index = svgame.ordinals[i];
-			return svgame.funcs[index] + svgame.funcBase;
-		}
-	}
-
-	// couldn't find the function name to return address
-	return 0;
+	return FS_FunctionFromName( svgame.hInstance, pName );
 }
 
 /*
@@ -2528,18 +2221,7 @@ pfnNameForFunction
 */
 const char *pfnNameForFunction( dword function )
 {
-	int	i, index;
-
-	for( i = 0; i < svgame.num_ordinals; i++ )
-	{
-		index = svgame.ordinals[i];
-
-		if((function - svgame.funcBase) == svgame.funcs[index] )
-			return svgame.names[i];
-	}
-
-	// couldn't find the function address to return name
-	return NULL;
+	return FS_NameForFunction( svgame.hInstance, function );
 }
 
 /*
@@ -2743,9 +2425,8 @@ int pfnCompareFileTime( const char *filename1, const char *filename2, int *iComp
 
 	if( filename1 && filename2 )
 	{
-		// FIXME: rewrite FS_FileTime
-		long ft1 = FS_FileTime( va( "%s/%s", GI->gamedir, filename1 ));
-		long ft2 = FS_FileTime( va( "%s/%s", GI->gamedir, filename2 ));
+		long ft1 = FS_FileTime( filename1 );
+		long ft2 = FS_FileTime( filename2 );
 
 		*iCompare = Host_CompareFileTime( ft1,  ft2 );
 		bRet = 1;
@@ -3816,13 +3497,10 @@ void SV_UnloadProgs( void )
 	svgame.dllFuncs.pfnGameShutdown ();
 	StringTable_Delete( svgame.hStringTable );
 
-	Sys_FreeNameFuncGlobals ();
-	Com_FreeLibrary( svgame.hInstance );
+	FS_FreeLibrary( svgame.hInstance );
 	Mem_FreePool( &svgame.mempool );
 	Mem_FreePool( &svgame.private );
 	Mem_FreePool( &svgame.temppool );
-	svgame.hInstance = NULL;
-
 	Mem_Set( &svgame, 0, sizeof( svgame ));
 }
 
@@ -3831,7 +3509,6 @@ bool SV_LoadProgs( const char *name )
 	static SERVERAPI		GetEntityAPI;
 	static globalvars_t		gpGlobals;
 	static playermove_t		gpMove;
-	string			libpath;
 	edict_t			*e;
 	int			i;
 
@@ -3840,11 +3517,10 @@ bool SV_LoadProgs( const char *name )
 	// fill it in
 	svgame.pmove = &gpMove;
 	svgame.globals = &gpGlobals;
-	Com_BuildPath( name, libpath );
 	svgame.mempool = Mem_AllocPool( "Server Edicts Zone" );
 	svgame.private = Mem_AllocPool( "Server Private Zone" );
 	svgame.temppool = Mem_AllocPool( "Server Temp Strings" );
-	svgame.hInstance = Com_LoadLibrary( libpath );
+	svgame.hInstance = FS_LoadLibrary( name, true );
 
 	if( !svgame.hInstance )
 	{
@@ -3852,16 +3528,11 @@ bool SV_LoadProgs( const char *name )
 		return false;
 	}
 
-	GetEntityAPI = (SERVERAPI)Com_GetProcAddress( svgame.hInstance, "CreateAPI" );
+	GetEntityAPI = (SERVERAPI)FS_GetProcAddress( svgame.hInstance, "CreateAPI" );
+
 	if( !GetEntityAPI )
 	{
 		MsgDev( D_ERROR, "SV_LoadProgs: failed to get address of CreateAPI proc\n" );
-		return false;
-	}
-
-	if( !Sys_LoadSymbols( name ))
-	{
-		MsgDev( D_ERROR, "SV_LoadProgs: can't loading export symbols\n" );
 		return false;
 	}
 

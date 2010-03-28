@@ -651,6 +651,6 @@ bool Image_SaveJPG( const char *name, rgbdata_t *pix )
 error_caught:
 	jpeg_destroy_compress( &cinfo );
 	FS_Close( file );
-	FS_DeleteFile( name ); // kill invalid file
+	FS_Delete( name ); // kill invalid file
 	return false;
 }

@@ -232,6 +232,8 @@ bool SV_GetComment( const char *savename, char *comment );
 bool SV_NewGame( const char *mapName, bool loadGame );
 bool SV_LoadProgs( const char *name );
 void SV_ForceMod( void );
+void SV_ForceError( void );
+void CL_WriteMessageHistory( void );
 void CL_MouseEvent( int mx, int my );
 void CL_AddLoopingSounds( void );
 void CL_Disconnect( void );

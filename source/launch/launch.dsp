@@ -180,6 +180,10 @@ SOURCE=.\imagelib\img_wad.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\library.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\memlib.c
 # End Source File
 # Begin Source File
@@ -217,6 +221,10 @@ SOURCE=.\filesystem.h
 # Begin Source File
 
 SOURCE=.\launch.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\library.h
 # End Source File
 # End Group
 # Begin Group "Resource Files"
